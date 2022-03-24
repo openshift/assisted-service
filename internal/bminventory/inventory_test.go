@@ -194,6 +194,10 @@ func getTestAuthHandler() auth.Authenticator {
 	return auth.NewNoneAuthenticator(common.GetTestLog().WithField("pkg", "auth"))
 }
 
+func getTestAuthzHandler() auth.Authorizer {
+	return &auth.NoneHandler{}
+}
+
 func strToUUID(s string) *strfmt.UUID {
 	u := strfmt.UUID(s)
 	return &u
@@ -6468,9 +6472,10 @@ var _ = Describe("infraEnvs", func() {
 
 		BeforeEach(func() {
 			_, cert := auth.GetTokenAndCert(false)
-			cfg := &auth.Config{JwkCert: string(cert)}
+			cfg := &auth.Config{JwkCert: string(cert), AuthType: auth.TypeRHSSO}
 			cfg.EnableOrgTenancy = true
 			bm.authHandler = auth.NewRHSSOAuthenticator(cfg, nil, common.GetTestLog().WithField("pkg", "auth"), db)
+			bm.authzHandler = auth.NewAuthzHandler(cfg, nil, common.GetTestLog().WithField("pkg", "auth"), db)
 
 			payload := &ocm.AuthPayload{Role: ocm.UserRole}
 			payload.Username = userName1
@@ -6533,9 +6538,10 @@ var _ = Describe("infraEnvs", func() {
 
 		BeforeEach(func() {
 			_, cert := auth.GetTokenAndCert(false)
-			cfg := &auth.Config{JwkCert: string(cert)}
+			cfg := &auth.Config{JwkCert: string(cert), AuthType: auth.TypeRHSSO}
 			cfg.EnableOrgTenancy = true
 			bm.authHandler = auth.NewRHSSOAuthenticator(cfg, nil, common.GetTestLog().WithField("pkg", "auth"), db)
+			bm.authzHandler = auth.NewAuthzHandler(cfg, nil, common.GetTestLog().WithField("pkg", "auth"), db)
 
 			payload := &ocm.AuthPayload{Role: ocm.UserRole}
 			payload.Username = userName1
@@ -8358,9 +8364,10 @@ var _ = Describe("List clusters", func() {
 
 		BeforeEach(func() {
 			_, cert := auth.GetTokenAndCert(false)
-			cfg := &auth.Config{JwkCert: string(cert)}
+			cfg := &auth.Config{JwkCert: string(cert), AuthType: auth.TypeRHSSO}
 			cfg.EnableOrgTenancy = true
 			bm.authHandler = auth.NewRHSSOAuthenticator(cfg, nil, common.GetTestLog().WithField("pkg", "auth"), db)
+			bm.authzHandler = auth.NewAuthzHandler(cfg, nil, common.GetTestLog().WithField("pkg", "auth"), db)
 
 			payload := &ocm.AuthPayload{Role: ocm.UserRole}
 			payload.Username = userName1
@@ -8425,9 +8432,10 @@ var _ = Describe("List clusters", func() {
 
 		BeforeEach(func() {
 			_, cert := auth.GetTokenAndCert(false)
-			cfg := &auth.Config{JwkCert: string(cert)}
+			cfg := &auth.Config{JwkCert: string(cert), AuthType: auth.TypeRHSSO}
 			cfg.EnableOrgTenancy = true
 			bm.authHandler = auth.NewRHSSOAuthenticator(cfg, nil, common.GetTestLog().WithField("pkg", "auth"), db)
+			bm.authzHandler = auth.NewAuthzHandler(cfg, nil, common.GetTestLog().WithField("pkg", "auth"), db)
 
 			payload := &ocm.AuthPayload{Role: ocm.UserRole}
 			payload.Username = userName1
@@ -12252,7 +12260,7 @@ func createInventory(db *gorm.DB, cfg Config) *bareMetalInventory {
 	gcConfig := garbagecollector.Config{DeregisterInactiveAfter: 20 * 24 * time.Hour}
 	return NewBareMetalInventory(db, common.GetTestLog(), mockHostApi, mockClusterApi, mockInfraEnvApi, cfg,
 		mockGenerator, mockEvents, mockS3Client, mockMetric, mockUsage, mockOperatorManager,
-		getTestAuthHandler(), mockK8sClient, ocmClient, nil, mockSecretValidator, mockVersions,
+		getTestAuthHandler(), getTestAuthzHandler(), mockK8sClient, ocmClient, nil, mockSecretValidator, mockVersions,
 		mockIsoEditorFactory, mockCRDUtils, mockIgnitionBuilder, mockHwValidator, dnsApi, mockInstallConfigBuilder, mockStaticNetworkConfig,
 		gcConfig, mockProviderRegistry)
 }

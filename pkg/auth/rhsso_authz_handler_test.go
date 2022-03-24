@@ -34,21 +34,25 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"github.com/thoas/go-funk"
+	"gorm.io/gorm"
 )
 
 var _ = Describe("NewAuthzHandler", func() {
 	It("Is disabled unless auth type is rhsso", func() {
 		cfg := &Config{AuthType: TypeRHSSO}
 		handler := NewAuthzHandler(cfg, nil, logrus.New(), nil)
-		Expect(handler.Enabled).To(BeTrue())
+		_, ok := handler.(*AuthzHandler)
+		Expect(ok).To(BeTrue())
 
 		cfg = &Config{}
 		handler = NewAuthzHandler(cfg, nil, logrus.New(), nil)
-		Expect(handler.Enabled).To(BeFalse())
+		_, ok = handler.(*NoneHandler)
+		Expect(ok).To(BeTrue())
 
 		cfg = &Config{AuthType: TypeNone}
 		handler = NewAuthzHandler(cfg, nil, logrus.New(), nil)
-		Expect(handler.Enabled).To(BeFalse())
+		_, ok = handler.(*NoneHandler)
+		Expect(ok).To(BeTrue())
 	})
 })
 
@@ -93,6 +97,199 @@ var _ = Describe("Authz email domain", func() {
 	}
 })
 
+var _ = Describe("OwnedBy", func() {
+	var (
+		db      *gorm.DB
+		dbName  string
+		ctx     context.Context
+		handler Authorizer
+	)
+	BeforeEach(func() {
+		db, dbName = common.PrepareTestDB()
+		ctx = context.Background()
+
+		//prepare some test data
+		db.Model(&common.Cluster{}).Create([]map[string]interface{}{
+			//Organization 1
+			{"ID": strfmt.UUID(uuid.New().String()), "Name": "A", "UserName": "user1", "OrgID": "org1"},
+			{"ID": strfmt.UUID(uuid.New().String()), "Name": "B", "UserName": "user2", "OrgID": "org1"},
+			//Organization 2
+			{"ID": strfmt.UUID(uuid.New().String()), "Name": "A", "UserName": "user1", "OrgID": "org2"},
+			//No user data
+			{"ID": strfmt.UUID(uuid.New().String()), "Name": "A"},
+		})
+	})
+
+	AfterEach(func() {
+		common.DeleteTestDB(db, dbName)
+	})
+
+	Context("authz RHSSO ownership", func() {
+		AllRecordsHasUserName := func(records []common.Cluster, username string) bool {
+			return len(funk.Filter(records, func(item common.Cluster) bool {
+				return item.UserName == username
+			}).([]common.Cluster)) == len(records)
+		}
+
+		AllRecordsHasName := func(records []common.Cluster, name string) bool {
+			return len(funk.Filter(records, func(item common.Cluster) bool {
+				return item.Name == name
+			}).([]common.Cluster)) == len(records)
+		}
+
+		AllRecordsHasOrgId := func(records []common.Cluster, orgId string) bool {
+			return len(funk.Filter(records, func(item common.Cluster) bool {
+				return item.OrgID == orgId
+			}).([]common.Cluster)) == len(records)
+		}
+
+		Context("tenancy disabled", func() {
+
+			BeforeEach(func() {
+				cfg := &Config{AuthType: TypeRHSSO, EnableOrgTenancy: false}
+				handler = NewAuthzHandler(cfg, nil, logrus.New(), db)
+			})
+
+			It("admin user - no conditions", func() {
+				payload := &ocm.AuthPayload{}
+				payload.Role = ocm.AdminRole
+				ctx = context.WithValue(ctx, restapi.AuthKey, payload)
+
+				var records []common.Cluster
+				results := handler.OwnedBy(ctx, db).Find(&records)
+				Expect(results.RowsAffected, 4)
+			})
+			It("admin user - non-empty query", func() {
+				payload := &ocm.AuthPayload{}
+				payload.Role = ocm.AdminRole
+				ctx = context.WithValue(ctx, restapi.AuthKey, payload)
+
+				var records []common.Cluster
+				results := handler.OwnedBy(ctx, db).Where("name = ?", "A").Find(&records)
+				Expect(results.RowsAffected, 3)
+				Expect(AllRecordsHasName(records, "A")).To(BeTrue())
+			})
+			It("admin user - ownerByUser filters by user name", func() {
+				payload := &ocm.AuthPayload{}
+				payload.Role = ocm.AdminRole
+				ctx = context.WithValue(ctx, restapi.AuthKey, payload)
+
+				var records []common.Cluster
+				results := handler.OwnedByUser(ctx, db, "user1").Find(&records)
+				Expect(results.RowsAffected, 2)
+				Expect(AllRecordsHasUserName(records, "user1")).To(BeTrue())
+			})
+
+			It("non-admin user - empty query should filter by user", func() {
+				payload := &ocm.AuthPayload{}
+				payload.Username = "user1"
+				ctx = context.WithValue(ctx, restapi.AuthKey, payload)
+
+				var records []common.Cluster
+				results := handler.OwnedBy(ctx, db).Find(&records)
+				Expect(results.RowsAffected, 2)
+				Expect(AllRecordsHasUserName(records, "user1")).To(BeTrue())
+			})
+			It("non-admin user - non-empty query should filter by user", func() {
+				payload := &ocm.AuthPayload{}
+				payload.Username = "user1"
+				ctx = context.WithValue(ctx, restapi.AuthKey, payload)
+
+				var records []common.Cluster
+				results := handler.OwnedBy(ctx, db).Where("name = ?", "A").Find(&records)
+				Expect(results.RowsAffected, 2)
+				Expect(AllRecordsHasName(records, "A")).To(BeTrue())
+				Expect(AllRecordsHasUserName(records, "user1")).To(BeTrue())
+			})
+			It("non-admin user - ownedByUser filters by user if equals current user", func() {
+				payload := &ocm.AuthPayload{}
+				payload.Username = "user1"
+				ctx = context.WithValue(ctx, restapi.AuthKey, payload)
+
+				var records []common.Cluster
+				results := handler.OwnedByUser(ctx, db, "user1").Find(&records)
+				Expect(results.RowsAffected, 2)
+				Expect(AllRecordsHasUserName(records, "user1")).To(BeTrue())
+			})
+			It("non-admin user - ownedByUser should block if not equals current user", func() {
+				payload := &ocm.AuthPayload{}
+				payload.Username = "user1"
+				ctx = context.WithValue(ctx, restapi.AuthKey, payload)
+
+				var records []common.Cluster
+				results := handler.OwnedByUser(ctx, db, "user2").Find(&records)
+				Expect(results.RowsAffected, 0)
+			})
+		})
+		Context("tenancy enabled", func() {
+			BeforeEach(func() {
+				cfg := &Config{AuthType: TypeRHSSO, EnableOrgTenancy: true}
+				handler = NewAuthzHandler(cfg, nil, logrus.New(), db)
+			})
+			It("admin user - empty query", func() {
+				payload := &ocm.AuthPayload{}
+				payload.Role = ocm.AdminRole
+				ctx = context.WithValue(ctx, restapi.AuthKey, payload)
+
+				var records []common.Cluster
+				results := handler.OwnedBy(ctx, db).Find(&records)
+				Expect(results.RowsAffected, 4)
+			})
+			It("admin user - non-empty query", func() {
+				payload := &ocm.AuthPayload{}
+				payload.Role = ocm.AdminRole
+				ctx = context.WithValue(ctx, restapi.AuthKey, payload)
+
+				var records []common.Cluster
+				results := handler.OwnedBy(ctx, db).Where("name = ?", "A").Find(&records)
+				Expect(results.RowsAffected, 3)
+				Expect(AllRecordsHasName(records, "A")).To(BeTrue())
+			})
+			It("non-admin user - empty query should filter by org", func() {
+				payload := &ocm.AuthPayload{}
+				payload.Organization = "org1"
+				ctx = context.WithValue(ctx, restapi.AuthKey, payload)
+
+				var records []common.Cluster
+				results := handler.OwnedBy(ctx, db).Find(&records)
+				Expect(results.RowsAffected, 2)
+				Expect(AllRecordsHasOrgId(records, "org1")).To(BeTrue())
+			})
+			It("non-admin user - non-empty query should filter by org", func() {
+				payload := &ocm.AuthPayload{}
+				payload.Organization = "org1"
+				ctx = context.WithValue(ctx, restapi.AuthKey, payload)
+
+				var records []common.Cluster
+				results := handler.OwnedBy(ctx, db).Where("name = ?", "A").Find(&records)
+				Expect(results.RowsAffected, 1)
+				Expect(AllRecordsHasName(records, "A")).To(BeTrue())
+				Expect(AllRecordsHasOrgId(records, "org1")).To(BeTrue())
+			})
+			It("non-admin user - ownedByUser filters by user and org", func() {
+				payload := &ocm.AuthPayload{}
+				payload.Username = "user2"
+				payload.Organization = "org1"
+				ctx = context.WithValue(ctx, restapi.AuthKey, payload)
+
+				var records []common.Cluster
+				results := handler.OwnedByUser(ctx, db, "user1").Find(&records)
+				Expect(results.RowsAffected, 1)
+				Expect(AllRecordsHasUserName(records, "user1")).To(BeTrue())
+			})
+			It("non-admin user - ownedByUser should block if user does not exist in the org", func() {
+				payload := &ocm.AuthPayload{}
+				payload.Username = "user1"
+				payload.Organization = "org2"
+				ctx = context.WithValue(ctx, restapi.AuthKey, payload)
+
+				var records []common.Cluster
+				results := handler.OwnedByUser(ctx, db, "user2").Find(&records)
+				Expect(results.RowsAffected, 0)
+			})
+		})
+	})
+})
 var _ = Describe("authz", func() {
 	var (
 		server      *httptest.Server

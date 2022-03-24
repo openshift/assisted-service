@@ -10,6 +10,7 @@ import (
 	"github.com/go-openapi/runtime/middleware"
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/internal/identity"
 	params "github.com/openshift/assisted-service/pkg/context"
 	"github.com/openshift/assisted-service/pkg/ocm"
 	"github.com/openshift/assisted-service/restapi"
@@ -19,34 +20,19 @@ import (
 	"gorm.io/gorm"
 )
 
+/* AuthzHandler is the authorizer middleware that is being used for
+ * RHSSO authentication cases and work with AMS to ensure tenancy
+ * and user based access policies
+ */
 type AuthzHandler struct {
-	cfg     *Config
-	Enabled bool
-	log     logrus.FieldLogger
-	client  *ocm.Client
-	db      *gorm.DB
+	cfg    *Config
+	log    logrus.FieldLogger
+	client *ocm.Client
+	db     *gorm.DB
 }
 
-func NewAuthzHandler(cfg *Config, ocmCLient *ocm.Client, log logrus.FieldLogger, db *gorm.DB) *AuthzHandler {
-	a := &AuthzHandler{
-		cfg:     cfg,
-		Enabled: cfg.AuthType == TypeRHSSO,
-		client:  ocmCLient,
-		log:     log,
-		db:      db,
-	}
-	return a
-}
-
-// CreateAuthorizer returns Authorizer if auth is enabled
 func (a *AuthzHandler) CreateAuthorizer() func(*http.Request) error {
-	if !a.Enabled {
-		return func(*http.Request) error {
-			return nil
-		}
-	}
-
-	return a.Authorizer
+	return a.authorizerMiddleware
 }
 
 func (a *AuthzHandler) isTenancyEnabled() bool {
@@ -63,6 +49,29 @@ func handleOwnershipQueryError(err error) (bool, error) {
 		return false, err
 	}
 	return true, nil
+}
+
+func (a *AuthzHandler) OwnedBy(ctx context.Context, db *gorm.DB) *gorm.DB {
+	if identity.IsAdmin(ctx) {
+		return db
+	}
+	if a.isTenancyEnabled() {
+		return db.Where("org_id = ?", ocm.OrgIDFromContext(ctx))
+	} else {
+		return db.Where("user_name = ?", ocm.UserNameFromContext(ctx))
+	}
+}
+
+func (a *AuthzHandler) OwnedByUser(ctx context.Context, db *gorm.DB, username string) *gorm.DB {
+	// When tenancy-based access is supported, the following query returns records
+	// for the input user alone. With a user-based access policy, the query returns
+	// the user's records, provided it is the current user. Otherwise, it returns an
+	// empty set since we do not support listing objects on behalf of other users in
+	// that mode.
+	if username == "" {
+		return a.OwnedBy(ctx, db)
+	}
+	return a.OwnedBy(ctx, db).Where("user_name = ?", username)
 }
 
 func (a *AuthzHandler) isObjectOwnedByUser(id string, obj interface{}, payload *ocm.AuthPayload) (bool, error) {
@@ -179,7 +188,7 @@ func (a *AuthzHandler) checkInfraEnvBasedAccess(id string, request *http.Request
 	return a.isObjectOwnedByUser(id, &common.InfraEnv{}, payload)
 }
 
-func (a *AuthzHandler) Authorizer(request *http.Request) error {
+func (a *AuthzHandler) authorizerMiddleware(request *http.Request) error {
 	route := middleware.MatchedRouteFrom(request)
 	switch authScheme := route.Authenticator.Schemes[0]; authScheme {
 	case "imageAuth", "imageURLAuth":
