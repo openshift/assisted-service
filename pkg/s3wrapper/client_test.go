@@ -17,6 +17,7 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
+	request "github.com/aws/aws-sdk-go/aws/request"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"
@@ -262,7 +263,7 @@ var _ = Describe("s3client", func() {
 				Return(&s3.CreateMultipartUploadOutput{UploadId: aws.String(uploadID)}, nil)
 			mockAPI.EXPECT().UploadPartCopyWithContext(gomock.Any(), &s3.UploadPartCopyInput{Bucket: &bucket, Key: aws.String(destObjName), PartNumber: aws.Int64(1),
 				CopySource: aws.String(copySource), CopySourceRange: aws.String("bytes=0-8302591"), UploadId: aws.String(uploadID)}).
-				DoAndReturn(func(args ...interface{}) (*s3.UploadPartCopyOutput, error) {
+				DoAndReturn(func(aws.Context, *s3.UploadPartCopyInput, ...request.Option) (*s3.UploadPartCopyOutput, error) {
 					cancel()
 					return &s3.UploadPartCopyOutput{CopyPartResult: &s3.CopyPartResult{ETag: aws.String("etag")}}, errors.New("failed")
 				})
