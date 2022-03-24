@@ -6220,6 +6220,11 @@ var _ = Describe("infraEnvs", func() {
 		ctx        = context.Background()
 		infraEnvID strfmt.UUID
 		dbName     string
+		orgID1     = "300F3CE2-F122-4DA5-A845-2A4BC5956996"
+		orgID2     = "DD71FD12-57FC-4480-917E-6F1900826543"
+		userName1  = "test_user_1"
+		userName2  = "test_user_2"
+		userName3  = "test_user_3"
 	)
 
 	const (
@@ -6335,13 +6340,7 @@ var _ = Describe("infraEnvs", func() {
 	})
 
 	Context("Filter based on organization ID", func() {
-		var (
-			authCtx   context.Context
-			orgID1    = "300F3CE2-F122-4DA5-A845-2A4BC5956996"
-			orgID2    = "DD71FD12-57FC-4480-917E-6F1900826543"
-			userName1 = "test_user_1"
-			userName2 = "test_user_2"
-		)
+		var authCtx context.Context
 
 		BeforeEach(func() {
 			_, cert := auth.GetTokenAndCert(false)
@@ -6402,6 +6401,73 @@ var _ = Describe("infraEnvs", func() {
 			payload := resp.(*installer.ListInfraEnvsOK).Payload
 			Expect(len(payload)).Should(Equal(1))
 			Expect(payload[0].OrgID).Should(Equal(orgID1))
+		})
+	})
+
+	Context("Filter by owner query param", func() {
+		var authCtx context.Context
+
+		BeforeEach(func() {
+			_, cert := auth.GetTokenAndCert(false)
+			cfg := &auth.Config{JwkCert: string(cert)}
+			cfg.EnableOrgTenancy = true
+			bm.authHandler = auth.NewRHSSOAuthenticator(cfg, nil, common.GetTestLog().WithField("pkg", "auth"), db)
+
+			payload := &ocm.AuthPayload{Role: ocm.UserRole}
+			payload.Username = userName1
+			payload.Organization = orgID1
+			authCtx = context.WithValue(ctx, restapi.AuthKey, payload)
+
+			infraEnvID = strfmt.UUID(uuid.New().String())
+			err := db.Create(&common.InfraEnv{InfraEnv: models.InfraEnv{
+				ID:       &infraEnvID,
+				OrgID:    orgID1,
+				UserName: userName1,
+			}}).Error
+			Expect(err).ShouldNot(HaveOccurred())
+
+			infraEnvID = strfmt.UUID(uuid.New().String())
+			err = db.Create(&common.InfraEnv{InfraEnv: models.InfraEnv{
+				ID:       &infraEnvID,
+				OrgID:    orgID1,
+				UserName: userName2,
+			}}).Error
+			Expect(err).ShouldNot(HaveOccurred())
+
+			infraEnvID = strfmt.UUID(uuid.New().String())
+			err = db.Create(&common.InfraEnv{InfraEnv: models.InfraEnv{
+				ID:       &infraEnvID,
+				OrgID:    orgID2,
+				UserName: userName3,
+			}}).Error
+			Expect(err).ShouldNot(HaveOccurred())
+		})
+
+		It("Owner query param is not specified", func() {
+			params := installer.ListInfraEnvsParams{}
+			resp := bm.ListInfraEnvs(authCtx, params)
+			Expect(resp).Should(BeAssignableToTypeOf(installer.NewListInfraEnvsOK()))
+			payload := resp.(*installer.ListInfraEnvsOK).Payload
+			Expect(len(payload)).Should(Equal(2))
+		})
+
+		It("Owner query param is specified - user in org", func() {
+			params := installer.ListInfraEnvsParams{}
+			params.Owner = &userName1
+			resp := bm.ListInfraEnvs(authCtx, params)
+			Expect(resp).Should(BeAssignableToTypeOf(installer.NewListInfraEnvsOK()))
+			payload := resp.(*installer.ListInfraEnvsOK).Payload
+			Expect(len(payload)).Should(Equal(1))
+			Expect(payload[0].UserName).Should(Equal(userName1))
+		})
+
+		It("Owner query param is specified - user not in org", func() {
+			params := installer.ListInfraEnvsParams{}
+			params.Owner = &userName3
+			resp := bm.ListInfraEnvs(authCtx, params)
+			Expect(resp).Should(BeAssignableToTypeOf(installer.NewListInfraEnvsOK()))
+			payload := resp.(*installer.ListInfraEnvsOK).Payload
+			Expect(len(payload)).Should(Equal(0))
 		})
 	})
 
@@ -8010,6 +8076,11 @@ var _ = Describe("List clusters", func() {
 		hostID             strfmt.UUID
 		openshiftClusterID = strToUUID("41940ee8-ec99-43de-8766-174381b4921d")
 		amsSubscriptionID  = strToUUID("1sOMjCKRmEHYanIsp1bPbplb47t")
+		orgID1             = "300F3CE2-F122-4DA5-A845-2A4BC5956996"
+		orgID2             = "DD71FD12-57FC-4480-917E-6F1900826543"
+		userName1          = "test_user_1"
+		userName2          = "test_user_2"
+		userName3          = "test_user_3"
 		c                  common.Cluster
 		kubeconfigFile     *os.File
 		dbName             string
@@ -8159,13 +8230,7 @@ var _ = Describe("List clusters", func() {
 	})
 
 	Context("Filter based on organization ID", func() {
-		var (
-			authCtx   context.Context
-			orgID1    = "300F3CE2-F122-4DA5-A845-2A4BC5956996"
-			orgID2    = "DD71FD12-57FC-4480-917E-6F1900826543"
-			userName1 = "test_user_1"
-			userName2 = "test_user_2"
-		)
+		var authCtx context.Context
 
 		BeforeEach(func() {
 			_, cert := auth.GetTokenAndCert(false)
@@ -8228,6 +8293,73 @@ var _ = Describe("List clusters", func() {
 			payload := resp.(*installer.V2ListClustersOK).Payload
 			Expect(len(payload)).Should(Equal(1))
 			Expect(payload[0].OrgID).Should(Equal(orgID1))
+		})
+	})
+
+	Context("Filter by owner query param", func() {
+		var authCtx context.Context
+
+		BeforeEach(func() {
+			_, cert := auth.GetTokenAndCert(false)
+			cfg := &auth.Config{JwkCert: string(cert)}
+			cfg.EnableOrgTenancy = true
+			bm.authHandler = auth.NewRHSSOAuthenticator(cfg, nil, common.GetTestLog().WithField("pkg", "auth"), db)
+
+			payload := &ocm.AuthPayload{Role: ocm.UserRole}
+			payload.Username = userName1
+			payload.Organization = orgID1
+			authCtx = context.WithValue(ctx, restapi.AuthKey, payload)
+
+			clusterID = strfmt.UUID(uuid.New().String())
+			c = common.Cluster{Cluster: models.Cluster{
+				ID:       &clusterID,
+				OrgID:    orgID1,
+				UserName: userName1,
+			}}
+			err := db.Create(&c).Error
+			Expect(err).ShouldNot(HaveOccurred())
+
+			clusterID = strfmt.UUID(uuid.New().String())
+			c = common.Cluster{Cluster: models.Cluster{
+				ID:       &clusterID,
+				OrgID:    orgID1,
+				UserName: userName2,
+			}}
+			err = db.Create(&c).Error
+			Expect(err).ShouldNot(HaveOccurred())
+
+			clusterID = strfmt.UUID(uuid.New().String())
+			c = common.Cluster{Cluster: models.Cluster{
+				ID:       &clusterID,
+				OrgID:    orgID2,
+				UserName: userName3,
+			}}
+			err = db.Create(&c).Error
+			Expect(err).ShouldNot(HaveOccurred())
+		})
+
+		It("Owner query param is not specified", func() {
+			params := installer.V2ListClustersParams{}
+			resp := bm.V2ListClusters(authCtx, params)
+			payload := resp.(*installer.V2ListClustersOK).Payload
+			Expect(len(payload)).Should(Equal(2))
+		})
+
+		It("Owner query param is specified - user in org", func() {
+			params := installer.V2ListClustersParams{}
+			params.Owner = &userName1
+			resp := bm.V2ListClusters(authCtx, params)
+			payload := resp.(*installer.V2ListClustersOK).Payload
+			Expect(len(payload)).Should(Equal(1))
+			Expect(payload[0].UserName).Should(Equal(userName1))
+		})
+
+		It("Owner query param is specified - user not in org", func() {
+			params := installer.V2ListClustersParams{}
+			params.Owner = &userName3
+			resp := bm.V2ListClusters(authCtx, params)
+			payload := resp.(*installer.V2ListClustersOK).Payload
+			Expect(len(payload)).Should(Equal(0))
 		})
 	})
 })

@@ -57,6 +57,10 @@ type V2ListClustersParams struct {
 	  In: query
 	*/
 	OpenshiftClusterID *strfmt.UUID
+	/*If provided, returns only clusters that are owned by the specified user.
+	  In: query
+	*/
+	Owner *string
 	/*Include hosts in the returned list.
 	  In: query
 	  Default: false
@@ -86,6 +90,11 @@ func (o *V2ListClustersParams) BindRequest(r *http.Request, route *middleware.Ma
 
 	qOpenshiftClusterID, qhkOpenshiftClusterID, _ := qs.GetOK("openshift_cluster_id")
 	if err := o.bindOpenshiftClusterID(qOpenshiftClusterID, qhkOpenshiftClusterID, route.Formats); err != nil {
+		res = append(res, err)
+	}
+
+	qOwner, qhkOwner, _ := qs.GetOK("owner")
+	if err := o.bindOwner(qOwner, qhkOwner, route.Formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -183,6 +192,24 @@ func (o *V2ListClustersParams) validateOpenshiftClusterID(formats strfmt.Registr
 	if err := validate.FormatOf("openshift_cluster_id", "query", "uuid", o.OpenshiftClusterID.String(), formats); err != nil {
 		return err
 	}
+	return nil
+}
+
+// bindOwner binds and validates parameter Owner from query.
+func (o *V2ListClustersParams) bindOwner(rawData []string, hasKey bool, formats strfmt.Registry) error {
+	var raw string
+	if len(rawData) > 0 {
+		raw = rawData[len(rawData)-1]
+	}
+
+	// Required: false
+	// AllowEmptyValue: false
+
+	if raw == "" { // empty values pass all other validations
+		return nil
+	}
+	o.Owner = &raw
+
 	return nil
 }
 

@@ -18,6 +18,7 @@ import (
 type V2ListClustersURL struct {
 	AmsSubscriptionIds []string
 	OpenshiftClusterID *strfmt.UUID
+	Owner              *string
 	WithHosts          bool
 
 	_basePath string
@@ -77,6 +78,14 @@ func (o *V2ListClustersURL) Build() (*url.URL, error) {
 	}
 	if openshiftClusterIDQ != "" {
 		qs.Set("openshift_cluster_id", openshiftClusterIDQ)
+	}
+
+	var ownerQ string
+	if o.Owner != nil {
+		ownerQ = *o.Owner
+	}
+	if ownerQ != "" {
+		qs.Set("owner", ownerQ)
 	}
 
 	withHostsQ := swag.FormatBool(o.WithHosts)
