@@ -14,7 +14,7 @@ import (
 	"github.com/go-openapi/validate"
 )
 
-// ServiceNetwork IP address block for service IP blocks.
+// ServiceNetwork A network to use for service IP addresses. If you need to access the services from an external network, configure load balancers and routers to manage the traffic.
 //
 // swagger:model service_network
 type ServiceNetwork struct {

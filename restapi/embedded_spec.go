@@ -5241,17 +5241,6 @@ func init() {
           "description": "Base domain of the cluster. All DNS records must be sub-domains of this base and include the cluster name.",
           "type": "string"
         },
-        "cluster_network_cidr": {
-          "description": "IP address block from which Pod IPs are allocated. This block must not overlap with existing physical networks. These IP addresses are used for the Pod network, and if you need to access the Pods from an external network, configure load balancers and routers to manage the traffic.",
-          "type": "string",
-          "pattern": "^(?:(?:(?:[0-9]{1,3}\\.){3}[0-9]{1,3}\\/(?:(?:[0-9])|(?:[1-2][0-9])|(?:3[0-2])))|(?:(?:[0-9a-fA-F]*:[0-9a-fA-F]*){2,})/(?:(?:[0-9])|(?:[1-9][0-9])|(?:1[0-1][0-9])|(?:12[0-8])))$"
-        },
-        "cluster_network_host_prefix": {
-          "description": "The subnet prefix length to assign to each individual node. For example, if clusterNetworkHostPrefix is set to 23, then each node is assigned a /23 subnet out of the given cidr (clusterNetworkCIDR), which allows for 510 (2^(32 - 23) - 2) pod IPs addresses. If you are required to provide access to nodes from an external network, configure load balancers and routers to manage the traffic.",
-          "type": "integer",
-          "maximum": 128,
-          "minimum": 1
-        },
         "cluster_networks": {
           "description": "Cluster networks that are associated with this cluster.",
           "type": "array",
@@ -5434,11 +5423,6 @@ func init() {
           "description": "The progress of log collection or empty if logs are not applicable",
           "$ref": "#/definitions/logs_state"
         },
-        "machine_network_cidr": {
-          "description": "A CIDR that all hosts belonging to the cluster should have an interfaces with IP address that belongs to this CIDR. The api_vip belongs to this CIDR.",
-          "type": "string",
-          "pattern": "^(?:(?:(?:[0-9]{1,3}\\.){3}[0-9]{1,3}\\/(?:(?:[0-9])|(?:[1-2][0-9])|(?:3[0-2])))|(?:(?:[0-9a-fA-F]*:[0-9a-fA-F]*){2,})/(?:(?:[0-9])|(?:[1-9][0-9])|(?:1[0-1][0-9])|(?:12[0-8])))$"
-        },
         "machine_networks": {
           "description": "Machine networks that are associated with this cluster.",
           "type": "array",
@@ -5511,11 +5495,6 @@ func init() {
           "description": "Schedule workloads on masters",
           "type": "boolean",
           "default": false
-        },
-        "service_network_cidr": {
-          "description": "The IP address pool to use for service IP addresses. You can enter only one IP address pool. If you need to access the services from an external network, configure load balancers and routers to manage the traffic.",
-          "type": "string",
-          "pattern": "^(?:(?:(?:[0-9]{1,3}\\.){3}[0-9]{1,3}\\/(?:(?:[0-9])|(?:[1-2][0-9])|(?:3[0-2])))|(?:(?:[0-9a-fA-F]*:[0-9a-fA-F]*){2,})/(?:(?:[0-9])|(?:[1-9][0-9])|(?:1[0-1][0-9])|(?:12[0-8])))$"
         },
         "service_networks": {
           "description": "Service networks that are associated with this cluster.",
@@ -5620,19 +5599,6 @@ func init() {
         "base_dns_domain": {
           "description": "Base domain of the cluster. All DNS records must be sub-domains of this base and include the cluster name.",
           "type": "string"
-        },
-        "cluster_network_cidr": {
-          "description": "IP address block from which Pod IPs are allocated. This block must not overlap with existing physical networks. These IP addresses are used for the Pod network, and if you need to access the Pods from an external network, configure load balancers and routers to manage the traffic.",
-          "type": "string",
-          "default": "10.128.0.0/14",
-          "pattern": "^(?:(?:(?:[0-9]{1,3}\\.){3}[0-9]{1,3}\\/(?:(?:[0-9])|(?:[1-2][0-9])|(?:3[0-2])))|(?:(?:[0-9a-fA-F]*:[0-9a-fA-F]*){2,})/(?:(?:[0-9])|(?:[1-9][0-9])|(?:1[0-1][0-9])|(?:12[0-8])))$"
-        },
-        "cluster_network_host_prefix": {
-          "description": "The subnet prefix length to assign to each individual node. For example, if clusterNetworkHostPrefix is set to 23, then each node is assigned a /23 subnet out of the given cidr (clusterNetworkCIDR), which allows for 510 (2^(32 - 23) - 2) pod IPs addresses. If you are required to provide access to nodes from an external network, configure load balancers and routers to manage the traffic.",
-          "type": "integer",
-          "default": 23,
-          "maximum": 128,
-          "minimum": 1
         },
         "cluster_networks": {
           "description": "Cluster networks that are associated with this cluster.",
@@ -5751,12 +5717,6 @@ func init() {
           "description": "Schedule workloads on masters",
           "type": "boolean",
           "default": false
-        },
-        "service_network_cidr": {
-          "description": "The IP address pool to use for service IP addresses. You can enter only one IP address pool. If you need to access the services from an external network, configure load balancers and routers to manage the traffic.",
-          "type": "string",
-          "default": "172.30.0.0/16",
-          "pattern": "^(?:(?:(?:[0-9]{1,3}\\.){3}[0-9]{1,3}\\/(?:(?:[0-9])|(?:[1-2][0-9])|(?:3[0-2])))|(?:(?:[0-9a-fA-F]*:[0-9a-fA-F]*){2,})/(?:(?:[0-9])|(?:[1-9][0-9])|(?:1[0-1][0-9])|(?:12[0-8])))$"
         },
         "service_networks": {
           "description": "Service networks that are associated with this cluster.",
@@ -5906,30 +5866,17 @@ func init() {
     "cluster_default_config": {
       "type": "object",
       "properties": {
-        "cluster_network_cidr": {
-          "type": "string",
-          "pattern": "^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)[\\/]([1-9]|[1-2][0-9]|3[0-2]?)$"
-        },
-        "cluster_network_host_prefix": {
-          "type": "integer",
-          "maximum": 32,
-          "minimum": 1
-        },
         "inactive_deletion_hours": {
           "type": "integer"
         },
         "ntp_source": {
           "type": "string",
           "x-omitempty": false
-        },
-        "service_network_cidr": {
-          "type": "string",
-          "pattern": "^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)[\\/]([1-9]|[1-2][0-9]|3[0-2]?)$"
         }
       }
     },
     "cluster_network": {
-      "description": "IP address block for pod IP blocks.",
+      "description": "A network from which Pod IPs are allocated. This block must not overlap with existing physical networks. These IP addresses are used for the Pod network, and if you need to access the Pods from an external network, configure load balancers and routers to manage the traffic.",
       "type": "object",
       "properties": {
         "cidr": {
@@ -5943,7 +5890,7 @@ func init() {
           "x-go-custom-tag": "gorm:\"primaryKey\""
         },
         "host_prefix": {
-          "description": "The prefix size to allocate to each node from the CIDR. For example, 24 would allocate 2^8=256 adresses to each node.",
+          "description": "The subnet prefix length to assign to each individual node. For example if is set to 23, then each node is assigned a /23 subnet out of the given CIDR, which allows for 510 (2^(32 - 23) - 2) pod IPs addresses.",
           "type": "integer",
           "maximum": 128,
           "minimum": 1
@@ -7846,11 +7793,11 @@ func init() {
       }
     },
     "machine_network": {
-      "description": "IP address block for node IP blocks.",
+      "description": "A network that all hosts belonging to the cluster should have an interface with IP address in. The VIPs (if exist) belong to this network.",
       "type": "object",
       "properties": {
         "cidr": {
-          "description": "The IP block address pool for machines within the cluster.",
+          "description": "The IP block address pool.",
           "$ref": "#/definitions/subnet"
         },
         "cluster_id": {
@@ -8418,7 +8365,7 @@ func init() {
       }
     },
     "service_network": {
-      "description": "IP address block for service IP blocks.",
+      "description": "A network to use for service IP addresses. If you need to access the services from an external network, configure load balancers and routers to manage the traffic.",
       "type": "object",
       "properties": {
         "cidr": {
@@ -8596,19 +8543,6 @@ func init() {
           "type": "string",
           "x-nullable": true
         },
-        "cluster_network_cidr": {
-          "description": "IP address block from which Pod IPs are allocated. This block must not overlap with existing physical networks. These IP addresses are used for the Pod network, and if you need to access the Pods from an external network, configure load balancers and routers to manage the traffic.",
-          "type": "string",
-          "pattern": "^(?:(?:(?:[0-9]{1,3}\\.){3}[0-9]{1,3}\\/(?:(?:[0-9])|(?:[1-2][0-9])|(?:3[0-2])))|(?:(?:[0-9a-fA-F]*:[0-9a-fA-F]*){2,})/(?:(?:[0-9])|(?:[1-9][0-9])|(?:1[0-1][0-9])|(?:12[0-8])))$",
-          "x-nullable": true
-        },
-        "cluster_network_host_prefix": {
-          "description": "The subnet prefix length to assign to each individual node. For example, if clusterNetworkHostPrefix is set to 23, then each node is assigned a /23 subnet out of the given cidr (clusterNetworkCIDR), which allows for 510 (2^(32 - 23) - 2) pod IPs addresses. If you are required to provide access to nodes from an external network, configure load balancers and routers to manage the traffic.",
-          "type": "integer",
-          "maximum": 128,
-          "minimum": 1,
-          "x-nullable": true
-        },
         "cluster_networks": {
           "description": "Cluster networks that are associated with this cluster.",
           "type": "array",
@@ -8653,12 +8587,6 @@ func init() {
           "description": "The virtual IP used for cluster ingress traffic.",
           "type": "string",
           "pattern": "^(?:(?:(?:[0-9]{1,3}\\.){3}[0-9]{1,3})|(?:(?:[0-9a-fA-F]*:[0-9a-fA-F]*){2,}))?$",
-          "x-nullable": true
-        },
-        "machine_network_cidr": {
-          "description": "A CIDR that all hosts belonging to the cluster should have an interfaces with IP address that belongs to this CIDR. The api_vip belongs to this CIDR.",
-          "type": "string",
-          "pattern": "^(?:(?:(?:[0-9]{1,3}\\.){3}[0-9]{1,3}\\/(?:(?:[0-9])|(?:[1-2][0-9])|(?:3[0-2])))|(?:(?:[0-9a-fA-F]*:[0-9a-fA-F]*){2,})/(?:(?:[0-9])|(?:[1-9][0-9])|(?:1[0-1][0-9])|(?:12[0-8])))$",
           "x-nullable": true
         },
         "machine_networks": {
@@ -8711,12 +8639,6 @@ func init() {
           "description": "Schedule workloads on masters",
           "type": "boolean",
           "default": false
-        },
-        "service_network_cidr": {
-          "description": "The IP address pool to use for service IP addresses. You can enter only one IP address pool. If you need to access the services from an external network, configure load balancers and routers to manage the traffic.",
-          "type": "string",
-          "pattern": "^(?:(?:(?:[0-9]{1,3}\\.){3}[0-9]{1,3}\\/(?:(?:[0-9])|(?:[1-2][0-9])|(?:3[0-2])))|(?:(?:[0-9a-fA-F]*:[0-9a-fA-F]*){2,})/(?:(?:[0-9])|(?:[1-9][0-9])|(?:1[0-1][0-9])|(?:12[0-8])))$",
-          "x-nullable": true
         },
         "service_networks": {
           "description": "Service networks that are associated with this cluster.",
@@ -14193,17 +14115,6 @@ func init() {
           "description": "Base domain of the cluster. All DNS records must be sub-domains of this base and include the cluster name.",
           "type": "string"
         },
-        "cluster_network_cidr": {
-          "description": "IP address block from which Pod IPs are allocated. This block must not overlap with existing physical networks. These IP addresses are used for the Pod network, and if you need to access the Pods from an external network, configure load balancers and routers to manage the traffic.",
-          "type": "string",
-          "pattern": "^(?:(?:(?:[0-9]{1,3}\\.){3}[0-9]{1,3}\\/(?:(?:[0-9])|(?:[1-2][0-9])|(?:3[0-2])))|(?:(?:[0-9a-fA-F]*:[0-9a-fA-F]*){2,})/(?:(?:[0-9])|(?:[1-9][0-9])|(?:1[0-1][0-9])|(?:12[0-8])))$"
-        },
-        "cluster_network_host_prefix": {
-          "description": "The subnet prefix length to assign to each individual node. For example, if clusterNetworkHostPrefix is set to 23, then each node is assigned a /23 subnet out of the given cidr (clusterNetworkCIDR), which allows for 510 (2^(32 - 23) - 2) pod IPs addresses. If you are required to provide access to nodes from an external network, configure load balancers and routers to manage the traffic.",
-          "type": "integer",
-          "maximum": 128,
-          "minimum": 1
-        },
         "cluster_networks": {
           "description": "Cluster networks that are associated with this cluster.",
           "type": "array",
@@ -14386,11 +14297,6 @@ func init() {
           "description": "The progress of log collection or empty if logs are not applicable",
           "$ref": "#/definitions/logs_state"
         },
-        "machine_network_cidr": {
-          "description": "A CIDR that all hosts belonging to the cluster should have an interfaces with IP address that belongs to this CIDR. The api_vip belongs to this CIDR.",
-          "type": "string",
-          "pattern": "^(?:(?:(?:[0-9]{1,3}\\.){3}[0-9]{1,3}\\/(?:(?:[0-9])|(?:[1-2][0-9])|(?:3[0-2])))|(?:(?:[0-9a-fA-F]*:[0-9a-fA-F]*){2,})/(?:(?:[0-9])|(?:[1-9][0-9])|(?:1[0-1][0-9])|(?:12[0-8])))$"
-        },
         "machine_networks": {
           "description": "Machine networks that are associated with this cluster.",
           "type": "array",
@@ -14463,11 +14369,6 @@ func init() {
           "description": "Schedule workloads on masters",
           "type": "boolean",
           "default": false
-        },
-        "service_network_cidr": {
-          "description": "The IP address pool to use for service IP addresses. You can enter only one IP address pool. If you need to access the services from an external network, configure load balancers and routers to manage the traffic.",
-          "type": "string",
-          "pattern": "^(?:(?:(?:[0-9]{1,3}\\.){3}[0-9]{1,3}\\/(?:(?:[0-9])|(?:[1-2][0-9])|(?:3[0-2])))|(?:(?:[0-9a-fA-F]*:[0-9a-fA-F]*){2,})/(?:(?:[0-9])|(?:[1-9][0-9])|(?:1[0-1][0-9])|(?:12[0-8])))$"
         },
         "service_networks": {
           "description": "Service networks that are associated with this cluster.",
@@ -14572,19 +14473,6 @@ func init() {
         "base_dns_domain": {
           "description": "Base domain of the cluster. All DNS records must be sub-domains of this base and include the cluster name.",
           "type": "string"
-        },
-        "cluster_network_cidr": {
-          "description": "IP address block from which Pod IPs are allocated. This block must not overlap with existing physical networks. These IP addresses are used for the Pod network, and if you need to access the Pods from an external network, configure load balancers and routers to manage the traffic.",
-          "type": "string",
-          "default": "10.128.0.0/14",
-          "pattern": "^(?:(?:(?:[0-9]{1,3}\\.){3}[0-9]{1,3}\\/(?:(?:[0-9])|(?:[1-2][0-9])|(?:3[0-2])))|(?:(?:[0-9a-fA-F]*:[0-9a-fA-F]*){2,})/(?:(?:[0-9])|(?:[1-9][0-9])|(?:1[0-1][0-9])|(?:12[0-8])))$"
-        },
-        "cluster_network_host_prefix": {
-          "description": "The subnet prefix length to assign to each individual node. For example, if clusterNetworkHostPrefix is set to 23, then each node is assigned a /23 subnet out of the given cidr (clusterNetworkCIDR), which allows for 510 (2^(32 - 23) - 2) pod IPs addresses. If you are required to provide access to nodes from an external network, configure load balancers and routers to manage the traffic.",
-          "type": "integer",
-          "default": 23,
-          "maximum": 128,
-          "minimum": 1
         },
         "cluster_networks": {
           "description": "Cluster networks that are associated with this cluster.",
@@ -14703,12 +14591,6 @@ func init() {
           "description": "Schedule workloads on masters",
           "type": "boolean",
           "default": false
-        },
-        "service_network_cidr": {
-          "description": "The IP address pool to use for service IP addresses. You can enter only one IP address pool. If you need to access the services from an external network, configure load balancers and routers to manage the traffic.",
-          "type": "string",
-          "default": "172.30.0.0/16",
-          "pattern": "^(?:(?:(?:[0-9]{1,3}\\.){3}[0-9]{1,3}\\/(?:(?:[0-9])|(?:[1-2][0-9])|(?:3[0-2])))|(?:(?:[0-9a-fA-F]*:[0-9a-fA-F]*){2,})/(?:(?:[0-9])|(?:[1-9][0-9])|(?:1[0-1][0-9])|(?:12[0-8])))$"
         },
         "service_networks": {
           "description": "Service networks that are associated with this cluster.",
@@ -14858,30 +14740,17 @@ func init() {
     "cluster_default_config": {
       "type": "object",
       "properties": {
-        "cluster_network_cidr": {
-          "type": "string",
-          "pattern": "^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)[\\/]([1-9]|[1-2][0-9]|3[0-2]?)$"
-        },
-        "cluster_network_host_prefix": {
-          "type": "integer",
-          "maximum": 32,
-          "minimum": 1
-        },
         "inactive_deletion_hours": {
           "type": "integer"
         },
         "ntp_source": {
           "type": "string",
           "x-omitempty": false
-        },
-        "service_network_cidr": {
-          "type": "string",
-          "pattern": "^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)[\\/]([1-9]|[1-2][0-9]|3[0-2]?)$"
         }
       }
     },
     "cluster_network": {
-      "description": "IP address block for pod IP blocks.",
+      "description": "A network from which Pod IPs are allocated. This block must not overlap with existing physical networks. These IP addresses are used for the Pod network, and if you need to access the Pods from an external network, configure load balancers and routers to manage the traffic.",
       "type": "object",
       "properties": {
         "cidr": {
@@ -14895,7 +14764,7 @@ func init() {
           "x-go-custom-tag": "gorm:\"primaryKey\""
         },
         "host_prefix": {
-          "description": "The prefix size to allocate to each node from the CIDR. For example, 24 would allocate 2^8=256 adresses to each node.",
+          "description": "The subnet prefix length to assign to each individual node. For example if is set to 23, then each node is assigned a /23 subnet out of the given CIDR, which allows for 510 (2^(32 - 23) - 2) pod IPs addresses.",
           "type": "integer",
           "maximum": 128,
           "minimum": 1
@@ -16720,11 +16589,11 @@ func init() {
       }
     },
     "machine_network": {
-      "description": "IP address block for node IP blocks.",
+      "description": "A network that all hosts belonging to the cluster should have an interface with IP address in. The VIPs (if exist) belong to this network.",
       "type": "object",
       "properties": {
         "cidr": {
-          "description": "The IP block address pool for machines within the cluster.",
+          "description": "The IP block address pool.",
           "$ref": "#/definitions/subnet"
         },
         "cluster_id": {
@@ -17292,7 +17161,7 @@ func init() {
       }
     },
     "service_network": {
-      "description": "IP address block for service IP blocks.",
+      "description": "A network to use for service IP addresses. If you need to access the services from an external network, configure load balancers and routers to manage the traffic.",
       "type": "object",
       "properties": {
         "cidr": {
@@ -17470,19 +17339,6 @@ func init() {
           "type": "string",
           "x-nullable": true
         },
-        "cluster_network_cidr": {
-          "description": "IP address block from which Pod IPs are allocated. This block must not overlap with existing physical networks. These IP addresses are used for the Pod network, and if you need to access the Pods from an external network, configure load balancers and routers to manage the traffic.",
-          "type": "string",
-          "pattern": "^(?:(?:(?:[0-9]{1,3}\\.){3}[0-9]{1,3}\\/(?:(?:[0-9])|(?:[1-2][0-9])|(?:3[0-2])))|(?:(?:[0-9a-fA-F]*:[0-9a-fA-F]*){2,})/(?:(?:[0-9])|(?:[1-9][0-9])|(?:1[0-1][0-9])|(?:12[0-8])))$",
-          "x-nullable": true
-        },
-        "cluster_network_host_prefix": {
-          "description": "The subnet prefix length to assign to each individual node. For example, if clusterNetworkHostPrefix is set to 23, then each node is assigned a /23 subnet out of the given cidr (clusterNetworkCIDR), which allows for 510 (2^(32 - 23) - 2) pod IPs addresses. If you are required to provide access to nodes from an external network, configure load balancers and routers to manage the traffic.",
-          "type": "integer",
-          "maximum": 128,
-          "minimum": 1,
-          "x-nullable": true
-        },
         "cluster_networks": {
           "description": "Cluster networks that are associated with this cluster.",
           "type": "array",
@@ -17527,12 +17383,6 @@ func init() {
           "description": "The virtual IP used for cluster ingress traffic.",
           "type": "string",
           "pattern": "^(?:(?:(?:[0-9]{1,3}\\.){3}[0-9]{1,3})|(?:(?:[0-9a-fA-F]*:[0-9a-fA-F]*){2,}))?$",
-          "x-nullable": true
-        },
-        "machine_network_cidr": {
-          "description": "A CIDR that all hosts belonging to the cluster should have an interfaces with IP address that belongs to this CIDR. The api_vip belongs to this CIDR.",
-          "type": "string",
-          "pattern": "^(?:(?:(?:[0-9]{1,3}\\.){3}[0-9]{1,3}\\/(?:(?:[0-9])|(?:[1-2][0-9])|(?:3[0-2])))|(?:(?:[0-9a-fA-F]*:[0-9a-fA-F]*){2,})/(?:(?:[0-9])|(?:[1-9][0-9])|(?:1[0-1][0-9])|(?:12[0-8])))$",
           "x-nullable": true
         },
         "machine_networks": {
@@ -17585,12 +17435,6 @@ func init() {
           "description": "Schedule workloads on masters",
           "type": "boolean",
           "default": false
-        },
-        "service_network_cidr": {
-          "description": "The IP address pool to use for service IP addresses. You can enter only one IP address pool. If you need to access the services from an external network, configure load balancers and routers to manage the traffic.",
-          "type": "string",
-          "pattern": "^(?:(?:(?:[0-9]{1,3}\\.){3}[0-9]{1,3}\\/(?:(?:[0-9])|(?:[1-2][0-9])|(?:3[0-2])))|(?:(?:[0-9a-fA-F]*:[0-9a-fA-F]*){2,})/(?:(?:[0-9])|(?:[1-9][0-9])|(?:1[0-1][0-9])|(?:12[0-8])))$",
-          "x-nullable": true
         },
         "service_networks": {
           "description": "Service networks that are associated with this cluster.",

@@ -34,15 +34,6 @@ type V2ClusterUpdateParams struct {
 	// Base domain of the cluster. All DNS records must be sub-domains of this base and include the cluster name.
 	BaseDNSDomain *string `json:"base_dns_domain,omitempty"`
 
-	// IP address block from which Pod IPs are allocated. This block must not overlap with existing physical networks. These IP addresses are used for the Pod network, and if you need to access the Pods from an external network, configure load balancers and routers to manage the traffic.
-	// Pattern: ^(?:(?:(?:[0-9]{1,3}\.){3}[0-9]{1,3}\/(?:(?:[0-9])|(?:[1-2][0-9])|(?:3[0-2])))|(?:(?:[0-9a-fA-F]*:[0-9a-fA-F]*){2,})/(?:(?:[0-9])|(?:[1-9][0-9])|(?:1[0-1][0-9])|(?:12[0-8])))$
-	ClusterNetworkCidr *string `json:"cluster_network_cidr,omitempty"`
-
-	// The subnet prefix length to assign to each individual node. For example, if clusterNetworkHostPrefix is set to 23, then each node is assigned a /23 subnet out of the given cidr (clusterNetworkCIDR), which allows for 510 (2^(32 - 23) - 2) pod IPs addresses. If you are required to provide access to nodes from an external network, configure load balancers and routers to manage the traffic.
-	// Maximum: 128
-	// Minimum: 1
-	ClusterNetworkHostPrefix *int64 `json:"cluster_network_host_prefix,omitempty"`
-
 	// Cluster networks that are associated with this cluster.
 	ClusterNetworks []*ClusterNetwork `json:"cluster_networks"`
 
@@ -69,10 +60,6 @@ type V2ClusterUpdateParams struct {
 	// The virtual IP used for cluster ingress traffic.
 	// Pattern: ^(?:(?:(?:[0-9]{1,3}\.){3}[0-9]{1,3})|(?:(?:[0-9a-fA-F]*:[0-9a-fA-F]*){2,}))?$
 	IngressVip *string `json:"ingress_vip,omitempty"`
-
-	// A CIDR that all hosts belonging to the cluster should have an interfaces with IP address that belongs to this CIDR. The api_vip belongs to this CIDR.
-	// Pattern: ^(?:(?:(?:[0-9]{1,3}\.){3}[0-9]{1,3}\/(?:(?:[0-9])|(?:[1-2][0-9])|(?:3[0-2])))|(?:(?:[0-9a-fA-F]*:[0-9a-fA-F]*){2,})/(?:(?:[0-9])|(?:[1-9][0-9])|(?:1[0-1][0-9])|(?:12[0-8])))$
-	MachineNetworkCidr *string `json:"machine_network_cidr,omitempty"`
 
 	// Machine networks that are associated with this cluster.
 	MachineNetworks []*MachineNetwork `json:"machine_networks"`
@@ -101,10 +88,6 @@ type V2ClusterUpdateParams struct {
 	// Schedule workloads on masters
 	SchedulableMasters *bool `json:"schedulable_masters,omitempty"`
 
-	// The IP address pool to use for service IP addresses. You can enter only one IP address pool. If you need to access the services from an external network, configure load balancers and routers to manage the traffic.
-	// Pattern: ^(?:(?:(?:[0-9]{1,3}\.){3}[0-9]{1,3}\/(?:(?:[0-9])|(?:[1-2][0-9])|(?:3[0-2])))|(?:(?:[0-9a-fA-F]*:[0-9a-fA-F]*){2,})/(?:(?:[0-9])|(?:[1-9][0-9])|(?:1[0-1][0-9])|(?:12[0-8])))$
-	ServiceNetworkCidr *string `json:"service_network_cidr,omitempty"`
-
 	// Service networks that are associated with this cluster.
 	ServiceNetworks []*ServiceNetwork `json:"service_networks"`
 
@@ -123,14 +106,6 @@ func (m *V2ClusterUpdateParams) Validate(formats strfmt.Registry) error {
 	var res []error
 
 	if err := m.validateAPIVip(formats); err != nil {
-		res = append(res, err)
-	}
-
-	if err := m.validateClusterNetworkCidr(formats); err != nil {
-		res = append(res, err)
-	}
-
-	if err := m.validateClusterNetworkHostPrefix(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -154,10 +129,6 @@ func (m *V2ClusterUpdateParams) Validate(formats strfmt.Registry) error {
 		res = append(res, err)
 	}
 
-	if err := m.validateMachineNetworkCidr(formats); err != nil {
-		res = append(res, err)
-	}
-
 	if err := m.validateMachineNetworks(formats); err != nil {
 		res = append(res, err)
 	}
@@ -178,10 +149,6 @@ func (m *V2ClusterUpdateParams) Validate(formats strfmt.Registry) error {
 		res = append(res, err)
 	}
 
-	if err := m.validateServiceNetworkCidr(formats); err != nil {
-		res = append(res, err)
-	}
-
 	if err := m.validateServiceNetworks(formats); err != nil {
 		res = append(res, err)
 	}
@@ -198,34 +165,6 @@ func (m *V2ClusterUpdateParams) validateAPIVip(formats strfmt.Registry) error {
 	}
 
 	if err := validate.Pattern("api_vip", "body", *m.APIVip, `^(?:(?:(?:[0-9]{1,3}\.){3}[0-9]{1,3})|(?:(?:[0-9a-fA-F]*:[0-9a-fA-F]*){2,}))?$`); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (m *V2ClusterUpdateParams) validateClusterNetworkCidr(formats strfmt.Registry) error {
-	if swag.IsZero(m.ClusterNetworkCidr) { // not required
-		return nil
-	}
-
-	if err := validate.Pattern("cluster_network_cidr", "body", *m.ClusterNetworkCidr, `^(?:(?:(?:[0-9]{1,3}\.){3}[0-9]{1,3}\/(?:(?:[0-9])|(?:[1-2][0-9])|(?:3[0-2])))|(?:(?:[0-9a-fA-F]*:[0-9a-fA-F]*){2,})/(?:(?:[0-9])|(?:[1-9][0-9])|(?:1[0-1][0-9])|(?:12[0-8])))$`); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (m *V2ClusterUpdateParams) validateClusterNetworkHostPrefix(formats strfmt.Registry) error {
-	if swag.IsZero(m.ClusterNetworkHostPrefix) { // not required
-		return nil
-	}
-
-	if err := validate.MinimumInt("cluster_network_host_prefix", "body", *m.ClusterNetworkHostPrefix, 1, false); err != nil {
-		return err
-	}
-
-	if err := validate.MaximumInt("cluster_network_host_prefix", "body", *m.ClusterNetworkHostPrefix, 128, false); err != nil {
 		return err
 	}
 
@@ -356,18 +295,6 @@ func (m *V2ClusterUpdateParams) validateIngressVip(formats strfmt.Registry) erro
 	return nil
 }
 
-func (m *V2ClusterUpdateParams) validateMachineNetworkCidr(formats strfmt.Registry) error {
-	if swag.IsZero(m.MachineNetworkCidr) { // not required
-		return nil
-	}
-
-	if err := validate.Pattern("machine_network_cidr", "body", *m.MachineNetworkCidr, `^(?:(?:(?:[0-9]{1,3}\.){3}[0-9]{1,3}\/(?:(?:[0-9])|(?:[1-2][0-9])|(?:3[0-2])))|(?:(?:[0-9a-fA-F]*:[0-9a-fA-F]*){2,})/(?:(?:[0-9])|(?:[1-9][0-9])|(?:1[0-1][0-9])|(?:12[0-8])))$`); err != nil {
-		return err
-	}
-
-	return nil
-}
-
 func (m *V2ClusterUpdateParams) validateMachineNetworks(formats strfmt.Registry) error {
 	if swag.IsZero(m.MachineNetworks) { // not required
 		return nil
@@ -492,18 +419,6 @@ func (m *V2ClusterUpdateParams) validatePlatform(formats strfmt.Registry) error 
 			}
 			return err
 		}
-	}
-
-	return nil
-}
-
-func (m *V2ClusterUpdateParams) validateServiceNetworkCidr(formats strfmt.Registry) error {
-	if swag.IsZero(m.ServiceNetworkCidr) { // not required
-		return nil
-	}
-
-	if err := validate.Pattern("service_network_cidr", "body", *m.ServiceNetworkCidr, `^(?:(?:(?:[0-9]{1,3}\.){3}[0-9]{1,3}\/(?:(?:[0-9])|(?:[1-2][0-9])|(?:3[0-2])))|(?:(?:[0-9a-fA-F]*:[0-9a-fA-F]*){2,})/(?:(?:[0-9])|(?:[1-9][0-9])|(?:1[0-1][0-9])|(?:12[0-8])))$`); err != nil {
-		return err
 	}
 
 	return nil

@@ -493,19 +493,6 @@ var _ = Describe("installcfg", func() {
 	})
 
 	Context("networking", func() {
-		// TODO MGMT-7365: Deprecate single network
-		It("Single network fields", func() {
-			var result installcfg.InstallerConfigBaremetal
-			mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(2)
-			providerRegistry.EXPECT().AddPlatformToInstallConfig(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
-			data, err := installConfig.GetInstallConfig(&cluster, false, "")
-			Expect(err).ShouldNot(HaveOccurred())
-			Expect(yaml.Unmarshal(data, &result)).ShouldNot(HaveOccurred())
-			Expect(result.Networking.ClusterNetwork).To(HaveLen(1))
-			Expect(result.Networking.MachineNetwork).To(HaveLen(1))
-			Expect(result.Networking.ServiceNetwork).To(HaveLen(1))
-		})
-
 		It("Multiple network fields", func() {
 			cluster.ClusterNetworks = []*models.ClusterNetwork{
 				{

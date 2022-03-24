@@ -299,9 +299,6 @@ func (b *bareMetalInventory) V2GetClusterDefaultConfig(_ context.Context, _ inst
 	body := &models.ClusterDefaultConfig{}
 
 	body.NtpSource = b.Config.DefaultNTPSource
-	body.ClusterNetworkCidr = b.Config.DefaultClusterNetworkCidr
-	body.ServiceNetworkCidr = b.Config.DefaultServiceNetworkCidr
-	body.ClusterNetworkHostPrefix = b.Config.DefaultClusterNetworkHostPrefix
 	body.InactiveDeletionHours = int64(b.gcConfig.DeregisterInactiveAfter.Hours())
 
 	return installer.NewV2GetClusterDefaultConfigOK().WithPayload(body)
