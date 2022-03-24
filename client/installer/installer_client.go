@@ -41,6 +41,9 @@ type API interface {
 	   GetInfraEnvPresignedFileURL Creates a new pre-signed download URL for the infra-env.*/
 	GetInfraEnvPresignedFileURL(ctx context.Context, params *GetInfraEnvPresignedFileURLParams) (*GetInfraEnvPresignedFileURLOK, error)
 	/*
+	   ListClusterHosts Get a list of cluster hosts according to supplied filters.*/
+	ListClusterHosts(ctx context.Context, params *ListClusterHostsParams) (*ListClusterHostsOK, error)
+	/*
 	   ListInfraEnvs Retrieves the list of infra-envs.*/
 	ListInfraEnvs(ctx context.Context, params *ListInfraEnvsParams) (*ListInfraEnvsOK, error)
 	/*
@@ -382,6 +385,31 @@ func (a *Client) GetInfraEnvPresignedFileURL(ctx context.Context, params *GetInf
 		return nil, err
 	}
 	return result.(*GetInfraEnvPresignedFileURLOK), nil
+
+}
+
+/*
+ListClusterHosts Get a list of cluster hosts according to supplied filters.
+*/
+func (a *Client) ListClusterHosts(ctx context.Context, params *ListClusterHostsParams) (*ListClusterHostsOK, error) {
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "ListClusterHosts",
+		Method:             "GET",
+		PathPattern:        "/v2/clusters/{cluster_id}/hosts",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http", "https"},
+		Params:             params,
+		Reader:             &ListClusterHostsReader{formats: a.formats},
+		AuthInfo:           a.authInfo,
+		Context:            ctx,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ListClusterHostsOK), nil
 
 }
 

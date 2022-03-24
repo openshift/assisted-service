@@ -2238,6 +2238,125 @@ var _ = Describe("cluster", func() {
 			addHost(masterHostId3, models.HostRoleMaster, "known", models.HostKindHost, infraEnvID, clusterID, getInventoryStr("hostname2", "bootMode", "1.2.3.6/24", "7.8.9.10/24"), db)
 		})
 
+		Context("ListClusterHosts", func() {
+			workerHostId1 := strfmt.UUID(uuid.New().String())
+			workerHostId2 := strfmt.UUID(uuid.New().String())
+			BeforeEach(func() {
+				addHost(workerHostId1, models.HostRoleWorker, "known", models.HostKindHost, infraEnvID, clusterID, getInventoryStr("hostname3", "bootMode", "1.2.3.7/24", "10.11.50.70/16"), db)
+				addHost(workerHostId2, models.HostRoleWorker, "insufficient", models.HostKindHost, infraEnvID, clusterID, getInventoryStr("hostname4", "bootMode", "1.2.3.8/24", "10.11.50.60/16"), db)
+				Expect(db.Model(&models.Host{}).Where("cluster_id = ?", clusterID.String()).Update("connectivity", "123445").Error).ToNot(HaveOccurred())
+			})
+
+			expectedIds := func(hostList models.HostList, ids ...strfmt.UUID) {
+				foundIds := make(map[strfmt.UUID]bool)
+				for _, h := range hostList {
+					Expect(ids).To(ContainElement(*h.ID))
+					foundIds[*h.ID] = true
+				}
+				Expect(ids).To(HaveLen(len(foundIds)))
+			}
+
+			expectInventory := func(hostList models.HostList, inventoryExpected bool) {
+				for _, h := range hostList {
+					if inventoryExpected {
+						ExpectWithOffset(1, h.Inventory).ToNot(BeEmpty())
+					} else {
+						ExpectWithOffset(1, h.Inventory).To(BeEmpty())
+					}
+				}
+			}
+			expectConnectivity := func(hostList models.HostList, connectivityExpected bool) {
+				for _, h := range hostList {
+					if connectivityExpected {
+						ExpectWithOffset(1, h.Connectivity).ToNot(BeEmpty())
+					} else {
+						ExpectWithOffset(1, h.Connectivity).To(BeEmpty())
+					}
+				}
+			}
+			It("ListClusterHosts - unfiltered", func() {
+				reply := bm.ListClusterHosts(ctx, installer.ListClusterHostsParams{
+					ClusterID: clusterID,
+				})
+				actual, ok := reply.(*installer.ListClusterHostsOK)
+				Expect(ok).To(BeTrue())
+				Expect(actual.Payload).To(HaveLen(5))
+				expectedIds(actual.Payload, masterHostId1, masterHostId2, masterHostId3, workerHostId1, workerHostId2)
+				expectInventory(actual.Payload, false)
+				expectConnectivity(actual.Payload, false)
+			})
+			It("ListClusterHosts - filtered", func() {
+				reply := bm.ListClusterHosts(ctx, installer.ListClusterHostsParams{
+					ClusterID: clusterID,
+					Role:      swag.String("master"),
+				})
+				actual, ok := reply.(*installer.ListClusterHostsOK)
+				Expect(ok).To(BeTrue())
+				Expect(actual.Payload).To(HaveLen(3))
+				expectedIds(actual.Payload, masterHostId1, masterHostId2, masterHostId3)
+				expectInventory(actual.Payload, false)
+				expectConnectivity(actual.Payload, false)
+
+				reply = bm.ListClusterHosts(ctx, installer.ListClusterHostsParams{
+					ClusterID: clusterID,
+					Role:      swag.String("worker"),
+				})
+				actual, ok = reply.(*installer.ListClusterHostsOK)
+				Expect(ok).To(BeTrue())
+				Expect(actual.Payload).To(HaveLen(2))
+				expectedIds(actual.Payload, workerHostId1, workerHostId2)
+				expectInventory(actual.Payload, false)
+				expectConnectivity(actual.Payload, false)
+
+				reply = bm.ListClusterHosts(ctx, installer.ListClusterHostsParams{
+					ClusterID: clusterID,
+					Status:    swag.String("known"),
+				})
+				actual, ok = reply.(*installer.ListClusterHostsOK)
+				Expect(ok).To(BeTrue())
+				Expect(actual.Payload).To(HaveLen(4))
+				expectedIds(actual.Payload, masterHostId1, masterHostId2, masterHostId3, workerHostId1)
+				expectInventory(actual.Payload, false)
+				expectConnectivity(actual.Payload, false)
+
+				reply = bm.ListClusterHosts(ctx, installer.ListClusterHostsParams{
+					ClusterID: clusterID,
+					Status:    swag.String("known"),
+					Role:      swag.String("worker"),
+				})
+				actual, ok = reply.(*installer.ListClusterHostsOK)
+				Expect(ok).To(BeTrue())
+				Expect(actual.Payload).To(HaveLen(1))
+				expectedIds(actual.Payload, workerHostId1)
+				expectInventory(actual.Payload, false)
+				expectConnectivity(actual.Payload, false)
+			})
+			It("ListClusterHosts - large fields", func() {
+				reply := bm.ListClusterHosts(ctx, installer.ListClusterHostsParams{
+					ClusterID:     clusterID,
+					WithInventory: swag.Bool(true),
+				})
+				actual, ok := reply.(*installer.ListClusterHostsOK)
+				Expect(ok).To(BeTrue())
+				Expect(actual.Payload).To(HaveLen(5))
+				expectedIds(actual.Payload, masterHostId1, masterHostId2, masterHostId3, workerHostId1, workerHostId2)
+				expectInventory(actual.Payload, true)
+				expectConnectivity(actual.Payload, false)
+
+				reply = bm.ListClusterHosts(ctx, installer.ListClusterHostsParams{
+					ClusterID:        clusterID,
+					WithInventory:    swag.Bool(true),
+					WithConnectivity: swag.Bool(true),
+				})
+				actual, ok = reply.(*installer.ListClusterHostsOK)
+				Expect(ok).To(BeTrue())
+				Expect(actual.Payload).To(HaveLen(5))
+				expectedIds(actual.Payload, masterHostId1, masterHostId2, masterHostId3, workerHostId1, workerHostId2)
+				expectInventory(actual.Payload, true)
+				expectConnectivity(actual.Payload, true)
+			})
+		})
+
 		Context("GetCluster", func() {
 			It("success", func() {
 				mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any()).Return(nil).Times(3) // Number of hosts
@@ -2247,6 +2366,49 @@ var _ = Describe("cluster", func() {
 				})
 				actual, ok := reply.(*installer.V2GetClusterOK)
 				Expect(ok).To(BeTrue())
+				Expect(actual.Payload.Hosts).To(HaveLen(3))
+				Expect(actual.Payload.APIVip).To(BeEquivalentTo("10.11.12.13"))
+				Expect(actual.Payload.IngressVip).To(BeEquivalentTo("10.11.12.14"))
+				validateNetworkConfiguration(actual.Payload, nil, nil, &[]*models.MachineNetwork{{Cidr: "10.11.0.0/16"}})
+				expectedNetworks := sortedNetworks([]*models.HostNetwork{
+					{
+						Cidr: "1.2.3.0/24",
+						HostIds: sortedHosts([]strfmt.UUID{
+							masterHostId1,
+							masterHostId2,
+							masterHostId3,
+						}),
+					},
+					{
+						Cidr: "10.11.0.0/16",
+						HostIds: sortedHosts([]strfmt.UUID{
+							masterHostId1,
+							masterHostId2,
+						}),
+					},
+					{
+						Cidr: "7.8.9.0/24",
+						HostIds: []strfmt.UUID{
+							masterHostId3,
+						},
+					},
+				})
+				actualNetworks := sortedNetworks(actual.Payload.HostNetworks)
+				Expect(len(actualNetworks)).To(Equal(3))
+				actualNetworks[0].HostIds = sortedHosts(actualNetworks[0].HostIds)
+				actualNetworks[1].HostIds = sortedHosts(actualNetworks[1].HostIds)
+				actualNetworks[2].HostIds = sortedHosts(actualNetworks[2].HostIds)
+				Expect(actualNetworks).To(Equal(expectedNetworks))
+			})
+			It("exclude hosts", func() {
+				mockDurationsSuccess()
+				reply := bm.V2GetCluster(ctx, installer.V2GetClusterParams{
+					ClusterID:    clusterID,
+					ExcludeHosts: swag.Bool(true),
+				})
+				actual, ok := reply.(*installer.V2GetClusterOK)
+				Expect(ok).To(BeTrue())
+				Expect(actual.Payload.Hosts).To(BeEmpty())
 				Expect(actual.Payload.APIVip).To(BeEquivalentTo("10.11.12.13"))
 				Expect(actual.Payload.IngressVip).To(BeEquivalentTo("10.11.12.14"))
 				validateNetworkConfiguration(actual.Payload, nil, nil, &[]*models.MachineNetwork{{Cidr: "10.11.0.0/16"}})

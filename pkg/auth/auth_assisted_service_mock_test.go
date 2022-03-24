@@ -259,7 +259,10 @@ func (f fakeInventory) GetInfraEnvPresignedFileURL(ctx context.Context, params i
 
 func (f fakeInventory) TransformClusterToDay2(ctx context.Context, params installer.TransformClusterToDay2Params) middleware.Responder {
 	return installer.NewTransformClusterToDay2Accepted()
+}
 
+func (f fakeInventory) ListClusterHosts(ctx context.Context, params installer.ListClusterHostsParams) middleware.Responder {
+	return installer.NewListClusterHostsOK()
 }
 
 var _ restapi.InstallerAPI = fakeInventory{}
