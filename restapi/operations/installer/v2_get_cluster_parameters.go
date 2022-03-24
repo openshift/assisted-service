@@ -9,6 +9,7 @@ import (
 	"net/http"
 
 	"github.com/go-openapi/errors"
+	"github.com/go-openapi/runtime"
 	"github.com/go-openapi/runtime/middleware"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
@@ -48,6 +49,10 @@ type V2GetClusterParams struct {
 	  In: header
 	*/
 	DiscoveryAgentVersion *string
+	/*If true, do not include hosts.
+	  In: query
+	*/
+	ExcludeHosts *bool
 	/*Whether to return clusters that have been unregistered.
 	  In: header
 	  Default: false
@@ -64,12 +69,19 @@ func (o *V2GetClusterParams) BindRequest(r *http.Request, route *middleware.Matc
 
 	o.HTTPRequest = r
 
+	qs := runtime.Values(r.URL.Query())
+
 	rClusterID, rhkClusterID, _ := route.Params.GetOK("cluster_id")
 	if err := o.bindClusterID(rClusterID, rhkClusterID, route.Formats); err != nil {
 		res = append(res, err)
 	}
 
 	if err := o.bindDiscoveryAgentVersion(r.Header[http.CanonicalHeaderKey("discovery_agent_version")], true, route.Formats); err != nil {
+		res = append(res, err)
+	}
+
+	qExcludeHosts, qhkExcludeHosts, _ := qs.GetOK("exclude-hosts")
+	if err := o.bindExcludeHosts(qExcludeHosts, qhkExcludeHosts, route.Formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -128,6 +140,29 @@ func (o *V2GetClusterParams) bindDiscoveryAgentVersion(rawData []string, hasKey 
 		return nil
 	}
 	o.DiscoveryAgentVersion = &raw
+
+	return nil
+}
+
+// bindExcludeHosts binds and validates parameter ExcludeHosts from query.
+func (o *V2GetClusterParams) bindExcludeHosts(rawData []string, hasKey bool, formats strfmt.Registry) error {
+	var raw string
+	if len(rawData) > 0 {
+		raw = rawData[len(rawData)-1]
+	}
+
+	// Required: false
+	// AllowEmptyValue: false
+
+	if raw == "" { // empty values pass all other validations
+		return nil
+	}
+
+	value, err := swag.ConvertBool(raw)
+	if err != nil {
+		return errors.InvalidType("exclude-hosts", "query", "bool", raw)
+	}
+	o.ExcludeHosts = &value
 
 	return nil
 }
