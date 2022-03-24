@@ -4,12 +4,12 @@ import json
 import sys
 import os
 import tempfile
-import distutils.util
-from argparse import ArgumentParser
 from pathlib import Path
 from typing import List
 
 from utils import check_output
+from retry import retry
+
 
 RELEASE_IMAGES_FILE = os.path.join("data", "default_release_images.json")
 
@@ -58,11 +58,16 @@ def get_oc_version(release_image: str) -> str:
             registry_config = f"--registry-config '{pull_secret_file}'"
 
     try:
-        return check_output(
-            f"oc adm release info '{release_image}' {registry_config} -o template --template {{{{.metadata.version}}}}")
+        return get_release_information(release_image, registry_config)
     finally:
         if pull_secret_file and os.path.exists(pull_secret_file):
             os.unlink(pull_secret_file)
+
+
+@retry(exceptions=RuntimeError, tries=5, delay=5)
+def get_release_information(release_image, registry_config):
+    return check_output(
+        f"oc adm release info '{release_image}' {registry_config} -o template --template {{{{.metadata.version}}}}")
 
 
 if __name__ == "__main__":
