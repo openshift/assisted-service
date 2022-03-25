@@ -507,35 +507,35 @@ func (g *installerGenerator) Generate(ctx context.Context, installConfig []byte,
 		return err
 	}
 
-	// invoke 'create manifests' command and download cluster manifests to manifests folder
-	if len(manifestFiles) > 0 {
-		err = g.providerRegistry.PreCreateManifestsHook(g.cluster, &envVars, g.workDir)
-		if err != nil {
-			log.WithError(err).Errorf("failed to run pre manifests creation hook '%s'", common.PlatformTypeValue(g.cluster.Platform.Type))
-			return err
-		}
-		err = g.runCreateCommand(ctx, installerPath, "manifests", envVars)
-		if err != nil {
-			return err
-		}
-		err = g.providerRegistry.PostCreateManifestsHook(g.cluster, &envVars, g.workDir)
-		if err != nil {
-			log.WithError(err).Errorf("failed to run post manifests creation hook '%s'", common.PlatformTypeValue(g.cluster.Platform.Type))
-			return err
-		}
-		// download manifests files to working directory
-		for _, manifest := range manifestFiles {
-			log.Infof("adding manifest %s to working dir for cluster %s", manifest, g.cluster.ID)
-			err = g.downloadManifest(ctx, manifest)
-			if err != nil {
-				_ = os.Remove(filepath.Join(g.workDir, "manifests"))
-				_ = os.Remove(filepath.Join(g.workDir, "openshift"))
-				log.WithError(err).Errorf("Failed to download manifest %s to working dir for cluster %s", manifest, g.cluster.ID)
-				return err
-			}
-		}
+	err = g.providerRegistry.PreCreateManifestsHook(g.cluster, &envVars, g.workDir)
 
+	if err != nil {
+		log.WithError(err).Errorf("failed to run pre manifests creation hook '%s'", common.PlatformTypeValue(g.cluster.Platform.Type))
+		return err
 	}
+
+	err = g.runCreateCommand(ctx, installerPath, "manifests", envVars)
+	if err != nil {
+		return err
+	}
+	err = g.providerRegistry.PostCreateManifestsHook(g.cluster, &envVars, g.workDir)
+	if err != nil {
+		log.WithError(err).Errorf("failed to run post manifests creation hook '%s'", common.PlatformTypeValue(g.cluster.Platform.Type))
+		return err
+	}
+
+	// download manifests files to working directory
+	for _, manifest := range manifestFiles {
+		log.Infof("adding manifest %s to working dir for cluster %s", manifest, g.cluster.ID)
+		err = g.downloadManifest(ctx, manifest)
+		if err != nil {
+			_ = os.Remove(filepath.Join(g.workDir, "manifests"))
+			_ = os.Remove(filepath.Join(g.workDir, "openshift"))
+			log.WithError(err).Errorf("Failed to download manifest %s to working dir for cluster %s", manifest, g.cluster.ID)
+			return err
+		}
+	}
+
 	if swag.StringValue(g.cluster.HighAvailabilityMode) == models.ClusterHighAvailabilityModeNone {
 		err = g.bootstrapInPlaceIgnitionsCreate(ctx, installerPath, envVars)
 	} else {
