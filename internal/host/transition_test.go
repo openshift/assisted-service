@@ -4391,7 +4391,6 @@ var _ = Describe("Refresh Host", func() {
 			statusInfoChecker      statusInfoChecker
 			validationsChecker     *validationsChecker
 			IPAddressPool          []string
-			machineNetworkCIDR     string
 			machineNetworks        []*models.MachineNetwork
 			ipType                 int
 		}{

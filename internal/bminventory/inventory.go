@@ -477,20 +477,6 @@ func (b *bareMetalInventory) RegisterClusterInternal(
 		TriggerMonitorTimestamp: time.Now(),
 	}
 
-	createNetworkParamsCompatibilityPropagation(params)
-
-	// TODO MGMT-7365: Deprecate single network
-	if common.IsSliceNonEmpty(params.NewClusterParams.ClusterNetworks) {
-		cluster.ClusterNetworkCidr = string(params.NewClusterParams.ClusterNetworks[0].Cidr)
-		cluster.ClusterNetworkHostPrefix = params.NewClusterParams.ClusterNetworks[0].HostPrefix
-	}
-	if common.IsSliceNonEmpty(params.NewClusterParams.ServiceNetworks) {
-		cluster.ServiceNetworkCidr = string(params.NewClusterParams.ServiceNetworks[0].Cidr)
-	}
-	if common.IsSliceNonEmpty(params.NewClusterParams.MachineNetworks) {
-		cluster.MachineNetworkCidr = string(params.NewClusterParams.MachineNetworks[0].Cidr)
-	}
-
 	pullSecret := swag.StringValue(params.NewClusterParams.PullSecret)
 	err = b.secretValidator.ValidatePullSecret(pullSecret, ocm.UserNameFromContext(ctx), b.authHandler)
 	if err != nil {
@@ -2070,10 +2056,6 @@ func (b *bareMetalInventory) updateClusterData(_ context.Context, cluster *commo
 		return err
 	}
 
-	if err = updateNetworkParamsCompatiblityPropagation(params, cluster); err != nil {
-		return err
-	}
-
 	if err = b.updateNetworkParams(params, cluster, updates, usages, db, log, interactivity); err != nil {
 		return err
 	}
@@ -2161,15 +2143,6 @@ func (b *bareMetalInventory) updateNetworks(db *gorm.DB, params installer.V2Upda
 			}
 		}
 		cluster.ClusterNetworks = params.ClusterUpdateParams.ClusterNetworks
-
-		// TODO MGMT-7365: Deprecate single network
-		if common.IsSliceNonEmpty(params.ClusterUpdateParams.ClusterNetworks) {
-			updates["cluster_network_cidr"] = string(params.ClusterUpdateParams.ClusterNetworks[0].Cidr)
-			updates["cluster_network_host_prefix"] = params.ClusterUpdateParams.ClusterNetworks[0].HostPrefix
-		} else {
-			updates["cluster_network_cidr"] = ""
-			updates["cluster_network_host_prefix"] = 0
-		}
 	}
 
 	if params.ClusterUpdateParams.ServiceNetworks != nil {
@@ -2179,13 +2152,6 @@ func (b *bareMetalInventory) updateNetworks(db *gorm.DB, params installer.V2Upda
 			}
 		}
 		cluster.ServiceNetworks = params.ClusterUpdateParams.ServiceNetworks
-
-		// TODO MGMT-7365: Deprecate single network
-		if common.IsSliceNonEmpty(params.ClusterUpdateParams.ServiceNetworks) {
-			updates["service_network_cidr"] = string(params.ClusterUpdateParams.ServiceNetworks[0].Cidr)
-		} else {
-			updates["service_network_cidr"] = ""
-		}
 	}
 
 	if params.ClusterUpdateParams.MachineNetworks != nil {
@@ -2195,13 +2161,6 @@ func (b *bareMetalInventory) updateNetworks(db *gorm.DB, params installer.V2Upda
 			}
 		}
 		cluster.MachineNetworks = params.ClusterUpdateParams.MachineNetworks
-
-		// TODO MGMT-7365: Deprecate single network
-		if common.IsSliceNonEmpty(params.ClusterUpdateParams.MachineNetworks) {
-			updates["machine_network_cidr"] = string(params.ClusterUpdateParams.MachineNetworks[0].Cidr)
-		} else {
-			updates["machine_network_cidr"] = ""
-		}
 	}
 
 	if common.IsSliceNonEmpty(params.ClusterUpdateParams.MachineNetworks) {
@@ -2307,100 +2266,6 @@ func (b *bareMetalInventory) updateProviderParams(params installer.V2UpdateClust
 			return fmt.Errorf("failed setting platform usages, error is: %w", err)
 		}
 	}
-	return nil
-}
-
-// createNetworkParamsCompatibilityPropagation is a backwards compatibility adapter adding ability
-// to configure clutster networking using the following structures
-//
-//   * MachineNetworkCidr
-//   * ClusterNetworkCidr
-//   * ClusterNetworkHostPrefix
-//   * ServiceNetworkCidr
-//
-// Please note those will take precedence over the more complex introduced as part of dual-stack
-// and multi-network support, i.e.
-//
-//   * MachineNetworks
-//   * ClusterNetworks
-//   * ServiceNetworks
-func createNetworkParamsCompatibilityPropagation(params installer.V2RegisterClusterParams) {
-	if params.NewClusterParams.ServiceNetworkCidr != nil {
-		serviceNetwork := []*models.ServiceNetwork{}
-		if *params.NewClusterParams.ServiceNetworkCidr != "" {
-			serviceNetwork = []*models.ServiceNetwork{{
-				Cidr: models.Subnet(swag.StringValue(params.NewClusterParams.ServiceNetworkCidr)),
-			}}
-		}
-		params.NewClusterParams.ServiceNetworks = serviceNetwork
-	}
-
-	if params.NewClusterParams.ClusterNetworkCidr != nil || params.NewClusterParams.ClusterNetworkHostPrefix != 0 {
-		net := []*models.ClusterNetwork{}
-		var netCidr models.Subnet
-		var netHostPrefix int64
-
-		if params.NewClusterParams.ClusterNetworkCidr != nil {
-			netCidr = models.Subnet(*params.NewClusterParams.ClusterNetworkCidr)
-		}
-		if params.NewClusterParams.ClusterNetworkHostPrefix != 0 {
-			netHostPrefix = params.NewClusterParams.ClusterNetworkHostPrefix
-		}
-		if netCidr != "" || netHostPrefix != 0 {
-			net = []*models.ClusterNetwork{{Cidr: netCidr, HostPrefix: netHostPrefix}}
-		}
-
-		params.NewClusterParams.ClusterNetworks = net
-	}
-}
-
-// updateNetworkParamsCompatiblityPropagation is an adapter equivalent to the one above, i.e.
-// createNetworkParamsCompatibilityPropagation but responsible for handling cluster updates. It
-// exists as a separate function because creation and update of the cluster use different data
-// structures, i.e. installer.V2RegisterClusterParams and installer.UpdateClusterParams
-func updateNetworkParamsCompatiblityPropagation(params installer.V2UpdateClusterParams, cluster *common.Cluster) error {
-	if params.ClusterUpdateParams.ServiceNetworkCidr != nil {
-		serviceNetwork := []*models.ServiceNetwork{}
-		if *params.ClusterUpdateParams.ServiceNetworkCidr != "" {
-			serviceNetwork = []*models.ServiceNetwork{{
-				Cidr: models.Subnet(swag.StringValue(params.ClusterUpdateParams.ServiceNetworkCidr)),
-			}}
-		}
-		params.ClusterUpdateParams.ServiceNetworks = serviceNetwork
-	}
-	if params.ClusterUpdateParams.MachineNetworkCidr != nil {
-		machineNetwork := []*models.MachineNetwork{}
-		if *params.ClusterUpdateParams.MachineNetworkCidr != "" {
-			machineNetwork = []*models.MachineNetwork{{
-				Cidr: models.Subnet(swag.StringValue(params.ClusterUpdateParams.MachineNetworkCidr)),
-			}}
-		}
-		params.ClusterUpdateParams.MachineNetworks = machineNetwork
-	}
-
-	if params.ClusterUpdateParams.ClusterNetworkCidr != nil || params.ClusterUpdateParams.ClusterNetworkHostPrefix != nil {
-		clusterNetwork := []*models.ClusterNetwork{}
-		var netCidr models.Subnet
-		var netHostPrefix int64
-
-		if cluster.ClusterNetworks[0] != nil {
-			netCidr = cluster.ClusterNetworks[0].Cidr
-			netHostPrefix = cluster.ClusterNetworks[0].HostPrefix
-		}
-
-		if params.ClusterUpdateParams.ClusterNetworkCidr != nil {
-			netCidr = models.Subnet(*params.ClusterUpdateParams.ClusterNetworkCidr)
-		}
-		if params.ClusterUpdateParams.ClusterNetworkHostPrefix != nil {
-			netHostPrefix = *params.ClusterUpdateParams.ClusterNetworkHostPrefix
-		}
-		if netCidr != "" || netHostPrefix != 0 {
-			clusterNetwork = []*models.ClusterNetwork{{Cidr: netCidr, HostPrefix: netHostPrefix}}
-		}
-
-		params.ClusterUpdateParams.ClusterNetworks = clusterNetwork
-	}
-
 	return nil
 }
 

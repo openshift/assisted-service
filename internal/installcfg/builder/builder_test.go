@@ -493,7 +493,6 @@ var _ = Describe("installcfg", func() {
 	})
 
 	Context("networking", func() {
-		// TODO MGMT-7365: Deprecate single network
 		It("Single network fields", func() {
 			var result installcfg.InstallerConfigBaremetal
 			mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(2)
