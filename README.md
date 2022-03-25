@@ -250,21 +250,7 @@ A document that can assist troubleshooting: [link](https://docs.google.com/docum
 
 ## Documentation
 
-To rebuild the site after adding some documentation to the Markdown files, you just need to execute this Make target before the push
-
-```shell
-make docs
-```
-
-To validate the documentation generated, go to the root of the repo and execute
-
-```shell
-make docs_serve
-```
-
-After that, you just need to access to [127.0.0.1:8000](http://127.0.0.1:8000/) on your browser and check the new content.
-
-_NOTE: To use these features, you need to have mkdocs installed in your system, to do that you just need to execute this command `pip3 install --user mkdocs`_
+Markdown formatted documentation is available in the [docs](docs) directory.
 
 ## Linked repositories
 
