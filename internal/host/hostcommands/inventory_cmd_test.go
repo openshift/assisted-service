@@ -26,7 +26,7 @@ var _ = Describe("inventory", func() {
 
 	BeforeEach(func() {
 		db, dbName = common.PrepareTestDB()
-		invCmd = NewInventoryCmd(common.GetTestLog(), "quay.io/ocpmetal/inventory:latest")
+		invCmd = NewInventoryCmd(common.GetTestLog(), "quay.io/example/inventory:latest")
 
 		hostId = strfmt.UUID(uuid.New().String())
 		clusterId = strfmt.UUID(uuid.New().String())

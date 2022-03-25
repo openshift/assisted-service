@@ -38,9 +38,9 @@ var defaultMustGatherVersion = versions.MustGatherVersion{
 
 var DefaultInstructionConfig = InstructionConfig{
 	ServiceBaseURL:     "http://10.35.59.36:30485",
-	InstallerImage:     "quay.io/ocpmetal/assisted-installer:latest",
-	ControllerImage:    "quay.io/ocpmetal/assisted-installer-controller:latest",
-	AgentImage:         "quay.io/ocpmetal/assisted-installer-agent:latest",
+	InstallerImage:     "quay.io/example/assisted-installer:latest",
+	ControllerImage:    "quay.io/example/assisted-installer-controller:latest",
+	AgentImage:         "quay.io/example/assisted-installer-agent:latest",
 	ReleaseImageMirror: "local.registry:5000/ocp@sha256:eab93b4591699a5a4ff50ad3517892653f04fb840127895bb3609b3cc68f98f3",
 }
 

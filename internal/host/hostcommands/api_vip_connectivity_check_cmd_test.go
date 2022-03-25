@@ -27,7 +27,7 @@ var _ = Describe("apivipconnectivitycheckcmd", func() {
 
 	BeforeEach(func() {
 		db, dbName = common.PrepareTestDB()
-		apivipConnectivityCheckCmd = NewAPIVIPConnectivityCheckCmd(common.GetTestLog(), db, "quay.io/ocpmetal/assisted-installer-agent:latest")
+		apivipConnectivityCheckCmd = NewAPIVIPConnectivityCheckCmd(common.GetTestLog(), db, "quay.io/example/assisted-installer-agent:latest")
 
 		id = strfmt.UUID(uuid.New().String())
 		clusterID = strfmt.UUID(uuid.New().String())
