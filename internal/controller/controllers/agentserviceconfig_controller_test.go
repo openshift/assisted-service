@@ -823,6 +823,7 @@ var _ = Describe("ensureAgentLocalAuthSecret", func() {
 
 			Expect(foundAfterNextEnsure.StringData["ec-private-key.pem"]).To(Equal(foundPrivateKey))
 			Expect(foundAfterNextEnsure.StringData["ec-public-key.pem"]).To(Equal(foundPublicKey))
+			Expect(foundAfterNextEnsure.Labels).To(HaveKeyWithValue(BackupLabel, BackupLabelValue))
 		})
 	})
 })
@@ -882,6 +883,7 @@ var _ = Describe("ensurePostgresSecret", func() {
 			Expect(found.StringData["db.user"]).To(Equal("admin"))
 			Expect(found.StringData["db.name"]).To(Equal("installer"))
 			Expect(found.StringData["db.port"]).To(Equal(databasePort.String()))
+			Expect(found.Labels).To(HaveKeyWithValue(BackupLabel, BackupLabelValue))
 			// password will be random
 			foundPass := found.StringData["db.password"]
 			Expect(foundPass).ToNot(BeNil())

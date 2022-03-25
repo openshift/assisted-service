@@ -290,6 +290,10 @@ func (r *AgentReconciler) tryApproveDay2CSRs(ctx context.Context, agent *aiv1bet
 		r.Log.WithError(err).Errorf("Agent %s/%s: Failed to get secret", agent.Namespace, agent.Name)
 		return false
 	}
+	if err = ensureSecretIsLabelled(ctx, r.Client, secret, namespacedName); err != nil {
+		r.Log.WithError(err).Errorf("Agent %s/%s: Failed to label secret", agent.Namespace, agent.Name)
+		return false
+	}
 	clients, err := r.SpokeK8sClientFactory.Create(secret)
 	if err != nil {
 		r.Log.WithError(err).Errorf("Agent %s/%s: Failed to create spoke client", agent.Namespace, agent.Name)
@@ -1192,6 +1196,9 @@ func (r *AgentReconciler) getIgnitionToken(ctx context.Context, ignitionEndpoint
 	secret, err := getSecret(ctx, r.Client, r.APIReader, secretRef)
 	if err != nil {
 		return "", errors.Wrap(err, "Failed to get user-data secret")
+	}
+	if err := ensureSecretIsLabelled(ctx, r.Client, secret, secretRef); err != nil {
+		return "", errors.Wrap(err, "Failed to label user-data secret")
 	}
 
 	token, ok := secret.Data[common.IgnitionTokenKeyInSecret]

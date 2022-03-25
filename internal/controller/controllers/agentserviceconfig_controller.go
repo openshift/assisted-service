@@ -649,6 +649,9 @@ func (r *AgentServiceConfigReconciler) newAgentLocalAuthSecret(ctx context.Conte
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      agentLocalAuthSecretName,
 			Namespace: r.Namespace,
+			Labels: map[string]string{
+				BackupLabel: BackupLabelValue,
+			},
 		},
 		Type: corev1.SecretTypeOpaque,
 	}
@@ -681,6 +684,9 @@ func (r *AgentServiceConfigReconciler) newPostgresSecret(ctx context.Context, lo
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      databaseName,
 			Namespace: r.Namespace,
+			Labels: map[string]string{
+				BackupLabel: BackupLabelValue,
+			},
 		},
 		Type: corev1.SecretTypeOpaque,
 	}

@@ -805,6 +805,9 @@ func (r *BMACReconciler) reconcileSpokeBMH(ctx context.Context, log logrus.Field
 	if err != nil {
 		return reconcileError{err}
 	}
+	if err = ensureSecretIsLabelled(ctx, r.Client, secret, key); err != nil {
+		return reconcileError{err}
+	}
 
 	spokeClient, err := r.getSpokeClient(secret)
 	if err != nil {
@@ -1142,6 +1145,9 @@ func (r *BMACReconciler) ensureMCSCert(ctx context.Context, log logrus.FieldLogg
 		log.WithError(err).Errorf("failed to get secret %s", key)
 		return reconcileError{err}
 	}
+	if err = ensureSecretIsLabelled(ctx, r.Client, secret, key); err != nil {
+		return reconcileError{err}
+	}
 
 	spokeClient, err := r.getSpokeClient(secret)
 	if err != nil {
@@ -1219,6 +1225,10 @@ func (r *BMACReconciler) ensureSpokeBMHSecret(ctx context.Context, log logrus.Fi
 		log.WithError(err).Errorf("failed to get secret resource %s/%s", key.Namespace, key.Name)
 		return secret, err
 	}
+	if err := ensureSecretIsLabelled(ctx, r.Client, secret, key); err != nil {
+		log.WithError(err).Errorf("failed to label secret resource %s/%s", key.Namespace, key.Name)
+		return secret, err
+	}
 	secretSpoke, mutateFn := r.newSpokeBMHSecret(secret)
 	if result, err := controllerutil.CreateOrUpdate(ctx, spokeClient, secretSpoke, mutateFn); err != nil {
 		return nil, err
@@ -1271,6 +1281,9 @@ func (r *BMACReconciler) newSpokeBMHSecret(secret *corev1.Secret) (*corev1.Secre
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      secret.Name,
 			Namespace: OPENSHIFT_MACHINE_API_NAMESPACE,
+			Labels: map[string]string{
+				BackupLabel: BackupLabelValue,
+			},
 		},
 	}
 	mutateFn := func() error {
