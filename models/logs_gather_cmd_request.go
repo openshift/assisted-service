@@ -24,9 +24,6 @@ type LogsGatherCmdRequest struct {
 	// Required: true
 	Bootstrap *bool `json:"bootstrap"`
 
-	// Path to certificate on the nodes
-	CaCertPath string `json:"ca_cert_path,omitempty"`
-
 	// Cluster id
 	// Required: true
 	// Format: uuid
