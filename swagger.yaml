@@ -5607,9 +5607,6 @@ definitions:
         type: string
         format: uuid
         description: Host id
-      ca_cert_path:
-        type: string
-        description: Path to certificate on the nodes
       agent_version:
         type: string
         description: Agent image version
@@ -5642,9 +5639,6 @@ definitions:
         type: boolean
         description: Run installer gather logs
         default: true
-      ca_cert_path:
-        type: string
-        description: Path to certificate on the nodes
       master_ips:
         type: array
         description: List of master ips
@@ -5717,9 +5711,6 @@ definitions:
       openshift_version:
         type: string
         description: Version of the OpenShift cluster.
-      ca_cert_path:
-        type: string
-        description: Path to certificate on the nodes
       service_ips:
         type: array
         description: List of service ips
