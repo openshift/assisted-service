@@ -2,7 +2,6 @@ package hostcommands
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/go-openapi/strfmt"
 	"github.com/google/uuid"
@@ -40,39 +39,6 @@ var _ = Describe("inventory", func() {
 		Expect(stepReply).To(HaveLen(1))
 		Expect(stepReply[0].StepType).To(Equal(models.StepTypeInventory))
 		Expect(stepErr).ShouldNot(HaveOccurred())
-	})
-
-	It("mounts viable linux paths for HW detection", func() {
-		stepReply, stepErr = invCmd.GetSteps(ctx, &host)
-		Expect(stepReply).To(HaveLen(1))
-		step := stepReply[0]
-
-		By("running two commands via sh")
-		Expect(step.Command).To(Equal("sh"))
-		Expect(step.Args[0]).To(Equal("-c"))
-		Expect(step.Args[1]).To(ContainSubstring("&&"))
-
-		mtabFile := fmt.Sprintf("/root/mtab-%s", hostId)
-		mtabCopy := fmt.Sprintf("cp /etc/mtab %s", mtabFile)
-		mtabMount := fmt.Sprintf("%s:/host/etc/mtab:ro", mtabFile)
-
-		Expect(step.Args[1]).To(ContainSubstring(mtabCopy))
-
-		By("verifying mounts to host's filesystem")
-		Expect(step.Args[1]).To(ContainSubstring(mtabMount))
-		paths := []string{
-			"/proc/meminfo",
-			"/sys/kernel/mm/hugepages",
-			"/proc/cpuinfo",
-			"/sys/block",
-			"/sys/devices",
-			"/sys/bus",
-			"/sys/class",
-			"/run/udev",
-		}
-		for _, path := range paths {
-			Expect(step.Args[1]).To(ContainSubstring(fmt.Sprintf("-v %[1]v:/host%[1]v:ro", path)))
-		}
 	})
 
 	AfterEach(func() {
