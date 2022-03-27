@@ -56,10 +56,11 @@ const (
 
 var (
 	imageSetsData = map[string]string{
-		"openshift-v4.7.0":     "quay.io/openshift-release-dev/ocp-release:4.7.2-x86_64",
-		"openshift-v4.8.0":     "quay.io/openshift-release-dev/ocp-release:4.8.0-fc.0-x86_64",
-		"openshift-v4.9.0":     "quay.io/openshift-release-dev/ocp-release:4.9.11-x86_64",
-		"openshift-v4.9.0-arm": "quay.io/openshift-release-dev/ocp-release:4.9.11-aarch64",
+		"openshift-v4.7.0":      "quay.io/openshift-release-dev/ocp-release:4.7.2-x86_64",
+		"openshift-v4.8.0":      "quay.io/openshift-release-dev/ocp-release:4.8.0-fc.0-x86_64",
+		"openshift-v4.9.0":      "quay.io/openshift-release-dev/ocp-release:4.9.11-x86_64",
+		"openshift-v4.10.0":     "quay.io/openshift-release-dev/ocp-release:4.10.6-x86_64",
+		"openshift-v4.10.0-arm": "quay.io/openshift-release-dev/ocp-release:4.10.6-aarch64",
 	}
 )
 
@@ -1193,16 +1194,16 @@ var _ = Describe("[kube-api]cluster installation", func() {
 	})
 
 	It("[kube-cpu-arch]mismatch cpu architecture between infra-env and bound cluster", func() {
-		By("deploy cluster with openshiftVersion 4.9 and x86_64")
-		imageSetRef4_9 := &hivev1.ClusterImageSetReference{
-			Name: "openshift-v4.9.0",
+		By("deploy cluster with openshiftVersion 4.10 and x86_64")
+		imageSetRef4_10 := &hivev1.ClusterImageSetReference{
+			Name: "openshift-v4.10.0",
 		}
-		aciSpec.ImageSetRef = imageSetRef4_9
+		aciSpec.ImageSetRef = imageSetRef4_10
 		deployClusterImageSetCRD(ctx, kubeClient, aciSpec.ImageSetRef)
 		deployClusterDeploymentCRD(ctx, kubeClient, clusterDeploymentSpec)
 		deployAgentClusterInstallCRD(ctx, kubeClient, aciSpec, clusterDeploymentSpec.ClusterInstallRef.Name)
 
-		By("deploy infraenv with a reference to openshiftVersion 4.9 cluster and arm64")
+		By("deploy infraenv with a reference to openshiftVersion 4.10 cluster and arm64")
 		infraEnvSpec.CpuArchitecture = "arm64"
 		deployInfraEnvCRD(ctx, kubeClient, infraNsName.Name, infraEnvSpec)
 
@@ -1671,7 +1672,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 
 	It("[kube-cpu-arch]deploy ClusterDeployment with arm64 architecture", func() {
 		//Note: arm is supported with user managed networking only
-		armImageSetRef := &hivev1.ClusterImageSetReference{Name: "openshift-v4.9.0-arm"}
+		armImageSetRef := &hivev1.ClusterImageSetReference{Name: "openshift-v4.10.0-arm"}
 		aciSNOSpec.ImageSetRef = armImageSetRef
 		deployClusterImageSetCRD(ctx, kubeClient, armImageSetRef)
 		deployClusterDeploymentCRD(ctx, kubeClient, clusterDeploymentSpec)
