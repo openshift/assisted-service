@@ -43,6 +43,8 @@ const (
 	mirrorRegistryConfigVolume       = "mirror-registry-config"
 	WatchResourceLabel               = "agent-install.openshift.io/watch"
 	WatchResourceValue               = "true"
+	BackupLabel                      = "cluster.open-cluster-management.io/backup"
+	BackupLabelValue                 = "true"
 )
 
 //go:generate mockgen -package=controllers -destination=mock_k8s_client.go . K8sClient
@@ -64,16 +66,36 @@ func getSecret(ctx context.Context, c client.Client, r client.Reader, key types.
 			return nil, errors.Wrapf(err, errorMessage)
 		}
 	}
+	return secret, nil
+}
+
+func ensureSecretIsLabelled(ctx context.Context, c client.Client, secret *corev1.Secret, key types.NamespacedName) error {
+
+	// Exit early if secret is nil
+	if secret == nil {
+		return nil
+	}
+
+	// Add backup label to the secret if not present
+	if !metav1.HasLabel(secret.ObjectMeta, BackupLabel) {
+		metav1.SetMetaDataLabel(&secret.ObjectMeta, BackupLabel, BackupLabelValue)
+		err := c.Update(ctx, secret)
+		if err != nil {
+			errorMessage := fmt.Sprintf("failed to set label %s:%s for secret %s/%s", BackupLabel, BackupLabelValue, key.Namespace, key.Name)
+			return errors.Wrapf(err, errorMessage)
+		}
+	}
+
 	// Add the label to secret if not present
 	if !metav1.HasLabel(secret.ObjectMeta, WatchResourceLabel) {
 		metav1.SetMetaDataLabel(&secret.ObjectMeta, WatchResourceLabel, WatchResourceValue)
 		err := c.Update(ctx, secret)
 		if err != nil {
-			errorMessage = fmt.Sprintf("failed to set label %s:%s for secret %s/%s", WatchResourceLabel, WatchResourceValue, key.Namespace, key.Name)
-			return nil, errors.Wrapf(err, errorMessage)
+			errorMessage := fmt.Sprintf("failed to set label %s:%s for secret %s/%s", WatchResourceLabel, WatchResourceValue, key.Namespace, key.Name)
+			return errors.Wrapf(err, errorMessage)
 		}
 	}
-	return secret, nil
+	return nil
 }
 
 func getPullSecretData(ctx context.Context, c client.Client, r client.Reader, ref *corev1.LocalObjectReference, namespace string) (string, error) {
