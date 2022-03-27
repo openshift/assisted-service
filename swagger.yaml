@@ -4075,6 +4075,9 @@ definitions:
       - installation-disk-speed-check
       - container-image-availability
       - domain-resolution
+      - stop-installation
+      - logs-gather
+      - next-step-runner
 
   step:
     type: object
@@ -5588,6 +5591,146 @@ definitions:
       ingress_vip_lease:
         type: string
         description: Contents of last acquired lease for Ingress virtual IP.
+
+  next_step_cmd_request:
+    type: object
+    required:
+      - infra_env_id
+      - host_id
+      - agent_version
+    properties:
+      infra_env_id:
+        type: string
+        format: uuid
+        description: Infra env id
+      host_id:
+        type: string
+        format: uuid
+        description: Host id
+      ca_cert_path:
+        type: string
+        description: Path to certificate on the nodes
+      agent_version:
+        type: string
+        description: Agent image version
+
+  logs_gather_cmd_request:
+    type: object
+    required:
+      - cluster_id
+      - infra_env_id
+      - host_id
+      - bootstrap
+      - installer_gather
+    properties:
+      cluster_id:
+        type: string
+        format: uuid
+        description: Cluster id
+      infra_env_id:
+        type: string
+        format: uuid
+        description: Infra env id
+      host_id:
+        type: string
+        format: uuid
+        description: Host id
+      bootstrap:
+        type: boolean
+        description: Host is bootstrap or not
+      installer_gather:
+        type: boolean
+        description: Run installer gather logs
+        default: true
+      ca_cert_path:
+        type: string
+        description: Path to certificate on the nodes
+      master_ips:
+        type: array
+        description: List of master ips
+        items:
+          type: string
+          description: Master ip.
+          pattern: '^(?:(?:(?:[0-9]{1,3}\.){3}[0-9]{1,3})|(?:(?:[0-9a-fA-F]*:[0-9a-fA-F]*){2,}))$'
+
+
+  install_cmd_request:
+    type: object
+    required:
+      - cluster_id
+      - infra_env_id
+      - host_id
+      - role
+      - boot_device
+      - controller_image
+      - installer_image
+      - high_availability_mode
+    properties:
+      cluster_id:
+        type: string
+        format: uuid
+        description: Cluster id
+      infra_env_id:
+        type: string
+        format: uuid
+        description: Infra env id
+      host_id:
+        type: string
+        format: uuid
+        description: Host id
+      role:
+        $ref: '#/definitions/host-role'
+      boot_device:
+        type: string
+        description: Boot device to write image on
+      controller_image:
+        type: string
+        description: Assisted installer controller image
+      installer_image:
+        type: string
+        description: Assisted installer image
+      high_availability_mode:
+        type: string
+        enum: ['Full', 'None']
+        default: 'Full'
+        description: |
+          Guaranteed availability of the installed cluster. 'Full' installs a Highly-Available cluster
+          over multiple master nodes whereas 'None' installs a full cluster over one node.
+      proxy:
+        $ref: "#/definitions/proxy"
+      check_cvo:
+        type: boolean
+        description: Check CVO status if needed
+        default: true
+      disks_to_format:
+        type: array
+        description: List of disks to format
+        items:
+          type: string
+          description: Disk to format
+      must_gather_image:
+        type: string
+        description: Must-gather images to use
+      mco_image:
+        type: string
+        description: Machine config operator image
+      openshift_version:
+        type: string
+        description: Version of the OpenShift cluster.
+      ca_cert_path:
+        type: string
+        description: Path to certificate on the nodes
+      service_ips:
+        type: array
+        description: List of service ips
+        items:
+          type: string
+          description: Service ip.
+          pattern: '^(?:(?:(?:[0-9]{1,3}\.){3}[0-9]{1,3})|(?:(?:[0-9a-fA-F]*:[0-9a-fA-F]*){2,}))$'
+      installer_args:
+        type: string
+        description: Core-os installer addtional args
+
 
   ntp_synchronization_request:
     type: object
