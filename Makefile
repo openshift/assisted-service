@@ -255,7 +255,7 @@ $(KUBECTL) rollout status  deployment assisted-service
 endef
 
 _verify_cluster:
-	$(KUBECTL) cluster-info
+	python3 ./tools/wait_for_cluster_info.py
 
 deploy-all: $(BUILD_FOLDER) _verify_cluster deploy-namespace deploy-postgres deploy-s3 deploy-ocm-secret deploy-route53 deploy-image-service deploy-service
 	echo "Deployment done"
