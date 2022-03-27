@@ -184,7 +184,7 @@ generate-%: ${BUILD_FOLDER}
 # Build & Update #
 ##################
 
-.PHONY: build docs
+.PHONY: build
 
 validate: lint unit-test
 
@@ -385,12 +385,6 @@ deploy-on-openshift-ci:
 	export TARGET='oc' && export GENERATE_CRD='false' && unset GOFLAGS && \
 	$(MAKE) ci-deploy-for-subsystem
 	oc get pods
-
-docs:
-	LC_ALL=en_US.utf8 mkdocs build
-
-docs_serve:
-	LC_ALL=en_US.utf8 mkdocs serve
 
 ########
 # Test #
