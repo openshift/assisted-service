@@ -344,6 +344,19 @@ func GetClusterNetworks(hosts []*models.Host, log logrus.FieldLogger) []string {
 	return ret
 }
 
+func GetClusterNetworksByFamily(hosts []*models.Host, log logrus.FieldLogger) (map[AddressFamily][]string, error) {
+	networks := GetClusterNetworks(hosts, log)
+	ret := make(map[AddressFamily][]string)
+	for _, n := range networks {
+		family, err := CidrToAddressFamily(n)
+		if err != nil {
+			return nil, err
+		}
+		ret[family] = append(ret[family], n)
+	}
+	return ret, nil
+}
+
 func IsHostInPrimaryMachineNetCidr(log logrus.FieldLogger, cluster *common.Cluster, host *models.Host) bool {
 	// The host should belong to all the networks specified as Machine Networks.
 
