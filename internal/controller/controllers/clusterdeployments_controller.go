@@ -391,7 +391,7 @@ func (r *ClusterDeploymentsReconciler) installDay1(ctx context.Context, log logr
 		}
 
 		// Ensure release image exists in versions cache
-		_, err = r.addReleaseImage(ctx, clusterInstall.Spec, pullSecret, cluster)
+		_, err = r.addReleaseImage(ctx, log, clusterInstall.Spec, pullSecret, cluster)
 		if err != nil {
 			log.WithError(err)
 			return r.updateStatus(ctx, log, clusterInstall, cluster, err)
@@ -1094,7 +1094,7 @@ func (r *ClusterDeploymentsReconciler) createNewCluster(
 		return r.updateStatus(ctx, log, clusterInstall, nil, err)
 	}
 
-	releaseImage, err := r.addReleaseImage(ctx, clusterInstall.Spec, pullSecret, nil)
+	releaseImage, err := r.addReleaseImage(ctx, log, clusterInstall.Spec, pullSecret, nil)
 	if err != nil {
 		log.WithError(err)
 		_, _ = r.updateStatus(ctx, log, clusterInstall, nil, err)
@@ -1233,6 +1233,7 @@ func (r *ClusterDeploymentsReconciler) getReleaseImage(ctx context.Context, spec
 
 func (r *ClusterDeploymentsReconciler) addReleaseImage(
 	ctx context.Context,
+	log logrus.FieldLogger,
 	spec hiveext.AgentClusterInstallSpec,
 	pullSecret string,
 	cluster *common.Cluster) (*models.ReleaseImage, error) {
@@ -1260,8 +1261,9 @@ func (r *ClusterDeploymentsReconciler) addReleaseImage(
 	}
 
 	if err != nil {
-		err = errors.Wrapf(err, "failed to add release image: %s", releaseImageUrl)
-		return nil, err
+		log.Error(err)
+		errMsg := "failed to add release image '%s'. Please ensure the releaseImage field in ClusterImageSet '%s' is valid (contact your admin with this info)."
+		return nil, errors.New(fmt.Sprintf(errMsg, releaseImageUrl, spec.ImageSetRef.Name))
 	}
 
 	return releaseImage, nil
