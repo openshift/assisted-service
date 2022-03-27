@@ -427,6 +427,37 @@ func (m *Manager) tryAssignMachineCidrNonDHCPMode(cluster *common.Cluster) error
 	return UpdateMachineCidr(m.db, cluster, machineCidr)
 }
 
+func (m *Manager) tryAssignMachineCidrSNO(cluster *common.Cluster) error {
+	if network.IsMachineCidrAvailable(cluster) {
+		return nil
+	}
+	clusterFamilies, err := network.CidrsToAddressFamilies(network.GetClusterNetworkCidrs(cluster))
+	if err != nil {
+		return err
+	}
+	clusterFamilies = network.CanonizeAddressFamilies(clusterFamilies)
+	serviceFamilies, err := network.CidrsToAddressFamilies(network.GetServiceNetworkCidrs(cluster))
+	if err != nil {
+		return err
+	}
+	if reflect.DeepEqual(clusterFamilies, serviceFamilies) {
+		var pendingCidrs []string
+		cidrsByFamily, err := network.GetClusterNetworksByFamily(cluster.Hosts, m.log)
+		if err != nil {
+			return err
+		}
+		for _, family := range clusterFamilies {
+			familyCidrs := cidrsByFamily[family]
+			if len(familyCidrs) != 1 {
+				return nil
+			}
+			pendingCidrs = append(pendingCidrs, familyCidrs[0])
+		}
+		return updateMachineNetworks(m.db, cluster, pendingCidrs)
+	}
+	return nil
+}
+
 func (m *Manager) autoAssignMachineNetworkCidr(c *common.Cluster) error {
 	if !funk.ContainsString([]string{models.ClusterStatusPendingForInput, models.ClusterStatusInsufficient}, swag.StringValue(c.Status)) {
 		return nil
@@ -436,10 +467,14 @@ func (m *Manager) autoAssignMachineNetworkCidr(c *common.Cluster) error {
 	 * when at least one of the VIPs is defined.
 	 * In DHCP mode the aim is to get from DB only clusters that are candidates for machine network CIDR auto assign
 	 * The cluster query is for clusters that have their DHCP mode set (vip_dhcp_allocation), the machine network CIDR empty, and in status insufficient, or pending for input.
+	 * In the SNO case, machine networks are set in case that the machine CIDR is not set yet, and the address families of the service and cluster networks are the same,
+	 * and the available networks to be set as machine network each have single CIDR.
 	 */
 	var err error
 	if swag.BoolValue(c.VipDhcpAllocation) {
 		err = m.tryAssignMachineCidrDHCPMode(c)
+	} else if swag.StringValue(c.HighAvailabilityMode) == models.ClusterHighAvailabilityModeNone {
+		err = m.tryAssignMachineCidrSNO(c)
 	} else if !swag.BoolValue(c.UserManagedNetworking) {
 		err = m.tryAssignMachineCidrNonDHCPMode(c)
 	}
