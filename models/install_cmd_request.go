@@ -25,9 +25,6 @@ type InstallCmdRequest struct {
 	// Required: true
 	BootDevice *string `json:"boot_device"`
 
-	// Path to certificate on the nodes
-	CaCertPath string `json:"ca_cert_path,omitempty"`
-
 	// Check CVO status if needed
 	CheckCvo *bool `json:"check_cvo,omitempty"`
 

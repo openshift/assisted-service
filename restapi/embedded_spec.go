@@ -7606,10 +7606,6 @@ func init() {
           "description": "Boot device to write image on",
           "type": "string"
         },
-        "ca_cert_path": {
-          "description": "Path to certificate on the nodes",
-          "type": "string"
-        },
         "check_cvo": {
           "description": "Check CVO status if needed",
           "type": "boolean",
@@ -7921,10 +7917,6 @@ func init() {
           "description": "Host is bootstrap or not",
           "type": "boolean"
         },
-        "ca_cert_path": {
-          "description": "Path to certificate on the nodes",
-          "type": "string"
-        },
         "cluster_id": {
           "description": "Cluster id",
           "type": "string",
@@ -8128,10 +8120,6 @@ func init() {
       "properties": {
         "agent_version": {
           "description": "Agent image version",
-          "type": "string"
-        },
-        "ca_cert_path": {
-          "description": "Path to certificate on the nodes",
           "type": "string"
         },
         "host_id": {
@@ -16670,10 +16658,6 @@ func init() {
           "description": "Boot device to write image on",
           "type": "string"
         },
-        "ca_cert_path": {
-          "description": "Path to certificate on the nodes",
-          "type": "string"
-        },
         "check_cvo": {
           "description": "Check CVO status if needed",
           "type": "boolean",
@@ -16985,10 +16969,6 @@ func init() {
           "description": "Host is bootstrap or not",
           "type": "boolean"
         },
-        "ca_cert_path": {
-          "description": "Path to certificate on the nodes",
-          "type": "string"
-        },
         "cluster_id": {
           "description": "Cluster id",
           "type": "string",
@@ -17181,10 +17161,6 @@ func init() {
       "properties": {
         "agent_version": {
           "description": "Agent image version",
-          "type": "string"
-        },
-        "ca_cert_path": {
-          "description": "Path to certificate on the nodes",
           "type": "string"
         },
         "host_id": {

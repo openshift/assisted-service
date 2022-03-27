@@ -23,9 +23,6 @@ type NextStepCmdRequest struct {
 	// Required: true
 	AgentVersion *string `json:"agent_version"`
 
-	// Path to certificate on the nodes
-	CaCertPath string `json:"ca_cert_path,omitempty"`
-
 	// Host id
 	// Required: true
 	// Format: uuid
