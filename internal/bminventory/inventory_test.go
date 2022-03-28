@@ -2224,12 +2224,11 @@ var _ = Describe("cluster", func() {
 			clusterID = strfmt.UUID(uuid.New().String())
 			infraEnvID = strfmt.UUID(uuid.New().String())
 			err := db.Create(&common.Cluster{Cluster: models.Cluster{
-				ID:                 &clusterID,
-				OpenshiftVersion:   common.TestDefaultConfig.OpenShiftVersion,
-				APIVip:             "10.11.12.13",
-				IngressVip:         "10.11.12.14",
-				MachineNetworks:    []*models.MachineNetwork{{Cidr: "10.11.0.0/16"}},
-				MachineNetworkCidr: "10.11.0.0/16", // TODO MGMT-7365: Deprecate single network
+				ID:               &clusterID,
+				OpenshiftVersion: common.TestDefaultConfig.OpenShiftVersion,
+				APIVip:           "10.11.12.13",
+				IngressVip:       "10.11.12.14",
+				MachineNetworks:  []*models.MachineNetwork{{Cidr: "10.11.0.0/16"}},
 			}}).Error
 			Expect(err).ShouldNot(HaveOccurred())
 
@@ -4034,14 +4033,6 @@ var _ = Describe("cluster", func() {
 						Expect(db.Save(network).Error).ShouldNot(HaveOccurred())
 					}
 
-					// TODO MGMT-7365: Deprecate single network
-					Expect(db.Model(&common.Cluster{}).Where("id = ?", clusterID).Updates(map[string]interface{}{
-						"cluster_network_cidr":        clusterNetworks[0].Cidr,
-						"cluster_network_host_prefix": clusterNetworks[0].HostPrefix,
-						"machine_network_cidr":        machineNetworks[0].Cidr,
-						"service_network_cidr":        serviceNetworks[0].Cidr,
-					}).Error).ShouldNot(HaveOccurred())
-
 					cluster, err := common.GetClusterFromDB(db, clusterID, common.UseEagerLoading)
 					Expect(err).ToNot(HaveOccurred())
 					validateNetworkConfiguration(&cluster.Cluster, &clusterNetworks, &serviceNetworks, &machineNetworks)
@@ -4081,7 +4072,8 @@ var _ = Describe("cluster", func() {
 					Expect(actual.Payload.MachineNetworks).To(BeEmpty())
 				})
 
-				It("Empty networks (old API) - valid", func() {
+				// TODO(MGMT-9751-remove-single-network)
+				It("Empty networks (old API) - no action", func() {
 					mockSuccess(1)
 					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 						ClusterID: clusterID,
@@ -4095,9 +4087,29 @@ var _ = Describe("cluster", func() {
 					Expect(reply).To(BeAssignableToTypeOf(installer.NewV2UpdateClusterCreated()))
 					actual := reply.(*installer.V2UpdateClusterCreated)
 
-					Expect(actual.Payload.ClusterNetworks).To(BeEmpty())
-					Expect(actual.Payload.ServiceNetworks).To(BeEmpty())
-					Expect(actual.Payload.MachineNetworks).To(BeEmpty())
+					Expect(actual.Payload.ClusterNetworks).To(Equal(clusterNetworks))
+					Expect(actual.Payload.ServiceNetworks).To(Equal(serviceNetworks))
+					Expect(actual.Payload.MachineNetworks).To(Equal(machineNetworks))
+				})
+
+				// TODO(MGMT-9751-remove-single-network)
+				It("Override networks with old API - no action", func() {
+					mockSuccess(1)
+					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
+						ClusterID: clusterID,
+						ClusterUpdateParams: &models.V2ClusterUpdateParams{
+							ClusterNetworkCidr:       swag.String("10.128.0.0/14"),
+							ClusterNetworkHostPrefix: swag.Int64(23),
+							ServiceNetworkCidr:       swag.String("172.30.0.0/16"),
+							MachineNetworkCidr:       swag.String("192.168.145.0/24"),
+						},
+					})
+					Expect(reply).To(BeAssignableToTypeOf(installer.NewV2UpdateClusterCreated()))
+					actual := reply.(*installer.V2UpdateClusterCreated)
+
+					Expect(actual.Payload.ClusterNetworks).To(Equal(clusterNetworks))
+					Expect(actual.Payload.ServiceNetworks).To(Equal(serviceNetworks))
+					Expect(actual.Payload.MachineNetworks).To(Equal(machineNetworks))
 				})
 
 				It("Empty networks - invalid empty ClusterNetwork", func() {
@@ -4124,16 +4136,6 @@ var _ = Describe("cluster", func() {
 					verifyApiErrorString(reply, http.StatusBadRequest, "Cluster network CIDR : Failed to parse CIDR '': invalid CIDR address: ")
 				})
 
-				It("Empty networks (old API) - invalid CIDR, ClusterNetwork", func() {
-					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
-						ClusterID: clusterID,
-						ClusterUpdateParams: &models.V2ClusterUpdateParams{
-							ClusterNetworkCidr: swag.String(""),
-						},
-					})
-					verifyApiErrorString(reply, http.StatusBadRequest, "Cluster network CIDR : Failed to parse CIDR '': invalid CIDR address: ")
-				})
-
 				It("Empty networks (new API - invalid HostPrefix, ClusterNetwork", func() {
 					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 						ClusterID: clusterID,
@@ -4144,16 +4146,6 @@ var _ = Describe("cluster", func() {
 						},
 					})
 					verifyApiErrorString(reply, http.StatusBadRequest, "Cluster network CIDR : Failed to parse CIDR '': invalid CIDR address: ")
-				})
-
-				It("Empty networks (old API) - invalid HostPrefix, ClusterNetwork", func() {
-					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
-						ClusterID: clusterID,
-						ClusterUpdateParams: &models.V2ClusterUpdateParams{
-							ClusterNetworkHostPrefix: swag.Int64(0),
-						},
-					})
-					verifyApiErrorString(reply, http.StatusBadRequest, "Cluster network host prefix 0: Host prefix, now 0, must be a positive integer")
 				})
 
 				It("Empty networks - invalid empty ServiceNetwork", func() {
@@ -4238,28 +4230,6 @@ var _ = Describe("cluster", func() {
 							ServiceNetworks:   serviceNetworks,
 							MachineNetworks:   machineNetworks,
 							VipDhcpAllocation: swag.Bool(true),
-						},
-					})
-					Expect(reply).To(BeAssignableToTypeOf(installer.NewV2UpdateClusterCreated()))
-					actual := reply.(*installer.V2UpdateClusterCreated)
-
-					validateNetworkConfiguration(actual.Payload, &clusterNetworks, &serviceNetworks, &machineNetworks)
-				})
-
-				It("Override networks with old API", func() {
-					clusterNetworks = []*models.ClusterNetwork{{Cidr: "10.128.0.0/14", HostPrefix: 23}}
-					serviceNetworks = []*models.ServiceNetwork{{Cidr: "172.30.0.0/16"}}
-					machineNetworks = []*models.MachineNetwork{{Cidr: "192.168.145.0/24"}}
-
-					mockSuccess(1)
-					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
-						ClusterID: clusterID,
-						ClusterUpdateParams: &models.V2ClusterUpdateParams{
-							ClusterNetworkCidr:       swag.String("10.128.0.0/14"),
-							ClusterNetworkHostPrefix: swag.Int64(23),
-							ServiceNetworkCidr:       swag.String("172.30.0.0/16"),
-							MachineNetworkCidr:       swag.String("192.168.145.0/24"),
-							VipDhcpAllocation:        swag.Bool(true),
 						},
 					})
 					Expect(reply).To(BeAssignableToTypeOf(installer.NewV2UpdateClusterCreated()))
@@ -6187,14 +6157,6 @@ var _ = Describe("[V2ClusterUpdate] cluster", func() {
 						network.ClusterID = clusterID
 						Expect(db.Save(network).Error).ShouldNot(HaveOccurred())
 					}
-
-					// TODO MGMT-7365: Deprecate single network
-					Expect(db.Model(&common.Cluster{}).Where("id = ?", clusterID).Updates(map[string]interface{}{
-						"cluster_network_cidr":        clusterNetworks[0].Cidr,
-						"cluster_network_host_prefix": clusterNetworks[0].HostPrefix,
-						"machine_network_cidr":        machineNetworks[0].Cidr,
-						"service_network_cidr":        serviceNetworks[0].Cidr,
-					}).Error).ShouldNot(HaveOccurred())
 
 					cluster, err := common.GetClusterFromDB(db, clusterID, common.UseEagerLoading)
 					Expect(err).ToNot(HaveOccurred())
@@ -13065,15 +13027,9 @@ func validateNetworkConfiguration(cluster *models.Cluster, clusterNetworks *[]*m
 			Expect(cluster.ClusterNetworks[index].Cidr).To(Equal((*clusterNetworks)[index].Cidr))
 			Expect(cluster.ClusterNetworks[index].HostPrefix).To(Equal((*clusterNetworks)[index].HostPrefix))
 		}
-
-		// TODO MGMT-7365: Deprecate single network
-		if len(*clusterNetworks) > 0 {
-			Expect(cluster.ClusterNetworkCidr).To(Equal(string((*clusterNetworks)[0].Cidr)))
-			Expect(cluster.ClusterNetworkHostPrefix).To(Equal((*clusterNetworks)[0].HostPrefix))
-		} else {
-			Expect(cluster.ClusterNetworkCidr).To(Equal(""))
-			Expect(cluster.ClusterNetworkHostPrefix).To(Equal(""))
-		}
+		// TODO(MGMT-9751-remove-single-network)
+		Expect(cluster.ClusterNetworkCidr).To(Equal(""))
+		Expect(cluster.ClusterNetworkHostPrefix).To(Equal(int64(0)))
 	}
 	if serviceNetworks != nil {
 		Expect(cluster.ServiceNetworks).To(HaveLen(len(*serviceNetworks)))
@@ -13081,13 +13037,8 @@ func validateNetworkConfiguration(cluster *models.Cluster, clusterNetworks *[]*m
 			Expect(cluster.ServiceNetworks[index].ClusterID).To(Equal(*cluster.ID))
 			Expect(cluster.ServiceNetworks[index].Cidr).To(Equal((*serviceNetworks)[index].Cidr))
 		}
-
-		// TODO MGMT-7365: Deprecate single network
-		if len(*serviceNetworks) > 0 {
-			Expect(cluster.ServiceNetworkCidr).To(Equal(string((*serviceNetworks)[0].Cidr)))
-		} else {
-			Expect(cluster.ServiceNetworkCidr).To(Equal(""))
-		}
+		// TODO(MGMT-9751-remove-single-network)
+		Expect(cluster.ServiceNetworkCidr).To(Equal(""))
 	}
 	if machineNetworks != nil {
 		Expect(cluster.MachineNetworks).To(HaveLen(len(*machineNetworks)))
@@ -13095,13 +13046,8 @@ func validateNetworkConfiguration(cluster *models.Cluster, clusterNetworks *[]*m
 			Expect(cluster.MachineNetworks[index].ClusterID).To(Equal(*cluster.ID))
 			Expect(cluster.MachineNetworks[index].Cidr).To(Equal((*machineNetworks)[index].Cidr))
 		}
-
-		// TODO MGMT-7365: Deprecate single network
-		if len(*machineNetworks) > 0 {
-			Expect(cluster.MachineNetworkCidr).To(Equal(string((*machineNetworks)[0].Cidr)))
-		} else {
-			Expect(cluster.MachineNetworkCidr).To(Equal(""))
-		}
+		// TODO(MGMT-9751-remove-single-network)
+		Expect(cluster.MachineNetworkCidr).To(Equal(""))
 	}
 }
 

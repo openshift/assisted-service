@@ -1125,7 +1125,6 @@ var _ = Describe("Auto assign machine CIDR", func() {
 				ClusterNetworks:       common.TestIPv4Networking.ClusterNetworks,
 				ServiceNetworks:       common.TestIPv4Networking.ServiceNetworks,
 				MachineNetworks:       network.CreateMachineNetworksArray(t.machineNetworkCIDR),
-				MachineNetworkCidr:    t.machineNetworkCIDR, // TODO MGMT-7365: Deprecate single network
 				VipDhcpAllocation:     swag.Bool(t.dhcpEnabled),
 				UserManagedNetworking: swag.Bool(t.userManagedNetworking),
 			}}
@@ -1151,11 +1150,11 @@ var _ = Describe("Auto assign machine CIDR", func() {
 			cluster := getClusterFromDB(id, db)
 			if t.expectedMachineCIDR == "" {
 				Expect(cluster.MachineNetworks).To(BeEmpty())
-				Expect(cluster.MachineNetworkCidr).To(Equal("")) // TODO MGMT-7365: Deprecate single network
+				Expect(cluster.MachineNetworkCidr).To(Equal("")) // TODO(MGMT-9751-remove-single-network)
 			} else {
 				Expect(cluster.MachineNetworks).NotTo(BeEmpty())
 				Expect(network.GetMachineCidrById(&cluster, 0)).To(Equal(t.expectedMachineCIDR))
-				Expect(cluster.MachineNetworkCidr).To(Equal(t.expectedMachineCIDR)) // TODO MGMT-7365: Deprecate single network
+				Expect(cluster.MachineNetworkCidr).To(Equal("")) // TODO(MGMT-9751-remove-single-network)
 			}
 
 			ctrl.Finish()

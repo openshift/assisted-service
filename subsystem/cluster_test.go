@@ -630,12 +630,11 @@ var _ = Describe("V2ListClusters", func() {
 
 		registerClusterReply, err := userBMClient.Installer.V2RegisterCluster(ctx, &installer.V2RegisterClusterParams{
 			NewClusterParams: &models.ClusterCreateParams{
-				BaseDNSDomain:            "example.com",
-				ClusterNetworkHostPrefix: 23,
-				Name:                     swag.String("test-cluster"),
-				OpenshiftVersion:         swag.String(openshiftVersion),
-				PullSecret:               swag.String(pullSecret),
-				SSHPublicKey:             sshPublicKey,
+				BaseDNSDomain:    "example.com",
+				Name:             swag.String("test-cluster"),
+				OpenshiftVersion: swag.String(openshiftVersion),
+				PullSecret:       swag.String(pullSecret),
+				SSHPublicKey:     sshPublicKey,
 			},
 		})
 		Expect(err).NotTo(HaveOccurred())

@@ -5932,7 +5932,7 @@ func init() {
       }
     },
     "cluster_network": {
-      "description": "IP address block for pod IP blocks.",
+      "description": "A network from which Pod IPs are allocated. This block must not overlap with existing physical networks. These IP addresses are used for the Pod network, and if you need to access the Pods from an external network, configure load balancers and routers to manage the traffic.",
       "type": "object",
       "properties": {
         "cidr": {
@@ -5946,7 +5946,7 @@ func init() {
           "x-go-custom-tag": "gorm:\"primaryKey\""
         },
         "host_prefix": {
-          "description": "The prefix size to allocate to each node from the CIDR. For example, 24 would allocate 2^8=256 adresses to each node.",
+          "description": "The subnet prefix length to assign to each individual node. For example if is set to 23, then each node is assigned a /23 subnet out of the given CIDR, which allows for 510 (2^(32 - 23) - 2) pod IPs addresses.",
           "type": "integer",
           "maximum": 128,
           "minimum": 1
@@ -7989,11 +7989,11 @@ func init() {
       }
     },
     "machine_network": {
-      "description": "IP address block for node IP blocks.",
+      "description": "A network that all hosts belonging to the cluster should have an interface with IP address in. The VIPs (if exist) belong to this network.",
       "type": "object",
       "properties": {
         "cidr": {
-          "description": "The IP block address pool for machines within the cluster.",
+          "description": "The IP block address pool.",
           "$ref": "#/definitions/subnet"
         },
         "cluster_id": {
@@ -8593,7 +8593,7 @@ func init() {
           "$ref": "#/definitions/subnet"
         },
         "cluster_id": {
-          "description": "The cluster that this network is associated with.",
+          "description": "A network to use for service IP addresses. If you need to access the services from an external network, configure load balancers and routers to manage the traffic.",
           "type": "string",
           "format": "uuid",
           "x-go-custom-tag": "gorm:\"primaryKey\""
@@ -15054,7 +15054,7 @@ func init() {
       }
     },
     "cluster_network": {
-      "description": "IP address block for pod IP blocks.",
+      "description": "A network from which Pod IPs are allocated. This block must not overlap with existing physical networks. These IP addresses are used for the Pod network, and if you need to access the Pods from an external network, configure load balancers and routers to manage the traffic.",
       "type": "object",
       "properties": {
         "cidr": {
@@ -15068,7 +15068,7 @@ func init() {
           "x-go-custom-tag": "gorm:\"primaryKey\""
         },
         "host_prefix": {
-          "description": "The prefix size to allocate to each node from the CIDR. For example, 24 would allocate 2^8=256 adresses to each node.",
+          "description": "The subnet prefix length to assign to each individual node. For example if is set to 23, then each node is assigned a /23 subnet out of the given CIDR, which allows for 510 (2^(32 - 23) - 2) pod IPs addresses.",
           "type": "integer",
           "maximum": 128,
           "minimum": 1
@@ -17033,11 +17033,11 @@ func init() {
       }
     },
     "machine_network": {
-      "description": "IP address block for node IP blocks.",
+      "description": "A network that all hosts belonging to the cluster should have an interface with IP address in. The VIPs (if exist) belong to this network.",
       "type": "object",
       "properties": {
         "cidr": {
-          "description": "The IP block address pool for machines within the cluster.",
+          "description": "The IP block address pool.",
           "$ref": "#/definitions/subnet"
         },
         "cluster_id": {
@@ -17637,7 +17637,7 @@ func init() {
           "$ref": "#/definitions/subnet"
         },
         "cluster_id": {
-          "description": "The cluster that this network is associated with.",
+          "description": "A network to use for service IP addresses. If you need to access the services from an external network, configure load balancers and routers to manage the traffic.",
           "type": "string",
           "format": "uuid",
           "x-go-custom-tag": "gorm:\"primaryKey\""

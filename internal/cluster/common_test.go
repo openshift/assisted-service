@@ -338,18 +338,11 @@ var _ = Describe("UpdateMachineCidr", func() {
 	for i := range tests {
 		test := tests[i]
 		It(test.name, func() {
-			// TODO MGMT-7365: Deprecate single network
-			primaryMachineCidr := ""
-			if common.IsSliceNonEmpty(test.clusterMachineNetworks) {
-				primaryMachineCidr = string(test.clusterMachineNetworks[0].Cidr)
-			}
-
 			id := strfmt.UUID(uuid.New().String())
 			cluster := &common.Cluster{
 				Cluster: models.Cluster{
-					ID:                 &id,
-					MachineNetworks:    test.clusterMachineNetworks,
-					MachineNetworkCidr: primaryMachineCidr,
+					ID:              &id,
+					MachineNetworks: test.clusterMachineNetworks,
 				},
 				MachineNetworkCidrUpdatedAt: time.Now().Add(-2 * time.Minute),
 			}
@@ -368,8 +361,8 @@ var _ = Describe("UpdateMachineCidr", func() {
 				Expect(clusterFromDb.MachineNetworks[idx].Cidr).To(Equal(test.expectedClusterMachineNetworks[idx].Cidr))
 			}
 
-			// TODO MGMT-7365: Deprecate single network
-			Expect(clusterFromDb.MachineNetworkCidr).To(Equal(test.newMachineCidr))
+			// TODO(MGMT-9751-remove-single-network)
+			Expect(clusterFromDb.MachineNetworkCidr).To(Equal(""))
 
 			if test.update {
 				Expect(clusterFromDb.MachineNetworkCidrUpdatedAt).NotTo(Equal(cluster.MachineNetworkCidrUpdatedAt))

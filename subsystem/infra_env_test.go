@@ -49,11 +49,10 @@ var _ = Describe("Infra_Env", func() {
 		infraEnv = registerInfraEnv(nil, models.ImageTypeFullIso)
 		clusterResp, err := userBMClient.Installer.V2RegisterCluster(ctx, &installer.V2RegisterClusterParams{
 			NewClusterParams: &models.ClusterCreateParams{
-				Name:                     swag.String("test-cluster"),
-				OpenshiftVersion:         swag.String(openshiftVersion),
-				PullSecret:               swag.String(pullSecret),
-				BaseDNSDomain:            "example.com",
-				ClusterNetworkHostPrefix: 23,
+				Name:             swag.String("test-cluster"),
+				OpenshiftVersion: swag.String(openshiftVersion),
+				PullSecret:       swag.String(pullSecret),
+				BaseDNSDomain:    "example.com",
 			},
 		})
 
