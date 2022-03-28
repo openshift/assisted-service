@@ -1,64 +1,97 @@
 # How to run Assisted-service subsystem tests
 
-Assisted-service subsystem tests require deploying the assisted-service on a k8s cluster together with DB and storage services.
-The subsystem tests are located on the [subsystem](https://github.com/openshift/assisted-service/tree/master/subsystem) directory.
+There are two "flavors" of subsystem tests:
 
-## Subsystem tests pre-configuration
+* subsystem tests for the service deployed in REST-API mode
+* subsystem tests for the service deployed in kube-api mode
 
-* Run [minikube](https://minikube.sigs.k8s.io/docs/start/) on your system
-* Enable [registry addon](https://minikube.sigs.k8s.io/docs/handbook/registry/) on your minikube:
+Assisted-service subsystem tests require that you first deploy the
+assisted-service on a k8s cluster (e.g. minikube).
+
+This document will explain how you can easily deploy the service in preperation
+for subsystem tests, and also how to run the tests themselves.
+
+The subsystem tests themselves are located in the
+[subsystem](https://github.com/openshift/assisted-service/tree/master/subsystem)
+directory, but they are launched via `make` targets in the Makefile at the root
+of this repository.
+
+## Service deployment
+
+This section will show you how you can deploy the assisted installer to
+a minikube cluster in preperation for subsystem tests.
+
+### minikube
+
+First we must prepare the minikube cluster -
 
 ```bash
+# Optionally delete the existing minikube cluster:
+# minikube delete
+
 minikube start
+
+# Start the minikube container registry and make it accessible locally:
 minikube addons enable registry
-```
-
-* Set `LOCAL_ASSISTED_ORG` to point to your local registry address
-
-```bash
-export LOCAL_ASSISTED_ORG=localhost:5000
-```
-
-* Redirect the local registry to the minikube registry:
-
-```bash
 nohup kubectl port-forward svc/registry 5000:80 -n kube-system &>/dev/null &
-```
+export LOCAL_SUBSYSTEM_REGISTRY=localhost:5000
 
-* Make a tunnel to make minikube services reachable (the command will ask for root password):
+echo "Waiting for registry to become ready..."
+while ! curl --location $LOCAL_SUBSYSTEM_REGISTRY; do
+    sleep 10
+    echo "kubectl registry service tunnel at port 5000 is not available yet, retrying..."
+    echo "If this persists, try running the kubectl port-forward command above without"
+    echo "nohup, /dev/null redirection and the background job & operator and see if there"
+    echo "are any errors"
+done
 
-```bash
+# Make a tunnel to make minikube services reachable (the command will ask for root password):
 nohup minikube tunnel &>/dev/null &
 ```
 
-* Deploy services:
+Now that the cluster is prepared, we can deploy the service - 
+
+To deploy the service in REST-API mode, run:
 
 ```bash
-skipper make deploy-test
+skipper make deploy-service-for-subsystem-test
 ```
 
-## Run tests
+To deploy the service in kube-api mode, run:
 
 ```bash
-skipper make [test|unit-test] [environment variables]
+ENABLE_KUBE_API=true skipper make deploy-service-for-subsystem-test
+skipper make enable-kube-api-for-subsystem
 ```
 
-* `test` - Runs subsystem tests.
-* `unit-test` - Runs unit tests.
+## Running the subsystem tests
 
-Environment variables:
+To run the REST-API subsystem tests, run:
+
+```bash
+skipper make subsystem-test
+```
+
+To run the kube-api subsystem tests, run:
+
+```bash
+skipper make subsystem-test-kube-api
+```
+
+Optionally the following environment variables can be exported:
 
 * `FOCUS="install_cluster"` - An optional flag used for [focused specs](https://onsi.github.io/ginkgo/#focused-specs) with regular expression.
 * `SKIP="install_cluster"` - An optional flag to skip scopes with regular expressions.
-* `TEST="./internal/host"` -  An optional flag used for testing a specific package.
 * `VERBOSE=true` - An optional flag to print verbosed data.
 
 ## Update service for the subsystem tests
 
-if you are making changes and don't want to deploy everything once again you can simply run this command:
+If you are making changes to the service's code and don't want to go through
+the slow steps above once again, you can simply run this command instead:
 
 ```bash
 skipper make patch-service
 ```
 
-It will build and push a new image of the service to your Docker registry, then delete the service pod from minikube, the deployment will handle the update and pull the new image to start the service again.
+It will build and push a new image of the service to the container registry,
+then trigger a rollout of the service Deployment.

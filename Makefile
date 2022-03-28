@@ -9,10 +9,9 @@ endif
 TARGET := $(or ${TARGET},local)
 KUBECTL=kubectl -n $(NAMESPACE)
 
-define get_service
-kubectl get service $(1) -n $(NAMESPACE) | grep $(1) | awk '{print $$4 ":" $$5}' | \
-	awk '{split($$0,a,":"); print a[1] ":" a[2]}'
-endef # get_service
+define get_service_host_port
+kubectl get service $(1) -n $(NAMESPACE) -ojson | jq --from-file ./hack/k8s_service_host_port.jq --raw-output
+endef # get_service_host_port
 
 ifdef E2E_TESTS_MODE
 E2E_TESTS_CONFIG = --img-expr-time=5m --img-expr-interval=5m
@@ -44,14 +43,14 @@ else
 	UPDATE_IMAGE=update-minimal
 endif
 
-ifdef LOCAL_ASSISTED_ORG
+ifdef SUBSYSTEM_LOCAL_REGISTRY
 	UPDATE_LOCAL_SERVICE=_update-private-registry-image
-	LOCAL_SERVICE=${LOCAL_ASSISTED_ORG}/assisted-service:${ASSISTED_TAG}
+	LOCAL_SERVICE_IMAGE=${SUBSYSTEM_LOCAL_REGISTRY}/assisted-service:${ASSISTED_TAG}
 	IMAGE_PULL_POLICY=--image-pull-policy Always
 else
 	IMAGE_PULL_POLICY=--image-pull-policy IfNotPresent
 	UPDATE_LOCAL_SERVICE=_update-local-k8s-image
-	LOCAL_SERVICE=${SERVICE}
+	LOCAL_SERVICE_IMAGE=${SERVICE}
 endif
 
 CONTAINER_BUILD_PARAMS = --network=host --label git_revision=${GIT_REVISION} ${CONTAINER_BUILD_EXTRA_PARAMS}
@@ -217,8 +216,8 @@ update-debug-minimal:
 update-image: $(UPDATE_IMAGE)
 
 _update-private-registry-image: update-image
-	$(CONTAINER_COMMAND) tag $(SERVICE) $(LOCAL_SERVICE)
-	$(CONTAINER_COMMAND) push $(PUSH_FLAGS) $(LOCAL_SERVICE)
+	$(CONTAINER_COMMAND) tag $(SERVICE) $(LOCAL_SERVICE_IMAGE)
+	$(CONTAINER_COMMAND) push $(PUSH_FLAGS) $(LOCAL_SERVICE_IMAGE)
 
 _update-local-k8s-image:
 	# Temporary hack that updates the local k8s(e.g minikube) with the latest image.
@@ -362,10 +361,13 @@ endif
 
 deploy-test: _verify_cluster generate-keys update-local-image
 	-$(KUBECTL) delete deployments.apps assisted-service &> /dev/null
-	export SERVICE=${LOCAL_SERVICE} && export TEST_FLAGS=--subsystem-test && \
+	export SERVICE=${LOCAL_SERVICE_IMAGE} && export TEST_FLAGS=--subsystem-test && \
 	export AUTH_TYPE="rhsso" && export DUMMY_IGNITION="True" && \
 	export IPV6_SUPPORT="True" && \
 	$(MAKE) deploy-wiremock deploy-all
+
+# An alias for the deploy-test target
+deploy-service-for-subsystem-test: deploy-test
 
 # $SERVICE is built with docker. If we want the latest version of $SERVICE
 # we need to pull it from the docker daemon before deploy-onprem.
@@ -376,9 +378,6 @@ deploy-onprem:
 	podman play kube --configmap ${PODMAN_CONFIGMAP} deploy/podman/pod.yml
 	./hack/retry.sh 90 2 "curl -f http://127.0.0.1:8090/ready"
 	./hack/retry.sh 60 10 "curl -f http://127.0.0.1:8888/health"
-
-deploy-onprem-for-subsystem:
-	export DUMMY_IGNITION="true" && $(MAKE) deploy-onprem
 
 deploy-on-openshift-ci:
 	ln -s $(shell which oc) $(shell dirname $(shell which oc))/kubectl
@@ -400,11 +399,17 @@ test:
 test-kube-api:
 	$(MAKE) _run_subsystem_test AUTH_TYPE=local ENABLE_KUBE_API=true FOCUS="$(or ${FOCUS},kube-api)"
 
+# An alias for the test target
+subsystem-test: test
+
+# An alias for the test-kube-api target
+subsystem-test-kube-api: test-kube-api
+
 _run_subsystem_test:
-	INVENTORY=$(shell $(call get_service,assisted-service) | sed 's/http:\/\///g') \
-	DB_HOST=$(shell $(call get_service,postgres) | sed 's/http:\/\///g' | cut -d ":" -f 1) \
-	DB_PORT=$(shell $(call get_service,postgres) | sed 's/http:\/\///g' | cut -d ":" -f 2) \
-	OCM_HOST=$(shell $(call get_service,wiremock) | sed 's/http:\/\///g') \
+	INVENTORY=$(shell $(call get_service_host_port,assisted-service) | sed 's/http:\/\///g') \
+	DB_HOST=$(shell $(call get_service_host_port,postgres) | sed 's/http:\/\///g' | cut -d ":" -f 1) \
+	DB_PORT=$(shell $(call get_service_host_port,postgres) | sed 's/http:\/\///g' | cut -d ":" -f 2) \
+	OCM_HOST=$(shell $(call get_service_host_port,wiremock) | sed 's/http:\/\///g') \
 	TEST_TOKEN="$(shell cat $(BUILD_FOLDER)/auth-tokenString)" \
 	TEST_TOKEN_2="$(shell cat $(BUILD_FOLDER)/auth-tokenString2)" \
 	TEST_TOKEN_ADMIN="$(shell cat $(BUILD_FOLDER)/auth-tokenAdminString)" \
@@ -482,14 +487,6 @@ unit-test: run-db-container run-unit-test kill-db-container
 
 $(REPORTS):
 	-mkdir -p $(REPORTS)
-
-test-onprem:
-	INVENTORY=127.0.0.1:8090 \
-	DB_HOST=127.0.0.1 \
-	DB_PORT=5432 \
-	DEPLOY_TARGET=onprem \
-	STORAGE=filesystem \
-	$(MAKE) _test TEST_SCENARIO=onprem TIMEOUT=30m TEST="$(or $(TEST),./subsystem/...)"
 
 test-on-openshift-ci:
 	export TARGET='oc' && unset GOFLAGS && \
