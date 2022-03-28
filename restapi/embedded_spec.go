@@ -1354,6 +1354,9 @@ func init() {
               "read-only-admin",
               "user"
             ]
+          },
+          {
+            "agentAuth": []
           }
         ],
         "description": "Get a list of cluster hosts according to supplied filters.",
@@ -10345,6 +10348,9 @@ func init() {
               "read-only-admin",
               "user"
             ]
+          },
+          {
+            "agentAuth": []
           }
         ],
         "description": "Get a list of cluster hosts according to supplied filters.",

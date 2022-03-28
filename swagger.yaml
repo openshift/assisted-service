@@ -323,6 +323,7 @@ paths:
       operationId: ListClusterHosts
       security:
         - userAuth: [ admin, read-only-admin, user ]
+        - agentAuth: []
       parameters:
         - in: path
           name: cluster_id
