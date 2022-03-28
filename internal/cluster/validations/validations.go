@@ -479,10 +479,9 @@ func ValidateIPAddresses(ipV6Supported bool, obj interface{}) error {
 		}
 	} else {
 		if len(machineNetworks) > 0 {
-			err = network.VerifyVips(nil, string(machineNetworks[0].Cidr), apiVip, ingressVip, reqDualStack, nil)
+			err = network.VerifyVips(nil, string(machineNetworks[0].Cidr), apiVip, ingressVip, false, nil)
 		} else if reqDualStack {
 			err = errors.Errorf("Dual-stack cluster cannot be created with empty Machine Networks")
-			return common.NewApiError(http.StatusBadRequest, err)
 		} else {
 			err = network.VerifyDifferentVipAddresses(apiVip, ingressVip)
 		}
