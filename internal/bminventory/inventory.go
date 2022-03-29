@@ -933,7 +933,7 @@ func (b *bareMetalInventory) updateExternalImageInfo(ctx context.Context, infraE
 		}
 
 		details := b.getIgnitionConfigForLogging(ctx, infraEnv, b.log, imageType)
-		eventgen.SendImageInfoUpdatedEvent(ctx, b.eventsHandler, *infraEnv.ID, details)
+		eventgen.SendImageInfoUpdatedEvent(ctx, b.eventsHandler, &infraEnv.ClusterID, *infraEnv.ID, details)
 		updates["download_url"] = infraEnv.DownloadURL
 		updates["generated"] = true
 		infraEnv.Generated = true

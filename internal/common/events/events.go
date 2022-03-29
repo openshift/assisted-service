@@ -5847,6 +5847,7 @@ func (e *ClustersPermanentlyDeletedEvent) FormatMessage() string {
 //
 type ImageInfoUpdatedEvent struct {
     eventName string
+    ClusterId *strfmt.UUID
     InfraEnvId strfmt.UUID
     Details string
 }
@@ -5854,11 +5855,13 @@ type ImageInfoUpdatedEvent struct {
 var ImageInfoUpdatedEventName string = "image_info_updated"
 
 func NewImageInfoUpdatedEvent(
+    clusterId *strfmt.UUID,
     infraEnvId strfmt.UUID,
     details string,
 ) *ImageInfoUpdatedEvent {
     return &ImageInfoUpdatedEvent{
         eventName: ImageInfoUpdatedEventName,
+        ClusterId: clusterId,
         InfraEnvId: infraEnvId,
         Details: details,
     }
@@ -5867,9 +5870,11 @@ func NewImageInfoUpdatedEvent(
 func SendImageInfoUpdatedEvent(
     ctx context.Context,
     eventsHandler eventsapi.Sender,
+    clusterId *strfmt.UUID,
     infraEnvId strfmt.UUID,
     details string,) {
     ev := NewImageInfoUpdatedEvent(
+        clusterId,
         infraEnvId,
         details,
     )
@@ -5879,10 +5884,12 @@ func SendImageInfoUpdatedEvent(
 func SendImageInfoUpdatedEventAtTime(
     ctx context.Context,
     eventsHandler eventsapi.Sender,
+    clusterId *strfmt.UUID,
     infraEnvId strfmt.UUID,
     details string,
     eventTime time.Time) {
     ev := NewImageInfoUpdatedEvent(
+        clusterId,
         infraEnvId,
         details,
     )
@@ -5897,7 +5904,7 @@ func (e *ImageInfoUpdatedEvent) GetSeverity() string {
     return "info"
 }
 func (e *ImageInfoUpdatedEvent) GetClusterId() *strfmt.UUID {
-    return nil
+    return e.ClusterId
 }
 func (e *ImageInfoUpdatedEvent) GetInfraEnvId() strfmt.UUID {
     return e.InfraEnvId
@@ -5907,6 +5914,7 @@ func (e *ImageInfoUpdatedEvent) GetInfraEnvId() strfmt.UUID {
 
 func (e *ImageInfoUpdatedEvent) format(message *string) string {
     r := strings.NewReplacer(
+        "{cluster_id}", fmt.Sprint(e.ClusterId),
         "{infra_env_id}", fmt.Sprint(e.InfraEnvId),
         "{details}", fmt.Sprint(e.Details),
     )
