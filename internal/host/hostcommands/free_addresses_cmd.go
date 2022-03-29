@@ -24,6 +24,15 @@ func newFreeAddressesCmd(log logrus.FieldLogger, freeAddressesImage string) Comm
 	}
 }
 
+func hasIPv6Addresses(inventory *models.Inventory) bool {
+	for _, intf := range inventory.Interfaces {
+		if len(intf.IPV6Addresses) > 0 {
+			return true
+		}
+	}
+	return false
+}
+
 func (f *freeAddressesCmd) prepareParam(host *models.Host) (string, error) {
 	var inventory models.Inventory
 	err := json.Unmarshal([]byte(host.Inventory), &inventory)
@@ -44,6 +53,9 @@ func (f *freeAddressesCmd) prepareParam(host *models.Host) (string, error) {
 		}
 	}
 	if len(m) == 0 {
+		if hasIPv6Addresses(&inventory) {
+			return "", nil
+		}
 		err = errors.Errorf("No networks found for host %s", host.ID.String())
 		f.log.WithError(err).Warn("Missing networks")
 		return "", err
@@ -62,7 +74,7 @@ func (f *freeAddressesCmd) prepareParam(host *models.Host) (string, error) {
 
 func (f *freeAddressesCmd) GetSteps(ctx context.Context, host *models.Host) ([]*models.Step, error) {
 	param, err := f.prepareParam(host)
-	if err != nil {
+	if param == "" || err != nil {
 		return nil, err
 	}
 
