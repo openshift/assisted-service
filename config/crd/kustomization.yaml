@@ -6,6 +6,7 @@ resources:
 - bases/agent-install.openshift.io_infraenvs.yaml
 - bases/agent-install.openshift.io_agents.yaml
 - bases/agent-install.openshift.io_nmstateconfigs.yaml
+- bases/agent-install.openshift.io_agentclassifications.yaml
 - bases/extensions.hive.openshift.io_agentclusterinstalls.yaml
 # +kubebuilder:scaffold:crdkustomizeresource
 

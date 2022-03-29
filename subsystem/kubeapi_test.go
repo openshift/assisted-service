@@ -10,9 +10,11 @@ import (
 	"net/http"
 	"os"
 	"reflect"
+	"strconv"
 	"strings"
 	"time"
 
+	"github.com/alecthomas/units"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 	"github.com/google/uuid"
@@ -624,6 +626,7 @@ func printCRs(ctx context.Context, client k8sclient.Client) {
 			infraEnvList          v1beta1.InfraEnvList
 			bareMetalHostList     bmhv1alpha1.BareMetalHostList
 			nmStateConfigList     v1beta1.NMStateConfigList
+			classificationList    v1beta1.AgentClassificationList
 			clusterImageSetList   hivev1.ClusterImageSetList
 			clusterDeploymentList hivev1.ClusterDeploymentList
 		)
@@ -646,6 +649,9 @@ func printCRs(ctx context.Context, client k8sclient.Client) {
 		multiErr = multierror.Append(multiErr, client.List(ctx, &nmStateConfigList, k8sclient.InNamespace(Options.Namespace)))
 		multiErr = multierror.Append(multiErr, GinkgoResourceLogger("NMStateConfig", nmStateConfigList))
 
+		multiErr = multierror.Append(multiErr, client.List(ctx, &classificationList, k8sclient.InNamespace(Options.Namespace)))
+		multiErr = multierror.Append(multiErr, GinkgoResourceLogger("AgentClassification", classificationList))
+
 		multiErr = multierror.Append(multiErr, client.List(ctx, &bareMetalHostList, k8sclient.InNamespace(Options.Namespace)))
 		multiErr = multierror.Append(multiErr, GinkgoResourceLogger("BareMetalHost", bareMetalHostList))
 
@@ -666,7 +672,9 @@ func cleanUpCRs(ctx context.Context, client k8sclient.Client) {
 	Eventually(func() error {
 		return client.DeleteAllOf(ctx, &v1beta1.NMStateConfig{}, k8sclient.InNamespace(Options.Namespace))
 	}, "1m", "2s").Should(BeNil())
-
+	Eventually(func() error {
+		return client.DeleteAllOf(ctx, &v1beta1.AgentClassification{}, k8sclient.InNamespace(Options.Namespace))
+	}, "1m", "2s").Should(BeNil())
 	Eventually(func() error {
 		return client.DeleteAllOf(ctx, &bmhv1alpha1.BareMetalHost{}, k8sclient.InNamespace(Options.Namespace))
 	}, "1m", "2s").Should(BeNil())
@@ -744,6 +752,14 @@ func verifyCleanUP(ctx context.Context, client k8sclient.Client) {
 		err := client.List(ctx, agentList, k8sclient.InNamespace(Options.Namespace))
 		Expect(err).To(BeNil())
 		return len(agentList.Items)
+	}, "2m", "2s").Should(Equal(0))
+
+	By("Verify AgentClassification Cleanup")
+	Eventually(func() int {
+		classificationList := &v1beta1.AgentClassificationList{}
+		err := client.List(ctx, classificationList, k8sclient.InNamespace(Options.Namespace))
+		Expect(err).To(BeNil())
+		return len(classificationList.Items)
 	}, "2m", "2s").Should(Equal(0))
 
 	By("Verify BareMetalHost Cleanup")
@@ -1141,7 +1157,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		By("Verify ISO URL is populated")
 		Eventually(func() string {
 			return getInfraEnvCRD(ctx, kubeClient, infraEnvKubeName).Status.ISODownloadURL
-		}, "15s", "5s").Should(Not(BeEmpty()))
+		}, "15s", "1s").Should(Not(BeEmpty()))
 
 		By("Verify infraEnv has no reference to CD")
 		infraEnvCr := getInfraEnvCRD(ctx, kubeClient, infraEnvKubeName)
@@ -1159,7 +1175,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		hwInfo.Interfaces[0].IPV4Addresses = []string{defaultCIDRv4}
 		generateHWPostStepReply(ctx, host, hwInfo, "hostname1")
 
-		By("Verify agent and host are not bind")
+		By("Verify agent and host are not bound")
 		h, err := common.GetHostFromDB(db, infraEnv.ID.String(), host.ID.String())
 		Expect(err).To(BeNil())
 		Expect(h.ClusterID).To(BeNil())
@@ -1170,9 +1186,76 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		Eventually(func() bool {
 			agent := getAgentCRD(ctx, kubeClient, key)
 			return agent.Spec.ClusterDeploymentName == nil
-		}, "30s", "10s").Should(BeTrue())
+		}, "30s", "1s").Should(BeTrue())
 
 		checkAgentCondition(ctx, host.ID.String(), v1beta1.BoundCondition, v1beta1.UnboundReason)
+	})
+
+	It("Agent labels", func() {
+		By("Deploy InfraEnv")
+		infraEnvSpec.ClusterRef = nil
+		deployInfraEnvCRD(ctx, kubeClient, infraNsName.Name, infraEnvSpec)
+
+		infraEnvKubeName := types.NamespacedName{
+			Namespace: Options.Namespace,
+			Name:      infraNsName.Name,
+		}
+
+		By("Verify ISO URL is populated")
+		Eventually(func() string {
+			return getInfraEnvCRD(ctx, kubeClient, infraEnvKubeName).Status.ISODownloadURL
+		}, "15s", "1s").Should(Not(BeEmpty()))
+
+		By("Register Agent to InfraEnv")
+		infraEnvKey := types.NamespacedName{
+			Namespace: Options.Namespace,
+			Name:      infraNsName.Name,
+		}
+		infraEnv := getInfraEnvFromDBByKubeKey(ctx, db, infraEnvKey, waitForReconcileTimeout)
+		configureLocalAgentClient(infraEnv.ID.String())
+		host := &registerHost(*infraEnv.ID).Host
+		hwInfo := validHwInfo
+		hwInfo.Interfaces[0].IPV4Addresses = []string{defaultCIDRv4}
+		generateHWPostStepReply(ctx, host, hwInfo, "hostname1")
+
+		By("Verify agent inventory labels")
+		key := types.NamespacedName{
+			Namespace: Options.Namespace,
+			Name:      host.ID.String(),
+		}
+		var agentLabels map[string]string
+		Eventually(func() bool {
+			agent := getAgentCRD(ctx, kubeClient, key)
+			agentLabels = agent.GetLabels()
+			_, ok := agentLabels["inventory.agent-install.openshift.io/storage-hasnonrotationaldisk"]
+			return ok
+		}, "30s", "1s").Should(BeTrue())
+		Expect(agentLabels["inventory.agent-install.openshift.io/storage-hasnonrotationaldisk"]).To(Equal("true"))
+		Expect(agentLabels["inventory.agent-install.openshift.io/cpu-architecture"]).To(Equal("x86_64"))
+		Expect(agentLabels["inventory.agent-install.openshift.io/cpu-virtenabled"]).To(Equal("false"))
+		Expect(agentLabels["inventory.agent-install.openshift.io/host-manufacturer"]).To(Equal(validHwInfo.SystemVendor.Manufacturer))
+		Expect(agentLabels["inventory.agent-install.openshift.io/host-productname"]).To(Equal(validHwInfo.SystemVendor.ProductName))
+		Expect(agentLabels["inventory.agent-install.openshift.io/host-isvirtual"]).To(Equal(strconv.FormatBool(validHwInfo.SystemVendor.Virtual)))
+
+		By("Verify agent classification labels")
+		classificationXXL := v1beta1.AgentClassification{
+			ObjectMeta: metav1.ObjectMeta{Name: "xxl", Namespace: Options.Namespace},
+			Spec: v1beta1.AgentClassificationSpec{
+				LabelKey:   "size",
+				LabelValue: "xxl",
+				Query:      fmt.Sprintf(".cpu.count == 16 and .memory.physicalBytes >= %d and .memory.physicalBytes < %d", int64(31*units.GiB), int64(33*units.GiB)),
+			},
+		}
+		err := kubeClient.Create(ctx, &classificationXXL)
+		Expect(err).To(BeNil())
+
+		Eventually(func() bool {
+			agent := getAgentCRD(ctx, kubeClient, key)
+			agentLabels = agent.GetLabels()
+			_, ok := agentLabels["agentclassification.agent-install.openshift.io/size"]
+			return ok
+		}, "30s", "1s").Should(BeTrue())
+		Expect(agentLabels["agentclassification.agent-install.openshift.io/size"]).To(Equal("xxl"))
 	})
 
 	It("[kube-cpu-arch]create infra-env with arm64 cpu arch", func() {
@@ -1186,7 +1269,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		}
 		Eventually(func() string {
 			return getInfraEnvCRD(ctx, kubeClient, infraEnvKey).Status.ISODownloadURL
-		}, "15s", "5s").Should(Not(BeEmpty()))
+		}, "15s", "1s").Should(Not(BeEmpty()))
 
 		infraEnv := getInfraEnvFromDBByKubeKey(ctx, db, infraEnvKey, waitForReconcileTimeout)
 		Expect(infraEnv.CPUArchitecture).To(Equal("arm64"))

@@ -542,6 +542,16 @@ func main() {
 				CRDEventsHandler: crdEventsHandler,
 			}).SetupWithManager(ctrlMgr), "unable to create controller AgentClusterInstall")
 
+			failOnError((&controllers.AgentClassificationReconciler{
+				Client: ctrlMgr.GetClient(),
+				Log:    log,
+			}).SetupWithManager(ctrlMgr), "unable to create controller AgentClassification")
+
+			failOnError((&controllers.AgentLabelReconciler{
+				Client: ctrlMgr.GetClient(),
+				Log:    log,
+			}).SetupWithManager(ctrlMgr), "unable to create controller AgentLabel")
+
 			log.Infof("Starting controllers")
 			failOnError(ctrlMgr.Start(ctrl.SetupSignalHandler()), "failed to run manager")
 		}

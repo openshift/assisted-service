@@ -1040,6 +1040,9 @@ func setAgentAnnotation(log logrus.FieldLogger, agent *aiv1beta1.Agent, key stri
 
 func setAgentLabel(log logrus.FieldLogger, agent *aiv1beta1.Agent, key string, value string) bool {
 	labels := agent.GetLabels()
+	if labels == nil {
+		labels = make(map[string]string)
+	}
 
 	// Label values can only have alphanumeric characters, '-', '_' or '.'
 	re := regexp.MustCompile("[^-A-Za-z0-9_.]+")
