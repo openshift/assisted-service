@@ -112,6 +112,12 @@ var _ = Describe("test authorization", func() {
 			Expect(err).ShouldNot(HaveOccurred())
 		})
 
+		It("can update cluster", func() {
+			_, err := editclusterUserBMClient.Installer.V2UpdateCluster(ctx, &installer.V2UpdateClusterParams{ClusterID: userClusterID,
+				ClusterUpdateParams: &models.V2ClusterUpdateParams{Name: swag.String("update-test")}})
+			Expect(err).ShouldNot(HaveOccurred())
+		})
+
 		It("can get bound infra-env", func() {
 			infraEnvID := registerInfraEnv(&userClusterID, models.ImageTypeMinimalIso).ID
 			_, err := editclusterUserBMClient.Installer.GetInfraEnv(ctx, &installer.GetInfraEnvParams{InfraEnvID: *infraEnvID})
@@ -166,6 +172,13 @@ var _ = Describe("test authorization", func() {
 			_, err = userBMClient.Installer.GetInfraEnv(ctx, &installer.GetInfraEnvParams{InfraEnvID: *infraEnvID2})
 			Expect(err).Should(HaveOccurred())
 			Expect(err).To(BeAssignableToTypeOf(installer.NewGetInfraEnvNotFound()))
+		})
+
+		It("can't update not owned cluster", func() {
+			_, err := userBMClient.Installer.V2UpdateCluster(ctx, &installer.V2UpdateClusterParams{ClusterID: userClusterID2,
+				ClusterUpdateParams: &models.V2ClusterUpdateParams{Name: swag.String("update-test")}})
+			Expect(err).Should(HaveOccurred())
+			Expect(err).To(BeAssignableToTypeOf(installer.NewV2UpdateClusterNotFound()))
 		})
 	})
 
