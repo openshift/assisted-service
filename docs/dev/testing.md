@@ -20,7 +20,7 @@ Our CI jobs are currently managed and ran by two CI tools - a Jenkins hosted on 
 |---|---|
 | Local for Assisted ecosystem | Company-wide |
 | Checks comments for JIRA | Runs e2e
-| Manages images in quay.io/ocpmetal | Runs all testing checks (lint, unit, etc)
+| Manages images in quay.io/edge-infrastructure | Runs all testing checks (lint, unit, etc)
 
 Assisted-service CI jobs are defined under [openshift/release](https://github.com/openshift/release) repository on [openshift-assisted-service-master.yaml](https://github.com/openshift/release/blob/master/ci-operator/config/openshift/assisted-service/openshift-assisted-service-master.yaml).
 Read more about OpenShift CI infrastructure on [OpenShift CI Docs](https://docs.ci.openshift.org/docs/).

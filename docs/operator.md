@@ -62,7 +62,7 @@ Deploy the operator using the operator-sdk:
 ```bash
 operator-sdk run bundle \
   --namespace assisted-installer \
-  ${BUNDLE_IMAGE:-quay.io/ocpmetal/assisted-service-operator-bundle:latest}
+  ${BUNDLE_IMAGE:-quay.io/edge-infrastructure/assisted-service-operator-bundle:latest}
 ```
 
 Now you should see the `infrastructure-operator` deployment running in the
@@ -301,11 +301,11 @@ data:
 
     [[registry]]
        prefix = ""
-       location = "quay.io/ocpmetal"
+       location = "quay.io/edge-infrastructure"
        mirror-by-digest-only = false
 
        [[registry.mirror]]
-       location = "mirror1.registry.corp.com:5000/ocpmetal"
+       location = "mirror1.registry.corp.com:5000/edge-infrastructure"
 EOF
 ```
 
@@ -315,7 +315,7 @@ The ConfigMap should be installed in the same namespace as the infrastructure-op
 
 Registries defined in the *registries.conf* file should use "mirror-by-digest-only = false" mode.
 
-Registries defined in the *registries.conf* must be scoped by repository and not by registry. In the above example, *quay.io/ocpmetal* and *mirror1.registry.corp.com:5000/ocpmetal* are both scoped by the *ocpmetal* repository and this is a valid configuration. In the example below, removing the repository *ocpmetal* from location is an invalid configuration and will not pass openshift-installer validation:
+Registries defined in the *registries.conf* must be scoped by repository and not by registry. In the above example, *quay.io/edge-infrastructure* and *mirror1.registry.corp.com:5000/edge-infrastructure* are both scoped by the *edge-infrastructure* repository and this is a valid configuration. In the example below, removing the repository *edge-infrastructure* from location is an invalid configuration and will not pass openshift-installer validation:
 
 ``` 
 # invalid configuration

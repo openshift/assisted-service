@@ -28,7 +28,7 @@ var _ = Describe("domainNameResolution", func() {
 
 	BeforeEach(func() {
 		db, dbName = common.PrepareTestDB()
-		dCmd = NewDomainNameResolutionCmd(common.GetTestLog(), "quay.io/ocpmetal/assisted-installer-agent:latest", db)
+		dCmd = NewDomainNameResolutionCmd(common.GetTestLog(), "quay.io/example/assisted-installer-agent:latest", db)
 		id = strfmt.UUID(uuid.New().String())
 		clusterID = strfmt.UUID(uuid.New().String())
 		infraEnvID = strfmt.UUID(uuid.New().String())
