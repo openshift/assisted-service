@@ -63,6 +63,7 @@ import (
 	"github.com/openshift/assisted-service/pkg/staticnetworkconfig"
 	"github.com/openshift/assisted-service/restapi"
 	"github.com/openshift/assisted-service/restapi/operations/installer"
+	"github.com/patrickmn/go-cache"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/sirupsen/logrus/hooks/test"
@@ -11912,6 +11913,117 @@ var _ = Describe("BindHost", func() {
 			eventstest.WithSeverityMatcher(models.EventSeverityInfo))).Times(1)
 		response = bm.V2DeregisterCluster(ctx, deregisterParams)
 		Expect(response).To(BeAssignableToTypeOf(&installer.V2DeregisterClusterNoContent{}))
+	})
+})
+
+var _ = Describe("BindHost - with rhsso auth", func() {
+	var (
+		authCtx      context.Context
+		bm           *bareMetalInventory
+		db           *gorm.DB
+		ctx          = context.Background()
+		clusterID    strfmt.UUID
+		hostID       strfmt.UUID
+		infraEnvID   strfmt.UUID
+		dbName       string
+		userName1    = "test_user_1"
+		userName2    = "test_user_2"
+		mockOcmAuthz *ocm.MockOCMAuthorization
+		payload      *ocm.AuthPayload
+	)
+
+	BeforeEach(func() {
+		db, dbName = common.PrepareTestDB()
+		clusterID = strfmt.UUID(uuid.New().String())
+		hostID = strfmt.UUID(uuid.New().String())
+		infraEnvID = strfmt.UUID(uuid.New().String())
+
+		_, cert := auth.GetTokenAndCert(false)
+		cfg := &auth.Config{JwkCert: string(cert), AuthType: auth.TypeRHSSO}
+		cfg.EnableOrgTenancy = true
+		bm = createInventory(db, Config{})
+		mockOcmAuthz = ocm.NewMockOCMAuthorization(ctrl)
+		mockOcmClient := &ocm.Client{Cache: cache.New(10*time.Minute, 30*time.Minute), Authorization: mockOcmAuthz}
+		bm.authHandler = auth.NewRHSSOAuthenticator(cfg, mockOcmClient, common.GetTestLog().WithField("pkg", "auth"), db)
+		bm.authzHandler = auth.NewAuthzHandler(cfg, mockOcmClient, common.GetTestLog().WithField("pkg", "auth"), db)
+		payload = &ocm.AuthPayload{Role: ocm.UserRole}
+
+		err := db.Create(&common.Cluster{
+			Cluster: models.Cluster{
+				ID:       &clusterID,
+				Kind:     swag.String(models.ClusterKindCluster),
+				UserName: userName1}}).Error
+		Expect(err).ShouldNot(HaveOccurred())
+		err = db.Create(&common.InfraEnv{InfraEnv: models.InfraEnv{ID: &infraEnvID}}).Error
+		Expect(err).ShouldNot(HaveOccurred())
+		err = db.Create(&common.Host{Host: models.Host{ID: &hostID, InfraEnvID: infraEnvID}}).Error
+		Expect(err).ShouldNot(HaveOccurred())
+	})
+
+	AfterEach(func() {
+		common.DeleteTestDB(db, dbName)
+	})
+
+	It("successful bind - cluster owner", func() {
+		params := installer.BindHostParams{
+			HostID:         hostID,
+			InfraEnvID:     infraEnvID,
+			BindHostParams: &models.BindHostParams{ClusterID: &clusterID},
+		}
+		mockEvents.EXPECT().SendHostEvent(gomock.Any(), eventstest.NewEventMatcher(
+			eventstest.WithNameMatcher(eventgen.HostRegistrationFailedEventName),
+			eventstest.WithHostIdMatcher(params.HostID.String()),
+			eventstest.WithInfraEnvIdMatcher(infraEnvID.String()),
+			eventstest.WithSeverityMatcher(models.EventSeverityInfo)))
+		mockClusterApi.EXPECT().AcceptRegistration(gomock.Any()).Return(nil).Times(1)
+
+		payload.Username = userName1
+		authCtx = context.WithValue(ctx, restapi.AuthKey, payload)
+
+		mockHostApi.EXPECT().BindHost(authCtx, gomock.Any(), clusterID, gomock.Any())
+		response := bm.BindHost(authCtx, params)
+		Expect(response).To(BeAssignableToTypeOf(&installer.BindHostOK{}))
+	})
+
+	It("successful bind - clusterEditor", func() {
+		params := installer.BindHostParams{
+			HostID:         hostID,
+			InfraEnvID:     infraEnvID,
+			BindHostParams: &models.BindHostParams{ClusterID: &clusterID},
+		}
+		mockEvents.EXPECT().SendHostEvent(gomock.Any(), eventstest.NewEventMatcher(
+			eventstest.WithNameMatcher(eventgen.HostRegistrationFailedEventName),
+			eventstest.WithHostIdMatcher(params.HostID.String()),
+			eventstest.WithInfraEnvIdMatcher(infraEnvID.String()),
+			eventstest.WithSeverityMatcher(models.EventSeverityInfo)))
+		mockClusterApi.EXPECT().AcceptRegistration(gomock.Any()).Return(nil).Times(1)
+
+		payload.Username = userName2
+		authCtx = context.WithValue(ctx, restapi.AuthKey, payload)
+
+		mockOcmAuthz.EXPECT().AccessReview(
+			gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(true, nil)
+
+		mockHostApi.EXPECT().BindHost(authCtx, gomock.Any(), clusterID, gomock.Any())
+		response := bm.BindHost(authCtx, params)
+		Expect(response).To(BeAssignableToTypeOf(&installer.BindHostOK{}))
+	})
+
+	It("no access to specified cluster", func() {
+		params := installer.BindHostParams{
+			HostID:         hostID,
+			InfraEnvID:     infraEnvID,
+			BindHostParams: &models.BindHostParams{ClusterID: &clusterID},
+		}
+
+		payload.Username = userName2
+		authCtx = context.WithValue(ctx, restapi.AuthKey, payload)
+
+		mockOcmAuthz.EXPECT().AccessReview(
+			gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(false, nil)
+
+		response := bm.BindHost(authCtx, params)
+		verifyApiError(response, http.StatusNotFound)
 	})
 })
 
