@@ -234,103 +234,6 @@ var _ = Describe("Cluster name validation", func() {
 
 var _ = Describe("URL validations", func() {
 
-	Context("test proxy URL", func() {
-		var parameters = []struct {
-			input, err string
-		}{
-			{"http://proxy.com:3128", ""},
-			{"http://username:pswd@proxy.com", ""},
-			{"http://10.9.8.7:123", ""},
-			{"http://username:pswd@10.9.8.7:123", ""},
-			{
-				"https://proxy.com:3128",
-				"The URL scheme must be http; https is currently not supported: 'https://proxy.com:3128'",
-			},
-			{
-				"ftp://proxy.com:3128",
-				"The URL scheme must be http and specified in the URL: 'ftp://proxy.com:3128'",
-			},
-			{
-				"httpx://proxy.com:3128",
-				"Proxy URL format is not valid: 'httpx://proxy.com:3128'",
-			},
-			{
-				"proxy.com:3128",
-				"The URL scheme must be http and specified in the URL: 'proxy.com:3128'",
-			},
-			{
-				"xyz",
-				"Proxy URL format is not valid: 'xyz'",
-			},
-			{
-				"http",
-				"Proxy URL format is not valid: 'http'",
-			},
-			{
-				"",
-				"Proxy URL format is not valid: ''",
-			},
-			{
-				"http://!@#$!@#$",
-				"Proxy URL format is not valid: 'http://!@#$!@#$'",
-			},
-		}
-
-		It("validates proxy URL input", func() {
-			for _, param := range parameters {
-				err := ValidateHTTPProxyFormat(param.input)
-				if param.err == "" {
-					Expect(err).Should(BeNil())
-				} else {
-					Expect(err).ShouldNot(BeNil())
-					Expect(err.Error()).To(Equal(param.err))
-				}
-			}
-		})
-	})
-
-	Context("test URL", func() {
-		var parameters = []struct {
-			input, err string
-		}{
-			{"http://ignition.org:3128", ""},
-			{"https://ignition.org:3128", ""},
-			{"http://ignition.org:3128/config", ""},
-			{"https://ignition.org:3128/config", ""},
-			{"http://10.9.8.7:123", ""},
-			{"http://10.9.8.7:123/config", ""},
-			{"", "The URL scheme must be http(s) and specified in the URL: ''"},
-			{
-				"://!@#$!@#$",
-				"URL '://!@#$!@#$' format is not valid: parse \"://!@\": missing protocol scheme",
-			},
-			{
-				"ftp://ignition.com:3128",
-				"The URL scheme must be http(s) and specified in the URL: 'ftp://ignition.com:3128'",
-			},
-			{
-				"httpx://ignition.com:3128",
-				"The URL scheme must be http(s) and specified in the URL: 'httpx://ignition.com:3128'",
-			},
-			{
-				"ignition.com:3128",
-				"The URL scheme must be http(s) and specified in the URL: 'ignition.com:3128'",
-			},
-		}
-
-		It("validates URL input", func() {
-			for _, param := range parameters {
-				err := ValidateHTTPFormat(param.input)
-				if param.err == "" {
-					Expect(err).Should(BeNil())
-				} else {
-					Expect(err).ShouldNot(BeNil())
-					Expect(err.Error()).To(Equal(param.err))
-				}
-			}
-		})
-	})
-
 	Context("test no-proxy", func() {
 		It("domain name", func() {
 			err := ValidateNoProxyFormat("domain.com", "4.7.0")
@@ -378,52 +281,6 @@ var _ = Describe("URL validations", func() {
 			Expect(err).ShouldNot(BeNil())
 		})
 	})
-})
-
-var _ = Describe("dns name", func() {
-	tests := []struct {
-		domainName string
-		valid      bool
-	}{
-		{
-			domainName: "a.com",
-			valid:      true,
-		},
-		{
-			domainName: "a",
-			valid:      false,
-		},
-		{
-			domainName: "co",
-			valid:      false,
-		},
-		{
-			domainName: "aaa",
-			valid:      false,
-		},
-		{
-			domainName: "abc.def",
-			valid:      true,
-		},
-		{
-			domainName: "-aaa.com",
-			valid:      false,
-		},
-		{
-			domainName: "a-aa.com",
-			valid:      true,
-		},
-	}
-	for _, t := range tests {
-		t := t
-		It(fmt.Sprintf("Domain name \"%s\"", t.domainName), func() {
-			if t.valid {
-				Expect(ValidateDomainNameFormat(t.domainName)).ToNot(HaveOccurred())
-			} else {
-				Expect(ValidateDomainNameFormat(t.domainName)).To(HaveOccurred())
-			}
-		})
-	}
 })
 
 var _ = Describe("Get registry from container image name", func() {
@@ -534,44 +391,6 @@ var _ = Describe("Get registry from container image name", func() {
 		_, err := getRegistriesWithAuth("", ";", images...)
 		Expect(err).Should(HaveOccurred())
 	})
-})
-
-var _ = Describe("NTP source", func() {
-	tests := []struct {
-		ntpSource string
-		valid     bool
-	}{
-		{
-			ntpSource: "1.1.1.1",
-			valid:     true,
-		},
-		{
-			ntpSource: "clock.redhat.com",
-			valid:     true,
-		},
-		{
-			ntpSource: "alias",
-			valid:     true,
-		},
-		{
-			ntpSource: "comma,separated,list",
-			valid:     true,
-		},
-		{
-			ntpSource: "!jkfd.com",
-			valid:     false,
-		},
-	}
-	for _, t := range tests {
-		t := t
-		It(fmt.Sprintf("NTP source \"%s\"", t.ntpSource), func() {
-			if t.valid {
-				Expect(ValidateAdditionalNTPSource(t.ntpSource)).To(BeTrue())
-			} else {
-				Expect(ValidateAdditionalNTPSource(t.ntpSource)).To(BeFalse())
-			}
-		})
-	}
 })
 
 var _ = Describe("vip dhcp allocation", func() {

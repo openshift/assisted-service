@@ -5,13 +5,11 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"net"
 	"net/http"
 	"net/url"
 	"regexp"
 	"strings"
 
-	"github.com/asaskevich/govalidator"
 	"github.com/containers/image/v5/docker/reference"
 	"github.com/go-openapi/swag"
 	"github.com/openshift/assisted-service/internal/common"
@@ -19,6 +17,7 @@ import (
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/auth"
 	"github.com/openshift/assisted-service/pkg/ocm"
+	"github.com/openshift/assisted-service/pkg/validations"
 	"github.com/pkg/errors"
 	"github.com/thoas/go-funk"
 	"golang.org/x/crypto/ssh"
@@ -30,8 +29,6 @@ type Config struct {
 
 const (
 	clusterNameRegex    = "^([a-z]([-a-z0-9]*[a-z0-9])?)*$"
-	dnsNameRegex        = "^([a-z0-9]+(-[a-z0-9]+)*[.])+[a-z]{2,}$"
-	hostnameRegex       = `^(([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]*[a-zA-Z0-9])\.)*([A-Za-z0-9]|[A-Za-z0-9][A-Za-z0-9\-]*[A-Za-z0-9])$`
 	CloudOpenShiftCom   = "cloud.openshift.com"
 	sshPublicKeyRegex   = "^(ssh-rsa AAAAB3NzaC1yc2|ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNT|ecdsa-sha2-nistp384 AAAAE2VjZHNhLXNoYTItbmlzdHAzODQAAAAIbmlzdHAzOD|ecdsa-sha2-nistp521 AAAAE2VjZHNhLXNoYTItbmlzdHA1MjEAAAAIbmlzdHA1Mj|ssh-ed25519 AAAAC3NzaC1lZDI1NTE5|ssh-dss AAAAB3NzaC1kc3)[0-9A-Za-z+/]+[=]{0,3}( .*)?$"
 	dockerHubRegistry   = "docker.io"
@@ -202,80 +199,12 @@ func (v *registryPullSecretValidator) ValidatePullSecret(secret string, username
 	return nil
 }
 
-func ValidateDomainNameFormat(dnsDomainName string) error {
-	matched, err := regexp.MatchString(dnsNameRegex, dnsDomainName)
-	if err != nil {
-		return common.NewApiError(http.StatusInternalServerError, errors.Wrapf(err, "DNS name validation for %s", dnsDomainName))
-	}
-	if !matched {
-		return common.NewApiError(http.StatusBadRequest, errors.Errorf("DNS format mismatch: %s domain name is not valid", dnsDomainName))
-	}
-	return nil
-}
-
-func ValidateHostname(name string) error {
-	matched, err := regexp.MatchString(hostnameRegex, name)
-	if err != nil {
-		return errors.Wrapf(err, "Hostname validation for %s", name)
-	}
-	if !matched {
-		return errors.Errorf("Hostname format mismatch: %s name is not valid", name)
-	}
-	return nil
-}
-
-func ValidateAdditionalNTPSource(commaSeparatedNTPSources string) bool {
-	return common.AllStrings(strings.Split(commaSeparatedNTPSources, ","), ValidateNTPSource)
-}
-
-func ValidateNTPSource(ntpSource string) bool {
-	if addr := net.ParseIP(ntpSource); addr != nil {
-		return true
-	}
-
-	if err := ValidateHostname(ntpSource); err == nil {
-		return true
-	}
-
-	return false
-}
-
 // ValidateClusterNameFormat validates specified cluster name format
 func ValidateClusterNameFormat(name string) error {
 	if matched, _ := regexp.MatchString(clusterNameRegex, name); !matched {
 		return errors.Errorf("Cluster name format is not valid: '%s'. "+
 			"Name must consist of lower-case letters, numbers and hyphens. "+
 			"It must start with a letter and end with a letter or number.", name)
-	}
-	return nil
-}
-
-// ValidateHTTPFormat validates the HTTP and HTTPS format
-func ValidateHTTPFormat(theurl string) error {
-	u, err := url.Parse(theurl)
-	if err != nil {
-		return fmt.Errorf("URL '%s' format is not valid: %w", theurl, err)
-	}
-	if !(u.Scheme == "http" || u.Scheme == "https") {
-		return errors.Errorf("The URL scheme must be http(s) and specified in the URL: '%s'", theurl)
-	}
-	return nil
-}
-
-// ValidateHTTPProxyFormat validates the HTTP Proxy and HTTPS Proxy format
-func ValidateHTTPProxyFormat(proxyURL string) error {
-	if !govalidator.IsURL(proxyURL) {
-		return errors.Errorf("Proxy URL format is not valid: '%s'", proxyURL)
-	}
-	u, err := url.Parse(proxyURL)
-	if err != nil {
-		return errors.Errorf("Proxy URL format is not valid: '%s'", proxyURL)
-	}
-	if u.Scheme == "https" {
-		return errors.Errorf("The URL scheme must be http; https is currently not supported: '%s'", proxyURL)
-	}
-	if u.Scheme != "http" {
-		return errors.Errorf("The URL scheme must be http and specified in the URL: '%s'", proxyURL)
 	}
 	return nil
 }
@@ -293,25 +222,8 @@ func ValidateNoProxyFormat(noProxy string, ocpVersion string) error {
 		}
 		return errors.Errorf("Sorry, no-proxy value '*' is not supported in this release")
 	}
-	domains := strings.Split(noProxy, ",")
-	for _, s := range domains {
-		s = strings.TrimPrefix(s, ".")
-		if govalidator.IsIP(s) {
-			continue
-		}
 
-		if govalidator.IsCIDR(s) {
-			continue
-		}
-
-		if govalidator.IsDNSName(s) {
-			continue
-		}
-		return errors.Errorf("NO Proxy format is not valid: '%s'. "+
-			"NO Proxy is a comma-separated list of destination domain names, domains, IP addresses or other network CIDRs. "+
-			"A domain can be prefaced with '.' to include all subdomains of that domain. Use '*' to bypass proxy for all destinations with OpenShift 4.8 or later.", noProxy)
-	}
-	return nil
+	return validations.ValidateNoProxyFormat(noProxy)
 }
 
 func ValidateSSHPublicKey(sshPublicKeys string) error {
