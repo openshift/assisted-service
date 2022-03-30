@@ -86,3 +86,9 @@ func GenJSJWKS(privKey crypto.PublicKey, pubKey crypto.PublicKey) ([]byte, []byt
 	}
 	return pubJSJWKS, privJSJWKS, kid, nil
 }
+
+func GetConfigRHSSO() *Config {
+	_, cert := GetTokenAndCert(false)
+	cfg := &Config{JwkCert: string(cert), AuthType: TypeRHSSO, EnableOrgTenancy: true}
+	return cfg
+}
