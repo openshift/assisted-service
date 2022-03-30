@@ -1,9 +1,0 @@
-apiVersion: agent-install.openshift.io/v1beta1
-kind: AgentClassification
-metadata:
-  name: sizexl
-  namespace: agents
-spec:
-  labelKey: size
-  labelValue: xlarge
-  query: ".cpu.count == 4 and .memory.physicalBytes >= 17179869184 and .memory.physicalBytes < 34359738368"
