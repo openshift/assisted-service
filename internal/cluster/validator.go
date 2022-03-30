@@ -589,7 +589,7 @@ func (v *clusterValidator) isNetworksSameAddressFamilies(c *clusterPreprocessCon
 		v.log.WithError(err).Errorf("Getting cluster address families for cluster %s", c.cluster.ID.String())
 		return ValidationError
 	}
-	clusterNetworkFamilies = common.CanonizeStrings(clusterNetworkFamilies)
+	clusterNetworkFamilies = network.CanonizeAddressFamilies(clusterNetworkFamilies)
 	if !reflect.DeepEqual(serviceNetworkFamilies, clusterNetworkFamilies) {
 		return ValidationFailure
 	}
@@ -599,7 +599,7 @@ func (v *clusterValidator) isNetworksSameAddressFamilies(c *clusterPreprocessCon
 			v.log.WithError(err).Errorf("Getting machine address families for cluster %s", c.cluster.ID.String())
 			return ValidationError
 		}
-		machineNetworkFamilies = common.CanonizeStrings(machineNetworkFamilies)
+		machineNetworkFamilies = network.CanonizeAddressFamilies(machineNetworkFamilies)
 		if !reflect.DeepEqual(serviceNetworkFamilies, machineNetworkFamilies) {
 			return ValidationFailure
 		}

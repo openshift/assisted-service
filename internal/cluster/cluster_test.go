@@ -811,12 +811,16 @@ var _ = Describe("Auto assign machine CIDR", func() {
 		srcState                string
 		machineNetworkCIDR      string
 		expectedMachineCIDR     string
+		expectedMachineNetworks []string
 		apiVip                  string
 		hosts                   []*models.Host
 		eventCallExpected       bool
 		userActionResetExpected bool
 		dhcpEnabled             bool
 		userManagedNetworking   bool
+		sno                     bool
+		clusterNetworks         []*models.ClusterNetwork
+		serviceNetworks         []*models.ServiceNetwork
 	}{
 		{
 			name:        "No hosts",
@@ -1112,6 +1116,106 @@ var _ = Describe("Auto assign machine CIDR", func() {
 			machineNetworkCIDR:      "192.168.0.0/16",
 			dhcpEnabled:             false,
 		},
+		{
+			name:     "Pending SNO IPv4",
+			srcState: models.ClusterStatusPendingForInput,
+			hosts: []*models.Host{
+				{
+					Status:    swag.String(models.HostStatusInsufficient),
+					Inventory: common.GenerateTestDefaultInventory(),
+				},
+			},
+			sno:                 true,
+			expectedMachineCIDR: "1.2.3.0/24",
+			expectedMachineNetworks: []string{
+				"1.2.3.0/24",
+			},
+			dhcpEnabled: false,
+		},
+		{
+			name:     "Pending SNO IPv6",
+			srcState: models.ClusterStatusPendingForInput,
+			hosts: []*models.Host{
+				{
+					Status:    swag.String(models.HostStatusInsufficient),
+					Inventory: common.GenerateTestDefaultInventory(),
+				},
+			},
+			sno:                 true,
+			clusterNetworks:     common.TestIPv6Networking.ClusterNetworks,
+			serviceNetworks:     common.TestIPv6Networking.ServiceNetworks,
+			expectedMachineCIDR: "1001:db8::/120",
+			expectedMachineNetworks: []string{
+				"1001:db8::/120",
+			},
+			dhcpEnabled: false,
+		},
+		{
+			name:     "Pending SNO Dual stack",
+			srcState: models.ClusterStatusPendingForInput,
+			hosts: []*models.Host{
+				{
+					Status:    swag.String(models.HostStatusInsufficient),
+					Inventory: common.GenerateTestDefaultInventory(),
+				},
+			},
+			sno:                 true,
+			clusterNetworks:     common.TestDualStackNetworking.ClusterNetworks,
+			serviceNetworks:     common.TestDualStackNetworking.ServiceNetworks,
+			expectedMachineCIDR: "1.2.3.0/24",
+			expectedMachineNetworks: []string{
+				"1.2.3.0/24",
+				"1001:db8::/120",
+			},
+			dhcpEnabled: false,
+		},
+		{
+			name:     "Pending SNO IPv4 2 addresses",
+			srcState: models.ClusterStatusPendingForInput,
+			hosts: []*models.Host{
+				{
+					Status:    swag.String(models.HostStatusInsufficient),
+					Inventory: common.GenerateTest2IPv4AddressesInventory(),
+				},
+			},
+			sno:                     true,
+			expectedMachineCIDR:     "",
+			expectedMachineNetworks: []string{},
+			dhcpEnabled:             false,
+		},
+		{
+			name:     "Pending SNO IPv6",
+			srcState: models.ClusterStatusPendingForInput,
+			hosts: []*models.Host{
+				{
+					Status:    swag.String(models.HostStatusInsufficient),
+					Inventory: common.GenerateTest2IPv4AddressesInventory(),
+				},
+			},
+			sno:                 true,
+			clusterNetworks:     common.TestIPv6Networking.ClusterNetworks,
+			serviceNetworks:     common.TestIPv6Networking.ServiceNetworks,
+			expectedMachineCIDR: "1001:db8::/120",
+			expectedMachineNetworks: []string{
+				"1001:db8::/120",
+			},
+			dhcpEnabled: false,
+		},
+		{
+			name:     "Pending SNO conflicting service/cluster networks",
+			srcState: models.ClusterStatusPendingForInput,
+			hosts: []*models.Host{
+				{
+					Status:    swag.String(models.HostStatusInsufficient),
+					Inventory: common.GenerateTestDefaultInventory(),
+				},
+			},
+			sno:                     true,
+			serviceNetworks:         common.TestIPv6Networking.ServiceNetworks,
+			expectedMachineCIDR:     "",
+			expectedMachineNetworks: []string{},
+			dhcpEnabled:             false,
+		},
 	}
 	for _, t := range tests {
 		t := t
@@ -1128,6 +1232,16 @@ var _ = Describe("Auto assign machine CIDR", func() {
 				VipDhcpAllocation:     swag.Bool(t.dhcpEnabled),
 				UserManagedNetworking: swag.Bool(t.userManagedNetworking),
 			}}
+			if t.sno {
+				c.HighAvailabilityMode = swag.String(models.ClusterHighAvailabilityModeNone)
+				c.UserManagedNetworking = swag.Bool(true)
+			}
+			if t.clusterNetworks != nil {
+				c.ClusterNetworks = t.clusterNetworks
+			}
+			if t.serviceNetworks != nil {
+				c.ServiceNetworks = t.serviceNetworks
+			}
 			Expect(db.Create(&c).Error).ShouldNot(HaveOccurred())
 			for _, h := range t.hosts {
 				hostId := strfmt.UUID(uuid.New().String())
@@ -1155,6 +1269,12 @@ var _ = Describe("Auto assign machine CIDR", func() {
 				Expect(cluster.MachineNetworks).NotTo(BeEmpty())
 				Expect(network.GetMachineCidrById(&cluster, 0)).To(Equal(t.expectedMachineCIDR))
 				Expect(cluster.MachineNetworkCidr).To(Equal("")) // TODO(MGMT-9751-remove-single-network)
+			}
+			if t.expectedMachineNetworks != nil {
+				Expect(cluster.MachineNetworks).To(HaveLen(len(t.expectedMachineNetworks)))
+				for _, m := range t.expectedMachineNetworks {
+					Expect(t.expectedMachineNetworks).To(ContainElement(m))
+				}
 			}
 
 			ctrl.Finish()
