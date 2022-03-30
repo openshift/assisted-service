@@ -659,6 +659,10 @@ func validateAndUpdateSingleNodeParams(newClusterParams *models.ClusterCreatePar
 		return errors.Errorf("VIP DHCP Allocation cannot be enabled on single node OpenShift")
 	}
 
+	if swag.StringValue(newClusterParams.NetworkType) == models.ClusterNetworkTypeOpenShiftSDN {
+		return errors.Errorf("OpenShiftSDN network type is not allowed in single node mode")
+	}
+
 	return nil
 }
 
@@ -1702,6 +1706,10 @@ func (b *bareMetalInventory) v2NoneHaModeClusterUpdateValidations(cluster *commo
 
 	if params.ClusterUpdateParams.UserManagedNetworking != nil && !swag.BoolValue(params.ClusterUpdateParams.UserManagedNetworking) {
 		return errors.Errorf("disabling UserManagedNetworking is not allowed in single node mode")
+	}
+
+	if swag.StringValue(params.ClusterUpdateParams.NetworkType) == models.ClusterNetworkTypeOpenShiftSDN {
+		return errors.Errorf("OpenShiftSDN network type is not allowed in single node mode")
 	}
 
 	return nil
