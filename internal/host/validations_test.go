@@ -87,50 +87,134 @@ var _ = Describe("Validations test", func() {
 		mockAndRefreshStatusWithoutEvents(h)
 	}
 
-	Context("Disk encryption validation", func() {
-		getDiskEncryptionValidationResult := func(validationsInfo string) (ValidationStatus, string, bool) {
+	getDay2Host := func() models.Host {
+		h := hostutil.GenerateTestHostByKind(hostID, infraEnvID, &clusterID, models.HostStatusDiscovering, models.HostKindHost, models.HostRoleWorker)
+		h.Kind = swag.String(models.HostKindAddToExistingClusterHost)
+		return h
+	}
 
-			var validationsRes ValidationsStatus
-			err := json.Unmarshal([]byte(validationsInfo), &validationsRes)
-			Expect(err).ToNot(HaveOccurred())
+	createDay2Cluster := func() {
+		c := hostutil.GenerateTestCluster(clusterID, common.TestIPv4Networking.MachineNetworks)
+		c.Kind = swag.String(models.ClusterKindAddHostsCluster)
+		c.DiskEncryption = &models.DiskEncryption{}
+		Expect(db.Create(&c).Error).ToNot(HaveOccurred())
+	}
 
-			for _, vl := range validationsRes {
-				for _, v := range vl {
-					if v.ID == validationID(models.HostValidationIDDiskEncryptionRequirementsSatisfied) {
-						return v.Status, v.Message, true
-					}
+	getValidationResult := func(validationsInfo string, validation validationID) (ValidationStatus, string, bool) {
+
+		var validationsRes ValidationsStatus
+		err := json.Unmarshal([]byte(validationsInfo), &validationsRes)
+		Expect(err).ToNot(HaveOccurred())
+
+		for _, vl := range validationsRes {
+			for _, v := range vl {
+				if v.ID == validation {
+					return v.Status, v.Message, true
 				}
 			}
-			return ValidationStatus(""), "", false
 		}
-
-		getIgnitionConfig := func(tpm2Enabled bool) types.Config {
-			return types.Config{
-				Ignition: types.Ignition{Version: "3.2.0"},
-				Storage: types.Storage{
-					Luks: []types.Luks{
-						{
-							Clevis: &types.Clevis{Tpm2: &tpm2Enabled},
-							Device: swag.String("/dev/disk"),
-						},
+		return ValidationStatus(""), "", false
+	}
+	getIgnitionConfig := func(tpm2Enabled bool) types.Config {
+		return types.Config{
+			Ignition: types.Ignition{Version: "3.2.0"},
+			Storage: types.Storage{
+				Luks: []types.Luks{
+					{
+						Clevis: &types.Clevis{Tpm2: &tpm2Enabled},
+						Device: swag.String("/dev/disk"),
 					},
 				},
-			}
+			},
 		}
-
-		getDay2Host := func() models.Host {
-			h := hostutil.GenerateTestHostByKind(hostID, infraEnvID, &clusterID, models.HostStatusDiscovering, models.HostKindHost, models.HostRoleWorker)
-			h.Kind = swag.String(models.HostKindAddToExistingClusterHost)
-			return h
-		}
-
-		createDay2Cluster := func() {
+	}
+	Context("Ignition downloadable validation", func() {
+		ignitionDownloadableID := validationID(models.HostValidationIDIgnitionDownloadable)
+		It("day 1 host with infraenv - successful validation", func() {
 			c := hostutil.GenerateTestCluster(clusterID, common.TestIPv4Networking.MachineNetworks)
-			c.Kind = swag.String(models.ClusterKindAddHostsCluster)
-			c.DiskEncryption = &models.DiskEncryption{}
-			Expect(db.Create(&c).Error).ToNot(HaveOccurred())
-		}
+			Expect(db.Create(&c).Error).ShouldNot(HaveOccurred())
+			h := hostutil.GenerateTestHost(hostID, infraEnvID, clusterID, models.HostStatusDiscovering)
+			h.Inventory = common.GenerateTestInventoryWithSetNetwork()
+			Expect(db.Create(&h).Error).ShouldNot(HaveOccurred())
 
+			mockAndRefreshStatus(&h)
+
+			h = hostutil.GetHostFromDB(*h.ID, h.InfraEnvID, db).Host
+			_, _, found := getValidationResult(h.ValidationsInfo, ignitionDownloadableID)
+			Expect(found).To(BeFalse())
+		})
+		It("day 1 host with infraenv - successful validation", func() {
+			c := hostutil.GenerateTestCluster(clusterID, common.TestIPv4Networking.MachineNetworks)
+			Expect(db.Create(&c).Error).ShouldNot(HaveOccurred())
+			h := hostutil.GenerateTestHost(hostID, infraEnvID, clusterID, models.HostStatusDiscovering)
+			h.Inventory = common.GenerateTestInventoryWithSetNetwork()
+			Expect(db.Create(&h).Error).ShouldNot(HaveOccurred())
+
+			mockAndRefreshStatus(&h)
+
+			h = hostutil.GetHostFromDB(*h.ID, h.InfraEnvID, db).Host
+			_, _, found := getValidationResult(h.ValidationsInfo, ignitionDownloadableID)
+			Expect(found).To(BeFalse())
+		})
+		It("day2 host with no API VIP Connectivity - pending validation", func() {
+			createDay2Cluster()
+
+			h := getDay2Host()
+			h.Inventory = common.GenerateTestInventoryWithSetNetwork()
+			h.APIVipConnectivity = ""
+			Expect(db.Create(&h).Error).ShouldNot(HaveOccurred())
+
+			mockAndRefreshStatus(&h)
+
+			h = hostutil.GetHostFromDB(*h.ID, h.InfraEnvID, db).Host
+			validationStatus, validationMessage, found := getValidationResult(h.ValidationsInfo, ignitionDownloadableID)
+			Expect(found).To(BeTrue())
+			Expect(validationStatus).To(Equal(ValidationPending))
+			Expect(validationMessage).To(Equal("Ignition is not ready, pending API VIP connectivity."))
+		})
+		It("day2 host with valid API VIP Connectivity - successful validation", func() {
+			createDay2Cluster()
+
+			h := getDay2Host()
+			h.Inventory = common.GenerateTestInventoryWithSetNetwork()
+			configBytes, err := json.Marshal(getIgnitionConfig(true))
+			Expect(err).ShouldNot(HaveOccurred())
+			h.APIVipConnectivity = hostutil.GenerateTestAPIVIpConnectivity(string(configBytes))
+			Expect(db.Create(&h).Error).ShouldNot(HaveOccurred())
+
+			mockAndRefreshStatus(&h)
+
+			h = hostutil.GetHostFromDB(*h.ID, h.InfraEnvID, db).Host
+			validationStatus, validationMessage, found := getValidationResult(h.ValidationsInfo, ignitionDownloadableID)
+			Expect(found).To(BeTrue())
+			Expect(validationStatus).To(Equal(ValidationSuccess))
+			Expect(validationMessage).To(Equal("Ignition is downloadable"))
+		})
+		It("day2 host with invalid API VIP Connectivity - fails validation", func() {
+			createDay2Cluster()
+
+			h := getDay2Host()
+			h.Inventory = common.GenerateTestInventoryWithSetNetwork()
+			apivip, err := json.Marshal(models.APIVipConnectivityResponse{
+				IsSuccess: false,
+				Ignition:  "ignition",
+			})
+			Expect(err).ShouldNot(HaveOccurred())
+			h.APIVipConnectivity = string(apivip)
+			Expect(db.Create(&h).Error).ShouldNot(HaveOccurred())
+
+			mockAndRefreshStatus(&h)
+
+			h = hostutil.GetHostFromDB(*h.ID, h.InfraEnvID, db).Host
+			validationStatus, validationMessage, found := getValidationResult(h.ValidationsInfo, ignitionDownloadableID)
+			Expect(found).To(BeTrue())
+			Expect(validationStatus).To(Equal(ValidationFailure))
+			Expect(validationMessage).To(Equal("Ignition is not downloadable. Please ensure host connectivity to the cluster's API VIP."))
+		})
+	})
+
+	Context("Disk encryption validation", func() {
+		diskEncryptionID := validationID(models.HostValidationIDDiskEncryptionRequirementsSatisfied)
 		It("disk-encryption not set", func() {
 
 			c := hostutil.GenerateTestCluster(clusterID, common.TestIPv4Networking.MachineNetworks)
@@ -143,7 +227,7 @@ var _ = Describe("Validations test", func() {
 			mockAndRefreshStatus(&h)
 
 			h = hostutil.GetHostFromDB(*h.ID, h.InfraEnvID, db).Host
-			_, _, found := getDiskEncryptionValidationResult(h.ValidationsInfo)
+			_, _, found := getValidationResult(h.ValidationsInfo, diskEncryptionID)
 			Expect(found).To(BeFalse())
 		})
 
@@ -163,7 +247,7 @@ var _ = Describe("Validations test", func() {
 			mockAndRefreshStatus(&h)
 
 			h = hostutil.GetHostFromDB(*h.ID, h.InfraEnvID, db).Host
-			_, _, found := getDiskEncryptionValidationResult(h.ValidationsInfo)
+			_, _, found := getValidationResult(h.ValidationsInfo, diskEncryptionID)
 			Expect(found).To(BeFalse())
 		})
 
@@ -182,7 +266,7 @@ var _ = Describe("Validations test", func() {
 
 			checkValidation := func(expectedStatus ValidationStatus, expectedMsg string) {
 				h = hostutil.GetHostFromDB(*h.ID, h.InfraEnvID, db).Host
-				validationStatus, validationMessage, found := getDiskEncryptionValidationResult(h.ValidationsInfo)
+				validationStatus, validationMessage, found := getValidationResult(h.ValidationsInfo, validationID(models.HostValidationIDDiskEncryptionRequirementsSatisfied))
 				ExpectWithOffset(1, found).To(BeTrue())
 				ExpectWithOffset(1, validationStatus).To(Equal(expectedStatus))
 				ExpectWithOffset(1, validationMessage).To(Equal(expectedMsg))
@@ -222,7 +306,7 @@ var _ = Describe("Validations test", func() {
 			mockAndRefreshStatusWithoutEvents(&h)
 
 			h = hostutil.GetHostFromDB(*h.ID, h.InfraEnvID, db).Host
-			validationStatus, validationMessage, found := getDiskEncryptionValidationResult(h.ValidationsInfo)
+			validationStatus, validationMessage, found := getValidationResult(h.ValidationsInfo, diskEncryptionID)
 			Expect(found).To(BeTrue())
 			Expect(validationStatus).To(Equal(ValidationPending))
 			Expect(validationMessage).To(Equal("Missing host inventory"))
@@ -244,7 +328,7 @@ var _ = Describe("Validations test", func() {
 			mockAndRefreshStatus(&h)
 
 			h = hostutil.GetHostFromDB(*h.ID, h.InfraEnvID, db).Host
-			validationStatus, validationMessage, found := getDiskEncryptionValidationResult(h.ValidationsInfo)
+			validationStatus, validationMessage, found := getValidationResult(h.ValidationsInfo, diskEncryptionID)
 			Expect(found).To(BeTrue())
 			Expect(validationStatus).To(Equal(ValidationSuccess))
 			Expect(validationMessage).To(Equal(fmt.Sprintf("Installation disk can be encrypted using %s", models.DiskEncryptionModeTang)))
@@ -266,7 +350,7 @@ var _ = Describe("Validations test", func() {
 			mockAndRefreshStatus(&h)
 
 			h = hostutil.GetHostFromDB(*h.ID, h.InfraEnvID, db).Host
-			validationStatus, validationMessage, found := getDiskEncryptionValidationResult(h.ValidationsInfo)
+			validationStatus, validationMessage, found := getValidationResult(h.ValidationsInfo, diskEncryptionID)
 			Expect(found).To(BeTrue())
 			Expect(validationStatus).To(Equal(ValidationFailure))
 			Expect(validationMessage).To(Equal("TPM version could not be found, make sure TPM is enabled in host's BIOS"))
@@ -288,7 +372,7 @@ var _ = Describe("Validations test", func() {
 			mockAndRefreshStatus(&h)
 
 			h = hostutil.GetHostFromDB(*h.ID, h.InfraEnvID, db).Host
-			validationStatus, validationMessage, found := getDiskEncryptionValidationResult(h.ValidationsInfo)
+			validationStatus, validationMessage, found := getValidationResult(h.ValidationsInfo, diskEncryptionID)
 			Expect(found).To(BeTrue())
 			Expect(validationStatus).To(Equal(ValidationFailure))
 			Expect(validationMessage).To(Equal(fmt.Sprintf("The host's TPM version is not supported, expected-version: %s, actual-version: %s",
@@ -311,7 +395,7 @@ var _ = Describe("Validations test", func() {
 			mockAndRefreshStatus(&h)
 
 			h = hostutil.GetHostFromDB(*h.ID, h.InfraEnvID, db).Host
-			validationStatus, validationMessage, found := getDiskEncryptionValidationResult(h.ValidationsInfo)
+			validationStatus, validationMessage, found := getValidationResult(h.ValidationsInfo, diskEncryptionID)
 			Expect(found).To(BeTrue())
 			Expect(validationStatus).To(Equal(ValidationSuccess))
 			Expect(validationMessage).To(Equal(fmt.Sprintf("Installation disk can be encrypted using %s", models.DiskEncryptionModeTpmv2)))
@@ -330,7 +414,7 @@ var _ = Describe("Validations test", func() {
 			mockAndRefreshStatus(&h)
 
 			h = hostutil.GetHostFromDB(*h.ID, h.InfraEnvID, db).Host
-			validationStatus, validationMessage, found := getDiskEncryptionValidationResult(h.ValidationsInfo)
+			validationStatus, validationMessage, found := getValidationResult(h.ValidationsInfo, diskEncryptionID)
 			Expect(found).To(BeTrue())
 			Expect(validationStatus).To(Equal(ValidationSuccess))
 			Expect(validationMessage).To(Equal(fmt.Sprintf("Installation disk can be encrypted using %s", models.DiskEncryptionModeTpmv2)))
@@ -352,7 +436,7 @@ var _ = Describe("Validations test", func() {
 			mockAndRefreshStatus(&h)
 
 			h = hostutil.GetHostFromDB(*h.ID, h.InfraEnvID, db).Host
-			_, _, found := getDiskEncryptionValidationResult(h.ValidationsInfo)
+			_, _, found := getValidationResult(h.ValidationsInfo, diskEncryptionID)
 			Expect(found).To(BeFalse())
 		})
 
@@ -369,7 +453,7 @@ var _ = Describe("Validations test", func() {
 			mockAndRefreshStatus(&h)
 
 			h = hostutil.GetHostFromDB(*h.ID, h.InfraEnvID, db).Host
-			validationStatus, validationMessage, found := getDiskEncryptionValidationResult(h.ValidationsInfo)
+			validationStatus, validationMessage, found := getValidationResult(h.ValidationsInfo, diskEncryptionID)
 			Expect(found).To(BeTrue())
 			Expect(validationStatus).To(Equal(ValidationFailure))
 			Expect(validationMessage).To(Equal("Invalid LUKS object in ignition - both TPM2 and Tang are not available"))
@@ -389,7 +473,7 @@ var _ = Describe("Validations test", func() {
 			mockAndRefreshStatus(&h)
 
 			h = hostutil.GetHostFromDB(*h.ID, h.InfraEnvID, db).Host
-			validationStatus, validationMessage, found := getDiskEncryptionValidationResult(h.ValidationsInfo)
+			validationStatus, validationMessage, found := getValidationResult(h.ValidationsInfo, diskEncryptionID)
 			Expect(found).To(BeTrue())
 			Expect(validationStatus).To(Equal(ValidationFailure))
 			Expect(validationMessage).To(Equal("TPM version could not be found, make sure TPM is enabled in host's BIOS"))
@@ -409,7 +493,7 @@ var _ = Describe("Validations test", func() {
 			mockAndRefreshStatus(&h)
 
 			h = hostutil.GetHostFromDB(*h.ID, h.InfraEnvID, db).Host
-			validationStatus, validationMessage, found := getDiskEncryptionValidationResult(h.ValidationsInfo)
+			validationStatus, validationMessage, found := getValidationResult(h.ValidationsInfo, diskEncryptionID)
 			Expect(found).To(BeTrue())
 			Expect(validationStatus).To(Equal(ValidationFailure))
 			Expect(validationMessage).To(Equal("TPM version could not be found, make sure TPM is enabled in host's BIOS"))
@@ -428,7 +512,7 @@ var _ = Describe("Validations test", func() {
 			mockAndRefreshStatus(&h)
 
 			h = hostutil.GetHostFromDB(*h.ID, h.InfraEnvID, db).Host
-			_, _, found := getDiskEncryptionValidationResult(h.ValidationsInfo)
+			_, _, found := getValidationResult(h.ValidationsInfo, diskEncryptionID)
 			Expect(found).To(BeFalse())
 		})
 
@@ -443,7 +527,7 @@ var _ = Describe("Validations test", func() {
 			mockAndRefreshStatus(&h)
 
 			h = hostutil.GetHostFromDB(*h.ID, h.InfraEnvID, db).Host
-			validationStatus, _, found := getDiskEncryptionValidationResult(h.ValidationsInfo)
+			validationStatus, _, found := getValidationResult(h.ValidationsInfo, diskEncryptionID)
 			Expect(found).To(BeTrue())
 			Expect(validationStatus).To(Equal(ValidationPending))
 		})
@@ -459,7 +543,7 @@ var _ = Describe("Validations test", func() {
 			mockAndRefreshStatus(&h)
 
 			h = hostutil.GetHostFromDB(*h.ID, h.InfraEnvID, db).Host
-			_, _, found := getDiskEncryptionValidationResult(h.ValidationsInfo)
+			_, _, found := getValidationResult(h.ValidationsInfo, diskEncryptionID)
 			Expect(found).To(BeFalse())
 		})
 
@@ -477,7 +561,7 @@ var _ = Describe("Validations test", func() {
 			mockAndRefreshStatus(&h)
 
 			h = hostutil.GetHostFromDB(*h.ID, h.InfraEnvID, db).Host
-			_, _, found := getDiskEncryptionValidationResult(h.ValidationsInfo)
+			_, _, found := getValidationResult(h.ValidationsInfo, diskEncryptionID)
 			Expect(found).To(BeFalse())
 		})
 	})
