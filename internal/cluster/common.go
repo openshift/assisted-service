@@ -273,6 +273,40 @@ func UpdateMachineCidr(db *gorm.DB, cluster *common.Cluster, machineCidr string)
 			"machine_network_cidr_updated_at": time.Now(),
 		}).Error
 	}
-
 	return nil
+}
+
+func machineNetworksAlreadyExist(cluster *common.Cluster, machineNetworks []string) bool {
+	if len(cluster.MachineNetworks) != len(machineNetworks) {
+		return false
+	}
+	for _, m := range cluster.MachineNetworks {
+		if !funk.ContainsString(machineNetworks, string(m.Cidr)) {
+			return false
+		}
+	}
+	return true
+}
+
+func updateMachineNetworks(db *gorm.DB, cluster *common.Cluster, machineNetworks []string) error {
+	if len(machineNetworks) == 0 || machineNetworksAlreadyExist(cluster, machineNetworks) {
+		return nil
+	}
+	return db.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Delete(&models.MachineNetwork{}, "cluster_id = ?", cluster.ID.String()).Error; err != nil {
+			return err
+		}
+		if err := tx.Model(&common.Cluster{}).Where("id = ?", cluster.ID.String()).Updates(map[string]interface{}{
+			"machine_network_cidr":            machineNetworks[0],
+			"machine_network_cidr_updated_at": time.Now(),
+		}).Error; err != nil {
+			return err
+		}
+		for _, m := range machineNetworks {
+			if err := tx.Create(&models.MachineNetwork{ClusterID: *cluster.ID, Cidr: models.Subnet(m)}).Error; err != nil {
+				return err
+			}
+		}
+		return nil
+	})
 }

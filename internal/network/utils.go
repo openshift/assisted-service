@@ -2,6 +2,7 @@ package network
 
 import (
 	"net"
+	"sort"
 	"strings"
 
 	"github.com/go-openapi/swag"
@@ -161,25 +162,43 @@ func GetClusterNetworkCidrs(cluster *common.Cluster) (ret []string) {
 	return
 }
 
-func CidrToAddressFamily(cidr string) (string, error) {
+func CidrToAddressFamily(cidr string) (AddressFamily, error) {
 	_, _, err := net.ParseCIDR(cidr)
 	if err != nil {
-		return "", err
+		return 0, err
 	}
 	if strings.Contains(cidr, ":") {
-		return "IPv6", nil
+		return IPv6, nil
 	}
-	return "IPv4", nil
+	return IPv4, nil
 }
 
-func CidrsToAddressFamilies(cidrs []string) (ret []string, err error) {
+func CidrsToAddressFamilies(cidrs []string) (ret []AddressFamily, err error) {
 	for _, cidr := range cidrs {
-		var af string
+		var af AddressFamily
 		af, err = CidrToAddressFamily(cidr)
 		if err != nil {
 			return nil, err
 		}
 		ret = append(ret, af)
+	}
+	sort.Slice(ret, func(i, j int) bool {
+		return ret[i] < ret[j]
+	})
+	return
+}
+
+// Canonize slice of AddressFamily. It transforms multiple consecutive AddressFamily entries into a single entry
+// while keeping the original order in the slice.
+func CanonizeAddressFamilies(slice []AddressFamily) (ret []AddressFamily) {
+	if len(slice) == 0 {
+		return
+	}
+	ret = append(ret, slice[0])
+	for i := 1; i != len(slice); i++ {
+		if slice[i] != slice[i-1] {
+			ret = append(ret, slice[i])
+		}
 	}
 	return
 }
