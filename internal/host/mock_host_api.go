@@ -631,6 +631,20 @@ func (mr *MockAPIMockRecorder) UpdateNTP(arg0, arg1, arg2, arg3 interface{}) *go
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateNTP", reflect.TypeOf((*MockAPI)(nil).UpdateNTP), arg0, arg1, arg2, arg3)
 }
 
+// UpdateNodeLabels mocks base method.
+func (m *MockAPI) UpdateNodeLabels(arg0 context.Context, arg1 *models.Host, arg2 string, arg3 *gorm.DB) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateNodeLabels", arg0, arg1, arg2, arg3)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// UpdateNodeLabels indicates an expected call of UpdateNodeLabels.
+func (mr *MockAPIMockRecorder) UpdateNodeLabels(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateNodeLabels", reflect.TypeOf((*MockAPI)(nil).UpdateNodeLabels), arg0, arg1, arg2, arg3)
+}
+
 // UpdateRole mocks base method.
 func (m *MockAPI) UpdateRole(arg0 context.Context, arg1 *models.Host, arg2 models.HostRole, arg3 *gorm.DB) error {
 	m.ctrl.T.Helper()

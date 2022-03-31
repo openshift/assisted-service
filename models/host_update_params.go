@@ -36,6 +36,9 @@ type HostUpdateParams struct {
 
 	// machine config pool name
 	MachineConfigPoolName *string `json:"machine_config_pool_name,omitempty"`
+
+	// Labels to be added to the corresponding node.
+	NodeLabels []*NodeLabelParams `json:"node_labels"`
 }
 
 // Validate validates this host update params
@@ -47,6 +50,10 @@ func (m *HostUpdateParams) Validate(formats strfmt.Registry) error {
 	}
 
 	if err := m.validateHostRole(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateNodeLabels(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -127,11 +134,41 @@ func (m *HostUpdateParams) validateHostRole(formats strfmt.Registry) error {
 	return nil
 }
 
+func (m *HostUpdateParams) validateNodeLabels(formats strfmt.Registry) error {
+	if swag.IsZero(m.NodeLabels) { // not required
+		return nil
+	}
+
+	for i := 0; i < len(m.NodeLabels); i++ {
+		if swag.IsZero(m.NodeLabels[i]) { // not required
+			continue
+		}
+
+		if m.NodeLabels[i] != nil {
+			if err := m.NodeLabels[i].Validate(formats); err != nil {
+				if ve, ok := err.(*errors.Validation); ok {
+					return ve.ValidateName("node_labels" + "." + strconv.Itoa(i))
+				} else if ce, ok := err.(*errors.CompositeError); ok {
+					return ce.ValidateName("node_labels" + "." + strconv.Itoa(i))
+				}
+				return err
+			}
+		}
+
+	}
+
+	return nil
+}
+
 // ContextValidate validate this host update params based on the context it is used
 func (m *HostUpdateParams) ContextValidate(ctx context.Context, formats strfmt.Registry) error {
 	var res []error
 
 	if err := m.contextValidateDisksSelectedConfig(ctx, formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.contextValidateNodeLabels(ctx, formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -151,6 +188,26 @@ func (m *HostUpdateParams) contextValidateDisksSelectedConfig(ctx context.Contex
 					return ve.ValidateName("disks_selected_config" + "." + strconv.Itoa(i))
 				} else if ce, ok := err.(*errors.CompositeError); ok {
 					return ce.ValidateName("disks_selected_config" + "." + strconv.Itoa(i))
+				}
+				return err
+			}
+		}
+
+	}
+
+	return nil
+}
+
+func (m *HostUpdateParams) contextValidateNodeLabels(ctx context.Context, formats strfmt.Registry) error {
+
+	for i := 0; i < len(m.NodeLabels); i++ {
+
+		if m.NodeLabels[i] != nil {
+			if err := m.NodeLabels[i].ContextValidate(ctx, formats); err != nil {
+				if ve, ok := err.(*errors.Validation); ok {
+					return ve.ValidateName("node_labels" + "." + strconv.Itoa(i))
+				} else if ce, ok := err.(*errors.CompositeError); ok {
+					return ce.ValidateName("node_labels" + "." + strconv.Itoa(i))
 				}
 				return err
 			}
