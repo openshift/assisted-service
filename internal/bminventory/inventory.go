@@ -62,6 +62,7 @@ import (
 	"github.com/openshift/assisted-service/pkg/s3wrapper"
 	"github.com/openshift/assisted-service/pkg/staticnetworkconfig"
 	"github.com/openshift/assisted-service/pkg/transaction"
+	pkgvalidations "github.com/openshift/assisted-service/pkg/validations"
 	"github.com/openshift/assisted-service/restapi/operations/installer"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -349,7 +350,7 @@ func (b *bareMetalInventory) validateRegisterClusterInternalParams(params *insta
 	if params.NewClusterParams.AdditionalNtpSource != nil {
 		ntpSource := swag.StringValue(params.NewClusterParams.AdditionalNtpSource)
 
-		if ntpSource != "" && !validations.ValidateAdditionalNTPSource(ntpSource) {
+		if ntpSource != "" && !pkgvalidations.ValidateAdditionalNTPSource(ntpSource) {
 			err = errors.Errorf("Invalid NTP source: %s", ntpSource)
 			return common.NewApiError(http.StatusBadRequest, err)
 		}
@@ -2354,7 +2355,7 @@ func (b *bareMetalInventory) updateNtpSources(params installer.V2UpdateClusterPa
 		ntpSource := swag.StringValue(params.ClusterUpdateParams.AdditionalNtpSource)
 		additionalNtpSourcesDefined := ntpSource != ""
 
-		if additionalNtpSourcesDefined && !validations.ValidateAdditionalNTPSource(ntpSource) {
+		if additionalNtpSourcesDefined && !pkgvalidations.ValidateAdditionalNTPSource(ntpSource) {
 			err := errors.Errorf("Invalid NTP source: %s", ntpSource)
 			log.WithError(err)
 			return common.NewApiError(http.StatusBadRequest, err)
@@ -3627,7 +3628,7 @@ func (b *bareMetalInventory) validateIgnitionEndpointURL(ignitionEndpoint *model
 	if ignitionEndpoint == nil || ignitionEndpoint.URL == nil {
 		return nil
 	}
-	if err := validations.ValidateHTTPFormat(*ignitionEndpoint.URL); err != nil {
+	if err := pkgvalidations.ValidateHTTPFormat(*ignitionEndpoint.URL); err != nil {
 		log.WithError(err).Errorf("Invalid Ignition endpoint URL: %s", *ignitionEndpoint.URL)
 		return common.NewApiError(http.StatusBadRequest, err)
 	}
@@ -3795,12 +3796,12 @@ func computeProxyHash(proxy *models.Proxy) (string, error) {
 
 func validateProxySettings(httpProxy, httpsProxy, noProxy, ocpVersion *string) error {
 	if httpProxy != nil && *httpProxy != "" {
-		if err := validations.ValidateHTTPProxyFormat(*httpProxy); err != nil {
+		if err := pkgvalidations.ValidateHTTPProxyFormat(*httpProxy); err != nil {
 			return errors.Errorf("Failed to validate HTTP Proxy: %s", err)
 		}
 	}
 	if httpsProxy != nil && *httpsProxy != "" {
-		if err := validations.ValidateHTTPProxyFormat(*httpsProxy); err != nil {
+		if err := pkgvalidations.ValidateHTTPProxyFormat(*httpsProxy); err != nil {
 			return errors.Errorf("Failed to validate HTTPS Proxy: %s", err)
 		}
 	}
@@ -4021,7 +4022,7 @@ func (b *bareMetalInventory) RegisterInfraEnvInternal(
 	if params.InfraenvCreateParams.AdditionalNtpSources != nil && swag.StringValue(params.InfraenvCreateParams.AdditionalNtpSources) != b.Config.DefaultNTPSource {
 		ntpSource := swag.StringValue(params.InfraenvCreateParams.AdditionalNtpSources)
 
-		if ntpSource != "" && !validations.ValidateAdditionalNTPSource(ntpSource) {
+		if ntpSource != "" && !pkgvalidations.ValidateAdditionalNTPSource(ntpSource) {
 			err = errors.Errorf("Invalid NTP source: %s", ntpSource)
 			return nil, common.NewApiError(http.StatusBadRequest, err)
 		}
@@ -4411,7 +4412,7 @@ func (b *bareMetalInventory) updateInfraEnvNtpSources(params installer.UpdateInf
 		ntpSource := swag.StringValue(params.InfraEnvUpdateParams.AdditionalNtpSources)
 		additionalNtpSourcesDefined := ntpSource != ""
 
-		if additionalNtpSourcesDefined && !validations.ValidateAdditionalNTPSource(ntpSource) {
+		if additionalNtpSourcesDefined && !pkgvalidations.ValidateAdditionalNTPSource(ntpSource) {
 			err := errors.Errorf("Invalid NTP source: %s", ntpSource)
 			log.WithError(err)
 			return common.NewApiError(http.StatusBadRequest, err)
@@ -4897,7 +4898,7 @@ func (b *bareMetalInventory) V2UpdateHostInstallerArgsInternal(ctx context.Conte
 
 	log := logutil.FromContext(ctx, b.log)
 
-	err := hostutil.ValidateInstallerArgs(params.InstallerArgsParams.Args)
+	err := pkgvalidations.ValidateInstallerArgs(params.InstallerArgsParams.Args)
 	if err != nil {
 		return nil, common.NewApiError(http.StatusBadRequest, err)
 	}

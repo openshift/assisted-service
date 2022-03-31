@@ -154,30 +154,6 @@ func IgnitionFileName(host *models.Host) string {
 	return fmt.Sprintf("%s-%s.ign", common.GetEffectiveRole(host), host.ID)
 }
 
-var allowedFlags = []string{"--append-karg", "--delete-karg", "-n", "--copy-network", "--network-dir", "--save-partlabel", "--save-partindex", "--image-url", "--image-file"}
-
-func ValidateInstallerArgs(args []string) error {
-	re := regexp.MustCompile("^-+.*")
-	for _, arg := range args {
-		if !re.MatchString(arg) {
-			continue
-		}
-
-		found := false
-		for _, f := range allowedFlags {
-			if arg == f {
-				found = true
-				break
-			}
-		}
-		if !found {
-			return fmt.Errorf("found unexpected flag %s for installer - allowed flags are %v", arg, allowedFlags)
-		}
-	}
-
-	return nil
-}
-
 func IsDay2Host(h *models.Host) bool {
 	return swag.StringValue(h.Kind) == models.HostKindAddToExistingClusterHost
 }
