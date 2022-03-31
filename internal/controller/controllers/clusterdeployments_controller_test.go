@@ -2160,7 +2160,8 @@ var _ = Describe("cluster reconcile", func() {
 			Expect(result.Requeue).To(BeFalse())
 
 			aci = getTestClusterInstall()
-			expectedErr := fmt.Sprintf("failed to add release image: %s", releaseImageUrl)
+			expectedErr := fmt.Sprintf("failed to add release image '%s'. Please ensure the releaseImage field in ClusterImageSet '%s' is valid (contact your admin with this info).",
+				releaseImageUrl, imageSetName)
 			expectedState := fmt.Sprintf("%s %s", hiveext.ClusterBackendErrorMsg, expectedErr)
 			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterSpecSyncedCondition).Reason).To(Equal(hiveext.ClusterBackendErrorReason))
 			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterSpecSyncedCondition).Status).To(Equal(corev1.ConditionFalse))
