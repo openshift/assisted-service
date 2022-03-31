@@ -627,5 +627,6 @@ x-events:
   event_type: infra_env
   severity: "info"
   properties:
+    cluster_id: UUID_PTR
     infra_env_id: UUID
     details: string
