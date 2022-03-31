@@ -55,6 +55,13 @@ var _ = Describe("free_addresses", func() {
 		Expect(stepErr).To(HaveOccurred())
 	})
 
+	It("IPv6 only", func() {
+		host.Inventory = common.GenerateTestIPv6Inventory()
+		stepReply, stepErr = fCmd.GetSteps(ctx, &host)
+		Expect(stepReply).To(BeNil())
+		Expect(stepErr).ShouldNot(HaveOccurred())
+	})
+
 	AfterEach(func() {
 		// cleanup
 		common.DeleteTestDB(db, dbName)
