@@ -390,11 +390,16 @@ func (r *BMACReconciler) reconcileAgentSpec(log logrus.FieldLogger, bmh *bmh_v1a
 		dirty = true
 	}
 
-	// findInstallationDiskID will return an empty string
+	// findInstallationDiskID will return an error
 	// if no disk is found from the list. Should be find
 	// to "overwrite" this value everytime as the default
 	// is ""
-	installationDiskID := r.findInstallationDiskID(agent.Status.Inventory.Disks, bmh.Spec.RootDeviceHints)
+	installationDiskID, err := r.findInstallationDiskID(agent.Status.Inventory.Disks, bmh.Spec.RootDeviceHints)
+	if err != nil {
+		log.WithError(err).Error("failed to reconcile agent spec due to rootDeviceHints provided")
+		return reconcileError{err}
+	}
+
 	if agent.Spec.InstallationDiskID != installationDiskID {
 		agent.Spec.InstallationDiskID = installationDiskID
 		dirty = true
@@ -877,9 +882,9 @@ func (r *BMACReconciler) reconcileSpokeBMH(ctx context.Context, log logrus.Field
 // which is what this function does.
 //
 // This function also filters out disks that are not elegible for installation, as we already know those cannot be used.
-func (r *BMACReconciler) findInstallationDiskID(devices []aiv1beta1.HostDisk, hints *bmh_v1alpha1.RootDeviceHints) string {
+func (r *BMACReconciler) findInstallationDiskID(devices []aiv1beta1.HostDisk, hints *bmh_v1alpha1.RootDeviceHints) (string, error) {
 	if hints == nil {
-		return ""
+		return "", nil
 	}
 
 	for _, disk := range devices {
@@ -941,10 +946,10 @@ func (r *BMACReconciler) findInstallationDiskID(devices []aiv1beta1.HostDisk, hi
 			}
 		}
 
-		return disk.ID
+		return disk.ID, nil
 	}
 
-	return ""
+	return "", errors.Errorf("Provided hints are not eligible. %v", hints)
 }
 
 // Finds the agents related to this ClusterDeployment

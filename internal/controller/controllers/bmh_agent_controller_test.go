@@ -553,21 +553,14 @@ var _ = Describe("bmac reconcile", func() {
 				Expect(updatedAgent.Spec.IgnitionConfigOverrides).To(Equal("agent-ignition"))
 			})
 
-			It("should keep InstallationDiskID as empty string if not RootDeviceHints match", func() {
-				updatedHost := &bmh_v1alpha1.BareMetalHost{}
-				err := c.Get(ctx, types.NamespacedName{Name: host.Name, Namespace: testNamespace}, updatedHost)
-				Expect(err).To(BeNil())
-				updatedHost.Spec.RootDeviceHints.DeviceName = "/dev/sdc"
-				Expect(c.Update(ctx, updatedHost)).To(BeNil())
+			It("should keep InstallationDiskID as empty string, but return error if not RootDeviceHints match", func() {
+				devs := []v1beta1.HostDisk{{ID: "1"}}
+				hints := &bmh_v1alpha1.RootDeviceHints{DeviceName: "unknown-device"}
 
-				result, err := bmhr.Reconcile(ctx, newBMHRequest(host))
-				Expect(err).To(BeNil())
-				Expect(result).To(Equal(ctrl.Result{}))
+				installationDiskID, err := bmhr.findInstallationDiskID(devs, hints)
 
-				updatedAgent := &v1beta1.Agent{}
-				err = c.Get(ctx, types.NamespacedName{Name: agent.Name, Namespace: agent.Namespace}, updatedAgent)
-				Expect(err).To(BeNil())
-				Expect(updatedAgent.Spec.InstallationDiskID).To(Equal(""))
+				Expect(installationDiskID).To(Equal(""))
+				Expect(err).NotTo(BeNil())
 			})
 
 			It("should set the InstallationDiskID if the RootDeviceHints were provided and match", func() {
