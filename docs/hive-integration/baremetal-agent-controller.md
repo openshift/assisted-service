@@ -202,6 +202,23 @@ used to tell the installer what disk to use as the installation disk. Refer to t
 
 BMAC is always setting `automatedCleaningMode: disabled` even if the `BareMetalHost` manifest specifies another value (e.g. `automatedCleaningMode: metadata`). This may be changed in the future releases, but currently we do not support using Ironic to clean the node.
 
+---
+**NOTE**
+
+BMAC uses the `RootDeviceHints` from the `BareMetalHost` resource to find a matching disk in the corresponding `Agent`'s inventory, and then sets that disk in `agent.Spec.InstallationDiskID`. If the hints provided to the BMH do not match any disk discovered in the discovery phase, BMAC sets the disk in the Agent's Spec as `/dev/not-found-by-hints`. This will cause the service to notice that the specified disk does not exist and fail the respective validation, showing the following condition in the `Agent` resource.
+
+```
+message: 'The Spec could not be synced due to an input error: Requested installation
+  disk is not part of the host''s valid disks'
+reason: InputError
+```
+
+The log of the service will show the following message indicating that the specified disk (as set by BMAC) is not available. Please note this message is not exposed to the user, but only written in the service log:
+
+```
+level=error msg="failed to set installation disk path </dev/not-found-by-hints> host <29d87175-[...]-eb1efd15fdc0> infra env <d46b1dcd-[...]-2412cd69a0b4>" func="github.com/openshift/assisted-service/internal/bminventory.(*bareMetalInventory).updateHostDisksSelectionConfig" file="/go/src/github.com/openshift/origin/internal/bminventory/inventory.go:5229" error="Requested installation disk is not part of the host's valid disks"
+```
+
 Installation flow
 ===
 
