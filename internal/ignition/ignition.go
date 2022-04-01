@@ -302,7 +302,7 @@ type Generator interface {
 //go:generate mockgen -source=ignition.go -package=ignition -destination=mock_ignition.go
 type IgnitionBuilder interface {
 	FormatDiscoveryIgnitionFile(ctx context.Context, infraEnv *common.InfraEnv, cfg IgnitionConfig, safeForLogs bool, authType auth.AuthType) (string, error)
-	FormatSecondDayWorkerIgnitionFile(address string, machineConfigPoolName string) ([]byte, error)
+	FormatSecondDayWorkerIgnitionFile(address string, machineConfigPoolName string, host *models.Host) ([]byte, error)
 }
 
 type installerGenerator struct {
@@ -974,14 +974,20 @@ func uploadToS3(ctx context.Context, workDir string, cluster *common.Cluster, s3
 	return nil
 }
 
+// ParseToLatest takes the Ignition config and tries to parse it as v3.2 and if that fails,
+// as v3.1. This is in order to support the latest possible Ignition as well as to preserve
+// backwards-compatibility with OCP 4.6 that supports only Ignition up to v3.1
 func ParseToLatest(content []byte) (*config_latest_types.Config, error) {
 	config, _, err := config_latest.Parse(content)
 	if err != nil {
-		configv31, _, err := config_31.Parse(content)
+		// TODO(deprecate-ignition-3.1.0)
+		// We always want to work with the object of the type v3.2 but carry a value of v3.1 inside.
+		// For this reason we are translating the config to v3.2 and manually override the Version.
+		configBackwards, _, err := config_31.Parse(content)
 		if err != nil {
 			return nil, errors.Errorf("error parsing ignition: %v", err)
 		}
-		config = config_latest_trans.Translate(configv31)
+		config = config_latest_trans.Translate(configBackwards)
 		config.Ignition.Version = "3.1.0"
 	}
 
@@ -1159,11 +1165,21 @@ func MergeIgnitionConfig(base []byte, overrides []byte) (string, error) {
 	}
 
 	// Validate after we marshal to use the Parse functions
+	// TODO(deprecate-ignition-3.1.0)
+	// We want to validate if users do not try to override with putting features of 3.2.0 into
+	// ignition manifest of 3.1.0. Because the merger function from ignition package is
+	// version-agnostic and returns only interface{}, we need to hack our way into accessing
+	// the content as a regular Config
 	var report report.Report
-	if baseConfig.Ignition.Version == "3.1.0" {
-		_, report, err = config_31.Parse(res)
-	} else {
-		_, report, err = config_latest.Parse(res)
+	switch v := mergeResult.(type) {
+	case config_latest_types.Config:
+		if v.Ignition.Version == "3.1.0" {
+			_, report, err = config_31.Parse(res)
+		} else {
+			_, report, err = config_latest.Parse(res)
+		}
+	default:
+		return "", errors.Errorf("merged ignition config has invalid type: %T", v)
 	}
 	if err != nil {
 		return "", err
@@ -1381,7 +1397,7 @@ func (ib *ignitionBuilder) prepareStaticNetworkConfigForIgnition(ctx context.Con
 	return filesList, nil
 }
 
-func (ib *ignitionBuilder) FormatSecondDayWorkerIgnitionFile(address string, machineConfigPoolName string) ([]byte, error) {
+func (ib *ignitionBuilder) FormatSecondDayWorkerIgnitionFile(address string, machineConfigPoolName string, host *models.Host) ([]byte, error) {
 	var ignitionParams = map[string]string{
 		// https://github.com/openshift/machine-config-operator/blob/master/docs/MachineConfigServer.md#endpoint
 		"SOURCE": "http://" + address + fmt.Sprintf(":22624/config/%s", machineConfigPoolName),
@@ -1394,7 +1410,22 @@ func (ib *ignitionBuilder) FormatSecondDayWorkerIgnitionFile(address string, mac
 	if err = tmpl.Execute(buf, ignitionParams); err != nil {
 		return nil, err
 	}
-	return buf.Bytes(), nil
+
+	overrides := buf.String()
+	if host.IgnitionConfigOverrides != "" {
+		overrides, err = MergeIgnitionConfig(buf.Bytes(), []byte(host.IgnitionConfigOverrides))
+		if err != nil {
+			return []byte(""), errors.Wrapf(err, "Failed to apply ignition override for host %s", host.ID)
+		}
+		ib.log.Infof("Applied ignition override for host %s", host.ID)
+	}
+
+	res, err := SetHostnameForNodeIgnition([]byte(overrides), host)
+	if err != nil {
+		return []byte(""), errors.Wrapf(err, "Failed to set hostname in ignition for host %s", host.ID)
+	}
+
+	return res, nil
 }
 
 func QuoteSshPublicKeys(sshPublicKeys string) string {
