@@ -5622,6 +5622,7 @@ definitions:
         format: uuid
         description: Host id
       agent_version:
+        pattern: '^(([a-zA-Z0-9\-\.]+)(:[0-9]+)\/)?[a-z0-9\._\-\/@]+:[a-zA-Z0-9_\-.]+$'
         type: string
         description: Agent image version
 
@@ -5692,9 +5693,11 @@ definitions:
         type: string
         description: Boot device to write image on
       controller_image:
+        pattern: '^(([a-zA-Z0-9\-\.]+)(:[0-9]+)\/)?[a-z0-9\._\-\/@]+:[a-zA-Z0-9_\-.]+$'
         type: string
         description: Assisted installer controller image
       installer_image:
+        pattern: '^(([a-zA-Z0-9\-\.]+)(:[0-9]+)\/)?[a-z0-9\._\-\/@]+:[a-zA-Z0-9_\-.]+$'
         type: string
         description: Assisted installer image
       high_availability_mode:
@@ -5720,6 +5723,7 @@ definitions:
         type: string
         description: Must-gather images to use
       mco_image:
+        pattern: '^(([a-zA-Z0-9\-\.]+)(:[0-9]+)\/)?[a-z0-9\._\-\/@]+:[a-zA-Z0-9_\-.]+$'
         type: string
         description: Machine config operator image
       openshift_version:
@@ -5775,6 +5779,7 @@ definitions:
         type: array
         description: List of image names to be checked.
         items:
+          pattern: '^(([a-zA-Z0-9\-\.]+)(:[0-9]+)\/)?[a-z0-9\._\-\/@]+:[a-zA-Z0-9_\-.]+$'
           type: string
           description: A fully qualified image name (FQIN).
 
