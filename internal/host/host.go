@@ -98,6 +98,7 @@ type API interface {
 	SetBootstrap(ctx context.Context, h *models.Host, isbootstrap bool, db *gorm.DB) error
 	UpdateConnectivityReport(ctx context.Context, h *models.Host, connectivityReport string) error
 	UpdateApiVipConnectivityReport(ctx context.Context, h *models.Host, connectivityReport string) error
+	UpdateTangConnectivityReport(ctx context.Context, h *models.Host, connectivityReport string) error
 	HostMonitoring()
 	CancelInstallation(ctx context.Context, h *models.Host, reason string, db *gorm.DB) *common.ApiErrorResponse
 	IsRequireUserActionReset(h *models.Host) bool
@@ -639,6 +640,15 @@ func (m *Manager) UpdateApiVipConnectivityReport(ctx context.Context, h *models.
 	if h.APIVipConnectivity != apiVipConnectivityReport {
 		if err := m.db.Model(h).Update("api_vip_connectivity", apiVipConnectivityReport).Error; err != nil {
 			return errors.Wrapf(err, "failed to set api_vip_connectivity to host %s", h.ID.String())
+		}
+	}
+	return nil
+}
+
+func (m *Manager) UpdateTangConnectivityReport(ctx context.Context, h *models.Host, tangConnectivityReport string) error {
+	if h.TangConnectivity != tangConnectivityReport {
+		if err := m.db.Model(h).Update("tang_connectivity", tangConnectivityReport).Error; err != nil {
+			return errors.Wrapf(err, "failed to set tang_connectivity to host %s", h.ID.String())
 		}
 	}
 	return nil

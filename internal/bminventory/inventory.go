@@ -2762,6 +2762,9 @@ func (b *bareMetalInventory) handleReplyError(params installer.V2PostStepReplyPa
 			return err
 		}
 		return b.processDiskSpeedCheckResponse(ctx, h, stepReply, exitCode)
+
+	case models.StepTypeTangConnectivityCheck:
+		return b.hostApi.UpdateTangConnectivityReport(ctx, h, params.Reply.Error)
 	}
 	return nil
 }
@@ -2945,6 +2948,8 @@ func handleReplyByType(params installer.V2PostStepReplyParams, b *bareMetalInven
 		err = b.hostApi.UpdateConnectivityReport(ctx, &host, stepReply)
 	case models.StepTypeAPIVipConnectivityCheck:
 		err = b.hostApi.UpdateApiVipConnectivityReport(ctx, &host, stepReply)
+	case models.StepTypeTangConnectivityCheck:
+		err = b.hostApi.UpdateTangConnectivityReport(ctx, &host, stepReply)
 	case models.StepTypeFreeNetworkAddresses:
 		err = b.updateFreeAddressesReport(ctx, &host, stepReply)
 	case models.StepTypeDhcpLeaseAllocate:
@@ -3001,6 +3006,8 @@ func filterReplyByType(params installer.V2PostStepReplyParams) (string, error) {
 		stepReply, err = filterReply(&models.ConnectivityReport{}, params.Reply.Output)
 	case models.StepTypeAPIVipConnectivityCheck:
 		stepReply, err = filterReply(&models.APIVipConnectivityResponse{}, params.Reply.Output)
+	case models.StepTypeTangConnectivityCheck:
+		stepReply, err = filterReply(&models.TangConnectivityResponse{}, params.Reply.Output)
 	case models.StepTypeFreeNetworkAddresses:
 		stepReply, err = filterReply(&models.FreeNetworksAddresses{}, params.Reply.Output)
 	case models.StepTypeDhcpLeaseAllocate:

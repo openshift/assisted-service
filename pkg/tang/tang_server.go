@@ -1,4 +1,4 @@
-package common
+package tang
 
 import (
 	"encoding/json"

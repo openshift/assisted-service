@@ -3519,6 +3519,73 @@ func registerHostsAndSetRoles(clusterID, infraenvID strfmt.UUID, numHosts int, c
 		generateDomainResolution(ctx, host, clusterName, baseDNSDomain)
 	}
 	generateFullMeshConnectivity(ctx, ips[0], hosts...)
+	cluster := getCluster(clusterID)
+	if cluster.DiskEncryption != nil && swag.StringValue(cluster.DiskEncryption.Mode) == models.DiskEncryptionModeTang {
+		generateTangPostStepReply(ctx, true, hosts...)
+	}
+
+	apiVip := ""
+	ingressVip := ""
+	_, err := userBMClient.Installer.V2UpdateCluster(ctx, &installer.V2UpdateClusterParams{
+		ClusterUpdateParams: &models.V2ClusterUpdateParams{
+			VipDhcpAllocation: swag.Bool(false),
+			APIVip:            &apiVip,
+			IngressVip:        &ingressVip,
+		},
+		ClusterID: clusterID,
+	})
+	Expect(err).NotTo(HaveOccurred())
+	apiVip = "1.2.3.8"
+	ingressVip = "1.2.3.9"
+	_, err = userBMClient.Installer.V2UpdateCluster(ctx, &installer.V2UpdateClusterParams{
+		ClusterUpdateParams: &models.V2ClusterUpdateParams{
+			APIVip:     &apiVip,
+			IngressVip: &ingressVip,
+		},
+		ClusterID: clusterID,
+	})
+
+	Expect(err).NotTo(HaveOccurred())
+
+	waitForHostState(ctx, models.HostStatusKnown, defaultWaitForHostStateTimeout, hosts...)
+	waitForClusterState(ctx, clusterID, models.ClusterStatusReady, 60*time.Second, clusterReadyStateInfo)
+
+	return hosts
+}
+
+func registerHostsAndSetRolesTang(clusterID, infraenvID strfmt.UUID, numHosts int, clusterName string, baseDNSDomain string, tangValidated bool) []*models.Host {
+	ctx := context.Background()
+	hosts := make([]*models.Host, 0)
+
+	ips := hostutil.GenerateIPv4Addresses(numHosts, defaultCIDRv4)
+	for i := 0; i < numHosts; i++ {
+		hostname := fmt.Sprintf("h%d", i)
+		host := registerNode(ctx, infraenvID, hostname, ips[i])
+		var role models.HostRole
+		if i < 3 {
+			role = models.HostRoleMaster
+		} else {
+			role = models.HostRoleWorker
+		}
+		_, err := userBMClient.Installer.V2UpdateHost(ctx, &installer.V2UpdateHostParams{
+			HostUpdateParams: &models.HostUpdateParams{
+				HostRole: swag.String(string(role)),
+			},
+			HostID:     *host.ID,
+			InfraEnvID: infraenvID,
+		})
+		Expect(err).NotTo(HaveOccurred())
+		hosts = append(hosts, host)
+	}
+	for _, host := range hosts {
+		generateDomainResolution(ctx, host, clusterName, baseDNSDomain)
+	}
+	generateFullMeshConnectivity(ctx, ips[0], hosts...)
+	cluster := getCluster(clusterID)
+	if cluster.DiskEncryption != nil && swag.StringValue(cluster.DiskEncryption.Mode) == models.DiskEncryptionModeTang {
+		generateTangPostStepReply(ctx, tangValidated, hosts...)
+	}
+
 	apiVip := ""
 	ingressVip := ""
 	_, err := userBMClient.Installer.V2UpdateCluster(ctx, &installer.V2UpdateClusterParams{
@@ -3819,73 +3886,166 @@ var _ = Describe("disk encryption", func() {
 		c          *models.Cluster
 		infraEnvID *strfmt.UUID
 	)
+	Context("DiskEncryption mode: "+models.DiskEncryptionModeTpmv2, func() {
 
-	BeforeEach(func() {
-
-		registerClusterReply, err := userBMClient.Installer.V2RegisterCluster(ctx, &installer.V2RegisterClusterParams{
-			NewClusterParams: &models.ClusterCreateParams{
-				Name:             swag.String("test-cluster"),
-				OpenshiftVersion: swag.String(openshiftVersion),
-				PullSecret:       swag.String(pullSecret),
-				SSHPublicKey:     sshPublicKey,
-				BaseDNSDomain:    "example.com",
-				DiskEncryption: &models.DiskEncryption{
-					EnableOn: swag.String(models.DiskEncryptionEnableOnAll),
-					Mode:     swag.String(models.DiskEncryptionModeTpmv2),
-				},
-			},
-		})
-		Expect(err).NotTo(HaveOccurred())
-		c = registerClusterReply.GetPayload()
-		infraEnvID = registerInfraEnv(c.ID, models.ImageTypeMinimalIso).ID
-
-		// validate feature usage
-		var featureUsage map[string]models.Usage
-		err = json.Unmarshal([]byte(c.FeatureUsage), &featureUsage)
-		Expect(err).NotTo(HaveOccurred())
-		Expect(featureUsage["Disk encryption"].Data["enable_on"]).To(Equal(models.DiskEncryptionEnableOnAll))
-		Expect(featureUsage["Disk encryption"].Data["mode"]).To(Equal(models.DiskEncryptionModeTpmv2))
-		Expect(featureUsage["Disk encryption"].Data["tang_server"]).To(BeNil())
-	})
-
-	It("happy flow", func() {
-
-		registerHostsAndSetRolesDHCP(*c.ID, *infraEnvID, 3, "test-cluster", "example.com")
-
-		reply, err := userBMClient.Installer.V2InstallCluster(ctx, &installer.V2InstallClusterParams{ClusterID: *c.ID})
-		Expect(err).NotTo(HaveOccurred())
-		c = reply.GetPayload()
-
-		generateEssentialPrepareForInstallationSteps(ctx, c.Hosts...)
-		waitForInstallationPreparationCompletionStatus(*c.ID, common.InstallationPreparationSucceeded)
-	})
-
-	It("host doesn't have minimal requirements for disk-encryption, TPM mode", func() {
-
-		h := &registerHost(*infraEnvID).Host
-		nonValidTPMHwInfo := &models.Inventory{
-			CPU:    &models.CPU{Count: 16},
-			Memory: &models.Memory{PhysicalBytes: int64(32 * units.GiB), UsableBytes: int64(32 * units.GiB)},
-			Disks:  []*models.Disk{&loop0, &sdb},
-			Interfaces: []*models.Interface{
-				{
-					IPV4Addresses: []string{
-						defaultCIDRv4,
+		BeforeEach(func() {
+			registerClusterReply, err := userBMClient.Installer.V2RegisterCluster(ctx, &installer.V2RegisterClusterParams{
+				NewClusterParams: &models.ClusterCreateParams{
+					Name:             swag.String("test-cluster"),
+					OpenshiftVersion: swag.String(openshiftVersion),
+					PullSecret:       swag.String(pullSecret),
+					SSHPublicKey:     sshPublicKey,
+					BaseDNSDomain:    "example.com",
+					DiskEncryption: &models.DiskEncryption{
+						EnableOn: swag.String(models.DiskEncryptionEnableOnAll),
+						Mode:     swag.String(models.DiskEncryptionModeTpmv2),
 					},
-					MacAddress: "e6:53:3d:a7:77:b4",
-					Type:       "physical",
 				},
-			},
-			SystemVendor: &models.SystemVendor{Manufacturer: "manu", ProductName: "prod", SerialNumber: "3534"},
-			Routes:       common.TestDefaultRouteConfiguration,
-			TpmVersion:   models.InventoryTpmVersionNr12,
-		}
-		generateEssentialHostStepsWithInventory(ctx, h, "test-host", nonValidTPMHwInfo)
-		time.Sleep(60 * time.Second)
-		waitForHostState(ctx, models.HostStatusInsufficient, 60*time.Second, h)
+			})
+			Expect(err).NotTo(HaveOccurred())
+			c = registerClusterReply.GetPayload()
+			infraEnvID = registerInfraEnv(c.ID, models.ImageTypeMinimalIso).ID
 
-		h = getHostV2(*infraEnvID, *h.ID)
-		Expect(*h.StatusInfo).Should(ContainSubstring("The host's TPM version is not supported"))
+			// validate feature usage
+			var featureUsage map[string]models.Usage
+			err = json.Unmarshal([]byte(c.FeatureUsage), &featureUsage)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(featureUsage["Disk encryption"].Data["enable_on"]).To(Equal(models.DiskEncryptionEnableOnAll))
+			Expect(featureUsage["Disk encryption"].Data["mode"]).To(Equal(models.DiskEncryptionModeTpmv2))
+			Expect(featureUsage["Disk encryption"].Data["tang_servers"]).To(BeEmpty())
+		})
+
+		It("happy flow", func() {
+			registerHostsAndSetRolesDHCP(*c.ID, *infraEnvID, 3, "test-cluster", "example.com")
+
+			reply, err := userBMClient.Installer.V2InstallCluster(ctx, &installer.V2InstallClusterParams{ClusterID: *c.ID})
+			Expect(err).NotTo(HaveOccurred())
+			c = reply.GetPayload()
+
+			generateEssentialPrepareForInstallationSteps(ctx, c.Hosts...)
+			waitForInstallationPreparationCompletionStatus(*c.ID, common.InstallationPreparationSucceeded)
+		})
+
+		It("host doesn't have minimal requirements for disk-encryption, TPM mode", func() {
+			h := &registerHost(*infraEnvID).Host
+			nonValidTPMHwInfo := &models.Inventory{
+				CPU:    &models.CPU{Count: 16},
+				Memory: &models.Memory{PhysicalBytes: int64(32 * units.GiB), UsableBytes: int64(32 * units.GiB)},
+				Disks:  []*models.Disk{&loop0, &sdb},
+				Interfaces: []*models.Interface{
+					{
+						IPV4Addresses: []string{
+							defaultCIDRv4,
+						},
+						MacAddress: "e6:53:3d:a7:77:b4",
+						Type:       "physical",
+					},
+				},
+				SystemVendor: &models.SystemVendor{Manufacturer: "manu", ProductName: "prod", SerialNumber: "3534"},
+				Routes:       common.TestDefaultRouteConfiguration,
+				TpmVersion:   models.InventoryTpmVersionNr12,
+			}
+			generateEssentialHostStepsWithInventory(ctx, h, "test-host", nonValidTPMHwInfo)
+			time.Sleep(60 * time.Second)
+			waitForHostState(ctx, models.HostStatusInsufficient, 60*time.Second, h)
+
+			h = getHostV2(*infraEnvID, *h.ID)
+			Expect(*h.StatusInfo).Should(ContainSubstring("The host's TPM version is not supported"))
+		})
+	})
+
+	Context("DiskEncryption mode: "+models.DiskEncryptionModeTang, func() {
+
+		BeforeEach(func() {
+			tangServers := `[{"URL":"http://tang.example.com:7500","Thumbprint":"PLjNyRdGw03zlRoGjQYMahSZGu9"}]`
+			registerClusterReply, err := userBMClient.Installer.V2RegisterCluster(ctx, &installer.V2RegisterClusterParams{
+				NewClusterParams: &models.ClusterCreateParams{
+					BaseDNSDomain:     "example.com",
+					Name:              swag.String("test-cluster"),
+					OpenshiftVersion:  swag.String(openshiftVersion),
+					PullSecret:        swag.String(pullSecret),
+					SSHPublicKey:      sshPublicKey,
+					VipDhcpAllocation: swag.Bool(true),
+					DiskEncryption: &models.DiskEncryption{
+						EnableOn:    swag.String(models.DiskEncryptionEnableOnAll),
+						Mode:        swag.String(models.DiskEncryptionModeTang),
+						TangServers: tangServers,
+					},
+				},
+			})
+			Expect(err).NotTo(HaveOccurred())
+			c = registerClusterReply.GetPayload()
+			infraEnvID = registerInfraEnv(c.ID, models.ImageTypeMinimalIso).ID
+
+			// validate feature usage
+			var featureUsage map[string]models.Usage
+			err = json.Unmarshal([]byte(c.FeatureUsage), &featureUsage)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(featureUsage["Disk encryption"].Data["enable_on"]).To(Equal(models.DiskEncryptionEnableOnAll))
+			Expect(featureUsage["Disk encryption"].Data["mode"]).To(Equal(models.DiskEncryptionModeTang))
+			Expect(featureUsage["Disk encryption"].Data["tang_servers"]).To(Equal(tangServers))
+		})
+
+		It("install cluster - happy flow", func() {
+			clusterID := *c.ID
+			registerHostsAndSetRolesTang(clusterID, *infraEnvID, 5, c.Name, c.BaseDNSDomain, true)
+			rep, err := userBMClient.Installer.V2GetCluster(ctx, &installer.V2GetClusterParams{ClusterID: clusterID})
+			Expect(err).NotTo(HaveOccurred())
+			c = rep.GetPayload()
+			startTimeInstalling := c.InstallStartedAt
+			startTimeInstalled := c.InstallCompletedAt
+
+			c = installCluster(clusterID)
+			Expect(len(c.Hosts)).Should(Equal(5))
+			Expect(c.InstallStartedAt).ShouldNot(Equal(startTimeInstalling))
+			waitForHostState(ctx, "installing", 10*time.Second, c.Hosts...)
+
+			// fake installation completed
+			for _, host := range c.Hosts {
+				updateProgress(*host.ID, host.InfraEnvID, models.HostStageDone)
+			}
+
+			waitForClusterState(ctx, clusterID, "finalizing", defaultWaitForClusterStateTimeout, "Finalizing cluster installation")
+			completeInstallationAndVerify(ctx, agentBMClient, clusterID, true)
+
+			rep, err = userBMClient.Installer.V2GetCluster(ctx, &installer.V2GetClusterParams{ClusterID: clusterID})
+
+			Expect(err).NotTo(HaveOccurred())
+			c = rep.GetPayload()
+			Expect(swag.StringValue(c.Status)).Should(Equal(models.ClusterStatusInstalled))
+			Expect(c.InstallCompletedAt).ShouldNot(Equal(startTimeInstalled))
+			Expect(c.InstallCompletedAt).Should(Equal(c.StatusUpdatedAt))
+		})
+
+		It("host fails tang connectivity validation", func() {
+			inventoryBMInfo := &models.Inventory{
+				CPU:    &models.CPU{Count: 16},
+				Memory: &models.Memory{PhysicalBytes: int64(32 * units.GiB), UsableBytes: int64(32 * units.GiB)},
+				Disks:  []*models.Disk{&loop0, &sdb},
+				Interfaces: []*models.Interface{
+					{
+						IPV4Addresses: []string{
+							defaultCIDRv4,
+						},
+						MacAddress: "e6:53:3d:a7:77:b4",
+						Type:       "physical",
+					},
+				},
+				SystemVendor: &models.SystemVendor{Manufacturer: "manu", ProductName: "RHEL", SerialNumber: "3534"},
+				Routes:       common.TestDefaultRouteConfiguration,
+				TpmVersion:   models.InventoryTpmVersionNr20,
+			}
+
+			h := &registerHost(*infraEnvID).Host
+
+			generateEssentialHostStepsWithInventory(ctx, h, "test-host", inventoryBMInfo)
+			generateTangPostStepReply(ctx, false, h)
+			time.Sleep(60 * time.Second)
+			waitForHostState(ctx, models.HostStatusInsufficient, 60*time.Second, h)
+
+			h = getHostV2(*infraEnvID, *h.ID)
+			Expect(*h.StatusInfo).Should(ContainSubstring("Could not validate that all Tang servers are reachable and working"))
+		})
 	})
 })
 

@@ -352,6 +352,55 @@ func generateApiVipPostStepReply(ctx context.Context, h *models.Host, success bo
 	Expect(err).ShouldNot(HaveOccurred())
 }
 
+func getTangResponse(url string) models.TangServerResponse {
+	return models.TangServerResponse{
+		TangURL: url,
+		Payload: "some_fake_payload",
+		Signatures: []*models.TangServerSignatures{
+			{
+				Signature: "some_fake_signature1",
+				Protected: "foobar1",
+			},
+			{
+				Signature: "some_fake_signature2",
+				Protected: "foobar2",
+			},
+		},
+	}
+}
+
+func generateTangPostStepReply(ctx context.Context, success bool, hosts ...*models.Host) {
+	response := models.TangConnectivityResponse{
+		IsSuccess:          false,
+		TangServerResponse: nil,
+	}
+
+	if success {
+		tangResponse := getTangResponse("http://tang.example.com:7500")
+		response = models.TangConnectivityResponse{
+			IsSuccess:          true,
+			TangServerResponse: []*models.TangServerResponse{&tangResponse},
+		}
+	}
+
+	bytes, err := json.Marshal(&response)
+	Expect(err).NotTo(HaveOccurred())
+
+	for _, h := range hosts {
+		_, err = agentBMClient.Installer.V2PostStepReply(ctx, &installer.V2PostStepReplyParams{
+			InfraEnvID: h.InfraEnvID,
+			HostID:     *h.ID,
+			Reply: &models.StepReply{
+				ExitCode: 0,
+				Output:   string(bytes),
+				StepID:   string(models.StepTypeTangConnectivityCheck),
+				StepType: models.StepTypeTangConnectivityCheck,
+			},
+		})
+		Expect(err).ShouldNot(HaveOccurred())
+	}
+}
+
 func generateContainerImageAvailabilityPostStepReply(ctx context.Context, h *models.Host, imageStatuses []*models.ContainerImageAvailability) {
 	response := models.ContainerImageAvailabilityResponse{
 		Images: imageStatuses,

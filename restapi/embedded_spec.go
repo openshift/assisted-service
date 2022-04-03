@@ -7035,6 +7035,10 @@ func init() {
         "suggested_role": {
           "$ref": "#/definitions/host-role"
         },
+        "tang_connectivity": {
+          "type": "string",
+          "x-go-custom-tag": "gorm:\"type:text\""
+        },
         "timestamp": {
           "description": "The time on the host as seconds since the Unix epoch.",
           "type": "integer"
@@ -8795,6 +8799,7 @@ func init() {
         "free-network-addresses",
         "dhcp-lease-allocate",
         "api-vip-connectivity-check",
+        "tang-connectivity-check",
         "ntp-synchronizer",
         "installation-disk-speed-check",
         "container-image-availability",
@@ -8854,6 +8859,59 @@ func init() {
         "virtual": {
           "description": "Whether the machine appears to be a virtual machine or not",
           "type": "boolean"
+        }
+      }
+    },
+    "tang_connectivity_request": {
+      "type": "object",
+      "required": [
+        "tang_servers"
+      ],
+      "properties": {
+        "tang_servers": {
+          "description": "JSON-formatted string containing additional information regarding tang's configuration",
+          "type": "string"
+        }
+      }
+    },
+    "tang_connectivity_response": {
+      "type": "object",
+      "properties": {
+        "is_success": {
+          "description": "Tang check result.",
+          "type": "boolean"
+        },
+        "tang_server_response": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "payload": {
+                "description": "Tang response payload.",
+                "type": "string"
+              },
+              "signatures": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "protected": {
+                      "type": "string"
+                    },
+                    "signature": {
+                      "type": "string"
+                    }
+                  },
+                  "x-go-name": "TangServerSignatures"
+                }
+              },
+              "tang_url": {
+                "description": "Tang URL.",
+                "type": "string"
+              }
+            },
+            "x-go-name": "TangServerResponse"
+          }
         }
       }
     },
@@ -14456,6 +14514,38 @@ func init() {
         }
       }
     },
+    "TangConnectivityResponseTangServerResponseItems0": {
+      "type": "object",
+      "properties": {
+        "payload": {
+          "description": "Tang response payload.",
+          "type": "string"
+        },
+        "signatures": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/TangConnectivityResponseTangServerResponseItems0SignaturesItems0"
+          }
+        },
+        "tang_url": {
+          "description": "Tang URL.",
+          "type": "string"
+        }
+      },
+      "x-go-name": "TangServerResponse"
+    },
+    "TangConnectivityResponseTangServerResponseItems0SignaturesItems0": {
+      "type": "object",
+      "properties": {
+        "protected": {
+          "type": "string"
+        },
+        "signature": {
+          "type": "string"
+        }
+      },
+      "x-go-name": "TangServerSignatures"
+    },
     "api_vip_connectivity_request": {
       "type": "object",
       "required": [
@@ -16252,6 +16342,10 @@ func init() {
         "suggested_role": {
           "$ref": "#/definitions/host-role"
         },
+        "tang_connectivity": {
+          "type": "string",
+          "x-go-custom-tag": "gorm:\"type:text\""
+        },
         "timestamp": {
           "description": "The time on the host as seconds since the Unix epoch.",
           "type": "integer"
@@ -18003,6 +18097,7 @@ func init() {
         "free-network-addresses",
         "dhcp-lease-allocate",
         "api-vip-connectivity-check",
+        "tang-connectivity-check",
         "ntp-synchronizer",
         "installation-disk-speed-check",
         "container-image-availability",
@@ -18062,6 +18157,33 @@ func init() {
         "virtual": {
           "description": "Whether the machine appears to be a virtual machine or not",
           "type": "boolean"
+        }
+      }
+    },
+    "tang_connectivity_request": {
+      "type": "object",
+      "required": [
+        "tang_servers"
+      ],
+      "properties": {
+        "tang_servers": {
+          "description": "JSON-formatted string containing additional information regarding tang's configuration",
+          "type": "string"
+        }
+      }
+    },
+    "tang_connectivity_response": {
+      "type": "object",
+      "properties": {
+        "is_success": {
+          "description": "Tang check result.",
+          "type": "boolean"
+        },
+        "tang_server_response": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/TangConnectivityResponseTangServerResponseItems0"
+          }
         }
       }
     },

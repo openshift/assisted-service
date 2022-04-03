@@ -732,3 +732,17 @@ func (mr *MockAPIMockRecorder) UpdateRole(arg0, arg1, arg2, arg3 interface{}) *g
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateRole", reflect.TypeOf((*MockAPI)(nil).UpdateRole), arg0, arg1, arg2, arg3)
 }
+
+// UpdateTangConnectivityReport mocks base method.
+func (m *MockAPI) UpdateTangConnectivityReport(arg0 context.Context, arg1 *models.Host, arg2 string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateTangConnectivityReport", arg0, arg1, arg2)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// UpdateTangConnectivityReport indicates an expected call of UpdateTangConnectivityReport.
+func (mr *MockAPIMockRecorder) UpdateTangConnectivityReport(arg0, arg1, arg2 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateTangConnectivityReport", reflect.TypeOf((*MockAPI)(nil).UpdateTangConnectivityReport), arg0, arg1, arg2)
+}

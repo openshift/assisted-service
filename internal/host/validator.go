@@ -40,6 +40,7 @@ const (
 	ValidationDisabled              ValidationStatus = "disabled"
 )
 
+const FailedToFindAction = "failed to find action for step"
 const OpenStackPlatform = "OpenStack Compute"
 
 var (
@@ -377,19 +378,6 @@ func (v *validator) printCompatibleWithClusterPlatform(c *validationContext, sta
 	}
 }
 
-func isDiskEncryptionEnabledForRole(encryption models.DiskEncryption, role models.HostRole) bool {
-	switch swag.StringValue(encryption.EnableOn) {
-	case models.DiskEncryptionEnableOnAll:
-		return true
-	case models.DiskEncryptionEnableOnMasters:
-		return role == models.HostRoleMaster || role == models.HostRoleBootstrap
-	case models.DiskEncryptionEnableOnWorkers:
-		return role == models.HostRoleWorker
-	default:
-		return false
-	}
-}
-
 func (v *validator) getDiskEncryptionForDay2(host *models.Host) (*types.Luks, error) {
 	var response models.APIVipConnectivityResponse
 	if err := json.Unmarshal([]byte(host.APIVipConnectivity), &response); err != nil {
@@ -412,6 +400,29 @@ func (v *validator) getDiskEncryptionForDay2(host *models.Host) (*types.Luks, er
 
 	// Return LUKS object
 	return &config.Storage.Luks[0], nil
+}
+
+func (v *validator) areTangServersReachable(c *validationContext) ValidationStatus {
+	if c.host.TangConnectivity == "" {
+		return ValidationPending
+	}
+	// Older agents have no action for tang-connectivity-check.
+	// The missing action result will not fail host validations to
+	// keep backward compatibility with older agents who did not include tang-connectivity-check.
+	if strings.Contains(c.host.TangConnectivity, FailedToFindAction) {
+		v.log.Warningf(
+			"host %s replied to StepType: %s with: %s. Validation will pass to keep backward compatibility with discovery agent version: %s",
+			c.host.ID.String(), models.StepTypeTangConnectivityCheck, c.host.TangConnectivity, c.host.DiscoveryAgentVersion,
+		)
+		return ValidationSuccessSuppressOutput
+	}
+
+	var response models.TangConnectivityResponse
+	if err := json.Unmarshal([]byte(c.host.TangConnectivity), &response); err != nil {
+		return ValidationFailure
+	}
+
+	return boolValue(response.IsSuccess)
 }
 
 func (v *validator) diskEncryptionRequirementsSatisfied(c *validationContext) ValidationStatus {
@@ -444,8 +455,7 @@ func (v *validator) diskEncryptionRequirementsSatisfied(c *validationContext) Va
 			return boolValue(c.inventory.TpmVersion == models.InventoryTpmVersionNr20)
 		} else if len(luks.Clevis.Tang) != 0 {
 			c.cluster.DiskEncryption.Mode = swag.String(models.DiskEncryptionModeTang)
-			// No nee to validate Tang
-			return ValidationSuccessSuppressOutput
+			return v.areTangServersReachable(c)
 		} else {
 			// Only Tpm2 and Tang are available for disk encryption
 			return ValidationFailure
@@ -459,15 +469,15 @@ func (v *validator) diskEncryptionRequirementsSatisfied(c *validationContext) Va
 		return ValidationPending
 	}
 
-	if !isDiskEncryptionEnabledForRole(*c.cluster.DiskEncryption, role) {
+	if !hostutil.IsDiskEncryptionEnabledForRole(*c.cluster.DiskEncryption, role) {
 		return ValidationSuccessSuppressOutput
 	}
 
-	if *c.cluster.DiskEncryption.Mode != models.DiskEncryptionModeTpmv2 {
-		return ValidationSuccess
+	if swag.StringValue(c.cluster.DiskEncryption.Mode) == models.DiskEncryptionModeTang {
+		return v.areTangServersReachable(c)
+	} else { // Mode TPMv2
+		return boolValue(c.inventory.TpmVersion == models.InventoryTpmVersionNr20)
 	}
-
-	return boolValue(c.inventory.TpmVersion == models.InventoryTpmVersionNr20)
 }
 
 func (v *validator) printDiskEncryptionRequirementsSatisfied(c *validationContext, status ValidationStatus) string {
@@ -475,14 +485,19 @@ func (v *validator) printDiskEncryptionRequirementsSatisfied(c *validationContex
 	case ValidationSuccess:
 		return fmt.Sprintf("Installation disk can be encrypted using %s", *c.cluster.DiskEncryption.Mode)
 	case ValidationFailure:
-		if c.inventory.TpmVersion == models.InventoryTpmVersionNone {
-			return "TPM version could not be found, make sure TPM is enabled in host's BIOS"
-		} else if c.cluster.DiskEncryption.Mode == nil {
-			return "Invalid LUKS object in ignition - both TPM2 and Tang are not available"
-		} else {
-			return fmt.Sprintf("The host's TPM version is not supported, expected-version: %s, actual-version: %s",
-				models.InventoryTpmVersionNr20, c.inventory.TpmVersion)
+		if swag.StringValue(c.cluster.DiskEncryption.Mode) == models.DiskEncryptionModeTang {
+			return fmt.Sprintf("Could not validate that all Tang servers are reachable and working: %s", c.host.TangConnectivity)
+		} else { // Mode TPMv2
+			if c.inventory.TpmVersion == models.InventoryTpmVersionNone {
+				return "TPM version could not be found, make sure TPM is enabled in host's BIOS"
+			} else if c.cluster.DiskEncryption.Mode == nil {
+				return "Invalid LUKS object in ignition - both TPM2 and Tang are not available"
+			} else {
+				return fmt.Sprintf("The host's TPM version is not supported, expected-version: %s, actual-version: %s",
+					models.InventoryTpmVersionNr20, c.inventory.TpmVersion)
+			}
 		}
+
 	case ValidationPending:
 		if c.inventory == nil {
 			return "Missing host inventory"
