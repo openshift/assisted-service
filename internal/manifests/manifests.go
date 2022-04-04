@@ -54,27 +54,31 @@ type Manifests struct {
 
 func (m *Manifests) CreateClusterManifestInternal(ctx context.Context, params operations.V2CreateClusterManifestParams) (*models.Manifest, error) {
 	log := logutil.FromContext(ctx, m.log)
-	log.Infof("Creating manifest in cluster %s", params.ClusterID)
+	log.Infof("Creating manifest in cluster %s", params.ClusterID.String())
 
 	if params.CreateManifestParams.Folder == nil {
 		defaultFolder := models.CreateManifestParamsFolderManifests
 		params.CreateManifestParams.Folder = &defaultFolder
 	}
 
-	cluster, apierr := cluster.GetCluster(ctx, m.log, m.db, params.ClusterID.String())
-	if apierr != nil {
-		return nil, apierr
+	// Verify that the manifests are created for a valid cluster
+	// to align kube-api and ocm behavior.
+	// In OCM, this is validated at the authorization layer. In other
+	// authorization scheme, it does not and therefore should be checked
+	// at the application level.
+	if !cluster.ClusterExists(m.db, params.ClusterID) {
+		return nil, common.NewApiError(http.StatusNotFound, fmt.Errorf("Object Not Found"))
 	}
 
 	if strings.ContainsRune(*params.CreateManifestParams.FileName, os.PathSeparator) {
-		log.Errorf("Cluster manifest %s for cluster %s should not include a directory in its name.", *params.CreateManifestParams.FileName, cluster.ID)
+		log.Errorf("Cluster manifest %s for cluster %s should not include a directory in its name.", *params.CreateManifestParams.FileName, params.ClusterID)
 		return nil, common.NewApiError(http.StatusBadRequest, errors.New("Manifest should not include a directory in its name"))
 	}
 	fileName := filepath.Join(*params.CreateManifestParams.Folder, *params.CreateManifestParams.FileName)
 	manifestContent, err := base64.StdEncoding.DecodeString(*params.CreateManifestParams.Content)
 	if err != nil {
 		log.WithError(err).Errorf("Cluster manifest %s for cluster %s failed to base64 decode: [%s]",
-			fileName, cluster.ID, *params.CreateManifestParams.Content)
+			fileName, params.ClusterID.String(), *params.CreateManifestParams.Content)
 		return nil, common.NewApiError(http.StatusBadRequest, errors.New("failed to base64-decode cluster manifest content"))
 	}
 	extension := filepath.Ext(fileName)
@@ -91,13 +95,13 @@ func (m *Manifests) CreateClusterManifestInternal(ctx context.Context, params op
 		return nil, common.NewApiError(http.StatusBadRequest, errors.New("Unsupported manifest extension. Only json, yaml and yml extensions are supported"))
 	}
 
-	objectName := GetManifestObjectName(*cluster.ID, fileName)
+	objectName := GetManifestObjectName(params.ClusterID, fileName)
 	if err := m.objectHandler.Upload(ctx, manifestContent, objectName); err != nil {
 		log.WithError(err).Errorf("Failed to upload %s", objectName)
 		return nil, common.NewApiError(http.StatusInternalServerError, errors.Errorf("failed to upload %s", objectName))
 	}
 
-	log.Infof("Done creating manifest %s for cluster %s", fileName, cluster.ID)
+	log.Infof("Done creating manifest %s for cluster %s", fileName, params.ClusterID.String())
 	manifest := models.Manifest{FileName: *params.CreateManifestParams.FileName, Folder: *params.CreateManifestParams.Folder}
 	return &manifest, nil
 }
@@ -106,12 +110,16 @@ func (m *Manifests) ListClusterManifestsInternal(ctx context.Context, params ope
 	log := logutil.FromContext(ctx, m.log)
 	log.Debugf("Listing manifests in cluster %s", params.ClusterID)
 
-	cluster, apierr := cluster.GetCluster(ctx, m.log, m.db, params.ClusterID.String())
-	if apierr != nil {
-		return nil, apierr
+	// Verify that the manifests are created for a valid cluster
+	// to align kube-api and ocm behavior.
+	// In OCM, this is validated at the authorization layer. In other
+	// authorization scheme, it does not and therefore should be checked
+	// at the application level.
+	if !cluster.ClusterExists(m.db, params.ClusterID) {
+		return nil, common.NewApiError(http.StatusNotFound, fmt.Errorf("Object Not Found"))
 	}
 
-	objectName := filepath.Join(cluster.ID.String(), ManifestFolder)
+	objectName := filepath.Join(params.ClusterID.String(), ManifestFolder)
 	files, err := m.objectHandler.ListObjectsByPrefix(ctx, objectName)
 	if err != nil {
 		return nil, common.NewApiError(http.StatusInternalServerError, err)
@@ -123,7 +131,7 @@ func (m *Manifests) ListClusterManifestsInternal(ctx context.Context, params ope
 		if len(parts) > 2 {
 			manifests = append(manifests, &models.Manifest{FileName: filepath.Join(parts[3:]...), Folder: parts[2]})
 		} else {
-			return nil, common.NewApiError(http.StatusInternalServerError, errors.Errorf("Cannot list file %s in cluster %s", file, cluster.ID))
+			return nil, common.NewApiError(http.StatusInternalServerError, errors.Errorf("Cannot list file %s in cluster %s", file, params.ClusterID.String()))
 		}
 	}
 
@@ -132,13 +140,17 @@ func (m *Manifests) ListClusterManifestsInternal(ctx context.Context, params ope
 
 func (m *Manifests) DeleteClusterManifestInternal(ctx context.Context, params operations.V2DeleteClusterManifestParams) error {
 	log := logutil.FromContext(ctx, m.log)
-	log.Infof("Deleting manifest from cluster %s", params.ClusterID)
+	log.Infof("Deleting manifest from cluster %s", params.ClusterID.String())
 
-	cluster, apierr := cluster.GetCluster(ctx, m.log, m.db, params.ClusterID.String())
-	if apierr != nil {
-		return apierr
+	// This call both verifies that the manifests are created for a valid cluster
+	// to align kube-api and ocm behavior, and get the cluster object to check that
+	// it is in valid state.
+	cluster, err := common.GetClusterFromDB(m.db, params.ClusterID, common.SkipEagerLoading)
+	if err != nil {
+		return common.NewApiError(http.StatusNotFound, fmt.Errorf("Object Not Found"))
 	}
 
+	//Deletion of manifests is not allowed after installation has started.
 	preInstallationStates := []string{
 		models.ClusterStatusPendingForInput,
 		models.ClusterStatusInsufficient,
@@ -147,7 +159,7 @@ func (m *Manifests) DeleteClusterManifestInternal(ctx context.Context, params op
 	if !funk.ContainsString(preInstallationStates, swag.StringValue(cluster.Status)) {
 		return common.NewApiError(http.StatusBadRequest, errors.Errorf("cluster %s is not in pre-installation states, "+
 			"can't remove manifests after installation has been started",
-			cluster.ID))
+			params.ClusterID.String()))
 	}
 
 	if params.Folder == nil {
@@ -155,7 +167,7 @@ func (m *Manifests) DeleteClusterManifestInternal(ctx context.Context, params op
 		params.Folder = &defaultFolder
 	}
 	fileName := filepath.Join(*params.Folder, params.FileName)
-	objectName := GetManifestObjectName(*cluster.ID, fileName)
+	objectName := GetManifestObjectName(params.ClusterID, fileName)
 	exists, err := m.objectHandler.DoesObjectExist(ctx, objectName)
 	if err != nil {
 		log.WithError(err).Errorf("Failed to delete cluster manifest %s", objectName)
@@ -163,7 +175,7 @@ func (m *Manifests) DeleteClusterManifestInternal(ctx context.Context, params op
 	}
 
 	if !exists {
-		log.Infof("Cluster manifest %s doesn't exists for cluster %s", fileName, cluster.ID)
+		log.Infof("Cluster manifest %s doesn't exists for cluster %s", fileName, params.ClusterID.String())
 		return nil
 	}
 
@@ -172,7 +184,7 @@ func (m *Manifests) DeleteClusterManifestInternal(ctx context.Context, params op
 		return common.NewApiError(http.StatusInternalServerError, errors.Errorf("failed to delete %s from s3", objectName))
 	}
 
-	log.Infof("Done deleting cluster manifest %s for cluster %s", fileName, cluster.ID)
+	log.Infof("Done deleting cluster manifest %s for cluster %s", fileName, params.ClusterID.String())
 	return nil
 }
 
@@ -185,12 +197,16 @@ func (m *Manifests) V2DownloadClusterManifest(ctx context.Context, params operat
 	fileName := filepath.Join(*params.Folder, params.FileName)
 	log.Infof("Downloading manifest %s from cluster %s", fileName, params.ClusterID)
 
-	cluster, apierr := cluster.GetCluster(ctx, m.log, m.db, params.ClusterID.String())
-	if apierr != nil {
-		return apierr
+	// Verify that the manifests are created for a valid cluster
+	// to align kube-api and ocm behavior.
+	// In OCM, this is validated at the authorization layer. In other
+	// authorization scheme, it does not and therefore should be checked
+	// at the application level.
+	if !cluster.ClusterExists(m.db, params.ClusterID) {
+		return common.NewApiError(http.StatusNotFound, fmt.Errorf("Object Not Found"))
 	}
 
-	objectName := GetManifestObjectName(*cluster.ID, fileName)
+	objectName := GetManifestObjectName(params.ClusterID, fileName)
 	exists, err := m.objectHandler.DoesObjectExist(ctx, objectName)
 	if err != nil {
 		log.WithError(err).Errorf("Failed to download cluster manifest")
@@ -198,7 +214,7 @@ func (m *Manifests) V2DownloadClusterManifest(ctx context.Context, params operat
 	}
 
 	if !exists {
-		msg := fmt.Sprintf("Cluster manifest %s doesn't exist in cluster %s", fileName, cluster.ID)
+		msg := fmt.Sprintf("Cluster manifest %s doesn't exist in cluster %s", fileName, params.ClusterID.String())
 		log.Warn(msg)
 		return common.GenerateErrorResponderWithDefault(errors.New(msg), http.StatusNotFound)
 	}
@@ -224,7 +240,7 @@ func (m *Manifests) setUsage(active bool, manifest *models.Manifest, clusterID s
 			} else {
 				m.usageAPI.Remove(usages, usage.CustomManifest)
 			}
-			m.usageAPI.Save(tx, *cluster.ID, usages)
+			m.usageAPI.Save(tx, clusterID, usages)
 		}
 		return nil
 	})
