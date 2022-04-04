@@ -180,6 +180,7 @@ type bareMetalInventory struct {
 	operatorManagerApi   operators.API
 	generator            generator.ISOInstallConfigGenerator
 	authHandler          auth.Authenticator
+	authzHandler         auth.Authorizer
 	k8sClient            k8sclient.K8SClient
 	ocmClient            *ocm.Client
 	leaderElector        leader.Leader
@@ -209,6 +210,7 @@ func NewBareMetalInventory(
 	usageApi usage.API,
 	operatorManagerApi operators.API,
 	authHandler auth.Authenticator,
+	authzHandler auth.Authorizer,
 	k8sClient k8sclient.K8SClient,
 	ocmClient *ocm.Client,
 	leaderElector leader.Leader,
@@ -239,6 +241,7 @@ func NewBareMetalInventory(
 		usageApi:             usageApi,
 		operatorManagerApi:   operatorManagerApi,
 		authHandler:          authHandler,
+		authzHandler:         authzHandler,
 		k8sClient:            k8sClient,
 		ocmClient:            ocmClient,
 		leaderElector:        leaderElector,
@@ -2653,31 +2656,29 @@ func (b *bareMetalInventory) calculateHostNetworks(log logrus.FieldLogger, clust
 func (b *bareMetalInventory) listClustersInternal(ctx context.Context, params installer.V2ListClustersParams) ([]*models.Cluster, error) {
 	log := logutil.FromContext(ctx, b.log)
 	db := b.db
+
+	var dbClusters []*common.Cluster
+	var clusters []*models.Cluster
+
 	if swag.BoolValue(params.GetUnregisteredClusters) {
 		if !identity.IsAdmin(ctx) {
 			return nil, common.NewApiError(http.StatusForbidden, errors.New("only admin users are allowed to get unregistered clusters"))
 		}
 		db = db.Unscoped()
 	}
-	var dbClusters []*common.Cluster
-	var clusters []*models.Cluster
-	whereCondition := make([]string, 0)
 
-	filterByOrg := b.authHandler.EnableOrgTenancy()
-	if user := identity.AddOwnerFilter(ctx, "", filterByOrg, swag.StringValue(params.Owner)); user != "" {
-		whereCondition = append(whereCondition, user)
-	}
+	db = b.authzHandler.OwnedByUser(ctx, db, swag.StringValue(params.Owner))
 
 	if params.OpenshiftClusterID != nil {
-		whereCondition = append(whereCondition, fmt.Sprintf("openshift_cluster_id = '%s'", *params.OpenshiftClusterID))
+		db = db.Where("openshift_cluster_id = ?", *params.OpenshiftClusterID)
 	}
 
 	if len(params.AmsSubscriptionIds) > 0 {
-		whereCondition = append(whereCondition, fmt.Sprintf("ams_subscription_id IN %s", common.ToSqlList(params.AmsSubscriptionIds)))
+		db = db.Where("ams_subscription_id IN (?)", params.AmsSubscriptionIds)
 	}
 
 	dbClusters, err := common.GetClustersFromDBWhere(db, common.UseEagerLoading,
-		common.DeleteRecordsState(swag.BoolValue(params.GetUnregisteredClusters)), strings.Join(whereCondition, " AND "))
+		common.DeleteRecordsState(swag.BoolValue(params.GetUnregisteredClusters)))
 	if err != nil {
 		log.WithError(err).Error("Failed to list clusters in db")
 		return nil, common.NewApiError(http.StatusInternalServerError, err)
@@ -3951,14 +3952,13 @@ func (b *bareMetalInventory) ListInfraEnvs(ctx context.Context, params installer
 	var dbInfraEnvs []*common.InfraEnv
 	var infraEnvs []*models.InfraEnv
 
-	condition := ""
-	if params.ClusterID != nil {
-		condition = fmt.Sprintf("cluster_id = '%s'", params.ClusterID)
-	}
-	filterByOrg := b.authHandler.EnableOrgTenancy()
-	whereCondition := identity.AddOwnerFilter(ctx, condition, filterByOrg, swag.StringValue(params.Owner))
+	db = b.authzHandler.OwnedByUser(ctx, db, swag.StringValue(params.Owner))
 
-	dbInfraEnvs, err := common.GetInfraEnvsFromDBWhere(db, whereCondition)
+	if params.ClusterID != nil {
+		db = db.Where("cluster_id = ?", params.ClusterID)
+	}
+
+	dbInfraEnvs, err := common.GetInfraEnvsFromDBWhere(db)
 	if err != nil {
 		log.WithError(err).Error("Failed to list infraEnvs in db")
 		return common.NewApiError(http.StatusInternalServerError, err)
