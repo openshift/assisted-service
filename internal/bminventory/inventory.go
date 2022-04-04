@@ -89,6 +89,7 @@ type Config struct {
 	AgentDockerImg                  string            `envconfig:"AGENT_DOCKER_IMAGE" default:"quay.io/edge-infrastructure/assisted-installer-agent:latest"`
 	ServiceBaseURL                  string            `envconfig:"SERVICE_BASE_URL"`
 	ImageServiceBaseURL             string            `envconfig:"IMAGE_SERVICE_BASE_URL"`
+	InEphemeralInstaller            bool              `envconfig:"EPHEMERAL_INSTALLER" default:"false"`
 	ServiceCACertPath               string            `envconfig:"SERVICE_CA_CERT_PATH" default:""`
 	S3EndpointURL                   string            `envconfig:"S3_ENDPOINT_URL" default:"http://10.35.59.36:30925"`
 	S3Bucket                        string            `envconfig:"S3_BUCKET" default:"test"`
@@ -4518,7 +4519,7 @@ func (b *bareMetalInventory) V2RegisterHost(ctx context.Context, params installe
 
 	// When the assisted service is running on the same host as the agent, this
 	// host must become the bootstrap so that it installs last
-	if hostutil.IsAssistedServiceHost(host) {
+	if b.InEphemeralInstaller && hostutil.IsAssistedServiceHost(host) {
 		log.Infof("host <%s> also hosts assisted-service", params.NewHostParams.HostID.String())
 		host.Role = models.HostRoleMaster
 		host.Bootstrap = true
