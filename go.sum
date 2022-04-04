@@ -1316,8 +1316,9 @@ github.com/openshift/cluster-api-provider-gcp v0.0.1-0.20200713133651-5c8a640669
 github.com/openshift/cluster-api-provider-gcp v0.0.1-0.20200901173901-9056dbc8c9b9/go.mod h1:rcwAydGZX+z4l91wtOdbq+fqDwuo6iu0YuFik3UUc+8=
 github.com/openshift/cluster-api-provider-gcp v0.0.1-0.20201002065957-9854f7420570 h1:Bmi2b7YADMXpNQ6EPV4rQqoVRSjj3dzDU3dSAEKXut0=
 github.com/openshift/cluster-api-provider-gcp v0.0.1-0.20201002065957-9854f7420570/go.mod h1:7NRECVE26rvP1/fs1CbhfY5gsgnnFQNhb9txTFzWmUw=
-github.com/openshift/custom-resource-status v1.1.1 h1:CFL7mVPbec7aob7r6SWXiyCtXo6G8xZmLuyRj1F2s8Y=
 github.com/openshift/custom-resource-status v1.1.1/go.mod h1:vklCbKGD2iT8h4L2nGFYBHHe8/DaXWPozOP12JXllqA=
+github.com/openshift/custom-resource-status v1.1.2 h1:C3DL44LEbvlbItfd8mT5jWrqPfHnSOQoQf/sypqA6A4=
+github.com/openshift/custom-resource-status v1.1.2/go.mod h1:DB/Mf2oTeiAmVVX1gN+NEqweonAPY0TKUwADizj8+ZA=
 github.com/openshift/generic-admission-server v1.14.1-0.20210422140326-da96454c926d h1:Z5xcujYaukvRqLWxBiIRn6KdM5Pd1De01fmfD1Rr4dk=
 github.com/openshift/generic-admission-server v1.14.1-0.20210422140326-da96454c926d/go.mod h1:m+wYlVQdnPe8JGqoKVpCYnFRIVraqC1SrUowQXh6XlA=
 github.com/openshift/hive/apis v0.0.0-20220222213051-def9088fdb5a h1:E+XPJs/aVvYsrlJzo2ED38ZTR2RTNUlFMmOaFAAdMZg=
