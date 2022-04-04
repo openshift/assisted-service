@@ -37,12 +37,21 @@ func shouldStorePayloadInCache(err error) bool {
 	return false
 }
 
-func isUpdateRequest(request *http.Request) bool {
-	return request != nil && (request.Method == http.MethodPost ||
-		request.Method == http.MethodPut ||
-		request.Method == http.MethodPatch)
-}
+func toAction(request *http.Request) Action {
+	if request == nil {
+		return NoneAction
+	}
 
-func isDeleteRequest(request *http.Request) bool {
-	return request != nil && request.Method == http.MethodDelete
+	switch {
+	case request.Method == http.MethodPost ||
+		request.Method == http.MethodPut ||
+		request.Method == http.MethodPatch:
+		return UpdateAction
+	case request.Method == http.MethodDelete:
+		return DeleteAction
+	case request.Method == http.MethodGet:
+		return ReadAction
+	default:
+		return NoneAction
+	}
 }
