@@ -220,10 +220,49 @@ func (s *StaticNetworkConfigGenerator) validateNMStateYaml(ctx context.Context, 
 	return err
 }
 
+func compareMapInterfaces(intf1, intf2 *models.MacInterfaceMapItems0) bool {
+	if intf1.LogicalNicName != intf2.LogicalNicName {
+		return intf1.LogicalNicName < intf2.LogicalNicName
+	}
+	return intf1.MacAddress < intf2.MacAddress
+}
+
+func compareMacInterfaceMaps(map1, map2 models.MacInterfaceMap) bool {
+	if len(map1) != len(map2) {
+		return len(map1) < len(map2)
+	}
+	for i := range map1 {
+		less := compareMapInterfaces(map1[i], map2[i])
+		greater := compareMapInterfaces(map2[i], map1[i])
+		if less || greater {
+			return less
+		}
+	}
+	return false
+}
+
+func sortStaticNetworkConfig(staticNetworkConfig []*models.HostStaticNetworkConfig) {
+	for i := range staticNetworkConfig {
+		item := staticNetworkConfig[i]
+		sort.SliceStable(item.MacInterfaceMap, func(i, j int) bool {
+			return compareMapInterfaces(item.MacInterfaceMap[i], item.MacInterfaceMap[j])
+		})
+	}
+	sort.SliceStable(staticNetworkConfig, func(i, j int) bool {
+		hostConfig1 := staticNetworkConfig[i]
+		hostConfig2 := staticNetworkConfig[j]
+		if hostConfig1.NetworkYaml != hostConfig2.NetworkYaml {
+			return hostConfig1.NetworkYaml < hostConfig2.NetworkYaml
+		}
+		return compareMacInterfaceMaps(hostConfig1.MacInterfaceMap, hostConfig2.MacInterfaceMap)
+	})
+}
+
 func (s *StaticNetworkConfigGenerator) FormatStaticNetworkConfigForDB(staticNetworkConfig []*models.HostStaticNetworkConfig) (string, error) {
 	if len(staticNetworkConfig) == 0 {
 		return "", nil
 	}
+	sortStaticNetworkConfig(staticNetworkConfig)
 	b, err := json.Marshal(&staticNetworkConfig)
 	if err != nil {
 		return "", errors.Wrap(err, "Failed to JSON Marshal static network config")

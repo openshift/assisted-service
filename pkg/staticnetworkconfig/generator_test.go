@@ -47,7 +47,7 @@ var _ = Describe("StaticNetworkConfig", func() {
 		Expect(err).To(HaveOccurred())
 	})
 
-	It("check formating static network for DB", func() {
+	It("check formatting static network for DB", func() {
 		map1 := models.MacInterfaceMap{
 			&models.MacInterfaceMapItems0{MacAddress: "mac10", LogicalNicName: "nic10"},
 		}
@@ -65,7 +65,38 @@ var _ = Describe("StaticNetworkConfig", func() {
 		Expect(formattedOutput).To(Equal(string(expectedOutputAsBytes)))
 	})
 
-	It("check empty formating static network for DB", func() {
+	It("sorted formatting static network for DB", func() {
+		map1 := models.MacInterfaceMap{
+			&models.MacInterfaceMapItems0{MacAddress: "mac10", LogicalNicName: "nic10"},
+			&models.MacInterfaceMapItems0{MacAddress: "mac0", LogicalNicName: "nic0"},
+		}
+		sortedMap1 := models.MacInterfaceMap{
+			&models.MacInterfaceMapItems0{MacAddress: "mac0", LogicalNicName: "nic0"},
+			&models.MacInterfaceMapItems0{MacAddress: "mac10", LogicalNicName: "nic10"},
+		}
+		map2 := models.MacInterfaceMap{
+			&models.MacInterfaceMapItems0{MacAddress: "mac20", LogicalNicName: "nic20"},
+		}
+		unsortedStaticNetworkConfig := []*models.HostStaticNetworkConfig{
+			common.FormatStaticConfigHostYAML("nic20", "02000048ba48", "192.168.126.31", "192.168.141.31", "192.168.126.1", map2),
+			common.FormatStaticConfigHostYAML("nic10", "02000048ba38", "192.168.126.30", "192.168.141.30", "192.168.126.1", map1),
+		}
+		sortedStaticNetworkConfig := []*models.HostStaticNetworkConfig{
+			common.FormatStaticConfigHostYAML("nic10", "02000048ba38", "192.168.126.30", "192.168.141.30", "192.168.126.1", sortedMap1),
+			common.FormatStaticConfigHostYAML("nic20", "02000048ba48", "192.168.126.31", "192.168.141.31", "192.168.126.1", map2),
+		}
+
+		unexpectedOutputAsBytes, err := json.Marshal(unsortedStaticNetworkConfig)
+		Expect(err).ToNot(HaveOccurred())
+		formattedOutput, err := staticNetworkGenerator.FormatStaticNetworkConfigForDB(unsortedStaticNetworkConfig)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(formattedOutput).ToNot(Equal(string(unexpectedOutputAsBytes)))
+		expectedOutputAsBytes, err := json.Marshal(sortedStaticNetworkConfig)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(formattedOutput).To(Equal(string(expectedOutputAsBytes)))
+	})
+
+	It("check empty formatting static network for DB", func() {
 		formattedOutput, err := staticNetworkGenerator.FormatStaticNetworkConfigForDB(nil)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(formattedOutput).To(Equal(""))
