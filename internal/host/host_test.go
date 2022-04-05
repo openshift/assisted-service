@@ -1028,6 +1028,7 @@ var _ = Describe("UpdateInventory", func() {
 		hapi                          API
 		db                            *gorm.DB
 		ctrl                          *gomock.Controller
+		mockEvents                    *eventsapi.MockHandler
 		mockValidator                 *hardware.MockValidator
 		hostId, clusterId, infraEnvId strfmt.UUID
 		host                          models.Host
@@ -1039,7 +1040,8 @@ var _ = Describe("UpdateInventory", func() {
 		dummy := &leader.DummyElector{}
 		ctrl = gomock.NewController(GinkgoT())
 		mockValidator = hardware.NewMockValidator(ctrl)
-		hapi = NewManager(common.GetTestLog(), db, nil, mockValidator,
+		mockEvents = eventsapi.NewMockHandler(ctrl)
+		hapi = NewManager(common.GetTestLog(), db, mockEvents, mockValidator,
 			nil, createValidatorCfg(), nil, defaultConfig, dummy, nil, nil)
 		hostId = strfmt.UUID(uuid.New().String())
 		clusterId = strfmt.UUID(uuid.New().String())
@@ -1165,6 +1167,73 @@ var _ = Describe("UpdateInventory", func() {
 
 				Expect(hapi.(*Manager).populateDisksEligibility(ctx, &testInventory, nil, nil, nil)).ShouldNot(HaveOccurred())
 				Expect(testInventory.Disks).Should(Equal(expectedDisks))
+			})
+		}
+	})
+
+	Context("Check match bootstrap host MAC", func() {
+		for _, test := range []struct {
+			testName    string
+			expectMatch bool
+			hostMAC     string
+		}{
+			{
+				testName:    "matching host MAC",
+				expectMatch: true,
+				hostMAC:     "50:00:00:01:02:03",
+			},
+			{
+				testName:    "non-matching host MAC",
+				expectMatch: false,
+				hostMAC:     "50:00:00:0a:0b:0c",
+			},
+			{
+				testName:    "unspecified host MAC",
+				expectMatch: false,
+				hostMAC:     "",
+			},
+		} {
+			test := test
+			It(test.testName, func() {
+
+				hapi.(*Manager).Config.BootstrapHostMAC = test.hostMAC
+				host = hostutil.GenerateTestHost(hostId, infraEnvId, clusterId, models.HostStatusDiscovering)
+				inventory := models.Inventory{
+					Disks: []*models.Disk{
+						{
+							Name:   "name",
+							ByPath: "/dev/disk/by-path/name",
+						},
+					},
+					Interfaces: []*models.Interface{
+						{
+							MacAddress: "52:00:00:01:02:03",
+						},
+						{
+							MacAddress: "50:00:00:01:02:03",
+						},
+						{
+							MacAddress: "",
+						},
+					},
+				}
+
+				mockValidator.EXPECT().DiskIsEligible(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any())
+				mockValidator.EXPECT().ListEligibleDisks(gomock.Any()).Return(inventory.Disks)
+				if test.expectMatch {
+					mockEvents.EXPECT().SendHostEvent(gomock.Any(), eventstest.NewEventMatcher(
+						eventstest.WithNameMatcher(eventgen.HostBootstrapSetEventName),
+						eventstest.WithHostIdMatcher(hostId.String()),
+						eventstest.WithInfraEnvIdMatcher(infraEnvId.String())))
+				}
+
+				Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
+				inventoryStr, err := common.MarshalInventory(&inventory)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(hapi.(*Manager).UpdateInventory(ctx, &host, inventoryStr)).ToNot(HaveOccurred())
+
+				h := hostutil.GetHostFromDB(hostId, infraEnvId, db)
+				Expect(h.Bootstrap).Should(Equal(test.expectMatch))
 			})
 		}
 	})
