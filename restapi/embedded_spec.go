@@ -5988,11 +5988,13 @@ func init() {
         "ip_addresses": {
           "type": "array",
           "items": {
-            "type": "string"
+            "type": "string",
+            "pattern": "^(?:(?:(?:[0-9]{1,3}\\.){3}[0-9]{1,3})|(?:(?:[0-9a-fA-F]*:[0-9a-fA-F]*){2,}))$"
           }
         },
         "mac": {
-          "type": "string"
+          "type": "string",
+          "format": "mac"
         },
         "name": {
           "type": "string"
@@ -6072,7 +6074,8 @@ func init() {
           "type": "array",
           "items": {
             "description": "A fully qualified image name (FQIN).",
-            "type": "string"
+            "type": "string",
+            "pattern": "^(([a-zA-Z0-9\\-\\.]+)(:[0-9]+)?\\/)?[a-z0-9\\._\\-\\/@]+[?::a-zA-Z0-9_\\-.]+$"
           }
         },
         "timeout": {
@@ -6427,7 +6430,8 @@ func init() {
             "properties": {
               "domain_name": {
                 "description": "The domain name that should be resolved",
-                "type": "string"
+                "type": "string",
+                "pattern": "^([a-zA-Z0-9]+(-[a-zA-Z0-9]+)*[.])+[a-zA-Z]{2,}$"
               }
             },
             "x-go-name": "DomainResolutionRequestDomain"
@@ -7621,7 +7625,8 @@ func init() {
         },
         "controller_image": {
           "description": "Assisted installer controller image",
-          "type": "string"
+          "type": "string",
+          "pattern": "^(([a-zA-Z0-9\\-\\.]+)(:[0-9]+)?\\/)?[a-z0-9\\._\\-\\/@]+[?::a-zA-Z0-9_\\-.]+$"
         },
         "disks_to_format": {
           "description": "List of disks to format",
@@ -7656,11 +7661,13 @@ func init() {
         },
         "installer_image": {
           "description": "Assisted installer image",
-          "type": "string"
+          "type": "string",
+          "pattern": "^(([a-zA-Z0-9\\-\\.]+)(:[0-9]+)?\\/)?[a-z0-9\\._\\-\\/@]+[?::a-zA-Z0-9_\\-.]+$"
         },
         "mco_image": {
           "description": "Machine config operator image",
-          "type": "string"
+          "type": "string",
+          "pattern": "^(([a-zA-Z0-9\\-\\.]+)(:[0-9]+)?\\/)?[a-z0-9\\._\\-\\/@]+[?::a-zA-Z0-9_\\-.]+$"
         },
         "must_gather_image": {
           "description": "Must-gather images to use",
@@ -8123,7 +8130,8 @@ func init() {
       "properties": {
         "agent_version": {
           "description": "Agent image version",
-          "type": "string"
+          "type": "string",
+          "pattern": "^(([a-zA-Z0-9\\-\\.]+)(:[0-9]+)?\\/)?[a-z0-9\\._\\-\\/@]+[?::a-zA-Z0-9_\\-.]+$"
         },
         "host_id": {
           "description": "Host id",
@@ -14168,7 +14176,8 @@ func init() {
       "properties": {
         "domain_name": {
           "description": "The domain name that should be resolved",
-          "type": "string"
+          "type": "string",
+          "pattern": "^([a-zA-Z0-9]+(-[a-zA-Z0-9]+)*[.])+[a-zA-Z]{2,}$"
         }
       },
       "x-go-name": "DomainResolutionRequestDomain"
@@ -15110,11 +15119,13 @@ func init() {
         "ip_addresses": {
           "type": "array",
           "items": {
-            "type": "string"
+            "type": "string",
+            "pattern": "^(?:(?:(?:[0-9]{1,3}\\.){3}[0-9]{1,3})|(?:(?:[0-9a-fA-F]*:[0-9a-fA-F]*){2,}))$"
           }
         },
         "mac": {
-          "type": "string"
+          "type": "string",
+          "format": "mac"
         },
         "name": {
           "type": "string"
@@ -15194,7 +15205,8 @@ func init() {
           "type": "array",
           "items": {
             "description": "A fully qualified image name (FQIN).",
-            "type": "string"
+            "type": "string",
+            "pattern": "^(([a-zA-Z0-9\\-\\.]+)(:[0-9]+)?\\/)?[a-z0-9\\._\\-\\/@]+[?::a-zA-Z0-9_\\-.]+$"
           }
         },
         "timeout": {
@@ -16676,7 +16688,8 @@ func init() {
         },
         "controller_image": {
           "description": "Assisted installer controller image",
-          "type": "string"
+          "type": "string",
+          "pattern": "^(([a-zA-Z0-9\\-\\.]+)(:[0-9]+)?\\/)?[a-z0-9\\._\\-\\/@]+[?::a-zA-Z0-9_\\-.]+$"
         },
         "disks_to_format": {
           "description": "List of disks to format",
@@ -16711,11 +16724,13 @@ func init() {
         },
         "installer_image": {
           "description": "Assisted installer image",
-          "type": "string"
+          "type": "string",
+          "pattern": "^(([a-zA-Z0-9\\-\\.]+)(:[0-9]+)?\\/)?[a-z0-9\\._\\-\\/@]+[?::a-zA-Z0-9_\\-.]+$"
         },
         "mco_image": {
           "description": "Machine config operator image",
-          "type": "string"
+          "type": "string",
+          "pattern": "^(([a-zA-Z0-9\\-\\.]+)(:[0-9]+)?\\/)?[a-z0-9\\._\\-\\/@]+[?::a-zA-Z0-9_\\-.]+$"
         },
         "must_gather_image": {
           "description": "Must-gather images to use",
@@ -17167,7 +17182,8 @@ func init() {
       "properties": {
         "agent_version": {
           "description": "Agent image version",
-          "type": "string"
+          "type": "string",
+          "pattern": "^(([a-zA-Z0-9\\-\\.]+)(:[0-9]+)?\\/)?[a-z0-9\\._\\-\\/@]+[?::a-zA-Z0-9_\\-.]+$"
         },
         "host_id": {
           "description": "Host id",
