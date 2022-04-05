@@ -43,7 +43,7 @@ func convertInterfacesToConnectivityCheckHost(hostId *strfmt.UUID, interfaces []
 	for _, hostInterface := range interfaces {
 		var connectivityNic models.ConnectivityCheckNic
 		var ipAddresses []string
-		connectivityNic.Mac = hostInterface.MacAddress
+		connectivityNic.Mac = strfmt.MAC(hostInterface.MacAddress)
 		connectivityNic.Name = hostInterface.Name
 
 		for _, ip := range hostInterface.IPV4Addresses {

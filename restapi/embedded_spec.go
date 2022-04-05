@@ -5988,11 +5988,13 @@ func init() {
         "ip_addresses": {
           "type": "array",
           "items": {
-            "type": "string"
+            "type": "string",
+            "pattern": "^(?:(?:(?:[0-9]{1,3}\\.){3}[0-9]{1,3})|(?:(?:[0-9a-fA-F]*:[0-9a-fA-F]*){2,}))$"
           }
         },
         "mac": {
-          "type": "string"
+          "type": "string",
+          "format": "mac"
         },
         "name": {
           "type": "string"
@@ -6428,7 +6430,8 @@ func init() {
             "properties": {
               "domain_name": {
                 "description": "The domain name that should be resolved",
-                "type": "string"
+                "type": "string",
+                "pattern": "^([a-zA-Z0-9]+(-[a-zA-Z0-9]+)*[.])+[a-zA-Z]{2,}$"
               }
             },
             "x-go-name": "DomainResolutionRequestDomain"
@@ -14173,7 +14176,8 @@ func init() {
       "properties": {
         "domain_name": {
           "description": "The domain name that should be resolved",
-          "type": "string"
+          "type": "string",
+          "pattern": "^([a-zA-Z0-9]+(-[a-zA-Z0-9]+)*[.])+[a-zA-Z]{2,}$"
         }
       },
       "x-go-name": "DomainResolutionRequestDomain"
@@ -15115,11 +15119,13 @@ func init() {
         "ip_addresses": {
           "type": "array",
           "items": {
-            "type": "string"
+            "type": "string",
+            "pattern": "^(?:(?:(?:[0-9]{1,3}\\.){3}[0-9]{1,3})|(?:(?:[0-9a-fA-F]*:[0-9a-fA-F]*){2,}))$"
           }
         },
         "mac": {
-          "type": "string"
+          "type": "string",
+          "format": "mac"
         },
         "name": {
           "type": "string"
