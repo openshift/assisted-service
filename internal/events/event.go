@@ -12,10 +12,9 @@ import (
 	eventsapi "github.com/openshift/assisted-service/internal/events/api"
 	"github.com/openshift/assisted-service/internal/identity"
 	"github.com/openshift/assisted-service/models"
+	"github.com/openshift/assisted-service/pkg/auth"
 	logutil "github.com/openshift/assisted-service/pkg/log"
-	"github.com/openshift/assisted-service/pkg/ocm"
 	"github.com/openshift/assisted-service/pkg/requestid"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
 )
@@ -25,14 +24,16 @@ var DefaultEventCategories = []string{
 }
 
 type Events struct {
-	db  *gorm.DB
-	log logrus.FieldLogger
+	db    *gorm.DB
+	log   logrus.FieldLogger
+	authz auth.Authorizer
 }
 
-func New(db *gorm.DB, log logrus.FieldLogger) eventsapi.Handler {
+func New(db *gorm.DB, authz auth.Authorizer, log logrus.FieldLogger) eventsapi.Handler {
 	return &Events{
-		db:  db,
-		log: log,
+		db:    db,
+		log:   log,
+		authz: authz,
 	}
 }
 
@@ -176,85 +177,83 @@ func (e *Events) V2AddMetricsEvent(ctx context.Context, clusterID *strfmt.UUID, 
 	e.v2SaveEvent(ctx, clusterID, hostID, infraEnvID, name, models.EventCategoryMetrics, severity, msg, eventTime, requestID, props...)
 }
 
-func (e Events) eventsQuery(ctx context.Context, events *[]*common.Event, selectedCategories []string, clusterID *strfmt.UUID, hostID *strfmt.UUID, infraEnvID *strfmt.UUID) *gorm.DB {
-	whereCondition := make([]string, 0)
-	user := ocm.UserNameFromContext(ctx)
+func (e Events) queryEvents(ctx context.Context, selectedCategories []string, clusterID *strfmt.UUID, hostID *strfmt.UUID, infraEnvID *strfmt.UUID) ([]*common.Event, error) {
 
-	if clusterID != nil {
-		cluster, err := common.GetClusterFromDB(e.db, *clusterID, common.UseEagerLoading)
-		if err != nil {
-			if errors.Is(err, gorm.ErrRecordNotFound) {
-				return &gorm.DB{Error: errors.Wrapf(gorm.ErrRecordNotFound, "cluster %s not found.", clusterID.String())}
-			}
-			return &gorm.DB{Error: err}
+	WithIDs := func(db *gorm.DB) *gorm.DB {
+		if clusterID != nil {
+			db = db.Where("cluster_id = ?", clusterID.String())
 		}
-		if user != "" && !identity.IsAdmin(ctx) { // A case where there is a non-admin user in context, the service should only present resources matching to it.
-			if cluster.UserName == user {
-				whereCondition = append(whereCondition, fmt.Sprintf("cluster_id = '%s'", clusterID.String()))
-			} else {
-				e.log.Errorf(
-					"user %s is not authorized to query events for cluster %s: cluster owned by another user.",
-					user, clusterID.String())
-				return &gorm.DB{Error: errors.Wrapf(gorm.ErrRecordNotFound, "cluster %s not found.", clusterID.String())}
-			}
-		} else { // A case where there is no user in context, simply filter by resource id
-			whereCondition = append(whereCondition, fmt.Sprintf("cluster_id = '%s'", clusterID.String()))
+		if infraEnvID != nil {
+			db = db.Where("infra_env_id = ?", infraEnvID.String())
 		}
+		if hostID != nil {
+			db = db.Where("host_id = ?", hostID.String())
+		}
+		return db
 	}
-	if hostID != nil {
-		host, err := common.GetHostFromDBbyHostId(e.db, *hostID)
-		if err != nil {
-			if errors.Is(err, gorm.ErrRecordNotFound) {
-				return &gorm.DB{Error: errors.Wrapf(gorm.ErrRecordNotFound, "host %s not found.", hostID.String())}
-			}
-			return &gorm.DB{Error: err}
-		}
-		if user != "" && !identity.IsAdmin(ctx) { // A case where there is a non-admin user in context, the service should only present resources matching to it.
-			if host != nil && host.UserName == user {
-				whereCondition = append(whereCondition, fmt.Sprintf("host_id = '%s'", hostID.String()))
-			} else {
-				e.log.Errorf(
-					"user %s is not authorized to query events for host %s: host owned by another user.",
-					user, hostID.String())
-				return &gorm.DB{Error: errors.Wrapf(gorm.ErrRecordNotFound, "host %s not found.", hostID.String())}
-			}
-		} else { // A case where there is no user in context, simply filter by resource id
-			whereCondition = append(whereCondition, fmt.Sprintf("host_id = '%s'", hostID.String()))
-		}
+
+	allEvents := func() bool {
+		return clusterID == nil && infraEnvID == nil && hostID == nil
 	}
-	if infraEnvID != nil {
-		infraEnv, err := common.GetInfraEnvFromDB(e.db, *infraEnvID)
-		if err != nil {
-			if errors.Is(err, gorm.ErrRecordNotFound) {
-				return &gorm.DB{Error: errors.Wrapf(gorm.ErrRecordNotFound, "infra_env %s not found.", infraEnvID.String())}
-			}
-			return &gorm.DB{Error: err}
-		}
-		if user != "" && !identity.IsAdmin(ctx) { // A case where there is a non-admin user in context, the service should only present resources matching to it.
-			if infraEnv.UserName == user {
-				whereCondition = append(whereCondition, fmt.Sprintf("infra_env_id = '%s'", infraEnvID.String()))
-			} else {
-				e.log.Errorf(
-					"user %s is not authorized to query events for infra_env %s: infra_env owned by another user.",
-					user, infraEnvID.String())
-				return &gorm.DB{Error: errors.Wrapf(gorm.ErrRecordNotFound, "infra_env %s not found.", infraEnvID.String())}
-			}
-		} else { // A case where there is no user in context, simply filter by resource id
-			whereCondition = append(whereCondition, fmt.Sprintf("infra_env_id = '%s'", infraEnvID.String()))
-		}
+
+	clusterBoundEvents := func() bool {
+		return clusterID != nil
 	}
-	if len(whereCondition) == 0 {
-		queryErr := errors.Wrap(gorm.ErrInvalidTransaction, "events query with no filters is not allowed.")
-		e.log.Error(queryErr)
-		return &gorm.DB{Error: queryErr}
+
+	nonBoundEvents := func() bool {
+		return clusterID == nil && infraEnvID != nil
 	}
-	return e.db.Where("category IN (?)", selectedCategories).Order("event_time").Find(&events, strings.Join(whereCondition, " AND "))
+
+	hostOnlyEvents := func() bool {
+		return clusterID == nil && infraEnvID == nil && hostID != nil
+	}
+
+	//prepare the common parts of the query
+	db := e.db.Order("event_time").Where("category IN (?)", selectedCategories)
+	if e.authz != nil {
+		db = e.authz.OwnedBy(ctx, db)
+	}
+
+	var result *gorm.DB
+
+	//retrieveing all events can be done only by admins. This is done to restrict data
+	//intensive queries by common users
+	if allEvents() && identity.IsAdmin(ctx) {
+		result = db
+	}
+
+	//for bound events that are searched with cluster id (whether on clusters, bound infra-env ,
+	//host bound to a cluster or registered to a bound infra-env) check the access permission
+	//relative to the cluster ownership
+	if clusterBoundEvents() {
+		result = db.Model(&common.Cluster{}).Select("events.*, clusters.user_name, clusters.org_id").
+			Joins("INNER JOIN \"events\" ON events.cluster_id = clusters.id")
+	}
+
+	//for unbound events that are searched with infra-env id (whether events on hosts or the
+	//infra-env level itself) check the access permission relative to the infra-env ownership
+	if nonBoundEvents() {
+		result = db.Model(&common.InfraEnv{}).Select("events.*, infra_envs.user_name, infra_envs.org_id").
+			Joins("INNER JOIN events ON events.infra_env_id = infra_envs.id")
+	}
+
+	//for query made on the host only check the permission relative to it's infra-env. since
+	//host table does not contain an org_id we can not perform a join on that table and has to go
+	//through the infra-env table which is good because authorization is done on the infra-level
+	if hostOnlyEvents() {
+		result = db.Model(&common.Host{}).Select("events.*, infra_envs.user_name, infra_envs.org_id").
+			Joins("INNER JOIN infra_envs ON hosts.infra_env_id = infra_envs.id").Joins("INNER JOIN events ON events.host_id = hosts.id")
+	}
+
+	if result == nil { //non supported option
+		return make([]*common.Event, 0), nil
+	}
+
+	var events []*common.Event
+	return events, WithIDs(result).Find(&events).Error
 }
 
 func (e Events) V2GetEvents(ctx context.Context, clusterID *strfmt.UUID, hostID *strfmt.UUID, infraEnvID *strfmt.UUID, categories ...string) ([]*common.Event, error) {
-	var err error
-	var events []*common.Event
-
 	//initialize the selectedCategories either from the filter, if exists, or from the default values
 	selectedCategories := make([]string, 0)
 	if len(categories) > 0 {
@@ -263,8 +262,7 @@ func (e Events) V2GetEvents(ctx context.Context, clusterID *strfmt.UUID, hostID 
 		selectedCategories = append(selectedCategories, DefaultEventCategories...)
 	}
 
-	err = e.eventsQuery(ctx, &events, selectedCategories, clusterID, hostID, infraEnvID).Error
-	return events, err
+	return e.queryEvents(ctx, selectedCategories, clusterID, hostID, infraEnvID)
 }
 
 func toProps(attrs ...interface{}) (result string, err error) {

@@ -74,7 +74,7 @@ func (l *SdKLogger) Fatal(ctx context.Context, format string, args ...interface{
 	l.FieldLogger.Fatalf(format, args...)
 }
 
-func NewClient(config Config, log logrus.FieldLogger, metricsApi metrics.API) (*Client, error) {
+func NewClient(config Config, log logrus.FieldLogger) (*Client, error) {
 	entry := log.(*logrus.Entry)
 	logger := &SdKLogger{Log: entry.Logger, FieldLogger: log}
 	if logLevel, err := logrus.ParseLevel(config.LogLevel); err == nil {
@@ -82,11 +82,10 @@ func NewClient(config Config, log logrus.FieldLogger, metricsApi metrics.API) (*
 	}
 
 	client := &Client{
-		Config:     &config,
-		logger:     logger,
-		Cache:      cache.New(10*time.Minute, 30*time.Minute),
-		metricsApi: metricsApi,
-		log:        log,
+		Config: &config,
+		logger: logger,
+		Cache:  cache.New(10*time.Minute, 30*time.Minute),
+		log:    log,
 	}
 	err := client.newConnection()
 	if err != nil {
@@ -102,6 +101,10 @@ func NewClient(config Config, log logrus.FieldLogger, metricsApi metrics.API) (*
 		client: client,
 	}
 	return client, nil
+}
+
+func (c *Client) SetMetrics(handler metrics.API) {
+	c.metricsApi = handler
 }
 
 func (c *Client) newConnection() error {

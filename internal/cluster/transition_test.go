@@ -50,7 +50,7 @@ var _ = Describe("Transition tests", func() {
 
 	BeforeEach(func() {
 		db, dbName = common.PrepareTestDB()
-		eventsHandler = events.New(db, logrus.New())
+		eventsHandler = events.New(db, nil, logrus.New())
 		ctrl = gomock.NewController(GinkgoT())
 		mockMetric = metrics.NewMockAPI(ctrl)
 		mockS3Api = s3wrapper.NewMockAPI(ctrl)
