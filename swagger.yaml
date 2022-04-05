@@ -4118,10 +4118,12 @@ definitions:
       name:
         type: string
       mac:
+        format: mac
         type: string
       ip_addresses:
         type: array
         items:
+          pattern: '^(?:(?:(?:[0-9]{1,3}\.){3}[0-9]{1,3})|(?:(?:[0-9a-fA-F]*:[0-9a-fA-F]*){2,}))$'
           type: string
 
   connectivity-check-host:
@@ -5403,6 +5405,7 @@ definitions:
             - domain_name
           properties:
             domain_name:
+              pattern: '^([a-zA-Z0-9]+(-[a-zA-Z0-9]+)*[.])+[a-zA-Z]{2,}$'
               description: "The domain name that should be resolved"
               type: string
 
@@ -5608,6 +5611,7 @@ definitions:
         format: uuid
         description: Host id
       agent_version:
+        pattern: '^(([a-zA-Z0-9\-\.]+)(:[0-9]+)?\/)?[a-z0-9\._\-\/@]+[?::a-zA-Z0-9_\-.]+$'
         type: string
         description: Agent image version
 
@@ -5678,9 +5682,11 @@ definitions:
         type: string
         description: Boot device to write image on
       controller_image:
+        pattern: '^(([a-zA-Z0-9\-\.]+)(:[0-9]+)?\/)?[a-z0-9\._\-\/@]+[?::a-zA-Z0-9_\-.]+$'
         type: string
         description: Assisted installer controller image
       installer_image:
+        pattern: '^(([a-zA-Z0-9\-\.]+)(:[0-9]+)?\/)?[a-z0-9\._\-\/@]+[?::a-zA-Z0-9_\-.]+$'
         type: string
         description: Assisted installer image
       high_availability_mode:
@@ -5706,6 +5712,7 @@ definitions:
         type: string
         description: Must-gather images to use
       mco_image:
+        pattern: '^(([a-zA-Z0-9\-\.]+)(:[0-9]+)?\/)?[a-z0-9\._\-\/@]+[?::a-zA-Z0-9_\-.]+$'
         type: string
         description: Machine config operator image
       openshift_version:
@@ -5761,6 +5768,7 @@ definitions:
         type: array
         description: List of image names to be checked.
         items:
+          pattern: '^(([a-zA-Z0-9\-\.]+)(:[0-9]+)?\/)?[a-z0-9\._\-\/@]+[?::a-zA-Z0-9_\-.]+$'
           type: string
           description: A fully qualified image name (FQIN).
 
