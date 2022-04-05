@@ -21,7 +21,7 @@ type NextStepCmdRequest struct {
 
 	// Agent image version
 	// Required: true
-	// Pattern: ^(([a-zA-Z0-9\-\.]+)(:[0-9]+)\/)?[a-z0-9\._\-\/@]+:[a-zA-Z0-9_\-.]+$
+	// Pattern: ^(([a-zA-Z0-9\-\.]+)(:[0-9]+)?\/)?[a-z0-9\._\-\/@]+[?::a-zA-Z0-9_\-.]+$
 	AgentVersion *string `json:"agent_version"`
 
 	// Host id
@@ -63,7 +63,7 @@ func (m *NextStepCmdRequest) validateAgentVersion(formats strfmt.Registry) error
 		return err
 	}
 
-	if err := validate.Pattern("agent_version", "body", *m.AgentVersion, `^(([a-zA-Z0-9\-\.]+)(:[0-9]+)\/)?[a-z0-9\._\-\/@]+:[a-zA-Z0-9_\-.]+$`); err != nil {
+	if err := validate.Pattern("agent_version", "body", *m.AgentVersion, `^(([a-zA-Z0-9\-\.]+)(:[0-9]+)?\/)?[a-z0-9\._\-\/@]+[?::a-zA-Z0-9_\-.]+$`); err != nil {
 		return err
 	}
 

@@ -35,7 +35,7 @@ type InstallCmdRequest struct {
 
 	// Assisted installer controller image
 	// Required: true
-	// Pattern: ^(([a-zA-Z0-9\-\.]+)(:[0-9]+)\/)?[a-z0-9\._\-\/@]+:[a-zA-Z0-9_\-.]+$
+	// Pattern: ^(([a-zA-Z0-9\-\.]+)(:[0-9]+)?\/)?[a-z0-9\._\-\/@]+[?::a-zA-Z0-9_\-.]+$
 	ControllerImage *string `json:"controller_image"`
 
 	// List of disks to format
@@ -63,11 +63,11 @@ type InstallCmdRequest struct {
 
 	// Assisted installer image
 	// Required: true
-	// Pattern: ^(([a-zA-Z0-9\-\.]+)(:[0-9]+)\/)?[a-z0-9\._\-\/@]+:[a-zA-Z0-9_\-.]+$
+	// Pattern: ^(([a-zA-Z0-9\-\.]+)(:[0-9]+)?\/)?[a-z0-9\._\-\/@]+[?::a-zA-Z0-9_\-.]+$
 	InstallerImage *string `json:"installer_image"`
 
 	// Machine config operator image
-	// Pattern: ^(([a-zA-Z0-9\-\.]+)(:[0-9]+)\/)?[a-z0-9\._\-\/@]+:[a-zA-Z0-9_\-.]+$
+	// Pattern: ^(([a-zA-Z0-9\-\.]+)(:[0-9]+)?\/)?[a-z0-9\._\-\/@]+[?::a-zA-Z0-9_\-.]+$
 	McoImage string `json:"mco_image,omitempty"`
 
 	// Must-gather images to use
@@ -169,7 +169,7 @@ func (m *InstallCmdRequest) validateControllerImage(formats strfmt.Registry) err
 		return err
 	}
 
-	if err := validate.Pattern("controller_image", "body", *m.ControllerImage, `^(([a-zA-Z0-9\-\.]+)(:[0-9]+)\/)?[a-z0-9\._\-\/@]+:[a-zA-Z0-9_\-.]+$`); err != nil {
+	if err := validate.Pattern("controller_image", "body", *m.ControllerImage, `^(([a-zA-Z0-9\-\.]+)(:[0-9]+)?\/)?[a-z0-9\._\-\/@]+[?::a-zA-Z0-9_\-.]+$`); err != nil {
 		return err
 	}
 
@@ -251,7 +251,7 @@ func (m *InstallCmdRequest) validateInstallerImage(formats strfmt.Registry) erro
 		return err
 	}
 
-	if err := validate.Pattern("installer_image", "body", *m.InstallerImage, `^(([a-zA-Z0-9\-\.]+)(:[0-9]+)\/)?[a-z0-9\._\-\/@]+:[a-zA-Z0-9_\-.]+$`); err != nil {
+	if err := validate.Pattern("installer_image", "body", *m.InstallerImage, `^(([a-zA-Z0-9\-\.]+)(:[0-9]+)?\/)?[a-z0-9\._\-\/@]+[?::a-zA-Z0-9_\-.]+$`); err != nil {
 		return err
 	}
 
@@ -263,7 +263,7 @@ func (m *InstallCmdRequest) validateMcoImage(formats strfmt.Registry) error {
 		return nil
 	}
 
-	if err := validate.Pattern("mco_image", "body", m.McoImage, `^(([a-zA-Z0-9\-\.]+)(:[0-9]+)\/)?[a-z0-9\._\-\/@]+:[a-zA-Z0-9_\-.]+$`); err != nil {
+	if err := validate.Pattern("mco_image", "body", m.McoImage, `^(([a-zA-Z0-9\-\.]+)(:[0-9]+)?\/)?[a-z0-9\._\-\/@]+[?::a-zA-Z0-9_\-.]+$`); err != nil {
 		return err
 	}
 

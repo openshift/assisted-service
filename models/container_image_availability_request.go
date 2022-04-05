@@ -50,7 +50,7 @@ func (m *ContainerImageAvailabilityRequest) validateImages(formats strfmt.Regist
 
 	for i := 0; i < len(m.Images); i++ {
 
-		if err := validate.Pattern("images"+"."+strconv.Itoa(i), "body", m.Images[i], `^(([a-zA-Z0-9\-\.]+)(:[0-9]+)\/)?[a-z0-9\._\-\/@]+:[a-zA-Z0-9_\-.]+$`); err != nil {
+		if err := validate.Pattern("images"+"."+strconv.Itoa(i), "body", m.Images[i], `^(([a-zA-Z0-9\-\.]+)(:[0-9]+)?\/)?[a-z0-9\._\-\/@]+[?::a-zA-Z0-9_\-.]+$`); err != nil {
 			return err
 		}
 

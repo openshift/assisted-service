@@ -6073,7 +6073,7 @@ func init() {
           "items": {
             "description": "A fully qualified image name (FQIN).",
             "type": "string",
-            "pattern": "^(([a-zA-Z0-9\\-\\.]+)(:[0-9]+)\\/)?[a-z0-9\\._\\-\\/@]+:[a-zA-Z0-9_\\-.]+$"
+            "pattern": "^(([a-zA-Z0-9\\-\\.]+)(:[0-9]+)?\\/)?[a-z0-9\\._\\-\\/@]+[?::a-zA-Z0-9_\\-.]+$"
           }
         },
         "timeout": {
@@ -7623,7 +7623,7 @@ func init() {
         "controller_image": {
           "description": "Assisted installer controller image",
           "type": "string",
-          "pattern": "^(([a-zA-Z0-9\\-\\.]+)(:[0-9]+)\\/)?[a-z0-9\\._\\-\\/@]+:[a-zA-Z0-9_\\-.]+$"
+          "pattern": "^(([a-zA-Z0-9\\-\\.]+)(:[0-9]+)?\\/)?[a-z0-9\\._\\-\\/@]+[?::a-zA-Z0-9_\\-.]+$"
         },
         "disks_to_format": {
           "description": "List of disks to format",
@@ -7659,12 +7659,12 @@ func init() {
         "installer_image": {
           "description": "Assisted installer image",
           "type": "string",
-          "pattern": "^(([a-zA-Z0-9\\-\\.]+)(:[0-9]+)\\/)?[a-z0-9\\._\\-\\/@]+:[a-zA-Z0-9_\\-.]+$"
+          "pattern": "^(([a-zA-Z0-9\\-\\.]+)(:[0-9]+)?\\/)?[a-z0-9\\._\\-\\/@]+[?::a-zA-Z0-9_\\-.]+$"
         },
         "mco_image": {
           "description": "Machine config operator image",
           "type": "string",
-          "pattern": "^(([a-zA-Z0-9\\-\\.]+)(:[0-9]+)\\/)?[a-z0-9\\._\\-\\/@]+:[a-zA-Z0-9_\\-.]+$"
+          "pattern": "^(([a-zA-Z0-9\\-\\.]+)(:[0-9]+)?\\/)?[a-z0-9\\._\\-\\/@]+[?::a-zA-Z0-9_\\-.]+$"
         },
         "must_gather_image": {
           "description": "Must-gather images to use",
@@ -8128,7 +8128,7 @@ func init() {
         "agent_version": {
           "description": "Agent image version",
           "type": "string",
-          "pattern": "^(([a-zA-Z0-9\\-\\.]+)(:[0-9]+)\\/)?[a-z0-9\\._\\-\\/@]+:[a-zA-Z0-9_\\-.]+$"
+          "pattern": "^(([a-zA-Z0-9\\-\\.]+)(:[0-9]+)?\\/)?[a-z0-9\\._\\-\\/@]+[?::a-zA-Z0-9_\\-.]+$"
         },
         "host_id": {
           "description": "Host id",
@@ -15200,7 +15200,7 @@ func init() {
           "items": {
             "description": "A fully qualified image name (FQIN).",
             "type": "string",
-            "pattern": "^(([a-zA-Z0-9\\-\\.]+)(:[0-9]+)\\/)?[a-z0-9\\._\\-\\/@]+:[a-zA-Z0-9_\\-.]+$"
+            "pattern": "^(([a-zA-Z0-9\\-\\.]+)(:[0-9]+)?\\/)?[a-z0-9\\._\\-\\/@]+[?::a-zA-Z0-9_\\-.]+$"
           }
         },
         "timeout": {
@@ -16683,7 +16683,7 @@ func init() {
         "controller_image": {
           "description": "Assisted installer controller image",
           "type": "string",
-          "pattern": "^(([a-zA-Z0-9\\-\\.]+)(:[0-9]+)\\/)?[a-z0-9\\._\\-\\/@]+:[a-zA-Z0-9_\\-.]+$"
+          "pattern": "^(([a-zA-Z0-9\\-\\.]+)(:[0-9]+)?\\/)?[a-z0-9\\._\\-\\/@]+[?::a-zA-Z0-9_\\-.]+$"
         },
         "disks_to_format": {
           "description": "List of disks to format",
@@ -16719,12 +16719,12 @@ func init() {
         "installer_image": {
           "description": "Assisted installer image",
           "type": "string",
-          "pattern": "^(([a-zA-Z0-9\\-\\.]+)(:[0-9]+)\\/)?[a-z0-9\\._\\-\\/@]+:[a-zA-Z0-9_\\-.]+$"
+          "pattern": "^(([a-zA-Z0-9\\-\\.]+)(:[0-9]+)?\\/)?[a-z0-9\\._\\-\\/@]+[?::a-zA-Z0-9_\\-.]+$"
         },
         "mco_image": {
           "description": "Machine config operator image",
           "type": "string",
-          "pattern": "^(([a-zA-Z0-9\\-\\.]+)(:[0-9]+)\\/)?[a-z0-9\\._\\-\\/@]+:[a-zA-Z0-9_\\-.]+$"
+          "pattern": "^(([a-zA-Z0-9\\-\\.]+)(:[0-9]+)?\\/)?[a-z0-9\\._\\-\\/@]+[?::a-zA-Z0-9_\\-.]+$"
         },
         "must_gather_image": {
           "description": "Must-gather images to use",
@@ -17177,7 +17177,7 @@ func init() {
         "agent_version": {
           "description": "Agent image version",
           "type": "string",
-          "pattern": "^(([a-zA-Z0-9\\-\\.]+)(:[0-9]+)\\/)?[a-z0-9\\._\\-\\/@]+:[a-zA-Z0-9_\\-.]+$"
+          "pattern": "^(([a-zA-Z0-9\\-\\.]+)(:[0-9]+)?\\/)?[a-z0-9\\._\\-\\/@]+[?::a-zA-Z0-9_\\-.]+$"
         },
         "host_id": {
           "description": "Host id",
