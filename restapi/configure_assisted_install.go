@@ -112,7 +112,7 @@ type InstallerAPI interface {
 	/* V2UploadLogs Agent API to upload logs. */
 	V2UploadLogs(ctx context.Context, params installer.V2UploadLogsParams) middleware.Responder
 
-	/* V2CompleteInstallation Agent API to mark a finalizing installation as complete. */
+	/* V2CompleteInstallation Agent API to mark a finalizing installation as complete and progress to 100%. */
 	V2CompleteInstallation(ctx context.Context, params installer.V2CompleteInstallationParams) middleware.Responder
 
 	/* V2DeregisterCluster Deletes an OpenShift cluster definition. */

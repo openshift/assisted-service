@@ -146,7 +146,7 @@ func (th *transitionHandler) PostCompleteInstallation(sw stateswitch.StateSwitch
 
 	log := logutil.FromContext(params.ctx, th.log)
 	if cluster, err := params.clusterAPI.CompleteInstallation(params.ctx, params.db, sCluster.cluster,
-		true, createClusterCompletionStatusInfo(params.ctx, log, sCluster.cluster, th.eventsHandler)); err != nil {
+		true, th.createClusterCompletionStatusInfo(params.ctx, log, sCluster.cluster, th.eventsHandler)); err != nil {
 		return err
 	} else {
 		sCluster.cluster = cluster
@@ -155,10 +155,10 @@ func (th *transitionHandler) PostCompleteInstallation(sw stateswitch.StateSwitch
 	}
 }
 
-func createClusterCompletionStatusInfo(ctx context.Context, log logrus.FieldLogger, cluster *common.Cluster, eventHandler eventsapi.Handler) string {
+func (th *transitionHandler) createClusterCompletionStatusInfo(ctx context.Context, log logrus.FieldLogger, cluster *common.Cluster, eventHandler eventsapi.Handler) string {
 	statusInfo := statusInfoInstalled
 
-	_, statuses := getClusterMonitoringOperatorsStatus(cluster)
+	_, statuses := th.getClusterMonitoringOperatorsStatus(cluster)
 	log.Infof("Cluster %s Monitoring status: %s", *cluster.ID, statuses)
 
 	// Check if the cluster is degraded. A cluster is degraded if not all requested OLM operators
@@ -193,9 +193,11 @@ func (th *transitionHandler) hasClusterCompleteInstallation(sw stateswitch.State
 	objectName := fmt.Sprintf("%s/%s", sCluster.cluster.ID, constants.Kubeconfig)
 	exists, err := params.objectHandler.DoesObjectExist(params.ctx, objectName)
 	if err != nil {
+		th.log.Debugf("cluster %s: hasClusterCompleteInstallation condition returns false due to kubeconfig DoesObjectExist error", sCluster.cluster.ID)
 		return false, err
 	}
 	if !exists {
+		th.log.Debugf("cluster %s: hasClusterCompleteInstallation condition returns false due to kubeconfig DoesObjectExist", sCluster.cluster.ID)
 		return false, nil
 	}
 
@@ -206,11 +208,12 @@ func (th *transitionHandler) hasClusterCompleteInstallation(sw stateswitch.State
 		return true, nil
 	}
 
-	isComplete, _ := getClusterMonitoringOperatorsStatus(sCluster.cluster)
+	isComplete, _ := th.getClusterMonitoringOperatorsStatus(sCluster.cluster)
+	th.log.Debugf("cluster %s, hasClusterCompleteInstallation condition returns isComplete: %t", sCluster.cluster.ID, isComplete)
 	return isComplete, nil
 }
 
-func getClusterMonitoringOperatorsStatus(cluster *common.Cluster) (bool, MonitoredOperatorStatuses) {
+func (th *transitionHandler) getClusterMonitoringOperatorsStatus(cluster *common.Cluster) (bool, MonitoredOperatorStatuses) {
 	operatorsStatuses := MonitoredOperatorStatuses{
 		models.OperatorTypeOlm: {
 			models.OperatorStatusAvailable:   {},
@@ -225,20 +228,28 @@ func getClusterMonitoringOperatorsStatus(cluster *common.Cluster) (bool, Monitor
 	}
 
 	for _, operator := range cluster.MonitoredOperators {
+		th.log.Debugf("cluster: %s, %s operator %s status is: %s ", cluster.ID.String(), operator.OperatorType, operator.Name, operator.Status)
 		operatorsStatuses[operator.OperatorType][operator.Status] = append(operatorsStatuses[operator.OperatorType][operator.Status], operator.Name)
 	}
-
-	return haveBuiltinOperatorsComplete(operatorsStatuses[models.OperatorTypeBuiltin]) &&
-		haveOLMOperatorsComplete(operatorsStatuses[models.OperatorTypeOlm]), operatorsStatuses
+	th.log.Debugf("cluster: %s, progress: %+v ", cluster.ID.String(), cluster.Progress)
+	return th.haveBuiltinOperatorsComplete(cluster.ID, operatorsStatuses[models.OperatorTypeBuiltin]) &&
+		th.haveOLMOperatorsComplete(cluster.ID, operatorsStatuses[models.OperatorTypeOlm]), operatorsStatuses
 }
 
-func haveBuiltinOperatorsComplete(operatorsNamesByStatus OperatorsNamesByStatus) bool {
-	// All the builtin operators are mandatory for a successfull installation
-	return len(operatorsNamesByStatus[models.OperatorStatusAvailable]) == countOperatorsInAllStatuses(operatorsNamesByStatus)
+func (th *transitionHandler) haveBuiltinOperatorsComplete(clusterID *strfmt.UUID, operatorsNamesByStatus OperatorsNamesByStatus) bool {
+	// All the builtin operators are mandatory for a successful installation
+	builtInOperatorsInAllStatusesCount := countOperatorsInAllStatuses(operatorsNamesByStatus)
+	th.log.Debugf("cluster: %s, OperatorStatusAvailable: %d, builtInOperatorsInAllStatusesCount is: %d",
+		clusterID.String(), len(operatorsNamesByStatus[models.OperatorStatusAvailable]), builtInOperatorsInAllStatusesCount)
+	return len(operatorsNamesByStatus[models.OperatorStatusAvailable]) == builtInOperatorsInAllStatusesCount
 }
 
-func haveOLMOperatorsComplete(operatorsNamesByStatus OperatorsNamesByStatus) bool {
+func (th *transitionHandler) haveOLMOperatorsComplete(clusterID *strfmt.UUID, operatorsNamesByStatus OperatorsNamesByStatus) bool {
 	// Need to wait for OLM operators to finish. Either available or failed. Failed operators would cause a degraded state.
+	OlmOperatorsInAllStatusesCount := countOperatorsInAllStatuses(operatorsNamesByStatus)
+	th.log.Debugf("cluster: %s, OperatorStatusAvailable + OperatorStatusFailed: %d, builtInOperatorsInAllStatusesCount is: %d",
+		clusterID.String(), len(operatorsNamesByStatus[models.OperatorStatusAvailable])+len(operatorsNamesByStatus[models.OperatorStatusFailed]),
+		OlmOperatorsInAllStatusesCount)
 	return len(operatorsNamesByStatus[models.OperatorStatusAvailable])+len(operatorsNamesByStatus[models.OperatorStatusFailed]) ==
 		countOperatorsInAllStatuses(operatorsNamesByStatus)
 }
@@ -362,6 +373,7 @@ func (th *transitionHandler) WithAMSSubscriptions(sw stateswitch.StateSwitch, ar
 		!sCluster.cluster.IsAmsSubscriptionConsoleUrlSet && params.clusterAPI.IsOperatorAvailable(sCluster.cluster, operators.OperatorConsole.Name) {
 		return true, nil
 	}
+	th.log.Debugf("cluster %s, WithAMSSubscriptions condition ends and return false", sCluster.cluster.ID)
 	return false, nil
 }
 
