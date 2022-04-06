@@ -18,14 +18,10 @@ func NewStopInstallationCmd(log logrus.FieldLogger) *stopInstallationCmd {
 }
 
 func (h *stopInstallationCmd) GetSteps(ctx context.Context, host *models.Host) ([]*models.Step, error) {
-	command := "/usr/bin/podman"
-
 	step := &models.Step{
-		StepType: models.StepTypeExecute,
-		Command:  command,
-		Args: []string{
-			"stop", "-i", "-t", "5", "assisted-installer",
-		},
+		StepType: models.StepTypeStopInstallation,
+		Command:  "",
+		Args:     []string{},
 	}
 
 	return []*models.Step{step}, nil
