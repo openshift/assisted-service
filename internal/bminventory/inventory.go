@@ -5345,7 +5345,7 @@ func (b *bareMetalInventory) updateHostDisksSelectionConfig(ctx context.Context,
 	log.Infof("Update host %s to install from disk id %s", host.ID, installationDiskId)
 	err := b.hostApi.UpdateInstallationDisk(ctx, db, &host.Host, installationDiskId)
 	if err != nil {
-		log.WithError(err).Errorf("failed to set installation disk path <%s> host <%s> ubfra env <%s>",
+		log.WithError(err).Errorf("failed to set installation disk path <%s> host <%s> infra env <%s>",
 			installationDiskId,
 			host.ID,
 			host.InfraEnvID)
