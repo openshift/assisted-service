@@ -453,10 +453,6 @@ var _ = Describe("RegisterHost", func() {
 				By("register_returns_next_step_runner_command")
 				payload := reply.(*installer.V2RegisterHostCreated).Payload
 				Expect(payload).ShouldNot(BeNil())
-				command := payload.NextStepRunnerCommand
-				Expect(command).ShouldNot(BeNil())
-				Expect(command.Command).ShouldNot(BeEmpty())
-				Expect(command.Args).ShouldNot(BeEmpty())
 			})
 		}
 	})
@@ -638,7 +634,7 @@ var _ = Describe("v2RegisterHost", func() {
 				Expect(payload).ShouldNot(BeNil())
 				command := payload.NextStepRunnerCommand
 				Expect(command).ShouldNot(BeNil())
-				Expect(command.Command).ShouldNot(BeEmpty())
+				Expect(command.Command).Should(BeEmpty())
 				Expect(command.Args).ShouldNot(BeEmpty())
 			})
 		}

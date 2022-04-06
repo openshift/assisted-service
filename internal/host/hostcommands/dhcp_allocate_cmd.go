@@ -76,13 +76,8 @@ func (f *dhcpAllocateCmd) GetSteps(ctx context.Context, host *models.Host) ([]*m
 	}
 	step := &models.Step{
 		StepType: models.StepTypeDhcpLeaseAllocate,
-		Command:  "podman",
+		Command:  "",
 		Args: []string{
-			"run", "--privileged", "--net=host", "--rm", "--quiet",
-			"-v", "/var/log:/var/log",
-			"-v", "/run/systemd/journal/socket:/run/systemd/journal/socket",
-			f.dhcpAllocateImage,
-			"dhcp_lease_allocate",
 			param,
 		},
 	}
