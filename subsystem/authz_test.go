@@ -117,18 +117,6 @@ var _ = Describe("test authorization", func() {
 				ClusterUpdateParams: &models.V2ClusterUpdateParams{Name: swag.String("update-test")}})
 			Expect(err).ShouldNot(HaveOccurred())
 		})
-
-		It("can get bound infra-env", func() {
-			infraEnvID := registerInfraEnv(&userClusterID, models.ImageTypeMinimalIso).ID
-			_, err := editclusterUserBMClient.Installer.GetInfraEnv(ctx, &installer.GetInfraEnvParams{InfraEnvID: *infraEnvID})
-			Expect(err).ShouldNot(HaveOccurred())
-		})
-
-		It("can't get unbound infra-env", func() {
-			infraEnvID := registerInfraEnv(nil, models.ImageTypeMinimalIso).ID
-			_, err := editclusterUserBMClient.Installer.GetInfraEnv(ctx, &installer.GetInfraEnvParams{InfraEnvID: *infraEnvID})
-			Expect(err).To(HaveOccurred())
-		})
 	})
 
 	Context("regular user", func() {

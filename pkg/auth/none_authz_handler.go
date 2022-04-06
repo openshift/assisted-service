@@ -28,3 +28,7 @@ func (*NoneHandler) OwnedBy(ctx context.Context, db *gorm.DB) *gorm.DB {
 func (*NoneHandler) OwnedByUser(ctx context.Context, db *gorm.DB, username string) *gorm.DB {
 	return db
 }
+
+func (*NoneHandler) HasAccessTo(ctx context.Context, obj interface{}, action Action) (bool, error) {
+	return true, nil
+}
