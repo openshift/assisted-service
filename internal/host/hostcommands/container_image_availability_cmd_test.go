@@ -4,8 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"strings"
 
-	"github.com/alessio/shellescape"
 	"github.com/go-openapi/strfmt"
 	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
@@ -71,8 +71,7 @@ var _ = Describe("container_image_availability_cmd", func() {
 
 		b, err := json.Marshal(&request)
 		Expect(err).ShouldNot(HaveOccurred())
-
-		verifyArgInCommand(step[0].Args[1], "--request", shellescape.QuoteCommand([]string{string(b)}), 1)
+		Expect(strings.Join(step[0].Args, " ")).To(ContainSubstring(string(b)))
 	})
 
 	It("get_step_release_image_failure", func() {

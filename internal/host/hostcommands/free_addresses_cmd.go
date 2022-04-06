@@ -3,10 +3,8 @@ package hostcommands
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"net"
 
-	"github.com/alessio/shellescape"
 	"github.com/openshift/assisted-service/models"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -78,29 +76,11 @@ func (f *freeAddressesCmd) GetSteps(ctx context.Context, host *models.Host) ([]*
 		return nil, err
 	}
 
-	const containerName = "free_addresses_scanner"
-
-	podmanRunCmd := shellescape.QuoteCommand([]string{
-		"podman", "run", "--privileged", "--net=host", "--rm", "--quiet",
-		"--name", containerName,
-		"-v", "/var/log:/var/log",
-		"-v", "/run/systemd/journal/socket:/run/systemd/journal/socket",
-		f.freeAddressesImage,
-		"free_addresses",
-		param,
-	})
-
-	// Sometimes the address scanning takes longer than the interval we wait between invocations.
-	// To avoid flooding the log with "container already exists" errors, we silently fail by manually
-	// checking if it exists and only running if it doesn't
-	checkAlreadyRunningCmd := fmt.Sprintf("podman ps --format '{{.Names}}' | grep -q '^%s$'", containerName)
-
 	step := &models.Step{
 		StepType: models.StepTypeFreeNetworkAddresses,
-		Command:  "sh",
+		Command:  "",
 		Args: []string{
-			"-c",
-			fmt.Sprintf("%s || %s", checkAlreadyRunningCmd, podmanRunCmd),
+			param,
 		},
 	}
 

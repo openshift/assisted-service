@@ -65,13 +65,8 @@ func (c *apivipConnectivityCheckCmd) GetSteps(ctx context.Context, host *models.
 
 	step := &models.Step{
 		StepType: models.StepTypeAPIVipConnectivityCheck,
-		Command:  "podman",
+		Command:  "",
 		Args: []string{
-			"run", "--privileged", "--net=host", "--rm", "--quiet",
-			"-v", "/var/log:/var/log",
-			"-v", "/run/systemd/journal/socket:/run/systemd/journal/socket",
-			c.connectivityCheckImage,
-			"apivip_check",
 			string(requestBytes),
 		},
 	}

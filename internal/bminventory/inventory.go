@@ -2769,7 +2769,7 @@ func (b *bareMetalInventory) getImageInfo(clusterId *strfmt.UUID) (*models.Image
 	return &models.ImageInfo{}, nil
 }
 
-func (b *bareMetalInventory) generateV2NextStepRunnerCommand(ctx context.Context, params *installer.V2RegisterHostParams) *models.HostRegistrationResponseAO1NextStepRunnerCommand {
+func (b *bareMetalInventory) generateV2NextStepRunnerCommand(ctx context.Context, params *installer.V2RegisterHostParams) (*models.HostRegistrationResponseAO1NextStepRunnerCommand, error) {
 
 	if params.NewHostParams.DiscoveryAgentVersion != b.AgentDockerImg {
 		log := logutil.FromContext(ctx, b.log)
@@ -2779,17 +2779,17 @@ func (b *bareMetalInventory) generateV2NextStepRunnerCommand(ctx context.Context
 
 	config := hostcommands.NextStepRunnerConfig{
 		ServiceBaseURL:       b.ServiceBaseURL,
-		InfraEnvID:           params.InfraEnvID.String(),
-		HostID:               params.NewHostParams.HostID.String(),
+		InfraEnvID:           params.InfraEnvID,
+		HostID:               *params.NewHostParams.HostID,
 		UseCustomCACert:      b.ServiceCACertPath != "",
 		NextStepRunnerImage:  b.AgentDockerImg,
 		SkipCertVerification: b.SkipCertVerification,
 	}
-	command, args := hostcommands.GetNextStepRunnerCommand(&config)
+	command, args, err := hostcommands.GetNextStepRunnerCommand(&config)
 	return &models.HostRegistrationResponseAO1NextStepRunnerCommand{
 		Command: command,
 		Args:    *args,
-	}
+	}, err
 }
 
 func returnRegisterHostTransitionError(
@@ -4549,9 +4549,15 @@ func (b *bareMetalInventory) V2RegisterHost(ctx context.Context, params installe
 	eventgen.SendHostRegistrationSucceededEvent(ctx, b.eventsHandler, *params.NewHostParams.HostID,
 		params.InfraEnvID, host.ClusterID, hostutil.GetHostnameForMsg(host))
 
+	nextStepRunnerCommand, err := b.generateV2NextStepRunnerCommand(ctx, &params)
+	if err != nil {
+		log.WithError(err).Errorf("Fail to create nextStepRunnerCommand")
+		return common.GenerateErrorResponder(err)
+	}
+
 	hostRegistration := models.HostRegistrationResponse{
 		Host:                  *host,
-		NextStepRunnerCommand: b.generateV2NextStepRunnerCommand(ctx, &params),
+		NextStepRunnerCommand: nextStepRunnerCommand,
 	}
 
 	if err := tx.Commit().Error; err != nil {
