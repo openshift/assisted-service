@@ -220,9 +220,10 @@ func (r *InfraEnvReconciler) processNMStateConfig(ctx context.Context, log logru
 	}
 
 	for _, nmStateConfig := range nmStateConfigs.Items {
+		networkYaml, _ := json.Marshal(nmStateConfig.Spec.NetConfig.Interfaces)
 		staticNetworkConfig = append(staticNetworkConfig, &models.HostStaticNetworkConfig{
 			MacInterfaceMap: r.buildMacInterfaceMap(log, nmStateConfig),
-			NetworkYaml:     string(nmStateConfig.Spec.NetConfig.Raw),
+			NetworkYaml:     networkYaml,
 		})
 	}
 	return staticNetworkConfig, nil
