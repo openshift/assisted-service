@@ -46,6 +46,12 @@ func WithClusterIdMatcher(expected string) eventPartMatcher {
 				return expected == ""
 			}
 			return e.GetClusterId().String() == expected
+		case eventsapi.InfraEnvEvent:
+			if e.GetClusterId() == nil {
+				// cluster_id is an optional parameter for infraEnv events
+				return expected == ""
+			}
+			return e.GetClusterId().String() == expected
 		default:
 			return false
 		}

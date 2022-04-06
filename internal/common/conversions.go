@@ -44,3 +44,10 @@ func StrFmtUUIDVal(u *strfmt.UUID) strfmt.UUID {
 	}
 	return *u
 }
+
+func StrFmtUUIDPtr(u strfmt.UUID) *strfmt.UUID {
+	if u.String() == "" {
+		return nil
+	}
+	return &u
+}

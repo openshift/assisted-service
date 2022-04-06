@@ -7257,13 +7257,63 @@ var _ = Describe("infraEnvs", func() {
 					bm.ImageServiceBaseURL = "https://image-service.example.com:8080"
 				})
 
-				It("sets the download url correctly with the image service", func() {
+				It("sets the download url correctly with the image service - unbounded InfraEnv", func() {
+					i, err := bm.GetInfraEnvInternal(ctx, installer.GetInfraEnvParams{InfraEnvID: infraEnvID})
+					Expect(err).ToNot(HaveOccurred())
+
 					mockVersions.EXPECT().GetOsImage(common.TestDefaultConfig.OpenShiftVersion, "").Return(common.TestDefaultConfig.OsImage, nil)
 					mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), gomock.Any(), bm.IgnitionConfig, true, bm.authHandler.AuthType()).Return("ignitionconfigforlogging", nil).Times(1)
-					mockEvents.EXPECT().SendInfraEnvEvent(ctx, eventstest.NewEventMatcher(eventstest.WithNameMatcher(eventgen.ImageInfoUpdatedEventName))).Times(1)
+					mockEvents.EXPECT().SendInfraEnvEvent(ctx, eventstest.NewEventMatcher(
+						eventstest.WithNameMatcher(eventgen.ImageInfoUpdatedEventName),
+						eventstest.WithInfraEnvIdMatcher(i.ID.String()),
+						eventstest.WithClusterIdMatcher(i.ClusterID.String()))).Times(1)
 
 					response, err := bm.UpdateInfraEnvInternal(ctx, installer.UpdateInfraEnvParams{
-						InfraEnvID:           infraEnvID,
+						InfraEnvID:           *i.ID,
+						InfraEnvUpdateParams: &models.InfraEnvUpdateParams{ImageType: models.ImageTypeMinimalIso},
+					})
+					Expect(err).ToNot(HaveOccurred())
+
+					parsed, err := url.Parse(response.DownloadURL)
+					Expect(err).NotTo(HaveOccurred())
+
+					Expect(parsed.Scheme).To(Equal("https"))
+					Expect(parsed.Host).To(Equal("image-service.example.com:8080"))
+
+					gotQuery, err := url.ParseQuery(parsed.RawQuery)
+					Expect(err).NotTo(HaveOccurred())
+
+					Expect(gotQuery.Get("type")).To(Equal(string(models.ImageTypeMinimalIso)))
+					Expect(gotQuery.Get("version")).To(Equal(common.TestDefaultConfig.OpenShiftVersion))
+				})
+
+				It("sets the download url correctly with the image service - bounded InfraEnv", func() {
+
+					boundedInfraEnvID := strfmt.UUID(uuid.New().String())
+					clusterID := strfmt.UUID(uuid.New().String())
+
+					boundedInfraEnv := &common.InfraEnv{
+						GeneratedAt: strfmt.NewDateTime(),
+						PullSecret:  "PULL_SECRET",
+						InfraEnv: models.InfraEnv{
+							ClusterID:        clusterID,
+							ID:               &boundedInfraEnvID,
+							OpenshiftVersion: common.TestDefaultConfig.OpenShiftVersion,
+							PullSecretSet:    true,
+						},
+					}
+					err := db.Create(boundedInfraEnv).Error
+					Expect(err).ToNot(HaveOccurred())
+
+					mockVersions.EXPECT().GetOsImage(common.TestDefaultConfig.OpenShiftVersion, "").Return(common.TestDefaultConfig.OsImage, nil)
+					mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), gomock.Any(), bm.IgnitionConfig, true, bm.authHandler.AuthType()).Return("ignitionconfigforlogging", nil).Times(1)
+					mockEvents.EXPECT().SendInfraEnvEvent(ctx, eventstest.NewEventMatcher(
+						eventstest.WithNameMatcher(eventgen.ImageInfoUpdatedEventName),
+						eventstest.WithInfraEnvIdMatcher(boundedInfraEnv.ID.String()),
+						eventstest.WithClusterIdMatcher(boundedInfraEnv.ClusterID.String()))).Times(1)
+
+					response, err := bm.UpdateInfraEnvInternal(ctx, installer.UpdateInfraEnvParams{
+						InfraEnvID:           boundedInfraEnvID,
 						InfraEnvUpdateParams: &models.InfraEnvUpdateParams{ImageType: models.ImageTypeMinimalIso},
 					})
 					Expect(err).ToNot(HaveOccurred())
@@ -7292,10 +7342,14 @@ var _ = Describe("infraEnvs", func() {
 					})
 
 					It("sets a valid image_token", func() {
+						i, err := bm.GetInfraEnvInternal(ctx, installer.GetInfraEnvParams{InfraEnvID: infraEnvID})
+						Expect(err).ToNot(HaveOccurred())
 						mockVersions.EXPECT().GetOsImage(common.TestDefaultConfig.OpenShiftVersion, "").Return(common.TestDefaultConfig.OsImage, nil)
 						mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), gomock.Any(), bm.IgnitionConfig, true, bm.authHandler.AuthType()).Return("ignitionconfigforlogging", nil)
-						mockEvents.EXPECT().SendInfraEnvEvent(ctx, eventstest.NewEventMatcher(eventstest.WithNameMatcher(eventgen.ImageInfoUpdatedEventName)))
-
+						mockEvents.EXPECT().SendInfraEnvEvent(ctx, eventstest.NewEventMatcher(
+							eventstest.WithNameMatcher(eventgen.ImageInfoUpdatedEventName),
+							eventstest.WithInfraEnvIdMatcher(i.ID.String()),
+							eventstest.WithClusterIdMatcher(i.ClusterID.String()))).Times(1)
 						response, err := bm.UpdateInfraEnvInternal(ctx, installer.UpdateInfraEnvParams{
 							InfraEnvID:           infraEnvID,
 							InfraEnvUpdateParams: &models.InfraEnvUpdateParams{ImageType: models.ImageTypeMinimalIso},
@@ -7310,10 +7364,14 @@ var _ = Describe("infraEnvs", func() {
 					})
 
 					It("updates the infra-env expires_at time", func() {
+						i, err := bm.GetInfraEnvInternal(ctx, installer.GetInfraEnvParams{InfraEnvID: infraEnvID})
+						Expect(err).ToNot(HaveOccurred())
 						mockVersions.EXPECT().GetOsImage(common.TestDefaultConfig.OpenShiftVersion, "").Return(common.TestDefaultConfig.OsImage, nil)
 						mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), gomock.Any(), bm.IgnitionConfig, true, bm.authHandler.AuthType()).Return("ignitionconfigforlogging", nil)
-						mockEvents.EXPECT().SendInfraEnvEvent(ctx, eventstest.NewEventMatcher(eventstest.WithNameMatcher(eventgen.ImageInfoUpdatedEventName)))
-
+						mockEvents.EXPECT().SendInfraEnvEvent(ctx, eventstest.NewEventMatcher(
+							eventstest.WithNameMatcher(eventgen.ImageInfoUpdatedEventName),
+							eventstest.WithInfraEnvIdMatcher(i.ID.String()),
+							eventstest.WithClusterIdMatcher(i.ClusterID.String()))).Times(1)
 						response, err := bm.UpdateInfraEnvInternal(ctx, installer.UpdateInfraEnvParams{
 							InfraEnvID:           infraEnvID,
 							InfraEnvUpdateParams: &models.InfraEnvUpdateParams{ImageType: models.ImageTypeMinimalIso},
@@ -7355,9 +7413,14 @@ var _ = Describe("infraEnvs", func() {
 					}
 
 					It("does not update the image service url if nothing changed", func() {
+						i, err := bm.GetInfraEnvInternal(ctx, installer.GetInfraEnvParams{InfraEnvID: infraEnvID})
+						Expect(err).ToNot(HaveOccurred())
 						mockVersions.EXPECT().GetOsImage(common.TestDefaultConfig.OpenShiftVersion, "").Return(common.TestDefaultConfig.OsImage, nil).Times(2)
 						mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), gomock.Any(), bm.IgnitionConfig, true, bm.authHandler.AuthType()).Return("ignitionconfigforlogging", nil).Times(1)
-						mockEvents.EXPECT().SendInfraEnvEvent(ctx, eventstest.NewEventMatcher(eventstest.WithNameMatcher(eventgen.ImageInfoUpdatedEventName))).Times(1)
+						mockEvents.EXPECT().SendInfraEnvEvent(ctx, eventstest.NewEventMatcher(
+							eventstest.WithNameMatcher(eventgen.ImageInfoUpdatedEventName),
+							eventstest.WithInfraEnvIdMatcher(i.ID.String()),
+							eventstest.WithClusterIdMatcher(i.ClusterID.String()))).Times(1)
 						params := &models.InfraEnvUpdateParams{ImageType: models.ImageTypeMinimalIso}
 						firstURL := updateInfraEnv(params)
 						newURL := updateInfraEnv(params)
@@ -7366,9 +7429,14 @@ var _ = Describe("infraEnvs", func() {
 					})
 
 					It("updates the image service url when things change", func() {
+						i, err := bm.GetInfraEnvInternal(ctx, installer.GetInfraEnvParams{InfraEnvID: infraEnvID})
+						Expect(err).ToNot(HaveOccurred())
 						mockVersions.EXPECT().GetOsImage(common.TestDefaultConfig.OpenShiftVersion, "").Return(common.TestDefaultConfig.OsImage, nil).Times(7)
 						mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), gomock.Any(), bm.IgnitionConfig, true, bm.authHandler.AuthType()).Return("ignitionconfigforlogging", nil).Times(7)
-						mockEvents.EXPECT().SendInfraEnvEvent(ctx, eventstest.NewEventMatcher(eventstest.WithNameMatcher(eventgen.ImageInfoUpdatedEventName))).Times(7)
+						mockEvents.EXPECT().SendInfraEnvEvent(ctx, eventstest.NewEventMatcher(
+							eventstest.WithNameMatcher(eventgen.ImageInfoUpdatedEventName),
+							eventstest.WithInfraEnvIdMatcher(i.ID.String()),
+							eventstest.WithClusterIdMatcher(i.ClusterID.String()))).Times(7)
 
 						params := &models.InfraEnvUpdateParams{ImageType: models.ImageTypeMinimalIso}
 						prevURL := updateInfraEnv(params)

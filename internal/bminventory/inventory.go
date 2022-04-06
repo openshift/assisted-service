@@ -943,7 +943,8 @@ func (b *bareMetalInventory) updateExternalImageInfo(ctx context.Context, infraE
 		}
 
 		details := b.getIgnitionConfigForLogging(ctx, infraEnv, b.log, imageType)
-		eventgen.SendImageInfoUpdatedEvent(ctx, b.eventsHandler, &infraEnv.ClusterID, *infraEnv.ID, details)
+
+		eventgen.SendImageInfoUpdatedEvent(ctx, b.eventsHandler, common.StrFmtUUIDPtr(infraEnv.ClusterID), *infraEnv.ID, details)
 		updates["download_url"] = infraEnv.DownloadURL
 		updates["generated"] = true
 		infraEnv.Generated = true
@@ -2840,13 +2841,11 @@ func (b *bareMetalInventory) V2DeregisterHostInternal(ctx context.Context, param
 
 	// TODO: need to check that host can be deleted from the cluster
 	infraEnv, err := common.GetInfraEnvFromDB(b.db, params.InfraEnvID)
-	var clusterID strfmt.UUID
 	if err != nil {
 		log.WithError(err).Warnf("Get InfraEnv %s", params.InfraEnvID.String())
 		return err
 	}
-	clusterID = infraEnv.ClusterID
-	eventgen.SendHostDeregisteredEvent(ctx, b.eventsHandler, params.HostID, params.InfraEnvID, &clusterID,
+	eventgen.SendHostDeregisteredEvent(ctx, b.eventsHandler, params.HostID, params.InfraEnvID, common.StrFmtUUIDPtr(infraEnv.ClusterID),
 		hostutil.GetHostnameForMsg(&h.Host))
 	return nil
 }
