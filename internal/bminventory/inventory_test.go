@@ -63,6 +63,7 @@ import (
 	"github.com/openshift/assisted-service/pkg/staticnetworkconfig"
 	"github.com/openshift/assisted-service/restapi"
 	"github.com/openshift/assisted-service/restapi/operations/installer"
+	"github.com/patrickmn/go-cache"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/sirupsen/logrus/hooks/test"
@@ -6831,6 +6832,118 @@ var _ = Describe("infraEnvs", func() {
 				},
 			})
 			Expect(reply).To(BeAssignableToTypeOf(common.NewApiError(http.StatusBadRequest, errors.Errorf(""))))
+		})
+	})
+
+	Context("Create InfraEnv - with rhsso auth", func() {
+		var (
+			authCtx      context.Context
+			clusterID    strfmt.UUID
+			mockOcmAuthz *ocm.MockOCMAuthorization
+			payload      *ocm.AuthPayload
+		)
+
+		BeforeEach(func() {
+			db, dbName = common.PrepareTestDB()
+			clusterID = strfmt.UUID(uuid.New().String())
+
+			_, cert := auth.GetTokenAndCert(false)
+			cfg := &auth.Config{JwkCert: string(cert), AuthType: auth.TypeRHSSO}
+			cfg.EnableOrgTenancy = true
+			bm = createInventory(db, Config{})
+			mockOcmAuthz = ocm.NewMockOCMAuthorization(ctrl)
+			mockOcmClient := &ocm.Client{Cache: cache.New(10*time.Minute, 30*time.Minute), Authorization: mockOcmAuthz}
+			bm.authHandler = auth.NewRHSSOAuthenticator(cfg, mockOcmClient, common.GetTestLog().WithField("pkg", "auth"), db)
+			bm.authzHandler = auth.NewAuthzHandler(cfg, mockOcmClient, common.GetTestLog().WithField("pkg", "auth"), db)
+			payload = &ocm.AuthPayload{Role: ocm.UserRole}
+
+			err := db.Create(&common.Cluster{
+				Cluster: models.Cluster{
+					ID:       &clusterID,
+					Kind:     swag.String(models.ClusterKindCluster),
+					UserName: userName1}}).Error
+			Expect(err).ShouldNot(HaveOccurred())
+		})
+
+		AfterEach(func() {
+			common.DeleteTestDB(db, dbName)
+		})
+
+		It("successful creation - cluster owner", func() {
+			mockInfraEnvRegisterSuccess()
+			MinimalOpenShiftVersionForNoneHA := "4.8.0-fc.0"
+			payload.Username = userName1
+			authCtx = context.WithValue(ctx, restapi.AuthKey, payload)
+
+			mockEvents.EXPECT().SendInfraEnvEvent(authCtx, eventstest.NewEventMatcher(
+				eventstest.WithNameMatcher(eventgen.InfraEnvRegisteredEventName))).Times(1)
+
+			reply := bm.RegisterInfraEnv(authCtx, installer.RegisterInfraEnvParams{
+				InfraenvCreateParams: &models.InfraEnvCreateParams{
+					Name:             swag.String("some-infra-env-name"),
+					ClusterID:        &clusterID,
+					OpenshiftVersion: MinimalOpenShiftVersionForNoneHA,
+					PullSecret:       swag.String("{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"),
+				},
+			})
+			Expect(reflect.TypeOf(reply)).Should(Equal(reflect.TypeOf(installer.NewRegisterInfraEnvCreated())))
+			actual := reply.(*installer.RegisterInfraEnvCreated)
+			Expect(*actual.Payload.Name).To(Equal("some-infra-env-name"))
+
+			var dbInfraEnv common.InfraEnv
+			Expect(db.First(&dbInfraEnv, "id = ?", actual.Payload.ID.String()).Error).To(Succeed())
+			Expect(dbInfraEnv.ImageTokenKey).NotTo(Equal(""))
+		})
+
+		It("successful creation - clusterEditor", func() {
+			mockInfraEnvRegisterSuccess()
+			MinimalOpenShiftVersionForNoneHA := "4.8.0-fc.0"
+
+			payload.Username = userName2
+			authCtx = context.WithValue(ctx, restapi.AuthKey, payload)
+
+			mockEvents.EXPECT().SendInfraEnvEvent(authCtx, eventstest.NewEventMatcher(
+				eventstest.WithNameMatcher(eventgen.InfraEnvRegisteredEventName))).Times(1)
+			mockOcmAuthz.EXPECT().AccessReview(
+				gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(true, nil)
+
+			reply := bm.RegisterInfraEnv(authCtx, installer.RegisterInfraEnvParams{
+				InfraenvCreateParams: &models.InfraEnvCreateParams{
+					Name:             swag.String("some-infra-env-name"),
+					ClusterID:        &clusterID,
+					OpenshiftVersion: MinimalOpenShiftVersionForNoneHA,
+					PullSecret:       swag.String("{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"),
+				},
+			})
+			Expect(reflect.TypeOf(reply)).Should(Equal(reflect.TypeOf(installer.NewRegisterInfraEnvCreated())))
+			actual := reply.(*installer.RegisterInfraEnvCreated)
+			Expect(*actual.Payload.Name).To(Equal("some-infra-env-name"))
+
+			var dbInfraEnv common.InfraEnv
+			Expect(db.First(&dbInfraEnv, "id = ?", actual.Payload.ID.String()).Error).To(Succeed())
+			Expect(dbInfraEnv.ImageTokenKey).NotTo(Equal(""))
+		})
+
+		It("no access to specified cluster", func() {
+			MinimalOpenShiftVersionForNoneHA := "4.8.0-fc.0"
+			payload.Username = userName2
+			authCtx = context.WithValue(ctx, restapi.AuthKey, payload)
+
+			mockVersions.EXPECT().GetOsImage(gomock.Any(), gomock.Any()).Return(common.TestDefaultConfig.OsImage, nil).Times(1)
+			mockEvents.EXPECT().SendInfraEnvEvent(authCtx, eventstest.NewEventMatcher(
+				eventstest.WithNameMatcher(eventgen.InfraEnvRegistrationFailedEventName))).Times(1)
+			mockOcmAuthz.EXPECT().AccessReview(
+				gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(false, nil)
+
+			reply := bm.RegisterInfraEnv(authCtx, installer.RegisterInfraEnvParams{
+				InfraenvCreateParams: &models.InfraEnvCreateParams{
+					Name:             swag.String("some-infra-env-name"),
+					ClusterID:        &clusterID,
+					OpenshiftVersion: MinimalOpenShiftVersionForNoneHA,
+					PullSecret:       swag.String("{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"),
+				},
+			})
+			verifyApiError(reply, http.StatusNotFound)
 		})
 	})
 
