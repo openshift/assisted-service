@@ -316,9 +316,12 @@ var _ = Describe("Transition tests", func() {
 					for i := 0; i < MinMastersNeededForInstallation; i++ {
 						createHost(clusterId, models.HostStatusInstalled, db)
 					}
-					for i := 0; i < MinWorkersNeededForInstallation; i++ {
+
+					// Create 2 workers just for testing purposes
+					for i := 0; i < 2; i++ {
 						createWorkerHost(clusterId, models.HostStatusInstalled, db)
 					}
+
 					if t.withWorkersInstalled {
 						createWorkerHost(clusterId, models.HostStatusInstalled, db)
 					} else {

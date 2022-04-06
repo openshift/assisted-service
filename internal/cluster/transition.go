@@ -419,17 +419,17 @@ func (th *transitionHandler) PostUpdateFinalizingAMSConsoleUrl(sw stateswitch.St
 }
 
 func (th *transitionHandler) enoughMastersAndWorkers(sCluster *stateCluster, statuses []string) bool {
-	mastersInSomeInstallingStatus, workersInSomeInstallingStatus := HostsInStatus(sCluster.cluster, statuses)
+	mastersInSomeInstallingStatus, _ := HostsInStatus(sCluster.cluster, statuses)
 
-	numberOfExpectedWorkers := NumberOfWorkers(sCluster.cluster)
 	minRequiredMasterNodes := MinMastersNeededForInstallation
 	if swag.StringValue(sCluster.cluster.HighAvailabilityMode) == models.ClusterHighAvailabilityModeNone {
 		minRequiredMasterNodes = 1
 	}
 
 	// to be installed cluster need 3 master and at least 2 worker (if workers were given)
-	if mastersInSomeInstallingStatus >= minRequiredMasterNodes &&
-		(numberOfExpectedWorkers == 0 || workersInSomeInstallingStatus >= MinWorkersNeededForInstallation) {
+	// Min number of master nodes for non-SNO clusters is 3, worker count can go from 0
+	// on.
+	if mastersInSomeInstallingStatus >= minRequiredMasterNodes {
 		return true
 	}
 	return false
