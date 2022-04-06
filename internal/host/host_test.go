@@ -3551,3 +3551,132 @@ var _ = Describe("sortHost by hardware", func() {
 		}
 	})
 })
+
+var _ = Describe("update node labels", func() {
+	var (
+		ctx                       = context.Background()
+		db                        *gorm.DB
+		state                     API
+		host                      models.Host
+		id, clusterID, infraEnvID strfmt.UUID
+		dbName                    string
+	)
+
+	BeforeEach(func() {
+		dummy := &leader.DummyElector{}
+		db, dbName = common.PrepareTestDB()
+		state = NewManager(common.GetTestLog(), db, nil, nil, nil, createValidatorCfg(), nil, defaultConfig, dummy, nil, nil)
+		id = strfmt.UUID(uuid.New().String())
+		clusterID = strfmt.UUID(uuid.New().String())
+		infraEnvID = strfmt.UUID(uuid.New().String())
+	})
+
+	AfterEach(func() {
+		common.DeleteTestDB(db, dbName)
+	})
+
+	Context("update node labels by src state", func() {
+
+		nodeLabelsStr := `{"node.ocs.openshift.io/storage":""}`
+
+		success := func(srcState string) {
+			host = hostutil.GenerateTestHost(id, infraEnvID, clusterID, srcState)
+			Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
+			Expect(state.UpdateNodeLabels(ctx, &host, nodeLabelsStr, nil)).ShouldNot(HaveOccurred())
+			h := hostutil.GetHostFromDB(id, infraEnvID, db)
+			Expect(h.NodeLabels).To(Equal(nodeLabelsStr))
+		}
+
+		failure := func(srcState string) {
+			host = hostutil.GenerateTestHost(id, infraEnvID, clusterID, srcState)
+			Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
+			Expect(state.UpdateNodeLabels(ctx, &host, nodeLabelsStr, nil)).To(HaveOccurred())
+			h := hostutil.GetHostFromDB(id, infraEnvID, db)
+			Expect(h.NodeLabels).To(Equal(""))
+		}
+
+		tests := []struct {
+			name     string
+			srcState string
+			testFunc func(srcState string)
+		}{
+			{
+				name:     "discovering",
+				srcState: models.HostStatusDiscovering,
+				testFunc: success,
+			},
+			{
+				name:     "known",
+				srcState: models.HostStatusKnown,
+				testFunc: success,
+			},
+			{
+				name:     "disconnected",
+				srcState: models.HostStatusDisconnected,
+				testFunc: success,
+			},
+			{
+				name:     "insufficient",
+				srcState: models.HostStatusInsufficient,
+				testFunc: success,
+			},
+			{
+				name:     "pending-for-input",
+				srcState: models.HostStatusPendingForInput,
+				testFunc: success,
+			},
+			{
+				name:     "discovering-unbound",
+				srcState: models.HostStatusDiscoveringUnbound,
+				testFunc: success,
+			},
+			{
+				name:     "known-unbound",
+				srcState: models.HostStatusKnownUnbound,
+				testFunc: success,
+			},
+			{
+				name:     "disconnected-unbound",
+				srcState: models.HostStatusDisconnectedUnbound,
+				testFunc: success,
+			},
+			{
+				name:     "insufficient-unbound",
+				srcState: models.HostStatusInsufficientUnbound,
+				testFunc: success,
+			},
+			{
+				name:     "binding",
+				srcState: models.HostStatusBinding,
+				testFunc: success,
+			},
+			{
+				name:     "error",
+				srcState: models.HostStatusError,
+				testFunc: failure,
+			},
+			{
+				name:     "installing",
+				srcState: models.HostStatusInstalling,
+				testFunc: failure,
+			},
+			{
+				name:     "installed",
+				srcState: models.HostStatusInstalled,
+				testFunc: failure,
+			},
+			{
+				name:     "installing-in-progress",
+				srcState: models.HostStatusInstallingInProgress,
+				testFunc: failure,
+			},
+		}
+
+		for i := range tests {
+			t := tests[i]
+			It(t.name, func() {
+				t.testFunc(t.srcState)
+			})
+		}
+	})
+})

@@ -119,6 +119,9 @@ type Host struct {
 	// machine config pool name
 	MachineConfigPoolName string `json:"machine_config_pool_name,omitempty"`
 
+	// Json containing node's labels.
+	NodeLabels string `json:"node_labels,omitempty" gorm:"type:text"`
+
 	// The configured NTP sources on the host.
 	NtpSources string `json:"ntp_sources,omitempty" gorm:"type:text"`
 

@@ -6868,6 +6868,11 @@ func init() {
         "machine_config_pool_name": {
           "type": "string"
         },
+        "node_labels": {
+          "description": "Json containing node's labels.",
+          "type": "string",
+          "x-go-custom-tag": "gorm:\"type:text\""
+        },
         "ntp_sources": {
           "description": "The configured NTP sources on the host.",
           "type": "string",
@@ -7130,6 +7135,14 @@ func init() {
         },
         "machine_config_pool_name": {
           "type": "string",
+          "x-nullable": true
+        },
+        "node_labels": {
+          "description": "Labels to be added to the corresponding node.",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/node-label-params"
+          },
           "x-nullable": true
         }
       }
@@ -8142,6 +8155,23 @@ func init() {
           "description": "Infra env id",
           "type": "string",
           "format": "uuid"
+        }
+      }
+    },
+    "node-label-params": {
+      "type": "object",
+      "required": [
+        "key",
+        "value"
+      ],
+      "properties": {
+        "key": {
+          "description": "The key for the label's key-value pair.",
+          "type": "string"
+        },
+        "value": {
+          "description": "The value for the label's key-value pair.",
+          "type": "string"
         }
       }
     },
@@ -15929,6 +15959,11 @@ func init() {
         "machine_config_pool_name": {
           "type": "string"
         },
+        "node_labels": {
+          "description": "Json containing node's labels.",
+          "type": "string",
+          "x-go-custom-tag": "gorm:\"type:text\""
+        },
         "ntp_sources": {
           "description": "The configured NTP sources on the host.",
           "type": "string",
@@ -16191,6 +16226,14 @@ func init() {
         },
         "machine_config_pool_name": {
           "type": "string",
+          "x-nullable": true
+        },
+        "node_labels": {
+          "description": "Labels to be added to the corresponding node.",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/node-label-params"
+          },
           "x-nullable": true
         }
       }
@@ -17194,6 +17237,23 @@ func init() {
           "description": "Infra env id",
           "type": "string",
           "format": "uuid"
+        }
+      }
+    },
+    "node-label-params": {
+      "type": "object",
+      "required": [
+        "key",
+        "value"
+      ],
+      "properties": {
+        "key": {
+          "description": "The key for the label's key-value pair.",
+          "type": "string"
+        },
+        "value": {
+          "description": "The value for the label's key-value pair.",
+          "type": "string"
         }
       }
     },

@@ -69,7 +69,9 @@ import (
 	"github.com/thoas/go-funk"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/validation"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/client-go/tools/clientcmd"
 )
 
@@ -5127,6 +5129,10 @@ func (b *bareMetalInventory) V2UpdateHostInternal(ctx context.Context, params in
 	if err != nil {
 		return nil, err
 	}
+	err = b.updateNodeLabels(ctx, host, params.HostUpdateParams.NodeLabels, tx)
+	if err != nil {
+		return nil, err
+	}
 
 	//get bound cluster
 	if host.ClusterID != nil {
@@ -5271,6 +5277,37 @@ func (b *bareMetalInventory) updateHostIgnitionEndpointToken(ctx context.Context
 			host.ID,
 			host.InfraEnvID)
 		return common.NewApiError(http.StatusConflict, err)
+	}
+	return nil
+}
+
+func (b *bareMetalInventory) updateNodeLabels(ctx context.Context, host *common.Host, nodeLabelsList []*models.NodeLabelParams, db *gorm.DB) error {
+	log := logutil.FromContext(ctx, b.log)
+	if nodeLabelsList == nil {
+		log.Infof("No request for node labels update for host %s", host.ID)
+		return nil
+	}
+
+	nodeLabelsMap := make(map[string]string)
+	for _, nl := range nodeLabelsList {
+		nodeLabelsMap[*nl.Key] = *nl.Value
+	}
+
+	errs := validation.ValidateLabels(nodeLabelsMap, field.NewPath("node_labels"))
+	if len(errs) != 0 {
+		return errors.Errorf("%s", errs.ToAggregate().Error())
+	}
+
+	nodeLabelsStr, err := common.MarshalNodeLabels(nodeLabelsList)
+	if err != nil {
+		return errors.Wrapf(err, "failed to marshal node labels for host %s", host.ID)
+	}
+
+	err = b.hostApi.UpdateNodeLabels(ctx, &host.Host, nodeLabelsStr, db)
+	if err != nil {
+		log.WithError(err).Errorf("failed to set labels <%s> host <%s>, infra env <%s>",
+			nodeLabelsStr, host.ID, host.InfraEnvID)
+		return common.NewApiError(http.StatusInternalServerError, err)
 	}
 	return nil
 }

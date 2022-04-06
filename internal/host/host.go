@@ -128,6 +128,7 @@ type API interface {
 	UpdateNTP(ctx context.Context, h *models.Host, ntpSources []*models.NtpSource, db *gorm.DB) error
 	UpdateMachineConfigPoolName(ctx context.Context, db *gorm.DB, h *models.Host, machineConfigPoolName string) error
 	UpdateIgnitionEndpointToken(ctx context.Context, db *gorm.DB, h *models.Host, token string) error
+	UpdateNodeLabels(ctx context.Context, h *models.Host, nodeLabelsStr string, db *gorm.DB) error
 	UpdateInstallationDisk(ctx context.Context, db *gorm.DB, h *models.Host, installationDiskId string) error
 	UpdateKubeKeyNS(ctx context.Context, hostID, namespace string) error
 	GetHostValidDisks(role *models.Host) ([]*models.Disk, error)
@@ -655,6 +656,22 @@ func (m *Manager) UpdateIgnitionEndpointToken(ctx context.Context, db *gorm.DB, 
 		"ignition_endpoint_token":     token,
 		"ignition_endpoint_token_set": tokenSet,
 		"trigger_monitor_timestamp":   time.Now()}).Error
+}
+
+func (m *Manager) UpdateNodeLabels(ctx context.Context, h *models.Host, nodeLabelsStr string, db *gorm.DB) error {
+	hostStatus := swag.StringValue(h.Status)
+	if !funk.ContainsString(hostStatusesBeforeInstallationOrUnbound[:], hostStatus) {
+		return common.NewApiError(http.StatusBadRequest,
+			errors.Errorf("Host is in %s state, labels can be set only in one of %s states",
+				hostStatus, hostStatusesBeforeInstallation[:]))
+	}
+
+	h.NodeLabels = nodeLabelsStr
+	cdb := m.db
+	if db != nil {
+		cdb = db
+	}
+	return cdb.Model(common.Host{Host: *h}).Updates(map[string]interface{}{"node_labels": nodeLabelsStr, "trigger_monitor_timestamp": time.Now()}).Error
 }
 
 func (m *Manager) UpdateNTP(ctx context.Context, h *models.Host, ntpSources []*models.NtpSource, db *gorm.DB) error {

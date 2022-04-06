@@ -99,6 +99,31 @@ var _ = Describe("Host tests v2", func() {
 		Expect(updatedHost.RequestedHostname).To(Equal("new-host-name"))
 	})
 
+	It("update node labels successfully", func() {
+		host := &registerHost(infraEnvID).Host
+		host = getHostV2(infraEnvID, *host.ID)
+		Expect(host).NotTo(BeNil())
+		host = updateInventory(ctx, infraEnvID, *host.ID, defaultInventory())
+
+		nodeLabelsList := []*models.NodeLabelParams{
+			{
+				Key:   swag.String("node.ocs.openshift.io/storage"),
+				Value: swag.String(""),
+			},
+		}
+
+		req := &installer.V2UpdateHostParams{
+			InfraEnvID: infraEnvID,
+			HostID:     *host.ID,
+			HostUpdateParams: &models.HostUpdateParams{
+				NodeLabels: nodeLabelsList,
+			},
+		}
+		updatedHost := updateHostV2(ctx, req)
+		nodeLabelsStr, _ := common.MarshalNodeLabels(nodeLabelsList)
+		Expect(updatedHost.NodeLabels).To(Equal(nodeLabelsStr))
+	})
+
 	It("update infra-env host installation disk id success", func() {
 		host := &registerHost(infraEnvID).Host
 		host = getHostV2(infraEnvID, *host.ID)

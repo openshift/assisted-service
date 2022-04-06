@@ -4043,6 +4043,10 @@ definitions:
       ignition_endpoint_token_set:
         type: boolean
         description: True if the token to fetch the ignition from ignition_endpoint_url is set.
+      node_labels:
+        x-go-custom-tag: gorm:"type:text"
+        type: string
+        description: Json containing node's labels.
 
   installer-args-params:
     type: object
@@ -4325,6 +4329,12 @@ definitions:
         x-nullable: true
         type: string
         description: A string which will be used as Authorization Bearer token to fetch the ignition from ignition_endpoint_url.
+      node_labels:
+        type: array
+        description: Labels to be added to the corresponding node.
+        x-nullable: true
+        items:
+            $ref: '#/definitions/node-label-params'
 
   v2-cluster-update-params:
     type: object
@@ -5513,6 +5523,19 @@ definitions:
     enum:
       - 'none'
       - 'install'
+
+  node-label-params:
+    type: object
+    required:
+    - 'key'
+    - 'value'
+    properties:
+      key:
+        description: The key for the label's key-value pair.
+        type: string
+      value: 
+        description: The value for the label's key-value pair.
+        type: string
 
   host-role-update-params:
     type: string
