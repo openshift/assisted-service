@@ -11396,8 +11396,8 @@ var _ = Describe("update image version", func() {
 		ctrl.Finish()
 	})
 
-	It("same image", func() {
-		agentImage := fmt.Sprintf("%s:%s", "quay.io/example/agent", uuid.New().String())
+	It("same image full name", func() {
+		agentImage := fmt.Sprintf("quay.io:5000/example/agent:%s", uuid.New().String())
 		bm.AgentDockerImg = agentImage
 		params.NewHostParams.DiscoveryAgentVersion = agentImage
 		_, err := bm.generateV2NextStepRunnerCommand(ctx, params)
@@ -11405,8 +11405,18 @@ var _ = Describe("update image version", func() {
 		Expect(logHook.AllEntries()).To(BeEmpty())
 	})
 
-	It("image tag mismatch", func() {
-		imageName := "quay.io/example/assisted-installer-agent"
+	It("same image tag", func() {
+		tag := uuid.New().String()
+		agentImage := fmt.Sprintf("quay.io:5000/example/agent:%s", tag)
+		bm.AgentDockerImg = agentImage
+		params.NewHostParams.DiscoveryAgentVersion = tag
+		_, err := bm.generateV2NextStepRunnerCommand(ctx, params)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(logHook.AllEntries()).To(BeEmpty())
+	})
+
+	It("image tag mismatch in full name", func() {
+		imageName := "quay.io:5000/example/assisted-installer-agent"
 		bm.AgentDockerImg = fmt.Sprintf("%s:%s", imageName, uuid.New().String())
 		params.NewHostParams.DiscoveryAgentVersion = fmt.Sprintf("%s:%s", imageName, uuid.New().String())
 		_, err := bm.generateV2NextStepRunnerCommand(ctx, params)
@@ -11414,10 +11424,18 @@ var _ = Describe("update image version", func() {
 		Expect(logHook.LastEntry().Message).To(ContainSubstring("uses an outdated agent image"))
 	})
 
+	It("image tag mismatch when tag only", func() {
+		bm.AgentDockerImg = fmt.Sprintf("quay.io:5000/example/assisted-installer-agent:%s", uuid.New().String())
+		params.NewHostParams.DiscoveryAgentVersion = uuid.New().String()
+		_, err := bm.generateV2NextStepRunnerCommand(ctx, params)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(logHook.LastEntry().Message).To(ContainSubstring("uses an outdated agent image"))
+	})
+
 	It("image name mismatch", func() {
 		imageTag := uuid.New().String()
-		bm.AgentDockerImg = fmt.Sprintf("%s:%s", "quay.io/edge-infrastructure/assisted-installer-agent", imageTag)
-		params.NewHostParams.DiscoveryAgentVersion = fmt.Sprintf("%s:%s", "quay.io/ocpmetal/agent", imageTag)
+		bm.AgentDockerImg = fmt.Sprintf("quay.io:5000/example/assisted-installer-agent:%s", imageTag)
+		params.NewHostParams.DiscoveryAgentVersion = fmt.Sprintf("quay.io:5000/example/agent:%s", imageTag)
 		_, err := bm.generateV2NextStepRunnerCommand(ctx, params)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(logHook.LastEntry().Message).To(ContainSubstring("uses an outdated agent image"))
@@ -11426,8 +11444,8 @@ var _ = Describe("update image version", func() {
 	It("image registry mismatch", func() {
 		imageTag := uuid.New().String()
 		imageName := "example/assisted-installer-agent"
-		bm.AgentDockerImg = fmt.Sprintf("%s/%s:%s", "quay.io", imageName, imageTag)
-		params.NewHostParams.DiscoveryAgentVersion = fmt.Sprintf("%s/%s:%s", "docker.io", imageName, imageTag)
+		bm.AgentDockerImg = fmt.Sprintf("quay.io:5000/%s:%s", imageName, imageTag)
+		params.NewHostParams.DiscoveryAgentVersion = fmt.Sprintf("docker.io:5000/%s:%s", imageName, imageTag)
 		_, err := bm.generateV2NextStepRunnerCommand(ctx, params)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(logHook.LastEntry().Message).To(ContainSubstring("uses an outdated agent image"))
