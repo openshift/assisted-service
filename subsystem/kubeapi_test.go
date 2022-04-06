@@ -839,6 +839,37 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		}
 	})
 
+	It("Verify NetworkType configuration with SNO", func() {
+		snoSpec := getDefaultSNOAgentClusterInstallSpec(clusterDeploymentSpec.ClusterName)
+		snoSpec.Networking.NetworkType = models.ClusterNetworkTypeOpenShiftSDN
+		deployClusterDeploymentCRD(ctx, kubeClient, clusterDeploymentSpec)
+		deployInfraEnvCRD(ctx, kubeClient, infraNsName.Name, infraEnvSpec)
+		deployAgentClusterInstallCRD(ctx, kubeClient, snoSpec, clusterDeploymentSpec.ClusterInstallRef.Name)
+
+		By("Spec Sync should fail with SDN Configuration")
+		installkey := types.NamespacedName{
+			Namespace: Options.Namespace,
+			Name:      clusterDeploymentSpec.ClusterInstallRef.Name,
+		}
+		checkAgentClusterInstallCondition(ctx, installkey, hiveext.ClusterSpecSyncedCondition, hiveext.ClusterInputErrorReason)
+
+		By("Spec sync should succeed when applying OVN")
+		Eventually(func() error {
+			aci := getAgentClusterInstallCRD(ctx, kubeClient, installkey)
+			aci.Spec.Networking.NetworkType = models.ClusterNetworkTypeOVNKubernetes
+			return kubeClient.Update(ctx, aci)
+		}, "1m", "20s").Should(BeNil())
+		checkAgentClusterInstallCondition(ctx, installkey, hiveext.ClusterSpecSyncedCondition, hiveext.ClusterSyncedOkReason)
+
+		By("re-applying SDN should fail with spec sync")
+		Eventually(func() error {
+			aci := getAgentClusterInstallCRD(ctx, kubeClient, installkey)
+			aci.Spec.Networking.NetworkType = models.ClusterNetworkTypeOpenShiftSDN
+			return kubeClient.Update(ctx, aci)
+		}, "1m", "20s").Should(BeNil())
+		checkAgentClusterInstallCondition(ctx, installkey, hiveext.ClusterSpecSyncedCondition, hiveext.ClusterInputErrorReason)
+	})
+
 	It("deploy CD with ACI and agents - wait for ready, delete CD and verify ACI and agents deletion", func() {
 		deployClusterDeploymentCRD(ctx, kubeClient, clusterDeploymentSpec)
 		deployInfraEnvCRD(ctx, kubeClient, infraNsName.Name, infraEnvSpec)
