@@ -89,7 +89,7 @@ type API interface {
 	   V2UploadLogs Agent API to upload logs.*/
 	V2UploadLogs(ctx context.Context, params *V2UploadLogsParams) (*V2UploadLogsNoContent, error)
 	/*
-	   V2CompleteInstallation Agent API to mark a finalizing installation as complete.*/
+	   V2CompleteInstallation Agent API to mark a finalizing installation as complete and progress to 100%.*/
 	V2CompleteInstallation(ctx context.Context, params *V2CompleteInstallationParams) (*V2CompleteInstallationAccepted, error)
 	/*
 	   V2DeregisterCluster Deletes an OpenShift cluster definition.*/
@@ -786,7 +786,7 @@ func (a *Client) V2UploadLogs(ctx context.Context, params *V2UploadLogsParams) (
 }
 
 /*
-V2CompleteInstallation Agent API to mark a finalizing installation as complete.
+V2CompleteInstallation Agent API to mark a finalizing installation as complete and progress to 100%.
 */
 func (a *Client) V2CompleteInstallation(ctx context.Context, params *V2CompleteInstallationParams) (*V2CompleteInstallationAccepted, error) {
 

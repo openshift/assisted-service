@@ -795,11 +795,15 @@ func (m *Manager) UpdateFinalizingProgress(ctx context.Context, db *gorm.DB, clu
 		// built in operators must succeed
 		if o.OperatorType == models.OperatorTypeBuiltin && o.Status == models.OperatorStatusAvailable {
 			doneOperatorsCount++
+			log.Debugf("cluster %s: incremented doneOperatorsCount to %.2f. %s operator %s reached status %s",
+				clusterID.String(), doneOperatorsCount, o.OperatorType, o.Name, o.Status)
 		}
 
-		// failing OLM operators will lead to dgraded cluster but are still considered as a progress
+		// failing OLM operators will lead to a degraded cluster but are still considered as a progress
 		if o.OperatorType == models.OperatorTypeOlm && (o.Status == models.OperatorStatusAvailable || o.Status == models.OperatorStatusFailed) {
 			doneOperatorsCount++
+			log.Debugf("cluster %s: incremented doneOperatorsCount to %.2f. %s operator %s reached status %s",
+				clusterID.String(), doneOperatorsCount, o.OperatorType, o.Name, o.Status)
 		}
 	}
 
@@ -808,6 +812,14 @@ func (m *Manager) UpdateFinalizingProgress(ctx context.Context, db *gorm.DB, clu
 	if cluster.Progress != nil {
 		totalPercentage += int64(common.ProgressWeightPreparingForInstallationStage*float64(cluster.Progress.PreparingForInstallationStagePercentage) +
 			common.ProgressWeightInstallingStage*float64(cluster.Progress.InstallingStagePercentage))
+	}
+
+	if cluster.Progress != nil && totalPercentage < cluster.Progress.TotalPercentage {
+		log.Debugf(
+			"cluster %s: skipping progress_total_percentage update.The new progress_total_percentage is:"+
+				" %d, which is lower then the current cluster progress_total_percentage: %d",
+			clusterID.String(), totalPercentage, cluster.Progress.TotalPercentage)
+		return nil
 	}
 
 	updates := map[string]interface{}{
@@ -1233,6 +1245,7 @@ func (m *Manager) CompleteInstallation(ctx context.Context, db *gorm.DB,
 	log := logutil.FromContext(ctx, m.log)
 	destStatus := models.ClusterStatusError
 	result := models.ClusterStatusInstalled
+	var extra []interface{}
 
 	defer func() {
 		m.metricAPI.ClusterInstallationFinished(ctx, result, models.ClusterStatusFinalizing, cluster.OpenshiftVersion,
@@ -1252,9 +1265,9 @@ func (m *Manager) CompleteInstallation(ctx context.Context, db *gorm.DB,
 		}
 	}
 
+	extra = append(extra, "progress_finalizing_stage_percentage", 100, "progress_total_percentage", 100)
 	clusterAfterUpdate, err := updateClusterStatus(ctx, log, db, *cluster.ID, models.ClusterStatusFinalizing,
-		destStatus, reason, m.eventsHandler,
-	)
+		destStatus, reason, m.eventsHandler, extra...)
 	if err != nil {
 		err = errors.Wrapf(err, "Failed to update cluster %s completion in db", *cluster.ID)
 		log.Error(err)

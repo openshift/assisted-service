@@ -3848,48 +3848,6 @@ var _ = Describe("Installation progress", func() {
 			expectProgressToBe(c, 0, 0, 0)
 		})
 
-		By("[V2UpdateCluster] register cluster", func() {
-
-			// register cluster
-
-			registerClusterReply, err := userBMClient.Installer.V2RegisterCluster(ctx, &installer.V2RegisterClusterParams{
-				NewClusterParams: &models.ClusterCreateParams{
-					BaseDNSDomain:    "example.com",
-					ClusterNetworks:  []*models.ClusterNetwork{{Cidr: models.Subnet(clusterCIDR), HostPrefix: 23}},
-					ServiceNetworks:  []*models.ServiceNetwork{{Cidr: models.Subnet(serviceCIDR)}},
-					Name:             swag.String("test-cluster"),
-					OpenshiftVersion: swag.String(openshiftVersion),
-					PullSecret:       swag.String(pullSecret),
-					SSHPublicKey:     sshPublicKey,
-				},
-			})
-			Expect(err).NotTo(HaveOccurred())
-			c = registerClusterReply.GetPayload()
-
-			// add hosts
-
-			infraEnvID = registerInfraEnv(c.ID, models.ImageTypeMinimalIso).ID
-			registerHostsAndSetRolesDHCP(*c.ID, *infraEnvID, 6, "test-cluster", "example.com")
-
-			// add OLM operators
-
-			updateClusterReply, err := userBMClient.Installer.V2UpdateCluster(ctx, &installer.V2UpdateClusterParams{
-				ClusterID: *c.ID,
-				ClusterUpdateParams: &models.V2ClusterUpdateParams{
-					OlmOperators: []*models.OperatorCreateParams{
-						{Name: lso.Operator.Name},
-						{Name: odf.Operator.Name},
-					},
-				},
-			})
-			Expect(err).ToNot(HaveOccurred())
-			c = updateClusterReply.GetPayload()
-
-			log.Infof("Register cluster %s", *c.ID)
-
-			expectProgressToBe(c, 0, 0, 0)
-		})
-
 		By("preparing-for-installation stage", func() {
 
 			c = installCluster(*c.ID)
