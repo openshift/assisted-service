@@ -86,8 +86,8 @@ mkdir -p ${IPXE_DIR}
 cat > $IPXE_DIR/ipxe << EOF
 #!ipxe
 set live_url $(hostname):8080
-kernel \${live_url}/vmlinuz ignition.config.url=\${live_url}/config.ign coreos.live.rootfs_url=\${live_url}/rootfs.img ${KERNEL_OPTS}
-initrd \${live_url}/initrd.img
+initrd --name initrd \${live_url}/initrd.img
+kernel \${live_url}/vmlinuz initrd=initrd ignition.config.url=\${live_url}/config.ign coreos.live.rootfs_url=\${live_url}/rootfs.img ${KERNEL_OPTS}
 boot
 EOF
 ```
