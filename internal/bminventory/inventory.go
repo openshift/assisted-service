@@ -4074,7 +4074,7 @@ func (b *bareMetalInventory) RegisterInfraEnvInternal(
 		return nil, common.NewApiError(http.StatusBadRequest, err)
 	}
 
-	err = b.validateClusterInfraEnvRegister(params.InfraenvCreateParams.ClusterID, params.InfraenvCreateParams.CPUArchitecture)
+	err = b.validateClusterInfraEnvRegister(ctx, params.InfraenvCreateParams.ClusterID, params.InfraenvCreateParams.CPUArchitecture)
 	if err != nil {
 		return nil, err
 	}
@@ -4207,12 +4207,19 @@ func (b *bareMetalInventory) getOsImageOrLatest(version string, cpuArch string) 
 	return osImage, nil
 }
 
-func (b *bareMetalInventory) validateClusterInfraEnvRegister(clusterId *strfmt.UUID, arch string) error {
+func (b *bareMetalInventory) validateClusterInfraEnvRegister(ctx context.Context, clusterId *strfmt.UUID, arch string) error {
 	if clusterId != nil {
 		cluster, err := common.GetClusterFromDB(b.db, *clusterId, common.SkipEagerLoading)
 		if err != nil {
 			err = errors.Errorf("Cluster ID %s does not exists", clusterId.String())
 			return common.NewApiError(http.StatusBadRequest, err)
+		}
+
+		allowed, err := b.authzHandler.HasAccessTo(ctx, cluster, auth.UpdateAction)
+		if !allowed {
+			msg := fmt.Sprintf("Failed to find cluster %s", clusterId)
+			b.log.WithError(err).Error(msg)
+			return common.NewApiError(http.StatusNotFound, errors.New(msg))
 		}
 
 		if cluster.CPUArchitecture != "" && cluster.CPUArchitecture != arch {
