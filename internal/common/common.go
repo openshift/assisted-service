@@ -22,7 +22,6 @@ const (
 	MinMasterHostsNeededForInstallation    = 3
 	AllowedNumberOfMasterHostsInNoneHaMode = 1
 	AllowedNumberOfWorkersInNoneHaMode     = 0
-	IllegalWorkerHostsCount                = 1
 
 	HostCACertPath = "/etc/assisted-service/service-ca-cert.crt"
 

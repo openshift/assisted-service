@@ -1599,5 +1599,148 @@ var _ = Describe("ICSP file for oc extract", func() {
 		icspFile, err := getIcspFileFromInstallConfig(data, log)
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(icspFile).Should(Equal(expected))
+
+var _ = Describe("infrastructureCRPatch", func() {
+	var (
+		ctrl         *gomock.Controller
+		mockS3Client *s3wrapper.MockAPI
+		generator    *installerGenerator
+	)
+
+	BeforeEach(func() {
+		cluster.Hosts = []*models.Host{
+			{
+				Inventory:         hostInventory,
+				RequestedHostname: "example0",
+				Role:              models.HostRoleMaster,
+			},
+			{
+				Inventory:         hostInventory,
+				RequestedHostname: "example1",
+				Role:              models.HostRoleMaster,
+			},
+			{
+				Inventory:         hostInventory,
+				RequestedHostname: "example2",
+				Role:              models.HostRoleMaster,
+			},
+			{
+				Inventory:         hostInventory,
+				RequestedHostname: "example3",
+				Role:              models.HostRoleWorker,
+			},
+		}
+
+		ctrl = gomock.NewController(GinkgoT())
+		mockS3Client = s3wrapper.NewMockAPI(ctrl)
+		generator = &installerGenerator{
+			log:      log,
+			workDir:  workDir,
+			s3Client: mockS3Client,
+			cluster:  cluster,
+		}
+	})
+
+	AfterEach(func() {
+		ctrl.Finish()
+	})
+
+	It("doesn't patch the infrastructure manifest for SNO", func() {
+		base := `---
+apiVersion: config.openshift.io/v1
+kind: Infrastructure
+metadata:
+  creationTimestamp: "2022-03-29T10:42:09Z"
+  generation: 1
+  name: cluster
+  resourceVersion: "596"
+  uid: cc91565d-997f-441c-b28a-d2915c4afd84
+spec:
+  cloudConfig:
+    name: ""
+  platformSpec:
+    type: None
+status:
+  apiServerInternalURI: https://api-int.test-cluster.redhat.com:6443
+  apiServerURL: https://api.test-cluster.redhat.com:6443
+  controlPlaneTopology: SingleReplica
+  etcdDiscoveryDomain: ""
+  infrastructureName: test-cluster-s9qbn
+  infrastructureTopology: SingleReplica
+  platform: None
+  platformStatus:
+    type: None`
+
+		manifestsDir := filepath.Join(workDir, "/manifests")
+		Expect(os.Mkdir(manifestsDir, 0755)).To(Succeed())
+
+		err := ioutil.WriteFile(filepath.Join(manifestsDir, "cluster-infrastructure-02-config.yml"), []byte(base), 0600)
+		Expect(err).NotTo(HaveOccurred())
+
+		// remove one host to make sure this is a 5 node cluster
+		cluster.Hosts = []*models.Host{cluster.Hosts[0]}
+		Expect(generator.applyInfrastructureCRPatch()).To(Succeed())
+
+		content, err := ioutil.ReadFile(filepath.Join(manifestsDir, "cluster-infrastructure-02-config.yml"))
+		Expect(err).NotTo(HaveOccurred())
+
+		merged := map[string]interface{}{}
+		err = yaml.Unmarshal(content, &merged)
+		Expect(err).NotTo(HaveOccurred())
+
+		status := merged["status"].(map[interface{}]interface{})
+		// the infra topology should now match the overwrite
+		Expect(status["infrastructureTopology"].(string)).To(Equal("SingleReplica"))
+
+		// the infra name should not have changed
+		Expect(status["infrastructureName"].(string)).To(Equal("test-cluster-s9qbn"))
+	})
+	It("patches the manifest correctly", func() {
+		base := `---
+apiVersion: config.openshift.io/v1
+kind: Infrastructure
+metadata:
+  creationTimestamp: "2022-03-29T10:42:09Z"
+  generation: 1
+  name: cluster
+  resourceVersion: "596"
+  uid: cc91565d-997f-441c-b28a-d2915c4afd84
+spec:
+  cloudConfig:
+    name: ""
+  platformSpec:
+    type: None
+status:
+  apiServerInternalURI: https://api-int.test-cluster.redhat.com:6443
+  apiServerURL: https://api.test-cluster.redhat.com:6443
+  controlPlaneTopology: SingleReplica
+  etcdDiscoveryDomain: ""
+  infrastructureName: test-cluster-s9qbn
+  infrastructureTopology: SingleReplica
+  platform: None
+  platformStatus:
+    type: None`
+
+		manifestsDir := filepath.Join(workDir, "/manifests")
+		Expect(os.Mkdir(manifestsDir, 0755)).To(Succeed())
+
+		err := ioutil.WriteFile(filepath.Join(manifestsDir, "cluster-infrastructure-02-config.yml"), []byte(base), 0600)
+		Expect(err).NotTo(HaveOccurred())
+
+		Expect(generator.applyInfrastructureCRPatch()).To(Succeed())
+
+		content, err := ioutil.ReadFile(filepath.Join(manifestsDir, "cluster-infrastructure-02-config.yml"))
+		Expect(err).NotTo(HaveOccurred())
+
+		merged := map[string]interface{}{}
+		err = yaml.Unmarshal(content, &merged)
+		Expect(err).NotTo(HaveOccurred())
+
+		status := merged["status"].(map[interface{}]interface{})
+		// the infra topology should now match the overwrite
+		Expect(status["infrastructureTopology"].(string)).To(Equal("HighlyAvailable"))
+
+		// the infra name should not have changed
+		Expect(status["infrastructureName"].(string)).To(Equal("test-cluster-s9qbn"))
 	})
 })

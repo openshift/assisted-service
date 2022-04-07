@@ -26,6 +26,7 @@ import (
 	config_latest_types "github.com/coreos/ignition/v2/config/v3_2/types"
 	"github.com/coreos/vcontext/report"
 	"github.com/go-openapi/swag"
+	yamlpatch "github.com/krishicks/yaml-patch"
 	bmh_v1alpha1 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
 	operatorv1alpha1 "github.com/openshift/api/operator/v1alpha1"
 	clusterPkg "github.com/openshift/assisted-service/internal/cluster"
@@ -178,6 +179,12 @@ After=okd-overlay.service
 
 const okdHoldPivot = `[Unit]
 ConditionPathExists=/enoent
+`
+
+const highlyAvailableInfrastructureTopologyPatch = `---
+- op: replace
+  path: /status/infrastructureTopology
+  value: HighlyAvailable
 `
 
 const tempNMConnectionsDir = "/etc/assisted/network"
@@ -390,6 +397,12 @@ func (g *installerGenerator) Generate(ctx context.Context, installConfig []byte,
 		}
 	}
 
+	err = g.applyInfrastructureCRPatch()
+	if err != nil {
+		log.WithError(err).Errorf("failed to patch the infrastructure CR manifest '%s'", common.PlatformTypeValue(g.cluster.Platform.Type))
+		return err
+	}
+
 	if swag.StringValue(g.cluster.HighAvailabilityMode) == models.ClusterHighAvailabilityModeNone {
 		err = g.bootstrapInPlaceIgnitionsCreate(ctx, installerPath, envVars)
 	} else {
@@ -442,6 +455,33 @@ func (g *installerGenerator) Generate(ctx context.Context, installConfig []byte,
 	if err != nil {
 		return err
 	}
+	return nil
+}
+
+func (g *installerGenerator) applyInfrastructureCRPatch() error {
+
+	// We are only patching the InfrastructureCR if the hosts count is 4
+	// and the three masters are schedulable.
+	if len(g.cluster.Hosts) != 4 || common.AreMastersSchedulable(g.cluster) {
+		return nil
+	}
+
+	infraManifest := filepath.Join(g.workDir, "manifests", "cluster-infrastructure-02-config.yml")
+	data, err := os.ReadFile(infraManifest)
+	if err != nil {
+		return errors.Wrapf(err, "failed to read Infrastructure Manifest \"%s\"", infraManifest)
+	}
+
+	data, err = applyYamlPatch(data, []byte(highlyAvailableInfrastructureTopologyPatch))
+	if err != nil {
+		return errors.Wrapf(err, "failed to patch Infrastructure Manifest \"%s\"", infraManifest)
+	}
+
+	err = ioutil.WriteFile(infraManifest, data, 0600)
+	if err != nil {
+		return errors.Wrapf(err, "failed to write Infrastructure Manifest \"%s\"", infraManifest)
+	}
+
 	return nil
 }
 
@@ -1266,6 +1306,7 @@ func (g *installerGenerator) downloadManifest(ctx context.Context, manifest stri
 	// clusterID/manifests should be trimmed
 	prefix := manifests.GetManifestObjectName(*g.cluster.ID, "")
 	targetPath := filepath.Join(g.workDir, strings.TrimPrefix(manifest, prefix))
+
 	err = ioutil.WriteFile(targetPath, content, 0600)
 	if err != nil {
 		return err
@@ -1612,4 +1653,17 @@ func removeIcspFile(filename string) {
 	if filename != "" {
 		os.Remove(filename)
 	}
+
+func applyYamlPatch(src []byte, ops []byte) ([]byte, error) {
+	patch, err := yamlpatch.DecodePatch(ops)
+	if err != nil {
+		return []byte{}, err
+	}
+
+	patched, err := patch.Apply(src)
+	if err != nil {
+		return []byte{}, err
+	}
+
+	return patched, nil
 }
