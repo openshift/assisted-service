@@ -1920,10 +1920,8 @@ func (r *ClusterDeploymentsReconciler) handleClusterInstalled(ctx context.Contex
 			log.WithError(err).Error("failed to update cluster metadata")
 		}
 		return r.updateStatus(ctx, log, clusterInstall, cluster, err)
-	} else if !r.isSNO(clusterInstall) {
-		return r.TransformClusterToDay2(ctx, log, cluster, clusterInstall)
 	}
-	return r.updateStatus(ctx, log, clusterInstall, cluster, err)
+	return r.TransformClusterToDay2(ctx, log, cluster, clusterInstall)
 }
 
 func getClusterDeploymentAdminKubeConfigSecretName(cd *hivev1.ClusterDeployment) string {

@@ -1398,6 +1398,20 @@ var _ = Describe("cluster reconcile", func() {
 			}
 			mockInstallerInternal.EXPECT().GetCredentialsInternal(gomock.Any(), gomock.Any()).Return(cred, nil).Times(1)
 			mockInstallerInternal.EXPECT().V2DownloadClusterCredentialsInternal(gomock.Any(), gomock.Any()).Return(ioutil.NopCloser(strings.NewReader(kubeconfig)), int64(len(kubeconfig)), nil).Times(1)
+			day2backEndCluster := &common.Cluster{
+				Cluster: models.Cluster{
+					ID:               backEndCluster.ID,
+					Name:             clusterName,
+					OpenshiftVersion: "4.8",
+					Status:           swag.String(models.ClusterStatusAddingHosts),
+					APIVip:           backEndCluster.APIVip,
+					BaseDNSDomain:    backEndCluster.BaseDNSDomain,
+					Kind:             swag.String(models.ClusterKindAddHostsCluster),
+					APIVipDNSName:    swag.String(fmt.Sprintf("api.%s.%s", backEndCluster.Name, backEndCluster.BaseDNSDomain)),
+				},
+				PullSecret: testPullSecretVal,
+			}
+			mockInstallerInternal.EXPECT().TransformClusterToDay2Internal(gomock.Any(), gomock.Any()).Times(1).Return(day2backEndCluster, nil)
 			aci.Spec.ProvisionRequirements.WorkerAgents = 0
 			aci.Spec.ProvisionRequirements.ControlPlaneAgents = 1
 			cluster.Spec.BaseDomain = "hive.example.com"
@@ -1428,14 +1442,28 @@ var _ = Describe("cluster reconcile", func() {
 			Expect(result).To(Equal(ctrl.Result{}))
 		})
 
-		It("Fail to transform into day2", func() {
+		It("Should transform into day2 if cluster is single-node", func() {
 			openshiftID := strfmt.UUID(uuid.New().String())
 			backEndCluster.Status = swag.String(models.ClusterStatusInstalled)
 			backEndCluster.OpenshiftClusterID = openshiftID
 			backEndCluster.Kind = swag.String(models.ClusterKindCluster)
 			mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil).Times(1)
-			expectedErr := "internal error"
-			mockInstallerInternal.EXPECT().TransformClusterToDay2Internal(gomock.Any(), gomock.Any()).Times(1).Return(nil, errors.New(expectedErr))
+
+			day2backEndCluster := &common.Cluster{
+				Cluster: models.Cluster{
+					ID:               backEndCluster.ID,
+					Name:             clusterName,
+					OpenshiftVersion: "4.8",
+					Status:           swag.String(models.ClusterStatusAddingHosts),
+					APIVip:           backEndCluster.APIVip,
+					BaseDNSDomain:    backEndCluster.BaseDNSDomain,
+					Kind:             swag.String(models.ClusterKindAddHostsCluster),
+					APIVipDNSName:    swag.String(fmt.Sprintf("api.%s.%s", backEndCluster.Name, backEndCluster.BaseDNSDomain)),
+				},
+				PullSecret: testPullSecretVal,
+			}
+			mockInstallerInternal.EXPECT().TransformClusterToDay2Internal(gomock.Any(), gomock.Any()).Times(1).Return(day2backEndCluster, nil)
+
 			setClusterCondition(&aci.Status.Conditions, hivev1.ClusterInstallCondition{
 				Type:    hiveext.ClusterCompletedCondition,
 				Status:  corev1.ConditionTrue,
@@ -1446,15 +1474,14 @@ var _ = Describe("cluster reconcile", func() {
 			request := newClusterDeploymentRequest(cluster)
 			result, err := cr.Reconcile(ctx, request)
 			Expect(err).To(BeNil())
-			Expect(result).To(Equal(ctrl.Result{RequeueAfter: defaultRequeueAfterOnError}))
+			Expect(result).To(Equal(ctrl.Result{RequeueAfter: 0}))
 
 			aci = getTestClusterInstall()
-			expectedState := fmt.Sprintf("%s %s", hiveext.ClusterBackendErrorMsg, expectedErr)
-			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterSpecSyncedCondition).Reason).To(Equal(hiveext.ClusterBackendErrorReason))
-			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterSpecSyncedCondition).Status).To(Equal(corev1.ConditionFalse))
-			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterSpecSyncedCondition).Message).To(Equal(expectedState))
-			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterCompletedCondition).Reason).To(Equal(hiveext.ClusterNotAvailableReason))
-			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterCompletedCondition).Status).To(Equal(corev1.ConditionUnknown))
+			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterSpecSyncedCondition).Reason).To(Equal(hiveext.ClusterSyncedOkReason))
+			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterSpecSyncedCondition).Status).To(Equal(corev1.ConditionTrue))
+			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterSpecSyncedCondition).Message).To(Equal(hiveext.ClusterSyncedOkReason))
+			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterCompletedCondition).Reason).To(Equal(hiveext.ClusterInstalledReason))
+			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterCompletedCondition).Status).To(Equal(corev1.ConditionTrue))
 		})
 
 		It("installed - fail to get kube config", func() {
