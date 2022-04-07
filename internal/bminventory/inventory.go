@@ -4811,6 +4811,12 @@ func (b *bareMetalInventory) BindHostInternal(ctx context.Context, params instal
 	if err != nil {
 		return nil, common.NewApiError(http.StatusBadRequest, errors.Errorf("Failed to find cluster %s", params.BindHostParams.ClusterID))
 	}
+	allowed, err := b.authzHandler.HasAccessTo(ctx, cluster, auth.UpdateAction)
+	if !allowed {
+		msg := fmt.Sprintf("Failed to find cluster %s", params.BindHostParams.ClusterID)
+		b.log.WithError(err).Error(msg)
+		return nil, common.NewApiError(http.StatusNotFound, errors.New(msg))
+	}
 	infraEnv, err := common.GetInfraEnvFromDB(b.db, params.InfraEnvID)
 	if err != nil {
 		b.log.WithError(err).Errorf("Failed to get infra env %s", params.InfraEnvID)
