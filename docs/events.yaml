@@ -197,13 +197,6 @@ x-events:
     status: string
     status_info: string
 
-- name: download_image_fetch_failed
-  message: "Failed to download image: error fetching from storage backend"
-  event_type: infra_env
-  severity: "error"
-  properties:
-    infra_env_id: UUID
-
 - name: host_deregistered
   message: "Host {host_name} deregistered"
   event_type: host
@@ -408,49 +401,6 @@ x-events:
   properties:
     infra_env_id: UUID
 
-- name: download_image_find_failed
-  message: "Failed to download image: the image was not found (perhaps it expired) - please generate the image and try again"
-  event_type: infra_env
-  severity: "error"
-  properties:
-    infra_env_id: UUID
-
-- name: download_image_started
-  message: "Started image download (image type is '{image_type}')"
-  event_type: infra_env
-  severity: "info"
-  properties:
-    infra_env_id: UUID
-    image_type: string
-
-- name: generate_image_start_failed
-  message: "Failed to generate image: error starting DB transaction"
-  event_type: cluster
-  severity: "error"
-  properties:
-    cluster_id: UUID
-
-- name: generate_image_contact_storage_backend_failed
-  message: "Failed to generate image: error contacting storage backend"
-  event_type: cluster
-  severity: "error"
-  properties:
-    cluster_id: UUID
-
-- name: generate_image_update_metadata_failed
-  message: "Failed to generate image: error updating metadata"
-  event_type: cluster
-  severity: "error"
-  properties:
-    cluster_id: UUID
-
-- name: generate_image_commit_transaction_failed
-  message: "Failed to generate image: error committing the transaction"
-  event_type: cluster
-  severity: "error"
-  properties:
-    cluster_id: UUID
-
 - name: generate_image_fetch_failed
   message: "Failed to generate image: error fetching updated infra env metadata"
   event_type: infra_env
@@ -574,16 +524,6 @@ x-events:
   properties:
     infra_env_id: UUID
     details: string
-
-- name: refresh_host_or_cluster_statuses_failed
-  message: "{message}"
-  event_type: host
-  severity: "error"
-  properties:
-    host_id: UUID
-    infra_env_id: UUID
-    cluster_id: UUID_PTR
-    message: string
 
 - name: host_install_progress_updated
   message: "Host: {host_name}, {event}"
