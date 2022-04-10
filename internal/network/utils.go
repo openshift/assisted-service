@@ -188,6 +188,18 @@ func CidrsToAddressFamilies(cidrs []string) (ret []AddressFamily, err error) {
 	return
 }
 
+func GetClusterAddressFamilies(cluster *common.Cluster) ([]AddressFamily, error) {
+	allCidrs := append(GetServiceNetworkCidrs(cluster), GetClusterNetworkCidrs(cluster)...)
+	addressFamilies, err := CidrsToAddressFamilies(allCidrs)
+	if err != nil {
+		return nil, err
+	}
+	sort.SliceStable(addressFamilies, func(i, j int) bool {
+		return addressFamilies[i] < addressFamilies[j]
+	})
+	return CanonizeAddressFamilies(addressFamilies), nil
+}
+
 // Canonize slice of AddressFamily. It transforms multiple consecutive AddressFamily entries into a single entry
 // while keeping the original order in the slice.
 func CanonizeAddressFamilies(slice []AddressFamily) (ret []AddressFamily) {
@@ -201,4 +213,25 @@ func CanonizeAddressFamilies(slice []AddressFamily) (ret []AddressFamily) {
 		}
 	}
 	return
+}
+
+func getHostNetworks(inventory *models.Inventory, getter func(i *models.Interface) []string) (ret []string, err error) {
+	for _, intf := range inventory.Interfaces {
+		for _, cidr := range getter(intf) {
+			var ipnet *net.IPNet
+			if _, ipnet, err = net.ParseCIDR(cidr); err != nil {
+				return
+			}
+			ret = append(ret, ipnet.String())
+		}
+	}
+	return
+}
+
+func GetIPv4Networks(inventory *models.Inventory) (ret []string, err error) {
+	return getHostNetworks(inventory, func(i *models.Interface) []string { return i.IPV4Addresses })
+}
+
+func GetIPv6Networks(inventory *models.Inventory) (ret []string, err error) {
+	return getHostNetworks(inventory, func(i *models.Interface) []string { return i.IPV6Addresses })
 }

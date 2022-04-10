@@ -268,6 +268,11 @@ func newValidations(v *validator) []validation {
 			condition: v.diskEncryptionRequirementsSatisfied,
 			formatter: v.printDiskEncryptionRequirementsSatisfied,
 		},
+		{
+			id:        NonOverlappingSubnets,
+			condition: v.nonOverlappingSubnets,
+			formatter: v.printNonOverlappingSubnets,
+		},
 	}
 }
 

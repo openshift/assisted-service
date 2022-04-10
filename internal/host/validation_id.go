@@ -40,6 +40,7 @@ const (
 	CompatibleWithClusterPlatform                  = validationID(models.HostValidationIDCompatibleWithClusterPlatform)
 	IsDNSWildcardNotConfigured                     = validationID(models.HostValidationIDDNSWildcardNotConfigured)
 	DiskEncryptionRequirementsSatisfied            = validationID(models.HostValidationIDDiskEncryptionRequirementsSatisfied)
+	NonOverlappingSubnets                          = validationID(models.HostValidationIDNonOverlappingSubnets)
 )
 
 func (v validationID) category() (string, error) {
@@ -58,7 +59,8 @@ func (v validationID) category() (string, error) {
 		IsAPIInternalDomainNameResolvedCorrectly,
 		IsPlatformNetworkSettingsValid,
 		IsAppsDomainNameResolvedCorrectly,
-		IsDNSWildcardNotConfigured:
+		IsDNSWildcardNotConfigured,
+		NonOverlappingSubnets:
 		return "network", nil
 	case HasInventory,
 		HasMinCPUCores,
