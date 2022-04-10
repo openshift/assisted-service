@@ -183,6 +183,11 @@ paths:
           type: boolean
           required: false
           default: false
+        - in: query
+          name: exclude-hosts
+          description: If true, do not include hosts.
+          type: boolean
+          required: false
       responses:
         "200":
           description: Success.
@@ -297,6 +302,65 @@ paths:
           schema:
             $ref: '#/definitions/error'
         "409":
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+        "500":
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+
+  /v2/clusters/{cluster_id}/hosts:
+    get:
+      tags:
+        - installer
+      description: Get a list of cluster hosts according to supplied filters.
+      operationId: ListClusterHosts
+      security:
+        - userAuth: [ admin, read-only-admin, user ]
+        - agentAuth: []
+      parameters:
+        - in: path
+          name: cluster_id
+          description: The cluster whose hosts should be retrieved.
+          type: string
+          format: uuid
+          required: true
+        - in: query
+          name: role
+          description: Role to request.
+          type: string
+          enum: ['master', 'worker', 'auto-assign']
+          required: false
+        - in: query
+          description: Hosts status to request.
+          name: status
+          type: string
+          required: false
+        - in: query
+          name: with-inventory
+          description: If true return the host's inventory.
+          type: boolean
+          required: false
+        - in: query
+          description: If true return the host's connectivity.
+          name: with-connectivity
+          type: boolean
+          required: false
+      responses:
+        "200":
+          description: Success.
+          schema:
+            $ref: '#/definitions/host-list'
+        "401":
+          description: Unauthorized.
+          schema:
+            $ref: '#/definitions/infra_error'
+        "403":
+          description: Forbidden.
+          schema:
+            $ref: '#/definitions/infra_error'
+        "404":
           description: Error.
           schema:
             $ref: '#/definitions/error'

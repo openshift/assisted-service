@@ -134,6 +134,20 @@ func (mr *MockInstallerAPIMockRecorder) GetInfraEnvPresignedFileURL(arg0, arg1 i
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetInfraEnvPresignedFileURL", reflect.TypeOf((*MockInstallerAPI)(nil).GetInfraEnvPresignedFileURL), arg0, arg1)
 }
 
+// ListClusterHosts mocks base method.
+func (m *MockInstallerAPI) ListClusterHosts(arg0 context.Context, arg1 installer.ListClusterHostsParams) middleware.Responder {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListClusterHosts", arg0, arg1)
+	ret0, _ := ret[0].(middleware.Responder)
+	return ret0
+}
+
+// ListClusterHosts indicates an expected call of ListClusterHosts.
+func (mr *MockInstallerAPIMockRecorder) ListClusterHosts(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListClusterHosts", reflect.TypeOf((*MockInstallerAPI)(nil).ListClusterHosts), arg0, arg1)
+}
+
 // ListInfraEnvs mocks base method.
 func (m *MockInstallerAPI) ListInfraEnvs(arg0 context.Context, arg1 installer.ListInfraEnvsParams) middleware.Responder {
 	m.ctrl.T.Helper()

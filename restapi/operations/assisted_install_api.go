@@ -72,6 +72,9 @@ func NewAssistedInstallAPI(spec *loads.Document) *AssistedInstallAPI {
 		InstallerGetInfraEnvPresignedFileURLHandler: installer.GetInfraEnvPresignedFileURLHandlerFunc(func(params installer.GetInfraEnvPresignedFileURLParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation installer.GetInfraEnvPresignedFileURL has not yet been implemented")
 		}),
+		InstallerListClusterHostsHandler: installer.ListClusterHostsHandlerFunc(func(params installer.ListClusterHostsParams, principal interface{}) middleware.Responder {
+			return middleware.NotImplemented("operation installer.ListClusterHosts has not yet been implemented")
+		}),
 		InstallerListInfraEnvsHandler: installer.ListInfraEnvsHandlerFunc(func(params installer.ListInfraEnvsParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation installer.ListInfraEnvs has not yet been implemented")
 		}),
@@ -351,6 +354,8 @@ type AssistedInstallAPI struct {
 	InstallerGetInfraEnvDownloadURLHandler installer.GetInfraEnvDownloadURLHandler
 	// InstallerGetInfraEnvPresignedFileURLHandler sets the operation handler for the get infra env presigned file URL operation
 	InstallerGetInfraEnvPresignedFileURLHandler installer.GetInfraEnvPresignedFileURLHandler
+	// InstallerListClusterHostsHandler sets the operation handler for the list cluster hosts operation
+	InstallerListClusterHostsHandler installer.ListClusterHostsHandler
 	// InstallerListInfraEnvsHandler sets the operation handler for the list infra envs operation
 	InstallerListInfraEnvsHandler installer.ListInfraEnvsHandler
 	// InstallerRegenerateInfraEnvSigningKeyHandler sets the operation handler for the regenerate infra env signing key operation
@@ -588,6 +593,9 @@ func (o *AssistedInstallAPI) Validate() error {
 	}
 	if o.InstallerGetInfraEnvPresignedFileURLHandler == nil {
 		unregistered = append(unregistered, "installer.GetInfraEnvPresignedFileURLHandler")
+	}
+	if o.InstallerListClusterHostsHandler == nil {
+		unregistered = append(unregistered, "installer.ListClusterHostsHandler")
 	}
 	if o.InstallerListInfraEnvsHandler == nil {
 		unregistered = append(unregistered, "installer.ListInfraEnvsHandler")
@@ -911,6 +919,10 @@ func (o *AssistedInstallAPI) initHandlerCache() {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
 	o.handlers["GET"]["/v2/infra-envs/{infra_env_id}/downloads/files-presigned"] = installer.NewGetInfraEnvPresignedFileURL(o.context, o.InstallerGetInfraEnvPresignedFileURLHandler)
+	if o.handlers["GET"] == nil {
+		o.handlers["GET"] = make(map[string]http.Handler)
+	}
+	o.handlers["GET"]["/v2/clusters/{cluster_id}/hosts"] = installer.NewListClusterHosts(o.context, o.InstallerListClusterHostsHandler)
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}

@@ -322,6 +322,12 @@ func init() {
             "description": "Whether to return clusters that have been unregistered.",
             "name": "get_unregistered_clusters",
             "in": "header"
+          },
+          {
+            "type": "boolean",
+            "description": "If true, do not include hosts.",
+            "name": "exclude-hosts",
+            "in": "query"
           }
         ],
         "responses": {
@@ -1319,6 +1325,98 @@ func init() {
             }
           },
           "409": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "500": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
+    "/v2/clusters/{cluster_id}/hosts": {
+      "get": {
+        "security": [
+          {
+            "userAuth": [
+              "admin",
+              "read-only-admin",
+              "user"
+            ]
+          },
+          {
+            "agentAuth": []
+          }
+        ],
+        "description": "Get a list of cluster hosts according to supplied filters.",
+        "tags": [
+          "installer"
+        ],
+        "operationId": "ListClusterHosts",
+        "parameters": [
+          {
+            "type": "string",
+            "format": "uuid",
+            "description": "The cluster whose hosts should be retrieved.",
+            "name": "cluster_id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "enum": [
+              "master",
+              "worker",
+              "auto-assign"
+            ],
+            "type": "string",
+            "description": "Role to request.",
+            "name": "role",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "Hosts status to request.",
+            "name": "status",
+            "in": "query"
+          },
+          {
+            "type": "boolean",
+            "description": "If true return the host's inventory.",
+            "name": "with-inventory",
+            "in": "query"
+          },
+          {
+            "type": "boolean",
+            "description": "If true return the host's connectivity.",
+            "name": "with-connectivity",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "schema": {
+              "$ref": "#/definitions/host-list"
+            }
+          },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "404": {
             "description": "Error.",
             "schema": {
               "$ref": "#/definitions/error"
@@ -9035,6 +9133,12 @@ func init() {
             "description": "Whether to return clusters that have been unregistered.",
             "name": "get_unregistered_clusters",
             "in": "header"
+          },
+          {
+            "type": "boolean",
+            "description": "If true, do not include hosts.",
+            "name": "exclude-hosts",
+            "in": "query"
           }
         ],
         "responses": {
@@ -10032,6 +10136,98 @@ func init() {
             }
           },
           "409": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "500": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
+    "/v2/clusters/{cluster_id}/hosts": {
+      "get": {
+        "security": [
+          {
+            "userAuth": [
+              "admin",
+              "read-only-admin",
+              "user"
+            ]
+          },
+          {
+            "agentAuth": []
+          }
+        ],
+        "description": "Get a list of cluster hosts according to supplied filters.",
+        "tags": [
+          "installer"
+        ],
+        "operationId": "ListClusterHosts",
+        "parameters": [
+          {
+            "type": "string",
+            "format": "uuid",
+            "description": "The cluster whose hosts should be retrieved.",
+            "name": "cluster_id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "enum": [
+              "master",
+              "worker",
+              "auto-assign"
+            ],
+            "type": "string",
+            "description": "Role to request.",
+            "name": "role",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "Hosts status to request.",
+            "name": "status",
+            "in": "query"
+          },
+          {
+            "type": "boolean",
+            "description": "If true return the host's inventory.",
+            "name": "with-inventory",
+            "in": "query"
+          },
+          {
+            "type": "boolean",
+            "description": "If true return the host's connectivity.",
+            "name": "with-connectivity",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "schema": {
+              "$ref": "#/definitions/host-list"
+            }
+          },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "404": {
             "description": "Error.",
             "schema": {
               "$ref": "#/definitions/error"
