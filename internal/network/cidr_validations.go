@@ -24,7 +24,7 @@ func parseCIDR(cidr string) (ip net.IP, ipnet *net.IPNet, err error) {
 	return
 }
 
-func netsOverlap(aCidrStr, bCidrStr string) error {
+func NetworksOverlap(aCidrStr, bCidrStr string) error {
 	if aCidrStr == "" || bCidrStr == "" {
 		return nil
 	}
@@ -115,16 +115,16 @@ func VerifyClusterCidrSize(hostNetworkPrefix int, clusterNetworkCIDR string, num
 
 func VerifyClusterCIDRsNotOverlap(machineNetworkCidr, clusterNetworkCidr, serviceNetworkCidr string, machineNetworkRequired bool) error {
 	if machineNetworkRequired {
-		err := netsOverlap(machineNetworkCidr, serviceNetworkCidr)
+		err := NetworksOverlap(machineNetworkCidr, serviceNetworkCidr)
 		if err != nil {
 			return errors.Wrap(err, "MachineNetworkCIDR and ServiceNetworkCIDR")
 		}
-		err = netsOverlap(machineNetworkCidr, clusterNetworkCidr)
+		err = NetworksOverlap(machineNetworkCidr, clusterNetworkCidr)
 		if err != nil {
 			return errors.Wrap(err, "MachineNetworkCIDR and ClusterNetworkCidr")
 		}
 	}
-	err := netsOverlap(serviceNetworkCidr, clusterNetworkCidr)
+	err := NetworksOverlap(serviceNetworkCidr, clusterNetworkCidr)
 	if err != nil {
 		return errors.Wrap(err, "ServiceNetworkCidr and ClusterNetworkCidr")
 	}
