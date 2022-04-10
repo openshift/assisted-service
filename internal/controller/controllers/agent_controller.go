@@ -203,7 +203,7 @@ func (r *AgentReconciler) Reconcile(origCtx context.Context, req ctrl.Request) (
 	}
 
 	// check for updates from user, compare spec and update if needed
-	err = r.updateIfNeeded(ctx, log, agent, h)
+	h, err = r.updateIfNeeded(ctx, log, agent, h)
 	if err != nil {
 		return r.updateStatus(ctx, log, agent, origAgent, &h.Host, h.ClusterID, err, !IsUserError(err))
 	}
@@ -1086,9 +1086,10 @@ func (r *AgentReconciler) updateHostIgnition(ctx context.Context, log logrus.Fie
 	return err
 }
 
-func (r *AgentReconciler) updateIfNeeded(ctx context.Context, log logrus.FieldLogger, agent *aiv1beta1.Agent, internalHost *common.Host) error {
+func (r *AgentReconciler) updateIfNeeded(ctx context.Context, log logrus.FieldLogger, agent *aiv1beta1.Agent, internalHost *common.Host) (*common.Host, error) {
 	spec := agent.Spec
 	var err error
+	returnedHost := internalHost
 
 	err = r.updateInstallerArgs(ctx, log, internalHost, agent)
 	if err != nil {
@@ -1096,7 +1097,7 @@ func (r *AgentReconciler) updateIfNeeded(ctx context.Context, log logrus.FieldLo
 			err = common.NewApiError(http.StatusNotFound, err)
 		}
 		log.WithError(err).Errorf("Failed to update installer args")
-		return err
+		return internalHost, err
 	}
 
 	err = r.updateHostIgnition(ctx, log, internalHost, agent)
@@ -1105,7 +1106,7 @@ func (r *AgentReconciler) updateIfNeeded(ctx context.Context, log logrus.FieldLo
 			err = common.NewApiError(http.StatusNotFound, err)
 		}
 		log.WithError(err).Errorf("Failed to update host ignition")
-		return err
+		return internalHost, err
 	}
 
 	hostUpdate := false
@@ -1142,7 +1143,7 @@ func (r *AgentReconciler) updateIfNeeded(ctx context.Context, log logrus.FieldLo
 		token, err = r.getIgnitionToken(ctx, agent.Spec.IgnitionEndpointTokenReference)
 		if err != nil {
 			log.WithError(err).Errorf("Failed to get ignition token")
-			return err
+			return internalHost, err
 		}
 
 		if token != internalHost.IgnitionEndpointToken {
@@ -1165,15 +1166,14 @@ func (r *AgentReconciler) updateIfNeeded(ctx context.Context, log logrus.FieldLo
 			models.HostStatusBinding,
 		}
 		if funk.ContainsString(hostStatusesBeforeInstallationOrUnbound, swag.StringValue(internalHost.Status)) {
-			_, err = r.Installer.V2UpdateHostInternal(ctx, *params)
+			returnedHost, err = r.Installer.V2UpdateHostInternal(ctx, *params)
 
 			if err != nil {
 				log.WithError(err).Errorf("Failed to update host params %s %s", agent.Name, agent.Namespace)
-				return err
+				return internalHost, err
 			}
 			log.Infof("Updated host parameters for agent %s %s", agent.Name, agent.Namespace)
 		}
-
 	}
 	if internalHost.Approved != spec.Approved {
 		err = r.Installer.UpdateHostApprovedInternal(ctx, internalHost.InfraEnvID.String(), agent.Name, spec.Approved)
@@ -1182,13 +1182,13 @@ func (r *AgentReconciler) updateIfNeeded(ctx context.Context, log logrus.FieldLo
 				err = common.NewApiError(http.StatusNotFound, err)
 			}
 			log.WithError(err).Errorf("Failed to approve Agent")
-			return err
+			return returnedHost, err
 		}
 		log.Infof("Updated Agent Approve %s %s", agent.Name, agent.Namespace)
 	}
 	log.Debugf("Updated Agent spec %s %s", agent.Name, agent.Namespace)
 
-	return nil
+	return returnedHost, nil
 }
 
 func (r *AgentReconciler) getIgnitionToken(ctx context.Context, ignitionEndpointTokenReference *aiv1beta1.IgnitionEndpointTokenReference) (string, error) {
