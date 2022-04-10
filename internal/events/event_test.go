@@ -1,4 +1,4 @@
-package events_test
+package events
 
 import (
 	"context"
@@ -14,14 +14,16 @@ import (
 	"github.com/onsi/gomega/types"
 	"github.com/openshift/assisted-service/internal/common"
 	eventgen "github.com/openshift/assisted-service/internal/common/events"
-	"github.com/openshift/assisted-service/internal/events"
+
+	//"github.com/openshift/assisted-service/internal/events"
 	eventsapi "github.com/openshift/assisted-service/internal/events/api"
 	"github.com/openshift/assisted-service/models"
+	"github.com/openshift/assisted-service/pkg/auth"
 	"github.com/openshift/assisted-service/pkg/ocm"
 	"github.com/openshift/assisted-service/pkg/requestid"
 	"github.com/openshift/assisted-service/restapi"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+	"github.com/thoas/go-funk"
 	"gorm.io/gorm"
 )
 
@@ -37,11 +39,13 @@ var _ = Describe("Events library", func() {
 	)
 	BeforeEach(func() {
 		db, dbName = common.PrepareTestDB()
-		theEvents = events.New(db, logrus.WithField("pkg", "events"))
-		c1 := common.Cluster{Cluster: models.Cluster{ID: &cluster1, OpenshiftClusterID: strfmt.UUID(uuid.New().String())}}
+		theEvents = New(db, nil, logrus.WithField("pkg", "events"))
+		c1 := common.Cluster{Cluster: models.Cluster{ID: &cluster1, OpenshiftClusterID: strfmt.UUID(uuid.New().String()), UserName: "user1", OrgID: "org1"}}
 		Expect(db.Create(&c1).Error).ShouldNot(HaveOccurred())
-		c2 := common.Cluster{Cluster: models.Cluster{ID: &cluster2, OpenshiftClusterID: strfmt.UUID(uuid.New().String())}}
+		c2 := common.Cluster{Cluster: models.Cluster{ID: &cluster2, OpenshiftClusterID: strfmt.UUID(uuid.New().String()), UserName: "user2", OrgID: "org1"}}
 		Expect(db.Create(&c2).Error).ShouldNot(HaveOccurred())
+		i1 := common.InfraEnv{InfraEnv: models.InfraEnv{ID: &infraEnv1, UserName: "user1", OrgID: "org1"}}
+		Expect(db.Create(&i1).Error).ShouldNot(HaveOccurred())
 	})
 	numOfEvents := func(clusterID *strfmt.UUID, hostID *strfmt.UUID, infraEnvID *strfmt.UUID) int {
 		evs, err := theEvents.V2GetEvents(context.TODO(), clusterID, hostID, infraEnvID)
@@ -205,390 +209,167 @@ var _ = Describe("Events library", func() {
 		})
 	})
 
-	Context("events query filtering", func() {
+	Context("authorization", func() {
+		var ctx context.Context
+		var cluster3 strfmt.UUID
 
-		Context("query with no filters - expect no valid transaction error", func() {
-			tests := []struct {
-				name    string
-				context context.Context
-			}{
-				{
-					name:    "query by user with no filters - expect no valid transaction error",
-					context: context.WithValue(context.Background(), restapi.AuthKey, &ocm.AuthPayload{Username: "test_user1", Role: ocm.UserRole}),
-				},
-				{
-					name:    "query with no user and with no filters - expect no valid transaction error",
-					context: context.TODO(),
-				},
-			}
+		BeforeEach(func() {
+			ctx = context.TODO()
+			cluster3 = strfmt.UUID(uuid.New().String())
+			c3 := common.Cluster{Cluster: models.Cluster{ID: &cluster3, OpenshiftClusterID: strfmt.UUID(uuid.New().String()), UserName: "user1", OrgID: "org3"}}
+			Expect(db.Create(&c3).Error).ShouldNot(HaveOccurred())
 
-			for i := range tests {
-				test := tests[i]
-				It(test.name, func() {
-					evs, err := theEvents.V2GetEvents(test.context, nil, nil, nil, models.EventCategoryUser)
-					Expect(err).ShouldNot(BeNil())
-					Expect(errors.Is(err, gorm.ErrInvalidTransaction)).Should(Equal(true))
-					Expect(len(evs)).Should(Equal(0))
-				})
-			}
+			host1 := common.Host{Host: models.Host{ID: &host, InfraEnvID: infraEnv1}}
+			Expect(db.Create(&host1).Error).ShouldNot(HaveOccurred())
+
+			theEvents.V2AddEvent(ctx, &cluster1, nil, nil,
+				"cluster1-org1", models.EventSeverityInfo, "msg", time.Now())
+			theEvents.V2AddEvent(ctx, &cluster2, nil, nil,
+				"cluster2-org1", models.EventSeverityInfo, "msg", time.Now())
+			theEvents.V2AddEvent(ctx, &cluster3, nil, nil,
+				"cluster3-org3", models.EventSeverityInfo, "msg", time.Now())
+			theEvents.V2AddEvent(ctx, nil, nil, &infraEnv1,
+				"unbound-infra1-org1", models.EventSeverityInfo, "msg", time.Now())
+			theEvents.V2AddEvent(ctx, nil, &host, &infraEnv1,
+				"unbound-host-infra1-org1", models.EventSeverityInfo, "msg", time.Now())
+			theEvents.V2AddEvent(ctx, &cluster1, &host, &infraEnv1,
+				"bound-host-on-cluster1-infra1-org1", models.EventSeverityInfo, "msg", time.Now())
 		})
 
-		Context("query filtering by cluster_id", func() {
-			tests := []struct {
-				name          string
-				username      string
-				context       context.Context
-				createCluster bool
-				querySucess   bool
-				err           error
-			}{
-				{
-					name:          "filter by user owned cluster - user with user role",
-					username:      "test_user1",
-					context:       context.WithValue(context.Background(), restapi.AuthKey, &ocm.AuthPayload{Username: "test_user1", Role: ocm.UserRole}),
-					createCluster: true,
-					querySucess:   true,
-					err:           nil,
-				},
-				{
-					name:          "filter by user owned cluster - user with admin role",
-					username:      "admin_user1",
-					context:       context.WithValue(context.Background(), restapi.AuthKey, &ocm.AuthPayload{Username: "admin_user1", Role: ocm.AdminRole}),
-					createCluster: true,
-					querySucess:   true,
-					err:           nil,
-				},
-				{
-					name:          "filter by user which does not own the cluster - user with user role",
-					username:      "test_user2",
-					context:       context.WithValue(context.Background(), restapi.AuthKey, &ocm.AuthPayload{Username: "test_user1", Role: ocm.UserRole}),
-					createCluster: true,
-					querySucess:   false,
-					err:           gorm.ErrRecordNotFound,
-				},
-				{
-					name:          "filter by user which does not own the cluster - user with admin role",
-					username:      "admin_user1",
-					context:       context.WithValue(context.Background(), restapi.AuthKey, &ocm.AuthPayload{Username: "admin_user1", Role: ocm.AdminRole}),
-					createCluster: true,
-					querySucess:   true,
-					err:           nil,
-				},
-				{
-					name:          "filter by cluster_id - no user in context",
-					username:      "",
-					context:       context.TODO(),
-					createCluster: true,
-					querySucess:   true,
-					err:           nil,
-				},
-				{
-					name:          "filter by an invalid cluster_id - no user in context",
-					username:      "",
-					context:       context.TODO(),
-					createCluster: false,
-					querySucess:   false,
-					err:           gorm.ErrRecordNotFound,
-				},
-				{
-					name:          "filter by an invalid cluster_id - user with user role",
-					username:      "test_user1",
-					context:       context.WithValue(context.Background(), restapi.AuthKey, &ocm.AuthPayload{Username: "test_user1", Role: ocm.UserRole}),
-					createCluster: false,
-					querySucess:   false,
-					err:           gorm.ErrRecordNotFound,
-				},
-			}
-			for i := range tests {
-				test := tests[i]
-				It(test.name, func() {
-					clusterId := strfmt.UUID(uuid.New().String())
-					if test.createCluster {
-						c := common.Cluster{Cluster: models.Cluster{
-							ID:                 &clusterId,
-							UserName:           test.username,
-							OpenshiftClusterID: strfmt.UUID(uuid.New().String()),
-						}}
-						Expect(db.Create(&c).Error).ShouldNot(HaveOccurred())
-					}
-					theEvents.V2AddEvent(test.context, &clusterId, nil, nil, "fake_event", models.EventSeverityInfo, models.EventCategoryUser, time.Now())
-					evs, err := theEvents.V2GetEvents(test.context, &clusterId, nil, nil, models.EventCategoryUser)
-					if test.querySucess {
-						Expect(err).Should(BeNil())
-						Expect(len(evs)).Should(Equal(1))
-					} else {
-						Expect(err).ShouldNot(BeNil())
-						Expect(errors.Is(err, test.err)).Should(Equal(true))
-						Expect(len(evs)).Should(Equal(0))
-					}
-				})
-			}
+		JustBeforeEach(func() {
+			//inject RHSSO authorizer to the event handler
+			cfg := &auth.Config{AuthType: auth.TypeRHSSO, EnableOrgTenancy: true}
+			authz_handler := auth.NewAuthzHandler(cfg, nil, logrus.New(), db)
+			theEvents.(*Events).authz = authz_handler
 		})
 
-		Context("query filtering by infra_env_id", func() {
-			tests := []struct {
-				name           string
-				username       string
-				context        context.Context
-				createInfraEnv bool
-				querySucess    bool
-				err            error
-			}{
-				{
-					name:           "filter by user owned infra_env - user with user role",
-					username:       "test_user1",
-					context:        context.WithValue(context.Background(), restapi.AuthKey, &ocm.AuthPayload{Username: "test_user1", Role: ocm.UserRole}),
-					createInfraEnv: true,
-					querySucess:    true,
-					err:            nil,
-				},
-				{
-					name:           "filter by user owned infra_env - user with admin role",
-					username:       "admin_user1",
-					context:        context.WithValue(context.Background(), restapi.AuthKey, &ocm.AuthPayload{Username: "admin_user1", Role: ocm.AdminRole}),
-					createInfraEnv: true,
-					querySucess:    true,
-					err:            nil,
-				},
-				{
-					name:           "filter by user which does not own the infra_env - user with user role",
-					username:       "test_user2",
-					context:        context.WithValue(context.Background(), restapi.AuthKey, &ocm.AuthPayload{Username: "test_user1", Role: ocm.UserRole}),
-					createInfraEnv: true,
-					querySucess:    false,
-					err:            gorm.ErrRecordNotFound,
-				},
-				{
-					name:           "filter by user which does not own the infra_env - user with admin role",
-					username:       "admin_user1",
-					context:        context.WithValue(context.Background(), restapi.AuthKey, &ocm.AuthPayload{Username: "admin_user1", Role: ocm.AdminRole}),
-					createInfraEnv: true,
-					querySucess:    true,
-					err:            nil,
-				},
-				{
-					name:           "filter by infra_env_id - no user in context",
-					username:       "",
-					context:        context.TODO(),
-					createInfraEnv: true,
-					querySucess:    true,
-					err:            nil,
-				},
-				{
-					name:           "filter by an invalid infra_env_id - no user in context",
-					username:       "",
-					context:        context.TODO(),
-					createInfraEnv: false,
-					querySucess:    false,
-					err:            gorm.ErrRecordNotFound,
-				},
-				{
-					name:           "filter by an invalid infra_env_id - user with user role",
-					username:       "test_user1",
-					context:        context.WithValue(context.Background(), restapi.AuthKey, &ocm.AuthPayload{Username: "test_user1", Role: ocm.UserRole}),
-					createInfraEnv: false,
-					querySucess:    false,
-					err:            gorm.ErrRecordNotFound,
-				},
-			}
-			for i := range tests {
-				test := tests[i]
-				It(test.name, func() {
-					infraEnvId := strfmt.UUID(uuid.New().String())
-					if test.createInfraEnv {
-						infraEnvName := "test_infra_env"
-						infraEnv := &common.InfraEnv{
-							KubeKeyNamespace: "test_namespace",
-							InfraEnv: models.InfraEnv{
-								Name:     &infraEnvName,
-								ID:       &infraEnvId,
-								UserName: test.username,
-							},
-						}
-						Expect(db.Create(&infraEnv).Error).ShouldNot(HaveOccurred())
-					}
-					theEvents.V2AddEvent(test.context, nil, nil, &infraEnvId, "fake_event", models.EventSeverityInfo, models.EventCategoryUser, time.Now())
-					evs, err := theEvents.V2GetEvents(test.context, nil, nil, &infraEnvId, models.EventCategoryUser)
-					if test.querySucess {
-						Expect(err).Should(BeNil())
-						Expect(len(evs)).Should(Equal(1))
-					} else {
-						Expect(err).ShouldNot(BeNil())
-						Expect(errors.Is(err, test.err)).Should(Equal(true))
-						Expect(len(evs)).Should(Equal(0))
-					}
-				})
-			}
+		hasEvent := func(events []*common.Event, name string) bool {
+			eventNames := funk.Map(events, func(ev *common.Event) string {
+				return ev.Name
+			}).([]string)
+			return funk.ContainsString(eventNames, name)
+		}
+		Context("with admin role", func() {
+			BeforeEach(func() {
+				payload := &ocm.AuthPayload{}
+				payload.Role = ocm.AdminRole
+				ctx = context.WithValue(context.TODO(), restapi.AuthKey, payload)
+			})
+			It("gets all events", func() {
+				evs, err := theEvents.V2GetEvents(ctx, nil, nil, nil)
+				Expect(err).ShouldNot(HaveOccurred())
+				Expect(len(evs)).To(Equal(6))
+			})
+
+			It("gets cluster's events when specifying cluster", func() {
+				evs, err := theEvents.V2GetEvents(ctx, &cluster1, nil, nil)
+				Expect(err).ShouldNot(HaveOccurred())
+				Expect(len(evs)).To(Equal(2))
+				Expect(hasEvent(evs, "cluster1-org1")).To(BeTrue())
+				Expect(hasEvent(evs, "bound-host-on-cluster1-infra1-org1")).To(BeTrue())
+			})
+
+			It("gets infra-env's events when specifying infra-env", func() {
+				evs, err := theEvents.V2GetEvents(ctx, nil, nil, &infraEnv1)
+				Expect(err).ShouldNot(HaveOccurred())
+				Expect(len(evs)).To(Equal(3))
+				Expect(hasEvent(evs, "unbound-infra1-org1")).To(BeTrue())
+				Expect(hasEvent(evs, "unbound-host-infra1-org1")).To(BeTrue())
+				Expect(hasEvent(evs, "bound-host-on-cluster1-infra1-org1")).To(BeTrue())
+
+			})
+			It("gets hosts's events when specifying host", func() {
+				evs, err := theEvents.V2GetEvents(ctx, nil, &host, &infraEnv1)
+				Expect(err).ShouldNot(HaveOccurred())
+				Expect(len(evs)).To(Equal(2))
+				Expect(hasEvent(evs, "unbound-host-infra1-org1")).To(BeTrue())
+				Expect(hasEvent(evs, "bound-host-on-cluster1-infra1-org1")).To(BeTrue())
+			})
+
+			It("non-existing id returns empty list", func() {
+				id := strfmt.UUID(uuid.New().String())
+				evs, err := theEvents.V2GetEvents(ctx, &id, nil, nil)
+				Expect(err).ShouldNot(HaveOccurred())
+				Expect(len(evs)).To(Equal(0))
+			})
 		})
 
-		Context("query filtering by host_id", func() {
-			tests := []struct {
-				name        string
-				username    string
-				context     context.Context
-				createHost  bool
-				querySucess bool
-				err         error
-			}{
-				{
-					name:        "filter by user owned host - user with user role",
-					username:    "test_user1",
-					context:     context.WithValue(context.Background(), restapi.AuthKey, &ocm.AuthPayload{Username: "test_user1", Role: ocm.UserRole}),
-					createHost:  true,
-					querySucess: true,
-					err:         nil,
-				},
-				{
-					name:        "filter by user owned host - user with admin role",
-					username:    "admin_user1",
-					context:     context.WithValue(context.Background(), restapi.AuthKey, &ocm.AuthPayload{Username: "admin_user1", Role: ocm.AdminRole}),
-					createHost:  true,
-					querySucess: true,
-					err:         nil,
-				},
-				{
-					name:        "filter by user which does not own the host - user with user role",
-					username:    "test_user2",
-					context:     context.WithValue(context.Background(), restapi.AuthKey, &ocm.AuthPayload{Username: "test_user1", Role: ocm.UserRole}),
-					createHost:  true,
-					querySucess: false,
-					err:         gorm.ErrRecordNotFound,
-				},
-				{
-					name:        "filter by user which does not own the host - user with admin role",
-					username:    "admin_user1",
-					context:     context.WithValue(context.Background(), restapi.AuthKey, &ocm.AuthPayload{Username: "admin_user1", Role: ocm.AdminRole}),
-					createHost:  true,
-					querySucess: true,
-					err:         nil,
-				},
-				{
-					name:        "filter by host_id - no user in context",
-					username:    "",
-					context:     context.TODO(),
-					createHost:  true,
-					querySucess: true,
-					err:         nil,
-				},
-				{
-					name:        "filter by an invalid host_id - no user in context",
-					username:    "",
-					context:     context.TODO(),
-					createHost:  false,
-					querySucess: false,
-					err:         gorm.ErrRecordNotFound,
-				},
-				{
-					name:        "filter by an invalid host_id - user with user role",
-					username:    "test_user1",
-					context:     context.WithValue(context.Background(), restapi.AuthKey, &ocm.AuthPayload{Username: "test_user1", Role: ocm.UserRole}),
-					createHost:  false,
-					querySucess: false,
-					err:         gorm.ErrRecordNotFound,
-				},
-			}
-			for i := range tests {
-				test := tests[i]
-				It(test.name, func() {
-					hostId := strfmt.UUID(uuid.New().String())
-					if test.createHost {
-						test_host := &common.Host{
-							KubeKeyNamespace: "test_namespace",
-							Host: models.Host{
-								ID:         &hostId,
-								InfraEnvID: infraEnv1,
-								UserName:   test.username,
-							},
-						}
-						Expect(db.Create(&test_host).Error).ShouldNot(HaveOccurred())
-					}
-					theEvents.V2AddEvent(test.context, nil, &hostId, nil, "fake_event", models.EventSeverityInfo, models.EventCategoryUser, time.Now())
-					evs, err := theEvents.V2GetEvents(test.context, nil, &hostId, nil, models.EventCategoryUser)
-					if test.querySucess {
-						Expect(err).Should(BeNil())
-						Expect(len(evs)).Should(Equal(1))
-					} else {
-						Expect(err).ShouldNot(BeNil())
-						Expect(errors.Is(err, test.err)).Should(Equal(true))
-						Expect(len(evs)).Should(Equal(0))
-					}
-				})
-			}
-		})
+		Context("with user role", func() {
+			BeforeEach(func() {
+				payload := &ocm.AuthPayload{}
+				payload.Role = ocm.UserRole
+				payload.Username = "user1"
+				payload.Organization = "org1"
+				ctx = context.WithValue(context.TODO(), restapi.AuthKey, payload)
+			})
+			It("gets events on own clusters", func() {
+				By("strictly own cluster")
+				evs, err := theEvents.V2GetEvents(ctx, &cluster1, nil, nil)
+				Expect(err).ShouldNot(HaveOccurred())
+				Expect(len(evs)).To(Equal(2))
+				Expect(hasEvent(evs, "cluster1-org1")).To(BeTrue())
+				Expect(hasEvent(evs, "bound-host-on-cluster1-infra1-org1")).To(BeTrue())
 
-		It("use multiple filters in the same query", func() {
-			user1 := "test_user1"
-			clusterId := strfmt.UUID(uuid.New().String())
-			infraEnvId := strfmt.UUID(uuid.New().String())
-			hostId1 := strfmt.UUID(uuid.New().String())
-			hostId2 := strfmt.UUID(uuid.New().String())
-			hostId3 := strfmt.UUID(uuid.New().String())
-			payload := &ocm.AuthPayload{}
-			payload.Username = user1
-			ctx := context.WithValue(context.Background(), restapi.AuthKey, payload)
-			c := common.Cluster{Cluster: models.Cluster{
-				ID:                 &clusterId,
-				UserName:           user1,
-				Status:             swag.String(models.ClusterStatusError),
-				OpenshiftClusterID: strfmt.UUID(uuid.New().String()),
-			}}
-			infraEnvName := "test_infra_env"
-			infraEnv := &common.InfraEnv{
-				KubeKeyNamespace: "test_namespace",
-				InfraEnv: models.InfraEnv{
-					Name:     &infraEnvName,
-					ID:       &infraEnvId,
-					UserName: user1,
-				},
-			}
-			testHost1 := &common.Host{
-				KubeKeyNamespace: "test_namespace",
-				Host: models.Host{
-					ID:         &hostId1,
-					InfraEnvID: infraEnvId,
-					UserName:   user1,
-				},
-			}
-			testHost2 := &common.Host{
-				KubeKeyNamespace: "test_namespace",
-				Host: models.Host{
-					ID:         &hostId2,
-					InfraEnvID: infraEnvId,
-					UserName:   user1,
-				},
-			}
-			testHost3 := &common.Host{
-				KubeKeyNamespace: "test_namespace",
-				Host: models.Host{
-					ID:         &hostId3,
-					InfraEnvID: infraEnvId,
-					UserName:   user1,
-				},
-			}
-			Expect(db.Create(&c).Error).ShouldNot(HaveOccurred())
-			Expect(db.Create(&infraEnv).Error).ShouldNot(HaveOccurred())
-			Expect(db.Create(&testHost1).Error).ShouldNot(HaveOccurred())
-			Expect(db.Create(&testHost2).Error).ShouldNot(HaveOccurred())
-			Expect(db.Create(&testHost3).Error).ShouldNot(HaveOccurred())
+				By("cluster owned by another user on the same org")
+				evs, err = theEvents.V2GetEvents(ctx, &cluster2, nil, nil)
+				Expect(err).ShouldNot(HaveOccurred())
+				Expect(len(evs)).To(Equal(1))
+				Expect(hasEvent(evs, "cluster2-org1")).To(BeTrue())
+			})
 
-			theEvents.V2AddEvent(ctx, &clusterId, nil, &infraEnvId, "fake_event1", models.EventSeverityInfo, models.EventCategoryUser, time.Now())
-			theEvents.V2AddEvent(ctx, nil, nil, &infraEnvId, "fake_event2", models.EventSeverityInfo, models.EventCategoryUser, time.Now())
-			theEvents.V2AddEvent(ctx, nil, &hostId1, &infraEnvId, "fake_event3", models.EventSeverityInfo, models.EventCategoryUser, time.Now())
-			theEvents.V2AddEvent(ctx, nil, &hostId2, &infraEnvId, "fake_event4", models.EventSeverityInfo, models.EventCategoryUser, time.Now())
-			theEvents.V2AddEvent(ctx, nil, &hostId3, &infraEnvId, "fake_event5", models.EventSeverityInfo, models.EventCategoryUser, time.Now())
+			It("cannot get events across orgs", func() {
+				evs, err := theEvents.V2GetEvents(ctx, &cluster3, nil, nil)
+				Expect(err).ShouldNot(HaveOccurred())
+				Expect(len(evs)).To(Equal(0))
+			})
 
-			evs, err := theEvents.V2GetEvents(ctx, &clusterId, nil, &infraEnvId, models.EventCategoryUser)
-			Expect(err).Should(BeNil())
-			Expect(len(evs)).Should(Equal(1))
-			evs, err = theEvents.V2GetEvents(ctx, nil, nil, &infraEnvId, models.EventCategoryUser)
-			Expect(err).Should(BeNil())
-			Expect(len(evs)).Should(Equal(5))
-			evs, err = theEvents.V2GetEvents(ctx, nil, &hostId1, &infraEnvId, models.EventCategoryUser)
-			Expect(err).Should(BeNil())
-			Expect(len(evs)).Should(Equal(1))
-			evs, err = theEvents.V2GetEvents(ctx, &clusterId, &hostId1, nil, models.EventCategoryUser)
-			Expect(err).Should(BeNil())
-			Expect(len(evs)).Should(Equal(0))
+			It("get events on own infra_env", func() {
+				evs, err := theEvents.V2GetEvents(ctx, nil, nil, &infraEnv1)
+				Expect(err).ShouldNot(HaveOccurred())
+				Expect(len(evs)).To(Equal(3))
+				Expect(hasEvent(evs, "unbound-infra1-org1")).To(BeTrue())
+				Expect(hasEvent(evs, "unbound-host-infra1-org1")).To(BeTrue())
+				Expect(hasEvent(evs, "bound-host-on-cluster1-infra1-org1")).To(BeTrue())
+			})
+
+			It("gets own events on bound host", func() {
+				evs, err := theEvents.V2GetEvents(ctx, &cluster1, &host, &infraEnv1)
+				Expect(err).ShouldNot(HaveOccurred())
+				Expect(len(evs)).To(Equal(1))
+				Expect(hasEvent(evs, "bound-host-on-cluster1-infra1-org1")).To(BeTrue())
+			})
+
+			It("gets own events on host with non bound infra-env", func() {
+				//returns all events of host (bound and unbound)
+				evs, err := theEvents.V2GetEvents(ctx, nil, &host, &infraEnv1)
+				Expect(err).ShouldNot(HaveOccurred())
+				Expect(len(evs)).To(Equal(2))
+				Expect(hasEvent(evs, "unbound-host-infra1-org1")).To(BeTrue())
+				Expect(hasEvent(evs, "bound-host-on-cluster1-infra1-org1")).To(BeTrue())
+			})
+
+			It("get own events on host by query the host id alone", func() {
+				evs, err := theEvents.V2GetEvents(ctx, nil, &host, nil)
+				Expect(err).ShouldNot(HaveOccurred())
+				Expect(len(evs)).To(Equal(2))
+				Expect(hasEvent(evs, "unbound-host-infra1-org1")).To(BeTrue())
+				Expect(hasEvent(evs, "bound-host-on-cluster1-infra1-org1")).To(BeTrue())
+			})
+
+			It("can not get all events", func() {
+				//This kind of query is restricted to admins only.
+				//In reality, it only used by the ELK server
+				evs, err := theEvents.V2GetEvents(ctx, nil, nil, nil)
+				Expect(err).ShouldNot(HaveOccurred())
+				Expect(len(evs)).To(Equal(0))
+			})
+
+			It("non-existing returns empty list", func() {
+				id := strfmt.UUID(uuid.New().String())
+				evs, err := theEvents.V2GetEvents(ctx, &id, nil, nil)
+				Expect(err).ShouldNot(HaveOccurred())
+				Expect(len(evs)).To(Equal(0))
+			})
 		})
 	})
 

@@ -242,14 +242,23 @@ func main() {
 	failOnError(err, "failed to create controller manager")
 
 	usageManager := usage.NewManager(log)
+	ocmClient := getOCMClient(log)
+
+	authHandler, err := auth.NewAuthenticator(&Options.Auth, ocmClient, log.WithField("pkg", "auth"), db)
+	failOnError(err, "failed to create authenticator")
+	authzHandler := auth.NewAuthzHandler(&Options.Auth, ocmClient, log.WithField("pkg", "authz"), db)
 
 	crdEventsHandler := createCRDEventsHandler()
-	eventsHandler := createEventsHandler(crdEventsHandler, db, log)
+	eventsHandler := createEventsHandler(crdEventsHandler, db, authzHandler, log)
 
 	prometheusRegistry := prometheus.DefaultRegisterer
 	metricsManager := metrics.NewMetricsManager(prometheusRegistry, eventsHandler)
-
-	ocmClient := getOCMClient(log, metricsManager)
+	if ocmClient != nil {
+		//inject the metric server to the ocm client for purpose of
+		//performance monitoring the calls to ACM. This could not be done
+		//in the constructor due to a cyclic dependency with the event handler
+		ocmClient.SetMetrics(metricsManager)
+	}
 
 	Options.InstructionConfig.ReleaseImageMirror = Options.ReleaseImageMirror
 	Options.InstructionConfig.CheckClusterVersion = Options.CheckClusterVersion
@@ -263,9 +272,7 @@ func main() {
 	var lead leader.ElectorInterface
 	var k8sClient *kubernetes.Clientset
 	var autoMigrationLeader leader.ElectorInterface
-	authHandler, err := auth.NewAuthenticator(&Options.Auth, ocmClient, log.WithField("pkg", "auth"), db)
-	failOnError(err, "failed to create authenticator")
-	authzHandler := auth.NewAuthzHandler(&Options.Auth, ocmClient, log.WithField("pkg", "authz"), db)
+
 	releaseHandler := oc.NewRelease(&executer.CommonExecuter{},
 		oc.Config{MaxTries: oc.DefaultTries, RetryDelay: oc.DefaltRetryDelay})
 	extracterHandler := oc.NewExtracter(&executer.CommonExecuter{},
@@ -607,11 +614,11 @@ func setupDB(log logrus.FieldLogger) *gorm.DB {
 	return db
 }
 
-func getOCMClient(log logrus.FieldLogger, metrics metrics.API) *ocm.Client {
+func getOCMClient(log logrus.FieldLogger) *ocm.Client {
 	var ocmClient *ocm.Client
 	var err error
 	if Options.Auth.AuthType == auth.TypeRHSSO {
-		ocmClient, err = ocm.NewClient(Options.OCMConfig, log.WithField("pkg", "ocm"), metrics)
+		ocmClient, err = ocm.NewClient(Options.OCMConfig, log.WithField("pkg", "ocm"))
 		if err != nil {
 			log.WithError(err).Fatal("Failed to Create OCM Client")
 		}
@@ -698,8 +705,8 @@ func autoMigrationWithLeader(migrationLeader leader.ElectorInterface, db *gorm.D
 	})
 }
 
-func createEventsHandler(crdEventsHandler controllers.CRDEventsHandler, db *gorm.DB, log logrus.FieldLogger) eventsapi.Handler {
-	eventsHandler := events.New(db, log.WithField("pkg", "events"))
+func createEventsHandler(crdEventsHandler controllers.CRDEventsHandler, db *gorm.DB, authzHandler auth.Authorizer, log logrus.FieldLogger) eventsapi.Handler {
+	eventsHandler := events.New(db, authzHandler, log.WithField("pkg", "events"))
 
 	if crdEventsHandler != nil {
 		return controllers.NewControllerEventsWrapper(crdEventsHandler, eventsHandler, db, log)

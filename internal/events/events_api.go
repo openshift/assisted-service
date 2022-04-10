@@ -35,9 +35,7 @@ func (a *Api) V2ListEvents(ctx context.Context, params events.V2ListEventsParams
 
 	evs, err := a.handler.V2GetEvents(ctx, params.ClusterID, params.HostID, params.InfraEnvID, params.Categories...)
 	if err != nil {
-		if errors.Is(err, gorm.ErrInvalidTransaction) {
-			return common.NewApiError(http.StatusBadRequest, err)
-		} else if errors.Is(err, gorm.ErrRecordNotFound) {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return common.NewApiError(http.StatusNotFound, err)
 		}
 		log.WithError(err).Errorf("failed to get events")
