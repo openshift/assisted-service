@@ -6472,9 +6472,7 @@ var _ = Describe("infraEnvs", func() {
 		var authCtx context.Context
 
 		BeforeEach(func() {
-			_, cert := auth.GetTokenAndCert(false)
-			cfg := &auth.Config{JwkCert: string(cert), AuthType: auth.TypeRHSSO}
-			cfg.EnableOrgTenancy = true
+			cfg := auth.GetConfigRHSSO()
 			bm.authHandler = auth.NewRHSSOAuthenticator(cfg, nil, common.GetTestLog().WithField("pkg", "auth"), db)
 			bm.authzHandler = auth.NewAuthzHandler(cfg, nil, common.GetTestLog().WithField("pkg", "auth"), db)
 
@@ -6538,9 +6536,7 @@ var _ = Describe("infraEnvs", func() {
 		var authCtx context.Context
 
 		BeforeEach(func() {
-			_, cert := auth.GetTokenAndCert(false)
-			cfg := &auth.Config{JwkCert: string(cert), AuthType: auth.TypeRHSSO}
-			cfg.EnableOrgTenancy = true
+			cfg := auth.GetConfigRHSSO()
 			bm.authHandler = auth.NewRHSSOAuthenticator(cfg, nil, common.GetTestLog().WithField("pkg", "auth"), db)
 			bm.authzHandler = auth.NewAuthzHandler(cfg, nil, common.GetTestLog().WithField("pkg", "auth"), db)
 
@@ -6847,9 +6843,7 @@ var _ = Describe("infraEnvs", func() {
 			db, dbName = common.PrepareTestDB()
 			clusterID = strfmt.UUID(uuid.New().String())
 
-			_, cert := auth.GetTokenAndCert(false)
-			cfg := &auth.Config{JwkCert: string(cert), AuthType: auth.TypeRHSSO}
-			cfg.EnableOrgTenancy = true
+			cfg := auth.GetConfigRHSSO()
 			bm = createInventory(db, Config{})
 			mockOcmAuthz = ocm.NewMockOCMAuthorization(ctrl)
 			mockOcmClient := &ocm.Client{Cache: cache.New(10*time.Minute, 30*time.Minute), Authorization: mockOcmAuthz}
@@ -8544,9 +8538,7 @@ var _ = Describe("List clusters", func() {
 		var authCtx context.Context
 
 		BeforeEach(func() {
-			_, cert := auth.GetTokenAndCert(false)
-			cfg := &auth.Config{JwkCert: string(cert), AuthType: auth.TypeRHSSO}
-			cfg.EnableOrgTenancy = true
+			cfg := auth.GetConfigRHSSO()
 			bm.authHandler = auth.NewRHSSOAuthenticator(cfg, nil, common.GetTestLog().WithField("pkg", "auth"), db)
 			bm.authzHandler = auth.NewAuthzHandler(cfg, nil, common.GetTestLog().WithField("pkg", "auth"), db)
 
@@ -8612,9 +8604,7 @@ var _ = Describe("List clusters", func() {
 		var authCtx context.Context
 
 		BeforeEach(func() {
-			_, cert := auth.GetTokenAndCert(false)
-			cfg := &auth.Config{JwkCert: string(cert), AuthType: auth.TypeRHSSO}
-			cfg.EnableOrgTenancy = true
+			cfg := auth.GetConfigRHSSO()
 			bm.authHandler = auth.NewRHSSOAuthenticator(cfg, nil, common.GetTestLog().WithField("pkg", "auth"), db)
 			bm.authzHandler = auth.NewAuthzHandler(cfg, nil, common.GetTestLog().WithField("pkg", "auth"), db)
 
@@ -11907,6 +11897,141 @@ var _ = Describe("V2UpdateHostIgnition", func() {
 	})
 })
 
+var _ = Describe("V2UpdateHostIgnition - with rhsso auth", func() {
+	var (
+		authCtx      context.Context
+		bm           *bareMetalInventory
+		db           *gorm.DB
+		ctx          = context.Background()
+		clusterID    strfmt.UUID
+		hostID       strfmt.UUID
+		infraEnvID   strfmt.UUID
+		dbName       string
+		userName1    = "test_user_1"
+		userName2    = "test_user_2"
+		mockOcmAuthz *ocm.MockOCMAuthorization
+		payload      *ocm.AuthPayload
+	)
+
+	BeforeEach(func() {
+		db, dbName = common.PrepareTestDB()
+		clusterID = strfmt.UUID(uuid.New().String())
+		hostID = strfmt.UUID(uuid.New().String())
+		infraEnvID = strfmt.UUID(uuid.New().String())
+
+		cfg := auth.GetConfigRHSSO()
+		bm = createInventory(db, Config{})
+		mockOcmAuthz = ocm.NewMockOCMAuthorization(ctrl)
+		mockOcmClient := &ocm.Client{Cache: cache.New(10*time.Minute, 30*time.Minute), Authorization: mockOcmAuthz}
+		bm.authHandler = auth.NewRHSSOAuthenticator(cfg, mockOcmClient, common.GetTestLog().WithField("pkg", "auth"), db)
+		bm.authzHandler = auth.NewAuthzHandler(cfg, mockOcmClient, common.GetTestLog().WithField("pkg", "auth"), db)
+		payload = &ocm.AuthPayload{Role: ocm.UserRole}
+
+		cluster := &common.Cluster{
+			Cluster: models.Cluster{
+				ID:       &clusterID,
+				Kind:     swag.String(models.ClusterKindCluster),
+				UserName: userName1,
+			},
+		}
+		Expect(db.Create(cluster).Error).ToNot(HaveOccurred())
+
+		host := models.Host{
+			ID:         &hostID,
+			InfraEnvID: infraEnvID,
+			ClusterID:  &clusterID,
+			Kind:       swag.String(models.HostKindHost),
+			Status:     swag.String(models.HostStatusKnown),
+			Role:       models.HostRoleMaster,
+			Inventory:  "{}",
+			UserName:   userName1,
+		}
+		Expect(db.Create(&host).Error).ToNot(HaveOccurred())
+
+		infraEnv := &common.InfraEnv{
+			InfraEnv: models.InfraEnv{
+				ID:        &infraEnvID,
+				ClusterID: clusterID,
+				UserName:  userName1,
+			},
+		}
+		Expect(db.Create(infraEnv).Error).ToNot(HaveOccurred())
+	})
+
+	AfterEach(func() {
+		common.DeleteTestDB(db, dbName)
+	})
+
+	It("successful update host ignition - cluster owner", func() {
+		payload.Username = userName1
+		authCtx = context.WithValue(ctx, restapi.AuthKey, payload)
+
+		override := `{"ignition": {"version": "3.1.0"}, "storage": {"files": [{"path": "/tmp/example", "contents": {"source": "data:text/plain;base64,aGVscGltdHJhcHBlZGluYXN3YWdnZXJzcGVj"}}]}}`
+		params := installer.V2UpdateHostIgnitionParams{
+			InfraEnvID:         infraEnvID,
+			HostID:             hostID,
+			HostIgnitionParams: &models.HostIgnitionParams{Config: override},
+		}
+		mockEvents.EXPECT().SendHostEvent(gomock.Any(), eventstest.NewEventMatcher(
+			eventstest.WithNameMatcher(eventgen.HostDiscoveryIgnitionConfigAppliedEventName),
+			eventstest.WithHostIdMatcher(params.HostID.String()),
+			eventstest.WithInfraEnvIdMatcher(params.InfraEnvID.String())))
+
+		response := bm.V2UpdateHostIgnition(authCtx, params)
+		Expect(response).To(BeAssignableToTypeOf(&installer.V2UpdateHostIgnitionCreated{}))
+
+		var updated models.Host
+		err := db.First(&updated, "id = ?", hostID).Error
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(updated.IgnitionConfigOverrides).To(Equal(override))
+	})
+
+	It("successful update host ignition - clusterEditor", func() {
+		payload.Username = userName2
+		authCtx = context.WithValue(ctx, restapi.AuthKey, payload)
+
+		override := `{"ignition": {"version": "3.1.0"}, "storage": {"files": [{"path": "/tmp/example", "contents": {"source": "data:text/plain;base64,aGVscGltdHJhcHBlZGluYXN3YWdnZXJzcGVj"}}]}}`
+		params := installer.V2UpdateHostIgnitionParams{
+			InfraEnvID:         infraEnvID,
+			HostID:             hostID,
+			HostIgnitionParams: &models.HostIgnitionParams{Config: override},
+		}
+		mockEvents.EXPECT().SendHostEvent(gomock.Any(), eventstest.NewEventMatcher(
+			eventstest.WithNameMatcher(eventgen.HostDiscoveryIgnitionConfigAppliedEventName),
+			eventstest.WithHostIdMatcher(params.HostID.String()),
+			eventstest.WithInfraEnvIdMatcher(params.InfraEnvID.String())))
+
+		mockOcmAuthz.EXPECT().AccessReview(
+			gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(true, nil)
+
+		response := bm.V2UpdateHostIgnition(authCtx, params)
+		Expect(response).To(BeAssignableToTypeOf(&installer.V2UpdateHostIgnitionCreated{}))
+
+		var updated models.Host
+		err := db.First(&updated, "id = ?", hostID).Error
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(updated.IgnitionConfigOverrides).To(Equal(override))
+	})
+
+	It("no access to specified cluster", func() {
+		payload.Username = userName2
+		authCtx = context.WithValue(ctx, restapi.AuthKey, payload)
+
+		override := `{"ignition": {"version": "3.1.0"}, "storage": {"files": [{"path": "/tmp/example", "contents": {"source": "data:text/plain;base64,aGVscGltdHJhcHBlZGluYXN3YWdnZXJzcGVj"}}]}}`
+		params := installer.V2UpdateHostIgnitionParams{
+			InfraEnvID:         infraEnvID,
+			HostID:             hostID,
+			HostIgnitionParams: &models.HostIgnitionParams{Config: override},
+		}
+
+		mockOcmAuthz.EXPECT().AccessReview(
+			gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(false, nil)
+
+		response := bm.V2UpdateHostIgnition(authCtx, params)
+		verifyApiError(response, http.StatusNotFound)
+	})
+})
+
 var _ = Describe("BindHost", func() {
 	var (
 		bm         *bareMetalInventory
@@ -12136,9 +12261,7 @@ var _ = Describe("BindHost - with rhsso auth", func() {
 		hostID = strfmt.UUID(uuid.New().String())
 		infraEnvID = strfmt.UUID(uuid.New().String())
 
-		_, cert := auth.GetTokenAndCert(false)
-		cfg := &auth.Config{JwkCert: string(cert), AuthType: auth.TypeRHSSO}
-		cfg.EnableOrgTenancy = true
+		cfg := auth.GetConfigRHSSO()
 		bm = createInventory(db, Config{})
 		mockOcmAuthz = ocm.NewMockOCMAuthorization(ctrl)
 		mockOcmClient := &ocm.Client{Cache: cache.New(10*time.Minute, 30*time.Minute), Authorization: mockOcmAuthz}
@@ -12399,6 +12522,104 @@ var _ = Describe("V2UpdateHostInstallerArgs", func() {
 		}
 		response := bm.V2UpdateHostInstallerArgs(ctx, params)
 		verifyApiError(response, http.StatusBadRequest)
+	})
+})
+
+var _ = Describe("V2UpdateHostInstallerArgs - with rhsso auth", func() {
+	var (
+		authCtx      context.Context
+		bm           *bareMetalInventory
+		db           *gorm.DB
+		ctx          = context.Background()
+		clusterID    strfmt.UUID
+		hostID       strfmt.UUID
+		infraEnvID   strfmt.UUID
+		dbName       string
+		userName1    = "test_user_1"
+		userName2    = "test_user_2"
+		mockOcmAuthz *ocm.MockOCMAuthorization
+		payload      *ocm.AuthPayload
+	)
+
+	BeforeEach(func() {
+		db, dbName = common.PrepareTestDB()
+		clusterID = strfmt.UUID(uuid.New().String())
+		infraEnvID = strfmt.UUID(uuid.New().String())
+
+		cfg := auth.GetConfigRHSSO()
+		bm = createInventory(db, Config{})
+		mockOcmAuthz = ocm.NewMockOCMAuthorization(ctrl)
+		mockOcmClient := &ocm.Client{Cache: cache.New(10*time.Minute, 30*time.Minute), Authorization: mockOcmAuthz}
+		bm.authHandler = auth.NewRHSSOAuthenticator(cfg, mockOcmClient, common.GetTestLog().WithField("pkg", "auth"), db)
+		bm.authzHandler = auth.NewAuthzHandler(cfg, mockOcmClient, common.GetTestLog().WithField("pkg", "auth"), db)
+		payload = &ocm.AuthPayload{Role: ocm.UserRole}
+
+		err := db.Create(&common.Cluster{Cluster: models.Cluster{ID: &clusterID, UserName: userName1}}).Error
+		Expect(err).ShouldNot(HaveOccurred())
+
+		// add a host
+		hostID = strfmt.UUID(uuid.New().String())
+		addHost(hostID, models.HostRoleMaster, models.HostStatusKnown, models.HostKindHost, infraEnvID, clusterID, "{}", db)
+	})
+
+	AfterEach(func() {
+		common.DeleteTestDB(db, dbName)
+	})
+
+	It("successful update host installer args - cluster owner", func() {
+		payload.Username = userName1
+		authCtx = context.WithValue(ctx, restapi.AuthKey, payload)
+
+		args := []string{"--append-karg", "nameserver=8.8.8.8", "-n"}
+		params := installer.V2UpdateHostInstallerArgsParams{
+			InfraEnvID:          infraEnvID,
+			HostID:              hostID,
+			InstallerArgsParams: &models.InstallerArgsParams{Args: args},
+		}
+		mockEvents.EXPECT().SendHostEvent(gomock.Any(), eventstest.NewEventMatcher(
+			eventstest.WithNameMatcher(eventgen.HostInstallerArgsAppliedEventName),
+			eventstest.WithHostIdMatcher(params.HostID.String()),
+			eventstest.WithInfraEnvIdMatcher(params.InfraEnvID.String())))
+		response := bm.V2UpdateHostInstallerArgs(authCtx, params)
+		Expect(response).To(BeAssignableToTypeOf(&installer.V2UpdateHostInstallerArgsCreated{}))
+	})
+
+	It("successful update host installer args - clusterEditor", func() {
+		payload.Username = userName2
+		authCtx = context.WithValue(ctx, restapi.AuthKey, payload)
+
+		args := []string{"--append-karg", "nameserver=8.8.8.8", "-n"}
+		params := installer.V2UpdateHostInstallerArgsParams{
+			InfraEnvID:          infraEnvID,
+			HostID:              hostID,
+			InstallerArgsParams: &models.InstallerArgsParams{Args: args},
+		}
+		mockOcmAuthz.EXPECT().AccessReview(
+			gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(true, nil)
+		mockEvents.EXPECT().SendHostEvent(gomock.Any(), eventstest.NewEventMatcher(
+			eventstest.WithNameMatcher(eventgen.HostInstallerArgsAppliedEventName),
+			eventstest.WithHostIdMatcher(params.HostID.String()),
+			eventstest.WithInfraEnvIdMatcher(params.InfraEnvID.String())))
+		response := bm.V2UpdateHostInstallerArgs(authCtx, params)
+		Expect(response).To(BeAssignableToTypeOf(&installer.V2UpdateHostInstallerArgsCreated{}))
+	})
+
+	It("no access to specified cluster", func() {
+		payload.Username = userName2
+		authCtx = context.WithValue(ctx, restapi.AuthKey, payload)
+
+		args := []string{"--append-karg", "nameserver=8.8.8.8", "-n"}
+		params := installer.V2UpdateHostInstallerArgsParams{
+			InfraEnvID:          infraEnvID,
+			HostID:              hostID,
+			InstallerArgsParams: &models.InstallerArgsParams{Args: args},
+		}
+
+		mockOcmAuthz.EXPECT().AccessReview(
+			gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(false, nil)
+
+		response := bm.V2UpdateHostInstallerArgs(authCtx, params)
+		verifyApiError(response, http.StatusNotFound)
 	})
 })
 

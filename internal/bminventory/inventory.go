@@ -4949,12 +4949,19 @@ func (b *bareMetalInventory) V2UpdateHostInstallerArgsInternal(ctx context.Conte
 		return nil, err
 	}
 
+	allowed, err := b.authzHandler.HasAccessTo(ctx, h, auth.UpdateAction)
+	if !allowed {
+		msg := fmt.Sprintf("Failed to find host %s", params.HostID.String())
+		b.log.WithError(err).Error(msg)
+		return nil, common.NewApiError(http.StatusNotFound, errors.New(msg))
+	}
+
 	argsBytes, err := json.Marshal(params.InstallerArgsParams.Args)
 	if err != nil {
 		return nil, err
 	}
 
-	err = b.db.Model(&common.Host{}).Where(identity.AddUserFilter(ctx, "id = ? and infra_env_id = ?"), params.HostID, params.InfraEnvID).Update("installer_args", string(argsBytes)).Error
+	err = b.db.Model(&common.Host{}).Where("id = ? and infra_env_id = ?", params.HostID, params.InfraEnvID).Update("installer_args", string(argsBytes)).Error
 	if err != nil {
 		log.WithError(err).Errorf("failed to update host %s", params.HostID)
 		return nil, common.NewApiError(http.StatusInternalServerError, err)
@@ -4989,6 +4996,13 @@ func (b *bareMetalInventory) V2UpdateHostIgnitionInternal(ctx context.Context, p
 		return nil, err
 	}
 
+	allowed, err := b.authzHandler.HasAccessTo(ctx, h, auth.UpdateAction)
+	if !allowed {
+		msg := fmt.Sprintf("Failed to find host %s", params.HostID.String())
+		b.log.WithError(err).Error(msg)
+		return nil, common.NewApiError(http.StatusNotFound, errors.New(msg))
+	}
+
 	if params.HostIgnitionParams.Config != "" {
 		_, err = ignition.ParseToLatest([]byte(params.HostIgnitionParams.Config))
 		if err != nil {
@@ -4999,7 +5013,7 @@ func (b *bareMetalInventory) V2UpdateHostIgnitionInternal(ctx context.Context, p
 		log.Infof("Removing custom ignition override from host %s in infra-env %s", params.HostID, params.InfraEnvID)
 	}
 
-	err = b.db.Model(&common.Host{}).Where(identity.AddUserFilter(ctx, "id = ? and infra_env_id = ?"), params.HostID, params.InfraEnvID).Update("ignition_config_overrides", params.HostIgnitionParams.Config).Error
+	err = b.db.Model(&common.Host{}).Where("id = ? and infra_env_id = ?", params.HostID, params.InfraEnvID).Update("ignition_config_overrides", params.HostIgnitionParams.Config).Error
 	if err != nil {
 		return nil, common.NewApiError(http.StatusInternalServerError, err)
 	}
