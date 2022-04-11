@@ -45,14 +45,16 @@ var _ = Describe("spec", func() {
 	})
 
 	It("get spec", func() {
-		res, err := http.Get(fmt.Sprintf("%s%s", ts.URL, openapiPath))
-		if err != nil {
-			log.Fatal(err)
+		for _, path := range openapiPaths {
+			res, err := http.Get(fmt.Sprintf("%s%s", ts.URL, path))
+			if err != nil {
+				log.Fatal(err)
+			}
+			reply, err := ioutil.ReadAll(res.Body)
+			Expect(err).To(BeNil())
+			res.Body.Close()
+			Expect(isJSON(reply)).To(BeTrue(), fmt.Sprintf("got %s", string(reply)))
 		}
-		reply, err := ioutil.ReadAll(res.Body)
-		Expect(err).To(BeNil())
-		res.Body.Close()
-		Expect(isJSON(reply)).To(BeTrue(), fmt.Sprintf("got %s", string(reply)))
 	})
 
 	It("not a spec", func() {
