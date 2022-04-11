@@ -50,7 +50,7 @@ require (
 	github.com/openshift/hive/apis v0.0.0-20220222213051-def9088fdb5a
 	github.com/openshift/machine-api-operator v0.2.1-0.20201002104344-6abfb5440597
 	github.com/ory/dockertest/v3 v3.8.1
-	github.com/ovirt/go-ovirt-client v0.7.1
+	github.com/ovirt/go-ovirt-client v0.9.0
 	github.com/patrickmn/go-cache v2.1.0+incompatible
 	github.com/pelletier/go-toml v1.9.4
 	github.com/pkg/errors v0.9.1
@@ -171,7 +171,7 @@ require (
 	github.com/opencontainers/runc v1.1.0 // indirect
 	github.com/openshift/cluster-api-provider-gcp v0.0.1-0.20201002065957-9854f7420570 // indirect
 	github.com/ovirt/go-ovirt v0.0.0-20210809163552-d4276e35d3db // indirect
-	github.com/ovirt/go-ovirt-client-log/v2 v2.1.0 // indirect
+	github.com/ovirt/go-ovirt-client-log/v2 v2.2.0 // indirect
 	github.com/pierrec/lz4 v2.3.0+incompatible // indirect
 	github.com/pkg/xattr v0.4.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
