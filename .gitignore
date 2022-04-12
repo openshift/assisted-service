@@ -16,7 +16,6 @@ __pycache__/
 # Drop scorecard stuff
 deploy/olm-catalog/**/tests/**
 
-/vendor
 reports
 
 # Files used for onprem testing
