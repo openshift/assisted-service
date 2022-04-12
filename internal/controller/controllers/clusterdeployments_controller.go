@@ -873,15 +873,9 @@ func (r *ClusterDeploymentsReconciler) updateIfNeeded(ctx context.Context,
 		}
 	}
 
-	if clusterInstall.Spec.Proxy != nil {
-		updateString(swag.StringValue(&clusterInstall.Spec.Proxy.HTTPProxy), cluster.HTTPProxy, &params.HTTPProxy)
-		updateString(swag.StringValue(&clusterInstall.Spec.Proxy.HTTPSProxy), cluster.HTTPSProxy, &params.HTTPSProxy)
-		updateString(swag.StringValue(&clusterInstall.Spec.Proxy.NoProxy), cluster.NoProxy, &params.NoProxy)
-	} else {
-		params.HTTPSProxy = swag.String("")
-		params.HTTPProxy = swag.String("")
-		params.NoProxy = swag.String("")
-	}
+	params.HTTPSProxy = swag.String("")
+	params.HTTPProxy = swag.String("")
+	params.NoProxy = swag.String("")
 
 	if !update {
 		return cluster, nil
@@ -1165,18 +1159,6 @@ func (r *ClusterDeploymentsReconciler) createNewCluster(
 			EnableOn:    clusterInstall.Spec.DiskEncryption.EnableOn,
 			Mode:        clusterInstall.Spec.DiskEncryption.Mode,
 			TangServers: clusterInstall.Spec.DiskEncryption.TangServers,
-		}
-	}
-
-	if clusterInstall.Spec.Proxy != nil {
-		if clusterInstall.Spec.Proxy.NoProxy != "" {
-			clusterParams.NoProxy = swag.String(clusterInstall.Spec.Proxy.NoProxy)
-		}
-		if clusterInstall.Spec.Proxy.HTTPProxy != "" {
-			clusterParams.HTTPProxy = swag.String(clusterInstall.Spec.Proxy.HTTPProxy)
-		}
-		if clusterInstall.Spec.Proxy.HTTPSProxy != "" {
-			clusterParams.HTTPSProxy = swag.String(clusterInstall.Spec.Proxy.HTTPSProxy)
 		}
 	}
 
