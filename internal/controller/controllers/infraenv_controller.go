@@ -162,7 +162,7 @@ func (r *InfraEnvReconciler) updateInfraEnv(ctx context.Context, log logrus.Fiel
 		updateParams.InfraEnvUpdateParams.SSHAuthorizedKey = &infraEnv.Spec.SSHAuthorizedKey
 	}
 
-	pullSecret, err := getPullSecretData(ctx, r.Client, r.APIReader, infraEnv.Spec.PullSecretRef, infraEnv.Namespace)
+	pullSecret, err := getAndLabelPullSecret(ctx, r.Client, r.APIReader, infraEnv.Spec.PullSecretRef, infraEnv.Namespace)
 	if err != nil {
 		log.WithError(err).Error("failed to get pull secret")
 		return nil, err
@@ -337,7 +337,7 @@ func (r *InfraEnvReconciler) ensureISO(ctx context.Context, log logrus.FieldLogg
 
 func (r *InfraEnvReconciler) createInfraEnv(ctx context.Context, log logrus.FieldLogger, key *types.NamespacedName, infraEnv *aiv1beta1.InfraEnv, cluster *common.Cluster) (*common.InfraEnv, error) {
 
-	pullSecret, err := getPullSecretData(ctx, r.Client, r.APIReader, infraEnv.Spec.PullSecretRef, key.Namespace)
+	pullSecret, err := getAndLabelPullSecret(ctx, r.Client, r.APIReader, infraEnv.Spec.PullSecretRef, key.Namespace)
 	if err != nil {
 		log.WithError(err).Error("failed to get pull secret")
 		return nil, err

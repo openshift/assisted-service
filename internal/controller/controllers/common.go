@@ -116,6 +116,22 @@ func getPullSecretData(ctx context.Context, c client.Client, r client.Reader, re
 	return string(data), nil
 }
 
+func getAndLabelPullSecret(ctx context.Context, c client.Client, r client.Reader, ref *corev1.LocalObjectReference, namespace string) (string, error) {
+	pullSecret, err := getPullSecretData(ctx, c, r, ref, namespace)
+	if err != nil {
+		return "", err
+	}
+	namespacedName := types.NamespacedName{Namespace: namespace, Name: ref.Name}
+	secret, err := getSecret(ctx, c, r, namespacedName)
+	if err != nil {
+		return "", errors.Errorf("failed to find secret %s: %v", ref.Name, err)
+	}
+	if err := ensureSecretIsLabelled(ctx, c, secret, namespacedName); err != nil {
+		return "", errors.Errorf("failed to label secret %s for backup: %v", ref.Name, err)
+	}
+	return pullSecret, nil
+}
+
 func getInfraEnvByClusterDeployment(ctx context.Context, log logrus.FieldLogger, c client.Client, name, namespace string) (*aiv1beta1.InfraEnv, error) {
 	infraEnvs := &aiv1beta1.InfraEnvList{}
 	if err := c.List(ctx, infraEnvs); err != nil {
