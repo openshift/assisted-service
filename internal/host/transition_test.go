@@ -2335,6 +2335,7 @@ var _ = Describe("Refresh Host", func() {
 
 			// Cluster fields
 			machineNetworks       []*models.MachineNetwork
+			serviceNetworks       []*models.ServiceNetwork
 			connectivity          string
 			userManagedNetworking bool
 			isDay2                bool
@@ -2965,6 +2966,96 @@ var _ = Describe("Refresh Host", func() {
 					SucessfullOrUnknownContainerImagesAvailability: {status: ValidationSuccess, messagePattern: "All required container images were either pulled successfully or no attempt was made to pull them"},
 				}),
 				inventory:     hostutil.GenerateMasterInventory(),
+				errorExpected: false,
+			},
+			{
+				name:              "discovering to insufficient - duplicate networks",
+				validCheckInTime:  true,
+				srcState:          models.HostStatusDiscovering,
+				dstState:          models.HostStatusInsufficient,
+				machineNetworks:   common.TestIPv4Networking.MachineNetworks,
+				serviceNetworks:   common.TestIPv4Networking.ServiceNetworks,
+				ntpSources:        defaultNTPSources,
+				imageStatuses:     map[string]*models.ContainerImageAvailability{common.TestDefaultConfig.ImageName: common.TestImageStatusesSuccess},
+				role:              models.HostRoleMaster,
+				statusInfoChecker: makeRegexChecker("Address networks are overlapping"),
+				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
+					IsConnected:           {status: ValidationSuccess, messagePattern: "Host is connected"},
+					HasInventory:          {status: ValidationSuccess, messagePattern: "Valid inventory exists for the host"},
+					HasMinCPUCores:        {status: ValidationSuccess, messagePattern: "Sufficient CPU cores"},
+					HasMinMemory:          {status: ValidationSuccess, messagePattern: "Sufficient minimum RAM"},
+					HasMinValidDisks:      {status: ValidationSuccess, messagePattern: "Sufficient disk capacity"},
+					IsMachineCidrDefined:  {status: ValidationSuccess, messagePattern: "Machine Network CIDR is defined"},
+					HasCPUCoresForRole:    {status: ValidationSuccess, messagePattern: "Sufficient CPU cores for role master"},
+					HasMemoryForRole:      {status: ValidationSuccess, messagePattern: "Sufficient RAM for role master"},
+					IsHostnameUnique:      {status: ValidationSuccess, messagePattern: " is unique in cluster"},
+					BelongsToMachineCidr:  {status: ValidationSuccess, messagePattern: "Host belongs to all machine network CIDRs"},
+					IsHostnameValid:       {status: ValidationSuccess, messagePattern: "Hostname .* is allowed"},
+					IsNTPSynced:           {status: ValidationSuccess, messagePattern: "Host NTP is synced"},
+					NonOverlappingSubnets: {status: ValidationFailure, messagePattern: "Address networks are overlapping: CIDRS 1.2.3.0/24 and 1.2.3.0/24 overlap"},
+					SucessfullOrUnknownContainerImagesAvailability: {status: ValidationSuccess, messagePattern: "All required container images were either pulled successfully or no attempt was made to pull them"},
+				}),
+				inventory:     hostutil.GenerateMasterInventoryWithNetworks("1.2.3.4/24", "1.2.3.5/24"),
+				errorExpected: false,
+			},
+			{
+				name:              "discovering to insufficient - overlapping networks",
+				validCheckInTime:  true,
+				srcState:          models.HostStatusDiscovering,
+				dstState:          models.HostStatusInsufficient,
+				machineNetworks:   common.TestIPv4Networking.MachineNetworks,
+				serviceNetworks:   common.TestIPv4Networking.ServiceNetworks,
+				ntpSources:        defaultNTPSources,
+				imageStatuses:     map[string]*models.ContainerImageAvailability{common.TestDefaultConfig.ImageName: common.TestImageStatusesSuccess},
+				role:              models.HostRoleMaster,
+				statusInfoChecker: makeRegexChecker("Address networks are overlapping"),
+				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
+					IsConnected:           {status: ValidationSuccess, messagePattern: "Host is connected"},
+					HasInventory:          {status: ValidationSuccess, messagePattern: "Valid inventory exists for the host"},
+					HasMinCPUCores:        {status: ValidationSuccess, messagePattern: "Sufficient CPU cores"},
+					HasMinMemory:          {status: ValidationSuccess, messagePattern: "Sufficient minimum RAM"},
+					HasMinValidDisks:      {status: ValidationSuccess, messagePattern: "Sufficient disk capacity"},
+					IsMachineCidrDefined:  {status: ValidationSuccess, messagePattern: "Machine Network CIDR is defined"},
+					HasCPUCoresForRole:    {status: ValidationSuccess, messagePattern: "Sufficient CPU cores for role master"},
+					HasMemoryForRole:      {status: ValidationSuccess, messagePattern: "Sufficient RAM for role master"},
+					IsHostnameUnique:      {status: ValidationSuccess, messagePattern: " is unique in cluster"},
+					BelongsToMachineCidr:  {status: ValidationSuccess, messagePattern: "Host belongs to all machine network CIDRs"},
+					IsHostnameValid:       {status: ValidationSuccess, messagePattern: "Hostname .* is allowed"},
+					IsNTPSynced:           {status: ValidationSuccess, messagePattern: "Host NTP is synced"},
+					NonOverlappingSubnets: {status: ValidationFailure, messagePattern: "Address networks are overlapping: CIDRS.*overlap"},
+					SucessfullOrUnknownContainerImagesAvailability: {status: ValidationSuccess, messagePattern: "All required container images were either pulled successfully or no attempt was made to pull them"},
+				}),
+				inventory:     hostutil.GenerateMasterInventoryWithNetworks("1.2.3.4/24", "1.2.3.16/23"),
+				errorExpected: false,
+			},
+			{
+				name:              "discovering to known - no overlapping networks",
+				validCheckInTime:  true,
+				srcState:          models.HostStatusDiscovering,
+				dstState:          models.HostStatusKnown,
+				machineNetworks:   common.TestIPv4Networking.MachineNetworks,
+				serviceNetworks:   common.TestIPv4Networking.ServiceNetworks,
+				ntpSources:        defaultNTPSources,
+				imageStatuses:     map[string]*models.ContainerImageAvailability{common.TestDefaultConfig.ImageName: common.TestImageStatusesSuccess},
+				role:              models.HostRoleMaster,
+				statusInfoChecker: makeRegexChecker("Host is ready to be installed"),
+				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
+					IsConnected:           {status: ValidationSuccess, messagePattern: "Host is connected"},
+					HasInventory:          {status: ValidationSuccess, messagePattern: "Valid inventory exists for the host"},
+					HasMinCPUCores:        {status: ValidationSuccess, messagePattern: "Sufficient CPU cores"},
+					HasMinMemory:          {status: ValidationSuccess, messagePattern: "Sufficient minimum RAM"},
+					HasMinValidDisks:      {status: ValidationSuccess, messagePattern: "Sufficient disk capacity"},
+					IsMachineCidrDefined:  {status: ValidationSuccess, messagePattern: "Machine Network CIDR is defined"},
+					HasCPUCoresForRole:    {status: ValidationSuccess, messagePattern: "Sufficient CPU cores for role master"},
+					HasMemoryForRole:      {status: ValidationSuccess, messagePattern: "Sufficient RAM for role master"},
+					IsHostnameUnique:      {status: ValidationSuccess, messagePattern: " is unique in cluster"},
+					BelongsToMachineCidr:  {status: ValidationSuccess, messagePattern: "Host belongs to all machine network CIDRs"},
+					IsHostnameValid:       {status: ValidationSuccess, messagePattern: "Hostname .* is allowed"},
+					IsNTPSynced:           {status: ValidationSuccess, messagePattern: "Host NTP is synced"},
+					NonOverlappingSubnets: {status: ValidationSuccess, messagePattern: "Host subnets are not overlapping"},
+					SucessfullOrUnknownContainerImagesAvailability: {status: ValidationSuccess, messagePattern: "All required container images were either pulled successfully or no attempt was made to pull them"},
+				}),
+				inventory:     hostutil.GenerateMasterInventoryWithNetworks("1.2.3.4/24", "1.2.5.16/23"),
 				errorExpected: false,
 			},
 			{
@@ -3614,6 +3705,7 @@ var _ = Describe("Refresh Host", func() {
 
 				cluster = hostutil.GenerateTestCluster(clusterId, t.machineNetworks)
 				cluster.Kind = &clusterKind
+				cluster.ServiceNetworks = t.serviceNetworks
 				cluster.UserManagedNetworking = &t.userManagedNetworking
 				cluster.Name = common.TestDefaultConfig.ClusterName
 				cluster.BaseDNSDomain = common.TestDefaultConfig.BaseDNSDomain

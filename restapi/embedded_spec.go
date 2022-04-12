@@ -7179,7 +7179,8 @@ func init() {
         "apps-domain-name-resolved-correctly",
         "compatible-with-cluster-platform",
         "dns-wildcard-not-configured",
-        "disk-encryption-requirements-satisfied"
+        "disk-encryption-requirements-satisfied",
+        "non-overlapping-subnets"
       ]
     },
     "host_network": {
@@ -16270,7 +16271,8 @@ func init() {
         "apps-domain-name-resolved-correctly",
         "compatible-with-cluster-platform",
         "dns-wildcard-not-configured",
-        "disk-encryption-requirements-satisfied"
+        "disk-encryption-requirements-satisfied",
+        "non-overlapping-subnets"
       ]
     },
     "host_network": {
