@@ -91,7 +91,7 @@ retrieve a presigned url for downloading the boot script.
 - `GET /v2/infra-envs/{infra-env-id}/downloads/files?file_name=ipxe-script`
   - Will return an iPXE boot script with artifact URLs pointing to the image service
   - Initrd URL will be presigned
-- `GET  /v2/infra-envs/{infra-env-id}/downloads/files-presigned?file_name=ipxe-script
+- `GET /v2/infra-envs/{infra-env-id}/downloads/files-presigned?file_name=ipxe-script`
   - Will return a presigned URL for the iPXE script
 
 #### Assisted Service Kubernetes APIs
