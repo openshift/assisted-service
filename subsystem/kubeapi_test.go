@@ -2828,6 +2828,18 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			return aci.Status.DebugInfo.LogsURL
 		}, "30s", "10s").Should(Equal(""))
 
+		By("Ensure APIVIP exists in status")
+		Eventually(func() string {
+			aci := getAgentClusterInstallCRD(ctx, kubeClient, installkey)
+			return aci.Status.APIVIP
+		}, "30s", "1s").Should(Equal(aciSNOSpec.APIVIP))
+
+		By("Ensure IngressVIP exists in status")
+		Eventually(func() string {
+			aci := getAgentClusterInstallCRD(ctx, kubeClient, installkey)
+			return aci.Status.IngressVIP
+		}, "30s", "1s").Should(Equal(aciSNOSpec.IngressVIP))
+
 		By("Verify Agent labels")
 		labels[v1beta1.InfraEnvNameLabel] = infraNsName.Name
 		Eventually(func() bool {
@@ -3341,6 +3353,18 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			aci := getAgentClusterInstallCRD(ctx, kubeClient, installkey)
 			return aci.Status.DebugInfo.LogsURL
 		}, "30s", "10s").ShouldNot(Equal(""))
+
+		By("Ensure APIVIP exists in status")
+		Eventually(func() string {
+			aci := getAgentClusterInstallCRD(ctx, kubeClient, installkey)
+			return aci.Status.APIVIP
+		}, "30s", "1s").Should(Equal(aciSpec.APIVIP))
+
+		By("Ensure IngressVIP exists in status")
+		Eventually(func() string {
+			aci := getAgentClusterInstallCRD(ctx, kubeClient, installkey)
+			return aci.Status.IngressVIP
+		}, "30s", "1s").Should(Equal(aciSpec.IngressVIP))
 
 		By("Complete Installation")
 		completeInstallation(agentBMClient, *cluster.ID)

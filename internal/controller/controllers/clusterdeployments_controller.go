@@ -1442,6 +1442,8 @@ func (r *ClusterDeploymentsReconciler) updateStatus(ctx context.Context, log log
 			} else {
 				clusterInstall.Status.Progress.TotalPercentage = c.Progress.TotalPercentage
 			}
+			clusterInstall.Status.APIVIP = c.APIVip
+			clusterInstall.Status.IngressVIP = c.IngressVip
 			status := *c.Status
 			var err error
 			err = r.populateEventsURL(log, clusterInstall, c)
