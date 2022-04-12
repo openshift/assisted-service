@@ -353,6 +353,10 @@ spec:
             description: AgentClusterInstallStatus defines the observed state of the
               AgentClusterInstall.
             properties:
+              apiVIP:
+                description: APIVIP is the virtual IP used to reach the OpenShift
+                  cluster's API.
+                type: string
               conditions:
                 description: Conditions includes more detailed status for the cluster
                   install.
@@ -418,6 +422,10 @@ spec:
                       the AgentClusterInstall
                     type: string
                 type: object
+              ingressVIP:
+                description: IngressVIP is the virtual IP used for cluster ingress
+                  traffic.
+                type: string
               machineNetwork:
                 description: MachineNetwork is the list of IP address pools for machines.
                 items:
