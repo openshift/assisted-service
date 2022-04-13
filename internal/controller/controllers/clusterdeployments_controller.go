@@ -1078,7 +1078,9 @@ func (r *ClusterDeploymentsReconciler) isSNO(clusterInstall *hiveext.AgentCluste
 		clusterInstall.Spec.ProvisionRequirements.WorkerAgents == 0
 }
 
-func CreateClusterParams(clusterDeployment *hivev1.ClusterDeployment, clusterInstall *hiveext.AgentClusterInstall, pullSecret string, releaseImageVersion string, releaseImageCPUArch string) *models.ClusterCreateParams {
+func CreateClusterParams(clusterDeployment *hivev1.ClusterDeployment, clusterInstall *hiveext.AgentClusterInstall,
+	pullSecret string, releaseImageVersion string, releaseImageCPUArch string,
+	ignitionEndpoint *models.IgnitionEndpoint) *models.ClusterCreateParams {
 	spec := clusterDeployment.Spec
 
 	clusterParams := &models.ClusterCreateParams{
@@ -1148,6 +1150,10 @@ func CreateClusterParams(clusterDeployment *hivev1.ClusterDeployment, clusterIns
 		}
 	}
 
+	if ignitionEndpoint != nil {
+		clusterParams.IgnitionEndpoint = ignitionEndpoint
+	}
+
 	return clusterParams
 }
 
@@ -1176,18 +1182,17 @@ func (r *ClusterDeploymentsReconciler) createNewCluster(
 		return ctrl.Result{Requeue: true, RequeueAfter: longerRequeueAfterOnError}, nil
 	}
 
-	clusterParams := CreateClusterParams(clusterDeployment, clusterInstall, pullSecret, *releaseImage.Version, *releaseImage.CPUArchitecture)
-
+	var ignitionEndpoint *models.IgnitionEndpoint
 	if clusterInstall.Spec.IgnitionEndpoint != nil {
-		var ignitionEndpoint *models.IgnitionEndpoint
 		ignitionEndpoint, err = r.parseIgnitionEndpoint(ctx, log, clusterInstall.Spec.IgnitionEndpoint)
-		if err == nil {
-			clusterParams.IgnitionEndpoint = ignitionEndpoint
-		} else {
+		if err != nil {
 			log.WithError(err).Errorf("Failed to get and parse ignition ca certificate %s/%s", clusterInstall.Namespace, clusterInstall.Name)
 			return r.updateStatus(ctx, log, clusterInstall, nil, err)
 		}
 	}
+
+	clusterParams := CreateClusterParams(clusterDeployment, clusterInstall, pullSecret, *releaseImage.Version,
+		*releaseImage.CPUArchitecture, ignitionEndpoint)
 
 	c, err := r.Installer.RegisterClusterInternal(ctx, &key, installer.V2RegisterClusterParams{
 		NewClusterParams: clusterParams,

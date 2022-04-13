@@ -143,7 +143,7 @@ func main() {
 	log.Info("SERVICE_BASE_URL: " + Options.ServiceBaseUrl)
 	log.Info("Registering cluster")
 
-	clusterParams := controllers.CreateClusterParams(&cd, &aci, pullSecret, releaseImageVersion, releaseImageCPUArch)
+	clusterParams := controllers.CreateClusterParams(&cd, &aci, pullSecret, releaseImageVersion, releaseImageCPUArch, nil)
 	clientClusterParams := &installer.V2RegisterClusterParams{
 		NewClusterParams: clusterParams,
 	}
