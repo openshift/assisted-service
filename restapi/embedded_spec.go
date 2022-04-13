@@ -6247,6 +6247,9 @@ func init() {
         "drive_type": {
           "type": "string"
         },
+        "has_uuid": {
+          "type": "boolean"
+        },
         "hctl": {
           "type": "string"
         },
@@ -7180,7 +7183,8 @@ func init() {
         "compatible-with-cluster-platform",
         "dns-wildcard-not-configured",
         "disk-encryption-requirements-satisfied",
-        "non-overlapping-subnets"
+        "non-overlapping-subnets",
+        "vsphere-disk-uuid-enabled"
       ]
     },
     "host_network": {
@@ -15409,6 +15413,9 @@ func init() {
         "drive_type": {
           "type": "string"
         },
+        "has_uuid": {
+          "type": "boolean"
+        },
         "hctl": {
           "type": "string"
         },
@@ -16272,7 +16279,8 @@ func init() {
         "compatible-with-cluster-platform",
         "dns-wildcard-not-configured",
         "disk-encryption-requirements-satisfied",
-        "non-overlapping-subnets"
+        "non-overlapping-subnets",
+        "vsphere-disk-uuid-enabled"
       ]
     },
     "host_network": {
