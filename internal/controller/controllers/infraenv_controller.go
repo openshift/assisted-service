@@ -313,7 +313,13 @@ func (r *InfraEnvReconciler) ensureISO(ctx context.Context, log logrus.FieldLogg
 	infraEnvInternal, err := r.Installer.GetInfraEnvByKubeKey(key)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			infraEnvInternal, err = r.createInfraEnv(ctx, log, &key, infraEnv, &cluster.Cluster)
+			var clusterID *strfmt.UUID
+			var openshiftVersion string
+			if cluster != nil {
+				clusterID = cluster.ID
+				openshiftVersion = cluster.OpenshiftVersion
+			}
+			infraEnvInternal, err = r.createInfraEnv(ctx, log, &key, infraEnv, clusterID, openshiftVersion)
 			if err != nil {
 				log.Errorf("fail to create InfraEnv: %s, ", infraEnv.Name)
 				return r.handleEnsureISOErrors(ctx, log, infraEnv, err, nil)
@@ -335,7 +341,7 @@ func (r *InfraEnvReconciler) ensureISO(ctx context.Context, log logrus.FieldLogg
 	return r.updateInfraEnvStatus(ctx, log, infraEnv, updatedInfraEnv)
 }
 
-func CreateInfraEnvParams(infraEnv *aiv1beta1.InfraEnv, cluster *models.Cluster, imageType models.ImageType, pullSecret string) installer.RegisterInfraEnvParams {
+func CreateInfraEnvParams(infraEnv *aiv1beta1.InfraEnv, imageType models.ImageType, pullSecret string, clusterID *strfmt.UUID, openshiftVersion string) installer.RegisterInfraEnvParams {
 	createParams := installer.RegisterInfraEnvParams{
 		InfraenvCreateParams: &models.InfraEnvCreateParams{
 			Name:                   &infraEnv.Name,
@@ -344,6 +350,8 @@ func CreateInfraEnvParams(infraEnv *aiv1beta1.InfraEnv, cluster *models.Cluster,
 			PullSecret:             &pullSecret,
 			SSHAuthorizedKey:       &infraEnv.Spec.SSHAuthorizedKey,
 			CPUArchitecture:        infraEnv.Spec.CpuArchitecture,
+			ClusterID:              clusterID,
+			OpenshiftVersion:       openshiftVersion,
 		},
 	}
 	if infraEnv.Spec.Proxy != nil {
@@ -358,15 +366,11 @@ func CreateInfraEnvParams(infraEnv *aiv1beta1.InfraEnv, cluster *models.Cluster,
 	if len(infraEnv.Spec.AdditionalNTPSources) > 0 {
 		createParams.InfraenvCreateParams.AdditionalNtpSources = swag.String(strings.Join(infraEnv.Spec.AdditionalNTPSources[:], ","))
 	}
-	if cluster != nil {
-		createParams.InfraenvCreateParams.ClusterID = cluster.ID
-		createParams.InfraenvCreateParams.OpenshiftVersion = cluster.OpenshiftVersion
-	}
 
 	return createParams
 }
 
-func (r *InfraEnvReconciler) createInfraEnv(ctx context.Context, log logrus.FieldLogger, key *types.NamespacedName, infraEnv *aiv1beta1.InfraEnv, cluster *models.Cluster) (*common.InfraEnv, error) {
+func (r *InfraEnvReconciler) createInfraEnv(ctx context.Context, log logrus.FieldLogger, key *types.NamespacedName, infraEnv *aiv1beta1.InfraEnv, clusterID *strfmt.UUID, openshiftVersion string) (*common.InfraEnv, error) {
 
 	pullSecret, err := getAndLabelPullSecret(ctx, r.Client, r.APIReader, infraEnv.Spec.PullSecretRef, key.Namespace)
 	if err != nil {
@@ -374,7 +378,7 @@ func (r *InfraEnvReconciler) createInfraEnv(ctx context.Context, log logrus.Fiel
 		return nil, err
 	}
 
-	createParams := CreateInfraEnvParams(infraEnv, cluster, r.Config.ImageType, pullSecret)
+	createParams := CreateInfraEnvParams(infraEnv, r.Config.ImageType, pullSecret, clusterID, openshiftVersion)
 
 	staticNetworkConfig, err := r.processNMStateConfig(ctx, log, infraEnv)
 	if err != nil {

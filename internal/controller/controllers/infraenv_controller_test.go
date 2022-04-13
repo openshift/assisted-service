@@ -820,7 +820,7 @@ var _ = Describe("infraEnv reconcile", func() {
 				ClusterRef:    &aiv1beta1.ClusterReference{Name: clusterName, Namespace: testNamespace},
 				PullSecretRef: &corev1.LocalObjectReference{Name: pullSecretName},
 			})
-			params := CreateInfraEnvParams(infraEnvImage, &cluster.Cluster, models.ImageType(imageType), pullSecretString)
+			params := CreateInfraEnvParams(infraEnvImage, models.ImageType(imageType), pullSecretString, cluster.ID, cluster.OpenshiftVersion)
 
 			Expect(params).ToNot(BeNil())
 			Expect(params.InfraenvCreateParams.ClusterID).To(Equal(cluster.ID))

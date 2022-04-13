@@ -158,7 +158,7 @@ func main() {
 
 	log.Info("Registering infraenv")
 
-	infraEnvParams := controllers.CreateInfraEnvParams(&infraEnv, modelsCluster, models.ImageType(Options.ImageTypeISO), pullSecret)
+	infraEnvParams := controllers.CreateInfraEnvParams(&infraEnv, models.ImageType(Options.ImageTypeISO), pullSecret, modelsCluster.ID, modelsCluster.OpenshiftVersion)
 
 	if len(staticNetworkConfig) > 0 {
 		log.Infof("Added %d nmstateconfigs", len(staticNetworkConfig))
