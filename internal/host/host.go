@@ -86,6 +86,7 @@ type Config struct {
 	ResetTimeout            time.Duration           `envconfig:"RESET_CLUSTER_TIMEOUT" default:"3m"`
 	MonitorBatchSize        int                     `envconfig:"HOST_MONITOR_BATCH_SIZE" default:"100"`
 	DisabledHostvalidations DisabledHostValidations `envconfig:"DISABLED_HOST_VALIDATIONS" default:""` // Which host validations to disable (should not run in preprocess)
+	BootstrapHostMAC        string                  `envconfig:"BOOTSTRAP_HOST_MAC" default:""`        // For ephemeral installer to ensure the bootstrap for the (single) cluster lands on the same host as assisted-service
 }
 
 //go:generate mockgen -package=host -aux_files=github.com/openshift/assisted-service/internal/host/hostcommands=instruction_manager.go -destination=mock_host_api.go . API
@@ -320,6 +321,25 @@ func (m *Manager) updateInventory(ctx context.Context, cluster *common.Cluster, 
 	if err != nil {
 		log.WithError(err).Errorf("not updating inventory - failed to find infra env %s", h.InfraEnvID.String())
 		return common.NewApiError(http.StatusNotFound, err)
+	}
+
+	if m.Config.BootstrapHostMAC != "" && !h.Bootstrap {
+		for _, iface := range inventory.Interfaces {
+			if iface.MacAddress == m.Config.BootstrapHostMAC {
+				log.Infof("selected local bootstrap host %s for cluster %s", h.ID, cluster.ID)
+				err = updateRole(log, h, models.HostRoleMaster, models.HostRoleMaster, db, string(h.Role))
+				if err != nil {
+					log.WithError(err).Errorf("failed to set master role on bootstrap host for cluster %s", cluster.ID)
+					return errors.Wrapf(err, "Failed to set master role on bootstrap host for cluster %s", cluster.ID)
+				}
+				err = m.SetBootstrap(ctx, h, true, db)
+				if err != nil {
+					log.WithError(err).Errorf("failed to update bootstrap host for cluster %s", cluster.ID)
+					return errors.Wrapf(err, "Failed to update bootstrap host for cluster %s", cluster.ID)
+				}
+				break
+			}
+		}
 	}
 
 	err = m.populateDisksEligibility(ctx, inventory, infraEnv, cluster, h)
