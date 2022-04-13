@@ -50,8 +50,8 @@ We will download the discovery iso, copy the required files to a webserver and t
         ```
         #!ipxe
         set web http://<IP-OF-WEBSERVER>/discovery-files
-        kernel ${web}/vmlinuz coreos.live.rootfs_url=${web}/rootfs.img ignition.config.url=${web}/config.ign ignition.firstboot ignition.platform.id=metal ip=dhcp
-        initrd ${web}/initrd.img
+        initrd --name initrd ${web}/initrd.img
+        kernel ${web}/vmlinuz initrd=initrd coreos.live.rootfs_url=${web}/rootfs.img ignition.config.url=${web}/config.ign ignition.firstboot ignition.platform.id=metal ip=dhcp
         boot
         ```
 

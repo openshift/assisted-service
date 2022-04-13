@@ -582,8 +582,8 @@ func (b *bareMetalInventory) signURL(ctx context.Context, infraEnvID, urlString,
 }
 
 const ipxeScriptFormat = `#!ipxe
-kernel %s coreos.live.rootfs_url=%s random.trust_cpu=on rd.luks.options=discard ignition.firstboot ignition.platform.id=metal console=tty1 console=ttyS1,115200n8 coreos.inst.persistent-kargs="console=tty1 console=ttyS1,115200n8"
-initrd %s
+initrd --name initrd %s
+kernel %s initrd=initrd coreos.live.rootfs_url=%s random.trust_cpu=on rd.luks.options=discard ignition.firstboot ignition.platform.id=metal console=tty1 console=ttyS1,115200n8 coreos.inst.persistent-kargs="console=tty1 console=ttyS1,115200n8"
 boot
 `
 
@@ -614,7 +614,7 @@ func (b *bareMetalInventory) infraEnvIPXEScript(ctx context.Context, infraEnv *c
 		return "", errors.Wrap(err, "failed to sign initrd URL")
 	}
 
-	return fmt.Sprintf(ipxeScriptFormat, kernelURL, rootfsURL, initrdURL), nil
+	return fmt.Sprintf(ipxeScriptFormat, initrdURL, kernelURL, rootfsURL), nil
 }
 
 func (b *bareMetalInventory) GetInfraEnvPresignedFileURL(ctx context.Context, params installer.GetInfraEnvPresignedFileURLParams) middleware.Responder {

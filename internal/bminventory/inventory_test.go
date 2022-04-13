@@ -8906,8 +8906,10 @@ var _ = Describe("V2DownloadInfraEnvFiles", func() {
 		Expect(lines[0]).To(Equal("#!ipxe"))
 
 		By("validating the kernel line")
-		kernelRegex := regexp.MustCompile(`^kernel (\S+) coreos.live.rootfs_url=(\S+) (.+)`)
-		match := kernelRegex.FindStringSubmatch(lines[1])
+		kernelRegex := regexp.MustCompile(`^kernel (\S+) initrd=initrd coreos.live.rootfs_url=(\S+) (.+)`)
+		match := kernelRegex.FindStringSubmatch(lines[2])
+		fmt.Fprintf(GinkgoWriter, "lines[2]: %s\n", lines[2])
+		fmt.Fprintf(GinkgoWriter, "match: %s\n", match)
 		Expect(match).NotTo(BeNil())
 
 		kernelURL, err := url.Parse(match[1])
@@ -8927,8 +8929,8 @@ var _ = Describe("V2DownloadInfraEnvFiles", func() {
 		Expect(match[3]).To(Equal(`random.trust_cpu=on rd.luks.options=discard ignition.firstboot ignition.platform.id=metal console=tty1 console=ttyS1,115200n8 coreos.inst.persistent-kargs="console=tty1 console=ttyS1,115200n8"`))
 
 		By("validating the initrd line")
-		initrdRegex := regexp.MustCompile(`^initrd (.+)`)
-		match = initrdRegex.FindStringSubmatch(lines[2])
+		initrdRegex := regexp.MustCompile(`^initrd --name initrd (.+)`)
+		match = initrdRegex.FindStringSubmatch(lines[1])
 		Expect(match).NotTo(BeNil())
 
 		initrdURL, err := url.Parse(match[1])
@@ -8976,8 +8978,8 @@ var _ = Describe("V2DownloadInfraEnvFiles", func() {
 		It("signs the initrd ipxe-script url correctly", func() {
 			mockVersions.EXPECT().GetOsImage(common.TestDefaultConfig.OpenShiftVersion, gomock.Any()).Return(common.TestDefaultConfig.OsImage, nil).Times(1)
 			content := getResponseData("ipxe-script")
-			initrdRegex := regexp.MustCompile(`^initrd (.+)`)
-			match := initrdRegex.FindStringSubmatch(strings.Split(string(content), "\n")[2])
+			initrdRegex := regexp.MustCompile(`^initrd --name initrd (.+)`)
+			match := initrdRegex.FindStringSubmatch(strings.Split(string(content), "\n")[1])
 			Expect(match).NotTo(BeNil())
 
 			initrdURL, err := url.Parse(match[1])
@@ -8999,8 +9001,8 @@ var _ = Describe("V2DownloadInfraEnvFiles", func() {
 		It("signs the initrd ipxe-script url correctly", func() {
 			mockVersions.EXPECT().GetOsImage(common.TestDefaultConfig.OpenShiftVersion, gomock.Any()).Return(common.TestDefaultConfig.OsImage, nil).Times(1)
 			content := getResponseData("ipxe-script")
-			initrdRegex := regexp.MustCompile(`^initrd (.+)`)
-			match := initrdRegex.FindStringSubmatch(strings.Split(string(content), "\n")[2])
+			initrdRegex := regexp.MustCompile(`^initrd --name initrd (.+)`)
+			match := initrdRegex.FindStringSubmatch(strings.Split(string(content), "\n")[1])
 			Expect(match).NotTo(BeNil())
 
 			initrdURL, err := url.Parse(match[1])
