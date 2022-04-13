@@ -86,13 +86,13 @@ func VerifyVip(hosts []*models.Host, machineNetworkCidr string, vip string, vipN
 		return nil
 	}
 	if machineNetworkCidr == "" {
-		return errors.Errorf("%s <%s> cannot be set if Machine Network CIDR is empty", vipName, vip)
+		return errors.Errorf("%s <%s> cannot be set if Machine Network CIDR is empty. Please make sure that Machine Network CIDR is configured correctly", vipName, vip)
 	}
 	if !ipInCidr(vip, machineNetworkCidr) {
-		return errors.Errorf("%s <%s> does not belong to machine-network-cidr <%s>", vipName, vip, machineNetworkCidr)
+		return errors.Errorf("%s <%s> does not belong to machine-network-cidr <%s>. Try to increase the block range.", vipName, vip, machineNetworkCidr)
 	}
 	if !IpInFreeList(hosts, vip, machineNetworkCidr, log) {
-		return errors.Errorf("%s <%s> is already in use in cidr %s", vipName, vip, machineNetworkCidr)
+		return errors.Errorf("%s <%s> is already in use in cidr %s. Please choose a VIP that's not in use by any machine.", vipName, vip, machineNetworkCidr)
 	}
 	return nil
 }
