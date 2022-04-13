@@ -38,7 +38,6 @@ import (
 	"github.com/openshift/assisted-service/internal/host"
 	"github.com/openshift/assisted-service/internal/host/hostcommands"
 	"github.com/openshift/assisted-service/internal/host/hostutil"
-	"github.com/openshift/assisted-service/internal/identity"
 	"github.com/openshift/assisted-service/internal/ignition"
 	"github.com/openshift/assisted-service/internal/infraenv"
 	installcfg "github.com/openshift/assisted-service/internal/installcfg/builder"
@@ -2672,7 +2671,7 @@ func (b *bareMetalInventory) listClustersInternal(ctx context.Context, params in
 	var clusters []*models.Cluster
 
 	if swag.BoolValue(params.GetUnregisteredClusters) {
-		if !identity.IsAdmin(ctx) {
+		if !b.authzHandler.IsAdmin(ctx) {
 			return nil, common.NewApiError(http.StatusForbidden, errors.New("only admin users are allowed to get unregistered clusters"))
 		}
 		db = db.Unscoped()
@@ -2713,7 +2712,7 @@ func (b *bareMetalInventory) GetClusterInternal(ctx context.Context, params inst
 	log := logutil.FromContext(ctx, b.log)
 
 	if swag.BoolValue(params.GetUnregisteredClusters) {
-		if !identity.IsAdmin(ctx) {
+		if !b.authzHandler.IsAdmin(ctx) {
 			return nil, common.NewInfraError(http.StatusForbidden,
 				errors.New("only admin users are allowed to get unregistered clusters"))
 		}

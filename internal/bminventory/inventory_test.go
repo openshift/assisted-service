@@ -2511,6 +2511,8 @@ var _ = Describe("cluster", func() {
 				payload := &ocm.AuthPayload{}
 				payload.Role = ocm.UserRole
 				ctx = context.WithValue(ctx, restapi.AuthKey, payload)
+				authCfg := auth.GetConfigRHSSO()
+				bm.authzHandler = auth.NewAuthzHandler(authCfg, nil, common.GetTestLog().WithField("pkg", "auth"), db)
 				resp := bm.V2GetCluster(ctx, installer.V2GetClusterParams{ClusterID: clusterID, GetUnregisteredClusters: swag.Bool(true)})
 				Expect(resp).Should(BeAssignableToTypeOf(common.NewInfraError(http.StatusForbidden, errors.Errorf(""))))
 			})
@@ -8456,6 +8458,8 @@ var _ = Describe("List clusters", func() {
 			authCtx := context.WithValue(ctx, restapi.AuthKey, payload)
 			Expect(db.Unscoped().Delete(&c).Error).ShouldNot(HaveOccurred())
 			Expect(db.Unscoped().Delete(&host1).Error).ShouldNot(HaveOccurred())
+			authCfg := auth.GetConfigRHSSO()
+			bm.authzHandler = auth.NewAuthzHandler(authCfg, nil, common.GetTestLog().WithField("pkg", "auth"), db)
 			resp := bm.V2ListClusters(authCtx, installer.V2ListClustersParams{GetUnregisteredClusters: swag.Bool(true)})
 			Expect(resp).Should(BeAssignableToTypeOf(common.NewApiError(http.StatusForbidden, errors.New("only admin users are allowed to get unregistered clusters"))))
 		})

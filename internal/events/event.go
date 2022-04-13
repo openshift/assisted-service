@@ -10,7 +10,6 @@ import (
 	"github.com/go-openapi/strfmt"
 	"github.com/openshift/assisted-service/internal/common"
 	eventsapi "github.com/openshift/assisted-service/internal/events/api"
-	"github.com/openshift/assisted-service/internal/identity"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/auth"
 	logutil "github.com/openshift/assisted-service/pkg/log"
@@ -218,7 +217,7 @@ func (e Events) queryEvents(ctx context.Context, selectedCategories []string, cl
 
 	//retrieveing all events can be done only by admins. This is done to restrict data
 	//intensive queries by common users
-	if allEvents() && identity.IsAdmin(ctx) {
+	if allEvents() && e.authz.IsAdmin(ctx) {
 		result = db
 	}
 

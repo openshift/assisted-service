@@ -32,3 +32,7 @@ func (*NoneHandler) OwnedByUser(ctx context.Context, db *gorm.DB, username strin
 func (*NoneHandler) HasAccessTo(ctx context.Context, obj interface{}, action Action) (bool, error) {
 	return true, nil
 }
+
+func (*NoneHandler) IsAdmin(ctx context.Context) bool {
+	return true
+}
