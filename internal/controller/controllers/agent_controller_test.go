@@ -292,20 +292,30 @@ var _ = Describe("agent reconcile", func() {
 		newInstallDiskPath := "/dev/disk/by-id/wwn-0x6141877064533b0020adf3bb03167694"
 		hostId := strfmt.UUID(uuid.New().String())
 		infraEnvId := strfmt.UUID(uuid.New().String())
-		commonHost := &common.Host{
+		beforeUpdateHost := &common.Host{
+			Host: models.Host{
+				ID:         &hostId,
+				ClusterID:  &sId,
+				Inventory:  common.GenerateTestDefaultInventory(),
+				Status:     swag.String(models.HostStatusInsufficient),
+				StatusInfo: swag.String("I am insufficient"),
+				InfraEnvID: infraEnvId,
+			},
+		}
+		afterUpdateHost := &common.Host{
 			Host: models.Host{
 				ID:         &hostId,
 				ClusterID:  &sId,
 				Inventory:  common.GenerateTestDefaultInventory(),
 				Status:     swag.String(models.HostStatusKnown),
-				StatusInfo: swag.String("Some status info"),
+				StatusInfo: swag.String("I am known"),
 				InfraEnvID: infraEnvId,
 			},
 		}
 		backEndCluster = &common.Cluster{Cluster: models.Cluster{
 			ID: &sId,
 			Hosts: []*models.Host{
-				&commonHost.Host,
+				&beforeUpdateHost.Host,
 			}}}
 		host := newAgent(hostId.String(), testNamespace, v1beta1.AgentSpec{ClusterDeploymentName: &v1beta1.ClusterReference{Name: "clusterDeployment", Namespace: testNamespace}})
 		host.Spec.Hostname = newHostName
@@ -313,7 +323,8 @@ var _ = Describe("agent reconcile", func() {
 		host.Spec.InstallationDiskID = newInstallDiskPath
 		clusterDeployment := newClusterDeployment("clusterDeployment", testNamespace, getDefaultClusterDeploymentSpec("clusterDeployment-test", "test-cluster-aci", "pull-secret"))
 		Expect(c.Create(ctx, clusterDeployment)).To(BeNil())
-		mockInstallerInternal.EXPECT().GetHostByKubeKey(gomock.Any()).Return(commonHost, nil).AnyTimes()
+		mockInstallerInternal.EXPECT().GetHostByKubeKey(gomock.Any()).Return(beforeUpdateHost, nil).Times(1)
+		mockInstallerInternal.EXPECT().GetHostByKubeKey(gomock.Any()).Return(afterUpdateHost, nil).Times(1)
 		mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil).Times(2)
 		mockInstallerInternal.EXPECT().V2UpdateHostInternal(gomock.Any(), gomock.Any()).
 			Do(func(ctx context.Context, param installer.V2UpdateHostParams) {
@@ -323,7 +334,7 @@ var _ = Describe("agent reconcile", func() {
 				Expect(param.HostID).To(Equal(hostId))
 				Expect(param.InfraEnvID).To(Equal(infraEnvId))
 				Expect(param.HostUpdateParams.HostRole).To(Equal(&newRole))
-			}).Return(&common.Host{}, nil).Times(2)
+			}).Return(afterUpdateHost, nil).Times(2)
 		Expect(c.Create(ctx, host)).To(BeNil())
 		mockClient.EXPECT().Get(gomock.Any(), gomock.AssignableToTypeOf(types.NamespacedName{}), gomock.AssignableToTypeOf(&v1beta1.Agent{})).DoAndReturn(
 			func(ctx context.Context, name types.NamespacedName, agent *v1beta1.Agent) error {
@@ -362,6 +373,8 @@ var _ = Describe("agent reconcile", func() {
 			Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, v1beta1.SpecSyncedCondition).Message).To(Equal(v1beta1.SyncedOkMsg))
 			Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, v1beta1.SpecSyncedCondition).Reason).To(Equal(v1beta1.SyncedOkReason))
 			Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, v1beta1.SpecSyncedCondition).Status).To(Equal(corev1.ConditionTrue))
+			Expect(agent.Status.DebugInfo.State).To(Equal(models.HostStatusKnown))
+			Expect(agent.Status.DebugInfo.StateInfo).To(Equal("I am known"))
 		}
 	})
 
@@ -398,7 +411,7 @@ var _ = Describe("agent reconcile", func() {
 
 		mockInstallerInternal.EXPECT().GetHostByKubeKey(gomock.Any()).Return(commonHost, nil).AnyTimes()
 		mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil).Times(1)
-		mockInstallerInternal.EXPECT().V2UpdateHostInternal(gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
+		mockInstallerInternal.EXPECT().V2UpdateHostInternal(gomock.Any(), gomock.Any()).Return(commonHost, nil).Times(1)
 		Expect(c.Create(ctx, host)).To(BeNil())
 		result, err := hr.Reconcile(ctx, newHostRequest(host))
 		Expect(err).To(BeNil())
