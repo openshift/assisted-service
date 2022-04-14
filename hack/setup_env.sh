@@ -51,6 +51,12 @@ function butane() {
   chmod +x /usr/local/bin/butane
 }
 
+function golangci_lint() {
+  echo "Installing golangci-lint..."
+  curl --retry 5 -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh \
+    | sh -s -- -b $(go env GOPATH)/bin v1.36.0
+}
+
 function assisted_service() {
   ARCH=$(case $(arch) in x86_64) echo -n amd64 ;; aarch64) echo -n arm64 ;; *) echo -n $(arch) ;; esac)
 
@@ -60,7 +66,10 @@ function assisted_service() {
     rm -f /tmp/kubectl
 
   yum install -y --setopt=skip_missing_names_on_install=False \
-    docker podman awscli python3-pip genisoimage skopeo
+    docker podman awscli genisoimage skopeo rh-python38
+
+  source /opt/rh/rh-python38/enable
+  alternatives --install /usr/bin/python3 python `which python3.8` 60
 
   jq
 
@@ -70,8 +79,7 @@ function assisted_service() {
 
   spectral
 
-  curl --retry 5 -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh \
-    | sh -s -- -b $(go env GOPATH)/bin v1.36.0
+  golangci_lint
 
   OS=$(uname | awk '{print tolower($0)}')
   OPERATOR_SDK_DL_URL=https://github.com/operator-framework/operator-sdk/releases/download/v1.10.1

@@ -237,7 +237,8 @@ update: build-all
 publish-client: generate-python-client
 	python3 -m twine upload --skip-existing "$(BUILD_FOLDER)/assisted-service-client/dist/*.whl"
 
-build-openshift-ci-test-bin: init
+build-openshift-ci-test-bin:
+	./hack/setup_env.sh golangci_lint
 
 ##########
 # Deploy #
