@@ -60,7 +60,7 @@ the ZTP flow.
 schedulable masters.
 
 - Modify the `enoughMastersAndWorkers` validation so that it allows 1 worker when masters are
-scheulable. [PoC here](https://github.com/flaper87/assisted-service/commit/f07fc6589e4f2d316266ac5533d76bd2faf471d7)
+schedulable. [PoC here](https://github.com/flaper87/assisted-service/commit/f07fc6589e4f2d316266ac5533d76bd2faf471d7)
 and [here](https://github.com/flaper87/assisted-service/commit/bb2d82eaacaee7790d2f18711e2ba3a442a4967d)
 
 - Modify Assisted Service's manifests logic to allow for partial manifests to be provided. Openshift
