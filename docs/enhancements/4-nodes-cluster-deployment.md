@@ -116,7 +116,7 @@ would be sending infrastructure traffic to the master nodes. This, depending on 
 cluster, may result in master nodes being overloaded and, in some cases, even unavailable if the
 load is too high.
 
-Using a 4-node cluster must be a concious decision and it requires an understanding of what
+Using a 4-node cluster must be a conscious decision and it requires an understanding of what
 workloads will be run on the cluster. This topology is not much different to a compact cluster where
 there are only 3 masters. By exposing these options through the KubeAPI we will be allowing users to
 create such topologies.
