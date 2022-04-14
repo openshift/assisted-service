@@ -98,7 +98,7 @@ yaml-patch version for the above:
   value: HighlyAvailable
 ```
 
-In the first case, the current API can be re-used. Assisted service would be changed to not overrite
+In the first case, the current API can be re-used. Assisted service would be changed to not overwrite
 files but rather merge the manifests. This is how [this PoC was
 implemented](https://github.com/flaper87/assisted-service/commit/c6d72827b43786f95e68e052623e8aef0d4b4c0f).
 In the `yaml-patch` case, we may want to make the API accept both, full manifest, and a `yaml-patch`
