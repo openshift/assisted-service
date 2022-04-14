@@ -56,7 +56,7 @@ The biggest changes anticipated for this enhancement are:
 - Expose the manifests API through the InfraEnv CRD so that custom manifests can be added through
 the ZTP flow.
 
-- Expose the schedulable mastes through the AgentClusterInstall to allow for explicitly creating
+- Expose the schedulable masters through the AgentClusterInstall to allow for explicitly creating
 schedulable masters.
 
 - Modify the `enoughMastersAndWorkers` validation so that it allows 1 worker when masters are
