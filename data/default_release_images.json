@@ -20,20 +20,20 @@
     {
         "openshift_version": "4.9",
         "cpu_architecture": "x86_64",
-        "url": "quay.io/openshift-release-dev/ocp-release:4.9.27-x86_64",
-        "version": "4.9.27"
+        "url": "quay.io/openshift-release-dev/ocp-release:4.9.28-x86_64",
+        "version": "4.9.28"
     },
     {
         "openshift_version": "4.10",
         "cpu_architecture": "x86_64",
-        "url": "quay.io/openshift-release-dev/ocp-release:4.10.8-x86_64",
-        "version": "4.10.8",
+        "url": "quay.io/openshift-release-dev/ocp-release:4.10.9-x86_64",
+        "version": "4.10.9",
         "default": true
     },
     {
         "openshift_version": "4.10",
         "cpu_architecture": "arm64",
-        "url": "quay.io/openshift-release-dev/ocp-release:4.10.8-aarch64",
-        "version": "4.10.8"
+        "url": "quay.io/openshift-release-dev/ocp-release:4.10.9-aarch64",
+        "version": "4.10.9"
     }
 ]
