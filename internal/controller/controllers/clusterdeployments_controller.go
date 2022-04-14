@@ -230,7 +230,7 @@ func (r *ClusterDeploymentsReconciler) Reconcile(origCtx context.Context, req ct
 
 	if swag.StringValue(cluster.Kind) == models.ClusterKindCluster && !clusterInstall.Spec.HoldInstallation {
 		// Day 1
-		pullSecret, err := getPullSecretData(ctx, r.Client, r.APIReader, clusterDeployment.Spec.PullSecretRef, req.Namespace)
+		pullSecret, err := getAndLabelPullSecret(ctx, r.Client, r.APIReader, clusterDeployment.Spec.PullSecretRef, req.Namespace)
 		if err != nil {
 			log.WithError(err).Error("failed to get pull secret")
 			return r.updateStatus(ctx, log, clusterInstall, nil, err)
@@ -843,7 +843,7 @@ func (r *ClusterDeploymentsReconciler) updateIfNeeded(ctx context.Context,
 	if userManagedNetwork := isUserManagedNetwork(clusterInstall); userManagedNetwork != swag.BoolValue(cluster.UserManagedNetworking) {
 		params.UserManagedNetworking = swag.Bool(userManagedNetwork)
 	}
-	pullSecretData, err := getPullSecretData(ctx, r.Client, r.APIReader, spec.PullSecretRef, clusterDeployment.Namespace)
+	pullSecretData, err := getAndLabelPullSecret(ctx, r.Client, r.APIReader, spec.PullSecretRef, clusterDeployment.Namespace)
 	if err != nil {
 		return cluster, errors.Wrap(err, "failed to get pull secret for update")
 	}
@@ -1088,7 +1088,7 @@ func (r *ClusterDeploymentsReconciler) createNewCluster(
 	log.Infof("Creating a new cluster %s %s", clusterDeployment.Name, clusterDeployment.Namespace)
 	spec := clusterDeployment.Spec
 
-	pullSecret, err := getPullSecretData(ctx, r.Client, r.APIReader, spec.PullSecretRef, key.Namespace)
+	pullSecret, err := getAndLabelPullSecret(ctx, r.Client, r.APIReader, spec.PullSecretRef, key.Namespace)
 	if err != nil {
 		log.WithError(err).Error("failed to get pull secret")
 		return r.updateStatus(ctx, log, clusterInstall, nil, err)
