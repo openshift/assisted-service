@@ -34,7 +34,7 @@ The above was brought up to the OpenShift team as [an enhancement](https://githu
 it's OK for users (or other installers) to overwrite the openshift manifests to achieve the
 deployment topologies required. The conversation is still in progress as far as understanding if
 some changes could be done to the openshift installer to improve the user experience here but we
-were encourage to pursue manifests' overwrite as a way to provide this through assisted service.
+were encouraged to pursue manifests' overwrite as a way to provide this through assisted service.
 
 ### Goals
 
