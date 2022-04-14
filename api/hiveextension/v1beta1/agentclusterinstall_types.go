@@ -218,6 +218,14 @@ type AgentClusterInstallStatus struct {
 	// +optional
 	DebugInfo DebugInfo `json:"debugInfo"`
 
+	// APIVIP is the virtual IP used to reach the OpenShift cluster's API.
+	// +optional
+	APIVIP string `json:"apiVIP,omitempty"`
+
+	// IngressVIP is the virtual IP used for cluster ingress traffic.
+	// +optional
+	IngressVIP string `json:"ingressVIP,omitempty"`
+
 	// ValidationsInfo is a JSON-formatted string containing the validation results for each validation id grouped by category (network, hosts-data, etc.)
 	// +optional
 	ValidationsInfo common.ValidationsStatus `json:"validationsInfo,omitempty"`
