@@ -20,8 +20,8 @@ To implement support for a new OLM operator plugin you need to make following ch
           - 'lso-requirements-satisfied'
           - 'cnv-requirements-satisfied'
           - 'odf-requirements-satisfied'
-      ```                   
-    - for cluster validation:    
+      ```
+    - for cluster validation:
       ```yaml
       cluster-validation-id:
         type: string
@@ -34,8 +34,8 @@ To implement support for a new OLM operator plugin you need to make following ch
       ```
  1. Regenerate code by running
     ```shell script
-    skipper make generate-all 
-    ```      
+    skipper make generate
+    ```
  1. Add the new validation IDs to proper category - "operators":
     - for [cluster validation](../../internal/cluster/validation_id.go):
       ```go
@@ -43,7 +43,7 @@ To implement support for a new OLM operator plugin you need to make following ch
       ...
         case IsCnvRequirementsSatisfied, IsLsoRequirementsSatisfied, IsOdfRequirementsSatisfied:
      	   return "operators", nil
-      ``` 
+      ```
     - for [host validaton](../../internal/host/validation_id.go):
       ```go
       func (v validationID) category() (string, error) {
@@ -53,10 +53,10 @@ To implement support for a new OLM operator plugin you need to make following ch
       ```
  1. Modify the installation state machine by adding the new validationIDs to the list of required checks:
     - for [cluster](../../internal/cluster/statemachine.go):
-      ```go 
+      ```go
       var requiredForInstall = stateswitch.And(...,
          ..., If(IsLsoRequirementsSatisfied), If(IsCnvRequirementsSatisfied), If(IsOdfRequirementsSatisfied))
-      ```     
+      ```
     - for [host](../../internal/host/statemachine.go):
       ```go
       	var isSufficientForInstall = stateswitch.And(...,

@@ -7,22 +7,6 @@ set -o errexit
 __dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 __root="$(cd "$(dirname "${__dir}")" && pwd)"
 
-UID_FLAGS=${UID_FLAGS--u $(id -u):$(id -u)}
-
-function lint_swagger() {
-    spectral lint swagger.yaml
-}
-
-function generate_go_server() {
-    rm -rf restapi/
-    goswagger generate server --template=stratoscale -f ${__root}/swagger.yaml
-}
-
-function generate_go_client() {
-    rm -rf client/ models/*.go
-    goswagger generate client --template=stratoscale -f swagger.yaml
-}
-
 function generate_python_client() {
     local dest="${BUILD_FOLDER}"
     rm -rf "${dest}"/assisted-service-client/*
@@ -33,25 +17,6 @@ function generate_python_client() {
     cd "${dest}"/assisted-service-client/ && \
         python3 "${__root}"/tools/client_package_initializer.py "${dest}"/assisted-service-client/ https://github.com/openshift/assisted-service
     cp "${dest}"/assisted-service-client/dist/assisted-service-client-*.tar.gz "${dest}"
-}
-
-function generate_mocks() {
-    find "${__root}" -name 'mock_*.go' -type f -delete
-    go generate $(go list ./... | grep -v 'assisted-service/models\|assisted-service/client\|assisted-service/restapi')
-}
-
-function generate_migration() {
-    go run ${__root}/tools/migration_generator/migration_generator.go -name=${MIGRATION_NAME}
-}
-
-function generate_keys() {
-    cd ${__root}/tools && go run auth_keys_generator.go -keys-dir=${BUILD_FOLDER}
-}
-
-function remove_dashes_and_dots() {
-    for f in models/*.go ; do
-        sed -i 's/Dash//g;s/Dot//g' $f
-    done
 }
 
 function validate_swagger_file() {
@@ -67,20 +32,6 @@ function validate_swagger_file() {
         echo "Failed validating swagger generated files before replacing Dash (-) and Dot (.) Please see https://github.com/go-swagger/go-swagger/issues/2515"
         exit -1
     fi
-}
-
-function generate_from_swagger() {
-    lint_swagger
-    generate_go_client
-    generate_go_server
-    validate_swagger_file
-    remove_dashes_and_dots
-}
-
-function generate_events() {
-    rm -rf internal/common/events
-    mkdir -p internal/common/events
-    tools/generate_events.py ./docs/events.yaml internal/common/events/events.go
 }
 
 function generate_configuration() {
@@ -174,17 +125,9 @@ function generate_bundle() {
     operator-sdk bundle validate ${BUNDLE_OUTPUT_DIR}
 }
 
-function generate_all() {
-    generate_from_swagger
-    generate_events
-    generate_mocks
-    generate_configuration
-    generate_bundle
-}
-
 function print_help() {
     echo "The available functions are:"
-    compgen -A function | tr "_" "-" | grep "^generate" | awk '{print "\t" $1}'
+    compgen -A function | grep "^generate" | awk '{print "\t" $1}'
 }
 
 declare -F $@ || (echo "Function \"$@\" unavailable." && print_help && exit 1)
