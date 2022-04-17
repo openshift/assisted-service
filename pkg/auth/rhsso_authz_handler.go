@@ -10,7 +10,6 @@ import (
 	"github.com/go-openapi/runtime/middleware"
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/openshift/assisted-service/internal/common"
-	"github.com/openshift/assisted-service/internal/identity"
 	params "github.com/openshift/assisted-service/pkg/context"
 	"github.com/openshift/assisted-service/pkg/ocm"
 	"github.com/openshift/assisted-service/restapi"
@@ -39,6 +38,18 @@ func (a *AuthzHandler) isTenancyEnabled() bool {
 	return a.cfg.EnableOrgTenancy
 }
 
+func (a *AuthzHandler) IsAdmin(ctx context.Context) bool {
+	authPayload := ocm.PayloadFromContext(ctx)
+	allowedRoles := []ocm.RoleType{ocm.AdminRole, ocm.ReadOnlyAdminRole}
+	return funk.Contains(allowedRoles, authPayload.Role)
+}
+
+func (a *AuthzHandler) isReadOnlyAdmin(ctx context.Context) bool {
+	authPayload := ocm.PayloadFromContext(ctx)
+	allowedRoles := []ocm.RoleType{ocm.ReadOnlyAdminRole}
+	return funk.Contains(allowedRoles, authPayload.Role)
+}
+
 func handleOwnershipQueryError(err error) (bool, error) {
 	if err != nil {
 		//if user is not the owner of the object return false
@@ -52,7 +63,7 @@ func handleOwnershipQueryError(err error) (bool, error) {
 }
 
 func (a *AuthzHandler) OwnedBy(ctx context.Context, db *gorm.DB) *gorm.DB {
-	if identity.IsAdmin(ctx) {
+	if a.IsAdmin(ctx) {
 		return db
 	}
 	if a.isTenancyEnabled() {
@@ -143,7 +154,11 @@ func (a *AuthzHandler) hasSubscriptionAccess(clusterId string, action string, pa
 }
 
 func (a *AuthzHandler) HasAccessTo(ctx context.Context, obj interface{}, action Action) (bool, error) {
-	if identity.IsAdmin(ctx) {
+	if a.isReadOnlyAdmin(ctx) {
+		if action == ReadAction {
+			return true, nil
+		}
+	} else if a.IsAdmin(ctx) {
 		return true, nil
 	}
 	if cluster, ok := obj.(*common.Cluster); ok && cluster != nil {

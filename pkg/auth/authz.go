@@ -36,6 +36,9 @@ type Authorizer interface {
 
 	/* Provides the middleware authorization algorithm */
 	CreateAuthorizer() func(*http.Request) error
+
+	/* Returns true if the user has an admin role  */
+	IsAdmin(ctx context.Context) bool
 }
 
 func NewAuthzHandler(cfg *Config, ocmCLient *ocm.Client, log logrus.FieldLogger, db *gorm.DB) Authorizer {

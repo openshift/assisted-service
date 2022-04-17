@@ -412,6 +412,25 @@ var _ = Describe("HasAccessTo", func() {
 			Expect(authzHandler.HasAccessTo(ctx, cluster, UpdateAction)).To(BeTrue())
 			Expect(authzHandler.HasAccessTo(ctx, cluster, DeleteAction)).To(BeTrue())
 		})
+		It("read-only-admin can only read clusters", func() {
+			payload := &ocm.AuthPayload{}
+			payload.Role = ocm.ReadOnlyAdminRole
+			ctx = context.WithValue(ctx, restapi.AuthKey, payload)
+
+			mockOcmAuthorization.EXPECT().AccessReview(
+				gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+				Return(false, nil).Times(4)
+
+			cluster, _ := common.GetClusterFromDB(db, id1, common.SkipEagerLoading)
+			Expect(authzHandler.HasAccessTo(ctx, cluster, ReadAction)).To(BeTrue())
+			Expect(authzHandler.HasAccessTo(ctx, cluster, UpdateAction)).To(BeFalse())
+			Expect(authzHandler.HasAccessTo(ctx, cluster, DeleteAction)).To(BeFalse())
+
+			cluster, _ = common.GetClusterFromDB(db, id2, common.SkipEagerLoading)
+			Expect(authzHandler.HasAccessTo(ctx, cluster, ReadAction)).To(BeTrue())
+			Expect(authzHandler.HasAccessTo(ctx, cluster, UpdateAction)).To(BeFalse())
+			Expect(authzHandler.HasAccessTo(ctx, cluster, DeleteAction)).To(BeFalse())
+		})
 	})
 
 	Context("infra-env", func() {
@@ -515,6 +534,42 @@ var _ = Describe("HasAccessTo", func() {
 
 		_, err := authzHandler.HasAccessTo(ctx, &models.Event{}, ReadAction)
 		Expect(err).To(HaveOccurred())
+	})
+})
+
+var _ = Describe("IsAdmin", func() {
+	var (
+		ctx     context.Context
+		handler Authorizer
+		payload *ocm.AuthPayload
+	)
+
+	BeforeEach(func() {
+		ctx = context.Background()
+		cfg := &Config{AuthType: TypeRHSSO}
+		handler = NewAuthzHandler(cfg, nil, logrus.New(), nil)
+		payload = &ocm.AuthPayload{}
+	})
+
+	It("admin user", func() {
+		payload.Role = ocm.AdminRole
+		ctx = context.WithValue(ctx, restapi.AuthKey, payload)
+		isAdmin := handler.IsAdmin(ctx)
+
+		Expect(isAdmin).Should(Equal(true))
+	})
+	It("readonly admin user", func() {
+		payload.Role = ocm.ReadOnlyAdminRole
+		ctx = context.WithValue(ctx, restapi.AuthKey, payload)
+		isAdmin := handler.IsAdmin(ctx)
+
+		Expect(isAdmin).Should(Equal(true))
+	})
+	It("non-admin user", func() {
+		ctx = context.WithValue(ctx, restapi.AuthKey, payload)
+		isAdmin := handler.IsAdmin(ctx)
+
+		Expect(isAdmin).Should(Equal(false))
 	})
 })
 
