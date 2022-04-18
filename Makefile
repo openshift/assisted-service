@@ -1,3 +1,5 @@
+include hack/Makefile
+
 NAMESPACE := $(or ${NAMESPACE},assisted-installer)
 PWD = $(shell pwd)
 BUILD_FOLDER = $(PWD)/build/$(NAMESPACE)
@@ -19,9 +21,6 @@ endif
 
 ifeq ($(CONTAINER_COMMAND), podman)
 	PUSH_FLAGS = --tls-verify=false
-	UID_FLAGS =
-else
-	UID_FLAGS = -u $(shell id -u):$(shell id -u)
 endif
 
 ASSISTED_ORG := $(or ${ASSISTED_ORG},quay.io/edge-infrastructure)
@@ -161,8 +160,8 @@ endif
 
 	${ROOT_DIR}/hack/check-commits.sh
 	${ROOT_DIR}/tools/handle_ocp_versions.py
-	skipper $(MAKE) generate-all
-	git diff --exit-code  # this will fail if generate-all caused any diff
+	skipper $(MAKE) generate
+	git diff --exit-code  # this will fail if code generation caused any diff
 
 lint:
 	golangci-lint run -v
@@ -172,12 +171,6 @@ $(BUILD_FOLDER):
 
 format:
 	golangci-lint run --fix -v
-
-generate:
-	./hack/generate.sh print_help
-
-generate-%: ${BUILD_FOLDER}
-	./hack/generate.sh generate_$(subst -,_,$*)
 
 ##################
 # Build & Update #
