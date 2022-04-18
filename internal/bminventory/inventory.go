@@ -306,11 +306,6 @@ func (b *bareMetalInventory) setDefaultRegisterClusterParams(_ context.Context, 
 	if params.NewClusterParams.AdditionalNtpSource == nil {
 		params.NewClusterParams.AdditionalNtpSource = &b.Config.DefaultNTPSource
 	}
-	if params.NewClusterParams.HTTPProxy != nil &&
-		(params.NewClusterParams.HTTPSProxy == nil || *params.NewClusterParams.HTTPSProxy == "") {
-		params.NewClusterParams.HTTPSProxy = params.NewClusterParams.HTTPProxy
-	}
-
 	if params.NewClusterParams.DiskEncryption == nil {
 		params.NewClusterParams.DiskEncryption = &models.DiskEncryption{
 			EnableOn: swag.String(models.DiskEncryptionEnableOnNone),
@@ -1738,25 +1733,6 @@ func (b *bareMetalInventory) validateAndUpdateClusterParams(ctx context.Context,
 	return *params, nil
 }
 
-func (b *bareMetalInventory) validateAndUpdateProxyParams(ctx context.Context, params *installer.V2UpdateClusterParams, ocpVersion *string) (installer.V2UpdateClusterParams, error) {
-
-	log := logutil.FromContext(ctx, b.log)
-
-	if params.ClusterUpdateParams.HTTPProxy != nil &&
-		(params.ClusterUpdateParams.HTTPSProxy == nil || *params.ClusterUpdateParams.HTTPSProxy == "") {
-		params.ClusterUpdateParams.HTTPSProxy = params.ClusterUpdateParams.HTTPProxy
-	}
-
-	if err := validateProxySettings(params.ClusterUpdateParams.HTTPProxy,
-		params.ClusterUpdateParams.HTTPSProxy,
-		params.ClusterUpdateParams.NoProxy, ocpVersion); err != nil {
-		log.WithError(err).Errorf("Failed to validate Proxy settings")
-		return installer.V2UpdateClusterParams{}, err
-	}
-
-	return *params, nil
-}
-
 func (b *bareMetalInventory) V2UpdateCluster(ctx context.Context, params installer.V2UpdateClusterParams) middleware.Responder {
 	c, err := b.v2UpdateClusterInternal(ctx, params, Interactive)
 	if err != nil {
@@ -1809,7 +1785,9 @@ func (b *bareMetalInventory) v2UpdateClusterInternal(ctx context.Context, params
 		return nil, common.NewApiError(http.StatusBadRequest, err)
 	}
 
-	if params, err = b.validateAndUpdateProxyParams(ctx, &params, &cluster.OpenshiftVersion); err != nil {
+	if err = validateProxySettings(params.ClusterUpdateParams.HTTPProxy, params.ClusterUpdateParams.HTTPSProxy,
+		params.ClusterUpdateParams.NoProxy, &cluster.OpenshiftVersion); err != nil {
+		log.WithError(err).Errorf("Failed to validate Proxy settings")
 		return nil, common.NewApiError(http.StatusBadRequest, err)
 	}
 
@@ -4164,12 +4142,6 @@ func (b *bareMetalInventory) RegisterInfraEnvInternal(
 }
 
 func (b *bareMetalInventory) setDefaultRegisterInfraEnvParams(_ context.Context, params installer.RegisterInfraEnvParams) installer.RegisterInfraEnvParams {
-	if params.InfraenvCreateParams.Proxy != nil &&
-		params.InfraenvCreateParams.Proxy.HTTPProxy != nil &&
-		(params.InfraenvCreateParams.Proxy.HTTPSProxy == nil || *params.InfraenvCreateParams.Proxy.HTTPSProxy == "") {
-		params.InfraenvCreateParams.Proxy.HTTPSProxy = params.InfraenvCreateParams.Proxy.HTTPProxy
-	}
-
 	if params.InfraenvCreateParams.AdditionalNtpSources == nil {
 		params.InfraenvCreateParams.AdditionalNtpSources = &b.Config.DefaultNTPSource
 	}
@@ -4279,8 +4251,13 @@ func (b *bareMetalInventory) UpdateInfraEnvInternal(ctx context.Context, params 
 		return nil, common.NewApiError(http.StatusNotFound, err)
 	}
 
-	if params, err = b.validateAndUpdateInfraEnvProxyParams(ctx, &params, infraEnv.OpenshiftVersion); err != nil {
-		return nil, common.NewApiError(http.StatusBadRequest, err)
+	if params.InfraEnvUpdateParams.Proxy != nil {
+		if err = validateProxySettings(params.InfraEnvUpdateParams.Proxy.HTTPProxy,
+			params.InfraEnvUpdateParams.Proxy.HTTPSProxy,
+			params.InfraEnvUpdateParams.Proxy.NoProxy, &infraEnv.OpenshiftVersion); err != nil {
+			log.WithError(err).Errorf("Failed to validate Proxy settings")
+			return nil, common.NewApiError(http.StatusBadRequest, err)
+		}
 	}
 
 	if err = b.validateInfraEnvIgnitionParams(ctx, params.InfraEnvUpdateParams.IgnitionConfigOverride); err != nil {
@@ -4394,27 +4371,6 @@ func (b *bareMetalInventory) validateAndUpdateInfraEnvParams(ctx context.Context
 			return installer.UpdateInfraEnvParams{}, err
 		}
 		*params.InfraEnvUpdateParams.SSHAuthorizedKey = sshPublicKey
-	}
-
-	return *params, nil
-}
-
-func (b *bareMetalInventory) validateAndUpdateInfraEnvProxyParams(ctx context.Context, params *installer.UpdateInfraEnvParams, ocpVersion string) (installer.UpdateInfraEnvParams, error) {
-
-	log := logutil.FromContext(ctx, b.log)
-
-	if params.InfraEnvUpdateParams.Proxy != nil {
-		if params.InfraEnvUpdateParams.Proxy.HTTPProxy != nil &&
-			(params.InfraEnvUpdateParams.Proxy.HTTPSProxy == nil || *params.InfraEnvUpdateParams.Proxy.HTTPSProxy == "") {
-			params.InfraEnvUpdateParams.Proxy.HTTPSProxy = params.InfraEnvUpdateParams.Proxy.HTTPProxy
-		}
-
-		if err := validateProxySettings(params.InfraEnvUpdateParams.Proxy.HTTPProxy,
-			params.InfraEnvUpdateParams.Proxy.HTTPSProxy,
-			params.InfraEnvUpdateParams.Proxy.NoProxy, &ocpVersion); err != nil {
-			log.WithError(err).Errorf("Failed to validate Proxy settings")
-			return installer.UpdateInfraEnvParams{}, err
-		}
 	}
 
 	return *params, nil

@@ -7066,7 +7066,7 @@ var _ = Describe("infraEnvs", func() {
 				Expect(common.ImageTypeValue(i.Type)).To(Equal(models.ImageTypeFullIso))
 			})
 
-			It("Update proxy", func() {
+			It("updates proxy when http and https are the same", func() {
 				var err error
 				mockInfraEnvUpdateSuccess()
 				proxyURL := "http://[1001:db9::1]:3129"
@@ -7089,7 +7089,7 @@ var _ = Describe("infraEnvs", func() {
 				Expect(swag.StringValue(i.Proxy.HTTPSProxy)).To(Equal(proxyURL))
 				Expect(swag.StringValue(i.Proxy.NoProxy)).To(Equal(noProxy))
 			})
-			It("Update proxy - יhttps missing", func() {
+			It("doesn't set https proxy when not provided", func() {
 				var err error
 				mockInfraEnvUpdateSuccess()
 				proxyURL := "http://[1001:db9::1]:3129"
@@ -7108,11 +7108,11 @@ var _ = Describe("infraEnvs", func() {
 				Expect(err).ToNot(HaveOccurred())
 				Expect(i.Proxy).ToNot(BeNil())
 				Expect(swag.StringValue(i.Proxy.HTTPProxy)).To(Equal(proxyURL))
-				Expect(swag.StringValue(i.Proxy.HTTPSProxy)).To(Equal(proxyURL))
+				Expect(swag.StringValue(i.Proxy.HTTPSProxy)).To(BeEmpty())
 				Expect(swag.StringValue(i.Proxy.NoProxy)).To(Equal(noProxy))
 			})
 
-			It("Update proxy - יhttps different", func() {
+			It("updates proxy when http and https are different", func() {
 				var err error
 				mockInfraEnvUpdateSuccess()
 				proxyURL1 := "http://[1001:db9::1]:3129"

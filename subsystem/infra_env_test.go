@@ -100,7 +100,7 @@ var _ = Describe("Infra_Env", func() {
 		updateInfraEnv := res.Payload
 		Expect(updateInfraEnv.SSHAuthorizedKey).To(Equal(newSshKey))
 		Expect(swag.StringValue(updateInfraEnv.Proxy.HTTPProxy)).To(Equal("http://proxy.proxy"))
-		Expect(swag.StringValue(updateInfraEnv.Proxy.HTTPSProxy)).To(Equal("http://proxy.proxy"))
+		Expect(swag.StringValue(updateInfraEnv.Proxy.HTTPSProxy)).To(BeEmpty())
 		Expect(swag.StringValue(updateInfraEnv.Proxy.NoProxy)).To(Equal("proxy.proxy"))
 		Expect(common.ImageTypeValue(updateInfraEnv.Type)).To(Equal(models.ImageTypeMinimalIso))
 	})
