@@ -24,18 +24,14 @@ import (
 	"github.com/aws/aws-sdk-go/service/s3/s3manager/s3manageriface"
 	"github.com/go-openapi/swag"
 	"github.com/openshift/assisted-service/internal/common"
-	"github.com/openshift/assisted-service/internal/isoeditor"
-	"github.com/openshift/assisted-service/internal/versions"
 	logutil "github.com/openshift/assisted-service/pkg/log"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
 const (
-	awsEndpointSuffix          = ".amazonaws.com"
-	rhcosObjectTemplate        = "rhcos-%s-%s.iso"
-	rhcosMinimalObjectTemplate = "rhcos-%s-%s-minimal.iso"
-	DiscoveryImageTemplate     = "discovery-image-%s"
+	awsEndpointSuffix      = ".amazonaws.com"
+	DiscoveryImageTemplate = "discovery-image-%s"
 )
 
 //go:generate mockgen -package=s3wrapper -destination=mock_s3wrapper.go . API
@@ -47,7 +43,6 @@ type API interface {
 	Upload(ctx context.Context, data []byte, objectName string) error
 	UploadStream(ctx context.Context, reader io.Reader, objectName string) error
 	UploadFile(ctx context.Context, filePath, objectName string) error
-	UploadISO(ctx context.Context, ignitionConfig, srcObject, destObjectPrefix string) error
 	Download(ctx context.Context, objectName string) (io.ReadCloser, int64, error)
 	DoesObjectExist(ctx context.Context, objectName string) (bool, error)
 	DeleteObject(ctx context.Context, objectName string) (bool, error)
@@ -56,31 +51,16 @@ type API interface {
 	UpdateObjectTimestamp(ctx context.Context, objectName string) (bool, error)
 	ExpireObjects(ctx context.Context, prefix string, deleteTime time.Duration, callback func(ctx context.Context, log logrus.FieldLogger, objectName string))
 	ListObjectsByPrefix(ctx context.Context, prefix string) ([]string, error)
-	UploadISOs(ctx context.Context, openshiftVersion, cpuArchitecture string, haveLatestMinimalTemplate bool) error
-	GetBaseIsoObject(openshiftVersion, cpuArchitecture string) (string, error)
-	GetMinimalIsoObjectName(openshiftVersion, cpuArchitecture string) (string, error)
-
-	CreatePublicBucket() error
-	UploadStreamToPublicBucket(ctx context.Context, reader io.Reader, objectName string) error
-	UploadFileToPublicBucket(ctx context.Context, filePath, objectName string) error
-	DoesPublicObjectExist(ctx context.Context, objectName string) (bool, error)
-	DownloadPublic(ctx context.Context, objectName string) (io.ReadCloser, int64, error)
 }
 
 var _ API = &S3Client{}
 
 type S3Client struct {
-	log              logrus.FieldLogger
-	session          *session.Session
-	client           s3iface.S3API
-	uploader         s3manageriface.UploaderAPI
-	publicSession    *session.Session
-	publicClient     s3iface.S3API
-	publicUploader   s3manageriface.UploaderAPI
-	cfg              *Config
-	isoUploader      ISOUploaderAPI
-	versionsHandler  versions.Handler
-	isoEditorFactory isoeditor.Factory
+	log      logrus.FieldLogger
+	session  *session.Session
+	client   s3iface.S3API
+	uploader s3manageriface.UploaderAPI
+	cfg      *Config
 }
 
 type Config struct {
@@ -89,20 +69,12 @@ type Config struct {
 	S3Bucket           string `envconfig:"S3_BUCKET"`
 	AwsAccessKeyID     string `envconfig:"AWS_ACCESS_KEY_ID"`
 	AwsSecretAccessKey string `envconfig:"AWS_SECRET_ACCESS_KEY"`
-
-	// Warning - the files stored in this bucket are publicly viewable and therefore
-	// should only be used for storing RHCOS image files that are readily available on the Internet
-	PublicS3EndpointURL      string `envconfig:"S3_ENDPOINT_URL_PUBLIC"`
-	PublicRegion             string `envconfig:"S3_REGION_PUBLIC"`
-	PublicS3Bucket           string `envconfig:"S3_BUCKET_PUBLIC"`
-	PublicAwsAccessKeyID     string `envconfig:"AWS_ACCESS_KEY_ID_PUBLIC"`
-	PublicAwsSecretAccessKey string `envconfig:"AWS_SECRET_ACCESS_KEY_PUBLIC"`
 }
 
 const timestampTagKey = "create_sec_since_epoch"
 
 // NewS3Client creates new s3 client using default config along with defined env variables
-func NewS3Client(cfg *Config, logger logrus.FieldLogger, versionsHandler versions.Handler, isoEditorFactory isoeditor.Factory) *S3Client {
+func NewS3Client(cfg *Config, logger logrus.FieldLogger) *S3Client {
 	awsSession, err := newS3Session(cfg.AwsAccessKeyID, cfg.AwsSecretAccessKey, cfg.Region, cfg.S3EndpointURL)
 	if err != nil {
 		logger.WithError(err).Error("failed to create s3 session")
@@ -114,22 +86,7 @@ func NewS3Client(cfg *Config, logger logrus.FieldLogger, versionsHandler version
 	}
 	uploader := s3manager.NewUploader(awsSession)
 
-	publicAwsSession, err := newS3Session(cfg.PublicAwsAccessKeyID, cfg.PublicAwsSecretAccessKey, cfg.PublicRegion, cfg.PublicS3EndpointURL)
-	if err != nil {
-		logger.WithError(err).Error("failed to create s3 public session")
-		return nil
-	}
-	publicClient := s3.New(publicAwsSession)
-	if publicClient == nil {
-		return nil
-	}
-	publicUploader := s3manager.NewUploader(publicAwsSession)
-
-	isoUploader := NewISOUploader(logger, client, cfg.S3Bucket, cfg.PublicS3Bucket)
-	return &S3Client{client: client, session: awsSession, uploader: uploader,
-		publicClient: publicClient, publicSession: publicAwsSession, publicUploader: publicUploader,
-		cfg: cfg, log: logger, isoUploader: isoUploader, versionsHandler: versionsHandler,
-		isoEditorFactory: isoEditorFactory}
+	return &S3Client{client: client, session: awsSession, uploader: uploader, cfg: cfg, log: logger}
 }
 
 func newS3Session(accessKeyID, secretAccessKey, region, endpointURL string) (*session.Session, error) {
@@ -192,10 +149,6 @@ func (c *S3Client) CreateBucket() error {
 	return c.createBucket(c.client, c.cfg.S3Bucket)
 }
 
-func (c *S3Client) CreatePublicBucket() error {
-	return c.createBucket(c.publicClient, c.cfg.PublicS3Bucket)
-}
-
 func (c *S3Client) uploadStream(ctx context.Context, reader io.Reader, objectName, bucket string, uploader s3manageriface.UploaderAPI) error {
 	log := logutil.FromContext(ctx, c.log)
 	_, err := uploader.Upload(&s3manager.UploadInput{
@@ -216,10 +169,6 @@ func (c *S3Client) UploadStream(ctx context.Context, reader io.Reader, objectNam
 	return c.uploadStream(ctx, reader, objectName, c.cfg.S3Bucket, c.uploader)
 }
 
-func (c *S3Client) UploadStreamToPublicBucket(ctx context.Context, reader io.Reader, objectName string) error {
-	return c.uploadStream(ctx, reader, objectName, c.cfg.PublicS3Bucket, c.publicUploader)
-}
-
 func (c *S3Client) uploadFile(ctx context.Context, filePath, objectName, bucket string, uploader s3manageriface.UploaderAPI) error {
 	log := logutil.FromContext(ctx, c.log)
 	log.Infof("Uploading file %s as object %s to bucket %s", filePath, objectName, bucket)
@@ -237,15 +186,6 @@ func (c *S3Client) uploadFile(ctx context.Context, filePath, objectName, bucket 
 
 func (c *S3Client) UploadFile(ctx context.Context, filePath, objectName string) error {
 	return c.uploadFile(ctx, filePath, objectName, c.cfg.S3Bucket, c.uploader)
-}
-
-func (c *S3Client) UploadFileToPublicBucket(ctx context.Context, filePath, objectName string) error {
-	return c.uploadFile(ctx, filePath, objectName, c.cfg.PublicS3Bucket, c.publicUploader)
-}
-
-func (c *S3Client) UploadISO(ctx context.Context, ignitionConfig, srcObject, destObjectPrefix string) error {
-	destObjectName := fmt.Sprintf("%s.iso", destObjectPrefix)
-	return c.isoUploader.UploadISO(ctx, ignitionConfig, srcObject, destObjectName)
 }
 
 func (c *S3Client) Upload(ctx context.Context, data []byte, objectName string) error {
@@ -284,10 +224,6 @@ func (c *S3Client) Download(ctx context.Context, objectName string) (io.ReadClos
 	return c.download(ctx, objectName, c.cfg.S3Bucket, c.client)
 }
 
-func (c *S3Client) DownloadPublic(ctx context.Context, objectName string) (io.ReadCloser, int64, error) {
-	return c.download(ctx, objectName, c.cfg.PublicS3Bucket, c.client)
-}
-
 func (c *S3Client) doesObjectExist(ctx context.Context, objectName, bucket string, client s3iface.S3API) (bool, error) {
 	log := logutil.FromContext(ctx, c.log)
 	log.Debugf("Verifying if %s exists in %s", objectName, bucket)
@@ -308,10 +244,6 @@ func (c *S3Client) doesObjectExist(ctx context.Context, objectName, bucket strin
 
 func (c *S3Client) DoesObjectExist(ctx context.Context, objectName string) (bool, error) {
 	return c.doesObjectExist(ctx, objectName, c.cfg.S3Bucket, c.client)
-}
-
-func (c *S3Client) DoesPublicObjectExist(ctx context.Context, objectName string) (bool, error) {
-	return c.doesObjectExist(ctx, objectName, c.cfg.PublicS3Bucket, c.publicClient)
 }
 
 func (c *S3Client) DeleteObject(ctx context.Context, objectName string) (bool, error) {
@@ -477,93 +409,4 @@ func (c *S3Client) ListObjectsByPrefix(ctx context.Context, prefix string) ([]st
 		objects = append(objects, *key.Key)
 	}
 	return objects, nil
-}
-
-func (c *S3Client) UploadISOs(ctx context.Context, openshiftVersion, cpuArchitecture string, haveLatestMinimalTemplate bool) error {
-	osImage, err := c.versionsHandler.GetOsImage(openshiftVersion, cpuArchitecture)
-	if err != nil {
-		return err
-	}
-
-	baseIsoObject, err := c.GetBaseIsoObject(openshiftVersion, cpuArchitecture)
-	if err != nil {
-		return err
-	}
-
-	minimalIsoObject, err := c.GetMinimalIsoObjectName(openshiftVersion, cpuArchitecture)
-	if err != nil {
-		return err
-	}
-
-	return c.uploadISOs(ctx, baseIsoObject, minimalIsoObject, *osImage.URL, openshiftVersion, cpuArchitecture, haveLatestMinimalTemplate)
-}
-
-func (c *S3Client) uploadISOs(ctx context.Context, isoObjectName, minimalIsoObject, isoURL, openshiftVersion, cpuArchitecture string, haveLatestMinimalTemplate bool) error {
-	log := logutil.FromContext(ctx, c.log)
-
-	baseExists, err := c.DoesPublicObjectExist(ctx, isoObjectName)
-	if err != nil {
-		return err
-	}
-
-	var minimalExists bool
-	if !haveLatestMinimalTemplate {
-		// Should update minimal ISO template
-		minimalExists = false
-	} else {
-		minimalExists, err = c.DoesPublicObjectExist(ctx, minimalIsoObject)
-		if err != nil {
-			return err
-		}
-	}
-
-	if baseExists && minimalExists {
-		return nil
-	}
-
-	log.Infof("Starting Base ISO download for %s", isoObjectName)
-	baseIsoPath, err := DownloadURLToTemporaryFile(isoURL)
-	if err != nil {
-		log.Error(err)
-		return err
-	}
-	defer os.Remove(baseIsoPath)
-
-	if !baseExists {
-		err = c.UploadFileToPublicBucket(ctx, baseIsoPath, isoObjectName)
-		if err != nil {
-			return err
-		}
-		log.Infof("Successfully uploaded object %s", isoObjectName)
-	}
-
-	if !minimalExists {
-		osImage, err := c.versionsHandler.GetOsImage(openshiftVersion, cpuArchitecture)
-		if err != nil {
-			return err
-		}
-		if err = CreateAndUploadMinimalIso(ctx, log, baseIsoPath, minimalIsoObject, *osImage.RootfsURL, c, c.isoEditorFactory); err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-func (c *S3Client) GetBaseIsoObject(openshiftVersion, cpuArchitecture string) (string, error) {
-	osImage, err := c.versionsHandler.GetOsImage(openshiftVersion, cpuArchitecture)
-	if err != nil {
-		return "", err
-	}
-
-	return fmt.Sprintf(rhcosObjectTemplate, *osImage.Version, cpuArchitecture), nil
-}
-
-func (c *S3Client) GetMinimalIsoObjectName(openshiftVersion, cpuArchitecture string) (string, error) {
-	osImage, err := c.versionsHandler.GetOsImage(openshiftVersion, cpuArchitecture)
-	if err != nil {
-		return "", err
-	}
-
-	return fmt.Sprintf(rhcosMinimalObjectTemplate, *osImage.Version, cpuArchitecture), nil
 }

@@ -15,9 +15,7 @@ import (
 	"github.com/google/renameio"
 	"github.com/moby/moby/pkg/ioutils"
 	"github.com/openshift/assisted-service/internal/common"
-	"github.com/openshift/assisted-service/internal/isoeditor"
 	"github.com/openshift/assisted-service/internal/metrics"
-	"github.com/openshift/assisted-service/internal/versions"
 	logutil "github.com/openshift/assisted-service/pkg/log"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -25,21 +23,19 @@ import (
 )
 
 type FSClient struct {
-	log              logrus.FieldLogger
-	basedir          string
-	versionsHandler  versions.Handler
-	isoEditorFactory isoeditor.Factory
+	log     logrus.FieldLogger
+	basedir string
 }
 
-func NewFSClient(basedir string, logger logrus.FieldLogger, versionsHandler versions.Handler, isoEditorFactory isoeditor.Factory, metricsAPI metrics.API, fsThreshold int) *FSClientDecorator {
+var _ API = &FSClient{}
+
+func NewFSClient(basedir string, logger logrus.FieldLogger, metricsAPI metrics.API, fsThreshold int) *FSClientDecorator {
 	return &FSClientDecorator{
 		log:        logger,
 		metricsAPI: metricsAPI,
 		fsClient: FSClient{
-			log:              logger,
-			basedir:          basedir,
-			versionsHandler:  versionsHandler,
-			isoEditorFactory: isoEditorFactory,
+			log:     logger,
+			basedir: basedir,
 		},
 		fsUsageThreshold:              fsThreshold,
 		timeFSUsageLog:                time.Now().Add(-1 * time.Hour),
@@ -53,10 +49,6 @@ func (f *FSClient) IsAwsS3() bool {
 }
 
 func (f *FSClient) CreateBucket() error {
-	return nil
-}
-
-func (f *FSClient) CreatePublicBucket() error {
 	return nil
 }
 
@@ -89,23 +81,6 @@ func (f *FSClient) UploadFile(ctx context.Context, filePath, objectName string) 
 	defer file.Close()
 
 	return f.UploadStream(ctx, file, objectName)
-}
-
-func (f *FSClient) UploadFileToPublicBucket(ctx context.Context, filePath, objectName string) error {
-	return f.UploadFile(ctx, filePath, objectName)
-}
-
-func (f *FSClient) UploadISO(ctx context.Context, ignitionConfig, srcObject, destObjectPrefix string) error {
-	log := logutil.FromContext(ctx, f.log)
-	resultFile := filepath.Join(f.basedir, fmt.Sprintf("%s.iso", destObjectPrefix))
-	baseFile := filepath.Join(f.basedir, srcObject)
-	err := os.Remove(resultFile)
-	if err != nil && !os.IsNotExist(err) {
-		log.Error("error attempting to remove any pre-existing ISO")
-		return err
-	}
-
-	return isoeditor.EmbedIgnition(baseFile, resultFile, ignitionConfig)
 }
 
 func (f *FSClient) UploadStream(ctx context.Context, reader io.Reader, objectName string) error {
@@ -160,10 +135,6 @@ func (f *FSClient) UploadStream(ctx context.Context, reader io.Reader, objectNam
 	return nil
 }
 
-func (f *FSClient) UploadStreamToPublicBucket(ctx context.Context, reader io.Reader, objectName string) error {
-	return f.UploadStream(ctx, reader, objectName)
-}
-
 func (f *FSClient) Download(ctx context.Context, objectName string) (io.ReadCloser, int64, error) {
 	log := logutil.FromContext(ctx, f.log)
 	filePath := filepath.Join(f.basedir, objectName)
@@ -186,10 +157,6 @@ func (f *FSClient) Download(ctx context.Context, objectName string) (io.ReadClos
 	return ioutils.NewReadCloserWrapper(fp, fp.Close), info.Size(), nil
 }
 
-func (f *FSClient) DownloadPublic(ctx context.Context, objectName string) (io.ReadCloser, int64, error) {
-	return f.Download(ctx, objectName)
-}
-
 func (f *FSClient) DoesObjectExist(ctx context.Context, objectName string) (bool, error) {
 	filePath := filepath.Join(f.basedir, objectName)
 	info, err := os.Stat(filePath)
@@ -203,10 +170,6 @@ func (f *FSClient) DoesObjectExist(ctx context.Context, objectName string) (bool
 		return false, errors.New(fmt.Sprintf("Expected %s to be a file but found as directory", objectName))
 	}
 	return true, nil
-}
-
-func (f *FSClient) DoesPublicObjectExist(ctx context.Context, objectName string) (bool, error) {
-	return f.DoesObjectExist(ctx, objectName)
 }
 
 func (f *FSClient) DeleteObject(ctx context.Context, objectName string) (bool, error) {
@@ -314,88 +277,6 @@ func (f *FSClient) ListObjectsByPrefix(ctx context.Context, prefix string) ([]st
 	return matches, nil
 }
 
-// UploadISOs is responsible for downloading to the filesystem the RHCOS
-// live cd (if needed) based on the openshiftVersion and constructing the minimal iso for later use.
-// The order of operations here is important, we determine if we have all
-// necessary boot files and the minimal template has been created, download the
-// livecd iso if not available, extract the boot files from the iso, and
-// construct the minimal iso on the filesystem.
-func (f *FSClient) UploadISOs(ctx context.Context, openshiftVersion, cpuArchitecture string, haveLatestMinimalTemplate bool) error {
-	log := logutil.FromContext(ctx, f.log)
-	osImage, err := f.versionsHandler.GetOsImage(openshiftVersion, cpuArchitecture)
-	if err != nil {
-		return err
-	}
-
-	baseIsoObject, err := f.GetBaseIsoObject(openshiftVersion, cpuArchitecture)
-	if err != nil {
-		return err
-	}
-
-	minimalIsoObject, err := f.GetMinimalIsoObjectName(openshiftVersion, cpuArchitecture)
-	if err != nil {
-		return err
-	}
-
-	baseExists, err := f.DoesPublicObjectExist(ctx, baseIsoObject)
-	if err != nil {
-		return err
-	}
-
-	var minimalExists bool
-	if !haveLatestMinimalTemplate {
-		// Should update minimal ISO template
-		minimalExists = false
-	} else {
-		minimalExists, err = f.DoesPublicObjectExist(ctx, minimalIsoObject)
-		if err != nil {
-			return err
-		}
-	}
-
-	if baseExists && minimalExists {
-		return nil
-	}
-
-	if !baseExists {
-		err = UploadFromURLToPublicBucket(ctx, baseIsoObject, *osImage.URL, f)
-		if err != nil {
-			return err
-		}
-		log.Infof("Successfully uploaded object %s", baseIsoObject)
-	}
-
-	isoFilePath := filepath.Join(f.basedir, baseIsoObject)
-	if !minimalExists {
-		osImage, err := f.versionsHandler.GetOsImage(openshiftVersion, cpuArchitecture)
-		if err != nil {
-			return err
-		}
-		if err = CreateAndUploadMinimalIso(ctx, log, isoFilePath, minimalIsoObject, *osImage.RootfsURL, f, f.isoEditorFactory); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func (f *FSClient) GetBaseIsoObject(openshiftVersion, cpuArchitecture string) (string, error) {
-	osImage, err := f.versionsHandler.GetOsImage(openshiftVersion, cpuArchitecture)
-	if err != nil {
-		return "", err
-	}
-
-	return fmt.Sprintf(rhcosObjectTemplate, *osImage.Version, cpuArchitecture), nil
-}
-
-func (f *FSClient) GetMinimalIsoObjectName(openshiftVersion, cpuArchitecture string) (string, error) {
-	osImage, err := f.versionsHandler.GetOsImage(openshiftVersion, cpuArchitecture)
-	if err != nil {
-		return "", err
-	}
-
-	return fmt.Sprintf(rhcosMinimalObjectTemplate, *osImage.Version, cpuArchitecture), nil
-}
-
 type FSClientDecorator struct {
 	log                           logrus.FieldLogger
 	fsClient                      FSClient
@@ -406,6 +287,8 @@ type FSClientDecorator struct {
 	loggingIntervalBelowThreshold int64
 	loggingIntervalAboveThreshold int64
 }
+
+var _ API = &FSClientDecorator{}
 
 func (d *FSClientDecorator) shouldLog() bool {
 	var pauseBetweenLogs int64
@@ -482,14 +365,6 @@ func (d *FSClientDecorator) UploadFile(ctx context.Context, filePath, objectName
 	return err
 }
 
-func (d *FSClientDecorator) UploadISO(ctx context.Context, ignitionConfig, srcObject, destObjectPrefix string) error {
-	err := d.fsClient.UploadISO(ctx, ignitionConfig, srcObject, destObjectPrefix)
-	if err == nil {
-		d.reportFilesystemUsageMetrics()
-	}
-	return err
-}
-
 func (d *FSClientDecorator) Download(ctx context.Context, objectName string) (io.ReadCloser, int64, error) {
 	return d.fsClient.Download(ctx, objectName)
 }
@@ -525,48 +400,4 @@ func (d *FSClientDecorator) ExpireObjects(ctx context.Context, prefix string, de
 
 func (d *FSClientDecorator) ListObjectsByPrefix(ctx context.Context, prefix string) ([]string, error) {
 	return d.fsClient.ListObjectsByPrefix(ctx, prefix)
-}
-
-func (d *FSClientDecorator) UploadISOs(ctx context.Context, openshiftVersion, cpuArchitecture string, haveLatestMinimalTemplate bool) error {
-	err := d.fsClient.UploadISOs(ctx, openshiftVersion, cpuArchitecture, haveLatestMinimalTemplate)
-	if err != nil {
-		d.reportFilesystemUsageMetrics()
-	}
-	return err
-}
-
-func (d *FSClientDecorator) GetBaseIsoObject(openshiftVersion, cpuArchitecture string) (string, error) {
-	return d.fsClient.GetBaseIsoObject(openshiftVersion, cpuArchitecture)
-}
-
-func (d *FSClientDecorator) GetMinimalIsoObjectName(openshiftVersion, cpuArchitecture string) (string, error) {
-	return d.fsClient.GetMinimalIsoObjectName(openshiftVersion, cpuArchitecture)
-}
-
-func (d *FSClientDecorator) CreatePublicBucket() error {
-	return d.fsClient.CreatePublicBucket()
-}
-
-func (d *FSClientDecorator) UploadStreamToPublicBucket(ctx context.Context, reader io.Reader, objectName string) error {
-	err := d.fsClient.UploadStreamToPublicBucket(ctx, reader, objectName)
-	if err == nil {
-		d.reportFilesystemUsageMetrics()
-	}
-	return err
-}
-
-func (d *FSClientDecorator) UploadFileToPublicBucket(ctx context.Context, filePath, objectName string) error {
-	err := d.fsClient.UploadFileToPublicBucket(ctx, filePath, objectName)
-	if err == nil {
-		d.reportFilesystemUsageMetrics()
-	}
-	return err
-}
-
-func (d *FSClientDecorator) DoesPublicObjectExist(ctx context.Context, objectName string) (bool, error) {
-	return d.fsClient.DoesPublicObjectExist(ctx, objectName)
-}
-
-func (d *FSClientDecorator) DownloadPublic(ctx context.Context, objectName string) (io.ReadCloser, int64, error) {
-	return d.fsClient.DownloadPublic(ctx, objectName)
 }

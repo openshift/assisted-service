@@ -2,20 +2,15 @@ package s3wrapper
 
 import (
 	"context"
-	"errors"
 	"io/ioutil"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"time"
 
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/openshift/assisted-service/internal/common"
-	"github.com/openshift/assisted-service/internal/isoeditor"
 	"github.com/openshift/assisted-service/internal/metrics"
-	"github.com/openshift/assisted-service/internal/versions"
 	"github.com/sirupsen/logrus"
 )
 
@@ -27,7 +22,6 @@ var _ = Describe("s3filesystem", func() {
 		client         *FSClient
 		ctrl           *gomock.Controller
 		mockMetricsAPI *metrics.MockAPI
-		mockVersions   *versions.MockHandler
 		now            time.Time
 		baseDir        string
 		dataStr        = "hello world"
@@ -41,10 +35,8 @@ var _ = Describe("s3filesystem", func() {
 		Expect(err).Should(BeNil())
 
 		ctrl = gomock.NewController(GinkgoT())
-		mockVersions = versions.NewMockHandler(ctrl)
-		editorFactory := isoeditor.NewFactory(isoeditor.Config{ConcurrentEdits: 10})
 		mockMetricsAPI = metrics.NewMockAPI(ctrl)
-		client = &FSClient{basedir: baseDir, log: log, versionsHandler: mockVersions, isoEditorFactory: editorFactory}
+		client = &FSClient{basedir: baseDir, log: log}
 		deleteTime, _ = time.ParseDuration("60m")
 		now, _ = time.Parse(time.RFC3339, "2020-01-01T10:00:00+00:00")
 	})
@@ -169,102 +161,6 @@ var _ = Describe("s3filesystem", func() {
 		called := false
 		client.handleFile(ctx, log, filePath, info, now, deleteTime, func(ctx context.Context, log logrus.FieldLogger, objectName string) { called = true })
 		Expect(called).To(Equal(false))
-	})
-	Context("upload isos", func() {
-		It("all exist", func() {
-			err := os.MkdirAll(filepath.Join(baseDir, "files/images/pxeboot"), 0755)
-			Expect(err).ToNot(HaveOccurred())
-			err = ioutil.WriteFile(filepath.Join(baseDir, "files/images/pxeboot/rootfs.img"), []byte("this is rootfs"), 0600)
-			Expect(err).ToNot(HaveOccurred())
-			err = ioutil.WriteFile(filepath.Join(baseDir, "files/images/pxeboot/initrd.img"), []byte("this is initrd"), 0600)
-			Expect(err).ToNot(HaveOccurred())
-			err = ioutil.WriteFile(filepath.Join(baseDir, "files/images/pxeboot/vmlinuz"), []byte("this is vmlinuz"), 0600)
-			Expect(err).ToNot(HaveOccurred())
-			err = os.MkdirAll(filepath.Join(baseDir, "files/EFI/redhat"), 0755)
-			Expect(err).ToNot(HaveOccurred())
-			err = ioutil.WriteFile(filepath.Join(baseDir, "files/EFI/redhat/grub.cfg"), []byte(" linux /images/pxeboot/vmlinuz"), 0600)
-			Expect(err).ToNot(HaveOccurred())
-			err = os.MkdirAll(filepath.Join(baseDir, "files/isolinux"), 0755)
-			Expect(err).ToNot(HaveOccurred())
-			err = ioutil.WriteFile(filepath.Join(baseDir, "files/isolinux/isolinux.cfg"), []byte(" append initrd=/images/pxeboot/initrd.img"), 0600)
-			Expect(err).ToNot(HaveOccurred())
-			mockVersions.EXPECT().GetOsImage(defaultTestOpenShiftVersion, gomock.Any()).Return(&defaultOsImage, nil).Times(5)
-			srcObject, err := client.GetBaseIsoObject(defaultTestOpenShiftVersion, common.TestDefaultConfig.CPUArchitecture)
-			Expect(err).ToNot(HaveOccurred())
-			err = ioutil.WriteFile(filepath.Join(baseDir, "files/images/assisted_installer_custom.img"), make([]byte, isoeditor.RamDiskPaddingLength), 0600)
-			Expect(err).ToNot(HaveOccurred())
-			err = ioutil.WriteFile(filepath.Join(baseDir, "files/images/ignition.img"), make([]byte, isoeditor.IgnitionPaddingLength), 0600)
-			Expect(err).ToNot(HaveOccurred())
-			isoPath := filepath.Join(baseDir, srcObject)
-			cmd := exec.Command("genisoimage", "-rational-rock", "-J", "-joliet-long", "-V", "volumeID", "-o", isoPath, filepath.Join(baseDir, "files"))
-			err = cmd.Run()
-			Expect(err).ToNot(HaveOccurred())
-			err = os.RemoveAll(filepath.Join(baseDir, "files"))
-			Expect(err).ToNot(HaveOccurred())
-
-			minimalIso, err := client.GetMinimalIsoObjectName(defaultTestOpenShiftVersion, defaultTestCpuArchitecture)
-			Expect(err).ShouldNot(HaveOccurred())
-
-			err = ioutil.WriteFile(filepath.Join(baseDir, minimalIso),
-				[]byte("minimal iso"), 0600)
-			Expect(err).Should(BeNil())
-
-			mockMetricsAPI.EXPECT().FileSystemUsage(gomock.Any()).Times(1)
-
-			err = client.UploadISOs(ctx, defaultTestOpenShiftVersion, defaultTestCpuArchitecture, true)
-			Expect(err).ToNot(HaveOccurred())
-		})
-		It("unsupported openshift version", func() {
-			unsupportedVersion := "999"
-			mockVersions.EXPECT().GetOsImage(unsupportedVersion, gomock.Any()).Return(nil, errors.New("unsupported")).Times(1)
-			err := client.UploadISOs(ctx, unsupportedVersion, defaultTestCpuArchitecture, false)
-			Expect(err).To(HaveOccurred())
-		})
-		It("unsupported CPU architecture", func() {
-			unsupportedArchitecture := "unsupported"
-			mockVersions.EXPECT().GetOsImage(defaultTestOpenShiftVersion, unsupportedArchitecture).Return(nil, errors.New("unsupported")).Times(1)
-			err := client.UploadISOs(ctx, defaultTestOpenShiftVersion, unsupportedArchitecture, false)
-			Expect(err).To(HaveOccurred())
-		})
-		It("iso exists", func() {
-			err := os.MkdirAll(filepath.Join(baseDir, "files/images/pxeboot"), 0755)
-			Expect(err).ToNot(HaveOccurred())
-			err = ioutil.WriteFile(filepath.Join(baseDir, "files/images/pxeboot/rootfs.img"), []byte("this is rootfs"), 0600)
-			Expect(err).ToNot(HaveOccurred())
-			err = ioutil.WriteFile(filepath.Join(baseDir, "files/images/pxeboot/initrd.img"), []byte("this is initrd"), 0600)
-			Expect(err).ToNot(HaveOccurred())
-			err = ioutil.WriteFile(filepath.Join(baseDir, "files/images/pxeboot/vmlinuz"), []byte("this is vmlinuz"), 0600)
-			Expect(err).ToNot(HaveOccurred())
-			err = os.MkdirAll(filepath.Join(baseDir, "files/EFI/redhat"), 0755)
-			Expect(err).ToNot(HaveOccurred())
-			err = ioutil.WriteFile(filepath.Join(baseDir, "files/EFI/redhat/grub.cfg"), []byte(" linux /images/pxeboot/vmlinuz"), 0600)
-			Expect(err).ToNot(HaveOccurred())
-			err = os.MkdirAll(filepath.Join(baseDir, "files/isolinux"), 0755)
-			Expect(err).ToNot(HaveOccurred())
-			err = ioutil.WriteFile(filepath.Join(baseDir, "files/isolinux/isolinux.cfg"), []byte(" append initrd=/images/pxeboot/initrd.img"), 0600)
-			Expect(err).ToNot(HaveOccurred())
-			mockVersions.EXPECT().GetOsImage(defaultTestOpenShiftVersion, gomock.Any()).Return(&defaultOsImage, nil).Times(6)
-			srcObject, err := client.GetBaseIsoObject(defaultTestOpenShiftVersion, common.TestDefaultConfig.CPUArchitecture)
-			Expect(err).ToNot(HaveOccurred())
-			err = ioutil.WriteFile(filepath.Join(baseDir, "files/images/assisted_installer_custom.img"), make([]byte, isoeditor.RamDiskPaddingLength), 0600)
-			Expect(err).ToNot(HaveOccurred())
-			err = ioutil.WriteFile(filepath.Join(baseDir, "files/images/ignition.img"), make([]byte, isoeditor.IgnitionPaddingLength), 0600)
-			Expect(err).ToNot(HaveOccurred())
-			isoPath := filepath.Join(baseDir, srcObject)
-			cmd := exec.Command("genisoimage", "-rational-rock", "-J", "-joliet-long", "-V", "volumeID", "-o", isoPath, filepath.Join(baseDir, "files"))
-			err = cmd.Run()
-			Expect(err).ToNot(HaveOccurred())
-			err = os.RemoveAll(filepath.Join(baseDir, "files"))
-			Expect(err).ToNot(HaveOccurred())
-
-			mockMetricsAPI.EXPECT().FileSystemUsage(gomock.Any()).AnyTimes()
-
-			err = client.UploadISOs(ctx, defaultTestOpenShiftVersion, defaultTestCpuArchitecture, true)
-			Expect(err).ToNot(HaveOccurred())
-
-			_, err = client.GetBaseIsoObject(defaultTestOpenShiftVersion, defaultTestCpuArchitecture)
-			Expect(err).ShouldNot(HaveOccurred())
-		})
 	})
 
 	It("ListObjectByPrefix lists the correct object without a leading slash", func() {

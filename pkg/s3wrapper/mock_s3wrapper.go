@@ -51,20 +51,6 @@ func (mr *MockAPIMockRecorder) CreateBucket() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateBucket", reflect.TypeOf((*MockAPI)(nil).CreateBucket))
 }
 
-// CreatePublicBucket mocks base method.
-func (m *MockAPI) CreatePublicBucket() error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CreatePublicBucket")
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// CreatePublicBucket indicates an expected call of CreatePublicBucket.
-func (mr *MockAPIMockRecorder) CreatePublicBucket() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreatePublicBucket", reflect.TypeOf((*MockAPI)(nil).CreatePublicBucket))
-}
-
 // DeleteObject mocks base method.
 func (m *MockAPI) DeleteObject(arg0 context.Context, arg1 string) (bool, error) {
 	m.ctrl.T.Helper()
@@ -95,21 +81,6 @@ func (mr *MockAPIMockRecorder) DoesObjectExist(arg0, arg1 interface{}) *gomock.C
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DoesObjectExist", reflect.TypeOf((*MockAPI)(nil).DoesObjectExist), arg0, arg1)
 }
 
-// DoesPublicObjectExist mocks base method.
-func (m *MockAPI) DoesPublicObjectExist(arg0 context.Context, arg1 string) (bool, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DoesPublicObjectExist", arg0, arg1)
-	ret0, _ := ret[0].(bool)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// DoesPublicObjectExist indicates an expected call of DoesPublicObjectExist.
-func (mr *MockAPIMockRecorder) DoesPublicObjectExist(arg0, arg1 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DoesPublicObjectExist", reflect.TypeOf((*MockAPI)(nil).DoesPublicObjectExist), arg0, arg1)
-}
-
 // Download mocks base method.
 func (m *MockAPI) Download(arg0 context.Context, arg1 string) (io.ReadCloser, int64, error) {
 	m.ctrl.T.Helper()
@@ -124,22 +95,6 @@ func (m *MockAPI) Download(arg0 context.Context, arg1 string) (io.ReadCloser, in
 func (mr *MockAPIMockRecorder) Download(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Download", reflect.TypeOf((*MockAPI)(nil).Download), arg0, arg1)
-}
-
-// DownloadPublic mocks base method.
-func (m *MockAPI) DownloadPublic(arg0 context.Context, arg1 string) (io.ReadCloser, int64, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DownloadPublic", arg0, arg1)
-	ret0, _ := ret[0].(io.ReadCloser)
-	ret1, _ := ret[1].(int64)
-	ret2, _ := ret[2].(error)
-	return ret0, ret1, ret2
-}
-
-// DownloadPublic indicates an expected call of DownloadPublic.
-func (mr *MockAPIMockRecorder) DownloadPublic(arg0, arg1 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DownloadPublic", reflect.TypeOf((*MockAPI)(nil).DownloadPublic), arg0, arg1)
 }
 
 // ExpireObjects mocks base method.
@@ -167,36 +122,6 @@ func (m *MockAPI) GeneratePresignedDownloadURL(arg0 context.Context, arg1, arg2 
 func (mr *MockAPIMockRecorder) GeneratePresignedDownloadURL(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GeneratePresignedDownloadURL", reflect.TypeOf((*MockAPI)(nil).GeneratePresignedDownloadURL), arg0, arg1, arg2, arg3)
-}
-
-// GetBaseIsoObject mocks base method.
-func (m *MockAPI) GetBaseIsoObject(arg0, arg1 string) (string, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetBaseIsoObject", arg0, arg1)
-	ret0, _ := ret[0].(string)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetBaseIsoObject indicates an expected call of GetBaseIsoObject.
-func (mr *MockAPIMockRecorder) GetBaseIsoObject(arg0, arg1 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetBaseIsoObject", reflect.TypeOf((*MockAPI)(nil).GetBaseIsoObject), arg0, arg1)
-}
-
-// GetMinimalIsoObjectName mocks base method.
-func (m *MockAPI) GetMinimalIsoObjectName(arg0, arg1 string) (string, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetMinimalIsoObjectName", arg0, arg1)
-	ret0, _ := ret[0].(string)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetMinimalIsoObjectName indicates an expected call of GetMinimalIsoObjectName.
-func (mr *MockAPIMockRecorder) GetMinimalIsoObjectName(arg0, arg1 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetMinimalIsoObjectName", reflect.TypeOf((*MockAPI)(nil).GetMinimalIsoObjectName), arg0, arg1)
 }
 
 // GetObjectSizeBytes mocks base method.
@@ -286,48 +211,6 @@ func (mr *MockAPIMockRecorder) UploadFile(arg0, arg1, arg2 interface{}) *gomock.
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UploadFile", reflect.TypeOf((*MockAPI)(nil).UploadFile), arg0, arg1, arg2)
 }
 
-// UploadFileToPublicBucket mocks base method.
-func (m *MockAPI) UploadFileToPublicBucket(arg0 context.Context, arg1, arg2 string) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "UploadFileToPublicBucket", arg0, arg1, arg2)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// UploadFileToPublicBucket indicates an expected call of UploadFileToPublicBucket.
-func (mr *MockAPIMockRecorder) UploadFileToPublicBucket(arg0, arg1, arg2 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UploadFileToPublicBucket", reflect.TypeOf((*MockAPI)(nil).UploadFileToPublicBucket), arg0, arg1, arg2)
-}
-
-// UploadISO mocks base method.
-func (m *MockAPI) UploadISO(arg0 context.Context, arg1, arg2, arg3 string) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "UploadISO", arg0, arg1, arg2, arg3)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// UploadISO indicates an expected call of UploadISO.
-func (mr *MockAPIMockRecorder) UploadISO(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UploadISO", reflect.TypeOf((*MockAPI)(nil).UploadISO), arg0, arg1, arg2, arg3)
-}
-
-// UploadISOs mocks base method.
-func (m *MockAPI) UploadISOs(arg0 context.Context, arg1, arg2 string, arg3 bool) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "UploadISOs", arg0, arg1, arg2, arg3)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// UploadISOs indicates an expected call of UploadISOs.
-func (mr *MockAPIMockRecorder) UploadISOs(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UploadISOs", reflect.TypeOf((*MockAPI)(nil).UploadISOs), arg0, arg1, arg2, arg3)
-}
-
 // UploadStream mocks base method.
 func (m *MockAPI) UploadStream(arg0 context.Context, arg1 io.Reader, arg2 string) error {
 	m.ctrl.T.Helper()
@@ -340,18 +223,4 @@ func (m *MockAPI) UploadStream(arg0 context.Context, arg1 io.Reader, arg2 string
 func (mr *MockAPIMockRecorder) UploadStream(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UploadStream", reflect.TypeOf((*MockAPI)(nil).UploadStream), arg0, arg1, arg2)
-}
-
-// UploadStreamToPublicBucket mocks base method.
-func (m *MockAPI) UploadStreamToPublicBucket(arg0 context.Context, arg1 io.Reader, arg2 string) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "UploadStreamToPublicBucket", arg0, arg1, arg2)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// UploadStreamToPublicBucket indicates an expected call of UploadStreamToPublicBucket.
-func (mr *MockAPIMockRecorder) UploadStreamToPublicBucket(arg0, arg1, arg2 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UploadStreamToPublicBucket", reflect.TypeOf((*MockAPI)(nil).UploadStreamToPublicBucket), arg0, arg1, arg2)
 }
