@@ -2333,13 +2333,16 @@ var _ = Describe("TestConditions", func() {
 		clusterRequest         ctrl.Request
 		clusterKey             types.NamespacedName
 		agentClusterInstallKey types.NamespacedName
+		mockInstallerInternal  *bminventory.MockInstallerInternals
+		mockClusterApi         *cluster.MockAPI
 	)
 
 	BeforeEach(func() {
 		c = fakeclient.NewClientBuilder().WithScheme(scheme.Scheme).Build()
 		mockCtrl = gomock.NewController(GinkgoT())
-		mockInstallerInternal := bminventory.NewMockInstallerInternals(mockCtrl)
-		mockClusterApi := cluster.NewMockAPI(mockCtrl)
+		mockInstallerInternal = bminventory.NewMockInstallerInternals(mockCtrl)
+		mockClusterApi = cluster.NewMockAPI(mockCtrl)
+		mockManifestsApi := manifestsapi.NewMockClusterManifestsInternals(mockCtrl)
 		cr = &ClusterDeploymentsReconciler{
 			Client:     c,
 			APIReader:  c,
@@ -2347,8 +2350,29 @@ var _ = Describe("TestConditions", func() {
 			Log:        common.GetTestLog(),
 			Installer:  mockInstallerInternal,
 			ClusterApi: mockClusterApi,
+			Manifests:  mockManifestsApi,
 		}
-		backEndCluster = &common.Cluster{}
+		sId := strfmt.UUID(uuid.New().String())
+		defaultAgentClusterInstallSpec := getDefaultAgentClusterInstallSpec(clusterKey.Name)
+		defaultClusterSpec := getDefaultClusterDeploymentSpec("clusterDeployment-test", agentClusterInstallKey.Name, "pull-secret")
+		backEndCluster = &common.Cluster{
+			Cluster: models.Cluster{
+				ID:               &sId,
+				Name:             "clusterDeployment-test",
+				OpenshiftVersion: "4.8",
+				ClusterNetworks:  clusterNetworksEntriesToArray(defaultAgentClusterInstallSpec.Networking.ClusterNetwork),
+				ServiceNetworks:  serviceNetworksEntriesToArray(defaultAgentClusterInstallSpec.Networking.ServiceNetwork),
+				NetworkType:      swag.String(models.ClusterNetworkTypeOpenShiftSDN),
+				Status:           swag.String(models.ClusterStatusReady),
+				IngressVip:       defaultAgentClusterInstallSpec.IngressVIP,
+				APIVip:           defaultAgentClusterInstallSpec.APIVIP,
+				BaseDNSDomain:    defaultClusterSpec.BaseDomain,
+				SSHPublicKey:     defaultAgentClusterInstallSpec.SSHPublicKey,
+				Hyperthreading:   models.ClusterHyperthreadingAll,
+				Kind:             swag.String(models.ClusterKindCluster),
+			},
+			PullSecret: testPullSecretVal,
+		}
 		clusterKey = types.NamespacedName{
 			Namespace: testNamespace,
 			Name:      "clusterDeployment",
@@ -2365,6 +2389,8 @@ var _ = Describe("TestConditions", func() {
 		Expect(c.Create(ctx, aci)).ShouldNot(HaveOccurred())
 		clusterRequest = newClusterDeploymentRequest(clusterDeployment)
 		mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil)
+		pullSecret := getDefaultTestPullSecret("pull-secret", testNamespace)
+		Expect(c.Create(ctx, pullSecret)).To(BeNil())
 	})
 
 	AfterEach(func() {
@@ -2372,11 +2398,12 @@ var _ = Describe("TestConditions", func() {
 	})
 
 	tests := []struct {
-		name           string
-		clusterStatus  string
-		statusInfo     string
-		validationInfo string
-		conditions     []hivev1.ClusterInstallCondition
+		name            string
+		clusterStatus   string
+		statusInfo      string
+		validationInfo  string
+		conditions      []hivev1.ClusterInstallCondition
+		additionalMocks []func()
 	}{
 		{
 			name:           "Unsufficient",
@@ -2413,6 +2440,11 @@ var _ = Describe("TestConditions", func() {
 					Message: hiveext.ClusterNotStoppedMsg,
 					Reason:  hiveext.ClusterNotStoppedReason,
 					Status:  corev1.ConditionFalse,
+				},
+			},
+			additionalMocks: []func(){
+				func() {
+					mockClusterApi.EXPECT().IsReadyForInstallation(gomock.Any()).Return(false, "")
 				},
 			},
 		},
@@ -2453,6 +2485,11 @@ var _ = Describe("TestConditions", func() {
 					Status:  corev1.ConditionFalse,
 				},
 			},
+			additionalMocks: []func(){
+				func() {
+					mockClusterApi.EXPECT().IsReadyForInstallation(gomock.Any()).Return(false, "")
+				},
+			},
 		},
 		{
 			name:           "AddingHosts",
@@ -2484,11 +2521,19 @@ var _ = Describe("TestConditions", func() {
 					Reason:  hiveext.ClusterNotFailedReason,
 					Status:  corev1.ConditionFalse,
 				},
+				// This was previously wrong. Following the function `clusterStopped(...` we can see
+				// that for models.ClusterStatusInstalled and models.ClusterStatusAddingHosts we should
+				// be stopping as completed.
 				{
 					Type:    hiveext.ClusterStoppedCondition,
-					Message: hiveext.ClusterNotStoppedMsg,
-					Reason:  hiveext.ClusterNotStoppedReason,
-					Status:  corev1.ConditionFalse,
+					Message: hiveext.ClusterStoppedCompletedMsg,
+					Reason:  hiveext.ClusterStoppedCompletedReason,
+					Status:  corev1.ConditionTrue,
+				},
+			},
+			additionalMocks: []func(){
+				func() {
+					mockClusterApi.EXPECT().IsReadyForInstallation(gomock.Any()).Return(false, "")
 				},
 			},
 		},
@@ -2529,6 +2574,14 @@ var _ = Describe("TestConditions", func() {
 					Status:  corev1.ConditionTrue,
 				},
 			},
+			additionalMocks: []func(){
+				func() {
+					mockInstallerInternal.EXPECT().GetCredentialsInternal(gomock.Any(), gomock.Any()).Return(&models.Credentials{Password: "foo", Username: "bar"}, nil)
+				},
+				func() {
+					mockInstallerInternal.EXPECT().V2DownloadClusterCredentialsInternal(gomock.Any(), gomock.Any()).Return(ioutil.NopCloser(strings.NewReader("kubeconfig content")), int64(len("kubeconfig content")), nil).Times(1)
+				},
+			},
 		},
 		{
 			name:           "Installing",
@@ -2567,8 +2620,24 @@ var _ = Describe("TestConditions", func() {
 					Status:  corev1.ConditionFalse,
 				},
 			},
+			additionalMocks: []func(){
+				func() {
+					mockClusterApi.EXPECT().IsReadyForInstallation(gomock.Any()).Return(false, "")
+				},
+				func() {
+					mockInstallerInternal.EXPECT().V2DownloadClusterCredentialsInternal(gomock.Any(), gomock.Any()).Return(ioutil.NopCloser(strings.NewReader("kubeconfig content")), int64(len("kubeconfig content")), nil).Times(1)
+				},
+			},
 		},
 		{
+			// This test is not reflecting reality because in its runtime it calls `r.ClusterApi.IsReadyForInstallation(c)`
+			// which normally would return TRUE, but in the unit test we only have a MOCK CALL to this function
+			// that returns FALSE. Because of that in the `(r *ClusterDeploymentsReconciler) isReadyForInstallation`
+			// we don't see this cluster as READY.
+			// Changing readyForInstallation to return TRUE does not change much, because then we are running into
+			// similar issue with `ic, err = r.Installer.InstallClusterInternal(...` call which because of the mock
+			// returns NIL, so that `return r.updateStatus(ctx, log, clusterInstall, ic, err)` call uses ic=nil and
+			// as an effect, sets cluster's status to UNKNOWN.
 			name:           "Ready",
 			clusterStatus:  models.ClusterStatusReady,
 			statusInfo:     "",
@@ -2600,9 +2669,14 @@ var _ = Describe("TestConditions", func() {
 				},
 				{
 					Type:    hiveext.ClusterStoppedCondition,
-					Message: hiveext.ClusterStoppedCompletedMsg,
-					Reason:  hiveext.ClusterStoppedCompletedReason,
-					Status:  corev1.ConditionTrue,
+					Message: hiveext.ClusterNotStoppedMsg,
+					Reason:  hiveext.ClusterNotStoppedReason,
+					Status:  corev1.ConditionFalse,
+				},
+			},
+			additionalMocks: []func(){
+				func() {
+					mockClusterApi.EXPECT().IsReadyForInstallation(gomock.Any()).Return(false, "")
 				},
 			},
 		},
@@ -2643,17 +2717,23 @@ var _ = Describe("TestConditions", func() {
 					Status:  corev1.ConditionTrue,
 				},
 			},
+			additionalMocks: []func(){
+				func() {
+					mockClusterApi.EXPECT().IsReadyForInstallation(gomock.Any()).Return(false, "")
+				},
+			},
 		},
 	}
 
 	for i := range tests {
 		t := tests[i]
 		It(t.name, func() {
+			for _, mock := range t.additionalMocks {
+				mock()
+			}
 			backEndCluster.Status = swag.String(t.clusterStatus)
 			backEndCluster.StatusInfo = swag.String(t.statusInfo)
 			backEndCluster.ValidationsInfo = t.validationInfo
-			cid := strfmt.UUID(uuid.New().String())
-			backEndCluster.ID = &cid
 			_, err := cr.Reconcile(ctx, clusterRequest)
 			Expect(err).To(BeNil())
 			cluster := &hivev1.ClusterDeployment{}
