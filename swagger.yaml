@@ -5704,7 +5704,6 @@ definitions:
       - boot_device
       - controller_image
       - installer_image
-      - high_availability_mode
     properties:
       cluster_id:
         type: string

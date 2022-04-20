@@ -4278,13 +4278,17 @@ func (b *bareMetalInventory) V2RegisterHost(ctx context.Context, params installe
 				return common.NewApiError(http.StatusBadRequest, err)
 			}
 		}
-		if common.IsSingleNodeCluster(cluster) {
+
+		if common.IsDay2Cluster(cluster) {
+			host.Kind = swag.String(models.HostKindAddToExistingClusterHost)
+			host.Role = models.HostRoleWorker
+			host.MachineConfigPoolName = string(models.HostRoleWorker)
+		} else if common.IsSingleNodeCluster(cluster) {
+			// The question of whether the host's cluster is single node or not only matters for a Day 1 installation.
 			host.Role = models.HostRoleMaster
 			host.Bootstrap = true
 		}
-		if swag.StringValue(cluster.Kind) == models.ClusterKindAddHostsCluster {
-			host.Kind = swag.String(models.HostKindAddToExistingClusterHost)
-		}
+
 		host.ClusterID = cluster.ID
 		c = &cluster.Cluster
 	}
