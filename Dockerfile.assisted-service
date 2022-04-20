@@ -42,7 +42,7 @@ RUN mkdir $WORK_DIR && chmod 775 $WORK_DIR
 
 # downstream this can be installed as an RPM
 ARG OC_URL=https://mirror.openshift.com/pub/openshift-v4/clients/ocp-dev-preview/4.11.0-0.nightly-2022-04-08-205307/openshift-client-linux.tar.gz
-RUN curl -s $OC_URL | tar -xzC /usr/local/bin/ oc
+RUN curl --retry 5 -s $OC_URL | tar -xzC /usr/local/bin/ oc
 
 COPY --from=builder /build/assisted-service /assisted-service
 COPY --from=builder /build/assisted-service-operator /assisted-service-operator
