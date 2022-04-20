@@ -18,17 +18,17 @@ enclosure that only had 4 nodes. The goal was to use all of the blades rather th
 
 For now, this is achieved with a 2 step deployment, first 3 masters and then add a worker node. It
 would be more time efficient as well as easier and more reliable to be able to do this deployment in
+
 one step, day0.
 
 # Motivation
 
 Assisted service has built-in validations that prevent the deployment of a 4-nodes cluster. This is
-to prevent unhealthy clusters to be deployed. A 4-nodes cluster ends up in an unhealthy state
-because openshift-installer doesn't take schedulable masters into consideration when there are
-workers being deployed. The problem with schedulable masters not being counted as workers causes the
-installer to chose an `InfrastructureTopology` that is SingleReplica. This means that infrastructure
-workloads will run as single replicas, only on workers. This setting cannot be changed once the
-cluster is deployed.
+to prevent the deployment of topologies that are not part of the OCP standard test matrix. A 4-nodes
+cluster doesn't take schedulable masters into consideration when there are workers being deployed,
+which causes the installer to chose an `InfrastructureTopology` that is SingleReplica. This means
+that infrastructure workloads will run as single replicas, only on workers. This setting cannot be
+changed once the cluster is deployed.
 
 The above was brought up to the OpenShift team as [an enhancement](https://github.com/openshift/enhancements/pull/1057/). The feedback so far is that
 it's OK for users (or other installers) to overwrite the openshift manifests to achieve the
@@ -53,9 +53,6 @@ that may not worth the effort at this stage.
 
 The biggest changes anticipated for this enhancement are:
 
-- Expose the manifests API through the InfraEnv CRD so that custom manifests can be added through
-the ZTP flow.
-
 - Expose the schedulable masters through the AgentClusterInstall to allow for explicitly creating
 schedulable masters.
 
@@ -63,10 +60,19 @@ schedulable masters.
 schedulable. [PoC here](https://github.com/flaper87/assisted-service/commit/f07fc6589e4f2d316266ac5533d76bd2faf471d7)
 and [here](https://github.com/flaper87/assisted-service/commit/bb2d82eaacaee7790d2f18711e2ba3a442a4967d)
 
-- Modify Assisted Service's manifests logic to allow for partial manifests to be provided. Openshift
-installer applies the provided manifests in sequence. If 2 manifests for the same CR are provided,
-then the one applied last will be the one used. This is a problem when the user only wants to modify
-1 field. Here's an [example from a PoC](https://github.com/flaper87/assisted-service/commit/c6d72827b43786f95e68e052623e8aef0d4b4c0f).
+- Modify Assisted Service's manifests logic to allow for partial manifests to be provided. The need
+for this change is twofold:
+    1. This is needed because Openshift installer generates whole manifests, some of which have values that are computed at run time, which
+are unknown to the user when triggering the deployment.
+    2. When providing manifests overrides, OpenShift installer applies them in sequence and it
+    expects entire manifests to be provided. You can think of it as the installer running `oc apply
+    -f` for every yaml that exists in the manifests dir.
+
+    Because of the above, users that want to customize manifests don't have a way to provide a
+    partial manifest. Providing a full manifest may cause the override of fields computed at runtime
+    by the installer.
+
+    Here's an [example from a PoC](https://github.com/flaper87/assisted-service/commit/c6d72827b43786f95e68e052623e8aef0d4b4c0f).
 
 ### User Stories
 
