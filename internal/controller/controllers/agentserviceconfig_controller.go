@@ -1846,6 +1846,20 @@ func (r *AgentServiceConfigReconciler) newWebHookClusterRole(ctx context.Context
 				"create",
 			},
 		},
+		{
+			APIGroups: []string{
+				"flowcontrol.apiserver.k8s.io",
+			},
+			Resources: []string{
+				"prioritylevelconfigurations",
+				"flowschemas",
+			},
+			Verbs: []string{
+				"get",
+				"list",
+				"watch",
+			},
+		},
 	}
 	cr := rbacv1.ClusterRole{
 		ObjectMeta: metav1.ObjectMeta{
