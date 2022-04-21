@@ -214,7 +214,7 @@ func getFileData(filePath string, output interface{}) error {
 
 func validateNMStateConfigAndInfraEnv(nmStateConfig aiv1beta1.NMStateConfig, infraEnv aiv1beta1.InfraEnv) error {
 	if len(nmStateConfig.ObjectMeta.Labels) == 0 {
-		return errors.Errorf("nmstateconfig does not have any labels set")
+		return errors.Errorf("nmstateconfig should have at least one label set matching the infra-env label selector")
 	}
 
 	if len(infraEnv.Spec.NMStateConfigLabelSelector.MatchLabels) == 0 {
