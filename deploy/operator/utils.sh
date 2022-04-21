@@ -38,6 +38,15 @@ function wait_for_pod() {
     wait_for_condition "pod" "Ready" "30m" "${namespace}" "${selector}"
 }
 
+function wait_for_pods(){
+  while [[ $(oc get pods -n $1 -o 'jsonpath={..status.conditions[?(@.type=="Ready")].status}'| tr ' ' '\n'  | sort -u) != "True" ]]; do
+    echo "Waiting for pods in namespace $1 to be ready"
+    oc get pods -n $1 -o 'jsonpath={..status.containerStatuses}' | jq "."
+    sleep 5;
+  done
+  echo "Pods in namespace $1 are ready"
+}
+
 function hash() {
     input=$1
     length=$2
