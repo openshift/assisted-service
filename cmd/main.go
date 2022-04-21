@@ -30,7 +30,6 @@ import (
 	"github.com/openshift/assisted-service/internal/host"
 	"github.com/openshift/assisted-service/internal/host/hostcommands"
 	"github.com/openshift/assisted-service/internal/ignition"
-	"github.com/openshift/assisted-service/internal/imgexpirer"
 	"github.com/openshift/assisted-service/internal/infraenv"
 	installcfg "github.com/openshift/assisted-service/internal/installcfg/builder"
 	"github.com/openshift/assisted-service/internal/isoeditor"
@@ -429,11 +428,6 @@ func main() {
 		Options.GCConfig, providerRegistry)
 
 	events := events.NewApi(eventsHandler, logrus.WithField("pkg", "eventsApi"))
-	expirer := imgexpirer.NewManager(objectHandler, eventsHandler, Options.BMConfig.ImageExpirationTime, lead, Options.EnableKubeAPI)
-	imageExpirationMonitor := thread.New(
-		log.WithField("pkg", "image-expiration-monitor"), "Image Expiration Monitor", Options.ImageExpirationInterval, expirer.ExpirationTask)
-	imageExpirationMonitor.Start()
-	defer imageExpirationMonitor.Stop()
 
 	//Set inner handler chain. Inner handlers requires access to the Route
 	innerHandler := func() func(http.Handler) http.Handler {
