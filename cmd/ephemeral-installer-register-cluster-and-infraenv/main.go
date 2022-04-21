@@ -187,19 +187,15 @@ func getReleaseVersion() string {
 }
 
 func getReleaseVersionAndCpuArch(releaseImage string) (version string, cpuArch string) {
-	// releaseImage is in the form: quay.io/openshift-release-dev/ocp-release:4.9.17-x86_64
-	versionCpuArch := strings.Split(releaseImage, ":")[1]
+	// releaseImage is in the form: quay.io:443/openshift-release-dev/ocp-release:4.9.17-x86_64
+	releaseImageSplit := strings.Split(releaseImage, ":")
+	versionCpuArch := releaseImageSplit[len(releaseImageSplit)-1]
 	// versionCpuArch is 4.9.17-x86_64
 	versionCpuArchSplit := strings.Split(versionCpuArch, "-")
-	if len(versionCpuArchSplit) > 2 {
-		// case: 4.10.0-rc1-x86_64
-		version = strings.Join(versionCpuArchSplit[:2], "-")
-		cpuArch = versionCpuArchSplit[2]
-	} else {
-		// case: 4.10.1-x86_64
-		version = versionCpuArchSplit[0]
-		cpuArch = versionCpuArchSplit[1]
-	}
+	// Assume the architecture is always the last component
+	lastIndex := len(versionCpuArchSplit) - 1
+	version = strings.Join(versionCpuArchSplit[:lastIndex], "-")
+	cpuArch = versionCpuArchSplit[lastIndex]
 	return version, cpuArch
 }
 
