@@ -225,7 +225,7 @@ func (m *Manifests) V2DownloadClusterManifest(ctx context.Context, params operat
 		return common.GenerateErrorResponder(err)
 	}
 
-	return filemiddleware.NewResponder(operations.NewV2DownloadClusterManifestOK().WithPayload(respBody), params.FileName, contentLength)
+	return filemiddleware.NewResponder(operations.NewV2DownloadClusterManifestOK().WithPayload(respBody), params.FileName, contentLength, nil)
 }
 
 func (m *Manifests) setUsage(active bool, manifest *models.Manifest, clusterID strfmt.UUID) error {

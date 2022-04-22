@@ -3378,7 +3378,7 @@ func (b *bareMetalInventory) V2DownloadHostIgnition(ctx context.Context, params 
 		return common.GenerateErrorResponder(err)
 	}
 
-	return filemiddleware.NewResponder(installer.NewV2DownloadHostIgnitionOK().WithPayload(respBody), fileName, contentLength)
+	return filemiddleware.NewResponder(installer.NewV2DownloadHostIgnitionOK().WithPayload(respBody), fileName, contentLength, nil)
 }
 
 // v2DownloadHostIgnition returns the ignition file name, the content as an io.ReadCloser, and the file content length
@@ -5015,6 +5015,7 @@ func (b *bareMetalInventory) V2DownloadInfraEnvFiles(ctx context.Context, params
 		installer.NewV2DownloadInfraEnvFilesOK().WithPayload(io.NopCloser(strings.NewReader(content))),
 		filename,
 		int64(len(content)),
+		infraEnv.UpdatedAt,
 	)
 }
 
@@ -5035,7 +5036,7 @@ func (b *bareMetalInventory) V2DownloadClusterCredentials(ctx context.Context, p
 		return common.GenerateErrorResponder(err)
 	}
 
-	return filemiddleware.NewResponder(installer.NewV2DownloadClusterCredentialsOK().WithPayload(respBody), fileName, contentLength)
+	return filemiddleware.NewResponder(installer.NewV2DownloadClusterCredentialsOK().WithPayload(respBody), fileName, contentLength, nil)
 }
 
 func (b *bareMetalInventory) V2DownloadClusterFiles(ctx context.Context, params installer.V2DownloadClusterFilesParams) middleware.Responder {
@@ -5043,7 +5044,7 @@ func (b *bareMetalInventory) V2DownloadClusterFiles(ctx context.Context, params 
 	if err != nil {
 		return common.GenerateErrorResponder(err)
 	}
-	return filemiddleware.NewResponder(installer.NewV2DownloadClusterFilesOK().WithPayload(respBody), params.FileName, contentLength)
+	return filemiddleware.NewResponder(installer.NewV2DownloadClusterFilesOK().WithPayload(respBody), params.FileName, contentLength, nil)
 }
 
 func (b *bareMetalInventory) V2DownloadClusterFilesInternal(ctx context.Context, params installer.V2DownloadClusterFilesParams) (io.ReadCloser, int64, error) {

@@ -53,14 +53,16 @@ func (f fakeInventory) V2DownloadClusterFiles(ctx context.Context, params instal
 	return filemiddleware.NewResponder(
 		installer.NewV2DownloadClusterFilesOK().WithPayload(io.NopCloser(strings.NewReader("test"))),
 		params.FileName,
-		int64(len("test")))
+		int64(len("test")),
+		nil)
 }
 
 func (f fakeInventory) V2DownloadInfraEnvFiles(ctx context.Context, params installer.V2DownloadInfraEnvFilesParams) middleware.Responder {
 	return filemiddleware.NewResponder(
 		installer.NewV2DownloadInfraEnvFilesOK().WithPayload(io.NopCloser(strings.NewReader("test"))),
 		"test",
-		0)
+		0,
+		nil)
 }
 
 func (f fakeInventory) V2GetCluster(ctx context.Context, params installer.V2GetClusterParams) middleware.Responder {
@@ -131,7 +133,8 @@ func (f fakeInventory) V2DownloadHostIgnition(ctx context.Context, params instal
 	return filemiddleware.NewResponder(
 		installer.NewV2DownloadHostIgnitionOK().WithPayload(io.NopCloser(strings.NewReader("test"))),
 		"test",
-		0)
+		0,
+		nil)
 }
 
 func (f fakeInventory) V2UpdateHostInstallerArgs(ctx context.Context, params installer.V2UpdateHostInstallerArgsParams) middleware.Responder {
@@ -215,7 +218,8 @@ func (f fakeInventory) V2DownloadClusterCredentials(ctx context.Context, params 
 	return filemiddleware.NewResponder(
 		installer.NewV2DownloadClusterCredentialsOK().WithPayload(io.ReadCloser(file)),
 		"test",
-		0)
+		0,
+		nil)
 }
 
 func (f fakeInventory) V2GetPresignedForClusterFiles(ctx context.Context, params installer.V2GetPresignedForClusterFilesParams) middleware.Responder {
@@ -230,7 +234,8 @@ func (f fakeInventory) V2DownloadClusterLogs(ctx context.Context, params install
 	return filemiddleware.NewResponder(
 		installer.NewV2DownloadClusterLogsOK().WithPayload(io.NopCloser(strings.NewReader("test"))),
 		"test",
-		0)
+		0,
+		nil)
 }
 
 func (f fakeInventory) V2UploadLogs(ctx context.Context, params installer.V2UploadLogsParams) middleware.Responder {
