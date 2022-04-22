@@ -120,7 +120,13 @@ function ocp_mirror_release() {
   source_image="${2}"
   dest_mirror_repo="${3}"
 
+  mirror_logs_dir=$(mktemp -d -t mirror-XXXXXXXXXX)
   oc adm -a "${pull_secret_file}" release mirror \
          --from="${source_image}" \
-         --to="${dest_mirror_repo}"
+         --to="${dest_mirror_repo}" | tee "${mirror_logs_dir}/mirror.log"
+  echo "Extracting ICSP"
+  cat "${mirror_logs_dir}/mirror.log" | sed -n '/apiVersion/,$p' | tee "${mirror_logs_dir}/icsp.yaml"
+  echo "${mirror_logs_dir}/icsp.yaml"
+  echo "---"
+  oc apply -f "${mirror_logs_dir}/icsp.yaml"
 }
