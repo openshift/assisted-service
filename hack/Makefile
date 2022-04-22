@@ -10,6 +10,7 @@ generate-go-server:
 	goswagger generate server --template=stratoscale -f swagger.yaml
 
 generate-python-client:
+	mkdir -p ${BUILD_FOLDER}
 	./hack/generate.sh generate_python_client
 
 generate-mocks:
@@ -19,7 +20,8 @@ generate-mocks:
 generate-migrations:
 	go run ./tools/migration_generator/migration_generator.go -name=${MIGRATION_NAME}
 
-generate-keys: ${BUILD_FOLDER}
+generate-keys:
+	mkdir -p ${BUILD_FOLDER}
 	(cd ./tools && go run auth_keys_generator.go -keys-dir=${BUILD_FOLDER})
 
 generate-events:
@@ -37,12 +39,14 @@ generate-configuration:
 	./hack/generate.sh generate_configuration
 
 generate-manifests:
+	mkdir -p ${BUILD_FOLDER}
 	./hack/generate.sh generate_manifests
 
 generate-crds:
 	./hack/generate.sh generate_crds
 
 generate-bundle:
+	mkdir -p ${BUILD_FOLDER}
 	./hack/generate.sh generate_bundle
 
 generate-from-swagger: lint-swagger generate-go-client generate-go-server validate-swagger-file --remove-dashes-and-dots
