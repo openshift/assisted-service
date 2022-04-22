@@ -23,7 +23,7 @@ type MustGatherVersion map[string]string
 type MustGatherVersions map[string]MustGatherVersion
 
 type Versions struct {
-	SelfVersion     string `envconfig:"SELF_VERSION" default:"quay.io/edge-infrastructure/assisted-service:latest"`
+	SelfVersion     string `envconfig:"SELF_VERSION" default:"Unknown"`
 	AgentDockerImg  string `envconfig:"AGENT_DOCKER_IMAGE" default:"quay.io/edge-infrastructure/assisted-installer-agent:latest"`
 	InstallerImage  string `envconfig:"INSTALLER_IMAGE" default:"quay.io/edge-infrastructure/assisted-installer:latest"`
 	ControllerImage string `envconfig:"CONTROLLER_IMAGE" default:"quay.io/edge-infrastructure/assisted-installer-controller:latest"`
