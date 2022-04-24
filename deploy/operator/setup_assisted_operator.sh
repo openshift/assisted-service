@@ -211,6 +211,21 @@ EOCR
   echo "Enabling configuration of BMH resources outside of openshift-machine-api namespace"
   oc patch provisioning provisioning-configuration --type merge -p '{"spec":{"watchAllNamespaces": true}}'
 
+  # Patching the Provisioning CR triggers a rollout of the metal3 deployment.
+  # Since the metal3 deployment has just 1 replica, during the rollout the
+  # metal admission webhook is unavailable. As a result any interaction during
+  # that time with BMH resources causes an error (as the webhook is down).
+  #
+  # This is why before proceeding we have to wait for that process to complete.
+  # This includes waiting a few seconds for the baremetal operator to notice
+  # our patch (there's no simple robust way to do this. It usually happens
+  # almost immediately, but we wait 10 seconds just in case). Then we wait for
+  # the deployment to finish rolling out, and finally we wait for the metal3
+  # pod to be ready.
+  sleep 10 # Wait for the operator to notice our patch
+  timeout 15m oc rollout status -n openshift-machine-api deployment/metal3
+  oc wait --timeout=5m pod -n openshift-machine-api -l baremetal.openshift.io/cluster-baremetal-operator=metal3-state --for=condition=Ready
+
   echo "Installation of Assisted Installer operator passed successfully!"
 }
 
