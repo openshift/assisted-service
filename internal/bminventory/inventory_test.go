@@ -79,7 +79,6 @@ var (
 	mockEvents               *eventsapi.MockHandler
 	mockS3Client             *s3wrapper.MockAPI
 	mockSecretValidator      *validations.MockPullSecretValidator
-	mockIsoEditorFactory     *isoeditor.MockFactory
 	mockGenerator            *generator.MockISOInstallConfigGenerator
 	mockVersions             *versions.MockHandler
 	mockMetric               *metrics.MockAPI
@@ -12712,7 +12711,6 @@ func createInventory(db *gorm.DB, cfg Config) *bareMetalInventory {
 	ocmClient := &ocm.Client{AccountsMgmt: mockAccountsMgmt}
 	mockSecretValidator = validations.NewMockPullSecretValidator(ctrl)
 	mockVersions = versions.NewMockHandler(ctrl)
-	mockIsoEditorFactory = isoeditor.NewMockFactory(ctrl)
 	mockCRDUtils = NewMockCRDUtils(ctrl)
 	mockOperatorManager = operators.NewMockAPI(ctrl)
 	mockIgnitionBuilder = ignition.NewMockIgnitionBuilder(ctrl)
@@ -12726,7 +12724,7 @@ func createInventory(db *gorm.DB, cfg Config) *bareMetalInventory {
 	bm := NewBareMetalInventory(db, common.GetTestLog(), mockHostApi, mockClusterApi, mockInfraEnvApi, cfg,
 		mockGenerator, mockEvents, mockS3Client, mockMetric, mockUsage, mockOperatorManager,
 		getTestAuthHandler(), getTestAuthzHandler(), mockK8sClient, ocmClient, nil, mockSecretValidator, mockVersions,
-		mockIsoEditorFactory, mockCRDUtils, mockIgnitionBuilder, mockHwValidator, dnsApi, mockInstallConfigBuilder, mockStaticNetworkConfig,
+		mockCRDUtils, mockIgnitionBuilder, mockHwValidator, dnsApi, mockInstallConfigBuilder, mockStaticNetworkConfig,
 		gcConfig, mockProviderRegistry)
 
 	bm.ImageServiceBaseURL = imageServiceBaseURL
