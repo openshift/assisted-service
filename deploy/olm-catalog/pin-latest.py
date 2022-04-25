@@ -7,6 +7,7 @@
 # inline with that digest instead of the original tag.
 
 import os
+import re
 from hashlib import sha256
 from pathlib import Path
 from typing import Iterable, List
@@ -30,6 +31,20 @@ manifests = {
         "spec.install.spec.deployments[].spec.template.spec.containers[].env[].value",
         "spec.install.spec.deployments[].spec.template.spec.containers[].image",
         "spec.relatedImages[].image",
+    )
+}
+
+ignore_patterns = {
+    re.compile(pattern)
+    for pattern in (
+        # Pinnining can only be done if there's at-least one tag
+        # that's going to point at that manifest forever. For
+        # assisted components, we always have such tag. But for
+        # postgres we have no control over the quay repo, so 
+        # we just resort to not pinning the database image. It's
+        # not too important to pin it anyway, postgres is stable
+        # enough.
+        r".*postgresql.*",
     )
 }
 
@@ -57,6 +72,10 @@ def fix_manifest(yaml: ruamel.yaml.YAML, manifest: Path, paths: Iterable[str]):
 
     with manifest.open("w") as manifest_file:
         yaml.dump(csv, manifest_file)
+
+
+def should_ignore(image_loc):
+    return any(pattern.match(image_loc) for pattern in ignore_patterns)
 
 
 def is_tag_matching(value: str):
@@ -92,7 +111,7 @@ def pin_path(obj: dict, path: List[str]):
 
     if not rest:
         current_value = obj.get(current_key, "")
-        if is_tag_matching(current_value):
+        if is_tag_matching(current_value) and not should_ignore(current_value):
             new_value = resolve_tag(current_value)
             obj[current_key] = new_value
 
