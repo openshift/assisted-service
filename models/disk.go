@@ -30,6 +30,9 @@ type Disk struct {
 	// drive type
 	DriveType string `json:"drive_type,omitempty"`
 
+	// has uuid
+	HasUUID bool `json:"has_uuid,omitempty"`
+
 	// hctl
 	Hctl string `json:"hctl,omitempty"`
 

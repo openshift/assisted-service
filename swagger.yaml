@@ -5167,6 +5167,8 @@ definitions:
         description: Determine the disk's unique identifier which is the by-id field if it exists and fallback to the by-path field otherwise
       drive_type:
         type: string
+      has_uuid:
+        type: boolean
       vendor:
         type: string
       name:
@@ -5586,6 +5588,8 @@ definitions:
       - 'dns-wildcard-not-configured'
       - 'disk-encryption-requirements-satisfied'
       - 'non-overlapping-subnets'
+      - 'vsphere-disk-uuid-enabled'
+
 
   dhcp_allocation_request:
     type: object
@@ -5766,7 +5770,6 @@ definitions:
       installer_args:
         type: string
         description: Core-os installer addtional args
-
 
   ntp_synchronization_request:
     type: object
