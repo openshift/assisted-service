@@ -217,13 +217,17 @@ func CanonizeAddressFamilies(slice []AddressFamily) (ret []AddressFamily) {
 
 func getHostNetworks(inventory *models.Inventory, getter func(i *models.Interface) []string) (ret []string, err error) {
 	for _, intf := range inventory.Interfaces {
+		var intfAddrs []string
 		for _, cidr := range getter(intf) {
 			var ipnet *net.IPNet
 			if _, ipnet, err = net.ParseCIDR(cidr); err != nil {
 				return
 			}
-			ret = append(ret, ipnet.String())
+			intfAddrs = append(intfAddrs, ipnet.String())
 		}
+		sort.Strings(intfAddrs)
+
+		ret = append(ret, common.CanonizeStrings(intfAddrs)...)
 	}
 	return
 }
