@@ -8844,7 +8844,7 @@ var _ = Describe("Upload and Download logs test", func() {
 		mockS3Client.EXPECT().Download(ctx, fileName).Return(r, int64(4), nil)
 		generateReply := bm.V2DownloadClusterLogs(ctx, params)
 		downloadFileName := fmt.Sprintf("mycluster_bootstrap_%s.tar.gz", newHostID.String())
-		Expect(generateReply).Should(Equal(filemiddleware.NewResponder(installer.NewV2DownloadClusterLogsOK().WithPayload(r), downloadFileName, 4)))
+		Expect(generateReply).Should(Equal(filemiddleware.NewResponder(installer.NewV2DownloadClusterLogsOK().WithPayload(r), downloadFileName, 4, nil)))
 	})
 	It("Download Controller logs happy flow", func() {
 		logsType := string(models.LogsTypeController)
@@ -8859,7 +8859,7 @@ var _ = Describe("Upload and Download logs test", func() {
 		mockS3Client.EXPECT().Download(ctx, fileName).Return(r, int64(4), nil)
 		generateReply := bm.V2DownloadClusterLogs(ctx, params)
 		downloadFileName := fmt.Sprintf("mycluster_%s_%s.tar.gz", clusterID, logsType)
-		Expect(generateReply).Should(Equal(filemiddleware.NewResponder(installer.NewV2DownloadClusterLogsOK().WithPayload(r), downloadFileName, 4)))
+		Expect(generateReply).Should(Equal(filemiddleware.NewResponder(installer.NewV2DownloadClusterLogsOK().WithPayload(r), downloadFileName, 4, nil)))
 	})
 	It("Logs presigned host not found", func() {
 		hostID := strfmt.UUID(uuid.New().String())
@@ -8972,7 +8972,7 @@ var _ = Describe("Upload and Download logs test", func() {
 		mockS3Client.EXPECT().Download(ctx, fileName).Return(r, int64(4), nil)
 		generateReply := bm.V2DownloadClusterLogs(ctx, params)
 		Expect(generateReply).Should(Equal(filemiddleware.NewResponder(installer.NewV2DownloadClusterLogsOK().WithPayload(r),
-			fmt.Sprintf("mycluster_%s.tar", clusterID), 4)))
+			fmt.Sprintf("mycluster_%s.tar", clusterID), 4, nil)))
 	})
 
 	It("Logs presigned cluster logs failed", func() {
@@ -9015,7 +9015,7 @@ var _ = Describe("Upload and Download logs test", func() {
 		mockS3Client.EXPECT().Download(ctx, fileName).Return(r, int64(4), nil)
 		generateReply := bm.V2DownloadClusterLogs(ctx, params)
 		downloadFileName := fmt.Sprintf("mycluster_%s_%s.tar.gz", clusterID, logsType)
-		Expect(generateReply).Should(Equal(filemiddleware.NewResponder(installer.NewV2DownloadClusterLogsOK().WithPayload(r), downloadFileName, 4)))
+		Expect(generateReply).Should(Equal(filemiddleware.NewResponder(installer.NewV2DownloadClusterLogsOK().WithPayload(r), downloadFileName, 4, nil)))
 	})
 
 	It("Download unregistered cluster controller log failure - permanently deleted", func() {
@@ -11698,7 +11698,7 @@ var _ = Describe("V2GetHostIgnition and V2DownloadHostIgnition", func() {
 		}
 		resp = bm.V2DownloadHostIgnition(ctx, downloadParams)
 		Expect(resp).Should(Equal(filemiddleware.NewResponder(installer.NewV2DownloadHostIgnitionOK().WithPayload(r),
-			fmt.Sprintf("master-%s.ign", hostID), 4)))
+			fmt.Sprintf("master-%s.ign", hostID), 4, nil)))
 	})
 })
 
@@ -13363,7 +13363,7 @@ var _ = Describe("DownloadClusterFiles", func() {
 			}
 
 			r := io.NopCloser(bytes.NewReader([]byte("testfile")))
-			expected := filemiddleware.NewResponder(installer.NewV2DownloadClusterFilesOK().WithPayload(r), fileName, int64(8))
+			expected := filemiddleware.NewResponder(installer.NewV2DownloadClusterFilesOK().WithPayload(r), fileName, int64(8), nil)
 			mockS3Client.EXPECT().Download(ctx, fmt.Sprintf("%s/%s", *newCluster.ID, fileName)).Return(r, int64(8), nil)
 			resp := bm.V2DownloadClusterFiles(ctx, params)
 			Expect(resp).Should(Equal(expected))
@@ -13379,7 +13379,7 @@ var _ = Describe("DownloadClusterFiles", func() {
 		}
 
 		r := io.NopCloser(bytes.NewReader([]byte("testfile")))
-		expected := filemiddleware.NewResponder(installer.NewV2DownloadClusterFilesOK().WithPayload(r), fileName, int64(8))
+		expected := filemiddleware.NewResponder(installer.NewV2DownloadClusterFilesOK().WithPayload(r), fileName, int64(8), nil)
 		mockS3Client.EXPECT().Download(ctx, fmt.Sprintf("%s/%s", *newCluster.ID, fileName)).Return(r, int64(8), nil)
 		resp := bm.V2DownloadClusterFiles(ctx, params)
 		Expect(resp).Should(Equal(expected))
@@ -13461,7 +13461,7 @@ var _ = Describe("[V2] V2DownloadClusterCredentials", func() {
 		}
 
 		r := io.NopCloser(bytes.NewReader([]byte("testfile")))
-		expected := filemiddleware.NewResponder(installer.NewV2DownloadClusterCredentialsOK().WithPayload(r), constants.KubeconfigNoIngress, int64(8))
+		expected := filemiddleware.NewResponder(installer.NewV2DownloadClusterCredentialsOK().WithPayload(r), constants.KubeconfigNoIngress, int64(8), nil)
 		mockS3Client.EXPECT().Download(ctx, fmt.Sprintf("%s/%s", clusterID, constants.KubeconfigNoIngress)).Return(r, int64(8), nil)
 		resp := bm.V2DownloadClusterCredentials(ctx, params)
 		Expect(resp).Should(Equal(expected))
@@ -13483,7 +13483,7 @@ var _ = Describe("[V2] V2DownloadClusterCredentials", func() {
 				}
 
 				r := io.NopCloser(bytes.NewReader([]byte("testfile")))
-				expected := filemiddleware.NewResponder(installer.NewV2DownloadClusterCredentialsOK().WithPayload(r), fileName, int64(8))
+				expected := filemiddleware.NewResponder(installer.NewV2DownloadClusterCredentialsOK().WithPayload(r), fileName, int64(8), nil)
 				mockS3Client.EXPECT().Download(ctx, fmt.Sprintf("%s/%s", clusterID, fileName)).Return(r, int64(8), nil)
 				resp := bm.V2DownloadClusterCredentials(ctx, params)
 				Expect(resp).Should(Equal(expected))

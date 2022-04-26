@@ -545,7 +545,7 @@ spec:
 				ClusterID: *clusterID,
 				FileName:  "file-1.yaml",
 			})
-			Expect(response).Should(BeAssignableToTypeOf(filemiddleware.NewResponder(nil, "", int64(0))))
+			Expect(response).Should(BeAssignableToTypeOf(filemiddleware.NewResponder(nil, "", int64(0), nil)))
 		})
 
 		It("downloads missing manifest", func() {

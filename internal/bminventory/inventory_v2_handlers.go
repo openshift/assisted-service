@@ -324,7 +324,7 @@ func (b *bareMetalInventory) V2DownloadClusterLogs(ctx context.Context, params i
 		log.WithError(err).Errorf("failed to download file %s", fileName)
 		return common.NewApiError(http.StatusInternalServerError, err)
 	}
-	return filemiddleware.NewResponder(installer.NewV2DownloadClusterLogsOK().WithPayload(respBody), downloadFileName, contentLength)
+	return filemiddleware.NewResponder(installer.NewV2DownloadClusterLogsOK().WithPayload(respBody), downloadFileName, contentLength, nil)
 }
 
 func (b *bareMetalInventory) V2UploadLogs(ctx context.Context, params installer.V2UploadLogsParams) middleware.Responder {
