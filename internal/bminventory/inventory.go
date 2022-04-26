@@ -1553,27 +1553,84 @@ func (b *bareMetalInventory) GetClusterSupportedPlatforms(ctx context.Context, p
 
 func (b *bareMetalInventory) UpdateClusterInstallConfigInternal(ctx context.Context, params installer.V2UpdateClusterInstallConfigParams) (*common.Cluster, error) {
 	log := logutil.FromContext(ctx, b.log)
-	var cluster common.Cluster
+	var cluster *common.Cluster
+	var err error
 	query := "id = ?"
 
-	err := b.db.First(&cluster, query, params.ClusterID).Error
-	if err != nil {
+	txSuccess := false
+	tx := b.db.Begin()
+	defer func() {
+		if !txSuccess {
+			log.Error("UpdateClusterInstallConfigInternal failed")
+			tx.Rollback()
+		}
+		if r := recover(); r != nil {
+			log.Error("UpdateClusterInstallConfigInternal failed to recover")
+			tx.Rollback()
+		}
+	}()
+
+	if cluster, err = common.GetClusterFromDBForUpdate(tx, params.ClusterID, common.UseEagerLoading); err != nil {
 		log.WithError(err).Errorf("failed to find cluster %s", params.ClusterID)
 		return nil, err
 	}
 
-	if err = b.installConfigBuilder.ValidateInstallConfigPatch(&cluster, params.InstallConfigParams); err != nil {
+	if err = b.installConfigBuilder.ValidateInstallConfigPatch(cluster, params.InstallConfigParams); err != nil {
 		return nil, common.NewApiError(http.StatusBadRequest, err)
 	}
 
-	err = b.db.Model(&common.Cluster{}).Where(query, params.ClusterID).Update("install_config_overrides", params.InstallConfigParams).Error
+	// Set install config overrides feature usage
+	err = b.setInstallConfigOverridesUsage(cluster.Cluster.FeatureUsage, params.InstallConfigParams, params.ClusterID, tx)
 	if err != nil {
-		return nil, common.NewApiError(http.StatusInternalServerError, err)
+		// Failure to set the feature usage isn't a failure to update the install config override so we only print the error instead of returning it
+		log.WithError(err).Errorf("failed to set install config overrides feature usage for cluster %s", params.ClusterID)
 	}
 
+	err = tx.Model(&common.Cluster{}).Where(query, params.ClusterID).Update("install_config_overrides", params.InstallConfigParams).Error
+	if err != nil {
+		log.WithError(err).Errorf("failed to update install config overrides")
+		return nil, common.NewApiError(http.StatusInternalServerError, err)
+	}
+	err = tx.Commit().Error
+	if err != nil {
+		log.Error(err)
+		return nil, common.NewApiError(http.StatusInternalServerError, err)
+	}
+	txSuccess = true
 	eventgen.SendInstallConfigAppliedEvent(ctx, b.eventsHandler, params.ClusterID)
 	log.Infof("Custom install config was applied to cluster %s", params.ClusterID)
-	return &cluster, nil
+	return cluster, nil
+}
+
+func (b *bareMetalInventory) setInstallConfigOverridesUsage(featureUsages string, installConfigParams string, clusterID strfmt.UUID, db *gorm.DB) error {
+	usages, err := usage.Unmarshal(featureUsages)
+	if err != nil {
+		return err
+	}
+	var installConfigOverrides map[string]interface{}
+	err = json.Unmarshal([]byte(installConfigParams), &installConfigOverrides)
+	if err != nil {
+		return err
+	} else if len(installConfigOverrides) < 1 {
+		return nil
+	}
+	props := usages[usage.InstallConfigOverrides].Data
+	if props == nil {
+		props = make(map[string]interface{})
+	}
+	for installConfigKey, installConfigValue := range installConfigOverrides {
+		key := installConfigKey
+		switch secondaryKeys := installConfigValue.(type) {
+		case map[string]interface{}:
+			for secondaryKey := range secondaryKeys {
+				key = key + " " + secondaryKey
+			}
+		}
+		props[key] = true
+	}
+	b.setUsage(true, usage.InstallConfigOverrides, &props, usages)
+	b.usageApi.Save(db, clusterID, usages)
+	return nil
 }
 
 func (b *bareMetalInventory) generateClusterInstallConfig(ctx context.Context, cluster common.Cluster) error {
