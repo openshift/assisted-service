@@ -97,15 +97,13 @@ const forceDnsDispatcherScript = `
 export IP="{{.HOST_IP}}"
 export BASE_RESOLV_CONF=/run/NetworkManager/resolv.conf
 if [ "$2" = "dhcp4-change" ] || [ "$2" = "dhcp6-change" ] || [ "$2" = "up" ] || [ "$2" = "connectivity-change" ]; then
-    if ! grep -q "$IP" /etc/resolv.conf; then
-      export TMP_FILE=$(mktemp /etc/forcedns_resolv.conf.XXXXXX)
-      cp  $BASE_RESOLV_CONF $TMP_FILE
-      chmod --reference=$BASE_RESOLV_CONF $TMP_FILE
-      sed -i -e "s/{{.CLUSTER_NAME}}.{{.DNS_DOMAIN}}//" \
-      -e "s/search /& {{.CLUSTER_NAME}}.{{.DNS_DOMAIN}} /" \
-      -e "0,/nameserver/s/nameserver/& $IP\n&/" $TMP_FILE
-      mv $TMP_FILE /etc/resolv.conf
-    fi
+	export TMP_FILE=$(mktemp /etc/forcedns_resolv.conf.XXXXXX)
+	cp  $BASE_RESOLV_CONF $TMP_FILE
+	chmod --reference=$BASE_RESOLV_CONF $TMP_FILE
+	sed -i -e "s/{{.CLUSTER_NAME}}.{{.DNS_DOMAIN}}//" \
+	-e "s/search /& {{.CLUSTER_NAME}}.{{.DNS_DOMAIN}} /" \
+	-e "0,/nameserver/s/nameserver/& $IP\n&/" $TMP_FILE
+	mv $TMP_FILE /etc/resolv.conf
 fi
 `
 
