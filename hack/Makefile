@@ -52,5 +52,3 @@ generate-bundle:
 generate-from-swagger: lint-swagger generate-go-client generate-go-server validate-swagger-file --remove-dashes-and-dots
 
 generate: generate-from-swagger generate-events generate-mocks generate-configuration
-
-generate-all: generate # backwards compatibility
