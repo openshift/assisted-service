@@ -64,6 +64,7 @@ const (
 	fakePayloadClusterEditor             string      = "alice@example.com"
 	FakePS                               string      = "dXNlcjpwYXNzd29yZAo="
 	FakePS2                              string      = "dXNlcjI6cGFzc3dvcmQK"
+	FakePS3                              string      = "dXNlcjM6cGFzc3dvcmQ="
 	FakeAdminPS                          string      = "dXNlcjpwYXNzd29yZAy="
 	WrongPullSecret                      string      = "wrong_secret"
 	FakeSubscriptionID                   strfmt.UUID = "1h89fvtqeelulpo0fl5oddngj2ao7tt8"
@@ -91,6 +92,10 @@ func (w *WireMock) CreateWiremockStubsForOCM() error {
 	}
 
 	if _, err := w.createStubTokenAuth(FakePS2, fakePayloadUsername2); err != nil {
+		return err
+	}
+
+	if _, err := w.createStubTokenAuth(FakePS3, fakePayloadClusterEditor); err != nil {
 		return err
 	}
 
