@@ -29,7 +29,7 @@ var _ = Describe("URL building", func() {
 
 		parsed, err := url.Parse(u)
 		Expect(err).NotTo(HaveOccurred())
-		Expect(parsed.Scheme).To(Equal("https"))
+		Expect(parsed.Scheme).To(Equal("http"))
 		Expect(parsed.Host).To(Equal("image-service.example.com"))
 		Expect(parsed.Path).To(Equal("/v3/boot-artifacts/kernel"))
 		Expect(parsed.Query().Get("version")).To(Equal(version))
@@ -42,7 +42,7 @@ var _ = Describe("URL building", func() {
 
 		parsed, err := url.Parse(u)
 		Expect(err).NotTo(HaveOccurred())
-		Expect(parsed.Scheme).To(Equal("https"))
+		Expect(parsed.Scheme).To(Equal("http"))
 		Expect(parsed.Host).To(Equal("image-service.example.com"))
 		Expect(parsed.Path).To(Equal("/v3/boot-artifacts/rootfs"))
 		Expect(parsed.Query().Get("version")).To(Equal(version))
@@ -55,7 +55,7 @@ var _ = Describe("URL building", func() {
 
 		parsed, err := url.Parse(u)
 		Expect(err).NotTo(HaveOccurred())
-		Expect(parsed.Scheme).To(Equal("https"))
+		Expect(parsed.Scheme).To(Equal("http"))
 		Expect(parsed.Host).To(Equal("image-service.example.com"))
 		Expect(parsed.Path).To(Equal(fmt.Sprintf("/v3/images/%s/pxe-initrd", id)))
 		Expect(parsed.Query().Get("version")).To(Equal(version))
