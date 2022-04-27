@@ -185,7 +185,7 @@ func (a *AuthzHandler) checkClusterBasedAccess(id string, action Action, payload
 	case UpdateAction:
 		return a.hasSubscriptionAccess(id, ocm.AMSActionUpdate, payload)
 	case DeleteAction:
-		return a.hasSubscriptionAccess(id, ocm.AMSActionDelete, payload)
+		return a.hasSubscriptionAccess(id, ocm.AMSActionUpdate, payload)
 	default:
 		return a.hasOwnerAccess(id, &common.Cluster{}, payload)
 	}
