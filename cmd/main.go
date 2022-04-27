@@ -32,7 +32,6 @@ import (
 	"github.com/openshift/assisted-service/internal/ignition"
 	"github.com/openshift/assisted-service/internal/infraenv"
 	installcfg "github.com/openshift/assisted-service/internal/installcfg/builder"
-	"github.com/openshift/assisted-service/internal/isoeditor"
 	"github.com/openshift/assisted-service/internal/manifests"
 	"github.com/openshift/assisted-service/internal/metrics"
 	"github.com/openshift/assisted-service/internal/migrations"
@@ -121,7 +120,6 @@ var Options struct {
 	ManifestsGeneratorConfig       network.Config
 	EnableKubeAPI                  bool `envconfig:"ENABLE_KUBE_API" default:"false"`
 	InfraEnvConfig                 controllers.InfraEnvConfig
-	ISOEditorConfig                isoeditor.Config
 	CheckClusterVersion            bool          `envconfig:"CHECK_CLUSTER_VERSION" default:"false"`
 	DeletionWorkerInterval         time.Duration `envconfig:"DELETION_WORKER_INTERVAL" default:"1h"`
 	InfraEnvDeletionWorkerInterval time.Duration `envconfig:"INFRAENV_DELETION_WORKER_INTERVAL" default:"1h"`
@@ -284,10 +282,9 @@ func main() {
 	mirrorRegistriesBuilder := mirrorregistries.New()
 	ignitionBuilder := ignition.NewBuilder(log.WithField("pkg", "ignition"), staticNetworkConfig, mirrorRegistriesBuilder)
 	installConfigBuilder := installcfg.NewInstallConfigBuilder(log.WithField("pkg", "installcfg"), mirrorRegistriesBuilder, providerRegistry)
-	isoEditorFactory := isoeditor.NewFactory(Options.ISOEditorConfig)
 
 	var objectHandler = createStorageClient(Options.DeployTarget, Options.Storage, &Options.S3Config,
-		Options.WorkDir, log, versionHandler, isoEditorFactory, metricsManager, Options.FileSystemUsageThreshold)
+		Options.WorkDir, log, metricsManager, Options.FileSystemUsageThreshold)
 	createS3Bucket(objectHandler, log)
 
 	manifestsApi := manifests.NewManifestsAPI(db, log.WithField("pkg", "manifests"), objectHandler, usageManager)
@@ -635,24 +632,21 @@ func createS3Bucket(objectHandler s3wrapper.API, log logrus.FieldLogger) {
 		if err := objectHandler.CreateBucket(); err != nil {
 			log.Fatal(err)
 		}
-		if err := objectHandler.CreatePublicBucket(); err != nil {
-			log.Fatal(err)
-		}
 	}
 }
 
 func createStorageClient(deployTarget string, storage string, s3cfg *s3wrapper.Config, fsWorkDir string,
-	log logrus.FieldLogger, versionsHandler versions.Handler, isoEditorFactory isoeditor.Factory, metricsAPI metrics.API, fsThreshold int) s3wrapper.API {
+	log logrus.FieldLogger, metricsAPI metrics.API, fsThreshold int) s3wrapper.API {
 	var storageClient s3wrapper.API
 	if storage != "" {
 		switch storage {
 		case storage_s3:
-			storageClient = s3wrapper.NewS3Client(s3cfg, log, versionsHandler, isoEditorFactory)
+			storageClient = s3wrapper.NewS3Client(s3cfg, log)
 			if storageClient == nil {
 				log.Fatal("failed to create S3 client")
 			}
 		case storage_filesystem:
-			storageClient = s3wrapper.NewFSClient(fsWorkDir, log, versionsHandler, isoEditorFactory, metricsAPI, fsThreshold)
+			storageClient = s3wrapper.NewFSClient(fsWorkDir, log, metricsAPI, fsThreshold)
 			if storageClient == nil {
 				log.Fatal("failed to create filesystem client")
 			}
@@ -663,12 +657,12 @@ func createStorageClient(deployTarget string, storage string, s3cfg *s3wrapper.C
 		// Retain original logic for backwards capability
 		switch deployTarget {
 		case deployment_type_k8s:
-			storageClient = s3wrapper.NewS3Client(s3cfg, log, versionsHandler, isoEditorFactory)
+			storageClient = s3wrapper.NewS3Client(s3cfg, log)
 			if storageClient == nil {
 				log.Fatal("failed to create S3 client")
 			}
 		case deployment_type_onprem, deployment_type_ocp:
-			storageClient = s3wrapper.NewFSClient(fsWorkDir, log, versionsHandler, isoEditorFactory, metricsAPI, fsThreshold)
+			storageClient = s3wrapper.NewFSClient(fsWorkDir, log, metricsAPI, fsThreshold)
 			if storageClient == nil {
 				log.Fatal("failed to create S3 filesystem client")
 			}
