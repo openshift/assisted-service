@@ -537,6 +537,8 @@ func (r *InfraEnvReconciler) setSignedBootArtifactURLs(infraEnv *aiv1beta1.Infra
 		return err
 	}
 	baseURL, err := url.Parse(r.ServiceBaseURL)
+	//Make sure ipxeScript URL is http
+	baseURL.Scheme = "http"
 	if err != nil {
 		return err
 	}
