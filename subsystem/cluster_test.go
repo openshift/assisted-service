@@ -93,7 +93,7 @@ var (
 	}
 
 	validHwInfo = &models.Inventory{
-		CPU:    &models.CPU{Count: 16},
+		CPU:    &models.CPU{Count: 16, Architecture: "x86_64"},
 		Memory: &models.Memory{PhysicalBytes: int64(32 * units.GiB), UsableBytes: int64(32 * units.GiB)},
 		Disks:  []*models.Disk{&loop0, &sdb},
 		Interfaces: []*models.Interface{
