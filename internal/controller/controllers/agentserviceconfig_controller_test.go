@@ -711,6 +711,16 @@ var _ = Describe("reconcileImageServiceStatefulSet", func() {
 		Expect(httpsProxy).To(Equal("http://https-proxy.example.com"))
 		Expect(noProxy).To(Equal("http://no-proxy.example.com"))
 	})
+
+	It("should expose two ports for ipxe", func() {
+		found := &appsv1.StatefulSet{}
+		Expect(ascr.reconcileImageServiceStatefulSet(ctx, log, asc)).To(Succeed())
+		Expect(ascr.Client.Get(ctx, types.NamespacedName{Name: imageServiceName, Namespace: testNamespace}, found)).To(Succeed())
+		Expect(found.Spec.Template.Spec.Containers).To(HaveLen(1))
+		Expect(found.Spec.Template.Spec.Containers[0].Ports).To(HaveLen(2))
+		Expect(found.Spec.Template.Spec.Containers[0].Ports[0].ContainerPort).To(Equal(int32(imageHandlerPort.IntValue())))
+		Expect(found.Spec.Template.Spec.Containers[0].Ports[1].ContainerPort).To(Equal(int32(imageHandlerHTTPPort.IntValue())))
+	})
 })
 
 var _ = Describe("ensureAgentRoute", func() {
@@ -1155,6 +1165,19 @@ var _ = Describe("ensureAssistedServiceDeployment", func() {
 				Expect(found.Spec.Template.Annotations).To(HaveKeyWithValue(userConfigHashAnnotation, Not(Equal(""))))
 			})
 		})
+	})
+
+	It("should expose two ports for ipxe", func() {
+		asc = newASCDefault()
+		ascr = newTestReconciler(asc, route, assistedCM)
+		AssertReconcileSuccess(ctx, log, ascr.Client, asc, ascr.newAssistedServiceDeployment)
+
+		found := &appsv1.Deployment{}
+		Expect(ascr.Client.Get(ctx, types.NamespacedName{Name: serviceName, Namespace: testNamespace}, found)).To(Succeed())
+		Expect(found.Spec.Template.Spec.Containers).To(HaveLen(2))
+		Expect(found.Spec.Template.Spec.Containers[0].Ports).To(HaveLen(2))
+		Expect(found.Spec.Template.Spec.Containers[0].Ports[0].ContainerPort).To(Equal(int32(servicePort.IntValue())))
+		Expect(found.Spec.Template.Spec.Containers[0].Ports[1].ContainerPort).To(Equal(int32(serviceHTTPPort.IntValue())))
 	})
 })
 
