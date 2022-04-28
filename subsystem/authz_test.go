@@ -7,6 +7,7 @@ import (
 
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
+	"github.com/google/uuid"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/client/installer"
@@ -176,6 +177,13 @@ var _ = Describe("test authorization", func() {
 				ClusterUpdateParams: &models.V2ClusterUpdateParams{Name: swag.String("update-test")}})
 			Expect(err).Should(HaveOccurred())
 			Expect(err).To(BeAssignableToTypeOf(installer.NewV2UpdateClusterForbidden()))
+		})
+
+		It("can't get non-existent infra-env", func() {
+			infraEnvID := strfmt.UUID(uuid.New().String())
+			_, err := userBMClient.Installer.GetInfraEnv(ctx, &installer.GetInfraEnvParams{InfraEnvID: infraEnvID})
+			Expect(err).Should(HaveOccurred())
+			Expect(err).To(BeAssignableToTypeOf(installer.NewGetInfraEnvNotFound()))
 		})
 	})
 

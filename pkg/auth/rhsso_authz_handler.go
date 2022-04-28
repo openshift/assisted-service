@@ -212,6 +212,10 @@ func (a *AuthzHandler) checkInfraEnvBasedAccess(id string, action Action, payloa
 	err = a.db.Select("cluster_id").First(&infraEnv, "id = ?", id).Error
 	if err != nil {
 		a.log.WithError(err).Errorf("failed to retrieve infra-env record %s", id)
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			// not returning err as the response should be StatusNotFound
+			return false, nil
+		}
 		return false, err
 	}
 
