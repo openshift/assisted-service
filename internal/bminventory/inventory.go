@@ -153,8 +153,8 @@ type InstallerInternals interface {
 	GetClusterSupportedPlatformsInternal(ctx context.Context, params installer.GetClusterSupportedPlatformsParams) (*[]models.PlatformType, error)
 	V2UpdateHostInternal(ctx context.Context, params installer.V2UpdateHostParams) (*common.Host, error)
 	GetInfraEnvByKubeKey(key types.NamespacedName) (*common.InfraEnv, error)
-	UpdateInfraEnvInternal(ctx context.Context, params installer.UpdateInfraEnvParams) (*common.InfraEnv, error)
-	RegisterInfraEnvInternal(ctx context.Context, kubeKey *types.NamespacedName, params installer.RegisterInfraEnvParams) (*common.InfraEnv, error)
+	UpdateInfraEnvInternal(ctx context.Context, params installer.UpdateInfraEnvParams, enableIronicAgent bool) (*common.InfraEnv, error)
+	RegisterInfraEnvInternal(ctx context.Context, kubeKey *types.NamespacedName, params installer.RegisterInfraEnvParams, enableIronicAgent bool) (*common.InfraEnv, error)
 	DeregisterInfraEnvInternal(ctx context.Context, params installer.DeregisterInfraEnvParams) error
 	UnbindHostInternal(ctx context.Context, params installer.UnbindHostParams) (*common.Host, error)
 	BindHostInternal(ctx context.Context, params installer.BindHostParams) (*common.Host, error)
@@ -3819,7 +3819,7 @@ func (b *bareMetalInventory) ListInfraEnvs(ctx context.Context, params installer
 }
 
 func (b *bareMetalInventory) RegisterInfraEnv(ctx context.Context, params installer.RegisterInfraEnvParams) middleware.Responder {
-	i, err := b.RegisterInfraEnvInternal(ctx, nil, params)
+	i, err := b.RegisterInfraEnvInternal(ctx, nil, params, false)
 	if err != nil {
 		return common.GenerateErrorResponder(err)
 	}
@@ -3829,7 +3829,8 @@ func (b *bareMetalInventory) RegisterInfraEnv(ctx context.Context, params instal
 func (b *bareMetalInventory) RegisterInfraEnvInternal(
 	ctx context.Context,
 	kubeKey *types.NamespacedName,
-	params installer.RegisterInfraEnvParams) (*common.InfraEnv, error) {
+	params installer.RegisterInfraEnvParams,
+	enableIronicAgent bool) (*common.InfraEnv, error) {
 
 	id := strfmt.UUID(uuid.New().String())
 	url := installer.GetInfraEnvURL{InfraEnvID: id}
@@ -3937,8 +3938,9 @@ func (b *bareMetalInventory) RegisterInfraEnvInternal(
 			SSHAuthorizedKey:       swag.StringValue(params.InfraenvCreateParams.SSHAuthorizedKey),
 			CPUArchitecture:        params.InfraenvCreateParams.CPUArchitecture,
 		},
-		KubeKeyNamespace: kubeKey.Namespace,
-		ImageTokenKey:    imageTokenKey,
+		KubeKeyNamespace:  kubeKey.Namespace,
+		ImageTokenKey:     imageTokenKey,
+		EnableIronicAgent: enableIronicAgent,
 	}
 
 	if params.InfraenvCreateParams.ClusterID != nil {
@@ -4049,14 +4051,14 @@ func (b *bareMetalInventory) validateClusterInfraEnvRegister(ctx context.Context
 }
 
 func (b *bareMetalInventory) UpdateInfraEnv(ctx context.Context, params installer.UpdateInfraEnvParams) middleware.Responder {
-	i, err := b.UpdateInfraEnvInternal(ctx, params)
+	i, err := b.UpdateInfraEnvInternal(ctx, params, false)
 	if err != nil {
 		return common.GenerateErrorResponder(err)
 	}
 	return installer.NewUpdateInfraEnvCreated().WithPayload(&i.InfraEnv)
 }
 
-func (b *bareMetalInventory) UpdateInfraEnvInternal(ctx context.Context, params installer.UpdateInfraEnvParams) (*common.InfraEnv, error) {
+func (b *bareMetalInventory) UpdateInfraEnvInternal(ctx context.Context, params installer.UpdateInfraEnvParams, enableIronicAgent bool) (*common.InfraEnv, error) {
 	log := logutil.FromContext(ctx, b.log)
 	var infraEnv *common.InfraEnv
 	var err error
@@ -4116,7 +4118,7 @@ func (b *bareMetalInventory) UpdateInfraEnvInternal(ctx context.Context, params 
 		}
 	}
 
-	err = b.updateInfraEnvData(ctx, infraEnv, params, b.db, log)
+	err = b.updateInfraEnvData(ctx, infraEnv, params, enableIronicAgent, b.db, log)
 	if err != nil {
 		log.WithError(err).Error("updateInfraEnvData")
 		return nil, err
@@ -4136,7 +4138,7 @@ func (b *bareMetalInventory) UpdateInfraEnvInternal(ctx context.Context, params 
 	return b.GetInfraEnvInternal(ctx, installer.GetInfraEnvParams{InfraEnvID: *infraEnv.ID})
 }
 
-func (b *bareMetalInventory) updateInfraEnvData(ctx context.Context, infraEnv *common.InfraEnv, params installer.UpdateInfraEnvParams, db *gorm.DB, log logrus.FieldLogger) error {
+func (b *bareMetalInventory) updateInfraEnvData(ctx context.Context, infraEnv *common.InfraEnv, params installer.UpdateInfraEnvParams, enableIronicAgent bool, db *gorm.DB, log logrus.FieldLogger) error {
 	updates := map[string]interface{}{}
 	if params.InfraEnvUpdateParams.Proxy != nil {
 		proxyHash, err := computeProxyHash(params.InfraEnvUpdateParams.Proxy)
@@ -4182,6 +4184,10 @@ func (b *bareMetalInventory) updateInfraEnvData(ctx context.Context, infraEnv *c
 		infraEnv.PullSecret = params.InfraEnvUpdateParams.PullSecret
 		updates["pull_secret"] = params.InfraEnvUpdateParams.PullSecret
 		updates["pull_secret_set"] = true
+	}
+
+	if enableIronicAgent != infraEnv.EnableIronicAgent {
+		updates["ironic_agent_enabled"] = enableIronicAgent
 	}
 
 	if len(updates) > 0 {

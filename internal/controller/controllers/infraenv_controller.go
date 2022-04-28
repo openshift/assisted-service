@@ -22,6 +22,7 @@ import (
 	"net/http"
 	"net/url"
 	"path"
+	"strconv"
 	"strings"
 	"time"
 
@@ -58,6 +59,7 @@ import (
 
 const defaultRequeueAfterPerRecoverableError = 2 * bminventory.WindowBetweenRequestsInSeconds
 const InfraEnvFinalizerName = "infraenv." + aiv1beta1.Group + "/ai-deprovision"
+const EnableIronicAgentAnnotation = "infraenv." + aiv1beta1.Group + "/enable-ironic-agent"
 
 type InfraEnvConfig struct {
 	ImageType models.ImageType `envconfig:"ISO_IMAGE_TYPE" default:"minimal-iso"`
@@ -181,7 +183,7 @@ func (r *InfraEnvReconciler) updateInfraEnv(ctx context.Context, log logrus.Fiel
 	updateParams.InfraEnvUpdateParams.ImageType = r.Config.ImageType
 
 	// UpdateInfraEnvInternal will generate an ISO only if there it was not generated before,
-	return r.Installer.UpdateInfraEnvInternal(ctx, updateParams)
+	return r.Installer.UpdateInfraEnvInternal(ctx, updateParams, ShouldEnableIronicAgent(log, infraEnv))
 }
 
 func BuildMacInterfaceMap(log logrus.FieldLogger, nmStateConfig aiv1beta1.NMStateConfig) models.MacInterfaceMap {
@@ -341,6 +343,19 @@ func (r *InfraEnvReconciler) ensureISO(ctx context.Context, log logrus.FieldLogg
 	return r.updateInfraEnvStatus(ctx, log, infraEnv, updatedInfraEnv)
 }
 
+func ShouldEnableIronicAgent(log logrus.FieldLogger, infraEnv *aiv1beta1.InfraEnv) bool {
+	value, ok := infraEnv.GetAnnotations()[EnableIronicAgentAnnotation]
+	if !ok {
+		return false
+	}
+	log.Debugf("InfraEnv annotation %s value %s", EnableIronicAgentAnnotation, value)
+	enable, err := strconv.ParseBool(value)
+	if err != nil {
+		log.WithError(err).Errorf("faild to parse %s to bool value", value)
+	}
+	return enable
+}
+
 func CreateInfraEnvParams(infraEnv *aiv1beta1.InfraEnv, imageType models.ImageType, pullSecret string, clusterID *strfmt.UUID, openshiftVersion string) installer.RegisterInfraEnvParams {
 	createParams := installer.RegisterInfraEnvParams{
 		InfraenvCreateParams: &models.InfraEnvCreateParams{
@@ -390,7 +405,7 @@ func (r *InfraEnvReconciler) createInfraEnv(ctx context.Context, log logrus.Fiel
 		createParams.InfraenvCreateParams.StaticNetworkConfig = staticNetworkConfig
 	}
 
-	return r.Installer.RegisterInfraEnvInternal(ctx, key, createParams)
+	return r.Installer.RegisterInfraEnvInternal(ctx, key, createParams, ShouldEnableIronicAgent(log, infraEnv))
 }
 
 func (r *InfraEnvReconciler) deregisterInfraEnvIfNeeded(ctx context.Context, log logrus.FieldLogger, key types.NamespacedName) (ctrl.Result, error) {

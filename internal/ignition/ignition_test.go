@@ -21,6 +21,7 @@ import (
 	bmh_v1alpha1 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/openshift/assisted-service/internal/cbohelper"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/host/hostutil"
 	"github.com/openshift/assisted-service/internal/operators"
@@ -935,6 +936,7 @@ var _ = Describe("IgnitionBuilder", func() {
 		builder                           IgnitionBuilder
 		mockStaticNetworkConfig           *staticnetworkconfig.MockStaticNetworkConfig
 		mockMirrorRegistriesConfigBuilder *mirrorregistries.MockMirrorRegistriesConfigBuilder
+		mockCBOHelper                     *cbohelper.MockCBOHelperApi
 		infraEnvID                        strfmt.UUID
 	)
 
@@ -944,12 +946,14 @@ var _ = Describe("IgnitionBuilder", func() {
 		ctrl = gomock.NewController(GinkgoT())
 		mockStaticNetworkConfig = staticnetworkconfig.NewMockStaticNetworkConfig(ctrl)
 		mockMirrorRegistriesConfigBuilder = mirrorregistries.NewMockMirrorRegistriesConfigBuilder(ctrl)
+		mockCBOHelper = cbohelper.NewMockCBOHelperApi(ctrl)
+		mockCBOHelper.EXPECT().ConvergedFlowAvailable().Return(false).Times(1)
 		infraEnv = common.InfraEnv{InfraEnv: models.InfraEnv{
 			ID:            &infraEnvID,
 			PullSecretSet: false,
 		}, PullSecret: "{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"}
 		//cluster.ImageInfo = &models.ImageInfo{}
-		builder = NewBuilder(log, mockStaticNetworkConfig, mockMirrorRegistriesConfigBuilder)
+		builder = NewBuilder(log, mockStaticNetworkConfig, mockMirrorRegistriesConfigBuilder, mockCBOHelper)
 	})
 
 	Context("with auth enabled", func() {
@@ -1229,6 +1233,7 @@ var _ = Describe("Ignition SSH key building", func() {
 		builder                           IgnitionBuilder
 		mockStaticNetworkConfig           *staticnetworkconfig.MockStaticNetworkConfig
 		mockMirrorRegistriesConfigBuilder *mirrorregistries.MockMirrorRegistriesConfigBuilder
+		mockCBOHelper                     *cbohelper.MockCBOHelperApi
 		infraEnvID                        strfmt.UUID
 	)
 	buildIgnitionAndAssertSubString := func(SSHPublicKey string, shouldExist bool, subStr string) {
@@ -1246,6 +1251,9 @@ var _ = Describe("Ignition SSH key building", func() {
 		ctrl = gomock.NewController(GinkgoT())
 		mockStaticNetworkConfig = staticnetworkconfig.NewMockStaticNetworkConfig(ctrl)
 		mockMirrorRegistriesConfigBuilder = mirrorregistries.NewMockMirrorRegistriesConfigBuilder(ctrl)
+		mockCBOHelper = cbohelper.NewMockCBOHelperApi(ctrl)
+		mockCBOHelper.EXPECT().ConvergedFlowAvailable().Return(false).Times(1)
+
 		infraEnv = common.InfraEnv{
 			InfraEnv: models.InfraEnv{
 				ID:            &infraEnvID,
@@ -1254,7 +1262,7 @@ var _ = Describe("Ignition SSH key building", func() {
 			PullSecret: "{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}",
 		}
 		//cluster.ImageInfo = &models.ImageInfo{}
-		builder = NewBuilder(log, mockStaticNetworkConfig, mockMirrorRegistriesConfigBuilder)
+		builder = NewBuilder(log, mockStaticNetworkConfig, mockMirrorRegistriesConfigBuilder, mockCBOHelper)
 		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(1)
 	})
 	Context("when empty or invalid input", func() {
@@ -1293,6 +1301,104 @@ var _ = Describe("Ignition SSH key building", func() {
 	})
 })
 
+var _ = Describe("Ignition with converged flow", func() {
+	const ironicIgn = `{
+    "ignition": {
+        "version": "3.2.0"
+    },
+    "storage": {
+        "files": [
+            {
+                "group": {
+
+                },
+                "overwrite": false,
+                "path": "/etc/ironic-python-agent.conf",
+                "user": {
+
+                },
+                "contents": {
+                    "source": "data:text/plain,%0A%5BDEFAULT%5D%0Aapi_url%20%3D%20https%3A%2F%2Fironic.redhat.com%3A6385%0Ainspection_callback_url%20%3D%20https%3A%2F%2Fironic.redhat.com%3A5050%2Fv1%2Fcontinue%0Ainsecure%20%3D%20True%0A%0Acollect_lldp%20%3D%20True%0Aenable_vlan_interfaces%20%3D%20all%0Ainspection_collectors%20%3D%20default%2Cextra-hardware%2Clogs%0Ainspection_dhcp_all_interfaces%20%3D%20True%0A",
+                    "verification": {
+
+                    }
+                },
+                "mode": 420
+            }
+        ]
+    },
+    "systemd": {
+        "units": [
+            {
+                "contents": "[Unit]\nDescription=Ironic Agent\nAfter=network-online.target\nWants=network-online.target\n[Service]\nEnvironment=\"HTTP_PROXY=\"\nEnvironment=\"HTTPS_PROXY=\"\nEnvironment=\"NO_PROXY=\"\nTimeoutStartSec=0\nExecStartPre=/bin/podman pull some-ironic-image --tls-verify=false --authfile=/etc/authfile.json\nExecStart=/bin/podman run --privileged --network host --mount type=bind,src=/etc/ironic-python-agent.conf,dst=/etc/ironic-python-agent/ignition.conf --mount type=bind,src=/dev,dst=/dev --mount type=bind,src=/sys,dst=/sys --mount type=bind,src=/run/dbus/system_bus_socket,dst=/run/dbus/system_bus_socket --mount type=bind,src=/,dst=/mnt/coreos --env \"IPA_COREOS_IP_OPTIONS=ip=dhcp\" --name ironic-agent somce-ironic-image\n[Install]\nWantedBy=multi-user.target\n",
+                "enabled": true,
+                "name": "ironic-agent.service"
+            }
+        ]
+    }
+}`
+	var (
+		ctrl                              *gomock.Controller
+		infraEnv                          common.InfraEnv
+		builder                           IgnitionBuilder
+		mockStaticNetworkConfig           *staticnetworkconfig.MockStaticNetworkConfig
+		mockMirrorRegistriesConfigBuilder *mirrorregistries.MockMirrorRegistriesConfigBuilder
+		mockCBOHelper                     *cbohelper.MockCBOHelperApi
+		infraEnvID                        strfmt.UUID
+	)
+	BeforeEach(func() {
+		infraEnvID = strfmt.UUID("a64fff36-dcb1-11ea-87d0-0242ac130003")
+		ctrl = gomock.NewController(GinkgoT())
+		mockStaticNetworkConfig = staticnetworkconfig.NewMockStaticNetworkConfig(ctrl)
+		mockMirrorRegistriesConfigBuilder = mirrorregistries.NewMockMirrorRegistriesConfigBuilder(ctrl)
+		mockCBOHelper = cbohelper.NewMockCBOHelperApi(ctrl)
+		infraEnv = common.InfraEnv{
+			InfraEnv: models.InfraEnv{
+				ID:            &infraEnvID,
+				PullSecretSet: false,
+			},
+			PullSecret: "{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}",
+		}
+		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(1)
+	})
+	It("converged flow enabled and IronicAgent enabled", func() {
+		mockCBOHelper.EXPECT().ConvergedFlowAvailable().Return(true).Times(1)
+		ironicConfig, err := ParseToLatest([]byte(ironicIgn))
+		Expect(err).NotTo(HaveOccurred())
+		mockCBOHelper.EXPECT().GenerateIronicConfig().Return(*ironicConfig, nil).Times(1)
+		builder = NewBuilder(log, mockStaticNetworkConfig, mockMirrorRegistriesConfigBuilder, mockCBOHelper)
+		infraEnv.EnableIronicAgent = true
+		text, err := builder.FormatDiscoveryIgnitionFile(context.Background(), &infraEnv, IgnitionConfig{}, false, auth.TypeRHSSO)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(text).Should(ContainSubstring("ironic-agent.service"))
+		Expect(text).Should(ContainSubstring("ironic.redhat.com"))
+	})
+	It("converged flow enabled and IronicAgent disabled", func() {
+		mockCBOHelper.EXPECT().ConvergedFlowAvailable().Return(true).Times(1)
+		builder = NewBuilder(log, mockStaticNetworkConfig, mockMirrorRegistriesConfigBuilder, mockCBOHelper)
+		infraEnv.EnableIronicAgent = false
+		text, err := builder.FormatDiscoveryIgnitionFile(context.Background(), &infraEnv, IgnitionConfig{}, false, auth.TypeRHSSO)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(text).ShouldNot(ContainSubstring("ironic-agent.service"))
+	})
+	It("converged flow disabled and IronicAgent enabled", func() {
+		mockCBOHelper.EXPECT().ConvergedFlowAvailable().Return(false).Times(1)
+		builder = NewBuilder(log, mockStaticNetworkConfig, mockMirrorRegistriesConfigBuilder, mockCBOHelper)
+		infraEnv.EnableIronicAgent = true
+		_, err := builder.FormatDiscoveryIgnitionFile(context.Background(), &infraEnv, IgnitionConfig{}, false, auth.TypeRHSSO)
+		Expect(err).To(HaveOccurred())
+		Expect(err.Error()).Should(ContainSubstring("invalid InfraEnv"))
+	})
+	It("converged flow disabled and IronicAgent disabled", func() {
+		mockCBOHelper.EXPECT().ConvergedFlowAvailable().Return(false).Times(1)
+		builder = NewBuilder(log, mockStaticNetworkConfig, mockMirrorRegistriesConfigBuilder, mockCBOHelper)
+		infraEnv.EnableIronicAgent = false
+		text, err := builder.FormatDiscoveryIgnitionFile(context.Background(), &infraEnv, IgnitionConfig{}, false, auth.TypeRHSSO)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(text).ShouldNot(ContainSubstring("ironic-agent.service"))
+	})
+})
+
 var _ = Describe("FormatSecondDayWorkerIgnitionFile", func() {
 
 	var (
@@ -1301,6 +1407,7 @@ var _ = Describe("FormatSecondDayWorkerIgnitionFile", func() {
 		builder                           IgnitionBuilder
 		mockStaticNetworkConfig           *staticnetworkconfig.MockStaticNetworkConfig
 		mockMirrorRegistriesConfigBuilder *mirrorregistries.MockMirrorRegistriesConfigBuilder
+		mockCBOHelper                     *cbohelper.MockCBOHelperApi
 		mockHost                          *models.Host
 	)
 
@@ -1309,8 +1416,10 @@ var _ = Describe("FormatSecondDayWorkerIgnitionFile", func() {
 		ctrl = gomock.NewController(GinkgoT())
 		mockStaticNetworkConfig = staticnetworkconfig.NewMockStaticNetworkConfig(ctrl)
 		mockMirrorRegistriesConfigBuilder = mirrorregistries.NewMockMirrorRegistriesConfigBuilder(ctrl)
+		mockCBOHelper = cbohelper.NewMockCBOHelperApi(ctrl)
+		mockCBOHelper.EXPECT().ConvergedFlowAvailable().Return(false).Times(1)
 		mockHost = &models.Host{Inventory: hostInventory}
-		builder = NewBuilder(log, mockStaticNetworkConfig, mockMirrorRegistriesConfigBuilder)
+		builder = NewBuilder(log, mockStaticNetworkConfig, mockMirrorRegistriesConfigBuilder, mockCBOHelper)
 	})
 
 	Context("test custom ignition endpoint", func() {

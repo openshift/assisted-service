@@ -112,6 +112,9 @@ type InfraEnv struct {
 	Hosts []*Host `json:"hosts" gorm:"foreignkey:InfraEnvID;references:ID"`
 
 	ImageTokenKey string `json:"image_token_key"`
+
+	// EnableIronicAgent enables the ironic agent in the initial ignition config. Default is false
+	EnableIronicAgent bool `json:"enable_ironic_agent,omitempty"`
 }
 
 type EagerLoadingState bool

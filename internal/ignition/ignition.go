@@ -27,6 +27,7 @@ import (
 	"github.com/coreos/vcontext/report"
 	"github.com/go-openapi/swag"
 	bmh_v1alpha1 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
+	cbouhelper "github.com/openshift/assisted-service/internal/cbohelper"
 	clusterPkg "github.com/openshift/assisted-service/internal/cluster"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/constants"
@@ -184,7 +185,7 @@ const discoveryIgnitionConfigFormat = `{
   "systemd": {
     "units": [{
       "name": "agent.service",
-      "enabled": true,
+      "enabled": {{if .ConvergedFlow}}false{{else}}true{{end}},
       "contents": "[Service]\nType=simple\nRestart=always\nRestartSec=3\nStartLimitInterval=0\nEnvironment=HTTP_PROXY={{.HTTPProxy}}\nEnvironment=http_proxy={{.HTTPProxy}}\nEnvironment=HTTPS_PROXY={{.HTTPSProxy}}\nEnvironment=https_proxy={{.HTTPSProxy}}\nEnvironment=NO_PROXY={{.NoProxy}}\nEnvironment=no_proxy={{.NoProxy}}{{if .PullSecretToken}}\nEnvironment=PULL_SECRET_TOKEN={{.PullSecretToken}}{{end}}\nTimeoutStartSec={{.AgentTimeoutStartSec}}\nExecStartPre=/usr/local/bin/agent-fix-bz1964591 {{.AgentDockerImg}}\nExecStartPre=podman run --privileged --rm -v /usr/local/bin:/hostbin {{.AgentDockerImg}} cp /usr/bin/agent /hostbin\nExecStart=/usr/local/bin/agent --url {{.ServiceBaseURL}} --infra-env-id {{.infraEnvId}} --agent-version {{.AgentDockerImg}} --insecure={{.SkipCertVerification}}  {{if .HostCACertPath}}--cacert {{.HostCACertPath}}{{end}}\n\n[Unit]\nWants=network-online.target\nAfter=network-online.target\n\n[Install]\nWantedBy=multi-user.target"
     },
     {
@@ -424,13 +425,15 @@ type ignitionBuilder struct {
 	log                     logrus.FieldLogger
 	staticNetworkConfig     staticnetworkconfig.StaticNetworkConfig
 	mirrorRegistriesBuilder mirrorregistries.MirrorRegistriesConfigBuilder
+	cbohelper               cbouhelper.CBOHelperApi
 }
 
-func NewBuilder(log logrus.FieldLogger, staticNetworkConfig staticnetworkconfig.StaticNetworkConfig, mirrorRegistriesBuilder mirrorregistries.MirrorRegistriesConfigBuilder) IgnitionBuilder {
+func NewBuilder(log logrus.FieldLogger, staticNetworkConfig staticnetworkconfig.StaticNetworkConfig, mirrorRegistriesBuilder mirrorregistries.MirrorRegistriesConfigBuilder, ch cbouhelper.CBOHelperApi) IgnitionBuilder {
 	builder := &ignitionBuilder{
 		log:                     log,
 		staticNetworkConfig:     staticNetworkConfig,
 		mirrorRegistriesBuilder: mirrorRegistriesBuilder,
+		cbohelper:               ch,
 	}
 	return builder
 }
@@ -1403,6 +1406,17 @@ func (ib *ignitionBuilder) FormatDiscoveryIgnitionFile(ctx context.Context, infr
 		ib.log.WithError(err).Errorln("Unable to build user SSH public key JSON")
 		return "", err
 	}
+	// handle ZTP converged flow
+	UseConvergedFlow := false
+	if infraEnv.EnableIronicAgent {
+		if ib.cbohelper.ConvergedFlowAvailable() {
+			UseConvergedFlow = true
+		} else {
+			err = errors.New("invalid InfraEnv, EnableIronicAgent is set to true but converged flow is disabled")
+			ib.log.Error(err)
+			return "", err
+		}
+	}
 	var ignitionParams = map[string]interface{}{
 		"userSshKey":           userSshKey,
 		"AgentDockerImg":       cfg.AgentDockerImg,
@@ -1421,6 +1435,7 @@ func (ib *ignitionBuilder) FormatDiscoveryIgnitionFile(ctx context.Context, infr
 		"SkipCertVerification": strconv.FormatBool(cfg.SkipCertVerification),
 		"AgentTimeoutStartSec": strconv.FormatInt(int64(cfg.AgentTimeoutStart.Seconds()), 10),
 		"SELINUX_POLICY":       base64.StdEncoding.EncodeToString([]byte(selinuxPolicy)),
+		"ConvergedFlow":        UseConvergedFlow,
 	}
 	if safeForLogs {
 		for _, key := range []string{"userSshKey", "PullSecretToken", "PULL_SECRET", "RH_ROOT_CA"} {
@@ -1471,7 +1486,6 @@ func (ib *ignitionBuilder) FormatDiscoveryIgnitionFile(ctx context.Context, infr
 		ignitionParams["OKDHoldPivot"] = base64.StdEncoding.EncodeToString([]byte(okdHoldPivot))
 		ignitionParams["OKDHoldAgent"] = base64.StdEncoding.EncodeToString([]byte(okdHoldAgentUntilBinariesLanded))
 	}
-
 	tmpl, err := template.New("ignitionConfig").Parse(discoveryIgnitionConfigFormat)
 	if err != nil {
 		return "", err
@@ -1481,9 +1495,18 @@ func (ib *ignitionBuilder) FormatDiscoveryIgnitionFile(ctx context.Context, infr
 		return "", err
 	}
 
-	res := buf.String()
+	res := ""
+	if UseConvergedFlow {
+		res, err = ib.getConvergedDiscoveryTemplate(buf.Bytes())
+		if err != nil {
+			return res, err
+		}
+	} else {
+		res = buf.String()
+	}
+
 	if infraEnv.IgnitionConfigOverride != "" {
-		res, err = MergeIgnitionConfig(buf.Bytes(), []byte(infraEnv.IgnitionConfigOverride))
+		res, err = MergeIgnitionConfig([]byte(res), []byte(infraEnv.IgnitionConfigOverride))
 		if err != nil {
 			return "", err
 		}
@@ -1491,6 +1514,29 @@ func (ib *ignitionBuilder) FormatDiscoveryIgnitionFile(ctx context.Context, infr
 	}
 
 	return res, nil
+}
+
+// getConvergedDiscoveryTemplate adds ironic service and conf file to the discovery ignition template
+func (ib *ignitionBuilder) getConvergedDiscoveryTemplate(ignitionConfig []byte) (string, error) {
+	config, err := ParseToLatest(ignitionConfig)
+	if err != nil {
+		ib.log.WithError(err).Error("failed to parse ignitionConfig")
+		ib.log.Error(err)
+		return "", err
+	}
+	IronicIgn, err := ib.cbohelper.GenerateIronicConfig()
+	if err != nil {
+		ib.log.WithError(err).Error("failed to generate Ironic ignition config")
+		return "", err
+	}
+	config.Storage.Files = append(config.Storage.Files, IronicIgn.Storage.Files[0])
+	config.Systemd.Units = append(config.Systemd.Units, IronicIgn.Systemd.Units[0])
+	updatedIgn, err := json.Marshal(config)
+	if err != nil {
+		ib.log.WithError(err).Error("failed to marshal updatedConfig")
+		return "", err
+	}
+	return string(updatedIgn), nil
 }
 
 func (ib *ignitionBuilder) prepareStaticNetworkConfigForIgnition(ctx context.Context, infraEnv *common.InfraEnv) ([]staticnetworkconfig.StaticNetworkConfigData, error) {

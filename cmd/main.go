@@ -16,6 +16,7 @@ import (
 	"github.com/go-openapi/swag"
 	"github.com/kelseyhightower/envconfig"
 	"github.com/openshift/assisted-service/internal/bminventory"
+	"github.com/openshift/assisted-service/internal/cbohelper"
 	"github.com/openshift/assisted-service/internal/cluster"
 	"github.com/openshift/assisted-service/internal/cluster/validations"
 	"github.com/openshift/assisted-service/internal/common"
@@ -120,6 +121,7 @@ var Options struct {
 	ManifestsGeneratorConfig       network.Config
 	EnableKubeAPI                  bool `envconfig:"ENABLE_KUBE_API" default:"false"`
 	InfraEnvConfig                 controllers.InfraEnvConfig
+	CBOHelperConfig                cbohelper.Config
 	CheckClusterVersion            bool          `envconfig:"CHECK_CLUSTER_VERSION" default:"false"`
 	DeletionWorkerInterval         time.Duration `envconfig:"DELETION_WORKER_INTERVAL" default:"1h"`
 	InfraEnvDeletionWorkerInterval time.Duration `envconfig:"INFRAENV_DELETION_WORKER_INTERVAL" default:"1h"`
@@ -267,7 +269,6 @@ func main() {
 	Options.ClusterConfig.PrepareConfig.PrepareForInstallationTimeout = maxDuration(Options.ClusterConfig.PrepareConfig.PrepareForInstallationTimeout,
 		maxDuration(Options.InstructionConfig.DiskCheckTimeout, Options.InstructionConfig.ImageAvailabilityTimeout)+2*time.Minute)
 	var lead leader.ElectorInterface
-	var k8sClient *kubernetes.Clientset
 	var autoMigrationLeader leader.ElectorInterface
 
 	releaseHandler := oc.NewRelease(&executer.CommonExecuter{},
@@ -280,7 +281,10 @@ func main() {
 	domainHandler := domains.NewHandler(Options.BMConfig.BaseDNSDomains)
 	staticNetworkConfig := staticnetworkconfig.New(log.WithField("pkg", "static_network_config"), Options.StaticNetworkConfig)
 	mirrorRegistriesBuilder := mirrorregistries.New()
-	ignitionBuilder := ignition.NewBuilder(log.WithField("pkg", "ignition"), staticNetworkConfig, mirrorRegistriesBuilder)
+
+	clusterBaremetalOperatorHelper := cbohelper.New(ctrlMgr.GetClient(), log.WithField("pkg", "cluster_baremetal_operator_helper"),
+		Options.EnableKubeAPI, Options.CBOHelperConfig)
+	ignitionBuilder := ignition.NewBuilder(log.WithField("pkg", "ignition"), staticNetworkConfig, mirrorRegistriesBuilder, clusterBaremetalOperatorHelper)
 	installConfigBuilder := installcfg.NewInstallConfigBuilder(log.WithField("pkg", "installcfg"), mirrorRegistriesBuilder, providerRegistry)
 
 	var objectHandler = createStorageClient(Options.DeployTarget, Options.Storage, &Options.S3Config,
@@ -318,7 +322,7 @@ func main() {
 
 		cfg, cerr := clientcmd.BuildConfigFromFlags("", "")
 		failOnError(cerr, "Failed to create kubernetes cluster config")
-		k8sClient = kubernetes.NewForConfigOrDie(cfg)
+		k8sClient := kubernetes.NewForConfigOrDie(cfg)
 
 		autoMigrationLeader = leader.NewElector(k8sClient, leader.Config{LeaseDuration: 5 * time.Second,
 			RetryInterval: 2 * time.Second, Namespace: Options.LeaderConfig.Namespace, RenewDeadline: 4 * time.Second},
