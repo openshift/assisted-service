@@ -117,6 +117,9 @@ parameters:
 - name: ENABLE_ORG_TENANCY
   value: "false"
   required: false
+- name: ENABLE_ORG_BASED_FEATURE_GATES
+  value: "false"
+  required: false
 - name: MEMORY_LIMIT
   value: "2.55G"
   required: false
@@ -342,6 +345,8 @@ objects:
                 value: ${CNV_SNO_INSTALL_HPP}
               - name: ENABLE_ORG_TENANCY
                 value: ${ENABLE_ORG_TENANCY}
+              - name: ENABLE_ORG_BASED_FEATURE_GATES
+                value: ${ENABLE_ORG_BASED_FEATURE_GATES}
             volumeMounts:
               - name: route53-creds
                 mountPath: "/etc/.aws"

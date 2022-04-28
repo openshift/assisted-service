@@ -12,6 +12,7 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/client/installer"
 	"github.com/openshift/assisted-service/internal/cluster"
+	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/auth"
 )
@@ -29,6 +30,9 @@ var _ = Describe("test authorization", func() {
 	var capabilityReviewUnallowedUserStubID string
 	var capabilityReviewAdminStubID string
 
+	var capabilityReviewArmNotallowedUserStubID string
+	var capabilityReviewArmallowedUserStubID string
+
 	BeforeSuite(func() {
 		var err error
 		if Options.AuthType != auth.TypeRHSSO {
@@ -41,10 +45,16 @@ var _ = Describe("test authorization", func() {
 		accessReviewAdminStubID, err = wiremock.createStubAccessReview(fakePayloadAdmin, true)
 		Expect(err).ShouldNot(HaveOccurred())
 
-		capabilityReviewUnallowedUserStubID, err = wiremock.createStubCapabilityReview(fakePayloadUnallowedUser, false)
+		capabilityReviewUnallowedUserStubID, err = wiremock.createStubBareMetalCapabilityReview(fakePayloadUnallowedUser, false)
 		Expect(err).ShouldNot(HaveOccurred())
 
-		capabilityReviewAdminStubID, err = wiremock.createStubCapabilityReview(fakePayloadAdmin, true)
+		capabilityReviewAdminStubID, err = wiremock.createStubBareMetalCapabilityReview(fakePayloadAdmin, true)
+		Expect(err).ShouldNot(HaveOccurred())
+
+		capabilityReviewArmNotallowedUserStubID, err = wiremock.createStubArmCapabilityReview(fakePayloadUsername, OrgId1, false)
+		Expect(err).ShouldNot(HaveOccurred())
+
+		capabilityReviewArmallowedUserStubID, err = wiremock.createStubArmCapabilityReview(fakePayloadUsername2, OrgId2, true)
 		Expect(err).ShouldNot(HaveOccurred())
 	})
 
@@ -63,6 +73,12 @@ var _ = Describe("test authorization", func() {
 		Expect(err).ShouldNot(HaveOccurred())
 
 		err = wiremock.DeleteStub(capabilityReviewAdminStubID)
+		Expect(err).ShouldNot(HaveOccurred())
+
+		err = wiremock.DeleteStub(capabilityReviewArmNotallowedUserStubID)
+		Expect(err).ShouldNot(HaveOccurred())
+
+		err = wiremock.DeleteStub(capabilityReviewArmallowedUserStubID)
 		Expect(err).ShouldNot(HaveOccurred())
 	})
 
@@ -100,6 +116,71 @@ var _ = Describe("test authorization", func() {
 			_, err := readOnlyAdminUserBMClient.Installer.V2DeregisterCluster(ctx, &installer.V2DeregisterClusterParams{ClusterID: userClusterID})
 			Expect(err).Should(HaveOccurred())
 			Expect(err).To(BeAssignableToTypeOf(installer.NewV2DeregisterClusterForbidden()))
+		})
+	})
+
+	Context("organization based functionality", func() {
+		BeforeEach(func() {
+			if !Options.FeatureGate {
+				Skip("organization based functionality access is disabled")
+			}
+		})
+
+		It("allowed to register a cluster with ARM CPU", func() {
+			request, err := user2BMClient.Installer.V2RegisterCluster(ctx, &installer.V2RegisterClusterParams{
+				NewClusterParams: &models.ClusterCreateParams{
+					CPUArchitecture:       common.ARM64CPUArchitecture,
+					Name:                  swag.String("arm-cluster"),
+					OpenshiftVersion:      swag.String("4.10"), // ARM is available starting from 4.10
+					PullSecret:            swag.String(fmt.Sprintf(psTemplate, FakePS2)),
+					UserManagedNetworking: swag.Bool(true),
+				},
+			})
+			Expect(err).ShouldNot(HaveOccurred())
+			Expect(request.Payload.CPUArchitecture).To(Equal(common.ARM64CPUArchitecture))
+
+		})
+
+		It("not allowed to register a cluster with ARM CPU", func() {
+			_, err := userBMClient.Installer.V2RegisterCluster(ctx, &installer.V2RegisterClusterParams{
+				NewClusterParams: &models.ClusterCreateParams{
+					CPUArchitecture:       common.ARM64CPUArchitecture,
+					Name:                  swag.String("arm-cluster"),
+					OpenshiftVersion:      swag.String("4.10"), // ARM is available starting from 4.10
+					PullSecret:            swag.String(fmt.Sprintf(psTemplate, FakePS)),
+					UserManagedNetworking: swag.Bool(true),
+				},
+			})
+			Expect(err).Should(HaveOccurred())
+			Expect(err).To(BeAssignableToTypeOf(installer.NewV2RegisterClusterBadRequest()))
+		})
+
+		It("allowed to register an InfraEnv with ARM CPU", func() {
+			reply, err := user2BMClient.Installer.RegisterInfraEnv(ctx, &installer.RegisterInfraEnvParams{
+				InfraenvCreateParams: &models.InfraEnvCreateParams{
+					Name:             swag.String("arm-infra-env"),
+					OpenshiftVersion: "4.10", // ARM is available starting from 4.10
+					CPUArchitecture:  common.ARM64CPUArchitecture,
+					PullSecret:       swag.String(fmt.Sprintf(psTemplate, FakePS2)),
+					ImageType:        models.ImageTypeMinimalIso,
+				},
+			})
+			Expect(err).ShouldNot(HaveOccurred())
+			Expect(reply.Payload.CPUArchitecture).To(Equal(common.ARM64CPUArchitecture))
+		})
+
+		It("not allowed to register an InfraEnv with ARM CPU", func() {
+			_, err := userBMClient.Installer.RegisterInfraEnv(ctx, &installer.RegisterInfraEnvParams{
+				InfraenvCreateParams: &models.InfraEnvCreateParams{
+					Name:             swag.String("arm-infra-env"),
+					OpenshiftVersion: "4.10", // ARM is available starting from 4.10
+					CPUArchitecture:  common.ARM64CPUArchitecture,
+					PullSecret:       swag.String(fmt.Sprintf(psTemplate, FakePS)),
+					ImageType:        models.ImageTypeMinimalIso,
+				},
+			})
+			Expect(err).Should(HaveOccurred())
+			Expect(err).To(BeAssignableToTypeOf(installer.NewRegisterInfraEnvBadRequest()))
 		})
 	})
 

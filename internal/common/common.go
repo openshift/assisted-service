@@ -40,7 +40,9 @@ const (
 	FamilyIPv4 int32 = 4
 	FamilyIPv6 int32 = 6
 
-	DefaultCPUArchitecture = "x86_64"
+	X86CPUArchitecture     = "x86_64"
+	DefaultCPUArchitecture = X86CPUArchitecture
+	ARM64CPUArchitecture   = "arm64"
 )
 
 // Configuration to be injected by discovery ignition.  It will cause IPv6 DHCP client identifier to be the same

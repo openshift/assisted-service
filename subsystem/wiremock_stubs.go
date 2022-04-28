@@ -4,10 +4,13 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io/ioutil"
 	"net/http"
+	"net/url"
 	"path/filepath"
 	"strconv"
+	"strings"
 
 	"github.com/go-openapi/strfmt"
 	"github.com/openshift/assisted-service/pkg/ocm"
@@ -52,6 +55,7 @@ const (
 	pullAuthPath                         string      = "/api/accounts_mgmt/v1/token_authorization"
 	clusterAuthzPath                     string      = "/api/accounts_mgmt/v1/cluster_authorizations"
 	subscriptionPrefix                   string      = "/api/accounts_mgmt/v1/subscriptions/"
+	accountsMgmtSearchPrefix             string      = "/api/accounts_mgmt/v1/accounts?search=username"
 	subscriptionUpdateOpenshiftClusterID string      = "subscription_update_openshift_cluster_id"
 	subscriptionUpdateStatusActive       string      = "subscription_update_status_active"
 	subscriptionUpdateDisplayName        string      = "subscription_update_display_name"
@@ -67,6 +71,8 @@ const (
 	FakePS3                              string      = "dXNlcjM6cGFzc3dvcmQ="
 	FakeAdminPS                          string      = "dXNlcjpwYXNzd29yZAy="
 	WrongPullSecret                      string      = "wrong_secret"
+	OrgId1                               string      = "1010101"
+	OrgId2                               string      = "2020202"
 	FakeSubscriptionID                   strfmt.UUID = "1h89fvtqeelulpo0fl5oddngj2ao7tt8"
 )
 
@@ -180,13 +186,25 @@ func (w *WireMock) createStubsForAccessReview() error {
 }
 
 func (w *WireMock) createStubsForCapabilityReview() error {
-	if _, err := w.createStubCapabilityReview(fakePayloadUsername, false); err != nil {
+	if _, err := w.createStubBareMetalCapabilityReview(fakePayloadUsername, false); err != nil {
 		return err
 	}
-	if _, err := w.createStubCapabilityReview(fakePayloadUsername2, false); err != nil {
+	if _, err := w.createStubBareMetalCapabilityReview(fakePayloadUsername2, false); err != nil {
 		return err
 	}
-	if _, err := w.createStubCapabilityReview(fakePayloadClusterEditor, false); err != nil {
+	if _, err := w.createStubBareMetalCapabilityReview(fakePayloadClusterEditor, false); err != nil {
+		return err
+	}
+	if _, err := w.createStubArmCapabilityReview(fakePayloadUsername, OrgId1, false); err != nil {
+		return err
+	}
+	if _, err := w.createStubArmCapabilityReview(fakePayloadUsername2, OrgId2, true); err != nil {
+		return err
+	}
+	if _, err := w.createStubAccountsMgmt(fakePayloadUsername, OrgId1); err != nil {
+		return err
+	}
+	if _, err := w.createStubAccountsMgmt(fakePayloadUsername2, OrgId2); err != nil {
 		return err
 	}
 	return nil
@@ -435,7 +453,32 @@ func (w *WireMock) createStubToken(testToken string) (string, error) {
 	return w.addStub(tokenStub)
 }
 
-func (w *WireMock) createStubCapabilityReview(username string, result bool) (string, error) {
+func (w *WireMock) createStubArmCapabilityReview(username string, orgId string, result bool) (string, error) {
+	type CapabilityRequest struct {
+		Name     string `json:"capability"`
+		Type     string `json:"type"`
+		Username string `json:"account_username"`
+		Org      string `json:"organization_id"`
+	}
+
+	type CapabilityResponse struct {
+		Result string `json:"result"`
+	}
+
+	capabilityRequest := CapabilityRequest{
+		Name:     ocm.ArmCapabilityName,
+		Type:     ocm.OrganizationCapabilityType,
+		Username: username,
+		Org:      orgId,
+	}
+
+	capabilityResponse := CapabilityResponse{
+		Result: strconv.FormatBool(result),
+	}
+	return w.addCapabilityReviewStub(capabilityRequest, capabilityResponse)
+}
+
+func (w *WireMock) createStubBareMetalCapabilityReview(username string, result bool) (string, error) {
 	type CapabilityRequest struct {
 		Name     string `json:"capability"`
 		Type     string `json:"type"`
@@ -447,8 +490,8 @@ func (w *WireMock) createStubCapabilityReview(username string, result bool) (str
 	}
 
 	capabilityRequest := CapabilityRequest{
-		Name:     ocm.CapabilityName,
-		Type:     ocm.CapabilityType,
+		Name:     ocm.BareMetalCapabilityName,
+		Type:     ocm.AccountCapabilityType,
 		Username: username,
 	}
 
@@ -456,6 +499,10 @@ func (w *WireMock) createStubCapabilityReview(username string, result bool) (str
 		Result: strconv.FormatBool(result),
 	}
 
+	return w.addCapabilityReviewStub(capabilityRequest, capabilityResponse)
+}
+
+func (w *WireMock) addCapabilityReviewStub(capabilityRequest interface{}, capabilityResponse interface{}) (string, error) {
 	var reqBody []byte
 	reqBody, err := json.Marshal(capabilityRequest)
 	if err != nil {
@@ -470,6 +517,48 @@ func (w *WireMock) createStubCapabilityReview(username string, result bool) (str
 
 	capabilityReviewStub := w.createStubDefinition(capabilityReviewPath, "POST", string(reqBody), string(resBody), 200)
 	return w.addStub(capabilityReviewStub)
+}
+
+func (w *WireMock) createStubAccountsMgmt(username string, orgId string) (string, error) {
+	type Organization struct {
+		ID string `json:"id"`
+	}
+
+	type Account struct {
+		Username     string       `json:"username"`
+		Email        string       `json:"email"`
+		Organization Organization `json:"organization"`
+	}
+
+	type AccountsListResponse struct {
+		Items []*Account `json:"items"`
+	}
+
+	account := Account{
+		Email:    username,
+		Username: username,
+		Organization: Organization{
+			ID: orgId,
+		},
+	}
+
+	res := AccountsListResponse{
+		Items: []*Account{
+			&account,
+		},
+	}
+
+	var resBody []byte
+	resBody, err := json.Marshal(res)
+	if err != nil {
+		return "", err
+	}
+
+	accountsMgmtSearchPath := strings.Join([]string{accountsMgmtSearchPrefix, url.QueryEscape(fmt.Sprintf("='%s'", username))}, "")
+	accountsMgmtSearchStub := w.createStubDefinition(accountsMgmtSearchPath,
+		"GET", "", string(resBody), 200)
+
+	return w.addStub(accountsMgmtSearchStub)
 }
 
 func (w *WireMock) createStubClusterEditorRequest(username string, subscriptionId string, action string, allowed bool) (string, error) {

@@ -23,23 +23,25 @@ import (
 )
 
 type RHSSOAuthenticator struct {
-	KeyMap            map[string]*rsa.PublicKey
-	AdminUsers        []string
-	OrgTenancyEnabled bool
-	utils             AUtilsInteface
-	log               logrus.FieldLogger
-	client            *ocm.Client
-	db                *gorm.DB
+	KeyMap                       map[string]*rsa.PublicKey
+	AdminUsers                   []string
+	OrgTenancyEnabled            bool
+	OrgBasedFunctionalityEnabled bool
+	utils                        AUtilsInteface
+	log                          logrus.FieldLogger
+	client                       *ocm.Client
+	db                           *gorm.DB
 }
 
 func NewRHSSOAuthenticator(cfg *Config, ocmCLient *ocm.Client, log logrus.FieldLogger, db *gorm.DB) *RHSSOAuthenticator {
 	a := &RHSSOAuthenticator{
-		AdminUsers:        cfg.AdminUsers,
-		OrgTenancyEnabled: cfg.EnableOrgTenancy,
-		utils:             NewAuthUtils(cfg.JwkCert, cfg.JwkCertURL),
-		client:            ocmCLient,
-		log:               log,
-		db:                db,
+		AdminUsers:                   cfg.AdminUsers,
+		OrgTenancyEnabled:            cfg.EnableOrgTenancy,
+		OrgBasedFunctionalityEnabled: cfg.EnableOrgBasedFeatureGates,
+		utils:                        NewAuthUtils(cfg.JwkCert, cfg.JwkCertURL),
+		client:                       ocmCLient,
+		log:                          log,
+		db:                           db,
 	}
 	err := a.populateKeyMap()
 	if err != nil {
@@ -56,6 +58,10 @@ func (a *RHSSOAuthenticator) AuthType() AuthType {
 
 func (a *RHSSOAuthenticator) EnableOrgTenancy() bool {
 	return a.OrgTenancyEnabled
+}
+
+func (a *RHSSOAuthenticator) EnableOrgBasedFeatureGates() bool {
+	return a.OrgBasedFunctionalityEnabled
 }
 
 func (a *RHSSOAuthenticator) populateKeyMap() error {
@@ -244,7 +250,7 @@ func (a RHSSOAuthenticator) getRole(payload *ocm.AuthPayload) (ocm.RoleType, err
 }
 
 func (a *RHSSOAuthenticator) isReadOnlyAdmin(username string) (bool, error) {
-	cacheKey := fmt.Sprintf("%s-%s-%s", username, ocm.CapabilityName, ocm.CapabilityType)
+	cacheKey := fmt.Sprintf("%s-%s-%s", username, ocm.BareMetalCapabilityName, ocm.AccountCapabilityType)
 	if cacheData, existInCache := a.client.Cache.Get(cacheKey); existInCache {
 		isAllowed, ok := cacheData.(bool)
 		if !ok {
@@ -253,7 +259,7 @@ func (a *RHSSOAuthenticator) isReadOnlyAdmin(username string) (bool, error) {
 		return isAllowed, nil
 	}
 
-	isAllowed, err := a.client.Authorization.CapabilityReview(context.Background(), fmt.Sprint(username), ocm.CapabilityName, ocm.CapabilityType)
+	isAllowed, err := a.client.Authorization.CapabilityReview(context.Background(), fmt.Sprint(username), ocm.BareMetalCapabilityName, ocm.AccountCapabilityType)
 	if shouldStorePayloadInCache(err) {
 		a.client.Cache.Set(cacheKey, isAllowed, 1*time.Minute)
 	}
