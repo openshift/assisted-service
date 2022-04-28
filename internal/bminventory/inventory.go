@@ -6483,12 +6483,12 @@ func (b *bareMetalInventory) V2DownloadInfraEnvFiles(ctx context.Context, params
 	if params.FileName == "discovery.ign" {
 		cfg, err2 := b.IgnitionBuilder.FormatDiscoveryIgnitionFile(ctx, infraEnv, b.IgnitionConfig, false, b.authHandler.AuthType())
 		if err2 != nil {
-			b.log.WithError(err).Error("Failed to format ignition config")
-			return common.GenerateErrorResponder(err)
+			b.log.WithError(err2).Error("Failed to format ignition config")
+			return common.GenerateErrorResponder(err2)
 		}
 		return filemiddleware.NewResponder(installer.NewV2DownloadInfraEnvFilesOK().WithPayload(ioutil.NopCloser(strings.NewReader(cfg))), params.FileName, int64(len(cfg)))
 	} else {
-		return common.GenerateErrorResponder(common.NewApiError(http.StatusBadRequest, err))
+		return common.GenerateErrorResponder(common.NewApiError(http.StatusBadRequest, fmt.Errorf("unknown file type for download: %s", params.FileName)))
 	}
 }
 
