@@ -5,9 +5,14 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"github.com/coreos/go-semver/semver"
+	v1 "github.com/openshift/api/config/v1"
+	"google.golang.org/appengine/log"
+	"k8s.io/apimachinery/pkg/types"
 	"net/http"
 	_ "net/http/pprof"
 	"os"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"strings"
 	"time"
 
@@ -135,6 +140,8 @@ var Options struct {
 	FileSystemUsageThreshold       int           `envconfig:"FILESYSTEM_USAGE_THRESHOLD" default:"80"`
 	EnableElasticAPM               bool          `envconfig:"ENABLE_ELASTIC_APM" default:"false"`
 	WorkDir                        string        `envconfig:"WORK_DIR" default:"/data/"`
+	AllowConvergedFlow             bool          `envconfig:"ALLOW_COVERGED_FLOW" default:"true"`
+	MinimalVersionForConvergedFlow string        `envconfig:"MINIMAL_VERSION_FOR_COVERGED_FLOW" default:"4.11.0"`
 	LivenessValidationTimeout      time.Duration `envconfig:"LIVENESS_VALIDATION_TIMEOUT" default:"5m"`
 	ApproveCsrsRequeueDuration     time.Duration `envconfig:"APPROVE_CSRS_REQUEUE_DURATION" default:"1m"`
 }
@@ -280,7 +287,8 @@ func main() {
 	domainHandler := domains.NewHandler(Options.BMConfig.BaseDNSDomains)
 	staticNetworkConfig := staticnetworkconfig.New(log.WithField("pkg", "static_network_config"), Options.StaticNetworkConfig)
 	mirrorRegistriesBuilder := mirrorregistries.New()
-	ignitionBuilder := ignition.NewBuilder(log.WithField("pkg", "ignition"), staticNetworkConfig, mirrorRegistriesBuilder)
+	enableConvergedFlow := convergedFlowAvailable(ctrlMgr.GetClient())
+	ignitionBuilder := ignition.NewBuilder(log.WithField("pkg", "ignition"), staticNetworkConfig, mirrorRegistriesBuilder, enableConvergedFlow)
 	installConfigBuilder := installcfg.NewInstallConfigBuilder(log.WithField("pkg", "installcfg"), mirrorRegistriesBuilder, providerRegistry)
 
 	var objectHandler = createStorageClient(Options.DeployTarget, Options.Storage, &Options.S3Config,
@@ -563,6 +571,35 @@ func main() {
 	}
 }
 
+func convergedFlowAvailable(c client.Client) bool {
+	if !Options.EnableKubeAPI {
+		return false
+	}
+	if !Options.AllowConvergedFlow{
+		return false
+	}
+	key := types.NamespacedName{
+		Name: "baremetal",
+	}
+	clusterOperator := &v1.ClusterOperator{}
+	if err := c.Get(context.TODO(), key, clusterOperator); err != nil {
+		log.Errorf(context.TODO(), "Error querying api for baremetal operator status: %s", err)
+		return false
+	}
+	if len(clusterOperator.Status.Versions) == 0 {
+		log.Infof(context.TODO(), "no version found for baremetal operator")
+		return false
+	}
+	version := clusterOperator.Status.Versions[0].Version
+	log.Infof(context.TODO(), "The baremetal operator version is %s, the minimal version for the converged flow is %s", version, Options.MinimalVersionForConvergedFlow)
+
+	semver.New(Options.MinimalVersionForConvergedFlow)
+	available := semver.New(Options.MinimalVersionForConvergedFlow).LessThan(*semver.New(version))
+	if available {
+		log.Infof(context.TODO(), "Converged flow enabled")
+	}
+	return available
+}
 func generateAPMTransactionName(request *http.Request) string {
 	route := middleware.MatchedRouteFrom(request)
 

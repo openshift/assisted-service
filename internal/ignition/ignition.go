@@ -184,9 +184,14 @@ const discoveryIgnitionConfigFormat = `{
   "systemd": {
     "units": [{
       "name": "agent.service",
-      "enabled": true,
+      "enabled": {{if .ConvergedFlow}}false{{else}}true{{end}},
       "contents": "[Service]\nType=simple\nRestart=always\nRestartSec=3\nStartLimitInterval=0\nEnvironment=HTTP_PROXY={{.HTTPProxy}}\nEnvironment=http_proxy={{.HTTPProxy}}\nEnvironment=HTTPS_PROXY={{.HTTPSProxy}}\nEnvironment=https_proxy={{.HTTPSProxy}}\nEnvironment=NO_PROXY={{.NoProxy}}\nEnvironment=no_proxy={{.NoProxy}}{{if .PullSecretToken}}\nEnvironment=PULL_SECRET_TOKEN={{.PullSecretToken}}{{end}}\nTimeoutStartSec={{.AgentTimeoutStartSec}}\nExecStartPre=/usr/local/bin/agent-fix-bz1964591 {{.AgentDockerImg}}\nExecStartPre=podman run --privileged --rm -v /usr/local/bin:/hostbin {{.AgentDockerImg}} cp /usr/bin/agent /hostbin\nExecStart=/usr/local/bin/agent --url {{.ServiceBaseURL}} --infra-env-id {{.infraEnvId}} --agent-version {{.AgentDockerImg}} --insecure={{.SkipCertVerification}}  {{if .HostCACertPath}}--cacert {{.HostCACertPath}}{{end}}\n\n[Unit]\nWants=network-online.target\nAfter=network-online.target\n\n[Install]\nWantedBy=multi-user.target"
-    },
+    },{{if .ConvergedFlow}}
+    {
+      "name": "ironic-agent.service",
+      "enabled": true,
+      "contents": "[Unit]\\nDescription=Ironic Agent\\nAfter=network-online.target\\nWants=network-online.target\\n[Service]\\nEnvironment=\\\"HTTP_PROXY=\\\"\\nEnvironment=\\\"HTTPS_PROXY=\\\"\\nEnvironment=\\\"NO_PROXY=\\\"\\nTimeoutStartSec=0\\nExecStartPre=/bin/podman pull quay.io/flaper87/ironic-agent:metal-10 --tls-verify=false --authfile=/etc/authfile.json\\nExecStart=/bin/podman run --privileged --network host --mount type=bind,src=/etc/ironic-python-agent.conf,dst=/etc/ironic-python-agent/ignition.conf --mount type=bind,src=/dev,dst=/dev --mount type=bind,src=/sys,dst=/sys --mount type=bind,src=/run/dbus/system_bus_socket,dst=/run/dbus/system_bus_socket --mount type=bind,src=/,dst=/mnt/coreos --env \\\"IPA_COREOS_IP_OPTIONS=ip=dhcp\\\" --name ironic-agent quay.io/flaper87/ironic-agent:metal-10\\n[Install]\\nWantedBy=multi-user.target\\n"
+    },{{end}}
     {
         "name": "selinux.service",
         "enabled": true,
@@ -342,7 +347,18 @@ const discoveryIgnitionConfigFormat = `{
         "name": "root"
       },
       "contents": { "source": "data:text/plain;base64,{{.OKDHoldAgent}}" }
-    }{{end}}]
+    }{{end}}{{if .ConvergedFlow}},
+	{
+	  "path": "/etc/ironic-python-agent.conf",
+	  "mode": 420
+	  "group": {},
+	  "overwrite": false,
+	  "user": {},
+	  "contents": {
+	    "source": "data:text/plain,%0A%5BDEFAULT%5D%0Aapi_url%20%3D%20https%3A%2F%2F{{.ServiceBaseURL}}%3A6385%0Ainspection_callback_url%20%3D%20https%3A%2F%2F{{.ServiceBaseURL}}%3A5050%2Fv1%2Fcontinue%0Ainsecure%20%3D%20True%0A%0Acollect_lldp%20%3D%20True%0Aenable_vlan_interfaces%20%3D%20all%0Ainspection_collectors%20%3D%20default%2Cextra-hardware%2Clogs%0Ainspection_dhcp_all_interfaces%20%3D%20True%0A",
+	  "verification": {}
+	  },
+	}{{end}}]
   }
 }`
 
@@ -424,13 +440,15 @@ type ignitionBuilder struct {
 	log                     logrus.FieldLogger
 	staticNetworkConfig     staticnetworkconfig.StaticNetworkConfig
 	mirrorRegistriesBuilder mirrorregistries.MirrorRegistriesConfigBuilder
+	convergedFlow           bool
 }
 
-func NewBuilder(log logrus.FieldLogger, staticNetworkConfig staticnetworkconfig.StaticNetworkConfig, mirrorRegistriesBuilder mirrorregistries.MirrorRegistriesConfigBuilder) IgnitionBuilder {
+func NewBuilder(log logrus.FieldLogger, staticNetworkConfig staticnetworkconfig.StaticNetworkConfig, mirrorRegistriesBuilder mirrorregistries.MirrorRegistriesConfigBuilder, convergedFlow bool) IgnitionBuilder {
 	builder := &ignitionBuilder{
 		log:                     log,
 		staticNetworkConfig:     staticNetworkConfig,
 		mirrorRegistriesBuilder: mirrorRegistriesBuilder,
+		convergedFlow:           convergedFlow,
 	}
 	return builder
 }
@@ -1421,6 +1439,7 @@ func (ib *ignitionBuilder) FormatDiscoveryIgnitionFile(ctx context.Context, infr
 		"SkipCertVerification": strconv.FormatBool(cfg.SkipCertVerification),
 		"AgentTimeoutStartSec": strconv.FormatInt(int64(cfg.AgentTimeoutStart.Seconds()), 10),
 		"SELINUX_POLICY":       base64.StdEncoding.EncodeToString([]byte(selinuxPolicy)),
+		"ConvergedFlow":        ib.convergedFlow,
 	}
 	if safeForLogs {
 		for _, key := range []string{"userSshKey", "PullSecretToken", "PULL_SECRET", "RH_ROOT_CA"} {

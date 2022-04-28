@@ -949,7 +949,7 @@ var _ = Describe("IgnitionBuilder", func() {
 			PullSecretSet: false,
 		}, PullSecret: "{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"}
 		//cluster.ImageInfo = &models.ImageInfo{}
-		builder = NewBuilder(log, mockStaticNetworkConfig, mockMirrorRegistriesConfigBuilder)
+		builder = NewBuilder(log, mockStaticNetworkConfig, mockMirrorRegistriesConfigBuilder, false)
 	})
 
 	Context("with auth enabled", func() {
@@ -1254,7 +1254,7 @@ var _ = Describe("Ignition SSH key building", func() {
 			PullSecret: "{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}",
 		}
 		//cluster.ImageInfo = &models.ImageInfo{}
-		builder = NewBuilder(log, mockStaticNetworkConfig, mockMirrorRegistriesConfigBuilder)
+		builder = NewBuilder(log, mockStaticNetworkConfig, mockMirrorRegistriesConfigBuilder, false)
 		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(1)
 	})
 	Context("when empty or invalid input", func() {
@@ -1293,6 +1293,44 @@ var _ = Describe("Ignition SSH key building", func() {
 	})
 })
 
+var _ = Describe("Ignition with converged flow", func() {
+	var (
+		ctrl                              *gomock.Controller
+		infraEnv                          common.InfraEnv
+		builder                           IgnitionBuilder
+		mockStaticNetworkConfig           *staticnetworkconfig.MockStaticNetworkConfig
+		mockMirrorRegistriesConfigBuilder *mirrorregistries.MockMirrorRegistriesConfigBuilder
+		infraEnvID                        strfmt.UUID
+	)
+	BeforeEach(func() {
+		infraEnvID = strfmt.UUID("a64fff36-dcb1-11ea-87d0-0242ac130003")
+		ctrl = gomock.NewController(GinkgoT())
+		mockStaticNetworkConfig = staticnetworkconfig.NewMockStaticNetworkConfig(ctrl)
+		mockMirrorRegistriesConfigBuilder = mirrorregistries.NewMockMirrorRegistriesConfigBuilder(ctrl)
+		infraEnv = common.InfraEnv{
+			InfraEnv: models.InfraEnv{
+				ID:            &infraEnvID,
+				PullSecretSet: false,
+			},
+			PullSecret: "{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}",
+		}
+		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(1)
+	})
+	It("converged flow enabled", func() {
+		builder = NewBuilder(log, mockStaticNetworkConfig, mockMirrorRegistriesConfigBuilder, true)
+		text, err := builder.FormatDiscoveryIgnitionFile(context.Background(), &infraEnv, IgnitionConfig{}, false, auth.TypeRHSSO)
+		Expect(err).NotTo(HaveOccurred())
+			Expect(text).Should(ContainSubstring("ironic-agent.service"))
+	})
+	It("converged flow disabled", func() {
+		builder = NewBuilder(log, mockStaticNetworkConfig, mockMirrorRegistriesConfigBuilder, false)
+		text, err := builder.FormatDiscoveryIgnitionFile(context.Background(), &infraEnv, IgnitionConfig{}, false, auth.TypeRHSSO)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(text).ShouldNot(ContainSubstring("ironic-agent.service"))
+	})
+
+})
+
 var _ = Describe("FormatSecondDayWorkerIgnitionFile", func() {
 
 	var (
@@ -1310,7 +1348,7 @@ var _ = Describe("FormatSecondDayWorkerIgnitionFile", func() {
 		mockStaticNetworkConfig = staticnetworkconfig.NewMockStaticNetworkConfig(ctrl)
 		mockMirrorRegistriesConfigBuilder = mirrorregistries.NewMockMirrorRegistriesConfigBuilder(ctrl)
 		mockHost = &models.Host{Inventory: hostInventory}
-		builder = NewBuilder(log, mockStaticNetworkConfig, mockMirrorRegistriesConfigBuilder)
+		builder = NewBuilder(log, mockStaticNetworkConfig, mockMirrorRegistriesConfigBuilder, false)
 	})
 
 	Context("test custom ignition endpoint", func() {
