@@ -3985,11 +3985,8 @@ func (b *bareMetalInventory) validateClusterInfraEnvRegister(ctx context.Context
 			return common.NewApiError(http.StatusBadRequest, err)
 		}
 
-		allowed, err := b.authzHandler.HasAccessTo(ctx, cluster, auth.UpdateAction)
-		if !allowed {
-			msg := fmt.Sprintf("Failed to find cluster %s", clusterId)
-			b.log.WithError(err).Error(msg)
-			return common.NewApiError(http.StatusNotFound, errors.New(msg))
+		if err = b.checkUpdateAccessToObj(ctx, cluster, "cluster", clusterId); err != nil {
+			return err
 		}
 
 		if cluster.CPUArchitecture != "" && cluster.CPUArchitecture != arch {
@@ -4565,11 +4562,8 @@ func (b *bareMetalInventory) BindHostInternal(ctx context.Context, params instal
 	if err != nil {
 		return nil, common.NewApiError(http.StatusBadRequest, errors.Errorf("Failed to find cluster %s", params.BindHostParams.ClusterID))
 	}
-	allowed, err := b.authzHandler.HasAccessTo(ctx, cluster, auth.UpdateAction)
-	if !allowed {
-		msg := fmt.Sprintf("Failed to find cluster %s", params.BindHostParams.ClusterID)
-		b.log.WithError(err).Error(msg)
-		return nil, common.NewApiError(http.StatusNotFound, errors.New(msg))
+	if err = b.checkUpdateAccessToObj(ctx, cluster, "cluster", params.BindHostParams.ClusterID); err != nil {
+		return nil, err
 	}
 	infraEnv, err := common.GetInfraEnvFromDB(b.db, params.InfraEnvID)
 	if err != nil {
@@ -4703,11 +4697,8 @@ func (b *bareMetalInventory) V2UpdateHostInstallerArgsInternal(ctx context.Conte
 		return nil, err
 	}
 
-	allowed, err := b.authzHandler.HasAccessTo(ctx, h, auth.UpdateAction)
-	if !allowed {
-		msg := fmt.Sprintf("Failed to find host %s", params.HostID.String())
-		b.log.WithError(err).Error(msg)
-		return nil, common.NewApiError(http.StatusNotFound, errors.New(msg))
+	if err = b.checkUpdateAccessToObj(ctx, h, "host", &params.HostID); err != nil {
+		return nil, err
 	}
 
 	argsBytes, err := json.Marshal(params.InstallerArgsParams.Args)
@@ -4750,11 +4741,8 @@ func (b *bareMetalInventory) V2UpdateHostIgnitionInternal(ctx context.Context, p
 		return nil, err
 	}
 
-	allowed, err := b.authzHandler.HasAccessTo(ctx, h, auth.UpdateAction)
-	if !allowed {
-		msg := fmt.Sprintf("Failed to find host %s", params.HostID.String())
-		b.log.WithError(err).Error(msg)
-		return nil, common.NewApiError(http.StatusNotFound, errors.New(msg))
+	if err = b.checkUpdateAccessToObj(ctx, h, "host", &params.HostID); err != nil {
+		return nil, err
 	}
 
 	if params.HostIgnitionParams.Config != "" {
@@ -5155,6 +5143,26 @@ func (b *bareMetalInventory) getBoundCluster(db *gorm.DB, infraEnv *common.Infra
 		return cluster, nil
 	}
 	return nil, nil
+}
+
+// Checks whether the specified obj can be updated by the user.
+// If not allowed, checks whether it can be read by the user.
+// This is required in order to return an appropriate error for
+// users who are only allowed to read.
+func (b *bareMetalInventory) checkUpdateAccessToObj(ctx context.Context, obj interface{}, objType string, objId *strfmt.UUID) error {
+	canWrite, err1 := b.authzHandler.HasAccessTo(ctx, obj, auth.UpdateAction)
+	if !canWrite {
+		canRead, err2 := b.authzHandler.HasAccessTo(ctx, obj, auth.ReadAction)
+		if !canRead {
+			msg := "Object Not Found"
+			b.log.WithError(err2).Error(msg)
+			return common.NewApiError(http.StatusNotFound, errors.New(msg))
+		}
+		msg := fmt.Sprintf("Unauthorized to update %s with ID %s", objType, objId)
+		b.log.WithError(err1).Error(msg)
+		return common.NewApiError(http.StatusForbidden, errors.New(msg))
+	}
+	return nil
 }
 
 func (b *bareMetalInventory) ListClusterHosts(ctx context.Context, params installer.ListClusterHostsParams) middleware.Responder {

@@ -6910,9 +6910,32 @@ var _ = Describe("infraEnvs", func() {
 			Expect(dbInfraEnv.ImageTokenKey).NotTo(Equal(""))
 		})
 
-		It("no access to specified cluster", func() {
+		It("no access to specified cluster (can't update)", func() {
 			MinimalOpenShiftVersionForNoneHA := "4.8.0-fc.0"
 			payload.Username = userName2
+			authCtx = context.WithValue(ctx, restapi.AuthKey, payload)
+
+			mockVersions.EXPECT().GetOsImage(gomock.Any(), gomock.Any()).Return(common.TestDefaultConfig.OsImage, nil).Times(1)
+			mockEvents.EXPECT().SendInfraEnvEvent(authCtx, eventstest.NewEventMatcher(
+				eventstest.WithNameMatcher(eventgen.InfraEnvRegistrationFailedEventName))).Times(1)
+			mockOcmAuthz.EXPECT().AccessReview(
+				gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(false, nil)
+
+			reply := bm.RegisterInfraEnv(authCtx, installer.RegisterInfraEnvParams{
+				InfraenvCreateParams: &models.InfraEnvCreateParams{
+					Name:             swag.String("some-infra-env-name"),
+					ClusterID:        &clusterID,
+					OpenshiftVersion: MinimalOpenShiftVersionForNoneHA,
+					PullSecret:       swag.String("{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"),
+				},
+			})
+			verifyApiError(reply, http.StatusForbidden)
+		})
+
+		It("no access to specified cluster (can't read)", func() {
+			MinimalOpenShiftVersionForNoneHA := "4.8.0-fc.0"
+			payload.Username = userName2
+			payload.Organization = "another_org"
 			authCtx = context.WithValue(ctx, restapi.AuthKey, payload)
 
 			mockVersions.EXPECT().GetOsImage(gomock.Any(), gomock.Any()).Return(common.TestDefaultConfig.OsImage, nil).Times(1)
@@ -11941,8 +11964,27 @@ var _ = Describe("V2UpdateHostIgnition - with rhsso auth", func() {
 		Expect(updated.IgnitionConfigOverrides).To(Equal(override))
 	})
 
-	It("no access to specified cluster", func() {
+	It("no access to specified cluster (can't update)", func() {
 		payload.Username = userName2
+		authCtx = context.WithValue(ctx, restapi.AuthKey, payload)
+
+		override := `{"ignition": {"version": "3.1.0"}, "storage": {"files": [{"path": "/tmp/example", "contents": {"source": "data:text/plain;base64,aGVscGltdHJhcHBlZGluYXN3YWdnZXJzcGVj"}}]}}`
+		params := installer.V2UpdateHostIgnitionParams{
+			InfraEnvID:         infraEnvID,
+			HostID:             hostID,
+			HostIgnitionParams: &models.HostIgnitionParams{Config: override},
+		}
+
+		mockOcmAuthz.EXPECT().AccessReview(
+			gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(false, nil)
+
+		response := bm.V2UpdateHostIgnition(authCtx, params)
+		verifyApiError(response, http.StatusForbidden)
+	})
+
+	It("no access to specified cluster (can't read)", func() {
+		payload.Username = userName2
+		payload.Organization = "another_org"
 		authCtx = context.WithValue(ctx, restapi.AuthKey, payload)
 
 		override := `{"ignition": {"version": "3.1.0"}, "storage": {"files": [{"path": "/tmp/example", "contents": {"source": "data:text/plain;base64,aGVscGltdHJhcHBlZGluYXN3YWdnZXJzcGVj"}}]}}`
@@ -12258,7 +12300,7 @@ var _ = Describe("BindHost - with rhsso auth", func() {
 		Expect(response).To(BeAssignableToTypeOf(&installer.BindHostOK{}))
 	})
 
-	It("no access to specified cluster", func() {
+	It("no access to specified cluster (can't update)", func() {
 		params := installer.BindHostParams{
 			HostID:         hostID,
 			InfraEnvID:     infraEnvID,
@@ -12266,6 +12308,24 @@ var _ = Describe("BindHost - with rhsso auth", func() {
 		}
 
 		payload.Username = userName2
+		authCtx = context.WithValue(ctx, restapi.AuthKey, payload)
+
+		mockOcmAuthz.EXPECT().AccessReview(
+			gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(false, nil)
+
+		response := bm.BindHost(authCtx, params)
+		verifyApiError(response, http.StatusForbidden)
+	})
+
+	It("no access to specified cluster (can't read)", func() {
+		params := installer.BindHostParams{
+			HostID:         hostID,
+			InfraEnvID:     infraEnvID,
+			BindHostParams: &models.BindHostParams{ClusterID: &clusterID},
+		}
+
+		payload.Username = userName2
+		payload.Organization = "another_org"
 		authCtx = context.WithValue(ctx, restapi.AuthKey, payload)
 
 		mockOcmAuthz.EXPECT().AccessReview(
@@ -12532,8 +12592,27 @@ var _ = Describe("V2UpdateHostInstallerArgs - with rhsso auth", func() {
 		Expect(response).To(BeAssignableToTypeOf(&installer.V2UpdateHostInstallerArgsCreated{}))
 	})
 
-	It("no access to specified cluster", func() {
+	It("no access to specified cluster (can't update)", func() {
 		payload.Username = userName2
+		authCtx = context.WithValue(ctx, restapi.AuthKey, payload)
+
+		args := []string{"--append-karg", "nameserver=8.8.8.8", "-n"}
+		params := installer.V2UpdateHostInstallerArgsParams{
+			InfraEnvID:          infraEnvID,
+			HostID:              hostID,
+			InstallerArgsParams: &models.InstallerArgsParams{Args: args},
+		}
+
+		mockOcmAuthz.EXPECT().AccessReview(
+			gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(false, nil)
+
+		response := bm.V2UpdateHostInstallerArgs(authCtx, params)
+		verifyApiError(response, http.StatusForbidden)
+	})
+
+	It("no access to specified cluster (can't read)", func() {
+		payload.Username = userName2
+		payload.Organization = "another_org"
 		authCtx = context.WithValue(ctx, restapi.AuthKey, payload)
 
 		args := []string{"--append-karg", "nameserver=8.8.8.8", "-n"}

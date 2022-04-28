@@ -20,7 +20,7 @@ const psTemplate = "{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"%s\",\"email
 var _ = Describe("test authorization", func() {
 	ctx := context.Background()
 
-	var userClusterID, userClusterID2 strfmt.UUID
+	var userClusterID, userClusterID2, userClusterID3 strfmt.UUID
 
 	var accessReviewUnallowedUserStubID string
 	var accessReviewAdminStubID string
@@ -75,6 +75,8 @@ var _ = Describe("test authorization", func() {
 		Expect(err).ShouldNot(HaveOccurred())
 		userClusterID2, err = registerCluster(ctx, user2BMClient, "user2-cluster", fmt.Sprintf(psTemplate, FakePS2))
 		Expect(err).ShouldNot(HaveOccurred())
+		userClusterID3, err = registerCluster(ctx, editclusterUserBMClient, "user3-cluster", fmt.Sprintf(psTemplate, FakePS3))
+		Expect(err).ShouldNot(HaveOccurred())
 	})
 
 	Context("unallowed user", func() {
@@ -90,7 +92,7 @@ var _ = Describe("test authorization", func() {
 				ctx,
 				&installer.V2ListClustersParams{})
 			Expect(err).ShouldNot(HaveOccurred())
-			Expect(len(resp.Payload)).To(Equal(2))
+			Expect(len(resp.Payload)).To(Equal(3))
 		})
 
 		It("can't register/delete with read only admin", func() {
@@ -167,6 +169,13 @@ var _ = Describe("test authorization", func() {
 				ClusterUpdateParams: &models.V2ClusterUpdateParams{Name: swag.String("update-test")}})
 			Expect(err).Should(HaveOccurred())
 			Expect(err).To(BeAssignableToTypeOf(installer.NewV2UpdateClusterNotFound()))
+		})
+
+		It("can't update not owned cluster, can only read cluster", func() {
+			_, err := userBMClient.Installer.V2UpdateCluster(ctx, &installer.V2UpdateClusterParams{ClusterID: userClusterID3,
+				ClusterUpdateParams: &models.V2ClusterUpdateParams{Name: swag.String("update-test")}})
+			Expect(err).Should(HaveOccurred())
+			Expect(err).To(BeAssignableToTypeOf(installer.NewV2UpdateClusterForbidden()))
 		})
 	})
 
