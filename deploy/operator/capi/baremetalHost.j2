@@ -1,0 +1,48 @@
+{% set ns = namespace(counter=1) %}
+{% set bmhs = [] %}
+{% if day2|string == "true" %}
+      {% set bmhs = baremetalhosts %}
+{% else %}
+{% if assisted_upgrade_operator|string == "true" %}
+## Use the first baremetalhost to install SNO before upgrading the operator
+      {{ bmhs.append( baremetalhosts[0] ) }}
+{% elif ( assisted_stop_after_agent_discovery|string == "true" ) and ( baremetalhosts|length > 1) %}
+## When operator has already been upgraded, use the other baremetalhost to install SNO after the operator upgrade
+      {{ bmhs.append( baremetalhosts[1] ) }}
+{% else %}
+      {% set bmhs = baremetalhosts %}
+{% endif %}
+{% endif %}
+{% for host in bmhs %}
+{% if day2|string == "true"  or ns.counter <= spoke_controlplane_agents|int%}
+
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: '{{ host["name"] }}-bmc-secret'
+  namespace: '{{ spoke_namespace }}'
+type: Opaque
+data:
+  username: '{{ host["driver_info"]["username"] | b64encode }}'
+  password: '{{ host["driver_info"]["password"] | b64encode }}'
+
+---
+apiVersion: metal3.io/v1alpha1
+kind: BareMetalHost
+metadata:
+  name: '{{ host["name"] }}'
+  namespace: '{{ spoke_namespace }}'
+  labels:
+    infraenvs.agent-install.openshift.io: '{{ infraenv_name }}'
+  annotations:
+    bmac.agent-install.openshift.io/hostname: '{{ host["name"] }}'
+spec:
+  online: true
+  bootMACAddress: '{{ host["ports"][0]["address"] }}'
+  bmc:
+    address: '{{ host["driver_info"]["address"] }}'
+    credentialsName: '{{ host["name"] }}-bmc-secret'
+{% endif %}
+{% set ns.counter = ns.counter + 1 %}
+{% endfor %}
