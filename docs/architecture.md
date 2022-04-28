@@ -16,7 +16,7 @@ The Assisted Service contains logic for handling API requests as well as several
 The main resources in the REST API are:
 * Cluster: A definition of an OpenShift cluster, along with its current installation state and progress
 * Host: A host that is associated with a cluster resource, which like the cluster resource includes its current installation state and progress.  It also includes a description of its hardware inventory and current connectivity information.
-* Image: The definition of a bootable image that the service generates and is used for host discovery.  Once the image is generated, the resource contains a URL from where the image may be downloaded.
+* Image: The definition of a bootable image that is used for host discovery.  Once the image info is specified, a URL from where the image may be downloaded can be fetched from the API.
 
 ```
 ------------    -----------
@@ -33,7 +33,7 @@ The main resources in the REST API are:
 
 ## File Storage
 
-As can be seen in the elegant diagram above, the service requires storage for files which include: a cache of RHCOS images that the service uses for boot image generation, the boot images that it generates, various Ignition configuration files, as well as log files.  The service can be configured to use two S3 buckets for these files (a public one for the RHCOS image cache and a private one for all the rest), or two local directories.  S3 is generally used when deploying the Assisted Service in the cloud, while using directories on a file system is used when deploying the service as an operator (a Persistent Volume should be used).  Additionally, the service requires an SQL database to store metadata about the OpenShift clusters being installed and the hosts that comprise them.
+As can be seen in the elegant diagram above, the service requires storage for files which include: a cache of RHCOS images that the service uses for boot image generation, various Ignition configuration files, as well as log files.  The service can be configured to use an S3 bucket or local storage for some of these files, the RHCOS images are always stored locally with the image service.  S3 is generally used when deploying the Assisted Service in the cloud, while using directories on a file system is used when deploying the service as an operator (a Persistent Volume should be used).  Additionally, the service requires an SQL database to store metadata about the OpenShift clusters being installed and the hosts that comprise them.
 
 ## State Machines
 
@@ -74,13 +74,20 @@ Each cluster and each host being installed moves through their respective state 
 
 The installation will be marked successful if all control plane nodes were deployed successfully, and if at least 2 worker nodes were deployed successfully (in case the cluster definition specified worker nodes).
 
-## Discovery Image Generation
+## Discovery Image
 
-The Assisted Service can currently be configured to generate two types of ISOs, full and minimal, both based on [Red Hat Enterprise Linux CoreOS](https://access.redhat.com/documentation/en-us/openshift_container_platform/4.7/html/architecture/architecture-rhcos) (RHCOS).  A live ISO is used, such that everything is run from memory, until an RHCOS image is written to disk and the host is rebooted during installation.
+The Assisted Service can currently be configured to provide two types of ISOs, full and minimal, both based on [Red Hat Enterprise Linux CoreOS](https://access.redhat.com/documentation/en-us/openshift_container_platform/4.7/html/architecture/architecture-rhcos) (RHCOS).  A live ISO is used, such that everything is run from memory, until an RHCOS image is written to disk and the host is rebooted during installation.
 
 The full ISO is simply an RHCOS live ISO with an [Ignition](https://access.redhat.com/documentation/en-us/openshift_container_platform/4.7/html/architecture/architecture-rhcos#rhcos-about-ignition_architecture-rhcos) config embedded in it, which includes information such as the cluster ID, the user's pull secret (used for authentication), as well as the service file to start the agent process.
 
 The minimal ISO is significantly smaller in size due to the fact that the `rootfs` is downloaded upon boot rather than being embedded in the ISO.  This ISO format is especially useful for booting via Virtual Media over a slow network, where the rootfs can later be download over a faster network.  Other than the Igntion config that is embedded similarly to the full ISO, network configuration (e.g., static IPs, VLANs, bonds, etc.) is also embedded so that the rootfs can be downloaded at an early stage.
+
+## Image Service
+
+The discovery image is served from a separate service, the Assisted Image Service.
+This service communicates back to the Assisted Service to fetch required information when a user downloads an image. It then streams the customized image directly to the user.
+
+It always uses local storage to cache the "base" RHCOS images into which the installation configuration is embedded.
 
 ## Agent
 
