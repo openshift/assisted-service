@@ -28,7 +28,7 @@ COPY . .
 RUN CGO_ENABLED=1 GOFLAGS="" GO111MODULE=on go build -o /build/assisted-service cmd/main.go
 RUN CGO_ENABLED=0 GOFLAGS="" GO111MODULE=on go build -o /build/assisted-service-operator cmd/operator/main.go
 RUN CGO_ENABLED=0 GOFLAGS="" GO111MODULE=on go build -o /build/assisted-service-admission cmd/webadmission/main.go
-RUN CGO_ENABLED=0 GOFLAGS="" GO111MODULE=on go build -o /build/ephemeral-installer-register-cluster-and-infraenv cmd/ephemeral-installer-register-cluster-and-infraenv/main.go
+RUN CGO_ENABLED=0 GOFLAGS="" GO111MODULE=on go build -o /build/agent-based-installer-register-cluster-and-infraenv cmd/agentbasedinstaller/client/main.go
 
 FROM quay.io/ocpmetal/oc-image:bug-1823143-multi-arch-ai-bug-2069976 as oc-image
 
@@ -49,7 +49,7 @@ COPY --from=oc-image /oc /usr/local/bin/
 COPY --from=builder /build/assisted-service /assisted-service
 COPY --from=builder /build/assisted-service-operator /assisted-service-operator
 COPY --from=builder /build/assisted-service-admission /assisted-service-admission
-COPY --from=builder /build/ephemeral-installer-register-cluster-and-infraenv /ephemeral-installer-register-cluster-and-infraenv
+COPY --from=builder /build/agent-based-installer-register-cluster-and-infraenv /agent-based-installer-register-cluster-and-infraenv
 COPY --from=pybuilder /assisted-service/build/dist/* /clients/
 ENV GODEBUG=madvdontneed=1
 ENV GOGC=50
