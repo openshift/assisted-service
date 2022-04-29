@@ -5,14 +5,15 @@ import (
 	"fmt"
 	"os"
 	"reflect"
-	"strings"
 
 	hiveext "github.com/openshift/assisted-service/api/hiveextension/v1beta1"
 	aiv1beta1 "github.com/openshift/assisted-service/api/v1beta1"
 	"github.com/openshift/assisted-service/client"
 	"github.com/openshift/assisted-service/client/installer"
 	"github.com/openshift/assisted-service/internal/controller/controllers"
+	"github.com/openshift/assisted-service/internal/oc"
 	"github.com/openshift/assisted-service/models"
+	"github.com/openshift/assisted-service/pkg/executer"
 	hivev1 "github.com/openshift/hive/apis/hive/v1"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
@@ -35,7 +36,10 @@ func RegisterCluster(ctx context.Context, log *log.Logger, bmInventory *client.A
 	if releaseError != nil {
 		return nil, releaseError
 	}
-	releaseImageVersion, releaseImageCPUArch := getReleaseVersionAndCpuArch(releaseImage)
+	releaseImageVersion, releaseImageCPUArch, versionArchError := getReleaseVersionAndCpuArch(log, releaseImage, "", pullSecret)
+	if versionArchError != nil {
+		return nil, versionArchError
+	}
 	log.Info("releaseImage: " + releaseImage)
 	log.Infof("releaseImage version %s cpuarch %s", releaseImageVersion, releaseImageCPUArch)
 
@@ -105,17 +109,22 @@ func getReleaseVersion(clusterImageSetPath string) (string, error) {
 	return clusterImageSet.Spec.ReleaseImage, nil
 }
 
-func getReleaseVersionAndCpuArch(releaseImage string) (version string, cpuArch string) {
+func getReleaseVersionAndCpuArch(log *log.Logger, releaseImage string, releaseMirror string, pullSecret string) (string, string, error) {
 	// releaseImage is in the form: quay.io:443/openshift-release-dev/ocp-release:4.9.17-x86_64
-	releaseImageSplit := strings.Split(releaseImage, ":")
-	versionCpuArch := releaseImageSplit[len(releaseImageSplit)-1]
-	// versionCpuArch is 4.9.17-x86_64
-	versionCpuArchSplit := strings.Split(versionCpuArch, "-")
-	// Assume the architecture is always the last component
-	lastIndex := len(versionCpuArchSplit) - 1
-	version = strings.Join(versionCpuArchSplit[:lastIndex], "-")
-	cpuArch = versionCpuArchSplit[lastIndex]
-	return version, cpuArch
+	releaseHandler := oc.NewRelease(&executer.CommonExecuter{},
+		oc.Config{MaxTries: oc.DefaultTries, RetryDelay: oc.DefaltRetryDelay})
+
+	version, versionError := releaseHandler.GetOpenshiftVersion(log, releaseImage, releaseMirror, pullSecret)
+	if versionError != nil {
+		return "", "", versionError
+	}
+
+	cpuArch, archError := releaseHandler.GetReleaseArchitecture(log, releaseImage, pullSecret)
+	if archError != nil {
+		return "", "", archError
+	}
+
+	return version, cpuArch, nil
 }
 
 func validateNMStateConfigAndInfraEnv(nmStateConfig aiv1beta1.NMStateConfig, infraEnv aiv1beta1.InfraEnv) error {
