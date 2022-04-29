@@ -10,7 +10,7 @@ last-updated: yyyy-mm-dd
 
 # Summary
 
-**Note:** Throughout this enhancement, a 4-nodes cluster refers to a 3 schedulable masters and 1 worker.
+**Note:** Throughout this enhancement, a 4-nodes cluster refers to a 3 schedulable masters and 1 worker cluster.
 
 There are cases where customers may just have 4 nodes available and no chance to add more. This was
 one of the cases in the ZTP for Factory Workflow where it was required to deploy a cluster in an
@@ -18,7 +18,6 @@ enclosure that only had 4 nodes. The goal was to use all of the blades rather th
 
 For now, this is achieved with a 2 step deployment, first 3 masters and then add a worker node. It
 would be more time efficient as well as easier and more reliable to be able to do this deployment in
-
 one step, day0.
 
 # Motivation
