@@ -68,7 +68,6 @@ func (i *logsCmd) GetSteps(ctx context.Context, host *models.Host) ([]*models.St
 	}
 	step := &models.Step{
 		StepType: models.StepTypeLogsGather,
-		Command:  "",
 		Args:     []string{logsCommandAsArgs},
 	}
 

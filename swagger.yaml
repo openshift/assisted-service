@@ -4100,8 +4100,6 @@ definitions:
         $ref: '#/definitions/step-type'
       step_id:
         type: string
-      command:
-        type: string
       args:
         type: array
         items:

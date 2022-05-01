@@ -123,7 +123,6 @@ func (cmd *imageAvailabilityCmd) GetSteps(ctx context.Context, host *models.Host
 
 	step := &models.Step{
 		StepType: models.StepTypeContainerImageAvailability,
-		Command:  "",
 		Args: []string{
 			param,
 		},

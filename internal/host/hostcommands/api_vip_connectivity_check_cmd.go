@@ -65,7 +65,6 @@ func (c *apivipConnectivityCheckCmd) GetSteps(ctx context.Context, host *models.
 
 	step := &models.Step{
 		StepType: models.StepTypeAPIVipConnectivityCheck,
-		Command:  "",
 		Args: []string{
 			string(requestBytes),
 		},
