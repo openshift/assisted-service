@@ -210,6 +210,22 @@ var _ = Describe("inventory", func() {
 			err = VerifyVips(cluster.Hosts, primaryMachineCidr, cluster.APIVip, cluster.IngressVip, true, log)
 			Expect(err).ToNot(HaveOccurred())
 		})
+		It("machine cidr is too small", func() {
+			cluster := createCluster("1.2.5.2", "1.2.5.0/29", createInventory(
+				createInterface("1.2.5.2/29"),
+				createInterface("1.2.5.3/29"),
+				createInterface("1.2.5.4/29"),
+				createInterface("1.2.5.5/29"),
+				createInterface("1.2.5.6/29")))
+			h := &models.Host{
+				FreeAddresses: "[{\"network\":\"1.2.5.0/29\",\"free_addresses\":[\"1.2.5.7\"]}]",
+			}
+			cluster.Hosts = []*models.Host{h, h, h, h, h}
+			cluster.APIVip = "1.2.5.2"
+			err := VerifyVips(cluster.Hosts, "1.2.5.0/29", cluster.APIVip, cluster.IngressVip, false, log)
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("The machine network range is too small for the cluster"))
+		})
 	})
 
 	Context("GetClusterNetworks", func() {

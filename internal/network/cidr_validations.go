@@ -3,7 +3,9 @@ package network
 import (
 	"net"
 
+	"github.com/openshift/assisted-service/models"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 )
 
 // Minimum mask size to allow 128 addresses for cluster or service CIDRs
@@ -136,4 +138,23 @@ func VerifyNetworkHostPrefix(prefix int64) error {
 		return errors.Errorf("Host prefix, now %d, must be a positive integer", prefix)
 	}
 	return nil
+}
+
+func isMachineNetworkCidrBigEnough(hosts []*models.Host, machineNetworkCidr string, log logrus.FieldLogger) bool {
+	_, cidr, err := parseCIDR(machineNetworkCidr)
+	if err != nil {
+		log.WithError(err).Errorf("can't parse machine cidr %s", machineNetworkCidr)
+		return true
+	}
+
+	networkPrefix, bits := cidr.Mask.Size()
+	numOfHosts := len(hosts)
+	if numOfHosts == 1 {
+		//allow at least 2 addresses
+		return networkPrefix <= bits-MinSNOMachineMaskDelta
+	}
+
+	//possible hosts in the range is the width of the range minus 2 network addresses minus 2 addresses for vips
+	var availableAddresses int64 = (int64)(uint64(1)<<(bits-networkPrefix)) - int64(numOfHosts) - int64(4)
+	return availableAddresses >= 0
 }
