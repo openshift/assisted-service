@@ -27,7 +27,7 @@ items:
               requests:
                 cpu: 100m
                 memory: 400Mi
-            image: quay.io/edge-infrastructure/assisted-image-service:latest
+            image: REPLACE_IMAGE_SERVICE_IMAGE
             ports:
               - containerPort: 8080
             readinessProbe:
