@@ -45,6 +45,7 @@ const (
 	WatchResourceValue               = "true"
 	BackupLabel                      = "cluster.open-cluster-management.io/backup"
 	BackupLabelValue                 = "true"
+	InfraEnvLabel                    = "infraenvs.agent-install.openshift.io"
 )
 
 //go:generate mockgen -package=controllers -destination=mock_k8s_client.go . K8sClient

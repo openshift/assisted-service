@@ -6,8 +6,10 @@ import (
 	"flag"
 	"fmt"
 	"github.com/coreos/go-semver/semver"
+	metal3_v1alpha1 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
 	v1 "github.com/openshift/api/config/v1"
 	"google.golang.org/appengine/log"
+	"k8s.io/apimachinery/pkg/selection"
 	"k8s.io/apimachinery/pkg/types"
 	"net/http"
 	_ "net/http/pprof"
@@ -557,7 +559,14 @@ func main() {
 				Client: ctrlMgr.GetClient(),
 				Log:    log,
 			}).SetupWithManager(ctrlMgr), "unable to create controller AgentLabel")
+			if enableConvergedFlow {
+				failOnError((&controllers.PreprovisioningImageReconciler{
+					Client: ctrlMgr.GetClient(),
+					Log:    log,
+					Format: Options.InfraEnvConfig.ImageType,
+				}).SetupWithManager(ctrlMgr), "unable to create controller PreprovisioningImage")
 
+			}
 			log.Infof("Starting controllers")
 			failOnError(ctrlMgr.Start(ctrl.SetupSignalHandler()), "failed to run manager")
 		}
@@ -575,7 +584,7 @@ func convergedFlowAvailable(c client.Client) bool {
 	if !Options.EnableKubeAPI {
 		return false
 	}
-	if !Options.AllowConvergedFlow{
+	if !Options.AllowConvergedFlow {
 		return false
 	}
 	key := types.NamespacedName{
@@ -759,20 +768,27 @@ func createCRDEventsHandler() controllers.CRDEventsHandler {
 func createControllerManager() (manager.Manager, error) {
 	if Options.EnableKubeAPI {
 		schemes := controllers.GetKubeClientSchemes()
+		infraenvLabel, err := labels.NewRequirement(controllers.InfraEnvLabel, selection.Exists, nil)
+		if err != nil {
+			return nil, err
 
+		}
 		return ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
 			Scheme:           schemes,
 			Port:             9443,
 			LeaderElection:   true,
 			LeaderElectionID: "77190dcb.agent-install.openshift.io",
 			NewCache: cache.BuilderWithOptions(cache.Options{
-				SelectorsByObject: cache.SelectorsByObject{
+				SelectorsByObject: map[client.Object]cache.ObjectSelector{
 					&corev1.Secret{}: {
 						Label: labels.SelectorFromSet(
 							labels.Set{
 								controllers.WatchResourceLabel: controllers.WatchResourceValue,
 							},
 						),
+					},
+					&metal3_v1alpha1.PreprovisioningImage{}: {
+						Label: labels.NewSelector().Add(*infraenvLabel),
 					},
 				},
 			}),
