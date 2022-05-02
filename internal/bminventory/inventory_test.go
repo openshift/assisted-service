@@ -963,7 +963,7 @@ var _ = Describe("PostStepReply", func() {
 
 			Expect(bm.V2PostStepReply(ctx, params)).Should(BeAssignableToTypeOf(installer.NewV2PostStepReplyNoContent()))
 			Expect(db.Take(host, "cluster_id = ? and id = ?", clusterId.String(), hostId.String()).Error).ToNot(HaveOccurred())
-			Expect(*host.Status).To(BeEquivalentTo(models.HostStatusDisconnected))
+			Expect(*host.Status).To(BeEquivalentTo(models.HostStatusError))
 			Expect(*host.StatusInfo).To(BeEquivalentTo(errorMessage))
 		})
 
@@ -1509,7 +1509,7 @@ var _ = Describe("v2PostStepReply", func() {
 
 			Expect(bm.V2PostStepReply(ctx, params)).Should(BeAssignableToTypeOf(installer.NewV2PostStepReplyNoContent()))
 			Expect(db.Take(host, "cluster_id = ? and id = ?", clusterId.String(), hostId.String()).Error).ToNot(HaveOccurred())
-			Expect(*host.Status).To(BeEquivalentTo(models.HostStatusDisconnected))
+			Expect(*host.Status).To(BeEquivalentTo(models.HostStatusError))
 			Expect(*host.StatusInfo).To(BeEquivalentTo(errorMessage))
 		})
 
