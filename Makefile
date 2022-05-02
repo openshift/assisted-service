@@ -173,8 +173,7 @@ $(BUILD_FOLDER):
 format:
 	golangci-lint run --fix -v
 
-generate:
-	./hack/generate.sh print_help
+generate: generate-all
 
 generate-%: ${BUILD_FOLDER}
 	./hack/generate.sh generate_$(subst -,_,$*)
