@@ -53,5 +53,7 @@ generate-from-swagger: lint-swagger generate-go-client generate-go-server valida
 
 generate-vendor:
 	go mod vendor
+	cd api && go mod vendor
+	cd models && go mod vendor
 
 generate: generate-vendor generate-from-swagger generate-events generate-mocks generate-configuration
