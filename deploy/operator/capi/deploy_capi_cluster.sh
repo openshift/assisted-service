@@ -25,8 +25,7 @@ export SPAWN_NONE_PLATFORM_LOAD_BALANCER="${SPAWN_NONE_PLATFORM_LOAD_BALANCER:-f
 export ADD_NONE_PLATFORM_LIBVIRT_DNS="${ADD_NONE_PLATFORM_LIBVIRT_DNS:-false}"
 export LIBVIRT_NONE_PLATFORM_NETWORK="${LIBVIRT_NONE_PLATFORM_NETWORK:-ostestbm}"
 export LOAD_BALANCER_IP="${LOAD_BALANCER_IP:-192.168.111.1}"
-export HYPERSHIFT_IMAGE="quay.io/eranco74/hypershift:fix_kubeconfig" # FIXME(mko) Change this after the issue from https://bugzilla.redhat.com/show_bug.cgi?id=2079177 is solved
-# export HYPERSHIFT_IMAGE="${HYPERSHIFT_IMAGE:-quay.io/hypershift/hypershift-operator:latest}"
+export HYPERSHIFT_IMAGE="${HYPERSHIFT_IMAGE:-quay.io/hypershift/hypershift-operator:latest}"
 
 if [[ "${IP_STACK}" == "v4" ]]; then
     export CLUSTER_SUBNET="${CLUSTER_SUBNET_V4}"
