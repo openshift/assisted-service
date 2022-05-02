@@ -24,6 +24,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -447,6 +448,27 @@ var _ = Describe("newImageServiceRoute", func() {
 			found := &routev1.Route{}
 			Expect(ascr.Client.Get(ctx, types.NamespacedName{Name: imageServiceName, Namespace: testNamespace}, found)).To(Succeed())
 			Expect(found.Spec.Host).To(Equal(routeHost))
+		})
+	})
+
+	Context("ipxe routes", func() {
+		It("should create plain http route", func() {
+			found := &routev1.Route{}
+
+			routeHost := "route.example.com"
+			r, _, _ := ascr.newImageServiceRoute(ctx, log, asc)
+			imageServiceRoute := r.(*routev1.Route)
+			imageServiceRoute.Spec.Host = routeHost
+			Expect(ascr.Client.Create(ctx, imageServiceRoute)).To(Succeed())
+
+			AssertReconcileSuccess(ctx, log, ascr.Client, asc, ascr.newImageServiceIPXERoute)
+
+			Expect(ascr.Client.Get(ctx, types.NamespacedName{Name: imageServiceName, Namespace: testNamespace}, imageServiceRoute)).To(Succeed())
+
+			bootArtifactsRouteName := fmt.Sprintf("%s-ipxe", imageServiceName)
+			Expect(ascr.Client.Get(ctx, types.NamespacedName{Name: bootArtifactsRouteName, Namespace: testNamespace}, found)).To(Succeed())
+			Expect(found.Spec.Host).To(Equal(imageServiceRoute.Spec.Host))
+			Expect(found.Spec.Port.TargetPort).To(Equal(intstr.FromString(fmt.Sprintf("%s-http", imageServiceName))))
 		})
 	})
 })
