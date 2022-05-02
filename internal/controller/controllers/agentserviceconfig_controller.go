@@ -224,6 +224,7 @@ func (r *AgentServiceConfigReconciler) Reconcile(origCtx context.Context, req ct
 		{"ImageServiceRoute", aiv1beta1.ReasonImageHandlerRouteFailure, r.newImageServiceRoute},
 		{"ImageServiceIPXERoute", aiv1beta1.ReasonImageHandlerRouteFailure, r.newImageServiceIPXERoute},
 		{"AgentRoute", aiv1beta1.ReasonAgentRouteFailure, r.newAgentRoute},
+		{"AgentIPXERoute", aiv1beta1.ReasonAgentRouteFailure, r.newAgentIPXERoute},
 		{"AgentLocalAuthSecret", aiv1beta1.ReasonAgentLocalAuthSecretFailure, r.newAgentLocalAuthSecret},
 		{"DatabaseSecret", aiv1beta1.ReasonPostgresSecretFailure, r.newPostgresSecret},
 		{"ImageServiceServiceAccount", aiv1beta1.ReasonImageHandlerServiceAccountFailure, r.newImageServiceServiceAccount},
@@ -477,13 +478,18 @@ func (r *AgentServiceConfigReconciler) newAgentService(ctx context.Context, log 
 			svc.ObjectMeta.Annotations = make(map[string]string)
 		}
 		svc.ObjectMeta.Annotations[servingCertAnnotation] = serviceName
-		if len(svc.Spec.Ports) == 0 {
-			svc.Spec.Ports = append(svc.Spec.Ports, corev1.ServicePort{})
+		if len(svc.Spec.Ports) != 2 {
+			svc.Spec.Ports = []corev1.ServicePort{}
+			svc.Spec.Ports = append(svc.Spec.Ports, corev1.ServicePort{}, corev1.ServicePort{})
 		}
 		svc.Spec.Ports[0].Name = serviceName
 		svc.Spec.Ports[0].Port = int32(servicePort.IntValue())
 		svc.Spec.Ports[0].TargetPort = servicePort
 		svc.Spec.Ports[0].Protocol = corev1.ProtocolTCP
+		svc.Spec.Ports[1].Name = fmt.Sprintf("%s-http", serviceName)
+		svc.Spec.Ports[1].Port = int32(serviceHTTPPort.IntValue())
+		svc.Spec.Ports[1].TargetPort = serviceHTTPPort
+		svc.Spec.Ports[1].Protocol = corev1.ProtocolTCP
 		svc.Spec.Selector = map[string]string{"app": serviceName}
 		svc.Spec.Type = corev1.ServiceTypeClusterIP
 		return nil
@@ -593,6 +599,59 @@ func (r *AgentServiceConfigReconciler) newAgentRoute(ctx context.Context, log lo
 		},
 		WildcardPolicy: routev1.WildcardPolicyNone,
 		TLS:            &routev1.TLSConfig{Termination: routev1.TLSTerminationReencrypt},
+	}
+
+	mutateFn := func() error {
+		if err := controllerutil.SetControllerReference(instance, route, r.Scheme); err != nil {
+			return err
+		}
+		// Only update what is specified above in routeSpec.
+		// If we update the entire route.Spec with
+		// route.Spec = routeSpec
+		// it would overwrite any existing values for route.Spec.Host
+		route.Spec.To = routeSpec.To
+		route.Spec.Port = routeSpec.Port
+		route.Spec.WildcardPolicy = routeSpec.WildcardPolicy
+		route.Spec.TLS = routeSpec.TLS
+		return nil
+	}
+
+	return route, mutateFn, nil
+}
+
+func (r *AgentServiceConfigReconciler) newAgentIPXERoute(ctx context.Context, log logrus.FieldLogger, instance *aiv1beta1.AgentServiceConfig) (client.Object, controllerutil.MutateFn, error) {
+
+	// Wait for https route to be created first
+	httpsRoute := &routev1.Route{}
+	if err := r.Get(ctx, types.NamespacedName{Name: serviceName, Namespace: r.Namespace}, httpsRoute); err != nil {
+		log.WithError(err).Error("Failed to get https route for agent service")
+		return nil, nil, err
+	}
+	if httpsRoute.Spec.Host == "" {
+		log.Info("Agent https route found, but host not yet set")
+		return nil, nil, nil
+	}
+
+	weight := int32(100)
+	route := &routev1.Route{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      fmt.Sprintf("%s-ipxe", serviceName),
+			Namespace: r.Namespace,
+		},
+		Spec: routev1.RouteSpec{
+			Host: httpsRoute.Spec.Host,
+		},
+	}
+	routeSpec := routev1.RouteSpec{
+		To: routev1.RouteTargetReference{
+			Kind:   "Service",
+			Name:   serviceName,
+			Weight: &weight,
+		},
+		Port: &routev1.RoutePort{
+			TargetPort: intstr.FromString(fmt.Sprintf("%s-http", serviceName)),
+		},
+		WildcardPolicy: routev1.WildcardPolicyNone,
 	}
 
 	mutateFn := func() error {
