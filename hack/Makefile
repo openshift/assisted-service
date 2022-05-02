@@ -14,7 +14,7 @@ generate-python-client:
 	./hack/generate.sh generate_python_client
 
 generate-mocks:
-	find . -name 'mock_*.go' -type f -delete
+	find . -name 'mock_*.go' -type f -not -path './vendor/*' -delete
 	go generate -v $(shell go list ./... | grep -v 'assisted-service/models\|assisted-service/client\|assisted-service/restapi')
 
 generate-migrations:
@@ -51,4 +51,7 @@ generate-bundle:
 
 generate-from-swagger: lint-swagger generate-go-client generate-go-server validate-swagger-file --remove-dashes-and-dots
 
-generate: generate-from-swagger generate-events generate-mocks generate-configuration
+generate-vendor:
+	go mod vendor
+
+generate: generate-vendor generate-from-swagger generate-events generate-mocks generate-configuration
