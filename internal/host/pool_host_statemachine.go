@@ -58,12 +58,25 @@ func NewPoolHostStateMachine(sm stateswitch.StateMachine, th *transitionHandler)
 	})
 
 	sm.AddTransition(stateswitch.TransitionRule{
+		TransitionType: TransitionTypeMediaDisconnect,
+		SourceStates: []stateswitch.State{
+			stateswitch.State(models.HostStatusDiscoveringUnbound),
+			stateswitch.State(models.HostStatusInsufficientUnbound),
+			stateswitch.State(models.HostStatusKnownUnbound),
+			stateswitch.State(models.HostStatusDisconnectedUnbound),
+			stateswitch.State(models.HostStatusUnbinding),
+		},
+		DestinationState: stateswitch.State(models.HostStatusDisconnectedUnbound),
+		PostTransition:   th.PostHostMediaDisconnected,
+	})
+
+	sm.AddTransition(stateswitch.TransitionRule{
 		TransitionType: TransitionTypeRefresh,
 		SourceStates: []stateswitch.State{
 			stateswitch.State(models.HostStatusDisconnectedUnbound),
 			stateswitch.State(models.HostStatusDiscoveringUnbound),
 		},
-		Condition:        stateswitch.And(If(IsConnected), stateswitch.Not(If(HasInventory))),
+		Condition:        stateswitch.And(If(IsConnected), If(IsMediaConnected), stateswitch.Not(If(HasInventory))),
 		DestinationState: stateswitch.State(models.HostStatusDiscoveringUnbound),
 		PostTransition:   th.PostRefreshHost(statusInfoDiscovering),
 	})
@@ -81,7 +94,7 @@ func NewPoolHostStateMachine(sm stateswitch.StateMachine, th *transitionHandler)
 			stateswitch.State(models.HostStatusInsufficientUnbound),
 			stateswitch.State(models.HostStatusKnownUnbound),
 		},
-		Condition: stateswitch.And(If(IsConnected), If(HasInventory),
+		Condition: stateswitch.And(If(IsConnected), If(IsMediaConnected), If(HasInventory),
 			stateswitch.Not(sufficientToBeBound)),
 		DestinationState: stateswitch.State(models.HostStatusInsufficientUnbound),
 		PostTransition:   th.PostRefreshHost(statusInfoInsufficientHardware),
@@ -107,7 +120,7 @@ func NewPoolHostStateMachine(sm stateswitch.StateMachine, th *transitionHandler)
 			stateswitch.State(models.HostStatusInsufficientUnbound),
 			stateswitch.State(models.HostStatusKnownUnbound),
 		},
-		Condition: stateswitch.And(If(IsConnected), If(HasInventory),
+		Condition: stateswitch.And(If(IsConnected), If(IsMediaConnected), If(HasInventory),
 			sufficientToBeBound),
 		DestinationState: stateswitch.State(models.HostStatusKnownUnbound),
 		PostTransition:   th.PostRefreshHost(statusInfoHostReadyToBeBound),

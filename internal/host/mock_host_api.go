@@ -156,6 +156,20 @@ func (mr *MockAPIMockRecorder) HandleInstallationFailure(arg0, arg1 interface{})
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "HandleInstallationFailure", reflect.TypeOf((*MockAPI)(nil).HandleInstallationFailure), arg0, arg1)
 }
 
+// HandleMediaDisconnected mocks base method.
+func (m *MockAPI) HandleMediaDisconnected(arg0 context.Context, arg1 *models.Host) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "HandleMediaDisconnected", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// HandleMediaDisconnected indicates an expected call of HandleMediaDisconnected.
+func (mr *MockAPIMockRecorder) HandleMediaDisconnected(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "HandleMediaDisconnected", reflect.TypeOf((*MockAPI)(nil).HandleMediaDisconnected), arg0, arg1)
+}
+
 // HostMonitoring mocks base method.
 func (m *MockAPI) HostMonitoring() {
 	m.ctrl.T.Helper()
@@ -615,6 +629,20 @@ func (m *MockAPI) UpdateMachineConfigPoolName(arg0 context.Context, arg1 *gorm.D
 func (mr *MockAPIMockRecorder) UpdateMachineConfigPoolName(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateMachineConfigPoolName", reflect.TypeOf((*MockAPI)(nil).UpdateMachineConfigPoolName), arg0, arg1, arg2, arg3)
+}
+
+// UpdateMediaConnected mocks base method.
+func (m *MockAPI) UpdateMediaConnected(arg0 context.Context, arg1 *models.Host) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateMediaConnected", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// UpdateMediaConnected indicates an expected call of UpdateMediaConnected.
+func (mr *MockAPIMockRecorder) UpdateMediaConnected(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateMediaConnected", reflect.TypeOf((*MockAPI)(nil).UpdateMediaConnected), arg0, arg1)
 }
 
 // UpdateNTP mocks base method.

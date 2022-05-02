@@ -76,7 +76,6 @@ import (
 const DefaultUser = "kubeadmin"
 
 const WindowBetweenRequestsInSeconds = 10 * time.Second
-const mediaDisconnectionMessage = "Unable to read from the discovery media. It was either disconnected or poor network conditions prevented it from being read. Try using the minimal ISO option and be sure to keep the media connected until the installation is completed"
 
 const (
 	MediaDisconnected int64 = 256
@@ -2700,7 +2699,7 @@ func shouldHandle(params installer.V2PostStepReplyParams) bool {
 
 func (b *bareMetalInventory) handleReplyError(params installer.V2PostStepReplyParams, ctx context.Context, log logrus.FieldLogger, h *models.Host, exitCode int64) error {
 	if exitCode == MediaDisconnected {
-		if err := b.handleMediaDisconnection(params, ctx, log, h); err != nil {
+		if err := b.hostApi.HandleMediaDisconnected(ctx, h); err != nil {
 			return err
 		}
 	}
@@ -2728,29 +2727,6 @@ func (b *bareMetalInventory) handleReplyError(params installer.V2PostStepReplyPa
 		return b.processDiskSpeedCheckResponse(ctx, h, stepReply, exitCode)
 	}
 	return nil
-}
-
-func (b *bareMetalInventory) handleMediaDisconnection(params installer.V2PostStepReplyParams, ctx context.Context, log logrus.FieldLogger, h *models.Host) error {
-	status := models.HostStatusError
-	statusInfo := fmt.Sprintf("%s - %s", string(models.HostStageFailed), mediaDisconnectionMessage)
-
-	// Install command reports its status with a different API, directly from the assisted-installer.
-	// Just adding our diagnose to the existing error message.
-	if swag.StringValue(h.Status) == status && h.StatusInfo != nil {
-		// Add the message only once
-		if strings.Contains(*h.StatusInfo, statusInfo) {
-			return nil
-		}
-
-		statusInfo = fmt.Sprintf("%s. %s", statusInfo, *h.StatusInfo)
-	} else if params.Reply.Error != "" {
-		statusInfo = fmt.Sprintf("%s. %s", statusInfo, params.Reply.Error)
-	}
-
-	_, err := hostutil.UpdateHostStatus(ctx, log, b.db, b.eventsHandler, h.InfraEnvID, *h.ID,
-		swag.StringValue(h.Status), status, statusInfo)
-
-	return err
 }
 
 func (b *bareMetalInventory) updateFreeAddressesReport(ctx context.Context, host *models.Host, freeAddressesReport string) error {
@@ -2971,13 +2947,9 @@ func logReplyReceived(params installer.V2PostStepReplyParams, log logrus.FieldLo
 
 func shouldStepReplyBeLogged(reply *models.StepReply, host *common.Host) bool {
 	// Host with a disconnected ISO device is unstable and all the steps should be failed
-	// Currently the assisted-service logs are full with the media disconnection errors.
+	// Currently the assisted-service logs are full of the media disconnection errors.
 	// Here we are filtering these errors and log the message once per host.
-	// TODO: Create a new state "unstable" in the state machine with no commands.
-	// TODO: Maybe we should collect the logs even in this state.
-	notFirstMediaDisconnectionFailure := *host.Status == models.HostStatusError && host.StatusInfo != nil &&
-		strings.Contains(*host.StatusInfo, mediaDisconnectionMessage)
-	return !(reply.ExitCode == MediaDisconnected && notFirstMediaDisconnectionFailure)
+	return !(reply.ExitCode == MediaDisconnected && host.MediaStatus != nil && *host.MediaStatus == models.HostMediaStatusDisconnected)
 }
 
 func filterReplyByType(params installer.V2PostStepReplyParams) (string, error) {
@@ -4495,6 +4467,15 @@ func (b *bareMetalInventory) V2PostStepReply(ctx context.Context, params install
 			log.WithError(handlingError).Errorf("Failed handling reply error for host <%s> infra-env <%s>", params.HostID, params.InfraEnvID)
 		}
 		return installer.NewV2PostStepReplyNoContent()
+	}
+
+	if host.MediaStatus != nil && *host.MediaStatus == models.HostMediaStatusDisconnected {
+		err = b.hostApi.UpdateMediaConnected(ctx, &host.Host)
+
+		if err != nil {
+			log.WithError(err).Errorf("Failed update media status of host <%s> infra-env <%s> to connected", params.HostID, params.InfraEnvID)
+			return installer.NewV2PostStepReplyInternalServerError().WithPayload(common.GenerateError(http.StatusInternalServerError, err))
+		}
 	}
 
 	if !shouldHandle(params) {

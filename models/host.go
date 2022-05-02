@@ -119,6 +119,10 @@ type Host struct {
 	// machine config pool name
 	MachineConfigPoolName string `json:"machine_config_pool_name,omitempty"`
 
+	// media status
+	// Enum: [connected disconnected]
+	MediaStatus *string `json:"media_status,omitempty"`
+
 	// Json containing node's labels.
 	NodeLabels string `json:"node_labels,omitempty" gorm:"type:text"`
 
@@ -213,6 +217,10 @@ func (m *Host) Validate(formats strfmt.Registry) error {
 	}
 
 	if err := m.validateLogsStartedAt(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateMediaStatus(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -410,6 +418,48 @@ func (m *Host) validateLogsStartedAt(formats strfmt.Registry) error {
 	}
 
 	if err := validate.FormatOf("logs_started_at", "body", "datetime", m.LogsStartedAt.String(), formats); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+var hostTypeMediaStatusPropEnum []interface{}
+
+func init() {
+	var res []string
+	if err := json.Unmarshal([]byte(`["connected","disconnected"]`), &res); err != nil {
+		panic(err)
+	}
+	for _, v := range res {
+		hostTypeMediaStatusPropEnum = append(hostTypeMediaStatusPropEnum, v)
+	}
+}
+
+const (
+
+	// HostMediaStatusConnected captures enum value "connected"
+	HostMediaStatusConnected string = "connected"
+
+	// HostMediaStatusDisconnected captures enum value "disconnected"
+	HostMediaStatusDisconnected string = "disconnected"
+)
+
+// prop value enum
+func (m *Host) validateMediaStatusEnum(path, location string, value string) error {
+	if err := validate.EnumCase(path, location, value, hostTypeMediaStatusPropEnum, true); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (m *Host) validateMediaStatus(formats strfmt.Registry) error {
+	if swag.IsZero(m.MediaStatus) { // not required
+		return nil
+	}
+
+	// value enum
+	if err := m.validateMediaStatusEnum("media_status", "body", *m.MediaStatus); err != nil {
 		return err
 	}
 

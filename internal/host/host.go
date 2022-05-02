@@ -97,6 +97,7 @@ type API interface {
 	UnRegisterHost(ctx context.Context, hostID, infraEnvID string) error
 	RegisterInstalledOCPHost(ctx context.Context, h *models.Host, db *gorm.DB) error
 	HandleInstallationFailure(ctx context.Context, h *models.Host) error
+	HandleMediaDisconnected(ctx context.Context, h *models.Host) error
 	UpdateInstallProgress(ctx context.Context, h *models.Host, progress *models.HostProgress) error
 	RefreshStatus(ctx context.Context, h *models.Host, db *gorm.DB) error
 	SetBootstrap(ctx context.Context, h *models.Host, isbootstrap bool, db *gorm.DB) error
@@ -125,6 +126,7 @@ type API interface {
 	UpdateRole(ctx context.Context, h *models.Host, role models.HostRole, db *gorm.DB) error
 	UpdateHostname(ctx context.Context, h *models.Host, hostname string, db *gorm.DB) error
 	UpdateInventory(ctx context.Context, h *models.Host, inventory string) error
+	UpdateMediaConnected(ctx context.Context, h *models.Host) error
 	RefreshInventory(ctx context.Context, cluster *common.Cluster, h *models.Host, db *gorm.DB) error
 	UpdateNTP(ctx context.Context, h *models.Host, ntpSources []*models.NtpSource, db *gorm.DB) error
 	UpdateMachineConfigPoolName(ctx context.Context, db *gorm.DB, h *models.Host, machineConfigPoolName string) error
@@ -221,7 +223,6 @@ func (m *Manager) RegisterInstalledOCPHost(ctx context.Context, h *models.Host, 
 }
 
 func (m *Manager) HandleInstallationFailure(ctx context.Context, h *models.Host) error {
-
 	lastStatusUpdateTime := h.StatusUpdatedAt
 	err := m.sm.Run(TransitionTypeHostInstallationFailed, newStateHost(h), &TransitionArgsHostInstallationFailed{
 		ctx:    ctx,
@@ -232,6 +233,10 @@ func (m *Manager) HandleInstallationFailure(ctx context.Context, h *models.Host)
 			StageStartedAt: lastStatusUpdateTime}, models.HostStageFailed)
 	}
 	return err
+}
+
+func (m *Manager) HandleMediaDisconnected(ctx context.Context, h *models.Host) error {
+	return m.sm.Run(TransitionTypeMediaDisconnect, newStateHost(h), &TransitionArgsMediaDisconnected{ctx: ctx, db: m.db})
 }
 
 // populateDisksEligibility updates an inventory json string by updating the eligibility
@@ -375,6 +380,12 @@ func (m *Manager) updateInventory(ctx context.Context, cluster *common.Cluster, 
 		"inventory":              inventoryStr,
 		"installation_disk_path": installationDiskPath,
 		"installation_disk_id":   installationDiskID,
+	}).Error
+}
+
+func (m *Manager) UpdateMediaConnected(_ context.Context, h *models.Host) error {
+	return m.db.Model(h).Updates(map[string]interface{}{
+		"media_status": models.HostMediaStatusConnected,
 	}).Error
 }
 

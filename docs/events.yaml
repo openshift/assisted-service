@@ -22,6 +22,15 @@ x-events:
     infra_env_id: UUID
     cluster_id: UUID_PTR
 
+- name: host_media_disconnected
+  message: "Unable to read from the discovery media. It was either disconnected or poor network conditions prevented it from being read. Try using the minimal ISO option and be sure to keep the media connected until the installation is completed"
+  event_type: host
+  severity: "error"
+  properties:
+    host_id: UUID
+    infra_env_id: UUID
+    cluster_id: UUID_PTR
+
 - name: cluster_registration_failed
   message: "Failed to register cluster. Error: {error}"
   event_type: cluster

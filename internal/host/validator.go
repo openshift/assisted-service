@@ -251,6 +251,10 @@ type validator struct {
 	providerRegistry registry.ProviderRegistry
 }
 
+func (v *validator) isMediaConnected(c *validationContext) ValidationStatus {
+	return boolValue(c.host.MediaStatus == nil || *c.host.MediaStatus != models.HostMediaStatusDisconnected)
+}
+
 func (v *validator) isConnected(c *validationContext) ValidationStatus {
 	return boolValue(c.host.CheckedInAt.String() == "" || time.Since(time.Time(c.host.CheckedInAt)) <= MaxHostDisconnectionTime)
 }
@@ -261,6 +265,17 @@ func (v *validator) printConnected(context *validationContext, status Validation
 		return "Host is connected"
 	case ValidationFailure:
 		return "Host is disconnected"
+	default:
+		return fmt.Sprintf("Unexpected status %s", status)
+	}
+}
+
+func (v *validator) printMediaConnected(context *validationContext, status ValidationStatus) string {
+	switch status {
+	case ValidationSuccess:
+		return "Media device is connected"
+	case ValidationFailure:
+		return statusInfoMediaDisconnected
 	default:
 		return fmt.Sprintf("Unexpected status %s", status)
 	}

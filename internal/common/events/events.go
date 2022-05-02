@@ -229,6 +229,93 @@ func (e *HostRegistrationSettingPropertiesFailedEvent) FormatMessage() string {
 }
 
 //
+// Event host_media_disconnected
+//
+type HostMediaDisconnectedEvent struct {
+    eventName string
+    HostId strfmt.UUID
+    InfraEnvId strfmt.UUID
+    ClusterId *strfmt.UUID
+}
+
+var HostMediaDisconnectedEventName string = "host_media_disconnected"
+
+func NewHostMediaDisconnectedEvent(
+    hostId strfmt.UUID,
+    infraEnvId strfmt.UUID,
+    clusterId *strfmt.UUID,
+) *HostMediaDisconnectedEvent {
+    return &HostMediaDisconnectedEvent{
+        eventName: HostMediaDisconnectedEventName,
+        HostId: hostId,
+        InfraEnvId: infraEnvId,
+        ClusterId: clusterId,
+    }
+}
+
+func SendHostMediaDisconnectedEvent(
+    ctx context.Context,
+    eventsHandler eventsapi.Sender,
+    hostId strfmt.UUID,
+    infraEnvId strfmt.UUID,
+    clusterId *strfmt.UUID,) {
+    ev := NewHostMediaDisconnectedEvent(
+        hostId,
+        infraEnvId,
+        clusterId,
+    )
+    eventsHandler.SendHostEvent(ctx, ev)
+}
+
+func SendHostMediaDisconnectedEventAtTime(
+    ctx context.Context,
+    eventsHandler eventsapi.Sender,
+    hostId strfmt.UUID,
+    infraEnvId strfmt.UUID,
+    clusterId *strfmt.UUID,
+    eventTime time.Time) {
+    ev := NewHostMediaDisconnectedEvent(
+        hostId,
+        infraEnvId,
+        clusterId,
+    )
+    eventsHandler.SendHostEventAtTime(ctx, ev, eventTime)
+}
+
+func (e *HostMediaDisconnectedEvent) GetName() string {
+    return e.eventName
+}
+
+func (e *HostMediaDisconnectedEvent) GetSeverity() string {
+    return "error"
+}
+func (e *HostMediaDisconnectedEvent) GetClusterId() *strfmt.UUID {
+    return e.ClusterId
+}
+func (e *HostMediaDisconnectedEvent) GetHostId() strfmt.UUID {
+    return e.HostId
+}
+func (e *HostMediaDisconnectedEvent) GetInfraEnvId() strfmt.UUID {
+    return e.InfraEnvId
+}
+
+
+
+func (e *HostMediaDisconnectedEvent) format(message *string) string {
+    r := strings.NewReplacer(
+        "{host_id}", fmt.Sprint(e.HostId),
+        "{infra_env_id}", fmt.Sprint(e.InfraEnvId),
+        "{cluster_id}", fmt.Sprint(e.ClusterId),
+    )
+    return r.Replace(*message)
+}
+
+func (e *HostMediaDisconnectedEvent) FormatMessage() string {
+    s := "Unable to read from the discovery media. It was either disconnected or poor network conditions prevented it from being read. Try using the minimal ISO option and be sure to keep the media connected until the installation is completed"
+    return e.format(&s)
+}
+
+//
 // Event cluster_registration_failed
 //
 type ClusterRegistrationFailedEvent struct {

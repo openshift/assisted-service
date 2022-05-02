@@ -18,6 +18,7 @@ import (
 )
 
 const (
+	statusInfoMediaDisconnected                                = "Unable to read from the discovery media. It was either disconnected or poor network conditions prevented it from being read. Try using the minimal ISO option and be sure to keep the media connected until the installation is completed"
 	statusInfoDisconnected                                     = "Host has stopped communicating with the installation service"
 	statusInfoDiscovering                                      = "Waiting for host to send hardware details"
 	statusInfoInsufficientHardware                             = "Host does not meet the minimum hardware requirements: $FAILING_VALIDATIONS"
