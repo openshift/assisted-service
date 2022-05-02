@@ -565,6 +565,9 @@ func main() {
 
 	// Run listen on http and https ports if HTTPSCertFile/HTTPSKeyFile set
 	serverInfo := servers.New(Options.HTTPListenPort, swag.StringValue(port), Options.HTTPSKeyFile, Options.HTTPSCertFile)
+	if serverInfo.HasBothHandlers {
+		h = app.WithIPXEScriptMiddleware(h)
+	}
 	if serverInfo.HTTP != nil {
 		serverInfo.HTTP.Handler = h
 	}

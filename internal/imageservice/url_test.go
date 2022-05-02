@@ -34,6 +34,13 @@ var _ = Describe("URL building", func() {
 		Expect(parsed.Path).To(Equal("/v3/boot-artifacts/kernel"))
 		Expect(parsed.Query().Get("version")).To(Equal(version))
 		Expect(parsed.Query().Get("arch")).To(Equal(arch))
+
+		u, err = KernelURL(baseURL, version, arch, true)
+		Expect(err).NotTo(HaveOccurred())
+
+		parsed, err = url.Parse(u)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(parsed.Scheme).To(Equal("http"))
 	})
 
 	It("builds a rootfs URL", func() {
