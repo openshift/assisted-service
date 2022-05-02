@@ -1,0 +1,11 @@
+*.test
+/.gobin/
+/.idea/
+/examples/*
+/metamodel/
+/model/
+/vendor/
+!/examples/*.go
+!/examples/*.yaml
+!/examples/go.mod
+!/examples/go.sum
