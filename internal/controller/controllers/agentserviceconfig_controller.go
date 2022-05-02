@@ -222,6 +222,7 @@ func (r *AgentServiceConfigReconciler) Reconcile(origCtx context.Context, req ct
 		{"AgentService", aiv1beta1.ReasonAgentServiceFailure, r.newAgentService},
 		{"ServiceMonitor", aiv1beta1.ReasonAgentServiceMonitorFailure, r.newServiceMonitor},
 		{"ImageServiceRoute", aiv1beta1.ReasonImageHandlerRouteFailure, r.newImageServiceRoute},
+		{"ImageServiceIPXERoute", aiv1beta1.ReasonImageHandlerRouteFailure, r.newImageServiceIPXERoute},
 		{"AgentRoute", aiv1beta1.ReasonAgentRouteFailure, r.newAgentRoute},
 		{"AgentLocalAuthSecret", aiv1beta1.ReasonAgentLocalAuthSecretFailure, r.newAgentLocalAuthSecret},
 		{"DatabaseSecret", aiv1beta1.ReasonPostgresSecretFailure, r.newPostgresSecret},
@@ -508,8 +509,9 @@ func (r *AgentServiceConfigReconciler) newImageServiceService(ctx context.Contex
 			svc.ObjectMeta.Annotations = make(map[string]string)
 		}
 		svc.ObjectMeta.Annotations[servingCertAnnotation] = imageServiceName
-		if len(svc.Spec.Ports) == 0 {
-			svc.Spec.Ports = append(svc.Spec.Ports, corev1.ServicePort{})
+		if len(svc.Spec.Ports) != 2 {
+			svc.Spec.Ports = []corev1.ServicePort{}
+			svc.Spec.Ports = append(svc.Spec.Ports, corev1.ServicePort{}, corev1.ServicePort{})
 		}
 		svc.Spec.Ports[0].Name = imageServiceName
 		svc.Spec.Ports[0].Port = int32(imageHandlerPort.IntValue())
@@ -644,6 +646,61 @@ func (r *AgentServiceConfigReconciler) newImageServiceRoute(ctx context.Context,
 		route.Spec.Port = routeSpec.Port
 		route.Spec.WildcardPolicy = routeSpec.WildcardPolicy
 		route.Spec.TLS = routeSpec.TLS
+		return nil
+	}
+
+	return route, mutateFn, nil
+}
+
+func (r *AgentServiceConfigReconciler) newImageServiceIPXERoute(ctx context.Context, log logrus.FieldLogger, instance *aiv1beta1.AgentServiceConfig) (client.Object, controllerutil.MutateFn, error) {
+	// Wait for https route to be created first
+	httpsRoute := &routev1.Route{}
+	if err := r.Get(ctx, types.NamespacedName{Name: imageServiceName, Namespace: r.Namespace}, httpsRoute); err != nil {
+		log.WithError(err).Error("Failed to get https route for image service")
+		return nil, nil, err
+	}
+
+	if httpsRoute.Spec.Host == "" {
+		log.Info("Image service https route found, but host not yet set")
+		return nil, nil, nil
+	}
+
+	weight := int32(100)
+	route := &routev1.Route{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      fmt.Sprintf("%s-ipxe", imageServiceName),
+			Namespace: r.Namespace,
+		},
+		Spec: routev1.RouteSpec{
+			Host: httpsRoute.Spec.Host,
+		},
+	}
+	routeSpec := routev1.RouteSpec{
+		Host: httpsRoute.Spec.Host,
+		To: routev1.RouteTargetReference{
+			Kind:   "Service",
+			Name:   imageServiceName,
+			Weight: &weight,
+		},
+		Port: &routev1.RoutePort{
+			TargetPort: intstr.FromString(fmt.Sprintf("%s-http", imageServiceName)),
+		},
+		WildcardPolicy: routev1.WildcardPolicyNone,
+	}
+
+	mutateFn := func() error {
+		if err := controllerutil.SetControllerReference(instance, route, r.Scheme); err != nil {
+			return err
+		}
+		// Only update what is specified above in routeSpec.
+		// If we update the entire route.Spec with
+		// route.Spec = routeSpec
+		// it would overwrite any existing values for route.Spec.Host
+		route.Spec.To = routeSpec.To
+		route.Spec.Port = routeSpec.Port
+		route.Spec.WildcardPolicy = routeSpec.WildcardPolicy
+		route.Spec.TLS = routeSpec.TLS
+		route.Spec.Path = routeSpec.Path
 		return nil
 	}
 
