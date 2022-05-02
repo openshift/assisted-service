@@ -619,23 +619,22 @@ func (r *AgentServiceConfigReconciler) newAgentRoute(ctx context.Context, log lo
 	return route, mutateFn, nil
 }
 
-func (r *AgentServiceConfigReconciler) newAgentIPXERoute(ctx context.Context, log logrus.FieldLogger, instance *aiv1beta1.AgentServiceConfig) (client.Object, controllerutil.MutateFn, error) {
-
-	// Wait for https route to be created first
+func (r *AgentServiceConfigReconciler) newHTTPRoute(ctx context.Context, log logrus.FieldLogger, instance *aiv1beta1.AgentServiceConfig, serviceToExpose string) (client.Object, controllerutil.MutateFn, error) {
+	// In order to create plain http route we need https route to be created first to copy its host
 	httpsRoute := &routev1.Route{}
-	if err := r.Get(ctx, types.NamespacedName{Name: serviceName, Namespace: r.Namespace}, httpsRoute); err != nil {
-		log.WithError(err).Error("Failed to get https route for agent service")
+	if err := r.Get(ctx, types.NamespacedName{Name: serviceToExpose, Namespace: r.Namespace}, httpsRoute); err != nil {
+		log.WithError(err).Errorf("Failed to get https route for %s service", serviceToExpose)
 		return nil, nil, err
 	}
 	if httpsRoute.Spec.Host == "" {
-		log.Info("Agent https route found, but host not yet set")
+		log.Infof("https route for %s service found, but host not yet set", serviceToExpose)
 		return nil, nil, nil
 	}
 
 	weight := int32(100)
 	route := &routev1.Route{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      fmt.Sprintf("%s-ipxe", serviceName),
+			Name:      fmt.Sprintf("%s-ipxe", serviceToExpose),
 			Namespace: r.Namespace,
 		},
 		Spec: routev1.RouteSpec{
@@ -645,11 +644,11 @@ func (r *AgentServiceConfigReconciler) newAgentIPXERoute(ctx context.Context, lo
 	routeSpec := routev1.RouteSpec{
 		To: routev1.RouteTargetReference{
 			Kind:   "Service",
-			Name:   serviceName,
+			Name:   serviceToExpose,
 			Weight: &weight,
 		},
 		Port: &routev1.RoutePort{
-			TargetPort: intstr.FromString(fmt.Sprintf("%s-http", serviceName)),
+			TargetPort: intstr.FromString(fmt.Sprintf("%s-http", serviceToExpose)),
 		},
 		WildcardPolicy: routev1.WildcardPolicyNone,
 	}
@@ -670,6 +669,10 @@ func (r *AgentServiceConfigReconciler) newAgentIPXERoute(ctx context.Context, lo
 	}
 
 	return route, mutateFn, nil
+}
+
+func (r *AgentServiceConfigReconciler) newAgentIPXERoute(ctx context.Context, log logrus.FieldLogger, instance *aiv1beta1.AgentServiceConfig) (client.Object, controllerutil.MutateFn, error) {
+	return r.newHTTPRoute(ctx, log, instance, serviceName)
 }
 
 func (r *AgentServiceConfigReconciler) newImageServiceRoute(ctx context.Context, log logrus.FieldLogger, instance *aiv1beta1.AgentServiceConfig) (client.Object, controllerutil.MutateFn, error) {
@@ -712,58 +715,7 @@ func (r *AgentServiceConfigReconciler) newImageServiceRoute(ctx context.Context,
 }
 
 func (r *AgentServiceConfigReconciler) newImageServiceIPXERoute(ctx context.Context, log logrus.FieldLogger, instance *aiv1beta1.AgentServiceConfig) (client.Object, controllerutil.MutateFn, error) {
-	// Wait for https route to be created first
-	httpsRoute := &routev1.Route{}
-	if err := r.Get(ctx, types.NamespacedName{Name: imageServiceName, Namespace: r.Namespace}, httpsRoute); err != nil {
-		log.WithError(err).Error("Failed to get https route for image service")
-		return nil, nil, err
-	}
-
-	if httpsRoute.Spec.Host == "" {
-		log.Info("Image service https route found, but host not yet set")
-		return nil, nil, nil
-	}
-
-	weight := int32(100)
-	route := &routev1.Route{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      fmt.Sprintf("%s-ipxe", imageServiceName),
-			Namespace: r.Namespace,
-		},
-		Spec: routev1.RouteSpec{
-			Host: httpsRoute.Spec.Host,
-		},
-	}
-	routeSpec := routev1.RouteSpec{
-		Host: httpsRoute.Spec.Host,
-		To: routev1.RouteTargetReference{
-			Kind:   "Service",
-			Name:   imageServiceName,
-			Weight: &weight,
-		},
-		Port: &routev1.RoutePort{
-			TargetPort: intstr.FromString(fmt.Sprintf("%s-http", imageServiceName)),
-		},
-		WildcardPolicy: routev1.WildcardPolicyNone,
-	}
-
-	mutateFn := func() error {
-		if err := controllerutil.SetControllerReference(instance, route, r.Scheme); err != nil {
-			return err
-		}
-		// Only update what is specified above in routeSpec.
-		// If we update the entire route.Spec with
-		// route.Spec = routeSpec
-		// it would overwrite any existing values for route.Spec.Host
-		route.Spec.To = routeSpec.To
-		route.Spec.Port = routeSpec.Port
-		route.Spec.WildcardPolicy = routeSpec.WildcardPolicy
-		route.Spec.TLS = routeSpec.TLS
-		route.Spec.Path = routeSpec.Path
-		return nil
-	}
-
-	return route, mutateFn, nil
+	return r.newHTTPRoute(ctx, log, instance, imageServiceName)
 }
 
 func (r *AgentServiceConfigReconciler) newAgentLocalAuthSecret(ctx context.Context, log logrus.FieldLogger, instance *aiv1beta1.AgentServiceConfig) (client.Object, controllerutil.MutateFn, error) {

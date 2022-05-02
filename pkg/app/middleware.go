@@ -1,14 +1,25 @@
 package app
 
 import (
+	"fmt"
 	"net/http"
+	"regexp"
+	"strings"
 	"time"
 
+	"github.com/openshift/assisted-service/client"
 	"github.com/openshift/assisted-service/pkg/thread"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/rs/cors"
 	"github.com/sirupsen/logrus"
 )
+
+const (
+	ipxeScriptQueryKey   = "file_name"
+	ipxeScriptQueryValue = "ipxe-script"
+)
+
+var ipxeScriptPattern = regexp.MustCompile(fmt.Sprintf(`^%s/v2/infra-envs/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})/downloads/files`, client.DefaultBasePath))
 
 // WithMetricsResponderMiddleware Returns middleware which responds to /metrics endpoint with the prometheus metrics
 // of the service
@@ -63,4 +74,33 @@ func SetupCORSMiddleware(handler http.Handler, domains []string) http.Handler {
 		MaxAge: int((10 * time.Minute).Seconds()),
 	})
 	return corsHandler.Handler(handler)
+}
+
+func WithIPXEScriptMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Check plain HTTP requests to API only
+		if strings.HasPrefix(r.URL.Path, client.DefaultBasePath) && r.TLS == nil {
+			if r.Method != http.MethodGet {
+				http.NotFound(w, r)
+				return
+			}
+			matches := ipxeScriptPattern.FindStringSubmatch(r.URL.Path)
+			if matches == nil {
+				// Path doesn't match the regexp
+				http.NotFound(w, r)
+				return
+			}
+			if !r.URL.Query().Has(ipxeScriptQueryKey) {
+				// Missing file name parameter
+				http.NotFound(w, r)
+				return
+			}
+			if queryValue := r.URL.Query().Get(ipxeScriptQueryKey); queryValue != ipxeScriptQueryValue {
+				// Invalid file name requested
+				http.NotFound(w, r)
+				return
+			}
+		}
+		next.ServeHTTP(w, r)
+	})
 }
