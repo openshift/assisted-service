@@ -15,7 +15,7 @@ type Config struct {
 
 type EditFunc func(myEditor Editor) error
 
-//go:generate mockgen -package=isoeditor -destination=mock_factory.go -self_package=github.com/openshift/assisted-service/internal/isoeditor . Factory
+//go:generate mockgen --build_flags=--mod=mod -package=isoeditor -destination=mock_factory.go -self_package=github.com/openshift/assisted-service/internal/isoeditor . Factory
 type Factory interface {
 	WithEditor(ctx context.Context, isoPath string, log logrus.FieldLogger, proc EditFunc) error
 }

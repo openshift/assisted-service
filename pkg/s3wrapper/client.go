@@ -34,9 +34,9 @@ const (
 	DiscoveryImageTemplate = "discovery-image-%s"
 )
 
-//go:generate mockgen -package=s3wrapper -destination=mock_s3wrapper.go . API
-//go:generate mockgen -package s3wrapper -destination mock_s3iface.go github.com/aws/aws-sdk-go/service/s3/s3iface S3API
-//go:generate mockgen -package s3wrapper -destination mock_s3manageriface.go github.com/aws/aws-sdk-go/service/s3/s3manager/s3manageriface UploaderAPI
+//go:generate mockgen --build_flags=--mod=mod -package=s3wrapper -destination=mock_s3wrapper.go . API
+//go:generate mockgen --build_flags=--mod=mod -package s3wrapper -destination mock_s3iface.go github.com/aws/aws-sdk-go/service/s3/s3iface S3API
+//go:generate mockgen --build_flags=--mod=mod -package s3wrapper -destination mock_s3manageriface.go github.com/aws/aws-sdk-go/service/s3/s3manager/s3manageriface UploaderAPI
 type API interface {
 	IsAwsS3() bool
 	CreateBucket() error

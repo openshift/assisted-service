@@ -21,7 +21,7 @@ type InstallConfigGenerator interface {
 	GenerateInstallConfig(ctx context.Context, cluster common.Cluster, cfg []byte, releaseImage, installerReleaseImageOverride string) error
 }
 
-//go:generate mockgen -package generator -destination mock_install_config.go . ISOInstallConfigGenerator
+//go:generate mockgen --build_flags=--mod=mod -package generator -destination mock_install_config.go . ISOInstallConfigGenerator
 type ISOInstallConfigGenerator interface {
 	InstallConfigGenerator
 }

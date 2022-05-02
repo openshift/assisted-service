@@ -56,7 +56,7 @@ type OffsetInfo struct {
 	Length uint64
 }
 
-//go:generate mockgen -package=isoeditor -destination=mock_editor.go -self_package=github.com/openshift/assisted-service/internal/isoeditor . Editor
+//go:generate mockgen --build_flags=--mod=mod -package=isoeditor -destination=mock_editor.go -self_package=github.com/openshift/assisted-service/internal/isoeditor . Editor
 type Editor interface {
 	CreateMinimalISOTemplate(rootFSURL string) (string, error)
 	CreateClusterMinimalISO(ignition string, netFiles []staticnetworkconfig.StaticNetworkConfigData, clusterProxyInfo *ClusterProxyInfo) (string, error)

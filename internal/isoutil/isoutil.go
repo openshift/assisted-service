@@ -15,7 +15,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-//go:generate mockgen -package=isoutil -destination=mock_isoutil.go . Handler
+//go:generate mockgen --build_flags=--mod=mod -package=isoutil -destination=mock_isoutil.go . Handler
 type Handler interface {
 	Extract() error
 	ExtractedPath(rel string) string

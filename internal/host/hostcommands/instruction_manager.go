@@ -20,7 +20,7 @@ import (
 	"gorm.io/gorm"
 )
 
-//go:generate mockgen -package=hostcommands -destination=mock_instruction_api.go . InstructionApi
+//go:generate mockgen --build_flags=--mod=mod -package=hostcommands -destination=mock_instruction_api.go . InstructionApi
 type InstructionApi interface {
 	GetNextSteps(ctx context.Context, host *models.Host) (models.Steps, error)
 }

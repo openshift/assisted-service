@@ -20,7 +20,7 @@ const (
 	subscriptionDeleteRequest        = "SubscriptionDelete"
 )
 
-//go:generate mockgen -package ocm -destination mock_accounts_mgmt.go . OCMAccountsMgmt
+//go:generate mockgen --build_flags=--mod=mod -package ocm -destination mock_accounts_mgmt.go . OCMAccountsMgmt
 type OCMAccountsMgmt interface {
 	CreateSubscription(ctx context.Context, clusterID strfmt.UUID, clusterName string) (*amgmtv1.Subscription, error)
 	GetSubscription(ctx context.Context, subscriptionID strfmt.UUID) (*amgmtv1.Subscription, error)
