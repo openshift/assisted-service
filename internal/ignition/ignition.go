@@ -719,10 +719,10 @@ func (g *installerGenerator) updateBootstrap(ctx context.Context, bootstrapPath 
 			g.fixMOTDFile(&config.Storage.Files[i])
 		case isBMHFile(&config.Storage.Files[i]):
 			// extract bmh
-			bmh, err := fileToBMH(&config.Storage.Files[i]) //nolint,shadow
-			if err != nil {
-				log.Errorf("error parsing File contents to BareMetalHost: %v", err)
-				return err
+			bmh, bmhErr := fileToBMH(&config.Storage.Files[i])
+			if bmhErr != nil {
+				log.Errorf("error parsing File contents to BareMetalHost: %v", bmhErr)
+				return bmhErr
 			}
 
 			// get corresponding host

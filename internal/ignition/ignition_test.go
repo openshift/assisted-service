@@ -168,8 +168,8 @@ var _ = Describe("Bootstrap Ignition Update", func() {
 			Expect(err).ToNot(HaveOccurred())
 			for i := range config.Storage.Files {
 				if isBMHFile(&config.Storage.Files[i]) {
-					bmhFile, err := fileToBMH(&config.Storage.Files[i]) //nolint,shadow
-					Expect(err).ToNot(HaveOccurred())
+					bmhFile, bmhErr := fileToBMH(&config.Storage.Files[i])
+					Expect(bmhErr).ToNot(HaveOccurred())
 					Expect(bmhIsMaster(bmhFile, masterHostnames, workerHostnames)).To(Equal(masterExpected))
 					return
 				}
