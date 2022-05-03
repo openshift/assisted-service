@@ -1007,6 +1007,12 @@ var _ = Describe("PostStepReply", func() {
 				},
 			}
 
+			mockEvents.EXPECT().SendHostEvent(gomock.Any(), eventstest.NewEventMatcher(
+				eventstest.WithNameMatcher(eventgen.HostStatusUpdatedEventName),
+				eventstest.WithHostIdMatcher(host.ID.String()),
+				eventstest.WithClusterIdMatcher(host.ClusterID.String()),
+				eventstest.WithInfraEnvIdMatcher(host.InfraEnvID.String())))
+
 			Expect(bm.V2PostStepReply(ctx, params)).Should(BeAssignableToTypeOf(installer.NewV2PostStepReplyNoContent()))
 			Expect(db.Take(host, "cluster_id = ? and id = ?", clusterId.String(), hostId.String()).Error).ToNot(HaveOccurred())
 			Expect(*host.Status).To(BeEquivalentTo(models.HostStatusError))
@@ -1028,6 +1034,12 @@ var _ = Describe("PostStepReply", func() {
 					StepType: models.StepTypeFreeNetworkAddresses,
 				},
 			}
+
+			mockEvents.EXPECT().SendHostEvent(gomock.Any(), eventstest.NewEventMatcher(
+				eventstest.WithNameMatcher(eventgen.HostStatusUpdatedEventName),
+				eventstest.WithHostIdMatcher(host.ID.String()),
+				eventstest.WithClusterIdMatcher(host.ClusterID.String()),
+				eventstest.WithInfraEnvIdMatcher(host.InfraEnvID.String())))
 
 			Expect(bm.V2PostStepReply(ctx, params)).Should(BeAssignableToTypeOf(installer.NewV2PostStepReplyNoContent()))
 			Expect(db.Take(host, "cluster_id = ? and id = ?", clusterId.String(), hostId.String()).Error).ToNot(HaveOccurred())
@@ -1529,6 +1541,12 @@ var _ = Describe("v2PostStepReply", func() {
 				},
 			}
 
+			mockEvents.EXPECT().SendHostEvent(gomock.Any(), eventstest.NewEventMatcher(
+				eventstest.WithNameMatcher(eventgen.HostStatusUpdatedEventName),
+				eventstest.WithHostIdMatcher(host.ID.String()),
+				eventstest.WithInfraEnvIdMatcher(host.InfraEnvID.String()),
+				eventstest.WithClusterIdMatcher(host.ClusterID.String())))
+
 			Expect(bm.V2PostStepReply(ctx, params)).Should(BeAssignableToTypeOf(installer.NewV2PostStepReplyNoContent()))
 			Expect(db.Take(host, "cluster_id = ? and id = ?", clusterId.String(), hostId.String()).Error).ToNot(HaveOccurred())
 			Expect(*host.Status).To(BeEquivalentTo(models.HostStatusError))
@@ -1550,6 +1568,12 @@ var _ = Describe("v2PostStepReply", func() {
 					StepType: models.StepTypeFreeNetworkAddresses,
 				},
 			}
+
+			mockEvents.EXPECT().SendHostEvent(gomock.Any(), eventstest.NewEventMatcher(
+				eventstest.WithNameMatcher(eventgen.HostStatusUpdatedEventName),
+				eventstest.WithHostIdMatcher(host.ID.String()),
+				eventstest.WithInfraEnvIdMatcher(host.InfraEnvID.String()),
+				eventstest.WithClusterIdMatcher(host.ClusterID.String())))
 
 			Expect(bm.V2PostStepReply(ctx, params)).Should(BeAssignableToTypeOf(installer.NewV2PostStepReplyNoContent()))
 			Expect(db.Take(host, "cluster_id = ? and id = ?", clusterId.String(), hostId.String()).Error).ToNot(HaveOccurred())

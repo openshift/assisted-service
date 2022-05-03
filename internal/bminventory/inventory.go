@@ -2674,24 +2674,42 @@ func (b *bareMetalInventory) handleReplyError(params installer.V2PostStepReplyPa
 }
 
 func (b *bareMetalInventory) handleMediaDisconnection(params installer.V2PostStepReplyParams, ctx context.Context, log logrus.FieldLogger, h *models.Host) error {
-	status := models.HostStatusError
 	statusInfo := fmt.Sprintf("%s - %s", string(models.HostStageFailed), mediaDisconnectionMessage)
 
-	// Install command reports its status with a different API, directly from the assisted-installer.
-	// Just adding our diagnose to the existing error message.
-	if swag.StringValue(h.Status) == status && h.StatusInfo != nil {
-		// Add the message only once
-		if strings.Contains(*h.StatusInfo, statusInfo) {
-			return nil
-		}
-
-		statusInfo = fmt.Sprintf("%s. %s", statusInfo, *h.StatusInfo)
-	} else if params.Reply.Error != "" {
+	if params.Reply.Error != "" {
 		statusInfo = fmt.Sprintf("%s. %s", statusInfo, params.Reply.Error)
 	}
 
+	// Install command reports its status with a different API, directly from the assisted-installer.
+	// Just adding our diagnose to the existing error message.
+	if swag.StringValue(h.Status) == models.HostStatusError {
+		// Add the message only once
+		if h.StatusInfo != nil && strings.Contains(*h.StatusInfo, statusInfo) {
+			return nil
+		}
+
+		if h.StatusInfo != nil {
+			statusInfo = fmt.Sprintf("%s. %s", statusInfo, *h.StatusInfo)
+		}
+
+		// Update status info
+		err := b.db.Model(h).Updates(map[string]interface{}{
+			"status_info": statusInfo,
+		}).Error
+
+		if err != nil {
+			return err
+		}
+
+		// Create event even for the status info change even when the status remain the same
+		statusInfo = fmt.Sprintf("(%s)", statusInfo)
+		eventgen.SendHostStatusUpdatedEvent(ctx, b.eventsHandler, *h.ID, h.InfraEnvID, h.ClusterID, models.EventSeverityError,
+			hostutil.GetHostnameForMsg(h), models.HostStatusError, models.HostStatusError, statusInfo)
+		return nil
+	}
+
 	_, err := hostutil.UpdateHostStatus(ctx, log, b.db, b.eventsHandler, h.InfraEnvID, *h.ID,
-		swag.StringValue(h.Status), status, statusInfo)
+		swag.StringValue(h.Status), models.HostStatusError, statusInfo)
 
 	return err
 }
