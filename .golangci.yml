@@ -63,6 +63,15 @@ linters:
     # - gci
     - goimports
     - exportloopref
+    - asciicheck
+    - bidichk
+    - decorder
+    - depguard
+    - dogsled
+    - durationcheck
+    - grouper
+    - rowserrcheck
+    - tenv
 
 linters-settings:
   govet:
