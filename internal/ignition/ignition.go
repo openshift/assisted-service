@@ -1330,7 +1330,7 @@ func firstN(s string, n int) string {
 
 func (g *installerGenerator) runCreateCommand(ctx context.Context, installerPath, command string, envVars []string) error {
 	log := logutil.FromContext(ctx, g.log)
-	cmd := exec.Command(installerPath, "create", command, "--dir", g.workDir)
+	cmd := exec.Command(installerPath, "create", command, "--dir", g.workDir) // #nosec G204
 	var out bytes.Buffer
 	cmd.Stdout = &out
 	cmd.Stderr = &out
