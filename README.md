@@ -276,7 +276,7 @@ Image in charge of generating the Fedora-coreOs image used to install the host w
 Image is uploaded to deployed S3 under the name template "installer-image-\<cluster-id\>".
 
 ## Assisted Service on console.redhat.com
-The Assisted Installer is also available for users as a SAAS hosted in console.redhat.com.
+The Assisted Installer is also available for users as a SaaS hosted in console.redhat.com.
 
 More information is available here: [Assisted Installer on console.redhat.com](docs/cloud.md)
 
