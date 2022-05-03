@@ -641,13 +641,13 @@ func createStorageClient(deployTarget string, storage string, s3cfg *s3wrapper.C
 	if storage != "" {
 		switch storage {
 		case storage_s3:
-			storageClient = s3wrapper.NewS3Client(s3cfg, log)
-			if storageClient == nil {
+			storageClient = s3wrapper.NewS3Client(s3cfg, log) // nolint:staticcheck // False-positive "SA4023: this comparison is never true (staticcheck)"
+			if storageClient == nil {                         // nolint:staticcheck
 				log.Fatal("failed to create S3 client")
 			}
 		case storage_filesystem:
-			storageClient = s3wrapper.NewFSClient(fsWorkDir, log, metricsAPI, fsThreshold)
-			if storageClient == nil {
+			storageClient = s3wrapper.NewFSClient(fsWorkDir, log, metricsAPI, fsThreshold) // nolint:staticcheck // False-positive "SA4023: this comparison is never true (staticcheck)"
+			if storageClient == nil {                                                      // nolint:staticcheck
 				log.Fatal("failed to create filesystem client")
 			}
 		default:
@@ -657,12 +657,14 @@ func createStorageClient(deployTarget string, storage string, s3cfg *s3wrapper.C
 		// Retain original logic for backwards capability
 		switch deployTarget {
 		case deployment_type_k8s:
-			storageClient = s3wrapper.NewS3Client(s3cfg, log)
+			storageClient = s3wrapper.NewS3Client(s3cfg, log) // nolint:staticcheck
+			// nolint:staticcheck // False-positive "SA4023: this comparison is never true (staticcheck)"
 			if storageClient == nil {
 				log.Fatal("failed to create S3 client")
 			}
 		case deployment_type_onprem, deployment_type_ocp:
-			storageClient = s3wrapper.NewFSClient(fsWorkDir, log, metricsAPI, fsThreshold)
+			storageClient = s3wrapper.NewFSClient(fsWorkDir, log, metricsAPI, fsThreshold) // nolint:staticcheck
+			// nolint:staticcheck // False-positive "SA4023: this comparison is never true (staticcheck)"
 			if storageClient == nil {
 				log.Fatal("failed to create S3 filesystem client")
 			}
