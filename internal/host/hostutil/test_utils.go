@@ -260,6 +260,37 @@ func GenerateMasterInventoryWithNetworks(ips ...string) string {
 	return string(b)
 }
 
+func GenerateMasterInventoryWithNetworksOnSameInterface(ips ...string) string {
+	interfaces := []*models.Interface{
+		{
+			Name:          "eth0",
+			IPV4Addresses: ips,
+		},
+	}
+	inventory := models.Inventory{
+		CPU: &models.CPU{Count: 8, Flags: []string{"vmx"}},
+		Disks: []*models.Disk{
+			{
+				SizeBytes: 128849018880,
+				DriveType: "HDD",
+				ID:        "/dev/disk/by-id/test-disk-id",
+				Name:      "test-disk",
+				Serial:    "test-serial",
+				Path:      "/dev/test-disk",
+			},
+		},
+		Interfaces:   interfaces,
+		Memory:       &models.Memory{PhysicalBytes: conversions.GibToBytes(16), UsableBytes: conversions.GibToBytes(16)},
+		Hostname:     "master1",
+		SystemVendor: &models.SystemVendor{Manufacturer: "Red Hat", ProductName: "RHEL", SerialNumber: "3534"},
+		Timestamp:    1601835002,
+		Routes:       common.TestDefaultRouteConfiguration,
+	}
+	b, err := json.Marshal(&inventory)
+	Expect(err).To(Not(HaveOccurred()))
+	return string(b)
+}
+
 func GenerateMasterInventoryWithHostnameAndCpuFlagsV6(hostname string, cpuflags []string) string {
 	inventory := models.Inventory{
 		CPU: &models.CPU{Count: 8, Flags: cpuflags},
