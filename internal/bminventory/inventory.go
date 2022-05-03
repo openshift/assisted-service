@@ -1024,7 +1024,7 @@ func (b *bareMetalInventory) integrateWithAMSClusterPreInstallation(ctx context.
 
 func (b *bareMetalInventory) InstallClusterInternal(ctx context.Context, params installer.V2InstallClusterParams) (*common.Cluster, error) {
 	log := logutil.FromContext(ctx, b.log)
-	cluster := &common.Cluster{}
+	var cluster *common.Cluster
 	var err error
 
 	log.Infof("preparing for cluster %s installation", params.ClusterID)
