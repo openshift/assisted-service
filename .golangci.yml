@@ -59,7 +59,8 @@ linters:
     - gosec
     - megacheck
     - unconvert
-    - gci
+    # disabling until https://github.com/daixiang0/gci/issues/54 is fixed
+    # - gci
     - goimports
     - scopelint
 
