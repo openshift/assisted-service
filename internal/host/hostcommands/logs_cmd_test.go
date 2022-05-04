@@ -3,7 +3,6 @@ package hostcommands
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"time"
 
 	"github.com/go-openapi/strfmt"
@@ -41,20 +40,15 @@ var _ = Describe("upload_logs", func() {
 
 	It("get_step with logs", func() {
 		stepReply, stepErr = logsCmd.GetSteps(ctx, &host)
-		Expect(stepReply[0].StepType).To(Equal(models.StepTypeExecute))
+		Expect(stepReply[0].StepType).To(Equal(models.StepTypeLogsGather))
 		Expect(stepErr).ShouldNot(HaveOccurred())
-		Expect(stepReply[0].Command).Should(Equal("timeout"))
-		Expect(stepReply[0].Args).Should(ContainElement("podman"))
-		Expect(stepReply[0].Args).Should(ContainElement("-cluster-id"))
-		Expect(stepReply[0].Args).Should(ContainElement("-host-id"))
-		Expect(stepReply[0].Args).Should(ContainElement("-infra-env-id"))
-		Expect(stepReply[0].Args).Should(ContainElement(clusterId.String()))
-		Expect(stepReply[0].Args).Should(ContainElement(id.String()))
-		Expect(stepReply[0].Args).Should(ContainElement(infraEnvId.String()))
-		Expect(stepReply[0].Args).ShouldNot(ContainElement("--cacert"))
-		Expect(stepReply[0].Args).ShouldNot(ContainElement(common.HostCACertPath))
-		Expect(stepReply[0].Args).ShouldNot(ContainElement(fmt.Sprintf("%s:%s", common.HostCACertPath, common.HostCACertPath)))
-		Expect(stepReply[0].Args).ShouldNot(ContainElement("/root/.ssh:/root/.ssh"))
+		request := models.LogsGatherCmdRequest{}
+		err := json.Unmarshal([]byte(stepReply[0].Args[0]), &request)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(len(stepReply[0].Args)).To(Equal(1))
+		Expect(request.InfraEnvID.String()).To(Equal(infraEnvId.String()))
+		Expect(request.ClusterID.String()).To(Equal(clusterId.String()))
+		Expect(request.HostID.String()).To(Equal(id.String()))
 	})
 
 	It("get_step with logs", func() {
@@ -63,19 +57,15 @@ var _ = Describe("upload_logs", func() {
 		cfgCopy.ServiceCACertPath = common.HostCACertPath
 		logsCmd = NewLogsCmd(common.GetTestLog(), db, cfgCopy)
 		stepReply, stepErr = logsCmd.GetSteps(ctx, &host)
-		Expect(stepReply[0].StepType).To(Equal(models.StepTypeExecute))
+		Expect(stepReply[0].StepType).To(Equal(models.StepTypeLogsGather))
 		Expect(stepErr).ShouldNot(HaveOccurred())
-		Expect(stepReply[0].Command).Should(Equal("timeout"))
-		Expect(stepReply[0].Args).Should(ContainElement("podman"))
-		Expect(stepReply[0].Args).Should(ContainElement("-cluster-id"))
-		Expect(stepReply[0].Args).Should(ContainElement("-host-id"))
-		Expect(stepReply[0].Args).Should(ContainElement("-infra-env-id"))
-		Expect(stepReply[0].Args).Should(ContainElement(clusterId.String()))
-		Expect(stepReply[0].Args).Should(ContainElement(id.String()))
-		Expect(stepReply[0].Args).Should(ContainElement(infraEnvId.String()))
-		Expect(stepReply[0].Args).Should(ContainElement("--cacert"))
-		Expect(stepReply[0].Args).Should(ContainElement(common.HostCACertPath))
-		Expect(stepReply[0].Args).Should(ContainElement(fmt.Sprintf("%s:%s", common.HostCACertPath, common.HostCACertPath)))
+		request := models.LogsGatherCmdRequest{}
+		err := json.Unmarshal([]byte(stepReply[0].Args[0]), &request)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(len(stepReply[0].Args)).To(Equal(1))
+		Expect(request.InfraEnvID.String()).To(Equal(infraEnvId.String()))
+		Expect(request.ClusterID.String()).To(Equal(clusterId.String()))
+		Expect(request.HostID.String()).To(Equal(id.String()))
 	})
 
 	It("get_step without logs", func() {
@@ -97,8 +87,10 @@ var _ = Describe("upload_logs", func() {
 		Expect(db.Create(&cluster).Error).ToNot(HaveOccurred())
 		stepReply, stepErr = logsCmd.GetSteps(ctx, &host)
 		Expect(stepErr).ShouldNot(HaveOccurred())
-		Expect(stepReply[0].Args).Should(ContainElement("-masters-ips=1.2.3.4"))
-		Expect(stepReply[0].Args).Should(ContainElement("/root/.ssh:/root/.ssh"))
+		request := models.LogsGatherCmdRequest{}
+		err := json.Unmarshal([]byte(stepReply[0].Args[0]), &request)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(request.MasterIps).To(Equal([]string{"1.2.3.4"}))
 	})
 	It("get_step logs Masters IPs user-managed-networking ", func() {
 		host.Bootstrap = true
@@ -136,7 +128,10 @@ var _ = Describe("upload_logs", func() {
 		Expect(db.Create(&cluster).Error).ToNot(HaveOccurred())
 		stepReply, stepErr = logsCmd.GetSteps(ctx, &host)
 		Expect(stepErr).ShouldNot(HaveOccurred())
-		Expect(stepReply[0].Args).Should(ContainElement("-masters-ips=1.2.3.4,10.30.40.50,2001:db8::"))
+		request := models.LogsGatherCmdRequest{}
+		err = json.Unmarshal([]byte(stepReply[0].Args[0]), &request)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(request.MasterIps).To(Equal([]string{"1.2.3.4", "10.30.40.50", "2001:db8::"}))
 	})
 
 	AfterEach(func() {

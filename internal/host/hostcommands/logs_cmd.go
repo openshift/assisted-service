@@ -1,13 +1,9 @@
 package hostcommands
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"net"
-	"strconv"
-	"strings"
-	"text/template"
 	"time"
 
 	"github.com/go-openapi/swag"
@@ -32,87 +28,51 @@ func NewLogsCmd(log logrus.FieldLogger, db *gorm.DB, instructionConfig Instructi
 	}
 }
 
-func (i *logsCmd) GetSteps(ctx context.Context, host *models.Host) ([]*models.Step, error) {
-	// added to run upload logs if install command fails
-	if !time.Time(host.LogsCollectedAt).Equal(time.Time{}) {
-		return nil, nil
-	}
-
+func (i *logsCmd) prepareParam(ctx context.Context, host *models.Host) (string, error) {
 	var mastersIPs []string
 	var err error
 	if host.Bootstrap {
 		mastersIPs, err = i.getNonBootstrapMastersIPsInHostCluster(ctx, host)
 		if err != nil {
 			i.log.WithError(err).Errorf("Failed to get non-bootstrap masters IPs from cluster %s", host.ClusterID)
-			return nil, err
+			return "", err
 		}
 	}
 
-	logsCommand, err := i.createUploadLogsCmd(host, i.instructionConfig.ServiceBaseURL,
-		i.instructionConfig.AgentImage, strings.Join(mastersIPs, ","),
-		i.instructionConfig.SkipCertVerification, false, true)
+	request := models.LogsGatherCmdRequest{
+		ClusterID:       host.ClusterID,
+		HostID:          host.ID,
+		InfraEnvID:      &host.InfraEnvID,
+		Bootstrap:       swag.Bool(host.Bootstrap),
+		InstallerGather: true,
+		MasterIps:       mastersIPs,
+	}
+
+	b, err := json.Marshal(&request)
+	if err != nil {
+		i.log.WithError(err).Warn("Json marshal")
+		return "", err
+	}
+	return string(b), nil
+}
+
+func (i *logsCmd) GetSteps(ctx context.Context, host *models.Host) ([]*models.Step, error) {
+	// added to run upload logs if install command fails
+	if !time.Time(host.LogsCollectedAt).Equal(time.Time{}) {
+		return nil, nil
+	}
+
+	logsCommandAsArgs, err := i.prepareParam(ctx, host)
 	if err != nil {
 		return nil, err
 	}
-	logsCommandAsArgs := strings.Fields(logsCommand)
 	step := &models.Step{
-		StepType: models.StepTypeExecute,
-		Command:  logsCommandAsArgs[0],
-		Args:     logsCommandAsArgs[1:],
+		StepType: models.StepTypeLogsGather,
+		Command:  "",
+		Args:     []string{logsCommandAsArgs},
 	}
 
 	return []*models.Step{step}, nil
-}
-
-func (i *logsCmd) createUploadLogsCmd(host *models.Host, baseURL, agentImage, mastersIPs string, skipCertVerification, preservePreviousCommandReturnCode,
-	withInstallerGatherLogging bool) (string, error) {
-
-	cmdArgsTmpl := ""
-	if preservePreviousCommandReturnCode {
-		cmdArgsTmpl = "( returnCode=$?; "
-	}
-
-	data := map[string]string{
-		"BASE_URL":               strings.TrimSpace(baseURL),
-		"CLUSTER_ID":             host.ClusterID.String(),
-		"HOST_ID":                host.ID.String(),
-		"INFRA_ENV_ID":           host.InfraEnvID.String(),
-		"AGENT_IMAGE":            strings.TrimSpace(agentImage),
-		"SKIP_CERT_VERIFICATION": strconv.FormatBool(skipCertVerification),
-		"BOOTSTRAP":              strconv.FormatBool(host.Bootstrap),
-		"INSTALLER_GATHER":       strconv.FormatBool(withInstallerGatherLogging),
-		"MASTERS_IPS":            mastersIPs,
-	}
-
-	if i.instructionConfig.ServiceCACertPath != "" {
-		data["CACERTPATH"] = common.HostCACertPath
-	}
-
-	cmdArgsTmpl += "timeout 1h podman run --rm --privileged --net=host " +
-		"-v /run/systemd/journal/socket:/run/systemd/journal/socket -v /var/log:/var/log -v /etc/pki:/etc/pki " +
-		"{{if .CACERTPATH}} -v {{.CACERTPATH}}:{{.CACERTPATH}} {{end}}" +
-		"{{if eq .BOOTSTRAP `true`}} -v /root/.ssh:/root/.ssh -v /tmp:/tmp {{end}}" +
-		"--env PULL_SECRET_TOKEN --name logs-sender --pid=host {{.AGENT_IMAGE}} logs_sender " +
-		"-url {{.BASE_URL}} -cluster-id {{.CLUSTER_ID}} -host-id {{.HOST_ID}} -infra-env-id {{.INFRA_ENV_ID}} " +
-		"--insecure={{.SKIP_CERT_VERIFICATION}} -bootstrap={{.BOOTSTRAP}} -with-installer-gather-logging={{.INSTALLER_GATHER}}" +
-		"{{if .MASTERS_IPS}} -masters-ips={{.MASTERS_IPS}} {{end}}" +
-		"{{if .CACERTPATH}} --cacert {{.CACERTPATH}} {{end}}"
-
-	if preservePreviousCommandReturnCode {
-		cmdArgsTmpl = cmdArgsTmpl + "; exit $returnCode; )"
-	}
-
-	t, err := template.New("cmd").Parse(cmdArgsTmpl)
-	if err != nil {
-		return "", err
-	}
-
-	buf := &bytes.Buffer{}
-	if err := t.Execute(buf, data); err != nil {
-		return "", err
-	}
-
-	return buf.String(), nil
 }
 
 func (i *logsCmd) getNonBootstrapMastersIPsInHostCluster(ctx context.Context, host *models.Host) ([]string, error) {

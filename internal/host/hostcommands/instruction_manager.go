@@ -68,7 +68,6 @@ func NewInstructionManager(log logrus.FieldLogger, db *gorm.DB, hwValidator hard
 	installCmd := NewInstallCmd(log, db, hwValidator, ocRelease, instructionConfig, eventsHandler, versionHandler)
 	inventoryCmd := NewInventoryCmd(log, instructionConfig.AgentImage)
 	freeAddressesCmd := newFreeAddressesCmd(log, instructionConfig.AgentImage)
-	resetCmd := NewResetInstallationCmd(log)
 	stopCmd := NewStopInstallationCmd(log)
 	logsCmd := NewLogsCmd(log, db, instructionConfig)
 	dhcpAllocateCmd := NewDhcpAllocateCmd(log, instructionConfig.AgentImage, db)
@@ -93,7 +92,7 @@ func NewInstructionManager(log logrus.FieldLogger, db *gorm.DB, hwValidator hard
 			models.HostStatusInstallingInProgress:     {[]CommandGetter{inventoryCmd, dhcpAllocateCmd}, defaultNextInstructionInSec, models.StepsPostStepActionContinue}, //TODO inventory step here is a temporary solution until format command is moved to a different state
 			models.HostStatusPreparingForInstallation: {[]CommandGetter{dhcpAllocateCmd, diskPerfCheckCmd, imageAvailabilityCmd}, defaultNextInstructionInSec, models.StepsPostStepActionContinue},
 			models.HostStatusDisabled:                 {[]CommandGetter{}, defaultBackedOffInstructionInSec, models.StepsPostStepActionContinue},
-			models.HostStatusResetting:                {[]CommandGetter{resetCmd}, defaultBackedOffInstructionInSec, models.StepsPostStepActionContinue},
+			models.HostStatusResetting:                {[]CommandGetter{}, defaultBackedOffInstructionInSec, models.StepsPostStepActionContinue},
 			models.HostStatusError:                    {[]CommandGetter{logsCmd, stopCmd}, defaultBackedOffInstructionInSec, models.StepsPostStepActionContinue},
 			models.HostStatusCancelled:                {[]CommandGetter{logsCmd, stopCmd}, defaultBackedOffInstructionInSec, models.StepsPostStepActionContinue},
 			models.HostStatusBinding:                  {[]CommandGetter{noopCmd}, 0, models.StepsPostStepActionExit},
@@ -107,7 +106,7 @@ func NewInstructionManager(log logrus.FieldLogger, db *gorm.DB, hwValidator hard
 			models.HostStatusInstalling:           {[]CommandGetter{installCmd}, defaultBackedOffInstructionInSec, models.StepsPostStepActionContinue},
 			models.HostStatusInstallingInProgress: {[]CommandGetter{}, defaultNextInstructionInSec, models.StepsPostStepActionContinue},
 			models.HostStatusDisabled:             {[]CommandGetter{}, defaultBackedOffInstructionInSec, models.StepsPostStepActionContinue},
-			models.HostStatusResetting:            {[]CommandGetter{resetCmd}, defaultBackedOffInstructionInSec, models.StepsPostStepActionContinue},
+			models.HostStatusResetting:            {[]CommandGetter{}, defaultBackedOffInstructionInSec, models.StepsPostStepActionContinue},
 			models.HostStatusError:                {[]CommandGetter{stopCmd}, defaultBackedOffInstructionInSec, models.StepsPostStepActionContinue},
 			models.HostStatusCancelled:            {[]CommandGetter{stopCmd}, defaultBackedOffInstructionInSec, models.StepsPostStepActionContinue},
 		},

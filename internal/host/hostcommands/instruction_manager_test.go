@@ -131,19 +131,19 @@ var _ = Describe("instruction_manager", func() {
 			})
 			It("error", func() {
 				checkStep(models.HostStatusError, []models.StepType{
-					models.StepTypeExecute, models.StepTypeExecute,
+					models.StepTypeLogsGather, models.StepTypeStopInstallation,
 				})
 			})
 			It("error with already uploades logs", func() {
 				host.LogsCollectedAt = strfmt.DateTime(time.Now())
 				db.Save(&host)
 				checkStep(models.HostStatusError, []models.StepType{
-					models.StepTypeExecute,
+					models.StepTypeStopInstallation,
 				})
 			})
 			It("cancelled", func() {
 				checkStep(models.HostStatusCancelled, []models.StepType{
-					models.StepTypeExecute, models.StepTypeExecute,
+					models.StepTypeLogsGather, models.StepTypeStopInstallation,
 				})
 			})
 			It("installing", func() {
@@ -152,9 +152,7 @@ var _ = Describe("instruction_manager", func() {
 				})
 			})
 			It("reset", func() {
-				checkStep(models.HostStatusResetting, []models.StepType{
-					models.StepTypeResetInstallation,
-				})
+				checkStep(models.HostStatusResetting, []models.StepType{})
 			})
 			It("binding", func() {
 				checkStep(models.HostStatusBinding, nil)
@@ -224,12 +222,12 @@ var _ = Describe("instruction_manager", func() {
 			})
 			It("error", func() {
 				checkStep(models.HostStatusError, []models.StepType{
-					models.StepTypeExecute, models.StepTypeExecute,
+					models.StepTypeLogsGather, models.StepTypeStopInstallation,
 				})
 			})
 			It("cancelled", func() {
 				checkStep(models.HostStatusCancelled, []models.StepType{
-					models.StepTypeExecute, models.StepTypeExecute,
+					models.StepTypeLogsGather, models.StepTypeStopInstallation,
 				})
 			})
 			It("installing", func() {
@@ -243,9 +241,7 @@ var _ = Describe("instruction_manager", func() {
 				})
 			})
 			It("reset", func() {
-				checkStep(models.HostStatusResetting, []models.StepType{
-					models.StepTypeResetInstallation,
-				})
+				checkStep(models.HostStatusResetting, []models.StepType{})
 			})
 		})
 	})
@@ -344,7 +340,6 @@ var _ = Describe("instruction_manager", func() {
 			})
 			It("Should filter out StepTypeDhcpLeaseAllocate when: HostState=installing DisabledSteps=execute,dhcp-lease-allocate.", func() {
 				instMng = createInstMngWithDisabledSteps([]models.StepType{
-					models.StepTypeExecute,
 					models.StepTypeDhcpLeaseAllocate,
 				})
 				checkStep(models.HostStatusInstalling, []models.StepType{
@@ -353,7 +348,8 @@ var _ = Describe("instruction_manager", func() {
 			})
 			It("Should filter out StepTypeExecute (No steps) when: HostState=error DisabledSteps=execute.", func() {
 				instMng = createInstMngWithDisabledSteps([]models.StepType{
-					models.StepTypeExecute,
+					models.StepTypeLogsGather,
+					models.StepTypeStopInstallation,
 					models.StepTypeDhcpLeaseAllocate,
 				})
 				checkStep(models.HostStatusError, []models.StepType{})

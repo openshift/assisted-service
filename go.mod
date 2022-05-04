@@ -4,7 +4,6 @@ go 1.17
 
 require (
 	github.com/alecthomas/units v0.0.0-20190924025748-f65c72e2690d
-	github.com/alessio/shellescape v1.4.1
 	github.com/asaskevich/govalidator v0.0.0-20210307081110-f21760c49a8d
 	github.com/aws/aws-sdk-go v1.34.28
 	github.com/buger/jsonparser v1.1.1
@@ -73,6 +72,7 @@ require (
 	gopkg.in/square/go-jose.v2 v2.6.0
 	gopkg.in/yaml.v2 v2.4.0
 	gorm.io/driver/postgres v1.3.1
+	gorm.io/gorm v1.23.2
 	k8s.io/api v0.23.4
 	k8s.io/apimachinery v0.23.4
 	k8s.io/client-go v0.23.4
@@ -225,7 +225,6 @@ require (
 	gopkg.in/natefinch/lumberjack.v2 v2.0.0 // indirect
 	gopkg.in/tomb.v1 v1.0.0-20141024135613-dd632973f1e7 // indirect
 	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b // indirect
-	gorm.io/gorm v1.23.2 // indirect
 	howett.net/plist v0.0.0-20181124034731-591f970eefbb // indirect
 	k8s.io/apiextensions-apiserver v0.23.0 // indirect
 	k8s.io/apiserver v0.23.0 // indirect

@@ -36,7 +36,7 @@ var _ = Describe("stop-podman", func() {
 
 	It("get_step", func() {
 		stepReply, stepErr = stopCmd.GetSteps(ctx, &host)
-		Expect(stepReply[0].StepType).To(Equal(models.StepTypeExecute))
+		Expect(stepReply[0].StepType).To(Equal(models.StepTypeStopInstallation))
 		Expect(stepErr).ShouldNot(HaveOccurred())
 	})
 

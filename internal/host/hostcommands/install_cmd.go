@@ -7,7 +7,6 @@ import (
 	"net"
 	"strings"
 
-	"github.com/alessio/shellescape"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 	"github.com/openshift/assisted-service/internal/common"
@@ -35,16 +34,6 @@ type installCmd struct {
 	versionsHandler   versions.Handler
 }
 
-var podmanBaseCmd = [...]string{
-	"podman", "run", "--privileged", "--pid=host", "--net=host", "--name=assisted-installer",
-	"--volume", "/dev:/dev:rw",
-	"--volume", "/opt:/opt:rw",
-	"--volume", "/var/log:/var/log:rw",
-	"--volume", "/run/systemd/journal/socket:/run/systemd/journal/socket",
-	"--volume", "/etc/pki:/etc/pki",
-	"--env=PULL_SECRET_TOKEN",
-}
-
 func NewInstallCmd(log logrus.FieldLogger, db *gorm.DB, hwValidator hardware.Validator, ocRelease oc.Release,
 	instructionConfig InstructionConfig, eventsHandler eventsapi.Handler, versionsHandler versions.Handler) *installCmd {
 	return &installCmd{
@@ -61,7 +50,6 @@ func NewInstallCmd(log logrus.FieldLogger, db *gorm.DB, hwValidator hardware.Val
 func (i *installCmd) GetSteps(ctx context.Context, host *models.Host) ([]*models.Step, error) {
 	step := &models.Step{}
 	step.StepType = models.StepTypeInstall
-	step.Command = "bash"
 
 	cluster, err := common.GetClusterFromDBWithHosts(i.db, *host.ClusterID)
 	if err != nil {
@@ -92,7 +80,7 @@ func (i *installCmd) GetSteps(ctx context.Context, host *models.Host) ([]*models
 		return nil, err
 	}
 
-	step.Args = []string{"-c", fullCmd}
+	step.Args = []string{fullCmd}
 
 	if _, err := hostutil.UpdateHost(i.log, i.db, host.InfraEnvID, *host.ID, *host.Status,
 		"installer_version", i.instructionConfig.InstallerImage); err != nil {
@@ -113,17 +101,17 @@ func (i *installCmd) getFullInstallerCommand(cluster *common.Cluster, host *mode
 		haMode = *cluster.HighAvailabilityMode
 	}
 
-	podmanCmd := podmanBaseCmd[:]
-	installerCmdArgs := []string{
-		"--role", string(role),
-		"--infra-env-id", host.InfraEnvID.String(),
-		"--cluster-id", host.ClusterID.String(),
-		"--host-id", string(*host.ID),
-		"--boot-device", bootdevice,
-		"--url", i.instructionConfig.ServiceBaseURL,
-		"--high-availability-mode", haMode,
-		"--controller-image", i.instructionConfig.ControllerImage,
-		"--agent-image", i.instructionConfig.AgentImage,
+	request := models.InstallCmdRequest{
+		Role:                 &role,
+		ClusterID:            host.ClusterID,
+		HostID:               host.ID,
+		InfraEnvID:           &host.InfraEnvID,
+		HighAvailabilityMode: &haMode,
+		ControllerImage:      swag.String(i.instructionConfig.ControllerImage),
+		DisksToFormat:        disksToFormat,
+		CheckCvo:             swag.Bool(i.instructionConfig.CheckClusterVersion),
+		InstallerImage:       swag.String(i.instructionConfig.InstallerImage),
+		BootDevice:           swag.String(bootdevice),
 	}
 
 	// those flags are not used on day2 installation
@@ -133,47 +121,22 @@ func (i *installCmd) getFullInstallerCommand(cluster *common.Cluster, host *mode
 			return "", err
 		}
 
-		mcoImage, err := i.ocRelease.GetMCOImage(i.log, *releaseImage.URL, i.instructionConfig.ReleaseImageMirror, cluster.PullSecret)
+		request.McoImage, err = i.ocRelease.GetMCOImage(i.log, *releaseImage.URL, i.instructionConfig.ReleaseImageMirror, cluster.PullSecret)
 		if err != nil {
 			return "", err
 		}
-		i.log.Infof("Install command releaseImage: %s, mcoImage: %s", *releaseImage.URL, mcoImage)
+		i.log.Infof("Install command releaseImage: %s, mcoImage: %s", *releaseImage.URL, request.McoImage)
 
 		mustGatherMap, err := i.versionsHandler.GetMustGatherImages(cluster.OpenshiftVersion, cluster.CPUArchitecture, cluster.PullSecret)
 		if err != nil {
 			return "", err
 		}
-		mustGatherImages, err := i.getMustGatherArgument(mustGatherMap)
+		request.MustGatherImage, err = i.getMustGatherArgument(mustGatherMap)
 		if err != nil {
 			return "", err
 		}
 
-		installerCmdArgs = append(installerCmdArgs, "--must-gather-image", mustGatherImages)
-		installerCmdArgs = append(installerCmdArgs, "--openshift-version", cluster.OpenshiftVersion)
-		installerCmdArgs = append(installerCmdArgs, "--mco-image", mcoImage)
-	}
-
-	for _, diskToFormat := range disksToFormat {
-		installerCmdArgs = append(installerCmdArgs, "--format-disk")
-		installerCmdArgs = append(installerCmdArgs, diskToFormat)
-	}
-
-	/*
-		boolean flag must be used either without value (flag present means True) or in the format of <flag>=True|False.
-		format <boolean flag> <value> is not supported by golang flag package and will cause the flags processing to finish
-		before processing the rest of the input flags
-	*/
-	if i.instructionConfig.SkipCertVerification {
-		installerCmdArgs = append(installerCmdArgs, "--insecure")
-	}
-
-	if i.instructionConfig.CheckClusterVersion {
-		installerCmdArgs = append(installerCmdArgs, "--check-cluster-version")
-	}
-
-	if i.hasCACert() {
-		podmanCmd = append(podmanCmd, "--volume", fmt.Sprintf("%s:%s:rw", common.HostCACertPath, common.HostCACertPath))
-		installerCmdArgs = append(installerCmdArgs, "--cacert", common.HostCACertPath)
+		request.OpenshiftVersion = cluster.OpenshiftVersion
 	}
 
 	hostInstallerArgs, err := constructHostInstallerArgs(cluster, host, infraEnv, i.log)
@@ -182,20 +145,58 @@ func (i *installCmd) getFullInstallerCommand(cluster *common.Cluster, host *mode
 	}
 
 	if hostInstallerArgs != "" {
-		installerCmdArgs = append(installerCmdArgs, "--installer-args", hostInstallerArgs)
+		request.InstallerArgs = hostInstallerArgs
 	}
 
-	noProxyArgs := i.getProxyArguments(cluster.Name, cluster.BaseDNSDomain, cluster.HTTPProxy, cluster.HTTPSProxy, cluster.NoProxy)
-	if len(noProxyArgs) > 0 {
-		installerCmdArgs = append(installerCmdArgs, noProxyArgs...)
-	}
+	request.Proxy = i.getProxyArguments(cluster.Name, cluster.BaseDNSDomain, cluster.HTTPProxy, cluster.HTTPSProxy, cluster.NoProxy)
 
 	if i.instructionConfig.ServiceIPs != "" {
-		installerCmdArgs = append(installerCmdArgs, "--service-ips", i.instructionConfig.ServiceIPs)
+		request.ServiceIps = strings.Split(i.instructionConfig.ServiceIPs, ",")
 	}
 
-	return fmt.Sprintf("%s %s %s", shellescape.QuoteCommand(podmanCmd), i.instructionConfig.InstallerImage,
-		shellescape.QuoteCommand(installerCmdArgs)), nil
+	b, err := json.Marshal(&request)
+	if err != nil {
+		i.log.WithError(err).Warn("Json marshal")
+		return "", err
+	}
+
+	return string(b), nil
+}
+
+func (i *installCmd) getProxyArguments(clusterName, baseDNSDomain, httpProxy, httpsProxy, noProxy string) *models.Proxy {
+	var proxy models.Proxy
+	if httpProxy == "" && httpsProxy == "" {
+		return nil
+	}
+
+	if httpProxy != "" {
+		proxy.HTTPProxy = swag.String(httpProxy)
+	}
+
+	if httpsProxy != "" {
+		proxy.HTTPSProxy = swag.String(httpsProxy)
+	}
+
+	noProxyTrim := strings.TrimSpace(noProxy)
+	if noProxyTrim == "*" {
+		proxy.NoProxy = swag.String(noProxyTrim)
+	} else {
+		noProxyUpdated := []string{}
+		if noProxyTrim != "" {
+			noProxyUpdated = append(noProxyUpdated, noProxyTrim)
+		}
+		// if we set proxy we need to update assisted installer no proxy with no proxy params as installer.
+		// it must be able to connect to api int. Added this way for not to pass name and base domain
+		noProxyUpdated = append(noProxyUpdated,
+			"127.0.0.1",
+			"localhost",
+			".svc",
+			".cluster.local",
+			fmt.Sprintf("api-int.%s.%s", clusterName, baseDNSDomain))
+		proxy.NoProxy = swag.String(strings.Join(noProxyUpdated, ","))
+	}
+
+	return &proxy
 }
 
 func (i *installCmd) getMustGatherArgument(mustGatherMap versions.MustGatherVersion) (string, error) {
@@ -212,47 +213,6 @@ func (i *installCmd) getMustGatherArgument(mustGatherMap versions.MustGatherVers
 		return "", err
 	}
 	return string(arg), nil
-}
-
-func (i *installCmd) getProxyArguments(clusterName, baseDNSDomain, httpProxy, httpsProxy, noProxy string) []string {
-	cmd := make([]string, 0)
-	if httpProxy == "" && httpsProxy == "" {
-		return cmd
-	}
-
-	if httpProxy != "" {
-		cmd = append(cmd, "--http-proxy", httpProxy)
-	}
-
-	if httpsProxy != "" {
-		cmd = append(cmd, "--https-proxy", httpsProxy)
-	}
-
-	noProxyTrim := strings.TrimSpace(noProxy)
-	if noProxyTrim == "*" {
-		cmd = append(cmd, "--no-proxy", noProxyTrim)
-	} else {
-
-		noProxyUpdated := []string{}
-		if noProxyTrim != "" {
-			noProxyUpdated = append(noProxyUpdated, noProxyTrim)
-		}
-		// if we set proxy we need to update assisted installer no proxy with no proxy params as installer.
-		// it must be able to connect to api int. Added this way for not to pass name and base domain
-		noProxyUpdated = append(noProxyUpdated,
-			"127.0.0.1",
-			"localhost",
-			".svc",
-			".cluster.local",
-			fmt.Sprintf("api-int.%s.%s", clusterName, baseDNSDomain))
-		cmd = append(cmd, "--no-proxy", strings.Join(noProxyUpdated, ","))
-	}
-
-	return cmd
-}
-
-func (i *installCmd) hasCACert() bool {
-	return i.instructionConfig.ServiceCACertPath != ""
 }
 
 func (i *installCmd) getDisksToFormat(ctx context.Context, host models.Host) ([]string, error) {
