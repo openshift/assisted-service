@@ -10,23 +10,23 @@ import (
 
 const BootArtifactsPath = "/boot-artifacts"
 
-func KernelURL(baseURL, version, arch string) (string, error) {
-	return buildURL(baseURL, fmt.Sprintf("%s/kernel", BootArtifactsPath), true, map[string]string{
+func KernelURL(baseURL, version, arch string, insecure bool) (string, error) {
+	return buildURL(baseURL, fmt.Sprintf("%s/kernel", BootArtifactsPath), insecure, map[string]string{
 		"version": version,
 		"arch":    arch,
 	})
 }
 
-func RootFSURL(baseURL, version, arch string) (string, error) {
-	return buildURL(baseURL, fmt.Sprintf("%s/rootfs", BootArtifactsPath), true, map[string]string{
+func RootFSURL(baseURL, version, arch string, insecure bool) (string, error) {
+	return buildURL(baseURL, fmt.Sprintf("%s/rootfs", BootArtifactsPath), insecure, map[string]string{
 		"version": version,
 		"arch":    arch,
 	})
 }
 
-func InitrdURL(baseURL, imageID, version, arch string) (string, error) {
+func InitrdURL(baseURL, imageID, version, arch string, insecure bool) (string, error) {
 	path := fmt.Sprintf("/images/%s/pxe-initrd", imageID)
-	return buildURL(baseURL, path, true, map[string]string{
+	return buildURL(baseURL, path, insecure, map[string]string{
 		"version": version,
 		"arch":    arch,
 	})

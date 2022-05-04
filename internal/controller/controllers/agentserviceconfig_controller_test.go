@@ -369,6 +369,133 @@ var _ = Describe("agentserviceconfig_controller reconcile", func() {
 		Expect(conditionsv1.FindStatusCondition(instance.Status.Conditions, aiv1beta1.ConditionDeploymentsHealthy).Status).To(Equal(corev1.ConditionTrue))
 		Expect(conditionsv1.FindStatusCondition(instance.Status.Conditions, aiv1beta1.ConditionDeploymentsHealthy).Reason).To(Equal(aiv1beta1.ReasonDeploymentFailure))
 	})
+
+	Context("IPXE routes", func() {
+		var (
+			imageServiceStatefulSet *appsv1.StatefulSet
+		)
+		BeforeEach(func() {
+			agentinstalladmissionDeployment = &appsv1.Deployment{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "agentinstalladmission",
+					Namespace: testNamespace,
+				},
+				Status: appsv1.DeploymentStatus{
+					Conditions: []appsv1.DeploymentCondition{
+						{
+							Type:   appsv1.DeploymentAvailable,
+							Status: corev1.ConditionTrue,
+						},
+					},
+				},
+			}
+			var replicas int32 = 1
+			imageServiceStatefulSet = &appsv1.StatefulSet{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "assisted-image-service",
+					Namespace: testNamespace,
+				},
+				Spec: appsv1.StatefulSetSpec{
+					Replicas: &replicas,
+					VolumeClaimTemplates: []corev1.PersistentVolumeClaim{
+						{
+							ObjectMeta: metav1.ObjectMeta{
+								Name: "image-service-data",
+							},
+							Spec: *asc.Spec.ImageStorage,
+						},
+					},
+				},
+				Status: appsv1.StatefulSetStatus{
+					Replicas:        1,
+					ReadyReplicas:   1,
+					CurrentReplicas: 1,
+					UpdatedReplicas: 1,
+				},
+			}
+			assistedServiceDeployment = &appsv1.Deployment{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "assisted-service",
+					Namespace: testNamespace,
+				},
+				Status: appsv1.DeploymentStatus{
+					Conditions: []appsv1.DeploymentCondition{
+						{
+							Type:   appsv1.DeploymentAvailable,
+							Status: corev1.ConditionTrue,
+						},
+					},
+				},
+			}
+		})
+
+		It("should not create plain http route by default", func() {
+			ascr = newTestReconciler(asc, ingressCM, route, imageRoute, agentinstalladmissionDeployment, imageServiceStatefulSet, assistedServiceDeployment)
+			_, err := ascr.Reconcile(ctx, newAgentServiceConfigRequest(asc))
+			Expect(err).To(Succeed())
+
+			found := &routev1.Route{}
+			bootArtifactsRouteName := fmt.Sprintf("%s-ipxe", imageServiceName)
+			Expect(ascr.Client.Get(ctx, types.NamespacedName{Name: bootArtifactsRouteName, Namespace: testNamespace}, found)).NotTo(Succeed())
+
+		})
+
+		It("should create plain http route", func() {
+			asc.Spec.IPXEHTTPRoute = aiv1beta1.IPXEHTTPRouteEnabled
+			ascr = newTestReconciler(asc, ingressCM, route, imageRoute, agentinstalladmissionDeployment, imageServiceStatefulSet, assistedServiceDeployment)
+			_, err := ascr.Reconcile(ctx, newAgentServiceConfigRequest(asc))
+			Expect(err).To(Succeed())
+
+			found := &routev1.Route{}
+			bootArtifactsRouteName := fmt.Sprintf("%s-ipxe", imageServiceName)
+			Expect(ascr.Client.Get(ctx, types.NamespacedName{Name: bootArtifactsRouteName, Namespace: testNamespace}, found)).To(Succeed())
+			Expect(found.Spec.Host).To(Equal(imageRoute.Spec.Host))
+			Expect(found.Spec.Path).To(Equal("/"))
+			Expect(found.Spec.Port.TargetPort).To(Equal(intstr.FromString(fmt.Sprintf("%s-http", imageServiceName))))
+		})
+
+		It("should not create plain http route if ExposeIPXEHTTPRoute is explicitly disabled", func() {
+			asc.Spec.IPXEHTTPRoute = aiv1beta1.IPXEHTTPRouteDisabled
+			ascr = newTestReconciler(asc, ingressCM, route, imageRoute, agentinstalladmissionDeployment, imageServiceStatefulSet, assistedServiceDeployment)
+			_, err := ascr.Reconcile(ctx, newAgentServiceConfigRequest(asc))
+			Expect(err).To(Succeed())
+
+			found := &routev1.Route{}
+			bootArtifactsRouteName := fmt.Sprintf("%s-ipxe", imageServiceName)
+			Expect(ascr.Client.Get(ctx, types.NamespacedName{Name: bootArtifactsRouteName, Namespace: testNamespace}, found)).NotTo(Succeed())
+		})
+
+		It("should not create plain http route if ExposeIPXEHTTPRoute is not unknown", func() {
+			asc.Spec.IPXEHTTPRoute = "foobar"
+			ascr = newTestReconciler(asc, ingressCM, route, imageRoute, agentinstalladmissionDeployment, imageServiceStatefulSet, assistedServiceDeployment)
+			_, err := ascr.Reconcile(ctx, newAgentServiceConfigRequest(asc))
+			Expect(err).To(Succeed())
+
+			found := &routev1.Route{}
+			bootArtifactsRouteName := fmt.Sprintf("%s-ipxe", imageServiceName)
+			Expect(ascr.Client.Get(ctx, types.NamespacedName{Name: bootArtifactsRouteName, Namespace: testNamespace}, found)).NotTo(Succeed())
+		})
+
+		It("should remove http route after IPXEHTTPRouteEnabled changed to disabled", func() {
+			asc.Spec.IPXEHTTPRoute = aiv1beta1.IPXEHTTPRouteEnabled
+			ascr = newTestReconciler(asc, ingressCM, route, imageRoute, agentinstalladmissionDeployment, imageServiceStatefulSet, assistedServiceDeployment)
+			_, err := ascr.Reconcile(ctx, newAgentServiceConfigRequest(asc))
+			Expect(err).To(Succeed())
+
+			found := &routev1.Route{}
+			bootArtifactsRouteName := fmt.Sprintf("%s-ipxe", imageServiceName)
+			Expect(ascr.Client.Get(ctx, types.NamespacedName{Name: bootArtifactsRouteName, Namespace: testNamespace}, found)).To(Succeed())
+
+			asc.Spec.IPXEHTTPRoute = aiv1beta1.IPXEHTTPRouteDisabled
+			ascr = newTestReconciler(asc, ingressCM, route, imageRoute, agentinstalladmissionDeployment, imageServiceStatefulSet, assistedServiceDeployment)
+			_, err = ascr.Reconcile(ctx, newAgentServiceConfigRequest(asc))
+			Expect(err).To(Succeed())
+
+			found = &routev1.Route{}
+			Expect(ascr.Client.Get(ctx, types.NamespacedName{Name: bootArtifactsRouteName, Namespace: testNamespace}, found)).NotTo(Succeed())
+		})
+	})
+
 })
 
 var _ = Describe("newImageServiceService", func() {
@@ -448,27 +575,6 @@ var _ = Describe("newImageServiceRoute", func() {
 			found := &routev1.Route{}
 			Expect(ascr.Client.Get(ctx, types.NamespacedName{Name: imageServiceName, Namespace: testNamespace}, found)).To(Succeed())
 			Expect(found.Spec.Host).To(Equal(routeHost))
-		})
-	})
-
-	Context("ipxe routes", func() {
-		It("should create plain http route", func() {
-			found := &routev1.Route{}
-
-			routeHost := "route.example.com"
-			r, _, _ := ascr.newImageServiceRoute(ctx, log, asc)
-			imageServiceRoute := r.(*routev1.Route)
-			imageServiceRoute.Spec.Host = routeHost
-			Expect(ascr.Client.Create(ctx, imageServiceRoute)).To(Succeed())
-
-			AssertReconcileSuccess(ctx, log, ascr.Client, asc, ascr.newImageServiceIPXERoute)
-
-			Expect(ascr.Client.Get(ctx, types.NamespacedName{Name: imageServiceName, Namespace: testNamespace}, imageServiceRoute)).To(Succeed())
-
-			bootArtifactsRouteName := fmt.Sprintf("%s-ipxe", imageServiceName)
-			Expect(ascr.Client.Get(ctx, types.NamespacedName{Name: bootArtifactsRouteName, Namespace: testNamespace}, found)).To(Succeed())
-			Expect(found.Spec.Host).To(Equal(imageServiceRoute.Spec.Host))
-			Expect(found.Spec.Port.TargetPort).To(Equal(intstr.FromString(fmt.Sprintf("%s-http", imageServiceName))))
 		})
 	})
 })

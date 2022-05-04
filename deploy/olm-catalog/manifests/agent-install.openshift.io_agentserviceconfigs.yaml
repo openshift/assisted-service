@@ -361,6 +361,18 @@ spec:
                       backing this claim.
                     type: string
                 type: object
+              iPXEHTTPRoute:
+                description: 'IPXEHTTPRoute is controlling whether the operator is
+                  creating plain HTTP routes iPXE hosts may not work with router cyphers
+                  and may access artifacts via HTTP only This setting accepts "enabled,disabled",
+                  defaults to disabled. Empty value defaults to disabled The following
+                  endpoints would be exposed via http: * api/assisted-installer/v2/infra-envs/<id>/downloads/files?file_name=ipxe-script
+                  in assisted-service * boot-artifacts/ and images/<infra-enf id>/pxe-initrd
+                  in -image-service'
+                enum:
+                - enabled
+                - disabled
+                type: string
               imageStorage:
                 description: ImageStorage defines the spec of the PersistentVolumeClaim
                   to be created for each replica of the image service. If a PersistentVolumeClaim
