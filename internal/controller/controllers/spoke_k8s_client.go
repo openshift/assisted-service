@@ -16,12 +16,12 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-//go:generate mockgen -package=controllers -destination=mock_spoke_k8s_client_factory.go . SpokeK8sClientFactory
+//go:generate mockgen --build_flags=--mod=mod -package=controllers -destination=mock_spoke_k8s_client_factory.go . SpokeK8sClientFactory
 type SpokeK8sClientFactory interface {
 	Create(secret *corev1.Secret) (SpokeK8sClient, error)
 }
 
-//go:generate mockgen -package=controllers -destination=mock_spoke_k8s_client.go . SpokeK8sClient
+//go:generate mockgen --build_flags=--mod=mod -package=controllers -destination=mock_spoke_k8s_client.go . SpokeK8sClient
 type SpokeK8sClient interface {
 	client.Client
 	ListCsrs() (*certificatesv1.CertificateSigningRequestList, error)

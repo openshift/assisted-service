@@ -11,7 +11,7 @@ const (
 	DbFieldPlatformType = "platform_type"
 )
 
-//go:generate mockgen -package provider -destination mock_base_provider.go . Provider
+//go:generate mockgen --build_flags=--mod=mod -package provider -destination mock_base_provider.go . Provider
 // Provider contains functions which are required to support installing on a specific platform.
 type Provider interface {
 	// Name returns the name of the platform.
