@@ -113,6 +113,12 @@ type AgentServiceConfigReconciler struct {
 	Tolerations  []corev1.Toleration
 }
 
+type component struct {
+	name   string
+	reason string
+	fn     NewComponentFn
+}
+
 type NewComponentFn func(context.Context, logrus.FieldLogger, *aiv1beta1.AgentServiceConfig) (client.Object, controllerutil.MutateFn, error)
 type ComponentStatusFn func(context.Context, logrus.FieldLogger, string, appsv1.DeploymentConditionType) error
 
@@ -127,6 +133,7 @@ type ComponentStatusFn func(context.Context, logrus.FieldLogger, string, appsv1.
 // +kubebuilder:rbac:groups=core,resources=services,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=core,resources=serviceaccounts,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=route.openshift.io,resources=routes,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=route.openshift.io,resources=routes/custom-host,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=monitoring.coreos.com,resources=servicemonitors,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups="",resources=events,verbs=create;patch
 // +kubebuilder:rbac:groups=admissionregistration.k8s.io,resources=validatingwebhookconfigurations,verbs=get;list;watch;create;update;patch;delete
@@ -211,20 +218,14 @@ func (r *AgentServiceConfigReconciler) Reconcile(origCtx context.Context, req ct
 		return ctrl.Result{}, nil
 	}
 
-	for _, component := range []struct {
-		name   string
-		reason string
-		fn     NewComponentFn
-	}{
+	for _, component := range []component{
 		{"FilesystemStorage", aiv1beta1.ReasonStorageFailure, r.newFilesystemPVC},
 		{"DatabaseStorage", aiv1beta1.ReasonStorageFailure, r.newDatabasePVC},
 		{"ImageServiceService", aiv1beta1.ReasonImageHandlerServiceFailure, r.newImageServiceService},
 		{"AgentService", aiv1beta1.ReasonAgentServiceFailure, r.newAgentService},
 		{"ServiceMonitor", aiv1beta1.ReasonAgentServiceMonitorFailure, r.newServiceMonitor},
 		{"ImageServiceRoute", aiv1beta1.ReasonImageHandlerRouteFailure, r.newImageServiceRoute},
-		{"ImageServiceIPXERoute", aiv1beta1.ReasonImageHandlerRouteFailure, r.newImageServiceIPXERoute},
 		{"AgentRoute", aiv1beta1.ReasonAgentRouteFailure, r.newAgentRoute},
-		{"AgentIPXERoute", aiv1beta1.ReasonAgentRouteFailure, r.newAgentIPXERoute},
 		{"AgentLocalAuthSecret", aiv1beta1.ReasonAgentLocalAuthSecretFailure, r.newAgentLocalAuthSecret},
 		{"DatabaseSecret", aiv1beta1.ReasonPostgresSecretFailure, r.newPostgresSecret},
 		{"ImageServiceServiceAccount", aiv1beta1.ReasonImageHandlerServiceAccountFailure, r.newImageServiceServiceAccount},
@@ -242,38 +243,28 @@ func (r *AgentServiceConfigReconciler) Reconcile(origCtx context.Context, req ct
 		{"WebHookClusterRoleBinding", aiv1beta1.ReasonWebHookClusterRoleBindingFailure, r.newWebHookClusterRoleBinding},
 		{"WebHookAPIService", aiv1beta1.ReasonWebHookAPIServiceFailure, r.newWebHookAPIService},
 	} {
-		obj, mutateFn, err := component.fn(ctx, log, instance)
-		if err != nil {
-			msg := "Failed to generate definition for " + component.name
-			log.WithError(err).Error(msg)
-			conditionsv1.SetStatusConditionNoHeartbeat(&instance.Status.Conditions, conditionsv1.Condition{
-				Type:    aiv1beta1.ConditionReconcileCompleted,
-				Status:  corev1.ConditionFalse,
-				Reason:  component.reason,
-				Message: msg,
-			})
-			if statusErr := r.Status().Update(ctx, instance); statusErr != nil {
-				log.WithError(err).Error("Failed to update status")
-				return ctrl.Result{Requeue: true}, statusErr
-			}
-			return ctrl.Result{Requeue: true}, err
+		if result, err := r.reconcileComponent(ctx, instance, log, component); err != nil {
+			return result, err
 		}
+	}
 
-		if result, err := controllerutil.CreateOrUpdate(ctx, r.Client, obj, mutateFn); err != nil {
-			msg := "Failed to ensure " + component.name
-			log.WithError(err).Error(msg)
-			conditionsv1.SetStatusConditionNoHeartbeat(&instance.Status.Conditions, conditionsv1.Condition{
-				Type:    aiv1beta1.ConditionReconcileCompleted,
-				Status:  corev1.ConditionFalse,
-				Reason:  component.reason,
-				Message: msg,
-			})
-			if statusErr := r.Status().Update(ctx, instance); statusErr != nil {
-				log.WithError(err).Error("Failed to update status")
-				return ctrl.Result{Requeue: true}, statusErr
+	// Additional routes need to be synced if HTTP iPXE routes are exposed
+	if r.exposeIPXEHTTPRoute(instance) {
+		for _, component := range []component{
+			{"ImageServiceIPXERoute", aiv1beta1.ReasonImageHandlerRouteFailure, r.newImageServiceIPXERoute},
+			{"AgentIPXERoute", aiv1beta1.ReasonAgentRouteFailure, r.newAgentIPXERoute},
+		} {
+			if result, err := r.reconcileComponent(ctx, instance, log, component); err != nil {
+				return result, err
 			}
-		} else if result != controllerutil.OperationResultNone {
-			log.Info(component.name + " created")
+		}
+	} else {
+		// Ensure HTTP routes are removed
+		for _, service := range []string{serviceName, imageServiceName} {
+			if err := r.removeHTTPIPXERoute(ctx, instance, service); err != nil {
+				log.WithError(err).Errorf("failed to remove HTTP route for %s", service)
+				return ctrl.Result{Requeue: true}, err
+			}
 		}
 	}
 
@@ -322,6 +313,43 @@ func (r *AgentServiceConfigReconciler) Reconcile(origCtx context.Context, req ct
 	})
 
 	return ctrl.Result{}, r.Status().Update(ctx, instance)
+}
+
+func (r *AgentServiceConfigReconciler) reconcileComponent(ctx context.Context, instance *aiv1beta1.AgentServiceConfig, log *logrus.Entry, component component) (ctrl.Result, error) {
+	obj, mutateFn, err := component.fn(ctx, log, instance)
+	if err != nil {
+		msg := "Failed to generate definition for " + component.name
+		log.WithError(err).Error(msg)
+		conditionsv1.SetStatusConditionNoHeartbeat(&instance.Status.Conditions, conditionsv1.Condition{
+			Type:    aiv1beta1.ConditionReconcileCompleted,
+			Status:  corev1.ConditionFalse,
+			Reason:  component.reason,
+			Message: msg,
+		})
+		if statusErr := r.Status().Update(ctx, instance); statusErr != nil {
+			log.WithError(err).Error("Failed to update status")
+			return ctrl.Result{Requeue: true}, statusErr
+		}
+		return ctrl.Result{Requeue: true}, err
+	}
+
+	if result, err := controllerutil.CreateOrUpdate(ctx, r.Client, obj, mutateFn); err != nil {
+		msg := "Failed to ensure " + component.name
+		log.WithError(err).Error(msg)
+		conditionsv1.SetStatusConditionNoHeartbeat(&instance.Status.Conditions, conditionsv1.Condition{
+			Type:    aiv1beta1.ConditionReconcileCompleted,
+			Status:  corev1.ConditionFalse,
+			Reason:  component.reason,
+			Message: msg,
+		})
+		if statusErr := r.Status().Update(ctx, instance); statusErr != nil {
+			log.WithError(err).Error("Failed to update status")
+			return ctrl.Result{Requeue: true}, statusErr
+		}
+	} else if result != controllerutil.OperationResultNone {
+		log.Info(component.name + " created")
+	}
+	return ctrl.Result{Requeue: false}, nil
 }
 
 // SetupWithManager sets up the controller with the Manager.
@@ -642,6 +670,7 @@ func (r *AgentServiceConfigReconciler) newHTTPRoute(ctx context.Context, log log
 		},
 	}
 	routeSpec := routev1.RouteSpec{
+		Path: "/",
 		To: routev1.RouteTargetReference{
 			Kind:   "Service",
 			Name:   serviceToExpose,
@@ -665,10 +694,31 @@ func (r *AgentServiceConfigReconciler) newHTTPRoute(ctx context.Context, log log
 		route.Spec.Port = routeSpec.Port
 		route.Spec.WildcardPolicy = routeSpec.WildcardPolicy
 		route.Spec.TLS = routeSpec.TLS
+		route.Spec.Path = routeSpec.Path
 		return nil
 	}
 
 	return route, mutateFn, nil
+}
+
+func (r *AgentServiceConfigReconciler) removeHTTPIPXERoute(ctx context.Context, instance *aiv1beta1.AgentServiceConfig, serviceToExpose string) error {
+	route := &routev1.Route{}
+	routeName := fmt.Sprintf("%s-ipxe", serviceToExpose)
+	namespacedName := types.NamespacedName{Name: routeName, Namespace: r.Namespace}
+	if err := r.Get(ctx, namespacedName, route); err == nil {
+		err = r.Client.Delete(ctx, &routev1.Route{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      routeName,
+				Namespace: r.Namespace,
+			},
+		})
+		if !errors.IsNotFound(err) {
+			return err
+		} else {
+			return nil
+		}
+	}
+	return nil
 }
 
 func (r *AgentServiceConfigReconciler) newAgentIPXERoute(ctx context.Context, log logrus.FieldLogger, instance *aiv1beta1.AgentServiceConfig) (client.Object, controllerutil.MutateFn, error) {
@@ -1268,6 +1318,10 @@ func (r *AgentServiceConfigReconciler) newAssistedServiceDeployment(ctx context.
 		newSecretEnvVar("EC_PRIVATE_KEY_PEM", "ec-private-key.pem", agentLocalAuthSecretName),
 	}
 
+	if r.exposeIPXEHTTPRoute(instance) {
+		envSecrets = append(envSecrets, corev1.EnvVar{Name: "HTTP_LISTEN_PORT", Value: serviceHTTPPort.String()})
+	}
+
 	envFrom := []corev1.EnvFromSource{
 		{
 			ConfigMapRef: &corev1.ConfigMapEnvSource{
@@ -1638,6 +1692,18 @@ func (r *AgentServiceConfigReconciler) getOSImages(log logrus.FieldLogger, insta
 	}
 
 	return string(encodedOSImages)
+}
+
+// exposeIPXEHTTPRoute returns true if spec.IPXEHTTPRoute is set to true
+func (r *AgentServiceConfigReconciler) exposeIPXEHTTPRoute(instance *aiv1beta1.AgentServiceConfig) bool {
+	switch instance.Spec.IPXEHTTPRoute {
+	case aiv1beta1.IPXEHTTPRouteEnabled:
+		return true
+	case aiv1beta1.IPXEHTTPRouteDisabled:
+		return false
+	default:
+		return false
+	}
 }
 
 func (r *AgentServiceConfigReconciler) getCMHash(ctx context.Context, namespacedName types.NamespacedName) (string, error) {

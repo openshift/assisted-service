@@ -9314,6 +9314,7 @@ var _ = Describe("V2DownloadInfraEnvFiles", func() {
 
 		initrdURL, err := url.Parse(match[1])
 		Expect(err).NotTo(HaveOccurred())
+		Expect(initrdURL.Scheme).To(Equal("http"))
 		Expect(initrdURL.Host).To(Equal(imageServiceHost))
 		Expect(initrdURL.Path).To(Equal(fmt.Sprintf("%s/images/%s/pxe-initrd", imageServicePath, infraEnvID)))
 		Expect(initrdURL.Query().Get("version")).To(Equal(*common.TestDefaultConfig.OsImage.OpenshiftVersion))
@@ -12840,7 +12841,7 @@ func createInventory(db *gorm.DB, cfg Config) *bareMetalInventory {
 		mockGenerator, mockEvents, mockS3Client, mockMetric, mockUsage, mockOperatorManager,
 		getTestAuthHandler(), getTestAuthzHandler(), mockK8sClient, ocmClient, nil, mockSecretValidator, mockVersions,
 		mockCRDUtils, mockIgnitionBuilder, mockHwValidator, dnsApi, mockInstallConfigBuilder, mockStaticNetworkConfig,
-		gcConfig, mockProviderRegistry)
+		gcConfig, mockProviderRegistry, true)
 
 	bm.ImageServiceBaseURL = imageServiceBaseURL
 	return bm

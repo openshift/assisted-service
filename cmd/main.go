@@ -423,10 +423,14 @@ func main() {
 		}
 	}
 
+	// Determine if IPXE artifact URLs need to be http
+	serverInfo := servers.New(Options.HTTPListenPort, swag.StringValue(port), Options.HTTPSKeyFile, Options.HTTPSCertFile)
+	generateInsecureIPXEURLs := serverInfo.HasBothHandlers
+
 	bm := bminventory.NewBareMetalInventory(db, log.WithField("pkg", "Inventory"), hostApi, clusterApi, infraEnvApi, Options.BMConfig,
 		generator, eventsHandler, objectHandler, metricsManager, usageManager, operatorsManager, authHandler, authzHandler, ocpClient, ocmClient,
 		lead, pullSecretValidator, versionHandler, crdUtils, ignitionBuilder, hwValidator, dnsApi, installConfigBuilder, staticNetworkConfig,
-		Options.GCConfig, providerRegistry)
+		Options.GCConfig, providerRegistry, generateInsecureIPXEURLs)
 
 	events := events.NewApi(eventsHandler, logrus.WithField("pkg", "eventsApi"))
 
@@ -501,6 +505,7 @@ func main() {
 				ImageServiceBaseURL: Options.BMConfig.ImageServiceBaseURL,
 				AuthType:            Options.Auth.AuthType,
 				VersionsHandler:     versionHandler,
+				InsecureIPXEURLs:    generateInsecureIPXEURLs,
 			}).SetupWithManager(ctrlMgr), "unable to create controller InfraEnv")
 
 			failOnError((&controllers.ClusterDeploymentsReconciler{
@@ -564,8 +569,7 @@ func main() {
 	signal.Notify(stop, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
 
 	// Run listen on http and https ports if HTTPSCertFile/HTTPSKeyFile set
-	serverInfo := servers.New(Options.HTTPListenPort, swag.StringValue(port), Options.HTTPSKeyFile, Options.HTTPSCertFile)
-	if serverInfo.HasBothHandlers {
+	if generateInsecureIPXEURLs {
 		h = app.WithIPXEScriptMiddleware(h)
 	}
 	if serverInfo.HTTP != nil {
