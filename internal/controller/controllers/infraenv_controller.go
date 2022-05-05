@@ -184,7 +184,7 @@ func (r *InfraEnvReconciler) updateInfraEnv(ctx context.Context, log logrus.Fiel
 	return r.Installer.UpdateInfraEnvInternal(ctx, updateParams)
 }
 
-func (r *InfraEnvReconciler) buildMacInterfaceMap(log logrus.FieldLogger, nmStateConfig aiv1beta1.NMStateConfig) models.MacInterfaceMap {
+func BuildMacInterfaceMap(log logrus.FieldLogger, nmStateConfig aiv1beta1.NMStateConfig) models.MacInterfaceMap {
 	macInterfaceMap := make(models.MacInterfaceMap, 0, len(nmStateConfig.Spec.Interfaces))
 	for _, cfg := range nmStateConfig.Spec.Interfaces {
 		log.Debugf("adding MAC interface map to host static network config - Name: %s, MacAddress: %s ,",
@@ -221,7 +221,7 @@ func (r *InfraEnvReconciler) processNMStateConfig(ctx context.Context, log logru
 
 	for _, nmStateConfig := range nmStateConfigs.Items {
 		staticNetworkConfig = append(staticNetworkConfig, &models.HostStaticNetworkConfig{
-			MacInterfaceMap: r.buildMacInterfaceMap(log, nmStateConfig),
+			MacInterfaceMap: BuildMacInterfaceMap(log, nmStateConfig),
 			NetworkYaml:     string(nmStateConfig.Spec.NetConfig.Raw),
 		})
 	}
@@ -313,7 +313,13 @@ func (r *InfraEnvReconciler) ensureISO(ctx context.Context, log logrus.FieldLogg
 	infraEnvInternal, err := r.Installer.GetInfraEnvByKubeKey(key)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			infraEnvInternal, err = r.createInfraEnv(ctx, log, &key, infraEnv, cluster)
+			var clusterID *strfmt.UUID
+			var openshiftVersion string
+			if cluster != nil {
+				clusterID = cluster.ID
+				openshiftVersion = cluster.OpenshiftVersion
+			}
+			infraEnvInternal, err = r.createInfraEnv(ctx, log, &key, infraEnv, clusterID, openshiftVersion)
 			if err != nil {
 				log.Errorf("fail to create InfraEnv: %s, ", infraEnv.Name)
 				return r.handleEnsureISOErrors(ctx, log, infraEnv, err, nil)
@@ -335,22 +341,17 @@ func (r *InfraEnvReconciler) ensureISO(ctx context.Context, log logrus.FieldLogg
 	return r.updateInfraEnvStatus(ctx, log, infraEnv, updatedInfraEnv)
 }
 
-func (r *InfraEnvReconciler) createInfraEnv(ctx context.Context, log logrus.FieldLogger, key *types.NamespacedName, infraEnv *aiv1beta1.InfraEnv, cluster *common.Cluster) (*common.InfraEnv, error) {
-
-	pullSecret, err := getAndLabelPullSecret(ctx, r.Client, r.APIReader, infraEnv.Spec.PullSecretRef, key.Namespace)
-	if err != nil {
-		log.WithError(err).Error("failed to get pull secret")
-		return nil, err
-	}
-
+func CreateInfraEnvParams(infraEnv *aiv1beta1.InfraEnv, imageType models.ImageType, pullSecret string, clusterID *strfmt.UUID, openshiftVersion string) installer.RegisterInfraEnvParams {
 	createParams := installer.RegisterInfraEnvParams{
 		InfraenvCreateParams: &models.InfraEnvCreateParams{
-			Name:                   &key.Name,
-			ImageType:              r.Config.ImageType,
+			Name:                   &infraEnv.Name,
+			ImageType:              imageType,
 			IgnitionConfigOverride: infraEnv.Spec.IgnitionConfigOverride,
 			PullSecret:             &pullSecret,
 			SSHAuthorizedKey:       &infraEnv.Spec.SSHAuthorizedKey,
 			CPUArchitecture:        infraEnv.Spec.CpuArchitecture,
+			ClusterID:              clusterID,
+			OpenshiftVersion:       openshiftVersion,
 		},
 	}
 	if infraEnv.Spec.Proxy != nil {
@@ -365,10 +366,21 @@ func (r *InfraEnvReconciler) createInfraEnv(ctx context.Context, log logrus.Fiel
 	if len(infraEnv.Spec.AdditionalNTPSources) > 0 {
 		createParams.InfraenvCreateParams.AdditionalNtpSources = swag.String(strings.Join(infraEnv.Spec.AdditionalNTPSources[:], ","))
 	}
-	if cluster != nil {
-		createParams.InfraenvCreateParams.ClusterID = cluster.ID
-		createParams.InfraenvCreateParams.OpenshiftVersion = cluster.OpenshiftVersion
+
+	return createParams
+}
+
+func (r *InfraEnvReconciler) createInfraEnv(ctx context.Context, log logrus.FieldLogger, key *types.NamespacedName,
+	infraEnv *aiv1beta1.InfraEnv, clusterID *strfmt.UUID, openshiftVersion string) (*common.InfraEnv, error) {
+
+	pullSecret, err := getAndLabelPullSecret(ctx, r.Client, r.APIReader, infraEnv.Spec.PullSecretRef, key.Namespace)
+	if err != nil {
+		log.WithError(err).Error("failed to get pull secret")
+		return nil, err
 	}
+
+	createParams := CreateInfraEnvParams(infraEnv, r.Config.ImageType, pullSecret, clusterID, openshiftVersion)
+
 	staticNetworkConfig, err := r.processNMStateConfig(ctx, log, infraEnv)
 	if err != nil {
 		return nil, err

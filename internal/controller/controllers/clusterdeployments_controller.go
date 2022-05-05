@@ -1078,41 +1078,22 @@ func (r *ClusterDeploymentsReconciler) isSNO(clusterInstall *hiveext.AgentCluste
 		clusterInstall.Spec.ProvisionRequirements.WorkerAgents == 0
 }
 
-func (r *ClusterDeploymentsReconciler) createNewCluster(
-	ctx context.Context,
-	log logrus.FieldLogger,
-	key types.NamespacedName,
-	clusterDeployment *hivev1.ClusterDeployment,
-	clusterInstall *hiveext.AgentClusterInstall) (ctrl.Result, error) {
-
-	log.Infof("Creating a new cluster %s %s", clusterDeployment.Name, clusterDeployment.Namespace)
+func CreateClusterParams(clusterDeployment *hivev1.ClusterDeployment, clusterInstall *hiveext.AgentClusterInstall,
+	pullSecret string, releaseImageVersion string, releaseImageCPUArch string,
+	ignitionEndpoint *models.IgnitionEndpoint) *models.ClusterCreateParams {
 	spec := clusterDeployment.Spec
-
-	pullSecret, err := getAndLabelPullSecret(ctx, r.Client, r.APIReader, spec.PullSecretRef, key.Namespace)
-	if err != nil {
-		log.WithError(err).Error("failed to get pull secret")
-		return r.updateStatus(ctx, log, clusterInstall, nil, err)
-	}
-
-	releaseImage, err := r.addReleaseImage(ctx, log, clusterInstall.Spec, pullSecret, nil)
-	if err != nil {
-		log.WithError(err)
-		_, _ = r.updateStatus(ctx, log, clusterInstall, nil, err)
-		// The controller will requeue after one minute, giving the user a chance to fix releaseImage
-		return ctrl.Result{Requeue: true, RequeueAfter: longerRequeueAfterOnError}, nil
-	}
 
 	clusterParams := &models.ClusterCreateParams{
 		BaseDNSDomain:         spec.BaseDomain,
 		Name:                  swag.String(spec.ClusterName),
-		OpenshiftVersion:      releaseImage.Version,
+		OpenshiftVersion:      &releaseImageVersion,
 		OlmOperators:          nil, // TODO: handle operators
 		PullSecret:            swag.String(pullSecret),
 		VipDhcpAllocation:     swag.Bool(false),
 		APIVip:                clusterInstall.Spec.APIVIP,
 		IngressVip:            clusterInstall.Spec.IngressVIP,
 		SSHPublicKey:          clusterInstall.Spec.SSHPublicKey,
-		CPUArchitecture:       swag.StringValue(releaseImage.CPUArchitecture),
+		CPUArchitecture:       releaseImageCPUArch,
 		UserManagedNetworking: swag.Bool(isUserManagedNetwork(clusterInstall)),
 	}
 
@@ -1149,17 +1130,6 @@ func (r *ClusterDeploymentsReconciler) createNewCluster(
 		clusterParams.Hyperthreading = getHyperthreading(clusterInstall)
 	}
 
-	if clusterInstall.Spec.IgnitionEndpoint != nil {
-		var ignitionEndpoint *models.IgnitionEndpoint
-		ignitionEndpoint, err = r.parseIgnitionEndpoint(ctx, log, clusterInstall.Spec.IgnitionEndpoint)
-		if err == nil {
-			clusterParams.IgnitionEndpoint = ignitionEndpoint
-		} else {
-			log.WithError(err).Errorf("Failed to get and parse ignition ca certificate %s/%s", clusterInstall.Namespace, clusterInstall.Name)
-			return r.updateStatus(ctx, log, clusterInstall, nil, err)
-		}
-	}
-
 	if isDiskEncryptionEnabled(clusterInstall) {
 		clusterParams.DiskEncryption = &models.DiskEncryption{
 			EnableOn:    clusterInstall.Spec.DiskEncryption.EnableOn,
@@ -1179,6 +1149,50 @@ func (r *ClusterDeploymentsReconciler) createNewCluster(
 			clusterParams.HTTPSProxy = swag.String(clusterInstall.Spec.Proxy.HTTPSProxy)
 		}
 	}
+
+	if ignitionEndpoint != nil {
+		clusterParams.IgnitionEndpoint = ignitionEndpoint
+	}
+
+	return clusterParams
+}
+
+func (r *ClusterDeploymentsReconciler) createNewCluster(
+	ctx context.Context,
+	log logrus.FieldLogger,
+	key types.NamespacedName,
+	clusterDeployment *hivev1.ClusterDeployment,
+	clusterInstall *hiveext.AgentClusterInstall) (ctrl.Result, error) {
+
+	log.Infof("Creating a new cluster %s %s", clusterDeployment.Name, clusterDeployment.Namespace)
+	spec := clusterDeployment.Spec
+
+	pullSecret, err := getAndLabelPullSecret(ctx, r.Client, r.APIReader, spec.PullSecretRef, key.Namespace)
+	if err != nil {
+		log.WithError(err).Error("failed to get pull secret")
+		return r.updateStatus(ctx, log, clusterInstall, nil, err)
+	}
+
+	releaseImage, err := r.addReleaseImage(ctx, log, clusterInstall.Spec, pullSecret, nil)
+
+	if err != nil {
+		log.WithError(err)
+		_, _ = r.updateStatus(ctx, log, clusterInstall, nil, err)
+		// The controller will requeue after one minute, giving the user a chance to fix releaseImage
+		return ctrl.Result{Requeue: true, RequeueAfter: longerRequeueAfterOnError}, nil
+	}
+
+	var ignitionEndpoint *models.IgnitionEndpoint
+	if clusterInstall.Spec.IgnitionEndpoint != nil {
+		ignitionEndpoint, err = r.parseIgnitionEndpoint(ctx, log, clusterInstall.Spec.IgnitionEndpoint)
+		if err != nil {
+			log.WithError(err).Errorf("Failed to get and parse ignition ca certificate %s/%s", clusterInstall.Namespace, clusterInstall.Name)
+			return r.updateStatus(ctx, log, clusterInstall, nil, err)
+		}
+	}
+
+	clusterParams := CreateClusterParams(clusterDeployment, clusterInstall, pullSecret, *releaseImage.Version,
+		*releaseImage.CPUArchitecture, ignitionEndpoint)
 
 	c, err := r.Installer.RegisterClusterInternal(ctx, &key, installer.V2RegisterClusterParams{
 		NewClusterParams: clusterParams,

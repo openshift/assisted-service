@@ -574,6 +574,27 @@ var _ = Describe("cluster reconcile", func() {
 		})
 	})
 
+	Context("CreateClusterParams", func() {
+		It("create new param - success", func() {
+			cluster := newClusterDeployment(clusterName, testNamespace, defaultClusterSpec)
+			Expect(c.Create(ctx, cluster)).ShouldNot(HaveOccurred())
+
+			aci := newAgentClusterInstall(agentClusterInstallName, testNamespace, defaultAgentClusterInstallSpec, cluster)
+			pullSecretString := "my-pull-secret-string"
+			cpuArch := "x86_64"
+			openshiftVersion := "4.10.0-rc1"
+
+			params := CreateClusterParams(cluster, aci, pullSecretString, openshiftVersion, cpuArch, nil)
+			Expect(params.Name).To(Equal(&cluster.Spec.ClusterName))
+			Expect(params.BaseDNSDomain).To(Equal(cluster.Spec.BaseDomain))
+			Expect(params.PullSecret).To(Equal(&pullSecretString))
+			Expect(params.IngressVip).To(Equal(aci.Spec.IngressVIP))
+			Expect(params.SSHPublicKey).To(Equal(aci.Spec.SSHPublicKey))
+			Expect(params.CPUArchitecture).To(Equal(cpuArch))
+			Expect(params.OpenshiftVersion).To(Equal(&openshiftVersion))
+		})
+	})
+
 	Context("Add validationsInfo to agentclusterinstall", func() {
 		BeforeEach(func() {
 			pullSecret := getDefaultTestPullSecret("pull-secret", testNamespace)
