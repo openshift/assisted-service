@@ -114,6 +114,11 @@ func (i *installCmd) getFullInstallerCommand(cluster *common.Cluster, host *mode
 		BootDevice:           swag.String(bootdevice),
 	}
 
+	// The HA mode is not relevant for workers.
+	if string(role) == models.HostUpdateParamsHostRoleWorker {
+		request.HighAvailabilityMode = nil
+	}
+
 	// those flags are not used on day2 installation
 	if swag.StringValue(cluster.Kind) != models.ClusterKindAddHostsCluster {
 		releaseImage, err := i.versionsHandler.GetReleaseImage(cluster.OpenshiftVersion, cluster.CPUArchitecture)
