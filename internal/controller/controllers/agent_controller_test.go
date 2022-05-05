@@ -265,7 +265,7 @@ var _ = Describe("agent reconcile", func() {
 		Expect(c.Create(ctx, host)).To(BeNil())
 
 		mockInstallerInternal.EXPECT().GetHostByKubeKey(gomock.Any()).Return(commonHost, nil).AnyTimes()
-		mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil).Times(1)
+		mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil).Times(2)
 
 		result, err := hr.Reconcile(ctx, newHostRequest(host))
 		Expect(err).To(BeNil())
@@ -325,7 +325,7 @@ var _ = Describe("agent reconcile", func() {
 		Expect(c.Create(ctx, clusterDeployment)).To(BeNil())
 		mockInstallerInternal.EXPECT().GetHostByKubeKey(gomock.Any()).Return(beforeUpdateHost, nil).Times(1)
 		mockInstallerInternal.EXPECT().GetHostByKubeKey(gomock.Any()).Return(afterUpdateHost, nil).Times(1)
-		mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil).Times(2)
+		mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil).Times(4)
 		mockInstallerInternal.EXPECT().V2UpdateHostInternal(gomock.Any(), gomock.Any()).
 			Do(func(ctx context.Context, param installer.V2UpdateHostParams) {
 				Expect(param.HostUpdateParams.DisksSelectedConfig[0].ID).To(Equal(&newInstallDiskPath))
@@ -410,7 +410,7 @@ var _ = Describe("agent reconcile", func() {
 		Expect(c.Create(ctx, clusterDeployment)).To(BeNil())
 
 		mockInstallerInternal.EXPECT().GetHostByKubeKey(gomock.Any()).Return(commonHost, nil).AnyTimes()
-		mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil).Times(1)
+		mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil).Times(2)
 		mockInstallerInternal.EXPECT().V2UpdateHostInternal(gomock.Any(), gomock.Any()).Return(commonHost, nil).Times(1)
 		Expect(c.Create(ctx, host)).To(BeNil())
 		result, err := hr.Reconcile(ctx, newHostRequest(host))
@@ -448,7 +448,7 @@ var _ = Describe("agent reconcile", func() {
 		clusterDeployment := newClusterDeployment("clusterDeployment", testNamespace, getDefaultClusterDeploymentSpec("clusterDeployment-test", "test-cluster-aci", "pull-secret"))
 		Expect(c.Create(ctx, clusterDeployment)).To(BeNil())
 		mockInstallerInternal.EXPECT().GetHostByKubeKey(gomock.Any()).Return(commonHost, nil).AnyTimes()
-		mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil).Times(1)
+		mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil).Times(2)
 		mockInstallerInternal.EXPECT().V2UpdateHostInternal(gomock.Any(), gomock.Any()).Return(nil, nil).Times(0)
 		Expect(c.Create(ctx, host)).To(BeNil())
 		result, err := hr.Reconcile(ctx, newHostRequest(host))
@@ -489,7 +489,7 @@ var _ = Describe("agent reconcile", func() {
 		clusterDeployment := newClusterDeployment("clusterDeployment", testNamespace, getDefaultClusterDeploymentSpec("clusterDeployment-test", "test-cluster-aci", "pull-secret"))
 		Expect(c.Create(ctx, clusterDeployment)).To(BeNil())
 		mockInstallerInternal.EXPECT().GetHostByKubeKey(gomock.Any()).Return(commonHost, nil).AnyTimes()
-		mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil).Times(1)
+		mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil).Times(2)
 		mockInstallerInternal.EXPECT().V2UpdateHostInternal(gomock.Any(), gomock.Any()).Return(nil, nil).Times(0)
 		Expect(c.Create(ctx, host)).To(BeNil())
 		result, err := hr.Reconcile(ctx, newHostRequest(host))
@@ -531,7 +531,7 @@ var _ = Describe("agent reconcile", func() {
 		clusterDeployment := newClusterDeployment("clusterDeployment", testNamespace, getDefaultClusterDeploymentSpec("clusterDeployment-test", "test-cluster-aci", "pull-secret"))
 		Expect(c.Create(ctx, clusterDeployment)).To(BeNil())
 		mockInstallerInternal.EXPECT().GetHostByKubeKey(gomock.Any()).Return(commonHost, nil).AnyTimes()
-		mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil).Times(1)
+		mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil).Times(2)
 		errString := "update internal error"
 		mockInstallerInternal.EXPECT().V2UpdateHostInternal(gomock.Any(), gomock.Any()).Return(nil, common.NewApiError(http.StatusInternalServerError,
 			errors.New(errString)))
@@ -580,7 +580,7 @@ var _ = Describe("agent reconcile", func() {
 		clusterDeployment := newClusterDeployment("clusterDeployment", testNamespace, getDefaultClusterDeploymentSpec("clusterDeployment-test", "test-cluster-aci", "pull-secret"))
 		Expect(c.Create(ctx, clusterDeployment)).To(BeNil())
 		mockInstallerInternal.EXPECT().GetHostByKubeKey(gomock.Any()).Return(commonHost, nil).AnyTimes()
-		mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil).Times(1)
+		mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil).Times(2)
 		mockInstallerInternal.EXPECT().UpdateHostApprovedInternal(gomock.Any(), gomock.Any(), gomock.Any(), true).Return(nil)
 		Expect(c.Create(ctx, host)).To(BeNil())
 		result, err := hr.Reconcile(ctx, newHostRequest(host))
@@ -816,7 +816,7 @@ var _ = Describe("agent reconcile", func() {
 		clusterDeployment := newClusterDeployment("clusterDeployment", testNamespace, getDefaultClusterDeploymentSpec("clusterDeployment-test", "test-cluster-aci", "pull-secret"))
 		Expect(c.Create(ctx, clusterDeployment)).To(BeNil())
 		mockInstallerInternal.EXPECT().GetHostByKubeKey(gomock.Any()).Return(commonHost, nil).AnyTimes()
-		mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil).Times(1)
+		mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil).Times(2)
 		Expect(c.Create(ctx, host)).To(BeNil())
 		result, err := hr.Reconcile(ctx, newHostRequest(host))
 		Expect(err).To(BeNil())
@@ -856,7 +856,7 @@ var _ = Describe("agent reconcile", func() {
 		clusterDeployment := newClusterDeployment("clusterDeployment", testNamespace, getDefaultClusterDeploymentSpec("clusterDeployment-test", "test-cluster-aci", "pull-secret"))
 		Expect(c.Create(ctx, clusterDeployment)).To(Succeed())
 		mockInstallerInternal.EXPECT().GetHostByKubeKey(gomock.Any()).Return(commonHost, nil).AnyTimes()
-		mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil).Times(1)
+		mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil).Times(4)
 		Expect(c.Create(ctx, host)).To(Succeed())
 		request := newHostRequest(host)
 		result, err := hr.Reconcile(ctx, request)
@@ -873,7 +873,7 @@ var _ = Describe("agent reconcile", func() {
 		By("during installation")
 		backEndCluster.Hosts[0].Status = swag.String(models.HostStatusInstalling)
 		backEndCluster.Hosts[0].LogsCollectedAt = strfmt.DateTime(time.Now())
-		mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil)
+		mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil).AnyTimes()
 		_, err = hr.Reconcile(ctx, request)
 		Expect(err).To(BeNil())
 		Expect(c.Get(ctx, key, agent)).To(Succeed())
@@ -881,7 +881,7 @@ var _ = Describe("agent reconcile", func() {
 
 		By("after installation")
 		backEndCluster.Hosts[0].Status = swag.String(models.HostStatusInstalled)
-		mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil)
+		mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil).AnyTimes()
 		_, err = hr.Reconcile(ctx, request)
 		Expect(err).To(BeNil())
 		Expect(c.Get(ctx, key, agent)).To(Succeed())
@@ -904,8 +904,8 @@ var _ = Describe("agent reconcile", func() {
 
 		ignitionConfigOverrides := `{"ignition": {"version": "3.1.0"}, "storage": {"files": [{"path": "/tmp/example", "contents": {"source": "data:text/plain;base64,aGVscGltdHJhcHBlZGluYXN3YWdnZXJzcGVj"}}]}}`
 		mockInstallerInternal.EXPECT().GetHostByKubeKey(gomock.Any()).Return(commonHost, nil).AnyTimes()
-		mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil).Times(1)
-		mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil).Times(1)
+		mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil).Times(2)
+		mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil).Times(2)
 
 		By("Reconcile without setting ignition override, validate update ignition override didn't run")
 		host := newAgent(hostId.String(), testNamespace, v1beta1.AgentSpec{ClusterDeploymentName: &v1beta1.ClusterReference{Name: "clusterDeployment", Namespace: testNamespace}})
@@ -964,7 +964,7 @@ var _ = Describe("agent reconcile", func() {
 		}
 
 		mockInstallerInternal.EXPECT().GetHostByKubeKey(gomock.Any()).Return(commonHost, nil).AnyTimes()
-		mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil).Times(1)
+		mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil).Times(2)
 		host := newAgent(hostId.String(), testNamespace, v1beta1.AgentSpec{ClusterDeploymentName: &v1beta1.ClusterReference{Name: "clusterDeployment", Namespace: testNamespace}})
 		clusterDeployment := newClusterDeployment("clusterDeployment", testNamespace, getDefaultClusterDeploymentSpec("clusterDeployment-test", "test-cluster-aci", "pull-secret"))
 		Expect(c.Create(ctx, clusterDeployment)).To(BeNil())
@@ -1001,7 +1001,7 @@ var _ = Describe("agent reconcile", func() {
 
 		installerArgs := `["--append-karg", "ip=192.0.2.2::192.0.2.254:255.255.255.0:core0.example.com:enp1s0:none", "--save-partindex", "1", "-n"]`
 		mockInstallerInternal.EXPECT().GetHostByKubeKey(gomock.Any()).Return(commonHost, nil)
-		mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil)
+		mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil).Times(4)
 
 		By("Reconcile without setting args, validate update installer args didn't run")
 		host := newAgent(hostId.String(), testNamespace, v1beta1.AgentSpec{ClusterDeploymentName: &v1beta1.ClusterReference{Name: "clusterDeployment", Namespace: testNamespace}})
@@ -1025,7 +1025,7 @@ var _ = Describe("agent reconcile", func() {
 		By("Reconcile add update installer args, validate UpdateHostInstallerArgsInternal run once")
 		mockInstallerInternal.EXPECT().V2UpdateHostInstallerArgsInternal(gomock.Any(), gomock.Any()).Return(nil, nil)
 		mockInstallerInternal.EXPECT().GetHostByKubeKey(gomock.Any()).Return(commonHost, nil)
-		mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil)
+		mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil).Times(2)
 
 		Expect(c.Get(ctx, key, agent)).To(BeNil())
 		agent.Spec.InstallerArgs = installerArgs
@@ -1053,7 +1053,7 @@ var _ = Describe("agent reconcile", func() {
 			},
 		}
 		mockInstallerInternal.EXPECT().GetHostByKubeKey(gomock.Any()).Return(commonHostUpdated, nil)
-		mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil)
+		mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil).AnyTimes()
 		Expect(c.Get(ctx, key, agent)).To(BeNil())
 		Expect(agent.Spec.InstallerArgs).To(Equal(installerArgs))
 		result, err = hr.Reconcile(ctx, newHostRequest(agent))
@@ -1166,7 +1166,7 @@ var _ = Describe("agent reconcile", func() {
 		clusterDeployment := newClusterDeployment("clusterDeployment", testNamespace, getDefaultClusterDeploymentSpec("clusterDeployment-test", "test-cluster-aci", "pull-secret"))
 		Expect(c.Create(ctx, clusterDeployment)).To(BeNil())
 		mockInstallerInternal.EXPECT().GetHostByKubeKey(gomock.Any()).Return(commonHost, nil).AnyTimes()
-		mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil).Times(2)
+		mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil).Times(4)
 		Expect(c.Create(ctx, host)).To(BeNil())
 		result, err := hr.Reconcile(ctx, newHostRequest(host))
 		Expect(err).To(BeNil())
@@ -1228,7 +1228,7 @@ var _ = Describe("agent reconcile", func() {
 		clusterDeployment := newClusterDeployment("clusterDeployment", testNamespace, getDefaultClusterDeploymentSpec("clusterDeployment-test", "test-cluster-aci", "pull-secret"))
 		Expect(c.Create(ctx, clusterDeployment)).To(BeNil())
 		mockInstallerInternal.EXPECT().GetHostByKubeKey(gomock.Any()).Return(commonHost, nil).Times(1)
-		mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil).Times(1)
+		mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil).Times(2)
 		Expect(c.Create(ctx, host)).To(BeNil())
 		result, err := hr.Reconcile(ctx, newHostRequest(host))
 		Expect(err).To(BeNil())
@@ -1270,7 +1270,7 @@ var _ = Describe("agent reconcile", func() {
 		clusterDeployment := newClusterDeployment("clusterDeployment", testNamespace, getDefaultClusterDeploymentSpec("clusterDeployment-test", "test-cluster-aci", "pull-secret"))
 		Expect(c.Create(ctx, clusterDeployment)).To(BeNil())
 		mockInstallerInternal.EXPECT().GetHostByKubeKey(gomock.Any()).Return(commonHost, nil).Times(1)
-		mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil).Times(1)
+		mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil).Times(2)
 		Expect(c.Create(ctx, host)).To(BeNil())
 		result, err := hr.Reconcile(ctx, newHostRequest(host))
 		Expect(err).To(BeNil())
@@ -1315,7 +1315,7 @@ var _ = Describe("agent reconcile", func() {
 		clusterDeployment := newClusterDeployment("clusterDeployment", testNamespace, getDefaultClusterDeploymentSpec("clusterDeployment-test", "test-cluster-aci", "pull-secret"))
 		Expect(c.Create(ctx, clusterDeployment)).To(BeNil())
 		mockInstallerInternal.EXPECT().GetHostByKubeKey(gomock.Any()).Return(commonHost, nil)
-		mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil).Times(2)
+		mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil).Times(4)
 		Expect(c.Create(ctx, host)).To(BeNil())
 		result, err := hr.Reconcile(ctx, newHostRequest(host))
 		Expect(err).To(BeNil())
@@ -1437,7 +1437,7 @@ VU1eS0RiS/Lz6HwRs2mATNY5FrpZOgdM3cI=
 	CommonHostname := "ostest-extraworker-3"
 	var (
 		c                     client.Client
-		hr                    *AgentReconciler
+		agentReconciler       *AgentReconciler
 		ctx                   = context.Background()
 		mockCtrl              *gomock.Controller
 		backEndCluster        *common.Cluster
@@ -1558,7 +1558,7 @@ VU1eS0RiS/Lz6HwRs2mATNY5FrpZOgdM3cI=
 		mockCtrl = gomock.NewController(GinkgoT())
 		mockInstallerInternal = bminventory.NewMockInstallerInternals(mockCtrl)
 		mockClientFactory = NewMockSpokeK8sClientFactory(mockCtrl)
-		hr = &AgentReconciler{
+		agentReconciler = &AgentReconciler{
 			Client:                     c,
 			Scheme:                     scheme.Scheme,
 			Log:                        common.GetTestLog(),
@@ -1595,7 +1595,7 @@ VU1eS0RiS/Lz6HwRs2mATNY5FrpZOgdM3cI=
 			Namespace: testNamespace,
 			Name:      hostId.String(),
 		}
-		mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil).Times(1)
+		mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil).Times(2)
 		secretName := fmt.Sprintf(adminKubeConfigStringTemplate, clusterDeployment.Name)
 		adminKubeconfigSecret := &corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{
@@ -1610,26 +1610,39 @@ VU1eS0RiS/Lz6HwRs2mATNY5FrpZOgdM3cI=
 	})
 
 	tests := []struct {
-		name            string
-		hostname        string
-		createClient    bool
-		node            *corev1.Node
-		nodeError       error
-		csrs            *certificatesv1.CertificateSigningRequestList
-		approveExpected bool
-		initialStage    models.HostStage
-		expectedResult  ctrl.Result
-		expectedStatus  string
-		expectedStage   models.HostStage
+		name                  string
+		hostname              string
+		createClient          bool
+		node                  *corev1.Node
+		nodeError             error
+		csrs                  *certificatesv1.CertificateSigningRequestList
+		approveExpected       bool
+		initialStage          models.HostStage
+		expectedResult        ctrl.Result
+		expectedStatus        string
+		expectedStage         models.HostStage
+		userManagedNetworking bool
 	}{
 		{
-			name:           "No matching node - No csrs",
-			createClient:   true,
-			csrs:           &certificatesv1.CertificateSigningRequestList{},
-			nodeError:      &notFoundError{},
-			expectedResult: ctrl.Result{RequeueAfter: time.Minute},
-			expectedStatus: models.HostStatusAddedToExistingCluster,
-			expectedStage:  models.HostStageRebooting,
+			name:                  "1 csr - no user managed networking",
+			createClient:          true,
+			hostname:              CommonHostname,
+			csrs:                  serverCsrs(),
+			approveExpected:       false,
+			expectedResult:        ctrl.Result{},
+			expectedStatus:        models.HostStatusAddedToExistingCluster,
+			expectedStage:         models.HostStageDone,
+			userManagedNetworking: false,
+		},
+		{
+			name:                  "No matching node - No csrs",
+			createClient:          true,
+			csrs:                  &certificatesv1.CertificateSigningRequestList{},
+			nodeError:             &notFoundError{},
+			expectedResult:        ctrl.Result{RequeueAfter: time.Minute},
+			expectedStatus:        models.HostStatusAddedToExistingCluster,
+			expectedStage:         models.HostStageRebooting,
+			userManagedNetworking: true,
 		},
 		{
 			name:         "Not ready matching node - 1 csrs",
@@ -1659,8 +1672,9 @@ VU1eS0RiS/Lz6HwRs2mATNY5FrpZOgdM3cI=
 			expectedResult: ctrl.Result{
 				RequeueAfter: time.Minute,
 			},
-			expectedStatus: models.HostStatusAddedToExistingCluster,
-			expectedStage:  models.HostStageRebooting,
+			expectedStatus:        models.HostStatusAddedToExistingCluster,
+			expectedStage:         models.HostStageRebooting,
+			userManagedNetworking: true,
 		},
 		{
 			name:            "Get node error",
@@ -1671,8 +1685,9 @@ VU1eS0RiS/Lz6HwRs2mATNY5FrpZOgdM3cI=
 			expectedResult: ctrl.Result{
 				RequeueAfter: time.Minute,
 			},
-			expectedStatus: models.HostStatusAddedToExistingCluster,
-			expectedStage:  models.HostStageRebooting,
+			expectedStatus:        models.HostStatusAddedToExistingCluster,
+			expectedStage:         models.HostStageRebooting,
+			userManagedNetworking: true,
 		},
 		{
 			name:            "Node not found with server CSR",
@@ -1684,8 +1699,9 @@ VU1eS0RiS/Lz6HwRs2mATNY5FrpZOgdM3cI=
 			expectedResult: ctrl.Result{
 				RequeueAfter: time.Minute,
 			},
-			expectedStatus: models.HostStatusAddedToExistingCluster,
-			expectedStage:  models.HostStageRebooting,
+			expectedStatus:        models.HostStatusAddedToExistingCluster,
+			expectedStage:         models.HostStageRebooting,
+			userManagedNetworking: true,
 		},
 		{
 			name:         "Not done Server CSR",
@@ -1710,8 +1726,9 @@ VU1eS0RiS/Lz6HwRs2mATNY5FrpZOgdM3cI=
 			expectedResult: ctrl.Result{
 				RequeueAfter: time.Minute,
 			},
-			expectedStatus: models.HostStatusAddedToExistingCluster,
-			expectedStage:  models.HostStageRebooting,
+			expectedStatus:        models.HostStatusAddedToExistingCluster,
+			expectedStage:         models.HostStageRebooting,
+			userManagedNetworking: true,
 		},
 		{
 			name:         "Done Server CSR",
@@ -1736,11 +1753,12 @@ VU1eS0RiS/Lz6HwRs2mATNY5FrpZOgdM3cI=
 					},
 				},
 			},
-			csrs:            serverCsrs(),
-			approveExpected: true,
-			expectedResult:  ctrl.Result{},
-			expectedStatus:  models.HostStatusAddedToExistingCluster,
-			expectedStage:   models.HostStageDone,
+			csrs:                  serverCsrs(),
+			approveExpected:       true,
+			expectedResult:        ctrl.Result{},
+			expectedStatus:        models.HostStatusAddedToExistingCluster,
+			expectedStage:         models.HostStageDone,
+			userManagedNetworking: true,
 		},
 		{
 			name:            "Not approved client CSR",
@@ -1752,8 +1770,9 @@ VU1eS0RiS/Lz6HwRs2mATNY5FrpZOgdM3cI=
 			expectedResult: ctrl.Result{
 				RequeueAfter: time.Minute,
 			},
-			expectedStatus: models.HostStatusAddedToExistingCluster,
-			expectedStage:  models.HostStageRebooting,
+			expectedStatus:        models.HostStatusAddedToExistingCluster,
+			expectedStage:         models.HostStageRebooting,
+			userManagedNetworking: true,
 		},
 		{
 			name:            "Approved client CSR",
@@ -1765,8 +1784,9 @@ VU1eS0RiS/Lz6HwRs2mATNY5FrpZOgdM3cI=
 			expectedResult: ctrl.Result{
 				RequeueAfter: time.Minute,
 			},
-			expectedStatus: models.HostStatusAddedToExistingCluster,
-			expectedStage:  models.HostStageRebooting,
+			expectedStatus:        models.HostStatusAddedToExistingCluster,
+			expectedStage:         models.HostStageRebooting,
+			userManagedNetworking: true,
 		},
 		{
 			name:         "Approved Server CSR",
@@ -1791,51 +1811,57 @@ VU1eS0RiS/Lz6HwRs2mATNY5FrpZOgdM3cI=
 			expectedResult: ctrl.Result{
 				RequeueAfter: time.Minute,
 			},
-			expectedStatus: models.HostStatusAddedToExistingCluster,
-			expectedStage:  models.HostStageRebooting,
+			expectedStatus:        models.HostStatusAddedToExistingCluster,
+			expectedStage:         models.HostStageRebooting,
+			userManagedNetworking: true,
 		},
 		{
-			name:           "Already done",
-			createClient:   false,
-			initialStage:   models.HostStageDone,
-			expectedResult: ctrl.Result{},
-			expectedStatus: models.HostStatusAddedToExistingCluster,
-			expectedStage:  models.HostStageDone,
+			name:                  "Already done",
+			createClient:          false,
+			initialStage:          models.HostStageDone,
+			expectedResult:        ctrl.Result{},
+			expectedStatus:        models.HostStatusAddedToExistingCluster,
+			expectedStage:         models.HostStageDone,
+			userManagedNetworking: true,
 		},
 	}
 
 	for i := range tests {
 		t := &tests[i]
 		It(t.name, func() {
+			backEndCluster.UserManagedNetworking = &t.userManagedNetworking
 			agentSpec := v1beta1.AgentSpec{ClusterDeploymentName: &v1beta1.ClusterReference{Name: "clusterDeployment", Namespace: testNamespace}}
 			if t.hostname != "" {
 				agentSpec.Hostname = t.hostname
 			}
-			host := newAgent(hostId.String(), testNamespace, agentSpec)
-			host.Spec.Approved = true
+			agent := newAgent(hostId.String(), testNamespace, agentSpec)
+			agent.Spec.Approved = true
 			mockInstallerInternal.EXPECT().UpdateHostApprovedInternal(gomock.Any(), gomock.Any(), gomock.Any(), true).Return(nil)
 			if t.initialStage != "" {
-				host.Status.Progress.CurrentStage = t.initialStage
+				agent.Status.Progress.CurrentStage = t.initialStage
 			}
-			Expect(c.Create(ctx, host)).To(BeNil())
+			Expect(c.Create(ctx, agent)).To(BeNil())
 			if t.createClient {
 				mockClient := NewMockSpokeK8sClient(mockCtrl)
-				mockClientFactory.EXPECT().Create(gomock.Any()).Return(mockClient, nil)
+				mockClientFactory.EXPECT().Create(gomock.Any()).Return(mockClient, nil).AnyTimes()
 				if t.node != nil || t.nodeError != nil {
 					mockClient.EXPECT().GetNode(gomock.Any()).Return(t.node, t.nodeError)
 				}
-				if t.csrs != nil {
+				if t.csrs != nil && t.userManagedNetworking {
 					mockClient.EXPECT().ListCsrs().Return(t.csrs, nil)
+				}
+				if t.csrs != nil && !t.userManagedNetworking {
+					mockClient.EXPECT().ListCsrs().Return(t.csrs, nil).Times(0)
 				}
 				if t.approveExpected {
 					mockClient.EXPECT().ApproveCsr(gomock.Any()).Return(nil)
 				}
 			}
-			hostRequest = newHostRequest(host)
-			result, err := hr.Reconcile(ctx, hostRequest)
+			hostRequest = newHostRequest(agent.DeepCopy())
+			result, err := agentReconciler.Reconcile(ctx, hostRequest)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(result).To(Equal(t.expectedResult))
-			agent := &v1beta1.Agent{}
+			agent = &v1beta1.Agent{}
 			Expect(c.Get(ctx, agentKey, agent)).To(BeNil())
 			Expect(agent.Status.DebugInfo.State).To(Equal(t.expectedStatus))
 			Expect(agent.Status.Progress.CurrentStage).To(Equal(t.expectedStage))
@@ -1891,7 +1917,7 @@ var _ = Describe("TestConditions", func() {
 			Namespace: testNamespace,
 			Name:      hostId.String(),
 		}
-		mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil).Times(1)
+		mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil).Times(2)
 	})
 
 	AfterEach(func() {

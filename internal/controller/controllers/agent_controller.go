@@ -77,6 +77,37 @@ type AgentReconciler struct {
 	ApproveCsrsRequeueDuration time.Duration
 }
 
+func (r *AgentReconciler) getClusterDeployment(agent *aiv1beta1.Agent, context *context.Context) (*hivev1.ClusterDeployment, error) {
+	if agent.Spec.ClusterDeploymentName != nil {
+		kubeKey := types.NamespacedName{
+			Namespace: agent.Spec.ClusterDeploymentName.Namespace,
+			Name:      agent.Spec.ClusterDeploymentName.Name,
+		}
+		clusterDeployment := &hivev1.ClusterDeployment{}
+		err := r.Get(*context, kubeKey, clusterDeployment)
+		if err == nil {
+			return clusterDeployment, nil
+		}
+		return nil, err
+	}
+	return nil, nil
+}
+
+func (r *AgentReconciler) getCluster(agent *aiv1beta1.Agent) (*common.Cluster, error) {
+	if agent.Spec.ClusterDeploymentName != nil {
+		kubeKey := types.NamespacedName{
+			Namespace: agent.Spec.ClusterDeploymentName.Namespace,
+			Name:      agent.Spec.ClusterDeploymentName.Name,
+		}
+		cluster, err := r.Installer.GetClusterByKubeKey(kubeKey)
+		if err != nil {
+			return nil, err
+		}
+		return cluster, nil
+	}
+	return nil, nil
+}
+
 // +kubebuilder:rbac:groups=agent-install.openshift.io,resources=agents,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=agent-install.openshift.io,resources=agents/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=agent-install.openshift.io,resources=agents/ai-deprovision,verbs=update
@@ -157,29 +188,23 @@ func (r *AgentReconciler) Reconcile(origCtx context.Context, req ctrl.Request) (
 	}
 
 	if agent.Spec.ClusterDeploymentName != nil {
-		kubeKey := types.NamespacedName{
-			Namespace: agent.Spec.ClusterDeploymentName.Namespace,
-			Name:      agent.Spec.ClusterDeploymentName.Name,
-		}
-		clusterDeployment := &hivev1.ClusterDeployment{}
-
-		// Retrieve clusterDeployment
-		if err = r.Get(ctx, kubeKey, clusterDeployment); err != nil {
+		_, err = r.getClusterDeployment(agent, &ctx)
+		if err != nil {
 			errMsg := fmt.Sprintf("failed to get clusterDeployment with name %s in namespace %s",
 				agent.Spec.ClusterDeploymentName.Name, agent.Spec.ClusterDeploymentName.Namespace)
 			log.WithError(err).Error(errMsg)
 			// Update that we failed to retrieve the clusterDeployment
 			//TODO MGMT-7844 add mapping CD-ACI to rnot requeue always
-			return r.updateStatus(ctx, log, agent, origAgent, &h.Host, nil, errors.Wrapf(err, errMsg), true)
+			return r.updateStatus(ctx, log, agent, origAgent, &h.Host, nil, nil, errors.Wrapf(err, errMsg), true)
 		}
 
 		// Retrieve cluster by ClusterDeploymentName from the database
-		cluster, err2 := r.Installer.GetClusterByKubeKey(kubeKey)
+		cluster, err2 := r.getCluster(agent)
 		if err2 != nil {
 			log.WithError(err2).Errorf("Fail to get cluster name: %s namespace: %s in backend",
 				agent.Spec.ClusterDeploymentName.Name, agent.Spec.ClusterDeploymentName.Namespace)
 			// Update that we failed to retrieve the cluster from the database
-			return r.updateStatus(ctx, log, agent, origAgent, &h.Host, nil, err2, true)
+			return r.updateStatus(ctx, log, agent, origAgent, &h.Host, nil, nil, err2, true)
 		}
 
 		if h.ClusterID == nil {
@@ -193,32 +218,42 @@ func (r *AgentReconciler) Reconcile(origCtx context.Context, req ctrl.Request) (
 				},
 			})
 			if err2 != nil {
-				return r.updateStatus(ctx, log, agent, origAgent, &h.Host, nil, err2, !IsUserError(err2))
+				return r.updateStatus(ctx, log, agent, origAgent, &h.Host, nil, nil, err2, !IsUserError(err2))
 			}
-			return r.updateStatus(ctx, log, agent, origAgent, &host.Host, cluster.ID, nil, true)
+
+			return r.updateStatus(ctx, log, agent, origAgent, &host.Host, cluster.ID, cluster, nil, true)
 		} else if *h.ClusterID != *cluster.ID {
 			log.Infof("ClusterDeploymentName is changed in Agent %s. unbind first", agent.Name)
 			return r.unbindHost(ctx, log, agent, origAgent, h)
 		}
 	}
 
+	// Retrieve cluster by ClusterDeploymentName from the database
+	cluster, err2 := r.getCluster(agent)
+	if err2 != nil {
+		log.WithError(err2).Errorf("Fail to get cluster name: %s namespace: %s in backend",
+			agent.Spec.ClusterDeploymentName.Name, agent.Spec.ClusterDeploymentName.Namespace)
+		// Update that we failed to retrieve the cluster from the database
+		return r.updateStatus(ctx, log, agent, origAgent, &h.Host, nil, nil, err2, true)
+	}
+
 	// check for updates from user, compare spec and update if needed
 	h, err = r.updateIfNeeded(ctx, log, agent, h)
 	if err != nil {
-		return r.updateStatus(ctx, log, agent, origAgent, &h.Host, h.ClusterID, err, !IsUserError(err))
+		return r.updateStatus(ctx, log, agent, origAgent, &h.Host, h.ClusterID, cluster, err, !IsUserError(err))
 	}
 
 	err = r.updateInventory(log, ctx, &h.Host, agent)
 	if err != nil {
-		return r.updateStatus(ctx, log, agent, origAgent, &h.Host, h.ClusterID, err, true)
+		return r.updateStatus(ctx, log, agent, origAgent, &h.Host, h.ClusterID, cluster, err, true)
 	}
 
 	err = r.updateNtpSources(log, &h.Host, agent)
 	if err != nil {
-		return r.updateStatus(ctx, log, agent, origAgent, &h.Host, h.ClusterID, err, true)
+		return r.updateStatus(ctx, log, agent, origAgent, &h.Host, h.ClusterID, cluster, err, true)
 	}
 
-	return r.updateStatus(ctx, log, agent, origAgent, &h.Host, h.ClusterID, nil, false)
+	return r.updateStatus(ctx, log, agent, origAgent, &h.Host, h.ClusterID, cluster, nil, false)
 }
 
 func (r *AgentReconciler) shouldApproveMoreCSRs(node *corev1.Node) bool {
@@ -326,14 +361,14 @@ func (r *AgentReconciler) tryApproveDay2CSRs(ctx context.Context, agent *aiv1bet
 }
 
 func (r *AgentReconciler) unbindHost(ctx context.Context, log logrus.FieldLogger, agent, origAgent *aiv1beta1.Agent, h *common.Host) (ctrl.Result, error) {
-	host, err2 := r.Installer.UnbindHostInternal(ctx, installer.UnbindHostParams{
+	host, err := r.Installer.UnbindHostInternal(ctx, installer.UnbindHostParams{
 		HostID:     *h.ID,
 		InfraEnvID: h.InfraEnvID,
 	})
-	if err2 != nil {
-		return r.updateStatus(ctx, log, agent, origAgent, &h.Host, nil, err2, !IsUserError(err2))
+	if err != nil {
+		return r.updateStatus(ctx, log, agent, origAgent, &h.Host, nil, nil, err, !IsUserError(err))
 	}
-	return r.updateStatus(ctx, log, agent, origAgent, &host.Host, h.ClusterID, nil, true)
+	return r.updateStatus(ctx, log, agent, origAgent, &host.Host, h.ClusterID, nil, nil, true)
 }
 
 func (r *AgentReconciler) deleteAgent(ctx context.Context, log logrus.FieldLogger, agent types.NamespacedName) (ctrl.Result, error) {
@@ -393,17 +428,10 @@ func (r *AgentReconciler) deregisterHostIfNeeded(ctx context.Context, log logrus
 	return buildReply(nil)
 }
 
-func (r *AgentReconciler) isDay2NonePlatformHostRebooting(ctx context.Context, agent *aiv1beta1.Agent, h *models.Host) (bool, error) {
-	if swag.StringValue(h.Status) == models.HostStatusAddedToExistingCluster &&
-		h.Progress.CurrentStage == models.HostStageDone {
-		if agent.Status.Progress.CurrentStage == models.HostStageDone {
-			return false, nil
-		} else {
-			isNone, err := isAgentInNonePlatformCluster(ctx, r.Client, agent)
-			if err != nil {
-				return false, err
-			}
-			return isNone, nil
+func (r *AgentReconciler) isDay2RebootingHost(ctx context.Context, agent *aiv1beta1.Agent, h *models.Host) (bool, error) {
+	if h.Progress.CurrentStage == models.HostStageDone {
+		if agent.Status.Progress.CurrentStage != models.HostStageDone && swag.StringValue(h.Status) == models.HostStatusAddedToExistingCluster {
+			return true, nil
 		}
 	}
 	return false, nil
@@ -412,11 +440,10 @@ func (r *AgentReconciler) isDay2NonePlatformHostRebooting(ctx context.Context, a
 // updateStatus is updating all the Agent Conditions.
 // In case that an error has ocurred when trying to sync the Spec, the error (syncErr) is presented in SpecSyncedCondition.
 // Internal bool differentiate between backend server error (internal HTTP 5XX) and user input error (HTTP 4XXX)
-func (r *AgentReconciler) updateStatus(ctx context.Context, log logrus.FieldLogger, agent, origAgent *aiv1beta1.Agent, h *models.Host, clusterId *strfmt.UUID, syncErr error, internal bool) (ctrl.Result, error) {
-
+func (r *AgentReconciler) updateStatus(ctx context.Context, log logrus.FieldLogger, agent, origAgent *aiv1beta1.Agent, h *models.Host, clusterId *strfmt.UUID, cluster *common.Cluster, syncErr error, internal bool) (ctrl.Result, error) {
 	var (
-		err                 error
-		isNoneDay2Rebooting bool
+		err                   error
+		shouldAutoApproveCSRs bool
 	)
 	ret := ctrl.Result{}
 	specSynced(agent, syncErr, internal)
@@ -440,13 +467,28 @@ func (r *AgentReconciler) updateStatus(ctx context.Context, log logrus.FieldLogg
 			agent.Status.ValidationsInfo = newValidationsInfo
 		}
 
-		if h.Progress != nil && h.Progress.CurrentStage != "" {
-			if isNoneDay2Rebooting, err = r.isDay2NonePlatformHostRebooting(ctx, agent, h); err != nil {
-				log.WithError(err).Errorf("Failed to find if agent %s/%s belongs to none platform cluster and is rebooting", agent.Namespace, agent.Name)
-				return ctrl.Result{RequeueAfter: defaultRequeueAfterOnError}, nil
+		// Determine whether or not CSRs should be automatically signed.
+		if cluster != nil {
+			if cluster.UserManagedNetworking == nil {
+				// We look at the database cluster object to check for UserManagedNetworking rather than look at
+				// the equivalent AgentClusterInstall field because that field the latter does not get
+				// properly set in Single Node clusters
+				log.Error("UserManagedNetworking was not set, cannot determine whether or not to auto approve CSRs")
+				shouldAutoApproveCSRs = false
+			} else {
+				isNonePlatform := *(cluster.UserManagedNetworking)
+				isDay2RebootingHost, err := r.isDay2RebootingHost(ctx, agent, h)
+				if err != nil {
+					log.WithError(err).Errorf("Failed to find if agent %s/%s is rebooting3", agent.Namespace, agent.Name)
+					return ctrl.Result{RequeueAfter: defaultRequeueAfterOnError}, nil
+				}
+				// Note: Once SNO is supported on more than just the "None" platform, this will need to be changed.
+				shouldAutoApproveCSRs = isDay2RebootingHost && isNonePlatform
 			}
+		}
 
-			if isNoneDay2Rebooting {
+		if h.Progress != nil && h.Progress.CurrentStage != "" {
+			if shouldAutoApproveCSRs {
 				agent.Status.Progress.CurrentStage = models.HostStageRebooting
 			} else {
 				agent.Status.Progress.CurrentStage = h.Progress.CurrentStage
@@ -484,7 +526,7 @@ func (r *AgentReconciler) updateStatus(ctx context.Context, log logrus.FieldLogg
 	} else {
 		setConditionsUnknown(agent)
 	}
-	if isNoneDay2Rebooting {
+	if shouldAutoApproveCSRs {
 		alreadyApproved := r.tryApproveDay2CSRs(ctx, agent)
 		if alreadyApproved {
 			agent.Status.Progress.CurrentStage = models.HostStageDone

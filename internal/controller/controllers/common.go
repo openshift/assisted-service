@@ -344,22 +344,3 @@ func isNonePlatformCluster(ctx context.Context, client client.Client, cd *hivev1
 	}
 	return clusterInstall.Spec.Networking.UserManagedNetworking, false, nil
 }
-
-//
-//  We get first agent's cluster deployment and then we query if it belongs to none platform cluster
-//
-func isAgentInNonePlatformCluster(ctx context.Context, client client.Client, agent *aiv1beta1.Agent) (isNone bool, err error) {
-	var cd hivev1.ClusterDeployment
-	if agent.Spec.ClusterDeploymentName == nil {
-		return false, errors.Errorf("No cluster deployment for agent %s/%s", agent.Namespace, agent.Name)
-	}
-	namespacedName := types.NamespacedName{
-		Namespace: agent.Spec.ClusterDeploymentName.Namespace,
-		Name:      agent.Spec.ClusterDeploymentName.Name,
-	}
-	if err = client.Get(ctx, namespacedName, &cd); err != nil {
-		return false, errors.Wrapf(err, "Failed to get cluster deployment %s/%s", namespacedName.Namespace, namespacedName.Name)
-	}
-	isNone, _, err = isNonePlatformCluster(ctx, client, &cd)
-	return
-}
