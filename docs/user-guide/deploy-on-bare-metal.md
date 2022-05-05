@@ -38,91 +38,26 @@ _*Note*: This method could be used also in Virtual environment_
 
 ## iPXE
 
-iPXE deployment method
+*NOTE*: We use a sample URL, please change to fit your use case accordingly
 
-*NOTE1*: We use a sample URL, please change to fit your use case accordingly
-*NOTE2*: We've set the live_url as the node hostname on 8080 port , please change to fit your use case accordingly
+### Accessing the iPXE boot script and artifacts
 
-### Automatic
-
-The automatic way is done using podman, just follow this steps:
-
-```shell
-IPXE_DIR=/tmp/ipxe/ai
-mkdir -p ${IPXE_DIR}
-
-# This command will download the ISO, extract the Images and create the ignition config files
-podman run -e BASE_URL=http://devscripts2ipv6.e2e.bos.redhat.com:8080 -e ISO_URL=$(curl http://devscripts2ipv6.e2e.bos.redhat.com:6008/api/assisted-install/v2/infra-envs/29b516fd-8f3a-42bf-8a59-cb20ef2630e0/downloads/image-url | jq ".url") -v /tmp/ipxe/ai:/data:Z --net=host -it --rm quay.io/ohadlevy/ai-ipxe
-
-# This command will host the iPXE files on an podman container
-podman run  -v ${IPXE_DIR}:/app:ro -p 8080:8080 -d --rm docker.io/bitnami/nginx:latest
+The service serves an iPXE boot script for each infra-env
+The script can be downloaded using:
 ```
-
-To ensure if your container is working fine, check the url with a `curl` command
-
-```shell
-curl http://$(hostname):8080/ipxe
+GET /api/assisted-install/v2/infra-envs/{infra_env_id}/downloads/files?file_name=ipxe-script
 ```
+This URL can either be used directly or the script can be downloaded and hosted separately.
 
-### Manual
-
-The manual way is explained here. You need at least to have the Discovery ISO already generated
-
-Now let's download that ISO in the provisioning machine, where the iPXE files will be hosted (use the _Command to download the ISO_ button from the Assisted Service website
-
-```shell
-IPXE_DIR=/tmp/ipxe/ai
-IMAGE_PATH=/tmp/discovery_image_ocp.iso
-ISO_URL=$(curl http://console.redhat.com/api/assisted-install/v2/infra-envs/<infra_env_id>/downloads/image-url | jq ".url")
-
-wget -O ${IMAGE_PATH} ${ISO_URL}
 ```
-
-- Now we need to create the folder and the _ipxe_ file definition
-
-```shell
-mkdir -p ${IPXE_DIR}
-
-cat > $IPXE_DIR/ipxe << EOF
 #!ipxe
-set live_url $(hostname):8080
-initrd --name initrd \${live_url}/initrd.img
-kernel \${live_url}/vmlinuz initrd=initrd ignition.config.url=\${live_url}/config.ign coreos.live.rootfs_url=\${live_url}/rootfs.img ${KERNEL_OPTS}
+initrd --name initrd http://assisted.example.com:8888/images/a7acfb01-d89f-40c8-82d7-02b20cf00173/pxe-initrd?arch=x86_64&version=4.9
+kernel http://assisted.example.com:8888/boot-artifacts/kernel?arch=x86_64&version=4.9 initrd=initrd coreos.live.rootfs_url=http://assisted.example.com:8888/boot-artifacts/rootfs?arch=x86_64&version=4.9 random.trust_cpu=on rd.luks.options=discard ignition.firstboot ignition.platform.id=metal console=tty1 console=ttyS1,115200n8 coreos.inst.persistent-kargs="console=tty1 console=ttyS1,115200n8"
 boot
-EOF
 ```
 
-- We also need to extract the images from the ISO
-
-```shell
-PXE_IMAGES=$(isoinfo -R -i $IMAGE_PATH -f | grep -i images/pxeboot)
-
-for img in $PXE_IMAGES; do
-  name=$(basename ${img})
-  echo extracting $name
-  isoinfo -R -i $IMAGE_PATH -x $img > $IPXE_DIR/$name
-done
-```
-
-- And as a last step, write the Ignition files for the deployment
-
-```shell
-echo writing custom user ignition
-ziptool=$(isoinfo -R -i $IMAGE_PATH -x /images/ignition.img | file -b - | cut -d ' ' -f 1)
-isoinfo -R -i $IMAGE_PATH -x /images/ignition.img | ${ziptool,,} -dc | cpio -iD $IPXE_DIR
-```
-
-- After the Ignition files creation we need to host the files, for that we will use a podman contianer based on nginx
-
-```shell
-podman run  -v ${IPXE_DIR}:/app:ro -p 8080:8080 -d --rm docker.io/bitnami/nginx:latest
-```
-
-- To ensure if your container is working fine, check the url with a `curl` command
-
-```shell
-curl http://$(hostname):8080/ipxe
-```
+A presigned URL for the script URL can be retrieved using:
+`GET /api/assisted-install/v2/infra-envs/{infra_env_id}/downloads/files-presigned?file_name=ipxe-script`
 
 ### Booting the nodes from iPXE
 
@@ -131,7 +66,7 @@ curl http://$(hostname):8080/ipxe
 
 ![img](img/iPXE_boot.png)
 
-- Now we need to get a correct IP and point to the right iPXE file
+- Now we need to get a correct IP and point to the right iPXE file url from above
 - And we just need to wait until the boot was finished, and the nodes start appearing on the Assisted Service interface
 
 ![img](img/manual_ipxe_boot.png)
@@ -151,5 +86,3 @@ curl http://$(hostname):8080/ipxe
 ![img](img/ai_vips.png)
 
 - Now you just need to click on _Install Cluster_ button and wait for the installation to finish.
-
-
