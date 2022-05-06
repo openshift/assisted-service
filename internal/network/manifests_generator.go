@@ -64,22 +64,13 @@ metadata:
 spec:
   config:
     ignition:
-      config: {}
-      security:
-        tls: {}
-      timeouts: {}
-      version: 2.2.0
-    networkd: {}
-    passwd: {}
+      version: 3.1.0
     storage:
       files:
       - contents:
           source: data:text/plain;charset=utf-8;base64,{{.CHRONY_CONTENT}}
-          verification: {}
-        filesystem: root
         mode: 420
         path: /etc/chrony.conf
-  osImageURL: ""
 `
 
 const snoDnsmasqConf = `
@@ -117,31 +108,19 @@ metadata:
 spec:
   config:
     ignition:
-      config: {}
-      security:
-        tls: {}
-      timeouts: {}
-      version: 2.2.0
-    networkd: {}
-    passwd: {}
+      version: 3.1.0
     storage:
       files:
         - contents:
             source: data:text/plain;charset=utf-8;base64,{{.DNSMASQ_CONTENT}}
-            verification: {}
-          filesystem: root
           mode: 420
           path: /etc/dnsmasq.d/single-node.conf
         - contents:
             source: data:text/plain;charset=utf-8;base64,{{.FORCE_DNS_SCRIPT}}
-            verification: {}
-          filesystem: root
           mode: 365
           path: /etc/NetworkManager/dispatcher.d/forcedns
         - contents:
             source: data:text/plain;charset=utf-8;base64,{{.UNMANAGED_RESOLV_CONF}}
-            verification: {}
-          filesystem: root
           mode: 420
           path: /etc/NetworkManager/conf.d/single-node.conf
     systemd:
