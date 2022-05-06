@@ -110,9 +110,12 @@ func GetBootstrapHost(cluster *Cluster) *models.Host {
 	return nil
 }
 
-// IsSingleNodeCluster if this cluster is single-node or not
 func IsSingleNodeCluster(cluster *Cluster) bool {
 	return swag.StringValue(cluster.HighAvailabilityMode) == models.ClusterHighAvailabilityModeNone
+}
+
+func IsDay2Cluster(cluster *Cluster) bool {
+	return swag.StringValue(cluster.Kind) == models.ClusterKindAddHostsCluster
 }
 
 func AreMastersSchedulable(cluster *Cluster) bool {
