@@ -35,4 +35,6 @@ const (
 	ClusterManagedNetworkWithVMs string = "Cluster managed networking with VMs"
 	// ARM64 Architecture usage
 	CPUArchitectureARM64 string = "arm64 architecture"
+	// The install config overrides specified by for the cluster
+	InstallConfigOverrides string = "Install Config Overrides"
 )

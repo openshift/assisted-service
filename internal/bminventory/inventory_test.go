@@ -9120,7 +9120,6 @@ var _ = Describe("UpdateClusterInstallConfig", func() {
 
 		err := db.Create(&c).Error
 		Expect(err).ShouldNot(HaveOccurred())
-		mockUsageReports()
 	})
 
 	AfterEach(func() {
@@ -9138,6 +9137,7 @@ var _ = Describe("UpdateClusterInstallConfig", func() {
 			eventstest.WithNameMatcher(eventgen.InstallConfigAppliedEventName),
 			eventstest.WithClusterIdMatcher(params.ClusterID.String())))
 		mockInstallConfigBuilder.EXPECT().ValidateInstallConfigPatch(gomock.Any(), params.InstallConfigParams).Return(nil).Times(1)
+		mockUsageReports()
 		response := bm.V2UpdateClusterInstallConfig(ctx, params)
 		Expect(response).To(BeAssignableToTypeOf(&installer.V2UpdateClusterInstallConfigCreated{}))
 
@@ -9166,6 +9166,42 @@ var _ = Describe("UpdateClusterInstallConfig", func() {
 		mockInstallConfigBuilder.EXPECT().ValidateInstallConfigPatch(gomock.Any(), params.InstallConfigParams).Return(fmt.Errorf("some error")).Times(1)
 		response := bm.V2UpdateClusterInstallConfig(ctx, params)
 		verifyApiError(response, http.StatusBadRequest)
+	})
+
+	It("updates the install config overrides feature usage", func() {
+		override := `{"controlPlane": {"hyperthreading": "Disabled"}}`
+		params := installer.V2UpdateClusterInstallConfigParams{
+			ClusterID:           clusterID,
+			InstallConfigParams: override,
+		}
+		usages := map[string]models.Usage{}
+		overrideUsage := make(map[string]interface{})
+		overrideUsage["controlPlane hyperthreading"] = true
+		mockUsage.EXPECT().Add(usages, usage.InstallConfigOverrides, gomock.Any()).Times(1)
+		mockUsage.EXPECT().Save(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+		mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
+			eventstest.WithNameMatcher(eventgen.InstallConfigAppliedEventName),
+			eventstest.WithClusterIdMatcher(params.ClusterID.String())))
+		mockInstallConfigBuilder.EXPECT().ValidateInstallConfigPatch(gomock.Any(), params.InstallConfigParams).Return(nil).Times(1)
+		bm.V2UpdateClusterInstallConfig(ctx, params)
+	})
+
+	It("doesn't update the install config overrides feature usage if it's empty", func() {
+		params := installer.V2UpdateClusterInstallConfigParams{
+			ClusterID:           clusterID,
+			InstallConfigParams: "",
+		}
+		mockUsage.EXPECT().Add(gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
+		mockUsage.EXPECT().Save(gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
+		mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
+			eventstest.WithNameMatcher(eventgen.InstallConfigAppliedEventName),
+			eventstest.WithClusterIdMatcher(params.ClusterID.String())))
+		mockInstallConfigBuilder.EXPECT().ValidateInstallConfigPatch(gomock.Any(), params.InstallConfigParams).Return(nil).Times(1)
+		bm.V2UpdateClusterInstallConfig(ctx, params)
+		var updated common.Cluster
+		err := db.First(&updated, "id = ?", clusterID).Error
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(updated.Cluster.FeatureUsage).To(Equal(""))
 	})
 })
 
