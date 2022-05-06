@@ -24,7 +24,6 @@ COPY --from=builder /build/assisted-service /assisted-service
 COPY --from=builder /build/assisted-service-operator /assisted-service-operator
 COPY --from=builder /build/assisted-service-admission /assisted-service-admission
 COPY --from=builder /build/agent-based-installer-register-cluster-and-infraenv /agent-based-installer-register-cluster-and-infraenv
-COPY --from=pybuilder /assisted-service/build/dist/* /clients/
 ENV GODEBUG=madvdontneed=1
 ENV GOGC=50
 CMD ["/assisted-service"]
