@@ -39,4 +39,6 @@ const (
 	InstallConfigOverrides string = "Install Config Overrides"
 	// SNO expansion with workers
 	SingleNodeExpansion string = "Single Node Expansion"
+	// Usage of ignition config overrides
+	IgnitionConfigOverrideUsage string = "Ignition Config Override"
 )

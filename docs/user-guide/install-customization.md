@@ -42,7 +42,7 @@ The discovery ignition must use version 3.1.0 regardless of the version of the c
 ```sh
 # ignition patch file
 {
-  "config": "{\"ignition\": {\"version\": \"3.1.0\"}, \"storage\": {\"files\": [{\"path\": \"/etc/containers/registries.conf\", \"mode\": 420, \"overwrite\": true, \"user\": { \"name\": \"root\"},\"contents\": {\"source\": \"data:text/plain;base64,dW5xdWFsaWZpZWQtc2VhcmNoLXJlZ2lzdHJpZXMgPSBbInJlZ2lzdHJ5LmFjY2Vzcy5yZWRoYXQuY29tIiwgImRvY2tlci5pbyJdCltbcmVnaXN0cnldXQogICBwcmVmaXggPSAiIgogICBsb2NhdGlvbiA9ICJxdWF5LmlvL29jcG1ldGFsIgogICBtaXJyb3ItYnktZGlnZXN0LW9ubHkgPSBmYWxzZQogICBbW3JlZ2lzdHJ5Lm1pcnJvcl1dCiAgIGxvY2F0aW9uID0gImxvY2FsLnJlZ2lzdHJ5OjUwMDAvb2NwbWV0YWwiCg==\"}}]}}"
+  "ignition_config_override": "{\"ignition\": {\"version\": \"3.1.0\"}, \"storage\": {\"files\": [{\"path\": \"/etc/containers/registries.conf\", \"mode\": 420, \"overwrite\": true, \"user\": { \"name\": \"root\"},\"contents\": {\"source\": \"data:text/plain;base64,dW5xdWFsaWZpZWQtc2VhcmNoLXJlZ2lzdHJpZXMgPSBbInJlZ2lzdHJ5LmFjY2Vzcy5yZWRoYXQuY29tIiwgImRvY2tlci5pbyJdCltbcmVnaXN0cnldXQogICBwcmVmaXggPSAiIgogICBsb2NhdGlvbiA9ICJxdWF5LmlvL29jcG1ldGFsIgogICBtaXJyb3ItYnktZGlnZXN0LW9ubHkgPSBmYWxzZQogICBbW3JlZ2lzdHJ5Lm1pcnJvcl1dCiAgIGxvY2F0aW9uID0gImxvY2FsLnJlZ2lzdHJ5OjUwMDAvb2NwbWV0YWwiCg==\"}}]}}"
 }
 
 curl \
