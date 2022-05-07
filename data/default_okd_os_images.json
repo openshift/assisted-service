@@ -2,8 +2,8 @@
     {
         "openshift_version": "4.10",
         "cpu_architecture": "x86_64",
-        "url": "https://builds.coreos.fedoraproject.org/prod/streams/testing/builds/35.20220116.2.0/x86_64/fedora-coreos-35.20220116.2.0-live.x86_64.iso",
-        "rootfs_url": "https://builds.coreos.fedoraproject.org/prod/streams/testing/builds/35.20220116.2.0/x86_64/fedora-coreos-35.20220116.2.0-live-rootfs.x86_64.img",
-        "version": "35.20220116.2.0"
+        "url": "https://builds.coreos.fedoraproject.org/prod/streams/stable/builds/35.20220327.3.0/x86_64/fedora-coreos-35.20220327.3.0-live.x86_64.iso",
+        "rootfs_url": "https://builds.coreos.fedoraproject.org/prod/streams/stable/builds/35.20220327.3.0/x86_64/fedora-coreos-35.20220327.3.0-live-rootfs.x86_64.img",
+        "version": "35.20220327.3.0"
     }
 ]
