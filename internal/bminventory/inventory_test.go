@@ -8967,11 +8967,11 @@ var _ = Describe("Upload and Download logs test", func() {
 		verifyApiError(bm.V2DownloadClusterLogs(ctx, params), http.StatusNotFound)
 	})
 
-	It("download cluster logs CreateTarredClusterLogs failed", func() {
+	It("download cluster logs PrepareClusterLogFile failed", func() {
 		params := installer.V2DownloadClusterLogsParams{
 			ClusterID: clusterID,
 		}
-		mockClusterApi.EXPECT().CreateTarredClusterLogs(ctx, gomock.Any(), gomock.Any()).Return("", errors.Errorf("dummy"))
+		mockClusterApi.EXPECT().PrepareClusterLogFile(ctx, gomock.Any(), gomock.Any()).Return("", errors.Errorf("dummy"))
 		verifyApiError(bm.V2DownloadClusterLogs(ctx, params), http.StatusInternalServerError)
 	})
 
@@ -8980,7 +8980,7 @@ var _ = Describe("Upload and Download logs test", func() {
 			ClusterID: clusterID,
 		}
 		fileName := fmt.Sprintf("%s_logs.zip", clusterID)
-		mockClusterApi.EXPECT().CreateTarredClusterLogs(ctx, gomock.Any(), gomock.Any()).Return(fileName, nil)
+		mockClusterApi.EXPECT().PrepareClusterLogFile(ctx, gomock.Any(), gomock.Any()).Return(fileName, nil)
 		mockS3Client.EXPECT().Download(ctx, fileName).Return(nil, int64(0), errors.Errorf("dummy"))
 		verifyApiError(bm.V2DownloadClusterLogs(ctx, params), http.StatusInternalServerError)
 	})
@@ -8990,7 +8990,7 @@ var _ = Describe("Upload and Download logs test", func() {
 			ClusterID: clusterID,
 		}
 		fileName := fmt.Sprintf("%s/logs/cluster_logs.tar", clusterID)
-		mockClusterApi.EXPECT().CreateTarredClusterLogs(ctx, gomock.Any(), gomock.Any()).Return(fileName, nil)
+		mockClusterApi.EXPECT().PrepareClusterLogFile(ctx, gomock.Any(), gomock.Any()).Return(fileName, nil)
 		r := ioutil.NopCloser(bytes.NewReader([]byte("test")))
 		mockS3Client.EXPECT().Download(ctx, fileName).Return(r, int64(4), nil)
 		generateReply := bm.V2DownloadClusterLogs(ctx, params)
@@ -9000,7 +9000,7 @@ var _ = Describe("Upload and Download logs test", func() {
 
 	It("Logs presigned cluster logs failed", func() {
 		mockS3Client.EXPECT().IsAwsS3().Return(true)
-		mockClusterApi.EXPECT().CreateTarredClusterLogs(ctx, gomock.Any(), gomock.Any()).Return("", errors.Errorf("dummy"))
+		mockClusterApi.EXPECT().PrepareClusterLogFile(ctx, gomock.Any(), gomock.Any()).Return("", errors.Errorf("dummy"))
 		generateReply := bm.V2GetPresignedForClusterFiles(ctx, installer.V2GetPresignedForClusterFilesParams{
 			ClusterID: clusterID,
 			FileName:  "logs",
@@ -9010,7 +9010,7 @@ var _ = Describe("Upload and Download logs test", func() {
 
 	It("Logs presigned cluster logs happy flow", func() {
 		mockS3Client.EXPECT().IsAwsS3().Return(true)
-		mockClusterApi.EXPECT().CreateTarredClusterLogs(ctx, gomock.Any(), gomock.Any()).Return("tarred", nil)
+		mockClusterApi.EXPECT().PrepareClusterLogFile(ctx, gomock.Any(), gomock.Any()).Return("tarred", nil)
 		mockS3Client.EXPECT().GeneratePresignedDownloadURL(ctx, "tarred", fmt.Sprintf("mycluster_%s.tar", clusterID.String()), gomock.Any()).Return("url", nil)
 		generateReply := bm.V2GetPresignedForClusterFiles(ctx, installer.V2GetPresignedForClusterFilesParams{
 			ClusterID: clusterID,
