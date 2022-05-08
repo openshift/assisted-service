@@ -2,6 +2,7 @@ package network
 
 import (
 	"encoding/json"
+	"fmt"
 	"net"
 	"strings"
 
@@ -92,7 +93,13 @@ func VerifyVip(hosts []*models.Host, machineNetworkCidr string, vip string, vipN
 		return errors.Errorf("%s <%s> does not belong to machine-network-cidr <%s>", vipName, vip, machineNetworkCidr)
 	}
 	if !IpInFreeList(hosts, vip, machineNetworkCidr, log) {
-		return errors.Errorf("%s <%s> is already in use in cidr %s", vipName, vip, machineNetworkCidr)
+		msg := fmt.Sprintf("%s <%s> is already in use in cidr %s", vipName, vip, machineNetworkCidr)
+		//In that particular case verify that the machine network range is big enough
+		//to accommodates hosts and vips
+		if !isMachineNetworkCidrBigEnough(hosts, machineNetworkCidr, log) {
+			msg = fmt.Sprintf("%s. The machine network range is too small for the cluster. Please redefine the network.", msg)
+		}
+		return errors.New(msg)
 	}
 	return nil
 }
