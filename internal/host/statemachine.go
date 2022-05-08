@@ -513,7 +513,8 @@ func NewHostStateMachine(sm stateswitch.StateMachine, th *transitionHandler) sta
 
 	var isSufficientForInstall = stateswitch.And(If(HasMemoryForRole), If(HasCPUCoresForRole), If(BelongsToMachineCidr), If(IsHostnameUnique), If(IsHostnameValid), If(IsIgnitionDownloadable), If(BelongsToMajorityGroup),
 		If(AreOdfRequirementsSatisfied), If(AreLsoRequirementsSatisfied), If(AreCnvRequirementsSatisfied), If(HasSufficientNetworkLatencyRequirementForRole), If(HasSufficientPacketLossRequirementForRole), If(HasDefaultRoute),
-		If(IsAPIDomainNameResolvedCorrectly), If(IsAPIInternalDomainNameResolvedCorrectly), If(IsAppsDomainNameResolvedCorrectly), If(IsDNSWildcardNotConfigured), If(IsPlatformNetworkSettingsValid), If(SufficientOrUnknownInstallationDiskSpeed))
+		If(IsAPIDomainNameResolvedCorrectly), If(IsAPIInternalDomainNameResolvedCorrectly), If(IsAppsDomainNameResolvedCorrectly), If(IsDNSWildcardNotConfigured), If(IsPlatformNetworkSettingsValid),
+		If(SufficientOrUnknownInstallationDiskSpeed), If(NonOverlappingSubnets))
 
 	// In order for this transition to be fired at least one of the validations in minRequiredHardwareValidations must fail.
 	// This transition handles the case that a host does not pass minimum hardware requirements for any of the roles

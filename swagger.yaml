@@ -5548,6 +5548,7 @@ definitions:
       - 'compatible-with-cluster-platform'
       - 'dns-wildcard-not-configured'
       - 'disk-encryption-requirements-satisfied'
+      - 'non-overlapping-subnets'
 
   dhcp_allocation_request:
     type: object

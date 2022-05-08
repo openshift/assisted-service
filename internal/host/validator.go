@@ -1301,3 +1301,57 @@ func (v *validator) printIsDNSWildcardNotConfigured(c *validationContext, status
 		return "Unexpected status"
 	}
 }
+
+func areNetworksOverlapping(c *validationContext) (ValidationStatus, error) {
+	if c.inventory == nil || c.cluster == nil {
+		return ValidationPending, nil
+	}
+	families, err := network.GetClusterAddressFamilies(c.cluster)
+	if err != nil {
+		return ValidationError, err
+	}
+	for _, family := range families {
+		var networks []string
+		switch family {
+		case network.IPv4:
+			networks, err = network.GetIPv4Networks(c.inventory)
+		case network.IPv6:
+			networks, err = network.GetIPv6Networks(c.inventory)
+		}
+		if err != nil {
+			return ValidationError, err
+		}
+		for i := 0; i < len(networks); i++ {
+			for j := i + 1; j < len(networks); j++ {
+				if err = network.NetworksOverlap(networks[i], networks[j]); err != nil {
+					return ValidationFailure, err
+				}
+			}
+		}
+	}
+	return ValidationSuccess, nil
+}
+
+func (v *validator) nonOverlappingSubnets(c *validationContext) ValidationStatus {
+	ret, err := areNetworksOverlapping(c)
+	if err != nil {
+		v.log.WithError(err).Errorf("Failed to check if CIDRs are overlapping for host %s infra-env %s", c.host.ID.String(), c.host.InfraEnvID.String())
+	}
+	return ret
+}
+
+func (v *validator) printNonOverlappingSubnets(c *validationContext, status ValidationStatus) string {
+	switch status {
+	case ValidationSuccess:
+		return "Host subnets are not overlapping"
+	case ValidationPending:
+		return "Missing inventory, or missing cluster"
+	case ValidationFailure:
+		_, err := areNetworksOverlapping(c)
+		return fmt.Sprintf("Address networks are overlapping: %s", err.Error())
+	case ValidationError:
+		_, err := areNetworksOverlapping(c)
+		return fmt.Sprintf("Unexpected error: %s", err.Error())
+	}
+	return fmt.Sprintf("Unexpected status %s", status)
+}
