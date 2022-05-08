@@ -196,31 +196,6 @@ spec:
       cpuArchitecture: "x86_64"
 ```
 
-### Available Olm Operators Must Gather Images
-
-Locations of Must Gather images to be used when gathering information on failed olm
-operators can be specified via the `mustGatherImages` field on the
-AgentServiceConfig.
-
-```
-apiVersion: agent-install.openshift.io/v1beta1
-kind: AgentServiceConfig
-metadata:
- name: agent
-spec:
-  ...
-  mustGatherImages:
-  - openshiftVersion: '4.8'
-    name: "cnv"
-    url: "registry.redhat.io/container-native-virtualization/cnv-must-gather-rhel8:v2.6.5"
-  - openshiftVersion: '4.8'
-    name: "ocs"
-    url: "registry.redhat.io/ocs4/ocs-must-gather-rhel8"
-  - openshiftVersion: '4.8'
-    name: "lso"
-    url: "registry.redhat.io/openshift4/ose-local-storage-mustgather-rhel8"
-```
-
 ### Specifying Environmental Variables via ConfigMap
 
 It is possible to specify a ConfigMap to be mounted into the assisted-service
