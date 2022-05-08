@@ -204,4 +204,18 @@ var _ = Describe("Infra_Env", func() {
 		Expect(err).NotTo(HaveOccurred())
 		Expect(script).To(HavePrefix("#!ipxe"))
 	})
+	It("fails when given invalid static network config", func() {
+		staticNetworkConfig := models.HostStaticNetworkConfig{
+			NetworkYaml: "aaaaa",
+		}
+		staticNetworkConfigs := []*models.HostStaticNetworkConfig{&staticNetworkConfig}
+		updateParams := &installer.UpdateInfraEnvParams{
+			InfraEnvID: infraEnvID,
+			InfraEnvUpdateParams: &models.InfraEnvUpdateParams{
+				StaticNetworkConfig: staticNetworkConfigs,
+			},
+		}
+		_, err := userBMClient.Installer.UpdateInfraEnv(ctx, updateParams)
+		Expect(err).To(HaveOccurred())
+	})
 })
