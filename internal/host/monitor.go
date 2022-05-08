@@ -54,7 +54,7 @@ func (m *Manager) initMonitoringQueryGenerator() {
 	}
 }
 
-func sortHosts(hosts []*models.Host) []*models.Host {
+func SortHosts(hosts []*models.Host) ([]*models.Host, bool) {
 	diskCapacityGiB := func(disks []*models.Disk) int64 {
 		return funk.Reduce(disks, func(acc int64, d *models.Disk) int64 {
 			if d.InstallationEligibility.Eligible {
@@ -81,14 +81,17 @@ func sortHosts(hosts []*models.Host) []*models.Host {
 		}
 	}
 
+	allHostsHasInventory := true
 	sort.SliceStable(hosts, func(i, j int) bool {
 		inventory_i, _ := common.UnmarshalInventory(hosts[i].Inventory)
 		if inventory_i == nil {
+			allHostsHasInventory = false
 			return false
 		}
 
 		inventory_j, _ := common.UnmarshalInventory(hosts[j].Inventory)
 		if inventory_j == nil {
+			allHostsHasInventory = false
 			return true
 		}
 
@@ -103,7 +106,7 @@ func sortHosts(hosts []*models.Host) []*models.Host {
 
 		return wi < wj
 	})
-	return hosts
+	return hosts, allHostsHasInventory
 }
 
 func (m *Manager) clusterHostMonitoring() int64 {
@@ -129,7 +132,8 @@ func (m *Manager) clusterHostMonitoring() int64 {
 
 		for _, c := range clusters {
 			inventoryCache := make(InventoryCache)
-			for _, host := range sortHosts(c.Hosts) {
+			sortedHosts, canRefreshRoles := SortHosts(c.Hosts)
+			for _, host := range sortedHosts {
 				if !m.leaderElector.IsLeader() {
 					m.log.Debugf("Not a leader, exiting cluster HostMonitoring")
 					return monitored
@@ -140,12 +144,15 @@ func (m *Manager) clusterHostMonitoring() int64 {
 					if err != nil {
 						log.WithError(err).Errorf("failed to refresh host %s state", *host.ID)
 					}
-					//the refreshed role will be taken into account
-					//on the next monitor cycle. The force flag is a workaround
-					//until the feature flag is removed
-					err = m.refreshRoleInternal(ctx, host, m.db, false)
-					if err != nil {
-						log.WithError(err).Errorf("failed to refresh host %s role", *host.ID)
+					//the refreshed role will be taken into account in the validations
+					//on the next monitor cycle. The roles will not be calculated until
+					//all the hosts in the cluster has inventory to avoid race condition
+					//with the reset auto-assign mechanism.
+					if canRefreshRoles {
+						err = m.refreshRoleInternal(ctx, host, m.db, false)
+						if err != nil {
+							log.WithError(err).Errorf("failed to refresh host %s role", *host.ID)
+						}
 					}
 				}
 			}
