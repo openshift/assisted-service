@@ -262,21 +262,6 @@ func (mr *MockAPIMockRecorder) CompleteInstallation(ctx, db, cluster, successful
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CompleteInstallation", reflect.TypeOf((*MockAPI)(nil).CompleteInstallation), ctx, db, cluster, successfullyFinished, reason)
 }
 
-// CreateTarredClusterLogs mocks base method.
-func (m *MockAPI) CreateTarredClusterLogs(ctx context.Context, c *common.Cluster, objectHandler s3wrapper.API) (string, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CreateTarredClusterLogs", ctx, c, objectHandler)
-	ret0, _ := ret[0].(string)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// CreateTarredClusterLogs indicates an expected call of CreateTarredClusterLogs.
-func (mr *MockAPIMockRecorder) CreateTarredClusterLogs(ctx, c, objectHandler interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateTarredClusterLogs", reflect.TypeOf((*MockAPI)(nil).CreateTarredClusterLogs), ctx, c, objectHandler)
-}
-
 // DeleteClusterFiles mocks base method.
 func (m *MockAPI) DeleteClusterFiles(ctx context.Context, c *common.Cluster, objectHandler s3wrapper.API) error {
 	m.ctrl.T.Helper()
@@ -442,6 +427,21 @@ func (m *MockAPI) PermanentClustersDeletion(ctx context.Context, olderThan strfm
 func (mr *MockAPIMockRecorder) PermanentClustersDeletion(ctx, olderThan, objectHandler interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PermanentClustersDeletion", reflect.TypeOf((*MockAPI)(nil).PermanentClustersDeletion), ctx, olderThan, objectHandler)
+}
+
+// PrepareClusterLogFile mocks base method.
+func (m *MockAPI) PrepareClusterLogFile(ctx context.Context, c *common.Cluster, objectHandler s3wrapper.API) (string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "PrepareClusterLogFile", ctx, c, objectHandler)
+	ret0, _ := ret[0].(string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// PrepareClusterLogFile indicates an expected call of PrepareClusterLogFile.
+func (mr *MockAPIMockRecorder) PrepareClusterLogFile(ctx, c, objectHandler interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PrepareClusterLogFile", reflect.TypeOf((*MockAPI)(nil).PrepareClusterLogFile), ctx, c, objectHandler)
 }
 
 // PrepareForInstallation mocks base method.

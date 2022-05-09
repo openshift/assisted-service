@@ -105,7 +105,7 @@ type API interface {
 	HandlePreInstallSuccess(ctx context.Context, c *common.Cluster)
 	SetVipsData(ctx context.Context, c *common.Cluster, apiVip, ingressVip, apiVipLease, ingressVipLease string, db *gorm.DB) error
 	IsReadyForInstallation(c *common.Cluster) (bool, string)
-	CreateTarredClusterLogs(ctx context.Context, c *common.Cluster, objectHandler s3wrapper.API) (string, error)
+	PrepareClusterLogFile(ctx context.Context, c *common.Cluster, objectHandler s3wrapper.API) (string, error)
 	SetUploadControllerLogsAt(ctx context.Context, c *common.Cluster, db *gorm.DB) error
 	SetConnectivityMajorityGroupsForCluster(clusterID strfmt.UUID, db *gorm.DB) error
 	DeleteClusterLogs(ctx context.Context, c *common.Cluster, objectHandler s3wrapper.API) error
@@ -952,9 +952,43 @@ func (m *Manager) SetVipsData(ctx context.Context, c *common.Cluster, apiVip, in
 	return nil
 }
 
-func (m *Manager) CreateTarredClusterLogs(ctx context.Context, c *common.Cluster, objectHandler s3wrapper.API) (string, error) {
+func (m *Manager) uploadDataAsFile(ctx context.Context, log logrus.FieldLogger, data interface{}, fileName string, objectHandler s3wrapper.API) error {
+	marshalled, err := json.MarshalIndent(data, "", " ")
+	if err != nil {
+		log.WithError(err).Warnf("Failed to marshall data for %s", fileName)
+		return err
+	}
+
+	err = objectHandler.Upload(ctx, marshalled, fileName)
+	if err != nil {
+		log.WithError(err).Warnf("Failed to upload %s", fileName)
+		return err
+	}
+	return nil
+}
+
+// no need to return error as we want to continue uploading as many data as we can
+func (m *Manager) createClusterDataFiles(ctx context.Context, c *common.Cluster, objectHandler s3wrapper.API) {
+	log := logutil.FromContext(ctx, m.log)
+	cluster := *c
+	cluster.PullSecret = "SECRET"
+	fileName := fmt.Sprintf("%s/logs/cluster/metadata.json", c.ID)
+	// we don't want to stop on error
+	_ = m.uploadDataAsFile(ctx, log, cluster, fileName, objectHandler)
+
+	events, err := m.eventsHandler.V2GetEvents(ctx, c.ID, nil, nil)
+	if err != nil {
+		log.WithError(err).Warn("Failed to get events")
+	} else {
+		fileName := fmt.Sprintf("%s/logs/cluster/events.json", c.ID)
+		_ = m.uploadDataAsFile(ctx, log, events, fileName, objectHandler)
+	}
+}
+
+func (m *Manager) PrepareClusterLogFile(ctx context.Context, c *common.Cluster, objectHandler s3wrapper.API) (string, error) {
 	log := logutil.FromContext(ctx, m.log)
 	fileName := fmt.Sprintf("%s/logs/cluster_logs.tar", c.ID)
+	m.createClusterDataFiles(ctx, c, objectHandler)
 	files, err := objectHandler.ListObjectsByPrefix(ctx, fmt.Sprintf("%s/logs/", c.ID))
 	if err != nil {
 		return "", common.NewApiError(http.StatusNotFound, err)

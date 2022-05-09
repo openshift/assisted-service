@@ -3547,7 +3547,7 @@ func (b *bareMetalInventory) uploadHostLogs(ctx context.Context, host *common.Ho
 }
 
 func (b *bareMetalInventory) prepareClusterLogs(ctx context.Context, cluster *common.Cluster) (string, error) {
-	fileName, err := b.clusterApi.CreateTarredClusterLogs(ctx, cluster, b.objectHandler)
+	fileName, err := b.clusterApi.PrepareClusterLogFile(ctx, cluster, b.objectHandler)
 	if err != nil {
 		return "", err
 	}
