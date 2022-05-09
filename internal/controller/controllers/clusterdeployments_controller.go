@@ -412,18 +412,16 @@ func (r *ClusterDeploymentsReconciler) installDay1(ctx context.Context, log logr
 }
 
 func (r *ClusterDeploymentsReconciler) installDay2Hosts(ctx context.Context, log logrus.FieldLogger, clusterDeployment *hivev1.ClusterDeployment, clusterInstall *hiveext.AgentClusterInstall, cluster *common.Cluster) (ctrl.Result, error) {
-	for _, h := range cluster.Hosts {
-		commonh, err := r.Installer.GetCommonHostInternal(ctx, h.InfraEnvID.String(), h.ID.String())
+	hosts, err := r.Installer.GetKnownApprovedHosts(*cluster.ID)
+	if err != nil {
+		log.WithError(err).Errorf("Failed to get ready and approved hosts for cluster %s", cluster.ID.String())
+		return r.updateStatus(ctx, log, clusterInstall, cluster, err)
+	}
+	for _, h := range hosts {
+		log.Infof("Installing Day2 host %s in %s %s", *h.ID, clusterDeployment.Name, clusterDeployment.Namespace)
+		err = r.Installer.InstallSingleDay2HostInternal(ctx, *cluster.ID, h.InfraEnvID, *h.ID)
 		if err != nil {
-			log.WithError(err).Errorf("Failed to get common host %s from cluster %s", h.ID.String(), cluster.ID.String())
 			return r.updateStatus(ctx, log, clusterInstall, cluster, err)
-		}
-		if r.HostApi.IsInstallable(h) && commonh.Approved {
-			log.Infof("Installing Day2 host %s in %s %s", *h.ID, clusterDeployment.Name, clusterDeployment.Namespace)
-			err = r.Installer.InstallSingleDay2HostInternal(ctx, *cluster.ID, h.InfraEnvID, *h.ID)
-			if err != nil {
-				return r.updateStatus(ctx, log, clusterInstall, cluster, err)
-			}
 		}
 	}
 	return r.updateStatus(ctx, log, clusterInstall, cluster, nil)
@@ -583,7 +581,7 @@ func (r *ClusterDeploymentsReconciler) isReadyForInstallation(ctx context.Contex
 		return false, nil
 	}
 
-	registered, approvedHosts, err := r.getNumOfClusterAgents(ctx, c)
+	registered, approvedHosts, err := r.getNumOfClusterAgents(c)
 	if err != nil {
 		log.WithError(err).Error("failed to fetch agents")
 		return false, err
@@ -1470,7 +1468,7 @@ func (r *ClusterDeploymentsReconciler) updateStatus(ctx context.Context, log log
 			}
 			var registeredHosts, approvedHosts int
 			if status == models.ClusterStatusReady {
-				registeredHosts, approvedHosts, err = r.getNumOfClusterAgents(ctx, c)
+				registeredHosts, approvedHosts, err = r.getNumOfClusterAgents(c)
 				if err != nil {
 					log.WithError(err).Error("failed to fetch cluster's agents")
 					return ctrl.Result{Requeue: true}, nil
@@ -1531,23 +1529,8 @@ func (r *ClusterDeploymentsReconciler) populateLogsURL(ctx context.Context, log 
 	return nil
 }
 
-func (r *ClusterDeploymentsReconciler) getNumOfClusterAgents(ctx context.Context, c *common.Cluster) (int, int, error) {
-	registeredHosts := 0
-	approvedHosts := 0
-	for _, h := range c.Hosts {
-		if r.HostApi.IsInstallable(h) {
-			registeredHosts += 1
-			commonh, err := r.Installer.GetCommonHostInternal(ctx, h.InfraEnvID.String(), h.ID.String())
-			if err != nil {
-				return 0, 0, err
-			}
-			if commonh.Approved {
-				approvedHosts += 1
-			}
-		}
-	}
-
-	return registeredHosts, approvedHosts, nil
+func (r *ClusterDeploymentsReconciler) getNumOfClusterAgents(c *common.Cluster) (int, int, error) {
+	return r.Installer.GetKnownHostApprovedCounts(*c.ID)
 }
 
 // clusterSpecSynced is updating the Cluster SpecSynced Condition.
@@ -1873,17 +1856,7 @@ func (r *ClusterDeploymentsReconciler) areLogsCollected(ctx context.Context, log
 	if !time.Time(cluster.ControllerLogsCollectedAt).Equal(time.Time{}) { // timestamp update, meaning logs were collected from a controller
 		return true, nil
 	}
-	for _, h := range cluster.Hosts {
-		commonh, err := r.Installer.GetCommonHostInternal(ctx, h.InfraEnvID.String(), h.ID.String())
-		if err != nil {
-			log.WithError(err).Errorf("Failed to get common host %s from cluster %s", h.ID.String(), cluster.ID.String())
-			return false, err
-		}
-		if !time.Time(commonh.LogsCollectedAt).Equal(time.Time{}) { // timestamp update, meaning logs were collected from a host
-			return true, nil
-		}
-	}
-	return false, nil
+	return r.Installer.HostWithCollectedLogsExists(*cluster.ID)
 }
 
 func (r *ClusterDeploymentsReconciler) setControllerLogsDownloadURL(

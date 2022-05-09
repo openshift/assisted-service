@@ -3749,3 +3749,287 @@ var _ = Describe("update node labels", func() {
 		}
 	})
 })
+
+var _ = Describe("GetClusterRegisteredAndApprovedHostsSummary", func() {
+	uuidPtr := func(u strfmt.UUID) *strfmt.UUID {
+		return &u
+	}
+	var (
+		manager API
+		db      *gorm.DB
+		dbName  string
+	)
+	BeforeEach(func() {
+		db, dbName = common.PrepareTestDB()
+		manager = NewManager(common.GetTestLog(), db, nil, nil, nil, nil, nil, defaultConfig, nil, nil, nil)
+	})
+	AfterEach(func() {
+		common.DeleteTestDB(db, dbName)
+	})
+	tests := []struct {
+		name               string
+		hosts              []*common.Host
+		expectedRegistered int
+		expectedApproved   int
+	}{
+		{
+			name: "Empty",
+		},
+		{
+			name: "No known hosts",
+			hosts: []*common.Host{
+				{
+					Host: models.Host{
+						Status: swag.String(models.HostStatusInsufficient),
+					},
+				},
+				{
+					Host: models.Host{
+						Status: swag.String(models.HostStatusDiscovering),
+					},
+					Approved: true,
+				},
+			},
+		},
+		{
+			name: "2 known, 1 approved",
+			hosts: []*common.Host{
+				{
+					Host: models.Host{
+						Status: swag.String(models.HostStatusKnown),
+					},
+				},
+				{
+					Host: models.Host{
+						Status: swag.String(models.HostStatusKnown),
+					},
+					Approved: true,
+				},
+			},
+			expectedApproved:   1,
+			expectedRegistered: 2,
+		},
+		{
+			name: "all approved",
+			hosts: []*common.Host{
+				{
+					Host: models.Host{
+						Status: swag.String(models.HostStatusKnown),
+					},
+					Approved: true,
+				},
+				{
+					Host: models.Host{
+						Status: swag.String(models.HostStatusKnown),
+					},
+					Approved: true,
+				},
+			},
+			expectedApproved:   2,
+			expectedRegistered: 2,
+		},
+	}
+	for i := range tests {
+		t := tests[i]
+		It(t.name, func() {
+			clusterID := strfmt.UUID(uuid.New().String())
+			for _, h := range t.hosts {
+				h.ID = uuidPtr(strfmt.UUID(uuid.New().String()))
+				h.ClusterID = uuidPtr(clusterID)
+				h.InfraEnvID = clusterID
+				Expect(db.Create(h).Error).ToNot(HaveOccurred())
+			}
+			registered, approved, err := manager.GetKnownHostApprovedCounts(clusterID)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(registered).To(Equal(t.expectedRegistered))
+			Expect(approved).To(Equal(t.expectedApproved))
+		})
+	}
+})
+
+var _ = Describe("HostWithCollectedLogsExists", func() {
+	uuidPtr := func(u strfmt.UUID) *strfmt.UUID {
+		return &u
+	}
+	var (
+		manager API
+		db      *gorm.DB
+		dbName  string
+	)
+	BeforeEach(func() {
+		db, dbName = common.PrepareTestDB()
+		manager = NewManager(common.GetTestLog(), db, nil, nil, nil, nil, nil, defaultConfig, nil, nil, nil)
+	})
+	AfterEach(func() {
+		common.DeleteTestDB(db, dbName)
+	})
+	tests := []struct {
+		name              string
+		hosts             []*common.Host
+		updateAfterCreate bool
+		expectedResult    bool
+	}{
+		{
+			name: "Empty",
+		},
+		{
+			name: "Logs not collected",
+			hosts: []*common.Host{
+				{},
+				{},
+			},
+		},
+		{
+			name: "Update after create",
+			hosts: []*common.Host{
+				{},
+				{},
+			},
+			updateAfterCreate: true,
+		},
+		{
+			name: "1 collected",
+			hosts: []*common.Host{
+				{},
+				{
+					Host: models.Host{
+						LogsCollectedAt: strfmt.DateTime(time.Now()),
+					},
+				},
+			},
+			expectedResult: true,
+		},
+		{
+			name: "all collected",
+			hosts: []*common.Host{
+				{
+					Host: models.Host{
+						LogsCollectedAt: strfmt.DateTime(time.Now()),
+					},
+				},
+				{
+					Host: models.Host{
+						LogsCollectedAt: strfmt.DateTime(time.Now()),
+					},
+				},
+			},
+			expectedResult: true,
+		},
+	}
+	for i := range tests {
+		t := tests[i]
+		It(t.name, func() {
+			clusterID := strfmt.UUID(uuid.New().String())
+			for _, h := range t.hosts {
+				h.ID = uuidPtr(strfmt.UUID(uuid.New().String()))
+				h.ClusterID = uuidPtr(clusterID)
+				h.InfraEnvID = clusterID
+				Expect(db.Create(h).Error).ToNot(HaveOccurred())
+				if t.updateAfterCreate {
+					Expect(db.Model(&models.Host{}).Where("id = ? and infra_env_id = ?", h.ID.String(), h.InfraEnvID.String()).
+						Update("logs_collected_at", h.LogsCollectedAt).Error).ToNot(HaveOccurred())
+				}
+			}
+			exists, err := manager.HostWithCollectedLogsExists(clusterID)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(exists).To(Equal(t.expectedResult))
+		})
+	}
+})
+
+var _ = Describe("GetKnownApprovedHosts", func() {
+	uuidPtr := func(u strfmt.UUID) *strfmt.UUID {
+		return &u
+	}
+	var (
+		manager API
+		db      *gorm.DB
+		dbName  string
+	)
+	BeforeEach(func() {
+		db, dbName = common.PrepareTestDB()
+		manager = NewManager(common.GetTestLog(), db, nil, nil, nil, nil, nil, defaultConfig, nil, nil, nil)
+	})
+	AfterEach(func() {
+		common.DeleteTestDB(db, dbName)
+	})
+	tests := []struct {
+		name        string
+		hosts       []*common.Host
+		numExpected int
+	}{
+		{
+			name: "Empty",
+		},
+		{
+			name: "No known hosts",
+			hosts: []*common.Host{
+				{
+					Host: models.Host{
+						Status: swag.String(models.HostStatusInsufficient),
+					},
+				},
+				{
+					Host: models.Host{
+						Status: swag.String(models.HostStatusDiscovering),
+					},
+					Approved: true,
+				},
+			},
+		},
+		{
+			name: "2 known, 1 approved",
+			hosts: []*common.Host{
+				{
+					Host: models.Host{
+						Status: swag.String(models.HostStatusKnown),
+					},
+				},
+				{
+					Host: models.Host{
+						Status: swag.String(models.HostStatusKnown),
+					},
+					Approved: true,
+				},
+			},
+			numExpected: 1,
+		},
+		{
+			name: "all approved",
+			hosts: []*common.Host{
+				{
+					Host: models.Host{
+						Status: swag.String(models.HostStatusKnown),
+					},
+					Approved: true,
+				},
+				{
+					Host: models.Host{
+						Status: swag.String(models.HostStatusKnown),
+					},
+					Approved: true,
+				},
+			},
+			numExpected: 2,
+		},
+	}
+	for i := range tests {
+		t := tests[i]
+		It(t.name, func() {
+			clusterID := strfmt.UUID(uuid.New().String())
+			for _, h := range t.hosts {
+				h.ID = uuidPtr(strfmt.UUID(uuid.New().String()))
+				h.ClusterID = uuidPtr(clusterID)
+				h.InfraEnvID = clusterID
+				Expect(db.Create(h).Error).ToNot(HaveOccurred())
+			}
+			hosts, err := manager.GetKnownApprovedHosts(clusterID)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(hosts).To(HaveLen(t.numExpected))
+			for _, h := range hosts {
+				Expect(swag.StringValue(h.Status)).To(Equal(models.HostStatusKnown))
+				Expect(h.Approved).To(BeTrue())
+			}
+		})
+	}
+})

@@ -1201,7 +1201,8 @@ func (m Manager) PermanentClustersDeletion(ctx context.Context, olderThan strfmt
 }
 
 func (m *Manager) GetClusterByKubeKey(key types.NamespacedName) (*common.Cluster, error) {
-	c, err := common.GetClusterFromDBWhere(m.db, common.UseEagerLoading, common.SkipDeletedRecords, "kube_key_name = ? and kube_key_namespace = ?", key.Name, key.Namespace)
+	c, err := common.GetClusterFromDBWhere(common.LoadClusterTablesFromDB(m.db, common.HostsTable), common.SkipEagerLoading, common.SkipDeletedRecords,
+		"kube_key_name = ? and kube_key_namespace = ?", key.Name, key.Namespace)
 	if err != nil {
 		return nil, err
 	}

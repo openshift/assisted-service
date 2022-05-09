@@ -113,6 +113,37 @@ func (mr *MockAPIMockRecorder) GetHostValidDisks(arg0 interface{}) *gomock.Call 
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetHostValidDisks", reflect.TypeOf((*MockAPI)(nil).GetHostValidDisks), arg0)
 }
 
+// GetKnownApprovedHosts mocks base method.
+func (m *MockAPI) GetKnownApprovedHosts(arg0 strfmt.UUID) ([]*common.Host, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetKnownApprovedHosts", arg0)
+	ret0, _ := ret[0].([]*common.Host)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetKnownApprovedHosts indicates an expected call of GetKnownApprovedHosts.
+func (mr *MockAPIMockRecorder) GetKnownApprovedHosts(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetKnownApprovedHosts", reflect.TypeOf((*MockAPI)(nil).GetKnownApprovedHosts), arg0)
+}
+
+// GetKnownHostApprovedCounts mocks base method.
+func (m *MockAPI) GetKnownHostApprovedCounts(arg0 strfmt.UUID) (int, int, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetKnownHostApprovedCounts", arg0)
+	ret0, _ := ret[0].(int)
+	ret1, _ := ret[1].(int)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
+}
+
+// GetKnownHostApprovedCounts indicates an expected call of GetKnownHostApprovedCounts.
+func (mr *MockAPIMockRecorder) GetKnownHostApprovedCounts(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetKnownHostApprovedCounts", reflect.TypeOf((*MockAPI)(nil).GetKnownHostApprovedCounts), arg0)
+}
+
 // GetNextSteps mocks base method.
 func (m *MockAPI) GetNextSteps(arg0 context.Context, arg1 *models.Host) (models.Steps, error) {
 	m.ctrl.T.Helper()
@@ -166,6 +197,21 @@ func (m *MockAPI) HostMonitoring() {
 func (mr *MockAPIMockRecorder) HostMonitoring() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "HostMonitoring", reflect.TypeOf((*MockAPI)(nil).HostMonitoring))
+}
+
+// HostWithCollectedLogsExists mocks base method.
+func (m *MockAPI) HostWithCollectedLogsExists(arg0 strfmt.UUID) (bool, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "HostWithCollectedLogsExists", arg0)
+	ret0, _ := ret[0].(bool)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// HostWithCollectedLogsExists indicates an expected call of HostWithCollectedLogsExists.
+func (mr *MockAPIMockRecorder) HostWithCollectedLogsExists(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "HostWithCollectedLogsExists", reflect.TypeOf((*MockAPI)(nil).HostWithCollectedLogsExists), arg0)
 }
 
 // IndexOfStage mocks base method.
