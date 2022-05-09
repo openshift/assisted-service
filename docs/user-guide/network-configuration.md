@@ -84,7 +84,7 @@ Sample CR for deploying a SNO cluster using Assisted Service. In this scenario o
 
 ```yaml
   networking:
-    networkType: OpenShiftSDN
+    networkType: OVNKubernetes
     clusterNetwork:
     - cidr: 10.128.0.0/14
       hostPrefix: 23
