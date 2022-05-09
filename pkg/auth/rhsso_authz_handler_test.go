@@ -377,12 +377,11 @@ var _ = Describe("HasAccessTo", func() {
 
 			mockOcmAuthorization.EXPECT().AccessReview(
 				gomock.Any(), "user2", gomock.Any(), subscription.String(), gomock.Any()).
-				Return(true, nil).Times(1)
+				Return(true, nil).Times(2)
 			cluster, _ := common.GetClusterFromDB(db, id1, common.SkipEagerLoading)
 			Expect(authzHandler.HasAccessTo(ctx, cluster, ReadAction)).To(BeTrue())
 			Expect(authzHandler.HasAccessTo(ctx, cluster, UpdateAction)).To(BeTrue())
 			Expect(authzHandler.HasAccessTo(ctx, cluster, DeleteAction)).To(BeTrue())
-			Expect(authzHandler.client.Cache.ItemCount()).To(Equal(1)) //delete is mapped to update
 		})
 
 		It("others can read but not write", func() {
@@ -391,7 +390,7 @@ var _ = Describe("HasAccessTo", func() {
 
 			mockOcmAuthorization.EXPECT().AccessReview(
 				gomock.Any(), "user2", gomock.Any(), subscription.String(), gomock.Any()).
-				Return(false, nil).Times(1)
+				Return(false, nil).Times(2)
 			cluster, _ := common.GetClusterFromDB(db, id1, common.SkipEagerLoading)
 			Expect(authzHandler.HasAccessTo(ctx, cluster, ReadAction)).To(BeTrue())
 			Expect(authzHandler.HasAccessTo(ctx, cluster, UpdateAction)).To(BeFalse())
@@ -419,7 +418,7 @@ var _ = Describe("HasAccessTo", func() {
 
 			mockOcmAuthorization.EXPECT().AccessReview(
 				gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
-				Return(false, nil).Times(2) //delete action is funneled to an update check
+				Return(false, nil).Times(4) //delete action is funneled to an update check
 
 			cluster, _ := common.GetClusterFromDB(db, id1, common.SkipEagerLoading)
 			Expect(authzHandler.HasAccessTo(ctx, cluster, ReadAction)).To(BeTrue())
@@ -452,19 +451,17 @@ var _ = Describe("HasAccessTo", func() {
 
 			mockOcmAuthorization.EXPECT().AccessReview(
 				gomock.Any(), "user2", gomock.Any(), subscription.String(), gomock.Any()).
-				Return(true, nil).Times(1)
+				Return(true, nil).Times(2)
 			infraEnv, _ := common.GetInfraEnvFromDB(db, id1)
 			Expect(authzHandler.HasAccessTo(ctx, infraEnv, ReadAction)).To(BeTrue())
 			Expect(authzHandler.HasAccessTo(ctx, infraEnv, UpdateAction)).To(BeTrue())
 			Expect(authzHandler.HasAccessTo(ctx, infraEnv, DeleteAction)).To(BeTrue())
-			Expect(authzHandler.client.Cache.ItemCount()).To(Equal(1)) //delete is mapped to update
 
 			By("unbound infra-env rules according to infra-env")
 			infraEnv, _ = common.GetInfraEnvFromDB(db, id2)
 			Expect(authzHandler.HasAccessTo(ctx, infraEnv, ReadAction)).To(BeTrue()) //user2 has access rights because of the org
 			Expect(authzHandler.HasAccessTo(ctx, infraEnv, UpdateAction)).To(BeFalse())
 			Expect(authzHandler.HasAccessTo(ctx, infraEnv, DeleteAction)).To(BeFalse())
-			Expect(authzHandler.client.Cache.ItemCount()).To(Equal(1)) //nothing was added to the cache
 		})
 
 		It("others can read but not write", func() {
@@ -473,12 +470,11 @@ var _ = Describe("HasAccessTo", func() {
 
 			mockOcmAuthorization.EXPECT().AccessReview(
 				gomock.Any(), "user2", gomock.Any(), subscription.String(), gomock.Any()).
-				Return(false, nil).Times(1)
+				Return(false, nil).Times(2)
 			infraEnv, _ := common.GetInfraEnvFromDB(db, id1)
 			Expect(authzHandler.HasAccessTo(ctx, infraEnv, ReadAction)).To(BeTrue()) //org based access
 			Expect(authzHandler.HasAccessTo(ctx, infraEnv, UpdateAction)).To(BeFalse())
 			Expect(authzHandler.HasAccessTo(ctx, infraEnv, DeleteAction)).To(BeFalse()) //delete is mapped to update
-			Expect(authzHandler.client.Cache.ItemCount()).To(Equal(1))
 		})
 	})
 
@@ -505,7 +501,7 @@ var _ = Describe("HasAccessTo", func() {
 			host, _ := common.GetHostFromDBbyHostId(db, id2)
 			mockOcmAuthorization.EXPECT().AccessReview(
 				gomock.Any(), "user2", gomock.Any(), "other", gomock.Any()).
-				Return(true, nil).Times(1) //delete is mapped to update
+				Return(true, nil).Times(2) //delete is mapped to update
 			Expect(authzHandler.HasAccessTo(ctx, host, ReadAction)).To(BeFalse())
 			Expect(authzHandler.HasAccessTo(ctx, host, UpdateAction)).To(BeTrue())
 			Expect(authzHandler.HasAccessTo(ctx, host, DeleteAction)).To(BeTrue())

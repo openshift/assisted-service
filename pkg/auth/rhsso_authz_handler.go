@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"time"
 
 	"github.com/go-openapi/runtime/middleware"
 	"github.com/go-openapi/strfmt"
@@ -133,22 +132,7 @@ func (a *AuthzHandler) hasSubscriptionAccess(clusterId string, action string, pa
 		if err != nil {
 			return handleOwnershipQueryError(err)
 		}
-
-		cacheKey := fmt.Sprintf("%s_%s_%s_%s", payload.Username, payload.Organization, cluster.AmsSubscriptionID, action)
-		if cacheData, existInCache := a.client.Cache.Get(cacheKey); existInCache {
-			var ok bool
-			isAllowed, ok = cacheData.(bool)
-			if !ok {
-				return false, fmt.Errorf(
-					"error while retrieving cluster edit role from cache for %s",
-					cluster.AmsSubscriptionID.String())
-			}
-			return isAllowed, nil
-		}
 		isAllowed, err = a.hasClusterEditRole(payload, action, cluster.AmsSubscriptionID.String())
-		if shouldStorePayloadInCache(err) {
-			a.client.Cache.Set(cacheKey, isAllowed, 10*time.Minute)
-		}
 		return isAllowed, err
 	}
 
