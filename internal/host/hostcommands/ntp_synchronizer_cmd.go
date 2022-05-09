@@ -48,7 +48,6 @@ func (f *ntpSynchronizerCmd) GetSteps(ctx context.Context, host *models.Host) ([
 	}
 	step := &models.Step{
 		StepType: models.StepTypeNtpSynchronizer,
-		Command:  "",
 		Args: []string{
 			param,
 		},

@@ -87,7 +87,6 @@ func (f *domainNameResolutionCmd) GetSteps(ctx context.Context, host *models.Hos
 
 	step := &models.Step{
 		StepType: models.StepTypeDomainResolution,
-		Command:  "",
 		Args: []string{
 			param,
 		},

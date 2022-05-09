@@ -22,7 +22,6 @@ func NewInventoryCmd(log logrus.FieldLogger, inventoryImage string) *inventoryCm
 func (h *inventoryCmd) GetSteps(ctx context.Context, host *models.Host) ([]*models.Step, error) {
 	inventoryCmd := &models.Step{
 		StepType: models.StepTypeInventory,
-		Command:  "",
 		Args: []string{
 			host.ID.String(),
 		},

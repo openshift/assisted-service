@@ -203,7 +203,6 @@ func logSteps(steps models.Steps, infraEnvId strfmt.UUID, hostId *strfmt.UUID, l
 		log.Infof("No steps required for infraEnv <%s> host <%s>", infraEnvId, hostId)
 	}
 	for _, step := range steps.Instructions {
-		log.Infof("Submitting step <%s> id <%s> to infra_env <%s> host <%s> Command: <%s> Arguments: <%+v>", step.StepType, step.StepID, infraEnvId, hostId,
-			step.Command, step.Args)
+		log.Infof("Submitting step <%s> id <%s> to infra_env <%s> host <%s>  Arguments: <%+v>", step.StepType, step.StepID, infraEnvId, hostId, step.Args)
 	}
 }

@@ -20,7 +20,6 @@ func NewStopInstallationCmd(log logrus.FieldLogger) *stopInstallationCmd {
 func (h *stopInstallationCmd) GetSteps(ctx context.Context, host *models.Host) ([]*models.Step, error) {
 	step := &models.Step{
 		StepType: models.StepTypeStopInstallation,
-		Command:  "",
 		Args:     []string{},
 	}
 

@@ -8662,9 +8662,6 @@ func init() {
             "type": "string"
           }
         },
-        "command": {
-          "type": "string"
-        },
         "step_id": {
           "type": "string"
         },
@@ -17747,9 +17744,6 @@ func init() {
           "items": {
             "type": "string"
           }
-        },
-        "command": {
-          "type": "string"
         },
         "step_id": {
           "type": "string"

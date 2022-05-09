@@ -76,7 +76,6 @@ func (f *dhcpAllocateCmd) GetSteps(ctx context.Context, host *models.Host) ([]*m
 	}
 	step := &models.Step{
 		StepType: models.StepTypeDhcpLeaseAllocate,
-		Command:  "",
 		Args: []string{
 			param,
 		},
