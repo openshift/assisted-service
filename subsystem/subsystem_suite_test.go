@@ -35,7 +35,6 @@ var snoVersion string = "4.8"
 
 var (
 	agentBMClient             *client.AssistedInstall
-	agentBMClient2            *client.AssistedInstall
 	badAgentBMClient          *client.AssistedInstall
 	userBMClient              *client.AssistedInstall
 	user2BMClient             *client.AssistedInstall
@@ -118,7 +117,6 @@ func init() {
 	unallowedUserClientCfg := clientcfg(auth.UserAuthHeaderWriter("bearer " + Options.TestTokenUnallowed))
 	editclusterClientCfg := clientcfg(auth.UserAuthHeaderWriter("bearer " + Options.TestTokenClusterEditor))
 	agentClientCfg := clientcfg(auth.AgentAuthHeaderWriter(FakePS))
-	agentClientCfg2 := clientcfg(auth.AgentAuthHeaderWriter(FakePS2))
 	badAgentClientCfg := clientcfg(auth.AgentAuthHeaderWriter(WrongPullSecret))
 	userBMClient = client.New(userClientCfg)
 	user2BMClient = client.New(userClientCfg2)
@@ -126,7 +124,6 @@ func init() {
 	unallowedUserBMClient = client.New(unallowedUserClientCfg)
 	editclusterUserBMClient = client.New(editclusterClientCfg)
 	agentBMClient = client.New(agentClientCfg)
-	agentBMClient2 = client.New(agentClientCfg2)
 	badAgentBMClient = client.New(badAgentClientCfg)
 
 	db, err = gorm.Open(postgres.Open(fmt.Sprintf("host=%s port=%s user=admin database=installer password=admin sslmode=disable",
