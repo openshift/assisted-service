@@ -239,3 +239,35 @@ func GetIPv4Networks(inventory *models.Inventory) (ret []string, err error) {
 func GetIPv6Networks(inventory *models.Inventory) (ret []string, err error) {
 	return getHostNetworks(inventory, func(i *models.Interface) []string { return i.IPV6Addresses })
 }
+
+func areListsEquivalent(len1, len2 int, areItemsEquivalent func(int, int) bool) bool {
+	if len1 != len2 {
+		return false
+	}
+	containsEquivalentItem := func(index, length int) bool {
+		for i := 0; i != length; i++ {
+			if areItemsEquivalent(index, i) {
+				return true
+			}
+		}
+		return false
+	}
+	for i := 0; i != len1; i++ {
+		if !containsEquivalentItem(i, len1) {
+			return false
+		}
+	}
+	return true
+}
+
+func AreMachineNetworksIdentical(n1, n2 []*models.MachineNetwork) bool {
+	return areListsEquivalent(len(n1), len(n2), func(i, j int) bool { return n1[i].Cidr == n2[j].Cidr })
+}
+
+func AreServiceNetworksIdentical(n1, n2 []*models.ServiceNetwork) bool {
+	return areListsEquivalent(len(n1), len(n2), func(i, j int) bool { return n1[i].Cidr == n2[j].Cidr })
+}
+
+func AreClusterNetworksIdentical(n1, n2 []*models.ClusterNetwork) bool {
+	return areListsEquivalent(len(n1), len(n2), func(i, j int) bool { return n1[i].Cidr == n2[j].Cidr && n1[i].HostPrefix == n2[j].HostPrefix })
+}
