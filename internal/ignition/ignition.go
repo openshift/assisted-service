@@ -406,6 +406,7 @@ type installerGenerator struct {
 	installInvoker                string
 	providerRegistry              registry.ProviderRegistry
 	installerReleaseImageOverride string
+	clusterTLSCertOverrideDir     string
 }
 
 // IgnitionConfig contains the attributes required to build the discovery ignition file
@@ -438,7 +439,7 @@ func NewBuilder(log logrus.FieldLogger, staticNetworkConfig staticnetworkconfig.
 // NewGenerator returns a generator that can generate ignition files
 func NewGenerator(workDir string, installerDir string, cluster *common.Cluster, releaseImage string, releaseImageMirror string,
 	serviceCACert, installInvoker string, s3Client s3wrapper.API, log logrus.FieldLogger, operatorsApi operators.API,
-	providerRegistry registry.ProviderRegistry, installerReleaseImageOverride string) Generator {
+	providerRegistry registry.ProviderRegistry, installerReleaseImageOverride, clusterTLSCertOverrideDir string) Generator {
 	return &installerGenerator{
 		cluster:                       cluster,
 		log:                           log,
@@ -453,6 +454,7 @@ func NewGenerator(workDir string, installerDir string, cluster *common.Cluster, 
 		installInvoker:                installInvoker,
 		providerRegistry:              providerRegistry,
 		installerReleaseImageOverride: installerReleaseImageOverride,
+		clusterTLSCertOverrideDir:     clusterTLSCertOverrideDir,
 	}
 }
 
@@ -511,6 +513,12 @@ func (g *installerGenerator) Generate(ctx context.Context, installConfig []byte,
 
 	if err != nil {
 		log.WithError(err).Errorf("failed to run pre manifests creation hook '%s'", common.PlatformTypeValue(g.cluster.Platform.Type))
+		return err
+	}
+
+	err = g.importClusterTLSCerts(ctx)
+	if err != nil {
+		log.WithError(err).Error("Failed to import cluster TLS certs")
 		return err
 	}
 
@@ -587,6 +595,58 @@ func (g *installerGenerator) Generate(ctx context.Context, installConfig []byte,
 	err = os.Remove(filepath.Join(g.workDir, "auth"))
 	if err != nil {
 		return err
+	}
+	return nil
+}
+
+func (g *installerGenerator) importClusterTLSCerts(ctx context.Context) error {
+	if g.clusterTLSCertOverrideDir == "" {
+		return nil
+	}
+	log := logutil.FromContext(ctx, g.log).WithField("inputDir", g.clusterTLSCertOverrideDir)
+	log.Debug("Checking for cluster TLS certs dir")
+
+	entries, err := os.ReadDir(g.clusterTLSCertOverrideDir)
+	if err != nil && !os.IsNotExist(err) {
+		return errors.Wrapf(err, "failed to read cluster TLS certs dir \"%s\"", g.clusterTLSCertOverrideDir)
+	}
+	log.Info("Found cluster TLS certs dir")
+
+	outDir := filepath.Join(g.workDir, "tls")
+	log = log.WithField("outputDir", outDir).WithField("cluster", g.cluster.ID)
+	if err := os.Mkdir(outDir, 0755); err != nil {
+		return errors.Wrapf(err, "failed to create cluster TLS certs output dir \"%s\"", outDir)
+	}
+	log.Info("Created cluster TLS certs dir")
+	tlsFS := os.DirFS(g.clusterTLSCertOverrideDir)
+
+	copyFile := func(filename string) error {
+		log.Info("Copying cluster TLS cert file", "filename", filename)
+
+		f, err := tlsFS.Open(filename)
+		if err != nil {
+			return errors.Wrapf(err, "failed to open cluster TLS cert file \"%s\"", filename)
+		}
+		defer f.Close()
+		c, err := ioutil.ReadAll(f)
+		if err != nil {
+			return errors.Wrapf(err, "failed to read cluster TLS cert file \"%s\"", filename)
+		}
+		err = ioutil.WriteFile(filepath.Join(outDir, filename), c, 0600)
+		if err != nil {
+			return errors.Wrapf(err, "failed to write cluster TLS cert file \"%s\"", filename)
+		}
+
+		return nil
+	}
+
+	for _, e := range entries {
+		if !e.Type().IsRegular() {
+			continue
+		}
+		if err := copyFile(e.Name()); err != nil {
+			return err
+		}
 	}
 	return nil
 }
