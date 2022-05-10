@@ -1218,9 +1218,6 @@ func (m *Manager) GenerateAdditionalManifests(ctx context.Context, cluster *comm
 		if err := m.manifestsGeneratorAPI.AddDnsmasqForSingleNode(ctx, log, cluster); err != nil {
 			return errors.Wrap(err, "failed to add dnsmasq manifest")
 		}
-		if err := m.manifestsGeneratorAPI.AddNodeIpHint(ctx, log, cluster); err != nil {
-			return errors.Wrap(err, "failed to add node ip hint manifest")
-		}
 	}
 
 	if err := m.rp.operatorsAPI.GenerateManifests(ctx, cluster); err != nil {
