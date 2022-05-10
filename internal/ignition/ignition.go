@@ -495,6 +495,9 @@ func (g *installerGenerator) Generate(ctx context.Context, installConfig []byte,
 		"OPENSHIFT_INSTALL_RELEASE_IMAGE_OVERRIDE="+g.releaseImage,
 		"OPENSHIFT_INSTALL_INVOKER="+g.installInvoker,
 	)
+	if g.clusterTLSCertOverrideDir != "" {
+		envVars = append(envVars, "OPENSHIFT_INSTALL_LOAD_CLUSTER_CERTS=true")
+	}
 
 	// write installConfig to install-config.yaml so openshift-install can read it
 	err = ioutil.WriteFile(installConfigPath, installConfig, 0600)
