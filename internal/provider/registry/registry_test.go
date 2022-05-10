@@ -1,7 +1,9 @@
 package registry
 
 import (
+	context "context"
 	"encoding/json"
+	"fmt"
 	"testing"
 
 	"github.com/go-openapi/strfmt"
@@ -12,6 +14,7 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/installcfg"
+	manifestsapi "github.com/openshift/assisted-service/internal/manifests/api"
 	"github.com/openshift/assisted-service/internal/provider/ovirt"
 	"github.com/openshift/assisted-service/internal/provider/vsphere"
 	"github.com/openshift/assisted-service/internal/usage"
@@ -68,12 +71,17 @@ RxNEp7yHoXcwn+fXna+t5JWh1gxUZty3
 `
 
 var _ = Describe("Test GetSupportedProvidersByHosts", func() {
+	var (
+		manifestsApi *manifestsapi.MockManifestsAPI
+	)
 	bmInventory := getBaremetalInventoryStr("hostname0", "bootMode", true, false)
 	vsphereInventory := getVsphereInventoryStr("hostname0", "bootMode", true, false)
 	ovirtInventory := getOvirtInventoryStr("hostname0", "bootMode", true, false)
 	BeforeEach(func() {
-		providerRegistry = InitProviderRegistry(common.GetTestLog())
 		ctrl = gomock.NewController(GinkgoT())
+		manifestsApi = manifestsapi.NewMockManifestsAPI(ctrl)
+		providerRegistry = NewProviderRegistry(manifestsApi)
+		providerRegistry.InitProviders(common.GetTestLog())
 	})
 	It("no hosts", func() {
 		hosts := make([]*models.Host, 0)
@@ -191,8 +199,12 @@ var _ = Describe("Test GetSupportedProvidersByHosts", func() {
 })
 
 var _ = Describe("Test AddPlatformToInstallConfig", func() {
+	var (
+		manifestsApi *manifestsapi.MockManifestsAPI
+	)
 	BeforeEach(func() {
-		providerRegistry = InitProviderRegistry(common.GetTestLog())
+		providerRegistry = NewProviderRegistry(manifestsApi)
+		providerRegistry.InitProviders(common.GetTestLog())
 		ctrl = gomock.NewController(GinkgoT())
 	})
 	Context("Unregistered Provider", func() {
@@ -324,9 +336,14 @@ var _ = Describe("Test AddPlatformToInstallConfig", func() {
 })
 
 var _ = Describe("Test SetPlatformValuesInDBUpdates", func() {
+	var (
+		manifestsApi *manifestsapi.MockManifestsAPI
+	)
 	BeforeEach(func() {
-		providerRegistry = InitProviderRegistry(common.GetTestLog())
 		ctrl = gomock.NewController(GinkgoT())
+		manifestsApi = manifestsapi.NewMockManifestsAPI(ctrl)
+		providerRegistry = NewProviderRegistry(manifestsApi)
+		providerRegistry.InitProviders(common.GetTestLog())
 	})
 	Context("Unregistered Provider", func() {
 		It("try to with an unregistered provider", func() {
@@ -361,12 +378,15 @@ var _ = Describe("Test SetPlatformValuesInDBUpdates", func() {
 
 var _ = Describe("Test SetPlatformUsages", func() {
 	var (
-		usageApi *usage.MockAPI
+		usageApi     *usage.MockAPI
+		manifestsApi *manifestsapi.MockManifestsAPI
 	)
 	BeforeEach(func() {
-		providerRegistry = InitProviderRegistry(common.GetTestLog())
 		ctrl = gomock.NewController(GinkgoT())
 		usageApi = usage.NewMockAPI(ctrl)
+		manifestsApi = manifestsapi.NewMockManifestsAPI(ctrl)
+		providerRegistry = NewProviderRegistry(manifestsApi)
+		providerRegistry.InitProviders(common.GetTestLog())
 	})
 	Context("Unregistered Provider", func() {
 		It("try to with an unregistered provider", func() {
@@ -400,6 +420,217 @@ var _ = Describe("Test SetPlatformUsages", func() {
 	})
 })
 
+var _ = Describe("Test GetActualSchedulableMasters", func() {
+	var (
+		manifestsApi *manifestsapi.MockManifestsAPI
+	)
+	hostStatusKnown := models.HostStatusKnown
+	platforms := []models.PlatformType{
+		models.PlatformTypeBaremetal,
+		models.PlatformTypeVsphere,
+		models.PlatformTypeOvirt,
+	}
+
+	BeforeEach(func() {
+		ctrl = gomock.NewController(GinkgoT())
+		manifestsApi = manifestsapi.NewMockManifestsAPI(ctrl)
+		providerRegistry = NewProviderRegistry(manifestsApi)
+		providerRegistry.InitProviders(common.GetTestLog())
+	})
+
+	Context("Wrong parameters", func() {
+		It("nil cluster", func() {
+			_, err := providerRegistry.GetActualSchedulableMasters(nil)
+			Expect(err).NotTo(BeNil())
+		})
+		It("Empty cluster", func() {
+			cluster := &common.Cluster{}
+			_, err := providerRegistry.GetActualSchedulableMasters(cluster)
+			Expect(err).NotTo(BeNil())
+		})
+		It("Unknown platform", func() {
+			cluster := &common.Cluster{}
+			cluster.Platform = &models.Platform{Type: models.NewPlatformType("NotRegisteredPlatform")}
+			_, err := providerRegistry.GetActualSchedulableMasters(cluster)
+			Expect(err).NotTo(BeNil())
+		})
+	})
+
+	for _, current_platform := range platforms {
+		platform := current_platform
+
+		Context(fmt.Sprintf("%v platform", platform), func() {
+			It("no hosts", func() {
+				hosts := make([]*models.Host, 0)
+				cluster := createClusterFromHostsPlatform(hosts, platform)
+				By("Default value")
+				schedulableMasters, err := providerRegistry.GetActualSchedulableMasters(&cluster)
+				Expect(err).To(BeNil())
+				if platform == models.PlatformTypeBaremetal {
+					Expect(schedulableMasters).To(BeTrue())
+				} else {
+					Expect(schedulableMasters).To(BeFalse())
+				}
+				By("Enable schedulable masters")
+				cluster.SchedulableMasters = swag.Bool(true)
+				schedulableMasters, err = providerRegistry.GetActualSchedulableMasters(&cluster)
+				Expect(err).To(BeNil())
+				Expect(schedulableMasters).To(BeTrue())
+				By("Disable schedulable masters")
+				cluster.SchedulableMasters = swag.Bool(false)
+				schedulableMasters, err = providerRegistry.GetActualSchedulableMasters(&cluster)
+				Expect(err).To(BeNil())
+				Expect(schedulableMasters).To(BeFalse())
+			})
+			It("3 masters", func() {
+				hosts := createHosts(3, 0, hostStatusKnown, platform)
+				cluster := createClusterFromHostsPlatform(hosts, platform)
+				By("Default value")
+				schedulableMasters, err := providerRegistry.GetActualSchedulableMasters(&cluster)
+				Expect(err).To(BeNil())
+				if platform == models.PlatformTypeBaremetal {
+					Expect(schedulableMasters).To(BeTrue())
+				} else {
+					Expect(schedulableMasters).To(BeFalse())
+				}
+				By("Enable schedulable masters")
+				cluster.SchedulableMasters = swag.Bool(true)
+				schedulableMasters, err = providerRegistry.GetActualSchedulableMasters(&cluster)
+				Expect(err).To(BeNil())
+				Expect(schedulableMasters).To(BeTrue())
+				By("Disable schedulable masters")
+				cluster.SchedulableMasters = swag.Bool(false)
+				schedulableMasters, err = providerRegistry.GetActualSchedulableMasters(&cluster)
+				Expect(err).To(BeNil())
+				Expect(schedulableMasters).To(BeFalse())
+			})
+			It("3 masters - 1 worker", func() {
+				hosts := createHosts(3, 1, hostStatusKnown, platform)
+				cluster := createClusterFromHostsPlatform(hosts, platform)
+				By("Default value")
+				schedulableMasters, err := providerRegistry.GetActualSchedulableMasters(&cluster)
+				Expect(err).To(BeNil())
+				if platform == models.PlatformTypeBaremetal {
+					Expect(schedulableMasters).To(BeTrue())
+				} else {
+					Expect(schedulableMasters).To(BeFalse())
+				}
+				By("Enable schedulable masters")
+				cluster.SchedulableMasters = swag.Bool(true)
+				schedulableMasters, err = providerRegistry.GetActualSchedulableMasters(&cluster)
+				Expect(err).To(BeNil())
+				Expect(schedulableMasters).To(BeTrue())
+				By("Disable schedulable masters")
+				cluster.SchedulableMasters = swag.Bool(false)
+				schedulableMasters, err = providerRegistry.GetActualSchedulableMasters(&cluster)
+				Expect(err).To(BeNil())
+				Expect(schedulableMasters).To(BeFalse())
+			})
+			It("3 masters - 2 workers", func() {
+				hosts := createHosts(3, 2, hostStatusKnown, platform)
+				cluster := createClusterFromHostsPlatform(hosts, platform)
+				By("Default value")
+				schedulableMasters, err := providerRegistry.GetActualSchedulableMasters(&cluster)
+				Expect(err).To(BeNil())
+				Expect(schedulableMasters).To(BeFalse())
+				By("Enable schedulable masters")
+				cluster.SchedulableMasters = swag.Bool(true)
+				schedulableMasters, err = providerRegistry.GetActualSchedulableMasters(&cluster)
+				Expect(err).To(BeNil())
+				Expect(schedulableMasters).To(BeTrue())
+				By("Disable schedulable masters")
+				cluster.SchedulableMasters = swag.Bool(false)
+				schedulableMasters, err = providerRegistry.GetActualSchedulableMasters(&cluster)
+				Expect(err).To(BeNil())
+				Expect(schedulableMasters).To(BeFalse())
+			})
+		})
+	}
+})
+
+var _ = Describe("Test GenerateProviderManifests", func() {
+	var (
+		ctx          = context.Background()
+		manifestsApi *manifestsapi.MockManifestsAPI
+	)
+	hostStatusKnown := models.HostStatusKnown
+	platforms := []models.PlatformType{
+		models.PlatformTypeBaremetal,
+		models.PlatformTypeVsphere,
+		models.PlatformTypeOvirt,
+	}
+	BeforeEach(func() {
+		ctrl = gomock.NewController(GinkgoT())
+		manifestsApi = manifestsapi.NewMockManifestsAPI(ctrl)
+		providerRegistry = NewProviderRegistry(manifestsApi)
+		providerRegistry.InitProviders(common.GetTestLog())
+		manifestsApi.EXPECT().CreateClusterManifestInternal(gomock.Any(), gomock.Any()).Times(3)
+	})
+	for _, current_platform := range platforms {
+		platform := current_platform
+		Context(fmt.Sprintf("%v platform", platform), func() {
+			It("no hosts", func() {
+				By("Default value")
+				cluster := createClusterFromHosts(nil)
+				err := providerRegistry.GenerateProviderManifests(ctx, &cluster)
+				Expect(err).NotTo(BeNil())
+				By("Enable schedulable masters")
+				cluster.SchedulableMasters = swag.Bool(true)
+				err = providerRegistry.GenerateProviderManifests(ctx, &cluster)
+				Expect(err).NotTo(BeNil())
+				By("Disable schedulable masters")
+				cluster.SchedulableMasters = swag.Bool(false)
+				err = providerRegistry.GenerateProviderManifests(ctx, &cluster)
+				Expect(err).NotTo(BeNil())
+			})
+			It("3 masters", func() {
+				hosts := createHosts(3, 0, hostStatusKnown, platform)
+				cluster := createClusterFromHostsPlatform(hosts, platform)
+				cluster.SchedulableMasters = swag.Bool(true)
+				err := providerRegistry.GenerateProviderManifests(ctx, &cluster)
+				Expect(err).To(BeNil())
+				// Enable schedulable masters
+				cluster.SchedulableMasters = swag.Bool(true)
+				err = providerRegistry.GenerateProviderManifests(ctx, &cluster)
+				Expect(err).To(BeNil())
+				// Disable schedulable masters
+				cluster.SchedulableMasters = swag.Bool(false)
+				err = providerRegistry.GenerateProviderManifests(ctx, &cluster)
+				Expect(err).To(BeNil())
+			})
+			It("3 masters - 2 workers", func() {
+				hosts := createHosts(3, 2, hostStatusKnown, platform)
+				cluster := createClusterFromHostsPlatform(hosts, platform)
+				err := providerRegistry.GenerateProviderManifests(ctx, &cluster)
+				Expect(err).To(BeNil())
+				// Enable schedulable masters
+				cluster.SchedulableMasters = swag.Bool(true)
+				err = providerRegistry.GenerateProviderManifests(ctx, &cluster)
+				Expect(err).To(BeNil())
+				// Disable schedulable masters
+				cluster.SchedulableMasters = swag.Bool(false)
+				err = providerRegistry.GenerateProviderManifests(ctx, &cluster)
+				Expect(err).To(BeNil())
+			})
+			It("3 masters - 2 workers ('SchedulableMasters' set)", func() {
+				hosts := createHosts(3, 2, hostStatusKnown, platform)
+				cluster := createClusterFromHostsPlatform(hosts, platform)
+				cluster.SchedulableMasters = swag.Bool(true)
+				err := providerRegistry.GenerateProviderManifests(ctx, &cluster)
+				Expect(err).To(BeNil())
+				// Enable schedulable masters
+				cluster.SchedulableMasters = swag.Bool(true)
+				err = providerRegistry.GenerateProviderManifests(ctx, &cluster)
+				Expect(err).To(BeNil())
+				// Disable schedulable masters
+				cluster.SchedulableMasters = swag.Bool(false)
+				err = providerRegistry.GenerateProviderManifests(ctx, &cluster)
+				Expect(err).To(BeNil())
+			})
+		})
+	}
+})
+
 func createHost(isMaster bool, state string, inventory string) *models.Host {
 	hostId := strfmt.UUID(uuid.New().String())
 	clusterId := strfmt.UUID(uuid.New().String())
@@ -418,6 +649,37 @@ func createHost(isMaster bool, state string, inventory string) *models.Host {
 		Inventory:  inventory,
 	}
 	return &host
+}
+
+func createHosts(masterNum, workerNum int, state string, platform models.PlatformType) []*models.Host {
+	hosts := make([]*models.Host, 0)
+	for masterNum > 0 {
+		hostname := fmt.Sprintf("master-%d", masterNum)
+		inventory := getPlatformInventoryStr(platform, hostname, "bios", true, false)
+		hosts = append(hosts, createHost(true, state, inventory))
+		masterNum--
+	}
+	for workerNum > 0 {
+		hostname := fmt.Sprintf("worker-%d", workerNum)
+		inventory := getPlatformInventoryStr(platform, hostname, "bios", true, false)
+		hosts = append(hosts, createHost(false, state, inventory))
+		workerNum--
+	}
+
+	return hosts
+}
+
+func getPlatformInventoryStr(platform models.PlatformType, hostname, bootMode string, ipv4, ipv6 bool) string {
+	switch platform {
+	case models.PlatformTypeOvirt:
+		return getOvirtInventoryStr(hostname, bootMode, ipv4, ipv6)
+	case models.PlatformTypeVsphere:
+		return getVsphereInventoryStr(hostname, bootMode, ipv4, ipv6)
+	case models.PlatformTypeBaremetal:
+		return getBaremetalInventoryStr(hostname, bootMode, ipv4, ipv6)
+	default:
+		return ""
+	}
 }
 
 func getInventory(hostname, bootMode string, ipv4, ipv6 bool) models.Inventory {
@@ -445,7 +707,7 @@ func getVsphereInventoryStr(hostname, bootMode string, ipv4, ipv6 bool) string {
 	inventory := getInventory(hostname, bootMode, ipv4, ipv6)
 	inventory.SystemVendor = &models.SystemVendor{
 		Manufacturer: "VMware, Inc.",
-		ProductName:  "Mware7,1",
+		ProductName:  "VMware7,1",
 		SerialNumber: "VMware-12 34 56 78 90 12 ab cd-ef gh 12 34 56 67 89 90",
 		Virtual:      true,
 	}
@@ -507,14 +769,36 @@ func createOvirtPlatformParams() *models.Platform {
 }
 
 func createClusterFromHosts(hosts []*models.Host) common.Cluster {
+	var enabledHosts int64
+	for _, host := range hosts {
+		if *host.Status != models.HostStatusDisabled {
+			enabledHosts++
+		}
+	}
+	ID := strfmt.UUID(uuid.New().String())
 	return common.Cluster{
 		Cluster: models.Cluster{
+			ID:               &ID,
 			APIVip:           "192.168.10.10",
 			Hosts:            hosts,
 			IngressVip:       "192.168.10.11",
 			OpenshiftVersion: "4.7",
+			EnabledHostCount: enabledHosts,
 		},
 	}
+}
+
+func createClusterFromHostsPlatform(hosts []*models.Host, platform models.PlatformType) common.Cluster {
+	cluster := createClusterFromHosts(hosts)
+	switch platform {
+	case models.PlatformTypeOvirt:
+		cluster.Platform = createOvirtPlatformParams()
+	case models.PlatformTypeVsphere:
+		cluster.Platform = createVspherePlatformParams()
+	case models.PlatformTypeBaremetal:
+		cluster.Platform = &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeBaremetal)}
+	}
+	return cluster
 }
 
 func getInstallerConfigBaremetal() installcfg.InstallerConfigBaremetal {

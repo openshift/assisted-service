@@ -125,11 +125,13 @@ func mockClusterRegisterSteps() {
 	mockVersions.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any()).Return(common.TestDefaultConfig.ReleaseImage, nil).Times(1)
 	mockOperatorManager.EXPECT().GetSupportedOperatorsByType(models.OperatorTypeBuiltin).Return([]*models.MonitoredOperator{&common.TestDefaultConfig.MonitoredOperator}).Times(1)
 	mockProviderRegistry.EXPECT().SetPlatformUsages(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
+	mockProviderRegistry.EXPECT().GetActualSchedulableMasters(gomock.Any()).AnyTimes()
 }
 
 func mockClusterRegisterSuccess(withEvents bool) {
 	mockClusterRegisterSteps()
 	mockMetric.EXPECT().ClusterRegistered(common.TestDefaultConfig.ReleaseVersion, gomock.Any(), gomock.Any()).Times(1)
+	mockProviderRegistry.EXPECT().GetActualSchedulableMasters(gomock.Any()).AnyTimes()
 
 	if withEvents {
 		mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
@@ -151,6 +153,8 @@ func mockInfraEnvRegisterSuccess() {
 	mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(discovery_ignition_3_1, nil).Times(1)
 	mockEvents.EXPECT().SendInfraEnvEvent(gomock.Any(), eventstest.NewEventMatcher(
 		eventstest.WithNameMatcher(eventgen.ImageInfoUpdatedEventName))).AnyTimes()
+		eventstest.WithNameMatcher(eventgen.IgnitionConfigImageGeneratedEventName))).AnyTimes()
+	mockProviderRegistry.EXPECT().GetActualSchedulableMasters(gomock.Any()).AnyTimes()
 }
 
 func mockInfraEnvUpdateSuccess() {
@@ -158,6 +162,14 @@ func mockInfraEnvUpdateSuccess() {
 	mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(discovery_ignition_3_1, nil).Times(1)
 	mockEvents.EXPECT().SendInfraEnvEvent(gomock.Any(), eventstest.NewEventMatcher(
 		eventstest.WithNameMatcher(eventgen.ImageInfoUpdatedEventName))).AnyTimes()
+		eventstest.WithNameMatcher(eventgen.IgnitionConfigImageGeneratedEventName))).AnyTimes()
+	mockProviderRegistry.EXPECT().GetActualSchedulableMasters(gomock.Any()).AnyTimes()
+}
+
+func mockInfraEnvUpdateSuccessNoImageGeneration() {
+	mockS3Client.EXPECT().UpdateObjectTimestamp(gomock.Any(), gomock.Any()).Return(true, nil).Times(1)
+	mockS3Client.EXPECT().GetObjectSizeBytes(gomock.Any(), gomock.Any()).Return(int64(100), nil).Times(1)
+	mockProviderRegistry.EXPECT().GetActualSchedulableMasters(gomock.Any()).AnyTimes()
 }
 
 func mockInfraEnvDeRegisterSuccess() {
@@ -2354,6 +2366,7 @@ var _ = Describe("cluster", func() {
 		Context("GetCluster", func() {
 			It("success", func() {
 				mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any()).Return(nil).Times(3) // Number of hosts
+				mockProviderRegistry.EXPECT().GetActualSchedulableMasters(gomock.Any()).AnyTimes()
 				mockDurationsSuccess()
 				reply := bm.V2GetCluster(ctx, installer.V2GetClusterParams{
 					ClusterID: clusterID,
@@ -2477,6 +2490,7 @@ var _ = Describe("cluster", func() {
 			It("success", func() {
 				deleteCluster(false)
 				mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any()).Return(nil).Times(3)
+				mockProviderRegistry.EXPECT().GetActualSchedulableMasters(gomock.Any()).AnyTimes()
 				resp := bm.V2GetCluster(ctx, installer.V2GetClusterParams{ClusterID: clusterID, GetUnregisteredClusters: swag.Bool(true)})
 				cluster := resp.(*installer.V2GetClusterOK).Payload
 				Expect(cluster.ID.String()).Should(Equal(clusterID.String()))
@@ -2514,7 +2528,7 @@ var _ = Describe("cluster", func() {
 		})
 		It("happy flow", func() {
 			bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog().WithField("pkg", "cluster-monitor"),
-				db, mockEvents, nil, nil, nil, nil, nil, nil, nil, nil, nil)
+				db, mockEvents, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil)
 
 			mockClusterRegisterSuccess(true)
 			noneHaMode := models.ClusterHighAvailabilityModeNone
@@ -2537,7 +2551,7 @@ var _ = Describe("cluster", func() {
 				eventstest.WithMessageContainsMatcher("Invalid OCP version (4.7) for Single node, Single node OpenShift is supported for version 4.8 and above"),
 				eventstest.WithSeverityMatcher(models.EventSeverityError))).Times(1)
 			bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog().WithField("pkg", "cluster-monitor"),
-				db, mockEvents, nil, nil, nil, nil, nil, nil, nil, nil, nil)
+				db, mockEvents, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil)
 			noneHaMode := models.ClusterHighAvailabilityModeNone
 			insufficientOpenShiftVersionForNoneHA := "4.7"
 			clusterParams := getDefaultClusterCreateParams()
@@ -2554,7 +2568,7 @@ var _ = Describe("cluster", func() {
 				eventstest.WithMessageContainsMatcher("Invalid OCP version (4.7.0-fc.1) for Single node, Single node OpenShift is supported for version 4.8 and above"),
 				eventstest.WithSeverityMatcher(models.EventSeverityError))).Times(1)
 			bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog().WithField("pkg", "cluster-monitor"),
-				db, mockEvents, nil, nil, nil, nil, nil, nil, nil, nil, nil)
+				db, mockEvents, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil)
 			noneHaMode := models.ClusterHighAvailabilityModeNone
 			insufficientOpenShiftVersionForNoneHA := "4.7.0-fc.1"
 			clusterParams := getDefaultClusterCreateParams()
@@ -2567,7 +2581,7 @@ var _ = Describe("cluster", func() {
 		})
 		It("create non ha cluster success, release version is greater than minimal", func() {
 			bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog().WithField("pkg", "cluster-monitor"),
-				db, mockEvents, nil, nil, nil, nil, nil, nil, nil, nil, nil)
+				db, mockEvents, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil)
 
 			mockClusterRegisterSuccess(true)
 			noneHaMode := models.ClusterHighAvailabilityModeNone
@@ -2586,7 +2600,7 @@ var _ = Describe("cluster", func() {
 		})
 		It("create non ha cluster success, release version is pre-release and greater than minimal", func() {
 			bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog().WithField("pkg", "cluster-monitor"),
-				db, mockEvents, nil, nil, nil, nil, nil, nil, nil, nil, nil)
+				db, mockEvents, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil)
 
 			mockClusterRegisterSuccess(true)
 			noneHaMode := models.ClusterHighAvailabilityModeNone
@@ -2610,7 +2624,7 @@ var _ = Describe("cluster", func() {
 				eventstest.WithMessageContainsMatcher(errStr),
 				eventstest.WithSeverityMatcher(models.EventSeverityError))).Times(1)
 			bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog().WithField("pkg", "cluster-monitor"),
-				db, mockEvents, nil, nil, nil, nil, nil, nil, nil, nil, nil)
+				db, mockEvents, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil)
 			noneHaMode := models.ClusterHighAvailabilityModeNone
 			openShiftVersionForNoneHA := "4.8.0-fc.2"
 			clusterParams := getDefaultClusterCreateParams()
@@ -2628,7 +2642,7 @@ var _ = Describe("cluster", func() {
 				eventstest.WithMessageContainsMatcher("Failed to register cluster. Error: VIP DHCP Allocation cannot be enabled on single node OpenShift"),
 				eventstest.WithSeverityMatcher(models.EventSeverityError))).Times(1)
 			bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog().WithField("pkg", "cluster-monitor"),
-				db, mockEvents, nil, nil, nil, nil, nil, nil, nil, nil, nil)
+				db, mockEvents, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil)
 			noneHaMode := models.ClusterHighAvailabilityModeNone
 			openShiftVersionForNoneHA := "4.8.0-fc.2"
 			clusterParams := getDefaultClusterCreateParams()
@@ -2644,7 +2658,7 @@ var _ = Describe("cluster", func() {
 	})
 	It("create non ha cluster success, release version is ci-release and greater than minimal", func() {
 		bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog().WithField("pkg", "cluster-monitor"),
-			db, mockEvents, nil, nil, nil, nil, nil, nil, nil, nil, nil)
+			db, mockEvents, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil)
 
 		mockClusterRegisterSuccess(true)
 		noneHaMode := models.ClusterHighAvailabilityModeNone
@@ -2730,7 +2744,7 @@ var _ = Describe("cluster", func() {
 
 		It("update cluster day1 with APIVipDNSName failed", func() {
 			mockOperators := operators.NewMockAPI(ctrl)
-			bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog(), db, mockEvents, nil, nil, nil, nil, mockOperators, nil, nil, nil, nil)
+			bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog(), db, mockEvents, nil, nil, nil, nil, mockOperators, nil, nil, nil, nil, nil)
 
 			mockClusterRegisterSuccess(true)
 
@@ -2787,7 +2801,7 @@ var _ = Describe("cluster", func() {
 			Context("V2 V2RegisterCluster", func() {
 				BeforeEach(func() {
 					bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog().WithField("pkg", "cluster-monitor"),
-						db, mockEvents, nil, nil, nil, nil, nil, nil, nil, nil, nil)
+						db, mockEvents, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil)
 				})
 
 				It("OLM register default value - only builtins", func() {
@@ -4336,6 +4350,8 @@ var _ = Describe("cluster", func() {
 				eventstest.WithNameMatcher(eventgen.IgnitionConfigImageGeneratedEventName),
 				eventstest.WithClusterIdMatcher(clusterID.String()),
 				eventstest.WithSeverityMatcher(models.EventSeverityInfo))).MinTimes(0)
+			mockProviderRegistry.EXPECT().GetActualSchedulableMasters(gomock.Any()).AnyTimes()
+			mockProviderRegistry.EXPECT().GenerateProviderManifests(gomock.Any(), gomock.Any()).AnyTimes()
 
 			reply := bm.V2InstallCluster(ctx, installer.V2InstallClusterParams{
 				ClusterID: clusterID,
@@ -4580,6 +4596,8 @@ var _ = Describe("cluster", func() {
 				eventstest.WithNameMatcher(eventgen.IgnitionConfigImageGeneratedEventName),
 				eventstest.WithClusterIdMatcher(clusterID.String()),
 				eventstest.WithSeverityMatcher(models.EventSeverityError))).MinTimes(0)
+			mockProviderRegistry.EXPECT().GetActualSchedulableMasters(gomock.Any()).AnyTimes()
+			mockProviderRegistry.EXPECT().GenerateProviderManifests(gomock.Any(), gomock.Any()).AnyTimes()
 
 			reply := bm.V2InstallCluster(ctx, installer.V2InstallClusterParams{
 				ClusterID: clusterID,
@@ -4840,7 +4858,7 @@ var _ = Describe("[V2ClusterUpdate] cluster", func() {
 
 		It("update cluster day1 with APIVipDNSName failed", func() {
 			mockOperators := operators.NewMockAPI(ctrl)
-			bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog(), db, mockEvents, nil, nil, nil, nil, mockOperators, nil, nil, nil, nil)
+			bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog(), db, mockEvents, nil, nil, nil, nil, mockOperators, nil, nil, nil, nil, nil)
 
 			mockClusterRegisterSuccess(true)
 
@@ -5151,23 +5169,98 @@ var _ = Describe("[V2ClusterUpdate] cluster", func() {
 		})
 
 		It("Update SchedulableMasters", func() {
-
 			clusterID = strfmt.UUID(uuid.New().String())
 			err := db.Create(&common.Cluster{Cluster: models.Cluster{
 				ID: &clusterID,
 			}}).Error
 			Expect(err).ShouldNot(HaveOccurred())
-			mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(1)
-			mockSuccess()
-			reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
-				ClusterID: clusterID,
-				ClusterUpdateParams: &models.V2ClusterUpdateParams{
-					SchedulableMasters: swag.Bool(true),
-				},
+			By("Enable scheduling", func() {
+				mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(1)
+				mockSuccess()
+				reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
+					ClusterID: clusterID,
+					ClusterUpdateParams: &models.V2ClusterUpdateParams{
+						SchedulableMasters: swag.Bool(true),
+					},
+				})
+				Expect(reply).To(BeAssignableToTypeOf(installer.NewV2UpdateClusterCreated()))
+				actual := reply.(*installer.V2UpdateClusterCreated)
+				Expect(actual.Payload.SchedulableMasters).To(Equal(swag.Bool(true)))
+				Expect(actual.Payload.UseSchedulingDefaults).To(Equal(swag.Bool(false)))
 			})
-			Expect(reply).To(BeAssignableToTypeOf(installer.NewV2UpdateClusterCreated()))
-			actual := reply.(*installer.V2UpdateClusterCreated)
-			Expect(actual.Payload.SchedulableMasters).To(Equal(swag.Bool(true)))
+			By("Disable scheduling", func() {
+				mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(1)
+				mockSuccess()
+				reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
+					ClusterID: clusterID,
+					ClusterUpdateParams: &models.V2ClusterUpdateParams{
+						SchedulableMasters: swag.Bool(false),
+					},
+				})
+				Expect(reply).To(BeAssignableToTypeOf(installer.NewV2UpdateClusterCreated()))
+				actual := reply.(*installer.V2UpdateClusterCreated)
+				Expect(actual.Payload.SchedulableMasters).To(Equal(swag.Bool(false)))
+				Expect(actual.Payload.UseSchedulingDefaults).To(Equal(swag.Bool(false)))
+			})
+			By("Reset to scheduling defaults", func() {
+				mockProviderRegistry.EXPECT().GetActualSchedulableMasters(gomock.Any()).Times(1)
+				mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(1)
+				mockSuccess()
+				reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
+					ClusterID: clusterID,
+					ClusterUpdateParams: &models.V2ClusterUpdateParams{
+						UseSchedulingDefaults: swag.Bool(true),
+					},
+				})
+				Expect(reply).To(BeAssignableToTypeOf(installer.NewV2UpdateClusterCreated()))
+				actual := reply.(*installer.V2UpdateClusterCreated)
+				Expect(actual.Payload.UseSchedulingDefaults).To(Equal(swag.Bool(true)))
+				Expect(actual.Payload.SchedulableMasters).To(Equal(swag.Bool(false)))
+			})
+			By("Enable scheduling and reset to scheduling defaults", func() {
+				mockProviderRegistry.EXPECT().GetActualSchedulableMasters(gomock.Any()).Times(1)
+				mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(1)
+				mockSuccess()
+				reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
+					ClusterID: clusterID,
+					ClusterUpdateParams: &models.V2ClusterUpdateParams{
+						UseSchedulingDefaults: swag.Bool(true),
+						SchedulableMasters:    swag.Bool(true),
+					},
+				})
+				Expect(reply).To(BeAssignableToTypeOf(installer.NewV2UpdateClusterCreated()))
+				actual := reply.(*installer.V2UpdateClusterCreated)
+				Expect(actual.Payload.UseSchedulingDefaults).To(Equal(swag.Bool(false)))
+				Expect(actual.Payload.SchedulableMasters).To(Equal(swag.Bool(true)))
+			})
+			By("Disable scheduling and reset to scheduling defaults", func() {
+				mockProviderRegistry.EXPECT().GetActualSchedulableMasters(gomock.Any()).Times(1)
+				mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(1)
+				mockSuccess()
+				reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
+					ClusterID: clusterID,
+					ClusterUpdateParams: &models.V2ClusterUpdateParams{
+						UseSchedulingDefaults: swag.Bool(true),
+						SchedulableMasters:    swag.Bool(false),
+					},
+				})
+				Expect(reply).To(BeAssignableToTypeOf(installer.NewV2UpdateClusterCreated()))
+				actual := reply.(*installer.V2UpdateClusterCreated)
+				Expect(actual.Payload.UseSchedulingDefaults).To(Equal(swag.Bool(false)))
+				Expect(actual.Payload.SchedulableMasters).To(Equal(swag.Bool(false)))
+			})
+			By("Error disable scheduling and reset to scheduling defaults", func() {
+				mockProviderRegistry.EXPECT().GetActualSchedulableMasters(gomock.Any()).Return(false, errors.Errorf("Dummy")).Times(1)
+				mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(1)
+				reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
+					ClusterID: clusterID,
+					ClusterUpdateParams: &models.V2ClusterUpdateParams{
+						UseSchedulingDefaults: swag.Bool(true),
+						SchedulableMasters:    swag.Bool(false),
+					},
+				})
+				verifyApiError(reply, http.StatusInternalServerError)
+			})
 		})
 
 		Context("Update Proxy", func() {
@@ -8178,7 +8271,7 @@ var _ = Describe("V2UploadClusterIngressCert test", func() {
 		bm = createInventory(db, cfg)
 		mockOperators := operators.NewMockAPI(ctrl)
 		bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog().WithField("pkg", "cluster-monitor"),
-			db, nil, nil, nil, nil, nil, mockOperators, nil, nil, nil, nil)
+			db, nil, nil, nil, nil, nil, mockOperators, nil, nil, nil, nil, nil)
 		c = common.Cluster{Cluster: models.Cluster{
 			ID:               &clusterID,
 			OpenshiftVersion: common.TestDefaultConfig.OpenShiftVersion,
@@ -8374,6 +8467,7 @@ var _ = Describe("List clusters", func() {
 		It("success", func() {
 			Expect(db.Delete(&c).Error).ShouldNot(HaveOccurred())
 			Expect(db.Delete(&host1).Error).ShouldNot(HaveOccurred())
+			mockProviderRegistry.EXPECT().GetActualSchedulableMasters(gomock.Any()).AnyTimes()
 			resp := bm.V2ListClusters(ctx, installer.V2ListClustersParams{GetUnregisteredClusters: swag.Bool(true)})
 			payload := resp.(*installer.V2ListClustersOK).Payload
 			Expect(len(payload)).Should(Equal(1))
@@ -8387,6 +8481,7 @@ var _ = Describe("List clusters", func() {
 		It("with hosts success", func() {
 			Expect(db.Delete(&c).Error).ShouldNot(HaveOccurred())
 			Expect(db.Delete(&host1).Error).ShouldNot(HaveOccurred())
+			mockProviderRegistry.EXPECT().GetActualSchedulableMasters(gomock.Any()).AnyTimes()
 			resp := bm.V2ListClusters(ctx, installer.V2ListClustersParams{GetUnregisteredClusters: swag.Bool(true), WithHosts: true})
 			clusterList := resp.(*installer.V2ListClustersOK).Payload
 			Expect(len(clusterList)).Should(Equal(1))
@@ -8433,6 +8528,7 @@ var _ = Describe("List clusters", func() {
 			It(fmt.Sprintf("%s role", test.role), func() {
 				payload := &ocm.AuthPayload{Role: test.role}
 				authCtx := context.WithValue(ctx, restapi.AuthKey, payload)
+				mockProviderRegistry.EXPECT().GetActualSchedulableMasters(gomock.Any()).AnyTimes()
 
 				By("searching for an existing openshift cluster ID", func() {
 					resp := bm.V2ListClusters(authCtx, installer.V2ListClustersParams{OpenshiftClusterID: openshiftClusterID})
@@ -8458,6 +8554,7 @@ var _ = Describe("List clusters", func() {
 	It("filters based on AMS subscription ID", func() {
 		payload := &ocm.AuthPayload{Role: ocm.UserRole}
 		authCtx := context.WithValue(ctx, restapi.AuthKey, payload)
+		mockProviderRegistry.EXPECT().GetActualSchedulableMasters(gomock.Any()).AnyTimes()
 
 		By("searching for a single existing AMS subscription ID", func() {
 			resp := bm.V2ListClusters(authCtx, installer.V2ListClustersParams{AmsSubscriptionIds: []string{amsSubscriptionID.String()}})
@@ -9519,7 +9616,7 @@ var _ = Describe("GetSupportedPlatformsFromInventory", func() {
 		db, dbName = common.PrepareTestDB()
 		bm = createInventory(db, cfg)
 		bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog().WithField("pkg", "cluster-monitor"),
-			db, mockEvents, nil, nil, nil, nil, nil, nil, nil, nil, nil)
+			db, mockEvents, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil)
 		mockUsageReports()
 		mockClusterRegisterSuccess(true)
 		mockAMSSubscription(ctx)
@@ -10056,6 +10153,7 @@ var _ = Describe("Transform day1 cluster to a day2 cluster test", func() {
 
 	It("successfully transform day1 cluster to a day2 cluster", func() {
 		mockClusterApi.EXPECT().TransformClusterToDay2(gomock.Any(), gomock.Any(), gomock.Any()).Times(1).Return(nil)
+		mockProviderRegistry.EXPECT().GetActualSchedulableMasters(gomock.Any()).AnyTimes()
 		_, err := bm.TransformClusterToDay2Internal(ctx, clusterID)
 		Expect(err).ShouldNot(HaveOccurred())
 	})
@@ -10080,9 +10178,10 @@ var _ = Describe("TestRegisterCluster", func() {
 		Expect(envconfig.Process("test", &cfg)).ShouldNot(HaveOccurred())
 		db, dbName = common.PrepareTestDB()
 		Expect(cfg.DiskEncryptionSupport).Should(BeTrue())
+		mockOperators := operators.NewMockAPI(ctrl)
 		bm = createInventory(db, cfg)
 		bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog().WithField("pkg", "cluster-monitor"),
-			db, mockEvents, nil, nil, nil, nil, nil, nil, nil, nil, nil)
+			db, mockEvents, nil, nil, nil, nil, mockOperators, nil, nil, nil, nil, nil)
 		mockUsageReports()
 	})
 
@@ -10101,19 +10200,20 @@ var _ = Describe("TestRegisterCluster", func() {
 		Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2RegisterClusterCreated()))
 	})
 
-	It("SchedulableMasters default value", func() {
+	It("SchedulableMasters defaults success", func() {
+		mockProviderRegistry.EXPECT().GetActualSchedulableMasters(gomock.Any()).Return(true, nil).Times(1)
 		mockClusterRegisterSuccess(true)
 		mockAMSSubscription(ctx)
-
 		reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 			NewClusterParams: getDefaultClusterCreateParams(),
 		})
 		Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2RegisterClusterCreated()))
 		actual := reply.(*installer.V2RegisterClusterCreated)
-		Expect(actual.Payload.SchedulableMasters).To(Equal(swag.Bool(false)))
+		Expect(actual.Payload.UseSchedulingDefaults).To(Equal(swag.Bool(true)))
+		Expect(actual.Payload.SchedulableMasters).To(Equal(swag.Bool(true)))
 	})
 
-	It("SchedulableMasters non default value", func() {
+	It("SchedulableMasters enabled success", func() {
 		mockClusterRegisterSuccess(true)
 		mockAMSSubscription(ctx)
 		clusterParams := getDefaultClusterCreateParams()
@@ -10123,7 +10223,44 @@ var _ = Describe("TestRegisterCluster", func() {
 		})
 		Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2RegisterClusterCreated()))
 		actual := reply.(*installer.V2RegisterClusterCreated)
+		Expect(actual.Payload.UseSchedulingDefaults).To(Equal(swag.Bool(false)))
 		Expect(actual.Payload.SchedulableMasters).To(Equal(swag.Bool(true)))
+	})
+
+	It("SchedulableMasters disabled success", func() {
+		mockClusterRegisterSuccess(true)
+		mockAMSSubscription(ctx)
+		clusterParams := getDefaultClusterCreateParams()
+		clusterParams.SchedulableMasters = swag.Bool(false)
+		reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
+			NewClusterParams: clusterParams,
+		})
+		Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2RegisterClusterCreated()))
+		actual := reply.(*installer.V2RegisterClusterCreated)
+		Expect(actual.Payload.UseSchedulingDefaults).To(Equal(swag.Bool(false)))
+		Expect(actual.Payload.SchedulableMasters).To(Equal(swag.Bool(false)))
+	})
+
+	It("SchedulableMasters scheduling defaults error", func() {
+		releaseImage := &models.ReleaseImage{
+			CPUArchitecture:  common.TestDefaultConfig.ReleaseImage.CPUArchitecture,
+			OpenshiftVersion: &common.TestDefaultConfig.OpenShiftVersion,
+			URL:              common.TestDefaultConfig.ReleaseImage.URL,
+			Version:          &common.TestDefaultConfig.ReleaseVersion,
+			SupportLevel:     models.OpenshiftVersionSupportLevelProduction,
+		}
+		mockVersions.EXPECT().GetReleaseImage(common.TestDefaultConfig.OpenShiftVersion, common.TestDefaultConfig.CPUArchitecture).Return(releaseImage, nil).Times(1)
+		mockOperatorManager.EXPECT().GetSupportedOperatorsByType(models.OperatorTypeBuiltin).Return([]*models.MonitoredOperator{&common.TestDefaultConfig.MonitoredOperator}).Times(1)
+		mockProviderRegistry.EXPECT().GetActualSchedulableMasters(gomock.Any()).Return(false, errors.Errorf("Dummy")).Times(1)
+		mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
+			eventstest.WithNameMatcher(eventgen.ClusterRegistrationFailedEventName),
+			eventstest.WithMessageContainsMatcher("Dummy"),
+			eventstest.WithSeverityMatcher(models.EventSeverityError))).Times(1)
+		clusterParams := getDefaultClusterCreateParams()
+		reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
+			NewClusterParams: clusterParams,
+		})
+		verifyApiError(reply, http.StatusInternalServerError)
 	})
 
 	It("UserManagedNetworking default value", func() {
@@ -10356,7 +10493,7 @@ var _ = Describe("TestRegisterCluster", func() {
 			var c *models.Cluster
 			diskEncryptionBm := createInventory(db, cfg)
 			diskEncryptionBm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog().WithField("pkg", "cluster-monitor"),
-				db, mockEvents, nil, nil, nil, nil, mockOperatorManager, nil, nil, nil, nil)
+				db, mockEvents, nil, nil, nil, nil, mockOperatorManager, nil, nil, nil, nil, nil)
 
 			By("Register cluster", func() {
 
@@ -10436,7 +10573,7 @@ var _ = Describe("TestRegisterCluster", func() {
 			cfg.DiskEncryptionSupport = false
 			bm = createInventory(db, cfg)
 			bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog().WithField("pkg", "cluster-monitor"),
-				db, mockEvents, nil, nil, nil, nil, nil, nil, nil, nil, nil)
+				db, mockEvents, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil)
 			mockUsageReports()
 		})
 
@@ -10689,7 +10826,7 @@ var _ = Describe("TestRegisterCluster", func() {
 			cfg.DiskEncryptionSupport = false
 			bm = createInventory(db, cfg)
 			bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog().WithField("pkg", "cluster-monitor"),
-				db, mockEvents, nil, nil, nil, nil, nil, nil, nil, nil, nil)
+				db, mockEvents, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil)
 			mockUsageReports()
 		})
 
@@ -10916,6 +11053,7 @@ var _ = Describe("TestRegisterCluster", func() {
 			Return(errors.New("error")).Times(1)
 		mockOperatorManager.EXPECT().GetSupportedOperatorsByType(models.OperatorTypeBuiltin).Return([]*models.MonitoredOperator{}).Times(1)
 		mockVersions.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any()).Return(common.TestDefaultConfig.ReleaseImage, nil).Times(1)
+		mockProviderRegistry.EXPECT().GetActualSchedulableMasters(gomock.Any()).Times(1)
 
 		clusterParams := getDefaultClusterCreateParams()
 		clusterParams.PullSecret = swag.String("")
@@ -11110,7 +11248,7 @@ var _ = Describe("AMS subscriptions", func() {
 		Expect(envconfig.Process("test", &cfg)).ShouldNot(HaveOccurred())
 		db, dbName = common.PrepareTestDB()
 		bm = createInventory(db, cfg)
-		bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog(), db, mockEvents, nil, nil, nil, nil, nil, nil, nil, nil, nil)
+		bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog(), db, mockEvents, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil)
 		mockUsageReports()
 	})
 
@@ -11180,7 +11318,7 @@ var _ = Describe("AMS subscriptions", func() {
 			mockS3Client = s3wrapper.NewMockAPI(ctrl)
 			mockS3Client.EXPECT().DoesObjectExist(gomock.Any(), gomock.Any()).Return(false, nil).Times(1)
 			bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog().WithField("pkg", "cluster-monitor"),
-				db, mockEvents, nil, nil, nil, nil, nil, nil, mockS3Client, nil, nil)
+				db, mockEvents, nil, nil, nil, nil, nil, nil, mockS3Client, nil, nil, nil)
 			mockClusterRegisterSuccess(true)
 			mockAMSSubscription(ctx)
 
@@ -11202,7 +11340,7 @@ var _ = Describe("AMS subscriptions", func() {
 
 		It("update cluster name happy flow", func() {
 			mockOperators := operators.NewMockAPI(ctrl)
-			bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog(), db, mockEvents, nil, nil, nil, nil, mockOperators, nil, nil, nil, nil)
+			bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog(), db, mockEvents, nil, nil, nil, nil, mockOperators, nil, nil, nil, nil, nil)
 
 			mockClusterRegisterSuccess(true)
 			mockAMSSubscription(ctx)
@@ -11235,7 +11373,7 @@ var _ = Describe("AMS subscriptions", func() {
 
 		It("update cluster name with same name", func() {
 			mockOperators := operators.NewMockAPI(ctrl)
-			bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog(), db, mockEvents, nil, nil, nil, nil, mockOperators, nil, nil, nil, nil)
+			bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog(), db, mockEvents, nil, nil, nil, nil, mockOperators, nil, nil, nil, nil, nil)
 
 			mockClusterRegisterSuccess(true)
 			mockAMSSubscription(ctx)
@@ -11265,7 +11403,7 @@ var _ = Describe("AMS subscriptions", func() {
 
 		It("update cluster without name field", func() {
 			mockOperators := operators.NewMockAPI(ctrl)
-			bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog(), db, mockEvents, nil, nil, nil, nil, mockOperators, nil, nil, nil, nil)
+			bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog(), db, mockEvents, nil, nil, nil, nil, mockOperators, nil, nil, nil, nil, nil)
 
 			mockClusterRegisterSuccess(true)
 			mockAMSSubscription(ctx)
@@ -11355,6 +11493,7 @@ var _ = Describe("AMS subscriptions", func() {
 					mockGetInstallConfigSuccess(mockInstallConfigBuilder)
 					mockGenerateInstallConfigSuccess(mockGenerator, mockVersions)
 					mockS3Client.EXPECT().Download(gomock.Any(), gomock.Any()).Return(ignitionReader, int64(0), nil).MinTimes(0)
+					mockProviderRegistry.EXPECT().GenerateProviderManifests(gomock.Any(), gomock.Any()).AnyTimes()
 					if test.status == "succeed" {
 						mockAccountsMgmt.EXPECT().UpdateSubscriptionOpenshiftClusterID(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 						mockClusterApi.EXPECT().HandlePreInstallSuccess(gomock.Any(), gomock.Any()).Times(1).Do(func(ctx, c interface{}) { doneChannel <- 1 })
@@ -11376,7 +11515,7 @@ var _ = Describe("AMS subscriptions", func() {
 			mockS3Client = s3wrapper.NewMockAPI(ctrl)
 			mockS3Client.EXPECT().DoesObjectExist(gomock.Any(), gomock.Any()).Return(false, nil).Times(1)
 			bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog().WithField("pkg", "cluster-monitor"),
-				db, mockEvents, nil, nil, nil, nil, nil, nil, mockS3Client, nil, nil)
+				db, mockEvents, nil, nil, nil, nil, nil, nil, mockS3Client, nil, nil, nil)
 			bm.ocmClient = nil
 			mockClusterRegisterSuccess(true)
 
@@ -11413,7 +11552,7 @@ var _ = Describe("[V2UpdateCluster] AMS subscriptions", func() {
 		Expect(envconfig.Process("test", &cfg)).ShouldNot(HaveOccurred())
 		db, dbName = common.PrepareTestDB()
 		bm = createInventory(db, cfg)
-		bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog(), db, mockEvents, nil, nil, nil, nil, nil, nil, nil, nil, nil)
+		bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog(), db, mockEvents, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil)
 		mockUsageReports()
 	})
 
@@ -11426,7 +11565,7 @@ var _ = Describe("[V2UpdateCluster] AMS subscriptions", func() {
 
 		It("update cluster name happy flow", func() {
 			mockOperators := operators.NewMockAPI(ctrl)
-			bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog(), db, mockEvents, nil, nil, nil, nil, mockOperators, nil, nil, nil, nil)
+			bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog(), db, mockEvents, nil, nil, nil, nil, mockOperators, nil, nil, nil, nil, nil)
 
 			mockClusterRegisterSuccess(true)
 			mockAMSSubscription(ctx)
@@ -11461,7 +11600,7 @@ var _ = Describe("[V2UpdateCluster] AMS subscriptions", func() {
 
 		It("update cluster name with same name", func() {
 			mockOperators := operators.NewMockAPI(ctrl)
-			bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog(), db, mockEvents, nil, nil, nil, nil, mockOperators, nil, nil, nil, nil)
+			bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog(), db, mockEvents, nil, nil, nil, nil, mockOperators, nil, nil, nil, nil, nil)
 
 			mockClusterRegisterSuccess(true)
 			mockAMSSubscription(ctx)
@@ -11493,7 +11632,7 @@ var _ = Describe("[V2UpdateCluster] AMS subscriptions", func() {
 
 		It("update cluster without name field", func() {
 			mockOperators := operators.NewMockAPI(ctrl)
-			bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog(), db, mockEvents, nil, nil, nil, nil, mockOperators, nil, nil, nil, nil)
+			bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog(), db, mockEvents, nil, nil, nil, nil, mockOperators, nil, nil, nil, nil, nil)
 
 			mockClusterRegisterSuccess(true)
 			mockAMSSubscription(ctx)
@@ -12390,7 +12529,9 @@ var _ = Describe("UnbindHost", func() {
 		hostID = strfmt.UUID(uuid.New().String())
 		infraEnvID = strfmt.UUID(uuid.New().String())
 		bm = createInventory(db, cfg)
-		err := db.Create(&common.InfraEnv{InfraEnv: models.InfraEnv{ID: &infraEnvID}}).Error
+		err := db.Create(&common.Cluster{Cluster: models.Cluster{ID: &clusterID, Kind: swag.String(models.ClusterKindCluster)}}).Error
+		Expect(err).ShouldNot(HaveOccurred())
+		err = db.Create(&common.InfraEnv{InfraEnv: models.InfraEnv{ID: &infraEnvID}}).Error
 		Expect(err).ShouldNot(HaveOccurred())
 		err = db.Create(&common.Host{Host: models.Host{ID: &hostID, InfraEnvID: infraEnvID, ClusterID: &clusterID}}).Error
 		Expect(err).ShouldNot(HaveOccurred())
@@ -12411,6 +12552,7 @@ var _ = Describe("UnbindHost", func() {
 			eventstest.WithInfraEnvIdMatcher(infraEnvID.String()),
 			eventstest.WithSeverityMatcher(models.EventSeverityInfo)))
 		mockHostApi.EXPECT().UnbindHost(ctx, gomock.Any(), gomock.Any())
+		mockClusterApi.EXPECT().RefreshStatus(ctx, gomock.Any(), gomock.Any())
 		response := bm.UnbindHost(ctx, params)
 		Expect(response).To(BeAssignableToTypeOf(&installer.UnbindHostOK{}))
 	})
@@ -13372,7 +13514,7 @@ var _ = Describe("Platform tests", func() {
 		db, dbName = common.PrepareTestDB()
 		bm = createInventory(db, cfg)
 		mockOperators := operators.NewMockAPI(ctrl)
-		bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog(), db, mockEvents, nil, nil, nil, nil, mockOperators, nil, nil, nil, nil)
+		bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog(), db, mockEvents, nil, nil, nil, nil, mockOperators, nil, nil, nil, nil, nil)
 		bm.ocmClient = nil
 		clusterParams := getDefaultClusterCreateParams()
 		clusterParams.Name = swag.String("cluster")
