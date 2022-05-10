@@ -839,7 +839,14 @@ func (r *BMACReconciler) findInstallationDiskID(devices []aiv1beta1.HostDisk, hi
 		return disk.ID
 	}
 
-	return ""
+	// If hints are provided but we did not find an eligible disk, we need to raise an error.
+	// By no means we should pass empty disk ID, as that would mean that the o/installer can use
+	// any of the available disks. This is counterintuitive for users providing rootDeviceHints
+	// and may cause unexpected behaviour, e.g. wiping drive that must have its data preserved.
+	// Because BMAC should not direcly modify Conditions on the Agent CR (it would be racing with
+	// the Agent Reconciler), we let the assisted installer handle error caused by the incorrect
+	// disk further in the process.
+	return "/dev/not-found-by-hints"
 }
 
 // Finds the agents related to this ClusterDeployment
