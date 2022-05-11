@@ -350,16 +350,6 @@ var _ = Describe("installcmd arguments", func() {
 			Expect(*request.HighAvailabilityMode).To(Equal(models.ClusterHighAvailabilityModeNone))
 		})
 
-		It("verify high-availability-mode is Nil when host role is worker", func() {
-			installCmd := NewInstallCmd(common.GetTestLog(), db, validator, mockRelease, InstructionConfig{}, mockEvents, mockVersions)
-			host.Role = "worker"
-			stepReply, err := installCmd.GetSteps(ctx, &host)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(stepReply).NotTo(BeNil())
-			request := getRequest(stepReply[0])
-			Expect(request.HighAvailabilityMode).To(BeNil())
-		})
-
 		It("verify empty value", func() {
 			mockRelease = oc.NewMockRelease(ctrl)
 			mockRelease.EXPECT().GetMCOImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return("", nil).AnyTimes()
