@@ -2492,7 +2492,7 @@ paths:
       parameters:
         - in: path
           name: cluster_id
-          description: The cluster to return preflight requrements for.
+          description: The cluster to return preflight requirements for.
           type: string
           format: uuid
           required: true
@@ -5533,7 +5533,7 @@ definitions:
       key:
         description: The key for the label's key-value pair.
         type: string
-      value: 
+      value:
         description: The value for the label's key-value pair.
         type: string
 
