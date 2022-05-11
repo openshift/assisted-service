@@ -1516,27 +1516,14 @@ func (ib *ignitionBuilder) FormatDiscoveryIgnitionFile(ctx context.Context, infr
 	return res, nil
 }
 
-// getConvergedDiscoveryTemplate adds ironic service and conf file to the discovery ignition template
+// getConvergedDiscoveryTemplate merge the ironic ignition with the discovery ignition
 func (ib *ignitionBuilder) getConvergedDiscoveryTemplate(ignitionConfig []byte) (string, error) {
-	config, err := ParseToLatest(ignitionConfig)
-	if err != nil {
-		ib.log.WithError(err).Error("failed to parse ignitionConfig")
-		ib.log.Error(err)
-		return "", err
-	}
 	IronicIgn, err := ib.cbohelper.GenerateIronicConfig()
 	if err != nil {
 		ib.log.WithError(err).Error("failed to generate Ironic ignition config")
 		return "", err
 	}
-	config.Storage.Files = append(config.Storage.Files, IronicIgn.Storage.Files[0])
-	config.Systemd.Units = append(config.Systemd.Units, IronicIgn.Systemd.Units[0])
-	updatedIgn, err := json.Marshal(config)
-	if err != nil {
-		ib.log.WithError(err).Error("failed to marshal updatedConfig")
-		return "", err
-	}
-	return string(updatedIgn), nil
+	return MergeIgnitionConfig(ignitionConfig, IronicIgn)
 }
 
 func (ib *ignitionBuilder) prepareStaticNetworkConfigForIgnition(ctx context.Context, infraEnv *common.InfraEnv) ([]staticnetworkconfig.StaticNetworkConfigData, error) {

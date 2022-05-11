@@ -351,7 +351,7 @@ func ShouldEnableIronicAgent(log logrus.FieldLogger, infraEnv *aiv1beta1.InfraEn
 	log.Debugf("InfraEnv annotation %s value %s", EnableIronicAgentAnnotation, value)
 	enable, err := strconv.ParseBool(value)
 	if err != nil {
-		log.WithError(err).Errorf("faild to parse %s to bool value", value)
+		log.WithError(err).Errorf("failed to parse %s to bool value", value)
 	}
 	return enable
 }

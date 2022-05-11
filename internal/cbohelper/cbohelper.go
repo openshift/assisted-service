@@ -2,6 +2,7 @@ package cbohelper
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"strings"
 
@@ -20,7 +21,7 @@ import (
 
 //go:generate mockgen -source=cbohelper.go -package=cbohelper -destination=mock_cbouhelper.go
 type CBOHelperApi interface {
-	GenerateIronicConfig() (ignition_config_types_32.Config, error)
+	GenerateIronicConfig() ([]byte, error)
 	ConvergedFlowAvailable() bool
 }
 
@@ -57,21 +58,22 @@ func (ch *CBOHelper) getIronicServiceURL() (string, error) {
 	return getUrlFromIP(ironicIP), nil
 }
 
-func (ch *CBOHelper) GenerateIronicConfig() (config ignition_config_types_32.Config, err error) {
+func (ch *CBOHelper) GenerateIronicConfig() ([]byte, error) {
 	ironicBaseURL, err := ch.getIronicServiceURL()
 	if err != nil {
-		return config, err
+		return []byte{}, err
 	}
+	config := ignition_config_types_32.Config{}
 	config.Ignition.Version = "3.2.0"
 	// TODO: this should probably get the proxy settings as well
 	ib, err := iccignition.New([]byte{}, []byte{}, ironicBaseURL, ch.config.BaremetalIronicAgentImage, "", "", "", "", "", "", "")
 	if err != nil {
-		return config, err
+		return []byte{}, err
 	}
 	config.Storage.Files = []ignition_config_types_32.File{ib.IronicAgentConf()}
 	// TODO: sort out the flags (authfile...) and copy network
 	config.Systemd.Units = []ignition_config_types_32.Unit{ib.IronicAgentService(false)}
-	return config, err
+	return json.Marshal(config)
 }
 
 func (ch *CBOHelper) readProvisioningCR() (*metal3iov1alpha1.Provisioning, error) {

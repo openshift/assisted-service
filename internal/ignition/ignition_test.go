@@ -1363,9 +1363,7 @@ var _ = Describe("Ignition with converged flow", func() {
 	})
 	It("converged flow enabled and IronicAgent enabled", func() {
 		mockCBOHelper.EXPECT().ConvergedFlowAvailable().Return(true).Times(1)
-		ironicConfig, err := ParseToLatest([]byte(ironicIgn))
-		Expect(err).NotTo(HaveOccurred())
-		mockCBOHelper.EXPECT().GenerateIronicConfig().Return(*ironicConfig, nil).Times(1)
+		mockCBOHelper.EXPECT().GenerateIronicConfig().Return([]byte(ironicIgn), nil).Times(1)
 		builder = NewBuilder(log, mockStaticNetworkConfig, mockMirrorRegistriesConfigBuilder, mockCBOHelper)
 		infraEnv.EnableIronicAgent = true
 		text, err := builder.FormatDiscoveryIgnitionFile(context.Background(), &infraEnv, IgnitionConfig{}, false, auth.TypeRHSSO)

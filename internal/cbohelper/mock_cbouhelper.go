@@ -7,7 +7,6 @@ package cbohelper
 import (
 	reflect "reflect"
 
-	types "github.com/coreos/ignition/v2/config/v3_2/types"
 	gomock "github.com/golang/mock/gomock"
 )
 
@@ -49,10 +48,10 @@ func (mr *MockCBOHelperApiMockRecorder) ConvergedFlowAvailable() *gomock.Call {
 }
 
 // GenerateIronicConfig mocks base method.
-func (m *MockCBOHelperApi) GenerateIronicConfig() (types.Config, error) {
+func (m *MockCBOHelperApi) GenerateIronicConfig() ([]byte, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GenerateIronicConfig")
-	ret0, _ := ret[0].(types.Config)
+	ret0, _ := ret[0].([]byte)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }

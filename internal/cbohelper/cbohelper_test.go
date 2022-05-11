@@ -4,6 +4,7 @@ import (
 	"context"
 	"testing"
 
+	config_latest "github.com/coreos/ignition/v2/config/v3_2"
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -91,13 +92,15 @@ var _ = Describe("CBOHelper", func() {
 			}
 			Expect(c.Create(context.Background(), provisioningInfo)).To(BeNil())
 
-			conf, err := cboHelper.GenerateIronicConfig()
+			ironicIgn, err := cboHelper.GenerateIronicConfig()
 			Expect(err).NotTo(HaveOccurred())
-			Expect(len(conf.Storage.Files)).Should(Equal(1))
-			Expect(conf.Storage.Files[0].Path).Should(Equal("/etc/ironic-python-agent.conf"))
-			Expect(len(conf.Systemd.Units)).Should(Equal(1))
-			Expect(conf.Systemd.Units[0].Name).Should(Equal("ironic-agent.service"))
-			Expect(*conf.Systemd.Units[0].Contents).Should(ContainSubstring("Ironic-image"))
+			config, _, err := config_latest.Parse(ironicIgn)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(len(config.Storage.Files)).Should(Equal(1))
+			Expect(config.Storage.Files[0].Path).Should(Equal("/etc/ironic-python-agent.conf"))
+			Expect(len(config.Systemd.Units)).Should(Equal(1))
+			Expect(config.Systemd.Units[0].Name).Should(Equal("ironic-agent.service"))
+			Expect(*config.Systemd.Units[0].Contents).Should(ContainSubstring("Ironic-image"))
 
 		})
 	})
