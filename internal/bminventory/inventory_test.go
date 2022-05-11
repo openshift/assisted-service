@@ -2406,35 +2406,7 @@ var _ = Describe("cluster", func() {
 				Expect(actual.Payload.APIVip).To(BeEquivalentTo("10.11.12.13"))
 				Expect(actual.Payload.IngressVip).To(BeEquivalentTo("10.11.12.14"))
 				validateNetworkConfiguration(actual.Payload, nil, nil, &[]*models.MachineNetwork{{Cidr: "10.11.0.0/16"}})
-				expectedNetworks := sortedNetworks([]*models.HostNetwork{
-					{
-						Cidr: "1.2.3.0/24",
-						HostIds: sortedHosts([]strfmt.UUID{
-							masterHostId1,
-							masterHostId2,
-							masterHostId3,
-						}),
-					},
-					{
-						Cidr: "10.11.0.0/16",
-						HostIds: sortedHosts([]strfmt.UUID{
-							masterHostId1,
-							masterHostId2,
-						}),
-					},
-					{
-						Cidr: "7.8.9.0/24",
-						HostIds: []strfmt.UUID{
-							masterHostId3,
-						},
-					},
-				})
-				actualNetworks := sortedNetworks(actual.Payload.HostNetworks)
-				Expect(len(actualNetworks)).To(Equal(3))
-				actualNetworks[0].HostIds = sortedHosts(actualNetworks[0].HostIds)
-				actualNetworks[1].HostIds = sortedHosts(actualNetworks[1].HostIds)
-				actualNetworks[2].HostIds = sortedHosts(actualNetworks[2].HostIds)
-				Expect(actualNetworks).To(Equal(expectedNetworks))
+				Expect(actual.Payload.HostNetworks).To(BeEmpty())
 			})
 
 			It("Unfamilliar ID", func() {

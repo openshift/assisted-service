@@ -2552,23 +2552,25 @@ func (b *bareMetalInventory) GetClusterInternal(ctx context.Context, params inst
 		}
 	}
 
-	cluster, err := common.GetClusterFromDBWhere(b.db, common.UseEagerLoading,
+	eager := common.UseEagerLoading
+	db := b.db
+	if swag.BoolValue(params.ExcludeHosts) {
+		db = common.LoadClusterTablesFromDB(db, common.HostsTable)
+		eager = common.SkipEagerLoading
+	}
+	cluster, err := common.GetClusterFromDBWhere(db, eager,
 		common.DeleteRecordsState(swag.BoolValue(params.GetUnregisteredClusters)), "id = ?", params.ClusterID)
 	if err != nil {
 		return nil, err
 	}
 
 	cluster.HostNetworks = b.calculateHostNetworks(log, cluster)
-	if swag.BoolValue(params.ExcludeHosts) {
-		cluster.Hosts = nil
-	} else {
-		for _, host := range cluster.Hosts {
-			if err = b.customizeHost(&cluster.Cluster, host); err != nil {
-				return nil, err
-			}
-			// Clear this field as it is not needed to be sent via API
-			host.FreeAddresses = ""
+	for _, host := range cluster.Hosts {
+		if err = b.customizeHost(&cluster.Cluster, host); err != nil {
+			return nil, err
 		}
+		// Clear this field as it is not needed to be sent via API
+		host.FreeAddresses = ""
 	}
 
 	imageInfo, err := b.getImageInfo(cluster.ID)
@@ -2896,7 +2898,7 @@ func (b *bareMetalInventory) updateDomainNameResolutionResponse(ctx context.Cont
 }
 
 func (b *bareMetalInventory) getInstallationDiskSpeedThresholdMs(ctx context.Context, h *models.Host) (int64, error) {
-	cluster, err := common.GetClusterFromDB(b.db, *h.ClusterID, common.UseEagerLoading)
+	cluster, err := common.GetClusterFromDB(b.db, *h.ClusterID, common.SkipEagerLoading)
 	if err != nil {
 		return 0, err
 	}

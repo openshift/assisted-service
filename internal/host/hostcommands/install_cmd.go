@@ -51,7 +51,8 @@ func (i *installCmd) GetSteps(ctx context.Context, host *models.Host) ([]*models
 	step := &models.Step{}
 	step.StepType = models.StepTypeInstall
 
-	cluster, err := common.GetClusterFromDBWithHosts(i.db, *host.ClusterID)
+	db := i.db.Preload(common.HostsTable, "bootstrap = TRUE")
+	cluster, err := common.GetClusterFromDB(common.LoadClusterTablesFromDB(db, common.HostsTable), *host.ClusterID, common.SkipEagerLoading)
 	if err != nil {
 		i.log.Errorf("failed to get cluster %s", host.ClusterID)
 		return nil, err
