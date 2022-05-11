@@ -11,6 +11,7 @@ import (
 type validationID models.HostValidationID
 
 const (
+	IsMediaConnected                               = validationID(models.HostValidationIDMediaConnected)
 	IsConnected                                    = validationID(models.HostValidationIDConnected)
 	HasInventory                                   = validationID(models.HostValidationIDHasInventory)
 	IsMachineCidrDefined                           = validationID(models.HostValidationIDMachineCidrDefined)
@@ -46,6 +47,7 @@ const (
 func (v validationID) category() (string, error) {
 	switch v {
 	case IsConnected,
+		IsMediaConnected,
 		IsMachineCidrDefined,
 		BelongsToMachineCidr,
 		IsIgnitionDownloadable,

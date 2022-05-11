@@ -13,6 +13,7 @@ const (
 	TransitionTypeInstallHost                = "InstallHost"
 	TransitionTypeResettingPendingUserAction = "ResettingPendingUserAction"
 	TransitionTypeRefresh                    = "RefreshHost"
+	TransitionTypeMediaDisconnect            = "MediaDisconnect"
 	TransitionTypeRegisterInstalledHost      = "RegisterInstalledHost"
 	TransitionTypeBindHost                   = "BindHost"
 	TransitionTypeUnbindHost                 = "UnbindHost"
@@ -258,7 +259,7 @@ func NewHostStateMachine(sm stateswitch.StateMachine, th *transitionHandler) sta
 	// Prepare for installation
 	sm.AddTransition(stateswitch.TransitionRule{
 		TransitionType: TransitionTypeRefresh,
-		Condition:      stateswitch.And(If(ValidRoleForInstallation), If(IsConnected), If(ClusterPreparingForInstallation)),
+		Condition:      stateswitch.And(If(ValidRoleForInstallation), If(IsConnected), If(IsMediaConnected), If(ClusterPreparingForInstallation)),
 		SourceStates: []stateswitch.State{
 			stateswitch.State(models.HostStatusKnown),
 		},
@@ -284,7 +285,7 @@ func NewHostStateMachine(sm stateswitch.StateMachine, th *transitionHandler) sta
 		SourceStates: []stateswitch.State{
 			stateswitch.State(models.HostStatusPreparingForInstallation),
 		},
-		Condition:        stateswitch.And(If(IsConnected), allConditionsSuccessful, If(ClusterPreparingForInstallation)),
+		Condition:        stateswitch.And(If(IsConnected), If(IsMediaConnected), allConditionsSuccessful, If(ClusterPreparingForInstallation)),
 		DestinationState: stateswitch.State(models.HostStatusPreparingSuccessful),
 		PostTransition:   th.PostRefreshHost(statusInfoHostPreparationSuccessful),
 	})
@@ -294,7 +295,7 @@ func NewHostStateMachine(sm stateswitch.StateMachine, th *transitionHandler) sta
 		SourceStates: []stateswitch.State{
 			stateswitch.State(models.HostStatusPreparingSuccessful),
 		},
-		Condition:        stateswitch.And(If(IsConnected), If(ClusterPreparingForInstallation)),
+		Condition:        stateswitch.And(If(IsConnected), If(IsMediaConnected), If(ClusterPreparingForInstallation)),
 		DestinationState: stateswitch.State(models.HostStatusPreparingSuccessful),
 	})
 
@@ -304,7 +305,7 @@ func NewHostStateMachine(sm stateswitch.StateMachine, th *transitionHandler) sta
 		SourceStates: []stateswitch.State{
 			stateswitch.State(models.HostStatusPreparingSuccessful),
 		},
-		Condition:        stateswitch.And(If(IsConnected), If(ClusterInstalling)),
+		Condition:        stateswitch.And(If(IsConnected), If(IsMediaConnected), If(ClusterInstalling)),
 		DestinationState: stateswitch.State(models.HostStatusInstalling),
 		PostTransition:   th.PostRefreshHost(statusInfoInstalling),
 	})
@@ -314,7 +315,7 @@ func NewHostStateMachine(sm stateswitch.StateMachine, th *transitionHandler) sta
 		SourceStates: []stateswitch.State{
 			stateswitch.State(models.HostStatusPreparingForInstallation),
 		},
-		Condition:        stateswitch.And(If(IsConnected), allConditionsSuccessfulOrUnknown, stateswitch.Not(If(ClusterPreparingForInstallation))),
+		Condition:        stateswitch.And(If(IsConnected), If(IsMediaConnected), allConditionsSuccessfulOrUnknown, stateswitch.Not(If(ClusterPreparingForInstallation))),
 		DestinationState: stateswitch.State(models.HostStatusKnown),
 		PostTransition:   th.PostRefreshHost(statusInfoKnown),
 	})
@@ -326,7 +327,7 @@ func NewHostStateMachine(sm stateswitch.StateMachine, th *transitionHandler) sta
 			stateswitch.State(models.HostStatusPreparingFailed),
 			stateswitch.State(models.HostStatusKnown),
 		},
-		Condition:        stateswitch.And(If(IsConnected), stateswitch.Not(If(SufficientOrUnknownInstallationDiskSpeed))),
+		Condition:        stateswitch.And(If(IsConnected), If(IsMediaConnected), stateswitch.Not(If(SufficientOrUnknownInstallationDiskSpeed))),
 		DestinationState: stateswitch.State(models.HostStatusInsufficient),
 		PostTransition:   th.PostRefreshHost(statusInfoNotReadyForInstall),
 	})
@@ -336,7 +337,7 @@ func NewHostStateMachine(sm stateswitch.StateMachine, th *transitionHandler) sta
 		SourceStates: []stateswitch.State{
 			stateswitch.State(models.HostStatusPreparingForInstallation),
 		},
-		Condition:        stateswitch.And(If(IsConnected), stateswitch.Not(If(SucessfullOrUnknownContainerImagesAvailability))),
+		Condition:        stateswitch.And(If(IsConnected), If(IsMediaConnected), stateswitch.Not(If(SucessfullOrUnknownContainerImagesAvailability))),
 		DestinationState: stateswitch.State(models.HostStatusPreparingFailed),
 		PostTransition:   th.PostRefreshHost(statusInfoHostPreparationFailure),
 	})
@@ -346,7 +347,7 @@ func NewHostStateMachine(sm stateswitch.StateMachine, th *transitionHandler) sta
 		SourceStates: []stateswitch.State{
 			stateswitch.State(models.HostStatusPreparingForInstallation),
 		},
-		Condition:        stateswitch.And(If(IsConnected), atLeastOneConditionUnknown, If(ClusterPreparingForInstallation)),
+		Condition:        stateswitch.And(If(IsConnected), If(IsMediaConnected), atLeastOneConditionUnknown, If(ClusterPreparingForInstallation)),
 		DestinationState: stateswitch.State(models.HostStatusPreparingForInstallation),
 	})
 
@@ -355,7 +356,7 @@ func NewHostStateMachine(sm stateswitch.StateMachine, th *transitionHandler) sta
 		SourceStates: []stateswitch.State{
 			stateswitch.State(models.HostStatusPreparingFailed),
 		},
-		Condition:        stateswitch.And(If(IsConnected), stateswitch.Not(If(ClusterPreparingForInstallation))),
+		Condition:        stateswitch.And(If(IsConnected), If(IsMediaConnected), stateswitch.Not(If(ClusterPreparingForInstallation))),
 		DestinationState: stateswitch.State(models.HostStatusKnown),
 		PostTransition:   th.PostRefreshHost(statusInfoKnown),
 	})
@@ -365,7 +366,7 @@ func NewHostStateMachine(sm stateswitch.StateMachine, th *transitionHandler) sta
 		SourceStates: []stateswitch.State{
 			stateswitch.State(models.HostStatusPreparingSuccessful),
 		},
-		Condition:        stateswitch.And(If(IsConnected), stateswitch.Not(stateswitch.Or(If(ClusterPreparingForInstallation), If(ClusterInstalling)))),
+		Condition:        stateswitch.And(If(IsConnected), If(IsMediaConnected), stateswitch.Not(stateswitch.Or(If(ClusterPreparingForInstallation), If(ClusterInstalling)))),
 		DestinationState: stateswitch.State(models.HostStatusKnown),
 		PostTransition:   th.PostRefreshHost(statusInfoKnown),
 	})
@@ -383,6 +384,34 @@ func NewHostStateMachine(sm stateswitch.StateMachine, th *transitionHandler) sta
 		Condition:        stateswitch.Not(If(IsConnected)),
 		DestinationState: stateswitch.State(models.HostStatusDisconnected),
 		PostTransition:   th.PostRefreshHost(statusInfoDisconnected),
+	})
+
+	sm.AddTransition(stateswitch.TransitionRule{
+		TransitionType: TransitionTypeMediaDisconnect,
+		SourceStates: []stateswitch.State{
+			stateswitch.State(models.HostStatusDiscovering),
+			stateswitch.State(models.HostStatusInsufficient),
+			stateswitch.State(models.HostStatusKnown),
+			stateswitch.State(models.HostStatusPendingForInput),
+			stateswitch.State(models.HostStatusDisconnected),
+			stateswitch.State(models.HostStatusBinding),
+		},
+		DestinationState: stateswitch.State(models.HostStatusDisconnected),
+		PostTransition:   th.PostHostMediaDisconnected,
+	})
+
+	sm.AddTransition(stateswitch.TransitionRule{
+		TransitionType: TransitionTypeMediaDisconnect,
+		SourceStates: []stateswitch.State{
+			stateswitch.State(models.HostStatusPreparingForInstallation),
+			stateswitch.State(models.HostStatusPreparingFailed),
+			stateswitch.State(models.HostStatusPreparingSuccessful),
+			stateswitch.State(models.HostStatusInstalling),
+			stateswitch.State(models.HostStatusInstallingInProgress),
+			stateswitch.State(models.HostStatusError),
+		},
+		DestinationState: stateswitch.State(models.HostStatusError),
+		PostTransition:   th.PostHostMediaDisconnected,
 	})
 
 	// Abort host if cluster has errors
@@ -501,7 +530,7 @@ func NewHostStateMachine(sm stateswitch.StateMachine, th *transitionHandler) sta
 			stateswitch.State(models.HostStatusDisconnected),
 			stateswitch.State(models.HostStatusDiscovering),
 		},
-		Condition:        stateswitch.And(If(IsConnected), stateswitch.Not(If(HasInventory))),
+		Condition:        stateswitch.And(If(IsConnected), If(IsMediaConnected), stateswitch.Not(If(HasInventory))),
 		DestinationState: stateswitch.State(models.HostStatusDiscovering),
 		PostTransition:   th.PostRefreshHost(statusInfoDiscovering),
 	})
@@ -526,7 +555,7 @@ func NewHostStateMachine(sm stateswitch.StateMachine, th *transitionHandler) sta
 			stateswitch.State(models.HostStatusInsufficient),
 			stateswitch.State(models.HostStatusKnown),
 		},
-		Condition: stateswitch.And(If(IsConnected), If(HasInventory),
+		Condition: stateswitch.And(If(IsConnected), If(IsMediaConnected), If(HasInventory),
 			stateswitch.Not(hasMinRequiredHardware)),
 		DestinationState: stateswitch.State(models.HostStatusInsufficient),
 		PostTransition:   th.PostRefreshHost(statusInfoInsufficientHardware),
@@ -543,7 +572,7 @@ func NewHostStateMachine(sm stateswitch.StateMachine, th *transitionHandler) sta
 			stateswitch.State(models.HostStatusKnown),
 			stateswitch.State(models.HostStatusPendingForInput),
 		},
-		Condition: stateswitch.And(If(IsConnected), If(HasInventory),
+		Condition: stateswitch.And(If(IsConnected), If(IsMediaConnected), If(HasInventory),
 			hasMinRequiredHardware,
 			stateswitch.Not(requiredInputFieldsExist)),
 		DestinationState: stateswitch.State(models.HostStatusPendingForInput),
@@ -562,7 +591,7 @@ func NewHostStateMachine(sm stateswitch.StateMachine, th *transitionHandler) sta
 			stateswitch.State(models.HostStatusDiscovering),
 			stateswitch.State(models.HostStatusKnown),
 		},
-		Condition: stateswitch.And(If(IsConnected), If(HasInventory),
+		Condition: stateswitch.And(If(IsConnected), If(IsMediaConnected), If(HasInventory),
 			hasMinRequiredHardware,
 			requiredInputFieldsExist,
 			stateswitch.Not(isSufficientForInstall)),
@@ -579,7 +608,7 @@ func NewHostStateMachine(sm stateswitch.StateMachine, th *transitionHandler) sta
 			stateswitch.State(models.HostStatusPendingForInput),
 			stateswitch.State(models.HostStatusDiscovering),
 		},
-		Condition: stateswitch.And(If(IsConnected), If(HasInventory),
+		Condition: stateswitch.And(If(IsConnected), If(IsMediaConnected), If(HasInventory),
 			hasMinRequiredHardware,
 			requiredInputFieldsExist,
 			isSufficientForInstall),
@@ -592,7 +621,7 @@ func NewHostStateMachine(sm stateswitch.StateMachine, th *transitionHandler) sta
 		SourceStates: []stateswitch.State{
 			stateswitch.State(models.HostStatusKnown),
 		},
-		Condition: stateswitch.And(If(IsConnected), If(HasInventory),
+		Condition: stateswitch.And(If(IsConnected), If(IsMediaConnected), If(HasInventory),
 			hasMinRequiredHardware,
 			requiredInputFieldsExist,
 			isSufficientForInstall,

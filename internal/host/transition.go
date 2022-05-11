@@ -12,6 +12,7 @@ import (
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 	"github.com/openshift/assisted-service/internal/common"
+	eventgen "github.com/openshift/assisted-service/internal/common/events"
 	eventsapi "github.com/openshift/assisted-service/internal/events/api"
 	"github.com/openshift/assisted-service/internal/host/hostutil"
 	"github.com/openshift/assisted-service/models"
@@ -192,6 +193,57 @@ func (th *transitionHandler) PostRegisterInstalledHost(sw stateswitch.StateSwitc
 	sHost.host.StatusInfo = swag.String(statusInfoDiscovering)
 	log.Infof("Register installed host %s cluster %s", sHost.host.ID.String(), sHost.host.ClusterID)
 	return params.db.Create(sHost.host).Error
+}
+
+////////////////////////////////////////////////////////////////////////////
+// Media disconnected
+////////////////////////////////////////////////////////////////////////////
+type TransitionArgsMediaDisconnected struct {
+	ctx context.Context
+	db  *gorm.DB
+}
+
+func (th *transitionHandler) PostHostMediaDisconnected(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) error {
+	sHost, ok := sw.(*stateHost)
+
+	if !ok {
+		return errors.New("HostMediaDisconnected incompatible type of StateSwitch")
+	}
+
+	params, ok := args.(*TransitionArgsMediaDisconnected)
+
+	if !ok {
+		return errors.New("HostMediaDisconnected invalid argument")
+	}
+
+	host := sHost.host
+
+	// Already updated
+	if host.MediaStatus != nil && *host.MediaStatus == models.HostMediaStatusDisconnected {
+		return nil
+	}
+
+	reason := statusInfoMediaDisconnected
+
+	// Install command reports its status with a different API, directly from the assisted-installer.
+	// Just adding our diagnosis to the existing error message.
+	if *host.Status == models.HostStatusError {
+		reason = fmt.Sprintf("%s - %s", string(models.HostStageFailed), reason)
+
+		if host.StatusInfo != nil {
+			if !strings.Contains(*host.StatusInfo, reason) {
+				reason = fmt.Sprintf("%s. %s", reason, *host.StatusInfo)
+			} else {
+				reason = *host.StatusInfo
+			}
+		}
+	}
+
+	eventgen.SendHostMediaDisconnectedEvent(params.ctx, th.eventsHandler, *host.ID, host.InfraEnvID, host.ClusterID)
+
+	// Update media_status to disconnection, change status and trigger change status event if necessary.
+	return th.updateTransitionHost(params.ctx, logutil.FromContext(params.ctx, th.log), th.db, sHost, reason,
+		"media_status", models.HostMediaStatusDisconnected)
 }
 
 ////////////////////////////////////////////////////////////////////////////

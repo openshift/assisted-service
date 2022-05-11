@@ -6871,6 +6871,15 @@ func init() {
         "machine_config_pool_name": {
           "type": "string"
         },
+        "media_status": {
+          "type": "string",
+          "default": "connected",
+          "enum": [
+            "connected",
+            "disconnected"
+          ],
+          "x-nullable": true
+        },
         "node_labels": {
           "description": "Json containing node's labels.",
           "type": "string",
@@ -7154,6 +7163,7 @@ func init() {
       "type": "string",
       "enum": [
         "connected",
+        "media-connected",
         "has-inventory",
         "has-min-cpu-cores",
         "has-min-valid-disks",
@@ -15963,6 +15973,15 @@ func init() {
         "machine_config_pool_name": {
           "type": "string"
         },
+        "media_status": {
+          "type": "string",
+          "default": "connected",
+          "enum": [
+            "connected",
+            "disconnected"
+          ],
+          "x-nullable": true
+        },
         "node_labels": {
           "description": "Json containing node's labels.",
           "type": "string",
@@ -16246,6 +16265,7 @@ func init() {
       "type": "string",
       "enum": [
         "connected",
+        "media-connected",
         "has-inventory",
         "has-min-cpu-cores",
         "has-min-valid-disks",

@@ -4013,6 +4013,13 @@ definitions:
         type: string
       user_name:
         type: string
+      media_status:
+        type: string
+        x-nullable: true
+        enum:
+          - connected
+          - disconnected
+        default: connected
       deleted_at:
         description: swagger:ignore
         x-go-custom-tag: gorm:"type:timestamp with time zone;index"
@@ -5556,6 +5563,7 @@ definitions:
     type: string
     enum:
       - 'connected'
+      - 'media-connected'
       - 'has-inventory'
       - 'has-min-cpu-cores'
       - 'has-min-valid-disks'

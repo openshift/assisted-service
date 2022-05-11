@@ -144,6 +144,12 @@ func newValidations(v *validator) []validation {
 			skippedStates: manualRebootStages,
 		},
 		{
+			id:            IsMediaConnected,
+			condition:     v.isMediaConnected,
+			formatter:     v.printMediaConnected,
+			skippedStates: manualRebootStages,
+		},
+		{
 			id:        HasInventory,
 			condition: v.hasInventory,
 			formatter: v.printHasInventory,

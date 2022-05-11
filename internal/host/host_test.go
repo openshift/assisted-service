@@ -3280,6 +3280,115 @@ var _ = Describe("Get host by Kube key", func() {
 	})
 })
 
+var _ = Describe("Media disconnection", func() {
+
+	var (
+		ctx          = context.Background()
+		db           *gorm.DB
+		api          API
+		dbName       string
+		config       Config
+		mockEventApi *eventsapi.MockHandler
+		ctrl         *gomock.Controller
+		clusterId    strfmt.UUID
+		hostId       strfmt.UUID
+		infraEnvId   strfmt.UUID
+		host         models.Host
+	)
+
+	BeforeEach(func() {
+		db, dbName = common.PrepareTestDB()
+		config = *defaultConfig
+		ctrl = gomock.NewController(GinkgoT())
+		mockEventApi = eventsapi.NewMockHandler(ctrl)
+		dummy := &leader.DummyElector{}
+		api = NewManager(common.GetTestLog(), db, mockEventApi, nil, nil, nil, nil, &config, dummy, nil, nil)
+		clusterId = strfmt.UUID(uuid.New().String())
+		hostId = strfmt.UUID(uuid.New().String())
+		infraEnvId = strfmt.UUID(uuid.New().String())
+		host = hostutil.GenerateTestHost(hostId, infraEnvId, clusterId, models.HostStatusInsufficient)
+		Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
+	})
+
+	AfterEach(func() {
+		common.DeleteTestDB(db, dbName)
+		ctrl.Finish()
+	})
+
+	const errorMessage string = "Failed - " + statusInfoMediaDisconnected
+
+	It("Media disconnection occurred before installation", func() {
+		mockEventApi.EXPECT().SendHostEvent(gomock.Any(), eventstest.NewEventMatcher(
+			eventstest.WithNameMatcher(eventgen.HostMediaDisconnectedEventName),
+			eventstest.WithHostIdMatcher(host.ID.String()),
+			eventstest.WithInfraEnvIdMatcher(host.InfraEnvID.String()),
+			eventstest.WithClusterIdMatcher(host.ClusterID.String()))).Times(1)
+		mockEventApi.EXPECT().SendHostEvent(gomock.Any(), eventstest.NewEventMatcher(
+			eventstest.WithNameMatcher(eventgen.HostStatusUpdatedEventName),
+			eventstest.WithHostIdMatcher(host.ID.String()),
+			eventstest.WithInfraEnvIdMatcher(host.InfraEnvID.String()),
+			eventstest.WithClusterIdMatcher(host.ClusterID.String()))).Times(1)
+		Expect(*host.Status).To(BeEquivalentTo(models.HostStatusInsufficient))
+		Expect(api.HandleMediaDisconnected(ctx, &host)).ShouldNot(HaveOccurred())
+		tx := db.Take(&host, "cluster_id = ? and id = ?", clusterId.String(), hostId.String())
+		Expect(tx.Error).ToNot(HaveOccurred())
+		Expect(*host.Status).To(BeEquivalentTo(models.HostMediaStatusDisconnected))
+		Expect(*host.StatusInfo).To(BeEquivalentTo(statusInfoMediaDisconnected))
+		Expect(*host.MediaStatus).To(BeEquivalentTo(models.HostMediaStatusDisconnected))
+	})
+
+	It("Media disconnection - wrapping an existing error", func() {
+		updates := map[string]interface{}{}
+		updates["Status"] = models.HostStatusError
+		updates["StatusInfo"] = "error"
+		Expect(db.Model(host).Updates(updates).Error).ShouldNot(HaveOccurred())
+		tx := db.Take(&host, "cluster_id = ? and id = ?", clusterId.String(), hostId.String())
+		Expect(tx.Error).ToNot(HaveOccurred())
+		Expect(*host.Status).To(BeEquivalentTo(models.HostStatusError))
+		Expect(*host.StatusInfo).To(BeEquivalentTo("error"))
+		mockEventApi.EXPECT().SendHostEvent(gomock.Any(), eventstest.NewEventMatcher(
+			eventstest.WithNameMatcher(eventgen.HostMediaDisconnectedEventName),
+			eventstest.WithHostIdMatcher(host.ID.String()),
+			eventstest.WithInfraEnvIdMatcher(host.InfraEnvID.String()),
+			eventstest.WithClusterIdMatcher(host.ClusterID.String()))).Times(1)
+		Expect(api.HandleMediaDisconnected(ctx, &host)).ShouldNot(HaveOccurred())
+		tx = db.Take(&host, "cluster_id = ? and id = ?", clusterId.String(), hostId.String())
+		Expect(tx.Error).ToNot(HaveOccurred())
+		Expect(*host.Status).To(BeEquivalentTo(models.HostStatusError))
+		Expect(*host.StatusInfo).To(BeEquivalentTo(errorMessage + ". error"))
+		Expect(*host.MediaStatus).To(BeEquivalentTo(models.HostMediaStatusDisconnected))
+	})
+
+	It("Media disconnection - repeated errors", func() {
+		updates := map[string]interface{}{}
+		updates["Status"] = models.HostStatusError
+		updates["StatusInfo"] = errorMessage
+		updates["MediaStatus"] = models.HostMediaStatusDisconnected
+		Expect(db.Model(host).Updates(updates).Error).ShouldNot(HaveOccurred())
+		tx := db.Take(&host, "cluster_id = ? and id = ?", clusterId.String(), hostId.String())
+		Expect(tx.Error).ToNot(HaveOccurred())
+		Expect(*host.MediaStatus).To(BeEquivalentTo(models.HostMediaStatusDisconnected))
+		Expect(*host.Status).To(BeEquivalentTo(models.HostStatusError))
+		Expect(api.HandleMediaDisconnected(ctx, &host)).ShouldNot(HaveOccurred())
+		tx = db.Take(&host, "cluster_id = ? and id = ?", clusterId.String(), hostId.String())
+		Expect(tx.Error).ToNot(HaveOccurred())
+		Expect(*host.Status).To(BeEquivalentTo(models.HostStatusError))
+		Expect(*host.StatusInfo).To(BeEquivalentTo(errorMessage))
+		Expect(*host.MediaStatus).To(BeEquivalentTo(models.HostMediaStatusDisconnected))
+	})
+
+	It("Media disconnection - reconnection", func() {
+		updates := map[string]interface{}{}
+		updates["MediaStatus"] = models.HostMediaStatusDisconnected
+		Expect(db.Model(host).Updates(updates).Error).ShouldNot(HaveOccurred())
+		tx := db.Take(&host, "cluster_id = ? and id = ?", clusterId.String(), hostId.String())
+		Expect(tx.Error).ToNot(HaveOccurred())
+		Expect(*host.MediaStatus).To(BeEquivalentTo(models.HostMediaStatusDisconnected))
+		Expect(api.UpdateMediaConnected(ctx, &host)).ShouldNot(HaveOccurred())
+		Expect(*host.MediaStatus).To(BeEquivalentTo(models.HostMediaStatusConnected))
+	})
+})
+
 var _ = Describe("Installation stages", func() {
 
 	var (
