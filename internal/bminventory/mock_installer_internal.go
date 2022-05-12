@@ -233,6 +233,52 @@ func (mr *MockInstallerInternalsMockRecorder) GetInfraEnvHostsInternal(arg0, arg
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetInfraEnvHostsInternal", reflect.TypeOf((*MockInstallerInternals)(nil).GetInfraEnvHostsInternal), arg0, arg1)
 }
 
+// GetKnownApprovedHosts mocks base method.
+func (m *MockInstallerInternals) GetKnownApprovedHosts(arg0 strfmt.UUID) ([]*common.Host, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetKnownApprovedHosts", arg0)
+	ret0, _ := ret[0].([]*common.Host)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetKnownApprovedHosts indicates an expected call of GetKnownApprovedHosts.
+func (mr *MockInstallerInternalsMockRecorder) GetKnownApprovedHosts(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetKnownApprovedHosts", reflect.TypeOf((*MockInstallerInternals)(nil).GetKnownApprovedHosts), arg0)
+}
+
+// GetKnownHostApprovedCounts mocks base method.
+func (m *MockInstallerInternals) GetKnownHostApprovedCounts(arg0 strfmt.UUID) (int, int, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetKnownHostApprovedCounts", arg0)
+	ret0, _ := ret[0].(int)
+	ret1, _ := ret[1].(int)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
+}
+
+// GetKnownHostApprovedCounts indicates an expected call of GetKnownHostApprovedCounts.
+func (mr *MockInstallerInternalsMockRecorder) GetKnownHostApprovedCounts(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetKnownHostApprovedCounts", reflect.TypeOf((*MockInstallerInternals)(nil).GetKnownHostApprovedCounts), arg0)
+}
+
+// HostWithCollectedLogsExists mocks base method.
+func (m *MockInstallerInternals) HostWithCollectedLogsExists(arg0 strfmt.UUID) (bool, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "HostWithCollectedLogsExists", arg0)
+	ret0, _ := ret[0].(bool)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// HostWithCollectedLogsExists indicates an expected call of HostWithCollectedLogsExists.
+func (mr *MockInstallerInternalsMockRecorder) HostWithCollectedLogsExists(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "HostWithCollectedLogsExists", reflect.TypeOf((*MockInstallerInternals)(nil).HostWithCollectedLogsExists), arg0)
+}
+
 // InstallClusterInternal mocks base method.
 func (m *MockInstallerInternals) InstallClusterInternal(arg0 context.Context, arg1 installer.V2InstallClusterParams) (*common.Cluster, error) {
 	m.ctrl.T.Helper()

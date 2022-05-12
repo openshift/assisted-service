@@ -142,6 +142,9 @@ type API interface {
 	UpdateDomainNameResolution(ctx context.Context, h *models.Host, domainResolutionResponse models.DomainResolutionResponse, db *gorm.DB) error
 	BindHost(ctx context.Context, h *models.Host, clusterID strfmt.UUID, db *gorm.DB) error
 	UnbindHost(ctx context.Context, h *models.Host, db *gorm.DB) error
+	GetKnownHostApprovedCounts(clusterID strfmt.UUID) (registered, approved int, err error)
+	HostWithCollectedLogsExists(clusterId strfmt.UUID) (bool, error)
+	GetKnownApprovedHosts(clusterId strfmt.UUID) ([]*common.Host, error)
 }
 
 type Manager struct {
@@ -1285,4 +1288,39 @@ func (m *Manager) GetHostByKubeKey(key types.NamespacedName) (*common.Host, erro
 
 func (m *Manager) UnRegisterHost(ctx context.Context, hostID, infraEnvID string) error {
 	return common.DeleteHostFromDB(m.db, hostID, infraEnvID)
+}
+
+func (m *Manager) GetKnownHostApprovedCounts(clusterID strfmt.UUID) (registered, approved int, err error) {
+	var hostCounts []struct {
+		Count    int
+		Approved bool
+	}
+	err = m.db.Table("hosts").Select("count(*) as count, approved").Group("approved").
+		Where("cluster_id = ? and status = ? and deleted_at is null", clusterID.String(), models.HostStatusKnown).Scan(&hostCounts).Error
+	if err != nil {
+		m.log.WithError(err).Errorf("Failed to get counts")
+		return
+	}
+	for _, h := range hostCounts {
+		registered += h.Count
+		if h.Approved {
+			approved += h.Count
+		}
+	}
+	return
+}
+
+func (m *Manager) HostWithCollectedLogsExists(clusterId strfmt.UUID) (bool, error) {
+	var hosts []*models.Host
+	if err := m.db.Select("id").
+		Limit(1).
+		Where("cluster_id = ? and logs_collected_at <> ?", clusterId.String(), time.Time{}).
+		Find(&hosts).Error; err != nil {
+		return false, err
+	}
+	return len(hosts) > 0, nil
+}
+
+func (m *Manager) GetKnownApprovedHosts(clusterId strfmt.UUID) (hosts []*common.Host, err error) {
+	return common.GetHostsFromDBWhere(m.db, "cluster_id = ? and status = ? and approved = TRUE", clusterId.String(), models.HostStatusKnown)
 }

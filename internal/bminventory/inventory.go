@@ -158,6 +158,9 @@ type InstallerInternals interface {
 	UnbindHostInternal(ctx context.Context, params installer.UnbindHostParams) (*common.Host, error)
 	BindHostInternal(ctx context.Context, params installer.BindHostParams) (*common.Host, error)
 	GetInfraEnvHostsInternal(ctx context.Context, infraEnvId strfmt.UUID) ([]*common.Host, error)
+	GetKnownHostApprovedCounts(clusterID strfmt.UUID) (registered, approved int, err error)
+	HostWithCollectedLogsExists(clusterId strfmt.UUID) (bool, error)
+	GetKnownApprovedHosts(clusterId strfmt.UUID) ([]*common.Host, error)
 }
 
 //go:generate mockgen --build_flags=--mod=mod -package bminventory -destination mock_crd_utils.go . CRDUtils
@@ -5227,4 +5230,16 @@ func (b *bareMetalInventory) ListClusterHosts(ctx context.Context, params instal
 		}
 	}
 	return installer.NewListClusterHostsOK().WithPayload(hostList)
+}
+
+func (b *bareMetalInventory) GetKnownHostApprovedCounts(clusterID strfmt.UUID) (registered, approved int, err error) {
+	return b.hostApi.GetKnownHostApprovedCounts(clusterID)
+}
+
+func (b *bareMetalInventory) HostWithCollectedLogsExists(clusterId strfmt.UUID) (bool, error) {
+	return b.hostApi.HostWithCollectedLogsExists(clusterId)
+}
+
+func (b *bareMetalInventory) GetKnownApprovedHosts(clusterId strfmt.UUID) ([]*common.Host, error) {
+	return b.hostApi.GetKnownApprovedHosts(clusterId)
 }
