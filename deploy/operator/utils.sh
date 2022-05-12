@@ -155,3 +155,40 @@ function nth_ip() {
 
   python -c "from ansible_collections.ansible.netcommon.plugins.filter import ipaddr; print(ipaddr.nthhost('"$network"', $idx))"
 }
+
+function retry() {
+    attempts=5
+    interval=1
+
+    local OPTIND
+    while getopts "a:i:" opt ; do
+      case "${opt}" in
+          a )
+              attempts="${OPTARG}"
+              ;;
+          i )
+              interval="${OPTARG}"
+              ;;
+          * )
+              ;;
+      esac
+    done
+    shift $((OPTIND-1))
+
+    rc=0
+    for attempt in $(seq "${attempts}")
+    do
+        echo "Attempt ${attempt}/${attempts} to execute \"$*\"..."
+
+        "$@"
+        rc=$?
+        if [[ ${rc} = 0 ]]
+        then
+            break
+        fi
+
+        sleep "${interval}"
+    done
+
+    return ${rc}
+}
