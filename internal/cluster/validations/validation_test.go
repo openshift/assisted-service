@@ -214,6 +214,10 @@ var _ = Describe("Cluster name validation", func() {
 		err := ValidateClusterNameFormat("test-1")
 		Expect(err).ShouldNot(HaveOccurred())
 	})
+	It("success - name starts with number", func() {
+		err := ValidateClusterNameFormat("1-test")
+		Expect(err).ShouldNot(HaveOccurred())
+	})
 	It("invalid format - special character", func() {
 		err := ValidateClusterNameFormat("test!")
 		Expect(err).Should(HaveOccurred())
@@ -222,12 +226,16 @@ var _ = Describe("Cluster name validation", func() {
 		err := ValidateClusterNameFormat("testA")
 		Expect(err).Should(HaveOccurred())
 	})
-	It("invalid format - starts with number", func() {
-		err := ValidateClusterNameFormat("1test")
+	It("invalid format - starts with capital letter", func() {
+		err := ValidateClusterNameFormat("Test")
 		Expect(err).Should(HaveOccurred())
 	})
 	It("invalid format - ends with hyphen", func() {
 		err := ValidateClusterNameFormat("test-")
+		Expect(err).Should(HaveOccurred())
+	})
+	It("invalid format - starts with hyphen", func() {
+		err := ValidateClusterNameFormat("-test")
 		Expect(err).Should(HaveOccurred())
 	})
 })
