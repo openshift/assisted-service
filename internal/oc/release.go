@@ -1,11 +1,11 @@
 package oc
 
 import (
-	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/buger/jsonparser"
@@ -13,6 +13,8 @@ import (
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/executer"
+	"github.com/patrickmn/go-cache"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/thedevsaddam/retry"
 )
@@ -39,16 +41,21 @@ type Release interface {
 	Extract(log logrus.FieldLogger, releaseImage string, releaseImageMirror string, cacheDir string, pullSecret string, platformType models.PlatformType) (string, error)
 }
 
+type imageValue struct {
+	value string
+	mutex sync.Mutex
+}
+
 type release struct {
 	executer executer.Executer
 	config   Config
 
 	// A map for caching images (image name > release image URL > image)
-	imagesMap map[string]map[string]string
+	imagesMap common.ExpiringCache
 }
 
 func NewRelease(executer executer.Executer, config Config) Release {
-	return &release{executer, config, make(map[string]map[string]string)}
+	return &release{executer: executer, config: config, imagesMap: common.NewExpiringCache(cache.NoExpiration, cache.NoExpiration)}
 }
 
 const (
@@ -154,10 +161,32 @@ func (r *release) GetReleaseArchitecture(log logrus.FieldLogger, releaseImage st
 	return architecture, nil
 }
 
+func getImageKey(imageName, releaseImage string) string {
+	return imageName + "@" + releaseImage
+}
+
+func (r *release) getImageValue(imageName, releaseImage string) (*imageValue, error) {
+	actualIntf, _ := r.imagesMap.GetOrInsert(getImageKey(imageName, releaseImage), &imageValue{})
+	value, ok := actualIntf.(*imageValue)
+	if !ok {
+		return nil, errors.Errorf("unexpected error - could not cast value for image %s release %s", imageName, releaseImage)
+	}
+	return value, nil
+}
+
 func (r *release) getImageFromRelease(log logrus.FieldLogger, imageName, releaseImage, pullSecret string, insecure bool) (string, error) {
 	// Fetch image URL from cache
-	if image, ok := r.imagesMap[imageName][releaseImage]; ok {
-		return image, nil
+	actualImageValue, err := r.getImageValue(imageName, releaseImage)
+	if err != nil {
+		return "", err
+	}
+	if actualImageValue.value != "" {
+		return actualImageValue.value, nil
+	}
+	actualImageValue.mutex.Lock()
+	defer actualImageValue.mutex.Unlock()
+	if actualImageValue.value != "" {
+		return actualImageValue.value, nil
 	}
 
 	cmd := fmt.Sprintf(templateGetImage, imageName, insecure, releaseImage)
@@ -169,8 +198,7 @@ func (r *release) getImageFromRelease(log logrus.FieldLogger, imageName, release
 	}
 
 	// Update image URL in cache
-	r.imagesMap[imageName] = make(map[string]string)
-	r.imagesMap[imageName][releaseImage] = image
+	actualImageValue.value = image
 
 	return image, nil
 }

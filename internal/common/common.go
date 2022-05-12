@@ -363,3 +363,7 @@ func CanonizeStrings(slice []string) (ret []string) {
 	}
 	return
 }
+
+func GetHostKey(host *models.Host) string {
+	return host.ID.String() + "@" + host.InfraEnvID.String()
+}
