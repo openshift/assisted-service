@@ -18,7 +18,7 @@ function print_help() {
 function install_lso() {
   oc adm new-project openshift-local-storage || true
 
-  oc annotate project openshift-local-storage openshift.io/node-selector='' --overwrite=true
+  retry -- oc annotate project openshift-local-storage openshift.io/node-selector='' --overwrite=true
 
   catalog_source_name="redhat-operators"
   if [ "${DISCONNECTED}" = true ]; then
