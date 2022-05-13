@@ -61,7 +61,8 @@ func (s *StaticNetworkConfigGenerator) GenerateStaticNetworkConfigData(ctx conte
 	for i, hostConfig := range staticNetworkConfig {
 		hostFileList, err := s.generateHostStaticNetworkConfigData(ctx, hostConfig, fmt.Sprintf("host%d", i))
 		if err != nil {
-			s.log.WithError(err).Errorf("Failed to create static config for host")
+			err = errors.Wrapf(err, "failed to create static config for host %d", i)
+			s.log.Error(err)
 			return nil, err
 		}
 		filesList = append(filesList, hostFileList...)
@@ -121,7 +122,8 @@ func (s *StaticNetworkConfigGenerator) executeNMStatectl(ctx context.Context, ho
 	stdout, stderr, retCode := executer.ExecuteWithContext(ctx, "nmstatectl", "gc", f.Name())
 	if retCode != 0 {
 		s.log.Errorf("<nmstatectl gc> failed, errorCode %d, stderr %s, input yaml <%s>", retCode, stderr, hostYAML)
-		return "", fmt.Errorf("failed to execute nmstatectl gc, check the value provided for 'network_yaml': %s", hostYAML)
+		errMsg := strings.Split(stderr, "Error:")
+		return "", fmt.Errorf("invalid yaml, error: %s", strings.TrimSpace(errMsg[len(errMsg)-1]))
 	}
 	return stdout, nil
 }
@@ -189,7 +191,9 @@ func (s *StaticNetworkConfigGenerator) ValidateStaticConfigParams(ctx context.Co
 	var err *multierror.Error
 	for i, hostConfig := range staticNetworkConfig {
 		err = multierror.Append(err, s.validateMacInterfaceName(i, hostConfig.MacInterfaceMap))
-		err = multierror.Append(err, s.validateNMStateYaml(ctx, hostConfig.NetworkYaml))
+		if validateErr := s.validateNMStateYaml(ctx, hostConfig.NetworkYaml); validateErr != nil {
+			err = multierror.Append(err, fmt.Errorf("failed to validate network yaml for host %d, %s", i, validateErr))
+		}
 	}
 	return err.ErrorOrNil()
 }
