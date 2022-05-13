@@ -422,7 +422,7 @@ func main() {
 
 	// Determine if IPXE artifact URLs need to be http
 	serverInfo := servers.New(Options.HTTPListenPort, swag.StringValue(port), Options.HTTPSKeyFile, Options.HTTPSCertFile)
-	generateInsecureIPXEURLs := serverInfo.HasBothHandlers
+	generateInsecureIPXEURLs := serverInfo.HTTP != nil
 
 	bm := bminventory.NewBareMetalInventory(db, log.WithField("pkg", "Inventory"), hostApi, clusterApi, infraEnvApi, Options.BMConfig,
 		generator, eventsHandler, objectHandler, metricsManager, usageManager, operatorsManager, authHandler, ocpClient, ocmClient,
@@ -560,8 +560,8 @@ func main() {
 	stop := make(chan os.Signal, 1)
 	signal.Notify(stop, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
 
-	// Run listen on http and https ports if HTTPSCertFile/HTTPSKeyFile set
-	if generateInsecureIPXEURLs {
+	// Run listen on http and https ports if iPXE artifacts need to be exposed via HTTP
+	if serverInfo.HasBothHandlers {
 		h = app.WithIPXEScriptMiddleware(h)
 	}
 	if serverInfo.HTTP != nil {
