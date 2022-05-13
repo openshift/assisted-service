@@ -578,8 +578,10 @@ func (r *InfraEnvReconciler) updateInfraEnvStatus(
 		infraEnv.Status.ISODownloadURL = internalInfraEnv.DownloadURL
 		imageCreatedAt := metav1.NewTime(time.Time(internalInfraEnv.GeneratedAt))
 		infraEnv.Status.CreatedTime = &imageCreatedAt
+	}
 
-		// set initrd and script endpoint here so we're not changing the auth token constantly
+	// update boot artifacts URL if IPXE insecure setting was changed
+	if bootArtifactsNeedsUpdate(r.ServiceBaseURL, infraEnv.Status.BootArtifacts.InitrdURL, r.InsecureIPXEURLs) {
 		if err := r.setSignedBootArtifactURLs(infraEnv, internalInfraEnv.ID.String(), *osImage.OpenshiftVersion, *osImage.CPUArchitecture); err != nil {
 			return r.handleEnsureISOErrors(ctx, log, infraEnv, err, internalInfraEnv)
 		}
@@ -603,6 +605,23 @@ func (r *InfraEnvReconciler) updateInfraEnvStatus(
 		return ctrl.Result{Requeue: true}, nil
 	}
 	return ctrl.Result{Requeue: false}, nil
+}
+
+func bootArtifactsNeedsUpdate(baseURL, initrdURL string, insecure bool) bool {
+	parsedInitrdURL, err := url.Parse(initrdURL)
+	if err != nil {
+		return true
+	}
+	initrdScheme := parsedInitrdURL.Scheme
+	if initrdScheme == "" {
+		return true
+	}
+	parsedBaseURL, err := url.Parse(baseURL)
+	if err != nil {
+		return true
+	}
+	baseScheme := parsedBaseURL.Scheme
+	return (insecure && initrdScheme == "https" && baseScheme == "http") || (!insecure && initrdScheme == "http" && baseScheme == "https")
 }
 
 func (r *InfraEnvReconciler) handleEnsureISOErrors(

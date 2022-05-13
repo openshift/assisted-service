@@ -568,7 +568,7 @@ func main() {
 	stop := make(chan os.Signal, 1)
 	signal.Notify(stop, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
 
-	// Run listen on http and https ports if HTTPSCertFile/HTTPSKeyFile set
+	// Run listen on http and https ports if iPXE artifacts need to be exposed via HTTP
 	if generateInsecureIPXEURLs {
 		h = app.WithIPXEScriptMiddleware(h)
 	}
