@@ -196,6 +196,7 @@ type bareMetalInventory struct {
 	staticNetworkConfig  staticnetworkconfig.StaticNetworkConfig
 	gcConfig             garbagecollector.Config
 	providerRegistry     registry.ProviderRegistry
+	insecureIPXEURLs     bool
 }
 
 func NewBareMetalInventory(
@@ -226,6 +227,7 @@ func NewBareMetalInventory(
 	staticNetworkConfig staticnetworkconfig.StaticNetworkConfig,
 	gcConfig garbagecollector.Config,
 	providerRegistry registry.ProviderRegistry,
+	insecureIPXEURLs bool,
 ) *bareMetalInventory {
 	return &bareMetalInventory{
 		db:                   db,
@@ -255,6 +257,7 @@ func NewBareMetalInventory(
 		staticNetworkConfig:  staticNetworkConfig,
 		gcConfig:             gcConfig,
 		providerRegistry:     providerRegistry,
+		insecureIPXEURLs:     insecureIPXEURLs,
 	}
 }
 

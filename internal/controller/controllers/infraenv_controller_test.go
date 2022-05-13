@@ -83,7 +83,7 @@ var _ = Describe("infraEnv reconcile", func() {
 		sId                   strfmt.UUID
 		backEndCluster        = &common.Cluster{Cluster: models.Cluster{ID: &sId}}
 		backendInfraEnv       = &common.InfraEnv{InfraEnv: models.InfraEnv{ClusterID: sId, ID: &sId}}
-		downloadURL           = "downloadurl"
+		downloadURL           = "https://downloadurl"
 		eventURL              string
 		infraEnvArch          = "x86_64"
 		ocpVersion            = "4.10"
@@ -101,8 +101,8 @@ var _ = Describe("infraEnv reconcile", func() {
 			Log:                 common.GetTestLog(),
 			Installer:           mockInstallerInternal,
 			APIReader:           c,
-			ServiceBaseURL:      "http://www.acme.com",
-			ImageServiceBaseURL: "http://images.example.com",
+			ServiceBaseURL:      "https://www.acme.com",
+			ImageServiceBaseURL: "https://images.example.com",
 			VersionsHandler:     mockVersionsHandler,
 			AuthType:            auth.TypeNone,
 		}
@@ -131,7 +131,7 @@ var _ = Describe("infraEnv reconcile", func() {
 
 	It("create new infraEnv minimal-iso image - success", func() {
 		imageInfo := models.ImageInfo{
-			DownloadURL: "downloadurl",
+			DownloadURL: "https://downloadurl",
 			CreatedAt:   time.Now(),
 		}
 		clusterDeployment := newClusterDeployment("clusterDeployment", testNamespace, getDefaultClusterDeploymentSpec("clusterDeployment-test", "test-cluster-aci", "pull-secret"))
@@ -216,7 +216,7 @@ var _ = Describe("infraEnv reconcile", func() {
 			InfraEnv: models.InfraEnv{
 				ID:              &sId,
 				CPUArchitecture: infraEnvArch,
-				DownloadURL:     "http://images.example.com/images/best-image",
+				DownloadURL:     "https://images.example.com/images/best-image",
 			},
 		}
 		mockInstallerInternal.EXPECT().GetInfraEnvByKubeKey(gomock.Any()).Return(backendInfraEnv, nil)
@@ -237,21 +237,21 @@ var _ = Describe("infraEnv reconcile", func() {
 
 		kernelURL, err := url.Parse(kubeInfraEnv.Status.BootArtifacts.KernelURL)
 		Expect(err).ToNot(HaveOccurred())
-		Expect(kernelURL.Scheme).To(Equal("http"))
+		Expect(kernelURL.Scheme).To(Equal("https"))
 		Expect(kernelURL.Host).To(Equal("images.example.com"))
 		Expect(kernelURL.Query().Get("arch")).To(Equal(infraEnvArch))
 		Expect(kernelURL.Query().Get("version")).To(Equal(ocpVersion))
 
 		rootfsURL, err := url.Parse(kubeInfraEnv.Status.BootArtifacts.RootfsURL)
 		Expect(err).ToNot(HaveOccurred())
-		Expect(rootfsURL.Scheme).To(Equal("http"))
+		Expect(rootfsURL.Scheme).To(Equal("https"))
 		Expect(rootfsURL.Host).To(Equal("images.example.com"))
 		Expect(rootfsURL.Query().Get("arch")).To(Equal(infraEnvArch))
 		Expect(rootfsURL.Query().Get("version")).To(Equal(ocpVersion))
 
 		initrdURL, err := url.Parse(kubeInfraEnv.Status.BootArtifacts.InitrdURL)
 		Expect(err).ToNot(HaveOccurred())
-		Expect(initrdURL.Scheme).To(Equal("http"))
+		Expect(initrdURL.Scheme).To(Equal("https"))
 		Expect(initrdURL.Host).To(Equal("images.example.com"))
 		Expect(initrdURL.Path).To(ContainSubstring(sId.String()))
 		Expect(initrdURL.Query().Get("arch")).To(Equal(infraEnvArch))
@@ -259,7 +259,7 @@ var _ = Describe("infraEnv reconcile", func() {
 
 		scriptURL, err := url.Parse(kubeInfraEnv.Status.BootArtifacts.IpxeScriptURL)
 		Expect(err).ToNot(HaveOccurred())
-		Expect(scriptURL.Scheme).To(Equal("http"))
+		Expect(scriptURL.Scheme).To(Equal("https"))
 		Expect(scriptURL.Host).To(Equal("www.acme.com"))
 		Expect(scriptURL.Path).To(ContainSubstring(sId.String()))
 		Expect(scriptURL.Query().Get("file_name")).To(Equal("ipxe-script"))
@@ -283,7 +283,7 @@ var _ = Describe("infraEnv reconcile", func() {
 				InfraEnv: models.InfraEnv{
 					ID:              &sId,
 					CPUArchitecture: infraEnvArch,
-					DownloadURL:     "http://images.example.com/images/best-image",
+					DownloadURL:     "https://images.example.com/images/best-image",
 				},
 			}
 			mockInstallerInternal.EXPECT().GetInfraEnvByKubeKey(gomock.Any()).Return(backendInfraEnv, nil)
@@ -802,6 +802,57 @@ var _ = Describe("infraEnv reconcile", func() {
 		Expect(c.Get(ctx, key, infraEnvImage)).To(BeNil())
 		Expect(infraEnvImage.ObjectMeta.DeletionTimestamp.IsZero()).To(BeFalse())
 		Expect(infraEnvImage.Finalizers).ToNot(BeNil())
+	})
+
+	Context("with ipxe http route", func() {
+		BeforeEach(func() {
+			ir.InsecureIPXEURLs = false
+		})
+
+		AfterEach(func() {
+			ir.InsecureIPXEURLs = false
+		})
+
+		It("Update infraenv status on IPXEHTTPRoute change", func() {
+			clusterDeployment := newClusterDeployment("clusterDeployment", testNamespace, getDefaultClusterDeploymentSpec("clusterDeployment-test", "test-cluster-aci", "pull-secret"))
+			Expect(c.Create(ctx, clusterDeployment)).To(BeNil())
+			mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil).Times(2)
+			mockInstallerInternal.EXPECT().GetInfraEnvByKubeKey(gomock.Any()).Return(backendInfraEnv, nil).Times(2)
+			mockInstallerInternal.EXPECT().UpdateInfraEnvInternal(gomock.Any(), gomock.Any()).
+				Do(func(ctx context.Context, params installer.UpdateInfraEnvParams) {
+					Expect(params.InfraEnvID).To(Equal(*backendInfraEnv.ID))
+					Expect(params.InfraEnvUpdateParams.ImageType).To(Equal(models.ImageTypeMinimalIso))
+				}).Return(
+				&common.InfraEnv{InfraEnv: models.InfraEnv{ClusterID: sId, ID: &sId, DownloadURL: downloadURL, CPUArchitecture: infraEnvArch}, GeneratedAt: strfmt.DateTime(time.Now())}, nil).Times(2)
+			infraEnvImage := newInfraEnvImage("infraEnvImage", testNamespace, aiv1beta1.InfraEnvSpec{
+				ClusterRef:    &aiv1beta1.ClusterReference{Name: "clusterDeployment", Namespace: testNamespace},
+				PullSecretRef: &corev1.LocalObjectReference{Name: "pull-secret"},
+			})
+			Expect(c.Create(ctx, infraEnvImage)).To(BeNil())
+
+			res, err := ir.Reconcile(ctx, newInfraEnvRequest(infraEnvImage))
+			Expect(err).To(BeNil())
+			Expect(res).To(Equal(ctrl.Result{}))
+
+			key := types.NamespacedName{
+				Namespace: testNamespace,
+				Name:      "infraEnvImage",
+			}
+			Expect(c.Get(ctx, key, infraEnvImage)).To(BeNil())
+			Expect(infraEnvImage.Status.BootArtifacts.KernelURL).To(ContainSubstring("https://"))
+			Expect(infraEnvImage.Status.ISODownloadURL).To(ContainSubstring("https://"))
+
+			ir.InsecureIPXEURLs = true
+			res, err = ir.Reconcile(ctx, newInfraEnvRequest(infraEnvImage))
+			Expect(err).To(BeNil())
+			Expect(res).To(Equal(ctrl.Result{}))
+			Expect(c.Get(ctx, key, infraEnvImage)).To(BeNil())
+			Expect(infraEnvImage.Status.BootArtifacts.KernelURL).To(ContainSubstring("http://"))
+			Expect(infraEnvImage.Status.BootArtifacts.InitrdURL).To(ContainSubstring("http://"))
+			Expect(infraEnvImage.Status.BootArtifacts.RootfsURL).To(ContainSubstring("http://"))
+			Expect(infraEnvImage.Status.BootArtifacts.IpxeScriptURL).To(ContainSubstring("http://"))
+			Expect(infraEnvImage.Status.ISODownloadURL).To(ContainSubstring("https://"))
+		})
 	})
 
 	Context("CreateInfraEnvParams", func() {

@@ -8,13 +8,16 @@ import (
 	"net/http"
 	_ "net/http/pprof"
 	"os"
+	"os/signal"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/go-openapi/runtime/middleware"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 	"github.com/kelseyhightower/envconfig"
+	"github.com/openshift/assisted-image-service/pkg/servers"
 	"github.com/openshift/assisted-service/internal/bminventory"
 	"github.com/openshift/assisted-service/internal/cluster"
 	"github.com/openshift/assisted-service/internal/cluster/validations"
@@ -137,6 +140,7 @@ var Options struct {
 	WorkDir                        string        `envconfig:"WORK_DIR" default:"/data/"`
 	LivenessValidationTimeout      time.Duration `envconfig:"LIVENESS_VALIDATION_TIMEOUT" default:"5m"`
 	ApproveCsrsRequeueDuration     time.Duration `envconfig:"APPROVE_CSRS_REQUEUE_DURATION" default:"1m"`
+	HTTPListenPort                 string        `envconfig:"HTTP_LISTEN_PORT" default:""`
 }
 
 func InitLogs() *logrus.Entry {
@@ -419,10 +423,14 @@ func main() {
 		}
 	}
 
+	// Determine if IPXE artifact URLs need to be http
+	serverInfo := servers.New(Options.HTTPListenPort, swag.StringValue(port), Options.HTTPSKeyFile, Options.HTTPSCertFile)
+	generateInsecureIPXEURLs := serverInfo.HTTP != nil
+
 	bm := bminventory.NewBareMetalInventory(db, log.WithField("pkg", "Inventory"), hostApi, clusterApi, infraEnvApi, Options.BMConfig,
 		generator, eventsHandler, objectHandler, metricsManager, usageManager, operatorsManager, authHandler, authzHandler, ocpClient, ocmClient,
 		lead, pullSecretValidator, versionHandler, crdUtils, ignitionBuilder, hwValidator, dnsApi, installConfigBuilder, staticNetworkConfig,
-		Options.GCConfig, providerRegistry)
+		Options.GCConfig, providerRegistry, generateInsecureIPXEURLs)
 
 	events := events.NewApi(eventsHandler, logrus.WithField("pkg", "eventsApi"))
 
@@ -497,6 +505,7 @@ func main() {
 				ImageServiceBaseURL: Options.BMConfig.ImageServiceBaseURL,
 				AuthType:            Options.Auth.AuthType,
 				VersionsHandler:     versionHandler,
+				InsecureIPXEURLs:    generateInsecureIPXEURLs,
 			}).SetupWithManager(ctrlMgr), "unable to create controller InfraEnv")
 
 			failOnError((&controllers.ClusterDeploymentsReconciler{
@@ -555,12 +564,23 @@ func main() {
 		}
 	}()
 
-	address := fmt.Sprintf(":%s", swag.StringValue(port))
-	if Options.ServeHTTPS {
-		log.Fatal(http.ListenAndServeTLS(address, Options.HTTPSCertFile, Options.HTTPSKeyFile, h))
-	} else {
-		log.Fatal(http.ListenAndServe(address, h))
+	// Interrupt servers on SIGINT/SIGTERM
+	stop := make(chan os.Signal, 1)
+	signal.Notify(stop, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
+
+	// Run listen on http and https ports if iPXE artifacts need to be exposed via HTTP
+	if serverInfo.HasBothHandlers {
+		h = app.WithIPXEScriptMiddleware(h)
 	}
+	if serverInfo.HTTP != nil {
+		serverInfo.HTTP.Handler = h
+	}
+	if serverInfo.HTTPS != nil {
+		serverInfo.HTTPS.Handler = h
+	}
+	serverInfo.ListenAndServe()
+	<-stop
+	serverInfo.Shutdown()
 }
 
 func generateAPMTransactionName(request *http.Request) string {

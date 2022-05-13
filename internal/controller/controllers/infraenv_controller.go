@@ -75,6 +75,7 @@ type InfraEnvReconciler struct {
 	ImageServiceBaseURL string
 	AuthType            auth.AuthType
 	VersionsHandler     versions.Handler
+	InsecureIPXEURLs    bool
 }
 
 // +kubebuilder:rbac:groups=agent-install.openshift.io,resources=nmstateconfigs,verbs=get;list;watch
@@ -519,7 +520,7 @@ func (r *InfraEnvReconciler) osImageForInfraEnv(dbInfraEnv *common.InfraEnv) (*m
 }
 
 func (r *InfraEnvReconciler) setSignedBootArtifactURLs(infraEnv *aiv1beta1.InfraEnv, infraEnvID, version, arch string) error {
-	initrdURL, err := imageservice.InitrdURL(r.ImageServiceBaseURL, infraEnvID, version, arch)
+	initrdURL, err := imageservice.InitrdURL(r.ImageServiceBaseURL, infraEnvID, version, arch, r.InsecureIPXEURLs)
 	if err != nil {
 		return err
 	}
@@ -540,6 +541,10 @@ func (r *InfraEnvReconciler) setSignedBootArtifactURLs(infraEnv *aiv1beta1.Infra
 	if err != nil {
 		return err
 	}
+	// ASC may be configured to use http in ipxe artifact URLs so that all ipxe clients could consume those
+	if r.InsecureIPXEURLs {
+		baseURL.Scheme = "http"
+	}
 	baseURL.Path = path.Join(baseURL.Path, filesURL.Path)
 	baseURL.RawQuery = filesURL.RawQuery
 
@@ -559,11 +564,11 @@ func (r *InfraEnvReconciler) updateInfraEnvStatus(
 		return r.handleEnsureISOErrors(ctx, log, infraEnv, err, internalInfraEnv)
 	}
 
-	infraEnv.Status.BootArtifacts.KernelURL, err = imageservice.KernelURL(r.ImageServiceBaseURL, *osImage.OpenshiftVersion, *osImage.CPUArchitecture)
+	infraEnv.Status.BootArtifacts.KernelURL, err = imageservice.KernelURL(r.ImageServiceBaseURL, *osImage.OpenshiftVersion, *osImage.CPUArchitecture, r.InsecureIPXEURLs)
 	if err != nil {
 		return r.handleEnsureISOErrors(ctx, log, infraEnv, err, internalInfraEnv)
 	}
-	infraEnv.Status.BootArtifacts.RootfsURL, err = imageservice.RootFSURL(r.ImageServiceBaseURL, *osImage.OpenshiftVersion, *osImage.CPUArchitecture)
+	infraEnv.Status.BootArtifacts.RootfsURL, err = imageservice.RootFSURL(r.ImageServiceBaseURL, *osImage.OpenshiftVersion, *osImage.CPUArchitecture, r.InsecureIPXEURLs)
 	if err != nil {
 		return r.handleEnsureISOErrors(ctx, log, infraEnv, err, internalInfraEnv)
 	}
@@ -573,8 +578,14 @@ func (r *InfraEnvReconciler) updateInfraEnvStatus(
 		infraEnv.Status.ISODownloadURL = internalInfraEnv.DownloadURL
 		imageCreatedAt := metav1.NewTime(time.Time(internalInfraEnv.GeneratedAt))
 		infraEnv.Status.CreatedTime = &imageCreatedAt
+	}
 
-		// set initrd and script endpoint here so we're not changing the auth token constantly
+	// update boot artifacts URL if IPXE insecure setting was changed
+	existingInitrdURL, err := url.Parse(infraEnv.Status.BootArtifacts.InitrdURL)
+	if err != nil {
+		return r.handleEnsureISOErrors(ctx, log, infraEnv, err, internalInfraEnv)
+	}
+	if r.InsecureIPXEURLs && existingInitrdURL.Scheme == "https" || !r.InsecureIPXEURLs && existingInitrdURL.Scheme == "http" || existingInitrdURL.Scheme == "" {
 		if err := r.setSignedBootArtifactURLs(infraEnv, internalInfraEnv.ID.String(), *osImage.OpenshiftVersion, *osImage.CPUArchitecture); err != nil {
 			return r.handleEnsureISOErrors(ctx, log, infraEnv, err, internalInfraEnv)
 		}

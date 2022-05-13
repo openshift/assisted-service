@@ -8,23 +8,25 @@ import (
 	"github.com/pkg/errors"
 )
 
-func KernelURL(baseURL, version, arch string) (string, error) {
-	return buildURL(baseURL, "/boot-artifacts/kernel", map[string]string{
+const BootArtifactsPath = "/boot-artifacts"
+
+func KernelURL(baseURL, version, arch string, insecure bool) (string, error) {
+	return buildURL(baseURL, fmt.Sprintf("%s/kernel", BootArtifactsPath), insecure, map[string]string{
 		"version": version,
 		"arch":    arch,
 	})
 }
 
-func RootFSURL(baseURL, version, arch string) (string, error) {
-	return buildURL(baseURL, "/boot-artifacts/rootfs", map[string]string{
+func RootFSURL(baseURL, version, arch string, insecure bool) (string, error) {
+	return buildURL(baseURL, fmt.Sprintf("%s/rootfs", BootArtifactsPath), insecure, map[string]string{
 		"version": version,
 		"arch":    arch,
 	})
 }
 
-func InitrdURL(baseURL, imageID, version, arch string) (string, error) {
+func InitrdURL(baseURL, imageID, version, arch string, insecure bool) (string, error) {
 	path := fmt.Sprintf("/images/%s/pxe-initrd", imageID)
-	return buildURL(baseURL, path, map[string]string{
+	return buildURL(baseURL, path, insecure, map[string]string{
 		"version": version,
 		"arch":    arch,
 	})
@@ -32,14 +34,14 @@ func InitrdURL(baseURL, imageID, version, arch string) (string, error) {
 
 func ImageURL(baseURL, imageID, version, arch, isoType string) (string, error) {
 	path := fmt.Sprintf("/images/%s", imageID)
-	return buildURL(baseURL, path, map[string]string{
+	return buildURL(baseURL, path, false, map[string]string{
 		"type":    isoType,
 		"version": version,
 		"arch":    arch,
 	})
 }
 
-func buildURL(baseURL string, suffix string, params map[string]string) (string, error) {
+func buildURL(baseURL string, suffix string, insecure bool, params map[string]string) (string, error) {
 	base, err := url.Parse(baseURL)
 	if err != nil {
 		return "", errors.Wrap(err, "failed to parse image service base URL")
@@ -56,5 +58,8 @@ func buildURL(baseURL string, suffix string, params map[string]string) (string, 
 		}
 	}
 	downloadURL.RawQuery = queryValues.Encode()
+	if insecure {
+		downloadURL.Scheme = "http"
+	}
 	return downloadURL.String(), nil
 }
