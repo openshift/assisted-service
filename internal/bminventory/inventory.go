@@ -15,6 +15,7 @@ import (
 	"net/http"
 	"net/url"
 	"path"
+	"runtime/debug"
 	"strings"
 	"time"
 
@@ -1172,7 +1173,8 @@ func (b *bareMetalInventory) InstallSingleDay2HostInternal(ctx context.Context, 
 			tx.Rollback()
 		}
 		if r := recover(); r != nil {
-			log.Error("InstallSingleDay2HostInternal failed")
+			log.Errorf("InstallSingleDay2HostInternal failed to recover: %s", r)
+			log.Error(string(debug.Stack()))
 			tx.Rollback()
 		}
 	}()
@@ -1366,7 +1368,8 @@ func (b *bareMetalInventory) UpdateClusterInstallConfigInternal(ctx context.Cont
 			tx.Rollback()
 		}
 		if r := recover(); r != nil {
-			log.Error("UpdateClusterInstallConfigInternal failed to recover")
+			log.Errorf("UpdateClusterInstallConfigInternal failed to recover: %s", r)
+			log.Error(string(debug.Stack()))
 			tx.Rollback()
 		}
 	}()
@@ -1621,7 +1624,8 @@ func (b *bareMetalInventory) v2UpdateClusterInternal(ctx context.Context, params
 			tx.Rollback()
 		}
 		if r := recover(); r != nil {
-			log.Error("update cluster failed")
+			log.Errorf("update cluster failed to recover: %s", r)
+			log.Error(string(debug.Stack()))
 			tx.Rollback()
 		}
 	}()
@@ -3351,7 +3355,8 @@ func (b *bareMetalInventory) CancelInstallationInternal(ctx context.Context, par
 			tx.Rollback()
 		}
 		if r := recover(); r != nil {
-			log.Error("cancel installation failed")
+			log.Errorf("cancel installation failed to recover: %s", r)
+			log.Error(string(debug.Stack()))
 			tx.Rollback()
 		}
 	}()
@@ -4249,7 +4254,8 @@ func (b *bareMetalInventory) V2RegisterHost(ctx context.Context, params installe
 			tx.Rollback()
 		}
 		if r := recover(); r != nil {
-			log.Error("RegisterHost failed")
+			log.Errorf("RegisterHost failed to recover: %s", r)
+			log.Error(string(debug.Stack()))
 			tx.Rollback()
 		}
 	}()
@@ -4411,7 +4417,8 @@ func (b *bareMetalInventory) V2GetNextSteps(ctx context.Context, params installe
 			tx.Rollback()
 		}
 		if r := recover(); r != nil {
-			log.Error("get next steps failed")
+			log.Errorf("get next steps failed to recover: %s", r)
+			log.Error(string(debug.Stack()))
 			tx.Rollback()
 		}
 	}()
@@ -4924,7 +4931,8 @@ func (b *bareMetalInventory) V2UpdateHostInternal(ctx context.Context, params in
 			tx.Rollback()
 		}
 		if r := recover(); r != nil {
-			log.Error("update host failed")
+			log.Errorf("update host failed to recover: %s", r)
+			log.Error(string(debug.Stack()))
 			tx.Rollback()
 		}
 	}()
