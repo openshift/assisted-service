@@ -578,8 +578,14 @@ func (r *InfraEnvReconciler) updateInfraEnvStatus(
 		infraEnv.Status.ISODownloadURL = internalInfraEnv.DownloadURL
 		imageCreatedAt := metav1.NewTime(time.Time(internalInfraEnv.GeneratedAt))
 		infraEnv.Status.CreatedTime = &imageCreatedAt
+	}
 
-		// set initrd and script endpoint here so we're not changing the auth token constantly
+	// update boot artifacts URL if IPXE insecure setting was changed
+	existingInitrdURL, err := url.Parse(infraEnv.Status.BootArtifacts.InitrdURL)
+	if err != nil {
+		return r.handleEnsureISOErrors(ctx, log, infraEnv, err, internalInfraEnv)
+	}
+	if r.InsecureIPXEURLs && existingInitrdURL.Scheme == "https" || !r.InsecureIPXEURLs && existingInitrdURL.Scheme == "http" || existingInitrdURL.Scheme == "" {
 		if err := r.setSignedBootArtifactURLs(infraEnv, internalInfraEnv.ID.String(), *osImage.OpenshiftVersion, *osImage.CPUArchitecture); err != nil {
 			return r.handleEnsureISOErrors(ctx, log, infraEnv, err, internalInfraEnv)
 		}
