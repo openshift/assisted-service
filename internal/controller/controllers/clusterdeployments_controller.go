@@ -1237,7 +1237,7 @@ func (r *ClusterDeploymentsReconciler) createNewDay2Cluster(
 
 	c, err := r.Installer.V2ImportClusterInternal(ctx, &key, &id, installer.V2ImportClusterParams{
 		NewImportClusterParams: clusterParams,
-	}, true)
+	})
 	if err != nil {
 		log.WithError(err).Error("failed to create day2 cluster")
 	}
