@@ -46,7 +46,7 @@ const (
 
 var _ = Describe("Disk eligibility", func() {
 	const (
-		minDiskSizeGb = 120
+		minDiskSizeGb = 100
 	)
 	var versionRequirements = VersionedRequirementsDecoder{
 		"default": {
@@ -408,17 +408,17 @@ var _ = Describe("Cluster host requirements", func() {
 			"master": map[string]interface{}{
 				"cpu_cores":    4,
 				"ram_mib":      16384,
-				"disk_size_gb": 120,
+				"disk_size_gb": 100,
 			},
 			"worker": map[string]interface{}{
 				"cpu_cores":    2,
 				"ram_mib":      8192,
-				"disk_size_gb": 120,
+				"disk_size_gb": 100,
 			},
 			"sno": map[string]interface{}{
 				"cpu_cores":    8,
 				"ram_mib":      16384,
-				"disk_size_gb": 120,
+				"disk_size_gb": 100,
 			},
 		},
 		{
@@ -426,7 +426,7 @@ var _ = Describe("Cluster host requirements", func() {
 			"master": map[string]interface{}{
 				"cpu_cores":                            5,
 				"ram_mib":                              17408,
-				"disk_size_gb":                         121,
+				"disk_size_gb":                         101,
 				"installation_disk_speed_threshold_ms": 1,
 				"network_latency_threshold_ms":         100,
 				"packet_loss_percentage":               0,
@@ -434,7 +434,7 @@ var _ = Describe("Cluster host requirements", func() {
 			"worker": map[string]interface{}{
 				"cpu_cores":                            3,
 				"ram_mib":                              9216,
-				"disk_size_gb":                         122,
+				"disk_size_gb":                         102,
 				"installation_disk_speed_threshold_ms": 2,
 				"network_latency_threshold_ms":         1000,
 				"packet_loss_percentage":               10,
@@ -442,7 +442,7 @@ var _ = Describe("Cluster host requirements", func() {
 			"sno": map[string]interface{}{
 				"cpu_cores":                            7,
 				"ram_mib":                              31744,
-				"disk_size_gb":                         124,
+				"disk_size_gb":                         104,
 				"installation_disk_speed_threshold_ms": 3,
 				"network_latency_threshold_ms":         1100,
 				"packet_loss_percentage":               11,
@@ -627,7 +627,7 @@ var _ = Describe("Cluster host requirements", func() {
 		},
 		table.Entry("Worker", models.HostRoleWorker, models.ClusterHostRequirementsDetails{
 			CPUCores:                         3,
-			DiskSizeGb:                       122,
+			DiskSizeGb:                       102,
 			RAMMib:                           9 * int64(units.KiB),
 			InstallationDiskSpeedThresholdMs: 2,
 			NetworkLatencyThresholdMs:        pointer.Float64Ptr(1000),
@@ -635,7 +635,7 @@ var _ = Describe("Cluster host requirements", func() {
 		}),
 		table.Entry("Master", models.HostRoleMaster, models.ClusterHostRequirementsDetails{
 			CPUCores:                         5,
-			DiskSizeGb:                       121,
+			DiskSizeGb:                       101,
 			RAMMib:                           17 * int64(units.KiB),
 			InstallationDiskSpeedThresholdMs: 1,
 			NetworkLatencyThresholdMs:        pointer.Float64Ptr(100),
@@ -669,13 +669,13 @@ var _ = Describe("Cluster host requirements", func() {
 		},
 		table.Entry("Worker", models.HostRoleWorker, models.ClusterHostRequirementsDetails{
 			CPUCores:                         2,
-			DiskSizeGb:                       120,
+			DiskSizeGb:                       100,
 			RAMMib:                           8 * int64(units.KiB),
 			InstallationDiskSpeedThresholdMs: 0,
 		}),
 		table.Entry("Master", models.HostRoleMaster, models.ClusterHostRequirementsDetails{
 			CPUCores:                         4,
-			DiskSizeGb:                       120,
+			DiskSizeGb:                       100,
 			RAMMib:                           16 * int64(units.KiB),
 			InstallationDiskSpeedThresholdMs: 0,
 		}),
@@ -722,17 +722,17 @@ var _ = Describe("Preflight host requirements", func() {
 			MasterRequirements: &models.ClusterHostRequirementsDetails{
 				CPUCores:   4,
 				RAMMib:     16384,
-				DiskSizeGb: 120,
+				DiskSizeGb: 100,
 			},
 			WorkerRequirements: &models.ClusterHostRequirementsDetails{
 				CPUCores:   2,
 				RAMMib:     8192,
-				DiskSizeGb: 120,
+				DiskSizeGb: 100,
 			},
 			SNORequirements: &models.ClusterHostRequirementsDetails{
 				CPUCores:   8,
 				RAMMib:     16384,
-				DiskSizeGb: 120,
+				DiskSizeGb: 100,
 			},
 		},
 		"4.7": {
@@ -740,19 +740,19 @@ var _ = Describe("Preflight host requirements", func() {
 			MasterRequirements: &models.ClusterHostRequirementsDetails{
 				CPUCores:                         5,
 				RAMMib:                           17408,
-				DiskSizeGb:                       121,
+				DiskSizeGb:                       101,
 				InstallationDiskSpeedThresholdMs: 1,
 			},
 			WorkerRequirements: &models.ClusterHostRequirementsDetails{
 				CPUCores:                         3,
 				RAMMib:                           9216,
-				DiskSizeGb:                       122,
+				DiskSizeGb:                       102,
 				InstallationDiskSpeedThresholdMs: 2,
 			},
 			SNORequirements: &models.ClusterHostRequirementsDetails{
 				CPUCores:   7,
 				RAMMib:     31744,
-				DiskSizeGb: 123,
+				DiskSizeGb: 103,
 			},
 		},
 	}
@@ -875,7 +875,7 @@ var _ = Describe("Preflight host requirements", func() {
 			Master: &models.HostTypeHardwareRequirements{
 				Quantitative: &models.ClusterHostRequirementsDetails{
 					CPUCores:                         5,
-					DiskSizeGb:                       121,
+					DiskSizeGb:                       101,
 					RAMMib:                           17 * int64(units.KiB),
 					InstallationDiskSpeedThresholdMs: 1,
 				},
@@ -883,7 +883,7 @@ var _ = Describe("Preflight host requirements", func() {
 			Worker: &models.HostTypeHardwareRequirements{
 				Quantitative: &models.ClusterHostRequirementsDetails{
 					CPUCores:                         3,
-					DiskSizeGb:                       122,
+					DiskSizeGb:                       102,
 					RAMMib:                           9 * int64(units.KiB),
 					InstallationDiskSpeedThresholdMs: 2,
 				},

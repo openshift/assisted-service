@@ -48,19 +48,19 @@ var _ = Describe("Versioned Requirements", func() {
 						"master": map[string]interface{}{
 							"cpu_cores":                            4,
 							"ram_mib":                              16384,
-							"disk_size_gb":                         120,
+							"disk_size_gb":                         100,
 							"installation_disk_speed_threshold_ms": 2,
 						},
 						"worker": map[string]interface{}{
 							"cpu_cores":                            2,
 							"ram_mib":                              8192,
-							"disk_size_gb":                         120,
+							"disk_size_gb":                         100,
 							"installation_disk_speed_threshold_ms": 3,
 						},
 						"sno": map[string]interface{}{
 							"cpu_cores":                            8,
 							"ram_mib":                              32768,
-							"disk_size_gb":                         120,
+							"disk_size_gb":                         100,
 							"installation_disk_speed_threshold_ms": 4,
 						},
 					},
@@ -68,11 +68,11 @@ var _ = Describe("Versioned Requirements", func() {
 				map[string]models.VersionedHostRequirements{
 					"4.6.0": {
 						Version: "4.6.0",
-						MasterRequirements: &models.ClusterHostRequirementsDetails{CPUCores: 4, DiskSizeGb: 120,
+						MasterRequirements: &models.ClusterHostRequirementsDetails{CPUCores: 4, DiskSizeGb: 100,
 							RAMMib: conversions.GibToMib(16), InstallationDiskSpeedThresholdMs: 2},
-						WorkerRequirements: &models.ClusterHostRequirementsDetails{CPUCores: 2, DiskSizeGb: 120,
+						WorkerRequirements: &models.ClusterHostRequirementsDetails{CPUCores: 2, DiskSizeGb: 100,
 							RAMMib: conversions.GibToMib(8), InstallationDiskSpeedThresholdMs: 3},
-						SNORequirements: &models.ClusterHostRequirementsDetails{CPUCores: 8, DiskSizeGb: 120,
+						SNORequirements: &models.ClusterHostRequirementsDetails{CPUCores: 8, DiskSizeGb: 100,
 							RAMMib: conversions.GibToMib(32), InstallationDiskSpeedThresholdMs: 4},
 					}}),
 			table.Entry("Two versions - full",
@@ -82,19 +82,19 @@ var _ = Describe("Versioned Requirements", func() {
 						"master": map[string]interface{}{
 							"cpu_cores":                            4,
 							"ram_mib":                              16384,
-							"disk_size_gb":                         120,
+							"disk_size_gb":                         100,
 							"installation_disk_speed_threshold_ms": 2,
 						},
 						"worker": map[string]interface{}{
 							"cpu_cores":                            2,
 							"ram_mib":                              8192,
-							"disk_size_gb":                         120,
+							"disk_size_gb":                         100,
 							"installation_disk_speed_threshold_ms": 1,
 						},
 						"sno": map[string]interface{}{
 							"cpu_cores":                            8,
 							"ram_mib":                              32768,
-							"disk_size_gb":                         120,
+							"disk_size_gb":                         100,
 							"installation_disk_speed_threshold_ms": 4,
 						},
 					}, {
@@ -102,18 +102,18 @@ var _ = Describe("Versioned Requirements", func() {
 						"master": map[string]interface{}{
 							"cpu_cores":                            5,
 							"ram_mib":                              17408,
-							"disk_size_gb":                         121,
+							"disk_size_gb":                         101,
 							"installation_disk_speed_threshold_ms": 3,
 						},
 						"worker": map[string]interface{}{
 							"cpu_cores":    3,
 							"ram_mib":      9216,
-							"disk_size_gb": 122,
+							"disk_size_gb": 102,
 						},
 						"sno": map[string]interface{}{
 							"cpu_cores":                            7,
 							"ram_mib":                              31744,
-							"disk_size_gb":                         123,
+							"disk_size_gb":                         103,
 							"installation_disk_speed_threshold_ms": 4,
 						},
 					},
@@ -121,18 +121,18 @@ var _ = Describe("Versioned Requirements", func() {
 				map[string]models.VersionedHostRequirements{
 					"4.6.0": {
 						Version: "4.6.0",
-						MasterRequirements: &models.ClusterHostRequirementsDetails{CPUCores: 4, DiskSizeGb: 120,
+						MasterRequirements: &models.ClusterHostRequirementsDetails{CPUCores: 4, DiskSizeGb: 100,
 							RAMMib: conversions.GibToMib(16), InstallationDiskSpeedThresholdMs: 2},
-						WorkerRequirements: &models.ClusterHostRequirementsDetails{CPUCores: 2, DiskSizeGb: 120,
+						WorkerRequirements: &models.ClusterHostRequirementsDetails{CPUCores: 2, DiskSizeGb: 100,
 							RAMMib: conversions.GibToMib(8), InstallationDiskSpeedThresholdMs: 1},
-						SNORequirements: &models.ClusterHostRequirementsDetails{CPUCores: 8, DiskSizeGb: 120,
+						SNORequirements: &models.ClusterHostRequirementsDetails{CPUCores: 8, DiskSizeGb: 100,
 							RAMMib: conversions.GibToMib(32), InstallationDiskSpeedThresholdMs: 4},
 					},
 					"4.7.0": {Version: "4.7.0",
-						MasterRequirements: &models.ClusterHostRequirementsDetails{CPUCores: 5, DiskSizeGb: 121,
+						MasterRequirements: &models.ClusterHostRequirementsDetails{CPUCores: 5, DiskSizeGb: 101,
 							RAMMib: conversions.GibToMib(17), InstallationDiskSpeedThresholdMs: 3},
-						WorkerRequirements: &models.ClusterHostRequirementsDetails{CPUCores: 3, DiskSizeGb: 122, RAMMib: conversions.GibToMib(9)},
-						SNORequirements: &models.ClusterHostRequirementsDetails{CPUCores: 7, DiskSizeGb: 123,
+						WorkerRequirements: &models.ClusterHostRequirementsDetails{CPUCores: 3, DiskSizeGb: 102, RAMMib: conversions.GibToMib(9)},
+						SNORequirements: &models.ClusterHostRequirementsDetails{CPUCores: 7, DiskSizeGb: 103,
 							RAMMib: conversions.GibToMib(31), InstallationDiskSpeedThresholdMs: 4},
 					}}),
 		)
@@ -222,19 +222,19 @@ var _ = Describe("Versioned Requirements", func() {
 					"master": map[string]interface{}{
 						"cpu_cores":                            4,
 						"ram_mib":                              16384,
-						"disk_size_gb":                         120,
+						"disk_size_gb":                         100,
 						"installation_disk_speed_threshold_ms": 2,
 					},
 					"worker": map[string]interface{}{
 						"cpu_cores":                            2,
 						"ram_mib":                              8192,
-						"disk_size_gb":                         120,
+						"disk_size_gb":                         100,
 						"installation_disk_speed_threshold_ms": 3,
 					},
 					"sno": map[string]interface{}{
 						"cpu_cores":                            8,
 						"ram_mib":                              32768,
-						"disk_size_gb":                         120,
+						"disk_size_gb":                         100,
 						"installation_disk_speed_threshold_ms": 4,
 					},
 				},
@@ -247,11 +247,11 @@ var _ = Describe("Versioned Requirements", func() {
 			Expect(err).ToNot(HaveOccurred())
 			expected := models.VersionedHostRequirements{
 				Version: "4.6.0",
-				MasterRequirements: &models.ClusterHostRequirementsDetails{CPUCores: 4, DiskSizeGb: 120,
+				MasterRequirements: &models.ClusterHostRequirementsDetails{CPUCores: 4, DiskSizeGb: 100,
 					RAMMib: conversions.GibToMib(16), InstallationDiskSpeedThresholdMs: 2},
-				WorkerRequirements: &models.ClusterHostRequirementsDetails{CPUCores: 2, DiskSizeGb: 120,
+				WorkerRequirements: &models.ClusterHostRequirementsDetails{CPUCores: 2, DiskSizeGb: 100,
 					RAMMib: conversions.GibToMib(8), InstallationDiskSpeedThresholdMs: 3},
-				SNORequirements: &models.ClusterHostRequirementsDetails{CPUCores: 8, DiskSizeGb: 120,
+				SNORequirements: &models.ClusterHostRequirementsDetails{CPUCores: 8, DiskSizeGb: 100,
 					RAMMib: conversions.GibToMib(32), InstallationDiskSpeedThresholdMs: 4},
 			}
 			Expect(*requirements).To(BeEquivalentTo(expected))
@@ -264,19 +264,19 @@ var _ = Describe("Versioned Requirements", func() {
 					"master": map[string]interface{}{
 						"cpu_cores":                            4,
 						"ram_mib":                              16384,
-						"disk_size_gb":                         120,
+						"disk_size_gb":                         100,
 						"installation_disk_speed_threshold_ms": 2,
 					},
 					"worker": map[string]interface{}{
 						"cpu_cores":                            2,
 						"ram_mib":                              8192,
-						"disk_size_gb":                         120,
+						"disk_size_gb":                         100,
 						"installation_disk_speed_threshold_ms": 3,
 					},
 					"sno": map[string]interface{}{
 						"cpu_cores":                            8,
 						"ram_mib":                              32768,
-						"disk_size_gb":                         120,
+						"disk_size_gb":                         100,
 						"installation_disk_speed_threshold_ms": 4,
 					},
 				},
@@ -285,18 +285,18 @@ var _ = Describe("Versioned Requirements", func() {
 					"master": map[string]interface{}{
 						"cpu_cores":                            5,
 						"ram_mib":                              17408,
-						"disk_size_gb":                         121,
+						"disk_size_gb":                         101,
 						"installation_disk_speed_threshold_ms": 3,
 					},
 					"worker": map[string]interface{}{
 						"cpu_cores":    3,
 						"ram_mib":      9216,
-						"disk_size_gb": 122,
+						"disk_size_gb": 102,
 					},
 					"sno": map[string]interface{}{
 						"cpu_cores":                            7,
 						"ram_mib":                              31744,
-						"disk_size_gb":                         123,
+						"disk_size_gb":                         103,
 						"installation_disk_speed_threshold_ms": 4,
 					},
 				},
@@ -309,11 +309,11 @@ var _ = Describe("Versioned Requirements", func() {
 			Expect(err).ToNot(HaveOccurred())
 			expected := models.VersionedHostRequirements{
 				Version: "default",
-				MasterRequirements: &models.ClusterHostRequirementsDetails{CPUCores: 4, DiskSizeGb: 120,
+				MasterRequirements: &models.ClusterHostRequirementsDetails{CPUCores: 4, DiskSizeGb: 100,
 					RAMMib: conversions.GibToMib(16), InstallationDiskSpeedThresholdMs: 2},
-				WorkerRequirements: &models.ClusterHostRequirementsDetails{CPUCores: 2, DiskSizeGb: 120,
+				WorkerRequirements: &models.ClusterHostRequirementsDetails{CPUCores: 2, DiskSizeGb: 100,
 					RAMMib: conversions.GibToMib(8), InstallationDiskSpeedThresholdMs: 3},
-				SNORequirements: &models.ClusterHostRequirementsDetails{CPUCores: 8, DiskSizeGb: 120,
+				SNORequirements: &models.ClusterHostRequirementsDetails{CPUCores: 8, DiskSizeGb: 100,
 					RAMMib: conversions.GibToMib(32), InstallationDiskSpeedThresholdMs: 4},
 			}
 			Expect(*requirements).To(BeEquivalentTo(expected))
@@ -326,19 +326,19 @@ var _ = Describe("Versioned Requirements", func() {
 					"master": map[string]interface{}{
 						"cpu_cores":                            4,
 						"ram_mib":                              16384,
-						"disk_size_gb":                         120,
+						"disk_size_gb":                         100,
 						"installation_disk_speed_threshold_ms": 2,
 					},
 					"worker": map[string]interface{}{
 						"cpu_cores":                            2,
 						"ram_mib":                              8192,
-						"disk_size_gb":                         120,
+						"disk_size_gb":                         100,
 						"installation_disk_speed_threshold_ms": 3,
 					},
 					"sno": map[string]interface{}{
 						"cpu_cores":                            8,
 						"ram_mib":                              32768,
-						"disk_size_gb":                         120,
+						"disk_size_gb":                         100,
 						"installation_disk_speed_threshold_ms": 4,
 					},
 				},
@@ -351,11 +351,11 @@ var _ = Describe("Versioned Requirements", func() {
 			Expect(err).ToNot(HaveOccurred())
 			expected := models.VersionedHostRequirements{
 				Version: "4.6.0",
-				MasterRequirements: &models.ClusterHostRequirementsDetails{CPUCores: 4, DiskSizeGb: 120,
+				MasterRequirements: &models.ClusterHostRequirementsDetails{CPUCores: 4, DiskSizeGb: 100,
 					RAMMib: conversions.GibToMib(16), InstallationDiskSpeedThresholdMs: 2},
-				WorkerRequirements: &models.ClusterHostRequirementsDetails{CPUCores: 2, DiskSizeGb: 120,
+				WorkerRequirements: &models.ClusterHostRequirementsDetails{CPUCores: 2, DiskSizeGb: 100,
 					RAMMib: conversions.GibToMib(8), InstallationDiskSpeedThresholdMs: 3},
-				SNORequirements: &models.ClusterHostRequirementsDetails{CPUCores: 8, DiskSizeGb: 120,
+				SNORequirements: &models.ClusterHostRequirementsDetails{CPUCores: 8, DiskSizeGb: 100,
 					RAMMib: conversions.GibToMib(32), InstallationDiskSpeedThresholdMs: 4},
 			}
 			Expect(*requirements).To(BeEquivalentTo(expected))
@@ -380,19 +380,19 @@ var _ = Describe("Versioned Requirements", func() {
 					"master": map[string]interface{}{
 						"cpu_cores":                            4,
 						"ram_mib":                              16384,
-						"disk_size_gb":                         120,
+						"disk_size_gb":                         100,
 						"installation_disk_speed_threshold_ms": 2,
 					},
 					"worker": map[string]interface{}{
 						"cpu_cores":                            2,
 						"ram_mib":                              8192,
-						"disk_size_gb":                         120,
+						"disk_size_gb":                         100,
 						"installation_disk_speed_threshold_ms": 3,
 					},
 					"sno": map[string]interface{}{
 						"cpu_cores":                            8,
 						"ram_mib":                              32768,
-						"disk_size_gb":                         120,
+						"disk_size_gb":                         100,
 						"installation_disk_speed_threshold_ms": 4,
 					},
 				},

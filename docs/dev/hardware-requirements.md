@@ -1,6 +1,6 @@
 # Hardware requirements
 
-Hardware requirements are configured with `HW_VALIDATOR_REQUIREMENTS` environment variable, which must contain JSON mapping OpenShift version to specific master and worker hardware requirements. 
+Hardware requirements are configured with `HW_VALIDATOR_REQUIREMENTS` environment variable, which must contain JSON mapping OpenShift version to specific master and worker hardware requirements.
 For example:
 ```json
 [{
@@ -8,7 +8,7 @@ For example:
   "master": {
     "cpu_cores": 4,
     "ram_mib": 16384,
-    "disk_size_gb": 120,
+    "disk_size_gb": 100,
     "installation_disk_speed_threshold_ms": 10,
     "network_latency_threshold_ms": 100,
     "packet_loss_percentage":0
@@ -16,7 +16,7 @@ For example:
   "worker": {
     "cpu_cores": 2,
     "ram_mib": 8192,
-    "disk_size_gb": 120,
+    "disk_size_gb": 100,
     "installation_disk_speed_threshold_ms": 10,
     "network_latency_threshold_ms": 1000,
     "packet_loss_percentage":10
@@ -24,7 +24,7 @@ For example:
   "sno": {
     "cpu_cores": 8,
     "ram_mib": 16384,
-    "disk_size_gb": 120,
+    "disk_size_gb": 100,
     "installation_disk_speed_threshold_ms": 10
   }
 },

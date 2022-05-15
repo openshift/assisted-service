@@ -40,7 +40,7 @@ var (
 	defaultMasterRequirements = models.ClusterHostRequirementsDetails{
 		CPUCores:                         4,
 		RAMMib:                           16384,
-		DiskSizeGb:                       120,
+		DiskSizeGb:                       100,
 		InstallationDiskSpeedThresholdMs: 10,
 		NetworkLatencyThresholdMs:        pointer.Float64Ptr(100),
 		PacketLossPercentage:             pointer.Float64Ptr(0),
@@ -48,7 +48,7 @@ var (
 	defaultWorkerRequirements = models.ClusterHostRequirementsDetails{
 		CPUCores:                         2,
 		RAMMib:                           8192,
-		DiskSizeGb:                       120,
+		DiskSizeGb:                       100,
 		InstallationDiskSpeedThresholdMs: 10,
 		NetworkLatencyThresholdMs:        pointer.Float64Ptr(1000),
 		PacketLossPercentage:             pointer.Float64Ptr(10),
@@ -56,7 +56,7 @@ var (
 	defaultSnoRequirements = models.ClusterHostRequirementsDetails{
 		CPUCores:                         8,
 		RAMMib:                           16384,
-		DiskSizeGb:                       120,
+		DiskSizeGb:                       100,
 		InstallationDiskSpeedThresholdMs: 10,
 	}
 )
@@ -1303,7 +1303,7 @@ func makeJsonChecker(expected map[validationID]validationCheckResult) *validatio
 
 var _ = Describe("Refresh Host", func() {
 	const (
-		minDiskSizeGb = 120
+		minDiskSizeGb = 100
 	)
 	var (
 		supportedGPU                  = models.Gpu{VendorID: "10de", DeviceID: "1db6"}

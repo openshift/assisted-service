@@ -31,7 +31,7 @@ type V2GetPreflightRequirementsParams struct {
 	// HTTP Request Object
 	HTTPRequest *http.Request `json:"-"`
 
-	/*The cluster to return preflight requrements for.
+	/*The cluster to return preflight requirements for.
 	  Required: true
 	  In: path
 	*/
