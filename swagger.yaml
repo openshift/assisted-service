@@ -2482,7 +2482,7 @@ paths:
       parameters:
         - in: path
           name: cluster_id
-          description: The cluster to return preflight requrements for.
+          description: The cluster to return preflight requirements for.
           type: string
           format: uuid
           required: true

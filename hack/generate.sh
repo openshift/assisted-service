@@ -93,6 +93,8 @@ function generate_configuration() {
     PUBLIC_CONTAINER_REGISTRIES=$(< ${__root}/data/default_public_container_registries.txt)
     HW_VALIDATOR_REQUIREMENTS=$(< ${__root}/data/default_hw_requirements.json tr -d "\n\t ")
 
+    cp "${__root}/data/default_hw_requirements.json" "${__root}/internal/controller/controllers/default_controller_hw_requirements.json"
+
     sed -i "s|value: '.*' # os images|value: '${OS_IMAGES}' # os images|" ${__root}/openshift/template.yaml
     sed -i "s|value: '.*' # release images|value: '${RELEASE_IMAGES}' # release images|" ${__root}/openshift/template.yaml
     sed -i "s|value: '.*' # must-gather images|value: '${MUST_GATHER_IMAGES}' # must-gather images|" ${__root}/openshift/template.yaml
