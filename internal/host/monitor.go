@@ -128,6 +128,7 @@ func (m *Manager) clusterHostMonitoring() int64 {
 		}
 
 		for _, c := range clusters {
+			inventoryCache := make(InventoryCache)
 			for _, host := range sortHosts(c.Hosts) {
 				if !m.leaderElector.IsLeader() {
 					m.log.Debugf("Not a leader, exiting cluster HostMonitoring")
@@ -135,7 +136,7 @@ func (m *Manager) clusterHostMonitoring() int64 {
 				}
 				if !m.SkipMonitoring(host) {
 					monitored += 1
-					err = m.refreshStatusInternal(ctx, host, c, nil, m.db)
+					err = m.refreshStatusInternal(ctx, host, c, nil, inventoryCache, m.db)
 					if err != nil {
 						log.WithError(err).Errorf("failed to refresh host %s state", *host.ID)
 					}
@@ -182,6 +183,7 @@ func (m *Manager) infraEnvHostMonitoring() int64 {
 		}
 
 		for _, i := range infraEnvs {
+			inventoryCache := make(InventoryCache)
 			for _, host := range i.Hosts {
 				if !m.leaderElector.IsLeader() {
 					m.log.Debugf("Not a leader, exiting infra-env HostMonitoring")
@@ -189,7 +191,7 @@ func (m *Manager) infraEnvHostMonitoring() int64 {
 				}
 				if funk.ContainsString(monitorStates, swag.StringValue(host.Status)) {
 					monitored += 1
-					err = m.refreshStatusInternal(ctx, &host.Host, nil, i, m.db)
+					err = m.refreshStatusInternal(ctx, &host.Host, nil, i, inventoryCache, m.db)
 					if err != nil {
 						log.WithError(err).Errorf("failed to refresh host %s state", *host.ID)
 					}
