@@ -37,7 +37,8 @@ spec:
   osImages:
     - openshiftVersion: 4.7
       url: https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/4.7/4.7.0/rhcos-4.7.0-x86_64-live.x86_64.iso
-      version: 47.83.202102090044-0,
+      rootFSUrl: "https://mirror.openshift.com/pub/openshift-v4/x86_64/dependencies/rhcos/4.7/4.7.0/rhcos-live-rootfs.x86_64.img"
+      version: 47.83.202102090044-0
       cpuArchitecture: "x86_64"
 ```
 
@@ -77,7 +78,9 @@ The flow of adding a new version is a follows:
   * ```OSImage``` should include:
     * ```openshiftVersion``` the OCP version in major.minor or major.minor.patch format.
     * ```url``` the RHCOS image (optionally a mirror).
+    * ```rootFSUrl``` the RHCOS rootFS, used when creating minimal-iso configured Discovery ISOs (optionally a mirror).
     * ```version``` the RHOCS version.
+    * ```cpuArchitecture``` the architecture supported by the image and rootFS.
   * Upon starting the service, the relevant host [boot-files](https://github.com/openshift/assisted-service/blob/3823630a0900c7f7a7113d7be4ff5a404a35186b/swagger.yaml#L16) are uploaded to S3/File storage.
 * Deploy a ClusterImageSet with a new ```releaseImage``` URL.
   * The URL can be a mirror to a local registry.
