@@ -236,8 +236,8 @@ github.com/fsnotify/fsnotify
 # github.com/ghodss/yaml v1.0.0
 ## explicit
 github.com/ghodss/yaml
-# github.com/go-gormigrate/gormigrate/v2 v2.0.0
-## explicit; go 1.15
+# github.com/go-gormigrate/gormigrate/v2 v2.0.1
+## explicit; go 1.17
 github.com/go-gormigrate/gormigrate/v2
 # github.com/go-logr/logr v1.2.2
 ## explicit; go 1.16
