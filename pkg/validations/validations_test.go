@@ -264,6 +264,61 @@ var _ = Describe("ValidateInstallerArgs", func() {
 	})
 })
 
+var _ = Describe("ValidateHostname", func() {
+	tests := []struct {
+		hostname    string
+		description string
+		valid       bool
+	}{
+		{
+			hostname:    "ocp-master-1",
+			description: "Succeeds with a valid hostname",
+			valid:       true,
+		},
+		{
+			hostname:    "1-ocp-master-1",
+			description: "Succeeds with a valid hostname starting with number",
+			valid:       true,
+		},
+		{
+			hostname:    "ocp-master.1",
+			description: "Succeeds with a valid hostname containing dash",
+			valid:       true,
+		},
+		{
+			hostname:    "OCP-Master-1",
+			description: "Fails with an invalid hostname containing capital letter",
+			valid:       false,
+		},
+		{
+			hostname:    "-ocp-master-1",
+			description: "Fails with an invalid hostname starts with dash",
+			valid:       false,
+		},
+		{
+			hostname:    ".ocp-master-1",
+			description: "Fails with an invalid hostname starts with a period",
+			valid:       false,
+		},
+		{
+			hostname:    "ocp-master-1-ocp-master-1-ocp-master-1-ocp-master-1-ocp-master-1",
+			description: "Fails with an invalid hostname that's too long (> 63 characters)",
+			valid:       false,
+		},
+	}
+	for _, t := range tests {
+		t := t
+		It(t.description, func() {
+			err := ValidateHostname(t.hostname)
+			if t.valid {
+				Expect(err).ToNot(HaveOccurred())
+			} else {
+				Expect(err).To(HaveOccurred())
+			}
+		})
+	}
+})
+
 func TestCluster(t *testing.T) {
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "cluster validations tests")

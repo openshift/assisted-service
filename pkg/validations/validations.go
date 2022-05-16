@@ -15,7 +15,7 @@ import (
 
 const (
 	dnsNameRegex             = "^([a-z0-9]+(-[a-z0-9]+)*[.])+[a-z]{2,}$"
-	hostnameRegex            = `^(([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]*[a-zA-Z0-9])\.)*([A-Za-z0-9]|[A-Za-z0-9][A-Za-z0-9\-]*[A-Za-z0-9])$`
+	hostnameRegex            = `^[a-z0-9][a-z0-9\-\.]{0,61}[a-z0-9]$`
 	installerArgsValuesRegex = `^[A-Za-z0-9@!#$%*()_+-=//.,";':{}\[\]]+$`
 )
 
@@ -58,7 +58,10 @@ func ValidateHostname(name string) error {
 		return errors.Wrapf(err, "Hostname validation for %s", name)
 	}
 	if !matched {
-		return errors.Errorf("Hostname format mismatch: %s name is not valid", name)
+		return errors.Errorf(`Hostname format mismatch: %s name is not valid.
+			Hostname must have a maximum length of 64 characters,
+			start and end with a lowercase alphanumerical character,
+			and can only contain lowercase alphanumerical characters, dashes, and periods.`, name)
 	}
 	return nil
 }
