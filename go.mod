@@ -49,6 +49,7 @@ require (
 	github.com/openshift/custom-resource-status v1.1.2
 	github.com/openshift/generic-admission-server v1.14.1-0.20210422140326-da96454c926d
 	github.com/openshift/hive/apis v0.0.0-20220222213051-def9088fdb5a
+	github.com/openshift/image-customization-controller v0.0.0-20220509123740-3ad18911d14d
 	github.com/openshift/machine-api-operator v0.2.1-0.20201002104344-6abfb5440597
 	github.com/ory/dockertest/v3 v3.8.1
 	github.com/ovirt/go-ovirt-client v0.9.0

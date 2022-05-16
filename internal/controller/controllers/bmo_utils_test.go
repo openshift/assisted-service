@@ -53,7 +53,7 @@ var _ = Describe("BMOUtils", func() {
 				kubeAPIEnabled: true,
 			}
 			Expect(c.Create(context.Background(), clusterOperator)).To(BeNil())
-			Expect(bmoUtils.ConvergedFlowAvailable("4.11.0")).Should(Equal(true))
+			Expect(bmoUtils.ConvergedFlowAvailable()).Should(Equal(true))
 		})
 		It("converged flow unavailable cluster version is lower than minimal version", func() {
 			bmoUtils := BMOUtils{
@@ -61,8 +61,9 @@ var _ = Describe("BMOUtils", func() {
 				log:            log,
 				kubeAPIEnabled: true,
 			}
+			clusterOperator.Status.Versions = []v1.OperandVersion{{Name: "baremetal", Version: "4.10.0"}}
 			Expect(c.Create(context.Background(), clusterOperator)).To(BeNil())
-			Expect(bmoUtils.ConvergedFlowAvailable("4.12.0")).Should(Equal(false))
+			Expect(bmoUtils.ConvergedFlowAvailable()).Should(Equal(false))
 		})
 		It("converged flow unavailable failed to find cluster version", func() {
 			bmoUtils := BMOUtils{
@@ -70,7 +71,7 @@ var _ = Describe("BMOUtils", func() {
 				log:            log,
 				kubeAPIEnabled: true,
 			}
-			Expect(bmoUtils.ConvergedFlowAvailable("4.10.0")).Should(Equal(false))
+			Expect(bmoUtils.ConvergedFlowAvailable()).Should(Equal(false))
 		})
 	})
 	Context("Get GetIronicServiceURL", func() {

@@ -3,10 +3,10 @@ package controllers
 import (
 	"context"
 	"fmt"
-	"strings"
 
 	"github.com/coreos/go-semver/semver"
 	v1 "github.com/openshift/api/config/v1"
+	"github.com/openshift/assisted-service/internal/network"
 	metal3iov1alpha1 "github.com/openshift/cluster-baremetal-operator/api/v1alpha1"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -93,12 +93,10 @@ func (r *BMOUtils) getIronicIP(info metal3iov1alpha1.Provisioning) (string, erro
 }
 
 func getUrlFromIP(ipAddr string) string {
-	if strings.Contains(ipAddr, ":") {
-		// This is an IPv6 addr
+	if network.IsIPv6Addr(ipAddr) {
 		return "https://" + fmt.Sprintf("[%s]", ipAddr)
 	}
-	if ipAddr != "" {
-		// This is an IPv4 addr
+	if network.IsIPv4Addr(ipAddr) {
 		return "https://" + ipAddr
 	} else {
 		return ""
