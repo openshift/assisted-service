@@ -59,6 +59,7 @@ type BMACReconciler struct {
 	Scheme                *runtime.Scheme
 	SpokeK8sClientFactory SpokeK8sClientFactory
 	spokeClient           client.Client
+	ConvergedFlowEnabled  bool
 }
 
 const (
@@ -78,6 +79,7 @@ const (
 	MACHINE_TYPE                        = "machine.openshift.io/cluster-api-machine-type"
 	MCS_CERT_NAME                       = "ca.crt"
 	OPENSHIFT_MACHINE_API_NAMESPACE     = "openshift-machine-api"
+	ASSISTED_DEPLOY_METHOD              = "start_assisted_install"
 )
 
 var (
@@ -218,7 +220,19 @@ func (r *BMACReconciler) Reconcile(origCtx context.Context, req ctrl.Request) (c
 	}
 
 	// Let's reconcile the BMH
-	result := r.reconcileBMH(ctx, log, bmh)
+	var result reconcileResult
+	if r.ConvergedFlowEnabled {
+		dirty := false
+		if bmh.Spec.CustomDeploy == nil || bmh.Spec.CustomDeploy.Method != ASSISTED_DEPLOY_METHOD {
+			log.Infof("Updating BMH CustomDeploy to %s", ASSISTED_DEPLOY_METHOD)
+			bmh.Spec.CustomDeploy = &bmh_v1alpha1.CustomDeploy{Method: ASSISTED_DEPLOY_METHOD}
+			dirty = true
+		}
+		result = reconcileComplete{dirty: dirty, stop: false}
+	} else {
+		result = r.reconcileBMH(ctx, log, bmh)
+	}
+
 	if result.Dirty() {
 		log.Debugf("Updating dirty BMH %v", bmh)
 		err := r.Client.Update(ctx, bmh)
@@ -260,18 +274,21 @@ func (r *BMACReconciler) Reconcile(origCtx context.Context, req ctrl.Request) (c
 		return result.Result()
 	}
 
-	result = r.reconcileAgentInventory(log, bmh, agent)
-	if result.Dirty() {
-		err := r.Client.Update(ctx, bmh)
-		if err != nil {
-			log.WithError(err).Errorf("Error updating hardwaredetails")
-			return reconcileError{err}.Result()
+	// In the converged flow ironic will reconcile the BMH_HARDWARE_DETAILS_ANNOTATION
+	if !r.ConvergedFlowEnabled {
+		result = r.reconcileAgentInventory(log, bmh, agent)
+		if result.Dirty() {
+			err := r.Client.Update(ctx, bmh)
+			if err != nil {
+				log.WithError(err).Errorf("Error updating hardwaredetails")
+				return reconcileError{err}.Result()
+			}
 		}
-	}
 
-	if result.Stop(ctx) {
-		log.Debugf("Stopping BMAC reconcile after reconcileAgentInventory")
-		return result.Result()
+		if result.Stop(ctx) {
+			log.Debugf("Stopping BMAC reconcile after reconcileAgentInventory")
+			return result.Result()
+		}
 	}
 
 	result = r.ensureMCSCert(ctx, log, bmh, agent)
