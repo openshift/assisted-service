@@ -342,7 +342,7 @@ func isNonePlatformCluster(ctx context.Context, client client.Client, cd *hivev1
 	if err = client.Get(ctx, namespacedName, &clusterInstall); err != nil {
 		return false, !k8serrors.IsNotFound(err), errors.Wrapf(err, "Could not get AgentClusterInstall %s for ClusterDeployment %s", cd.Spec.ClusterInstallRef.Name, cd.Name)
 	}
-	return clusterInstall.Spec.Networking.UserManagedNetworking, false, nil
+	return isUserManagedNetwork(&clusterInstall), false, nil
 }
 
 //
