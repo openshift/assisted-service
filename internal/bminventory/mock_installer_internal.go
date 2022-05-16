@@ -474,18 +474,18 @@ func (mr *MockInstallerInternalsMockRecorder) V2DownloadClusterFilesInternal(arg
 }
 
 // V2ImportClusterInternal mocks base method.
-func (m *MockInstallerInternals) V2ImportClusterInternal(arg0 context.Context, arg1 *types.NamespacedName, arg2 *strfmt.UUID, arg3 installer.V2ImportClusterParams, arg4 common.InfraEnvCreateFlag) (*common.Cluster, error) {
+func (m *MockInstallerInternals) V2ImportClusterInternal(arg0 context.Context, arg1 *types.NamespacedName, arg2 *strfmt.UUID, arg3 installer.V2ImportClusterParams) (*common.Cluster, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "V2ImportClusterInternal", arg0, arg1, arg2, arg3, arg4)
+	ret := m.ctrl.Call(m, "V2ImportClusterInternal", arg0, arg1, arg2, arg3)
 	ret0, _ := ret[0].(*common.Cluster)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // V2ImportClusterInternal indicates an expected call of V2ImportClusterInternal.
-func (mr *MockInstallerInternalsMockRecorder) V2ImportClusterInternal(arg0, arg1, arg2, arg3, arg4 interface{}) *gomock.Call {
+func (mr *MockInstallerInternalsMockRecorder) V2ImportClusterInternal(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "V2ImportClusterInternal", reflect.TypeOf((*MockInstallerInternals)(nil).V2ImportClusterInternal), arg0, arg1, arg2, arg3, arg4)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "V2ImportClusterInternal", reflect.TypeOf((*MockInstallerInternals)(nil).V2ImportClusterInternal), arg0, arg1, arg2, arg3)
 }
 
 // V2UpdateHostIgnitionInternal mocks base method.

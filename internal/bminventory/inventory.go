@@ -144,7 +144,7 @@ type InstallerInternals interface {
 	GetCredentialsInternal(ctx context.Context, params installer.V2GetCredentialsParams) (*models.Credentials, error)
 	V2DownloadClusterFilesInternal(ctx context.Context, params installer.V2DownloadClusterFilesParams) (io.ReadCloser, int64, error)
 	V2DownloadClusterCredentialsInternal(ctx context.Context, params installer.V2DownloadClusterCredentialsParams) (io.ReadCloser, int64, error)
-	V2ImportClusterInternal(ctx context.Context, kubeKey *types.NamespacedName, id *strfmt.UUID, params installer.V2ImportClusterParams, v1Flag common.InfraEnvCreateFlag) (*common.Cluster, error)
+	V2ImportClusterInternal(ctx context.Context, kubeKey *types.NamespacedName, id *strfmt.UUID, params installer.V2ImportClusterParams) (*common.Cluster, error)
 	InstallSingleDay2HostInternal(ctx context.Context, clusterId strfmt.UUID, infraEnvId strfmt.UUID, hostId strfmt.UUID) error
 	UpdateClusterInstallConfigInternal(ctx context.Context, params installer.V2UpdateClusterInstallConfigParams) (*common.Cluster, error)
 	CancelInstallationInternal(ctx context.Context, params installer.V2CancelInstallationParams) (*common.Cluster, error)
@@ -668,7 +668,7 @@ func (b *bareMetalInventory) getNewClusterCPUArchitecture(newClusterParams *mode
 }
 
 func (b *bareMetalInventory) V2ImportClusterInternal(ctx context.Context, kubeKey *types.NamespacedName, id *strfmt.UUID,
-	params installer.V2ImportClusterParams, v1Flag common.InfraEnvCreateFlag) (*common.Cluster, error) {
+	params installer.V2ImportClusterParams) (*common.Cluster, error) {
 	url := installer.V2GetClusterURL{ClusterID: *id}
 
 	log := logutil.FromContext(ctx, b.log).WithField(ctxparams.ClusterId, id)

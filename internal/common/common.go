@@ -16,13 +16,6 @@ import (
 	"gorm.io/gorm"
 )
 
-type InfraEnvCreateFlag bool
-
-const (
-	DoInfraEnvCreation   InfraEnvCreateFlag = true
-	SkipInfraEnvCreation InfraEnvCreateFlag = false
-)
-
 const (
 	EnvConfigPrefix = "myapp"
 
