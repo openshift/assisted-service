@@ -19,10 +19,7 @@ package controllers
 import (
 	"context"
 	"strconv"
-
-	"github.com/pkg/errors"
-	"k8s.io/apimachinery/pkg/labels"
-	"k8s.io/apimachinery/pkg/selection"
+	"time"
 
 	metal3_v1alpha1 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
 	aiv1beta1 "github.com/openshift/assisted-service/api/v1beta1"
@@ -33,9 +30,12 @@ import (
 	logutil "github.com/openshift/assisted-service/pkg/log"
 	"github.com/openshift/assisted-service/restapi/operations/installer"
 	conditionsv1 "github.com/openshift/custom-resource-status/conditions/v1"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/selection"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -97,6 +97,18 @@ func (r *PreprovisioningImageReconciler) Reconcile(origCtx context.Context, req 
 		return r.AddIronicAgentToInfraEnv(ctx, log, infraEnv)
 	}
 
+	// The image has been created sooner than the specified cooldown period
+	imageTimePlusCooldown := infraEnv.Status.CreatedTime.Time.Add(InfraEnvImageCooldownPeriod)
+	if imageTimePlusCooldown.After(time.Now()) {
+		log.Info("InfraEnv image is too recent. Requeuing and retrying again soon")
+		setCoolDownCondition(image.GetGeneration(), &image.Status)
+		err = r.Status().Update(ctx, image)
+		if err != nil {
+			return ctrl.Result{}, err
+		}
+		return ctrl.Result{Requeue: true, RequeueAfter: time.Until(imageTimePlusCooldown)}, nil
+	}
+
 	if image.Status.ImageUrl == infraEnv.Status.ISODownloadURL {
 		log.Info(ctx, "PreprovisioningImage and InfraEnv images are in sync. Nothing to update.")
 		return ctrl.Result{}, nil
@@ -150,6 +162,14 @@ func (r *PreprovisioningImageReconciler) setImage(generation int64, status *meta
 	return nil
 }
 
+func setCoolDownCondition(generation int64, status *metal3_v1alpha1.PreprovisioningImageStatus) {
+	message := "Waiting for InfraEnv image to cool down"
+	reason := imageConditionReason(message)
+	setImageCondition(generation, status,
+		metal3_v1alpha1.ConditionImageReady, metav1.ConditionFalse,
+		reason, message)
+
+}
 func setImageCondition(generation int64, status *metal3_v1alpha1.PreprovisioningImageStatus,
 	cond metal3_v1alpha1.ImageStatusConditionType, newStatus metav1.ConditionStatus,
 	reason imageConditionReason, message string) {
