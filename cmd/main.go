@@ -17,6 +17,7 @@ import (
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 	"github.com/kelseyhightower/envconfig"
+	metal3_v1alpha1 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
 	"github.com/openshift/assisted-image-service/pkg/servers"
 	"github.com/openshift/assisted-service/internal/bminventory"
 	"github.com/openshift/assisted-service/internal/cluster"
@@ -72,11 +73,13 @@ import (
 	"gorm.io/gorm/logger"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/selection"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 )
 
@@ -141,6 +144,8 @@ var Options struct {
 	LivenessValidationTimeout      time.Duration `envconfig:"LIVENESS_VALIDATION_TIMEOUT" default:"5m"`
 	ApproveCsrsRequeueDuration     time.Duration `envconfig:"APPROVE_CSRS_REQUEUE_DURATION" default:"1m"`
 	HTTPListenPort                 string        `envconfig:"HTTP_LISTEN_PORT" default:""`
+	AllowConvergedFlow             bool          `envconfig:"ALLOW_COVERGED_FLOW" default:"true"`
+	IronicIgnitionBuilderConfig    ignition.IronicIgniotionBuilderConfig
 }
 
 func InitLogs() *logrus.Entry {
@@ -495,6 +500,14 @@ func main() {
 
 	go func() {
 		if Options.EnableKubeAPI {
+			bmoUtils := controllers.NewBMOUtils(ctrlMgr.GetAPIReader(),
+				log.WithField("pkg", "baremetal_operator_utils"),
+				Options.EnableKubeAPI)
+			useConvergedFlow := false
+			if Options.AllowConvergedFlow {
+				useConvergedFlow = bmoUtils.ConvergedFlowAvailable()
+			}
+
 			failOnError((&controllers.InfraEnvReconciler{
 				Client:              ctrlMgr.GetClient(),
 				APIReader:           ctrlMgr.GetAPIReader(),
@@ -560,6 +573,20 @@ func main() {
 				Log:    log,
 			}).SetupWithManager(ctrlMgr), "unable to create controller AgentLabel")
 
+			if useConvergedFlow {
+				ironicBaseURL, err := bmoUtils.GetIronicServiceURL()
+				if err != nil {
+					log.WithError(err).Fatal("failed to get IronicServiceURL")
+				}
+				failOnError((&controllers.PreprovisioningImageReconciler{
+					Client:                 ctrlMgr.GetClient(),
+					Log:                    log,
+					Installer:              bm,
+					CRDEventsHandler:       crdEventsHandler,
+					IronicIgniotionBuilder: ignition.NewIronicIgniotionBuilder(Options.IronicIgnitionBuilderConfig),
+					IronicServiceURL:       ironicBaseURL,
+				}).SetupWithManager(ctrlMgr), "failed to create PreprovisioningImage ceontroller")
+			}
 			log.Infof("Starting controllers")
 			failOnError(ctrlMgr.Start(ctrl.SetupSignalHandler()), "failed to run manager")
 		}
@@ -743,20 +770,27 @@ func createCRDEventsHandler() controllers.CRDEventsHandler {
 func createControllerManager() (manager.Manager, error) {
 	if Options.EnableKubeAPI {
 		schemes := controllers.GetKubeClientSchemes()
+		infraenvLabel, err := labels.NewRequirement(controllers.InfraEnvLabel, selection.Exists, nil)
+		if err != nil {
+			return nil, err
 
+		}
 		return ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
 			Scheme:           schemes,
 			Port:             9443,
 			LeaderElection:   true,
 			LeaderElectionID: "77190dcb.agent-install.openshift.io",
 			NewCache: cache.BuilderWithOptions(cache.Options{
-				SelectorsByObject: cache.SelectorsByObject{
+				SelectorsByObject: map[client.Object]cache.ObjectSelector{
 					&corev1.Secret{}: {
 						Label: labels.SelectorFromSet(
 							labels.Set{
 								controllers.WatchResourceLabel: controllers.WatchResourceValue,
 							},
 						),
+					},
+					&metal3_v1alpha1.PreprovisioningImage{}: {
+						Label: labels.NewSelector().Add(*infraenvLabel),
 					},
 				},
 			}),
