@@ -14,7 +14,7 @@ type IronicIgniotionBuilder interface {
 
 type IronicIgniotionBuilderConfig struct {
 	// TODO: MGMT-10375	Get the ironic image from the default release image for the arch
-	BaremetalIronicAgentImage string `envconfig:"IRONIC_AGENT_IMAGE" default:"registry.ci.openshift.org/openshift:ironic-agent:latest"`
+	BaremetalIronicAgentImage string `envconfig:"IRONIC_AGENT_IMAGE" default:"quay.io/openshift-release-dev/ocp-v4.0-art-dev@sha256:1a1913094671837099e85eec4392a51bfa5fece675f479ba13e83e63d14013d3"`
 }
 
 type ironicIgniotionBuilder struct {

@@ -153,7 +153,7 @@ type InstallerInternals interface {
 	GetClusterSupportedPlatformsInternal(ctx context.Context, params installer.GetClusterSupportedPlatformsParams) (*[]models.PlatformType, error)
 	V2UpdateHostInternal(ctx context.Context, params installer.V2UpdateHostParams, interactivity Interactivity) (*common.Host, error)
 	GetInfraEnvByKubeKey(key types.NamespacedName) (*common.InfraEnv, error)
-	UpdateInfraEnvInternal(ctx context.Context, params installer.UpdateInfraEnvParams) (*common.InfraEnv, error)
+	UpdateInfraEnvInternal(ctx context.Context, params installer.UpdateInfraEnvParams, internalIgnitionConfig *string) (*common.InfraEnv, error)
 	RegisterInfraEnvInternal(ctx context.Context, kubeKey *types.NamespacedName, params installer.RegisterInfraEnvParams) (*common.InfraEnv, error)
 	DeregisterInfraEnvInternal(ctx context.Context, params installer.DeregisterInfraEnvParams) error
 	UnbindHostInternal(ctx context.Context, params installer.UnbindHostParams) (*common.Host, error)
@@ -4080,14 +4080,14 @@ func (b *bareMetalInventory) validateClusterInfraEnvRegister(ctx context.Context
 }
 
 func (b *bareMetalInventory) UpdateInfraEnv(ctx context.Context, params installer.UpdateInfraEnvParams) middleware.Responder {
-	i, err := b.UpdateInfraEnvInternal(ctx, params)
+	i, err := b.UpdateInfraEnvInternal(ctx, params, nil)
 	if err != nil {
 		return common.GenerateErrorResponder(err)
 	}
 	return installer.NewUpdateInfraEnvCreated().WithPayload(&i.InfraEnv)
 }
 
-func (b *bareMetalInventory) UpdateInfraEnvInternal(ctx context.Context, params installer.UpdateInfraEnvParams) (*common.InfraEnv, error) {
+func (b *bareMetalInventory) UpdateInfraEnvInternal(ctx context.Context, params installer.UpdateInfraEnvParams, internalIgnitionConfig *string) (*common.InfraEnv, error) {
 	log := logutil.FromContext(ctx, b.log)
 	var infraEnv *common.InfraEnv
 	var err error
@@ -4100,6 +4100,9 @@ func (b *bareMetalInventory) UpdateInfraEnvInternal(ctx context.Context, params 
 		params.InfraEnvUpdateParams.PullSecret = "pull secret was updated but will not be printed for security reasons."
 	}
 	log.Infof("update infraEnv %s with params: %+v", params.InfraEnvID, params.InfraEnvUpdateParams)
+	if internalIgnitionConfig != nil {
+		log.Infof("update infraEnv %s internalIgnitionConfig: %s", params.InfraEnvID, *internalIgnitionConfig)
+	}
 
 	if pullSecretUpdated {
 		params.InfraEnvUpdateParams.PullSecret = pullSecretBackup
@@ -4147,7 +4150,7 @@ func (b *bareMetalInventory) UpdateInfraEnvInternal(ctx context.Context, params 
 		}
 	}
 
-	err = b.updateInfraEnvData(ctx, infraEnv, params, b.db, log)
+	err = b.updateInfraEnvData(ctx, infraEnv, params, internalIgnitionConfig, b.db, log)
 	if err != nil {
 		log.WithError(err).Error("updateInfraEnvData")
 		return nil, err
@@ -4167,7 +4170,7 @@ func (b *bareMetalInventory) UpdateInfraEnvInternal(ctx context.Context, params 
 	return b.GetInfraEnvInternal(ctx, installer.GetInfraEnvParams{InfraEnvID: *infraEnv.ID})
 }
 
-func (b *bareMetalInventory) updateInfraEnvData(ctx context.Context, infraEnv *common.InfraEnv, params installer.UpdateInfraEnvParams, db *gorm.DB, log logrus.FieldLogger) error {
+func (b *bareMetalInventory) updateInfraEnvData(ctx context.Context, infraEnv *common.InfraEnv, params installer.UpdateInfraEnvParams, internalIgnitionConfig *string, db *gorm.DB, log logrus.FieldLogger) error {
 	updates := map[string]interface{}{}
 	if params.InfraEnvUpdateParams.Proxy != nil {
 		proxyHash, err := computeProxyHash(params.InfraEnvUpdateParams.Proxy)
@@ -4213,6 +4216,10 @@ func (b *bareMetalInventory) updateInfraEnvData(ctx context.Context, infraEnv *c
 		infraEnv.PullSecret = params.InfraEnvUpdateParams.PullSecret
 		updates["pull_secret"] = params.InfraEnvUpdateParams.PullSecret
 		updates["pull_secret_set"] = true
+	}
+
+	if internalIgnitionConfig != nil && *internalIgnitionConfig != infraEnv.InternalIgnitionConfigOverride {
+		updates["internal_ignition_config_override"] = internalIgnitionConfig
 	}
 
 	if len(updates) > 0 {
