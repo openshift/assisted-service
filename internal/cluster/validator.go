@@ -455,7 +455,7 @@ func (v *clusterValidator) printSufficientMastersCount(context *clusterPreproces
 		return "The cluster has a sufficient number of master candidates."
 	case ValidationFailure:
 		if noneHAMode {
-			return "Single-node clusters must have a single master node and no workers."
+			return "Single-node clusters must have a single control plane node and no workers."
 		}
 		return fmt.Sprintf("Clusters must have exactly %d dedicated masters and if workers are added, there should be at least 2 workers. Please check your configuration and add or remove hosts as to meet the above requirement.",
 			common.MinMasterHostsNeededForInstallation)
