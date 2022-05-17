@@ -111,10 +111,6 @@ func IsDay2Cluster(cluster *Cluster) bool {
 	return swag.StringValue(cluster.Kind) == models.ClusterKindAddHostsCluster
 }
 
-func AreMastersSchedulable(cluster *Cluster) bool {
-	return swag.BoolValue(cluster.SchedulableMasters)
-}
-
 func GetEffectiveRole(host *models.Host) models.HostRole {
 	if host.Role == models.HostRoleAutoAssign && host.SuggestedRole != "" {
 		return host.SuggestedRole
