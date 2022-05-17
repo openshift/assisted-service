@@ -57,12 +57,33 @@ func (v ValidationStatus) String() string {
 	return string(v)
 }
 
+type InventoryCache map[string]*models.Inventory
+
+func (ic InventoryCache) GetOrUnmarshal(host *models.Host) (inventory *models.Inventory, err error) {
+	if host.Inventory == "" {
+		return nil, nil
+	}
+	var ok bool
+	key := host.ID.String() + "@" + host.InfraEnvID.String()
+	inventory, ok = ic[key]
+	if !ok {
+		inventory, err = common.UnmarshalInventory(host.Inventory)
+		if err != nil {
+			return
+		}
+		ic[key] = inventory
+	}
+	return
+
+}
+
 type validationContext struct {
 	host                    *models.Host
 	cluster                 *common.Cluster
 	infraEnv                *common.InfraEnv
 	inventory               *models.Inventory
 	db                      *gorm.DB
+	inventoryCache          InventoryCache
 	clusterHostRequirements *models.ClusterHostRequirements
 	minCPUCoresRequirement  int64
 	minRAMMibRequirement    int64
@@ -95,17 +116,14 @@ func (c *validationContext) loadInfraEnv() error {
 }
 
 func (c *validationContext) loadInventory() error {
-	if c.host.Inventory != "" {
-		var inventory models.Inventory
-		err := json.Unmarshal([]byte(c.host.Inventory), &inventory)
-		if err != nil {
-			return err
-		}
-		if inventory.CPU == nil || inventory.Memory == nil || len(inventory.Disks) == 0 {
-			return errors.Errorf("Inventory is not valid")
-		}
-		c.inventory = &inventory
+	inventory, err := c.inventoryCache.GetOrUnmarshal(c.host)
+	if inventory == nil || err != nil {
+		return err
 	}
+	if inventory.CPU == nil || inventory.Memory == nil || len(inventory.Disks) == 0 {
+		return errors.New("Inventory is not valid")
+	}
+	c.inventory = inventory
 	return nil
 }
 
@@ -177,12 +195,13 @@ func (c *validationContext) loadGeneralInfraEnvMinRequirements(hwValidator hardw
 	return err
 }
 
-func newValidationContext(host *models.Host, c *common.Cluster, i *common.InfraEnv, db *gorm.DB, hwValidator hardware.Validator) (*validationContext, error) {
+func newValidationContext(host *models.Host, c *common.Cluster, i *common.InfraEnv, db *gorm.DB, inventoryCache InventoryCache, hwValidator hardware.Validator) (*validationContext, error) {
 	ret := &validationContext{
-		host:     host,
-		db:       db,
-		cluster:  c,
-		infraEnv: i,
+		host:           host,
+		db:             db,
+		cluster:        c,
+		infraEnv:       i,
+		inventoryCache: inventoryCache,
 	}
 	if host.ClusterID != nil {
 		err := ret.loadCluster()
@@ -664,13 +683,13 @@ func (v *validator) isHostnameUnique(c *validationContext) ValidationStatus {
 	realHostname := getRealHostname(c.host, c.inventory)
 	for _, h := range c.cluster.Hosts {
 		if h.ID.String() != c.host.ID.String() && h.Inventory != "" {
-			var otherInventory models.Inventory
-			if err := json.Unmarshal([]byte(h.Inventory), &otherInventory); err != nil {
+			otherInventory, err := c.inventoryCache.GetOrUnmarshal(h)
+			if err != nil {
 				v.log.WithError(err).Warnf("Illegal inventory for host %s", h.ID.String())
 				// It is not our hostname
 				continue
 			}
-			if realHostname == getRealHostname(h, &otherInventory) {
+			if realHostname == getRealHostname(h, otherInventory) {
 				return ValidationFailure
 			}
 		}
@@ -1129,15 +1148,14 @@ func (v *validator) printSufficientPacketLossRequirementForRole(c *validationCon
 
 func (v *validator) hasDefaultRoute(c *validationContext) ValidationStatus {
 
-	if len(c.host.Inventory) == 0 {
+	if c.inventory == nil {
 		return ValidationPending
 	}
 
-	inv, err := common.UnmarshalInventory(c.host.Inventory)
-	if err != nil || len(inv.Routes) == 0 {
+	if len(c.inventory.Routes) == 0 {
 		return ValidationFailure
 	}
-	if v.validateDefaultRoute(inv.Routes) {
+	if v.validateDefaultRoute(c.inventory.Routes) {
 		return ValidationSuccess
 	}
 	return ValidationFailure

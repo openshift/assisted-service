@@ -415,7 +415,8 @@ func (m *Manager) refreshRoleInternal(ctx context.Context, h *models.Host, db *g
 	return err
 }
 
-func (m *Manager) refreshStatusInternal(ctx context.Context, h *models.Host, c *common.Cluster, i *common.InfraEnv, db *gorm.DB) error {
+func (m *Manager) refreshStatusInternal(ctx context.Context, h *models.Host, c *common.Cluster, i *common.InfraEnv,
+	inventoryCache InventoryCache, db *gorm.DB) error {
 	log := logutil.FromContext(ctx, m.log)
 	if db == nil {
 		db = m.db
@@ -426,7 +427,7 @@ func (m *Manager) refreshStatusInternal(ctx context.Context, h *models.Host, c *
 		conditions       map[string]bool
 		newValidationRes ValidationsStatus
 	)
-	vc, err = newValidationContext(h, c, i, db, m.hwValidator)
+	vc, err = newValidationContext(h, c, i, db, inventoryCache, m.hwValidator)
 	if err != nil {
 		return err
 	}
@@ -475,7 +476,7 @@ func (m *Manager) RefreshStatus(ctx context.Context, h *models.Host, db *gorm.DB
 	if db == nil {
 		db = m.db
 	}
-	return m.refreshStatusInternal(ctx, h, nil, nil, db)
+	return m.refreshStatusInternal(ctx, h, nil, nil, make(InventoryCache), db)
 }
 
 func (m *Manager) Install(ctx context.Context, h *models.Host, db *gorm.DB) error {
@@ -1111,7 +1112,7 @@ func (m *Manager) selectRole(ctx context.Context, h *models.Host, db *gorm.DB) (
 
 	if len(masters) < common.MinMasterHostsNeededForInstallation {
 		h.Role = models.HostRoleMaster
-		vc, err = newValidationContext(h, nil, nil, db, m.hwValidator)
+		vc, err = newValidationContext(h, nil, nil, db, make(InventoryCache), m.hwValidator)
 		if err != nil {
 			log.WithError(err).Errorf("failed to create new validation context for host %s", h.ID.String())
 			return autoSelectedRole, err
@@ -1136,7 +1137,7 @@ func (m *Manager) IsValidMasterCandidate(h *models.Host, c *common.Cluster, db *
 
 	h.Role = models.HostRoleMaster
 
-	vc, err := newValidationContext(h, c, nil, db, m.hwValidator)
+	vc, err := newValidationContext(h, c, nil, db, make(InventoryCache), m.hwValidator)
 	if err != nil {
 		log.WithError(err).Errorf("failed to create new validation context for host %s", h.ID.String())
 		return false, err
