@@ -60,7 +60,8 @@ import (
 
 const (
 	AgentFinalizerName   = "agent." + aiv1beta1.Group + "/ai-deprovision"
-	InventoryLabelPrefix = "inventory." + aiv1beta1.Group + "/"
+	BaseLabelPrefix      = aiv1beta1.Group + "/"
+	InventoryLabelPrefix = "inventory." + BaseLabelPrefix
 )
 
 // AgentReconciler reconciles a Agent object
@@ -208,7 +209,7 @@ func (r *AgentReconciler) Reconcile(origCtx context.Context, req ctrl.Request) (
 		return r.updateStatus(ctx, log, agent, origAgent, &h.Host, h.ClusterID, err, !IsUserError(err))
 	}
 
-	err = r.updateInventory(log, ctx, &h.Host, agent)
+	err = r.updateInventoryAndLabels(log, ctx, &h.Host, agent)
 	if err != nil {
 		return r.updateStatus(ctx, log, agent, origAgent, &h.Host, h.ClusterID, err, true)
 	}
@@ -878,16 +879,18 @@ func (r *AgentReconciler) updateNtpSources(log logrus.FieldLogger, host *models.
 	return nil
 }
 
-func (r *AgentReconciler) updateInventory(log logrus.FieldLogger, ctx context.Context, host *models.Host, agent *aiv1beta1.Agent) error {
-	if host.Inventory == "" {
-		log.Debugf("Skip update inventory: Host %s inventory not set", agent.Name)
-		return nil
-	}
+func (r *AgentReconciler) updateInventoryAndLabels(log logrus.FieldLogger, ctx context.Context, host *models.Host, agent *aiv1beta1.Agent) error {
 	var inventory models.Inventory
-	if err := json.Unmarshal([]byte(host.Inventory), &inventory); err != nil {
-		log.WithError(err).Errorf("Failed to unmarshal host inventory")
-		return err
+	if host.Inventory == "" {
+		log.Debugf("Host %s inventory not set", agent.Name)
+		inventory = models.Inventory{}
+	} else {
+		if err := json.Unmarshal([]byte(host.Inventory), &inventory); err != nil {
+			log.WithError(err).Errorf("Failed to unmarshal host inventory")
+			return err
+		}
 	}
+
 	agent.Status.Inventory.Hostname = inventory.Hostname
 	agent.Status.Inventory.BmcAddress = inventory.BmcAddress
 	agent.Status.Inventory.BmcV6address = inventory.BmcV6address
@@ -983,10 +986,10 @@ func (r *AgentReconciler) updateInventory(log logrus.FieldLogger, ctx context.Co
 		}
 	}
 
-	return r.updateInventoryLabels(log, ctx, agent)
+	return r.updateLabels(log, ctx, agent)
 }
 
-func (r *AgentReconciler) updateInventoryLabels(log logrus.FieldLogger, ctx context.Context, agent *aiv1beta1.Agent) error {
+func (r *AgentReconciler) updateLabels(log logrus.FieldLogger, ctx context.Context, agent *aiv1beta1.Agent) error {
 	inventory := agent.Status.Inventory
 	hasSSD := false
 	for _, d := range inventory.Disks {
@@ -1005,6 +1008,12 @@ func (r *AgentReconciler) updateInventoryLabels(log logrus.FieldLogger, ctx cont
 	changed = setAgentLabel(log, agent, InventoryLabelPrefix+"host-manufacturer", inventory.SystemVendor.Manufacturer) || changed
 	changed = setAgentLabel(log, agent, InventoryLabelPrefix+"host-productname", inventory.SystemVendor.ProductName) || changed
 	changed = setAgentLabel(log, agent, InventoryLabelPrefix+"host-isvirtual", strconv.FormatBool(inventory.SystemVendor.Virtual)) || changed
+
+	namespace := ""
+	if agent.Spec.ClusterDeploymentName != nil {
+		namespace = agent.Spec.ClusterDeploymentName.Namespace
+	}
+	changed = setAgentLabel(log, agent, BaseLabelPrefix+"clusterdeployment-namespace", namespace) || changed
 
 	if changed {
 		if err := r.Update(ctx, agent); err != nil {
