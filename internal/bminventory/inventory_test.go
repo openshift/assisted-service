@@ -1989,6 +1989,9 @@ var _ = Describe("cluster", func() {
 	mockAutoAssignSuccess := func(times int) {
 		mockHostApi.EXPECT().AutoAssignRole(gomock.Any(), gomock.Any(), gomock.Any()).Return(true, nil).Times(times)
 	}
+	mockFalseAutoAssignSuccess := func(times int) {
+		mockHostApi.EXPECT().AutoAssignRole(gomock.Any(), gomock.Any(), gomock.Any()).Return(false, nil).Times(times)
+	}
 	mockClusterRefreshStatusSuccess := func() {
 		mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).
 			DoAndReturn(func(ctx context.Context, c *common.Cluster, db *gorm.DB) (*common.Cluster, error) {
@@ -4304,6 +4307,17 @@ var _ = Describe("cluster", func() {
 			mockClusterRefreshStatus(mockClusterApi)
 			setIsReadyForInstallationFalse(mockClusterApi)
 			mockSetConnectivityMajorityGroupsForCluster(mockClusterApi)
+
+			Expect(db.Model(&common.Cluster{Cluster: models.Cluster{ID: &clusterID}}).UpdateColumn("status", "insufficient").Error).To(Not(HaveOccurred()))
+			reply := bm.V2InstallCluster(ctx, installer.V2InstallClusterParams{
+				ClusterID: clusterID,
+			})
+			verifyApiError(reply, http.StatusConflict)
+		})
+
+		It("cluster is not ready to install - not auto assigned", func() {
+			mockFalseAutoAssignSuccess(3)
+			setIsReadyForInstallationFalse(mockClusterApi)
 
 			Expect(db.Model(&common.Cluster{Cluster: models.Cluster{ID: &clusterID}}).UpdateColumn("status", "insufficient").Error).To(Not(HaveOccurred()))
 			reply := bm.V2InstallCluster(ctx, installer.V2InstallClusterParams{
@@ -11270,7 +11284,6 @@ var _ = Describe("AMS subscriptions", func() {
 				})
 
 				By("install cluster", func() {
-					mockSetConnectivityMajorityGroupsForCluster(mockClusterApi)
 					mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).AnyTimes()
 					mockClusterApi.EXPECT().IsReadyForInstallation(gomock.Any()).Return(true, "")
 					mockClusterApi.EXPECT().PrepareForInstallation(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
@@ -13542,31 +13555,31 @@ func validateNetworkConfiguration(cluster *models.Cluster, clusterNetworks *[]*m
 	if clusterNetworks != nil {
 		ExpectWithOffset(1, cluster.ClusterNetworks).To(HaveLen(len(*clusterNetworks)))
 		for index := range *clusterNetworks {
-			Expect(cluster.ClusterNetworks[index].ClusterID).To(Equal(*cluster.ID))
-			Expect(cluster.ClusterNetworks[index].Cidr).To(Equal((*clusterNetworks)[index].Cidr))
-			Expect(cluster.ClusterNetworks[index].HostPrefix).To(Equal((*clusterNetworks)[index].HostPrefix))
+			ExpectWithOffset(1, cluster.ClusterNetworks[index].ClusterID).To(Equal(*cluster.ID))
+			ExpectWithOffset(1, cluster.ClusterNetworks[index].Cidr).To(Equal((*clusterNetworks)[index].Cidr))
+			ExpectWithOffset(1, cluster.ClusterNetworks[index].HostPrefix).To(Equal((*clusterNetworks)[index].HostPrefix))
 		}
 		// TODO(MGMT-9751-remove-single-network)
-		Expect(cluster.ClusterNetworkCidr).To(Equal(""))
-		Expect(cluster.ClusterNetworkHostPrefix).To(Equal(int64(0)))
+		ExpectWithOffset(1, cluster.ClusterNetworkCidr).To(Equal(""))
+		ExpectWithOffset(1, cluster.ClusterNetworkHostPrefix).To(Equal(int64(0)))
 	}
 	if serviceNetworks != nil {
-		Expect(cluster.ServiceNetworks).To(HaveLen(len(*serviceNetworks)))
+		ExpectWithOffset(1, cluster.ServiceNetworks).To(HaveLen(len(*serviceNetworks)))
 		for index := range *serviceNetworks {
-			Expect(cluster.ServiceNetworks[index].ClusterID).To(Equal(*cluster.ID))
-			Expect(cluster.ServiceNetworks[index].Cidr).To(Equal((*serviceNetworks)[index].Cidr))
+			ExpectWithOffset(1, cluster.ServiceNetworks[index].ClusterID).To(Equal(*cluster.ID))
+			ExpectWithOffset(1, cluster.ServiceNetworks[index].Cidr).To(Equal((*serviceNetworks)[index].Cidr))
 		}
 		// TODO(MGMT-9751-remove-single-network)
-		Expect(cluster.ServiceNetworkCidr).To(Equal(""))
+		ExpectWithOffset(1, cluster.ServiceNetworkCidr).To(Equal(""))
 	}
 	if machineNetworks != nil {
-		Expect(cluster.MachineNetworks).To(HaveLen(len(*machineNetworks)))
+		ExpectWithOffset(1, cluster.MachineNetworks).To(HaveLen(len(*machineNetworks)))
 		for index := range *machineNetworks {
-			Expect(cluster.MachineNetworks[index].ClusterID).To(Equal(*cluster.ID))
-			Expect(cluster.MachineNetworks[index].Cidr).To(Equal((*machineNetworks)[index].Cidr))
+			ExpectWithOffset(1, cluster.MachineNetworks[index].ClusterID).To(Equal(*cluster.ID))
+			ExpectWithOffset(1, cluster.MachineNetworks[index].Cidr).To(Equal((*machineNetworks)[index].Cidr))
 		}
 		// TODO(MGMT-9751-remove-single-network)
-		Expect(cluster.MachineNetworkCidr).To(Equal(""))
+		ExpectWithOffset(1, cluster.MachineNetworkCidr).To(Equal(""))
 	}
 }
 

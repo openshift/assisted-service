@@ -350,3 +350,320 @@ var _ = Describe("cluster IP address families", func() {
 		Expect(v6).To(BeTrue())
 	})
 })
+
+var _ = Describe("AreMachineNetworksIdentical", func() {
+	tests := []struct {
+		name           string
+		n1, n2         []*models.MachineNetwork
+		expectedResult bool
+	}{
+		{
+			name:           "Both nil",
+			expectedResult: true,
+		},
+		{
+			name:           "One nil, one empty",
+			n1:             []*models.MachineNetwork{},
+			expectedResult: true,
+		},
+		{
+			name:           "Both empty",
+			n1:             []*models.MachineNetwork{},
+			n2:             []*models.MachineNetwork{},
+			expectedResult: true,
+		},
+		{
+			name: "Identical, ignore cluster id",
+			n1: []*models.MachineNetwork{
+				{
+					Cidr:      "1.2.3.0/24",
+					ClusterID: "id",
+				},
+				{
+					Cidr: "5.6.7.0/24",
+				},
+			},
+			n2: []*models.MachineNetwork{
+				{
+					Cidr: "5.6.7.0/24",
+				},
+				{
+					Cidr: "1.2.3.0/24",
+				},
+			},
+			expectedResult: true,
+		},
+		{
+			name: "Different length",
+			n1: []*models.MachineNetwork{
+				{
+					Cidr:      "1.2.3.0/24",
+					ClusterID: "id",
+				},
+				{
+					Cidr: "5.6.7.0/24",
+				},
+			},
+			n2: []*models.MachineNetwork{
+				{
+					Cidr: "5.6.7.0/24",
+				},
+				{
+					Cidr: "1.2.3.0/24",
+				},
+				{
+					Cidr: "2.2.3.0/24",
+				},
+			},
+			expectedResult: false,
+		},
+		{
+			name: "Different contents",
+			n1: []*models.MachineNetwork{
+				{
+					Cidr:      "1.2.3.0/24",
+					ClusterID: "id",
+				},
+				{
+					Cidr: "5.6.7.0/24",
+				},
+			},
+			n2: []*models.MachineNetwork{
+				{
+					Cidr: "5.6.7.0/24",
+				},
+				{
+					Cidr: "2.2.3.0/24",
+				},
+			},
+			expectedResult: false,
+		},
+	}
+	for i := range tests {
+		t := tests[i]
+		It(t.name, func() {
+			Expect(AreMachineNetworksIdentical(t.n1, t.n2)).To(Equal(t.expectedResult))
+		})
+	}
+})
+
+var _ = Describe("ArServiceNetworksIdentical", func() {
+	tests := []struct {
+		name           string
+		n1, n2         []*models.ServiceNetwork
+		expectedResult bool
+	}{
+		{
+			name:           "Both nil",
+			expectedResult: true,
+		},
+		{
+			name:           "One nil, one empty",
+			n1:             []*models.ServiceNetwork{},
+			expectedResult: true,
+		},
+		{
+			name:           "Both empty",
+			n1:             []*models.ServiceNetwork{},
+			n2:             []*models.ServiceNetwork{},
+			expectedResult: true,
+		},
+		{
+			name: "Identical, ignore cluster id",
+			n1: []*models.ServiceNetwork{
+				{
+					Cidr:      "1.2.3.0/24",
+					ClusterID: "id",
+				},
+				{
+					Cidr: "5.6.7.0/24",
+				},
+			},
+			n2: []*models.ServiceNetwork{
+				{
+					Cidr: "5.6.7.0/24",
+				},
+				{
+					Cidr: "1.2.3.0/24",
+				},
+			},
+			expectedResult: true,
+		},
+		{
+			name: "Different length",
+			n1: []*models.ServiceNetwork{
+				{
+					Cidr:      "1.2.3.0/24",
+					ClusterID: "id",
+				},
+				{
+					Cidr: "5.6.7.0/24",
+				},
+			},
+			n2: []*models.ServiceNetwork{
+				{
+					Cidr: "5.6.7.0/24",
+				},
+				{
+					Cidr: "1.2.3.0/24",
+				},
+				{
+					Cidr: "2.2.3.0/24",
+				},
+			},
+			expectedResult: false,
+		},
+		{
+			name: "Different contents",
+			n1: []*models.ServiceNetwork{
+				{
+					Cidr:      "1.2.3.0/24",
+					ClusterID: "id",
+				},
+				{
+					Cidr: "5.6.7.0/24",
+				},
+			},
+			n2: []*models.ServiceNetwork{
+				{
+					Cidr: "5.6.7.0/24",
+				},
+				{
+					Cidr: "2.2.3.0/24",
+				},
+			},
+			expectedResult: false,
+		},
+	}
+	for i := range tests {
+		t := tests[i]
+		It(t.name, func() {
+			Expect(AreServiceNetworksIdentical(t.n1, t.n2)).To(Equal(t.expectedResult))
+		})
+	}
+})
+
+var _ = Describe("ArClusterNetworksIdentical", func() {
+	tests := []struct {
+		name           string
+		n1, n2         []*models.ClusterNetwork
+		expectedResult bool
+	}{
+		{
+			name:           "Both nil",
+			expectedResult: true,
+		},
+		{
+			name:           "One nil, one empty",
+			n1:             []*models.ClusterNetwork{},
+			expectedResult: true,
+		},
+		{
+			name:           "Both empty",
+			n1:             []*models.ClusterNetwork{},
+			n2:             []*models.ClusterNetwork{},
+			expectedResult: true,
+		},
+		{
+			name: "Identical, ignore cluster id",
+			n1: []*models.ClusterNetwork{
+				{
+					Cidr:       "1.2.3.0/24",
+					HostPrefix: 4,
+					ClusterID:  "id",
+				},
+				{
+					Cidr:       "5.6.7.0/24",
+					HostPrefix: 4,
+				},
+			},
+			n2: []*models.ClusterNetwork{
+				{
+					Cidr:       "5.6.7.0/24",
+					HostPrefix: 4,
+				},
+				{
+					Cidr:       "1.2.3.0/24",
+					HostPrefix: 4,
+				},
+			},
+			expectedResult: true,
+		},
+		{
+			name: "Different host prefix",
+			n1: []*models.ClusterNetwork{
+				{
+					Cidr:       "1.2.3.0/24",
+					HostPrefix: 4,
+					ClusterID:  "id",
+				},
+				{
+					Cidr:       "5.6.7.0/24",
+					HostPrefix: 4,
+				},
+			},
+			n2: []*models.ClusterNetwork{
+				{
+					Cidr:       "5.6.7.0/24",
+					HostPrefix: 4,
+				},
+				{
+					Cidr:       "1.2.3.0/24",
+					HostPrefix: 5,
+				},
+			},
+			expectedResult: false,
+		},
+		{
+			name: "Different length",
+			n1: []*models.ClusterNetwork{
+				{
+					Cidr:      "1.2.3.0/24",
+					ClusterID: "id",
+				},
+				{
+					Cidr: "5.6.7.0/24",
+				},
+			},
+			n2: []*models.ClusterNetwork{
+				{
+					Cidr: "5.6.7.0/24",
+				},
+				{
+					Cidr: "1.2.3.0/24",
+				},
+				{
+					Cidr: "2.2.3.0/24",
+				},
+			},
+			expectedResult: false,
+		},
+		{
+			name: "Different contents",
+			n1: []*models.ClusterNetwork{
+				{
+					Cidr:      "1.2.3.0/24",
+					ClusterID: "id",
+				},
+				{
+					Cidr: "5.6.7.0/24",
+				},
+			},
+			n2: []*models.ClusterNetwork{
+				{
+					Cidr: "5.6.7.0/24",
+				},
+				{
+					Cidr: "2.2.3.0/24",
+				},
+			},
+			expectedResult: false,
+		},
+	}
+	for i := range tests {
+		t := tests[i]
+		It(t.name, func() {
+			Expect(AreClusterNetworksIdentical(t.n1, t.n2)).To(Equal(t.expectedResult))
+		})
+	}
+})

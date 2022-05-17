@@ -326,8 +326,8 @@ var _ = Describe("agent reconcile", func() {
 		mockInstallerInternal.EXPECT().GetHostByKubeKey(gomock.Any()).Return(beforeUpdateHost, nil).Times(1)
 		mockInstallerInternal.EXPECT().GetHostByKubeKey(gomock.Any()).Return(afterUpdateHost, nil).Times(1)
 		mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil).Times(2)
-		mockInstallerInternal.EXPECT().V2UpdateHostInternal(gomock.Any(), gomock.Any()).
-			Do(func(ctx context.Context, param installer.V2UpdateHostParams) {
+		mockInstallerInternal.EXPECT().V2UpdateHostInternal(gomock.Any(), gomock.Any(), bminventory.NonInteractive).
+			Do(func(ctx context.Context, param installer.V2UpdateHostParams, interactive bminventory.Interactivity) {
 				Expect(param.HostUpdateParams.DisksSelectedConfig[0].ID).To(Equal(&newInstallDiskPath))
 				Expect(param.HostUpdateParams.DisksSelectedConfig[0].Role).To(Equal(models.DiskRoleInstall))
 				Expect(swag.StringValue(param.HostUpdateParams.HostName)).To(Equal(newHostName))
@@ -411,7 +411,7 @@ var _ = Describe("agent reconcile", func() {
 
 		mockInstallerInternal.EXPECT().GetHostByKubeKey(gomock.Any()).Return(commonHost, nil).AnyTimes()
 		mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil).Times(1)
-		mockInstallerInternal.EXPECT().V2UpdateHostInternal(gomock.Any(), gomock.Any()).Return(commonHost, nil).Times(1)
+		mockInstallerInternal.EXPECT().V2UpdateHostInternal(gomock.Any(), gomock.Any(), bminventory.NonInteractive).Return(commonHost, nil).Times(1)
 		Expect(c.Create(ctx, host)).To(BeNil())
 		result, err := hr.Reconcile(ctx, newHostRequest(host))
 		Expect(err).To(BeNil())
@@ -449,7 +449,7 @@ var _ = Describe("agent reconcile", func() {
 		Expect(c.Create(ctx, clusterDeployment)).To(BeNil())
 		mockInstallerInternal.EXPECT().GetHostByKubeKey(gomock.Any()).Return(commonHost, nil).AnyTimes()
 		mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil).Times(1)
-		mockInstallerInternal.EXPECT().V2UpdateHostInternal(gomock.Any(), gomock.Any()).Return(nil, nil).Times(0)
+		mockInstallerInternal.EXPECT().V2UpdateHostInternal(gomock.Any(), gomock.Any(), bminventory.NonInteractive).Return(nil, nil).Times(0)
 		Expect(c.Create(ctx, host)).To(BeNil())
 		result, err := hr.Reconcile(ctx, newHostRequest(host))
 		Expect(err).To(BeNil())
@@ -490,7 +490,7 @@ var _ = Describe("agent reconcile", func() {
 		Expect(c.Create(ctx, clusterDeployment)).To(BeNil())
 		mockInstallerInternal.EXPECT().GetHostByKubeKey(gomock.Any()).Return(commonHost, nil).AnyTimes()
 		mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil).Times(1)
-		mockInstallerInternal.EXPECT().V2UpdateHostInternal(gomock.Any(), gomock.Any()).Return(nil, nil).Times(0)
+		mockInstallerInternal.EXPECT().V2UpdateHostInternal(gomock.Any(), gomock.Any(), bminventory.NonInteractive).Return(nil, nil).Times(0)
 		Expect(c.Create(ctx, host)).To(BeNil())
 		result, err := hr.Reconcile(ctx, newHostRequest(host))
 		Expect(err).To(BeNil())
@@ -533,7 +533,7 @@ var _ = Describe("agent reconcile", func() {
 		mockInstallerInternal.EXPECT().GetHostByKubeKey(gomock.Any()).Return(commonHost, nil).AnyTimes()
 		mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil).Times(1)
 		errString := "update internal error"
-		mockInstallerInternal.EXPECT().V2UpdateHostInternal(gomock.Any(), gomock.Any()).Return(nil, common.NewApiError(http.StatusInternalServerError,
+		mockInstallerInternal.EXPECT().V2UpdateHostInternal(gomock.Any(), gomock.Any(), bminventory.NonInteractive).Return(nil, common.NewApiError(http.StatusInternalServerError,
 			errors.New(errString)))
 		Expect(c.Create(ctx, host)).To(BeNil())
 		result, err := hr.Reconcile(ctx, newHostRequest(host))

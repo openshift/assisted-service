@@ -31,7 +31,7 @@ import (
 )
 
 func (b *bareMetalInventory) V2UpdateHost(ctx context.Context, params installer.V2UpdateHostParams) middleware.Responder {
-	host, err := b.V2UpdateHostInternal(ctx, params)
+	host, err := b.V2UpdateHostInternal(ctx, params, Interactive)
 	if err != nil {
 		return common.GenerateErrorResponder(err)
 	}

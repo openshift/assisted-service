@@ -151,7 +151,7 @@ type InstallerInternals interface {
 	TransformClusterToDay2Internal(ctx context.Context, clusterID strfmt.UUID) (*common.Cluster, error)
 	AddReleaseImage(ctx context.Context, releaseImageUrl, pullSecret, ocpReleaseVersion, cpuArchitecture string) (*models.ReleaseImage, error)
 	GetClusterSupportedPlatformsInternal(ctx context.Context, params installer.GetClusterSupportedPlatformsParams) (*[]models.PlatformType, error)
-	V2UpdateHostInternal(ctx context.Context, params installer.V2UpdateHostParams) (*common.Host, error)
+	V2UpdateHostInternal(ctx context.Context, params installer.V2UpdateHostParams, interactivity Interactivity) (*common.Host, error)
 	GetInfraEnvByKubeKey(key types.NamespacedName) (*common.InfraEnv, error)
 	UpdateInfraEnvInternal(ctx context.Context, params installer.UpdateInfraEnvParams) (*common.InfraEnv, error)
 	RegisterInfraEnvInternal(ctx context.Context, kubeKey *types.NamespacedName, params installer.RegisterInfraEnvParams) (*common.InfraEnv, error)
@@ -1050,9 +1050,11 @@ func (b *bareMetalInventory) InstallClusterInternal(ctx context.Context, params 
 	if cluster, err = common.GetClusterFromDBWithHosts(b.db, params.ClusterID); err != nil {
 		return nil, common.NewApiError(http.StatusNotFound, err)
 	}
+
+	var autoAssigned bool
+
 	// auto select hosts roles if not selected yet.
 	err = b.db.Transaction(func(tx *gorm.DB) error {
-		var autoAssigned bool
 		var selected bool
 		for i := range cluster.Hosts {
 			if selected, err = b.hostApi.AutoAssignRole(ctx, cluster.Hosts[i], tx); err != nil {
@@ -1074,17 +1076,20 @@ func (b *bareMetalInventory) InstallClusterInternal(ctx context.Context, params 
 		return nil, err
 	}
 
-	if err = b.refreshAllHostsOnInstall(ctx, cluster); err != nil {
-		return nil, err
-	}
-	if _, err = b.clusterApi.RefreshStatus(ctx, cluster, b.db); err != nil {
-		return nil, err
+	if autoAssigned {
+		if err = b.refreshAllHostsOnInstall(ctx, cluster); err != nil {
+			return nil, err
+		}
+		if _, err = b.clusterApi.RefreshStatus(ctx, cluster, b.db); err != nil {
+			return nil, err
+		}
+
+		// Reload again after refresh
+		if cluster, err = common.GetClusterFromDBWithHosts(b.db, params.ClusterID); err != nil {
+			return nil, common.NewApiError(http.StatusNotFound, err)
+		}
 	}
 
-	// Reload again after refresh
-	if cluster, err = common.GetClusterFromDBWithHosts(b.db, params.ClusterID); err != nil {
-		return nil, common.NewApiError(http.StatusNotFound, err)
-	}
 	// Verify cluster is ready to install
 	if ok, reason := b.clusterApi.IsReadyForInstallation(cluster); !ok {
 		return nil, common.NewApiError(http.StatusConflict,
@@ -1704,10 +1709,12 @@ func (b *bareMetalInventory) v2UpdateClusterInternal(ctx context.Context, params
 		return nil, err
 	}
 
-	err = b.updateHostsAndClusterStatus(ctx, cluster, tx, log)
-	if err != nil {
-		log.WithError(err).Errorf("failed to validate or update cluster %s state or its hosts", cluster.ID)
-		return nil, common.NewApiError(http.StatusInternalServerError, err)
+	if interactivity == Interactive {
+		err = b.updateHostsAndClusterStatus(ctx, cluster, tx, log)
+		if err != nil {
+			log.WithError(err).Errorf("failed to validate or update cluster %s state or its hosts", cluster.ID)
+			return nil, common.NewApiError(http.StatusInternalServerError, err)
+		}
 	}
 
 	b.updateClusterNetworkVMUsage(cluster, params.ClusterUpdateParams, usages, log)
@@ -1832,16 +1839,12 @@ func (b *bareMetalInventory) updateNonDhcpNetworkParams(updates map[string]inter
 				return common.NewApiError(http.StatusBadRequest, errors.Wrap(err, "Calculate machine network CIDR"))
 			}
 			if primaryMachineNetworkCidr != "" {
-				if network.IsMachineCidrAvailable(cluster) {
-					cluster.MachineNetworks[0].Cidr = models.Subnet(primaryMachineNetworkCidr)
-				} else {
-					cluster.MachineNetworks = []*models.MachineNetwork{{Cidr: models.Subnet(primaryMachineNetworkCidr)}}
-				}
-				// In case we calculated Machine Network automatically (because conditions for
-				// doing so were met), we update the `params` payload so that from the
-				// perspective of the DB write/delete actions it looks like a valid update
-				// operation. Without that we don't have other way to mark this field of the
-				// cluster as dirty.
+				// We set the machine networks in the ClusterUpdateParams, so they will be viewed as part of the request
+				// to update the cluster
+
+				// Earlier in this function, if reqDualStack was false and the MachineNetworks was non-empty, the function
+				// returned with an error.  Therefore, params.ClusterUpdateParams.MachineNetworks is empty here before
+				// the assignment below.
 				params.ClusterUpdateParams.MachineNetworks = []*models.MachineNetwork{{Cidr: models.Subnet(primaryMachineNetworkCidr)}}
 			}
 		}
@@ -2014,8 +2017,9 @@ func (b *bareMetalInventory) updateClusterData(_ context.Context, cluster *commo
 func (b *bareMetalInventory) updateNetworks(db *gorm.DB, params installer.V2UpdateClusterParams, updates map[string]interface{},
 	cluster *common.Cluster, userManagedNetworking, vipDhcpAllocation bool) error {
 	var err error
+	var updated bool
 
-	if params.ClusterUpdateParams.ClusterNetworks != nil {
+	if params.ClusterUpdateParams.ClusterNetworks != nil && !network.AreClusterNetworksIdentical(params.ClusterUpdateParams.ClusterNetworks, cluster.ClusterNetworks) {
 		for _, clusterNetwork := range params.ClusterUpdateParams.ClusterNetworks {
 			if err = network.VerifyClusterOrServiceCIDR(string(clusterNetwork.Cidr)); err != nil {
 				return common.NewApiError(http.StatusBadRequest, errors.Wrapf(err, "Cluster network CIDR %s", string(clusterNetwork.Cidr)))
@@ -2031,24 +2035,32 @@ func (b *bareMetalInventory) updateNetworks(db *gorm.DB, params installer.V2Upda
 			}
 		}
 		cluster.ClusterNetworks = params.ClusterUpdateParams.ClusterNetworks
+		updated = true
 	}
 
-	if params.ClusterUpdateParams.ServiceNetworks != nil {
+	if params.ClusterUpdateParams.ServiceNetworks != nil && !network.AreServiceNetworksIdentical(params.ClusterUpdateParams.ServiceNetworks, cluster.ServiceNetworks) {
 		for _, serviceNetwork := range params.ClusterUpdateParams.ServiceNetworks {
 			if err = network.VerifyClusterOrServiceCIDR(string(serviceNetwork.Cidr)); err != nil {
 				return common.NewApiError(http.StatusBadRequest, errors.Wrapf(err, "Service network CIDR %s", string(serviceNetwork.Cidr)))
 			}
 		}
 		cluster.ServiceNetworks = params.ClusterUpdateParams.ServiceNetworks
+		updated = true
 	}
 
-	if params.ClusterUpdateParams.MachineNetworks != nil {
+	if params.ClusterUpdateParams.MachineNetworks != nil && !network.AreMachineNetworksIdentical(params.ClusterUpdateParams.MachineNetworks, cluster.MachineNetworks) {
 		for _, machineNetwork := range params.ClusterUpdateParams.MachineNetworks {
 			if err = network.VerifyMachineCIDR(string(machineNetwork.Cidr), common.IsSingleNodeCluster(cluster)); err != nil {
 				return common.NewApiError(http.StatusBadRequest, errors.Wrapf(err, "Machine network CIDR '%s'", string(machineNetwork.Cidr)))
 			}
 		}
 		cluster.MachineNetworks = params.ClusterUpdateParams.MachineNetworks
+		updated = true
+	}
+
+	if swag.BoolValue(params.ClusterUpdateParams.VipDhcpAllocation) != swag.BoolValue(cluster.VipDhcpAllocation) ||
+		swag.BoolValue(params.ClusterUpdateParams.UserManagedNetworking) != swag.BoolValue(cluster.UserManagedNetworking) {
+		updated = true
 	}
 
 	if common.IsSliceNonEmpty(params.ClusterUpdateParams.MachineNetworks) {
@@ -2080,8 +2092,11 @@ func (b *bareMetalInventory) updateNetworks(db *gorm.DB, params installer.V2Upda
 			}
 		}
 	}
-
-	return b.updateNetworkTables(db, cluster, params)
+	if updated {
+		updates["trigger_monitor_timestamp"] = time.Now()
+		return b.updateNetworkTables(db, cluster, params)
+	}
+	return nil
 }
 
 func (b *bareMetalInventory) updateNetworkTables(db *gorm.DB, cluster *common.Cluster, params installer.V2UpdateClusterParams) error {
@@ -4987,7 +5002,7 @@ func (b *bareMetalInventory) V2UpdateHostLogsProgress(ctx context.Context, param
 	return installer.NewV2UpdateHostLogsProgressNoContent()
 }
 
-func (b *bareMetalInventory) V2UpdateHostInternal(ctx context.Context, params installer.V2UpdateHostParams) (*common.Host, error) {
+func (b *bareMetalInventory) V2UpdateHostInternal(ctx context.Context, params installer.V2UpdateHostParams, interactivity Interactivity) (*common.Host, error) {
 	log := logutil.FromContext(ctx, b.log)
 	var c *models.Cluster
 	var cluster *common.Cluster
@@ -5061,10 +5076,12 @@ func (b *bareMetalInventory) V2UpdateHostInternal(ctx context.Context, params in
 		}
 	}
 
-	err = b.refreshAfterUpdate(ctx, cluster, host, tx)
-	if err != nil {
-		log.WithError(err).Errorf("Failed to refresh host %s, infra env %s during update", host.ID, host.InfraEnvID)
-		return nil, err
+	if interactivity == Interactive {
+		err = b.refreshAfterUpdate(ctx, cluster, host, tx)
+		if err != nil {
+			log.WithError(err).Errorf("Failed to refresh host %s, infra env %s during update", host.ID, host.InfraEnvID)
+			return nil, err
+		}
 	}
 
 	if err = tx.Commit().Error; err != nil {

@@ -1169,7 +1169,7 @@ func (r *AgentReconciler) updateIfNeeded(ctx context.Context, log logrus.FieldLo
 			models.HostStatusBinding,
 		}
 		if funk.ContainsString(hostStatusesBeforeInstallationOrUnbound, swag.StringValue(internalHost.Status)) {
-			returnedHost, err = r.Installer.V2UpdateHostInternal(ctx, *params)
+			returnedHost, err = r.Installer.V2UpdateHostInternal(ctx, *params, bminventory.NonInteractive)
 
 			if err != nil {
 				log.WithError(err).Errorf("Failed to update host params %s %s", agent.Name, agent.Namespace)
