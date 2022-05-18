@@ -345,6 +345,128 @@ var _ = Describe("oc", func() {
 	})
 })
 
+var _ = Describe("getImageFromRelease", func() {
+	var (
+		oc           *release
+		tempFilePath string
+		ctrl         *gomock.Controller
+		mockExecuter *executer.MockExecuter
+		log          logrus.FieldLogger
+	)
+
+	BeforeEach(func() {
+		ctrl = gomock.NewController(GinkgoT())
+		mockExecuter = executer.NewMockExecuter(ctrl)
+		config := Config{MaxTries: DefaultTries, RetryDelay: time.Millisecond}
+		oc = &release{executer: mockExecuter, config: config, imagesMap: common.NewExpiringCache(time.Hour, time.Hour)}
+		log = logrus.New()
+		tempFilePath = "/tmp/pull-secret"
+		mockExecuter.EXPECT().TempFile(gomock.Any(), gomock.Any()).DoAndReturn(
+			func(dir, pattern string) (*os.File, error) {
+				tempPullSecretFile, err := os.Create(tempFilePath)
+				Expect(err).ShouldNot(HaveOccurred())
+				return tempPullSecretFile, nil
+			},
+		).AnyTimes()
+	})
+	type requester struct {
+		imageName      string
+		releaseName    string
+		expectedResult string
+		timesToRun     int
+	}
+	tests := []struct {
+		name       string
+		requesters []requester
+	}{
+		{
+			name: "Empty",
+		},
+		{
+			name: "Single requester",
+			requesters: []requester{
+				{
+					imageName:      "image1",
+					releaseName:    "release1",
+					expectedResult: "result1",
+					timesToRun:     1,
+				},
+			},
+		},
+		{
+			name: "Multiple requesters",
+			requesters: []requester{
+				{
+					imageName:      "image1",
+					releaseName:    "release1",
+					expectedResult: "result1",
+					timesToRun:     20,
+				},
+			},
+		},
+		{
+			name: "Multiple requesters - two images",
+			requesters: []requester{
+				{
+					imageName:      "image1",
+					releaseName:    "release1",
+					expectedResult: "result1",
+					timesToRun:     20,
+				},
+				{
+					imageName:      "image2",
+					releaseName:    "release2",
+					expectedResult: "result2",
+					timesToRun:     20,
+				},
+			},
+		},
+	}
+	for i := range tests {
+		t := tests[i]
+		It(t.name, func() {
+			for _, r := range t.requesters {
+				mockExecuter.EXPECT().Execute("oc", "adm", "release", "info",
+					"--image-for="+r.imageName, "--insecure=false", r.releaseName,
+					"--registry-config=/tmp/pull-secret").
+					Return(r.expectedResult, "", 0).Times(1)
+			}
+			panicChan := make(chan interface{})
+			doneChan := make(chan bool)
+			numRequesting := 0
+			for l := range t.requesters {
+				r := t.requesters[l]
+				for j := 0; j != r.timesToRun; j++ {
+					numRequesting++
+					go func() {
+						defer func() {
+							if panicVar := recover(); panicVar != nil {
+								panicChan <- panicVar
+							}
+							doneChan <- true
+						}()
+						ret, err := oc.getImageFromRelease(log, r.imageName, r.releaseName, "pull", false)
+						Expect(err).ToNot(HaveOccurred())
+						Expect(ret).To(Equal(r.expectedResult))
+					}()
+				}
+			}
+			for numRequesting > 0 {
+				select {
+				case panicVar := <-panicChan:
+					panic(panicVar)
+				case <-doneChan:
+					numRequesting--
+				}
+			}
+		})
+	}
+
+	AfterEach(func() {
+		ctrl.Finish()
+	})
+})
+
 func splitStringToInterfacesArray(str string) []interface{} {
 	argsAsString := strings.Split(str, " ")
 	argsAsInterface := make([]interface{}, len(argsAsString))
