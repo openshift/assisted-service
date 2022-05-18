@@ -117,6 +117,18 @@ parameters:
 - name: ENABLE_ORG_TENANCY
   value: "false"
   required: false
+- name: MEMORY_LIMIT
+  value: "2.4Gi"
+  required: false
+- name: CPU_LIMIT
+  value: "500m"
+  required: false
+- name: MEMORY_REQUEST
+  value: "1.6Gi"
+  required: false
+- name: CPU_REQUEST
+  value: "300m"
+  required: false
 apiVersion: v1
 kind: Template
 metadata:
@@ -143,11 +155,11 @@ objects:
             imagePullPolicy: Always
             resources:
               limits:
-                cpu: 500m
-                memory: 2000Mi
+                cpu: ${CPU_LIMIT}
+                memory: ${MEMORY_LIMIT}
               requests:
-                cpu: 300m
-                memory: 400Mi
+                cpu: ${CPU_REQUEST}
+                memory: ${MEMORY_REQUEST}
             ports:
               - name: assisted-svc
                 containerPort: 8090
