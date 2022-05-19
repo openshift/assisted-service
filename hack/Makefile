@@ -56,4 +56,4 @@ generate-vendor:
 	cd api && go mod vendor
 	cd models && go mod vendor
 
-generate: generate-vendor generate-from-swagger generate-events generate-mocks generate-configuration
+generate: generate-vendor generate-from-swagger generate-events generate-mocks generate-configuration generate-bundle
