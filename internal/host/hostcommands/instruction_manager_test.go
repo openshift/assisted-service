@@ -237,7 +237,7 @@ var _ = Describe("instruction_manager", func() {
 			})
 			It("installing-in-progress", func() {
 				checkStep(models.HostStatusInstallingInProgress, []models.StepType{
-					models.StepTypeInventory, models.StepTypeDhcpLeaseAllocate,
+					models.StepTypeDhcpLeaseAllocate,
 				})
 			})
 			It("reset", func() {

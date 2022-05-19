@@ -55,10 +55,12 @@ func (f *dhcpAllocateCmd) prepareParam(host *models.Host, cluster *common.Cluste
 }
 
 func (f *dhcpAllocateCmd) GetSteps(ctx context.Context, host *models.Host) ([]*models.Step, error) {
-	cluster, err := common.GetClusterFromDB(f.db, *host.ClusterID, common.UseEagerLoading)
-	if err != nil {
+	cluster := &common.Cluster{}
+	if err := f.db.Preload(common.MachineNetworksTable).Select("id", "vip_dhcp_allocation", "api_vip_lease", "ingress_vip_lease").
+		Take(cluster, "id = ?", host.ClusterID.String()).Error; err != nil {
 		return nil, err
 	}
+
 	/*
 	 * Since this function may be invoked in case that DHCP allocate command should not be sent to the host
 	 * filtering is done here to remove all valid (not errored) cases that the command should not be invoked.

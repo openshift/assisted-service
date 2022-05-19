@@ -253,11 +253,11 @@ func (v *validator) GetPreflightInfraEnvHardwareRequirements(ctx context.Context
 }
 
 func (v *validator) GetInstallationDiskSpeedThresholdMs(ctx context.Context, cluster *common.Cluster, host *models.Host) (int64, error) {
-	requirements, err := v.GetClusterHostRequirements(ctx, cluster, host)
+	ocpRequirements, err := v.getOCPClusterHostRoleRequirementsForVersion(cluster, common.GetEffectiveRole(host))
 	if err != nil {
 		return 0, err
 	}
-	return requirements.Total.InstallationDiskSpeedThresholdMs, nil
+	return ocpRequirements.InstallationDiskSpeedThresholdMs, nil
 }
 
 func totalizeRequirements(ocpRequirements models.ClusterHostRequirementsDetails, operatorRequirements []*models.OperatorHostRequirements) models.ClusterHostRequirementsDetails {
