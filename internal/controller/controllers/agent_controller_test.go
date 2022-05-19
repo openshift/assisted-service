@@ -131,6 +131,7 @@ var _ = Describe("agent reconcile", func() {
 			Name:      "host",
 		}
 		Expect(c.Get(ctx, key, agent)).To(BeNil())
+		Expect(agent.GetLabels()[BaseLabelPrefix+"clusterdeployment-namespace"]).To(Equal(""))
 	})
 
 	It("cluster deployment not found", func() {
@@ -149,6 +150,7 @@ var _ = Describe("agent reconcile", func() {
 		Expect(c.Get(ctx, key, agent)).To(BeNil())
 		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, v1beta1.SpecSyncedCondition).Reason).To(Equal(v1beta1.BackendErrorReason))
 		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, v1beta1.SpecSyncedCondition).Status).To(Equal(corev1.ConditionFalse))
+		Expect(agent.GetLabels()[BaseLabelPrefix+"clusterdeployment-namespace"]).To(Equal(""))
 	})
 
 	It("cluster not found in database", func() {
@@ -375,6 +377,7 @@ var _ = Describe("agent reconcile", func() {
 			Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, v1beta1.SpecSyncedCondition).Status).To(Equal(corev1.ConditionTrue))
 			Expect(agent.Status.DebugInfo.State).To(Equal(models.HostStatusKnown))
 			Expect(agent.Status.DebugInfo.StateInfo).To(Equal("I am known"))
+			Expect(agent.GetLabels()[BaseLabelPrefix+"clusterdeployment-namespace"]).To(Equal("test-namespace"))
 		}
 	})
 
