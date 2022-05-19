@@ -490,7 +490,10 @@ func (v *validator) printDiskEncryptionRequirementsSatisfied(c *validationContex
 		if c.inventory == nil {
 			return "Missing host inventory"
 		}
-		return "Missing role assignment"
+		if common.GetEffectiveRole(c.host) == models.HostRoleAutoAssign {
+			return "Missing role assignment"
+		}
+		return "Missing ignition information"
 	default:
 		return fmt.Sprintf("Unexpected status %s", status)
 	}
