@@ -411,7 +411,7 @@ type installerGenerator struct {
 // IgnitionConfig contains the attributes required to build the discovery ignition file
 type IgnitionConfig struct {
 	AgentDockerImg       string        `envconfig:"AGENT_DOCKER_IMAGE" default:"quay.io/edge-infrastructure/assisted-installer-agent:latest"`
-	AgentTimeoutStart    time.Duration `envconfig:"AGENT_TIMEOUT_START" default:"3m"`
+	AgentTimeoutStart    time.Duration `envconfig:"AGENT_TIMEOUT_START" default:"10m"`
 	InstallRHCa          bool          `envconfig:"INSTALL_RH_CA" default:"false"`
 	ServiceBaseURL       string        `envconfig:"SERVICE_BASE_URL"`
 	ServiceCACertPath    string        `envconfig:"SERVICE_CA_CERT_PATH" default:""`
