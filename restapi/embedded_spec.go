@@ -5668,7 +5668,8 @@ func init() {
           "default": "Full",
           "enum": [
             "Full",
-            "None"
+            "None",
+            "NotApplicable"
           ]
         },
         "http_proxy": {
@@ -7643,7 +7644,8 @@ func init() {
         "role",
         "boot_device",
         "controller_image",
-        "installer_image"
+        "installer_image",
+        "high_availability_mode"
       ],
       "properties": {
         "boot_device": {
@@ -14855,7 +14857,8 @@ func init() {
           "default": "Full",
           "enum": [
             "Full",
-            "None"
+            "None",
+            "NotApplicable"
           ]
         },
         "http_proxy": {
@@ -16762,7 +16765,8 @@ func init() {
         "role",
         "boot_device",
         "controller_image",
-        "installer_image"
+        "installer_image",
+        "high_availability_mode"
       ],
       "properties": {
         "boot_device": {

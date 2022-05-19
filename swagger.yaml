@@ -4180,7 +4180,7 @@ definitions:
         description: Name of the OpenShift cluster.
       high_availability_mode:
         type: string
-        enum: ['Full', 'None']
+        enum: ['Full', 'None', 'NotApplicable']
         default: 'Full'
         description: |
           Guaranteed availability of the installed cluster. 'Full' installs a Highly-Available cluster
@@ -5722,6 +5722,7 @@ definitions:
       - boot_device
       - controller_image
       - installer_image
+      - high_availability_mode
     properties:
       cluster_id:
         type: string

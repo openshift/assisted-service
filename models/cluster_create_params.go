@@ -52,7 +52,7 @@ type ClusterCreateParams struct {
 	// Guaranteed availability of the installed cluster. 'Full' installs a Highly-Available cluster
 	// over multiple master nodes whereas 'None' installs a full cluster over one node.
 	//
-	// Enum: [Full None]
+	// Enum: [Full None NotApplicable]
 	HighAvailabilityMode *string `json:"high_availability_mode,omitempty"`
 
 	// A proxy URL to use for creating HTTP connections outside the cluster.
@@ -303,7 +303,7 @@ var clusterCreateParamsTypeHighAvailabilityModePropEnum []interface{}
 
 func init() {
 	var res []string
-	if err := json.Unmarshal([]byte(`["Full","None"]`), &res); err != nil {
+	if err := json.Unmarshal([]byte(`["Full","None","NotApplicable"]`), &res); err != nil {
 		panic(err)
 	}
 	for _, v := range res {
@@ -318,6 +318,9 @@ const (
 
 	// ClusterCreateParamsHighAvailabilityModeNone captures enum value "None"
 	ClusterCreateParamsHighAvailabilityModeNone string = "None"
+
+	// ClusterCreateParamsHighAvailabilityModeNotApplicable captures enum value "NotApplicable"
+	ClusterCreateParamsHighAvailabilityModeNotApplicable string = "NotApplicable"
 )
 
 // prop value enum
