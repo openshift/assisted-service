@@ -180,14 +180,13 @@ function retry() {
     do
         echo "Attempt ${attempt}/${attempts} to execute \"$*\"..."
 
-        "$@"
-        rc=$?
-        if [[ ${rc} = 0 ]]
-        then
-            break
+        if "$@"; then
+            return 0
+        else
+            rc=$?
+            echo "Failed with exit code ${rc}, retrying \"$*\"..."
+            sleep "${interval}"
         fi
-
-        sleep "${interval}"
     done
 
     return ${rc}
