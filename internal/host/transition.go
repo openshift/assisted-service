@@ -668,7 +668,14 @@ func (th *transitionHandler) HostNotResponsiveWhileInstallation(sw stateswitch.S
 	if !ok {
 		return false, errors.New("HostNotResponsiveWhileInstallation incompatible type of StateSwitch")
 	}
-	return funk.Contains(disconnectionValidationStages, sHost.host.Progress.CurrentStage) && !hostIsResponsive(sHost.host), nil
+	//bootstrap stages are super set of all other nodes stages, so the following stipulation covers
+	//all nodes. connectivity should be checked up until (but not including) rebooting stage
+	rebootIndex := IndexOfStage(models.HostStageRebooting, BootstrapStages[:])
+	if funk.Contains(BootstrapStages[0:rebootIndex], sHost.host.Progress.CurrentStage) {
+		return !hostIsResponsive(sHost.host), nil
+	}
+	//check is not relevan before installation start and after rebooting
+	return false, nil
 }
 
 func getFailedValidations(params *TransitionArgsRefreshHost) []string {

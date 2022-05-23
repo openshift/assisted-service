@@ -117,6 +117,15 @@ func refreshHostStageUpdateTime(
 	return host, nil
 }
 
+func IndexOfStage(element models.HostStage, data []models.HostStage) int {
+	for k, v := range data {
+		if element == v {
+			return k
+		}
+	}
+	return -1 // not found.
+}
+
 // update host role with an option to update only if the current role is srcRole to prevent races
 func updateRole(log logrus.FieldLogger, h *models.Host, role models.HostRole, suggestedRole models.HostRole, db *gorm.DB, srcRole string) error {
 	hostStatus := swag.StringValue(h.Status)

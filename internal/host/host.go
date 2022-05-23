@@ -49,11 +49,6 @@ var InstallationProgressTimeout = map[models.HostStage]time.Duration{
 
 const singleNodeRebootTimeout = 80 * time.Minute
 
-var disconnectionValidationStages = []models.HostStage{
-	models.HostStageWritingImageToDisk,
-	models.HostStageInstalling,
-}
-
 var WrongBootOrderIgnoreTimeoutStages = []models.HostStage{
 	models.HostStageWaitingForControlPlane,
 	models.HostStageWaitingForController,
@@ -510,12 +505,7 @@ func (m *Manager) GetNextSteps(ctx context.Context, host *models.Host) (models.S
 }
 
 func (m *Manager) IndexOfStage(element models.HostStage, data []models.HostStage) int {
-	for k, v := range data {
-		if element == v {
-			return k
-		}
-	}
-	return -1 // not found.
+	return IndexOfStage(element, data)
 }
 
 func (m *Manager) UpdateInstallProgress(ctx context.Context, h *models.Host, progress *models.HostProgress) error {
