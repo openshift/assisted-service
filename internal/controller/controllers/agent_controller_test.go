@@ -1450,11 +1450,51 @@ VU1eS0RiS/Lz6HwRs2mATNY5FrpZOgdM3cI=
 		mockInstallerInternal *bminventory.MockInstallerInternals
 		mockClientFactory     *MockSpokeK8sClientFactory
 	)
-	newAgentClusterInstall := func(name, namespace string) *hiveext.AgentClusterInstall {
+	newAciWithUserManagedNetworkingNoSNO := func(name, namespace string) *hiveext.AgentClusterInstall {
 		return &hiveext.AgentClusterInstall{
 			Spec: hiveext.AgentClusterInstallSpec{
 				Networking: hiveext.Networking{
 					UserManagedNetworking: true,
+				},
+			},
+			TypeMeta: metav1.TypeMeta{
+				Kind:       "AgentClusterInstall",
+				APIVersion: "hiveextension/v1beta1",
+			},
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      name,
+				Namespace: namespace,
+			},
+		}
+	}
+
+	newAciNoUserManagedNetworkingNoSNO := func(name, namespace string) *hiveext.AgentClusterInstall {
+		return &hiveext.AgentClusterInstall{
+			Spec: hiveext.AgentClusterInstallSpec{
+				Networking: hiveext.Networking{
+					UserManagedNetworking: false,
+				},
+			},
+			TypeMeta: metav1.TypeMeta{
+				Kind:       "AgentClusterInstall",
+				APIVersion: "hiveextension/v1beta1",
+			},
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      name,
+				Namespace: namespace,
+			},
+		}
+	}
+
+	newAciNoUserManagedNetworkingWithSNO := func(name, namespace string) *hiveext.AgentClusterInstall {
+		return &hiveext.AgentClusterInstall{
+			Spec: hiveext.AgentClusterInstallSpec{
+				Networking: hiveext.Networking{
+					UserManagedNetworking: false,
+				},
+				ProvisionRequirements: hiveext.ProvisionRequirements{
+					ControlPlaneAgents: 1,
+					WorkerAgents:       0,
 				},
 			},
 			TypeMeta: metav1.TypeMeta{
@@ -1591,8 +1631,6 @@ VU1eS0RiS/Lz6HwRs2mATNY5FrpZOgdM3cI=
 			}}}
 		clusterDeployment := newClusterDeployment("clusterDeployment", testNamespace, getDefaultClusterDeploymentSpec("clusterDeployment-test", "test-cluster-aci", "pull-secret"))
 		Expect(c.Create(ctx, clusterDeployment)).To(BeNil())
-		aci := newAgentClusterInstall("test-cluster-aci", testNamespace)
-		Expect(c.Create(ctx, aci)).To(BeNil())
 		mockInstallerInternal.EXPECT().GetHostByKubeKey(gomock.Any()).Return(commonHost, nil).AnyTimes()
 		agentKey = types.NamespacedName{
 			Namespace: testNamespace,
@@ -1624,6 +1662,7 @@ VU1eS0RiS/Lz6HwRs2mATNY5FrpZOgdM3cI=
 		expectedResult  ctrl.Result
 		expectedStatus  string
 		expectedStage   models.HostStage
+		clusterInstall  *hiveext.AgentClusterInstall
 	}{
 		{
 			name:           "No matching node - No csrs",
@@ -1633,9 +1672,39 @@ VU1eS0RiS/Lz6HwRs2mATNY5FrpZOgdM3cI=
 			expectedResult: ctrl.Result{RequeueAfter: time.Minute},
 			expectedStatus: models.HostStatusAddedToExistingCluster,
 			expectedStage:  models.HostStageRebooting,
+			clusterInstall: newAciWithUserManagedNetworkingNoSNO("test-cluster-aci", testNamespace),
 		},
 		{
-			name:         "Not ready matching node - 1 csrs",
+			name:         "Do not auto approve CSR for Not ready matching node and UserManagedNetworking is false and cluster is not SNO",
+			createClient: false,
+			hostname:     CommonHostname,
+			node: &corev1.Node{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: CommonHostname,
+				},
+				Status: corev1.NodeStatus{
+					Conditions: []corev1.NodeCondition{
+						{
+							Type:   corev1.NodeReady,
+							Status: corev1.ConditionFalse,
+						},
+					},
+					Addresses: []corev1.NodeAddress{
+						{
+							Type:    corev1.NodeInternalIP,
+							Address: "192.168.111.28",
+						},
+					},
+				},
+			},
+			csrs:            serverCsrs(),
+			approveExpected: false,
+			expectedStatus:  models.HostStatusAddedToExistingCluster,
+			expectedStage:   models.HostStageDone,
+			clusterInstall:  newAciNoUserManagedNetworkingNoSNO("test-cluster-aci", testNamespace),
+		},
+		{
+			name:         "Auto approve CSR for Not ready matching node and UserManagedNetworking is true",
 			createClient: true,
 			hostname:     CommonHostname,
 			node: &corev1.Node{
@@ -1664,6 +1733,41 @@ VU1eS0RiS/Lz6HwRs2mATNY5FrpZOgdM3cI=
 			},
 			expectedStatus: models.HostStatusAddedToExistingCluster,
 			expectedStage:  models.HostStageRebooting,
+
+			clusterInstall: newAciWithUserManagedNetworkingNoSNO("test-cluster-aci", testNamespace),
+		},
+		{
+			name:         "Auto approve CSR for Not ready matching node and UserManagedNetworking is false for SNO cluster",
+			createClient: true,
+			hostname:     CommonHostname,
+			node: &corev1.Node{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: CommonHostname,
+				},
+				Status: corev1.NodeStatus{
+					Conditions: []corev1.NodeCondition{
+						{
+							Type:   corev1.NodeReady,
+							Status: corev1.ConditionFalse,
+						},
+					},
+					Addresses: []corev1.NodeAddress{
+						{
+							Type:    corev1.NodeInternalIP,
+							Address: "192.168.111.28",
+						},
+					},
+				},
+			},
+			csrs:            serverCsrs(),
+			approveExpected: true,
+			expectedResult: ctrl.Result{
+				RequeueAfter: time.Minute,
+			},
+			expectedStatus: models.HostStatusAddedToExistingCluster,
+			expectedStage:  models.HostStageRebooting,
+
+			clusterInstall: newAciNoUserManagedNetworkingWithSNO("test-cluster-aci", testNamespace),
 		},
 		{
 			name:            "Get node error",
@@ -1676,6 +1780,7 @@ VU1eS0RiS/Lz6HwRs2mATNY5FrpZOgdM3cI=
 			},
 			expectedStatus: models.HostStatusAddedToExistingCluster,
 			expectedStage:  models.HostStageRebooting,
+			clusterInstall: newAciWithUserManagedNetworkingNoSNO("test-cluster-aci", testNamespace),
 		},
 		{
 			name:            "Node not found with server CSR",
@@ -1689,6 +1794,7 @@ VU1eS0RiS/Lz6HwRs2mATNY5FrpZOgdM3cI=
 			},
 			expectedStatus: models.HostStatusAddedToExistingCluster,
 			expectedStage:  models.HostStageRebooting,
+			clusterInstall: newAciWithUserManagedNetworkingNoSNO("test-cluster-aci", testNamespace),
 		},
 		{
 			name:         "Not done Server CSR",
@@ -1715,6 +1821,7 @@ VU1eS0RiS/Lz6HwRs2mATNY5FrpZOgdM3cI=
 			},
 			expectedStatus: models.HostStatusAddedToExistingCluster,
 			expectedStage:  models.HostStageRebooting,
+			clusterInstall: newAciWithUserManagedNetworkingNoSNO("test-cluster-aci", testNamespace),
 		},
 		{
 			name:         "Done Server CSR",
@@ -1744,6 +1851,7 @@ VU1eS0RiS/Lz6HwRs2mATNY5FrpZOgdM3cI=
 			expectedResult:  ctrl.Result{},
 			expectedStatus:  models.HostStatusAddedToExistingCluster,
 			expectedStage:   models.HostStageDone,
+			clusterInstall:  newAciWithUserManagedNetworkingNoSNO("test-cluster-aci", testNamespace),
 		},
 		{
 			name:            "Not approved client CSR",
@@ -1757,6 +1865,7 @@ VU1eS0RiS/Lz6HwRs2mATNY5FrpZOgdM3cI=
 			},
 			expectedStatus: models.HostStatusAddedToExistingCluster,
 			expectedStage:  models.HostStageRebooting,
+			clusterInstall: newAciWithUserManagedNetworkingNoSNO("test-cluster-aci", testNamespace),
 		},
 		{
 			name:            "Approved client CSR",
@@ -1770,6 +1879,7 @@ VU1eS0RiS/Lz6HwRs2mATNY5FrpZOgdM3cI=
 			},
 			expectedStatus: models.HostStatusAddedToExistingCluster,
 			expectedStage:  models.HostStageRebooting,
+			clusterInstall: newAciWithUserManagedNetworkingNoSNO("test-cluster-aci", testNamespace),
 		},
 		{
 			name:         "Approved Server CSR",
@@ -1796,6 +1906,7 @@ VU1eS0RiS/Lz6HwRs2mATNY5FrpZOgdM3cI=
 			},
 			expectedStatus: models.HostStatusAddedToExistingCluster,
 			expectedStage:  models.HostStageRebooting,
+			clusterInstall: newAciWithUserManagedNetworkingNoSNO("test-cluster-aci", testNamespace),
 		},
 		{
 			name:           "Already done",
@@ -1804,12 +1915,16 @@ VU1eS0RiS/Lz6HwRs2mATNY5FrpZOgdM3cI=
 			expectedResult: ctrl.Result{},
 			expectedStatus: models.HostStatusAddedToExistingCluster,
 			expectedStage:  models.HostStageDone,
+			clusterInstall: newAciWithUserManagedNetworkingNoSNO("test-cluster-aci", testNamespace),
 		},
 	}
 
 	for i := range tests {
 		t := &tests[i]
 		It(t.name, func() {
+
+			Expect(c.Create(ctx, t.clusterInstall)).To(BeNil())
+
 			agentSpec := v1beta1.AgentSpec{ClusterDeploymentName: &v1beta1.ClusterReference{Name: "clusterDeployment", Namespace: testNamespace}}
 			if t.hostname != "" {
 				agentSpec.Hostname = t.hostname
@@ -1838,6 +1953,7 @@ VU1eS0RiS/Lz6HwRs2mATNY5FrpZOgdM3cI=
 			result, err := hr.Reconcile(ctx, hostRequest)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(result).To(Equal(t.expectedResult))
+
 			agent := &v1beta1.Agent{}
 			Expect(c.Get(ctx, agentKey, agent)).To(BeNil())
 			Expect(agent.Status.DebugInfo.State).To(Equal(t.expectedStatus))

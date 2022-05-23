@@ -416,8 +416,8 @@ func (r *AgentReconciler) isDay2NonePlatformHostRebooting(ctx context.Context, a
 func (r *AgentReconciler) updateStatus(ctx context.Context, log logrus.FieldLogger, agent, origAgent *aiv1beta1.Agent, h *models.Host, clusterId *strfmt.UUID, syncErr error, internal bool) (ctrl.Result, error) {
 
 	var (
-		err                 error
-		isNoneDay2Rebooting bool
+		err                   error
+		shouldAutoApproveCSRs bool
 	)
 	ret := ctrl.Result{}
 	specSynced(agent, syncErr, internal)
@@ -442,12 +442,12 @@ func (r *AgentReconciler) updateStatus(ctx context.Context, log logrus.FieldLogg
 		}
 
 		if h.Progress != nil && h.Progress.CurrentStage != "" {
-			if isNoneDay2Rebooting, err = r.isDay2NonePlatformHostRebooting(ctx, agent, h); err != nil {
+			if shouldAutoApproveCSRs, err = r.isDay2NonePlatformHostRebooting(ctx, agent, h); err != nil {
 				log.WithError(err).Errorf("Failed to find if agent %s/%s belongs to none platform cluster and is rebooting", agent.Namespace, agent.Name)
 				return ctrl.Result{RequeueAfter: defaultRequeueAfterOnError}, nil
 			}
 
-			if isNoneDay2Rebooting {
+			if shouldAutoApproveCSRs {
 				agent.Status.Progress.CurrentStage = models.HostStageRebooting
 			} else {
 				agent.Status.Progress.CurrentStage = h.Progress.CurrentStage
@@ -485,7 +485,7 @@ func (r *AgentReconciler) updateStatus(ctx context.Context, log logrus.FieldLogg
 	} else {
 		setConditionsUnknown(agent)
 	}
-	if isNoneDay2Rebooting {
+	if shouldAutoApproveCSRs {
 		alreadyApproved := r.tryApproveDay2CSRs(ctx, agent)
 		if alreadyApproved {
 			agent.Status.Progress.CurrentStage = models.HostStageDone
