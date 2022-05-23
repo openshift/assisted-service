@@ -7177,7 +7177,9 @@ var _ = Describe("infraEnvs", func() {
 				reponse, err := bm.UpdateInfraEnvInternal(ctx, installer.UpdateInfraEnvParams{
 					InfraEnvID:           infraEnvID,
 					InfraEnvUpdateParams: &models.InfraEnvUpdateParams{},
-				})
+				},
+					nil,
+				)
 				Expect(err).ShouldNot(HaveOccurred())
 				Expect(reponse.GeneratedAt).ShouldNot(Equal(strfmt.NewDateTime()))
 			})
@@ -7196,7 +7198,9 @@ var _ = Describe("infraEnvs", func() {
 				response, err := bm.UpdateInfraEnvInternal(ctx, installer.UpdateInfraEnvParams{
 					InfraEnvID:           *i.ID,
 					InfraEnvUpdateParams: &models.InfraEnvUpdateParams{ImageType: models.ImageTypeMinimalIso},
-				})
+				},
+					nil,
+				)
 				Expect(err).ToNot(HaveOccurred())
 
 				parsed, err := url.Parse(response.DownloadURL)
@@ -7240,7 +7244,9 @@ var _ = Describe("infraEnvs", func() {
 				response, err := bm.UpdateInfraEnvInternal(ctx, installer.UpdateInfraEnvParams{
 					InfraEnvID:           boundedInfraEnvID,
 					InfraEnvUpdateParams: &models.InfraEnvUpdateParams{ImageType: models.ImageTypeMinimalIso},
-				})
+				},
+					nil,
+				)
 				Expect(err).ToNot(HaveOccurred())
 
 				parsed, err := url.Parse(response.DownloadURL)
@@ -7278,7 +7284,9 @@ var _ = Describe("infraEnvs", func() {
 					response, err := bm.UpdateInfraEnvInternal(ctx, installer.UpdateInfraEnvParams{
 						InfraEnvID:           infraEnvID,
 						InfraEnvUpdateParams: &models.InfraEnvUpdateParams{ImageType: models.ImageTypeMinimalIso},
-					})
+					},
+						nil,
+					)
 					Expect(err).ToNot(HaveOccurred())
 
 					u, err := url.Parse(response.DownloadURL)
@@ -7300,7 +7308,9 @@ var _ = Describe("infraEnvs", func() {
 					response, err := bm.UpdateInfraEnvInternal(ctx, installer.UpdateInfraEnvParams{
 						InfraEnvID:           infraEnvID,
 						InfraEnvUpdateParams: &models.InfraEnvUpdateParams{ImageType: models.ImageTypeMinimalIso},
-					})
+					},
+						nil,
+					)
 					Expect(err).ToNot(HaveOccurred())
 
 					Expect(response.ExpiresAt.String()).ToNot(Equal("0001-01-01T00:00:00.000Z"))
@@ -7332,7 +7342,9 @@ var _ = Describe("infraEnvs", func() {
 					response, err := bm.UpdateInfraEnvInternal(ctx, installer.UpdateInfraEnvParams{
 						InfraEnvID:           infraEnvID,
 						InfraEnvUpdateParams: params,
-					})
+					},
+						nil,
+					)
 					Expect(err).ToNot(HaveOccurred())
 					return response.DownloadURL
 				}

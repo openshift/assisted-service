@@ -184,7 +184,7 @@ const discoveryIgnitionConfigFormat = `{
   "systemd": {
     "units": [{
       "name": "agent.service",
-      "enabled": true,
+      "enabled": {{if .EnableAgentService}}true{{else}}false{{end}},
       "contents": "[Service]\nType=simple\nRestart=always\nRestartSec=3\nStartLimitInterval=0\nEnvironment=HTTP_PROXY={{.HTTPProxy}}\nEnvironment=http_proxy={{.HTTPProxy}}\nEnvironment=HTTPS_PROXY={{.HTTPSProxy}}\nEnvironment=https_proxy={{.HTTPSProxy}}\nEnvironment=NO_PROXY={{.NoProxy}}\nEnvironment=no_proxy={{.NoProxy}}{{if .PullSecretToken}}\nEnvironment=PULL_SECRET_TOKEN={{.PullSecretToken}}{{end}}\nTimeoutStartSec={{.AgentTimeoutStartSec}}\nExecStartPre=/usr/local/bin/agent-fix-bz1964591 {{.AgentDockerImg}}\nExecStartPre=podman run --privileged --rm -v /usr/local/bin:/hostbin {{.AgentDockerImg}} cp /usr/bin/agent /hostbin\nExecStart=/usr/local/bin/agent --url {{.ServiceBaseURL}} --infra-env-id {{.infraEnvId}} --agent-version {{.AgentDockerImg}} --insecure={{.SkipCertVerification}}  {{if .HostCACertPath}}--cacert {{.HostCACertPath}}{{end}}\n\n[Unit]\nWants=network-online.target\nAfter=network-online.target\n\n[Install]\nWantedBy=multi-user.target"
     },
     {
@@ -1403,6 +1403,7 @@ func (ib *ignitionBuilder) FormatDiscoveryIgnitionFile(ctx context.Context, infr
 		ib.log.WithError(err).Errorln("Unable to build user SSH public key JSON")
 		return "", err
 	}
+
 	var ignitionParams = map[string]interface{}{
 		"userSshKey":           userSshKey,
 		"AgentDockerImg":       cfg.AgentDockerImg,
@@ -1421,6 +1422,7 @@ func (ib *ignitionBuilder) FormatDiscoveryIgnitionFile(ctx context.Context, infr
 		"SkipCertVerification": strconv.FormatBool(cfg.SkipCertVerification),
 		"AgentTimeoutStartSec": strconv.FormatInt(int64(cfg.AgentTimeoutStart.Seconds()), 10),
 		"SELINUX_POLICY":       base64.StdEncoding.EncodeToString([]byte(selinuxPolicy)),
+		"EnableAgentService":   infraEnv.InternalIgnitionConfigOverride == "",
 	}
 	if safeForLogs {
 		for _, key := range []string{"userSshKey", "PullSecretToken", "PULL_SECRET", "RH_ROOT_CA"} {
@@ -1471,7 +1473,6 @@ func (ib *ignitionBuilder) FormatDiscoveryIgnitionFile(ctx context.Context, infr
 		ignitionParams["OKDHoldPivot"] = base64.StdEncoding.EncodeToString([]byte(okdHoldPivot))
 		ignitionParams["OKDHoldAgent"] = base64.StdEncoding.EncodeToString([]byte(okdHoldAgentUntilBinariesLanded))
 	}
-
 	tmpl, err := template.New("ignitionConfig").Parse(discoveryIgnitionConfigFormat)
 	if err != nil {
 		return "", err
@@ -1482,8 +1483,16 @@ func (ib *ignitionBuilder) FormatDiscoveryIgnitionFile(ctx context.Context, infr
 	}
 
 	res := buf.String()
+	if infraEnv.InternalIgnitionConfigOverride != "" {
+		res, err = MergeIgnitionConfig([]byte(res), []byte(infraEnv.InternalIgnitionConfigOverride))
+		if err != nil {
+			return "", err
+		}
+		ib.log.Infof("Applying internal ignition override %s for infra env %s, resulting ignition: %s", infraEnv.InternalIgnitionConfigOverride, infraEnv.ID, res)
+	}
+
 	if infraEnv.IgnitionConfigOverride != "" {
-		res, err = MergeIgnitionConfig(buf.Bytes(), []byte(infraEnv.IgnitionConfigOverride))
+		res, err = MergeIgnitionConfig([]byte(res), []byte(infraEnv.IgnitionConfigOverride))
 		if err != nil {
 			return "", err
 		}

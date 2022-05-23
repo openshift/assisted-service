@@ -58,6 +58,7 @@ import (
 
 const defaultRequeueAfterPerRecoverableError = 2 * bminventory.WindowBetweenRequestsInSeconds
 const InfraEnvFinalizerName = "infraenv." + aiv1beta1.Group + "/ai-deprovision"
+const EnableIronicAgentAnnotation = "infraenv." + aiv1beta1.Group + "/enable-ironic-agent"
 
 type InfraEnvConfig struct {
 	ImageType models.ImageType `envconfig:"ISO_IMAGE_TYPE" default:"minimal-iso"`
@@ -182,7 +183,7 @@ func (r *InfraEnvReconciler) updateInfraEnv(ctx context.Context, log logrus.Fiel
 	updateParams.InfraEnvUpdateParams.ImageType = r.Config.ImageType
 
 	// UpdateInfraEnvInternal will generate an ISO only if there it was not generated before,
-	return r.Installer.UpdateInfraEnvInternal(ctx, updateParams)
+	return r.Installer.UpdateInfraEnvInternal(ctx, updateParams, nil)
 }
 
 func BuildMacInterfaceMap(log logrus.FieldLogger, nmStateConfig aiv1beta1.NMStateConfig) models.MacInterfaceMap {

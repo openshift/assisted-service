@@ -112,6 +112,10 @@ type InfraEnv struct {
 	Hosts []*Host `json:"hosts" gorm:"foreignkey:InfraEnvID;references:ID"`
 
 	ImageTokenKey string `json:"image_token_key"`
+
+	// Json formatted string containing internal overrides for the default ignition config.
+	// This is used for adding ironic ignition config to the assisted ignition config
+	InternalIgnitionConfigOverride string `json:"internal_ignition_config_override,omitempty"`
 }
 
 type EagerLoadingState bool

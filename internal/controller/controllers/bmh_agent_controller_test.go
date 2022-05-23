@@ -44,11 +44,12 @@ var _ = Describe("bmac reconcile", func() {
 		c = fakeclient.NewClientBuilder().WithScheme(schemes).Build()
 		mockCtrl = gomock.NewController(GinkgoT())
 		bmhr = &BMACReconciler{
-			Client:      c,
-			APIReader:   c,
-			Scheme:      scheme.Scheme,
-			Log:         common.GetTestLog(),
-			spokeClient: fakeclient.NewClientBuilder().WithScheme(schemes).Build(),
+			Client:               c,
+			APIReader:            c,
+			Scheme:               scheme.Scheme,
+			Log:                  common.GetTestLog(),
+			spokeClient:          fakeclient.NewClientBuilder().WithScheme(schemes).Build(),
+			ConvergedFlowEnabled: false,
 		}
 	})
 

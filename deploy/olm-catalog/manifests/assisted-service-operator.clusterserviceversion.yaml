@@ -461,6 +461,14 @@ spec:
           verbs:
           - create
         - apiGroups:
+          - config.openshift.io
+          resources:
+          - clusteroperators
+          verbs:
+          - get
+          - list
+          - watch
+        - apiGroups:
           - ""
           resources:
           - configmaps
@@ -590,6 +598,32 @@ spec:
           - patch
           - update
           - watch
+        - apiGroups:
+          - metal3.io
+          resources:
+          - preprovisioningimages
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - metal3.io
+          resources:
+          - preprovisioningimages/status
+          verbs:
+          - get
+          - patch
+          - update
+        - apiGroups:
+          - metal3.io
+          resources:
+          - provisionings
+          verbs:
+          - get
         - apiGroups:
           - monitoring.coreos.com
           resources:

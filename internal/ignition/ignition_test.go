@@ -1098,6 +1098,33 @@ var _ = Describe("IgnitionBuilder", func() {
 		Expect(len(config.Storage.Files)).To(Equal(numOfFiles + 1))
 	})
 
+	It("produces a valid ignition spec with internal overrides", func() {
+		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(1)
+		text, err := builder.FormatDiscoveryIgnitionFile(context.Background(), &infraEnv, IgnitionConfig{}, false, auth.TypeRHSSO)
+		Expect(err).NotTo(HaveOccurred())
+
+		config, report, err := config_31.Parse([]byte(text))
+		Expect(err).NotTo(HaveOccurred())
+		Expect(report.IsFatal()).To(BeFalse())
+		Expect(config.Ignition.Version).To(Equal("3.1.0"))
+		numOfFiles := len(config.Storage.Files)
+		numOfUnits := len(config.Systemd.Units)
+		ironicIgn := `{ "ignition": { "version": "3.2.0" }, "storage": { "files": [ { "group": { }, "overwrite": false, "path": "/etc/ironic-python-agent.conf", "user": { }, "contents": { "source": "data:text/plain,%0A%5BDEFAULT%5D%0Aapi_url%20%3D%20https%3A%2F%2Fironic.redhat.com%3A6385%0Ainspection_callback_url%20%3D%20https%3A%2F%2Fironic.redhat.com%3A5050%2Fv1%2Fcontinue%0Ainsecure%20%3D%20True%0A%0Acollect_lldp%20%3D%20True%0Aenable_vlan_interfaces%20%3D%20all%0Ainspection_collectors%20%3D%20default%2Cextra-hardware%2Clogs%0Ainspection_dhcp_all_interfaces%20%3D%20True%0A", "verification": { } }, "mode": 420 } ] }, "systemd": { "units": [ { "contents": "[Unit]\nDescription=Ironic Agent\nAfter=network-online.target\nWants=network-online.target\n[Service]\nEnvironment=\"HTTP_PROXY=\"\nEnvironment=\"HTTPS_PROXY=\"\nEnvironment=\"NO_PROXY=\"\nTimeoutStartSec=0\nExecStartPre=/bin/podman pull some-ironic-image --tls-verify=false --authfile=/etc/authfile.json\nExecStart=/bin/podman run --privileged --network host --mount type=bind,src=/etc/ironic-python-agent.conf,dst=/etc/ironic-python-agent/ignition.conf --mount type=bind,src=/dev,dst=/dev --mount type=bind,src=/sys,dst=/sys --mount type=bind,src=/run/dbus/system_bus_socket,dst=/run/dbus/system_bus_socket --mount type=bind,src=/,dst=/mnt/coreos --env \"IPA_COREOS_IP_OPTIONS=ip=dhcp\" --name ironic-agent somce-ironic-image\n[Install]\nWantedBy=multi-user.target\n", "enabled": true, "name": "ironic-agent.service" } ] } }`
+		infraEnv.IgnitionConfigOverride = ironicIgn
+		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(1)
+		text, err = builder.FormatDiscoveryIgnitionFile(context.Background(), &infraEnv, IgnitionConfig{}, false, auth.TypeRHSSO)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(text).Should(ContainSubstring("ironic-agent.service"))
+		Expect(text).Should(ContainSubstring("ironic.redhat.com"))
+
+		config2, report, err := config_32.Parse([]byte(text))
+		Expect(err).NotTo(HaveOccurred())
+		Expect(report.IsFatal()).To(BeFalse())
+		Expect(config2.Ignition.Version).To(Equal("3.2.0"))
+		Expect(len(config2.Storage.Files)).To(Equal(numOfFiles + 1))
+		Expect(len(config2.Systemd.Units)).To(Equal(numOfUnits + 1))
+	})
+
 	It("produces a valid ignition spec with v3.2 overrides", func() {
 		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(1)
 		text, err := builder.FormatDiscoveryIgnitionFile(context.Background(), &infraEnv, IgnitionConfig{}, false, auth.TypeRHSSO)
