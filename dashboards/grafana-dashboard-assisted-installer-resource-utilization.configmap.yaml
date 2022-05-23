@@ -6,366 +6,234 @@ data:
         "list": [
           {
             "builtIn": 1,
-            "datasource": "-- Grafana --",
+            "datasource": {
+              "type": "datasource",
+              "uid": "grafana"
+            },
             "enable": true,
             "hide": true,
             "iconColor": "rgba(0, 211, 255, 1)",
             "name": "Annotations & Alerts",
+            "target": {
+              "limit": 100,
+              "matchAny": false,
+              "tags": [],
+              "type": "dashboard"
+            },
             "type": "dashboard"
           }
         ]
       },
       "editable": true,
-      "gnetId": null,
+      "fiscalYearStartMonth": 0,
       "graphTooltip": 0,
-      "id": 9,
-      "iteration": 1603358991153,
+      "iteration": 1652884408673,
       "links": [],
+      "liveNow": false,
       "panels": [
         {
-          "aliasColors": {},
-          "bars": false,
-          "dashLength": 10,
-          "dashes": false,
-          "datasource": "$datasource",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
           "fieldConfig": {
             "defaults": {
-              "custom": {},
-              "links": [],
-              "mappings": [],
+              "mappings": [
+                {
+                  "options": {
+                    "match": "null",
+                    "result": {
+                      "text": "N/A"
+                    }
+                  },
+                  "type": "special"
+                }
+              ],
+              "max": 1,
+              "min": 0,
               "thresholds": {
-                "mode": "absolute",
+                "mode": "percentage",
                 "steps": [
                   {
                     "color": "green",
                     "value": null
                   },
                   {
+                    "color": "#EAB839",
+                    "value": 95
+                  },
+                  {
                     "color": "red",
-                    "value": 80
+                    "value": 100
                   }
                 ]
-              }
+              },
+              "unit": "percentunit"
             },
             "overrides": []
           },
-          "fill": 1,
-          "fillGradient": 0,
           "gridPos": {
-            "h": 9,
-            "w": 24,
+            "h": 7,
+            "w": 5,
             "x": 0,
             "y": 0
           },
-          "hiddenSeries": false,
-          "id": 4,
-          "legend": {
-            "alignAsTable": true,
-            "avg": true,
-            "current": true,
-            "max": true,
-            "min": true,
-            "rightSide": true,
-            "show": true,
-            "total": false,
-            "values": true
-          },
-          "lines": true,
-          "linewidth": 1,
-          "nullPointMode": "null",
+          "id": 30,
+          "links": [],
+          "maxDataPoints": 100,
           "options": {
-            "alertThreshold": true
+            "orientation": "horizontal",
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ],
+              "fields": "",
+              "values": false
+            },
+            "showThresholdLabels": false,
+            "showThresholdMarkers": true,
+            "text": {}
           },
-          "percentage": false,
-          "pluginVersion": "7.2.0",
-          "pointradius": 2,
-          "points": false,
-          "renderer": "flot",
-          "seriesOverrides": [],
-          "spaceLength": 10,
-          "stack": false,
-          "steppedLine": false,
+          "pluginVersion": "8.5.2",
           "targets": [
             {
-              "expr": "sum(rate(container_cpu_usage_seconds_total{pod=~\"assisted-service-.*\"}[5m])) by (pod)",
-              "legendFormat": "{{pod}}",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "gH4yqWBnz"
+              },
+              "editorMode": "code",
+              "expr": "max(rate(container_cpu_usage_seconds_total{namespace=\"$namespace\", container=\"assisted-service\"}[5m])) / max(kube_pod_container_resource_requests{namespace=\"$namespace\", container=\"assisted-service\", resource=\"cpu\"})",
+              "interval": "",
+              "legendFormat": "CPU",
+              "range": true,
               "refId": "A"
-            }
-          ],
-          "thresholds": [],
-          "timeFrom": null,
-          "timeRegions": [],
-          "timeShift": null,
-          "title": "Pod CPU Usage In Seconds",
-          "tooltip": {
-            "shared": true,
-            "sort": 0,
-            "value_type": "individual"
-          },
-          "type": "graph",
-          "xaxis": {
-            "buckets": null,
-            "mode": "time",
-            "name": null,
-            "show": true,
-            "values": []
-          },
-          "yaxes": [
-            {
-              "format": "velocityms",
-              "label": null,
-              "logBase": 1,
-              "max": null,
-              "min": null,
-              "show": true
             },
             {
-              "format": "short",
-              "label": null,
-              "logBase": 1,
-              "max": null,
-              "min": null,
-              "show": true
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              },
+              "editorMode": "code",
+              "expr": "sum(rate(container_memory_working_set_bytes{namespace=\"$namespace\",pod=~\"assisted-service-.*\",container=\"assisted-service\"}[5m])) / sum(kube_pod_container_resource_requests{namespace=\"$namespace\",pod=~\"assisted-service-.*\",container=\"assisted-service\",resource=\"memory\"}) * 100",
+              "hide": false,
+              "legendFormat": "Memory",
+              "range": true,
+              "refId": "B"
             }
           ],
-          "yaxis": {
-            "align": false,
-            "alignLevel": null
-          }
+          "title": "Pods Resource Utilization/Requests",
+          "type": "gauge"
         },
         {
-          "aliasColors": {},
-          "bars": false,
-          "dashLength": 10,
-          "dashes": false,
-          "datasource": "$datasource",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
           "fieldConfig": {
             "defaults": {
-              "custom": {},
-              "links": [],
-              "mappings": [],
+              "mappings": [
+                {
+                  "options": {
+                    "match": "null",
+                    "result": {
+                      "text": "N/A"
+                    }
+                  },
+                  "type": "special"
+                }
+              ],
+              "max": 1,
+              "min": 0,
               "thresholds": {
-                "mode": "absolute",
+                "mode": "percentage",
                 "steps": [
                   {
                     "color": "green",
                     "value": null
                   },
                   {
+                    "color": "#EAB839",
+                    "value": 95
+                  },
+                  {
                     "color": "red",
-                    "value": 80
+                    "value": 100
                   }
                 ]
-              }
+              },
+              "unit": "percentunit"
             },
             "overrides": []
           },
-          "fill": 1,
-          "fillGradient": 0,
           "gridPos": {
             "h": 7,
-            "w": 24,
-            "x": 0,
-            "y": 9
+            "w": 5,
+            "x": 5,
+            "y": 0
           },
-          "hiddenSeries": false,
-          "id": 2,
-          "legend": {
-            "alignAsTable": true,
-            "avg": true,
-            "current": true,
-            "max": true,
-            "min": true,
-            "rightSide": true,
-            "show": true,
-            "sort": "avg",
-            "sortDesc": true,
-            "total": false,
-            "values": true
-          },
-          "lines": true,
-          "linewidth": 1,
-          "nullPointMode": "null",
+          "id": 36,
+          "links": [],
+          "maxDataPoints": 100,
           "options": {
-            "alertThreshold": true
+            "orientation": "horizontal",
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ],
+              "fields": "",
+              "values": false
+            },
+            "showThresholdLabels": false,
+            "showThresholdMarkers": true,
+            "text": {}
           },
-          "percentage": false,
-          "pluginVersion": "7.2.0",
-          "pointradius": 2,
-          "points": false,
-          "renderer": "flot",
-          "seriesOverrides": [],
-          "spaceLength": 10,
-          "stack": false,
-          "steppedLine": false,
+          "pluginVersion": "8.5.2",
           "targets": [
             {
-              "expr": "sum(container_memory_usage_bytes{pod=~\"assisted-service-.*\"}) by (pod) / 1048576",
-              "legendFormat": "{{pod}}",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "gH4yqWBnz"
+              },
+              "editorMode": "code",
+              "expr": "max(rate(container_cpu_usage_seconds_total{namespace=\"$namespace\", container=\"assisted-service\"}[5m])) / max(kube_pod_container_resource_limits{namespace=\"$namespace\", container=\"assisted-service\", resource=\"cpu\"})",
+              "interval": "",
+              "legendFormat": "CPU",
+              "range": true,
               "refId": "A"
-            }
-          ],
-          "thresholds": [],
-          "timeFrom": null,
-          "timeRegions": [],
-          "timeShift": null,
-          "title": "Pod Memory Usage In Megabytes",
-          "tooltip": {
-            "shared": true,
-            "sort": 0,
-            "value_type": "individual"
-          },
-          "type": "graph",
-          "xaxis": {
-            "buckets": null,
-            "mode": "time",
-            "name": null,
-            "show": true,
-            "values": []
-          },
-          "yaxes": [
-            {
-              "format": "decmbytes",
-              "label": null,
-              "logBase": 1,
-              "max": null,
-              "min": null,
-              "show": true
             },
             {
-              "format": "short",
-              "label": null,
-              "logBase": 1,
-              "max": null,
-              "min": null,
-              "show": true
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              },
+              "editorMode": "code",
+              "expr": "sum(rate(container_memory_working_set_bytes{namespace=\"$namespace\",pod=~\"assisted-service-.*\", container=\"assisted-service\"}[5m])) / sum(kube_pod_container_resource_limits{namespace=\"$namespace\",pod=~\"assisted-service-.*\",resource=\"memory\"}) * 100",
+              "hide": false,
+              "legendFormat": "Memory",
+              "range": true,
+              "refId": "B"
             }
           ],
-          "yaxis": {
-            "align": false,
-            "alignLevel": null
-          }
+          "title": "Pods Resource Utilization/Limits",
+          "type": "gauge"
         },
         {
-          "aliasColors": {},
-          "bars": false,
-          "dashLength": 10,
-          "dashes": false,
-          "datasource": "$datasource",
+          "datasource": {
+            "uid": "${datasource}"
+          },
           "fieldConfig": {
             "defaults": {
-              "custom": {},
-              "links": [],
-              "mappings": [],
-              "thresholds": {
-                "mode": "absolute",
-                "steps": [
-                  {
-                    "color": "green",
-                    "value": null
+              "mappings": [
+                {
+                  "options": {
+                    "match": "null",
+                    "result": {
+                      "text": "N/A"
+                    }
                   },
-                  {
-                    "color": "red",
-                    "value": 80
-                  }
-                ]
-              }
-            },
-            "overrides": []
-          },
-          "fill": 1,
-          "fillGradient": 0,
-          "gridPos": {
-            "h": 6,
-            "w": 19,
-            "x": 0,
-            "y": 16
-          },
-          "hiddenSeries": false,
-          "id": 6,
-          "legend": {
-            "alignAsTable": true,
-            "avg": true,
-            "current": true,
-            "max": true,
-            "min": true,
-            "rightSide": true,
-            "show": true,
-            "sort": "avg",
-            "sortDesc": true,
-            "total": false,
-            "values": true
-          },
-          "lines": true,
-          "linewidth": 1,
-          "nullPointMode": "null",
-          "options": {
-            "alertThreshold": true
-          },
-          "percentage": false,
-          "pluginVersion": "7.2.0",
-          "pointradius": 2,
-          "points": false,
-          "renderer": "flot",
-          "seriesOverrides": [],
-          "spaceLength": 10,
-          "stack": false,
-          "steppedLine": false,
-          "targets": [
-            {
-              "expr": "sum(rate(haproxy_backend_connections_total{route=\"assisted-service\"}[5m])) by (pod)",
-              "legendFormat": "{{pod}}",
-              "refId": "A"
-            }
-          ],
-          "thresholds": [],
-          "timeFrom": null,
-          "timeRegions": [],
-          "timeShift": null,
-          "title": "HAProxy Backend Connections",
-          "tooltip": {
-            "shared": true,
-            "sort": 0,
-            "value_type": "individual"
-          },
-          "type": "graph",
-          "xaxis": {
-            "buckets": null,
-            "mode": "time",
-            "name": null,
-            "show": true,
-            "values": []
-          },
-          "yaxes": [
-            {
-              "decimals": null,
-              "format": "connections",
-              "label": "",
-              "logBase": 1,
-              "max": null,
-              "min": null,
-              "show": true
-            },
-            {
-              "format": "short",
-              "label": "",
-              "logBase": 1,
-              "max": null,
-              "min": null,
-              "show": true
-            }
-          ],
-          "yaxis": {
-            "align": false,
-            "alignLevel": null
-          }
-        },
-        {
-          "datasource": "$datasource",
-          "fieldConfig": {
-            "defaults": {
-              "custom": {},
-              "mappings": [],
+                  "type": "special"
+                }
+              ],
               "thresholds": {
                 "mode": "absolute",
                 "steps": [
@@ -375,78 +243,503 @@ data:
                   }
                 ]
               },
-              "unit": "none"
+              "unit": "bytes"
             },
             "overrides": []
           },
           "gridPos": {
-            "h": 6,
-            "w": 5,
-            "x": 19,
-            "y": 16
+            "h": 7,
+            "w": 7,
+            "x": 10,
+            "y": 0
           },
-          "id": 7,
+          "id": 31,
+          "links": [],
+          "maxDataPoints": 100,
           "options": {
-            "orientation": "auto",
+            "colorMode": "value",
+            "graphMode": "area",
+            "justifyMode": "auto",
+            "orientation": "horizontal",
             "reduceOptions": {
               "calcs": [
-                "mean"
+                "lastNotNull"
               ],
               "fields": "",
               "values": false
             },
-            "showThresholdLabels": false,
-            "showThresholdMarkers": true
+            "text": {},
+            "textMode": "auto"
           },
-          "pluginVersion": "7.2.0",
+          "pluginVersion": "8.5.2",
           "targets": [
             {
-              "expr": "sum(rate(haproxy_backend_connections_total{route=\"assisted-service\"}[5m]))",
+              "expr": "sum (container_network_receive_bytes_total{namespace=\"$namespace\",pod=~\"assisted-service-.*\"})",
+              "interval": "",
               "legendFormat": "",
               "refId": "A"
             }
           ],
-          "timeFrom": null,
-          "timeShift": null,
-          "title": "HAProxy Backend Connections Total",
-          "type": "gauge"
+          "title": "Pods Network Received ",
+          "type": "stat"
         },
         {
-          "content": "\n# Database Metrics - AWS RDS\n\nFind those under the main AWS-RDS Grafana Folder.\n\n* [AWS-RDS Production](https://grafana.app-sre.devshift.net/d/AWSRDSdbi/aws-rds?orgId=1&var-datasource=AWS%20app-sre&var-region=default&var-dbinstanceidentifier=assisted-installer)\n\n\n* [AWS-RDS Stage](https://grafana.app-sre.devshift.net/d/AWSRDSdbi/aws-rds?orgId=1&var-datasource=AWS%20app-sre&var-region=default&var-dbinstanceidentifier=assisted-installer-stage)",
-          "datasource": "app-sre-prod-04-prometheus",
+          "datasource": {
+            "uid": "${datasource}"
+          },
           "fieldConfig": {
             "defaults": {
-              "custom": {}
+              "mappings": [
+                {
+                  "options": {
+                    "match": "null",
+                    "result": {
+                      "text": "N/A"
+                    }
+                  },
+                  "type": "special"
+                }
+              ],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  }
+                ]
+              },
+              "unit": "bytes"
             },
             "overrides": []
           },
           "gridPos": {
-            "h": 5,
-            "w": 24,
-            "x": 0,
-            "y": 22
+            "h": 7,
+            "w": 7,
+            "x": 17,
+            "y": 0
           },
-          "id": 5,
-          "mode": "markdown",
+          "id": 32,
+          "links": [],
+          "maxDataPoints": 100,
           "options": {
-            "content": "\n# Database Metrics - AWS RDS\n\nFind those under the main AWS-RDS Grafana Folder.\n\n* [AWS-RDS Production](https://grafana.app-sre.devshift.net/d/AWSRDSdbi/aws-rds?orgId=1&var-datasource=AWS%20app-sre&var-region=default&var-dbinstanceidentifier=assisted-installer)\n\n\n* [AWS-RDS Stage](https://grafana.app-sre.devshift.net/d/AWSRDSdbi/aws-rds?orgId=1&var-datasource=AWS%20app-sre&var-region=default&var-dbinstanceidentifier=assisted-installer-stage)",
-            "mode": "markdown"
+            "colorMode": "value",
+            "graphMode": "area",
+            "justifyMode": "auto",
+            "orientation": "horizontal",
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ],
+              "fields": "",
+              "values": false
+            },
+            "text": {},
+            "textMode": "auto"
           },
-          "pluginVersion": "7.1.0",
+          "pluginVersion": "8.5.2",
           "targets": [
             {
-              "expr": "sum(container_memory_usage_bytes{pod=~\"assisted-service-.*\"}) by (pod) / 1048576",
+              "expr": "sum (container_network_transmit_bytes_total{namespace=\"$namespace\",pod=~\"assisted-service-.*\"})",
+              "interval": "",
+              "legendFormat": "",
               "refId": "A"
             }
           ],
-          "timeFrom": null,
-          "timeShift": null,
-          "title": "External Services",
-          "type": "text"
+          "title": "Pods Network Transmited ",
+          "type": "stat"
+        },
+        {
+          "aliasColors": {},
+          "bars": false,
+          "dashLength": 10,
+          "dashes": false,
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "links": []
+            },
+            "overrides": []
+          },
+          "fill": 0,
+          "fillGradient": 0,
+          "gridPos": {
+            "h": 8,
+            "w": 24,
+            "x": 0,
+            "y": 7
+          },
+          "hiddenSeries": false,
+          "id": 33,
+          "legend": {
+            "alignAsTable": true,
+            "avg": true,
+            "current": true,
+            "max": true,
+            "min": true,
+            "rightSide": true,
+            "show": true,
+            "total": false,
+            "values": true
+          },
+          "lines": true,
+          "linewidth": 1,
+          "links": [],
+          "nullPointMode": "null",
+          "options": {
+            "alertThreshold": true
+          },
+          "percentage": false,
+          "pluginVersion": "8.5.2",
+          "pointradius": 5,
+          "points": false,
+          "renderer": "flot",
+          "seriesOverrides": [
+            {
+              "$$hashKey": "object:119",
+              "alias": "Requests",
+              "color": "#FADE2A",
+              "dashes": true
+            },
+            {
+              "$$hashKey": "object:131",
+              "alias": "Limits",
+              "color": "#F2495C",
+              "dashes": true
+            },
+            {
+              "$$hashKey": "object:143",
+              "alias": "Average throttled",
+              "color": "#FFA6B0",
+              "fill": 1,
+              "zindex": -1
+            }
+          ],
+          "spaceLength": 10,
+          "stack": false,
+          "steppedLine": false,
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "gH4yqWBnz"
+              },
+              "expr": "sum(rate(container_cpu_usage_seconds_total {namespace=\"$namespace\",pod=~\"assisted-service-.*\"\n} [5m])) by (pod)",
+              "interval": "",
+              "legendFormat": "{{ pod }}",
+              "refId": "A"
+            },
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              },
+              "editorMode": "code",
+              "expr": "max(kube_pod_container_resource_requests{namespace=\"$namespace\", container=\"assisted-service\", resource=\"cpu\"}) by (container)",
+              "hide": false,
+              "legendFormat": "Requests",
+              "range": true,
+              "refId": "B"
+            },
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              },
+              "editorMode": "code",
+              "expr": "max(kube_pod_container_resource_limits{namespace=\"$namespace\", container=\"assisted-service\", resource=\"cpu\"}) by (container)",
+              "hide": false,
+              "legendFormat": "Limits",
+              "range": true,
+              "refId": "C"
+            },
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              },
+              "editorMode": "code",
+              "expr": "avg(rate( container_cpu_cfs_throttled_seconds_total{namespace=\"$namespace\",pod=~\"assisted-service-.*\"\n} [5m]))",
+              "hide": false,
+              "legendFormat": "Average throttled",
+              "range": true,
+              "refId": "D"
+            }
+          ],
+          "thresholds": [],
+          "timeRegions": [],
+          "title": "Pods CPU Usage",
+          "tooltip": {
+            "shared": true,
+            "sort": 0,
+            "value_type": "individual"
+          },
+          "type": "graph",
+          "xaxis": {
+            "mode": "time",
+            "show": true,
+            "values": []
+          },
+          "yaxes": [
+            {
+              "$$hashKey": "object:388",
+              "format": "short",
+              "logBase": 1,
+              "show": true
+            },
+            {
+              "$$hashKey": "object:389",
+              "format": "short",
+              "logBase": 1,
+              "show": true
+            }
+          ],
+          "yaxis": {
+            "align": false
+          }
+        },
+        {
+          "aliasColors": {},
+          "bars": false,
+          "dashLength": 10,
+          "dashes": false,
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "links": [],
+              "unit": "bytes"
+            },
+            "overrides": []
+          },
+          "fill": 1,
+          "fillGradient": 0,
+          "gridPos": {
+            "h": 8,
+            "w": 24,
+            "x": 0,
+            "y": 15
+          },
+          "hiddenSeries": false,
+          "id": 34,
+          "legend": {
+            "alignAsTable": true,
+            "avg": true,
+            "current": true,
+            "max": true,
+            "min": true,
+            "rightSide": true,
+            "show": true,
+            "total": false,
+            "values": true
+          },
+          "lines": true,
+          "linewidth": 1,
+          "links": [],
+          "nullPointMode": "null",
+          "options": {
+            "alertThreshold": true
+          },
+          "percentage": false,
+          "pluginVersion": "8.5.2",
+          "pointradius": 5,
+          "points": false,
+          "renderer": "flot",
+          "seriesOverrides": [
+            {
+              "$$hashKey": "object:338",
+              "alias": "Requests",
+              "color": "#FADE2A",
+              "dashLength": 3,
+              "dashes": true,
+              "fill": 0
+            },
+            {
+              "$$hashKey": "object:357",
+              "alias": "Limits",
+              "color": "#F2495C",
+              "dashLength": 3,
+              "dashes": true,
+              "fill": 0
+            }
+          ],
+          "spaceLength": 10,
+          "stack": false,
+          "steppedLine": false,
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "gH4yqWBnz"
+              },
+              "expr": "sum(container_memory_working_set_bytes{namespace=\"$namespace\", pod=~\"assisted-service-.*\", container=\"assisted-service\"}) by (pod)",
+              "interval": "",
+              "legendFormat": "{{ pod }}",
+              "refId": "A"
+            },
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              },
+              "editorMode": "code",
+              "expr": "sum(kube_pod_container_resource_requests{namespace=\"$namespace\", pod=~\"assisted-service-.*\", container=\"assisted-service\", resource=\"memory\"}) by (pod)",
+              "hide": false,
+              "legendFormat": "Requests",
+              "range": true,
+              "refId": "B"
+            },
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              },
+              "editorMode": "code",
+              "expr": "sum(kube_pod_container_resource_limits{namespace=\"$namespace\", pod=~\"assisted-service-.*\", container=\"assisted-service\", resource=\"memory\"}) by (pod)",
+              "hide": false,
+              "legendFormat": "Limits",
+              "range": true,
+              "refId": "C"
+            }
+          ],
+          "thresholds": [],
+          "timeRegions": [],
+          "title": "Pods Memory Usage",
+          "tooltip": {
+            "shared": true,
+            "sort": 0,
+            "value_type": "individual"
+          },
+          "type": "graph",
+          "xaxis": {
+            "mode": "time",
+            "show": true,
+            "values": []
+          },
+          "yaxes": [
+            {
+              "$$hashKey": "object:388",
+              "format": "bytes",
+              "logBase": 1,
+              "show": true
+            },
+            {
+              "$$hashKey": "object:389",
+              "format": "short",
+              "logBase": 1,
+              "show": true
+            }
+          ],
+          "yaxis": {
+            "align": false
+          }
+        },
+        {
+          "aliasColors": {},
+          "bars": false,
+          "dashLength": 10,
+          "dashes": false,
+          "datasource": {
+            "uid": "${datasource}"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "links": [],
+              "unit": "binBps"
+            },
+            "overrides": []
+          },
+          "fill": 1,
+          "fillGradient": 0,
+          "gridPos": {
+            "h": 8,
+            "w": 24,
+            "x": 0,
+            "y": 23
+          },
+          "hiddenSeries": false,
+          "id": 35,
+          "legend": {
+            "alignAsTable": true,
+            "avg": true,
+            "current": true,
+            "max": true,
+            "min": true,
+            "rightSide": true,
+            "show": true,
+            "total": false,
+            "values": true
+          },
+          "lines": true,
+          "linewidth": 1,
+          "links": [],
+          "nullPointMode": "null",
+          "options": {
+            "alertThreshold": true
+          },
+          "percentage": false,
+          "pluginVersion": "8.5.2",
+          "pointradius": 5,
+          "points": false,
+          "renderer": "flot",
+          "seriesOverrides": [],
+          "spaceLength": 10,
+          "stack": false,
+          "steppedLine": false,
+          "targets": [
+            {
+              "expr": "sum (rate (container_network_receive_bytes_total{namespace=\"$namespace\",pod=~\"assisted-service-.*\"}[5m])) by (pod)",
+              "interval": "",
+              "legendFormat": "-> {{ pod }}",
+              "refId": "A"
+            },
+            {
+              "expr": "- sum (rate (container_network_transmit_bytes_total{namespace=\"$namespace\",pod=~\"assisted-service-.*\"}[5m])) by (pod)",
+              "interval": "",
+              "legendFormat": "<- {{ pod }}",
+              "refId": "B"
+            }
+          ],
+          "thresholds": [],
+          "timeRegions": [],
+          "title": "Pods Network Usage",
+          "tooltip": {
+            "shared": true,
+            "sort": 0,
+            "value_type": "individual"
+          },
+          "type": "graph",
+          "xaxis": {
+            "mode": "time",
+            "show": true,
+            "values": []
+          },
+          "yaxes": [
+            {
+              "$$hashKey": "object:388",
+              "format": "binBps",
+              "logBase": 1,
+              "show": true
+            },
+            {
+              "$$hashKey": "object:389",
+              "format": "short",
+              "logBase": 1,
+              "show": true
+            }
+          ],
+          "yaxis": {
+            "align": false
+          }
         }
       ],
       "refresh": false,
-      "schemaVersion": 26,
+      "schemaVersion": 36,
       "style": "dark",
       "tags": [],
       "templating": {
@@ -459,7 +752,7 @@ data:
             },
             "hide": 0,
             "includeAll": false,
-            "label": null,
+            "label": "datasource",
             "multi": false,
             "name": "datasource",
             "options": [],
@@ -469,11 +762,41 @@ data:
             "regex": "",
             "skipUrlSync": false,
             "type": "datasource"
+          },
+          {
+            "current": {
+              "selected": true,
+              "text": "assisted-installer-production",
+              "value": "assisted-installer-production"
+            },
+            "datasource": {
+              "type": "prometheus",
+              "uid": "$datasource"
+            },
+            "definition": "label_values(namespace)",
+            "hide": 0,
+            "includeAll": false,
+            "label": "namespace",
+            "multi": false,
+            "name": "namespace",
+            "options": [],
+            "query": {
+              "query": "label_values(namespace)",
+              "refId": "app-sre-prod-04-prometheus-namespace-Variable-Query"
+            },
+            "refresh": 1,
+            "regex": "/assisted-installer.*/",
+            "skipUrlSync": false,
+            "sort": 0,
+            "tagValuesQuery": "",
+            "tagsQuery": "",
+            "type": "query",
+            "useTags": false
           }
         ]
       },
       "time": {
-        "from": "now-7d",
+        "from": "now-6h",
         "to": "now"
       },
       "timepicker": {
@@ -488,17 +811,22 @@ data:
           "1h",
           "2h",
           "1d"
+        ],
+        "time_options": [
+          "5m",
+          "15m",
+          "1h",
+          "6h",
+          "12h",
+          "24h",
+          "2d",
+          "7d",
+          "30d"
         ]
       },
       "timezone": "",
-      "title": "Resource Utilization",
-      "uid": "assisted-installer-resource-utilization",
-      "version": 1
+      "title": "Assisted Service Resource Dashboard",
+      "uid": "assisted-service-resource-dashboard",
+      "version": 1,
+      "weekStart": ""
     }
-kind: ConfigMap
-metadata:
-  name: assisted-installer-resource-utilization
-  labels:
-    grafana_dashboard: "true"
-  annotations:
-    grafana-folder: /grafana-dashboard-definitions/AssistedInstaller
