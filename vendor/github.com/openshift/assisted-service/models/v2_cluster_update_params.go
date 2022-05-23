@@ -111,9 +111,6 @@ type V2ClusterUpdateParams struct {
 	// SSH public key for debugging OpenShift nodes.
 	SSHPublicKey *string `json:"ssh_public_key,omitempty"`
 
-	// False if the scheduling of workloads on masters has been set by the user through the API.
-	UseSchedulingDefaults *bool `json:"use_scheduling_defaults,omitempty"`
-
 	// Indicate if the networking is managed by the user.
 	UserManagedNetworking *bool `json:"user_managed_networking,omitempty"`
 
