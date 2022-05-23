@@ -84,6 +84,9 @@ type InstallCmdRequest struct {
 
 	// List of service ips
 	ServiceIps []string `json:"service_ips"`
+
+	// Skip formatting installation disk
+	SkipInstallationDiskCleanup bool `json:"skip_installation_disk_cleanup,omitempty"`
 }
 
 // Validate validates this install cmd request

@@ -2371,7 +2371,8 @@ var _ = Describe("UpdateImageStatus", func() {
 	}
 
 	tests := []struct {
-		name                  string
+		name string
+
 		originalImageStatuses common.ImageStatuses
 		newImageStatus        *models.ContainerImageAvailability
 		changeInDB            bool
