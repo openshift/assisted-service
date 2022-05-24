@@ -262,11 +262,11 @@ var _ = Describe("s3client", func() {
 				Return(&s3.CreateMultipartUploadOutput{UploadId: aws.String(uploadID)}, nil)
 			mockAPI.EXPECT().UploadPartCopyWithContext(gomock.Any(), &s3.UploadPartCopyInput{Bucket: &bucket, Key: aws.String(destObjName), PartNumber: aws.Int64(1),
 				CopySource: aws.String(copySource), CopySourceRange: aws.String("bytes=0-8302591"), UploadId: aws.String(uploadID)}).
-				DoAndReturn(func(args ...interface{}) (*s3.UploadPartCopyOutput, error) {
+				DoAndReturn(func(arg0 interface{}, arg1 interface{}, args ...interface{}) (*s3.UploadPartCopyOutput, error) {
 					cancel()
 					return &s3.UploadPartCopyOutput{CopyPartResult: &s3.CopyPartResult{ETag: aws.String("etag")}}, errors.New("failed")
 				})
-			mockAPI.EXPECT().UploadPartCopyWithContext(gomock.Any(), gomock.Any()).
+			mockAPI.EXPECT().UploadPartCopyWithContext(gomock.Any(), gomock.Any(), gomock.Any()).
 				Return(&s3.UploadPartCopyOutput{CopyPartResult: &s3.CopyPartResult{ETag: aws.String("etagfoo")}}, nil).AnyTimes()
 			mockAPI.EXPECT().UploadPart(gomock.Any()).Return(&s3.UploadPartOutput{ETag: aws.String("etagbar")}, nil).AnyTimes()
 			// validate that the context that is being used is not the canceled context

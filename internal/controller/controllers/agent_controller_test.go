@@ -346,15 +346,15 @@ var _ = Describe("agent reconcile", func() {
 				return c.Get(ctx, name, cd)
 			},
 		).Times(2)
-		mockClient.EXPECT().Update(gomock.Any(), gomock.AssignableToTypeOf(&v1beta1.Agent{})).DoAndReturn(
-			func(ctx context.Context, agent *v1beta1.Agent) error {
-				return c.Update(ctx, agent)
+		mockClient.EXPECT().Update(gomock.Any(), gomock.AssignableToTypeOf(&v1beta1.Agent{}), gomock.Any()).DoAndReturn(
+			func(ctx context.Context, agent *v1beta1.Agent, opts ...client.UpdateOption) error {
+				return c.Update(ctx, agent, opts...)
 			},
 		).Times(1)
 		mockClient.EXPECT().Status().Return(mockClient).Times(1)
-		mockClient.EXPECT().Update(gomock.Any(), gomock.AssignableToTypeOf(&v1beta1.Agent{})).DoAndReturn(
-			func(ctx context.Context, agent *v1beta1.Agent) error {
-				return c.Status().Update(ctx, agent)
+		mockClient.EXPECT().Update(gomock.Any(), gomock.AssignableToTypeOf(&v1beta1.Agent{}), gomock.Any()).DoAndReturn(
+			func(ctx context.Context, agent *v1beta1.Agent, opts ...client.UpdateOption) error {
+				return c.Status().Update(ctx, agent, opts...)
 			},
 		).Times(1)
 
