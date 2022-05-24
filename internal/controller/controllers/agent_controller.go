@@ -880,15 +880,14 @@ func (r *AgentReconciler) updateNtpSources(log logrus.FieldLogger, host *models.
 }
 
 func (r *AgentReconciler) updateInventoryAndLabels(log logrus.FieldLogger, ctx context.Context, host *models.Host, agent *aiv1beta1.Agent) error {
-	var inventory models.Inventory
 	if host.Inventory == "" {
-		log.Debugf("Host %s inventory not set", agent.Name)
-		inventory = models.Inventory{}
-	} else {
-		if err := json.Unmarshal([]byte(host.Inventory), &inventory); err != nil {
-			log.WithError(err).Errorf("Failed to unmarshal host inventory")
-			return err
-		}
+		log.Debugf("Skip update inventory: Host %s inventory not set", agent.Name)
+		return nil
+	}
+	var inventory models.Inventory
+	if err := json.Unmarshal([]byte(host.Inventory), &inventory); err != nil {
+		log.WithError(err).Errorf("Failed to unmarshal host inventory")
+		return err
 	}
 
 	agent.Status.Inventory.Hostname = inventory.Hostname
