@@ -1,0 +1,7 @@
+vendor/*/** linguist-generated=true
+api/vendor/*/** linguist-generated=true
+models/vendor/*/** linguist-generated=true
+restapi/** linguist-generated=true
+client/** linguist-generated=true
+models/*.go linguist-generated=true
+**/mock_*.go linguist-generated=true
