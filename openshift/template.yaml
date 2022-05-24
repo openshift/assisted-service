@@ -118,13 +118,13 @@ parameters:
   value: "false"
   required: false
 - name: MEMORY_LIMIT
-  value: "2.4Gi"
+  value: "2.55G"
   required: false
 - name: CPU_LIMIT
   value: "500m"
   required: false
 - name: MEMORY_REQUEST
-  value: "1.6Gi"
+  value: "1.7G"
   required: false
 - name: CPU_REQUEST
   value: "300m"
