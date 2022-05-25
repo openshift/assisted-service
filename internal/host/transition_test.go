@@ -1423,7 +1423,7 @@ var _ = Describe("Refresh Host", func() {
 		}
 	})
 
-	Context("host disconnected & installation timeout", func() {
+	Context("host disconnected", func() {
 
 		BeforeEach(func() {
 			mockDefaultClusterHostRequirements(mockHwValidator)
@@ -1431,9 +1431,12 @@ var _ = Describe("Refresh Host", func() {
 
 		var srcState string
 
+		//example of selected stages
 		installationStages := []models.HostStage{
-			models.HostStageInstalling,
+			models.HostStageStartingInstallation,
 			models.HostStageWritingImageToDisk,
+			models.HostStageWaitingForBootkube,
+			models.HostStageWaitingForController,
 		}
 
 		for j := range installationStages {
@@ -1525,7 +1528,7 @@ var _ = Describe("Refresh Host", func() {
 		}
 	})
 
-	Context("host disconnected & preparing for installation", func() {
+	Context("host disconnected", func() {
 		BeforeEach(func() {
 			mockDefaultClusterHostRequirements(mockHwValidator)
 		})
