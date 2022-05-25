@@ -7795,6 +7795,9 @@ func init() {
         "speed_mbps": {
           "type": "integer"
         },
+        "type": {
+          "type": "string"
+        },
         "vendor": {
           "type": "string"
         }
@@ -16913,6 +16916,9 @@ func init() {
         },
         "speed_mbps": {
           "type": "integer"
+        },
+        "type": {
+          "type": "string"
         },
         "vendor": {
           "type": "string"

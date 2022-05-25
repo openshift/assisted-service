@@ -5175,6 +5175,8 @@ definitions:
           type: string
       speed_mbps:
         type: integer
+      type:
+        type: string
 
   disk:
     type: object
