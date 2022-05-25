@@ -503,9 +503,8 @@ func (m *ManifestsGenerator) AddTelemeterManifest(ctx context.Context, log logru
 // NewConfig returns network config if env vars can be parsed
 func NewConfig() (*Config, error) {
 	networkCfg := Config{}
-	if err := envconfig.Process("", networkCfg); err != nil {
-		// TODO: throw error here?
-		return &networkCfg, fmt.Errorf("failed to process env var to build network config")
+	if err := envconfig.Process("", &networkCfg); err != nil {
+		return &networkCfg, errors.Wrapf(err, "failed to process env var to build network config")
 	}
 	return &networkCfg, nil
 }
