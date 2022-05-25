@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"os"
 
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
@@ -601,4 +602,35 @@ var _ = Describe("disk encryption manifest", func() {
 			Expect(err).ToNot(HaveOccurred())
 		})
 	}
+})
+
+var _ = Describe("network config", func() {
+	It("Default NewConfig doesn't throw errors", func() {
+		_, err := NewConfig()
+		Expect(err).ShouldNot(HaveOccurred())
+	})
+
+	It("NewConfig with env var set to true", func() {
+		err := os.Setenv("ENABLE_SINGLE_NODE_DNSMASQ", "True")
+		Expect(err).ShouldNot(HaveOccurred())
+		cfg, err := NewConfig()
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(cfg.EnableSingleNodeDnsmasq).Should(BeTrue())
+	})
+
+	It("NewConfig with env var set to false", func() {
+		err := os.Setenv("ENABLE_SINGLE_NODE_DNSMASQ", "false")
+		Expect(err).ShouldNot(HaveOccurred())
+		cfg, err := NewConfig()
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(cfg.EnableSingleNodeDnsmasq).Should(BeFalse())
+	})
+
+	It("NewConfig with env var set to unknown", func() {
+		err := os.Setenv("ENABLE_SINGLE_NODE_DNSMASQ", "foobar")
+		Expect(err).ShouldNot(HaveOccurred())
+		_, err = NewConfig()
+		Expect(err).Should(HaveOccurred())
+	})
+
 })
