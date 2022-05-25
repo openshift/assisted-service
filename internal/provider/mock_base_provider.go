@@ -80,21 +80,6 @@ func (mr *MockProviderMockRecorder) CleanPlatformValuesFromDBUpdates(arg0 interf
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CleanPlatformValuesFromDBUpdates", reflect.TypeOf((*MockProvider)(nil).CleanPlatformValuesFromDBUpdates), arg0)
 }
 
-// GetActualSchedulableMasters mocks base method.
-func (m *MockProvider) GetActualSchedulableMasters(arg0 *common.Cluster) (bool, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetActualSchedulableMasters", arg0)
-	ret0, _ := ret[0].(bool)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetActualSchedulableMasters indicates an expected call of GetActualSchedulableMasters.
-func (mr *MockProviderMockRecorder) GetActualSchedulableMasters(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetActualSchedulableMasters", reflect.TypeOf((*MockProvider)(nil).GetActualSchedulableMasters), arg0)
-}
-
 // IsHostSupported mocks base method.
 func (m *MockProvider) IsHostSupported(arg0 *models.Host) (bool, error) {
 	m.ctrl.T.Helper()
