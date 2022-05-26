@@ -3212,7 +3212,7 @@ var _ = Describe("cluster", func() {
 					clusterID = strfmt.UUID(uuid.New().String())
 					err := db.Create(&common.Cluster{Cluster: models.Cluster{
 						ID:                    &clusterID,
-						CPUArchitecture:       "arm64",
+						CPUArchitecture:       common.ARM64CPUArchitecture,
 						UserManagedNetworking: swag.Bool(true),
 					}}).Error
 					Expect(err).ShouldNot(HaveOccurred())
@@ -4130,7 +4130,7 @@ var _ = Describe("cluster", func() {
 				IngressVip:       "10.11.20.50",
 				OpenshiftVersion: common.TestDefaultConfig.OpenShiftVersion,
 				Status:           swag.String(models.ClusterStatusReady),
-				CPUArchitecture:  "arm64",
+				CPUArchitecture:  common.ARM64CPUArchitecture,
 				Platform: &models.Platform{
 					Type: common.PlatformTypePtr(models.PlatformTypeBaremetal),
 				},
@@ -4152,7 +4152,7 @@ var _ = Describe("cluster", func() {
 				URL: swag.String("quay.io/openshift-release-dev/ocp-release:4.6.16-aarch64"),
 			}
 			mockGetInstallConfigSuccess(mockInstallConfigBuilder)
-			mockVersions.EXPECT().GetReleaseImage(gomock.Any(), "arm64").Return(armRelease, nil).Times(1)
+			mockVersions.EXPECT().GetReleaseImage(gomock.Any(), common.ARM64CPUArchitecture).Return(armRelease, nil).Times(1)
 			mockVersions.EXPECT().GetReleaseImage(gomock.Any(), common.DefaultCPUArchitecture).Return(common.TestDefaultConfig.ReleaseImage, nil).Times(1)
 			mockGenerator.EXPECT().GenerateInstallConfig(gomock.Any(), gomock.Any(), gomock.Any(), *armRelease.URL, *common.TestDefaultConfig.ReleaseImage.URL).Return(nil).Times(1)
 
@@ -4191,7 +4191,7 @@ var _ = Describe("cluster", func() {
 				IngressVip:       "10.11.20.50",
 				OpenshiftVersion: common.TestDefaultConfig.OpenShiftVersion,
 				Status:           swag.String(models.ClusterStatusReady),
-				CPUArchitecture:  "arm64",
+				CPUArchitecture:  common.ARM64CPUArchitecture,
 				Platform: &models.Platform{
 					Type: common.PlatformTypePtr(models.PlatformTypeBaremetal),
 				},
@@ -4213,7 +4213,7 @@ var _ = Describe("cluster", func() {
 				URL: swag.String("quay.io/openshift-release-dev/ocp-release:4.6.16-aarch64"),
 			}
 			mockGetInstallConfigSuccess(mockInstallConfigBuilder)
-			mockVersions.EXPECT().GetReleaseImage(gomock.Any(), "arm64").Return(armRelease, nil).Times(1)
+			mockVersions.EXPECT().GetReleaseImage(gomock.Any(), common.ARM64CPUArchitecture).Return(armRelease, nil).Times(1)
 			mockVersions.EXPECT().GetReleaseImage(gomock.Any(), common.DefaultCPUArchitecture).Return(nil, errors.Errorf("Dummy")).Times(1)
 
 			mockClusterPrepareForInstallationSuccess(mockClusterApi)
@@ -5230,7 +5230,7 @@ var _ = Describe("[V2ClusterUpdate] cluster", func() {
 					clusterID = strfmt.UUID(uuid.New().String())
 					err := db.Create(&common.Cluster{Cluster: models.Cluster{
 						ID:                    &clusterID,
-						CPUArchitecture:       "arm64",
+						CPUArchitecture:       common.ARM64CPUArchitecture,
 						UserManagedNetworking: swag.Bool(true),
 					}}).Error
 					Expect(err).ShouldNot(HaveOccurred())
@@ -5251,7 +5251,7 @@ var _ = Describe("[V2ClusterUpdate] cluster", func() {
 					clusterID = strfmt.UUID(uuid.New().String())
 					err := db.Create(&common.Cluster{Cluster: models.Cluster{
 						ID:                    &clusterID,
-						CPUArchitecture:       "arm64",
+						CPUArchitecture:       common.ARM64CPUArchitecture,
 						UserManagedNetworking: swag.Bool(true),
 					}}).Error
 					Expect(err).ShouldNot(HaveOccurred())
@@ -6581,7 +6581,7 @@ var _ = Describe("infraEnvs", func() {
 					OpenshiftVersion: MinimalOpenShiftVersionForNoneHA,
 					PullSecret:       swag.String("{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"),
 					ClusterID:        &clusterID,
-					CPUArchitecture:  "arm64",
+					CPUArchitecture:  common.ARM64CPUArchitecture,
 				},
 			})
 			verifyApiErrorString(reply, http.StatusBadRequest, "CPU architecture doesn't match")
@@ -9998,6 +9998,174 @@ var _ = Describe("TestRegisterCluster", func() {
 		verifyApiError(reply, http.StatusBadRequest)
 	})
 
+	Context("Authz and ARM64CPUArchitecture", func() {
+
+		var (
+			authCtx      context.Context
+			mockOcmAuthz *ocm.MockOCMAuthorization
+			payload      *ocm.AuthPayload
+			orgID1       = "300F3CE2-F122-4DA5-A845-2A4BC5956996"
+			userName1    = "test_user_1"
+		)
+
+		BeforeEach(func() {
+			db, dbName = common.PrepareTestDB()
+			bm = createInventory(db, Config{})
+			bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog().WithField("pkg", "cluster-monitor"),
+				db, mockEvents, nil, nil, nil, nil, nil, nil, nil, nil, nil)
+		})
+
+		Context("Authz and ARM64CPUArchitecture - EnableOrgBasedFeatureGates true", func() {
+
+			BeforeEach(func() {
+				cfg := auth.GetConfigRHSSO()
+				cfg.EnableOrgBasedFeatureGates = true
+				mockOcmAuthz = ocm.NewMockOCMAuthorization(ctrl)
+				mockOcmClient := &ocm.Client{Cache: cache.New(10*time.Minute, 30*time.Minute), Authorization: mockOcmAuthz}
+				bm.authHandler = auth.NewRHSSOAuthenticator(cfg, mockOcmClient, common.GetTestLog().WithField("pkg", "auth"), db)
+				bm.authzHandler = auth.NewAuthzHandler(cfg, mockOcmClient, common.GetTestLog().WithField("pkg", "auth"), db)
+				payload = &ocm.AuthPayload{Role: ocm.UserRole}
+				payload.Username = userName1
+				payload.Organization = orgID1
+				authCtx = context.WithValue(ctx, restapi.AuthKey, payload)
+			})
+
+			It("Register a cluster with arm64 CPU architecture - success", func() {
+				mockClusterRegisterSuccess(true)
+				mockAMSSubscription(authCtx)
+				mockUsageReports()
+				mockOcmAuthz.EXPECT().CapabilityReview(context.Background(), userName1, ocm.ArmCapabilityName, ocm.OrganizationCapabilityType).Return(true, nil)
+				mockVersions.EXPECT().GetCPUArchitectures(gomock.Any()).Return([]string{common.TestDefaultConfig.OpenShiftVersion, common.ARM64CPUArchitecture}).Times(1)
+
+				reply := bm.V2RegisterCluster(authCtx, installer.V2RegisterClusterParams{
+					NewClusterParams: &models.ClusterCreateParams{
+						Name:                  swag.String("some-cluster-name"),
+						OpenshiftVersion:      swag.String(common.TestDefaultConfig.OpenShiftVersion),
+						CPUArchitecture:       common.ARM64CPUArchitecture,
+						UserManagedNetworking: swag.Bool(true),
+						VipDhcpAllocation:     swag.Bool(false),
+						PullSecret:            swag.String("{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"),
+					},
+				})
+				Expect(reply).To(BeAssignableToTypeOf(installer.NewV2RegisterClusterCreated()))
+				actual := reply.(*installer.V2RegisterClusterCreated)
+				Expect(actual.Payload.CPUArchitecture).To(Equal(common.ARM64CPUArchitecture))
+			})
+
+			It("Register a cluster with arm64 CPU architecture - fail with no capability", func() {
+				mockOcmAuthz.EXPECT().CapabilityReview(context.Background(), userName1, ocm.ArmCapabilityName, ocm.OrganizationCapabilityType).Return(false, nil)
+				mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
+					eventstest.WithNameMatcher(eventgen.ClusterRegistrationFailedEventName),
+					eventstest.WithMessageContainsMatcher("arm64 is not a valid CPU Architecture"),
+					eventstest.WithSeverityMatcher(models.EventSeverityError))).Times(1)
+
+				reply := bm.V2RegisterCluster(authCtx, installer.V2RegisterClusterParams{
+					NewClusterParams: &models.ClusterCreateParams{
+						Name:                  swag.String("some-cluster-name"),
+						OpenshiftVersion:      swag.String(common.TestDefaultConfig.OpenShiftVersion),
+						CPUArchitecture:       common.ARM64CPUArchitecture,
+						UserManagedNetworking: swag.Bool(true),
+						VipDhcpAllocation:     swag.Bool(false),
+						PullSecret:            swag.String("{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"),
+					},
+				})
+				verifyApiError(reply, http.StatusBadRequest)
+			})
+
+			It("Register an InfraEnv with arm64 CPU architecture - success", func() {
+				mockInfraEnvRegisterSuccess()
+				mockOcmAuthz.EXPECT().CapabilityReview(context.Background(), userName1, ocm.ArmCapabilityName, ocm.OrganizationCapabilityType).Return(true, nil)
+				mockEvents.EXPECT().SendInfraEnvEvent(authCtx, eventstest.NewEventMatcher(
+					eventstest.WithNameMatcher(eventgen.InfraEnvRegisteredEventName))).Times(1)
+				reply := bm.RegisterInfraEnv(authCtx, installer.RegisterInfraEnvParams{
+					InfraenvCreateParams: &models.InfraEnvCreateParams{
+						Name:             swag.String("some-infra-env-name"),
+						OpenshiftVersion: common.TestDefaultConfig.OpenShiftVersion,
+						CPUArchitecture:  common.ARM64CPUArchitecture,
+						PullSecret:       swag.String("{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"),
+					},
+				})
+				Expect(reply).To(BeAssignableToTypeOf(installer.NewRegisterInfraEnvCreated()))
+				actual := reply.(*installer.RegisterInfraEnvCreated)
+				Expect(actual.Payload.CPUArchitecture).To(Equal(common.ARM64CPUArchitecture))
+			})
+
+			It("Register an InfraEnv with arm64 CPU architecture - fail with no capability", func() {
+				mockOcmAuthz.EXPECT().CapabilityReview(context.Background(), userName1, ocm.ArmCapabilityName, ocm.OrganizationCapabilityType).Return(false, nil)
+				mockEvents.EXPECT().SendInfraEnvEvent(gomock.Any(), eventstest.NewEventMatcher(
+					eventstest.WithNameMatcher(eventgen.InfraEnvRegistrationFailedEventName),
+					eventstest.WithMessageContainsMatcher("arm64 is not a valid CPU Architecture"),
+					eventstest.WithSeverityMatcher(models.EventSeverityError))).Times(1)
+
+				reply := bm.RegisterInfraEnv(authCtx, installer.RegisterInfraEnvParams{
+					InfraenvCreateParams: &models.InfraEnvCreateParams{
+						Name:             swag.String("some-infra-env-name"),
+						OpenshiftVersion: common.TestDefaultConfig.OpenShiftVersion,
+						CPUArchitecture:  common.ARM64CPUArchitecture,
+						PullSecret:       swag.String("{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"),
+					},
+				})
+				verifyApiError(reply, http.StatusBadRequest)
+			})
+		})
+
+		Context("Authz and ARM64CPUArchitecture - EnableOrgBasedFeatureGates false", func() {
+
+			BeforeEach(func() {
+				cfg := auth.GetConfigRHSSO()
+				cfg.EnableOrgBasedFeatureGates = false
+				mockOcmAuthz = ocm.NewMockOCMAuthorization(ctrl)
+				mockOcmClient := &ocm.Client{Cache: cache.New(10*time.Minute, 30*time.Minute), Authorization: mockOcmAuthz}
+				bm.authHandler = auth.NewRHSSOAuthenticator(cfg, mockOcmClient, common.GetTestLog().WithField("pkg", "auth"), db)
+				bm.authzHandler = auth.NewAuthzHandler(cfg, mockOcmClient, common.GetTestLog().WithField("pkg", "auth"), db)
+				payload = &ocm.AuthPayload{Role: ocm.UserRole}
+				payload.Username = userName1
+				payload.Organization = orgID1
+				authCtx = context.WithValue(ctx, restapi.AuthKey, payload)
+			})
+
+			It("Register cluster with arm64 CPU architecture - success", func() {
+				mockClusterRegisterSuccess(true)
+				mockAMSSubscription(authCtx)
+				mockUsageReports()
+				mockVersions.EXPECT().GetCPUArchitectures(gomock.Any()).Return([]string{common.TestDefaultConfig.OpenShiftVersion, common.ARM64CPUArchitecture}).Times(1)
+
+				reply := bm.V2RegisterCluster(authCtx, installer.V2RegisterClusterParams{
+					NewClusterParams: &models.ClusterCreateParams{
+						Name:                  swag.String("some-cluster-name"),
+						OpenshiftVersion:      swag.String(common.TestDefaultConfig.OpenShiftVersion),
+						CPUArchitecture:       common.ARM64CPUArchitecture,
+						UserManagedNetworking: swag.Bool(true),
+						VipDhcpAllocation:     swag.Bool(false),
+						PullSecret:            swag.String("{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"),
+					},
+				})
+				Expect(reply).To(BeAssignableToTypeOf(installer.NewV2RegisterClusterCreated()))
+				actual := reply.(*installer.V2RegisterClusterCreated)
+				Expect(actual.Payload.CPUArchitecture).To(Equal(common.ARM64CPUArchitecture))
+			})
+
+			It("Register an InfraEnv with arm64 CPU architecture - success", func() {
+				mockInfraEnvRegisterSuccess()
+				mockEvents.EXPECT().SendInfraEnvEvent(authCtx, eventstest.NewEventMatcher(
+					eventstest.WithNameMatcher(eventgen.InfraEnvRegisteredEventName))).Times(1)
+				reply := bm.RegisterInfraEnv(authCtx, installer.RegisterInfraEnvParams{
+					InfraenvCreateParams: &models.InfraEnvCreateParams{
+						Name:             swag.String("some-infra-env-name"),
+						OpenshiftVersion: common.TestDefaultConfig.OpenShiftVersion,
+						CPUArchitecture:  common.ARM64CPUArchitecture,
+						PullSecret:       swag.String("{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"),
+					},
+				})
+				Expect(reply).To(BeAssignableToTypeOf(installer.NewRegisterInfraEnvCreated()))
+				actual := reply.(*installer.RegisterInfraEnvCreated)
+				Expect(actual.Payload.CPUArchitecture).To(Equal(common.ARM64CPUArchitecture))
+			})
+
+		})
+
+	})
+
 	Context("Disk encryption", func() {
 
 		It("Using tang mode without tang_servers", func() {
@@ -10770,13 +10938,13 @@ var _ = Describe("TestRegisterCluster", func() {
 		mockClusterRegisterSuccess(true)
 		mockAMSSubscription(ctx)
 		mockVersions.EXPECT().GetCPUArchitectures(gomock.Any()).Return(
-			[]string{common.TestDefaultConfig.OpenShiftVersion, "arm64"}).Times(1)
+			[]string{common.TestDefaultConfig.OpenShiftVersion, common.ARM64CPUArchitecture}).Times(1)
 
 		reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 			NewClusterParams: &models.ClusterCreateParams{
 				Name:                  swag.String("some-cluster-name"),
 				OpenshiftVersion:      swag.String(common.TestDefaultConfig.OpenShiftVersion),
-				CPUArchitecture:       "arm64",
+				CPUArchitecture:       common.ARM64CPUArchitecture,
 				UserManagedNetworking: swag.Bool(true),
 				VipDhcpAllocation:     swag.Bool(false),
 				PullSecret:            swag.String("{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"),
@@ -10784,7 +10952,7 @@ var _ = Describe("TestRegisterCluster", func() {
 		})
 		Expect(reflect.TypeOf(reply)).Should(Equal(reflect.TypeOf(installer.NewV2RegisterClusterCreated())))
 		actual := reply.(*installer.V2RegisterClusterCreated)
-		Expect(actual.Payload.CPUArchitecture).To(Equal("arm64"))
+		Expect(actual.Payload.CPUArchitecture).To(Equal(common.ARM64CPUArchitecture))
 	})
 
 	It("Register cluster with arm64 CPU architecture - without UserManagedNetworking", func() {
@@ -10796,7 +10964,7 @@ var _ = Describe("TestRegisterCluster", func() {
 			NewClusterParams: &models.ClusterCreateParams{
 				Name:                  swag.String("some-cluster-name"),
 				OpenshiftVersion:      swag.String(common.TestDefaultConfig.OpenShiftVersion),
-				CPUArchitecture:       "arm64",
+				CPUArchitecture:       common.ARM64CPUArchitecture,
 				UserManagedNetworking: swag.Bool(false),
 				PullSecret:            swag.String("{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"),
 			},
@@ -11947,7 +12115,7 @@ var _ = Describe("BindHost", func() {
 
 		err = db.Create(&common.InfraEnv{InfraEnv: models.InfraEnv{
 			ID:              &infraEnvID,
-			CPUArchitecture: "arm64",
+			CPUArchitecture: common.ARM64CPUArchitecture,
 		}}).Error
 		Expect(err).ShouldNot(HaveOccurred())
 

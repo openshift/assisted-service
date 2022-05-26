@@ -2,6 +2,7 @@ package ocm
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 
 	azv1 "github.com/openshift-online/ocm-sdk-go/authorizations/v1"
@@ -62,21 +63,51 @@ func (a authorization) AccessReview(ctx context.Context, username, action, subsc
 	return response.Allowed(), nil
 }
 
+func (a authorization) getUserInternalOrgId(username string) (string, error) {
+	var err error
+
+	search := fmt.Sprintf("username='%s'", username)
+	usersListRep, err := a.client.connection.AccountsMgmt().V1().Accounts().List().Search(search).Send()
+	if err != nil {
+		return "", err
+	}
+
+	users, ok := usersListRep.GetItems()
+	if !ok {
+		return "", errors.New("failed to retrieve list of accounts from response")
+	}
+
+	if users.Len() != 1 {
+		return "", errors.New(fmt.Sprintf("unexpected accounts search result size. Expected 1, result size is %d", users.Len()))
+	}
+
+	return users.Get(0).Organization().ID(), nil
+}
+
 func (a authorization) CapabilityReview(ctx context.Context, username, capabilityName, capabilityType string) (allowed bool, err error) {
 	defer commonutils.MeasureOperation("OCM-CapabilityReview", a.client.log, a.client.metricsApi)()
 	capabilityReview := a.client.connection.Authorizations().V1().CapabilityReview()
 
-	request, err := azv1.NewCapabilityReviewRequest().
+	request := azv1.NewCapabilityReviewRequest().
 		AccountUsername(username).
 		Capability(capabilityName).
-		Type(capabilityType).
-		Build()
+		Type(capabilityType)
+
+	if capabilityType == OrganizationCapabilityType {
+		orgId, err1 := a.getUserInternalOrgId(username)
+		if err1 != nil {
+			return false, err1
+		}
+		request.OrganizationID(orgId)
+	}
+
+	capabilityReviewRequest, err := request.Build()
 	if err != nil {
 		return false, common.NewApiError(http.StatusInternalServerError, err)
 	}
 
 	postResp, err := capabilityReview.Post().
-		Request(request).
+		Request(capabilityReviewRequest).
 		SendContext(ctx)
 
 	if err != nil {

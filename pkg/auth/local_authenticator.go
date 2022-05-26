@@ -55,6 +55,9 @@ func (a *LocalAuthenticator) EnableOrgTenancy() bool {
 	return false
 }
 
+func (a *LocalAuthenticator) EnableOrgBasedFeatureGates() bool {
+	return false
+}
 func (a *LocalAuthenticator) AuthAgentAuth(token string) (interface{}, error) {
 	t, err := validateToken(token, a.publicKey)
 	if err != nil {

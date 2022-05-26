@@ -27,6 +27,10 @@ func (a *NoneAuthenticator) EnableOrgTenancy() bool {
 	return false
 }
 
+func (a *NoneAuthenticator) EnableOrgBasedFeatureGates() bool {
+	return false
+}
+
 func (a *NoneAuthenticator) AuthAgentAuth(_ string) (interface{}, error) {
 	a.log.Debug("Agent Authentication Disabled")
 	return ocm.AdminPayload(), nil

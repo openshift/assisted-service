@@ -36,3 +36,7 @@ func (*NoneHandler) HasAccessTo(ctx context.Context, obj interface{}, action Act
 func (*NoneHandler) IsAdmin(ctx context.Context) bool {
 	return true
 }
+
+func (*NoneHandler) HasOrgBasedCapability(ctx context.Context, capability string) (bool, error) {
+	return true, nil
+}

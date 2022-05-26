@@ -391,6 +391,10 @@ func (b *bareMetalInventory) RegisterClusterInternal(
 		}
 	}()
 
+	if err = auth.ValidateAccessToCPUArchitecture(ctx, b.authzHandler, params.NewClusterParams.CPUArchitecture); err != nil {
+		return nil, err
+	}
+
 	if err = validations.ValidateIPAddresses(b.IPv6Support, params.NewClusterParams); err != nil {
 		return nil, common.NewApiError(http.StatusBadRequest, err)
 	}
@@ -3858,6 +3862,10 @@ func (b *bareMetalInventory) RegisterInfraEnvInternal(
 	}()
 
 	params = b.setDefaultRegisterInfraEnvParams(ctx, params)
+
+	if err = auth.ValidateAccessToCPUArchitecture(ctx, b.authzHandler, params.InfraenvCreateParams.CPUArchitecture); err != nil {
+		return nil, err
+	}
 
 	if params.InfraenvCreateParams.Proxy != nil {
 		if err = validateProxySettings(params.InfraenvCreateParams.Proxy.HTTPProxy,

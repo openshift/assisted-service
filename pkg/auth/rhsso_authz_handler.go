@@ -39,6 +39,10 @@ func (a *AuthzHandler) isTenancyEnabled() bool {
 	return a.cfg.EnableOrgTenancy
 }
 
+func (a *AuthzHandler) isOrgBasedFunctionalityEnabled() bool {
+	return a.cfg.EnableOrgBasedFeatureGates
+}
+
 func (a *AuthzHandler) IsAdmin(ctx context.Context) bool {
 	authPayload := ocm.PayloadFromContext(ctx)
 	allowedRoles := []ocm.RoleType{ocm.AdminRole, ocm.ReadOnlyAdminRole}
@@ -160,6 +164,18 @@ func (a *AuthzHandler) HasAccessTo(ctx context.Context, obj interface{}, action 
 		return a.checkInfraEnvBasedAccess(host.InfraEnvID.String(), action, ocm.PayloadFromContext(ctx))
 	}
 	return false, errors.New("can not perform access check on this object")
+}
+
+func (a *AuthzHandler) HasOrgBasedCapability(ctx context.Context, capability string) (bool, error) {
+	if !a.isOrgBasedFunctionalityEnabled() {
+		return true, nil
+	}
+
+	username := ocm.UserNameFromContext(ctx)
+	isAllowed, err := a.client.Authorization.CapabilityReview(context.Background(), fmt.Sprint(username), capability, ocm.OrganizationCapabilityType)
+	a.log.Debugf("queried AMS API with CapabilityReview for username: %s about capability: %s, capability type: %s. Result: %t",
+		fmt.Sprint(username), capability, ocm.OrganizationCapabilityType, isAllowed)
+	return isAllowed, err
 }
 
 func (a *AuthzHandler) checkClusterBasedAccess(id string, action Action, payload *ocm.AuthPayload) (bool, error) {

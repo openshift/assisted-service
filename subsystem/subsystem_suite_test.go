@@ -53,6 +53,7 @@ var Options struct {
 	DBPort                  string        `envconfig:"DB_PORT"`
 	AuthType                auth.AuthType `envconfig:"AUTH_TYPE"`
 	EnableOrgTenancy        bool          `envconfig:"ENABLE_ORG_TENANCY"`
+	FeatureGate             bool          `envconfig:"ENABLE_ORG_BASED_FEATURE_GATES"`
 	InventoryHost           string        `envconfig:"INVENTORY"`
 	TestToken               string        `envconfig:"TEST_TOKEN"`
 	TestToken2              string        `envconfig:"TEST_TOKEN_2"`
