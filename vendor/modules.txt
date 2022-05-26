@@ -267,8 +267,8 @@ github.com/go-openapi/jsonreference/internal
 # github.com/go-openapi/loads v0.21.1
 ## explicit; go 1.13
 github.com/go-openapi/loads
-# github.com/go-openapi/runtime v0.19.24
-## explicit; go 1.13
+# github.com/go-openapi/runtime v0.24.1
+## explicit; go 1.15
 github.com/go-openapi/runtime
 github.com/go-openapi/runtime/client
 github.com/go-openapi/runtime/logger
@@ -290,8 +290,8 @@ github.com/go-openapi/swag
 # github.com/go-openapi/validate v0.21.0
 ## explicit; go 1.14
 github.com/go-openapi/validate
-# github.com/go-stack/stack v1.8.0
-## explicit
+# github.com/go-stack/stack v1.8.1
+## explicit; go 1.17
 github.com/go-stack/stack
 # github.com/gogo/protobuf v1.3.2
 ## explicit; go 1.15
@@ -622,6 +622,11 @@ github.com/openshift/image-customization-controller/pkg/ignition
 github.com/openshift/machine-api-operator/pkg/apis/machine
 github.com/openshift/machine-api-operator/pkg/apis/machine/v1beta1
 github.com/openshift/machine-api-operator/pkg/apis/vsphereprovider/v1beta1
+# github.com/opentracing/opentracing-go v1.2.0
+## explicit; go 1.14
+github.com/opentracing/opentracing-go
+github.com/opentracing/opentracing-go/ext
+github.com/opentracing/opentracing-go/log
 # github.com/ory/dockertest/v3 v3.8.1
 ## explicit; go 1.13
 github.com/ory/dockertest/v3
@@ -794,7 +799,7 @@ go.etcd.io/etcd/client/v3
 go.etcd.io/etcd/client/v3/credentials
 go.etcd.io/etcd/client/v3/internal/endpoint
 go.etcd.io/etcd/client/v3/internal/resolver
-# go.mongodb.org/mongo-driver v1.7.5
+# go.mongodb.org/mongo-driver v1.8.3
 ## explicit; go 1.10
 go.mongodb.org/mongo-driver/bson
 go.mongodb.org/mongo-driver/bson/bsoncodec
