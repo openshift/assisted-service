@@ -3,6 +3,7 @@ package host
 import (
 	"github.com/go-openapi/swag"
 	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/internal/host/hostutil"
 	"github.com/openshift/assisted-service/models"
 	"github.com/thoas/go-funk"
 )
@@ -32,6 +33,11 @@ func (v *validator) isInstallationDiskSpeedCheckSuccessful(c *validationContext)
 	if c.infraEnv != nil {
 		return false
 	}
+
+	if hostutil.SaveDiskPartitionsIsSet(c.host.InstallerArgs) {
+		return true
+	}
+
 	info, err := v.getBootDeviceInfo(c.host)
 	return err == nil && info != nil && info.DiskSpeed != nil && info.DiskSpeed.Tested && info.DiskSpeed.ExitCode == 0
 }

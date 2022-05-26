@@ -7728,6 +7728,10 @@ func init() {
             "type": "string",
             "pattern": "^(?:(?:(?:[0-9]{1,3}\\.){3}[0-9]{1,3})|(?:(?:[0-9a-fA-F]*:[0-9a-fA-F]*){2,}))$"
           }
+        },
+        "skip_installation_disk_cleanup": {
+          "description": "Skip formatting installation disk",
+          "type": "boolean"
         }
       }
     },
@@ -16850,6 +16854,10 @@ func init() {
             "type": "string",
             "pattern": "^(?:(?:(?:[0-9]{1,3}\\.){3}[0-9]{1,3})|(?:(?:[0-9a-fA-F]*:[0-9a-fA-F]*){2,}))$"
           }
+        },
+        "skip_installation_disk_cleanup": {
+          "description": "Skip formatting installation disk",
+          "type": "boolean"
         }
       }
     },

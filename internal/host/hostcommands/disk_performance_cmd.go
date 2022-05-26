@@ -8,6 +8,7 @@ import (
 	"github.com/go-openapi/swag"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/hardware"
+	"github.com/openshift/assisted-service/internal/host/hostutil"
 	"github.com/openshift/assisted-service/models"
 	"github.com/sirupsen/logrus"
 )
@@ -37,10 +38,14 @@ func (c *diskPerfCheckCmd) GetSteps(_ context.Context, host *models.Host) ([]*mo
 	if err != nil {
 		return nil, err
 	}
-
 	if alreadyExists {
 		return nil, nil
 	}
+
+	if hostutil.SaveDiskPartitionsIsSet(host.InstallerArgs) {
+		return nil, nil
+	}
+
 	args, err := c.GetArgs(bootDevice)
 	if err != nil {
 		return nil, err

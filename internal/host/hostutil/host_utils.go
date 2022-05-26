@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"regexp"
+	"strings"
 
 	"github.com/go-openapi/swag"
 	"github.com/openshift/assisted-service/internal/common"
@@ -196,4 +197,14 @@ func IsSingleNode(log logrus.FieldLogger, db *gorm.DB, host *models.Host) bool {
 		return false
 	}
 	return common.IsSingleNodeCluster(cluster)
+}
+
+func SaveDiskPartitionsIsSet(installerArgs string) bool {
+	needToSaveFlags := []string{"--save-partlabel", "--save-partindex"}
+	for _, val := range needToSaveFlags {
+		if strings.Contains(installerArgs, val) {
+			return true
+		}
+	}
+	return false
 }
