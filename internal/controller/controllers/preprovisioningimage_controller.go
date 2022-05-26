@@ -122,7 +122,7 @@ func (r *PreprovisioningImageReconciler) Reconcile(origCtx context.Context, req 
 	if err != nil {
 		return ctrl.Result{}, err
 	}
-	log.Info("PreprovisioningImage Reconcile successfully completed")
+	log.Info("PreprovisioningImage updated successfully")
 	return ctrl.Result{}, nil
 }
 
@@ -167,6 +167,9 @@ func setCoolDownCondition(generation int64, status *metal3_v1alpha1.Preprovision
 	reason := imageConditionReason(message)
 	setImageCondition(generation, status,
 		metal3_v1alpha1.ConditionImageReady, metav1.ConditionFalse,
+		reason, message)
+	setImageCondition(generation, status,
+		metal3_v1alpha1.ConditionImageError, metav1.ConditionFalse,
 		reason, message)
 
 }
@@ -288,6 +291,10 @@ func (r *PreprovisioningImageReconciler) AddIronicAgentToInfraEnv(ctx context.Co
 	if err != nil {
 		return ctrl.Result{}, err
 	}
+	if infraEnv.ObjectMeta.Annotations == nil {
+		infraEnv.ObjectMeta.Annotations = make(map[string]string)
+	}
+
 	infraEnv.Annotations[EnableIronicAgentAnnotation] = "true"
 	err = r.Client.Update(ctx, infraEnv)
 	if err != nil {
