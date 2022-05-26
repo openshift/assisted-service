@@ -1,7 +1,6 @@
 package ovirt
 
 import (
-	"github.com/go-openapi/swag"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/provider"
 	"github.com/openshift/assisted-service/internal/usage"
@@ -44,13 +43,6 @@ func (p *ovirtProvider) SetPlatformValuesInDBUpdates(
 	updates[DbFieldNetworkName] = platformParams.Ovirt.NetworkName
 	updates[DbFieldVnicProfileID] = platformParams.Ovirt.VnicProfileID
 	return nil
-}
-
-func (p *ovirtProvider) GetActualSchedulableMasters(cluster *common.Cluster) (bool, error) {
-	if cluster == nil {
-		return false, errors.New("unexpected 'nil' cluster")
-	}
-	return swag.BoolValue(cluster.SchedulableMasters), nil
 }
 
 func (p *ovirtProvider) SetPlatformUsages(
