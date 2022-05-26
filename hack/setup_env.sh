@@ -22,7 +22,7 @@ function kustomize() {
 
 function golang() {
   echo "Installing golang..."
-  curl -L https://storage.googleapis.com/golang/getgo/installer_linux -o /tmp/golang_installer
+  curl --retry 5 -L https://storage.googleapis.com/golang/getgo/installer_linux -o /tmp/golang_installer
   chmod u+x /tmp/golang_installer
   /tmp/golang_installer
   rm /tmp/golang_installer
@@ -35,19 +35,19 @@ function golang() {
 
 function spectral() {
   echo "Installing spectral..."
-  curl -L https://github.com/stoplightio/spectral/releases/download/v5.9.1/spectral-linux -o /usr/local/bin/spectral
+  curl --retry 5 -L https://github.com/stoplightio/spectral/releases/download/v5.9.1/spectral-linux -o /usr/local/bin/spectral
   chmod +x /usr/local/bin/spectral
 }
 
 function jq() {
   echo "Installing jq..."
-  curl -L https://github.com/stedolan/jq/releases/download/jq-1.6/jq-linux64 --output /usr/local/bin/jq
+  curl --retry 5 -L https://github.com/stedolan/jq/releases/download/jq-1.6/jq-linux64 --output /usr/local/bin/jq
   chmod +x /usr/local/bin/jq
 }
 
 function butane() {
   echo "Installing butane..."
-  curl https://mirror.openshift.com/pub/openshift-v4/clients/butane/latest/butane-${ARCH} --output /usr/local/bin/butane
+  curl --retry 5 -L https://mirror.openshift.com/pub/openshift-v4/clients/butane/latest/butane-${ARCH} --output /usr/local/bin/butane
   chmod +x /usr/local/bin/butane
 }
 
