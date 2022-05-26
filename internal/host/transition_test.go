@@ -2340,6 +2340,7 @@ var _ = Describe("Refresh Host", func() {
 			machineNetworks       []*models.MachineNetwork
 			serviceNetworks       []*models.ServiceNetwork
 			connectivity          string
+			addL3Connectivity     bool
 			userManagedNetworking bool
 			isDay2                bool
 
@@ -2347,6 +2348,8 @@ var _ = Describe("Refresh Host", func() {
 			operators          []*models.MonitoredOperator
 			hostRequirements   *models.ClusterHostRequirementsDetails
 			disksInfo          string
+
+			machineNetworksForGroups []*models.MachineNetwork
 		}{
 			{
 				name:              "discovering to disconnected",
@@ -3358,6 +3361,125 @@ var _ = Describe("Refresh Host", func() {
 				errorExpected: false,
 			},
 			{
+				name:                     "pending to known IPv6 - equivalent machine networks",
+				validCheckInTime:         true,
+				srcState:                 models.HostStatusPendingForInput,
+				dstState:                 models.HostStatusKnown,
+				machineNetworks:          common.TestIPv6Networking.MachineNetworks,
+				machineNetworksForGroups: common.TestEquivalentIPv6Networking.MachineNetworks,
+				ntpSources:               defaultNTPSources,
+				imageStatuses:            map[string]*models.ContainerImageAvailability{common.TestDefaultConfig.ImageName: common.TestImageStatusesSuccess},
+				role:                     models.HostRoleWorker,
+				statusInfoChecker:        makeValueChecker(statusInfoKnown),
+				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
+					IsConnected:          {status: ValidationSuccess, messagePattern: "Host is connected"},
+					HasInventory:         {status: ValidationSuccess, messagePattern: "Valid inventory exists for the host"},
+					HasMinCPUCores:       {status: ValidationSuccess, messagePattern: "Sufficient CPU cores"},
+					HasMinMemory:         {status: ValidationSuccess, messagePattern: "Sufficient minimum RAM"},
+					HasMinValidDisks:     {status: ValidationSuccess, messagePattern: "Sufficient disk capacity"},
+					IsMachineCidrDefined: {status: ValidationSuccess, messagePattern: "Machine Network CIDR is defined"},
+					HasCPUCoresForRole:   {status: ValidationSuccess, messagePattern: "Sufficient CPU cores for role worker"},
+					HasMemoryForRole:     {status: ValidationSuccess, messagePattern: "Sufficient RAM for role worker"},
+					IsHostnameUnique:     {status: ValidationSuccess, messagePattern: " is unique in cluster"},
+					BelongsToMachineCidr: {status: ValidationSuccess, messagePattern: "Host belongs to all machine network CIDRs"},
+					IsHostnameValid:      {status: ValidationSuccess, messagePattern: "Hostname .* is allowed"},
+					IsNTPSynced:          {status: ValidationSuccess, messagePattern: "Host NTP is synced"},
+					SucessfullOrUnknownContainerImagesAvailability: {status: ValidationSuccess, messagePattern: "All required container images were either pulled successfully or no attempt was made to pull them"},
+				}),
+				inventory:     hostutil.GenerateMasterInventoryV6(),
+				errorExpected: false,
+			},
+			{
+				name:                     "pending to known IPv6 - equivalent machine networks with L3 connectivity",
+				validCheckInTime:         true,
+				srcState:                 models.HostStatusPendingForInput,
+				dstState:                 models.HostStatusKnown,
+				machineNetworks:          common.TestIPv6Networking.MachineNetworks,
+				machineNetworksForGroups: common.TestEquivalentIPv6Networking.MachineNetworks,
+				ntpSources:               defaultNTPSources,
+				imageStatuses:            map[string]*models.ContainerImageAvailability{common.TestDefaultConfig.ImageName: common.TestImageStatusesSuccess},
+				role:                     models.HostRoleWorker,
+				statusInfoChecker:        makeValueChecker(statusInfoKnown),
+				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
+					IsConnected:          {status: ValidationSuccess, messagePattern: "Host is connected"},
+					HasInventory:         {status: ValidationSuccess, messagePattern: "Valid inventory exists for the host"},
+					HasMinCPUCores:       {status: ValidationSuccess, messagePattern: "Sufficient CPU cores"},
+					HasMinMemory:         {status: ValidationSuccess, messagePattern: "Sufficient minimum RAM"},
+					HasMinValidDisks:     {status: ValidationSuccess, messagePattern: "Sufficient disk capacity"},
+					IsMachineCidrDefined: {status: ValidationSuccess, messagePattern: "Machine Network CIDR is defined"},
+					HasCPUCoresForRole:   {status: ValidationSuccess, messagePattern: "Sufficient CPU cores for role worker"},
+					HasMemoryForRole:     {status: ValidationSuccess, messagePattern: "Sufficient RAM for role worker"},
+					IsHostnameUnique:     {status: ValidationSuccess, messagePattern: " is unique in cluster"},
+					BelongsToMachineCidr: {status: ValidationSuccess, messagePattern: "Host belongs to all machine network CIDRs"},
+					IsHostnameValid:      {status: ValidationSuccess, messagePattern: "Hostname .* is allowed"},
+					IsNTPSynced:          {status: ValidationSuccess, messagePattern: "Host NTP is synced"},
+					SucessfullOrUnknownContainerImagesAvailability: {status: ValidationSuccess, messagePattern: "All required container images were either pulled successfully or no attempt was made to pull them"},
+				}),
+				inventory:         hostutil.GenerateMasterInventoryV6(),
+				errorExpected:     false,
+				addL3Connectivity: true,
+			},
+			{
+				name:                     "pending to insufficient IPv6 - IPv4 connectivity groups",
+				validCheckInTime:         true,
+				srcState:                 models.HostStatusPendingForInput,
+				dstState:                 models.HostStatusInsufficient,
+				machineNetworks:          common.TestIPv6Networking.MachineNetworks,
+				machineNetworksForGroups: common.TestIPv4Networking.MachineNetworks,
+				ntpSources:               defaultNTPSources,
+				imageStatuses:            map[string]*models.ContainerImageAvailability{common.TestDefaultConfig.ImageName: common.TestImageStatusesSuccess},
+				role:                     models.HostRoleWorker,
+				statusInfoChecker:        makeRegexChecker("Host cannot be installed due to following failing validation"),
+				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
+					IsConnected:            {status: ValidationSuccess, messagePattern: "Host is connected"},
+					HasInventory:           {status: ValidationSuccess, messagePattern: "Valid inventory exists for the host"},
+					HasMinCPUCores:         {status: ValidationSuccess, messagePattern: "Sufficient CPU cores"},
+					HasMinMemory:           {status: ValidationSuccess, messagePattern: "Sufficient minimum RAM"},
+					HasMinValidDisks:       {status: ValidationSuccess, messagePattern: "Sufficient disk capacity"},
+					IsMachineCidrDefined:   {status: ValidationSuccess, messagePattern: "Machine Network CIDR is defined"},
+					HasCPUCoresForRole:     {status: ValidationSuccess, messagePattern: "Sufficient CPU cores for role worker"},
+					HasMemoryForRole:       {status: ValidationSuccess, messagePattern: "Sufficient RAM for role worker"},
+					IsHostnameUnique:       {status: ValidationSuccess, messagePattern: " is unique in cluster"},
+					BelongsToMachineCidr:   {status: ValidationSuccess, messagePattern: "Host belongs to all machine network CIDRs"},
+					BelongsToMajorityGroup: {status: ValidationPending, messagePattern: "Not enough hosts in cluster to calculate connectivity groups"},
+					IsHostnameValid:        {status: ValidationSuccess, messagePattern: "Hostname .* is allowed"},
+					IsNTPSynced:            {status: ValidationSuccess, messagePattern: "Host NTP is synced"},
+					SucessfullOrUnknownContainerImagesAvailability: {status: ValidationSuccess, messagePattern: "All required container images were either pulled successfully or no attempt was made to pull them"},
+				}),
+				inventory:     hostutil.GenerateMasterInventoryV6(),
+				errorExpected: false,
+			},
+			{
+				name:              "pending to known IPv6 - with L3 connectivity key",
+				validCheckInTime:  true,
+				srcState:          models.HostStatusPendingForInput,
+				dstState:          models.HostStatusInsufficient,
+				machineNetworks:   common.TestIPv6Networking.MachineNetworks,
+				ntpSources:        defaultNTPSources,
+				imageStatuses:     map[string]*models.ContainerImageAvailability{common.TestDefaultConfig.ImageName: common.TestImageStatusesSuccess},
+				role:              models.HostRoleWorker,
+				statusInfoChecker: makeRegexChecker("Host cannot be installed due to following failing validation"),
+				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
+					IsConnected:            {status: ValidationSuccess, messagePattern: "Host is connected"},
+					HasInventory:           {status: ValidationSuccess, messagePattern: "Valid inventory exists for the host"},
+					HasMinCPUCores:         {status: ValidationSuccess, messagePattern: "Sufficient CPU cores"},
+					HasMinMemory:           {status: ValidationSuccess, messagePattern: "Sufficient minimum RAM"},
+					HasMinValidDisks:       {status: ValidationSuccess, messagePattern: "Sufficient disk capacity"},
+					IsMachineCidrDefined:   {status: ValidationSuccess, messagePattern: "Machine Network CIDR is defined"},
+					HasCPUCoresForRole:     {status: ValidationSuccess, messagePattern: "Sufficient CPU cores for role worker"},
+					HasMemoryForRole:       {status: ValidationSuccess, messagePattern: "Sufficient RAM for role worker"},
+					IsHostnameUnique:       {status: ValidationSuccess, messagePattern: " is unique in cluster"},
+					BelongsToMachineCidr:   {status: ValidationSuccess, messagePattern: "Host belongs to all machine network CIDRs"},
+					BelongsToMajorityGroup: {status: ValidationPending, messagePattern: "Not enough hosts in cluster to calculate connectivity groups"},
+					IsHostnameValid:        {status: ValidationSuccess, messagePattern: "Hostname .* is allowed"},
+					IsNTPSynced:            {status: ValidationSuccess, messagePattern: "Host NTP is synced"},
+					SucessfullOrUnknownContainerImagesAvailability: {status: ValidationSuccess, messagePattern: "All required container images were either pulled successfully or no attempt was made to pull them"},
+				}),
+				inventory:     hostutil.GenerateMasterInventoryV6(),
+				errorExpected: false,
+				connectivity:  fmt.Sprintf("{\"%s\":[]}", network.IPv4.String()),
+			},
+			{
 				name:              "known to known",
 				validCheckInTime:  true,
 				srcState:          models.HostStatusKnown,
@@ -3746,10 +3868,17 @@ var _ = Describe("Refresh Host", func() {
 					if t.userManagedNetworking {
 						cluster.ConnectivityMajorityGroups = fmt.Sprintf("{\"%s\":[\"%s\"]}", network.IPv4.String(), hostId.String())
 					} else {
-						cluster.ConnectivityMajorityGroups = generateMajorityGroup(t.machineNetworks, hostId)
+						machineNetworks := t.machineNetworks
+						if t.machineNetworksForGroups != nil {
+							machineNetworks = t.machineNetworksForGroups
+						}
+						cluster.ConnectivityMajorityGroups = generateMajorityGroup(machineNetworks, hostId)
 					}
 				} else {
 					cluster.ConnectivityMajorityGroups = t.connectivity
+				}
+				if t.addL3Connectivity {
+					cluster.ConnectivityMajorityGroups = addL3Connectivity(cluster.ConnectivityMajorityGroups, hostId)
 				}
 
 				cluster.MonitoredOperators = t.operators
@@ -5331,6 +5460,17 @@ func generateMajorityGroup(machineNetworks []*models.MachineNetwork, hostId strf
 	if err != nil {
 		return ""
 	}
+	return string(tmp)
+}
+
+func addL3Connectivity(majorityGroupsStr string, hostId strfmt.UUID) string {
+	majorityGroups := make(map[string][]string)
+	if majorityGroupsStr != "" {
+		Expect(json.Unmarshal([]byte(majorityGroupsStr), &majorityGroups)).ToNot(HaveOccurred())
+	}
+	majorityGroups[network.IPv4.String()] = []string{hostId.String()}
+	tmp, err := json.Marshal(majorityGroups)
+	Expect(err).ToNot(HaveOccurred())
 	return string(tmp)
 }
 
