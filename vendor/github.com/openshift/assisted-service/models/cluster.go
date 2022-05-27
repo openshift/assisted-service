@@ -120,10 +120,6 @@ type Cluster struct {
 	// Format: uuid
 	ID *strfmt.UUID `json:"id" gorm:"primaryKey"`
 
-	// Json formatted string containing the user overrides for the initial ignition config
-	// Example: {\"ignition\": {\"version\": \"3.1.0\"}, \"storage\": {\"files\": [{\"path\": \"/tmp/example\", \"contents\": {\"source\": \"data:text/plain;base64,aGVscGltdHJhcHBlZGluYXN3YWdnZXJzcGVj\"}}]}}
-	IgnitionConfigOverrides string `json:"ignition_config_overrides,omitempty" gorm:"type:text"`
-
 	// Explicit ignition endpoint overrides the default ignition endpoint.
 	IgnitionEndpoint *IgnitionEndpoint `json:"ignition_endpoint,omitempty" gorm:"embedded;embeddedPrefix:ignition_endpoint_"`
 
