@@ -17,7 +17,7 @@ generate-mocks:
 	find . -name 'mock_*.go' -type f -not -path './vendor/*' -delete
 	go generate -v $(shell go list ./... | grep -v 'assisted-service/models\|assisted-service/client\|assisted-service/restapi')
 
-generate-migrations:
+generate-migration:
 	go run ./tools/migration_generator/migration_generator.go -name=${MIGRATION_NAME}
 
 generate-keys:
