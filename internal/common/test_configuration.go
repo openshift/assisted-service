@@ -160,12 +160,23 @@ var TestIPv4Networking = TestNetworking{
 	IngressVip:      "1.2.3.6",
 }
 
+// TestIPv6Networking The values of TestIPv6Networking and TestEquivalentIPv6Networking are not equal, but are equivalent
+// in terms of their values. If any of the values in TestIPv6Networking change, please change also the corresponding
+// values in TestEquivalentIPv6Networking
 var TestIPv6Networking = TestNetworking{
 	ClusterNetworks: []*models.ClusterNetwork{{Cidr: "1003:db8::/53", HostPrefix: 64}},
 	ServiceNetworks: []*models.ServiceNetwork{{Cidr: "1002:db8::/119"}},
 	MachineNetworks: []*models.MachineNetwork{{Cidr: "1001:db8::/120"}},
 	APIVip:          "1001:db8::64",
 	IngressVip:      "1001:db8::65",
+}
+
+var TestEquivalentIPv6Networking = TestNetworking{
+	ClusterNetworks: []*models.ClusterNetwork{{Cidr: "1003:0db8:0::/53", HostPrefix: 64}},
+	ServiceNetworks: []*models.ServiceNetwork{{Cidr: "1002:0db8:0::/119"}},
+	MachineNetworks: []*models.MachineNetwork{{Cidr: "1001:0db8:0::/120"}},
+	APIVip:          "1001:0db8:0::64",
+	IngressVip:      "1001:0db8:0::65",
 }
 
 var TestDualStackNetworking = TestNetworking{

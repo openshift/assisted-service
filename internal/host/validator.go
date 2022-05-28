@@ -1,6 +1,7 @@
 package host
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -752,12 +753,37 @@ func (v *validator) belongsToL2MajorityGroup(c *validationContext, majorityGroup
 
 	// TODO(mko) This rule should be revised as soon as OCP supports multiple machineNetwork
 	//           entries using the same IP stack.
-	ret := true
-	for _, machineNet := range c.cluster.MachineNetworks {
-		ret = ret && funk.Contains(majorityGroups[string(machineNet.Cidr)], *c.host.ID)
+	areNetworksEqual := func(ipnet1, ipnet2 *net.IPNet) bool {
+		return ipnet1.IP.Equal(ipnet2.IP) && bytes.Equal(ipnet1.Mask, ipnet2.Mask)
 	}
 
-	return boolValue(ret)
+	groupForNetwork := func(ipnet *net.IPNet) []strfmt.UUID {
+		for key, groups := range majorityGroups {
+			_, groupIpnet, err := net.ParseCIDR(key)
+
+			// majority groups may contain keys other than CIDRS (For instance IPv4 for L3).  Therefore, in case of
+			// parse error we can skip safely
+			if err != nil {
+				continue
+			}
+			if areNetworksEqual(ipnet, groupIpnet) {
+				return groups
+			}
+		}
+		return nil
+	}
+
+	for _, machineNet := range c.cluster.MachineNetworks {
+		_, machineIpnet, err := net.ParseCIDR(string(machineNet.Cidr))
+		if err != nil {
+			return ValidationError
+		}
+		if !funk.Contains(groupForNetwork(machineIpnet), *c.host.ID) {
+			return ValidationFailure
+		}
+	}
+
+	return ValidationSuccess
 }
 
 func (v *validator) belongsToL3MajorityGroup(c *validationContext, majorityGroups map[string][]strfmt.UUID) ValidationStatus {
