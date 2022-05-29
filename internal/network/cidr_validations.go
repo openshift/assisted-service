@@ -26,21 +26,31 @@ func parseCIDR(cidr string) (ip net.IP, ipnet *net.IPNet, err error) {
 	return
 }
 
-func NetworksOverlap(aCidrStr, bCidrStr string) error {
-	if aCidrStr == "" || bCidrStr == "" {
-		return nil
-	}
+func NetworksOverlap(aCidrStr, bCidrStr string) (bool, error) {
 	_, acidr, err := parseCIDR(aCidrStr)
 	if err != nil {
-		return err
+		return false, err
 	}
 	_, bcidr, err := parseCIDR(bCidrStr)
 	if err != nil {
-		return err
+		return false, err
 	}
 	//overlapping occur if one of the CIDRs is a subset of the other
-	if acidr.Contains(bcidr.IP) || bcidr.Contains(acidr.IP) {
-		return errors.Errorf("CIDRS %s and %s overlap", acidr.String(), bcidr.String())
+	return acidr.Contains(bcidr.IP) || bcidr.Contains(acidr.IP), nil
+}
+
+func VerifyNetworksNotOverlap(aCidrStr, bCidrStr string) error {
+	if aCidrStr == "" || bCidrStr == "" {
+		return nil
+	}
+
+	overlap, err := NetworksOverlap(aCidrStr, bCidrStr)
+	if err != nil {
+		return err
+	}
+
+	if overlap {
+		return errors.Errorf("CIDRS %s and %s overlap", aCidrStr, bCidrStr)
 	}
 	return nil
 }
@@ -117,16 +127,16 @@ func VerifyClusterCidrSize(hostNetworkPrefix int, clusterNetworkCIDR string, num
 
 func VerifyClusterCIDRsNotOverlap(machineNetworkCidr, clusterNetworkCidr, serviceNetworkCidr string, machineNetworkRequired bool) error {
 	if machineNetworkRequired {
-		err := NetworksOverlap(machineNetworkCidr, serviceNetworkCidr)
+		err := VerifyNetworksNotOverlap(machineNetworkCidr, serviceNetworkCidr)
 		if err != nil {
 			return errors.Wrap(err, "MachineNetworkCIDR and ServiceNetworkCIDR")
 		}
-		err = NetworksOverlap(machineNetworkCidr, clusterNetworkCidr)
+		err = VerifyNetworksNotOverlap(machineNetworkCidr, clusterNetworkCidr)
 		if err != nil {
 			return errors.Wrap(err, "MachineNetworkCIDR and ClusterNetworkCidr")
 		}
 	}
-	err := NetworksOverlap(serviceNetworkCidr, clusterNetworkCidr)
+	err := VerifyNetworksNotOverlap(serviceNetworkCidr, clusterNetworkCidr)
 	if err != nil {
 		return errors.Wrap(err, "ServiceNetworkCidr and ClusterNetworkCidr")
 	}

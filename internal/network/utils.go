@@ -215,7 +215,21 @@ func CanonizeAddressFamilies(slice []AddressFamily) (ret []AddressFamily) {
 	return
 }
 
-func getHostNetworks(inventory *models.Inventory, getter func(i *models.Interface) []string) (ret []string, err error) {
+type CidrInfo struct {
+	Cidr          string
+	InterfaceName string
+}
+
+func getHostNetworks(inventory *models.Inventory, getter func(i *models.Interface) []string) (ret []CidrInfo, err error) {
+	toCidrSlice := func(interfaceName string, cidrs []string) (ret []CidrInfo) {
+		for _, cidr := range cidrs {
+			ret = append(ret, CidrInfo{
+				Cidr:          cidr,
+				InterfaceName: interfaceName,
+			})
+		}
+		return
+	}
 	for _, intf := range inventory.Interfaces {
 		var intfAddrs []string
 		for _, cidr := range getter(intf) {
@@ -227,16 +241,16 @@ func getHostNetworks(inventory *models.Inventory, getter func(i *models.Interfac
 		}
 		sort.Strings(intfAddrs)
 
-		ret = append(ret, common.CanonizeStrings(intfAddrs)...)
+		ret = append(ret, toCidrSlice(intf.Name, common.CanonizeStrings(intfAddrs))...)
 	}
 	return
 }
 
-func GetIPv4Networks(inventory *models.Inventory) (ret []string, err error) {
+func GetIPv4Networks(inventory *models.Inventory) (ret []CidrInfo, err error) {
 	return getHostNetworks(inventory, func(i *models.Interface) []string { return i.IPV4Addresses })
 }
 
-func GetIPv6Networks(inventory *models.Inventory) (ret []string, err error) {
+func GetIPv6Networks(inventory *models.Inventory) (ret []CidrInfo, err error) {
 	return getHostNetworks(inventory, func(i *models.Interface) []string { return i.IPV6Addresses })
 }
 

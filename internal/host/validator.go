@@ -1373,7 +1373,7 @@ func areNetworksOverlapping(c *validationContext) (ValidationStatus, error) {
 		return ValidationError, err
 	}
 	for _, family := range families {
-		var networks []string
+		var networks []network.CidrInfo
 		switch family {
 		case network.IPv4:
 			networks, err = network.GetIPv4Networks(c.inventory)
@@ -1385,8 +1385,18 @@ func areNetworksOverlapping(c *validationContext) (ValidationStatus, error) {
 		}
 		for i := 0; i < len(networks); i++ {
 			for j := i + 1; j < len(networks); j++ {
-				if err = network.NetworksOverlap(networks[i], networks[j]); err != nil {
-					return ValidationFailure, err
+				ci1 := networks[i]
+				ci2 := networks[j]
+				if ci1.Cidr == ci2.Cidr {
+					return ValidationFailure, errors.Errorf("Address network %s appears on multiple interfaces [%s, %s]", ci1.Cidr, ci1.InterfaceName, ci2.InterfaceName)
+				}
+				overlap, err := network.NetworksOverlap(ci1.Cidr, ci2.Cidr)
+				if err != nil {
+					return ValidationError, err
+				}
+				if overlap {
+					return ValidationFailure, errors.Errorf("Address networks %s in interface %s and %s in interface %s overlap", ci1.Cidr, ci1.InterfaceName,
+						ci2.Cidr, ci2.InterfaceName)
 				}
 			}
 		}
