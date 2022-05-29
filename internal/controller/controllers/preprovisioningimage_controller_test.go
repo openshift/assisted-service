@@ -15,6 +15,8 @@ import (
 	"github.com/openshift/assisted-service/internal/bminventory"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/ignition"
+	"github.com/openshift/assisted-service/internal/oc"
+	"github.com/openshift/assisted-service/internal/versions"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/restapi/operations/installer"
 	conditionsv1 "github.com/openshift/custom-resource-status/conditions/v1"
@@ -69,6 +71,8 @@ var _ = Describe("PreprovisioningImage reconcile", func() {
 		mockCtrl              *gomock.Controller
 		mockInstallerInternal *bminventory.MockInstallerInternals
 		mockCRDEventsHandler  *MockCRDEventsHandler
+		mockVersionHandler    *versions.MockHandler
+		mockOcRelease         *oc.MockRelease
 		ironicIgnitionBuilder ignition.IronicIgniotionBuilder
 		ctx                   = context.Background()
 		sId                   strfmt.UUID
@@ -85,6 +89,8 @@ var _ = Describe("PreprovisioningImage reconcile", func() {
 		mockInstallerInternal = bminventory.NewMockInstallerInternals(mockCtrl)
 		mockCRDEventsHandler = NewMockCRDEventsHandler(mockCtrl)
 		ironicIgnitionBuilder = ignition.NewIronicIgniotionBuilder(ignition.IronicIgniotionBuilderConfig{BaremetalIronicAgentImage: "ironic-agent-image:latest"})
+		mockVersionHandler = versions.NewMockHandler(mockCtrl)
+		mockOcRelease = oc.NewMockRelease(mockCtrl)
 		sId = strfmt.UUID(uuid.New().String())
 		pr = &PreprovisioningImageReconciler{
 			Client:                 c,
@@ -92,12 +98,16 @@ var _ = Describe("PreprovisioningImage reconcile", func() {
 			Installer:              mockInstallerInternal,
 			CRDEventsHandler:       mockCRDEventsHandler,
 			IronicIgniotionBuilder: ironicIgnitionBuilder,
+			VersionsHandler:        mockVersionHandler,
+			ocRelease:              mockOcRelease,
 			IronicServiceURL:       "ironic.url",
 		}
 	})
 
 	AfterEach(func() {
 		mockCtrl.Finish()
+		backendInfraEnv = &common.InfraEnv{InfraEnv: models.InfraEnv{ClusterID: sId, ID: &sId}}
+
 	})
 
 	Context("reconcile new PreprovisioningImage - success", func() {
@@ -117,7 +127,7 @@ var _ = Describe("PreprovisioningImage reconcile", func() {
 		AfterEach(func() {
 			mockCtrl.Finish()
 		})
-		It("Add the ironic Agent to the infraEnv", func() {
+		It("Add the ironic Ignition to the infraEnv", func() {
 			Expect(c.Create(ctx, infraEnv)).To(BeNil())
 			mockInstallerInternal.EXPECT().GetInfraEnvByKubeKey(gomock.Any()).Return(backendInfraEnv, nil)
 			mockInstallerInternal.EXPECT().UpdateInfraEnvInternal(gomock.Any(), gomock.Any(), gomock.Any()).
@@ -218,7 +228,36 @@ var _ = Describe("PreprovisioningImage reconcile", func() {
 			Expect(c.Get(ctx, key, ppi)).To(BeNil())
 			validateStatus(infraEnv.Status.ISODownloadURL, conditionsv1.FindStatusCondition(infraEnv.Status.Conditions, aiv1beta1.ImageCreatedCondition), ppi)
 		})
+		It("Add the ironic Ignition to the infraEnv using the ironic agent image from the release", func() {
 
+			Expect(c.Create(ctx, infraEnv)).To(BeNil())
+			openshiftRelaseImage := "release-image:4.11.0"
+			ironicAgentImage := "ironic-image:4.11.0"
+			backendInfraEnv.OpenshiftVersion = "4.11.0-test.release"
+			backendInfraEnv.CPUArchitecture = "x86_64"
+			mockInstallerInternal.EXPECT().GetInfraEnvByKubeKey(gomock.Any()).Return(backendInfraEnv, nil)
+			mockVersionHandler.EXPECT().GetReleaseImage(backendInfraEnv.OpenshiftVersion, backendInfraEnv.CPUArchitecture).Return(&models.ReleaseImage{URL: &openshiftRelaseImage}, nil)
+			mockOcRelease.EXPECT().GetIronicAgentImage(gomock.Any(), openshiftRelaseImage, "", backendInfraEnv.PullSecret).Return(ironicAgentImage, nil)
+			mockInstallerInternal.EXPECT().UpdateInfraEnvInternal(gomock.Any(), gomock.Any(), gomock.Any()).
+				Do(func(ctx context.Context, params installer.UpdateInfraEnvParams, internalIgnitionConfig *string) {
+					Expect(params.InfraEnvID).To(Equal(*backendInfraEnv.ID))
+					Expect(params.InfraEnvUpdateParams.IgnitionConfigOverride).To(Equal(""))
+					Expect(*internalIgnitionConfig).Should(ContainSubstring("ironic"))
+					Expect(*internalIgnitionConfig).Should(ContainSubstring(ironicAgentImage))
+				}).Return(
+				&common.InfraEnv{InfraEnv: models.InfraEnv{ClusterID: sId, ID: &sId, DownloadURL: downloadURL, CPUArchitecture: infraEnvArch}, GeneratedAt: strfmt.DateTime(time.Now())}, nil).Times(1)
+			mockCRDEventsHandler.EXPECT().NotifyInfraEnvUpdates(infraEnv.Name, infraEnv.Namespace).Times(1)
+			res, err := pr.Reconcile(ctx, newPreprovisioningImageRequest(ppi))
+			Expect(err).To(BeNil())
+			Expect(res).To(Equal(ctrl.Result{}))
+
+			key := types.NamespacedName{
+				Namespace: testNamespace,
+				Name:      "testInfraEnv",
+			}
+			Expect(c.Get(ctx, key, infraEnv)).To(BeNil())
+			Expect(infraEnv.ObjectMeta.Annotations[EnableIronicAgentAnnotation]).To(Equal("true"))
+		})
 		It("infraEnv not found", func() {
 			res, err := pr.Reconcile(ctx, newPreprovisioningImageRequest(ppi))
 			Expect(err).To(BeNil())

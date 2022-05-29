@@ -50,6 +50,21 @@ func (mr *MockReleaseMockRecorder) Extract(log, releaseImage, releaseImageMirror
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Extract", reflect.TypeOf((*MockRelease)(nil).Extract), log, releaseImage, releaseImageMirror, cacheDir, pullSecret, platformType)
 }
 
+// GetIronicAgentImage mocks base method.
+func (m *MockRelease) GetIronicAgentImage(log logrus.FieldLogger, releaseImage, releaseImageMirror, pullSecret string) (string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetIronicAgentImage", log, releaseImage, releaseImageMirror, pullSecret)
+	ret0, _ := ret[0].(string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetIronicAgentImage indicates an expected call of GetIronicAgentImage.
+func (mr *MockReleaseMockRecorder) GetIronicAgentImage(log, releaseImage, releaseImageMirror, pullSecret interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetIronicAgentImage", reflect.TypeOf((*MockRelease)(nil).GetIronicAgentImage), log, releaseImage, releaseImageMirror, pullSecret)
+}
+
 // GetMCOImage mocks base method.
 func (m *MockRelease) GetMCOImage(log logrus.FieldLogger, releaseImage, releaseImageMirror, pullSecret string) (string, error) {
 	m.ctrl.T.Helper()
