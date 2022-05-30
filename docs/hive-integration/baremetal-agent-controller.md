@@ -11,7 +11,7 @@ The testing environment for BMAC consists of
 
 - [Downstream dev-scripts][dev-scripts] deployment
 - [Baremetal Operator][bmo]: It defines the BareMetalHost custom resource
-- [Assisted Installer Operator](./operator.md): To deploy and manage the  assisted installer
+- [Assisted Installer Operator](../operator.md): To deploy and manage the  assisted installer
   deployment. Read the operator docs to know more about its dependencies and installation process.
 
 
@@ -261,6 +261,12 @@ BMH. Here are a few commands that can be run to achieve this:
 $ oc describe infraenv $YOUR_INFRAENV | grep ISO
 $ oc describe bmh $YOUR_BMH | grep Image
 ```
+**NOTE**
+
+In case the HUB cluster version is 4.11 or above instead of checking the `Image` on the BMH you should check the PreprovisioningImage status:
+```
+$ oc get preprovisioningimage -n {BMH_NAMESPACE} {BMH_NAME} -ojsonpath={'.status}' | jq
+```
 
 ---
 - InfraEnv's ISO Url doesn't have an URL set
@@ -303,6 +309,14 @@ This should be set automatically by BMAC in the part linked [here](https://githu
 but if that is not the case, start from checking the assisted-service logs as there may be more
 errors related to the BMH.
 
+**NOTE**
+
+In case the HUB cluster version is 4.11 or above these annotations shouldn't be set and the IPA is expected to run on the node and register with Ironic.
+Try checking the BMH custom deploy method is set to `start_assisted_install`
+```
+$ oc get bmh -n  {BMH_NAMESPACE} {BMH_NAME} -ojsonpath={'.spec.customDeploy}' | jq
+```
+
 ---
 - Node boots, but nothing else seems to be happening
 
@@ -312,6 +326,15 @@ the existing agents and find the one that has an interface with a MacAddress tha
 
 Remember that in between the node booting from the Discovery ISO and the Agent CR being created you
 may need to wait a few minutes.
+
+**NOTE**
+
+In case the HUB cluster version is 4.11 or above, IPA is expected to start the assisted agent on the node in order for the node to register.
+Try checking the BMH custom deploy method is set to `start_assisted_install`
+```
+$ oc get bmh -n  {BMH_NAMESPACE} {BMH_NAME} -ojsonpath={'.spec.customDeploy}' | jq
+```
+
 
 If there is an agent, the next thing to check is that all validations have passed. This can be done
 by inspecting the `ClusterDeployment` and verify that the validation phase has succeeded.
