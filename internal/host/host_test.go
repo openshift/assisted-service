@@ -3712,7 +3712,7 @@ var _ = Describe("sortHost by hardware", func() {
 	}
 
 	It("verify host order", func() {
-		sorted := sortHosts(generateHosts())
+		sorted, _ := SortHosts(generateHosts())
 		expected := []string{
 			"insufficient for both master and worker",
 			"minimal worker with 3 disks (total of 120 GB)",
