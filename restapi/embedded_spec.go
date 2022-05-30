@@ -5041,6 +5041,18 @@ func init() {
               "$ref": "#/definitions/openshift-versions"
             }
           },
+          "400": {
+            "description": "Bad Request",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "500": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
           "503": {
             "description": "Unavailable.",
             "schema": {
@@ -14089,6 +14101,18 @@ func init() {
             "description": "Success.",
             "schema": {
               "$ref": "#/definitions/openshift-versions"
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "500": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
             }
           },
           "503": {

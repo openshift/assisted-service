@@ -60,6 +60,94 @@ func (o *V2ListSupportedOpenshiftVersionsOK) WriteResponse(rw http.ResponseWrite
 	}
 }
 
+// V2ListSupportedOpenshiftVersionsBadRequestCode is the HTTP code returned for type V2ListSupportedOpenshiftVersionsBadRequest
+const V2ListSupportedOpenshiftVersionsBadRequestCode int = 400
+
+/*V2ListSupportedOpenshiftVersionsBadRequest Bad Request
+
+swagger:response v2ListSupportedOpenshiftVersionsBadRequest
+*/
+type V2ListSupportedOpenshiftVersionsBadRequest struct {
+
+	/*
+	  In: Body
+	*/
+	Payload *models.Error `json:"body,omitempty"`
+}
+
+// NewV2ListSupportedOpenshiftVersionsBadRequest creates V2ListSupportedOpenshiftVersionsBadRequest with default headers values
+func NewV2ListSupportedOpenshiftVersionsBadRequest() *V2ListSupportedOpenshiftVersionsBadRequest {
+
+	return &V2ListSupportedOpenshiftVersionsBadRequest{}
+}
+
+// WithPayload adds the payload to the v2 list supported openshift versions bad request response
+func (o *V2ListSupportedOpenshiftVersionsBadRequest) WithPayload(payload *models.Error) *V2ListSupportedOpenshiftVersionsBadRequest {
+	o.Payload = payload
+	return o
+}
+
+// SetPayload sets the payload to the v2 list supported openshift versions bad request response
+func (o *V2ListSupportedOpenshiftVersionsBadRequest) SetPayload(payload *models.Error) {
+	o.Payload = payload
+}
+
+// WriteResponse to the client
+func (o *V2ListSupportedOpenshiftVersionsBadRequest) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	rw.WriteHeader(400)
+	if o.Payload != nil {
+		payload := o.Payload
+		if err := producer.Produce(rw, payload); err != nil {
+			panic(err) // let the recovery middleware deal with this
+		}
+	}
+}
+
+// V2ListSupportedOpenshiftVersionsInternalServerErrorCode is the HTTP code returned for type V2ListSupportedOpenshiftVersionsInternalServerError
+const V2ListSupportedOpenshiftVersionsInternalServerErrorCode int = 500
+
+/*V2ListSupportedOpenshiftVersionsInternalServerError Error.
+
+swagger:response v2ListSupportedOpenshiftVersionsInternalServerError
+*/
+type V2ListSupportedOpenshiftVersionsInternalServerError struct {
+
+	/*
+	  In: Body
+	*/
+	Payload *models.Error `json:"body,omitempty"`
+}
+
+// NewV2ListSupportedOpenshiftVersionsInternalServerError creates V2ListSupportedOpenshiftVersionsInternalServerError with default headers values
+func NewV2ListSupportedOpenshiftVersionsInternalServerError() *V2ListSupportedOpenshiftVersionsInternalServerError {
+
+	return &V2ListSupportedOpenshiftVersionsInternalServerError{}
+}
+
+// WithPayload adds the payload to the v2 list supported openshift versions internal server error response
+func (o *V2ListSupportedOpenshiftVersionsInternalServerError) WithPayload(payload *models.Error) *V2ListSupportedOpenshiftVersionsInternalServerError {
+	o.Payload = payload
+	return o
+}
+
+// SetPayload sets the payload to the v2 list supported openshift versions internal server error response
+func (o *V2ListSupportedOpenshiftVersionsInternalServerError) SetPayload(payload *models.Error) {
+	o.Payload = payload
+}
+
+// WriteResponse to the client
+func (o *V2ListSupportedOpenshiftVersionsInternalServerError) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	rw.WriteHeader(500)
+	if o.Payload != nil {
+		payload := o.Payload
+		if err := producer.Produce(rw, payload); err != nil {
+			panic(err) // let the recovery middleware deal with this
+		}
+	}
+}
+
 // V2ListSupportedOpenshiftVersionsServiceUnavailableCode is the HTTP code returned for type V2ListSupportedOpenshiftVersionsServiceUnavailable
 const V2ListSupportedOpenshiftVersionsServiceUnavailableCode int = 503
 
