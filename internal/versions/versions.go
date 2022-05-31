@@ -105,12 +105,15 @@ func (h *handler) V2ListSupportedOpenshiftVersions(ctx context.Context, params o
 		}
 		if swag.StringValue(releaseImage.CPUArchitecture) == common.ARM64CPUArchitecture {
 			if !checkedForArmAuthorization {
-				err := auth.ValidateAccessToCPUArchitecture(ctx, h.authzHandler, common.ARM64CPUArchitecture)
-				if err != nil {
-					return common.GenerateErrorResponder(err)
+				checkedForArmAuthorization = true
+				if err := auth.ValidateAccessToCPUArchitecture(ctx, h.authzHandler, common.ARM64CPUArchitecture); err != nil {
+					if strings.Contains(err.Error(), auth.InvalidCPUArchitecture) {
+						continue
+					} else {
+						return common.GenerateErrorResponder(err)
+					}
 				}
 				hasArmAuthorization = true
-				checkedForArmAuthorization = true
 			}
 			if !hasArmAuthorization {
 				continue

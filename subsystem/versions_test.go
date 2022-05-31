@@ -47,8 +47,8 @@ var _ = Describe("[minimal-set]test versions", func() {
 
 		It("Doesn't have ARM CPU capability", func() {
 			reply, err := userBMClient.Versions.V2ListSupportedOpenshiftVersions(context.Background(), &versions.V2ListSupportedOpenshiftVersionsParams{})
-			Expect(err).Should(HaveOccurred())
-			Expect(reply).To(BeNil())
+			Expect(err).ShouldNot(HaveOccurred())
+			Expect(hasArmArchitecture(reply.GetPayload())).Should(BeFalse())
 		})
 
 		It("Have ARM CPU capability", func() {
