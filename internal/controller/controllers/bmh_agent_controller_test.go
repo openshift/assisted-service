@@ -1214,7 +1214,97 @@ var _ = Describe("bmac reconcile", func() {
 			})
 		})
 	})
+})
 
+var _ = Describe("bmac reconcile - converged flow enabled", func() {
+	var (
+		c        client.Client
+		bmhr     *BMACReconciler
+		ctx      = context.Background()
+		mockCtrl *gomock.Controller
+	)
+
+	BeforeEach(func() {
+		schemes := GetKubeClientSchemes()
+		c = fakeclient.NewClientBuilder().WithScheme(schemes).Build()
+		mockCtrl = gomock.NewController(GinkgoT())
+		bmhr = &BMACReconciler{
+			Client:               c,
+			APIReader:            c,
+			Scheme:               scheme.Scheme,
+			Log:                  common.GetTestLog(),
+			spokeClient:          fakeclient.NewClientBuilder().WithScheme(schemes).Build(),
+			ConvergedFlowEnabled: true,
+		}
+	})
+
+	AfterEach(func() {
+		mockCtrl.Finish()
+	})
+
+	Context("with an existing infraEnv with ISODownloadURL", func() {
+		var infraEnv *v1beta1.InfraEnv
+		var isoImageURL string
+		var isoTimestamp metav1.Time
+		var host *bmh_v1alpha1.BareMetalHost
+
+		BeforeEach(func() {
+			isoImageURL = "http://buzz.lightyear.io/discovery-image.iso"
+			isoTimestamp = metav1.Time{Time: time.Now().Add(-10 * time.Hour)}
+			infraEnv = newInfraEnvImage("testInfraEnv", testNamespace, v1beta1.InfraEnvSpec{})
+			infraEnv.Status = v1beta1.InfraEnvStatus{
+				ISODownloadURL: isoImageURL,
+				CreatedTime:    &isoTimestamp,
+			}
+			Expect(c.Create(ctx, infraEnv)).To(BeNil())
+			host = newBMH("bmh-reconcile", &bmh_v1alpha1.BareMetalHostSpec{})
+			Expect(c.Create(ctx, host)).To(BeNil())
+		})
+
+		AfterEach(func() {
+			Expect(c.Delete(ctx, infraEnv)).ShouldNot(HaveOccurred())
+		})
+
+		It("should not disable the BMH hardware inspection", func() {
+			result, err := bmhr.Reconcile(ctx, newBMHRequest(host))
+			Expect(err).To(BeNil())
+			Expect(result).To(Equal(ctrl.Result{}))
+
+			updatedHost := &bmh_v1alpha1.BareMetalHost{}
+			err = c.Get(ctx, types.NamespacedName{Name: host.Name, Namespace: testNamespace}, updatedHost)
+			Expect(err).To(BeNil())
+			Expect(updatedHost.ObjectMeta.Annotations).To(BeNil())
+		})
+
+		It("should disable cleaning in the BMH", func() {
+
+			host.Spec.AutomatedCleaningMode = bmh_v1alpha1.CleaningModeMetadata
+			Expect(c.Update(ctx, host)).To(BeNil())
+
+			result, err := bmhr.Reconcile(ctx, newBMHRequest(host))
+			Expect(err).To(BeNil())
+			Expect(result).To(Equal(ctrl.Result{}))
+
+			updatedHost := &bmh_v1alpha1.BareMetalHost{}
+			err = c.Get(ctx, types.NamespacedName{Name: "bmh-reconcile", Namespace: testNamespace}, updatedHost)
+			Expect(err).To(BeNil())
+			Expect(updatedHost.Spec.AutomatedCleaningMode).To(Equal(bmh_v1alpha1.CleaningModeDisabled))
+			// check that the host isn't detached
+			Expect(updatedHost.ObjectMeta.Annotations).To(BeNil())
+		})
+
+		It("should not set the ISODownloadURL in the BMH", func() {
+			result, err := bmhr.Reconcile(ctx, newBMHRequest(host))
+			Expect(err).To(BeNil())
+			Expect(result).To(Equal(ctrl.Result{}))
+
+			updatedHost := &bmh_v1alpha1.BareMetalHost{}
+			err = c.Get(ctx, types.NamespacedName{Name: "bmh-reconcile", Namespace: testNamespace}, updatedHost)
+			Expect(err).To(BeNil())
+			Expect(updatedHost.Spec.Image).To(BeNil())
+		})
+
+	})
 })
 
 func newAgentWithClusterReference(name string, namespace string, ipv4address string, ipv6address string, macaddress string, clusterName string, agentBMHLabel string, creationTime time.Time) *v1beta1.Agent {
