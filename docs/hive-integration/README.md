@@ -162,9 +162,38 @@ In case that the Bare Metal Operator is installed, the Baremetal Agent Controlle
     - Hostname (optional for user to set)
     - MachineConfigPool (optional for user to set)
 - Reconcile the BareMetalHost hardware details by copying the Agent's inventory data to the BMH's `hardwaredetails` annotation.
+- Disable ironic inspection
 
 
 See BMAC documentation [here](./baremetal-agent-controller.md).
+
+## Bare Metal Operator Integration using the converged flow
+See reference [here](https://github.com/openshift/enhancements/blob/master/enhancements/baremetal/ztp-metal3.md)
+
+In case the Bare Metal Operator on the HUB cluster version is 4.11 or higher, the integration between the BMO and the assisted-service is slightly different.
+The assisted-service will run a Preprovisioning Image Controller that reconciles PreprovisioningImages and:
+- Annotates the InfraEnv for the BareMetalHost with `infraenv.agent-install.openshift.io/enable-ironic-agent="true"`
+- Adds the ironic agent config to the discovery ignition embedded in the InfraEnv ISO
+- Copies the InfraEnv ISODownloadURL to the PreprovisioningImage ImageUrl, which allows the host to register with metal3 and let metal3 reconcile the BareMetalHost hardware details.
+**NOTE**
+In case the InfraEnv is annotated with `infraenv.agent-install.openshift.io/enable-ironic-agent="true"`
+The ISO generated for this InfraEnv requires metal3 for registration and will not work for boot-it-yourself flow!
+
+The Baremetal Agent Controller will stop explicitly disabling *inspection* on `BareMetalHost`s it manages
+and will no longer update the BareMetalHost with detached annotation.
+It will continue to:
+- Find the right pairs of BMH/Agent using their MAC addresses
+- Reconcile the Agent's spec by copying the following attributes from the BMH's annotations:
+  - Role: master/worker
+  - Hostname (optional for user to set)
+  - MachineConfigPool (optional for user to set)
+- Set the  BareMetalHost CustomDeploy Method to `start_assisted_install` - this custom deploy method will be added to start
+  the assisted agent when BMO requests deployment.
+
+The assisted agent will not reboot the machine at the end of the installation, instead it will stop
+the assisted agent service and let the ironic agent to manage the machine power state
+
+You can disable the converged flow by setting the `ALLOW_COVERGED_FLOW` env to false [here](../operator.md#configuring-the-assisted-service-deployment)
 
 ## Working with mirror registry
 In case all of your images are in mirror registries, the service, discovery ISO, and installed nodes must be configured with the proper registries.conf and authentication certificate.  To do so, see the Mirror Registry Configuration section [here](../operator.md#mirror-registry-configuration).
