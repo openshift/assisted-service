@@ -17,18 +17,6 @@ updates:
     commit-message:
       prefix: "NO-ISSUE"
 
-  - package-ecosystem: "pip"
-    directory: "/"
-    schedule:
-      interval: "weekly"
-    labels:
-      - "approved"
-      - "lgtm"
-      - "dependencies"
-      - "python"
-    commit-message:
-      prefix: "NO-ISSUE"
-
   - package-ecosystem: "docker"
     directory: "/"
     schedule:
