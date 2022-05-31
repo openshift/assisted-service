@@ -228,6 +228,11 @@ func (r *BMACReconciler) Reconcile(origCtx context.Context, req ctrl.Request) (c
 			bmh.Spec.CustomDeploy = &bmh_v1alpha1.CustomDeploy{Method: ASSISTED_DEPLOY_METHOD}
 			dirty = true
 		}
+		if bmh.Spec.AutomatedCleaningMode != bmh_v1alpha1.CleaningModeDisabled {
+			log.Infof("Updating BMH AutomatedCleaningMode to %s", bmh_v1alpha1.CleaningModeDisabled)
+			bmh.Spec.AutomatedCleaningMode = bmh_v1alpha1.CleaningModeDisabled
+			dirty = true
+		}
 		result = reconcileComplete{dirty: dirty, stop: false}
 	} else {
 		result = r.reconcileBMH(ctx, log, bmh)
