@@ -196,7 +196,7 @@ func setImageCondition(generation int64, status *metal3_v1alpha1.Preprovisioning
 //
 // Only `PreprovisioningImage` resources that have a label with a reference to an InfraEnv
 func (r *PreprovisioningImageReconciler) findPreprovisioningImagesByInfraEnv(ctx context.Context, infraEnv *aiv1beta1.InfraEnv) ([]metal3_v1alpha1.PreprovisioningImage, error) {
-	infraenvLabel, err := labels.NewRequirement(InfraEnvLabel, selection.Exists, []string{infraEnv.Name})
+	infraenvLabel, err := labels.NewRequirement(InfraEnvLabel, selection.Equals, []string{infraEnv.Name})
 	if err != nil {
 		return []metal3_v1alpha1.PreprovisioningImage{}, errors.Wrapf(err, "invalid label selector for InfraEnv: %v", infraEnv.Name)
 	}
@@ -225,6 +225,15 @@ func (r *PreprovisioningImageReconciler) findInfraEnvForPreprovisioningImage(ctx
 }
 
 func (r *PreprovisioningImageReconciler) SetupWithManager(mgr ctrl.Manager) error {
+	mapInfraEnvPPI := r.mapInfraEnvPPI()
+	return ctrl.NewControllerManagedBy(mgr).
+		For(&metal3_v1alpha1.PreprovisioningImage{}).
+		Watches(&source.Kind{Type: &metal3_v1alpha1.PreprovisioningImage{}}, &handler.EnqueueRequestForObject{}).
+		Watches(&source.Kind{Type: &aiv1beta1.InfraEnv{}}, handler.EnqueueRequestsFromMapFunc(mapInfraEnvPPI)).
+		Complete(r)
+}
+
+func (r *PreprovisioningImageReconciler) mapInfraEnvPPI() func(a client.Object) []reconcile.Request {
 	mapInfraEnvPPI := func(a client.Object) []reconcile.Request {
 		ctx := context.Background()
 		log := logutil.FromContext(ctx, r.Log).WithFields(
@@ -239,24 +248,19 @@ func (r *PreprovisioningImageReconciler) SetupWithManager(mgr ctrl.Manager) erro
 		}
 
 		images, err := r.findPreprovisioningImagesByInfraEnv(ctx, infraEnv)
-		if len(images) == 0 || err != nil {
+		if err != nil {
+			log.WithError(err).Infof("failed getting InfraEnv related preprovisioningImages %s/%s ", a.GetNamespace(), a.GetName())
+			return []reconcile.Request{}
+		}
+		if len(images) == 0 {
 			return []reconcile.Request{}
 		}
 
 		reconcileRequests := []reconcile.Request{}
 
-		shouldReconcileImage := func(image metal3_v1alpha1.PreprovisioningImage, infraEnv *aiv1beta1.InfraEnv) bool {
-			// The Image URL and InfraEnv's URL is the same.
-			// nothing else to do.
-			if infraEnv.Status.ISODownloadURL != "" && image.Status.ImageUrl == infraEnv.Status.ISODownloadURL {
-				log.Info("PreprovisioningImage and InfraEnv images are in sync. Nothing to update.")
-				return false
-			}
-			return true
-		}
 		for i := range images {
-			// Don't queue if shouldReconcileImage explicitly tells us not to do so.
-			if shouldReconcileImage(images[i], infraEnv) {
+			// Don't queue if the Image URL and InfraEnv's URL is the same.
+			if images[i].Status.ImageUrl != infraEnv.Status.ISODownloadURL {
 				reconcileRequests = append(reconcileRequests, reconcile.Request{
 					NamespacedName: types.NamespacedName{
 						Namespace: images[i].Namespace,
@@ -267,11 +271,7 @@ func (r *PreprovisioningImageReconciler) SetupWithManager(mgr ctrl.Manager) erro
 		}
 		return reconcileRequests
 	}
-	return ctrl.NewControllerManagedBy(mgr).
-		For(&metal3_v1alpha1.PreprovisioningImage{}).
-		Watches(&source.Kind{Type: &metal3_v1alpha1.PreprovisioningImage{}}, &handler.EnqueueRequestForObject{}).
-		Watches(&source.Kind{Type: &aiv1beta1.InfraEnv{}}, handler.EnqueueRequestsFromMapFunc(mapInfraEnvPPI)).
-		Complete(r)
+	return mapInfraEnvPPI
 }
 
 func (r *PreprovisioningImageReconciler) AddIronicAgentToInfraEnv(ctx context.Context, log logrus.FieldLogger, infraEnv *aiv1beta1.InfraEnv) (ctrl.Result, error) {
