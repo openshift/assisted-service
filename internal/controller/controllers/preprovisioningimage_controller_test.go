@@ -311,6 +311,66 @@ var _ = Describe("PreprovisioningImage reconcile", func() {
 		Expect(err.Error()).To(Equal("Failed to update infraEnvInternal"))
 		Expect(res).To(Equal(ctrl.Result{}))
 	})
+	Context("map InfraEnv to PPI", func() {
+		BeforeEach(func() {
+			infraEnv = newInfraEnv("testInfraEnv", testNamespace, aiv1beta1.InfraEnvSpec{})
+			ppi = newPreprovisioningImage("testPPI", testNamespace, InfraEnvLabel, "testInfraEnv")
+		})
+		AfterEach(func() {
+			mockCtrl.Finish()
+		})
+		It("Single PreprovisioningImage for infraEnv", func() {
+			infraEnv.Status.ISODownloadURL = downloadURL
+			Expect(c.Create(ctx, infraEnv)).To(BeNil())
+			Expect(c.Create(ctx, ppi)).To(BeNil())
+
+			requests := pr.mapInfraEnvPPI()(infraEnv)
+
+			Expect(len(requests)).To(Equal(1))
+		})
+		It("Multiple PreprovisioningImage for infraEnv", func() {
+			infraEnv.Status.ISODownloadURL = downloadURL
+			Expect(c.Create(ctx, infraEnv)).To(BeNil())
+			Expect(c.Create(ctx, ppi)).To(BeNil())
+			ppi2 := newPreprovisioningImage("testPPI2", testNamespace, InfraEnvLabel, "testInfraEnv")
+			Expect(c.Create(ctx, ppi2)).To(BeNil())
+
+			requests := pr.mapInfraEnvPPI()(infraEnv)
+
+			Expect(len(requests)).To(Equal(2))
+		})
+		It("Multiple PreprovisioningImage for diffrent infraEnv label", func() {
+			infraEnv.Status.ISODownloadURL = downloadURL
+			Expect(c.Create(ctx, infraEnv)).To(BeNil())
+			Expect(c.Create(ctx, ppi)).To(BeNil())
+			ppi2 := newPreprovisioningImage("testPPI2", testNamespace, InfraEnvLabel, "someOtherInfraEnv")
+			Expect(c.Create(ctx, ppi2)).To(BeNil())
+
+			requests := pr.mapInfraEnvPPI()(infraEnv)
+
+			Expect(len(requests)).To(Equal(1))
+		})
+
+		It("No PreprovisioningImage for infraEnv", func() {
+			infraEnv.Status.ISODownloadURL = downloadURL
+			Expect(c.Create(ctx, infraEnv)).To(BeNil())
+
+			requests := pr.mapInfraEnvPPI()(infraEnv)
+
+			Expect(len(requests)).To(Equal(0))
+		})
+		It("Single PreprovisioningImage for infraEnv - nothing ot update", func() {
+			infraEnv.Status.ISODownloadURL = downloadURL
+			Expect(c.Create(ctx, infraEnv)).To(BeNil())
+			ppi.Status.ImageUrl = downloadURL
+			Expect(c.Create(ctx, ppi)).To(BeNil())
+
+			requests := pr.mapInfraEnvPPI()(infraEnv)
+
+			Expect(len(requests)).To(Equal(0))
+		})
+
+	})
 
 })
 
