@@ -27,6 +27,7 @@ var (
 				IPV6Addresses: []string{
 					defaultCIDRv6,
 				},
+				Type: "physical",
 			},
 		},
 		SystemVendor: &models.SystemVendor{Manufacturer: "manu", ProductName: "prod", SerialNumber: "3534"},
@@ -100,6 +101,7 @@ func registerHostsAndSetRolesV6(clusterID, infraEnvID strfmt.UUID, numHosts int)
 		hostname := fmt.Sprintf("h%d", i)
 		host := &registerHost(infraEnvID).Host
 		validHwInfoV6.Interfaces[0].IPV6Addresses = []string{ips[i]}
+		validHwInfoV6.Interfaces[0].MacAddress = "e6:53:3d:a7:77:b4"
 		generateEssentialHostStepsWithInventory(ctx, host, hostname, validHwInfoV6)
 		var role models.HostRole
 		if i < 3 {
