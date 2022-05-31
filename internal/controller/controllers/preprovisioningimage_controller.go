@@ -115,7 +115,7 @@ func (r *PreprovisioningImageReconciler) Reconcile(origCtx context.Context, req 
 	}
 
 	if image.Status.ImageUrl == infraEnv.Status.ISODownloadURL {
-		log.Info(ctx, "PreprovisioningImage and InfraEnv images are in sync. Nothing to update.")
+		log.Info("PreprovisioningImage and InfraEnv images are in sync. Nothing to update.")
 		return ctrl.Result{}, nil
 	}
 	err = r.setImage(image.GetGeneration(), &image.Status, *infraEnv)
