@@ -1145,17 +1145,16 @@ var _ = Describe("cluster install", func() {
 
 	//TODO: stabilize this test
 	It("auto-assign_with_cnv_operator", func() {
-		Skip("Test is flaky, and needs extra work for its stabilization")
 		By("register 3 hosts all with master hw information and virtualization, cluster expected to be ready")
 		clusterID := *cluster.ID
 		ips := hostutil.GenerateIPv4Addresses(6, defaultCIDRv4)
 		hosts := make([]*models.Host, 6)
 
 		for i := 0; i < 3; i++ {
-			hwInventory := getDefaultInventory(ips[i])
+			hwInventory := *getDefaultInventory(ips[i])
 			hwInventory.CPU.Flags = []string{"vmx"}
 			hosts[i] = &registerHost(*infraEnvID).Host
-			generateEssentialHostStepsWithInventory(ctx, hosts[i], fmt.Sprintf("HHH_h%d", i+1), hwInventory)
+			generateEssentialHostStepsWithInventory(ctx, hosts[i], fmt.Sprintf("hhhh%d", i+1), &hwInventory)
 		}
 		updateVipParams(ctx, clusterID)
 		generateFullMeshConnectivity(ctx, ips[0], hosts[0], hosts[1], hosts[2])
@@ -1169,7 +1168,7 @@ var _ = Describe("cluster install", func() {
 			minHwInventory := getMinimalMasterInventory(ips[i])
 			minHwInventory.CPU.Flags = []string{"vmx"}
 			hosts[i] = &registerHost(*infraEnvID).Host
-			generateEssentialHostStepsWithInventory(ctx, hosts[i], fmt.Sprintf("HHH_h%d", i+1), minHwInventory)
+			generateEssentialHostStepsWithInventory(ctx, hosts[i], fmt.Sprintf("hhhh%d", i+1), minHwInventory)
 		}
 		generateFullMeshConnectivity(ctx, ips[0], hosts...)
 		waitForHostState(ctx, models.HostStatusKnown, defaultWaitForHostStateTimeout, hosts...)

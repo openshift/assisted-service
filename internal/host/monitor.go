@@ -2,6 +2,7 @@ package host
 
 import (
 	"context"
+	"fmt"
 	"sort"
 
 	"github.com/go-openapi/swag"
@@ -10,6 +11,7 @@ import (
 	"github.com/openshift/assisted-service/pkg/commonutils"
 	"github.com/openshift/assisted-service/pkg/conversions"
 	"github.com/openshift/assisted-service/pkg/requestid"
+	"github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
 	"gorm.io/gorm"
 )
@@ -55,6 +57,7 @@ func (m *Manager) initMonitoringQueryGenerator() {
 }
 
 func SortHosts(hosts []*models.Host) ([]*models.Host, bool) {
+	log := logrus.New()
 	diskCapacityGiB := func(disks []*models.Disk) int64 {
 		return funk.Reduce(disks, func(acc int64, d *models.Disk) int64 {
 			if d.InstallationEligibility.Eligible {
@@ -104,6 +107,7 @@ func SortHosts(hosts []*models.Host) ([]*models.Host, bool) {
 			HostWeightMemWeight*(float64(memInGib(inventory_j))-HostWeightMinimumMemGib) +
 			HostWeightDiskWeight*(float64(diskCapacityGiB(inventory_j.Disks))-HostWeightMinimumDiskCapacityGib)
 
+		log.Infof("==> comparing %s %f with %s %f", inventory_i.Hostname, wi, inventory_j.Hostname, wj)
 		return wi < wj
 	})
 	return hosts, allHostsHasInventory
@@ -133,6 +137,12 @@ func (m *Manager) clusterHostMonitoring() int64 {
 		for _, c := range clusters {
 			inventoryCache := make(InventoryCache)
 			sortedHosts, canRefreshRoles := SortHosts(c.Hosts)
+			//DEBUG
+			hostnames := funk.Map(sortedHosts, func(hh *models.Host) string {
+				return fmt.Sprintf("%s (%s)", hh.RequestedHostname, hh.ID.String())
+			})
+			log.Infof("==> Sorted hosts: %+v (%t)", hostnames, canRefreshRoles)
+			//
 			for _, host := range sortedHosts {
 				if !m.leaderElector.IsLeader() {
 					m.log.Debugf("Not a leader, exiting cluster HostMonitoring")

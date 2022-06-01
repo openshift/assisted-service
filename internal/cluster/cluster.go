@@ -316,14 +316,17 @@ func (m *Manager) ResetAutoAssignRoles(ctx context.Context, cluster *common.Clus
 		db = m.db
 	}
 
+	log := logutil.FromContext(ctx, m.log)
+
 	reply := db.Model(&models.Host{}).Where("cluster_id = ? and role = ?",
 		cluster.ID.String(), models.HostRoleAutoAssign).Update("suggested_role", models.HostRoleAutoAssign)
 
 	if err := reply.Error; err != nil {
-		m.log.WithError(err).Errorf("fail to reset auto-assign role in cluster %s", cluster.ID.String())
+		log.WithError(err).Errorf("fail to reset auto-assign role in cluster %s", cluster.ID.String())
 		return false, err
 	}
 	//return true if there is at least another host other then the new added host that has been resetted
+	log.Infof("==> resetting %d host roles", reply.RowsAffected)
 	return reply.RowsAffected > 1, nil
 }
 

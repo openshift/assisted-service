@@ -1113,6 +1113,8 @@ func (m *Manager) selectRole(ctx context.Context, h *models.Host, db *gorm.DB) (
 		return autoSelectedRole, err
 	}
 
+	log.Infof("==> Current number of masters is %d", len(masters))
+
 	if len(masters) < common.MinMasterHostsNeededForInstallation {
 		h.Role = models.HostRoleMaster
 		vc, err = newValidationContext(h, nil, nil, db, make(InventoryCache), m.hwValidator)
