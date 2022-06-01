@@ -101,6 +101,35 @@ func ensureSecretIsLabelled(ctx context.Context, c client.Client, secret *corev1
 	return nil
 }
 
+func ensureConfigMapIsLabelled(ctx context.Context, c client.Client, cm *corev1.ConfigMap, key types.NamespacedName) error {
+
+	// Exit early if config map is nil
+	if cm == nil {
+		return nil
+	}
+
+	// Add backup label to the config map if not present
+	if !metav1.HasLabel(cm.ObjectMeta, BackupLabel) {
+		metav1.SetMetaDataLabel(&cm.ObjectMeta, BackupLabel, BackupLabelValue)
+		err := c.Update(ctx, cm)
+		if err != nil {
+			errorMessage := fmt.Sprintf("failed to set label %s:%s for configmap %s/%s", BackupLabel, BackupLabelValue, key.Namespace, key.Name)
+			return errors.Wrapf(err, errorMessage)
+		}
+	}
+
+	// Add the label to configmap if not present
+	if !metav1.HasLabel(cm.ObjectMeta, WatchResourceLabel) {
+		metav1.SetMetaDataLabel(&cm.ObjectMeta, WatchResourceLabel, WatchResourceValue)
+		err := c.Update(ctx, cm)
+		if err != nil {
+			errorMessage := fmt.Sprintf("failed to set label %s:%s for configmap %s/%s", WatchResourceLabel, WatchResourceValue, key.Namespace, key.Name)
+			return errors.Wrapf(err, errorMessage)
+		}
+	}
+	return nil
+}
+
 func getPullSecretData(ctx context.Context, c client.Client, r client.Reader, ref *corev1.LocalObjectReference, namespace string) (string, error) {
 	if ref == nil {
 		return "", newInputError("Missing reference to pull secret")

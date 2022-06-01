@@ -1470,7 +1470,8 @@ func (r *AgentServiceConfigReconciler) newAssistedServiceDeployment(ctx context.
 
 	if instance.Spec.MirrorRegistryRef != nil {
 		cm := &corev1.ConfigMap{}
-		err := r.Get(ctx, types.NamespacedName{Name: instance.Spec.MirrorRegistryRef.Name, Namespace: r.Namespace}, cm)
+		namespacedName := types.NamespacedName{Name: instance.Spec.MirrorRegistryRef.Name, Namespace: r.Namespace}
+		err := r.Get(ctx, namespacedName, cm)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -1484,6 +1485,11 @@ func (r *AgentServiceConfigReconciler) newAssistedServiceDeployment(ctx context.
 		if _, ok := cm.Data[mirrorRegistryRefRegistryConfKey]; !ok {
 			err = fmt.Errorf("Mirror registry configmap %s missing key %s", instance.Spec.MirrorRegistryRef.Name, mirrorRegistryRefRegistryConfKey)
 			return nil, nil, err
+		}
+
+		// make sure configmap is being backed up
+		if err := ensureConfigMapIsLabelled(ctx, r.Client, cm, namespacedName); err != nil {
+			return nil, nil, pkgerror.Wrapf(err, "Unable to mark mirror configmap for backup")
 		}
 
 		volume := corev1.Volume{
