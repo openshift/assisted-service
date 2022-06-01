@@ -1017,6 +1017,28 @@ var _ = Describe("ensureAssistedServiceDeployment", func() {
 					}),
 				)
 			})
+
+			It("should be labelled for backup", func() {
+				asc = newASCWithMirrorRegistryConfig()
+				mirrorCM := &corev1.ConfigMap{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      testMirrorRegConfigmapName,
+						Namespace: testNamespace,
+					},
+					Data: map[string]string{
+						mirrorRegistryRefRegistryConfKey: "foo",
+					},
+				}
+
+				ascr = newTestReconciler(asc, route, mirrorCM, assistedCM)
+				AssertReconcileSuccess(ctx, log, ascr.Client, asc, ascr.newAssistedServiceDeployment)
+
+				found := &corev1.ConfigMap{}
+				Expect(ascr.Client.Get(ctx, types.NamespacedName{Name: testMirrorRegConfigmapName, Namespace: testNamespace}, found)).To(Succeed())
+				Expect(found.Labels).To(HaveLen(2))
+				Expect(found.Labels).To(HaveKeyWithValue(BackupLabel, BackupLabelValue))
+				Expect(found.Labels).To(HaveKeyWithValue(WatchResourceLabel, WatchResourceValue))
+			})
 		})
 
 		Context("with registries.conf and ca-bundle", func() {
