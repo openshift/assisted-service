@@ -37,4 +37,6 @@ const (
 	CPUArchitectureARM64 string = "arm64 architecture"
 	// The install config overrides specified by for the cluster
 	InstallConfigOverrides string = "Install Config Overrides"
+	// SNO expansion with workers
+	SingleNodeExpansion string = "Single Node Expansion"
 )
