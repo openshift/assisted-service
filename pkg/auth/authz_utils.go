@@ -10,6 +10,10 @@ import (
 	"github.com/pkg/errors"
 )
 
+const (
+	InvalidCPUArchitecture = "is not a valid CPU Architecture"
+)
+
 func ValidateAccessToCPUArchitecture(ctx context.Context, authzHandler Authorizer, cpuArchitecture string) error {
 	var err error
 	var armArchAllowed bool
@@ -22,7 +26,7 @@ func ValidateAccessToCPUArchitecture(ctx context.Context, authzHandler Authorize
 			return common.NewApiError(http.StatusInternalServerError, fmt.Errorf("error getting user %s capability, error: %w", ocm.ArmCapabilityName, err))
 		}
 		if !armArchAllowed {
-			return common.NewApiError(http.StatusBadRequest, errors.Errorf("%s is not a valid CPU Architecture", common.ARM64CPUArchitecture))
+			return common.NewApiError(http.StatusBadRequest, errors.Errorf("%s %s", common.ARM64CPUArchitecture, InvalidCPUArchitecture))
 		}
 		return nil
 	case common.X86CPUArchitecture:

@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"io/ioutil"
-	"net/http"
 	"os"
 	"testing"
 	"time"
@@ -846,8 +845,10 @@ var _ = Describe("Test list versions with capability restrictions", func() {
 
 		mockOcmAuthz.EXPECT().CapabilityReview(context.Background(), userName1, ocm.ArmCapabilityName, ocm.OrganizationCapabilityType).Return(false, nil).Times(1)
 		reply := h.V2ListSupportedOpenshiftVersions(authCtx, operations.V2ListSupportedOpenshiftVersionsParams{})
+		Expect(reply).Should(BeAssignableToTypeOf(operations.NewV2ListSupportedOpenshiftVersionsOK()))
 
-		Expect(reply).To(BeAssignableToTypeOf(common.NewApiError(http.StatusBadRequest, errors.Errorf("arm64 is not a valid CPU Architecture"))))
+		val, _ := reply.(*operations.V2ListSupportedOpenshiftVersionsOK)
+		Expect(hasArmArchitecture(val.Payload)).To(BeFalse())
 	})
 
 	It("Disable org base capability", func() {
