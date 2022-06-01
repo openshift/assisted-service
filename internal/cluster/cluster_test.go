@@ -1638,7 +1638,7 @@ func addInstallationRequirementsWithConnectivity(clusterId strfmt.UUID, db *gorm
 	Expect(db.Model(&common.Cluster{Cluster: models.Cluster{ID: &clusterId}}).Updates(map[string]interface{}{"api_vip": "1.2.3.5", "ingress_vip": "1.2.3.6"}).Error).To(Not(HaveOccurred()))
 }
 
-func defaultInventoryWithTimestamp(timestamp int64) string {
+func defaultInventory() string {
 	inventory := models.Inventory{
 		Interfaces: []*models.Interface{
 			{
@@ -1648,7 +1648,6 @@ func defaultInventoryWithTimestamp(timestamp int64) string {
 				},
 			},
 		},
-		Timestamp: timestamp,
 		CPU: &models.CPU{
 			Count: 16,
 		},

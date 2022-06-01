@@ -2,7 +2,6 @@ package common
 
 import (
 	"crypto/x509"
-	"encoding/json"
 	"encoding/pem"
 	"errors"
 	"fmt"
@@ -128,6 +127,17 @@ func GetConsoleUrl(clusterName, baseDomain string) string {
 	return fmt.Sprintf("%s.%s.%s", consoleUrlPrefix, clusterName, baseDomain)
 }
 
+func getHostTimestamp(h *models.Host) (int64, error) {
+	if h.Timestamp != 0 {
+		return h.Timestamp, nil
+	}
+	inventory, err := UnmarshalInventory(h.Inventory)
+	if err != nil {
+		return 0, err
+	}
+	return inventory.Timestamp, nil
+}
+
 func IsNtpSynced(c *Cluster) (bool, error) {
 	var min int64
 	var max int64
@@ -138,17 +148,16 @@ func IsNtpSynced(c *Cluster) (bool, error) {
 			*h.Status == models.HostStatusDiscovering {
 			continue
 		}
-		var inventory models.Inventory
-		err := json.Unmarshal([]byte(h.Inventory), &inventory)
+		timestamp, err := getHostTimestamp(h)
 		if err != nil {
 			return false, err
 		}
 
-		if inventory.Timestamp < min || min == 0 {
-			min = inventory.Timestamp
+		if timestamp < min || min == 0 {
+			min = timestamp
 		}
-		if inventory.Timestamp > max {
-			max = inventory.Timestamp
+		if timestamp > max {
+			max = timestamp
 		}
 	}
 	return (max-min)/60 <= MaximumAllowedTimeDiffMinutes, nil

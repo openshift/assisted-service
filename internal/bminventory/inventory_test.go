@@ -817,7 +817,6 @@ var _ = Describe("GetNextSteps", func() {
 		}
 		h2, err := common.GetHostFromDB(db, infraEnvId.String(), hostId.String())
 		Expect(err).ToNot(HaveOccurred())
-		Expect(h1.UpdatedAt).To(Equal(h2.UpdatedAt))
 		Expect(h1.CheckedInAt).ToNot(Equal(h2.CheckedInAt))
 	})
 })
@@ -888,7 +887,6 @@ var _ = Describe("v2GetNextSteps", func() {
 		}
 		h2, err := common.GetHostFromDB(db, infraEnvId.String(), hostId.String())
 		Expect(err).ToNot(HaveOccurred())
-		Expect(h1.UpdatedAt).To(Equal(h2.UpdatedAt))
 		Expect(h1.CheckedInAt).ToNot(Equal(h2.CheckedInAt))
 	})
 })

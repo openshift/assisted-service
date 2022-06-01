@@ -988,7 +988,6 @@ func inventoryWithUnauthorizedVendor() string {
 		Memory:       &models.Memory{PhysicalBytes: conversions.GibToBytes(16), UsableBytes: conversions.GibToBytes(16)},
 		Hostname:     "master-hostname",
 		SystemVendor: &models.SystemVendor{Manufacturer: "RDO", ProductName: "OpenStack Compute", SerialNumber: "3534"},
-		Timestamp:    1601835002,
 		Routes:       common.TestDefaultRouteConfiguration,
 	}
 	b, err := json.Marshal(&inventory)

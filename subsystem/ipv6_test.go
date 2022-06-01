@@ -30,7 +30,6 @@ var (
 			},
 		},
 		SystemVendor: &models.SystemVendor{Manufacturer: "manu", ProductName: "prod", SerialNumber: "3534"},
-		Timestamp:    1601853088,
 		Routes:       common.TestDefaultRouteConfiguration,
 	}
 )

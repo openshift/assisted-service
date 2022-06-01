@@ -4513,8 +4513,12 @@ func (b *bareMetalInventory) V2GetNextSteps(ctx context.Context, params installe
 			WithPayload(common.GenerateError(http.StatusNotFound, err))
 	}
 
-	host.CheckedInAt = strfmt.DateTime(time.Now())
-	if err = tx.Model(&host).UpdateColumn("checked_in_at", host.CheckedInAt).Error; err != nil {
+	updates := make(map[string]interface{})
+	updates["checked_in_at"] = time.Now()
+	if swag.Int64Value(params.Timestamp) != 0 {
+		updates["timestamp"] = swag.Int64Value(params.Timestamp)
+	}
+	if err = tx.Model(&host).Updates(updates).Error; err != nil {
 		log.WithError(err).Errorf("failed to update host: %s", params.HostID.String())
 		return installer.NewV2GetNextStepsInternalServerError()
 	}

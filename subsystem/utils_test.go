@@ -264,6 +264,15 @@ func updateHostProgressWithInfo(hostID strfmt.UUID, infraEnvID strfmt.UUID, curr
 	Expect(updateReply).Should(BeAssignableToTypeOf(installer.NewV2UpdateHostInstallProgressOK()))
 }
 
+func generateGetNextStepsWithTimestamp(ctx context.Context, h *models.Host, timestamp int64) {
+	_, err := agentBMClient.Installer.V2GetNextSteps(ctx, &installer.V2GetNextStepsParams{
+		HostID:     *h.ID,
+		InfraEnvID: h.InfraEnvID,
+		Timestamp:  &timestamp,
+	})
+	Expect(err).ToNot(HaveOccurred())
+}
+
 func generateHWPostStepReply(ctx context.Context, h *models.Host, hwInfo *models.Inventory, hostname string) {
 	hwInfo.Hostname = hostname
 	hw, err := json.Marshal(&hwInfo)
@@ -374,6 +383,7 @@ func generateEssentialHostSteps(ctx context.Context, h *models.Host, name, cidr 
 }
 
 func generateEssentialHostStepsWithInventory(ctx context.Context, h *models.Host, name string, inventory *models.Inventory) {
+	generateGetNextStepsWithTimestamp(ctx, h, defaultTimestamp)
 	generateHWPostStepReply(ctx, h, inventory, name)
 	generateFAPostStepReply(ctx, h, validFreeAddresses)
 	generateNTPPostStepReply(ctx, h, []*models.NtpSource{common.TestNTPSourceSynced})

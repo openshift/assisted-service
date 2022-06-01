@@ -67,12 +67,13 @@ const (
 )
 
 const (
-	validDiskSize     = int64(128849018880)
-	minSuccessesInRow = 2
-	minHosts          = 3
-	loop0Id           = "wwn-0x1111111111111111111111"
-	sdbId             = "wwn-0x2222222222222222222222"
-	defaultCIDRv4     = "1.2.3.10/24"
+	validDiskSize           = int64(128849018880)
+	minSuccessesInRow       = 2
+	minHosts                = 3
+	loop0Id                 = "wwn-0x1111111111111111111111"
+	sdbId                   = "wwn-0x2222222222222222222222"
+	defaultCIDRv4           = "1.2.3.10/24"
+	defaultTimestamp  int64 = 1601853088
 )
 
 var (
@@ -105,7 +106,6 @@ var (
 			},
 		},
 		SystemVendor: &models.SystemVendor{Manufacturer: "manu", ProductName: "prod", SerialNumber: "3534"},
-		Timestamp:    1601853088,
 		Routes:       common.TestDefaultRouteConfiguration,
 		TpmVersion:   models.InventoryTpmVersionNr20,
 	}
@@ -148,7 +148,6 @@ func getValidWorkerHwInfoWithCIDR(cidr string) *models.Inventory {
 			},
 		},
 		SystemVendor: &models.SystemVendor{Manufacturer: "manu", ProductName: "prod", SerialNumber: "3534"},
-		Timestamp:    1601853088,
 		Routes:       common.TestDefaultRouteConfiguration,
 	}
 }
@@ -3052,7 +3051,6 @@ spec:
 				},
 			},
 			SystemVendor: &models.SystemVendor{Manufacturer: "manu", ProductName: "prod", SerialNumber: "3534"},
-			Timestamp:    1601853088,
 			Routes:       common.TestDefaultRouteConfiguration,
 		}
 		h1 := &registerHost(*infraEnvID).Host
@@ -4032,7 +4030,6 @@ var _ = Describe("disk encryption", func() {
 				},
 			},
 			SystemVendor: &models.SystemVendor{Manufacturer: "manu", ProductName: "prod", SerialNumber: "3534"},
-			Timestamp:    1601853088,
 			Routes:       common.TestDefaultRouteConfiguration,
 			TpmVersion:   models.InventoryTpmVersionNr12,
 		}
@@ -4276,7 +4273,6 @@ var _ = Describe("Ovirt provider tests", func() {
 				},
 			},
 			SystemVendor: &models.SystemVendor{Manufacturer: "manu", ProductName: "RHEL", SerialNumber: "3534"},
-			Timestamp:    1601853088,
 			Routes:       common.TestDefaultRouteConfiguration,
 			TpmVersion:   models.InventoryTpmVersionNr20,
 		}
@@ -4454,7 +4450,6 @@ func getoVirtInventory() *models.Inventory {
 			SerialNumber: "3534",
 			Virtual:      true,
 		},
-		Timestamp:  1601853088,
 		Routes:     common.TestDefaultRouteConfiguration,
 		TpmVersion: models.InventoryTpmVersionNr20,
 	}
