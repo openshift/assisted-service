@@ -218,7 +218,6 @@ func GenerateMasterInventoryWithHostnameAndCpuFlags(hostname string, cpuflags []
 		Memory:       &models.Memory{PhysicalBytes: conversions.GibToBytes(16), UsableBytes: conversions.GibToBytes(16)},
 		Hostname:     hostname,
 		SystemVendor: &models.SystemVendor{Manufacturer: "Red Hat", ProductName: systemPlatform, SerialNumber: "3534"},
-		Timestamp:    1601835002,
 		Routes:       common.TestDefaultRouteConfiguration,
 	}
 	b, err := json.Marshal(&inventory)
@@ -252,7 +251,6 @@ func GenerateMasterInventoryWithNetworks(ips ...string) string {
 		Memory:       &models.Memory{PhysicalBytes: conversions.GibToBytes(16), UsableBytes: conversions.GibToBytes(16)},
 		Hostname:     "master1",
 		SystemVendor: &models.SystemVendor{Manufacturer: "Red Hat", ProductName: "RHEL", SerialNumber: "3534"},
-		Timestamp:    1601835002,
 		Routes:       common.TestDefaultRouteConfiguration,
 	}
 	b, err := json.Marshal(&inventory)
@@ -283,7 +281,6 @@ func GenerateMasterInventoryWithNetworksOnSameInterface(ips ...string) string {
 		Memory:       &models.Memory{PhysicalBytes: conversions.GibToBytes(16), UsableBytes: conversions.GibToBytes(16)},
 		Hostname:     "master1",
 		SystemVendor: &models.SystemVendor{Manufacturer: "Red Hat", ProductName: "RHEL", SerialNumber: "3534"},
-		Timestamp:    1601835002,
 		Routes:       common.TestDefaultRouteConfiguration,
 	}
 	b, err := json.Marshal(&inventory)
@@ -311,7 +308,6 @@ func GenerateMasterInventoryWithHostnameAndCpuFlagsV6(hostname string, cpuflags 
 		Memory:       &models.Memory{PhysicalBytes: conversions.GibToBytes(16), UsableBytes: conversions.GibToBytes(16)},
 		Hostname:     hostname,
 		SystemVendor: &models.SystemVendor{Manufacturer: "Red Hat", ProductName: "RHEL", SerialNumber: "3534"},
-		Timestamp:    1601835002,
 		Routes:       common.TestDefaultRouteConfiguration,
 	}
 	b, err := json.Marshal(&inventory)
@@ -342,7 +338,6 @@ func GenerateMasterInventoryWithHostnameAndCpuFlagsDualStack(hostname string, cp
 		Memory:       &models.Memory{PhysicalBytes: conversions.GibToBytes(16), UsableBytes: conversions.GibToBytes(16)},
 		Hostname:     hostname,
 		SystemVendor: &models.SystemVendor{Manufacturer: "Red Hat", ProductName: "RHEL", SerialNumber: "3534"},
-		Timestamp:    1601835002,
 		Routes:       common.TestDefaultRouteConfiguration,
 	}
 	b, err := json.Marshal(&inventory)
@@ -371,7 +366,6 @@ func GenerateInventoryWithResources(cpu, memory int64, hostname string, gpus ...
 		Memory:       &models.Memory{PhysicalBytes: conversions.GibToBytes(memory), UsableBytes: conversions.GibToBytes(memory)},
 		Hostname:     hostname,
 		SystemVendor: &models.SystemVendor{Manufacturer: "Red Hat", ProductName: "RHEL", SerialNumber: "3534"},
-		Timestamp:    1601835002,
 		Routes:       common.TestDefaultRouteConfiguration,
 	}
 	b, err := json.Marshal(&inventory)
@@ -404,7 +398,6 @@ func GenerateInventoryWithResourcesAndMultipleDisk(cpu, memory int64, hostname s
 		Memory:       &models.Memory{PhysicalBytes: conversions.GibToBytes(memory), UsableBytes: conversions.GibToBytes(memory)},
 		Hostname:     hostname,
 		SystemVendor: &models.SystemVendor{Manufacturer: "Red Hat", ProductName: "RHEL", SerialNumber: "3534"},
-		Timestamp:    1601835002,
 		Routes:       common.TestDefaultRouteConfiguration,
 	}
 	b, err := json.Marshal(&inventory)
@@ -432,7 +425,6 @@ func GenerateInventoryWithResourcesWithBytes(cpu, physicalMemory int64, usableMe
 		Memory:       &models.Memory{PhysicalBytes: physicalMemory, UsableBytes: usableMemory},
 		Hostname:     hostname,
 		SystemVendor: &models.SystemVendor{Manufacturer: "Red Hat", ProductName: "RHEL", SerialNumber: "3534"},
-		Timestamp:    1601835002,
 		Routes:       common.TestDefaultRouteConfiguration,
 	}
 	b, err := json.Marshal(&inventory)

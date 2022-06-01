@@ -4627,6 +4627,12 @@ func init() {
             "required": true
           },
           {
+            "type": "integer",
+            "description": "The time on the host as seconds since the Unix epoch.",
+            "name": "timestamp",
+            "in": "query"
+          },
+          {
             "type": "string",
             "description": "The software version of the discovery agent that is retrieving instructions.",
             "name": "discovery_agent_version",
@@ -6973,6 +6979,10 @@ func init() {
         },
         "suggested_role": {
           "$ref": "#/definitions/host-role"
+        },
+        "timestamp": {
+          "description": "The time on the host as seconds since the Unix epoch.",
+          "type": "integer"
         },
         "updated_at": {
           "type": "string",
@@ -13689,6 +13699,12 @@ func init() {
             "required": true
           },
           {
+            "type": "integer",
+            "description": "The time on the host as seconds since the Unix epoch.",
+            "name": "timestamp",
+            "in": "query"
+          },
+          {
             "type": "string",
             "description": "The software version of the discovery agent that is retrieving instructions.",
             "name": "discovery_agent_version",
@@ -16094,6 +16110,10 @@ func init() {
         },
         "suggested_role": {
           "$ref": "#/definitions/host-role"
+        },
+        "timestamp": {
+          "description": "The time on the host as seconds since the Unix epoch.",
+          "type": "integer"
         },
         "updated_at": {
           "type": "string",

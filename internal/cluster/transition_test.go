@@ -3955,9 +3955,9 @@ var _ = Describe("NTP refresh cluster", func() {
 				dstState:      models.ClusterStatusInsufficient,
 				pullSecretSet: true,
 				hosts: []models.Host{
-					{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventoryWithTimestamp(1601909239), Role: models.HostRoleMaster},
-					{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventoryWithTimestamp(1601909239 - 400), Role: models.HostRoleMaster},
-					{ID: &hid3, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventoryWithTimestamp(1601909239), Role: models.HostRoleMaster},
+					{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Timestamp: 1601909239, Role: models.HostRoleMaster},
+					{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Timestamp: 1601909239 - 400, Role: models.HostRoleMaster},
+					{ID: &hid3, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Timestamp: 1601909239, Role: models.HostRoleMaster},
 				},
 				statusInfoChecker: makeValueChecker(StatusInfoInsufficient),
 				validationsChecker: makeJsonChecker(map[ValidationID]validationCheckResult{
@@ -3981,9 +3981,9 @@ var _ = Describe("NTP refresh cluster", func() {
 				dstState:      models.ClusterStatusReady,
 				pullSecretSet: true,
 				hosts: []models.Host{
-					{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventoryWithTimestamp(1601909239), Role: models.HostRoleMaster},
-					{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventoryWithTimestamp(1601909239), Role: models.HostRoleMaster},
-					{ID: &hid3, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventoryWithTimestamp(1601909239), Role: models.HostRoleMaster},
+					{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Timestamp: 1601909239, Role: models.HostRoleMaster},
+					{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Timestamp: 1601909239, Role: models.HostRoleMaster},
+					{ID: &hid3, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Timestamp: 1601909239, Role: models.HostRoleMaster},
 				},
 				statusInfoChecker: makeValueChecker(StatusInfoReady),
 				validationsChecker: makeJsonChecker(map[ValidationID]validationCheckResult{
@@ -4007,9 +4007,9 @@ var _ = Describe("NTP refresh cluster", func() {
 				dstState:      models.ClusterStatusReady,
 				pullSecretSet: true,
 				hosts: []models.Host{
-					{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventoryWithTimestamp(1601909239), Role: models.HostRoleMaster},
-					{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventoryWithTimestamp(1601909239), Role: models.HostRoleMaster},
-					{ID: &hid3, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventoryWithTimestamp(1601909239), Role: models.HostRoleMaster},
+					{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Timestamp: 1601909239, Role: models.HostRoleMaster},
+					{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Timestamp: 1601909239, Role: models.HostRoleMaster},
+					{ID: &hid3, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Timestamp: 1601909239, Role: models.HostRoleMaster},
 				},
 				statusInfoChecker: makeValueChecker(StatusInfoReady),
 				validationsChecker: makeJsonChecker(map[ValidationID]validationCheckResult{
@@ -4033,9 +4033,9 @@ var _ = Describe("NTP refresh cluster", func() {
 				dstState:      models.ClusterStatusReady,
 				pullSecretSet: true,
 				hosts: []models.Host{
-					{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventoryWithTimestamp(1601909239), Role: models.HostRoleMaster},
-					{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventoryWithTimestamp(1601909239), Role: models.HostRoleMaster},
-					{ID: &hid3, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventoryWithTimestamp(1601909239), Role: models.HostRoleMaster},
+					{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Timestamp: 1601909239, Role: models.HostRoleMaster},
+					{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Timestamp: 1601909239, Role: models.HostRoleMaster},
+					{ID: &hid3, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Timestamp: 1601909239, Role: models.HostRoleMaster},
 				},
 				statusInfoChecker: makeValueChecker(StatusInfoReady),
 				validationsChecker: makeJsonChecker(map[ValidationID]validationCheckResult{
@@ -4059,11 +4059,11 @@ var _ = Describe("NTP refresh cluster", func() {
 				dstState:      models.ClusterStatusInsufficient,
 				pullSecretSet: true,
 				hosts: []models.Host{
-					{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventoryWithTimestamp(1601909239), Role: models.HostRoleMaster},
-					{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventoryWithTimestamp(1601909239), Role: models.HostRoleMaster},
-					{ID: &hid3, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventoryWithTimestamp(1601909239), Role: models.HostRoleMaster},
-					{ID: &hid4, Status: swag.String(models.HostStatusDisconnected), Inventory: defaultInventoryWithTimestamp(1601909239 + 1000), Role: models.HostRoleWorker},
-					{ID: &hid5, Status: swag.String(models.HostStatusDisconnected), Inventory: defaultInventoryWithTimestamp(1601909239 - 1000), Role: models.HostRoleWorker},
+					{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Timestamp: 1601909239, Role: models.HostRoleMaster},
+					{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Timestamp: 1601909239, Role: models.HostRoleMaster},
+					{ID: &hid3, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Timestamp: 1601909239, Role: models.HostRoleMaster},
+					{ID: &hid4, Status: swag.String(models.HostStatusDisconnected), Inventory: defaultInventory(), Timestamp: 1601909239 + 1000, Role: models.HostRoleWorker},
+					{ID: &hid5, Status: swag.String(models.HostStatusDisconnected), Inventory: defaultInventory(), Timestamp: 1601909239 - 1000, Role: models.HostRoleWorker},
 				},
 				statusInfoChecker: makeValueChecker(StatusInfoInsufficient),
 				validationsChecker: makeJsonChecker(map[ValidationID]validationCheckResult{
@@ -4088,11 +4088,11 @@ var _ = Describe("NTP refresh cluster", func() {
 				dstState:      models.ClusterStatusInsufficient,
 				pullSecretSet: true,
 				hosts: []models.Host{
-					{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventoryWithTimestamp(1601909239), Role: models.HostRoleMaster},
-					{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventoryWithTimestamp(1601909239), Role: models.HostRoleMaster},
-					{ID: &hid3, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventoryWithTimestamp(1601909239), Role: models.HostRoleMaster},
-					{ID: &hid4, Status: swag.String(models.HostStatusResettingPendingUserAction), Inventory: defaultInventoryWithTimestamp(1601909239 + 1000), Role: models.HostRoleWorker},
-					{ID: &hid5, Status: swag.String(models.HostStatusResettingPendingUserAction), Inventory: defaultInventoryWithTimestamp(1601909239 - 1000), Role: models.HostRoleWorker},
+					{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Timestamp: 1601909239, Role: models.HostRoleMaster},
+					{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Timestamp: 1601909239, Role: models.HostRoleMaster},
+					{ID: &hid3, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Timestamp: 1601909239, Role: models.HostRoleMaster},
+					{ID: &hid4, Status: swag.String(models.HostStatusResettingPendingUserAction), Inventory: defaultInventory(), Timestamp: 1601909239 + 1000, Role: models.HostRoleWorker},
+					{ID: &hid5, Status: swag.String(models.HostStatusResettingPendingUserAction), Inventory: defaultInventory(), Timestamp: 1601909239 - 1000, Role: models.HostRoleWorker},
 				},
 				statusInfoChecker: makeValueChecker(StatusInfoInsufficient),
 				validationsChecker: makeJsonChecker(map[ValidationID]validationCheckResult{
@@ -4117,9 +4117,9 @@ var _ = Describe("NTP refresh cluster", func() {
 				dstState:      models.ClusterStatusInsufficient,
 				pullSecretSet: true,
 				hosts: []models.Host{
-					{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventoryWithTimestamp(1601909239), Role: models.HostRoleMaster},
-					{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventoryWithTimestamp(1601909239 - 400), Role: models.HostRoleMaster},
-					{ID: &hid3, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventoryWithTimestamp(1601909239), Role: models.HostRoleMaster},
+					{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Timestamp: 1601909239, Role: models.HostRoleMaster},
+					{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Timestamp: 1601909239 - 400, Role: models.HostRoleMaster},
+					{ID: &hid3, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Timestamp: 1601909239, Role: models.HostRoleMaster},
 				},
 				statusInfoChecker: makeValueChecker(StatusInfoInsufficient),
 				validationsChecker: makeJsonChecker(map[ValidationID]validationCheckResult{
@@ -4252,8 +4252,8 @@ var _ = Describe("Single node", func() {
 				dstState:      models.ClusterStatusInsufficient,
 				pullSecretSet: true,
 				hosts: []models.Host{
-					{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventoryWithTimestamp(1601909239), Role: models.HostRoleMaster},
-					{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventoryWithTimestamp(1601909239), Role: models.HostRoleMaster},
+					{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Timestamp: 1601909239, Role: models.HostRoleMaster},
+					{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Timestamp: 1601909239, Role: models.HostRoleMaster},
 				},
 				statusInfoChecker: makeValueChecker(StatusInfoInsufficient),
 				validationsChecker: makeJsonChecker(map[ValidationID]validationCheckResult{
@@ -4276,8 +4276,8 @@ var _ = Describe("Single node", func() {
 				dstState:      models.ClusterStatusInsufficient,
 				pullSecretSet: true,
 				hosts: []models.Host{
-					{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventoryWithTimestamp(1601909239), Role: models.HostRoleMaster},
-					{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventoryWithTimestamp(1601909239), Role: models.HostRoleWorker},
+					{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Timestamp: 1601909239, Role: models.HostRoleMaster},
+					{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Timestamp: 1601909239, Role: models.HostRoleWorker},
 				},
 				statusInfoChecker: makeValueChecker(StatusInfoInsufficient),
 				validationsChecker: makeJsonChecker(map[ValidationID]validationCheckResult{
@@ -4301,9 +4301,9 @@ var _ = Describe("Single node", func() {
 				dstState:      models.ClusterStatusInsufficient,
 				pullSecretSet: true,
 				hosts: []models.Host{
-					{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventoryWithTimestamp(1601909239), Role: models.HostRoleMaster},
-					{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventoryWithTimestamp(1601909239), Role: models.HostRoleWorker},
-					{ID: &hid3, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventoryWithTimestamp(1601909239), Role: models.HostRoleWorker},
+					{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Timestamp: 1601909239, Role: models.HostRoleMaster},
+					{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Timestamp: 1601909239, Role: models.HostRoleWorker},
+					{ID: &hid3, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Timestamp: 1601909239, Role: models.HostRoleWorker},
 				},
 				statusInfoChecker: makeValueChecker(StatusInfoInsufficient),
 				validationsChecker: makeJsonChecker(map[ValidationID]validationCheckResult{
@@ -4327,7 +4327,7 @@ var _ = Describe("Single node", func() {
 				dstState:      models.ClusterStatusInsufficient,
 				pullSecretSet: true,
 				hosts: []models.Host{
-					{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventoryWithTimestamp(1601909239), Role: models.HostRoleWorker},
+					{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Timestamp: 1601909239, Role: models.HostRoleWorker},
 				},
 				statusInfoChecker: makeValueChecker(StatusInfoInsufficient),
 				validationsChecker: makeJsonChecker(map[ValidationID]validationCheckResult{
@@ -4351,7 +4351,7 @@ var _ = Describe("Single node", func() {
 				dstState:      models.ClusterStatusReady,
 				pullSecretSet: true,
 				hosts: []models.Host{
-					{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventoryWithTimestamp(1601909239), Role: models.HostRoleMaster},
+					{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Timestamp: 1601909239, Role: models.HostRoleMaster},
 				},
 				statusInfoChecker: makeValueChecker(StatusInfoReady),
 				validationsChecker: makeJsonChecker(map[ValidationID]validationCheckResult{
@@ -4375,7 +4375,7 @@ var _ = Describe("Single node", func() {
 				dstState:      models.ClusterStatusReady,
 				pullSecretSet: true,
 				hosts: []models.Host{
-					{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventoryWithTimestamp(1601909239), Role: models.HostRoleAutoAssign},
+					{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Timestamp: 1601909239, Role: models.HostRoleAutoAssign},
 				},
 				statusInfoChecker: makeValueChecker(StatusInfoReady),
 				validationsChecker: makeJsonChecker(map[ValidationID]validationCheckResult{
@@ -4399,7 +4399,7 @@ var _ = Describe("Single node", func() {
 				dstState:      models.ClusterStatusInstalling,
 				pullSecretSet: true,
 				hosts: []models.Host{
-					{ID: &hid1, Status: swag.String(models.HostStatusPreparingSuccessful), Inventory: defaultInventoryWithTimestamp(1601909239), Role: models.HostRoleMaster, Bootstrap: true},
+					{ID: &hid1, Status: swag.String(models.HostStatusPreparingSuccessful), Inventory: defaultInventory(), Timestamp: 1601909239, Role: models.HostRoleMaster, Bootstrap: true},
 				},
 				statusInfoChecker: makeValueChecker(statusInfoInstalling),
 				validationsChecker: makeJsonChecker(map[ValidationID]validationCheckResult{

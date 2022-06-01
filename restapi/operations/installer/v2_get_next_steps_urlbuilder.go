@@ -12,12 +12,15 @@ import (
 	"strings"
 
 	"github.com/go-openapi/strfmt"
+	"github.com/go-openapi/swag"
 )
 
 // V2GetNextStepsURL generates an URL for the v2 get next steps operation
 type V2GetNextStepsURL struct {
 	HostID     strfmt.UUID
 	InfraEnvID strfmt.UUID
+
+	Timestamp *int64
 
 	_basePath string
 	// avoid unkeyed usage
@@ -64,6 +67,18 @@ func (o *V2GetNextStepsURL) Build() (*url.URL, error) {
 		_basePath = "/api/assisted-install"
 	}
 	_result.Path = golangswaggerpaths.Join(_basePath, _path)
+
+	qs := make(url.Values)
+
+	var timestampQ string
+	if o.Timestamp != nil {
+		timestampQ = swag.FormatInt64(*o.Timestamp)
+	}
+	if timestampQ != "" {
+		qs.Set("timestamp", timestampQ)
+	}
+
+	_result.RawQuery = qs.Encode()
 
 	return &_result, nil
 }

@@ -1072,10 +1072,7 @@ var _ = Describe("Metrics tests", func() {
 			oldFailedMetricCounter := getValidationMetricCounter(string(models.ClusterValidationIDNtpServerConfigured), clusterValidationFailedMetric)
 
 			// create a validation failure
-			nonSyncedInventory := &models.Inventory{
-				Timestamp: validHwInfo.Timestamp + (common.MaximumAllowedTimeDiffMinutes+1)*60,
-			}
-			generateHWPostStepReply(ctx, h1, nonSyncedInventory, "h1")
+			generateGetNextStepsWithTimestamp(ctx, h1, defaultTimestamp+(common.MaximumAllowedTimeDiffMinutes+1)*60)
 			Expect(db.Model(h1).Update("status", "known").Error).NotTo(HaveOccurred())
 			waitForClusterValidationStatus(clusterID, "failure", models.ClusterValidationIDNtpServerConfigured)
 
@@ -1093,14 +1090,12 @@ var _ = Describe("Metrics tests", func() {
 			// create a validation failure
 			h1 := registerNode(ctx, *infraEnvID, "h1", ips[0])
 			registerNode(ctx, *infraEnvID, "h2", ips[1])
-			nonSyncedInventory := &models.Inventory{
-				Timestamp: validHwInfo.Timestamp + (common.MaximumAllowedTimeDiffMinutes+1)*60,
-			}
-			generateHWPostStepReply(ctx, h1, nonSyncedInventory, "h1")
+			generateGetNextStepsWithTimestamp(ctx, h1, defaultTimestamp+(common.MaximumAllowedTimeDiffMinutes+1)*60)
 			Expect(db.Model(h1).Update("status", "known").Error).NotTo(HaveOccurred())
 			waitForClusterValidationStatus(clusterID, "failure", models.ClusterValidationIDNtpServerConfigured)
 
 			// create a validation success
+			generateGetNextStepsWithTimestamp(ctx, h1, defaultTimestamp)
 			generateHWPostStepReply(ctx, h1, validHwInfo, "h1")
 			waitForClusterValidationStatus(clusterID, "success", models.ClusterValidationIDNtpServerConfigured)
 

@@ -1000,6 +1000,11 @@ paths:
           type: string
           format: uuid
           required: true
+        - in: query
+          name: timestamp
+          type: integer
+          description: The time on the host as seconds since the Unix epoch.
+          required: false
         - in: header
           name: discovery_agent_version
           description: The software version of the discovery agent that is retrieving instructions.
@@ -4045,6 +4050,9 @@ definitions:
         example: '{"ignition": {"version": "3.1.0"}, "storage": {"files": [{"path": "/tmp/example", "contents": {"source": "data:text/plain;base64,aGVscGltdHJhcHBlZGluYXN3YWdnZXJzcGVj"}}]}}'
       installer_args:
         type: string
+      timestamp:
+        type: integer
+        description: The time on the host as seconds since the Unix epoch.
       machine_config_pool_name:
         type: string
       images_status:

@@ -165,6 +165,9 @@ type Host struct {
 	// suggested role
 	SuggestedRole HostRole `json:"suggested_role,omitempty"`
 
+	// The time on the host as seconds since the Unix epoch.
+	Timestamp int64 `json:"timestamp,omitempty"`
+
 	// updated at
 	// Format: date-time
 	UpdatedAt timeext.Time `json:"updated_at,omitempty" gorm:"type:timestamp with time zone"`

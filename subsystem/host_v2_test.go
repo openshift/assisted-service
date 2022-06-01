@@ -373,7 +373,6 @@ func defaultInventory() string {
 			UsableBytes:   int64(16) * (int64(1) << 30),
 		},
 		SystemVendor: &models.SystemVendor{Manufacturer: "Red Hat", ProductName: "RHEL", SerialNumber: "3534"},
-		Timestamp:    1601845851,
 	}
 	b, err := json.Marshal(&inventory)
 	Expect(err).To(Not(HaveOccurred()))
