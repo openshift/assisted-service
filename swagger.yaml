@@ -5442,8 +5442,6 @@ definitions:
         $ref: '#/definitions/memory'
       cpu:
         $ref: '#/definitions/cpu'
-      timestamp:
-        type: integer
       gpus:
         type: array
         items:
