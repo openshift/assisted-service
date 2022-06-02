@@ -8,6 +8,7 @@ import (
 	"github.com/openshift/assisted-service/internal/host/hostutil"
 	"github.com/openshift/assisted-service/internal/installcfg"
 	"github.com/openshift/assisted-service/models"
+	"github.com/pkg/errors"
 )
 
 func (p baremetalProvider) AddPlatformToInstallConfig(
@@ -40,7 +41,23 @@ func (p baremetalProvider) AddPlatformToInstallConfig(
 			p.Log.Warnf("Failed to unmarshall Host %s inventory", hostutil.GetHostnameForMsg(host))
 			return err
 		}
-		hosts[yamlHostIdx].BootMACAddress = inventory.Interfaces[0].MacAddress
+
+		for _, iface := range inventory.Interfaces {
+			//TODO: modify the filter depending on the environment variable set in MGMT-10411 to show virtual interfaces
+			// Only allow interfaces that we previous filtered for (physical, bonds, and vlans) or empty type (backwards compatibility)
+			if !(iface.Type == "physical" || iface.Type == "bond" || iface.Type == "vlan" || iface.Type == "") {
+				continue
+			}
+			if iface.MacAddress != "" {
+				hosts[yamlHostIdx].BootMACAddress = iface.MacAddress
+			}
+		}
+		if hosts[yamlHostIdx].BootMACAddress == "" {
+			err = errors.Errorf("Failed to find an interface with a mac address for host %s", hostutil.GetHostnameForMsg(host))
+			p.Log.Error(err)
+			return err
+		}
+
 		hosts[yamlHostIdx].BootMode = "UEFI"
 		if inventory.Boot != nil && inventory.Boot.CurrentBootMode != "uefi" {
 			hosts[yamlHostIdx].BootMode = "legacy"

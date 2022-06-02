@@ -429,6 +429,7 @@ func getInventory(hostname, bootMode string, ipv4, ipv6 bool) models.Inventory {
 				IPV4Addresses: []string{},
 				IPV6Addresses: []string{},
 				MacAddress:    "some MAC address",
+				Type:          "physical",
 			},
 		},
 	}

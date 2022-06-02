@@ -103,6 +103,7 @@ var (
 					defaultCIDRv4,
 				},
 				MacAddress: "e6:53:3d:a7:77:b4",
+				Type:       "physical",
 			},
 		},
 		SystemVendor: &models.SystemVendor{Manufacturer: "manu", ProductName: "prod", SerialNumber: "3534"},
@@ -145,6 +146,7 @@ func getValidWorkerHwInfoWithCIDR(cidr string) *models.Inventory {
 					cidr,
 				},
 				MacAddress: "e6:53:3d:a7:77:b4",
+				Type:       "physical",
 			},
 		},
 		SystemVendor: &models.SystemVendor{Manufacturer: "manu", ProductName: "prod", SerialNumber: "3534"},
@@ -1169,7 +1171,10 @@ var _ = Describe("cluster install", func() {
 		log.Infof("Register cluster %s", cluster.ID.String())
 		infraEnvID = registerInfraEnv(cluster.ID, models.ImageTypeMinimalIso).ID
 	})
-
+	AfterEach(func() {
+		deregisterResources()
+		clearDB()
+	})
 	getSuggestedRole := func(id strfmt.UUID) models.HostRole {
 		reply, err := userBMClient.Installer.V2GetHost(ctx, &installer.V2GetHostParams{
 			InfraEnvID: *infraEnvID,
@@ -4029,6 +4034,7 @@ var _ = Describe("disk encryption", func() {
 						defaultCIDRv4,
 					},
 					MacAddress: "e6:53:3d:a7:77:b4",
+					Type:       "physical",
 				},
 			},
 			SystemVendor: &models.SystemVendor{Manufacturer: "manu", ProductName: "prod", SerialNumber: "3534"},
@@ -4272,6 +4278,7 @@ var _ = Describe("Ovirt provider tests", func() {
 						defaultCIDRv4,
 					},
 					MacAddress: "e6:53:3d:a7:77:b4",
+					Type:       "physical",
 				},
 			},
 			SystemVendor: &models.SystemVendor{Manufacturer: "manu", ProductName: "RHEL", SerialNumber: "3534"},
@@ -4444,6 +4451,7 @@ func getoVirtInventory() *models.Inventory {
 					defaultCIDRv4,
 				},
 				MacAddress: "e6:53:3d:a7:77:b4",
+				Type:       "physical",
 			},
 		},
 		SystemVendor: &models.SystemVendor{
