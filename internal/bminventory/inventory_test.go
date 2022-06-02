@@ -3217,12 +3217,13 @@ var _ = Describe("cluster", func() {
 					verifyApiErrorString(reply, http.StatusBadRequest, "Machine Network CIDR cannot be set with User Managed Networking")
 				})
 
-				It("Fail with non-x86_64 CPU architecture", func() {
+				It("Fail with non-x86_64 CPU architecture with 4.10", func() {
 					clusterID = strfmt.UUID(uuid.New().String())
 					err := db.Create(&common.Cluster{Cluster: models.Cluster{
 						ID:                    &clusterID,
 						CPUArchitecture:       common.ARM64CPUArchitecture,
 						UserManagedNetworking: swag.Bool(true),
+						OpenshiftVersion:      "4.10",
 					}}).Error
 					Expect(err).ShouldNot(HaveOccurred())
 
@@ -4129,15 +4130,14 @@ var _ = Describe("cluster", func() {
 			Expect(count).To(Equal(int64(1)))
 		})
 
-		It("success arm64 baremetal platform", func() {
+		It("success arm64 baremetal platform with 4.11 where it is supported", func() {
 			infraEnvID = strfmt.UUID(uuid.New().String())
-			bm.AllowInstallerReleaseImageOverride = true
 			clusterID = strfmt.UUID(uuid.New().String())
 			err := db.Create(&common.Cluster{Cluster: models.Cluster{
 				ID:               &clusterID,
 				APIVip:           "10.11.12.13",
 				IngressVip:       "10.11.20.50",
-				OpenshiftVersion: common.TestDefaultConfig.OpenShiftVersion,
+				OpenshiftVersion: "4.11",
 				Status:           swag.String(models.ClusterStatusReady),
 				CPUArchitecture:  common.ARM64CPUArchitecture,
 				Platform: &models.Platform{
@@ -4192,13 +4192,12 @@ var _ = Describe("cluster", func() {
 
 		It("fail arm64 baremetal platform in case no x86 was found", func() {
 			infraEnvID = strfmt.UUID(uuid.New().String())
-			bm.AllowInstallerReleaseImageOverride = true
 			clusterID = strfmt.UUID(uuid.New().String())
 			err := db.Create(&common.Cluster{Cluster: models.Cluster{
 				ID:               &clusterID,
 				APIVip:           "10.11.12.13",
 				IngressVip:       "10.11.20.50",
-				OpenshiftVersion: common.TestDefaultConfig.OpenShiftVersion,
+				OpenshiftVersion: "4.11",
 				Status:           swag.String(models.ClusterStatusReady),
 				CPUArchitecture:  common.ARM64CPUArchitecture,
 				Platform: &models.Platform{
@@ -5243,6 +5242,7 @@ var _ = Describe("[V2ClusterUpdate] cluster", func() {
 						ID:                    &clusterID,
 						CPUArchitecture:       common.ARM64CPUArchitecture,
 						UserManagedNetworking: swag.Bool(true),
+						OpenshiftVersion:      "4.10",
 					}}).Error
 					Expect(err).ShouldNot(HaveOccurred())
 
@@ -5256,17 +5256,17 @@ var _ = Describe("[V2ClusterUpdate] cluster", func() {
 					verifyApiErrorString(reply, http.StatusBadRequest, "disabling User Managed Networking is not allowed for clusters with non-x86_64 CPU architecture")
 				})
 
-				It("Success with non-x86_64 CPU architecture in case override is allowed", func() {
+				It("Success with non-x86_64 CPU architecture in case override is supported - 4.11", func() {
 					mockClusterUpdateSuccess(1, 0)
 					mockClusterUpdatability(1)
 					clusterID = strfmt.UUID(uuid.New().String())
 					err := db.Create(&common.Cluster{Cluster: models.Cluster{
 						ID:                    &clusterID,
 						CPUArchitecture:       common.ARM64CPUArchitecture,
+						OpenshiftVersion:      "4.11",
 						UserManagedNetworking: swag.Bool(true),
 					}}).Error
 					Expect(err).ShouldNot(HaveOccurred())
-					bm.AllowInstallerReleaseImageOverride = true
 					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 						ClusterID: clusterID,
 						ClusterUpdateParams: &models.V2ClusterUpdateParams{
@@ -10046,12 +10046,12 @@ var _ = Describe("TestRegisterCluster", func() {
 				mockAMSSubscription(authCtx)
 				mockUsageReports()
 				mockOcmAuthz.EXPECT().CapabilityReview(context.Background(), userName1, ocm.ArmCapabilityName, ocm.OrganizationCapabilityType).Return(true, nil)
-				mockVersions.EXPECT().GetCPUArchitectures(gomock.Any()).Return([]string{common.TestDefaultConfig.OpenShiftVersion, common.ARM64CPUArchitecture}).Times(1)
+				mockVersions.EXPECT().GetCPUArchitectures(gomock.Any()).Return([]string{"4.10", common.ARM64CPUArchitecture}).Times(1)
 
 				reply := bm.V2RegisterCluster(authCtx, installer.V2RegisterClusterParams{
 					NewClusterParams: &models.ClusterCreateParams{
 						Name:                  swag.String("some-cluster-name"),
-						OpenshiftVersion:      swag.String(common.TestDefaultConfig.OpenShiftVersion),
+						OpenshiftVersion:      swag.String("4.10"),
 						CPUArchitecture:       common.ARM64CPUArchitecture,
 						UserManagedNetworking: swag.Bool(true),
 						VipDhcpAllocation:     swag.Bool(false),
@@ -10969,7 +10969,8 @@ var _ = Describe("TestRegisterCluster", func() {
 	It("Register cluster with arm64 CPU architecture - without UserManagedNetworking", func() {
 		mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
 			eventstest.WithNameMatcher(eventgen.ClusterRegistrationFailedEventName),
-			eventstest.WithMessageContainsMatcher("Non x86_64 CPU architectures are supported only with User Managed Networking"),
+			eventstest.WithMessageContainsMatcher(fmt.Sprintf("Non x86_64 CPU architectures for version %s "+
+				"are supported only with User Managed Networking", common.TestDefaultConfig.OpenShiftVersion)),
 			eventstest.WithSeverityMatcher(models.EventSeverityError))).Times(1)
 		reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 			NewClusterParams: &models.ClusterCreateParams{

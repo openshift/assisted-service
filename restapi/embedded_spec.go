@@ -6646,7 +6646,8 @@ func init() {
                   "CUSTOM_MANIFEST",
                   "DISK_ENCRYPTION",
                   "CLUSTER_MANAGED_NETWORKING_WITH_VMS",
-                  "ARM64_ARCHITECTURE"
+                  "ARM64_ARCHITECTURE",
+                  "ARM64_ARCHITECTURE_WITH_CLUSTER_MANAGED_NETWORKING"
                 ]
               },
               "support_level": {
@@ -14321,7 +14322,8 @@ func init() {
             "CUSTOM_MANIFEST",
             "DISK_ENCRYPTION",
             "CLUSTER_MANAGED_NETWORKING_WITH_VMS",
-            "ARM64_ARCHITECTURE"
+            "ARM64_ARCHITECTURE",
+            "ARM64_ARCHITECTURE_WITH_CLUSTER_MANAGED_NETWORKING"
           ]
         },
         "support_level": {

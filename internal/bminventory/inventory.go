@@ -32,6 +32,7 @@ import (
 	"github.com/openshift/assisted-service/internal/constants"
 	"github.com/openshift/assisted-service/internal/dns"
 	eventsapi "github.com/openshift/assisted-service/internal/events/api"
+	"github.com/openshift/assisted-service/internal/featuresupport"
 	"github.com/openshift/assisted-service/internal/garbagecollector"
 	"github.com/openshift/assisted-service/internal/gencrypto"
 	"github.com/openshift/assisted-service/internal/hardware"
@@ -109,9 +110,6 @@ type Config struct {
 	ISOImageType                    string            `envconfig:"ISO_IMAGE_TYPE" default:"full-iso"`
 	IPv6Support                     bool              `envconfig:"IPV6_SUPPORT" default:"true"`
 	DiskEncryptionSupport           bool              `envconfig:"DISK_ENCRYPTION_SUPPORT" default:"true"`
-	// TODO: remove when baremetal will be supported in arm
-	// this env enables usage of default cpu arch release image to get openshift-baremetal-installer for all other archs
-	AllowInstallerReleaseImageOverride bool `envconfig:"ALLOW_INSTALLER_RELEASE_IMAGE_OVERRIDE" default:"false"`
 }
 
 const minimalOpenShiftVersionForSingleNode = "4.8.0-0.0"
@@ -656,8 +654,10 @@ func (b *bareMetalInventory) getNewClusterCPUArchitecture(newClusterParams *mode
 		return common.DefaultCPUArchitecture, nil
 	}
 
-	if !swag.BoolValue(newClusterParams.UserManagedNetworking) && !b.AllowInstallerReleaseImageOverride {
-		return "", errors.Errorf("Non x86_64 CPU architectures are supported only with User Managed Networking")
+	if !swag.BoolValue(newClusterParams.UserManagedNetworking) && !featuresupport.IsFeatureSupported(swag.StringValue(newClusterParams.OpenshiftVersion),
+		models.FeatureSupportLevelFeaturesItems0FeatureIDARM64ARCHITECTUREWITHCLUSTERMANAGEDNETWORKING) {
+
+		return "", errors.Errorf("Non x86_64 CPU architectures for version %s are supported only with User Managed Networking", swag.StringValue(newClusterParams.OpenshiftVersion))
 	}
 
 	cpuArchitectures := b.versionsHandler.GetCPUArchitectures(*newClusterParams.OpenshiftVersion)
@@ -1470,7 +1470,10 @@ func (b *bareMetalInventory) generateClusterInstallConfig(ctx context.Context, c
 	installerReleaseImageOverride := ""
 	// In case cpu architecture is not x86_64 and platform is baremetal , we should extract openshift-baremetal-installer
 	// from x86_64 release image as there is no x86_64 openshift-baremetal-installer executable in arm image
-	if cluster.CPUArchitecture != common.DefaultCPUArchitecture && common.PlatformTypeValue(cluster.Platform.Type) == models.PlatformTypeBaremetal && b.AllowInstallerReleaseImageOverride {
+	if cluster.CPUArchitecture != common.DefaultCPUArchitecture && common.PlatformTypeValue(cluster.Platform.Type) == models.PlatformTypeBaremetal &&
+		featuresupport.IsFeatureSupported(cluster.OpenshiftVersion,
+			models.FeatureSupportLevelFeaturesItems0FeatureIDARM64ARCHITECTUREWITHCLUSTERMANAGEDNETWORKING) {
+
 		defaultArchImage, err := b.versionsHandler.GetReleaseImage(cluster.OpenshiftVersion, common.DefaultCPUArchitecture)
 		if err != nil {
 			msg := fmt.Sprintf("failed to get image for installer image override "+
@@ -2163,11 +2166,12 @@ func (b *bareMetalInventory) updateNetworkParams(params installer.V2UpdateCluste
 	}
 
 	if params.ClusterUpdateParams.UserManagedNetworking != nil && swag.BoolValue(params.ClusterUpdateParams.UserManagedNetworking) != userManagedNetworking {
-		if !swag.BoolValue(params.ClusterUpdateParams.UserManagedNetworking) && (cluster.CPUArchitecture != common.DefaultCPUArchitecture && !b.AllowInstallerReleaseImageOverride) {
+		if !swag.BoolValue(params.ClusterUpdateParams.UserManagedNetworking) &&
+			(cluster.CPUArchitecture != common.DefaultCPUArchitecture &&
+				!featuresupport.IsFeatureSupported(cluster.OpenshiftVersion, models.FeatureSupportLevelFeaturesItems0FeatureIDARM64ARCHITECTUREWITHCLUSTERMANAGEDNETWORKING)) {
 			err = errors.Errorf("disabling User Managed Networking is not allowed for clusters with non-x86_64 CPU architecture")
 			return common.NewApiError(http.StatusBadRequest, err)
 		}
-
 		// User network mode has changed
 		userManagedNetworking = swag.BoolValue(params.ClusterUpdateParams.UserManagedNetworking)
 		updates["user_managed_networking"] = userManagedNetworking
