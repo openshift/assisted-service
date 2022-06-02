@@ -375,7 +375,7 @@ deploy-onprem:
 
 deploy-on-openshift-ci:
 	ln -s $(shell which oc) $(shell dirname $(shell which oc))/kubectl
-	export TARGET='oc' && export GENERATE_CRD='false' && unset GOFLAGS && \
+	export PERSISTENT_STORAGE="False" && export TARGET='oc' && export GENERATE_CRD='false' && unset GOFLAGS && \
 	$(MAKE) ci-deploy-for-subsystem
 	oc get pods
 

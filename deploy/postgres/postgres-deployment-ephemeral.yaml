@@ -35,6 +35,9 @@ spec:
                 secretKeyRef:
                   name: assisted-installer-rds
                   key: db.password
+          volumeMounts:
+            - mountPath: /var/lib/pgsql/data
+              name: postgredb
           resources:
             limits:
               cpu: 200m
@@ -42,6 +45,10 @@ spec:
             requests:
               cpu: 100m
               memory: 400Mi
+      volumes:
+        - name: postgredb
+          emptyDir:
+            medium: Memory
 ---
 apiVersion: v1
 kind: Service
