@@ -179,6 +179,9 @@ format:
 
 .PHONY: build
 
+dashboards-validate:
+	oc apply --dry-run=client --validate=true --filename=dashboards/
+
 validate: lint unit-test
 
 build: validate build-minimal
@@ -305,7 +308,7 @@ endif
 
 deploy-resources: generate-manifests
 	python3 ./tools/deploy_crd.py $(ENABLE_KUBE_API_CMD) --apply-manifest $(APPLY_MANIFEST) \
- 	--target "$(TARGET)" --namespace "$(NAMESPACE)"
+	--target "$(TARGET)" --namespace "$(NAMESPACE)"
 
 deploy-service: deploy-service-requirements
 	python3 ./tools/deploy_assisted_installer.py $(DEPLOY_TAG_OPTION) --namespace "$(NAMESPACE)" \
