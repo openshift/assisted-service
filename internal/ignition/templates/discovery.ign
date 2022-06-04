@@ -1,0 +1,187 @@
+{
+  "ignition": {
+    "version": "3.1.0"{{if .PROXY_SETTINGS}},
+    {{.PROXY_SETTINGS}}{{end}}
+  },
+  "passwd": {
+    "users": [
+      {{.userSshKey}}
+    ]
+  },
+  "systemd": {
+    "units": [{
+      "name": "agent.service",
+      "enabled": {{if .EnableAgentService}}true{{else}}false{{end}},
+      "contents": {{ executeTemplate "agent.service" . | toJson }}
+    },
+    {
+        "name": "selinux.service",
+        "enabled": true,
+        "contents": {{ executeTemplate "selinux.service" . | toJson }}
+    }{{if .OKDBinaries | not}},
+    {
+        "name": "multipathd.service",
+        "enabled": true
+    }{{end}}{{if .StaticNetworkConfig}},
+    {
+        "name": "pre-network-manager-config.service",
+        "enabled": true,
+        "contents": {{ executeTemplate "pre-network-manager-config.service" . | toJson }}
+    }{{end}}{{if .OKDBinaries}},
+    {
+        "name": "okd-overlay.service",
+        "enabled": true,
+        "contents": {{ executeTemplate "okd-overlay.service" . | toJson }}
+    },
+    {
+        "name": "systemd-journal-gatewayd.socket",
+        "enabled": true,
+        "contents": {{ executeTemplate "systemd-journal-gatewayd.socket" . | toJson }}
+    }{{end}}
+    ]
+  },
+  "storage": {
+    "files": [{
+      "overwrite": true,
+      "path": "/usr/local/bin/agent-fix-bz1964591",
+      "mode": 755,
+      "user": {
+          "name": "root"
+      },
+      "contents": { "source": "data:,{{.AGENT_FIX_BZ1964591}}" }
+    },
+    {
+      "overwrite": true,
+      "path": "/etc/motd",
+      "mode": 420,
+      "user": {
+          "name": "root"
+      },
+      "contents": { "source": "data:,{{.AGENT_MOTD}}" }
+    }{{if .OKDBinaries | not}},
+    {
+      "overwrite": true,
+      "path": "/etc/multipath.conf",
+      "mode": 420,
+      "user": {
+          "name": "root"
+      },
+      "contents": { "source": "data:text/plain;charset=utf-8;base64,ZGVmYXVsdHMgewogICAgdXNlcl9mcmllbmRseV9uYW1lcyB5ZXMKICAgIGZpbmRfbXVsdGlwYXRocyB5ZXMKICAgIGVuYWJsZV9mb3JlaWduICJeJCIKfQpibGFja2xpc3RfZXhjZXB0aW9ucyB7CiAgICBwcm9wZXJ0eSAiKFNDU0lfSURFTlRffElEX1dXTikiCn0KYmxhY2tsaXN0IHsKfQo=" }
+    }{{end}},
+    {
+      "overwrite": true,
+      "path": "/etc/NetworkManager/conf.d/01-ipv6.conf",
+      "mode": 420,
+      "user": {
+          "name": "root"
+      },
+      "contents": { "source": "data:,{{.IPv6_CONF}}" }
+    },
+    {
+        "overwrite": true,
+        "path": "/root/.docker/config.json",
+        "mode": 420,
+        "user": {
+            "name": "root"
+        },
+        "contents": { "source": "data:,{{.PULL_SECRET}}" }
+    },
+    {
+        "overwrite": true,
+        "path": "/root/assisted.te",
+        "mode": 420,
+        "user": {
+            "name": "root"
+        },
+        "contents": { "source": "data:text/plain;base64,{{.SELINUX_POLICY}}" }
+    }{{if .RH_ROOT_CA}},
+    {
+      "overwrite": true,
+      "path": "/etc/pki/ca-trust/source/anchors/rh-it-root-ca.crt",
+      "mode": 420,
+      "user": {
+          "name": "root"
+      },
+      "contents": { "source": "data:,{{.RH_ROOT_CA}}" }
+    }{{end}}{{if .HostCACertPath}},
+    {
+      "path": "{{.HostCACertPath}}",
+      "mode": 420,
+      "overwrite": true,
+      "user": {
+        "name": "root"
+      },
+      "contents": { "source": "{{.ServiceCACertData}}" }
+    }{{end}}{{if .ServiceIPs}},
+    {
+      "path": "/etc/hosts",
+      "mode": 420,
+      "user": {
+        "name": "root"
+      },
+      "append": [{ "source": "{{.ServiceIPs}}" }]
+    }{{end}}{{if .MirrorRegistriesConfig}},
+    {
+      "path": "/etc/containers/registries.conf",
+      "mode": 420,
+      "overwrite": true,
+      "user": {
+        "name": "root"
+      },
+      "contents": { "source": "data:text/plain;base64,{{.MirrorRegistriesConfig}}"}
+    },
+    {
+      "path": "/etc/pki/ca-trust/source/anchors/domain.crt",
+      "mode": 420,
+      "overwrite": true,
+      "user": {
+        "name": "root"
+      },
+      "contents": { "source": "data:text/plain;base64,{{.MirrorRegistriesCAConfig}}"}
+    }{{end}}{{if .StaticNetworkConfig}},
+    {
+        "path": "/usr/local/bin/pre-network-manager-config.sh",
+        "mode": 493,
+        "overwrite": true,
+        "user": {
+            "name": "root"
+        },
+        "contents": { "source": "data:text/plain;base64,{{.PreNetworkConfigScript}}"}
+    }{{end}}{{range .StaticNetworkConfig}},
+    {
+      "path": "{{.FilePath}}",
+      "mode": 384,
+      "overwrite": true,
+      "user": {
+        "name": "root"
+      },
+      "contents": { "source": "data:text/plain;base64,{{.FileContents}}"}
+    }{{end}}{{if .OKDBinaries}},
+    {
+      "path": "/usr/local/bin/okd-binaries.sh",
+      "mode": 755,
+      "overwrite": true,
+      "user": {
+        "name": "root"
+      },
+      "contents": { "source": "data:text/plain;base64,{{.OKDBinaries}}" }
+    }{{end}}{{if .OKDHoldPivot}},{
+      "path": "/etc/systemd/system/release-image-pivot.service.d/wait-for-okd.conf",
+      "mode": 420,
+      "overwrite": true,
+      "user": {
+        "name": "root"
+      },
+      "contents": { "source": "data:text/plain;base64,{{.OKDHoldPivot}}" }
+    }{{end}}{{if .OKDHoldAgent}},
+    {
+      "path": "/etc/systemd/system/agent.service.d/wait-for-okd.conf",
+      "mode": 420,
+      "overwrite": true,
+      "user": {
+        "name": "root"
+      },
+      "contents": { "source": "data:text/plain;base64,{{.OKDHoldAgent}}" }
+    }{{end}}]
+  }
+}

@@ -58,6 +58,12 @@ const (
 	workerIgn = "worker.ign"
 )
 
+// Names of some relevant templates:
+const (
+	discoveryIgnTemplateName = "discovery.ign"
+	nodeIgnTemplateName      = "node.ign"
+)
+
 const agentMessageOfTheDay = `
 **  **  **  **  **  **  **  **  **  **  **  **  **  **  **  **  **  ** **  **  **  **  **  **  **
 This is a host being installed by the OpenShift Assisted Installer.
@@ -171,213 +177,6 @@ const okdHoldPivot = `[Unit]
 ConditionPathExists=/enoent
 `
 
-const discoveryIgnitionConfigFormat = `{
-  "ignition": {
-    "version": "3.1.0"{{if .PROXY_SETTINGS}},
-    {{.PROXY_SETTINGS}}{{end}}
-  },
-  "passwd": {
-    "users": [
-      {{.userSshKey}}
-    ]
-  },
-  "systemd": {
-    "units": [{
-      "name": "agent.service",
-      "enabled": {{if .EnableAgentService}}true{{else}}false{{end}},
-      "contents": "[Service]\nType=simple\nRestart=always\nRestartSec=3\nStartLimitInterval=0\nEnvironment=HTTP_PROXY={{.HTTPProxy}}\nEnvironment=http_proxy={{.HTTPProxy}}\nEnvironment=HTTPS_PROXY={{.HTTPSProxy}}\nEnvironment=https_proxy={{.HTTPSProxy}}\nEnvironment=NO_PROXY={{.NoProxy}}\nEnvironment=no_proxy={{.NoProxy}}{{if .PullSecretToken}}\nEnvironment=PULL_SECRET_TOKEN={{.PullSecretToken}}{{end}}\nTimeoutStartSec={{.AgentTimeoutStartSec}}\nExecStartPre=/usr/local/bin/agent-fix-bz1964591 {{.AgentDockerImg}}\nExecStartPre=podman run --privileged --rm -v /usr/local/bin:/hostbin {{.AgentDockerImg}} cp /usr/bin/agent /hostbin\nExecStart=/usr/local/bin/agent --url {{.ServiceBaseURL}} --infra-env-id {{.infraEnvId}} --agent-version {{.AgentDockerImg}} --insecure={{.SkipCertVerification}}  {{if .HostCACertPath}}--cacert {{.HostCACertPath}}{{end}}\n\n[Unit]\nWants=network-online.target\nAfter=network-online.target\n\n[Install]\nWantedBy=multi-user.target"
-    },
-    {
-        "name": "selinux.service",
-        "enabled": true,
-        "contents": "[Service]\nType=oneshot\nExecStartPre=checkmodule -M -m -o /root/assisted.mod /root/assisted.te\nExecStartPre=semodule_package -o /root/assisted.pp -m /root/assisted.mod\nExecStart=semodule -i /root/assisted.pp\n\n[Install]\nWantedBy=multi-user.target"
-    }{{if .OKDBinaries | not}},
-    {
-        "name": "multipathd.service",
-        "enabled": true
-    }{{end}}{{if .StaticNetworkConfig}},
-    {
-        "name": "pre-network-manager-config.service",
-        "enabled": true,
-        "contents": "[Unit]\nDescription=Prepare network manager config content\nBefore=dracut-initqueue.service\nAfter=dracut-cmdline.service\nDefaultDependencies=no\n[Service]\nUser=root\nType=oneshot\nTimeoutSec=60\nExecStart=/bin/bash /usr/local/bin/pre-network-manager-config.sh\nPrivateTmp=true\nRemainAfterExit=no\n[Install]\nWantedBy=multi-user.target"
-    }{{end}}{{if .OKDBinaries}},
-    {
-        "name": "okd-overlay.service",
-        "enabled": true,
-        "contents": "[Service]\nType=oneshot\nExecStart=/usr/local/bin/okd-binaries.sh\n\n[Unit]\nWants=network-online.target\nAfter=network-online.target\n\n[Install]\nWantedBy=multi-user.target"
-    },
-    {
-        "name": "systemd-journal-gatewayd.socket",
-        "enabled": true,
-        "contents": "[Unit]\nDescription = Fake systemd-journal-gatewayd.socket\n\n[Socket]\nListenStream = 19531\nAccept = yes\n\n[Install]\nWantedBy = sockets.target"
-		}{{end}}
-    ]
-  },
-  "storage": {
-    "files": [{
-      "overwrite": true,
-      "path": "/usr/local/bin/agent-fix-bz1964591",
-      "mode": 755,
-      "user": {
-          "name": "root"
-      },
-      "contents": { "source": "data:,{{.AGENT_FIX_BZ1964591}}" }
-    },
-    {
-      "overwrite": true,
-      "path": "/etc/motd",
-      "mode": 420,
-      "user": {
-          "name": "root"
-      },
-      "contents": { "source": "data:,{{.AGENT_MOTD}}" }
-    }{{if .OKDBinaries | not}},
-    {
-      "overwrite": true,
-      "path": "/etc/multipath.conf",
-      "mode": 420,
-      "user": {
-          "name": "root"
-      },
-      "contents": { "source": "data:text/plain;charset=utf-8;base64,ZGVmYXVsdHMgewogICAgdXNlcl9mcmllbmRseV9uYW1lcyB5ZXMKICAgIGZpbmRfbXVsdGlwYXRocyB5ZXMKICAgIGVuYWJsZV9mb3JlaWduICJeJCIKfQpibGFja2xpc3RfZXhjZXB0aW9ucyB7CiAgICBwcm9wZXJ0eSAiKFNDU0lfSURFTlRffElEX1dXTikiCn0KYmxhY2tsaXN0IHsKfQo=" }
-    }{{end}},
-    {
-      "overwrite": true,
-      "path": "/etc/NetworkManager/conf.d/01-ipv6.conf",
-      "mode": 420,
-      "user": {
-          "name": "root"
-      },
-      "contents": { "source": "data:,{{.IPv6_CONF}}" }
-    },
-    {
-        "overwrite": true,
-        "path": "/root/.docker/config.json",
-        "mode": 420,
-        "user": {
-            "name": "root"
-        },
-        "contents": { "source": "data:,{{.PULL_SECRET}}" }
-    },
-    {
-        "overwrite": true,
-        "path": "/root/assisted.te",
-        "mode": 420,
-        "user": {
-            "name": "root"
-        },
-        "contents": { "source": "data:text/plain;base64,{{.SELINUX_POLICY}}" }
-    }{{if .RH_ROOT_CA}},
-    {
-      "overwrite": true,
-      "path": "/etc/pki/ca-trust/source/anchors/rh-it-root-ca.crt",
-      "mode": 420,
-      "user": {
-          "name": "root"
-      },
-      "contents": { "source": "data:,{{.RH_ROOT_CA}}" }
-    }{{end}}{{if .HostCACertPath}},
-    {
-      "path": "{{.HostCACertPath}}",
-      "mode": 420,
-      "overwrite": true,
-      "user": {
-        "name": "root"
-      },
-      "contents": { "source": "{{.ServiceCACertData}}" }
-    }{{end}}{{if .ServiceIPs}},
-    {
-      "path": "/etc/hosts",
-      "mode": 420,
-      "user": {
-        "name": "root"
-      },
-      "append": [{ "source": "{{.ServiceIPs}}" }]
-    }{{end}}{{if .MirrorRegistriesConfig}},
-    {
-      "path": "/etc/containers/registries.conf",
-      "mode": 420,
-      "overwrite": true,
-      "user": {
-        "name": "root"
-      },
-      "contents": { "source": "data:text/plain;base64,{{.MirrorRegistriesConfig}}"}
-    },
-    {
-      "path": "/etc/pki/ca-trust/source/anchors/domain.crt",
-      "mode": 420,
-      "overwrite": true,
-      "user": {
-        "name": "root"
-      },
-      "contents": { "source": "data:text/plain;base64,{{.MirrorRegistriesCAConfig}}"}
-    }{{end}}{{if .StaticNetworkConfig}},
-    {
-        "path": "/usr/local/bin/pre-network-manager-config.sh",
-        "mode": 493,
-        "overwrite": true,
-        "user": {
-            "name": "root"
-        },
-        "contents": { "source": "data:text/plain;base64,{{.PreNetworkConfigScript}}"}
-    }{{end}}{{range .StaticNetworkConfig}},
-    {
-      "path": "{{.FilePath}}",
-      "mode": 384,
-      "overwrite": true,
-      "user": {
-        "name": "root"
-      },
-      "contents": { "source": "data:text/plain;base64,{{.FileContents}}"}
-    }{{end}}{{if .OKDBinaries}},
-    {
-      "path": "/usr/local/bin/okd-binaries.sh",
-      "mode": 755,
-      "overwrite": true,
-      "user": {
-        "name": "root"
-      },
-      "contents": { "source": "data:text/plain;base64,{{.OKDBinaries}}" }
-    }{{end}}{{if .OKDHoldPivot}},{
-      "path": "/etc/systemd/system/release-image-pivot.service.d/wait-for-okd.conf",
-      "mode": 420,
-      "overwrite": true,
-      "user": {
-        "name": "root"
-      },
-      "contents": { "source": "data:text/plain;base64,{{.OKDHoldPivot}}" }
-    }{{end}}{{if .OKDHoldAgent}},
-    {
-      "path": "/etc/systemd/system/agent.service.d/wait-for-okd.conf",
-      "mode": 420,
-      "overwrite": true,
-      "user": {
-        "name": "root"
-      },
-      "contents": { "source": "data:text/plain;base64,{{.OKDHoldAgent}}" }
-    }{{end}}]
-  }
-}`
-
-const secondDayWorkerIgnitionFormat = `{
-	"ignition": {
-	  "version": "3.1.0",
-	  "config": {
-		"merge": [{
-		  "source": "{{.SOURCE}}"{{if .HEADERS}},
-          "httpHeaders": [{{range $k,$v := .HEADERS}}{"name": "{{$k}}", "value": "{{$v}}"}{{end}}]{{end}}
-		}]
-	  }{{if .CACERT}},
-          "security": {
-            "tls": {
-	      "certificateAuthorities": [{
-	        "source": "{{.CACERT}}"
-	      }]
-	    }
-	  }{{end}}
-    }
- }`
-
 const tempNMConnectionsDir = "/etc/assisted/network"
 
 var fileNames = [...]string{
@@ -436,17 +235,27 @@ type IgnitionConfig struct {
 
 type ignitionBuilder struct {
 	log                     logrus.FieldLogger
+	templates               *template.Template
 	staticNetworkConfig     staticnetworkconfig.StaticNetworkConfig
 	mirrorRegistriesBuilder mirrorregistries.MirrorRegistriesConfigBuilder
 }
 
-func NewBuilder(log logrus.FieldLogger, staticNetworkConfig staticnetworkconfig.StaticNetworkConfig, mirrorRegistriesBuilder mirrorregistries.MirrorRegistriesConfigBuilder) IgnitionBuilder {
-	builder := &ignitionBuilder{
+func NewBuilder(log logrus.FieldLogger, staticNetworkConfig staticnetworkconfig.StaticNetworkConfig,
+	mirrorRegistriesBuilder mirrorregistries.MirrorRegistriesConfigBuilder) (result IgnitionBuilder, err error) {
+	// Parse the templates file system:
+	templates, err := loadTemplates()
+	if err != nil {
+		return
+	}
+
+	// Create and populate the object:
+	result = &ignitionBuilder{
 		log:                     log,
+		templates:               templates,
 		staticNetworkConfig:     staticNetworkConfig,
 		mirrorRegistriesBuilder: mirrorRegistriesBuilder,
 	}
-	return builder
+	return
 }
 
 // NewGenerator returns a generator that can generate ignition files
@@ -1552,10 +1361,7 @@ func (ib *ignitionBuilder) FormatDiscoveryIgnitionFile(ctx context.Context, infr
 		ignitionParams["OKDHoldPivot"] = base64.StdEncoding.EncodeToString([]byte(okdHoldPivot))
 		ignitionParams["OKDHoldAgent"] = base64.StdEncoding.EncodeToString([]byte(okdHoldAgentUntilBinariesLanded))
 	}
-	tmpl, err := template.New("ignitionConfig").Parse(discoveryIgnitionConfigFormat)
-	if err != nil {
-		return "", err
-	}
+	tmpl := ib.templates.Lookup(discoveryIgnTemplateName)
 	buf := &bytes.Buffer{}
 	if err = tmpl.Execute(buf, ignitionParams); err != nil {
 		return "", err
@@ -1610,17 +1416,15 @@ func (ib *ignitionBuilder) FormatSecondDayWorkerIgnitionFile(url string, caCert 
 		ignitionParams["CACERT"] = fmt.Sprintf("data:text/plain;base64,%s", *caCert)
 	}
 
-	tmpl, err := template.New("nodeIgnition").Parse(secondDayWorkerIgnitionFormat)
-	if err != nil {
-		return nil, err
-	}
+	tmpl := ib.templates.Lookup(nodeIgnTemplateName)
 	buf := &bytes.Buffer{}
-	if err = tmpl.Execute(buf, ignitionParams); err != nil {
+	if err := tmpl.Execute(buf, ignitionParams); err != nil {
 		return nil, err
 	}
 
 	overrides := buf.String()
 	if host.IgnitionConfigOverrides != "" {
+		var err error
 		overrides, err = MergeIgnitionConfig(buf.Bytes(), []byte(host.IgnitionConfigOverrides))
 		if err != nil {
 			return []byte(""), errors.Wrapf(err, "Failed to apply ignition override for host %s", host.ID)
