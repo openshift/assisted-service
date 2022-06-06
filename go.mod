@@ -38,7 +38,7 @@ require (
 	github.com/kennygrant/sanitize v1.2.4
 	github.com/mattn/go-sqlite3 v2.0.3+incompatible
 	github.com/metal3-io/baremetal-operator/apis v0.0.0
-	github.com/moby/moby v20.10.14+incompatible
+	github.com/moby/moby v20.10.16+incompatible
 	github.com/onsi/ginkgo v1.16.5
 	github.com/onsi/gomega v1.19.0
 	github.com/openshift-online/ocm-sdk-go v0.1.205
