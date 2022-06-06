@@ -24,8 +24,8 @@ github.com/Azure/go-autorest/logger
 # github.com/Azure/go-autorest/tracing v0.6.0
 ## explicit; go 1.12
 github.com/Azure/go-autorest/tracing
-# github.com/Microsoft/go-winio v0.5.1
-## explicit; go 1.12
+# github.com/Microsoft/go-winio v0.5.2
+## explicit; go 1.13
 github.com/Microsoft/go-winio
 github.com/Microsoft/go-winio/pkg/guid
 # github.com/NYTimes/gziphandler v1.1.1
@@ -115,14 +115,14 @@ github.com/buger/jsonparser
 # github.com/cavaliercoder/go-cpio v0.0.0-20180626203310-925f9528c45e
 ## explicit
 github.com/cavaliercoder/go-cpio
-# github.com/cenkalti/backoff/v4 v4.1.2
+# github.com/cenkalti/backoff/v4 v4.1.3
 ## explicit; go 1.13
 github.com/cenkalti/backoff/v4
 # github.com/cespare/xxhash/v2 v2.1.2
 ## explicit; go 1.11
 github.com/cespare/xxhash/v2
-# github.com/containerd/continuity v0.1.0
-## explicit; go 1.13
+# github.com/containerd/continuity v0.3.0
+## explicit; go 1.17
 github.com/containerd/continuity/pathdriver
 # github.com/containers/image/v5 v5.20.0
 ## explicit; go 1.13
@@ -167,7 +167,7 @@ github.com/danielerez/go-dns-client/pkg/dnsproviders
 # github.com/davecgh/go-spew v1.1.1
 ## explicit
 github.com/davecgh/go-spew/spew
-# github.com/docker/cli v20.10.11+incompatible
+# github.com/docker/cli v20.10.14+incompatible
 ## explicit
 github.com/docker/cli/cli/compose/interpolation
 github.com/docker/cli/cli/compose/loader
@@ -622,8 +622,8 @@ github.com/openshift/image-customization-controller/pkg/ignition
 github.com/openshift/machine-api-operator/pkg/apis/machine
 github.com/openshift/machine-api-operator/pkg/apis/machine/v1beta1
 github.com/openshift/machine-api-operator/pkg/apis/vsphereprovider/v1beta1
-# github.com/ory/dockertest/v3 v3.8.1
-## explicit; go 1.13
+# github.com/ory/dockertest/v3 v3.9.1
+## explicit; go 1.17
 github.com/ory/dockertest/v3
 github.com/ory/dockertest/v3/docker
 github.com/ory/dockertest/v3/docker/opts
