@@ -155,6 +155,20 @@ func (mr *MockValidatorMockRecorder) GetPreflightInfraEnvHardwareRequirements(ct
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPreflightInfraEnvHardwareRequirements", reflect.TypeOf((*MockValidator)(nil).GetPreflightInfraEnvHardwareRequirements), ctx, infraEnv)
 }
 
+// IsValidStorageDeviceType mocks base method.
+func (m *MockValidator) IsValidStorageDeviceType(disk *models.Disk) bool {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "IsValidStorageDeviceType", disk)
+	ret0, _ := ret[0].(bool)
+	return ret0
+}
+
+// IsValidStorageDeviceType indicates an expected call of IsValidStorageDeviceType.
+func (mr *MockValidatorMockRecorder) IsValidStorageDeviceType(disk interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsValidStorageDeviceType", reflect.TypeOf((*MockValidator)(nil).IsValidStorageDeviceType), disk)
+}
+
 // ListEligibleDisks mocks base method.
 func (m *MockValidator) ListEligibleDisks(inventory *models.Inventory) []*models.Disk {
 	m.ctrl.T.Helper()
