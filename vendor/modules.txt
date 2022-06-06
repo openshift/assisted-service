@@ -472,7 +472,7 @@ github.com/microcosm-cc/bluemonday/css
 # github.com/mitchellh/mapstructure v1.4.3
 ## explicit; go 1.14
 github.com/mitchellh/mapstructure
-# github.com/moby/moby v20.10.14+incompatible
+# github.com/moby/moby v20.10.16+incompatible
 ## explicit
 github.com/moby/moby/pkg/ioutils
 # github.com/moby/term v0.0.0-20210610120745-9d4ed1856297
