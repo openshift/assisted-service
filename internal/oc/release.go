@@ -20,11 +20,10 @@ import (
 )
 
 const (
-	mcoImageName         = "machine-config-operator"
-	ironicAgentImageName = "ironic-agent"
-	mustGatherImageName  = "must-gather"
-	DefaultTries         = 5
-	DefaltRetryDelay     = time.Second * 5
+	mcoImageName        = "machine-config-operator"
+	mustGatherImageName = "must-gather"
+	DefaultTries        = 5
+	DefaltRetryDelay    = time.Second * 5
 )
 
 type Config struct {
@@ -35,7 +34,6 @@ type Config struct {
 //go:generate mockgen -source=release.go -package=oc -destination=mock_release.go
 type Release interface {
 	GetMCOImage(log logrus.FieldLogger, releaseImage string, releaseImageMirror string, pullSecret string) (string, error)
-	GetIronicAgentImage(log logrus.FieldLogger, releaseImage string, releaseImageMirror string, pullSecret string) (string, error)
 	GetMustGatherImage(log logrus.FieldLogger, releaseImage string, releaseImageMirror string, pullSecret string) (string, error)
 	GetOpenshiftVersion(log logrus.FieldLogger, releaseImage string, releaseImageMirror string, pullSecret string) (string, error)
 	GetMajorMinorVersion(log logrus.FieldLogger, releaseImage string, releaseImageMirror string, pullSecret string) (string, error)
@@ -71,12 +69,6 @@ const (
 // Else gets it from the source releaseImage
 func (r *release) GetMCOImage(log logrus.FieldLogger, releaseImage string, releaseImageMirror string, pullSecret string) (string, error) {
 	return r.getImageByName(log, mcoImageName, releaseImage, releaseImageMirror, pullSecret)
-}
-
-// GetIronicAgentImage gets the ironic agent image url from the releaseImageMirror if provided.
-// Else gets it from the source releaseImage
-func (r *release) GetIronicAgentImage(log logrus.FieldLogger, releaseImage string, releaseImageMirror string, pullSecret string) (string, error) {
-	return r.getImageByName(log, ironicAgentImageName, releaseImage, releaseImageMirror, pullSecret)
 }
 
 // GetMustGatherImage gets must-gather image URL from the release image or releaseImageMirror, if provided.

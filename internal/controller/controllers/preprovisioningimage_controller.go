@@ -26,8 +26,6 @@ import (
 	"github.com/openshift/assisted-service/internal/bminventory"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/ignition"
-	"github.com/openshift/assisted-service/internal/oc"
-	"github.com/openshift/assisted-service/internal/versions"
 	"github.com/openshift/assisted-service/models"
 	logutil "github.com/openshift/assisted-service/pkg/log"
 	"github.com/openshift/assisted-service/restapi/operations/installer"
@@ -55,9 +53,6 @@ type PreprovisioningImageReconciler struct {
 	Installer              bminventory.InstallerInternals
 	CRDEventsHandler       CRDEventsHandler
 	IronicIgniotionBuilder ignition.IronicIgniotionBuilder
-	VersionsHandler        versions.Handler
-	ocRelease              oc.Release
-	ReleaseImageMirror     string
 	IronicServiceURL       string
 }
 
@@ -132,8 +127,8 @@ func (r *PreprovisioningImageReconciler) Reconcile(origCtx context.Context, req 
 }
 
 // getConvergedDiscoveryTemplate merge the ironic ignition with the discovery ignition
-func (r *PreprovisioningImageReconciler) getIronicIgnitionConfig(log logrus.FieldLogger, infraEnvInternal common.InfraEnv, ironicAgentImage string) (string, error) {
-	config, err := r.IronicIgniotionBuilder.GenerateIronicConfig(r.IronicServiceURL, infraEnvInternal, ironicAgentImage)
+func (r *PreprovisioningImageReconciler) getIronicIgnitionConfig(log logrus.FieldLogger, infraEnvInternal common.InfraEnv) (string, error) {
+	config, err := r.IronicIgniotionBuilder.GenerateIronicConfig(r.IronicServiceURL, infraEnvInternal, "")
 	if err != nil {
 		log.WithError(err).Error("failed to generate Ironic ignition config")
 		return "", err
@@ -285,17 +280,9 @@ func (r *PreprovisioningImageReconciler) AddIronicAgentToInfraEnv(ctx context.Co
 		log.WithError(err).Error("failed to get corresponding infraEnv")
 		return ctrl.Result{}, err
 	}
-	ironicAgentImage := ""
-	if infraEnvInternal.OpenshiftVersion != "" {
-		ironicAgentImage, err = r.getIronicAgentImage(log, *infraEnvInternal)
-		if err != nil {
-			log.WithError(err).Errorf("Failed to get ironicAgentImage from clusterRef: %+v", *infraEnv.Spec.ClusterRef)
-		}
-	}
 
-	// if the infraEnv doesn't have the enableIronicAgent annotation add the ironicIgnition to the invfraEnv
-	// set the annotation and notify the infraEnv changed
-	conf, err := r.getIronicIgnitionConfig(log, *infraEnvInternal, ironicAgentImage)
+	// if the infraEnv doesn't have the enableIronicAgent annotation add the ironicIgnition to the invfraEnv and set the annotation and notify the infraEnv changed
+	conf, err := r.getIronicIgnitionConfig(log, *infraEnvInternal)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
@@ -316,18 +303,6 @@ func (r *PreprovisioningImageReconciler) AddIronicAgentToInfraEnv(ctx context.Co
 	// TODO: if the annotation is enough to trigger the infraEnv reconciliation remove the notification
 	r.CRDEventsHandler.NotifyInfraEnvUpdates(infraEnv.Name, infraEnv.Namespace)
 	return ctrl.Result{}, err
-}
-
-func (r *PreprovisioningImageReconciler) getIronicAgentImage(log logrus.FieldLogger, infraEnv common.InfraEnv) (string, error) {
-	releaseImage, err := r.VersionsHandler.GetReleaseImage(infraEnv.OpenshiftVersion, infraEnv.CPUArchitecture)
-	if err != nil {
-		return "", err
-	}
-	ironicAgentImage, err := r.ocRelease.GetIronicAgentImage(log, *releaseImage.URL, r.ReleaseImageMirror, infraEnv.PullSecret)
-	if err != nil {
-		return "", err
-	}
-	return ironicAgentImage, nil
 }
 
 func IronicAgentEnabled(log logrus.FieldLogger, infraEnv *aiv1beta1.InfraEnv) bool {
