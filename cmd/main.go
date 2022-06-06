@@ -583,6 +583,8 @@ func main() {
 					Log:                    log,
 					Installer:              bm,
 					CRDEventsHandler:       crdEventsHandler,
+					VersionsHandler:        versionHandler,
+					OcRelease:              releaseHandler,
 					IronicIgniotionBuilder: ignition.NewIronicIgniotionBuilder(Options.IronicIgnitionBuilderConfig),
 					IronicServiceURL:       ironicBaseURL,
 				}).SetupWithManager(ctrlMgr), "failed to create PreprovisioningImage ceontroller")
