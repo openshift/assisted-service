@@ -251,7 +251,7 @@ func (m *Manager) populateDisksEligibility(ctx context.Context, inventory *model
 		}
 
 		// Append to the existing reasons already filled in by the agent
-		reasons, err := m.hwValidator.DiskIsEligible(ctx, disk, infraEnv, cluster, host)
+		reasons, err := m.hwValidator.DiskIsEligible(ctx, disk, infraEnv, cluster, host, inventory.Disks)
 		if err != nil {
 			return err
 		}
