@@ -1,4 +1,11 @@
 apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: assisted-installer-general-overview
+  labels:
+    grafana_dashboard: "true"
+  annotations:
+    grafana-folder: /grafana-dashboard-definitions/AssistedInstaller
 data:
   assisted-installer.json: |-
     {
@@ -2223,10 +2230,3 @@ data:
       "uid": "assisted-installer-overview",
       "version": 1
     }
-kind: ConfigMap
-metadata:
-  name: assisted-installer-general-overview
-  labels:
-    grafana_dashboard: "true"
-  annotations:
-    grafana-folder: /grafana-dashboard-definitions/AssistedInstaller
