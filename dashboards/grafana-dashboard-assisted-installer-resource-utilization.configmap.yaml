@@ -34,7 +34,7 @@ data:
       "editable": true,
       "fiscalYearStartMonth": 0,
       "graphTooltip": 0,
-      "iteration": 1652884408673,
+      "iteration": 1654594719483,
       "links": [],
       "liveNow": false,
       "panels": [
@@ -517,6 +517,135 @@ data:
             "type": "prometheus",
             "uid": "${datasource}"
           },
+          "description": "",
+          "fieldConfig": {
+            "defaults": {
+              "links": []
+            },
+            "overrides": []
+          },
+          "fill": 0,
+          "fillGradient": 0,
+          "gridPos": {
+            "h": 8,
+            "w": 24,
+            "x": 0,
+            "y": 15
+          },
+          "hiddenSeries": false,
+          "id": 37,
+          "legend": {
+            "alignAsTable": true,
+            "avg": true,
+            "current": true,
+            "max": true,
+            "min": true,
+            "rightSide": true,
+            "show": true,
+            "total": false,
+            "values": true
+          },
+          "lines": true,
+          "linewidth": 1,
+          "links": [],
+          "nullPointMode": "null",
+          "options": {
+            "alertThreshold": true
+          },
+          "percentage": false,
+          "pluginVersion": "8.5.2",
+          "pointradius": 5,
+          "points": false,
+          "renderer": "flot",
+          "seriesOverrides": [
+            {
+              "$$hashKey": "object:129",
+              "alias": "99th percentile",
+              "yaxis": 2
+            }
+          ],
+          "spaceLength": 10,
+          "stack": false,
+          "steppedLine": false,
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "gH4yqWBnz"
+              },
+              "editorMode": "code",
+              "expr": "avg(rate(container_cpu_usage_seconds_total {namespace=\"$namespace\",pod=~\"assisted-service-.*\"\n} [5m]))",
+              "interval": "",
+              "legendFormat": "Average CPU usage",
+              "range": true,
+              "refId": "A"
+            },
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              },
+              "editorMode": "code",
+              "expr": "avg(rate( container_cpu_cfs_throttled_seconds_total{namespace=\"$namespace\",pod=~\"assisted-service-.*\"\n} [5m]))",
+              "hide": false,
+              "legendFormat": "Average Throttled",
+              "range": true,
+              "refId": "B"
+            },
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              },
+              "editorMode": "code",
+              "expr": "histogram_quantile(.99, sum(rate(http_request_duration_seconds_bucket{namespace=\"assisted-installer-production\"}[5m])) by (le))",
+              "hide": false,
+              "legendFormat": "99th percentile",
+              "range": true,
+              "refId": "C"
+            }
+          ],
+          "thresholds": [],
+          "timeRegions": [],
+          "title": "CPU vs response time",
+          "tooltip": {
+            "shared": true,
+            "sort": 0,
+            "value_type": "individual"
+          },
+          "type": "graph",
+          "xaxis": {
+            "mode": "time",
+            "show": true,
+            "values": []
+          },
+          "yaxes": [
+            {
+              "$$hashKey": "object:388",
+              "format": "short",
+              "logBase": 1,
+              "show": true
+            },
+            {
+              "$$hashKey": "object:389",
+              "format": "s",
+              "logBase": 1,
+              "show": true
+            }
+          ],
+          "yaxis": {
+            "align": false
+          }
+        },
+        {
+          "aliasColors": {},
+          "bars": false,
+          "dashLength": 10,
+          "dashes": false,
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
           "fieldConfig": {
             "defaults": {
               "links": [],
@@ -530,7 +659,7 @@ data:
             "h": 8,
             "w": 24,
             "x": 0,
-            "y": 15
+            "y": 23
           },
           "hiddenSeries": false,
           "id": 34,
@@ -595,7 +724,7 @@ data:
                 "uid": "${datasource}"
               },
               "editorMode": "code",
-              "expr": "sum(kube_pod_container_resource_requests{namespace=\"$namespace\", pod=~\"assisted-service-.*\", container=\"assisted-service\", resource=\"memory\"}) by (pod)",
+              "expr": "avg(kube_pod_container_resource_requests{namespace=\"$namespace\", pod=~\"assisted-service-.*\", container=\"assisted-service\", resource=\"memory\"})",
               "hide": false,
               "legendFormat": "Requests",
               "range": true,
@@ -607,7 +736,7 @@ data:
                 "uid": "${datasource}"
               },
               "editorMode": "code",
-              "expr": "sum(kube_pod_container_resource_limits{namespace=\"$namespace\", pod=~\"assisted-service-.*\", container=\"assisted-service\", resource=\"memory\"}) by (pod)",
+              "expr": "avg(kube_pod_container_resource_limits{namespace=\"$namespace\", pod=~\"assisted-service-.*\", container=\"assisted-service\", resource=\"memory\"})",
               "hide": false,
               "legendFormat": "Limits",
               "range": true,
@@ -667,7 +796,7 @@ data:
             "h": 8,
             "w": 24,
             "x": 0,
-            "y": 23
+            "y": 31
           },
           "hiddenSeries": false,
           "id": 35,
@@ -772,7 +901,7 @@ data:
           },
           {
             "current": {
-              "selected": true,
+              "selected": false,
               "text": "assisted-installer-production",
               "value": "assisted-installer-production"
             },
@@ -799,11 +928,34 @@ data:
             "tagsQuery": "",
             "type": "query",
             "useTags": false
+          },
+          {
+            "current": {
+              "isNone": true,
+              "selected": false,
+              "text": "None",
+              "value": ""
+            },
+            "definition": "",
+            "hide": 0,
+            "includeAll": false,
+            "multi": false,
+            "name": "interval",
+            "options": [],
+            "query": {
+              "query": "",
+              "refId": "StandardVariableQuery"
+            },
+            "refresh": 1,
+            "regex": "",
+            "skipUrlSync": false,
+            "sort": 0,
+            "type": "query"
           }
         ]
       },
       "time": {
-        "from": "now-6h",
+        "from": "now-3h",
         "to": "now"
       },
       "timepicker": {
@@ -834,6 +986,6 @@ data:
       "timezone": "",
       "title": "Assisted Service Resource Dashboard",
       "uid": "assisted-service-resource-dashboard",
-      "version": 1,
+      "version": 32,
       "weekStart": ""
     }
