@@ -11,7 +11,7 @@ type baremetalProvider struct {
 	Log logrus.FieldLogger
 }
 
-// NewBaremetalProvider creates a new vSphere provider.
+// NewBaremetalProvider creates a new baremetal provider.
 func NewBaremetalProvider(log logrus.FieldLogger) provider.Provider {
 	return &baremetalProvider{
 		Log: log,

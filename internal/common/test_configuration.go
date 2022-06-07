@@ -239,6 +239,41 @@ func GenerateTestDefaultInventory() string {
 	return string(b)
 }
 
+func GenerateTestInventoryWithVirtualInterface() string {
+	inventory := &models.Inventory{
+		Interfaces: []*models.Interface{
+			{
+				Name: "eth0",
+				IPV4Addresses: []string{
+					"192.0.2.0/24",
+				},
+				IPV6Addresses: []string{
+					"2001:db8::/32",
+				},
+				Type: "physical",
+			},
+			{
+				Name: "cni1",
+				IPV4Addresses: []string{
+					"198.51.100.0/24",
+				},
+				IPV6Addresses: []string{
+					"2001:db8::/32",
+				},
+				Type: "device",
+			},
+		},
+		Disks: []*models.Disk{
+			TestDefaultConfig.Disks,
+		},
+		Routes: TestDefaultRouteConfiguration,
+	}
+
+	b, err := json.Marshal(inventory)
+	Expect(err).To(Not(HaveOccurred()))
+	return string(b)
+}
+
 func GenerateTest2IPv4AddressesInventory() string {
 	inventory := &models.Inventory{
 		Interfaces: []*models.Interface{

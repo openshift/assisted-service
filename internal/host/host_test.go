@@ -1323,6 +1323,84 @@ var _ = Describe("UpdateInventory", func() {
 			Expect(h.InstallationDiskID).To(Equal(diskId))
 		})
 	})
+	Context("Interfaces", func() {
+		const (
+			diskName = "FirstDisk"
+			diskId   = "/dev/disk/by-id/FirstDisk"
+		)
+		var (
+			dummy = &leader.DummyElector{}
+		)
+
+		BeforeEach(func() {
+			host = hostutil.GenerateTestHost(hostId, infraEnvId, "", models.HostStatusDiscovering)
+			host.Inventory = common.GenerateTestInventoryWithVirtualInterface()
+			host.InstallationDiskPath = ""
+			Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
+			mockValidator.EXPECT().DiskIsEligible(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any())
+			mockValidator.EXPECT().ListEligibleDisks(gomock.Any()).Return(
+				[]*models.Disk{{ID: diskId, Name: diskName}},
+			)
+		})
+		It("Saves all interfaces when interface type isn't set and virtual interface flag is not enabled", func() {
+			host.Inventory = common.GenerateTestDefaultInventory()
+			Expect(hapi.UpdateInventory(ctx, &host, host.Inventory)).To(Succeed())
+
+			h := hostutil.GetHostFromDB(hostId, infraEnvId, db)
+			Expect(h.Inventory).ToNot(BeEmpty())
+			inventory, err := common.UnmarshalInventory(h.Inventory)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(inventory).To(Not(BeNil()))
+			Expect(inventory.Interfaces).Should(HaveLen(1))
+		})
+		It("Doesn't save virtual interfaces when virtual interface flag is not enabled", func() {
+			Expect(hapi.UpdateInventory(ctx, &host, host.Inventory)).To(Succeed())
+
+			h := hostutil.GetHostFromDB(hostId, infraEnvId, db)
+			Expect(h.Inventory).ToNot(BeEmpty())
+			inventory, err := common.UnmarshalInventory(h.Inventory)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(inventory).To(Not(BeNil()))
+			Expect(inventory.Interfaces).Should(HaveLen(1))
+			Expect(inventory.Interfaces[0].Type).To(Equal("physical"))
+		})
+		It("Saves all interfaces when interface type isn't set and virtual interface flag is enabled", func() {
+			host.Inventory = common.GenerateTestDefaultInventory()
+			defaultConfig.EnableVirtualInterfaces = true
+			enabled_hapi := NewManager(common.GetTestLog(), db, mockEvents, mockValidator,
+				nil, createValidatorCfg(), nil, defaultConfig, dummy, nil, nil)
+			Expect(enabled_hapi.UpdateInventory(ctx, &host, host.Inventory)).To(Succeed())
+
+			h := hostutil.GetHostFromDB(hostId, infraEnvId, db)
+			Expect(h.Inventory).ToNot(BeEmpty())
+			inventory, err := common.UnmarshalInventory(h.Inventory)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(inventory).To(Not(BeNil()))
+			Expect(inventory.Interfaces).Should(HaveLen(1))
+		})
+		It("Saves virtual interfaces when virtual interface flag is enabled", func() {
+			defaultConfig.EnableVirtualInterfaces = true
+			enabled_hapi := NewManager(common.GetTestLog(), db, mockEvents, mockValidator,
+				nil, createValidatorCfg(), nil, defaultConfig, dummy, nil, nil)
+			Expect(enabled_hapi.UpdateInventory(ctx, &host, host.Inventory)).To(Succeed())
+
+			h := hostutil.GetHostFromDB(hostId, infraEnvId, db)
+			Expect(h.Inventory).ToNot(BeEmpty())
+			inventory, err := common.UnmarshalInventory(h.Inventory)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(inventory).To(Not(BeNil()))
+			Expect(inventory.Interfaces).Should(HaveLen(2))
+			found := false
+			for _, intf := range inventory.Interfaces {
+				if intf.Type == "device" {
+					found = true
+					break
+				}
+			}
+			Expect(found).To(BeTrue())
+
+		})
+	})
 })
 
 var _ = Describe("Update hostname", func() {

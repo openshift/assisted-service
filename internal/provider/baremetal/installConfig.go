@@ -43,13 +43,9 @@ func (p baremetalProvider) AddPlatformToInstallConfig(
 		}
 
 		for _, iface := range inventory.Interfaces {
-			//TODO: modify the filter depending on the environment variable set in MGMT-10411 to show virtual interfaces
-			// Only allow interfaces that we previous filtered for (physical, bonds, and vlans) or empty type (backwards compatibility)
-			if !(iface.Type == "physical" || iface.Type == "bond" || iface.Type == "vlan" || iface.Type == "") {
-				continue
-			}
 			if iface.MacAddress != "" {
 				hosts[yamlHostIdx].BootMACAddress = iface.MacAddress
+				break
 			}
 		}
 		if hosts[yamlHostIdx].BootMACAddress == "" {
