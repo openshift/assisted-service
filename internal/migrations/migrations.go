@@ -13,7 +13,6 @@ func MigratePre(db *gorm.DB) error {
 
 func pre() []*gormigrate.Migration {
 	preMigrations := []*gormigrate.Migration{
-		populateInfraEnv(),
 		modifyEventsId(),
 	}
 
