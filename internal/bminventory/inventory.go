@@ -2501,7 +2501,7 @@ func (b *bareMetalInventory) calculateHostNetworks(log logrus.FieldLogger, clust
 		}
 		for _, intf := range inventory.Interfaces {
 			var addrRange []string
-			if b.Config.IPv6Support {
+			if b.Config.IPv6Support || (len(intf.IPV4Addresses) > 0 && len(intf.IPV6Addresses) > 0) {
 				addrRange = append(intf.IPV4Addresses, intf.IPV6Addresses...)
 			} else {
 				addrRange = intf.IPV4Addresses
