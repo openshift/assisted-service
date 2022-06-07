@@ -1265,9 +1265,7 @@ var _ = Describe("cluster install", func() {
 			models.Usage{Name: usage.AutoAssignRoleUsage})
 	})
 
-	//TODO: stabilize this test
 	It("auto-assign_with_cnv_operator", func() {
-		Skip("Test is flaky, and needs extra work for its stabilization")
 		By("register 3 hosts all with master hw information and virtualization, cluster expected to be ready")
 		clusterID := *cluster.ID
 		ips := hostutil.GenerateIPv4Addresses(6, defaultCIDRv4)
