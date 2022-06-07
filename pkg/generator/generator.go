@@ -36,22 +36,24 @@ type Config struct {
 
 type installGenerator struct {
 	Config
-	log              logrus.FieldLogger
-	s3Client         s3wrapper.API
-	operatorsApi     operators.API
-	workDir          string
-	providerRegistry registry.ProviderRegistry
+	log                       logrus.FieldLogger
+	s3Client                  s3wrapper.API
+	operatorsApi              operators.API
+	workDir                   string
+	providerRegistry          registry.ProviderRegistry
+	clusterTLSCertOverrideDir string
 }
 
 func New(log logrus.FieldLogger, s3Client s3wrapper.API, cfg Config, workDir string,
-	operatorsApi operators.API, providerRegistry registry.ProviderRegistry) *installGenerator {
+	operatorsApi operators.API, providerRegistry registry.ProviderRegistry, clusterTLSCertOverrideDir string) *installGenerator {
 	return &installGenerator{
-		Config:           cfg,
-		log:              log,
-		s3Client:         s3Client,
-		operatorsApi:     operatorsApi,
-		workDir:          filepath.Join(workDir, "install-config-generate"),
-		providerRegistry: providerRegistry,
+		Config:                    cfg,
+		log:                       log,
+		s3Client:                  s3Client,
+		operatorsApi:              operatorsApi,
+		workDir:                   filepath.Join(workDir, "install-config-generate"),
+		providerRegistry:          providerRegistry,
+		clusterTLSCertOverrideDir: clusterTLSCertOverrideDir,
 	}
 }
 
@@ -96,7 +98,7 @@ func (k *installGenerator) GenerateInstallConfig(ctx context.Context, cluster co
 		generator = ignition.NewDummyGenerator(clusterWorkDir, &cluster, k.s3Client, log)
 	} else {
 		generator = ignition.NewGenerator(clusterWorkDir, installerCacheDir, &cluster, releaseImage, k.Config.ReleaseImageMirror,
-			k.Config.ServiceCACertPath, k.Config.InstallInvoker, k.s3Client, log, k.operatorsApi, k.providerRegistry, installerReleaseImageOverride)
+			k.Config.ServiceCACertPath, k.Config.InstallInvoker, k.s3Client, log, k.operatorsApi, k.providerRegistry, installerReleaseImageOverride, k.clusterTLSCertOverrideDir)
 	}
 	err = generator.Generate(ctx, cfg, k.getClusterPlatformType(cluster))
 	if err != nil {

@@ -146,6 +146,9 @@ var Options struct {
 	HTTPListenPort                 string        `envconfig:"HTTP_LISTEN_PORT" default:""`
 	AllowConvergedFlow             bool          `envconfig:"ALLOW_COVERGED_FLOW" default:"true"`
 	IronicIgnitionBuilderConfig    ignition.IronicIgniotionBuilderConfig
+
+	// Directory containing pre-generated TLS certs/keys for the ephemeral installer
+	ClusterTLSCertOverrideDir string `envconfig:"EPHEMERAL_INSTALLER_CLUSTER_TLS_CERTS_OVERRIDE_DIR" default:""`
 }
 
 func InitLogs() *logrus.Entry {
@@ -380,7 +383,7 @@ func main() {
 	failOnError(err, "failed to create valid bm config S3 endpoint URL from %s", Options.BMConfig.S3EndpointURL)
 	Options.BMConfig.S3EndpointURL = newUrl
 
-	generator := generator.New(log, objectHandler, Options.GeneratorConfig, Options.WorkDir, operatorsManager, providerRegistry)
+	generator := generator.New(log, objectHandler, Options.GeneratorConfig, Options.WorkDir, operatorsManager, providerRegistry, Options.ClusterTLSCertOverrideDir)
 	var crdUtils bminventory.CRDUtils
 	if ctrlMgr != nil {
 		crdUtils = controllers.NewCRDUtils(ctrlMgr.GetClient(), hostApi)
