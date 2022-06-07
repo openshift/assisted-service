@@ -12709,23 +12709,20 @@ var _ = Describe("Calculate host networks", func() {
 		clusterID = strfmt.UUID(uuid.New().String())
 		err := db.Create(&common.Cluster{Cluster: models.Cluster{ID: &clusterID}}).Error
 		Expect(err).ShouldNot(HaveOccurred())
-
-		// add a host
-		hostID = strfmt.UUID(uuid.New().String())
-		addHost(hostID, models.HostRoleMaster, models.HostStatusInsufficient, "kind", clusterID, clusterID,
-			getInventoryStrWithIPv6("host", "bios", []string{
-				"1.1.1.1/24",
-				"1.1.1.2/24",
-			}, []string{
-				"fe80::1/64",
-				"fe80::2/64",
-			}), db)
 	})
 
 	AfterEach(func() {
 		common.DeleteTestDB(db, dbName)
 	})
-	It("Duplicates and disabled IPv6", func() {
+	It("Duplicates and disabled IPv6 - single-stack v4 host", func() {
+		// add a single-stack v4 host
+		hostID = strfmt.UUID(uuid.New().String())
+		addHost(hostID, models.HostRoleMaster, models.HostStatusInsufficient, "kind", clusterID, clusterID,
+			getInventoryStrWithIPv6("host", "bios", []string{
+				"1.1.1.1/24",
+				"1.1.1.2/24",
+			}, []string{}), db)
+
 		cfg.IPv6Support = false
 		inventory = createInventory(db, *cfg)
 		cluster, err := common.GetClusterFromDB(db, clusterID, common.UseEagerLoading)
@@ -12736,7 +12733,82 @@ var _ = Describe("Calculate host networks", func() {
 		Expect(len(networks[0].HostIds)).To(Equal(1))
 		Expect(networks[0].HostIds[0]).To(Equal(hostID))
 	})
-	It("Duplicates and enabled IPv6", func() {
+	It("Duplicates and disabled IPv6 - single-stack v6 host", func() {
+		// add a single-stack v6 host
+		hostID = strfmt.UUID(uuid.New().String())
+		addHost(hostID, models.HostRoleMaster, models.HostStatusInsufficient, "kind", clusterID, clusterID,
+			getInventoryStrWithIPv6("host", "bios", []string{}, []string{
+				"fe80::1/64",
+				"fe80::2/64",
+			}), db)
+
+		cfg.IPv6Support = false
+		inventory = createInventory(db, *cfg)
+		cluster, err := common.GetClusterFromDB(db, clusterID, common.UseEagerLoading)
+		Expect(err).ToNot(HaveOccurred())
+		networks := inventory.calculateHostNetworks(logrus.New(), cluster)
+		Expect(len(networks)).To(Equal(0))
+	})
+	It("Duplicates and disabled IPv6 - dual-stack host", func() {
+		// add a dual-stack host
+		hostID = strfmt.UUID(uuid.New().String())
+		addHost(hostID, models.HostRoleMaster, models.HostStatusInsufficient, "kind", clusterID, clusterID,
+			getInventoryStrWithIPv6("host", "bios", []string{
+				"1.1.1.1/24",
+				"1.1.1.2/24",
+			}, []string{
+				"fe80::1/64",
+				"fe80::2/64",
+			}), db)
+
+		cfg.IPv6Support = false
+		inventory = createInventory(db, *cfg)
+		cluster, err := common.GetClusterFromDB(db, clusterID, common.UseEagerLoading)
+		Expect(err).ToNot(HaveOccurred())
+		networks := inventory.calculateHostNetworks(logrus.New(), cluster)
+		Expect(len(networks)).To(Equal(2))
+		sort.Slice(networks, func(i, j int) bool {
+			return networks[i].Cidr < networks[j].Cidr
+		})
+		Expect(networks[0].Cidr).To(Equal("1.1.1.0/24"))
+		Expect(len(networks[0].HostIds)).To(Equal(1))
+		Expect(networks[0].HostIds[0]).To(Equal(hostID))
+		Expect(networks[1].Cidr).To(Equal("fe80::/64"))
+		Expect(len(networks[1].HostIds)).To(Equal(1))
+		Expect(networks[1].HostIds[0]).To(Equal(hostID))
+	})
+	It("Duplicates and enabled IPv6 - single-stack v6 host", func() {
+		// add a dual-stack host
+		hostID = strfmt.UUID(uuid.New().String())
+		addHost(hostID, models.HostRoleMaster, models.HostStatusInsufficient, "kind", clusterID, clusterID,
+			getInventoryStrWithIPv6("host", "bios", []string{}, []string{
+				"fe80::1/64",
+				"fe80::2/64",
+			}), db)
+
+		cfg.IPv6Support = true
+		inventory = createInventory(db, *cfg)
+		cluster, err := common.GetClusterFromDB(db, clusterID, common.UseEagerLoading)
+		Expect(err).ToNot(HaveOccurred())
+		networks := inventory.calculateHostNetworks(logrus.New(), cluster)
+		Expect(len(networks)).To(Equal(1))
+		Expect(networks[0].Cidr).To(Equal("fe80::/64"))
+		Expect(len(networks[0].HostIds)).To(Equal(1))
+		Expect(networks[0].HostIds[0]).To(Equal(hostID))
+
+	})
+	It("Duplicates and enabled IPv6 - dual-stack host", func() {
+		// add a dual-stack host
+		hostID = strfmt.UUID(uuid.New().String())
+		addHost(hostID, models.HostRoleMaster, models.HostStatusInsufficient, "kind", clusterID, clusterID,
+			getInventoryStrWithIPv6("host", "bios", []string{
+				"1.1.1.1/24",
+				"1.1.1.2/24",
+			}, []string{
+				"fe80::1/64",
+				"fe80::2/64",
+			}), db)
+
 		cfg.IPv6Support = true
 		inventory = createInventory(db, *cfg)
 		cluster, err := common.GetClusterFromDB(db, clusterID, common.UseEagerLoading)
