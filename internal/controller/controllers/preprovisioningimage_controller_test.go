@@ -99,7 +99,7 @@ var _ = Describe("PreprovisioningImage reconcile", func() {
 			CRDEventsHandler:       mockCRDEventsHandler,
 			IronicIgniotionBuilder: ironicIgnitionBuilder,
 			VersionsHandler:        mockVersionHandler,
-			ocRelease:              mockOcRelease,
+			OcRelease:              mockOcRelease,
 			IronicServiceURL:       "ironic.url",
 		}
 	})

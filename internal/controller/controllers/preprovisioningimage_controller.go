@@ -56,7 +56,7 @@ type PreprovisioningImageReconciler struct {
 	CRDEventsHandler       CRDEventsHandler
 	IronicIgniotionBuilder ignition.IronicIgniotionBuilder
 	VersionsHandler        versions.Handler
-	ocRelease              oc.Release
+	OcRelease              oc.Release
 	ReleaseImageMirror     string
 	IronicServiceURL       string
 }
@@ -323,7 +323,7 @@ func (r *PreprovisioningImageReconciler) getIronicAgentImage(log logrus.FieldLog
 	if err != nil {
 		return "", err
 	}
-	ironicAgentImage, err := r.ocRelease.GetIronicAgentImage(log, *releaseImage.URL, r.ReleaseImageMirror, infraEnv.PullSecret)
+	ironicAgentImage, err := r.OcRelease.GetIronicAgentImage(log, *releaseImage.URL, r.ReleaseImageMirror, infraEnv.PullSecret)
 	if err != nil {
 		return "", err
 	}
