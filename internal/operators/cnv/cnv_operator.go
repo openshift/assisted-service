@@ -159,27 +159,25 @@ func (o *operator) GetMonitoredOperator() *models.MonitoredOperator {
 func (o *operator) GetHostRequirements(ctx context.Context, cluster *common.Cluster, host *models.Host) (*models.ClusterHostRequirementsDetails, error) {
 	log := logutil.FromContext(ctx, o.log)
 	preflightRequirements, err := o.GetPreflightRequirements(ctx, cluster)
-	masterRequirements := preflightRequirements.Requirements.Master.Quantitative
 	if err != nil {
 		log.WithError(err).Errorf("Cannot Retrieve preflight requirements for cluster %s", cluster.ID)
 		return nil, err
 	}
 
 	if common.IsSingleNodeCluster(cluster) {
-		reqs, err := o.getWorkerRequirements(ctx, cluster, host, preflightRequirements)
+		overhead, err := o.getDevicesMemoryOverhead(host)
 		if err != nil {
+			log.WithError(err).WithField("inventory", host.Inventory).Errorf("Cannot parse inventory for host %v", host.ID)
 			return nil, err
 		}
-		return &models.ClusterHostRequirementsDetails{
-			CPUCores: reqs.CPUCores + masterRequirements.CPUCores,
-			RAMMib:   reqs.RAMMib + masterRequirements.RAMMib,
-		}, nil
+		preflightRequirements.Requirements.Master.Quantitative.RAMMib += overhead
+		return preflightRequirements.Requirements.Master.Quantitative, nil
 	}
 
 	role := common.GetEffectiveRole(host)
 	switch role {
 	case models.HostRoleMaster:
-		return masterRequirements, nil
+		return preflightRequirements.Requirements.Master.Quantitative, nil
 	case models.HostRoleWorker, models.HostRoleAutoAssign:
 		return o.getWorkerRequirements(ctx, cluster, host, preflightRequirements)
 	}
@@ -210,6 +208,7 @@ func (o *operator) GetPreflightRequirements(_ context.Context, cluster *common.C
 	if shouldInstallHPP(o.config, cluster) {
 		qualitativeRequirements = append(qualitativeRequirements, fmt.Sprintf("Additional disk with %d Gi", o.config.SNOPoolSizeRequestHPPGib))
 	}
+
 	requirements := models.OperatorHardwareRequirements{
 		OperatorName: o.GetName(),
 		Dependencies: o.GetDependencies(),
@@ -230,6 +229,12 @@ func (o *operator) GetPreflightRequirements(_ context.Context, cluster *common.C
 			},
 		},
 	}
+
+	if common.IsSingleNodeCluster(cluster) {
+		requirements.Requirements.Master.Quantitative.CPUCores += WorkerCPU
+		requirements.Requirements.Master.Quantitative.RAMMib += WorkerMemory
+	}
+
 	return &requirements, nil
 }
 
