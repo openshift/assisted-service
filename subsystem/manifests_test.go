@@ -162,13 +162,6 @@ spec:
 
 		})
 
-		It("list manifests returns not found", func() {
-			_, err := userBMClient.Manifests.V2ListClusterManifests(ctx, &manifests.V2ListClusterManifestsParams{
-				ClusterID: non_exiting_id,
-			})
-			Expect(err).To(BeAssignableToTypeOf(manifests.NewV2ListClusterManifestsNotFound()))
-		})
-
 		It("download manifests returns not found", func() {
 			buffer := new(bytes.Buffer)
 

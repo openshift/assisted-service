@@ -261,31 +261,6 @@ func assertNoValidationEvent(ctx context.Context, clusterID strfmt.UUID, hostNam
 	Expect(eventExist).To(BeFalse())
 }
 
-func registerDay2Cluster(ctx context.Context) strfmt.UUID {
-	openshiftClusterID := strfmt.UUID(uuid.New().String())
-
-	c, err := userBMClient.Installer.V2ImportCluster(ctx, &installer.V2ImportClusterParams{
-		NewImportClusterParams: &models.ImportClusterParams{
-			Name:               swag.String("test-metrics-day2-cluster"),
-			OpenshiftVersion:   openshiftVersion,
-			APIVipDnsname:      swag.String("api-vip.redhat.com"),
-			OpenshiftClusterID: &openshiftClusterID,
-		},
-	})
-	Expect(err).NotTo(HaveOccurred())
-	clusterID := *c.GetPayload().ID
-
-	_, err = userBMClient.Installer.V2UpdateCluster(ctx, &installer.V2UpdateClusterParams{
-		ClusterUpdateParams: &models.V2ClusterUpdateParams{
-			PullSecret: swag.String(pullSecret),
-		},
-		ClusterID: clusterID,
-	})
-	Expect(err).NotTo(HaveOccurred())
-
-	return clusterID
-}
-
 func v2RegisterDay2Cluster(ctx context.Context) strfmt.UUID {
 	openshiftClusterID := strfmt.UUID(uuid.New().String())
 
@@ -791,32 +766,6 @@ var _ = Describe("Metrics tests", func() {
 
 		It("'ignition-downloadable' failed", func() {
 
-			day2ClusterID := registerDay2Cluster(ctx)
-			day2InfraEnvID := registerInfraEnv(&day2ClusterID, models.ImageTypeMinimalIso).ID
-
-			// create a validation success
-			h := registerNode(ctx, *day2InfraEnvID, "master-0", defaultCIDRv4)
-			generateApiVipPostStepReply(ctx, h, true)
-			waitForHostValidationStatus(day2ClusterID, *day2InfraEnvID, *h.ID, "success", models.HostValidationIDIgnitionDownloadable)
-
-			oldChangedMetricCounter := getValidationMetricCounter(string(models.HostValidationIDIgnitionDownloadable), hostValidationChangedMetric)
-			oldFailedMetricCounter := getValidationMetricCounter(string(models.HostValidationIDIgnitionDownloadable), hostValidationFailedMetric)
-
-			// create a validation failure
-			generateApiVipPostStepReply(ctx, h, false)
-			waitForHostValidationStatus(day2ClusterID, *day2InfraEnvID, *h.ID, "failure", models.HostValidationIDIgnitionDownloadable)
-
-			// check generated events
-			assertHostValidationEvent(ctx, day2ClusterID, "master-0", models.HostValidationIDIgnitionDownloadable, true)
-
-			// check generated metrics
-			Expect(getValidationMetricCounter(string(models.HostValidationIDIgnitionDownloadable), hostValidationChangedMetric)).To(Equal(oldChangedMetricCounter + 1))
-			metricsDeregisterCluster(ctx, day2ClusterID)
-			Expect(getValidationMetricCounter(string(models.HostValidationIDIgnitionDownloadable), hostValidationFailedMetric)).To(Equal(oldFailedMetricCounter + 1))
-		})
-
-		It("[V2UpdateCluster] 'ignition-downloadable' failed", func() {
-
 			day2ClusterID := v2RegisterDay2Cluster(ctx)
 			day2InfraEnvID := registerInfraEnv(&day2ClusterID, models.ImageTypeMinimalIso).ID
 
@@ -842,24 +791,6 @@ var _ = Describe("Metrics tests", func() {
 		})
 
 		It("'ignition-downloadable' got fixed", func() {
-
-			day2ClusterID := registerDay2Cluster(ctx)
-			day2InfraEnvID := registerInfraEnv(&day2ClusterID, models.ImageTypeMinimalIso).ID
-
-			// create a validation failure
-			h := registerNode(ctx, *day2InfraEnvID, "master-0", defaultCIDRv4)
-			generateApiVipPostStepReply(ctx, h, false)
-			waitForHostValidationStatus(day2ClusterID, *day2InfraEnvID, *h.ID, "failure", models.HostValidationIDIgnitionDownloadable)
-
-			// create a validation success
-			generateApiVipPostStepReply(ctx, h, true)
-			waitForHostValidationStatus(day2ClusterID, *day2InfraEnvID, *h.ID, "success", models.HostValidationIDIgnitionDownloadable)
-
-			// check generated events
-			assertHostValidationEvent(ctx, day2ClusterID, "master-0", models.HostValidationIDIgnitionDownloadable, false)
-		})
-
-		It("[V2UpdateCluster] 'ignition-downloadable' got fixed", func() {
 
 			day2ClusterID := v2RegisterDay2Cluster(ctx)
 			day2InfraEnvID := registerInfraEnv(&day2ClusterID, models.ImageTypeMinimalIso).ID

@@ -175,61 +175,6 @@ var _ = Describe("Host tests", func() {
 		Expect(ok).Should(Equal(true))
 	})
 
-	It("[V2UpdateCluster] next step", func() {
-		_, err := userBMClient.Installer.V2UpdateCluster(ctx, &installer.V2UpdateClusterParams{
-			ClusterID: clusterID,
-			ClusterUpdateParams: &models.V2ClusterUpdateParams{
-				VipDhcpAllocation: swag.Bool(false),
-			},
-		})
-		Expect(err).ToNot(HaveOccurred())
-		host := &registerHost(*infraEnvID).Host
-		host2 := &registerHost(*infraEnvID).Host
-		Expect(db.Model(host2).UpdateColumns(&models.Host{Inventory: defaultInventory(),
-			Status:             swag.String(models.HostStatusInsufficient),
-			InstallationDiskID: "wwn-0x1111111111111111111111"}).Error).NotTo(HaveOccurred())
-		steps := getNextSteps(*infraEnvID, *host.ID)
-		_, ok := getStepInList(steps, models.StepTypeInventory)
-		Expect(ok).Should(Equal(true))
-		host = getHostV2(*infraEnvID, *host.ID)
-		Expect(db.Model(host).Update("status", "insufficient").Error).NotTo(HaveOccurred())
-		Expect(db.Model(host).UpdateColumn("inventory", defaultInventory()).Error).NotTo(HaveOccurred())
-		steps = getNextSteps(*infraEnvID, *host.ID)
-		_, ok = getStepInList(steps, models.StepTypeInventory)
-		Expect(ok).Should(Equal(true))
-		_, ok = getStepInList(steps, models.StepTypeFreeNetworkAddresses)
-		Expect(ok).Should(Equal(true))
-		Expect(db.Model(host).Update("status", "known").Error).NotTo(HaveOccurred())
-		steps = getNextSteps(*infraEnvID, *host.ID)
-		_, ok = getStepInList(steps, models.StepTypeConnectivityCheck)
-		Expect(ok).Should(Equal(true))
-		_, ok = getStepInList(steps, models.StepTypeFreeNetworkAddresses)
-		Expect(ok).Should(Equal(true))
-		Expect(db.Model(host).Update("status", "disabled").Error).NotTo(HaveOccurred())
-		steps = getNextSteps(*infraEnvID, *host.ID)
-		Expect(steps.NextInstructionSeconds).Should(Equal(int64(120)))
-		Expect(*steps.PostStepAction).Should(Equal(models.StepsPostStepActionContinue))
-		Expect(len(steps.Instructions)).Should(Equal(0))
-		Expect(db.Model(host).Update("status", "insufficient").Error).NotTo(HaveOccurred())
-		steps = getNextSteps(*infraEnvID, *host.ID)
-		_, ok = getStepInList(steps, models.StepTypeConnectivityCheck)
-		Expect(ok).Should(Equal(true))
-		Expect(db.Model(host).Update("status", "error").Error).NotTo(HaveOccurred())
-		steps = getNextSteps(*infraEnvID, *host.ID)
-		_, ok = getStepInList(steps, models.StepTypeStopInstallation)
-		Expect(ok).Should(Equal(true))
-		Expect(db.Model(host).Update("status", models.HostStatusResetting).Error).NotTo(HaveOccurred())
-		steps = getNextSteps(*infraEnvID, *host.ID)
-		Expect(len(steps.Instructions)).Should(Equal(0))
-		Expect(db.Model(cluster.GetPayload()).Update("status", models.ClusterStatusPreparingForInstallation).Error).NotTo(HaveOccurred())
-		Expect(db.Model(host2).Update("status", models.HostStatusPreparingForInstallation).Error).NotTo(HaveOccurred())
-		steps = getNextSteps(*infraEnvID, *host2.ID)
-		_, ok = getStepInList(steps, models.StepTypeInstallationDiskSpeedCheck)
-		Expect(ok).Should(Equal(true))
-		_, ok = getStepInList(steps, models.StepTypeContainerImageAvailability)
-		Expect(ok).Should(Equal(true))
-	})
-
 	It("next step - DHCP", func() {
 		By("Creating cluster")
 		Expect(db.Save(&models.MachineNetwork{ClusterID: clusterID, Cidr: "1.2.3.0/24"}).Error).ToNot(HaveOccurred())
