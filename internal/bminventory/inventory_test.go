@@ -142,6 +142,7 @@ func mockClusterUpdateSuccess(times int, hosts int) {
 	mockHostApi.EXPECT().RefreshInventory(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(hosts * times)
 	mockClusterApi.EXPECT().SetConnectivityMajorityGroupsForCluster(gomock.Any(), gomock.Any()).Return(nil).Times(times)
 	mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).Times(times)
+	mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any()).Return(nil).Times(hosts * times)
 }
 
 func mockInfraEnvRegisterSuccess() {
@@ -3314,6 +3315,7 @@ var _ = Describe("cluster", func() {
 					Expect(actual.Payload.APIVip).To(Equal(apiVip))
 					Expect(actual.Payload.IngressVip).To(Equal(ingressVip))
 					validateNetworkConfiguration(actual.Payload, nil, nil, &[]*models.MachineNetwork{{Cidr: "10.11.0.0/16"}})
+					validateHostsRequestedHostname(actual.Payload)
 					expectedNetworks := sortedNetworks([]*models.HostNetwork{
 						{
 							Cidr: "1.2.3.0/24",
@@ -3388,6 +3390,7 @@ var _ = Describe("cluster", func() {
 
 					validateNetworkConfiguration(actual.Payload,
 						&clusterNetworks, &serviceNetworks, &[]*models.MachineNetwork{{Cidr: "10.11.0.0/16"}})
+					validateHostsRequestedHostname(actual.Payload)
 
 					expectedNetworks := sortedNetworks([]*models.HostNetwork{
 						{
@@ -3541,6 +3544,7 @@ var _ = Describe("cluster", func() {
 						Expect(actual.Payload.APIVip).To(Equal(apiVip))
 						Expect(actual.Payload.IngressVip).To(Equal(ingressVip))
 						validateNetworkConfiguration(actual.Payload, nil, nil, &[]*models.MachineNetwork{{Cidr: primaryMachineCIDR}})
+						validateHostsRequestedHostname(actual.Payload)
 					})
 
 					By("Override machine cidr", func() {
@@ -3559,6 +3563,7 @@ var _ = Describe("cluster", func() {
 						Expect(actual.Payload.APIVip).To(BeEmpty())
 						Expect(actual.Payload.IngressVip).To(BeEmpty())
 						validateNetworkConfiguration(actual.Payload, nil, nil, &machineNetworks)
+						validateHostsRequestedHostname(actual.Payload)
 
 						expectedNetworks := sortedNetworks([]*models.HostNetwork{
 							{
@@ -3607,6 +3612,7 @@ var _ = Describe("cluster", func() {
 						Expect(actual.Payload.APIVip).To(Equal(apiVip))
 						Expect(actual.Payload.IngressVip).To(Equal(ingressVip))
 						validateNetworkConfiguration(actual.Payload, nil, nil, &[]*models.MachineNetwork{{Cidr: primaryMachineCIDR}})
+						validateHostsRequestedHostname(actual.Payload)
 
 					})
 				})
@@ -3624,6 +3630,7 @@ var _ = Describe("cluster", func() {
 					Expect(reply).To(BeAssignableToTypeOf(installer.NewV2UpdateClusterCreated()))
 					actual := reply.(*installer.V2UpdateClusterCreated)
 					validateNetworkConfiguration(actual.Payload, nil, nil, &machineNetworks)
+					validateHostsRequestedHostname(actual.Payload)
 				})
 
 				Context("IPv6", func() {
@@ -3676,6 +3683,7 @@ var _ = Describe("cluster", func() {
 						Expect(actual.Payload.VipDhcpAllocation).NotTo(BeNil())
 						Expect(*actual.Payload.VipDhcpAllocation).To(BeTrue())
 						validateNetworkConfiguration(actual.Payload, nil, nil, &[]*models.MachineNetwork{})
+						validateHostsRequestedHostname(actual.Payload)
 					})
 				})
 
@@ -3708,6 +3716,7 @@ var _ = Describe("cluster", func() {
 						Expect(actual.Payload.VipDhcpAllocation).NotTo(BeNil())
 						Expect(*actual.Payload.VipDhcpAllocation).To(BeTrue())
 						validateNetworkConfiguration(actual.Payload, nil, nil, &machineNetworks)
+						validateHostsRequestedHostname(actual.Payload)
 					})
 				})
 			})
@@ -3831,6 +3840,7 @@ var _ = Describe("cluster", func() {
 					actual := reply.(*installer.V2UpdateClusterCreated)
 
 					validateNetworkConfiguration(actual.Payload, &clusterNetworks, &serviceNetworks, &machineNetworks)
+					validateHostsRequestedHostname(actual.Payload)
 				})
 
 				It("Empty networks (new API) - valid", func() {
@@ -3849,6 +3859,7 @@ var _ = Describe("cluster", func() {
 					Expect(actual.Payload.ClusterNetworks).To(BeEmpty())
 					Expect(actual.Payload.ServiceNetworks).To(BeEmpty())
 					Expect(actual.Payload.MachineNetworks).To(BeEmpty())
+					validateHostsRequestedHostname(actual.Payload)
 				})
 
 				// TODO(MGMT-9751-remove-single-network)
@@ -3869,6 +3880,7 @@ var _ = Describe("cluster", func() {
 					Expect(actual.Payload.ClusterNetworks).To(Equal(clusterNetworks))
 					Expect(actual.Payload.ServiceNetworks).To(Equal(serviceNetworks))
 					Expect(actual.Payload.MachineNetworks).To(Equal(machineNetworks))
+					validateHostsRequestedHostname(actual.Payload)
 				})
 
 				// TODO(MGMT-9751-remove-single-network)
@@ -3889,6 +3901,7 @@ var _ = Describe("cluster", func() {
 					Expect(actual.Payload.ClusterNetworks).To(Equal(clusterNetworks))
 					Expect(actual.Payload.ServiceNetworks).To(Equal(serviceNetworks))
 					Expect(actual.Payload.MachineNetworks).To(Equal(machineNetworks))
+					validateHostsRequestedHostname(actual.Payload)
 				})
 
 				It("Empty networks - invalid empty ClusterNetwork", func() {
@@ -3994,6 +4007,7 @@ var _ = Describe("cluster", func() {
 					actual := reply.(*installer.V2UpdateClusterCreated)
 
 					validateNetworkConfiguration(actual.Payload, &clusterNetworks, &serviceNetworks, &machineNetworks)
+					validateHostsRequestedHostname(actual.Payload)
 				})
 
 				It("Override networks with new API 2", func() {
@@ -4015,6 +4029,7 @@ var _ = Describe("cluster", func() {
 					actual := reply.(*installer.V2UpdateClusterCreated)
 
 					validateNetworkConfiguration(actual.Payload, &clusterNetworks, &serviceNetworks, &machineNetworks)
+					validateHostsRequestedHostname(actual.Payload)
 				})
 
 				It("Multiple clusters", func() {
@@ -4035,6 +4050,7 @@ var _ = Describe("cluster", func() {
 					Expect(reply).To(BeAssignableToTypeOf(installer.NewV2UpdateClusterCreated()))
 					actual := reply.(*installer.V2UpdateClusterCreated)
 					validateNetworkConfiguration(actual.Payload, &clusterNetworks, &serviceNetworks, &machineNetworks)
+					validateHostsRequestedHostname(actual.Payload)
 
 					cluster, err := common.GetClusterFromDB(db, secondClusterID, common.UseEagerLoading)
 					Expect(err).ToNot(HaveOccurred())
@@ -13690,6 +13706,12 @@ func validateNetworkConfiguration(cluster *models.Cluster, clusterNetworks *[]*m
 		}
 		// TODO(MGMT-9751-remove-single-network)
 		ExpectWithOffset(1, cluster.MachineNetworkCidr).To(Equal(""))
+	}
+}
+
+func validateHostsRequestedHostname(cluster *models.Cluster) {
+	for i := range cluster.Hosts {
+		Expect(cluster.Hosts[i].RequestedHostname).Should(Not(BeEmpty()))
 	}
 }
 
