@@ -36,6 +36,9 @@ type Disk struct {
 	// hctl
 	Hctl string `json:"hctl,omitempty"`
 
+	// A comma-separated list of disk names that this disk belongs to
+	Holders string `json:"holders,omitempty"`
+
 	// Determine the disk's unique identifier which is the by-id field if it exists and fallback to the by-path field otherwise
 	ID string `json:"id,omitempty"`
 

@@ -22,8 +22,9 @@ import (
 )
 
 const (
-	tooSmallDiskTemplate   = "Disk is too small (disk only has %s, but %s are required)"
-	wrongDriveTypeTemplate = "Drive type is %s, it must be one of %s."
+	tooSmallDiskTemplate       = "Disk is too small (disk only has %s, but %s are required)"
+	wrongDriveTypeTemplate     = "Drive type is %s, it must be one of %s."
+	wrongMultipathTypeTemplate = "Multipath device has path of type %s, it must be one of %s"
 )
 
 //go:generate mockgen -source=validator.go -package=hardware -destination=mock_validator.go
@@ -32,7 +33,7 @@ type Validator interface {
 	GetHostInstallationPath(host *models.Host) string
 	GetClusterHostRequirements(ctx context.Context, cluster *common.Cluster, host *models.Host) (*models.ClusterHostRequirements, error)
 	GetInfraEnvHostRequirements(ctx context.Context, infraEnv *common.InfraEnv) (*models.ClusterHostRequirements, error)
-	DiskIsEligible(ctx context.Context, disk *models.Disk, infraEnv *common.InfraEnv, cluster *common.Cluster, host *models.Host) ([]string, error)
+	DiskIsEligible(ctx context.Context, disk *models.Disk, infraEnv *common.InfraEnv, cluster *common.Cluster, host *models.Host, allDisks []*models.Disk) ([]string, error)
 	ListEligibleDisks(inventory *models.Inventory) []*models.Disk
 	GetInstallationDiskSpeedThresholdMs(ctx context.Context, cluster *common.Cluster, host *models.Host) (int64, error)
 	// GetPreflightHardwareRequirements provides hardware (host) requirements that can be calculated only using cluster information.
@@ -45,6 +46,7 @@ func NewValidator(log logrus.FieldLogger, cfg ValidatorCfg, operatorsAPI operato
 	diskEligibilityMatchers := []*regexp.Regexp{
 		compileDiskReasonTemplate(tooSmallDiskTemplate, ".*", ".*"),
 		compileDiskReasonTemplate(wrongDriveTypeTemplate, ".*", ".*"),
+		compileDiskReasonTemplate(wrongMultipathTypeTemplate, ".*", ".*"),
 	}
 	return &validator{
 		ValidatorCfg:            cfg,
@@ -91,7 +93,7 @@ func isNvme(name string) bool {
 // it against a list of predicates. Returns all the reasons the disk
 // was found to be not eligible, or an empty slice if it was found to
 // be eligible
-func (v *validator) DiskIsEligible(ctx context.Context, disk *models.Disk, infraEnv *common.InfraEnv, cluster *common.Cluster, host *models.Host) ([]string, error) {
+func (v *validator) DiskIsEligible(ctx context.Context, disk *models.Disk, infraEnv *common.InfraEnv, cluster *common.Cluster, host *models.Host, allDisks []*models.Disk) ([]string, error) {
 	var requirements *models.ClusterHostRequirements
 	var err error
 	if cluster != nil {
@@ -113,9 +115,22 @@ func (v *validator) DiskIsEligible(ctx context.Context, disk *models.Disk, infra
 				humanize.Bytes(uint64(disk.SizeBytes)), humanize.Bytes(uint64(minSizeBytes))))
 	}
 
-	if allowedDriveTypes := []string{"HDD", "SSD"}; !funk.ContainsString(allowedDriveTypes, disk.DriveType) {
+	if allowedDriveTypes := []string{"HDD", "SSD", "Multipath"}; !funk.ContainsString(allowedDriveTypes, disk.DriveType) {
 		notEligibleReasons = append(notEligibleReasons,
 			fmt.Sprintf(wrongDriveTypeTemplate, disk.DriveType, strings.Join(allowedDriveTypes, ", ")))
+	}
+
+	if disk.DriveType == "Multipath" {
+		allowedPathTypes := []string{"FC"}
+		for _, inventoryDisk := range allDisks {
+			if funk.ContainsString(strings.Split(inventoryDisk.Holders, ","), disk.Name) {
+				if !funk.ContainsString(allowedPathTypes, inventoryDisk.DriveType) {
+					notEligibleReasons = append(notEligibleReasons,
+						fmt.Sprintf(wrongMultipathTypeTemplate, inventoryDisk.DriveType, strings.Join(allowedPathTypes, ", ")))
+					break
+				}
+			}
+		}
 	}
 
 	return notEligibleReasons, nil

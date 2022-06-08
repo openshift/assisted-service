@@ -5238,6 +5238,9 @@ definitions:
         type: string
       io_perf:
         $ref: '#/definitions/io_perf'
+      holders:
+        type: string
+        description: A comma-separated list of disk names that this disk belongs to
 
   io_perf:
     type: object
