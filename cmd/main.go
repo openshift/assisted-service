@@ -144,7 +144,7 @@ var Options struct {
 	LivenessValidationTimeout      time.Duration `envconfig:"LIVENESS_VALIDATION_TIMEOUT" default:"5m"`
 	ApproveCsrsRequeueDuration     time.Duration `envconfig:"APPROVE_CSRS_REQUEUE_DURATION" default:"1m"`
 	HTTPListenPort                 string        `envconfig:"HTTP_LISTEN_PORT" default:""`
-	AllowConvergedFlow             bool          `envconfig:"ALLOW_COVERGED_FLOW" default:"true"`
+	AllowConvergedFlow             bool          `envconfig:"ALLOW_COVERGED_FLOW" default:"false"` // set to true once https://bugzilla.redhat.com/show_bug.cgi?id=2089683 is resolved
 	IronicIgnitionBuilderConfig    ignition.IronicIgniotionBuilderConfig
 
 	// Directory containing pre-generated TLS certs/keys for the ephemeral installer
