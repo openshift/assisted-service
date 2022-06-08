@@ -1657,10 +1657,10 @@ func defaultInventory() string {
 		Disks: []*models.Disk{
 			{
 				SizeBytes: 20000000000,
-				DriveType: "HDD",
+				DriveType: models.DriveTypeHDD,
 			}, {
 				SizeBytes: 40000000000,
-				DriveType: "SSD",
+				DriveType: models.DriveTypeSSD,
 			},
 		},
 		Routes: common.TestDefaultRouteConfiguration,

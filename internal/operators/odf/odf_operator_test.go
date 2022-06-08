@@ -22,69 +22,69 @@ var _ = Describe("Odf Operator", func() {
 		masterWithThreeDisk = &models.Host{Role: models.HostRoleMaster, InstallationDiskID: diskID1,
 			Inventory: Inventory(&InventoryResources{Cpus: 12, Ram: 32 * conversions.GiB,
 				Disks: []*models.Disk{
-					{SizeBytes: 20 * conversions.GB, DriveType: "HDD", ID: diskID1},
-					{SizeBytes: 40 * conversions.GB, DriveType: "SSD", ID: diskID2},
-					{SizeBytes: 40 * conversions.GB, DriveType: "SSD", ID: diskID3},
+					{SizeBytes: 20 * conversions.GB, DriveType: models.DriveTypeHDD, ID: diskID1},
+					{SizeBytes: 40 * conversions.GB, DriveType: models.DriveTypeSSD, ID: diskID2},
+					{SizeBytes: 40 * conversions.GB, DriveType: models.DriveTypeSSD, ID: diskID3},
 				}})}
 		masterWithThreeDiskSizeOfOneZero = &models.Host{Role: models.HostRoleMaster, InstallationDiskID: diskID1,
 			Inventory: Inventory(&InventoryResources{Cpus: 12, Ram: 32 * conversions.GiB,
 				Disks: []*models.Disk{
-					{SizeBytes: 20 * conversions.GB, DriveType: "HDD", ID: diskID1},
-					{SizeBytes: 40 * conversions.GB, DriveType: "SSD", ID: diskID2},
-					{SizeBytes: 0 * conversions.GB, DriveType: "SSD", ID: diskID3},
+					{SizeBytes: 20 * conversions.GB, DriveType: models.DriveTypeHDD, ID: diskID1},
+					{SizeBytes: 40 * conversions.GB, DriveType: models.DriveTypeSSD, ID: diskID2},
+					{SizeBytes: 0 * conversions.GB, DriveType: models.DriveTypeSSD, ID: diskID3},
 				}})}
 		masterWithNoDisk      = &models.Host{Role: models.HostRoleMaster, Inventory: Inventory(&InventoryResources{Cpus: 12, Ram: 32 * conversions.GiB})}
 		masterWithNoInventory = &models.Host{Role: models.HostRoleMaster}
 		masterWithOneDisk     = &models.Host{Role: models.HostRoleMaster, InstallationDiskID: diskID1,
 			Inventory: Inventory(&InventoryResources{Cpus: 12, Ram: 32 * conversions.GiB,
 				Disks: []*models.Disk{
-					{SizeBytes: 20 * conversions.GB, DriveType: "HDD", ID: diskID1}}})}
+					{SizeBytes: 20 * conversions.GB, DriveType: models.DriveTypeHDD, ID: diskID1}}})}
 		masterWithLessDiskSize = &models.Host{Role: models.HostRoleMaster, InstallationDiskID: diskID1,
 			Inventory: Inventory(&InventoryResources{Cpus: 12, Ram: 32 * conversions.GiB,
 				Disks: []*models.Disk{
-					{SizeBytes: 20 * conversions.GB, DriveType: "HDD", ID: diskID1},
-					{SizeBytes: 40 * conversions.GB, DriveType: "SSD", ID: diskID2},
-					{SizeBytes: 20 * conversions.GB, DriveType: "SSD", ID: diskID2},
+					{SizeBytes: 20 * conversions.GB, DriveType: models.DriveTypeHDD, ID: diskID1},
+					{SizeBytes: 40 * conversions.GB, DriveType: models.DriveTypeSSD, ID: diskID2},
+					{SizeBytes: 20 * conversions.GB, DriveType: models.DriveTypeSSD, ID: diskID2},
 				}})}
 		workerWithOneDisk = &models.Host{Role: models.HostRoleWorker, InstallationDiskID: diskID1,
 			Inventory: Inventory(&InventoryResources{Cpus: 12, Ram: 64 * conversions.GiB,
 				Disks: []*models.Disk{
-					{SizeBytes: 20 * conversions.GB, DriveType: "HDD", ID: diskID1},
+					{SizeBytes: 20 * conversions.GB, DriveType: models.DriveTypeHDD, ID: diskID1},
 				}})}
 		workerWithTwoDisk = &models.Host{Role: models.HostRoleWorker, InstallationDiskID: diskID1,
 			Inventory: Inventory(&InventoryResources{Cpus: 12, Ram: 64 * conversions.GiB,
 				Disks: []*models.Disk{
-					{SizeBytes: 20 * conversions.GB, DriveType: "HDD", ID: diskID1},
-					{SizeBytes: 40 * conversions.GB, DriveType: "SSD", ID: diskID2},
+					{SizeBytes: 20 * conversions.GB, DriveType: models.DriveTypeHDD, ID: diskID1},
+					{SizeBytes: 40 * conversions.GB, DriveType: models.DriveTypeSSD, ID: diskID2},
 				}})}
 		workerWithThreeDisk = &models.Host{Role: models.HostRoleWorker, InstallationDiskID: diskID1,
 			Inventory: Inventory(&InventoryResources{Cpus: 12, Ram: 64 * conversions.GiB,
 				Disks: []*models.Disk{
-					{SizeBytes: 20 * conversions.GB, DriveType: "HDD", ID: diskID1},
-					{SizeBytes: 40 * conversions.GB, DriveType: "SSD", ID: diskID2},
-					{SizeBytes: 40 * conversions.GB, DriveType: "HDD", ID: diskID3},
+					{SizeBytes: 20 * conversions.GB, DriveType: models.DriveTypeHDD, ID: diskID1},
+					{SizeBytes: 40 * conversions.GB, DriveType: models.DriveTypeSSD, ID: diskID2},
+					{SizeBytes: 40 * conversions.GB, DriveType: models.DriveTypeHDD, ID: diskID3},
 				}})}
 		workerWithThreeDiskSizeOfOneZero = &models.Host{Role: models.HostRoleWorker, InstallationDiskID: diskID1,
 			Inventory: Inventory(&InventoryResources{Cpus: 12, Ram: 64 * conversions.GiB,
 				Disks: []*models.Disk{
-					{SizeBytes: 20 * conversions.GB, DriveType: "HDD", ID: diskID1},
-					{SizeBytes: 40 * conversions.GB, DriveType: "SSD", ID: diskID2},
-					{SizeBytes: 0 * conversions.GB, DriveType: "HDD", ID: diskID3},
+					{SizeBytes: 20 * conversions.GB, DriveType: models.DriveTypeHDD, ID: diskID1},
+					{SizeBytes: 40 * conversions.GB, DriveType: models.DriveTypeSSD, ID: diskID2},
+					{SizeBytes: 0 * conversions.GB, DriveType: models.DriveTypeHDD, ID: diskID3},
 				}})}
 		workerWithNoDisk       = &models.Host{Role: models.HostRoleWorker, Inventory: Inventory(&InventoryResources{Cpus: 12, Ram: 64 * conversions.GiB})}
 		workerWithNoInventory  = &models.Host{Role: models.HostRoleWorker}
 		workerWithLessDiskSize = &models.Host{Role: models.HostRoleWorker, InstallationDiskID: diskID1,
 			Inventory: Inventory(&InventoryResources{Cpus: 12, Ram: 32 * conversions.GiB,
 				Disks: []*models.Disk{
-					{SizeBytes: 20 * conversions.GB, DriveType: "HDD", ID: diskID1},
-					{SizeBytes: 40 * conversions.GB, DriveType: "SSD", ID: diskID2},
-					{SizeBytes: 20 * conversions.GB, DriveType: "SSD", ID: diskID2},
+					{SizeBytes: 20 * conversions.GB, DriveType: models.DriveTypeHDD, ID: diskID1},
+					{SizeBytes: 40 * conversions.GB, DriveType: models.DriveTypeSSD, ID: diskID2},
+					{SizeBytes: 20 * conversions.GB, DriveType: models.DriveTypeSSD, ID: diskID2},
 				}})}
 		autoAssignHost = &models.Host{Role: models.HostRoleAutoAssign, SuggestedRole: models.HostRoleAutoAssign, InstallationDiskID: diskID1,
 			Inventory: Inventory(&InventoryResources{Cpus: 12, Ram: 32 * conversions.GiB,
 				Disks: []*models.Disk{
-					{SizeBytes: 20 * conversions.GB, DriveType: "HDD", ID: diskID1},
-					{SizeBytes: 40 * conversions.GB, DriveType: "SSD", ID: diskID2},
+					{SizeBytes: 20 * conversions.GB, DriveType: models.DriveTypeHDD, ID: diskID1},
+					{SizeBytes: 40 * conversions.GB, DriveType: models.DriveTypeSSD, ID: diskID2},
 				}})}
 	)
 

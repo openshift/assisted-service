@@ -6263,7 +6263,7 @@ func init() {
           "type": "string"
         },
         "drive_type": {
-          "type": "string"
+          "$ref": "#/definitions/drive_type"
         },
         "has_uuid": {
           "type": "boolean"
@@ -6503,6 +6503,21 @@ func init() {
           }
         }
       }
+    },
+    "drive_type": {
+      "type": "string",
+      "enum": [
+        "Unknown",
+        "HDD",
+        "FDD",
+        "ODD",
+        "SSD",
+        "virtual",
+        "Multipath",
+        "iSCSI",
+        "FC",
+        "LVM"
+      ]
     },
     "error": {
       "type": "object",
@@ -15470,7 +15485,7 @@ func init() {
           "type": "string"
         },
         "drive_type": {
-          "type": "string"
+          "$ref": "#/definitions/drive_type"
         },
         "has_uuid": {
           "type": "boolean"
@@ -15673,6 +15688,21 @@ func init() {
           }
         }
       }
+    },
+    "drive_type": {
+      "type": "string",
+      "enum": [
+        "Unknown",
+        "HDD",
+        "FDD",
+        "ODD",
+        "SSD",
+        "virtual",
+        "Multipath",
+        "iSCSI",
+        "FC",
+        "LVM"
+      ]
     },
     "error": {
       "type": "object",

@@ -1146,8 +1146,8 @@ var _ = Describe("agent reconcile", func() {
 				},
 			},
 			Disks: []*models.Disk{
-				{Path: "/dev/sda", Bootable: true, DriveType: "HDD"},
-				{Path: "/dev/sdb", Bootable: false, DriveType: "HDD"},
+				{Path: "/dev/sda", Bootable: true, DriveType: models.DriveTypeHDD},
+				{Path: "/dev/sdb", Bootable: false, DriveType: models.DriveTypeHDD},
 			},
 		}
 		inv, _ := json.Marshal(&inventory)

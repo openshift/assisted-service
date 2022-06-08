@@ -24,7 +24,7 @@ import (
 const (
 	tooSmallDiskTemplate       = "Disk is too small (disk only has %s, but %s are required)"
 	wrongDriveTypeTemplate     = "Drive type is %s, it must be one of %s."
-	wrongMultipathTypeTemplate = "Multipath device has path of type %s, it must be one of %s"
+	wrongMultipathTypeTemplate = "Multipath device has path of type %s, it must be %s"
 )
 
 //go:generate mockgen -source=validator.go -package=hardware -destination=mock_validator.go
@@ -115,18 +115,19 @@ func (v *validator) DiskIsEligible(ctx context.Context, disk *models.Disk, infra
 				humanize.Bytes(uint64(disk.SizeBytes)), humanize.Bytes(uint64(minSizeBytes))))
 	}
 
-	if allowedDriveTypes := []string{"HDD", "SSD", "Multipath"}; !funk.ContainsString(allowedDriveTypes, disk.DriveType) {
+	allowedDriveTypes := []string{string(models.DriveTypeHDD), string(models.DriveTypeSSD), string(models.DriveTypeMultipath)}
+	if !funk.ContainsString(allowedDriveTypes, string(disk.DriveType)) {
 		notEligibleReasons = append(notEligibleReasons,
 			fmt.Sprintf(wrongDriveTypeTemplate, disk.DriveType, strings.Join(allowedDriveTypes, ", ")))
 	}
 
-	if disk.DriveType == "Multipath" {
-		allowedPathTypes := []string{"FC"}
+	// We only allow multipath if all paths are FC
+	if disk.DriveType == models.DriveTypeMultipath {
 		for _, inventoryDisk := range allDisks {
 			if funk.ContainsString(strings.Split(inventoryDisk.Holders, ","), disk.Name) {
-				if !funk.ContainsString(allowedPathTypes, inventoryDisk.DriveType) {
+				if inventoryDisk.DriveType != models.DriveTypeFC {
 					notEligibleReasons = append(notEligibleReasons,
-						fmt.Sprintf(wrongMultipathTypeTemplate, inventoryDisk.DriveType, strings.Join(allowedPathTypes, ", ")))
+						fmt.Sprintf(wrongMultipathTypeTemplate, inventoryDisk.DriveType, string(models.DriveTypeFC)))
 					break
 				}
 			}
@@ -167,7 +168,7 @@ func (v *validator) ListEligibleDisks(inventory *models.Inventory) []*models.Dis
 		}
 
 		// HDD is before SSD
-		switch v := strings.Compare(eligibleDisks[i].DriveType, eligibleDisks[j].DriveType); v {
+		switch v := strings.Compare(string(eligibleDisks[i].DriveType), string(eligibleDisks[j].DriveType)); v {
 		case 0:
 			return eligibleDisks[i].SizeBytes < eligibleDisks[j].SizeBytes
 		default:

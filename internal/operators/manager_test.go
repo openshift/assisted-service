@@ -51,8 +51,8 @@ var _ = BeforeEach(func() {
 		CPU:    &models.CPU{Count: 8},
 		Memory: &models.Memory{UsableBytes: 64 * conversions.GiB},
 		Disks: []*models.Disk{
-			{SizeBytes: 20 * conversions.GB, DriveType: "HDD", ID: common.TestDiskId},
-			{SizeBytes: 40 * conversions.GB, DriveType: "SSD"}}})
+			{SizeBytes: 20 * conversions.GB, DriveType: models.DriveTypeHDD, ID: common.TestDiskId},
+			{SizeBytes: 40 * conversions.GB, DriveType: models.DriveTypeSSD}}})
 	Expect(err).To(Not(HaveOccurred()))
 	clusterHost = &models.Host{Inventory: b, Role: models.HostRoleMaster, InstallationDiskID: common.TestDiskId}
 

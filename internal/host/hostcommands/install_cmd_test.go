@@ -143,7 +143,7 @@ var _ = Describe("installcmd", func() {
 
 	Context("Bootable_Disks", func() {
 		createDisk := func(name string, bootable bool) *models.Disk {
-			return &models.Disk{DriveType: "HDD", ID: fmt.Sprintf("/dev/disk/by-id/wwn-%s", name), Name: name,
+			return &models.Disk{DriveType: models.DriveTypeHDD, ID: fmt.Sprintf("/dev/disk/by-id/wwn-%s", name), Name: name,
 				SizeBytes: int64(128849018880), Bootable: bootable}
 		}
 
