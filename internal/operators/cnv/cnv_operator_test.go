@@ -286,21 +286,26 @@ var _ = Describe("CNV operator", func() {
 		table.DescribeTable("should be returned", func(cfg cnv.Config, cluster common.Cluster) {
 			cnvOperator := cnv.NewCNVOperator(log, cfg, nil)
 			requirements, err := cnvOperator.GetPreflightRequirements(context.TODO(), &cluster)
-
 			Expect(err).ToNot(HaveOccurred())
 			Expect(requirements.Dependencies).To(ConsistOf(lso.Operator.Name))
 			Expect(requirements.OperatorName).To(BeEquivalentTo(cnv.Operator.Name))
 			numQualitative := 3
-			if common.IsSingleNodeCluster(&cluster) && cfg.SNOInstallHPP {
+			workerRequirements := newRequirements(cnv.WorkerCPU, cnv.WorkerMemory)
+			masterRequirements := newRequirements(cnv.MasterCPU, cnv.MasterMemory)
+
+			if common.IsSingleNodeCluster(&cluster) {
 				// CNV+SNO installs HPP storage; additional discoverable disk req
-				numQualitative += 1
+				if cfg.SNOInstallHPP {
+					numQualitative += 1
+				}
+				masterRequirements = newRequirements(cnv.MasterCPU+cnv.WorkerCPU, cnv.MasterMemory+cnv.WorkerMemory)
 			}
 
 			Expect(requirements.Requirements.Worker.Qualitative).To(HaveLen(numQualitative))
-			Expect(requirements.Requirements.Worker.Quantitative).To(BeEquivalentTo(newRequirements(cnv.WorkerCPU, cnv.WorkerMemory)))
+			Expect(requirements.Requirements.Worker.Quantitative).To(BeEquivalentTo(workerRequirements))
 
 			Expect(requirements.Requirements.Master.Qualitative).To(HaveLen(numQualitative))
-			Expect(requirements.Requirements.Master.Quantitative).To(BeEquivalentTo(newRequirements(cnv.MasterCPU, cnv.MasterMemory)))
+			Expect(requirements.Requirements.Master.Quantitative).To(BeEquivalentTo(masterRequirements))
 
 			Expect(requirements.Requirements.Master.Qualitative).To(BeEquivalentTo(requirements.Requirements.Worker.Qualitative))
 		},
