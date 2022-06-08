@@ -13,7 +13,6 @@ func MigratePre(db *gorm.DB) error {
 
 func pre() []*gormigrate.Migration {
 	preMigrations := []*gormigrate.Migration{
-		populateInfraEnv(),
 		modifyEventsId(),
 	}
 
@@ -39,6 +38,7 @@ func post() []*gormigrate.Migration {
 		migrateHostsPkey(),
 		changeStaticConfigFormat(),
 		multipleNetworksCleanup(),
+		dropClusterIgnitionOverrides(),
 	}
 
 	sort.SliceStable(postMigrations, func(i, j int) bool { return postMigrations[i].ID < postMigrations[j].ID })

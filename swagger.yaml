@@ -4732,11 +4732,6 @@ definitions:
         type: string
         description: JSON-formatted string containing the user overrides for the install-config.yaml file.
         example: '{"networking":{"networkType": "OVNKubernetes"},"fips":true}'
-      ignition_config_overrides:
-        x-go-custom-tag: gorm:"type:text"
-        type: string
-        description: Json formatted string containing the user overrides for the initial ignition config
-        example: '{"ignition": {"version": "3.1.0"}, "storage": {"files": [{"path": "/tmp/example", "contents": {"source": "data:text/plain;base64,aGVscGltdHJhcHBlZGluYXN3YWdnZXJzcGVj"}}]}}'
       controller_logs_collected_at:
         type: string
         format: date-time

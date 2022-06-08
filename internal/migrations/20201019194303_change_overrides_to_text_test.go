@@ -25,11 +25,11 @@ var _ = Describe("changeOverridesToText", func() {
 	BeforeEach(func() {
 		db, dbName = common.PrepareTestDB()
 
-		overrides = `{"ignition": {"version": "3.1.0"}, "storage": {"files": [{"path": "/tmp/example", "contents": {"source": "data:text/plain;base64,aGVscGltdHJhcHBlZGluYXN3YWdnZXJzcGVj"}}]}}`
+		overrides = `{"networking":{"networkType": "OVNKubernetes"},"fips":true}`
 		clusterID = strfmt.UUID(uuid.New().String())
 		cluster := common.Cluster{Cluster: models.Cluster{
-			ID:                      &clusterID,
-			IgnitionConfigOverrides: overrides,
+			ID:                     &clusterID,
+			InstallConfigOverrides: overrides,
 		}}
 		err := db.Create(&cluster).Error
 		Expect(err).NotTo(HaveOccurred())
@@ -74,5 +74,5 @@ func expectOverride(dbName string, clusterID string, override string) {
 	defer common.CloseDB(db)
 	err = db.First(&c, "id = ?", clusterID).Error
 	Expect(err).ShouldNot(HaveOccurred())
-	Expect(c.IgnitionConfigOverrides).To(Equal(override))
+	Expect(c.InstallConfigOverrides).To(Equal(override))
 }
