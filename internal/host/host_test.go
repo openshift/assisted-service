@@ -41,11 +41,12 @@ var (
 	defaultHwInfo                  = "default hw info" // invalid hw info used only for tests
 	defaultDisabledHostValidations = DisabledHostValidations{}
 	defaultConfig                  = &Config{
-		ResetTimeout:            3 * time.Minute,
-		EnableAutoReset:         true,
-		EnableAutoAssign:        true,
-		MonitorBatchSize:        100,
-		DisabledHostvalidations: defaultDisabledHostValidations,
+		ResetTimeout:             3 * time.Minute,
+		EnableAutoReset:          true,
+		EnableAutoAssign:         true,
+		MonitorBatchSize:         100,
+		DisabledHostvalidations:  defaultDisabledHostValidations,
+		MaxHostDisconnectionTime: MaxHostDisconnectionTime,
 	}
 	defaultNTPSources = []*models.NtpSource{common.TestNTPSourceSynced}
 )

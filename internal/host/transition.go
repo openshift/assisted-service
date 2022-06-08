@@ -660,7 +660,7 @@ func (th *transitionHandler) HostNotResponsiveWhilePreparingInstallation(sw stat
 	if !ok {
 		return false, errors.New("HostNotResponsiveWhilePreparingInstallation incompatible type of StateSwitch")
 	}
-	return !hostIsResponsive(sHost.host), nil
+	return !th.hostIsResponsive(sHost.host), nil
 }
 
 func (th *transitionHandler) HostNotResponsiveWhileInstallation(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) (bool, error) {
@@ -672,7 +672,7 @@ func (th *transitionHandler) HostNotResponsiveWhileInstallation(sw stateswitch.S
 	//all nodes. connectivity should be checked up until (but not including) rebooting stage
 	rebootIndex := IndexOfStage(models.HostStageRebooting, BootstrapStages[:])
 	if funk.Contains(BootstrapStages[0:rebootIndex], sHost.host.Progress.CurrentStage) {
-		return !hostIsResponsive(sHost.host), nil
+		return !th.hostIsResponsive(sHost.host), nil
 	}
 	//check is not relevan before installation start and after rebooting
 	return false, nil
@@ -702,8 +702,8 @@ func validationFailed(params *TransitionArgsRefreshHost, validationId string) bo
 	return false
 }
 
-func hostIsResponsive(host *models.Host) bool {
-	return host.CheckedInAt.String() == "" || time.Since(time.Time(host.CheckedInAt)) <= MaxHostDisconnectionTime
+func (th *transitionHandler) hostIsResponsive(host *models.Host) bool {
+	return host.CheckedInAt.String() == "" || time.Since(time.Time(host.CheckedInAt)) <= th.config.MaxHostDisconnectionTime
 }
 
 func (th *transitionHandler) PostRefreshHostRefreshStageUpdateTime(
