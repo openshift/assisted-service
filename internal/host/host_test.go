@@ -948,7 +948,7 @@ func insufficientHWInventory() string {
 		Disks: []*models.Disk{
 			{
 				SizeBytes: 130,
-				DriveType: "HDD",
+				DriveType: models.DriveTypeHDD,
 			},
 		},
 		Interfaces: []*models.Interface{
@@ -974,7 +974,7 @@ func inventoryWithUnauthorizedVendor() string {
 		Disks: []*models.Disk{
 			{
 				SizeBytes: 128849018880,
-				DriveType: "HDD",
+				DriveType: models.DriveTypeHDD,
 			},
 		},
 		Interfaces: []*models.Interface{
@@ -1001,7 +1001,7 @@ func workerInventory() string {
 		Disks: []*models.Disk{
 			{
 				SizeBytes: 128849018880,
-				DriveType: "HDD",
+				DriveType: models.DriveTypeHDD,
 			},
 		},
 		Interfaces: []*models.Interface{
@@ -3591,9 +3591,9 @@ var _ = Describe("sortHost by hardware", func() {
 			Cpus:        4,
 			Ram:         16,
 			Disks: []*models.Disk{
-				{SizeBytes: 40 * conversions.GB, DriveType: "HDD", ID: diskID1},
-				{SizeBytes: 40 * conversions.GB, DriveType: "SSD", ID: diskID2},
-				{SizeBytes: 40 * conversions.GB, DriveType: "SSD", ID: diskID3},
+				{SizeBytes: 40 * conversions.GB, DriveType: models.DriveTypeHDD, ID: diskID1},
+				{SizeBytes: 40 * conversions.GB, DriveType: models.DriveTypeSSD, ID: diskID2},
+				{SizeBytes: 40 * conversions.GB, DriveType: models.DriveTypeSSD, ID: diskID3},
 			},
 		},
 		{
@@ -3607,9 +3607,9 @@ var _ = Describe("sortHost by hardware", func() {
 			Cpus:        4,
 			Ram:         16,
 			Disks: []*models.Disk{
-				{SizeBytes: 20 * conversions.GB, DriveType: "HDD", ID: diskID1},
-				{SizeBytes: 20 * conversions.GB, DriveType: "SSD", ID: diskID2},
-				{SizeBytes: 40 * conversions.GB, DriveType: "SSD", ID: diskID3},
+				{SizeBytes: 20 * conversions.GB, DriveType: models.DriveTypeHDD, ID: diskID1},
+				{SizeBytes: 20 * conversions.GB, DriveType: models.DriveTypeSSD, ID: diskID2},
+				{SizeBytes: 40 * conversions.GB, DriveType: models.DriveTypeSSD, ID: diskID3},
 			},
 		},
 		{
@@ -3617,9 +3617,9 @@ var _ = Describe("sortHost by hardware", func() {
 			Cpus:        12,
 			Ram:         32,
 			Disks: []*models.Disk{
-				{SizeBytes: 40 * conversions.GB, DriveType: "HDD", ID: diskID1},
-				{SizeBytes: 40 * conversions.GB, DriveType: "SSD", ID: diskID2},
-				{SizeBytes: 40 * conversions.GB, DriveType: "SSD", ID: diskID3},
+				{SizeBytes: 40 * conversions.GB, DriveType: models.DriveTypeHDD, ID: diskID1},
+				{SizeBytes: 40 * conversions.GB, DriveType: models.DriveTypeSSD, ID: diskID2},
+				{SizeBytes: 40 * conversions.GB, DriveType: models.DriveTypeSSD, ID: diskID3},
 			},
 		},
 		{
@@ -3627,9 +3627,9 @@ var _ = Describe("sortHost by hardware", func() {
 			Cpus:        8,
 			Ram:         32,
 			Disks: []*models.Disk{
-				{SizeBytes: 40 * conversions.GB, DriveType: "HDD", ID: diskID1},
-				{SizeBytes: 40 * conversions.GB, DriveType: "SSD", ID: diskID2},
-				{SizeBytes: 40 * conversions.GB, DriveType: "SSD", ID: diskID3},
+				{SizeBytes: 40 * conversions.GB, DriveType: models.DriveTypeHDD, ID: diskID1},
+				{SizeBytes: 40 * conversions.GB, DriveType: models.DriveTypeSSD, ID: diskID2},
+				{SizeBytes: 40 * conversions.GB, DriveType: models.DriveTypeSSD, ID: diskID3},
 			},
 		},
 		{
@@ -3637,9 +3637,9 @@ var _ = Describe("sortHost by hardware", func() {
 			Cpus:        2,
 			Ram:         4,
 			Disks: []*models.Disk{
-				{SizeBytes: 40 * conversions.GB, DriveType: "HDD", ID: diskID1},
-				{SizeBytes: 40 * conversions.GB, DriveType: "SSD", ID: diskID2},
-				{SizeBytes: 40 * conversions.GB, DriveType: "SSD", ID: diskID3},
+				{SizeBytes: 40 * conversions.GB, DriveType: models.DriveTypeHDD, ID: diskID1},
+				{SizeBytes: 40 * conversions.GB, DriveType: models.DriveTypeSSD, ID: diskID2},
+				{SizeBytes: 40 * conversions.GB, DriveType: models.DriveTypeSSD, ID: diskID3},
 			},
 		},
 		{
@@ -3647,9 +3647,9 @@ var _ = Describe("sortHost by hardware", func() {
 			Cpus:        2,
 			Ram:         8,
 			Disks: []*models.Disk{
-				{SizeBytes: 40 * conversions.GB, DriveType: "HDD", ID: diskID1},
-				{SizeBytes: 40 * conversions.GB, DriveType: "SSD", ID: diskID2},
-				{SizeBytes: 40 * conversions.GB, DriveType: "SSD", ID: diskID3},
+				{SizeBytes: 40 * conversions.GB, DriveType: models.DriveTypeHDD, ID: diskID1},
+				{SizeBytes: 40 * conversions.GB, DriveType: models.DriveTypeSSD, ID: diskID2},
+				{SizeBytes: 40 * conversions.GB, DriveType: models.DriveTypeSSD, ID: diskID3},
 			},
 		},
 		{
@@ -3657,9 +3657,9 @@ var _ = Describe("sortHost by hardware", func() {
 			Cpus:        12,
 			Ram:         64,
 			Disks: []*models.Disk{
-				{SizeBytes: 40 * conversions.GB, DriveType: "HDD", ID: diskID1},
-				{SizeBytes: 40 * conversions.GB, DriveType: "SSD", ID: diskID2},
-				{SizeBytes: 40 * conversions.GB, DriveType: "SSD", ID: diskID3},
+				{SizeBytes: 40 * conversions.GB, DriveType: models.DriveTypeHDD, ID: diskID1},
+				{SizeBytes: 40 * conversions.GB, DriveType: models.DriveTypeSSD, ID: diskID2},
+				{SizeBytes: 40 * conversions.GB, DriveType: models.DriveTypeSSD, ID: diskID3},
 			},
 		},
 		{
@@ -3667,7 +3667,7 @@ var _ = Describe("sortHost by hardware", func() {
 			Cpus:        12,
 			Ram:         64,
 			Disks: []*models.Disk{
-				{SizeBytes: 40 * conversions.GB, DriveType: "HDD", ID: diskID1},
+				{SizeBytes: 40 * conversions.GB, DriveType: models.DriveTypeHDD, ID: diskID1},
 			},
 		},
 		{
@@ -3675,9 +3675,9 @@ var _ = Describe("sortHost by hardware", func() {
 			Cpus:        12,
 			Ram:         64,
 			Disks: []*models.Disk{
-				{SizeBytes: 20 * conversions.GB, DriveType: "HDD", ID: diskID1},
-				{SizeBytes: 20 * conversions.GB, DriveType: "SSD", ID: diskID2},
-				{SizeBytes: 20 * conversions.GB, DriveType: "SSD", ID: diskID3},
+				{SizeBytes: 20 * conversions.GB, DriveType: models.DriveTypeHDD, ID: diskID1},
+				{SizeBytes: 20 * conversions.GB, DriveType: models.DriveTypeSSD, ID: diskID2},
+				{SizeBytes: 20 * conversions.GB, DriveType: models.DriveTypeSSD, ID: diskID3},
 			},
 		},
 	}

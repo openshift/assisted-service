@@ -200,7 +200,7 @@ func GenerateMasterInventoryWithHostnameAndCpuFlags(hostname string, cpuflags []
 		Disks: []*models.Disk{
 			{
 				SizeBytes: 128849018880,
-				DriveType: "HDD",
+				DriveType: models.DriveTypeHDD,
 				ID:        "/dev/disk/by-id/test-disk-id",
 				Name:      "test-disk",
 				Serial:    "test-serial",
@@ -240,7 +240,7 @@ func GenerateMasterInventoryWithNetworks(ips ...string) string {
 		Disks: []*models.Disk{
 			{
 				SizeBytes: 128849018880,
-				DriveType: "HDD",
+				DriveType: models.DriveTypeHDD,
 				ID:        "/dev/disk/by-id/test-disk-id",
 				Name:      "test-disk",
 				Serial:    "test-serial",
@@ -270,7 +270,7 @@ func GenerateMasterInventoryWithNetworksOnSameInterface(ips ...string) string {
 		Disks: []*models.Disk{
 			{
 				SizeBytes: 128849018880,
-				DriveType: "HDD",
+				DriveType: models.DriveTypeHDD,
 				ID:        "/dev/disk/by-id/test-disk-id",
 				Name:      "test-disk",
 				Serial:    "test-serial",
@@ -294,7 +294,7 @@ func GenerateMasterInventoryWithHostnameAndCpuFlagsV6(hostname string, cpuflags 
 		Disks: []*models.Disk{
 			{
 				SizeBytes: 128849018880,
-				DriveType: "HDD",
+				DriveType: models.DriveTypeHDD,
 			},
 		},
 		Interfaces: []*models.Interface{
@@ -321,7 +321,7 @@ func GenerateMasterInventoryWithHostnameAndCpuFlagsDualStack(hostname string, cp
 		Disks: []*models.Disk{
 			{
 				SizeBytes: 128849018880,
-				DriveType: "HDD",
+				DriveType: models.DriveTypeHDD,
 			},
 		},
 		Interfaces: []*models.Interface{
@@ -351,7 +351,7 @@ func GenerateInventoryWithResources(cpu, memory int64, hostname string, gpus ...
 		Disks: []*models.Disk{
 			{
 				SizeBytes: 128849018880,
-				DriveType: "HDD",
+				DriveType: models.DriveTypeHDD,
 			},
 		},
 		Gpus: gpus,
@@ -379,11 +379,11 @@ func GenerateInventoryWithResourcesAndMultipleDisk(cpu, memory int64, hostname s
 		Disks: []*models.Disk{
 			{
 				SizeBytes: 128849018880,
-				DriveType: "HDD",
+				DriveType: models.DriveTypeHDD,
 			},
 			{
 				SizeBytes: 128849018880,
-				DriveType: "SDD",
+				DriveType: models.DriveTypeSSD,
 			},
 		},
 		Gpus: gpus,
@@ -411,7 +411,7 @@ func GenerateInventoryWithResourcesWithBytes(cpu, physicalMemory int64, usableMe
 		Disks: []*models.Disk{
 			{
 				SizeBytes: 128849018880,
-				DriveType: "HDD",
+				DriveType: models.DriveTypeHDD,
 			},
 		},
 		Interfaces: []*models.Interface{

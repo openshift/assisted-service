@@ -405,14 +405,14 @@ func (m *MetricsManager) ReportHostInstallationMetrics(ctx context.Context, clus
 			}
 		}
 
-		diskType := UnknownHWValue
+		diskType := models.DriveTypeUnknown
 		if boot != nil {
 			diskType = boot.DriveType
 		}
 		switch currentStage {
 		case models.HostStageDone, models.HostStageFailed:
 			//TODO: handle cancel as well
-			m.reportHostMetricsOnInstallationComplete(ctx, clusterVersion, clusterID, emailDomain, roleStr, hwVendor, hwProduct, diskType, installationStageStr, h)
+			m.reportHostMetricsOnInstallationComplete(ctx, clusterVersion, clusterID, emailDomain, roleStr, hwVendor, hwProduct, string(diskType), installationStageStr, h)
 		}
 		//report the installation phase duration
 		if previousProgress.CurrentStage != "" {
@@ -427,7 +427,7 @@ func (m *MetricsManager) ReportHostInstallationMetrics(ctx context.Context, clus
 				"result", string(phaseResult), "duration", duration, "host_stage", string(previousProgress.CurrentStage), "vendor", hwVendor, "product", hwProduct, "disk_type", diskType, "host_role", roleStr)
 
 			m.serviceLogicHostInstallationPhaseSeconds.WithLabelValues(string(previousProgress.CurrentStage),
-				string(phaseResult), clusterVersion, emailDomain, h.DiscoveryAgentVersion, hwVendor, hwProduct, diskType).Observe(duration)
+				string(phaseResult), clusterVersion, emailDomain, h.DiscoveryAgentVersion, hwVendor, hwProduct, string(diskType)).Observe(duration)
 		}
 	}
 }
@@ -469,7 +469,7 @@ func (m *MetricsManager) reportHostMetricsOnInstallationComplete(ctx context.Con
 	for _, disk := range hwInfo.Disks {
 		//TODO change the code after adding storage controller to disk model
 		//TODO missing raid data
-		diskTypeStr := disk.DriveType //+ "-" + disk.StorageController
+		diskTypeStr := string(disk.DriveType) //+ "-" + disk.StorageController
 		log.Infof("service Logic Cluster Host DiskGb role %s, result %s diskType %s diskSize %d",
 			roleStr, installationStageStr, diskTypeStr, bytesToGib(disk.SizeBytes))
 		m.handler.AddMetricsEvent(ctx, clusterID, h.ID, models.EventSeverityInfo, "disk.size.type", time.Now(),

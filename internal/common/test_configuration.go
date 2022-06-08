@@ -344,7 +344,7 @@ func GenerateTestInventoryWithNetwork(netAddress NetAddress) string {
 				IPV6Addresses: netAddress.IPv6Address,
 			},
 		},
-		Disks:        []*models.Disk{{SizeBytes: conversions.GibToBytes(120), DriveType: "HDD"}},
+		Disks:        []*models.Disk{{SizeBytes: conversions.GibToBytes(120), DriveType: models.DriveTypeHDD}},
 		CPU:          &models.CPU{Count: 16},
 		Memory:       &models.Memory{PhysicalBytes: conversions.GibToBytes(16), UsableBytes: conversions.GibToBytes(16)},
 		SystemVendor: &models.SystemVendor{Manufacturer: "Red Hat", ProductName: "RHEL", SerialNumber: "3534"},
@@ -369,7 +369,7 @@ func GenerateTestInventoryWithSetNetwork() string {
 				},
 			},
 		},
-		Disks:        []*models.Disk{{SizeBytes: conversions.GibToBytes(120), DriveType: "HDD"}},
+		Disks:        []*models.Disk{{SizeBytes: conversions.GibToBytes(120), DriveType: models.DriveTypeHDD}},
 		CPU:          &models.CPU{Count: 16},
 		Memory:       &models.Memory{PhysicalBytes: conversions.GibToBytes(16), UsableBytes: conversions.GibToBytes(16)},
 		SystemVendor: &models.SystemVendor{Manufacturer: "Red Hat", ProductName: "RHEL", SerialNumber: "3534"},
@@ -382,7 +382,7 @@ func GenerateTestInventoryWithSetNetwork() string {
 
 func GenerateTestInventoryWithTpmVersion(tpmVersion string) string {
 	inventory := &models.Inventory{
-		Disks:        []*models.Disk{{SizeBytes: conversions.GibToBytes(120), DriveType: "HDD"}},
+		Disks:        []*models.Disk{{SizeBytes: conversions.GibToBytes(120), DriveType: models.DriveTypeHDD}},
 		CPU:          &models.CPU{Count: 16},
 		Memory:       &models.Memory{PhysicalBytes: conversions.GibToBytes(16), UsableBytes: conversions.GibToBytes(16)},
 		SystemVendor: &models.SystemVendor{Manufacturer: "Red Hat", ProductName: "RHEL", SerialNumber: "3534"},

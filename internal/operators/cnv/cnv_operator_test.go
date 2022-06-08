@@ -236,21 +236,21 @@ var _ = Describe("CNV operator", func() {
 		noneHaMode := models.ClusterHighAvailabilityModeNone
 		masterWithLessDiskSizeAndVirt := &models.Host{Role: models.HostRoleMaster, InstallationDiskID: "disk1",
 			Inventory: getInventoryWithCpuFlagsAndDisks([]string{"vmx"}, []*models.Disk{
-				{SizeBytes: 20 * conversions.GiB, DriveType: "HDD", ID: "disk1"},
-				{SizeBytes: 40 * conversions.GiB, DriveType: "SSD", ID: "disk2"},
-				{SizeBytes: 20 * conversions.GiB, DriveType: "SSD", ID: "disk3"},
+				{SizeBytes: 20 * conversions.GiB, DriveType: models.DriveTypeHDD, ID: "disk1"},
+				{SizeBytes: 40 * conversions.GiB, DriveType: models.DriveTypeSSD, ID: "disk2"},
+				{SizeBytes: 20 * conversions.GiB, DriveType: models.DriveTypeSSD, ID: "disk3"},
 			})}
 		masterWithOneSatisfyingDiskAndVirt := &models.Host{Role: models.HostRoleMaster, InstallationDiskID: "disk1",
 			Inventory: getInventoryWithCpuFlagsAndDisks([]string{"vmx"}, []*models.Disk{
-				{SizeBytes: 20 * conversions.GiB, DriveType: "HDD", ID: "disk1"},
-				{SizeBytes: 60 * conversions.GiB, DriveType: "SSD", ID: "disk2"},
-				{SizeBytes: 20 * conversions.GiB, DriveType: "SSD", ID: "disk3"},
+				{SizeBytes: 20 * conversions.GiB, DriveType: models.DriveTypeHDD, ID: "disk1"},
+				{SizeBytes: 60 * conversions.GiB, DriveType: models.DriveTypeSSD, ID: "disk2"},
+				{SizeBytes: 20 * conversions.GiB, DriveType: models.DriveTypeSSD, ID: "disk3"},
 			})}
 		masterWithoutVirt := &models.Host{Role: models.HostRoleMaster, InstallationDiskID: "disk1",
 			Inventory: getInventoryWithCpuFlagsAndDisks([]string{}, []*models.Disk{
-				{SizeBytes: 20 * conversions.GiB, DriveType: "HDD", ID: "disk1"},
-				{SizeBytes: 40 * conversions.GiB, DriveType: "SSD", ID: "disk2"},
-				{SizeBytes: 20 * conversions.GiB, DriveType: "SSD", ID: "disk3"},
+				{SizeBytes: 20 * conversions.GiB, DriveType: models.DriveTypeHDD, ID: "disk1"},
+				{SizeBytes: 40 * conversions.GiB, DriveType: models.DriveTypeSSD, ID: "disk2"},
+				{SizeBytes: 20 * conversions.GiB, DriveType: models.DriveTypeSSD, ID: "disk3"},
 			})}
 		table.DescribeTable("validateHost when ", func(cluster *common.Cluster, host *models.Host, expectedResult api.ValidationResult) {
 			res, _ := cnvOperator.ValidateHost(context.TODO(), cluster, host)

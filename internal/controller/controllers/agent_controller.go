@@ -958,7 +958,7 @@ func (r *AgentReconciler) updateInventoryAndLabels(log logrus.FieldLogger, ctx c
 		for i, d := range inventory.Disks {
 			disks[i].ID = d.ID
 			disks[i].ByID = d.ByID
-			disks[i].DriveType = d.DriveType
+			disks[i].DriveType = string(d.DriveType)
 			disks[i].Vendor = d.Vendor
 			disks[i].Name = d.Name
 			disks[i].Path = d.Path
@@ -992,7 +992,7 @@ func (r *AgentReconciler) updateLabels(log logrus.FieldLogger, ctx context.Conte
 	inventory := agent.Status.Inventory
 	hasSSD := false
 	for _, d := range inventory.Disks {
-		if d.DriveType == "SSD" {
+		if d.DriveType == string(models.DriveTypeSSD) {
 			hasSSD = true
 			break
 		}

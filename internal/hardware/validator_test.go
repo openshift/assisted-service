@@ -107,7 +107,7 @@ var _ = Describe("Disk eligibility", func() {
 
 		// Start off with an eligible default
 		testDisk = models.Disk{
-			DriveType: "SSD",
+			DriveType: models.DriveTypeSSD,
 			SizeBytes: bigEnoughSize,
 		}
 		ctx = context.TODO()
@@ -118,7 +118,7 @@ var _ = Describe("Disk eligibility", func() {
 	})
 
 	It("Check if SSD is eligible", func() {
-		testDisk.DriveType = "SSD"
+		testDisk.DriveType = models.DriveTypeSSD
 
 		eligible, err := hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, &cluster, &host, []*models.Disk{&testDisk})
 
@@ -133,7 +133,7 @@ var _ = Describe("Disk eligibility", func() {
 	})
 
 	It("Check if HDD is eligible", func() {
-		testDisk.DriveType = "HDD"
+		testDisk.DriveType = models.DriveTypeHDD
 
 		eligible, err := hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, &cluster, &host, []*models.Disk{&testDisk})
 
@@ -149,8 +149,8 @@ var _ = Describe("Disk eligibility", func() {
 
 	It("Check that FC multipath is eligible", func() {
 		testDisk.Name = "dm-0"
-		testDisk.DriveType = "Multipath"
-		allDisks := []*models.Disk{&testDisk, {Name: "sda", DriveType: "FC", Holders: "dm-0"}, {Name: "sdb", DriveType: "FC", Holders: "dm-0"}}
+		testDisk.DriveType = models.DriveTypeMultipath
+		allDisks := []*models.Disk{&testDisk, {Name: "sda", DriveType: models.DriveTypeFC, Holders: "dm-0"}, {Name: "sdb", DriveType: models.DriveTypeFC, Holders: "dm-0"}}
 
 		eligible, err := hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, &cluster, &host, allDisks)
 
@@ -166,8 +166,8 @@ var _ = Describe("Disk eligibility", func() {
 
 	It("Check that iSCSI multipath is not eligible", func() {
 		testDisk.Name = "dm-0"
-		testDisk.DriveType = "Multipath"
-		allDisks := []*models.Disk{&testDisk, {Name: "sda", DriveType: "iSCSI", Holders: "dm-0"}, {Name: "sdb", DriveType: "iSCSI", Holders: "dm-0"}}
+		testDisk.DriveType = models.DriveTypeMultipath
+		allDisks := []*models.Disk{&testDisk, {Name: "sda", DriveType: models.DriveTypeISCSI, Holders: "dm-0"}, {Name: "sdb", DriveType: models.DriveTypeISCSI, Holders: "dm-0"}}
 
 		eligible, err := hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, &cluster, &host, allDisks)
 
@@ -182,7 +182,7 @@ var _ = Describe("Disk eligibility", func() {
 	})
 
 	It("Check that ODD is not eligible", func() {
-		testDisk.DriveType = "ODD"
+		testDisk.DriveType = models.DriveTypeODD
 
 		eligible, err := hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, &cluster, &host, []*models.Disk{&testDisk})
 
@@ -325,8 +325,8 @@ var _ = Describe("hardware_validator", func() {
 				},
 			},
 			Disks: []*models.Disk{
-				{DriveType: "ODD", Name: "loop0"},
-				{DriveType: "HDD", Name: "sdb"},
+				{DriveType: models.DriveTypeODD, Name: "loop0"},
+				{DriveType: models.DriveTypeHDD, Name: "sdb"},
 			},
 			Routes: common.TestDefaultRouteConfiguration,
 		}
@@ -349,17 +349,17 @@ var _ = Describe("hardware_validator", func() {
 		inventory.Disks = []*models.Disk{
 			// Not disk type
 			{
-				DriveType: "ODD", Name: "aaa",
+				DriveType: models.DriveTypeODD, Name: "aaa",
 				InstallationEligibility: models.DiskInstallationEligibility{
 					Eligible:           false,
 					NotEligibleReasons: []string{"Reason"},
 				},
 			},
-			{DriveType: "SSD", Name: nvmename, SizeBytes: validDiskSize + 1, InstallationEligibility: eligible},
-			{DriveType: "SSD", Name: "stam", SizeBytes: validDiskSize, InstallationEligibility: eligible},
-			{DriveType: "HDD", Name: "sdb", SizeBytes: validDiskSize + 2, InstallationEligibility: eligible},
-			{DriveType: "HDD", Name: "sda", SizeBytes: validDiskSize + 100, InstallationEligibility: eligible},
-			{DriveType: "HDD", Name: "sdh", SizeBytes: validDiskSize + 1, InstallationEligibility: eligible},
+			{DriveType: models.DriveTypeSSD, Name: nvmename, SizeBytes: validDiskSize + 1, InstallationEligibility: eligible},
+			{DriveType: models.DriveTypeSSD, Name: "stam", SizeBytes: validDiskSize, InstallationEligibility: eligible},
+			{DriveType: models.DriveTypeHDD, Name: "sdb", SizeBytes: validDiskSize + 2, InstallationEligibility: eligible},
+			{DriveType: models.DriveTypeHDD, Name: "sda", SizeBytes: validDiskSize + 100, InstallationEligibility: eligible},
+			{DriveType: models.DriveTypeHDD, Name: "sdh", SizeBytes: validDiskSize + 1, InstallationEligibility: eligible},
 		}
 		hw, err := json.Marshal(&inventory)
 		Expect(err).NotTo(HaveOccurred())
@@ -369,8 +369,8 @@ var _ = Describe("hardware_validator", func() {
 		Expect(disks[0].Name).Should(Equal("sdh"))
 		Expect(len(disks)).Should(Equal(5))
 		Expect(isBlockDeviceNameInlist(disks, nvmename)).Should(BeTrue())
-		Expect(disks[3].DriveType).To(Equal("SSD"))
-		Expect(disks[4].DriveType).To(Equal("SSD"))
+		Expect(disks[3].DriveType).To(Equal(models.DriveTypeSSD))
+		Expect(disks[4].DriveType).To(Equal(models.DriveTypeSSD))
 		Expect(disks[4].Name).To(HavePrefix("nvme"))
 	})
 
@@ -380,7 +380,7 @@ var _ = Describe("hardware_validator", func() {
 				Name:                    "xvda",
 				SizeBytes:               128849018880,
 				ByPath:                  "",
-				DriveType:               "SSD",
+				DriveType:               models.DriveTypeSSD,
 				Hctl:                    "",
 				Model:                   "",
 				Path:                    "/dev/xvda",

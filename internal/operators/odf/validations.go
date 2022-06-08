@@ -169,7 +169,7 @@ func (o *operator) getValidDiskCount(disks []*models.Disk, installationDiskID st
 	var err error
 
 	for _, disk := range disks {
-		if (disk.DriveType == SsdDrive || disk.DriveType == HddDrive) && installationDiskID != disk.ID && disk.SizeBytes != 0 {
+		if (disk.DriveType == models.DriveTypeSSD || disk.DriveType == models.DriveTypeHDD) && installationDiskID != disk.ID && disk.SizeBytes != 0 {
 			if disk.SizeBytes < conversions.GbToBytes(o.config.ODFMinDiskSizeGB) {
 				err = fmt.Errorf("ODF requires all the non-bootable disks to be more than %d GB", o.config.ODFMinDiskSizeGB)
 			} else {

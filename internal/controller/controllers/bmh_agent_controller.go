@@ -535,7 +535,7 @@ func (r *BMACReconciler) reconcileAgentInventory(log logrus.FieldLogger, bmh *bm
 			SerialNumber: d.Serial,
 			WWN:          d.Wwn,
 			Vendor:       d.Vendor,
-			Rotational:   strings.EqualFold(d.DriveType, "hdd"),
+			Rotational:   strings.EqualFold(d.DriveType, string(models.DriveTypeHDD)),
 		}
 
 		hardwareDetails.Storage = append(hardwareDetails.Storage, disk)
@@ -954,11 +954,11 @@ func (r *BMACReconciler) findInstallationDiskID(devices []aiv1beta1.HostDisk, hi
 		switch {
 		case hints.Rotational == nil:
 		case *hints.Rotational:
-			if !strings.EqualFold(disk.DriveType, "hdd") {
+			if !strings.EqualFold(disk.DriveType, string(models.DriveTypeHDD)) {
 				continue
 			}
 		case !*hints.Rotational:
-			if strings.EqualFold(disk.DriveType, "hdd") {
+			if strings.EqualFold(disk.DriveType, string(models.DriveTypeHDD)) {
 				continue
 			}
 		}

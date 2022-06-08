@@ -5185,7 +5185,7 @@ definitions:
         type: string
         description: Determine the disk's unique identifier which is the by-id field if it exists and fallback to the by-path field otherwise
       drive_type:
-        type: string
+        $ref: '#/definitions/drive_type'
       has_uuid:
         type: boolean
       vendor:
@@ -5236,6 +5236,20 @@ definitions:
       holders:
         type: string
         description: A comma-separated list of disk names that this disk belongs to
+
+  drive_type:
+    type: string
+    enum:
+      - Unknown
+      - HDD
+      - FDD
+      - ODD
+      - SSD
+      - virtual
+      - Multipath
+      - iSCSI
+      - FC
+      - LVM
 
   io_perf:
     type: object

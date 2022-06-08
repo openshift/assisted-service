@@ -938,7 +938,7 @@ func (g *installerGenerator) modifyBMHFile(file *config_latest_types.File, bmh *
 			WWN:          disk.Wwn,
 			HCTL:         disk.Hctl,
 			SerialNumber: disk.Serial,
-			Rotational:   (disk.DriveType == "HDD"),
+			Rotational:   (disk.DriveType == models.DriveTypeHDD),
 		}
 	}
 	if inventory.SystemVendor != nil {
