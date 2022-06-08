@@ -1740,6 +1740,13 @@ func (b *bareMetalInventory) v2UpdateClusterInternal(ctx context.Context, params
 	}
 
 	cluster.HostNetworks = b.calculateHostNetworks(log, cluster)
+	for _, host := range cluster.Hosts {
+		if err = b.customizeHost(&cluster.Cluster, host); err != nil {
+			return nil, err
+		}
+		// Clear this field as it is not needed to be sent via API
+		host.FreeAddresses = ""
+	}
 
 	return cluster, nil
 }

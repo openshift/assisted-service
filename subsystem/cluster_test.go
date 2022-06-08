@@ -828,65 +828,11 @@ var _ = Describe("cluster install - DHCP", func() {
 		})
 		Expect(err).ToNot(HaveOccurred())
 		Expect(swag.StringValue(reply.Payload.Status)).To(Equal(models.ClusterStatusPendingForInput))
-		generateDhcpStepReply(reply.Payload.Hosts[0], "1.2.3.102", "1.2.3.103", true)
-		_, err = userBMClient.Installer.V2UpdateCluster(ctx, &installer.V2UpdateClusterParams{
-			ClusterUpdateParams: &models.V2ClusterUpdateParams{
-				APIVip:     swag.String("1.2.3.100"),
-				IngressVip: swag.String("1.2.3.101"),
-			},
-			ClusterID: clusterID,
-		})
-		Expect(err).ToNot(HaveOccurred())
-		waitForClusterState(ctx, clusterID, models.ClusterStatusReady, defaultWaitForClusterStateTimeout,
-			IgnoreStateInfo)
-		reply, err = userBMClient.Installer.V2UpdateCluster(ctx, &installer.V2UpdateClusterParams{
-			ClusterUpdateParams: &models.V2ClusterUpdateParams{
-				VipDhcpAllocation: swag.Bool(false),
-			},
-			ClusterID: clusterID,
-		})
-		Expect(err).ToNot(HaveOccurred())
-		Expect(swag.StringValue(reply.Payload.Status)).To(Equal(models.ClusterStatusReady))
-		reply, err = userBMClient.Installer.V2UpdateCluster(ctx, &installer.V2UpdateClusterParams{
-			ClusterUpdateParams: &models.V2ClusterUpdateParams{
-				VipDhcpAllocation: swag.Bool(true),
-				MachineNetworks:   common.TestIPv4Networking.MachineNetworks,
-			},
-			ClusterID: clusterID,
-		})
-		Expect(err).ToNot(HaveOccurred())
-		waitForClusterState(ctx, clusterID, models.ClusterStatusInsufficient, defaultWaitForClusterStateTimeout,
-			IgnoreStateInfo)
-		_, err = userBMClient.Installer.V2UpdateCluster(ctx, &installer.V2UpdateClusterParams{
-			ClusterUpdateParams: &models.V2ClusterUpdateParams{
-				APIVip:     swag.String("1.2.3.100"),
-				IngressVip: swag.String("1.2.3.101"),
-			},
-			ClusterID: clusterID,
-		})
-		Expect(err).To(HaveOccurred())
-		generateDhcpStepReply(reply.Payload.Hosts[0], "1.2.3.102", "1.2.3.103", false)
-		waitForClusterState(ctx, clusterID, models.ClusterStatusReady, 60*time.Second, clusterReadyStateInfo)
-		getReply, err := userBMClient.Installer.V2GetCluster(ctx, installer.NewV2GetClusterParams().WithClusterID(clusterID))
-		Expect(err).ToNot(HaveOccurred())
-		c := getReply.Payload
-		Expect(swag.StringValue(c.Status)).To(Equal(models.ClusterStatusReady))
-		Expect(c.APIVip).To(Equal("1.2.3.102"))
-		Expect(c.IngressVip).To(Equal("1.2.3.103"))
-	})
 
-	It("[V2UpdateCluster] moves between DHCP modes", func() {
-		clusterID := *cluster.ID
-		infraEnvID = registerInfraEnv(&clusterID, models.ImageTypeMinimalIso).ID
-		registerHostsAndSetRolesDHCP(clusterID, *infraEnvID, 5, "test-cluster", "example.com")
-		reply, err := userBMClient.Installer.V2UpdateCluster(ctx, &installer.V2UpdateClusterParams{
-			ClusterUpdateParams: &models.V2ClusterUpdateParams{
-				VipDhcpAllocation: swag.Bool(false),
-			},
-			ClusterID: clusterID,
-		})
-		Expect(err).ToNot(HaveOccurred())
-		Expect(swag.StringValue(reply.Payload.Status)).To(Equal(models.ClusterStatusPendingForInput))
+		for i := range reply.Payload.Hosts {
+			Expect(reply.Payload.Hosts[i].RequestedHostname).Should(Not(BeEmpty()))
+		}
+
 		generateDhcpStepReply(reply.Payload.Hosts[0], "1.2.3.102", "1.2.3.103", true)
 		_, err = userBMClient.Installer.V2UpdateCluster(ctx, &installer.V2UpdateClusterParams{
 			ClusterUpdateParams: &models.V2ClusterUpdateParams{
@@ -1005,74 +951,6 @@ var _ = Describe("Validate BaseDNSDomain when creating a cluster", func() {
 })
 
 var _ = Describe("cluster update - BaseDNS", func() {
-	var (
-		ctx         = context.Background()
-		cluster     *models.Cluster
-		clusterID   strfmt.UUID
-		clusterCIDR = "10.128.0.0/14"
-		serviceCIDR = "172.30.0.0/16"
-		err         error
-	)
-
-	BeforeEach(func() {
-		var registerClusterReply *installer.V2RegisterClusterCreated
-		registerClusterReply, err = userBMClient.Installer.V2RegisterCluster(ctx, &installer.V2RegisterClusterParams{
-			NewClusterParams: &models.ClusterCreateParams{
-				BaseDNSDomain:    "example.com",
-				ClusterNetworks:  []*models.ClusterNetwork{{Cidr: models.Subnet(clusterCIDR), HostPrefix: 23}},
-				ServiceNetworks:  []*models.ServiceNetwork{{Cidr: models.Subnet(serviceCIDR)}},
-				Name:             swag.String("test-cluster"),
-				OpenshiftVersion: swag.String(openshiftVersion),
-				PullSecret:       swag.String(pullSecret),
-				SSHPublicKey:     sshPublicKey,
-			},
-		})
-		Expect(err).NotTo(HaveOccurred())
-		cluster = registerClusterReply.GetPayload()
-		clusterID = *cluster.ID
-		log.Infof("Register cluster %s", cluster.ID.String())
-	})
-	Context("Update BaseDNS", func() {
-		It("Should not throw an error with valid 2 part DNS", func() {
-			_, err = userBMClient.Installer.V2UpdateCluster(ctx, &installer.V2UpdateClusterParams{
-				ClusterUpdateParams: &models.V2ClusterUpdateParams{
-					BaseDNSDomain: swag.String("abc.com"),
-				},
-				ClusterID: clusterID,
-			})
-			Expect(err).ToNot(HaveOccurred())
-		})
-		It("Should not throw an error with valid 3 part DNS", func() {
-			_, err = userBMClient.Installer.V2UpdateCluster(ctx, &installer.V2UpdateClusterParams{
-				ClusterUpdateParams: &models.V2ClusterUpdateParams{
-					BaseDNSDomain: swag.String("abc.def.com"),
-				},
-				ClusterID: clusterID,
-			})
-			Expect(err).ToNot(HaveOccurred())
-		})
-	})
-	It("Should throw an error with invalid top-level domain", func() {
-		_, err = userBMClient.Installer.V2UpdateCluster(ctx, &installer.V2UpdateClusterParams{
-			ClusterUpdateParams: &models.V2ClusterUpdateParams{
-				BaseDNSDomain: swag.String("abc.com.c"),
-			},
-			ClusterID: clusterID,
-		})
-		Expect(err).To(HaveOccurred())
-	})
-	It("Should throw an error with invalid char prefix domain", func() {
-		_, err = userBMClient.Installer.V2UpdateCluster(ctx, &installer.V2UpdateClusterParams{
-			ClusterUpdateParams: &models.V2ClusterUpdateParams{
-				BaseDNSDomain: swag.String("-abc.com"),
-			},
-			ClusterID: clusterID,
-		})
-		Expect(err).To(HaveOccurred())
-	})
-})
-
-var _ = Describe("[V2UpdateCluster] cluster update - BaseDNS", func() {
 	var (
 		ctx         = context.Background()
 		cluster     *models.Cluster
@@ -1355,50 +1233,9 @@ var _ = Describe("cluster install", func() {
 		})
 		Expect(err).NotTo(HaveOccurred())
 		Expect(*updateClusterReply.GetPayload().SchedulableMasters).Should(BeTrue())
-
-		waitForClusterState(ctx, clusterID, models.ClusterStatusReady, defaultWaitForClusterStateTimeout,
-			IgnoreStateInfo)
-
-		By("start installation")
-		_, err = userBMClient.Installer.V2InstallCluster(ctx, &installer.V2InstallClusterParams{ClusterID: clusterID})
-		Expect(err).NotTo(HaveOccurred())
-		generateEssentialPrepareForInstallationSteps(ctx, h1, h2, h3, h4, h5)
-		waitForClusterState(context.Background(), clusterID, models.ClusterStatusInstalling,
-			3*time.Minute, IgnoreStateInfo)
-	})
-
-	It("[V2UpdateCluster] Schedulable masters", func() {
-		By("register 3 hosts all with master hw information cluster expected to be ready")
-		clusterID := *cluster.ID
-		hosts, ips := register3nodes(ctx, clusterID, *infraEnvID, defaultCIDRv4)
-		h1, h2, h3 := hosts[0], hosts[1], hosts[2]
-		for _, h := range hosts {
-			generateDomainResolution(ctx, h, "test-cluster", "example.com")
+		for i := range updateClusterReply.Payload.Hosts {
+			Expect(updateClusterReply.Payload.Hosts[i].RequestedHostname).Should(Not(BeEmpty()))
 		}
-		waitForClusterState(ctx, clusterID, models.ClusterStatusReady, defaultWaitForClusterStateTimeout,
-			IgnoreStateInfo)
-
-		By("add two more hosts with worker inventory expect the cluster to be ready")
-		h4 := &registerHost(*infraEnvID).Host
-		h5 := &registerHost(*infraEnvID).Host
-		newIPs := hostutil.GenerateIPv4Addresses(2, ips[2])
-		generateEssentialHostStepsWithInventory(ctx, h4, "h4", getValidWorkerHwInfoWithCIDR(newIPs[0]))
-		generateEssentialHostStepsWithInventory(ctx, h5, "h5", getValidWorkerHwInfoWithCIDR(newIPs[1]))
-		generateDomainResolution(ctx, h4, "test-cluster", "example.com")
-		generateDomainResolution(ctx, h5, "test-cluster", "example.com")
-		generateFullMeshConnectivity(ctx, ips[0], h1, h2, h3, h4, h5)
-		waitForHostState(ctx, models.HostStatusKnown, defaultWaitForHostStateTimeout, h4, h5)
-		waitForClusterState(ctx, clusterID, models.ClusterStatusReady, defaultWaitForClusterStateTimeout,
-			IgnoreStateInfo)
-
-		updateClusterReply, err := userBMClient.Installer.V2UpdateCluster(ctx, &installer.V2UpdateClusterParams{
-			ClusterUpdateParams: &models.V2ClusterUpdateParams{
-				SchedulableMasters: swag.Bool(true),
-			},
-			ClusterID: clusterID,
-		})
-		Expect(err).NotTo(HaveOccurred())
-		Expect(*updateClusterReply.GetPayload().SchedulableMasters).Should(BeTrue())
 
 		waitForClusterState(ctx, clusterID, models.ClusterStatusReady, defaultWaitForClusterStateTimeout,
 			IgnoreStateInfo)
