@@ -304,7 +304,8 @@ spec:
                     type: array
                   userManagedNetworking:
                     description: UserManagedNetworking indicates if the networking
-                      is managed by the user.
+                      is managed by the user. For single-node installations, set to
+                      true or leave empty.
                     type: boolean
                 type: object
               provisionRequirements:

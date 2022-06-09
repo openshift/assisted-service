@@ -1454,7 +1454,7 @@ VU1eS0RiS/Lz6HwRs2mATNY5FrpZOgdM3cI=
 		return &hiveext.AgentClusterInstall{
 			Spec: hiveext.AgentClusterInstallSpec{
 				Networking: hiveext.Networking{
-					UserManagedNetworking: true,
+					UserManagedNetworking: swag.Bool(true),
 				},
 			},
 			TypeMeta: metav1.TypeMeta{
@@ -1472,7 +1472,7 @@ VU1eS0RiS/Lz6HwRs2mATNY5FrpZOgdM3cI=
 		return &hiveext.AgentClusterInstall{
 			Spec: hiveext.AgentClusterInstallSpec{
 				Networking: hiveext.Networking{
-					UserManagedNetworking: false,
+					UserManagedNetworking: swag.Bool(false),
 				},
 			},
 			TypeMeta: metav1.TypeMeta{
@@ -1490,7 +1490,7 @@ VU1eS0RiS/Lz6HwRs2mATNY5FrpZOgdM3cI=
 		return &hiveext.AgentClusterInstall{
 			Spec: hiveext.AgentClusterInstallSpec{
 				Networking: hiveext.Networking{
-					UserManagedNetworking: false,
+					UserManagedNetworking: swag.Bool(false),
 				},
 				ProvisionRequirements: hiveext.ProvisionRequirements{
 					ControlPlaneAgents: 1,

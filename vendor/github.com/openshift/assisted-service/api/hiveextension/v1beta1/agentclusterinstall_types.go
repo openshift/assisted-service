@@ -273,8 +273,9 @@ type Networking struct {
 	NetworkType string `json:"networkType,omitempty"`
 
 	// UserManagedNetworking indicates if the networking is managed by the user.
+	// For single-node installations, set to true or leave empty.
 	// +optional
-	UserManagedNetworking bool `json:"userManagedNetworking,omitempty"`
+	UserManagedNetworking *bool `json:"userManagedNetworking,omitempty"`
 }
 
 // MachineNetworkEntry is a single IP address block for node IP blocks.

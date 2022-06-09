@@ -95,7 +95,11 @@ func (a *AgentClusterInstallValidatingAdmissionHook) Validate(admissionSpec *adm
 		return a.validateUpdate(admissionSpec)
 	}
 
-	// We're only validating updates at this time, so all other operations are explicitly allowed.
+	if admissionSpec.Operation == admissionv1.Create {
+		return a.validateCreate(admissionSpec)
+	}
+
+	// all other operations are explicitly allowed
 	contextLogger.Info("Successful validation")
 	return &admissionv1.AdmissionResponse{
 		Allowed: true,
@@ -131,6 +135,53 @@ func (a *AgentClusterInstallValidatingAdmissionHook) shouldValidate(admissionSpe
 	// If we get here, then we're supposed to validate the object.
 	contextLogger.Debug("Returning True, passed all prerequisites.")
 	return true
+}
+
+func (a *AgentClusterInstallValidatingAdmissionHook) validateCreate(admissionSpec *admissionv1.AdmissionRequest) *admissionv1.AdmissionResponse {
+	contextLogger := log.WithFields(log.Fields{
+		"operation": admissionSpec.Operation,
+		"group":     admissionSpec.Resource.Group,
+		"version":   admissionSpec.Resource.Version,
+		"resource":  admissionSpec.Resource.Resource,
+		"method":    "validateCreate",
+	})
+
+	newObject := &hiveext.AgentClusterInstall{}
+	if err := a.decoder.DecodeRaw(admissionSpec.Object, newObject); err != nil {
+		contextLogger.Errorf("Failed unmarshaling Object: %v", err.Error())
+		return &admissionv1.AdmissionResponse{
+			Allowed: false,
+			Result: &metav1.Status{
+				Status: metav1.StatusFailure, Code: http.StatusBadRequest, Reason: metav1.StatusReasonBadRequest,
+				Message: err.Error(),
+			},
+		}
+	}
+
+	// Add the new data to the contextLogger
+	contextLogger.Data["object.Name"] = newObject.Name
+
+	// verify that UserNetworkManagement is not set to false with SNO.
+	// if the user leave this field empty it is fine because the AI knows
+	// what to set as default
+	if isUserManagedNetworkingSetToFalseWithSNO(newObject) {
+		message := "UserManagedNetworking must be set to true with SNO"
+		contextLogger.Errorf("Failed validation: %v", message)
+		return &admissionv1.AdmissionResponse{
+			Allowed: false,
+			Result: &metav1.Status{
+				Status: metav1.StatusFailure, Code: http.StatusConflict, Reason: metav1.StatusReasonConflict,
+				Message: message,
+			},
+		}
+	}
+
+	// If we get here, then all checks passed, so the object is valid.
+	contextLogger.Info("Successful validation")
+	return &admissionv1.AdmissionResponse{
+		Allowed: true,
+	}
+
 }
 
 // validateUpdate specifically validates update operations for AgentClusterInstall objects.
@@ -177,6 +228,18 @@ func (a *AgentClusterInstallValidatingAdmissionHook) validateUpdate(admissionSpe
 			Allowed: false,
 			Result: &metav1.Status{
 				Status: metav1.StatusFailure, Code: http.StatusBadRequest, Reason: metav1.StatusReasonBadRequest,
+				Message: message,
+			},
+		}
+	}
+
+	if isUserManagedNetworkingSetToFalseWithSNO(newObject) {
+		message := "UserManagedNetworking must be set to true with SNO"
+		contextLogger.Errorf("Failed validation: %v", message)
+		return &admissionv1.AdmissionResponse{
+			Allowed: false,
+			Result: &metav1.Status{
+				Status: metav1.StatusFailure, Code: http.StatusConflict, Reason: metav1.StatusReasonConflict,
 				Message: message,
 			},
 		}
@@ -248,6 +311,13 @@ func areImageSetRefsEqual(imageSetRef1 *hivev1.ClusterImageSetReference, imageSe
 	} else {
 		return false
 	}
+}
+
+func isUserManagedNetworkingSetToFalseWithSNO(newObject *hiveext.AgentClusterInstall) bool {
+	return newObject.Spec.ProvisionRequirements.ControlPlaneAgents == 1 &&
+		newObject.Spec.ProvisionRequirements.WorkerAgents == 0 &&
+		newObject.Spec.Networking.UserManagedNetworking != nil &&
+		!*newObject.Spec.Networking.UserManagedNetworking
 }
 
 // diffReporter is a simple custom reporter that only records differences

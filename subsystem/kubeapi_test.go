@@ -518,7 +518,7 @@ func getDefaultNonePlatformAgentClusterInstallSpec(clusterDeploymentName string)
 			}},
 			ServiceNetwork:        []string{"172.30.0.0/16"},
 			NetworkType:           models.ClusterNetworkTypeOpenShiftSDN,
-			UserManagedNetworking: true,
+			UserManagedNetworking: swag.Bool(true),
 		},
 		SSHPublicKey: sshPublicKey,
 		ImageSetRef:  &hivev1.ClusterImageSetReference{Name: clusterImageSetName},

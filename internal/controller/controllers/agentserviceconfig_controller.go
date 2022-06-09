@@ -1883,6 +1883,7 @@ func (r *AgentServiceConfigReconciler) newACIWebHook(ctx context.Context, log lo
 				{
 					Operations: []admregv1.OperationType{
 						admregv1.Update,
+						admregv1.Create,
 					},
 					Rule: admregv1.Rule{
 						APIGroups: []string{
