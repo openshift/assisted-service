@@ -63,7 +63,10 @@ var (
 
 var testAdditionalMachineCidr = []*models.MachineNetwork{{Cidr: "5.6.7.0/24"}}
 
+var MaxHostDisconnectionTime = 3 * time.Minute
+
 func createValidatorCfg() *hardware.ValidatorCfg {
+
 	return &hardware.ValidatorCfg{
 		VersionedRequirements: hardware.VersionedRequirementsDecoder{
 			"default": {
@@ -74,6 +77,7 @@ func createValidatorCfg() *hardware.ValidatorCfg {
 			},
 		},
 		MaximumAllowedTimeDiffMinutes: 4,
+		MaxHostDisconnectionTime:      MaxHostDisconnectionTime,
 	}
 }
 

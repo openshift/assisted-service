@@ -58,8 +58,6 @@ var WrongBootOrderIgnoreTimeoutStages = []models.HostStage{
 
 var InstallationTimeout = 20 * time.Minute
 
-var MaxHostDisconnectionTime = 3 * time.Minute
-
 //Weights for sorting hosts in the monitor
 const (
 	HostWeightMinimumCpuCores        float64 = 4
@@ -76,12 +74,13 @@ type LogTimeoutConfig struct {
 
 type Config struct {
 	LogTimeoutConfig
-	EnableAutoReset         bool                    `envconfig:"ENABLE_AUTO_RESET" default:"false"`
-	EnableAutoAssign        bool                    `envconfig:"ENABLE_AUTO_ASSIGN" default:"true"`
-	ResetTimeout            time.Duration           `envconfig:"RESET_CLUSTER_TIMEOUT" default:"3m"`
-	MonitorBatchSize        int                     `envconfig:"HOST_MONITOR_BATCH_SIZE" default:"100"`
-	DisabledHostvalidations DisabledHostValidations `envconfig:"DISABLED_HOST_VALIDATIONS" default:""` // Which host validations to disable (should not run in preprocess)
-	BootstrapHostMAC        string                  `envconfig:"BOOTSTRAP_HOST_MAC" default:""`        // For ephemeral installer to ensure the bootstrap for the (single) cluster lands on the same host as assisted-service
+	EnableAutoReset          bool                    `envconfig:"ENABLE_AUTO_RESET" default:"false"`
+	EnableAutoAssign         bool                    `envconfig:"ENABLE_AUTO_ASSIGN" default:"true"`
+	ResetTimeout             time.Duration           `envconfig:"RESET_CLUSTER_TIMEOUT" default:"3m"`
+	MonitorBatchSize         int                     `envconfig:"HOST_MONITOR_BATCH_SIZE" default:"100"`
+	DisabledHostvalidations  DisabledHostValidations `envconfig:"DISABLED_HOST_VALIDATIONS" default:""` // Which host validations to disable (should not run in preprocess)
+	BootstrapHostMAC         string                  `envconfig:"BOOTSTRAP_HOST_MAC" default:""`        // For ephemeral installer to ensure the bootstrap for the (single) cluster lands on the same host as assisted-service
+	MaxHostDisconnectionTime time.Duration           `envconfig:"HOST_MAX_DISCONNECTION_TIME" default:"3m"`
 }
 
 //go:generate mockgen --build_flags=--mod=mod -package=host -aux_files=github.com/openshift/assisted-service/internal/host/hostcommands=instruction_manager.go -destination=mock_host_api.go . API

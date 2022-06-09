@@ -281,7 +281,7 @@ func (v *validator) isMediaConnected(c *validationContext) ValidationStatus {
 }
 
 func (v *validator) isConnected(c *validationContext) ValidationStatus {
-	return boolValue(c.host.CheckedInAt.String() == "" || time.Since(time.Time(c.host.CheckedInAt)) <= MaxHostDisconnectionTime)
+	return boolValue(c.host.CheckedInAt.String() == "" || time.Since(time.Time(c.host.CheckedInAt)) <= v.hwValidatorCfg.MaxHostDisconnectionTime)
 }
 
 func (v *validator) printConnected(context *validationContext, status ValidationStatus) string {

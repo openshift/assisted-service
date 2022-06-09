@@ -8,6 +8,7 @@ import (
 	"regexp"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/dustin/go-humanize"
 	"github.com/go-openapi/swag"
@@ -59,6 +60,7 @@ func NewValidator(log logrus.FieldLogger, cfg ValidatorCfg, operatorsAPI operato
 type ValidatorCfg struct {
 	MaximumAllowedTimeDiffMinutes int64                        `envconfig:"HW_VALIDATOR_MAX_TIME_DIFF_MINUTES" default:"4"`
 	VersionedRequirements         VersionedRequirementsDecoder `envconfig:"HW_VALIDATOR_REQUIREMENTS" default:"[]"`
+	MaxHostDisconnectionTime      time.Duration                `envconfig:"HOST_MAX_DISCONNECTION_TIME" default:"3m"`
 }
 
 type validator struct {

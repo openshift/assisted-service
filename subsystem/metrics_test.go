@@ -20,7 +20,6 @@ import (
 	"github.com/openshift/assisted-service/client/events"
 	"github.com/openshift/assisted-service/client/installer"
 	"github.com/openshift/assisted-service/internal/common"
-	"github.com/openshift/assisted-service/internal/host"
 	"github.com/openshift/assisted-service/internal/host/hostutil"
 	"github.com/openshift/assisted-service/models"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -426,6 +425,7 @@ var _ = Describe("Metrics tests", func() {
 	Context("Host validation metrics", func() {
 
 		var hostStatusInsufficient string = models.HostStatusInsufficient
+		var MaxHostDisconnectionTime = 3 * time.Minute
 
 		It("'connected' failed before reboot", func() {
 
@@ -437,7 +437,7 @@ var _ = Describe("Metrics tests", func() {
 			oldFailedMetricCounter := getValidationMetricCounter(string(models.HostValidationIDConnected), hostValidationFailedMetric)
 
 			// create a validation failure
-			checkedInAt := time.Now().Add(-2 * host.MaxHostDisconnectionTime)
+			checkedInAt := time.Now().Add(-2 * MaxHostDisconnectionTime)
 			err := db.Model(h).UpdateColumns(&models.Host{CheckedInAt: strfmt.DateTime(checkedInAt)}).Error
 			Expect(err).NotTo(HaveOccurred())
 			waitForHostValidationStatus(clusterID, *infraEnvID, *h.ID, "failure", models.HostValidationIDConnected)
@@ -458,7 +458,7 @@ var _ = Describe("Metrics tests", func() {
 			waitForHostValidationStatus(clusterID, *infraEnvID, *h.ID, "success", models.HostValidationIDConnected)
 
 			// create a validation failure
-			checkedInAt := time.Now().Add(-2 * host.MaxHostDisconnectionTime)
+			checkedInAt := time.Now().Add(-2 * MaxHostDisconnectionTime)
 			err := db.Model(h).UpdateColumns(&models.Host{
 				CheckedInAt: strfmt.DateTime(checkedInAt),
 				Progress: &models.HostProgressInfo{
@@ -476,7 +476,7 @@ var _ = Describe("Metrics tests", func() {
 
 			// create a validation failure
 			h := &registerHost(*infraEnvID).Host
-			checkedInAt := time.Now().Add(-2 * host.MaxHostDisconnectionTime)
+			checkedInAt := time.Now().Add(-2 * MaxHostDisconnectionTime)
 			err := db.Model(h).UpdateColumns(&models.Host{CheckedInAt: strfmt.DateTime(checkedInAt)}).Error
 			Expect(err).NotTo(HaveOccurred())
 			waitForHostValidationStatus(clusterID, *infraEnvID, *h.ID, "failure", models.HostValidationIDConnected)
