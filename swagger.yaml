@@ -4286,10 +4286,6 @@ definitions:
         description: "The desired network type used."
         enum: ['OpenShiftSDN', 'OVNKubernetes']
         default: 'OpenShiftSDN'
-      schedulable_masters:
-        type: boolean
-        description: Schedule workloads on masters
-        default: false
       cluster_networks:
         type: array
         description: Cluster networks that are associated with this cluster.
@@ -4463,7 +4459,11 @@ definitions:
       schedulable_masters:
         type: boolean
         description: Schedule workloads on masters
-        default: false
+        default: true
+      use_scheduling_defaults:
+        type: boolean
+        description: False if the scheduling of workloads on masters has been set by the user through the API.
+        default: true
       cluster_networks:
         type: array
         description: Cluster networks that are associated with this cluster.
@@ -4674,7 +4674,11 @@ definitions:
       schedulable_masters:
         type: boolean
         description: Schedule workloads on masters
-        default: false
+        default: true
+      use_scheduling_defaults:
+        type: boolean
+        description: False if the scheduling of workloads on masters has been set by the user through the API.
+        default: true
       updated_at:
         type: string
         format: date-time

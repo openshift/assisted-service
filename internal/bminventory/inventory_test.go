@@ -2935,25 +2935,6 @@ var _ = Describe("cluster", func() {
 			Expect(reply).To(BeAssignableToTypeOf(common.NewApiError(http.StatusNotFound, errors.Errorf(""))))
 		})
 
-		It("Update SchedulableMasters", func() {
-			clusterID = strfmt.UUID(uuid.New().String())
-			err := db.Create(&common.Cluster{Cluster: models.Cluster{
-				ID: &clusterID,
-			}}).Error
-			Expect(err).ShouldNot(HaveOccurred())
-			mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(1)
-			mockSuccess()
-			reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
-				ClusterID: clusterID,
-				ClusterUpdateParams: &models.V2ClusterUpdateParams{
-					SchedulableMasters: swag.Bool(true),
-				},
-			})
-			Expect(reply).To(BeAssignableToTypeOf(installer.NewV2UpdateClusterCreated()))
-			actual := reply.(*installer.V2UpdateClusterCreated)
-			Expect(actual.Payload.SchedulableMasters).To(Equal(swag.Bool(true)))
-		})
-
 		Context("Update Proxy", func() {
 			//const emptyProxyHash = "d41d8cd98f00b204e9800998ecf8427e"
 			BeforeEach(func() {
@@ -4959,25 +4940,116 @@ var _ = Describe("[V2ClusterUpdate] cluster", func() {
 			Expect(reply).To(BeAssignableToTypeOf(common.NewApiError(http.StatusNotFound, errors.Errorf(""))))
 		})
 
-		It("Update SchedulableMasters", func() {
+		for hostCount := range [MinimalEnabledHostCount + 1]int{} {
+			hosts := hostCount
+			It(fmt.Sprintf("Update SchedulableMasters %d hosts", hosts), func() {
 
-			clusterID = strfmt.UUID(uuid.New().String())
-			err := db.Create(&common.Cluster{Cluster: models.Cluster{
-				ID: &clusterID,
-			}}).Error
-			Expect(err).ShouldNot(HaveOccurred())
-			mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(1)
-			mockSuccess()
-			reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
-				ClusterID: clusterID,
-				ClusterUpdateParams: &models.V2ClusterUpdateParams{
-					SchedulableMasters: swag.Bool(true),
-				},
+				clusterID = strfmt.UUID(uuid.New().String())
+				err := db.Create(&common.Cluster{Cluster: models.Cluster{
+					ID:                    &clusterID,
+					UseSchedulingDefaults: swag.Bool(true),
+					SchedulableMasters:    swag.Bool(true),
+				}}).Error
+
+				Expect(err).ShouldNot(HaveOccurred())
+
+				mockHostApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+				mockHostApi.EXPECT().RefreshInventory(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+				mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+				mockClusterApi.EXPECT().SetConnectivityMajorityGroupsForCluster(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+				mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).AnyTimes()
+				mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).AnyTimes()
+
+				for i := 0; i < hosts; i++ {
+					hostname := fmt.Sprintf("hostname%d", i)
+					ipaddress := fmt.Sprintf("1.2.3.%d/24", i)
+					addHost(strfmt.UUID(uuid.New().String()), models.HostRoleAutoAssign, "known", models.HostKindHost, clusterID, getInventoryStr(hostname, "bootMode", ipaddress), db)
+				}
+
+				By(fmt.Sprintf("Enable scheduling %d hosts", hosts), func() {
+					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
+						ClusterID: clusterID,
+						ClusterUpdateParams: &models.V2ClusterUpdateParams{
+							SchedulableMasters: swag.Bool(true),
+						},
+					})
+					if hosts < MinimalEnabledHostCount {
+						Expect(reply).Should(BeAssignableToTypeOf(common.NewApiError(http.StatusBadRequest, errors.Errorf(""))))
+					} else {
+						Expect(reply).To(BeAssignableToTypeOf(installer.NewV2UpdateClusterCreated()))
+						actual := reply.(*installer.V2UpdateClusterCreated)
+						Expect(actual.Payload.SchedulableMasters).To(Equal(swag.Bool(true)))
+						Expect(actual.Payload.UseSchedulingDefaults).To(Equal(swag.Bool(false)))
+					}
+				})
+				By(fmt.Sprintf("Disable scheduling %d hosts", hosts), func() {
+					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
+						ClusterID: clusterID,
+						ClusterUpdateParams: &models.V2ClusterUpdateParams{
+							SchedulableMasters: swag.Bool(false),
+						},
+					})
+					if hosts < MinimalEnabledHostCount {
+						Expect(reply).Should(BeAssignableToTypeOf(common.NewApiError(http.StatusBadRequest, errors.Errorf(""))))
+					} else {
+						Expect(reply).To(BeAssignableToTypeOf(installer.NewV2UpdateClusterCreated()))
+						actual := reply.(*installer.V2UpdateClusterCreated)
+						Expect(actual.Payload.SchedulableMasters).To(Equal(swag.Bool(false)))
+						Expect(actual.Payload.UseSchedulingDefaults).To(Equal(swag.Bool(false)))
+					}
+				})
+				By(fmt.Sprintf("Reset to scheduling defaults %d hosts", hosts), func() {
+					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
+						ClusterID: clusterID,
+						ClusterUpdateParams: &models.V2ClusterUpdateParams{
+							UseSchedulingDefaults: swag.Bool(true),
+						},
+					})
+					Expect(reply).To(BeAssignableToTypeOf(installer.NewV2UpdateClusterCreated()))
+					actual := reply.(*installer.V2UpdateClusterCreated)
+					Expect(actual.Payload.UseSchedulingDefaults).To(Equal(swag.Bool(true)))
+					if hosts < MinimalEnabledHostCount {
+						Expect(actual.Payload.SchedulableMasters).To(Equal(swag.Bool(true)))
+					} else {
+						Expect(actual.Payload.SchedulableMasters).To(Equal(swag.Bool(false)))
+					}
+				})
+				By(fmt.Sprintf("Enable scheduling and reset to scheduling defaults %d hosts", hosts), func() {
+					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
+						ClusterID: clusterID,
+						ClusterUpdateParams: &models.V2ClusterUpdateParams{
+							UseSchedulingDefaults: swag.Bool(true),
+							SchedulableMasters:    swag.Bool(true),
+						},
+					})
+					if hosts < MinimalEnabledHostCount {
+						Expect(reply).Should(BeAssignableToTypeOf(common.NewApiError(http.StatusBadRequest, errors.Errorf(""))))
+					} else {
+						Expect(reply).To(BeAssignableToTypeOf(installer.NewV2UpdateClusterCreated()))
+						actual := reply.(*installer.V2UpdateClusterCreated)
+						Expect(actual.Payload.UseSchedulingDefaults).To(Equal(swag.Bool(false)))
+						Expect(actual.Payload.SchedulableMasters).To(Equal(swag.Bool(true)))
+					}
+				})
+				By("Disable scheduling and reset to scheduling defaults", func() {
+					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
+						ClusterID: clusterID,
+						ClusterUpdateParams: &models.V2ClusterUpdateParams{
+							UseSchedulingDefaults: swag.Bool(true),
+							SchedulableMasters:    swag.Bool(false),
+						},
+					})
+					if hosts < MinimalEnabledHostCount {
+						Expect(reply).Should(BeAssignableToTypeOf(common.NewApiError(http.StatusBadRequest, errors.Errorf(""))))
+					} else {
+						Expect(reply).To(BeAssignableToTypeOf(installer.NewV2UpdateClusterCreated()))
+						actual := reply.(*installer.V2UpdateClusterCreated)
+						Expect(actual.Payload.UseSchedulingDefaults).To(Equal(swag.Bool(false)))
+						Expect(actual.Payload.SchedulableMasters).To(Equal(swag.Bool(false)))
+					}
+				})
 			})
-			Expect(reply).To(BeAssignableToTypeOf(installer.NewV2UpdateClusterCreated()))
-			actual := reply.(*installer.V2UpdateClusterCreated)
-			Expect(actual.Payload.SchedulableMasters).To(Equal(swag.Bool(true)))
-		})
+		}
 
 		Context("Update Proxy", func() {
 			//const emptyProxyHash = "d41d8cd98f00b204e9800998ecf8427e"
@@ -9927,25 +9999,12 @@ var _ = Describe("TestRegisterCluster", func() {
 	It("SchedulableMasters default value", func() {
 		mockClusterRegisterSuccess(true)
 		mockAMSSubscription(ctx)
-
 		reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 			NewClusterParams: getDefaultClusterCreateParams(),
 		})
 		Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2RegisterClusterCreated()))
 		actual := reply.(*installer.V2RegisterClusterCreated)
-		Expect(actual.Payload.SchedulableMasters).To(Equal(swag.Bool(false)))
-	})
-
-	It("SchedulableMasters non default value", func() {
-		mockClusterRegisterSuccess(true)
-		mockAMSSubscription(ctx)
-		clusterParams := getDefaultClusterCreateParams()
-		clusterParams.SchedulableMasters = swag.Bool(true)
-		reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
-			NewClusterParams: clusterParams,
-		})
-		Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2RegisterClusterCreated()))
-		actual := reply.(*installer.V2RegisterClusterCreated)
+		Expect(actual.Payload.UseSchedulingDefaults).To(Equal(swag.Bool(true)))
 		Expect(actual.Payload.SchedulableMasters).To(Equal(swag.Bool(true)))
 	})
 
@@ -12389,6 +12448,8 @@ var _ = Describe("UnbindHost", func() {
 		bm = createInventory(db, cfg)
 		err := db.Create(&common.InfraEnv{InfraEnv: models.InfraEnv{ID: &infraEnvID}}).Error
 		Expect(err).ShouldNot(HaveOccurred())
+		err = db.Create(&common.Cluster{Cluster: models.Cluster{ID: &clusterID, Kind: swag.String(models.ClusterKindCluster)}}).Error
+		Expect(err).ShouldNot(HaveOccurred())
 		err = db.Create(&common.Host{Host: models.Host{ID: &hostID, InfraEnvID: infraEnvID, ClusterID: &clusterID}}).Error
 		Expect(err).ShouldNot(HaveOccurred())
 	})
@@ -12408,6 +12469,7 @@ var _ = Describe("UnbindHost", func() {
 			eventstest.WithInfraEnvIdMatcher(infraEnvID.String()),
 			eventstest.WithSeverityMatcher(models.EventSeverityInfo)))
 		mockHostApi.EXPECT().UnbindHost(ctx, gomock.Any(), gomock.Any())
+		mockClusterApi.EXPECT().RefreshStatus(ctx, gomock.Any(), gomock.Any())
 		response := bm.UnbindHost(ctx, params)
 		Expect(response).To(BeAssignableToTypeOf(&installer.UnbindHostOK{}))
 	})

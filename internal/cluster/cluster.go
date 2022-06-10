@@ -1283,10 +1283,8 @@ func (m *Manager) GenerateAdditionalManifests(ctx context.Context, cluster *comm
 		return errors.Wrap(err, "failed to add telemeter manifest")
 	}
 
-	if common.AreMastersSchedulable(cluster) {
-		if err := m.manifestsGeneratorAPI.AddSchedulableMastersManifest(ctx, log, cluster); err != nil {
-			return errors.Wrap(err, "failed to add schedulable masters manifest")
-		}
+	if err := m.manifestsGeneratorAPI.AddSchedulableMastersManifest(ctx, log, cluster); err != nil {
+		return errors.Wrap(err, "failed to add schedulable masters manifest")
 	}
 
 	if err := m.manifestsGeneratorAPI.AddDiskEncryptionManifest(ctx, log, cluster); err != nil {

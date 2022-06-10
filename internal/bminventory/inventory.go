@@ -83,6 +83,7 @@ const (
 	MediaDisconnected int64 = 256
 	// 125 is the generic exit code for cases the error is in podman / docker and not the container we tried to run
 	ContainerAlreadyRunningExitCode = 125
+	MinimalEnabledHostCount         = 5
 )
 
 type Config struct {
@@ -295,9 +296,6 @@ func (b *bareMetalInventory) setDefaultRegisterClusterParams(_ context.Context, 
 	if params.NewClusterParams.Hyperthreading == nil {
 		params.NewClusterParams.Hyperthreading = swag.String(models.ClusterHyperthreadingAll)
 	}
-	if params.NewClusterParams.SchedulableMasters == nil {
-		params.NewClusterParams.SchedulableMasters = swag.Bool(false)
-	}
 	if params.NewClusterParams.Platform == nil {
 		params.NewClusterParams.Platform = &models.Platform{
 			Type: common.PlatformTypePtr(models.PlatformTypeBaremetal),
@@ -468,7 +466,8 @@ func (b *bareMetalInventory) RegisterClusterInternal(
 			MonitoredOperators:    monitoredOperators,
 			HighAvailabilityMode:  params.NewClusterParams.HighAvailabilityMode,
 			Hyperthreading:        swag.StringValue(params.NewClusterParams.Hyperthreading),
-			SchedulableMasters:    params.NewClusterParams.SchedulableMasters,
+			SchedulableMasters:    swag.Bool(true),
+			UseSchedulingDefaults: swag.Bool(true),
 			Platform:              params.NewClusterParams.Platform,
 			ClusterNetworks:       params.NewClusterParams.ClusterNetworks,
 			ServiceNetworks:       params.NewClusterParams.ServiceNetworks,
@@ -1670,6 +1669,11 @@ func (b *bareMetalInventory) v2UpdateClusterInternal(ctx context.Context, params
 		return nil, common.NewApiError(http.StatusBadRequest, err)
 	}
 
+	if err = b.validateSchedulableMastersParameters(params.ClusterUpdateParams.SchedulableMasters, *cluster.ID); err != nil {
+		log.WithError(err).Errorf("failed to validate scheduling parameters")
+		return nil, common.NewApiError(http.StatusBadRequest, err)
+	}
+
 	if err = b.clusterApi.VerifyClusterUpdatability(cluster); err != nil {
 		log.WithError(err).Errorf("cluster %s can't be updated in current state", params.ClusterID)
 		return nil, common.NewApiError(http.StatusConflict, err)
@@ -1732,6 +1736,14 @@ func (b *bareMetalInventory) v2UpdateClusterInternal(ctx context.Context, params
 		return nil, common.NewApiError(http.StatusInternalServerError, errors.Errorf("DB error, failed to commit"))
 	}
 	txSuccess = true
+
+	if params.ClusterUpdateParams.UseSchedulingDefaults != nil && *params.ClusterUpdateParams.UseSchedulingDefaults {
+		err = b.refreshSchedulableMasters(ctx, *cluster.ID)
+		if err != nil {
+			log.WithError(err).Error("Unable to refresh schedulable masters default value on cluster update")
+			return nil, err
+		}
+	}
 
 	if proxySettingsChanged(params.ClusterUpdateParams, cluster) {
 		eventgen.SendProxySettingsChangedEvent(ctx, b.eventsHandler, params.ClusterID)
@@ -1960,10 +1972,20 @@ func (b *bareMetalInventory) updateClusterData(_ context.Context, cluster *commo
 			return common.NewApiError(http.StatusBadRequest, errors.Errorf(msg))
 		}
 	}
+
+	if params.ClusterUpdateParams.UseSchedulingDefaults != nil {
+		useSchedulingDefaults := swag.BoolValue(params.ClusterUpdateParams.UseSchedulingDefaults)
+		updates["use_scheduling_defaults"] = useSchedulingDefaults
+		if useSchedulingDefaults {
+			b.setUsage(false, usage.SchedulableMasters, nil, usages)
+		}
+	}
+
 	if params.ClusterUpdateParams.SchedulableMasters != nil {
-		value := swag.BoolValue(params.ClusterUpdateParams.SchedulableMasters)
-		updates["schedulable_masters"] = value
-		b.setUsage(value, usage.SchedulableMasters, nil, usages)
+		schedulableMasters := swag.BoolValue(params.ClusterUpdateParams.SchedulableMasters)
+		updates["schedulable_masters"] = schedulableMasters
+		updates["use_scheduling_defaults"] = false
+		b.setUsage(true, usage.SchedulableMasters, nil, usages)
 	}
 
 	if params.ClusterUpdateParams.DiskEncryption != nil {
@@ -2732,6 +2754,16 @@ func (b *bareMetalInventory) V2DeregisterHostInternal(ctx context.Context, param
 	}
 	eventgen.SendHostDeregisteredEvent(ctx, b.eventsHandler, params.HostID, params.InfraEnvID, common.StrFmtUUIDPtr(infraEnv.ClusterID),
 		hostutil.GetHostnameForMsg(&h.Host))
+
+	if h.ClusterID != nil {
+		log.Infof("Refresh schedulable masters: host: %s infra env: %s cluster: %s", params.HostID, params.InfraEnvID, h.ClusterID)
+		if err = b.refreshSchedulableMasters(ctx, *h.ClusterID); err != nil {
+			log.WithError(err).Errorf("Failed to refresh schedulable_masters while deregistering host <%s> from cluster <%s>",
+				params.HostID, *h.ClusterID)
+			return err
+		}
+	}
+
 	return nil
 }
 
@@ -3691,6 +3723,17 @@ func validateProxySettings(httpProxy, httpsProxy, noProxy, ocpVersion *string) e
 	return nil
 }
 
+func (b *bareMetalInventory) validateSchedulableMastersParameters(schedulableMasters *bool, clusterID strfmt.UUID) error {
+	c, err := common.GetClusterFromDBWithHosts(b.db, clusterID)
+	if err != nil {
+		return errors.Errorf("failed to retrieve cluster '%s'", clusterID)
+	}
+	if c.EnabledHostCount < MinimalEnabledHostCount && schedulableMasters != nil {
+		return errors.Errorf("changing schedulable masters to '%t' is not possible when the enabled hosts are less than '%d'", *schedulableMasters, MinimalEnabledHostCount)
+	}
+	return nil
+}
+
 func secretValidationToUserError(err error) error {
 
 	if _, ok := err.(*validations.PullSecretError); ok {
@@ -4469,6 +4512,13 @@ func (b *bareMetalInventory) V2RegisterHost(ctx context.Context, params installe
 			WithPayload(common.GenerateError(http.StatusInternalServerError, err))
 	}
 
+	if err := b.refreshSchedulableMasters(ctx, *host.ClusterID); err != nil {
+		log.WithError(err).Errorf("Failed to refresh schedulable_masters while registering host <%s> to cluster <%s>",
+			host.ID, host.ClusterID)
+		return installer.NewV2RegisterHostInternalServerError().
+			WithPayload(common.GenerateError(http.StatusInternalServerError, err))
+	}
+
 	txSuccess = true
 
 	return installer.NewV2RegisterHostCreated().WithPayload(&hostRegistration)
@@ -4731,12 +4781,95 @@ func (b *bareMetalInventory) BindHostInternal(ctx context.Context, params instal
 		return nil, common.NewApiError(http.StatusInternalServerError, reset_err)
 	}
 
+	if err = b.refreshSchedulableMasters(ctx, *params.BindHostParams.ClusterID); err != nil {
+		log.WithError(err).Errorf("Failed to refresh schedulable_masters while binding host <%s> to cluster <%s>",
+			params.HostID, *params.BindHostParams.ClusterID)
+		return nil, common.NewApiError(http.StatusInternalServerError, err)
+	}
+
 	host, err = common.GetHostFromDB(b.db, params.InfraEnvID.String(), params.HostID.String())
 	if err != nil {
 		return nil, common.NewApiError(http.StatusInternalServerError, err)
 	}
 
 	return host, nil
+}
+
+func (b *bareMetalInventory) refreshSchedulableMasters(ctx context.Context, clusterID strfmt.UUID) error {
+
+	var schedulableMasters bool
+	updates := map[string]interface{}{}
+	log := logutil.FromContext(ctx, b.log)
+
+	c, err := common.GetClusterFromDBWithHosts(b.db, clusterID)
+	if err != nil {
+		return errors.Errorf("Failed to retrieve cluster '%s'", clusterID)
+	}
+
+	if swag.BoolValue(c.UseSchedulingDefaults) {
+		schedulableMasters, err = b.GetActualSchedulableMasters(c)
+		if err != nil {
+			return errors.Errorf("Failed get actual schedulable masters for cluster %s", c.ID)
+		}
+		if schedulableMasters != *c.SchedulableMasters {
+			updates["schedulable_masters"] = schedulableMasters
+		}
+
+		txSuccess := false
+		tx := b.db.Begin()
+		defer func() {
+			if !txSuccess {
+				log.Error("update cluster failed")
+				tx.Rollback()
+			}
+			if r := recover(); r != nil {
+				log.Errorf("update cluster failed to recover: %s", r)
+				log.Error(string(debug.Stack()))
+				tx.Rollback()
+			}
+		}()
+
+		if tx.Error != nil {
+			log.WithError(tx.Error).Errorf("failed to start db transaction")
+			return errors.New("DB error, failed to start transaction")
+		}
+
+		if len(updates) > 0 {
+			updates["trigger_monitor_timestamp"] = time.Now()
+			err = b.db.Model(&common.Cluster{}).Where("id = ?", c.ID.String()).Updates(updates).Error
+			if err != nil {
+				return errors.Wrapf(err, "failed to update cluster: '%s'", c.ID)
+			}
+		}
+
+		if err = tx.Commit().Error; err != nil {
+			log.Error(err)
+			return errors.Errorf("DB error, failed to commit")
+		}
+
+		txSuccess = true
+
+	}
+	return nil
+}
+
+func (b *bareMetalInventory) GetActualSchedulableMasters(cluster *common.Cluster) (bool, error) {
+	if cluster == nil {
+		return false, fmt.Errorf("unexpected 'nil' Cluster")
+	}
+	if cluster.UseSchedulingDefaults == nil {
+		return false, fmt.Errorf("'UseSchedulingDefaults' cannot be 'nil'")
+	}
+	if cluster.SchedulableMasters == nil {
+		return false, fmt.Errorf("'SchedulableMasters' cannot be 'nil'")
+	}
+	if !*cluster.UseSchedulingDefaults {
+		return *cluster.SchedulableMasters, nil
+	}
+	if *cluster.UseSchedulingDefaults && cluster.EnabledHostCount < MinimalEnabledHostCount {
+		return true, nil
+	}
+	return false, nil
 }
 
 func (b *bareMetalInventory) UnbindHostInternal(ctx context.Context, params installer.UnbindHostParams) (*common.Host, error) {
@@ -4768,6 +4901,12 @@ func (b *bareMetalInventory) UnbindHostInternal(ctx context.Context, params inst
 
 	if _, err = b.refreshClusterStatus(ctx, host.ClusterID, b.db); err != nil {
 		log.WithError(err).Warnf("Failed to refresh cluster after unbind of host <%s>", params.HostID)
+	}
+
+	if err = b.refreshSchedulableMasters(ctx, *host.ClusterID); err != nil {
+		log.WithError(err).Errorf("Failed to refresh schedulable_masters while unbinding host <%s> from cluster <%s>",
+			params.HostID, *host.ClusterID)
+		return nil, common.NewApiError(http.StatusInternalServerError, err)
 	}
 
 	host, err = common.GetHostFromDB(b.db, params.InfraEnvID.String(), params.HostID.String())

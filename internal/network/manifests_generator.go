@@ -144,13 +144,14 @@ spec:
             WantedBy=multi-user.target
 `
 
-const schedulableMastersManifest = `
+const schedulableMastersManifestFileName = "50-schedulable_masters.yaml"
+const schedulableMastersManifestTemplate = `
 apiVersion: config.openshift.io/v1
 kind: Scheduler
 metadata:
   name: cluster
 spec:
-  mastersSchedulable: true
+  mastersSchedulable: {{.SCHEDULABLE_MASTERS}}
   policy:
     name: ""
 status: {}
@@ -210,12 +211,22 @@ func (m *ManifestsGenerator) AddChronyManifest(ctx context.Context, log logrus.F
 }
 
 func (m *ManifestsGenerator) AddSchedulableMastersManifest(ctx context.Context, log logrus.FieldLogger, cluster *common.Cluster) error {
-	content := []byte(schedulableMastersManifest)
-	schedulableMastersManifestFile := "50-schedulable_masters.yaml"
-	err := m.createManifests(ctx, cluster, schedulableMastersManifestFile, content)
+
+	schedulableMasters := cluster.SchedulableMasters
+	templateParams := map[string]interface{}{
+		"SCHEDULABLE_MASTERS": schedulableMasters,
+	}
+
+	content, err := fillTemplate(templateParams, schedulableMastersManifestTemplate, log)
 	if err != nil {
 		return err
 	}
+
+	err = m.createManifests(ctx, cluster, schedulableMastersManifestFileName, content)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
