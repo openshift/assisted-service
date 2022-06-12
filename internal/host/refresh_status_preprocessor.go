@@ -279,6 +279,11 @@ func newValidations(v *validator) []validation {
 			condition: v.nonOverlappingSubnets,
 			formatter: v.printNonOverlappingSubnets,
 		},
+		{
+			id:        VSphereHostUUIDEnabled,
+			condition: v.isVSphereDiskUUIDEnabled,
+			formatter: v.printVSphereUUIDEnabled,
+		},
 	}
 }
 

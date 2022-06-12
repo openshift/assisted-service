@@ -23,6 +23,7 @@ import (
 	"github.com/openshift/assisted-service/internal/operators/api"
 	"github.com/openshift/assisted-service/internal/provider/registry"
 	"github.com/openshift/assisted-service/models"
+	"github.com/openshift/assisted-service/pkg/conversions"
 	"gorm.io/gorm"
 )
 
@@ -65,6 +66,7 @@ var _ = Describe("Validations test", func() {
 
 	mockAndRefreshStatusWithoutEvents := func(h *models.Host) {
 		mockDefaultClusterHostRequirements(mockHwValidator)
+		mockHwValidator.EXPECT().IsValidStorageDeviceType(gomock.Any()).Return(true).AnyTimes()
 		mockHwValidator.EXPECT().ListEligibleDisks(gomock.Any()).Return([]*models.Disk{}).AnyTimes()
 		mockHwValidator.EXPECT().GetHostInstallationPath(gomock.Any()).Return("/dev/sda").AnyTimes()
 		mockOperators.EXPECT().ValidateHost(gomock.Any(), gomock.Any(), gomock.Any()).Return([]api.ValidationResult{
@@ -113,7 +115,7 @@ var _ = Describe("Validations test", func() {
 				}
 			}
 		}
-		return ValidationStatus(""), "", false
+		return "", "", false
 	}
 	getIgnitionConfig := func(tpm2Enabled bool) types.Config {
 		return types.Config{
@@ -563,6 +565,112 @@ var _ = Describe("Validations test", func() {
 			h = hostutil.GetHostFromDB(*h.ID, h.InfraEnvID, db).Host
 			_, _, found := getValidationResult(h.ValidationsInfo, diskEncryptionID)
 			Expect(found).To(BeFalse())
+		})
+	})
+
+	Context("VSphere host UUID enable validation", func() {
+
+		var (
+			hostUUIDValidation = validationID(models.HostValidationIDVsphereDiskUUIDEnabled)
+			host               models.Host
+			cluster            common.Cluster
+		)
+
+		BeforeEach(func() {
+			cluster = hostutil.GenerateTestCluster(clusterID, common.TestIPv4Networking.MachineNetworks)
+			Expect(db.Create(&cluster).Error).ToNot(HaveOccurred())
+			hostId := strfmt.UUID(uuid.New().String())
+			infraEnvId := strfmt.UUID(uuid.New().String())
+			host = hostutil.GenerateTestHostByKind(hostId, infraEnvId, &clusterID, models.HostStatusKnown, models.HostKindHost, models.HostRoleMaster)
+			host.Inventory = hostutil.GenerateMasterInventory()
+			Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
+			host = hostutil.GetHostFromDB(*host.ID, host.InfraEnvID, db).Host
+		})
+
+		updateHostInventory := func(updateFunc func(*models.Inventory)) {
+			host = hostutil.GetHostFromDB(*host.ID, host.InfraEnvID, db).Host
+			inventory, err := common.UnmarshalInventory(host.Inventory)
+			Expect(err).ToNot(HaveOccurred())
+			updateFunc(inventory)
+			inventoryByte, err := json.Marshal(inventory)
+			Expect(err).ToNot(HaveOccurred())
+			updates := map[string]interface{}{}
+			updates["inventory"] = string(inventoryByte)
+			Expect(db.Model(host).Updates(updates).Error).ShouldNot(HaveOccurred())
+		}
+
+		updateClusterPlatform := func() {
+			cluster.Platform = &models.Platform{
+				Type: common.PlatformTypePtr(models.PlatformTypeVsphere),
+			}
+
+			updates := map[string]interface{}{}
+			updates["platform_type"] = "vsphere"
+			Expect(db.Model(cluster).Updates(updates).Error).ShouldNot(HaveOccurred())
+		}
+
+		It("Baremetal platform with no disk UUID", func() {
+			mockAndRefreshStatus(&host)
+			host = hostutil.GetHostFromDB(*host.ID, host.InfraEnvID, db).Host
+			status, _, _ := getValidationResult(host.ValidationsInfo, hostUUIDValidation)
+			Expect(status).To(BeEquivalentTo(ValidationSuccess))
+		})
+
+		It("Vsphere platform with disk UUID", func() {
+			updateHostInventory(func(inventory *models.Inventory) {
+				for _, disk := range inventory.Disks {
+					disk.HasUUID = true
+				}
+			})
+
+			updateClusterPlatform()
+			host = hostutil.GetHostFromDB(*host.ID, host.InfraEnvID, db).Host
+			mockAndRefreshStatus(&host)
+			host = hostutil.GetHostFromDB(*host.ID, host.InfraEnvID, db).Host
+			status, _, _ := getValidationResult(host.ValidationsInfo, hostUUIDValidation)
+			Expect(status).To(BeEquivalentTo(ValidationSuccess))
+		})
+
+		It("Vsphere platform with no disk UUID", func() {
+			updateHostInventory(func(inventory *models.Inventory) {
+				for _, disk := range inventory.Disks {
+					disk.HasUUID = false
+				}
+			})
+
+			host = hostutil.GetHostFromDB(*host.ID, host.InfraEnvID, db).Host
+			updateClusterPlatform()
+			mockAndRefreshStatus(&host)
+			host = hostutil.GetHostFromDB(*host.ID, host.InfraEnvID, db).Host
+			status, _, _ := getValidationResult(host.ValidationsInfo, hostUUIDValidation)
+			Expect(status).To(BeEquivalentTo(ValidationFailure))
+		})
+
+		It("Vsphere platform with CDROM disk with no UUID", func() {
+			CDROM := &models.Disk{
+				SizeBytes: conversions.GibToBytes(120),
+				DriveType: "CDROM",
+				HasUUID:   false,
+			}
+
+			HDD := &models.Disk{
+				SizeBytes: conversions.GibToBytes(120),
+				DriveType: "HDD",
+				HasUUID:   true,
+			}
+
+			updateHostInventory(func(inventory *models.Inventory) {
+				inventory.Disks = []*models.Disk{HDD, CDROM}
+			})
+
+			updateClusterPlatform()
+			host = hostutil.GetHostFromDB(*host.ID, host.InfraEnvID, db).Host
+
+			mockHwValidator.EXPECT().IsValidStorageDeviceType(CDROM).Return(false).Times(1)
+			mockAndRefreshStatus(&host)
+			host = hostutil.GetHostFromDB(*host.ID, host.InfraEnvID, db).Host
+			status, _, _ := getValidationResult(host.ValidationsInfo, hostUUIDValidation)
+			Expect(status).To(BeEquivalentTo(ValidationSuccess))
 		})
 	})
 })

@@ -1432,3 +1432,44 @@ func (v *validator) printNonOverlappingSubnets(c *validationContext, status Vali
 	}
 	return fmt.Sprintf("Unexpected status %s", status)
 }
+
+func (v *validator) isVSphereDiskUUIDEnabled(c *validationContext) ValidationStatus {
+	if c.inventory == nil {
+		return ValidationPending
+	}
+
+	if c.cluster == nil {
+		return ValidationPending
+	}
+
+	if c.cluster.Platform == nil || c.cluster.Platform.Type == nil || *c.cluster.Platform.Type != models.PlatformTypeVsphere {
+		return ValidationSuccess
+	}
+
+	if c.inventory.Disks == nil {
+		return ValidationPending
+	}
+
+	for _, disk := range c.inventory.Disks {
+		// vSphere only adds a UUID to disks which can potentially be used for storage,
+		// if any of them doesn't have that flag, it's likely because the user has forgotten to
+		// enable `disk.EnableUUID` for this virtual machine
+		// See https://access.redhat.com/solutions/4606201
+		if v.hwValidator.IsValidStorageDeviceType(disk) && !disk.HasUUID {
+			return ValidationFailure
+		}
+	}
+
+	return ValidationSuccess
+}
+
+func (v *validator) printVSphereUUIDEnabled(_ *validationContext, status ValidationStatus) string {
+	switch status {
+	case ValidationSuccess:
+		return "VSphere disk.EnableUUID is enabled for this virtual machine"
+	case ValidationFailure:
+		return "VSphere disk.EnableUUID isn't enabled for this virtual machine, it's necessary for disks to be mounted properly"
+	default:
+		return fmt.Sprintf("Unexpected status %s", status)
+	}
+}

@@ -36,6 +36,7 @@ type Validator interface {
 	GetInfraEnvHostRequirements(ctx context.Context, infraEnv *common.InfraEnv) (*models.ClusterHostRequirements, error)
 	DiskIsEligible(ctx context.Context, disk *models.Disk, infraEnv *common.InfraEnv, cluster *common.Cluster, host *models.Host, allDisks []*models.Disk) ([]string, error)
 	ListEligibleDisks(inventory *models.Inventory) []*models.Disk
+	IsValidStorageDeviceType(disk *models.Disk) bool
 	GetInstallationDiskSpeedThresholdMs(ctx context.Context, cluster *common.Cluster, host *models.Host) (int64, error)
 	// GetPreflightHardwareRequirements provides hardware (host) requirements that can be calculated only using cluster information.
 	// Returned information describe requirements coming from OCP and OLM operators.
@@ -117,10 +118,9 @@ func (v *validator) DiskIsEligible(ctx context.Context, disk *models.Disk, infra
 				humanize.Bytes(uint64(disk.SizeBytes)), humanize.Bytes(uint64(minSizeBytes))))
 	}
 
-	allowedDriveTypes := []string{string(models.DriveTypeHDD), string(models.DriveTypeSSD), string(models.DriveTypeMultipath)}
-	if !funk.ContainsString(allowedDriveTypes, string(disk.DriveType)) {
+	if !v.IsValidStorageDeviceType(disk) {
 		notEligibleReasons = append(notEligibleReasons,
-			fmt.Sprintf(wrongDriveTypeTemplate, disk.DriveType, strings.Join(allowedDriveTypes, ", ")))
+			fmt.Sprintf(wrongDriveTypeTemplate, disk.DriveType, strings.Join(v.getValidDeviceStorageTypes(), ", ")))
 	}
 
 	// We only allow multipath if all paths are FC
@@ -137,6 +137,10 @@ func (v *validator) DiskIsEligible(ctx context.Context, disk *models.Disk, infra
 	}
 
 	return notEligibleReasons, nil
+}
+
+func (v *validator) IsValidStorageDeviceType(disk *models.Disk) bool {
+	return funk.ContainsString(v.getValidDeviceStorageTypes(), string(disk.DriveType))
 }
 
 func (v *validator) purgeServiceReasons(reasons []string) []string {
@@ -379,6 +383,10 @@ func (v *validator) getMasterRequirements(cluster *common.Cluster, requirements 
 
 func (v *validator) getOCPRequirementsForVersion(openshiftVersion string) (*models.VersionedHostRequirements, error) {
 	return v.VersionedRequirements.GetVersionedHostRequirements(openshiftVersion)
+}
+
+func (v *validator) getValidDeviceStorageTypes() []string {
+	return []string{string(models.DriveTypeHDD), string(models.DriveTypeSSD), string(models.DriveTypeMultipath)}
 }
 
 func compileDiskReasonTemplate(template string, wildcards ...interface{}) *regexp.Regexp {
