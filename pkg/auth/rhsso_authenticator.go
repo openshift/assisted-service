@@ -174,7 +174,7 @@ func (a *RHSSOAuthenticator) AuthUserAuth(token string) (interface{}, error) {
 	// Handle Bearer
 	authHeaderParts := strings.Fields(token)
 	if len(authHeaderParts) != 2 || strings.ToLower(authHeaderParts[0]) != "bearer" {
-		return nil, errors.Errorf("Authorization header format must be Bearer {token}")
+		return nil, common.ApiErrorWithDefaultInfraError(errors.Errorf("Authorization header format must be Bearer {token}"), http.StatusUnauthorized)
 	}
 	// Now parse the token
 	parsedToken, err := jwt.Parse(authHeaderParts[1], a.getValidationToken)
@@ -185,7 +185,7 @@ func (a *RHSSOAuthenticator) AuthUserAuth(token string) (interface{}, error) {
 		// TODO: This validation is going to be removed in jwt-go v4, once jwt-go v4
 		// is released and we start using it, this validation-skip can be removed.
 		if !isValidationErrorIssuedAt(err) {
-			return nil, common.NewInfraError(http.StatusUnauthorized, errors.Errorf("Error parsing token or token is invalid"))
+			return nil, common.ApiErrorWithDefaultInfraError(errors.Errorf("Error parsing token or token is invalid"), http.StatusUnauthorized)
 		}
 	}
 
@@ -194,18 +194,18 @@ func (a *RHSSOAuthenticator) AuthUserAuth(token string) (interface{}, error) {
 			jwt.SigningMethodRS256.Alg(),
 			parsedToken.Header["alg"])
 		a.log.Errorf("Error validating token algorithm: %s", message)
-		return nil, errors.Errorf("Error validating token algorithm: %s", message)
+		return nil, common.ApiErrorWithDefaultInfraError(errors.Errorf("Error validating token algorithm: %s", message), http.StatusUnauthorized)
 	}
 
 	payload, err := parseOCMPayload(parsedToken)
 	if err != nil {
 		a.log.Error("Failed parse payload,", err)
-		return nil, err
+		return nil, common.ApiErrorWithDefaultInfraError(err, http.StatusUnauthorized)
 	}
 
 	if payload.Username == "" {
 		a.log.Error("Missing username in token")
-		return nil, errors.Errorf("Missing username in token")
+		return nil, common.ApiErrorWithDefaultInfraError(errors.Errorf("Missing username in token"), http.StatusUnauthorized)
 	}
 
 	payloadKey := payload.Username + "_is_admin"
