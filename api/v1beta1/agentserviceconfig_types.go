@@ -88,6 +88,18 @@ type AgentServiceConfigSpec struct {
 	// that are used if one the operators fails to be successfully deployed
 	//+operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Must-Gather Images"
 	MustGatherImages []MustGatherImage `json:"mustGatherImages,omitempty"`
+
+	// IPXEHTTPRoute is controlling whether the operator is creating plain HTTP routes
+	// iPXE hosts may not work with router cyphers and may access artifacts via HTTP only
+	// This setting accepts "enabled,disabled", defaults to disabled. Empty value defaults to disabled
+	// The following endpoints would be exposed via http:
+	// * api/assisted-installer/v2/infra-envs/<id>/downloads/files?file_name=ipxe-script in assisted-service
+	// * boot-artifacts/ and images/<infra-enf id>/pxe-initrd in -image-service
+	//+operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Expose IPXE HTTP route"
+	// +kubebuilder:validation:Enum=enabled;disabled
+	// +kubebuilder:validation:default:=disabled
+	// +optional
+	IPXEHTTPRoute string `json:"iPXEHTTPRoute,omitempty"`
 }
 
 // ConditionType related to our reconcile loop in addition to all the reasons
@@ -140,6 +152,11 @@ const (
 	ReasonWebHookServiceAccountFailure string = "ReasonWebHookServiceAccountFailure"
 	// ReasonWebHookAPIServiceFailure when there was a failure related to the webhook's API service.
 	ReasonWebHookAPIServiceFailure string = "ReasonWebHookAPIServiceFailure"
+
+	// IPXEHTTPRouteEnabled is expected value in IPXEHTTPRoute to enable the route
+	IPXEHTTPRouteEnabled string = "enabled"
+	// IPXEHTTPRouteEnabled is expected value in IPXEHTTPRoute to disable the route
+	IPXEHTTPRouteDisabled string = "disabled"
 )
 
 // AgentServiceConfigStatus defines the observed state of AgentServiceConfig

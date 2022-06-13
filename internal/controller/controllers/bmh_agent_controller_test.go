@@ -608,14 +608,14 @@ var _ = Describe("bmac reconcile", func() {
 					},
 				).Times(2)
 
-				mockClient.EXPECT().Update(gomock.Any(), gomock.AssignableToTypeOf(&bmh_v1alpha1.BareMetalHost{})).DoAndReturn(
-					func(ctx context.Context, bmh *bmh_v1alpha1.BareMetalHost) error {
-						return c.Update(ctx, bmh)
+				mockClient.EXPECT().Update(gomock.Any(), gomock.AssignableToTypeOf(&bmh_v1alpha1.BareMetalHost{}), gomock.Any()).DoAndReturn(
+					func(ctx context.Context, bmh *bmh_v1alpha1.BareMetalHost, opts ...client.UpdateOption) error {
+						return c.Update(ctx, bmh, opts...)
 					},
 				).Times(2)
-				mockClient.EXPECT().Update(gomock.Any(), gomock.AssignableToTypeOf(&v1beta1.Agent{})).DoAndReturn(
-					func(ctx context.Context, agent *v1beta1.Agent) error {
-						return c.Update(ctx, agent)
+				mockClient.EXPECT().Update(gomock.Any(), gomock.AssignableToTypeOf(&v1beta1.Agent{}), gomock.Any()).DoAndReturn(
+					func(ctx context.Context, agent *v1beta1.Agent, opts ...client.UpdateOption) error {
+						return c.Update(ctx, agent, opts...)
 					},
 				).Times(1)
 				for i := 0; i != 2; i++ {

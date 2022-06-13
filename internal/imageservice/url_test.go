@@ -24,7 +24,7 @@ var _ = Describe("URL building", func() {
 	)
 
 	It("builds a kernel URL", func() {
-		u, err := KernelURL(baseURL, version, arch)
+		u, err := KernelURL(baseURL, version, arch, false)
 		Expect(err).NotTo(HaveOccurred())
 
 		parsed, err := url.Parse(u)
@@ -34,10 +34,17 @@ var _ = Describe("URL building", func() {
 		Expect(parsed.Path).To(Equal("/v3/boot-artifacts/kernel"))
 		Expect(parsed.Query().Get("version")).To(Equal(version))
 		Expect(parsed.Query().Get("arch")).To(Equal(arch))
+
+		u, err = KernelURL(baseURL, version, arch, true)
+		Expect(err).NotTo(HaveOccurred())
+
+		parsed, err = url.Parse(u)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(parsed.Scheme).To(Equal("http"))
 	})
 
 	It("builds a rootfs URL", func() {
-		u, err := RootFSURL(baseURL, version, arch)
+		u, err := RootFSURL(baseURL, version, arch, false)
 		Expect(err).NotTo(HaveOccurred())
 
 		parsed, err := url.Parse(u)
@@ -47,15 +54,33 @@ var _ = Describe("URL building", func() {
 		Expect(parsed.Path).To(Equal("/v3/boot-artifacts/rootfs"))
 		Expect(parsed.Query().Get("version")).To(Equal(version))
 		Expect(parsed.Query().Get("arch")).To(Equal(arch))
+
+		u, err = RootFSURL(baseURL, version, arch, true)
+		Expect(err).NotTo(HaveOccurred())
+
+		parsed, err = url.Parse(u)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(parsed.Scheme).To(Equal("http"))
 	})
 
 	It("builds an initrd URL", func() {
-		u, err := InitrdURL(baseURL, id, version, arch)
+		u, err := InitrdURL(baseURL, id, version, arch, false)
 		Expect(err).NotTo(HaveOccurred())
 
 		parsed, err := url.Parse(u)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(parsed.Scheme).To(Equal("https"))
+		Expect(parsed.Host).To(Equal("image-service.example.com"))
+		Expect(parsed.Path).To(Equal(fmt.Sprintf("/v3/images/%s/pxe-initrd", id)))
+		Expect(parsed.Query().Get("version")).To(Equal(version))
+		Expect(parsed.Query().Get("arch")).To(Equal(arch))
+
+		u, err = InitrdURL(baseURL, id, version, arch, true)
+		Expect(err).NotTo(HaveOccurred())
+
+		parsed, err = url.Parse(u)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(parsed.Scheme).To(Equal("http"))
 		Expect(parsed.Host).To(Equal("image-service.example.com"))
 		Expect(parsed.Path).To(Equal(fmt.Sprintf("/v3/images/%s/pxe-initrd", id)))
 		Expect(parsed.Query().Get("version")).To(Equal(version))
