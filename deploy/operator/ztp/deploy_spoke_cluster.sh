@@ -122,3 +122,5 @@ echo "Cluster has been installed successfully!"
 
 wait_for_boolean_field "clusterdeployment/${ASSISTED_CLUSTER_DEPLOYMENT_NAME}" spec.installed "${SPOKE_NAMESPACE}"
 echo "Hive acknowledged cluster installation!"
+
+setup_libvirt_dns
