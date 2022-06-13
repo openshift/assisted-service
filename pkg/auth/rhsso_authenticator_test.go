@@ -195,6 +195,17 @@ var _ = Describe("auth handler test", func() {
 
 			if tt.expectedError != nil {
 				Expect(reflect.TypeOf(e).String()).To(Equal(reflect.TypeOf(tt.expectedError).String()))
+				// Unwrap the error and make sure the code it throws is "Unauthorized"
+				var wrappedErr interface{}
+				ok := errors.As(e, &wrappedErr)
+				Expect(ok).To(BeTrue())
+				wrappedErrPtr := reflect.ValueOf(wrappedErr)
+				authErrorInterface := reflect.Indirect(wrappedErrPtr).FieldByName("Payload").Interface()
+				if reflect.TypeOf(authErrorInterface).String() == "*models.InfraError" {
+					authError := authErrorInterface.(*models.InfraError)
+					expectedError := int32(http.StatusUnauthorized)
+					Expect(authError.Code).To(Equal(&expectedError))
+				}
 			} else {
 				Expect(e).To(BeNil())
 			}
