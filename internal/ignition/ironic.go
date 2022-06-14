@@ -13,8 +13,8 @@ type IronicIgniotionBuilder interface {
 }
 
 type IronicIgniotionBuilderConfig struct {
-	// TODO: MGMT-10375	Get the ironic image from the default release image for the arch
-	BaremetalIronicAgentImage string `envconfig:"IRONIC_AGENT_IMAGE" default:"quay.io/openshift-release-dev/ocp-v4.0-art-dev@sha256:1a1913094671837099e85eec4392a51bfa5fece675f479ba13e83e63d14013d3"`
+	// The default ironic agent image was obtained by running oc adm release info --image-for=ironic-agent  quay.io/openshift-release-dev/ocp-release:4.11.0-fc.0-x86_64
+	BaremetalIronicAgentImage string `envconfig:"IRONIC_AGENT_IMAGE" default:"quay.io/openshift-release-dev/ocp-v4.0-art-dev@sha256:d3f1d4d3cd5fbcf1b9249dd71d01be4b901d337fdc5f8f66569eb71df4d9d446"`
 }
 
 type ironicIgniotionBuilder struct {
