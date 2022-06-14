@@ -1,5 +1,6 @@
 import argparse
 import os
+from urllib.parse import urlparse
 
 import yaml
 
@@ -13,15 +14,49 @@ log = utils.get_logger('deploy-image-service')
 SRC_FILE = os.path.join(os.getcwd(), 'deploy/assisted-image-service.yaml')
 DST_FILE = os.path.join(os.getcwd(), 'build', deploy_options.namespace, 'assisted-image-service.yaml')
 
+SERVICE_SRC_FILE = os.path.join(os.getcwd(), 'deploy/assisted-image-service-service.yaml')
+SERVICE_DST_FILE = os.path.join(os.getcwd(), 'build', deploy_options.namespace, 'assisted-image-service-service.yaml')
 
 def main():
     utils.verify_build_directory(deploy_options.namespace)
 
+    # Handle assisted-image-service `service`
+    with open(SERVICE_SRC_FILE, "r") as src:
+        with open(SERVICE_DST_FILE, "w+") as dst:
+            raw_data = src.read()
+            raw_data = raw_data.replace('REPLACE_NAMESPACE', f'"{deploy_options.namespace}"')
+            data = yaml.safe_load(raw_data)
+
+            print("Deploying {}".format(SERVICE_DST_FILE))
+            dst.write(yaml.dump(data))
+
+    if deploy_options.apply_manifest:
+        utils.apply(
+            target=deploy_options.target,
+            namespace=deploy_options.namespace,
+            file=SERVICE_DST_FILE
+        )
+
+    # Handle assisted-image-service `deployment`
     with open(SRC_FILE, "r") as src:
         log.info(f"Loading source template file for assisted-image-service: {SRC_FILE}")
         raw_data = src.read()
         raw_data = raw_data.replace('REPLACE_NAMESPACE', f'"{deploy_options.namespace}"')
         raw_data = raw_data.replace('REPLACE_IMAGE_SERVICE_IMAGE', os.environ.get("IMAGE_SERVICE"))
+
+        # Getting IMAGE_SERVICE_BASE_URL variable from environment which should be specified
+        # as part of service deployment flow in assisted-test-infra (sets custom hostname and port).
+        # Otherwise, fetching the base url from the deployed image-service `service`.
+        image_service_base_url = os.environ.get("IMAGE_SERVICE_BASE_URL", utils.get_service_url(service="assisted-image-service",
+                                                                            target=deploy_options.target,
+                                                                            domain=deploy_options.domain,
+                                                                            namespace=deploy_options.namespace,
+                                                                            disable_tls=deploy_options.disable_tls,
+                                                                            check_connection=True))
+        parsed_url = urlparse(image_service_base_url)
+        raw_data = raw_data.replace('REPLACE_IMAGE_SERVICE_SCHEME', parsed_url.scheme)
+        raw_data = raw_data.replace('REPLACE_IMAGE_SERVICE_HOST', parsed_url.netloc)
+
         data = yaml.safe_load(raw_data)
         log.info(data)
 

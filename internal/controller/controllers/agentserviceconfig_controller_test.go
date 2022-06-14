@@ -648,11 +648,21 @@ var _ = Describe("reconcileImageServiceStatefulSet", func() {
 		ascr *AgentServiceConfigReconciler
 		ctx  = context.Background()
 		log  = logrus.New()
+
+		imageRoute = &routev1.Route{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      imageServiceName,
+				Namespace: testNamespace,
+			},
+			Spec: routev1.RouteSpec{
+				Host: fmt.Sprintf("%s.images", testHost),
+			},
+		}
 	)
 
 	BeforeEach(func() {
 		asc = newASCDefault()
-		ascr = newTestReconciler(asc)
+		ascr = newTestReconciler(asc, imageRoute)
 	})
 
 	reconcileUntilDone := func(runs int) {
@@ -848,6 +858,23 @@ var _ = Describe("reconcileImageServiceStatefulSet", func() {
 		Expect(found.Spec.Template.Spec.Containers[0].Ports).To(HaveLen(2))
 		Expect(found.Spec.Template.Spec.Containers[0].Ports[0].ContainerPort).To(Equal(int32(imageHandlerPort.IntValue())))
 		Expect(found.Spec.Template.Spec.Containers[0].Ports[1].ContainerPort).To(Equal(int32(imageHandlerHTTPPort.IntValue())))
+	})
+
+	It("should set image service scheme and host env vars", func() {
+		found := &appsv1.StatefulSet{}
+		Expect(ascr.reconcileImageServiceStatefulSet(ctx, log, asc)).To(Succeed())
+		Expect(ascr.Client.Get(ctx, types.NamespacedName{Name: imageServiceName, Namespace: testNamespace}, found)).To(Succeed())
+		var scheme, host string
+		for _, envVar := range found.Spec.Template.Spec.Containers[0].Env {
+			switch envVar.Name {
+			case "IMAGE_SERVICE_SCHEME":
+				scheme = envVar.Value
+			case "IMAGE_SERVICE_HOST":
+				host = envVar.Value
+			}
+		}
+		Expect(scheme).To(Equal("https"))
+		Expect(host).To(Equal("my.test.images"))
 	})
 })
 
