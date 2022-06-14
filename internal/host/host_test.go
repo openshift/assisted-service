@@ -952,6 +952,7 @@ func insufficientHWInventory() string {
 				DriveType: models.DriveTypeHDD,
 			},
 		},
+		Hostname: "test",
 		Interfaces: []*models.Interface{
 			{
 				Name: "eth0",
@@ -1013,6 +1014,7 @@ func workerInventory() string {
 				},
 			},
 		},
+		Hostname:     "worker-1",
 		Memory:       &models.Memory{PhysicalBytes: conversions.GibToBytes(8), UsableBytes: conversions.GibToBytes(8)},
 		SystemVendor: &models.SystemVendor{Manufacturer: "Red Hat", ProductName: "RHEL", SerialNumber: "3534"},
 		Routes:       common.TestDefaultRouteConfiguration,
