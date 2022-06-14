@@ -289,7 +289,7 @@ func (r *PreprovisioningImageReconciler) AddIronicAgentToInfraEnv(ctx context.Co
 	if infraEnvInternal.OpenshiftVersion != "" {
 		ironicAgentImage, err = r.getIronicAgentImage(log, *infraEnvInternal)
 		if err != nil {
-			log.WithError(err).Errorf("Failed to get ironicAgentImage for infraEnv: %s", infraEnv.Name)
+			log.WithError(err).Warningf("Failed to get ironicAgentImage for infraEnv: %s", infraEnv.Name)
 		}
 	}
 
