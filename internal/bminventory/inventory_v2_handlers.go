@@ -299,10 +299,37 @@ func (b *bareMetalInventory) V2GetClusterDefaultConfig(_ context.Context, _ inst
 	body := &models.ClusterDefaultConfig{}
 
 	body.NtpSource = b.Config.DefaultNTPSource
+	body.InactiveDeletionHours = int64(b.gcConfig.DeregisterInactiveAfter.Hours())
+
+	// TODO(MGMT-9751-remove-single-network)
 	body.ClusterNetworkCidr = b.Config.DefaultClusterNetworkCidr
 	body.ServiceNetworkCidr = b.Config.DefaultServiceNetworkCidr
 	body.ClusterNetworkHostPrefix = b.Config.DefaultClusterNetworkHostPrefix
-	body.InactiveDeletionHours = int64(b.gcConfig.DeregisterInactiveAfter.Hours())
+
+	body.ClusterNetworksIPV4 = []*models.ClusterNetwork{
+		{
+			Cidr:       models.Subnet(b.Config.DefaultClusterNetworkCidr),
+			HostPrefix: b.Config.DefaultClusterNetworkHostPrefix,
+		},
+	}
+	body.ServiceNetworksIPV4 = []*models.ServiceNetwork{
+		{Cidr: models.Subnet(b.Config.DefaultServiceNetworkCidr)},
+	}
+
+	body.ClusterNetworksDualstack = []*models.ClusterNetwork{
+		{
+			Cidr:       models.Subnet(b.Config.DefaultClusterNetworkCidr),
+			HostPrefix: b.Config.DefaultClusterNetworkHostPrefix,
+		},
+		{
+			Cidr:       models.Subnet(b.Config.DefaultClusterNetworkCidrIPv6),
+			HostPrefix: b.Config.DefaultClusterNetworkHostPrefixIPv6,
+		},
+	}
+	body.ServiceNetworksDualstack = []*models.ServiceNetwork{
+		{Cidr: models.Subnet(b.Config.DefaultServiceNetworkCidr)},
+		{Cidr: models.Subnet(b.Config.DefaultServiceNetworkCidrIPv6)},
+	}
 
 	return installer.NewV2GetClusterDefaultConfigOK().WithPayload(body)
 }

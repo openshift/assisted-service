@@ -86,29 +86,32 @@ const (
 
 type Config struct {
 	ignition.IgnitionConfig
-	AgentDockerImg                  string            `envconfig:"AGENT_DOCKER_IMAGE" default:"quay.io/edge-infrastructure/assisted-installer-agent:latest"`
-	ServiceBaseURL                  string            `envconfig:"SERVICE_BASE_URL"`
-	ImageServiceBaseURL             string            `envconfig:"IMAGE_SERVICE_BASE_URL"`
-	ServiceCACertPath               string            `envconfig:"SERVICE_CA_CERT_PATH" default:""`
-	S3EndpointURL                   string            `envconfig:"S3_ENDPOINT_URL" default:"http://10.35.59.36:30925"`
-	S3Bucket                        string            `envconfig:"S3_BUCKET" default:"test"`
-	ImageExpirationTime             time.Duration     `envconfig:"IMAGE_EXPIRATION_TIME" default:"4h"`
-	AwsAccessKeyID                  string            `envconfig:"AWS_ACCESS_KEY_ID" default:"accessKey1"`
-	AwsSecretAccessKey              string            `envconfig:"AWS_SECRET_ACCESS_KEY" default:"verySecretKey1"`
-	BaseDNSDomains                  map[string]string `envconfig:"BASE_DNS_DOMAINS" default:""`
-	SkipCertVerification            bool              `envconfig:"SKIP_CERT_VERIFICATION" default:"false"`
-	InstallRHCa                     bool              `envconfig:"INSTALL_RH_CA" default:"false"`
-	RhQaRegCred                     string            `envconfig:"REGISTRY_CREDS" default:""`
-	AgentTimeoutStart               time.Duration     `envconfig:"AGENT_TIMEOUT_START" default:"3m"`
-	ServiceIPs                      string            `envconfig:"SERVICE_IPS" default:""`
-	DefaultNTPSource                string            `envconfig:"NTP_DEFAULT_SERVER"`
-	ISOCacheDir                     string            `envconfig:"ISO_CACHE_DIR" default:"/tmp/isocache"`
-	DefaultClusterNetworkCidr       string            `envconfig:"CLUSTER_NETWORK_CIDR" default:"10.128.0.0/14"`
-	DefaultClusterNetworkHostPrefix int64             `envconfig:"CLUSTER_NETWORK_HOST_PREFIX" default:"23"`
-	DefaultServiceNetworkCidr       string            `envconfig:"SERVICE_NETWORK_CIDR" default:"172.30.0.0/16"`
-	ISOImageType                    string            `envconfig:"ISO_IMAGE_TYPE" default:"full-iso"`
-	IPv6Support                     bool              `envconfig:"IPV6_SUPPORT" default:"true"`
-	DiskEncryptionSupport           bool              `envconfig:"DISK_ENCRYPTION_SUPPORT" default:"true"`
+	AgentDockerImg                      string            `envconfig:"AGENT_DOCKER_IMAGE" default:"quay.io/edge-infrastructure/assisted-installer-agent:latest"`
+	ServiceBaseURL                      string            `envconfig:"SERVICE_BASE_URL"`
+	ImageServiceBaseURL                 string            `envconfig:"IMAGE_SERVICE_BASE_URL"`
+	ServiceCACertPath                   string            `envconfig:"SERVICE_CA_CERT_PATH" default:""`
+	S3EndpointURL                       string            `envconfig:"S3_ENDPOINT_URL" default:"http://10.35.59.36:30925"`
+	S3Bucket                            string            `envconfig:"S3_BUCKET" default:"test"`
+	ImageExpirationTime                 time.Duration     `envconfig:"IMAGE_EXPIRATION_TIME" default:"4h"`
+	AwsAccessKeyID                      string            `envconfig:"AWS_ACCESS_KEY_ID" default:"accessKey1"`
+	AwsSecretAccessKey                  string            `envconfig:"AWS_SECRET_ACCESS_KEY" default:"verySecretKey1"`
+	BaseDNSDomains                      map[string]string `envconfig:"BASE_DNS_DOMAINS" default:""`
+	SkipCertVerification                bool              `envconfig:"SKIP_CERT_VERIFICATION" default:"false"`
+	InstallRHCa                         bool              `envconfig:"INSTALL_RH_CA" default:"false"`
+	RhQaRegCred                         string            `envconfig:"REGISTRY_CREDS" default:""`
+	AgentTimeoutStart                   time.Duration     `envconfig:"AGENT_TIMEOUT_START" default:"3m"`
+	ServiceIPs                          string            `envconfig:"SERVICE_IPS" default:""`
+	DefaultNTPSource                    string            `envconfig:"NTP_DEFAULT_SERVER"`
+	ISOCacheDir                         string            `envconfig:"ISO_CACHE_DIR" default:"/tmp/isocache"`
+	DefaultClusterNetworkCidr           string            `envconfig:"CLUSTER_NETWORK_CIDR" default:"10.128.0.0/14"`
+	DefaultClusterNetworkHostPrefix     int64             `envconfig:"CLUSTER_NETWORK_HOST_PREFIX" default:"23"`
+	DefaultClusterNetworkCidrIPv6       string            `envconfig:"CLUSTER_NETWORK_CIDR_IPV6" default:"fd01::/48"`
+	DefaultClusterNetworkHostPrefixIPv6 int64             `envconfig:"CLUSTER_NETWORK_HOST_PREFIX_IPV6" default:"64"`
+	DefaultServiceNetworkCidr           string            `envconfig:"SERVICE_NETWORK_CIDR" default:"172.30.0.0/16"`
+	DefaultServiceNetworkCidrIPv6       string            `envconfig:"SERVICE_NETWORK_CIDR_IPV6" default:"fd02::/112"`
+	ISOImageType                        string            `envconfig:"ISO_IMAGE_TYPE" default:"full-iso"`
+	IPv6Support                         bool              `envconfig:"IPV6_SUPPORT" default:"true"`
+	DiskEncryptionSupport               bool              `envconfig:"DISK_ENCRYPTION_SUPPORT" default:"true"`
 	// TODO: remove when baremetal will be supported in arm
 	// this env enables usage of default cpu arch release image to get openshift-baremetal-installer for all other archs
 	AllowInstallerReleaseImageOverride bool `envconfig:"ALLOW_INSTALLER_RELEASE_IMAGE_OVERRIDE" default:"false"`
