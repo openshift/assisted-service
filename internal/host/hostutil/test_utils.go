@@ -82,24 +82,26 @@ func GenerateTestHostByKind(hostID, infraEnvID strfmt.UUID, clusterID *strfmt.UU
 			StageStartedAt: now,
 			StageUpdatedAt: now,
 		},
-		APIVipConnectivity: GenerateTestAPIVIpConnectivity(""),
-		Connectivity:       GenerateTestConnectivityReport(),
+		APIVipConnectivity:    GenerateTestAPIVIpConnectivity(""),
+		Connectivity:          GenerateTestConnectivityReport(),
+		DiscoveryAgentVersion: defaultAgentImage,
 	}
 }
 
 func GenerateTestHostWithInfraEnv(hostID, infraEnvID strfmt.UUID, state string, role models.HostRole) models.Host {
 	now := strfmt.DateTime(time.Now())
 	return models.Host{
-		ID:                 &hostID,
-		InfraEnvID:         infraEnvID,
-		Status:             swag.String(state),
-		Inventory:          common.GenerateTestDefaultInventory(),
-		Role:               role,
-		Kind:               swag.String(models.HostKindHost),
-		CheckedInAt:        now,
-		StatusUpdatedAt:    now,
-		APIVipConnectivity: GenerateTestAPIVIpConnectivity(""),
-		Connectivity:       GenerateTestConnectivityReport(),
+		ID:                    &hostID,
+		InfraEnvID:            infraEnvID,
+		Status:                swag.String(state),
+		Inventory:             common.GenerateTestDefaultInventory(),
+		Role:                  role,
+		Kind:                  swag.String(models.HostKindHost),
+		CheckedInAt:           now,
+		StatusUpdatedAt:       now,
+		APIVipConnectivity:    GenerateTestAPIVIpConnectivity(""),
+		Connectivity:          GenerateTestConnectivityReport(),
+		DiscoveryAgentVersion: defaultAgentImage,
 	}
 }
 
@@ -120,7 +122,8 @@ func GenerateTestHostWithNetworkAddress(hostID, infraEnvID, clusterID strfmt.UUI
 			StageStartedAt: now,
 			StageUpdatedAt: now,
 		},
-		APIVipConnectivity: GenerateTestAPIVIpConnectivity(""),
+		APIVipConnectivity:    GenerateTestAPIVIpConnectivity(""),
+		DiscoveryAgentVersion: defaultAgentImage,
 	}
 	return &h
 }
@@ -454,3 +457,5 @@ func generateIPAddresses(count int, ipAddress net.IP, mask int) []string {
 	}
 	return ret
 }
+
+const defaultAgentImage = "quay.io/edge-infrastructure/assisted-installer-agent:latest"

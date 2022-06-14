@@ -284,6 +284,11 @@ func newValidations(v *validator) []validation {
 			condition: v.isVSphereDiskUUIDEnabled,
 			formatter: v.printVSphereUUIDEnabled,
 		},
+		{
+			id:        CompatibleAgent,
+			condition: v.compatibleAgent,
+			formatter: v.printCompatibleAgent,
+		},
 	}
 }
 

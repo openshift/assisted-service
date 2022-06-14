@@ -62,6 +62,7 @@ type ValidatorCfg struct {
 	MaximumAllowedTimeDiffMinutes int64                        `envconfig:"HW_VALIDATOR_MAX_TIME_DIFF_MINUTES" default:"4"`
 	VersionedRequirements         VersionedRequirementsDecoder `envconfig:"HW_VALIDATOR_REQUIREMENTS" default:"[]"`
 	MaxHostDisconnectionTime      time.Duration                `envconfig:"HOST_MAX_DISCONNECTION_TIME" default:"3m"`
+	AgentDockerImage              string                       `envconfig:"AGENT_DOCKER_IMAGE" default:"quay.io/edge-infrastructure/assisted-installer-agent:latest"`
 }
 
 type validator struct {

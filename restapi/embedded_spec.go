@@ -7230,7 +7230,8 @@ func init() {
         "dns-wildcard-not-configured",
         "disk-encryption-requirements-satisfied",
         "non-overlapping-subnets",
-        "vsphere-disk-uuid-enabled"
+        "vsphere-disk-uuid-enabled",
+        "compatible-agent"
       ]
     },
     "host_network": {
@@ -16375,7 +16376,8 @@ func init() {
         "dns-wildcard-not-configured",
         "disk-encryption-requirements-satisfied",
         "non-overlapping-subnets",
-        "vsphere-disk-uuid-enabled"
+        "vsphere-disk-uuid-enabled",
+        "compatible-agent"
       ]
     },
     "host_network": {

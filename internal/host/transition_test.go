@@ -78,6 +78,7 @@ func createValidatorCfg() *hardware.ValidatorCfg {
 		},
 		MaximumAllowedTimeDiffMinutes: 4,
 		MaxHostDisconnectionTime:      MaxHostDisconnectionTime,
+		AgentDockerImage:              "quay.io/edge-infrastructure/assisted-installer-agent:latest",
 	}
 }
 

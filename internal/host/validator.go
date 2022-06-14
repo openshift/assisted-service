@@ -1473,3 +1473,22 @@ func (v *validator) printVSphereUUIDEnabled(_ *validationContext, status Validat
 		return fmt.Sprintf("Unexpected status %s", status)
 	}
 }
+
+func (v *validator) compatibleAgent(c *validationContext) ValidationStatus {
+	if c.host.DiscoveryAgentVersion != v.hwValidatorCfg.AgentDockerImage {
+		return ValidationFailure
+	}
+	return ValidationSuccess
+}
+
+func (v *validator) printCompatibleAgent(c *validationContext, status ValidationStatus) string {
+	switch status {
+	case ValidationSuccess:
+		return "Host agent is compatible with the service"
+	case ValidationFailure:
+		return "The installation cannot start just yet because this host's agent is in " +
+			"the process of being upgraded to a newer version, please wait, this " +
+			"could take a few minutes"
+	}
+	return fmt.Sprintf("Unexpected status %s", status)
+}
