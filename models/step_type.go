@@ -67,6 +67,9 @@ const (
 
 	// StepTypeNextStepRunner captures enum value "next-step-runner"
 	StepTypeNextStepRunner StepType = "next-step-runner"
+
+	// StepTypeUpgradeAgent captures enum value "upgrade-agent"
+	StepTypeUpgradeAgent StepType = "upgrade-agent"
 )
 
 // for schema
@@ -74,7 +77,7 @@ var stepTypeEnum []interface{}
 
 func init() {
 	var res []StepType
-	if err := json.Unmarshal([]byte(`["connectivity-check","execute","inventory","install","free-network-addresses","dhcp-lease-allocate","api-vip-connectivity-check","ntp-synchronizer","installation-disk-speed-check","container-image-availability","domain-resolution","stop-installation","logs-gather","next-step-runner"]`), &res); err != nil {
+	if err := json.Unmarshal([]byte(`["connectivity-check","execute","inventory","install","free-network-addresses","dhcp-lease-allocate","api-vip-connectivity-check","ntp-synchronizer","installation-disk-speed-check","container-image-availability","domain-resolution","stop-installation","logs-gather","next-step-runner","upgrade-agent"]`), &res); err != nil {
 		panic(err)
 	}
 	for _, v := range res {
