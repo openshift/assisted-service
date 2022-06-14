@@ -14,6 +14,9 @@ FROM registry.ci.openshift.org/ocp/4.11:base
 
 LABEL io.openshift.release.operator=true
 
+RUN dnf install -y postgresql-server && dnf clean all
+COPY hack/agent_installer/start_db.sh start_db.sh
+
 ARG WORK_DIR=/data
 
 RUN mkdir $WORK_DIR && chmod 775 $WORK_DIR
