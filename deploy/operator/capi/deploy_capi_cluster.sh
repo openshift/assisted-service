@@ -62,6 +62,11 @@ if [ "${DISCONNECTED}" = "true" ]; then
     ASSISTED_OPENSHIFT_INSTALL_RELEASE_IMAGE="${LOCAL_REGISTRY}/$(get_image_without_registry ${ASSISTED_OPENSHIFT_INSTALL_RELEASE_IMAGE})"
 fi
 
+# Hypershift selects an OCP version for the workload cluster based on the value of this env variable.
+# As the same one is used by dev-scripts and we must not couple Hub's version with workload's version,
+# we are pulling this variable here just before it is used.
+export OPENSHIFT_INSTALL_RELEASE_IMAGE="${ASSISTED_OPENSHIFT_INSTALL_RELEASE_IMAGE:-${RELEASE_IMAGE}}"
+
 # TODO: make SSH public key configurable
 
 set -o nounset
