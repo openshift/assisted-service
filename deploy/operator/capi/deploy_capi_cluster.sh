@@ -114,7 +114,7 @@ hypershift install --hypershift-image $HYPERSHIFT_IMAGE --namespace hypershift
 wait_for_pods "hypershift"
 
 echo "Creating HostedCluster"
-hypershift create cluster agent --name $ASSISTED_CLUSTER_NAME --base-domain redhat.example --pull-secret /root/pull-secret.json  --ssh-key /root/.ssh/id_rsa.pub --agent-namespace $SPOKE_NAMESPACE --namespace $SPOKE_NAMESPACE --control-plane-operator-image $HYPERSHIFT_IMAGE
+hypershift create cluster agent --name $ASSISTED_CLUSTER_NAME --base-domain redhat.example --pull-secret /root/pull-secret.json  --ssh-key /root/.ssh/id_rsa.pub --agent-namespace $SPOKE_NAMESPACE --namespace $SPOKE_NAMESPACE --control-plane-operator-image $HYPERSHIFT_IMAGE --release-image ${ASSISTED_OPENSHIFT_INSTALL_RELEASE_IMAGE:-${RELEASE_IMAGE}}
 
 # Wait for a running hypershift cluster with no worker nodes
 wait_for_pods "$SPOKE_NAMESPACE-$ASSISTED_CLUSTER_NAME"
