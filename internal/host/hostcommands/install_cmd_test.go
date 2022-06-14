@@ -554,10 +554,63 @@ var _ = Describe("construct host install arguments", func() {
 
 		hostID := strfmt.UUID(uuid.New().String())
 		host = &models.Host{
-			ID:         &hostID,
-			InfraEnvID: infraEnvID,
+			ID:                 &hostID,
+			InfraEnvID:         infraEnvID,
+			InstallationDiskID: "install-id",
 		}
-
+		host.Inventory = `{
+			"disks":[]
+		}`
+	})
+	It("multipath installation disk", func() {
+		cluster.MachineNetworks = []*models.MachineNetwork{{Cidr: "192.186.10.0/24"}}
+		host.Inventory = fmt.Sprintf(`{
+			"disks":[
+				{
+					"id": "install-id",
+					"drive_type": "%s"
+				},
+				{
+					"id": "other-id",
+					"drive_type": "%s"
+				}
+			],
+			"interfaces":[
+				{
+					"name": "eth1",
+					"ipv4_addresses":["10.56.20.80/25"]
+				}
+			]
+		}`, models.DriveTypeMultipath, models.DriveTypeSSD)
+		inventory, _ := common.UnmarshalInventory(host.Inventory)
+		args, err := constructHostInstallerArgs(cluster, host, inventory, infraEnv, log)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(args).To(Equal(`["--append-karg","root=/dev/disk/by-label/dm-mpath-root","--append-karg","rw","--append-karg","rd.multipath=default"]`))
+	})
+	It("non-multipath installation disk", func() {
+		cluster.MachineNetworks = []*models.MachineNetwork{{Cidr: "192.186.10.0/24"}}
+		host.Inventory = fmt.Sprintf(`{
+			"disks":[
+				{
+					"id": "other-id",
+					"drive_type": "%s"
+				},
+				{
+					"id": "install-id",
+					"drive_type": "%s"
+				}
+			],
+			"interfaces":[
+				{
+					"name": "eth1",
+					"ipv4_addresses":["10.56.20.80/25"]
+				}
+			]
+		}`, models.DriveTypeMultipath, models.DriveTypeSSD)
+		inventory, _ := common.UnmarshalInventory(host.Inventory)
+		args, err := constructHostInstallerArgs(cluster, host, inventory, infraEnv, log)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(args).To(Equal(`["--append-karg","rd.multipath=default"]`))
 	})
 	It("ip=<nic>:dhcp6 added when machine CIDR is IPv6", func() {
 		cluster.MachineNetworks = []*models.MachineNetwork{{Cidr: "2001:db8::/64"}}
@@ -569,7 +622,8 @@ var _ = Describe("construct host install arguments", func() {
 				}
 			]
 		}`
-		args, err := constructHostInstallerArgs(cluster, host, infraEnv, log)
+		inventory, _ := common.UnmarshalInventory(host.Inventory)
+		args, err := constructHostInstallerArgs(cluster, host, inventory, infraEnv, log)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(args).To(Equal(`["--append-karg","ip=eth0:dhcp6"]`))
 	})
@@ -583,7 +637,8 @@ var _ = Describe("construct host install arguments", func() {
 				}
 			]
 		}`
-		args, err := constructHostInstallerArgs(cluster, host, infraEnv, log)
+		inventory, _ := common.UnmarshalInventory(host.Inventory)
+		args, err := constructHostInstallerArgs(cluster, host, inventory, infraEnv, log)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(args).To(Equal(""))
 	})
@@ -597,7 +652,8 @@ var _ = Describe("construct host install arguments", func() {
 				}
 			]
 		}`
-		args, err := constructHostInstallerArgs(cluster, host, infraEnv, log)
+		inventory, _ := common.UnmarshalInventory(host.Inventory)
+		args, err := constructHostInstallerArgs(cluster, host, inventory, infraEnv, log)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(args).To(Equal(`["--append-karg","ip=eth1:dhcp"]`))
 	})
@@ -611,7 +667,8 @@ var _ = Describe("construct host install arguments", func() {
 				}
 			]
 		}`
-		args, err := constructHostInstallerArgs(cluster, host, infraEnv, log)
+		inventory, _ := common.UnmarshalInventory(host.Inventory)
+		args, err := constructHostInstallerArgs(cluster, host, inventory, infraEnv, log)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(args).To(Equal(`["--append-karg","ip=eth1:dhcp"]`))
 	})
@@ -629,7 +686,8 @@ var _ = Describe("construct host install arguments", func() {
 				}
 			]
 		}`
-		args, err := constructHostInstallerArgs(cluster, host, infraEnv, log)
+		inventory, _ := common.UnmarshalInventory(host.Inventory)
+		args, err := constructHostInstallerArgs(cluster, host, inventory, infraEnv, log)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(args).To(Equal(`["--append-karg","ip=eth1:dhcp"]`))
 	})
@@ -643,7 +701,8 @@ var _ = Describe("construct host install arguments", func() {
 				}
 			]
 		}`
-		args, err := constructHostInstallerArgs(cluster, host, infraEnv, log)
+		inventory, _ := common.UnmarshalInventory(host.Inventory)
+		args, err := constructHostInstallerArgs(cluster, host, inventory, infraEnv, log)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(args).To(Equal(""))
 	})
@@ -668,7 +727,8 @@ var _ = Describe("construct host install arguments", func() {
 				}
 			]
 		}`
-		args, err := constructHostInstallerArgs(cluster, host, infraEnv, log)
+		inventory, _ := common.UnmarshalInventory(host.Inventory)
+		args, err := constructHostInstallerArgs(cluster, host, inventory, infraEnv, log)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(args).To(Equal(`["--append-karg","ip=eth0:dhcp6"]`))
 	})
@@ -693,7 +753,8 @@ var _ = Describe("construct host install arguments", func() {
 				}
 			]
 		}`
-		args, err := constructHostInstallerArgs(cluster, host, infraEnv, log)
+		inventory, _ := common.UnmarshalInventory(host.Inventory)
+		args, err := constructHostInstallerArgs(cluster, host, inventory, infraEnv, log)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(args).To(Equal(""))
 	})
@@ -718,7 +779,8 @@ var _ = Describe("construct host install arguments", func() {
 				}
 			]
 		}`
-		args, err := constructHostInstallerArgs(cluster, host, infraEnv, log)
+		inventory, _ := common.UnmarshalInventory(host.Inventory)
+		args, err := constructHostInstallerArgs(cluster, host, inventory, infraEnv, log)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(args).To(Equal(`["--append-karg","ip=eth1:dhcp"]`))
 	})
@@ -743,7 +805,8 @@ var _ = Describe("construct host install arguments", func() {
 				}
 			]
 		}`
-		args, err := constructHostInstallerArgs(cluster, host, infraEnv, log)
+		inventory, _ := common.UnmarshalInventory(host.Inventory)
+		args, err := constructHostInstallerArgs(cluster, host, inventory, infraEnv, log)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(args).To(Equal(""))
 	})
@@ -759,7 +822,8 @@ var _ = Describe("construct host install arguments", func() {
 				}
 			]
 		}`
-		args, err := constructHostInstallerArgs(cluster, host, infraEnv, log)
+		inventory, _ := common.UnmarshalInventory(host.Inventory)
+		args, err := constructHostInstallerArgs(cluster, host, inventory, infraEnv, log)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(args).To(Equal(`["--append-karg","ip=eth1:dhcp","--copy-network"]`))
 	})
@@ -776,7 +840,8 @@ var _ = Describe("construct host install arguments", func() {
 				}
 			]
 		}`
-		args, err := constructHostInstallerArgs(cluster, host, infraEnv, log)
+		inventory, _ := common.UnmarshalInventory(host.Inventory)
+		args, err := constructHostInstallerArgs(cluster, host, inventory, infraEnv, log)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(args).To(Equal(`["--copy-network","--append-karg","ip=eth0:dhcp"]`))
 	})
@@ -791,7 +856,8 @@ var _ = Describe("construct host install arguments", func() {
 				}
 			]
 		}`
-		args, err := constructHostInstallerArgs(cluster, host, infraEnv, log)
+		inventory, _ := common.UnmarshalInventory(host.Inventory)
+		args, err := constructHostInstallerArgs(cluster, host, inventory, infraEnv, log)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(args).To(Equal(`["--copy-network","--append-karg","ip=ens3:dhcp"]`))
 	})
@@ -806,7 +872,8 @@ var _ = Describe("construct host install arguments", func() {
 				}
 			]
 		}`
-		args, err := constructHostInstallerArgs(cluster, host, infraEnv, log)
+		inventory, _ := common.UnmarshalInventory(host.Inventory)
+		args, err := constructHostInstallerArgs(cluster, host, inventory, infraEnv, log)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(args).To(Equal(`["--append-karg","rd.break=cmdline","--append-karg","ip=eth1:dhcp6"]`))
 	})
@@ -821,7 +888,8 @@ var _ = Describe("construct host install arguments", func() {
 				}
 			]
 		}`
-		args, err := constructHostInstallerArgs(cluster, host, infraEnv, log)
+		inventory, _ := common.UnmarshalInventory(host.Inventory)
+		args, err := constructHostInstallerArgs(cluster, host, inventory, infraEnv, log)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(args).To(Equal(`["--append-karg","rd.break=cmdline","--append-karg","ip=eth2:dhcp"]`))
 	})
@@ -829,7 +897,8 @@ var _ = Describe("construct host install arguments", func() {
 		kargs := `["--append-karg","ip=dhcp"]`
 		host.InstallerArgs = kargs
 		cluster.MachineNetworks = []*models.MachineNetwork{{Cidr: "2001:db8::/120"}}
-		args, err := constructHostInstallerArgs(cluster, host, infraEnv, log)
+		inventory, _ := common.UnmarshalInventory(host.Inventory)
+		args, err := constructHostInstallerArgs(cluster, host, inventory, infraEnv, log)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(args).To(Equal(kargs))
 	})
@@ -837,7 +906,8 @@ var _ = Describe("construct host install arguments", func() {
 		kargs := `["--append-karg","ip=dhcp6"]`
 		host.InstallerArgs = kargs
 		cluster.MachineNetworks = []*models.MachineNetwork{{Cidr: "192.186.10.0/24"}}
-		args, err := constructHostInstallerArgs(cluster, host, infraEnv, log)
+		inventory, _ := common.UnmarshalInventory(host.Inventory)
+		args, err := constructHostInstallerArgs(cluster, host, inventory, infraEnv, log)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(args).To(Equal(kargs))
 	})
@@ -845,7 +915,8 @@ var _ = Describe("construct host install arguments", func() {
 		kargs := `["--append-karg","ip=eth0:any"]`
 		host.InstallerArgs = kargs
 		cluster.MachineNetworks = []*models.MachineNetwork{{Cidr: "192.186.10.0/24"}}
-		args, err := constructHostInstallerArgs(cluster, host, infraEnv, log)
+		inventory, _ := common.UnmarshalInventory(host.Inventory)
+		args, err := constructHostInstallerArgs(cluster, host, inventory, infraEnv, log)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(args).To(Equal(kargs))
 	})
@@ -853,7 +924,8 @@ var _ = Describe("construct host install arguments", func() {
 		kargs := `["--delete-karg","ip=dhcp"]`
 		host.InstallerArgs = kargs
 		cluster.MachineNetworks = []*models.MachineNetwork{{Cidr: "2001:db8::/120"}}
-		args, err := constructHostInstallerArgs(cluster, host, infraEnv, log)
+		inventory, _ := common.UnmarshalInventory(host.Inventory)
+		args, err := constructHostInstallerArgs(cluster, host, inventory, infraEnv, log)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(args).To(Equal(kargs))
 	})
@@ -861,12 +933,14 @@ var _ = Describe("construct host install arguments", func() {
 		kargs := `["--delete-karg","ip=dhcp6"]`
 		host.InstallerArgs = kargs
 		cluster.MachineNetworks = []*models.MachineNetwork{{Cidr: "192.186.10.0/24"}}
-		args, err := constructHostInstallerArgs(cluster, host, infraEnv, log)
+		inventory, _ := common.UnmarshalInventory(host.Inventory)
+		args, err := constructHostInstallerArgs(cluster, host, inventory, infraEnv, log)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(args).To(Equal(kargs))
 	})
 	It("error if machine CIDR not given and no hosts", func() {
-		_, err := constructHostInstallerArgs(cluster, host, infraEnv, log)
+		inventory, _ := common.UnmarshalInventory(host.Inventory)
+		_, err := constructHostInstallerArgs(cluster, host, inventory, infraEnv, log)
 		Expect(err).To(HaveOccurred())
 	})
 	It("error if machine CIDR not given and no bootsrap", func() {
@@ -876,7 +950,8 @@ var _ = Describe("construct host install arguments", func() {
 				Inventory: `{"interfaces":[{"ipv4_addresses":["192.186.10.12/24"]}]}`,
 			},
 		}
-		_, err := constructHostInstallerArgs(cluster, host, infraEnv, log)
+		inventory, _ := common.UnmarshalInventory(host.Inventory)
+		_, err := constructHostInstallerArgs(cluster, host, inventory, infraEnv, log)
 		Expect(err).To(HaveOccurred())
 	})
 	It("ip argument not set in day2 when ipv4", func() {
@@ -889,7 +964,8 @@ var _ = Describe("construct host install arguments", func() {
 					}
 				]
 			}`
-		args, err := constructHostInstallerArgs(cluster, host, infraEnv, log)
+		inventory, _ := common.UnmarshalInventory(host.Inventory)
+		args, err := constructHostInstallerArgs(cluster, host, inventory, infraEnv, log)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(args).To(Equal(""))
 	})
@@ -903,7 +979,8 @@ var _ = Describe("construct host install arguments", func() {
 					}
 				]
 			}`
-		args, err := constructHostInstallerArgs(cluster, host, infraEnv, log)
+		inventory, _ := common.UnmarshalInventory(host.Inventory)
+		args, err := constructHostInstallerArgs(cluster, host, inventory, infraEnv, log)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(args).To(Equal(""))
 	})
@@ -917,14 +994,16 @@ var _ = Describe("construct host install arguments", func() {
 					}
 				]
 			}`
-		args, err := constructHostInstallerArgs(cluster, host, infraEnv, log)
+		inventory, _ := common.UnmarshalInventory(host.Inventory)
+		args, err := constructHostInstallerArgs(cluster, host, inventory, infraEnv, log)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(args).To(Equal(""))
 	})
 	It("error when inventory corrupted", func() {
 		cluster.Kind = swag.String(models.ClusterKindAddHostsCluster)
 		host.Inventory = ""
-		_, err := constructHostInstallerArgs(cluster, host, infraEnv, log)
+		inventory, _ := common.UnmarshalInventory(host.Inventory)
+		_, err := constructHostInstallerArgs(cluster, host, inventory, infraEnv, log)
 		Expect(err).To(HaveOccurred())
 	})
 })

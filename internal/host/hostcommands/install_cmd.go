@@ -71,12 +71,17 @@ func (i *installCmd) GetSteps(ctx context.Context, host *models.Host) ([]*models
 		}
 	}
 
-	disksToFormat, err := i.getDisksToFormat(ctx, *host)
+	inventory, err := common.UnmarshalInventory(host.Inventory)
 	if err != nil {
 		return nil, err
 	}
 
-	fullCmd, err := i.getFullInstallerCommand(cluster, host, infraEnv, bootdevice, disksToFormat)
+	disksToFormat, err := i.getDisksToFormat(ctx, *host, inventory)
+	if err != nil {
+		return nil, err
+	}
+
+	fullCmd, err := i.getFullInstallerCommand(cluster, host, inventory, infraEnv, bootdevice, disksToFormat)
 	if err != nil {
 		return nil, err
 	}
@@ -91,7 +96,7 @@ func (i *installCmd) GetSteps(ctx context.Context, host *models.Host) ([]*models
 	return []*models.Step{step}, nil
 }
 
-func (i *installCmd) getFullInstallerCommand(cluster *common.Cluster, host *models.Host, infraEnv *common.InfraEnv, bootdevice string, disksToFormat []string) (string, error) {
+func (i *installCmd) getFullInstallerCommand(cluster *common.Cluster, host *models.Host, inventory *models.Inventory, infraEnv *common.InfraEnv, bootdevice string, disksToFormat []string) (string, error) {
 	role := common.GetEffectiveRole(host)
 	if host.Bootstrap {
 		role = models.HostRoleBootstrap
@@ -140,7 +145,7 @@ func (i *installCmd) getFullInstallerCommand(cluster *common.Cluster, host *mode
 		request.OpenshiftVersion = cluster.OpenshiftVersion
 	}
 
-	hostInstallerArgs, err := constructHostInstallerArgs(cluster, host, infraEnv, i.log)
+	hostInstallerArgs, err := constructHostInstallerArgs(cluster, host, inventory, infraEnv, i.log)
 	if err != nil {
 		return "", err
 	}
@@ -219,12 +224,7 @@ func (i *installCmd) getMustGatherArgument(mustGatherMap versions.MustGatherVers
 	return string(arg), nil
 }
 
-func (i *installCmd) getDisksToFormat(ctx context.Context, host models.Host) ([]string, error) {
-	var inventory models.Inventory
-	if err := json.Unmarshal([]byte(host.Inventory), &inventory); err != nil {
-		i.log.Errorf("Failed to get inventory from host with id %s", host.ID)
-		return nil, err
-	}
+func (i *installCmd) getDisksToFormat(ctx context.Context, host models.Host, inventory *models.Inventory) ([]string, error) {
 	formatDisks := make([]string, 0, len(inventory.Disks))
 	for _, disk := range inventory.Disks {
 		isFcIscsi := strings.Contains(disk.ByPath, "-fc-") || strings.Contains(disk.ByPath, "-iscsi-")
@@ -244,7 +244,7 @@ func (i *installCmd) getDisksToFormat(ctx context.Context, host models.Host) ([]
 	set --copy-network, function will set only one such argument. It also append an arg that
 	controls DHCP depending on the IP stack being used.
 */
-func constructHostInstallerArgs(cluster *common.Cluster, host *models.Host, infraEnv *common.InfraEnv, log logrus.FieldLogger) (string, error) {
+func constructHostInstallerArgs(cluster *common.Cluster, host *models.Host, inventory *models.Inventory, infraEnv *common.InfraEnv, log logrus.FieldLogger) (string, error) {
 
 	var installerArgs []string
 
@@ -255,9 +255,22 @@ func constructHostInstallerArgs(cluster *common.Cluster, host *models.Host, infr
 		}
 	}
 
-	installerArgs, err := appendDHCPArgs(cluster, host, installerArgs, log)
+	installerArgs, err := appendDHCPArgs(cluster, host, inventory, installerArgs, log)
 	if err != nil {
 		return "", err
+	}
+
+	enableMultipath := false
+	for _, disk := range inventory.Disks {
+		if disk.DriveType == models.DriveTypeMultipath {
+			enableMultipath = true
+			if disk.ID == host.InstallationDiskID {
+				installerArgs = append(installerArgs, "--append-karg", "root=/dev/disk/by-label/dm-mpath-root", "--append-karg", "rw")
+			}
+		}
+	}
+	if enableMultipath {
+		installerArgs = append(installerArgs, "--append-karg", "rd.multipath=default")
 	}
 
 	hasStaticNetwork := (infraEnv != nil && infraEnv.StaticNetworkConfig != "") || cluster.StaticNetworkConfigured
@@ -270,7 +283,7 @@ func constructHostInstallerArgs(cluster *common.Cluster, host *models.Host, infr
 	return toJSONString(installerArgs)
 }
 
-func appendDHCPArgs(cluster *common.Cluster, host *models.Host, installerArgs []string, log logrus.FieldLogger) ([]string, error) {
+func appendDHCPArgs(cluster *common.Cluster, host *models.Host, inventory *models.Inventory, installerArgs []string, log logrus.FieldLogger) ([]string, error) {
 
 	if hasUserConfiguredIP(installerArgs) {
 		return installerArgs, nil
@@ -280,10 +293,7 @@ func appendDHCPArgs(cluster *common.Cluster, host *models.Host, installerArgs []
 	if machineNetworkCIDR != "" {
 		ipv6 := network.IsIPv6CIDR(machineNetworkCIDR)
 		log.Debugf("Machine network CIDR: %s. IPv6: %t", machineNetworkCIDR, ipv6)
-		inventory, err := common.UnmarshalInventory(host.Inventory)
-		if err != nil {
-			return nil, err
-		}
+
 		_, network, err := net.ParseCIDR(machineNetworkCIDR)
 		if err != nil {
 			return installerArgs, err
