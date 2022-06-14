@@ -2963,6 +2963,46 @@ func (b *bareMetalInventory) updateDomainNameResolutionResponse(ctx context.Cont
 	return b.hostApi.UpdateDomainNameResolution(ctx, host, domainResolutionResponse, b.db)
 }
 
+func (b *bareMetalInventory) processUpgradeAgentResponse(ctx context.Context, h *models.Host,
+	responseJSON string) error {
+	log := logutil.FromContext(ctx, b.log)
+
+	var response models.UpgradeAgentResponse
+	err := json.Unmarshal([]byte(responseJSON), &response)
+	if err != nil {
+		log.WithError(err).Errorf(
+			"failed to unmarshal upgrade agent response from host '%s'",
+			h.ID.String(),
+		)
+		return err
+	}
+
+	switch response.Result {
+	case models.UpgradeAgentResultSuccess:
+		eventgen.SendUpgradeAgentFinishedEvent(
+			ctx,
+			b.eventsHandler,
+			*h.ID,
+			hostutil.GetHostnameForMsg(h),
+			h.InfraEnvID,
+			h.ClusterID,
+			response.AgentImage,
+		)
+	case models.UpgradeAgentResultFailure:
+		eventgen.SendUpgradeAgentFailedEvent(
+			ctx,
+			b.eventsHandler,
+			*h.ID,
+			hostutil.GetHostnameForMsg(h),
+			h.InfraEnvID,
+			h.ClusterID,
+			response.AgentImage,
+		)
+	}
+
+	return nil
+}
+
 func (b *bareMetalInventory) getInstallationDiskSpeedThresholdMs(ctx context.Context, h *models.Host) (int64, error) {
 	cluster, err := common.GetClusterFromDB(b.db, *h.ClusterID, common.SkipEagerLoading)
 	if err != nil {
@@ -3014,6 +3054,8 @@ func handleReplyByType(params installer.V2PostStepReplyParams, b *bareMetalInven
 		err = b.processDiskSpeedCheckResponse(ctx, &host, stepReply, 0)
 	case models.StepTypeDomainResolution:
 		err = b.updateDomainNameResolutionResponse(ctx, &host, stepReply)
+	case models.StepTypeUpgradeAgent:
+		err = b.processUpgradeAgentResponse(ctx, &host, stepReply)
 	}
 	return err
 }
@@ -3072,6 +3114,8 @@ func filterReplyByType(params installer.V2PostStepReplyParams) (string, error) {
 		stepReply, err = filterReply(&models.DiskSpeedCheckResponse{}, params.Reply.Output)
 	case models.StepTypeDomainResolution:
 		stepReply, err = filterReply(&models.DomainResolutionResponse{}, params.Reply.Output)
+	case models.StepTypeUpgradeAgent:
+		stepReply, err = filterReply(&models.UpgradeAgentResponse{}, params.Reply.Output)
 	}
 
 	return stepReply, err
@@ -4679,6 +4723,9 @@ func (b *bareMetalInventory) V2GetNextSteps(ctx context.Context, params installe
 	updates["checked_in_at"] = time.Now()
 	if swag.Int64Value(params.Timestamp) != 0 {
 		updates["timestamp"] = swag.Int64Value(params.Timestamp)
+	}
+	if params.DiscoveryAgentVersion != nil {
+		updates["discovery_agent_version"] = *params.DiscoveryAgentVersion
 	}
 	if err = tx.Model(&host).Updates(updates).Error; err != nil {
 		log.WithError(err).Errorf("failed to update host: %s", params.HostID.String())

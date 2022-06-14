@@ -20,6 +20,7 @@ import (
 	eventgen "github.com/openshift/assisted-service/internal/common/events"
 	eventsapi "github.com/openshift/assisted-service/internal/events/api"
 	"github.com/openshift/assisted-service/internal/events/eventstest"
+	"github.com/openshift/assisted-service/internal/feature"
 	"github.com/openshift/assisted-service/internal/hardware"
 	"github.com/openshift/assisted-service/internal/host/hostutil"
 	"github.com/openshift/assisted-service/internal/metrics"
@@ -68,6 +69,9 @@ var MaxHostDisconnectionTime = 3 * time.Minute
 func createValidatorCfg() *hardware.ValidatorCfg {
 
 	return &hardware.ValidatorCfg{
+		Flags: feature.Flags{
+			EnableUpgradeAgent: true,
+		},
 		VersionedRequirements: hardware.VersionedRequirementsDecoder{
 			"default": {
 				Version:            "default",
@@ -78,6 +82,7 @@ func createValidatorCfg() *hardware.ValidatorCfg {
 		},
 		MaximumAllowedTimeDiffMinutes: 4,
 		MaxHostDisconnectionTime:      MaxHostDisconnectionTime,
+		AgentDockerImage:              "quay.io/edge-infrastructure/assisted-installer-agent:latest",
 	}
 }
 

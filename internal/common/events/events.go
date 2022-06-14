@@ -5446,3 +5446,312 @@ func (e *ImageInfoUpdatedEvent) FormatMessage() string {
     return e.format(&s)
 }
 
+//
+// Event upgrade_agent_started
+//
+type UpgradeAgentStartedEvent struct {
+    eventName string
+    HostId strfmt.UUID
+    HostName string
+    InfraEnvId strfmt.UUID
+    ClusterId *strfmt.UUID
+    AgentImage string
+}
+
+var UpgradeAgentStartedEventName string = "upgrade_agent_started"
+
+func NewUpgradeAgentStartedEvent(
+    hostId strfmt.UUID,
+    hostName string,
+    infraEnvId strfmt.UUID,
+    clusterId *strfmt.UUID,
+    agentImage string,
+) *UpgradeAgentStartedEvent {
+    return &UpgradeAgentStartedEvent{
+        eventName: UpgradeAgentStartedEventName,
+        HostId: hostId,
+        HostName: hostName,
+        InfraEnvId: infraEnvId,
+        ClusterId: clusterId,
+        AgentImage: agentImage,
+    }
+}
+
+func SendUpgradeAgentStartedEvent(
+    ctx context.Context,
+    eventsHandler eventsapi.Sender,
+    hostId strfmt.UUID,
+    hostName string,
+    infraEnvId strfmt.UUID,
+    clusterId *strfmt.UUID,
+    agentImage string,) {
+    ev := NewUpgradeAgentStartedEvent(
+        hostId,
+        hostName,
+        infraEnvId,
+        clusterId,
+        agentImage,
+    )
+    eventsHandler.SendHostEvent(ctx, ev)
+}
+
+func SendUpgradeAgentStartedEventAtTime(
+    ctx context.Context,
+    eventsHandler eventsapi.Sender,
+    hostId strfmt.UUID,
+    hostName string,
+    infraEnvId strfmt.UUID,
+    clusterId *strfmt.UUID,
+    agentImage string,
+    eventTime time.Time) {
+    ev := NewUpgradeAgentStartedEvent(
+        hostId,
+        hostName,
+        infraEnvId,
+        clusterId,
+        agentImage,
+    )
+    eventsHandler.SendHostEventAtTime(ctx, ev, eventTime)
+}
+
+func (e *UpgradeAgentStartedEvent) GetName() string {
+    return e.eventName
+}
+
+func (e *UpgradeAgentStartedEvent) GetSeverity() string {
+    return "info"
+}
+func (e *UpgradeAgentStartedEvent) GetClusterId() *strfmt.UUID {
+    return e.ClusterId
+}
+func (e *UpgradeAgentStartedEvent) GetHostId() strfmt.UUID {
+    return e.HostId
+}
+func (e *UpgradeAgentStartedEvent) GetInfraEnvId() strfmt.UUID {
+    return e.InfraEnvId
+}
+
+
+
+func (e *UpgradeAgentStartedEvent) format(message *string) string {
+    r := strings.NewReplacer(
+        "{host_id}", fmt.Sprint(e.HostId),
+        "{host_name}", fmt.Sprint(e.HostName),
+        "{infra_env_id}", fmt.Sprint(e.InfraEnvId),
+        "{cluster_id}", fmt.Sprint(e.ClusterId),
+        "{agent_image}", fmt.Sprint(e.AgentImage),
+    )
+    return r.Replace(*message)
+}
+
+func (e *UpgradeAgentStartedEvent) FormatMessage() string {
+    s := "Host {host_name}: Agent has been instructed to download image '{agent_image}' and restart"
+    return e.format(&s)
+}
+
+//
+// Event upgrade_agent_finished
+//
+type UpgradeAgentFinishedEvent struct {
+    eventName string
+    HostId strfmt.UUID
+    HostName string
+    InfraEnvId strfmt.UUID
+    ClusterId *strfmt.UUID
+    AgentImage string
+}
+
+var UpgradeAgentFinishedEventName string = "upgrade_agent_finished"
+
+func NewUpgradeAgentFinishedEvent(
+    hostId strfmt.UUID,
+    hostName string,
+    infraEnvId strfmt.UUID,
+    clusterId *strfmt.UUID,
+    agentImage string,
+) *UpgradeAgentFinishedEvent {
+    return &UpgradeAgentFinishedEvent{
+        eventName: UpgradeAgentFinishedEventName,
+        HostId: hostId,
+        HostName: hostName,
+        InfraEnvId: infraEnvId,
+        ClusterId: clusterId,
+        AgentImage: agentImage,
+    }
+}
+
+func SendUpgradeAgentFinishedEvent(
+    ctx context.Context,
+    eventsHandler eventsapi.Sender,
+    hostId strfmt.UUID,
+    hostName string,
+    infraEnvId strfmt.UUID,
+    clusterId *strfmt.UUID,
+    agentImage string,) {
+    ev := NewUpgradeAgentFinishedEvent(
+        hostId,
+        hostName,
+        infraEnvId,
+        clusterId,
+        agentImage,
+    )
+    eventsHandler.SendHostEvent(ctx, ev)
+}
+
+func SendUpgradeAgentFinishedEventAtTime(
+    ctx context.Context,
+    eventsHandler eventsapi.Sender,
+    hostId strfmt.UUID,
+    hostName string,
+    infraEnvId strfmt.UUID,
+    clusterId *strfmt.UUID,
+    agentImage string,
+    eventTime time.Time) {
+    ev := NewUpgradeAgentFinishedEvent(
+        hostId,
+        hostName,
+        infraEnvId,
+        clusterId,
+        agentImage,
+    )
+    eventsHandler.SendHostEventAtTime(ctx, ev, eventTime)
+}
+
+func (e *UpgradeAgentFinishedEvent) GetName() string {
+    return e.eventName
+}
+
+func (e *UpgradeAgentFinishedEvent) GetSeverity() string {
+    return "info"
+}
+func (e *UpgradeAgentFinishedEvent) GetClusterId() *strfmt.UUID {
+    return e.ClusterId
+}
+func (e *UpgradeAgentFinishedEvent) GetHostId() strfmt.UUID {
+    return e.HostId
+}
+func (e *UpgradeAgentFinishedEvent) GetInfraEnvId() strfmt.UUID {
+    return e.InfraEnvId
+}
+
+
+
+func (e *UpgradeAgentFinishedEvent) format(message *string) string {
+    r := strings.NewReplacer(
+        "{host_id}", fmt.Sprint(e.HostId),
+        "{host_name}", fmt.Sprint(e.HostName),
+        "{infra_env_id}", fmt.Sprint(e.InfraEnvId),
+        "{cluster_id}", fmt.Sprint(e.ClusterId),
+        "{agent_image}", fmt.Sprint(e.AgentImage),
+    )
+    return r.Replace(*message)
+}
+
+func (e *UpgradeAgentFinishedEvent) FormatMessage() string {
+    s := "Host {host_name}: Agent has downloaded image '{agent_image}' and will now restart"
+    return e.format(&s)
+}
+
+//
+// Event upgrade_agent_failed
+//
+type UpgradeAgentFailedEvent struct {
+    eventName string
+    HostId strfmt.UUID
+    HostName string
+    InfraEnvId strfmt.UUID
+    ClusterId *strfmt.UUID
+    AgentImage string
+}
+
+var UpgradeAgentFailedEventName string = "upgrade_agent_failed"
+
+func NewUpgradeAgentFailedEvent(
+    hostId strfmt.UUID,
+    hostName string,
+    infraEnvId strfmt.UUID,
+    clusterId *strfmt.UUID,
+    agentImage string,
+) *UpgradeAgentFailedEvent {
+    return &UpgradeAgentFailedEvent{
+        eventName: UpgradeAgentFailedEventName,
+        HostId: hostId,
+        HostName: hostName,
+        InfraEnvId: infraEnvId,
+        ClusterId: clusterId,
+        AgentImage: agentImage,
+    }
+}
+
+func SendUpgradeAgentFailedEvent(
+    ctx context.Context,
+    eventsHandler eventsapi.Sender,
+    hostId strfmt.UUID,
+    hostName string,
+    infraEnvId strfmt.UUID,
+    clusterId *strfmt.UUID,
+    agentImage string,) {
+    ev := NewUpgradeAgentFailedEvent(
+        hostId,
+        hostName,
+        infraEnvId,
+        clusterId,
+        agentImage,
+    )
+    eventsHandler.SendHostEvent(ctx, ev)
+}
+
+func SendUpgradeAgentFailedEventAtTime(
+    ctx context.Context,
+    eventsHandler eventsapi.Sender,
+    hostId strfmt.UUID,
+    hostName string,
+    infraEnvId strfmt.UUID,
+    clusterId *strfmt.UUID,
+    agentImage string,
+    eventTime time.Time) {
+    ev := NewUpgradeAgentFailedEvent(
+        hostId,
+        hostName,
+        infraEnvId,
+        clusterId,
+        agentImage,
+    )
+    eventsHandler.SendHostEventAtTime(ctx, ev, eventTime)
+}
+
+func (e *UpgradeAgentFailedEvent) GetName() string {
+    return e.eventName
+}
+
+func (e *UpgradeAgentFailedEvent) GetSeverity() string {
+    return "error"
+}
+func (e *UpgradeAgentFailedEvent) GetClusterId() *strfmt.UUID {
+    return e.ClusterId
+}
+func (e *UpgradeAgentFailedEvent) GetHostId() strfmt.UUID {
+    return e.HostId
+}
+func (e *UpgradeAgentFailedEvent) GetInfraEnvId() strfmt.UUID {
+    return e.InfraEnvId
+}
+
+
+
+func (e *UpgradeAgentFailedEvent) format(message *string) string {
+    r := strings.NewReplacer(
+        "{host_id}", fmt.Sprint(e.HostId),
+        "{host_name}", fmt.Sprint(e.HostName),
+        "{infra_env_id}", fmt.Sprint(e.InfraEnvId),
+        "{cluster_id}", fmt.Sprint(e.ClusterId),
+        "{agent_image}", fmt.Sprint(e.AgentImage),
+    )
+    return r.Replace(*message)
+}
+
+func (e *UpgradeAgentFailedEvent) FormatMessage() string {
+    s := "Host {host_name}: Agent failed to download image '{agent_image}', will try again"
+    return e.format(&s)
+}
+
