@@ -5930,6 +5930,20 @@ func init() {
           "maximum": 32,
           "minimum": 1
         },
+        "cluster_networks_dualstack": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/cluster_network"
+          }
+        },
+        "cluster_networks_ipv4": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/cluster_network"
+          }
+        },
         "inactive_deletion_hours": {
           "type": "integer"
         },
@@ -5940,6 +5954,20 @@ func init() {
         "service_network_cidr": {
           "type": "string",
           "pattern": "^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)[\\/]([1-9]|[1-2][0-9]|3[0-2]?)$"
+        },
+        "service_networks_dualstack": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/service_network"
+          }
+        },
+        "service_networks_ipv4": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/service_network"
+          }
         }
       }
     },
@@ -15146,6 +15174,20 @@ func init() {
           "maximum": 32,
           "minimum": 1
         },
+        "cluster_networks_dualstack": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/cluster_network"
+          }
+        },
+        "cluster_networks_ipv4": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/cluster_network"
+          }
+        },
         "inactive_deletion_hours": {
           "type": "integer"
         },
@@ -15156,6 +15198,20 @@ func init() {
         "service_network_cidr": {
           "type": "string",
           "pattern": "^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)[\\/]([1-9]|[1-2][0-9]|3[0-2]?)$"
+        },
+        "service_networks_dualstack": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/service_network"
+          }
+        },
+        "service_networks_ipv4": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/service_network"
+          }
         }
       }
     },

@@ -5125,6 +5125,26 @@ definitions:
       ntp_source:
         type: string
         x-omitempty: false
+      cluster_networks_ipv4:
+        type: array
+        items:
+          type: object
+          $ref: '#/definitions/cluster_network'
+      cluster_networks_dualstack:
+        type: array
+        items:
+          type: object
+          $ref: '#/definitions/cluster_network'
+      service_networks_ipv4:
+        type: array
+        items:
+          type: object
+          $ref: '#/definitions/service_network'
+      service_networks_dualstack:
+        type: array
+        items:
+          type: object
+          $ref: '#/definitions/service_network'
 
   infra_error:
     type: object
