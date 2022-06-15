@@ -30,8 +30,7 @@ import (
 )
 
 const (
-	awsEndpointSuffix      = ".amazonaws.com"
-	DiscoveryImageTemplate = "discovery-image-%s"
+	awsEndpointSuffix = ".amazonaws.com"
 )
 
 //go:generate mockgen --build_flags=--mod=mod -package=s3wrapper -destination=mock_s3wrapper.go . API
