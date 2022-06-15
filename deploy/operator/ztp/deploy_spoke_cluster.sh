@@ -26,6 +26,7 @@ export SPAWN_NONE_PLATFORM_LOAD_BALANCER="${SPAWN_NONE_PLATFORM_LOAD_BALANCER:-f
 export ADD_NONE_PLATFORM_LIBVIRT_DNS="${ADD_NONE_PLATFORM_LIBVIRT_DNS:-false}"
 export LIBVIRT_NONE_PLATFORM_NETWORK="${LIBVIRT_NONE_PLATFORM_NETWORK:-ostestbm}"
 export LOAD_BALANCER_IP="${LOAD_BALANCER_IP:-192.168.111.1}"
+export API_IP=${LOAD_BALANCER_IP}
 
 if [[ "${IP_STACK}" == "v4" ]]; then
     export CLUSTER_SUBNET="${CLUSTER_SUBNET_V4}"
@@ -122,5 +123,16 @@ echo "Cluster has been installed successfully!"
 
 wait_for_boolean_field "clusterdeployment/${ASSISTED_CLUSTER_DEPLOYMENT_NAME}" spec.installed "${SPOKE_NAMESPACE}"
 echo "Hive acknowledged cluster installation!"
+
+# For SNO we derive API IP from .status.apiVIP of the agentclusterinstall as this is the address of the single node.
+if [ ${SPOKE_CONTROLPLANE_AGENTS} -eq 1 ] ; then
+    export API_IP=$(oc get -n ${SPOKE_NAMESPACE} agentclusterinstall/${ASSISTED_AGENT_CLUSTER_INSTALL_NAME} -ojson | jq '.status.apiVIP' --raw-output)
+    if [ -z "$API_IP" ]; then
+        echo "Fatal:"
+        echo "No value found in the agentclusterinstall for .status.apiVIP"
+        echo "Cannot determine the address of the single node API"
+        exit
+    fi
+fi
 
 setup_libvirt_dns

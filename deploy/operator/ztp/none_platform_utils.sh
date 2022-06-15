@@ -57,14 +57,13 @@ function render_load_balancer_config_file()
     render_frontend_and_backend "443 81"  "${worker_ips}" >> $fname
 }
 
-
 function setup_libvirt_dns()
 {
     name=$(oc get -n ${SPOKE_NAMESPACE} clusterdeployment | awk '!/NAME/{print $1}')
     cluster_name=$(oc get -n ${SPOKE_NAMESPACE} clusterdeployment ${name} -o jsonpath='{.spec.clusterName}' )
     base_domain=$(oc get -n ${SPOKE_NAMESPACE} clusterdeployment ${name} -o jsonpath='{.spec.baseDomain}' )
     suffix="${cluster_name}.${base_domain}"
-    xml="<host ip='${LOAD_BALANCER_IP}'><hostname>virthost</hostname><hostname>api.${suffix}</hostname><hostname>api-int.${suffix}</hostname><hostname>console-openshift-console.apps.${suffix}</hostname><hostname>canary-openshift-ingress-canary.apps.${suffix}</hostname><hostname>oauth-openshift.apps.${suffix}</hostname></host>"
+    xml="<host ip='${API_IP}'><hostname>virthost</hostname><hostname>api.${suffix}</hostname><hostname>api-int.${suffix}</hostname><hostname>console-openshift-console.apps.${suffix}</hostname><hostname>canary-openshift-ingress-canary.apps.${suffix}</hostname><hostname>oauth-openshift.apps.${suffix}</hostname></host>"
     virsh net-update ${LIBVIRT_NONE_PLATFORM_NETWORK} --command delete  --section dns-host "${xml}"
     virsh net-update ${LIBVIRT_NONE_PLATFORM_NETWORK} --command add  --section dns-host "${xml}" || exit 1
 }
