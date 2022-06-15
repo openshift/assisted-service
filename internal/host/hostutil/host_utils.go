@@ -18,6 +18,7 @@ import (
 
 const (
 	MaxHostnameLength = 253
+	HostnamePattern   = "^[a-z0-9][a-z0-9-]{0,62}(?:[.][a-z0-9-]{1,63})*$"
 )
 
 func GetCurrentHostName(host *models.Host) (string, error) {
@@ -67,13 +68,12 @@ func ValidateHostname(hostname string) error {
 	if len(hostname) > MaxHostnameLength {
 		return common.NewApiError(http.StatusBadRequest, errors.New("hostname is too long"))
 	}
-	pattern := "^[a-z0-9][a-z0-9-]{0,62}(?:[.][a-z0-9-]{1,63})*$"
-	b, err := regexp.MatchString(pattern, hostname)
+	b, err := regexp.MatchString(HostnamePattern, hostname)
 	if err != nil {
 		return common.NewApiError(http.StatusInternalServerError, errors.Wrapf(err, "Matching hostname"))
 	}
 	if !b {
-		return common.NewApiError(http.StatusBadRequest, errors.Errorf("Hostname does not pass required regex validation: %s. Hostname: %s", pattern, hostname))
+		return common.NewApiError(http.StatusBadRequest, errors.Errorf("Hostname does not pass required regex validation: %s. Hostname: %s", HostnamePattern, hostname))
 	}
 	return nil
 }

@@ -723,6 +723,11 @@ func (v *validator) isHostnameValid(c *validationContext) ValidationStatus {
 	if c.inventory == nil {
 		return ValidationPending
 	}
+
+	if err := hostutil.ValidateHostname(getRealHostname(c.host, c.inventory)); err != nil {
+		return ValidationFailure
+	}
+
 	return boolValue(!funk.ContainsString(forbiddenHostnames, getRealHostname(c.host, c.inventory)))
 }
 
@@ -731,7 +736,7 @@ func (v *validator) printHostnameValid(c *validationContext, status ValidationSt
 	case ValidationSuccess:
 		return fmt.Sprintf("Hostname %s is allowed", getRealHostname(c.host, c.inventory))
 	case ValidationFailure:
-		return fmt.Sprintf("Hostname %s is forbidden", getRealHostname(c.host, c.inventory))
+		return fmt.Sprintf("Hostname %s is forbidden, hostname should match pattern %s", getRealHostname(c.host, c.inventory), hostutil.HostnamePattern)
 	case ValidationPending:
 		return "Missing inventory"
 	default:
