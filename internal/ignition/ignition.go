@@ -202,6 +202,10 @@ const discoveryIgnitionConfigFormat = `{
         "enabled": true,
         "contents": "[Service]\nType=oneshot\nExecStart=/usr/local/bin/okd-binaries.sh\n\n[Unit]\nWants=network-online.target\nAfter=network-online.target\n\n[Install]\nWantedBy=multi-user.target"
     },
+	{
+        "name": "multipathd.service",
+        "enabled": true,
+    },
     {
         "name": "systemd-journal-gatewayd.socket",
         "enabled": true,
@@ -228,6 +232,15 @@ const discoveryIgnitionConfigFormat = `{
       },
       "contents": { "source": "data:,{{.AGENT_MOTD}}" }
     },
+    {
+		"overwrite": true,
+		"path": "/etc/multipath.conf",
+		"mode": 420,
+		"user": {
+			"name": "root"
+		},
+		"contents": { "source": "data:text/plain;charset=utf-8;base64,ZGVmYXVsdHMgewogICAgdXNlcl9mcmllbmRseV9uYW1lcyB5ZXMKICAgIGZpbmRfbXVsdGlwYXRocyB5ZXMKICAgIGVuYWJsZV9mb3JlaWduICJeJCIKfQpibGFja2xpc3RfZXhjZXB0aW9ucyB7CiAgICBwcm9wZXJ0eSAiKFNDU0lfSURFTlRffElEX1dXTikiCn0KYmxhY2tsaXN0IHsKfQo=" }
+	},
     {
       "overwrite": true,
       "path": "/etc/NetworkManager/conf.d/01-ipv6.conf",
