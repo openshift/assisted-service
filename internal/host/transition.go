@@ -15,6 +15,7 @@ import (
 	eventgen "github.com/openshift/assisted-service/internal/common/events"
 	eventsapi "github.com/openshift/assisted-service/internal/events/api"
 	"github.com/openshift/assisted-service/internal/host/hostutil"
+	internalmodels "github.com/openshift/assisted-service/internal/models"
 	"github.com/openshift/assisted-service/models"
 	logutil "github.com/openshift/assisted-service/pkg/log"
 	"github.com/pkg/errors"
@@ -475,7 +476,7 @@ type TransitionArgsRefreshHost struct {
 	ctx               context.Context
 	eventHandler      eventsapi.Handler
 	conditions        map[string]bool
-	validationResults ValidationsStatus
+	validationResults internalmodels.HostValidationsStatus
 	db                *gorm.DB
 }
 
@@ -683,7 +684,7 @@ func getFailedValidations(params *TransitionArgsRefreshHost) []string {
 
 	for _, validations := range params.validationResults {
 		for _, validation := range validations {
-			if validation.Status == ValidationFailure {
+			if validation.Status == internalmodels.HostValidationFailure {
 				failedValidations = append(failedValidations, validation.Message)
 			}
 		}
@@ -695,7 +696,7 @@ func validationFailed(params *TransitionArgsRefreshHost, validationId string) bo
 	for _, validations := range params.validationResults {
 		for _, validation := range validations {
 			if string(validation.ID) == validationId {
-				return validation.Status == ValidationFailure
+				return validation.Status == internalmodels.HostValidationFailure
 			}
 		}
 	}

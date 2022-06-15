@@ -26,6 +26,7 @@ import (
 	"github.com/openshift/assisted-service/internal/hardware"
 	"github.com/openshift/assisted-service/internal/host/hostutil"
 	"github.com/openshift/assisted-service/internal/metrics"
+	internalmodels "github.com/openshift/assisted-service/internal/models"
 	"github.com/openshift/assisted-service/internal/operators"
 	"github.com/openshift/assisted-service/internal/operators/api"
 	"github.com/openshift/assisted-service/models"
@@ -2863,11 +2864,11 @@ var _ = Describe("Validation metrics and events", func() {
 		h               *models.Host
 	)
 
-	generateTestValidationResult := func(status ValidationStatus) ValidationsStatus {
-		validationRes := ValidationsStatus{
+	generateTestValidationResult := func(status internalmodels.HostValidationStatus) internalmodels.HostValidationsStatus {
+		validationRes := internalmodels.HostValidationsStatus{
 			"hw": {
 				{
-					ID:     HasMinCPUCores,
+					ID:     internalmodels.HasMinCPUCores,
 					Status: status,
 				},
 			},
@@ -2880,7 +2881,7 @@ var _ = Describe("Validation metrics and events", func() {
 		hostID := strfmt.UUID(uuid.New().String())
 		h := hostutil.GenerateTestHost(hostID, infraEnvID, clusterID, models.HostStatusInsufficient)
 
-		validationRes := generateTestValidationResult(ValidationFailure)
+		validationRes := generateTestValidationResult(internalmodels.HostValidationFailure)
 		bytes, err := json.Marshal(validationRes)
 		Expect(err).ToNot(HaveOccurred())
 		h.ValidationsInfo = string(bytes)
@@ -2937,8 +2938,8 @@ var _ = Describe("Validation metrics and events", func() {
 			eventstest.WithInfraEnvIdMatcher(h.InfraEnvID.String())))
 
 		vc := generateValidationCtx()
-		newValidationRes := generateTestValidationResult(ValidationSuccess)
-		var currentValidationRes ValidationsStatus
+		newValidationRes := generateTestValidationResult(internalmodels.HostValidationSuccess)
+		var currentValidationRes internalmodels.HostValidationsStatus
 		err := json.Unmarshal([]byte(h.ValidationsInfo), &currentValidationRes)
 		Expect(err).ToNot(HaveOccurred())
 		m.reportValidationStatusChanged(ctx, vc, h, newValidationRes, currentValidationRes)
@@ -2950,7 +2951,7 @@ var _ = Describe("Validation metrics and events", func() {
 			eventstest.WithInfraEnvIdMatcher(h.InfraEnvID.String())))
 
 		currentValidationRes = newValidationRes
-		newValidationRes = generateTestValidationResult(ValidationFailure)
+		newValidationRes = generateTestValidationResult(internalmodels.HostValidationFailure)
 		m.reportValidationStatusChanged(ctx, vc, h, newValidationRes, currentValidationRes)
 	})
 
@@ -2962,8 +2963,8 @@ var _ = Describe("Validation metrics and events", func() {
 			eventstest.WithInfraEnvIdMatcher(h.InfraEnvID.String())))
 
 		vc := generateValidationCtx()
-		newValidationRes := generateTestValidationResult(ValidationSuccess)
-		var currentValidationRes ValidationsStatus
+		newValidationRes := generateTestValidationResult(internalmodels.HostValidationSuccess)
+		var currentValidationRes internalmodels.HostValidationsStatus
 		err := json.Unmarshal([]byte(h.ValidationsInfo), &currentValidationRes)
 		Expect(err).ToNot(HaveOccurred())
 		m.reportValidationStatusChanged(ctx, vc, h, newValidationRes, currentValidationRes)
@@ -2975,7 +2976,7 @@ var _ = Describe("Validation metrics and events", func() {
 			eventstest.WithInfraEnvIdMatcher(h.InfraEnvID.String())))
 
 		currentValidationRes = newValidationRes
-		newValidationRes = generateTestValidationResult(ValidationFailure)
+		newValidationRes = generateTestValidationResult(internalmodels.HostValidationFailure)
 		h.ClusterID = nil
 		m.reportValidationStatusChanged(ctx, vc, h, newValidationRes, currentValidationRes)
 	})

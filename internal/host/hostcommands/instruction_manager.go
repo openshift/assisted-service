@@ -12,6 +12,7 @@ import (
 	eventsapi "github.com/openshift/assisted-service/internal/events/api"
 	"github.com/openshift/assisted-service/internal/hardware"
 	"github.com/openshift/assisted-service/internal/host/hostutil"
+	internalmodels "github.com/openshift/assisted-service/internal/models"
 	"github.com/openshift/assisted-service/internal/oc"
 	"github.com/openshift/assisted-service/internal/versions"
 	"github.com/openshift/assisted-service/models"
@@ -134,6 +135,11 @@ func (i *InstructionManager) GetNextSteps(ctx context.Context, host *models.Host
 	hostID := host.ID
 	hostStatus := swag.StringValue(host.Status)
 	log.Infof("GetNextSteps infra_env: <%s>, host: <%s>, host status: <%s>", InfraEnvID, hostID, hostStatus)
+
+	// In order to decide if the agent running in the host needs to be upgraded we need to find
+	// out if the validation that checks compatibility has passed:
+	var validationStatus internalmodels.HostValidationsStatus
+	fmt.Printf("%v\n", validationStatus)
 
 	returnSteps := models.Steps{}
 	stateToSteps := i.installingClusterStateToSteps

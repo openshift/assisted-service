@@ -19,6 +19,7 @@ import (
 	"github.com/openshift/assisted-service/internal/hardware"
 	"github.com/openshift/assisted-service/internal/host/hostutil"
 	"github.com/openshift/assisted-service/internal/metrics"
+	internalmodels "github.com/openshift/assisted-service/internal/models"
 	"github.com/openshift/assisted-service/internal/operators"
 	"github.com/openshift/assisted-service/internal/operators/api"
 	"github.com/openshift/assisted-service/internal/provider/registry"
@@ -102,9 +103,9 @@ var _ = Describe("Validations test", func() {
 		Expect(db.Create(&c).Error).ToNot(HaveOccurred())
 	}
 
-	getValidationResult := func(validationsInfo string, validation validationID) (ValidationStatus, string, bool) {
+	getValidationResult := func(validationsInfo string, validation internalmodels.HostValidationID) (internalmodels.HostValidationStatus, string, bool) {
 
-		var validationsRes ValidationsStatus
+		var validationsRes internalmodels.HostValidationsStatus
 		err := json.Unmarshal([]byte(validationsInfo), &validationsRes)
 		Expect(err).ToNot(HaveOccurred())
 
@@ -131,7 +132,7 @@ var _ = Describe("Validations test", func() {
 		}
 	}
 	Context("Ignition downloadable validation", func() {
-		ignitionDownloadableID := validationID(models.HostValidationIDIgnitionDownloadable)
+		ignitionDownloadableID := internalmodels.IsIgnitionDownloadable
 		It("day 1 host with infraenv - successful validation", func() {
 			c := hostutil.GenerateTestCluster(clusterID, common.TestIPv4Networking.MachineNetworks)
 			Expect(db.Create(&c).Error).ShouldNot(HaveOccurred())
@@ -171,7 +172,7 @@ var _ = Describe("Validations test", func() {
 			h = hostutil.GetHostFromDB(*h.ID, h.InfraEnvID, db).Host
 			validationStatus, validationMessage, found := getValidationResult(h.ValidationsInfo, ignitionDownloadableID)
 			Expect(found).To(BeTrue())
-			Expect(validationStatus).To(Equal(ValidationPending))
+			Expect(validationStatus).To(Equal(internalmodels.HostValidationPending))
 			Expect(validationMessage).To(Equal("Ignition is not ready, pending API VIP connectivity."))
 		})
 		It("day2 host with valid API VIP Connectivity - successful validation", func() {
@@ -189,7 +190,7 @@ var _ = Describe("Validations test", func() {
 			h = hostutil.GetHostFromDB(*h.ID, h.InfraEnvID, db).Host
 			validationStatus, validationMessage, found := getValidationResult(h.ValidationsInfo, ignitionDownloadableID)
 			Expect(found).To(BeTrue())
-			Expect(validationStatus).To(Equal(ValidationSuccess))
+			Expect(validationStatus).To(Equal(internalmodels.HostValidationSuccess))
 			Expect(validationMessage).To(Equal("Ignition is downloadable"))
 		})
 		It("day2 host with invalid API VIP Connectivity - fails validation", func() {
@@ -210,13 +211,13 @@ var _ = Describe("Validations test", func() {
 			h = hostutil.GetHostFromDB(*h.ID, h.InfraEnvID, db).Host
 			validationStatus, validationMessage, found := getValidationResult(h.ValidationsInfo, ignitionDownloadableID)
 			Expect(found).To(BeTrue())
-			Expect(validationStatus).To(Equal(ValidationFailure))
+			Expect(validationStatus).To(Equal(internalmodels.HostValidationFailure))
 			Expect(validationMessage).To(Equal("Ignition is not downloadable. Please ensure host connectivity to the cluster's API VIP."))
 		})
 	})
 
 	Context("Disk encryption validation", func() {
-		diskEncryptionID := validationID(models.HostValidationIDDiskEncryptionRequirementsSatisfied)
+		diskEncryptionID := internalmodels.DiskEncryptionRequirementsSatisfied
 		It("disk-encryption not set", func() {
 
 			c := hostutil.GenerateTestCluster(clusterID, common.TestIPv4Networking.MachineNetworks)
@@ -266,9 +267,9 @@ var _ = Describe("Validations test", func() {
 			h.Inventory = common.GenerateTestInventoryWithTpmVersion(models.InventoryTpmVersionNr20)
 			Expect(db.Create(&h).Error).ShouldNot(HaveOccurred())
 
-			checkValidation := func(expectedStatus ValidationStatus, expectedMsg string) {
+			checkValidation := func(expectedStatus internalmodels.HostValidationStatus, expectedMsg string) {
 				h = hostutil.GetHostFromDB(*h.ID, h.InfraEnvID, db).Host
-				validationStatus, validationMessage, found := getValidationResult(h.ValidationsInfo, validationID(models.HostValidationIDDiskEncryptionRequirementsSatisfied))
+				validationStatus, validationMessage, found := getValidationResult(h.ValidationsInfo, internalmodels.DiskEncryptionRequirementsSatisfied)
 				ExpectWithOffset(1, found).To(BeTrue())
 				ExpectWithOffset(1, validationStatus).To(Equal(expectedStatus))
 				ExpectWithOffset(1, validationMessage).To(Equal(expectedMsg))
@@ -276,7 +277,7 @@ var _ = Describe("Validations test", func() {
 
 			By("effective role is auto-assign (no suggestion yet)")
 			mockAndRefreshStatus(&h)
-			checkValidation(ValidationPending, "Missing role assignment")
+			checkValidation(internalmodels.HostValidationPending, "Missing role assignment")
 
 			By("auto-assign node is effectively assigned to master")
 			mockEvents.EXPECT().SendHostEvent(gomock.Any(), eventstest.NewEventMatcher(
@@ -289,7 +290,7 @@ var _ = Describe("Validations test", func() {
 
 			mockAndRefreshStatusWithoutEvents(&h)
 			h = hostutil.GetHostFromDB(*h.ID, h.InfraEnvID, db).Host
-			checkValidation(ValidationSuccess, "Installation disk can be encrypted using tpmv2")
+			checkValidation(internalmodels.HostValidationSuccess, "Installation disk can be encrypted using tpmv2")
 		})
 
 		It("missing inventory", func() {
@@ -310,7 +311,7 @@ var _ = Describe("Validations test", func() {
 			h = hostutil.GetHostFromDB(*h.ID, h.InfraEnvID, db).Host
 			validationStatus, validationMessage, found := getValidationResult(h.ValidationsInfo, diskEncryptionID)
 			Expect(found).To(BeTrue())
-			Expect(validationStatus).To(Equal(ValidationPending))
+			Expect(validationStatus).To(Equal(internalmodels.HostValidationPending))
 			Expect(validationMessage).To(Equal("Missing host inventory"))
 		})
 
@@ -332,7 +333,7 @@ var _ = Describe("Validations test", func() {
 			h = hostutil.GetHostFromDB(*h.ID, h.InfraEnvID, db).Host
 			validationStatus, validationMessage, found := getValidationResult(h.ValidationsInfo, diskEncryptionID)
 			Expect(found).To(BeTrue())
-			Expect(validationStatus).To(Equal(ValidationSuccess))
+			Expect(validationStatus).To(Equal(internalmodels.HostValidationSuccess))
 			Expect(validationMessage).To(Equal(fmt.Sprintf("Installation disk can be encrypted using %s", models.DiskEncryptionModeTang)))
 		})
 
@@ -354,7 +355,7 @@ var _ = Describe("Validations test", func() {
 			h = hostutil.GetHostFromDB(*h.ID, h.InfraEnvID, db).Host
 			validationStatus, validationMessage, found := getValidationResult(h.ValidationsInfo, diskEncryptionID)
 			Expect(found).To(BeTrue())
-			Expect(validationStatus).To(Equal(ValidationFailure))
+			Expect(validationStatus).To(Equal(internalmodels.HostValidationFailure))
 			Expect(validationMessage).To(Equal("TPM version could not be found, make sure TPM is enabled in host's BIOS"))
 		})
 
@@ -376,7 +377,7 @@ var _ = Describe("Validations test", func() {
 			h = hostutil.GetHostFromDB(*h.ID, h.InfraEnvID, db).Host
 			validationStatus, validationMessage, found := getValidationResult(h.ValidationsInfo, diskEncryptionID)
 			Expect(found).To(BeTrue())
-			Expect(validationStatus).To(Equal(ValidationFailure))
+			Expect(validationStatus).To(Equal(internalmodels.HostValidationFailure))
 			Expect(validationMessage).To(Equal(fmt.Sprintf("The host's TPM version is not supported, expected-version: %s, actual-version: %s",
 				models.InventoryTpmVersionNr20, models.InventoryTpmVersionNr12)))
 		})
@@ -399,7 +400,7 @@ var _ = Describe("Validations test", func() {
 			h = hostutil.GetHostFromDB(*h.ID, h.InfraEnvID, db).Host
 			validationStatus, validationMessage, found := getValidationResult(h.ValidationsInfo, diskEncryptionID)
 			Expect(found).To(BeTrue())
-			Expect(validationStatus).To(Equal(ValidationSuccess))
+			Expect(validationStatus).To(Equal(internalmodels.HostValidationSuccess))
 			Expect(validationMessage).To(Equal(fmt.Sprintf("Installation disk can be encrypted using %s", models.DiskEncryptionModeTpmv2)))
 		})
 
@@ -418,7 +419,7 @@ var _ = Describe("Validations test", func() {
 			h = hostutil.GetHostFromDB(*h.ID, h.InfraEnvID, db).Host
 			validationStatus, validationMessage, found := getValidationResult(h.ValidationsInfo, diskEncryptionID)
 			Expect(found).To(BeTrue())
-			Expect(validationStatus).To(Equal(ValidationSuccess))
+			Expect(validationStatus).To(Equal(internalmodels.HostValidationSuccess))
 			Expect(validationMessage).To(Equal(fmt.Sprintf("Installation disk can be encrypted using %s", models.DiskEncryptionModeTpmv2)))
 		})
 
@@ -457,7 +458,7 @@ var _ = Describe("Validations test", func() {
 			h = hostutil.GetHostFromDB(*h.ID, h.InfraEnvID, db).Host
 			validationStatus, validationMessage, found := getValidationResult(h.ValidationsInfo, diskEncryptionID)
 			Expect(found).To(BeTrue())
-			Expect(validationStatus).To(Equal(ValidationFailure))
+			Expect(validationStatus).To(Equal(internalmodels.HostValidationFailure))
 			Expect(validationMessage).To(Equal("Invalid LUKS object in ignition - both TPM2 and Tang are not available"))
 		})
 
@@ -477,7 +478,7 @@ var _ = Describe("Validations test", func() {
 			h = hostutil.GetHostFromDB(*h.ID, h.InfraEnvID, db).Host
 			validationStatus, validationMessage, found := getValidationResult(h.ValidationsInfo, diskEncryptionID)
 			Expect(found).To(BeTrue())
-			Expect(validationStatus).To(Equal(ValidationFailure))
+			Expect(validationStatus).To(Equal(internalmodels.HostValidationFailure))
 			Expect(validationMessage).To(Equal("TPM version could not be found, make sure TPM is enabled in host's BIOS"))
 		})
 
@@ -497,7 +498,7 @@ var _ = Describe("Validations test", func() {
 			h = hostutil.GetHostFromDB(*h.ID, h.InfraEnvID, db).Host
 			validationStatus, validationMessage, found := getValidationResult(h.ValidationsInfo, diskEncryptionID)
 			Expect(found).To(BeTrue())
-			Expect(validationStatus).To(Equal(ValidationFailure))
+			Expect(validationStatus).To(Equal(internalmodels.HostValidationFailure))
 			Expect(validationMessage).To(Equal("TPM version could not be found, make sure TPM is enabled in host's BIOS"))
 		})
 
@@ -531,7 +532,7 @@ var _ = Describe("Validations test", func() {
 			h = hostutil.GetHostFromDB(*h.ID, h.InfraEnvID, db).Host
 			validationStatus, _, found := getValidationResult(h.ValidationsInfo, diskEncryptionID)
 			Expect(found).To(BeTrue())
-			Expect(validationStatus).To(Equal(ValidationPending))
+			Expect(validationStatus).To(Equal(internalmodels.HostValidationPending))
 		})
 
 		It("day2 host - empty ignition in APIVipConnectivity response", func() {
@@ -571,7 +572,7 @@ var _ = Describe("Validations test", func() {
 	Context("VSphere host UUID enable validation", func() {
 
 		var (
-			hostUUIDValidation = validationID(models.HostValidationIDVsphereDiskUUIDEnabled)
+			hostUUIDValidation = internalmodels.VSphereHostUUIDEnabled
 			host               models.Host
 			cluster            common.Cluster
 		)
@@ -613,7 +614,7 @@ var _ = Describe("Validations test", func() {
 			mockAndRefreshStatus(&host)
 			host = hostutil.GetHostFromDB(*host.ID, host.InfraEnvID, db).Host
 			status, _, _ := getValidationResult(host.ValidationsInfo, hostUUIDValidation)
-			Expect(status).To(BeEquivalentTo(ValidationSuccess))
+			Expect(status).To(BeEquivalentTo(internalmodels.HostValidationSuccess))
 		})
 
 		It("Vsphere platform with disk UUID", func() {
@@ -628,7 +629,7 @@ var _ = Describe("Validations test", func() {
 			mockAndRefreshStatus(&host)
 			host = hostutil.GetHostFromDB(*host.ID, host.InfraEnvID, db).Host
 			status, _, _ := getValidationResult(host.ValidationsInfo, hostUUIDValidation)
-			Expect(status).To(BeEquivalentTo(ValidationSuccess))
+			Expect(status).To(BeEquivalentTo(internalmodels.HostValidationSuccess))
 		})
 
 		It("Vsphere platform with no disk UUID", func() {
@@ -643,7 +644,7 @@ var _ = Describe("Validations test", func() {
 			mockAndRefreshStatus(&host)
 			host = hostutil.GetHostFromDB(*host.ID, host.InfraEnvID, db).Host
 			status, _, _ := getValidationResult(host.ValidationsInfo, hostUUIDValidation)
-			Expect(status).To(BeEquivalentTo(ValidationFailure))
+			Expect(status).To(BeEquivalentTo(internalmodels.HostValidationFailure))
 		})
 
 		It("Vsphere platform with CDROM disk with no UUID", func() {
@@ -670,7 +671,7 @@ var _ = Describe("Validations test", func() {
 			mockAndRefreshStatus(&host)
 			host = hostutil.GetHostFromDB(*host.ID, host.InfraEnvID, db).Host
 			status, _, _ := getValidationResult(host.ValidationsInfo, hostUUIDValidation)
-			Expect(status).To(BeEquivalentTo(ValidationSuccess))
+			Expect(status).To(BeEquivalentTo(internalmodels.HostValidationSuccess))
 		})
 	})
 })

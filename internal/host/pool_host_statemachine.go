@@ -2,6 +2,7 @@ package host
 
 import (
 	"github.com/filanov/stateswitch"
+	internalmodels "github.com/openshift/assisted-service/internal/models"
 	"github.com/openshift/assisted-service/models"
 )
 
@@ -52,7 +53,7 @@ func NewPoolHostStateMachine(sm stateswitch.StateMachine, th *transitionHandler)
 			stateswitch.State(models.HostStatusDisconnectedUnbound),
 			stateswitch.State(models.HostStatusUnbinding),
 		},
-		Condition:        stateswitch.Not(If(IsConnected)),
+		Condition:        stateswitch.Not(If(internalmodels.IsConnected)),
 		DestinationState: stateswitch.State(models.HostStatusDisconnectedUnbound),
 		PostTransition:   th.PostRefreshHost(statusInfoDisconnected),
 	})
@@ -76,13 +77,13 @@ func NewPoolHostStateMachine(sm stateswitch.StateMachine, th *transitionHandler)
 			stateswitch.State(models.HostStatusDisconnectedUnbound),
 			stateswitch.State(models.HostStatusDiscoveringUnbound),
 		},
-		Condition:        stateswitch.And(If(IsConnected), If(IsMediaConnected), stateswitch.Not(If(HasInventory))),
+		Condition:        stateswitch.And(If(internalmodels.IsConnected), If(internalmodels.IsMediaConnected), stateswitch.Not(If(internalmodels.HasInventory))),
 		DestinationState: stateswitch.State(models.HostStatusDiscoveringUnbound),
 		PostTransition:   th.PostRefreshHost(statusInfoDiscovering),
 	})
 
-	var hasMinRequiredHardware = stateswitch.And(If(HasMinValidDisks), If(HasMinCPUCores), If(HasMinMemory))
-	sufficientToBeBound := stateswitch.And(hasMinRequiredHardware, If(IsHostnameValid), If(IsNTPSynced))
+	var hasMinRequiredHardware = stateswitch.And(If(internalmodels.HasMinValidDisks), If(internalmodels.HasMinCPUCores), If(internalmodels.HasMinMemory))
+	sufficientToBeBound := stateswitch.And(hasMinRequiredHardware, If(internalmodels.IsHostnameValid), If(internalmodels.IsNTPSynced))
 
 	// In order for this transition to be fired at least one of the validations in minRequiredHardwareValidations must fail.
 	// This transition handles the case that a host does not pass minimum hardware requirements for any of the roles
@@ -94,7 +95,7 @@ func NewPoolHostStateMachine(sm stateswitch.StateMachine, th *transitionHandler)
 			stateswitch.State(models.HostStatusInsufficientUnbound),
 			stateswitch.State(models.HostStatusKnownUnbound),
 		},
-		Condition: stateswitch.And(If(IsConnected), If(IsMediaConnected), If(HasInventory),
+		Condition: stateswitch.And(If(internalmodels.IsConnected), If(internalmodels.IsMediaConnected), If(internalmodels.HasInventory),
 			stateswitch.Not(sufficientToBeBound)),
 		DestinationState: stateswitch.State(models.HostStatusInsufficientUnbound),
 		PostTransition:   th.PostRefreshHost(statusInfoInsufficientHardware),
@@ -120,7 +121,7 @@ func NewPoolHostStateMachine(sm stateswitch.StateMachine, th *transitionHandler)
 			stateswitch.State(models.HostStatusInsufficientUnbound),
 			stateswitch.State(models.HostStatusKnownUnbound),
 		},
-		Condition: stateswitch.And(If(IsConnected), If(IsMediaConnected), If(HasInventory),
+		Condition: stateswitch.And(If(internalmodels.IsConnected), If(internalmodels.IsMediaConnected), If(internalmodels.HasInventory),
 			sufficientToBeBound),
 		DestinationState: stateswitch.State(models.HostStatusKnownUnbound),
 		PostTransition:   th.PostRefreshHost(statusInfoHostReadyToBeBound),

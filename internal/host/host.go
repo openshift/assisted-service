@@ -21,6 +21,7 @@ import (
 	"github.com/openshift/assisted-service/internal/host/hostcommands"
 	"github.com/openshift/assisted-service/internal/host/hostutil"
 	"github.com/openshift/assisted-service/internal/metrics"
+	internalmodels "github.com/openshift/assisted-service/internal/models"
 	"github.com/openshift/assisted-service/internal/operators"
 	"github.com/openshift/assisted-service/internal/provider/registry"
 	"github.com/openshift/assisted-service/models"
@@ -419,7 +420,7 @@ func (m *Manager) refreshStatusInternal(ctx context.Context, h *models.Host, c *
 		vc               *validationContext
 		err              error
 		conditions       map[string]bool
-		newValidationRes ValidationsStatus
+		newValidationRes internalmodels.HostValidationsStatus
 	)
 	vc, err = newValidationContext(h, c, i, db, inventoryCache, m.hwValidator)
 	if err != nil {
@@ -966,14 +967,14 @@ func (m *Manager) ReportValidationFailedMetrics(ctx context.Context, h *models.H
 		log.Warnf("Host %s in cluster %s doesn't contain any validations info, cannot report metrics for that host", h.ID, h.ClusterID)
 		return nil
 	}
-	var validationRes ValidationsStatus
+	var validationRes internalmodels.HostValidationsStatus
 	if err := json.Unmarshal([]byte(h.ValidationsInfo), &validationRes); err != nil {
 		log.WithError(err).Errorf("Failed to unmarshal validations info from host %s in cluster %s", h.ID, h.ClusterID)
 		return err
 	}
 	for _, vRes := range validationRes {
 		for _, v := range vRes {
-			if v.Status == ValidationFailure {
+			if v.Status == internalmodels.HostValidationFailure {
 				m.metricApi.HostValidationFailed(ocpVersion, emailDomain, models.HostValidationID(v.ID))
 			}
 		}
@@ -982,12 +983,12 @@ func (m *Manager) ReportValidationFailedMetrics(ctx context.Context, h *models.H
 }
 
 func (m *Manager) reportValidationStatusChanged(ctx context.Context, vc *validationContext, h *models.Host,
-	newValidationRes, currentValidationRes ValidationsStatus) {
+	newValidationRes, currentValidationRes internalmodels.HostValidationsStatus) {
 	log := logutil.FromContext(ctx, m.log)
 	for vCategory, vRes := range newValidationRes {
 		for _, v := range vRes {
 			if currentStatus, ok := m.getValidationStatus(currentValidationRes, vCategory, v.ID); ok {
-				if v.Status == ValidationFailure && currentStatus == ValidationSuccess {
+				if v.Status == internalmodels.HostValidationFailure && currentStatus == internalmodels.HostValidationSuccess {
 					log.Errorf("Host %s: validation '%s' that used to succeed is now failing", hostutil.GetHostnameForMsg(h), v.ID)
 					if vc.cluster != nil {
 						m.metricApi.HostValidationChanged(vc.cluster.OpenshiftVersion, vc.cluster.EmailDomain, models.HostValidationID(v.ID))
@@ -997,7 +998,7 @@ func (m *Manager) reportValidationStatusChanged(ctx context.Context, vc *validat
 					eventgen.SendHostValidationFailedEvent(ctx, m.eventsHandler, *h.ID, h.InfraEnvID, h.ClusterID,
 						hostutil.GetHostnameForMsg(h), v.ID.String())
 				}
-				if v.Status == ValidationSuccess && currentStatus == ValidationFailure {
+				if v.Status == internalmodels.HostValidationSuccess && currentStatus == internalmodels.HostValidationFailure {
 					log.Infof("Host %s: validation '%s' is now fixed", hostutil.GetHostnameForMsg(h), v.ID)
 					eventgen.SendHostValidationFixedEvent(ctx, m.eventsHandler, *h.ID, h.InfraEnvID, h.ClusterID,
 						hostutil.GetHostnameForMsg(h), v.ID.String())
@@ -1007,16 +1008,16 @@ func (m *Manager) reportValidationStatusChanged(ctx context.Context, vc *validat
 	}
 }
 
-func (m *Manager) getValidationStatus(vs ValidationsStatus, category string, vID validationID) (ValidationStatus, bool) {
+func (m *Manager) getValidationStatus(vs internalmodels.HostValidationsStatus, category string, vID internalmodels.HostValidationID) (internalmodels.HostValidationStatus, bool) {
 	for _, v := range vs[category] {
 		if v.ID == vID {
 			return v.Status, true
 		}
 	}
-	return ValidationStatus(""), false
+	return internalmodels.HostValidationStatus(""), false
 }
 
-func (m *Manager) didValidationChanged(ctx context.Context, newValidationRes, currentValidationRes ValidationsStatus) bool {
+func (m *Manager) didValidationChanged(ctx context.Context, newValidationRes, currentValidationRes internalmodels.HostValidationsStatus) bool {
 	if len(newValidationRes) == 0 {
 		// in order to be considered as a change, newValidationRes should not contain less data than currentValidations
 		return false
@@ -1024,7 +1025,7 @@ func (m *Manager) didValidationChanged(ctx context.Context, newValidationRes, cu
 	return !reflect.DeepEqual(newValidationRes, currentValidationRes)
 }
 
-func (m *Manager) updateValidationsInDB(ctx context.Context, db *gorm.DB, h *models.Host, newValidationRes ValidationsStatus) (*common.Host, error) {
+func (m *Manager) updateValidationsInDB(ctx context.Context, db *gorm.DB, h *models.Host, newValidationRes internalmodels.HostValidationsStatus) (*common.Host, error) {
 	b, err := json.Marshal(newValidationRes)
 	if err != nil {
 		return nil, err
@@ -1146,11 +1147,11 @@ func (m *Manager) IsValidMasterCandidate(h *models.Host, c *common.Cluster, db *
 }
 
 func (m *Manager) canBeMaster(conditions map[string]bool) bool {
-	return conditions[HasCPUCoresForRole.String()] &&
-		conditions[HasMemoryForRole.String()] &&
-		conditions[AreLsoRequirementsSatisfied.String()] &&
-		conditions[AreOdfRequirementsSatisfied.String()] &&
-		conditions[AreCnvRequirementsSatisfied.String()]
+	return conditions[internalmodels.HasCPUCoresForRole.String()] &&
+		conditions[internalmodels.HasMemoryForRole.String()] &&
+		conditions[internalmodels.AreLsoRequirementsSatisfied.String()] &&
+		conditions[internalmodels.AreOdfRequirementsSatisfied.String()] &&
+		conditions[internalmodels.AreCnvRequirementsSatisfied.String()]
 }
 
 func (m *Manager) GetHostValidDisks(host *models.Host) ([]*models.Disk, error) {
@@ -1263,7 +1264,7 @@ func (d *DisabledHostValidations) Decode(value string) error {
 	return nil
 }
 
-func (d DisabledHostValidations) IsDisabled(id validationID) bool {
+func (d DisabledHostValidations) IsDisabled(id internalmodels.HostValidationID) bool {
 	_, ok := d[id.String()]
 	return ok
 }

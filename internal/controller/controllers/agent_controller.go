@@ -35,6 +35,7 @@ import (
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/gencrypto"
 	"github.com/openshift/assisted-service/internal/host"
+	internalmodels "github.com/openshift/assisted-service/internal/models"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/auth"
 	logutil "github.com/openshift/assisted-service/pkg/log"
@@ -704,7 +705,7 @@ func validated(agent *aiv1beta1.Agent, status string, h *models.Host) {
 	if err == nil {
 		for _, vRes := range validationRes {
 			for _, v := range vRes {
-				if v.Status != host.ValidationSuccess && v.Status != host.ValidationDisabled {
+				if v.Status != internalmodels.HostValidationSuccess && v.Status != internalmodels.HostValidationDisabled {
 					failures = append(failures, v.Message)
 				}
 			}

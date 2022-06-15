@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/openshift/assisted-service/internal/hardware"
+	internalmodels "github.com/openshift/assisted-service/internal/models"
 	"github.com/openshift/assisted-service/internal/operators"
 	"github.com/openshift/assisted-service/internal/operators/api"
 	"github.com/openshift/assisted-service/internal/provider/registry"
@@ -19,16 +20,6 @@ import (
 type stringer interface {
 	String() string
 }
-
-type ValidationResult struct {
-	ID      validationID     `json:"id"`
-	Status  ValidationStatus `json:"status"`
-	Message string           `json:"message"`
-}
-
-type ValidationsStatus map[string]ValidationResults
-
-type ValidationResults []ValidationResult
 
 type refreshPreprocessor struct {
 	log                     logrus.FieldLogger
@@ -58,22 +49,22 @@ func newRefreshPreprocessor(log logrus.FieldLogger, hwValidatorCfg *hardware.Val
 
 const validationDisabledByConfiguration = "Validation disabled by configuration"
 
-func (r *refreshPreprocessor) preprocess(c *validationContext) (map[string]bool, ValidationsStatus, error) {
+func (r *refreshPreprocessor) preprocess(c *validationContext) (map[string]bool, internalmodels.HostValidationsStatus, error) {
 	conditions := make(map[string]bool)
-	validationsOutput := make(ValidationsStatus)
+	validationsOutput := make(internalmodels.HostValidationsStatus)
 	for _, v := range r.validations {
 
-		var st ValidationStatus
+		var st internalmodels.HostValidationStatus
 		var message string
 		if r.disabledHostValidations.IsDisabled(v.id) {
-			st = ValidationDisabled
+			st = internalmodels.HostValidationDisabled
 			message = validationDisabledByConfiguration
 			conditions[v.id.String()] = true
 		} else {
 			st = v.condition(c)
-			conditions[v.id.String()] = funk.ContainsString([]string{ValidationSuccess.String(), ValidationSuccessSuppressOutput.String()}, st.String())
+			conditions[v.id.String()] = funk.ContainsString([]string{internalmodels.HostValidationSuccess.String(), internalmodels.HostValidationSuccessSuppressOutput.String()}, st.String())
 			// Don't output this validation status to validations in case that the output needs to be suppressed
-			if st == ValidationSuccessSuppressOutput {
+			if st == internalmodels.HostValidationSuccessSuppressOutput {
 				continue
 			}
 			message = v.formatter(c, st)
@@ -83,12 +74,12 @@ func (r *refreshPreprocessor) preprocess(c *validationContext) (map[string]bool,
 		if funk.Contains(v.skippedStates, c.host.Progress.CurrentStage) {
 			continue
 		}
-		category, err := v.id.category()
+		category, err := v.id.Category()
 		if err != nil {
-			logrus.WithError(err).Warn("id.category()")
+			logrus.WithError(err).Warn("id.Category()")
 			return nil, nil, err
 		}
-		validationsOutput[category] = append(validationsOutput[category], ValidationResult{
+		validationsOutput[category] = append(validationsOutput[category], internalmodels.HostValidationResult{
 			ID:      v.id,
 			Status:  st,
 			Message: message,
@@ -106,17 +97,17 @@ func (r *refreshPreprocessor) preprocess(c *validationContext) (map[string]bool,
 			return nil, nil, err
 		}
 		for _, result := range results {
-			id := validationID(result.ValidationId)
+			id := internalmodels.HostValidationID(result.ValidationId)
 			conditions[id.String()] = result.Status == api.Success
-			category, err := id.category()
+			category, err := id.Category()
 			if err != nil {
-				logrus.WithError(err).Warn("id.category()")
+				logrus.WithError(err).Warn("id.Category()")
 				return nil, nil, err
 			}
 
-			status := ValidationStatus(result.Status)
+			status := internalmodels.HostValidationStatus(result.Status)
 
-			validationsOutput[category] = append(validationsOutput[category], ValidationResult{
+			validationsOutput[category] = append(validationsOutput[category], internalmodels.HostValidationResult{
 				ID:      id,
 				Status:  status,
 				Message: strings.Join(result.Reasons, "\n"),
@@ -129,7 +120,7 @@ func (r *refreshPreprocessor) preprocess(c *validationContext) (map[string]bool,
 }
 
 // sortByValidationResultID sorts results by models.HostValidationID
-func sortByValidationResultID(validationResults []ValidationResult) {
+func sortByValidationResultID(validationResults []internalmodels.HostValidationResult) {
 	sort.SliceStable(validationResults, func(i, j int) bool {
 		return validationResults[i].ID < validationResults[j].ID
 	})
@@ -138,149 +129,149 @@ func sortByValidationResultID(validationResults []ValidationResult) {
 func newValidations(v *validator) []validation {
 	return []validation{
 		{
-			id:            IsConnected,
+			id:            internalmodels.IsConnected,
 			condition:     v.isConnected,
 			formatter:     v.printConnected,
 			skippedStates: manualRebootStages,
 		},
 		{
-			id:            IsMediaConnected,
+			id:            internalmodels.IsMediaConnected,
 			condition:     v.isMediaConnected,
 			formatter:     v.printMediaConnected,
 			skippedStates: manualRebootStages,
 		},
 		{
-			id:        HasInventory,
+			id:        internalmodels.HasInventory,
 			condition: v.hasInventory,
 			formatter: v.printHasInventory,
 		},
 		{
-			id:        HasMinCPUCores,
+			id:        internalmodels.HasMinCPUCores,
 			condition: v.hasMinCpuCores,
 			formatter: v.printHasMinCpuCores,
 		},
 		{
-			id:        HasMinMemory,
+			id:        internalmodels.HasMinMemory,
 			condition: v.hasMinMemory,
 			formatter: v.printHasMinMemory,
 		},
 		{
-			id:        HasMinValidDisks,
+			id:        internalmodels.HasMinValidDisks,
 			condition: v.hasMinValidDisks,
 			formatter: v.printHasMinValidDisks,
 		},
 		{
-			id:        IsMachineCidrDefined,
+			id:        internalmodels.IsMachineCidrDefined,
 			condition: v.isMachineCidrDefined,
 			formatter: v.printIsMachineCidrDefined,
 		},
 		{
-			id:        HasCPUCoresForRole,
+			id:        internalmodels.HasCPUCoresForRole,
 			condition: v.hasCPUCoresForRole,
 			formatter: v.printHasCPUCoresForRole,
 		},
 		{
-			id:        HasMemoryForRole,
+			id:        internalmodels.HasMemoryForRole,
 			condition: v.hasMemoryForRole,
 			formatter: v.printHasMemoryForRole,
 		},
 		{
-			id:        IsHostnameUnique,
+			id:        internalmodels.IsHostnameUnique,
 			condition: v.isHostnameUnique,
 			formatter: v.printHostnameUnique,
 		},
 		{
-			id:        BelongsToMachineCidr,
+			id:        internalmodels.BelongsToMachineCidr,
 			condition: v.belongsToMachineCidr,
 			formatter: v.printBelongsToMachineCidr,
 		},
 		{
-			id:        IsHostnameValid,
+			id:        internalmodels.IsHostnameValid,
 			condition: v.isHostnameValid,
 			formatter: v.printHostnameValid,
 		},
 		{
-			id:        IsIgnitionDownloadable,
+			id:        internalmodels.IsIgnitionDownloadable,
 			condition: v.isIgnitionDownloadable,
 			formatter: v.printIgnitionDownloadable,
 		},
 		{
-			id:        BelongsToMajorityGroup,
+			id:        internalmodels.BelongsToMajorityGroup,
 			condition: v.belongsToMajorityGroup,
 			formatter: v.printBelongsToMajorityGroup,
 		},
 		{
-			id:        IsPlatformNetworkSettingsValid,
+			id:        internalmodels.IsPlatformNetworkSettingsValid,
 			condition: v.isValidPlatformNetworkSettings,
 			formatter: v.printValidPlatformNetworkSettings,
 		},
 		{
-			id:            IsNTPSynced,
+			id:            internalmodels.IsNTPSynced,
 			condition:     v.isNTPSynced,
 			formatter:     v.printNTPSynced,
 			skippedStates: manualRebootStages,
 		},
 		{
-			id:        SucessfullOrUnknownContainerImagesAvailability,
+			id:        internalmodels.SucessfullOrUnknownContainerImagesAvailability,
 			condition: v.sucessfullOrUnknownContainerImagesAvailability,
 			formatter: v.printSucessfullOrUnknownContainerImagesAvailability,
 		},
 		{
-			id:        SufficientOrUnknownInstallationDiskSpeed,
+			id:        internalmodels.SufficientOrUnknownInstallationDiskSpeed,
 			condition: v.sufficientOrUnknownInstallationDiskSpeed,
 			formatter: v.printSufficientOrUnknownInstallationDiskSpeed,
 		},
 		{
-			id:        HasSufficientNetworkLatencyRequirementForRole,
+			id:        internalmodels.HasSufficientNetworkLatencyRequirementForRole,
 			condition: v.hasSufficientNetworkLatencyRequirementForRole,
 			formatter: v.printSufficientNetworkLatencyRequirementForRole,
 		}, {
-			id:        HasSufficientPacketLossRequirementForRole,
+			id:        internalmodels.HasSufficientPacketLossRequirementForRole,
 			condition: v.hasSufficientPacketLossRequirementForRole,
 			formatter: v.printSufficientPacketLossRequirementForRole,
 		},
 		{
-			id:        HasDefaultRoute,
+			id:        internalmodels.HasDefaultRoute,
 			condition: v.hasDefaultRoute,
 			formatter: v.printDefaultRoute,
 		},
 		{
-			id:        IsAPIDomainNameResolvedCorrectly,
+			id:        internalmodels.IsAPIDomainNameResolvedCorrectly,
 			condition: v.isAPIDomainNameResolvedCorrectly,
 			formatter: v.printIsAPIDomainNameResolvedCorrectly,
 		},
 		{
-			id:        IsAPIInternalDomainNameResolvedCorrectly,
+			id:        internalmodels.IsAPIInternalDomainNameResolvedCorrectly,
 			condition: v.isAPIInternalDomainNameResolvedCorrectly,
 			formatter: v.printIsAPIInternalDomainNameResolvedCorrectly,
 		},
 		{
-			id:        IsAppsDomainNameResolvedCorrectly,
+			id:        internalmodels.IsAppsDomainNameResolvedCorrectly,
 			condition: v.isAppsDomainNameResolvedCorrectly,
 			formatter: v.printIsAppsDomainNameResolvedCorrectly,
 		},
 		{
-			id:        CompatibleWithClusterPlatform,
+			id:        internalmodels.CompatibleWithClusterPlatform,
 			condition: v.compatibleWithClusterPlatform,
 			formatter: v.printCompatibleWithClusterPlatform,
 		},
 		{
-			id:        IsDNSWildcardNotConfigured,
+			id:        internalmodels.IsDNSWildcardNotConfigured,
 			condition: v.isDNSWildcardNotConfigured,
 			formatter: v.printIsDNSWildcardNotConfigured,
 		},
 		{
-			id:        DiskEncryptionRequirementsSatisfied,
+			id:        internalmodels.DiskEncryptionRequirementsSatisfied,
 			condition: v.diskEncryptionRequirementsSatisfied,
 			formatter: v.printDiskEncryptionRequirementsSatisfied,
 		},
 		{
-			id:        NonOverlappingSubnets,
+			id:        internalmodels.NonOverlappingSubnets,
 			condition: v.nonOverlappingSubnets,
 			formatter: v.printNonOverlappingSubnets,
 		},
 		{
-			id:        VSphereHostUUIDEnabled,
+			id:        internalmodels.VSphereHostUUIDEnabled,
 			condition: v.isVSphereDiskUUIDEnabled,
 			formatter: v.printVSphereUUIDEnabled,
 		},
@@ -325,11 +316,11 @@ func newConditions(v *validator) []condition {
 	return ret
 }
 
-func GetValidations(h *models.Host) (ValidationsStatus, error) {
-	var currentValidationRes ValidationsStatus
+func GetValidations(h *models.Host) (internalmodels.HostValidationsStatus, error) {
+	var currentValidationRes internalmodels.HostValidationsStatus
 	if h.ValidationsInfo != "" {
 		if err := json.Unmarshal([]byte(h.ValidationsInfo), &currentValidationRes); err != nil {
-			return ValidationsStatus{}, errors.Wrapf(err, "Failed to unmarshal validations info from host %s in cluster %s", h.ID, h.ClusterID)
+			return internalmodels.HostValidationsStatus{}, errors.Wrapf(err, "Failed to unmarshal validations info from host %s in cluster %s", h.ID, h.ClusterID)
 		}
 	}
 	return currentValidationRes, nil

@@ -15,6 +15,7 @@ import (
 	"github.com/openshift/assisted-service/internal/common"
 	serviceHost "github.com/openshift/assisted-service/internal/host"
 	"github.com/openshift/assisted-service/internal/host/hostutil"
+	internalmodels "github.com/openshift/assisted-service/internal/models"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/auth"
 )
@@ -397,7 +398,7 @@ var _ = Describe("Host tests", func() {
 
 				generateContainerImageAvailabilityPostStepReply(ctx, h, []*models.ContainerImageAvailability{imageStatus})
 				Expect(getHostImageStatus(*h.ID, imageStatus.Name)).Should(Equal(imageStatus))
-				waitForHostValidationStatus(clusterID, *infraEnvID, *h.ID, string(serviceHost.ValidationSuccess), models.HostValidationIDContainerImagesAvailable)
+				waitForHostValidationStatus(clusterID, *infraEnvID, *h.ID, string(internalmodels.HostValidationSuccess), models.HostValidationIDContainerImagesAvailable)
 			})
 
 			By("network failure", func() {
@@ -412,7 +413,7 @@ var _ = Describe("Host tests", func() {
 
 				generateContainerImageAvailabilityPostStepReply(ctx, h, []*models.ContainerImageAvailability{newImageStatus})
 				Expect(getHostImageStatus(*h.ID, imageStatus.Name)).Should(Equal(expectedImageStatus))
-				waitForHostValidationStatus(clusterID, *infraEnvID, *h.ID, string(serviceHost.ValidationFailure), models.HostValidationIDContainerImagesAvailable)
+				waitForHostValidationStatus(clusterID, *infraEnvID, *h.ID, string(internalmodels.HostValidationFailure), models.HostValidationIDContainerImagesAvailable)
 			})
 
 			By("network fixed", func() {
@@ -423,7 +424,7 @@ var _ = Describe("Host tests", func() {
 
 				generateContainerImageAvailabilityPostStepReply(ctx, h, []*models.ContainerImageAvailability{newImageStatus})
 				Expect(getHostImageStatus(*h.ID, imageStatus.Name)).Should(Equal(imageStatus))
-				waitForHostValidationStatus(clusterID, *infraEnvID, *h.ID, string(serviceHost.ValidationSuccess), models.HostValidationIDContainerImagesAvailable)
+				waitForHostValidationStatus(clusterID, *infraEnvID, *h.ID, string(internalmodels.HostValidationSuccess), models.HostValidationIDContainerImagesAvailable)
 			})
 		})
 
@@ -439,7 +440,7 @@ var _ = Describe("Host tests", func() {
 
 				generateContainerImageAvailabilityPostStepReply(ctx, h, []*models.ContainerImageAvailability{imageStatus})
 				Expect(getHostImageStatus(*h.ID, imageStatus.Name)).Should(Equal(imageStatus))
-				waitForHostValidationStatus(clusterID, *infraEnvID, *h.ID, string(serviceHost.ValidationFailure), models.HostValidationIDContainerImagesAvailable)
+				waitForHostValidationStatus(clusterID, *infraEnvID, *h.ID, string(internalmodels.HostValidationFailure), models.HostValidationIDContainerImagesAvailable)
 			})
 
 			By("network failure", func() {
@@ -454,7 +455,7 @@ var _ = Describe("Host tests", func() {
 
 				generateContainerImageAvailabilityPostStepReply(ctx, h, []*models.ContainerImageAvailability{newImageStatus})
 				Expect(getHostImageStatus(*h.ID, imageStatus.Name)).Should(Equal(expectedImageStatus))
-				waitForHostValidationStatus(clusterID, *infraEnvID, *h.ID, string(serviceHost.ValidationFailure), models.HostValidationIDContainerImagesAvailable)
+				waitForHostValidationStatus(clusterID, *infraEnvID, *h.ID, string(internalmodels.HostValidationFailure), models.HostValidationIDContainerImagesAvailable)
 			})
 
 			By("network fixed", func() {
@@ -472,7 +473,7 @@ var _ = Describe("Host tests", func() {
 
 				generateContainerImageAvailabilityPostStepReply(ctx, h, []*models.ContainerImageAvailability{newImageStatus})
 				Expect(getHostImageStatus(*h.ID, imageStatus.Name)).Should(Equal(expectedImageStatus))
-				waitForHostValidationStatus(clusterID, *infraEnvID, *h.ID, string(serviceHost.ValidationFailure), models.HostValidationIDContainerImagesAvailable)
+				waitForHostValidationStatus(clusterID, *infraEnvID, *h.ID, string(internalmodels.HostValidationFailure), models.HostValidationIDContainerImagesAvailable)
 			})
 		})
 
@@ -482,7 +483,7 @@ var _ = Describe("Host tests", func() {
 
 				generateContainerImageAvailabilityPostStepReply(ctx, h, []*models.ContainerImageAvailability{imageStatus})
 				Expect(getHostImageStatus(*h.ID, imageStatus.Name)).Should(Equal(imageStatus))
-				waitForHostValidationStatus(clusterID, *infraEnvID, *h.ID, string(serviceHost.ValidationFailure), models.HostValidationIDContainerImagesAvailable)
+				waitForHostValidationStatus(clusterID, *infraEnvID, *h.ID, string(internalmodels.HostValidationFailure), models.HostValidationIDContainerImagesAvailable)
 			})
 			By("network fixed", func() {
 				newImageStatus := common.TestImageStatusesSuccess
@@ -496,7 +497,7 @@ var _ = Describe("Host tests", func() {
 
 				generateContainerImageAvailabilityPostStepReply(ctx, h, []*models.ContainerImageAvailability{newImageStatus})
 				Expect(getHostImageStatus(*h.ID, imageStatus.Name)).Should(Equal(expectedImageStatus))
-				waitForHostValidationStatus(clusterID, *infraEnvID, *h.ID, string(serviceHost.ValidationSuccess), models.HostValidationIDContainerImagesAvailable)
+				waitForHostValidationStatus(clusterID, *infraEnvID, *h.ID, string(internalmodels.HostValidationSuccess), models.HostValidationIDContainerImagesAvailable)
 			})
 		})
 	})
