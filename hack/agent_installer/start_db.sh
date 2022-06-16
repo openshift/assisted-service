@@ -4,7 +4,10 @@ set -o nounset
 set -euo pipefail
 set -o errexit
 
-su - postgres -c "mkdir -p /tmp/postgres/data"
+/usr/bin/pg_ctl -D /tmp/postgres/data/ -l /tmp/postgres/logfile start 
 
-su - postgres -c "/usr/bin/initdb -D /tmp/postgres/data"
-su - postgres -c "/usr/bin/pg_ctl -D /tmp/postgres/data/ -l /tmp/postgres/logfile start"
+createuser -s admin -h localhost
+createdb installer -h localhost
+
+# To keep the db container up and running
+sleep infinity

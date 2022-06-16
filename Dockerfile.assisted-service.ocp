@@ -14,8 +14,12 @@ FROM registry.ci.openshift.org/ocp/4.11:base
 
 LABEL io.openshift.release.operator=true
 
+# ToDo: Replace postgres with SQLite DB 
+# https://issues.redhat.com/browse/AGENT-223
 RUN dnf install -y postgresql-server && dnf clean all
 COPY hack/agent_installer/start_db.sh start_db.sh
+RUN su - postgres -c "mkdir -p /tmp/postgres/data"
+RUN su - postgres -c "/usr/bin/initdb -D /tmp/postgres/data"
 
 ARG WORK_DIR=/data
 
