@@ -2,7 +2,6 @@ package infraenv
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/go-openapi/strfmt"
 	"github.com/openshift/assisted-service/internal/common"
@@ -87,20 +86,6 @@ func (m Manager) DeregisterInfraEnv(ctx context.Context, infraEnvId strfmt.UUID)
 	infraEnv, err := common.GetInfraEnvFromDB(m.db, infraEnvId)
 	if err != nil {
 		return err
-	}
-	// Delete discovery image for deregistered infraEnv
-	discoveryImage := fmt.Sprintf("%s.iso", fmt.Sprintf(s3wrapper.DiscoveryImageTemplate, infraEnvId.String()))
-	exists, err := m.objectHandler.DoesObjectExist(ctx, discoveryImage)
-	if err != nil {
-		log.WithError(err).Errorf("failed to deregister infraEnv %s", infraEnvId)
-		return err
-	}
-	if exists {
-		_, err = m.objectHandler.DeleteObject(ctx, discoveryImage)
-		if err != nil {
-			log.WithError(err).Errorf("failed to deregister infraEnv %s", infraEnvId)
-			return err
-		}
 	}
 
 	if err = m.db.Delete(infraEnv).Error; err != nil {

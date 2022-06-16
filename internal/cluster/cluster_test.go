@@ -2658,20 +2658,17 @@ var _ = Describe("Deregister inactive clusters", func() {
 	})
 
 	It("Deregister inactive cluster", func() {
-		mockS3Client.EXPECT().DoesObjectExist(gomock.Any(), gomock.Any()).Return(false, nil).Times(1)
 		Expect(state.DeregisterInactiveCluster(ctx, 10, strfmt.DateTime(time.Now()))).ShouldNot(HaveOccurred())
 		Expect(wasDeregisterd(db, *c.ID)).To(BeTrue())
 	})
 
 	It("Do noting, active cluster", func() {
-		mockS3Client.EXPECT().DoesObjectExist(gomock.Any(), gomock.Any()).Times(0)
 		lastActive := strfmt.DateTime(time.Now().Add(-time.Hour))
 		Expect(state.DeregisterInactiveCluster(ctx, 10, lastActive)).ShouldNot(HaveOccurred())
 		Expect(wasDeregisterd(db, *c.ID)).To(BeFalse())
 	})
 
 	It("Deregister inactive cluster with new clusters", func() {
-		mockS3Client.EXPECT().DoesObjectExist(gomock.Any(), gomock.Any()).Return(false, nil).Times(4)
 		inactiveCluster1 := registerCluster()
 		inactiveCluster2 := registerCluster()
 		inactiveCluster3 := registerCluster()
@@ -2696,7 +2693,6 @@ var _ = Describe("Deregister inactive clusters", func() {
 	})
 
 	It("Deregister inactive cluster limited", func() {
-		mockS3Client.EXPECT().DoesObjectExist(gomock.Any(), gomock.Any()).Return(false, nil).Times(3)
 		inactiveCluster1 := registerCluster()
 		inactiveCluster2 := registerCluster()
 		inactiveCluster3 := registerCluster()
@@ -3133,21 +3129,7 @@ var _ = Describe("Validation metrics and events", func() {
 		common.DeleteTestDB(db, dbName)
 	})
 
-	It("Test DeregisterCluster before discovery image was generated", func() {
-		mockS3Client.EXPECT().DoesObjectExist(gomock.Any(), gomock.Any()).Return(false, nil).Times(1)
-		mockS3Client.EXPECT().DeleteObject(gomock.Any(), gomock.Any()).Times(0)
-		mockHost.EXPECT().ReportValidationFailedMetrics(ctx, gomock.Any(), openshiftVersion, emailDomain)
-		mockMetric.EXPECT().ClusterValidationFailed(openshiftVersion, emailDomain, models.ClusterValidationIDSufficientMastersCount)
-		mockEvents.EXPECT().SendClusterEvent(ctx, eventstest.NewEventMatcher(
-			eventstest.WithNameMatcher(eventgen.ClusterDeregisteredEventName),
-			eventstest.WithClusterIdMatcher(c.ID.String())))
-		err := m.DeregisterCluster(ctx, c)
-		Expect(err).ShouldNot(HaveOccurred())
-	})
-
-	It("Test DeregisterCluster after discovery image was generated", func() {
-		mockS3Client.EXPECT().DoesObjectExist(gomock.Any(), gomock.Any()).Return(true, nil).Times(1)
-		mockS3Client.EXPECT().DeleteObject(gomock.Any(), gomock.Any()).Return(true, nil).Times(1)
+	It("Test DeregisterCluster", func() {
 		mockHost.EXPECT().ReportValidationFailedMetrics(ctx, gomock.Any(), openshiftVersion, emailDomain)
 		mockMetric.EXPECT().ClusterValidationFailed(openshiftVersion, emailDomain, models.ClusterValidationIDSufficientMastersCount)
 		mockEvents.EXPECT().SendClusterEvent(ctx, eventstest.NewEventMatcher(

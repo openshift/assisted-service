@@ -210,7 +210,6 @@ func (m *Manager) RegisterAddHostsOCPCluster(c *common.Cluster, db *gorm.DB) err
 }
 
 func (m *Manager) DeregisterCluster(ctx context.Context, c *common.Cluster) error {
-
 	var metricsErr error
 	for _, h := range c.Hosts {
 		if err := m.hostAPI.ReportValidationFailedMetrics(ctx, h, c.OpenshiftVersion, c.EmailDomain); err != nil {
@@ -226,22 +225,7 @@ func (m *Manager) DeregisterCluster(ctx context.Context, c *common.Cluster) erro
 		return metricsErr
 	}
 
-	// Delete discovery image for deregistered cluster
-	discoveryImage := fmt.Sprintf("%s.iso", fmt.Sprintf(s3wrapper.DiscoveryImageTemplate, c.ID.String()))
-	exists, err := m.objectHandler.DoesObjectExist(ctx, discoveryImage)
-	if err != nil {
-		m.log.WithError(err).Errorf("Failed to find cluster discovery image %s", discoveryImage)
-		return err
-	}
-	if exists {
-		_, err = m.objectHandler.DeleteObject(ctx, discoveryImage)
-		if err != nil {
-			m.log.WithError(err).Errorf("Failed to delete cluster discovery image %s", discoveryImage)
-			return err
-		}
-	}
-
-	err = m.registrationAPI.DeregisterCluster(ctx, c)
+	err := m.registrationAPI.DeregisterCluster(ctx, c)
 	if err != nil {
 		eventgen.SendClusterDeregisterFailedEvent(ctx, m.eventsHandler, *c.ID, err.Error())
 	} else {
