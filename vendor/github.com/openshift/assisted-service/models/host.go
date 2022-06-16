@@ -151,7 +151,7 @@ type Host struct {
 
 	// status
 	// Required: true
-	// Enum: [discovering known disconnected insufficient disabled preparing-for-installation preparing-failed preparing-successful pending-for-input installing installing-in-progress installing-pending-user-action resetting-pending-user-action installed error resetting added-to-existing-cluster cancelled binding unbinding unbinding-pending-user-action known-unbound disconnected-unbound insufficient-unbound disabled-unbound discovering-unbound]
+	// Enum: [discovering known disconnected insufficient disabled preparing-for-installation preparing-failed preparing-successful pending-for-input installing installing-in-progress installing-pending-user-action resetting-pending-user-action installed error resetting added-to-existing-cluster cancelled binding unbinding unbinding-pending-user-action known-unbound disconnected-unbound insufficient-unbound disabled-unbound discovering-unbound reclaiming reclaiming-rebooting]
 	Status *string `json:"status"`
 
 	// status info
@@ -554,7 +554,7 @@ var hostTypeStatusPropEnum []interface{}
 
 func init() {
 	var res []string
-	if err := json.Unmarshal([]byte(`["discovering","known","disconnected","insufficient","disabled","preparing-for-installation","preparing-failed","preparing-successful","pending-for-input","installing","installing-in-progress","installing-pending-user-action","resetting-pending-user-action","installed","error","resetting","added-to-existing-cluster","cancelled","binding","unbinding","unbinding-pending-user-action","known-unbound","disconnected-unbound","insufficient-unbound","disabled-unbound","discovering-unbound"]`), &res); err != nil {
+	if err := json.Unmarshal([]byte(`["discovering","known","disconnected","insufficient","disabled","preparing-for-installation","preparing-failed","preparing-successful","pending-for-input","installing","installing-in-progress","installing-pending-user-action","resetting-pending-user-action","installed","error","resetting","added-to-existing-cluster","cancelled","binding","unbinding","unbinding-pending-user-action","known-unbound","disconnected-unbound","insufficient-unbound","disabled-unbound","discovering-unbound","reclaiming","reclaiming-rebooting"]`), &res); err != nil {
 		panic(err)
 	}
 	for _, v := range res {
@@ -641,6 +641,12 @@ const (
 
 	// HostStatusDiscoveringUnbound captures enum value "discovering-unbound"
 	HostStatusDiscoveringUnbound string = "discovering-unbound"
+
+	// HostStatusReclaiming captures enum value "reclaiming"
+	HostStatusReclaiming string = "reclaiming"
+
+	// HostStatusReclaimingRebooting captures enum value "reclaiming-rebooting"
+	HostStatusReclaimingRebooting string = "reclaiming-rebooting"
 )
 
 // prop value enum
