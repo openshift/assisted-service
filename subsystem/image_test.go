@@ -28,7 +28,7 @@ var _ = Describe("system-test image tests", func() {
 	)
 
 	BeforeEach(func() {
-		resp, err := user2BMClient.Versions.V2ListSupportedOpenshiftVersions(ctx, &versions.V2ListSupportedOpenshiftVersionsParams{})
+		resp, err := userBMClient.Versions.V2ListSupportedOpenshiftVersions(ctx, &versions.V2ListSupportedOpenshiftVersionsParams{})
 		Expect(err).NotTo(HaveOccurred())
 		Expect(resp.Payload).ShouldNot(BeEmpty())
 		ocpVersions = resp.Payload
