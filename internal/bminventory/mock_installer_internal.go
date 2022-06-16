@@ -86,7 +86,7 @@ func (mr *MockInstallerInternalsMockRecorder) CancelInstallationInternal(arg0, a
 }
 
 // DeregisterClusterInternal mocks base method.
-func (m *MockInstallerInternals) DeregisterClusterInternal(arg0 context.Context, arg1 installer.V2DeregisterClusterParams) error {
+func (m *MockInstallerInternals) DeregisterClusterInternal(arg0 context.Context, arg1 *common.Cluster) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "DeregisterClusterInternal", arg0, arg1)
 	ret0, _ := ret[0].(error)

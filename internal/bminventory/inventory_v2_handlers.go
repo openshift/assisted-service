@@ -63,7 +63,29 @@ func (b *bareMetalInventory) V2GetCluster(ctx context.Context, params installer.
 }
 
 func (b *bareMetalInventory) V2DeregisterCluster(ctx context.Context, params installer.V2DeregisterClusterParams) middleware.Responder {
-	if err := b.DeregisterClusterInternal(ctx, params); err != nil {
+	log := logutil.FromContext(ctx, b.log)
+	cluster, err := common.GetClusterFromDB(b.db, params.ClusterID, common.UseEagerLoading)
+	if err != nil {
+		return common.NewApiError(http.StatusNotFound, err)
+	}
+
+	if b.ocmClient != nil {
+		if err = b.integrateWithAMSClusterDeregistration(ctx, cluster); err != nil {
+			log.WithError(err).Errorf("Cluster %s failed to integrate with AMS on cluster deregistration", params.ClusterID)
+			return common.NewApiError(http.StatusInternalServerError, err)
+		}
+	}
+
+	if err = b.deleteDNSRecordSets(ctx, *cluster); err != nil {
+		log.Warnf("failed to delete DNS record sets for base domain: %s", cluster.BaseDNSDomain)
+	}
+
+	if err = b.deleteOrUnbindHosts(ctx, cluster); err != nil {
+		log.WithError(err).Errorf("failed delete or unbind hosts when deregistering cluster: %s", params.ClusterID)
+		return common.NewApiError(http.StatusInternalServerError, err)
+	}
+
+	if err := b.DeregisterClusterInternal(ctx, cluster); err != nil {
 		return common.GenerateErrorResponder(err)
 	}
 	return installer.NewV2DeregisterClusterNoContent()

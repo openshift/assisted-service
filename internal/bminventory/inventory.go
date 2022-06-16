@@ -136,7 +136,7 @@ type InstallerInternals interface {
 	GetClusterByKubeKey(key types.NamespacedName) (*common.Cluster, error)
 	GetHostByKubeKey(key types.NamespacedName) (*common.Host, error)
 	InstallClusterInternal(ctx context.Context, params installer.V2InstallClusterParams) (*common.Cluster, error)
-	DeregisterClusterInternal(ctx context.Context, params installer.V2DeregisterClusterParams) error
+	DeregisterClusterInternal(ctx context.Context, cluster *common.Cluster) error
 	V2DeregisterHostInternal(ctx context.Context, params installer.V2DeregisterHostParams) error
 	GetCommonHostInternal(ctx context.Context, infraEnvId string, hostId string) (*common.Host, error)
 	UpdateHostApprovedInternal(ctx context.Context, infraEnvId string, hostId string, approved bool) error
@@ -781,35 +781,13 @@ func (b *bareMetalInventory) integrateWithAMSClusterDeregistration(ctx context.C
 	return nil
 }
 
-func (b *bareMetalInventory) DeregisterClusterInternal(ctx context.Context, params installer.V2DeregisterClusterParams) error {
+// DeregisterClusterInternal contains only what is required for the cluster deployment controller to deregister the cluster
+func (b *bareMetalInventory) DeregisterClusterInternal(ctx context.Context, cluster *common.Cluster) error {
 	log := logutil.FromContext(ctx, b.log)
-	var cluster *common.Cluster
-	var err error
-	log.Infof("Deregister cluster id %s", params.ClusterID)
+	log.Infof("Deregister cluster id %s", cluster.ID)
 
-	if cluster, err = common.GetClusterFromDB(b.db, params.ClusterID, common.UseEagerLoading); err != nil {
-		return common.NewApiError(http.StatusNotFound, err)
-	}
-
-	if b.ocmClient != nil {
-		if err = b.integrateWithAMSClusterDeregistration(ctx, cluster); err != nil {
-			log.WithError(err).Errorf("Cluster %s failed to integrate with AMS on cluster deregistration", params.ClusterID)
-			return common.NewApiError(http.StatusInternalServerError, err)
-		}
-	}
-
-	if err = b.deleteDNSRecordSets(ctx, *cluster); err != nil {
-		log.Warnf("failed to delete DNS record sets for base domain: %s", cluster.BaseDNSDomain)
-	}
-
-	if err = b.deleteOrUnbindHosts(ctx, cluster); err != nil {
-		log.WithError(err).Errorf("failed delete or unbind hosts when deregistering cluster: %s", params.ClusterID)
-		return common.NewApiError(http.StatusInternalServerError, err)
-	}
-
-	err = b.clusterApi.DeregisterCluster(ctx, cluster)
-	if err != nil {
-		log.WithError(err).Errorf("failed to deregister cluster %s", params.ClusterID)
+	if err := b.clusterApi.DeregisterCluster(ctx, cluster); err != nil {
+		log.WithError(err).Errorf("failed to deregister cluster %s", cluster.ID)
 		return common.NewApiError(http.StatusNotFound, err)
 	}
 	return nil

@@ -1314,9 +1314,7 @@ func (r *ClusterDeploymentsReconciler) deregisterClusterIfNeeded(ctx context.Con
 		return buildReply(err)
 	}
 
-	if err = r.Installer.DeregisterClusterInternal(ctx, installer.V2DeregisterClusterParams{
-		ClusterID: *c.ID,
-	}); err != nil {
+	if err = r.Installer.DeregisterClusterInternal(ctx, c); err != nil {
 		return buildReply(err)
 	}
 
