@@ -10,7 +10,6 @@ import (
 	"github.com/openshift/assisted-service/internal/infraenv"
 	"github.com/openshift/assisted-service/pkg/leader"
 	"github.com/openshift/assisted-service/pkg/s3wrapper"
-	"github.com/openshift/assisted-service/restapi/operations/installer"
 	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
 )
@@ -21,11 +20,6 @@ type Config struct {
 	InfraenvDeleteInactiveAfter time.Duration `envconfig:"INFRAENV_DELETED_INACTIVE_AFTER" default:"480h"` // 20d
 	MaxGCClustersPerInterval    int           `envconfig:"MAX_GC_CLUSTERS_PER_INTERVAL" default:"100"`
 	MaxGCInfraEnvsPerInterval   int           `envconfig:"MAX_GC_INFRAENVS_PER_INTERVAL" default:"100"`
-}
-
-type GarbageCollectors interface {
-	PermanentClustersDeletion(ctx context.Context, olderThan strfmt.DateTime, objectHandler s3wrapper.API) error
-	DeregisterClusterInternal(ctx context.Context, params installer.V2DeregisterClusterParams) error
 }
 
 func NewGarbageCollectors(
