@@ -212,18 +212,18 @@ func (r *Lexer) fetchFalse() {
 func (r *Lexer) fetchNumber() {
 	hasE := false
 	afterE := false
-	has := false
+	hasDot := false
 
 	r.pos++
 	for i, c := range r.Data[r.pos:] {
 		switch {
 		case c >= '0' && c <= '9':
 			afterE = false
-		case c == '.' && !has:
-			has = true
+		case c == '.' && !hasDot:
+			hasDot = true
 		case (c == 'e' || c == 'E') && !hasE:
 			hasE = true
-			has = true
+			hasDot = true
 			afterE = true
 		case (c == '+' || c == '-') && afterE:
 			afterE = false

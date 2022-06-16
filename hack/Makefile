@@ -30,7 +30,7 @@ generate-events:
 	tools/generate_events.py ./docs/events.yaml internal/common/events/events.go
 
 --remove-dashes-and-dots:
-	find models/ -name "*.go" -exec sed -i 's/Dash//g;s/Dot//g' {} \;
+	find models/ -name "*.go" -maxdepth 1 -exec sed -i 's/Dash//g;s/Dot//g' {} \;
 
 validate-swagger-file:
 	./hack/generate.sh validate_swagger_file
