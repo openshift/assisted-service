@@ -36,7 +36,7 @@ const (
 	// Usually safe normalizations
 	FlagRemoveTrailingSlash // http://host/path/ -> http://host/path
 	FlagAddTrailingSlash    // http://host/path -> http://host/path/ (should choose only one of these add/remove trailing slash flags)
-	FlagRemoveSegments   // http://host/path/./a/b/../c -> http://host/path/a/c
+	FlagRemoveDotSegments   // http://host/path/./a/b/../c -> http://host/path/a/c
 
 	// Unsafe normalizations
 	FlagRemoveDirectoryIndex   // http://host/path/index.html -> http://host/path/
@@ -52,7 +52,7 @@ const (
 	FlagDecodeDWORDHost           // http://1113982867 -> http://66.102.7.147
 	FlagDecodeOctalHost           // http://0102.0146.07.0223 -> http://66.102.7.147
 	FlagDecodeHexHost             // http://0x42660793 -> http://66.102.7.147
-	FlagRemoveUnnecessaryHosts // http://.host../path -> http://host/path
+	FlagRemoveUnnecessaryHostDots // http://.host../path -> http://host/path
 	FlagRemoveEmptyPortSeparator  // http://host:/path -> http://host/path
 
 	// Convenience set of safe normalizations
@@ -62,16 +62,16 @@ const (
 	// while "non-greedy" uses the "add (or keep) the trailing slash" and "add www. prefix".
 
 	// Convenience set of usually safe normalizations (includes FlagsSafe)
-	FlagsUsuallySafeGreedy    NormalizationFlags = FlagsSafe | FlagRemoveTrailingSlash | FlagRemoveSegments
-	FlagsUsuallySafeNonGreedy NormalizationFlags = FlagsSafe | FlagAddTrailingSlash | FlagRemoveSegments
+	FlagsUsuallySafeGreedy    NormalizationFlags = FlagsSafe | FlagRemoveTrailingSlash | FlagRemoveDotSegments
+	FlagsUsuallySafeNonGreedy NormalizationFlags = FlagsSafe | FlagAddTrailingSlash | FlagRemoveDotSegments
 
 	// Convenience set of unsafe normalizations (includes FlagsUsuallySafe)
 	FlagsUnsafeGreedy    NormalizationFlags = FlagsUsuallySafeGreedy | FlagRemoveDirectoryIndex | FlagRemoveFragment | FlagForceHTTP | FlagRemoveDuplicateSlashes | FlagRemoveWWW | FlagSortQuery
 	FlagsUnsafeNonGreedy NormalizationFlags = FlagsUsuallySafeNonGreedy | FlagRemoveDirectoryIndex | FlagRemoveFragment | FlagForceHTTP | FlagRemoveDuplicateSlashes | FlagAddWWW | FlagSortQuery
 
 	// Convenience set of all available flags
-	FlagsAllGreedy    = FlagsUnsafeGreedy | FlagDecodeDWORDHost | FlagDecodeOctalHost | FlagDecodeHexHost | FlagRemoveUnnecessaryHosts | FlagRemoveEmptyPortSeparator
-	FlagsAllNonGreedy = FlagsUnsafeNonGreedy | FlagDecodeDWORDHost | FlagDecodeOctalHost | FlagDecodeHexHost | FlagRemoveUnnecessaryHosts | FlagRemoveEmptyPortSeparator
+	FlagsAllGreedy    = FlagsUnsafeGreedy | FlagDecodeDWORDHost | FlagDecodeOctalHost | FlagDecodeHexHost | FlagRemoveUnnecessaryHostDots | FlagRemoveEmptyPortSeparator
+	FlagsAllNonGreedy = FlagsUnsafeNonGreedy | FlagDecodeDWORDHost | FlagDecodeOctalHost | FlagDecodeHexHost | FlagRemoveUnnecessaryHostDots | FlagRemoveEmptyPortSeparator
 )
 
 const (
@@ -86,7 +86,7 @@ var rxDupSlashes = regexp.MustCompile(`/{2,}`)
 var rxDWORDHost = regexp.MustCompile(`^(\d+)((?:\.+)?(?:\:\d*)?)$`)
 var rxOctalHost = regexp.MustCompile(`^(0\d*)\.(0\d*)\.(0\d*)\.(0\d*)((?:\.+)?(?:\:\d*)?)$`)
 var rxHexHost = regexp.MustCompile(`^0x([0-9A-Fa-f]+)((?:\.+)?(?:\:\d*)?)$`)
-var rxHosts = regexp.MustCompile(`^(.+?)(:\d+)?$`)
+var rxHostDots = regexp.MustCompile(`^(.+?)(:\d+)?$`)
 var rxEmptyPort = regexp.MustCompile(`:+$`)
 
 // Map of flags to implementation function.
@@ -99,7 +99,7 @@ var flagsOrder = []NormalizationFlags{
 	FlagLowercaseHost,
 	FlagRemoveDefaultPort,
 	FlagRemoveDirectoryIndex,
-	FlagRemoveSegments,
+	FlagRemoveDotSegments,
 	FlagRemoveFragment,
 	FlagForceHTTP, // Must be after remove default port (because https=443/http=80)
 	FlagRemoveDuplicateSlashes,
@@ -109,7 +109,7 @@ var flagsOrder = []NormalizationFlags{
 	FlagDecodeDWORDHost,
 	FlagDecodeOctalHost,
 	FlagDecodeHexHost,
-	FlagRemoveUnnecessaryHosts,
+	FlagRemoveUnnecessaryHostDots,
 	FlagRemoveEmptyPortSeparator,
 	FlagRemoveTrailingSlash, // These two (add/remove trailing slash) must be last
 	FlagAddTrailingSlash,
@@ -121,7 +121,7 @@ var flags = map[NormalizationFlags]func(*url.URL){
 	FlagLowercaseHost:             lowercaseHost,
 	FlagRemoveDefaultPort:         removeDefaultPort,
 	FlagRemoveDirectoryIndex:      removeDirectoryIndex,
-	FlagRemoveSegments:         removeSegments,
+	FlagRemoveDotSegments:         removeDotSegments,
 	FlagRemoveFragment:            removeFragment,
 	FlagForceHTTP:                 forceHTTP,
 	FlagRemoveDuplicateSlashes:    removeDuplicateSlashes,
@@ -131,7 +131,7 @@ var flags = map[NormalizationFlags]func(*url.URL){
 	FlagDecodeDWORDHost:           decodeDWORDHost,
 	FlagDecodeOctalHost:           decodeOctalHost,
 	FlagDecodeHexHost:             decodeHexHost,
-	FlagRemoveUnnecessaryHosts: removeUnncessaryHosts,
+	FlagRemoveUnnecessaryHostDots: removeUnncessaryHostDots,
 	FlagRemoveEmptyPortSeparator:  removeEmptyPortSeparator,
 	FlagRemoveTrailingSlash:       removeTrailingSlash,
 	FlagAddTrailingSlash:          addTrailingSlash,
@@ -231,10 +231,10 @@ func addTrailingSlash(u *url.URL) {
 	}
 }
 
-func removeSegments(u *url.URL) {
+func removeDotSegments(u *url.URL) {
 	if len(u.Path) > 0 {
 		var dotFree []string
-		var lastIs bool
+		var lastIsDot bool
 
 		sections := strings.Split(u.Path, "/")
 		for _, s := range sections {
@@ -245,7 +245,7 @@ func removeSegments(u *url.URL) {
 			} else if s != "." {
 				dotFree = append(dotFree, s)
 			}
-			lastIs = (s == "." || s == "..")
+			lastIsDot = (s == "." || s == "..")
 		}
 		// Special case if host does not end with / and new path does not begin with /
 		u.Path = strings.Join(dotFree, "/")
@@ -253,7 +253,7 @@ func removeSegments(u *url.URL) {
 			u.Path = "/" + u.Path
 		}
 		// Special case if the last segment was a dot, make sure the path ends with a slash
-		if lastIs && !strings.HasSuffix(u.Path, "/") {
+		if lastIsDot && !strings.HasSuffix(u.Path, "/") {
 			u.Path += "/"
 		}
 	}
@@ -360,9 +360,9 @@ func decodeHexHost(u *url.URL) {
 	}
 }
 
-func removeUnncessaryHosts(u *url.URL) {
+func removeUnncessaryHostDots(u *url.URL) {
 	if len(u.Host) > 0 {
-		if matches := rxHosts.FindStringSubmatch(u.Host); len(matches) > 1 {
+		if matches := rxHostDots.FindStringSubmatch(u.Host); len(matches) > 1 {
 			// Trim the leading and trailing dots
 			u.Host = strings.Trim(matches[1], ".")
 			if len(matches) > 2 {

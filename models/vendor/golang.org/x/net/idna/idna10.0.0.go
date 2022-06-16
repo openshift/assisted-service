@@ -71,13 +71,13 @@ func VerifyDNSLength(verify bool) Option {
 	return func(o *options) { o.verifyDNSLength = verify }
 }
 
-// RemoveLeadings removes leading label separators. Leading runes that map to
+// RemoveLeadingDots removes leading label separators. Leading runes that map to
 // dots, such as U+3002 IDEOGRAPHIC FULL STOP, are removed as well.
 //
 // This is the behavior suggested by the UTS #46 and is adopted by some
 // browsers.
-func RemoveLeadings(remove bool) Option {
-	return func(o *options) { o.removeLeadings = remove }
+func RemoveLeadingDots(remove bool) Option {
+	return func(o *options) { o.removeLeadingDots = remove }
 }
 
 // ValidateLabels sets whether to check the mandatory label validation criteria
@@ -154,7 +154,7 @@ type options struct {
 	useSTD3Rules      bool
 	validateLabels    bool
 	verifyDNSLength   bool
-	removeLeadings bool
+	removeLeadingDots bool
 
 	trie *idnaTrie
 
@@ -308,7 +308,7 @@ func (p *Profile) process(s string, toASCII bool) (string, error) {
 		s, isBidi, err = p.mapping(p, s)
 	}
 	// Remove leading empty labels.
-	if p.removeLeadings {
+	if p.removeLeadingDots {
 		for ; len(s) > 0 && s[0] == '.'; s = s[1:] {
 		}
 	}
