@@ -3437,8 +3437,7 @@ func (b *bareMetalInventory) V2ResetHost(ctx context.Context, params installer.V
 	}
 
 	if host.ClusterID == nil {
-		err = fmt.Errorf("host %s is not bound to any cluster, cannot reset host", params.HostID.String())
-		log.Errorf("ResetHost for host %s is forbidden: not a Day2 hosts", params.HostID.String())
+		log.Errorf("host %s is not bound to any cluster, cannot reset host", params.HostID.String())
 		return common.NewApiError(http.StatusConflict, fmt.Errorf("method only allowed when host assigned to an existing cluster"))
 	}
 
