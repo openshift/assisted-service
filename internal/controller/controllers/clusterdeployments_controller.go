@@ -126,16 +126,17 @@ func (r *ClusterDeploymentsReconciler) Reconcile(origCtx context.Context, req ct
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
-	// ignore unsupported platforms
-	if !isSupportedPlatform(clusterDeployment) {
-		return ctrl.Result{}, nil
-	}
-
-	clusterInstall := &hiveext.AgentClusterInstall{}
+	
 	if clusterDeployment.Spec.ClusterInstallRef == nil {
 		log.Infof("AgentClusterInstall not set for ClusterDeployment %s", clusterDeployment.Name)
 		return ctrl.Result{}, nil
 	}
+
+	// ignore unsupported platforms
+	if !isSupportedPlatform(clusterDeployment) {
+		return ctrl.Result{}, nil
+	}
+	clusterInstall := &hiveext.AgentClusterInstall{}
 
 	aciName := clusterDeployment.Spec.ClusterInstallRef.Name
 	err := r.Get(ctx,
