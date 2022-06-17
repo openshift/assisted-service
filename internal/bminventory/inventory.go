@@ -1721,9 +1721,7 @@ func (b *bareMetalInventory) v2UpdateClusterInternal(ctx context.Context, params
 
 	cluster.HostNetworks = b.calculateHostNetworks(log, cluster)
 	for _, host := range cluster.Hosts {
-		if err = b.customizeHost(&cluster.Cluster, host); err != nil {
-			return nil, err
-		}
+		b.customizeHost(&cluster.Cluster, host)
 		// Clear this field as it is not needed to be sent via API
 		host.FreeAddresses = ""
 	}
@@ -2593,9 +2591,7 @@ func (b *bareMetalInventory) GetClusterInternal(ctx context.Context, params inst
 
 	cluster.HostNetworks = b.calculateHostNetworks(log, cluster)
 	for _, host := range cluster.Hosts {
-		if err = b.customizeHost(&cluster.Cluster, host); err != nil {
-			return nil, err
-		}
+		b.customizeHost(&cluster.Cluster, host)
 		// Clear this field as it is not needed to be sent via API
 		host.FreeAddresses = ""
 	}
@@ -3408,9 +3404,7 @@ func (b *bareMetalInventory) CancelInstallationInternal(ctx context.Context, par
 		if err := b.hostApi.CancelInstallation(ctx, h, "Installation was cancelled by user", tx); err != nil {
 			return nil, err
 		}
-		if err := b.customizeHost(&cluster.Cluster, h); err != nil {
-			return nil, err
-		}
+		b.customizeHost(&cluster.Cluster, h)
 	}
 
 	if err := tx.Commit().Error; err != nil {
@@ -3459,9 +3453,7 @@ func (b *bareMetalInventory) V2ResetHost(ctx context.Context, params installer.V
 		if errResponse := b.hostApi.ResetHost(ctx, &host.Host, "host was reset by user", tx); errResponse != nil {
 			return errResponse
 		}
-		if err = b.customizeHost(&cluster.Cluster, &host.Host); err != nil {
-			return err
-		}
+		b.customizeHost(&cluster.Cluster, &host.Host)
 		return nil
 	})
 
@@ -3609,14 +3601,14 @@ func (b *bareMetalInventory) getCluster(ctx context.Context, clusterID string, f
 	return cluster, nil
 }
 
-func (b *bareMetalInventory) customizeHost(cluster *models.Cluster, host *models.Host) error {
+// customizeHost sets the host progress and hostname; cluster may be nil
+func (b *bareMetalInventory) customizeHost(cluster *models.Cluster, host *models.Host) {
 	var isSno = false
 	if cluster != nil {
 		isSno = swag.StringValue(cluster.HighAvailabilityMode) == models.ClusterHighAvailabilityModeNone
 	}
 	host.ProgressStages = b.hostApi.GetStagesByRole(host, isSno)
 	host.RequestedHostname = hostutil.GetHostnameForMsg(host)
-	return nil
 }
 
 func proxySettingsChanged(params *models.V2ClusterUpdateParams, cluster *common.Cluster) bool {
@@ -3698,8 +3690,8 @@ func (b *bareMetalInventory) GetHostByKubeKey(key types.NamespacedName) (*common
 		c = &cluster.Cluster
 	}
 
-	err = b.customizeHost(c, &h.Host)
-	return h, err
+	b.customizeHost(c, &h.Host)
+	return h, nil
 }
 
 func (b *bareMetalInventory) V2ResetHostValidation(ctx context.Context, params installer.V2ResetHostValidationParams) middleware.Responder {
@@ -4406,10 +4398,7 @@ func (b *bareMetalInventory) V2RegisterHost(ctx context.Context, params installe
 		}
 	}
 
-	if err = b.customizeHost(c, host); err != nil {
-		eventgen.SendHostRegistrationSettingPropertiesFailedEvent(ctx, b.eventsHandler, *params.NewHostParams.HostID, params.InfraEnvID, host.ClusterID)
-		return common.GenerateErrorResponder(err)
-	}
+	b.customizeHost(c, host)
 
 	eventgen.SendHostRegistrationSucceededEvent(ctx, b.eventsHandler, *params.NewHostParams.HostID,
 		params.InfraEnvID, host.ClusterID, hostutil.GetHostnameForMsg(host))
@@ -4595,9 +4584,7 @@ func (b *bareMetalInventory) V2GetHost(ctx context.Context, params installer.V2G
 		c = &cluster.Cluster
 	}
 
-	if err := b.customizeHost(c, &host.Host); err != nil {
-		return common.GenerateErrorResponder(err)
-	}
+	b.customizeHost(c, &host.Host)
 
 	// Clear this field as it is not needed to be sent via API
 	host.FreeAddresses = ""
@@ -4773,9 +4760,7 @@ func (b *bareMetalInventory) V2ListHosts(ctx context.Context, params installer.V
 	}
 
 	for _, h := range hosts {
-		if err := b.customizeHost(nil, &h.Host); err != nil {
-			return common.GenerateErrorResponder(err)
-		}
+		b.customizeHost(nil, &h.Host)
 		// Clear this field as it is not needed to be sent via API
 		h.FreeAddresses = ""
 	}
@@ -5081,10 +5066,7 @@ func (b *bareMetalInventory) V2UpdateHostInternal(ctx context.Context, params in
 		return nil, common.NewApiError(http.StatusNotFound, err)
 	}
 
-	err = b.customizeHost(c, &host.Host)
-	if err != nil {
-		return nil, common.NewApiError(http.StatusInternalServerError, err)
-	}
+	b.customizeHost(c, &host.Host)
 
 	return host, nil
 }

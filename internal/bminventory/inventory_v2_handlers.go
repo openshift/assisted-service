@@ -179,9 +179,7 @@ func (b *bareMetalInventory) V2ResetCluster(ctx context.Context, params installe
 		if err := b.hostApi.ResetHost(ctx, h, "cluster was reset by user", tx); err != nil {
 			return common.GenerateErrorResponder(err)
 		}
-		if err := b.customizeHost(&cluster.Cluster, h); err != nil {
-			return installer.NewV2ResetClusterInternalServerError().WithPayload(common.GenerateError(http.StatusInternalServerError, err))
-		}
+		b.customizeHost(&cluster.Cluster, h)
 	}
 
 	if err := b.clusterApi.DeleteClusterFiles(ctx, cluster, b.objectHandler); err != nil {
