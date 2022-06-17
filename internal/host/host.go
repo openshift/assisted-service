@@ -635,8 +635,12 @@ func (m *Manager) UpdateInstallProgress(ctx context.Context, h *models.Host, pro
 			swag.StringValue(h.Status), models.HostStatusError, statusInfo)
 	case models.HostStageRebooting:
 		if swag.StringValue(h.Kind) == models.HostKindAddToExistingClusterHost {
+			infoMessage := statusInfo
+			if !m.kubeApiEnabled {
+				infoMessage = statusInfoRebootingDay2
+			}
 			_, err = hostutil.UpdateHostProgress(ctx, logutil.FromContext(ctx, m.log), m.db, m.eventsHandler, h.InfraEnvID, *h.ID,
-				swag.StringValue(h.Status), models.HostStatusAddedToExistingCluster, statusInfoRebootingDay2,
+				swag.StringValue(h.Status), models.HostStatusAddedToExistingCluster, infoMessage,
 				h.Progress.CurrentStage, models.HostStageDone, progress.ProgressInfo, extra...)
 			break
 		}
