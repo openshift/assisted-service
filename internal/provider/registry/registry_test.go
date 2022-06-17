@@ -114,6 +114,57 @@ spec:
         name: master-user-data
 status: {}
 `
+const machineSetManifestTemplate = `
+apiVersion: machine.openshift.io/v1beta1
+kind: MachineSet
+metadata:
+  creationTimestamp: null
+  labels:
+    machine.openshift.io/cluster-api-cluster: {{ .CLUSTER_NAME }}-xxxxx
+    machine.openshift.io/cluster-api-machine-role: worker
+    machine.openshift.io/cluster-api-machine-type: worker
+  name: {{ .CLUSTER_NAME }}-xxxxx-worker-0
+  namespace: openshift-machine-api
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      machine.openshift.io/cluster-api-cluster: {{ .CLUSTER_NAME }}-xxxxx
+      machine.openshift.io/cluster-api-machineset: {{ .CLUSTER_NAME }}-xxxxx-worker-0
+  template:
+    metadata:
+      labels:
+        machine.openshift.io/cluster-api-cluster: {{ .CLUSTER_NAME }}-xxxxx
+        machine.openshift.io/cluster-api-machine-role: worker
+        machine.openshift.io/cluster-api-machine-type: worker
+        machine.openshift.io/cluster-api-machineset: {{ .CLUSTER_NAME }}-xxxxx-worker-0
+    spec:
+      metadata: {}
+      providerSpec:
+        value:
+          apiVersion: ovirtproviderconfig.machine.openshift.io/v1beta1
+          cluster_id: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+          cpu:
+            cores: 4
+            sockets: 1
+            threads: 1
+          credentialsSecret:
+            name: ovirt-credentials
+          id: ""
+          kind: OvirtMachineProviderSpec
+          memory_mb: 16348
+          metadata:
+            creationTimestamp: null
+          name: ""
+          os_disk:
+            size_gb: 120
+          template_name: {{ .CLUSTER_NAME }}-xxxxx-rhcos
+          type: server
+          userDataSecret:
+            name: worker-user-data
+status:
+  replicas: 0
+`
 
 var _ = Describe("Test GetSupportedProvidersByHosts", func() {
 	bmInventory := getBaremetalInventoryStr("hostname0", "bootMode", true, false)
@@ -499,9 +550,11 @@ var _ = Describe("Test Hooks", func() {
 		})
 		It("ovirt PostCreateManifestsHook success", func() {
 			createMasterMachineManifests(workDir, "99", &cluster)
+			createMachineSetManifest(workDir, "99", &cluster)
 			err = providerRegistry.PostCreateManifestsHook(&cluster, &envVars, workDir)
 			Expect(err).To(BeNil())
 			verifyMasterMachineManifests(workDir, "99", &cluster, ovirtClient)
+			verifyMachineSetManifest(workDir, "99", &cluster)
 		})
 		It("ovirt PostCreateManifestsHook failure", func() {
 			createMasterMachineManifests(workDir, "50", &cluster)
@@ -533,6 +586,22 @@ func createMasterMachineManifests(workDir, filePrefix string, cluster *common.Cl
 	}
 }
 
+func createMachineSetManifest(workDir, filePrefix string, cluster *common.Cluster) {
+	baseDir := filepath.Join(workDir, "openshift")
+	tmpl, err := template.New("").Parse(machineSetManifestTemplate)
+	Expect(err).To(BeNil())
+	fileName := strings.Replace(ovirt.MachineSetFileNameGlobStr, "*", filePrefix, -1)
+	filePath := filepath.Join(baseDir, fileName)
+	manifestParams := map[string]interface{}{
+		"CLUSTER_NAME": cluster.Name,
+	}
+	buf := &bytes.Buffer{}
+	err = tmpl.Execute(buf, manifestParams)
+	Expect(err).To(BeNil())
+	err = ioutil.WriteFile(filePath, buf.Bytes(), 0600)
+	Expect(err).To(BeNil())
+}
+
 func verifyMasterMachineManifests(workDir, filePrefix string, cluster *common.Cluster, ovirtClient ovirtclient.Client) {
 	baseDir := filepath.Join(workDir, "openshift")
 	retryStragegy := ovirtclient.AutoRetry()
@@ -558,6 +627,18 @@ func verifyMasterMachineManifests(workDir, filePrefix string, cluster *common.Cl
 		}
 		Expect(found).To(BeTrue())
 	}
+}
+
+func verifyMachineSetManifest(workDir, filePrefix string, cluster *common.Cluster) {
+	baseDir := filepath.Join(workDir, "openshift")
+	fileName := strings.Replace(ovirt.MachineSetFileNameGlobStr, "*", filePrefix, -1)
+	filePath := filepath.Join(baseDir, fileName)
+	numReplicas := len(common.GetHostsByRole(cluster, models.HostRoleWorker))
+	replicasPattern := fmt.Sprintf(ovirt.ReplicasReplacementStrFmt, numReplicas)
+	manifestContent, err := ioutil.ReadFile(filePath)
+	Expect(err).To(BeNil())
+	manifestContentStr := string(manifestContent)
+	Expect(strings.Contains(manifestContentStr, replicasPattern)).To(BeFalse())
 }
 
 func createHost(isMaster bool, state string, inventory string) *models.Host {

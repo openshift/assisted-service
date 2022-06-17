@@ -20,4 +20,7 @@ const (
 	TemplateNamePatternStr            = "template_name: +.*"
 	TemplateNameReplacementStrFmt     = "template_name: %s"
 	MachineManifestFileNameGlobStrFmt = "*_openshift-cluster-api_master-machines-%d.yaml"
+	ReplicasPatternStr                = "replicas: +.*"
+	ReplicasReplacementStrFmt         = "replicas: %d"
+	MachineSetFileNameGlobStr         = "*_openshift-cluster-api_worker-machineset-0.yaml"
 )
