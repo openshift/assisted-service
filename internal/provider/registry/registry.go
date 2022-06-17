@@ -176,7 +176,7 @@ func (r *registry) PostCreateManifestsHook(cluster *common.Cluster, envVars *[]s
 
 func InitProviderRegistry(log logrus.FieldLogger) ProviderRegistry {
 	providerRegistry := NewProviderRegistry()
-	providerRegistry.Register(ovirt.NewOvirtProvider(log))
+	providerRegistry.Register(ovirt.NewOvirtProvider(log, nil))
 	providerRegistry.Register(vsphere.NewVsphereProvider(log))
 	providerRegistry.Register(baremetal.NewBaremetalProvider(log))
 	return providerRegistry
