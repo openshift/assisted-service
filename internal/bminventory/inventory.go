@@ -3684,10 +3684,12 @@ func (b *bareMetalInventory) GetHostByKubeKey(key types.NamespacedName) (*common
 	var c *models.Cluster
 	if h.ClusterID != nil {
 		cluster, err = common.GetClusterFromDB(b.db, *h.ClusterID, common.SkipEagerLoading)
-		if err != nil {
-			return h, fmt.Errorf("can not find a cluster for host %s", h.ID.String())
+		if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, err
 		}
-		c = &cluster.Cluster
+		if err == nil {
+			c = &cluster.Cluster
+		}
 	}
 
 	b.customizeHost(c, &h.Host)
