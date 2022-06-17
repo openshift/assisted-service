@@ -81,6 +81,7 @@ type Config struct {
 	DisabledHostvalidations  DisabledHostValidations `envconfig:"DISABLED_HOST_VALIDATIONS" default:""` // Which host validations to disable (should not run in preprocess)
 	BootstrapHostMAC         string                  `envconfig:"BOOTSTRAP_HOST_MAC" default:""`        // For ephemeral installer to ensure the bootstrap for the (single) cluster lands on the same host as assisted-service
 	MaxHostDisconnectionTime time.Duration           `envconfig:"HOST_MAX_DISCONNECTION_TIME" default:"3m"`
+	EnableVirtualInterfaces  bool                    `envconfig:"ENABLE_VIRTUAL_INTERFACES" default:"false"`
 }
 
 //go:generate mockgen --build_flags=--mod=mod -package=host -aux_files=github.com/openshift/assisted-service/internal/host/hostcommands=instruction_manager.go -destination=mock_host_api.go . API
@@ -349,6 +350,19 @@ func (m *Manager) updateInventory(ctx context.Context, cluster *common.Cluster, 
 		log.WithError(err).Errorf("not updating inventory - failed to check disks eligibility for host %s", h.ID)
 		return common.NewApiError(http.StatusInternalServerError, err)
 	}
+
+	// Remove virtual interfaces if the feature is not enabled
+	if !m.Config.EnableVirtualInterfaces {
+		var physicalInterfaces []*models.Interface = make([]*models.Interface, 0)
+		for _, intf := range inventory.Interfaces {
+			if intf.Type == "" || intf.Type == "physical" || intf.Type == "vlan" || intf.Type == "bond" {
+				// Empty interface type indicates an older agent, which only passes physical interfaces
+				physicalInterfaces = append(physicalInterfaces, intf)
+			}
+		}
+		inventory.Interfaces = physicalInterfaces
+	}
+
 	m.populateDisksId(inventory)
 	inventoryStr, err = common.MarshalInventory(inventory)
 	if err != nil {
