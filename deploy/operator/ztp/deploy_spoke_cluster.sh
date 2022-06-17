@@ -136,3 +136,4 @@ if [ ${SPOKE_CONTROLPLANE_AGENTS} -eq 1 ] ; then
 fi
 
 setup_libvirt_dns
+open_firewall_ports
