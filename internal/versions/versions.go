@@ -416,9 +416,6 @@ func (h *handler) validateVersions() error {
 			if swag.StringValue(osImage.URL) == "" {
 				return errors.Errorf(fmt.Sprintf(missingValueTemplate, "url", key))
 			}
-			if swag.StringValue(osImage.RootfsURL) == "" {
-				return errors.Errorf(fmt.Sprintf(missingValueTemplate, "rootfs_url", key))
-			}
 			if swag.StringValue(osImage.Version) == "" {
 				return errors.Errorf(fmt.Sprintf(missingValueTemplate, "version", key))
 			}

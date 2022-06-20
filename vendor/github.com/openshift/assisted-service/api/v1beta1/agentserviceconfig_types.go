@@ -33,6 +33,8 @@ type OSImage struct {
 	// Url specifies the path to the Operating System image.
 	Url string `json:"url"`
 	// rootFSUrl specifies the path to the root filesystem.
+	// +optional
+	// Deprecated: this field is ignored (will be removed in a future release).
 	RootFSUrl string `json:"rootFSUrl"`
 	// The CPU architecture of the image (x86_64/arm64/etc).
 	// +optional

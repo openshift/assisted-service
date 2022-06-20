@@ -75,7 +75,6 @@ with open("'${__root}/config/samples/agent-install.openshift.io_v1beta1_agentser
             "openshiftVersion": v["openshift_version"],
             "version": v["version"],
             "url": v["url"],
-            "rootFSUrl": v["rootfs_url"]
         } for v in json.loads(r"""'${OPERATOR_OS_IMAGES}'""")
     ]
     f.seek(0)

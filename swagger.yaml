@@ -6038,7 +6038,6 @@ definitions:
       - openshift_version
       - cpu_architecture
       - url
-      - rootfs_url
       - version
     properties:
       openshift_version:
@@ -6052,9 +6051,6 @@ definitions:
       url:
         type: string
         description: The base OS image used for the discovery iso.
-      rootfs_url:
-        type: string
-        description: The OS rootfs url.
       version:
         type: string
         description: Build ID of the OS image.

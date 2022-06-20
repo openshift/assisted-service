@@ -8464,7 +8464,6 @@ func init() {
         "openshift_version",
         "cpu_architecture",
         "url",
-        "rootfs_url",
         "version"
       ],
       "properties": {
@@ -8476,10 +8475,6 @@ func init() {
         },
         "openshift_version": {
           "description": "Version of the OpenShift cluster.",
-          "type": "string"
-        },
-        "rootfs_url": {
-          "description": "The OS rootfs url.",
           "type": "string"
         },
         "url": {
@@ -17629,7 +17624,6 @@ func init() {
         "openshift_version",
         "cpu_architecture",
         "url",
-        "rootfs_url",
         "version"
       ],
       "properties": {
@@ -17641,10 +17635,6 @@ func init() {
         },
         "openshift_version": {
           "description": "Version of the OpenShift cluster.",
-          "type": "string"
-        },
-        "rootfs_url": {
-          "description": "The OS rootfs url.",
           "type": "string"
         },
         "url": {
