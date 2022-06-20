@@ -218,24 +218,27 @@ var _ = Describe("installcmd", func() {
 
 		It("format_multiple_bootable_skip", func() {
 			sdi := createDisk("sdi", true)
-			sdi.ByPath = "pci-0000:04:00.0-fc-0x5006016b08603d0d-lun-0"
+			sdi.DriveType = models.DriveTypeFC
 			sdg := createDisk("sdg", true)
-			sdg.ByPath = "ip-10.188.2.249:3260-iscsi-iqn.2001-05.com.equallogic:0-fe83b6-aaea957cc-b6e9d343a9758fdc-volume-50a72e0c-0a4a-4b2d-92ab-b0500dfe5c64-lun-0"
+			sdg.DriveType = models.DriveTypeISCSI
 			sdd := createDisk("sdd", false)
 			sdd.IsInstallationMedia = true
 			sdj := createDisk("sdj", true)
 			sdj.ByPath = "/dev/mmcblk1boot1"
+			sdk := createDisk("sdk", true)
+			sdk.DriveType = models.DriveTypeLVM
 
 			disks := []*models.Disk{
 				sdb,                      //installation disk
 				sdh,                      //non-bootable-disk
 				sda,                      //bootable disk #1
 				sdc,                      //bootable disk #2
-				sdi,                      //skip bootable disk -fc-
-				sdg,                      //skip bootable disk -iscsi-
+				sdi,                      //skip bootable disk FC
+				sdg,                      //skip bootable disk iSCSI
 				createDisk("sdf", false), //non-bootable disk
 				sdd,                      //skip installation media
 				sdj,                      //skip mmcblk device
+				sdk,                      //skip bootable disk LVM
 			}
 			host.Inventory = getInventory(disks)
 			mockFormatEvent(sda, 1)
@@ -251,6 +254,7 @@ var _ = Describe("installcmd", func() {
 			verifyDiskFormatCommand(stepReply[0], sdi.ID, false)
 			verifyDiskFormatCommand(stepReply[0], sdg.ID, false)
 			verifyDiskFormatCommand(stepReply[0], sdj.ID, false)
+			verifyDiskFormatCommand(stepReply[0], sdk.ID, false)
 		})
 	})
 

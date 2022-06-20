@@ -226,10 +226,10 @@ func (i *installCmd) getMustGatherArgument(mustGatherMap versions.MustGatherVers
 
 func (i *installCmd) getDisksToFormat(ctx context.Context, host models.Host, inventory *models.Inventory) ([]string, error) {
 	formatDisks := make([]string, 0, len(inventory.Disks))
+	skipDriveTypes := []string{string(models.DriveTypeFC), string(models.DriveTypeISCSI), string(models.DriveTypeLVM)}
 	for _, disk := range inventory.Disks {
-		isFcIscsi := strings.Contains(disk.ByPath, "-fc-") || strings.Contains(disk.ByPath, "-iscsi-")
-		isMmcblk := strings.Contains(disk.ByPath, "mmcblk") //mmc devices should be treated as removable
-		if disk.Bootable && !disk.Removable && !isMmcblk && !isFcIscsi && !disk.IsInstallationMedia {
+		diskRemovable := disk.Removable || strings.Contains(disk.ByPath, "mmcblk") //mmc devices should be treated as removable
+		if disk.Bootable && !diskRemovable && !swag.ContainsStrings(skipDriveTypes, string(disk.DriveType)) && !disk.IsInstallationMedia {
 			formatDisks = append(formatDisks, hostutil.GetDeviceIdentifier(disk))
 			eventgen.SendQuickDiskFormatPerformedEvent(ctx, i.eventsHandler, *host.ID, host.InfraEnvID, host.ClusterID,
 				hostutil.GetHostnameForMsg(&host), disk.Name, hostutil.GetDeviceIdentifier(disk))
