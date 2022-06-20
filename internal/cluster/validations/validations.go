@@ -402,6 +402,13 @@ func ValidateIPAddresses(ipV6Supported bool, obj interface{}) error {
 		}
 	}
 
+	// MGMT-10869 revealed a missing validation for number of machine networks in case of a single-stack
+	// setup. This code covers that part.
+	if !reqDualStack && len(machineNetworks) > 1 {
+		err = errors.Errorf("Single-stack cluster cannot be created with multiple Machine Networks")
+		return err
+	}
+
 	return nil
 }
 
