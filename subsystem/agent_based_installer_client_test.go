@@ -20,7 +20,7 @@ var _ = Describe("RegisterClusterAndInfraEnv", func() {
 		modelCluster, registerClusterErr := agentbasedinstaller.RegisterCluster(ctx, log, userBMClient, pullSecret,
 			"../docs/hive-integration/crds/clusterDeployment.yaml",
 			"../docs/hive-integration/crds/agentClusterInstall.yaml",
-			"../docs/hive-integration/crds/clusterImageSet.yaml")
+			"../docs/hive-integration/crds/clusterImageSet.yaml", "")
 		Expect(registerClusterErr).NotTo(HaveOccurred())
 		Expect(modelCluster.APIVip).To(Equal("1.2.3.8"))
 		Expect(modelCluster.IngressVip).To(Equal("1.2.3.9"))
@@ -42,7 +42,7 @@ var _ = Describe("RegisterClusterAndInfraEnv", func() {
 		modelCluster, registerClusterErr := agentbasedinstaller.RegisterCluster(ctx, log, userBMClient, pullSecret,
 			"file-does-not-exist",
 			"../docs/hive-integration/crds/agentClusterInstall.yaml",
-			"../docs/hive-integration/crds/clusterImageSet.yaml")
+			"../docs/hive-integration/crds/clusterImageSet.yaml", "")
 		Expect(registerClusterErr).To(HaveOccurred())
 		Expect(modelCluster).To(BeNil())
 	})

@@ -21,7 +21,7 @@ import (
 )
 
 func RegisterCluster(ctx context.Context, log *log.Logger, bmInventory *client.AssistedInstall, pullSecret string, clusterDeploymentPath string,
-	agentClusterInstallPath string, clusterImageSetPath string) (*models.Cluster, error) {
+	agentClusterInstallPath string, clusterImageSetPath string, releaseImageMirror string) (*models.Cluster, error) {
 	var cd hivev1.ClusterDeployment
 	if cdErr := GetFileData(clusterDeploymentPath, &cd); cdErr != nil {
 		return nil, cdErr
@@ -36,7 +36,7 @@ func RegisterCluster(ctx context.Context, log *log.Logger, bmInventory *client.A
 	if releaseError != nil {
 		return nil, releaseError
 	}
-	releaseImageVersion, releaseImageCPUArch, versionArchError := getReleaseVersionAndCpuArch(log, releaseImage, "", pullSecret)
+	releaseImageVersion, releaseImageCPUArch, versionArchError := getReleaseVersionAndCpuArch(log, releaseImage, releaseImageMirror, pullSecret)
 	if versionArchError != nil {
 		return nil, versionArchError
 	}
