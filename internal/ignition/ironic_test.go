@@ -31,13 +31,14 @@ var _ = Describe("Ignition with converged flow", func() {
 		}
 	})
 	It("GenerateIronicConfig success", func() {
-		iib = NewIronicIgniotionBuilder(IronicIgniotionBuilderConfig{BaremetalIronicAgentImage: "defaultIronicAgentImage:latest"})
+		config := IronicIgniotionBuilderConfig{BaremetalIronicAgentImage: "defaultIronicAgentImage:latest", BaremetalIronicAgentImageForArm: "defaultIronicAgentImageForArm:latest"}
+		iib = NewIronicIgniotionBuilder(config)
 
 		conf, err := iib.GenerateIronicConfig(ironicBaseURL, infraEnv, "")
 		Expect(err).NotTo(HaveOccurred())
 		Expect(conf).Should(ContainSubstring("ironic-agent.service"))
 		Expect(conf).Should(ContainSubstring(url.QueryEscape(ironicBaseURL)))
-		Expect(conf).Should(ContainSubstring("defaultIronicAgentImage:latest"))
+		Expect(conf).Should(ContainSubstring(config.BaremetalIronicAgentImage))
 		validateIgnition(conf)
 	})
 	It("GenerateIronicConfig override default ironic agent image", func() {
@@ -48,6 +49,19 @@ var _ = Describe("Ignition with converged flow", func() {
 		Expect(conf).Should(ContainSubstring("ironic-agent.service"))
 		Expect(conf).Should(ContainSubstring(url.QueryEscape(ironicBaseURL)))
 		Expect(conf).Should(ContainSubstring(ironicAgentImage))
+		validateIgnition(conf)
+	})
+	It("GenerateIronicConfig use default ironic agent image for arm", func() {
+		config := IronicIgniotionBuilderConfig{BaremetalIronicAgentImage: "defaultIronicAgentImage:latest", BaremetalIronicAgentImageForArm: "defaultIronicAgentImageForArm:latest"}
+		iib = NewIronicIgniotionBuilder(config)
+		infraEnv.CPUArchitecture = common.ARM64CPUArchitecture
+
+		conf, err := iib.GenerateIronicConfig(ironicBaseURL, infraEnv, "")
+		Expect(err).NotTo(HaveOccurred())
+		Expect(conf).Should(ContainSubstring("ironic-agent.service"))
+		Expect(conf).Should(ContainSubstring(url.QueryEscape(ironicBaseURL)))
+		Expect(conf).Should(ContainSubstring(config.BaremetalIronicAgentImageForArm))
+		Expect(conf).ShouldNot(ContainSubstring(config.BaremetalIronicAgentImage))
 		validateIgnition(conf)
 	})
 	It("GenerateIronicConfig missing ironic service URL", func() {

@@ -194,6 +194,11 @@ The assisted agent will not reboot the machine at the end of the installation, i
 the assisted agent service and let the ironic agent to manage the machine power state
 
 You can disable the converged flow by setting the `ALLOW_COVERGED_FLOW` env to false [here](../operator.md#configuring-the-assisted-service-deployment)
+To set a different default ironicAgent image you can override the following env vars:
+The environment var for the ironicAgent image to be used on X86_64 CPU architecture:
+`IRONIC_AGENT_IMAGE`
+The environment var for the ironicAgent image to be used on arm64 CPU architecture:
+`IRONIC_AGENT_IMAGE_ARM`
 
 ## Working with mirror registry
 In case all of your images are in mirror registries, the service, discovery ISO, and installed nodes must be configured with the proper registries.conf and authentication certificate.  To do so, see the Mirror Registry Configuration section [here](../operator.md#mirror-registry-configuration).
