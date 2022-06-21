@@ -46,7 +46,12 @@ func newPreprovisioningImage(name, namespace string, labelKey string, labelValue
 			Namespace: namespace,
 			Labels:    AddLabel(nil, labelKey, labelValue),
 		},
-		Spec: metal3_v1alpha1.PreprovisioningImageSpec{},
+		Spec: metal3_v1alpha1.PreprovisioningImageSpec{
+			AcceptFormats: []metal3_v1alpha1.ImageFormat{
+				metal3_v1alpha1.ImageFormatISO,
+				metal3_v1alpha1.ImageFormatInitRD,
+			},
+		},
 	}
 }
 
@@ -268,6 +273,29 @@ var _ = Describe("PreprovisioningImage reconcile", func() {
 		res, err := pr.Reconcile(ctx, newPreprovisioningImageRequest(ppi))
 		Expect(err).To(BeNil())
 		Expect(res).To(Equal(ctrl.Result{}))
+	})
+	It("PreprovisioningImage doesn't accept ISO format", func() {
+		ppi = newPreprovisioningImage("testPPI", testNamespace, InfraEnvLabel, "testInfraEnv")
+		ppi.Spec.AcceptFormats = []metal3_v1alpha1.ImageFormat{metal3_v1alpha1.ImageFormatInitRD}
+		Expect(c.Create(ctx, ppi)).To(BeNil())
+
+		res, err := pr.Reconcile(ctx, newPreprovisioningImageRequest(ppi))
+		Expect(err).To(BeNil())
+		Expect(res).To(Equal(ctrl.Result{}))
+		key := types.NamespacedName{
+			Namespace: ppi.Namespace,
+			Name:      ppi.Name,
+		}
+		Expect(c.Get(ctx, key, ppi)).To(BeNil())
+		Expect(ppi.Status.ImageUrl).To(Equal(""))
+		readyCondition := meta.FindStatusCondition(ppi.Status.Conditions, string(metal3_v1alpha1.ConditionImageReady))
+		Expect(readyCondition.Status).To(Equal(metav1.ConditionFalse))
+		errorCondition := meta.FindStatusCondition(ppi.Status.Conditions, string(metal3_v1alpha1.ConditionImageError))
+		Expect(errorCondition.Status).To(Equal(metav1.ConditionTrue))
+		for _, condition := range []metav1.Condition{*readyCondition, *errorCondition} {
+			Expect(condition.Message).To(Equal("Unsupported image format"))
+			Expect(condition.Reason).To(Equal("Unsupported image format"))
+		}
 	})
 	It("internalInfraEnv not found", func() {
 		ppi = newPreprovisioningImage("testPPI", testNamespace, InfraEnvLabel, "testInfraEnv")
