@@ -195,12 +195,6 @@ func (w *WireMock) createStubsForCapabilityReview() error {
 	if _, err := w.createStubBareMetalCapabilityReview(fakePayloadClusterEditor, false); err != nil {
 		return err
 	}
-	if _, err := w.createStubArmCapabilityReview(fakePayloadUsername, OrgId1, false); err != nil {
-		return err
-	}
-	if _, err := w.createStubArmCapabilityReview(fakePayloadUsername2, OrgId2, true); err != nil {
-		return err
-	}
 	if _, err := w.createStubAccountsMgmt(fakePayloadUsername, OrgId1); err != nil {
 		return err
 	}
@@ -451,31 +445,6 @@ func (w *WireMock) createStubToken(testToken string) (string, error) {
 	}
 
 	return w.addStub(tokenStub)
-}
-
-func (w *WireMock) createStubArmCapabilityReview(username string, orgId string, result bool) (string, error) {
-	type CapabilityRequest struct {
-		Name     string `json:"capability"`
-		Type     string `json:"type"`
-		Username string `json:"account_username"`
-		Org      string `json:"organization_id"`
-	}
-
-	type CapabilityResponse struct {
-		Result string `json:"result"`
-	}
-
-	capabilityRequest := CapabilityRequest{
-		Name:     ocm.ArmCapabilityName,
-		Type:     ocm.OrganizationCapabilityType,
-		Username: username,
-		Org:      orgId,
-	}
-
-	capabilityResponse := CapabilityResponse{
-		Result: strconv.FormatBool(result),
-	}
-	return w.addCapabilityReviewStub(capabilityRequest, capabilityResponse)
 }
 
 func (w *WireMock) createStubBareMetalCapabilityReview(username string, result bool) (string, error) {

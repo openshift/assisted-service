@@ -12,7 +12,6 @@ import (
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/oc"
 	"github.com/openshift/assisted-service/models"
-	"github.com/openshift/assisted-service/pkg/auth"
 	"github.com/openshift/assisted-service/restapi"
 	operations "github.com/openshift/assisted-service/restapi/operations/versions"
 	"github.com/pkg/errors"
@@ -47,7 +46,7 @@ type Handler interface {
 func NewHandler(log logrus.FieldLogger, releaseHandler oc.Release,
 	versions Versions, osImages models.OsImages, releaseImages models.ReleaseImages,
 	mustGatherVersions MustGatherVersions,
-	releaseImageMirror string, authzHandler auth.Authorizer) (*handler, error) {
+	releaseImageMirror string) (*handler, error) {
 	h := &handler{
 		versions:           versions,
 		mustGatherVersions: mustGatherVersions,
@@ -56,7 +55,6 @@ func NewHandler(log logrus.FieldLogger, releaseHandler oc.Release,
 		releaseHandler:     releaseHandler,
 		releaseImageMirror: releaseImageMirror,
 		log:                log,
-		authzHandler:       authzHandler,
 	}
 
 	if err := h.validateVersions(); err != nil {
@@ -74,7 +72,6 @@ type handler struct {
 	osImages           models.OsImages
 	releaseImages      models.ReleaseImages
 	releaseHandler     oc.Release
-	authzHandler       auth.Authorizer
 	releaseImageMirror string
 	log                logrus.FieldLogger
 }
@@ -94,30 +91,12 @@ func (h *handler) V2ListComponentVersions(ctx context.Context, params operations
 
 func (h *handler) V2ListSupportedOpenshiftVersions(ctx context.Context, params operations.V2ListSupportedOpenshiftVersionsParams) middleware.Responder {
 	openshiftVersions := models.OpenshiftVersions{}
-	hasArmAuthorization := false
-	checkedForArmAuthorization := false
 
 	for _, releaseImage := range h.releaseImages {
 		key := *releaseImage.OpenshiftVersion
 		if swag.StringValue(releaseImage.CPUArchitecture) == "" {
 			// Empty implies default architecture
 			*releaseImage.CPUArchitecture = common.DefaultCPUArchitecture
-		}
-		if swag.StringValue(releaseImage.CPUArchitecture) == common.ARM64CPUArchitecture {
-			if !checkedForArmAuthorization {
-				checkedForArmAuthorization = true
-				if err := auth.ValidateAccessToCPUArchitecture(ctx, h.authzHandler, common.ARM64CPUArchitecture); err != nil {
-					if strings.Contains(err.Error(), auth.InvalidCPUArchitecture) {
-						continue
-					} else {
-						return common.GenerateErrorResponder(err)
-					}
-				}
-				hasArmAuthorization = true
-			}
-			if !hasArmAuthorization {
-				continue
-			}
 		}
 
 		openshiftVersion, exists := openshiftVersions[key]
