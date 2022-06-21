@@ -76,6 +76,12 @@ cat <<EOF
   PUBLIC_CONTAINER_REGISTRIES: 'quay.io,${PUBLIC_CONTAINER_REGISTRIES}'
 EOF
     fi
+    if [ -n "${ALLOW_CONVERGED_FLOW:-}" ]; then
+cat <<EOF
+  ALLOW_CONVERGED_FLOW: '${ALLOW_CONVERGED_FLOW}'
+EOF
+    fi
+
 }
 
 function mirror_config() {
