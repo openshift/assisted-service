@@ -836,7 +836,10 @@ func (g *installerGenerator) updateBootstrap(ctx context.Context, bootstrapPath 
 	}
 
 	// add new Network Manager config file that disables handling of /etc/resolv.conf
-	setNMConfigration(config)
+	// as there is no network scripts added in SNO mode (None) we should not touch Netmanager config
+	if !common.IsSingleNodeCluster(g.cluster) {
+		setNMConfigration(config)
+	}
 
 	err = writeIgnitionFile(bootstrapPath, config)
 	if err != nil {
