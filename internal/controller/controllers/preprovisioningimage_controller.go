@@ -34,6 +34,7 @@ import (
 	conditionsv1 "github.com/openshift/custom-resource-status/conditions/v1"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+	"github.com/thoas/go-funk"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -86,6 +87,13 @@ func (r *PreprovisioningImageReconciler) Reconcile(origCtx context.Context, req 
 	if err != nil {
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
+	if !funk.Contains(image.Spec.AcceptFormats, metal3_v1alpha1.ImageFormatISO) {
+		// Currently, the PreprovisioningImageController only support ISO image, remove this when working on MGMT-8864
+		log.Infof("Unsupported image format: %s", image.Spec.AcceptFormats)
+		setUnsupportedFormatCondition(image)
+		err = r.Status().Update(ctx, image)
+		return ctrl.Result{}, err
+	}
 	// Consider adding finalizer in case we need to clean up resources
 	// Retrieve InfraEnv
 	infraEnv, err := r.findInfraEnvForPreprovisioningImage(ctx, log, image)
@@ -106,7 +114,7 @@ func (r *PreprovisioningImageReconciler) Reconcile(origCtx context.Context, req 
 	imageTimePlusCooldown := infraEnv.Status.CreatedTime.Time.Add(InfraEnvImageCooldownPeriod)
 	if imageTimePlusCooldown.After(time.Now()) {
 		log.Info("InfraEnv image is too recent. Requeuing and retrying again soon")
-		setCoolDownCondition(image.GetGeneration(), &image.Status)
+		setCoolDownCondition(image)
 		err = r.Status().Update(ctx, image)
 		if err != nil {
 			return ctrl.Result{}, err
@@ -167,17 +175,30 @@ func (r *PreprovisioningImageReconciler) setImage(generation int64, status *meta
 	return nil
 }
 
-func setCoolDownCondition(generation int64, status *metal3_v1alpha1.PreprovisioningImageStatus) {
+func setCoolDownCondition(image *metal3_v1alpha1.PreprovisioningImage) {
 	message := "Waiting for InfraEnv image to cool down"
 	reason := imageConditionReason(message)
-	setImageCondition(generation, status,
+	setImageCondition(image.GetGeneration(), &image.Status,
 		metal3_v1alpha1.ConditionImageReady, metav1.ConditionFalse,
 		reason, message)
-	setImageCondition(generation, status,
+	setImageCondition(image.GetGeneration(), &image.Status,
 		metal3_v1alpha1.ConditionImageError, metav1.ConditionFalse,
 		reason, message)
 
 }
+
+func setUnsupportedFormatCondition(image *metal3_v1alpha1.PreprovisioningImage) {
+	message := "Unsupported image format"
+	reason := imageConditionReason(message)
+	setImageCondition(image.GetGeneration(), &image.Status,
+		metal3_v1alpha1.ConditionImageReady, metav1.ConditionFalse,
+		reason, message)
+	setImageCondition(image.GetGeneration(), &image.Status,
+		metal3_v1alpha1.ConditionImageError, metav1.ConditionTrue,
+		reason, message)
+
+}
+
 func setImageCondition(generation int64, status *metal3_v1alpha1.PreprovisioningImageStatus,
 	cond metal3_v1alpha1.ImageStatusConditionType, newStatus metav1.ConditionStatus,
 	reason imageConditionReason, message string) {
