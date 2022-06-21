@@ -229,7 +229,6 @@ var _ = Describe("PreprovisioningImage reconcile", func() {
 			validateStatus(infraEnv.Status.ISODownloadURL, conditionsv1.FindStatusCondition(infraEnv.Status.Conditions, aiv1beta1.ImageCreatedCondition), ppi)
 		})
 		It("Add the ironic Ignition to the infraEnv using the ironic agent image from the release", func() {
-
 			Expect(c.Create(ctx, infraEnv)).To(BeNil())
 			openshiftRelaseImage := "release-image:4.11.0"
 			ironicAgentImage := "ironic-image:4.11.0"
@@ -258,6 +257,32 @@ var _ = Describe("PreprovisioningImage reconcile", func() {
 			Expect(c.Get(ctx, key, infraEnv)).To(BeNil())
 			Expect(infraEnv.ObjectMeta.Annotations[EnableIronicAgentAnnotation]).To(Equal("true"))
 		})
+		It("infraEnv openshift version is too low, use the default ironic agent image", func() {
+			Expect(c.Create(ctx, infraEnv)).To(BeNil())
+			backendInfraEnv.OpenshiftVersion = "4.10.0-test.release"
+			backendInfraEnv.CPUArchitecture = "x86_64"
+			mockInstallerInternal.EXPECT().GetInfraEnvByKubeKey(gomock.Any()).Return(backendInfraEnv, nil)
+			mockInstallerInternal.EXPECT().UpdateInfraEnvInternal(gomock.Any(), gomock.Any(), gomock.Any()).
+				Do(func(ctx context.Context, params installer.UpdateInfraEnvParams, internalIgnitionConfig *string) {
+					Expect(params.InfraEnvID).To(Equal(*backendInfraEnv.ID))
+					Expect(params.InfraEnvUpdateParams.IgnitionConfigOverride).To(Equal(""))
+					Expect(*internalIgnitionConfig).Should(ContainSubstring("ironic"))
+					Expect(*internalIgnitionConfig).Should(ContainSubstring("ironic-agent-image:latest"))
+				}).Return(
+				&common.InfraEnv{InfraEnv: models.InfraEnv{ClusterID: sId, ID: &sId, DownloadURL: downloadURL, CPUArchitecture: infraEnvArch}, GeneratedAt: strfmt.DateTime(time.Now())}, nil).Times(1)
+			mockCRDEventsHandler.EXPECT().NotifyInfraEnvUpdates(infraEnv.Name, infraEnv.Namespace).Times(1)
+			res, err := pr.Reconcile(ctx, newPreprovisioningImageRequest(ppi))
+			Expect(err).To(BeNil())
+			Expect(res).To(Equal(ctrl.Result{}))
+
+			key := types.NamespacedName{
+				Namespace: testNamespace,
+				Name:      "testInfraEnv",
+			}
+			Expect(c.Get(ctx, key, infraEnv)).To(BeNil())
+			Expect(infraEnv.ObjectMeta.Annotations[EnableIronicAgentAnnotation]).To(Equal("true"))
+		})
+
 		It("infraEnv not found", func() {
 			res, err := pr.Reconcile(ctx, newPreprovisioningImageRequest(ppi))
 			Expect(err).To(BeNil())

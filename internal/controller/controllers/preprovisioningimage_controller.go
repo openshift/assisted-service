@@ -319,6 +319,14 @@ func (r *PreprovisioningImageReconciler) AddIronicAgentToInfraEnv(ctx context.Co
 }
 
 func (r *PreprovisioningImageReconciler) getIronicAgentImage(log logrus.FieldLogger, infraEnv common.InfraEnv) (string, error) {
+	SupportConvergedFlow, _ := common.VersionGreaterOrEqual(infraEnv.OpenshiftVersion, MinimalVersionForConvergedFlow)
+	// Get the ironic agent image from the release only if the openshift version is higher then the MinimalVersionForConvergedFlow
+	if !SupportConvergedFlow {
+		r.Log.Infof("Openshift version (%s) is lower than the minimal version for the converged flow (%s)."+
+			" this means that the service will use the default ironic agent image and not the ironic agent image from the release",
+			infraEnv.OpenshiftVersion, MinimalVersionForConvergedFlow)
+		return "", nil
+	}
 	releaseImage, err := r.VersionsHandler.GetReleaseImage(infraEnv.OpenshiftVersion, infraEnv.CPUArchitecture)
 	if err != nil {
 		return "", err

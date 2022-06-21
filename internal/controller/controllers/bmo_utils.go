@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/coreos/go-semver/semver"
 	v1 "github.com/openshift/api/config/v1"
+	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/network"
 	metal3iov1alpha1 "github.com/openshift/cluster-baremetal-operator/api/v1alpha1"
 	"github.com/pkg/errors"
@@ -16,7 +16,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-const MinimalVersionForConvergedFlow = "4.11.0"
+const MinimalVersionForConvergedFlow = "4.11.0-0"
 
 type BMOUtils struct {
 	// The methods of this receiver get called once before the cache is initialized hence we check the API directly
@@ -48,10 +48,11 @@ func (r *BMOUtils) ConvergedFlowAvailable() bool {
 	}
 	version := clusterOperator.Status.Versions[0].Version
 	r.log.Infof("The baremetal operator version is %s, the minimal version for the converged flow is %s", version, MinimalVersionForConvergedFlow)
-	cboVersion := semver.New(version)
-	// ignore PreRelease, anything that starts with 4.11.0 should allow converged flow
-	cboVersion.PreRelease = ""
-	available := cboVersion.Compare(*semver.New(MinimalVersionForConvergedFlow)) >= 0
+
+	available, err := common.VersionGreaterOrEqual(version, MinimalVersionForConvergedFlow)
+	if err != nil {
+		r.log.WithError(err).Error("Failed to compare CBO version to minimal version for converged flow")
+	}
 	r.log.Infof("Converged flow enabled: %t", available)
 	return available
 }
