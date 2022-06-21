@@ -53,12 +53,6 @@ func main() {
 		log.Fatal(err.Error())
 	}
 
-	var secret corev1.Secret
-	if secretErr := agentbasedinstaller.GetFileData(Options.PullSecretFile, &secret); secretErr != nil {
-		log.Fatal(secretErr.Error())
-	}
-	pullSecret := secret.StringData[".dockerconfigjson"]
-
 	clientConfig := client.Config{}
 	u, parseErr := url.Parse(Options.ServiceBaseUrl)
 	if parseErr != nil {
@@ -68,8 +62,18 @@ func main() {
 	clientConfig.URL = u
 	bmInventory := client.New(clientConfig)
 	ctx := context.Background()
-
 	log.Info("SERVICE_BASE_URL: " + Options.ServiceBaseUrl)
+
+	register(ctx, log, bmInventory)
+}
+
+func register(ctx context.Context, log *log.Logger, bmInventory *client.AssistedInstall) {
+	var secret corev1.Secret
+	if secretErr := agentbasedinstaller.GetFileData(Options.PullSecretFile, &secret); secretErr != nil {
+		log.Fatal(secretErr.Error())
+	}
+	pullSecret := secret.StringData[".dockerconfigjson"]
+
 	log.Info("Registering cluster")
 
 	modelsCluster, registerClusterErr := agentbasedinstaller.RegisterCluster(ctx, log, bmInventory, pullSecret,
