@@ -43,6 +43,7 @@ var Options struct {
 	NMStateConfigFile       string `envconfig:"NMSTATE_CONFIG_FILE" default:"/manifests/nmstateconfig.yaml"`
 	ServiceBaseUrl          string `envconfig:"SERVICE_BASE_URL" default:""`
 	ImageTypeISO            string `envconfig:"IMAGE_TYPE_ISO" default:"full-iso"`
+	ReleaseImageMirror      string `envconfig:"OPENSHIFT_INSTALL_RELEASE_IMAGE_MIRROR" default:""`
 }
 
 func main() {
@@ -72,7 +73,7 @@ func main() {
 	log.Info("Registering cluster")
 
 	modelsCluster, registerClusterErr := agentbasedinstaller.RegisterCluster(ctx, log, bmInventory, pullSecret,
-		Options.ClusterDeploymentFile, Options.AgentClusterInstallFile, Options.ClusterImageSetFile)
+		Options.ClusterDeploymentFile, Options.AgentClusterInstallFile, Options.ClusterImageSetFile, Options.ReleaseImageMirror)
 	if registerClusterErr != nil {
 		log.Fatal(registerClusterErr, "Failed to register cluster with assisted-service")
 	}
