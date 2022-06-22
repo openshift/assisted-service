@@ -3358,7 +3358,7 @@ var _ = Describe("Preflight Cluster Requirements", func() {
 		clusterID             strfmt.UUID
 		masterOCPRequirements = models.ClusterHostRequirementsDetails{
 			CPUCores:                         4,
-			DiskSizeGb:                       120,
+			DiskSizeGb:                       100,
 			RAMMib:                           16384,
 			InstallationDiskSpeedThresholdMs: 10,
 			NetworkLatencyThresholdMs:        pointer.Float64Ptr(100),
@@ -3366,7 +3366,7 @@ var _ = Describe("Preflight Cluster Requirements", func() {
 		}
 		workerOCPRequirements = models.ClusterHostRequirementsDetails{
 			CPUCores:                         2,
-			DiskSizeGb:                       120,
+			DiskSizeGb:                       100,
 			RAMMib:                           8192,
 			InstallationDiskSpeedThresholdMs: 10,
 			NetworkLatencyThresholdMs:        pointer.Float64Ptr(1000),

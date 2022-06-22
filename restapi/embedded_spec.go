@@ -2333,7 +2333,7 @@ func init() {
           {
             "type": "string",
             "format": "uuid",
-            "description": "The cluster to return preflight requrements for.",
+            "description": "The cluster to return preflight requirements for.",
             "name": "cluster_id",
             "in": "path",
             "required": true
@@ -11319,7 +11319,7 @@ func init() {
           {
             "type": "string",
             "format": "uuid",
-            "description": "The cluster to return preflight requrements for.",
+            "description": "The cluster to return preflight requirements for.",
             "name": "cluster_id",
             "in": "path",
             "required": true
