@@ -111,6 +111,37 @@ function gather_imageset_data() {
   done
 }
 
+function gather_capi_data() {
+  CAPI_CRS=(agentmachine agentcluster cluster machine machinedeployment machineset nodepool hostedcluster hostedcontrolplane)
+  capi_dir="${LOGS_DEST}/capi"
+  mkdir -p "${capi_dir}"
+
+  for cr in "${CAPI_CRS[@]}"; do
+    work_dir="${capi_dir}/${cr}"
+    mkdir -p "${work_dir}"
+
+    oc_items=$(oc get ${cr} -A -o json | jq -c '.items[]') || true
+    readarray -t objects < <(echo $oc_items)
+    for obj in "${objects[@]}"; do
+      obj_name=$(echo ${obj} | jq -r .metadata.name)
+      obj_namespace=$(echo ${obj} | jq -r .metadata.namespace)
+      oc get "${cr}" -n "${obj_namespace}" "${obj_name}" -o yaml > "${work_dir}/${obj_name}_${obj_namespace}.yaml" || true
+    done
+  done
+
+  oc logs deployment/operator -n hypershift > "${capi_dir}/hypershift.log" || true
+
+  # Detect namespace where the capi-provider lives. The specific name depends whether deployed standalone or via
+  # Hypershift, that's why we grep for both.
+  capi_provider_ns=$(oc get pods --no-headers -A -o jsonpath='{range .items[*]}{@.metadata.name}{" "}{@.metadata.namespace}{"\n"}' | egrep "capi-provider|cluster-api-provider-agent" | awk -F " " '{print $2}' | head -n1) || true
+  capi_provider_dir="${capi_dir}/${capi_provider_ns}"
+  mkdir -p "${capi_provider_dir}"
+
+  oc get pods -n ${capi_provider_ns} -o=custom-columns=NAME:.metadata.name --no-headers | xargs -r -I {} sh -c "oc logs {} -n ${capi_provider_ns} --all-containers > ${capi_provider_dir}/logs_{}.log" || true
+  oc get pods -n ${capi_provider_ns} -o=custom-columns=NAME:.metadata.name --no-headers | xargs -r -I {} sh -c "oc get pods -o yaml {} -n ${capi_provider_ns} > ${capi_provider_dir}/logs_{}.yaml" || true
+
+}
+
 function gather_all() {
   gather_hive_data
   gather_olm_data
@@ -121,6 +152,7 @@ function gather_all() {
   gather_agent_data
   gather_clusterdeployment_data
   gather_imageset_data
+  gather_capi_data
 }
 
 gather_all
