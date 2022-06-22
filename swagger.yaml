@@ -4676,6 +4676,12 @@ definitions:
         type: boolean
         description: Schedule workloads on masters
         default: false
+      schedulable_masters_forced_true:
+        type: boolean
+        description: |
+          Indicates if schedule workloads on masters will be enabled regardless the value of 'schedulable_masters' property.
+          Set to 'true' when not enough hosts are associated with this cluster to disable the scheduling on masters.
+        default: true
       updated_at:
         type: string
         format: date-time

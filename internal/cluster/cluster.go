@@ -43,7 +43,10 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 )
 
-const DhcpLeaseTimeoutMinutes = 2
+const (
+	DhcpLeaseTimeoutMinutes             = 2
+	ForceSchedulableMastersMaxHostCount = 5
+)
 
 var S3FileNames = []string{
 	constants.Kubeconfig,
@@ -119,6 +122,7 @@ type API interface {
 	PermanentClustersDeletion(ctx context.Context, olderThan strfmt.DateTime, objectHandler s3wrapper.API) error
 	DeregisterInactiveCluster(ctx context.Context, maxDeregisterPerInterval int, inactiveSince strfmt.DateTime) error
 	TransformClusterToDay2(ctx context.Context, cluster *common.Cluster, db *gorm.DB) error
+	RefreshSchedulableMastersForcedTrue(ctx context.Context, clusterID strfmt.UUID) error
 }
 
 type LogTimeoutConfig struct {
@@ -1353,5 +1357,37 @@ func (m *Manager) TransformClusterToDay2(ctx context.Context, cluster *common.Cl
 		log.Error(err)
 		return common.NewApiError(http.StatusInternalServerError, err)
 	}
+	return nil
+}
+
+func (m *Manager) RefreshSchedulableMastersForcedTrue(ctx context.Context, clusterID strfmt.UUID) error {
+	// Refresh the value of SchedulableMastersForcedTrue which depends on the number of hosts registered with the cluster
+	log := logutil.FromContext(ctx, m.log)
+	var cluster *common.Cluster
+	var err error
+
+	if cluster, err = common.GetClusterFromDBWithHosts(m.db, clusterID); err != nil {
+		log.WithError(err).Errorf("failed to find cluster %s", clusterID)
+		return err
+	}
+
+	newSchedulableMastersForcedTrue := len(cluster.Hosts) < ForceSchedulableMastersMaxHostCount
+	if cluster.SchedulableMastersForcedTrue == nil || newSchedulableMastersForcedTrue != *cluster.SchedulableMastersForcedTrue {
+		err = m.updateSchedulableMastersForcedTrue(ctx, clusterID, newSchedulableMastersForcedTrue)
+	}
+
+	return err
+}
+
+func (m *Manager) updateSchedulableMastersForcedTrue(ctx context.Context, clusterID strfmt.UUID, newSchedulableMastersForcedTrue bool) error {
+	log := logutil.FromContext(ctx, m.log)
+
+	query := "id = ?"
+	err := m.db.Model(&common.Cluster{}).Where(query, clusterID).Update("schedulable_masters_forced_true", newSchedulableMastersForcedTrue).Error
+	if err != nil {
+		log.WithError(err).Errorf("failed to update schedulable_masters_forced_true")
+		return common.NewApiError(http.StatusInternalServerError, err)
+	}
+
 	return nil
 }

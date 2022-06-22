@@ -1,6 +1,7 @@
 package common
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/go-openapi/strfmt"
@@ -236,6 +237,32 @@ var _ = Describe("compare OCP 4.10 versions", func() {
 	It("nightly release", func() {
 		is410Version, _ := VersionGreaterOrEqual("4.10.0-0.nightly-2022-01-23-013716", "4.10.0-0.alpha")
 		Expect(is410Version).Should(BeTrue())
+	})
+})
+
+var _ = Describe("Test AreMastersSchedulable", func() {
+	Context("for every combination of schedulableMastersForcedTrue and schedulableMasters", func() {
+		for _, test := range []struct {
+			schedulableMastersForcedTrue bool
+			schedulableMasters           bool
+			expectedSchedulableMasters   bool
+		}{
+			{schedulableMastersForcedTrue: false, schedulableMasters: false, expectedSchedulableMasters: false},
+			{schedulableMastersForcedTrue: false, schedulableMasters: true, expectedSchedulableMasters: true},
+			{schedulableMastersForcedTrue: true, schedulableMasters: false, expectedSchedulableMasters: true},
+			{schedulableMastersForcedTrue: true, schedulableMasters: true, expectedSchedulableMasters: true},
+		} {
+			test := test
+			It(fmt.Sprintf("schedulableMastersForcedTrue=%v schedulableMasters=%v AreMastersSchedulable? %v", test.schedulableMastersForcedTrue, test.schedulableMasters, test.expectedSchedulableMasters), func() {
+				cluster := &Cluster{
+					Cluster: models.Cluster{
+						SchedulableMastersForcedTrue: &test.schedulableMastersForcedTrue,
+						SchedulableMasters:           &test.schedulableMasters,
+					},
+				}
+				Expect(AreMastersSchedulable(cluster)).Should(Equal(test.expectedSchedulableMasters))
+			})
+		}
 	})
 })
 
