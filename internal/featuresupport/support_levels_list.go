@@ -28,10 +28,6 @@ var SupportLevelsList = models.FeatureSupportLevels{
 				SupportLevel: models.FeatureSupportLevelFeaturesItems0SupportLevelUnsupported,
 			},
 			{
-				FeatureID:    models.FeatureSupportLevelFeaturesItems0FeatureIDCLUSTERMANAGEDNETWORKINGWITHVMS,
-				SupportLevel: models.FeatureSupportLevelFeaturesItems0SupportLevelUnsupported,
-			},
-			{
 				FeatureID:    models.FeatureSupportLevelFeaturesItems0FeatureIDARM64ARCHITECTUREWITHCLUSTERMANAGEDNETWORKING,
 				SupportLevel: models.FeatureSupportLevelFeaturesItems0SupportLevelUnsupported,
 			},
@@ -57,10 +53,6 @@ var SupportLevelsList = models.FeatureSupportLevels{
 			// Unsupported features
 			{
 				FeatureID:    models.FeatureSupportLevelFeaturesItems0FeatureIDARM64ARCHITECTURE,
-				SupportLevel: models.FeatureSupportLevelFeaturesItems0SupportLevelUnsupported,
-			},
-			{
-				FeatureID:    models.FeatureSupportLevelFeaturesItems0FeatureIDCLUSTERMANAGEDNETWORKINGWITHVMS,
 				SupportLevel: models.FeatureSupportLevelFeaturesItems0SupportLevelUnsupported,
 			},
 			{
@@ -92,10 +84,6 @@ var SupportLevelsList = models.FeatureSupportLevels{
 				SupportLevel: models.FeatureSupportLevelFeaturesItems0SupportLevelUnsupported,
 			},
 			{
-				FeatureID:    models.FeatureSupportLevelFeaturesItems0FeatureIDCLUSTERMANAGEDNETWORKINGWITHVMS,
-				SupportLevel: models.FeatureSupportLevelFeaturesItems0SupportLevelUnsupported,
-			},
-			{
 				FeatureID:    models.FeatureSupportLevelFeaturesItems0FeatureIDARM64ARCHITECTUREWITHCLUSTERMANAGEDNETWORKING,
 				SupportLevel: models.FeatureSupportLevelFeaturesItems0SupportLevelUnsupported,
 			},
@@ -123,10 +111,6 @@ var SupportLevelsList = models.FeatureSupportLevels{
 				SupportLevel: models.FeatureSupportLevelFeaturesItems0SupportLevelDevPreview,
 			},
 			// Unsupported features
-			{
-				FeatureID:    models.FeatureSupportLevelFeaturesItems0FeatureIDCLUSTERMANAGEDNETWORKINGWITHVMS,
-				SupportLevel: models.FeatureSupportLevelFeaturesItems0SupportLevelUnsupported,
-			},
 			{
 				FeatureID:    models.FeatureSupportLevelFeaturesItems0FeatureIDARM64ARCHITECTUREWITHCLUSTERMANAGEDNETWORKING,
 				SupportLevel: models.FeatureSupportLevelFeaturesItems0SupportLevelUnsupported,
@@ -163,10 +147,6 @@ var SupportLevelsList = models.FeatureSupportLevels{
 				SupportLevel: models.FeatureSupportLevelFeaturesItems0SupportLevelDevPreview,
 			},
 			// Unsupported features
-			{
-				FeatureID:    models.FeatureSupportLevelFeaturesItems0FeatureIDCLUSTERMANAGEDNETWORKINGWITHVMS,
-				SupportLevel: models.FeatureSupportLevelFeaturesItems0SupportLevelUnsupported,
-			},
 		},
 	},
 }
