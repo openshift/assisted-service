@@ -12,6 +12,8 @@ FROM registry.ci.openshift.org/ocp/4.11:cli AS oc-image
 # Create final image
 FROM registry.ci.openshift.org/ocp/4.11:base
 
+LABEL io.openshift.release.operator=true
+
 ARG WORK_DIR=/data
 
 RUN mkdir $WORK_DIR && chmod 775 $WORK_DIR
