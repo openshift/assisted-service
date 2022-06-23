@@ -26,7 +26,9 @@ import (
 	"net/url"
 	"os"
 	"path"
+	"time"
 
+	"github.com/go-openapi/strfmt"
 	"github.com/openshift/assisted-service/cmd/agentbasedinstaller"
 
 	"github.com/kelseyhightower/envconfig"
@@ -48,6 +50,11 @@ var RegisterOptions struct {
 	NMStateConfigFile       string `envconfig:"NMSTATE_CONFIG_FILE" default:"/manifests/nmstateconfig.yaml"`
 	ImageTypeISO            string `envconfig:"IMAGE_TYPE_ISO" default:"full-iso"`
 	ReleaseImageMirror      string `envconfig:"OPENSHIFT_INSTALL_RELEASE_IMAGE_MIRROR" default:""`
+}
+
+var ConfigureOptions struct {
+	InfraEnvID    string `envconfig:"INFRA_ENV_ID" default:""`
+	HostConfigDir string `envconfig:"HOST_CONFIG_DIR" default:"/etc/assisted/hostconfig"`
 }
 
 func main() {
@@ -80,13 +87,16 @@ func main() {
 	}
 	switch os.Args[1] {
 	case "register":
-		register(ctx, log, bmInventory)
+		infraEnvID := register(ctx, log, bmInventory)
+		os.WriteFile("/etc/assisted/client_config", []byte("INFRA_ENV_ID="+infraEnvID), 0644)
+	case "configure":
+		configure(ctx, log, bmInventory)
 	default:
 		log.Fatalf("Unknown subcommand %s", os.Args[1])
 	}
 }
 
-func register(ctx context.Context, log *log.Logger, bmInventory *client.AssistedInstall) {
+func register(ctx context.Context, log *log.Logger, bmInventory *client.AssistedInstall) string {
 	err := envconfig.Process("", &RegisterOptions)
 	if err != nil {
 		log.Fatal(err.Error())
@@ -116,5 +126,41 @@ func register(ctx context.Context, log *log.Logger, bmInventory *client.Assisted
 		log.Fatal(registerInfraEnvErr, "Failed to register infraenv with assisted-service")
 	}
 
-	log.Info("Registered infraenv with id: " + modelsInfraEnv.ID.String())
+	infraEnvID := modelsInfraEnv.ID.String()
+	log.Info("Registered infraenv with id: " + infraEnvID)
+
+	return infraEnvID
+}
+
+func configure(ctx context.Context, log *log.Logger, bmInventory *client.AssistedInstall) {
+	err := envconfig.Process("", &ConfigureOptions)
+	if err != nil {
+		log.Fatal(err.Error())
+	}
+
+	if ConfigureOptions.InfraEnvID == "" {
+		log.Fatal("No INFRA_ENV_ID specified")
+	}
+
+	hostConfigs, err := agentbasedinstaller.LoadHostConfigs(ConfigureOptions.HostConfigDir)
+	if err != nil {
+		log.Fatal("Failed to load host configuration: ", err)
+	}
+
+	done := false
+	sleepTime := 1 * time.Second
+	for !done {
+		done, err = agentbasedinstaller.ApplyHostConfigs(ctx, log, bmInventory, hostConfigs, strfmt.UUID(ConfigureOptions.InfraEnvID))
+		if err != nil {
+			log.Fatal("Failed to apply host configuration: ", err)
+		}
+		if !done {
+			log.Infof("Sleeping for %v", sleepTime)
+			time.Sleep(sleepTime)
+			if sleepTime < (30 * time.Second) {
+				sleepTime = sleepTime * 2
+			}
+		}
+	}
+	log.Info("Configured all hosts")
 }
