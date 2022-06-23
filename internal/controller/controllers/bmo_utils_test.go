@@ -20,10 +20,9 @@ import (
 // The implementation should change so the tests validate basic happy flow
 var _ = Describe("BMOUtils", func() {
 	var (
-		c               client.Client
-		mockCtrl        *gomock.Controller
-		log             = common.GetTestLog().WithField("pkg", "cluster_baremetal_operator_helper")
-		clusterOperator *v1.ClusterOperator
+		c        client.Client
+		mockCtrl *gomock.Controller
+		log      = common.GetTestLog().WithField("pkg", "cluster_baremetal_operator_helper")
 	)
 	BeforeEach(func() {
 		var schemes = runtime.NewScheme()
@@ -32,14 +31,6 @@ var _ = Describe("BMOUtils", func() {
 		utilruntime.Must(metal3iov1alpha1.AddToScheme(schemes))
 		c = fakeclient.NewClientBuilder().WithScheme(schemes).Build()
 		mockCtrl = gomock.NewController(GinkgoT())
-		clusterOperator = &v1.ClusterOperator{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: "baremetal",
-			},
-			Status: v1.ClusterOperatorStatus{
-				Versions: []v1.OperandVersion{{Name: "baremetal", Version: "4.11.0"}},
-			},
-		}
 	})
 
 	AfterEach(func() {
@@ -52,6 +43,17 @@ var _ = Describe("BMOUtils", func() {
 				log:            log,
 				kubeAPIEnabled: true,
 			}
+			clusterOperator := CreateCBO("4.11.0")
+			Expect(c.Create(context.Background(), clusterOperator)).To(BeNil())
+			Expect(bmoUtils.ConvergedFlowAvailable()).Should(Equal(true))
+		})
+		It("converged flow available with nightly version", func() {
+			bmoUtils := BMOUtils{
+				c:              c,
+				log:            log,
+				kubeAPIEnabled: true,
+			}
+			clusterOperator := CreateCBO("4.11.0-0.nightly-2022-06-21-151125")
 			Expect(c.Create(context.Background(), clusterOperator)).To(BeNil())
 			Expect(bmoUtils.ConvergedFlowAvailable()).Should(Equal(true))
 		})
@@ -61,7 +63,7 @@ var _ = Describe("BMOUtils", func() {
 				log:            log,
 				kubeAPIEnabled: true,
 			}
-			clusterOperator.Status.Versions = []v1.OperandVersion{{Name: "baremetal", Version: "4.10.0"}}
+			clusterOperator := CreateCBO("4.10.0")
 			Expect(c.Create(context.Background(), clusterOperator)).To(BeNil())
 			Expect(bmoUtils.ConvergedFlowAvailable()).Should(Equal(false))
 		})
@@ -99,3 +101,17 @@ var _ = Describe("BMOUtils", func() {
 		})
 	})
 })
+
+func CreateCBO(version string) *v1.ClusterOperator {
+
+	clusterOperator := &v1.ClusterOperator{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "baremetal",
+		},
+		Status: v1.ClusterOperatorStatus{
+			Versions: []v1.OperandVersion{{Name: "baremetal", Version: version}},
+		},
+	}
+
+	return clusterOperator
+}
