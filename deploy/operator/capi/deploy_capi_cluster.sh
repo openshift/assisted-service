@@ -25,6 +25,7 @@ export ADD_NONE_PLATFORM_LIBVIRT_DNS="${ADD_NONE_PLATFORM_LIBVIRT_DNS:-false}"
 export LIBVIRT_NONE_PLATFORM_NETWORK="${LIBVIRT_NONE_PLATFORM_NETWORK:-ostestbm}"
 export LOAD_BALANCER_IP="${LOAD_BALANCER_IP:-192.168.111.1}"
 export HYPERSHIFT_IMAGE="${HYPERSHIFT_IMAGE:-quay.io/hypershift/hypershift-operator:latest}"
+export PROVIDER_IMAGE="${PROVIDER_IMAGE:-}"
 
 if [[ ${SPOKE_CONTROLPLANE_AGENTS} -eq 1 ]]; then
     export USER_MANAGED_NETWORKING="true"
@@ -118,8 +119,21 @@ echo "Installing HyperShift using upstream image"
 hypershift install --hypershift-image $HYPERSHIFT_IMAGE --namespace hypershift
 wait_for_pods "hypershift"
 
+if [ -z "$PROVIDER_IMAGE" ]
+then
+  echo "PROVIDER_IMAGE override not set"
+  export PROVIDER_FLAG_FOR_CREATE_COMMAND=""
+else
+  echo "PROVIDER_IMAGE override: $PROVIDER_IMAGE"
+  export PROVIDER_FLAG_FOR_CREATE_COMMAND=" --annotations hypershift.openshift.io/capi-provider-agent-image=$PROVIDER_IMAGE"
+fi
+
 echo "Creating HostedCluster"
-hypershift create cluster agent --name $ASSISTED_CLUSTER_NAME --base-domain redhat.example --pull-secret /root/pull-secret.json  --ssh-key /root/.ssh/id_rsa.pub --agent-namespace $SPOKE_NAMESPACE --namespace $SPOKE_NAMESPACE --control-plane-operator-image $HYPERSHIFT_IMAGE --release-image ${ASSISTED_OPENSHIFT_INSTALL_RELEASE_IMAGE:-${RELEASE_IMAGE}}
+hypershift create cluster agent --name $ASSISTED_CLUSTER_NAME --base-domain redhat.example --pull-secret /root/pull-secret.json \
+ --ssh-key /root/.ssh/id_rsa.pub --agent-namespace $SPOKE_NAMESPACE --namespace $SPOKE_NAMESPACE \
+ --control-plane-operator-image $HYPERSHIFT_IMAGE \
+ --release-image ${ASSISTED_OPENSHIFT_INSTALL_RELEASE_IMAGE:-${RELEASE_IMAGE}} \
+  $PROVIDER_FLAG_FOR_CREATE_COMMAND
 
 # Wait for a running hypershift cluster with no worker nodes
 wait_for_pods "$SPOKE_NAMESPACE-$ASSISTED_CLUSTER_NAME"
