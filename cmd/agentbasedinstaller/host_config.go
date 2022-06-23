@@ -64,6 +64,14 @@ func applyHostConfig(ctx context.Context, log *log.Logger, bmInventory *client.A
 		changed = true
 	}
 
+	role, err := config.Role()
+	if err != nil {
+		return err
+	}
+	if applyRole(log, host, inventory, role, updateParams) {
+		changed = true
+	}
+
 	if !changed {
 		log.Info("No configuration changes needed")
 		return nil
@@ -103,6 +111,21 @@ func applyRootDeviceHints(log *log.Logger, host *models.Host, inventory *models.
 	updateParams.DisksSelectedConfig = []*models.DiskConfigParams{
 		{ID: &diskID, Role: models.DiskRoleInstall},
 	}
+	return true
+}
+
+func applyRole(log *log.Logger, host *models.Host, inventory *models.Inventory, role *string, updateParams *models.HostUpdateParams) bool {
+	if role == nil {
+		log.Info("No role configured")
+		return false
+	}
+
+	if host.SuggestedRole == models.HostRole(*role) {
+		log.Infof("Host role %s already configured", *role)
+		return false
+	}
+
+	updateParams.HostRole = role
 	return true
 }
 
@@ -175,6 +198,26 @@ func (hc hostConfig) RootDeviceHints() (*bmh_v1alpha1.RootDeviceHints, error) {
 	}
 	log.Info("Read root device hints file")
 	return rdh, nil
+}
+
+func (hc hostConfig) Role() (*string, error) {
+	roleData, err := ioutil.ReadFile(path.Join(hc.configDir, "role"))
+	if err != nil {
+		if os.IsNotExist(err) {
+			log.Info("No role file found for host")
+			return nil, nil
+		}
+		return nil, fmt.Errorf("Failed to read role file: %w", err)
+	}
+
+	role := strings.TrimSpace(string(roleData))
+	if len(role) == 0 {
+		log.Info("Empty role")
+		return nil, nil
+	}
+
+	log.Infof("Found role %s", role)
+	return &role, nil
 }
 
 type HostConfigs []*hostConfig
