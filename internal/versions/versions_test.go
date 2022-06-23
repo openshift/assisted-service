@@ -489,7 +489,7 @@ var _ = Describe("list versions", func() {
 			mockRelease.EXPECT().GetOpenshiftVersion(
 				gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(customOcpVersion, nil).AnyTimes()
 			mockRelease.EXPECT().GetReleaseArchitecture(
-				gomock.Any(), gomock.Any(), gomock.Any()).Return(cpuArchitecture, nil).AnyTimes()
+				gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(cpuArchitecture, nil).AnyTimes()
 
 			releaseImage, err = h.AddReleaseImage(releaseImageUrl, pullSecret, "", "")
 			Expect(err).ShouldNot(HaveOccurred())
@@ -504,7 +504,7 @@ var _ = Describe("list versions", func() {
 			mockRelease.EXPECT().GetOpenshiftVersion(
 				gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(customOcpVersion, nil).AnyTimes()
 			mockRelease.EXPECT().GetReleaseArchitecture(
-				gomock.Any(), gomock.Any(), gomock.Any()).Return(cpuArchitecture, nil).AnyTimes()
+				gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(cpuArchitecture, nil).AnyTimes()
 
 			releaseImage, err = h.AddReleaseImage(releaseImageUrl, pullSecret, "", "")
 			Expect(err).ShouldNot(HaveOccurred())
@@ -519,7 +519,7 @@ var _ = Describe("list versions", func() {
 			mockRelease.EXPECT().GetOpenshiftVersion(
 				gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(customOcpVersion, nil).AnyTimes()
 			mockRelease.EXPECT().GetReleaseArchitecture(
-				gomock.Any(), gomock.Any(), gomock.Any()).Return(cpuArchitecture, nil).AnyTimes()
+				gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(cpuArchitecture, nil).AnyTimes()
 
 			releaseImage, err = h.AddReleaseImage(releaseImageUrl, pullSecret, "", "")
 			Expect(err).ShouldNot(HaveOccurred())
@@ -531,7 +531,7 @@ var _ = Describe("list versions", func() {
 			mockRelease.EXPECT().GetOpenshiftVersion(
 				gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return("", errors.New("invalid")).AnyTimes()
 			mockRelease.EXPECT().GetReleaseArchitecture(
-				gomock.Any(), gomock.Any(), gomock.Any()).Return(cpuArchitecture, nil).AnyTimes()
+				gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(cpuArchitecture, nil).AnyTimes()
 
 			_, err = h.AddReleaseImage(releaseImageUrl, pullSecret, "", "")
 			Expect(err).Should(HaveOccurred())
@@ -542,7 +542,7 @@ var _ = Describe("list versions", func() {
 			mockRelease.EXPECT().GetOpenshiftVersion(
 				gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(ocpVersion, nil).AnyTimes()
 			mockRelease.EXPECT().GetReleaseArchitecture(
-				gomock.Any(), gomock.Any(), gomock.Any()).Return(cpuArchitecture, nil).AnyTimes()
+				gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(cpuArchitecture, nil).AnyTimes()
 
 			_, err = h.AddReleaseImage("invalidRelease", pullSecret, "", "")
 			Expect(err).Should(HaveOccurred())
@@ -553,7 +553,7 @@ var _ = Describe("list versions", func() {
 			mockRelease.EXPECT().GetOpenshiftVersion(
 				gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(existingOcpVersion, nil).AnyTimes()
 			mockRelease.EXPECT().GetReleaseArchitecture(
-				gomock.Any(), gomock.Any(), gomock.Any()).Return(cpuArchitecture, nil).AnyTimes()
+				gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(cpuArchitecture, nil).AnyTimes()
 
 			releaseImageFromCache := funk.Find(h.releaseImages, func(releaseImage *models.ReleaseImage) bool {
 				return *releaseImage.OpenshiftVersion == existingOcpVersion && *releaseImage.CPUArchitecture == cpuArchitecture

@@ -39,7 +39,7 @@ type Release interface {
 	GetMustGatherImage(log logrus.FieldLogger, releaseImage string, releaseImageMirror string, pullSecret string) (string, error)
 	GetOpenshiftVersion(log logrus.FieldLogger, releaseImage string, releaseImageMirror string, pullSecret string) (string, error)
 	GetMajorMinorVersion(log logrus.FieldLogger, releaseImage string, releaseImageMirror string, pullSecret string) (string, error)
-	GetReleaseArchitecture(log logrus.FieldLogger, releaseImage string, pullSecret string) (string, error)
+	GetReleaseArchitecture(log logrus.FieldLogger, releaseImage string, releaseImageMirror string, pullSecret string) (string, error)
 	Extract(log logrus.FieldLogger, releaseImage string, releaseImageMirror string, cacheDir string, pullSecret string, platformType models.PlatformType) (string, error)
 }
 
@@ -145,11 +145,16 @@ func (r *release) GetMajorMinorVersion(log logrus.FieldLogger, releaseImage stri
 	return fmt.Sprintf("%d.%d", v.Segments()[0], v.Segments()[1]), nil
 }
 
-func (r *release) GetReleaseArchitecture(log logrus.FieldLogger, releaseImage string, pullSecret string) (string, error) {
-	if releaseImage == "" {
-		return "", errors.New("no releaseImage is provided")
+func (r *release) GetReleaseArchitecture(log logrus.FieldLogger, releaseImage string, releaseImageMirror string, pullSecret string) (string, error) {
+	var cmd string
+	if releaseImage == "" && releaseImageMirror == "" {
+		return "", errors.New("no releaseImage nor releaseImageMirror provided")
 	}
-	cmd := fmt.Sprintf(templateImageInfo, releaseImage)
+	if releaseImageMirror != "" {
+		cmd = fmt.Sprintf(templateImageInfo, releaseImageMirror)
+	} else {
+		cmd = fmt.Sprintf(templateImageInfo, releaseImage)
+	}
 	imageInfoStr, err := execute(log, r.executer, pullSecret, cmd)
 	if err != nil {
 		return "", err

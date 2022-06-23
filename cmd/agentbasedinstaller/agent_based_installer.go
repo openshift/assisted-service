@@ -119,7 +119,7 @@ func getReleaseVersionAndCpuArch(log *log.Logger, releaseImage string, releaseMi
 		return "", "", versionError
 	}
 
-	cpuArch, archError := releaseHandler.GetReleaseArchitecture(log, releaseImage, pullSecret)
+	cpuArch, archError := releaseHandler.GetReleaseArchitecture(log, releaseImage, releaseMirror, pullSecret)
 	if archError != nil {
 		return "", "", archError
 	}
