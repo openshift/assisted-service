@@ -51,24 +51,10 @@ items:
                 value: http
               - name: ASSISTED_SERVICE_HOST
                 value: assisted-service:8090
+              - name: IMAGE_SERVICE_SCHEME
+                value: REPLACE_IMAGE_SERVICE_SCHEME
+              - name: IMAGE_SERVICE_HOST
+                value: REPLACE_IMAGE_SERVICE_HOST
               - name: ALLOWED_DOMAINS
                 value: "*"
         serviceAccountName: assisted-service
-- apiVersion: v1
-  kind: Service
-  metadata:
-    annotations:
-      service.beta.kubernetes.io/aws-load-balancer-type: nlb
-    labels:
-      app: assisted-image-service
-    name: assisted-image-service
-    namespace: REPLACE_NAMESPACE
-  spec:
-    ports:
-      - name: assisted-image-service
-        port: 8080
-        protocol: TCP
-        targetPort: 8080
-    selector:
-      app: assisted-image-service
-    type: LoadBalancer
