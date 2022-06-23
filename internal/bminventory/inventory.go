@@ -113,6 +113,9 @@ type Config struct {
 	ISOImageType                        string            `envconfig:"ISO_IMAGE_TYPE" default:"full-iso"`
 	IPv6Support                         bool              `envconfig:"IPV6_SUPPORT" default:"true"`
 	DiskEncryptionSupport               bool              `envconfig:"DISK_ENCRYPTION_SUPPORT" default:"true"`
+
+	// InfraEnv ID for the ephemeral installer. Should not be set explicitly.Ephemeral (agent) installer sets this env var
+	InfraEnvID strfmt.UUID `envconfig:"INFRA_ENV_ID" default:""`
 }
 
 const minimalOpenShiftVersionForSingleNode = "4.8.0-0.0"
@@ -3856,10 +3859,18 @@ func (b *bareMetalInventory) RegisterInfraEnvInternal(
 	kubeKey *types.NamespacedName,
 	params installer.RegisterInfraEnvParams) (*common.InfraEnv, error) {
 
-	id := strfmt.UUID(uuid.New().String())
+	var id strfmt.UUID
+	log := logutil.FromContext(ctx, b.log)
+
+	if b.Config.InfraEnvID != "" {
+		id = b.Config.InfraEnvID
+		log.Debugf("Using randomly generated infra env id %s by agent installer", id)
+	} else {
+		id = strfmt.UUID(uuid.New().String())
+	}
 	url := installer.GetInfraEnvURL{InfraEnvID: id}
 
-	log := logutil.FromContext(ctx, b.log).WithField(ctxparams.ClusterId, id)
+	log = log.WithField(ctxparams.ClusterId, id)
 	log.Infof("Register infraenv: %s with id %s", swag.StringValue(params.InfraenvCreateParams.Name), id)
 	success := false
 	var err error
