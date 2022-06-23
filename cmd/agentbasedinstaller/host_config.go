@@ -10,10 +10,13 @@ import (
 	"strings"
 
 	"github.com/go-openapi/strfmt"
+	bmh_v1alpha1 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
 	"github.com/openshift/assisted-service/client"
 	"github.com/openshift/assisted-service/client/installer"
+	"github.com/openshift/assisted-service/internal/host/hostutil"
 	"github.com/openshift/assisted-service/models"
 	log "github.com/sirupsen/logrus"
+	"sigs.k8s.io/yaml"
 )
 
 func ApplyHostConfigs(ctx context.Context, log *log.Logger, bmInventory *client.AssistedInstall, hostConfigs HostConfigs, infraEnvID strfmt.UUID) (bool, error) {
@@ -53,6 +56,14 @@ func applyHostConfig(ctx context.Context, log *log.Logger, bmInventory *client.A
 	updateParams := &models.HostUpdateParams{}
 	changed := false
 
+	rdh, err := config.RootDeviceHints()
+	if err != nil {
+		return err
+	}
+	if applyRootDeviceHints(log, host, inventory, rdh, updateParams) {
+		changed = true
+	}
+
 	if !changed {
 		log.Info("No configuration changes needed")
 		return nil
@@ -68,6 +79,31 @@ func applyHostConfig(ctx context.Context, log *log.Logger, bmInventory *client.A
 		return fmt.Errorf("Failed to update Host: %w", err)
 	}
 	return nil
+}
+
+func applyRootDeviceHints(log *log.Logger, host *models.Host, inventory *models.Inventory, rdh *bmh_v1alpha1.RootDeviceHints, updateParams *models.HostUpdateParams) bool {
+	acceptableDisks := hostutil.GetAcceptableDisksWithHints(inventory.Disks, rdh)
+	if host.InstallationDiskID != "" {
+		for _, disk := range acceptableDisks {
+			if disk.ID == host.InstallationDiskID {
+				log.Infof("Selected disk %s already matches root device hints", host.InstallationDiskID)
+				return false
+			}
+		}
+	}
+
+	diskID := "/dev/not-found-by-hints"
+	if len(acceptableDisks) > 0 {
+		diskID = acceptableDisks[0].ID
+		log.Infof("Selecting disk %s for installation", diskID)
+	} else {
+		log.Info("No disk found matching root device hints")
+	}
+
+	updateParams.DisksSelectedConfig = []*models.DiskConfigParams{
+		{ID: &diskID, Role: models.DiskRoleInstall},
+	}
+	return true
 }
 
 func LoadHostConfigs(hostConfigDir string) (HostConfigs, error) {
@@ -121,6 +157,24 @@ type hostConfig struct {
 	configDir    string
 	macAddresses []string
 	hostID       strfmt.UUID
+}
+
+func (hc hostConfig) RootDeviceHints() (*bmh_v1alpha1.RootDeviceHints, error) {
+	hintData, err := ioutil.ReadFile(path.Join(hc.configDir, "root-device-hints.yaml"))
+	if err != nil {
+		if os.IsNotExist(err) {
+			log.Info("No root device hints file found for host")
+			return nil, nil
+		}
+		return nil, fmt.Errorf("Failed to read Root Device Hints file: %w", err)
+	}
+
+	rdh := &bmh_v1alpha1.RootDeviceHints{}
+	if err := yaml.UnmarshalStrict(hintData, rdh); err != nil {
+		return nil, fmt.Errorf("Failed to parse Root Device Hints file: %w", err)
+	}
+	log.Info("Read root device hints file")
+	return rdh, nil
 }
 
 type HostConfigs []*hostConfig
