@@ -438,11 +438,34 @@ var _ = Describe("AreMachineNetworksIdentical", func() {
 			},
 			expectedResult: false,
 		},
+		{
+			name: "Duplicate entries",
+			n1: []*models.MachineNetwork{
+				{
+					Cidr:      "1.2.3.0/24",
+					ClusterID: "id",
+				},
+				{
+					Cidr:      "5.6.7.0/24",
+					ClusterID: "id",
+				},
+			},
+			n2: []*models.MachineNetwork{
+				{
+					Cidr: "1.2.3.0/24",
+				},
+				{
+					Cidr: "1.2.3.0/24",
+				},
+			},
+			expectedResult: false,
+		},
 	}
 	for i := range tests {
 		t := tests[i]
 		It(t.name, func() {
 			Expect(AreMachineNetworksIdentical(t.n1, t.n2)).To(Equal(t.expectedResult))
+			Expect(AreMachineNetworksIdentical(t.n2, t.n1)).To(Equal(t.expectedResult))
 		})
 	}
 })

@@ -9,6 +9,7 @@ import (
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/models"
 	"github.com/pkg/errors"
+	"github.com/thoas/go-funk"
 )
 
 // GetHostAddressFamilies tests if a host has addresses in IPv4, in IPv6 family, or both
@@ -258,9 +259,11 @@ func areListsEquivalent(len1, len2 int, areItemsEquivalent func(int, int) bool) 
 	if len1 != len2 {
 		return false
 	}
+	var usedIndexes []int
 	containsEquivalentItem := func(index, length int) bool {
 		for i := 0; i != length; i++ {
-			if areItemsEquivalent(index, i) {
+			if !funk.ContainsInt(usedIndexes, i) && areItemsEquivalent(index, i) {
+				usedIndexes = append(usedIndexes, i)
 				return true
 			}
 		}
