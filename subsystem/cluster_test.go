@@ -1061,7 +1061,7 @@ var _ = Describe("cluster install", func() {
 		Expect(err).ShouldNot(HaveOccurred())
 		return reply.GetPayload().SuggestedRole
 	}
-	XIt("auto-assign", func() { // Test is too flaky in its behavior
+	It("auto-assign", func() {
 		By("register 3 hosts all with master hw information cluster expected to be ready")
 		clusterID := *cluster.ID
 		hosts, ips := register3nodes(ctx, clusterID, *infraEnvID, defaultCIDRv4)
@@ -1087,9 +1087,10 @@ var _ = Describe("cluster install", func() {
 		waitForClusterState(ctx, clusterID, models.ClusterStatusReady, defaultWaitForClusterStateTimeout,
 			IgnoreStateInfo)
 
-		By("expect h4 and h5 to be auto-assigned as masters")
-		Expect(getSuggestedRole(*h4.ID)).Should(Equal(models.HostRoleMaster))
-		Expect(getSuggestedRole(*h5.ID)).Should(Equal(models.HostRoleMaster))
+		//TODO: uncomment when the falkyness in assignment is solved
+		//By("expect h4 and h5 to be auto-assigned as masters")
+		//Expect(getSuggestedRole(*h4.ID)).Should(Equal(models.HostRoleMaster))
+		//Expect(getSuggestedRole(*h5.ID)).Should(Equal(models.HostRoleMaster))
 
 		By("add hosts with worker inventory expect the cluster to be ready")
 		h6 := &registerHost(*infraEnvID).Host
@@ -1121,8 +1122,9 @@ var _ = Describe("cluster install", func() {
 		}
 		Expect(getHostRole(*h1.ID)).Should(Equal(models.HostRoleWorker))
 		Expect(getHostRole(*h6.ID)).Should(Equal(models.HostRoleWorker))
-		Expect(getHostRole(*h4.ID)).Should(Equal(models.HostRoleMaster))
-		Expect(getHostRole(*h5.ID)).Should(Equal(models.HostRoleMaster))
+		//TODO: uncomment after the falkiness is solved
+		//Expect(getHostRole(*h4.ID)).Should(Equal(models.HostRoleMaster))
+		//Expect(getHostRole(*h5.ID)).Should(Equal(models.HostRoleMaster))
 		getReply, err := userBMClient.Installer.V2GetCluster(ctx, &installer.V2GetClusterParams{ClusterID: clusterID})
 		Expect(err).NotTo(HaveOccurred())
 		mastersCount := 0
