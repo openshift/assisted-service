@@ -35,13 +35,16 @@ import (
 )
 
 var Options struct {
+	ServiceBaseUrl string `envconfig:"SERVICE_BASE_URL" default:""`
+}
+
+var RegisterOptions struct {
 	ClusterDeploymentFile   string `envconfig:"CLUSTER_DEPLOYMENT_FILE" default:"/manifests/cluster-deployment.yaml"`
 	AgentClusterInstallFile string `envconfig:"AGENT_CLUSTER_INSTALL_FILE" default:"/manifests/agent-cluster-install.yaml"`
 	InfraEnvFile            string `envconfig:"INFRA_ENV_FILE" default:"/manifests/infraenv.yaml"`
 	PullSecretFile          string `envconfig:"PULL_SECRET_FILE" default:"/manifests/pull-secret.yaml"`
 	ClusterImageSetFile     string `envconfig:"CLUSTER_IMAGE_SET_FILE" default:"/manifests/cluster-image-set.yaml"`
 	NMStateConfigFile       string `envconfig:"NMSTATE_CONFIG_FILE" default:"/manifests/nmstateconfig.yaml"`
-	ServiceBaseUrl          string `envconfig:"SERVICE_BASE_URL" default:""`
 	ImageTypeISO            string `envconfig:"IMAGE_TYPE_ISO" default:"full-iso"`
 	ReleaseImageMirror      string `envconfig:"OPENSHIFT_INSTALL_RELEASE_IMAGE_MIRROR" default:""`
 }
@@ -68,8 +71,13 @@ func main() {
 }
 
 func register(ctx context.Context, log *log.Logger, bmInventory *client.AssistedInstall) {
+	err := envconfig.Process("", &RegisterOptions)
+	if err != nil {
+		log.Fatal(err.Error())
+	}
+
 	var secret corev1.Secret
-	if secretErr := agentbasedinstaller.GetFileData(Options.PullSecretFile, &secret); secretErr != nil {
+	if secretErr := agentbasedinstaller.GetFileData(RegisterOptions.PullSecretFile, &secret); secretErr != nil {
 		log.Fatal(secretErr.Error())
 	}
 	pullSecret := secret.StringData[".dockerconfigjson"]
@@ -77,7 +85,7 @@ func register(ctx context.Context, log *log.Logger, bmInventory *client.Assisted
 	log.Info("Registering cluster")
 
 	modelsCluster, registerClusterErr := agentbasedinstaller.RegisterCluster(ctx, log, bmInventory, pullSecret,
-		Options.ClusterDeploymentFile, Options.AgentClusterInstallFile, Options.ClusterImageSetFile, Options.ReleaseImageMirror)
+		RegisterOptions.ClusterDeploymentFile, RegisterOptions.AgentClusterInstallFile, RegisterOptions.ClusterImageSetFile, RegisterOptions.ReleaseImageMirror)
 	if registerClusterErr != nil {
 		log.Fatal(registerClusterErr, "Failed to register cluster with assisted-service")
 	}
@@ -87,7 +95,7 @@ func register(ctx context.Context, log *log.Logger, bmInventory *client.Assisted
 	log.Info("Registering infraenv")
 
 	modelsInfraEnv, registerInfraEnvErr := agentbasedinstaller.RegisterInfraEnv(ctx, log, bmInventory, pullSecret,
-		modelsCluster, Options.InfraEnvFile, Options.NMStateConfigFile, Options.ImageTypeISO)
+		modelsCluster, RegisterOptions.InfraEnvFile, RegisterOptions.NMStateConfigFile, RegisterOptions.ImageTypeISO)
 	if registerInfraEnvErr != nil {
 		log.Fatal(registerInfraEnvErr, "Failed to register infraenv with assisted-service")
 	}
