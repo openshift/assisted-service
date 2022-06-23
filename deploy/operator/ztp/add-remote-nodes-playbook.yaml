@@ -7,18 +7,28 @@
     - baremetalhosts: "{{ lookup('file', lookup('env', 'REMOTE_BAREMETALHOSTS_FILE')) | from_json }}"
     - infraenv_name: "{{ lookup('env', 'ASSISTED_INFRAENV_NAME') }}"
     - spoke_namespace: "{{ lookup('env', 'SPOKE_NAMESPACE') }}"
+    - cluster_deployment_name: "{{ lookup('env', 'ASSISTED_CLUSTER_DEPLOYMENT_NAME') }}"
     - day2: "true"
-
-  tasks:
-  - name: create directory for generated CRDs
-    file:
-      name: generated
-      state: directory
-
-  - name: write the remote baremetalHost crds
-    template:
-      src: "baremetalHost.j2"
-      dest: "generated/remote_host_manifests.yaml"
   
-  - name: apply baremetalhosts with oc
-    ansible.builtin.command: "oc apply -f generated/remote_host_manifests.yaml"
+  tasks:
+  - name: optional-latebinding 
+    block:
+    - name: write the infraEnv crd
+      template:
+        src: "infraEnv-latebinding.j2"
+        dest: "generated/day2-latebinding-infraenv.yaml"
+    - name: apply infraenvs with oc
+      ansible.builtin.command: "oc apply -f generated/day2-latebinding-infraenv.yaml"
+    when: cluster_deployment_name == ""
+  - name: generate-crds-and-apply 
+    block:
+    - name: create directory for generated CRDs
+      file:
+        name: generated
+        state: directory
+    - name: write the remote baremetalHost crds
+      template:
+        src: "baremetalHost.j2"
+        dest: "generated/remote_host_manifests.yaml"
+    - name: apply baremetalhosts with oc
+      ansible.builtin.command: "oc apply -f generated/remote_host_manifests.yaml"

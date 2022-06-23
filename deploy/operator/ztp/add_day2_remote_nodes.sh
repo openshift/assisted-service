@@ -10,6 +10,14 @@ source ${__dir}/../utils.sh
 export REMOTE_BAREMETALHOSTS_FILE="${REMOTE_BAREMETALHOSTS_FILE:-/home/test/dev-scripts/ocp/ostest/remote_baremetalhosts.json}"
 export ASSISTED_INFRAENV_NAME="${ASSISTED_INFRAENV_NAME:-assisted-infra-env}"
 
+# If performing late binding then we need to generate an infraenv for this.
+# Generation is handled within "add-remote-nodes-playbook"
+if [ -z "${DAY2_LATE_BINDING}" ] ; then
+  export LATE_BINDING_ASSISTED_CLUSTER_DEPLOYMENT_NAME=${ASSISTED_CLUSTER_DEPLOYMENT_NAME}
+  export ASSISTED_CLUSTER_DEPLOYMENT_NAME=""
+  export ASSISTED_INFRAENV_NAME=${ASSISTED_INFRAENV_NAME}-latebinding
+fi
+
 echo "Adding remote nodes to spoke cluster"
 ansible-playbook "${__dir}/add-remote-nodes-playbook.yaml"
 
@@ -44,6 +52,33 @@ function remote_done_agents() {
 
 export -f remote_done_agents
 
+# If we are performing late binding then each of the agents needs to have the correct clusterDeploymentRef applied.
+# This needs to happen after the agents are available. They cannot move to "done" until the clusterDeploymentRef is applied.
+if [ -z "${DAY2_LATE_BINDING}" ] ; then
+  clusterDeploymentName=${LATE_BINDING_ASSISTED_CLUSTER_DEPLOYMENT_NAME}
+
+  # Generate a patch to assign the correct cluster name.
+  agentPatch=$(cat <<PATCH
+  {
+    "spec":
+    {
+      "clusterDeploymentName":{
+          "name":"${clusterDeploymentName}",
+          "namespace":"${SPOKE_NAMESPACE}"
+      }
+    }
+  }
+PATCH
+  )
+
+  # Apply this patch to our Day2 agents.
+  for agentHostName in $(cat "${REMOTE_BAREMETALHOSTS_FILE}"  | jq '.[].name' --raw-output) ; do
+    agentName=$(oc get agents -n ${SPOKE_NAMESPACE} -ojson | jq ".items[] | select(.spec.hostname==\"${agentHostName}\")).metadata.name" --raw-output)
+    oc patch agent -n ${SPOKE_NAMESPACE} ${agentName} -p "${agentPatch}" --type=merge
+  done
+
+fi
+\z
 timeout 60m bash -c "wait_for_cmd_amount ${amount} 30 remote_done_agents"
 
 echo "Remote worker agents installation completed successfully!"

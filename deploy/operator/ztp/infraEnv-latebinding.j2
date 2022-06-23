@@ -1,0 +1,11 @@
+# infraEnv.j2 and this file should generally be kept in sync
+# This version exists to present an infraenv that is used in a late binding scenario.
+apiVersion: agent-install.openshift.io/v1beta1
+kind: InfraEnv
+metadata:
+  name: '{{ infraenv_name }}-latebinding'
+  namespace: '{{ spoke_namespace }}'
+spec:
+  pullSecretRef:
+    name: '{{ pull_secret_name }}'
+  sshAuthorizedKey: '{{ ssh_public_key }}'
