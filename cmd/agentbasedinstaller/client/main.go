@@ -24,6 +24,7 @@ package main
 import (
 	"context"
 	"net/url"
+	"os"
 	"path"
 
 	"github.com/openshift/assisted-service/cmd/agentbasedinstaller"
@@ -67,7 +68,22 @@ func main() {
 	ctx := context.Background()
 	log.Info("SERVICE_BASE_URL: " + Options.ServiceBaseUrl)
 
-	register(ctx, log, bmInventory)
+	// TODO: This is for backward compatibility and should be removed once the
+	// ephemeral ISO services are using the subcommands.
+	if path.Base(os.Args[0]) == "agent-based-installer-register-cluster-and-infraenv" {
+		register(ctx, log, bmInventory)
+		return
+	}
+
+	if len(os.Args) < 2 {
+		log.Fatal("No subcommand specified")
+	}
+	switch os.Args[1] {
+	case "register":
+		register(ctx, log, bmInventory)
+	default:
+		log.Fatalf("Unknown subcommand %s", os.Args[1])
+	}
 }
 
 func register(ctx context.Context, log *log.Logger, bmInventory *client.AssistedInstall) {
