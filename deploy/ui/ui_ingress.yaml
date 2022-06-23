@@ -11,5 +11,7 @@ spec:
       http:
         paths:
           - backend:
-              serviceName: assisted-installer-ui
-              servicePort: 80
+              service:
+                name: assisted-installer-ui
+                port:
+                  number: 80
