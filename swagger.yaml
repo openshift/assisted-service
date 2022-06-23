@@ -1637,6 +1637,17 @@ paths:
           type: string
           enum: [discovery.ign, ipxe-script]
           required: true
+        - in: query
+          name: mac
+          description: Mac address of the host running ipxe script.
+          type: string
+          format: mac
+          required: false
+        - in: query
+          name: boot_control
+          description: Verify that script is served to hosts without installed disk.
+          type: boolean
+          required: false
       responses:
         "200":
           description: Success.
@@ -1698,6 +1709,11 @@ paths:
           type: string
           enum: [discovery.ign, ipxe-script]
           required: true
+        - in: query
+          name: boot_control
+          description: Verify that script is served to hosts without installed disk.
+          type: boolean
+          required: false
       responses:
         "200":
           description: Success.

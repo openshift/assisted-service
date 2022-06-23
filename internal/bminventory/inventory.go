@@ -5040,6 +5040,9 @@ func (b *bareMetalInventory) V2UpdateHostIgnitionInternal(ctx context.Context, p
 }
 
 func (b *bareMetalInventory) V2DownloadInfraEnvFiles(ctx context.Context, params installer.V2DownloadInfraEnvFilesParams) middleware.Responder {
+	if swag.BoolValue(params.BootControl) && params.FileName != "ipxe-script" {
+		return common.NewApiError(http.StatusBadRequest, errors.New(`boot_control can be set only for "ipxe-script"`))
+	}
 	infraEnv, err := common.GetInfraEnvFromDB(b.db, params.InfraEnvID)
 	if err != nil {
 		b.log.WithError(err).Errorf("Failed to get infra env %s", params.InfraEnvID)
@@ -5056,7 +5059,7 @@ func (b *bareMetalInventory) V2DownloadInfraEnvFiles(ctx context.Context, params
 		}
 		filename = params.FileName
 	case "ipxe-script":
-		content, err = b.infraEnvIPXEScript(ctx, infraEnv)
+		content, err = b.infraEnvIPXEScript(ctx, infraEnv, params.Mac, swag.BoolValue(params.BootControl))
 		if err != nil {
 			b.log.WithError(err).Error("Failed to create ipxe script")
 			return common.GenerateErrorResponder(err)

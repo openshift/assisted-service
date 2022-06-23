@@ -12,13 +12,16 @@ import (
 	"strings"
 
 	"github.com/go-openapi/strfmt"
+	"github.com/go-openapi/swag"
 )
 
 // V2DownloadInfraEnvFilesURL generates an URL for the v2 download infra env files operation
 type V2DownloadInfraEnvFilesURL struct {
 	InfraEnvID strfmt.UUID
 
-	FileName string
+	BootControl *bool
+	FileName    string
+	Mac         *strfmt.MAC
 
 	_basePath string
 	// avoid unkeyed usage
@@ -61,9 +64,25 @@ func (o *V2DownloadInfraEnvFilesURL) Build() (*url.URL, error) {
 
 	qs := make(url.Values)
 
+	var bootControlQ string
+	if o.BootControl != nil {
+		bootControlQ = swag.FormatBool(*o.BootControl)
+	}
+	if bootControlQ != "" {
+		qs.Set("boot_control", bootControlQ)
+	}
+
 	fileNameQ := o.FileName
 	if fileNameQ != "" {
 		qs.Set("file_name", fileNameQ)
+	}
+
+	var macQ string
+	if o.Mac != nil {
+		macQ = o.Mac.String()
+	}
+	if macQ != "" {
+		qs.Set("mac", macQ)
 	}
 
 	_result.RawQuery = qs.Encode()

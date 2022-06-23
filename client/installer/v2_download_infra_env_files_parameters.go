@@ -14,6 +14,7 @@ import (
 	"github.com/go-openapi/runtime"
 	cr "github.com/go-openapi/runtime/client"
 	"github.com/go-openapi/strfmt"
+	"github.com/go-openapi/swag"
 )
 
 // NewV2DownloadInfraEnvFilesParams creates a new V2DownloadInfraEnvFilesParams object,
@@ -59,6 +60,12 @@ func NewV2DownloadInfraEnvFilesParamsWithHTTPClient(client *http.Client) *V2Down
 */
 type V2DownloadInfraEnvFilesParams struct {
 
+	/* BootControl.
+
+	   Verify that script is served to hosts without installed disk.
+	*/
+	BootControl *bool
+
 	/* FileName.
 
 	   The file to be downloaded.
@@ -72,6 +79,14 @@ type V2DownloadInfraEnvFilesParams struct {
 	   Format: uuid
 	*/
 	InfraEnvID strfmt.UUID
+
+	/* Mac.
+
+	   Mac address of the host running ipxe script.
+
+	   Format: mac
+	*/
+	Mac *strfmt.MAC
 
 	timeout    time.Duration
 	Context    context.Context
@@ -126,6 +141,17 @@ func (o *V2DownloadInfraEnvFilesParams) SetHTTPClient(client *http.Client) {
 	o.HTTPClient = client
 }
 
+// WithBootControl adds the bootControl to the v2 download infra env files params
+func (o *V2DownloadInfraEnvFilesParams) WithBootControl(bootControl *bool) *V2DownloadInfraEnvFilesParams {
+	o.SetBootControl(bootControl)
+	return o
+}
+
+// SetBootControl adds the bootControl to the v2 download infra env files params
+func (o *V2DownloadInfraEnvFilesParams) SetBootControl(bootControl *bool) {
+	o.BootControl = bootControl
+}
+
 // WithFileName adds the fileName to the v2 download infra env files params
 func (o *V2DownloadInfraEnvFilesParams) WithFileName(fileName string) *V2DownloadInfraEnvFilesParams {
 	o.SetFileName(fileName)
@@ -148,6 +174,17 @@ func (o *V2DownloadInfraEnvFilesParams) SetInfraEnvID(infraEnvID strfmt.UUID) {
 	o.InfraEnvID = infraEnvID
 }
 
+// WithMac adds the mac to the v2 download infra env files params
+func (o *V2DownloadInfraEnvFilesParams) WithMac(mac *strfmt.MAC) *V2DownloadInfraEnvFilesParams {
+	o.SetMac(mac)
+	return o
+}
+
+// SetMac adds the mac to the v2 download infra env files params
+func (o *V2DownloadInfraEnvFilesParams) SetMac(mac *strfmt.MAC) {
+	o.Mac = mac
+}
+
 // WriteToRequest writes these params to a swagger request
 func (o *V2DownloadInfraEnvFilesParams) WriteToRequest(r runtime.ClientRequest, reg strfmt.Registry) error {
 
@@ -155,6 +192,23 @@ func (o *V2DownloadInfraEnvFilesParams) WriteToRequest(r runtime.ClientRequest, 
 		return err
 	}
 	var res []error
+
+	if o.BootControl != nil {
+
+		// query param boot_control
+		var qrBootControl bool
+
+		if o.BootControl != nil {
+			qrBootControl = *o.BootControl
+		}
+		qBootControl := swag.FormatBool(qrBootControl)
+		if qBootControl != "" {
+
+			if err := r.SetQueryParam("boot_control", qBootControl); err != nil {
+				return err
+			}
+		}
+	}
 
 	// query param file_name
 	qrFileName := o.FileName
@@ -169,6 +223,23 @@ func (o *V2DownloadInfraEnvFilesParams) WriteToRequest(r runtime.ClientRequest, 
 	// path param infra_env_id
 	if err := r.SetPathParam("infra_env_id", o.InfraEnvID.String()); err != nil {
 		return err
+	}
+
+	if o.Mac != nil {
+
+		// query param mac
+		var qrMac strfmt.MAC
+
+		if o.Mac != nil {
+			qrMac = *o.Mac
+		}
+		qMac := qrMac.String()
+		if qMac != "" {
+
+			if err := r.SetQueryParam("mac", qMac); err != nil {
+				return err
+			}
+		}
 	}
 
 	if len(res) > 0 {

@@ -12,13 +12,15 @@ import (
 	"strings"
 
 	"github.com/go-openapi/strfmt"
+	"github.com/go-openapi/swag"
 )
 
 // GetInfraEnvPresignedFileURLURL generates an URL for the get infra env presigned file URL operation
 type GetInfraEnvPresignedFileURLURL struct {
 	InfraEnvID strfmt.UUID
 
-	FileName string
+	BootControl *bool
+	FileName    string
 
 	_basePath string
 	// avoid unkeyed usage
@@ -60,6 +62,14 @@ func (o *GetInfraEnvPresignedFileURLURL) Build() (*url.URL, error) {
 	_result.Path = golangswaggerpaths.Join(_basePath, _path)
 
 	qs := make(url.Values)
+
+	var bootControlQ string
+	if o.BootControl != nil {
+		bootControlQ = swag.FormatBool(*o.BootControl)
+	}
+	if bootControlQ != "" {
+		qs.Set("boot_control", bootControlQ)
+	}
 
 	fileNameQ := o.FileName
 	if fileNameQ != "" {

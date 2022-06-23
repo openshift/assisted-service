@@ -7,6 +7,8 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"regexp"
+	"strings"
 	"time"
 
 	"github.com/go-openapi/strfmt"
@@ -197,6 +199,7 @@ var _ = Describe("Infra_Env", func() {
 		u := res.Payload.URL
 		Expect(u).NotTo(BeNil())
 
+		Expect(*u).ToNot(ContainSubstring("boot_control"))
 		scriptResp, err := http.Get(*u)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(scriptResp.StatusCode).To(Equal(http.StatusOK))
@@ -204,6 +207,86 @@ var _ = Describe("Infra_Env", func() {
 		Expect(err).NotTo(HaveOccurred())
 		Expect(script).To(HavePrefix("#!ipxe"))
 	})
+	It("ipxe with boot control", func() {
+		res, err := userBMClient.Installer.GetInfraEnvPresignedFileURL(ctx, &installer.GetInfraEnvPresignedFileURLParams{
+			InfraEnvID:  infraEnvID,
+			FileName:    "ipxe-script",
+			BootControl: swag.Bool(true)})
+		Expect(err).NotTo(HaveOccurred())
+		Expect(res.Payload).ToNot(BeNil())
+		url := swag.StringValue(res.Payload.URL)
+		Expect(url).NotTo(BeEmpty())
+
+		By("Serve redirect script")
+		scriptResp, err := http.Get(url)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(scriptResp.StatusCode).To(Equal(http.StatusOK))
+		script, err := io.ReadAll(scriptResp.Body)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(script).To(HavePrefix("#!ipxe"))
+		re := regexp.MustCompile(`chain +([^ \n\t]+[?&]mac=[$]{net0/mac}(?:&[^ \n\t]+)?)`)
+		matches := re.FindStringSubmatch(string(script))
+		Expect(matches).To(HaveLen(2))
+		url = strings.ReplaceAll(matches[1], "${net0/mac}", "e6:53:3d:a7:77:b4")
+
+		By("host does not exist")
+		scriptResp, err = http.Get(url)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(scriptResp.StatusCode).To(Equal(http.StatusOK))
+		script, err = io.ReadAll(scriptResp.Body)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(script).To(HavePrefix("#!ipxe"))
+		Expect(string(script)).To(MatchRegexp(`.*initrd --name initrd.*`))
+
+		By("Create host")
+		hostID := strToUUID(uuid.New().String())
+		// register to infra-env
+		response, err := agentBMClient.Installer.V2RegisterHost(context.Background(), &installer.V2RegisterHostParams{
+			InfraEnvID: infraEnvID,
+			NewHostParams: &models.HostCreateParams{
+				HostID: hostID,
+			},
+		})
+		Expect(err).ToNot(HaveOccurred())
+		host := &response.Payload.Host
+		generateHWPostStepReply(context.Background(), host, getValidWorkerHwInfoWithCIDR("1.2.3.4/24"), "h1")
+
+		By("host is insufficient")
+		scriptResp, err = http.Get(url)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(scriptResp.StatusCode).To(Equal(http.StatusOK))
+		script, err = io.ReadAll(scriptResp.Body)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(script).To(HavePrefix("#!ipxe"))
+		Expect(string(script)).To(MatchRegexp(`.*initrd --name initrd.*`))
+
+		By("host is installed")
+		Expect(db.Model(&models.Host{}).Where("id = ? and infra_env_id = ?", hostID.String(), infraEnvID.String()).
+			Update("status", models.HostStatusInstalled).Error).ToNot(HaveOccurred())
+		scriptResp, err = http.Get(url)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(scriptResp.StatusCode).To(Equal(http.StatusNotFound))
+
+		By("duplicate mac")
+		Expect(db.Model(&models.Host{}).Where("id = ? and infra_env_id = ?", hostID.String(), infraEnvID.String()).
+			Update("status", models.HostStatusInsufficient).Error).ToNot(HaveOccurred())
+
+		hostID2 := strToUUID(uuid.New().String())
+		// register to infra-env
+		response, err = agentBMClient.Installer.V2RegisterHost(context.Background(), &installer.V2RegisterHostParams{
+			InfraEnvID: infraEnvID,
+			NewHostParams: &models.HostCreateParams{
+				HostID: hostID2,
+			},
+		})
+		Expect(err).ToNot(HaveOccurred())
+		host2 := &response.Payload.Host
+		generateHWPostStepReply(context.Background(), host2, getValidWorkerHwInfoWithCIDR("1.2.3.5/24"), "h2")
+		scriptResp, err = http.Get(url)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(scriptResp.StatusCode).To(Equal(http.StatusInternalServerError))
+	})
+
 	It("fails when given invalid static network config", func() {
 		staticNetworkConfig := models.HostStaticNetworkConfig{
 			NetworkYaml: "aaaaa",

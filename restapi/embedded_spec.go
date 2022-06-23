@@ -3247,6 +3247,19 @@ func init() {
             "name": "file_name",
             "in": "query",
             "required": true
+          },
+          {
+            "type": "string",
+            "format": "mac",
+            "description": "Mac address of the host running ipxe script.",
+            "name": "mac",
+            "in": "query"
+          },
+          {
+            "type": "boolean",
+            "description": "Verify that script is served to hosts without installed disk.",
+            "name": "boot_control",
+            "in": "query"
           }
         ],
         "responses": {
@@ -3339,6 +3352,12 @@ func init() {
             "name": "file_name",
             "in": "query",
             "required": true
+          },
+          {
+            "type": "boolean",
+            "description": "Verify that script is served to hosts without installed disk.",
+            "name": "boot_control",
+            "in": "query"
           }
         ],
         "responses": {
@@ -12362,6 +12381,19 @@ func init() {
             "name": "file_name",
             "in": "query",
             "required": true
+          },
+          {
+            "type": "string",
+            "format": "mac",
+            "description": "Mac address of the host running ipxe script.",
+            "name": "mac",
+            "in": "query"
+          },
+          {
+            "type": "boolean",
+            "description": "Verify that script is served to hosts without installed disk.",
+            "name": "boot_control",
+            "in": "query"
           }
         ],
         "responses": {
@@ -12454,6 +12486,12 @@ func init() {
             "name": "file_name",
             "in": "query",
             "required": true
+          },
+          {
+            "type": "boolean",
+            "description": "Verify that script is served to hosts without installed disk.",
+            "name": "boot_control",
+            "in": "query"
           }
         ],
         "responses": {
