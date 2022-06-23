@@ -793,6 +793,22 @@ func (g *installerGenerator) updateBootstrap(ctx context.Context, bootstrapPath 
 		case isMOTD(&config.Storage.Files[i]):
 			// workaround for https://github.com/openshift/machine-config-operator/issues/2086
 			g.fixMOTDFile(&config.Storage.Files[i])
+		case isKubelet(&config.Storage.Files[i]):
+			// still not sure regarding this one
+			//if common.IsSingleNodeCluster(g.cluster) {
+			//	continue
+			//}
+			log.Infof("Updating kubelet service file on bootstrap with bootstrap primary ip")
+			bootstrapIp, err := network.GetPrimaryMachineCIDRIP(common.GetBootstrapHost(g.cluster), g.cluster)
+			if err != nil {
+				log.WithError(err).Error("Failed to get bootstrap primary ip for kubelet service update")
+				return err
+			}
+			err = addIpToBootstrapKubelet(&config.Storage.Files[i], bootstrapIp)
+			if err != nil {
+				log.WithError(err).Errorf("Failed updating kubelet service file on bootstrap with bootstrap primary ip")
+				return err
+			}
 		case isBMHFile(&config.Storage.Files[i]):
 			// extract bmh
 			bmh, err := fileToBMH(&config.Storage.Files[i]) //nolint,shadow
@@ -864,6 +880,10 @@ func isMOTD(file *config_latest_types.File) bool {
 	return file.Node.Path == "/etc/motd"
 }
 
+func isKubelet(file *config_latest_types.File) bool {
+	return file.Node.Path == "/usr/local/bin/kubelet.sh"
+}
+
 func isBaremetalProvisioningConfig(file *config_latest_types.File) bool {
 	return strings.Contains(file.Node.Path, "baremetal-provisioning-config")
 }
@@ -885,6 +905,21 @@ func fileToBMH(file *config_latest_types.File) (*bmh_v1alpha1.BareMetalHost, err
 	}
 
 	return bmh, nil
+}
+
+func addIpToBootstrapKubelet(file *config_latest_types.File, bootstrapIp string) error {
+	parts := strings.Split(*file.Contents.Source, "base64,")
+	if len(parts) != 2 {
+		return errors.Errorf("could not parse source for file %s", file.Node.Path)
+	}
+	decoded, err := base64.StdEncoding.DecodeString(parts[1])
+	if err != nil {
+		return err
+	}
+
+	decodedStr := strings.TrimRight(string(decoded), "\n") + fmt.Sprintf(" --node-ip=%[1]s --address=%[1]s \n", bootstrapIp)
+	*file.Contents.Source = parts[0] + "base64," + base64.StdEncoding.EncodeToString([]byte(decodedStr))
+	return nil
 }
 
 // fixMOTDFile is a workaround for a bug in machine-config-operator, where it
