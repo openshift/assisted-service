@@ -71,7 +71,7 @@ function assisted_service() {
   spectral
 
   curl --retry 5 -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh \
-    | sh -s -- -b $(go env GOPATH)/bin v1.36.0
+    | sh -s -- -d -b $(go env GOPATH)/bin v1.36.0
 
   OS=$(uname | awk '{print tolower($0)}')
   OPERATOR_SDK_DL_URL=https://github.com/operator-framework/operator-sdk/releases/download/v1.10.1
