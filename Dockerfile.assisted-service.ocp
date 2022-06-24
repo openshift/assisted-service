@@ -5,7 +5,7 @@ COPY . .
 RUN CGO_ENABLED=1 GOFLAGS="" GO111MODULE=on go build -o /build/assisted-service cmd/main.go
 RUN CGO_ENABLED=0 GOFLAGS="" GO111MODULE=on go build -o /build/assisted-service-operator cmd/operator/main.go
 RUN CGO_ENABLED=0 GOFLAGS="" GO111MODULE=on go build -o /build/assisted-service-admission cmd/webadmission/main.go
-RUN CGO_ENABLED=0 GOFLAGS="" GO111MODULE=on go build -o /build/agent-based-installer-register-cluster-and-infraenv cmd/agentbasedinstaller/client/main.go
+RUN CGO_ENABLED=0 GOFLAGS="" GO111MODULE=on go build -o /build/agent-installer-client cmd/agentbasedinstaller/client/main.go
 
 
 FROM registry.ci.openshift.org/ocp/4.11:cli AS oc-image
@@ -32,7 +32,8 @@ COPY --from=oc-image /usr/bin/oc /usr/local/bin/
 COPY --from=builder /build/assisted-service /assisted-service
 COPY --from=builder /build/assisted-service-operator /assisted-service-operator
 COPY --from=builder /build/assisted-service-admission /assisted-service-admission
-COPY --from=builder /build/agent-based-installer-register-cluster-and-infraenv /agent-based-installer-register-cluster-and-infraenv
+COPY --from=builder /build/agent-installer-client /usr/local/bin/agent-installer-client
+RUN ln -s /usr/local/bin/agent-installer-client /agent-based-installer-register-cluster-and-infraenv
 ENV GODEBUG=madvdontneed=1
 ENV GOGC=50
 CMD ["/assisted-service"]
