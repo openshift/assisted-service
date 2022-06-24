@@ -601,8 +601,12 @@ func isSupportedPlatform(cluster *hivev1.ClusterDeployment) bool {
 	return true
 }
 
+// UserManagedNetworking is considered false if
+// 1. The cluster is an SNO (with no workers)
+// 2. The User specifically set this parameter to false
+// 3. Or, if the user did not set the value at all
 func isUserManagedNetwork(clusterInstall *hiveext.AgentClusterInstall) bool {
-	return clusterInstall.Spec.Networking.UserManagedNetworking ||
+	return swag.BoolValue(clusterInstall.Spec.Networking.UserManagedNetworking) ||
 		clusterInstall.Spec.ProvisionRequirements.ControlPlaneAgents == 1 && clusterInstall.Spec.ProvisionRequirements.WorkerAgents == 0
 }
 
@@ -841,6 +845,7 @@ func (r *ClusterDeploymentsReconciler) updateIfNeeded(ctx context.Context,
 	if userManagedNetwork := isUserManagedNetwork(clusterInstall); userManagedNetwork != swag.BoolValue(cluster.UserManagedNetworking) {
 		params.UserManagedNetworking = swag.Bool(userManagedNetwork)
 	}
+
 	pullSecretData, err := getAndLabelPullSecret(ctx, r.Client, r.APIReader, spec.PullSecretRef, clusterDeployment.Namespace)
 	if err != nil {
 		return cluster, errors.Wrap(err, "failed to get pull secret for update")

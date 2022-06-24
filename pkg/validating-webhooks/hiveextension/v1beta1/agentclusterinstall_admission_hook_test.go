@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"testing"
 
+	"github.com/go-openapi/swag"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	hiveext "github.com/openshift/assisted-service/api/hiveextension/v1beta1"
@@ -230,6 +231,24 @@ var _ = Describe("ACI web validate", func() {
 			oldSpec:         hiveext.AgentClusterInstallSpec{},
 			operation:       admissionv1.Update,
 			expectedAllowed: false,
+		},
+		{
+			name: "ACI create with userManagedNetworking set to false is forbidden",
+			newSpec: hiveext.AgentClusterInstallSpec{
+				Networking:            hiveext.Networking{UserManagedNetworking: swag.Bool(false)},
+				ProvisionRequirements: hiveext.ProvisionRequirements{ControlPlaneAgents: 1},
+			},
+			operation:       admissionv1.Create,
+			expectedAllowed: false,
+		},
+		{
+			name: "ACI create with userManagedNetworking set to true is allowed",
+			newSpec: hiveext.AgentClusterInstallSpec{
+				Networking:            hiveext.Networking{UserManagedNetworking: swag.Bool(true)},
+				ProvisionRequirements: hiveext.ProvisionRequirements{ControlPlaneAgents: 1},
+			},
+			operation:       admissionv1.Create,
+			expectedAllowed: true,
 		},
 	}
 

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/go-openapi/swag"
 	"github.com/golang/mock/gomock"
 	bmh_v1alpha1 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
 	. "github.com/onsi/ginkgo"
@@ -942,7 +943,7 @@ var _ = Describe("bmac reconcile", func() {
 
 			})
 			It("should not set spoke BMH - None platform", func() {
-				clusterInstall.Spec.Networking.UserManagedNetworking = true
+				clusterInstall.Spec.Networking.UserManagedNetworking = swag.Bool(true)
 				Expect(c.Update(ctx, clusterInstall)).ToNot(HaveOccurred())
 				result, err := bmhr.Reconcile(ctx, newBMHRequest(host))
 				Expect(err).To(BeNil())

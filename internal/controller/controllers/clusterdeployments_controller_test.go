@@ -458,7 +458,7 @@ var _ = Describe("cluster reconcile", func() {
 				aci := newAgentClusterInstall(agentClusterInstallName, testNamespace, defaultAgentClusterInstallSpec, cluster)
 				aci.Spec.ProvisionRequirements.WorkerAgents = 2
 				aci.Spec.ProvisionRequirements.ControlPlaneAgents = 3
-				aci.Spec.Networking.UserManagedNetworking = true
+				aci.Spec.Networking.UserManagedNetworking = swag.Bool(true)
 				aci.Spec.APIVIP = ""
 				aci.Spec.IngressVIP = ""
 				Expect(c.Create(ctx, aci)).ShouldNot(HaveOccurred())
