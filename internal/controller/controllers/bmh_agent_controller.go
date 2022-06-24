@@ -29,6 +29,7 @@ import (
 
 	bmh_v1alpha1 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
 	aiv1beta1 "github.com/openshift/assisted-service/api/v1beta1"
+	"github.com/openshift/assisted-service/internal/host/hostutil"
 	"github.com/openshift/assisted-service/internal/ignition"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/conversions"
@@ -882,85 +883,37 @@ func (r *BMACReconciler) reconcileSpokeBMH(ctx context.Context, log logrus.Field
 }
 
 // Finds the installation disk based on the RootDeviceHints
-//
-// This function implements the logic to find the installation disk following what's currently
-// supported by OpenShift, instead of *all* the supported cases in Ironic. The following link
-// points to the RootDeviceDisk translation done by the BareMetal Operator that is then sent to
-// Ironic:
-// https://github.com/metal3-io/baremetal-operator/blob/dbe8780ad14f53132ba606d1baec808997febe49/pkg/provisioner/ironic/devicehints/devicehints.go#L11-L54
-//
-// The logic is quite straightforward and the checks done match what is in the aforementioned link.
-// Some string checks require equality, others partial equality, whereas the int checks require numeric comparison.
-//
-// Ironic's internal filter process requires that all the disks have to fully match the RootDeviceHints (and operation),
-// which is what this function does.
-//
-// This function also filters out disks that are not elegible for installation, as we already know those cannot be used.
 func (r *BMACReconciler) findInstallationDiskID(devices []aiv1beta1.HostDisk, hints *bmh_v1alpha1.RootDeviceHints) string {
 	if hints == nil {
 		return ""
 	}
 
-	for _, disk := range devices {
+	disks := make([]*models.Disk, len(devices))
 
-		if !disk.InstallationEligibility.Eligible {
-			continue
+	for i, dev := range devices {
+		disks[i] = &models.Disk{
+			Bootable:                dev.Bootable,
+			ByID:                    dev.ByID,
+			ByPath:                  dev.ByPath,
+			DriveType:               models.DriveType(strings.ToUpper(dev.DriveType)),
+			Hctl:                    dev.Hctl,
+			ID:                      dev.ID,
+			InstallationEligibility: models.DiskInstallationEligibility{Eligible: dev.InstallationEligibility.Eligible},
+			IoPerf:                  &models.IoPerf{SyncDuration: dev.IoPerf.SyncDurationMilliseconds},
+			Model:                   dev.Model,
+			Name:                    dev.Name,
+			Path:                    dev.Path,
+			Serial:                  dev.Serial,
+			SizeBytes:               dev.SizeBytes,
+			Smart:                   dev.Smart,
+			Vendor:                  dev.Vendor,
+			Wwn:                     dev.Wwn,
 		}
+	}
 
-		if hints.DeviceName != "" && hints.DeviceName != disk.Path {
-			continue
-		}
-
-		if hints.HCTL != "" && hints.HCTL != disk.Hctl {
-			continue
-		}
-
-		if hints.Model != "" && !strings.Contains(disk.Model, hints.Model) {
-			continue
-		}
-
-		if hints.Vendor != "" && !strings.Contains(disk.Vendor, hints.Model) {
-			continue
-		}
-
-		if hints.SerialNumber != "" && hints.SerialNumber != disk.Serial {
-			continue
-		}
-
-		if hints.MinSizeGigabytes != 0 {
-			sizeGB := int(disk.SizeBytes / (1024 * 3))
-			if hints.MinSizeGigabytes < sizeGB {
-				continue
-			}
-		}
-
-		if hints.WWN != "" && hints.WWN != disk.Wwn {
-			continue
-		}
-
-		// No WWNWithExtension
-		// if hints.WWWithExtension != "" && hints.WWWithExtension != disk.Wwwithextension {
-		// 	return ""
-		// }
-
-		// No WWNNVendorExtension
-		// if hints.WWNVendorExtension != "" && hints.WWNVendorExtension != disk.WwnVendorextension {
-		// 	return ""
-		// }
-
-		switch {
-		case hints.Rotational == nil:
-		case *hints.Rotational:
-			if !strings.EqualFold(disk.DriveType, string(models.DriveTypeHDD)) {
-				continue
-			}
-		case !*hints.Rotational:
-			if strings.EqualFold(disk.DriveType, string(models.DriveTypeHDD)) {
-				continue
-			}
-		}
-
-		return disk.ID
+	acceptable := hostutil.GetAcceptableDisksWithHints(disks, hints)
+	if len(acceptable) > 0 {
+		return acceptable[0].ID
 	}
 
 	// If hints are provided but we did not find an eligible disk, we need to raise an error.
