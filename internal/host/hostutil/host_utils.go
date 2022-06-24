@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/go-openapi/swag"
+	bmh_v1alpha1 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/models"
 	"github.com/pkg/errors"
@@ -149,6 +150,83 @@ func GetDiskByInstallationPath(disks []*models.Disk, installationPath string) *m
 		return nil
 	}
 	return result.(*models.Disk)
+}
+
+// GetAcceptableDisksWithHints finds acceptable installation disks based on the RootDeviceHints
+//
+// This function implements the logic to find the installation disk following what's currently
+// supported by OpenShift, instead of *all* the supported cases in Ironic. The following link
+// points to the RootDeviceDisk translation done by the BareMetal Operator that is then sent to
+// Ironic:
+// https://github.com/metal3-io/baremetal-operator/blob/dbe8780ad14f53132ba606d1baec808997febe49/pkg/provisioner/ironic/devicehints/devicehints.go#L11-L54
+//
+// The logic is quite straightforward and the checks done match what is in the aforementioned link.
+// Some string checks require equality, others partial equality, whereas the int checks require numeric comparison.
+//
+// Ironic's internal filter process requires that all the disks have to fully match the RootDeviceHints (and operation),
+// which is what this function does.
+//
+// This function also filters out disks that are not elegible for installation, as we already know those cannot be used.
+func GetAcceptableDisksWithHints(disks []*models.Disk, hints *bmh_v1alpha1.RootDeviceHints) []*models.Disk {
+	acceptable := []*models.Disk{}
+
+	for _, disk := range disks {
+
+		if !disk.InstallationEligibility.Eligible {
+			continue
+		}
+
+		if hints != nil {
+			if hints.DeviceName != "" && hints.DeviceName != disk.Path {
+				continue
+			}
+
+			if hints.HCTL != "" && hints.HCTL != disk.Hctl {
+				continue
+			}
+
+			if hints.Model != "" && !strings.Contains(disk.Model, hints.Model) {
+				continue
+			}
+
+			if hints.Vendor != "" && !strings.Contains(disk.Vendor, hints.Model) {
+				continue
+			}
+
+			if hints.SerialNumber != "" && hints.SerialNumber != disk.Serial {
+				continue
+			}
+
+			if hints.MinSizeGigabytes != 0 {
+				sizeGB := int(disk.SizeBytes / (1024 * 3))
+				if hints.MinSizeGigabytes < sizeGB {
+					continue
+				}
+			}
+
+			if hints.WWN != "" && hints.WWN != disk.Wwn {
+				continue
+			}
+
+			// No WWNWithExtension
+			// if hints.WWWithExtension != "" && hints.WWWithExtension != disk.Wwwithextension {
+			// 	return ""
+			// }
+
+			// No WWNNVendorExtension
+			// if hints.WWNVendorExtension != "" && hints.WWNVendorExtension != disk.WwnVendorextension {
+			// 	return ""
+			// }
+
+			if hints.Rotational != nil && *hints.Rotational != (disk.DriveType == models.DriveTypeHDD) {
+				continue
+			}
+		}
+
+		acceptable = append(acceptable, disk)
+	}
+
+	return acceptable
 }
 
 func IgnitionFileName(host *models.Host) string {
