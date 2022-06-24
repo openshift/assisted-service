@@ -302,7 +302,7 @@ func (h *handler) AddReleaseImage(releaseImageUrl, pullSecret, ocpReleaseVersion
 		}
 
 		// Get CPU architecture from release image
-		cpuArchitecture, err = h.releaseHandler.GetReleaseArchitecture(h.log, releaseImageUrl, pullSecret)
+		cpuArchitecture, err = h.releaseHandler.GetReleaseArchitecture(h.log, releaseImageUrl, "", pullSecret)
 		if err != nil {
 			return nil, err
 		}
