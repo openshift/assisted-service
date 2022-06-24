@@ -392,3 +392,16 @@ func GetTagFromImageRef(ref string) string {
 		return ""
 	}
 }
+
+func GetAPIHostname(c *Cluster) string {
+	// Despite the confusing name of this parameter, in day-2 scenarios where
+	// this function is used it could either be a DNS domain name that points
+	// at the API's IP address (this is the default) or it could also not be a
+	// DNS domain name at all - such as when the user chooses to override this
+	// parameter with an IP address. Such override is commonly done by users in
+	// day-2 SaaS imported clusters where the user never bothered to set up DNS
+	// for their day-1 cluster in the first place and just wants the worker to
+	// connect to the API directly. The UI even has a special dialog to help users
+	// do that.
+	return swag.StringValue(c.APIVipDNSName)
+}
