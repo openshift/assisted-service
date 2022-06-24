@@ -15,28 +15,40 @@ import (
 	"github.com/openshift/assisted-service/client/installer"
 	"github.com/openshift/assisted-service/internal/host/hostutil"
 	"github.com/openshift/assisted-service/models"
+	errorutil "github.com/openshift/assisted-service/pkg/error"
 	log "github.com/sirupsen/logrus"
 	"sigs.k8s.io/yaml"
 )
 
-func ApplyHostConfigs(ctx context.Context, log *log.Logger, bmInventory *client.AssistedInstall, hostConfigs HostConfigs, infraEnvID strfmt.UUID) (bool, error) {
+func ApplyHostConfigs(ctx context.Context, log *log.Logger, bmInventory *client.AssistedInstall, hostConfigs HostConfigs, infraEnvID strfmt.UUID) ([]Failure, error) {
 	hostList, err := bmInventory.Installer.V2ListHosts(ctx, installer.NewV2ListHostsParams().WithInfraEnvID(infraEnvID))
 	if err != nil {
-		return false, fmt.Errorf("Failed to list hosts: %w", err)
+		return nil, fmt.Errorf("Failed to list hosts: %w", err)
 	}
+
+	failures := []Failure{}
 
 	for _, host := range hostList.Payload {
 		if err := applyHostConfig(ctx, log, bmInventory, host, hostConfigs); err != nil {
-			return false, err
+			if fail, ok := err.(Failure); ok {
+				failures = append(failures, fail)
+				log.Error(err.Error())
+			} else {
+				return failures, err
+			}
 		}
 	}
 
-	if !hostConfigs.allFound(log) {
+	missing := hostConfigs.missing(log)
+	if len(missing) > 0 {
 		log.Info("Not all hosts present yet")
-		return false, nil
+		for _, mh := range missing {
+			failures = append(failures, mh)
+		}
+	} else {
+		log.Info("All expected hosts found")
 	}
-	log.Info("All hosts configured")
-	return true, nil
+	return failures, nil
 }
 
 func applyHostConfig(ctx context.Context, log *log.Logger, bmInventory *client.AssistedInstall, host *models.Host, hostConfigs HostConfigs) error {
@@ -84,6 +96,14 @@ func applyHostConfig(ctx context.Context, log *log.Logger, bmInventory *client.A
 		WithHostUpdateParams(updateParams)
 	_, err = bmInventory.Installer.V2UpdateHost(ctx, params)
 	if err != nil {
+		if errorResponse, ok := err.(errorutil.AssistedServiceErrorAPI); ok {
+			return &UpdateFailure{
+				response:  errorResponse,
+				params:    updateParams,
+				host:      host,
+				inventory: inventory,
+			}
+		}
 		return fmt.Errorf("Failed to update Host: %w", err)
 	}
 	return nil
@@ -242,13 +262,79 @@ func (configs HostConfigs) findHostConfig(hostID strfmt.UUID, inventory *models.
 	return nil
 }
 
-func (configs HostConfigs) allFound(log *log.Logger) bool {
-	found := true
+func (configs HostConfigs) missing(log *log.Logger) []missingHost {
+	missing := []missingHost{}
 	for _, hc := range configs {
 		if hc.hostID == "" {
-			found = false
 			log.Infof("No agent found matching config at %s (%s)", hc.configDir, strings.Join(hc.macAddresses, ", "))
+
+			missing = append(missing, missingHost{config: hc})
 		}
 	}
-	return found
+	return missing
+}
+
+type Failure interface {
+	Hostname() string
+	DescribeFailure() string
+}
+
+type UpdateFailure struct {
+	response  errorutil.AssistedServiceErrorAPI
+	params    *models.HostUpdateParams
+	config    *hostConfig
+	host      *models.Host
+	inventory *models.Inventory
+}
+
+func (uf *UpdateFailure) Error() string {
+	return fmt.Sprintf("Host %s update refused: %s", uf.Hostname(), errorutil.GetAssistedError(uf.response).Error())
+}
+
+func (uf *UpdateFailure) Unwrap() error {
+	return uf.response
+}
+
+func (uf *UpdateFailure) Hostname() string {
+	if uf.inventory != nil {
+		return uf.inventory.Hostname
+	}
+	return path.Base(uf.config.configDir)
+}
+
+func (uf *UpdateFailure) DescribeFailure() string {
+	changes := []string{}
+	if len(uf.params.DisksSelectedConfig) > 0 {
+		changes = append(changes, fmt.Sprintf(
+			"installation disk to %s (from %s)",
+			*uf.params.DisksSelectedConfig[0].ID,
+			uf.host.InstallationDiskID))
+	}
+	if uf.params.HostRole != nil {
+		changes = append(changes, fmt.Sprintf(
+			"role to %s (from %s)",
+			*uf.params.HostRole,
+			uf.host.SuggestedRole))
+	}
+
+	reason := "unknown reason"
+	if payload := uf.response.GetPayload(); payload != nil && payload.Reason != nil {
+		reason = *payload.Reason
+	}
+
+	return fmt.Sprintf("Failed to update host %s: %s",
+		strings.Join(changes, " and "),
+		reason)
+}
+
+type missingHost struct {
+	config *hostConfig
+}
+
+func (mh missingHost) Hostname() string {
+	return path.Base(mh.config.configDir)
+}
+
+func (mh missingHost) DescribeFailure() string {
+	return "Host not registered"
 }

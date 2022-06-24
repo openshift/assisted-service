@@ -23,9 +23,12 @@ package main
 
 import (
 	"context"
+	"fmt"
+	"io/ioutil"
 	"net/url"
 	"os"
 	"path"
+	"strings"
 	"time"
 
 	"github.com/go-openapi/strfmt"
@@ -36,6 +39,8 @@ import (
 	log "github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
 )
+
+const failureOutputPath = "/var/run/agent-installer/host-config-failures"
 
 var Options struct {
 	ServiceBaseUrl string `envconfig:"SERVICE_BASE_URL" default:""`
@@ -150,17 +155,45 @@ func configure(ctx context.Context, log *log.Logger, bmInventory *client.Assiste
 	done := false
 	sleepTime := 1 * time.Second
 	for !done {
-		done, err = agentbasedinstaller.ApplyHostConfigs(ctx, log, bmInventory, hostConfigs, strfmt.UUID(ConfigureOptions.InfraEnvID))
+		failures, err := agentbasedinstaller.ApplyHostConfigs(ctx, log, bmInventory, hostConfigs, strfmt.UUID(ConfigureOptions.InfraEnvID))
 		if err != nil {
 			log.Fatal("Failed to apply host configuration: ", err)
 		}
-		if !done {
+		if len(failures) > 0 {
 			log.Infof("Sleeping for %v", sleepTime)
 			time.Sleep(sleepTime)
 			if sleepTime < (30 * time.Second) {
 				sleepTime = sleepTime * 2
 			}
+		} else {
+			done = true
+		}
+		if err := recordFailures(failures); err != nil {
+			log.Fatal("Unable to record failures to disk: ", err)
 		}
 	}
 	log.Info("Configured all hosts")
+}
+
+func recordFailures(failures []agentbasedinstaller.Failure) error {
+	if len(failures) == 0 {
+		err := os.Remove(failureOutputPath)
+		if os.IsNotExist(err) {
+			return nil
+		}
+		return err
+	}
+	if err := os.MkdirAll(path.Dir(failureOutputPath), 0644); err != nil {
+		return err
+	}
+
+	messages := make([]string, len(failures))
+	for i, f := range failures {
+		messages[i] = fmt.Sprintf("%s: %s\n", f.Hostname(), f.DescribeFailure())
+	}
+
+	return ioutil.WriteFile(
+		failureOutputPath,
+		[]byte(strings.Join(messages, "")),
+		0644)
 }
