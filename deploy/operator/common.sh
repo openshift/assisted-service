@@ -23,6 +23,9 @@ export HIVE_NAMESPACE="${HIVE_NAMESPACE:-hive}"
 export ASSISTED_UPGRADE_OPERATOR="${ASSISTED_UPGRADE_OPERATOR:-false}"
 export ASSISTED_SERVICE_OPERATOR_CATALOG="assisted-service-operator-catalog"
 
+export ASSISTED_CLUSTER_DEPLOYMENT_NAME="${ASSISTED_CLUSTER_DEPLOYMENT_NAME:-assisted-test-cluster}"
+export ASSISTED_INFRAENV_NAME="${ASSISTED_INFRAENV_NAME:-assisted-infra-env}"
+
 ############
 # Versions #
 ############
