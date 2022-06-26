@@ -30,7 +30,7 @@ export LOAD_BALANCER_IP="${LOAD_BALANCER_IP:-192.168.111.1}"
 if [[ "${IP_STACK}" == "v4" ]]; then
     export CLUSTER_SUBNET="${CLUSTER_SUBNET_V4}"
     export CLUSTER_HOST_PREFIX="${CLUSTER_HOST_PREFIX_V4}"
-    if [ "${USER_MANAGED_NETWORKING}" != "true" ] ; then 
+    if [ "${USER_MANAGED_NETWORKING}" != "true" ] ; then
         export EXTERNAL_SUBNET="${EXTERNAL_SUBNET_V4}"
     else
         unset EXTERNAL_SUBNET
@@ -96,11 +96,13 @@ function get_agents_with_role() {
 export role=master
 export -f wait_for_cmd_amount
 export -f get_agents_with_role
-timeout 20m bash -c "wait_for_cmd_amount ${SPOKE_CONTROLPLANE_AGENTS} 30 get_agents_with_role"
+timeout --signal=SIGKILL 20m bash -c "wait_for_cmd_amount ${SPOKE_CONTROLPLANE_AGENTS} 30 get_agents_with_role" || \
+    (echo "Timed-out waiting for agents to be ready" && exit 124)
+
 echo "All ${SPOKE_CONTROLPLANE_AGENTS} agents have been discovered!"
 
 if [[ "${ASSISTED_STOP_AFTER_AGENT_DISCOVERY}" == "true" ]]; then
-    echo "Agents have been discovered, do not wait for the cluster installtion to finish."
+    echo "Agents have been discovered, do not wait for the cluster installation to finish."
     exit
 fi
 
