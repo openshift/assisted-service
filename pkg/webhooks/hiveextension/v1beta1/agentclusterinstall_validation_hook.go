@@ -80,7 +80,7 @@ func (a *AgentClusterInstallValidatingAdmissionHook) Validate(admissionSpec *adm
 		"method":    "Validate",
 	})
 
-	if !a.shouldValidate(admissionSpec) {
+	if !shouldValidate(admissionSpec) {
 		contextLogger.Info("Skipping validation for request")
 		// The request object isn't something that this validator should validate.
 		// Therefore, we say that it's allowed.
@@ -108,7 +108,7 @@ func (a *AgentClusterInstallValidatingAdmissionHook) Validate(admissionSpec *adm
 
 // shouldValidate explicitly checks if the request should be validated. For example, this webhook may have accidentally been registered to check
 // the validity of some other type of object with a different GVR.
-func (a *AgentClusterInstallValidatingAdmissionHook) shouldValidate(admissionSpec *admissionv1.AdmissionRequest) bool {
+func shouldValidate(admissionSpec *admissionv1.AdmissionRequest) bool {
 	contextLogger := log.WithFields(log.Fields{
 		"operation": admissionSpec.Operation,
 		"group":     admissionSpec.Resource.Group,
@@ -314,10 +314,14 @@ func areImageSetRefsEqual(imageSetRef1 *hivev1.ClusterImageSetReference, imageSe
 }
 
 func isUserManagedNetworkingSetToFalseWithSNO(newObject *hiveext.AgentClusterInstall) bool {
-	return newObject.Spec.ProvisionRequirements.ControlPlaneAgents == 1 &&
-		newObject.Spec.ProvisionRequirements.WorkerAgents == 0 &&
+	return isSNO(newObject) &&
 		newObject.Spec.Networking.UserManagedNetworking != nil &&
 		!*newObject.Spec.Networking.UserManagedNetworking
+}
+
+func isSNO(newObject *hiveext.AgentClusterInstall) bool {
+	return newObject.Spec.ProvisionRequirements.ControlPlaneAgents == 1 &&
+		newObject.Spec.ProvisionRequirements.WorkerAgents == 0
 }
 
 // diffReporter is a simple custom reporter that only records differences

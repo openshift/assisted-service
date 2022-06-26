@@ -140,6 +140,8 @@ const (
 	ReasonDeploymentFailure string = "DeploymentFailure"
 	// ReasonStorageFailure when there was a failure configuring/deploying the validating webhook.
 	ReasonValidatingWebHookFailure string = "ValidatingWebHookFailure"
+	// ReasonStorageFailure when there was a failure configuring/deploying the validating webhook.
+	ReasonMutatingWebHookFailure string = "MutatingWebHookFailure"
 	// ReasonWebHookServiceFailure when there was a failure related to the webhook's service.
 	ReasonWebHookServiceFailure string = "ReasonWebHookServiceFailure"
 	// ReasonWebHookDeploymentFailure when there was a failure configuring/deploying the webhook deployment.
