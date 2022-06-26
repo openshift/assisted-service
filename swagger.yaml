@@ -4672,6 +4672,9 @@ definitions:
         format: int64
         description: All hosts associated to this cluster.
         x-go-custom-tag: gorm:"-"
+      user_id:
+        type: string
+        description: An unique user ID that is generated from the given user-name
       schedulable_masters:
         type: boolean
         description: Schedule workloads on masters

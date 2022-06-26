@@ -231,6 +231,9 @@ type Cluster struct {
 	// Format: date-time
 	UpdatedAt timeext.Time `json:"updated_at,omitempty" gorm:"type:timestamp with time zone"`
 
+	// An unique user ID that is generated from the given user-name
+	UserID string `json:"user_id,omitempty"`
+
 	// Indicate if the networking is managed by the user.
 	UserManagedNetworking *bool `json:"user_managed_networking,omitempty"`
 

@@ -9924,6 +9924,71 @@ var _ = Describe("TestRegisterCluster", func() {
 		Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2RegisterClusterCreated()))
 	})
 
+	It("Register with valid UserID", func() {
+		mockClusterRegisterSuccess(true)
+
+		expectedUserID := "16745470694930009292"
+		username := "username@gamil.com"
+		payload := &ocm.AuthPayload{Role: ocm.UserRole}
+		payload.Username = username
+		authCtx := context.WithValue(ctx, restapi.AuthKey, payload)
+		mockAMSSubscription(authCtx)
+
+		reply := bm.V2RegisterCluster(authCtx, installer.V2RegisterClusterParams{NewClusterParams: getDefaultClusterCreateParams()})
+		actual := reply.(*installer.V2RegisterClusterCreated)
+		resp := bm.V2ListClusters(ctx, installer.V2ListClustersParams{GetUnregisteredClusters: swag.Bool(true)})
+		clusters := resp.(*installer.V2ListClustersOK).Payload
+		Expect(len(clusters)).Should(Equal(1))
+
+		Expect(actual.Payload.UserName).To(Equal(username))
+		Expect(clusters[0].UserID).To(Equal(expectedUserID))
+
+		Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2RegisterClusterCreated()))
+	})
+
+	It("Register with empty username", func() {
+		mockClusterRegisterSuccess(true)
+
+		expectedUserID := ""
+		username := ""
+		payload := &ocm.AuthPayload{Role: ocm.UserRole}
+		payload.Username = username
+		authCtx := context.WithValue(ctx, restapi.AuthKey, payload)
+		mockAMSSubscription(authCtx)
+
+		reply := bm.V2RegisterCluster(authCtx, installer.V2RegisterClusterParams{
+			NewClusterParams: getDefaultClusterCreateParams(),
+		})
+		actual := reply.(*installer.V2RegisterClusterCreated)
+		resp := bm.V2ListClusters(ctx, installer.V2ListClustersParams{GetUnregisteredClusters: swag.Bool(true)})
+		clusters := resp.(*installer.V2ListClustersOK).Payload
+		Expect(len(clusters)).Should(Equal(1))
+		Expect(actual.Payload.UserName).To(Equal(username))
+		Expect(clusters[0].UserID).To(Equal(expectedUserID))
+	})
+
+	It("Register 2 clusters with single username", func() {
+		mockClusterRegisterSuccess(true)
+		mockClusterRegisterSuccess(true)
+
+		username := "user_name1234@gamil.com"
+		payload := &ocm.AuthPayload{Role: ocm.UserRole}
+		payload.Username = username
+		authCtx := context.WithValue(ctx, restapi.AuthKey, payload)
+		mockAMSSubscription(authCtx)
+		mockAMSSubscription(authCtx)
+
+		bm.V2RegisterCluster(authCtx, installer.V2RegisterClusterParams{NewClusterParams: getDefaultClusterCreateParams()})
+		bm.V2RegisterCluster(authCtx, installer.V2RegisterClusterParams{NewClusterParams: getDefaultClusterCreateParams()})
+
+		resp := bm.V2ListClusters(ctx, installer.V2ListClustersParams{GetUnregisteredClusters: swag.Bool(true)})
+		clusters := resp.(*installer.V2ListClustersOK).Payload
+
+		Expect(len(clusters)).Should(Equal(2))
+		Expect(clusters[0].UserID).To(Equal(clusters[1].UserID))
+		Expect(clusters[0].UserName).To(Equal(clusters[1].UserName))
+	})
+
 	It("SchedulableMasters default value", func() {
 		mockClusterRegisterSuccess(true)
 		mockAMSSubscription(ctx)

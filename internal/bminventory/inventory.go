@@ -9,6 +9,7 @@ import (
 	"crypto/x509"
 	"encoding/json"
 	"fmt"
+	"hash/fnv"
 	"io"
 	"io/ioutil"
 	"net"
@@ -16,6 +17,7 @@ import (
 	"net/url"
 	"path"
 	"runtime/debug"
+	"strconv"
 	"strings"
 	"time"
 
@@ -474,6 +476,7 @@ func (b *bareMetalInventory) RegisterClusterInternal(
 			MachineNetworks:       params.NewClusterParams.MachineNetworks,
 			CPUArchitecture:       cpuArchitecture,
 			IgnitionEndpoint:      params.NewClusterParams.IgnitionEndpoint,
+			UserID:                getUserID(ocm.UserNameFromContext(ctx)),
 		},
 		KubeKeyName:             kubeKey.Name,
 		KubeKeyNamespace:        kubeKey.Namespace,
@@ -544,6 +547,16 @@ func setDiskEncryptionWithDefaultValues(c *models.Cluster, config *models.DiskEn
 	if config.Mode == nil {
 		c.DiskEncryption.Mode = swag.String(models.DiskEncryptionModeTpmv2)
 	}
+}
+
+func getUserID(userName string) string {
+	h := fnv.New64a()
+	if _, err := h.Write([]byte(userName)); err != nil || userName == "" {
+		return ""
+
+	}
+
+	return strconv.FormatUint(h.Sum64(), 10)
 }
 
 func updateSSHPublicKey(cluster *common.Cluster) error {

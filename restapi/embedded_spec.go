@@ -5594,6 +5594,10 @@ func init() {
             "type": "Time"
           }
         },
+        "user_id": {
+          "description": "An unique user ID that is generated from the given user-name",
+          "type": "string"
+        },
         "user_managed_networking": {
           "description": "Indicate if the networking is managed by the user.",
           "type": "boolean",
@@ -14839,6 +14843,10 @@ func init() {
             },
             "type": "Time"
           }
+        },
+        "user_id": {
+          "description": "An unique user ID that is generated from the given user-name",
+          "type": "string"
         },
         "user_managed_networking": {
           "description": "Indicate if the networking is managed by the user.",
