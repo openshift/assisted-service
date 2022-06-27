@@ -39,6 +39,50 @@ var _ = Describe("Host tests", func() {
 		infraEnvID = registerInfraEnv(&clusterID, models.ImageTypeMinimalIso).ID
 	})
 
+	It("Should reject hostname if it is forbidden", func() {
+		host := &registerHost(*infraEnvID).Host
+		host = getHostV2(*infraEnvID, *host.ID)
+		Expect(host).NotTo(BeNil())
+
+		hostnames := []string{
+			"localhost",
+			"localhost.localdomain",
+			"localhost4",
+			"localhost4.localdomain4",
+			"localhost6",
+			"localhost6.localdomain6",
+		}
+
+		for i := range hostnames {
+			hostnameChangeRequest := &installer.V2UpdateHostParams{
+				InfraEnvID: *infraEnvID,
+				HostID:     *host.ID,
+				HostUpdateParams: &models.HostUpdateParams{
+					HostName: &hostnames[i],
+				},
+			}
+			_, hostnameUpdateError := userBMClient.Installer.V2UpdateHost(ctx, hostnameChangeRequest)
+			Expect(hostnameUpdateError).To(HaveOccurred())
+		}
+	})
+
+	It("Should accept hostname if it is permitted", func() {
+		host := &registerHost(*infraEnvID).Host
+		host = getHostV2(*infraEnvID, *host.ID)
+		Expect(host).NotTo(BeNil())
+
+		hostname := "arbitrary.hostname"
+		hostnameChangeRequest := &installer.V2UpdateHostParams{
+			InfraEnvID: *infraEnvID,
+			HostID:     *host.ID,
+			HostUpdateParams: &models.HostUpdateParams{
+				HostName: &hostname,
+			},
+		}
+		_, hostnameUpdateError := userBMClient.Installer.V2UpdateHost(ctx, hostnameChangeRequest)
+		Expect(hostnameUpdateError).NotTo(HaveOccurred())
+	})
+
 	It("host CRUD", func() {
 		host := &registerHost(*infraEnvID).Host
 		host = getHostV2(*infraEnvID, *host.ID)

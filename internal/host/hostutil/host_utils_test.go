@@ -69,6 +69,33 @@ var _ = Describe("Installation Disk selection", func() {
 	}
 })
 
+var _ = Describe("Validation", func() {
+	It("Should not allow forbidden hostnames", func() {
+		for _, hostName := range []string{
+			"localhost",
+			"localhost.localdomain",
+			"localhost4",
+			"localhost4.localdomain4",
+			"localhost6",
+			"localhost6.localdomain6",
+		} {
+			err := ValidateHostname(hostName)
+			Expect(err).To(HaveOccurred())
+		}
+	})
+
+	It("Should allow permitted hostnames", func() {
+		for _, hostName := range []string{
+			"foobar",
+			"foobar.local",
+			"arbitrary.hostname",
+		} {
+			err := ValidateHostname(hostName)
+			Expect(err).NotTo(HaveOccurred())
+		}
+	})
+})
+
 func TestHostUtil(t *testing.T) {
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "HostUtil Tests")

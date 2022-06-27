@@ -3112,7 +3112,7 @@ spec:
 
 		waitForHostState(ctx, models.HostStatusKnown, 60*time.Second, h1)
 
-		By("Setting hostname to localhost")
+		By("Setting hostname to localhost should cause an API error")
 		_, err = userBMClient.Installer.V2UpdateHost(ctx, &installer.V2UpdateHostParams{
 			HostUpdateParams: &models.HostUpdateParams{
 				HostName: &localhost,
@@ -3120,9 +3120,9 @@ spec:
 			HostID:     *h1Host.ID,
 			InfraEnvID: h1Host.InfraEnvID,
 		})
-		Expect(err).NotTo(HaveOccurred())
+		Expect(err).To(HaveOccurred())
 
-		waitForHostState(ctx, models.HostStatusInsufficient, 60*time.Second, h1)
+		waitForHostState(ctx, models.HostStatusKnown, 60*time.Second, h1)
 
 	})
 
