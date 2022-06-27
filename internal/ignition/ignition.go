@@ -191,7 +191,11 @@ const discoveryIgnitionConfigFormat = `{
         "name": "selinux.service",
         "enabled": true,
         "contents": "[Service]\nType=oneshot\nExecStartPre=checkmodule -M -m -o /root/assisted.mod /root/assisted.te\nExecStartPre=semodule_package -o /root/assisted.pp -m /root/assisted.mod\nExecStart=semodule -i /root/assisted.pp\n\n[Install]\nWantedBy=multi-user.target"
-    }{{if .StaticNetworkConfig}},
+    }{{if .OKDBinaries | not}},
+    {
+        "name": "multipathd.service",
+        "enabled": true
+    }{{end}}{{if .StaticNetworkConfig}},
     {
         "name": "pre-network-manager-config.service",
         "enabled": true,
@@ -201,10 +205,6 @@ const discoveryIgnitionConfigFormat = `{
         "name": "okd-overlay.service",
         "enabled": true,
         "contents": "[Service]\nType=oneshot\nExecStart=/usr/local/bin/okd-binaries.sh\n\n[Unit]\nWants=network-online.target\nAfter=network-online.target\n\n[Install]\nWantedBy=multi-user.target"
-    },
-	{
-        "name": "multipathd.service",
-        "enabled": true,
     },
     {
         "name": "systemd-journal-gatewayd.socket",
@@ -231,16 +231,16 @@ const discoveryIgnitionConfigFormat = `{
           "name": "root"
       },
       "contents": { "source": "data:,{{.AGENT_MOTD}}" }
-    },
+    }{{if .OKDBinaries | not}},
     {
-		"overwrite": true,
-		"path": "/etc/multipath.conf",
-		"mode": 420,
-		"user": {
-			"name": "root"
-		},
-		"contents": { "source": "data:text/plain;charset=utf-8;base64,ZGVmYXVsdHMgewogICAgdXNlcl9mcmllbmRseV9uYW1lcyB5ZXMKICAgIGZpbmRfbXVsdGlwYXRocyB5ZXMKICAgIGVuYWJsZV9mb3JlaWduICJeJCIKfQpibGFja2xpc3RfZXhjZXB0aW9ucyB7CiAgICBwcm9wZXJ0eSAiKFNDU0lfSURFTlRffElEX1dXTikiCn0KYmxhY2tsaXN0IHsKfQo=" }
-	},
+      "overwrite": true,
+      "path": "/etc/multipath.conf",
+      "mode": 420,
+      "user": {
+          "name": "root"
+      },
+      "contents": { "source": "data:text/plain;charset=utf-8;base64,ZGVmYXVsdHMgewogICAgdXNlcl9mcmllbmRseV9uYW1lcyB5ZXMKICAgIGZpbmRfbXVsdGlwYXRocyB5ZXMKICAgIGVuYWJsZV9mb3JlaWduICJeJCIKfQpibGFja2xpc3RfZXhjZXB0aW9ucyB7CiAgICBwcm9wZXJ0eSAiKFNDU0lfSURFTlRffElEX1dXTikiCn0KYmxhY2tsaXN0IHsKfQo=" }
+    }{{end}},
     {
       "overwrite": true,
       "path": "/etc/NetworkManager/conf.d/01-ipv6.conf",
