@@ -25,3 +25,6 @@ filters:
   ^docs/events.yaml:
     labels:
       - api-review
+  ^deploy/.*:
+    labels:
+      - bugzilla/valid-bug
