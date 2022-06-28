@@ -132,6 +132,9 @@ parameters:
 - name: CPU_REQUEST
   value: "300m"
   required: false
+- name: ISO_IMAGE_TYPE
+  value: "minimal-iso"
+  required: false
 apiVersion: v1
 kind: Template
 metadata:
@@ -347,6 +350,8 @@ objects:
                 value: ${ENABLE_ORG_TENANCY}
               - name: ENABLE_ORG_BASED_FEATURE_GATES
                 value: ${ENABLE_ORG_BASED_FEATURE_GATES}
+              - name: ISO_IMAGE_TYPE
+                value: ${ISO_IMAGE_TYPE}
             volumeMounts:
               - name: route53-creds
                 mountPath: "/etc/.aws"
