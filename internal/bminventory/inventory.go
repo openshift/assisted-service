@@ -3872,6 +3872,8 @@ func (b *bareMetalInventory) RegisterInfraEnvInternal(
 
 	log = log.WithField(ctxparams.ClusterId, id)
 	log.Infof("Register infraenv: %s with id %s", swag.StringValue(params.InfraenvCreateParams.Name), id)
+
+	tx := b.db.Begin()
 	success := false
 	var err error
 	defer func() {
@@ -3889,54 +3891,40 @@ func (b *bareMetalInventory) RegisterInfraEnvInternal(
 				errMsg = fmt.Sprintf("%s. Error: %s", errMsg, errString)
 			}
 			log.Errorf(errMsg)
+			tx.Rollback()
 			eventgen.SendInfraEnvRegistrationFailedEvent(ctx, b.eventsHandler, id, errString)
 		}
 	}()
 
 	params = b.setDefaultRegisterInfraEnvParams(ctx, params)
 
-	if params.InfraenvCreateParams.Proxy != nil {
-		if err = validateProxySettings(params.InfraenvCreateParams.Proxy.HTTPProxy,
-			params.InfraenvCreateParams.Proxy.HTTPSProxy,
-			params.InfraenvCreateParams.Proxy.NoProxy, &params.InfraenvCreateParams.OpenshiftVersion); err != nil {
-			return nil, common.NewApiError(http.StatusBadRequest, err)
+	var cluster *common.Cluster
+	clusterId := params.InfraenvCreateParams.ClusterID
+	if clusterId != nil {
+		cluster, err = common.GetClusterFromDB(b.db, *clusterId, common.SkipEagerLoading)
+		if err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				err = errors.Errorf("Cluster ID %s does not exists", clusterId.String())
+				return nil, common.NewApiError(http.StatusNotFound, err)
+			}
+			return nil, common.NewApiError(http.StatusInternalServerError, err)
+		}
+
+		if err = b.checkUpdateAccessToObj(ctx, cluster, "cluster", clusterId); err != nil {
+			return nil, err
 		}
 	}
 
-	if params.InfraenvCreateParams.AdditionalNtpSources != nil && swag.StringValue(params.InfraenvCreateParams.AdditionalNtpSources) != b.Config.DefaultNTPSource {
-		ntpSource := swag.StringValue(params.InfraenvCreateParams.AdditionalNtpSources)
-
-		if ntpSource != "" && !pkgvalidations.ValidateAdditionalNTPSource(ntpSource) {
-			err = errors.Errorf("Invalid NTP source: %s", ntpSource)
-			return nil, common.NewApiError(http.StatusBadRequest, err)
-		}
-	} else {
-		params.InfraenvCreateParams.AdditionalNtpSources = swag.String(b.Config.DefaultNTPSource)
+	if err = b.validateInfraEnvCreateParams(ctx, params, cluster); err != nil {
+		return nil, common.NewApiError(http.StatusBadRequest, err)
 	}
 
-	osImage, err := b.getOsImageOrLatest(params.InfraenvCreateParams.OpenshiftVersion, params.InfraenvCreateParams.CPUArchitecture)
+	staticNetworkConfig, err := b.staticNetworkConfig.FormatStaticNetworkConfigForDB(params.InfraenvCreateParams.StaticNetworkConfig)
 	if err != nil {
 		return nil, err
 	}
 
-	if params.InfraenvCreateParams.SSHAuthorizedKey != nil && *params.InfraenvCreateParams.SSHAuthorizedKey != "" {
-		if err = validations.ValidateSSHPublicKey(*params.InfraenvCreateParams.SSHAuthorizedKey); err != nil {
-			err = errors.Errorf("SSH key is not valid")
-			return nil, common.NewApiError(http.StatusBadRequest, err)
-		}
-	}
-
-	if params.InfraenvCreateParams.StaticNetworkConfig != nil {
-		if err = b.staticNetworkConfig.ValidateStaticConfigParams(ctx, params.InfraenvCreateParams.StaticNetworkConfig); err != nil {
-			return nil, common.NewApiError(http.StatusBadRequest, err)
-		}
-	}
-
-	if err = b.validateInfraEnvIgnitionParams(ctx, params.InfraenvCreateParams.IgnitionConfigOverride); err != nil {
-		return nil, common.NewApiError(http.StatusBadRequest, err)
-	}
-
-	err = b.validateClusterInfraEnvRegister(ctx, params.InfraenvCreateParams.ClusterID, params.InfraenvCreateParams.CPUArchitecture)
+	osImage, err := b.getOsImageOrLatest(params.InfraenvCreateParams.OpenshiftVersion, params.InfraenvCreateParams.CPUArchitecture)
 	if err != nil {
 		return nil, err
 	}
@@ -3951,10 +3939,6 @@ func (b *bareMetalInventory) RegisterInfraEnvInternal(
 		return nil, err
 	}
 
-	staticNetworkConfig, err := b.staticNetworkConfig.FormatStaticNetworkConfigForDB(params.InfraenvCreateParams.StaticNetworkConfig)
-	if err != nil {
-		return nil, err
-	}
 	infraEnv := common.InfraEnv{
 		Generated: false,
 		InfraEnv: models.InfraEnv{
@@ -3977,8 +3961,13 @@ func (b *bareMetalInventory) RegisterInfraEnvInternal(
 		ImageTokenKey:    imageTokenKey,
 	}
 
-	if params.InfraenvCreateParams.ClusterID != nil {
-		infraEnv.ClusterID = *params.InfraenvCreateParams.ClusterID
+	if clusterId != nil {
+		infraEnv.ClusterID = *clusterId
+		// Set the feature usage for ignition config overrides since cluster id exists
+		if err = b.setIgnitionConfigOverrideUsage(infraEnv.ClusterID, params.InfraenvCreateParams.IgnitionConfigOverride, "infra-env", tx); err != nil {
+			// Failure to set the feature usage isn't a failure to create the infraenv so we only print the error instead of returning it
+			log.WithError(err).Warnf("failed to set ignition config override usage for cluster %s", infraEnv.ClusterID)
+		}
 	}
 	if params.InfraenvCreateParams.Proxy != nil {
 		proxy := models.Proxy{
@@ -4014,16 +4003,64 @@ func (b *bareMetalInventory) RegisterInfraEnvInternal(
 		return nil, common.NewApiError(http.StatusBadRequest, err)
 	}
 
-	if err = b.db.Create(&infraEnv).Error; err != nil {
+	if err = tx.Create(&infraEnv).Error; err != nil {
+		log.WithError(err).Error("failed to create infraenv")
 		return nil, common.NewApiError(http.StatusInternalServerError, err)
 	}
 
+	if err = tx.Commit().Error; err != nil {
+		log.WithError(err).Error("failed to commit transaction registering infraenv")
+		return nil, common.NewApiError(http.StatusInternalServerError, err)
+	}
+
+	success = true
 	if err = b.GenerateInfraEnvISOInternal(ctx, &infraEnv); err != nil {
 		return nil, err
 	}
 
-	success = true
 	return b.GetInfraEnvInternal(ctx, installer.GetInfraEnvParams{InfraEnvID: *infraEnv.ID})
+}
+
+func (b *bareMetalInventory) validateInfraEnvCreateParams(ctx context.Context, params installer.RegisterInfraEnvParams, cluster *common.Cluster) error {
+	var err error
+	if cluster != nil && cluster.CPUArchitecture != "" && cluster.CPUArchitecture != params.InfraenvCreateParams.CPUArchitecture {
+		err = errors.Errorf("Specified CPU architecture doesn't match the cluster (%s)",
+			cluster.CPUArchitecture)
+		return err
+	}
+
+	if params.InfraenvCreateParams.Proxy != nil {
+		if err = validateProxySettings(params.InfraenvCreateParams.Proxy.HTTPProxy,
+			params.InfraenvCreateParams.Proxy.HTTPSProxy,
+			params.InfraenvCreateParams.Proxy.NoProxy, &params.InfraenvCreateParams.OpenshiftVersion); err != nil {
+			return err
+		}
+	}
+
+	ntpSource := swag.StringValue(params.InfraenvCreateParams.AdditionalNtpSources)
+	if ntpSource != b.Config.DefaultNTPSource && !pkgvalidations.ValidateAdditionalNTPSource(ntpSource) {
+		err = errors.Errorf("Invalid NTP source: %s", ntpSource)
+		return err
+	}
+
+	if params.InfraenvCreateParams.SSHAuthorizedKey != nil && *params.InfraenvCreateParams.SSHAuthorizedKey != "" {
+		if err = validations.ValidateSSHPublicKey(*params.InfraenvCreateParams.SSHAuthorizedKey); err != nil {
+			err = errors.Errorf("SSH key is not valid")
+			return err
+		}
+	}
+
+	if params.InfraenvCreateParams.StaticNetworkConfig != nil {
+		if err = b.staticNetworkConfig.ValidateStaticConfigParams(ctx, params.InfraenvCreateParams.StaticNetworkConfig); err != nil {
+			return err
+		}
+	}
+
+	if err = b.validateInfraEnvIgnitionParams(ctx, params.InfraenvCreateParams.IgnitionConfigOverride); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (b *bareMetalInventory) setDefaultRegisterInfraEnvParams(_ context.Context, params installer.RegisterInfraEnvParams) installer.RegisterInfraEnvParams {
@@ -4039,6 +4076,10 @@ func (b *bareMetalInventory) setDefaultRegisterInfraEnvParams(_ context.Context,
 	if params.InfraenvCreateParams.CPUArchitecture == "" {
 		// Specifying architecture in params is optional, fallback to default
 		params.InfraenvCreateParams.CPUArchitecture = common.DefaultCPUArchitecture
+	}
+
+	if params.InfraenvCreateParams.AdditionalNtpSources == nil {
+		params.InfraenvCreateParams.AdditionalNtpSources = swag.String(b.Config.DefaultNTPSource)
 	}
 
 	return params
@@ -4063,23 +4104,43 @@ func (b *bareMetalInventory) getOsImageOrLatest(version string, cpuArch string) 
 	return osImage, nil
 }
 
-func (b *bareMetalInventory) validateClusterInfraEnvRegister(ctx context.Context, clusterId *strfmt.UUID, arch string) error {
-	if clusterId != nil {
-		cluster, err := common.GetClusterFromDB(b.db, *clusterId, common.SkipEagerLoading)
-		if err != nil {
-			err = errors.Errorf("Cluster ID %s does not exists", clusterId.String())
-			return common.NewApiError(http.StatusBadRequest, err)
+// Sets the feature usage for ignition config overrides for a cluster if a cluster exists
+// level is one of [host, infra-env] since the ignition config can be overridden at both these
+// levels
+func (b *bareMetalInventory) setIgnitionConfigOverrideUsage(clusterId strfmt.UUID, ignitionConfigOverride, level string, db *gorm.DB) error {
+	var cluster *common.Cluster
+	cluster, err := common.GetClusterFromDBForUpdate(db, clusterId, common.SkipEagerLoading)
+	if err != nil {
+		return err
+	}
+	if usages, uerr := usage.Unmarshal(cluster.Cluster.FeatureUsage); uerr == nil {
+		props := usages[usage.IgnitionConfigOverrideUsage].Data
+		if props == nil {
+			props = make(map[string]interface{})
+		}
+		// props is in the format: level=boolean
+		// i.e. "infra-env"=true
+
+		ignitionIsOverridden := false
+
+		// Determine the overall ignition config override usage
+		if ignitionConfigOverride == "" {
+			props[level] = false
+			// The ignition config override is empty for this level, so we need to see if
+			// at least one level of ignition config override is set,
+			// to determine if we keep the overall usage set to true
+			for _, val := range props {
+				if val.(bool) {
+					ignitionIsOverridden = true
+				}
+			}
+		} else {
+			props[level] = true
+			ignitionIsOverridden = true
 		}
 
-		if err = b.checkUpdateAccessToObj(ctx, cluster, "cluster", clusterId); err != nil {
-			return err
-		}
-
-		if cluster.CPUArchitecture != "" && cluster.CPUArchitecture != arch {
-			err = errors.Errorf("Specified CPU architecture doesn't match the cluster (%s)",
-				cluster.CPUArchitecture)
-			return common.NewApiError(http.StatusBadRequest, err)
-		}
+		b.setUsage(ignitionIsOverridden, usage.IgnitionConfigOverrideUsage, &props, usages)
+		b.usageApi.Save(db, clusterId, usages)
 	}
 	return nil
 }
@@ -4118,6 +4179,7 @@ func (b *bareMetalInventory) UpdateInfraEnvInternal(ctx context.Context, params 
 	}
 
 	success := false
+	tx := b.db.Begin()
 	defer func() {
 		if success {
 			msg := fmt.Sprintf("Successfully updated InfraEnv with id %s", params.InfraEnvID)
@@ -4128,10 +4190,14 @@ func (b *bareMetalInventory) UpdateInfraEnvInternal(ctx context.Context, params 
 				errWrapperLog = log.WithError(err)
 			}
 			errWrapperLog.Errorf("Failed to update InfraEnv with id %s", params.InfraEnvID)
+			tx.Rollback()
+			if r := recover(); r != nil {
+				tx.Rollback()
+			}
 		}
 	}()
 
-	if infraEnv, err = common.GetInfraEnvFromDB(b.db, params.InfraEnvID); err != nil {
+	if infraEnv, err = common.GetInfraEnvFromDB(tx, params.InfraEnvID); err != nil {
 		log.WithError(err).Errorf("failed to get infraEnv: %s", params.InfraEnvID)
 		return nil, common.NewApiError(http.StatusNotFound, err)
 	}
@@ -4155,12 +4221,13 @@ func (b *bareMetalInventory) UpdateInfraEnvInternal(ctx context.Context, params 
 		}
 	}
 
-	err = b.updateInfraEnvData(ctx, infraEnv, params, internalIgnitionConfig, b.db, log)
+	err = b.updateInfraEnvData(ctx, infraEnv, params, internalIgnitionConfig, tx, log)
 	if err != nil {
 		log.WithError(err).Error("updateInfraEnvData")
 		return nil, err
 	}
 
+	tx.Commit()
 	success = true
 
 	if infraEnv, err = common.GetInfraEnvFromDB(b.db, params.InfraEnvID); err != nil {
@@ -4201,6 +4268,11 @@ func (b *bareMetalInventory) updateInfraEnvData(ctx context.Context, infraEnv *c
 
 	if params.InfraEnvUpdateParams.IgnitionConfigOverride != "" && params.InfraEnvUpdateParams.IgnitionConfigOverride != infraEnv.IgnitionConfigOverride {
 		updates["ignition_config_override"] = params.InfraEnvUpdateParams.IgnitionConfigOverride
+		// Set the feature usage for ignition config overrides since it changed
+		if err := b.setIgnitionConfigOverrideUsage(infraEnv.ClusterID, params.InfraEnvUpdateParams.IgnitionConfigOverride, "infra-env", db); err != nil {
+			// Failure to set the feature usage isn't a failure to update the infraenv so we only print the error instead of returning it
+			log.WithError(err).Warnf("failed to set ignition config override usage for cluster %s", infraEnv.ClusterID)
+		}
 	}
 
 	if params.InfraEnvUpdateParams.ImageType != "" && params.InfraEnvUpdateParams.ImageType != common.ImageTypeValue(infraEnv.Type) {
@@ -4884,7 +4956,20 @@ func (b *bareMetalInventory) V2UpdateHostIgnition(ctx context.Context, params in
 func (b *bareMetalInventory) V2UpdateHostIgnitionInternal(ctx context.Context, params installer.V2UpdateHostIgnitionParams) (*models.Host, error) {
 	log := logutil.FromContext(ctx, b.log)
 
-	h, err := common.GetHostFromDB(b.db, params.InfraEnvID.String(), params.HostID.String())
+	txSuccess := false
+	tx := b.db.Begin()
+	defer func() {
+		if !txSuccess {
+			log.Error("UpdateHostIgnition failed")
+			tx.Rollback()
+		}
+		if r := recover(); r != nil {
+			log.Error("UpdateHostIgnition failed")
+			tx.Rollback()
+		}
+	}()
+
+	h, err := common.GetHostFromDB(tx, params.InfraEnvID.String(), params.HostID.String())
 	if err != nil {
 		return nil, err
 	}
@@ -4903,7 +4988,7 @@ func (b *bareMetalInventory) V2UpdateHostIgnitionInternal(ctx context.Context, p
 		log.Infof("Removing custom ignition override from host %s in infra-env %s", params.HostID, params.InfraEnvID)
 	}
 
-	err = b.db.Model(&common.Host{}).Where("id = ? and infra_env_id = ?", params.HostID, params.InfraEnvID).Update("ignition_config_overrides", params.HostIgnitionParams.Config).Error
+	err = tx.Model(&common.Host{}).Where("id = ? and infra_env_id = ?", params.HostID, params.InfraEnvID).Update("ignition_config_overrides", params.HostIgnitionParams.Config).Error
 	if err != nil {
 		return nil, common.NewApiError(http.StatusInternalServerError, err)
 	}
@@ -4911,11 +4996,20 @@ func (b *bareMetalInventory) V2UpdateHostIgnitionInternal(ctx context.Context, p
 	eventgen.SendHostDiscoveryIgnitionConfigAppliedEvent(ctx, b.eventsHandler, params.HostID, params.InfraEnvID,
 		hostutil.GetHostnameForMsg(&h.Host))
 	log.Infof("Custom discovery ignition config was applied to host %s in infra-env %s", params.HostID, params.InfraEnvID)
-	h, err = common.GetHostFromDB(b.db, params.InfraEnvID.String(), params.HostID.String())
+	h, err = common.GetHostFromDB(tx, params.InfraEnvID.String(), params.HostID.String())
 	if err != nil {
 		log.WithError(err).Errorf("failed to get host %s after update", params.HostID)
 		return nil, common.NewApiError(http.StatusInternalServerError, err)
 	}
+
+	// Set the feature usage for ignition config overrides
+	if err = b.setIgnitionConfigOverrideUsage(*h.ClusterID, params.HostIgnitionParams.Config, "host", tx); err != nil {
+		// Failure to set the feature usage isn't a failure to update the host ignition so we only print the error instead of returning it
+		log.WithError(err).Warnf("failed to set ignition config override usage for cluster %s", h.ClusterID)
+	}
+
+	tx.Commit()
+	txSuccess = true
 	return &h.Host, nil
 }
 

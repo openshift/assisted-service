@@ -6532,6 +6532,84 @@ var _ = Describe("infraEnvs", func() {
 			Expect(dbInfraEnv.ImageTokenKey).NotTo(Equal(""))
 		})
 
+		It("sets the ignition config override feature usage when given a valid override", func() {
+			override := `{"ignition": {"version": "3.1.0"}, "storage": {"files": [{"path": "/tmp/example", "contents": {"source": "data:text/plain;base64,aGVscGltdHJhcHBlZGluYXN3YWdnZXJzcGVj"}}]}}`
+			MinimalOpenShiftVersionForNoneHA := "4.8.0-fc.0"
+			clusterID := strfmt.UUID(uuid.New().String())
+			cluster := common.Cluster{Cluster: models.Cluster{
+				ID:               &clusterID,
+				OpenshiftVersion: MinimalOpenShiftVersionForNoneHA,
+				CPUArchitecture:  "x86_64",
+			}}
+			err := db.Create(&cluster).Error
+			Expect(err).ShouldNot(HaveOccurred())
+			mockInfraEnvRegisterSuccess()
+			mockEvents.EXPECT().SendInfraEnvEvent(ctx, eventstest.NewEventMatcher(
+				eventstest.WithNameMatcher(eventgen.InfraEnvRegisteredEventName))).Times(1)
+			mockUsage.EXPECT().Add(gomock.Any(), usage.IgnitionConfigOverrideUsage, gomock.Any()).Times(1)
+			mockUsage.EXPECT().Save(gomock.Any(), gomock.Any(), gomock.Any()).Times(1)
+			mockUsage.EXPECT().Remove(gomock.Any(), gomock.Any()).Times(0)
+
+			bm.RegisterInfraEnv(ctx, installer.RegisterInfraEnvParams{
+				InfraenvCreateParams: &models.InfraEnvCreateParams{
+					Name:                   swag.String("some-infra-env-name"),
+					PullSecret:             swag.String("{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"),
+					OpenshiftVersion:       MinimalOpenShiftVersionForNoneHA,
+					IgnitionConfigOverride: override,
+					ClusterID:              &clusterID,
+				},
+			})
+		})
+
+		It("doesn't set the ignition config override feature usage when no cluster is attached to the infra-env", func() {
+			override := `{"ignition": {"version": "3.1.0"}, "storage": {"files": [{"path": "/tmp/example", "contents": {"source": "data:text/plain;base64,aGVscGltdHJhcHBlZGluYXN3YWdnZXJzcGVj"}}]}}`
+			MinimalOpenShiftVersionForNoneHA := "4.8.0-fc.0"
+
+			mockInfraEnvRegisterSuccess()
+			mockEvents.EXPECT().SendInfraEnvEvent(ctx, eventstest.NewEventMatcher(
+				eventstest.WithNameMatcher(eventgen.InfraEnvRegisteredEventName))).Times(1)
+			mockUsage.EXPECT().Add(gomock.Any(), usage.IgnitionConfigOverrideUsage, gomock.Any()).Times(0)
+			mockUsage.EXPECT().Save(gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
+			mockUsage.EXPECT().Remove(gomock.Any(), gomock.Any()).Times(0)
+
+			bm.RegisterInfraEnv(ctx, installer.RegisterInfraEnvParams{
+				InfraenvCreateParams: &models.InfraEnvCreateParams{
+					Name:                   swag.String("some-infra-env-name"),
+					PullSecret:             swag.String("{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"),
+					OpenshiftVersion:       MinimalOpenShiftVersionForNoneHA,
+					IgnitionConfigOverride: override,
+				},
+			})
+		})
+
+		It("doesn't set the ignition config override feature usage when no override is given", func() {
+			override := ""
+			MinimalOpenShiftVersionForNoneHA := "4.8.0-fc.0"
+			clusterID := strfmt.UUID(uuid.New().String())
+			cluster := common.Cluster{Cluster: models.Cluster{
+				ID:               &clusterID,
+				OpenshiftVersion: MinimalOpenShiftVersionForNoneHA,
+				CPUArchitecture:  "x86_64",
+			}}
+			err := db.Create(&cluster).Error
+			Expect(err).ShouldNot(HaveOccurred())
+			mockInfraEnvRegisterSuccess()
+			mockEvents.EXPECT().SendInfraEnvEvent(ctx, eventstest.NewEventMatcher(
+				eventstest.WithNameMatcher(eventgen.InfraEnvRegisteredEventName))).Times(1)
+			mockUsage.EXPECT().Add(gomock.Any(), usage.IgnitionConfigOverrideUsage, gomock.Any()).Times(0)
+			mockUsage.EXPECT().Save(gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
+			mockUsage.EXPECT().Remove(gomock.Any(), gomock.Any()).Times(0)
+
+			bm.RegisterInfraEnv(ctx, installer.RegisterInfraEnvParams{
+				InfraenvCreateParams: &models.InfraEnvCreateParams{
+					Name:                   swag.String("some-infra-env-name"),
+					PullSecret:             swag.String("{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"),
+					OpenshiftVersion:       MinimalOpenShiftVersionForNoneHA,
+					IgnitionConfigOverride: override,
+				},
+			})
+		})
+
 		It("Create with ClusterID - CPU architecture match", func() {
 			MinimalOpenShiftVersionForNoneHA := "4.8.0-fc.0"
 
@@ -6543,7 +6621,7 @@ var _ = Describe("infraEnvs", func() {
 			}}
 			err := db.Create(&cluster).Error
 			Expect(err).ShouldNot(HaveOccurred())
-
+			mockUsageReports()
 			mockInfraEnvRegisterSuccess()
 			mockEvents.EXPECT().SendInfraEnvEvent(ctx, eventstest.NewEventMatcher(
 				eventstest.WithNameMatcher(eventgen.InfraEnvRegisteredEventName))).Times(1)
@@ -6597,7 +6675,6 @@ var _ = Describe("infraEnvs", func() {
 			err := db.Create(&cluster).Error
 			Expect(err).ShouldNot(HaveOccurred())
 
-			mockVersions.EXPECT().GetOsImage(gomock.Any(), gomock.Any()).Return(common.TestDefaultConfig.OsImage, nil).Times(1)
 			mockEvents.EXPECT().SendInfraEnvEvent(ctx, eventstest.NewEventMatcher(
 				eventstest.WithNameMatcher(eventgen.InfraEnvRegistrationFailedEventName),
 				eventstest.WithMessageContainsMatcher("Specified CPU architecture doesn't match the cluster"))).Times(1)
@@ -6615,7 +6692,6 @@ var _ = Describe("infraEnvs", func() {
 		})
 
 		It("Invalid Ignition - too recent", func() {
-			mockVersions.EXPECT().GetOsImage(gomock.Any(), gomock.Any()).Return(common.TestDefaultConfig.OsImage, nil).Times(1)
 			MinimalOpenShiftVersionForNoneHA := "4.8.0-fc.0"
 			override := `{"ignition": {"version": "9.9.0"}, "storage": {"files": [{"path": "/tmp/example", "contents": {"source": "data:text/plain;base64,aGVscGltdHJhcHBlZGluYXN3YWdnZXJzcGVj"}}]}}`
 			mockEvents.EXPECT().SendInfraEnvEvent(gomock.Any(), eventstest.NewEventMatcher(
@@ -6666,6 +6742,7 @@ var _ = Describe("infraEnvs", func() {
 		})
 
 		It("successful creation - cluster owner", func() {
+			mockUsageReports()
 			mockInfraEnvRegisterSuccess()
 			MinimalOpenShiftVersionForNoneHA := "4.8.0-fc.0"
 			payload.Username = userName1
@@ -6692,6 +6769,7 @@ var _ = Describe("infraEnvs", func() {
 		})
 
 		It("successful creation - clusterEditor", func() {
+			mockUsageReports()
 			mockInfraEnvRegisterSuccess()
 			MinimalOpenShiftVersionForNoneHA := "4.8.0-fc.0"
 
@@ -6725,7 +6803,6 @@ var _ = Describe("infraEnvs", func() {
 			payload.Username = userName2
 			authCtx = context.WithValue(ctx, restapi.AuthKey, payload)
 
-			mockVersions.EXPECT().GetOsImage(gomock.Any(), gomock.Any()).Return(common.TestDefaultConfig.OsImage, nil).Times(1)
 			mockEvents.EXPECT().SendInfraEnvEvent(authCtx, eventstest.NewEventMatcher(
 				eventstest.WithNameMatcher(eventgen.InfraEnvRegistrationFailedEventName))).Times(1)
 			mockOcmAuthz.EXPECT().AccessReview(
@@ -6748,7 +6825,6 @@ var _ = Describe("infraEnvs", func() {
 			payload.Organization = "another_org"
 			authCtx = context.WithValue(ctx, restapi.AuthKey, payload)
 
-			mockVersions.EXPECT().GetOsImage(gomock.Any(), gomock.Any()).Return(common.TestDefaultConfig.OsImage, nil).Times(1)
 			mockEvents.EXPECT().SendInfraEnvEvent(authCtx, eventstest.NewEventMatcher(
 				eventstest.WithNameMatcher(eventgen.InfraEnvRegistrationFailedEventName))).Times(1)
 			mockOcmAuthz.EXPECT().AccessReview(
@@ -9237,11 +9313,10 @@ var _ = Describe("UpdateInfraEnv - Ignition", func() {
 		Expect(err).ShouldNot(HaveOccurred())
 		infraEnv = common.InfraEnv{
 			PullSecret: `{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"`,
-			InfraEnv:   models.InfraEnv{ID: &clusterID, PullSecretSet: true},
+			InfraEnv:   models.InfraEnv{ID: &clusterID, PullSecretSet: true, ClusterID: clusterID},
 		}
 		err = db.Create(&infraEnv).Error
 		Expect(err).ShouldNot(HaveOccurred())
-		mockUsageReports()
 	})
 
 	AfterEach(func() {
@@ -9255,7 +9330,7 @@ var _ = Describe("UpdateInfraEnv - Ignition", func() {
 			InfraEnvID:           *infraEnv.ID,
 			InfraEnvUpdateParams: &models.InfraEnvUpdateParams{IgnitionConfigOverride: override},
 		}
-
+		mockUsageReports()
 		mockVersions.EXPECT().GetLatestOsImage(gomock.Any()).Return(common.TestDefaultConfig.OsImage, nil).Times(1)
 		mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(discovery_ignition_3_1, nil).Times(1)
 		mockEvents.EXPECT().SendInfraEnvEvent(gomock.Any(), eventstest.NewEventMatcher(
@@ -9322,6 +9397,57 @@ var _ = Describe("UpdateInfraEnv - Ignition", func() {
 		}
 		response := bm.UpdateInfraEnv(ctx, params)
 		Expect(response).To(BeAssignableToTypeOf(common.NewApiError(http.StatusBadRequest, errors.Errorf("error"))))
+	})
+
+	It("sets the ignition config override feature usage when given a valid override", func() {
+		override := `{"ignition": {"version": "3.1.0"}, "storage": {"files": [{"path": "/tmp/example", "contents": {"source": "data:text/plain;base64,aGVscGltdHJhcHBlZGluYXN3YWdnZXJzcGVj"}}]}}`
+		params := installer.UpdateInfraEnvParams{
+			InfraEnvID:           *infraEnv.ID,
+			InfraEnvUpdateParams: &models.InfraEnvUpdateParams{IgnitionConfigOverride: override},
+		}
+		mockVersions.EXPECT().GetLatestOsImage(gomock.Any()).Return(common.TestDefaultConfig.OsImage, nil).Times(1)
+		mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(discovery_ignition_3_1, nil).Times(1)
+		mockEvents.EXPECT().SendInfraEnvEvent(gomock.Any(), eventstest.NewEventMatcher(
+			eventstest.WithNameMatcher(eventgen.ImageInfoUpdatedEventName),
+			eventstest.WithInfraEnvIdMatcher(infraEnv.ID.String())))
+
+		mockUsage.EXPECT().Add(gomock.Any(), usage.IgnitionConfigOverrideUsage, gomock.Any()).Times(1)
+		mockUsage.EXPECT().Save(gomock.Any(), gomock.Any(), gomock.Any()).Times(1)
+		mockUsage.EXPECT().Remove(gomock.Any(), gomock.Any()).Times(0)
+
+		bm.UpdateInfraEnv(ctx, params)
+	})
+
+	It("doesn't set the ignition config override feature usage with a non-existant InfraEnv", func() {
+		override := `{"ignition": {"version": "3.1.0"}, "storage": {"files": [{"path": "/tmp/example", "contents": {"source": "data:text/plain;base64,aGVscGltdHJhcHBlZGluYXN3YWdnZXJzcGVj"}}]}}`
+		params := installer.UpdateInfraEnvParams{
+			InfraEnvID:           strfmt.UUID(uuid.New().String()),
+			InfraEnvUpdateParams: &models.InfraEnvUpdateParams{IgnitionConfigOverride: override},
+		}
+
+		mockUsage.EXPECT().Add(gomock.Any(), usage.IgnitionConfigOverrideUsage, gomock.Any()).Times(0)
+		mockUsage.EXPECT().Save(gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
+		mockUsage.EXPECT().Remove(gomock.Any(), gomock.Any()).Times(0)
+
+		bm.UpdateInfraEnv(ctx, params)
+	})
+
+	It("doesn't set the ignition config override feature usage when given an empty override", func() {
+		override := ""
+		params := installer.UpdateInfraEnvParams{
+			InfraEnvID:           *infraEnv.ID,
+			InfraEnvUpdateParams: &models.InfraEnvUpdateParams{IgnitionConfigOverride: override},
+		}
+		mockVersions.EXPECT().GetLatestOsImage(gomock.Any()).Return(common.TestDefaultConfig.OsImage, nil).Times(1)
+		mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(discovery_ignition_3_1, nil).Times(1)
+		mockEvents.EXPECT().SendInfraEnvEvent(gomock.Any(), eventstest.NewEventMatcher(
+			eventstest.WithNameMatcher(eventgen.ImageInfoUpdatedEventName),
+			eventstest.WithInfraEnvIdMatcher(infraEnv.ID.String())))
+		mockUsage.EXPECT().Add(gomock.Any(), usage.IgnitionConfigOverrideUsage, gomock.Any()).Times(0)
+		mockUsage.EXPECT().Save(gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
+		mockUsage.EXPECT().Remove(gomock.Any(), gomock.Any()).Times(0)
+
+		bm.UpdateInfraEnv(ctx, params)
 	})
 })
 
@@ -11494,6 +11620,7 @@ var _ = Describe("V2UpdateHostIgnition", func() {
 			HostID:             hostID,
 			HostIgnitionParams: &models.HostIgnitionParams{Config: override},
 		}
+		mockUsageReports()
 		mockEvents.EXPECT().SendHostEvent(gomock.Any(), eventstest.NewEventMatcher(
 			eventstest.WithNameMatcher(eventgen.HostDiscoveryIgnitionConfigAppliedEventName),
 			eventstest.WithHostIdMatcher(params.HostID.String()),
@@ -11575,6 +11702,42 @@ var _ = Describe("V2UpdateHostIgnition", func() {
 		response := bm.V2UpdateHostIgnition(ctx, params)
 		verifyApiError(response, http.StatusBadRequest)
 	})
+
+	It("sets the feature usage when given a valid ignition config override to the host", func() {
+		override := `{"ignition": {"version": "3.1.0"}, "storage": {"files": [{"path": "/tmp/example", "contents": {"source": "data:text/plain;base64,aGVscGltdHJhcHBlZGluYXN3YWdnZXJzcGVj"}}]}}`
+		params := installer.V2UpdateHostIgnitionParams{
+			InfraEnvID:         infraEnvID,
+			HostID:             hostID,
+			HostIgnitionParams: &models.HostIgnitionParams{Config: override},
+		}
+
+		mockEvents.EXPECT().SendHostEvent(gomock.Any(), eventstest.NewEventMatcher(
+			eventstest.WithNameMatcher(eventgen.HostDiscoveryIgnitionConfigAppliedEventName),
+			eventstest.WithHostIdMatcher(params.HostID.String()),
+			eventstest.WithInfraEnvIdMatcher(params.InfraEnvID.String())))
+		mockUsage.EXPECT().Add(gomock.Any(), usage.IgnitionConfigOverrideUsage, gomock.Any()).Times(1)
+		mockUsage.EXPECT().Save(gomock.Any(), gomock.Any(), gomock.Any()).Times(1)
+		mockUsage.EXPECT().Remove(gomock.Any(), gomock.Any()).Times(0)
+
+		bm.V2UpdateHostIgnition(ctx, params)
+	})
+
+	It("removes the feature usage when given an empty ignition config override to the same host", func() {
+		override := ""
+		params := installer.V2UpdateHostIgnitionParams{
+			InfraEnvID:         infraEnvID,
+			HostID:             hostID,
+			HostIgnitionParams: &models.HostIgnitionParams{Config: override},
+		}
+		mockEvents.EXPECT().SendHostEvent(gomock.Any(), eventstest.NewEventMatcher(
+			eventstest.WithNameMatcher(eventgen.HostDiscoveryIgnitionConfigAppliedEventName),
+			eventstest.WithHostIdMatcher(params.HostID.String()),
+			eventstest.WithInfraEnvIdMatcher(params.InfraEnvID.String())))
+		mockUsage.EXPECT().Add(gomock.Any(), usage.IgnitionConfigOverrideUsage, gomock.Any()).Times(0)
+		mockUsage.EXPECT().Save(gomock.Any(), gomock.Any(), gomock.Any()).Times(1)
+		mockUsage.EXPECT().Remove(gomock.Any(), gomock.Any()).Times(1)
+		bm.V2UpdateHostIgnition(ctx, params)
+	})
 })
 
 var _ = Describe("V2UpdateHostIgnition - with rhsso auth", func() {
@@ -11652,6 +11815,7 @@ var _ = Describe("V2UpdateHostIgnition - with rhsso auth", func() {
 			HostID:             hostID,
 			HostIgnitionParams: &models.HostIgnitionParams{Config: override},
 		}
+		mockUsageReports()
 		mockEvents.EXPECT().SendHostEvent(gomock.Any(), eventstest.NewEventMatcher(
 			eventstest.WithNameMatcher(eventgen.HostDiscoveryIgnitionConfigAppliedEventName),
 			eventstest.WithHostIdMatcher(params.HostID.String()),
@@ -11676,6 +11840,7 @@ var _ = Describe("V2UpdateHostIgnition - with rhsso auth", func() {
 			HostID:             hostID,
 			HostIgnitionParams: &models.HostIgnitionParams{Config: override},
 		}
+		mockUsageReports()
 		mockEvents.EXPECT().SendHostEvent(gomock.Any(), eventstest.NewEventMatcher(
 			eventstest.WithNameMatcher(eventgen.HostDiscoveryIgnitionConfigAppliedEventName),
 			eventstest.WithHostIdMatcher(params.HostID.String()),
