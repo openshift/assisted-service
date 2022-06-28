@@ -5,6 +5,11 @@ set -o pipefail
 set -o errexit
 set -o xtrace
 
+function get_package_manager() {
+    PACKAGE_MANAGER=$( command -v dnf &> /dev/null && echo "dnf" || echo "yum")
+    echo $PACKAGE_MANAGER
+}
+
 function print_help() {
   ALL_FUNCS="kustomize|golang|assisted_service|hive_from_upstream|print_help"
   echo "Usage: bash ${0} (${ALL_FUNCS})"
@@ -51,6 +56,19 @@ function awscli() {
   ./aws/install && rm -f /tmp/awscliv2.zip
 }
 
+function podman_remote() {
+  # podman-remote 4 cannot run against podman server 3 so installing them both side by side
+  curl --retry 5 -L https://github.com/containers/podman/releases/download/v3.4.4/podman-remote-static.tar.gz -o "podman-remote3.tar.gz" && \
+  tar -zxvf podman-remote3.tar.gz && \
+  mv podman-remote-static /usr/local/bin/podman-remote3 && \
+  rm -f podman-remote3.tar.gz
+
+  curl --retry 5 -L https://github.com/containers/podman/releases/download/v4.1.1/podman-remote-static.tar.gz -o "podman-remote4.tar.gz" && \
+  tar -zxvf podman-remote4.tar.gz && \
+  mv podman-remote-static /usr/local/bin/podman-remote4 && \
+  rm -f podman-remote4.tar.gz
+}
+
 function test_tools() {
   go get github.com/onsi/ginkgo/ginkgo@v1.16.4 \
       github.com/golang/mock/mockgen@v1.5.0 \
@@ -68,8 +86,8 @@ function assisted_service() {
     install -o root -g root -m 0755 /tmp/kubectl /usr/local/bin/kubectl && \
     rm -f /tmp/kubectl
 
-  yum install -y --setopt=skip_missing_names_on_install=False \
-    docker podman python3-pip genisoimage skopeo
+  $(get_package_manager) install -y --setopt=skip_missing_names_on_install=False \
+    unzip diffutils python3-pip genisoimage skopeo
 
   jq
 
@@ -90,6 +108,7 @@ function assisted_service() {
   go get golang.org/x/tools/cmd/goimports@v0.1.5 \
         sigs.k8s.io/controller-tools/cmd/controller-gen@v0.6.2
 
+  python3 -m venv ${VIRTUAL_ENV:-/opt/venv}
   python3 -m pip install --upgrade pip
   python3 -m pip install -r ./dev-requirements.txt
 }

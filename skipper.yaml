@@ -27,8 +27,17 @@ volumes:
   - /var/run/libvirt/libvirt-sock:/var/run/libvirt/libvirt-sock
   - /var/lib/libvirt/:/var/lib/libvirt/
   - /etc/pki/tls/certs/ca-bundle.crt:/etc/pki/tls/certs/ca-bundle.crt
+
+  # podman - sharing the podman.socket between the host and the skipper container
+  # should be part of skipper implementation. https://github.com/Stratoscale/skipper/issues/153
+  # root user
+  - /run/podman/podman.sock:/run/podman/podman.sock
+  # other users
+  # - $XDG_RUNTIME_DIR/podman/podman.sock:/run/podman/podman.sock
 env_file:
   - skipper.env
 env:
   GOCACHE: "/go/pkg/mod"
   KUBECONFIG: $KUBECONFIG
+  # a podman-remote env variable: the podman socket url to use
+  CONTAINER_HOST: unix://run/podman/podman.sock

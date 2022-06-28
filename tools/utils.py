@@ -3,17 +3,18 @@ import os
 import socket
 import subprocess
 import time
-import waiting
 import yaml
+import waiting
 from distutils.spawn import find_executable
 from functools import reduce
 from typing import Optional
-
 from deployment_options import INGRESS_REMOTE_TARGET, OCP_TARGET
+
 
 KUBECTL_CMD = 'kubectl'
 DOCKER = "docker"
 PODMAN = "podman"
+PODMAN_REMOTE = "podman-remote"
 
 
 def verify_build_directory(namespace):
@@ -285,13 +286,12 @@ def is_tool(name):
 
 
 def get_runtime_command():
-    if is_tool(DOCKER):
-        cmd = DOCKER
-    elif is_tool(PODMAN):
-        cmd = PODMAN
+    runtime_commands = (DOCKER, PODMAN, PODMAN_REMOTE)
+    for cmd in runtime_commands:
+        if is_tool(cmd):
+            return cmd
     else:
-        raise Exception("Nor %s nor %s are installed" % (PODMAN, DOCKER))
-    return cmd
+        raise RuntimeError("None of those commands are available: %s", runtime_commands)
 
 
 def get_kubectl_command(target=None, namespace=None):
