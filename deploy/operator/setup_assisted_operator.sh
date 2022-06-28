@@ -205,7 +205,7 @@ EOCR
     wait_for_object_amount agentserviceconfigs/agent 1 10 ${ASSISTED_NAMESPACE}
 
     # We need to patch agentserviceconfig to add the OS_IMAGES, but we need to rename the keys to be camelCase
-    OS_IMAGES_CAMELCASE=$(echo "${OS_IMAGES}" | sed 's/openshift_version/openshiftVersion/g; s/cpu_architecture/cpuArchitecture/g; s/rootfs_url/rootFSUrl/g' | jq -c .)
+    OS_IMAGES_CAMELCASE=$(echo "${OS_IMAGES}" | sed 's/openshift_version/openshiftVersion/g; s/cpu_architecture/cpuArchitecture/g' | jq -c .)
     oc patch -n ${ASSISTED_NAMESPACE} agentserviceconfig agent --type merge -p '{"spec":{"osImages":'"${OS_IMAGES_CAMELCASE}"'}}'
   fi
 
@@ -315,11 +315,8 @@ function mirror_rhcos() {
         rhcos_image=$(echo ${OS_IMAGES} | jq -r ".[$i].url")
         mirror_rhcos_image=$(mirror_file "${rhcos_image}" "${IRONIC_IMAGES_DIR}" "${MIRROR_BASE_URL}")
 
-        rhcos_rootfs=$(echo ${OS_IMAGES} | jq -r ".[$i].rootfs_url")
-        mirror_rhcos_rootfs=$(mirror_file "${rhcos_rootfs}" "${IRONIC_IMAGES_DIR}" "${MIRROR_BASE_URL}")
-
         OS_IMAGES=$(echo ${OS_IMAGES} |
-          jq ".[$i].url=\"${mirror_rhcos_image}\" | .[$i].rootfs_url=\"${mirror_rhcos_rootfs}\"")
+          jq ".[$i].url=\"${mirror_rhcos_image}\"")
     done
 }
 

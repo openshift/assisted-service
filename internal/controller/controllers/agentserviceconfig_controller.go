@@ -1687,7 +1687,6 @@ func (r *AgentServiceConfigReconciler) getOSImages(log logrus.FieldLogger, insta
 		osImage := models.OsImage{
 			OpenshiftVersion: &instance.Spec.OSImages[i].OpenshiftVersion,
 			URL:              &instance.Spec.OSImages[i].Url,
-			RootfsURL:        &instance.Spec.OSImages[i].RootFSUrl,
 			Version:          &instance.Spec.OSImages[i].Version,
 			CPUArchitecture:  &instance.Spec.OSImages[i].CPUArchitecture,
 		}

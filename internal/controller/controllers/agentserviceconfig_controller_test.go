@@ -1461,14 +1461,12 @@ var _ = Describe("getOSImages", func() {
 		{
 			OpenshiftVersion: "4.9",
 			Url:              "rhcos_4.9",
-			RootFSUrl:        "rhcos_rootfs_4.9",
 			Version:          "version-49.123-0",
 			CPUArchitecture:  CpuArchitectureX86,
 		},
 		{
 			OpenshiftVersion: "4.9",
 			Url:              "rhcos_4.9",
-			RootFSUrl:        "rhcos_rootfs_4.9",
 			Version:          "version-49.123-0",
 			CPUArchitecture:  CpuArchitectureArm,
 		},
@@ -1478,7 +1476,6 @@ var _ = Describe("getOSImages", func() {
 			CPUArchitecture:  swag.String(CpuArchitectureX86),
 			OpenshiftVersion: swag.String("4.8"),
 			URL:              swag.String("rhcos_4.8"),
-			RootfsURL:        swag.String("rhcos_rootfs_4.8"),
 			Version:          swag.String("version-48.123-0"),
 		},
 	}
@@ -1486,14 +1483,12 @@ var _ = Describe("getOSImages", func() {
 		&models.OsImage{
 			CPUArchitecture:  swag.String(CpuArchitectureX86),
 			OpenshiftVersion: swag.String("4.9"),
-			RootfsURL:        swag.String("rhcos_rootfs_4.9"),
 			URL:              swag.String("rhcos_4.9"),
 			Version:          swag.String("version-49.123-0"),
 		},
 		&models.OsImage{
 			CPUArchitecture:  swag.String(CpuArchitectureArm),
 			OpenshiftVersion: swag.String("4.9"),
-			RootfsURL:        swag.String("rhcos_rootfs_4.9"),
 			URL:              swag.String("rhcos_4.9"),
 			Version:          swag.String("version-49.123-0"),
 		},
@@ -1727,13 +1722,11 @@ func newASCWithOSImages() (*aiv1beta1.AgentServiceConfig, string) {
 			OpenshiftVersion: "4.8",
 			Version:          "48",
 			Url:              "4.8.iso",
-			RootFSUrl:        "4.8.img",
 		},
 		{
 			OpenshiftVersion: "4.9",
 			Version:          "49",
 			Url:              "4.9.iso",
-			RootFSUrl:        "4.9.img",
 		},
 	}
 
@@ -1743,14 +1736,12 @@ func newASCWithOSImages() (*aiv1beta1.AgentServiceConfig, string) {
 			OpenshiftVersion: swag.String("4.8"),
 			Version:          swag.String("48"),
 			URL:              swag.String("4.8.iso"),
-			RootfsURL:        swag.String("4.8.img"),
 		},
 		&models.OsImage{
 			CPUArchitecture:  swag.String(""),
 			OpenshiftVersion: swag.String("4.9"),
 			Version:          swag.String("49"),
 			URL:              swag.String("4.9.iso"),
-			RootfsURL:        swag.String("4.9.img"),
 		},
 	})
 
@@ -1764,13 +1755,11 @@ func newASCWithMultipleOpenshiftVersions() (*aiv1beta1.AgentServiceConfig, strin
 			OpenshiftVersion: "4.7",
 			Version:          "47",
 			Url:              "4.7.iso",
-			RootFSUrl:        "4.7.img",
 		},
 		{
 			OpenshiftVersion: "4.8",
 			Version:          "48",
 			Url:              "4.8.iso",
-			RootFSUrl:        "4.8.img",
 		},
 	}
 
@@ -1780,14 +1769,12 @@ func newASCWithMultipleOpenshiftVersions() (*aiv1beta1.AgentServiceConfig, strin
 			OpenshiftVersion: swag.String("4.7"),
 			Version:          swag.String("47"),
 			URL:              swag.String("4.7.iso"),
-			RootfsURL:        swag.String("4.7.img"),
 		},
 		&models.OsImage{
 			CPUArchitecture:  swag.String(""),
 			OpenshiftVersion: swag.String("4.8"),
 			Version:          swag.String("48"),
 			URL:              swag.String("4.8.iso"),
-			RootfsURL:        swag.String("4.8.img"),
 		},
 	})
 
@@ -1801,19 +1788,16 @@ func newASCWithDuplicateOpenshiftVersions() (*aiv1beta1.AgentServiceConfig, stri
 			OpenshiftVersion: "4.7",
 			Version:          "47",
 			Url:              "4.7.iso",
-			RootFSUrl:        "4.7.img",
 		},
 		{
 			OpenshiftVersion: "4.8",
 			Version:          "loser",
 			Url:              "loser",
-			RootFSUrl:        "loser",
 		},
 		{
 			OpenshiftVersion: "4.8",
 			Version:          "48",
 			Url:              "4.8.iso",
-			RootFSUrl:        "4.8.img",
 		},
 	}
 
@@ -1823,21 +1807,18 @@ func newASCWithDuplicateOpenshiftVersions() (*aiv1beta1.AgentServiceConfig, stri
 			OpenshiftVersion: swag.String("4.7"),
 			Version:          swag.String("47"),
 			URL:              swag.String("4.7.iso"),
-			RootfsURL:        swag.String("4.7.img"),
 		},
 		&models.OsImage{
 			CPUArchitecture:  swag.String(""),
 			OpenshiftVersion: swag.String("4.8"),
 			Version:          swag.String("loser"),
 			URL:              swag.String("loser"),
-			RootfsURL:        swag.String("loser"),
 		},
 		&models.OsImage{
 			CPUArchitecture:  swag.String(""),
 			OpenshiftVersion: swag.String("4.8"),
 			Version:          swag.String("48"),
 			URL:              swag.String("4.8.iso"),
-			RootfsURL:        swag.String("4.8.img"),
 		},
 	})
 
@@ -1852,7 +1833,6 @@ func newASCWithLongOpenshiftVersion() (*aiv1beta1.AgentServiceConfig, string) {
 			OpenshiftVersion: "4.8.0",
 			Version:          "48",
 			Url:              "4.8.iso",
-			RootFSUrl:        "4.8.img",
 		},
 	}
 
@@ -1862,7 +1842,6 @@ func newASCWithLongOpenshiftVersion() (*aiv1beta1.AgentServiceConfig, string) {
 			OpenshiftVersion: swag.String("4.8.0"),
 			Version:          swag.String("48"),
 			URL:              swag.String("4.8.iso"),
-			RootfsURL:        swag.String("4.8.img"),
 		},
 	})
 

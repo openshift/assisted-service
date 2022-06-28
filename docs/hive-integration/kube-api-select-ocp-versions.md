@@ -37,7 +37,6 @@ spec:
   osImages:
     - openshiftVersion: 4.7
       url: https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/4.7/4.7.0/rhcos-4.7.0-x86_64-live.x86_64.iso
-      rootFSUrl: "https://mirror.openshift.com/pub/openshift-v4/x86_64/dependencies/rhcos/4.7/4.7.0/rhcos-live-rootfs.x86_64.img"
       version: 47.83.202102090044-0
       cpuArchitecture: "x86_64"
 ```

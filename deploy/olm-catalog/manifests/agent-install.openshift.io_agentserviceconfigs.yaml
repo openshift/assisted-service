@@ -587,7 +587,9 @@ spec:
                         OpenShift that this image is to be associated with.
                       type: string
                     rootFSUrl:
-                      description: rootFSUrl specifies the path to the root filesystem.
+                      description: 'rootFSUrl specifies the path to the root filesystem.
+                        Deprecated: this field is ignored (will be removed in a future
+                        release).'
                       type: string
                     url:
                       description: Url specifies the path to the Operating System
@@ -599,7 +601,6 @@ spec:
                       type: string
                   required:
                   - openshiftVersion
-                  - rootFSUrl
                   - url
                   - version
                   type: object
