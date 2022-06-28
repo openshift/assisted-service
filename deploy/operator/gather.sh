@@ -22,11 +22,18 @@ function gather_olm_data() {
   oc get installplan -n "${ASSISTED_NAMESPACE}" -o yaml  > ${LOGS_DEST}/oc_install_plan.log
 }
 
+function gather_cluster_data() {
+  oc get nodes -o yaml > ${LOGS_DEST}/oc_get_nodes.yaml || true
+  oc cluster-info > ${LOGS_DEST}/oc_cluster_info.log || true
+  oc cluster-info dump > ${LOGS_DEST}/oc_cluster_info_dump.log || true
+}
+
 function gather_operator_data() {
-  oc cluster-info > ${LOGS_DEST}/oc_cluster_info.log
   oc get all -n "${ASSISTED_NAMESPACE}" > ${LOGS_DEST}/oc_get_all.log || true
+  oc get pods -n "${ASSISTED_NAMESPACE}" -o yaml > ${LOGS_DEST}/oc_get_pods.yaml || true
 
   oc logs --tail=-1 -n "${ASSISTED_NAMESPACE}" --selector app=assisted-service -c assisted-service > ${LOGS_DEST}/assisted-service.log
+  oc logs --tail=-1 -n "${ASSISTED_NAMESPACE}" --selector app=assisted-image-service -c assisted-image-service > ${LOGS_DEST}/assisted-image-service.log
   oc logs --tail=-1 -n "${ASSISTED_NAMESPACE}" --selector app=assisted-service -c postgres > ${LOGS_DEST}/postgres.log
   oc logs --tail=-1 -n "${ASSISTED_NAMESPACE}" --selector control-plane=infrastructure-operator > ${LOGS_DEST}/infrastructure-operator.log
 
@@ -138,11 +145,12 @@ function gather_capi_data() {
   mkdir -p "${capi_provider_dir}"
 
   oc get pods -n ${capi_provider_ns} -o=custom-columns=NAME:.metadata.name --no-headers | xargs -r -I {} sh -c "oc logs --tail=-1 {} -n ${capi_provider_ns} --all-containers > ${capi_provider_dir}/logs_{}.log" || true
-  oc get pods -n ${capi_provider_ns} -o=custom-columns=NAME:.metadata.name --no-headers | xargs -r -I {} sh -c "oc get pods -o yaml {} -n ${capi_provider_ns} > ${capi_provider_dir}/logs_{}.yaml" || true
+  oc get pods -n ${capi_provider_ns} -o=custom-columns=NAME:.metadata.name --no-headers | xargs -r -I {} sh -c "oc get pods -o yaml {} -n ${capi_provider_ns} > ${capi_provider_dir}/pods_{}.yaml" || true
 
 }
 
 function gather_all() {
+  gather_cluster_data
   gather_hive_data
   gather_olm_data
   gather_operator_data
