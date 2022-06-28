@@ -112,6 +112,8 @@ const (
 
 	// ReasonReconcileSucceeded when the reconcile completes all operations without error.
 	ReasonReconcileSucceeded string = "ReconcileSucceeded"
+	// ReasonDeploymentSucceeded when configuring/deploying the assisted-service deployment completed without errors.
+	ReasonDeploymentSucceeded string = "DeploymentSucceeded"
 	// ReasonStorageFailure when there was a failure configuring/deploying storage.
 	ReasonStorageFailure string = "StorageFailure"
 	// ReasonImageHandlerServiceFailure when there was a failure related to the assisted-image-service's service.
