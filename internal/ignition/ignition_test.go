@@ -1172,6 +1172,24 @@ var _ = Describe("IgnitionBuilder", func() {
 		Expect(text).Should(ContainSubstring("/tmp/example"))
 	})
 
+	It("no multipath for okd", func() {
+		config := IgnitionConfig{OKDRPMsImage: "image"}
+		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(2)
+		text, err := builder.FormatDiscoveryIgnitionFile(context.Background(), &infraEnv, config, false, auth.TypeRHSSO)
+
+		Expect(err).Should(BeNil())
+		Expect(text).ShouldNot(ContainSubstring("multipathd"))
+	})
+
+	It("multipath configured for non-okd", func() {
+		config := IgnitionConfig{}
+		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(2)
+		text, err := builder.FormatDiscoveryIgnitionFile(context.Background(), &infraEnv, config, false, auth.TypeRHSSO)
+
+		Expect(err).Should(BeNil())
+		Expect(text).Should(ContainSubstring("multipathd"))
+	})
+
 	Context("static network config", func() {
 		formattedInput := "some formated input"
 		staticnetworkConfigOutput := []staticnetworkconfig.StaticNetworkConfigData{
