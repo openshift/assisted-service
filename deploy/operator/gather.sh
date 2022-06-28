@@ -129,7 +129,7 @@ function gather_capi_data() {
     done
   done
 
-  oc logs deployment/operator -n hypershift > "${capi_dir}/hypershift.log" || true
+  oc logs --tail=-1 deployment/operator -n hypershift > "${capi_dir}/hypershift.log" || true
 
   # Detect namespace where the capi-provider lives. The specific name depends whether deployed standalone or via
   # Hypershift, that's why we grep for both.
@@ -137,7 +137,7 @@ function gather_capi_data() {
   capi_provider_dir="${capi_dir}/${capi_provider_ns}"
   mkdir -p "${capi_provider_dir}"
 
-  oc get pods -n ${capi_provider_ns} -o=custom-columns=NAME:.metadata.name --no-headers | xargs -r -I {} sh -c "oc logs {} -n ${capi_provider_ns} --all-containers > ${capi_provider_dir}/logs_{}.log" || true
+  oc get pods -n ${capi_provider_ns} -o=custom-columns=NAME:.metadata.name --no-headers | xargs -r -I {} sh -c "oc logs --tail=-1 {} -n ${capi_provider_ns} --all-containers > ${capi_provider_dir}/logs_{}.log" || true
   oc get pods -n ${capi_provider_ns} -o=custom-columns=NAME:.metadata.name --no-headers | xargs -r -I {} sh -c "oc get pods -o yaml {} -n ${capi_provider_ns} > ${capi_provider_dir}/logs_{}.yaml" || true
 
 }
