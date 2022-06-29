@@ -45,12 +45,6 @@ function jq() {
   chmod +x /usr/local/bin/jq
 }
 
-function butane() {
-  echo "Installing butane..."
-  curl --retry 5 -L https://mirror.openshift.com/pub/openshift-v4/clients/butane/latest/butane-${ARCH} --output /usr/local/bin/butane
-  chmod +x /usr/local/bin/butane
-}
-
 function assisted_service() {
   ARCH=$(case $(arch) in x86_64) echo -n amd64 ;; aarch64) echo -n arm64 ;; *) echo -n $(arch) ;; esac)
 
@@ -63,8 +57,6 @@ function assisted_service() {
     docker podman awscli python3-pip genisoimage skopeo
 
   jq
-
-  butane
 
   kustomize
 
