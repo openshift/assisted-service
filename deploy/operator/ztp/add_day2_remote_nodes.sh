@@ -12,7 +12,7 @@ export ASSISTED_INFRAENV_NAME="${ASSISTED_INFRAENV_NAME:-assisted-infra-env}"
 
 # If performing late binding then we need to generate an infraenv for this.
 # Generation is handled within "add-remote-nodes-playbook"
-if [ -z "${DAY2_LATE_BINDING}" ] ; then
+if [ -z "${DAY2_LATE_BINDING:-}" ] ; then
   export LATE_BINDING_ASSISTED_CLUSTER_DEPLOYMENT_NAME=${ASSISTED_CLUSTER_DEPLOYMENT_NAME}
   export ASSISTED_CLUSTER_DEPLOYMENT_NAME=""
   export ASSISTED_INFRAENV_NAME=${ASSISTED_INFRAENV_NAME}-latebinding
@@ -54,7 +54,7 @@ export -f remote_done_agents
 
 # If we are performing late binding then each of the agents needs to have the correct clusterDeploymentRef applied.
 # This needs to happen after the agents are available. They cannot move to "done" until the clusterDeploymentRef is applied.
-if [ -z "${DAY2_LATE_BINDING}" ] ; then
+if [ -z "${DAY2_LATE_BINDING:-}" ] ; then
   clusterDeploymentName=${LATE_BINDING_ASSISTED_CLUSTER_DEPLOYMENT_NAME}
 
   # Generate a patch to assign the correct cluster name.
