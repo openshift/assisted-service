@@ -447,36 +447,37 @@ func (b *bareMetalInventory) RegisterClusterInternal(
 
 	cluster := common.Cluster{
 		Cluster: models.Cluster{
-			ID:                    &id,
-			Href:                  swag.String(url.String()),
-			Kind:                  swag.String(models.ClusterKindCluster),
-			APIVip:                params.NewClusterParams.APIVip,
-			BaseDNSDomain:         params.NewClusterParams.BaseDNSDomain,
-			IngressVip:            params.NewClusterParams.IngressVip,
-			Name:                  swag.StringValue(params.NewClusterParams.Name),
-			OpenshiftVersion:      *releaseImage.Version,
-			OcpReleaseImage:       *releaseImage.URL,
-			SSHPublicKey:          params.NewClusterParams.SSHPublicKey,
-			UserName:              ocm.UserNameFromContext(ctx),
-			OrgID:                 ocm.OrgIDFromContext(ctx),
-			EmailDomain:           ocm.EmailDomainFromContext(ctx),
-			HTTPProxy:             swag.StringValue(params.NewClusterParams.HTTPProxy),
-			HTTPSProxy:            swag.StringValue(params.NewClusterParams.HTTPSProxy),
-			NoProxy:               swag.StringValue(params.NewClusterParams.NoProxy),
-			VipDhcpAllocation:     params.NewClusterParams.VipDhcpAllocation,
-			NetworkType:           params.NewClusterParams.NetworkType,
-			UserManagedNetworking: params.NewClusterParams.UserManagedNetworking,
-			AdditionalNtpSource:   swag.StringValue(params.NewClusterParams.AdditionalNtpSource),
-			MonitoredOperators:    monitoredOperators,
-			HighAvailabilityMode:  params.NewClusterParams.HighAvailabilityMode,
-			Hyperthreading:        swag.StringValue(params.NewClusterParams.Hyperthreading),
-			SchedulableMasters:    params.NewClusterParams.SchedulableMasters,
-			Platform:              params.NewClusterParams.Platform,
-			ClusterNetworks:       params.NewClusterParams.ClusterNetworks,
-			ServiceNetworks:       params.NewClusterParams.ServiceNetworks,
-			MachineNetworks:       params.NewClusterParams.MachineNetworks,
-			CPUArchitecture:       cpuArchitecture,
-			IgnitionEndpoint:      params.NewClusterParams.IgnitionEndpoint,
+			ID:                           &id,
+			Href:                         swag.String(url.String()),
+			Kind:                         swag.String(models.ClusterKindCluster),
+			APIVip:                       params.NewClusterParams.APIVip,
+			BaseDNSDomain:                params.NewClusterParams.BaseDNSDomain,
+			IngressVip:                   params.NewClusterParams.IngressVip,
+			Name:                         swag.StringValue(params.NewClusterParams.Name),
+			OpenshiftVersion:             *releaseImage.Version,
+			OcpReleaseImage:              *releaseImage.URL,
+			SSHPublicKey:                 params.NewClusterParams.SSHPublicKey,
+			UserName:                     ocm.UserNameFromContext(ctx),
+			OrgID:                        ocm.OrgIDFromContext(ctx),
+			EmailDomain:                  ocm.EmailDomainFromContext(ctx),
+			HTTPProxy:                    swag.StringValue(params.NewClusterParams.HTTPProxy),
+			HTTPSProxy:                   swag.StringValue(params.NewClusterParams.HTTPSProxy),
+			NoProxy:                      swag.StringValue(params.NewClusterParams.NoProxy),
+			VipDhcpAllocation:            params.NewClusterParams.VipDhcpAllocation,
+			NetworkType:                  params.NewClusterParams.NetworkType,
+			UserManagedNetworking:        params.NewClusterParams.UserManagedNetworking,
+			AdditionalNtpSource:          swag.StringValue(params.NewClusterParams.AdditionalNtpSource),
+			MonitoredOperators:           monitoredOperators,
+			HighAvailabilityMode:         params.NewClusterParams.HighAvailabilityMode,
+			Hyperthreading:               swag.StringValue(params.NewClusterParams.Hyperthreading),
+			SchedulableMasters:           params.NewClusterParams.SchedulableMasters,
+			SchedulableMastersForcedTrue: swag.Bool(true),
+			Platform:                     params.NewClusterParams.Platform,
+			ClusterNetworks:              params.NewClusterParams.ClusterNetworks,
+			ServiceNetworks:              params.NewClusterParams.ServiceNetworks,
+			MachineNetworks:              params.NewClusterParams.MachineNetworks,
+			CPUArchitecture:              cpuArchitecture,
+			IgnitionEndpoint:             params.NewClusterParams.IgnitionEndpoint,
 		},
 		KubeKeyName:             kubeKey.Name,
 		KubeKeyNamespace:        kubeKey.Namespace,
@@ -2734,6 +2735,13 @@ func (b *bareMetalInventory) V2DeregisterHostInternal(ctx context.Context, param
 	}
 	eventgen.SendHostDeregisteredEvent(ctx, b.eventsHandler, params.HostID, params.InfraEnvID, common.StrFmtUUIDPtr(infraEnv.ClusterID),
 		hostutil.GetHostnameForMsg(&h.Host))
+
+	if h.ClusterID != nil {
+		if err := b.clusterApi.RefreshSchedulableMastersForcedTrue(ctx, *h.ClusterID); err != nil {
+			log.WithError(err).Errorf("Failed to refresh SchedulableMastersForcedTrue while de-registering host <%s> to cluster <%s>", h.ID, h.ClusterID)
+			return err
+		}
+	}
 	return nil
 }
 
@@ -4547,6 +4555,14 @@ func (b *bareMetalInventory) V2RegisterHost(ctx context.Context, params installe
 			WithPayload(common.GenerateError(http.StatusInternalServerError, err))
 	}
 
+	if host.ClusterID != nil {
+		if err := b.clusterApi.RefreshSchedulableMastersForcedTrue(ctx, *host.ClusterID); err != nil {
+			log.WithError(err).Errorf("Failed to refresh SchedulableMastersForcedTrue while registering host <%s> to cluster <%s>", host.ID, host.ClusterID)
+			return installer.NewV2RegisterHostInternalServerError().
+				WithPayload(common.GenerateError(http.StatusInternalServerError, err))
+		}
+	}
+
 	txSuccess = true
 
 	return installer.NewV2RegisterHostCreated().WithPayload(&hostRegistration)
@@ -4809,6 +4825,11 @@ func (b *bareMetalInventory) BindHostInternal(ctx context.Context, params instal
 		return nil, common.NewApiError(http.StatusInternalServerError, reset_err)
 	}
 
+	if err = b.clusterApi.RefreshSchedulableMastersForcedTrue(ctx, *cluster.ID); err != nil {
+		log.WithError(err).Errorf("Failed to refresh SchedulableMastersForcedTrue while binding host <%s> to cluster <%s>", host.ID, host.ClusterID)
+		return nil, common.NewApiError(http.StatusInternalServerError, err)
+	}
+
 	host, err = common.GetHostFromDB(b.db, params.InfraEnvID.String(), params.HostID.String())
 	if err != nil {
 		return nil, common.NewApiError(http.StatusInternalServerError, err)
@@ -4846,6 +4867,11 @@ func (b *bareMetalInventory) UnbindHostInternal(ctx context.Context, params inst
 
 	if _, err = b.refreshClusterStatus(ctx, host.ClusterID, b.db); err != nil {
 		log.WithError(err).Warnf("Failed to refresh cluster after unbind of host <%s>", params.HostID)
+	}
+
+	if err = b.clusterApi.RefreshSchedulableMastersForcedTrue(ctx, *host.ClusterID); err != nil {
+		log.WithError(err).Errorf("Failed to refresh SchedulableMastersForcedTrue while unbinding host <%s> to cluster <%s>", host.ID, host.ClusterID)
+		return nil, common.NewApiError(http.StatusInternalServerError, err)
 	}
 
 	host, err = common.GetHostFromDB(b.db, params.InfraEnvID.String(), params.HostID.String())

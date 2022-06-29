@@ -113,7 +113,7 @@ func IsDay2Cluster(cluster *Cluster) bool {
 }
 
 func AreMastersSchedulable(cluster *Cluster) bool {
-	return swag.BoolValue(cluster.SchedulableMasters)
+	return swag.BoolValue(cluster.SchedulableMastersForcedTrue) || swag.BoolValue(cluster.SchedulableMasters)
 }
 
 func GetEffectiveRole(host *models.Host) models.HostRole {

@@ -5527,6 +5527,11 @@ func init() {
           "type": "boolean",
           "default": false
         },
+        "schedulable_masters_forced_true": {
+          "description": "Indicates if schedule workloads on masters will be enabled regardless the value of 'schedulable_masters' property.\nSet to 'true' when not enough hosts are associated with this cluster to disable the scheduling on masters.\n",
+          "type": "boolean",
+          "default": true
+        },
         "service_network_cidr": {
           "description": "The IP address pool to use for service IP addresses. You can enter only one IP address pool. If you need to access the services from an external network, configure load balancers and routers to manage the traffic.",
           "type": "string",
@@ -14767,6 +14772,11 @@ func init() {
           "description": "Schedule workloads on masters",
           "type": "boolean",
           "default": false
+        },
+        "schedulable_masters_forced_true": {
+          "description": "Indicates if schedule workloads on masters will be enabled regardless the value of 'schedulable_masters' property.\nSet to 'true' when not enough hosts are associated with this cluster to disable the scheduling on masters.\n",
+          "type": "boolean",
+          "default": true
         },
         "service_network_cidr": {
           "description": "The IP address pool to use for service IP addresses. You can enter only one IP address pool. If you need to access the services from an external network, configure load balancers and routers to manage the traffic.",

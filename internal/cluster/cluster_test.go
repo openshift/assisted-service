@@ -3273,3 +3273,81 @@ var _ = Describe("Console-operator's availability", func() {
 		})
 	}
 })
+
+var _ = Describe("Test RefreshSchedulableMastersForcedTrue", func() {
+
+	var (
+		ctrl       *gomock.Controller
+		ctx        = context.Background()
+		db         *gorm.DB
+		dbName     string
+		clusterApi API
+	)
+
+	createCluster := func(schedulableMastersForcedTrue *bool) common.Cluster {
+		clusterID := strfmt.UUID(uuid.New().String())
+		cluster := common.Cluster{
+			Cluster: models.Cluster{
+				ID:                           &clusterID,
+				Status:                       swag.String(models.ClusterStatusReady),
+				SchedulableMastersForcedTrue: schedulableMastersForcedTrue,
+			},
+		}
+		Expect(db.Create(&cluster).Error).ToNot(HaveOccurred())
+
+		return cluster
+	}
+
+	BeforeEach(func() {
+		ctrl = gomock.NewController(GinkgoT())
+		db, dbName = common.PrepareTestDB()
+		clusterApi = NewManager(getDefaultConfig(), common.GetTestLog(), db, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil)
+	})
+
+	AfterEach(func() {
+		ctrl.Finish()
+		common.DeleteTestDB(db, dbName)
+	})
+
+	It("schedulableMastersForcedTrue should be set to false when MinHostsDisableSchedulableMasters hosts or more are registered with the cluster", func() {
+		cluster := createCluster(swag.Bool(true))
+		for hostCount := 0; hostCount < ForceSchedulableMastersMaxHostCount; hostCount++ {
+			createHost(*cluster.ID, "", db)
+		}
+
+		err := clusterApi.RefreshSchedulableMastersForcedTrue(ctx, *cluster.ID)
+		Expect(err).ToNot(HaveOccurred())
+
+		cluster = getClusterFromDB(*cluster.ID, db)
+		Expect(swag.BoolValue(cluster.SchedulableMastersForcedTrue)).To(Equal(false))
+	})
+
+	It("schedulableMastersForcedTrue should be set to false less then MinHostsDisableSchedulableMasters hosts are registered with the cluster", func() {
+		cluster := createCluster(swag.Bool(false))
+		for hostCount := 0; hostCount < ForceSchedulableMastersMaxHostCount-1; hostCount++ {
+			createHost(*cluster.ID, "", db)
+		}
+
+		err := clusterApi.RefreshSchedulableMastersForcedTrue(ctx, *cluster.ID)
+		Expect(err).ToNot(HaveOccurred())
+
+		cluster = getClusterFromDB(*cluster.ID, db)
+		Expect(swag.BoolValue(cluster.SchedulableMastersForcedTrue)).To(Equal(true))
+	})
+
+	It("schedulableMastersForcedTrue should set a value when the existing value is nil", func() {
+		cluster := createCluster(nil)
+
+		err := clusterApi.RefreshSchedulableMastersForcedTrue(ctx, *cluster.ID)
+		Expect(err).ToNot(HaveOccurred())
+
+		cluster = getClusterFromDB(*cluster.ID, db)
+		Expect(swag.BoolValue(cluster.SchedulableMastersForcedTrue)).ToNot(BeNil())
+	})
+
+	It("schedulableMastersForcedTrue should return an error when the cluster does not exists", func() {
+		invalidClusterID := strfmt.UUID(uuid.New().String())
+		err := clusterApi.RefreshSchedulableMastersForcedTrue(ctx, invalidClusterID)
+		Expect(err).To(HaveOccurred())
+	})
+})

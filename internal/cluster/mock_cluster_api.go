@@ -458,6 +458,20 @@ func (mr *MockAPIMockRecorder) PrepareForInstallation(ctx, c, db interface{}) *g
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PrepareForInstallation", reflect.TypeOf((*MockAPI)(nil).PrepareForInstallation), ctx, c, db)
 }
 
+// RefreshSchedulableMastersForcedTrue mocks base method.
+func (m *MockAPI) RefreshSchedulableMastersForcedTrue(ctx context.Context, clusterID strfmt.UUID) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "RefreshSchedulableMastersForcedTrue", ctx, clusterID)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// RefreshSchedulableMastersForcedTrue indicates an expected call of RefreshSchedulableMastersForcedTrue.
+func (mr *MockAPIMockRecorder) RefreshSchedulableMastersForcedTrue(ctx, clusterID interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RefreshSchedulableMastersForcedTrue", reflect.TypeOf((*MockAPI)(nil).RefreshSchedulableMastersForcedTrue), ctx, clusterID)
+}
+
 // RefreshStatus mocks base method.
 func (m *MockAPI) RefreshStatus(ctx context.Context, c *common.Cluster, db *gorm.DB) (*common.Cluster, error) {
 	m.ctrl.T.Helper()
