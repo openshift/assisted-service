@@ -54,6 +54,11 @@ func ApplyHostConfigs(ctx context.Context, log *log.Logger, bmInventory *client.
 func applyHostConfig(ctx context.Context, log *log.Logger, bmInventory *client.AssistedInstall, host *models.Host, hostConfigs HostConfigs) error {
 	log.Infof("Checking configuration for host %s", *host.ID)
 
+	if len(host.Inventory) == 0 {
+		log.Info("Inventory information not yet available")
+		return nil
+	}
+
 	inventory := &models.Inventory{}
 	err := inventory.UnmarshalBinary([]byte(host.Inventory))
 	if err != nil {
