@@ -8705,6 +8705,11 @@ func init() {
         "interface": {
           "description": "Interface to which packets for this route will be sent",
           "type": "string"
+        },
+        "metric": {
+          "description": "Route priority metric",
+          "type": "integer",
+          "format": "int32"
         }
       }
     },
@@ -17870,6 +17875,11 @@ func init() {
         "interface": {
           "description": "Interface to which packets for this route will be sent",
           "type": "string"
+        },
+        "metric": {
+          "description": "Route priority metric",
+          "type": "integer",
+          "format": "int32"
         }
       }
     },

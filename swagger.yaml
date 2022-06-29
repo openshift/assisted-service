@@ -5368,6 +5368,10 @@ definitions:
         type: integer
         format: int32
         description: Defines whether this is an IPv4 (4) or IPv6 route (6)
+      metric:
+        type: integer
+        format: int32
+        description: Route priority metric
 
   inventory:
     type: object
