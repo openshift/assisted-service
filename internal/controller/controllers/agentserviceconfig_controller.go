@@ -309,7 +309,7 @@ func (r *AgentServiceConfigReconciler) Reconcile(origCtx context.Context, req ct
 	conditionsv1.SetStatusConditionNoHeartbeat(&instance.Status.Conditions, conditionsv1.Condition{
 		Type:    aiv1beta1.ConditionDeploymentsHealthy,
 		Status:  corev1.ConditionTrue,
-		Reason:  aiv1beta1.ReasonDeploymentFailure,
+		Reason:  aiv1beta1.ReasonDeploymentSucceeded,
 		Message: "All the deployments managed by Infrastructure-operator are healthy.",
 	})
 
