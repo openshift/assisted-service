@@ -176,7 +176,7 @@ var _ = Describe("PreprovisioningImage reconcile", func() {
 			Expect(c.Get(ctx, key, ppi)).To(BeNil())
 			validateStatus("",
 				&conditionsv1.Condition{
-					Reason:  "Waiting for InfraEnv image to cool down",
+					Reason:  "WaitingForInfraEnvImageToCoolDown",
 					Message: "Waiting for InfraEnv image to cool down",
 					Status:  corev1.ConditionFalse},
 				ppi,
@@ -319,7 +319,7 @@ var _ = Describe("PreprovisioningImage reconcile", func() {
 		Expect(errorCondition.Status).To(Equal(metav1.ConditionTrue))
 		for _, condition := range []metav1.Condition{*readyCondition, *errorCondition} {
 			Expect(condition.Message).To(Equal("Unsupported image format"))
-			Expect(condition.Reason).To(Equal("Unsupported image format"))
+			Expect(condition.Reason).To(Equal("UnsupportedImageFormat"))
 		}
 	})
 	It("internalInfraEnv not found", func() {
