@@ -589,9 +589,16 @@ func (r *ClusterDeploymentsReconciler) isReadyForInstallation(ctx context.Contex
 		return false, err
 	}
 
+	agents, err := findAgentsByAgentClusterInstall(r.Client, ctx, log, clusterInstall)
+	if err != nil {
+		log.WithError(err).Error("failed to fetch ACI's agents")
+		return false, err
+	}
+
+	unsyncedHosts := getNumOfUnsyncedAgents(agents)
 	expectedHosts := clusterInstall.Spec.ProvisionRequirements.ControlPlaneAgents +
 		clusterInstall.Spec.ProvisionRequirements.WorkerAgents
-	return approvedHosts == expectedHosts && registered == approvedHosts, nil
+	return approvedHosts == expectedHosts && registered == approvedHosts && unsyncedHosts == 0, nil
 }
 
 func isSupportedPlatform(cluster *hivev1.ClusterDeployment) bool {
@@ -1445,15 +1452,22 @@ func (r *ClusterDeploymentsReconciler) updateStatus(ctx context.Context, log log
 			if err != nil {
 				return ctrl.Result{Requeue: true}, nil
 			}
-			var registeredHosts, approvedHosts int
+			var registeredHosts, approvedHosts, unsyncedHosts int
 			if status == models.ClusterStatusReady {
 				registeredHosts, approvedHosts, err = r.getNumOfClusterAgents(ctx, c)
 				if err != nil {
 					log.WithError(err).Error("failed to fetch cluster's agents")
 					return ctrl.Result{Requeue: true}, nil
 				}
+				agents, err := findAgentsByAgentClusterInstall(r.Client, ctx, log, clusterInstall)
+				if err != nil {
+					log.WithError(err).Error("failed to fetch ACI's agents")
+					return ctrl.Result{Requeue: true}, nil
+				}
+				unsyncedHosts = getNumOfUnsyncedAgents(agents)
+				log.Debugf("Detected %d unsynced agents", unsyncedHosts)
 			}
-			clusterRequirementsMet(clusterInstall, status, registeredHosts, approvedHosts)
+			clusterRequirementsMet(clusterInstall, status, registeredHosts, approvedHosts, unsyncedHosts)
 			clusterValidated(clusterInstall, status, c)
 			clusterCompleted(clusterInstall, status, swag.StringValue(c.StatusInfo), c.MonitoredOperators)
 			clusterFailed(clusterInstall, status, swag.StringValue(c.StatusInfo))
@@ -1527,6 +1541,48 @@ func (r *ClusterDeploymentsReconciler) getNumOfClusterAgents(ctx context.Context
 	return registeredHosts, approvedHosts, nil
 }
 
+// Finds the agents related to provided AgentClusterInstall
+//
+// The AgentClusterInstall <-> Agent relation is one-to-many.
+// Thsi function returns all Agents whose ClusterDeploymentName name
+// matches the ClusterDeploymentRef name in the provided ACI.
+func findAgentsByAgentClusterInstall(k8sclient client.Client, ctx context.Context, log logrus.FieldLogger, aci *hiveext.AgentClusterInstall) ([]aiv1beta1.Agent, error) {
+	agentList := aiv1beta1.AgentList{}
+	agents := []aiv1beta1.Agent{}
+	err := k8sclient.List(ctx, &agentList, client.MatchingLabels{aiv1beta1.Group + "/clusterdeployment-namespace": aci.Namespace})
+
+	if err != nil {
+		return agents, err
+	}
+
+	for _, agent := range agentList.Items {
+		if agent.Spec.ClusterDeploymentName == nil {
+			continue
+		}
+		if agent.Spec.ClusterDeploymentName.Name != aci.Spec.ClusterDeploymentRef.Name {
+			continue
+		} else {
+			agents = append(agents, agent)
+		}
+	}
+
+	return agents, nil
+}
+
+func getNumOfUnsyncedAgents(agents []aiv1beta1.Agent) int {
+	num := 0
+	for _, agent := range agents {
+		for _, cond := range agent.Status.Conditions {
+			if cond.Type == aiv1beta1.SpecSyncedCondition && cond.Status == corev1.ConditionFalse {
+				num = num + 1
+				continue
+			}
+		}
+	}
+
+	return num
+}
+
 // clusterSpecSynced is updating the Cluster SpecSynced Condition.
 func clusterSpecSynced(cluster *hiveext.AgentClusterInstall, syncErr error) {
 	var condStatus corev1.ConditionStatus
@@ -1554,7 +1610,7 @@ func clusterSpecSynced(cluster *hiveext.AgentClusterInstall, syncErr error) {
 	})
 }
 
-func clusterRequirementsMet(clusterInstall *hiveext.AgentClusterInstall, status string, registeredHosts, approvedHosts int) {
+func clusterRequirementsMet(clusterInstall *hiveext.AgentClusterInstall, status string, registeredHosts, approvedHosts, unsyncedHosts int) {
 	var condStatus corev1.ConditionStatus
 	var reason string
 	var msg string
@@ -1567,6 +1623,10 @@ func clusterRequirementsMet(clusterInstall *hiveext.AgentClusterInstall, status 
 			condStatus = corev1.ConditionFalse
 			reason = hiveext.ClusterInsufficientAgentsReason
 			msg = fmt.Sprintf(hiveext.ClusterInsufficientAgentsMsg, expectedHosts, approvedHosts)
+		} else if unsyncedHosts != 0 {
+			condStatus = corev1.ConditionFalse
+			reason = hiveext.ClusterUnsyncedAgentsReason
+			msg = fmt.Sprintf(hiveext.ClusterUnsyncedAgentsMsg, unsyncedHosts)
 		} else if approvedHosts < expectedHosts {
 			condStatus = corev1.ConditionFalse
 			reason = hiveext.ClusterUnapprovedAgentsReason

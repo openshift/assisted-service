@@ -1413,39 +1413,82 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		deployClusterDeploymentCRD(ctx, kubeClient, clusterDeploymentSpec)
 		deployInfraEnvCRD(ctx, kubeClient, infraNsName.Name, infraEnvSpec)
 		deployAgentClusterInstallCRD(ctx, kubeClient, aciSpec, clusterDeploymentSpec.ClusterInstallRef.Name)
+		installkey := types.NamespacedName{
+			Namespace: Options.Namespace,
+			Name:      clusterDeploymentSpec.ClusterInstallRef.Name,
+		}
 		infraEnvKey := types.NamespacedName{
 			Namespace: Options.Namespace,
 			Name:      infraNsName.Name,
 		}
 		infraEnv := getInfraEnvFromDBByKubeKey(ctx, db, infraEnvKey, waitForReconcileTimeout)
 		configureLocalAgentClient(infraEnv.ID.String())
-		host := registerNode(ctx, *infraEnv.ID, "hostname1", defaultCIDRv4)
-		key := types.NamespacedName{
-			Namespace: Options.Namespace,
-			Name:      host.ID.String(),
+		hosts := make([]*models.Host, 0)
+		ips := hostutil.GenerateIPv4Addresses(3, defaultCIDRv4)
+		for i := 0; i < 3; i++ {
+			hostname := fmt.Sprintf("h%d", i)
+			host := registerNode(ctx, *infraEnv.ID, hostname, ips[i])
+			hosts = append(hosts, host)
+		}
+		for _, host := range hosts {
+			checkAgentCondition(ctx, host.ID.String(), v1beta1.ValidatedCondition, v1beta1.ValidationsFailingReason)
+			hostkey := types.NamespacedName{
+				Namespace: Options.Namespace,
+				Name:      host.ID.String(),
+			}
+			agent := getAgentCRD(ctx, kubeClient, hostkey)
+			Expect(agent.Status.ValidationsInfo).ToNot(BeNil())
+		}
+		generateFullMeshConnectivity(ctx, ips[0], hosts...)
+		for _, h := range hosts {
+			generateDomainResolution(ctx, h, clusterDeploymentSpec.ClusterName, "hive.example.com")
 		}
 
-		h, err := common.GetHostFromDB(db, infraEnv.ID.String(), host.ID.String())
-		Expect(err).To(BeNil())
-		Expect(h.IgnitionConfigOverrides).To(BeEmpty())
-
 		By("Invalid ignition config - invalid json")
-		Eventually(func() error {
-			agent := getAgentCRD(ctx, kubeClient, key)
-			agent.Spec.IgnitionConfigOverrides = badIgnitionConfigOverride
-			return kubeClient.Update(ctx, agent)
-		}, "30s", "10s").Should(BeNil())
-
-		Eventually(func() bool {
-			condition := conditionsv1.FindStatusCondition(getAgentCRD(ctx, kubeClient, key).Status.Conditions, v1beta1.SpecSyncedCondition)
-			if condition != nil {
-				return strings.Contains(condition.Message, "error parsing ignition: config is not valid")
+		for _, host := range hosts {
+			hostkey := types.NamespacedName{
+				Namespace: Options.Namespace,
+				Name:      host.ID.String(),
 			}
-			return false
-		}, "15s", "2s").Should(Equal(true))
-		h, err = common.GetHostFromDB(db, infraEnv.ID.String(), host.ID.String())
-		Expect(err).To(BeNil())
-		Expect(h.IgnitionConfigOverrides).To(BeEmpty())
+
+			h, err := common.GetHostFromDB(db, infraEnv.ID.String(), host.ID.String())
+			Expect(err).To(BeNil())
+			Expect(h.IgnitionConfigOverrides).To(BeEmpty())
+
+			Eventually(func() error {
+				agent := getAgentCRD(ctx, kubeClient, hostkey)
+				agent.Spec.IgnitionConfigOverrides = badIgnitionConfigOverride
+				return kubeClient.Update(ctx, agent)
+			}, "30s", "10s").Should(BeNil())
+
+			Eventually(func() bool {
+				condition := conditionsv1.FindStatusCondition(getAgentCRD(ctx, kubeClient, hostkey).Status.Conditions, v1beta1.SpecSyncedCondition)
+				if condition != nil {
+					return strings.Contains(condition.Message, "error parsing ignition: config is not valid")
+				}
+				return false
+			}, "15s", "2s").Should(Equal(true))
+
+			h, err = common.GetHostFromDB(db, infraEnv.ID.String(), host.ID.String())
+			Expect(err).To(BeNil())
+			Expect(h.IgnitionConfigOverrides).To(BeEmpty())
+		}
+
+		By("Approve Agents")
+		for _, host := range hosts {
+			hostkey := types.NamespacedName{
+				Namespace: Options.Namespace,
+				Name:      host.ID.String(),
+			}
+			Eventually(func() error {
+				agent := getAgentCRD(ctx, kubeClient, hostkey)
+				agent.Spec.Approved = true
+				return kubeClient.Update(ctx, agent)
+			}, "30s", "10s").Should(BeNil())
+		}
+
+		By("Verify cluster condition UnsyncedAgent")
+		checkAgentClusterInstallCondition(ctx, installkey, hiveext.ClusterRequirementsMetCondition, hiveext.ClusterUnsyncedAgentsReason)
 	})
 
 	It("deploy clusterDeployment with agent and update installer args", func() {
