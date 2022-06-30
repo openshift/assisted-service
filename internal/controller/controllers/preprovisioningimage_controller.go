@@ -21,6 +21,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/iancoleman/strcase"
 	metal3_v1alpha1 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
 	aiv1beta1 "github.com/openshift/assisted-service/api/v1beta1"
 	"github.com/openshift/assisted-service/internal/bminventory"
@@ -92,6 +93,9 @@ func (r *PreprovisioningImageReconciler) Reconcile(origCtx context.Context, req 
 		log.Infof("Unsupported image format: %s", image.Spec.AcceptFormats)
 		setUnsupportedFormatCondition(image)
 		err = r.Status().Update(ctx, image)
+		if err != nil {
+			log.WithError(err).Error("failed to update status")
+		}
 		return ctrl.Result{}, err
 	}
 	// Consider adding finalizer in case we need to clean up resources
@@ -117,6 +121,7 @@ func (r *PreprovisioningImageReconciler) Reconcile(origCtx context.Context, req 
 		setCoolDownCondition(image)
 		err = r.Status().Update(ctx, image)
 		if err != nil {
+			log.WithError(err).Error("failed to update status")
 			return ctrl.Result{}, err
 		}
 		return ctrl.Result{Requeue: true, RequeueAfter: time.Until(imageTimePlusCooldown)}, nil
@@ -177,7 +182,7 @@ func (r *PreprovisioningImageReconciler) setImage(generation int64, status *meta
 
 func setCoolDownCondition(image *metal3_v1alpha1.PreprovisioningImage) {
 	message := "Waiting for InfraEnv image to cool down"
-	reason := imageConditionReason(message)
+	reason := imageConditionReason(strcase.ToCamel(message))
 	setImageCondition(image.GetGeneration(), &image.Status,
 		metal3_v1alpha1.ConditionImageReady, metav1.ConditionFalse,
 		reason, message)
@@ -189,14 +194,13 @@ func setCoolDownCondition(image *metal3_v1alpha1.PreprovisioningImage) {
 
 func setUnsupportedFormatCondition(image *metal3_v1alpha1.PreprovisioningImage) {
 	message := "Unsupported image format"
-	reason := imageConditionReason(message)
+	reason := imageConditionReason(strcase.ToCamel(message))
 	setImageCondition(image.GetGeneration(), &image.Status,
 		metal3_v1alpha1.ConditionImageReady, metav1.ConditionFalse,
 		reason, message)
 	setImageCondition(image.GetGeneration(), &image.Status,
 		metal3_v1alpha1.ConditionImageError, metav1.ConditionTrue,
 		reason, message)
-
 }
 
 func setImageCondition(generation int64, status *metal3_v1alpha1.PreprovisioningImageStatus,
@@ -214,7 +218,6 @@ func setImageCondition(generation int64, status *metal3_v1alpha1.Preprovisioning
 }
 
 // Find `PreprovisioningImage` resources that match an InfraEnv
-//
 // Only `PreprovisioningImage` resources that have a label with a reference to an InfraEnv
 func (r *PreprovisioningImageReconciler) findPreprovisioningImagesByInfraEnv(ctx context.Context, infraEnv *aiv1beta1.InfraEnv) ([]metal3_v1alpha1.PreprovisioningImage, error) {
 	infraenvLabel, err := labels.NewRequirement(InfraEnvLabel, selection.Equals, []string{infraEnv.Name})
