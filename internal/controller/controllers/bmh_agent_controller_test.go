@@ -1384,8 +1384,9 @@ func newAgentWithClusterReference(name string, namespace string, ipv4address str
 		},
 	}
 	agent.Spec.ClusterDeploymentName = &v1beta1.ClusterReference{Name: clusterName, Namespace: namespace}
+	agent.ObjectMeta.Labels = make(map[string]string)
+	agent.ObjectMeta.Labels[AGENT_CD_LABEL] = namespace
 	if agentBMHLabel != "" {
-		agent.ObjectMeta.Labels = make(map[string]string)
 		agent.ObjectMeta.Labels[AGENT_BMH_LABEL] = agentBMHLabel
 	}
 	agent.ObjectMeta.CreationTimestamp.Time = creationTime
