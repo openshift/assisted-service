@@ -25,6 +25,7 @@ export ASSISTED_SERVICE_OPERATOR_CATALOG="assisted-service-operator-catalog"
 
 export ASSISTED_CLUSTER_DEPLOYMENT_NAME="${ASSISTED_CLUSTER_DEPLOYMENT_NAME:-assisted-test-cluster}"
 export ASSISTED_INFRAENV_NAME="${ASSISTED_INFRAENV_NAME:-assisted-infra-env}"
+export ASSISTED_PULLSECRET_NAME="${ASSISTED_PULLSECRET_NAME:-assisted-pull-secret}"
 
 ############
 # Versions #
