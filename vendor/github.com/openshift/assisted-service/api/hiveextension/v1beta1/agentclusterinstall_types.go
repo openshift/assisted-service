@@ -25,6 +25,8 @@ const (
 	ClusterInsufficientAgentsMsg     string = "The cluster currently requires %d agents but only %d have registered"
 	ClusterUnapprovedAgentsReason    string = "UnapprovedAgents"
 	ClusterUnapprovedAgentsMsg       string = "The installation is pending on the approval of %d agents"
+	ClusterUnsyncedAgentsReason      string = "UnsyncedAgents"
+	ClusterUnsyncedAgentsMsg         string = "The cluster currently has %d agents with spec error"
 	ClusterAdditionalAgentsReason    string = "AdditionalAgents"
 	ClusterAdditionalAgentsMsg       string = "The cluster currently requires exactly %d agents but have %d registered"
 
