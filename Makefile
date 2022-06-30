@@ -281,7 +281,7 @@ deploy-ocm-secret: deploy-namespace
 		--target "$(TARGET)" --apply-manifest $(APPLY_MANIFEST)
 
 deploy-image-service: deploy-namespace
-	python3 ./tools/deploy_image_service.py --namespace "$(NAMESPACE)" --apply-manifest $(APPLY_MANIFEST)
+	python3 ./tools/deploy_image_service.py --namespace "$(NAMESPACE)" --apply-manifest $(APPLY_MANIFEST) --target "$(TARGET)" --domain "$(INGRESS_DOMAIN)"
 
 deploy-inventory-service-file: deploy-namespace
 	python3 ./tools/deploy_inventory_service.py --target "$(TARGET)" --domain "$(INGRESS_DOMAIN)" --namespace "$(NAMESPACE)" \
