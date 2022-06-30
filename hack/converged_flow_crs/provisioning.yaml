@@ -1,0 +1,12 @@
+apiVersion: metal3.io/v1alpha1
+kind: Provisioning
+metadata:
+  name: provisioning-configuration
+spec:
+  preProvisioningOSDownloadURLs: {}
+  provisioningMacAddresses:
+  - 00:c1:22:a4:6c:7e
+  - 00:c1:22:a4:6c:76
+  - 00:c1:22:a4:6c:7a
+  provisioningNetwork: Disabled
+

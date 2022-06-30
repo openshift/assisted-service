@@ -3,14 +3,13 @@ import os
 import socket
 import subprocess
 import time
-import re
-import yaml
 import waiting
+import yaml
 from distutils.spawn import find_executable
 from functools import reduce
 from typing import Optional
-from deployment_options import INGRESS_REMOTE_TARGET, LOCAL_TARGET, OCP_TARGET
 
+from deployment_options import INGRESS_REMOTE_TARGET, OCP_TARGET
 
 KUBECTL_CMD = 'kubectl'
 DOCKER = "docker"
@@ -34,6 +33,18 @@ def get_logger(name, level=logging.INFO):
     log.setLevel(level)
     log.addHandler(sh)
     return log
+
+
+def deploy_from_dir(log, deploy_options, dir_name):
+    resources_dir = os.path.join(os.getcwd(), dir_name)
+    for resource in os.listdir(resources_dir):
+        file_path = f"{resources_dir}/{resource}"
+        log.info("Deploying {}".format(file_path))
+        apply(
+            target=deploy_options.target,
+            namespace=deploy_options.namespace,
+            file=file_path
+        )
 
 
 def load_yaml_file_docs(basename):
@@ -82,7 +93,7 @@ def get_service_host(
         target=None,
         domain='',
         namespace='assisted-installer',
-        ):
+):
     if target == INGRESS_REMOTE_TARGET:
         domain = get_domain(domain, target, namespace)
         host = f'{service}.{domain}'
@@ -106,14 +117,14 @@ def get_service_port(service, target=None, namespace='assisted-installer'):
     port = ports[0] if target != OCP_TARGET else ports[1].split("/")[0]
     return port.strip()
 
+
 def get_service_address(
         service: str,
         target: Optional[str] = None,
         domain: str = '',
         namespace: str = 'assisted-installer',
         disable_tls: bool = False
-        ) -> (str, str):
-
+) -> (str, str):
     # TODO: delete once rename everything to assisted-installer
     if target == INGRESS_REMOTE_TARGET:
         domain = get_domain(domain, target, namespace)
@@ -141,8 +152,7 @@ def get_service_url(
         namespace: str = 'assisted-installer',
         disable_tls: bool = False,
         check_connection: bool = False
-        ) -> str:
-
+) -> str:
     if check_connection:
         print(f"Checking connection to service {service}")
         waiting.wait(
@@ -157,11 +167,11 @@ def get_service_url(
             sleep_seconds=5)
 
     service_host, service_port = get_service_address(
-            service=service,
-            target=target,
-            domain=domain,
-            namespace=namespace,
-            disable_tls=disable_tls)
+        service=service,
+        target=target,
+        domain=domain,
+        namespace=namespace,
+        disable_tls=disable_tls)
 
     return to_url(host=service_host, port=service_port, disable_tls=disable_tls)
 
@@ -176,9 +186,11 @@ def apply(target, namespace, file):
     kubectl_cmd = get_kubectl_command(target, namespace)
     print(check_output(f'{kubectl_cmd} apply -f {file}'))
 
+
 def apply_kustomize(target, namespace, file):
     kubectl_cmd = get_kubectl_command(target, namespace)
     print(check_output(f'kustomize build {file} | {kubectl_cmd} apply -f -'))
+
 
 def get_domain(domain="", target=None, namespace='assisted-installer'):
     if domain:
@@ -193,7 +205,7 @@ def check_k8s_rollout(
         k8s_object_name,
         target,
         namespace='assisted-installer',
-        ):
+):
     kubectl_cmd = get_kubectl_command(target, namespace)
     cmd = f'{kubectl_cmd} rollout status {k8s_object}/{k8s_object_name}'
     return check_output(cmd)
@@ -206,7 +218,7 @@ def wait_for_rollout(
         namespace='assisted-installer',
         limit=10,
         desired_status='successfully rolled out'
-        ):
+):
     # Wait for the element to ensure it exists
     for x in range(0, limit):
         try:
@@ -255,7 +267,7 @@ def check_if_exists(
         k8s_object_name,
         target=None,
         namespace='assisted-installer',
-        ):
+):
     try:
         kubectl_cmd = get_kubectl_command(target, namespace)
         cmd = f'{kubectl_cmd} get {k8s_object} {k8s_object_name} --no-headers'
@@ -265,7 +277,6 @@ def check_if_exists(
         output = False
 
     return output
-
 
 
 def is_tool(name):

@@ -33,6 +33,7 @@ def handle_arguments():
     parser.add_argument("--disk-encryption-support", default="True")
     parser.add_argument("--enable-org-tenancy", default="False")
     parser.add_argument("--enable-org-based-feature-gates", default="False")
+    parser.add_argument("--allow-converged-flow", default=False, action='store_true')
 
     return deployment_options.load_deployment_options(parser)
 
@@ -138,6 +139,9 @@ def main():
             y['data']['ENABLE_ORG_TENANCY'] = deploy_options.enable_org_tenancy
 
             y['data']['ENABLE_ORG_BASED_FEATURE_GATES'] = deploy_options.enable_org_based_feature_gates
+
+            if deploy_options.allow_converged_flow:
+                y['data']['ALLOW_CONVERGED_FLOW'] = 'true'
 
             data = yaml.dump(y)
             dst.write(data)
