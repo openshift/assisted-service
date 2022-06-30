@@ -3797,9 +3797,29 @@ var _ = Describe("Refresh Host", func() {
 			},
 		}
 
-		for _, hostName := range []string{"localhost", "localhost.localdomain", "localhost4", "localhost4.localdomain4", "localhost6", "localhost6.localdomain6", "AAAA.com", "redhat.com."} {
+		for _, hostTest := range []struct {
+			hostName      string
+			isBlackListed bool
+		}{
+			{"localhost", true},
+			{"localhost.localdomain", true},
+			{"localhost4", true},
+			{"localhost4.localdomain4", true},
+			{"localhost6", true},
+			{"localhost6.localdomain6", true},
+			{"AAAA.com", false},
+			{"redhat.com.", false},
+		} {
+			statusInfoCheckerMessage := fmt.Sprintf("Hostname %s is forbidden, hostname should match pattern %s", hostTest.hostName, hostutil.HostnamePattern)
+			isHostNameValidMessage := fmt.Sprintf("Hostname %s is forbidden, hostname should match pattern", hostTest.hostName)
+
+			if hostTest.isBlackListed {
+				statusInfoCheckerMessage = fmt.Sprintf("The host name %s is forbidden", hostTest.hostName)
+				isHostNameValidMessage = fmt.Sprintf("The host name %s is forbidden", hostTest.hostName)
+			}
+
 			tests = append(tests, TransitionTestStruct{
-				name:             fmt.Sprintf("insufficient to insufficient (%s)", hostName),
+				name:             fmt.Sprintf("insufficient to insufficient (%s)", hostTest.hostName),
 				validCheckInTime: true,
 				srcState:         models.HostStatusInsufficient,
 				dstState:         models.HostStatusInsufficient,
@@ -3808,7 +3828,7 @@ var _ = Describe("Refresh Host", func() {
 				imageStatuses:    map[string]*models.ContainerImageAvailability{common.TestDefaultConfig.ImageName: common.TestImageStatusesSuccess},
 				role:             models.HostRoleMaster,
 				statusInfoChecker: makeValueChecker(formatStatusInfoFailedValidation(statusInfoNotReadyForInstall,
-					fmt.Sprintf("Hostname %s is forbidden, hostname should match pattern %s", hostName, hostutil.HostnamePattern))),
+					statusInfoCheckerMessage)),
 				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
 					IsConnected:          {status: ValidationSuccess, messagePattern: "Host is connected"},
 					HasInventory:         {status: ValidationSuccess, messagePattern: "Valid inventory exists for the host"},
@@ -3820,12 +3840,12 @@ var _ = Describe("Refresh Host", func() {
 					HasMemoryForRole:     {status: ValidationSuccess, messagePattern: "Sufficient RAM for role master"},
 					IsHostnameUnique:     {status: ValidationSuccess, messagePattern: " is unique in cluster"},
 					BelongsToMachineCidr: {status: ValidationSuccess, messagePattern: "Host belongs to all machine network CIDRs"},
-					IsHostnameValid:      {status: ValidationFailure, messagePattern: fmt.Sprintf("Hostname %s is forbidden, hostname should match pattern", hostName)},
+					IsHostnameValid:      {status: ValidationFailure, messagePattern: isHostNameValidMessage},
 					IsNTPSynced:          {status: ValidationSuccess, messagePattern: "Host NTP is synced"},
 					SucessfullOrUnknownContainerImagesAvailability: {status: ValidationSuccess, messagePattern: "All required container images were either pulled successfully or no attempt was made to pull them"},
 					SufficientOrUnknownInstallationDiskSpeed:       {status: ValidationSuccess, messagePattern: "Speed of installation disk has not yet been measured"},
 				}),
-				inventory:     hostutil.GenerateMasterInventoryWithHostname(hostName),
+				inventory:     hostutil.GenerateMasterInventoryWithHostname(hostTest.hostName),
 				errorExpected: false,
 			})
 		}
