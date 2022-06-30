@@ -48,15 +48,6 @@ var (
 	invalidPlatforms = []string{
 		OpenStackPlatform,
 	}
-
-	forbiddenHostnames = []string{
-		"localhost",
-		"localhost.localdomain",
-		"localhost4",
-		"localhost4.localdomain4",
-		"localhost6",
-		"localhost6.localdomain6",
-	}
 )
 
 func (v ValidationStatus) String() string {
@@ -728,7 +719,7 @@ func (v *validator) isHostnameValid(c *validationContext) ValidationStatus {
 		return ValidationFailure
 	}
 
-	return boolValue(!funk.ContainsString(forbiddenHostnames, getRealHostname(c.host, c.inventory)))
+	return ValidationSuccess
 }
 
 func (v *validator) printHostnameValid(c *validationContext, status ValidationStatus) string {

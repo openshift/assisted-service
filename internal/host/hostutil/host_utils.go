@@ -22,6 +22,15 @@ const (
 	HostnamePattern   = "^[a-z0-9][a-z0-9-]{0,62}(?:[.][a-z0-9-]{1,63})*$"
 )
 
+var ForbiddenHostnames = []string{
+	"localhost",
+	"localhost.localdomain",
+	"localhost4",
+	"localhost4.localdomain4",
+	"localhost6",
+	"localhost6.localdomain6",
+}
+
 func GetCurrentHostName(host *models.Host) (string, error) {
 	var inventory models.Inventory
 	if host.RequestedHostname != "" {
@@ -76,6 +85,11 @@ func ValidateHostname(hostname string) error {
 	if !b {
 		return common.NewApiError(http.StatusBadRequest, errors.Errorf("Hostname does not pass required regex validation: %s. Hostname: %s", HostnamePattern, hostname))
 	}
+
+	if funk.ContainsString(ForbiddenHostnames, hostname) {
+		return common.NewApiError(http.StatusBadRequest, errors.Errorf("The host name %s is forbidden", hostname))
+	}
+
 	return nil
 }
 
