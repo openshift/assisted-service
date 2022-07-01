@@ -118,7 +118,7 @@ func register(ctx context.Context, log *log.Logger, bmInventory *client.Assisted
 	modelsCluster, registerClusterErr := agentbasedinstaller.RegisterCluster(ctx, log, bmInventory, pullSecret,
 		RegisterOptions.ClusterDeploymentFile, RegisterOptions.AgentClusterInstallFile, RegisterOptions.ClusterImageSetFile, RegisterOptions.ReleaseImageMirror)
 	if registerClusterErr != nil {
-		log.Fatal(registerClusterErr, "Failed to register cluster with assisted-service")
+		log.Fatal("Failed to register cluster with assisted-service: ", registerClusterErr)
 	}
 
 	log.Info("Registered cluster with id: " + modelsCluster.ID.String())
@@ -128,7 +128,7 @@ func register(ctx context.Context, log *log.Logger, bmInventory *client.Assisted
 	modelsInfraEnv, registerInfraEnvErr := agentbasedinstaller.RegisterInfraEnv(ctx, log, bmInventory, pullSecret,
 		modelsCluster, RegisterOptions.InfraEnvFile, RegisterOptions.NMStateConfigFile, RegisterOptions.ImageTypeISO)
 	if registerInfraEnvErr != nil {
-		log.Fatal(registerInfraEnvErr, "Failed to register infraenv with assisted-service")
+		log.Fatal("Failed to register infraenv with assisted-service: ", registerInfraEnvErr)
 	}
 
 	infraEnvID := modelsInfraEnv.ID.String()

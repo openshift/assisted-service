@@ -23,7 +23,7 @@ import (
 func ApplyHostConfigs(ctx context.Context, log *log.Logger, bmInventory *client.AssistedInstall, hostConfigs HostConfigs, infraEnvID strfmt.UUID) ([]Failure, error) {
 	hostList, err := bmInventory.Installer.V2ListHosts(ctx, installer.NewV2ListHostsParams().WithInfraEnvID(infraEnvID))
 	if err != nil {
-		return nil, fmt.Errorf("Failed to list hosts: %w", err)
+		return nil, fmt.Errorf("Failed to list hosts: %w", errorutil.GetAssistedError(err))
 	}
 
 	failures := []Failure{}
