@@ -113,6 +113,10 @@ func IsDay2Cluster(cluster *Cluster) bool {
 	return swag.StringValue(cluster.Kind) == models.ClusterKindAddHostsCluster
 }
 
+func IsImportedCluster(cluster *Cluster) bool {
+	return swag.BoolValue(cluster.Imported)
+}
+
 func AreMastersSchedulable(cluster *Cluster) bool {
 	return swag.BoolValue(cluster.SchedulableMastersForcedTrue) || swag.BoolValue(cluster.SchedulableMasters)
 }

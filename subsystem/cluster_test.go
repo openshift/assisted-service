@@ -1515,8 +1515,8 @@ var _ = Describe("cluster install", func() {
 				hosts := c.GetPayload().Hosts
 
 				By("Verify NTP step", func() {
-					step, ok := getStepInList(getNextSteps(*infraEnvID, *hosts[0].ID), models.StepTypeNtpSynchronizer)
-					Expect(ok).Should(Equal(true))
+					step := getStepFromListByStepType(getNextSteps(*infraEnvID, *hosts[0].ID), models.StepTypeNtpSynchronizer)
+					Expect(step).ShouldNot(BeNil())
 
 					requestStr := step.Args[len(step.Args)-1]
 					var ntpRequest models.NtpSynchronizationRequest
@@ -1537,13 +1537,13 @@ var _ = Describe("cluster install", func() {
 					Expect(err).ShouldNot(HaveOccurred())
 					Expect(reply.Payload.AdditionalNtpSource).Should(Equal(newSource))
 
-					step, ok := getStepInList(getNextSteps(*infraEnvID, *hosts[0].ID), models.StepTypeNtpSynchronizer)
-					Expect(ok).Should(Equal(true))
+					step := getStepFromListByStepType(getNextSteps(*infraEnvID, *hosts[0].ID), models.StepTypeNtpSynchronizer)
+					Expect(step).ShouldNot(BeNil())
 
 					requestStr := step.Args[len(step.Args)-1]
 					var ntpRequest models.NtpSynchronizationRequest
 
-					generateDomainNameResolutionReply(ctx, hosts[0], *common.TestDomainNameResolutionSuccess)
+					generateDomainNameResolutionReply(ctx, hosts[0], *common.TestDomainNameResolutionsSuccess)
 
 					Expect(json.Unmarshal([]byte(requestStr), &ntpRequest)).ShouldNot(HaveOccurred())
 					Expect(*ntpRequest.NtpSource).Should(Equal(newSource))
@@ -1561,7 +1561,7 @@ var _ = Describe("cluster install", func() {
 					generateNTPPostStepReply(ctx, hosts[0], []*models.NtpSource{
 						{SourceName: common.TestNTPSourceSynced.SourceName, SourceState: models.SourceStateUnreachable},
 					})
-					generateDomainNameResolutionReply(ctx, hosts[0], *common.TestDomainNameResolutionSuccess)
+					generateDomainNameResolutionReply(ctx, hosts[0], *common.TestDomainNameResolutionsSuccess)
 					waitForHostState(ctx, models.HostStatusInsufficient, defaultWaitForHostStateTimeout, hosts[0])
 				})
 
@@ -1581,7 +1581,7 @@ var _ = Describe("cluster install", func() {
 						{SourceName: newSource, SourceState: models.SourceStateSynced},
 					})
 				})
-				generateDomainNameResolutionReply(ctx, hosts[0], *common.TestDomainNameResolutionSuccess)
+				generateDomainNameResolutionReply(ctx, hosts[0], *common.TestDomainNameResolutionsSuccess)
 
 				waitForHostState(ctx, models.HostStatusKnown, defaultWaitForHostStateTimeout, hosts[0])
 			})
@@ -1639,8 +1639,7 @@ var _ = Describe("cluster install", func() {
 			c := installCluster(clusterID)
 			hostID := c.Hosts[0].ID
 
-			_, ok := getStepInList(getNextSteps(*infraEnvID, *hostID), models.StepTypeInstall)
-			Expect(ok).Should(Equal(true))
+			Expect(isStepTypeInList(getNextSteps(*infraEnvID, *hostID), models.StepTypeInstall)).Should(BeTrue())
 
 			installProgress := models.HostStageRebooting
 			updateProgress(*hostID, *infraEnvID, installProgress)
@@ -2323,8 +2322,7 @@ var _ = Describe("cluster install", func() {
 			It("cancel host - wrong boot order", func() {
 				c := installCluster(clusterID)
 				hostID := c.Hosts[0].ID
-				_, ok := getStepInList(getNextSteps(*infraEnvID, *hostID), models.StepTypeInstall)
-				Expect(ok).Should(Equal(true))
+				Expect(isStepTypeInList(getNextSteps(*infraEnvID, *hostID), models.StepTypeInstall)).Should(BeTrue())
 				updateProgress(*hostID, *infraEnvID, models.HostStageRebooting)
 
 				_, err := agentBMClient.Installer.V2RegisterHost(context.Background(), &installer.V2RegisterHostParams{

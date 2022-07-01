@@ -163,7 +163,6 @@ func init() {
 }
 
 func TestSubsystem(t *testing.T) {
-
 	AfterEach(func() {
 		subsystemAfterEach()
 	})

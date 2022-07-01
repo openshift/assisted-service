@@ -148,7 +148,7 @@ type InstallerInternals interface {
 	GetCredentialsInternal(ctx context.Context, params installer.V2GetCredentialsParams) (*models.Credentials, error)
 	V2DownloadClusterFilesInternal(ctx context.Context, params installer.V2DownloadClusterFilesParams) (io.ReadCloser, int64, error)
 	V2DownloadClusterCredentialsInternal(ctx context.Context, params installer.V2DownloadClusterCredentialsParams) (io.ReadCloser, int64, error)
-	V2ImportClusterInternal(ctx context.Context, kubeKey *types.NamespacedName, id *strfmt.UUID, params installer.V2ImportClusterParams) (*common.Cluster, error)
+	V2ImportClusterInternal(ctx context.Context, kubeKey *types.NamespacedName, id *strfmt.UUID, params installer.V2ImportClusterParams, imported bool) (*common.Cluster, error)
 	InstallSingleDay2HostInternal(ctx context.Context, clusterId strfmt.UUID, infraEnvId strfmt.UUID, hostId strfmt.UUID) error
 	UpdateClusterInstallConfigInternal(ctx context.Context, params installer.V2UpdateClusterInstallConfigParams) (*common.Cluster, error)
 	CancelInstallationInternal(ctx context.Context, params installer.V2CancelInstallationParams) (*common.Cluster, error)
@@ -674,12 +674,45 @@ func (b *bareMetalInventory) getNewClusterCPUArchitecture(newClusterParams *mode
 	return "", errors.Errorf("Requested CPU architecture %s is not available", newClusterParams.CPUArchitecture)
 }
 
+// importedClusterBaseDomain attempts to convert the API hostname provided
+// by users during cluster import into a cluster base domain. If the hostname
+// is an IP address and not a domain, or if the provided domain is not an API
+// domain, this function returns an empty string. This function also returns
+// the cluster name that is implied by the domain.
+//
+// Examples:
+//
+// importedClusterBaseDomain("api.cluster.example.com") returns ("example.com", "cluster")
+// importedClusterBaseDomain("api-int.cluster.example.com") returns ("", "")
+// importedClusterBaseDomain("192.168.111.111") returns ("", "")
+// importedClusterBaseDomain("2001:db8::ff") returns ("", "")
+func importedClusterBaseDomain(hostname string) (string, string) {
+	if net.ParseIP(hostname) != nil {
+		return "", ""
+	}
+
+	domainComponents := strings.SplitN(hostname, ".", 3)
+	if len(domainComponents) != 3 {
+		return "", ""
+	}
+
+	api := domainComponents[0]
+	clusterName := domainComponents[1]
+	clusterBaseDomain := domainComponents[2]
+
+	if api != "api" {
+		return "", ""
+	}
+
+	return clusterBaseDomain, clusterName
+}
+
 func (b *bareMetalInventory) V2ImportClusterInternal(ctx context.Context, kubeKey *types.NamespacedName, id *strfmt.UUID,
-	params installer.V2ImportClusterParams) (*common.Cluster, error) {
+	params installer.V2ImportClusterParams, imported bool) (*common.Cluster, error) {
 	url := installer.V2GetClusterURL{ClusterID: *id}
 
 	log := logutil.FromContext(ctx, b.log).WithField(ctxparams.ClusterId, id)
-	apivipDnsname := swag.StringValue(params.NewImportClusterParams.APIVipDnsname)
+	apiHostname := swag.StringValue(params.NewImportClusterParams.APIVipDnsname)
 	clusterName := swag.StringValue(params.NewImportClusterParams.Name)
 
 	log.Infof("Import add-hosts-cluster: %s, id %s, openshift cluster id %s", clusterName, id.String(), params.NewImportClusterParams.OpenshiftClusterID)
@@ -692,6 +725,20 @@ func (b *bareMetalInventory) V2ImportClusterInternal(ctx context.Context, kubeKe
 		kubeKey = &types.NamespacedName{}
 	}
 
+	baseDomain := ""
+	if importedBaseDomain, importedClusterName := importedClusterBaseDomain(apiHostname); importedBaseDomain != "" {
+		baseDomain = importedBaseDomain
+
+		// Explicitly ignore the user-provided cluster name as we derive a more
+		// accurate name from the API domain the user provided. The cluster
+		// name from the API domain takes precedence because the cluster name
+		// is used in DNS validations and it is more likely to be correct. For
+		// example, some versions of the UI provide a cluster name with a junk
+		// prefix "scale-up-" that could later mess with DNS validations, as
+		// that's obviously incorrect.
+		clusterName = importedClusterName
+	}
+
 	newCluster := common.Cluster{Cluster: models.Cluster{
 		ID:                 id,
 		Href:               swag.String(url.String()),
@@ -701,10 +748,12 @@ func (b *bareMetalInventory) V2ImportClusterInternal(ctx context.Context, kubeKe
 		UserName:           ocm.UserNameFromContext(ctx),
 		OrgID:              ocm.OrgIDFromContext(ctx),
 		EmailDomain:        ocm.EmailDomainFromContext(ctx),
-		APIVipDNSName:      swag.String(apivipDnsname),
+		APIVipDNSName:      swag.String(apiHostname),
+		BaseDNSDomain:      baseDomain,
 		HostNetworks:       []*models.HostNetwork{},
 		Hosts:              []*models.Host{},
 		Platform:           &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeBaremetal)},
+		Imported:           &imported,
 	},
 		KubeKeyName:      kubeKey.Name,
 		KubeKeyNamespace: kubeKey.Namespace,

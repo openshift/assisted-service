@@ -35,7 +35,7 @@ var _ = Describe("Day2 v2 cluster tests", func() {
 			NewImportClusterParams: &models.ImportClusterParams{
 				Name:               swag.String("test-cluster"),
 				OpenshiftVersion:   openshiftVersion,
-				APIVipDnsname:      swag.String("api-vip.redhat.com"),
+				APIVipDnsname:      swag.String("api.test-cluster.example.com"),
 				OpenshiftClusterID: &openshiftClusterID,
 			},
 		})
@@ -101,14 +101,15 @@ var _ = Describe("Day2 cluster tests", func() {
 		cluster, err = userBMClient.Installer.V2ImportCluster(ctx, &installer.V2ImportClusterParams{
 			NewImportClusterParams: &models.ImportClusterParams{
 				Name:               swag.String("test-cluster"),
-				APIVipDnsname:      swag.String("api_vip_dnsname"),
+				APIVipDnsname:      swag.String("api.test-cluster.example.com"),
 				OpenshiftVersion:   openshiftVersion,
 				OpenshiftClusterID: &openshiftClusterID,
 			},
 		})
 
-		By(fmt.Sprintf("clusterID is %s", *cluster.GetPayload().ID))
 		Expect(err).NotTo(HaveOccurred())
+		By(fmt.Sprintf("clusterID is %s", *cluster.GetPayload().ID))
+
 		Expect(swag.StringValue(cluster.GetPayload().Status)).Should(Equal("adding-hosts"))
 		Expect(swag.StringValue(cluster.GetPayload().StatusInfo)).Should(Equal(statusInfoAddingHosts))
 		Expect(cluster.GetPayload().StatusUpdatedAt).ShouldNot(Equal(strfmt.DateTime(time.Time{})))
@@ -201,7 +202,7 @@ var _ = Describe("Day2 cluster tests", func() {
 		By("checking discovery state")
 		Expect(*h.Status).Should(Equal("discovering"))
 		steps := getNextSteps(infraEnvID, *host.ID)
-		checkStepsInList(steps, []models.StepType{models.StepTypeInventory}, 1)
+		areStepsInList(steps, []models.StepType{models.StepTypeInventory})
 
 		By("checking insufficient state state - one host, no connectivity check")
 		ips := hostutil.GenerateIPv4Addresses(2, defaultCIDRv4)
@@ -209,13 +210,13 @@ var _ = Describe("Day2 cluster tests", func() {
 		generateDomainResolution(ctx, h, "test-cluster", "")
 		waitForHostStateV2(ctx, "insufficient", 60*time.Second, h)
 		steps = getNextSteps(infraEnvID, *host.ID)
-		checkStepsInList(steps, []models.StepType{models.StepTypeInventory, models.StepTypeAPIVipConnectivityCheck}, 2)
+		areStepsInList(steps, []models.StepType{models.StepTypeInventory, models.StepTypeAPIVipConnectivityCheck})
 
 		By("checking known state state - one host, no connectivity check")
 		generateApiVipPostStepReply(ctx, h, true)
 		waitForHostStateV2(ctx, "known", 60*time.Second, h)
 		steps = getNextSteps(infraEnvID, *host.ID)
-		checkStepsInList(steps, []models.StepType{models.StepTypeAPIVipConnectivityCheck}, 1)
+		areStepsInList(steps, []models.StepType{models.StepTypeAPIVipConnectivityCheck})
 	})
 
 	It("check host states - two nodes", func() {
@@ -227,12 +228,12 @@ var _ = Describe("Day2 cluster tests", func() {
 		By("checking discovery state")
 		Expect(*h1.Status).Should(Equal("discovering"))
 		steps := getNextSteps(infraEnvID, *h1.ID)
-		checkStepsInList(steps, []models.StepType{models.StepTypeInventory}, 1)
+		areStepsInList(steps, []models.StepType{models.StepTypeInventory})
 
 		By("checking discovery state host2")
 		Expect(*h2.Status).Should(Equal("discovering"))
 		steps = getNextSteps(infraEnvID, *h2.ID)
-		checkStepsInList(steps, []models.StepType{models.StepTypeInventory}, 1)
+		areStepsInList(steps, []models.StepType{models.StepTypeInventory})
 
 		By("checking insufficient state state host2 ")
 		generateEssentialHostSteps(ctx, h2, "h2host", ips[1])
@@ -240,7 +241,7 @@ var _ = Describe("Day2 cluster tests", func() {
 		generateConnectivityCheckPostStepReply(ctx, h2, ips[0], true)
 		waitForHostStateV2(ctx, "insufficient", 60*time.Second, h2)
 		steps = getNextSteps(infraEnvID, *h2.ID)
-		checkStepsInList(steps, []models.StepType{models.StepTypeInventory, models.StepTypeAPIVipConnectivityCheck}, 2)
+		areStepsInList(steps, []models.StepType{models.StepTypeInventory, models.StepTypeAPIVipConnectivityCheck})
 
 		By("checking insufficient state state")
 		generateEssentialHostSteps(ctx, h1, "h1host", ips[0])
@@ -248,13 +249,13 @@ var _ = Describe("Day2 cluster tests", func() {
 		generateDomainResolution(ctx, h1, "test-cluster", "")
 		waitForHostStateV2(ctx, "insufficient", 60*time.Second, h1)
 		steps = getNextSteps(infraEnvID, *h1.ID)
-		checkStepsInList(steps, []models.StepType{models.StepTypeInventory, models.StepTypeAPIVipConnectivityCheck, models.StepTypeConnectivityCheck}, 3)
+		areStepsInList(steps, []models.StepType{models.StepTypeInventory, models.StepTypeAPIVipConnectivityCheck, models.StepTypeConnectivityCheck})
 
 		By("checking known state state")
 		generateApiVipPostStepReply(ctx, h1, true)
 		waitForHostStateV2(ctx, "known", 60*time.Second, h1)
 		steps = getNextSteps(infraEnvID, *h1.ID)
-		checkStepsInList(steps, []models.StepType{models.StepTypeAPIVipConnectivityCheck, models.StepTypeConnectivityCheck}, 2)
+		areStepsInList(steps, []models.StepType{models.StepTypeAPIVipConnectivityCheck, models.StepTypeConnectivityCheck})
 	})
 
 	It("check installation - one node", func() {
@@ -394,7 +395,7 @@ var _ = Describe("Day2 cluster tests", func() {
 		Expect(*h.Status).Should(Equal("installing"))
 		Expect(h.Role).Should(Equal(models.HostRoleWorker))
 		steps := getNextSteps(infraEnvID, *h.ID)
-		checkStepsInList(steps, []models.StepType{models.StepTypeInstall}, 1)
+		areStepsInList(steps, []models.StepType{models.StepTypeInstall})
 		updateProgress(*h.ID, infraEnvID, models.HostStageStartingInstallation)
 		h = getHostV2(infraEnvID, *host.ID)
 		Expect(*h.Status).Should(Equal("installing-in-progress"))
@@ -514,7 +515,7 @@ var _ = Describe("Day2 cluster with bind/unbind hosts", func() {
 		cluster, err = userBMClient.Installer.V2ImportCluster(ctx, &installer.V2ImportClusterParams{
 			NewImportClusterParams: &models.ImportClusterParams{
 				Name:               swag.String("test-cluster"),
-				APIVipDnsname:      swag.String("api_vip_dnsname"),
+				APIVipDnsname:      swag.String("api.test-cluster.example.com"),
 				OpenshiftClusterID: &openshiftClusterID,
 			},
 		})
@@ -589,7 +590,7 @@ var _ = Describe("Installation progress", func() {
 			importClusterReply, err := userBMClient.Installer.V2ImportCluster(ctx, &installer.V2ImportClusterParams{
 				NewImportClusterParams: &models.ImportClusterParams{
 					Name:               swag.String("day2-cluster"),
-					APIVipDnsname:      swag.String("api_vip_dnsname"),
+					APIVipDnsname:      swag.String("api.test-cluster.example.com"),
 					OpenshiftClusterID: &openshiftClusterID,
 				},
 			})

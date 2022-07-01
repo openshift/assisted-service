@@ -5213,14 +5213,15 @@ func init() {
       }
     },
     "api_vip_connectivity_response": {
+      "description": "The response from the day-2 agent's attempt to download the worker ignition file from the API machine config server of the target cluster.\nNote - the name \"API VIP connectivity\" is old and misleading and is preserved for backwards compatibility.\n",
       "type": "object",
       "properties": {
         "ignition": {
-          "description": "Ignition fetched from the specified API VIP",
+          "description": "Ignition file fetched from the target cluster's API machine config server.\nThis ignition file may be incomplete as almost all files / systemd units are removed from it by the agent in order to save space.\n",
           "type": "string"
         },
         "is_success": {
-          "description": "Ignition downloadability check result.",
+          "description": "Whether the agent was able to contact the API of the target cluster or not",
           "type": "boolean"
         }
       }
@@ -5432,6 +5433,11 @@ func init() {
         },
         "image_info": {
           "$ref": "#/definitions/image_info"
+        },
+        "imported": {
+          "description": "Indicates whether this cluster is an imported day-2 cluster or a\nregular cluster. Clusters are considered imported when they are\ncreated via the ../clusters/import endpoint. Day-2 clusters converted\nfrom day-1 clusters by kube-api controllers or the\n../clusters/\u003ccluster_id\u003e/actions/allow-add-workers endpoint are not\nconsidered imported. Imported clusters usually lack a lot of\ninformation and are filled with default values that don't necessarily\nreflect the actual cluster they represent",
+          "type": "boolean",
+          "default": false
         },
         "ingress_vip": {
           "description": "The virtual IP used for cluster ingress traffic.",
@@ -6819,6 +6825,7 @@ func init() {
       ],
       "properties": {
         "api_vip_connectivity": {
+          "description": "Contains a serialized api_vip_connectivity_response",
           "type": "string",
           "x-go-custom-tag": "gorm:\"type:text\""
         },
@@ -14613,14 +14620,15 @@ func init() {
       }
     },
     "api_vip_connectivity_response": {
+      "description": "The response from the day-2 agent's attempt to download the worker ignition file from the API machine config server of the target cluster.\nNote - the name \"API VIP connectivity\" is old and misleading and is preserved for backwards compatibility.\n",
       "type": "object",
       "properties": {
         "ignition": {
-          "description": "Ignition fetched from the specified API VIP",
+          "description": "Ignition file fetched from the target cluster's API machine config server.\nThis ignition file may be incomplete as almost all files / systemd units are removed from it by the agent in order to save space.\n",
           "type": "string"
         },
         "is_success": {
-          "description": "Ignition downloadability check result.",
+          "description": "Whether the agent was able to contact the API of the target cluster or not",
           "type": "boolean"
         }
       }
@@ -14832,6 +14840,11 @@ func init() {
         },
         "image_info": {
           "$ref": "#/definitions/image_info"
+        },
+        "imported": {
+          "description": "Indicates whether this cluster is an imported day-2 cluster or a\nregular cluster. Clusters are considered imported when they are\ncreated via the ../clusters/import endpoint. Day-2 clusters converted\nfrom day-1 clusters by kube-api controllers or the\n../clusters/\u003ccluster_id\u003e/actions/allow-add-workers endpoint are not\nconsidered imported. Imported clusters usually lack a lot of\ninformation and are filled with default values that don't necessarily\nreflect the actual cluster they represent",
+          "type": "boolean",
+          "default": false
         },
         "ingress_vip": {
           "description": "The virtual IP used for cluster ingress traffic.",
@@ -16147,6 +16160,7 @@ func init() {
       ],
       "properties": {
         "api_vip_connectivity": {
+          "description": "Contains a serialized api_vip_connectivity_response",
           "type": "string",
           "x-go-custom-tag": "gorm:\"type:text\""
         },

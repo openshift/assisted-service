@@ -123,45 +123,68 @@ var DomainAPIInternal = "api-int.test-cluster.example.com"
 var DomainApps = fmt.Sprintf("%s.apps.test-cluster.example.com", constants.AppsSubDomainNameHostDNSValidation)
 var WildcardDomain = fmt.Sprintf("%s.test-cluster.example.com", constants.DNSWildcardFalseDomainName)
 
-var DomainResolution = []*models.DomainResolutionResponseDomain{
+var DomainResolutions = []*models.DomainResolutionResponseDomain{
 	{
 		DomainName:    &DomainAPI,
 		IPV4Addresses: []strfmt.IPv4{"1.2.3.40/24"},
-		IPV6Addresses: []strfmt.IPv6{"1001:db8::10/120"},
+		IPV6Addresses: []strfmt.IPv6{"1001:db8::20/120"},
 	},
 	{
 		DomainName:    &DomainAPIInternal,
 		IPV4Addresses: []strfmt.IPv4{"4.5.6.7/24"},
-		IPV6Addresses: []strfmt.IPv6{"1002:db8::10/120"},
+		IPV6Addresses: []strfmt.IPv6{"1002:db8::30/120"},
 	},
 	{
 		DomainName:    &DomainApps,
 		IPV4Addresses: []strfmt.IPv4{"7.8.9.10/24"},
-		IPV6Addresses: []strfmt.IPv6{"1003:db8::10/120"},
+		IPV6Addresses: []strfmt.IPv6{"1003:db8::40/120"},
 	},
 	{
 		DomainName:    &WildcardDomain,
 		IPV4Addresses: []strfmt.IPv4{},
 		IPV6Addresses: []strfmt.IPv6{},
-	}}
+	},
+}
 
 var DomainResolutionNoAPI = []*models.DomainResolutionResponseDomain{
 	{
 		DomainName:    &DomainApps,
 		IPV4Addresses: []strfmt.IPv4{"7.8.9.10/24"},
-		IPV6Addresses: []strfmt.IPv6{"1003:db8::10/120"},
+		IPV6Addresses: []strfmt.IPv6{"1003:db8::40/120"},
 	},
 	{
 		DomainName:    &WildcardDomain,
 		IPV4Addresses: []strfmt.IPv4{},
 		IPV6Addresses: []strfmt.IPv6{},
-	}}
+	},
+}
 
-var TestDomainNameResolutionSuccess = &models.DomainResolutionResponse{
-	Resolutions: DomainResolution}
+var DomainResolutionAllEmpty = []*models.DomainResolutionResponseDomain{
+	{
+		DomainName:    &DomainAPI,
+		IPV4Addresses: []strfmt.IPv4{},
+		IPV6Addresses: []strfmt.IPv6{},
+	},
+	{
+		DomainName:    &DomainAPIInternal,
+		IPV4Addresses: []strfmt.IPv4{},
+		IPV6Addresses: []strfmt.IPv6{},
+	},
+	{
+		DomainName:    &DomainApps,
+		IPV4Addresses: []strfmt.IPv4{},
+		IPV6Addresses: []strfmt.IPv6{},
+	},
+	{
+		DomainName:    &WildcardDomain,
+		IPV4Addresses: []strfmt.IPv4{},
+		IPV6Addresses: []strfmt.IPv6{},
+	},
+}
 
-var TestDomainResolutionNoAPI = &models.DomainResolutionResponse{
-	Resolutions: DomainResolutionNoAPI}
+var TestDomainNameResolutionsSuccess = &models.DomainResolutionResponse{Resolutions: DomainResolutions}
+var TestDomainResolutionsNoAPI = &models.DomainResolutionResponse{Resolutions: DomainResolutionNoAPI}
+var TestDomainResolutionsAllEmpty = &models.DomainResolutionResponse{Resolutions: DomainResolutionAllEmpty}
 
 var TestDefaultRouteConfiguration = []*models.Route{{Family: FamilyIPv4, Interface: "eth0", Gateway: "192.168.1.1", Destination: "0.0.0.0"}}
 
@@ -403,7 +426,7 @@ func GenerateTestInventoryWithNetwork(netAddress NetAddress) string {
 	return string(b)
 }
 
-func GenerateTestInventoryWithSetNetwork() string {
+func GenerateTestInventory() string {
 	inventory := &models.Inventory{
 		Interfaces: []*models.Interface{
 			{

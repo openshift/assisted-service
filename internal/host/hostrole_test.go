@@ -105,7 +105,7 @@ var _ = Describe("Suggested-Role on Refresh", func() {
 	for i := range tests {
 		t := tests[i]
 		It(t.name, func() {
-			cluster = hostutil.GenerateTestCluster(clusterId, common.TestIPv4Networking.MachineNetworks)
+			cluster = hostutil.GenerateTestCluster(clusterId)
 			Expect(db.Create(&cluster).Error).ToNot(HaveOccurred())
 
 			hostID := strfmt.UUID(uuid.New().String())

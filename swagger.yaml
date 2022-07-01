@@ -3977,6 +3977,7 @@ definitions:
       api_vip_connectivity:
         x-go-custom-tag: gorm:"type:text"
         type: string
+        description: Contains a serialized api_vip_connectivity_response
       tang_connectivity:
         x-go-custom-tag: gorm:"type:text"
         type: string
@@ -4845,6 +4846,18 @@ definitions:
         type: object
         $ref: '#/definitions/ignition-endpoint'
         description: Explicit ignition endpoint overrides the default ignition endpoint.
+      imported:
+        type: boolean
+        default: false
+        description: |-
+          Indicates whether this cluster is an imported day-2 cluster or a
+          regular cluster. Clusters are considered imported when they are
+          created via the ../clusters/import endpoint. Day-2 clusters converted
+          from day-1 clusters by kube-api controllers or the
+          ../clusters/<cluster_id>/actions/allow-add-workers endpoint are not
+          considered imported. Imported clusters usually lack a lot of
+          information and are filled with default values that don't necessarily
+          reflect the actual cluster they represent
 
   ignition-endpoint:
     type: object
@@ -5485,13 +5498,18 @@ definitions:
 
   api_vip_connectivity_response:
     type: object
+    description: |
+      The response from the day-2 agent's attempt to download the worker ignition file from the API machine config server of the target cluster.
+      Note - the name "API VIP connectivity" is old and misleading and is preserved for backwards compatibility.
     properties:
       is_success:
         type: boolean
-        description: Ignition downloadability check result.
+        description: Whether the agent was able to contact the API of the target cluster or not
       ignition:
         type: string
-        description: Ignition fetched from the specified API VIP
+        description: |
+          Ignition file fetched from the target cluster's API machine config server.
+          This ignition file may be incomplete as almost all files / systemd units are removed from it by the agent in order to save space.
 
   tang_connectivity_request:
     type: object

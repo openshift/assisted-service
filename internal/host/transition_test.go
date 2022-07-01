@@ -968,7 +968,7 @@ var _ = Describe("Install", func() {
 			host.StatusInfo = swag.String(statusInfoHostPreparationSuccessful)
 			host.Inventory = hostutil.GenerateMasterInventory()
 			Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
-			cluster = hostutil.GenerateTestCluster(clusterId, common.TestIPv4Networking.MachineNetworks)
+			cluster = hostutil.GenerateTestCluster(clusterId)
 			cluster.Status = swag.String(models.ClusterStatusInstalling)
 			Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
 			clusterRequirements := models.ClusterHostRequirements{
@@ -1396,7 +1396,7 @@ var _ = Describe("Refresh Host", func() {
 					CurrentStage:   t.stage,
 				}
 				Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
-				cluster = hostutil.GenerateTestCluster(clusterId, common.TestIPv4Networking.MachineNetworks)
+				cluster = hostutil.GenerateTestCluster(clusterId)
 				cluster.Status = swag.String(models.ClusterStatusInstallingPendingUserAction)
 				Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
 				if t.expectTimeout {
@@ -1428,7 +1428,7 @@ var _ = Describe("Refresh Host", func() {
 
 		Context("Integrate with vsphere", func() {
 			createCluster := func() {
-				cluster = hostutil.GenerateTestCluster(clusterId, common.TestIPv4Networking.MachineNetworks)
+				cluster = hostutil.GenerateTestCluster(clusterId)
 				cluster.Name = common.TestDefaultConfig.ClusterName
 				cluster.BaseDNSDomain = common.TestDefaultConfig.BaseDNSDomain
 				cluster.ConnectivityMajorityGroups = fmt.Sprintf("{\"%s\":[\"%s\"]}", common.TestIPv4Networking.MachineNetworks[0].Cidr, hostId.String())
@@ -1438,7 +1438,7 @@ var _ = Describe("Refresh Host", func() {
 			createHost := func(hostStatus string) {
 				host = hostutil.GenerateTestHostByKind(hostId, infraEnvId, &clusterId, hostStatus, models.HostKindHost, models.HostRoleMaster)
 				host.Inventory = hostutil.GenerateMasterInventory()
-				bytes, err := json.Marshal(common.TestDomainNameResolutionSuccess)
+				bytes, err := json.Marshal(common.TestDomainNameResolutionsSuccess)
 				Expect(err).ShouldNot(HaveOccurred())
 				host.DomainNameResolutions = string(bytes)
 				Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
@@ -1560,7 +1560,7 @@ var _ = Describe("Refresh Host", func() {
 				host.Progress = &progress
 
 				Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
-				cluster = hostutil.GenerateTestCluster(clusterId, common.TestIPv4Networking.MachineNetworks)
+				cluster = hostutil.GenerateTestCluster(clusterId)
 				Expect(db.Create(&cluster).Error).ToNot(HaveOccurred())
 
 				mockEvents.EXPECT().SendHostEvent(gomock.Any(), eventstest.NewEventMatcher(
@@ -1608,7 +1608,7 @@ var _ = Describe("Refresh Host", func() {
 				host.Progress = &progress
 
 				Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
-				cluster = hostutil.GenerateTestCluster(clusterId, common.TestIPv4Networking.MachineNetworks)
+				cluster = hostutil.GenerateTestCluster(clusterId)
 				Expect(db.Create(&cluster).Error).ToNot(HaveOccurred())
 
 				err := hapi.RefreshStatus(ctx, &host, db)
@@ -1652,7 +1652,7 @@ var _ = Describe("Refresh Host", func() {
 			host.Progress = &progress
 
 			Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
-			cluster = hostutil.GenerateTestCluster(clusterId, common.TestIPv4Networking.MachineNetworks)
+			cluster = hostutil.GenerateTestCluster(clusterId)
 			Expect(db.Create(&cluster).Error).ToNot(HaveOccurred())
 
 			mockEvents.EXPECT().SendHostEvent(gomock.Any(), eventstest.NewEventMatcher(
@@ -1699,7 +1699,7 @@ var _ = Describe("Refresh Host", func() {
 				host.StatusUpdatedAt = strfmt.DateTime(time.Now().Add(-passedTime))
 
 				Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
-				cluster = hostutil.GenerateTestCluster(clusterId, common.TestIPv4Networking.MachineNetworks)
+				cluster = hostutil.GenerateTestCluster(clusterId)
 				Expect(db.Create(&cluster).Error).ToNot(HaveOccurred())
 				if passedTimeKind == "over_timeout" {
 					mockEvents.EXPECT().SendHostEvent(gomock.Any(), eventstest.NewEventMatcher(
@@ -1771,7 +1771,7 @@ var _ = Describe("Refresh Host", func() {
 						}
 						host.Progress = &progress
 						Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
-						cluster = hostutil.GenerateTestCluster(clusterId, common.TestIPv4Networking.MachineNetworks)
+						cluster = hostutil.GenerateTestCluster(clusterId)
 						cluster.HighAvailabilityMode = &highAvailabilityMode
 						Expect(db.Create(&cluster).Error).ToNot(HaveOccurred())
 
@@ -1817,7 +1817,7 @@ var _ = Describe("Refresh Host", func() {
 		}
 		It("state info progress when failed", func() {
 
-			cluster = hostutil.GenerateTestCluster(clusterId, common.TestIPv4Networking.MachineNetworks)
+			cluster = hostutil.GenerateTestCluster(clusterId)
 			Expect(db.Create(&cluster).Error).ToNot(HaveOccurred())
 
 			masterID := strfmt.UUID("1")
@@ -2076,7 +2076,7 @@ var _ = Describe("Refresh Host", func() {
 			t := tests[i]
 			It(t.name, func() {
 				if t.platformType == "" {
-					cluster = hostutil.GenerateTestCluster(clusterId, common.TestIPv4Networking.MachineNetworks)
+					cluster = hostutil.GenerateTestCluster(clusterId)
 				} else {
 					cluster = hostutil.GenerateTestClusterWithPlatform(clusterId, common.TestIPv4Networking.MachineNetworks, &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeVsphere)})
 				}
@@ -2320,7 +2320,7 @@ var _ = Describe("Refresh Host", func() {
 
 				// Test setup - Cluster creation
 				machineCidr := common.TestIPv4Networking.MachineNetworks
-				cluster = hostutil.GenerateTestCluster(clusterId, machineCidr)
+				cluster = hostutil.GenerateTestClusterWithMachineNetworks(clusterId, machineCidr)
 				cluster.ConnectivityMajorityGroups = fmt.Sprintf("{\"%s\":[\"%s\"]}", common.TestIPv4Networking.MachineNetworks[0].Cidr, hostId.String())
 				cluster.Status = swag.String(t.clusterState)
 				Expect(db.Create(&cluster).Error).ToNot(HaveOccurred())
@@ -2403,7 +2403,7 @@ var _ = Describe("Refresh Host", func() {
 
 				// Test setup - Cluster creation
 				machineCidr := common.TestIPv4Networking.MachineNetworks[0].Cidr
-				cluster = hostutil.GenerateTestCluster(clusterId, common.TestIPv4Networking.MachineNetworks)
+				cluster = hostutil.GenerateTestCluster(clusterId)
 				cluster.ConnectivityMajorityGroups = fmt.Sprintf("{\"%s\":[\"%s\"]}", machineCidr, hostId.String())
 				cluster.Status = swag.String(t.clusterState)
 				Expect(db.Create(&cluster).Error).ToNot(HaveOccurred())
@@ -2495,7 +2495,7 @@ var _ = Describe("Refresh Host", func() {
 					SucessfullOrUnknownContainerImagesAvailability: {status: ValidationSuccess, messagePattern: "All required container images were either pulled successfully or no attempt was made to pull them"},
 					SufficientOrUnknownInstallationDiskSpeed:       {status: ValidationSuccess, messagePattern: "Speed of installation disk has not yet been measured"},
 				}),
-				domainResolutions: common.TestDomainNameResolutionSuccess,
+				domainResolutions: common.TestDomainNameResolutionsSuccess,
 				errorExpected:     false,
 			},
 			{
@@ -2522,7 +2522,7 @@ var _ = Describe("Refresh Host", func() {
 					SucessfullOrUnknownContainerImagesAvailability: {status: ValidationSuccess, messagePattern: "All required container images were either pulled successfully or no attempt was made to pull them"},
 					SufficientOrUnknownInstallationDiskSpeed:       {status: ValidationSuccess, messagePattern: "Speed of installation disk has not yet been measured"},
 				}),
-				domainResolutions: common.TestDomainNameResolutionSuccess,
+				domainResolutions: common.TestDomainNameResolutionsSuccess,
 				errorExpected:     false,
 			},
 			{
@@ -2532,7 +2532,7 @@ var _ = Describe("Refresh Host", func() {
 				srcState:          models.HostStatusKnown,
 				dstState:          models.HostStatusDisconnected,
 				statusInfoChecker: makeValueChecker(statusInfoDisconnected),
-				domainResolutions: common.TestDomainNameResolutionSuccess,
+				domainResolutions: common.TestDomainNameResolutionsSuccess,
 				errorExpected:     false,
 			},
 			{
@@ -2559,7 +2559,7 @@ var _ = Describe("Refresh Host", func() {
 					SucessfullOrUnknownContainerImagesAvailability: {status: ValidationSuccess, messagePattern: "All required container images were either pulled successfully or no attempt was made to pull them"},
 					SufficientOrUnknownInstallationDiskSpeed:       {status: ValidationSuccess, messagePattern: "Speed of installation disk has not yet been measured"},
 				}),
-				domainResolutions: common.TestDomainNameResolutionSuccess,
+				domainResolutions: common.TestDomainNameResolutionsSuccess,
 				errorExpected:     false,
 			},
 			{
@@ -2586,7 +2586,7 @@ var _ = Describe("Refresh Host", func() {
 					SucessfullOrUnknownContainerImagesAvailability: {status: ValidationSuccess, messagePattern: "All required container images were either pulled successfully or no attempt was made to pull them"},
 					SufficientOrUnknownInstallationDiskSpeed:       {status: ValidationSuccess, messagePattern: "Speed of installation disk has not yet been measured"},
 				}),
-				domainResolutions: common.TestDomainNameResolutionSuccess,
+				domainResolutions: common.TestDomainNameResolutionsSuccess,
 				errorExpected:     false,
 			},
 			{
@@ -2611,7 +2611,7 @@ var _ = Describe("Refresh Host", func() {
 					SucessfullOrUnknownContainerImagesAvailability: {status: ValidationSuccess, messagePattern: "All required container images were either pulled successfully or no attempt was made to pull them"},
 					SufficientOrUnknownInstallationDiskSpeed:       {status: ValidationSuccess, messagePattern: "Speed of installation disk has not yet been measured"},
 				}),
-				domainResolutions: common.TestDomainNameResolutionSuccess,
+				domainResolutions: common.TestDomainNameResolutionsSuccess,
 				errorExpected:     false,
 			},
 			{
@@ -2638,7 +2638,7 @@ var _ = Describe("Refresh Host", func() {
 					SucessfullOrUnknownContainerImagesAvailability: {status: ValidationSuccess, messagePattern: "All required container images were either pulled successfully or no attempt was made to pull them"},
 					SufficientOrUnknownInstallationDiskSpeed:       {status: ValidationSuccess, messagePattern: "Speed of installation disk has not yet been measured"},
 				}),
-				domainResolutions: common.TestDomainNameResolutionSuccess,
+				domainResolutions: common.TestDomainNameResolutionsSuccess,
 				errorExpected:     false,
 			},
 			{
@@ -2671,7 +2671,7 @@ var _ = Describe("Refresh Host", func() {
 					SucessfullOrUnknownContainerImagesAvailability: {status: ValidationSuccess, messagePattern: "All required container images were either pulled successfully or no attempt was made to pull them"},
 					SufficientOrUnknownInstallationDiskSpeed:       {status: ValidationSuccess, messagePattern: "Speed of installation disk has not yet been measured"},
 				}),
-				domainResolutions: common.TestDomainNameResolutionSuccess,
+				domainResolutions: common.TestDomainNameResolutionsSuccess,
 				errorExpected:     false,
 			},
 			{
@@ -2704,7 +2704,7 @@ var _ = Describe("Refresh Host", func() {
 					SufficientOrUnknownInstallationDiskSpeed:       {status: ValidationSuccess, messagePattern: "Speed of installation disk has not yet been measured"},
 				}),
 				inventory:         insufficientHWInventory(),
-				domainResolutions: common.TestDomainNameResolutionSuccess,
+				domainResolutions: common.TestDomainNameResolutionsSuccess,
 				errorExpected:     false,
 			},
 			{
@@ -2737,7 +2737,7 @@ var _ = Describe("Refresh Host", func() {
 					SufficientOrUnknownInstallationDiskSpeed:       {status: ValidationSuccess, messagePattern: "Speed of installation disk has not yet been measured"},
 				}),
 				inventory:         insufficientHWInventory(),
-				domainResolutions: common.TestDomainNameResolutionSuccess,
+				domainResolutions: common.TestDomainNameResolutionsSuccess,
 				errorExpected:     false,
 			},
 			{
@@ -2748,7 +2748,7 @@ var _ = Describe("Refresh Host", func() {
 				dstState:          models.HostStatusPendingForInput,
 				statusInfoChecker: makeValueChecker(""),
 				inventory:         insufficientHWInventory(),
-				domainResolutions: common.TestDomainNameResolutionSuccess,
+				domainResolutions: common.TestDomainNameResolutionsSuccess,
 				errorExpected:     true,
 			},
 			{
@@ -2765,7 +2765,7 @@ var _ = Describe("Refresh Host", func() {
 					"The host is not eligible to participate in Openshift Cluster because the minimum required RAM for " +
 					"any role is 8.00 GiB, found only 130 bytes"),
 				inventory:         insufficientHWInventory(),
-				domainResolutions: common.TestDomainNameResolutionSuccess,
+				domainResolutions: common.TestDomainNameResolutionsSuccess,
 				errorExpected:     false,
 			},
 			{
@@ -2795,7 +2795,7 @@ var _ = Describe("Refresh Host", func() {
 					SufficientOrUnknownInstallationDiskSpeed:       {status: ValidationSuccess, messagePattern: "Speed of installation disk has not yet been measured"},
 				}),
 				inventory:         workerInventory(),
-				domainResolutions: common.TestDomainNameResolutionSuccess,
+				domainResolutions: common.TestDomainNameResolutionsSuccess,
 				errorExpected:     false,
 			},
 			{
@@ -2824,7 +2824,7 @@ var _ = Describe("Refresh Host", func() {
 					SucessfullOrUnknownContainerImagesAvailability: {status: ValidationSuccess, messagePattern: "All required container images were either pulled successfully or no attempt was made to pull them"},
 				}),
 				inventory:         workerInventory(),
-				domainResolutions: common.TestDomainNameResolutionSuccess,
+				domainResolutions: common.TestDomainNameResolutionsSuccess,
 				errorExpected:     false,
 			},
 			{
@@ -2859,7 +2859,7 @@ var _ = Describe("Refresh Host", func() {
 					SufficientOrUnknownInstallationDiskSpeed:       {status: ValidationSuccess, messagePattern: "Speed of installation disk has not yet been measured"},
 				}),
 				inventory:         workerInventory(),
-				domainResolutions: common.TestDomainNameResolutionSuccess,
+				domainResolutions: common.TestDomainNameResolutionsSuccess,
 				errorExpected:     false,
 			},
 			{
@@ -2896,7 +2896,7 @@ var _ = Describe("Refresh Host", func() {
 					SufficientOrUnknownInstallationDiskSpeed:       {status: ValidationSuccess, messagePattern: "Speed of installation disk has not yet been measured"},
 				}),
 				inventory:         workerInventory(),
-				domainResolutions: common.TestDomainNameResolutionSuccess,
+				domainResolutions: common.TestDomainNameResolutionsSuccess,
 				errorExpected:     false,
 			},
 			{
@@ -2929,7 +2929,7 @@ var _ = Describe("Refresh Host", func() {
 					SufficientOrUnknownInstallationDiskSpeed:       {status: ValidationSuccess, messagePattern: "Speed of installation disk has not yet been measured"},
 				}),
 				inventory:         inventoryWithUnauthorizedVendor(),
-				domainResolutions: common.TestDomainNameResolutionSuccess,
+				domainResolutions: common.TestDomainNameResolutionsSuccess,
 				errorExpected:     false,
 			},
 			{
@@ -2959,7 +2959,7 @@ var _ = Describe("Refresh Host", func() {
 					SufficientOrUnknownInstallationDiskSpeed:       {status: ValidationSuccess, messagePattern: "Speed of installation disk has not yet been measured"},
 				}),
 				inventory:         workerInventory(),
-				domainResolutions: common.TestDomainNameResolutionSuccess,
+				domainResolutions: common.TestDomainNameResolutionsSuccess,
 				errorExpected:     false,
 			},
 			{
@@ -2989,7 +2989,7 @@ var _ = Describe("Refresh Host", func() {
 					SucessfullOrUnknownContainerImagesAvailability: {status: ValidationSuccess, messagePattern: "All required container images were either pulled successfully or no attempt was made to pull them"},
 					SufficientOrUnknownInstallationDiskSpeed:       {status: ValidationSuccess, messagePattern: "Speed of installation disk has not yet been measured"},
 				}),
-				domainResolutions: common.TestDomainNameResolutionSuccess,
+				domainResolutions: common.TestDomainNameResolutionsSuccess,
 				errorExpected:     false,
 			},
 			{
@@ -3021,7 +3021,7 @@ var _ = Describe("Refresh Host", func() {
 					SucessfullOrUnknownContainerImagesAvailability: {status: ValidationFailure, messagePattern: "Failed to fetch container images needed for installation from image."},
 				}),
 				inventory:         hostutil.GenerateMasterInventory(),
-				domainResolutions: common.TestDomainNameResolutionSuccess,
+				domainResolutions: common.TestDomainNameResolutionsSuccess,
 				errorExpected:     false,
 			},
 			{
@@ -3054,7 +3054,7 @@ var _ = Describe("Refresh Host", func() {
 					SufficientOrUnknownInstallationDiskSpeed:       {status: ValidationSuccess, messagePattern: "Speed of installation disk has not yet been measured"},
 				}),
 				inventory:         hostutil.GenerateMasterInventory(),
-				domainResolutions: common.TestDomainNameResolutionSuccess,
+				domainResolutions: common.TestDomainNameResolutionsSuccess,
 				errorExpected:     false,
 			},
 			{
@@ -3083,7 +3083,7 @@ var _ = Describe("Refresh Host", func() {
 					SucessfullOrUnknownContainerImagesAvailability: {status: ValidationSuccess, messagePattern: "All required container images were either pulled successfully or no attempt was made to pull them"},
 				}),
 				inventory:         hostutil.GenerateMasterInventory(),
-				domainResolutions: common.TestDomainNameResolutionSuccess,
+				domainResolutions: common.TestDomainNameResolutionsSuccess,
 				errorExpected:     false,
 			},
 			{
@@ -3114,7 +3114,7 @@ var _ = Describe("Refresh Host", func() {
 					SucessfullOrUnknownContainerImagesAvailability: {status: ValidationSuccess, messagePattern: "All required container images were either pulled successfully or no attempt was made to pull them"},
 				}),
 				inventory:         hostutil.GenerateMasterInventoryWithNetworks("1.2.3.4/24", "1.2.3.5/24"),
-				domainResolutions: common.TestDomainNameResolutionSuccess,
+				domainResolutions: common.TestDomainNameResolutionsSuccess,
 				errorExpected:     false,
 			},
 			{
@@ -3145,7 +3145,7 @@ var _ = Describe("Refresh Host", func() {
 					SucessfullOrUnknownContainerImagesAvailability: {status: ValidationSuccess, messagePattern: "All required container images were either pulled successfully or no attempt was made to pull them"},
 				}),
 				inventory:         hostutil.GenerateMasterInventoryWithNetworksOnSameInterface([]string{"1.2.3.4/24", "1.2.3.5/24"}, []string{}),
-				domainResolutions: common.TestDomainNameResolutionSuccess,
+				domainResolutions: common.TestDomainNameResolutionsSuccess,
 				errorExpected:     false,
 			},
 			{
@@ -3176,7 +3176,7 @@ var _ = Describe("Refresh Host", func() {
 					SucessfullOrUnknownContainerImagesAvailability: {status: ValidationSuccess, messagePattern: "All required container images were either pulled successfully or no attempt was made to pull them"},
 				}),
 				inventory:         hostutil.GenerateMasterInventoryWithNetworks("1.2.3.4/24", "1.2.3.16/23"),
-				domainResolutions: common.TestDomainNameResolutionSuccess,
+				domainResolutions: common.TestDomainNameResolutionsSuccess,
 				errorExpected:     false,
 			},
 			{
@@ -3207,7 +3207,7 @@ var _ = Describe("Refresh Host", func() {
 					SucessfullOrUnknownContainerImagesAvailability: {status: ValidationSuccess, messagePattern: "All required container images were either pulled successfully or no attempt was made to pull them"},
 				}),
 				inventory:         hostutil.GenerateMasterInventoryWithNetworks("1.2.3.4/24", "1.2.5.16/23"),
-				domainResolutions: common.TestDomainNameResolutionSuccess,
+				domainResolutions: common.TestDomainNameResolutionsSuccess,
 				errorExpected:     false,
 			},
 			{
@@ -3236,7 +3236,7 @@ var _ = Describe("Refresh Host", func() {
 					SufficientOrUnknownInstallationDiskSpeed:       {status: ValidationSuccess, messagePattern: "Speed of installation disk has not yet been measured"},
 				}),
 				inventory:             hostutil.GenerateMasterInventory(),
-				domainResolutions:     common.TestDomainNameResolutionSuccess,
+				domainResolutions:     common.TestDomainNameResolutionsSuccess,
 				errorExpected:         false,
 				userManagedNetworking: true,
 			},
@@ -3268,7 +3268,7 @@ var _ = Describe("Refresh Host", func() {
 					IsDNSWildcardNotConfigured:                     {status: ValidationSuccess, messagePattern: "DNS wildcard check is not required for day2"},
 				}),
 				inventory:         hostutil.GenerateMasterInventory(),
-				domainResolutions: common.TestDomainNameResolutionSuccess,
+				domainResolutions: common.TestDomainNameResolutionsSuccess,
 				errorExpected:     false,
 				isDay2:            true,
 			},
@@ -3298,7 +3298,7 @@ var _ = Describe("Refresh Host", func() {
 					SufficientOrUnknownInstallationDiskSpeed:       {status: ValidationSuccess, messagePattern: "Speed of installation disk has not yet been measured"},
 				}),
 				inventory:             hostutil.GenerateMasterInventory(),
-				domainResolutions:     common.TestDomainNameResolutionSuccess,
+				domainResolutions:     common.TestDomainNameResolutionsSuccess,
 				errorExpected:         false,
 				userManagedNetworking: true,
 				connectivity:          fmt.Sprintf("{\"%s\":[]}", network.IPv4.String()),
@@ -3329,7 +3329,7 @@ var _ = Describe("Refresh Host", func() {
 					SufficientOrUnknownInstallationDiskSpeed:       {status: ValidationSuccess, messagePattern: "Speed of installation disk has not yet been measured"},
 				}),
 				inventory:             hostutil.GenerateMasterInventory(),
-				domainResolutions:     common.TestDomainNameResolutionSuccess,
+				domainResolutions:     common.TestDomainNameResolutionsSuccess,
 				errorExpected:         false,
 				userManagedNetworking: true,
 				connectivity:          fmt.Sprintf("{\"%s\":[]}", network.IPv4.String()),
@@ -3362,7 +3362,7 @@ var _ = Describe("Refresh Host", func() {
 					SufficientOrUnknownInstallationDiskSpeed:       {status: ValidationSuccess, messagePattern: "Speed of installation disk has not yet been measured"},
 				}),
 				inventory:         hostutil.GenerateMasterInventory(),
-				domainResolutions: common.TestDomainNameResolutionSuccess,
+				domainResolutions: common.TestDomainNameResolutionsSuccess,
 				errorExpected:     false,
 			},
 			{
@@ -3393,7 +3393,7 @@ var _ = Describe("Refresh Host", func() {
 				}),
 				inventory:         hostutil.GenerateMasterInventory(),
 				disksInfo:         createDiskInfo("/dev/sda", 0, -1),
-				domainResolutions: common.TestDomainNameResolutionSuccess,
+				domainResolutions: common.TestDomainNameResolutionsSuccess,
 				errorExpected:     false,
 			},
 			{
@@ -3424,7 +3424,7 @@ var _ = Describe("Refresh Host", func() {
 				}),
 				inventory:         hostutil.GenerateMasterInventory(),
 				disksInfo:         createDiskInfo("/dev/sda", 10, 0),
-				domainResolutions: common.TestDomainNameResolutionSuccess,
+				domainResolutions: common.TestDomainNameResolutionsSuccess,
 				errorExpected:     false,
 			},
 			{
@@ -3453,7 +3453,7 @@ var _ = Describe("Refresh Host", func() {
 					SucessfullOrUnknownContainerImagesAvailability: {status: ValidationSuccess, messagePattern: "All required container images were either pulled successfully or no attempt was made to pull them"},
 				}),
 				inventory:         hostutil.GenerateMasterInventory(),
-				domainResolutions: common.TestDomainNameResolutionSuccess,
+				domainResolutions: common.TestDomainNameResolutionsSuccess,
 				errorExpected:     false,
 			},
 			{
@@ -3482,7 +3482,7 @@ var _ = Describe("Refresh Host", func() {
 					SucessfullOrUnknownContainerImagesAvailability: {status: ValidationSuccess, messagePattern: "All required container images were either pulled successfully or no attempt was made to pull them"},
 				}),
 				inventory:         hostutil.GenerateMasterInventoryV6(),
-				domainResolutions: common.TestDomainNameResolutionSuccess,
+				domainResolutions: common.TestDomainNameResolutionsSuccess,
 				errorExpected:     false,
 			},
 			{
@@ -3512,7 +3512,7 @@ var _ = Describe("Refresh Host", func() {
 					SucessfullOrUnknownContainerImagesAvailability: {status: ValidationSuccess, messagePattern: "All required container images were either pulled successfully or no attempt was made to pull them"},
 				}),
 				inventory:         hostutil.GenerateMasterInventoryV6(),
-				domainResolutions: common.TestDomainNameResolutionSuccess,
+				domainResolutions: common.TestDomainNameResolutionsSuccess,
 				errorExpected:     false,
 			},
 			{
@@ -3542,7 +3542,7 @@ var _ = Describe("Refresh Host", func() {
 					SucessfullOrUnknownContainerImagesAvailability: {status: ValidationSuccess, messagePattern: "All required container images were either pulled successfully or no attempt was made to pull them"},
 				}),
 				inventory:         hostutil.GenerateMasterInventoryV6(),
-				domainResolutions: common.TestDomainNameResolutionSuccess,
+				domainResolutions: common.TestDomainNameResolutionsSuccess,
 				errorExpected:     false,
 				addL3Connectivity: true,
 			},
@@ -3574,7 +3574,7 @@ var _ = Describe("Refresh Host", func() {
 					SucessfullOrUnknownContainerImagesAvailability: {status: ValidationSuccess, messagePattern: "All required container images were either pulled successfully or no attempt was made to pull them"},
 				}),
 				inventory:         hostutil.GenerateMasterInventoryV6(),
-				domainResolutions: common.TestDomainNameResolutionSuccess,
+				domainResolutions: common.TestDomainNameResolutionsSuccess,
 				errorExpected:     false,
 			},
 			{
@@ -3604,7 +3604,7 @@ var _ = Describe("Refresh Host", func() {
 					SucessfullOrUnknownContainerImagesAvailability: {status: ValidationSuccess, messagePattern: "All required container images were either pulled successfully or no attempt was made to pull them"},
 				}),
 				inventory:         hostutil.GenerateMasterInventoryV6(),
-				domainResolutions: common.TestDomainNameResolutionSuccess,
+				domainResolutions: common.TestDomainNameResolutionsSuccess,
 				errorExpected:     false,
 				connectivity:      fmt.Sprintf("{\"%s\":[]}", network.IPv4.String()),
 			},
@@ -3635,7 +3635,7 @@ var _ = Describe("Refresh Host", func() {
 					SucessfullOrUnknownContainerImagesAvailability: {status: ValidationSuccess, messagePattern: "All required container images were either pulled successfully or no attempt was made to pull them"},
 				}),
 				inventory:         hostutil.GenerateMasterInventory(),
-				domainResolutions: common.TestDomainNameResolutionSuccess,
+				domainResolutions: common.TestDomainNameResolutionsSuccess,
 				errorExpected:     false,
 			},
 			{
@@ -3666,7 +3666,7 @@ var _ = Describe("Refresh Host", func() {
 				}),
 				inventory:         hostutil.GenerateMasterInventory(),
 				connectivity:      fmt.Sprintf("{\"%s\":[]}", common.TestIPv4Networking.MachineNetworks[0].Cidr),
-				domainResolutions: common.TestDomainNameResolutionSuccess,
+				domainResolutions: common.TestDomainNameResolutionsSuccess,
 				errorExpected:     false,
 			},
 			{
@@ -3696,7 +3696,7 @@ var _ = Describe("Refresh Host", func() {
 				}),
 				inventory:          hostutil.GenerateMasterInventory(),
 				connectivity:       fmt.Sprintf("{\"%s\":[]}", common.TestIPv4Networking.MachineNetworks[0].Cidr),
-				domainResolutions:  common.TestDomainNameResolutionSuccess,
+				domainResolutions:  common.TestDomainNameResolutionsSuccess,
 				errorExpected:      false,
 				numAdditionalHosts: 2,
 			},
@@ -3725,7 +3725,7 @@ var _ = Describe("Refresh Host", func() {
 					IsNTPSynced:            {status: ValidationSuccess, messagePattern: "Host NTP is synced"},
 				}),
 				inventory:          hostutil.GenerateMasterInventoryDualStack(),
-				domainResolutions:  common.TestDomainNameResolutionSuccess,
+				domainResolutions:  common.TestDomainNameResolutionsSuccess,
 				errorExpected:      false,
 				numAdditionalHosts: 2,
 			},
@@ -3755,7 +3755,7 @@ var _ = Describe("Refresh Host", func() {
 					IsNTPSynced:            {status: ValidationSuccess, messagePattern: "Host NTP is synced"},
 				}),
 				inventory:          hostutil.GenerateMasterInventory(),
-				domainResolutions:  common.TestDomainNameResolutionSuccess,
+				domainResolutions:  common.TestDomainNameResolutionsSuccess,
 				errorExpected:      false,
 				numAdditionalHosts: 2,
 			},
@@ -3768,7 +3768,7 @@ var _ = Describe("Refresh Host", func() {
 				role:              "kuku",
 				statusInfoChecker: makeValueChecker(""),
 				inventory:         hostutil.GenerateMasterInventory(),
-				domainResolutions: common.TestDomainNameResolutionSuccess,
+				domainResolutions: common.TestDomainNameResolutionsSuccess,
 				errorExpected:     true,
 			},
 			{
@@ -3778,7 +3778,7 @@ var _ = Describe("Refresh Host", func() {
 				kind:              models.HostKindAddToExistingClusterHost,
 				role:              models.HostRoleWorker,
 				statusInfoChecker: makeValueChecker(""),
-				domainResolutions: common.TestDomainNameResolutionSuccess,
+				domainResolutions: common.TestDomainNameResolutionsSuccess,
 				errorExpected:     false,
 			},
 			{
@@ -3807,7 +3807,7 @@ var _ = Describe("Refresh Host", func() {
 					IsNTPSynced:          {status: ValidationSuccess, messagePattern: "Host NTP is synced"},
 					SucessfullOrUnknownContainerImagesAvailability: {status: ValidationSuccess, messagePattern: "All required container images were either pulled successfully or no attempt was made to pull them"},
 				}),
-				domainResolutions:  common.TestDomainNameResolutionSuccess,
+				domainResolutions:  common.TestDomainNameResolutionsSuccess,
 				errorExpected:      false,
 				operators:          []*models.MonitoredOperator{&cnv.Operator, &lso.Operator},
 				numAdditionalHosts: 0,
@@ -3843,7 +3843,7 @@ var _ = Describe("Refresh Host", func() {
 					IsNTPSynced:          {status: ValidationSuccess, messagePattern: "Host NTP is synced"},
 					SucessfullOrUnknownContainerImagesAvailability: {status: ValidationSuccess, messagePattern: "All required container images were either pulled successfully or no attempt was made to pull them"},
 				}),
-				domainResolutions:  common.TestDomainNameResolutionSuccess,
+				domainResolutions:  common.TestDomainNameResolutionsSuccess,
 				errorExpected:      false,
 				operators:          []*models.MonitoredOperator{&cnv.Operator, &lso.Operator},
 				numAdditionalHosts: 0,
@@ -3874,7 +3874,7 @@ var _ = Describe("Refresh Host", func() {
 					IsNTPSynced:          {status: ValidationSuccess, messagePattern: "Host NTP is synced"},
 					SucessfullOrUnknownContainerImagesAvailability: {status: ValidationSuccess, messagePattern: "All required container images were either pulled successfully or no attempt was made to pull them"},
 				}),
-				domainResolutions:  common.TestDomainNameResolutionSuccess,
+				domainResolutions:  common.TestDomainNameResolutionsSuccess,
 				errorExpected:      false,
 				operators:          []*models.MonitoredOperator{&cnv.Operator, &lso.Operator},
 				numAdditionalHosts: 2,
@@ -3904,7 +3904,7 @@ var _ = Describe("Refresh Host", func() {
 					IsNTPSynced:          {status: ValidationSuccess, messagePattern: "Host NTP is synced"},
 					SucessfullOrUnknownContainerImagesAvailability: {status: ValidationSuccess, messagePattern: "All required container images were either pulled successfully or no attempt was made to pull them"},
 				}),
-				domainResolutions:  common.TestDomainNameResolutionSuccess,
+				domainResolutions:  common.TestDomainNameResolutionsSuccess,
 				errorExpected:      false,
 				operators:          []*models.MonitoredOperator{&cnv.Operator, &lso.Operator},
 				numAdditionalHosts: 2,
@@ -3937,7 +3937,7 @@ var _ = Describe("Refresh Host", func() {
 					AreOdfRequirementsSatisfied: {status: ValidationFailure, messagePattern: "ODF unsupported Host Role for Compact Mode."},
 					SucessfullOrUnknownContainerImagesAvailability: {status: ValidationSuccess, messagePattern: "All required container images were either pulled successfully or no attempt was made to pull them"},
 				}),
-				domainResolutions:  common.TestDomainNameResolutionSuccess,
+				domainResolutions:  common.TestDomainNameResolutionsSuccess,
 				errorExpected:      false,
 				operators:          []*models.MonitoredOperator{&cnv.Operator, &lso.Operator, &odf.Operator},
 				numAdditionalHosts: 2,
@@ -3953,14 +3953,14 @@ var _ = Describe("Refresh Host", func() {
 				machineNetworks:  common.TestIPv4Networking.MachineNetworks,
 				role:             models.HostRoleMaster,
 				statusInfoChecker: makeValueChecker(formatStatusInfoFailedValidation(statusInfoNotReadyForInstall,
-					fmt.Sprintf("Can't map the domain %s to %s as it is an API address, these addresses must be sent to a load balancer when using user managed networking in a multiple control plane cluster.", common.DomainAPI, "1.2.3.40/24"),
-					fmt.Sprintf("Can't map the domain %s to %s as it is an API address, these addresses must be sent to a load balancer when using user managed networking in a multiple control plane cluster.", common.DomainAPIInternal, "4.5.6.7/24"))),
+					fmt.Sprintf("Domain %s must not point at %s as it is the API address of this host. This domain must instead point at the IP address of a load balancer when using user managed networking in a multi control-plane node cluster", common.DomainAPI, "1.2.3.40/24"),
+					fmt.Sprintf("Domain %s must not point at %s as it is the API address of this host. This domain must instead point at the IP address of a load balancer when using user managed networking in a multi control-plane node cluster", common.DomainAPIInternal, "4.5.6.7/24"))),
 				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
-					IsAPIDomainNameResolvedCorrectly:         {status: ValidationFailure, messagePattern: fmt.Sprintf("Can't map the domain %s to %s as it is an API address, these addresses must be sent to a load balancer when using user managed networking in a multiple control plane cluster.", common.DomainAPI, "1.2.3.40/24")},
-					IsAPIInternalDomainNameResolvedCorrectly: {status: ValidationFailure, messagePattern: fmt.Sprintf("Can't map the domain %s to %s as it is an API address, these addresses must be sent to a load balancer when using user managed networking in a multiple control plane cluster.", common.DomainAPIInternal, "4.5.6.7/24")},
+					IsAPIDomainNameResolvedCorrectly:         {status: ValidationFailure, messagePattern: fmt.Sprintf("Domain %s must not point at %s as it is the API address of this host. This domain must instead point at the IP address of a load balancer when using user managed networking in a multi control-plane node cluster", common.DomainAPI, "1.2.3.40/24")},
+					IsAPIInternalDomainNameResolvedCorrectly: {status: ValidationFailure, messagePattern: fmt.Sprintf("Domain %s must not point at %s as it is the API address of this host. This domain must instead point at the IP address of a load balancer when using user managed networking in a multi control-plane node cluster", common.DomainAPIInternal, "4.5.6.7/24")},
 				}),
 				inventory:             hostutil.GenerateMasterInventoryWithNetworksOnSameInterface([]string{"1.2.3.40/24", "4.5.6.7/24"}, []string{}),
-				domainResolutions:     common.TestDomainNameResolutionSuccess,
+				domainResolutions:     common.TestDomainNameResolutionsSuccess,
 				errorExpected:         false,
 				userManagedNetworking: true,
 			},
@@ -3974,14 +3974,14 @@ var _ = Describe("Refresh Host", func() {
 				machineNetworks:  common.TestIPv4Networking.MachineNetworks,
 				role:             models.HostRoleMaster,
 				statusInfoChecker: makeValueChecker(formatStatusInfoFailedValidation(statusInfoNotReadyForInstall,
-					fmt.Sprintf("Can't map the domain %s to %s as it is an API address, these addresses must be sent to a load balancer when using user managed networking in a multiple control plane cluster.", common.DomainAPI, "1001:db8::10/120"),
-					fmt.Sprintf("Can't map the domain %s to %s as it is an API address, these addresses must be sent to a load balancer when using user managed networking in a multiple control plane cluster.", common.DomainAPIInternal, "1002:db8::10/120"))),
+					fmt.Sprintf("Domain %s must not point at %s as it is the API address of this host. This domain must instead point at the IP address of a load balancer when using user managed networking in a multi control-plane node cluster", common.DomainAPI, "1001:db8::20/120"),
+					fmt.Sprintf("Domain %s must not point at %s as it is the API address of this host. This domain must instead point at the IP address of a load balancer when using user managed networking in a multi control-plane node cluster", common.DomainAPIInternal, "1002:db8::30/120"))),
 				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
-					IsAPIDomainNameResolvedCorrectly:         {status: ValidationFailure, messagePattern: fmt.Sprintf("Can't map the domain %s to %s as it is an API address, these addresses must be sent to a load balancer.", common.DomainAPI, "1001:db8::10/120")},
-					IsAPIInternalDomainNameResolvedCorrectly: {status: ValidationFailure, messagePattern: fmt.Sprintf("Can't map the domain %s to %s as it is an API address, these addresses must be sent to a load balancer.", common.DomainAPIInternal, "1002:db8::10/120")},
+					IsAPIDomainNameResolvedCorrectly:         {status: ValidationFailure, messagePattern: fmt.Sprintf("Domain %s must not point at %s as it is the API address of this host. This domain must instead point at the IP address of a load balancer when using user managed networking in a multi control-plane node cluster", common.DomainAPI, "1001:db8::20/120")},
+					IsAPIInternalDomainNameResolvedCorrectly: {status: ValidationFailure, messagePattern: fmt.Sprintf("Domain %s must not point at %s as it is the API address of this host. This domain must instead point at the IP address of a load balancer when using user managed networking in a multi control-plane node cluster", common.DomainAPIInternal, "1002:db8::30/120")},
 				}),
-				inventory:             hostutil.GenerateMasterInventoryWithNetworksOnSameInterface([]string{}, []string{"1001:db8::10/120", "1002:db8::10/120"}),
-				domainResolutions:     common.TestDomainNameResolutionSuccess,
+				inventory:             hostutil.GenerateMasterInventoryWithNetworksOnSameInterface([]string{}, []string{"1001:db8::20/120", "1002:db8::30/120"}),
+				domainResolutions:     common.TestDomainNameResolutionsSuccess,
 				errorExpected:         false,
 				userManagedNetworking: true,
 			},
@@ -3995,14 +3995,14 @@ var _ = Describe("Refresh Host", func() {
 				machineNetworks:  common.TestIPv4Networking.MachineNetworks,
 				role:             models.HostRoleMaster,
 				statusInfoChecker: makeValueChecker(formatStatusInfoFailedValidation(statusInfoNotReadyForInstall,
-					fmt.Sprintf("Couldn't resolve domain name %s on the host. To continue installation, create the necessary DNS entries to resolve this domain name to your %s.", common.DomainAPI, "API load balancer"),
-					fmt.Sprintf("Couldn't resolve domain name %s on the host. To continue installation, create the necessary DNS entries to resolve this domain name to your %s.", common.DomainAPIInternal, "internal API load balancer"))),
+					fmt.Sprintf("Couldn't resolve domain name %s on the host. To continue installation, create the necessary DNS entries to resolve this domain name to your cluster's %s IP address", common.DomainAPI, "API"),
+					fmt.Sprintf("Couldn't resolve domain name %s on the host. To continue installation, create the necessary DNS entries to resolve this domain name to your cluster's %s IP address", common.DomainAPIInternal, "internal API"))),
 				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
-					IsAPIDomainNameResolvedCorrectly:         {status: ValidationFailure, messagePattern: fmt.Sprintf("Couldn't resolve domain name %s on the host. To continue installation, create the necessary DNS entries to resolve this domain name to your %s.", common.DomainAPI, "API load balancer")},
-					IsAPIInternalDomainNameResolvedCorrectly: {status: ValidationFailure, messagePattern: fmt.Sprintf("Couldn't resolve domain name %s on the host. To continue installation, create the necessary DNS entries to resolve this domain name to your %s.", common.DomainAPIInternal, "internal API load balancer")},
+					IsAPIDomainNameResolvedCorrectly:         {status: ValidationFailure, messagePattern: fmt.Sprintf("Couldn't resolve domain name %s on the host. To continue installation, create the necessary DNS entries to resolve this domain name to your cluster's %s IP address", common.DomainAPI, "API")},
+					IsAPIInternalDomainNameResolvedCorrectly: {status: ValidationFailure, messagePattern: fmt.Sprintf("Couldn't resolve domain name %s on the host. To continue installation, create the necessary DNS entries to resolve this domain name to your cluster's %s IP address", common.DomainAPIInternal, "internal API")},
 				}),
 				inventory:             hostutil.GenerateMasterInventoryWithNetworksOnSameInterface([]string{"1.2.3.40/24", "4.5.6.7/24"}, []string{"1001:db8::10/120", "1002:db8::10/120"}),
-				domainResolutions:     common.TestDomainResolutionNoAPI,
+				domainResolutions:     common.TestDomainResolutionsNoAPI,
 				errorExpected:         false,
 				userManagedNetworking: true,
 			},
@@ -4057,7 +4057,7 @@ var _ = Describe("Refresh Host", func() {
 					SufficientOrUnknownInstallationDiskSpeed:       {status: ValidationSuccess, messagePattern: "Speed of installation disk has not yet been measured"},
 				}),
 				inventory:         hostutil.GenerateMasterInventoryWithHostname(hostTest.hostName),
-				domainResolutions: common.TestDomainNameResolutionSuccess,
+				domainResolutions: common.TestDomainNameResolutionsSuccess,
 				errorExpected:     false,
 			})
 		}
@@ -4116,7 +4116,7 @@ var _ = Describe("Refresh Host", func() {
 					clusterKind = models.ClusterKindAddHostsCluster
 				}
 
-				cluster = hostutil.GenerateTestCluster(clusterId, t.machineNetworks)
+				cluster = hostutil.GenerateTestClusterWithMachineNetworks(clusterId, t.machineNetworks)
 				cluster.Kind = &clusterKind
 				cluster.ServiceNetworks = t.serviceNetworks
 				cluster.UserManagedNetworking = &t.userManagedNetworking
@@ -4200,7 +4200,7 @@ var _ = Describe("Refresh Host", func() {
 				host = hostutil.GenerateTestHost(hostId, infraEnvId, clusterId, models.HostStatusPreparingForInstallation)
 				host.Inventory = hostutil.GenerateMasterInventory()
 				Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
-				cluster = hostutil.GenerateTestCluster(clusterId, common.TestIPv4Networking.MachineNetworks)
+				cluster = hostutil.GenerateTestCluster(clusterId)
 				cluster.Status = &t.clusterStatus
 				Expect(db.Create(&cluster).Error).ToNot(HaveOccurred())
 				if *host.Status != t.dstState {
@@ -4629,7 +4629,7 @@ var _ = Describe("Refresh Host", func() {
 				bytes, err = json.Marshal(imageStatuses)
 				Expect(err).ShouldNot(HaveOccurred())
 				host.ImagesStatus = string(bytes)
-				domainNameResolutions := common.TestDomainNameResolutionSuccess
+				domainNameResolutions := common.TestDomainNameResolutionsSuccess
 				bytes, err = json.Marshal(domainNameResolutions)
 				Expect(err).ShouldNot(HaveOccurred())
 				host.DomainNameResolutions = string(bytes)
@@ -4643,7 +4643,7 @@ var _ = Describe("Refresh Host", func() {
 				Expect(db.Create(&otherHost).Error).ShouldNot(HaveOccurred())
 
 				// Test setup - Cluster creation
-				cluster = hostutil.GenerateTestCluster(clusterId, t.machineNetworks)
+				cluster = hostutil.GenerateTestClusterWithMachineNetworks(clusterId, t.machineNetworks)
 				cluster.ConnectivityMajorityGroups = generateMajorityGroup(t.machineNetworks, hostId)
 				cluster.Name = common.TestDefaultConfig.ClusterName
 				cluster.BaseDNSDomain = common.TestDefaultConfig.BaseDNSDomain
@@ -4714,7 +4714,7 @@ var _ = Describe("Refresh Host", func() {
 					h.Progress.CurrentStage = installationStage
 					h.Inventory = hostutil.GenerateMasterInventory()
 					Expect(db.Create(&h).Error).ShouldNot(HaveOccurred())
-					c := hostutil.GenerateTestCluster(clusterId, common.TestIPv4Networking.MachineNetworks)
+					c := hostutil.GenerateTestCluster(clusterId)
 					c.Status = swag.String(models.ClusterStatusInstalling)
 					Expect(db.Create(&c).Error).ToNot(HaveOccurred())
 
@@ -4728,7 +4728,7 @@ var _ = Describe("Refresh Host", func() {
 					h.Progress.CurrentStage = installationStage
 					h.Inventory = hostutil.GenerateMasterInventory()
 					Expect(db.Create(&h).Error).ShouldNot(HaveOccurred())
-					c := hostutil.GenerateTestCluster(clusterId, common.TestIPv4Networking.MachineNetworks)
+					c := hostutil.GenerateTestCluster(clusterId)
 					c.Status = swag.String(models.ClusterStatusError)
 					Expect(db.Create(&c).Error).ToNot(HaveOccurred())
 
@@ -4757,8 +4757,7 @@ var _ = Describe("Refresh Host", func() {
 			mockDefaultClusterHostRequirements(mockHwValidator)
 			defaultNTPSourcesInBytes, err := json.Marshal(defaultNTPSources)
 			Expect(err).NotTo(HaveOccurred())
-			domainNameResolutions := common.TestDomainNameResolutionSuccess
-			cluster = hostutil.GenerateTestCluster(clusterId, common.TestIPv4Networking.MachineNetworks)
+			cluster = hostutil.GenerateTestCluster(clusterId)
 			cluster.Name = common.TestDefaultConfig.ClusterName
 			cluster.BaseDNSDomain = common.TestDefaultConfig.BaseDNSDomain
 			Expect(db.Create(&cluster).Error).ToNot(HaveOccurred())
@@ -4766,6 +4765,7 @@ var _ = Describe("Refresh Host", func() {
 			host.Inventory = hostutil.GenerateInventoryWithResourcesWithBytes(4, conversions.GibToBytes(16), conversions.GibToBytes(16), "master")
 			host.Role = models.HostRoleMaster
 			host.NtpSources = string(defaultNTPSourcesInBytes)
+			domainNameResolutions := common.TestDomainNameResolutionsSuccess
 			bytes, err := json.Marshal(domainNameResolutions)
 			Expect(err).ShouldNot(HaveOccurred())
 			host.DomainNameResolutions = string(bytes)
@@ -4860,12 +4860,12 @@ var _ = Describe("Refresh Host", func() {
 				defaultNTPSourcesInBytes, err := json.Marshal(defaultNTPSources)
 				Expect(err).ShouldNot(HaveOccurred())
 				host.NtpSources = string(defaultNTPSourcesInBytes)
-				defaultDomainNameResolutions := common.TestDomainNameResolutionSuccess
+				defaultDomainNameResolutions := common.TestDomainNameResolutionsSuccess
 				domainNameResolutions, err := json.Marshal(defaultDomainNameResolutions)
 				Expect(err).ShouldNot(HaveOccurred())
 				host.DomainNameResolutions = string(domainNameResolutions)
 				Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
-				cluster = hostutil.GenerateTestCluster(clusterId, common.TestIPv4Networking.MachineNetworks)
+				cluster = hostutil.GenerateTestCluster(clusterId)
 				cluster.UserManagedNetworking = swag.Bool(t.userManagedNetworking)
 				cluster.Name = common.TestDefaultConfig.ClusterName
 				cluster.BaseDNSDomain = common.TestDefaultConfig.BaseDNSDomain
@@ -5050,12 +5050,12 @@ var _ = Describe("Refresh Host", func() {
 					h.NtpSources = string(defaultNTPSourcesInBytes)
 					hosts = append(hosts, h)
 				}
-				cluster = hostutil.GenerateTestCluster(clusterId, t.machineNetworks)
+				cluster = hostutil.GenerateTestClusterWithMachineNetworks(clusterId, t.machineNetworks)
 				cluster.UserManagedNetworking = swag.Bool(true)
 				cluster.Name = common.TestDefaultConfig.ClusterName
 				cluster.BaseDNSDomain = common.TestDefaultConfig.BaseDNSDomain
 				connectivityGroups := make(map[string][]strfmt.UUID)
-				domainNameResolutions := common.TestDomainNameResolutionSuccess
+				domainNameResolutions := common.TestDomainNameResolutionsSuccess
 				for _, h := range hosts {
 
 					if network.IsIPV4CIDR(string(t.machineNetworks[0].Cidr)) {
@@ -5122,13 +5122,13 @@ var _ = Describe("Refresh Host", func() {
 			{Family: common.FamilyIPv4, Destination: "0.0.0.0", Gateway: "invalid"},
 		}
 		defaultNTPSourcesInBytes, err := json.Marshal(defaultNTPSources)
-		domainNameResolutions := common.TestDomainNameResolutionSuccess
+		domainNameResolutions := common.TestDomainNameResolutionsSuccess
 		Expect(err).ShouldNot(HaveOccurred())
 		BeforeEach(func() {
 			mockDefaultClusterHostRequirements(mockHwValidator)
 			hapi = NewManager(common.GetTestLog(), db, mockEvents, mockHwValidator, nil, validatorCfg, nil, defaultConfig, nil, operatorsManager, pr)
 			mockDefaultClusterHostRequirements(mockHwValidator)
-			cluster = hostutil.GenerateTestCluster(clusterId, common.TestIPv4Networking.MachineNetworks)
+			cluster = hostutil.GenerateTestCluster(clusterId)
 			cluster.UserManagedNetworking = swag.Bool(true)
 			cluster.ConnectivityMajorityGroups = fmt.Sprintf("{\"%s\":[\"%s\"]}", network.IPv4.String(), hostId.String())
 			cluster.Name = common.TestDefaultConfig.ClusterName
