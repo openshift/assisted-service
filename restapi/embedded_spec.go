@@ -5949,6 +5949,13 @@ func init() {
             "$ref": "#/definitions/cluster_network"
           }
         },
+        "forbidden_hostnames": {
+          "description": "This provides a list of forbidden hostnames. If this list is empty or not present, this implies that the UI should fall back to a hard coded list.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
         "inactive_deletion_hours": {
           "type": "integer"
         },
@@ -15193,6 +15200,13 @@ func init() {
           "items": {
             "type": "object",
             "$ref": "#/definitions/cluster_network"
+          }
+        },
+        "forbidden_hostnames": {
+          "description": "This provides a list of forbidden hostnames. If this list is empty or not present, this implies that the UI should fall back to a hard coded list.",
+          "type": "array",
+          "items": {
+            "type": "string"
           }
         },
         "inactive_deletion_hours": {
