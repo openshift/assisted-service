@@ -74,7 +74,7 @@ PATCH
 
   # Apply this patch to our Day2 agents.
   for agentHostName in $(cat "${REMOTE_BAREMETALHOSTS_FILE}"  | jq '.[].name' --raw-output) ; do
-    agentName=$(oc get agents -n ${SPOKE_NAMESPACE} -ojson | jq ".items[] | select(.spec.hostname==\"${agentHostName}\")).metadata.name" --raw-output)
+    agentName=$(oc get agents -n ${SPOKE_NAMESPACE} -ojson | jq ".items[] | select(.spec.hostname==\"${agentHostName}\").metadata.name" --raw-output)
     oc patch agent -n ${SPOKE_NAMESPACE} ${agentName} -p "${agentPatch}" --type=merge
   done
 
