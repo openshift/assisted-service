@@ -949,7 +949,9 @@ var _ = Describe("IgnitionBuilder", func() {
 			PullSecretSet: false,
 		}, PullSecret: "{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"}
 		//cluster.ImageInfo = &models.ImageInfo{}
-		builder = NewBuilder(log, mockStaticNetworkConfig, mockMirrorRegistriesConfigBuilder)
+		var err error
+		builder, err = NewBuilder(log, mockStaticNetworkConfig, mockMirrorRegistriesConfigBuilder)
+		Expect(err).ToNot(HaveOccurred())
 	})
 
 	Context("with auth enabled", func() {
@@ -1299,7 +1301,9 @@ var _ = Describe("Ignition SSH key building", func() {
 			PullSecret: "{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}",
 		}
 		//cluster.ImageInfo = &models.ImageInfo{}
-		builder = NewBuilder(log, mockStaticNetworkConfig, mockMirrorRegistriesConfigBuilder)
+		var err error
+		builder, err = NewBuilder(log, mockStaticNetworkConfig, mockMirrorRegistriesConfigBuilder)
+		Expect(err).ToNot(HaveOccurred())
 		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(1)
 	})
 	Context("when empty or invalid input", func() {
@@ -1355,7 +1359,9 @@ var _ = Describe("FormatSecondDayWorkerIgnitionFile", func() {
 		mockStaticNetworkConfig = staticnetworkconfig.NewMockStaticNetworkConfig(ctrl)
 		mockMirrorRegistriesConfigBuilder = mirrorregistries.NewMockMirrorRegistriesConfigBuilder(ctrl)
 		mockHost = &models.Host{Inventory: hostInventory}
-		builder = NewBuilder(log, mockStaticNetworkConfig, mockMirrorRegistriesConfigBuilder)
+		var err error
+		builder, err = NewBuilder(log, mockStaticNetworkConfig, mockMirrorRegistriesConfigBuilder)
+		Expect(err).ToNot(HaveOccurred())
 	})
 
 	Context("test custom ignition endpoint", func() {

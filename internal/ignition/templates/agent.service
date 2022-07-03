@@ -1,0 +1,23 @@
+[Service]
+Type=simple
+Restart=always
+RestartSec=3
+StartLimitInterval=0
+Environment=HTTP_PROXY={{.HTTPProxy}}
+Environment=http_proxy={{.HTTPProxy}}
+Environment=HTTPS_PROXY={{.HTTPSProxy}}
+Environment=https_proxy={{.HTTPSProxy}}
+Environment=NO_PROXY={{.NoProxy}}
+Environment=no_proxy={{.NoProxy}}{{if .PullSecretToken}}
+Environment=PULL_SECRET_TOKEN={{.PullSecretToken}}{{end}}
+TimeoutStartSec={{.AgentTimeoutStartSec}}
+ExecStartPre=/usr/local/bin/agent-fix-bz1964591 {{.AgentDockerImg}}
+ExecStartPre=podman run --privileged --rm -v /usr/local/bin:/hostbin {{.AgentDockerImg}} cp /usr/bin/agent /hostbin
+ExecStart=/usr/local/bin/agent --url {{.ServiceBaseURL}} --infra-env-id {{.infraEnvId}} --agent-version {{.AgentDockerImg}} --insecure={{.SkipCertVerification}}  {{if .HostCACertPath}}--cacert {{.HostCACertPath}}{{end}}
+
+[Unit]
+Wants=network-online.target
+After=network-online.target
+
+[Install]
+WantedBy=multi-user.target

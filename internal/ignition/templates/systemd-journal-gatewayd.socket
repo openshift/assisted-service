@@ -1,0 +1,9 @@
+[Unit]
+Description = Fake systemd-journal-gatewayd.socket
+
+[Socket]
+ListenStream = 19531
+Accept = yes
+
+[Install]
+WantedBy = sockets.target

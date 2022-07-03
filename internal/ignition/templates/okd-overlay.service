@@ -1,0 +1,10 @@
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/okd-binaries.sh
+
+[Unit]
+Wants=network-online.target
+After=network-online.target
+
+[Install]
+WantedBy=multi-user.target

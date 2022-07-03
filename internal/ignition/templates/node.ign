@@ -1,0 +1,18 @@
+{
+  "ignition": {
+    "version": "3.1.0",
+    "config": {
+    "merge": [{
+      "source": "{{.SOURCE}}"{{if .HEADERS}},
+          "httpHeaders": [{{range $k,$v := .HEADERS}}{"name": "{{$k}}", "value": "{{$v}}"}{{end}}]{{end}}
+    }]
+    }{{if .CACERT}},
+          "security": {
+            "tls": {
+        "certificateAuthorities": [{
+          "source": "{{.CACERT}}"
+        }]
+      }
+    }{{end}}
+  }
+}
