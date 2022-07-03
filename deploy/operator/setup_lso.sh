@@ -21,6 +21,33 @@ function install_lso() {
   retry -- oc annotate project openshift-local-storage openshift.io/node-selector='' --overwrite=true
 
   catalog_source_name="redhat-operators"
+
+  OC_VERSION_MAJOR_MINOR=$(oc version -o json | jq --raw-output '.openshiftVersion' | cut -d'.' -f1-2)
+  if [[ ${OC_VERSION_MAJOR_MINOR} == "4.11" ]]; then
+      # LSO has not been published to the 4.11 redhat-operators catalog, so
+      # it cannot be installed on OpenShift 4.11. Until this is resolved,
+      # we explicitly install the 4.10 catalog as redhat-operators-v4-10
+      # and then subscribe to the LSO version from the 4.10 rather than the 4.11 catalog.
+      # TODO: Remove this once LSO is published to the 4.11 catalog.
+      catalog_source_name="redhat-operators-v4-10"
+      tee << EOCR >(oc apply -f -)
+kind: CatalogSource
+apiVersion: operators.coreos.com/v1alpha1
+metadata:
+  name: redhat-operators-v4-10
+  namespace: openshift-marketplace
+spec:
+  displayName: Red Hat Operators v4.10
+  image: registry.redhat.io/redhat/redhat-operator-index:v4.10
+  priority: -100
+  publisher: Red Hat
+  sourceType: grpc
+  updateStrategy:
+    registryPoll:
+      interval: 10m0s
+EOCR
+  fi
+
   if [ "${DISCONNECTED}" = true ]; then
     if ! which opm; then
         install_opm
