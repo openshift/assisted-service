@@ -65,6 +65,7 @@ type BMACReconciler struct {
 
 const (
 	AGENT_BMH_LABEL                     = "agent-install.openshift.io/bmh"
+	AGENT_CD_LABEL                      = "agent-install.openshift.io/clusterdeployment-namespace"
 	BMH_AGENT_ROLE                      = "bmac.agent-install.openshift.io/role"
 	BMH_AGENT_HOSTNAME                  = "bmac.agent-install.openshift.io/hostname"
 	BMH_AGENT_MACHINE_CONFIG_POOL       = "bmac.agent-install.openshift.io/machine-config-pool"
@@ -933,7 +934,7 @@ func (r *BMACReconciler) findInstallationDiskID(devices []aiv1beta1.HostDisk, hi
 // matches this ClusterDeployment's name.
 func (r *BMACReconciler) findAgentsByClusterDeployment(ctx context.Context, clusterDeployment *hivev1.ClusterDeployment) []*aiv1beta1.Agent {
 	agentList := aiv1beta1.AgentList{}
-	err := r.Client.List(ctx, &agentList)
+	err := r.Client.List(ctx, &agentList, client.MatchingLabels{AGENT_CD_LABEL: clusterDeployment.Namespace})
 	if err != nil {
 		return []*aiv1beta1.Agent{}
 	}
