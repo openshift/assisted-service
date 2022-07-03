@@ -10,7 +10,9 @@ spec:
     - host: REPLACE_HOSTNAME
       http:
         paths:
-          - backend:
+          - path: /
+            pathType: Prefix
+            backend:
               service:
                 name: assisted-installer-ui
                 port:
