@@ -1425,6 +1425,103 @@ var _ = Describe("Refresh Host", func() {
 				}
 			})
 		}
+
+		Context("Integrate with vsphere", func() {
+			createCluster := func() {
+				cluster = hostutil.GenerateTestCluster(clusterId, common.TestIPv4Networking.MachineNetworks)
+				cluster.Name = common.TestDefaultConfig.ClusterName
+				cluster.BaseDNSDomain = common.TestDefaultConfig.BaseDNSDomain
+				cluster.ConnectivityMajorityGroups = fmt.Sprintf("{\"%s\":[\"%s\"]}", common.TestIPv4Networking.MachineNetworks[0].Cidr, hostId.String())
+				Expect(db.Create(&cluster).Error).ToNot(HaveOccurred())
+			}
+
+			createHost := func(hostStatus string) {
+				host = hostutil.GenerateTestHostByKind(hostId, infraEnvId, &clusterId, hostStatus, models.HostKindHost, models.HostRoleMaster)
+				host.Inventory = hostutil.GenerateMasterInventory()
+				bytes, err := json.Marshal(common.TestDomainNameResolutionSuccess)
+				Expect(err).ShouldNot(HaveOccurred())
+				host.DomainNameResolutions = string(bytes)
+				Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
+				host = hostutil.GetHostFromDB(*host.ID, host.InfraEnvID, db).Host
+			}
+
+			updateClusterPlatform := func(platformType models.PlatformType) {
+				cluster.Platform = &models.Platform{
+					Type: common.PlatformTypePtr(platformType),
+				}
+
+				db.Save(&cluster)
+			}
+
+			mockStatus := func() {
+				mockEvents.EXPECT().SendHostEvent(gomock.Any(), eventstest.NewEventMatcher(
+					eventstest.WithNameMatcher(eventgen.HostStatusUpdatedEventName),
+					eventstest.WithHostIdMatcher(host.ID.String()),
+					eventstest.WithInfraEnvIdMatcher(host.InfraEnvID.String()),
+					eventstest.WithClusterIdMatcher(host.ClusterID.String()),
+				))
+
+				mockEvents.EXPECT().SendHostEvent(gomock.Any(), eventstest.NewEventMatcher(
+					eventstest.WithNameMatcher(eventgen.HostValidationFixedEventName),
+					eventstest.WithHostIdMatcher(host.ID.String()),
+					eventstest.WithInfraEnvIdMatcher(host.InfraEnvID.String()),
+					eventstest.WithClusterIdMatcher(host.ClusterID.String()),
+				)).AnyTimes()
+
+				mockDefaultClusterHostRequirements(mockHwValidator)
+				mockHwValidator.EXPECT().IsValidStorageDeviceType(gomock.Any()).Return(true).AnyTimes()
+				mockHwValidator.EXPECT().ListEligibleDisks(gomock.Any()).Return([]*models.Disk{}).AnyTimes()
+				mockHwValidator.EXPECT().GetHostInstallationPath(gomock.Any()).Return("/dev/sda").AnyTimes()
+			}
+
+			It("Known to insufficient", func() {
+				createHost(models.HostStatusKnown)
+				createCluster()
+				updateClusterPlatform(models.PlatformTypeVsphere)
+
+				mockStatus()
+				err := hapi.RefreshStatus(ctx, &host, db)
+				Expect(err).ToNot(HaveOccurred())
+				host = hostutil.GetHostFromDB(*host.ID, host.InfraEnvID, db).Host
+				Expect(*host.Status).To(BeEquivalentTo(models.HostStatusInsufficient))
+
+				// Flip it back
+				mockStatus()
+				updateClusterPlatform(models.PlatformTypeBaremetal)
+				err = db.First(&cluster, "id = ?", clusterId).Error
+				Expect(err).ShouldNot(HaveOccurred())
+				err = hapi.RefreshStatus(ctx, &host, db)
+				Expect(err).ToNot(HaveOccurred())
+				host = hostutil.GetHostFromDB(*host.ID, host.InfraEnvID, db).Host
+				Expect(*host.Status).To(BeEquivalentTo(models.HostStatusKnown))
+			})
+
+			It("Pending for input to insufficient", func() {
+				createHost(models.HostStatusPendingForInput)
+				createCluster()
+				updateClusterPlatform(models.PlatformTypeVsphere)
+				Expect(common.DeleteRecordsByClusterID(db, *cluster.ID, []interface{}{&models.MachineNetwork{}})).ShouldNot(HaveOccurred())
+				err := db.First(&cluster, "id = ?", clusterId).Error
+				Expect(err).ShouldNot(HaveOccurred())
+				mockStatus()
+				err = hapi.RefreshStatus(ctx, &host, db)
+				Expect(err).ToNot(HaveOccurred())
+				host = hostutil.GetHostFromDB(*host.ID, host.InfraEnvID, db).Host
+				Expect(*host.Status).To(BeEquivalentTo(models.HostStatusInsufficient))
+
+				// Flip it back
+				mockStatus()
+				updateClusterPlatform(models.PlatformTypeBaremetal)
+				// The CIDR array rebuilt between the previous deletion to this stage
+				Expect(common.DeleteRecordsByClusterID(db, *cluster.ID, []interface{}{&models.MachineNetwork{}})).ShouldNot(HaveOccurred())
+				err = db.First(&cluster, "id = ?", clusterId).Error
+				Expect(err).ShouldNot(HaveOccurred())
+				err = hapi.RefreshStatus(ctx, &host, db)
+				Expect(err).ToNot(HaveOccurred())
+				host = hostutil.GetHostFromDB(*host.ID, host.InfraEnvID, db).Host
+				Expect(*host.Status).To(BeEquivalentTo(models.HostStatusPendingForInput))
+			})
+		})
 	})
 
 	Context("host disconnected", func() {
