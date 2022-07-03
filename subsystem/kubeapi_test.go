@@ -19,7 +19,7 @@ import (
 	"github.com/go-openapi/swag"
 	"github.com/google/uuid"
 	"github.com/hashicorp/go-multierror"
-	bmhv1alpha1 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
+	metal3_v1alpha1 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	hiveext "github.com/openshift/assisted-service/api/hiveextension/v1beta1"
@@ -41,6 +41,7 @@ import (
 	"gorm.io/gorm"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	k8sclient "sigs.k8s.io/controller-runtime/pkg/client"
@@ -181,8 +182,8 @@ func deployClusterDeploymentCRD(ctx context.Context, client k8sclient.Client, sp
 	Expect(err).To(BeNil())
 }
 
-func deployBMHCRD(ctx context.Context, client k8sclient.Client, name string, spec *bmhv1alpha1.BareMetalHostSpec) {
-	bmh := bmhv1alpha1.BareMetalHost{
+func deployBMHCRD(ctx context.Context, client k8sclient.Client, name string, spec *metal3_v1alpha1.BareMetalHostSpec) {
+	bmh := metal3_v1alpha1.BareMetalHost{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "BareMetalHost",
 			APIVersion: "metal3.io/v1alpha1",
@@ -192,16 +193,34 @@ func deployBMHCRD(ctx context.Context, client k8sclient.Client, name string, spe
 			Name:      name,
 		},
 		Spec: *spec,
-		Status: bmhv1alpha1.BareMetalHostStatus{
-			Provisioning: bmhv1alpha1.ProvisionStatus{State: bmhv1alpha1.StateReady},
+		Status: metal3_v1alpha1.BareMetalHostStatus{
+			Provisioning: metal3_v1alpha1.ProvisionStatus{State: metal3_v1alpha1.StateReady},
 		},
 	}
 
 	err := client.Create(ctx, &bmh)
 	Expect(err).To(BeNil())
 
-	bmh.Status.Provisioning.State = bmhv1alpha1.StateReady
+	bmh.Status.Provisioning.State = metal3_v1alpha1.StateReady
 	Expect(client.Status().Update(ctx, &bmh)).To(BeNil())
+}
+
+func deployPPICRD(ctx context.Context, client k8sclient.Client, name string, spec *metal3_v1alpha1.PreprovisioningImageSpec) {
+	ppi := metal3_v1alpha1.PreprovisioningImage{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "PreprovisioningImage",
+			APIVersion: "metal3.io/v1alpha1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: Options.Namespace,
+			Name:      name,
+		},
+		Spec:   *spec,
+		Status: metal3_v1alpha1.PreprovisioningImageStatus{},
+	}
+
+	err := client.Create(ctx, &ppi)
+	Expect(err).To(BeNil())
 }
 
 func addAnnotationToAgentClusterInstall(ctx context.Context, client k8sclient.Client, key types.NamespacedName, annotationKey string, annotationValue string) {
@@ -374,11 +393,18 @@ func getClusterImageSetCRD(ctx context.Context, client k8sclient.Client, key typ
 	return clusterImageSet
 }
 
-func getBmhCRD(ctx context.Context, client k8sclient.Client, key types.NamespacedName) *bmhv1alpha1.BareMetalHost {
-	bmh := &bmhv1alpha1.BareMetalHost{}
+func getBmhCRD(ctx context.Context, client k8sclient.Client, key types.NamespacedName) *metal3_v1alpha1.BareMetalHost {
+	bmh := &metal3_v1alpha1.BareMetalHost{}
 	err := client.Get(ctx, key, bmh)
 	Expect(err).To(BeNil())
 	return bmh
+}
+
+func getPPICRD(ctx context.Context, client k8sclient.Client, key types.NamespacedName) *metal3_v1alpha1.PreprovisioningImage {
+	ppi := &metal3_v1alpha1.PreprovisioningImage{}
+	err := client.Get(ctx, key, ppi)
+	Expect(err).To(BeNil())
+	return ppi
 }
 
 func getSecret(ctx context.Context, client k8sclient.Client, key types.NamespacedName) *corev1.Secret {
@@ -621,15 +647,16 @@ func randomNameSuffix() string {
 func printCRs(ctx context.Context, client k8sclient.Client) {
 	if GinkgoT().Failed() {
 		var (
-			multiErr              *multierror.Error
-			aciList               hiveext.AgentClusterInstallList
-			agentList             v1beta1.AgentList
-			infraEnvList          v1beta1.InfraEnvList
-			bareMetalHostList     bmhv1alpha1.BareMetalHostList
-			nmStateConfigList     v1beta1.NMStateConfigList
-			classificationList    v1beta1.AgentClassificationList
-			clusterImageSetList   hivev1.ClusterImageSetList
-			clusterDeploymentList hivev1.ClusterDeploymentList
+			multiErr                 *multierror.Error
+			aciList                  hiveext.AgentClusterInstallList
+			agentList                v1beta1.AgentList
+			infraEnvList             v1beta1.InfraEnvList
+			bareMetalHostList        metal3_v1alpha1.BareMetalHostList
+			nmStateConfigList        v1beta1.NMStateConfigList
+			classificationList       v1beta1.AgentClassificationList
+			clusterImageSetList      hivev1.ClusterImageSetList
+			clusterDeploymentList    hivev1.ClusterDeploymentList
+			PreprovisioningImageList metal3_v1alpha1.PreprovisioningImageList
 		)
 
 		multiErr = multierror.Append(multiErr, client.List(ctx, &agentList, k8sclient.InNamespace(Options.Namespace)))
@@ -656,6 +683,9 @@ func printCRs(ctx context.Context, client k8sclient.Client) {
 		multiErr = multierror.Append(multiErr, client.List(ctx, &bareMetalHostList, k8sclient.InNamespace(Options.Namespace)))
 		multiErr = multierror.Append(multiErr, GinkgoResourceLogger("BareMetalHost", bareMetalHostList))
 
+		multiErr = multierror.Append(multiErr, client.List(ctx, &PreprovisioningImageList, k8sclient.InNamespace(Options.Namespace)))
+		multiErr = multierror.Append(multiErr, GinkgoResourceLogger("PreprovisioningImage", PreprovisioningImageList))
+
 		Expect(multiErr.ErrorOrNil()).To(BeNil())
 	}
 }
@@ -677,7 +707,10 @@ func cleanUpCRs(ctx context.Context, client k8sclient.Client) {
 		return client.DeleteAllOf(ctx, &v1beta1.AgentClassification{}, k8sclient.InNamespace(Options.Namespace))
 	}, "1m", "2s").Should(BeNil())
 	Eventually(func() error {
-		return client.DeleteAllOf(ctx, &bmhv1alpha1.BareMetalHost{}, k8sclient.InNamespace(Options.Namespace))
+		return client.DeleteAllOf(ctx, &metal3_v1alpha1.BareMetalHost{}, k8sclient.InNamespace(Options.Namespace))
+	}, "1m", "2s").Should(BeNil())
+	Eventually(func() error {
+		return client.DeleteAllOf(ctx, &metal3_v1alpha1.PreprovisioningImage{}, k8sclient.InNamespace(Options.Namespace))
 	}, "1m", "2s").Should(BeNil())
 
 	// Check if tests pull secret exists and needs to be deleted
@@ -765,7 +798,7 @@ func verifyCleanUP(ctx context.Context, client k8sclient.Client) {
 
 	By("Verify BareMetalHost Cleanup")
 	Eventually(func() int {
-		bareMetalHostList := &bmhv1alpha1.BareMetalHostList{}
+		bareMetalHostList := &metal3_v1alpha1.BareMetalHostList{}
 		err := client.List(ctx, bareMetalHostList, k8sclient.InNamespace(Options.Namespace))
 		Expect(err).To(BeNil())
 		return len(bareMetalHostList.Items)
@@ -1442,7 +1475,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			Name:      host.ID.String(),
 		}
 
-		bmhSpec := bmhv1alpha1.BareMetalHostSpec{BootMACAddress: getAgentMac(ctx, kubeClient, key)}
+		bmhSpec := metal3_v1alpha1.BareMetalHostSpec{BootMACAddress: getAgentMac(ctx, kubeClient, key)}
 		deployBMHCRD(ctx, kubeClient, host.ID.String(), &bmhSpec)
 
 		Eventually(func() error {
@@ -1670,8 +1703,8 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			Name:      host.ID.String(),
 		}
 
-		image := &bmhv1alpha1.Image{URL: "http://buzz.lightyear.io/discovery-image.iso"}
-		bmhSpec := bmhv1alpha1.BareMetalHostSpec{BootMACAddress: getAgentMac(ctx, kubeClient, key), Image: image}
+		image := &metal3_v1alpha1.Image{URL: "http://buzz.lightyear.io/discovery-image.iso"}
+		bmhSpec := metal3_v1alpha1.BareMetalHostSpec{BootMACAddress: getAgentMac(ctx, kubeClient, key), Image: image}
 		deployBMHCRD(ctx, kubeClient, host.ID.String(), &bmhSpec)
 
 		installerArgs := `["--append-karg", "ip=192.0.2.2::192.0.2.254:255.255.255.0:core0.example.com:enp1s0:none", "--save-partindex", "1", "-n"]`
@@ -3903,7 +3936,7 @@ var _ = Describe("bmac reconcile flow", func() {
 	ctx := context.Background()
 
 	var (
-		bmh         *bmhv1alpha1.BareMetalHost
+		bmh         *metal3_v1alpha1.BareMetalHost
 		bmhNsName   types.NamespacedName
 		agentNsName types.NamespacedName
 		infraNsName types.NamespacedName
@@ -3933,7 +3966,7 @@ var _ = Describe("bmac reconcile flow", func() {
 			Name:      host.ID.String(),
 		}
 
-		bmhSpec := bmhv1alpha1.BareMetalHostSpec{}
+		bmhSpec := metal3_v1alpha1.BareMetalHostSpec{}
 		deployBMHCRD(ctx, kubeClient, host.ID.String(), &bmhSpec)
 		bmhNsName = types.NamespacedName{
 			Namespace: Options.Namespace,
@@ -3952,7 +3985,7 @@ var _ = Describe("bmac reconcile flow", func() {
 				return bmh.Spec.Image != nil && bmh.Spec.Image.URL != ""
 			}, "30s", "10s").Should(Equal(true))
 
-			Expect(bmh.Spec.AutomatedCleaningMode).To(Equal(bmhv1alpha1.CleaningModeDisabled))
+			Expect(bmh.Spec.AutomatedCleaningMode).To(Equal(metal3_v1alpha1.CleaningModeDisabled))
 			Expect(bmh.ObjectMeta.Annotations).To(HaveKey(controllers.BMH_INSPECT_ANNOTATION))
 			Expect(bmh.ObjectMeta.Annotations[controllers.BMH_INSPECT_ANNOTATION]).To(Equal("disabled"))
 		})
@@ -3967,6 +4000,107 @@ var _ = Describe("bmac reconcile flow", func() {
 				bmh = getBmhCRD(ctx, kubeClient, bmhNsName)
 				return bmh.ObjectMeta.Annotations != nil && bmh.ObjectMeta.Annotations[controllers.BMH_HARDWARE_DETAILS_ANNOTATION] != ""
 			}, "60s", "10s").Should(Equal(true))
+		})
+	})
+})
+
+var _ = Describe("PreprovisioningImage reconcile flow", func() {
+	if !Options.EnableKubeAPI {
+		return
+	}
+
+	ctx := context.Background()
+
+	var (
+		ppi         *metal3_v1alpha1.PreprovisioningImage
+		ppiNsName   types.NamespacedName
+		infraNsName types.NamespacedName
+		infraEnvKey types.NamespacedName
+	)
+
+	BeforeEach(func() {
+		secretRef := deployLocalObjectSecretIfNeeded(ctx, kubeClient)
+		clusterDeploymentSpec := getDefaultClusterDeploymentSpec(secretRef)
+		deployClusterDeploymentCRD(ctx, kubeClient, clusterDeploymentSpec)
+		snoSpec := getDefaultSNOAgentClusterInstallSpec(clusterDeploymentSpec.ClusterName)
+		deployAgentClusterInstallCRD(ctx, kubeClient, snoSpec, clusterDeploymentSpec.ClusterInstallRef.Name)
+		deployClusterImageSetCRD(ctx, kubeClient, snoSpec.ImageSetRef)
+
+		infraNsName = types.NamespacedName{
+			Name:      "infraenv",
+			Namespace: Options.Namespace,
+		}
+		infraEnvSpec := getDefaultInfraEnvSpec(secretRef, clusterDeploymentSpec)
+		deployInfraEnvCRD(ctx, kubeClient, infraNsName.Name, infraEnvSpec)
+
+		infraEnvKey = types.NamespacedName{
+			Namespace: Options.Namespace,
+			Name:      infraNsName.Name,
+		}
+		infraEnv := getInfraEnvFromDBByKubeKey(ctx, db, infraEnvKey, waitForReconcileTimeout)
+		configureLocalAgentClient(infraEnv.ID.String())
+		host := registerNode(ctx, *infraEnv.ID, "hostname1", defaultCIDRv4)
+
+		ppiSpec := metal3_v1alpha1.PreprovisioningImageSpec{AcceptFormats: []metal3_v1alpha1.ImageFormat{metal3_v1alpha1.ImageFormatISO}}
+		deployPPICRD(ctx, kubeClient, host.ID.String(), &ppiSpec)
+		ppiNsName = types.NamespacedName{
+			Namespace: Options.Namespace,
+			Name:      host.ID.String(),
+		}
+	})
+
+	Context("PPI with infraEnv label", func() {
+		It("should trigger an infraenv update", func() {
+			ppi = getPPICRD(ctx, kubeClient, ppiNsName)
+			ppi.SetLabels(map[string]string{controllers.BMH_INFRA_ENV_LABEL: infraNsName.Name})
+			Expect(kubeClient.Update(ctx, ppi)).ToNot(HaveOccurred())
+
+			Eventually(func() bool {
+				infraEnv := getInfraEnvCRD(ctx, kubeClient, infraNsName)
+				value, ok := infraEnv.GetAnnotations()[controllers.EnableIronicAgentAnnotation]
+				if !ok {
+					return false
+				}
+				return value == "true"
+			}, "30s", "10s").Should(Equal(true))
+			infraEnv := getInfraEnvFromDBByKubeKey(ctx, db, infraEnvKey, waitForReconcileTimeout)
+			Expect(infraEnv.InternalIgnitionConfigOverride).Should(ContainSubstring("ironic-agent.service"))
+		})
+		It("should get ImageUrl from the infraEnv", func() {
+			ppi = getPPICRD(ctx, kubeClient, ppiNsName)
+			ppi.SetLabels(map[string]string{controllers.BMH_INFRA_ENV_LABEL: infraNsName.Name})
+			Expect(kubeClient.Update(ctx, ppi)).ToNot(HaveOccurred())
+
+			Eventually(func() bool {
+				ppi = getPPICRD(ctx, kubeClient, ppiNsName)
+				readyCondition := meta.FindStatusCondition(ppi.Status.Conditions, string(metal3_v1alpha1.ConditionImageReady))
+				if readyCondition == nil {
+					return false
+				}
+				return readyCondition.Status == metav1.ConditionTrue
+			}, "120s", "10s").Should(Equal(true))
+			ppi = getPPICRD(ctx, kubeClient, ppiNsName)
+			infraEnv := getInfraEnvFromDBByKubeKey(ctx, db, infraEnvKey, waitForReconcileTimeout)
+			Expect(ppi.Status.ImageUrl).To(Equal(infraEnv.DownloadURL))
+			readyCondition := meta.FindStatusCondition(ppi.Status.Conditions, string(metal3_v1alpha1.ConditionImageReady))
+			Expect(readyCondition.Status).To(Equal(metav1.ConditionTrue))
+		})
+		It("and unsupported image format should have error condition set to true", func() {
+			ppi = getPPICRD(ctx, kubeClient, ppiNsName)
+			ppi.Spec.AcceptFormats = []metal3_v1alpha1.ImageFormat{metal3_v1alpha1.ImageFormatInitRD}
+			ppi.SetLabels(map[string]string{controllers.BMH_INFRA_ENV_LABEL: infraNsName.Name})
+			Expect(kubeClient.Update(ctx, ppi)).ToNot(HaveOccurred())
+
+			// Wait for error condition status to be true
+			Eventually(func() bool {
+				ppi = getPPICRD(ctx, kubeClient, ppiNsName)
+				log.Info(ppi)
+				readyCondition := meta.FindStatusCondition(ppi.Status.Conditions, string(metal3_v1alpha1.ConditionImageError))
+				if readyCondition == nil {
+					return false
+				}
+				return readyCondition.Status == metav1.ConditionTrue
+			}, "30s", "10s").Should(Equal(true))
 		})
 	})
 })

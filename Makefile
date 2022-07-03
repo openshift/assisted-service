@@ -83,6 +83,7 @@ DISABLED_HOST_VALIDATIONS := $(or ${DISABLED_HOST_VALIDATIONS}, "")
 DISABLED_STEPS := $(or ${DISABLED_STEPS}, "")
 DISABLE_TLS := $(or ${DISABLE_TLS},false)
 ENABLE_ORG_TENANCY := $(or ${ENABLE_ORG_TENANCY},False)
+ALLOW_CONVERGED_FLOW := $(or ${ALLOW_CONVERGED_FLOW}, false)
 ENABLE_ORG_BASED_FEATURE_GATES := $(or ${ENABLE_ORG_BASED_FEATURE_GATES},False)
 
 ifeq ($(DISABLE_TLS),true)
@@ -99,6 +100,12 @@ ifeq ($(ENABLE_KUBE_API),true)
 	ENABLE_KUBE_API_CMD = --enable-kube-api true
 	STORAGE = filesystem
 endif
+
+ifeq ($(ALLOW_CONVERGED_FLOW),true)
+	ALLOW_CONVERGED_FLOW_CMD = --allow-converged-flow
+	STORAGE = filesystem
+endif
+
 
 # Operator Vars - these must be kept up to date
 BUNDLE_CHANNELS ?= alpha,ocm-2.6
@@ -299,7 +306,8 @@ deploy-service-requirements: | deploy-namespace deploy-inventory-service-file
 		--storage $(STORAGE) --ipv6-support $(IPV6_SUPPORT) --enable-sno-dnsmasq $(ENABLE_SINGLE_NODE_DNSMASQ) \
 		--disk-encryption-support $(DISK_ENCRYPTION_SUPPORT) --hw-requirements '$(subst ",\",$(HW_REQUIREMENTS))' \
 		--disabled-host-validations "$(DISABLED_HOST_VALIDATIONS)" --disabled-steps "$(DISABLED_STEPS)" \
-		--enable-org-tenancy $(ENABLE_ORG_TENANCY) --enable-org-based-feature-gate $(ENABLE_ORG_BASED_FEATURE_GATES) $(DISABLE_TLS_CMD)
+		--enable-org-tenancy $(ENABLE_ORG_TENANCY) --enable-org-based-feature-gate $(ENABLE_ORG_BASED_FEATURE_GATES) \
+		$(ALLOW_CONVERGED_FLOW_CMD) $(DISABLE_TLS_CMD)
 ifeq ($(MIRROR_REGISTRY_SUPPORT), True)
 	python3 ./tools/deploy_assisted_installer_configmap_registry_ca.py  --target "$(TARGET)" \
 		--namespace "$(NAMESPACE)"  --apply-manifest $(APPLY_MANIFEST) --ca-file-path $(MIRROR_REG_CA_FILE) --registries-file-path $(REGISTRIES_FILE_PATH)
@@ -308,6 +316,10 @@ endif
 
 deploy-resources: generate-manifests
 	python3 ./tools/deploy_crd.py $(ENABLE_KUBE_API_CMD) --apply-manifest $(APPLY_MANIFEST) \
+	--target "$(TARGET)" --namespace "$(NAMESPACE)"
+
+deploy-converged-flow-requirements:
+	python3 ./tools/deploy_converged_flow_requirements.py $(ENABLE_KUBE_API_CMD) $(ALLOW_CONVERGED_FLOW_CMD) \
 	--target "$(TARGET)" --namespace "$(NAMESPACE)"
 
 deploy-service: deploy-service-requirements
@@ -364,7 +376,7 @@ deploy-test: _verify_cluster generate-keys update-local-image
 	$(MAKE) deploy-wiremock deploy-all
 
 # An alias for the deploy-test target
-deploy-service-for-subsystem-test: deploy-test
+deploy-service-for-subsystem-test: deploy-test enable-kube-api-for-subsystem
 
 # $SERVICE is built with docker. If we want the latest version of $SERVICE
 # we need to pull it from the docker daemon before deploy-onprem.
@@ -415,7 +427,8 @@ _run_subsystem_test:
 	$(MAKE) _test TEST_SCENARIO=subsystem TIMEOUT=120m TEST="$(or $(TEST),./subsystem/...)"
 
 enable-kube-api-for-subsystem: $(BUILD_FOLDER)
-	$(MAKE) deploy-service-requirements AUTH_TYPE=local ENABLE_KUBE_API=true
+	$(MAKE) deploy-service-requirements AUTH_TYPE=local ENABLE_KUBE_API=true ALLOW_CONVERGED_FLOW=true
+	$(MAKE) deploy-converged-flow-requirements  ENABLE_KUBE_API=true  ALLOW_CONVERGED_FLOW=true
 	$(call restart_service_pods)
 	$(MAKE) wait-for-service
 
