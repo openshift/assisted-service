@@ -75,6 +75,7 @@ STORAGE := $(or ${STORAGE},s3)
 GENERATE_CRD := $(or ${GENERATE_CRD},true)
 PERSISTENT_STORAGE := $(or ${PERSISTENT_STORAGE},True)
 IPV6_SUPPORT := $(or ${IPV6_SUPPORT}, True)
+ISO_IMAGE_TYPE := $(or ${ISO_IMAGE_TYPE},full-iso)
 MIRROR_REG_CA_FILE = mirror_ca.crt
 REGISTRIES_FILE_PATH = registries.conf
 MIRROR_REGISTRY_SUPPORT := $(or ${MIRROR_REGISTRY_SUPPORT},False)
@@ -301,7 +302,7 @@ deploy-service-requirements: | deploy-namespace deploy-inventory-service-file
 		$(INSTALLATION_TIMEOUT_FLAG) $(DEPLOY_TAG_OPTION) --auth-type "$(AUTH_TYPE)" $(TEST_FLAGS) \
 		--os-images '$(subst ",\",$(OS_IMAGES))' --release-images '$(subst ",\",$(RELEASE_IMAGES))' \
 		--must-gather-images '$(subst ",\",$(MUST_GATHER_IMAGES))' \
-		--public-registries "$(PUBLIC_CONTAINER_REGISTRIES)" \
+		--public-registries "$(PUBLIC_CONTAINER_REGISTRIES)" --iso-image-type $(ISO_IMAGE_TYPE) \
 		--check-cvo $(CHECK_CLUSTER_VERSION) --apply-manifest $(APPLY_MANIFEST) $(ENABLE_KUBE_API_CMD) $(E2E_TESTS_CONFIG) \
 		--storage $(STORAGE) --ipv6-support $(IPV6_SUPPORT) --enable-sno-dnsmasq $(ENABLE_SINGLE_NODE_DNSMASQ) \
 		--disk-encryption-support $(DISK_ENCRYPTION_SUPPORT) --hw-requirements '$(subst ",\",$(HW_REQUIREMENTS))' \
@@ -427,7 +428,7 @@ _run_subsystem_test:
 	$(MAKE) _test TEST_SCENARIO=subsystem TIMEOUT=120m TEST="$(or $(TEST),./subsystem/...)"
 
 enable-kube-api-for-subsystem: $(BUILD_FOLDER)
-	$(MAKE) deploy-service-requirements AUTH_TYPE=local ENABLE_KUBE_API=true ALLOW_CONVERGED_FLOW=true
+	$(MAKE) deploy-service-requirements AUTH_TYPE=local ENABLE_KUBE_API=true ALLOW_CONVERGED_FLOW=true ISO_IMAGE_TYPE=minimal-iso
 	$(MAKE) deploy-converged-flow-requirements  ENABLE_KUBE_API=true  ALLOW_CONVERGED_FLOW=true
 	$(call restart_service_pods)
 	$(MAKE) wait-for-service
