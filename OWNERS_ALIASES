@@ -30,6 +30,7 @@ aliases:
     - vrutkovs
     - paul-maidment
     - jhernand
+    - rccrdpccl
   ci-approvers:
     - lranjbar
     - osherdp
