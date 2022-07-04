@@ -4117,6 +4117,7 @@ definitions:
       - stop-installation
       - logs-gather
       - next-step-runner
+      - upgrade-agent
 
   step:
     type: object
@@ -5657,6 +5658,7 @@ definitions:
       - 'disk-encryption-requirements-satisfied'
       - 'non-overlapping-subnets'
       - 'vsphere-disk-uuid-enabled'
+      - 'compatible-agent'
 
 
   dhcp_allocation_request:
@@ -5916,6 +5918,31 @@ definitions:
     type: string
     enum: ['success', 'failure']
     description: Image availability result.
+
+  upgrade_agent_request:
+    type: object
+    properties:
+      agent_image:
+        type: string
+        description: |
+          Full image reference of the image that the agent should upgrade to, for example
+          `quay.io/registry-proxy.engineering.redhat.com/rh-osbs/openshift4-assisted-installer-agent-rhel8:v1.0.0-142`.
+
+  upgrade_agent_response:
+    type: object
+    properties:
+      agent_image:
+        type: string
+        description: |
+          Full image reference of the image that the agent has upgraded to, for example
+          `quay.io/registry-proxy.engineering.redhat.com/rh-osbs/openshift4-assisted-installer-agent-rhel8:v1.0.0-142`.
+      result:
+        $ref: '#/definitions/upgrade_agent_result'
+
+  upgrade_agent_result:
+    type: string
+    enum: ['success', 'failure']
+    description: Agent upgrade result.
 
   source_state:
     type: string

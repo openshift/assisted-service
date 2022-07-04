@@ -7264,7 +7264,8 @@ func init() {
         "dns-wildcard-not-configured",
         "disk-encryption-requirements-satisfied",
         "non-overlapping-subnets",
-        "vsphere-disk-uuid-enabled"
+        "vsphere-disk-uuid-enabled",
+        "compatible-agent"
       ]
     },
     "host_network": {
@@ -8793,7 +8794,8 @@ func init() {
         "domain-resolution",
         "stop-installation",
         "logs-gather",
-        "next-step-runner"
+        "next-step-runner",
+        "upgrade-agent"
       ]
     },
     "steps": {
@@ -8847,6 +8849,35 @@ func init() {
           "type": "boolean"
         }
       }
+    },
+    "upgrade_agent_request": {
+      "type": "object",
+      "properties": {
+        "agent_image": {
+          "description": "Full image reference of the image that the agent should upgrade to, for example\n` + "`" + `quay.io/registry-proxy.engineering.redhat.com/rh-osbs/openshift4-assisted-installer-agent-rhel8:v1.0.0-142` + "`" + `.\n",
+          "type": "string"
+        }
+      }
+    },
+    "upgrade_agent_response": {
+      "type": "object",
+      "properties": {
+        "agent_image": {
+          "description": "Full image reference of the image that the agent has upgraded to, for example\n` + "`" + `quay.io/registry-proxy.engineering.redhat.com/rh-osbs/openshift4-assisted-installer-agent-rhel8:v1.0.0-142` + "`" + `.\n",
+          "type": "string"
+        },
+        "result": {
+          "$ref": "#/definitions/upgrade_agent_result"
+        }
+      }
+    },
+    "upgrade_agent_result": {
+      "description": "Agent upgrade result.",
+      "type": "string",
+      "enum": [
+        "success",
+        "failure"
+      ]
     },
     "usage": {
       "type": "object",
@@ -16443,7 +16474,8 @@ func init() {
         "dns-wildcard-not-configured",
         "disk-encryption-requirements-satisfied",
         "non-overlapping-subnets",
-        "vsphere-disk-uuid-enabled"
+        "vsphere-disk-uuid-enabled",
+        "compatible-agent"
       ]
     },
     "host_network": {
@@ -17963,7 +17995,8 @@ func init() {
         "domain-resolution",
         "stop-installation",
         "logs-gather",
-        "next-step-runner"
+        "next-step-runner",
+        "upgrade-agent"
       ]
     },
     "steps": {
@@ -18017,6 +18050,35 @@ func init() {
           "type": "boolean"
         }
       }
+    },
+    "upgrade_agent_request": {
+      "type": "object",
+      "properties": {
+        "agent_image": {
+          "description": "Full image reference of the image that the agent should upgrade to, for example\n` + "`" + `quay.io/registry-proxy.engineering.redhat.com/rh-osbs/openshift4-assisted-installer-agent-rhel8:v1.0.0-142` + "`" + `.\n",
+          "type": "string"
+        }
+      }
+    },
+    "upgrade_agent_response": {
+      "type": "object",
+      "properties": {
+        "agent_image": {
+          "description": "Full image reference of the image that the agent has upgraded to, for example\n` + "`" + `quay.io/registry-proxy.engineering.redhat.com/rh-osbs/openshift4-assisted-installer-agent-rhel8:v1.0.0-142` + "`" + `.\n",
+          "type": "string"
+        },
+        "result": {
+          "$ref": "#/definitions/upgrade_agent_result"
+        }
+      }
+    },
+    "upgrade_agent_result": {
+      "description": "Agent upgrade result.",
+      "type": "string",
+      "enum": [
+        "success",
+        "failure"
+      ]
     },
     "usage": {
       "type": "object",
