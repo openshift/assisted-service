@@ -155,10 +155,11 @@ type Manager struct {
 	leaderElector                 leader.Leader
 	monitorClusterQueryGenerator  *common.MonitorClusterQueryGenerator
 	monitorInfraEnvQueryGenerator *common.MonitorInfraEnvQueryGenerator
+	kubeApiEnabled                bool
 }
 
 func NewManager(log logrus.FieldLogger, db *gorm.DB, eventsHandler eventsapi.Handler, hwValidator hardware.Validator, instructionApi hostcommands.InstructionApi,
-	hwValidatorCfg *hardware.ValidatorCfg, metricApi metrics.API, config *Config, leaderElector leader.ElectorInterface, operatorsApi operators.API, providerRegistry registry.ProviderRegistry) *Manager {
+	hwValidatorCfg *hardware.ValidatorCfg, metricApi metrics.API, config *Config, leaderElector leader.ElectorInterface, operatorsApi operators.API, providerRegistry registry.ProviderRegistry, kubeApiEnabled bool) *Manager {
 	th := &transitionHandler{
 		db:            db,
 		log:           log,
@@ -178,6 +179,7 @@ func NewManager(log logrus.FieldLogger, db *gorm.DB, eventsHandler eventsapi.Han
 		metricApi:      metricApi,
 		Config:         *config,
 		leaderElector:  leaderElector,
+		kubeApiEnabled: kubeApiEnabled,
 	}
 }
 
@@ -585,7 +587,7 @@ func (m *Manager) UpdateInstallProgress(ctx context.Context, h *models.Host, pro
 		_, err = hostutil.UpdateHostStatus(ctx, logutil.FromContext(ctx, m.log), m.db, m.eventsHandler, h.InfraEnvID, *h.ID,
 			swag.StringValue(h.Status), models.HostStatusError, statusInfo)
 	case models.HostStageRebooting:
-		if swag.StringValue(h.Kind) == models.HostKindAddToExistingClusterHost {
+		if swag.StringValue(h.Kind) == models.HostKindAddToExistingClusterHost && !m.kubeApiEnabled {
 			_, err = hostutil.UpdateHostProgress(ctx, logutil.FromContext(ctx, m.log), m.db, m.eventsHandler, h.InfraEnvID, *h.ID,
 				swag.StringValue(h.Status), models.HostStatusAddedToExistingCluster, statusInfoRebootingDay2,
 				h.Progress.CurrentStage, models.HostStageDone, progress.ProgressInfo, extra...)
