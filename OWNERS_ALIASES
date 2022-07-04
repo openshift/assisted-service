@@ -29,6 +29,7 @@ aliases:
     - sagidayan
     - vrutkovs
     - paul-maidment
+    - jhernand
   ci-approvers:
     - lranjbar
     - osherdp
