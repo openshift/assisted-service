@@ -1276,7 +1276,7 @@ func (v *validator) isAPIInternalDomainNameResolvedCorrectly(c *validationContex
 
 func (v *validator) printIsAPIInternalDomainNameResolvedCorrectly(c *validationContext, status ValidationStatus) string {
 	apiInternalDomainName := domainNameToResolve(c, constants.APIInternalName)
-	return printIsDomainNameResolvedCorrectly(c, status, apiInternalDomainName, "API load balancer")
+	return printIsDomainNameResolvedCorrectly(c, status, apiInternalDomainName, "internal API load balancer")
 }
 
 func (v *validator) isAppsDomainNameResolvedCorrectly(c *validationContext) ValidationStatus {
@@ -1295,19 +1295,47 @@ func (v *validator) printIsAppsDomainNameResolvedCorrectly(c *validationContext,
 	return printIsDomainNameResolvedCorrectly(c, status, appsDomainName, "application Ingress load balancer")
 }
 
-func checkDomainNameResolution(c *validationContext, domainName string) ValidationStatus {
+func getFirstMatchingResolution(c *validationContext, domainName string) (*models.DomainResolutionResponseDomain, error) {
 	var response *models.DomainResolutionResponse
 
 	if err := json.Unmarshal([]byte(c.host.DomainNameResolutions), &response); err != nil {
-		return ValidationError
+		return nil, err
 	}
 
 	for _, domain := range response.Resolutions {
 		if domain.DomainName != nil && *domain.DomainName == domainName {
 			if len(domain.IPV4Addresses) != 0 || len(domain.IPV6Addresses) != 0 {
-				return ValidationSuccess
+				return domain, nil
 			}
 		}
+	}
+
+	return nil, nil
+}
+
+func domainResolvesToInventoryIP(domain *models.DomainResolutionResponseDomain, inventory *models.Inventory) (string, bool) {
+	ipV4Addresses, ipV6Addresses := network.GetInventoryIPAddresses(inventory)
+	for _, v4Addr := range domain.IPV4Addresses {
+		if funk.Contains(ipV4Addresses, (string)(v4Addr)) {
+			return (string)(v4Addr), true
+		}
+	}
+	for _, v6Addr := range domain.IPV6Addresses {
+		if funk.Contains(ipV6Addresses, (string)(v6Addr)) {
+			return (string)(v6Addr), true
+		}
+	}
+	return "", false
+}
+
+func checkDomainNameResolution(c *validationContext, domainName string) ValidationStatus {
+	domain, err := getFirstMatchingResolution(c, domainName)
+	if err != nil {
+		return ValidationError
+	}
+	if domain != nil {
+		_, domainResolved := domainResolvesToInventoryIP(domain, c.inventory)
+		return boolValue(!domainResolved)
 	}
 	return ValidationFailure
 }
@@ -1320,6 +1348,17 @@ func printIsDomainNameResolvedCorrectly(c *validationContext, status ValidationS
 		}
 		return fmt.Sprintf("Domain name resolution was successful for domain %s", domainName)
 	case ValidationFailure:
+		domain, err := getFirstMatchingResolution(c, domainName)
+		if err != nil {
+			return fmt.Sprintf("There was a problem while attempting to resolve the domain name %s Error: %s", domainName, err)
+
+		}
+		if domain != nil {
+			ip, resolved := domainResolvesToInventoryIP(domain, c.inventory)
+			if resolved {
+				return fmt.Sprintf("Can't map the domain %s to %s as it is an API address, these addresses must be sent to a load balancer when using user managed networking in a multiple control plane cluster.", *domain.DomainName, ip)
+			}
+		}
 		return fmt.Sprintf("Couldn't resolve domain name %s on the host. To continue installation, create the necessary DNS entries to resolve this domain name to your %s.", domainName, destination)
 	case ValidationError:
 		return "Parse error for domain name resolutions result"

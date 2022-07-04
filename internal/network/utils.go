@@ -12,6 +12,20 @@ import (
 	"github.com/thoas/go-funk"
 )
 
+// Obtains the IP addresses used by a host
+func GetInventoryIPAddresses(inventory *models.Inventory) ([]string, []string) {
+	ipV4Addresses := []string{}
+	ipV6Addresses := []string{}
+	if inventory != nil {
+		for i := range inventory.Interfaces {
+			ipV4Addresses = append(ipV4Addresses, inventory.Interfaces[i].IPV4Addresses...)
+			ipV6Addresses = append(ipV6Addresses, inventory.Interfaces[i].IPV6Addresses...)
+
+		}
+	}
+	return ipV4Addresses, ipV6Addresses
+}
+
 // GetHostAddressFamilies tests if a host has addresses in IPv4, in IPv6 family, or both
 func GetHostAddressFamilies(host *models.Host) (bool, bool, error) {
 	inventory, err := common.UnmarshalInventory(host.Inventory)
