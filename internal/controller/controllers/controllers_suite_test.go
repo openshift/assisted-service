@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	bmh_v1alpha1 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2/dsl/core"
 	. "github.com/onsi/gomega"
 	routev1 "github.com/openshift/api/route/v1"
 	hiveext "github.com/openshift/assisted-service/api/hiveextension/v1beta1"

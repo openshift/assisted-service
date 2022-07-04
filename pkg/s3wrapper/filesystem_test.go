@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/golang/mock/gomock"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2/dsl/core"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/metrics"
 	"github.com/sirupsen/logrus"

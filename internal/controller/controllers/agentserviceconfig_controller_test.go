@@ -7,7 +7,7 @@ import (
 	"os"
 
 	"github.com/go-openapi/swag"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2/dsl/core"
 	. "github.com/onsi/gomega"
 	routev1 "github.com/openshift/api/route/v1"
 	aiv1beta1 "github.com/openshift/assisted-service/api/v1beta1"

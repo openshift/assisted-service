@@ -5,7 +5,7 @@ import (
 
 	config_32 "github.com/coreos/ignition/v2/config/v3_2"
 	"github.com/go-openapi/strfmt"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2/dsl/core"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/models"

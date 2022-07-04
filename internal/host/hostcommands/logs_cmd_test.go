@@ -9,7 +9,7 @@ import (
 	"github.com/go-openapi/swag"
 	"github.com/google/uuid"
 	"github.com/jinzhu/copier"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2/dsl/core"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/host/hostutil"

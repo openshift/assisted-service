@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2/dsl/core"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/pkg/thread"
 	"github.com/sirupsen/logrus"

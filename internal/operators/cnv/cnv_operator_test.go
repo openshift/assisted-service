@@ -3,8 +3,8 @@ package cnv_test
 import (
 	"context"
 
-	. "github.com/onsi/ginkgo"
-	"github.com/onsi/ginkgo/extensions/table"
+	. "github.com/onsi/ginkgo/v2/dsl/core"
+	"github.com/onsi/ginkgo/v2/dsl/table"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/operators/api"

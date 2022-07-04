@@ -8,7 +8,7 @@ require (
 	github.com/aws/aws-sdk-go v1.44.33
 	github.com/buger/jsonparser v1.1.1
 	github.com/cavaliercoder/go-cpio v0.0.0-20180626203310-925f9528c45e
-	github.com/containers/image/v5 v5.20.0
+	github.com/containers/image/v5 v5.18.0
 	github.com/coreos/ignition/v2 v2.14.0
 	github.com/coreos/vcontext v0.0.0-20211021162308-f1dbbca7bef4
 	github.com/danielerez/go-dns-client v0.0.0-20200630114514-0b60d1703f0b
@@ -38,19 +38,19 @@ require (
 	github.com/mattn/go-sqlite3 v2.0.3+incompatible
 	github.com/metal3-io/baremetal-operator/apis v0.0.0
 	github.com/moby/moby v20.10.17+incompatible
-	github.com/onsi/ginkgo v1.16.5
+	github.com/onsi/ginkgo/v2 v2.1.4
 	github.com/onsi/gomega v1.19.0
 	github.com/openshift-online/ocm-sdk-go v0.1.205
 	github.com/openshift/api v3.9.1-0.20191111211345-a27ff30ebf09+incompatible
-	github.com/openshift/assisted-image-service v0.0.0-20220506122314-2f689a1084b8
+	github.com/openshift/assisted-image-service v0.0.0-20220623082005-39ccedb40ca7
 	github.com/openshift/assisted-service/api v0.0.0
 	github.com/openshift/assisted-service/models v0.0.0
 	github.com/openshift/client-go v0.0.0-20201020074620-f8fd44879f7c
-	github.com/openshift/cluster-baremetal-operator v0.0.0-20220430051313-3131de324a8c
+	github.com/openshift/cluster-baremetal-operator v0.0.0-20220704154359-46f7b00f8ccd
 	github.com/openshift/custom-resource-status v1.1.2
 	github.com/openshift/generic-admission-server v1.14.1-0.20210422140326-da96454c926d
 	github.com/openshift/hive/apis v0.0.0-20220222213051-def9088fdb5a
-	github.com/openshift/image-customization-controller v0.0.0-20220509123740-3ad18911d14d
+	github.com/openshift/image-customization-controller v0.0.0-20220617071232-42b4b1f24d73
 	github.com/openshift/machine-api-operator v0.2.1-0.20201002104344-6abfb5440597
 	github.com/ory/dockertest/v3 v3.9.1
 	github.com/ovirt/go-ovirt-client v0.9.0
@@ -166,7 +166,6 @@ require (
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
-	github.com/nxadm/tail v1.4.8 // indirect
 	github.com/oklog/ulid v1.3.1 // indirect
 	github.com/opencontainers/go-digest v1.0.0 // indirect
 	github.com/opencontainers/image-spec v1.0.3-0.20211202193544-a5463b7f9c84 // indirect
@@ -206,14 +205,13 @@ require (
 	go.uber.org/multierr v1.6.0 // indirect
 	go.uber.org/zap v1.19.1 // indirect
 	golang.org/x/lint v0.0.0-20210508222113-6edffad5e616 // indirect
-	golang.org/x/mod v0.6.0-dev.0.20220106191415-9b9b3d81d5e3 // indirect
+	golang.org/x/mod v0.6.0-dev.0.20220419223038-86c51ed26bb4 // indirect
 	golang.org/x/net v0.0.0-20220524220425-1d687d428aca // indirect
 	golang.org/x/oauth2 v0.0.0-20211104180415-d3ed0bb246c8 // indirect
 	golang.org/x/term v0.0.0-20210927222741-03fcf44c2211 // indirect
 	golang.org/x/text v0.3.7 // indirect
 	golang.org/x/time v0.0.0-20210723032227-1f47c861a9ac // indirect
-	golang.org/x/tools v0.1.10 // indirect
-	golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1 // indirect
+	golang.org/x/tools v0.1.11 // indirect
 	gomodules.xyz/jsonpatch/v2 v2.2.0 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
 	google.golang.org/genproto v0.0.0-20211208223120-3a66f561d7aa // indirect
@@ -221,7 +219,6 @@ require (
 	google.golang.org/protobuf v1.28.0 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/natefinch/lumberjack.v2 v2.0.0 // indirect
-	gopkg.in/tomb.v1 v1.0.0-20141024135613-dd632973f1e7 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	howett.net/plist v0.0.0-20181124034731-591f970eefbb // indirect
 	k8s.io/apiextensions-apiserver v0.23.5 // indirect
