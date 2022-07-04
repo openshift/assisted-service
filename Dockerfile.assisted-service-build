@@ -1,3 +1,6 @@
+# These changes will not be included in this PR
+# TODO: remove when this PR gets merged: https://github.com/openshift/assisted-service/pull/4036
+
 FROM quay.io/centos/centos:stream9
 
 ENV GOPATH=/go
@@ -19,7 +22,7 @@ COPY --from=quay.io/operator-framework/upstream-opm-builder:v1.16.1 /bin/opm /bi
 RUN dnf install -y 'dnf-command(config-manager)' && \
     dnf config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo && \
     dnf install -y --enablerepo=crb \
-        postgresql sqlite gcc genisoimage git docker-ce-cli libvirt-client libvirt-devel java && \
+        postgresql nmstate-static sqlite gcc genisoimage git docker-ce-cli libvirt-client libvirt-devel java && \
     dnf clean all
 
 WORKDIR /home/assisted-service

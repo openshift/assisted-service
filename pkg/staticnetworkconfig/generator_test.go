@@ -17,8 +17,11 @@ func TestStaticNetworkConfig(t *testing.T) {
 }
 
 var _ = Describe("StaticNetworkConfig", func() {
+	mockNMState := MockNmstate{}
+	//mockNMState.EXPECT().GenerateConfiguration().Return() // WIP
+
 	var (
-		staticNetworkGenerator = StaticNetworkConfigGenerator{log: logrus.New()}
+		staticNetworkGenerator = StaticNetworkConfigGenerator{log: logrus.New(), nmstate: &mockNMState}
 	)
 
 	It("validate mac interface", func() {
