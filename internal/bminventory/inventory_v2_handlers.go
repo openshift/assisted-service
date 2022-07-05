@@ -331,6 +331,8 @@ func (b *bareMetalInventory) V2GetClusterDefaultConfig(_ context.Context, _ inst
 		{Cidr: models.Subnet(b.Config.DefaultServiceNetworkCidrIPv6)},
 	}
 
+	body.ForbiddenHostnames = append(body.ForbiddenHostnames, hostutil.ForbiddenHostnames...)
+
 	return installer.NewV2GetClusterDefaultConfigOK().WithPayload(body)
 }
 
