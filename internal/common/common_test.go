@@ -8,6 +8,7 @@ import (
 	"github.com/go-openapi/swag"
 	"github.com/google/uuid"
 	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/models"
 )
@@ -265,6 +266,22 @@ var _ = Describe("Test AreMastersSchedulable", func() {
 		}
 	})
 })
+
+var _ = DescribeTable(
+	"Get tag from image reference",
+	func(image, expected string) {
+		actual := GetTagFromImageRef(image)
+		Expect(actual).To(Equal(expected))
+	},
+	Entry("Empty", "", ""),
+	Entry("No tag", "quay.io/my/image", ""),
+	Entry("Latest tag", "quay.io/my/image:latest", "latest"),
+	Entry("Numeric tag", "quay.io/my/image:1.2.3", "1.2.3"),
+	Entry("Alphabetic tag", "quay.io/my/image:old", "old"),
+	Entry("Version tag", "quay.io/my/image:v1.2.3", "v1.2.3"),
+	Entry("Digest", "quay.io/image/agent@sha256:e7d2b565a30757833c911cf623b3d834804b21a67fbb37844e0071a08159afa5", ""),
+	Entry("Incorrect", "a:b:c:d", ""),
+)
 
 func createHost(hostRole models.HostRole, state string) *models.Host {
 	hostId := strfmt.UUID(uuid.New().String())
