@@ -158,15 +158,15 @@ func (mr *MockAPIMockRecorder) HostValidationFailed(clusterVersion, emailDomain,
 }
 
 // ImagePullStatus mocks base method.
-func (m *MockAPI) ImagePullStatus(hostID strfmt.UUID, imageName, resultStatus string, downloadRate float64) {
+func (m *MockAPI) ImagePullStatus(imageName, resultStatus string, downloadRate float64) {
 	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "ImagePullStatus", hostID, imageName, resultStatus, downloadRate)
+	m.ctrl.Call(m, "ImagePullStatus", imageName, resultStatus, downloadRate)
 }
 
 // ImagePullStatus indicates an expected call of ImagePullStatus.
-func (mr *MockAPIMockRecorder) ImagePullStatus(hostID, imageName, resultStatus, downloadRate interface{}) *gomock.Call {
+func (mr *MockAPIMockRecorder) ImagePullStatus(imageName, resultStatus, downloadRate interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ImagePullStatus", reflect.TypeOf((*MockAPI)(nil).ImagePullStatus), hostID, imageName, resultStatus, downloadRate)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ImagePullStatus", reflect.TypeOf((*MockAPI)(nil).ImagePullStatus), imageName, resultStatus, downloadRate)
 }
 
 // InstallationStarted mocks base method.
