@@ -536,7 +536,7 @@ func NewHostStateMachine(sm stateswitch.StateMachine, th *transitionHandler) sta
 	})
 
 	var hasMinRequiredHardware = stateswitch.And(If(HasMinValidDisks), If(HasMinCPUCores), If(HasMinMemory),
-		If(CompatibleWithClusterPlatform), If(DiskEncryptionRequirementsSatisfied), If(VSphereHostUUIDEnabled))
+		If(CompatibleWithClusterPlatform), If(DiskEncryptionRequirementsSatisfied))
 
 	var requiredInputFieldsExist = stateswitch.And(If(IsMachineCidrDefined))
 
@@ -572,7 +572,7 @@ func NewHostStateMachine(sm stateswitch.StateMachine, th *transitionHandler) sta
 			stateswitch.State(models.HostStatusKnown),
 			stateswitch.State(models.HostStatusPendingForInput),
 		},
-		Condition: stateswitch.And(If(IsConnected), If(IsMediaConnected), If(HasInventory),
+		Condition: stateswitch.And(If(IsConnected), If(IsMediaConnected), If(HasInventory), If(VSphereHostUUIDEnabled),
 			hasMinRequiredHardware,
 			stateswitch.Not(requiredInputFieldsExist)),
 		DestinationState: stateswitch.State(models.HostStatusPendingForInput),
@@ -593,8 +593,9 @@ func NewHostStateMachine(sm stateswitch.StateMachine, th *transitionHandler) sta
 		},
 		Condition: stateswitch.And(If(IsConnected), If(IsMediaConnected), If(HasInventory),
 			hasMinRequiredHardware,
-			requiredInputFieldsExist,
-			stateswitch.Not(isSufficientForInstall)),
+			stateswitch.Or(stateswitch.Not(If(VSphereHostUUIDEnabled)),
+				stateswitch.And(requiredInputFieldsExist, stateswitch.Not(isSufficientForInstall)),
+			)),
 		DestinationState: stateswitch.State(models.HostStatusInsufficient),
 		PostTransition:   th.PostRefreshHost(statusInfoNotReadyForInstall),
 	})
@@ -611,7 +612,9 @@ func NewHostStateMachine(sm stateswitch.StateMachine, th *transitionHandler) sta
 		Condition: stateswitch.And(If(IsConnected), If(IsMediaConnected), If(HasInventory),
 			hasMinRequiredHardware,
 			requiredInputFieldsExist,
-			isSufficientForInstall),
+			isSufficientForInstall,
+			If(VSphereHostUUIDEnabled),
+		),
 		DestinationState: stateswitch.State(models.HostStatusKnown),
 		PostTransition:   th.PostRefreshHost(statusInfoKnown),
 	})
@@ -625,6 +628,7 @@ func NewHostStateMachine(sm stateswitch.StateMachine, th *transitionHandler) sta
 			hasMinRequiredHardware,
 			requiredInputFieldsExist,
 			isSufficientForInstall,
+			If(VSphereHostUUIDEnabled),
 			stateswitch.Not(stateswitch.And(If(ClusterPreparingForInstallation), If(ValidRoleForInstallation)))),
 		DestinationState: stateswitch.State(models.HostStatusKnown),
 		PostTransition:   th.PostRefreshHost(statusInfoKnown),
