@@ -2,14 +2,18 @@ package agentbasedinstaller
 
 import (
 	"context"
+	"encoding/base64"
 	"fmt"
+	"io/ioutil"
 	"os"
+	"path/filepath"
 	"reflect"
 
 	hiveext "github.com/openshift/assisted-service/api/hiveextension/v1beta1"
 	aiv1beta1 "github.com/openshift/assisted-service/api/v1beta1"
 	"github.com/openshift/assisted-service/client"
 	"github.com/openshift/assisted-service/client/installer"
+	"github.com/openshift/assisted-service/client/manifests"
 	"github.com/openshift/assisted-service/internal/controller/controllers"
 	"github.com/openshift/assisted-service/internal/oc"
 	"github.com/openshift/assisted-service/models"
@@ -18,18 +22,32 @@ import (
 	hivev1 "github.com/openshift/hive/apis/hive/v1"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
+	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/yaml"
 )
 
+func GetPullSecret(pullSecretPath string) (string, error) {
+	var secret corev1.Secret
+	if err := getFileData(pullSecretPath, &secret); err != nil {
+		return "", err
+	}
+
+	pullSecret := secret.StringData[".dockerconfigjson"]
+	return pullSecret, nil
+}
+
 func RegisterCluster(ctx context.Context, log *log.Logger, bmInventory *client.AssistedInstall, pullSecret string, clusterDeploymentPath string,
 	agentClusterInstallPath string, clusterImageSetPath string, releaseImageMirror string) (*models.Cluster, error) {
+
+	log.Info("Registering cluster")
+
 	var cd hivev1.ClusterDeployment
-	if cdErr := GetFileData(clusterDeploymentPath, &cd); cdErr != nil {
+	if cdErr := getFileData(clusterDeploymentPath, &cd); cdErr != nil {
 		return nil, cdErr
 	}
 
 	var aci hiveext.AgentClusterInstall
-	if aciErr := GetFileData(agentClusterInstallPath, &aci); aciErr != nil {
+	if aciErr := getFileData(agentClusterInstallPath, &aci); aciErr != nil {
 		return nil, aciErr
 	}
 
@@ -52,18 +70,24 @@ func RegisterCluster(ctx context.Context, log *log.Logger, bmInventory *client.A
 	if registerClusterErr != nil {
 		return nil, errorutil.GetAssistedError(registerClusterErr)
 	}
+
+	log.Info("Registered cluster with id: " + clusterResult.Payload.ID.String())
+
 	return clusterResult.Payload, nil
 }
 
 func RegisterInfraEnv(ctx context.Context, log *log.Logger, bmInventory *client.AssistedInstall, pullSecret string, modelsCluster *models.Cluster,
 	infraEnvPath string, nmStateConfigPath string, imageTypeISO string) (*models.InfraEnv, error) {
+
+	log.Info("Registering infraenv")
+
 	var infraEnv aiv1beta1.InfraEnv
-	if infraenvErr := GetFileData(infraEnvPath, &infraEnv); infraenvErr != nil {
+	if infraenvErr := getFileData(infraEnvPath, &infraEnv); infraenvErr != nil {
 		return nil, infraenvErr
 	}
 
 	var nmStateConfig aiv1beta1.NMStateConfig
-	if nmStateErr := GetFileData(nmStateConfigPath, &nmStateConfig); nmStateErr != nil {
+	if nmStateErr := getFileData(nmStateConfigPath, &nmStateConfig); nmStateErr != nil {
 		return nil, nmStateErr
 	}
 
@@ -86,11 +110,56 @@ func RegisterInfraEnv(ctx context.Context, log *log.Logger, bmInventory *client.
 	if registerInfraEnvErr != nil {
 		return nil, errorutil.GetAssistedError(registerInfraEnvErr)
 	}
+
+	infraEnvID := infraEnvResult.Payload.ID.String()
+	log.Info("Registered infraenv with id: " + infraEnvID)
+
 	return infraEnvResult.Payload, nil
 }
 
+func RegisterExtraManifests(ctx context.Context, log *log.Logger, client *client.AssistedInstall, cluster *models.Cluster, extraManifestsPath string) error {
+
+	extras, err := ioutil.ReadDir(extraManifestsPath)
+	if err != nil {
+		return err
+	}
+
+	if len(extras) == 0 {
+		return nil
+	}
+
+	log.Info("Registering extra manifests")
+
+	extraManifestsFolder := "openshift"
+
+	for _, m := range extras {
+		bytes, err := ioutil.ReadFile(filepath.Join(extraManifestsPath, m.Name()))
+		if err != nil {
+			return err
+		}
+
+		extraManifestFileName := m.Name()
+		extraManifestContent := base64.StdEncoding.EncodeToString(bytes)
+
+		params := manifests.NewV2CreateClusterManifestParams().
+			WithClusterID(*cluster.ID).
+			WithCreateManifestParams(&models.CreateManifestParams{
+				FileName: &extraManifestFileName,
+				Folder:   &extraManifestsFolder,
+				Content:  &extraManifestContent,
+			})
+
+		_, err = client.Manifests.V2CreateClusterManifest(ctx, params)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 // Read a Yaml file and unmarshal the contents
-func GetFileData(filePath string, output interface{}) error {
+func getFileData(filePath string, output interface{}) error {
 
 	contents, err := os.ReadFile(filePath)
 	if err != nil {
@@ -104,7 +173,7 @@ func GetFileData(filePath string, output interface{}) error {
 
 func getReleaseVersion(clusterImageSetPath string) (string, error) {
 	var clusterImageSet hivev1.ClusterImageSet
-	if err := GetFileData(clusterImageSetPath, &clusterImageSet); err != nil {
+	if err := getFileData(clusterImageSetPath, &clusterImageSet); err != nil {
 		return "", err
 	}
 	return clusterImageSet.Spec.ReleaseImage, nil
