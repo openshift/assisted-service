@@ -352,15 +352,32 @@ func (m *Manager) updateInventory(ctx context.Context, cluster *common.Cluster, 
 		return common.NewApiError(http.StatusInternalServerError, err)
 	}
 
-	// Remove virtual interfaces if the feature is not enabled
-	if !m.Config.EnableVirtualInterfaces {
-		var physicalInterfaces []*models.Interface = make([]*models.Interface, 0)
-		for _, intf := range inventory.Interfaces {
-			if intf.Type == "" || intf.Type == "physical" || intf.Type == "vlan" || intf.Type == "bond" {
-				// Empty interface type indicates an older agent, which only passes physical interfaces
-				physicalInterfaces = append(physicalInterfaces, intf)
-			}
+	existingHostInventory, err := common.UnmarshalInventory(h.Inventory)
+	if err != nil {
+		log.WithError(err).Debugf("failed to unmarshal host existing inventory %s", h.Inventory)
+	}
+
+	var physicalInterfaces []*models.Interface = make([]*models.Interface, 0)
+	var virtualInterfaces []string = make([]string, 0)
+	for _, intf := range inventory.Interfaces {
+		if intf.Type == "" || intf.Type == "physical" || intf.Type == "vlan" || intf.Type == "bond" {
+			// Empty interface type indicates an older agent, which only passes physical interfaces
+			physicalInterfaces = append(physicalInterfaces, intf)
+		} else {
+			virtualInterfaces = append(virtualInterfaces, intf.Type)
 		}
+	}
+
+	// Only record metrics if it's new/changed inventory and the host is associated with a cluster
+	if existingHostInventory == nil || (existingHostInventory != nil && len(physicalInterfaces) != len(existingHostInventory.Interfaces)) {
+		if h.ClusterID != nil {
+			m.eventsHandler.AddMetricsEvent(ctx, *h.ClusterID, h.ID, models.EventSeverityInfo, "nic.virtual_interfaces", time.Now(), "count", len(virtualInterfaces), "types", virtualInterfaces)
+			m.eventsHandler.AddMetricsEvent(ctx, *h.ClusterID, h.ID, models.EventSeverityInfo, "nic.physical_interfaces", time.Now(), "count", len(physicalInterfaces))
+		}
+	}
+
+	// Don't store virtual interfaces if the feature is not enabled
+	if !m.Config.EnableVirtualInterfaces {
 		inventory.Interfaces = physicalInterfaces
 	}
 

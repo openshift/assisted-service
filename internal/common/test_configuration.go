@@ -252,30 +252,29 @@ func GenerateTestDefaultInventory() string {
 	return string(b)
 }
 
-func GenerateTestInventoryWithVirtualInterface() string {
+func generateInterfaces(amount int, intfType string) []*models.Interface {
+	interfaces := make([]*models.Interface, amount)
+	for i := 0; i < amount; i++ {
+		intf := models.Interface{
+			Name: fmt.Sprintf("eth%d", i),
+			IPV4Addresses: []string{
+				fmt.Sprintf("192.%d.2.0/24", i),
+			},
+			IPV6Addresses: []string{
+				fmt.Sprintf("2001:db%d::/32", i),
+			},
+			Type: intfType,
+		}
+		interfaces[i] = &intf
+	}
+	return interfaces
+}
+
+func GenerateTestInventoryWithVirtualInterface(physicalInterfaces, virtualInterfaces int) string {
+	interfaces := generateInterfaces(physicalInterfaces, "physical")
+	interfaces = append(interfaces, generateInterfaces(virtualInterfaces, "device")...)
 	inventory := &models.Inventory{
-		Interfaces: []*models.Interface{
-			{
-				Name: "eth0",
-				IPV4Addresses: []string{
-					"192.0.2.0/24",
-				},
-				IPV6Addresses: []string{
-					"2001:db8::/32",
-				},
-				Type: "physical",
-			},
-			{
-				Name: "cni1",
-				IPV4Addresses: []string{
-					"198.51.100.0/24",
-				},
-				IPV6Addresses: []string{
-					"2001:db8::/32",
-				},
-				Type: "device",
-			},
-		},
+		Interfaces: interfaces,
 		Disks: []*models.Disk{
 			TestDefaultConfig.Disks,
 		},
