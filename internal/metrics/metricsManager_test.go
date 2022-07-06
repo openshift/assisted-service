@@ -1,0 +1,76 @@
+package metrics
+
+import (
+	"context"
+	"time"
+
+	"github.com/go-openapi/strfmt"
+	gomock "github.com/golang/mock/gomock"
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/extensions/table"
+	. "github.com/onsi/gomega"
+	eventsapi "github.com/openshift/assisted-service/internal/events/api"
+	"github.com/openshift/assisted-service/models"
+)
+
+var _ = DescribeTable(
+	"Adds agent version label to host installation phase seconds metric",
+	func(agentVersion string) {
+		// Create a context:
+		ctx := context.Background()
+
+		// Create the metrics server:
+		server := NewMetricsServer()
+		defer server.Close()
+
+		// Create the mock controller:
+		ctrl := gomock.NewController(GinkgoT())
+		defer ctrl.Finish()
+
+		// We are not testing generation of events here, we just need to make sure that the
+		// call to generating metrics doesn't fail:
+		handler := eventsapi.NewMockHandler(ctrl)
+		handler.EXPECT().AddMetricsEvent(
+			gomock.Any(),
+			gomock.Any(),
+			gomock.Any(),
+			gomock.Any(),
+			gomock.Any(),
+			gomock.Any(),
+			gomock.Any(),
+		).AnyTimes()
+
+		// Create the metrics manager:
+		manager := NewMetricsManager(server.Registry(), handler)
+		manager.ReportHostInstallationMetrics(
+			ctx,
+			"4.10.18",
+			strfmt.UUID("68bc0049-1226-4132-acb1-b9898065474b"),
+			"example.com",
+			nil,
+			&models.Host{
+				DiscoveryAgentVersion: agentVersion,
+				Role:                  models.HostRoleMaster,
+				Inventory: `{
+					"system_vendor": {
+						"manufacturer": "Acme",
+						"product_name": "Rocket"
+					}
+				}`,
+			},
+			&models.HostProgressInfo{
+				CurrentStage:   models.HostStageConfiguring,
+				StageStartedAt: strfmt.DateTime(time.Now()),
+			},
+			models.HostStageRebooting,
+		)
+
+		// Verify that the label was added:
+		metrics := server.Metrics()
+		Expect(metrics).To(MatchLine(
+			`^service_assisted_installer_host_installation_phase_seconds_count\{.*discoveryAgentVersion="v1.0.0-141".*\} .*$`,
+		))
+	},
+	Entry("Full image reference", "quay.io/edge-infrastructure/assisted-installer:v1.0.0-141"),
+	Entry("Tag only", "v1.0.0-141"),
+)

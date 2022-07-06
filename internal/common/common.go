@@ -8,6 +8,7 @@ import (
 	"reflect"
 	"strings"
 
+	"github.com/containers/image/v5/docker/reference"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 	"github.com/openshift/assisted-service/models"
@@ -370,4 +371,20 @@ func CanonizeStrings(slice []string) (ret []string) {
 
 func GetHostKey(host *models.Host) string {
 	return host.ID.String() + "@" + host.InfraEnvID.String()
+}
+
+// GetTagFromImageRef returns the tag of the given container image reference. For example, if the
+// image reference is 'quay.io/my/image:latest' then the result will be 'latest'. If the image
+// reference isn't valid or doesn't contain a tag then the result will be an empty string.
+func GetTagFromImageRef(ref string) string {
+	parsed, err := reference.ParseNamed(ref)
+	if err != nil {
+		return ""
+	}
+	switch typed := parsed.(type) {
+	case reference.Tagged:
+		return typed.Tag()
+	default:
+		return ""
+	}
 }

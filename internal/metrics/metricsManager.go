@@ -7,6 +7,7 @@ import (
 
 	"github.com/alecthomas/units"
 	"github.com/go-openapi/strfmt"
+	"github.com/openshift/assisted-service/internal/common"
 	eventsapi "github.com/openshift/assisted-service/internal/events/api"
 	"github.com/openshift/assisted-service/models"
 	logutil "github.com/openshift/assisted-service/pkg/log"
@@ -426,8 +427,18 @@ func (m *MetricsManager) ReportHostInstallationMetrics(ctx context.Context, clus
 			m.handler.AddMetricsEvent(ctx, clusterID, h.ID, models.EventSeverityInfo, "host.stage.duration", time.Now(),
 				"result", string(phaseResult), "duration", duration, "host_stage", string(previousProgress.CurrentStage), "vendor", hwVendor, "product", hwProduct, "disk_type", diskType, "host_role", roleStr)
 
+			// Since the introduction of the upgrade agent feature the agent will be
+			// sending the full image reference in the `discovery_agent_version`
+			// header, and we will store that in the database. But for metrics we where
+			// assuming that the header and database contained only the version, so to
+			// keep backwards compatibility we need to extract the tag.
+			agentVersion := common.GetTagFromImageRef(h.DiscoveryAgentVersion)
+			if agentVersion == "" {
+				agentVersion = h.DiscoveryAgentVersion
+			}
+
 			m.serviceLogicHostInstallationPhaseSeconds.WithLabelValues(string(previousProgress.CurrentStage),
-				string(phaseResult), clusterVersion, emailDomain, h.DiscoveryAgentVersion, hwVendor, hwProduct, string(diskType)).Observe(duration)
+				string(phaseResult), clusterVersion, emailDomain, agentVersion, hwVendor, hwProduct, string(diskType)).Observe(duration)
 		}
 	}
 }
