@@ -2485,11 +2485,12 @@ func (b *bareMetalInventory) updateOperatorsData(ctx context.Context, cluster *c
 	//At this point, if any operators are updated, retrigger auto-assign
 	//role calculation. This reset is needed because operators may affect
 	//the role assignment logic.
-	//There is no need to refresh the status here because the refresh
-	//occurs outside the function as part of the update cluster flow
 	if len(updateOLMOperators) > 0 || len(removedOLMOperators) > 0 {
-		if reset_err := b.resetAutoAssignRoles(ctx, db, cluster, log, false); reset_err != nil {
+		if count, reset_err := common.ResetAutoAssignRoles(db, params.ClusterID.String()); reset_err != nil {
+			log.WithError(err).Errorf("fail to reset auto-assign role in cluster %s", params.ClusterID.String())
 			return common.NewApiError(http.StatusInternalServerError, reset_err)
+		} else {
+			log.Infof("resetting auto-assing roles on cluster %s after operator setup has changed: %d hosts affected", params.ClusterID.String(), count)
 		}
 	}
 
@@ -4437,23 +4438,6 @@ func (b *bareMetalInventory) updateInfraEnvNtpSources(params installer.UpdateInf
 	return nil
 }
 
-func (b *bareMetalInventory) resetAutoAssignRoles(ctx context.Context, tx *gorm.DB, cluster *common.Cluster, log logrus.FieldLogger, withRefresh bool) error {
-	if cluster != nil {
-		updated, err := b.clusterApi.ResetAutoAssignRoles(ctx, cluster, transaction.AddForUpdateQueryOption(tx))
-		if err != nil {
-			return err
-		}
-		if updated && withRefresh {
-			err = b.updateHostsAndClusterStatus(ctx, cluster, tx, log)
-			if err != nil {
-				log.Errorf("fail to refresh after role reset %s", cluster.ID.String())
-				return err
-			}
-		}
-	}
-	return nil
-}
-
 func (b *bareMetalInventory) GetInfraEnvByKubeKey(key types.NamespacedName) (*common.InfraEnv, error) {
 	infraEnv, err := common.GetInfraEnvFromDBWhere(b.db, "name = ? and kube_key_namespace = ?", key.Name, key.Namespace)
 	if err != nil {
@@ -4515,13 +4499,13 @@ func (b *bareMetalInventory) V2RegisterHost(ctx context.Context, params installe
 		DiscoveryAgentVersion:    params.NewHostParams.DiscoveryAgentVersion,
 		UserName:                 ocm.UserNameFromContext(ctx),
 		Role:                     defaultRole,
+		SuggestedRole:            defaultRole,
 		InfraEnvID:               *infraEnv.ID,
 		IgnitionEndpointTokenSet: false,
 	}
 
 	var cluster *common.Cluster
 	var c *models.Cluster
-	var triggerAutoAssign bool
 	cluster, err = b.getBoundCluster(transaction.AddForUpdateQueryOption(tx), infraEnv, dbHost)
 	if err != nil {
 		log.WithError(err).Errorf("Bound Cluster get")
@@ -4546,8 +4530,6 @@ func (b *bareMetalInventory) V2RegisterHost(ctx context.Context, params installe
 			// The question of whether the host's cluster is single node or not only matters for a Day 1 installation.
 			host.Role = models.HostRoleMaster
 			host.Bootstrap = true
-		} else {
-			triggerAutoAssign = true
 		}
 
 		host.ClusterID = cluster.ID
@@ -4560,6 +4542,8 @@ func (b *bareMetalInventory) V2RegisterHost(ctx context.Context, params installe
 		host.MachineConfigPoolName = string(models.HostRoleWorker)
 	}
 
+	host.SuggestedRole = host.Role
+
 	if err = b.hostApi.RegisterHost(ctx, host, tx); err != nil {
 		log.WithError(err).Errorf("failed to register host <%s> infra-env <%s>",
 			params.NewHostParams.HostID.String(), params.InfraEnvID.String())
@@ -4567,16 +4551,6 @@ func (b *bareMetalInventory) V2RegisterHost(ctx context.Context, params installe
 
 		eventgen.SendHostRegistrationFailedEvent(ctx, b.eventsHandler, *params.NewHostParams.HostID, params.InfraEnvID, host.ClusterID, uerr.Error())
 		return returnRegisterHostTransitionError(http.StatusBadRequest, err)
-	}
-
-	//At this point the host is updated. Retrigger auto-assign role
-	//calculation since the new host may affect the assignment.
-	//re-calculation occurs only when the host is bound to a multi-node
-	//day 1 cluster and more hosts are present.
-	if triggerAutoAssign {
-		if reset_err := b.resetAutoAssignRoles(ctx, tx, cluster, log, false); reset_err != nil {
-			return common.GenerateErrorResponder(reset_err)
-		}
 	}
 
 	b.customizeHost(c, host)
@@ -4872,12 +4846,6 @@ func (b *bareMetalInventory) BindHostInternal(ctx context.Context, params instal
 		log.WithError(err).Errorf("Failed to bind host <%s> to cluster <%s>",
 			params.HostID, *params.BindHostParams.ClusterID)
 		return nil, common.NewApiError(http.StatusInternalServerError, err)
-	}
-
-	//At this point the host is updated. Retrigger auto-assign role
-	//calculation since the new host may affect the assignment.
-	if reset_err := b.resetAutoAssignRoles(ctx, b.db, cluster, log, true); reset_err != nil {
-		return nil, common.NewApiError(http.StatusInternalServerError, reset_err)
 	}
 
 	if err = b.clusterApi.RefreshSchedulableMastersForcedTrue(ctx, *cluster.ID); err != nil {

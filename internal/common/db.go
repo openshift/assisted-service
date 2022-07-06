@@ -341,6 +341,21 @@ func GetInfraEnvFromDBWhere(db *gorm.DB, where ...interface{}) (*InfraEnv, error
 	return &infraEnv, nil
 }
 
+func ResetAutoAssignRoles(db *gorm.DB, onClusters interface{}) (int, error) {
+	if db == nil {
+		return 0, nil
+	}
+
+	reply := db.Model(&models.Host{}).Where("role = ?", models.HostRoleAutoAssign).
+		Where("cluster_id in (?)", onClusters).
+		Update("suggested_role", models.HostRoleAutoAssign)
+
+	if err := reply.Error; err != nil {
+		return 0, err
+	}
+	return int(reply.RowsAffected), nil
+}
+
 func ToModelsHosts(hosts []*Host) []*models.Host {
 	ret := make([]*models.Host, 0)
 	for _, h := range hosts {

@@ -1087,10 +1087,9 @@ var _ = Describe("cluster install", func() {
 		waitForClusterState(ctx, clusterID, models.ClusterStatusReady, defaultWaitForClusterStateTimeout,
 			IgnoreStateInfo)
 
-		//TODO: uncomment when the falkyness in assignment is solved
-		//By("expect h4 and h5 to be auto-assigned as masters")
-		//Expect(getSuggestedRole(*h4.ID)).Should(Equal(models.HostRoleMaster))
-		//Expect(getSuggestedRole(*h5.ID)).Should(Equal(models.HostRoleMaster))
+		By("expect h4 and h5 to be auto-assigned as masters")
+		Expect(getSuggestedRole(*h4.ID)).Should(Equal(models.HostRoleMaster))
+		Expect(getSuggestedRole(*h5.ID)).Should(Equal(models.HostRoleMaster))
 
 		By("add hosts with worker inventory expect the cluster to be ready")
 		h6 := &registerHost(*infraEnvID).Host
@@ -1122,9 +1121,8 @@ var _ = Describe("cluster install", func() {
 		}
 		Expect(getHostRole(*h1.ID)).Should(Equal(models.HostRoleWorker))
 		Expect(getHostRole(*h6.ID)).Should(Equal(models.HostRoleWorker))
-		//TODO: uncomment after the falkiness is solved
-		//Expect(getHostRole(*h4.ID)).Should(Equal(models.HostRoleMaster))
-		//Expect(getHostRole(*h5.ID)).Should(Equal(models.HostRoleMaster))
+		Expect(getHostRole(*h4.ID)).Should(Equal(models.HostRoleMaster))
+		Expect(getHostRole(*h5.ID)).Should(Equal(models.HostRoleMaster))
 		getReply, err := userBMClient.Installer.V2GetCluster(ctx, &installer.V2GetClusterParams{ClusterID: clusterID})
 		Expect(err).NotTo(HaveOccurred())
 		mastersCount := 0
@@ -1147,7 +1145,6 @@ var _ = Describe("cluster install", func() {
 
 	//TODO: stabilize this test
 	It("auto-assign_with_cnv_operator", func() {
-		Skip("Test is flaky, and needs extra work for its stabilization")
 		By("register 3 hosts all with master hw information and virtualization, cluster expected to be ready")
 		clusterID := *cluster.ID
 		ips := hostutil.GenerateIPv4Addresses(6, defaultCIDRv4)
@@ -1157,7 +1154,7 @@ var _ = Describe("cluster install", func() {
 			hwInventory := getDefaultInventory(ips[i])
 			hwInventory.CPU.Flags = []string{"vmx"}
 			hosts[i] = &registerHost(*infraEnvID).Host
-			generateEssentialHostStepsWithInventory(ctx, hosts[i], fmt.Sprintf("HHH_h%d", i+1), hwInventory)
+			generateEssentialHostStepsWithInventory(ctx, hosts[i], fmt.Sprintf("hhh%d", i+1), hwInventory)
 		}
 		updateVipParams(ctx, clusterID)
 		generateFullMeshConnectivity(ctx, ips[0], hosts[0], hosts[1], hosts[2])
@@ -1171,7 +1168,7 @@ var _ = Describe("cluster install", func() {
 			minHwInventory := getMinimalMasterInventory(ips[i])
 			minHwInventory.CPU.Flags = []string{"vmx"}
 			hosts[i] = &registerHost(*infraEnvID).Host
-			generateEssentialHostStepsWithInventory(ctx, hosts[i], fmt.Sprintf("HHH_h%d", i+1), minHwInventory)
+			generateEssentialHostStepsWithInventory(ctx, hosts[i], fmt.Sprintf("hhh%d", i+1), minHwInventory)
 		}
 		generateFullMeshConnectivity(ctx, ips[0], hosts...)
 		waitForHostState(ctx, models.HostStatusKnown, defaultWaitForHostStateTimeout, hosts...)

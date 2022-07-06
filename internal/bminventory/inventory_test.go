@@ -420,9 +420,6 @@ var _ = Describe("RegisterHost", func() {
 				test.availability, test.expectedRole), func() {
 				cluster := createClusterWithAvailability(db, models.ClusterStatusInsufficient, test.availability)
 				infraEnv := createInfraEnv(db, *cluster.ID, *cluster.ID)
-				if test.availability == models.ClusterHighAvailabilityModeFull {
-					mockClusterApi.EXPECT().ResetAutoAssignRoles(gomock.Any(), gomock.Any(), gomock.Any()).Return(false, nil)
-				}
 
 				mockClusterApi.EXPECT().AcceptRegistration(gomock.Any()).Return(nil).Times(1)
 				mockClusterApi.EXPECT().RefreshSchedulableMastersForcedTrue(gomock.Any(), gomock.Any()).Return(nil).Times(1)
@@ -471,7 +468,6 @@ var _ = Describe("RegisterHost", func() {
 		infraEnv := createInfraEnv(db, *cluster.ID, *cluster.ID)
 		expectedErrMsg := "some-internal-error"
 
-		mockClusterApi.EXPECT().ResetAutoAssignRoles(gomock.Any(), gomock.Any(), gomock.Any()).Return(false, nil)
 		mockClusterApi.EXPECT().AcceptRegistration(gomock.Any()).Return(nil).Times(1)
 		mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any()).Return(nil).Times(1)
 		mockHostApi.EXPECT().RegisterHost(gomock.Any(), gomock.Any(), gomock.Any()).
@@ -609,9 +605,6 @@ var _ = Describe("v2RegisterHost", func() {
 				test.availability, test.expectedRole), func() {
 				cluster := createClusterWithAvailability(db, models.ClusterStatusInsufficient, test.availability)
 				infraEnv := createInfraEnv(db, *cluster.ID, *cluster.ID)
-				if test.availability == models.ClusterHighAvailabilityModeFull {
-					mockClusterApi.EXPECT().ResetAutoAssignRoles(gomock.Any(), gomock.Any(), gomock.Any()).Return(false, nil)
-				}
 
 				mockClusterApi.EXPECT().AcceptRegistration(gomock.Any()).Return(nil).Times(1)
 				mockClusterApi.EXPECT().RefreshSchedulableMastersForcedTrue(gomock.Any(), gomock.Any()).Return(nil).Times(1)
@@ -660,7 +653,6 @@ var _ = Describe("v2RegisterHost", func() {
 		infraEnv := createInfraEnv(db, *cluster.ID, *cluster.ID)
 		expectedErrMsg := "some-internal-error"
 
-		mockClusterApi.EXPECT().ResetAutoAssignRoles(gomock.Any(), gomock.Any(), gomock.Any()).Return(false, nil)
 		mockClusterApi.EXPECT().AcceptRegistration(gomock.Any()).Return(nil).Times(1)
 		mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any()).Return(nil).Times(1)
 		mockHostApi.EXPECT().RegisterHost(gomock.Any(), gomock.Any(), gomock.Any()).
@@ -2813,12 +2805,6 @@ var _ = Describe("cluster", func() {
 								}).Times(1)
 						}
 
-						noChangedOperators := test.updateOperators == nil ||
-							(len(test.updateOperators) == 0 && len(test.originalOperators) == len(test.expectedOperators))
-						if !noChangedOperators {
-							mockClusterApi.EXPECT().ResetAutoAssignRoles(gomock.Any(), gomock.Any(), gomock.Any()).Times(1)
-						}
-
 						reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 							ClusterID: clusterID,
 							ClusterUpdateParams: &models.V2ClusterUpdateParams{
@@ -2842,7 +2828,6 @@ var _ = Describe("cluster", func() {
 
 				// Update
 				mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(1)
-				mockClusterApi.EXPECT().ResetAutoAssignRoles(gomock.Any(), gomock.Any(), gomock.Any()).Times(1)
 				mockSuccess()
 
 				newOperatorName := testOLMOperators[1].Name
@@ -4837,7 +4822,6 @@ var _ = Describe("[V2ClusterUpdate] cluster", func() {
 							mockGetOperatorByName(updateOperator.Name)
 						}
 						if test.updateOperators != nil {
-							mockClusterApi.EXPECT().ResetAutoAssignRoles(gomock.Any(), gomock.Any(), gomock.Any()).Times(1)
 							mockOperatorManager.EXPECT().ResolveDependencies(gomock.Any()).
 								DoAndReturn(func(operators []*models.MonitoredOperator) ([]*models.MonitoredOperator, error) {
 									return operators, nil
@@ -4867,7 +4851,6 @@ var _ = Describe("[V2ClusterUpdate] cluster", func() {
 
 				// Update
 				mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(1)
-				mockClusterApi.EXPECT().ResetAutoAssignRoles(gomock.Any(), gomock.Any(), gomock.Any()).Times(1)
 				mockSuccess()
 				newOperatorName := testOLMOperators[1].Name
 
@@ -12267,7 +12250,6 @@ var _ = Describe("BindHost", func() {
 			eventstest.WithInfraEnvIdMatcher(infraEnvID.String()),
 			eventstest.WithSeverityMatcher(models.EventSeverityInfo)))
 		mockClusterApi.EXPECT().AcceptRegistration(gomock.Any()).Return(nil).Times(1)
-		mockClusterApi.EXPECT().ResetAutoAssignRoles(gomock.Any(), gomock.Any(), gomock.Any()).Times(1)
 		mockClusterApi.EXPECT().RefreshSchedulableMastersForcedTrue(gomock.Any(), gomock.Any()).Return(nil).Times(1)
 
 		mockHostApi.EXPECT().BindHost(ctx, gomock.Any(), clusterID, gomock.Any())
@@ -12377,7 +12359,6 @@ var _ = Describe("BindHost", func() {
 			eventstest.WithInfraEnvIdMatcher(infraEnvID.String()),
 			eventstest.WithSeverityMatcher(models.EventSeverityInfo)))
 		mockClusterApi.EXPECT().AcceptRegistration(gomock.Any()).Return(nil).Times(1)
-		mockClusterApi.EXPECT().ResetAutoAssignRoles(gomock.Any(), gomock.Any(), gomock.Any()).Times(1)
 		mockClusterApi.EXPECT().RefreshSchedulableMastersForcedTrue(gomock.Any(), gomock.Any()).Return(nil).Times(2)
 		mockHostApi.EXPECT().BindHost(ctx, gomock.Any(), clusterID, gomock.Any())
 		response := bm.BindHost(ctx, params)
@@ -12412,7 +12393,6 @@ var _ = Describe("BindHost", func() {
 			BindHostParams: &models.BindHostParams{ClusterID: &clusterID},
 		}
 		mockClusterApi.EXPECT().AcceptRegistration(gomock.Any()).Return(nil).Times(1)
-		mockClusterApi.EXPECT().ResetAutoAssignRoles(gomock.Any(), gomock.Any(), gomock.Any()).Times(1)
 		mockClusterApi.EXPECT().RefreshSchedulableMastersForcedTrue(gomock.Any(), gomock.Any()).Return(nil).Times(1)
 		mockHostApi.EXPECT().BindHost(ctx, gomock.Any(), clusterID, gomock.Any())
 		response := bm.BindHost(ctx, params)
@@ -12497,7 +12477,6 @@ var _ = Describe("BindHost - with rhsso auth", func() {
 			eventstest.WithInfraEnvIdMatcher(infraEnvID.String()),
 			eventstest.WithSeverityMatcher(models.EventSeverityInfo)))
 		mockClusterApi.EXPECT().AcceptRegistration(gomock.Any()).Return(nil).Times(1)
-		mockClusterApi.EXPECT().ResetAutoAssignRoles(gomock.Any(), gomock.Any(), gomock.Any()).Times(1)
 		mockClusterApi.EXPECT().RefreshSchedulableMastersForcedTrue(gomock.Any(), gomock.Any()).Return(nil).Times(1)
 
 		payload.Username = userName1
@@ -12520,7 +12499,6 @@ var _ = Describe("BindHost - with rhsso auth", func() {
 			eventstest.WithInfraEnvIdMatcher(infraEnvID.String()),
 			eventstest.WithSeverityMatcher(models.EventSeverityInfo)))
 		mockClusterApi.EXPECT().AcceptRegistration(gomock.Any()).Return(nil).Times(1)
-		mockClusterApi.EXPECT().ResetAutoAssignRoles(gomock.Any(), gomock.Any(), gomock.Any()).Times(1)
 		mockClusterApi.EXPECT().RefreshSchedulableMastersForcedTrue(gomock.Any(), gomock.Any()).Return(nil).Times(1)
 
 		payload.Username = userName2
