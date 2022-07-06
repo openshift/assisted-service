@@ -123,8 +123,7 @@ func register(ctx context.Context, log *log.Logger, bmInventory *client.Assisted
 	if err != nil {
 		log.Fatal(err, "Failed to register infraenv with assisted-service")
 	}
-
-	err = agentbasedinstaller.RegisterExtraManifests(ctx, log, bmInventory, modelsCluster, RegisterOptions.ExtraManifests)
+	err = agentbasedinstaller.RegisterExtraManifests(os.DirFS(RegisterOptions.ExtraManifests), ctx, log, bmInventory.Manifests, modelsCluster)
 	if err != nil {
 		log.Fatal(err, "Failed to register extra manifests with assisted-service")
 	}

@@ -4,9 +4,8 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
-	"io/ioutil"
+	"io/fs"
 	"os"
-	"path/filepath"
 	"reflect"
 
 	hiveext "github.com/openshift/assisted-service/api/hiveextension/v1beta1"
@@ -117,9 +116,9 @@ func RegisterInfraEnv(ctx context.Context, log *log.Logger, bmInventory *client.
 	return infraEnvResult.Payload, nil
 }
 
-func RegisterExtraManifests(ctx context.Context, log *log.Logger, client *client.AssistedInstall, cluster *models.Cluster, extraManifestsPath string) error {
+func RegisterExtraManifests(fsys fs.FS, ctx context.Context, log *log.Logger, client *manifests.Client, cluster *models.Cluster) error {
 
-	extras, err := ioutil.ReadDir(extraManifestsPath)
+	extras, err := fs.Glob(fsys, "*.y*ml")
 	if err != nil {
 		return err
 	}
@@ -132,15 +131,13 @@ func RegisterExtraManifests(ctx context.Context, log *log.Logger, client *client
 
 	extraManifestsFolder := "openshift"
 
-	for _, m := range extras {
-		bytes, err := ioutil.ReadFile(filepath.Join(extraManifestsPath, m.Name()))
+	for _, extraManifestFileName := range extras {
+		bytes, err := fs.ReadFile(fsys, extraManifestFileName)
 		if err != nil {
 			return err
 		}
 
-		extraManifestFileName := m.Name()
 		extraManifestContent := base64.StdEncoding.EncodeToString(bytes)
-
 		params := manifests.NewV2CreateClusterManifestParams().
 			WithClusterID(*cluster.ID).
 			WithCreateManifestParams(&models.CreateManifestParams{
@@ -149,7 +146,7 @@ func RegisterExtraManifests(ctx context.Context, log *log.Logger, client *client
 				Content:  &extraManifestContent,
 			})
 
-		_, err = client.Manifests.V2CreateClusterManifest(ctx, params)
+		_, err = client.V2CreateClusterManifest(ctx, params)
 		if err != nil {
 			return err
 		}
