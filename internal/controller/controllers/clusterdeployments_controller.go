@@ -301,7 +301,7 @@ func (r *ClusterDeploymentsReconciler) agentClusterInstallFinalizer(ctx context.
 				}
 			}
 			//Unbind agents
-			if err = r.UnbindAgents(ctx, log, req.NamespacedName); err != nil {
+			if err = r.unbindAgents(ctx, log, req.NamespacedName); err != nil {
 				return &ctrl.Result{Requeue: true}, err
 			}
 
@@ -1326,9 +1326,7 @@ func (r *ClusterDeploymentsReconciler) deregisterClusterIfNeeded(ctx context.Con
 		return buildReply(err)
 	}
 
-	if err = r.Installer.DeregisterClusterInternal(ctx, installer.V2DeregisterClusterParams{
-		ClusterID: *c.ID,
-	}); err != nil {
+	if err = r.Installer.DeregisterClusterInternal(ctx, c); err != nil {
 		return buildReply(err)
 	}
 
@@ -1373,7 +1371,34 @@ func (r *ClusterDeploymentsReconciler) deleteClusterInstall(ctx context.Context,
 	return buildReply(err)
 }
 
-func (r *ClusterDeploymentsReconciler) UnbindAgents(ctx context.Context, log logrus.FieldLogger, clusterDeployment types.NamespacedName) error {
+func (r *ClusterDeploymentsReconciler) shouldDeleteAgentOnUnbind(ctx context.Context, agent aiv1beta1.Agent, clusterDeployment types.NamespacedName) bool {
+	log := logutil.FromContext(ctx, r.Log).WithFields(logrus.Fields{
+		"cluster_deployment":           clusterDeployment.Name,
+		"cluster_deployment_namespace": clusterDeployment.Namespace,
+	})
+	infraEnvName, ok := agent.Labels[aiv1beta1.InfraEnvNameLabel]
+	if !ok {
+		log.Errorf("Failed to find infraEnv name for agent %s in namespace %s", agent.Name, agent.Namespace)
+		return false
+	}
+
+	infraEnv := &aiv1beta1.InfraEnv{}
+	if err := r.Get(ctx, types.NamespacedName{Name: infraEnvName, Namespace: agent.Namespace}, infraEnv); err != nil {
+		log.Errorf("Failed to get infraEnv %s in namespace %s", infraEnvName, agent.Namespace)
+		return false
+	}
+
+	if infraEnv.Spec.ClusterRef != nil &&
+		infraEnv.Spec.ClusterRef.Name == clusterDeployment.Name &&
+		infraEnv.Spec.ClusterRef.Namespace == clusterDeployment.Namespace {
+
+		return true
+	}
+
+	return false
+}
+
+func (r *ClusterDeploymentsReconciler) unbindAgents(ctx context.Context, log logrus.FieldLogger, clusterDeployment types.NamespacedName) error {
 	agents := &aiv1beta1.AgentList{}
 	log = log.WithFields(logrus.Fields{"clusterDeployment": clusterDeployment.Name, "namespace": clusterDeployment.Namespace})
 	if err := r.List(ctx, agents); err != nil {
@@ -1383,11 +1408,19 @@ func (r *ClusterDeploymentsReconciler) UnbindAgents(ctx context.Context, log log
 		if clusterAgent.Spec.ClusterDeploymentName != nil &&
 			clusterAgent.Spec.ClusterDeploymentName.Name == clusterDeployment.Name &&
 			clusterAgent.Spec.ClusterDeploymentName.Namespace == clusterDeployment.Namespace {
-			log.Infof("unbind agent %s namespace %s", clusterAgent.Name, clusterAgent.Namespace)
-			agents.Items[i].Spec.ClusterDeploymentName = nil
-			if err := r.Update(ctx, &agents.Items[i]); err != nil {
-				log.WithError(err).Errorf("failed to add unbind resource %s %s", clusterAgent.Name, clusterAgent.Namespace)
-				return err
+			if r.shouldDeleteAgentOnUnbind(ctx, clusterAgent, clusterDeployment) {
+				log.Infof("deleting agent %s in namespace %s", clusterAgent.Name, clusterAgent.Namespace)
+				if err := r.Delete(ctx, &agents.Items[i]); err != nil {
+					log.WithError(err).Errorf("failed to delete agent %s in namespace %s", clusterAgent.Name, clusterAgent.Namespace)
+					return err
+				}
+			} else {
+				log.Infof("unbind agent %s namespace %s", clusterAgent.Name, clusterAgent.Namespace)
+				agents.Items[i].Spec.ClusterDeploymentName = nil
+				if err := r.Update(ctx, &agents.Items[i]); err != nil {
+					log.WithError(err).Errorf("failed to add unbind resource %s %s", clusterAgent.Name, clusterAgent.Namespace)
+					return err
+				}
 			}
 		}
 	}

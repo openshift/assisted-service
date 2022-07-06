@@ -18,6 +18,7 @@ import (
 	. "github.com/onsi/gomega"
 	common_api "github.com/openshift/assisted-service/api/common"
 	hiveext "github.com/openshift/assisted-service/api/hiveextension/v1beta1"
+	aiv1beta1 "github.com/openshift/assisted-service/api/v1beta1"
 	"github.com/openshift/assisted-service/internal/bminventory"
 	"github.com/openshift/assisted-service/internal/cluster"
 	"github.com/openshift/assisted-service/internal/common"
@@ -32,6 +33,7 @@ import (
 	"github.com/pkg/errors"
 	"gorm.io/gorm"
 	corev1 "k8s.io/api/core/v1"
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/scheme"
@@ -3486,5 +3488,109 @@ var _ = Describe("Getting ClusterDeployment admin kubeconfig secret name", func(
 			}
 			Expect(getClusterDeploymentAdminKubeConfigSecretName(cd)).To(Equal(adminSecretName))
 		})
+	})
+})
+
+var _ = Describe("unbindAgents", func() {
+	var (
+		c                     client.Client
+		cr                    *ClusterDeploymentsReconciler
+		ctx                   = context.Background()
+		mockCtrl              *gomock.Controller
+		mockInstallerInternal *bminventory.MockInstallerInternals
+		infraEnvName          = "test-infra-env"
+		clusterReference      = aiv1beta1.ClusterReference{Name: "test-cluster", Namespace: testNamespace}
+	)
+	BeforeEach(func() {
+		c = fakeclient.NewClientBuilder().WithScheme(scheme.Scheme).Build()
+		mockCtrl = gomock.NewController(GinkgoT())
+		mockInstallerInternal = bminventory.NewMockInstallerInternals(mockCtrl)
+		mockClusterApi := cluster.NewMockAPI(mockCtrl)
+		cr = &ClusterDeploymentsReconciler{
+			Client:     c,
+			APIReader:  c,
+			Scheme:     scheme.Scheme,
+			Log:        common.GetTestLog(),
+			Installer:  mockInstallerInternal,
+			ClusterApi: mockClusterApi,
+		}
+
+		agent := &aiv1beta1.Agent{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "test-agent1",
+				Namespace: testNamespace,
+				Labels:    map[string]string{aiv1beta1.InfraEnvNameLabel: infraEnvName},
+			},
+			Spec: aiv1beta1.AgentSpec{
+				ClusterDeploymentName: &clusterReference,
+			},
+		}
+		Expect(c.Create(ctx, agent)).To(Succeed())
+		agent = &aiv1beta1.Agent{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "test-agent2",
+				Namespace: testNamespace,
+				Labels:    map[string]string{aiv1beta1.InfraEnvNameLabel: infraEnvName},
+			},
+			Spec: aiv1beta1.AgentSpec{
+				ClusterDeploymentName: &clusterReference,
+			},
+		}
+		Expect(c.Create(ctx, agent)).To(Succeed())
+	})
+
+	It("unbinds agents when infraEnv does not reference the cluster", func() {
+		infraEnv := &aiv1beta1.InfraEnv{
+			TypeMeta: metav1.TypeMeta{
+				Kind:       "InfraEnv",
+				APIVersion: fmt.Sprintf("%s/%s", aiv1beta1.GroupVersion.Group, aiv1beta1.GroupVersion.Version),
+			},
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      infraEnvName,
+				Namespace: testNamespace,
+			},
+		}
+		Expect(c.Create(ctx, infraEnv)).To(Succeed())
+
+		cdName := types.NamespacedName{
+			Name:      clusterReference.Name,
+			Namespace: clusterReference.Namespace,
+		}
+		Expect(cr.unbindAgents(ctx, common.GetTestLog(), cdName)).To(Succeed())
+
+		agent := &aiv1beta1.Agent{}
+		Expect(c.Get(ctx, types.NamespacedName{Name: "test-agent1", Namespace: testNamespace}, agent)).To(Succeed())
+		Expect(agent.Spec.ClusterDeploymentName).To(BeNil())
+		agent = &aiv1beta1.Agent{}
+		Expect(c.Get(ctx, types.NamespacedName{Name: "test-agent2", Namespace: testNamespace}, agent)).To(Succeed())
+		Expect(agent.Spec.ClusterDeploymentName).To(BeNil())
+	})
+
+	It("deletes agents when infraEnv references the cluster", func() {
+		infraEnv := &aiv1beta1.InfraEnv{
+			TypeMeta: metav1.TypeMeta{
+				Kind:       "InfraEnv",
+				APIVersion: fmt.Sprintf("%s/%s", aiv1beta1.GroupVersion.Group, aiv1beta1.GroupVersion.Version),
+			},
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      infraEnvName,
+				Namespace: testNamespace,
+			},
+			Spec: aiv1beta1.InfraEnvSpec{ClusterRef: &clusterReference},
+		}
+		Expect(c.Create(ctx, infraEnv)).To(Succeed())
+
+		cdName := types.NamespacedName{
+			Name:      clusterReference.Name,
+			Namespace: clusterReference.Namespace,
+		}
+		Expect(cr.unbindAgents(ctx, common.GetTestLog(), cdName)).To(Succeed())
+
+		agent := &aiv1beta1.Agent{}
+		err := c.Get(ctx, types.NamespacedName{Name: "test-agent1", Namespace: testNamespace}, agent)
+		Expect(k8serrors.IsNotFound(err)).To(BeTrue())
+		agent = &aiv1beta1.Agent{}
+		err = c.Get(ctx, types.NamespacedName{Name: "test-agent2", Namespace: testNamespace}, agent)
+		Expect(k8serrors.IsNotFound(err)).To(BeTrue())
 	})
 })

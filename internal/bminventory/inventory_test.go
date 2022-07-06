@@ -14098,3 +14098,69 @@ var _ = Describe("GetInfraEnvPresignedFileURL", func() {
 		verifyApiError(resp, http.StatusNotFound)
 	})
 })
+
+var _ = Describe("GetHostByKubeKey", func() {
+	var (
+		bm        *bareMetalInventory
+		cfg       Config
+		db        *gorm.DB
+		dbName    string
+		hostID    *strfmt.UUID
+		clusterID *strfmt.UUID
+		kubeKey   = types.NamespacedName{
+			Namespace: "test-namespace",
+			Name:      "test-host",
+		}
+	)
+
+	BeforeEach(func() {
+		db, dbName = common.PrepareTestDB()
+		bm = createInventory(db, cfg)
+		cluster := createClusterWithAvailability(db, models.ClusterStatusReady, models.ClusterCreateParamsHighAvailabilityModeNone)
+		clusterID = cluster.ID
+		// this doesn't need to be a VM, but any host works for this test
+		addVMToCluster(cluster, db)
+		hostID = cluster.Hosts[0].ID
+	})
+
+	AfterEach(func() {
+		common.DeleteTestDB(db, dbName)
+		ctrl.Finish()
+	})
+
+	var getHost = func(_ types.NamespacedName) (*common.Host, error) {
+		return common.GetHostFromDBbyHostId(db, *hostID)
+	}
+
+	It("returns successfully when the cluster exists", func() {
+		mockHostApi.EXPECT().GetHostByKubeKey(kubeKey).DoAndReturn(getHost)
+		mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any()).Return(host.SnoStages[:])
+		h, err := bm.GetHostByKubeKey(kubeKey)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(h.ID).To(Equal(hostID))
+	})
+
+	It("returns successfully when the cluster ID is not set", func() {
+		Expect(db.Model(&common.Host{}).Where("id = ?", hostID.String()).Updates(map[string]interface{}{"cluster_id": nil}).Error).ToNot(HaveOccurred())
+		mockHostApi.EXPECT().GetHostByKubeKey(kubeKey).DoAndReturn(getHost)
+		mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any()).Return(host.SnoStages[:])
+		h, err := bm.GetHostByKubeKey(kubeKey)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(h.ID).To(Equal(hostID))
+	})
+
+	It("returns successfully when the referenced cluster is deleted", func() {
+		Expect(db.Delete(&common.Cluster{}, clusterID).Error).NotTo(HaveOccurred())
+		mockHostApi.EXPECT().GetHostByKubeKey(kubeKey).DoAndReturn(getHost)
+		mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any()).Return(host.SnoStages[:])
+		h, err := bm.GetHostByKubeKey(kubeKey)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(h.ID).To(Equal(hostID))
+	})
+
+	It("fails when getting the host fails", func() {
+		mockHostApi.EXPECT().GetHostByKubeKey(kubeKey).Return(nil, fmt.Errorf("Failed to get host"))
+		_, err := bm.GetHostByKubeKey(kubeKey)
+		Expect(err).To(HaveOccurred())
+	})
+})
