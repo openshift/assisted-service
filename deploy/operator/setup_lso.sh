@@ -23,7 +23,9 @@ function install_lso() {
   catalog_source_name="redhat-operators"
 
   OC_VERSION_MAJOR_MINOR=$(oc version -o json | jq --raw-output '.openshiftVersion' | cut -d'.' -f1-2)
+  echo "This is the cluster version $OC_VERSION_MAJOR_MINOR"
   if [[ ${OC_VERSION_MAJOR_MINOR} == "4.11" ]]; then
+      echo  "Creating redhat-operators-v4-10 catalog to be used in LSO subscription"
       # LSO has not been published to the 4.11 redhat-operators catalog, so
       # it cannot be installed on OpenShift 4.11. Until this is resolved,
       # we explicitly install the 4.10 catalog as redhat-operators-v4-10
