@@ -78,6 +78,20 @@ func (mr *MockManifestsGeneratorAPIMockRecorder) AddDnsmasqForSingleNode(ctx, lo
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddDnsmasqForSingleNode", reflect.TypeOf((*MockManifestsGeneratorAPI)(nil).AddDnsmasqForSingleNode), ctx, log, c)
 }
 
+// AddNodeIpHint mocks base method.
+func (m *MockManifestsGeneratorAPI) AddNodeIpHint(ctx context.Context, log logrus.FieldLogger, cluster *common.Cluster) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "AddNodeIpHint", ctx, log, cluster)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// AddNodeIpHint indicates an expected call of AddNodeIpHint.
+func (mr *MockManifestsGeneratorAPIMockRecorder) AddNodeIpHint(ctx, log, cluster interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddNodeIpHint", reflect.TypeOf((*MockManifestsGeneratorAPI)(nil).AddNodeIpHint), ctx, log, cluster)
+}
+
 // AddSchedulableMastersManifest mocks base method.
 func (m *MockManifestsGeneratorAPI) AddSchedulableMastersManifest(ctx context.Context, log logrus.FieldLogger, c *common.Cluster) error {
 	m.ctrl.T.Helper()
