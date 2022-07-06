@@ -33,7 +33,7 @@ v1.admission.agentinstall.openshift.io   assisted-installer/agentinstalladmissio
 In order to add a new webhook, the following steps are needed:
 
 - Add a new `ValidatingWebhookConfiguration` yaml in the deploy [dir](../../deploy/webhooks/) with the required CRD resource, group, version and define the URL path. Also add it to the web hook deploy [script](../../tools/deploy_webhooks.py).
-- Create an admission hook: see example for [ACI](../../pkg/validating-webhooks/hiveextension/v1beta1/agentclusterinstall_admission_hook.go). The needed functions are:
+- Create an admission hook: see example for [ACI](../../pkg/webhooks/hiveextension/v1beta1/agentclusterinstall_admission_hook.go). The needed functions are:
     - `Validate(admissionSpec *admissionv1.AdmissionRequest) *admissionv1.AdmissionResponse`: Handle AdmissionRequests
     - `ValidatingResource() (plural schema.GroupVersionResource, singular string)`: Declare the CRD this hook wants to handle
 - Add the new hook to the Admission Server [main](../../cmd/webadmission/main.go).

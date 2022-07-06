@@ -137,6 +137,7 @@ type ComponentStatusFn func(context.Context, logrus.FieldLogger, string, appsv1.
 // +kubebuilder:rbac:groups=route.openshift.io,resources=routes/custom-host,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=monitoring.coreos.com,resources=servicemonitors,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups="",resources=events,verbs=create;patch
+// +kubebuilder:rbac:groups=admissionregistration.k8s.io,resources=mutatingwebhookconfigurations,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=admissionregistration.k8s.io,resources=validatingwebhookconfigurations,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=rbac.authorization.k8s.io,resources=clusterroles,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=rbac.authorization.k8s.io,resources=clusterrolebindings,verbs=get;list;watch;create;update;patch;delete
@@ -235,6 +236,7 @@ func (r *AgentServiceConfigReconciler) Reconcile(origCtx context.Context, req ct
 		{"AssistedServiceConfigMap", aiv1beta1.ReasonConfigFailure, r.newAssistedCM},
 		{"AssistedServiceDeployment", aiv1beta1.ReasonDeploymentFailure, r.newAssistedServiceDeployment},
 		{"AgentClusterInstallValidatingWebHook", aiv1beta1.ReasonValidatingWebHookFailure, r.newACIWebHook},
+		{"AgentClusterInstallMutatingWebHook", aiv1beta1.ReasonMutatingWebHookFailure, r.newACIMutatWebHook},
 		{"InfraEnvValidatingWebHook", aiv1beta1.ReasonValidatingWebHookFailure, r.newInfraEnvWebHook},
 		{"AgentValidatingWebHook", aiv1beta1.ReasonValidatingWebHookFailure, r.newAgentWebHook},
 		{"WebHookService", aiv1beta1.ReasonWebHookServiceFailure, r.newWebHookService},
@@ -1857,6 +1859,61 @@ func (r *AgentServiceConfigReconciler) newAgentWebHook(ctx context.Context, log 
 		return nil
 	}
 	return &agent, mutateFn, nil
+}
+
+func (r *AgentServiceConfigReconciler) newACIMutatWebHook(ctx context.Context, log logrus.FieldLogger, instance *aiv1beta1.AgentServiceConfig) (client.Object, controllerutil.MutateFn, error) {
+	fp := admregv1.Fail
+	se := admregv1.SideEffectClassNone
+	path := "/apis/admission.agentinstall.openshift.io/v1/agentclusterinstallmutators"
+	webhooks := []admregv1.MutatingWebhook{
+		{
+			Name:          "agentclusterinstallmutators.admission.agentinstall.openshift.io",
+			FailurePolicy: &fp,
+			SideEffects:   &se,
+			AdmissionReviewVersions: []string{
+				"v1",
+			},
+			ClientConfig: admregv1.WebhookClientConfig{
+				Service: &admregv1.ServiceReference{
+					Namespace: defaultNamespace,
+					Name:      "kubernetes",
+					Path:      &path,
+				},
+			},
+			Rules: []admregv1.RuleWithOperations{
+				{
+					Operations: []admregv1.OperationType{
+						admregv1.Update,
+						admregv1.Create,
+					},
+					Rule: admregv1.Rule{
+						APIGroups: []string{
+							"extensions.hive.openshift.io",
+						},
+						APIVersions: []string{
+							"v1beta1",
+						},
+						Resources: []string{
+							"agentclusterinstalls",
+						},
+					},
+				},
+			},
+		},
+	}
+
+	aci := admregv1.MutatingWebhookConfiguration{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "agentclusterinstallmutators.admission.agentinstall.openshift.io",
+		},
+		Webhooks: webhooks,
+	}
+
+	mutateFn := func() error {
+		aci.Webhooks = webhooks
+		return nil
+	}
+	return &aci, mutateFn, nil
 }
 
 func (r *AgentServiceConfigReconciler) newACIWebHook(ctx context.Context, log logrus.FieldLogger, instance *aiv1beta1.AgentServiceConfig) (client.Object, controllerutil.MutateFn, error) {
