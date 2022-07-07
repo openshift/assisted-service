@@ -7,15 +7,14 @@ import (
 	"testing"
 	"testing/fstest"
 
+	"github.com/go-openapi/runtime"
+	"github.com/go-openapi/strfmt"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
-	"github.com/sirupsen/logrus/hooks/test"
-
-	"github.com/go-openapi/runtime"
-	"github.com/go-openapi/strfmt"
 	"github.com/openshift/assisted-service/client/manifests"
 	"github.com/openshift/assisted-service/models"
+	"github.com/sirupsen/logrus/hooks/test"
 )
 
 type registerCase struct {

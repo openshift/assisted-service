@@ -131,7 +131,8 @@ func RegisterExtraManifests(fsys fs.FS, ctx context.Context, log *log.Logger, cl
 
 	extraManifestsFolder := "openshift"
 
-	for _, extraManifestFileName := range extras {
+	for _, f := range extras {
+		extraManifestFileName := f
 		bytes, err := fs.ReadFile(fsys, extraManifestFileName)
 		if err != nil {
 			return err
@@ -148,7 +149,7 @@ func RegisterExtraManifests(fsys fs.FS, ctx context.Context, log *log.Logger, cl
 
 		_, err = client.V2CreateClusterManifest(ctx, params)
 		if err != nil {
-			return err
+			return errorutil.GetAssistedError(err)
 		}
 	}
 
