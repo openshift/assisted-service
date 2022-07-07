@@ -47,7 +47,7 @@ function jq() {
 
 function butane() {
   echo "Installing butane..."
-  curl https://mirror.openshift.com/pub/openshift-v4/clients/butane/latest/butane-${ARCH} --output /usr/local/bin/butane
+  curl --retry 5 -L https://mirror.openshift.com/pub/openshift-v4/clients/butane/v0.14.0-1/butane-${ARCH} --output /usr/local/bin/butane
   chmod +x /usr/local/bin/butane
 }
 
