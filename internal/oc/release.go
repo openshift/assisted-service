@@ -244,7 +244,7 @@ func (r *release) Extract(log logrus.FieldLogger, releaseImage string, releaseIm
 	} else {
 		path, err = r.extractFromRelease(log, releaseImage, cacheDir, pullSecret, false, platformType)
 		if err != nil {
-			log.WithError(err).Errorf("failed to extract openshift-baremetal-install from release image %s", releaseImageMirror)
+			log.WithError(err).Errorf("failed to extract openshift-baremetal-install from release image %s", releaseImage)
 			return "", err
 		}
 	}
