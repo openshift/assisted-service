@@ -6,18 +6,21 @@ import (
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/provider"
 	"github.com/openshift/assisted-service/models"
+	ovirtclient "github.com/ovirt/go-ovirt-client"
 	"github.com/sirupsen/logrus"
 )
 
 //
 type ovirtProvider struct {
-	Log logrus.FieldLogger
+	Log         logrus.FieldLogger
+	OvirtClient ovirtclient.Client
 }
 
 // NewOvirtProvider creates a new oVirt provider.
-func NewOvirtProvider(log logrus.FieldLogger) provider.Provider {
+func NewOvirtProvider(log logrus.FieldLogger, ovirtClient ovirtclient.Client) provider.Provider {
 	return &ovirtProvider{
-		Log: log,
+		Log:         log,
+		OvirtClient: ovirtClient,
 	}
 }
 

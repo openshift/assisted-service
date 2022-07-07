@@ -8,6 +8,7 @@ import (
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/provider"
 	"github.com/openshift/assisted-service/models"
+	ovirtclient "github.com/ovirt/go-ovirt-client"
 )
 
 var _ = Describe("base", func() {
@@ -16,7 +17,7 @@ var _ = Describe("base", func() {
 		var provider provider.Provider
 		var host *models.Host
 		BeforeEach(func() {
-			provider = NewOvirtProvider(log)
+			provider = NewOvirtProvider(log, ovirtclient.NewMock())
 			host = &models.Host{}
 		})
 

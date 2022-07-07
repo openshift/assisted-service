@@ -1,7 +1,14 @@
 package registry
 
 import (
+	"bytes"
 	"encoding/json"
+	"fmt"
+	"html/template"
+	"io/ioutil"
+	"os"
+	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/go-openapi/strfmt"
@@ -16,6 +23,9 @@ import (
 	"github.com/openshift/assisted-service/internal/provider/vsphere"
 	"github.com/openshift/assisted-service/internal/usage"
 	"github.com/openshift/assisted-service/models"
+	ovirtclient "github.com/ovirt/go-ovirt-client"
+	ovirtclientlog "github.com/ovirt/go-ovirt-client-log/v2"
+	"github.com/sirupsen/logrus"
 )
 
 var (
@@ -65,6 +75,44 @@ S9K0JAcps2xdnGu0fkzhSQxY8GPQNFTlr6rYld5+ID/hHeS76gq0YG3q6RLWRkHf
 4eTkRjivAlExrFzKcljC4axKQlnOvVAzz+Gm32U0xPBF4ByePVxCJUHw1TsyTmel
 RxNEp7yHoXcwn+fXna+t5JWh1gxUZty3
 -----END CERTIFICATE-----
+`
+
+const masterMachineManifestTemplate = `
+apiVersion: machine.openshift.io/v1beta1
+kind: Machine
+metadata:
+  creationTimestamp: null
+  labels:
+    machine.openshift.io/cluster-api-cluster: {{ .CLUSTER_NAME }}-xxxxx
+    machine.openshift.io/cluster-api-machine-role: master
+    machine.openshift.io/cluster-api-machine-type: master
+  name: {{ .VM_NAME }}
+  namespace: openshift-machine-api
+spec:
+  metadata: {}
+  providerSpec:
+    value:
+      apiVersion: ovirtproviderconfig.machine.openshift.io/v1beta1
+	  cluster_id: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+      cpu:
+        cores: 4
+        sockets: 1
+        threads: 1
+      credentialsSecret:
+        name: credentials
+      id: ""
+      kind: OvirtMachineProviderSpec
+      memory_mb: 16348
+      metadata:
+        creationTimestamp: null
+      name: ""
+      os_disk:
+        size_gb: 120
+      template_name: {{ .CLUSTER_NAME }}-xxxxx
+      type: high_performance
+      userDataSecret:
+        name: master-user-data
+status: {}
 `
 
 var _ = Describe("Test GetSupportedProvidersByHosts", func() {
@@ -400,8 +448,140 @@ var _ = Describe("Test SetPlatformUsages", func() {
 	})
 })
 
+var _ = Describe("Test Hooks", func() {
+	var (
+		vm      ovirtclient.VM
+		workDir string
+		envVars []string
+		content []byte
+		err     error
+	)
+	BeforeEach(func() {
+		ctrl = gomock.NewController(GinkgoT())
+		envVars = make([]string, 0)
+		workDir, err = ioutil.TempDir("", "test-assisted-installer-hooks")
+		Expect(err).To(BeNil())
+		err = os.Mkdir(filepath.Join(workDir, "openshift"), 0755)
+		Expect(err).To(BeNil())
+	})
+	AfterEach(func() {
+		err = os.RemoveAll(workDir)
+		Expect(err).To(BeNil())
+	})
+	Context("ovirt", func() {
+		ovirtHelper := ovirtclient.NewTestHelperFromEnv(ovirtclientlog.NewNOOPLogger())
+		Expect(ovirtHelper).NotTo(BeNil())
+		ovirtClient := ovirtHelper.GetClient()
+		ovirtClusterID := ovirtHelper.GetClusterID()
+		ovirtTemplateID := ovirtHelper.GetBlankTemplateID()
+		ovirtOptVMParams := ovirtclient.CreateVMParams()
+
+		providerRegistry := NewProviderRegistry()
+		ovirtProvider := ovirt.NewOvirtProvider(logrus.New(), ovirtClient)
+		providerRegistry.Register(ovirtProvider)
+
+		hosts := make([]*models.Host, 0)
+		for i := 0; i <= 5; i++ {
+			hostname := fmt.Sprintf("hostname%d", i)
+			vm, err = ovirtClient.CreateVM(ovirtClusterID, ovirtTemplateID, hostname, ovirtOptVMParams)
+			Expect(err).To(BeNil())
+			hosts = append(hosts, createHostWithID(vm.ID(), i < 3, models.HostStatusKnown, getOvirtInventoryStr(hostname, "bootMode", true, false)))
+			Expect(err).To(BeNil())
+		}
+		cluster := createClusterFromHosts(hosts)
+		cluster.Platform = createOvirtPlatformParams()
+
+		It("ovirt PreCreateManifestsHook success", func() {
+			Expect(providerRegistry.PreCreateManifestsHook(&cluster, &envVars, workDir)).To(BeNil())
+			content, err = ioutil.ReadFile(filepath.Join(workDir, ".ovirt-config.yaml"))
+			Expect(err).To(BeNil())
+			Expect(string(content)).To(ContainSubstring(ovirtUsername))
+		})
+		It("ovirt PostCreateManifestsHook success", func() {
+			createMasterMachineManifests(workDir, "99", &cluster)
+			err = providerRegistry.PostCreateManifestsHook(&cluster, &envVars, workDir)
+			Expect(err).To(BeNil())
+			verifyMasterMachineManifests(workDir, "99", &cluster, ovirtClient)
+		})
+		It("ovirt PostCreateManifestsHook failure", func() {
+			createMasterMachineManifests(workDir, "50", &cluster)
+			createMasterMachineManifests(workDir, "99", &cluster)
+			err = providerRegistry.PostCreateManifestsHook(&cluster, &envVars, workDir)
+			Expect(err).To(HaveOccurred())
+		})
+
+	})
+})
+
+func createMasterMachineManifests(workDir, filePrefix string, cluster *common.Cluster) {
+	tmpl, err := template.New("").Parse(masterMachineManifestTemplate)
+	baseDir := filepath.Join(workDir, "openshift")
+	Expect(err).To(BeNil())
+	for i := 0; i < 3; i++ {
+		fileName := fmt.Sprintf(strings.Replace(ovirt.MachineManifestFileNameGlobStrFmt, "*", filePrefix, -1), i)
+		filePath := filepath.Join(baseDir, fileName)
+		vmName := fmt.Sprintf("%s-xxxxx-master-%d", cluster.Name, i)
+		manifestParams := map[string]interface{}{
+			"VM_NAME":      vmName,
+			"CLUSTER_NAME": cluster.Name,
+		}
+		buf := &bytes.Buffer{}
+		err = tmpl.Execute(buf, manifestParams)
+		Expect(err).To(BeNil())
+		err = ioutil.WriteFile(filePath, buf.Bytes(), 0600)
+		Expect(err).To(BeNil())
+	}
+}
+
+func verifyMasterMachineManifests(workDir, filePrefix string, cluster *common.Cluster, ovirtClient ovirtclient.Client) {
+	baseDir := filepath.Join(workDir, "openshift")
+	retryStragegy := ovirtclient.AutoRetry()
+	for _, host := range common.GetHostsByRole(cluster, models.HostRoleMaster) {
+		vm, err := ovirtClient.GetVM(host.ID.String(), retryStragegy)
+		Expect(err).To(BeNil())
+		vmName := vm.Name()
+		template, err := ovirtClient.GetTemplate(vm.TemplateID(), retryStragegy)
+		Expect(err).To(BeNil())
+		templateName := template.Name()
+		found := false
+		for i := 0; i < 3; i++ {
+			fileName := fmt.Sprintf(strings.Replace(ovirt.MachineManifestFileNameGlobStrFmt, "*", filePrefix, -1), i)
+			filePath := filepath.Join(baseDir, fileName)
+			vmNamePattern := fmt.Sprintf(ovirt.VmNameReplacementStrFmt, vmName)
+			templatePattern := fmt.Sprintf(ovirt.TemplateNameReplacementStrFmt, templateName)
+			manifestContent, err := ioutil.ReadFile(filePath)
+			Expect(err).To(BeNil())
+			manifestContentStr := string(manifestContent)
+			if strings.Contains(manifestContentStr, vmNamePattern) && strings.Contains(manifestContentStr, templatePattern) {
+				found = true
+			}
+		}
+		Expect(found).To(BeTrue())
+	}
+}
+
 func createHost(isMaster bool, state string, inventory string) *models.Host {
 	hostId := strfmt.UUID(uuid.New().String())
+	clusterId := strfmt.UUID(uuid.New().String())
+	infraEnvId := strfmt.UUID(uuid.New().String())
+	hostRole := models.HostRoleWorker
+	if isMaster {
+		hostRole = models.HostRoleMaster
+	}
+	host := models.Host{
+		ID:         &hostId,
+		InfraEnvID: infraEnvId,
+		ClusterID:  &clusterId,
+		Kind:       swag.String(models.HostKindHost),
+		Status:     swag.String(state),
+		Role:       hostRole,
+		Inventory:  inventory,
+	}
+	return &host
+}
+
+func createHostWithID(id string, isMaster bool, state, inventory string) *models.Host {
+	hostId := strfmt.UUID(id)
 	clusterId := strfmt.UUID(uuid.New().String())
 	infraEnvId := strfmt.UUID(uuid.New().String())
 	hostRole := models.HostRoleWorker
@@ -510,6 +690,7 @@ func createOvirtPlatformParams() *models.Platform {
 func createClusterFromHosts(hosts []*models.Host) common.Cluster {
 	return common.Cluster{
 		Cluster: models.Cluster{
+			Name:             "cluster",
 			APIVip:           "192.168.10.10",
 			Hosts:            hosts,
 			IngressVip:       "192.168.10.11",

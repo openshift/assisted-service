@@ -14,10 +14,10 @@ const (
 
 	OvirtManufacturer string = "oVirt"
 
-	engineURLStrFmt               = "https://%s/ovirt-engine/api"
-	vmNamePatternStrFmt           = "name: %s-([b-df-hj-np-tv-z0-9]){5}-master-[012]"
-	vmNameReplacementStrFmt       = "name: %s"
-	templateNamePatternStr        = "template_name: +.*"
-	templateNameReplacementStrFmt = "template_name: %s"
-	manifestFileNameStrFmt        = "50_openshift-cluster-api_master-machines-%d.yaml"
+	EngineURLStrFmt                   = "https://%s/ovirt-engine/api"
+	VmNamePatternStrFmt               = "name: %s-([b-df-hj-np-tv-z0-9]){5}-master-[012]"
+	VmNameReplacementStrFmt           = "name: %s"
+	TemplateNamePatternStr            = "template_name: +.*"
+	TemplateNameReplacementStrFmt     = "template_name: %s"
+	MachineManifestFileNameGlobStrFmt = "*_openshift-cluster-api_master-machines-%d.yaml"
 )

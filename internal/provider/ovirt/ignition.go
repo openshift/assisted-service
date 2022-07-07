@@ -28,7 +28,7 @@ func (p ovirtProvider) createOvirtConfig(workDir string, platformParams *models.
 	if platformParams == nil {
 		return "", nil
 	}
-	URL := fmt.Sprintf(engineURLStrFmt, *platformParams.Fqdn)
+	URL := fmt.Sprintf(EngineURLStrFmt, *platformParams.Fqdn)
 	oVirtConfig := &OvirtConfig{
 		URL:      URL,
 		Username: swag.StringValue(platformParams.Username),
@@ -64,8 +64,11 @@ func (p ovirtProvider) PreCreateManifestsHook(cluster *common.Cluster, envVars *
 	return nil
 }
 
-func getOvirtClient(params *models.OvirtPlatform) (ovirtclient.Client, error) {
+func (p ovirtProvider) getOvirtClient(params *models.OvirtPlatform) (ovirtclient.Client, error) {
 	var URL, userName, password string
+	if p.OvirtClient != nil {
+		return p.OvirtClient, nil
+	}
 	if params == nil {
 		return nil, errors.New("no ovirt platform params provided")
 	}
@@ -77,7 +80,7 @@ func getOvirtClient(params *models.OvirtPlatform) (ovirtclient.Client, error) {
 		tls.CACertsFromMemory([]byte(*params.CaBundle))
 	}
 	if params.Fqdn != nil {
-		URL = fmt.Sprintf(engineURLStrFmt, *params.Fqdn)
+		URL = fmt.Sprintf(EngineURLStrFmt, *params.Fqdn)
 	}
 	if params.Username != nil {
 		userName = *params.Username
@@ -85,7 +88,7 @@ func getOvirtClient(params *models.OvirtPlatform) (ovirtclient.Client, error) {
 	if params.Password != nil {
 		password = params.Password.String()
 	}
-	return ovirtclient.New(
+	ovirtClient, err := ovirtclient.New(
 		URL,
 		userName,
 		password,
@@ -93,27 +96,77 @@ func getOvirtClient(params *models.OvirtPlatform) (ovirtclient.Client, error) {
 		nil,
 		nil,
 	)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to create a new ovirt client")
+	}
+	p.OvirtClient = ovirtClient
+	return p.OvirtClient, nil
 }
 
-func updateHostInfoInManifest(clusterName string, vmName string, templateName string, workDir string, masterNum int) error {
-	vmNamePattern := fmt.Sprintf(vmNamePatternStrFmt, clusterName)
+func updateHostInfoInManifest(workDir, fileName, clusterName, vmName, templateName string) error {
+	vmNamePattern := fmt.Sprintf(VmNamePatternStrFmt, clusterName)
 	vmNameRegexp := regexp.MustCompile(vmNamePattern)
-	vmNameReplacement := fmt.Sprintf(vmNameReplacementStrFmt, vmName)
-	templateNameRegexp := regexp.MustCompile(templateNamePatternStr)
-	templateNameReplacement := fmt.Sprintf(templateNameReplacementStrFmt, templateName)
+	vmNameReplacement := fmt.Sprintf(VmNameReplacementStrFmt, vmName)
+	templateNameRegexp := regexp.MustCompile(TemplateNamePatternStr)
+	templateNameReplacement := fmt.Sprintf(TemplateNameReplacementStrFmt, templateName)
 
-	manifestFileName := fmt.Sprintf(manifestFileNameStrFmt, masterNum)
-	manifestPath := filepath.Join(workDir, "openshift", manifestFileName)
-
-	content, err := ioutil.ReadFile(manifestPath)
+	content, err := readContentFromFileGlob(workDir, fileName)
 	if err != nil {
-		return errors.Wrapf(err, "unable to read master file %s", manifestPath)
+		return errors.Wrapf(err, "unable to get contents from master machine file")
 	}
+
 	newContent := vmNameRegexp.ReplaceAllString(string(content), vmNameReplacement)
 	newContent = templateNameRegexp.ReplaceAllString(newContent, templateNameReplacement)
-	err = ioutil.WriteFile(manifestPath, []byte(newContent), 0600)
+
+	err = writeContentFromFileGlob(workDir, fileName, []byte(newContent))
 	if err != nil {
-		return errors.Wrapf(err, "unable to write master file %s", manifestPath)
+		return errors.Wrapf(err, "unable to write contents to master machine file")
+	}
+	return nil
+}
+
+func readContentFromFileGlob(workDir, fileGlob string) ([]byte, error) {
+	var content []byte
+
+	globFullPath := filepath.Join(workDir, "openshift", fileGlob)
+	fullPaths, err := filepath.Glob(globFullPath)
+
+	if err != nil {
+		return nil, errors.Wrapf(err, "error computing file glob %s", globFullPath)
+	}
+
+	if fullPaths == nil {
+		return nil, errors.New(fmt.Sprintf("unable to find file '%s'", globFullPath))
+	}
+
+	if len(fullPaths) > 1 {
+		return nil, errors.New(fmt.Sprintf("more than one file found for glob '%s': %v", globFullPath, fullPaths))
+	}
+	filePath := fullPaths[0]
+
+	content, err = ioutil.ReadFile(filePath)
+	if err != nil {
+		return nil, errors.Wrapf(err, "unable to read file %s", filePath)
+	}
+	return content, nil
+}
+
+func writeContentFromFileGlob(workDir, fileGlob string, content []byte) error {
+	globFullPath := filepath.Join(workDir, "openshift", fileGlob)
+	fullPaths, _ := filepath.Glob(globFullPath)
+
+	if fullPaths == nil {
+		return errors.New(fmt.Sprintf("unable to find file '%s'", globFullPath))
+	}
+
+	if len(fullPaths) > 1 {
+		return errors.New(fmt.Sprintf("more than one file found for glob '%s': %v", globFullPath, fullPaths))
+	}
+	filePath := fullPaths[0]
+
+	err := ioutil.WriteFile(filePath, content, 0600)
+	if err != nil {
+		return errors.Wrapf(err, "unable to write file %s", filePath)
 	}
 	return nil
 }
@@ -131,7 +184,7 @@ func (p ovirtProvider) PostCreateManifestsHook(cluster *common.Cluster, envVars 
 	}
 
 	retry := ovirtclient.AutoRetry()
-	client, err := getOvirtClient(cluster.Platform.Ovirt)
+	client, err := p.getOvirtClient(cluster.Platform.Ovirt)
 	if err != nil {
 		return errors.Wrap(err, "unable to get an ovirt client")
 	}
@@ -147,7 +200,8 @@ func (p ovirtProvider) PostCreateManifestsHook(cluster *common.Cluster, envVars 
 		if err != nil {
 			return err
 		}
-		err = updateHostInfoInManifest(cluster.Name, vm.Name(), template.Name(), workDir, i)
+		fileName := fmt.Sprintf(MachineManifestFileNameGlobStrFmt, i)
+		err = updateHostInfoInManifest(workDir, fileName, cluster.Name, vm.Name(), template.Name())
 		if err != nil {
 			return errors.Wrapf(err, "unable to update master '%d' with UUID '%s'", i, vm_id)
 		}
