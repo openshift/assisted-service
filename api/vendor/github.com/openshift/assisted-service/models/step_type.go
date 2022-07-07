@@ -47,6 +47,9 @@ const (
 	// StepTypeAPIVipConnectivityCheck captures enum value "api-vip-connectivity-check"
 	StepTypeAPIVipConnectivityCheck StepType = "api-vip-connectivity-check"
 
+	// StepTypeTangConnectivityCheck captures enum value "tang-connectivity-check"
+	StepTypeTangConnectivityCheck StepType = "tang-connectivity-check"
+
 	// StepTypeNtpSynchronizer captures enum value "ntp-synchronizer"
 	StepTypeNtpSynchronizer StepType = "ntp-synchronizer"
 
@@ -77,7 +80,7 @@ var stepTypeEnum []interface{}
 
 func init() {
 	var res []StepType
-	if err := json.Unmarshal([]byte(`["connectivity-check","execute","inventory","install","free-network-addresses","dhcp-lease-allocate","api-vip-connectivity-check","ntp-synchronizer","installation-disk-speed-check","container-image-availability","domain-resolution","stop-installation","logs-gather","next-step-runner","upgrade-agent"]`), &res); err != nil {
+	if err := json.Unmarshal([]byte(`["connectivity-check","execute","inventory","install","free-network-addresses","dhcp-lease-allocate","api-vip-connectivity-check","tang-connectivity-check","ntp-synchronizer","installation-disk-speed-check","container-image-availability","domain-resolution","stop-installation","logs-gather","next-step-runner","upgrade-agent"]`), &res); err != nil {
 		panic(err)
 	}
 	for _, v := range res {

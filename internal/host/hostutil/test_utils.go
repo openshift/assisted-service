@@ -163,6 +163,41 @@ func GenerateTestAPIVIpConnectivity(ignition string) string {
 	Expect(err).To(Not(HaveOccurred()))
 	return string(bytes)
 }
+func getTangResponse(url string) models.TangServerResponse {
+	return models.TangServerResponse{
+		TangURL: url,
+		Payload: "some_fake_payload",
+		Signatures: []*models.TangServerSignatures{
+			{
+				Signature: "some_fake_signature1",
+				Protected: "foobar1",
+			},
+			{
+				Signature: "some_fake_signature2",
+				Protected: "foobar2",
+			},
+		},
+	}
+}
+
+func GenerateTestTangConnectivity(success bool) string {
+	checkAPIResponse := models.TangConnectivityResponse{
+		IsSuccess:          false,
+		TangServerResponse: nil,
+	}
+
+	if success {
+		tangResponse := getTangResponse("http://tang.example.com:7500")
+		checkAPIResponse = models.TangConnectivityResponse{
+			IsSuccess:          true,
+			TangServerResponse: []*models.TangServerResponse{&tangResponse},
+		}
+	}
+
+	bytes, err := json.Marshal(checkAPIResponse)
+	Expect(err).To(Not(HaveOccurred()))
+	return string(bytes)
+}
 
 /* Inventory */
 

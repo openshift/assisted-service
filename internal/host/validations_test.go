@@ -314,16 +314,17 @@ var _ = Describe("Validations test", func() {
 			Expect(validationMessage).To(Equal("Missing host inventory"))
 		})
 
-		It("non TPM mode", func() {
-
+		It("tang mode - validation success", func() {
 			c := hostutil.GenerateTestCluster(clusterID, common.TestIPv4Networking.MachineNetworks)
 			c.DiskEncryption = &models.DiskEncryption{
-				EnableOn: swag.String(models.DiskEncryptionEnableOnMasters),
-				Mode:     swag.String(models.DiskEncryptionModeTang),
+				EnableOn:    swag.String(models.DiskEncryptionEnableOnMasters),
+				Mode:        swag.String(models.DiskEncryptionModeTang),
+				TangServers: `[{"URL":"http://tang.example.com:7500","Thumbprint":"PLjNyRdGw03zlRoGjQYMahSZGu9"}]`,
 			}
 			Expect(db.Create(&c).Error).ToNot(HaveOccurred())
 
 			h := hostutil.GenerateTestHostByKind(hostID, infraEnvID, &clusterID, models.HostStatusDiscovering, models.HostKindHost, models.HostRoleMaster)
+			h.TangConnectivity = hostutil.GenerateTestTangConnectivity(true)
 			h.Inventory = common.GenerateTestInventoryWithSetNetwork()
 			Expect(db.Create(&h).Error).ShouldNot(HaveOccurred())
 
@@ -334,6 +335,29 @@ var _ = Describe("Validations test", func() {
 			Expect(found).To(BeTrue())
 			Expect(validationStatus).To(Equal(ValidationSuccess))
 			Expect(validationMessage).To(Equal(fmt.Sprintf("Installation disk can be encrypted using %s", models.DiskEncryptionModeTang)))
+		})
+
+		It("tang mode - validation failure", func() {
+			c := hostutil.GenerateTestCluster(clusterID, common.TestIPv4Networking.MachineNetworks)
+			c.DiskEncryption = &models.DiskEncryption{
+				EnableOn:    swag.String(models.DiskEncryptionEnableOnMasters),
+				Mode:        swag.String(models.DiskEncryptionModeTang),
+				TangServers: `[{"URL":"http://tang.example.com:7500","Thumbprint":"PLjNyRdGw03zlRoGjQYMahSZGu9"}]`,
+			}
+			Expect(db.Create(&c).Error).ToNot(HaveOccurred())
+
+			h := hostutil.GenerateTestHostByKind(hostID, infraEnvID, &clusterID, models.HostStatusDiscovering, models.HostKindHost, models.HostRoleMaster)
+			h.TangConnectivity = hostutil.GenerateTestTangConnectivity(false)
+			h.Inventory = common.GenerateTestInventoryWithSetNetwork()
+			Expect(db.Create(&h).Error).ShouldNot(HaveOccurred())
+
+			mockAndRefreshStatus(&h)
+
+			h = hostutil.GetHostFromDB(*h.ID, h.InfraEnvID, db).Host
+			validationStatus, validationMessage, found := getValidationResult(h.ValidationsInfo, diskEncryptionID)
+			Expect(found).To(BeTrue())
+			Expect(validationStatus).To(Equal(ValidationFailure))
+			Expect(validationMessage).Should(ContainSubstring("Could not validate that all Tang servers are reachable and working"))
 		})
 
 		It("TPM is disabled in host's BIOS", func() {
@@ -433,13 +457,14 @@ var _ = Describe("Validations test", func() {
 			configBytes, err := json.Marshal(config)
 			Expect(err).To(Not(HaveOccurred()))
 			h.APIVipConnectivity = hostutil.GenerateTestAPIVIpConnectivity(string(configBytes))
+			h.TangConnectivity = hostutil.GenerateTestTangConnectivity(true)
 			Expect(db.Create(&h).Error).ShouldNot(HaveOccurred())
 
 			mockAndRefreshStatus(&h)
 
 			h = hostutil.GetHostFromDB(*h.ID, h.InfraEnvID, db).Host
 			_, _, found := getValidationResult(h.ValidationsInfo, diskEncryptionID)
-			Expect(found).To(BeFalse())
+			Expect(found).To(BeTrue())
 		})
 
 		It("day2 host - TPM2 and Tang are not available in ignition LUKS", func() {

@@ -3961,6 +3961,9 @@ definitions:
       api_vip_connectivity:
         x-go-custom-tag: gorm:"type:text"
         type: string
+      tang_connectivity:
+        x-go-custom-tag: gorm:"type:text"
+        type: string
       inventory:
         x-go-custom-tag: gorm:"type:text"
         type: string
@@ -4112,6 +4115,7 @@ definitions:
       - free-network-addresses
       - dhcp-lease-allocate
       - api-vip-connectivity-check
+      - tang-connectivity-check
       - ntp-synchronizer
       - installation-disk-speed-check
       - container-image-availability
@@ -5472,6 +5476,44 @@ definitions:
       ignition:
         type: string
         description: Ignition fetched from the specified API VIP
+
+  tang_connectivity_request:
+    type: object
+    required:
+      - tang_servers
+    properties:
+      tang_servers:
+        type: string
+        description: JSON-formatted string containing additional information regarding tang's configuration
+
+  tang_connectivity_response:
+    type: object
+    properties:
+      is_success:
+        type: boolean
+        description: Tang check result.
+      tang_server_response:
+        type: array
+        items:
+          x-go-name: TangServerResponse
+          type: object
+          properties:
+            tang_url:
+              type: string
+              description: Tang URL.
+            payload:
+              type: string
+              description: Tang response payload.
+            signatures:
+              type: array
+              items:
+                x-go-name: TangServerSignatures
+                type: object
+                properties:
+                  protected:
+                    type: string
+                  signature:
+                    type: string
 
   disk_speed_check_request:
     type: object

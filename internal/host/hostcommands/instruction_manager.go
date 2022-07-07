@@ -72,6 +72,7 @@ func NewInstructionManager(log logrus.FieldLogger, db *gorm.DB, hwValidator hard
 	logsCmd := NewLogsCmd(log, db, instructionConfig)
 	dhcpAllocateCmd := NewDhcpAllocateCmd(log, instructionConfig.AgentImage, db)
 	apivipConnectivityCmd := NewAPIVIPConnectivityCheckCmd(log, db, instructionConfig.AgentImage)
+	tangConnectivityCmd := NewTangConnectivityCheckCmd(log, db, instructionConfig.AgentImage)
 	ntpSynchronizerCmd := NewNtpSyncCmd(log, instructionConfig.AgentImage, db)
 	diskPerfCheckCmd := NewDiskPerfCheckCmd(log, instructionConfig.AgentImage, hwValidator, instructionConfig.DiskCheckTimeout.Seconds())
 	imageAvailabilityCmd := NewImageAvailabilityCmd(log, db, ocRelease, versionHandler, instructionConfig, instructionConfig.ImageAvailabilityTimeout.Seconds())
@@ -83,11 +84,11 @@ func NewInstructionManager(log logrus.FieldLogger, db *gorm.DB, hwValidator hard
 		db:               db,
 		disabledStepsMap: generateDisabledStepsMap(log, instructionConfig.DisabledSteps),
 		installingClusterStateToSteps: stateToStepsMap{
-			models.HostStatusKnown:                    {[]CommandGetter{connectivityCmd, freeAddressesCmd, dhcpAllocateCmd, inventoryCmd, ntpSynchronizerCmd, domainNameResolutionCmd}, defaultNextInstructionInSec, models.StepsPostStepActionContinue},
-			models.HostStatusInsufficient:             {[]CommandGetter{inventoryCmd, connectivityCmd, freeAddressesCmd, dhcpAllocateCmd, ntpSynchronizerCmd, domainNameResolutionCmd}, defaultNextInstructionInSec, models.StepsPostStepActionContinue},
+			models.HostStatusKnown:                    {[]CommandGetter{connectivityCmd, tangConnectivityCmd, freeAddressesCmd, dhcpAllocateCmd, inventoryCmd, ntpSynchronizerCmd, domainNameResolutionCmd}, defaultNextInstructionInSec, models.StepsPostStepActionContinue},
+			models.HostStatusInsufficient:             {[]CommandGetter{inventoryCmd, connectivityCmd, tangConnectivityCmd, freeAddressesCmd, dhcpAllocateCmd, ntpSynchronizerCmd, domainNameResolutionCmd}, defaultNextInstructionInSec, models.StepsPostStepActionContinue},
 			models.HostStatusDisconnected:             {[]CommandGetter{inventoryCmd}, defaultBackedOffInstructionInSec, models.StepsPostStepActionContinue},
 			models.HostStatusDiscovering:              {[]CommandGetter{inventoryCmd}, defaultNextInstructionInSec, models.StepsPostStepActionContinue},
-			models.HostStatusPendingForInput:          {[]CommandGetter{inventoryCmd, connectivityCmd, freeAddressesCmd, dhcpAllocateCmd, ntpSynchronizerCmd, domainNameResolutionCmd}, defaultNextInstructionInSec, models.StepsPostStepActionContinue},
+			models.HostStatusPendingForInput:          {[]CommandGetter{inventoryCmd, connectivityCmd, tangConnectivityCmd, freeAddressesCmd, dhcpAllocateCmd, ntpSynchronizerCmd, domainNameResolutionCmd}, defaultNextInstructionInSec, models.StepsPostStepActionContinue},
 			models.HostStatusInstalling:               {[]CommandGetter{installCmd, dhcpAllocateCmd}, defaultBackedOffInstructionInSec, models.StepsPostStepActionContinue},
 			models.HostStatusInstallingInProgress:     {[]CommandGetter{dhcpAllocateCmd}, defaultNextInstructionInSec, models.StepsPostStepActionContinue}, //TODO inventory step here is a temporary solution until format command is moved to a different state
 			models.HostStatusPreparingForInstallation: {[]CommandGetter{dhcpAllocateCmd, diskPerfCheckCmd, imageAvailabilityCmd}, defaultNextInstructionInSec, models.StepsPostStepActionContinue},
@@ -98,11 +99,11 @@ func NewInstructionManager(log logrus.FieldLogger, db *gorm.DB, hwValidator hard
 			models.HostStatusBinding:                  {[]CommandGetter{noopCmd}, 0, models.StepsPostStepActionExit},
 		},
 		addHostsClusterToSteps: stateToStepsMap{
-			models.HostStatusKnown:                {[]CommandGetter{connectivityCmd, apivipConnectivityCmd, inventoryCmd, ntpSynchronizerCmd, domainNameResolutionCmd}, defaultNextInstructionInSec, models.StepsPostStepActionContinue},
-			models.HostStatusInsufficient:         {[]CommandGetter{inventoryCmd, connectivityCmd, apivipConnectivityCmd, ntpSynchronizerCmd, domainNameResolutionCmd}, defaultNextInstructionInSec, models.StepsPostStepActionContinue},
+			models.HostStatusKnown:                {[]CommandGetter{connectivityCmd, apivipConnectivityCmd, tangConnectivityCmd, inventoryCmd, ntpSynchronizerCmd, domainNameResolutionCmd}, defaultNextInstructionInSec, models.StepsPostStepActionContinue},
+			models.HostStatusInsufficient:         {[]CommandGetter{inventoryCmd, connectivityCmd, apivipConnectivityCmd, tangConnectivityCmd, ntpSynchronizerCmd, domainNameResolutionCmd}, defaultNextInstructionInSec, models.StepsPostStepActionContinue},
 			models.HostStatusDisconnected:         {[]CommandGetter{inventoryCmd}, defaultBackedOffInstructionInSec, models.StepsPostStepActionContinue},
 			models.HostStatusDiscovering:          {[]CommandGetter{inventoryCmd, ntpSynchronizerCmd, domainNameResolutionCmd}, defaultNextInstructionInSec, models.StepsPostStepActionContinue},
-			models.HostStatusPendingForInput:      {[]CommandGetter{inventoryCmd, connectivityCmd, apivipConnectivityCmd}, defaultNextInstructionInSec, models.StepsPostStepActionContinue},
+			models.HostStatusPendingForInput:      {[]CommandGetter{inventoryCmd, connectivityCmd, apivipConnectivityCmd, tangConnectivityCmd}, defaultNextInstructionInSec, models.StepsPostStepActionContinue},
 			models.HostStatusInstalling:           {[]CommandGetter{installCmd}, defaultBackedOffInstructionInSec, models.StepsPostStepActionContinue},
 			models.HostStatusInstallingInProgress: {[]CommandGetter{}, defaultNextInstructionInSec, models.StepsPostStepActionContinue},
 			models.HostStatusDisabled:             {[]CommandGetter{}, defaultBackedOffInstructionInSec, models.StepsPostStepActionContinue},

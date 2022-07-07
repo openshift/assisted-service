@@ -165,6 +165,9 @@ type Host struct {
 	// suggested role
 	SuggestedRole HostRole `json:"suggested_role,omitempty"`
 
+	// tang connectivity
+	TangConnectivity string `json:"tang_connectivity,omitempty" gorm:"type:text"`
+
 	// The time on the host as seconds since the Unix epoch.
 	Timestamp int64 `json:"timestamp,omitempty"`
 
