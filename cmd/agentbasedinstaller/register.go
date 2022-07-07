@@ -13,6 +13,7 @@ import (
 	"github.com/openshift/assisted-service/internal/controller/controllers"
 	"github.com/openshift/assisted-service/internal/oc"
 	"github.com/openshift/assisted-service/models"
+	errorutil "github.com/openshift/assisted-service/pkg/error"
 	"github.com/openshift/assisted-service/pkg/executer"
 	hivev1 "github.com/openshift/hive/apis/hive/v1"
 	"github.com/pkg/errors"
@@ -49,7 +50,7 @@ func RegisterCluster(ctx context.Context, log *log.Logger, bmInventory *client.A
 	}
 	clusterResult, registerClusterErr := bmInventory.Installer.V2RegisterCluster(ctx, clientClusterParams)
 	if registerClusterErr != nil {
-		return nil, registerClusterErr
+		return nil, errorutil.GetAssistedError(registerClusterErr)
 	}
 	return clusterResult.Payload, nil
 }
@@ -83,7 +84,7 @@ func RegisterInfraEnv(ctx context.Context, log *log.Logger, bmInventory *client.
 	}
 	infraEnvResult, registerInfraEnvErr := bmInventory.Installer.RegisterInfraEnv(ctx, clientInfraEnvParams)
 	if registerInfraEnvErr != nil {
-		return nil, registerInfraEnvErr
+		return nil, errorutil.GetAssistedError(registerInfraEnvErr)
 	}
 	return infraEnvResult.Payload, nil
 }
