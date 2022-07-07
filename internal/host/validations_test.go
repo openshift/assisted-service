@@ -383,8 +383,8 @@ var _ = Describe("Validations test", func() {
 			destination  string
 			domainName   string
 		}{
-			{IsAPIDomainNameResolvedCorrectly, "API", "api.test-cluster.example.com"},
-			{IsAPIInternalDomainNameResolvedCorrectly, "internal API", "api-int.test-cluster.example.com"},
+			{IsAPIDomainNameResolvedCorrectly, "API load balancer", "api.test-cluster.example.com"},
+			{IsAPIInternalDomainNameResolvedCorrectly, "internal API load balancer", "api-int.test-cluster.example.com"},
 			{IsAppsDomainNameResolvedCorrectly, "application ingress", "*.apps.test-cluster.example.com"},
 		} {
 			successMessage := fmt.Sprintf("Domain name resolution for the %s domain was successful or not required", domainType.domainName)

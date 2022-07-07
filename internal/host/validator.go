@@ -90,13 +90,11 @@ type validationContext struct {
 	minRAMMibRequirement    int64
 }
 
-type validationCondition func(context *validationContext) ValidationStatus
-type validationStringFormatter func(context *validationContext, status ValidationStatus) string
+type validationCondition func(context *validationContext) (ValidationStatus, string)
 
 type validation struct {
 	id            validationID
 	condition     validationCondition
-	formatter     validationStringFormatter
 	skippedStates []models.HostStage
 }
 
@@ -271,114 +269,88 @@ type validator struct {
 	providerRegistry registry.ProviderRegistry
 }
 
-func (v *validator) isMediaConnected(c *validationContext) ValidationStatus {
-	return boolValue(c.host.MediaStatus == nil || *c.host.MediaStatus != models.HostMediaStatusDisconnected)
-}
-
-func (v *validator) isConnected(c *validationContext) ValidationStatus {
-	return boolValue(c.host.CheckedInAt.String() == "" || time.Since(time.Time(c.host.CheckedInAt)) <= v.hwValidatorCfg.MaxHostDisconnectionTime)
-}
-
-func (v *validator) printConnected(context *validationContext, status ValidationStatus) string {
+func (v *validator) isMediaConnected(c *validationContext) (ValidationStatus, string) {
+	status := boolValue(c.host.MediaStatus == nil || *c.host.MediaStatus != models.HostMediaStatusDisconnected)
 	switch status {
 	case ValidationSuccess:
-		return "Host is connected"
+		return status, "Media device is connected"
 	case ValidationFailure:
-		return "Host is disconnected"
+		return status, statusInfoMediaDisconnected
 	default:
-		return fmt.Sprintf("Unexpected status %s", status)
+		return status, fmt.Sprintf("Unexpected status %s", status)
 	}
 }
 
-func (v *validator) printMediaConnected(context *validationContext, status ValidationStatus) string {
+func (v *validator) isConnected(c *validationContext) (ValidationStatus, string) {
+	status := boolValue(c.host.CheckedInAt.String() == "" || time.Since(time.Time(c.host.CheckedInAt)) <= v.hwValidatorCfg.MaxHostDisconnectionTime)
 	switch status {
 	case ValidationSuccess:
-		return "Media device is connected"
+		return status, "Host is connected"
 	case ValidationFailure:
-		return statusInfoMediaDisconnected
+		return status, "Host is disconnected"
 	default:
-		return fmt.Sprintf("Unexpected status %s", status)
+		return status, fmt.Sprintf("Unexpected status %s", status)
 	}
 }
 
-func (v *validator) hasInventory(c *validationContext) ValidationStatus {
-	return boolValue(c.inventory != nil)
-}
-
-func (v *validator) printHasInventory(context *validationContext, status ValidationStatus) string {
+func (v *validator) hasInventory(c *validationContext) (ValidationStatus, string) {
+	status := boolValue(c.inventory != nil)
 	switch status {
 	case ValidationSuccess:
-		return "Valid inventory exists for the host"
+		return status, "Valid inventory exists for the host"
 	case ValidationFailure:
-		return "Inventory has not been received for the host"
+		return status, "Inventory has not been received for the host"
 	default:
-		return fmt.Sprintf("Unexpected status %s", status)
+		return status, fmt.Sprintf("Unexpected status %s", status)
 	}
 }
 
-func (v *validator) hasMinCpuCores(c *validationContext) ValidationStatus {
+func (v *validator) hasMinCpuCores(c *validationContext) (ValidationStatus, string) {
 	if c.inventory == nil {
-		return ValidationPending
+		return ValidationPending, "Missing inventory"
 	}
-	return boolValue(c.inventory.CPU.Count >= c.minCPUCoresRequirement)
+	if c.inventory.CPU.Count >= c.minCPUCoresRequirement {
+		return ValidationSuccess, "Sufficient CPU cores"
+	}
+	return ValidationFailure, fmt.Sprintf("The host is not eligible to participate in Openshift Cluster because the minimum required CPU cores for any role is %d, found only %d", c.minCPUCoresRequirement, c.inventory.CPU.Count)
+
 }
 
-func (v *validator) printHasMinCpuCores(c *validationContext, status ValidationStatus) string {
-	switch status {
-	case ValidationSuccess:
-		return "Sufficient CPU cores"
-	case ValidationFailure:
-		return fmt.Sprintf("The host is not eligible to participate in Openshift Cluster because the minimum required CPU cores for any role is %d, found only %d", c.minCPUCoresRequirement, c.inventory.CPU.Count)
-	case ValidationPending:
-		return "Missing inventory"
-	default:
-		return fmt.Sprintf("Unexpected status %s", status)
-	}
-}
-
-func (v *validator) hasMinMemory(c *validationContext) ValidationStatus {
+func (v *validator) hasMinMemory(c *validationContext) (ValidationStatus, string) {
+	status := ValidationPending
 	if c.inventory == nil {
-		return ValidationPending
+		return status, "Missing inventory"
+	}
+	status = boolValue(c.inventory.Memory.PhysicalBytes >= conversions.MibToBytes(c.minRAMMibRequirement))
+	if status == ValidationSuccess {
+		return status, "Sufficient minimum RAM"
 	}
 
-	return boolValue(c.inventory.Memory.PhysicalBytes >= conversions.MibToBytes(c.minRAMMibRequirement))
+	return ValidationFailure, fmt.Sprintf("The host is not eligible to participate in Openshift Cluster because the minimum required RAM for any role is %s, found only %s",
+		conversions.BytesToString(conversions.MibToBytes(c.minRAMMibRequirement)), conversions.BytesToString(c.inventory.Memory.PhysicalBytes))
 }
 
-func (v *validator) compatibleWithClusterPlatform(c *validationContext) ValidationStatus {
+func (v *validator) compatibleWithClusterPlatform(c *validationContext) (ValidationStatus, string) {
 	// Late binding
 	if c.infraEnv != nil {
-		return ValidationSuccessSuppressOutput
+		return ValidationSuccessSuppressOutput, ""
 	}
 	if *c.cluster.Kind == models.ClusterKindAddHostsCluster {
-		return ValidationSuccess
+		return ValidationSuccess, fmt.Sprintf("Host is compatible with cluster platform %s", common.PlatformTypeValue(c.cluster.Platform.Type))
 	}
-
 	if c.inventory == nil || common.PlatformTypeValue(c.cluster.Platform.Type) == "" {
-		return ValidationPending
+		return ValidationPending, "Missing inventory or platform isn't set"
 	}
 	supported, err := v.providerRegistry.IsHostSupported(common.PlatformTypeValue(c.cluster.Platform.Type), c.host)
 	if err != nil {
-		return ValidationError
+		return ValidationError, "Validation error"
 	}
 	if supported {
-		return ValidationSuccess
+		return ValidationSuccess, fmt.Sprintf("Host is compatible with cluster platform %s", common.PlatformTypeValue(c.cluster.Platform.Type))
 	}
-	return ValidationFailure
-}
-
-func (v *validator) printCompatibleWithClusterPlatform(c *validationContext, status ValidationStatus) string {
-	switch status {
-	case ValidationSuccess:
-		return fmt.Sprintf("Host is compatible with cluster platform %s", common.PlatformTypeValue(c.cluster.Platform.Type))
-	case ValidationFailure:
-		hostAvailablePlatforms, _ := v.providerRegistry.GetSupportedProvidersByHosts([]*models.Host{c.host})
-		return fmt.Sprintf("Host is not compatible with cluster platform %s; either disable this host or choose a compatible cluster platform (%v)",
-			common.PlatformTypeValue(c.cluster.Platform.Type), hostAvailablePlatforms)
-	case ValidationPending:
-		return "Missing inventory or platform isn't set"
-	default:
-		return fmt.Sprintf("Unexpected status %s", status)
-	}
+	hostAvailablePlatforms, _ := v.providerRegistry.GetSupportedProvidersByHosts([]*models.Host{c.host})
+	return ValidationFailure, fmt.Sprintf("Host is not compatible with cluster platform %s; either disable this host or choose a compatible cluster platform (%v)",
+		common.PlatformTypeValue(c.cluster.Platform.Type), hostAvailablePlatforms)
 }
 
 func (v *validator) getDiskEncryptionForDay2(host *models.Host) (*ignition_types.Luks, error) {
@@ -405,9 +377,9 @@ func (v *validator) getDiskEncryptionForDay2(host *models.Host) (*ignition_types
 	return &config.Storage.Luks[0], nil
 }
 
-func (v *validator) areTangServersReachable(c *validationContext) ValidationStatus {
+func (v *validator) areTangServersReachable(c *validationContext) (ValidationStatus, string) {
 	if c.host.TangConnectivity == "" {
-		return ValidationPending
+		return ValidationPending, ""
 	}
 	// Older agents have no action for tang-connectivity-check.
 	// The missing action result will not fail host validations to
@@ -417,286 +389,153 @@ func (v *validator) areTangServersReachable(c *validationContext) ValidationStat
 			"host %s replied to StepType: %s with: %s. Validation will pass to keep backward compatibility with discovery agent version: %s",
 			c.host.ID.String(), models.StepTypeTangConnectivityCheck, c.host.TangConnectivity, c.host.DiscoveryAgentVersion,
 		)
-		return ValidationSuccessSuppressOutput
+		return ValidationSuccessSuppressOutput, ""
 	}
-
 	var response models.TangConnectivityResponse
-	if err := json.Unmarshal([]byte(c.host.TangConnectivity), &response); err != nil {
-		return ValidationFailure
+	if err := json.Unmarshal([]byte(c.host.TangConnectivity), &response); err == nil && response.IsSuccess {
+		return ValidationSuccess, "Tang servers are reachable"
 	}
 
-	return boolValue(response.IsSuccess)
+	return ValidationFailure, fmt.Sprintf("Could not validate that all Tang servers are reachable and working: %s", c.host.TangConnectivity)
 }
 
-func (v *validator) diskEncryptionRequirementsSatisfied(c *validationContext) ValidationStatus {
+func (v *validator) diskEncryptionRequirementsSatisfied(c *validationContext) (ValidationStatus, string) {
+
+	var status ValidationStatus
+	var message string
 
 	if c.infraEnv != nil || swag.StringValue(c.cluster.DiskEncryption.EnableOn) == models.DiskEncryptionEnableOnNone {
-		return ValidationSuccessSuppressOutput
+		return ValidationSuccessSuppressOutput, ""
 	}
-
 	if c.inventory == nil {
-		return ValidationPending
+		return ValidationPending, "Missing host inventory"
 	}
-
-	//day2 validation is taking the disk encryption data solely from
-	//the host inventory and set the diskEncryption field on the cluster
-	//according to that information
 	if hostutil.IsDay2Host(c.host) {
+		//day2 validation is taking the disk encryption data solely from
+		//the host inventory and set the diskEncryption field on the cluster
+		//according to that information
 		luks, err := v.getDiskEncryptionForDay2(c.host)
 		if err != nil {
-			return ValidationPending
+			return ValidationPending, "Missing ignition information"
 		}
 		if luks == nil || luks.Clevis == nil {
 			// Disk encryption is disabled for workers on day1 cluster
-			return ValidationSuccessSuppressOutput
+			return ValidationSuccessSuppressOutput, ""
 		}
-
 		c.cluster.DiskEncryption = &models.DiskEncryption{}
 		if swag.BoolValue(luks.Clevis.Tpm2) {
 			c.cluster.DiskEncryption.Mode = swag.String(models.DiskEncryptionModeTpmv2)
 			// If Tpm2 is enabled for workers, check whether supported by the host.
-			return boolValue(c.inventory.TpmVersion == models.InventoryTpmVersionNr20)
+			status = boolValue(c.inventory.TpmVersion == models.InventoryTpmVersionNr20)
 		} else if len(luks.Clevis.Tang) != 0 {
 			c.cluster.DiskEncryption.Mode = swag.String(models.DiskEncryptionModeTang)
-			return v.areTangServersReachable(c)
+			status, message = v.areTangServersReachable(c)
+			if status == ValidationFailure {
+				return status, message
+			}
 		} else {
 			// Only Tpm2 and Tang are available for disk encryption
-			return ValidationFailure
+			status = ValidationFailure
 		}
-	}
 
-	//day 1 validation is relying on the host's role and the user
-	//configuration to check if the disk encryption setup is valid
-	role := common.GetEffectiveRole(c.host)
-	if role == models.HostRoleAutoAssign {
-		return ValidationPending
-	}
-
-	if !hostutil.IsDiskEncryptionEnabledForRole(*c.cluster.DiskEncryption, role) {
-		return ValidationSuccessSuppressOutput
-	}
-
-	if swag.StringValue(c.cluster.DiskEncryption.Mode) == models.DiskEncryptionModeTang {
-		return v.areTangServersReachable(c)
-	} else { // Mode TPMv2
-		return boolValue(c.inventory.TpmVersion == models.InventoryTpmVersionNr20)
-	}
-}
-
-func (v *validator) printDiskEncryptionRequirementsSatisfied(c *validationContext, status ValidationStatus) string {
-	switch status {
-	case ValidationSuccess:
-		return fmt.Sprintf("Installation disk can be encrypted using %s", *c.cluster.DiskEncryption.Mode)
-	case ValidationFailure:
+	} else {
+		//day 1 validation is relying on the host's role and the user
+		//configuration to check if the disk encryption setup is valid
+		role := common.GetEffectiveRole(c.host)
+		if role == models.HostRoleAutoAssign {
+			return ValidationPending, "Missing role assignment"
+		}
+		if !hostutil.IsDiskEncryptionEnabledForRole(*c.cluster.DiskEncryption, role) {
+			return ValidationSuccessSuppressOutput, ""
+		}
 		if swag.StringValue(c.cluster.DiskEncryption.Mode) == models.DiskEncryptionModeTang {
-			return fmt.Sprintf("Could not validate that all Tang servers are reachable and working: %s", c.host.TangConnectivity)
-		} else { // Mode TPMv2
-			if c.inventory.TpmVersion == models.InventoryTpmVersionNone {
-				return "TPM version could not be found, make sure TPM is enabled in host's BIOS"
-			} else if c.cluster.DiskEncryption.Mode == nil {
-				return "Invalid LUKS object in ignition - both TPM2 and Tang are not available"
-			} else {
-				return fmt.Sprintf("The host's TPM version is not supported, expected-version: %s, actual-version: %s",
-					models.InventoryTpmVersionNr20, c.inventory.TpmVersion)
+			status, message = v.areTangServersReachable(c)
+			if status == ValidationFailure {
+				return status, message
 			}
+		} else { // Mode TPMv2
+			status = boolValue(c.inventory.TpmVersion == models.InventoryTpmVersionNr20)
 		}
 
-	case ValidationPending:
-		if c.inventory == nil {
-			return "Missing host inventory"
-		}
-		if common.GetEffectiveRole(c.host) == models.HostRoleAutoAssign {
-			return "Missing role assignment"
-		}
-		return "Missing ignition information"
-	default:
-		return fmt.Sprintf("Unexpected status %s", status)
 	}
-}
 
-func (v *validator) printHasMinMemory(c *validationContext, status ValidationStatus) string {
 	switch status {
 	case ValidationSuccess:
-		return "Sufficient minimum RAM"
+		return status, fmt.Sprintf("Installation disk can be encrypted using %s", *c.cluster.DiskEncryption.Mode)
 	case ValidationFailure:
-		return fmt.Sprintf("The host is not eligible to participate in Openshift Cluster because the minimum required RAM for any role is %s, found only %s",
-			conversions.BytesToString(conversions.MibToBytes(c.minRAMMibRequirement)), conversions.BytesToString(c.inventory.Memory.PhysicalBytes))
-	case ValidationPending:
-		return "Missing inventory"
+		// Mode TPMv2
+		if c.inventory.TpmVersion == models.InventoryTpmVersionNone {
+			return status, "TPM version could not be found, make sure TPM is enabled in host's BIOS"
+		}
+		if c.cluster.DiskEncryption.Mode == nil {
+			return status, "Invalid LUKS object in ignition - both TPM2 and Tang are not available"
+		}
+		return status, fmt.Sprintf("The host's TPM version is not supported, expected-version: %s, actual-version: %s",
+			models.InventoryTpmVersionNr20, c.inventory.TpmVersion)
 	default:
-		return fmt.Sprintf("Unexpected status %s", status)
+		return status, fmt.Sprintf("Unexpected status %s", status)
 	}
 }
 
-func (v *validator) hasMinValidDisks(c *validationContext) ValidationStatus {
+func (v *validator) hasMinValidDisks(c *validationContext) (ValidationStatus, string) {
 	if c.inventory == nil {
-		return ValidationPending
+		return ValidationPending, "Missing inventory"
 	}
-
 	disks := v.hwValidator.ListEligibleDisks(c.inventory)
-	return boolValue(len(disks) > 0)
-}
-
-func (v *validator) printHasMinValidDisks(c *validationContext, status ValidationStatus) string {
-	switch status {
-	case ValidationSuccess:
-		return "Sufficient disk capacity"
-	case ValidationFailure:
-		return "No eligible disks were found, please check specific disks to see why they are not eligible"
-	case ValidationPending:
-		return "Missing inventory"
-	default:
-		return fmt.Sprintf("Unexpected status %s", status)
+	if len(disks) > 0 {
+		return ValidationSuccess, "Sufficient disk capacity"
 	}
+	return ValidationFailure, "No eligible disks were found, please check specific disks to see why they are not eligible"
 }
 
-func (v *validator) isMachineCidrDefined(c *validationContext) ValidationStatus {
+func (v *validator) isMachineCidrDefined(c *validationContext) (ValidationStatus, string) {
+	status := ValidationSuccessSuppressOutput
 	if c.infraEnv != nil {
-		return ValidationSuccessSuppressOutput
+		return status, fmt.Sprintf("Unexpected status %s", status)
 	}
-	return boolValue(swag.BoolValue(c.cluster.UserManagedNetworking) || swag.StringValue(c.cluster.Kind) == models.ClusterKindAddHostsCluster || network.IsMachineCidrAvailable(c.cluster))
+	if swag.BoolValue(c.cluster.UserManagedNetworking) {
+		return ValidationSuccess, "No Machine Network CIDR needed: User Managed Networking"
+	}
+	if swag.StringValue(c.cluster.Kind) == models.ClusterKindAddHostsCluster {
+		return ValidationSuccess, "No Machine Network CIDR needed: Day2 cluster"
+	}
+	if network.IsMachineCidrAvailable(c.cluster) {
+		return ValidationSuccess, "Machine Network CIDR is defined"
+	}
+	if swag.BoolValue(c.cluster.VipDhcpAllocation) {
+		return ValidationFailure, "Machine Network CIDR is undefined"
+	}
+	return ValidationFailure, "Machine Network CIDR is undefined; the Machine Network CIDR can be defined by setting either the API or Ingress virtual IPs"
 }
 
-func (v *validator) printIsMachineCidrDefined(context *validationContext, status ValidationStatus) string {
-	switch status {
-	case ValidationSuccess:
-		if swag.BoolValue(context.cluster.UserManagedNetworking) {
-			return "No Machine Network CIDR needed: User Managed Networking"
+func (v *validator) hasCPUCoresForRole(c *validationContext) (ValidationStatus, string) {
+	if c.inventory != nil {
+		if c.inventory.CPU.Count >= c.clusterHostRequirements.Total.CPUCores {
+			return ValidationSuccess, fmt.Sprintf("Sufficient CPU cores for role %s", common.GetEffectiveRole(c.host))
 		}
-		if swag.StringValue(context.cluster.Kind) == models.ClusterKindAddHostsCluster {
-			return "No Machine Network CIDR needed: Day2 cluster"
-		}
-		return "Machine Network CIDR is defined"
-	case ValidationFailure:
-		if swag.BoolValue(context.cluster.VipDhcpAllocation) {
-			return "Machine Network CIDR is undefined"
-		} else {
-			return "Machine Network CIDR is undefined; the Machine Network CIDR can be defined by setting either the API or Ingress virtual IPs"
-		}
-	default:
-		return fmt.Sprintf("Unexpected status %s", status)
+		return ValidationFailure, fmt.Sprintf("Require at least %d CPU cores for %s role, found only %d", c.clusterHostRequirements.Total.CPUCores, common.GetEffectiveRole(c.host), c.inventory.CPU.Count)
 	}
+	return ValidationPending, "Missing inventory or role"
 }
 
-func (v *validator) hasCPUCoresForRole(c *validationContext) ValidationStatus {
+func (v *validator) hasMemoryForRole(c *validationContext) (ValidationStatus, string) {
 	if c.inventory == nil {
-		return ValidationPending
-	}
-	return boolValue(c.inventory.CPU.Count >= c.clusterHostRequirements.Total.CPUCores)
-}
-
-func (v *validator) printHasCPUCoresForRole(c *validationContext, status ValidationStatus) string {
-	switch status {
-	case ValidationSuccess:
-		return fmt.Sprintf("Sufficient CPU cores for role %s", common.GetEffectiveRole(c.host))
-	case ValidationFailure:
-		return fmt.Sprintf("Require at least %d CPU cores for %s role, found only %d", c.clusterHostRequirements.Total.CPUCores, common.GetEffectiveRole(c.host), c.inventory.CPU.Count)
-	case ValidationPending:
-		return "Missing inventory or role"
-	default:
-		return fmt.Sprintf("Unexpected status %s", status)
-	}
-}
-
-func (v *validator) hasMemoryForRole(c *validationContext) ValidationStatus {
-	if c.inventory == nil {
-		return ValidationPending
+		return ValidationPending, "Missing inventory or role"
 	}
 	requiredBytes := conversions.MibToBytes(c.clusterHostRequirements.Total.RAMMib)
-	return boolValue(c.inventory.Memory.PhysicalBytes >= requiredBytes)
+	if c.inventory.Memory.PhysicalBytes >= requiredBytes {
+		return ValidationSuccess, fmt.Sprintf("Sufficient RAM for role %s", common.GetEffectiveRole(c.host))
+	}
+	return ValidationFailure, fmt.Sprintf("Require at least %s RAM for role %s, found only %s",
+		conversions.BytesToString(conversions.MibToBytes(c.clusterHostRequirements.Total.RAMMib)), common.GetEffectiveRole(c.host), conversions.BytesToString(c.inventory.Memory.PhysicalBytes))
 }
 
-func (v *validator) isValidPlatformNetworkSettings(c *validationContext) ValidationStatus {
-	if c.inventory == nil {
-		return ValidationPending
-	}
-	if c.inventory.SystemVendor == nil {
-		return ValidationError
-	}
-	if funk.ContainsString(invalidPlatforms, c.inventory.SystemVendor.ProductName) {
-		// In case there is no cluster validation is pending
-		if c.infraEnv != nil {
-			return ValidationSuccessSuppressOutput
-		} else {
-			//In case userManagedNetworking is true, we don't care about the platform
-			return boolValue(swag.BoolValue(c.cluster.UserManagedNetworking))
-		}
-	}
-	return ValidationSuccess
-}
-
-func (v *validator) printValidPlatformNetworkSettings(c *validationContext, status ValidationStatus) string {
-	switch status {
-	case ValidationSuccess:
-		return fmt.Sprintf("Platform %s is allowed", c.inventory.SystemVendor.ProductName)
-	case ValidationFailure:
-		return fmt.Sprintf("Platform %s is allowed only for Single Node OpenShift or user-managed networking", c.inventory.SystemVendor.ProductName)
-	case ValidationPending:
-		return "Missing inventory"
-	default:
-		return fmt.Sprintf("Unexpected status %s", status)
-	}
-}
-
-func (v *validator) printHasMemoryForRole(c *validationContext, status ValidationStatus) string {
-	switch status {
-	case ValidationSuccess:
-		return fmt.Sprintf("Sufficient RAM for role %s", common.GetEffectiveRole(c.host))
-	case ValidationFailure:
-		return fmt.Sprintf("Require at least %s RAM for role %s, found only %s",
-			conversions.BytesToString(conversions.MibToBytes(c.clusterHostRequirements.Total.RAMMib)), common.GetEffectiveRole(c.host), conversions.BytesToString(c.inventory.Memory.PhysicalBytes))
-	case ValidationPending:
-		return "Missing inventory or role"
-	default:
-		return fmt.Sprintf("Unexpected status %s", status)
-	}
-}
-
-func (v *validator) belongsToMachineCidr(c *validationContext) ValidationStatus {
+func (v *validator) isHostnameUnique(c *validationContext) (ValidationStatus, string) {
 	if c.infraEnv != nil {
-		return ValidationSuccessSuppressOutput
-	}
-	if swag.StringValue(c.cluster.Kind) == models.ClusterKindAddHostsCluster || (swag.BoolValue(c.cluster.UserManagedNetworking) && !common.IsSingleNodeCluster(c.cluster)) {
-		return ValidationSuccess
-	}
-	if c.inventory == nil || !network.IsMachineCidrAvailable(c.cluster) {
-		return ValidationPending
-	}
-	return boolValue(network.IsHostInPrimaryMachineNetCidr(v.log, c.cluster, c.host))
-}
-
-func (v *validator) printBelongsToMachineCidr(c *validationContext, status ValidationStatus) string {
-	switch status {
-	case ValidationSuccess:
-		if swag.BoolValue(c.cluster.UserManagedNetworking) {
-			return "No machine network CIDR validation needed: User Managed Networking"
-		}
-		if swag.StringValue(c.cluster.Kind) == models.ClusterKindAddHostsCluster {
-			return "No machine network CIDR validation needed: Day2 cluster"
-		}
-		return "Host belongs to all machine network CIDRs"
-	case ValidationFailure:
-		return "Host does not belong to machine network CIDRs. Verify that the host belongs to every CIDR listed under machine networks"
-	case ValidationPending:
-		return "Missing inventory or machine network CIDR"
-	default:
-		return fmt.Sprintf("Unexpected status %s", status)
-	}
-}
-
-func getRealHostname(host *models.Host, inventory *models.Inventory) string {
-	if host.RequestedHostname != "" {
-		return host.RequestedHostname
-	}
-	return inventory.Hostname
-}
-
-func (v *validator) isHostnameUnique(c *validationContext) ValidationStatus {
-	if c.infraEnv != nil {
-		return ValidationSuccessSuppressOutput
+		return ValidationSuccessSuppressOutput, ""
 	}
 	if c.inventory == nil {
-		return ValidationPending
+		return ValidationPending, "Missing inventory"
 	}
 	realHostname := getRealHostname(c.host, c.inventory)
 	for _, h := range c.cluster.Hosts {
@@ -708,86 +547,93 @@ func (v *validator) isHostnameUnique(c *validationContext) ValidationStatus {
 				continue
 			}
 			if realHostname == getRealHostname(h, otherInventory) {
-				return ValidationFailure
+				return ValidationFailure, fmt.Sprintf("Hostname %s is not unique in cluster", getRealHostname(c.host, c.inventory))
 			}
 		}
 	}
-	return ValidationSuccess
+	return ValidationSuccess, fmt.Sprintf("Hostname %s is unique in cluster", getRealHostname(c.host, c.inventory))
 }
 
-func (v *validator) printHostnameUnique(c *validationContext, status ValidationStatus) string {
-	switch status {
-	case ValidationSuccess:
-		return fmt.Sprintf("Hostname %s is unique in cluster", getRealHostname(c.host, c.inventory))
-	case ValidationFailure:
-		return fmt.Sprintf("Hostname %s is not unique in cluster", getRealHostname(c.host, c.inventory))
-	case ValidationPending:
-		return "Missing inventory"
-	default:
-		return fmt.Sprintf("Unexpected status %s", status)
-	}
-}
-
-func (v *validator) isHostnameValid(c *validationContext) ValidationStatus {
+func (v *validator) isValidPlatformNetworkSettings(c *validationContext) (ValidationStatus, string) {
 	if c.inventory == nil {
-		return ValidationPending
+		return ValidationPending, "Missing inventory"
+	}
+	if c.inventory.SystemVendor == nil {
+		return ValidationError, "Validation error"
+	}
+	if funk.ContainsString(invalidPlatforms, c.inventory.SystemVendor.ProductName) {
+		// In case there is no cluster validation is pending
+		if c.infraEnv != nil {
+			return ValidationSuccessSuppressOutput, ""
+		} else {
+			//In case userManagedNetworking is true, we don't care about the platform
+			if swag.BoolValue(c.cluster.UserManagedNetworking) {
+				return ValidationSuccess, fmt.Sprintf("Platform %s is allowed", c.inventory.SystemVendor.ProductName)
+			}
+			return ValidationFailure, fmt.Sprintf("Platform %s is allowed only for Single Node OpenShift or user-managed networking", c.inventory.SystemVendor.ProductName)
+		}
+	}
+	return ValidationSuccess, fmt.Sprintf("Platform %s is allowed", c.inventory.SystemVendor.ProductName)
+}
+
+func (v *validator) belongsToMachineCidr(c *validationContext) (ValidationStatus, string) {
+	if c.infraEnv != nil {
+		return ValidationSuccessSuppressOutput, ""
+	}
+	if swag.BoolValue(c.cluster.UserManagedNetworking) && !common.IsSingleNodeCluster(c.cluster) {
+		return ValidationSuccess, "No machine network CIDR validation needed: User Managed Networking"
+	}
+	if swag.StringValue(c.cluster.Kind) == models.ClusterKindAddHostsCluster {
+		return ValidationSuccess, "No machine network CIDR validation needed: Day2 cluster"
+	}
+	if c.inventory == nil || !network.IsMachineCidrAvailable(c.cluster) {
+		return ValidationPending, "Missing inventory or machine network CIDR"
+	}
+	if !network.IsHostInPrimaryMachineNetCidr(v.log, c.cluster, c.host) {
+		return ValidationFailure, "Host does not belong to machine network CIDRs. Verify that the host belongs to every CIDR listed under machine networks"
+	}
+	return ValidationSuccess, "Host belongs to all machine network CIDRs"
+}
+
+func getRealHostname(host *models.Host, inventory *models.Inventory) string {
+	if host.RequestedHostname != "" {
+		return host.RequestedHostname
+	}
+	return inventory.Hostname
+}
+
+func (v *validator) isHostnameValid(c *validationContext) (ValidationStatus, string) {
+	if c.inventory == nil {
+		return ValidationFailure, "Missing inventory"
 	}
 
 	if err := hostutil.ValidateHostname(getRealHostname(c.host, c.inventory)); err != nil {
-		return ValidationFailure
-	}
-
-	return ValidationSuccess
-}
-
-func (v *validator) printHostnameValid(c *validationContext, status ValidationStatus) string {
-	switch status {
-	case ValidationSuccess:
-		return fmt.Sprintf("Hostname %s is allowed", getRealHostname(c.host, c.inventory))
-	case ValidationFailure:
 		if funk.ContainsString(hostutil.ForbiddenHostnames, getRealHostname(c.host, c.inventory)) {
-			return fmt.Sprintf("The host name %s is forbidden", getRealHostname(c.host, c.inventory))
+			return ValidationFailure, fmt.Sprintf("The host name %s is forbidden", getRealHostname(c.host, c.inventory))
 		}
-		return fmt.Sprintf("Hostname %s is forbidden, hostname should match pattern %s", getRealHostname(c.host, c.inventory), hostutil.HostnamePattern)
-	case ValidationPending:
-		return "Missing inventory"
-	default:
-		return fmt.Sprintf("Unexpected status %s", status)
+		return ValidationFailure, fmt.Sprintf("Hostname %s is forbidden, hostname should match pattern %s", getRealHostname(c.host, c.inventory), hostutil.HostnamePattern)
 	}
+	return ValidationSuccess, fmt.Sprintf("Hostname %s is allowed", getRealHostname(c.host, c.inventory))
 }
 
-func (v *validator) isIgnitionDownloadable(c *validationContext) ValidationStatus {
+func (v *validator) isIgnitionDownloadable(c *validationContext) (ValidationStatus, string) {
 	if c.infraEnv != nil {
-		return ValidationSuccessSuppressOutput
+		return ValidationSuccessSuppressOutput, ""
 	}
 	if !hostutil.IsDay2Host(c.host) {
-		return ValidationSuccessSuppressOutput
+		return ValidationSuccessSuppressOutput, ""
 	}
 	if c.host.APIVipConnectivity == "" {
-		return ValidationPending
+		return ValidationPending, "Ignition is not yet available, pending API connectivity"
 	}
 	var response models.APIVipConnectivityResponse
-	if err := json.Unmarshal([]byte(c.host.APIVipConnectivity), &response); err != nil {
-		return ValidationFailure
+	if err := json.Unmarshal([]byte(c.host.APIVipConnectivity), &response); err != nil || !response.IsSuccess {
+		return ValidationFailure, "Ignition is not downloadable. Please ensure host connectivity to the cluster's API"
 	}
-
-	return boolValue(response.IsSuccess)
-}
-
-func (v *validator) printIgnitionDownloadable(c *validationContext, status ValidationStatus) string {
-	switch status {
-	case ValidationSuccess:
-		if swag.BoolValue(c.cluster.UserManagedNetworking) {
-			return "No API connectivity needed: User Managed Networking"
-		}
-		return "Ignition is downloadable"
-	case ValidationFailure:
-		return "Ignition is not downloadable. Please ensure host connectivity to the cluster's API"
-	case ValidationPending:
-		return "Ignition is not yet available, pending API connectivity"
-	default:
-		return fmt.Sprintf("Unexpected status %s", status)
+	if swag.BoolValue(c.cluster.UserManagedNetworking) {
+		return ValidationSuccess, "No API connectivity needed: User Managed Networking"
 	}
+	return ValidationSuccess, "Ignition is downloadable"
 }
 
 func (v *validator) belongsToL2MajorityGroup(c *validationContext, majorityGroups map[string][]strfmt.UUID) ValidationStatus {
@@ -849,56 +695,50 @@ func (v *validator) belongsToL3MajorityGroup(c *validationContext, majorityGroup
 	return boolValue(ret)
 }
 
-func (v *validator) belongsToMajorityGroup(c *validationContext) ValidationStatus {
+func (v *validator) belongsToMajorityGroup(c *validationContext) (ValidationStatus, string) {
+	var message string
 	if c.infraEnv != nil {
-		return ValidationSuccessSuppressOutput
+		return ValidationSuccessSuppressOutput, ""
 	}
-	if hostutil.IsDay2Host(c.host) || common.IsSingleNodeCluster(c.cluster) {
-		return ValidationSuccess
+	if hostutil.IsDay2Host(c.host) {
+		return ValidationSuccess, "Day2 host is not required to be connected to other hosts in the cluster"
+	}
+	if common.IsSingleNodeCluster(c.cluster) {
+		return ValidationSuccess, "Host has connectivity to the majority of hosts in the cluster"
 	}
 	if c.cluster.ConnectivityMajorityGroups == "" {
-		return ValidationPending
+		return ValidationPending, "Machine Network CIDR or Connectivity Majority Groups missing"
 	}
 	var majorityGroups map[string][]strfmt.UUID
 	err := json.Unmarshal([]byte(c.cluster.ConnectivityMajorityGroups), &majorityGroups)
 	if err != nil {
 		v.log.WithError(err).Warn("Parse majority group")
-		return ValidationError
+		return ValidationError, "Parse error for connectivity majority group"
 	}
-	var ret ValidationStatus
-	if swag.BoolValue(c.cluster.UserManagedNetworking) {
-		ret = v.belongsToL3MajorityGroup(c, majorityGroups)
-	} else {
-		ret = v.belongsToL2MajorityGroup(c, majorityGroups)
-	}
-	if ret == ValidationFailure && len(c.cluster.Hosts) < 3 {
-		return ValidationPending
-	}
-	return ret
-}
 
-func (v *validator) printBelongsToMajorityGroup(c *validationContext, status ValidationStatus) string {
+	var status ValidationStatus
+	if swag.BoolValue(c.cluster.UserManagedNetworking) {
+		status = v.belongsToL3MajorityGroup(c, majorityGroups)
+	} else {
+		status = v.belongsToL2MajorityGroup(c, majorityGroups)
+	}
+	if status == ValidationFailure && len(c.cluster.Hosts) < 3 {
+		return ValidationPending, "Not enough hosts in cluster to calculate connectivity groups"
+	}
+
 	switch status {
 	case ValidationSuccess:
-		if hostutil.IsDay2Host(c.host) {
-			return "Day2 host is not required to be connected to other hosts in the cluster"
-		}
-		return "Host has connectivity to the majority of hosts in the cluster"
+		message = "Host has connectivity to the majority of hosts in the cluster"
 	case ValidationFailure:
-		return "No connectivity to the majority of hosts in the cluster"
-	case ValidationError:
-		return "Parse error for connectivity majority group"
+		message = "No connectivity to the majority of hosts in the cluster"
 	case ValidationPending:
-		if !network.IsMachineCidrAvailable(c.cluster) || c.cluster.ConnectivityMajorityGroups == "" {
-			return "Machine Network CIDR or Connectivity Majority Groups missing"
-		} else if len(c.cluster.Hosts) < 3 {
-			return "Not enough hosts in cluster to calculate connectivity groups"
-		}
 		// Shouldn't happen
-		return "Not enough information to calculate host majority groups"
+		message = "Not enough information to calculate host majority groups"
 	default:
-		return fmt.Sprintf("Unexpected status %s", status)
+		message = fmt.Sprintf("Unexpected status %s", status)
 	}
+
+	return status, message
 }
 
 func (v *validator) missingNTPSyncResult(db *gorm.DB, host *models.Host) ValidationStatus {
@@ -921,67 +761,57 @@ func (v *validator) missingNTPSyncResult(db *gorm.DB, host *models.Host) Validat
 	return ValidationFailure
 }
 
-func (v *validator) isNTPSynced(c *validationContext) ValidationStatus {
+func (v *validator) isNTPSynced(c *validationContext) (ValidationStatus, string) {
+
+	var status ValidationStatus
+	var message string
+
 	var sources []*models.NtpSource
 
 	if c.host.NtpSources == "" {
-		return v.missingNTPSyncResult(c.db, c.host)
-	}
-
-	if err := json.Unmarshal([]byte(c.host.NtpSources), &sources); err != nil {
+		status = v.missingNTPSyncResult(c.db, c.host)
+	} else if err := json.Unmarshal([]byte(c.host.NtpSources), &sources); err != nil {
 		v.log.WithError(err).Warn("Parse NTP sources")
-		return ValidationError
-	}
-
-	for _, source := range sources {
-		if source.SourceState == models.SourceStateSynced {
-			return ValidationSuccess
+		status = ValidationError
+	} else {
+		status = v.missingNTPSyncResult(c.db, c.host)
+		for _, source := range sources {
+			if source.SourceState == models.SourceStateSynced {
+				status = ValidationSuccess
+			}
 		}
 	}
 
-	return v.missingNTPSyncResult(c.db, c.host)
-}
-
-func (v *validator) printNTPSynced(c *validationContext, status ValidationStatus) string {
 	switch status {
 	case ValidationSuccess:
-		return "Host NTP is synced"
+		message = "Host NTP is synced"
 	case ValidationFailure:
-		return "Host couldn't synchronize with any NTP server"
+		message = "Host couldn't synchronize with any NTP server"
 	case ValidationError:
-		return "Parse error for NTP sources"
+		message = "Parse error for NTP sources"
 	default:
-		return fmt.Sprintf("Unexpected status %s", status)
+		message = fmt.Sprintf("Unexpected status %s", status)
 	}
+
+	return status, message
 }
 
-func (v *validator) sucessfullOrUnknownContainerImagesAvailability(c *validationContext) ValidationStatus {
+func (v *validator) sucessfullOrUnknownContainerImagesAvailability(c *validationContext) (ValidationStatus, string) {
 	imageStatuses, err := common.UnmarshalImageStatuses(c.host.ImagesStatus)
 	if err != nil {
 		v.log.WithError(err).Warn("Parse container image statuses")
-		return ValidationError
+		return ValidationError, "Validation error"
 	}
-
-	return boolValue(allImagesValid(imageStatuses))
-}
-
-func (v *validator) printSucessfullOrUnknownContainerImagesAvailability(c *validationContext, status ValidationStatus) string {
-	switch status {
-	case ValidationSuccess:
-		return "All required container images were either pulled successfully or no attempt was made to pull them"
-	case ValidationFailure:
+	if !allImagesValid(imageStatuses) {
 		images, err := v.getFailedImagesNames(c.host)
 		if err == nil {
-			return fmt.Sprintf("Failed to fetch container images needed for installation from %s. "+
+			return ValidationFailure, fmt.Sprintf("Failed to fetch container images needed for installation from %s. "+
 				"This may be due to a network hiccup. Retry to install again. If this problem persists, "+
 				"check your network settings to make sure you’re not blocked.", strings.Join(images, ","))
 		}
-		fallthrough
-	case ValidationError:
-		return "Parse error for container image statuses"
-	default:
-		return fmt.Sprintf("Unexpected status %s", status)
+		return ValidationError, "Validation error"
 	}
+	return ValidationSuccess, "All required container images were either pulled successfully or no attempt was made to pull them"
 }
 
 func (v *validator) getFailedImagesNames(host *models.Host) ([]string, error) {
@@ -1022,49 +852,43 @@ func allImagesValid(imageStatuses common.ImageStatuses) bool {
    Since all pre-install validations have to pass before starting installation, it is mandatory that in case installation
    on the current boot device has not been attempted yet, this validation must pass.
 */
-func (v *validator) sufficientOrUnknownInstallationDiskSpeed(c *validationContext) ValidationStatus {
+func (v *validator) sufficientOrUnknownInstallationDiskSpeed(c *validationContext) (ValidationStatus, string) {
 	info, err := v.getBootDeviceInfo(c.host)
 	if err != nil {
-		return ValidationError
+		return ValidationError, "Validation error"
 	}
-
-	return boolValue(info == nil || info.DiskSpeed == nil || !info.DiskSpeed.Tested || info.DiskSpeed.ExitCode == 0)
+	if info == nil || info.DiskSpeed == nil || !info.DiskSpeed.Tested {
+		return ValidationSuccess, "Speed of installation disk has not yet been measured"
+	}
+	if info.DiskSpeed.ExitCode == 0 {
+		return ValidationSuccess, "Speed of installation disk is sufficient"
+	}
+	return ValidationFailure, "While preparing the previous installation the installation disk speed measurement failed or was found to be insufficient"
 }
 
-func (v *validator) printSufficientOrUnknownInstallationDiskSpeed(c *validationContext, status ValidationStatus) string {
-	switch status {
-	case ValidationSuccess:
-		info, _ := v.getBootDeviceInfo(c.host)
-		if info == nil || info.DiskSpeed == nil || !info.DiskSpeed.Tested {
-			return "Speed of installation disk has not yet been measured"
-		}
-		return "Speed of installation disk is sufficient"
-	case ValidationFailure:
-		return "While preparing the previous installation the installation disk speed measurement failed or was found to be insufficient"
-	case ValidationError:
-		return "Error occurred while getting boot device"
-	default:
-		return fmt.Sprintf("Unexpected status %s", status.String())
-	}
-
-}
-
-func (v *validator) hasSufficientNetworkLatencyRequirementForRole(c *validationContext) ValidationStatus {
+func (v *validator) hasSufficientNetworkLatencyRequirementForRole(c *validationContext) (ValidationStatus, string) {
 	if c.infraEnv != nil {
-		return ValidationSuccessSuppressOutput
+		return ValidationSuccessSuppressOutput, ""
 	}
-
 	if len(c.cluster.Hosts) == 1 || c.clusterHostRequirements.Total.NetworkLatencyThresholdMs == nil || common.GetEffectiveRole(c.host) == models.HostRoleAutoAssign || hostutil.IsDay2Host(c.host) {
 		// Single Node use case || no requirements defined || role is auto assign
-		return ValidationSuccess
+		return ValidationSuccess, "Network latency requirement has been satisfied."
 	}
-
 	if len(c.host.Connectivity) == 0 {
-		return ValidationPending
+		return ValidationPending, "Missing network latency information."
 	}
-
-	status, _, _ := v.validateNetworkLatencyForRole(c.host, c.clusterHostRequirements, c.cluster.Hosts)
-	return status
+	s, _, _ := v.validateNetworkLatencyForRole(c.host, c.clusterHostRequirements, c.cluster.Hosts)
+	if s == ValidationFailure {
+		_, hostLatencies, err := v.validateNetworkLatencyForRole(c.host, c.clusterHostRequirements, c.cluster.Hosts)
+		if err != nil {
+			return ValidationFailure, fmt.Sprintf("Error while attempting to validate network latency: %s", err)
+		}
+		return ValidationFailure, fmt.Sprintf("Network latency requirements of %s %.2f ms not met for connectivity between %s and%s.", comparisonBuilder(*c.clusterHostRequirements.Total.NetworkLatencyThresholdMs), *c.clusterHostRequirements.Total.NetworkLatencyThresholdMs, c.host.ID, strings.Join(hostLatencies, ","))
+	}
+	if s == ValidationError {
+		return ValidationError, "Parse error while attempting to process the connectivity report"
+	}
+	return ValidationSuccess, "Network latency requirement has been satisfied."
 }
 
 func (v *validator) validateNetworkLatencyForRole(host *models.Host, clusterRoleReqs *models.ClusterHostRequirements, hosts []*models.Host) (ValidationStatus, []string, error) {
@@ -1110,41 +934,32 @@ func comparisonBuilder(value float64) string {
 	return equals
 }
 
-func (v *validator) printSufficientNetworkLatencyRequirementForRole(c *validationContext, status ValidationStatus) string {
-	switch status {
-	case ValidationSuccess:
-		return "Network latency requirement has been satisfied."
-	case ValidationFailure:
-		_, hostLatencies, err := v.validateNetworkLatencyForRole(c.host, c.clusterHostRequirements, c.cluster.Hosts)
-		if err != nil {
-			return fmt.Sprintf("Error while attempting to validate network latency: %s", err)
-		}
-		return fmt.Sprintf("Network latency requirements of %s %.2f ms not met for connectivity between %s and%s.", comparisonBuilder(*c.clusterHostRequirements.Total.NetworkLatencyThresholdMs), *c.clusterHostRequirements.Total.NetworkLatencyThresholdMs, c.host.ID, strings.Join(hostLatencies, ","))
-	case ValidationPending:
-		return "Missing network latency information."
-	case ValidationError:
-		return "Parse error while attempting to process the connectivity report"
-	default:
-		return fmt.Sprintf("Unexpected status %s", status)
-	}
-}
-
-func (v *validator) hasSufficientPacketLossRequirementForRole(c *validationContext) ValidationStatus {
+func (v *validator) hasSufficientPacketLossRequirementForRole(c *validationContext) (ValidationStatus, string) {
 	if c.infraEnv != nil {
-		return ValidationSuccessSuppressOutput
+		return ValidationSuccessSuppressOutput, ""
 	}
-
 	if len(c.cluster.Hosts) == 1 || c.clusterHostRequirements.Total.PacketLossPercentage == nil || common.GetEffectiveRole(c.host) == models.HostRoleAutoAssign || hostutil.IsDay2Host(c.host) {
 		// Single Node use case || no requirements defined || role is auto assign
-		return ValidationSuccess
+		return ValidationSuccess, "Packet loss requirement has been satisfied."
 	}
-
 	if len(c.host.Connectivity) == 0 {
-		return ValidationPending
+		return ValidationPending, "Missing packet loss information."
+	}
+	status, hostPacketLoss, err := v.validatePacketLossForRole(c.host, c.clusterHostRequirements, c.cluster.Hosts)
+	if err != nil {
+		return status, fmt.Sprintf("Error while attempting to validate packet loss validation: %s", err)
 	}
 
-	status, _, _ := v.validatePacketLossForRole(c.host, c.clusterHostRequirements, c.cluster.Hosts)
-	return status
+	switch status {
+	case ValidationSuccess:
+		return status, "Packet loss requirement has been satisfied."
+	case ValidationFailure:
+
+		return status, fmt.Sprintf("Packet loss percentage requirement of %s %.2f%% not met for connectivity between %s and%s.", comparisonBuilder(*c.clusterHostRequirements.Total.PacketLossPercentage), *c.clusterHostRequirements.Total.PacketLossPercentage, c.host.ID, strings.Join(hostPacketLoss, ","))
+	case ValidationError:
+		return status, "Parse error while attempting to process the connectivity report"
+	}
+	return status, fmt.Sprintf("Unexpected status %s", status)
 }
 
 func (v *validator) validatePacketLossForRole(host *models.Host, clusterRoleReqs *models.ClusterHostRequirements, hosts []*models.Host) (ValidationStatus, []string, error) {
@@ -1178,38 +993,17 @@ func (v *validator) validatePacketLossForRole(host *models.Host, clusterRoleReqs
 	return ValidationSuccess, nil, nil
 }
 
-func (v *validator) printSufficientPacketLossRequirementForRole(c *validationContext, status ValidationStatus) string {
-	switch status {
-	case ValidationSuccess:
-		return "Packet loss requirement has been satisfied."
-	case ValidationFailure:
-		_, hostPacketLoss, err := v.validatePacketLossForRole(c.host, c.clusterHostRequirements, c.cluster.Hosts)
-		if err != nil {
-			return fmt.Sprintf("Error while attempting to validate packet loss validation: %s", err)
-		}
-		return fmt.Sprintf("Packet loss percentage requirement of %s %.2f%% not met for connectivity between %s and%s.", comparisonBuilder(*c.clusterHostRequirements.Total.PacketLossPercentage), *c.clusterHostRequirements.Total.PacketLossPercentage, c.host.ID, strings.Join(hostPacketLoss, ","))
-	case ValidationPending:
-		return "Missing packet loss information."
-	case ValidationError:
-		return "Parse error while attempting to process the connectivity report"
-	default:
-		return fmt.Sprintf("Unexpected status %s", status)
-	}
-}
-
-func (v *validator) hasDefaultRoute(c *validationContext) ValidationStatus {
-
+func (v *validator) hasDefaultRoute(c *validationContext) (ValidationStatus, string) {
 	if c.inventory == nil {
-		return ValidationPending
+		return ValidationPending, "Missing default routing information."
 	}
-
 	if len(c.inventory.Routes) == 0 {
-		return ValidationFailure
+		return ValidationFailure, "Host has not yet been configured with a default route."
 	}
 	if v.validateDefaultRoute(c.inventory.Routes) {
-		return ValidationSuccess
+		return ValidationSuccess, "Host has been configured with at least one default route."
 	}
-	return ValidationFailure
+	return ValidationFailure, "Host has not yet been configured with a default route."
 }
 
 func (v *validator) validateDefaultRoute(routes []*models.Route) bool {
@@ -1232,19 +1026,6 @@ func (v *validator) validateDefaultRoute(routes []*models.Route) bool {
 		}
 	}
 	return false
-}
-
-func (v *validator) printDefaultRoute(c *validationContext, status ValidationStatus) string {
-	switch status {
-	case ValidationSuccess:
-		return "Host has been configured with at least one default route."
-	case ValidationFailure:
-		return "Host has not yet been configured with a default route."
-	case ValidationPending:
-		return "Missing default routing information."
-	default:
-		return fmt.Sprintf("Unexpected status %s", status)
-	}
 }
 
 func ignitionHasFile(ignition *ignition_types.Config, path string) bool {
@@ -1392,31 +1173,6 @@ func (v *validator) importedClusterHasManagedNetworking(cluster *common.Cluster)
 	return true
 }
 
-// canDetermineImportedClusterManagedNetworking checks if at-least one of the
-// day-2 cluster hosts has obtained the API-connectivity-check ignition file
-// successfully.
-// This is a pre-requisite before we can call importedClusterHasManagedNetworking
-// to determine whether the cluster has managed networking or not.
-func (v *validator) canDetermineImportedClusterManagedNetworking(cluster *common.Cluster) bool {
-	for _, host := range cluster.Hosts {
-		if host.APIVipConnectivity != "" {
-			var response models.APIVipConnectivityResponse
-			if err := json.Unmarshal([]byte(host.APIVipConnectivity), &response); err != nil {
-				v.log.WithError(err).Warnf("Invalid API connectivity response")
-				continue
-			}
-
-			if !response.IsSuccess {
-				continue
-			}
-
-			return true
-		}
-	}
-
-	return false
-}
-
 // shouldValidateDNSResolution is utilized by the various DNS validation
 // functions determine whether they should perform DNS validation or not. If
 // not, it also returns the validation status they should have, which is
@@ -1498,51 +1254,77 @@ func (v *validator) shouldValidateDNSResolution(cluster *common.Cluster) (bool, 
 	return true, ""
 }
 
+// canDetermineImportedClusterManagedNetworking checks if at-least one of the
+// day-2 cluster hosts has obtained the API-connectivity-check ignition file
+// successfully.
+// This is a pre-requisite before we can call importedClusterHasManagedNetworking
+// to determine whether the cluster has managed networking or not.
+func (v *validator) canDetermineImportedClusterManagedNetworking(cluster *common.Cluster) bool {
+	for _, host := range cluster.Hosts {
+		if host.APIVipConnectivity != "" {
+			var response models.APIVipConnectivityResponse
+			if err := json.Unmarshal([]byte(host.APIVipConnectivity), &response); err != nil {
+				v.log.WithError(err).Warnf("Invalid API connectivity response")
+				continue
+			}
+
+			if !response.IsSuccess {
+				continue
+			}
+
+			return true
+		}
+	}
+
+	return false
+}
+
 func domainNameToResolve(c *validationContext, name string) string {
 	return fmt.Sprintf("%s.%s.%s", name, c.cluster.Name, c.cluster.BaseDNSDomain)
 }
 
-func (v *validator) isAPIDomainNameResolvedCorrectly(c *validationContext) ValidationStatus {
+func (v *validator) isAPIDomainNameResolvedCorrectly(c *validationContext) (ValidationStatus, string) {
+	target := "API load balancer"
 	if c.infraEnv != nil {
-		return ValidationSuccessSuppressOutput
+		return ValidationSuccessSuppressOutput, ""
 	}
-	if shouldValidate, ret := v.shouldValidateDNSResolution(c.cluster); !shouldValidate {
-		return ret
-	}
+
 	apiDomainName := domainNameToResolve(c, constants.APIClusterSubdomain)
-	return checkDomainNameResolution(c, apiDomainName)
+	shouldValidate, status := v.shouldValidateDNSResolution(c.cluster)
+	if shouldValidate {
+		status = checkDomainNameResolution(c, apiDomainName)
+	}
+
+	return status, printIsDomainNameResolvedCorrectly(c, status, apiDomainName, target)
 }
 
-func (v *validator) printIsAPIDomainNameResolvedCorrectly(c *validationContext, status ValidationStatus) string {
-	apiDomainName := domainNameToResolve(c, constants.APIClusterSubdomain)
-	return printIsDomainNameResolvedCorrectly(c, status, apiDomainName, "API")
-}
-
-func (v *validator) isAPIInternalDomainNameResolvedCorrectly(c *validationContext) ValidationStatus {
+func (v *validator) isAPIInternalDomainNameResolvedCorrectly(c *validationContext) (ValidationStatus, string) {
+	target := "internal API load balancer"
 	if c.infraEnv != nil {
-		return ValidationSuccessSuppressOutput
+		return ValidationSuccessSuppressOutput, ""
 	}
-	if shouldValidate, ret := v.shouldValidateDNSResolution(c.cluster); !shouldValidate {
-		return ret
-	}
+
 	apiInternalDomainName := domainNameToResolve(c, constants.InternalAPIClusterSubdomain)
-	return checkDomainNameResolution(c, apiInternalDomainName)
+	shouldValidate, status := v.shouldValidateDNSResolution(c.cluster)
+	if shouldValidate {
+		status = checkDomainNameResolution(c, apiInternalDomainName)
+	}
+
+	return status, printIsDomainNameResolvedCorrectly(c, status, apiInternalDomainName, target)
 }
 
-func (v *validator) printIsAPIInternalDomainNameResolvedCorrectly(c *validationContext, status ValidationStatus) string {
-	apiInternalDomainName := domainNameToResolve(c, constants.InternalAPIClusterSubdomain)
-	return printIsDomainNameResolvedCorrectly(c, status, apiInternalDomainName, "internal API")
-}
-
-func (v *validator) isAppsDomainNameResolvedCorrectly(c *validationContext) ValidationStatus {
+func (v *validator) isAppsDomainNameResolvedCorrectly(c *validationContext) (ValidationStatus, string) {
 	if c.infraEnv != nil {
-		return ValidationSuccessSuppressOutput
+		return ValidationSuccessSuppressOutput, ""
 	}
-	if shouldValidate, ret := v.shouldValidateDNSResolution(c.cluster); !shouldValidate {
-		return ret
+
+	shouldValidate, status := v.shouldValidateDNSResolution(c.cluster)
+	if shouldValidate {
+		appsDomainName := fmt.Sprintf("%s.apps.%s.%s", constants.AppsSubDomainNameHostDNSValidation, c.cluster.Name, c.cluster.BaseDNSDomain)
+		status = checkDomainNameResolution(c, appsDomainName)
 	}
-	appsDomainName := fmt.Sprintf("%s.apps.%s.%s", constants.AppsSubDomainNameHostDNSValidation, c.cluster.Name, c.cluster.BaseDNSDomain)
-	return checkDomainNameResolution(c, appsDomainName)
+
+	return status, v.printIsAppsDomainNameResolvedCorrectly(c, status)
 }
 
 func (v *validator) printIsAppsDomainNameResolvedCorrectly(c *validationContext, status ValidationStatus) string {
@@ -1652,16 +1434,16 @@ func printIsDomainNameResolvedCorrectly(c *validationContext, status ValidationS
 	}
 }
 
-func (v *validator) isDNSWildcardNotConfigured(c *validationContext) ValidationStatus {
+func (v *validator) isDNSWildcardNotConfigured(c *validationContext) (ValidationStatus, string) {
 	if c.infraEnv != nil {
-		return ValidationSuccessSuppressOutput
+		return ValidationSuccessSuppressOutput, ""
 	}
 	if hostutil.IsDay2Host(c.host) {
-		return ValidationSuccess
+		return ValidationSuccess, "DNS wildcard check is not required for day2"
 	}
 	var response *models.DomainResolutionResponse
 	if err := json.Unmarshal([]byte(c.host.DomainNameResolutions), &response); err != nil {
-		return ValidationError
+		return ValidationError, ""
 	}
 	dnsWildcardName := domainNameToResolve(c, constants.DNSWildcardFalseDomainName)
 
@@ -1669,27 +1451,11 @@ func (v *validator) isDNSWildcardNotConfigured(c *validationContext) ValidationS
 	for _, domain := range response.Resolutions {
 		if domain.DomainName != nil && *domain.DomainName == dnsWildcardName {
 			if len(domain.IPV4Addresses) == 0 && len(domain.IPV6Addresses) == 0 {
-				return ValidationSuccess
+				return ValidationSuccess, "DNS wildcard check was successful"
 			}
 		}
 	}
-	return ValidationFailure
-}
-
-func (v *validator) printIsDNSWildcardNotConfigured(c *validationContext, status ValidationStatus) string {
-	switch status {
-	case ValidationSuccess:
-		if hostutil.IsDay2Host(c.host) {
-			return "DNS wildcard check is not required for day2"
-		}
-		return "DNS wildcard check was successful"
-	case ValidationFailure:
-		return fmt.Sprintf("DNS wildcard configuration was detected for domain *.%s.%s The installation will not be able to complete while the entry exists. Please remove it to proceed.", c.cluster.Name, c.cluster.BaseDNSDomain)
-	case ValidationError:
-		return "Parse error for domain name resolutions result"
-	default:
-		return "Unexpected status"
-	}
+	return ValidationFailure, fmt.Sprintf("DNS wildcard configuration was detected for domain *.%s.%s The installation will not be able to complete while the entry exists. Please remove it to proceed.", c.cluster.Name, c.cluster.BaseDNSDomain)
 }
 
 func areNetworksOverlapping(c *validationContext) (ValidationStatus, error) {
@@ -1732,91 +1498,59 @@ func areNetworksOverlapping(c *validationContext) (ValidationStatus, error) {
 	return ValidationSuccess, nil
 }
 
-func (v *validator) nonOverlappingSubnets(c *validationContext) ValidationStatus {
-	ret, err := areNetworksOverlapping(c)
+func (v *validator) nonOverlappingSubnets(c *validationContext) (ValidationStatus, string) {
+	status, err := areNetworksOverlapping(c)
 	if err != nil {
 		v.log.WithError(err).Errorf("Failed to check if CIDRs are overlapping for host %s infra-env %s", c.host.ID.String(), c.host.InfraEnvID.String())
 	}
-	return ret
-}
-
-func (v *validator) printNonOverlappingSubnets(c *validationContext, status ValidationStatus) string {
 	switch status {
 	case ValidationSuccess:
-		return "Host subnets are not overlapping"
+		return status, "Host subnets are not overlapping"
 	case ValidationPending:
-		return "Missing inventory, or missing cluster"
+		return status, "Missing inventory, or missing cluster"
 	case ValidationFailure:
 		_, err := areNetworksOverlapping(c)
-		return fmt.Sprintf("Address networks are overlapping: %s", err.Error())
+		return status, fmt.Sprintf("Address networks are overlapping: %s", err.Error())
 	case ValidationError:
 		_, err := areNetworksOverlapping(c)
-		return fmt.Sprintf("Unexpected error: %s", err.Error())
+		return status, fmt.Sprintf("Unexpected error: %s", err.Error())
+	default:
+		return status, fmt.Sprintf("Unexpected status %s", status)
 	}
-	return fmt.Sprintf("Unexpected status %s", status)
 }
 
-func (v *validator) isVSphereDiskUUIDEnabled(c *validationContext) ValidationStatus {
+func (v *validator) isVSphereDiskUUIDEnabled(c *validationContext) (ValidationStatus, string) {
 	if c.inventory == nil {
-		return ValidationPending
+		return ValidationPending, "Validation pending - no inventory"
 	}
-
 	if c.cluster == nil {
-		return ValidationPending
+		return ValidationPending, "Validation pending - no cluster"
 	}
-
 	if c.cluster.Platform == nil || c.cluster.Platform.Type == nil || *c.cluster.Platform.Type != models.PlatformTypeVsphere {
-		return ValidationSuccess
+		return ValidationSuccess, "VSphere disk.EnableUUID is enabled for this virtual machine"
 	}
-
 	if c.inventory.Disks == nil {
-		return ValidationPending
+		return ValidationPending, "Validation pending - no disks"
 	}
-
 	for _, disk := range c.inventory.Disks {
 		// vSphere only adds a UUID to disks which can potentially be used for storage,
 		// if any of them doesn't have that flag, it's likely because the user has forgotten to
 		// enable `disk.EnableUUID` for this virtual machine
 		// See https://access.redhat.com/solutions/4606201
 		if v.hwValidator.IsValidStorageDeviceType(disk) && !disk.HasUUID {
-			return ValidationFailure
+			return ValidationFailure, "VSphere disk.EnableUUID isn't enabled for this virtual machine, it's necessary for disks to be mounted properly"
 		}
 	}
-
-	return ValidationSuccess
+	return ValidationSuccess, "VSphere disk.EnableUUID is enabled for this virtual machine"
 }
 
-func (v *validator) printVSphereUUIDEnabled(_ *validationContext, status ValidationStatus) string {
-	switch status {
-	case ValidationSuccess:
-		return "VSphere disk.EnableUUID is enabled for this virtual machine"
-	case ValidationFailure:
-		return "VSphere disk.EnableUUID isn't enabled for this virtual machine, it's necessary for disks to be mounted properly"
-	default:
-		return fmt.Sprintf("Unexpected status %s", status)
-	}
-}
-
-func (v *validator) compatibleAgent(c *validationContext) ValidationStatus {
+func (v *validator) compatibleAgent(c *validationContext) (ValidationStatus, string) {
 	if !v.hwValidatorCfg.EnableUpgradeAgent {
-		return ValidationSuccess
+		return ValidationSuccess, "Host agent compatibility checking is disabled"
 	}
 	if common.IsAgentCompatible(v.hwValidatorCfg.AgentDockerImage, c.host.DiscoveryAgentVersion) {
-		return ValidationSuccess
+		return ValidationSuccess, "Host agent is compatible with the service"
 	}
-	return ValidationFailure
-}
-
-func (v *validator) printCompatibleAgent(c *validationContext, status ValidationStatus) string {
-	switch status {
-	case ValidationSuccess:
-		if v.hwValidatorCfg.EnableUpgradeAgent {
-			return "Host agent is compatible with the service"
-		}
-		return "Host agent compatibility checking is disabled"
-	case ValidationFailure:
-		return "This host's agent is in the process of being upgraded to a compatible " +
-			"version. This might take a few minutes"
-	}
-	return fmt.Sprintf("Unexpected status %s", status)
+	return ValidationFailure, "This host's agent is in the process of being upgraded to a compatible " +
+		"version. This might take a few minutes"
 }

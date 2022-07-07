@@ -70,13 +70,12 @@ func (r *refreshPreprocessor) preprocess(c *validationContext) (map[string]bool,
 			message = validationDisabledByConfiguration
 			conditions[v.id.String()] = true
 		} else {
-			st = v.condition(c)
+			st, message = v.condition(c)
 			conditions[v.id.String()] = funk.ContainsString([]string{ValidationSuccess.String(), ValidationSuccessSuppressOutput.String()}, st.String())
 			// Don't output this validation status to validations in case that the output needs to be suppressed
 			if st == ValidationSuccessSuppressOutput {
 				continue
 			}
-			message = v.formatter(c, st)
 		}
 
 		// skip the validations per states
@@ -140,154 +139,124 @@ func newValidations(v *validator) []validation {
 		{
 			id:            IsConnected,
 			condition:     v.isConnected,
-			formatter:     v.printConnected,
 			skippedStates: manualRebootStages,
 		},
 		{
 			id:            IsMediaConnected,
 			condition:     v.isMediaConnected,
-			formatter:     v.printMediaConnected,
 			skippedStates: manualRebootStages,
 		},
 		{
 			id:        HasInventory,
 			condition: v.hasInventory,
-			formatter: v.printHasInventory,
 		},
 		{
 			id:        HasMinCPUCores,
 			condition: v.hasMinCpuCores,
-			formatter: v.printHasMinCpuCores,
 		},
 		{
 			id:        HasMinMemory,
 			condition: v.hasMinMemory,
-			formatter: v.printHasMinMemory,
 		},
 		{
 			id:        HasMinValidDisks,
 			condition: v.hasMinValidDisks,
-			formatter: v.printHasMinValidDisks,
 		},
 		{
 			id:        IsMachineCidrDefined,
 			condition: v.isMachineCidrDefined,
-			formatter: v.printIsMachineCidrDefined,
 		},
 		{
 			id:        HasCPUCoresForRole,
 			condition: v.hasCPUCoresForRole,
-			formatter: v.printHasCPUCoresForRole,
 		},
 		{
 			id:        HasMemoryForRole,
 			condition: v.hasMemoryForRole,
-			formatter: v.printHasMemoryForRole,
 		},
 		{
 			id:        IsHostnameUnique,
 			condition: v.isHostnameUnique,
-			formatter: v.printHostnameUnique,
 		},
 		{
 			id:        BelongsToMachineCidr,
 			condition: v.belongsToMachineCidr,
-			formatter: v.printBelongsToMachineCidr,
 		},
 		{
 			id:        IsHostnameValid,
 			condition: v.isHostnameValid,
-			formatter: v.printHostnameValid,
 		},
 		{
 			id:        IsIgnitionDownloadable,
 			condition: v.isIgnitionDownloadable,
-			formatter: v.printIgnitionDownloadable,
 		},
 		{
 			id:        BelongsToMajorityGroup,
 			condition: v.belongsToMajorityGroup,
-			formatter: v.printBelongsToMajorityGroup,
 		},
 		{
 			id:        IsPlatformNetworkSettingsValid,
 			condition: v.isValidPlatformNetworkSettings,
-			formatter: v.printValidPlatformNetworkSettings,
 		},
 		{
 			id:            IsNTPSynced,
 			condition:     v.isNTPSynced,
-			formatter:     v.printNTPSynced,
 			skippedStates: manualRebootStages,
 		},
 		{
 			id:        SucessfullOrUnknownContainerImagesAvailability,
 			condition: v.sucessfullOrUnknownContainerImagesAvailability,
-			formatter: v.printSucessfullOrUnknownContainerImagesAvailability,
 		},
 		{
 			id:        SufficientOrUnknownInstallationDiskSpeed,
 			condition: v.sufficientOrUnknownInstallationDiskSpeed,
-			formatter: v.printSufficientOrUnknownInstallationDiskSpeed,
 		},
 		{
 			id:        HasSufficientNetworkLatencyRequirementForRole,
 			condition: v.hasSufficientNetworkLatencyRequirementForRole,
-			formatter: v.printSufficientNetworkLatencyRequirementForRole,
 		}, {
 			id:        HasSufficientPacketLossRequirementForRole,
 			condition: v.hasSufficientPacketLossRequirementForRole,
-			formatter: v.printSufficientPacketLossRequirementForRole,
 		},
 		{
 			id:        HasDefaultRoute,
 			condition: v.hasDefaultRoute,
-			formatter: v.printDefaultRoute,
 		},
 		{
 			id:        IsAPIDomainNameResolvedCorrectly,
 			condition: v.isAPIDomainNameResolvedCorrectly,
-			formatter: v.printIsAPIDomainNameResolvedCorrectly,
 		},
 		{
 			id:        IsAPIInternalDomainNameResolvedCorrectly,
 			condition: v.isAPIInternalDomainNameResolvedCorrectly,
-			formatter: v.printIsAPIInternalDomainNameResolvedCorrectly,
 		},
 		{
 			id:        IsAppsDomainNameResolvedCorrectly,
 			condition: v.isAppsDomainNameResolvedCorrectly,
-			formatter: v.printIsAppsDomainNameResolvedCorrectly,
 		},
 		{
 			id:        CompatibleWithClusterPlatform,
 			condition: v.compatibleWithClusterPlatform,
-			formatter: v.printCompatibleWithClusterPlatform,
 		},
 		{
 			id:        IsDNSWildcardNotConfigured,
 			condition: v.isDNSWildcardNotConfigured,
-			formatter: v.printIsDNSWildcardNotConfigured,
 		},
 		{
 			id:        DiskEncryptionRequirementsSatisfied,
 			condition: v.diskEncryptionRequirementsSatisfied,
-			formatter: v.printDiskEncryptionRequirementsSatisfied,
 		},
 		{
 			id:        NonOverlappingSubnets,
 			condition: v.nonOverlappingSubnets,
-			formatter: v.printNonOverlappingSubnets,
 		},
 		{
 			id:        VSphereHostUUIDEnabled,
 			condition: v.isVSphereDiskUUIDEnabled,
-			formatter: v.printVSphereUUIDEnabled,
 		},
 		{
 			id:        CompatibleAgent,
 			condition: v.compatibleAgent,
-			formatter: v.printCompatibleAgent,
 		},
 	}
 }
