@@ -2435,7 +2435,6 @@ var _ = Describe("Refresh Host", func() {
 
 	Context("All transitions", func() {
 		var srcState string
-		domainNameResolutions := common.TestDomainNameResolutionSuccess
 
 		type TransitionTestStruct struct {
 			// Test parameters
@@ -2468,6 +2467,7 @@ var _ = Describe("Refresh Host", func() {
 			disksInfo          string
 
 			machineNetworksForGroups []*models.MachineNetwork
+			domainResolutions        *models.DomainResolutionResponse
 		}
 
 		tests := []TransitionTestStruct{
@@ -2495,7 +2495,8 @@ var _ = Describe("Refresh Host", func() {
 					SucessfullOrUnknownContainerImagesAvailability: {status: ValidationSuccess, messagePattern: "All required container images were either pulled successfully or no attempt was made to pull them"},
 					SufficientOrUnknownInstallationDiskSpeed:       {status: ValidationSuccess, messagePattern: "Speed of installation disk has not yet been measured"},
 				}),
-				errorExpected: false,
+				domainResolutions: common.TestDomainNameResolutionSuccess,
+				errorExpected:     false,
 			},
 			{
 				name:              "insufficient to disconnected",
@@ -2521,7 +2522,8 @@ var _ = Describe("Refresh Host", func() {
 					SucessfullOrUnknownContainerImagesAvailability: {status: ValidationSuccess, messagePattern: "All required container images were either pulled successfully or no attempt was made to pull them"},
 					SufficientOrUnknownInstallationDiskSpeed:       {status: ValidationSuccess, messagePattern: "Speed of installation disk has not yet been measured"},
 				}),
-				errorExpected: false,
+				domainResolutions: common.TestDomainNameResolutionSuccess,
+				errorExpected:     false,
 			},
 			{
 				name:              "known to disconnected",
@@ -2530,6 +2532,7 @@ var _ = Describe("Refresh Host", func() {
 				srcState:          models.HostStatusKnown,
 				dstState:          models.HostStatusDisconnected,
 				statusInfoChecker: makeValueChecker(statusInfoDisconnected),
+				domainResolutions: common.TestDomainNameResolutionSuccess,
 				errorExpected:     false,
 			},
 			{
@@ -2556,7 +2559,8 @@ var _ = Describe("Refresh Host", func() {
 					SucessfullOrUnknownContainerImagesAvailability: {status: ValidationSuccess, messagePattern: "All required container images were either pulled successfully or no attempt was made to pull them"},
 					SufficientOrUnknownInstallationDiskSpeed:       {status: ValidationSuccess, messagePattern: "Speed of installation disk has not yet been measured"},
 				}),
-				errorExpected: false,
+				domainResolutions: common.TestDomainNameResolutionSuccess,
+				errorExpected:     false,
 			},
 			{
 				name:              "disconnected to disconnected",
@@ -2582,7 +2586,8 @@ var _ = Describe("Refresh Host", func() {
 					SucessfullOrUnknownContainerImagesAvailability: {status: ValidationSuccess, messagePattern: "All required container images were either pulled successfully or no attempt was made to pull them"},
 					SufficientOrUnknownInstallationDiskSpeed:       {status: ValidationSuccess, messagePattern: "Speed of installation disk has not yet been measured"},
 				}),
-				errorExpected: false,
+				domainResolutions: common.TestDomainNameResolutionSuccess,
+				errorExpected:     false,
 			},
 			{
 				name:              "disconnected to discovering",
@@ -2606,7 +2611,8 @@ var _ = Describe("Refresh Host", func() {
 					SucessfullOrUnknownContainerImagesAvailability: {status: ValidationSuccess, messagePattern: "All required container images were either pulled successfully or no attempt was made to pull them"},
 					SufficientOrUnknownInstallationDiskSpeed:       {status: ValidationSuccess, messagePattern: "Speed of installation disk has not yet been measured"},
 				}),
-				errorExpected: false,
+				domainResolutions: common.TestDomainNameResolutionSuccess,
+				errorExpected:     false,
 			},
 			{
 				name:              "discovering to discovering",
@@ -2632,7 +2638,8 @@ var _ = Describe("Refresh Host", func() {
 					SucessfullOrUnknownContainerImagesAvailability: {status: ValidationSuccess, messagePattern: "All required container images were either pulled successfully or no attempt was made to pull them"},
 					SufficientOrUnknownInstallationDiskSpeed:       {status: ValidationSuccess, messagePattern: "Speed of installation disk has not yet been measured"},
 				}),
-				errorExpected: false,
+				domainResolutions: common.TestDomainNameResolutionSuccess,
+				errorExpected:     false,
 			},
 			{
 				name:             "disconnected to insufficient - auto-assign casted as worker (1)",
@@ -2664,7 +2671,8 @@ var _ = Describe("Refresh Host", func() {
 					SucessfullOrUnknownContainerImagesAvailability: {status: ValidationSuccess, messagePattern: "All required container images were either pulled successfully or no attempt was made to pull them"},
 					SufficientOrUnknownInstallationDiskSpeed:       {status: ValidationSuccess, messagePattern: "Speed of installation disk has not yet been measured"},
 				}),
-				errorExpected: false,
+				domainResolutions: common.TestDomainNameResolutionSuccess,
+				errorExpected:     false,
 			},
 			{
 				name:             "insufficient to insufficient (1)",
@@ -2695,8 +2703,9 @@ var _ = Describe("Refresh Host", func() {
 					SucessfullOrUnknownContainerImagesAvailability: {status: ValidationSuccess, messagePattern: "All required container images were either pulled successfully or no attempt was made to pull them"},
 					SufficientOrUnknownInstallationDiskSpeed:       {status: ValidationSuccess, messagePattern: "Speed of installation disk has not yet been measured"},
 				}),
-				inventory:     insufficientHWInventory(),
-				errorExpected: false,
+				inventory:         insufficientHWInventory(),
+				domainResolutions: common.TestDomainNameResolutionSuccess,
+				errorExpected:     false,
 			},
 			{
 				name:             "discovering to insufficient - auto-assign casted as worker (1)",
@@ -2727,8 +2736,9 @@ var _ = Describe("Refresh Host", func() {
 					SucessfullOrUnknownContainerImagesAvailability: {status: ValidationSuccess, messagePattern: "All required container images were either pulled successfully or no attempt was made to pull them"},
 					SufficientOrUnknownInstallationDiskSpeed:       {status: ValidationSuccess, messagePattern: "Speed of installation disk has not yet been measured"},
 				}),
-				inventory:     insufficientHWInventory(),
-				errorExpected: false,
+				inventory:         insufficientHWInventory(),
+				domainResolutions: common.TestDomainNameResolutionSuccess,
+				errorExpected:     false,
 			},
 			{
 				name:              "pending to insufficient (1)",
@@ -2738,6 +2748,7 @@ var _ = Describe("Refresh Host", func() {
 				dstState:          models.HostStatusPendingForInput,
 				statusInfoChecker: makeValueChecker(""),
 				inventory:         insufficientHWInventory(),
+				domainResolutions: common.TestDomainNameResolutionSuccess,
 				errorExpected:     true,
 			},
 			{
@@ -2753,8 +2764,9 @@ var _ = Describe("Refresh Host", func() {
 					"Require at least 8.00 GiB RAM for role worker, found only 130 bytes ; " +
 					"The host is not eligible to participate in Openshift Cluster because the minimum required RAM for " +
 					"any role is 8.00 GiB, found only 130 bytes"),
-				inventory:     insufficientHWInventory(),
-				errorExpected: false,
+				inventory:         insufficientHWInventory(),
+				domainResolutions: common.TestDomainNameResolutionSuccess,
+				errorExpected:     false,
 			},
 			{
 				name:             "known to pending",
@@ -2782,8 +2794,9 @@ var _ = Describe("Refresh Host", func() {
 					SucessfullOrUnknownContainerImagesAvailability: {status: ValidationSuccess, messagePattern: "All required container images were either pulled successfully or no attempt was made to pull them"},
 					SufficientOrUnknownInstallationDiskSpeed:       {status: ValidationSuccess, messagePattern: "Speed of installation disk has not yet been measured"},
 				}),
-				inventory:     workerInventory(),
-				errorExpected: false,
+				inventory:         workerInventory(),
+				domainResolutions: common.TestDomainNameResolutionSuccess,
+				errorExpected:     false,
 			},
 			{
 				name:             "pending to pending",
@@ -2810,8 +2823,9 @@ var _ = Describe("Refresh Host", func() {
 					IsNTPSynced:                    {status: ValidationFailure, messagePattern: "Host couldn't synchronize with any NTP server"},
 					SucessfullOrUnknownContainerImagesAvailability: {status: ValidationSuccess, messagePattern: "All required container images were either pulled successfully or no attempt was made to pull them"},
 				}),
-				inventory:     workerInventory(),
-				errorExpected: false,
+				inventory:         workerInventory(),
+				domainResolutions: common.TestDomainNameResolutionSuccess,
+				errorExpected:     false,
 			},
 			{
 				name:             "disconnected to insufficient (2)",
@@ -2844,8 +2858,9 @@ var _ = Describe("Refresh Host", func() {
 					SucessfullOrUnknownContainerImagesAvailability: {status: ValidationFailure, messagePattern: "Failed to fetch container images needed for installation from image."},
 					SufficientOrUnknownInstallationDiskSpeed:       {status: ValidationSuccess, messagePattern: "Speed of installation disk has not yet been measured"},
 				}),
-				inventory:     workerInventory(),
-				errorExpected: false,
+				inventory:         workerInventory(),
+				domainResolutions: common.TestDomainNameResolutionSuccess,
+				errorExpected:     false,
 			},
 			{
 				name:             "discovering to insufficient (2)",
@@ -2880,8 +2895,9 @@ var _ = Describe("Refresh Host", func() {
 					SucessfullOrUnknownContainerImagesAvailability: {status: ValidationFailure, messagePattern: "Failed to fetch container images needed for installation from image."},
 					SufficientOrUnknownInstallationDiskSpeed:       {status: ValidationSuccess, messagePattern: "Speed of installation disk has not yet been measured"},
 				}),
-				inventory:     workerInventory(),
-				errorExpected: false,
+				inventory:         workerInventory(),
+				domainResolutions: common.TestDomainNameResolutionSuccess,
+				errorExpected:     false,
 			},
 			{
 				name:             "discovering to known (openstack system vendor)",
@@ -2912,8 +2928,9 @@ var _ = Describe("Refresh Host", func() {
 					SucessfullOrUnknownContainerImagesAvailability: {status: ValidationSuccess, messagePattern: "All required container images were either pulled successfully or no attempt was made to pull them"},
 					SufficientOrUnknownInstallationDiskSpeed:       {status: ValidationSuccess, messagePattern: "Speed of installation disk has not yet been measured"},
 				}),
-				inventory:     inventoryWithUnauthorizedVendor(),
-				errorExpected: false,
+				inventory:         inventoryWithUnauthorizedVendor(),
+				domainResolutions: common.TestDomainNameResolutionSuccess,
+				errorExpected:     false,
 			},
 			{
 				name:             "insufficient to insufficient (2)",
@@ -2941,8 +2958,9 @@ var _ = Describe("Refresh Host", func() {
 					SucessfullOrUnknownContainerImagesAvailability: {status: ValidationSuccess, messagePattern: "All required container images were either pulled successfully or no attempt was made to pull them"},
 					SufficientOrUnknownInstallationDiskSpeed:       {status: ValidationSuccess, messagePattern: "Speed of installation disk has not yet been measured"},
 				}),
-				inventory:     workerInventory(),
-				errorExpected: false,
+				inventory:         workerInventory(),
+				domainResolutions: common.TestDomainNameResolutionSuccess,
+				errorExpected:     false,
 			},
 			{
 				name:             "pending to insufficient (2)",
@@ -2971,7 +2989,8 @@ var _ = Describe("Refresh Host", func() {
 					SucessfullOrUnknownContainerImagesAvailability: {status: ValidationSuccess, messagePattern: "All required container images were either pulled successfully or no attempt was made to pull them"},
 					SufficientOrUnknownInstallationDiskSpeed:       {status: ValidationSuccess, messagePattern: "Speed of installation disk has not yet been measured"},
 				}),
-				errorExpected: false,
+				domainResolutions: common.TestDomainNameResolutionSuccess,
+				errorExpected:     false,
 			},
 			{
 				name:             "known to insufficient (2)",
@@ -3001,8 +3020,9 @@ var _ = Describe("Refresh Host", func() {
 					IsNTPSynced:          {status: ValidationFailure, messagePattern: "Host couldn't synchronize with any NTP server"},
 					SucessfullOrUnknownContainerImagesAvailability: {status: ValidationFailure, messagePattern: "Failed to fetch container images needed for installation from image."},
 				}),
-				inventory:     hostutil.GenerateMasterInventory(),
-				errorExpected: false,
+				inventory:         hostutil.GenerateMasterInventory(),
+				domainResolutions: common.TestDomainNameResolutionSuccess,
+				errorExpected:     false,
 			},
 			{
 				name:             "insufficient to insufficient (2)",
@@ -3033,8 +3053,9 @@ var _ = Describe("Refresh Host", func() {
 					SucessfullOrUnknownContainerImagesAvailability: {status: ValidationFailure, messagePattern: "Failed to fetch container images needed for installation from image."},
 					SufficientOrUnknownInstallationDiskSpeed:       {status: ValidationSuccess, messagePattern: "Speed of installation disk has not yet been measured"},
 				}),
-				inventory:     hostutil.GenerateMasterInventory(),
-				errorExpected: false,
+				inventory:         hostutil.GenerateMasterInventory(),
+				domainResolutions: common.TestDomainNameResolutionSuccess,
+				errorExpected:     false,
 			},
 			{
 				name:              "discovering to known",
@@ -3061,8 +3082,9 @@ var _ = Describe("Refresh Host", func() {
 					IsNTPSynced:          {status: ValidationSuccess, messagePattern: "Host NTP is synced"},
 					SucessfullOrUnknownContainerImagesAvailability: {status: ValidationSuccess, messagePattern: "All required container images were either pulled successfully or no attempt was made to pull them"},
 				}),
-				inventory:     hostutil.GenerateMasterInventory(),
-				errorExpected: false,
+				inventory:         hostutil.GenerateMasterInventory(),
+				domainResolutions: common.TestDomainNameResolutionSuccess,
+				errorExpected:     false,
 			},
 			{
 				name:              "discovering to insufficient - duplicate networks",
@@ -3091,8 +3113,9 @@ var _ = Describe("Refresh Host", func() {
 					NonOverlappingSubnets: {status: ValidationFailure, messagePattern: "Address network .* appears on multiple interfaces"},
 					SucessfullOrUnknownContainerImagesAvailability: {status: ValidationSuccess, messagePattern: "All required container images were either pulled successfully or no attempt was made to pull them"},
 				}),
-				inventory:     hostutil.GenerateMasterInventoryWithNetworks("1.2.3.4/24", "1.2.3.5/24"),
-				errorExpected: false,
+				inventory:         hostutil.GenerateMasterInventoryWithNetworks("1.2.3.4/24", "1.2.3.5/24"),
+				domainResolutions: common.TestDomainNameResolutionSuccess,
+				errorExpected:     false,
 			},
 			{
 				name:              "discovering to insufficient - duplicate networks on same interface",
@@ -3121,8 +3144,9 @@ var _ = Describe("Refresh Host", func() {
 					NonOverlappingSubnets: {status: ValidationSuccess, messagePattern: "Host subnets are not overlapping"},
 					SucessfullOrUnknownContainerImagesAvailability: {status: ValidationSuccess, messagePattern: "All required container images were either pulled successfully or no attempt was made to pull them"},
 				}),
-				inventory:     hostutil.GenerateMasterInventoryWithNetworksOnSameInterface("1.2.3.4/24", "1.2.3.5/24"),
-				errorExpected: false,
+				inventory:         hostutil.GenerateMasterInventoryWithNetworksOnSameInterface([]string{"1.2.3.4/24", "1.2.3.5/24"}, []string{}),
+				domainResolutions: common.TestDomainNameResolutionSuccess,
+				errorExpected:     false,
 			},
 			{
 				name:              "discovering to insufficient - overlapping networks",
@@ -3151,8 +3175,9 @@ var _ = Describe("Refresh Host", func() {
 					NonOverlappingSubnets: {status: ValidationFailure, messagePattern: "Address networks .* in interface .* and .* in interface .* overlap"},
 					SucessfullOrUnknownContainerImagesAvailability: {status: ValidationSuccess, messagePattern: "All required container images were either pulled successfully or no attempt was made to pull them"},
 				}),
-				inventory:     hostutil.GenerateMasterInventoryWithNetworks("1.2.3.4/24", "1.2.3.16/23"),
-				errorExpected: false,
+				inventory:         hostutil.GenerateMasterInventoryWithNetworks("1.2.3.4/24", "1.2.3.16/23"),
+				domainResolutions: common.TestDomainNameResolutionSuccess,
+				errorExpected:     false,
 			},
 			{
 				name:              "discovering to known - no overlapping networks",
@@ -3181,8 +3206,9 @@ var _ = Describe("Refresh Host", func() {
 					NonOverlappingSubnets: {status: ValidationSuccess, messagePattern: "Host subnets are not overlapping"},
 					SucessfullOrUnknownContainerImagesAvailability: {status: ValidationSuccess, messagePattern: "All required container images were either pulled successfully or no attempt was made to pull them"},
 				}),
-				inventory:     hostutil.GenerateMasterInventoryWithNetworks("1.2.3.4/24", "1.2.5.16/23"),
-				errorExpected: false,
+				inventory:         hostutil.GenerateMasterInventoryWithNetworks("1.2.3.4/24", "1.2.5.16/23"),
+				domainResolutions: common.TestDomainNameResolutionSuccess,
+				errorExpected:     false,
 			},
 			{
 				name:              "discovering to known user managed networking",
@@ -3210,6 +3236,7 @@ var _ = Describe("Refresh Host", func() {
 					SufficientOrUnknownInstallationDiskSpeed:       {status: ValidationSuccess, messagePattern: "Speed of installation disk has not yet been measured"},
 				}),
 				inventory:             hostutil.GenerateMasterInventory(),
+				domainResolutions:     common.TestDomainNameResolutionSuccess,
 				errorExpected:         false,
 				userManagedNetworking: true,
 			},
@@ -3240,9 +3267,10 @@ var _ = Describe("Refresh Host", func() {
 					SufficientOrUnknownInstallationDiskSpeed:       {status: ValidationSuccess, messagePattern: "Speed of installation disk has not yet been measured"},
 					IsDNSWildcardNotConfigured:                     {status: ValidationSuccess, messagePattern: "DNS wildcard check is not required for day2"},
 				}),
-				inventory:     hostutil.GenerateMasterInventory(),
-				errorExpected: false,
-				isDay2:        true,
+				inventory:         hostutil.GenerateMasterInventory(),
+				domainResolutions: common.TestDomainNameResolutionSuccess,
+				errorExpected:     false,
+				isDay2:            true,
 			},
 			{
 				name:              "discovering to insufficient user managed networking",
@@ -3270,6 +3298,7 @@ var _ = Describe("Refresh Host", func() {
 					SufficientOrUnknownInstallationDiskSpeed:       {status: ValidationSuccess, messagePattern: "Speed of installation disk has not yet been measured"},
 				}),
 				inventory:             hostutil.GenerateMasterInventory(),
+				domainResolutions:     common.TestDomainNameResolutionSuccess,
 				errorExpected:         false,
 				userManagedNetworking: true,
 				connectivity:          fmt.Sprintf("{\"%s\":[]}", network.IPv4.String()),
@@ -3300,6 +3329,7 @@ var _ = Describe("Refresh Host", func() {
 					SufficientOrUnknownInstallationDiskSpeed:       {status: ValidationSuccess, messagePattern: "Speed of installation disk has not yet been measured"},
 				}),
 				inventory:             hostutil.GenerateMasterInventory(),
+				domainResolutions:     common.TestDomainNameResolutionSuccess,
 				errorExpected:         false,
 				userManagedNetworking: true,
 				connectivity:          fmt.Sprintf("{\"%s\":[]}", network.IPv4.String()),
@@ -3331,8 +3361,9 @@ var _ = Describe("Refresh Host", func() {
 					SucessfullOrUnknownContainerImagesAvailability: {status: ValidationSuccess, messagePattern: "All required container images were either pulled successfully or no attempt was made to pull them"},
 					SufficientOrUnknownInstallationDiskSpeed:       {status: ValidationSuccess, messagePattern: "Speed of installation disk has not yet been measured"},
 				}),
-				inventory:     hostutil.GenerateMasterInventory(),
-				errorExpected: false,
+				inventory:         hostutil.GenerateMasterInventory(),
+				domainResolutions: common.TestDomainNameResolutionSuccess,
+				errorExpected:     false,
 			},
 			{
 				name:              "insufficient to insufficient (failed disk info)",
@@ -3360,9 +3391,10 @@ var _ = Describe("Refresh Host", func() {
 					SucessfullOrUnknownContainerImagesAvailability: {status: ValidationSuccess, messagePattern: "All required container images were either pulled successfully or no attempt was made to pull them"},
 					SufficientOrUnknownInstallationDiskSpeed:       {status: ValidationFailure, messagePattern: "While preparing the previous installation the installation disk speed measurement failed or was found to be insufficient"},
 				}),
-				inventory:     hostutil.GenerateMasterInventory(),
-				disksInfo:     createDiskInfo("/dev/sda", 0, -1),
-				errorExpected: false,
+				inventory:         hostutil.GenerateMasterInventory(),
+				disksInfo:         createDiskInfo("/dev/sda", 0, -1),
+				domainResolutions: common.TestDomainNameResolutionSuccess,
+				errorExpected:     false,
 			},
 			{
 				name:              "insufficient to known (successful disk info)",
@@ -3390,9 +3422,10 @@ var _ = Describe("Refresh Host", func() {
 					SucessfullOrUnknownContainerImagesAvailability: {status: ValidationSuccess, messagePattern: "All required container images were either pulled successfully or no attempt was made to pull them"},
 					SufficientOrUnknownInstallationDiskSpeed:       {status: ValidationSuccess, messagePattern: "Speed of installation disk is sufficient"},
 				}),
-				inventory:     hostutil.GenerateMasterInventory(),
-				disksInfo:     createDiskInfo("/dev/sda", 10, 0),
-				errorExpected: false,
+				inventory:         hostutil.GenerateMasterInventory(),
+				disksInfo:         createDiskInfo("/dev/sda", 10, 0),
+				domainResolutions: common.TestDomainNameResolutionSuccess,
+				errorExpected:     false,
 			},
 			{
 				name:              "pending to known",
@@ -3419,8 +3452,9 @@ var _ = Describe("Refresh Host", func() {
 					IsNTPSynced:          {status: ValidationSuccess, messagePattern: "Host NTP is synced"},
 					SucessfullOrUnknownContainerImagesAvailability: {status: ValidationSuccess, messagePattern: "All required container images were either pulled successfully or no attempt was made to pull them"},
 				}),
-				inventory:     hostutil.GenerateMasterInventory(),
-				errorExpected: false,
+				inventory:         hostutil.GenerateMasterInventory(),
+				domainResolutions: common.TestDomainNameResolutionSuccess,
+				errorExpected:     false,
 			},
 			{
 				name:              "pending to known IPv6",
@@ -3447,8 +3481,9 @@ var _ = Describe("Refresh Host", func() {
 					IsNTPSynced:          {status: ValidationSuccess, messagePattern: "Host NTP is synced"},
 					SucessfullOrUnknownContainerImagesAvailability: {status: ValidationSuccess, messagePattern: "All required container images were either pulled successfully or no attempt was made to pull them"},
 				}),
-				inventory:     hostutil.GenerateMasterInventoryV6(),
-				errorExpected: false,
+				inventory:         hostutil.GenerateMasterInventoryV6(),
+				domainResolutions: common.TestDomainNameResolutionSuccess,
+				errorExpected:     false,
 			},
 			{
 				name:                     "pending to known IPv6 - equivalent machine networks",
@@ -3476,8 +3511,9 @@ var _ = Describe("Refresh Host", func() {
 					IsNTPSynced:          {status: ValidationSuccess, messagePattern: "Host NTP is synced"},
 					SucessfullOrUnknownContainerImagesAvailability: {status: ValidationSuccess, messagePattern: "All required container images were either pulled successfully or no attempt was made to pull them"},
 				}),
-				inventory:     hostutil.GenerateMasterInventoryV6(),
-				errorExpected: false,
+				inventory:         hostutil.GenerateMasterInventoryV6(),
+				domainResolutions: common.TestDomainNameResolutionSuccess,
+				errorExpected:     false,
 			},
 			{
 				name:                     "pending to known IPv6 - equivalent machine networks with L3 connectivity",
@@ -3506,6 +3542,7 @@ var _ = Describe("Refresh Host", func() {
 					SucessfullOrUnknownContainerImagesAvailability: {status: ValidationSuccess, messagePattern: "All required container images were either pulled successfully or no attempt was made to pull them"},
 				}),
 				inventory:         hostutil.GenerateMasterInventoryV6(),
+				domainResolutions: common.TestDomainNameResolutionSuccess,
 				errorExpected:     false,
 				addL3Connectivity: true,
 			},
@@ -3536,8 +3573,9 @@ var _ = Describe("Refresh Host", func() {
 					IsNTPSynced:            {status: ValidationSuccess, messagePattern: "Host NTP is synced"},
 					SucessfullOrUnknownContainerImagesAvailability: {status: ValidationSuccess, messagePattern: "All required container images were either pulled successfully or no attempt was made to pull them"},
 				}),
-				inventory:     hostutil.GenerateMasterInventoryV6(),
-				errorExpected: false,
+				inventory:         hostutil.GenerateMasterInventoryV6(),
+				domainResolutions: common.TestDomainNameResolutionSuccess,
+				errorExpected:     false,
 			},
 			{
 				name:              "pending to known IPv6 - with L3 connectivity key",
@@ -3565,9 +3603,10 @@ var _ = Describe("Refresh Host", func() {
 					IsNTPSynced:            {status: ValidationSuccess, messagePattern: "Host NTP is synced"},
 					SucessfullOrUnknownContainerImagesAvailability: {status: ValidationSuccess, messagePattern: "All required container images were either pulled successfully or no attempt was made to pull them"},
 				}),
-				inventory:     hostutil.GenerateMasterInventoryV6(),
-				errorExpected: false,
-				connectivity:  fmt.Sprintf("{\"%s\":[]}", network.IPv4.String()),
+				inventory:         hostutil.GenerateMasterInventoryV6(),
+				domainResolutions: common.TestDomainNameResolutionSuccess,
+				errorExpected:     false,
+				connectivity:      fmt.Sprintf("{\"%s\":[]}", network.IPv4.String()),
 			},
 			{
 				name:              "known to known",
@@ -3595,8 +3634,9 @@ var _ = Describe("Refresh Host", func() {
 					IsNTPSynced:            {status: ValidationSuccess, messagePattern: "Host NTP is synced"},
 					SucessfullOrUnknownContainerImagesAvailability: {status: ValidationSuccess, messagePattern: "All required container images were either pulled successfully or no attempt was made to pull them"},
 				}),
-				inventory:     hostutil.GenerateMasterInventory(),
-				errorExpected: false,
+				inventory:         hostutil.GenerateMasterInventory(),
+				domainResolutions: common.TestDomainNameResolutionSuccess,
+				errorExpected:     false,
 			},
 			{
 				name:              "known to insufficient",
@@ -3624,9 +3664,10 @@ var _ = Describe("Refresh Host", func() {
 					IsNTPSynced:            {status: ValidationSuccess, messagePattern: "Host NTP is synced"},
 					SucessfullOrUnknownContainerImagesAvailability: {status: ValidationSuccess, messagePattern: "All required container images were either pulled successfully or no attempt was made to pull them"},
 				}),
-				inventory:     hostutil.GenerateMasterInventory(),
-				connectivity:  fmt.Sprintf("{\"%s\":[]}", common.TestIPv4Networking.MachineNetworks[0].Cidr),
-				errorExpected: false,
+				inventory:         hostutil.GenerateMasterInventory(),
+				connectivity:      fmt.Sprintf("{\"%s\":[]}", common.TestIPv4Networking.MachineNetworks[0].Cidr),
+				domainResolutions: common.TestDomainNameResolutionSuccess,
+				errorExpected:     false,
 			},
 			{
 				name:             "known to insufficient + additional hosts",
@@ -3655,6 +3696,7 @@ var _ = Describe("Refresh Host", func() {
 				}),
 				inventory:          hostutil.GenerateMasterInventory(),
 				connectivity:       fmt.Sprintf("{\"%s\":[]}", common.TestIPv4Networking.MachineNetworks[0].Cidr),
+				domainResolutions:  common.TestDomainNameResolutionSuccess,
 				errorExpected:      false,
 				numAdditionalHosts: 2,
 			},
@@ -3683,6 +3725,7 @@ var _ = Describe("Refresh Host", func() {
 					IsNTPSynced:            {status: ValidationSuccess, messagePattern: "Host NTP is synced"},
 				}),
 				inventory:          hostutil.GenerateMasterInventoryDualStack(),
+				domainResolutions:  common.TestDomainNameResolutionSuccess,
 				errorExpected:      false,
 				numAdditionalHosts: 2,
 			},
@@ -3712,6 +3755,7 @@ var _ = Describe("Refresh Host", func() {
 					IsNTPSynced:            {status: ValidationSuccess, messagePattern: "Host NTP is synced"},
 				}),
 				inventory:          hostutil.GenerateMasterInventory(),
+				domainResolutions:  common.TestDomainNameResolutionSuccess,
 				errorExpected:      false,
 				numAdditionalHosts: 2,
 			},
@@ -3724,6 +3768,7 @@ var _ = Describe("Refresh Host", func() {
 				role:              "kuku",
 				statusInfoChecker: makeValueChecker(""),
 				inventory:         hostutil.GenerateMasterInventory(),
+				domainResolutions: common.TestDomainNameResolutionSuccess,
 				errorExpected:     true,
 			},
 			{
@@ -3733,6 +3778,7 @@ var _ = Describe("Refresh Host", func() {
 				kind:              models.HostKindAddToExistingClusterHost,
 				role:              models.HostRoleWorker,
 				statusInfoChecker: makeValueChecker(""),
+				domainResolutions: common.TestDomainNameResolutionSuccess,
 				errorExpected:     false,
 			},
 			{
@@ -3761,6 +3807,7 @@ var _ = Describe("Refresh Host", func() {
 					IsNTPSynced:          {status: ValidationSuccess, messagePattern: "Host NTP is synced"},
 					SucessfullOrUnknownContainerImagesAvailability: {status: ValidationSuccess, messagePattern: "All required container images were either pulled successfully or no attempt was made to pull them"},
 				}),
+				domainResolutions:  common.TestDomainNameResolutionSuccess,
 				errorExpected:      false,
 				operators:          []*models.MonitoredOperator{&cnv.Operator, &lso.Operator},
 				numAdditionalHosts: 0,
@@ -3796,6 +3843,7 @@ var _ = Describe("Refresh Host", func() {
 					IsNTPSynced:          {status: ValidationSuccess, messagePattern: "Host NTP is synced"},
 					SucessfullOrUnknownContainerImagesAvailability: {status: ValidationSuccess, messagePattern: "All required container images were either pulled successfully or no attempt was made to pull them"},
 				}),
+				domainResolutions:  common.TestDomainNameResolutionSuccess,
 				errorExpected:      false,
 				operators:          []*models.MonitoredOperator{&cnv.Operator, &lso.Operator},
 				numAdditionalHosts: 0,
@@ -3826,6 +3874,7 @@ var _ = Describe("Refresh Host", func() {
 					IsNTPSynced:          {status: ValidationSuccess, messagePattern: "Host NTP is synced"},
 					SucessfullOrUnknownContainerImagesAvailability: {status: ValidationSuccess, messagePattern: "All required container images were either pulled successfully or no attempt was made to pull them"},
 				}),
+				domainResolutions:  common.TestDomainNameResolutionSuccess,
 				errorExpected:      false,
 				operators:          []*models.MonitoredOperator{&cnv.Operator, &lso.Operator},
 				numAdditionalHosts: 2,
@@ -3855,6 +3904,7 @@ var _ = Describe("Refresh Host", func() {
 					IsNTPSynced:          {status: ValidationSuccess, messagePattern: "Host NTP is synced"},
 					SucessfullOrUnknownContainerImagesAvailability: {status: ValidationSuccess, messagePattern: "All required container images were either pulled successfully or no attempt was made to pull them"},
 				}),
+				domainResolutions:  common.TestDomainNameResolutionSuccess,
 				errorExpected:      false,
 				operators:          []*models.MonitoredOperator{&cnv.Operator, &lso.Operator},
 				numAdditionalHosts: 2,
@@ -3887,10 +3937,74 @@ var _ = Describe("Refresh Host", func() {
 					AreOdfRequirementsSatisfied: {status: ValidationFailure, messagePattern: "ODF unsupported Host Role for Compact Mode."},
 					SucessfullOrUnknownContainerImagesAvailability: {status: ValidationSuccess, messagePattern: "All required container images were either pulled successfully or no attempt was made to pull them"},
 				}),
+				domainResolutions:  common.TestDomainNameResolutionSuccess,
 				errorExpected:      false,
 				operators:          []*models.MonitoredOperator{&cnv.Operator, &lso.Operator, &odf.Operator},
 				numAdditionalHosts: 2,
 				hostRequirements:   &models.ClusterHostRequirementsDetails{CPUCores: 4, RAMMib: 8550},
+			},
+			{
+				name:             "discovering to insufficient user managed networking domain api address is same as a node address v4",
+				validCheckInTime: true,
+				srcState:         models.HostStatusDiscovering,
+				dstState:         models.HostStatusInsufficient,
+				ntpSources:       defaultNTPSources,
+				imageStatuses:    map[string]*models.ContainerImageAvailability{common.TestDefaultConfig.ImageName: common.TestImageStatusesSuccess},
+				machineNetworks:  common.TestIPv4Networking.MachineNetworks,
+				role:             models.HostRoleMaster,
+				statusInfoChecker: makeValueChecker(formatStatusInfoFailedValidation(statusInfoNotReadyForInstall,
+					fmt.Sprintf("Can't map the domain %s to %s as it is an API address, these addresses must be sent to a load balancer when using user managed networking in a multiple control plane cluster.", common.DomainAPI, "1.2.3.40/24"),
+					fmt.Sprintf("Can't map the domain %s to %s as it is an API address, these addresses must be sent to a load balancer when using user managed networking in a multiple control plane cluster.", common.DomainAPIInternal, "4.5.6.7/24"))),
+				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
+					IsAPIDomainNameResolvedCorrectly:         {status: ValidationFailure, messagePattern: fmt.Sprintf("Can't map the domain %s to %s as it is an API address, these addresses must be sent to a load balancer when using user managed networking in a multiple control plane cluster.", common.DomainAPI, "1.2.3.40/24")},
+					IsAPIInternalDomainNameResolvedCorrectly: {status: ValidationFailure, messagePattern: fmt.Sprintf("Can't map the domain %s to %s as it is an API address, these addresses must be sent to a load balancer when using user managed networking in a multiple control plane cluster.", common.DomainAPIInternal, "4.5.6.7/24")},
+				}),
+				inventory:             hostutil.GenerateMasterInventoryWithNetworksOnSameInterface([]string{"1.2.3.40/24", "4.5.6.7/24"}, []string{}),
+				domainResolutions:     common.TestDomainNameResolutionSuccess,
+				errorExpected:         false,
+				userManagedNetworking: true,
+			},
+			{
+				name:             "discovering to insufficient user managed networking domain api address is same as a node address v6",
+				validCheckInTime: true,
+				srcState:         models.HostStatusDiscovering,
+				dstState:         models.HostStatusInsufficient,
+				ntpSources:       defaultNTPSources,
+				imageStatuses:    map[string]*models.ContainerImageAvailability{common.TestDefaultConfig.ImageName: common.TestImageStatusesSuccess},
+				machineNetworks:  common.TestIPv4Networking.MachineNetworks,
+				role:             models.HostRoleMaster,
+				statusInfoChecker: makeValueChecker(formatStatusInfoFailedValidation(statusInfoNotReadyForInstall,
+					fmt.Sprintf("Can't map the domain %s to %s as it is an API address, these addresses must be sent to a load balancer when using user managed networking in a multiple control plane cluster.", common.DomainAPI, "1001:db8::10/120"),
+					fmt.Sprintf("Can't map the domain %s to %s as it is an API address, these addresses must be sent to a load balancer when using user managed networking in a multiple control plane cluster.", common.DomainAPIInternal, "1002:db8::10/120"))),
+				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
+					IsAPIDomainNameResolvedCorrectly:         {status: ValidationFailure, messagePattern: fmt.Sprintf("Can't map the domain %s to %s as it is an API address, these addresses must be sent to a load balancer.", common.DomainAPI, "1001:db8::10/120")},
+					IsAPIInternalDomainNameResolvedCorrectly: {status: ValidationFailure, messagePattern: fmt.Sprintf("Can't map the domain %s to %s as it is an API address, these addresses must be sent to a load balancer.", common.DomainAPIInternal, "1002:db8::10/120")},
+				}),
+				inventory:             hostutil.GenerateMasterInventoryWithNetworksOnSameInterface([]string{}, []string{"1001:db8::10/120", "1002:db8::10/120"}),
+				domainResolutions:     common.TestDomainNameResolutionSuccess,
+				errorExpected:         false,
+				userManagedNetworking: true,
+			},
+			{
+				name:             "discovering to insufficient user managed networking domain api addresses not defined",
+				validCheckInTime: true,
+				srcState:         models.HostStatusDiscovering,
+				dstState:         models.HostStatusInsufficient,
+				ntpSources:       defaultNTPSources,
+				imageStatuses:    map[string]*models.ContainerImageAvailability{common.TestDefaultConfig.ImageName: common.TestImageStatusesSuccess},
+				machineNetworks:  common.TestIPv4Networking.MachineNetworks,
+				role:             models.HostRoleMaster,
+				statusInfoChecker: makeValueChecker(formatStatusInfoFailedValidation(statusInfoNotReadyForInstall,
+					fmt.Sprintf("Couldn't resolve domain name %s on the host. To continue installation, create the necessary DNS entries to resolve this domain name to your %s.", common.DomainAPI, "API load balancer"),
+					fmt.Sprintf("Couldn't resolve domain name %s on the host. To continue installation, create the necessary DNS entries to resolve this domain name to your %s.", common.DomainAPIInternal, "internal API load balancer"))),
+				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
+					IsAPIDomainNameResolvedCorrectly:         {status: ValidationFailure, messagePattern: fmt.Sprintf("Couldn't resolve domain name %s on the host. To continue installation, create the necessary DNS entries to resolve this domain name to your %s.", common.DomainAPI, "API load balancer")},
+					IsAPIInternalDomainNameResolvedCorrectly: {status: ValidationFailure, messagePattern: fmt.Sprintf("Couldn't resolve domain name %s on the host. To continue installation, create the necessary DNS entries to resolve this domain name to your %s.", common.DomainAPIInternal, "internal API load balancer")},
+				}),
+				inventory:             hostutil.GenerateMasterInventoryWithNetworksOnSameInterface([]string{"1.2.3.40/24", "4.5.6.7/24"}, []string{"1001:db8::10/120", "1002:db8::10/120"}),
+				domainResolutions:     common.TestDomainResolutionNoAPI,
+				errorExpected:         false,
+				userManagedNetworking: true,
 			},
 		}
 
@@ -3942,8 +4056,9 @@ var _ = Describe("Refresh Host", func() {
 					SucessfullOrUnknownContainerImagesAvailability: {status: ValidationSuccess, messagePattern: "All required container images were either pulled successfully or no attempt was made to pull them"},
 					SufficientOrUnknownInstallationDiskSpeed:       {status: ValidationSuccess, messagePattern: "Speed of installation disk has not yet been measured"},
 				}),
-				inventory:     hostutil.GenerateMasterInventoryWithHostname(hostTest.hostName),
-				errorExpected: false,
+				inventory:         hostutil.GenerateMasterInventoryWithHostname(hostTest.hostName),
+				domainResolutions: common.TestDomainNameResolutionSuccess,
+				errorExpected:     false,
 			})
 		}
 
@@ -3975,7 +4090,7 @@ var _ = Describe("Refresh Host", func() {
 				Expect(err).ShouldNot(HaveOccurred())
 				host.ImagesStatus = string(bytes)
 				host.DisksInfo = t.disksInfo
-				bytes, err = json.Marshal(domainNameResolutions)
+				bytes, err = json.Marshal(t.domainResolutions)
 				Expect(err).ShouldNot(HaveOccurred())
 				host.DomainNameResolutions = string(bytes)
 

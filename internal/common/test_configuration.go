@@ -126,7 +126,7 @@ var WildcardDomain = fmt.Sprintf("%s.test-cluster.example.com", constants.DNSWil
 var DomainResolution = []*models.DomainResolutionResponseDomain{
 	{
 		DomainName:    &DomainAPI,
-		IPV4Addresses: []strfmt.IPv4{"1.2.3.4/24"},
+		IPV4Addresses: []strfmt.IPv4{"1.2.3.40/24"},
 		IPV6Addresses: []strfmt.IPv6{"1001:db8::10/120"},
 	},
 	{
@@ -145,8 +145,23 @@ var DomainResolution = []*models.DomainResolutionResponseDomain{
 		IPV6Addresses: []strfmt.IPv6{},
 	}}
 
+var DomainResolutionNoAPI = []*models.DomainResolutionResponseDomain{
+	{
+		DomainName:    &DomainApps,
+		IPV4Addresses: []strfmt.IPv4{"7.8.9.10/24"},
+		IPV6Addresses: []strfmt.IPv6{"1003:db8::10/120"},
+	},
+	{
+		DomainName:    &WildcardDomain,
+		IPV4Addresses: []strfmt.IPv4{},
+		IPV6Addresses: []strfmt.IPv6{},
+	}}
+
 var TestDomainNameResolutionSuccess = &models.DomainResolutionResponse{
 	Resolutions: DomainResolution}
+
+var TestDomainResolutionNoAPI = &models.DomainResolutionResponse{
+	Resolutions: DomainResolutionNoAPI}
 
 var TestDefaultRouteConfiguration = []*models.Route{{Family: FamilyIPv4, Interface: "eth0", Gateway: "192.168.1.1", Destination: "0.0.0.0"}}
 

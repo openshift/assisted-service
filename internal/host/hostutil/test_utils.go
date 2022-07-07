@@ -258,11 +258,12 @@ func GenerateMasterInventoryWithNetworks(ips ...string) string {
 	return string(b)
 }
 
-func GenerateMasterInventoryWithNetworksOnSameInterface(ips ...string) string {
+func GenerateMasterInventoryWithNetworksOnSameInterface(v4ips []string, v6ips []string) string {
 	interfaces := []*models.Interface{
 		{
 			Name:          "eth0",
-			IPV4Addresses: ips,
+			IPV4Addresses: v4ips,
+			IPV6Addresses: v6ips,
 		},
 	}
 	inventory := models.Inventory{
