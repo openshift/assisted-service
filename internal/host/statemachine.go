@@ -17,6 +17,7 @@ const (
 	TransitionTypeRegisterInstalledHost      = "RegisterInstalledHost"
 	TransitionTypeBindHost                   = "BindHost"
 	TransitionTypeUnbindHost                 = "UnbindHost"
+	TransitionTypeReclaimHost                = "ReclaimHost"
 )
 
 // func NewHostStateMachine(th *transitionHandler) stateswitch.StateMachine {
@@ -251,6 +252,16 @@ func NewHostStateMachine(sm stateswitch.StateMachine, th *transitionHandler) sta
 			stateswitch.State(models.HostStatusCancelled),
 		},
 		DestinationState: stateswitch.State(models.HostStatusUnbindingPendingUserAction),
+		PostTransition:   th.PostUnbindHost,
+	})
+
+	// Reclaim host
+	sm.AddTransition(stateswitch.TransitionRule{
+		TransitionType: TransitionTypeReclaimHost,
+		SourceStates: []stateswitch.State{
+			stateswitch.State(models.HostStatusInstalled),
+		},
+		DestinationState: stateswitch.State(models.HostStatusReclaiming),
 		PostTransition:   th.PostUnbindHost,
 	})
 

@@ -27,6 +27,7 @@ func NewPoolHostStateMachine(sm stateswitch.StateMachine, th *transitionHandler)
 			stateswitch.State(models.HostStatusKnownUnbound),
 			stateswitch.State(models.HostStatusUnbinding),
 			stateswitch.State(models.HostStatusUnbindingPendingUserAction),
+			stateswitch.State(models.HostStatusReclaimingRebooting),
 		},
 		DestinationState: stateswitch.State(models.HostStatusDiscoveringUnbound),
 		PostTransition:   th.PostRegisterHost,

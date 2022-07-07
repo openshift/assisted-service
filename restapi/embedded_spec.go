@@ -7019,7 +7019,9 @@ func init() {
             "disconnected-unbound",
             "insufficient-unbound",
             "disabled-unbound",
-            "discovering-unbound"
+            "discovering-unbound",
+            "reclaiming",
+            "reclaiming-rebooting"
           ]
         },
         "status_info": {
@@ -16236,7 +16238,9 @@ func init() {
             "disconnected-unbound",
             "insufficient-unbound",
             "disabled-unbound",
-            "discovering-unbound"
+            "discovering-unbound",
+            "reclaiming",
+            "reclaiming-rebooting"
           ]
         },
         "status_info": {
