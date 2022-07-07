@@ -2433,12 +2433,15 @@ func (b *bareMetalInventory) updateOperatorsData(ctx context.Context, cluster *c
 	//update the usage statistics about operators
 	b.setOperatorsUsage(updateOLMOperators, removedOLMOperators, usages)
 
-	//At this point the operators are updated. Retrigger auto-assign role
-	//calculation since it may be affected by the operators
+	//At this point, if any operators are updated, retrigger auto-assign
+	//role calculation. This reset is needed because operators may affect
+	//the role assignment logic.
 	//There is no need to refresh the status here because the refresh
 	//occurs outside the function as part of the update cluster flow
-	if reset_err := b.resetAutoAssignRoles(ctx, db, cluster, log, false); reset_err != nil {
-		return common.NewApiError(http.StatusInternalServerError, reset_err)
+	if len(updateOLMOperators) > 0 || len(removedOLMOperators) > 0 {
+		if reset_err := b.resetAutoAssignRoles(ctx, db, cluster, log, false); reset_err != nil {
+			return common.NewApiError(http.StatusInternalServerError, reset_err)
+		}
 	}
 
 	return nil

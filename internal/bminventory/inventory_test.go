@@ -2707,6 +2707,12 @@ var _ = Describe("cluster", func() {
 						expectedOperators: []*models.MonitoredOperator{&common.TestDefaultConfig.MonitoredOperator},
 					},
 					{
+						name:              "No change",
+						originalOperators: []*models.MonitoredOperator{&common.TestDefaultConfig.MonitoredOperator},
+						updateOperators:   []*models.OperatorCreateParams{},
+						expectedOperators: []*models.MonitoredOperator{&common.TestDefaultConfig.MonitoredOperator},
+					},
+					{
 						name:              "Update properties - set",
 						originalOperators: []*models.MonitoredOperator{&common.TestDefaultConfig.MonitoredOperator, testOLMOperators[0]},
 						updateOperators:   []*models.OperatorCreateParams{{Name: testOLMOperators[0].Name, Properties: defaultProperties}},
@@ -2796,11 +2802,16 @@ var _ = Describe("cluster", func() {
 							mockGetOperatorByName(updateOperator.Name)
 						}
 						if test.updateOperators != nil {
-							mockClusterApi.EXPECT().ResetAutoAssignRoles(gomock.Any(), gomock.Any(), gomock.Any()).Times(1)
 							mockOperatorManager.EXPECT().ResolveDependencies(gomock.Any()).
 								DoAndReturn(func(operators []*models.MonitoredOperator) ([]*models.MonitoredOperator, error) {
 									return operators, nil
 								}).Times(1)
+						}
+
+						noChangedOperators := test.updateOperators == nil ||
+							(len(test.updateOperators) == 0 && len(test.originalOperators) == len(test.expectedOperators))
+						if !noChangedOperators {
+							mockClusterApi.EXPECT().ResetAutoAssignRoles(gomock.Any(), gomock.Any(), gomock.Any()).Times(1)
 						}
 
 						reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
