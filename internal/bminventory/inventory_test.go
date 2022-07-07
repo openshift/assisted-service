@@ -2590,8 +2590,8 @@ var _ = Describe("cluster", func() {
 
 					mockClusterRegisterSuccess(true)
 					mockGetOperatorByName(newOperatorName)
-					mockOperatorManager.EXPECT().ResolveDependencies(gomock.Any()).
-						DoAndReturn(func(operators []*models.MonitoredOperator) ([]*models.MonitoredOperator, error) {
+					mockOperatorManager.EXPECT().ResolveDependencies(gomock.Any(), gomock.Any()).
+						DoAndReturn(func(cluster *common.Cluster, operators []*models.MonitoredOperator) ([]*models.MonitoredOperator, error) {
 							return operators, nil
 						}).Times(1)
 					clusterParams := getDefaultClusterCreateParams()
@@ -2622,8 +2622,8 @@ var _ = Describe("cluster", func() {
 
 					mockClusterRegisterSuccess(true)
 					mockGetOperatorByName(newOperatorName)
-					mockOperatorManager.EXPECT().ResolveDependencies(gomock.Any()).
-						DoAndReturn(func(operators []*models.MonitoredOperator) ([]*models.MonitoredOperator, error) {
+					mockOperatorManager.EXPECT().ResolveDependencies(gomock.Any(), gomock.Any()).
+						DoAndReturn(func(cluster *common.Cluster, operators []*models.MonitoredOperator) ([]*models.MonitoredOperator, error) {
 							return append(operators, testOLMOperators[0]), nil
 						}).Times(1)
 					clusterParams := getDefaultClusterCreateParams()
@@ -2797,8 +2797,8 @@ var _ = Describe("cluster", func() {
 						}
 						if test.updateOperators != nil {
 							mockClusterApi.EXPECT().ResetAutoAssignRoles(gomock.Any(), gomock.Any(), gomock.Any()).Times(1)
-							mockOperatorManager.EXPECT().ResolveDependencies(gomock.Any()).
-								DoAndReturn(func(operators []*models.MonitoredOperator) ([]*models.MonitoredOperator, error) {
+							mockOperatorManager.EXPECT().ResolveDependencies(gomock.Any(), gomock.Any()).
+								DoAndReturn(func(cluster *common.Cluster, operators []*models.MonitoredOperator) ([]*models.MonitoredOperator, error) {
 									return operators, nil
 								}).Times(1)
 						}
@@ -2832,8 +2832,8 @@ var _ = Describe("cluster", func() {
 				newOperatorName := testOLMOperators[1].Name
 
 				mockGetOperatorByName(newOperatorName)
-				mockOperatorManager.EXPECT().ResolveDependencies(gomock.Any()).
-					DoAndReturn(func(operators []*models.MonitoredOperator) ([]*models.MonitoredOperator, error) {
+				mockOperatorManager.EXPECT().ResolveDependencies(gomock.Any(), gomock.Any()).
+					DoAndReturn(func(cluster *common.Cluster, operators []*models.MonitoredOperator) ([]*models.MonitoredOperator, error) {
 						return append(operators, testOLMOperators[0]), nil
 					}).Times(1)
 
@@ -4822,8 +4822,8 @@ var _ = Describe("[V2ClusterUpdate] cluster", func() {
 						}
 						if test.updateOperators != nil {
 							mockClusterApi.EXPECT().ResetAutoAssignRoles(gomock.Any(), gomock.Any(), gomock.Any()).Times(1)
-							mockOperatorManager.EXPECT().ResolveDependencies(gomock.Any()).
-								DoAndReturn(func(operators []*models.MonitoredOperator) ([]*models.MonitoredOperator, error) {
+							mockOperatorManager.EXPECT().ResolveDependencies(gomock.Any(), gomock.Any()).
+								DoAndReturn(func(cluster *common.Cluster, operators []*models.MonitoredOperator) ([]*models.MonitoredOperator, error) {
 									return operators, nil
 								}).Times(1)
 						}
@@ -4856,8 +4856,8 @@ var _ = Describe("[V2ClusterUpdate] cluster", func() {
 				newOperatorName := testOLMOperators[1].Name
 
 				mockGetOperatorByName(newOperatorName)
-				mockOperatorManager.EXPECT().ResolveDependencies(gomock.Any()).
-					DoAndReturn(func(operators []*models.MonitoredOperator) ([]*models.MonitoredOperator, error) {
+				mockOperatorManager.EXPECT().ResolveDependencies(gomock.Any(), gomock.Any()).
+					DoAndReturn(func(cluster *common.Cluster, operators []*models.MonitoredOperator) ([]*models.MonitoredOperator, error) {
 						return append(operators, testOLMOperators[0]), nil
 					}).Times(1)
 

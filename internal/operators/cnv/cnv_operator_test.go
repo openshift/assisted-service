@@ -207,7 +207,10 @@ var _ = Describe("CNV operator", func() {
 			host := models.Host{Role: models.HostRoleMaster}
 			haMode := models.ClusterHighAvailabilityModeNone
 			cluster = common.Cluster{
-				Cluster: models.Cluster{HighAvailabilityMode: &haMode},
+				Cluster: models.Cluster{
+					HighAvailabilityMode: &haMode,
+					OpenshiftVersion:     "4.10.17",
+				},
 			}
 
 			requirements, err := operator.GetHostRequirements(context.TODO(), &cluster, &host)

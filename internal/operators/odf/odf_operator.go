@@ -69,7 +69,7 @@ func (o *operator) GetName() string {
 }
 
 // GetDependencies provides a list of dependencies of the Operator
-func (o *operator) GetDependencies() []string {
+func (o *operator) GetDependencies(_ *common.Cluster) []string {
 	return []string{lso.Operator.Name}
 }
 
@@ -200,10 +200,10 @@ func (o *operator) GetHostRequirements(_ context.Context, cluster *common.Cluste
 }
 
 // GetPreflightRequirements returns operator hardware requirements that can be determined with cluster data only
-func (o *operator) GetPreflightRequirements(context.Context, *common.Cluster) (*models.OperatorHardwareRequirements, error) {
+func (o *operator) GetPreflightRequirements(_ context.Context, cluster *common.Cluster) (*models.OperatorHardwareRequirements, error) {
 	return &models.OperatorHardwareRequirements{
 		OperatorName: o.GetName(),
-		Dependencies: o.GetDependencies(),
+		Dependencies: o.GetDependencies(cluster),
 		Requirements: &models.HostTypeHardwareRequirementsWrapper{
 			Master: &models.HostTypeHardwareRequirements{
 				Quantitative: &models.ClusterHostRequirementsDetails{

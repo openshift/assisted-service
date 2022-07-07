@@ -53,7 +53,7 @@ type API interface {
 	// AnyOLMOperatorEnabled checks whether any OLM operator has been enabled for the given cluster
 	AnyOLMOperatorEnabled(cluster *common.Cluster) bool
 	// ResolveDependencies amends the list of requested additional operators with any missing dependencies
-	ResolveDependencies(operators []*models.MonitoredOperator) ([]*models.MonitoredOperator, error)
+	ResolveDependencies(*common.Cluster, []*models.MonitoredOperator) ([]*models.MonitoredOperator, error)
 	// GetMonitoredOperatorsList returns the monitored operators available by the manager.
 	GetMonitoredOperatorsList() map[string]*models.MonitoredOperator
 	// GetOperatorByName the manager's supported operator object by name.
@@ -284,8 +284,8 @@ func (mgr *Manager) GetOperatorProperties(operatorName string) (models.OperatorP
 	return nil, errors.Errorf("Operator %s not found", operatorName)
 }
 
-func (mgr *Manager) ResolveDependencies(operators []*models.MonitoredOperator) ([]*models.MonitoredOperator, error) {
-	allDependentOperators := mgr.getDependencies(operators)
+func (mgr *Manager) ResolveDependencies(cluster *common.Cluster, operators []*models.MonitoredOperator) ([]*models.MonitoredOperator, error) {
+	allDependentOperators := mgr.getDependencies(cluster, operators)
 
 	inputOperatorNames := make([]string, len(operators))
 	for _, inputOperator := range operators {
@@ -308,7 +308,7 @@ func (mgr *Manager) ResolveDependencies(operators []*models.MonitoredOperator) (
 	return operators, nil
 }
 
-func (mgr *Manager) getDependencies(operators []*models.MonitoredOperator) map[string]bool {
+func (mgr *Manager) getDependencies(cluster *common.Cluster, operators []*models.MonitoredOperator) map[string]bool {
 	fifo := list.New()
 	visited := make(map[string]bool)
 	for _, op := range operators {
@@ -317,14 +317,14 @@ func (mgr *Manager) getDependencies(operators []*models.MonitoredOperator) map[s
 		}
 
 		visited[op.Name] = true
-		for _, dep := range mgr.olmOperators[op.Name].GetDependencies() {
+		for _, dep := range mgr.olmOperators[op.Name].GetDependencies(cluster) {
 			fifo.PushBack(dep)
 		}
 	}
 	for fifo.Len() > 0 {
 		first := fifo.Front()
 		op := first.Value.(string)
-		for _, dep := range mgr.olmOperators[op].GetDependencies() {
+		for _, dep := range mgr.olmOperators[op].GetDependencies(cluster) {
 			if !visited[dep] {
 				fifo.PushBack(dep)
 			}

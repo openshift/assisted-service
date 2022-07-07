@@ -168,18 +168,18 @@ func (mr *MockAPIMockRecorder) GetSupportedOperatorsByType(arg0 interface{}) *go
 }
 
 // ResolveDependencies mocks base method.
-func (m *MockAPI) ResolveDependencies(arg0 []*models.MonitoredOperator) ([]*models.MonitoredOperator, error) {
+func (m *MockAPI) ResolveDependencies(arg0 *common.Cluster, arg1 []*models.MonitoredOperator) ([]*models.MonitoredOperator, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ResolveDependencies", arg0)
+	ret := m.ctrl.Call(m, "ResolveDependencies", arg0, arg1)
 	ret0, _ := ret[0].([]*models.MonitoredOperator)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // ResolveDependencies indicates an expected call of ResolveDependencies.
-func (mr *MockAPIMockRecorder) ResolveDependencies(arg0 interface{}) *gomock.Call {
+func (mr *MockAPIMockRecorder) ResolveDependencies(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ResolveDependencies", reflect.TypeOf((*MockAPI)(nil).ResolveDependencies), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ResolveDependencies", reflect.TypeOf((*MockAPI)(nil).ResolveDependencies), arg0, arg1)
 }
 
 // ValidateCluster mocks base method.

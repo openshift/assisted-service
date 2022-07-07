@@ -40,7 +40,7 @@ func NewLvmOperator(log logrus.FieldLogger, extracter oc.Extracter) *operator {
 	return newLvmOperatorWithConfig(log, &cfg, extracter)
 }
 
-// newOdfOperatorWithConfig creates new ODFOperator with given configuration
+// newLvmOperatorWithConfig creates a new LvmOperator with given configuration
 func newLvmOperatorWithConfig(log logrus.FieldLogger, config *Config, extracter oc.Extracter) *operator {
 	return &operator{
 		log:       log,
@@ -55,7 +55,7 @@ func (o *operator) GetName() string {
 }
 
 // GetDependencies provides a list of dependencies of the Operator
-func (o *operator) GetDependencies() []string {
+func (o *operator) GetDependencies(_ *common.Cluster) []string {
 	return make([]string, 0)
 }
 
@@ -83,7 +83,7 @@ func (o *operator) ValidateCluster(_ context.Context, cluster *common.Cluster) (
 	if err != nil {
 		return api.ValidationResult{Status: api.Failure, ValidationId: o.GetHostValidationID(), Reasons: []string{err.Error()}}, nil
 	}
-	minOpenshiftVersionForLvm, err = version.NewVersion(o.config.LvmMinOpenshiftVersion)
+	minOpenshiftVersionForLvm, err = version.NewVersion(LvmMinOpenshiftVersion)
 	if err != nil {
 		return api.ValidationResult{Status: api.Failure, ValidationId: o.GetHostValidationID(), Reasons: []string{err.Error()}}, nil
 	}
@@ -168,10 +168,10 @@ func (o *operator) GetHostRequirements(ctx context.Context, cluster *common.Clus
 }
 
 // GetPreflightRequirements returns operator hardware requirements that can be determined with cluster data only
-func (o *operator) GetPreflightRequirements(context.Context, *common.Cluster) (*models.OperatorHardwareRequirements, error) {
+func (o *operator) GetPreflightRequirements(_ context.Context, cluster *common.Cluster) (*models.OperatorHardwareRequirements, error) {
 	return &models.OperatorHardwareRequirements{
 		OperatorName: o.GetName(),
-		Dependencies: o.GetDependencies(),
+		Dependencies: o.GetDependencies(cluster),
 		Requirements: &models.HostTypeHardwareRequirementsWrapper{
 			Master: &models.HostTypeHardwareRequirements{
 				Quantitative: &models.ClusterHostRequirementsDetails{

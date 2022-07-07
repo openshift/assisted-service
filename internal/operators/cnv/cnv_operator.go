@@ -5,11 +5,13 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/hashicorp/go-version"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/hardware/virt"
 	"github.com/openshift/assisted-service/internal/oc"
 	"github.com/openshift/assisted-service/internal/operators/api"
 	"github.com/openshift/assisted-service/internal/operators/lso"
+	"github.com/openshift/assisted-service/internal/operators/lvm"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/conversions"
 	logutil "github.com/openshift/assisted-service/pkg/log"
@@ -55,8 +57,14 @@ func (o *operator) GetName() string {
 }
 
 // GetDependencies provides a list of dependencies of the Operator
-func (o *operator) GetDependencies() []string {
-	return []string{lso.Operator.Name}
+func (o *operator) GetDependencies(cluster *common.Cluster) []string {
+	ocpVersion, _ := version.NewVersion(cluster.OpenshiftVersion)
+	minOpenshiftVersionForLvm, _ := version.NewVersion(lvm.LvmMinOpenshiftVersion)
+	if common.IsSingleNodeCluster(cluster) && ocpVersion.GreaterThanOrEqual(minOpenshiftVersionForLvm) {
+		return []string{lvm.Operator.Name}
+	} else {
+		return []string{lso.Operator.Name}
+	}
 }
 
 // GetClusterValidationID returns cluster validation ID for the Operator
@@ -210,7 +218,7 @@ func (o *operator) GetPreflightRequirements(_ context.Context, cluster *common.C
 
 	requirements := models.OperatorHardwareRequirements{
 		OperatorName: o.GetName(),
-		Dependencies: o.GetDependencies(),
+		Dependencies: o.GetDependencies(cluster),
 		Requirements: &models.HostTypeHardwareRequirementsWrapper{
 			Master: &models.HostTypeHardwareRequirements{
 				Qualitative: qualitativeRequirements,

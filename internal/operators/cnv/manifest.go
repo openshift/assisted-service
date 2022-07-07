@@ -20,6 +20,7 @@ const (
 	downstreamSourceName string = "kubevirt-hyperconverged"
 
 	minimalOpenShiftVersionForHPPSNO string = "4.10.0-0.0"
+	maximalOpenshiftVersionForHPPSNO string = "4.12.0-0.0"
 )
 
 type manifestConfig struct {
@@ -135,9 +136,9 @@ func shouldInstallHPP(config Config, cluster *common.Cluster) bool {
 		return false
 	}
 
-	// HPP on SNO is only supported from CNV 4.10
+	// HPP on SNO is only supported from OCP >= 4.10 and OCP < 4.12
 	var err error
-	var ocpVersion, minimalVersionForHppSno *version.Version
+	var ocpVersion, minimalVersionForHppSno, maximalVersionForHppSno *version.Version
 	ocpVersion, err = version.NewVersion(cluster.OpenshiftVersion)
 	if err != nil {
 		return false
@@ -146,10 +147,13 @@ func shouldInstallHPP(config Config, cluster *common.Cluster) bool {
 	if err != nil {
 		return false
 	}
-	if ocpVersion.LessThan(minimalVersionForHppSno) {
+	maximalVersionForHppSno, err = version.NewVersion(maximalOpenshiftVersionForHPPSNO)
+	if err != nil {
 		return false
 	}
-
+	if ocpVersion.LessThan(minimalVersionForHppSno) || ocpVersion.GreaterThanOrEqual(maximalVersionForHppSno) {
+		return false
+	}
 	return true
 }
 
