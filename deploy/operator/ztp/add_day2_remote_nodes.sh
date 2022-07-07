@@ -3,9 +3,9 @@
 set -x
 
 __dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-__root="$(realpath ${__dir}/../../..)"
-source ${__dir}/../common.sh
-source ${__dir}/../utils.sh
+
+source "${__dir}/../common.sh"
+source "${__dir}/../utils.sh"
 
 export REMOTE_BAREMETALHOSTS_FILE="${REMOTE_BAREMETALHOSTS_FILE:-/home/test/dev-scripts/ocp/ostest/remote_baremetalhosts.json}"
 
@@ -22,39 +22,31 @@ fi
 echo "Adding remote nodes to spoke cluster"
 ansible-playbook "${__dir}/add-remote-nodes-playbook.yaml"
 
-pattern=""
-amount=0
-for name in $(cat ${REMOTE_BAREMETALHOSTS_FILE}  | jq -rc '.[].name') ; do
-  pattern="${pattern}${name},"
-  let amount=amount+1
-done
+comma_sep_host_names=$(jq -r '[.[].name] | join(",")' "${REMOTE_BAREMETALHOSTS_FILE}")
+export comma_sep_host_names
 
-if [ -z "${pattern}" ] ; then
+if [ -z "${comma_sep_host_names}" ] ; then
   echo "Missing bmhs names"
   exit 1
 fi
 
-pattern="${pattern::-1}"
-export pattern
-
-
 function remote_agents() {
-	oc get agent -n ${SPOKE_NAMESPACE} --no-headers -l "agent-install.openshift.io/bmh in ( ${pattern} )"
+	oc get agent -n ${SPOKE_NAMESPACE} --no-headers -l "agent-install.openshift.io/bmh in ( ${comma_sep_host_names} )"
 }
-
-export -f wait_for_cmd_amount
-export -f remote_agents
-timeout 20m bash -c "wait_for_cmd_amount ${amount} 30 remote_agents"
-echo "Remote worker agents were discovered!"
 
 function remote_done_agents() {
         remote_agents | grep Done
 }
 
-export -f remote_done_agents
+export -f wait_for_cmd_amount
+export -f remote_agents
 
-# If we are performing late binding then each of the agents needs to have the correct clusterDeploymentRef applied.
-# This needs to happen after the agents are available. They cannot move to "done" until the clusterDeploymentRef is applied.
+node_count=$(jq -r '[.[].name] | length' "${REMOTE_BAREMETALHOSTS_FILE}")
+
+timeout 20m bash -c "wait_for_cmd_amount ${node_count} 30 remote_agents"
+echo "Remote worker agents were discovered!"
+
+# If we are performing late binding then we to bind the discovered agents by setting their clusterRef
 if [[ "${DAY2_LATE_BINDING}" != "" ]]; then
   clusterDeploymentName=${LATE_BINDING_ASSISTED_CLUSTER_DEPLOYMENT_NAME}
 
@@ -80,6 +72,7 @@ PATCH
 
 fi
 
-timeout 60m bash -c "wait_for_cmd_amount ${amount} 30 remote_done_agents"
+export -f remote_done_agents
+timeout 60m bash -c "wait_for_cmd_amount ${node_count} 30 remote_done_agents"
 
 echo "Remote worker agents installation completed successfully!"
