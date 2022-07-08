@@ -171,6 +171,21 @@ func writeContentFromFileGlob(workDir, fileGlob string, content []byte) error {
 	return nil
 }
 
+func setReplicasInManifest(workDir, fileName string, replicas int) error {
+	templateReplicasRegexp := regexp.MustCompile(ReplicasPatternStr)
+	templateReplicasReplacement := fmt.Sprintf(ReplicasReplacementStrFmt, replicas)
+	content, err := readContentFromFileGlob(workDir, fileName)
+	if err != nil {
+		return errors.Wrapf(err, "unable to get contents from machine set file")
+	}
+	newContent := templateReplicasRegexp.ReplaceAllString(string(content), templateReplicasReplacement)
+	err = writeContentFromFileGlob(workDir, fileName, []byte(newContent))
+	if err != nil {
+		return errors.Wrapf(err, "unable to write contents to master machine file")
+	}
+	return nil
+}
+
 // PostCreateManifestsHook modifies master's Machine manifests with the actual VM and Template names
 func (p ovirtProvider) PostCreateManifestsHook(cluster *common.Cluster, envVars *[]string, workDir string) error {
 	if cluster == nil {
@@ -190,10 +205,10 @@ func (p ovirtProvider) PostCreateManifestsHook(cluster *common.Cluster, envVars 
 	}
 
 	for i, host := range common.GetHostsByRole(cluster, models.HostRoleMaster) {
-		vm_id := host.ID
-		vm, err := client.GetVM(vm_id.String(), retry)
+		vmID := host.ID
+		vm, err := client.GetVM(vmID.String(), retry)
 		if err != nil {
-			return errors.Wrapf(err, "unable to retrieve VM info (%s)", vm_id)
+			return errors.Wrapf(err, "unable to retrieve VM info (%s)", vmID)
 		}
 		templateID := vm.TemplateID()
 		template, err := client.GetTemplate(templateID, retry)
@@ -203,8 +218,13 @@ func (p ovirtProvider) PostCreateManifestsHook(cluster *common.Cluster, envVars 
 		fileName := fmt.Sprintf(MachineManifestFileNameGlobStrFmt, i)
 		err = updateHostInfoInManifest(workDir, fileName, cluster.Name, vm.Name(), template.Name())
 		if err != nil {
-			return errors.Wrapf(err, "unable to update master '%d' with UUID '%s'", i, vm_id)
+			return errors.Wrapf(err, "unable to update master '%d' with UUID '%s'", i, vmID)
 		}
 	}
+
+	if err := setReplicasInManifest(workDir, MachineSetFileNameGlobStr, 0); err != nil {
+		return errors.Wrapf(err, "unable to set replicas to 0 in MachineSet file %s", MachineSetFileNameGlobStr)
+	}
+
 	return nil
 }

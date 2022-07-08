@@ -41,7 +41,6 @@ func (p ovirtProvider) AddPlatformToInstallConfig(cfg *installcfg.InstallerConfi
 		cfg.Platform = installcfg.Platform{
 			Ovirt: ovirtPlatform,
 		}
-		cfg.Compute[0].Replicas = 0
 	}
 	return nil
 }
