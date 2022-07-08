@@ -109,23 +109,23 @@ func register(ctx context.Context, log *log.Logger, bmInventory *client.Assisted
 
 	pullSecret, err := agentbasedinstaller.GetPullSecret(RegisterOptions.PullSecretFile)
 	if err != nil {
-		log.Fatal(err.Error(), "Failed to get pull secret")
+		log.Fatal("Failed to get pull secret: ", err.Error())
 	}
 
 	modelsCluster, err := agentbasedinstaller.RegisterCluster(ctx, log, bmInventory, pullSecret,
 		RegisterOptions.ClusterDeploymentFile, RegisterOptions.AgentClusterInstallFile, RegisterOptions.ClusterImageSetFile, RegisterOptions.ReleaseImageMirror)
 	if err != nil {
-		log.Fatal(err, "Failed to register cluster with assisted-service")
+		log.Fatal("Failed to register cluster with assisted-service: ", err)
 	}
 
 	modelsInfraEnv, err := agentbasedinstaller.RegisterInfraEnv(ctx, log, bmInventory, pullSecret,
 		modelsCluster, RegisterOptions.InfraEnvFile, RegisterOptions.NMStateConfigFile, RegisterOptions.ImageTypeISO)
 	if err != nil {
-		log.Fatal(err, "Failed to register infraenv with assisted-service")
+		log.Fatal("Failed to register infraenv with assisted-service: ", err)
 	}
 	err = agentbasedinstaller.RegisterExtraManifests(os.DirFS(RegisterOptions.ExtraManifests), ctx, log, bmInventory.Manifests, modelsCluster)
 	if err != nil {
-		log.Fatal(err, "Failed to register extra manifests with assisted-service")
+		log.Fatal("Failed to register extra manifests with assisted-service: ", err)
 	}
 
 	return modelsInfraEnv.ID.String()
