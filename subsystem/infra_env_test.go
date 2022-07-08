@@ -205,6 +205,7 @@ var _ = Describe("Infra_Env", func() {
 		Expect(script).To(HavePrefix("#!ipxe"))
 	})
 	It("fails when given invalid static network config", func() {
+		Skip("Static Network Config test is currently a WIP")
 		staticNetworkConfig := models.HostStaticNetworkConfig{
 			NetworkYaml: "aaaaa",
 		}
