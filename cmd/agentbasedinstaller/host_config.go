@@ -62,7 +62,7 @@ func applyHostConfig(ctx context.Context, log *log.Logger, bmInventory *client.A
 	inventory := &models.Inventory{}
 	err := inventory.UnmarshalBinary([]byte(host.Inventory))
 	if err != nil {
-		return fmt.Errorf("Failed to unmarshal host inventory: %w", err)
+		return fmt.Errorf("failed to unmarshal host inventory: %w", err)
 	}
 
 	config := hostConfigs.findHostConfig(*host.ID, inventory)
@@ -109,7 +109,7 @@ func applyHostConfig(ctx context.Context, log *log.Logger, bmInventory *client.A
 				inventory: inventory,
 			}
 		}
-		return fmt.Errorf("Failed to update Host: %w", err)
+		return fmt.Errorf("failed to update Host: %w", err)
 	}
 	return nil
 }
@@ -165,7 +165,7 @@ func LoadHostConfigs(hostConfigDir string) (HostConfigs, error) {
 			log.Infof("No host configuration directory found %s", hostConfigDir)
 			return nil, nil
 		}
-		return nil, fmt.Errorf("Failed to read config directory %s: %w", hostConfigDir, err)
+		return nil, fmt.Errorf("failed to read config directory %s: %w", hostConfigDir, err)
 	}
 
 	for _, e := range entries {
@@ -181,7 +181,7 @@ func LoadHostConfigs(hostConfigDir string) (HostConfigs, error) {
 			continue
 		}
 		if err != nil {
-			return nil, fmt.Errorf("Failed to read MAC Addresses file: %w", err)
+			return nil, fmt.Errorf("failed to read MAC Addresses file: %w", err)
 		}
 
 		lines := strings.Split(string(macs), "\n")
@@ -214,12 +214,12 @@ func (hc hostConfig) RootDeviceHints() (*bmh_v1alpha1.RootDeviceHints, error) {
 			log.Info("No root device hints file found for host")
 			return nil, nil
 		}
-		return nil, fmt.Errorf("Failed to read Root Device Hints file: %w", err)
+		return nil, fmt.Errorf("failed to read Root Device Hints file: %w", err)
 	}
 
 	rdh := &bmh_v1alpha1.RootDeviceHints{}
 	if err := yaml.UnmarshalStrict(hintData, rdh); err != nil {
-		return nil, fmt.Errorf("Failed to parse Root Device Hints file: %w", err)
+		return nil, fmt.Errorf("failed to parse Root Device Hints file: %w", err)
 	}
 	log.Info("Read root device hints file")
 	return rdh, nil
@@ -232,7 +232,7 @@ func (hc hostConfig) Role() (*string, error) {
 			log.Info("No role file found for host")
 			return nil, nil
 		}
-		return nil, fmt.Errorf("Failed to read role file: %w", err)
+		return nil, fmt.Errorf("failed to read role file: %w", err)
 	}
 
 	role := strings.TrimSpace(string(roleData))

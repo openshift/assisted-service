@@ -37,7 +37,6 @@ import (
 	"github.com/kelseyhightower/envconfig"
 	"github.com/openshift/assisted-service/client"
 	log "github.com/sirupsen/logrus"
-	corev1 "k8s.io/api/core/v1"
 )
 
 const failureOutputPath = "/var/run/agent-installer/host-config-failures"
@@ -55,6 +54,7 @@ var RegisterOptions struct {
 	NMStateConfigFile       string `envconfig:"NMSTATE_CONFIG_FILE" default:"/manifests/nmstateconfig.yaml"`
 	ImageTypeISO            string `envconfig:"IMAGE_TYPE_ISO" default:"full-iso"`
 	ReleaseImageMirror      string `envconfig:"OPENSHIFT_INSTALL_RELEASE_IMAGE_MIRROR" default:""`
+	ExtraManifests          string `envconfig:"EXTRA_MANIFESTS_PATH" default:"/extra-manifests"`
 }
 
 var ConfigureOptions struct {
@@ -107,34 +107,28 @@ func register(ctx context.Context, log *log.Logger, bmInventory *client.Assisted
 		log.Fatal(err.Error())
 	}
 
-	var secret corev1.Secret
-	if secretErr := agentbasedinstaller.GetFileData(RegisterOptions.PullSecretFile, &secret); secretErr != nil {
-		log.Fatal(secretErr.Error())
+	pullSecret, err := agentbasedinstaller.GetPullSecret(RegisterOptions.PullSecretFile)
+	if err != nil {
+		log.Fatal("Failed to get pull secret: ", err.Error())
 	}
-	pullSecret := secret.StringData[".dockerconfigjson"]
 
-	log.Info("Registering cluster")
-
-	modelsCluster, registerClusterErr := agentbasedinstaller.RegisterCluster(ctx, log, bmInventory, pullSecret,
+	modelsCluster, err := agentbasedinstaller.RegisterCluster(ctx, log, bmInventory, pullSecret,
 		RegisterOptions.ClusterDeploymentFile, RegisterOptions.AgentClusterInstallFile, RegisterOptions.ClusterImageSetFile, RegisterOptions.ReleaseImageMirror)
-	if registerClusterErr != nil {
-		log.Fatal("Failed to register cluster with assisted-service: ", registerClusterErr)
+	if err != nil {
+		log.Fatal("Failed to register cluster with assisted-service: ", err)
 	}
 
-	log.Info("Registered cluster with id: " + modelsCluster.ID.String())
-
-	log.Info("Registering infraenv")
-
-	modelsInfraEnv, registerInfraEnvErr := agentbasedinstaller.RegisterInfraEnv(ctx, log, bmInventory, pullSecret,
+	modelsInfraEnv, err := agentbasedinstaller.RegisterInfraEnv(ctx, log, bmInventory, pullSecret,
 		modelsCluster, RegisterOptions.InfraEnvFile, RegisterOptions.NMStateConfigFile, RegisterOptions.ImageTypeISO)
-	if registerInfraEnvErr != nil {
-		log.Fatal("Failed to register infraenv with assisted-service: ", registerInfraEnvErr)
+	if err != nil {
+		log.Fatal("Failed to register infraenv with assisted-service: ", err)
+	}
+	err = agentbasedinstaller.RegisterExtraManifests(os.DirFS(RegisterOptions.ExtraManifests), ctx, log, bmInventory.Manifests, modelsCluster)
+	if err != nil {
+		log.Fatal("Failed to register extra manifests with assisted-service: ", err)
 	}
 
-	infraEnvID := modelsInfraEnv.ID.String()
-	log.Info("Registered infraenv with id: " + infraEnvID)
-
-	return infraEnvID
+	return modelsInfraEnv.ID.String()
 }
 
 func configure(ctx context.Context, log *log.Logger, bmInventory *client.AssistedInstall) {
