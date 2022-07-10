@@ -45,6 +45,12 @@ function jq() {
   chmod +x /usr/local/bin/jq
 }
 
+function awscli() {
+  echo "Installing aws-cli..."
+  curl --retry 5 -L "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "/tmp/awscliv2.zip" && unzip /tmp/awscliv2.zip && \
+  ./aws/install && rm -f /tmp/awscliv2.zip
+}
+
 function assisted_service() {
   ARCH=$(case $(arch) in x86_64) echo -n amd64 ;; aarch64) echo -n arm64 ;; *) echo -n $(arch) ;; esac)
 
@@ -54,11 +60,13 @@ function assisted_service() {
     rm -f /tmp/kubectl
 
   yum install -y --setopt=skip_missing_names_on_install=False \
-    docker podman awscli python3-pip genisoimage skopeo
+    docker podman python3-pip genisoimage skopeo
 
   jq
 
   kustomize
+
+  awscli
 
   spectral
 
