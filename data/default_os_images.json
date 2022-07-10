@@ -38,13 +38,13 @@
     {
         "openshift_version": "4.11",
         "cpu_architecture": "x86_64",
-        "url": "https://mirror.openshift.com/pub/openshift-v4/x86_64/dependencies/rhcos/pre-release/4.11-fc.0/rhcos-4.11-fc.0-x86_64-live.x86_64.iso",
-        "version": "411.85.202205101201-0"
+        "url": "https://mirror.openshift.com/pub/openshift-v4/x86_64/dependencies/rhcos/pre-release/4.11.0-rc.1/rhcos-4.11.0-rc.1-x86_64-live.x86_64.iso",
+        "version": "411.86.202207011902-0"
     },
     {
         "openshift_version": "4.11",
         "cpu_architecture": "arm64",
-        "url": "https://mirror.openshift.com/pub/openshift-v4/aarch64/dependencies/rhcos/pre-release/4.11.0-fc.2/rhcos-4.11.0-fc.2-aarch64-live.aarch64.iso",
-        "version": "411.86.202206150801-0"
+        "url": "https://mirror.openshift.com/pub/openshift-v4/aarch64/dependencies/rhcos/pre-release/4.11.0-rc.1/rhcos-4.11.0-rc.1-aarch64-live.aarch64.iso",
+        "version": "411.86.202207041324-0"
     }
 ]
