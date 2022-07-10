@@ -1135,7 +1135,7 @@ gopkg.in/yaml.v3
 # gorm.io/driver/postgres v1.3.5
 ## explicit; go 1.14
 gorm.io/driver/postgres
-# gorm.io/gorm v1.23.5
+# gorm.io/gorm v1.23.8
 ## explicit; go 1.14
 gorm.io/gorm
 gorm.io/gorm/callbacks
@@ -1639,7 +1639,7 @@ k8s.io/klog/v2/internal/buffer
 k8s.io/klog/v2/internal/clock
 k8s.io/klog/v2/internal/serialize
 k8s.io/klog/v2/internal/severity
-# k8s.io/kube-aggregator v0.23.6
+# k8s.io/kube-aggregator v0.24.2
 ## explicit; go 1.16
 k8s.io/kube-aggregator/pkg/apis/apiregistration
 k8s.io/kube-aggregator/pkg/apis/apiregistration/v1
