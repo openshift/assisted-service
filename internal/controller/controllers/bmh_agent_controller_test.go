@@ -1313,7 +1313,67 @@ var _ = Describe("bmac reconcile - converged flow enabled", func() {
 			// check that the host isn't detached
 			Expect(updatedHost.ObjectMeta.Annotations).To(BeNil())
 		})
+		It("should set detached annotation on the BMH", func() {
+			agentSpec := v1beta1.AgentSpec{
+				Approved: true,
+			}
+			agent := newAgent("bmac-agent", testNamespace, agentSpec)
+			macStr := "12-34-56-78-9A-BC"
+			agent.Status.Inventory = v1beta1.HostInventory{
+				Interfaces: []v1beta1.HostInterface{
+					{
+						MacAddress: macStr,
+					},
+				},
+			}
+			Expect(c.Create(ctx, agent)).To(BeNil())
 
+			host.Spec.BootMACAddress = macStr
+			host.Spec.AutomatedCleaningMode = bmh_v1alpha1.CleaningModeDisabled
+			host.Spec.CustomDeploy = &bmh_v1alpha1.CustomDeploy{Method: ASSISTED_DEPLOY_METHOD}
+			host.Status.Provisioning.State = bmh_v1alpha1.StateProvisioned
+			Expect(c.Update(ctx, host)).To(BeNil())
+
+			result, err := bmhr.Reconcile(ctx, newBMHRequest(host))
+			Expect(err).To(BeNil())
+			Expect(result).To(Equal(ctrl.Result{}))
+
+			updatedHost := &bmh_v1alpha1.BareMetalHost{}
+			err = c.Get(ctx, types.NamespacedName{Name: "bmh-reconcile", Namespace: testNamespace}, updatedHost)
+			Expect(err).To(BeNil())
+			Expect(updatedHost.ObjectMeta.Annotations).To(HaveKey(BMH_DETACHED_ANNOTATION))
+			Expect(updatedHost.ObjectMeta.Annotations[BMH_DETACHED_ANNOTATION]).To(Equal("assisted-service-controller"))
+		})
+		It("should not set detached annotation on the BMH, BMH is still preparing", func() {
+			agentSpec := v1beta1.AgentSpec{
+				Approved: true,
+			}
+			agent := newAgent("bmac-agent", testNamespace, agentSpec)
+			macStr := "12-34-56-78-9A-BC"
+			agent.Status.Inventory = v1beta1.HostInventory{
+				Interfaces: []v1beta1.HostInterface{
+					{
+						MacAddress: macStr,
+					},
+				},
+			}
+			Expect(c.Create(ctx, agent)).To(BeNil())
+
+			host.Spec.BootMACAddress = macStr
+			host.Spec.AutomatedCleaningMode = bmh_v1alpha1.CleaningModeDisabled
+			host.Spec.CustomDeploy = &bmh_v1alpha1.CustomDeploy{Method: ASSISTED_DEPLOY_METHOD}
+			host.Status.Provisioning.State = bmh_v1alpha1.StatePreparing
+			Expect(c.Update(ctx, host)).To(BeNil())
+
+			result, err := bmhr.Reconcile(ctx, newBMHRequest(host))
+			Expect(err).To(BeNil())
+			Expect(result).To(Equal(ctrl.Result{}))
+
+			updatedHost := &bmh_v1alpha1.BareMetalHost{}
+			err = c.Get(ctx, types.NamespacedName{Name: "bmh-reconcile", Namespace: testNamespace}, updatedHost)
+			Expect(err).To(BeNil())
+			Expect(updatedHost.ObjectMeta.Annotations).To(Not(HaveKey(BMH_DETACHED_ANNOTATION)))
+		})
 		It("should not set the ISODownloadURL in the BMH", func() {
 			result, err := bmhr.Reconcile(ctx, newBMHRequest(host))
 			Expect(err).To(BeNil())
