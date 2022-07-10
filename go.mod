@@ -77,8 +77,8 @@ require (
 	gopkg.in/yaml.v2 v2.4.0
 	gorm.io/driver/postgres v1.3.5
 	gorm.io/gorm v1.23.5
-	k8s.io/api v0.24.3-rc.0
-	k8s.io/apimachinery v0.24.3-rc.0
+	k8s.io/api v0.25.0-alpha.2
+	k8s.io/apimachinery v0.25.0-alpha.2
 	k8s.io/client-go v0.24.3-rc.0
 	k8s.io/kube-aggregator v0.23.6
 	k8s.io/utils v0.0.0-20220210201930-3a6ce19ff2f9
@@ -117,12 +117,13 @@ require (
 	github.com/elastic/go-sysinfo v1.1.1 // indirect
 	github.com/elastic/go-windows v1.0.0 // indirect
 	github.com/emicklei/go-restful v2.15.0+incompatible // indirect
+	github.com/emicklei/go-restful/v3 v3.7.5-0.20220308211933-7c971ca4d0fd // indirect
 	github.com/evanphx/json-patch v4.12.0+incompatible // indirect
 	github.com/felixge/httpsnoop v1.0.1 // indirect
 	github.com/form3tech-oss/jwt-go v3.2.3+incompatible // indirect
 	github.com/fsnotify/fsnotify v1.5.1 // indirect
 	github.com/ghodss/yaml v1.0.0 // indirect
-	github.com/go-logr/logr v1.2.2 // indirect
+	github.com/go-logr/logr v1.2.3 // indirect
 	github.com/go-logr/zapr v1.2.0 // indirect
 	github.com/go-openapi/analysis v0.21.2 // indirect
 	github.com/go-openapi/jsonpointer v0.19.5 // indirect
@@ -227,8 +228,8 @@ require (
 	k8s.io/apiextensions-apiserver v0.23.5 // indirect
 	k8s.io/apiserver v0.24.3-rc.0 // indirect
 	k8s.io/component-base v0.24.3-rc.0 // indirect
-	k8s.io/klog/v2 v2.60.1 // indirect
-	k8s.io/kube-openapi v0.0.0-20220328201542-3ee0da9b0b42 // indirect
+	k8s.io/klog/v2 v2.70.0 // indirect
+	k8s.io/kube-openapi v0.0.0-20220603121420-31174f50af60 // indirect
 	sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.0.30 // indirect
 	sigs.k8s.io/cluster-api-provider-aws v0.0.0-00010101000000-000000000000 // indirect
 	sigs.k8s.io/cluster-api-provider-azure v0.0.0-00010101000000-000000000000 // indirect
