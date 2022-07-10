@@ -106,13 +106,6 @@ function generate_configuration() {
     sed -i "s|PUBLIC_CONTAINER_REGISTRIES:.*|PUBLIC_CONTAINER_REGISTRIES: '${PUBLIC_CONTAINER_REGISTRIES}'|" ${__root}/deploy/podman/{okd-,}configmap.yml
     sed -i "s|HW_VALIDATOR_REQUIREMENTS:.*|HW_VALIDATOR_REQUIREMENTS: '${HW_VALIDATOR_REQUIREMENTS}'|" ${__root}/deploy/podman/{okd-,}configmap.yml
 
-    sed -i "s|OS_IMAGES=.*|OS_IMAGES=${OS_IMAGES}|" ${__root}/config/onprem-iso-fcc.yaml
-    sed -i "s|RELEASE_IMAGES=.*|RELEASE_IMAGES=${RELEASE_IMAGES}|" ${__root}/config/onprem-iso-fcc.yaml
-    sed -i "s|PUBLIC_CONTAINER_REGISTRIES=.*|PUBLIC_CONTAINER_REGISTRIES=${PUBLIC_CONTAINER_REGISTRIES}|" ${__root}/config/onprem-iso-fcc.yaml
-
-    sed -i "s|HW_VALIDATOR_REQUIREMENTS=.*|HW_VALIDATOR_REQUIREMENTS=${HW_VALIDATOR_REQUIREMENTS}|" ${__root}/config/onprem-iso-fcc.yaml
-    butane --pretty --strict ${__root}/config/onprem-iso-fcc.yaml -o ${__root}/config/onprem-iso-config.ign
-
     # Updated operator manifests with openshift versions
     sed -i "s|value: '.*' # os images|value: '${OPERATOR_OS_IMAGES}' # os images|" ${__root}/config/manager/manager.yaml
     # This python is responsible for updating the sample AgentServiceConfig to include the latest + correct osImages
