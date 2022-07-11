@@ -27,7 +27,7 @@ const (
 )
 
 var (
-	mutableFields = []string{"ClusterMetadata"}
+	mutableFields = []string{"ClusterMetadata", "IgnitionEndpoint"}
 )
 
 // AgentClusterInstallValidatingAdmissionHook is a struct that is used to reference what code should be run by the generic-admission-server.
