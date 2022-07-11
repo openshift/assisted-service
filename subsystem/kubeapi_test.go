@@ -4283,8 +4283,17 @@ var _ = Describe("bmac reconcile flow", func() {
 			Expect(kubeClient.Update(ctx, bmh)).ToNot(HaveOccurred())
 
 			Eventually(func() bool {
+				// expect bmh hardware annotation to be set
 				bmh = getBmhCRD(ctx, kubeClient, bmhNsName)
-				return bmh.ObjectMeta.Annotations != nil && bmh.ObjectMeta.Annotations[controllers.BMH_HARDWARE_DETAILS_ANNOTATION] != ""
+				if bmh.ObjectMeta.Annotations == nil || bmh.ObjectMeta.Annotations[controllers.BMH_HARDWARE_DETAILS_ANNOTATION] == "" {
+					return false
+				}
+				// expect agent bmh reference to be set
+				agent := getAgentCRD(ctx, kubeClient, agentNsName)
+				if agent.Labels == nil || agent.Labels[controllers.AGENT_BMH_LABEL] != bmh.Name {
+					return false
+				}
+				return true
 			}, "60s", "10s").Should(Equal(true))
 		})
 	})
