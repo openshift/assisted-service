@@ -14,6 +14,7 @@ import (
 	"github.com/go-openapi/runtime"
 	cr "github.com/go-openapi/runtime/client"
 	"github.com/go-openapi/strfmt"
+	"github.com/go-openapi/swag"
 )
 
 // NewGetInfraEnvPresignedFileURLParams creates a new GetInfraEnvPresignedFileURLParams object,
@@ -58,6 +59,12 @@ func NewGetInfraEnvPresignedFileURLParamsWithHTTPClient(client *http.Client) *Ge
    Typically these are written to a http.Request.
 */
 type GetInfraEnvPresignedFileURLParams struct {
+
+	/* BootControl.
+
+	   Verify that script is served to hosts without installed disk.
+	*/
+	BootControl *bool
 
 	/* FileName.
 
@@ -126,6 +133,17 @@ func (o *GetInfraEnvPresignedFileURLParams) SetHTTPClient(client *http.Client) {
 	o.HTTPClient = client
 }
 
+// WithBootControl adds the bootControl to the get infra env presigned file URL params
+func (o *GetInfraEnvPresignedFileURLParams) WithBootControl(bootControl *bool) *GetInfraEnvPresignedFileURLParams {
+	o.SetBootControl(bootControl)
+	return o
+}
+
+// SetBootControl adds the bootControl to the get infra env presigned file URL params
+func (o *GetInfraEnvPresignedFileURLParams) SetBootControl(bootControl *bool) {
+	o.BootControl = bootControl
+}
+
 // WithFileName adds the fileName to the get infra env presigned file URL params
 func (o *GetInfraEnvPresignedFileURLParams) WithFileName(fileName string) *GetInfraEnvPresignedFileURLParams {
 	o.SetFileName(fileName)
@@ -155,6 +173,23 @@ func (o *GetInfraEnvPresignedFileURLParams) WriteToRequest(r runtime.ClientReque
 		return err
 	}
 	var res []error
+
+	if o.BootControl != nil {
+
+		// query param boot_control
+		var qrBootControl bool
+
+		if o.BootControl != nil {
+			qrBootControl = *o.BootControl
+		}
+		qBootControl := swag.FormatBool(qrBootControl)
+		if qBootControl != "" {
+
+			if err := r.SetQueryParam("boot_control", qBootControl); err != nil {
+				return err
+			}
+		}
+	}
 
 	// query param file_name
 	qrFileName := o.FileName

@@ -12,6 +12,7 @@ import (
 	"github.com/go-openapi/runtime"
 	"github.com/go-openapi/runtime/middleware"
 	"github.com/go-openapi/strfmt"
+	"github.com/go-openapi/swag"
 	"github.com/go-openapi/validate"
 )
 
@@ -32,6 +33,10 @@ type V2DownloadInfraEnvFilesParams struct {
 	// HTTP Request Object
 	HTTPRequest *http.Request `json:"-"`
 
+	/*Verify that script is served to hosts without installed disk.
+	  In: query
+	*/
+	BootControl *bool
 	/*The file to be downloaded.
 	  Required: true
 	  In: query
@@ -42,6 +47,10 @@ type V2DownloadInfraEnvFilesParams struct {
 	  In: path
 	*/
 	InfraEnvID strfmt.UUID
+	/*Mac address of the host running ipxe script.
+	  In: query
+	*/
+	Mac *strfmt.MAC
 }
 
 // BindRequest both binds and validates a request, it assumes that complex things implement a Validatable(strfmt.Registry) error interface
@@ -55,6 +64,11 @@ func (o *V2DownloadInfraEnvFilesParams) BindRequest(r *http.Request, route *midd
 
 	qs := runtime.Values(r.URL.Query())
 
+	qBootControl, qhkBootControl, _ := qs.GetOK("boot_control")
+	if err := o.bindBootControl(qBootControl, qhkBootControl, route.Formats); err != nil {
+		res = append(res, err)
+	}
+
 	qFileName, qhkFileName, _ := qs.GetOK("file_name")
 	if err := o.bindFileName(qFileName, qhkFileName, route.Formats); err != nil {
 		res = append(res, err)
@@ -64,9 +78,37 @@ func (o *V2DownloadInfraEnvFilesParams) BindRequest(r *http.Request, route *midd
 	if err := o.bindInfraEnvID(rInfraEnvID, rhkInfraEnvID, route.Formats); err != nil {
 		res = append(res, err)
 	}
+
+	qMac, qhkMac, _ := qs.GetOK("mac")
+	if err := o.bindMac(qMac, qhkMac, route.Formats); err != nil {
+		res = append(res, err)
+	}
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}
+	return nil
+}
+
+// bindBootControl binds and validates parameter BootControl from query.
+func (o *V2DownloadInfraEnvFilesParams) bindBootControl(rawData []string, hasKey bool, formats strfmt.Registry) error {
+	var raw string
+	if len(rawData) > 0 {
+		raw = rawData[len(rawData)-1]
+	}
+
+	// Required: false
+	// AllowEmptyValue: false
+
+	if raw == "" { // empty values pass all other validations
+		return nil
+	}
+
+	value, err := swag.ConvertBool(raw)
+	if err != nil {
+		return errors.InvalidType("boot_control", "query", "bool", raw)
+	}
+	o.BootControl = &value
+
 	return nil
 }
 
@@ -133,6 +175,43 @@ func (o *V2DownloadInfraEnvFilesParams) bindInfraEnvID(rawData []string, hasKey 
 func (o *V2DownloadInfraEnvFilesParams) validateInfraEnvID(formats strfmt.Registry) error {
 
 	if err := validate.FormatOf("infra_env_id", "path", "uuid", o.InfraEnvID.String(), formats); err != nil {
+		return err
+	}
+	return nil
+}
+
+// bindMac binds and validates parameter Mac from query.
+func (o *V2DownloadInfraEnvFilesParams) bindMac(rawData []string, hasKey bool, formats strfmt.Registry) error {
+	var raw string
+	if len(rawData) > 0 {
+		raw = rawData[len(rawData)-1]
+	}
+
+	// Required: false
+	// AllowEmptyValue: false
+
+	if raw == "" { // empty values pass all other validations
+		return nil
+	}
+
+	// Format: mac
+	value, err := formats.Parse("mac", raw)
+	if err != nil {
+		return errors.InvalidType("mac", "query", "strfmt.MAC", raw)
+	}
+	o.Mac = (value.(*strfmt.MAC))
+
+	if err := o.validateMac(formats); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// validateMac carries on validations for parameter Mac
+func (o *V2DownloadInfraEnvFilesParams) validateMac(formats strfmt.Registry) error {
+
+	if err := validate.FormatOf("mac", "query", "mac", o.Mac.String(), formats); err != nil {
 		return err
 	}
 	return nil

@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/url"
 	"path"
+	"strings"
 	"time"
 
 	"github.com/go-openapi/runtime/middleware"
@@ -627,13 +628,67 @@ func (b *bareMetalInventory) signURL(ctx context.Context, infraEnvID, urlString,
 	return urlString, &expiresAt, nil
 }
 
-const ipxeScriptFormat = `#!ipxe
+const ipxeRedirectScriptFormat = `#!ipxe
+chain %s&mac=${net0/mac}
+`
+
+const ipxeBootScriptFormat = `#!ipxe
 initrd --name initrd %s
 kernel %s initrd=initrd coreos.live.rootfs_url=%s random.trust_cpu=on rd.luks.options=discard ignition.firstboot ignition.platform.id=metal console=tty1 console=ttyS1,115200n8 coreos.inst.persistent-kargs="console=tty1 console=ttyS1,115200n8"
 boot
 `
 
-func (b *bareMetalInventory) infraEnvIPXEScript(ctx context.Context, infraEnv *common.InfraEnv) (string, error) {
+func (b *bareMetalInventory) hostRedirectIPXEScript(ctx context.Context, infraEnv *common.InfraEnv) (string, error) {
+	parsedURL, err := url.Parse(b.ServiceBaseURL)
+	if err != nil {
+		return "", err
+	}
+	if b.insecureIPXEURLs {
+		parsedURL.Scheme = "http"
+	}
+	builder := installer.V2DownloadInfraEnvFilesURL{
+		InfraEnvID: *infraEnv.ID,
+		FileName:   "ipxe-script",
+	}
+	redirectUrl := builder.StringFull(parsedURL.Scheme, parsedURL.Host)
+	redirectUrl, _, err = b.signURL(ctx, infraEnv.ID.String(), redirectUrl, infraEnv.ImageTokenKey)
+	if err != nil {
+		return "", err
+	}
+	return fmt.Sprintf(ipxeRedirectScriptFormat, redirectUrl), nil
+}
+
+func (b *bareMetalInventory) canServeHostIPXEScript(infraEnv *common.InfraEnv, mac *strfmt.MAC) error {
+	var hosts []*models.Host
+	macStr := mac.String()
+	if err := b.db.Where("infra_env_id = ? and (inventory like ? or inventory like ?)", infraEnv.ID.String(), fmt.Sprintf("%%%s%%", strings.ToUpper(macStr)),
+		fmt.Sprintf("%%%s%%", strings.ToLower(macStr))).Find(&hosts).Error; err != nil {
+		return common.NewApiError(http.StatusInternalServerError, errors.Wrapf(err, "IPXE booting skipped. InfraEnv %s: Host with mac %s", infraEnv.ID.String(), macStr))
+	}
+	switch len(hosts) {
+	case 0:
+		return nil
+	case 1:
+	default:
+		return common.NewApiError(http.StatusInternalServerError, errors.Errorf("IPXE booting skipped. Unexpected number of hosts %d with mac %s", len(hosts), macStr))
+	}
+	h := hosts[0]
+	switch swag.StringValue(h.Status) {
+	case models.HostStatusInstalled:
+		return common.NewApiError(http.StatusNotFound, errors.Errorf("IPXE booting skipped. InfraEnv %s: host %s having mac %s is already installed", infraEnv.ID.String(), h.ID.String(), macStr))
+	case models.HostStatusInstallingInProgress:
+		if h.Progress != nil {
+			switch h.Progress.CurrentStage {
+			case models.HostStageDone, models.HostStageConfiguring, models.HostStageJoined, models.HostStageRebooting, models.HostStageWaitingForIgnition:
+				return common.NewApiError(http.StatusNotFound, errors.Errorf("IPXE booting skipped. InfraEnv %s: host %s having mac %s is in stage %s", infraEnv.ID.String(), h.ID.String(), macStr,
+					h.Progress.CurrentStage))
+			}
+		}
+	}
+	return nil
+}
+
+func (b *bareMetalInventory) bootIPXEScript(ctx context.Context, infraEnv *common.InfraEnv) (string, error) {
 	osImage, err := b.getOsImageOrLatest(infraEnv.OpenshiftVersion, infraEnv.CPUArchitecture)
 	if err != nil {
 		return "", err
@@ -660,18 +715,33 @@ func (b *bareMetalInventory) infraEnvIPXEScript(ctx context.Context, infraEnv *c
 		return "", errors.Wrap(err, "failed to sign initrd URL")
 	}
 
-	return fmt.Sprintf(ipxeScriptFormat, initrdURL, kernelURL, rootfsURL), nil
+	return fmt.Sprintf(ipxeBootScriptFormat, initrdURL, kernelURL, rootfsURL), nil
+}
+
+func (b *bareMetalInventory) infraEnvIPXEScript(ctx context.Context, infraEnv *common.InfraEnv, mac *strfmt.MAC, bootControl bool) (string, error) {
+	if mac != nil && *mac != "" {
+		if err := b.canServeHostIPXEScript(infraEnv, mac); err != nil {
+			return "", err
+		}
+	} else if bootControl {
+		return b.hostRedirectIPXEScript(ctx, infraEnv)
+	}
+	return b.bootIPXEScript(ctx, infraEnv)
 }
 
 func (b *bareMetalInventory) GetInfraEnvPresignedFileURL(ctx context.Context, params installer.GetInfraEnvPresignedFileURLParams) middleware.Responder {
+	if swag.BoolValue(params.BootControl) && params.FileName != "ipxe-script" {
+		return common.NewApiError(http.StatusBadRequest, errors.New(`boot_control can be set only for "ipxe-script"`))
+	}
 	infraEnv, err := common.GetInfraEnvFromDB(b.db, params.InfraEnvID)
 	if err != nil {
 		return common.GenerateErrorResponder(err)
 	}
 
 	builder := &installer.V2DownloadInfraEnvFilesURL{
-		InfraEnvID: params.InfraEnvID,
-		FileName:   params.FileName,
+		InfraEnvID:  params.InfraEnvID,
+		FileName:    params.FileName,
+		BootControl: params.BootControl,
 	}
 	filesURL, err := builder.Build()
 	if err != nil {
