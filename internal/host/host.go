@@ -327,7 +327,7 @@ func (m *Manager) updateInventory(ctx context.Context, cluster *common.Cluster, 
 		return common.NewApiError(http.StatusNotFound, err)
 	}
 
-	if m.Config.BootstrapHostMAC != "" && !h.Bootstrap {
+	if cluster != nil && m.Config.BootstrapHostMAC != "" && !h.Bootstrap {
 		for _, iface := range inventory.Interfaces {
 			if iface.MacAddress == m.Config.BootstrapHostMAC {
 				log.Infof("selected local bootstrap host %s for cluster %s", h.ID, cluster.ID)
