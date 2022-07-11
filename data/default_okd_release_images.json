@@ -2,8 +2,8 @@
     {
         "openshift_version": "4.10",
         "cpu_architecture": "x86_64",
-        "url": "quay.io/openshift/okd:4.10.0-0.okd-2022-05-07-021833",
-        "version": "4.10.0-0.okd-2022-05-07-021833",
+        "url": "quay.io/openshift/okd:4.10.0-0.okd-2022-07-09-073606",
+        "version": "4.10.0-0.okd-2022-07-09-073606",
         "default": true
     }
 ]
