@@ -219,6 +219,7 @@ type installerGenerator struct {
 	providerRegistry              registry.ProviderRegistry
 	installerReleaseImageOverride string
 	clusterTLSCertOverrideDir     string
+	icspFile                      string
 }
 
 // IgnitionConfig contains the attributes required to build the discovery ignition file
@@ -261,7 +262,7 @@ func NewBuilder(log logrus.FieldLogger, staticNetworkConfig staticnetworkconfig.
 // NewGenerator returns a generator that can generate ignition files
 func NewGenerator(workDir string, installerDir string, cluster *common.Cluster, releaseImage string, releaseImageMirror string,
 	serviceCACert, installInvoker string, s3Client s3wrapper.API, log logrus.FieldLogger, operatorsApi operators.API,
-	providerRegistry registry.ProviderRegistry, installerReleaseImageOverride, clusterTLSCertOverrideDir string) Generator {
+	providerRegistry registry.ProviderRegistry, installerReleaseImageOverride, clusterTLSCertOverrideDir string, icspFile string) Generator {
 	return &installerGenerator{
 		cluster:                       cluster,
 		log:                           log,
@@ -277,6 +278,7 @@ func NewGenerator(workDir string, installerDir string, cluster *common.Cluster, 
 		providerRegistry:              providerRegistry,
 		installerReleaseImageOverride: installerReleaseImageOverride,
 		clusterTLSCertOverrideDir:     clusterTLSCertOverrideDir,
+		icspFile:                      icspFile,
 	}
 }
 
@@ -296,7 +298,7 @@ func (g *installerGenerator) Generate(ctx context.Context, installConfig []byte,
 	}
 
 	installerPath, err := installercache.Get(g.installerReleaseImageOverride, g.releaseImageMirror, g.installerDir,
-		g.cluster.PullSecret, platformType, log)
+		g.cluster.PullSecret, platformType, g.icspFile, log)
 	if err != nil {
 		return errors.Wrap(err, "failed to get installer path")
 	}
