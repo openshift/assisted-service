@@ -867,9 +867,13 @@ func (r *BMACReconciler) reconcileSpokeBMH(ctx context.Context, log logrus.Field
 		return reconcileError{err}
 	}
 
-	checksum, url, err := r.getChecksumAndURL(ctx, log, spokeClient)
+	checksum, url, err, stopReconcileLoop := r.getChecksumAndURL(ctx, log, spokeClient)
 	if err != nil {
 		log.WithError(err).Errorf("failed to get checksum and url value from master spoke machine")
+		if stopReconcileLoop {
+			log.Info("Stopping reconcileSpokeBMH")
+			return reconcileComplete{dirty: false, stop: stopReconcileLoop}
+		}
 		return reconcileError{err}
 	}
 
@@ -1099,24 +1103,29 @@ func (r *BMACReconciler) ensureSpokeBMH(ctx context.Context, log logrus.FieldLog
 }
 
 // get spokeMachineMaster and retrieve checksum , url to set into spokeMachineWorker
-func (r *BMACReconciler) getChecksumAndURL(ctx context.Context, log logrus.FieldLogger, spokeClient client.Client) (string, string, error) {
+func (r *BMACReconciler) getChecksumAndURL(ctx context.Context, log logrus.FieldLogger, spokeClient client.Client) (string, string, error, bool) {
 	var checksum, url string
 	machineList := &machinev1beta1.MachineList{}
 	err := spokeClient.List(ctx, machineList, client.MatchingLabels{MACHINE_TYPE: string(models.HostRoleMaster)})
 	if err != nil {
-		return checksum, url, err
+		return checksum, url, err, false
+	}
+	//MGMT-10570 check that the master list is not empty before referencing it
+	//Stop the reconciliation in this case because it is a fatal error
+	if len(machineList.Items) == 0 {
+		return checksum, url, errors.New("There are no machines with master label"), true
 	}
 	providerSpecValue := string(machineList.Items[0].Spec.ProviderSpec.Value.Raw)
 
 	var providerSpecValueObj map[string]interface{}
 	err = json.Unmarshal([]byte(providerSpecValue), &providerSpecValueObj)
 	if err != nil {
-		return checksum, url, err
+		return checksum, url, err, false
 	}
 	image := providerSpecValueObj["image"].(map[string]interface{})
 	checksum = fmt.Sprint(image["checksum"])
 	url = fmt.Sprint(image["url"])
-	return checksum, url, err
+	return checksum, url, err, false
 }
 
 func (r *BMACReconciler) ensureSpokeMachine(ctx context.Context, log logrus.FieldLogger, spokeClient client.Client, bmh *bmh_v1alpha1.BareMetalHost, clusterDeployment *hivev1.ClusterDeployment, machineName types.NamespacedName, checksum string, URL string) (*machinev1beta1.Machine, error) {
