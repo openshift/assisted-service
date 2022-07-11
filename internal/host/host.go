@@ -326,35 +326,35 @@ func (m *Manager) updateInventory(ctx context.Context, cluster *common.Cluster, 
 		return err
 	}
 
-	if h.ClusterID != nil && h.ClusterID.String() != "" {
-		cluster, err = common.GetClusterFromDB(db, *h.ClusterID, common.SkipEagerLoading)
-		if err != nil {
-			log.WithError(err).Errorf("not updating inventory - failed to find cluster %s", h.ClusterID.String())
-			return common.NewApiError(http.StatusNotFound, err)
-		}
-	}
-
 	infraEnv, err := common.GetInfraEnvFromDB(db, h.InfraEnvID)
 	if err != nil {
 		log.WithError(err).Errorf("not updating inventory - failed to find infra env %s", h.InfraEnvID.String())
 		return common.NewApiError(http.StatusNotFound, err)
 	}
 
-	if m.Config.BootstrapHostMAC != "" && !h.Bootstrap {
-		for _, iface := range inventory.Interfaces {
-			if iface.MacAddress == m.Config.BootstrapHostMAC {
-				log.Infof("selected local bootstrap host %s for cluster %s", h.ID, cluster.ID)
-				err = updateRole(log, h, models.HostRoleMaster, models.HostRoleMaster, db, string(h.Role))
-				if err != nil {
-					log.WithError(err).Errorf("failed to set master role on bootstrap host for cluster %s", cluster.ID)
-					return errors.Wrapf(err, "Failed to set master role on bootstrap host for cluster %s", cluster.ID)
+	if h.ClusterID != nil && h.ClusterID.String() != "" {
+		cluster, err = common.GetClusterFromDB(db, *h.ClusterID, common.SkipEagerLoading)
+		if err != nil {
+			log.WithError(err).Errorf("not updating inventory - failed to find cluster %s", h.ClusterID.String())
+			return common.NewApiError(http.StatusNotFound, err)
+		}
+
+		if m.Config.BootstrapHostMAC != "" && !h.Bootstrap {
+			for _, iface := range inventory.Interfaces {
+				if iface.MacAddress == m.Config.BootstrapHostMAC {
+					log.Infof("selected local bootstrap host %s for cluster %s", h.ID, cluster.ID)
+					err = updateRole(log, h, models.HostRoleMaster, models.HostRoleMaster, db, string(h.Role))
+					if err != nil {
+						log.WithError(err).Errorf("failed to set master role on bootstrap host for cluster %s", cluster.ID)
+						return errors.Wrapf(err, "Failed to set master role on bootstrap host for cluster %s", cluster.ID)
+					}
+					err = m.SetBootstrap(ctx, h, true, db)
+					if err != nil {
+						log.WithError(err).Errorf("failed to update bootstrap host for cluster %s", cluster.ID)
+						return errors.Wrapf(err, "Failed to update bootstrap host for cluster %s", cluster.ID)
+					}
+					break
 				}
-				err = m.SetBootstrap(ctx, h, true, db)
-				if err != nil {
-					log.WithError(err).Errorf("failed to update bootstrap host for cluster %s", cluster.ID)
-					return errors.Wrapf(err, "Failed to update bootstrap host for cluster %s", cluster.ID)
-				}
-				break
 			}
 		}
 	}
