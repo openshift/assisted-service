@@ -43,7 +43,7 @@ github.com/armon/go-radix
 # github.com/asaskevich/govalidator v0.0.0-20210307081110-f21760c49a8d
 ## explicit; go 1.13
 github.com/asaskevich/govalidator
-# github.com/aws/aws-sdk-go v1.44.33
+# github.com/aws/aws-sdk-go v1.44.51
 ## explicit; go 1.11
 github.com/aws/aws-sdk-go/aws
 github.com/aws/aws-sdk-go/aws/arn
@@ -1135,7 +1135,7 @@ gopkg.in/yaml.v3
 # gorm.io/driver/postgres v1.3.5
 ## explicit; go 1.14
 gorm.io/driver/postgres
-# gorm.io/gorm v1.23.5
+# gorm.io/gorm v1.23.8
 ## explicit; go 1.14
 gorm.io/gorm
 gorm.io/gorm/callbacks
