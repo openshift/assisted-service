@@ -40,7 +40,7 @@ type Release interface {
 	GetOpenshiftVersion(log logrus.FieldLogger, releaseImage string, releaseImageMirror string, pullSecret string) (string, error)
 	GetMajorMinorVersion(log logrus.FieldLogger, releaseImage string, releaseImageMirror string, pullSecret string) (string, error)
 	GetReleaseArchitecture(log logrus.FieldLogger, releaseImage string, releaseImageMirror string, pullSecret string) (string, error)
-	Extract(log logrus.FieldLogger, releaseImage string, releaseImageMirror string, cacheDir string, pullSecret string, platformType models.PlatformType) (string, error)
+	Extract(log logrus.FieldLogger, releaseImage string, releaseImageMirror string, cacheDir string, pullSecret string, platformType models.PlatformType, icspFile string) (string, error)
 }
 
 type imageValue struct {
@@ -61,10 +61,11 @@ func NewRelease(executer executer.Executer, config Config) Release {
 }
 
 const (
-	templateGetImage   = "oc adm release info --image-for=%s --insecure=%t %s"
-	templateGetVersion = "oc adm release info -o template --template '{{.metadata.version}}' --insecure=%t %s"
-	templateExtract    = "oc adm release extract --command=%s --to=%s --insecure=%t %s"
-	templateImageInfo  = "oc image info --output json %s"
+	templateGetImage        = "oc adm release info --image-for=%s --insecure=%t %s"
+	templateGetVersion      = "oc adm release info -o template --template '{{.metadata.version}}' --insecure=%t %s"
+	templateExtract         = "oc adm release extract --command=%s --to=%s --insecure=%t %s"
+	templateExtractWithIcsp = "oc adm release extract --command=%s --to=%s --insecure=%t --icsp-file=%s %s"
+	templateImageInfo       = "oc image info --output json %s"
 )
 
 // GetMCOImage gets mcoImage url from the releaseImageMirror if provided.
@@ -228,7 +229,7 @@ func (r *release) getOpenshiftVersionFromRelease(log logrus.FieldLogger, release
 
 // Extract openshift-baremetal-install binary from releaseImageMirror if provided.
 // Else extract from the source releaseImage
-func (r *release) Extract(log logrus.FieldLogger, releaseImage string, releaseImageMirror string, cacheDir string, pullSecret string, platformType models.PlatformType) (string, error) {
+func (r *release) Extract(log logrus.FieldLogger, releaseImage string, releaseImageMirror string, cacheDir string, pullSecret string, platformType models.PlatformType, icspFile string) (string, error) {
 	var path string
 	var err error
 	if releaseImage == "" && releaseImageMirror == "" {
@@ -236,13 +237,13 @@ func (r *release) Extract(log logrus.FieldLogger, releaseImage string, releaseIm
 	}
 	if releaseImageMirror != "" {
 		//TODO: Get mirror registry certificate from install-config
-		path, err = r.extractFromRelease(log, releaseImageMirror, cacheDir, pullSecret, true, platformType)
+		path, err = r.extractFromRelease(log, releaseImageMirror, cacheDir, pullSecret, true, platformType, icspFile)
 		if err != nil {
 			log.WithError(err).Errorf("failed to extract openshift-baremetal-install from mirror release image %s", releaseImageMirror)
 			return "", err
 		}
 	} else {
-		path, err = r.extractFromRelease(log, releaseImage, cacheDir, pullSecret, false, platformType)
+		path, err = r.extractFromRelease(log, releaseImage, cacheDir, pullSecret, false, platformType, icspFile)
 		if err != nil {
 			log.WithError(err).Errorf("failed to extract openshift-baremetal-install from release image %s", releaseImageMirror)
 			return "", err
@@ -253,7 +254,7 @@ func (r *release) Extract(log logrus.FieldLogger, releaseImage string, releaseIm
 
 // extractFromRelease returns the path to an openshift-baremetal-install binary extracted from
 // the referenced release image.
-func (r *release) extractFromRelease(log logrus.FieldLogger, releaseImage, cacheDir, pullSecret string, insecure bool, platformType models.PlatformType) (string, error) {
+func (r *release) extractFromRelease(log logrus.FieldLogger, releaseImage, cacheDir, pullSecret string, insecure bool, platformType models.PlatformType, icspFile string) (string, error) {
 	// Using platform type as an indication for which openshift install binary to use
 	// (e.g. as non-x86_64 clusters should use the openshift-install binary).
 	var binary string
@@ -270,7 +271,13 @@ func (r *release) extractFromRelease(log logrus.FieldLogger, releaseImage, cache
 		return "", err
 	}
 
-	cmd := fmt.Sprintf(templateExtract, binary, workdir, insecure, releaseImage)
+	var cmd string
+	if icspFile == "" {
+		cmd = fmt.Sprintf(templateExtract, binary, workdir, insecure, releaseImage)
+	} else {
+		cmd = fmt.Sprintf(templateExtractWithIcsp, binary, workdir, insecure, icspFile, releaseImage)
+	}
+
 	_, err = retry.Do(r.config.MaxTries, r.config.RetryDelay, execute, log, r.executer, pullSecret, cmd)
 	if err != nil {
 		return "", err
