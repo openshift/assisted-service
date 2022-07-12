@@ -260,17 +260,10 @@ func constructHostInstallerArgs(cluster *common.Cluster, host *models.Host, inve
 		return "", err
 	}
 
-	enableMultipath := false
 	for _, disk := range inventory.Disks {
-		if disk.DriveType == models.DriveTypeMultipath {
-			enableMultipath = true
-			if disk.ID == host.InstallationDiskID {
-				installerArgs = append(installerArgs, "--append-karg", "root=/dev/disk/by-label/dm-mpath-root", "--append-karg", "rw")
-			}
+		if disk.DriveType == models.DriveTypeMultipath && disk.ID == host.InstallationDiskID {
+			installerArgs = append(installerArgs, "--append-karg", "root=/dev/disk/by-label/dm-mpath-root", "--append-karg", "rw", "--append-karg", "rd.multipath=default")
 		}
-	}
-	if enableMultipath {
-		installerArgs = append(installerArgs, "--append-karg", "rd.multipath=default")
 	}
 
 	hasStaticNetwork := (infraEnv != nil && infraEnv.StaticNetworkConfig != "") || cluster.StaticNetworkConfigured
