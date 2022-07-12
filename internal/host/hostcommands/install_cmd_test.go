@@ -614,7 +614,7 @@ var _ = Describe("construct host install arguments", func() {
 		inventory, _ := common.UnmarshalInventory(host.Inventory)
 		args, err := constructHostInstallerArgs(cluster, host, inventory, infraEnv, log)
 		Expect(err).NotTo(HaveOccurred())
-		Expect(args).To(Equal(`["--append-karg","rd.multipath=default"]`))
+		Expect(args).To(BeEmpty())
 	})
 	It("ip=<nic>:dhcp6 added when machine CIDR is IPv6", func() {
 		cluster.MachineNetworks = []*models.MachineNetwork{{Cidr: "2001:db8::/64"}}
