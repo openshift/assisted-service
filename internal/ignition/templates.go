@@ -5,6 +5,7 @@ import (
 	"embed"
 	"encoding/base64"
 	"encoding/json"
+	"fmt"
 	"text/template"
 )
 
@@ -21,6 +22,7 @@ func loadTemplates() (result *template.Template, err error) {
 		"executeTemplate": makeExecuteTemplateFunc(initial),
 		"toBase64":        toBase64Func,
 		"toJson":          toJsonFunc,
+		"toString":        toStringFunc,
 	})
 	_, err = initial.ParseFS(templatesFS, "templates/*")
 	if err != nil {
@@ -53,26 +55,47 @@ func loadTemplates() (result *template.Template, err error) {
 //
 //	{{ executeTemplate "my.tmpl" . }}
 //
-// The function returns a string containing the result of executing the template, so that it can
-// then be passed to other functions.
-func makeExecuteTemplateFunc(initial *template.Template) func(string, interface{}) (string, error) {
-	return func(name string, data interface{}) (result string, err error) {
+// The function returns an array of bytes containing the result of executing the template, so that
+// it can then be passed to other functions.
+func makeExecuteTemplateFunc(initial *template.Template) func(string, interface{}) ([]byte, error) {
+	return func(name string, data interface{}) (result []byte, err error) {
 		buffer := &bytes.Buffer{}
 		executed := initial.Lookup(name)
 		err = executed.Execute(buffer, data)
 		if err != nil {
 			return
 		}
-		result = buffer.String()
+		result = buffer.Bytes()
 		return
 	}
+}
+
+// toString is a template function that converts the given data to a string. If the data is already
+// a string it returns it without change. If it is an array of bytes it converts it to a string
+// using the UTF-8 encoding. If the data implements the fmt.Stringer interface it converts it to
+// string calling the String method. For any other kind of input it returns an error.
+func toStringFunc(data interface{}) (result string, err error) {
+	switch typed := data.(type) {
+	case string:
+		result = typed
+	case []byte:
+		result = string(typed)
+	case fmt.Stringer:
+		result = typed.String()
+	default:
+		err = fmt.Errorf(
+			"expected a type that can be converted to string, but found %T",
+			data,
+		)
+	}
+	return
 }
 
 // toJsonFunc is a template function that encodes the given data as JSON. This can be used, for
 // example, to encode as a JSON string the result of executing other function. For example, to
 // create a JSON document with a 'content' field that contains the text of the 'my.tmpl' template:
 //
-//	"content": {{ executeTemplate "my.tmpl" . | toJson }}
+//	"content": {{ executeTemplate "my.tmpl" . | toString | toJson }}
 //
 // Note how that the value of that 'content' field doesn't need to sorrounded by quotes, because the
 // 'toJson' function will generate a valid JSON string, including those quotes.
@@ -85,7 +108,27 @@ func toJsonFunc(data interface{}) (result string, err error) {
 	return
 }
 
-// toBase64 is a template function that encodes the given data using Base64.
-func toBase64Func(data string) string {
-	return base64.StdEncoding.EncodeToString([]byte(data))
+// toBase64 is a template function that encodes the given data using Base64 and returns the result
+// as a string. If the data is an array of bytes it will be encoded directly. If the data is a
+// string it will be converted to an array of bytes using the UTF-8 encoding. If the data implements
+// the fmt.Stringer interface it will be converted to a string using the String method, and then to
+// an array of bytes using the UTF-8 encoding. Any other kind of data will result in an error.
+func toBase64Func(data interface{}) (result string, err error) {
+	var bytes []byte
+	switch typed := data.(type) {
+	case string:
+		bytes = []byte(typed)
+	case []byte:
+		bytes = typed
+	case fmt.Stringer:
+		bytes = []byte(typed.String())
+	default:
+		err = fmt.Errorf(
+			"expected a type dhta can be converted to an array of bytes, but found %T",
+			data,
+		)
+		return
+	}
+	result = base64.StdEncoding.EncodeToString(bytes)
+	return
 }
