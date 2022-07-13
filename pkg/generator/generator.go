@@ -32,7 +32,6 @@ type Config struct {
 	ReleaseImageMirror string
 	DummyIgnition      bool   `envconfig:"DUMMY_IGNITION"`
 	InstallInvoker     string `envconfig:"INSTALL_INVOKER" default:"assisted-installer"`
-	IcspFile           string `envconfig:"ICSP_FILE" default:""`
 }
 
 type installGenerator struct {
@@ -99,7 +98,7 @@ func (k *installGenerator) GenerateInstallConfig(ctx context.Context, cluster co
 		generator = ignition.NewDummyGenerator(clusterWorkDir, &cluster, k.s3Client, log)
 	} else {
 		generator = ignition.NewGenerator(clusterWorkDir, installerCacheDir, &cluster, releaseImage, k.Config.ReleaseImageMirror,
-			k.Config.ServiceCACertPath, k.Config.InstallInvoker, k.s3Client, log, k.operatorsApi, k.providerRegistry, installerReleaseImageOverride, k.clusterTLSCertOverrideDir, k.Config.IcspFile)
+			k.Config.ServiceCACertPath, k.Config.InstallInvoker, k.s3Client, log, k.operatorsApi, k.providerRegistry, installerReleaseImageOverride, k.clusterTLSCertOverrideDir)
 	}
 	err = generator.Generate(ctx, cfg, k.getClusterPlatformType(cluster))
 	if err != nil {

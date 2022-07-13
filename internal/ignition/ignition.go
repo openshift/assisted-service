@@ -27,10 +27,12 @@ import (
 	"github.com/coreos/vcontext/report"
 	"github.com/go-openapi/swag"
 	bmh_v1alpha1 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
+	operatorv1alpha1 "github.com/openshift/api/operator/v1alpha1"
 	clusterPkg "github.com/openshift/assisted-service/internal/cluster"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/constants"
 	"github.com/openshift/assisted-service/internal/host/hostutil"
+	"github.com/openshift/assisted-service/internal/installcfg"
 	"github.com/openshift/assisted-service/internal/installercache"
 	"github.com/openshift/assisted-service/internal/manifests"
 	"github.com/openshift/assisted-service/internal/network"
@@ -420,7 +422,6 @@ type installerGenerator struct {
 	providerRegistry              registry.ProviderRegistry
 	installerReleaseImageOverride string
 	clusterTLSCertOverrideDir     string
-	icspFile                      string
 }
 
 // IgnitionConfig contains the attributes required to build the discovery ignition file
@@ -453,7 +454,7 @@ func NewBuilder(log logrus.FieldLogger, staticNetworkConfig staticnetworkconfig.
 // NewGenerator returns a generator that can generate ignition files
 func NewGenerator(workDir string, installerDir string, cluster *common.Cluster, releaseImage string, releaseImageMirror string,
 	serviceCACert, installInvoker string, s3Client s3wrapper.API, log logrus.FieldLogger, operatorsApi operators.API,
-	providerRegistry registry.ProviderRegistry, installerReleaseImageOverride, clusterTLSCertOverrideDir string, icspFile string) Generator {
+	providerRegistry registry.ProviderRegistry, installerReleaseImageOverride, clusterTLSCertOverrideDir string) Generator {
 	return &installerGenerator{
 		cluster:                       cluster,
 		log:                           log,
@@ -469,7 +470,6 @@ func NewGenerator(workDir string, installerDir string, cluster *common.Cluster, 
 		providerRegistry:              providerRegistry,
 		installerReleaseImageOverride: installerReleaseImageOverride,
 		clusterTLSCertOverrideDir:     clusterTLSCertOverrideDir,
-		icspFile:                      icspFile,
 	}
 }
 
@@ -481,6 +481,7 @@ func (g *installerGenerator) UploadToS3(ctx context.Context) error {
 
 // Generate generates ignition files and applies modifications.
 func (g *installerGenerator) Generate(ctx context.Context, installConfig []byte, platformType models.PlatformType) error {
+	var icspFile string
 	log := logutil.FromContext(ctx, g.log)
 
 	// In case we don't want to override image for extracting installer use release one
@@ -488,8 +489,16 @@ func (g *installerGenerator) Generate(ctx context.Context, installConfig []byte,
 		g.installerReleaseImageOverride = g.releaseImage
 	}
 
+	// If ImageContentSources are defined, store in a file for the 'oc' command
+	defer removeIcspFile(icspFile)
+
+	icspFile, err := getIcspFileFromInstallConfig(installConfig)
+	if err != nil {
+		return errors.Wrap(err, "failed to create file with ImageContentSources")
+	}
+
 	installerPath, err := installercache.Get(g.installerReleaseImageOverride, g.releaseImageMirror, g.installerDir,
-		g.cluster.PullSecret, platformType, g.icspFile, log)
+		g.cluster.PullSecret, platformType, icspFile, log)
 	if err != nil {
 		return errors.Wrap(err, "failed to get installer path")
 	}
@@ -1710,4 +1719,68 @@ func proxySettingsForIgnition(httpProxy, httpsProxy, noProxy string) (string, er
 		return "", err
 	}
 	return buf.String(), nil
+}
+
+func getIcspFileFromInstallConfig(cfg []byte) (string, error) {
+	contents, err := getIcsp(cfg)
+	if err != nil {
+		return "", err
+	}
+	if contents == nil {
+		return "", nil
+	}
+
+	icspFile, err := ioutil.TempFile("", "icsp-file")
+	if err != nil {
+		return "", err
+	}
+	if _, err := icspFile.Write(contents); err != nil {
+		os.Remove(icspFile.Name())
+		return "", err
+	}
+	icspFile.Close()
+
+	return icspFile.Name(), nil
+}
+
+func getIcsp(cfg []byte) ([]byte, error) {
+
+	var installCfg installcfg.InstallerConfigBaremetal
+	if err := yaml.Unmarshal(cfg, &installCfg); err != nil {
+		return nil, err
+	}
+
+	if len(installCfg.ImageContentSources) == 0 {
+		// No ImageContentSources were defined
+		return nil, nil
+	}
+
+	icsp := operatorv1alpha1.ImageContentSourcePolicy{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: operatorv1alpha1.SchemeGroupVersion.String(),
+			Kind:       "ImageContentSourcePolicy",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "image-policy",
+			// not namespaced
+		},
+	}
+
+	icsp.Spec.RepositoryDigestMirrors = make([]operatorv1alpha1.RepositoryDigestMirrors, len(installCfg.ImageContentSources))
+	for i, imageSource := range installCfg.ImageContentSources {
+		icsp.Spec.RepositoryDigestMirrors[i] = operatorv1alpha1.RepositoryDigestMirrors{Source: imageSource.Source, Mirrors: imageSource.Mirrors}
+
+	}
+
+	contents, err := yaml.Marshal(icsp)
+	if err != nil {
+		return nil, err
+	}
+	return contents, nil
+}
+
+func removeIcspFile(filename string) {
+	if filename != "" {
+		os.Remove(filename)
+	}
 }
