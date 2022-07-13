@@ -6566,8 +6566,10 @@ var _ = Describe("infraEnvs", func() {
 			mockEvents.EXPECT().SendInfraEnvEvent(ctx, eventstest.NewEventMatcher(
 				eventstest.WithNameMatcher(eventgen.InfraEnvRegisteredEventName))).Times(1)
 			mockUsage.EXPECT().Add(gomock.Any(), usage.IgnitionConfigOverrideUsage, gomock.Any()).Times(1)
-			mockUsage.EXPECT().Save(gomock.Any(), gomock.Any(), gomock.Any()).Times(1)
-			mockUsage.EXPECT().Remove(gomock.Any(), gomock.Any()).Times(0)
+			mockUsage.EXPECT().Add(gomock.Any(), gomock.Not(usage.IgnitionConfigOverrideUsage), gomock.Any()).AnyTimes()
+			mockUsage.EXPECT().Save(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+			mockUsage.EXPECT().Remove(gomock.Any(), usage.IgnitionConfigOverrideUsage).Times(0)
+			mockUsage.EXPECT().Remove(gomock.Any(), gomock.Not(usage.IgnitionConfigOverrideUsage)).AnyTimes()
 
 			bm.RegisterInfraEnv(ctx, installer.RegisterInfraEnvParams{
 				InfraenvCreateParams: &models.InfraEnvCreateParams{
@@ -6725,6 +6727,64 @@ var _ = Describe("infraEnvs", func() {
 				},
 			})
 			Expect(reply).To(BeAssignableToTypeOf(common.NewApiError(http.StatusBadRequest, errors.Errorf(""))))
+		})
+
+		It("static network usage should be removed when StaticNetworkConfig is unset", func() {
+			MinimalOpenShiftVersionForNoneHA := "4.8.0-fc.0"
+			staticNetworkConfig := []*models.HostStaticNetworkConfig{}
+
+			cluster := createCluster(db, models.ClusterStatusInstallingPendingUserAction)
+
+			mockInfraEnvRegisterSuccess()
+			mockEvents.EXPECT().SendInfraEnvEvent(ctx, eventstest.NewEventMatcher(
+				eventstest.WithNameMatcher(eventgen.InfraEnvRegisteredEventName))).Times(1)
+			mockStaticNetworkConfig.EXPECT().ValidateStaticConfigParams(gomock.Any(), gomock.Any())
+			mockUsage.EXPECT().Add(gomock.Any(), gomock.Not(usage.StaticNetworkConfigUsage), gomock.Any()).AnyTimes()
+			mockUsage.EXPECT().Remove(gomock.Any(), usage.StaticNetworkConfigUsage).Times(1)
+			mockUsage.EXPECT().Remove(gomock.Any(), gomock.Not(usage.StaticNetworkConfigUsage)).AnyTimes()
+			mockUsage.EXPECT().Save(gomock.Any(), gomock.Any(), gomock.Any()).MinTimes(1)
+
+			bm.RegisterInfraEnv(ctx, installer.RegisterInfraEnvParams{
+				InfraenvCreateParams: &models.InfraEnvCreateParams{
+					Name:                swag.String("some-infra-env-name"),
+					PullSecret:          swag.String("{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"),
+					OpenshiftVersion:    MinimalOpenShiftVersionForNoneHA,
+					StaticNetworkConfig: staticNetworkConfig,
+					ClusterID:           cluster.ID,
+				},
+			})
+		})
+
+		It("static network usage should be added when StaticNetworkConfig is set", func() {
+			MinimalOpenShiftVersionForNoneHA := "4.8.0-fc.0"
+			staticNetworkConfig := []*models.HostStaticNetworkConfig{}
+
+			cluster := createCluster(db, models.ClusterStatusInstallingPendingUserAction)
+
+			mockVersions.EXPECT().GetOsImage(gomock.Any(), gomock.Any()).Return(common.TestDefaultConfig.OsImage, nil).AnyTimes()
+			mockSecretValidator.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+			mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(discovery_ignition_3_1, nil).Times(1)
+			mockEvents.EXPECT().SendInfraEnvEvent(gomock.Any(), eventstest.NewEventMatcher(
+				eventstest.WithNameMatcher(eventgen.ImageInfoUpdatedEventName))).AnyTimes()
+			mockEvents.EXPECT().SendInfraEnvEvent(ctx, eventstest.NewEventMatcher(
+				eventstest.WithNameMatcher(eventgen.InfraEnvRegisteredEventName))).Times(1)
+			mockStaticNetworkConfig.EXPECT().ValidateStaticConfigParams(gomock.Any(), gomock.Any())
+
+			mockStaticNetworkConfig.EXPECT().FormatStaticNetworkConfigForDB(gomock.Any()).Return("static network format result", nil).Times(1)
+			mockUsage.EXPECT().Add(gomock.Any(), usage.StaticNetworkConfigUsage, nil)
+			mockUsage.EXPECT().Add(gomock.Any(), gomock.Not(usage.StaticNetworkConfigUsage), gomock.Any()).AnyTimes()
+			mockUsage.EXPECT().Remove(gomock.Any(), gomock.Not(usage.StaticNetworkConfigUsage)).AnyTimes()
+			mockUsage.EXPECT().Save(gomock.Any(), gomock.Any(), gomock.Any()).MinTimes(1)
+
+			bm.RegisterInfraEnv(ctx, installer.RegisterInfraEnvParams{
+				InfraenvCreateParams: &models.InfraEnvCreateParams{
+					Name:                swag.String("some-infra-env-name"),
+					PullSecret:          swag.String("{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"),
+					OpenshiftVersion:    MinimalOpenShiftVersionForNoneHA,
+					StaticNetworkConfig: staticNetworkConfig,
+					ClusterID:           cluster.ID,
+				},
+			})
 		})
 	})
 
@@ -7073,6 +7133,62 @@ var _ = Describe("infraEnvs", func() {
 				i, err = bm.GetInfraEnvInternal(ctx, installer.GetInfraEnvParams{InfraEnvID: *i.ID})
 				Expect(err).ToNot(HaveOccurred())
 				Expect(i.StaticNetworkConfig).To(Equal(staticNetworkFormatRes))
+			})
+
+			It("static network usage should be added when StaticNetworkConfig is set", func() {
+				var err error
+
+				cluster := createCluster(db, models.ClusterStatusInstallingPendingUserAction)
+				err = db.Model(&common.InfraEnv{}).Where("id = ?", *i.ID).Update("cluster_id", cluster.ID).Error
+				Expect(err).ToNot(HaveOccurred())
+
+				staticNetworkFormatRes := "static network format result"
+				map1 := models.MacInterfaceMap{
+					&models.MacInterfaceMapItems0{MacAddress: "mac10", LogicalNicName: "nic10"},
+				}
+				staticNetworkConfig := []*models.HostStaticNetworkConfig{
+					common.FormatStaticConfigHostYAML("0200003ef74c", "02000048ba48", "192.168.126.41", "192.168.141.41", "192.168.126.1", map1),
+				}
+
+				mockInfraEnvUpdateSuccess()
+				mockStaticNetworkConfig.EXPECT().ValidateStaticConfigParams(gomock.Any(), staticNetworkConfig).Return(nil).Times(1)
+				mockStaticNetworkConfig.EXPECT().FormatStaticNetworkConfigForDB(staticNetworkConfig).Return(staticNetworkFormatRes, nil).Times(1)
+				mockUsage.EXPECT().Add(gomock.Any(), usage.StaticNetworkConfigUsage, nil).Times(1)
+				mockUsage.EXPECT().Save(gomock.Any(), *cluster.ID, gomock.Any()).Times(1)
+
+				bm.UpdateInfraEnv(ctx, installer.UpdateInfraEnvParams{
+					InfraEnvID: *i.ID,
+					InfraEnvUpdateParams: &models.InfraEnvUpdateParams{
+						StaticNetworkConfig: staticNetworkConfig,
+					},
+				})
+			})
+
+			It("static network usage should be removed when StaticNetworkConfig is unset", func() {
+				var err error
+
+				cluster := createCluster(db, models.ClusterStatusInstallingPendingUserAction)
+				err = db.Model(&common.InfraEnv{}).Where("id = ?", *i.ID).Update("cluster_id", cluster.ID).Error
+				Expect(err).ToNot(HaveOccurred())
+
+				err = db.Model(&common.InfraEnv{}).Where("id = ?", *i.ID).Update("static_network_config", "static network format result").Error
+				Expect(err).ToNot(HaveOccurred())
+
+				staticNetworkFormatRes := ""
+				staticNetworkConfig := []*models.HostStaticNetworkConfig{}
+
+				mockInfraEnvUpdateSuccess()
+				mockStaticNetworkConfig.EXPECT().ValidateStaticConfigParams(gomock.Any(), staticNetworkConfig).Return(nil).Times(1)
+				mockStaticNetworkConfig.EXPECT().FormatStaticNetworkConfigForDB(staticNetworkConfig).Return(staticNetworkFormatRes, nil).Times(1)
+				mockUsage.EXPECT().Remove(gomock.Any(), usage.StaticNetworkConfigUsage).Times(1)
+				mockUsage.EXPECT().Save(gomock.Any(), *cluster.ID, gomock.Any()).Times(1)
+
+				bm.UpdateInfraEnv(ctx, installer.UpdateInfraEnvParams{
+					InfraEnvID: *i.ID,
+					InfraEnvUpdateParams: &models.InfraEnvUpdateParams{
+						StaticNetworkConfig: staticNetworkConfig,
+					},
+				})
 			})
 		})
 
@@ -13844,6 +13960,24 @@ var _ = Describe("Update cluster - feature usage flags", func() {
 					Type: &platformType,
 				},
 			}, usages, common.GetTestLog())
+		})
+	})
+
+	Context("Static network usage", func() {
+		It("Add feature usage when StaticNetworkConfig is set", func() {
+			mockUsage.EXPECT().Add(usages, usage.StaticNetworkConfigUsage, nil).Times(1)
+			mockUsage.EXPECT().Remove(usages, usage.StaticNetworkConfigUsage).Times(0)
+			mockUsage.EXPECT().Save(gomock.Any(), *cluster.ID, usages).Times(1)
+			err := bm.setStaticNetworkUsage(db, *cluster.ID, "some static network config")
+			Expect(err).ToNot(HaveOccurred())
+		})
+
+		It("Remove feature usage when StaticNetworkConfig is not set", func() {
+			mockUsage.EXPECT().Add(usages, usage.StaticNetworkConfigUsage, nil).Times(0)
+			mockUsage.EXPECT().Remove(usages, usage.StaticNetworkConfigUsage).Times(1)
+			mockUsage.EXPECT().Save(gomock.Any(), *cluster.ID, usages).Times(1)
+			err := bm.setStaticNetworkUsage(db, *cluster.ID, "")
+			Expect(err).ToNot(HaveOccurred())
 		})
 	})
 })

@@ -3957,6 +3957,10 @@ func (b *bareMetalInventory) RegisterInfraEnvInternal(
 			// Failure to set the feature usage isn't a failure to create the infraenv so we only print the error instead of returning it
 			log.WithError(err).Warnf("failed to set ignition config override usage for cluster %s", infraEnv.ClusterID)
 		}
+
+		if err = b.setStaticNetworkUsage(tx, infraEnv.ClusterID, infraEnv.StaticNetworkConfig); err != nil {
+			log.WithError(err).Warnf("failed to set static network usage for cluster %s", infraEnv.ClusterID)
+		}
 	}
 	if params.InfraenvCreateParams.Proxy != nil {
 		proxy := models.Proxy{
@@ -4134,6 +4138,28 @@ func (b *bareMetalInventory) setIgnitionConfigOverrideUsage(clusterId strfmt.UUI
 	return nil
 }
 
+// Sets the feature usage for static network config for a cluster
+func (b *bareMetalInventory) setStaticNetworkUsage(db *gorm.DB, clusterId strfmt.UUID, staticNetworkConfig string) error {
+	var err error
+
+	cluster, err := common.GetClusterFromDBForUpdate(db, clusterId, common.SkipEagerLoading)
+	if err != nil {
+		return err
+	}
+
+	usages, err := usage.Unmarshal(cluster.Cluster.FeatureUsage)
+	if err != nil {
+		return err
+	}
+
+	isStaticNetworkUsed := staticNetworkConfig != ""
+
+	b.setUsage(isStaticNetworkUsed, usage.StaticNetworkConfigUsage, nil, usages)
+	b.usageApi.Save(db, *cluster.ID, usages)
+
+	return nil
+}
+
 func (b *bareMetalInventory) UpdateInfraEnv(ctx context.Context, params installer.UpdateInfraEnvParams) middleware.Responder {
 	i, err := b.UpdateInfraEnvInternal(ctx, params, nil)
 	if err != nil {
@@ -4275,6 +4301,10 @@ func (b *bareMetalInventory) updateInfraEnvData(ctx context.Context, infraEnv *c
 		}
 		if staticNetworkConfig != infraEnv.StaticNetworkConfig {
 			updates["static_network_config"] = staticNetworkConfig
+
+			if err = b.setStaticNetworkUsage(db, infraEnv.ClusterID, staticNetworkConfig); err != nil {
+				log.WithError(err).Warnf("failed to set static network usage for cluster %s", infraEnv.ClusterID)
+			}
 		}
 	}
 

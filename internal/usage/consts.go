@@ -41,4 +41,6 @@ const (
 	SingleNodeExpansion string = "Single Node Expansion"
 	// Usage of ignition config overrides
 	IgnitionConfigOverrideUsage string = "Ignition Config Override"
+	// Usage of static network config
+	StaticNetworkConfigUsage string = "Static Network Config"
 )
