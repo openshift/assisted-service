@@ -4462,6 +4462,7 @@ func (b *bareMetalInventory) V2RegisterHost(ctx context.Context, params installe
 		ID:                       params.NewHostParams.HostID,
 		Href:                     swag.String(url.String()),
 		Kind:                     kind,
+		RegisteredAt:             strfmt.DateTime(time.Now()),
 		CheckedInAt:              strfmt.DateTime(time.Now()),
 		DiscoveryAgentVersion:    params.NewHostParams.DiscoveryAgentVersion,
 		UserName:                 ocm.UserNameFromContext(ctx),

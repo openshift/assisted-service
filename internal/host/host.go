@@ -205,6 +205,16 @@ func (m *Manager) RegisterHost(ctx context.Context, h *models.Host, db *gorm.DB)
 		if h != nil {
 			host.Kind = h.Kind
 		}
+
+		// If the host already exists in the DB, we update its registration timestamp to track
+		// the subsequent registration events. This can happen if the host rebooted or the agent has
+		// been restarted.
+		if err := db.Model(&common.Host{}).Where("id = ? and infra_env_id = ?", host.ID, host.InfraEnvID).Update("registered_at", strfmt.DateTime(time.Now())).Error; err != nil {
+			return errors.Wrapf(
+				err,
+				"error while updating registration timestamp of host %s in infra env %s",
+				host.ID.String(), host.InfraEnvID.String())
+		}
 	}
 
 	return m.sm.Run(TransitionTypeRegisterHost, newStateHost(host), &TransitionArgsRegisterHost{
