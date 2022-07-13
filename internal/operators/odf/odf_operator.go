@@ -109,7 +109,7 @@ func (o *operator) ValidateHost(_ context.Context, cluster *common.Cluster, host
 	}
 
 	// compact mode
-	if numOfHosts <= 3 {
+	if numOfHosts >= 3 || numOfHosts <= 5 {
 		if host.Role == models.HostRoleMaster || host.Role == models.HostRoleAutoAssign {
 			if diskCount == 0 {
 				return api.ValidationResult{Status: api.Failure, ValidationId: o.GetHostValidationID(), Reasons: []string{"Insufficient disks, ODF requires at least one non-bootable disk on each host in compact mode."}}, nil
@@ -161,7 +161,7 @@ func (o *operator) GetHostRequirements(_ context.Context, cluster *common.Cluste
 	}
 
 	role := common.GetEffectiveRole(host)
-	if numOfHosts <= 3 { // Compact Mode
+	if numOfHosts <= 3 || numOfHosts <= 5 { // Compact Mode
 		var reqDisks int64 = 1
 		if diskCount > 0 {
 			reqDisks = diskCount

@@ -142,6 +142,14 @@ var _ = Describe("Odf Operator", func() {
 				autoAssignHost,
 				&models.ClusterHostRequirementsDetails{CPUCores: operator.config.ODFPerHostCPUCompactMode + operator.config.ODFPerDiskCPUCount, RAMMib: conversions.GibToMib(operator.config.ODFPerHostMemoryGiBCompactMode + operator.config.ODFPerDiskRAMGiB)},
 			),
+
+			table.Entry("there are 5 hosts, role of two as auto-assign",
+				&common.Cluster{Cluster: models.Cluster{Hosts: []*models.Host{
+					masterWithThreeDisk, masterWithNoDisk, workerWithTwoDisk,
+				}}},
+				autoAssignHost,
+				&models.ClusterHostRequirementsDetails{CPUCores: operator.config.ODFPerHostCPUCompactMode + operator.config.ODFPerDiskCPUCount, RAMMib: conversions.GibToMib(operator.config.ODFPerHostMemoryGiBCompactMode + operator.config.ODFPerDiskRAMGiB)},
+			),
 			table.Entry("there are two master and one worker",
 				&common.Cluster{Cluster: models.Cluster{Hosts: []*models.Host{
 					masterWithThreeDisk, masterWithNoDisk, workerWithTwoDisk,

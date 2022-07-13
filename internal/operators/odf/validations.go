@@ -35,6 +35,8 @@ func (o *operator) validateRequirements(cluster *models.Cluster) (api.Validation
 	var status string
 	hosts := cluster.Hosts
 	numAvailableHosts := int64(len(hosts))
+	fmt.Println("*******************")
+	fmt.Println(numAvailableHosts)
 
 	if numAvailableHosts < o.config.ODFNumMinimumHosts {
 		status = "A minimum of 3 hosts is required to deploy ODF."
