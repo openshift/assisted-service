@@ -58,9 +58,8 @@ func (r *refreshPreprocessor) preprocess(ctx context.Context, c *clusterPreproce
 		return stateMachineInput, validationsOutput, nil
 	}
 	for _, v := range r.validations {
-		st := v.condition(c)
+		st, message := v.condition(c)
 		stateMachineInput[v.id.String()] = st == ValidationSuccess
-		message := v.formatter(c, st)
 		category, err := v.id.Category()
 		if err != nil {
 			logrus.WithError(err).Warn("id.category()")
@@ -115,87 +114,70 @@ func newValidations(v *clusterValidator) []validation {
 		{
 			id:        IsMachineCidrDefined,
 			condition: v.isMachineCidrDefined,
-			formatter: v.printIsMachineCidrDefined,
 		},
 		{
 			id:        IsMachineCidrEqualsToCalculatedCidr,
 			condition: v.isMachineCidrEqualsToCalculatedCidr,
-			formatter: v.printIsMachineCidrEqualsToCalculatedCidr,
 		},
 		{
 			id:        IsApiVipDefined,
 			condition: v.isApiVipDefined,
-			formatter: v.printIsApiVipDefined,
 		},
 		{
 			id:        IsApiVipValid,
 			condition: v.isApiVipValid,
-			formatter: v.printIsApiVipValid,
 		},
 		{
 			id:        isNetworkTypeValid,
 			condition: v.isNetworkTypeValid,
-			formatter: v.printIsNetworkTypeValid,
 		},
 		{
 			id:        IsIngressVipDefined,
 			condition: v.isIngressVipDefined,
-			formatter: v.printIsIngressVipDefined,
 		},
 		{
 			id:        IsIngressVipValid,
 			condition: v.isIngressVipValid,
-			formatter: v.printIsIngressVipValid,
 		},
 		{
 			id:        AllHostsAreReadyToInstall,
 			condition: v.allHostsAreReadyToInstall,
-			formatter: v.printAllHostsAreReadyToInstall,
 		},
 		{
 			id:        SufficientMastersCount,
 			condition: v.sufficientMastersCount,
-			formatter: v.printSufficientMastersCount,
 		},
 		{
 			id:        IsDNSDomainDefined,
 			condition: v.isDNSDomainDefined,
-			formatter: v.printIsDNSDomainDefined,
 		},
 		{
 			id:        IsPullSecretSet,
 			condition: v.isPullSecretSet,
-			formatter: v.printIsPullSecretSet,
 		},
 		{
 			id:        isClusterCidrDefined,
 			condition: v.isClusterCidrDefined,
-			formatter: v.printIsClusterCidrDefined,
 		},
 		{
 			id:        isServiceCidrDefined,
 			condition: v.isServiceCidrDefined,
-			formatter: v.printIsServiceCidrDefined,
 		},
 		{
 			id:        noCidrOverlapping,
 			condition: v.noCidrsOverlapping,
-			formatter: v.printNoCidrsOverlapping,
 		},
 		{
 			id:        networkPrefixValid,
 			condition: v.networkPrefixValid,
-			formatter: v.printNetworkPrefixValid,
 		},
 		{
 			id:        IsNtpServerConfigured,
 			condition: v.isNtpServerConfigured,
-			formatter: v.printNtpServerConfigured,
 		},
 		{
 			id:        NetworksSameAddressFamilies,
 			condition: v.isNetworksSameAddressFamilies,
-			formatter: v.printIsNetworksSameAddressFamilies,
 		},
 	}
 	return ret

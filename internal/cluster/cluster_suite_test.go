@@ -2,6 +2,7 @@ package cluster_test
 
 import (
 	"testing"
+	"time"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -11,6 +12,7 @@ import (
 func TestCluster(t *testing.T) {
 	RegisterFailHandler(Fail)
 	common.InitializeDBTest()
+	time.Sleep(10 * time.Second)
 	defer common.TerminateDBTest()
 	RunSpecs(t, "cluster tests")
 }
