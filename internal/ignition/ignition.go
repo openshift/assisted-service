@@ -299,12 +299,11 @@ func (g *installerGenerator) Generate(ctx context.Context, installConfig []byte,
 	}
 
 	// If ImageContentSources are defined, store in a file for the 'oc' command
-	defer removeIcspFile(icspFile)
-
 	icspFile, err := getIcspFileFromInstallConfig(installConfig)
 	if err != nil {
 		return errors.Wrap(err, "failed to create file with ImageContentSources")
 	}
+	defer removeIcspFile(icspFile)
 
 	installerPath, err := installercache.Get(g.installerReleaseImageOverride, g.releaseImageMirror, g.installerDir,
 		g.cluster.PullSecret, platformType, icspFile, log)
@@ -1539,6 +1538,7 @@ func getIcspFileFromInstallConfig(cfg []byte) (string, error) {
 		return "", err
 	}
 	if _, err := icspFile.Write(contents); err != nil {
+		icspFile.Close()
 		os.Remove(icspFile.Name())
 		return "", err
 	}
