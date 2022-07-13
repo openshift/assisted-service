@@ -77,7 +77,7 @@ func getIngnitionEndPoint(cluster *common.Cluster, host *models.Host) (string, e
 	if addressPart == "" {
 		addressPart = cluster.APIVip
 	}
-	poolName := "worker"
+	poolName := string(common.GetEffectiveRole(host))
 	if host.MachineConfigPoolName != "" {
 		poolName = host.MachineConfigPoolName
 	}
