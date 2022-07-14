@@ -22,8 +22,10 @@ import (
 	"github.com/openshift/assisted-service/internal/network"
 	"github.com/openshift/assisted-service/internal/operators"
 	"github.com/openshift/assisted-service/internal/provider/registry"
+	"github.com/openshift/assisted-service/internal/spoke_k8s_client"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/conversions"
+	"github.com/openshift/assisted-service/pkg/s3wrapper"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
@@ -88,6 +90,9 @@ type validationContext struct {
 	clusterHostRequirements *models.ClusterHostRequirements
 	minCPUCoresRequirement  int64
 	minRAMMibRequirement    int64
+	kubeApiEnabled          bool
+	objectHandler           s3wrapper.API
+	ctx                     context.Context
 }
 
 type validationCondition func(context *validationContext) (ValidationStatus, string)
@@ -194,13 +199,16 @@ func (c *validationContext) loadGeneralInfraEnvMinRequirements(hwValidator hardw
 	return err
 }
 
-func newValidationContext(host *models.Host, c *common.Cluster, i *common.InfraEnv, db *gorm.DB, inventoryCache InventoryCache, hwValidator hardware.Validator) (*validationContext, error) {
+func newValidationContext(ctx context.Context, host *models.Host, c *common.Cluster, i *common.InfraEnv, db *gorm.DB, inventoryCache InventoryCache, hwValidator hardware.Validator, kubeApiEnabled bool, objectHandler s3wrapper.API) (*validationContext, error) {
 	ret := &validationContext{
+		ctx:            ctx,
 		host:           host,
 		db:             db,
 		cluster:        c,
 		infraEnv:       i,
 		inventoryCache: inventoryCache,
+		kubeApiEnabled: kubeApiEnabled,
+		objectHandler:  objectHandler,
 	}
 	if host.ClusterID != nil {
 		err := ret.loadCluster()
@@ -1625,4 +1633,37 @@ func (v *validator) noSkipMissingDisk(c *validationContext) (ValidationStatus, s
 		}
 	}
 	return ValidationSuccess, successMessage
+}
+
+func (v *validator) serviceCanConnectToSpokeKubeAPI(c *validationContext) (ValidationStatus, string) {
+	// When adding a day2 host to a spoke cluster and the service operates in kube-API mode,
+	// the service needs to access the spoke cluster's kube API in order to perform some operations,
+	// such as listing nodes and approving CSRs (depending on platform).
+	// This validation makes sure in advance that the service is authorized to do that.
+	if c.cluster == nil || !c.kubeApiEnabled || *c.cluster.Status != models.ClusterStatusAddingHosts {
+		return ValidationSuccessSuppressOutput, "Host is not part of a Day2 cluster, no need to check KubeAPI connectivity"
+	}
+
+	spokeK8sClientFactory := spoke_k8s_client.NewSpokeK8sClientFactory(v.log)
+	client, err := spokeK8sClientFactory.CreateFromStorageKubeconfig(context.TODO(), c.host.ClusterID, c.objectHandler)
+	if err != nil {
+		return ValidationError, fmt.Sprintf("Could not create the spoke k8s client connection using kubeconfig: %s", err.Error())
+	}
+
+	for _, check := range [][]string{
+		{"list", "CertificateSigningRequests"},
+		{"approve", "CertificateSigningRequests"},
+		{"list", "Nodes"},
+	} {
+		verb, resource := check[0], check[1]
+		state, err := client.IsActionPermitted(verb, resource)
+		if err != nil {
+			return ValidationError, err.Error()
+		}
+		if !state {
+			return ValidationFailure, fmt.Sprintf("the spoke cluster credentials held by assisted-installer do not have permissions to %s %s on the spoke cluster", verb, resource)
+		}
+	}
+
+	return ValidationSuccess, "Host was able to connect to KubeAPI of the spoke cluster for Day2 operations"
 }

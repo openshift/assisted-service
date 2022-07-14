@@ -35,6 +35,7 @@ import (
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/gencrypto"
 	"github.com/openshift/assisted-service/internal/host"
+	"github.com/openshift/assisted-service/internal/spoke_k8s_client"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/auth"
 	logutil "github.com/openshift/assisted-service/pkg/log"
@@ -81,7 +82,7 @@ type AgentReconciler struct {
 	CRDEventsHandler           CRDEventsHandler
 	ServiceBaseURL             string
 	AuthType                   auth.AuthType
-	SpokeK8sClientFactory      SpokeK8sClientFactory
+	SpokeK8sClientFactory      spoke_k8s_client.SpokeK8sClientFactory
 	ApproveCsrsRequeueDuration time.Duration
 }
 
@@ -250,7 +251,7 @@ func (r *AgentReconciler) shouldApproveCSR(csr *certificatesv1.CertificateSignin
 	return validateNodeCsr(agent, csr, x509CSR)
 }
 
-func (r *AgentReconciler) approveAIHostsCSRs(clients SpokeK8sClient, agent *aiv1beta1.Agent, validateNodeCsr nodeCsrValidator) {
+func (r *AgentReconciler) approveAIHostsCSRs(clients spoke_k8s_client.SpokeK8sClient, agent *aiv1beta1.Agent, validateNodeCsr nodeCsrValidator) {
 	csrList, err := clients.ListCsrs()
 	if err != nil {
 		r.Log.WithError(err).Errorf("Failed to get CSRs for agent %s/%s", agent.Namespace, agent.Name)
@@ -306,7 +307,7 @@ func (r *AgentReconciler) tryApproveDay2CSRs(ctx context.Context, agent *aiv1bet
 		r.Log.WithError(err).Errorf("Agent %s/%s: Failed to label secret", agent.Namespace, agent.Name)
 		return false
 	}
-	clients, err := r.SpokeK8sClientFactory.Create(secret)
+	clients, err := r.SpokeK8sClientFactory.CreateFromSecret(secret)
 	if err != nil {
 		r.Log.WithError(err).Errorf("Agent %s/%s: Failed to create spoke client", agent.Namespace, agent.Name)
 		return false

@@ -31,6 +31,7 @@ import (
 	aiv1beta1 "github.com/openshift/assisted-service/api/v1beta1"
 	"github.com/openshift/assisted-service/internal/host/hostutil"
 	"github.com/openshift/assisted-service/internal/ignition"
+	"github.com/openshift/assisted-service/internal/spoke_k8s_client"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/conversions"
 	logutil "github.com/openshift/assisted-service/pkg/log"
@@ -58,7 +59,7 @@ type BMACReconciler struct {
 	APIReader             client.Reader
 	Log                   logrus.FieldLogger
 	Scheme                *runtime.Scheme
-	SpokeK8sClientFactory SpokeK8sClientFactory
+	SpokeK8sClientFactory spoke_k8s_client.SpokeK8sClientFactory
 	spokeClient           client.Client
 	ConvergedFlowEnabled  bool
 }
@@ -1371,7 +1372,7 @@ func (r *BMACReconciler) getSpokeClient(secret *corev1.Secret) (client.Client, e
 	if r.spokeClient != nil {
 		return r.spokeClient, err
 	}
-	return r.SpokeK8sClientFactory.Create(secret)
+	return r.SpokeK8sClientFactory.CreateFromSecret(secret)
 }
 
 // Returns a list of BMH ReconcileRequests for a given Agent

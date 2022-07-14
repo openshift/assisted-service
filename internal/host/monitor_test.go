@@ -64,7 +64,7 @@ var _ = Describe("monitor_disconnection", func() {
 		pr := registry.NewMockProviderRegistry(ctrl)
 		pr.EXPECT().IsHostSupported(gomock.Any(), gomock.Any()).Return(true, nil).AnyTimes()
 		state = NewManager(common.GetTestLog(), db, mockEvents, mockHwValidator, nil, createValidatorCfg(),
-			mockMetricApi, defaultConfig, dummy, mockOperators, pr)
+			mockMetricApi, defaultConfig, dummy, mockOperators, pr, false, nil)
 		clusterID := strfmt.UUID(uuid.New().String())
 		infraEnvID := strfmt.UUID(uuid.New().String())
 		host = hostutil.GenerateTestHost(strfmt.UUID(uuid.New().String()), infraEnvID, clusterID, models.HostStatusDiscovering)
@@ -189,7 +189,7 @@ var _ = Describe("TestHostMonitoring - with cluster", func() {
 		pr := registry.NewMockProviderRegistry(ctrl)
 		pr.EXPECT().IsHostSupported(gomock.Any(), gomock.Any()).Return(true, nil).AnyTimes()
 		state = NewManager(common.GetTestLog(), db, mockEvents, mockHwValidator, nil, createValidatorCfg(),
-			mockMetricApi, &cfg, &leader.DummyElector{}, mockOperators, pr)
+			mockMetricApi, &cfg, &leader.DummyElector{}, mockOperators, pr, false, nil)
 
 		mockMetricApi.EXPECT().Duration("HostMonitoring", gomock.Any()).Times(1)
 		mockOperators.EXPECT().ValidateHost(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes().Return([]api.ValidationResult{
@@ -282,7 +282,7 @@ var _ = Describe("HostMonitoring - with infra-env", func() {
 		mockHwValidator.EXPECT().GetHostValidDisks(gomock.Any()).Return(nil, nil).AnyTimes()
 		mockOperators := operators.NewMockAPI(ctrl)
 		state = NewManager(common.GetTestLog(), db, mockEvents, mockHwValidator, nil, createValidatorCfg(),
-			mockMetricApi, &cfg, &leader.DummyElector{}, mockOperators, nil)
+			mockMetricApi, &cfg, &leader.DummyElector{}, mockOperators, nil, false, nil)
 
 		mockMetricApi.EXPECT().Duration("HostMonitoring", gomock.Any()).Times(1)
 		mockOperators.EXPECT().ValidateHost(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes().Return([]api.ValidationResult{
