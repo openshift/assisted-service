@@ -491,7 +491,7 @@ func (g *installerGenerator) Generate(ctx context.Context, installConfig []byte,
 	}
 
 	// If ImageContentSources are defined, store in a file for the 'oc' command
-	icspFile, err := g.getIcspFileFromInstallConfig(installConfig)
+	icspFile, err := getIcspFileFromInstallConfig(installConfig, g.log)
 	if err != nil {
 		return errors.Wrap(err, "failed to create file with ImageContentSources")
 	}
@@ -1721,13 +1721,13 @@ func proxySettingsForIgnition(httpProxy, httpsProxy, noProxy string) (string, er
 	return buf.String(), nil
 }
 
-func (g *installerGenerator) getIcspFileFromInstallConfig(cfg []byte) (string, error) {
+func getIcspFileFromInstallConfig(cfg []byte, log logrus.FieldLogger) (string, error) {
 	contents, err := getIcsp(cfg)
 	if err != nil {
 		return "", err
 	}
 	if contents == nil {
-		g.log.Infof("No ImageContentsSources in install-config to build ICSP file")
+		log.Infof("No ImageContentSources in install-config to build ICSP file")
 		return "", nil
 	}
 
@@ -1735,7 +1735,7 @@ func (g *installerGenerator) getIcspFileFromInstallConfig(cfg []byte) (string, e
 	if err != nil {
 		return "", err
 	}
-	g.log.Infof("Building ICSP file from install-config with contents %s", contents)
+	log.Infof("Building ICSP file from install-config with contents %s", contents)
 	if _, err := icspFile.Write(contents); err != nil {
 		icspFile.Close()
 		os.Remove(icspFile.Name())
