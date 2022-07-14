@@ -491,7 +491,7 @@ func (g *installerGenerator) Generate(ctx context.Context, installConfig []byte,
 	}
 
 	// If ImageContentSources are defined, store in a file for the 'oc' command
-	icspFile, err := getIcspFileFromInstallConfig(installConfig, g.log)
+	icspFile, err := getIcspFileFromInstallConfig(installConfig, log)
 	if err != nil {
 		return errors.Wrap(err, "failed to create file with ImageContentSources")
 	}
