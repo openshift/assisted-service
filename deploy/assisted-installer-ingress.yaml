@@ -31,6 +31,13 @@ spec:
                 name: assisted-image-service
                 port:
                   number: 8080
+          - path: "/boot-artifacts"
+            pathType: Prefix
+            backend:
+              service:
+                name: assisted-image-service
+                port:
+                  number: 8080
           - path: "/health"
             pathType: Prefix
             backend:
