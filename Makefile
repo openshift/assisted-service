@@ -6,7 +6,7 @@ BUILD_FOLDER = $(PWD)/build/$(NAMESPACE)
 ROOT_DIR := $(or ${ROOT_DIR},$(shell dirname $(realpath $(firstword $(MAKEFILE_LIST)))))
 CONTAINER_COMMAND := $(or ${CONTAINER_COMMAND},docker)
 ifeq ($(CONTAINER_COMMAND), docker)
-	CONTAINER_COMMAND = $(shell docker -v > /dev/null 2>&1 | cut -f1 -d' ' | tr '[:upper:]' '[:lower:]')
+	CONTAINER_COMMAND = $(shell docker -v 2>/dev/null | cut -f1 -d' ' | tr '[:upper:]' '[:lower:]')
 endif
 TARGET := $(or ${TARGET},local)
 KUBECTL=kubectl -n $(NAMESPACE)
