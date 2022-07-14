@@ -123,7 +123,7 @@ func (s *StaticNetworkConfigGenerator) executeNMStatectl(ctx context.Context, ho
 	if retCode != 0 {
 		s.log.Errorf("<nmstatectl gc> failed, errorCode %d, stderr %s, input yaml <%s>", retCode, stderr, hostYAML)
 		errMsg := strings.Split(stderr, "Error:")
-		return "", fmt.Errorf("invalid yaml, error: %s", strings.TrimSpace(errMsg[len(errMsg)-1]))
+		return "", fmt.Errorf("failed to execute 'nmstatectl gc', error: %s", strings.TrimSpace(errMsg[len(errMsg)-1]))
 	}
 	return stdout, nil
 }
