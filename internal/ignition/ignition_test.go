@@ -1475,6 +1475,8 @@ var _ = Describe("ICSP file for oc extract", func() {
 	It("valid file created and readable", func() {
 		var cfg installcfg.InstallerConfigBaremetal
 		expected := "apiVersion: operator.openshift.io/v1alpha1\nkind: ImageContentSourcePolicy\nmetadata:\n  creationTimestamp: null\n  name: image-policy\nspec:\n  repositoryDigestMirrors:\n  - mirrors:\n    - mirrorhost1.example.org:5000/localimages\n    - mirrorhost2.example.org:5000/localimages\n    source: registry.ci.org\n"
+		g := NewGenerator(workDir, installerCacheDir, cluster, "", "", "", "", nil, log,
+			mockOperatorManager, mockProviderRegistry, "", "").(*installerGenerator)
 
 		imageContentSourceList := make([]installcfg.ImageContentSource, 1)
 		imageContentSourceList[0] = installcfg.ImageContentSource{
@@ -1484,7 +1486,7 @@ var _ = Describe("ICSP file for oc extract", func() {
 		cfg.ImageContentSources = imageContentSourceList
 		data, err := yaml.Marshal(&cfg)
 		Expect(err).ShouldNot(HaveOccurred())
-		icspFile, err := getIcspFileFromInstallConfig(data)
+		icspFile, err := g.getIcspFileFromInstallConfig(data)
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(string(icspFile)).Should(BeARegularFile())
 
@@ -1496,10 +1498,12 @@ var _ = Describe("ICSP file for oc extract", func() {
 	It("filename is empty string", func() {
 		var cfg installcfg.InstallerConfigBaremetal
 		expected := ""
+		g := NewGenerator(workDir, installerCacheDir, cluster, "", "", "", "", nil, log,
+			mockOperatorManager, mockProviderRegistry, "", "").(*installerGenerator)
 
 		data, err := yaml.Marshal(&cfg)
 		Expect(err).ShouldNot(HaveOccurred())
-		icspFile, err := getIcspFileFromInstallConfig(data)
+		icspFile, err := g.getIcspFileFromInstallConfig(data)
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(string(icspFile)).Should(Equal(expected))
 	})
