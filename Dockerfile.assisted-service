@@ -14,17 +14,25 @@ RUN cd /assisted-service/build && python3 ../tools/client_package_initializer.py
 # TODO: Currently, the Python package is included in the service image for testing purposes. It conveniently allows matching a service version to a specific Python client version. In the future, once the Python package is published on pip, it should (probably) be removed from the Assisted Service image (this dockerfile).
 
 # Build binaries
-FROM registry.ci.openshift.org/openshift/release:golang-1.17 as builder
+FROM quay.io/centos/centos:stream9 as builder
+
+RUN dnf install -y gcc && dnf clean all
+COPY --from=registry.ci.openshift.org/openshift/release:golang-1.17 /usr/local/go /usr/local/go
+
+ENV GOROOT=/usr/local/go
+ENV PATH=$PATH:$GOROOT/bin
+
+WORKDIR /assisted-service/
+
 # Bring in the go dependencies before anything else so we can take
 # advantage of caching these layers in future builds.
-COPY api/go.mod ./api/go.mod
-COPY api/go.sum ./api/go.sum
-COPY models/go.mod ./models/go.mod
-COPY models/go.sum ./models/go.sum
-COPY go.mod go.mod
-COPY go.sum go.sum
+COPY api/go.mod api/go.sum /assisted-service/api/
+COPY models/go.mod models/go.sum /assisted-service/models/
+COPY go.mod go.sum /assisted-service/
 RUN go mod download
-COPY . .
+
+COPY . /assisted-service/
+
 RUN CGO_ENABLED=1 GOFLAGS="" GO111MODULE=on go build -o /build/assisted-service cmd/main.go
 RUN CGO_ENABLED=0 GOFLAGS="" GO111MODULE=on go build -o /build/assisted-service-operator cmd/operator/main.go
 RUN CGO_ENABLED=0 GOFLAGS="" GO111MODULE=on go build -o /build/assisted-service-admission cmd/webadmission/main.go
