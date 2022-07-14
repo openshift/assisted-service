@@ -1510,7 +1510,7 @@ var _ = Describe("ICSP file for oc extract", func() {
 		Expect(err).ShouldNot(HaveOccurred())
 		icspFile, err := getIcspFileFromInstallConfig(data, log)
 		Expect(err).ShouldNot(HaveOccurred())
-		Expect(string(icspFile)).Should(BeARegularFile())
+		Expect(icspFile).Should(BeARegularFile())
 
 		contents, err := ioutil.ReadFile(icspFile)
 		Expect(err).ShouldNot(HaveOccurred())
@@ -1525,6 +1525,6 @@ var _ = Describe("ICSP file for oc extract", func() {
 		Expect(err).ShouldNot(HaveOccurred())
 		icspFile, err := getIcspFileFromInstallConfig(data, log)
 		Expect(err).ShouldNot(HaveOccurred())
-		Expect(string(icspFile)).Should(Equal(expected))
+		Expect(icspFile).Should(Equal(expected))
 	})
 })
