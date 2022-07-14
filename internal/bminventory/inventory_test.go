@@ -126,7 +126,7 @@ func toMac(macStr string) *strfmt.MAC {
 }
 
 func mockClusterRegisterSteps() {
-	mockSecretValidator.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+	mockSecretValidator.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any()).Return(nil).Times(1)
 	mockVersions.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any()).Return(common.TestDefaultConfig.ReleaseImage, nil).Times(1)
 	mockOperatorManager.EXPECT().GetSupportedOperatorsByType(models.OperatorTypeBuiltin).Return([]*models.MonitoredOperator{&common.TestDefaultConfig.MonitoredOperator}).Times(1)
 	mockProviderRegistry.EXPECT().SetPlatformUsages(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
@@ -153,7 +153,7 @@ func mockClusterUpdateSuccess(times int, hosts int) {
 func mockInfraEnvRegisterSuccess() {
 	mockVersions.EXPECT().GetOsImage(gomock.Any(), gomock.Any()).Return(common.TestDefaultConfig.OsImage, nil).AnyTimes()
 	mockStaticNetworkConfig.EXPECT().FormatStaticNetworkConfigForDB(gomock.Any()).Return("", nil).Times(1)
-	mockSecretValidator.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+	mockSecretValidator.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any()).Return(nil).Times(1)
 	mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(discovery_ignition_3_1, nil).Times(1)
 	mockEvents.EXPECT().SendInfraEnvEvent(gomock.Any(), eventstest.NewEventMatcher(
 		eventstest.WithNameMatcher(eventgen.ImageInfoUpdatedEventName))).AnyTimes()
@@ -2480,7 +2480,7 @@ var _ = Describe("cluster", func() {
 
 		Context("check pull secret", func() {
 			BeforeEach(func() {
-				v, err := validations.NewPullSecretValidator(validations.Config{})
+				v, err := validations.NewPullSecretValidator(validations.Config{}, getTestAuthHandler())
 				Expect(err).ShouldNot(HaveOccurred())
 				bm.secretValidator = v
 			})
@@ -4628,7 +4628,7 @@ var _ = Describe("[V2ClusterUpdate] cluster", func() {
 
 		Context("check pull secret", func() {
 			BeforeEach(func() {
-				v, err := validations.NewPullSecretValidator(validations.Config{})
+				v, err := validations.NewPullSecretValidator(validations.Config{}, getTestAuthHandler())
 				Expect(err).ShouldNot(HaveOccurred())
 				bm.secretValidator = v
 			})
@@ -6666,7 +6666,7 @@ var _ = Describe("infraEnvs", func() {
 				*common.TestDefaultConfig.OsImage.OpenshiftVersion,
 				*common.TestDefaultConfig.OsImage.CPUArchitecture).Return(common.TestDefaultConfig.OsImage, nil).Times(1)
 			mockStaticNetworkConfig.EXPECT().FormatStaticNetworkConfigForDB(gomock.Any()).Return("", nil).Times(1)
-			mockSecretValidator.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+			mockSecretValidator.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any()).Return(nil).Times(1)
 			mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(discovery_ignition_3_1, nil).Times(1)
 
 			mockEvents.EXPECT().SendInfraEnvEvent(ctx, eventstest.NewEventMatcher(
@@ -6762,7 +6762,7 @@ var _ = Describe("infraEnvs", func() {
 			cluster := createCluster(db, models.ClusterStatusInstallingPendingUserAction)
 
 			mockVersions.EXPECT().GetOsImage(gomock.Any(), gomock.Any()).Return(common.TestDefaultConfig.OsImage, nil).AnyTimes()
-			mockSecretValidator.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+			mockSecretValidator.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any()).Return(nil).Times(1)
 			mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(discovery_ignition_3_1, nil).Times(1)
 			mockEvents.EXPECT().SendInfraEnvEvent(gomock.Any(), eventstest.NewEventMatcher(
 				eventstest.WithNameMatcher(eventgen.ImageInfoUpdatedEventName))).AnyTimes()
@@ -7194,7 +7194,7 @@ var _ = Describe("infraEnvs", func() {
 
 		Context("check pull secret", func() {
 			BeforeEach(func() {
-				v, err := validations.NewPullSecretValidator(validations.Config{})
+				v, err := validations.NewPullSecretValidator(validations.Config{}, getTestAuthHandler())
 				Expect(err).ShouldNot(HaveOccurred())
 				bm.secretValidator = v
 			})
@@ -7594,7 +7594,7 @@ var _ = Describe("infraEnvs", func() {
 					prevURL = newURL
 
 					By("updating pull secret")
-					mockSecretValidator.EXPECT().ValidatePullSecret("mypullsecret", gomock.Any(), gomock.Any()).Return(nil)
+					mockSecretValidator.EXPECT().ValidatePullSecret("mypullsecret", gomock.Any()).Return(nil)
 					params.PullSecret = "mypullsecret"
 					newURL = updateInfraEnv(params)
 					Expect(newURL).ToNot(Equal(prevURL))
@@ -11190,7 +11190,7 @@ var _ = Describe("TestRegisterCluster", func() {
 			eventstest.WithNameMatcher(eventgen.ClusterRegistrationFailedEventName),
 			eventstest.WithMessageContainsMatcher("pull secret for new cluster is invalid: Failed validating pull secret"),
 			eventstest.WithSeverityMatcher(models.EventSeverityError))).Times(1)
-		mockSecretValidator.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any(), gomock.Any()).
+		mockSecretValidator.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any()).
 			Return(errors.New("error")).Times(1)
 		mockOperatorManager.EXPECT().GetSupportedOperatorsByType(models.OperatorTypeBuiltin).Return([]*models.MonitoredOperator{}).Times(1)
 		mockVersions.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any()).Return(common.TestDefaultConfig.ReleaseImage, nil).Times(1)

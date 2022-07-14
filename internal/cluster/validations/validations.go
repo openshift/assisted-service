@@ -48,11 +48,12 @@ func init() {
 // it verifies the format of the pull secrete and access to required image registries
 //go:generate mockgen -source=validations.go -package=validations -destination=mock_validations.go
 type PullSecretValidator interface {
-	ValidatePullSecret(secret string, username string, authHandler auth.Authenticator) error
+	ValidatePullSecret(secret string, username string) error
 }
 
 type registryPullSecretValidator struct {
 	registriesWithAuth *map[string]bool
+	authHandler        auth.Authenticator
 }
 
 type imagePullSecret struct {
@@ -141,7 +142,7 @@ func AddRHRegPullSecret(secret, rhCred string) (string, error) {
 }
 
 // NewPullSecretValidator receives all images whose registries must have an entry in a user pull secret (auth)
-func NewPullSecretValidator(config Config, images ...string) (PullSecretValidator, error) {
+func NewPullSecretValidator(config Config, authHandler auth.Authenticator, images ...string) (PullSecretValidator, error) {
 
 	authRegList, err := getRegistriesWithAuth(config.PublicRegistries, ignoreListSeparator, images...)
 	if err != nil {
@@ -150,25 +151,26 @@ func NewPullSecretValidator(config Config, images ...string) (PullSecretValidato
 
 	return &registryPullSecretValidator{
 		registriesWithAuth: authRegList,
+		authHandler:        authHandler,
 	}, nil
 }
 
 // ValidatePullSecret validates that a pull secret is well formed and contains all required data
-func (v *registryPullSecretValidator) ValidatePullSecret(secret string, username string, authHandler auth.Authenticator) error {
+func (v *registryPullSecretValidator) ValidatePullSecret(secret string, username string) error {
 	creds, err := ParsePullSecret(secret)
 	if err != nil {
 		return err
 	}
 
 	// only check for cloud creds if we're authenticating against Red Hat SSO
-	if authHandler.AuthType() == auth.TypeRHSSO {
+	if v.authHandler.AuthType() == auth.TypeRHSSO {
 
 		r, ok := creds["cloud.openshift.com"]
 		if !ok {
 			return &PullSecretError{Msg: "pull secret must contain auth for \"cloud.openshift.com\""}
 		}
 
-		user, err := authHandler.AuthAgentAuth(r.AuthRaw)
+		user, err := v.authHandler.AuthAgentAuth(r.AuthRaw)
 		if err != nil {
 			return &PullSecretError{Msg: "failed to authenticate the pull secret token"}
 		}

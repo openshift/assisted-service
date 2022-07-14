@@ -166,6 +166,7 @@ type InstallerInternals interface {
 	GetKnownHostApprovedCounts(clusterID strfmt.UUID) (registered, approved int, err error)
 	HostWithCollectedLogsExists(clusterId strfmt.UUID) (bool, error)
 	GetKnownApprovedHosts(clusterId strfmt.UUID) ([]*common.Host, error)
+	ValidatePullSecret(secret string, username string) error
 }
 
 //go:generate mockgen --build_flags=--mod=mod -package bminventory -destination mock_crd_utils.go . CRDUtils
@@ -263,6 +264,10 @@ func NewBareMetalInventory(
 		providerRegistry:     providerRegistry,
 		insecureIPXEURLs:     insecureIPXEURLs,
 	}
+}
+
+func (b *bareMetalInventory) ValidatePullSecret(secret string, username string) error {
+	return b.secretValidator.ValidatePullSecret(secret, username)
 }
 
 func (b *bareMetalInventory) updatePullSecret(pullSecret string, log logrus.FieldLogger) (string, error) {
@@ -485,7 +490,7 @@ func (b *bareMetalInventory) RegisterClusterInternal(
 	}
 
 	pullSecret := swag.StringValue(params.NewClusterParams.PullSecret)
-	err = b.secretValidator.ValidatePullSecret(pullSecret, ocm.UserNameFromContext(ctx), b.authHandler)
+	err = b.ValidatePullSecret(pullSecret, ocm.UserNameFromContext(ctx))
 	if err != nil {
 		err = errors.Wrap(secretValidationToUserError(err), "pull secret for new cluster is invalid")
 		return nil, common.NewApiError(http.StatusBadRequest, err)
@@ -1605,7 +1610,7 @@ func (b *bareMetalInventory) validateAndUpdateClusterParams(ctx context.Context,
 	log := logutil.FromContext(ctx, b.log)
 
 	if swag.StringValue(params.ClusterUpdateParams.PullSecret) != "" {
-		if err := b.secretValidator.ValidatePullSecret(*params.ClusterUpdateParams.PullSecret, ocm.UserNameFromContext(ctx), b.authHandler); err != nil {
+		if err := b.ValidatePullSecret(*params.ClusterUpdateParams.PullSecret, ocm.UserNameFromContext(ctx)); err != nil {
 			log.WithError(err).Errorf("Pull secret for cluster %s is invalid", params.ClusterID)
 			return installer.V2UpdateClusterParams{}, err
 		}
@@ -4029,7 +4034,7 @@ func (b *bareMetalInventory) RegisterInfraEnvInternal(
 	}
 
 	pullSecret := swag.StringValue(params.InfraenvCreateParams.PullSecret)
-	err = b.secretValidator.ValidatePullSecret(pullSecret, ocm.UserNameFromContext(ctx), b.authHandler)
+	err = b.ValidatePullSecret(pullSecret, ocm.UserNameFromContext(ctx))
 	if err != nil {
 		err = errors.Wrap(secretValidationToUserError(err), "pull secret for new infraEnv is invalid")
 		return nil, common.NewApiError(http.StatusBadRequest, err)
@@ -4383,7 +4388,7 @@ func (b *bareMetalInventory) validateAndUpdateInfraEnvParams(ctx context.Context
 	log := logutil.FromContext(ctx, b.log)
 
 	if params.InfraEnvUpdateParams.PullSecret != "" {
-		if err := b.secretValidator.ValidatePullSecret(params.InfraEnvUpdateParams.PullSecret, ocm.UserNameFromContext(ctx), b.authHandler); err != nil {
+		if err := b.ValidatePullSecret(params.InfraEnvUpdateParams.PullSecret, ocm.UserNameFromContext(ctx)); err != nil {
 			log.WithError(err).Errorf("Pull secret for infraEnv %s is invalid", params.InfraEnvID)
 			return installer.UpdateInfraEnvParams{}, err
 		}

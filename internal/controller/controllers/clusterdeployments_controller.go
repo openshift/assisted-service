@@ -91,7 +91,8 @@ type ClusterDeploymentsReconciler struct {
 	CRDEventsHandler CRDEventsHandler
 	Manifests        manifestsapi.ClusterManifestsInternals
 	ServiceBaseURL   string
-	AuthType         auth.AuthType
+	PullSecretHandler
+	AuthType auth.AuthType
 }
 
 // +kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch;update;create
@@ -227,7 +228,7 @@ func (r *ClusterDeploymentsReconciler) Reconcile(origCtx context.Context, req ct
 
 	if swag.StringValue(cluster.Kind) == models.ClusterKindCluster && !clusterInstall.Spec.HoldInstallation {
 		// Day 1
-		pullSecret, err := getAndLabelPullSecret(ctx, r.Client, r.APIReader, clusterDeployment.Spec.PullSecretRef, req.Namespace)
+		pullSecret, err := r.PullSecretHandler.GetValidPullSecret(ctx, getPullSecretKey(req.Namespace, clusterDeployment.Spec.PullSecretRef))
 		if err != nil {
 			log.WithError(err).Error("failed to get pull secret")
 			return r.updateStatus(ctx, log, clusterInstall, nil, err)
@@ -243,23 +244,6 @@ func (r *ClusterDeploymentsReconciler) Reconcile(origCtx context.Context, req ct
 
 func (r *ClusterDeploymentsReconciler) validateClusterDeployment(ctx context.Context, log logrus.FieldLogger,
 	clusterDeployment *hivev1.ClusterDeployment, clusterInstall *hiveext.AgentClusterInstall) error {
-	if clusterDeployment.Spec.PullSecretRef == nil && !clusterDeployment.Spec.Installed {
-		return newInputError("missing reference to pull secret")
-	}
-
-	// Make sure that the PullSecret Secret exists
-	if clusterDeployment.Spec.PullSecretRef != nil {
-		secretRef := types.NamespacedName{Namespace: clusterDeployment.Namespace, Name: clusterDeployment.Spec.PullSecretRef.Name}
-		secret, err := getSecret(ctx, r.Client, r.APIReader, secretRef)
-		if err != nil {
-			log.WithError(err).Error("error getting Pull Secret")
-			return err
-		}
-		if err := ensureSecretIsLabelled(ctx, r.Client, secret, secretRef); err != nil {
-			log.WithError(err).Error("error label Pull Secret")
-			return err
-		}
-	}
 
 	// Make sure that the ImageSetRef is set for clusters not already installed
 	if clusterInstall.Spec.ImageSetRef == nil && !clusterDeployment.Spec.Installed {
@@ -850,7 +834,7 @@ func (r *ClusterDeploymentsReconciler) updateIfNeeded(ctx context.Context,
 		params.UserManagedNetworking = swag.Bool(userManagedNetwork)
 	}
 
-	pullSecretData, err := getAndLabelPullSecret(ctx, r.Client, r.APIReader, spec.PullSecretRef, clusterDeployment.Namespace)
+	pullSecretData, err := r.PullSecretHandler.GetValidPullSecret(ctx, getPullSecretKey(clusterDeployment.Namespace, spec.PullSecretRef))
 	if err != nil {
 		return cluster, errors.Wrap(err, "failed to get pull secret for update")
 	}
@@ -1169,7 +1153,7 @@ func (r *ClusterDeploymentsReconciler) createNewCluster(
 	log.Infof("Creating a new cluster %s %s", clusterDeployment.Name, clusterDeployment.Namespace)
 	spec := clusterDeployment.Spec
 
-	pullSecret, err := getAndLabelPullSecret(ctx, r.Client, r.APIReader, spec.PullSecretRef, key.Namespace)
+	pullSecret, err := r.PullSecretHandler.GetValidPullSecret(ctx, getPullSecretKey(key.Namespace, spec.PullSecretRef))
 	if err != nil {
 		log.WithError(err).Error("failed to get pull secret")
 		return r.updateStatus(ctx, log, clusterInstall, nil, err)

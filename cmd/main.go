@@ -320,7 +320,7 @@ func main() {
 		images = append(images, *releaseImage.URL)
 	}
 
-	pullSecretValidator, err := validations.NewPullSecretValidator(Options.ValidationsConfig, images...)
+	pullSecretValidator, err := validations.NewPullSecretValidator(Options.ValidationsConfig, authHandler, images...)
 	failOnError(err, "failed to create pull secret validator")
 
 	log.Println("DeployTarget: " + Options.DeployTarget)
@@ -511,9 +511,11 @@ func main() {
 				useConvergedFlow = bmoUtils.ConvergedFlowAvailable()
 			}
 
+			c := ctrlMgr.GetClient()
+			r := ctrlMgr.GetAPIReader()
 			failOnError((&controllers.InfraEnvReconciler{
-				Client:              ctrlMgr.GetClient(),
-				APIReader:           ctrlMgr.GetAPIReader(),
+				Client:              c,
+				APIReader:           r,
 				Config:              Options.InfraEnvConfig,
 				Log:                 log,
 				Installer:           bm,
@@ -522,21 +524,25 @@ func main() {
 				ImageServiceBaseURL: Options.BMConfig.ImageServiceBaseURL,
 				AuthType:            Options.Auth.AuthType,
 				VersionsHandler:     versionHandler,
+				PullSecretHandler:   controllers.NewPullSecretHandler(c, r, bm),
 				InsecureIPXEURLs:    generateInsecureIPXEURLs,
 			}).SetupWithManager(ctrlMgr), "unable to create controller InfraEnv")
 
+			cluster_client := ctrlMgr.GetClient()
+			cluster_reader := ctrlMgr.GetAPIReader()
 			failOnError((&controllers.ClusterDeploymentsReconciler{
-				Client:           ctrlMgr.GetClient(),
-				APIReader:        ctrlMgr.GetAPIReader(),
-				Log:              log,
-				Scheme:           ctrlMgr.GetScheme(),
-				Installer:        bm,
-				ClusterApi:       clusterApi,
-				HostApi:          hostApi,
-				CRDEventsHandler: crdEventsHandler,
-				Manifests:        manifestsApi,
-				ServiceBaseURL:   Options.BMConfig.ServiceBaseURL,
-				AuthType:         Options.Auth.AuthType,
+				Client:            cluster_client,
+				APIReader:         cluster_reader,
+				Log:               log,
+				Scheme:            ctrlMgr.GetScheme(),
+				Installer:         bm,
+				ClusterApi:        clusterApi,
+				HostApi:           hostApi,
+				CRDEventsHandler:  crdEventsHandler,
+				Manifests:         manifestsApi,
+				ServiceBaseURL:    Options.BMConfig.ServiceBaseURL,
+				PullSecretHandler: controllers.NewPullSecretHandler(cluster_client, cluster_reader, bm),
+				AuthType:          Options.Auth.AuthType,
 			}).SetupWithManager(ctrlMgr), "unable to create controller ClusterDeployment")
 
 			failOnError((&controllers.AgentReconciler{
