@@ -53,6 +53,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	k8sjson "k8s.io/apimachinery/pkg/runtime/serializer/json"
 	"k8s.io/client-go/kubernetes/scheme"
+	k8syaml "sigs.k8s.io/yaml"
 )
 
 const (
@@ -1530,6 +1531,7 @@ func getIcspFileFromInstallConfig(cfg []byte) (string, error) {
 		return "", err
 	}
 	if contents == nil {
+		log.Infof("No ImageContentsSources in install-config to build ICSP file")
 		return "", nil
 	}
 
@@ -1537,6 +1539,7 @@ func getIcspFileFromInstallConfig(cfg []byte) (string, error) {
 	if err != nil {
 		return "", err
 	}
+	log.Infof("Building ICSP file from install-config with contents %s", contents)
 	if _, err := icspFile.Write(contents); err != nil {
 		icspFile.Close()
 		os.Remove(icspFile.Name())
@@ -1576,10 +1579,16 @@ func getIcsp(cfg []byte) ([]byte, error) {
 
 	}
 
-	contents, err := yaml.Marshal(icsp)
+	// Convert to json first so json tags are handled
+	jsonData, err := json.Marshal(&icsp)
 	if err != nil {
 		return nil, err
 	}
+	contents, err := k8syaml.JSONToYAML(jsonData)
+	if err != nil {
+		return nil, err
+	}
+
 	return contents, nil
 }
 
