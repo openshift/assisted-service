@@ -1316,7 +1316,8 @@ func (b *bareMetalInventory) TransformClusterToDay2Internal(ctx context.Context,
 		return nil, common.NewApiError(http.StatusInternalServerError, err)
 	}
 
-	log.Infof("Pre-update TransformClusterToDay2Internal %v", cluster.IgnitionEndpoint)
+	log.Infof("Pre-update TransformClusterToDay2Internal APIVIP %v", cluster.APIVip)
+	log.Infof("Pre-update TransformClusterToDay2Internal APIVIPDNSName %v", cluster.APIVipDNSName)
 	if cluster.IgnitionEndpoint == nil || cluster.IgnitionEndpoint.URL == nil {
 		// Set custom Ignition endpoint so that day2 workers would join using HTTPS endpoint
 		// ensureMCSCert would add ignition override with MCS secret
@@ -1370,7 +1371,10 @@ func (b *bareMetalInventory) TransformClusterToDay2Internal(ctx context.Context,
 			return nil, common.NewApiError(http.StatusInternalServerError, err)
 		}
 
-		log.Infof("Post-update TransformClusterToDay2Internal %v", cluster.IgnitionEndpoint)
+		if cluster.IgnitionEndpoint != nil && cluster.IgnitionEndpoint.URL != nil {
+			log.Infof("Post-update TransformClusterToDay2Internal URL %v", &cluster.IgnitionEndpoint.URL)
+		}
+		log.Infof("Post-update TransformClusterToDay2Internal APIVIP %v", cluster.APIVip)
 	}
 
 	err = b.clusterApi.TransformClusterToDay2(ctx, cluster, b.db)

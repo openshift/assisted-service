@@ -1222,6 +1222,7 @@ func (r *ClusterDeploymentsReconciler) TransformClusterToDay2(
 	clusterInstall *hiveext.AgentClusterInstall) (ctrl.Result, error) {
 	log.Infof("transforming day1 cluster %s into day2 cluster", cluster.ID.String())
 	c, err := r.Installer.TransformClusterToDay2Internal(ctx, *cluster.ID)
+	log.Infof("c.APIVIP %s", cluster.APIVip)
 	if err != nil {
 		log.WithError(err).Errorf("failed to transform cluster %s into day2 cluster", cluster.ID.String())
 	}
@@ -1234,14 +1235,10 @@ func (r *ClusterDeploymentsReconciler) TransformClusterToDay2(
 			Url:                    ignitionEndpoint,
 			CaCertificateReference: nil,
 		}
-		log.Infof("Pre-update ClusterInstall.status %v", clusterInstall.Status.APIVIP)
 		if err = r.Update(ctx, clusterInstall); err != nil {
 			log.WithError(err).Errorf("failed to write new IgnitionEndpoint for cluster %s", cluster.ID.String())
 			return ctrl.Result{Requeue: true}, err
 		}
-		log.Infof("Post-update ClusterInstall.status %v", clusterInstall.Status.APIVIP)
-		log.Infof("Post-update ClusterInstall.IgnitionEndpoint %v", clusterInstall.Spec.IgnitionEndpoint)
-		log.Infof("Post-update c.APIVIP %v", c.APIVip)
 	}
 	return r.updateStatus(ctx, log, clusterInstall, c, err)
 }
