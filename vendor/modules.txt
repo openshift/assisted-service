@@ -569,6 +569,7 @@ github.com/openshift-online/ocm-sdk-go/servicelogs/v1
 ## explicit
 github.com/openshift/api/config/v1
 github.com/openshift/api/operator/v1
+github.com/openshift/api/operator/v1alpha1
 github.com/openshift/api/route/v1
 # github.com/openshift/assisted-image-service v0.0.0-20220506122314-2f689a1084b8
 ## explicit; go 1.16
