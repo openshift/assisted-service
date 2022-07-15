@@ -1210,13 +1210,14 @@ func (r *ClusterDeploymentsReconciler) TransformClusterToDay2(
 			Url:                    ignitionEndpoint,
 			CaCertificateReference: nil,
 		}
-		log.Infof("Pre-update ClusterInstall.status %v", clusterInstall.Status)
+		log.Infof("Pre-update ClusterInstall.status %v", clusterInstall.Status.APIVIP)
 		if err = r.Update(ctx, clusterInstall); err != nil {
 			log.WithError(err).Errorf("failed to write new IgnitionEndpoint for cluster %s", cluster.ID.String())
 			return ctrl.Result{Requeue: true}, err
 		}
-		log.Infof("Post-update ClusterInstall.status %v", clusterInstall.Status)
+		log.Infof("Post-update ClusterInstall.status %v", clusterInstall.Status.APIVIP)
 		log.Infof("Post-update ClusterInstall.IgnitionEndpoint %v", clusterInstall.Spec.IgnitionEndpoint)
+		log.Infof("Post-update c.APIVIP %v", c.APIVip)
 	}
 	return r.updateStatus(ctx, log, clusterInstall, c, err)
 }

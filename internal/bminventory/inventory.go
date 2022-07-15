@@ -2092,6 +2092,7 @@ func (b *bareMetalInventory) updateClusterData(_ context.Context, cluster *commo
 			optionalParam(params.ClusterUpdateParams.IgnitionEndpoint.CaCertificate, "ignition_endpoint_ca_certificate", updates)
 		}
 	}
+	log.Infof("updateClusterData updates %v", updates)
 
 	if len(updates) > 0 {
 		updates["trigger_monitor_timestamp"] = time.Now()
