@@ -11,6 +11,7 @@ import (
 	"github.com/containers/image/v5/docker/reference"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
+	"github.com/openshift/assisted-service/internal/constants"
 	"github.com/openshift/assisted-service/models"
 	"github.com/thoas/go-funk"
 	"gorm.io/gorm"
@@ -387,4 +388,12 @@ func GetTagFromImageRef(ref string) string {
 	default:
 		return ""
 	}
+}
+
+func GetMCSUrlBase(cluster *Cluster) string {
+	// URL needs to use api-int DNS name if APIVIP is not set (i.e. platform:none)
+	if cluster.APIVip == "" {
+		return fmt.Sprintf("https://%s.%s:22623", constants.APIInternalName, cluster.BaseDNSDomain)
+	}
+	return fmt.Sprintf("https://%s:22623", cluster.APIVip)
 }

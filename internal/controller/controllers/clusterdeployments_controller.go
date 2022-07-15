@@ -826,6 +826,17 @@ func (r *ClusterDeploymentsReconciler) updateIfNeeded(ctx context.Context,
 		updateString(selectClusterNetworkType(params, cluster), swag.StringValue(cluster.NetworkType), &params.NetworkType)
 	}
 
+	// Update ignition endpoint if needed
+	// It needs to happen before APIVIP / IngressVIP so that these fields would not get lost
+	// when cluster gets custom (:22623) Ignition endpoint on day2 conversion
+	shouldUpdate, err := r.updateIgnitionInUpdateParams(ctx, log, clusterInstall, cluster, params)
+	if err != nil {
+		return cluster, errors.Wrap(err, "Couldn't resolve clusterdeployment ignition fields")
+	}
+	if shouldUpdate {
+		update = true
+	}
+
 	// Update APIVIP and IngressVIP only if cluster is not SNO or VipDhcpAllocation is not enabled
 	// In absence of this check, the reconcile loop in the controller fails all the time
 	isDHCPEnabled := swag.BoolValue(cluster.VipDhcpAllocation)
@@ -839,15 +850,6 @@ func (r *ClusterDeploymentsReconciler) updateIfNeeded(ctx context.Context,
 	// Trim key before comapring as done in RegisterClusterInternal
 	sshPublicKey := strings.TrimSpace(clusterInstall.Spec.SSHPublicKey)
 	updateString(sshPublicKey, cluster.SSHPublicKey, &params.SSHPublicKey)
-
-	// Update ignition endpoint if needed
-	shouldUpdate, err := r.updateIgnitionInUpdateParams(ctx, log, clusterInstall, cluster, params)
-	if err != nil {
-		return cluster, errors.Wrap(err, "Couldn't resolve clusterdeployment ignition fields")
-	}
-	if shouldUpdate {
-		update = true
-	}
 
 	if userManagedNetwork := isUserManagedNetwork(clusterInstall); userManagedNetwork != swag.BoolValue(cluster.UserManagedNetworking) {
 		params.UserManagedNetworking = swag.Bool(userManagedNetwork)
@@ -1220,6 +1222,20 @@ func (r *ClusterDeploymentsReconciler) TransformClusterToDay2(
 	c, err := r.Installer.TransformClusterToDay2Internal(ctx, *cluster.ID)
 	if err != nil {
 		log.WithError(err).Errorf("failed to transform cluster %s into day2 cluster", cluster.ID.String())
+	}
+	if clusterInstall.Spec.IgnitionEndpoint == nil {
+		// Set custom Ignition endpoint so that day2 workers would join using HTTPS endpoint
+		// ensureMCSCert would add ignition override with MCS secret
+		ignitionEndpoint := fmt.Sprintf("%s/config/%s", common.GetMCSUrlBase(cluster), models.HostRoleWorker)
+		log.Infof("setting worker ignition URL to %s", ignitionEndpoint)
+		clusterInstall.Spec.IgnitionEndpoint = &hiveext.IgnitionEndpoint{
+			Url:                    ignitionEndpoint,
+			CaCertificateReference: nil,
+		}
+		if err = r.Update(ctx, clusterInstall); err != nil {
+			log.WithError(err).Errorf("failed to write new IgnitionEndpoint for cluster %s", cluster.ID.String())
+			return ctrl.Result{Requeue: true}, err
+		}
 	}
 	return r.updateStatus(ctx, log, clusterInstall, c, err)
 }

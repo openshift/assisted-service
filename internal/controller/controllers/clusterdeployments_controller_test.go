@@ -1369,6 +1369,7 @@ var _ = Describe("cluster reconcile", func() {
 			Expect(result).To(Equal(ctrl.Result{}))
 			aci = getTestClusterInstall()
 			Expect(aci.Status.DebugInfo.State).To(Equal(models.ClusterStatusAddingHosts))
+			Expect(aci.Spec.IgnitionEndpoint.Url).To(Equal(fmt.Sprintf("https://%s:22623/config/worker", backEndCluster.APIVip)))
 		})
 
 		It("update kubeconfig ingress", func() {
