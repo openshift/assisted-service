@@ -370,7 +370,7 @@ func CanonizeStrings(slice []string) (ret []string) {
 }
 
 func GetHostKey(host *models.Host) string {
-	return host.ID.String() + "@" + host.InfraEnvID.String()
+	return host.ID.String() + "@" + host.InfraEnvID.String() + "@" + host.RegisteredAt.String()
 }
 
 // GetTagFromImageRef returns the tag of the given container image reference. For example, if the
