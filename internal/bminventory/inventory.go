@@ -745,6 +745,7 @@ func (b *bareMetalInventory) createAndUploadDay2NodeIgnition(ctx context.Context
 		url.Path = path.Join(url.Path, host.MachineConfigPoolName)
 		ignitionEndpointUrl = url.String()
 	}
+	log.Info("Host %s for cluster %s boots using Ignition URL %s", host.ID, cluster.ID, ignitionEndpointUrl)
 
 	var caCert *string = nil
 	if cluster.IgnitionEndpoint != nil {
@@ -1315,9 +1316,11 @@ func (b *bareMetalInventory) TransformClusterToDay2Internal(ctx context.Context,
 		return nil, common.NewApiError(http.StatusInternalServerError, err)
 	}
 
+	log.Infof("Pre-update TransformClusterToDay2Internal %v", cluster.IgnitionEndpoint)
 	if cluster.IgnitionEndpoint == nil || cluster.IgnitionEndpoint.URL == nil {
 		// Set custom Ignition endpoint so that day2 workers would join using HTTPS endpoint
 		// ensureMCSCert would add ignition override with MCS secret
+		log.Infof("Empty IgnitionEndpoint found")
 		ignitionEndpoint := fmt.Sprintf("%s/config/%s", common.GetMCSUrlBase(cluster), models.HostRoleWorker)
 		params := installer.V2UpdateClusterParams{
 			ClusterUpdateParams: &models.V2ClusterUpdateParams{
@@ -1332,6 +1335,7 @@ func (b *bareMetalInventory) TransformClusterToDay2Internal(ctx context.Context,
 		if errClusterUpdate != nil {
 			return nil, err
 		}
+		log.Infof("Post-update TransformClusterToDay2Internal %v", c.IgnitionEndpoint)
 	}
 
 	err = b.clusterApi.TransformClusterToDay2(ctx, cluster, b.db)
@@ -1339,6 +1343,7 @@ func (b *bareMetalInventory) TransformClusterToDay2Internal(ctx context.Context,
 		return nil, err
 	}
 
+	log.Infof("TransformClusterToDay2Internal result %v", err)
 	return b.GetClusterInternal(ctx, installer.V2GetClusterParams{ClusterID: clusterID})
 }
 
@@ -1757,6 +1762,7 @@ func (b *bareMetalInventory) v2UpdateClusterIgnitionEndpoint(ctx context.Context
 	var cluster *common.Cluster
 	var err error
 	updates := map[string]interface{}{}
+	log.Infof("update cluster %s with params: %+v", params.ClusterID, params.ClusterUpdateParams)
 
 	if params, err = b.validateAndUpdateClusterParams(ctx, &params); err != nil {
 		return nil, common.NewApiError(http.StatusBadRequest, err)
