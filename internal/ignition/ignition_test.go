@@ -23,6 +23,7 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/host/hostutil"
+	"github.com/openshift/assisted-service/internal/installcfg"
 	"github.com/openshift/assisted-service/internal/operators"
 	"github.com/openshift/assisted-service/internal/provider/registry"
 	"github.com/openshift/assisted-service/models"
@@ -31,6 +32,7 @@ import (
 	"github.com/openshift/assisted-service/pkg/s3wrapper"
 	"github.com/openshift/assisted-service/pkg/staticnetworkconfig"
 	"github.com/sirupsen/logrus"
+	"gopkg.in/yaml.v2"
 )
 
 var (
@@ -1433,5 +1435,72 @@ var _ = Describe("Import Cluster TLS Certs for ephemeral installer", func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(string(content)).To(Equal(cf))
 		}
+	})
+})
+
+var _ = Describe("ICSP file for oc extract", func() {
+
+	It("valid icsp contents", func() {
+		var cfg installcfg.InstallerConfigBaremetal
+		expected := "apiVersion: operator.openshift.io/v1alpha1\nkind: ImageContentSourcePolicy\nmetadata:\n  creationTimestamp: null\n  name: image-policy\nspec:\n  repositoryDigestMirrors:\n  - mirrors:\n    - mirrorhost1.example.org:5000/localimages\n    - mirrorhost2.example.org:5000/localimages\n    source: registry.ci.org\n  - mirrors:\n    - mirrorhost1.example.org:5000/localimages\n    - mirrorhost2.example.org:5000/localimages\n    source: quay.io\n"
+
+		imageContentSourceList := make([]installcfg.ImageContentSource, 2)
+		imageContentSourceList[0] = installcfg.ImageContentSource{
+			Source:  "registry.ci.org",
+			Mirrors: []string{"mirrorhost1.example.org:5000/localimages", "mirrorhost2.example.org:5000/localimages"},
+		}
+		imageContentSourceList[1] = installcfg.ImageContentSource{
+			Source:  "quay.io",
+			Mirrors: []string{"mirrorhost1.example.org:5000/localimages", "mirrorhost2.example.org:5000/localimages"},
+		}
+		cfg.ImageContentSources = imageContentSourceList
+		data, err := yaml.Marshal(&cfg)
+		Expect(err).ShouldNot(HaveOccurred())
+		contents, err := getIcsp(data)
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(string(contents)).Should(Equal(expected))
+	})
+
+	It("no image source contents defined", func() {
+		var cfg installcfg.InstallerConfigBaremetal
+		expected := ""
+
+		data, err := yaml.Marshal(&cfg)
+		Expect(err).ShouldNot(HaveOccurred())
+		contents, err := getIcsp(data)
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(string(contents)).Should(Equal(expected))
+	})
+
+	It("valid file created and readable", func() {
+		var cfg installcfg.InstallerConfigBaremetal
+		expected := "apiVersion: operator.openshift.io/v1alpha1\nkind: ImageContentSourcePolicy\nmetadata:\n  creationTimestamp: null\n  name: image-policy\nspec:\n  repositoryDigestMirrors:\n  - mirrors:\n    - mirrorhost1.example.org:5000/localimages\n    - mirrorhost2.example.org:5000/localimages\n    source: registry.ci.org\n"
+
+		imageContentSourceList := make([]installcfg.ImageContentSource, 1)
+		imageContentSourceList[0] = installcfg.ImageContentSource{
+			Source:  "registry.ci.org",
+			Mirrors: []string{"mirrorhost1.example.org:5000/localimages", "mirrorhost2.example.org:5000/localimages"},
+		}
+		cfg.ImageContentSources = imageContentSourceList
+		data, err := yaml.Marshal(&cfg)
+		Expect(err).ShouldNot(HaveOccurred())
+		icspFile, err := getIcspFileFromInstallConfig(data, log)
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(icspFile).Should(BeARegularFile())
+
+		contents, err := ioutil.ReadFile(icspFile)
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(string(contents)).Should(Equal(expected))
+	})
+
+	It("filename is empty string", func() {
+		var cfg installcfg.InstallerConfigBaremetal
+		expected := ""
+
+		data, err := yaml.Marshal(&cfg)
+		Expect(err).ShouldNot(HaveOccurred())
+		icspFile, err := getIcspFileFromInstallConfig(data, log)
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(icspFile).Should(Equal(expected))
 	})
 })
