@@ -815,6 +815,7 @@ func (r *ClusterDeploymentsReconciler) updateIfNeeded(ctx context.Context,
 		return cluster, errors.Wrap(err, "Couldn't resolve clusterdeployment ignition fields")
 	}
 	if shouldUpdate {
+		log.Infof("Updating Ignition params: %v", params.IgnitionEndpoint)
 		update = true
 	}
 
@@ -891,6 +892,7 @@ func (r *ClusterDeploymentsReconciler) updateIfNeeded(ctx context.Context,
 	}
 
 	log.Infof("Updated clusterDeployment %s/%s", clusterDeployment.Namespace, clusterDeployment.Name)
+	log.Infof("Cluster IgnitionEndpoint after update: %v", cluster.IgnitionEndpoint)
 
 	return clusterAfterUpdate, nil
 }
@@ -1208,10 +1210,13 @@ func (r *ClusterDeploymentsReconciler) TransformClusterToDay2(
 			Url:                    ignitionEndpoint,
 			CaCertificateReference: nil,
 		}
+		log.Infof("Pre-update ClusterInstall.status %v", clusterInstall.Status)
 		if err = r.Update(ctx, clusterInstall); err != nil {
 			log.WithError(err).Errorf("failed to write new IgnitionEndpoint for cluster %s", cluster.ID.String())
 			return ctrl.Result{Requeue: true}, err
 		}
+		log.Infof("Post-update ClusterInstall.status %v", clusterInstall.Status)
+		log.Infof("Post-update ClusterInstall.IgnitionEndpoint %v", clusterInstall.Spec.IgnitionEndpoint)
 	}
 	return r.updateStatus(ctx, log, clusterInstall, c, err)
 }
