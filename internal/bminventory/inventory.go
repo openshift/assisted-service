@@ -1331,11 +1331,38 @@ func (b *bareMetalInventory) TransformClusterToDay2Internal(ctx context.Context,
 			ClusterID: *cluster.ID,
 		}
 
-		c, errClusterUpdate := b.v2UpdateClusterIgnitionEndpoint(ctx, params)
-		if errClusterUpdate != nil {
+		usages, errUsages := usage.Unmarshal(cluster.Cluster.FeatureUsage)
+		if errUsages != nil {
+			log.WithError(errUsages).Errorf("failed to read feature usage from cluster %s", params.ClusterID)
+			return nil, errUsages
+		}
+
+		txSuccess := false
+		tx := b.db.Begin()
+		defer func() {
+			if !txSuccess {
+				log.Error("update cluster failed")
+				tx.Rollback()
+			}
+			if r := recover(); r != nil {
+				log.Errorf("update cluster failed to recover: %s", r)
+				log.Error(string(debug.Stack()))
+				tx.Rollback()
+			}
+		}()
+
+		if errClusterUpdate := b.updateClusterData(ctx, cluster, params, usages, tx, log, Interactive); errClusterUpdate != nil {
+			log.Infof("Post-update error %v", err)
 			return nil, err
 		}
-		log.Infof("Post-update TransformClusterToDay2Internal %v", c.IgnitionEndpoint)
+
+		if err = tx.Commit().Error; err != nil {
+			log.Error(err)
+			return nil, common.NewApiError(http.StatusInternalServerError, errors.Errorf("DB error, failed to commit"))
+		}
+		txSuccess = true
+
+		log.Infof("Post-update TransformClusterToDay2Internal %v", cluster.IgnitionEndpoint)
 	}
 
 	err = b.clusterApi.TransformClusterToDay2(ctx, cluster, b.db)
@@ -1752,69 +1779,6 @@ func (b *bareMetalInventory) v2UpdateClusterInternal(ctx context.Context, params
 		b.customizeHost(&cluster.Cluster, host)
 		// Clear this field as it is not needed to be sent via API
 		host.FreeAddresses = ""
-	}
-
-	return cluster, nil
-}
-
-func (b *bareMetalInventory) v2UpdateClusterIgnitionEndpoint(ctx context.Context, params installer.V2UpdateClusterParams) (*common.Cluster, error) {
-	log := logutil.FromContext(ctx, b.log)
-	var cluster *common.Cluster
-	var err error
-	updates := map[string]interface{}{}
-	log.Infof("update cluster %s with params: %+v", params.ClusterID, params.ClusterUpdateParams)
-
-	if params, err = b.validateAndUpdateClusterParams(ctx, &params); err != nil {
-		return nil, common.NewApiError(http.StatusBadRequest, err)
-	}
-
-	txSuccess := false
-	tx := b.db.Begin()
-	defer func() {
-		if !txSuccess {
-			log.Error("update cluster failed")
-			tx.Rollback()
-		}
-		if r := recover(); r != nil {
-			log.Errorf("update cluster failed to recover: %s", r)
-			log.Error(string(debug.Stack()))
-			tx.Rollback()
-		}
-	}()
-
-	if tx.Error != nil {
-		log.WithError(tx.Error).Errorf("failed to start db transaction")
-		return nil, common.NewApiError(http.StatusInternalServerError,
-			errors.New("DB error, failed to start transaction"))
-	}
-
-	// in case host monitor already updated the state we need to use FOR UPDATE option
-	if cluster, err = common.GetClusterFromDBForUpdate(tx, params.ClusterID, common.UseEagerLoading); err != nil {
-		log.WithError(err).Errorf("failed to get cluster: %s", params.ClusterID)
-		return nil, common.NewApiError(http.StatusNotFound, err)
-	}
-
-	if params.ClusterUpdateParams.IgnitionEndpoint != nil {
-		if params.ClusterUpdateParams.IgnitionEndpoint.URL != nil {
-			optionalParam(params.ClusterUpdateParams.IgnitionEndpoint.URL, "ignition_endpoint_url", updates)
-		}
-		if params.ClusterUpdateParams.IgnitionEndpoint.CaCertificate != nil {
-			optionalParam(params.ClusterUpdateParams.IgnitionEndpoint.CaCertificate, "ignition_endpoint_ca_certificate", updates)
-		}
-	}
-	if err = tx.Commit().Error; err != nil {
-		log.Error(err)
-		return nil, common.NewApiError(http.StatusInternalServerError, errors.Errorf("DB error, failed to commit"))
-	}
-	txSuccess = true
-
-	if proxySettingsChanged(params.ClusterUpdateParams, cluster) {
-		eventgen.SendProxySettingsChangedEvent(ctx, b.eventsHandler, params.ClusterID)
-	}
-
-	if cluster, err = common.GetClusterFromDB(b.db, params.ClusterID, common.UseEagerLoading); err != nil {
-		log.WithError(err).Errorf("failed to get cluster %s after update", params.ClusterID)
-		return nil, err
 	}
 
 	return cluster, nil
