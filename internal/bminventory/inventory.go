@@ -1362,6 +1362,14 @@ func (b *bareMetalInventory) TransformClusterToDay2Internal(ctx context.Context,
 		}
 		txSuccess = true
 
+		if cluster, err = common.GetClusterFromDB(b.db, clusterID, common.UseEagerLoading); err != nil {
+			log.WithError(err).Errorf("failed to find cluster %s", clusterID)
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				return nil, common.NewApiError(http.StatusNotFound, err)
+			}
+			return nil, common.NewApiError(http.StatusInternalServerError, err)
+		}
+
 		log.Infof("Post-update TransformClusterToDay2Internal %v", cluster.IgnitionEndpoint)
 	}
 
