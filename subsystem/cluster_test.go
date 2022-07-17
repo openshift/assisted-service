@@ -638,11 +638,12 @@ var _ = Describe("V2ListClusters", func() {
 
 		registerClusterReply, err := userBMClient.Installer.V2RegisterCluster(ctx, &installer.V2RegisterClusterParams{
 			NewClusterParams: &models.ClusterCreateParams{
-				BaseDNSDomain:    "example.com",
-				Name:             swag.String("test-cluster"),
-				OpenshiftVersion: swag.String(openshiftVersion),
-				PullSecret:       swag.String(pullSecret),
-				SSHPublicKey:     sshPublicKey,
+				BaseDNSDomain:     "example.com",
+				Name:              swag.String("test-cluster"),
+				OpenshiftVersion:  swag.String(openshiftVersion),
+				PullSecret:        swag.String(pullSecret),
+				SSHPublicKey:      sshPublicKey,
+				VipDhcpAllocation: swag.Bool(true),
 			},
 		})
 		Expect(err).NotTo(HaveOccurred())
@@ -767,13 +768,14 @@ var _ = Describe("cluster install - DHCP", func() {
 
 		registerClusterReply, err := userBMClient.Installer.V2RegisterCluster(ctx, &installer.V2RegisterClusterParams{
 			NewClusterParams: &models.ClusterCreateParams{
-				BaseDNSDomain:    "example.com",
-				ClusterNetworks:  []*models.ClusterNetwork{{Cidr: models.Subnet(clusterCIDR), HostPrefix: 23}},
-				ServiceNetworks:  []*models.ServiceNetwork{{Cidr: models.Subnet(serviceCIDR)}},
-				Name:             swag.String("test-cluster"),
-				OpenshiftVersion: swag.String(openshiftVersion),
-				PullSecret:       swag.String(pullSecret),
-				SSHPublicKey:     sshPublicKey,
+				BaseDNSDomain:     "example.com",
+				ClusterNetworks:   []*models.ClusterNetwork{{Cidr: models.Subnet(clusterCIDR), HostPrefix: 23}},
+				ServiceNetworks:   []*models.ServiceNetwork{{Cidr: models.Subnet(serviceCIDR)}},
+				Name:              swag.String("test-cluster"),
+				OpenshiftVersion:  swag.String(openshiftVersion),
+				PullSecret:        swag.String(pullSecret),
+				SSHPublicKey:      sshPublicKey,
+				VipDhcpAllocation: swag.Bool(true),
 			},
 		})
 		Expect(err).NotTo(HaveOccurred())
@@ -3783,6 +3785,31 @@ func expectProgressToBeInRange(c *models.Cluster, preparingForInstallationRange,
 	Expect(c.Progress.TotalPercentage).To(Equal(int64(totalPercentage)))
 }
 
+var _ = Describe("Cluster registration default", func() {
+	var (
+		ctx         = context.Background()
+		c           *models.Cluster
+		clusterCIDR = "10.128.0.0/14"
+		serviceCIDR = "172.30.0.0/16"
+	)
+	It("RegisterCluster", func() {
+		registerClusterReply, err := userBMClient.Installer.V2RegisterCluster(ctx, &installer.V2RegisterClusterParams{
+			NewClusterParams: &models.ClusterCreateParams{
+				BaseDNSDomain:    "example.com",
+				ClusterNetworks:  []*models.ClusterNetwork{{Cidr: models.Subnet(clusterCIDR), HostPrefix: 23}},
+				ServiceNetworks:  []*models.ServiceNetwork{{Cidr: models.Subnet(serviceCIDR)}},
+				Name:             swag.String("test-cluster"),
+				OpenshiftVersion: swag.String(openshiftVersion),
+				PullSecret:       swag.String(pullSecret),
+				SSHPublicKey:     sshPublicKey,
+			},
+		})
+		Expect(err).NotTo(HaveOccurred())
+		c = registerClusterReply.GetPayload()
+		Expect(c.VipDhcpAllocation).To(Equal(swag.Bool(false)))
+	})
+})
+
 var _ = Describe("Installation progress", func() {
 	var (
 		ctx         = context.Background()
@@ -3799,13 +3826,14 @@ var _ = Describe("Installation progress", func() {
 			// register cluster
 			registerClusterReply, err := userBMClient.Installer.V2RegisterCluster(ctx, &installer.V2RegisterClusterParams{
 				NewClusterParams: &models.ClusterCreateParams{
-					BaseDNSDomain:    "example.com",
-					ClusterNetworks:  []*models.ClusterNetwork{{Cidr: models.Subnet(clusterCIDR), HostPrefix: 23}},
-					ServiceNetworks:  []*models.ServiceNetwork{{Cidr: models.Subnet(serviceCIDR)}},
-					Name:             swag.String("test-cluster"),
-					OpenshiftVersion: swag.String(openshiftVersion),
-					PullSecret:       swag.String(pullSecret),
-					SSHPublicKey:     sshPublicKey,
+					BaseDNSDomain:     "example.com",
+					ClusterNetworks:   []*models.ClusterNetwork{{Cidr: models.Subnet(clusterCIDR), HostPrefix: 23}},
+					ServiceNetworks:   []*models.ServiceNetwork{{Cidr: models.Subnet(serviceCIDR)}},
+					Name:              swag.String("test-cluster"),
+					OpenshiftVersion:  swag.String(openshiftVersion),
+					PullSecret:        swag.String(pullSecret),
+					SSHPublicKey:      sshPublicKey,
+					VipDhcpAllocation: swag.Bool(true),
 				},
 			})
 			Expect(err).NotTo(HaveOccurred())
@@ -3900,6 +3928,7 @@ var _ = Describe("disk encryption", func() {
 						EnableOn: swag.String(models.DiskEncryptionEnableOnAll),
 						Mode:     swag.String(models.DiskEncryptionModeTpmv2),
 					},
+					VipDhcpAllocation: swag.Bool(true),
 				},
 			})
 			Expect(err).NotTo(HaveOccurred())

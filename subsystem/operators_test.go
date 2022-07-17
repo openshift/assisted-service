@@ -97,13 +97,14 @@ var _ = Describe("Operators endpoint tests", func() {
 			serviceCIDR := "172.30.0.0/16"
 			registerClusterReply, err := userBMClient.Installer.V2RegisterCluster(context.TODO(), &installer.V2RegisterClusterParams{
 				NewClusterParams: &models.ClusterCreateParams{
-					BaseDNSDomain:    "example.com",
-					ClusterNetworks:  []*models.ClusterNetwork{{Cidr: models.Subnet(clusterCIDR), HostPrefix: 23}},
-					ServiceNetworks:  []*models.ServiceNetwork{{Cidr: models.Subnet(serviceCIDR)}},
-					Name:             swag.String("test-cluster"),
-					OpenshiftVersion: swag.String(openshiftVersion),
-					PullSecret:       swag.String(pullSecret),
-					SSHPublicKey:     sshPublicKey,
+					BaseDNSDomain:     "example.com",
+					ClusterNetworks:   []*models.ClusterNetwork{{Cidr: models.Subnet(clusterCIDR), HostPrefix: 23}},
+					ServiceNetworks:   []*models.ServiceNetwork{{Cidr: models.Subnet(serviceCIDR)}},
+					Name:              swag.String("test-cluster"),
+					OpenshiftVersion:  swag.String(openshiftVersion),
+					PullSecret:        swag.String(pullSecret),
+					SSHPublicKey:      sshPublicKey,
+					VipDhcpAllocation: swag.Bool(true),
 				},
 			})
 			Expect(err).NotTo(HaveOccurred())

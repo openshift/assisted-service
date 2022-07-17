@@ -29,9 +29,10 @@ var _ = Describe("Host tests", func() {
 		var err error
 		cluster, err = userBMClient.Installer.V2RegisterCluster(ctx, &installer.V2RegisterClusterParams{
 			NewClusterParams: &models.ClusterCreateParams{
-				Name:             swag.String("test-cluster"),
-				OpenshiftVersion: swag.String(openshiftVersion),
-				PullSecret:       swag.String(pullSecret),
+				Name:              swag.String("test-cluster"),
+				OpenshiftVersion:  swag.String(openshiftVersion),
+				PullSecret:        swag.String(pullSecret),
+				VipDhcpAllocation: swag.Bool(true),
 			},
 		})
 		Expect(err).NotTo(HaveOccurred())

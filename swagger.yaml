@@ -4274,7 +4274,7 @@ definitions:
         type: boolean
         description: Indicate if virtual IP DHCP allocation mode is enabled.
         x-nullable: true
-        default: true
+        default: false
       http_proxy:
         type: string
         description: |
