@@ -77,6 +77,7 @@ func GenerateTestHostByKind(hostID, infraEnvID strfmt.UUID, clusterID *strfmt.UU
 		SuggestedRole:   role,
 		Kind:            swag.String(kind),
 		CheckedInAt:     now,
+		RegisteredAt:    now,
 		StatusUpdatedAt: now,
 		Progress: &models.HostProgressInfo{
 			StageStartedAt: now,
@@ -97,6 +98,7 @@ func GenerateTestHostWithInfraEnv(hostID, infraEnvID strfmt.UUID, state string, 
 		Role:               role,
 		Kind:               swag.String(models.HostKindHost),
 		CheckedInAt:        now,
+		RegisteredAt:       now,
 		StatusUpdatedAt:    now,
 		APIVipConnectivity: GenerateTestAPIVIpConnectivity(""),
 		Connectivity:       GenerateTestConnectivityReport(),
@@ -115,6 +117,7 @@ func GenerateTestHostWithNetworkAddress(hostID, infraEnvID, clusterID strfmt.UUI
 		Role:              role,
 		Kind:              swag.String(models.HostKindHost),
 		CheckedInAt:       now,
+		RegisteredAt:      now,
 		StatusUpdatedAt:   now,
 		Progress: &models.HostProgressInfo{
 			StageStartedAt: now,

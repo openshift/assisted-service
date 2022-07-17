@@ -577,7 +577,8 @@ var _ = Describe("Host tests", func() {
 
 		// successfully get from both clusters
 		_ = getHostV2(*infraEnvID, *hostID)
-		_ = getHostV2(*infraEnvID2, *hostID)
+		h2 := getHostV2(*infraEnvID2, *hostID)
+		h2initialRegistrationTimestamp := h2.RegisteredAt
 
 		_, err = userBMClient.Installer.V2DeregisterHost(ctx, &installer.V2DeregisterHostParams{
 			InfraEnvID: *infraEnvID,
@@ -585,6 +586,7 @@ var _ = Describe("Host tests", func() {
 		})
 		Expect(err).NotTo(HaveOccurred())
 
+		time.Sleep(time.Second * 2)
 		_, err = agentBMClient.Installer.V2RegisterHost(ctx, &installer.V2RegisterHostParams{
 			InfraEnvID: *infraEnvID2,
 			NewHostParams: &models.HostCreateParams{
@@ -592,6 +594,11 @@ var _ = Describe("Host tests", func() {
 			},
 		})
 		Expect(err).NotTo(HaveOccurred())
+
+		// confirm if new registration updated the timestamp
+		h2 = getHostV2(*infraEnvID2, *hostID)
+		h2newRegistrationTimestamp := h2.RegisteredAt
+		Expect(h2newRegistrationTimestamp.Equal(h2initialRegistrationTimestamp)).Should(BeFalse())
 
 		Eventually(func() string {
 			h := getHostV2(*infraEnvID2, *hostID)

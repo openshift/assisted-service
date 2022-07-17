@@ -135,6 +135,10 @@ type Host struct {
 	// progress stages
 	ProgressStages []HostStage `json:"progress_stages" gorm:"-"`
 
+	// The last time the host's agent tried to register in the service.
+	// Format: date-time
+	RegisteredAt strfmt.DateTime `json:"registered_at,omitempty" gorm:"type:timestamp with time zone"`
+
 	// requested hostname
 	RequestedHostname string `json:"requested_hostname,omitempty"`
 
@@ -235,6 +239,10 @@ func (m *Host) Validate(formats strfmt.Registry) error {
 	}
 
 	if err := m.validateProgressStages(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateRegisteredAt(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -507,6 +515,18 @@ func (m *Host) validateProgressStages(formats strfmt.Registry) error {
 			return err
 		}
 
+	}
+
+	return nil
+}
+
+func (m *Host) validateRegisteredAt(formats strfmt.Registry) error {
+	if swag.IsZero(m.RegisteredAt) { // not required
+		return nil
+	}
+
+	if err := validate.FormatOf("registered_at", "body", "date-time", m.RegisteredAt.String(), formats); err != nil {
+		return err
 	}
 
 	return nil

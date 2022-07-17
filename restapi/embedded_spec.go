@@ -6992,6 +6992,12 @@ func init() {
           },
           "x-go-custom-tag": "gorm:\"-\""
         },
+        "registered_at": {
+          "description": "The last time the host's agent tried to register in the service.",
+          "type": "string",
+          "format": "date-time",
+          "x-go-custom-tag": "gorm:\"type:timestamp with time zone\""
+        },
         "requested_hostname": {
           "type": "string"
         },
@@ -16319,6 +16325,12 @@ func init() {
             "$ref": "#/definitions/host-stage"
           },
           "x-go-custom-tag": "gorm:\"-\""
+        },
+        "registered_at": {
+          "description": "The last time the host's agent tried to register in the service.",
+          "type": "string",
+          "format": "date-time",
+          "x-go-custom-tag": "gorm:\"type:timestamp with time zone\""
         },
         "requested_hostname": {
           "type": "string"
