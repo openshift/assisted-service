@@ -756,7 +756,7 @@ func (b *bareMetalInventory) createAndUploadDay2NodeIgnition(ctx context.Context
 		return errors.Wrapf(err, "Failed to create ignition string for cluster %s, host %s", cluster.ID, host.ID)
 	}
 
-	fileName := fmt.Sprintf("%s/worker-%s.ign", cluster.ID, host.ID)
+	fileName := fmt.Sprintf("%s/%s-%s.ign", cluster.ID, common.GetEffectiveRole(host), host.ID)
 	log.Infof("Uploading ignition file <%s>", fileName)
 	err = b.objectHandler.Upload(ctx, fullIgnition, fileName)
 	if err != nil {
