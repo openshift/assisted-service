@@ -324,14 +324,14 @@ func (m *Manager) updateInventory(ctx context.Context, cluster *common.Cluster, 
 	}
 
 	if h.ClusterID != nil && h.ClusterID.String() != "" {
-		cluster, err = common.GetClusterFromDB(m.db, *h.ClusterID, common.SkipEagerLoading)
+		cluster, err = common.GetClusterFromDB(db, *h.ClusterID, common.SkipEagerLoading)
 		if err != nil {
 			log.WithError(err).Errorf("not updating inventory - failed to find cluster %s", h.ClusterID.String())
 			return common.NewApiError(http.StatusNotFound, err)
 		}
 	}
 
-	infraEnv, err := common.GetInfraEnvFromDB(m.db, h.InfraEnvID)
+	infraEnv, err := common.GetInfraEnvFromDB(db, h.InfraEnvID)
 	if err != nil {
 		log.WithError(err).Errorf("not updating inventory - failed to find infra env %s", h.InfraEnvID.String())
 		return common.NewApiError(http.StatusNotFound, err)
