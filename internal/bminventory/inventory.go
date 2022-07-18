@@ -1317,26 +1317,20 @@ func (b *bareMetalInventory) TransformClusterToDay2Internal(ctx context.Context,
 	}
 
 	log.Infof("Pre-update TransformClusterToDay2Internal APIVIP %v", cluster.APIVip)
-	log.Infof("Pre-update TransformClusterToDay2Internal APIVIPDNSName %v", cluster.APIVipDNSName)
 	if cluster.IgnitionEndpoint == nil || cluster.IgnitionEndpoint.URL == nil {
 		// Set custom Ignition endpoint so that day2 workers would join using HTTPS endpoint
 		// ensureMCSCert would add ignition override with MCS secret
 		log.Infof("Empty IgnitionEndpoint found")
 		ignitionEndpoint := fmt.Sprintf("%s/config/%s", common.GetMCSUrlBase(cluster), models.HostRoleWorker)
-		params := installer.V2UpdateClusterParams{
-			ClusterUpdateParams: &models.V2ClusterUpdateParams{
-				IgnitionEndpoint: &models.IgnitionEndpoint{
-					URL: &ignitionEndpoint,
-				},
-			},
-			ClusterID: *cluster.ID,
-		}
+
+		updates := map[string]interface{}{}
 
 		usages, errUsages := usage.Unmarshal(cluster.Cluster.FeatureUsage)
 		if errUsages != nil {
-			log.WithError(errUsages).Errorf("failed to read feature usage from cluster %s", params.ClusterID)
+			log.WithError(errUsages).Errorf("failed to read feature usage from cluster %s", cluster.ID.String())
 			return nil, errUsages
 		}
+		log.Infof("Update usages %v", usages)
 
 		txSuccess := false
 		tx := b.db.Begin()
@@ -1352,9 +1346,14 @@ func (b *bareMetalInventory) TransformClusterToDay2Internal(ctx context.Context,
 			}
 		}()
 
-		if errClusterUpdate := b.updateClusterData(ctx, cluster, params, usages, tx, log, Interactive); errClusterUpdate != nil {
-			log.Infof("Post-update error %v", err)
-			return nil, err
+		optionalParam(&ignitionEndpoint, "ignition_endpoint_url", updates)
+		updates["trigger_monitor_timestamp"] = time.Now()
+
+		log.Infof("cluster updates %v", updates)
+
+		err = b.db.Model(&common.Cluster{}).Where("id = ?", cluster.ID.String()).Updates(updates).Error
+		if err != nil {
+			return nil, common.NewApiError(http.StatusInternalServerError, errors.Wrapf(err, "failed to update cluster: %s", cluster.ID.String()))
 		}
 
 		if err = tx.Commit().Error; err != nil {
@@ -2029,7 +2028,6 @@ func (b *bareMetalInventory) updateClusterData(_ context.Context, cluster *commo
 			optionalParam(params.ClusterUpdateParams.IgnitionEndpoint.CaCertificate, "ignition_endpoint_ca_certificate", updates)
 		}
 	}
-	log.Infof("updateClusterData updates %v", updates)
 
 	if len(updates) > 0 {
 		updates["trigger_monitor_timestamp"] = time.Now()
