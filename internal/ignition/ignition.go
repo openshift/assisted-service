@@ -1653,6 +1653,7 @@ func removeIcspFile(filename string) {
 	if filename != "" {
 		os.Remove(filename)
 	}
+}
 
 func applyYamlPatch(src []byte, ops []byte) ([]byte, error) {
 	patch, err := yamlpatch.DecodePatch(ops)
