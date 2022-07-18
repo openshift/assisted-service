@@ -1222,7 +1222,8 @@ func (r *ClusterDeploymentsReconciler) TransformClusterToDay2(
 	clusterInstall *hiveext.AgentClusterInstall) (ctrl.Result, error) {
 	log.Infof("transforming day1 cluster %s into day2 cluster", cluster.ID.String())
 	c, err := r.Installer.TransformClusterToDay2Internal(ctx, *cluster.ID)
-	log.Infof("c.APIVIP %s", cluster.APIVip)
+	log.Infof("TransformClusterToDay2 c.APIVIP %s", cluster.APIVip)
+	log.Infof("TransformClusterToDay2 c.Status %v", cluster.Status)
 	if err != nil {
 		log.WithError(err).Errorf("failed to transform cluster %s into day2 cluster", cluster.ID.String())
 	}
@@ -1240,7 +1241,10 @@ func (r *ClusterDeploymentsReconciler) TransformClusterToDay2(
 			return ctrl.Result{Requeue: true}, err
 		}
 	}
-	return r.updateStatus(ctx, log, clusterInstall, c, err)
+	result, err := r.updateStatus(ctx, log, clusterInstall, c, err)
+	log.Infof("TransformClusterToDay2 updateStatus result %v", result)
+	log.Infof("TransformClusterToDay2 updateStatus err %v", err)
+	return result, err
 }
 
 func (r *ClusterDeploymentsReconciler) createNewDay2Cluster(
@@ -1505,6 +1509,9 @@ func (r *ClusterDeploymentsReconciler) SetupWithManager(mgr ctrl.Manager) error 
 // In case that an error has occurred when trying to sync the Spec, the error (syncErr) is presented in SpecSyncedCondition.
 // Internal bool differentiate between backend server error (internal HTTP 5XX) and user input error (HTTP 4XXX)
 func (r *ClusterDeploymentsReconciler) updateStatus(ctx context.Context, log logrus.FieldLogger, clusterInstall *hiveext.AgentClusterInstall, c *common.Cluster, syncErr error) (ctrl.Result, error) {
+	log.Infof("updateStatus initial %v", clusterInstall.Status.APIVIP)
+	log.Infof("updateStatus initial c.APIVIP %s", c.APIVip)
+	log.Infof("updateStatus initial c.Status %v", c.Status)
 	clusterSpecSynced(clusterInstall, syncErr)
 	if c != nil {
 		clusterInstall.Status.ConnectivityMajorityGroups = c.ConnectivityMajorityGroups
@@ -1563,6 +1570,8 @@ func (r *ClusterDeploymentsReconciler) updateStatus(ctx context.Context, log log
 	} else {
 		setClusterConditionsUnknown(clusterInstall)
 	}
+
+	log.Infof("updateStatus desired %v", clusterInstall.Status.APIVIP)
 
 	if updateErr := r.Status().Update(ctx, clusterInstall); updateErr != nil {
 		log.WithError(updateErr).Error("failed to update ClusterDeployment Status")
