@@ -321,6 +321,7 @@ func waitForHostStateV2(ctx context.Context, state string, timeout time.Duration
 		if success {
 			return nil
 		}
+
 		return fmt.Errorf("Host %s in Infra Env %s wasn't in state %s after %d seconds in a row. Actual state %s, state info %s",
 			*host.ID, host.InfraEnvID, state, timeout, lastState, lastStatusInfo)
 

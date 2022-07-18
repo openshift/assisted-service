@@ -49,37 +49,52 @@ func subsystemAfterEach() {
 func deregisterResources() {
 	var multiErr *multierror.Error
 
-	// Delete cluster should use the REST API in order to delete any
-	// clusters' resources managed by the service
 	reply, err := userBMClient.Installer.V2ListClusters(context.Background(), &installer.V2ListClustersParams{})
-	Expect(err).To(BeNil())
+	if err != nil {
+		log.WithError(err).Error("Failed to list clusters")
+		return
+	}
+
 	if GinkgoT().Failed() {
+		// Dump cluster info on failure
 		multiErr = multierror.Append(multiErr, GinkgoResourceLogger(models.ClusterKindCluster, reply.Payload))
 	}
-	for _, c := range reply.GetPayload() {
-		// DeregisterCluster API isn't necessarily available (e.g. cluster is being installed)
-		if _, err = userBMClient.Installer.V2DeregisterCluster(context.Background(), &installer.V2DeregisterClusterParams{ClusterID: *c.ID}); err != nil {
-			log.WithError(err).Debugf("Cluster %s couldn't be deleted via REST API", *c.ID)
-		}
-	}
-	// Delete infra env
+
 	infraEnvReply, err := userBMClient.Installer.ListInfraEnvs(context.Background(), &installer.ListInfraEnvsParams{})
-	Expect(err).To(BeNil())
+	if err != nil {
+		log.WithError(err).Error("Failed to list infra-envs")
+	}
+
 	if GinkgoT().Failed() {
+		// Dump infar-env info on failure
 		multiErr = multierror.Append(multiErr, GinkgoResourceLogger(models.InfraEnvKindInfraEnv, infraEnvReply.Payload))
 	}
+
 	for _, i := range infraEnvReply.GetPayload() {
 		if GinkgoT().Failed() {
 			hostReply, err1 := userBMClient.Installer.V2ListHosts(context.Background(), &installer.V2ListHostsParams{InfraEnvID: *i.ID})
-			Expect(err1).To(BeNil())
+			if err1 != nil {
+				log.WithError(err).Errorf("Failed to list infra-env %s (%s) hosts", i.ID, *i.Name)
+			}
+			// Dump host info on failure
 			multiErr = multierror.Append(multiErr, GinkgoResourceLogger(models.HostKindHost, hostReply.Payload))
 		}
 		if _, err = userBMClient.Installer.DeregisterInfraEnv(context.Background(), &installer.DeregisterInfraEnvParams{InfraEnvID: *i.ID}); err != nil {
 			log.WithError(err).Debugf("InfraEnv %s couldn't be deleted via REST API", i.ID)
 		}
 	}
-	Expect(multiErr.ErrorOrNil()).To(BeNil())
+
+	for _, c := range reply.GetPayload() {
+		if _, err = userBMClient.Installer.V2DeregisterCluster(context.Background(), &installer.V2DeregisterClusterParams{ClusterID: *c.ID}); err != nil {
+			log.WithError(err).Debugf("Cluster %s couldn't be deleted via REST API", *c.ID)
+		}
+	}
+
+	if multiErr.ErrorOrNil() != nil {
+		log.WithError(err).Error("At-least one error occured during deregister cleanup")
+	}
 }
+
 func clearDB() {
 	// Clean the DB to make sure we start tests from scratch
 	for _, model := range []interface{}{
@@ -191,21 +206,28 @@ func getCommonCluster(ctx context.Context, clusterID strfmt.UUID) *common.Cluste
 	return &cluster
 }
 
-func checkStepsInList(steps models.Steps, stepTypes []models.StepType, numSteps int) {
-	Expect(len(steps.Instructions)).Should(BeNumerically(">=", numSteps))
+func areStepsInList(steps models.Steps, stepTypes []models.StepType) {
 	for _, stepType := range stepTypes {
-		_, res := getStepInList(steps, stepType)
-		Expect(res).Should(Equal(true))
+		Expect(isStepTypeInList(steps, stepType)).Should(BeTrue())
 	}
 }
 
-func getStepInList(steps models.Steps, sType models.StepType) (*models.Step, bool) {
+func isStepTypeInList(steps models.Steps, sType models.StepType) bool {
 	for _, step := range steps.Instructions {
 		if step.StepType == sType {
-			return step, true
+			return true
 		}
 	}
-	return nil, false
+	return false
+}
+
+func getStepFromListByStepType(steps models.Steps, sType models.StepType) *models.Step {
+	for _, step := range steps.Instructions {
+		if step.StepType == sType {
+			return step
+		}
+	}
+	return nil
 }
 
 func getNextSteps(infraEnvID, hostID strfmt.UUID) models.Steps {
@@ -436,7 +458,7 @@ func generateEssentialHostStepsWithInventory(ctx context.Context, h *models.Host
 	generateHWPostStepReply(ctx, h, inventory, name)
 	generateFAPostStepReply(ctx, h, validFreeAddresses)
 	generateNTPPostStepReply(ctx, h, []*models.NtpSource{common.TestNTPSourceSynced})
-	generateDomainNameResolutionReply(ctx, h, *common.TestDomainNameResolutionSuccess)
+	generateDomainNameResolutionReply(ctx, h, *common.TestDomainNameResolutionsSuccess)
 }
 
 func generateDomainResolution(ctx context.Context, h *models.Host, name string, baseDomain string) {
@@ -449,12 +471,12 @@ func generateCommonDomainReply(ctx context.Context, h *models.Host, clusterName,
 	}
 	var domainResolutions = []*models.DomainResolutionResponseDomain{
 		{
-			DomainName:    fqdn(constants.APIName, clusterName, baseDomain),
+			DomainName:    fqdn(constants.APIClusterSubdomain, clusterName, baseDomain),
 			IPV4Addresses: []strfmt.IPv4{"1.2.3.4/24"},
 			IPV6Addresses: []strfmt.IPv6{"1001:db8::10/120"},
 		},
 		{
-			DomainName:    fqdn(constants.APIInternalName, clusterName, baseDomain),
+			DomainName:    fqdn(constants.InternalAPIClusterSubdomain, clusterName, baseDomain),
 			IPV4Addresses: []strfmt.IPv4{"4.5.6.7/24"},
 			IPV6Addresses: []strfmt.IPv6{"1002:db8::10/120"},
 		},

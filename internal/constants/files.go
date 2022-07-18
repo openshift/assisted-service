@@ -3,10 +3,16 @@ package constants
 const Kubeconfig = "kubeconfig"
 const KubeconfigNoIngress = "kubeconfig-noingress"
 
-//A Sub domain of apps.clusterName.baseDomain used by DNS validations to verify that *.apps wildcard configured properly.
+// an arbitrary subdomain of *.apps.<cluster-name>.<base-domain> used by DNS
+// validations to verify that *.apps wildcard is configured properly
 const AppsSubDomainNameHostDNSValidation = "console-openshift-console"
-const APIName = "api"
-const APIInternalName = "api-int"
 
-//Non existing domain name under clusterName.baseDomain for wildcard configuration check
+// Standard cluster API subdomains
+const APIClusterSubdomain = "api"
+const InternalAPIClusterSubdomain = "api-int"
+
+// Arbitrary, non-existing subdomain directly under *.<cluster-name>.<base-domain> (as opposed to
+// directly under *.apps.<cluster-name>.<base-domain>) for wildcard configuration check. If this
+// domain *does* resolve then the validation failed, as it indicates a wildcard configuration that
+// is known to be problematic for OCP
 const DNSWildcardFalseDomainName = "validateNoWildcardDNS"

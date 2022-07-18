@@ -597,7 +597,7 @@ var _ = Describe("update progress special cases", func() {
 			hostFromDB *common.Host
 		)
 		It("Single node special stage order - happy flow", func() {
-			cluster := hostutil.GenerateTestCluster(clusterId, common.TestIPv4Networking.MachineNetworks)
+			cluster := hostutil.GenerateTestCluster(clusterId)
 			cluster.HighAvailabilityMode = swag.String(models.ClusterHighAvailabilityModeNone)
 			Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
 
@@ -620,7 +620,7 @@ var _ = Describe("update progress special cases", func() {
 			Expect(hostFromDB.Progress.CurrentStage).Should(Equal(models.HostStageWritingImageToDisk))
 		})
 		It("Single node special stage order - not allowed", func() {
-			cluster := hostutil.GenerateTestCluster(clusterId, common.TestIPv4Networking.MachineNetworks)
+			cluster := hostutil.GenerateTestCluster(clusterId)
 			cluster.HighAvailabilityMode = swag.String(models.ClusterHighAvailabilityModeNone)
 			Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
 
@@ -640,7 +640,7 @@ var _ = Describe("update progress special cases", func() {
 			Expect(state.UpdateInstallProgress(ctx, &hostFromDB.Host, &progress)).Should(HaveOccurred())
 		})
 		It("multi node update should fail", func() {
-			cluster := hostutil.GenerateTestCluster(clusterId, common.TestIPv4Networking.MachineNetworks)
+			cluster := hostutil.GenerateTestCluster(clusterId)
 			cluster.HighAvailabilityMode = swag.String(models.ClusterHighAvailabilityModeFull)
 			Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
 
@@ -1048,7 +1048,7 @@ var _ = Describe("UpdateInventory", func() {
 		hostId = strfmt.UUID(uuid.New().String())
 		clusterId = strfmt.UUID(uuid.New().String())
 		infraEnvId = strfmt.UUID(uuid.New().String())
-		cluster := hostutil.GenerateTestCluster(clusterId, common.TestIPv4Networking.MachineNetworks)
+		cluster := hostutil.GenerateTestCluster(clusterId)
 		infraEnv := hostutil.GenerateTestInfraEnv(infraEnvId)
 		Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
 		Expect(db.Create(&infraEnv).Error).ShouldNot(HaveOccurred())

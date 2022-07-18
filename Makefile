@@ -377,7 +377,7 @@ deploy-test: _verify_cluster generate-keys update-local-image
 	$(MAKE) deploy-wiremock deploy-all
 
 # An alias for the deploy-test target
-deploy-service-for-subsystem-test: deploy-test enable-kube-api-for-subsystem
+deploy-service-for-subsystem-test: deploy-test
 
 # $SERVICE is built with docker. If we want the latest version of $SERVICE
 # we need to pull it from the docker daemon before deploy-onprem.

@@ -12,15 +12,19 @@ import (
 	"github.com/go-openapi/swag"
 )
 
-// APIVipConnectivityResponse api vip connectivity response
+// APIVipConnectivityResponse The response from the day-2 agent's attempt to download the worker ignition file from the API machine config server of the target cluster.
+// Note - the name "API VIP connectivity" is old and misleading and is preserved for backwards compatibility.
+//
 //
 // swagger:model api_vip_connectivity_response
 type APIVipConnectivityResponse struct {
 
-	// Ignition fetched from the specified API VIP
+	// Ignition file fetched from the target cluster's API machine config server.
+	// This ignition file may be incomplete as almost all files / systemd units are removed from it by the agent in order to save space.
+	//
 	Ignition string `json:"ignition,omitempty"`
 
-	// Ignition downloadability check result.
+	// Whether the agent was able to contact the API of the target cluster or not
 	IsSuccess bool `json:"is_success,omitempty"`
 }
 

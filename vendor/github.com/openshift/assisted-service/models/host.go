@@ -23,7 +23,7 @@ import (
 // swagger:model host
 type Host struct {
 
-	// api vip connectivity
+	// Contains a serialized api_vip_connectivity_response
 	APIVipConnectivity string `json:"api_vip_connectivity,omitempty" gorm:"type:text"`
 
 	// bootstrap

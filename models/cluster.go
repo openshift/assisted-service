@@ -127,6 +127,16 @@ type Cluster struct {
 	// Required: true
 	ImageInfo *ImageInfo `json:"image_info" gorm:"embedded;embeddedPrefix:image_"`
 
+	// Indicates whether this cluster is an imported day-2 cluster or a
+	// regular cluster. Clusters are considered imported when they are
+	// created via the ../clusters/import endpoint. Day-2 clusters converted
+	// from day-1 clusters by kube-api controllers or the
+	// ../clusters/<cluster_id>/actions/allow-add-workers endpoint are not
+	// considered imported. Imported clusters usually lack a lot of
+	// information and are filled with default values that don't necessarily
+	// reflect the actual cluster they represent
+	Imported *bool `json:"imported,omitempty"`
+
 	// The virtual IP used for cluster ingress traffic.
 	// Pattern: ^(?:(?:(?:[0-9]{1,3}\.){3}[0-9]{1,3})|(?:(?:[0-9a-fA-F]*:[0-9a-fA-F]*){2,}))$
 	IngressVip string `json:"ingress_vip,omitempty"`

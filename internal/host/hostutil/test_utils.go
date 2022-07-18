@@ -22,7 +22,7 @@ func GetHostFromDB(hostId, infraEnvId strfmt.UUID, db *gorm.DB) *common.Host {
 	return &host
 }
 
-func GenerateTestCluster(clusterID strfmt.UUID, machineNetworks []*models.MachineNetwork) common.Cluster {
+func GenerateTestClusterWithMachineNetworks(clusterID strfmt.UUID, machineNetworks []*models.MachineNetwork) common.Cluster {
 	return common.Cluster{
 		Cluster: models.Cluster{
 			ID:              &clusterID,
@@ -37,8 +37,25 @@ func GenerateTestCluster(clusterID strfmt.UUID, machineNetworks []*models.Machin
 	}
 }
 
+func GenerateTestCluster(clusterID strfmt.UUID) common.Cluster {
+	return common.Cluster{
+		Cluster: models.Cluster{
+			Name:            "test-cluster",
+			BaseDNSDomain:   "example.com",
+			ID:              &clusterID,
+			MachineNetworks: common.TestIPv4Networking.MachineNetworks,
+			Platform:        &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeBaremetal)},
+			Kind:            swag.String(models.ClusterKindCluster),
+			DiskEncryption: &models.DiskEncryption{
+				EnableOn: swag.String(models.DiskEncryptionEnableOnNone),
+				Mode:     swag.String(models.DiskEncryptionModeTpmv2),
+			},
+		},
+	}
+}
+
 func GenerateTestClusterWithPlatform(clusterID strfmt.UUID, machineNetworks []*models.MachineNetwork, platform *models.Platform) common.Cluster {
-	cluster := GenerateTestCluster(clusterID, machineNetworks)
+	cluster := GenerateTestClusterWithMachineNetworks(clusterID, machineNetworks)
 	cluster.Platform = platform
 	return cluster
 }
@@ -72,7 +89,7 @@ func GenerateTestHostByKind(hostID, infraEnvID strfmt.UUID, clusterID *strfmt.UU
 		InfraEnvID:      infraEnvID,
 		ClusterID:       clusterID,
 		Status:          swag.String(state),
-		Inventory:       common.GenerateTestDefaultInventory(),
+		Inventory:       common.GenerateTestInventory(),
 		Role:            role,
 		SuggestedRole:   role,
 		Kind:            swag.String(kind),
@@ -83,7 +100,7 @@ func GenerateTestHostByKind(hostID, infraEnvID strfmt.UUID, clusterID *strfmt.UU
 			StageStartedAt: now,
 			StageUpdatedAt: now,
 		},
-		APIVipConnectivity: GenerateTestAPIVIpConnectivity(""),
+		APIVipConnectivity: GenerateTestAPIConnectivityResponseSuccessString(""),
 		Connectivity:       GenerateTestConnectivityReport(),
 	}
 }
@@ -100,7 +117,7 @@ func GenerateTestHostWithInfraEnv(hostID, infraEnvID strfmt.UUID, state string, 
 		CheckedInAt:        now,
 		RegisteredAt:       now,
 		StatusUpdatedAt:    now,
-		APIVipConnectivity: GenerateTestAPIVIpConnectivity(""),
+		APIVipConnectivity: GenerateTestAPIConnectivityResponseSuccessString(""),
 		Connectivity:       GenerateTestConnectivityReport(),
 	}
 }
@@ -123,7 +140,7 @@ func GenerateTestHostWithNetworkAddress(hostID, infraEnvID, clusterID strfmt.UUI
 			StageStartedAt: now,
 			StageUpdatedAt: now,
 		},
-		APIVipConnectivity: GenerateTestAPIVIpConnectivity(""),
+		APIVipConnectivity: GenerateTestAPIConnectivityResponseSuccessString(""),
 	}
 	return &h
 }
@@ -157,15 +174,24 @@ func GenerateL3ConnectivityReport(hosts []*models.Host, latency float64, packetL
 	return &con
 }
 
-func GenerateTestAPIVIpConnectivity(ignition string) string {
+func generateTestAPIVIpConnectivityResponseString(ignition string, isSuccess bool) string {
 	checkAPIResponse := models.APIVipConnectivityResponse{
-		IsSuccess: true,
+		IsSuccess: isSuccess,
 		Ignition:  ignition,
 	}
 	bytes, err := json.Marshal(checkAPIResponse)
 	Expect(err).To(Not(HaveOccurred()))
 	return string(bytes)
 }
+
+func GenerateTestAPIConnectivityResponseSuccessString(ignition string) string {
+	return generateTestAPIVIpConnectivityResponseString(ignition, true)
+}
+
+func GenerateTestAPIConnectivityResponseFailureString(ignition string) string {
+	return generateTestAPIVIpConnectivityResponseString(ignition, false)
+}
+
 func getTangResponse(url string) models.TangServerResponse {
 	return models.TangServerResponse{
 		TangURL: url,
