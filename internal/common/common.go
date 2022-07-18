@@ -410,7 +410,7 @@ func GetAPIHostname(c *Cluster) string {
 func GetMCSUrlBase(cluster *Cluster) string {
 	// URL needs to use api-int DNS name if APIVIP is not set (i.e. platform:none)
 	if cluster.APIVip == "" {
-		return fmt.Sprintf("https://%s.%s:22623", constants.APIInternalName, cluster.BaseDNSDomain)
+		return fmt.Sprintf("https://%s.%s:22623", constants.InternalAPIClusterSubdomain, cluster.BaseDNSDomain)
 	}
 	return fmt.Sprintf("https://%s:22623", cluster.APIVip)
 }

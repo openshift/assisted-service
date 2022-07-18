@@ -1203,6 +1203,7 @@ func (r *ClusterDeploymentsReconciler) TransformClusterToDay2(
 	if err != nil {
 		log.WithError(err).Errorf("failed to transform cluster %s into day2 cluster", cluster.ID.String())
 	}
+	result, err := r.updateStatus(ctx, log, clusterInstall, c, err)
 	if clusterInstall.Spec.IgnitionEndpoint == nil {
 		// Set custom Ignition endpoint so that day2 workers would join using HTTPS endpoint
 		// ensureMCSCert would add ignition override with MCS secret
@@ -1217,7 +1218,7 @@ func (r *ClusterDeploymentsReconciler) TransformClusterToDay2(
 			return ctrl.Result{Requeue: true}, err
 		}
 	}
-	result, err := r.updateStatus(ctx, log, clusterInstall, c, err)
+	log.Infof("TransformClusterToDay2 clusterInstall.APIVIP %s", clusterInstall.Status.APIVIP)
 	log.Infof("TransformClusterToDay2 updateStatus result %v", result)
 	log.Infof("TransformClusterToDay2 updateStatus err %v", err)
 	return result, err
