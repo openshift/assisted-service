@@ -88,6 +88,16 @@ type InfraEnvSpec struct {
 	// +kubebuilder:default=x86_64
 	// +optional
 	CpuArchitecture string `json:"cpuArchitecture,omitempty"`
+
+	// IPXEScriptType the script type that should be served (HostRedirect/Boot)
+	// When the value is HostRedirect, the served script consists from URL redirection (i.e chain <url>).  The
+	// <url> is the same URL that contains query parameter mac=${net0/mac}.  The value is IPXE macro is replaced
+	//  with the mac address.  The mac address is used to identify the invoking script.
+	// When the value is Boot (or default), the served script contains a script that causes the invoker to boot
+	// the discovery ISO from the network.
+	// +kubebuilder:default=Boot
+	// +optional
+	IPXEScriptType IPXEScriptType `json:"ipxeScriptType"`
 }
 
 // Proxy defines the proxy settings for agents and clusters that use the InfraEnv.
@@ -168,6 +178,18 @@ type InfraEnvList struct {
 	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []InfraEnv `json:"items"`
 }
+
+// IPXEScriptType is the script type that should be served (HostRedirect/Boot)
+// +kubebuilder:validation:Enum="";Boot;HostRedirect
+type IPXEScriptType string
+
+const (
+	// HostRedirect - Boot with mac identification redirect script
+	HostRedirect IPXEScriptType = "HostRedirect"
+
+	// Boot - Boot from network
+	Boot IPXEScriptType = "Boot"
+)
 
 func init() {
 	SchemeBuilder.Register(&InfraEnv{}, &InfraEnvList{})

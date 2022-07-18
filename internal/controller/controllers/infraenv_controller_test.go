@@ -210,6 +210,120 @@ var _ = Describe("infraEnv reconcile", func() {
 		Expect(infraEnvImage.Status.InfraEnvDebugInfo.EventsURL).To(HavePrefix(eventURL))
 	})
 
+	It("IPXE with HostRedirect script type", func() {
+		dbInfraEnv := &common.InfraEnv{
+			GeneratedAt: strfmt.DateTime(time.Now()),
+			InfraEnv: models.InfraEnv{
+				ID:              &sId,
+				CPUArchitecture: infraEnvArch,
+				DownloadURL:     "https://images.example.com/images/best-image",
+			},
+		}
+		mockInstallerInternal.EXPECT().GetInfraEnvByKubeKey(gomock.Any()).Return(backendInfraEnv, nil)
+		mockInstallerInternal.EXPECT().UpdateInfraEnvInternal(gomock.Any(), gomock.Any(), nil).Return(dbInfraEnv, nil).Times(1)
+		kubeInfraEnv := newInfraEnvImage("myInfraEnv", testNamespace, aiv1beta1.InfraEnvSpec{
+			PullSecretRef:  &corev1.LocalObjectReference{Name: "pull-secret"},
+			IPXEScriptType: aiv1beta1.HostRedirect,
+		})
+		Expect(c.Create(ctx, kubeInfraEnv)).To(Succeed())
+
+		_, err := ir.Reconcile(ctx, newInfraEnvRequest(kubeInfraEnv))
+		Expect(err).ToNot(HaveOccurred())
+
+		key := types.NamespacedName{
+			Namespace: testNamespace,
+			Name:      "myInfraEnv",
+		}
+		Expect(c.Get(ctx, key, kubeInfraEnv)).To(BeNil())
+
+		kernelURL, err := url.Parse(kubeInfraEnv.Status.BootArtifacts.KernelURL)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(kernelURL.Scheme).To(Equal("https"))
+		Expect(kernelURL.Host).To(Equal("images.example.com"))
+		Expect(kernelURL.Query().Get("arch")).To(Equal(infraEnvArch))
+		Expect(kernelURL.Query().Get("version")).To(Equal(ocpVersion))
+
+		rootfsURL, err := url.Parse(kubeInfraEnv.Status.BootArtifacts.RootfsURL)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(rootfsURL.Scheme).To(Equal("https"))
+		Expect(rootfsURL.Host).To(Equal("images.example.com"))
+		Expect(rootfsURL.Query().Get("arch")).To(Equal(infraEnvArch))
+		Expect(rootfsURL.Query().Get("version")).To(Equal(ocpVersion))
+
+		initrdURL, err := url.Parse(kubeInfraEnv.Status.BootArtifacts.InitrdURL)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(initrdURL.Scheme).To(Equal("https"))
+		Expect(initrdURL.Host).To(Equal("images.example.com"))
+		Expect(initrdURL.Path).To(ContainSubstring(sId.String()))
+		Expect(initrdURL.Query().Get("arch")).To(Equal(infraEnvArch))
+		Expect(initrdURL.Query().Get("version")).To(Equal(ocpVersion))
+
+		scriptURL, err := url.Parse(kubeInfraEnv.Status.BootArtifacts.IpxeScriptURL)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(scriptURL.Scheme).To(Equal("https"))
+		Expect(scriptURL.Host).To(Equal("www.acme.com"))
+		Expect(scriptURL.Path).To(ContainSubstring(sId.String()))
+		Expect(scriptURL.Query().Get("file_name")).To(Equal("ipxe-script"))
+		Expect(scriptURL.Query().Get("boot_control")).To(Equal("true"))
+	})
+
+	It("IPXE with Boot script type", func() {
+		dbInfraEnv := &common.InfraEnv{
+			GeneratedAt: strfmt.DateTime(time.Now()),
+			InfraEnv: models.InfraEnv{
+				ID:              &sId,
+				CPUArchitecture: infraEnvArch,
+				DownloadURL:     "https://images.example.com/images/best-image",
+			},
+		}
+		mockInstallerInternal.EXPECT().GetInfraEnvByKubeKey(gomock.Any()).Return(backendInfraEnv, nil)
+		mockInstallerInternal.EXPECT().UpdateInfraEnvInternal(gomock.Any(), gomock.Any(), nil).Return(dbInfraEnv, nil).Times(1)
+		kubeInfraEnv := newInfraEnvImage("myInfraEnv", testNamespace, aiv1beta1.InfraEnvSpec{
+			PullSecretRef:  &corev1.LocalObjectReference{Name: "pull-secret"},
+			IPXEScriptType: aiv1beta1.Boot,
+		})
+		Expect(c.Create(ctx, kubeInfraEnv)).To(Succeed())
+
+		_, err := ir.Reconcile(ctx, newInfraEnvRequest(kubeInfraEnv))
+		Expect(err).ToNot(HaveOccurred())
+
+		key := types.NamespacedName{
+			Namespace: testNamespace,
+			Name:      "myInfraEnv",
+		}
+		Expect(c.Get(ctx, key, kubeInfraEnv)).To(BeNil())
+
+		kernelURL, err := url.Parse(kubeInfraEnv.Status.BootArtifacts.KernelURL)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(kernelURL.Scheme).To(Equal("https"))
+		Expect(kernelURL.Host).To(Equal("images.example.com"))
+		Expect(kernelURL.Query().Get("arch")).To(Equal(infraEnvArch))
+		Expect(kernelURL.Query().Get("version")).To(Equal(ocpVersion))
+
+		rootfsURL, err := url.Parse(kubeInfraEnv.Status.BootArtifacts.RootfsURL)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(rootfsURL.Scheme).To(Equal("https"))
+		Expect(rootfsURL.Host).To(Equal("images.example.com"))
+		Expect(rootfsURL.Query().Get("arch")).To(Equal(infraEnvArch))
+		Expect(rootfsURL.Query().Get("version")).To(Equal(ocpVersion))
+
+		initrdURL, err := url.Parse(kubeInfraEnv.Status.BootArtifacts.InitrdURL)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(initrdURL.Scheme).To(Equal("https"))
+		Expect(initrdURL.Host).To(Equal("images.example.com"))
+		Expect(initrdURL.Path).To(ContainSubstring(sId.String()))
+		Expect(initrdURL.Query().Get("arch")).To(Equal(infraEnvArch))
+		Expect(initrdURL.Query().Get("version")).To(Equal(ocpVersion))
+
+		scriptURL, err := url.Parse(kubeInfraEnv.Status.BootArtifacts.IpxeScriptURL)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(scriptURL.Scheme).To(Equal("https"))
+		Expect(scriptURL.Host).To(Equal("www.acme.com"))
+		Expect(scriptURL.Path).To(ContainSubstring(sId.String()))
+		Expect(scriptURL.Query().Get("file_name")).To(Equal("ipxe-script"))
+		Expect(scriptURL.Query().Has("boot_control")).To(BeFalse())
+	})
+
 	It("sets boot artifact URLs correctly", func() {
 		dbInfraEnv := &common.InfraEnv{
 			GeneratedAt: strfmt.DateTime(time.Now()),
@@ -263,6 +377,7 @@ var _ = Describe("infraEnv reconcile", func() {
 		Expect(scriptURL.Host).To(Equal("www.acme.com"))
 		Expect(scriptURL.Path).To(ContainSubstring(sId.String()))
 		Expect(scriptURL.Query().Get("file_name")).To(Equal("ipxe-script"))
+		Expect(scriptURL.Query().Has("boot_control")).To(BeFalse())
 	})
 
 	Context("with local auth", func() {
