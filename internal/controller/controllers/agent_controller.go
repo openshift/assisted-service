@@ -59,9 +59,16 @@ import (
 )
 
 const (
-	AgentFinalizerName   = "agent." + aiv1beta1.Group + "/ai-deprovision"
-	BaseLabelPrefix      = aiv1beta1.Group + "/"
-	InventoryLabelPrefix = "inventory." + BaseLabelPrefix
+	AgentFinalizerName                   = "agent." + aiv1beta1.Group + "/ai-deprovision"
+	BaseLabelPrefix                      = aiv1beta1.Group + "/"
+	InventoryLabelPrefix                 = "inventory." + BaseLabelPrefix
+	AgentLabelHasNonrotationalDisk       = InventoryLabelPrefix + "storage-hasnonrotationaldisk"
+	AgentLabelCpuArchitecture            = InventoryLabelPrefix + "cpu-architecture"
+	AgentLabelCpuVirtEnabled             = InventoryLabelPrefix + "cpu-virtenabled"
+	AgentLabelHostManufacturer           = InventoryLabelPrefix + "host-manufacturer"
+	AgentLabelHostProductName            = InventoryLabelPrefix + "host-productname"
+	AgentLabelHostIsVirtual              = InventoryLabelPrefix + "host-isvirtual"
+	AgentLabelClusterDeploymentNamespace = BaseLabelPrefix + "clusterdeployment-namespace"
 )
 
 // AgentReconciler reconciles a Agent object
@@ -1001,18 +1008,18 @@ func (r *AgentReconciler) updateLabels(log logrus.FieldLogger, ctx context.Conte
 
 	changed := false
 	changed = setAgentAnnotation(log, agent, InventoryLabelPrefix+"version", "0.1") || changed
-	changed = setAgentLabel(log, agent, InventoryLabelPrefix+"storage-hasnonrotationaldisk", strconv.FormatBool(hasSSD)) || changed
-	changed = setAgentLabel(log, agent, InventoryLabelPrefix+"cpu-architecture", inventory.Cpu.Architecture) || changed
-	changed = setAgentLabel(log, agent, InventoryLabelPrefix+"cpu-virtenabled", strconv.FormatBool(hasVirt)) || changed
-	changed = setAgentLabel(log, agent, InventoryLabelPrefix+"host-manufacturer", inventory.SystemVendor.Manufacturer) || changed
-	changed = setAgentLabel(log, agent, InventoryLabelPrefix+"host-productname", inventory.SystemVendor.ProductName) || changed
-	changed = setAgentLabel(log, agent, InventoryLabelPrefix+"host-isvirtual", strconv.FormatBool(inventory.SystemVendor.Virtual)) || changed
+	changed = setAgentLabel(log, agent, AgentLabelHasNonrotationalDisk, strconv.FormatBool(hasSSD)) || changed
+	changed = setAgentLabel(log, agent, AgentLabelCpuArchitecture, inventory.Cpu.Architecture) || changed
+	changed = setAgentLabel(log, agent, AgentLabelCpuVirtEnabled, strconv.FormatBool(hasVirt)) || changed
+	changed = setAgentLabel(log, agent, AgentLabelHostManufacturer, inventory.SystemVendor.Manufacturer) || changed
+	changed = setAgentLabel(log, agent, AgentLabelHostProductName, inventory.SystemVendor.ProductName) || changed
+	changed = setAgentLabel(log, agent, AgentLabelHostIsVirtual, strconv.FormatBool(inventory.SystemVendor.Virtual)) || changed
 
 	namespace := ""
 	if agent.Spec.ClusterDeploymentName != nil {
 		namespace = agent.Spec.ClusterDeploymentName.Namespace
 	}
-	changed = setAgentLabel(log, agent, BaseLabelPrefix+"clusterdeployment-namespace", namespace) || changed
+	changed = setAgentLabel(log, agent, AgentLabelClusterDeploymentNamespace, namespace) || changed
 
 	if changed {
 		if err := r.Update(ctx, agent); err != nil {
