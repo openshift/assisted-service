@@ -288,9 +288,9 @@ var _ = Describe("Infra_Env", func() {
 	})
 
 	It("fails when given invalid static network config", func() {
-		Skip("Static Network Config test is currently a WIP")
+		netYaml := "interfaces:\n    - foo: badConfig"
 		staticNetworkConfig := models.HostStaticNetworkConfig{
-			NetworkYaml: "aaaaa",
+			NetworkYaml: netYaml,
 		}
 		staticNetworkConfigs := []*models.HostStaticNetworkConfig{&staticNetworkConfig}
 		updateParams := &installer.UpdateInfraEnvParams{
