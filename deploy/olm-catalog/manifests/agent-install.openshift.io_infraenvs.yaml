@@ -79,6 +79,21 @@ spec:
                 description: Json formatted string containing the user overrides for
                   the initial ignition config
                 type: string
+              ipxeScriptType:
+                default: Boot
+                description: IPXEScriptType the script type that should be served
+                  (HostRedirect/Boot) When the value is HostRedirect, the served script
+                  consists from URL redirection (i.e chain <url>).  The <url> is the
+                  same URL that contains query parameter mac=${net0/mac}.  The value
+                  is IPXE macro is replaced  with the mac address.  The mac address
+                  is used to identify the invoking script. When the value is Boot
+                  (or default), the served script contains a script that causes the
+                  invoker to boot the discovery ISO from the network.
+                enum:
+                - ""
+                - Boot
+                - HostRedirect
+                type: string
               nmStateConfigLabelSelector:
                 description: NmstateConfigLabelSelector associates NMStateConfigs
                   for hosts that are considered part of this installation environment.
