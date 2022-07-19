@@ -469,7 +469,7 @@ func (b *bareMetalInventory) V2ListFeatureSupportLevels(ctx context.Context, par
 
 func (b *bareMetalInventory) V2ImportCluster(ctx context.Context, params installer.V2ImportClusterParams) middleware.Responder {
 	id := strfmt.UUID(uuid.New().String())
-	c, err := b.V2ImportClusterInternal(ctx, nil, &id, params, true)
+	c, err := b.V2ImportClusterInternal(ctx, nil, &id, params)
 	if err != nil {
 		return common.GenerateErrorResponder(err)
 	}
