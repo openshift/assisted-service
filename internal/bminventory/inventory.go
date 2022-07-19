@@ -4480,12 +4480,6 @@ func (b *bareMetalInventory) V2RegisterHost(ctx context.Context, params installe
 		}
 	}()
 
-	infraEnv, err := common.GetInfraEnvFromDB(transaction.AddForUpdateQueryOption(tx), params.InfraEnvID)
-	if err != nil {
-		log.WithError(err).Errorf("failed to get infra env: %s", params.InfraEnvID)
-		return common.GenerateErrorResponder(err)
-	}
-
 	dbHost, err := common.GetHostFromDB(transaction.AddForUpdateQueryOption(tx), params.InfraEnvID.String(), params.NewHostParams.HostID.String())
 	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 		log.WithError(err).Errorf("failed to get host %s in infra-env: %s",
@@ -4496,6 +4490,11 @@ func (b *bareMetalInventory) V2RegisterHost(ctx context.Context, params installe
 
 	// In case host doesn't exists check if the cluster accept new hosts registration
 	newRecord := err != nil && errors.Is(err, gorm.ErrRecordNotFound)
+	infraEnv, err := common.GetInfraEnvFromDB(tx, params.InfraEnvID)
+	if err != nil {
+		log.WithError(err).Errorf("failed to get infra env: %s", params.InfraEnvID)
+		return common.GenerateErrorResponder(err)
+	}
 
 	url := installer.V2GetHostURL{InfraEnvID: params.InfraEnvID, HostID: *params.NewHostParams.HostID}
 	kind := swag.String(models.HostKindHost)
@@ -4575,7 +4574,7 @@ func (b *bareMetalInventory) V2RegisterHost(ctx context.Context, params installe
 	//re-calculation occurs only when the host is bound to a multi-node
 	//day 1 cluster and more hosts are present.
 	if triggerAutoAssign {
-		if reset_err := b.resetAutoAssignRoles(ctx, tx, cluster, log, true); reset_err != nil {
+		if reset_err := b.resetAutoAssignRoles(ctx, tx, cluster, log, false); reset_err != nil {
 			return common.GenerateErrorResponder(reset_err)
 		}
 	}
