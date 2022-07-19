@@ -53,9 +53,7 @@ def main():
                                                                             namespace=deploy_options.namespace,
                                                                             disable_tls=deploy_options.disable_tls,
                                                                             check_connection=True))
-        parsed_url = urlparse(image_service_base_url)
-        raw_data = raw_data.replace('REPLACE_IMAGE_SERVICE_SCHEME', parsed_url.scheme)
-        raw_data = raw_data.replace('REPLACE_IMAGE_SERVICE_HOST', parsed_url.netloc)
+        raw_data = raw_data.replace('REPLACE_IMAGE_SERVICE_BASE_URL', image_service_base_url)
 
         data = yaml.safe_load(raw_data)
         log.info(data)

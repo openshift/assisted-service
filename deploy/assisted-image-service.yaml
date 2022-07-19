@@ -51,10 +51,8 @@ items:
                 value: http
               - name: ASSISTED_SERVICE_HOST
                 value: assisted-service:8090
-              - name: IMAGE_SERVICE_SCHEME
-                value: REPLACE_IMAGE_SERVICE_SCHEME
-              - name: IMAGE_SERVICE_HOST
-                value: REPLACE_IMAGE_SERVICE_HOST
+              - name: IMAGE_SERVICE_BASE_URL
+                value: REPLACE_IMAGE_SERVICE_BASE_URL
               - name: ALLOWED_DOMAINS
                 value: "*"
         serviceAccountName: assisted-service

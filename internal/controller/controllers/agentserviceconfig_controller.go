@@ -1040,7 +1040,7 @@ func (r *AgentServiceConfigReconciler) newImageServiceStatefulSet(ctx context.Co
 		"app": imageServiceName,
 	}
 
-	imageServiceScheme, imageServiceHost := r.getImageService(ctx, log)
+	imageServiceBaseURL := r.getImageService(ctx, log)
 
 	container := corev1.Container{
 		Name:  imageServiceName,
@@ -1064,8 +1064,7 @@ func (r *AgentServiceConfigReconciler) newImageServiceStatefulSet(ctx context.Co
 			{Name: "HTTPS_CA_FILE", Value: "/etc/image-service/ca-bundle/service-ca.crt"},
 			{Name: "ASSISTED_SERVICE_SCHEME", Value: "https"},
 			{Name: "ASSISTED_SERVICE_HOST", Value: serviceName + "." + r.Namespace + ".svc:" + servicePort.String()},
-			{Name: "IMAGE_SERVICE_SCHEME", Value: imageServiceScheme},
-			{Name: "IMAGE_SERVICE_HOST", Value: imageServiceHost},
+			{Name: "IMAGE_SERVICE_BASE_URL", Value: imageServiceBaseURL},
 			{Name: "INSECURE_SKIP_VERIFY", Value: skipVerifyTLS},
 			{Name: "DATA_DIR", Value: "/data"},
 		},
@@ -2238,18 +2237,11 @@ func getStorageRequests(pvcSpec *corev1.PersistentVolumeClaimSpec) map[corev1.Re
 	return requests
 }
 
-func (r *AgentServiceConfigReconciler) getImageService(ctx context.Context, log logrus.FieldLogger) (string, string) {
+func (r *AgentServiceConfigReconciler) getImageService(ctx context.Context, log logrus.FieldLogger) string {
 	imageServiceURL, err := r.urlForRoute(ctx, imageServiceName)
 	if err != nil {
 		log.WithError(err).Warnf("Failed to get URL for route %s", imageServiceName)
-		return "", ""
+		return ""
 	}
-
-	imageServiceBaseURL, err := url.Parse(imageServiceURL)
-	if err != nil {
-		log.WithError(err).Warnf("failed to parse image service base URL")
-		return "", ""
-	}
-
-	return imageServiceBaseURL.Scheme, imageServiceBaseURL.Host
+	return imageServiceURL
 }
