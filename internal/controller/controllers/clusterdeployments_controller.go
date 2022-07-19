@@ -1589,7 +1589,7 @@ func (r *ClusterDeploymentsReconciler) getNumOfClusterAgents(c *common.Cluster) 
 func findAgentsByAgentClusterInstall(k8sclient client.Client, ctx context.Context, log logrus.FieldLogger, aci *hiveext.AgentClusterInstall) ([]aiv1beta1.Agent, error) {
 	agentList := aiv1beta1.AgentList{}
 	agents := []aiv1beta1.Agent{}
-	err := k8sclient.List(ctx, &agentList, client.MatchingLabels{aiv1beta1.Group + "/clusterdeployment-namespace": aci.Namespace})
+	err := k8sclient.List(ctx, &agentList, client.MatchingLabels{AgentLabelClusterDeploymentNamespace: aci.Namespace})
 
 	if err != nil {
 		return agents, err
