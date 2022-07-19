@@ -12,12 +12,12 @@
     "units": [{
       "name": "agent.service",
       "enabled": {{if .EnableAgentService}}true{{else}}false{{end}},
-      "contents": {{ executeTemplate "agent.service" . | toJson }}
+      "contents": {{ executeTemplate "agent.service" . | toString | toJson }}
     },
     {
         "name": "selinux.service",
         "enabled": true,
-        "contents": {{ executeTemplate "selinux.service" . | toJson }}
+        "contents": {{ executeTemplate "selinux.service" . | toString | toJson }}
     }{{if .OKDBinaries | not}},
     {
         "name": "multipathd.service",
@@ -26,17 +26,17 @@
     {
         "name": "pre-network-manager-config.service",
         "enabled": true,
-        "contents": {{ executeTemplate "pre-network-manager-config.service" . | toJson }}
+        "contents": {{ executeTemplate "pre-network-manager-config.service" . | toString | toJson }}
     }{{end}}{{if .OKDBinaries}},
     {
         "name": "okd-overlay.service",
         "enabled": true,
-        "contents": {{ executeTemplate "okd-overlay.service" . | toJson }}
+        "contents": {{ executeTemplate "okd-overlay.service" . | toString | toJson }}
     },
     {
         "name": "systemd-journal-gatewayd.socket",
         "enabled": true,
-        "contents": {{ executeTemplate "systemd-journal-gatewayd.socket" . | toJson }}
+        "contents": {{ executeTemplate "systemd-journal-gatewayd.socket" . | toString | toJson }}
     }{{end}}
     ]
   },
