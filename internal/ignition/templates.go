@@ -3,6 +3,7 @@ package ignition
 import (
 	"bytes"
 	"embed"
+	"encoding/base64"
 	"encoding/json"
 	"text/template"
 )
@@ -12,12 +13,13 @@ var templatesFS embed.FS
 
 // loadTemplates loads the templates from the embedded 'templates' directory.
 //
-// In addition to the default functions the templates will also have available the 'executeTemplate'
-// and 'toJson' functions.
+// In addition to the default functions the templates will also have available the
+// 'executeTemplate', 'toJson' and 'toBase64' functions.
 func loadTemplates() (result *template.Template, err error) {
 	initial := template.New("")
 	initial.Funcs(template.FuncMap{
 		"executeTemplate": makeExecuteTemplateFunc(initial),
+		"toBase64":        toBase64Func,
 		"toJson":          toJsonFunc,
 	})
 	_, err = initial.ParseFS(templatesFS, "templates/*")
@@ -81,4 +83,9 @@ func toJsonFunc(data interface{}) (result string, err error) {
 	}
 	result = string(text)
 	return
+}
+
+// toBase64 is a template function that encodes the given data using Base64.
+func toBase64Func(data string) string {
+	return base64.StdEncoding.EncodeToString([]byte(data))
 }
