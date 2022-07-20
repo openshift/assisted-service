@@ -83,6 +83,14 @@ const (
 	MediaDisconnected int64 = 256
 	// 125 is the generic exit code for cases the error is in podman / docker and not the container we tried to run
 	ContainerAlreadyRunningExitCode = 125
+
+	// The following constants are controlling the script type served for iPXE
+
+	// Always boot the discovery ISO when using iPXE
+	DiscoveryImageAlways = "discovery-image-always"
+
+	// Apply boot order control when using iPXE
+	BootOrderControl = "boot-order-control"
 )
 
 type Config struct {
@@ -5093,8 +5101,8 @@ func (b *bareMetalInventory) V2UpdateHostIgnitionInternal(ctx context.Context, p
 }
 
 func (b *bareMetalInventory) V2DownloadInfraEnvFiles(ctx context.Context, params installer.V2DownloadInfraEnvFilesParams) middleware.Responder {
-	if swag.BoolValue(params.BootControl) && params.FileName != "ipxe-script" {
-		return common.NewApiError(http.StatusBadRequest, errors.New(`boot_control can be set only for "ipxe-script"`))
+	if params.IpxeScriptType != nil && params.FileName != "ipxe-script" {
+		return common.NewApiError(http.StatusBadRequest, errors.New(`"ipxe_script_type"" can be set only for "ipxe-script"`))
 	}
 	infraEnv, err := common.GetInfraEnvFromDB(b.db, params.InfraEnvID)
 	if err != nil {
@@ -5112,7 +5120,7 @@ func (b *bareMetalInventory) V2DownloadInfraEnvFiles(ctx context.Context, params
 		}
 		filename = params.FileName
 	case "ipxe-script":
-		content, err = b.infraEnvIPXEScript(ctx, infraEnv, params.Mac, swag.BoolValue(params.BootControl))
+		content, err = b.infraEnvIPXEScript(ctx, infraEnv, params.Mac, params.IpxeScriptType)
 		if err != nil {
 			b.log.WithError(err).Error("Failed to create ipxe script")
 			return common.GenerateErrorResponder(err)

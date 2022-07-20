@@ -534,8 +534,8 @@ func (r *InfraEnvReconciler) setSignedBootArtifactURLs(infraEnv *aiv1beta1.Infra
 		InfraEnvID: strfmt.UUID(infraEnvID),
 		FileName:   "ipxe-script",
 	}
-	if infraEnv.Spec.IPXEScriptType == aiv1beta1.HostRedirect {
-		builder.BootControl = swag.Bool(true)
+	if infraEnv.Spec.IPXEScriptType == aiv1beta1.BootOrderControl {
+		builder.IpxeScriptType = swag.String(bminventory.BootOrderControl)
 	}
 	filesURL, err := builder.Build()
 	if err != nil {
