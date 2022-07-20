@@ -1348,8 +1348,6 @@ func (v *validator) canDetermineImportedClusterManagedNetworking(cluster *common
 // If our SNO dnsmaq hack is enabled (ENABLE_SINGLE_NODE_DNSMASQ), then day-1
 // SNO clusters are an exception to the rule above. Our dnsmasq hack is enabled
 // for OCP and disabled for OKD.
-//
-// Notes about cluster base DNS domain -
 func (v *validator) shouldValidateDNSResolution(cluster *common.Cluster) (bool, ValidationStatus) {
 	var hasManagedNetworking bool
 	if !common.IsImportedCluster(cluster) {
