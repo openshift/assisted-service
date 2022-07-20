@@ -39,7 +39,7 @@ var _ = Describe("Host tests", func() {
 		infraEnvID = registerInfraEnv(&clusterID, models.ImageTypeMinimalIso).ID
 	})
 
-	It("host CRUD", func() {
+	Describe("host CRUD", func() {
 		host := &registerHost(*infraEnvID).Host
 		host = getHostV2(*infraEnvID, *host.ID)
 		Expect(*host.Status).Should(Equal("discovering"))
