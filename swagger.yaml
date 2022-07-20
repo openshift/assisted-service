@@ -4887,10 +4887,6 @@ definitions:
     properties:
       type:
         $ref: '#/definitions/platform_type'
-      ovirt:
-        type: object
-        $ref: '#/definitions/ovirt-platform'
-        x-nullable: true
 
   image_info:
     type: object

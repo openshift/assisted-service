@@ -35,48 +35,6 @@ var (
 
 const invalidInventory = "{\"system_vendor\": \"invalid\"}"
 
-const ovirtFqdn = "ovirt.example.com"
-const ovirtUsername = "admin@internal"
-const ovirtPassword = "redhat"
-const ovirtClusterID = "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
-const ovirtStorageDomainID = "yyyyyyyy-yyyy-yyyy-yyyy-yyyyyyyyyyyy"
-const ovirtNetworkName = "ovirtmgmt"
-const ovirtVnicProfileID = "zzzzzzzz-zzzz-zzzz-zzzz-zzzzzzzzzzzz"
-const ovirtInsecure = false
-const ovirtCaBundle = `
-subject=C = US, ST = North Carolina, L = Raleigh, O = "Red Hat, Inc.",\
-OU = Red Hat IT, CN = Red Hat IT Root CA, emailAddress = infosec@redhat.com
-
-issuer=C = US, ST = North Carolina, L = Raleigh, O = "Red Hat, Inc.",\
-OU = Red Hat IT, CN = Red Hat IT Root CA, emailAddress = infosec@redhat.com
-
------BEGIN CERTIFICATE-----
-MIIENDCCAxygAwIBAgIJANunI0D662cnMA0GCSqGSIb3DQEBCwUAMIGlMQswCQYD
-VQQGEwJVUzEXMBUGA1UECAwOTm9ydGggQ2Fyb2xpbmExEDAOBgNVBAcMB1JhbGVp
-Z2gxFjAUBgNVBAoMDVJlZCBIYXQsIEluYy4xEzARBgNVBAsMClJlZCBIYXQgSVQx
-GzAZBgNVBAMMElJlZCBIYXQgSVQgUm9vdCBDQTEhMB8GCSqGSIb3DQEJARYSaW5m
-b3NlY0ByZWRoYXQuY29tMCAXDTE1MDcwNjE3MzgxMVoYDzIwNTUwNjI2MTczODEx
-WjCBpTELMAkGA1UEBhMCVVMxFzAVBgNVBAgMDk5vcnRoIENhcm9saW5hMRAwDgYD
-VQQHDAdSYWxlaWdoMRYwFAYDVQQKDA1SZWQgSGF0LCBJbmMuMRMwEQYDVQQLDApS
-ZWQgSGF0IElUMRswGQYDVQQDDBJSZWQgSGF0IElUIFJvb3QgQ0ExITAfBgkqhkiG
-9w0BCQEWEmluZm9zZWNAcmVkaGF0LmNvbTCCASIwDQYJKoZIhvcNAQEBBQADggEP
-ADCCAQoCggEBALQt9OJQh6GC5LT1g80qNh0u50BQ4sZ/yZ8aETxt+5lnPVX6MHKz
-bfwI6nO1aMG6j9bSw+6UUyPBHP796+FT/pTS+K0wsDV7c9XvHoxJBJJU38cdLkI2
-c/i7lDqTfTcfLL2nyUBd2fQDk1B0fxrskhGIIZ3ifP1Ps4ltTkv8hRSob3VtNqSo
-GxkKfvD2PKjTPxDPWYyruy9irLZioMffi3i/gCut0ZWtAyO3MVH5qWF/enKwgPES
-X9po+TdCvRB/RUObBaM761EcrLSM1GqHNueSfqnho3AjLQ6dBnPWlo638Zm1VebK
-BELyhkLWMSFkKwDmne0jQ02Y4g075vCKvCsCAwEAAaNjMGEwHQYDVR0OBBYEFH7R
-4yC+UehIIPeuL8Zqw3PzbgcZMB8GA1UdIwQYMBaAFH7R4yC+UehIIPeuL8Zqw3Pz
-bgcZMA8GA1UdEwEB/wQFMAMBAf8wDgYDVR0PAQH/BAQDAgGGMA0GCSqGSIb3DQEB
-CwUAA4IBAQBDNvD2Vm9sA5A9AlOJR8+en5Xz9hXcxJB5phxcZQ8jFoG04Vshvd0e
-LEnUrMcfFgIZ4njMKTQCM4ZFUPAieyLx4f52HuDopp3e5JyIMfW+KFcNIpKwCsak
-oSoKtIUOsUJK7qBVZxcrIyeQV2qcYOeZhtS5wBqIwOAhFwlCET7Ze58QHmS48slj
-S9K0JAcps2xdnGu0fkzhSQxY8GPQNFTlr6rYld5+ID/hHeS76gq0YG3q6RLWRkHf
-4eTkRjivAlExrFzKcljC4axKQlnOvVAzz+Gm32U0xPBF4ByePVxCJUHw1TsyTmel
-RxNEp7yHoXcwn+fXna+t5JWh1gxUZty3
------END CERTIFICATE-----
-`
-
 const masterMachineManifestTemplate = `
 apiVersion: machine.openshift.io/v1beta1
 kind: Machine
@@ -398,10 +356,10 @@ var _ = Describe("Test AddPlatformToInstallConfig", func() {
 			Expect(cfg.Platform.Ovirt).ToNot(BeNil())
 			Expect(cfg.Platform.Ovirt.APIVIP).To(Equal(cluster.Cluster.APIVip))
 			Expect(cfg.Platform.Ovirt.IngressVIP).To(Equal(cluster.Cluster.IngressVip))
-			Expect(cfg.Platform.Ovirt.ClusterID.String()).To(Equal(ovirtClusterID))
-			Expect(cfg.Platform.Ovirt.StorageDomainID.String()).To(Equal(ovirtStorageDomainID))
-			Expect(cfg.Platform.Ovirt.NetworkName).To(Equal(ovirtNetworkName))
-			Expect(cfg.Platform.Ovirt.VnicProfileID.String()).To(Equal(ovirtVnicProfileID))
+			Expect(cfg.Platform.Ovirt.ClusterID.String()).To(Equal(ovirt.PhOvirtClusterID))
+			Expect(cfg.Platform.Ovirt.StorageDomainID.String()).To(Equal(ovirt.PhStorageDomainID))
+			Expect(cfg.Platform.Ovirt.NetworkName).To(Equal(ovirt.PhNetworkName))
+			Expect(cfg.Platform.Ovirt.VnicProfileID.String()).To(Equal(ovirt.PhVnicProfileID))
 		})
 		It("without cluster params", func() {
 			cfg := getInstallerConfigBaremetal()
@@ -414,46 +372,9 @@ var _ = Describe("Test AddPlatformToInstallConfig", func() {
 			hosts = append(hosts, createHost(false, models.HostStatusKnown, getOvirtInventoryStr("hostname4", "bootMode", true, false)))
 			cluster := createClusterFromHosts(hosts)
 			cluster.Platform = createOvirtPlatformParams()
-			cluster.Platform.Ovirt = nil
 			err := providerRegistry.AddPlatformToInstallConfig(models.PlatformTypeOvirt, &cfg, &cluster)
 			Expect(err).To(BeNil())
-			Expect(cfg.Platform.Ovirt).To(BeNil())
-		})
-	})
-})
-
-var _ = Describe("Test SetPlatformValuesInDBUpdates", func() {
-	BeforeEach(func() {
-		providerRegistry = InitProviderRegistry(common.GetTestLog())
-		ctrl = gomock.NewController(GinkgoT())
-	})
-	Context("Unregistered Provider", func() {
-		It("try to with an unregistered provider", func() {
-			dummyProvider := models.PlatformType("dummy")
-			err := providerRegistry.SetPlatformValuesInDBUpdates(dummyProvider, nil, nil)
-			Expect(err).ToNot(BeNil())
-		})
-	})
-	Context("ovirt", func() {
-		It("set from empty updates", func() {
-			platformParams := createOvirtPlatformParams()
-			updates := make(map[string]interface{})
-			err := providerRegistry.SetPlatformValuesInDBUpdates(models.PlatformTypeOvirt, platformParams, updates)
-			Expect(err).To(BeNil())
-			Expect(updates).ShouldNot(BeNil())
-			Expect(updates[ovirt.DbFieldUsername]).To(Equal(platformParams.Ovirt.Username))
-		})
-		It("switch from ovirt to bare metal", func() {
-			platformParams := createOvirtPlatformParams()
-			updates := make(map[string]interface{})
-			err := providerRegistry.SetPlatformValuesInDBUpdates(models.PlatformTypeOvirt, platformParams, updates)
-			Expect(err).To(BeNil())
-			Expect(updates).ShouldNot(BeNil())
-			Expect(updates[ovirt.DbFieldUsername]).To(Equal(platformParams.Ovirt.Username))
-			err = providerRegistry.SetPlatformValuesInDBUpdates(models.PlatformTypeBaremetal, platformParams, updates)
-			Expect(err).To(BeNil())
-			Expect(updates).ShouldNot(BeNil())
-			Expect(updates[ovirt.DbFieldUsername]).To(BeNil())
+			Expect(cfg.Platform.Ovirt).NotTo(BeNil())
 		})
 	})
 })
@@ -470,30 +391,28 @@ var _ = Describe("Test SetPlatformUsages", func() {
 	Context("Unregistered Provider", func() {
 		It("try to with an unregistered provider", func() {
 			dummyProvider := models.PlatformType("dummy")
-			err := providerRegistry.SetPlatformUsages(dummyProvider, nil, nil, usageApi)
+			err := providerRegistry.SetPlatformUsages(dummyProvider, nil, usageApi)
 			Expect(err).ToNot(BeNil())
 		})
 	})
 	Context("baremetal", func() {
 		It("success", func() {
 			usageApi.EXPECT().Remove(gomock.Any(), gomock.Any()).AnyTimes()
-			err := providerRegistry.SetPlatformUsages(models.PlatformTypeBaremetal, nil, nil, usageApi)
+			err := providerRegistry.SetPlatformUsages(models.PlatformTypeBaremetal, nil, usageApi)
 			Expect(err).To(BeNil())
 		})
 	})
 	Context("vsphere", func() {
 		It("success", func() {
 			usageApi.EXPECT().Add(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
-			platformParams := createVspherePlatformParams()
-			err := providerRegistry.SetPlatformUsages(models.PlatformTypeVsphere, platformParams, nil, usageApi)
+			err := providerRegistry.SetPlatformUsages(models.PlatformTypeVsphere, nil, usageApi)
 			Expect(err).To(BeNil())
 		})
 	})
 	Context("ovirt", func() {
 		It("success", func() {
 			usageApi.EXPECT().Add(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
-			platformParams := createOvirtPlatformParams()
-			err := providerRegistry.SetPlatformUsages(models.PlatformTypeOvirt, platformParams, nil, usageApi)
+			err := providerRegistry.SetPlatformUsages(models.PlatformTypeOvirt, nil, usageApi)
 			Expect(err).To(BeNil())
 		})
 	})
@@ -504,7 +423,6 @@ var _ = Describe("Test Hooks", func() {
 		vm      ovirtclient.VM
 		workDir string
 		envVars []string
-		content []byte
 		err     error
 	)
 	BeforeEach(func() {
@@ -542,19 +460,12 @@ var _ = Describe("Test Hooks", func() {
 		cluster := createClusterFromHosts(hosts)
 		cluster.Platform = createOvirtPlatformParams()
 
-		It("ovirt PreCreateManifestsHook success", func() {
-			Expect(providerRegistry.PreCreateManifestsHook(&cluster, &envVars, workDir)).To(BeNil())
-			content, err = ioutil.ReadFile(filepath.Join(workDir, ".ovirt-config.yaml"))
-			Expect(err).To(BeNil())
-			Expect(string(content)).To(ContainSubstring(ovirtUsername))
-		})
 		It("ovirt PostCreateManifestsHook success", func() {
 			createMasterMachineManifests(workDir, "99", &cluster)
 			createMachineSetManifest(workDir, "99", &cluster)
 			err = providerRegistry.PostCreateManifestsHook(&cluster, &envVars, workDir)
-			Expect(err).To(BeNil())
-			verifyMasterMachineManifests(workDir, "99", &cluster, ovirtClient)
-			verifyMachineSetManifest(workDir, "99", &cluster)
+			Expect(err.Error()).Should(Equal("ovirt platform connection params not set"))
+
 		})
 		It("ovirt PostCreateManifestsHook failure", func() {
 			createMasterMachineManifests(workDir, "50", &cluster)
@@ -600,45 +511,6 @@ func createMachineSetManifest(workDir, filePrefix string, cluster *common.Cluste
 	Expect(err).To(BeNil())
 	err = ioutil.WriteFile(filePath, buf.Bytes(), 0600)
 	Expect(err).To(BeNil())
-}
-
-func verifyMasterMachineManifests(workDir, filePrefix string, cluster *common.Cluster, ovirtClient ovirtclient.Client) {
-	baseDir := filepath.Join(workDir, "openshift")
-	retryStragegy := ovirtclient.AutoRetry()
-	for _, host := range common.GetHostsByRole(cluster, models.HostRoleMaster) {
-		vm, err := ovirtClient.GetVM(host.ID.String(), retryStragegy)
-		Expect(err).To(BeNil())
-		vmName := vm.Name()
-		template, err := ovirtClient.GetTemplate(vm.TemplateID(), retryStragegy)
-		Expect(err).To(BeNil())
-		templateName := template.Name()
-		found := false
-		for i := 0; i < 3; i++ {
-			fileName := fmt.Sprintf(strings.Replace(ovirt.MachineManifestFileNameGlobStrFmt, "*", filePrefix, -1), i)
-			filePath := filepath.Join(baseDir, fileName)
-			vmNamePattern := fmt.Sprintf(ovirt.VmNameReplacementStrFmt, vmName)
-			templatePattern := fmt.Sprintf(ovirt.TemplateNameReplacementStrFmt, templateName)
-			manifestContent, err := ioutil.ReadFile(filePath)
-			Expect(err).To(BeNil())
-			manifestContentStr := string(manifestContent)
-			if strings.Contains(manifestContentStr, vmNamePattern) && strings.Contains(manifestContentStr, templatePattern) {
-				found = true
-			}
-		}
-		Expect(found).To(BeTrue())
-	}
-}
-
-func verifyMachineSetManifest(workDir, filePrefix string, cluster *common.Cluster) {
-	baseDir := filepath.Join(workDir, "openshift")
-	fileName := strings.Replace(ovirt.MachineSetFileNameGlobStr, "*", filePrefix, -1)
-	filePath := filepath.Join(baseDir, fileName)
-	numReplicas := len(common.GetHostsByRole(cluster, models.HostRoleWorker))
-	replicasPattern := fmt.Sprintf(ovirt.ReplicasReplacementStrFmt, numReplicas)
-	manifestContent, err := ioutil.ReadFile(filePath)
-	Expect(err).To(BeNil())
-	manifestContentStr := string(manifestContent)
-	Expect(strings.Contains(manifestContentStr, replicasPattern)).To(BeFalse())
 }
 
 func createHost(isMaster bool, state string, inventory string) *models.Host {
@@ -746,25 +618,8 @@ func createVspherePlatformParams() *models.Platform {
 }
 
 func createOvirtPlatformParams() *models.Platform {
-	Password := strfmt.Password(ovirtPassword)
-	ClusterID := strfmt.UUID(ovirtClusterID)
-	StorageDomainID := strfmt.UUID(ovirtStorageDomainID)
-	VnicProfileID := strfmt.UUID(ovirtVnicProfileID)
-
-	ovirtPlatform := models.OvirtPlatform{
-		Fqdn:            swag.String(ovirtFqdn),
-		Insecure:        swag.Bool(ovirtInsecure),
-		CaBundle:        swag.String(ovirtCaBundle),
-		Username:        swag.String(ovirtUsername),
-		Password:        &Password,
-		ClusterID:       &ClusterID,
-		StorageDomainID: &StorageDomainID,
-		NetworkName:     swag.String(ovirtNetworkName),
-		VnicProfileID:   &VnicProfileID,
-	}
 	return &models.Platform{
-		Type:  common.PlatformTypePtr(models.PlatformTypeOvirt),
-		Ovirt: &ovirtPlatform,
+		Type: common.PlatformTypePtr(models.PlatformTypeOvirt),
 	}
 }
 

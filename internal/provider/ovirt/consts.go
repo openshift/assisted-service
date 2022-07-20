@@ -23,4 +23,9 @@ const (
 	ReplicasPatternStr                = "replicas: +.*"
 	ReplicasReplacementStrFmt         = "replicas: %d"
 	MachineSetFileNameGlobStr         = "*_openshift-cluster-api_worker-machineset-0.yaml"
+
+	PhOvirtClusterID  = "clusteridplaceholder"
+	PhStorageDomainID = "storagedomainidplaceholder"
+	PhNetworkName     = "networknameplaceholder"
+	PhVnicProfileID   = "vnicprofileidplaceholder"
 )
