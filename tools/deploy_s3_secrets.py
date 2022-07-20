@@ -27,7 +27,6 @@ def deploy(src_file):
 
 def main():
     deploy('deploy/s3/secret.yaml')
-    deploy('deploy/s3/public-secret.yaml')
 
 if __name__ == "__main__":
     main()
