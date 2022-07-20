@@ -864,17 +864,14 @@ var _ = Describe("reconcileImageServiceStatefulSet", func() {
 		found := &appsv1.StatefulSet{}
 		Expect(ascr.reconcileImageServiceStatefulSet(ctx, log, asc)).To(Succeed())
 		Expect(ascr.Client.Get(ctx, types.NamespacedName{Name: imageServiceName, Namespace: testNamespace}, found)).To(Succeed())
-		var scheme, host string
+		var baseURL string
 		for _, envVar := range found.Spec.Template.Spec.Containers[0].Env {
 			switch envVar.Name {
-			case "IMAGE_SERVICE_SCHEME":
-				scheme = envVar.Value
-			case "IMAGE_SERVICE_HOST":
-				host = envVar.Value
+			case "IMAGE_SERVICE_BASE_URL":
+				baseURL = envVar.Value
 			}
 		}
-		Expect(scheme).To(Equal("https"))
-		Expect(host).To(Equal("my.test.images"))
+		Expect(baseURL).To(Equal("https://my.test.images"))
 	})
 })
 
