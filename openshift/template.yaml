@@ -204,31 +204,6 @@ objects:
                   secretKeyRef:
                     key: endpoint
                     name: assisted-installer-s3
-              - name: AWS_SECRET_ACCESS_KEY_PUBLIC
-                valueFrom:
-                  secretKeyRef:
-                    key: aws_secret_access_key
-                    name: assisted-installer-public-s3
-              - name: AWS_ACCESS_KEY_ID_PUBLIC
-                valueFrom:
-                  secretKeyRef:
-                    key: aws_access_key_id
-                    name: assisted-installer-public-s3
-              - name: S3_REGION_PUBLIC
-                valueFrom:
-                  secretKeyRef:
-                    key: aws_region
-                    name: assisted-installer-public-s3
-              - name: S3_BUCKET_PUBLIC
-                valueFrom:
-                  secretKeyRef:
-                    key: bucket
-                    name: assisted-installer-public-s3
-              - name: S3_ENDPOINT_URL_PUBLIC
-                valueFrom:
-                  secretKeyRef:
-                    key: endpoint
-                    name: assisted-installer-public-s3
               - name: S3_USE_SSL
                 value: ${S3_USE_SSL}
               - name: DB_HOST
