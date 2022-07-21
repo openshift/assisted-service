@@ -153,29 +153,15 @@ func (mr *MockProviderRegistryMockRecorder) Register(arg0 interface{}) *gomock.C
 }
 
 // SetPlatformUsages mocks base method.
-func (m *MockProviderRegistry) SetPlatformUsages(arg0 models.PlatformType, arg1 *models.Platform, arg2 map[string]models.Usage, arg3 usage.API) error {
+func (m *MockProviderRegistry) SetPlatformUsages(arg0 models.PlatformType, arg1 map[string]models.Usage, arg2 usage.API) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "SetPlatformUsages", arg0, arg1, arg2, arg3)
+	ret := m.ctrl.Call(m, "SetPlatformUsages", arg0, arg1, arg2)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // SetPlatformUsages indicates an expected call of SetPlatformUsages.
-func (mr *MockProviderRegistryMockRecorder) SetPlatformUsages(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
+func (mr *MockProviderRegistryMockRecorder) SetPlatformUsages(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetPlatformUsages", reflect.TypeOf((*MockProviderRegistry)(nil).SetPlatformUsages), arg0, arg1, arg2, arg3)
-}
-
-// SetPlatformValuesInDBUpdates mocks base method.
-func (m *MockProviderRegistry) SetPlatformValuesInDBUpdates(arg0 models.PlatformType, arg1 *models.Platform, arg2 map[string]interface{}) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "SetPlatformValuesInDBUpdates", arg0, arg1, arg2)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// SetPlatformValuesInDBUpdates indicates an expected call of SetPlatformValuesInDBUpdates.
-func (mr *MockProviderRegistryMockRecorder) SetPlatformValuesInDBUpdates(arg0, arg1, arg2 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetPlatformValuesInDBUpdates", reflect.TypeOf((*MockProviderRegistry)(nil).SetPlatformValuesInDBUpdates), arg0, arg1, arg2)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetPlatformUsages", reflect.TypeOf((*MockProviderRegistry)(nil).SetPlatformUsages), arg0, arg1, arg2)
 }

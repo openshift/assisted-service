@@ -122,7 +122,7 @@ func (k *installGenerator) GenerateInstallConfig(ctx context.Context, cluster co
 }
 
 func (k *installGenerator) getClusterPlatformType(cluster common.Cluster) models.PlatformType {
-	// Enabled UserManagedNetworking implies none platfrom.
+	// Enabled UserManagedNetworking implies none platform.
 	if swag.BoolValue(cluster.UserManagedNetworking) {
 		return models.PlatformTypeNone
 	}

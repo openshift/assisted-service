@@ -129,7 +129,7 @@ func mockClusterRegisterSteps() {
 	mockSecretValidator.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 	mockVersions.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any()).Return(common.TestDefaultConfig.ReleaseImage, nil).Times(1)
 	mockOperatorManager.EXPECT().GetSupportedOperatorsByType(models.OperatorTypeBuiltin).Return([]*models.MonitoredOperator{&common.TestDefaultConfig.MonitoredOperator}).Times(1)
-	mockProviderRegistry.EXPECT().SetPlatformUsages(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
+	mockProviderRegistry.EXPECT().SetPlatformUsages(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 }
 
 func mockClusterRegisterSuccess(withEvents bool) {
@@ -13525,44 +13525,9 @@ var _ = Describe("Platform tests", func() {
 			}
 		}
 
-		ovirtFqdn            = "ovirt.example.com"
-		ovirtUsername        = "admin@internal"
-		ovirtPassword        = "redhat"
-		ovirtClusterID       = "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
-		ovirtStorageDomainID = "yyyyyyyy-yyyy-yyyy-yyyy-yyyyyyyyyyyy"
-		ovirtNetworkName     = "ovirtmgmt"
-		ovirtVnicProfileID   = "zzzzzzzz-zzzz-zzzz-zzzz-zzzzzzzzzzzz"
-		ovirtInsecure        = false
-		ovirtCaBundle        = `
-		subject=C = US, ST = North Carolina, L = Raleigh, O = "Red Hat, Inc.",\
-		OU = Red Hat IT, CN = Red Hat IT Root CA, emailAddress = infosec@redhat.com
-
-		issuer=C = US, ST = North Carolina, L = Raleigh, O = "Red Hat, Inc.",\
-		OU = Red Hat IT, CN = Red Hat IT Root CA, emailAddress = infosec@redhat.com
-
-		-----BEGIN CERTIFICATE-----
-		test test test
-		-----END CERTIFICATE-----
-		`
 		getovirtPlatform = func() *models.Platform {
-			Password := strfmt.Password(ovirtPassword)
-			ClusterID := strfmt.UUID(ovirtClusterID)
-			StorageDomainID := strfmt.UUID(ovirtStorageDomainID)
-			VnicProfileID := strfmt.UUID(ovirtVnicProfileID)
-
 			return &models.Platform{
 				Type: common.PlatformTypePtr(models.PlatformTypeOvirt),
-				Ovirt: &models.OvirtPlatform{
-					Fqdn:            swag.String(ovirtFqdn),
-					Insecure:        swag.Bool(ovirtInsecure),
-					CaBundle:        swag.String(ovirtCaBundle),
-					Username:        swag.String(ovirtUsername),
-					Password:        &Password,
-					ClusterID:       &ClusterID,
-					StorageDomainID: &StorageDomainID,
-					NetworkName:     swag.String(ovirtNetworkName),
-					VnicProfileID:   &VnicProfileID,
-				},
 			}
 		}
 	)
@@ -13623,8 +13588,7 @@ var _ = Describe("Platform tests", func() {
 
 		It("ovirt platform", func() {
 			registerParams.NewClusterParams.Platform = &models.Platform{
-				Type:  common.PlatformTypePtr(models.PlatformTypeOvirt),
-				Ovirt: &models.OvirtPlatform{},
+				Type: common.PlatformTypePtr(models.PlatformTypeOvirt),
 			}
 
 			reply := bm.V2RegisterCluster(ctx, *registerParams)
@@ -13632,7 +13596,6 @@ var _ = Describe("Platform tests", func() {
 			cluster := reply.(*installer.V2RegisterClusterCreated).Payload
 			Expect(cluster.Platform).ShouldNot(BeNil())
 			Expect(common.PlatformTypeValue(cluster.Platform.Type)).Should(BeEquivalentTo(models.PlatformTypeOvirt))
-			Expect(cluster.Platform.Ovirt).ShouldNot(BeNil())
 		})
 
 		It("ovirt platform with credentials", func() {
@@ -13642,7 +13605,6 @@ var _ = Describe("Platform tests", func() {
 			cluster := reply.(*installer.V2RegisterClusterCreated).Payload
 			Expect(cluster.Platform).ShouldNot(BeNil())
 			Expect(common.PlatformTypeValue(cluster.Platform.Type)).Should(BeEquivalentTo(models.PlatformTypeOvirt))
-			Expect(cluster.Platform.Ovirt).ShouldNot(BeNil())
 		})
 	})
 })

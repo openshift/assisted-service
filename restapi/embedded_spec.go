@@ -8609,11 +8609,6 @@ func init() {
         "type"
       ],
       "properties": {
-        "ovirt": {
-          "type": "object",
-          "x-nullable": true,
-          "$ref": "#/definitions/ovirt-platform"
-        },
         "type": {
           "$ref": "#/definitions/platform_type"
         }
@@ -17941,11 +17936,6 @@ func init() {
         "type"
       ],
       "properties": {
-        "ovirt": {
-          "type": "object",
-          "x-nullable": true,
-          "$ref": "#/definitions/ovirt-platform"
-        },
         "type": {
           "$ref": "#/definitions/platform_type"
         }

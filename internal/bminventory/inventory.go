@@ -2171,13 +2171,8 @@ func (b *bareMetalInventory) updateNetworkTables(db *gorm.DB, cluster *common.Cl
 
 func (b *bareMetalInventory) updateProviderParams(params installer.V2UpdateClusterParams, updates map[string]interface{}, usages map[string]models.Usage) error {
 	if params.ClusterUpdateParams.Platform != nil && common.PlatformTypeValue(params.ClusterUpdateParams.Platform.Type) != "" {
-		err := b.providerRegistry.SetPlatformValuesInDBUpdates(
-			common.PlatformTypeValue(params.ClusterUpdateParams.Platform.Type), params.ClusterUpdateParams.Platform, updates)
-		if err != nil {
-			return fmt.Errorf("failed setting platform values, error is: %w", err)
-		}
-		err = b.providerRegistry.SetPlatformUsages(
-			common.PlatformTypeValue(params.ClusterUpdateParams.Platform.Type), params.ClusterUpdateParams.Platform, usages, b.usageApi)
+		err := b.providerRegistry.SetPlatformUsages(
+			common.PlatformTypeValue(params.ClusterUpdateParams.Platform.Type), usages, b.usageApi)
 		if err != nil {
 			return fmt.Errorf("failed setting platform usages, error is: %w", err)
 		}
@@ -2339,7 +2334,7 @@ func (b *bareMetalInventory) setDefaultUsage(cluster *models.Cluster) error {
 	b.setUsage(network.CheckIfClusterModelIsDualStack(cluster), usage.DualStackUsage, nil, usages)
 	b.setDiskEncryptionUsage(cluster, cluster.DiskEncryption, usages)
 	//write all the usages to the cluster object
-	err := b.providerRegistry.SetPlatformUsages(common.PlatformTypeValue(cluster.Platform.Type), cluster.Platform, usages, b.usageApi)
+	err := b.providerRegistry.SetPlatformUsages(common.PlatformTypeValue(cluster.Platform.Type), usages, b.usageApi)
 	if err != nil {
 		return fmt.Errorf("failed setting platform usages, error is: %w", err)
 	}

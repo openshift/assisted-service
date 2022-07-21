@@ -9,12 +9,7 @@ func (p *vsphereProvider) CleanPlatformValuesFromDBUpdates(_ map[string]interfac
 	return nil
 }
 
-func (p *vsphereProvider) SetPlatformValuesInDBUpdates(_ *models.Platform, _ map[string]interface{}) error {
-	return nil
-}
-
 func (p *vsphereProvider) SetPlatformUsages(
-	platformParams *models.Platform,
 	usages map[string]models.Usage,
 	usageApi usage.API) error {
 	props := &map[string]interface{}{
