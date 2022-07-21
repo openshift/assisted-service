@@ -3,7 +3,7 @@ title: auto-return-agent-to-infra-env
 authors:
   - "@carbonin"
 creation-date: 2022-05-17
-last-updated: 2022-07-21
+last-updated: 2022-07-25
 ---
 
 # Automatically Return Agents to InfraEnv
@@ -126,38 +126,37 @@ running agent should execute the reclaim procedure.
      Kube API and no BMH     |   REST API, Kube API with BMH, or other machine management
           -------------------+-------------------
           |                                     |
-          V                                     V
+          |                                     V
 -----------------------------            ----------------------------
-| TransitionTypeReclaimHost |            | TransitionTypeUnbindHost |
------------------------------            ----------------------------
-            |                                                      |
-            V                                                      |
-  ------------------------                                         |
-  | HostStatusReclaiming |                                         |
-  ------------------------                                         |
-                |                                                  |
-       Agent posts step reply                                      |
-                |                                                  |
-       ---------+----------------------------------                |
-       |                                          |                |
-    Success                                    Failure             |
-       |                                          |                |
--------------------------------------             |                |
-| TransitionTypeRebootingForReclaim |             |                |
--------------------------------------             |                |
-       |                                          |                |
-       V                                          |                |
----------------------------------                 |                |
-| HostStatusReclaimingRebooting |----------       |                |
----------------------------------      Timeout    |                |
-                |                         |       |                |
-------------------------------   -------------------------------   |
-| TransitionTypeRegisterHost |   | TransitionTypeReclaimFailed |   |
-------------------------------   -------------------------------   |
-                |                         |       |                |
-                V                         V       V                V
---------------------------------  ----------------------------------------
-| HostStatusDiscoveringUnbound |  | HostStatusUnbindingPendingUserAction |
+| TransitionTypeReclaimHost |            | TransitionTypeUnbindHost |----------------------
+-----------------------------            ----------------------------                     |
+          |                                                                               |
+          V                                                                               |
+  ------------------------                                                                |
+  | HostStatusReclaiming |-------------------------------------                           |
+  ------------------------                                    |                           |
+       |        |                                             |                           |
+       |        |                                             |                           |
+       |        ---------------------------                   |                           |
+       |                                  |                   |                           |
+    Success                               |                Failure                        |
+       |                                  |                   |                           |
+-------------------------------------     |                   |                           |
+| TransitionTypeRebootingForReclaim |     |                   |                           |
+-------------------------------------     |                   |                           |
+       |                                  |                   |                           |
+       V                                  |                   |                           |
+---------------------------------         |                   |                           |
+| HostStatusReclaimingRebooting |---------+                   |                           |
+---------------------------------      Timeout                |                           |
+                |                         |                   |                           |
+------------------------------ ------------------------- -------------------------------  |
+| TransitionTypeRegisterHost | | TransitionTypeRefresh | | TransitionTypeReclaimFailed |  |
+------------------------------ ------------------------- -------------------------------  |
+                |                         |                   |                           |
+                V                         V                   V                           |
+--------------------------------  ----------------------------------------                |
+| HostStatusDiscoveringUnbound |  | HostStatusUnbindingPendingUserAction |<----------------
 --------------------------------  ----------------------------------------
               ^                                       |
               |       ------------------------------  |

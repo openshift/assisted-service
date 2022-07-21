@@ -287,6 +287,17 @@ func NewHostStateMachine(sm stateswitch.StateMachine, th *transitionHandler) sta
 		PostTransition:   th.PostUnbindHost,
 	})
 
+	sm.AddTransition(stateswitch.TransitionRule{
+		TransitionType: TransitionTypeRefresh,
+		SourceStates: []stateswitch.State{
+			stateswitch.State(models.HostStatusReclaiming),
+			stateswitch.State(models.HostStatusReclaimingRebooting),
+		},
+		Condition:        th.HasStatusTimedOut(ReclaimTimeout),
+		DestinationState: stateswitch.State(models.HostStatusUnbindingPendingUserAction),
+		PostTransition:   th.PostRefreshReclaimTimeout,
+	})
+
 	// Refresh host
 
 	// Prepare for installation
@@ -467,7 +478,7 @@ func NewHostStateMachine(sm stateswitch.StateMachine, th *transitionHandler) sta
 		TransitionType: TransitionTypeRefresh,
 		SourceStates: []stateswitch.State{
 			stateswitch.State(models.HostStatusInstalling)},
-		Condition:        th.HasInstallationTimedOut,
+		Condition:        th.HasStatusTimedOut(InstallationTimeout),
 		DestinationState: stateswitch.State(models.HostStatusError),
 		PostTransition:   th.PostRefreshHost(statusInfoInstallationTimedOut),
 	})

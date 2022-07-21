@@ -58,6 +58,8 @@ var WrongBootOrderIgnoreTimeoutStages = []models.HostStage{
 
 var InstallationTimeout = 20 * time.Minute
 
+var ReclaimTimeout = 60 * time.Minute
+
 //Weights for sorting hosts in the monitor
 const (
 	HostWeightMinimumCpuCores        float64 = 4

@@ -194,6 +194,8 @@ func (m *Manager) infraEnvHostMonitoring() int64 {
 		models.HostStatusDiscoveringUnbound,
 		models.HostStatusInsufficientUnbound,
 		models.HostStatusKnownUnbound,
+		models.HostStatusReclaiming,
+		models.HostStatusReclaimingRebooting,
 	}
 
 	query := m.monitorInfraEnvQueryGenerator.NewInfraEnvQuery()
