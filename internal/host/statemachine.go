@@ -298,6 +298,29 @@ func NewHostStateMachine(sm stateswitch.StateMachine, th *transitionHandler) sta
 		PostTransition:   th.PostRefreshReclaimTimeout,
 	})
 
+	// ReclaimHost in other states acts like Unbind
+	sm.AddTransition(stateswitch.TransitionRule{
+		TransitionType: TransitionTypeReclaimHost,
+		SourceStates: []stateswitch.State{
+			stateswitch.State(models.HostStatusKnown),
+			stateswitch.State(models.HostStatusDiscovering),
+			stateswitch.State(models.HostStatusDisconnected),
+			stateswitch.State(models.HostStatusInsufficient),
+			stateswitch.State(models.HostStatusPendingForInput),
+		},
+		DestinationState: stateswitch.State(models.HostStatusUnbinding),
+		PostTransition:   th.PostUnbindHost,
+	})
+	sm.AddTransition(stateswitch.TransitionRule{
+		TransitionType: TransitionTypeReclaimHost,
+		SourceStates: []stateswitch.State{
+			stateswitch.State(models.HostStatusError),
+			stateswitch.State(models.HostStatusCancelled),
+		},
+		DestinationState: stateswitch.State(models.HostStatusUnbindingPendingUserAction),
+		PostTransition:   th.PostUnbindHost,
+	})
+
 	// Refresh host
 
 	// Prepare for installation
