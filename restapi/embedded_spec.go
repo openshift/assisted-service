@@ -5825,7 +5825,7 @@ func init() {
         "vip_dhcp_allocation": {
           "description": "Indicate if virtual IP DHCP allocation mode is enabled.",
           "type": "boolean",
-          "default": true,
+          "default": false,
           "x-nullable": true
         }
       }
@@ -15238,7 +15238,7 @@ func init() {
         "vip_dhcp_allocation": {
           "description": "Indicate if virtual IP DHCP allocation mode is enabled.",
           "type": "boolean",
-          "default": true,
+          "default": false,
           "x-nullable": true
         }
       }

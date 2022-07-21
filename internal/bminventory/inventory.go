@@ -293,7 +293,7 @@ func (b *bareMetalInventory) setDefaultRegisterClusterParams(_ context.Context, 
 	}
 
 	if params.NewClusterParams.VipDhcpAllocation == nil {
-		params.NewClusterParams.VipDhcpAllocation = swag.Bool(true)
+		params.NewClusterParams.VipDhcpAllocation = swag.Bool(false)
 	}
 	if params.NewClusterParams.UserManagedNetworking == nil {
 		params.NewClusterParams.UserManagedNetworking = swag.Bool(false)
