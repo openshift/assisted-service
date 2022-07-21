@@ -62,7 +62,7 @@ func NewRelease(executer executer.Executer, config Config) Release {
 
 const (
 	templateGetImage        = "oc adm release info --image-for=%s --insecure=%t %s"
-	templateGetVersion      = "oc adm release info -o template --template '{{.metadata.version}}' --insecure=%t %s"
+	templateGetVersion      = "oc adm release info -o template --template '{{.metadata.version}}' --filter-by-os=linux/amd64 --insecure=%t %s"
 	templateExtract         = "oc adm release extract --command=%s --to=%s --insecure=%t %s"
 	templateExtractWithIcsp = "oc adm release extract --command=%s --to=%s --insecure=%t --icsp-file=%s %s"
 	templateImageInfo       = "oc image info --output json %s"
@@ -158,6 +158,9 @@ func (r *release) GetReleaseArchitecture(log logrus.FieldLogger, releaseImage st
 	}
 	imageInfoStr, err := execute(log, r.executer, pullSecret, cmd)
 	if err != nil {
+		if strings.Contains(err.Error(), "the image is a manifest list and contains multiple images") {
+			return common.MultiCPUArchitecture, nil
+		}
 		return "", err
 	}
 
