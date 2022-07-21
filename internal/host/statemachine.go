@@ -18,6 +18,8 @@ const (
 	TransitionTypeBindHost                   = "BindHost"
 	TransitionTypeUnbindHost                 = "UnbindHost"
 	TransitionTypeReclaimHost                = "ReclaimHost"
+	TransitionTypeRebootingForReclaim        = "RebootingForReclaim"
+	TransitionTypeReclaimFailed              = "ReclaimHostFailed"
 )
 
 // func NewHostStateMachine(th *transitionHandler) stateswitch.StateMachine {
@@ -263,6 +265,25 @@ func NewHostStateMachine(sm stateswitch.StateMachine, th *transitionHandler) sta
 			stateswitch.State(models.HostStatusAddedToExistingCluster),
 		},
 		DestinationState: stateswitch.State(models.HostStatusReclaiming),
+		PostTransition:   th.PostUnbindHost,
+	})
+
+	sm.AddTransition(stateswitch.TransitionRule{
+		TransitionType: TransitionTypeRebootingForReclaim,
+		SourceStates: []stateswitch.State{
+			stateswitch.State(models.HostStatusReclaiming),
+		},
+		DestinationState: stateswitch.State(models.HostStatusReclaimingRebooting),
+		PostTransition:   th.PostReclaim,
+	})
+
+	sm.AddTransition(stateswitch.TransitionRule{
+		TransitionType: TransitionTypeReclaimFailed,
+		SourceStates: []stateswitch.State{
+			stateswitch.State(models.HostStatusReclaiming),
+			stateswitch.State(models.HostStatusReclaimingRebooting),
+		},
+		DestinationState: stateswitch.State(models.HostStatusUnbindingPendingUserAction),
 		PostTransition:   th.PostUnbindHost,
 	})
 

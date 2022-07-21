@@ -3,7 +3,7 @@ title: auto-return-agent-to-infra-env
 authors:
   - "@carbonin"
 creation-date: 2022-05-17
-last-updated: 2022-07-18
+last-updated: 2022-07-21
 ---
 
 # Automatically Return Agents to InfraEnv
@@ -141,6 +141,10 @@ running agent should execute the reclaim procedure.
        ---------+----------------------------------                |
        |                                          |                |
     Success                                    Failure             |
+       |                                          |                |
+-------------------------------------             |                |
+| TransitionTypeRebootingForReclaim |             |                |
+-------------------------------------             |                |
        |                                          |                |
        V                                          |                |
 ---------------------------------                 |                |

@@ -374,6 +374,11 @@ type TransitionArgsUnbindHost struct {
 	db  *gorm.DB
 }
 
+type TransitionArgsReclaimHost struct {
+	ctx context.Context
+	db  *gorm.DB
+}
+
 func (th *transitionHandler) PostUnbindHost(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) error {
 	sHost, ok := sw.(*stateHost)
 	if !ok {
@@ -388,6 +393,19 @@ func (th *transitionHandler) PostUnbindHost(sw stateswitch.StateSwitch, args sta
 	extra = append(extra, restFieldsOnUnbind...)
 	return th.updateTransitionHost(params.ctx, logutil.FromContext(params.ctx, th.log), params.db, sHost, statusInfoUnbinding,
 		extra...)
+}
+
+func (th *transitionHandler) PostReclaim(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) error {
+	sHost, ok := sw.(*stateHost)
+	if !ok {
+		return errors.New("PostReclaim incompatible type of StateSwitch")
+	}
+	params, ok := args.(*TransitionArgsReclaimHost)
+	if !ok {
+		return errors.New("PostReclaim invalid argument")
+	}
+
+	return th.updateTransitionHost(params.ctx, logutil.FromContext(params.ctx, th.log), params.db, sHost, statusInfoRebootingForReclaim, nil)
 }
 
 ////////////////////////////////////////////////////////////////////////////
