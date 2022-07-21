@@ -672,6 +672,9 @@ func validateAndUpdateSingleNodeParams(newClusterParams *models.ClusterCreatePar
 }
 
 func (b *bareMetalInventory) getNewClusterCPUArchitecture(newClusterParams *models.ClusterCreateParams) (string, error) {
+	if newClusterParams.CPUArchitecture == common.MultiCPUArchitecture {
+		return newClusterParams.CPUArchitecture, nil
+	}
 	if newClusterParams.CPUArchitecture == "" || newClusterParams.CPUArchitecture == common.DefaultCPUArchitecture {
 		// Empty value implies x86_64 (default architecture),
 		// which is supported for now regardless of the release images list.
@@ -1515,12 +1518,7 @@ func (b *bareMetalInventory) generateClusterInstallConfig(ctx context.Context, c
 	}
 
 	installerReleaseImageOverride := ""
-	// In case cpu architecture is not x86_64 and platform is baremetal , we should extract openshift-baremetal-installer
-	// from x86_64 release image as there is no x86_64 openshift-baremetal-installer executable in arm image
-	if cluster.CPUArchitecture != common.DefaultCPUArchitecture && common.PlatformTypeValue(cluster.Platform.Type) == models.PlatformTypeBaremetal &&
-		featuresupport.IsFeatureSupported(cluster.OpenshiftVersion,
-			models.FeatureSupportLevelFeaturesItems0FeatureIDARM64ARCHITECTUREWITHCLUSTERMANAGEDNETWORKING) {
-
+	if isBaremetalBinaryFromAnotherReleaseImageRequired(cluster.CPUArchitecture, cluster.OpenshiftVersion, cluster.Platform.Type) {
 		defaultArchImage, err := b.versionsHandler.GetReleaseImage(cluster.OpenshiftVersion, common.DefaultCPUArchitecture)
 		if err != nil {
 			msg := fmt.Sprintf("failed to get image for installer image override "+
@@ -4142,7 +4140,10 @@ func (b *bareMetalInventory) RegisterInfraEnvInternal(
 
 func (b *bareMetalInventory) validateInfraEnvCreateParams(ctx context.Context, params installer.RegisterInfraEnvParams, cluster *common.Cluster) error {
 	var err error
-	if cluster != nil && cluster.CPUArchitecture != "" && cluster.CPUArchitecture != params.InfraenvCreateParams.CPUArchitecture {
+	// We are validating if architecture specified inside InfraEnv matches architecture of the Cluster. Please note
+	// that for Clusters created using multiarch release image we skip this validation as there can be InfraEnvs with
+	// multiple architectures that match the Cluster.
+	if cluster != nil && cluster.CPUArchitecture != "" && cluster.CPUArchitecture != common.MultiCPUArchitecture && cluster.CPUArchitecture != params.InfraenvCreateParams.CPUArchitecture {
 		err = errors.Errorf("Specified CPU architecture doesn't match the cluster (%s)",
 			cluster.CPUArchitecture)
 		return err
@@ -4210,7 +4211,7 @@ func (b *bareMetalInventory) getOsImageOrLatest(version string, cpuArch string) 
 	if version != "" {
 		osImage, err = b.versionsHandler.GetOsImage(version, cpuArch)
 		if err != nil {
-			err = errors.Errorf("No OS image for Openshift version %s", version)
+			err = errors.Errorf("No OS image for Openshift version %s and architecture %s", version, cpuArch)
 			return nil, common.NewApiError(http.StatusBadRequest, err)
 		}
 	} else {
@@ -4909,7 +4910,7 @@ func (b *bareMetalInventory) BindHostInternal(ctx context.Context, params instal
 		return nil, common.NewApiError(http.StatusInternalServerError, err)
 	}
 
-	if cluster.CPUArchitecture != "" && cluster.CPUArchitecture != infraEnv.CPUArchitecture {
+	if cluster.CPUArchitecture != "" && cluster.CPUArchitecture != common.MultiCPUArchitecture && cluster.CPUArchitecture != infraEnv.CPUArchitecture {
 		err = errors.Errorf("InfraEnv's CPU architecture (%s) doesn't match the cluster (%s)",
 			infraEnv.CPUArchitecture, cluster.CPUArchitecture)
 		return nil, common.NewApiError(http.StatusBadRequest, err)
@@ -5575,4 +5576,17 @@ func (b *bareMetalInventory) HostWithCollectedLogsExists(clusterId strfmt.UUID) 
 
 func (b *bareMetalInventory) GetKnownApprovedHosts(clusterId strfmt.UUID) ([]*common.Host, error) {
 	return b.hostApi.GetKnownApprovedHosts(clusterId)
+}
+
+// In case cpu architecture is not x86_64 and platform is baremetal, we should extract openshift-baremetal-installer
+// from x86_64 release image as there is no x86_64 openshift-baremetal-installer executable in arm image.
+// This flow does not affect the multiarch release images and is meant purely for using arm64 release image with the x86 hub.
+// Implementation of handling the multiarch images is done directly in the `oc` binary and relies on the fact that `oc adm release extract`
+// will automatically use the image matching the Hub's architecture.
+func isBaremetalBinaryFromAnotherReleaseImageRequired(cpuArchitecture, version string, platform *models.PlatformType) bool {
+	return cpuArchitecture != common.MultiCPUArchitecture &&
+		cpuArchitecture != common.DefaultCPUArchitecture &&
+		common.PlatformTypeValue(platform) == models.PlatformTypeBaremetal &&
+		featuresupport.IsFeatureSupported(version,
+			models.FeatureSupportLevelFeaturesItems0FeatureIDARM64ARCHITECTUREWITHCLUSTERMANAGEDNETWORKING)
 }

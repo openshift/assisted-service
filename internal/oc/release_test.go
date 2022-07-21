@@ -270,7 +270,34 @@ var _ = Describe("oc", func() {
 			Expect(err).ShouldNot(HaveOccurred())
 		})
 
-		It("fetch cpu architecture - no release image", func() {
+		It("fetch cpu architecture from multiarch release image", func() {
+			command := fmt.Sprintf(templateImageInfo+" --registry-config=%s", releaseImage, tempFilePath)
+			command2 := fmt.Sprintf(templateSkopeoDetectMultiarch+" --authfile %s", releaseImage, tempFilePath)
+			args := splitStringToInterfacesArray(command)
+			args2 := splitStringToInterfacesArray(command2)
+			imageInfoStr := fmt.Sprintf("{ \"manifests\": { \"platform\": { \"architecture\": \"%s\" }}}", common.TestDefaultConfig.CPUArchitecture)
+			mockExecuter.EXPECT().Execute(args[0], args[1:]...).Return("", "the image is a manifest list", 1).Times(1)
+			mockExecuter.EXPECT().Execute(args2[0], args2[1:]...).Return(imageInfoStr, "", 0).Times(1)
+
+			arch, err := oc.GetReleaseArchitecture(log, releaseImage, "", pullSecret)
+			Expect(arch).Should(Equal(common.MultiCPUArchitecture))
+			Expect(err).ShouldNot(HaveOccurred())
+		})
+
+		It("broken release image", func() {
+			command := fmt.Sprintf(templateImageInfo+" --registry-config=%s", releaseImage, tempFilePath)
+			command2 := fmt.Sprintf(templateSkopeoDetectMultiarch+" --authfile %s", releaseImage, tempFilePath)
+			args := splitStringToInterfacesArray(command)
+			args2 := splitStringToInterfacesArray(command2)
+			mockExecuter.EXPECT().Execute(args[0], args[1:]...).Return("", "that's not even an image", 1).Times(1)
+			mockExecuter.EXPECT().Execute(args2[0], args2[1:]...).Return("", "that's still not an image", 1).Times(1)
+
+			arch, err := oc.GetReleaseArchitecture(log, releaseImage, "", pullSecret)
+			Expect(arch).Should(BeEmpty())
+			Expect(err).Should(HaveOccurred())
+		})
+
+		It("no release image", func() {
 			arch, err := oc.GetReleaseArchitecture(log, "", "", pullSecret)
 			Expect(arch).Should(BeEmpty())
 			Expect(err).Should(HaveOccurred())

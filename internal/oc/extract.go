@@ -47,7 +47,7 @@ func (r *extract) Extract(log logrus.FieldLogger, imageIndexPath string, openshi
 	}
 
 	cmd := fmt.Sprintf(templateImageExtract, imageIndexPath, openshiftVersion, filePath, file.Name(), insecure)
-	_, err = execute(log, r.executer, pullSecret, cmd)
+	_, err = execute(log, r.executer, pullSecret, cmd, ocAuthArgument)
 	if err != nil {
 		return "", err
 	}

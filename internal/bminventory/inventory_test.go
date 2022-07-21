@@ -12498,6 +12498,71 @@ var _ = Describe("BindHost", func() {
 		verifyApiErrorString(response, http.StatusBadRequest, "doesn't match")
 	})
 
+	It("multiarch CPU architecture successful bind", func() {
+		// create multiarch cluster
+		err := db.Model(&common.Cluster{Cluster: models.Cluster{ID: &clusterID}}).
+			UpdateColumn("cpu_architecture", common.MultiCPUArchitecture).Error
+		Expect(err).ShouldNot(HaveOccurred())
+
+		// create infraenv for arm64 and bind host
+		infraEnvID = strfmt.UUID(uuid.New().String())
+		err = db.Create(&common.InfraEnv{InfraEnv: models.InfraEnv{
+			ID:              &infraEnvID,
+			CPUArchitecture: common.ARM64CPUArchitecture,
+		}}).Error
+		Expect(err).ShouldNot(HaveOccurred())
+
+		hostID = strfmt.UUID(uuid.New().String())
+		err = db.Create(&common.Host{Host: models.Host{ID: &hostID, InfraEnvID: infraEnvID}}).Error
+		Expect(err).ShouldNot(HaveOccurred())
+
+		params := installer.BindHostParams{
+			HostID:         hostID,
+			InfraEnvID:     infraEnvID,
+			BindHostParams: &models.BindHostParams{ClusterID: &clusterID},
+		}
+		mockEvents.EXPECT().SendHostEvent(gomock.Any(), eventstest.NewEventMatcher(
+			eventstest.WithNameMatcher(eventgen.HostRegistrationFailedEventName),
+			eventstest.WithHostIdMatcher(params.HostID.String()),
+			eventstest.WithInfraEnvIdMatcher(infraEnvID.String()),
+			eventstest.WithSeverityMatcher(models.EventSeverityInfo)))
+		mockClusterApi.EXPECT().AcceptRegistration(gomock.Any()).Return(nil).Times(1)
+		mockClusterApi.EXPECT().RefreshSchedulableMastersForcedTrue(gomock.Any(), gomock.Any()).Return(nil).Times(1)
+
+		mockHostApi.EXPECT().BindHost(ctx, gomock.Any(), clusterID, gomock.Any())
+		response := bm.BindHost(ctx, params)
+		Expect(response).To(BeAssignableToTypeOf(&installer.BindHostOK{}))
+
+		// create infraenv for x86_64 and bind host
+		infraEnvID = strfmt.UUID(uuid.New().String())
+		err = db.Create(&common.InfraEnv{InfraEnv: models.InfraEnv{
+			ID:              &infraEnvID,
+			CPUArchitecture: common.X86CPUArchitecture,
+		}}).Error
+		Expect(err).ShouldNot(HaveOccurred())
+
+		hostID = strfmt.UUID(uuid.New().String())
+		err = db.Create(&common.Host{Host: models.Host{ID: &hostID, InfraEnvID: infraEnvID}}).Error
+		Expect(err).ShouldNot(HaveOccurred())
+
+		params = installer.BindHostParams{
+			HostID:         hostID,
+			InfraEnvID:     infraEnvID,
+			BindHostParams: &models.BindHostParams{ClusterID: &clusterID},
+		}
+		mockEvents.EXPECT().SendHostEvent(gomock.Any(), eventstest.NewEventMatcher(
+			eventstest.WithNameMatcher(eventgen.HostRegistrationFailedEventName),
+			eventstest.WithHostIdMatcher(params.HostID.String()),
+			eventstest.WithInfraEnvIdMatcher(infraEnvID.String()),
+			eventstest.WithSeverityMatcher(models.EventSeverityInfo)))
+		mockClusterApi.EXPECT().AcceptRegistration(gomock.Any()).Return(nil).Times(1)
+		mockClusterApi.EXPECT().RefreshSchedulableMastersForcedTrue(gomock.Any(), gomock.Any()).Return(nil).Times(1)
+
+		mockHostApi.EXPECT().BindHost(ctx, gomock.Any(), clusterID, gomock.Any())
+		response = bm.BindHost(ctx, params)
+		Expect(response).To(BeAssignableToTypeOf(&installer.BindHostOK{}))
+	})
+
 	It("Deregister cluster - bind host", func() {
 		params := installer.BindHostParams{
 			HostID:         hostID,
