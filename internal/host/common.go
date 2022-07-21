@@ -140,6 +140,10 @@ func updateRole(log logrus.FieldLogger, h *models.Host, role models.HostRole, su
 	if srcRole != string(role) {
 		fields["role"] = role
 
+		if role == models.HostRoleWorker {
+			fields["bootstrap"] = false
+		}
+
 		if hostutil.IsDay2Host(h) && (h.MachineConfigPoolName == "" || h.MachineConfigPoolName == srcRole) {
 			fields["machine_config_pool_name"] = role
 		}
