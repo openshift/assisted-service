@@ -255,11 +255,12 @@ func NewHostStateMachine(sm stateswitch.StateMachine, th *transitionHandler) sta
 		PostTransition:   th.PostUnbindHost,
 	})
 
-	// Reclaim host
+	// ReclaimHost when installed moves to Reclaiming
 	sm.AddTransition(stateswitch.TransitionRule{
 		TransitionType: TransitionTypeReclaimHost,
 		SourceStates: []stateswitch.State{
 			stateswitch.State(models.HostStatusInstalled),
+			stateswitch.State(models.HostStatusAddedToExistingCluster),
 		},
 		DestinationState: stateswitch.State(models.HostStatusReclaiming),
 		PostTransition:   th.PostUnbindHost,
