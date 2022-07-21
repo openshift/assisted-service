@@ -2,6 +2,7 @@ package host
 
 import (
 	"context"
+	_ "embed"
 	"encoding/json"
 	"fmt"
 
@@ -25,8 +26,15 @@ import (
 	"github.com/openshift/assisted-service/internal/provider/registry"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/conversions"
+	"github.com/vincent-petithory/dataurl"
 	"gorm.io/gorm"
 )
+
+//go:embed test_hypershift_kubeconfig
+var test_hypershift_kubeconfig []byte
+
+//go:embed test_regular_kubeconfig
+var test_regular_kubeconfig []byte
 
 var _ = Describe("Validations test", func() {
 
@@ -156,6 +164,20 @@ var _ = Describe("Validations test", func() {
 		})
 	}
 
+	addIgnitionFile := func(config *ignition_types.Config, path string, contents []byte) {
+		dataURL := dataurl.EncodeBytes(contents)
+		config.Storage.Files = append(config.Storage.Files, ignition_types.File{
+			Node: ignition_types.Node{
+				Path: path,
+			},
+			FileEmbedded1: ignition_types.FileEmbedded1{
+				Contents: ignition_types.Resource{
+					Source: &dataURL,
+				},
+			},
+		})
+	}
+
 	getIgnitionConfigManagedNetworking := func() *ignition_types.Config {
 		config := getIgnitionConfig()
 		addEmptyIgnitionFile(config, "/etc/kubernetes/manifests/keepalived.yaml")
@@ -172,6 +194,18 @@ var _ = Describe("Validations test", func() {
 	getIgnitionConfigManagedNetworkingCoreDNS := func() *ignition_types.Config {
 		config := getIgnitionConfig()
 		addEmptyIgnitionFile(config, "/etc/kubernetes/manifests/coredns.yaml")
+		return config
+	}
+
+	getIgnitionConfigManagedNetworkingKubeletKubeconfigServerIsIP := func() *ignition_types.Config {
+		config := getIgnitionConfig()
+		addIgnitionFile(config, "/etc/kubernetes/kubeconfig", test_hypershift_kubeconfig)
+		return config
+	}
+
+	getIgnitionConfigManagedNetworkingKubeletKubeconfigServerIsDomain := func() *ignition_types.Config {
+		config := getIgnitionConfig()
+		addIgnitionFile(config, "/etc/kubernetes/kubeconfig", test_regular_kubeconfig)
 		return config
 	}
 
@@ -289,6 +323,8 @@ var _ = Describe("Validations test", func() {
 		var apiConnectivityTypeManagedNetworkingJustCoreDNS APIConnectivityType = "managed-coredns"
 		var apiConnectivityTypeManagedNetworkingJustKeepalived APIConnectivityType = "managed-keepalived"
 		var apiConnectivityTypeUserManagedNetworking APIConnectivityType = "user-managed"
+		var apiConnectivityTypeKubeletKubeconfigServerIsIP APIConnectivityType = "kubelet-kubeconfig-server-is-ip"
+		var apiConnectivityTypeKubeletKubeconfigServerIsDomain APIConnectivityType = "kubelet-kubeconfig-server-is-domain"
 
 		getIgnitionConfigBytes := func(connectivityType APIConnectivityType) []byte {
 			config := (*ignition_types.Config)(nil)
@@ -306,6 +342,10 @@ var _ = Describe("Validations test", func() {
 				config = getIgnitionConfigManagedNetworkingCoreDNS()
 			case apiConnectivityTypeManagedNetworkingJustKeepalived:
 				config = getIgnitionConfigManagedNetworkingKeepalived()
+			case apiConnectivityTypeKubeletKubeconfigServerIsIP:
+				config = getIgnitionConfigManagedNetworkingKubeletKubeconfigServerIsIP()
+			case apiConnectivityTypeKubeletKubeconfigServerIsDomain:
+				config = getIgnitionConfigManagedNetworkingKubeletKubeconfigServerIsDomain()
 			default:
 				Fail("This should not happen")
 			}
@@ -324,7 +364,9 @@ var _ = Describe("Validations test", func() {
 			case apiConnectivityTypeManagedNetworking,
 				apiConnectivityTypeUserManagedNetworking,
 				apiConnectivityTypeManagedNetworkingJustCoreDNS,
-				apiConnectivityTypeManagedNetworkingJustKeepalived:
+				apiConnectivityTypeManagedNetworkingJustKeepalived,
+				apiConnectivityTypeKubeletKubeconfigServerIsIP,
+				apiConnectivityTypeKubeletKubeconfigServerIsDomain:
 				host.APIVipConnectivity = hostutil.GenerateTestAPIConnectivityResponseSuccessString(
 					string(getIgnitionConfigBytes(connectivityType)))
 			default:
@@ -534,6 +576,30 @@ var _ = Describe("Validations test", func() {
 					requiresBaseDomain:              false,
 					expectedValidationStatus:        ValidationSuccess,
 					expectedMessage:                 successMessage,
+				},
+				{
+					testCaseName: "day 2 cluster - imported - invalid DNS - kubelet kubeconfig server is IP address managed connectivity",
+					testClusterDay2Parameters: &day2TestInfo{
+						imported:            true,
+						apiConnectivityType: apiConnectivityTypeKubeletKubeconfigServerIsIP,
+					},
+					testClusterHasManagedNetworking: true,
+					testHostResolvedDNS:             false,
+					requiresBaseDomain:              false,
+					expectedValidationStatus:        ValidationSuccess,
+					expectedMessage:                 successMessage,
+				},
+				{
+					testCaseName: "day 2 cluster - imported - invalid DNS - kubelet kubeconfig server is domain unmanaged connectivity",
+					testClusterDay2Parameters: &day2TestInfo{
+						imported:            true,
+						apiConnectivityType: apiConnectivityTypeKubeletKubeconfigServerIsDomain,
+					},
+					testClusterHasManagedNetworking: true,
+					testHostResolvedDNS:             false,
+					requiresBaseDomain:              true,
+					expectedValidationStatus:        ValidationFailure,
+					expectedMessage:                 failureMessage,
 				},
 				{
 					testCaseName: "day 2 cluster - imported - valid DNS - managed connectivity",
