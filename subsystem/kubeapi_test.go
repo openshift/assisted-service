@@ -74,7 +74,8 @@ func deployLocalObjectSecretIfNeeded(ctx context.Context, client k8sclient.Clien
 		&corev1.Secret{},
 	)
 	if apierrors.IsNotFound(err) {
-		deployPullSecretResource(ctx, kubeClient, pullSecretName, pullSecret)
+		data := map[string]string{corev1.DockerConfigJsonKey: pullSecret}
+		deploySecret(ctx, kubeClient, pullSecretName, data)
 	} else {
 		Expect(err).To(BeNil())
 	}
@@ -110,23 +111,6 @@ func deployOrUpdateConfigMap(ctx context.Context, client k8sclient.Client, name 
 	return c
 }
 
-func deployPullSecretResource(ctx context.Context, client k8sclient.Client, name, secret string) {
-	data := map[string]string{corev1.DockerConfigJsonKey: secret}
-	s := &corev1.Secret{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "Secret",
-			APIVersion: "v1",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: Options.Namespace,
-			Name:      name,
-		},
-		StringData: data,
-		Type:       corev1.SecretTypeDockerConfigJson,
-	}
-	Expect(client.Create(ctx, s)).To(BeNil())
-}
-
 func updateAgentClusterInstallCRD(ctx context.Context, client k8sclient.Client, installkey types.NamespacedName, spec *hiveext.AgentClusterInstallSpec) {
 	Eventually(func() error {
 		agent := getAgentClusterInstallCRD(ctx, client, installkey)
@@ -137,6 +121,21 @@ func updateAgentClusterInstallCRD(ctx context.Context, client k8sclient.Client, 
 
 func deploySecret(ctx context.Context, client k8sclient.Client, secretName string, secretData map[string]string) {
 	err := client.Create(ctx, &corev1.Secret{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Secret",
+			APIVersion: "v1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: Options.Namespace,
+			Name:      secretName,
+		},
+		StringData: secretData,
+	})
+	Expect(err).To(BeNil())
+}
+
+func updateSecret(ctx context.Context, client k8sclient.Client, secretName string, secretData map[string]string) {
+	err := client.Update(ctx, &corev1.Secret{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Secret",
 			APIVersion: "v1",
@@ -839,6 +838,30 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			Namespace: Options.Namespace,
 		}
 		infraEnvSpec = getDefaultInfraEnvSpec(secretRef, clusterDeploymentSpec)
+	})
+
+	It("Pull Secret validation error", func() {
+		By("setting pull secret with wrong data")
+		updateSecret(ctx, kubeClient, pullSecretName, map[string]string{
+			corev1.DockerConfigJsonKey: WrongPullSecret})
+
+		By("Create cluster")
+		deployClusterDeploymentCRD(ctx, kubeClient, clusterDeploymentSpec)
+		deployInfraEnvCRD(ctx, kubeClient, infraNsName.Name, infraEnvSpec)
+		deployAgentClusterInstallCRD(ctx, kubeClient, aciSNOSpec, clusterDeploymentSpec.ClusterInstallRef.Name)
+
+		By("verify conditions")
+		installkey := types.NamespacedName{
+			Namespace: Options.Namespace,
+			Name:      clusterDeploymentSpec.ClusterInstallRef.Name,
+		}
+		checkAgentClusterInstallCondition(ctx, installkey,
+			hiveext.ClusterSpecSyncedCondition,
+			hiveext.ClusterBackendErrorReason)
+
+		condition := controllers.FindStatusCondition(getAgentClusterInstallCRD(ctx, kubeClient, installkey).Status.Conditions,
+			hiveext.ClusterSpecSyncedCondition)
+		Expect(condition.Message).To(ContainSubstring("invalid pull secret data"))
 	})
 
 	It("Verify NetworkType configuration with IPv6", func() {

@@ -101,6 +101,13 @@ func ensureSecretIsLabelled(ctx context.Context, c client.Client, secret *corev1
 	return nil
 }
 
+func getPullSecretKey(ns string, pullSecretRef *corev1.LocalObjectReference) types.NamespacedName {
+	if pullSecretRef == nil {
+		return types.NamespacedName{}
+	}
+	return types.NamespacedName{Namespace: ns, Name: pullSecretRef.Name}
+}
+
 func ensureConfigMapIsLabelled(ctx context.Context, c client.Client, cm *corev1.ConfigMap, key types.NamespacedName) error {
 
 	// Exit early if config map is nil
@@ -128,40 +135,6 @@ func ensureConfigMapIsLabelled(ctx context.Context, c client.Client, cm *corev1.
 		}
 	}
 	return nil
-}
-
-func getPullSecretData(ctx context.Context, c client.Client, r client.Reader, ref *corev1.LocalObjectReference, namespace string) (string, error) {
-	if ref == nil {
-		return "", newInputError("Missing reference to pull secret")
-	}
-
-	secret, err := getSecret(ctx, c, r, types.NamespacedName{Namespace: namespace, Name: ref.Name})
-	if err != nil {
-		return "", err
-	}
-
-	data, ok := secret.Data[corev1.DockerConfigJsonKey]
-	if !ok {
-		return "", errors.Errorf("secret %s did not contain key %s", ref.Name, corev1.DockerConfigJsonKey)
-	}
-
-	return string(data), nil
-}
-
-func getAndLabelPullSecret(ctx context.Context, c client.Client, r client.Reader, ref *corev1.LocalObjectReference, namespace string) (string, error) {
-	pullSecret, err := getPullSecretData(ctx, c, r, ref, namespace)
-	if err != nil {
-		return "", err
-	}
-	namespacedName := types.NamespacedName{Namespace: namespace, Name: ref.Name}
-	secret, err := getSecret(ctx, c, r, namespacedName)
-	if err != nil {
-		return "", errors.Errorf("failed to find secret %s: %v", ref.Name, err)
-	}
-	if err := ensureSecretIsLabelled(ctx, c, secret, namespacedName); err != nil {
-		return "", errors.Errorf("failed to label secret %s for backup: %v", ref.Name, err)
-	}
-	return pullSecret, nil
 }
 
 func getInfraEnvByClusterDeployment(ctx context.Context, log logrus.FieldLogger, c client.Client, name, namespace string) (*aiv1beta1.InfraEnv, error) {

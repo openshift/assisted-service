@@ -76,7 +76,8 @@ type InfraEnvReconciler struct {
 	ImageServiceBaseURL string
 	AuthType            auth.AuthType
 	VersionsHandler     versions.Handler
-	InsecureIPXEURLs    bool
+	PullSecretHandler
+	InsecureIPXEURLs bool
 }
 
 // +kubebuilder:rbac:groups=agent-install.openshift.io,resources=nmstateconfigs,verbs=get;list;watch
@@ -164,7 +165,7 @@ func (r *InfraEnvReconciler) updateInfraEnv(ctx context.Context, log logrus.Fiel
 		updateParams.InfraEnvUpdateParams.SSHAuthorizedKey = &infraEnv.Spec.SSHAuthorizedKey
 	}
 
-	pullSecret, err := getAndLabelPullSecret(ctx, r.Client, r.APIReader, infraEnv.Spec.PullSecretRef, infraEnv.Namespace)
+	pullSecret, err := r.PullSecretHandler.GetValidPullSecret(ctx, getPullSecretKey(infraEnv.Namespace, infraEnv.Spec.PullSecretRef))
 	if err != nil {
 		log.WithError(err).Error("failed to get pull secret")
 		return nil, err
@@ -375,7 +376,7 @@ func CreateInfraEnvParams(infraEnv *aiv1beta1.InfraEnv, imageType models.ImageTy
 func (r *InfraEnvReconciler) createInfraEnv(ctx context.Context, log logrus.FieldLogger, key *types.NamespacedName,
 	infraEnv *aiv1beta1.InfraEnv, clusterID *strfmt.UUID, openshiftVersion string) (*common.InfraEnv, error) {
 
-	pullSecret, err := getAndLabelPullSecret(ctx, r.Client, r.APIReader, infraEnv.Spec.PullSecretRef, key.Namespace)
+	pullSecret, err := r.PullSecretHandler.GetValidPullSecret(ctx, getPullSecretKey(infraEnv.Namespace, infraEnv.Spec.PullSecretRef))
 	if err != nil {
 		log.WithError(err).Error("failed to get pull secret")
 		return nil, err
