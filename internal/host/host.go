@@ -768,7 +768,11 @@ func (m *Manager) UpdateDomainNameResolution(ctx context.Context, h *models.Host
 		db = m.db
 	}
 	if string(response) != h.DomainNameResolutions {
-		if err := db.Model(h).Update("domain_name_resolutions", string(response)).Error; err != nil {
+		updates := map[string]interface{}{
+			"domain_name_resolutions":   string(response),
+			"trigger_monitor_timestamp": time.Now(),
+		}
+		if err := db.Model(h).Updates(updates).Error; err != nil {
 			return errors.Wrapf(err, "failed to update api_domain_name_resolution to host %s", h.ID.String())
 		}
 	}

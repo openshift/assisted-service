@@ -4256,3 +4256,60 @@ var _ = Describe("GetKnownApprovedHosts", func() {
 		})
 	}
 })
+
+var _ = Describe("UpdateDomainNameResolution", func() {
+	var (
+		manager API
+		db      *gorm.DB
+		dbName  string
+	)
+	BeforeEach(func() {
+		db, dbName = common.PrepareTestDB()
+		manager = NewManager(common.GetTestLog(), db, nil, nil, nil, nil, nil, defaultConfig, nil, nil, nil)
+	})
+	AfterEach(func() {
+		common.DeleteTestDB(db, dbName)
+	})
+	unmarshalResolution := func(resolutionStr string) (ret models.DomainResolutionResponse) {
+		Expect(json.Unmarshal([]byte(resolutionStr), &ret)).ToNot(HaveOccurred())
+		return ret
+	}
+	It("Test domain resolution", func() {
+		hostID := strfmt.UUID(uuid.New().String())
+		infraEnvID := strfmt.UUID(uuid.New().String())
+		host := models.Host{
+			ID:         &hostID,
+			InfraEnvID: infraEnvID,
+		}
+		Expect(db.Create(&host).Error).ToNot(HaveOccurred())
+		resolution := models.DomainResolutionResponse{
+			Resolutions: []*models.DomainResolutionResponseDomain{
+				{
+					DomainName:    swag.String("a.apps.cluster.test.com"),
+					IPV4Addresses: []strfmt.IPv4{"1.2.3.4", "1.2.3.5"},
+				},
+			},
+		}
+		Expect(manager.UpdateDomainNameResolution(context.Background(), &host, resolution, db)).ToNot(HaveOccurred())
+		h1, err := common.GetHostFromDB(db, infraEnvID.String(), hostID.String())
+		Expect(err).ToNot(HaveOccurred())
+		Expect(resolution).To(Equal(unmarshalResolution(h1.DomainNameResolutions)))
+		Expect(h1.TriggerMonitorTimestamp.IsZero()).To(BeFalse())
+
+		resolution.Resolutions = append(resolution.Resolutions, &models.DomainResolutionResponseDomain{
+			DomainName:    swag.String("b.apps.cluster.test.com"),
+			IPV6Addresses: []strfmt.IPv6{"1234::5678"},
+		})
+		Expect(manager.UpdateDomainNameResolution(context.Background(), &host, resolution, db)).ToNot(HaveOccurred())
+		h2, err := common.GetHostFromDB(db, infraEnvID.String(), hostID.String())
+		Expect(err).ToNot(HaveOccurred())
+		Expect(resolution).To(Equal(unmarshalResolution(h2.DomainNameResolutions)))
+		Expect(h2.TriggerMonitorTimestamp).ToNot(Equal(h1.TriggerMonitorTimestamp))
+
+		Expect(manager.UpdateDomainNameResolution(context.Background(), &host, resolution, db)).ToNot(HaveOccurred())
+		h3, err := common.GetHostFromDB(db, infraEnvID.String(), hostID.String())
+		Expect(err).ToNot(HaveOccurred())
+		Expect(resolution).To(Equal(unmarshalResolution(h3.DomainNameResolutions)))
+		Expect(h3.TriggerMonitorTimestamp).To(Equal(h2.TriggerMonitorTimestamp))
+	})
+})
