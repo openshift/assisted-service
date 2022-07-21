@@ -28,7 +28,11 @@ type validator struct {
 }
 
 func (v *validator) GetHostValidInterfaces(host *models.Host) ([]*models.Interface, error) {
-	key := common.GetHostKey(host)
+	key, err := common.GetInventoryInterfaces(host.Inventory)
+	if err != nil {
+		return nil, err
+	}
+
 	val, exists := v.cache.Get(key)
 	if exists {
 		value, ok := val.([]*models.Interface)
@@ -37,13 +41,15 @@ func (v *validator) GetHostValidInterfaces(host *models.Host) ([]*models.Interfa
 		}
 		return value, nil
 	}
-	var inventory models.Inventory
-	if err := json.Unmarshal([]byte(host.Inventory), &inventory); err != nil {
+
+	var interfaces []*models.Interface
+	if err := json.Unmarshal([]byte(key), &interfaces); err != nil {
 		return nil, err
 	}
-	if len(inventory.Interfaces) == 0 {
+	if len(interfaces) == 0 {
 		return nil, errors.Errorf("host %s doesn't have interfaces", host.ID)
 	}
-	v.cache.Set(key, inventory.Interfaces)
-	return inventory.Interfaces, nil
+
+	v.cache.Set(key, interfaces)
+	return interfaces, nil
 }

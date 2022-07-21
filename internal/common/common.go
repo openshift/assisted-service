@@ -377,6 +377,22 @@ func GetHostKey(host *models.Host) string {
 	return host.ID.String() + "@" + host.InfraEnvID.String()
 }
 
+func GetInventoryInterfaces(inventory string) (string, error) {
+	startIndex := strings.Index(inventory, "\"interfaces\":")
+	interfacesLocation := startIndex + len(`"interfaces:"`)
+	if (startIndex) == -1 {
+		return "", errors.New("unable to find interfaces in the inventory")
+	}
+
+	endIndex := strings.Index(inventory[interfacesLocation:], "}],")
+	if (endIndex) == -1 {
+		return "", errors.New("inventory is malformed")
+	}
+
+	endLocation := endIndex + len("}]")
+	return inventory[interfacesLocation : interfacesLocation+endLocation], nil
+}
+
 // GetTagFromImageRef returns the tag of the given container image reference. For example, if the
 // image reference is 'quay.io/my/image:latest' then the result will be 'latest'. If the image
 // reference isn't valid or doesn't contain a tag then the result will be an empty string.
