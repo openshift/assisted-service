@@ -96,7 +96,6 @@ type API interface {
 	ProgressAPI
 	// Refresh state in case of hosts update
 	RefreshStatus(ctx context.Context, c *common.Cluster, db *gorm.DB) (*common.Cluster, error)
-	ResetAutoAssignRoles(ctx context.Context, c *common.Cluster, db *gorm.DB) (bool, error)
 	ClusterMonitoring()
 	IsOperatorAvailable(c *common.Cluster, operatorName string) bool
 	UploadIngressCert(c *common.Cluster) (err error)
@@ -309,26 +308,6 @@ func (m *Manager) updateValidationsInDB(ctx context.Context, db *gorm.DB, c *com
 		return nil, err
 	}
 	return UpdateCluster(logutil.FromContext(ctx, m.log), db, *c.ID, *c.Status, "validations_info", string(b))
-}
-
-func (m *Manager) ResetAutoAssignRoles(ctx context.Context, cluster *common.Cluster, db *gorm.DB) (bool, error) {
-	if cluster == nil || cluster.ID == nil {
-		return false, nil
-	}
-
-	if db == nil {
-		db = m.db
-	}
-
-	reply := db.Model(&models.Host{}).Where("cluster_id = ? and role = ?",
-		cluster.ID.String(), models.HostRoleAutoAssign).Update("suggested_role", models.HostRoleAutoAssign)
-
-	if err := reply.Error; err != nil {
-		m.log.WithError(err).Errorf("fail to reset auto-assign role in cluster %s", cluster.ID.String())
-		return false, err
-	}
-	//return true if there is at least another host other then the new added host that has been resetted
-	return reply.RowsAffected > 1, nil
 }
 
 func (m *Manager) RefreshStatus(ctx context.Context, c *common.Cluster, db *gorm.DB) (*common.Cluster, error) {

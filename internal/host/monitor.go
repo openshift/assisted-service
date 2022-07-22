@@ -109,6 +109,22 @@ func SortHosts(hosts []*models.Host) ([]*models.Host, bool) {
 	return hosts, allHostsHasInventory
 }
 
+func (m *Manager) resetRoleAssignmentIfNotAllRolesAreSet() {
+	if m.leaderElector.IsLeader() {
+		clusetersWithMissingRoleAssignmentQuery := m.db.Distinct("cluster_id").
+			Where("role = ? and (suggested_role = ? or suggested_role = '' or suggested_role is null)", models.HostRoleAutoAssign, models.HostRoleAutoAssign).
+			Where("cluster_id != '' and cluster_id is not null").
+			Where("deleted_at is null").Table("hosts")
+		count, reset_err := common.ResetAutoAssignRoles(m.db, clusetersWithMissingRoleAssignmentQuery)
+		if reset_err != nil {
+			m.log.WithError(reset_err).Errorf("fail to reset auto-assign role in monitor")
+		}
+		if count > 0 {
+			m.log.Infof("resetting auto-assign roles on %d hosts in monitor", count)
+		}
+	}
+}
+
 func (m *Manager) clusterHostMonitoring() int64 {
 	var (
 		monitored int64
@@ -119,6 +135,7 @@ func (m *Manager) clusterHostMonitoring() int64 {
 		err       error
 	)
 
+	m.resetRoleAssignmentIfNotAllRolesAreSet()
 	query := m.monitorClusterQueryGenerator.NewClusterQuery()
 	for {
 		if clusters, err = query.Next(); err != nil {
@@ -133,6 +150,7 @@ func (m *Manager) clusterHostMonitoring() int64 {
 		for _, c := range clusters {
 			inventoryCache := make(InventoryCache)
 			sortedHosts, canRefreshRoles := SortHosts(c.Hosts)
+
 			for _, host := range sortedHosts {
 				if !m.leaderElector.IsLeader() {
 					m.log.Debugf("Not a leader, exiting cluster HostMonitoring")

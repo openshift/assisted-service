@@ -529,21 +529,6 @@ func (mr *MockAPIMockRecorder) RegisterCluster(ctx, c interface{}) *gomock.Call 
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RegisterCluster", reflect.TypeOf((*MockAPI)(nil).RegisterCluster), ctx, c)
 }
 
-// ResetAutoAssignRoles mocks base method.
-func (m *MockAPI) ResetAutoAssignRoles(ctx context.Context, c *common.Cluster, db *gorm.DB) (bool, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ResetAutoAssignRoles", ctx, c, db)
-	ret0, _ := ret[0].(bool)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// ResetAutoAssignRoles indicates an expected call of ResetAutoAssignRoles.
-func (mr *MockAPIMockRecorder) ResetAutoAssignRoles(ctx, c, db interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ResetAutoAssignRoles", reflect.TypeOf((*MockAPI)(nil).ResetAutoAssignRoles), ctx, c, db)
-}
-
 // ResetCluster mocks base method.
 func (m *MockAPI) ResetCluster(ctx context.Context, c *common.Cluster, reason string, db *gorm.DB) *common.ApiErrorResponse {
 	m.ctrl.T.Helper()

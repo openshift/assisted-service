@@ -433,11 +433,14 @@ func (m *Manager) refreshRoleInternal(ctx context.Context, h *models.Host, db *g
 	var suggestedRole models.HostRole
 	var err error
 	if m.Config.EnableAutoAssign || forceRefresh {
-		//because of possible hw changes, suggested role should be calculated
-		//periodically even if the suggested role is already set
+		//because of possible hw changes, or new host being registered
+		//suggested role should be calculated periodically even if the
+		//suggested role is already set
 		if h.Role == models.HostRoleAutoAssign &&
 			funk.ContainsString(hostStatusesBeforeInstallation[:], *h.Status) {
-			if suggestedRole, err = m.autoRoleSelection(ctx, h, db); err == nil {
+			host := *h //must have a defensive copy becuase selectRole changes the host object
+			if suggestedRole, err = m.selectRole(ctx, &host, db); err == nil {
+				m.log.Debugf("calculated role for host %s is %s (original suggested = %s)", hostutil.GetHostnameForMsg(h), suggestedRole, h.SuggestedRole)
 				if h.SuggestedRole != suggestedRole {
 					if err = updateRole(m.log, h, h.Role, suggestedRole, db, string(h.Role)); err == nil {
 						h.SuggestedRole = suggestedRole
@@ -1110,13 +1113,6 @@ func (m *Manager) AutoAssignRole(ctx context.Context, h *models.Host, db *gorm.D
 	}
 
 	return false, nil
-}
-
-func (m *Manager) autoRoleSelection(ctx context.Context, host *models.Host, db *gorm.DB) (models.HostRole, error) {
-	h := *host
-
-	suggestedRole, err := m.selectRole(ctx, &h, db)
-	return suggestedRole, err
 }
 
 // This function recommends a role for a given host based on these criteria:
