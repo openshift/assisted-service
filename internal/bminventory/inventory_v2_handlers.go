@@ -718,20 +718,20 @@ func (b *bareMetalInventory) bootIPXEScript(ctx context.Context, infraEnv *commo
 	return fmt.Sprintf(ipxeBootScriptFormat, initrdURL, kernelURL, rootfsURL), nil
 }
 
-func (b *bareMetalInventory) infraEnvIPXEScript(ctx context.Context, infraEnv *common.InfraEnv, mac *strfmt.MAC, bootControl bool) (string, error) {
+func (b *bareMetalInventory) infraEnvIPXEScript(ctx context.Context, infraEnv *common.InfraEnv, mac *strfmt.MAC, ipxeScriptType *string) (string, error) {
 	if mac != nil && *mac != "" {
 		if err := b.canServeHostIPXEScript(infraEnv, mac); err != nil {
 			return "", err
 		}
-	} else if bootControl {
+	} else if swag.StringValue(ipxeScriptType) == BootOrderControl {
 		return b.hostRedirectIPXEScript(ctx, infraEnv)
 	}
 	return b.bootIPXEScript(ctx, infraEnv)
 }
 
 func (b *bareMetalInventory) GetInfraEnvPresignedFileURL(ctx context.Context, params installer.GetInfraEnvPresignedFileURLParams) middleware.Responder {
-	if swag.BoolValue(params.BootControl) && params.FileName != "ipxe-script" {
-		return common.NewApiError(http.StatusBadRequest, errors.New(`boot_control can be set only for "ipxe-script"`))
+	if params.IpxeScriptType != nil && params.FileName != "ipxe-script" {
+		return common.NewApiError(http.StatusBadRequest, errors.New(`ipxe_script_type can be set only for "ipxe-script"`))
 	}
 	infraEnv, err := common.GetInfraEnvFromDB(b.db, params.InfraEnvID)
 	if err != nil {
@@ -739,9 +739,9 @@ func (b *bareMetalInventory) GetInfraEnvPresignedFileURL(ctx context.Context, pa
 	}
 
 	builder := &installer.V2DownloadInfraEnvFilesURL{
-		InfraEnvID:  params.InfraEnvID,
-		FileName:    params.FileName,
-		BootControl: params.BootControl,
+		InfraEnvID:     params.InfraEnvID,
+		FileName:       params.FileName,
+		IpxeScriptType: params.IpxeScriptType,
 	}
 	filesURL, err := builder.Build()
 	if err != nil {

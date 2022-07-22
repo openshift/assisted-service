@@ -69,11 +69,11 @@ When using iPXE, it is more desirable to put the network first.  Also, even if t
 written to the disk and the installation has failed, the node should boot from network.  To enable this
 the boot order should be reversed to `[network, hd]`, and the assisted service manages this flow.
 
-To enable this flow, additional optional parameter `boot_control` has to be added to the iPXE download URL.
+To enable this flow, additional optional parameter `ipxe_script_type` has to be added to the iPXE download URL.
 The script download URL has this form:
 
 ```
-GET /api/assisted-install/v2/infra-envs/{infra_env_id}/downloads/files?file_name=ipxe-script&boot_control=true
+GET /api/assisted-install/v2/infra-envs/{infra_env_id}/downloads/files?file_name=ipxe-script&ipxe_script_type=boot-order-control
 ```
 
 The assisted service returns a script having the following format:
@@ -91,7 +91,15 @@ the boot script in case it is in stage that requires booting from hd.
 To get a presigned URL with boot_control enabled, the boot_control parameter can be added to the
 presigning URL request:
 
-`GET /api/assisted-install/v2/infra-envs/{infra_env_id}/downloads/files-presigned?file_name=ipxe-script&boot_control=true`
+`GET /api/assisted-install/v2/infra-envs/{infra_env_id}/downloads/files-presigned?file_name=ipxe-script&ipxe_script_type=boot-order-control`
+
+##### Boot Control with Kube API
+When working with Kube API, the iPXE script URL is part of the infra-env status section - `ipxeScript` field.
+There is a field in infra-env spec section `ipxeScriptType` which can be used to set the boot control behavior.  There are 2 possible values to this field:
+- `DiscoveryImageAlways` (the default): Return a script that boots the discovery ISO from the network.
+- `BootOrderControl`: Return a redirect script.
+
+If this field is not set `DiscoveryImageAlways` is assumed.
 
 ### Booting the nodes from iPXE
 

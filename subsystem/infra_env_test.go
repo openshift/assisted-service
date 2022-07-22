@@ -17,6 +17,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/client/installer"
+	"github.com/openshift/assisted-service/internal/bminventory"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/models"
 )
@@ -209,9 +210,9 @@ var _ = Describe("Infra_Env", func() {
 	})
 	It("ipxe with boot control", func() {
 		res, err := userBMClient.Installer.GetInfraEnvPresignedFileURL(ctx, &installer.GetInfraEnvPresignedFileURLParams{
-			InfraEnvID:  infraEnvID,
-			FileName:    "ipxe-script",
-			BootControl: swag.Bool(true)})
+			InfraEnvID:     infraEnvID,
+			FileName:       "ipxe-script",
+			IpxeScriptType: swag.String(bminventory.BootOrderControl)})
 		Expect(err).NotTo(HaveOccurred())
 		Expect(res.Payload).ToNot(BeNil())
 		url := swag.StringValue(res.Payload.URL)

@@ -213,7 +213,7 @@ var _ = Describe("infraEnv reconcile", func() {
 		Expect(infraEnvImage.Status.InfraEnvDebugInfo.EventsURL).To(HavePrefix(eventURL))
 	})
 
-	It("IPXE with HostRedirect script type", func() {
+	It("IPXE with BootOrderControl script type", func() {
 		dbInfraEnv := &common.InfraEnv{
 			GeneratedAt: strfmt.DateTime(time.Now()),
 			InfraEnv: models.InfraEnv{
@@ -227,7 +227,7 @@ var _ = Describe("infraEnv reconcile", func() {
 		mockInstallerInternal.EXPECT().UpdateInfraEnvInternal(gomock.Any(), gomock.Any(), nil).Return(dbInfraEnv, nil).Times(1)
 		kubeInfraEnv := newInfraEnvImage("myInfraEnv", testNamespace, aiv1beta1.InfraEnvSpec{
 			PullSecretRef:  &corev1.LocalObjectReference{Name: "pull-secret"},
-			IPXEScriptType: aiv1beta1.HostRedirect,
+			IPXEScriptType: aiv1beta1.BootOrderControl,
 		})
 		Expect(c.Create(ctx, kubeInfraEnv)).To(Succeed())
 
@@ -268,10 +268,10 @@ var _ = Describe("infraEnv reconcile", func() {
 		Expect(scriptURL.Host).To(Equal("www.acme.com"))
 		Expect(scriptURL.Path).To(ContainSubstring(sId.String()))
 		Expect(scriptURL.Query().Get("file_name")).To(Equal("ipxe-script"))
-		Expect(scriptURL.Query().Get("boot_control")).To(Equal("true"))
+		Expect(scriptURL.Query().Get("ipxe_script_type")).To(Equal(bminventory.BootOrderControl))
 	})
 
-	It("IPXE with Boot script type", func() {
+	It("IPXE with DiscoveryImageAlways script type", func() {
 		dbInfraEnv := &common.InfraEnv{
 			GeneratedAt: strfmt.DateTime(time.Now()),
 			InfraEnv: models.InfraEnv{
@@ -285,7 +285,7 @@ var _ = Describe("infraEnv reconcile", func() {
 		mockInstallerInternal.EXPECT().UpdateInfraEnvInternal(gomock.Any(), gomock.Any(), nil).Return(dbInfraEnv, nil).Times(1)
 		kubeInfraEnv := newInfraEnvImage("myInfraEnv", testNamespace, aiv1beta1.InfraEnvSpec{
 			PullSecretRef:  &corev1.LocalObjectReference{Name: "pull-secret"},
-			IPXEScriptType: aiv1beta1.Boot,
+			IPXEScriptType: aiv1beta1.DiscoveryImageAlways,
 		})
 		Expect(c.Create(ctx, kubeInfraEnv)).To(Succeed())
 
@@ -326,7 +326,7 @@ var _ = Describe("infraEnv reconcile", func() {
 		Expect(scriptURL.Host).To(Equal("www.acme.com"))
 		Expect(scriptURL.Path).To(ContainSubstring(sId.String()))
 		Expect(scriptURL.Query().Get("file_name")).To(Equal("ipxe-script"))
-		Expect(scriptURL.Query().Has("boot_control")).To(BeFalse())
+		Expect(scriptURL.Query().Has("ipxe_script_type")).To(BeFalse())
 	})
 
 	It("sets boot artifact URLs correctly", func() {
@@ -383,7 +383,7 @@ var _ = Describe("infraEnv reconcile", func() {
 		Expect(scriptURL.Host).To(Equal("www.acme.com"))
 		Expect(scriptURL.Path).To(ContainSubstring(sId.String()))
 		Expect(scriptURL.Query().Get("file_name")).To(Equal("ipxe-script"))
-		Expect(scriptURL.Query().Has("boot_control")).To(BeFalse())
+		Expect(scriptURL.Query().Has("ipxe_script_type")).To(BeFalse())
 	})
 
 	Context("with local auth", func() {

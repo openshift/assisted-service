@@ -89,13 +89,13 @@ type InfraEnvSpec struct {
 	// +optional
 	CpuArchitecture string `json:"cpuArchitecture,omitempty"`
 
-	// IPXEScriptType the script type that should be served (HostRedirect/Boot)
-	// When the value is HostRedirect, the served script consists from URL redirection (i.e chain <url>).  The
-	// <url> is the same URL that contains query parameter mac=${net0/mac}.  The value is IPXE macro is replaced
-	//  with the mac address.  The mac address is used to identify the invoking script.
-	// When the value is Boot (or default), the served script contains a script that causes the invoker to boot
-	// the discovery ISO from the network.
-	// +kubebuilder:default=Boot
+	// IPXEScriptType the script type that should be served (DiscoveryImageAlways/BootOrderControl)
+	// DiscoveryImageAlways: Boot unconditionaly from the network discovery image
+	// BootOrderControl: Boot from discovery ISO depending on the host's state.
+	// When the value is BootOrderControl, the service will look for an Agent record that matches the host's MAC address;
+	// if found, and if that Agent is in a state where it is provisioned and attached to a cluster, then host will boot the host disk.
+	// Otherwise it will boot the discovery ISO using the same script as the DiscoveryImageAlways option.
+	// +kubebuilder:default=DiscoveryImageAlways
 	// +optional
 	IPXEScriptType IPXEScriptType `json:"ipxeScriptType"`
 }
@@ -179,16 +179,16 @@ type InfraEnvList struct {
 	Items           []InfraEnv `json:"items"`
 }
 
-// IPXEScriptType is the script type that should be served (HostRedirect/Boot)
-// +kubebuilder:validation:Enum="";Boot;HostRedirect
+// IPXEScriptType is the script type that should be served (BootOrderControl/DiscoveryImageAlways)
+// +kubebuilder:validation:Enum="";DiscoveryImageAlways;BootOrderControl
 type IPXEScriptType string
 
 const (
-	// HostRedirect - Boot with mac identification redirect script
-	HostRedirect IPXEScriptType = "HostRedirect"
+	// DiscoveryImageAlways - Boot from network
+	DiscoveryImageAlways IPXEScriptType = "DiscoveryImageAlways"
 
-	// Boot - Boot from network
-	Boot IPXEScriptType = "Boot"
+	// BootOrderControl - Boot with mac identification redirect script
+	BootOrderControl IPXEScriptType = "BootOrderControl"
 )
 
 func init() {

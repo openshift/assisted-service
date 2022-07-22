@@ -3256,9 +3256,13 @@ func init() {
             "in": "query"
           },
           {
-            "type": "boolean",
-            "description": "Verify that script is served to hosts without installed disk.",
-            "name": "boot_control",
+            "enum": [
+              "discovery-image-always",
+              "boot-order-control"
+            ],
+            "type": "string",
+            "description": "Specify the script type to be served for iPXE.",
+            "name": "ipxe_script_type",
             "in": "query"
           }
         ],
@@ -3354,9 +3358,13 @@ func init() {
             "required": true
           },
           {
-            "type": "boolean",
-            "description": "Verify that script is served to hosts without installed disk.",
-            "name": "boot_control",
+            "enum": [
+              "discovery-image-always",
+              "boot-order-control"
+            ],
+            "type": "string",
+            "description": "Specify the script type to be served for iPXE.",
+            "name": "ipxe_script_type",
             "in": "query"
           }
         ],
@@ -12501,9 +12509,13 @@ func init() {
             "in": "query"
           },
           {
-            "type": "boolean",
-            "description": "Verify that script is served to hosts without installed disk.",
-            "name": "boot_control",
+            "enum": [
+              "discovery-image-always",
+              "boot-order-control"
+            ],
+            "type": "string",
+            "description": "Specify the script type to be served for iPXE.",
+            "name": "ipxe_script_type",
             "in": "query"
           }
         ],
@@ -12599,9 +12611,13 @@ func init() {
             "required": true
           },
           {
-            "type": "boolean",
-            "description": "Verify that script is served to hosts without installed disk.",
-            "name": "boot_control",
+            "enum": [
+              "discovery-image-always",
+              "boot-order-control"
+            ],
+            "type": "string",
+            "description": "Specify the script type to be served for iPXE.",
+            "name": "ipxe_script_type",
             "in": "query"
           }
         ],

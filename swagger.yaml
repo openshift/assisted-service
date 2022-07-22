@@ -1644,10 +1644,11 @@ paths:
           format: mac
           required: false
         - in: query
-          name: boot_control
-          description: Verify that script is served to hosts without installed disk.
-          type: boolean
+          name: ipxe_script_type
+          description: Specify the script type to be served for iPXE.
           required: false
+          type: string
+          enum: ['discovery-image-always', 'boot-order-control']
       responses:
         "200":
           description: Success.
@@ -1710,10 +1711,11 @@ paths:
           enum: [discovery.ign, ipxe-script]
           required: true
         - in: query
-          name: boot_control
-          description: Verify that script is served to hosts without installed disk.
-          type: boolean
+          name: ipxe_script_type
+          description: Specify the script type to be served for iPXE.
           required: false
+          type: string
+          enum: ['discovery-image-always', 'boot-order-control']
       responses:
         "200":
           description: Success.

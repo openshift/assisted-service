@@ -9259,19 +9259,17 @@ var _ = Describe("V2DownloadInfraEnvFiles", func() {
 		ctrl.Finish()
 	})
 
-	getResponse := func(fileName string, withMac, bootControl bool) middleware.Responder {
+	getResponse := func(fileName string, withMac bool, ipxeScriptType *string) middleware.Responder {
 		params := installer.V2DownloadInfraEnvFilesParams{InfraEnvID: infraEnvID, FileName: fileName}
 		if withMac {
 			params.Mac = toMac("f8:75:a4:a4:00:fe")
 		}
-		if bootControl {
-			params.BootControl = swag.Bool(true)
-		}
+		params.IpxeScriptType = ipxeScriptType
 		return bm.V2DownloadInfraEnvFiles(ctx, params)
 	}
 
-	getResponseData := func(fileName string, withMac, bootControl bool) []byte {
-		response := getResponse(fileName, withMac, bootControl)
+	getResponseData := func(fileName string, withMac bool, ipxeScriptType *string) []byte {
+		response := getResponse(fileName, withMac, ipxeScriptType)
 		fileMw, ok := response.(*filemiddleware.FileMiddlewareResponder)
 		Expect(ok).To(BeTrue())
 		innerType, ok := fileMw.GetNext().(*installer.V2DownloadInfraEnvFilesOK)
@@ -9284,7 +9282,7 @@ var _ = Describe("V2DownloadInfraEnvFiles", func() {
 
 	It("returns discovery.ign successfully", func() {
 		mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(discovery_ignition_3_1, nil).Times(1)
-		body := getResponseData("discovery.ign", false, false)
+		body := getResponseData("discovery.ign", false, nil)
 		config, report, err := ign_3_1.Parse(body)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(report.IsFatal()).To(BeFalse())
@@ -9305,7 +9303,7 @@ var _ = Describe("V2DownloadInfraEnvFiles", func() {
 
 	It("returns ipxe-script successfully", func() {
 		mockVersions.EXPECT().GetOsImage(common.TestDefaultConfig.OpenShiftVersion, gomock.Any()).Return(common.TestDefaultConfig.OsImage, nil).Times(1)
-		content := getResponseData("ipxe-script", false, false)
+		content := getResponseData("ipxe-script", false, nil)
 		lines := strings.Split(string(content), "\n")
 
 		Expect(lines[0]).To(Equal("#!ipxe"))
@@ -9351,7 +9349,7 @@ var _ = Describe("V2DownloadInfraEnvFiles", func() {
 
 	It("returns ipxe-script successfully with mac", func() {
 		mockVersions.EXPECT().GetOsImage(common.TestDefaultConfig.OpenShiftVersion, gomock.Any()).Return(common.TestDefaultConfig.OsImage, nil).Times(1)
-		content := getResponseData("ipxe-script", true, false)
+		content := getResponseData("ipxe-script", true, nil)
 		lines := strings.Split(string(content), "\n")
 
 		Expect(lines[0]).To(Equal("#!ipxe"))
@@ -9445,7 +9443,7 @@ var _ = Describe("V2DownloadInfraEnvFiles", func() {
 			}
 			Expect(db.Create(&host).Error).ToNot(HaveOccurred())
 			mockVersions.EXPECT().GetOsImage(common.TestDefaultConfig.OpenShiftVersion, gomock.Any()).Return(common.TestDefaultConfig.OsImage, nil).Times(1)
-			content := getResponseData("ipxe-script", true, false)
+			content := getResponseData("ipxe-script", true, nil)
 			initrdRegex := regexp.MustCompile(`^initrd --name initrd (.+)`)
 			match := initrdRegex.FindStringSubmatch(strings.Split(string(content), "\n")[1])
 			Expect(match).NotTo(BeNil())
@@ -9499,7 +9497,7 @@ var _ = Describe("V2DownloadInfraEnvFiles", func() {
 				}
 			}
 			Expect(db.Create(&host).Error).ToNot(HaveOccurred())
-			response := getResponse("ipxe-script", true, true)
+			response := getResponse("ipxe-script", true, nil)
 			verifyApiErrorString(response, http.StatusNotFound, "IPXE booting skipped")
 			Expect(db.Delete(&models.Host{ID: &id, InfraEnvID: infraEnvID}).Error).ToNot(HaveOccurred())
 		}
@@ -9517,7 +9515,7 @@ var _ = Describe("V2DownloadInfraEnvFiles", func() {
 			Expect(db.Create(&host).Error).ToNot(HaveOccurred())
 		}
 
-		response := getResponse("ipxe-script", true, true)
+		response := getResponse("ipxe-script", true, swag.String(BootOrderControl))
 		verifyApiErrorString(response, http.StatusInternalServerError, "Unexpected number of hosts")
 	})
 
@@ -9539,8 +9537,8 @@ var _ = Describe("V2DownloadInfraEnvFiles", func() {
 			os.Unsetenv("EC_PRIVATE_KEY_PEM")
 		})
 
-		It("IPXE without mac with boot control", func() {
-			content := getResponseData("ipxe-script", false, true)
+		It("IPXE without mac with script type BootOrderControl", func() {
+			content := getResponseData("ipxe-script", false, swag.String(BootOrderControl))
 			chainRegex := regexp.MustCompile(`^chain +(.*file_name=ipxe-script&mac=[$]{net0/mac})`)
 			match := chainRegex.FindStringSubmatch(strings.Split(string(content), "\n")[1])
 			Expect(match).NotTo(BeNil())
@@ -9554,7 +9552,7 @@ var _ = Describe("V2DownloadInfraEnvFiles", func() {
 
 		It("signs the initrd ipxe-script url correctly", func() {
 			mockVersions.EXPECT().GetOsImage(common.TestDefaultConfig.OpenShiftVersion, gomock.Any()).Return(common.TestDefaultConfig.OsImage, nil).Times(1)
-			content := getResponseData("ipxe-script", false, false)
+			content := getResponseData("ipxe-script", false, nil)
 			initrdRegex := regexp.MustCompile(`^initrd --name initrd (.+)`)
 			match := initrdRegex.FindStringSubmatch(strings.Split(string(content), "\n")[1])
 			Expect(match).NotTo(BeNil())
@@ -9577,7 +9575,7 @@ var _ = Describe("V2DownloadInfraEnvFiles", func() {
 
 		It("signs the initrd ipxe-script url correctly", func() {
 			mockVersions.EXPECT().GetOsImage(common.TestDefaultConfig.OpenShiftVersion, gomock.Any()).Return(common.TestDefaultConfig.OsImage, nil).Times(1)
-			content := getResponseData("ipxe-script", false, false)
+			content := getResponseData("ipxe-script", false, nil)
 			initrdRegex := regexp.MustCompile(`^initrd --name initrd (.+)`)
 			match := initrdRegex.FindStringSubmatch(strings.Split(string(content), "\n")[1])
 			Expect(match).NotTo(BeNil())
@@ -14276,16 +14274,14 @@ var _ = Describe("GetInfraEnvPresignedFileURL", func() {
 		ctrl.Finish()
 	})
 
-	tryGetUrl := func(filename string, withBootControl bool) middleware.Responder {
+	tryGetUrl := func(filename string, ipxeScriptType *string) middleware.Responder {
 		params := installer.GetInfraEnvPresignedFileURLParams{InfraEnvID: infraEnvID, FileName: filename}
-		if withBootControl {
-			params.BootControl = swag.Bool(true)
-		}
+		params.IpxeScriptType = ipxeScriptType
 		return bm.GetInfraEnvPresignedFileURL(ctx, params)
 	}
 
-	getNewURL := func(filename string, withBootControl bool) *models.PresignedURL {
-		resp := tryGetUrl(filename, withBootControl)
+	getNewURL := func(filename string, ipxeScriptType *string) *models.PresignedURL {
+		resp := tryGetUrl(filename, ipxeScriptType)
 		Expect(resp).To(BeAssignableToTypeOf(&installer.GetInfraEnvPresignedFileURLOK{}))
 		payload := resp.(*installer.GetInfraEnvPresignedFileURLOK).Payload
 		Expect(payload).ToNot(BeNil())
@@ -14294,7 +14290,7 @@ var _ = Describe("GetInfraEnvPresignedFileURL", func() {
 
 	Context("with no auth", func() {
 		It("generates a url with no token for ipxe-script", func() {
-			payload := getNewURL("ipxe-script", false)
+			payload := getNewURL("ipxe-script", nil)
 
 			Expect(payload.ExpiresAt.String()).To(Equal("0001-01-01T00:00:00.000Z"))
 			u, err := url.Parse(*payload.URL)
@@ -14308,7 +14304,7 @@ var _ = Describe("GetInfraEnvPresignedFileURL", func() {
 		})
 
 		It("generates a url with no token for ipxe-script with boot control", func() {
-			payload := getNewURL("ipxe-script", true)
+			payload := getNewURL("ipxe-script", swag.String(BootOrderControl))
 
 			Expect(payload.ExpiresAt.String()).To(Equal("0001-01-01T00:00:00.000Z"))
 			u, err := url.Parse(*payload.URL)
@@ -14317,12 +14313,12 @@ var _ = Describe("GetInfraEnvPresignedFileURL", func() {
 			Expect(u.Query().Get("image_token")).To(Equal(""))
 			Expect(u.Query().Get("api_key")).To(Equal(""))
 			Expect(u.Query().Get("file_name")).To(Equal("ipxe-script"))
-			Expect(u.Query().Get("boot_control")).To(Equal("true"))
+			Expect(u.Query().Get("ipxe_script_type")).To(Equal(BootOrderControl))
 			Expect(u.Path).To(Equal(fmt.Sprintf("/api/assisted-install/v2/infra-envs/%s/downloads/files", infraEnvID.String())))
 		})
 
 		It("generates a url with no token for discovery.ign", func() {
-			payload := getNewURL("discovery.ign", false)
+			payload := getNewURL("discovery.ign", nil)
 
 			Expect(payload.ExpiresAt.String()).To(Equal("0001-01-01T00:00:00.000Z"))
 			u, err := url.Parse(*payload.URL)
@@ -14336,7 +14332,7 @@ var _ = Describe("GetInfraEnvPresignedFileURL", func() {
 		})
 
 		It("returns bad request when boot_control is used with discovery.ign", func() {
-			payload := tryGetUrl("discovery.ign", true)
+			payload := tryGetUrl("discovery.ign", swag.String(BootOrderControl))
 			verifyApiError(payload, http.StatusBadRequest)
 		})
 	})
@@ -14360,7 +14356,7 @@ var _ = Describe("GetInfraEnvPresignedFileURL", func() {
 		})
 
 		It("sets a valid api_key token", func() {
-			payload := getNewURL("ipxe-script", false)
+			payload := getNewURL("ipxe-script", nil)
 
 			Expect(payload.ExpiresAt.String()).To(Equal("0001-01-01T00:00:00.000Z"))
 			u, err := url.Parse(*payload.URL)
@@ -14379,7 +14375,7 @@ var _ = Describe("GetInfraEnvPresignedFileURL", func() {
 		})
 
 		It("sets a valid image_token", func() {
-			payload := getNewURL("ipxe-script", false)
+			payload := getNewURL("ipxe-script", nil)
 
 			Expect(payload.ExpiresAt.String()).ToNot(Equal("0001-01-01T00:00:00.000Z"))
 			u, err := url.Parse(*payload.URL)
