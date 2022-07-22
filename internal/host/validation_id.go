@@ -43,6 +43,7 @@ const (
 	DiskEncryptionRequirementsSatisfied            = validationID(models.HostValidationIDDiskEncryptionRequirementsSatisfied)
 	NonOverlappingSubnets                          = validationID(models.HostValidationIDNonOverlappingSubnets)
 	VSphereHostUUIDEnabled                         = validationID(models.HostValidationIDVsphereDiskUUIDEnabled)
+	CompatibleAgent                                = validationID(models.HostValidationIDCompatibleAgent)
 )
 
 func (v validationID) category() (string, error) {
@@ -76,7 +77,8 @@ func (v validationID) category() (string, error) {
 		IsHostnameValid,
 		CompatibleWithClusterPlatform,
 		VSphereHostUUIDEnabled,
-		DiskEncryptionRequirementsSatisfied:
+		DiskEncryptionRequirementsSatisfied,
+		CompatibleAgent:
 		return "hardware", nil
 	case AreLsoRequirementsSatisfied,
 		AreOdfRequirementsSatisfied,

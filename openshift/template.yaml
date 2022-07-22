@@ -135,6 +135,9 @@ parameters:
 - name: ISO_IMAGE_TYPE
   value: "minimal-iso"
   required: false
+- name: ENABLE_UPGRADE_AGENT
+  value: "false"
+  required: false
 apiVersion: v1
 kind: Template
 metadata:

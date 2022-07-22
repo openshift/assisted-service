@@ -8,8 +8,11 @@ import (
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 	"github.com/google/uuid"
+	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/internal/common/events"
 	"github.com/openshift/assisted-service/internal/connectivity"
 	eventsapi "github.com/openshift/assisted-service/internal/events/api"
+	"github.com/openshift/assisted-service/internal/feature"
 	"github.com/openshift/assisted-service/internal/hardware"
 	"github.com/openshift/assisted-service/internal/host/hostutil"
 	"github.com/openshift/assisted-service/internal/oc"
@@ -41,13 +44,18 @@ type stateToStepsMap map[string]StepsStruct
 type InstructionManager struct {
 	log                           logrus.FieldLogger
 	db                            *gorm.DB
+	config                        InstructionConfig
 	installingClusterStateToSteps stateToStepsMap
 	addHostsClusterToSteps        stateToStepsMap
 	poolHostToSteps               stateToStepsMap
 	disabledStepsMap              map[models.StepType]bool
+	upgradeAgentCmd               CommandGetter
+	eventsHandler                 eventsapi.Sender
 }
 
 type InstructionConfig struct {
+	feature.Flags
+
 	ServiceBaseURL           string            `envconfig:"SERVICE_BASE_URL"`
 	ServiceCACertPath        string            `envconfig:"SERVICE_CA_CERT_PATH" default:""`
 	ServiceIPs               string            `envconfig:"SERVICE_IPS" default:""`
@@ -78,10 +86,12 @@ func NewInstructionManager(log logrus.FieldLogger, db *gorm.DB, hwValidator hard
 	imageAvailabilityCmd := NewImageAvailabilityCmd(log, db, ocRelease, versionHandler, instructionConfig, instructionConfig.ImageAvailabilityTimeout.Seconds())
 	domainNameResolutionCmd := NewDomainNameResolutionCmd(log, instructionConfig.AgentImage, db)
 	noopCmd := NewNoopCmd()
+	upgradeAgentCmd := NewUpgradeAgentCmd(instructionConfig.AgentImage)
 
 	return &InstructionManager{
 		log:              log,
 		db:               db,
+		config:           instructionConfig,
 		disabledStepsMap: generateDisabledStepsMap(log, instructionConfig.DisabledSteps),
 		installingClusterStateToSteps: stateToStepsMap{
 			models.HostStatusKnown:                    {[]CommandGetter{connectivityCmd, tangConnectivityCmd, freeAddressesCmd, dhcpAllocateCmd, inventoryCmd, ntpSynchronizerCmd, domainNameResolutionCmd}, defaultNextInstructionInSec, models.StepsPostStepActionContinue},
@@ -120,6 +130,8 @@ func NewInstructionManager(log logrus.FieldLogger, db *gorm.DB, hwValidator hard
 			models.HostStatusUnbinding:                  {[]CommandGetter{noopCmd}, 0, models.StepsPostStepActionExit},
 			models.HostStatusUnbindingPendingUserAction: {[]CommandGetter{noopCmd}, 0, models.StepsPostStepActionExit},
 		},
+		upgradeAgentCmd: upgradeAgentCmd,
+		eventsHandler:   eventsHandler,
 	}
 }
 
@@ -178,8 +190,64 @@ func (i *InstructionManager) GetNextSteps(ctx context.Context, host *models.Host
 	} else {
 		returnSteps.NextInstructionSeconds = defaultNextInstructionInSec
 	}
+
+	// If the agent isn't compatible with the service and the host is in a state that allows to
+	// upgrade the agent, then replace all the calculated steps with a single step to upgrade
+	// the agent:
+	if i.isAgentUpgradeAllowed(host) &&
+		!common.IsAgentCompatible(i.config.AgentImage, host.DiscoveryAgentVersion) {
+		log.WithFields(logrus.Fields{
+			"expected_image": i.config.AgentImage,
+			"actual_image":   host.DiscoveryAgentVersion,
+		}).Info(
+			"Agent image ins't compatible with the service, and it can be upgraded, " +
+				"will replace all the calculated steps with a single step to " +
+				"upgrade the image",
+		)
+		var err error
+		returnSteps.Instructions, err = i.upgradeAgentCmd.GetSteps(ctx, host)
+		if err != nil {
+			return models.Steps{}, err
+		}
+		returnSteps.PostStepAction = swag.String(models.StepsPostStepActionContinue)
+		returnSteps.NextInstructionSeconds = defaultNextInstructionInSec
+		events.SendUpgradeAgentStartedEvent(
+			ctx,
+			i.eventsHandler,
+			*host.ID,
+			hostutil.GetHostnameForMsg(host),
+			host.InfraEnvID,
+			host.ClusterID,
+			i.config.AgentImage,
+		)
+	}
+
 	logSteps(returnSteps, InfraEnvID, hostID, log)
 	return returnSteps, nil
+}
+
+// isAgentUpgradeAllowed checks if the current state of the host allows the agent to be upgraded.
+// For example, it is not allowed to upgrade the agent when the installation of the cluster is in
+// progress.
+func (i *InstructionManager) isAgentUpgradeAllowed(host *models.Host) bool {
+	if !i.config.EnableUpgradeAgent {
+		return false
+	}
+	if i.isStepDisabled(models.StepTypeUpgradeAgent) {
+		return false
+	}
+	switch *host.Status {
+	case models.HostStatusBinding,
+		models.HostStatusDiscovering,
+		models.HostStatusDiscoveringUnbound,
+		models.HostStatusInsufficient,
+		models.HostStatusInsufficientUnbound,
+		models.HostStatusKnown,
+		models.HostStatusKnownUnbound:
+		return true
+	default:
+		return false
+	}
 }
 
 func generateDisabledStepsMap(log logrus.FieldLogger, disabledSteps []models.StepType) map[models.StepType]bool {

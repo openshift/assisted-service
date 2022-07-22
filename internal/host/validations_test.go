@@ -1118,4 +1118,46 @@ var _ = Describe("Validations test", func() {
 			Expect(status).To(BeEquivalentTo(ValidationSuccess))
 		})
 	})
+
+	Context("Agent compatibility validation", func() {
+		var (
+			host    models.Host
+			cluster common.Cluster
+		)
+
+		BeforeEach(func() {
+			cluster = hostutil.GenerateTestCluster(clusterID)
+			Expect(db.Create(&cluster).Error).ToNot(HaveOccurred())
+			hostId := strfmt.UUID(uuid.New().String())
+			infraEnvId := strfmt.UUID(uuid.New().String())
+			host = hostutil.GenerateTestHostByKind(hostId, infraEnvId, &clusterID, models.HostStatusKnown, models.HostKindHost, models.HostRoleMaster)
+			host.Inventory = hostutil.GenerateMasterInventory()
+			Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
+			host = hostutil.GetHostFromDB(*host.ID, host.InfraEnvID, db).Host
+		})
+
+		It("Passes if the agent and the service use the same image", func() {
+			host = hostutil.GetHostFromDB(*host.ID, host.InfraEnvID, db).Host
+			mockAndRefreshStatus(&host)
+			host = hostutil.GetHostFromDB(*host.ID, host.InfraEnvID, db).Host
+			status, message, ok := getValidationResult(host.ValidationsInfo, CompatibleAgent)
+			Expect(ok).To(BeTrue())
+			Expect(status).To(Equal(ValidationSuccess))
+			Expect(message).To(Equal("Host agent is compatible with the service"))
+		})
+
+		It("Fails if the agent and the service use different images", func() {
+			host = hostutil.GetHostFromDB(*host.ID, host.InfraEnvID, db).Host
+			host.DiscoveryAgentVersion = "quay.io/edge-infrastructure/assisted-installer-agent:wrong"
+			mockAndRefreshStatus(&host)
+			host = hostutil.GetHostFromDB(*host.ID, host.InfraEnvID, db).Host
+			status, message, ok := getValidationResult(host.ValidationsInfo, CompatibleAgent)
+			Expect(ok).To(BeTrue())
+			Expect(status).To(Equal(ValidationFailure))
+			Expect(message).To(Equal(
+				"This host's agent is in the process of being upgraded to a " +
+					"compatible version. This might take a few minutes",
+			))
+		})
+	})
 })

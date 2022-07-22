@@ -1714,3 +1714,27 @@ func (v *validator) printVSphereUUIDEnabled(_ *validationContext, status Validat
 		return fmt.Sprintf("Unexpected status %s", status)
 	}
 }
+
+func (v *validator) compatibleAgent(c *validationContext) ValidationStatus {
+	if !v.hwValidatorCfg.EnableUpgradeAgent {
+		return ValidationSuccess
+	}
+	if common.IsAgentCompatible(v.hwValidatorCfg.AgentDockerImage, c.host.DiscoveryAgentVersion) {
+		return ValidationSuccess
+	}
+	return ValidationFailure
+}
+
+func (v *validator) printCompatibleAgent(c *validationContext, status ValidationStatus) string {
+	switch status {
+	case ValidationSuccess:
+		if v.hwValidatorCfg.EnableUpgradeAgent {
+			return "Host agent is compatible with the service"
+		}
+		return "Host agent compatibility checking is disabled"
+	case ValidationFailure:
+		return "This host's agent is in the process of being upgraded to a compatible " +
+			"version. This might take a few minutes"
+	}
+	return fmt.Sprintf("Unexpected status %s", status)
+}

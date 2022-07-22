@@ -579,3 +579,36 @@ x-events:
     cluster_id: UUID_PTR
     infra_env_id: UUID
     details: string
+
+- name: upgrade_agent_started
+  message: "Host {host_name}: Agent has been instructed to download image '{agent_image}' and restart"
+  event_type: host
+  severity: info
+  properties:
+    host_id: UUID
+    host_name: string
+    infra_env_id: UUID
+    cluster_id: UUID_PTR
+    agent_image: string
+
+- name: upgrade_agent_finished
+  message: "Host {host_name}: Agent has downloaded image '{agent_image}' and will now restart"
+  event_type: host
+  severity: info
+  properties:
+    host_id: UUID
+    host_name: string
+    infra_env_id: UUID
+    cluster_id: UUID_PTR
+    agent_image: string
+
+- name: upgrade_agent_failed
+  message: "Host {host_name}: Agent failed to download image '{agent_image}', will try again"
+  event_type: host
+  severity: error
+  properties:
+    host_id: UUID
+    host_name: string
+    infra_env_id: UUID
+    cluster_id: UUID_PTR
+    agent_image: string
