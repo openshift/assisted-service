@@ -330,6 +330,8 @@ objects:
                 value: ${ENABLE_ORG_BASED_FEATURE_GATES}
               - name: ISO_IMAGE_TYPE
                 value: ${ISO_IMAGE_TYPE}
+              - name: ENABLE_UPGRADE_AGENT
+                value: ${ENABLE_UPGRADE_AGENT}
             volumeMounts:
               - name: route53-creds
                 mountPath: "/etc/.aws"

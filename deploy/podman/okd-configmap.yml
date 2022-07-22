@@ -30,3 +30,4 @@ data:
   OS_IMAGES: '[{"openshift_version":"4.10","cpu_architecture":"x86_64","url":"https://builds.coreos.fedoraproject.org/prod/streams/stable/builds/35.20220327.3.0/x86_64/fedora-coreos-35.20220327.3.0-live.x86_64.iso","version":"35.20220327.3.0"}]'
   RELEASE_IMAGES: '[{"openshift_version":"4.10","cpu_architecture":"x86_64","url":"quay.io/openshift/okd:4.10.0-0.okd-2022-07-09-073606","version":"4.10.0-0.okd-2022-07-09-073606","default":true}]'
   OKD_RPMS_IMAGE: quay.io/vrutkovs/okd-rpms:4.10
+  ENABLE_UPGRADE_AGENT: "false"
