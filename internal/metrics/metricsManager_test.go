@@ -14,8 +14,8 @@ import (
 )
 
 var _ = DescribeTable(
-	"Adds agent version label to host installation phase seconds metric",
-	func(agentVersion string) {
+	"Tests that label has been added as expected",
+	func(stage models.HostStage, expectedMetricRegex string) {
 		// Create a context:
 		ctx := context.Background()
 
@@ -49,8 +49,7 @@ var _ = DescribeTable(
 			"example.com",
 			nil,
 			&models.Host{
-				DiscoveryAgentVersion: agentVersion,
-				Role:                  models.HostRoleMaster,
+				Role: models.HostRoleMaster,
 				Inventory: `{
 					"system_vendor": {
 						"manufacturer": "Acme",
@@ -59,7 +58,7 @@ var _ = DescribeTable(
 				}`,
 			},
 			&models.HostProgressInfo{
-				CurrentStage:   models.HostStageConfiguring,
+				CurrentStage:   stage,
 				StageStartedAt: strfmt.DateTime(time.Now()),
 			},
 			models.HostStageRebooting,
@@ -68,9 +67,17 @@ var _ = DescribeTable(
 		// Verify that the label was added:
 		metrics := server.Metrics()
 		Expect(metrics).To(MatchLine(
-			`^service_assisted_installer_host_installation_phase_seconds_count\{.*discoveryAgentVersion="v1.0.0-141".*\} .*$`,
+			expectedMetricRegex,
 		))
 	},
-	Entry("Full image reference", "quay.io/edge-infrastructure/assisted-installer:v1.0.0-141"),
-	Entry("Tag only", "v1.0.0-141"),
+	Entry(
+		"Starting installation phase",
+		models.HostStageStartingInstallation,
+		`^service_assisted_installer_host_installation_phase_seconds_count\{.*phase="Starting installation".*\} .*$`,
+	),
+	Entry(
+		"Configuring phase",
+		models.HostStageConfiguring,
+		`^service_assisted_installer_host_installation_phase_seconds_count\{.*phase="Configuring".*\} .*$`,
+	),
 )

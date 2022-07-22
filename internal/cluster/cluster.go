@@ -251,7 +251,7 @@ func (m *Manager) reportValidationFailedMetrics(ctx context.Context, c *common.C
 	for _, vRes := range validationRes {
 		for _, v := range vRes {
 			if v.Status == ValidationFailure {
-				m.metricAPI.ClusterValidationFailed(ocpVersion, emailDomain, models.ClusterValidationID(v.ID))
+				m.metricAPI.ClusterValidationFailed(models.ClusterValidationID(v.ID))
 			}
 		}
 	}
@@ -264,7 +264,7 @@ func (m *Manager) reportValidationStatusChanged(ctx context.Context, c *common.C
 		for _, v := range vRes {
 			if currentStatus, ok := m.getValidationStatus(currentValidationRes, vCategory, v.ID); ok {
 				if v.Status == ValidationFailure && currentStatus == ValidationSuccess {
-					m.metricAPI.ClusterValidationChanged(c.OpenshiftVersion, c.EmailDomain, models.ClusterValidationID(v.ID))
+					m.metricAPI.ClusterValidationChanged(models.ClusterValidationID(v.ID))
 					eventgen.SendClusterValidationFailedEvent(ctx, m.eventsHandler, *c.ID, v.ID.String(), v.Message)
 				}
 				if v.Status == ValidationSuccess && currentStatus == ValidationFailure {

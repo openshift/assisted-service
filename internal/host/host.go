@@ -1032,7 +1032,7 @@ func (m *Manager) ReportValidationFailedMetrics(ctx context.Context, h *models.H
 	for _, vRes := range validationRes {
 		for _, v := range vRes {
 			if v.Status == ValidationFailure {
-				m.metricApi.HostValidationFailed(ocpVersion, emailDomain, models.HostValidationID(v.ID))
+				m.metricApi.HostValidationFailed(models.HostValidationID(v.ID))
 			}
 		}
 	}
@@ -1047,11 +1047,7 @@ func (m *Manager) reportValidationStatusChanged(ctx context.Context, vc *validat
 			if currentStatus, ok := m.getValidationStatus(currentValidationRes, vCategory, v.ID); ok {
 				if v.Status == ValidationFailure && currentStatus == ValidationSuccess {
 					log.Errorf("Host %s: validation '%s' that used to succeed is now failing", hostutil.GetHostnameForMsg(h), v.ID)
-					if vc.cluster != nil {
-						m.metricApi.HostValidationChanged(vc.cluster.OpenshiftVersion, vc.cluster.EmailDomain, models.HostValidationID(v.ID))
-					} else if vc.infraEnv != nil {
-						m.metricApi.HostValidationChanged(vc.infraEnv.OpenshiftVersion, vc.infraEnv.EmailDomain, models.HostValidationID(v.ID))
-					}
+					m.metricApi.HostValidationChanged(models.HostValidationID(v.ID))
 					eventgen.SendHostValidationFailedEvent(ctx, m.eventsHandler, *h.ID, h.InfraEnvID, h.ClusterID,
 						hostutil.GetHostnameForMsg(h), v.ID.String())
 				}
