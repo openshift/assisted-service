@@ -75,6 +75,19 @@ var _ = Describe("Infra_Env", func() {
 		infraEnv = resp.Payload
 	}
 
+	It("update infra env with NoProxy wildcard", func() {
+		updateParams := &installer.UpdateInfraEnvParams{
+			InfraEnvID: infraEnvID,
+			InfraEnvUpdateParams: &models.InfraEnvUpdateParams{
+				Proxy: &models.Proxy{NoProxy: swag.String("*")},
+			},
+		}
+		res, err := userBMClient.Installer.UpdateInfraEnv(ctx, updateParams)
+		Expect(err).NotTo(HaveOccurred())
+		updateInfraEnv := res.Payload
+		Expect(swag.StringValue(updateInfraEnv.Proxy.NoProxy)).To(Equal("*"))
+	})
+
 	It("download full-iso image success", func() {
 		getInfraEnv()
 		downloadIso(ctx, infraEnv.DownloadURL)
