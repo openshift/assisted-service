@@ -217,13 +217,17 @@ func ValidateClusterNameFormat(name string) error {
 // prefaced with '.' to include all subdomains of that domain.
 // Use '*' to bypass proxy for all destinations in OCP 4.8 or later.
 func ValidateNoProxyFormat(noProxy string, ocpVersion string) error {
-	if noProxy == "*" {
+	// TODO MGMT-11401: Remove noProxy wildcard validation when OCP 4.8 gets deprecated.
+	if strings.Contains(noProxy, "*") {
+		if ocpVersion == "" { // a case where ValidateNoProxyFormat got called for InfraEnv
+			return nil
+		}
 		if wildcardSupported, err := common.VersionGreaterOrEqual(ocpVersion, "4.8.0-fc.4"); err != nil {
 			return err
 		} else if wildcardSupported {
 			return nil
 		}
-		return errors.Errorf("Sorry, no-proxy value '*' is not supported in this release")
+		return errors.Errorf("Sorry, no-proxy value '*' is not supported in release: %s", ocpVersion)
 	}
 
 	return validations.ValidateNoProxyFormat(noProxy)
