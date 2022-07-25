@@ -3446,54 +3446,6 @@ paths:
             $ref: '#/definitions/error'
 
 definitions:
-  ovirt-platform:
-    type: object
-    description: oVirt platform-specific configuration upon which to perform the installation.
-    x-go-custom-tag: gorm:"embedded;embeddedPrefix:ovirt_"
-    properties:
-      fqdn:
-        type: string
-        description: The oVirt's engine fully qualified domain name.
-        x-nullable: true
-      username:
-        type: string
-        description: The user name to use to connect to the oVirt instance.
-        x-nullable: true
-      password:
-        type: string
-        description: The password for the oVirt user name.
-        format: password
-        x-nullable: true
-      insecure:
-        type: boolean
-        default: true
-        description: Verify oVirt engine certificate.
-        x-nullable: true
-      ca_bundle:
-        type: string
-        description: The CA Bundle of the oVirt's engine certificate.
-        x-nullable: true
-      cluster_id:
-        type: string
-        description: The oVirt cluster ID.
-        format: uuid
-        x-nullable: true
-      storage_domain_id:
-        type: string
-        description: The oVirt storage domain ID.
-        format: uuid
-        x-nullable: true
-      network_name:
-        type: string
-        description: The oVirt network the VMs will be attached to.
-        default: "ovirtmgmt"
-        x-nullable: true
-      vnic_profile_id:
-        type: string
-        description: The oVirt VNIC profile ID.
-        format: uuid
-        x-nullable: true
-
   monitored-operator:
     type: object
     properties:
