@@ -492,9 +492,10 @@ func (b *bareMetalInventory) RegisterClusterInternal(
 			CPUArchitecture:              cpuArchitecture,
 			IgnitionEndpoint:             params.NewClusterParams.IgnitionEndpoint,
 		},
-		KubeKeyName:             kubeKey.Name,
-		KubeKeyNamespace:        kubeKey.Namespace,
-		TriggerMonitorTimestamp: time.Now(),
+		KubeKeyName:                 kubeKey.Name,
+		KubeKeyNamespace:            kubeKey.Namespace,
+		TriggerMonitorTimestamp:     time.Now(),
+		MachineNetworkCidrUpdatedAt: time.Now(),
 	}
 
 	pullSecret := swag.StringValue(params.NewClusterParams.PullSecret)
@@ -2081,6 +2082,7 @@ func (b *bareMetalInventory) updateNetworks(db *gorm.DB, params installer.V2Upda
 			}
 		}
 		cluster.MachineNetworks = params.ClusterUpdateParams.MachineNetworks
+		updates["machine_network_cidr_updated_at"] = time.Now()
 		updated = true
 	}
 

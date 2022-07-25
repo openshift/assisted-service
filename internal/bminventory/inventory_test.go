@@ -3525,17 +3525,18 @@ var _ = Describe("cluster", func() {
 					primaryMachineCIDR = models.Subnet("10.11.0.0/16")
 				)
 
+				verifyMachineCIDRTimestampUpdated := func(beforeTimestamp time.Time) {
+					cluster, err := common.GetClusterFromDB(db, clusterID, common.SkipEagerLoading)
+					Expect(err).ToNot(HaveOccurred())
+					ExpectWithOffset(1, beforeTimestamp.After(cluster.MachineNetworkCidrUpdatedAt)).To(BeFalse())
+				}
+
 				It("Success in DHCP", func() {
 					mockSuccess(3)
 					mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(2)
 
-					verifyMachineCIDRTimestampUpdated := func(beforeTimestamp time.Time) {
-						cluster, err := common.GetClusterFromDB(db, clusterID, common.SkipEagerLoading)
-						Expect(err).ToNot(HaveOccurred())
-						ExpectWithOffset(1, beforeTimestamp.After(cluster.MachineNetworkCidrUpdatedAt)).To(BeFalse())
-					}
-
 					By("Original machine cidr", func() {
+						verifyMachineCIDRTimestampUpdated(time.Time{})
 						reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 							ClusterID: clusterID,
 							ClusterUpdateParams: &models.V2ClusterUpdateParams{
@@ -3621,20 +3622,29 @@ var _ = Describe("cluster", func() {
 					})
 				})
 				It("DHCP non existent network (no error)", func() {
-					mockSuccess(1)
+					mockSuccess(2)
+					mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(1)
 					machineNetworks := []*models.MachineNetwork{{Cidr: "10.13.0.0/16"}}
-
 					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 						ClusterID: clusterID,
 						ClusterUpdateParams: &models.V2ClusterUpdateParams{
-							MachineNetworks:   machineNetworks,
 							VipDhcpAllocation: swag.Bool(true),
 						},
 					})
 					Expect(reply).To(BeAssignableToTypeOf(installer.NewV2UpdateClusterCreated()))
+					beforeTimestamp := time.Now()
+					reply = bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
+						ClusterID: clusterID,
+						ClusterUpdateParams: &models.V2ClusterUpdateParams{
+							MachineNetworks: machineNetworks,
+						},
+					})
+
+					Expect(reply).To(BeAssignableToTypeOf(installer.NewV2UpdateClusterCreated()))
 					actual := reply.(*installer.V2UpdateClusterCreated)
 					validateNetworkConfiguration(actual.Payload, nil, nil, &machineNetworks)
 					validateHostsRequestedHostname(actual.Payload)
+					verifyMachineCIDRTimestampUpdated(beforeTimestamp)
 				})
 
 				Context("IPv6", func() {
