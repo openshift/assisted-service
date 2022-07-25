@@ -132,37 +132,21 @@ func GetConsoleUrl(clusterName, baseDomain string) string {
 	return fmt.Sprintf("%s.%s.%s", consoleUrlPrefix, clusterName, baseDomain)
 }
 
-func getHostTimestamp(h *models.Host) (int64, error) {
-	if h.Timestamp != 0 {
-		return h.Timestamp, nil
-	}
-	inventory, err := UnmarshalInventory(h.Inventory)
-	if err != nil {
-		return 0, err
-	}
-	return inventory.Timestamp, nil
-}
-
 func IsNtpSynced(c *Cluster) (bool, error) {
 	var min int64
 	var max int64
 	for _, h := range c.Hosts {
-		if h.Inventory == "" ||
-			*h.Status == models.HostStatusDisconnected ||
+		if *h.Status == models.HostStatusDisconnected ||
 			*h.Status == models.HostStatusResettingPendingUserAction ||
-			*h.Status == models.HostStatusDiscovering {
+			*h.Status == models.HostStatusDiscovering ||
+			h.Timestamp == 0 {
 			continue
 		}
-		timestamp, err := getHostTimestamp(h)
-		if err != nil {
-			return false, err
+		if h.Timestamp < min || min == 0 {
+			min = h.Timestamp
 		}
-
-		if timestamp < min || min == 0 {
-			min = timestamp
-		}
-		if timestamp > max {
-			max = timestamp
+		if h.Timestamp > max {
+			max = h.Timestamp
 		}
 	}
 	return (max-min)/60 <= MaximumAllowedTimeDiffMinutes, nil

@@ -7969,9 +7969,6 @@ func init() {
         "system_vendor": {
           "$ref": "#/definitions/system_vendor"
         },
-        "timestamp": {
-          "type": "integer"
-        },
         "tpm_version": {
           "type": "string",
           "enum": [
@@ -17256,9 +17253,6 @@ func init() {
         },
         "system_vendor": {
           "$ref": "#/definitions/system_vendor"
-        },
-        "timestamp": {
-          "type": "integer"
         },
         "tpm_version": {
           "type": "string",
