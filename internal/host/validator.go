@@ -757,7 +757,7 @@ func (v *validator) isIgnitionDownloadable(c *validationContext) ValidationStatu
 	if c.infraEnv != nil {
 		return ValidationSuccessSuppressOutput
 	}
-	if !hostutil.IsDay2Host(c.host) || swag.BoolValue(c.cluster.UserManagedNetworking) {
+	if !hostutil.IsDay2Host(c.host) {
 		return ValidationSuccessSuppressOutput
 	}
 	if c.host.APIVipConnectivity == "" {

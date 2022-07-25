@@ -7,7 +7,6 @@ import (
 	"net/url"
 	"path"
 
-	"github.com/go-openapi/swag"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/models"
 	"github.com/sirupsen/logrus"
@@ -73,15 +72,11 @@ func (c *apivipConnectivityCheckCmd) GetSteps(ctx context.Context, host *models.
 }
 
 func getIngnitionEndPoint(cluster *common.Cluster, host *models.Host) (string, error) {
-	addressPart := swag.StringValue(cluster.APIVipDNSName)
-	if addressPart == "" {
-		addressPart = cluster.APIVip
-	}
 	poolName := string(common.GetEffectiveRole(host))
 	if host.MachineConfigPoolName != "" {
 		poolName = host.MachineConfigPoolName
 	}
-	ignitionEndpointUrl := fmt.Sprintf("http://%s:22624/config/%s", addressPart, poolName)
+	ignitionEndpointUrl := fmt.Sprintf("http://%s:22624/config/%s", common.GetAPIHostname(cluster), poolName)
 	if cluster.IgnitionEndpoint != nil && cluster.IgnitionEndpoint.URL != nil {
 		url, err := url.Parse(*cluster.IgnitionEndpoint.URL)
 		if err != nil {
