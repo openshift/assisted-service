@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"math"
 	"net"
+	"net/url"
 	"strings"
 	"time"
 
@@ -26,7 +27,9 @@ import (
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
+	"github.com/vincent-petithory/dataurl"
 	"gorm.io/gorm"
+	"sigs.k8s.io/yaml"
 )
 
 type ValidationStatus string
@@ -1254,6 +1257,31 @@ func ignitionHasFile(ignition *ignition_types.Config, path string) bool {
 	return false
 }
 
+func ignitionReadFile(ignition *ignition_types.Config, path string) ([]byte, error) {
+	for _, file := range ignition.Storage.Files {
+		if file.Path == path {
+			contentSourceURL, err := url.Parse(*file.Contents.Source)
+			if err != nil {
+				return nil, fmt.Errorf("malformed content source URL: %w", err)
+			}
+
+			if contentSourceURL.Scheme != "data" {
+				return nil, fmt.Errorf("scheme %s unsuported, only the data scheme is supported",
+					contentSourceURL.Scheme)
+			}
+
+			parsedDataUrl, err := dataurl.DecodeString(contentSourceURL.String())
+			if err != nil {
+				return nil, fmt.Errorf("malformed data url: %w", err)
+			}
+
+			return parsedDataUrl.Data, nil
+		}
+	}
+
+	return nil, errors.New("file not found")
+}
+
 func ignitionContainsManagedNetworkingFiles(config *ignition_types.Config) bool {
 	if ignitionHasFile(config, "/etc/kubernetes/manifests/coredns.yaml") ||
 		ignitionHasFile(config, "/etc/kubernetes/manifests/keepalived.yaml") {
@@ -1268,6 +1296,50 @@ func ignitionContainsManagedNetworkingFiles(config *ignition_types.Config) bool 
 	}
 
 	return false
+}
+
+// workerIgnitionKubeletKubeconfigServerIsIPAddress looks for the kubelet
+// kubeconfig file within an ignition config and checks whether the server of
+// the cluster it points to is an IP address or a domain name
+func workerIgnitionKubeletKubeconfigServerIsIPAddress(config *ignition_types.Config) bool {
+	const kubeletKubeconfigIgnitionPath string = "/etc/kubernetes/kubeconfig"
+
+	if !ignitionHasFile(config, kubeletKubeconfigIgnitionPath) {
+		return false
+	}
+
+	kubeconfigBytes, err := ignitionReadFile(config, kubeletKubeconfigIgnitionPath)
+	if err != nil {
+		return false
+	}
+
+	type KubeconfigClusterInternal struct {
+		Server string `json:"server"`
+	}
+	type KubeconfigCluster struct {
+		Cluster KubeconfigClusterInternal `json:"cluster"`
+	}
+	type Kubeconfig struct {
+		Clusters []KubeconfigCluster `json:"clusters"`
+	}
+	var kubeconfig Kubeconfig
+
+	err = yaml.Unmarshal(kubeconfigBytes, &kubeconfig)
+	if err != nil {
+		return false
+	}
+
+	if len(kubeconfig.Clusters) != 1 {
+		return false
+	}
+
+	serverURL, err := url.Parse(kubeconfig.Clusters[0].Cluster.Server)
+	if err != nil {
+		return false
+	}
+
+	serverHostnameIsIPAddress := net.ParseIP(serverURL.Hostname()) != nil
+	return serverHostnameIsIPAddress
 }
 
 // importedClusterHasManagedNetworking checks imported clusters in order to
@@ -1298,6 +1370,15 @@ func (v *validator) importedClusterHasManagedNetworking(cluster *common.Cluster)
 		}
 
 		if ignitionContainsManagedNetworkingFiles(&config) {
+			return true
+		}
+
+		if workerIgnitionKubeletKubeconfigServerIsIPAddress(&config) {
+			// The kubelet kubeconfig within the ignition looks like it's using
+			// an IP address rather than a DNS domain name to connect to the
+			// cluster API. We consider this to be "managed networking", as DNS
+			// resolution is not needed. This is the case for some hypershift
+			// clusters.
 			return true
 		}
 
@@ -1371,6 +1452,7 @@ func (v *validator) shouldValidateDNSResolution(cluster *common.Cluster) (bool, 
 			return false, ValidationPending
 		}
 
+		// Check if the files within the ignition indicate the cluster has managed networking
 		hasManagedNetworking = v.importedClusterHasManagedNetworking(cluster)
 	}
 
