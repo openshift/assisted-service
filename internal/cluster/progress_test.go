@@ -331,8 +331,7 @@ var _ = Describe("Progress bar test", func() {
 			mockHostAPI.EXPECT().IsValidMasterCandidate(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(true, nil).AnyTimes()
 			mockDnsApi.EXPECT().CreateDNSRecordSets(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 			mockOperatorApi.EXPECT().ValidateCluster(gomock.Any(), gomock.Any()).Return([]api.ValidationResult{}, nil).AnyTimes()
-			mockMetric.EXPECT().InstallationStarted(gomock.Any(), clusterId, gomock.Any(), gomock.Any()).AnyTimes()
-			mockMetric.EXPECT().ClusterHostInstallationCount(gomock.Any(), 1, gomock.Any()).AnyTimes()
+			mockMetric.EXPECT().InstallationStarted().AnyTimes()
 			mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
 				eventstest.WithNameMatcher(eventgen.ClusterStatusUpdatedEventName),
 				eventstest.WithClusterIdMatcher(clusterId.String())))

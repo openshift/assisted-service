@@ -134,7 +134,7 @@ func mockClusterRegisterSteps() {
 
 func mockClusterRegisterSuccess(withEvents bool) {
 	mockClusterRegisterSteps()
-	mockMetric.EXPECT().ClusterRegistered(common.TestDefaultConfig.ReleaseVersion, gomock.Any(), gomock.Any()).Times(1)
+	mockMetric.EXPECT().ClusterRegistered().Times(1)
 
 	if withEvents {
 		mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
@@ -1326,7 +1326,7 @@ var _ = Describe("PostStepReply", func() {
 
 		It("Disk speed success", func() {
 			mockHostApi.EXPECT().SetDiskSpeed(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
-			mockMetric.EXPECT().DiskSyncDuration(gomock.Any(), gomock.Any(), gomock.Any()).Times(1)
+			mockMetric.EXPECT().DiskSyncDuration(gomock.Any()).Times(1)
 			mockHwValidator.EXPECT().GetInstallationDiskSpeedThresholdMs(gomock.Any(), gomock.Any(), gomock.Any()).Return(int64(10), nil).Times(1)
 			params := makeStepReply(*clusterId, *hostId, "/dev/sda", 5, 0)
 			reply := bm.V2PostStepReply(ctx, params)
@@ -1759,7 +1759,7 @@ var _ = Describe("v2PostStepReply", func() {
 
 		It("Disk speed success", func() {
 			mockHostApi.EXPECT().SetDiskSpeed(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
-			mockMetric.EXPECT().DiskSyncDuration(gomock.Any(), gomock.Any(), gomock.Any()).Times(1)
+			mockMetric.EXPECT().DiskSyncDuration(gomock.Any()).Times(1)
 			mockHwValidator.EXPECT().GetInstallationDiskSpeedThresholdMs(gomock.Any(), gomock.Any(), gomock.Any()).Return(int64(10), nil).Times(1)
 			params := makeStepReply(*clusterId, *hostId, "/dev/sda", 5, 0)
 			reply := bm.V2PostStepReply(ctx, params)
@@ -9968,7 +9968,7 @@ var _ = Describe("Register AddHostsCluster test", func() {
 			},
 		}
 		mockClusterApi.EXPECT().RegisterAddHostsCluster(ctx, gomock.Any()).Return(nil).Times(1)
-		mockMetric.EXPECT().ClusterRegistered("", gomock.Any(), "Unknown").Times(1)
+		mockMetric.EXPECT().ClusterRegistered().Times(1)
 		res := bm.V2ImportCluster(ctx, params)
 		actual := res.(*installer.V2ImportClusterCreated)
 
@@ -9995,7 +9995,7 @@ var _ = Describe("Register AddHostsCluster test", func() {
 			},
 		}
 		mockClusterApi.EXPECT().RegisterAddHostsCluster(ctx, gomock.Any()).Return(nil).Times(1)
-		mockMetric.EXPECT().ClusterRegistered("", gomock.Any(), "Unknown").Times(1)
+		mockMetric.EXPECT().ClusterRegistered().Times(1)
 		res := bm.V2ImportCluster(ctx, params)
 		actual := res.(*installer.V2ImportClusterCreated)
 

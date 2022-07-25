@@ -3131,7 +3131,7 @@ var _ = Describe("Validation metrics and events", func() {
 
 	It("Test DeregisterCluster", func() {
 		mockHost.EXPECT().ReportValidationFailedMetrics(ctx, gomock.Any(), openshiftVersion, emailDomain)
-		mockMetric.EXPECT().ClusterValidationFailed(openshiftVersion, emailDomain, models.ClusterValidationIDSufficientMastersCount)
+		mockMetric.EXPECT().ClusterValidationFailed(models.ClusterValidationIDSufficientMastersCount)
 		mockEvents.EXPECT().SendClusterEvent(ctx, eventstest.NewEventMatcher(
 			eventstest.WithNameMatcher(eventgen.ClusterDeregisteredEventName),
 			eventstest.WithClusterIdMatcher(c.ID.String())))
@@ -3148,7 +3148,7 @@ var _ = Describe("Validation metrics and events", func() {
 		Expect(err).ToNot(HaveOccurred())
 		m.reportValidationStatusChanged(ctx, c, newValidationRes, currentValidationRes)
 
-		mockMetric.EXPECT().ClusterValidationChanged(openshiftVersion, emailDomain, models.ClusterValidationIDSufficientMastersCount)
+		mockMetric.EXPECT().ClusterValidationChanged(models.ClusterValidationIDSufficientMastersCount)
 		mockEvents.EXPECT().SendClusterEvent(ctx, eventstest.NewEventMatcher(
 			eventstest.WithClusterIdMatcher(c.ID.String())))
 

@@ -541,7 +541,7 @@ func (b *bareMetalInventory) RegisterClusterInternal(
 	}
 
 	success = true
-	b.metricApi.ClusterRegistered(cluster.OpenshiftVersion, *cluster.ID, cluster.EmailDomain)
+	b.metricApi.ClusterRegistered()
 	return b.GetClusterInternal(ctx, installer.V2GetClusterParams{ClusterID: *cluster.ID})
 }
 
@@ -784,7 +784,7 @@ func (b *bareMetalInventory) V2ImportClusterInternal(ctx context.Context, kubeKe
 		return nil, common.NewApiError(http.StatusInternalServerError, err)
 	}
 
-	b.metricApi.ClusterRegistered("", *newCluster.ID, newCluster.EmailDomain)
+	b.metricApi.ClusterRegistered()
 	return &newCluster, nil
 }
 
@@ -2934,7 +2934,7 @@ func (b *bareMetalInventory) processDiskSpeedCheckResponse(ctx context.Context, 
 	}
 
 	if exitCode == 0 {
-		b.metricApi.DiskSyncDuration(*h.ID, diskPerfCheckResponse.Path, diskPerfCheckResponse.IoSyncDuration)
+		b.metricApi.DiskSyncDuration(diskPerfCheckResponse.IoSyncDuration)
 
 		thresholdMs, err := b.getInstallationDiskSpeedThresholdMs(ctx, h)
 		if err != nil {

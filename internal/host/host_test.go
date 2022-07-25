@@ -3036,7 +3036,7 @@ var _ = Describe("Validation metrics and events", func() {
 
 	It("Test ReportValidationFailedMetrics", func() {
 
-		mockMetric.EXPECT().HostValidationFailed(openshiftVersion, emailDomain, models.HostValidationIDHasMinCPUCores)
+		mockMetric.EXPECT().HostValidationFailed(models.HostValidationIDHasMinCPUCores)
 
 		err := m.ReportValidationFailedMetrics(ctx, h, openshiftVersion, emailDomain)
 		Expect(err).ToNot(HaveOccurred())
@@ -3056,7 +3056,7 @@ var _ = Describe("Validation metrics and events", func() {
 		Expect(err).ToNot(HaveOccurred())
 		m.reportValidationStatusChanged(ctx, vc, h, newValidationRes, currentValidationRes)
 
-		mockMetric.EXPECT().HostValidationChanged(openshiftVersion, emailDomain, models.HostValidationIDHasMinCPUCores)
+		mockMetric.EXPECT().HostValidationChanged(models.HostValidationIDHasMinCPUCores)
 		mockEvents.EXPECT().SendHostEvent(ctx, eventstest.NewEventMatcher(
 			eventstest.WithNameMatcher(eventgen.HostValidationFailedEventName),
 			eventstest.WithHostIdMatcher(h.ID.String()),
@@ -3081,7 +3081,7 @@ var _ = Describe("Validation metrics and events", func() {
 		Expect(err).ToNot(HaveOccurred())
 		m.reportValidationStatusChanged(ctx, vc, h, newValidationRes, currentValidationRes)
 
-		mockMetric.EXPECT().HostValidationChanged(openshiftVersion, emailDomain, models.HostValidationIDHasMinCPUCores)
+		mockMetric.EXPECT().HostValidationChanged(models.HostValidationIDHasMinCPUCores)
 		mockEvents.EXPECT().SendHostEvent(ctx, eventstest.NewEventMatcher(
 			eventstest.WithNameMatcher(eventgen.HostValidationFailedEventName),
 			eventstest.WithHostIdMatcher(h.ID.String()),
