@@ -1969,7 +1969,7 @@ func (b *bareMetalInventory) updateClusterData(_ context.Context, cluster *commo
 
 	b.setProxyUsage(params.ClusterUpdateParams.HTTPProxy, params.ClusterUpdateParams.HTTPSProxy, params.ClusterUpdateParams.NoProxy, usages)
 
-	if err = b.updateProviderParams(params, updates, usages); err != nil {
+	if err = b.updatePlatformParams(params, updates, usages); err != nil {
 		return err
 	}
 
@@ -2182,8 +2182,10 @@ func (b *bareMetalInventory) updateNetworkTables(db *gorm.DB, cluster *common.Cl
 	return nil
 }
 
-func (b *bareMetalInventory) updateProviderParams(params installer.V2UpdateClusterParams, updates map[string]interface{}, usages map[string]models.Usage) error {
+func (b *bareMetalInventory) updatePlatformParams(params installer.V2UpdateClusterParams, updates map[string]interface{}, usages map[string]models.Usage) error {
 	if params.ClusterUpdateParams.Platform != nil && common.PlatformTypeValue(params.ClusterUpdateParams.Platform.Type) != "" {
+		updates["platform_type"] = params.ClusterUpdateParams.Platform.Type
+
 		err := b.providerRegistry.SetPlatformUsages(
 			common.PlatformTypeValue(params.ClusterUpdateParams.Platform.Type), usages, b.usageApi)
 		if err != nil {
