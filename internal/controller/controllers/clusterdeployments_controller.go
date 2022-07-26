@@ -1223,14 +1223,9 @@ func (r *ClusterDeploymentsReconciler) createNewDay2Cluster(
 		clusterParams.OpenshiftClusterID = &cid
 	}
 
-	// TODO: Remove this once CAPI tests are fixed to create the right DNS entries.
-	// For now we set it to false because CAPI tests don't have the right DNS entries
-	// and it will cause DNS validations to be disabled. This is just a temporary hack.
-	imported := false
-
 	c, err := r.Installer.V2ImportClusterInternal(ctx, &key, &id, installer.V2ImportClusterParams{
 		NewImportClusterParams: clusterParams,
-	}, imported)
+	})
 	if err != nil {
 		log.WithError(err).Error("failed to create day2 cluster")
 	}

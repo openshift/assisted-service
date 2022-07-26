@@ -524,7 +524,7 @@ var _ = Describe("cluster reconcile", func() {
 				cluster.Spec.Installed = true
 				Expect(c.Create(ctx, cluster)).ShouldNot(HaveOccurred())
 
-				mockInstallerInternal.EXPECT().V2ImportClusterInternal(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any())
+				mockInstallerInternal.EXPECT().V2ImportClusterInternal(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any())
 
 				aci := newAgentClusterInstall(agentClusterInstallName, testNamespace, getDefaultSNOAgentClusterInstallSpec(clusterName), cluster)
 				aci.Spec.ImageSetRef = nil
@@ -3027,12 +3027,12 @@ var _ = Describe("cluster reconcile", func() {
 			}
 
 			V2ImportClusterInternal := func(ctx context.Context, kubeKey *types.NamespacedName, id *strfmt.UUID,
-				params installer.V2ImportClusterParams, imported bool) (*common.Cluster, error) {
+				params installer.V2ImportClusterParams) (*common.Cluster, error) {
 				Expect(string(*params.NewImportClusterParams.OpenshiftClusterID)).To(Equal(cid))
 				return clusterReply, nil
 			}
 			mockInstallerInternal.EXPECT().
-				V2ImportClusterInternal(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+				V2ImportClusterInternal(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 				DoAndReturn(V2ImportClusterInternal)
 
 			mockInstallerInternal.EXPECT().HostWithCollectedLogsExists(gomock.Any()).Return(false, nil)
@@ -3047,7 +3047,7 @@ var _ = Describe("cluster reconcile", func() {
 
 		It("failure creating cluster", func() {
 			mockInstallerInternal.EXPECT().
-				V2ImportClusterInternal(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+				V2ImportClusterInternal(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 				Return(nil, errors.Errorf("failed to import cluster"))
 
 			request := newClusterDeploymentRequest(cluster)
