@@ -374,6 +374,12 @@ func (b *bareMetalInventory) validateRegisterClusterInternalParams(params *insta
 		}
 	}
 
+	if params.NewClusterParams.Tags != nil {
+		if err := pkgvalidations.ValidateTags(swag.StringValue(params.NewClusterParams.Tags)); err != nil {
+			return common.NewApiError(http.StatusBadRequest, err)
+		}
+	}
+
 	return nil
 }
 
@@ -491,6 +497,7 @@ func (b *bareMetalInventory) RegisterClusterInternal(
 			MachineNetworks:              params.NewClusterParams.MachineNetworks,
 			CPUArchitecture:              cpuArchitecture,
 			IgnitionEndpoint:             params.NewClusterParams.IgnitionEndpoint,
+			Tags:                         swag.StringValue(params.NewClusterParams.Tags),
 		},
 		KubeKeyName:             kubeKey.Name,
 		KubeKeyNamespace:        kubeKey.Namespace,
@@ -1975,6 +1982,10 @@ func (b *bareMetalInventory) updateClusterData(_ context.Context, cluster *commo
 		return err
 	}
 
+	if err = b.updateClusterTags(params, updates, usages, log); err != nil {
+		return err
+	}
+
 	if params.ClusterUpdateParams.PullSecret != nil {
 		cluster.PullSecret = *params.ClusterUpdateParams.PullSecret
 		updates["pull_secret"] = *params.ClusterUpdateParams.PullSecret
@@ -2342,6 +2353,7 @@ func (b *bareMetalInventory) setDefaultUsage(cluster *models.Cluster) error {
 	b.setNetworkTypeUsage(cluster.NetworkType, usages)
 	b.setUsage(network.CheckIfClusterModelIsDualStack(cluster), usage.DualStackUsage, nil, usages)
 	b.setDiskEncryptionUsage(cluster, cluster.DiskEncryption, usages)
+	b.setUsage(cluster.Tags != "", usage.ClusterTags, nil, usages)
 	//write all the usages to the cluster object
 	err := b.providerRegistry.SetPlatformUsages(common.PlatformTypeValue(cluster.Platform.Type), usages, b.usageApi)
 	if err != nil {
@@ -2393,6 +2405,21 @@ func (b *bareMetalInventory) setOperatorsUsage(updateOLMOperators []*models.Moni
 	for _, operator := range removedOLMOperators {
 		b.usageApi.Remove(usages, strings.ToUpper(operator.Name))
 	}
+}
+
+func (b *bareMetalInventory) updateClusterTags(params installer.V2UpdateClusterParams, updates map[string]interface{}, usages map[string]models.Usage, log logrus.FieldLogger) error {
+	if params.ClusterUpdateParams.Tags != nil {
+		tags := swag.StringValue(params.ClusterUpdateParams.Tags)
+		if err := pkgvalidations.ValidateTags(tags); err != nil {
+			log.WithError(err)
+			return common.NewApiError(http.StatusBadRequest, err)
+		}
+		updates["tags"] = tags
+
+		// if tags are defined by user, report usage of this feature
+		b.setUsage(tags != "", usage.ClusterTags, nil, usages)
+	}
+	return nil
 }
 
 func (b *bareMetalInventory) updateClusterNetworkVMUsage(cluster *common.Cluster, updateParams *models.V2ClusterUpdateParams, usages map[string]models.Usage, log logrus.FieldLogger) {

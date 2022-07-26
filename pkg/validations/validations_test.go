@@ -319,6 +319,73 @@ var _ = Describe("ValidateHostname", func() {
 	}
 })
 
+var _ = Describe("ValidateTags", func() {
+	tests := []struct {
+		tags  string
+		valid bool
+	}{
+		{
+			tags:  "tag1,tag2,tag3",
+			valid: true,
+		},
+		{
+			tags:  "tag 1,tag 2,tag 3",
+			valid: true,
+		},
+		{
+			tags:  "tag1,tag 2",
+			valid: true,
+		},
+		{
+			tags:  "tag1",
+			valid: true,
+		},
+		{
+			tags:  "",
+			valid: true,
+		},
+		{
+			tags:  "tag1 , tag2",
+			valid: false,
+		},
+		{
+			tags:  " tag1 , tag2 ",
+			valid: false,
+		},
+		{
+			tags:  "tag1 ,tag2",
+			valid: false,
+		},
+		{
+			tags:  "tag1, tag2",
+			valid: false,
+		},
+		{
+			tags:  ",",
+			valid: false,
+		},
+		{
+			tags:  ",,",
+			valid: false,
+		},
+		{
+			tags:  "tag,,",
+			valid: false,
+		},
+	}
+	for _, t := range tests {
+		t := t
+		It(fmt.Sprintf("Cluster Tags: \"%s\"", t.tags), func() {
+			err := ValidateTags(t.tags)
+			if t.valid {
+				Expect(err).ToNot(HaveOccurred())
+			} else {
+				Expect(err).To(HaveOccurred())
+			}
+		})
+	}
+})
+
 func TestCluster(t *testing.T) {
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "cluster validations tests")

@@ -3065,6 +3065,42 @@ var _ = Describe("cluster", func() {
 			})
 		})
 
+		Context("Update Cluster Tags", func() {
+			BeforeEach(func() {
+				clusterID = strfmt.UUID(uuid.New().String())
+				err := db.Create(&common.Cluster{Cluster: models.Cluster{
+					ID:   &clusterID,
+					Kind: swag.String(models.ClusterKindAddHostsCluster),
+				}}).Error
+				Expect(err).ShouldNot(HaveOccurred())
+				mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(1)
+			})
+
+			It("Update tags success", func() {
+				mockSuccess()
+				reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
+					ClusterID: clusterID,
+					ClusterUpdateParams: &models.V2ClusterUpdateParams{
+						Tags: swag.String("tag1,tag2"),
+					},
+				})
+				Expect(reply).To(BeAssignableToTypeOf(installer.NewV2UpdateClusterCreated()))
+				actual := reply.(*installer.V2UpdateClusterCreated)
+				Expect(actual.Payload.Tags).To(Equal("tag1,tag2"))
+			})
+
+			It("Update cluster with invalid tags", func() {
+				reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
+					ClusterID: clusterID,
+					ClusterUpdateParams: &models.V2ClusterUpdateParams{
+						Tags: swag.String("tag,,"),
+					},
+				})
+				Expect(reply).Should(BeAssignableToTypeOf(common.NewApiError(http.StatusBadRequest, errors.Errorf("error"))))
+				verifyApiErrorString(reply, http.StatusBadRequest, "Invalid format for Tags")
+			})
+		})
+
 		Context("Update Network", func() {
 			BeforeEach(func() {
 				clusterID = strfmt.UUID(uuid.New().String())
@@ -11282,6 +11318,43 @@ var _ = Describe("TestRegisterCluster", func() {
 		Expect(reflect.TypeOf(reply)).Should(Equal(reflect.TypeOf(installer.NewV2RegisterClusterCreated())))
 		actual := reply.(*installer.V2RegisterClusterCreated)
 		Expect(actual.Payload.CPUArchitecture).To(Equal(common.TestDefaultConfig.CPUArchitecture))
+	})
+
+	Context("Cluster Tags", func() {
+		It("Register cluster with tags", func() {
+			mockClusterRegisterSuccess(true)
+			mockAMSSubscription(ctx)
+
+			reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
+				NewClusterParams: &models.ClusterCreateParams{
+					Name:             swag.String("some-cluster-name"),
+					OpenshiftVersion: swag.String(common.TestDefaultConfig.OpenShiftVersion),
+					PullSecret:       swag.String("{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"),
+					Tags:             swag.String("tag1,tag2"),
+				},
+			})
+			Expect(reflect.TypeOf(reply)).Should(Equal(reflect.TypeOf(installer.NewV2RegisterClusterCreated())))
+			actual := reply.(*installer.V2RegisterClusterCreated)
+			Expect(actual.Payload.Tags).To(Equal("tag1,tag2"))
+		})
+
+		It("Register cluster with invalid tags", func() {
+			mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
+				eventstest.WithNameMatcher(eventgen.ClusterRegistrationFailedEventName),
+				eventstest.WithMessageContainsMatcher("Invalid format for Tags"),
+				eventstest.WithSeverityMatcher(models.EventSeverityError))).Times(1)
+
+			reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
+				NewClusterParams: &models.ClusterCreateParams{
+					Name:             swag.String("some-cluster-name"),
+					OpenshiftVersion: swag.String(common.TestDefaultConfig.OpenShiftVersion),
+					PullSecret:       swag.String("{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"),
+					Tags:             swag.String("tag,,"),
+				},
+			})
+			Expect(reply).Should(BeAssignableToTypeOf(common.NewApiError(http.StatusBadRequest, errors.Errorf("error"))))
+			verifyApiErrorString(reply, http.StatusBadRequest, "Invalid format for Tags")
+		})
 	})
 
 	Context("Networking", func() {
