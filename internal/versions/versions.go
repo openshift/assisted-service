@@ -318,7 +318,7 @@ func (h *handler) AddReleaseImage(releaseImageUrl, pullSecret, ocpReleaseVersion
 	// what is going to be the architecture of InfraEnv and Agent.
 	osImage, err := h.GetOsImage(ocpReleaseVersion, cpuArchitecture)
 	if cpuArchitecture != common.MultiCPUArchitecture && (err != nil || osImage.URL == nil) {
-		return nil, errors.Errorf("No OS images are available for version: %s", ocpReleaseVersion)
+		return nil, errors.Errorf("No OS images are available for version %s and architecture %s", ocpReleaseVersion, cpuArchitecture)
 	}
 
 	// Fetch ReleaseImage if exists (not using GetReleaseImage as we search for the x.y.z image only)

@@ -270,6 +270,16 @@ var _ = Describe("oc", func() {
 			Expect(err).ShouldNot(HaveOccurred())
 		})
 
+		It("fetch cpu architecture from multiarch release image", func() {
+			command := fmt.Sprintf(templateImageInfo+" --registry-config=%s", releaseImage, tempFilePath)
+			args := splitStringToInterfacesArray(command)
+			mockExecuter.EXPECT().Execute(args[0], args[1:]...).Return("", "the image is a manifest list and contains multiple images", 1).Times(1)
+
+			arch, err := oc.GetReleaseArchitecture(log, releaseImage, "", pullSecret)
+			Expect(arch).Should(Equal(common.MultiCPUArchitecture))
+			Expect(err).ShouldNot(HaveOccurred())
+		})
+
 		It("fetch cpu architecture - no release image", func() {
 			arch, err := oc.GetReleaseArchitecture(log, "", "", pullSecret)
 			Expect(arch).Should(BeEmpty())
