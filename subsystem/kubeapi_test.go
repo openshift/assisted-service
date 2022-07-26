@@ -59,11 +59,12 @@ const (
 
 var (
 	imageSetsData = map[string]string{
-		"openshift-v4.7.0":      "quay.io/openshift-release-dev/ocp-release:4.7.2-x86_64",
-		"openshift-v4.8.0":      "quay.io/openshift-release-dev/ocp-release:4.8.0-fc.0-x86_64",
-		"openshift-v4.9.0":      "quay.io/openshift-release-dev/ocp-release:4.9.11-x86_64",
-		"openshift-v4.10.0":     "quay.io/openshift-release-dev/ocp-release:4.10.6-x86_64",
-		"openshift-v4.10.0-arm": "quay.io/openshift-release-dev/ocp-release:4.10.6-aarch64",
+		"openshift-v4.7.0":        "quay.io/openshift-release-dev/ocp-release:4.7.2-x86_64",
+		"openshift-v4.8.0":        "quay.io/openshift-release-dev/ocp-release:4.8.0-fc.0-x86_64",
+		"openshift-v4.9.0":        "quay.io/openshift-release-dev/ocp-release:4.9.11-x86_64",
+		"openshift-v4.10.0":       "quay.io/openshift-release-dev/ocp-release:4.10.6-x86_64",
+		"openshift-v4.10.0-arm":   "quay.io/openshift-release-dev/ocp-release:4.10.6-aarch64",
+		"openshift-v4.11.0-multi": "quay.io/openshift-release-dev/ocp-release:4.11.0-0.nightly-multi-2022-07-26-151412",
 	}
 )
 
@@ -1382,6 +1383,65 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			Name:      infraNsName.Name,
 		}
 		checkInfraEnvCondition(ctx, infraEnvKubeName, v1beta1.ImageCreatedCondition,
+			"Specified CPU architecture doesn't match")
+	})
+
+	It("[multiarch] Create multiarch cluster and bind infraenvs", func() {
+		By("deploy cluster with openshiftVersion 4.11 and multiarch")
+		imageSetRef4_11 := &hivev1.ClusterImageSetReference{
+			Name: "openshift-v4.11.0-multi",
+		}
+		aciSpec.ImageSetRef = imageSetRef4_11
+		deployClusterImageSetCRD(ctx, kubeClient, aciSpec.ImageSetRef)
+		deployClusterDeploymentCRD(ctx, kubeClient, clusterDeploymentSpec)
+		deployAgentClusterInstallCRD(ctx, kubeClient, aciSpec, clusterDeploymentSpec.ClusterInstallRef.Name)
+
+		clusterKubeName := types.NamespacedName{
+			Namespace: Options.Namespace,
+			Name:      clusterDeploymentSpec.ClusterName,
+		}
+		cluster := getClusterFromDB(ctx, kubeClient, db, clusterKubeName, waitForReconcileTimeout)
+		Expect(cluster.CPUArchitecture).Should(Equal("multiarch"))
+
+		By("deploy infraenv with arm64 architecure")
+		infraEnvSpec.CpuArchitecture = "arm64"
+		infraEnvArm := types.NamespacedName{
+			Name:      "infraenv" + randomNameSuffix(),
+			Namespace: Options.Namespace,
+		}
+		deployInfraEnvCRD(ctx, kubeClient, infraEnvArm.Name, infraEnvSpec)
+
+		Eventually(func() string {
+			return getInfraEnvCRD(ctx, kubeClient, infraEnvArm).Status.ISODownloadURL
+		}, "15s", "1s").Should(Not(BeEmpty()))
+
+		infraEnv := getInfraEnvFromDBByKubeKey(ctx, db, infraEnvArm, waitForReconcileTimeout)
+		Expect(infraEnv.CPUArchitecture).To(Equal("arm64"))
+
+		By("deploy infraenv with x86 architecture")
+		infraEnvSpec.CpuArchitecture = "x86_64"
+		infraEnvX86 := types.NamespacedName{
+			Name:      "infraenv" + randomNameSuffix(),
+			Namespace: Options.Namespace,
+		}
+		deployInfraEnvCRD(ctx, kubeClient, infraEnvX86.Name, infraEnvSpec)
+
+		Eventually(func() string {
+			return getInfraEnvCRD(ctx, kubeClient, infraEnvX86).Status.ISODownloadURL
+		}, "15s", "1s").Should(Not(BeEmpty()))
+
+		infraEnv2 := getInfraEnvFromDBByKubeKey(ctx, db, infraEnvX86, waitForReconcileTimeout)
+		Expect(infraEnv2.CPUArchitecture).To(Equal("x86_64"))
+
+		By("fail to deploy infraenv fake architecture")
+		infraEnvSpec.CpuArchitecture = "fake"
+		infraEnvFake := types.NamespacedName{
+			Name:      "infraenv" + randomNameSuffix(),
+			Namespace: Options.Namespace,
+		}
+		deployInfraEnvCRD(ctx, kubeClient, infraEnvFake.Name, infraEnvSpec)
+
+		checkInfraEnvCondition(ctx, infraEnvFake, v1beta1.ImageCreatedCondition,
 			"Specified CPU architecture doesn't match")
 	})
 
