@@ -393,6 +393,15 @@ func GetTagFromImageRef(ref string) string {
 	}
 }
 
+func GetConvertedClusterAPIVipDNSName(c *Cluster) string {
+	// In case cluster that isn't configured with user-managed-networking
+	// and api vip is set we should set api vip as APIVipDNSName
+	if !swag.BoolValue(c.Cluster.UserManagedNetworking) && c.Cluster.APIVip != "" {
+		return c.Cluster.APIVip
+	}
+	return fmt.Sprintf("api.%s.%s", c.Cluster.Name, c.Cluster.BaseDNSDomain)
+}
+
 func GetAPIHostname(c *Cluster) string {
 	// Despite the confusing name of this parameter, in day-2 scenarios where
 	// this function is used it could either be a DNS domain name that points
