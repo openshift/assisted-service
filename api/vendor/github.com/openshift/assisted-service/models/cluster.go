@@ -239,6 +239,9 @@ type Cluster struct {
 	// Format: date-time
 	StatusUpdatedAt strfmt.DateTime `json:"status_updated_at,omitempty" gorm:"type:timestamp with time zone"`
 
+	// A comma-separated list of tags that are associated to the cluster.
+	Tags string `json:"tags,omitempty"`
+
 	// All hosts associated to this cluster.
 	TotalHostCount int64 `json:"total_host_count,omitempty" gorm:"-"`
 

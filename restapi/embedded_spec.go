@@ -5611,6 +5611,10 @@ func init() {
           "format": "date-time",
           "x-go-custom-tag": "gorm:\"type:timestamp with time zone\""
         },
+        "tags": {
+          "description": "A comma-separated list of tags that are associated to the cluster.",
+          "type": "string"
+        },
         "total_host_count": {
           "description": "All hosts associated to this cluster.",
           "type": "integer",
@@ -5823,6 +5827,11 @@ func init() {
         "ssh_public_key": {
           "description": "SSH public key for debugging OpenShift nodes.",
           "type": "string"
+        },
+        "tags": {
+          "description": "A comma-separated list of tags that are associated to the cluster.",
+          "type": "string",
+          "x-nullable": true
         },
         "user_managed_networking": {
           "description": "Indicate if the networking is managed by the user.",
@@ -9097,6 +9106,11 @@ func init() {
         },
         "ssh_public_key": {
           "description": "SSH public key for debugging OpenShift nodes.",
+          "type": "string",
+          "x-nullable": true
+        },
+        "tags": {
+          "description": "A comma-separated list of tags that are associated to the cluster.",
           "type": "string",
           "x-nullable": true
         },
@@ -14966,6 +14980,10 @@ func init() {
           "format": "date-time",
           "x-go-custom-tag": "gorm:\"type:timestamp with time zone\""
         },
+        "tags": {
+          "description": "A comma-separated list of tags that are associated to the cluster.",
+          "type": "string"
+        },
         "total_host_count": {
           "description": "All hosts associated to this cluster.",
           "type": "integer",
@@ -15178,6 +15196,11 @@ func init() {
         "ssh_public_key": {
           "description": "SSH public key for debugging OpenShift nodes.",
           "type": "string"
+        },
+        "tags": {
+          "description": "A comma-separated list of tags that are associated to the cluster.",
+          "type": "string",
+          "x-nullable": true
         },
         "user_managed_networking": {
           "description": "Indicate if the networking is managed by the user.",
@@ -18345,6 +18368,11 @@ func init() {
         },
         "ssh_public_key": {
           "description": "SSH public key for debugging OpenShift nodes.",
+          "type": "string",
+          "x-nullable": true
+        },
+        "tags": {
+          "description": "A comma-separated list of tags that are associated to the cluster.",
           "type": "string",
           "x-nullable": true
         },

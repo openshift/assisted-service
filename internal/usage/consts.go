@@ -43,4 +43,6 @@ const (
 	IgnitionConfigOverrideUsage string = "Ignition Config Override"
 	// Usage of static network config
 	StaticNetworkConfigUsage string = "Static Network Config"
+	// Usage of cluster tags feature
+	ClusterTags string = "Cluster Tags"
 )

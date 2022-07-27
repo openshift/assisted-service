@@ -148,3 +148,18 @@ func ValidateNoProxyFormat(noProxy string) error {
 	}
 	return nil
 }
+
+func ValidateTags(tags string) error {
+	if tags == "" {
+		return nil
+	}
+	if !AllStrings(strings.Split(tags, ","), IsValidTag) {
+		return errors.Errorf("Invalid format for Tags: %s. Tags should be a comma-separated list (e.g. tag1,tag2,tag3).", tags)
+	}
+	return nil
+}
+
+func IsValidTag(tag string) bool {
+	tagRegex := `^\w+( \w+)*$` // word characters and whitespace
+	return regexp.MustCompile(tagRegex).MatchString(tag)
+}
