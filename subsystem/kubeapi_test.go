@@ -3024,7 +3024,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 
 		By("Verify Agent labels")
 		labels[v1beta1.InfraEnvNameLabel] = infraNsName.Name
-		Eventually(func() bool {
+		agentHasAllLabels := func() bool {
 			agent := getAgentCRD(ctx, kubeClient, key)
 			allFound := true
 			for labelKey, labelValue := range labels {
@@ -3035,7 +3035,13 @@ var _ = Describe("[kube-api]cluster installation", func() {
 				}
 			}
 			return allFound
-		}, "30s", "1s").Should(Equal(true))
+		}
+		Eventually(agentHasAllLabels, "30s", "1s").Should(Equal(true))
+
+		a := getAgentCRD(ctx, kubeClient, key)
+		delete(a.Labels, v1beta1.InfraEnvNameLabel)
+		Expect(kubeClient.Update(ctx, a)).To(Succeed())
+		Eventually(agentHasAllLabels, "30s", "1s").Should(Equal(true))
 
 		By("Approve Agent")
 		Eventually(func() error {
