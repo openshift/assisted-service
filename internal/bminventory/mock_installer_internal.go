@@ -233,6 +233,21 @@ func (mr *MockInstallerInternalsMockRecorder) GetInfraEnvHostsInternal(arg0, arg
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetInfraEnvHostsInternal", reflect.TypeOf((*MockInstallerInternals)(nil).GetInfraEnvHostsInternal), arg0, arg1)
 }
 
+// GetInfraEnvInternal mocks base method.
+func (m *MockInstallerInternals) GetInfraEnvInternal(arg0 context.Context, arg1 installer.GetInfraEnvParams) (*common.InfraEnv, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetInfraEnvInternal", arg0, arg1)
+	ret0, _ := ret[0].(*common.InfraEnv)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetInfraEnvInternal indicates an expected call of GetInfraEnvInternal.
+func (mr *MockInstallerInternalsMockRecorder) GetInfraEnvInternal(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetInfraEnvInternal", reflect.TypeOf((*MockInstallerInternals)(nil).GetInfraEnvInternal), arg0, arg1)
+}
+
 // GetKnownApprovedHosts mocks base method.
 func (m *MockInstallerInternals) GetKnownApprovedHosts(arg0 strfmt.UUID) ([]*common.Host, error) {
 	m.ctrl.T.Helper()
