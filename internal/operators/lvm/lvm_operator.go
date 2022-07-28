@@ -88,7 +88,7 @@ func (o *operator) ValidateCluster(_ context.Context, cluster *common.Cluster) (
 		return api.ValidationResult{Status: api.Failure, ValidationId: o.GetHostValidationID(), Reasons: []string{err.Error()}}, nil
 	}
 	if ocpVersion.LessThan(minOpenshiftVersionForLvm) {
-		message := "ODF LVM operator is only supported for openshift versions 4.12.0 and above"
+		message := "ODF LVM operator is only supported for openshift versions 4.11.0 and above"
 		return api.ValidationResult{Status: api.Failure, ValidationId: o.GetClusterValidationID(), Reasons: []string{message}}, nil
 	}
 

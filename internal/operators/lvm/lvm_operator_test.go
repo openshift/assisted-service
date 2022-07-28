@@ -146,15 +146,15 @@ var _ = Describe("Lvm Operator", func() {
 			Expect(res).Should(Equal(expectedResult))
 		},
 			table.Entry("High Availability Mode Full",
-				&common.Cluster{Cluster: models.Cluster{HighAvailabilityMode: &fullHaMode, Hosts: []*models.Host{hostWithSufficientResources, hostWithSufficientResources}, OpenshiftVersion: "4.12.0"}},
+				&common.Cluster{Cluster: models.Cluster{HighAvailabilityMode: &fullHaMode, Hosts: []*models.Host{hostWithSufficientResources, hostWithSufficientResources}, OpenshiftVersion: "4.11.0"}},
 				api.ValidationResult{Status: api.Failure, ValidationId: operator.GetHostValidationID(), Reasons: []string{"ODF LVM operator is only supported for Single Node Openshift deployment"}},
 			),
 			table.Entry("High Availability Mode None and Openshift version less than minimal",
 				&common.Cluster{Cluster: models.Cluster{HighAvailabilityMode: &noneHaMode, Hosts: []*models.Host{hostWithSufficientResources}, OpenshiftVersion: "4.10.0"}},
-				api.ValidationResult{Status: api.Failure, ValidationId: operator.GetHostValidationID(), Reasons: []string{"ODF LVM operator is only supported for openshift versions 4.12.0 and above"}},
+				api.ValidationResult{Status: api.Failure, ValidationId: operator.GetHostValidationID(), Reasons: []string{"ODF LVM operator is only supported for openshift versions 4.11.0 and above"}},
 			),
 			table.Entry("High Availability Mode None and Openshift version more than minimal",
-				&common.Cluster{Cluster: models.Cluster{HighAvailabilityMode: &noneHaMode, Hosts: []*models.Host{hostWithSufficientResources}, OpenshiftVersion: "4.12.0"}},
+				&common.Cluster{Cluster: models.Cluster{HighAvailabilityMode: &noneHaMode, Hosts: []*models.Host{hostWithSufficientResources}, OpenshiftVersion: "4.11.0"}},
 				api.ValidationResult{Status: api.Success, ValidationId: operator.GetHostValidationID()},
 			),
 		)
