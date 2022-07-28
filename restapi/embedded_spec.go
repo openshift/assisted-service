@@ -6580,6 +6580,29 @@ func init() {
         }
       }
     },
+    "download_boot_artifacts_request": {
+      "description": "Information sent to the agent for downloading artifacts to boot a host into discovery.",
+      "type": "object",
+      "required": [
+        "kernel_url",
+        "rootfs_url",
+        "initrd_url"
+      ],
+      "properties": {
+        "initrd_url": {
+          "description": "URL address to download the initrd.",
+          "type": "string"
+        },
+        "kernel_url": {
+          "description": "URL address to download the kernel.",
+          "type": "string"
+        },
+        "rootfs_url": {
+          "description": "URL address to download the rootfs.",
+          "type": "string"
+        }
+      }
+    },
     "drive_type": {
       "type": "string",
       "enum": [
@@ -8792,7 +8815,9 @@ func init() {
         "stop-installation",
         "logs-gather",
         "next-step-runner",
-        "upgrade-agent"
+        "upgrade-agent",
+        "download-boot-artifacts",
+        "reboot-for-reclaim"
       ]
     },
     "steps": {
@@ -15912,6 +15937,29 @@ func init() {
         }
       }
     },
+    "download_boot_artifacts_request": {
+      "description": "Information sent to the agent for downloading artifacts to boot a host into discovery.",
+      "type": "object",
+      "required": [
+        "kernel_url",
+        "rootfs_url",
+        "initrd_url"
+      ],
+      "properties": {
+        "initrd_url": {
+          "description": "URL address to download the initrd.",
+          "type": "string"
+        },
+        "kernel_url": {
+          "description": "URL address to download the kernel.",
+          "type": "string"
+        },
+        "rootfs_url": {
+          "description": "URL address to download the rootfs.",
+          "type": "string"
+        }
+      }
+    },
     "drive_type": {
       "type": "string",
       "enum": [
@@ -18080,7 +18128,9 @@ func init() {
         "stop-installation",
         "logs-gather",
         "next-step-runner",
-        "upgrade-agent"
+        "upgrade-agent",
+        "download-boot-artifacts",
+        "reboot-for-reclaim"
       ]
     },
     "steps": {
