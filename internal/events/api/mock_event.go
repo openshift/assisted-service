@@ -71,6 +71,18 @@ func (mr *MockSenderMockRecorder) AddMetricsEvent(ctx, clusterID, hostID, severi
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddMetricsEvent", reflect.TypeOf((*MockSender)(nil).AddMetricsEvent), varargs...)
 }
 
+// NotifyInternalEvent mocks base method.
+func (m *MockSender) NotifyInternalEvent(ctx context.Context, clusterID, hostID, infraEnvID *strfmt.UUID, msg string) {
+	m.ctrl.T.Helper()
+	m.ctrl.Call(m, "NotifyInternalEvent", ctx, clusterID, hostID, infraEnvID, msg)
+}
+
+// NotifyInternalEvent indicates an expected call of NotifyInternalEvent.
+func (mr *MockSenderMockRecorder) NotifyInternalEvent(ctx, clusterID, hostID, infraEnvID, msg interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "NotifyInternalEvent", reflect.TypeOf((*MockSender)(nil).NotifyInternalEvent), ctx, clusterID, hostID, infraEnvID, msg)
+}
+
 // SendClusterEvent mocks base method.
 func (m *MockSender) SendClusterEvent(ctx context.Context, event ClusterEvent) {
 	m.ctrl.T.Helper()
@@ -232,6 +244,18 @@ func (mr *MockHandlerMockRecorder) AddMetricsEvent(ctx, clusterID, hostID, sever
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{ctx, clusterID, hostID, severity, msg, eventTime}, props...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddMetricsEvent", reflect.TypeOf((*MockHandler)(nil).AddMetricsEvent), varargs...)
+}
+
+// NotifyInternalEvent mocks base method.
+func (m *MockHandler) NotifyInternalEvent(ctx context.Context, clusterID, hostID, infraEnvID *strfmt.UUID, msg string) {
+	m.ctrl.T.Helper()
+	m.ctrl.Call(m, "NotifyInternalEvent", ctx, clusterID, hostID, infraEnvID, msg)
+}
+
+// NotifyInternalEvent indicates an expected call of NotifyInternalEvent.
+func (mr *MockHandlerMockRecorder) NotifyInternalEvent(ctx, clusterID, hostID, infraEnvID, msg interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "NotifyInternalEvent", reflect.TypeOf((*MockHandler)(nil).NotifyInternalEvent), ctx, clusterID, hostID, infraEnvID, msg)
 }
 
 // SendClusterEvent mocks base method.

@@ -3067,6 +3067,20 @@ var _ = Describe("Validation metrics and events", func() {
 		m.reportValidationStatusChanged(ctx, vc, h, newValidationRes, currentValidationRes)
 	})
 
+	It("Test reportValidationStatusChanged from pending", func() {
+
+		// Pending -> Success
+		mockEvents.EXPECT().NotifyInternalEvent(ctx, h.ClusterID, h.ID, &h.InfraEnvID, gomock.Any())
+		vc := generateValidationCtx()
+		currentValidationRes := generateTestValidationResult(ValidationPending)
+		newValidationRes := generateTestValidationResult(ValidationSuccess)
+		// Pending -> Failure
+		m.reportValidationStatusChanged(ctx, vc, h, newValidationRes, currentValidationRes)
+		mockEvents.EXPECT().NotifyInternalEvent(ctx, h.ClusterID, h.ID, &h.InfraEnvID, gomock.Any())
+		newValidationRes = generateTestValidationResult(ValidationFailure)
+		m.reportValidationStatusChanged(ctx, vc, h, newValidationRes, currentValidationRes)
+	})
+
 	It("Test reportValidationStatusChanged for unbound host", func() {
 
 		mockEvents.EXPECT().SendHostEvent(ctx, eventstest.NewEventMatcher(

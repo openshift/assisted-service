@@ -36,6 +36,15 @@ func (c *controllerEventsWrapper) V2AddEvent(ctx context.Context, clusterID *str
 	}
 }
 
+func (c *controllerEventsWrapper) NotifyInternalEvent(ctx context.Context, clusterID *strfmt.UUID, hostID *strfmt.UUID, infraEnvID *strfmt.UUID, msg string) {
+	c.log.Debugf("Notifying internal event %s", msg)
+	if hostID != nil {
+		c.NotifyKubeApiHostEvent(common.StrFmtUUIDVal(infraEnvID), common.StrFmtUUIDVal(hostID))
+	} else {
+		c.NotifyKubeApiClusterEvent(common.StrFmtUUIDVal(clusterID))
+	}
+}
+
 func (c *controllerEventsWrapper) AddEvent(ctx context.Context, clusterID strfmt.UUID, hostID *strfmt.UUID, severity string, msg string, eventTime time.Time, props ...interface{}) {
 	//TODO: Remove this when V1 Events endpoint gets removed.
 }
