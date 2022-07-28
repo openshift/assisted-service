@@ -380,6 +380,18 @@ x-events:
     disk_name: string
     disk_id: string
 
+- name: quick_disk_format_skipped
+  message: "{host_name}: Skipping quick format of disk {disk_name}({disk_id}) due to user request. This could lead to boot order issues during installation"
+  event_type: host
+  severity: "info"
+  properties:
+    host_id: UUID
+    infra_env_id: UUID
+    cluster_id: UUID_PTR
+    host_name: string
+    disk_name: string
+    disk_id: string
+
 - name: infra_env_registration_failed
   message: "Failed to register infra env. Error: {error}"
   event_type: infra_env

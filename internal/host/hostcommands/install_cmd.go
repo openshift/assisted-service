@@ -76,10 +76,7 @@ func (i *installCmd) GetSteps(ctx context.Context, host *models.Host) ([]*models
 		return nil, err
 	}
 
-	disksToFormat, err := i.getDisksToFormat(ctx, *host, inventory)
-	if err != nil {
-		return nil, err
-	}
+	disksToFormat := i.getDisksToFormat(ctx, host, inventory)
 
 	fullCmd, err := i.getFullInstallerCommand(cluster, host, inventory, infraEnv, bootdevice, disksToFormat)
 	if err != nil {
@@ -224,18 +221,30 @@ func (i *installCmd) getMustGatherArgument(mustGatherMap versions.MustGatherVers
 	return string(arg), nil
 }
 
-func (i *installCmd) getDisksToFormat(ctx context.Context, host models.Host, inventory *models.Inventory) ([]string, error) {
-	formatDisks := make([]string, 0, len(inventory.Disks))
-	skipDriveTypes := []string{string(models.DriveTypeFC), string(models.DriveTypeISCSI), string(models.DriveTypeLVM)}
-	for _, disk := range inventory.Disks {
-		diskRemovable := disk.Removable || strings.Contains(disk.ByPath, "mmcblk") //mmc devices should be treated as removable
-		if disk.Bootable && !diskRemovable && !swag.ContainsStrings(skipDriveTypes, string(disk.DriveType)) && !disk.IsInstallationMedia {
-			formatDisks = append(formatDisks, hostutil.GetDeviceIdentifier(disk))
+func (i *installCmd) getDisksToFormat(ctx context.Context, host *models.Host, inventory *models.Inventory) []string {
+	allFormattingCandidateDisks := common.GetDisksToBeFormatted(inventory)
+	skippedDisksIdentifiers := common.GetSkippedFormattingDiskIdentifiers(host)
+
+	// unskippedDisksIdentifiers will eventually contain all disk identifiers
+	// that appear in allFormattingCandidateDisks but that do not also appear
+	// in skippedDisksIdentifiers
+	unskippedDisksIdentifiers := make([]string, 0, len(allFormattingCandidateDisks))
+
+	for _, disk := range allFormattingCandidateDisks {
+		identifier := common.GetDeviceIdentifier(disk)
+
+		if !funk.Contains(skippedDisksIdentifiers, identifier) {
 			eventgen.SendQuickDiskFormatPerformedEvent(ctx, i.eventsHandler, *host.ID, host.InfraEnvID, host.ClusterID,
-				hostutil.GetHostnameForMsg(&host), disk.Name, hostutil.GetDeviceIdentifier(disk))
+				hostutil.GetHostnameForMsg(host), disk.Name, identifier)
+
+			unskippedDisksIdentifiers = append(unskippedDisksIdentifiers, identifier)
+		} else {
+			eventgen.SendQuickDiskFormatSkippedEvent(ctx, i.eventsHandler, *host.ID, host.InfraEnvID, host.ClusterID,
+				hostutil.GetHostnameForMsg(host), disk.Name, identifier)
 		}
 	}
-	return formatDisks, nil
+
+	return unskippedDisksIdentifiers
 }
 
 /*

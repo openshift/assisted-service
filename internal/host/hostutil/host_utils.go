@@ -116,22 +116,6 @@ func DetermineInstallationDisk(disks []*models.Disk, installationPath string) *m
 	return installationDisk
 }
 
-func GetDeviceIdentifier(installationDisk *models.Disk) string {
-	// We changed the host.installationDiskPath to contain the disk id instead of the disk path.
-	// Here we updates the old installationDiskPath to the disk id.
-	// (That's the reason we return the disk.ID instead of the previousInstallationDisk if exist)
-	if installationDisk.ID != "" {
-		return installationDisk.ID
-	}
-
-	// Old inventory or a bug
-	return GetDeviceFullName(installationDisk)
-}
-
-func GetDeviceFullName(installationDisk *models.Disk) string {
-	return fmt.Sprintf("/dev/%s", installationDisk.Name)
-}
-
 func GetHostInstallationPath(host *models.Host) string {
 	if host.InstallationDiskID != "" {
 		return host.InstallationDiskID
@@ -158,7 +142,7 @@ func GetDiskByInstallationPath(disks []*models.Disk, installationPath string) *m
 	// We changed the host.installationDiskPath to contain the disk id instead of the disk path.
 	// We will search for the installation path in the disk.Id and the disk.Path field for backward compatibility.
 	result := funk.Find(disks, func(disk *models.Disk) bool {
-		return disk.ID == installationPath || GetDeviceFullName(disk) == installationPath
+		return disk.ID == installationPath || common.GetDeviceFullName(disk) == installationPath
 	})
 
 	if result == nil {

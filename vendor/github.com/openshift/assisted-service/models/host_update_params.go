@@ -24,6 +24,9 @@ type HostUpdateParams struct {
 	// disks selected config
 	DisksSelectedConfig []*DiskConfigParams `json:"disks_selected_config"`
 
+	// Allows changing the host's skip_formatting_disks parameter
+	DisksSkipFormatting []*DiskSkipFormattingParams `json:"disks_skip_formatting"`
+
 	// host name
 	HostName *string `json:"host_name,omitempty"`
 
@@ -46,6 +49,10 @@ func (m *HostUpdateParams) Validate(formats strfmt.Registry) error {
 	var res []error
 
 	if err := m.validateDisksSelectedConfig(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateDisksSkipFormatting(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -79,6 +86,32 @@ func (m *HostUpdateParams) validateDisksSelectedConfig(formats strfmt.Registry) 
 					return ve.ValidateName("disks_selected_config" + "." + strconv.Itoa(i))
 				} else if ce, ok := err.(*errors.CompositeError); ok {
 					return ce.ValidateName("disks_selected_config" + "." + strconv.Itoa(i))
+				}
+				return err
+			}
+		}
+
+	}
+
+	return nil
+}
+
+func (m *HostUpdateParams) validateDisksSkipFormatting(formats strfmt.Registry) error {
+	if swag.IsZero(m.DisksSkipFormatting) { // not required
+		return nil
+	}
+
+	for i := 0; i < len(m.DisksSkipFormatting); i++ {
+		if swag.IsZero(m.DisksSkipFormatting[i]) { // not required
+			continue
+		}
+
+		if m.DisksSkipFormatting[i] != nil {
+			if err := m.DisksSkipFormatting[i].Validate(formats); err != nil {
+				if ve, ok := err.(*errors.Validation); ok {
+					return ve.ValidateName("disks_skip_formatting" + "." + strconv.Itoa(i))
+				} else if ce, ok := err.(*errors.CompositeError); ok {
+					return ce.ValidateName("disks_skip_formatting" + "." + strconv.Itoa(i))
 				}
 				return err
 			}
@@ -168,6 +201,10 @@ func (m *HostUpdateParams) ContextValidate(ctx context.Context, formats strfmt.R
 		res = append(res, err)
 	}
 
+	if err := m.contextValidateDisksSkipFormatting(ctx, formats); err != nil {
+		res = append(res, err)
+	}
+
 	if err := m.contextValidateNodeLabels(ctx, formats); err != nil {
 		res = append(res, err)
 	}
@@ -188,6 +225,26 @@ func (m *HostUpdateParams) contextValidateDisksSelectedConfig(ctx context.Contex
 					return ve.ValidateName("disks_selected_config" + "." + strconv.Itoa(i))
 				} else if ce, ok := err.(*errors.CompositeError); ok {
 					return ce.ValidateName("disks_selected_config" + "." + strconv.Itoa(i))
+				}
+				return err
+			}
+		}
+
+	}
+
+	return nil
+}
+
+func (m *HostUpdateParams) contextValidateDisksSkipFormatting(ctx context.Context, formats strfmt.Registry) error {
+
+	for i := 0; i < len(m.DisksSkipFormatting); i++ {
+
+		if m.DisksSkipFormatting[i] != nil {
+			if err := m.DisksSkipFormatting[i].ContextValidate(ctx, formats); err != nil {
+				if ve, ok := err.(*errors.Validation); ok {
+					return ve.ValidateName("disks_skip_formatting" + "." + strconv.Itoa(i))
+				} else if ce, ok := err.(*errors.CompositeError); ok {
+					return ce.ValidateName("disks_skip_formatting" + "." + strconv.Itoa(i))
 				}
 				return err
 			}

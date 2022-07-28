@@ -426,7 +426,7 @@ func GenerateTestInventoryWithNetwork(netAddress NetAddress) string {
 	return string(b)
 }
 
-func GenerateTestInventory() string {
+func GenerateTestInventoryWithMutate(mutateFn func(*models.Inventory)) string {
 	inventory := &models.Inventory{
 		Interfaces: []*models.Interface{
 			{
@@ -445,9 +445,14 @@ func GenerateTestInventory() string {
 		SystemVendor: &models.SystemVendor{Manufacturer: "Red Hat", ProductName: "RHEL", SerialNumber: "3534"},
 		Routes:       TestDefaultRouteConfiguration,
 	}
+	mutateFn(inventory)
 	b, err := json.Marshal(inventory)
 	Expect(err).To(Not(HaveOccurred()))
 	return string(b)
+}
+
+func GenerateTestInventory() string {
+	return GenerateTestInventoryWithMutate(func(inventory *models.Inventory) {})
 }
 
 func GenerateTestInventoryWithTpmVersion(tpmVersion string) string {

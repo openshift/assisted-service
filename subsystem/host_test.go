@@ -14,7 +14,6 @@ import (
 	"github.com/openshift/assisted-service/client/installer"
 	"github.com/openshift/assisted-service/internal/common"
 	serviceHost "github.com/openshift/assisted-service/internal/host"
-	"github.com/openshift/assisted-service/internal/host/hostutil"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/auth"
 )
@@ -144,7 +143,7 @@ var _ = Describe("Host tests", func() {
 		host = updateInventory(ctx, *infraEnvID, *host.ID, inventoryStr)
 
 		Expect(host.InstallationDiskID).To(Equal(inventory.Disks[0].ID))
-		Expect(host.InstallationDiskPath).To(Equal(hostutil.GetDeviceFullName(inventory.Disks[0])))
+		Expect(host.InstallationDiskPath).To(Equal(common.GetDeviceFullName(inventory.Disks[0])))
 
 		diskSelectionRequest := &installer.V2UpdateHostParams{
 			InfraEnvID: *infraEnvID,
@@ -162,7 +161,7 @@ var _ = Describe("Host tests", func() {
 
 		host = updatedHost.Payload
 		Expect(host.InstallationDiskID).To(Equal(inventory.Disks[1].ID))
-		Expect(host.InstallationDiskPath).To(Equal(hostutil.GetDeviceFullName(inventory.Disks[1])))
+		Expect(host.InstallationDiskPath).To(Equal(common.GetDeviceFullName(inventory.Disks[1])))
 	})
 
 	It("next step", func() {

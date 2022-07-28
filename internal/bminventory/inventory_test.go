@@ -30,6 +30,7 @@ import (
 	"github.com/kelseyhightower/envconfig"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	gomega_format "github.com/onsi/gomega/format"
 	amgmtv1 "github.com/openshift-online/ocm-sdk-go/accountsmgmt/v1"
 	"github.com/openshift/assisted-service/internal/cluster"
 	"github.com/openshift/assisted-service/internal/cluster/validations"
@@ -43,6 +44,7 @@ import (
 	"github.com/openshift/assisted-service/internal/gencrypto"
 	"github.com/openshift/assisted-service/internal/hardware"
 	"github.com/openshift/assisted-service/internal/host"
+	"github.com/openshift/assisted-service/internal/host/hostutil"
 	"github.com/openshift/assisted-service/internal/ignition"
 	"github.com/openshift/assisted-service/internal/infraenv"
 	installcfg "github.com/openshift/assisted-service/internal/installcfg/builder"
@@ -7770,6 +7772,8 @@ var _ = Describe("infraEnvs", func() {
 })
 
 var _ = Describe("infraEnvs host", func() {
+	gomega_format.CharactersAroundMismatchToInclude = 80
+
 	var (
 		bm         *bareMetalInventory
 		cfg        Config
@@ -7810,10 +7814,21 @@ var _ = Describe("infraEnvs host", func() {
 
 	Context("Update Host", func() {
 
-		var hostID strfmt.UUID
-		var clusterID strfmt.UUID
-		diskID1 := "/dev/sda"
-		diskID2 := "/dev/sdb"
+		var (
+			hostID    strfmt.UUID
+			clusterID strfmt.UUID
+			host      *models.Host
+		)
+
+		var (
+			// Disks that go in the inventory by default
+			diskID1 = "/dev/sda"
+			diskID2 = "/dev/sdb"
+
+			// Other disk constants to be used by tests (not in inventory)
+			diskID3 = "/dev/sdc"
+			diskID4 = "/dev/sdc"
+		)
 
 		BeforeEach(func() {
 			hostID = strfmt.UUID(uuid.New().String())
@@ -7823,12 +7838,26 @@ var _ = Describe("infraEnvs host", func() {
 				Cluster: models.Cluster{ID: &clusterID},
 			}).Error
 			Expect(err).ShouldNot(HaveOccurred())
-			err = db.Create(&models.Host{
+			host = &models.Host{
 				ID:         &hostID,
 				InfraEnvID: infraEnvID,
 				ClusterID:  &clusterID,
-			}).Error
-			Expect(err).ToNot(HaveOccurred())
+				Inventory: common.GenerateTestInventoryWithMutate(
+					func(inventory *models.Inventory) {
+						inventory.Disks = []*models.Disk{}
+
+						inventory.Disks = append(inventory.Disks, &models.Disk{
+							ID: diskID1,
+						})
+						inventory.Disks = append(inventory.Disks, &models.Disk{
+							ID: diskID2,
+						})
+					},
+				),
+			}
+			Expect(db.Create(host).Error).ToNot(HaveOccurred())
+			host = &hostutil.GetHostFromDB(*host.ID, host.InfraEnvID, db).Host
+			mockHostApi.EXPECT().RefreshInventory(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 		})
 
 		It("update host role success", func() {
@@ -8002,6 +8031,237 @@ var _ = Describe("infraEnvs host", func() {
 				Expect(resp).To(BeAssignableToTypeOf(&common.ApiErrorResponse{}))
 				Expect(resp.(*common.ApiErrorResponse).StatusCode()).To(Equal(int32(http.StatusConflict)))
 			})
+		})
+
+		Context("Update host skip disks", func() {
+			verifyFunctionDidntMatch := func(diskID string) func(responder middleware.Responder) {
+				return func(responder middleware.Responder) {
+					response, ok := responder.(*common.ApiErrorResponse)
+					Expect(ok).Should(BeTrue())
+					Expect(response.StatusCode()).To(Equal(int32(http.StatusBadRequest)))
+					Expect(response.Error()).To(Equal(fmt.Sprintf("Disk identifier %s doesn't match any disk in the inventory, it cannot be skipped. Inventory disk identifiers are: /dev/sda, /dev/sdb", diskID)))
+				}
+			}
+
+			verifyFunctionSuccess := func() func(responder middleware.Responder) {
+				return func(responder middleware.Responder) {
+					Expect(responder).Should(BeAssignableToTypeOf(installer.NewV2UpdateHostCreated()))
+				}
+			}
+
+			for _, test := range []struct {
+				name                     string
+				diskSkipFormattingParams []*models.DiskSkipFormattingParams
+				originalSkippedDisks     []string
+				expectedSkippedDisks     []string
+				responseVerification     func(responder middleware.Responder)
+				expectedNumOfUpdateCalls int
+			}{
+				{
+					name: "Empty list, skip a single disk",
+					diskSkipFormattingParams: []*models.DiskSkipFormattingParams{
+						{DiskID: &diskID1, SkipFormatting: swag.Bool(true)},
+					},
+					originalSkippedDisks:     []string{},
+					expectedSkippedDisks:     []string{diskID1},
+					responseVerification:     verifyFunctionSuccess(),
+					expectedNumOfUpdateCalls: 1,
+				},
+				{
+					name: "Empty list, skip a non-existing disk",
+					diskSkipFormattingParams: []*models.DiskSkipFormattingParams{
+						{DiskID: &diskID3, SkipFormatting: swag.Bool(true)},
+					},
+					originalSkippedDisks:     []string{},
+					expectedSkippedDisks:     []string{},
+					responseVerification:     verifyFunctionDidntMatch(diskID3),
+					expectedNumOfUpdateCalls: 0,
+				},
+				{
+					name: "Empty list, skip multiple non-existing disks",
+					diskSkipFormattingParams: []*models.DiskSkipFormattingParams{
+						{DiskID: &diskID3, SkipFormatting: swag.Bool(true)},
+						{DiskID: &diskID4, SkipFormatting: swag.Bool(true)},
+					},
+					originalSkippedDisks:     []string{},
+					expectedSkippedDisks:     []string{},
+					responseVerification:     verifyFunctionDidntMatch(diskID3),
+					expectedNumOfUpdateCalls: 0,
+				},
+				{
+					name: "Empty list, skip one existing one non-existing disks",
+					diskSkipFormattingParams: []*models.DiskSkipFormattingParams{
+						{DiskID: &diskID2, SkipFormatting: swag.Bool(true)},
+						{DiskID: &diskID3, SkipFormatting: swag.Bool(true)},
+					},
+					originalSkippedDisks:     []string{},
+					expectedSkippedDisks:     []string{},
+					responseVerification:     verifyFunctionDidntMatch(diskID3),
+					expectedNumOfUpdateCalls: 0,
+				},
+				{
+					name: "One disk in list, skip a single different disk",
+					diskSkipFormattingParams: []*models.DiskSkipFormattingParams{
+						{DiskID: &diskID2, SkipFormatting: swag.Bool(true)},
+					},
+					originalSkippedDisks:     []string{diskID1},
+					expectedSkippedDisks:     []string{diskID1, diskID2},
+					responseVerification:     verifyFunctionSuccess(),
+					expectedNumOfUpdateCalls: 1,
+				},
+				{
+					name: "One disk in list, skip the existing disk",
+					diskSkipFormattingParams: []*models.DiskSkipFormattingParams{
+						{DiskID: &diskID1, SkipFormatting: swag.Bool(true)},
+					},
+					originalSkippedDisks:     []string{diskID1},
+					expectedSkippedDisks:     []string{diskID1},
+					responseVerification:     verifyFunctionSuccess(),
+					expectedNumOfUpdateCalls: 1,
+				},
+				{
+					name: "One disk in list, skip a non-existing disk",
+					diskSkipFormattingParams: []*models.DiskSkipFormattingParams{
+						{DiskID: &diskID3, SkipFormatting: swag.Bool(true)},
+					},
+					originalSkippedDisks:     []string{diskID1},
+					expectedSkippedDisks:     []string{diskID1},
+					responseVerification:     verifyFunctionDidntMatch(diskID3),
+					expectedNumOfUpdateCalls: 0,
+				},
+				{
+					name: "One disk in list, skip multiple non-existing disks",
+					diskSkipFormattingParams: []*models.DiskSkipFormattingParams{
+						{DiskID: &diskID3, SkipFormatting: swag.Bool(true)},
+						{DiskID: &diskID4, SkipFormatting: swag.Bool(true)},
+					},
+					originalSkippedDisks:     []string{diskID1},
+					expectedSkippedDisks:     []string{diskID1},
+					responseVerification:     verifyFunctionDidntMatch(diskID3),
+					expectedNumOfUpdateCalls: 0,
+				},
+				{
+					name: "One disk in list, skip one existing one non-existing disks",
+					diskSkipFormattingParams: []*models.DiskSkipFormattingParams{
+						{DiskID: &diskID2, SkipFormatting: swag.Bool(true)},
+						{DiskID: &diskID3, SkipFormatting: swag.Bool(true)},
+					},
+					originalSkippedDisks:     []string{diskID1},
+					expectedSkippedDisks:     []string{diskID1},
+					responseVerification:     verifyFunctionDidntMatch(diskID3),
+					expectedNumOfUpdateCalls: 0,
+				},
+				{
+					name: "One disk in list, remove non-existing disk",
+					diskSkipFormattingParams: []*models.DiskSkipFormattingParams{
+						{DiskID: &diskID3, SkipFormatting: swag.Bool(false)},
+					},
+					originalSkippedDisks:     []string{diskID1},
+					expectedSkippedDisks:     []string{diskID1},
+					responseVerification:     verifyFunctionSuccess(),
+					expectedNumOfUpdateCalls: 1,
+				},
+				{
+					name: "One disk in list, remove it",
+					diskSkipFormattingParams: []*models.DiskSkipFormattingParams{
+						{DiskID: &diskID1, SkipFormatting: swag.Bool(false)},
+					},
+					originalSkippedDisks:     []string{diskID1},
+					expectedSkippedDisks:     []string{},
+					responseVerification:     verifyFunctionSuccess(),
+					expectedNumOfUpdateCalls: 1,
+				},
+				{
+					name: "One disk in list, remove it and non-existing one",
+					diskSkipFormattingParams: []*models.DiskSkipFormattingParams{
+						{DiskID: &diskID1, SkipFormatting: swag.Bool(false)},
+						{DiskID: &diskID3, SkipFormatting: swag.Bool(false)},
+					},
+					originalSkippedDisks:     []string{diskID1},
+					expectedSkippedDisks:     []string{},
+					responseVerification:     verifyFunctionSuccess(),
+					expectedNumOfUpdateCalls: 1,
+				},
+				{
+					name: "Two disks in list, remove first one",
+					diskSkipFormattingParams: []*models.DiskSkipFormattingParams{
+						{DiskID: &diskID1, SkipFormatting: swag.Bool(false)},
+					},
+					originalSkippedDisks:     []string{diskID1, diskID2},
+					expectedSkippedDisks:     []string{diskID2},
+					responseVerification:     verifyFunctionSuccess(),
+					expectedNumOfUpdateCalls: 1,
+				},
+				{
+					name: "Two disks in list, remove second one",
+					diskSkipFormattingParams: []*models.DiskSkipFormattingParams{
+						{DiskID: &diskID2, SkipFormatting: swag.Bool(false)},
+					},
+					originalSkippedDisks:     []string{diskID1, diskID2},
+					expectedSkippedDisks:     []string{diskID1},
+					responseVerification:     verifyFunctionSuccess(),
+					expectedNumOfUpdateCalls: 1,
+				},
+				{
+					name: "Two disks in list, add non-existing one",
+					diskSkipFormattingParams: []*models.DiskSkipFormattingParams{
+						{DiskID: &diskID3, SkipFormatting: swag.Bool(true)},
+					},
+					originalSkippedDisks:     []string{diskID1, diskID2},
+					expectedSkippedDisks:     []string{diskID1, diskID2},
+					responseVerification:     verifyFunctionDidntMatch(diskID3),
+					expectedNumOfUpdateCalls: 0,
+				},
+				{
+					name: "One disk in list, remove it even though it's not in the inventory",
+					diskSkipFormattingParams: []*models.DiskSkipFormattingParams{
+						{DiskID: &diskID3, SkipFormatting: swag.Bool(false)},
+					},
+					originalSkippedDisks:     []string{diskID3},
+					expectedSkippedDisks:     []string{},
+					responseVerification:     verifyFunctionSuccess(),
+					expectedNumOfUpdateCalls: 1,
+				},
+				{
+					name: "Two disks in list, remove them even though they're not in the inventory",
+					diskSkipFormattingParams: []*models.DiskSkipFormattingParams{
+						{DiskID: &diskID3, SkipFormatting: swag.Bool(false)},
+						{DiskID: &diskID4, SkipFormatting: swag.Bool(false)},
+					},
+					originalSkippedDisks:     []string{diskID3, diskID4},
+					expectedSkippedDisks:     []string{},
+					responseVerification:     verifyFunctionSuccess(),
+					expectedNumOfUpdateCalls: 1,
+				},
+			} {
+				test := test
+				It(test.name, func() {
+					mockHostApi.EXPECT().UpdateRole(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
+					mockHostApi.EXPECT().UpdateHostname(gomock.Any(), gomock.Any(), "somehostname", gomock.Any()).Times(0)
+					mockHostApi.EXPECT().UpdateInstallationDisk(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
+					mockHostApi.EXPECT().UpdateMachineConfigPoolName(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
+					mockHostApi.EXPECT().UpdateIgnitionEndpointToken(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
+					mockHostApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+					mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).AnyTimes()
+					mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+					mockHostApi.EXPECT().UpdateNodeSkipDiskFormatting(gomock.Any(), gomock.Any(), strings.Join(test.expectedSkippedDisks, ","),
+						gomock.Any()).Return(nil).Times(test.expectedNumOfUpdateCalls)
+
+					originalSkippedDisks := ""
+					if test.originalSkippedDisks != nil {
+						originalSkippedDisks = strings.Join(test.originalSkippedDisks, ",")
+					}
+					Expect(db.Model(host).Update("skip_formatting_disks", originalSkippedDisks).Error).Should(Succeed())
+					responder := bm.V2UpdateHost(ctx, installer.V2UpdateHostParams{
+						InfraEnvID: infraEnvID,
+						HostID:     hostID,
+						HostUpdateParams: &models.HostUpdateParams{
+							DisksSkipFormatting: test.diskSkipFormattingParams,
+						},
+					})
+					test.responseVerification(responder)
+				})
+			}
 		})
 
 		Context("MachineConfigPoolName", func() {

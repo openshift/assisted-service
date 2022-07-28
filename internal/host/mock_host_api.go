@@ -719,6 +719,20 @@ func (mr *MockAPIMockRecorder) UpdateNodeLabels(arg0, arg1, arg2, arg3 interface
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateNodeLabels", reflect.TypeOf((*MockAPI)(nil).UpdateNodeLabels), arg0, arg1, arg2, arg3)
 }
 
+// UpdateNodeSkipDiskFormatting mocks base method.
+func (m *MockAPI) UpdateNodeSkipDiskFormatting(arg0 context.Context, arg1 *models.Host, arg2 string, arg3 *gorm.DB) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateNodeSkipDiskFormatting", arg0, arg1, arg2, arg3)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// UpdateNodeSkipDiskFormatting indicates an expected call of UpdateNodeSkipDiskFormatting.
+func (mr *MockAPIMockRecorder) UpdateNodeSkipDiskFormatting(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateNodeSkipDiskFormatting", reflect.TypeOf((*MockAPI)(nil).UpdateNodeSkipDiskFormatting), arg0, arg1, arg2, arg3)
+}
+
 // UpdateRole mocks base method.
 func (m *MockAPI) UpdateRole(arg0 context.Context, arg1 *models.Host, arg2 models.HostRole, arg3 *gorm.DB) error {
 	m.ctrl.T.Helper()

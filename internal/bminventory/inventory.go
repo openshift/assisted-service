@@ -5293,6 +5293,10 @@ func (b *bareMetalInventory) V2UpdateHostInternal(ctx context.Context, params in
 	if err != nil {
 		return nil, err
 	}
+	err = b.updateHostSkipFormattingDisks(ctx, host, params.HostUpdateParams.DisksSkipFormatting, tx)
+	if err != nil {
+		return nil, err
+	}
 
 	//get bound cluster
 	if host.ClusterID != nil {
@@ -5468,6 +5472,70 @@ func (b *bareMetalInventory) updateNodeLabels(ctx context.Context, host *common.
 			nodeLabelsStr, host.ID, host.InfraEnvID)
 		return common.NewApiError(http.StatusInternalServerError, err)
 	}
+	return nil
+}
+
+func (b *bareMetalInventory) updateHostSkipFormattingDisks(ctx context.Context, host *common.Host, diskSkipFormattingParams []*models.DiskSkipFormattingParams, db *gorm.DB) error {
+	log := logutil.FromContext(ctx, b.log)
+
+	if len(diskSkipFormattingParams) == 0 {
+		return nil
+	}
+
+	// Get a list of disks
+	var inventory models.Inventory
+	if err := json.Unmarshal([]byte(host.Inventory), &inventory); err != nil {
+		return common.NewApiError(http.StatusInternalServerError, fmt.Errorf("inventory unmarshal failed: %w", err))
+	}
+	inventoryDiskIdentifiers := make([]string, 0, len(inventory.Disks))
+	for _, disk := range inventory.Disks {
+		inventoryDiskIdentifiers = append(inventoryDiskIdentifiers, common.GetDeviceIdentifier(disk))
+	}
+
+	// Start with the original list of currently skipped disks
+	newDiskSkipFormattingIdentifiers := common.GetSkippedFormattingDiskIdentifiers(&host.Host)
+
+	// Apply user modifications to this skipped disks list
+	for _, diskSkipFormattingParam := range diskSkipFormattingParams {
+		if diskSkipFormattingParam.DiskID == nil || diskSkipFormattingParam.SkipFormatting == nil {
+			return common.NewApiError(http.StatusBadRequest, errors.New("Missing required disk formatting param fields"))
+		}
+		paramDiskID, paramSkipFormatting := *diskSkipFormattingParam.DiskID, *diskSkipFormattingParam.SkipFormatting
+
+		if funk.Contains(newDiskSkipFormattingIdentifiers, paramDiskID) {
+			if paramSkipFormatting {
+				log.Infof("Disk %s is already in the skip list %s", paramDiskID, host.SkipFormattingDisks)
+			} else {
+				log.Infof("Removing disk %s from the skip list %s", paramDiskID, host.SkipFormattingDisks)
+				newDiskSkipFormattingIdentifiers = funk.FilterString(newDiskSkipFormattingIdentifiers, func(diskIdentifier string) bool {
+					return diskIdentifier != paramDiskID
+				})
+			}
+		} else {
+			if paramSkipFormatting {
+				if !funk.ContainsString(inventoryDiskIdentifiers, paramDiskID) {
+					return common.NewApiError(http.StatusBadRequest, fmt.Errorf(
+						"Disk identifier %s doesn't match any disk in the inventory, it cannot be skipped. Inventory disk identifiers are: %s",
+						paramDiskID, strings.Join(inventoryDiskIdentifiers, ", ")))
+				}
+
+				log.Infof("Adding disk %s to the skip list %s", paramDiskID, host.SkipFormattingDisks)
+				newDiskSkipFormattingIdentifiers = append(newDiskSkipFormattingIdentifiers, paramDiskID)
+			} else {
+				log.Infof("Disk %s is already not in the skip list %s", paramDiskID, host.SkipFormattingDisks)
+			}
+		}
+	}
+
+	// Replace the original list in the database with the user-modified list
+	skipDiskFormattingIdentifiersJoined := strings.Join(newDiskSkipFormattingIdentifiers, ",")
+	err := b.hostApi.UpdateNodeSkipDiskFormatting(ctx, &host.Host, skipDiskFormattingIdentifiersJoined, db)
+	if err != nil {
+		log.WithError(err).Errorf("failed to set skip disk formatting <%s> host <%s>, infra env <%s>",
+			skipDiskFormattingIdentifiersJoined, host.ID, host.InfraEnvID)
+		return common.NewApiError(http.StatusInternalServerError, err)
+	}
+
 	return nil
 }
 

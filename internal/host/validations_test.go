@@ -1204,7 +1204,6 @@ var _ = Describe("Validations test", func() {
 		})
 
 		It("Passes if the agent and the service use the same image", func() {
-			host = hostutil.GetHostFromDB(*host.ID, host.InfraEnvID, db).Host
 			mockAndRefreshStatus(&host)
 			host = hostutil.GetHostFromDB(*host.ID, host.InfraEnvID, db).Host
 			status, message, ok := getValidationResult(host.ValidationsInfo, CompatibleAgent)
@@ -1214,7 +1213,6 @@ var _ = Describe("Validations test", func() {
 		})
 
 		It("Fails if the agent and the service use different images", func() {
-			host = hostutil.GetHostFromDB(*host.ID, host.InfraEnvID, db).Host
 			host.DiscoveryAgentVersion = "quay.io/edge-infrastructure/assisted-installer-agent:wrong"
 			mockAndRefreshStatus(&host)
 			host = hostutil.GetHostFromDB(*host.ID, host.InfraEnvID, db).Host
@@ -1226,5 +1224,284 @@ var _ = Describe("Validations test", func() {
 					"compatible version. This might take a few minutes",
 			))
 		})
+	})
+
+	Context("No skip installation disk validation", func() {
+		var (
+			host    models.Host
+			cluster common.Cluster
+		)
+
+		const (
+			successMessage string = "No request to skip formatting of the installation disk"
+			failureMessage string = "Requesting to skip the formatting of the installation disk is not allowed. The installation disk must be formatted. Please either change this host's installation disk or do not skip the formatting of the installation disk"
+		)
+
+		BeforeEach(func() {
+			// Create a test cluster
+			cluster = hostutil.GenerateTestCluster(clusterID)
+			Expect(db.Create(&cluster).Error).ToNot(HaveOccurred())
+
+			// Create a test host
+			hostId, infraEnvId := strfmt.UUID(uuid.New().String()), strfmt.UUID(uuid.New().String())
+			host = hostutil.GenerateTestHostByKind(hostId, infraEnvId, &clusterID, models.HostStatusKnown, models.HostKindHost, models.HostRoleMaster)
+			host.Inventory = hostutil.GenerateMasterInventory()
+			Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
+			host = hostutil.GetHostFromDB(*host.ID, host.InfraEnvID, db).Host
+		})
+
+		for _, test := range []struct {
+			name                      string
+			installationDisk          string
+			skipFormattingDisks       string
+			expectedValidationStatus  ValidationStatus
+			expectedValidationMessage string
+		}{
+			{
+				name:                      "No skip disks",
+				installationDisk:          "/dev/sda",
+				skipFormattingDisks:       "",
+				expectedValidationStatus:  ValidationSuccess,
+				expectedValidationMessage: successMessage,
+			},
+			{
+				name:                      "One skip disk - not installation disk",
+				installationDisk:          "/dev/sda",
+				skipFormattingDisks:       "/dev/sdb",
+				expectedValidationStatus:  ValidationSuccess,
+				expectedValidationMessage: successMessage,
+			},
+			{
+				name:                      "Multiple skip disks - none are installation disk",
+				installationDisk:          "/dev/sda",
+				skipFormattingDisks:       "/dev/sdb,/dev/sdc",
+				expectedValidationStatus:  ValidationSuccess,
+				expectedValidationMessage: successMessage,
+			},
+			{
+				name:                      "One skip disk - is installation disk",
+				installationDisk:          "/dev/sda",
+				skipFormattingDisks:       "/dev/sda",
+				expectedValidationStatus:  ValidationFailure,
+				expectedValidationMessage: failureMessage,
+			},
+			{
+				name:                      "Multiple skip disks - one is installation disk",
+				installationDisk:          "/dev/sda",
+				skipFormattingDisks:       "/dev/sda,/dev/sdb",
+				expectedValidationStatus:  ValidationFailure,
+				expectedValidationMessage: failureMessage,
+			},
+			{
+				name:                      "No skip disk - no installation disk",
+				installationDisk:          "",
+				skipFormattingDisks:       "",
+				expectedValidationStatus:  ValidationSuccess,
+				expectedValidationMessage: successMessage,
+			},
+			{
+				name:                      "One skip disk - no installation disk",
+				installationDisk:          "",
+				skipFormattingDisks:       "/dev/sda",
+				expectedValidationStatus:  ValidationSuccess,
+				expectedValidationMessage: successMessage,
+			},
+			{
+				name:                      "Multiple skip disks - no installation disk",
+				installationDisk:          "",
+				skipFormattingDisks:       "/dev/sda,/dev/sdb",
+				expectedValidationStatus:  ValidationSuccess,
+				expectedValidationMessage: successMessage,
+			},
+		} {
+			test := test
+			It(test.name, func() {
+				// Apply test inputs
+				host.InstallationDiskID = test.installationDisk
+				host.SkipFormattingDisks = test.skipFormattingDisks
+
+				// Trigger validations
+				mockAndRefreshStatus(&host)
+
+				// Retrieve results
+				host = hostutil.GetHostFromDB(*host.ID, host.InfraEnvID, db).Host
+				status, message, ok := getValidationResult(host.ValidationsInfo, NoSkipInstallationDisk)
+
+				// Validate expectations
+				Expect(ok).To(BeTrue())
+				Expect(message).To(Equal(test.expectedValidationMessage))
+				Expect(status).To(Equal(test.expectedValidationStatus))
+			})
+		}
+	})
+	Context("No skip missing disk validation", func() {
+		var (
+			host    models.Host
+			cluster common.Cluster
+		)
+
+		const (
+			pendingMessage string = "Host inventory not available yet"
+			successMessage string = "All disks that have skipped formatting are present in the host inventory"
+			failureMessage string = "One or more of the disks that you have requested to skip the formatting of are no longer present on this host. To ensure they haven't just changed their identity, please remove your request to skip their formatting and then if needed add them back using the new ID"
+		)
+
+		BeforeEach(func() {
+			// Create a test cluster
+			cluster = hostutil.GenerateTestCluster(clusterID)
+			Expect(db.Create(&cluster).Error).ToNot(HaveOccurred())
+
+			// Create a test host
+			hostId, infraEnvId := strfmt.UUID(uuid.New().String()), strfmt.UUID(uuid.New().String())
+			host = hostutil.GenerateTestHostByKind(hostId, infraEnvId, &clusterID, models.HostStatusDiscovering, models.HostKindHost, models.HostRoleMaster)
+			host.Inventory = hostutil.GenerateMasterInventory()
+			Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
+			host = hostutil.GetHostFromDB(*host.ID, host.InfraEnvID, db).Host
+		})
+
+		for _, test := range []struct {
+			name                      string
+			skipFormattingDisks       string
+			inventoryDisksIDs         []string
+			noInventory               bool
+			expectedValidationStatus  ValidationStatus
+			expectedValidationMessage string
+		}{
+			{
+				name:                      "No skip disks, no inventory",
+				skipFormattingDisks:       "",
+				noInventory:               true,
+				expectedValidationStatus:  ValidationPending,
+				expectedValidationMessage: pendingMessage,
+			},
+			{
+				name:                      "One skip disk, no inventory",
+				skipFormattingDisks:       "/dev/sda",
+				noInventory:               true,
+				expectedValidationStatus:  ValidationPending,
+				expectedValidationMessage: pendingMessage,
+			},
+			{
+				name:                      "Multiple skip disks, no inventory",
+				skipFormattingDisks:       "/dev/sda,/dev/sdb",
+				noInventory:               true,
+				expectedValidationStatus:  ValidationPending,
+				expectedValidationMessage: pendingMessage,
+			},
+			{
+				name:                      "No skip disks, one inventory disk",
+				skipFormattingDisks:       "",
+				inventoryDisksIDs:         []string{"/dev/sda"},
+				expectedValidationStatus:  ValidationSuccess,
+				expectedValidationMessage: successMessage,
+			},
+			{
+				name:                      "No skip disks, multiple inventory disks",
+				skipFormattingDisks:       "",
+				inventoryDisksIDs:         []string{"/dev/sda", "/dev/sdb"},
+				expectedValidationStatus:  ValidationSuccess,
+				expectedValidationMessage: successMessage,
+			},
+			{
+				name:                      "One skip disk, one different inventory disk",
+				skipFormattingDisks:       "/dev/sda",
+				inventoryDisksIDs:         []string{"/dev/sdb"},
+				expectedValidationStatus:  ValidationFailure,
+				expectedValidationMessage: failureMessage,
+			},
+			{
+				name:                      "One skip disk, multiple different inventory disks",
+				skipFormattingDisks:       "/dev/sda",
+				inventoryDisksIDs:         []string{"/dev/sdb", "/dev/sdc"},
+				expectedValidationStatus:  ValidationFailure,
+				expectedValidationMessage: failureMessage,
+			},
+			{
+				name:                      "One skip disk, one same inventory disk",
+				skipFormattingDisks:       "/dev/sda",
+				inventoryDisksIDs:         []string{"/dev/sda"},
+				expectedValidationStatus:  ValidationSuccess,
+				expectedValidationMessage: successMessage,
+			},
+			{
+				name:                      "One skip disk, multiple inventory disks, one same",
+				skipFormattingDisks:       "/dev/sda",
+				inventoryDisksIDs:         []string{"/dev/sdb", "/dev/sda"},
+				expectedValidationStatus:  ValidationSuccess,
+				expectedValidationMessage: successMessage,
+			},
+			{
+				name:                      "Multiple skip disks, one same inventory disk",
+				skipFormattingDisks:       "/dev/sda,/dev/sdb",
+				inventoryDisksIDs:         []string{"/dev/sda"},
+				expectedValidationStatus:  ValidationFailure,
+				expectedValidationMessage: failureMessage,
+			},
+			{
+				name:                      "Multiple skip disks, multiple inventory disks, one same",
+				skipFormattingDisks:       "/dev/sda,/dev/sdb",
+				inventoryDisksIDs:         []string{"/dev/sdb", "/dev/sdc"},
+				expectedValidationStatus:  ValidationFailure,
+				expectedValidationMessage: failureMessage,
+			},
+			{
+				name:                      "Multiple skip disks, multiple inventory disks, all different",
+				skipFormattingDisks:       "/dev/sda,/dev/sdb",
+				inventoryDisksIDs:         []string{"/dev/sdc", "/dev/sdd"},
+				expectedValidationStatus:  ValidationFailure,
+				expectedValidationMessage: failureMessage,
+			},
+			{
+				name:                      "Multiple skip disks, multiple inventory disks, all same",
+				skipFormattingDisks:       "/dev/sda,/dev/sdb",
+				inventoryDisksIDs:         []string{"/dev/sda", "/dev/sdb"},
+				expectedValidationStatus:  ValidationSuccess,
+				expectedValidationMessage: successMessage,
+			},
+			{
+				name:                      "Multiple skip disks, multiple inventory disks, all same, plus another inventory disk",
+				skipFormattingDisks:       "/dev/sda,/dev/sdb",
+				inventoryDisksIDs:         []string{"/dev/sda", "/dev/sdb", "/dev/sdc"},
+				expectedValidationStatus:  ValidationSuccess,
+				expectedValidationMessage: successMessage,
+			},
+		} {
+			test := test
+			It(test.name, func() {
+				// Apply test inputs
+				host.SkipFormattingDisks = test.skipFormattingDisks
+				var inventory models.Inventory
+				Expect(json.Unmarshal([]byte(host.Inventory), &inventory)).To(Succeed())
+				inventory.Disks = []*models.Disk{}
+				for _, inventoryDiskID := range test.inventoryDisksIDs {
+					inventory.Disks = append(inventory.Disks, &models.Disk{
+						ID: inventoryDiskID,
+					})
+				}
+				inventoryBytes, err := json.Marshal(inventory)
+				Expect(err).ShouldNot(HaveOccurred())
+				if test.noInventory {
+					inventoryBytes = []byte("")
+				}
+
+				host.Inventory = string(inventoryBytes)
+
+				// Trigger validations
+				if test.noInventory {
+					mockAndRefreshStatusWithoutEvents(&host)
+				} else {
+					mockAndRefreshStatus(&host)
+				}
+
+				// Retrieve results
+				host = hostutil.GetHostFromDB(*host.ID, host.InfraEnvID, db).Host
+				status, message, ok := getValidationResult(host.ValidationsInfo, NoSkipMissingDisk)
+
+				// Validate expectations
+				Expect(ok).To(BeTrue())
+				Expect(message).To(Equal(test.expectedValidationMessage))
+				Expect(status).To(Equal(test.expectedValidationStatus))
+			})
+		}
 	})
 })
