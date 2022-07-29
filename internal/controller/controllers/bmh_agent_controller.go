@@ -908,10 +908,7 @@ func (r *BMACReconciler) reconcileSpokeBMH(ctx context.Context, log logrus.Field
 	// cluster.
 	bmhAnnotations := bmh.ObjectMeta.GetAnnotations()
 	if _, ok := bmhAnnotations[BMH_DETACHED_ANNOTATION]; !ok {
-		if bmh.ObjectMeta.Annotations == nil {
-			bmh.ObjectMeta.Annotations = make(map[string]string)
-		}
-		bmh.ObjectMeta.Annotations[BMH_DETACHED_ANNOTATION] = "assisted-service-controller"
+		detachBMH(log, bmh, agent)
 		return reconcileComplete{dirty: true}
 	}
 	return reconcileComplete{}
