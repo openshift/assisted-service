@@ -243,7 +243,7 @@ var _ = Describe("TestHostMonitoring - with cluster", func() {
 	})
 })
 
-var _ = Describe("TestHostMonitoring - with infra-env", func() {
+var _ = Describe("HostMonitoring - with infra-env", func() {
 	var (
 		ctx           = context.Background()
 		db            *gorm.DB
@@ -332,6 +332,39 @@ var _ = Describe("TestHostMonitoring - with infra-env", func() {
 		It("765 hosts all disconnected", func() {
 			mockMetricApi.EXPECT().MonitoredHostsCount(int64(765)).Times(1)
 			registerAndValidateDisconnected(765)
+		})
+	})
+
+	Context("with an infraEnv", func() {
+		var infraEnvID strfmt.UUID
+		BeforeEach(func() {
+			infraEnvID = strfmt.UUID(uuid.New().String())
+			infraEnv := hostutil.GenerateTestInfraEnv(infraEnvID)
+			Expect(db.Save(infraEnv).Error).ToNot(HaveOccurred())
+		})
+
+		createTimeoutHostWithStatus := func(status string) strfmt.UUID {
+			host = hostutil.GenerateTestHostWithInfraEnv(strfmt.UUID(uuid.New().String()), infraEnvID, status, models.HostRoleWorker)
+			host.StatusUpdatedAt = strfmt.DateTime(time.Now().Add(-70 * time.Minute))
+			host.Inventory = workerInventory()
+			Expect(db.Create(&host).Error).ToNot(HaveOccurred())
+			return *host.ID
+		}
+
+		It("times out Reclaiming hosts", func() {
+			mockMetricApi.EXPECT().MonitoredHostsCount(int64(1)).Times(1)
+			hostID := createTimeoutHostWithStatus(models.HostStatusReclaiming)
+			state.HostMonitoring()
+			h := hostutil.GetHostFromDB(hostID, infraEnvID, db)
+			Expect(*h.Status).To(Equal(models.HostStatusUnbindingPendingUserAction))
+		})
+
+		It("times out ReclaimingRebooting hosts", func() {
+			mockMetricApi.EXPECT().MonitoredHostsCount(int64(1)).Times(1)
+			hostID := createTimeoutHostWithStatus(models.HostStatusReclaimingRebooting)
+			state.HostMonitoring()
+			h := hostutil.GetHostFromDB(hostID, infraEnvID, db)
+			Expect(*h.Status).To(Equal(models.HostStatusUnbindingPendingUserAction))
 		})
 	})
 })

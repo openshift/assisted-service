@@ -374,6 +374,11 @@ type TransitionArgsUnbindHost struct {
 	db  *gorm.DB
 }
 
+type TransitionArgsReclaimHost struct {
+	ctx context.Context
+	db  *gorm.DB
+}
+
 func (th *transitionHandler) PostUnbindHost(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) error {
 	sHost, ok := sw.(*stateHost)
 	if !ok {
@@ -384,10 +389,40 @@ func (th *transitionHandler) PostUnbindHost(sw stateswitch.StateSwitch, args sta
 		return errors.New("PostUnbindHost invalid argument")
 	}
 
+	return th.updateHostForUnbind(params.ctx, params.db, sHost)
+}
+
+func (th *transitionHandler) updateHostForUnbind(ctx context.Context, db *gorm.DB, h *stateHost) error {
 	extra := append(resetFields[:], resetLogsField...)
 	extra = append(extra, restFieldsOnUnbind...)
-	return th.updateTransitionHost(params.ctx, logutil.FromContext(params.ctx, th.log), params.db, sHost, statusInfoUnbinding,
+	return th.updateTransitionHost(ctx, logutil.FromContext(ctx, th.log), db, h, statusInfoUnbinding,
 		extra...)
+}
+
+func (th *transitionHandler) PostRefreshReclaimTimeout(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) error {
+	sHost, ok := sw.(*stateHost)
+	if !ok {
+		return errors.New("PostRefreshReclaimTimeout incompatible type of StateSwitch")
+	}
+	params, ok := args.(*TransitionArgsRefreshHost)
+	if !ok {
+		return errors.New("PostRefreshReclaimTimeout invalid argument")
+	}
+
+	return th.updateHostForUnbind(params.ctx, params.db, sHost)
+}
+
+func (th *transitionHandler) PostReclaim(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) error {
+	sHost, ok := sw.(*stateHost)
+	if !ok {
+		return errors.New("PostReclaim incompatible type of StateSwitch")
+	}
+	params, ok := args.(*TransitionArgsReclaimHost)
+	if !ok {
+		return errors.New("PostReclaim invalid argument")
+	}
+
+	return th.updateTransitionHost(params.ctx, logutil.FromContext(params.ctx, th.log), params.db, sHost, statusInfoRebootingForReclaim, nil)
 }
 
 ////////////////////////////////////////////////////////////////////////////
@@ -563,12 +598,14 @@ func (th *transitionHandler) IsLogCollectionTimedOut(sw stateswitch.StateSwitch,
 	return false, nil
 }
 
-func (th *transitionHandler) HasInstallationTimedOut(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) (bool, error) {
-	sHost, ok := sw.(*stateHost)
-	if !ok {
-		return false, errors.New("HasInstallationTimedOut incompatible type of StateSwitch")
+func (th *transitionHandler) HasStatusTimedOut(timeout time.Duration) stateswitch.Condition {
+	return func(sw stateswitch.StateSwitch, _ stateswitch.TransitionArgs) (bool, error) {
+		sHost, ok := sw.(*stateHost)
+		if !ok {
+			return false, errors.New("HasStatusTimedOut incompatible type of StateSwitch")
+		}
+		return time.Since(time.Time(sHost.host.StatusUpdatedAt)) > timeout, nil
 	}
-	return time.Since(time.Time(sHost.host.StatusUpdatedAt)) > InstallationTimeout, nil
 }
 
 func (th *transitionHandler) HasInstallationInProgressTimedOut(sw stateswitch.StateSwitch, _ stateswitch.TransitionArgs) (bool, error) {

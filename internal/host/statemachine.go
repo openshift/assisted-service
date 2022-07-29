@@ -18,6 +18,8 @@ const (
 	TransitionTypeBindHost                   = "BindHost"
 	TransitionTypeUnbindHost                 = "UnbindHost"
 	TransitionTypeReclaimHost                = "ReclaimHost"
+	TransitionTypeRebootingForReclaim        = "RebootingForReclaim"
+	TransitionTypeReclaimFailed              = "ReclaimHostFailed"
 )
 
 // func NewHostStateMachine(th *transitionHandler) stateswitch.StateMachine {
@@ -255,13 +257,67 @@ func NewHostStateMachine(sm stateswitch.StateMachine, th *transitionHandler) sta
 		PostTransition:   th.PostUnbindHost,
 	})
 
-	// Reclaim host
+	// ReclaimHost when installed moves to Reclaiming
 	sm.AddTransition(stateswitch.TransitionRule{
 		TransitionType: TransitionTypeReclaimHost,
 		SourceStates: []stateswitch.State{
 			stateswitch.State(models.HostStatusInstalled),
+			stateswitch.State(models.HostStatusAddedToExistingCluster),
 		},
 		DestinationState: stateswitch.State(models.HostStatusReclaiming),
+		PostTransition:   th.PostUnbindHost,
+	})
+
+	sm.AddTransition(stateswitch.TransitionRule{
+		TransitionType: TransitionTypeRebootingForReclaim,
+		SourceStates: []stateswitch.State{
+			stateswitch.State(models.HostStatusReclaiming),
+		},
+		DestinationState: stateswitch.State(models.HostStatusReclaimingRebooting),
+		PostTransition:   th.PostReclaim,
+	})
+
+	sm.AddTransition(stateswitch.TransitionRule{
+		TransitionType: TransitionTypeReclaimFailed,
+		SourceStates: []stateswitch.State{
+			stateswitch.State(models.HostStatusReclaiming),
+			stateswitch.State(models.HostStatusReclaimingRebooting),
+		},
+		DestinationState: stateswitch.State(models.HostStatusUnbindingPendingUserAction),
+		PostTransition:   th.PostUnbindHost,
+	})
+
+	sm.AddTransition(stateswitch.TransitionRule{
+		TransitionType: TransitionTypeRefresh,
+		SourceStates: []stateswitch.State{
+			stateswitch.State(models.HostStatusReclaiming),
+			stateswitch.State(models.HostStatusReclaimingRebooting),
+		},
+		Condition:        th.HasStatusTimedOut(ReclaimTimeout),
+		DestinationState: stateswitch.State(models.HostStatusUnbindingPendingUserAction),
+		PostTransition:   th.PostRefreshReclaimTimeout,
+	})
+
+	// ReclaimHost in other states acts like Unbind
+	sm.AddTransition(stateswitch.TransitionRule{
+		TransitionType: TransitionTypeReclaimHost,
+		SourceStates: []stateswitch.State{
+			stateswitch.State(models.HostStatusKnown),
+			stateswitch.State(models.HostStatusDiscovering),
+			stateswitch.State(models.HostStatusDisconnected),
+			stateswitch.State(models.HostStatusInsufficient),
+			stateswitch.State(models.HostStatusPendingForInput),
+		},
+		DestinationState: stateswitch.State(models.HostStatusUnbinding),
+		PostTransition:   th.PostUnbindHost,
+	})
+	sm.AddTransition(stateswitch.TransitionRule{
+		TransitionType: TransitionTypeReclaimHost,
+		SourceStates: []stateswitch.State{
+			stateswitch.State(models.HostStatusError),
+			stateswitch.State(models.HostStatusCancelled),
+		},
+		DestinationState: stateswitch.State(models.HostStatusUnbindingPendingUserAction),
 		PostTransition:   th.PostUnbindHost,
 	})
 
@@ -445,7 +501,7 @@ func NewHostStateMachine(sm stateswitch.StateMachine, th *transitionHandler) sta
 		TransitionType: TransitionTypeRefresh,
 		SourceStates: []stateswitch.State{
 			stateswitch.State(models.HostStatusInstalling)},
-		Condition:        th.HasInstallationTimedOut,
+		Condition:        th.HasStatusTimedOut(InstallationTimeout),
 		DestinationState: stateswitch.State(models.HostStatusError),
 		PostTransition:   th.PostRefreshHost(statusInfoInstallationTimedOut),
 	})
