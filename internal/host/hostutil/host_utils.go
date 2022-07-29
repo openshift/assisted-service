@@ -11,6 +11,7 @@ import (
 	bmh_v1alpha1 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/models"
+	"github.com/openshift/assisted-service/pkg/conversions"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
@@ -212,7 +213,7 @@ func GetAcceptableDisksWithHints(disks []*models.Disk, hints *bmh_v1alpha1.RootD
 			}
 
 			if hints.MinSizeGigabytes != 0 {
-				sizeGB := int(disk.SizeBytes / (1024 * 3))
+				sizeGB := int(conversions.BytesToGb(disk.SizeBytes))
 				if hints.MinSizeGigabytes < sizeGB {
 					continue
 				}
