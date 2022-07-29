@@ -1323,7 +1323,7 @@ func (m *Manager) TransformClusterToDay2(ctx context.Context, cluster *common.Cl
 		return common.NewApiError(http.StatusBadRequest, err)
 	}
 
-	apiVipDnsname := fmt.Sprintf("api.%s.%s", cluster.Name, cluster.BaseDNSDomain)
+	apiVipDnsname := common.GetConvertedClusterAPIVipDNSName(cluster)
 	dbReply := db.Model(&common.Cluster{}).Where("id = ?", cluster.ID.String()).
 		Updates(map[string]interface{}{
 			"status":           swag.String(models.ClusterStatusAddingHosts),

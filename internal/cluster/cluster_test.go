@@ -2905,82 +2905,124 @@ var _ = Describe("Transform day1 cluster to a day2 cluster", func() {
 	})
 
 	tests := []struct {
-		name          string
-		clusterStatus string
-		clusterKind   string
-		errorExpected bool
+		name               string
+		clusterStatus      string
+		clusterKind        string
+		errorExpected      bool
+		userManagedNetwork bool
+		apiVip             string
 	}{
 		{
-			name:          "successfully transform day1 cluster to a day2 cluster - status installed",
-			clusterStatus: models.ClusterStatusInstalled,
-			clusterKind:   models.ClusterKindCluster,
-			errorExpected: false,
+			name:               "successfully transform day1 cluster to a day2 cluster - status installed - user managed network true",
+			clusterStatus:      models.ClusterStatusInstalled,
+			clusterKind:        models.ClusterKindCluster,
+			errorExpected:      false,
+			userManagedNetwork: true,
+			apiVip:             common.TestIPv4Networking.APIVip,
 		},
 		{
-			name:          "fail to transform day1 cluster to a day2 cluster - kind AddHostsCluster",
-			clusterStatus: models.ClusterStatusInstalled,
-			clusterKind:   models.ClusterKindAddHostsCluster,
-			errorExpected: true,
+			name:               "successfully transform day1 cluster to a day2 cluster - status installed - api vip is not set",
+			clusterStatus:      models.ClusterStatusInstalled,
+			clusterKind:        models.ClusterKindCluster,
+			errorExpected:      false,
+			userManagedNetwork: false,
+			apiVip:             "",
 		},
 		{
-			name:          "fail to transform day1 cluster to a day2 cluster - status insufficient",
-			clusterStatus: models.ClusterStatusInsufficient,
-			clusterKind:   models.ClusterKindCluster,
-			errorExpected: true,
+			name:               "successfully transform day1 cluster to a day2 cluster - status installed",
+			clusterStatus:      models.ClusterStatusInstalled,
+			clusterKind:        models.ClusterKindCluster,
+			errorExpected:      false,
+			userManagedNetwork: false,
+			apiVip:             common.TestIPv4Networking.APIVip,
 		},
 		{
-			name:          "fail to transform day1 cluster to a day2 cluster - status ready",
-			clusterStatus: models.ClusterStatusReady,
-			clusterKind:   models.ClusterKindCluster,
-			errorExpected: true,
+			name:               "fail to transform day1 cluster to a day2 cluster - kind AddHostsCluster",
+			clusterStatus:      models.ClusterStatusInstalled,
+			clusterKind:        models.ClusterKindAddHostsCluster,
+			errorExpected:      true,
+			userManagedNetwork: false,
+			apiVip:             common.TestIPv4Networking.APIVip,
 		},
 		{
-			name:          "fail to transform day1 cluster to a day2 cluster - status error",
-			clusterStatus: models.ClusterStatusError,
-			clusterKind:   models.ClusterKindCluster,
-			errorExpected: true,
+			name:               "fail to transform day1 cluster to a day2 cluster - status insufficient",
+			clusterStatus:      models.ClusterStatusInsufficient,
+			clusterKind:        models.ClusterKindCluster,
+			errorExpected:      true,
+			userManagedNetwork: false,
+			apiVip:             common.TestIPv4Networking.APIVip,
 		},
 		{
-			name:          "fail to transform day1 cluster to a day2 cluster - preparing-for-installation",
-			clusterStatus: models.ClusterStatusPreparingForInstallation,
-			clusterKind:   models.ClusterKindCluster,
-			errorExpected: true,
+			name:               "fail to transform day1 cluster to a day2 cluster - status ready",
+			clusterStatus:      models.ClusterStatusReady,
+			clusterKind:        models.ClusterKindCluster,
+			errorExpected:      true,
+			userManagedNetwork: false,
+			apiVip:             common.TestIPv4Networking.APIVip,
 		},
 		{
-			name:          "fail to transform day1 cluster to a day2 cluster - status pending-for-input",
-			clusterStatus: models.ClusterStatusPendingForInput,
-			clusterKind:   models.ClusterKindCluster,
-			errorExpected: true,
+			name:               "fail to transform day1 cluster to a day2 cluster - status error",
+			clusterStatus:      models.ClusterStatusError,
+			clusterKind:        models.ClusterKindCluster,
+			errorExpected:      true,
+			userManagedNetwork: false,
+			apiVip:             common.TestIPv4Networking.APIVip,
 		},
 		{
-			name:          "fail to transform day1 cluster to a day2 cluster - status installing",
-			clusterStatus: models.ClusterStatusInstalling,
-			clusterKind:   models.ClusterKindCluster,
-			errorExpected: true,
+			name:               "fail to transform day1 cluster to a day2 cluster - preparing-for-installation",
+			clusterStatus:      models.ClusterStatusPreparingForInstallation,
+			clusterKind:        models.ClusterKindCluster,
+			errorExpected:      true,
+			userManagedNetwork: false,
+			apiVip:             common.TestIPv4Networking.APIVip,
 		},
 		{
-			name:          "fail to transform day1 cluster to a day2 cluster - status finalizing",
-			clusterStatus: models.ClusterStatusFinalizing,
-			clusterKind:   models.ClusterKindCluster,
-			errorExpected: true,
+			name:               "fail to transform day1 cluster to a day2 cluster - status pending-for-input",
+			clusterStatus:      models.ClusterStatusPendingForInput,
+			clusterKind:        models.ClusterKindCluster,
+			errorExpected:      true,
+			userManagedNetwork: false,
+			apiVip:             common.TestIPv4Networking.APIVip,
 		},
 		{
-			name:          "fail to transform day1 cluster to a day2 cluster - status adding-hosts",
-			clusterStatus: models.ClusterStatusAddingHosts,
-			clusterKind:   models.ClusterKindAddHostsCluster,
-			errorExpected: true,
+			name:               "fail to transform day1 cluster to a day2 cluster - status installing",
+			clusterStatus:      models.ClusterStatusInstalling,
+			clusterKind:        models.ClusterKindCluster,
+			errorExpected:      true,
+			userManagedNetwork: false,
+			apiVip:             common.TestIPv4Networking.APIVip,
 		},
 		{
-			name:          "fail to transform day1 cluster to a day2 cluster - status cancelled",
-			clusterStatus: models.ClusterStatusCancelled,
-			clusterKind:   models.ClusterKindCluster,
-			errorExpected: true,
+			name:               "fail to transform day1 cluster to a day2 cluster - status finalizing",
+			clusterStatus:      models.ClusterStatusFinalizing,
+			clusterKind:        models.ClusterKindCluster,
+			errorExpected:      true,
+			userManagedNetwork: false,
+			apiVip:             common.TestIPv4Networking.APIVip,
 		},
 		{
-			name:          "fail to transform day1 cluster to a day2 cluster - status installing-pending-user-action",
-			clusterStatus: models.ClusterStatusInstallingPendingUserAction,
-			clusterKind:   models.ClusterKindCluster,
-			errorExpected: true,
+			name:               "fail to transform day1 cluster to a day2 cluster - status adding-hosts",
+			clusterStatus:      models.ClusterStatusAddingHosts,
+			clusterKind:        models.ClusterKindAddHostsCluster,
+			errorExpected:      true,
+			userManagedNetwork: false,
+			apiVip:             common.TestIPv4Networking.APIVip,
+		},
+		{
+			name:               "fail to transform day1 cluster to a day2 cluster - status cancelled",
+			clusterStatus:      models.ClusterStatusCancelled,
+			clusterKind:        models.ClusterKindCluster,
+			errorExpected:      true,
+			userManagedNetwork: false,
+			apiVip:             common.TestIPv4Networking.APIVip,
+		},
+		{
+			name:               "fail to transform day1 cluster to a day2 cluster - status installing-pending-user-action",
+			clusterStatus:      models.ClusterStatusInstallingPendingUserAction,
+			clusterKind:        models.ClusterKindCluster,
+			errorExpected:      true,
+			userManagedNetwork: false,
+			apiVip:             common.TestIPv4Networking.APIVip,
 		},
 	}
 
@@ -2989,15 +3031,16 @@ var _ = Describe("Transform day1 cluster to a day2 cluster", func() {
 		It(t.name, func() {
 			id := strfmt.UUID(uuid.New().String())
 			cluster := &common.Cluster{Cluster: models.Cluster{
-				ID:               &id,
-				Kind:             swag.String(t.clusterKind),
-				OpenshiftVersion: common.TestDefaultConfig.OpenShiftVersion,
-				Status:           swag.String(t.clusterStatus),
-				MachineNetworks:  common.TestIPv4Networking.MachineNetworks,
-				APIVip:           common.TestIPv4Networking.APIVip,
-				IngressVip:       common.TestIPv4Networking.IngressVip,
-				BaseDNSDomain:    "test.com",
-				PullSecretSet:    true,
+				ID:                    &id,
+				Kind:                  swag.String(t.clusterKind),
+				OpenshiftVersion:      common.TestDefaultConfig.OpenShiftVersion,
+				Status:                swag.String(t.clusterStatus),
+				MachineNetworks:       common.TestIPv4Networking.MachineNetworks,
+				APIVip:                t.apiVip,
+				IngressVip:            common.TestIPv4Networking.IngressVip,
+				BaseDNSDomain:         "test.com",
+				PullSecretSet:         true,
+				UserManagedNetworking: swag.Bool(t.userManagedNetwork),
 			}}
 			Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
 			err1 := clusterApi.TransformClusterToDay2(ctx, cluster, db)
@@ -3007,8 +3050,13 @@ var _ = Describe("Transform day1 cluster to a day2 cluster", func() {
 				Expect(db.Take(&c, "id = ?", cluster.ID.String()).Error).ToNot(HaveOccurred())
 				Expect(c.Kind).To(Equal(swag.String(models.ClusterKindAddHostsCluster)))
 				Expect(c.Status).To(Equal(swag.String(models.ClusterStatusAddingHosts)))
-				apiVipDnsname := fmt.Sprintf("api.%s.%s", c.Name, c.BaseDNSDomain)
-				Expect(c.APIVipDNSName).To(Equal(swag.String(apiVipDnsname)))
+				if t.apiVip == "" || t.userManagedNetwork {
+					apiVipDnsname := fmt.Sprintf("api.%s.%s", c.Name, c.BaseDNSDomain)
+					Expect(c.APIVipDNSName).To(Equal(swag.String(apiVipDnsname)))
+				} else {
+					Expect(c.APIVipDNSName).To(Equal(swag.String(cluster.APIVip)))
+				}
+
 			}
 
 		})
