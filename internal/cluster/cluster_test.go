@@ -3188,10 +3188,14 @@ var _ = Describe("Validation metrics and events", func() {
 	})
 
 	It("Test reportValidationStatusChanged", func() {
+		mockEvents.EXPECT().NotifyInternalEvent(ctx, c.ID, nil, nil, gomock.Any())
+		currentValidationRes := generateTestValidationResult(ValidationPending)
+		newValidationRes := generateTestValidationResult(ValidationSuccess)
+		m.reportValidationStatusChanged(ctx, c, newValidationRes, currentValidationRes)
+
 		mockEvents.EXPECT().SendClusterEvent(ctx, eventstest.NewEventMatcher(
 			eventstest.WithClusterIdMatcher(c.ID.String())))
-		newValidationRes := generateTestValidationResult(ValidationSuccess)
-		var currentValidationRes ValidationsStatus
+		newValidationRes = generateTestValidationResult(ValidationSuccess)
 		err := json.Unmarshal([]byte(c.ValidationsInfo), &currentValidationRes)
 		Expect(err).ToNot(HaveOccurred())
 		m.reportValidationStatusChanged(ctx, c, newValidationRes, currentValidationRes)

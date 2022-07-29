@@ -17,6 +17,12 @@ type Sender interface {
 	// Use the prop field to add list of arbitrary key value pairs when additional information is needed (for example: "vendor": "RedHat")
 	AddEvent(ctx context.Context, clusterID strfmt.UUID, hostID *strfmt.UUID, severity string, msg string, eventTime time.Time, props ...interface{})
 	V2AddEvent(ctx context.Context, clusterID *strfmt.UUID, hostID *strfmt.UUID, infraEnvID *strfmt.UUID, name string, severity string, msg string, eventTime time.Time, props ...interface{})
+	// Used for events that are not interesting for metrics or for users, but we still
+	// want to raise them for internal notification between systems. e.g. notify kube-api
+	// that a cluster / host validation status changed so the CR conditions messages could
+	// be updated, but the status that changed is trivial (e.g. from pending to success) so it's
+	// not interesting to display to user or to be included in metrics
+	NotifyInternalEvent(ctx context.Context, clusterID *strfmt.UUID, hostID *strfmt.UUID, infraEnvID *strfmt.UUID, msg string)
 
 	//Add metric-related event. These events are hidden from the user and has 'metrics' Category field
 	AddMetricsEvent(ctx context.Context, clusterID strfmt.UUID, hostID *strfmt.UUID, severity string, msg string, eventTime time.Time, props ...interface{})

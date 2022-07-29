@@ -171,6 +171,11 @@ func (e *Events) V2AddEvent(ctx context.Context, clusterID *strfmt.UUID, hostID 
 	e.v2SaveEvent(ctx, clusterID, hostID, infraEnvID, name, models.EventCategoryUser, severity, msg, eventTime, requestID, props...)
 }
 
+func (e *Events) NotifyInternalEvent(ctx context.Context, clusterID *strfmt.UUID, hostID *strfmt.UUID, infraEnvID *strfmt.UUID, msg string) {
+	log := logutil.FromContext(ctx, e.log)
+	log.Debugf("Notifying internal event %s, nothing to do", msg)
+}
+
 func (e *Events) V2AddMetricsEvent(ctx context.Context, clusterID *strfmt.UUID, hostID *strfmt.UUID, infraEnvID *strfmt.UUID, name string, severity string, msg string, eventTime time.Time, props ...interface{}) {
 	requestID := requestid.FromContext(ctx)
 	e.v2SaveEvent(ctx, clusterID, hostID, infraEnvID, name, models.EventCategoryMetrics, severity, msg, eventTime, requestID, props...)

@@ -266,9 +266,12 @@ func (m *Manager) reportValidationStatusChanged(ctx context.Context, c *common.C
 				if v.Status == ValidationFailure && currentStatus == ValidationSuccess {
 					m.metricAPI.ClusterValidationChanged(models.ClusterValidationID(v.ID))
 					eventgen.SendClusterValidationFailedEvent(ctx, m.eventsHandler, *c.ID, v.ID.String(), v.Message)
-				}
-				if v.Status == ValidationSuccess && currentStatus == ValidationFailure {
+				} else if v.Status == ValidationSuccess && currentStatus == ValidationFailure {
 					eventgen.SendClusterValidationFixedEvent(ctx, m.eventsHandler, *c.ID, v.ID.String(), v.Message)
+				} else if v.Status != currentStatus {
+					msg := fmt.Sprintf("Cluster %s: validation '%s' status changed from %s to %s",
+						*c.ID, v.ID.String(), currentStatus, v.Status)
+					m.eventsHandler.NotifyInternalEvent(ctx, c.ID, nil, nil, msg)
 				}
 			}
 		}

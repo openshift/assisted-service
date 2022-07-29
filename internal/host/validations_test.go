@@ -751,6 +751,7 @@ var _ = Describe("Validations test", func() {
 			h := hostutil.GenerateTestHostByKind(hostID, infraEnvID, &clusterID, models.HostStatusDiscovering, models.HostKindHost, models.HostRoleAutoAssign)
 			h.Inventory = common.GenerateTestInventoryWithTpmVersion(models.InventoryTpmVersionNr20)
 			Expect(db.Create(&h).Error).ShouldNot(HaveOccurred())
+			mockEvents.EXPECT().NotifyInternalEvent(ctx, h.ClusterID, h.ID, &h.InfraEnvID, gomock.Any())
 
 			checkValidation := func(expectedStatus ValidationStatus, expectedMsg string) {
 				h = hostutil.GetHostFromDB(*h.ID, h.InfraEnvID, db).Host
