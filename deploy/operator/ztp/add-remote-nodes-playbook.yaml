@@ -11,9 +11,10 @@
     - pull_secret_name: "{{ lookup('env', 'ASSISTED_PULLSECRET_NAME') }}"
     - ssh_public_key: "{{ lookup('file', '/root/.ssh/id_rsa.pub') }}"
     - day2: "true"
-  
+    - baremetalhosts_ignition_override: "{{ lookup('env', 'BAREMETALHOSTS_IGNITION_OVERRIDE', default='') }}"
+
   tasks:
-  - name: optional-latebinding 
+  - name: optional-latebinding
     block:
     - name: write the infraEnv crd
       template:
@@ -22,7 +23,7 @@
     - name: apply infraenvs with oc
       ansible.builtin.command: "oc apply -f generated/day2-latebinding-infraenv.yaml"
     when: cluster_deployment_name == ""
-  - name: generate-crds-and-apply 
+  - name: generate-crds-and-apply
     block:
     - name: create directory for generated CRDs
       file:

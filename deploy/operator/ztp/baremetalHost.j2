@@ -37,6 +37,9 @@ metadata:
     infraenvs.agent-install.openshift.io: '{{ infraenv_name }}'
   annotations:
     bmac.agent-install.openshift.io/hostname: '{{ host["name"] }}'
+{% if baremetalhosts_ignition_override|string | length > 0 %}
+    bmac.agent-install.openshift.io/ignition-config-overrides: '{{ baremetalhosts_ignition_override | tojson }}'
+{% endif %}
 spec:
   online: true
   bootMACAddress: '{{ host["ports"][0]["address"] }}'
