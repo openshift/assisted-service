@@ -999,7 +999,8 @@ func (b *bareMetalInventory) createAndUploadNewImage(ctx context.Context, log lo
 
 func (b *bareMetalInventory) getIgnitionConfigForLogging(ctx context.Context, infraEnv *common.InfraEnv, log logrus.FieldLogger, imageType models.ImageType) string {
 	ignitionConfigForLogging, _ := b.IgnitionBuilder.FormatDiscoveryIgnitionFile(ctx, infraEnv, b.IgnitionConfig, true, b.authHandler.AuthType())
-	log.Infof("Generated infra env <%s> image with ignition config %s", infraEnv.ID, ignitionConfigForLogging)
+	log.Infof("Generated infra env <%s> image with ignition config", infraEnv.ID)
+	log.Debugf("Ignition for infra env <%s>: %s", infraEnv.ID, ignitionConfigForLogging)
 	var msgDetails []string
 
 	httpProxy, _, _ := common.GetProxyConfigs(infraEnv.Proxy)
