@@ -897,12 +897,14 @@ var _ = Describe("bmac reconcile", func() {
 
 		Context("when agent role worker and cluster deployment is set", func() {
 			It("should set spoke BMH", func() {
-				result, err := bmhr.Reconcile(ctx, newBMHRequest(host))
-				Expect(err).To(BeNil())
-				Expect(result).To(Equal(ctrl.Result{}))
+				for range [3]int{} {
+					result, err := bmhr.Reconcile(ctx, newBMHRequest(host))
+					Expect(err).To(BeNil())
+					Expect(result).To(Equal(ctrl.Result{}))
+				}
 
 				updatedHost := &bmh_v1alpha1.BareMetalHost{}
-				err = c.Get(ctx, types.NamespacedName{Name: host.Name, Namespace: testNamespace}, updatedHost)
+				err := c.Get(ctx, types.NamespacedName{Name: host.Name, Namespace: testNamespace}, updatedHost)
 				Expect(err).To(BeNil())
 				Expect(updatedHost.ObjectMeta.Annotations).To(HaveKey(BMH_HARDWARE_DETAILS_ANNOTATION))
 				Expect(updatedHost.ObjectMeta.Annotations).To(HaveKey(BMH_DETACHED_ANNOTATION))
@@ -965,9 +967,11 @@ var _ = Describe("bmac reconcile", func() {
 			})
 
 			It("validate label on Secrets", func() {
-				result, err := bmhr.Reconcile(ctx, newBMHRequest(host))
-				Expect(err).To(BeNil())
-				Expect(result).To(Equal(ctrl.Result{}))
+				for range [3]int{} {
+					result, err := bmhr.Reconcile(ctx, newBMHRequest(host))
+					Expect(err).To(BeNil())
+					Expect(result).To(Equal(ctrl.Result{}))
+				}
 
 				secret := &corev1.Secret{}
 				By("Checking if the secret has the custom label")
@@ -1057,12 +1061,14 @@ var _ = Describe("bmac reconcile", func() {
 				}
 				Expect(c.Update(ctx, agent)).To(BeNil())
 
-				result, err := bmhr.Reconcile(ctx, newBMHRequest(host))
-				Expect(err).To(BeNil())
-				Expect(result).To(Equal(ctrl.Result{}))
+				for range [3]int{} {
+					result, err := bmhr.Reconcile(ctx, newBMHRequest(host))
+					Expect(err).To(BeNil())
+					Expect(result).To(Equal(ctrl.Result{}))
+				}
 
 				updatedHost := &bmh_v1alpha1.BareMetalHost{}
-				err = c.Get(ctx, types.NamespacedName{Name: host.Name, Namespace: testNamespace}, updatedHost)
+				err := c.Get(ctx, types.NamespacedName{Name: host.Name, Namespace: testNamespace}, updatedHost)
 				Expect(err).To(BeNil())
 				Expect(updatedHost.ObjectMeta.Annotations).To(HaveKey(BMH_DETACHED_ANNOTATION))
 				Expect(updatedHost.ObjectMeta.Annotations[BMH_DETACHED_ANNOTATION]).To(Equal("assisted-service-controller"))
@@ -1078,12 +1084,14 @@ var _ = Describe("bmac reconcile", func() {
 				}
 				Expect(c.Update(ctx, agent)).To(BeNil())
 
-				result, err := bmhr.Reconcile(ctx, newBMHRequest(host))
-				Expect(err).To(BeNil())
-				Expect(result).To(Equal(ctrl.Result{}))
+				for range [3]int{} {
+					result, err := bmhr.Reconcile(ctx, newBMHRequest(host))
+					Expect(err).To(BeNil())
+					Expect(result).To(Equal(ctrl.Result{}))
+				}
 
 				updatedHost := &bmh_v1alpha1.BareMetalHost{}
-				err = c.Get(ctx, types.NamespacedName{Name: host.Name, Namespace: testNamespace}, updatedHost)
+				err := c.Get(ctx, types.NamespacedName{Name: host.Name, Namespace: testNamespace}, updatedHost)
 				Expect(err).To(BeNil())
 				Expect(updatedHost.ObjectMeta.Annotations).To(HaveKey(BMH_DETACHED_ANNOTATION))
 				Expect(updatedHost.ObjectMeta.Annotations[BMH_DETACHED_ANNOTATION]).To(Equal("assisted-service-controller"))
@@ -1099,12 +1107,14 @@ var _ = Describe("bmac reconcile", func() {
 				}
 				Expect(c.Update(ctx, agent)).To(BeNil())
 
-				result, err := bmhr.Reconcile(ctx, newBMHRequest(host))
-				Expect(err).To(BeNil())
-				Expect(result).To(Equal(ctrl.Result{}))
+				for range [3]int{} {
+					result, err := bmhr.Reconcile(ctx, newBMHRequest(host))
+					Expect(err).To(BeNil())
+					Expect(result).To(Equal(ctrl.Result{}))
+				}
 
 				updatedHost := &bmh_v1alpha1.BareMetalHost{}
-				err = c.Get(ctx, types.NamespacedName{Name: host.Name, Namespace: testNamespace}, updatedHost)
+				err := c.Get(ctx, types.NamespacedName{Name: host.Name, Namespace: testNamespace}, updatedHost)
 				Expect(err).To(BeNil())
 				Expect(updatedHost.ObjectMeta.Annotations).To(HaveKey(BMH_DETACHED_ANNOTATION))
 				Expect(updatedHost.ObjectMeta.Annotations[BMH_DETACHED_ANNOTATION]).To(Equal("assisted-service-controller"))
@@ -1155,12 +1165,14 @@ var _ = Describe("bmac reconcile", func() {
 				}
 				Expect(c.Update(ctx, agent)).To(BeNil())
 
-				result, err := bmhr.Reconcile(ctx, newBMHRequest(host))
-				Expect(err).To(BeNil())
-				Expect(result).To(Equal(ctrl.Result{}))
+				for range [3]int{} {
+					result, err := bmhr.Reconcile(ctx, newBMHRequest(host))
+					Expect(err).To(BeNil())
+					Expect(result).To(Equal(ctrl.Result{}))
+				}
 
 				updatedHost := &bmh_v1alpha1.BareMetalHost{}
-				err = c.Get(ctx, types.NamespacedName{Name: host.Name, Namespace: testNamespace}, updatedHost)
+				err := c.Get(ctx, types.NamespacedName{Name: host.Name, Namespace: testNamespace}, updatedHost)
 				Expect(err).To(BeNil())
 				Expect(updatedHost.ObjectMeta.Annotations).To(HaveKey(BMH_DETACHED_ANNOTATION))
 				Expect(updatedHost.ObjectMeta.Annotations[BMH_DETACHED_ANNOTATION]).To(Equal("assisted-service-controller"))
@@ -1168,7 +1180,7 @@ var _ = Describe("bmac reconcile", func() {
 				infraEnv.Status = v1beta1.InfraEnvStatus{ISODownloadURL: "http://go.find.it"}
 				Expect(c.Update(ctx, infraEnv)).To(BeNil())
 
-				result, err = bmhr.Reconcile(ctx, newBMHRequest(host))
+				result, err := bmhr.Reconcile(ctx, newBMHRequest(host))
 				Expect(err).To(BeNil())
 				Expect(result).To(Equal(ctrl.Result{}))
 

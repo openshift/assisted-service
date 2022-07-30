@@ -437,7 +437,7 @@ func detachBMH(log logrus.FieldLogger, bmh *bmh_v1alpha1.BareMetalHost, agent *a
 	bmh.ObjectMeta.Annotations[BMH_DETACHED_ANNOTATION] = "assisted-service-controller"
 	log.Infof("Added detached annotation to agent \n %v", agent)
 
-	return reconcileComplete{dirty: true}
+	return reconcileComplete{dirty: true, stop: true}
 }
 
 func shouldSkipDetach(log logrus.FieldLogger, bmh *bmh_v1alpha1.BareMetalHost, agent *aiv1beta1.Agent) bool {
@@ -595,7 +595,7 @@ func (r *BMACReconciler) reconcileAgentInventory(log logrus.FieldLogger, bmh *bm
 
 	bmh.ObjectMeta.Annotations[BMH_HARDWARE_DETAILS_ANNOTATION] = string(bytes)
 	log.Debugf("Agent Inventory reconciled to BMH \n %v \n %v", agent, bmh)
-	return reconcileComplete{dirty: true}
+	return reconcileComplete{dirty: true, stop: true}
 
 }
 
@@ -909,7 +909,7 @@ func (r *BMACReconciler) reconcileSpokeBMH(ctx context.Context, log logrus.Field
 	bmhAnnotations := bmh.ObjectMeta.GetAnnotations()
 	if _, ok := bmhAnnotations[BMH_DETACHED_ANNOTATION]; !ok {
 		detachBMH(log, bmh, agent)
-		return reconcileComplete{dirty: true}
+		return reconcileComplete{dirty: true, stop: true}
 	}
 	return reconcileComplete{}
 }
@@ -1203,7 +1203,7 @@ func (r *BMACReconciler) ensureMCSCert(ctx context.Context, log logrus.FieldLogg
 		bmh.ObjectMeta.Annotations[BMH_AGENT_IGNITION_CONFIG_OVERRIDES] = ignitionWithMCSCert
 	}
 	log.Info("MCS certificate injected")
-	return reconcileComplete{dirty: true}
+	return reconcileComplete{dirty: true, stop: true}
 }
 
 func (r *BMACReconciler) createIgnitionWithMCSCert(ctx context.Context, log logrus.FieldLogger, spokeClient client.Client) (string, string, error) {
