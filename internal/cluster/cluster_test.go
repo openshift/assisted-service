@@ -315,9 +315,9 @@ var _ = Describe("TestClusterMonitoring", func() {
 		Context("from finalizing state", func() {
 			BeforeEach(func() {
 				c = createCluster(&id, models.ClusterStatusFinalizing, statusInfoFinalizing)
-				createHost(id, models.ClusterStatusInstalled, db)
-				createHost(id, models.ClusterStatusInstalled, db)
-				createHost(id, models.ClusterStatusInstalled, db)
+				createHost(id, models.HostStatusInstalled, db)
+				createHost(id, models.HostStatusInstalled, db)
+				createHost(id, models.HostStatusInstalled, db)
 			})
 
 			It("finalizing -> finalizing (kubeconfig not exist)", func() {
@@ -363,6 +363,28 @@ var _ = Describe("TestClusterMonitoring", func() {
 				mockMetric.EXPECT().ClusterInstallationFinished(gomock.Any(), expectedState, models.ClusterStatusFinalizing, gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
 				Expect(db.Model(c.MonitoredOperators[0]).Updates(map[string]interface{}{"status": models.OperatorStatusAvailable}).Error).To(Not(HaveOccurred()))
 			})
+			It("finalizing -> finalizing, installing hosts exist", func() {
+				createWorkerHost(id, models.HostStatusInstalled, db)
+				createWorkerHost(id, models.HostStatusInstalled, db)
+				createWorkerHost(id, models.HostStatusInstallingInProgress, db)
+				shouldHaveUpdated = false
+				expectedState = models.ClusterStatusFinalizing
+				mockMetric.EXPECT().MonitoredClusterCount(int64(0)).AnyTimes()
+				mockS3Client.EXPECT().DoesObjectExist(gomock.Any(), gomock.Any()).Return(true, nil).AnyTimes()
+				mockMetric.EXPECT().ClusterInstallationFinished(gomock.Any(), expectedState, models.ClusterStatusFinalizing, gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+				Expect(db.Model(c.MonitoredOperators[0]).Updates(map[string]interface{}{"status": models.OperatorStatusAvailable}).Error).To(Not(HaveOccurred()))
+			})
+			It("finalizing -> installed, errored hosts exist", func() {
+				createWorkerHost(id, models.HostStatusInstalled, db)
+				createWorkerHost(id, models.HostStatusInstalled, db)
+				createWorkerHost(id, models.HostStatusError, db)
+				shouldHaveUpdated = true
+				expectedState = models.ClusterStatusInstalled
+				mockMetric.EXPECT().MonitoredClusterCount(int64(0)).AnyTimes()
+				mockS3Client.EXPECT().DoesObjectExist(gomock.Any(), gomock.Any()).Return(true, nil).AnyTimes()
+				mockMetric.EXPECT().ClusterInstallationFinished(gomock.Any(), expectedState, models.ClusterStatusFinalizing, gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+				Expect(db.Model(c.MonitoredOperators[0]).Updates(map[string]interface{}{"status": models.OperatorStatusAvailable}).Error).To(Not(HaveOccurred()))
+			})
 		})
 
 		Context("from installed state", func() {
@@ -373,9 +395,9 @@ var _ = Describe("TestClusterMonitoring", func() {
 			})
 
 			It("installed -> installed", func() {
-				createHost(id, models.ClusterStatusInstalled, db)
-				createHost(id, models.ClusterStatusInstalled, db)
-				createHost(id, models.ClusterStatusInstalled, db)
+				createHost(id, models.HostStatusInstalled, db)
+				createHost(id, models.HostStatusInstalled, db)
+				createHost(id, models.HostStatusInstalled, db)
 				shouldHaveUpdated = false
 				expectedState = models.ClusterStatusInstalled
 			})

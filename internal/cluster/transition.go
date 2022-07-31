@@ -345,6 +345,18 @@ func (th *transitionHandler) IsInstalling(sw stateswitch.StateSwitch, args state
 	return th.enoughMastersAndWorkers(sCluster, installingStatuses), nil
 }
 
+//check if we should stay in installing state
+func (th *transitionHandler) areAllHostsDone(sw stateswitch.StateSwitch, _ stateswitch.TransitionArgs) (bool, error) {
+	sCluster, _ := sw.(*stateCluster)
+	doneStatuses := []string{models.HostStatusInstalled, models.HostStatusError}
+	for _, h := range sCluster.cluster.Hosts {
+		if !funk.ContainsString(doneStatuses, swag.StringValue(h.Status)) {
+			return false, nil
+		}
+	}
+	return true, nil
+}
+
 //check if we should move to installing-pending-user-action state
 func (th *transitionHandler) IsInstallingPendingUserAction(
 	sw stateswitch.StateSwitch,

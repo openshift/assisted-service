@@ -1519,6 +1519,73 @@ var _ = Describe("cluster install", func() {
 		})
 	})
 
+	Context("wait until all hosts are done", func() {
+		var (
+			clusterID         strfmt.UUID
+			misbehavingHostID strfmt.UUID
+		)
+		BeforeEach(func() {
+			clusterID = *cluster.ID
+			registerHostsAndSetRoles(clusterID, *infraEnvID, 6, cluster.Name, cluster.BaseDNSDomain)
+			cluster = getCluster(clusterID)
+			for _, h := range cluster.Hosts {
+				if h.Role == models.HostRoleWorker {
+					misbehavingHostID = *h.ID
+					break
+				}
+			}
+		})
+		stages := []models.HostStage{models.HostStageFailed, models.HostStageDone}
+		for i := range stages {
+			stage := stages[i]
+			It(fmt.Sprintf("full flow with single host in stage %s", string(stage)), func() {
+				By("installing cluster", func() {
+					installCluster(clusterID)
+					cluster = getCluster(clusterID)
+				})
+
+				By("move cluster to finalizing", func() {
+					for _, h := range cluster.Hosts {
+						if *h.ID != misbehavingHostID {
+							updateProgress(*h.ID, h.InfraEnvID, models.HostStageDone)
+						} else {
+							updateProgress(*h.ID, h.InfraEnvID, models.HostStageRebooting)
+						}
+					}
+					waitForClusterState(ctx, clusterID, models.ClusterStatusFinalizing, defaultWaitForClusterStateTimeout,
+						IgnoreStateInfo)
+				})
+
+				By("complete installation. state should be still finalizing", func() {
+					completeInstallation(agentBMClient, clusterID)
+					waitForClusterState(ctx, clusterID, models.ClusterStatusFinalizing, defaultWaitForClusterStateTimeout,
+						IgnoreStateInfo)
+				})
+
+				By("register host. move to pending-user-action", func() {
+					c1 := getCluster(clusterID)
+					_ = registerHostByUUID(*infraEnvID, misbehavingHostID)
+					waitForClusterState(ctx, clusterID, models.ClusterStatusInstallingPendingUserAction, defaultWaitForClusterStateTimeout,
+						IgnoreStateInfo)
+					host := getHostV2(*infraEnvID, misbehavingHostID)
+					Expect(swag.StringValue(host.Status)).To(Equal(models.HostStatusInstallingPendingUserAction))
+					c2 := getCluster(clusterID)
+					Expect(c1.Progress.TotalPercentage).To(BeNumerically("<=", c2.Progress.TotalPercentage))
+				})
+				By("move to configuring. cluster should be back in finalizing", func() {
+					updateProgress(misbehavingHostID, *infraEnvID, models.HostStageConfiguring)
+					waitForClusterState(ctx, clusterID, models.ClusterStatusFinalizing, defaultWaitForClusterStateTimeout,
+						IgnoreStateInfo)
+				})
+				By(fmt.Sprintf("update host to to stage %s.  Cluster should be installed", string(stage)), func() {
+					updateProgress(misbehavingHostID, *infraEnvID, stage)
+					waitForClusterState(ctx, clusterID, models.ClusterStatusInstalled, defaultWaitForClusterStateTimeout,
+						IgnoreStateInfo)
+				})
+			})
+		}
+	})
+
 	Context("install cluster cases", func() {
 		var clusterID strfmt.UUID
 		BeforeEach(func() {
