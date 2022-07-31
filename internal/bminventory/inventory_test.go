@@ -230,10 +230,10 @@ func addVMToCluster(cluster *common.Cluster, db *gorm.DB) {
 			Virtual: true,
 		},
 	}
-	inventoryByte, err := json.Marshal(inventory)
+	inventoryBytes, err := json.Marshal(inventory)
 	Expect(err).ToNot(HaveOccurred())
 	host := addHost(hostID, models.HostRoleAutoAssign, models.HostStatusKnown, models.HostKindHost,
-		*infraEnv.ID, *cluster.ID, string(inventoryByte), db)
+		*infraEnv.ID, *cluster.ID, string(inventoryBytes), db)
 	cluster.Hosts = append(cluster.Hosts, &host)
 }
 
