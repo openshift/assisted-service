@@ -4,10 +4,17 @@ NAMESPACE := $(or ${NAMESPACE},assisted-installer)
 PWD = $(shell pwd)
 BUILD_FOLDER = $(PWD)/build/$(NAMESPACE)
 ROOT_DIR := $(or ${ROOT_DIR},$(shell dirname $(realpath $(firstword $(MAKEFILE_LIST)))))
-CONTAINER_COMMAND := $(or ${CONTAINER_COMMAND},docker)
+CONTAINER_COMMAND := $(shell hack/utils.sh get_container_runtime_command)
+
+# Selecting the right podman-remote version since podman-remote4 cannot work against podman-server3 and vice versa.
+# It must be occurred before any other container related task.
+# Makefile syntax force us to assign the shell result to a variable - please ignore it.
+PODMAN_CLIENT_SELECTION_IGNORE_ME := $(shell hack/utils.sh select_podman_client)
+
 ifeq ($(CONTAINER_COMMAND), docker)
 	CONTAINER_COMMAND = $(shell docker -v 2>/dev/null | cut -f1 -d' ' | tr '[:upper:]' '[:lower:]')
 endif
+
 TARGET := $(or ${TARGET},local)
 KUBECTL=kubectl -n $(NAMESPACE)
 
@@ -19,7 +26,7 @@ ifdef E2E_TESTS_MODE
 E2E_TESTS_CONFIG = --img-expr-time=5m --img-expr-interval=5m
 endif
 
-ifeq ($(CONTAINER_COMMAND), podman)
+ifneq (,$(findstring podman,$(CONTAINER_COMMAND)))
 	PUSH_FLAGS = --tls-verify=false
 endif
 
@@ -163,13 +170,13 @@ init:
 	./hack/setup_env.sh assisted_service
 
 ci-lint:
-ifdef SKIPPER_USERNAME
+ifeq ($(shell hack/utils.sh running_from_skipper && echo 1 || echo 0),1)
 	$(error Running this target using skipper is not supported, try `make ci-lint` instead)
 endif
 
 	${ROOT_DIR}/hack/check-commits.sh
 	${ROOT_DIR}/tools/handle_ocp_versions.py
-	skipper $(MAKE) generate
+	skipper -v $(MAKE) generate
 	git diff --exit-code  # this will fail if code generation caused any diff
 
 lint:
@@ -234,10 +241,10 @@ update-local-image: $(UPDATE_LOCAL_SERVICE)
 build-image: update-minimal
 
 update-service: build-in-docker
-	docker push $(SERVICE)
+	$(CONTAINER_COMMAND) push $(SERVICE)
 
 update: build-all
-	docker push $(SERVICE)
+	$(CONTAINER_COMMAND) push $(SERVICE)
 
 publish-client: generate-python-client
 	python3 -m twine upload --skip-existing "$(BUILD_FOLDER)/assisted-service-client/dist/*.whl"
@@ -390,7 +397,6 @@ deploy-onprem:
 	./hack/retry.sh 60 10 "curl -f http://127.0.0.1:8888/health"
 
 deploy-on-openshift-ci:
-	ln -s $(shell which oc) $(shell dirname $(shell which oc))/kubectl
 	export PERSISTENT_STORAGE="False" && export TARGET='oc' && export GENERATE_CRD='false' && unset GOFLAGS && \
 	$(MAKE) ci-deploy-for-subsystem
 	oc get pods
@@ -479,8 +485,8 @@ ifeq ($(CI), true)
 endif
 
 run-db-container:
-	docker ps -q --filter "name=postgres" | xargs -r docker kill && sleep 3
-	docker run -d  --rm --tmpfs /var/lib/pgsql/data --name postgres -e POSTGRESQL_ADMIN_PASSWORD=admin -e POSTGRESQL_MAX_CONNECTIONS=10000 -p 127.0.0.1:5432:5432 \
+	$(CONTAINER_COMMAND) ps -q --filter "name=postgres" | xargs -r $(CONTAINER_COMMAND) kill && sleep 3
+	$(CONTAINER_COMMAND) run -d  --rm --tmpfs /var/lib/pgsql/data --name postgres -e POSTGRESQL_ADMIN_PASSWORD=admin -e POSTGRESQL_MAX_CONNECTIONS=10000 -p 127.0.0.1:5432:5432 \
 		$(PSQL_IMAGE)
 	timeout 5m ./hack/wait_for_postgres.sh
 
@@ -492,7 +498,7 @@ ci-unit-test:
 	$(MAKE) run-unit-test
 
 kill-db-container:
-	docker kill postgres
+	$(CONTAINER_COMMAND) kill postgres
 
 unit-test: run-db-container run-unit-test kill-db-container
 
@@ -520,8 +526,8 @@ clear-deployment:
 	-python3 ./tools/clear_deployment.py --delete-namespace $(APPLY_NAMESPACE) --delete-pvc $(DELETE_PVC) --namespace "$(NAMESPACE)" --target "$(TARGET)" || true
 
 clear-images:
-	-docker rmi -f $(SERVICE)
-	-docker rmi -f $(ISO_CREATION)
+	-$(CONTAINER_COMMAND) rmi -f $(SERVICE)
+	-$(CONTAINER_COMMAND) rmi -f $(ISO_CREATION)
 
 clean-onprem:
 	podman pod rm --force --ignore assisted-installer
@@ -532,7 +538,7 @@ clean-onprem:
 
 .PHONY: operator-bundle-build operator-index-build
 operator-bundle-build: generate-bundle
-	docker build $(CONTAINER_BUILD_PARAMS) -f deploy/olm-catalog/bundle.Dockerfile -t $(BUNDLE_IMAGE) .
+	$(CONTAINER_COMMAND) build $(CONTAINER_BUILD_PARAMS) -f deploy/olm-catalog/bundle.Dockerfile -t $(BUNDLE_IMAGE) .
 
 operator-index-build:
-	opm index add --bundles $(BUNDLE_IMAGE) --tag $(INDEX_IMAGE) --container-tool docker
+	opm index add --bundles $(BUNDLE_IMAGE) --tag $(INDEX_IMAGE) --container-tool $(CONTAINER_COMMAND)

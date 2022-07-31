@@ -32,7 +32,8 @@ By continuing to read this document you will learn how to build and deploy Assis
 
 ## Development Prerequisites
 
-1. Docker or Podman
+1. Docker or Podman. <br>
+For podman make sure to [enable podman socket](docs/dev/podman.md) and update skipper.yaml to map it properly
 1. skipper <https://github.com/stratoscale/skipper>
 1. minikube (for tests)
 1. kubectl
