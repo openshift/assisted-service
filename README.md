@@ -275,4 +275,5 @@ More information is available here: [Set discovery ISO user password example](do
 
 Please, read our [CONTRIBUTING] guidelines for more info about how to create, document, and review PRs.
 
+
 [CONTRIBUTING]: https://github.com/openshift/assisted-service/blob/master/CONTRIBUTING.md
