@@ -159,6 +159,10 @@ func (r *AgentReconciler) Reconcile(origCtx context.Context, req ctrl.Request) (
 		}
 	}
 
+	if err = r.setInfraEnvNameLabel(ctx, log, h, agent); err != nil {
+		log.WithError(err).Warnf("failed to set infraEnv name label on agent %s/%s", agent.Namespace, agent.Name)
+	}
+
 	if agent.Spec.ClusterDeploymentName == nil && h.ClusterID != nil {
 		log.Debugf("ClusterDeploymentName is unset in Agent %s. unbind", agent.Name)
 		return r.unbindHost(ctx, log, agent, origAgent, h)
@@ -1022,23 +1026,29 @@ func (r *AgentReconciler) updateLabels(log logrus.FieldLogger, ctx context.Conte
 	changed = setAgentLabel(log, agent, AgentLabelClusterDeploymentNamespace, namespace) || changed
 
 	if changed {
-		if err := r.Update(ctx, agent); err != nil {
-			log.WithError(err).Errorf("failed to add labels to agent %s/%s", agent.Namespace, agent.Name)
-			return err
-		}
-		agentRef := types.NamespacedName{Namespace: agent.Namespace, Name: agent.Name}
-		err := r.Get(ctx, agentRef, agent)
-		if err != nil {
-			log.WithError(err).Errorf("Failed to get agent %s", agentRef)
-			return err
-		}
+		return r.updateAndReplaceAgent(ctx, agent)
 	}
 
 	return nil
 }
 
+func (r *AgentReconciler) updateAndReplaceAgent(ctx context.Context, agent *aiv1beta1.Agent) error {
+	if err := r.Update(ctx, agent); err != nil {
+		return errors.Wrapf(err, "failed to update agent %s/%s", agent.Namespace, agent.Name)
+	}
+	agentRef := types.NamespacedName{Namespace: agent.Namespace, Name: agent.Name}
+	err := r.Get(ctx, agentRef, agent)
+	if err != nil {
+		return errors.Wrapf(err, "failed to get agent %s", agentRef)
+	}
+	return nil
+}
+
 func setAgentAnnotation(log logrus.FieldLogger, agent *aiv1beta1.Agent, key string, value string) bool {
 	annotations := agent.GetAnnotations()
+	if annotations == nil {
+		annotations = make(map[string]string)
+	}
 
 	// If we already have an annotation with the same value no change is needed.
 	if val, ok := annotations[key]; ok {
@@ -1224,6 +1234,20 @@ func (r *AgentReconciler) getIgnitionToken(ctx context.Context, ignitionEndpoint
 		return "", errors.Errorf("secret %s did not contain key value", secretRef.Name)
 	}
 	return string(token), nil
+}
+
+func (r *AgentReconciler) setInfraEnvNameLabel(ctx context.Context, log logrus.FieldLogger, h *common.Host, agent *aiv1beta1.Agent) error {
+	infraEnv, err := r.Installer.GetInfraEnvInternal(ctx, installer.GetInfraEnvParams{InfraEnvID: h.InfraEnvID})
+	if err != nil {
+		return err
+	}
+	if infraEnv.Name == nil {
+		return errors.Errorf("infraEnv %s name is nil", h.InfraEnvID)
+	}
+	if setAgentLabel(log, agent, aiv1beta1.InfraEnvNameLabel, *infraEnv.Name) {
+		return r.updateAndReplaceAgent(ctx, agent)
+	}
+	return nil
 }
 
 func (r *AgentReconciler) SetupWithManager(mgr ctrl.Manager) error {
