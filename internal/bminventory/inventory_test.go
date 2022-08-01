@@ -2958,13 +2958,17 @@ var _ = Describe("cluster", func() {
 			Expect(actual.Payload.SchedulableMasters).To(Equal(swag.Bool(true)))
 		})
 
-		Context("Update Proxy", func() {
-			//const emptyProxyHash = "d41d8cd98f00b204e9800998ecf8427e"
+		Context("Set and Update Cluster Proxy", func() {
+
 			BeforeEach(func() {
 				clusterID = strfmt.UUID(uuid.New().String())
 				err := db.Create(&common.Cluster{
 					Cluster: models.Cluster{
-						ID: &clusterID,
+						ID:               &clusterID,
+						OpenshiftVersion: "4.8.0-fc.4",
+						HTTPProxy:        "http://proxy.proxy",
+						HTTPSProxy:       "https://proxy.proxy",
+						NoProxy:          "*",
 					}}).Error
 				Expect(err).ShouldNot(HaveOccurred())
 				mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(1)
@@ -2992,6 +2996,20 @@ var _ = Describe("cluster", func() {
 					eventstest.WithNameMatcher(eventgen.ProxySettingsChangedEventName),
 					eventstest.WithClusterIdMatcher(clusterID.String())))
 				_ = updateCluster("http://proxy.proxy", "", "proxy.proxy")
+			})
+
+			It("set a valid noProxy wildcard", func() {
+				mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
+					eventstest.WithNameMatcher(eventgen.ProxySettingsChangedEventName),
+					eventstest.WithClusterIdMatcher(clusterID.String())))
+				_ = updateCluster("", "", "*")
+			})
+
+			It("set a valid noProxy wildcard comma-delimited", func() {
+				mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
+					eventstest.WithNameMatcher(eventgen.ProxySettingsChangedEventName),
+					eventstest.WithClusterIdMatcher(clusterID.String())))
+				_ = updateCluster("", "", "*,example.com")
 			})
 		})
 
@@ -4111,6 +4129,54 @@ var _ = Describe("cluster", func() {
 					Expect(dbMachineNetworks).To(HaveLen(len(machineNetworks) * 2))
 				})
 			})
+		})
+	})
+
+	Context("OpenshiftVersion does not support wildcard", func() {
+
+		It("Fail to create Cluster with a wildcard noProxy", func() {
+			mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
+				eventstest.WithNameMatcher(eventgen.ClusterRegistrationFailedEventName),
+				eventstest.WithMessageContainsMatcher("Sorry, no-proxy value '*' is not supported in release: 4.8.0-fc.1"),
+				eventstest.WithSeverityMatcher(models.EventSeverityError))).Times(1)
+
+			reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
+				NewClusterParams: &models.ClusterCreateParams{
+					Name:             swag.String("some-cluster-name"),
+					OpenshiftVersion: swag.String("4.8.0-fc.1"),
+					NoProxy:          swag.String("*"),
+					PullSecret:       swag.String(`{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"`),
+				},
+			})
+
+			Expect(reply).To(BeAssignableToTypeOf(&common.ApiErrorResponse{}))
+			Expect(reply.(*common.ApiErrorResponse).StatusCode()).To(Equal(int32(http.StatusBadRequest)))
+			Expect(reply.(*common.ApiErrorResponse).Error()).To(Equal("Sorry, no-proxy value '*' is not supported in release: 4.8.0-fc.1"))
+		})
+
+		It("Fail to update Cluster with a wildcard noProxy", func() {
+			clusterID = strfmt.UUID(uuid.New().String())
+			err := db.Create(&common.Cluster{
+				Cluster: models.Cluster{
+					ID:               &clusterID,
+					OpenshiftVersion: "4.8.0-fc.1",
+					HTTPProxy:        "http://proxy.proxy",
+					HTTPSProxy:       "https://proxy.proxy",
+					NoProxy:          "foo.com",
+				}}).Error
+			Expect(err).ShouldNot(HaveOccurred())
+
+			reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
+				ClusterID: clusterID,
+				ClusterUpdateParams: &models.V2ClusterUpdateParams{
+					HTTPProxy:  swag.String(""),
+					HTTPSProxy: swag.String(""),
+					NoProxy:    swag.String("*"),
+				},
+			})
+			Expect(reply).To(BeAssignableToTypeOf(&common.ApiErrorResponse{}))
+			Expect(reply.(*common.ApiErrorResponse).StatusCode()).To(Equal(int32(http.StatusBadRequest)))
+			Expect(reply.(*common.ApiErrorResponse).Error()).To(Equal("Sorry, no-proxy value '*' is not supported in release: 4.8.0-fc.1"))
 		})
 	})
 
@@ -7338,6 +7404,10 @@ var _ = Describe("infraEnvs", func() {
 
 			It("set a valid proxy", func() {
 				_ = updateInfraEnv("http://proxy.proxy", "", "proxy.proxy")
+			})
+
+			It("set a valid noProxy wildcard", func() {
+				_ = updateInfraEnv("", "", "*")
 			})
 		})
 
