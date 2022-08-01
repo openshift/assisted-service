@@ -310,6 +310,15 @@ spec:
                       true or leave empty.
                     type: boolean
                 type: object
+              platformType:
+                description: PlatformType is the name for the specific platform upon
+                  which to perform the installation.
+                enum:
+                - ""
+                - BareMetal
+                - None
+                - VSphere
+                type: string
               provisionRequirements:
                 description: ProvisionRequirements defines configuration for when
                   the installation is ready to be launched automatically.
@@ -443,6 +452,15 @@ spec:
                   - cidr
                   type: object
                 type: array
+              platformType:
+                description: PlatformType is the name for the specific platform upon
+                  which to perform the installation.
+                enum:
+                - ""
+                - BareMetal
+                - None
+                - VSphere
+                type: string
               progress:
                 description: Progress shows the installation progress of the cluster
                 properties:
@@ -453,6 +471,10 @@ spec:
                 required:
                 - totalPercentage
                 type: object
+              userManagedNetworking:
+                description: UserManagedNetworking indicates if the networking is
+                  managed by the user.
+                type: boolean
               validationsInfo:
                 additionalProperties:
                   items:

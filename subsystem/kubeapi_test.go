@@ -36,6 +36,7 @@ import (
 	conditionsv1 "github.com/openshift/custom-resource-status/conditions/v1"
 	hivev1 "github.com/openshift/hive/apis/hive/v1"
 	agentv1 "github.com/openshift/hive/apis/hive/v1/agent"
+	vspherev1 "github.com/openshift/hive/apis/hive/v1/vsphere"
 	"github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
 	"gorm.io/gorm"
@@ -461,6 +462,13 @@ func registerIPv6MasterNode(ctx context.Context, infraEnvID strfmt.UUID, name, i
 		return kubeClient.Update(ctx, agent)
 	}, "120s", "30s").Should(BeNil())
 	return host
+}
+
+func checkPlatformStatus(ctx context.Context, key types.NamespacedName, specPlatform, platform hiveext.PlatformType, umn *bool) {
+	aci := getAgentClusterInstallCRD(ctx, kubeClient, key)
+	ExpectWithOffset(1, aci.Spec.PlatformType).To(Equal(specPlatform))
+	ExpectWithOffset(1, aci.Status.PlatformType).To(Equal(platform))
+	ExpectWithOffset(1, aci.Status.UserManagedNetworking).To(Equal(umn))
 }
 
 func checkAgentClusterInstallCondition(ctx context.Context, key types.NamespacedName, conditionType string, reason string) {
@@ -994,6 +1002,83 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			Namespace: Options.Namespace,
 			Name:      clusterDeploymentSpec.ClusterInstallRef.Name,
 		}
+		By("verify default platform type status")
+		checkPlatformStatus(ctx, installkey, "", hiveext.BareMetalPlatformType, swag.Bool(false))
+
+		By("Verify ClusterDeployment ReadyForInstallation")
+		checkAgentClusterInstallCondition(ctx, installkey, hiveext.ClusterRequirementsMetCondition, hiveext.ClusterAlreadyInstallingReason)
+		By("Delete ClusterDeployment")
+		err := kubeClient.Delete(ctx, getClusterDeploymentCRD(ctx, kubeClient, clusterKey))
+		Expect(err).To(BeNil())
+		By("Verify AgentClusterInstall was deleted")
+		Eventually(func() bool {
+			aci := &hiveext.AgentClusterInstall{}
+			err := kubeClient.Get(ctx, installkey, aci)
+			return apierrors.IsNotFound(err)
+		}, "30s", "10s").Should(Equal(true))
+		By("Verify ClusterDeployment Agents were deleted")
+		Eventually(func() int {
+			return len(getClusterDeploymentAgents(ctx, kubeClient, clusterKey).Items)
+		}, "2m", "2s").Should(Equal(0))
+	})
+
+	It("deploy vsphere platform", func() {
+		clusterDeploymentSpec.Platform = hivev1.Platform{VSphere: &vspherev1.Platform{}}
+		aciSpec.PlatformType = hiveext.VSpherePlatformType
+		deployClusterDeploymentCRD(ctx, kubeClient, clusterDeploymentSpec)
+		deployInfraEnvCRD(ctx, kubeClient, infraNsName.Name, infraEnvSpec)
+
+		deployAgentClusterInstallCRD(ctx, kubeClient, aciSpec, clusterDeploymentSpec.ClusterInstallRef.Name)
+		clusterKey := types.NamespacedName{
+			Namespace: Options.Namespace,
+			Name:      clusterDeploymentSpec.ClusterName,
+		}
+		infraEnvKey := types.NamespacedName{
+			Namespace: Options.Namespace,
+			Name:      infraNsName.Name,
+		}
+		infraEnv := getInfraEnvFromDBByKubeKey(ctx, db, infraEnvKey, waitForReconcileTimeout)
+		configureLocalAgentClient(infraEnv.ID.String())
+		hosts := make([]*models.Host, 0)
+		ips := hostutil.GenerateIPv4Addresses(3, defaultCIDRv4)
+		for i := 0; i < 3; i++ {
+			hostname := fmt.Sprintf("h%d", i)
+			host := registerNodeWithInventory(ctx, *infraEnv.ID, hostname, ips[i], getDefaultVmwareInventory(ips[i]))
+			hosts = append(hosts, host)
+		}
+		for _, host := range hosts {
+			checkAgentCondition(ctx, host.ID.String(), v1beta1.ValidatedCondition, v1beta1.ValidationsFailingReason)
+			hostkey := types.NamespacedName{
+				Namespace: Options.Namespace,
+				Name:      host.ID.String(),
+			}
+			agent := getAgentCRD(ctx, kubeClient, hostkey)
+			Expect(agent.Status.ValidationsInfo).ToNot(BeNil())
+		}
+		generateFullMeshConnectivity(ctx, ips[0], hosts...)
+		for _, h := range hosts {
+			generateDomainResolution(ctx, h, clusterDeploymentSpec.ClusterName, "hive.example.com")
+		}
+
+		By("Approve Agents")
+		for _, host := range hosts {
+			hostkey := types.NamespacedName{
+				Namespace: Options.Namespace,
+				Name:      host.ID.String(),
+			}
+			Eventually(func() error {
+				agent := getAgentCRD(ctx, kubeClient, hostkey)
+				agent.Spec.Approved = true
+				return kubeClient.Update(ctx, agent)
+			}, "30s", "10s").Should(BeNil())
+		}
+		installkey := types.NamespacedName{
+			Namespace: Options.Namespace,
+			Name:      clusterDeploymentSpec.ClusterInstallRef.Name,
+		}
+		By("verify vsphere platform type status and spec")
+		checkPlatformStatus(ctx, installkey, hiveext.VSpherePlatformType, hiveext.VSpherePlatformType, swag.Bool(false))
+
 		By("Verify ClusterDeployment ReadyForInstallation")
 		checkAgentClusterInstallCondition(ctx, installkey, hiveext.ClusterRequirementsMetCondition, hiveext.ClusterAlreadyInstallingReason)
 		By("Delete ClusterDeployment")
@@ -3021,6 +3106,9 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			aci := getAgentClusterInstallCRD(ctx, kubeClient, installkey)
 			return aci.Status.IngressVIP
 		}, "30s", "1s").Should(Equal(aciSNOSpec.IngressVIP))
+
+		By("verify platform type status")
+		checkPlatformStatus(ctx, installkey, "", hiveext.BareMetalPlatformType, swag.Bool(true))
 
 		By("Verify Agent labels")
 		labels[v1beta1.InfraEnvNameLabel] = infraNsName.Name
