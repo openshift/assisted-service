@@ -450,6 +450,13 @@ func getDefaultInventory(cidr string) *models.Inventory {
 	return hwInfo
 }
 
+func getDefaultVmwareInventory(cidr string) *models.Inventory {
+	vmwareInventory := *getDefaultInventory(cidr)
+	vmwareInventory.SystemVendor = &models.SystemVendor{Manufacturer: "VMware, Inc.", ProductName: "VMware Virtual", Virtual: true, SerialNumber: "3534"}
+	vmwareInventory.Disks = []*models.Disk{&vma, &vmremovable}
+	return &vmwareInventory
+}
+
 func generateEssentialHostSteps(ctx context.Context, h *models.Host, name, cidr string) {
 	generateEssentialHostStepsWithInventory(ctx, h, name, getDefaultInventory(cidr))
 }
@@ -508,6 +515,15 @@ func generateEssentialPrepareForInstallationSteps(ctx context.Context, hosts ...
 func registerNode(ctx context.Context, infraenvID strfmt.UUID, name, ip string) *models.Host {
 	h := &registerHost(infraenvID).Host
 	generateEssentialHostSteps(ctx, h, name, ip)
+	generateEssentialPrepareForInstallationSteps(ctx, h)
+	return h
+}
+
+func registerNodeWithInventory(ctx context.Context, infraEnvID strfmt.UUID, name, ip string, inventory *models.Inventory) *models.Host {
+	h := &registerHost(infraEnvID).Host
+	hwInfo := inventory
+	hwInfo.Interfaces[0].IPV4Addresses = []string{ip}
+	generateEssentialHostStepsWithInventory(ctx, h, name, hwInfo)
 	generateEssentialPrepareForInstallationSteps(ctx, h)
 	return h
 }

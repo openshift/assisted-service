@@ -93,6 +93,25 @@ var (
 		SizeBytes: validDiskSize,
 	}
 
+	vma = models.Disk{
+		ID:        sdbId,
+		ByID:      sdbId,
+		DriveType: "HDD",
+		Name:      "vma",
+		HasUUID:   true,
+		Vendor:    "VMware",
+		SizeBytes: validDiskSize,
+	}
+
+	vmremovable = models.Disk{
+		ID:        loop0Id,
+		ByID:      loop0Id,
+		DriveType: "0DD",
+		Name:      "sr0",
+		Removable: true,
+		SizeBytes: 106516480,
+	}
+
 	validHwInfo = &models.Inventory{
 		CPU:    &models.CPU{Count: 16, Architecture: "x86_64"},
 		Memory: &models.Memory{PhysicalBytes: int64(32 * units.GiB), UsableBytes: int64(32 * units.GiB)},
@@ -4528,13 +4547,4 @@ func getoVirtInventory() *models.Inventory {
 		TpmVersion: models.InventoryTpmVersionNr20,
 	}
 	return &inv
-}
-
-func registerNodeWithInventory(ctx context.Context, infraEnvID strfmt.UUID, name, ip string, inventory *models.Inventory) *models.Host {
-	h := &registerHost(infraEnvID).Host
-	hwInfo := inventory
-	hwInfo.Interfaces[0].IPV4Addresses = []string{ip}
-	generateEssentialHostStepsWithInventory(ctx, h, name, hwInfo)
-	generateEssentialPrepareForInstallationSteps(ctx, h)
-	return h
 }
