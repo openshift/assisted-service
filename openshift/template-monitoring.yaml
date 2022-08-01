@@ -3,7 +3,7 @@ parameters:
 - name: NAMESPACE
   value: ''
   required: true
-apiVersion: v1
+apiVersion: template.openshift.io/v1
 kind: Template
 metadata:
   name: assisted-installer
@@ -26,3 +26,21 @@ objects:
     selector:
       matchLabels:
         app: assisted-service
+- apiVersion: monitoring.coreos.com/v1
+  kind: ServiceMonitor
+  metadata:
+    labels:
+      prometheus: app-sre
+    name: servicemonitor-assisted-installer-postgres
+  spec:
+    endpoints:
+    - interval: 30s
+      path: /metrics
+      port: http
+      scheme: http
+    namespaceSelector:
+      matchNames:
+      - ${NAMESPACE}
+    selector:
+      matchLabels:
+        app: assisted-installer-prometheus-postgres-exporter
