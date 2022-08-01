@@ -72,7 +72,7 @@ func (o *operator) GetHostValidationID() string {
 // ValidateCluster always return "valid" result
 func (o *operator) ValidateCluster(_ context.Context, cluster *common.Cluster) (api.ValidationResult, error) {
 	if !common.IsSingleNodeCluster(cluster) {
-		message := "ODF LVM operator is only supported for Single Node Openshift deployment"
+		message := "ODF LVM operator is only supported for Single Node Openshift"
 		return api.ValidationResult{Status: api.Failure, ValidationId: o.GetClusterValidationID(), Reasons: []string{message}}, nil
 	}
 
@@ -88,7 +88,7 @@ func (o *operator) ValidateCluster(_ context.Context, cluster *common.Cluster) (
 		return api.ValidationResult{Status: api.Failure, ValidationId: o.GetHostValidationID(), Reasons: []string{err.Error()}}, nil
 	}
 	if ocpVersion.LessThan(minOpenshiftVersionForLvm) {
-		message := "ODF LVM operator is only supported for openshift versions 4.11.0 and above"
+		message := fmt.Sprintf("ODF LVM operator is only supported for openshift versions %s and above", o.config.LvmMinOpenshiftVersion)
 		return api.ValidationResult{Status: api.Failure, ValidationId: o.GetClusterValidationID(), Reasons: []string{message}}, nil
 	}
 
@@ -109,7 +109,7 @@ func (o *operator) ValidateHost(ctx context.Context, cluster *common.Cluster, ho
 	}
 
 	// GetValidDiskCount counts the total number of valid disks in each host and return an error if we don't have the disk of required size
-	diskCount, err := o.getValidDiskCount(inventory.Disks, host.InstallationDiskID)
+	diskCount := o.getValidDiskCount(inventory.Disks, host.InstallationDiskID)
 	if err != nil {
 		return api.ValidationResult{Status: api.Failure, ValidationId: o.GetHostValidationID(), Reasons: []string{err.Error()}}, nil
 	}
