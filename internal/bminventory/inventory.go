@@ -3854,6 +3854,15 @@ func (b *bareMetalInventory) AddReleaseImage(ctx context.Context, releaseImageUr
 	log := logutil.FromContext(ctx, b.log)
 
 	// Create a new OpenshiftVersion and add it to versions cache
+	debugTemplate := fmt.Sprintf("Creating OpenShiftVersion from release image %s", releaseImageUrl)
+	if ocpReleaseVersion != "" {
+		debugTemplate = fmt.Sprintf(debugTemplate+" for version %s", ocpReleaseVersion)
+	}
+	if cpuArchitecture != "" {
+		debugTemplate = fmt.Sprintf(debugTemplate+" for architecture %s", cpuArchitecture)
+	}
+	log.Debug(debugTemplate)
+
 	releaseImage, err := b.versionsHandler.AddReleaseImage(releaseImageUrl, pullSecret, ocpReleaseVersion, cpuArchitecture)
 	if err != nil {
 		log.WithError(err).Errorf("Failed to add OCP version for release image: %s", releaseImageUrl)

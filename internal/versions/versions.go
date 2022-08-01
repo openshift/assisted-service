@@ -316,12 +316,14 @@ func (h *handler) AddReleaseImage(releaseImageUrl, pullSecret, ocpReleaseVersion
 		if err != nil {
 			return nil, err
 		}
+		h.log.Debugf("For release image %s detected version: %s", releaseImageUrl, ocpReleaseVersion)
 
 		// Get CPU architecture from release image
 		cpuArchitecture, err = h.releaseHandler.GetReleaseArchitecture(h.log, releaseImageUrl, "", pullSecret)
 		if err != nil {
 			return nil, err
 		}
+		h.log.Debugf("For release image %s detected architecture: %s", releaseImageUrl, cpuArchitecture)
 	}
 
 	// Ensure a relevant OsImage exists. For multiarch we disabling the code below because we don't know yet
