@@ -119,26 +119,6 @@ func (o *operator) ValidateHost(ctx context.Context, cluster *common.Cluster, ho
 		return api.ValidationResult{Status: api.Failure, ValidationId: o.GetHostValidationID(), Reasons: []string{message}}, nil
 	}
 
-	// requirements, err := o.GetHostRequirements(ctx, cluster, host)
-	// if err != nil {
-	// 	message := fmt.Sprintf("Failed to get the host requirements for host with id %s", host.ID)
-	// 	return api.ValidationResult{Status: api.Failure, ValidationId: o.GetHostValidationID(), Reasons: []string{message, err.Error()}}, err
-	// }
-
-	// cpu := requirements.CPUCores
-	// if inventory.CPU.Count < cpu {
-	// 	message := fmt.Sprintf("Insufficient CPU to deploy ODF LVM. The required CPU count is %d but found %d", cpu, inventory.CPU.Count)
-	// 	return api.ValidationResult{Status: api.Failure, ValidationId: o.GetHostValidationID(), Reasons: []string{message}}, nil
-	// }
-
-	// memory := requirements.RAMMib
-	// memoryBytes := conversions.MibToBytes(memory)
-	// if inventory.Memory.UsableBytes < memoryBytes {
-	// 	usableMemory := conversions.BytesToMib(inventory.Memory.UsableBytes)
-	// 	message := fmt.Sprintf("Insufficient memory to deploy ODF LVM. The required memory is %d MiB but found %d MiB", memory, usableMemory)
-	// 	return api.ValidationResult{Status: api.Failure, ValidationId: o.GetHostValidationID(), Reasons: []string{message}}, nil
-	// }
-
 	return api.ValidationResult{Status: api.Success, ValidationId: o.GetHostValidationID()}, nil
 }
 
