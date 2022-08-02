@@ -1046,18 +1046,20 @@ func (m *Manager) reportValidationStatusChanged(ctx context.Context, vc *validat
 	log := logutil.FromContext(ctx, m.log)
 	for vCategory, vRes := range newValidationRes {
 		for _, v := range vRes {
-			if currentStatus, ok := m.getValidationStatus(currentValidationRes, vCategory, v.ID); ok {
-				if v.Status == ValidationFailure && currentStatus == ValidationSuccess {
-					log.Errorf("Host %s: validation '%s' that used to succeed is now failing", hostutil.GetHostnameForMsg(h), v.ID)
-					m.metricApi.HostValidationChanged(models.HostValidationID(v.ID))
+			if previousStatus, ok := m.getValidationStatus(currentValidationRes, vCategory, v.ID); ok {
+				if v.Status == ValidationFailure && previousStatus != ValidationFailure {
+					log.Errorf("Host %s: validation '%s' changed from %s to %s", hostutil.GetHostnameForMsg(h), v.ID, v.Status, previousStatus)
+					if previousStatus == ValidationSuccess {
+						m.metricApi.HostValidationChanged(models.HostValidationID(v.ID))
+					}
 					eventgen.SendHostValidationFailedEvent(ctx, m.eventsHandler, *h.ID, h.InfraEnvID, h.ClusterID,
 						hostutil.GetHostnameForMsg(h), v.ID.String())
-				} else if v.Status == ValidationSuccess && currentStatus == ValidationFailure {
+				} else if v.Status == ValidationSuccess && previousStatus == ValidationFailure {
 					log.Infof("Host %s: validation '%s' is now fixed", hostutil.GetHostnameForMsg(h), v.ID)
 					eventgen.SendHostValidationFixedEvent(ctx, m.eventsHandler, *h.ID, h.InfraEnvID, h.ClusterID,
 						hostutil.GetHostnameForMsg(h), v.ID.String())
-				} else if v.Status != currentStatus {
-					msg := fmt.Sprintf("Host %s: validation '%s' status changed from %s to %s", hostutil.GetHostnameForMsg(h), v.ID, currentStatus, v.Status)
+				} else if v.Status != previousStatus {
+					msg := fmt.Sprintf("Host %s: validation '%s' status changed from %s to %s", hostutil.GetHostnameForMsg(h), v.ID, previousStatus, v.Status)
 					log.Infof(msg)
 					m.eventsHandler.NotifyInternalEvent(ctx, h.ClusterID, h.ID, &h.InfraEnvID, msg)
 				}
