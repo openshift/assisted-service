@@ -1453,6 +1453,7 @@ func (ib *ignitionBuilder) FormatSecondDayWorkerIgnitionFile(url string, caCert 
 			return []byte(""), errors.Wrapf(err, "Failed to apply ignition override for host %s", host.ID)
 		}
 		ib.log.Infof("Applied ignition override for host %s", host.ID)
+		ib.log.Debugf("Ignition override for day2 host %s: %s", host.ID, overrides)
 	}
 
 	res, err := SetHostnameForNodeIgnition([]byte(overrides), host)
@@ -1460,6 +1461,7 @@ func (ib *ignitionBuilder) FormatSecondDayWorkerIgnitionFile(url string, caCert 
 		return []byte(""), errors.Wrapf(err, "Failed to set hostname in ignition for host %s", host.ID)
 	}
 
+	ib.log.Debugf("Final ignition for day2 host %s: %s", host.ID, string(res))
 	return res, nil
 }
 
