@@ -1,3 +1,7 @@
+# Assisted Installer
+
+Assisted Installer is available at https://console.redhat.com/openshift/assisted-installer
+
 # User Guide
 
 Welcome to the Openshift Assisted Service User Guide.
