@@ -37,10 +37,10 @@ func normalizeNumbers(v interface{}) interface{} {
 		}
 		return v
 	case int64:
-		if v > maxInt || v < minInt {
-			return new(big.Int).SetInt64(v)
+		if minInt <= v && v <= maxInt {
+			return int(v)
 		}
-		return int(v)
+		return big.NewInt(v)
 	case int32:
 		return int(v)
 	case int16:
@@ -48,68 +48,36 @@ func normalizeNumbers(v interface{}) interface{} {
 	case int8:
 		return int(v)
 	case uint:
-		if v > maxInt {
-			return new(big.Int).SetUint64(uint64(v))
+		if v <= maxInt {
+			return int(v)
 		}
-		return int(v)
+		return new(big.Int).SetUint64(uint64(v))
 	case uint64:
-		if v > maxInt {
-			return new(big.Int).SetUint64(v)
+		if v <= maxInt {
+			return int(v)
 		}
-		return int(v)
+		return new(big.Int).SetUint64(v)
 	case uint32:
-		if uint64(v) > maxInt {
-			return new(big.Int).SetUint64(uint64(v))
+		if uint64(v) <= maxInt {
+			return int(v)
 		}
-		return int(v)
+		return new(big.Int).SetUint64(uint64(v))
 	case uint16:
 		return int(v)
 	case uint8:
 		return int(v)
 	case float32:
 		return float64(v)
-	case map[string]interface{}:
-		for k, x := range v {
-			v[k] = normalizeNumbers(x)
-		}
-		return v
 	case []interface{}:
 		for i, x := range v {
 			v[i] = normalizeNumbers(x)
 		}
 		return v
-	default:
-		return v
-	}
-}
-
-// It's ok to delete destructively because this function is used right after
-// updatePaths, where it shallow-copies maps or slices on updates.
-func deleteEmpty(v interface{}) interface{} {
-	switch v := v.(type) {
-	case struct{}:
-		return nil
 	case map[string]interface{}:
-		for k, w := range v {
-			if w == struct{}{} {
-				delete(v, k)
-			} else {
-				v[k] = deleteEmpty(w)
-			}
+		for k, x := range v {
+			v[k] = normalizeNumbers(x)
 		}
 		return v
-	case []interface{}:
-		var j int
-		for _, w := range v {
-			if w != struct{}{} {
-				v[j] = deleteEmpty(w)
-				j++
-			}
-		}
-		for i := j; i < len(v); i++ {
-			v[i] = nil
-		}
-		return v[:j]
 	default:
 		return v
 	}

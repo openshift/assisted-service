@@ -1,7 +1,12 @@
 %{
 package gojq
 
-// Parse parses a query.
+// Parse a query string, and returns the query struct.
+//
+// If parsing failed, the returned error has the method Token() (string, int),
+// which reports the invalid token and the byte offset in the query string. The
+// token is empty if the error occurred after scanning the entire query string.
+// The byte offset is the scanned bytes when the error occurred.
 func Parse(src string) (*Query, error) {
 	l := newLexer(src)
 	if yyParse(l) > 0 {
@@ -41,11 +46,12 @@ func prependFuncDef(xs []*FuncDef, x *FuncDef) []*FuncDef {
 %token<token> tokModule tokImport tokInclude tokDef tokAs tokLabel tokBreak
 %token<token> tokNull tokTrue tokFalse
 %token<token> tokIdent tokVariable tokModuleIdent tokModuleVariable
-%token<token> tokIndex tokNumber tokFormat tokInvalid
+%token<token> tokIndex tokNumber tokFormat
 %token<token> tokString tokStringStart tokStringQuery tokStringEnd
 %token<token> tokIf tokThen tokElif tokElse tokEnd
 %token<token> tokTry tokCatch tokReduce tokForeach
 %token tokRecurse tokFuncDefPost tokTermPost tokEmptyCatch
+%token tokInvalid tokInvalidEscapeSequence tokUnterminatedString
 
 %nonassoc tokFuncDefPost tokTermPost
 %right '|'
@@ -306,7 +312,7 @@ objectpattern
     }
     | tokVariable
     {
-        $$ = &PatternObject{KeyOnly: $1}
+        $$ = &PatternObject{Key: $1}
     }
 
 term
@@ -551,11 +557,11 @@ objectkeyval
     }
     | objectkey
     {
-        $$ = &ObjectKeyVal{KeyOnly: $1}
+        $$ = &ObjectKeyVal{Key: $1}
     }
     | string
     {
-        $$ = &ObjectKeyVal{KeyOnlyString: $1.(*String)}
+        $$ = &ObjectKeyVal{KeyString: $1.(*String)}
     }
 
 objectkey
