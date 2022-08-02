@@ -33,44 +33,44 @@ var _ = Describe("Lvm Operator", func() {
 				},
 			}),
 		}
-		hostWithInsufficientCPU = &models.Host{
-			InstallationDiskID: diskID1,
-			Inventory: Inventory(&InventoryResources{
-				Cpus: 0,
-				Ram:  32 * conversions.GiB,
-				Disks: []*models.Disk{
-					{
-						SizeBytes: 20 * conversions.GB,
-						DriveType: models.DriveTypeHDD,
-						ID:        diskID1,
-					},
-					{
-						SizeBytes: 40 * conversions.GB,
-						DriveType: models.DriveTypeSSD,
-						ID:        diskID2,
-					},
-				},
-			}),
-		}
-		hostWithInsufficientRAM = &models.Host{
-			InstallationDiskID: diskID1,
-			Inventory: Inventory(&InventoryResources{
-				Cpus: 12,
-				Ram:  1199 * conversions.MiB,
-				Disks: []*models.Disk{
-					{
-						SizeBytes: 20 * conversions.GB,
-						DriveType: models.DriveTypeHDD,
-						ID:        diskID1,
-					},
-					{
-						SizeBytes: 40 * conversions.GB,
-						DriveType: models.DriveTypeSSD,
-						ID:        diskID2,
-					},
-				},
-			}),
-		}
+		// hostWithInsufficientCPU = &models.Host{
+		// 	InstallationDiskID: diskID1,
+		// 	Inventory: Inventory(&InventoryResources{
+		// 		Cpus: 0,
+		// 		Ram:  32 * conversions.GiB,
+		// 		Disks: []*models.Disk{
+		// 			{
+		// 				SizeBytes: 20 * conversions.GB,
+		// 				DriveType: models.DriveTypeHDD,
+		// 				ID:        diskID1,
+		// 			},
+		// 			{
+		// 				SizeBytes: 40 * conversions.GB,
+		// 				DriveType: models.DriveTypeSSD,
+		// 				ID:        diskID2,
+		// 			},
+		// 		},
+		// 	}),
+		// }
+		// hostWithInsufficientRAM = &models.Host{
+		// 	InstallationDiskID: diskID1,
+		// 	Inventory: Inventory(&InventoryResources{
+		// 		Cpus: 12,
+		// 		Ram:  1199 * conversions.MiB,
+		// 		Disks: []*models.Disk{
+		// 			{
+		// 				SizeBytes: 20 * conversions.GB,
+		// 				DriveType: models.DriveTypeHDD,
+		// 				ID:        diskID1,
+		// 			},
+		// 			{
+		// 				SizeBytes: 40 * conversions.GB,
+		// 				DriveType: models.DriveTypeSSD,
+		// 				ID:        diskID2,
+		// 			},
+		// 		},
+		// 	}),
+		// }
 		hostWithSufficientResources = &models.Host{
 			InstallationDiskID: diskID1,
 			Inventory: Inventory(&InventoryResources{
@@ -120,16 +120,16 @@ var _ = Describe("Lvm Operator", func() {
 				hostWithInsufficientDisks,
 				api.ValidationResult{Status: api.Failure, ValidationId: operator.GetHostValidationID(), Reasons: []string{"Insufficient disks, ODF LVM requires at least one non-installation disk on the host"}},
 			),
-			table.Entry("host with insufficient CPU",
-				&common.Cluster{Cluster: models.Cluster{Hosts: []*models.Host{hostWithInsufficientCPU}}},
-				hostWithInsufficientCPU,
-				api.ValidationResult{Status: api.Failure, ValidationId: operator.GetHostValidationID(), Reasons: []string{"Insufficient CPU to deploy ODF LVM. The required CPU count is 1 but found 0"}},
-			),
-			table.Entry("master with insufficient RAM",
-				&common.Cluster{Cluster: models.Cluster{Hosts: []*models.Host{hostWithInsufficientRAM}}},
-				hostWithInsufficientRAM,
-				api.ValidationResult{Status: api.Failure, ValidationId: operator.GetHostValidationID(), Reasons: []string{"Insufficient memory to deploy ODF LVM. The required memory is 1200 MiB but found 1199 MiB"}},
-			),
+			// table.Entry("host with insufficient CPU",
+			// 	&common.Cluster{Cluster: models.Cluster{Hosts: []*models.Host{hostWithInsufficientCPU}}},
+			// 	hostWithInsufficientCPU,
+			// 	api.ValidationResult{Status: api.Failure, ValidationId: operator.GetHostValidationID(), Reasons: []string{"Insufficient CPU to deploy ODF LVM. The required CPU count is 1 but found 0"}},
+			// ),
+			// table.Entry("master with insufficient RAM",
+			// 	&common.Cluster{Cluster: models.Cluster{Hosts: []*models.Host{hostWithInsufficientRAM}}},
+			// 	hostWithInsufficientRAM,
+			// 	api.ValidationResult{Status: api.Failure, ValidationId: operator.GetHostValidationID(), Reasons: []string{"Insufficient memory to deploy ODF LVM. The required memory is 1200 MiB but found 1199 MiB"}},
+			// ),
 			table.Entry("master with sufficient resources",
 				&common.Cluster{Cluster: models.Cluster{Hosts: []*models.Host{hostWithSufficientResources}}},
 				hostWithSufficientResources,
