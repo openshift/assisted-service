@@ -1439,9 +1439,12 @@ func (v *validator) isDNSWildcardNotConfigured(c *validationContext) (Validation
 	if hostutil.IsDay2Host(c.host) {
 		return ValidationSuccess, "DNS wildcard check is not required for day2"
 	}
+	if c.host.DomainNameResolutions == "" {
+		return ValidationPending, "DNS wildcard check cannot be performed yet because the host has not yet performed DNS resolution"
+	}
 	var response *models.DomainResolutionResponse
 	if err := json.Unmarshal([]byte(c.host.DomainNameResolutions), &response); err != nil {
-		return ValidationError, ""
+		return ValidationError, "Error while parsing DNS resolution response"
 	}
 	dnsWildcardName := domainNameToResolve(c, constants.DNSWildcardFalseDomainName)
 
