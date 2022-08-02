@@ -209,7 +209,7 @@ func assertHostValidationEvent(ctx context.Context, clusterID strfmt.UUID, hostN
 	var eventExist bool
 	var eventMsg string
 	if isFailure {
-		eventMsg = fmt.Sprintf("Host %v: validation '%v' failed", hostName, validationID)
+		eventMsg = fmt.Sprintf("Host %v: validation '%v' that used to succeed is now failing", hostName, validationID)
 	} else {
 		eventMsg = fmt.Sprintf("Host %v: validation '%v' is now fixed", hostName, validationID)
 	}

@@ -64,13 +64,14 @@ x-events:
     cluster_id: UUID
 
 - name: cluster_validation_failed
-  message: "Cluster validation '{validation_id}' that used to succeed is now failing"
+  message: "Cluster validation '{validation_id}' {failure_message}"
   event_type: cluster
   severity: "warning"
   properties:
     cluster_id: UUID
     validation_id: string
     validation_msg: string
+    failure_message: string
 
 - name: cluster_validation_fixed
   message: "Cluster validation '{validation_id}' is now fixed"
@@ -347,7 +348,7 @@ x-events:
     error: string
 
 - name: host_validation_failed
-  message: "Host {host_name}: validation '{validation_id}' that used to succeed is now failing"
+  message: "Host {host_name}: validation '{validation_id}' {failure_message}"
   event_type: host
   severity: "warning"
   properties:
@@ -356,6 +357,7 @@ x-events:
     cluster_id: UUID_PTR
     host_name: string
     validation_id: string
+    failure_message: string
 
 - name: host_validation_fixed
   message: "Host {host_name}: validation '{validation_id}' is now fixed"

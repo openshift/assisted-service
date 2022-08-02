@@ -1049,11 +1049,13 @@ func (m *Manager) reportValidationStatusChanged(ctx context.Context, vc *validat
 			if previousStatus, ok := m.getValidationStatus(currentValidationRes, vCategory, v.ID); ok {
 				if v.Status == ValidationFailure && previousStatus != ValidationFailure {
 					log.Errorf("Host %s: validation '%s' changed from %s to %s", hostutil.GetHostnameForMsg(h), v.ID, v.Status, previousStatus)
+					failureMessage := "failed"
 					if previousStatus == ValidationSuccess {
 						m.metricApi.HostValidationChanged(models.HostValidationID(v.ID))
+						failureMessage = "that used to succeed is now failing"
 					}
 					eventgen.SendHostValidationFailedEvent(ctx, m.eventsHandler, *h.ID, h.InfraEnvID, h.ClusterID,
-						hostutil.GetHostnameForMsg(h), v.ID.String())
+						hostutil.GetHostnameForMsg(h), v.ID.String(), failureMessage)
 				} else if v.Status == ValidationSuccess && previousStatus == ValidationFailure {
 					log.Infof("Host %s: validation '%s' is now fixed", hostutil.GetHostnameForMsg(h), v.ID)
 					eventgen.SendHostValidationFixedEvent(ctx, m.eventsHandler, *h.ID, h.InfraEnvID, h.ClusterID,

@@ -264,10 +264,12 @@ func (m *Manager) reportValidationStatusChanged(ctx context.Context, c *common.C
 		for _, v := range vRes {
 			if previousStatus, ok := m.getValidationStatus(currentValidationRes, vCategory, v.ID); ok {
 				if v.Status == ValidationFailure && previousStatus != ValidationFailure {
+					failureMessage := "failed"
 					if previousStatus == ValidationSuccess {
+						failureMessage = "that used to succeed is now failing"
 						m.metricAPI.ClusterValidationChanged(models.ClusterValidationID(v.ID))
 					}
-					eventgen.SendClusterValidationFailedEvent(ctx, m.eventsHandler, *c.ID, v.ID.String(), v.Message)
+					eventgen.SendClusterValidationFailedEvent(ctx, m.eventsHandler, *c.ID, v.ID.String(), v.Message, failureMessage)
 				} else if v.Status == ValidationSuccess && previousStatus == ValidationFailure {
 					eventgen.SendClusterValidationFixedEvent(ctx, m.eventsHandler, *c.ID, v.ID.String(), v.Message)
 				} else if v.Status != previousStatus {
