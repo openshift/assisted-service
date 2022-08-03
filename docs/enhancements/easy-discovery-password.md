@@ -45,7 +45,8 @@ This method is complicated and should be made easier.
 - Add new API to set the ignition password hash for the discovery ISO `core`
 user password, with documentation explaining how it can be done
 - Do all of that in a secure way. At no point should the service know the
-user's password
+user's password. But it's okay if the service knows the hash, as that doesn't
+reveal the password
 
 ### Non-Goals
 
@@ -116,6 +117,24 @@ done something similar. When I checked almost two years ago I didn't find
 anything promising, but maybe things have changed or I missed something.
 
 ### Risks and Mitigations
+
+#### Additional attack surface
+
+By setting a password, the user adds yet another way to authenticate to their
+hosts during their discovery phase, and that's trivially less secure than
+having less ways to authenticate.
+
+Users could possibly set very weak / obvious passwords, which would allow
+someone with physical or remote-management access to the machine to interact
+with it.
+
+This is not a big deal because:
+
+- This only affects the discovery phase for the host. Once the host gets
+installed and reboots into OCP the password login can no longer be used
+
+- People with physical or remote-management access can probably do a lot
+of bad things anyway even without entering the password
 
 #### The user still has to trust the UI
 
