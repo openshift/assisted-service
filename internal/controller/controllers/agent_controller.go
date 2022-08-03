@@ -276,17 +276,12 @@ func (r *AgentReconciler) approveAIHostsCSRs(clients spoke_k8s_client.SpokeK8sCl
 	}
 }
 
-// Attempt to approve CSRs for agent. If already approved then the node will be marked as done
-// requeue means that approval will be attempted again
-func (r *AgentReconciler) tryApproveDay2CSRs(ctx context.Context, agent *aiv1beta1.Agent) bool {
-	r.Log.Infof("Approving CSRs for agent %s/%s", agent.Namespace, agent.Name)
-
-	// Get adminKubeConfigSecretName from clusterDeployment or fallback to template
-	adminKubeConfigSecretName := fmt.Sprintf(adminKubeConfigStringTemplate, agent.Spec.ClusterDeploymentName.Name)
+func (r *AgentReconciler) spokeKubeClient(ctx context.Context, clusterRef *aiv1beta1.ClusterReference) (spoke_k8s_client.SpokeK8sClient, error) {
+	adminKubeConfigSecretName := fmt.Sprintf(adminKubeConfigStringTemplate, clusterRef.Name)
 	clusterDeployment := &hivev1.ClusterDeployment{}
 	cdKey := types.NamespacedName{
-		Namespace: agent.Spec.ClusterDeploymentName.Namespace,
-		Name:      agent.Spec.ClusterDeploymentName.Name,
+		Namespace: clusterRef.Namespace,
+		Name:      clusterRef.Name,
 	}
 	err := r.Get(ctx, cdKey, clusterDeployment)
 	if err != nil {
@@ -294,29 +289,38 @@ func (r *AgentReconciler) tryApproveDay2CSRs(ctx context.Context, agent *aiv1bet
 	}
 
 	namespacedName := types.NamespacedName{
-		Namespace: agent.Spec.ClusterDeploymentName.Namespace,
+		Namespace: clusterRef.Namespace,
 		Name:      adminKubeConfigSecretName,
 	}
 
 	secret, err := getSecret(ctx, r.Client, r.APIReader, namespacedName)
 	if err != nil {
-		r.Log.WithError(err).Errorf("Agent %s/%s: Failed to get secret", agent.Namespace, agent.Name)
-		return false
+		r.Log.WithError(err).Errorf("failed to get kubeconfig secret %s", namespacedName)
+		return nil, err
 	}
 	if err = ensureSecretIsLabelled(ctx, r.Client, secret, namespacedName); err != nil {
-		r.Log.WithError(err).Errorf("Agent %s/%s: Failed to label secret", agent.Namespace, agent.Name)
-		return false
+		r.Log.WithError(err).Errorf("failed to label kubeconfig secret %s", namespacedName)
+		return nil, err
 	}
-	clients, err := r.SpokeK8sClientFactory.CreateFromSecret(secret)
-	if err != nil {
-		r.Log.WithError(err).Errorf("Agent %s/%s: Failed to create spoke client", agent.Namespace, agent.Name)
-		return false
-	}
+	return r.SpokeK8sClientFactory.CreateFromSecret(secret)
+}
+
+// Attempt to approve CSRs for agent. If already approved then the node will be marked as done
+// requeue means that approval will be attempted again
+func (r *AgentReconciler) tryApproveDay2CSRs(ctx context.Context, agent *aiv1beta1.Agent) bool {
+	r.Log.Infof("Approving CSRs for agent %s/%s", agent.Namespace, agent.Name)
+
 	hostname := getAgentHostname(agent)
 	var (
 		validateNodeCsr       nodeCsrValidator
 		shouldApproveMoreCSRs bool
 	)
+
+	clients, err := r.spokeKubeClient(ctx, agent.Spec.ClusterDeploymentName)
+	if err != nil {
+		r.Log.WithError(err).Errorf("Agent %s/%s: Failed to create spoke client", agent.Namespace, agent.Name)
+		return false
+	}
 
 	// TODO: Node name might be FQDN and not just host name if cluster is IPv6
 	node, err := clients.GetNode(hostname)
