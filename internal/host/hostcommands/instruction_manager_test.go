@@ -2,6 +2,7 @@ package hostcommands
 
 import (
 	"context"
+	"fmt"
 	"strings"
 	"testing"
 	"time"
@@ -366,6 +367,107 @@ var _ = Describe("instruction_manager", func() {
 				})
 			})
 		})
+	})
+
+	AfterEach(func() {
+		// cleanup
+		common.DeleteTestDB(db, dbName)
+		ctrl.Finish()
+		stepsReply = models.Steps{}
+		stepsErr = nil
+	})
+
+})
+
+var _ = Describe("agent_upgrade", func() {
+	var (
+		ctx                           = context.Background()
+		host                          models.Host
+		db                            *gorm.DB
+		mockEvents                    *eventsapi.MockHandler
+		mockVersions                  *versions.MockHandler
+		stepsReply                    models.Steps
+		hostId, clusterId, infraEnvId strfmt.UUID
+		stepsErr                      error
+		instMng                       *InstructionManager
+		ctrl                          *gomock.Controller
+		hwValidator                   *hardware.MockValidator
+		mockRelease                   *oc.MockRelease
+		cnValidator                   *connectivity.MockValidator
+		instructionConfig             InstructionConfig
+		dbName                        string
+	)
+
+	BeforeEach(func() {
+		db, dbName = common.PrepareTestDB()
+		ctrl = gomock.NewController(GinkgoT())
+		mockEvents = eventsapi.NewMockHandler(ctrl)
+		mockVersions = versions.NewMockHandler(ctrl)
+		hwValidator = hardware.NewMockValidator(ctrl)
+		mockRelease = oc.NewMockRelease(ctrl)
+		cnValidator = connectivity.NewMockValidator(ctrl)
+		instructionConfig = InstructionConfig{AgentImage: "quay.io/my/image:v1.2.3"}
+		instructionConfig.EnableUpgradeAgent = true
+		instMng = NewInstructionManager(common.GetTestLog(), db, hwValidator, mockRelease, instructionConfig, cnValidator, mockEvents, mockVersions)
+		hostId = strfmt.UUID(uuid.New().String())
+		clusterId = strfmt.UUID(uuid.New().String())
+		infraEnvId = strfmt.UUID(uuid.New().String())
+		host = hostutil.GenerateTestHost(hostId, infraEnvId, clusterId, models.HostStatusInsufficient)
+		host.Role = models.HostRoleMaster
+		host.Inventory = hostutil.GenerateMasterInventory()
+		Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
+	})
+
+	Context("When the host status allows upgrade", func() {
+		upgradeAllowdStatuses := []string{models.HostStatusBinding,
+			models.HostStatusDiscovering,
+			models.HostStatusDiscoveringUnbound,
+			models.HostStatusInsufficient,
+			models.HostStatusInsufficientUnbound,
+			models.HostStatusKnown,
+			models.HostStatusPendingForInput,
+			models.HostStatusKnownUnbound}
+		for _, hostStatus := range upgradeAllowdStatuses {
+			hostStatus := hostStatus
+			It(fmt.Sprintf("Creates a single upgrade agent step, hosts stauts: %s", hostStatus), func() {
+				Expect(db.Model(&host).Update("Status", hostStatus).Error).ShouldNot(HaveOccurred())
+				mockEvents.EXPECT().SendHostEvent(gomock.Any(), eventstest.NewEventMatcher(
+					eventstest.WithNameMatcher(eventgen.UpgradeAgentStartedEventName),
+					eventstest.WithHostIdMatcher(host.ID.String()),
+					eventstest.WithInfraEnvIdMatcher(host.InfraEnvID.String())))
+				stepsReply, stepsErr = instMng.GetNextSteps(ctx, &host)
+				Expect(stepsErr).Should(BeNil())
+				Expect(stepsErr).ToNot(HaveOccurred())
+				Expect(stepsReply).ToNot(BeNil())
+				Expect(stepsReply.Instructions).To(HaveLen(1))
+				Expect(stepsReply.Instructions[0].StepType).To(Equal(models.StepTypeUpgradeAgent))
+			})
+		}
+	})
+
+	Context("When the host status doesn't allows upgrade", func() {
+		upgradeAllowdStatuses := []string{models.HostStatusInstalled,
+			models.HostStatusInstalling,
+			models.HostStatusDisabled,
+			models.HostStatusDisabledUnbound,
+			models.HostStatusError,
+			models.HostStatusUnbindingPendingUserAction,
+			models.HostStatusInstallingPendingUserAction,
+			models.HostStatusResetting,
+			models.HostStatusReclaiming}
+		for _, hostStatus := range upgradeAllowdStatuses {
+			hostStatus := hostStatus
+			It(fmt.Sprintf("Don't creates upgrade agent step, hosts stauts: %s", hostStatus), func() {
+				Expect(db.Model(&host).Update("Status", hostStatus).Error).ShouldNot(HaveOccurred())
+				stepsReply, stepsErr = instMng.GetNextSteps(ctx, &host)
+				Expect(stepsErr).Should(BeNil())
+				Expect(stepsErr).ToNot(HaveOccurred())
+				Expect(stepsReply).ToNot(BeNil())
+				if len(stepsReply.Instructions) > 0 {
+					Expect(stepsReply.Instructions[0].StepType).ToNot(Equal(models.StepTypeUpgradeAgent))
+				}
+			})
+		}
 	})
 
 	AfterEach(func() {
