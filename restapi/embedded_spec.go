@@ -5221,16 +5221,24 @@ func init() {
       }
     },
     "api_vip_connectivity_response": {
-      "description": "The response from the day-2 agent's attempt to download the worker ignition file from the API machine config server of the target cluster.\nNote - the name \"API VIP connectivity\" is old and misleading and is preserved for backwards compatibility.\n",
+      "description": "The response from the day-2 agent's attempt to download the worker ignition file from the API machine config server of the target cluster.\nNote - the name \"API VIP connectivity\" is old and misleading and is preserved for backwards compatibility.",
       "type": "object",
       "properties": {
+        "download_error": {
+          "description": "The error that occurred while downloading the worker ignition file, ignored when is_success is true",
+          "type": "string"
+        },
         "ignition": {
-          "description": "Ignition file fetched from the target cluster's API machine config server.\nThis ignition file may be incomplete as almost all files / systemd units are removed from it by the agent in order to save space.\n",
+          "description": "Ignition file fetched from the target cluster's API machine config server.\nThis ignition file may be incomplete as almost all files / systemd units are removed from it by the agent in order to save space.",
           "type": "string"
         },
         "is_success": {
-          "description": "Whether the agent was able to contact the API of the target cluster or not",
+          "description": "Whether the agent was able to download the ignition or not",
           "type": "boolean"
+        },
+        "url": {
+          "description": "This parameter mirrors the url parameter of the corresponding api_vip_connectivity_request",
+          "type": "string"
         }
       }
     },
@@ -14615,16 +14623,24 @@ func init() {
       }
     },
     "api_vip_connectivity_response": {
-      "description": "The response from the day-2 agent's attempt to download the worker ignition file from the API machine config server of the target cluster.\nNote - the name \"API VIP connectivity\" is old and misleading and is preserved for backwards compatibility.\n",
+      "description": "The response from the day-2 agent's attempt to download the worker ignition file from the API machine config server of the target cluster.\nNote - the name \"API VIP connectivity\" is old and misleading and is preserved for backwards compatibility.",
       "type": "object",
       "properties": {
+        "download_error": {
+          "description": "The error that occurred while downloading the worker ignition file, ignored when is_success is true",
+          "type": "string"
+        },
         "ignition": {
-          "description": "Ignition file fetched from the target cluster's API machine config server.\nThis ignition file may be incomplete as almost all files / systemd units are removed from it by the agent in order to save space.\n",
+          "description": "Ignition file fetched from the target cluster's API machine config server.\nThis ignition file may be incomplete as almost all files / systemd units are removed from it by the agent in order to save space.",
           "type": "string"
         },
         "is_success": {
-          "description": "Whether the agent was able to contact the API of the target cluster or not",
+          "description": "Whether the agent was able to download the ignition or not",
           "type": "boolean"
+        },
+        "url": {
+          "description": "This parameter mirrors the url parameter of the corresponding api_vip_connectivity_request",
+          "type": "string"
         }
       }
     },

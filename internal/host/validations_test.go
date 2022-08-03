@@ -292,7 +292,22 @@ var _ = Describe("Validations test", func() {
 			Expect(validationStatus).To(Equal(ValidationSuccess))
 			Expect(validationMessage).To(Equal("Ignition is downloadable"))
 		})
-		It("day2 host with invalid API Connectivity - fails validation", func() {
+		It("day2 host with corrupt API Connectivity - error validation", func() {
+			createDay2Cluster()
+
+			h := getDay2Host()
+			h.APIVipConnectivity = string("{")
+			Expect(db.Create(&h).Error).ShouldNot(HaveOccurred())
+
+			mockAndRefreshStatus(h)
+
+			h = &hostutil.GetHostFromDB(*h.ID, h.InfraEnvID, db).Host
+			validationStatus, validationMessage, found := getValidationResult(h.ValidationsInfo, ignitionDownloadableID)
+			Expect(found).To(BeTrue())
+			Expect(validationStatus).To(Equal(ValidationError), validationMessage)
+			Expect(validationMessage).To(Equal("Internal error - failed to parse agent API connectivity response"))
+		})
+		It("day2 host with non-successfull API Connectivity - fails validation - old agent", func() {
 			createDay2Cluster()
 
 			h := getDay2Host()
@@ -310,7 +325,29 @@ var _ = Describe("Validations test", func() {
 			validationStatus, validationMessage, found := getValidationResult(h.ValidationsInfo, ignitionDownloadableID)
 			Expect(found).To(BeTrue())
 			Expect(validationStatus).To(Equal(ValidationFailure))
-			Expect(validationMessage).To(Equal("Ignition is not downloadable. Please ensure host connectivity to the cluster's API"))
+			Expect(validationMessage).To(Equal("This host has failed to download the ignition file from the cluster, please ensure the host can reach the cluster"))
+		})
+		It("day2 host with invalid API Connectivity - fails validation", func() {
+			createDay2Cluster()
+
+			h := getDay2Host()
+			apivip, err := json.Marshal(models.APIVipConnectivityResponse{
+				IsSuccess:     false,
+				Ignition:      "ignition",
+				URL:           "http://cluster.example.com:22624/config/worker",
+				DownloadError: "connection refused",
+			})
+			Expect(err).ShouldNot(HaveOccurred())
+			h.APIVipConnectivity = string(apivip)
+			Expect(db.Create(&h).Error).ShouldNot(HaveOccurred())
+
+			mockAndRefreshStatus(h)
+
+			h = &hostutil.GetHostFromDB(*h.ID, h.InfraEnvID, db).Host
+			validationStatus, validationMessage, found := getValidationResult(h.ValidationsInfo, ignitionDownloadableID)
+			Expect(found).To(BeTrue())
+			Expect(validationStatus).To(Equal(ValidationFailure))
+			Expect(validationMessage).To(Equal("This host has failed to download the ignition file from http://cluster.example.com:22624/config/worker with the following error: connection refused. Please ensure the host can reach this URL"))
 		})
 	})
 

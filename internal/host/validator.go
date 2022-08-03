@@ -620,20 +620,35 @@ func (v *validator) isIgnitionDownloadable(c *validationContext) (ValidationStat
 	if c.infraEnv != nil {
 		return ValidationSuccessSuppressOutput, ""
 	}
+
 	if !hostutil.IsDay2Host(c.host) {
 		return ValidationSuccessSuppressOutput, ""
 	}
+
 	if c.host.APIVipConnectivity == "" {
 		return ValidationPending, "Ignition is not yet available, pending API connectivity"
 	}
-	var response models.APIVipConnectivityResponse
-	if err := json.Unmarshal([]byte(c.host.APIVipConnectivity), &response); err != nil || !response.IsSuccess {
-		return ValidationFailure, "Ignition is not downloadable. Please ensure host connectivity to the cluster's API"
+
+	var apiConnectivityResponse models.APIVipConnectivityResponse
+	if err := json.Unmarshal([]byte(c.host.APIVipConnectivity), &apiConnectivityResponse); err != nil {
+		return ValidationError, "Internal error - failed to parse agent API connectivity response"
 	}
-	if swag.BoolValue(c.cluster.UserManagedNetworking) {
-		return ValidationSuccess, "No API connectivity needed: User Managed Networking"
+
+	if apiConnectivityResponse.IsSuccess {
+		return ValidationSuccess, "Ignition is downloadable"
 	}
-	return ValidationSuccess, "Ignition is downloadable"
+
+	if apiConnectivityResponse.URL == "" {
+		// Missing URL means this is a response from an older agent version,
+		// without much information about what went wrong with the download -
+		// so return an undetailed error message
+		return ValidationFailure, "This host has failed to download the ignition file from the cluster, please ensure the host can reach the cluster"
+	}
+
+	return ValidationFailure, fmt.Sprintf(
+		"This host has failed to download the ignition file from %s with the following error: %s. "+
+			"Please ensure the host can reach this URL",
+		apiConnectivityResponse.URL, apiConnectivityResponse.DownloadError)
 }
 
 func (v *validator) belongsToL2MajorityGroup(c *validationContext, majorityGroups map[string][]strfmt.UUID) ValidationStatus {
@@ -845,13 +860,14 @@ func allImagesValid(imageStatuses common.ImageStatuses) bool {
 	return true
 }
 
-/*
-   This is a pre-install validation that checks that the boot device was either not tested for sufficient disk speed
-   or the disk speed check has been successful.  Since disk speed test is performed after installation has started,
-   in order to have result for such test, the result has to be from a previous installation attempt.
-   Since all pre-install validations have to pass before starting installation, it is mandatory that in case installation
-   on the current boot device has not been attempted yet, this validation must pass.
-*/
+// This is a pre-install validation that checks that the boot device was either
+// not tested for sufficient disk speed or the disk speed check has been
+// successful.  Since disk speed test is performed after installation has
+// started, in order to have result for such test, the result has to be from a
+// previous installation attempt. Since all pre-install validations have to
+// pass before starting installation, it is mandatory that in case installation
+// on the current boot device has not been attempted yet, this validation must
+// pass.
 func (v *validator) sufficientOrUnknownInstallationDiskSpeed(c *validationContext) (ValidationStatus, string) {
 	info, err := v.getBootDeviceInfo(c.host)
 	if err != nil {
