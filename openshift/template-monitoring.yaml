@@ -13,7 +13,7 @@ objects:
   metadata:
     labels:
       prometheus: app-sre
-    name: servicemonitor-assisted-installer
+    name: servicemonitor-assisted-installer-${NAMESPACE}
   spec:
     endpoints:
     - interval: 30s
@@ -31,7 +31,7 @@ objects:
   metadata:
     labels:
       prometheus: app-sre
-    name: servicemonitor-assisted-installer-postgres
+    name: servicemonitor-assisted-installer-postgres-${NAMESPACE}
   spec:
     endpoints:
     - interval: 30s
