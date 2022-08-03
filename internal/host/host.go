@@ -119,7 +119,7 @@ type API interface {
 	SetUploadLogsAt(ctx context.Context, h *models.Host, db *gorm.DB) error
 	UpdateLogsProgress(ctx context.Context, h *models.Host, progress string) error
 	PermanentHostsDeletion(olderThan strfmt.DateTime) error
-	ReportValidationFailedMetrics(ctx context.Context, h *models.Host, ocpVersion, emailDomain string) error
+	ReportValidationFailedMetrics(ctx context.Context, h *models.Host) error
 
 	UpdateRole(ctx context.Context, h *models.Host, role models.HostRole, db *gorm.DB) error
 	UpdateHostname(ctx context.Context, h *models.Host, hostname string, db *gorm.DB) error
@@ -154,6 +154,7 @@ type Manager struct {
 	sm                            stateswitch.StateMachine
 	rp                            *refreshPreprocessor
 	metricApi                     metrics.API
+	hostMetricsReporter           HostMetricsReporterAPI
 	Config                        Config
 	leaderElector                 leader.Leader
 	monitorClusterQueryGenerator  *common.MonitorClusterQueryGenerator
@@ -161,7 +162,7 @@ type Manager struct {
 }
 
 func NewManager(log logrus.FieldLogger, db *gorm.DB, eventsHandler eventsapi.Handler, hwValidator hardware.Validator, instructionApi hostcommands.InstructionApi,
-	hwValidatorCfg *hardware.ValidatorCfg, metricApi metrics.API, config *Config, leaderElector leader.ElectorInterface, operatorsApi operators.API, providerRegistry registry.ProviderRegistry) *Manager {
+	hwValidatorCfg *hardware.ValidatorCfg, metricApi metrics.API, hostMetricsReporter HostMetricsReporterAPI, config *Config, leaderElector leader.ElectorInterface, operatorsApi operators.API, providerRegistry registry.ProviderRegistry) *Manager {
 	th := &transitionHandler{
 		db:            db,
 		log:           log,
@@ -171,16 +172,17 @@ func NewManager(log logrus.FieldLogger, db *gorm.DB, eventsHandler eventsapi.Han
 	sm := NewHostStateMachine(stateswitch.NewStateMachine(), th)
 	sm = NewPoolHostStateMachine(sm, th)
 	return &Manager{
-		log:            log,
-		db:             db,
-		instructionApi: instructionApi,
-		hwValidator:    hwValidator,
-		eventsHandler:  eventsHandler,
-		sm:             sm,
-		rp:             newRefreshPreprocessor(log, hwValidatorCfg, hwValidator, operatorsApi, config.DisabledHostvalidations, providerRegistry),
-		metricApi:      metricApi,
-		Config:         *config,
-		leaderElector:  leaderElector,
+		log:                 log,
+		db:                  db,
+		instructionApi:      instructionApi,
+		hwValidator:         hwValidator,
+		eventsHandler:       eventsHandler,
+		sm:                  sm,
+		rp:                  newRefreshPreprocessor(log, hwValidatorCfg, hwValidator, operatorsApi, config.DisabledHostvalidations, providerRegistry),
+		metricApi:           metricApi,
+		hostMetricsReporter: hostMetricsReporter,
+		Config:              *config,
+		leaderElector:       leaderElector,
 	}
 }
 
@@ -1017,28 +1019,11 @@ func (m *Manager) reportInstallationMetrics(ctx context.Context, h *models.Host,
 		log.Errorf("host %s in cluster %s has empty installation path", h.ID.String(), h.ClusterID.String())
 	}
 
-	m.metricApi.ReportHostInstallationMetrics(ctx, cluster.OpenshiftVersion, *h.ClusterID, cluster.EmailDomain, boot, h, previousProgress, CurrentStage)
+	m.hostMetricsReporter.ReportHostInstallationMetrics(ctx, *h.ClusterID, boot, h, previousProgress, CurrentStage)
 }
 
-func (m *Manager) ReportValidationFailedMetrics(ctx context.Context, h *models.Host, ocpVersion, emailDomain string) error {
-	log := logutil.FromContext(ctx, m.log)
-	if h.ValidationsInfo == "" {
-		log.Warnf("Host %s in cluster %s doesn't contain any validations info, cannot report metrics for that host", h.ID, h.ClusterID)
-		return nil
-	}
-	var validationRes ValidationsStatus
-	if err := json.Unmarshal([]byte(h.ValidationsInfo), &validationRes); err != nil {
-		log.WithError(err).Errorf("Failed to unmarshal validations info from host %s in cluster %s", h.ID, h.ClusterID)
-		return err
-	}
-	for _, vRes := range validationRes {
-		for _, v := range vRes {
-			if v.Status == ValidationFailure {
-				m.metricApi.HostValidationFailed(models.HostValidationID(v.ID))
-			}
-		}
-	}
-	return nil
+func (m *Manager) ReportValidationFailedMetrics(ctx context.Context, h *models.Host) error {
+	return m.hostMetricsReporter.ReportValidationFailedMetrics(ctx, h)
 }
 
 func (m *Manager) reportValidationStatusChanged(ctx context.Context, vc *validationContext, h *models.Host,

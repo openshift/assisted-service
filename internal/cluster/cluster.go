@@ -215,7 +215,7 @@ func (m *Manager) RegisterAddHostsOCPCluster(c *common.Cluster, db *gorm.DB) err
 func (m *Manager) DeregisterCluster(ctx context.Context, c *common.Cluster) error {
 	var metricsErr error
 	for _, h := range c.Hosts {
-		if err := m.hostAPI.ReportValidationFailedMetrics(ctx, h, c.OpenshiftVersion, c.EmailDomain); err != nil {
+		if err := m.hostAPI.ReportValidationFailedMetrics(ctx, h); err != nil {
 			m.log.WithError(err).Errorf("Failed to report metrics for failed validations on host %s in cluster %s", h.ID, c.ID)
 			metricsErr = multierror.Append(metricsErr, err)
 		}

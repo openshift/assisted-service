@@ -94,6 +94,7 @@ type API interface {
 	FileSystemUsage(usageInPercentage float64)
 	MonitoredHostsCount(monitoredHosts int64)
 	MonitoredClusterCount(monitoredClusters int64)
+	InstallationPhaseSeconds(phase, result string, duration time.Duration)
 }
 
 type MetricsManager struct {
@@ -352,110 +353,6 @@ func (m *MetricsManager) ImagePullStatus(imageName, resultStatus string, downloa
 	m.serviceLogicClusterImagePullStatus.WithLabelValues(imageName, resultStatus).Observe(downloadRate)
 }
 
-func (m *MetricsManager) ReportHostInstallationMetrics(ctx context.Context, clusterVersion string, clusterID strfmt.UUID, emailDomain string, boot *models.Disk,
-	h *models.Host, previousProgress *models.HostProgressInfo, currentStage models.HostStage) {
-	log := logutil.FromContext(ctx, logrus.New())
-	if previousProgress != nil && previousProgress.CurrentStage != currentStage {
-		roleStr := string(h.Role)
-		if h.Bootstrap {
-			roleStr = "bootstrap"
-		}
-		installationStageStr := string(currentStage)
-
-		var hwInfo models.Inventory
-		hwVendor, hwProduct := UnknownHWValue, UnknownHWValue
-		if err := json.Unmarshal([]byte(h.Inventory), &hwInfo); err == nil {
-			if hwInfo.SystemVendor != nil {
-				hwVendor = hwInfo.SystemVendor.Manufacturer
-				hwProduct = hwInfo.SystemVendor.ProductName
-			}
-		}
-
-		diskType := models.DriveTypeUnknown
-		if boot != nil {
-			diskType = boot.DriveType
-		}
-		switch currentStage {
-		case models.HostStageDone, models.HostStageFailed:
-			//TODO: handle cancel as well
-			m.reportHostMetricsOnInstallationComplete(ctx, clusterVersion, clusterID, emailDomain, roleStr, hwVendor, hwProduct, string(diskType), installationStageStr, h)
-		}
-		//report the installation phase duration
-		if previousProgress.CurrentStage != "" {
-			duration := time.Since(time.Time(previousProgress.StageStartedAt)).Seconds()
-			phaseResult := models.HostStageDone
-			if currentStage == models.HostStageFailed {
-				phaseResult = models.HostStageFailed
-			}
-			log.Infof("service Logic Host Installation Phase Seconds phase %s, vendor %s product %s disk %s result %s, duration %f",
-				string(previousProgress.CurrentStage), hwVendor, hwProduct, diskType, string(phaseResult), duration)
-			m.handler.AddMetricsEvent(ctx, clusterID, h.ID, models.EventSeverityInfo, "host.stage.duration", time.Now(),
-				"result", string(phaseResult), "duration", duration, "host_stage", string(previousProgress.CurrentStage), "vendor", hwVendor, "product", hwProduct, "disk_type", diskType, "host_role", roleStr)
-
-			m.serviceLogicHostInstallationPhaseSeconds.WithLabelValues(string(previousProgress.CurrentStage),
-				string(phaseResult)).Observe(duration)
-		}
-	}
-}
-
-func (m *MetricsManager) reportHostMetricsOnInstallationComplete(ctx context.Context, clusterVersion string, clusterID strfmt.UUID, emailDomain string,
-	roleStr string, hwVendor string, hwProduct string, diskType string, installationStageStr string, h *models.Host) {
-	log := logutil.FromContext(ctx, logrus.New())
-
-	//increment the count of successful installed hosts
-	log.Infof("service Logic Cluster Hosts clusterVersion %s, roleStr %s, vendor %s, product %s, disk %s, result %s",
-		clusterVersion, roleStr, hwVendor, hwProduct, diskType, installationStageStr)
-	m.serviceLogicClusterHosts.WithLabelValues(roleStr, installationStageStr).Inc()
-
-	var hwInfo models.Inventory
-	err := json.Unmarshal([]byte(h.Inventory), &hwInfo)
-	if err != nil {
-		log.Errorf("failed to report host hardware installation metrics for %s", h.ID)
-		return
-	}
-	//collect the number of host's cores
-	log.Infof("service Logic Cluster Host Cores role %s, result %s cpu %d",
-		roleStr, installationStageStr, hwInfo.CPU.Count)
-
-	m.serviceLogicClusterHostCores.WithLabelValues(roleStr, installationStageStr).
-		Observe(float64(hwInfo.CPU.Count))
-
-	//collect the host's RAM data
-	log.Infof("service Logic Cluster Host RAMGb role %s, result %s ram %d",
-		roleStr, installationStageStr, bytesToGib(hwInfo.Memory.PhysicalBytes))
-
-	m.serviceLogicClusterHostRAMGb.WithLabelValues(roleStr, installationStageStr).
-		Observe(float64(bytesToGib(hwInfo.Memory.PhysicalBytes)))
-
-	m.handler.AddMetricsEvent(ctx, clusterID, h.ID, models.EventSeverityInfo, "host.mem.cpu", time.Now(),
-		"host_result", installationStageStr, "host_role", roleStr, "mem_bytes", bytesToGib(hwInfo.Memory.PhysicalBytes),
-		"core_count", hwInfo.CPU.Count)
-
-	//report disk's type, size and role for each disk
-	for _, disk := range hwInfo.Disks {
-		//TODO change the code after adding storage controller to disk model
-		//TODO missing raid data
-		diskTypeStr := string(disk.DriveType) //+ "-" + disk.StorageController
-		log.Infof("service Logic Cluster Host DiskGb role %s, result %s diskType %s diskSize %d",
-			roleStr, installationStageStr, diskTypeStr, bytesToGib(disk.SizeBytes))
-		m.handler.AddMetricsEvent(ctx, clusterID, h.ID, models.EventSeverityInfo, "disk.size.type", time.Now(),
-			"host_result", installationStageStr, "host_role", roleStr, "disk_type", diskTypeStr, "disk_size", bytesToGib(disk.SizeBytes))
-
-		m.serviceLogicClusterHostDiskGb.WithLabelValues(diskTypeStr, roleStr, installationStageStr).
-			Observe(float64(bytesToGib(disk.SizeBytes)))
-	}
-	//report NIC's speed. role for each NIC
-	for _, inter := range hwInfo.Interfaces {
-		log.Infof("service Logic Cluster Host NicGb role %s, result %s SpeedMbps %f",
-			roleStr, installationStageStr, float64(inter.SpeedMbps))
-		m.handler.AddMetricsEvent(ctx, clusterID, h.ID, models.EventSeverityInfo, "nic.speed", time.Now(),
-			"host_result", installationStageStr, "host_role", roleStr, "nic_speed", inter.SpeedMbps)
-
-		m.serviceLogicClusterHostNicGb.WithLabelValues(roleStr, installationStageStr).
-			Observe(float64(inter.SpeedMbps))
-	}
-}
-
 func (m *MetricsManager) FileSystemUsage(usageInPercentage float64) {
 	m.serviceLogicFilesystemUsagePercentage.WithLabelValues().Set(usageInPercentage)
 }
@@ -466,6 +363,10 @@ func (m *MetricsManager) MonitoredHostsCount(monitoredHosts int64) {
 
 func (m *MetricsManager) MonitoredClusterCount(monitoredClusters int64) {
 	m.serviceLogicMonitoredClusters.WithLabelValues(clusters).Set(float64(monitoredClusters))
+}
+
+func (m *MetricsManager) InstallationPhaseSeconds(phase, result string, duration time.Duration) {
+	m.serviceLogicHostInstallationPhaseSeconds.WithLabelValues(phase, result).Observe(duration.Seconds())
 }
 
 func bytesToGib(bytes int64) int64 {

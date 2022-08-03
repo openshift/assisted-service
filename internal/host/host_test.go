@@ -3038,7 +3038,7 @@ var _ = Describe("Validation metrics and events", func() {
 
 		mockMetric.EXPECT().HostValidationFailed(models.HostValidationIDHasMinCPUCores)
 
-		err := m.ReportValidationFailedMetrics(ctx, h, openshiftVersion, emailDomain)
+		err := m.ReportValidationFailedMetrics(ctx, h)
 		Expect(err).ToNot(HaveOccurred())
 	})
 
