@@ -30,6 +30,7 @@
     - assisted_stop_after_agent_discovery: "{{ lookup('env', 'ASSISTED_STOP_AFTER_AGENT_DISCOVERY') }}"
     - user_managed_networking: "{{ lookup('env', 'USER_MANAGED_NETWORKING') }}"
     - day2: "false"
+    - baremetalhosts_ignition_override: "{{ lookup('env', 'BAREMETALHOSTS_IGNITION_OVERRIDE', default='') }}"
 
   tasks:
   - name: create directory for generated CRDs
