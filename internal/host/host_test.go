@@ -1855,7 +1855,7 @@ var _ = Describe("Unbind host", func() {
 					host.Kind = t.kind
 				}
 				Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
-				t.validation(hapi.UnbindHost(ctx, &host, db))
+				t.validation(hapi.UnbindHost(ctx, &host, db, false))
 			})
 		}
 	})

@@ -339,10 +339,11 @@ func (r *AgentReconciler) tryApproveDay2CSRs(ctx context.Context, agent *aiv1bet
 }
 
 func (r *AgentReconciler) unbindHost(ctx context.Context, log logrus.FieldLogger, agent, origAgent *aiv1beta1.Agent, h *common.Host) (ctrl.Result, error) {
-	host, err2 := r.Installer.UnbindHostInternal(ctx, installer.UnbindHostParams{
+	params := installer.UnbindHostParams{
 		HostID:     *h.ID,
 		InfraEnvID: h.InfraEnvID,
-	})
+	}
+	host, err2 := r.Installer.UnbindHostInternal(ctx, params, false)
 	if err2 != nil {
 		return r.updateStatus(ctx, log, agent, origAgent, &h.Host, nil, err2, !IsUserError(err2))
 	}

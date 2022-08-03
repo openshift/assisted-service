@@ -687,7 +687,7 @@ var _ = Describe("agent reconcile", func() {
 		Expect(c.Create(ctx, clusterDeployment)).To(BeNil())
 
 		mockInstallerInternal.EXPECT().GetHostByKubeKey(gomock.Any()).Return(commonHost, nil)
-		mockInstallerInternal.EXPECT().UnbindHostInternal(gomock.Any(), gomock.Any()).Return(commonHost, nil)
+		mockInstallerInternal.EXPECT().UnbindHostInternal(gomock.Any(), gomock.Any(), false).Return(commonHost, nil)
 		allowGetInfraEnvInternal(mockInstallerInternal, infraEnvId, "infraEnvName")
 		Expect(c.Create(ctx, host)).To(BeNil())
 
@@ -727,7 +727,7 @@ var _ = Describe("agent reconcile", func() {
 
 		errString := "failed to find host in infraEnv"
 		mockInstallerInternal.EXPECT().GetHostByKubeKey(gomock.Any()).Return(commonHost, nil).AnyTimes()
-		mockInstallerInternal.EXPECT().UnbindHostInternal(gomock.Any(), gomock.Any()).Return(commonHost, common.NewApiError(http.StatusNotFound, errors.New(errString)))
+		mockInstallerInternal.EXPECT().UnbindHostInternal(gomock.Any(), gomock.Any(), false).Return(commonHost, common.NewApiError(http.StatusNotFound, errors.New(errString)))
 		allowGetInfraEnvInternal(mockInstallerInternal, infraEnvId, "infraEnvName")
 
 		result, err := hr.Reconcile(ctx, newHostRequest(host))
@@ -859,7 +859,7 @@ var _ = Describe("agent reconcile", func() {
 
 		mockInstallerInternal.EXPECT().GetHostByKubeKey(gomock.Any()).Return(commonHost, nil)
 		mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(targetBECluster, nil)
-		mockInstallerInternal.EXPECT().UnbindHostInternal(gomock.Any(), gomock.Any()).Return(commonHost, nil)
+		mockInstallerInternal.EXPECT().UnbindHostInternal(gomock.Any(), gomock.Any(), false).Return(commonHost, nil)
 		allowGetInfraEnvInternal(mockInstallerInternal, infraEnvId, "infraEnvName")
 		Expect(c.Create(ctx, host)).To(BeNil())
 
