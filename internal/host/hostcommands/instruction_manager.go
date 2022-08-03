@@ -243,6 +243,7 @@ func (i *InstructionManager) isAgentUpgradeAllowed(host *models.Host) bool {
 		models.HostStatusInsufficient,
 		models.HostStatusInsufficientUnbound,
 		models.HostStatusKnown,
+		models.HostStatusPendingForInput,
 		models.HostStatusKnownUnbound:
 		return true
 	default:
