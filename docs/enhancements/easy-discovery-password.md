@@ -8,7 +8,8 @@ last-updated: 2022-08-02
 
 # Easy discovery login password
 
-Give users an easy, safe way to set the discovery ISO ignition
+Give users an easy, safe way to set the discovery ISO `core` user login
+password.
 
 ## Summary
 
@@ -64,25 +65,28 @@ needed.
 
 #### REST API
 
-- Add a new optional `discovery_core_user_password_hash` parameter to the
-`infra-env-create-params` API structure. Ensure this parameter has
-`description:` documentation explaining how the hash can be calculated and what
-its format should look like, preferably with an example. The service will use
-this new parameter to set the `core` user discovery ISO password hash. Since
-this is just a salted hash, the service has no practical way to figure out what
-the password actually is.
+- Add a new optional `core_user_password_hash` parameter to the
+`infra-env-create-params` and `infra-env-update-params' API structures. Ensure
+this parameter has `description:` documentation explaining how the hash can be
+calculated and what its format should look like, preferably with an example.
+The service will use this new parameter to set the `core` user discovery ISO
+password hash. Since this is just a salted hash, the service has no practical
+way to figure out what the password actually is.
 
 #### Kubernetes API
 
 - Extend the InfraEnv CR to support a similar (see REST API section above)
-`discovery_core_user_password_hash` parameter.
+`core_user_password_hash` parameter.
 
 ### UI changes
 
 - Extend the discovery ISO generation UI modal to let users input a password.
 If and when the user provides a password in that field, UI will calculate the
-hash for the user-provided password and will set the `discovery_core_user_password_hash`
-parameter accordingly.
+hash for the user-provided password and will set the `core_user_password_hash`
+parameter accordingly. When the user closes and re-opens the modal the UI will
+no longer know the user password, so it can do something like showing `*****`
+(problematic because it doesn't even know the length) or say "Password has been
+set, click here to change it"
 
 ### User Stories
 
