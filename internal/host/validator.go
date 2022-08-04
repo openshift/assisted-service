@@ -60,19 +60,19 @@ func (v ValidationStatus) String() string {
 
 type InventoryCache map[string]*models.Inventory
 
-func (ic InventoryCache) GetOrUnmarshal(host *models.Host) (inventory *models.Inventory, err error) {
+func (inventoryCache InventoryCache) GetOrUnmarshal(host *models.Host) (inventory *models.Inventory, err error) {
 	if host.Inventory == "" {
 		return nil, nil
 	}
 	var ok bool
 	key := host.ID.String() + "@" + host.InfraEnvID.String()
-	inventory, ok = ic[key]
+	inventory, ok = inventoryCache[key]
 	if !ok {
 		inventory, err = common.UnmarshalInventory(host.Inventory)
 		if err != nil {
 			return
 		}
-		ic[key] = inventory
+		inventoryCache[key] = inventory
 	}
 	return
 
@@ -1570,4 +1570,59 @@ func (v *validator) compatibleAgent(c *validationContext) (ValidationStatus, str
 	}
 	return ValidationFailure, "This host's agent is in the process of being upgraded to a compatible " +
 		"version. This might take a few minutes"
+}
+
+func (v *validator) noSkipInstallationDisk(c *validationContext) (ValidationStatus, string) {
+	const (
+		successMessage string = "No request to skip formatting of the installation disk"
+		failureMessage string = "Requesting to skip the formatting of the installation disk is not allowed. The installation disk must be formatted. Please either change this host's installation disk or do not skip the formatting of the installation disk"
+	)
+
+	// Make sure the user didn't ask us to skip the formatting of the current
+	// installation disk
+	if c.host.InstallationDiskID == "" || !funk.ContainsString(
+		common.GetSkippedFormattingDiskIdentifiers(c.host), c.host.InstallationDiskID) {
+
+		return ValidationSuccess, successMessage
+	}
+
+	return ValidationFailure, failureMessage
+}
+
+func (v *validator) noSkipMissingDisk(c *validationContext) (ValidationStatus, string) {
+	const (
+		pendingMessage string = "Host inventory not available yet"
+		successMessage string = "All disks that have skipped formatting are present in the host inventory"
+		failureMessage string = "One or more of the disks that you have requested to skip the formatting of are no longer present on this host. To ensure they haven't just changed their identity, please remove your request to skip their formatting and then if needed add them back using the new ID"
+		errorMessage   string = "Failed to unmarshal this host's inventory"
+	)
+
+	if c.host.Inventory == "" {
+		return ValidationPending, pendingMessage
+	}
+
+	// Make sure that all skip formatting disks are in the inventory. This is
+	// to ensure that if the user reboots the system and somehow the disk they
+	// asked to skip the formatting of changed ID, then they would have to
+	// manually and consciously remove it from the `skip_formatting_disks` list,
+	// so we don't accidentally erase it under its new ID.
+	for _, skipFormattingDiskID := range common.GetSkippedFormattingDiskIdentifiers(c.host) {
+		inventory, err := c.inventoryCache.GetOrUnmarshal(c.host)
+		if err != nil {
+			return ValidationError, errorMessage
+		}
+
+		found := false
+		for _, inventoryDisk := range inventory.Disks {
+			if skipFormattingDiskID == common.GetDeviceIdentifier(inventoryDisk) {
+				found = true
+				break
+			}
+		}
+
+		if !found {
+			return ValidationFailure, failureMessage
+		}
+	}
+	return ValidationSuccess, successMessage
 }

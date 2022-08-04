@@ -6469,6 +6469,24 @@ func init() {
         "install"
       ]
     },
+    "disk-skip-formatting-params": {
+      "description": "Allows an addition or removal of a host disk from the host's skip_formatting_disks list",
+      "type": "object",
+      "required": [
+        "disk_id",
+        "skip_formatting"
+      ],
+      "properties": {
+        "disk_id": {
+          "description": "The ID of the disk that is being added to or removed from the host's skip_formatting_disks list",
+          "type": "string"
+        },
+        "skip_formatting": {
+          "description": "True if you wish to add the disk to the skip_formatting_disks list, false if you wish to remove it",
+          "type": "boolean"
+        }
+      }
+    },
     "disk_info": {
       "type": "object",
       "properties": {
@@ -6933,6 +6951,11 @@ func init() {
           "type": "string",
           "x-go-custom-tag": "gorm:\"type:text\""
         },
+        "disks_to_be_formatted": {
+          "description": "A comma-separated list of disks that will be formatted once\ninstallation begins, unless otherwise set to be skipped by\nskip_formatting_disks. This means that this list also includes disks\nthat appear in skip_formatting_disks. This property is managed by the\nservice and cannot be modified by the user.",
+          "type": "string",
+          "x-go-custom-tag": "gorm:\"type:text\""
+        },
         "domain_name_resolutions": {
           "description": "The domain name resolution result.",
           "type": "string",
@@ -7058,6 +7081,11 @@ func init() {
         },
         "role": {
           "$ref": "#/definitions/host-role"
+        },
+        "skip_formatting_disks": {
+          "description": "A comma-seperated list of host disks that the service will avoid\nformatting.",
+          "type": "string",
+          "x-go-custom-tag": "gorm:\"type:text\""
         },
         "stage_started_at": {
           "description": "Time at which the current progress stage started.",
@@ -7290,6 +7318,14 @@ func init() {
           },
           "x-nullable": true
         },
+        "disks_skip_formatting": {
+          "description": "Allows changing the host's skip_formatting_disks parameter",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/disk-skip-formatting-params"
+          },
+          "x-nullable": true
+        },
         "host_name": {
           "type": "string",
           "x-nullable": true
@@ -7358,7 +7394,9 @@ func init() {
         "disk-encryption-requirements-satisfied",
         "non-overlapping-subnets",
         "vsphere-disk-uuid-enabled",
-        "compatible-agent"
+        "compatible-agent",
+        "no-skip-installation-disk",
+        "no-skip-missing-disk"
       ]
     },
     "host_network": {
@@ -15871,6 +15909,24 @@ func init() {
         "install"
       ]
     },
+    "disk-skip-formatting-params": {
+      "description": "Allows an addition or removal of a host disk from the host's skip_formatting_disks list",
+      "type": "object",
+      "required": [
+        "disk_id",
+        "skip_formatting"
+      ],
+      "properties": {
+        "disk_id": {
+          "description": "The ID of the disk that is being added to or removed from the host's skip_formatting_disks list",
+          "type": "string"
+        },
+        "skip_formatting": {
+          "description": "True if you wish to add the disk to the skip_formatting_disks list, false if you wish to remove it",
+          "type": "boolean"
+        }
+      }
+    },
     "disk_info": {
       "type": "object",
       "properties": {
@@ -16263,6 +16319,11 @@ func init() {
           "type": "string",
           "x-go-custom-tag": "gorm:\"type:text\""
         },
+        "disks_to_be_formatted": {
+          "description": "A comma-separated list of disks that will be formatted once\ninstallation begins, unless otherwise set to be skipped by\nskip_formatting_disks. This means that this list also includes disks\nthat appear in skip_formatting_disks. This property is managed by the\nservice and cannot be modified by the user.",
+          "type": "string",
+          "x-go-custom-tag": "gorm:\"type:text\""
+        },
         "domain_name_resolutions": {
           "description": "The domain name resolution result.",
           "type": "string",
@@ -16388,6 +16449,11 @@ func init() {
         },
         "role": {
           "$ref": "#/definitions/host-role"
+        },
+        "skip_formatting_disks": {
+          "description": "A comma-seperated list of host disks that the service will avoid\nformatting.",
+          "type": "string",
+          "x-go-custom-tag": "gorm:\"type:text\""
         },
         "stage_started_at": {
           "description": "Time at which the current progress stage started.",
@@ -16620,6 +16686,14 @@ func init() {
           },
           "x-nullable": true
         },
+        "disks_skip_formatting": {
+          "description": "Allows changing the host's skip_formatting_disks parameter",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/disk-skip-formatting-params"
+          },
+          "x-nullable": true
+        },
         "host_name": {
           "type": "string",
           "x-nullable": true
@@ -16688,7 +16762,9 @@ func init() {
         "disk-encryption-requirements-satisfied",
         "non-overlapping-subnets",
         "vsphere-disk-uuid-enabled",
-        "compatible-agent"
+        "compatible-agent",
+        "no-skip-installation-disk",
+        "no-skip-missing-disk"
       ]
     },
     "host_network": {

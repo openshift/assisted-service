@@ -258,6 +258,14 @@ func newValidations(v *validator) []validation {
 			id:        CompatibleAgent,
 			condition: v.compatibleAgent,
 		},
+		{
+			id:        NoSkipInstallationDisk,
+			condition: v.noSkipInstallationDisk,
+		},
+		{
+			id:        NoSkipMissingDisk,
+			condition: v.noSkipMissingDisk,
+		},
 	}
 }
 

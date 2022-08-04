@@ -164,7 +164,7 @@ func (th *transitionHandler) PostRegisterDuringReboot(sw stateswitch.StateSwitch
 		messages = append(messages, installationDisk.Serial)
 	}
 
-	messages = append(messages, fmt.Sprintf("(%s, %s)", installationDisk.Name, hostutil.GetDeviceIdentifier(installationDisk)))
+	messages = append(messages, fmt.Sprintf("(%s, %s)", installationDisk.Name, common.GetDeviceIdentifier(installationDisk)))
 	return th.updateTransitionHost(params.ctx, logutil.FromContext(params.ctx, th.log), params.db, sHost, strings.Join(messages, " "))
 }
 
@@ -656,7 +656,7 @@ func (th *transitionHandler) PostRefreshHost(reason string) stateswitch.PostTran
 				// in case we fail to parse the inventory replace $INSTALLATION_DISK with nothing
 				template = strings.Replace(template, "$INSTALLATION_DISK", "", 1)
 			} else {
-				template = strings.Replace(template, "$INSTALLATION_DISK", fmt.Sprintf("(%s, %s)", installationDisk.Name, hostutil.GetDeviceIdentifier(installationDisk)), 1)
+				template = strings.Replace(template, "$INSTALLATION_DISK", fmt.Sprintf("(%s, %s)", installationDisk.Name, common.GetDeviceIdentifier(installationDisk)), 1)
 
 			}
 		}

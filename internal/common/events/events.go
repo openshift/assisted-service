@@ -3566,6 +3566,117 @@ func (e *QuickDiskFormatPerformedEvent) FormatMessage() string {
 }
 
 //
+// Event quick_disk_format_skipped
+//
+type QuickDiskFormatSkippedEvent struct {
+    eventName string
+    HostId strfmt.UUID
+    InfraEnvId strfmt.UUID
+    ClusterId *strfmt.UUID
+    HostName string
+    DiskName string
+    DiskId string
+}
+
+var QuickDiskFormatSkippedEventName string = "quick_disk_format_skipped"
+
+func NewQuickDiskFormatSkippedEvent(
+    hostId strfmt.UUID,
+    infraEnvId strfmt.UUID,
+    clusterId *strfmt.UUID,
+    hostName string,
+    diskName string,
+    diskId string,
+) *QuickDiskFormatSkippedEvent {
+    return &QuickDiskFormatSkippedEvent{
+        eventName: QuickDiskFormatSkippedEventName,
+        HostId: hostId,
+        InfraEnvId: infraEnvId,
+        ClusterId: clusterId,
+        HostName: hostName,
+        DiskName: diskName,
+        DiskId: diskId,
+    }
+}
+
+func SendQuickDiskFormatSkippedEvent(
+    ctx context.Context,
+    eventsHandler eventsapi.Sender,
+    hostId strfmt.UUID,
+    infraEnvId strfmt.UUID,
+    clusterId *strfmt.UUID,
+    hostName string,
+    diskName string,
+    diskId string,) {
+    ev := NewQuickDiskFormatSkippedEvent(
+        hostId,
+        infraEnvId,
+        clusterId,
+        hostName,
+        diskName,
+        diskId,
+    )
+    eventsHandler.SendHostEvent(ctx, ev)
+}
+
+func SendQuickDiskFormatSkippedEventAtTime(
+    ctx context.Context,
+    eventsHandler eventsapi.Sender,
+    hostId strfmt.UUID,
+    infraEnvId strfmt.UUID,
+    clusterId *strfmt.UUID,
+    hostName string,
+    diskName string,
+    diskId string,
+    eventTime time.Time) {
+    ev := NewQuickDiskFormatSkippedEvent(
+        hostId,
+        infraEnvId,
+        clusterId,
+        hostName,
+        diskName,
+        diskId,
+    )
+    eventsHandler.SendHostEventAtTime(ctx, ev, eventTime)
+}
+
+func (e *QuickDiskFormatSkippedEvent) GetName() string {
+    return e.eventName
+}
+
+func (e *QuickDiskFormatSkippedEvent) GetSeverity() string {
+    return "info"
+}
+func (e *QuickDiskFormatSkippedEvent) GetClusterId() *strfmt.UUID {
+    return e.ClusterId
+}
+func (e *QuickDiskFormatSkippedEvent) GetHostId() strfmt.UUID {
+    return e.HostId
+}
+func (e *QuickDiskFormatSkippedEvent) GetInfraEnvId() strfmt.UUID {
+    return e.InfraEnvId
+}
+
+
+
+func (e *QuickDiskFormatSkippedEvent) format(message *string) string {
+    r := strings.NewReplacer(
+        "{host_id}", fmt.Sprint(e.HostId),
+        "{infra_env_id}", fmt.Sprint(e.InfraEnvId),
+        "{cluster_id}", fmt.Sprint(e.ClusterId),
+        "{host_name}", fmt.Sprint(e.HostName),
+        "{disk_name}", fmt.Sprint(e.DiskName),
+        "{disk_id}", fmt.Sprint(e.DiskId),
+    )
+    return r.Replace(*message)
+}
+
+func (e *QuickDiskFormatSkippedEvent) FormatMessage() string {
+    s := "{host_name}: Skipping quick format of disk {disk_name}({disk_id}) due to user request. This could lead to boot order issues during installation"
+    return e.format(&s)
+}
+
+//
 // Event infra_env_registration_failed
 //
 type InfraEnvRegistrationFailedEvent struct {

@@ -52,7 +52,7 @@ var _ = Describe("installcmd", func() {
 		clusterId         strfmt.UUID
 		infraEnvId        strfmt.UUID
 		infraEnv          common.InfraEnv
-		stepReply         []*models.Step
+		installCmdSteps   []*models.Step
 		stepErr           error
 		ctrl              *gomock.Controller
 		mockValidator     *hardware.MockValidator
@@ -99,8 +99,8 @@ var _ = Describe("installcmd", func() {
 		})
 
 		AfterEach(func() {
-			stepReply, stepErr = installCmd.GetSteps(ctx, &host)
-			Expect(stepReply).To(BeNil())
+			installCmdSteps, stepErr = installCmd.GetSteps(ctx, &host)
+			Expect(installCmdSteps).To(BeNil())
 			postvalidation(true, true, nil, stepErr, "")
 			hostFromDb := hostutil.GetHostFromDB(*host.ID, infraEnvId, db)
 			Expect(hostFromDb.InstallerVersion).Should(BeEmpty())
@@ -111,9 +111,9 @@ var _ = Describe("installcmd", func() {
 		mockValidator.EXPECT().GetHostInstallationPath(gomock.Any()).Return(common.TestDiskId).Times(1)
 		mockGetReleaseImage(1)
 		mockImages(1)
-		stepReply, stepErr = installCmd.GetSteps(ctx, &host)
-		postvalidation(false, false, stepReply[0], stepErr, models.HostRoleMaster)
-		validateInstallCommand(installCmd, stepReply[0], models.HostRoleMaster, infraEnvId, clusterId, *host.ID, common.TestDiskId, nil, models.ClusterHighAvailabilityModeFull)
+		installCmdSteps, stepErr = installCmd.GetSteps(ctx, &host)
+		postvalidation(false, false, installCmdSteps[0], stepErr, models.HostRoleMaster)
+		validateInstallCommand(installCmd, installCmdSteps[0], models.HostRoleMaster, infraEnvId, clusterId, *host.ID, common.TestDiskId, nil, models.ClusterHighAvailabilityModeFull)
 		hostFromDb := hostutil.GetHostFromDB(*host.ID, infraEnvId, db)
 		Expect(hostFromDb.InstallerVersion).Should(Equal(DefaultInstructionConfig.InstallerImage))
 	})
@@ -124,24 +124,24 @@ var _ = Describe("installcmd", func() {
 		mockValidator.EXPECT().GetHostInstallationPath(gomock.Any()).Return(common.TestDiskId).Times(3)
 		mockGetReleaseImage(3)
 		mockImages(3)
-		stepReply, stepErr = installCmd.GetSteps(ctx, &host)
-		postvalidation(false, false, stepReply[0], stepErr, models.HostRoleMaster)
-		validateInstallCommand(installCmd, stepReply[0], models.HostRoleMaster, infraEnvId, clusterId, *host.ID, common.TestDiskId, nil, models.ClusterHighAvailabilityModeFull)
-		stepReply, stepErr = installCmd.GetSteps(ctx, &host2)
-		postvalidation(false, false, stepReply[0], stepErr, models.HostRoleMaster)
-		validateInstallCommand(installCmd, stepReply[0], models.HostRoleMaster, infraEnvId, clusterId, *host2.ID, common.TestDiskId, nil, models.ClusterHighAvailabilityModeFull)
-		stepReply, stepErr = installCmd.GetSteps(ctx, &host3)
-		postvalidation(false, false, stepReply[0], stepErr, models.HostRoleBootstrap)
-		validateInstallCommand(installCmd, stepReply[0], models.HostRoleBootstrap, infraEnvId, clusterId, *host3.ID, common.TestDiskId, nil, models.ClusterHighAvailabilityModeFull)
+		installCmdSteps, stepErr = installCmd.GetSteps(ctx, &host)
+		postvalidation(false, false, installCmdSteps[0], stepErr, models.HostRoleMaster)
+		validateInstallCommand(installCmd, installCmdSteps[0], models.HostRoleMaster, infraEnvId, clusterId, *host.ID, common.TestDiskId, nil, models.ClusterHighAvailabilityModeFull)
+		installCmdSteps, stepErr = installCmd.GetSteps(ctx, &host2)
+		postvalidation(false, false, installCmdSteps[0], stepErr, models.HostRoleMaster)
+		validateInstallCommand(installCmd, installCmdSteps[0], models.HostRoleMaster, infraEnvId, clusterId, *host2.ID, common.TestDiskId, nil, models.ClusterHighAvailabilityModeFull)
+		installCmdSteps, stepErr = installCmd.GetSteps(ctx, &host3)
+		postvalidation(false, false, installCmdSteps[0], stepErr, models.HostRoleBootstrap)
+		validateInstallCommand(installCmd, installCmdSteps[0], models.HostRoleBootstrap, infraEnvId, clusterId, *host3.ID, common.TestDiskId, nil, models.ClusterHighAvailabilityModeFull)
 	})
 	It("invalid_inventory", func() {
 		host.Inventory = "blah"
 		mockValidator.EXPECT().GetHostInstallationPath(gomock.Any()).Return(common.TestDiskId).Times(1)
-		stepReply, stepErr = installCmd.GetSteps(ctx, &host)
+		installCmdSteps, stepErr = installCmd.GetSteps(ctx, &host)
 		postvalidation(true, true, nil, stepErr, "")
 	})
 
-	Context("Bootable_Disks", func() {
+	Context("Bootable disk formatting", func() {
 		createDisk := func(name string, bootable bool) *models.Disk {
 			return &models.Disk{DriveType: models.DriveTypeHDD, ID: fmt.Sprintf("/dev/disk/by-id/wwn-%s", name), Name: name,
 				SizeBytes: int64(128849018880), Bootable: bootable}
@@ -171,7 +171,17 @@ var _ = Describe("installcmd", func() {
 				eventstest.WithClusterIdMatcher(host.ClusterID.String()),
 				eventstest.WithMessageMatcher(message),
 				eventstest.WithHostIdMatcher(host.ID.String()))).Times(times)
+		}
 
+		mockSkipFormatEvent := func(disk *models.Disk, times int) {
+			eventStatusInfo := "%s: Skipping quick format of disk %s(%s) due to user request. This could lead to boot order issues during installation"
+			message := fmt.Sprintf(eventStatusInfo, hostutil.GetHostnameForMsg(&host), disk.Name, disk.ID)
+			mockEvents.EXPECT().SendHostEvent(gomock.Any(), eventstest.NewEventMatcher(
+				eventstest.WithNameMatcher(eventgen.QuickDiskFormatSkippedEventName),
+				eventstest.WithInfraEnvIdMatcher(host.InfraEnvID.String()),
+				eventstest.WithClusterIdMatcher(host.ClusterID.String()),
+				eventstest.WithMessageMatcher(message),
+				eventstest.WithHostIdMatcher(host.ID.String()))).Times(times)
 		}
 
 		prepareGetStep := func(disk *models.Disk) {
@@ -185,7 +195,7 @@ var _ = Describe("installcmd", func() {
 		sdh := createDisk("sdh", false)
 		sdc := createDisk("sdc", true)
 
-		It("format_removable_disk_should_not_occur", func() {
+		It("Doesn't format removable disks", func() {
 			disks := []*models.Disk{
 				createRemovableDisk("sda", true), //removable disk
 				sdb,                              //installation disk
@@ -193,11 +203,11 @@ var _ = Describe("installcmd", func() {
 			host.Inventory = getInventory(disks)
 			mockFormatEvent(disks[0], 0)
 			prepareGetStep(sdb)
-			stepReply, stepErr = installCmd.GetSteps(ctx, &host)
-			verifyDiskFormatCommand(stepReply[0], disks[0].ID, false)
+			installCmdSteps, stepErr = installCmd.GetSteps(ctx, &host)
+			verifyDiskFormatCommand(installCmdSteps[0], disks[0].ID, false)
 		})
 
-		It("format_one_bootable", func() {
+		It("Formats a single removable disk", func() {
 			disks := []*models.Disk{
 				sdb, //installation disk
 				sda, //bootable disk
@@ -206,17 +216,17 @@ var _ = Describe("installcmd", func() {
 			host.Inventory = getInventory(disks)
 			mockFormatEvent(sda, 1)
 			prepareGetStep(sdb)
-			stepReply, stepErr = installCmd.GetSteps(ctx, &host)
-			postvalidation(false, false, stepReply[0], stepErr, models.HostRoleMaster)
-			validateInstallCommand(installCmd, stepReply[0], models.HostRoleMaster, infraEnvId, clusterId, *host.ID, sdb.ID, getBootableDiskNames(disks), models.ClusterHighAvailabilityModeFull)
+			installCmdSteps, stepErr = installCmd.GetSteps(ctx, &host)
+			postvalidation(false, false, installCmdSteps[0], stepErr, models.HostRoleMaster)
+			validateInstallCommand(installCmd, installCmdSteps[0], models.HostRoleMaster, infraEnvId, clusterId, *host.ID, sdb.ID, getBootableDiskNames(disks), models.ClusterHighAvailabilityModeFull)
 			hostFromDb := hostutil.GetHostFromDB(*host.ID, infraEnvId, db)
 			Expect(hostFromDb.InstallerVersion).Should(Equal(DefaultInstructionConfig.InstallerImage))
-			verifyDiskFormatCommand(stepReply[0], sda.ID, true)
-			verifyDiskFormatCommand(stepReply[0], sdb.ID, false)
-			verifyDiskFormatCommand(stepReply[0], sdh.ID, false)
+			verifyDiskFormatCommand(installCmdSteps[0], sda.ID, true)
+			verifyDiskFormatCommand(installCmdSteps[0], sdb.ID, false)
+			verifyDiskFormatCommand(installCmdSteps[0], sdh.ID, false)
 		})
 
-		It("format_multiple_bootable_skip", func() {
+		It("Format multiple bootable disks with some skipped", func() {
 			sdi := createDisk("sdi", true)
 			sdi.DriveType = models.DriveTypeFC
 			sdg := createDisk("sdg", true)
@@ -227,34 +237,42 @@ var _ = Describe("installcmd", func() {
 			sdj.ByPath = "/dev/mmcblk1boot1"
 			sdk := createDisk("sdk", true)
 			sdk.DriveType = models.DriveTypeLVM
+			sdt := createDisk("sdt", true)
+			sdq := createDisk("sdq", true)
+			sdf := createDisk("sdf", false)
 
 			disks := []*models.Disk{
-				sdb,                      //installation disk
-				sdh,                      //non-bootable-disk
-				sda,                      //bootable disk #1
-				sdc,                      //bootable disk #2
-				sdi,                      //skip bootable disk FC
-				sdg,                      //skip bootable disk iSCSI
-				createDisk("sdf", false), //non-bootable disk
-				sdd,                      //skip installation media
-				sdj,                      //skip mmcblk device
-				sdk,                      //skip bootable disk LVM
+				sdb, //installation disk
+				sdh, //non-bootable-disk
+				sda, //bootable disk #1
+				sdc, //bootable disk #2
+				sdi, //skip bootable disk FC
+				sdg, //skip bootable disk iSCSI
+				sdf, //non-bootable disk
+				sdd, //skip installation media
+				sdj, //skip mmcblk device
+				sdk, //skip bootable disk LVM
+				sdt, //skip because user asked
+				sdq, //skip because user asked
 			}
 			host.Inventory = getInventory(disks)
+			host.SkipFormattingDisks = "/dev/disk/by-id/wwn-sdt,/dev/disk/by-id/wwn-sdq"
 			mockFormatEvent(sda, 1)
 			mockFormatEvent(sdc, 1)
+			mockSkipFormatEvent(sdt, 1)
+			mockSkipFormatEvent(sdq, 1)
 			prepareGetStep(sdb)
-			stepReply, stepErr = installCmd.GetSteps(ctx, &host)
-			postvalidation(false, false, stepReply[0], stepErr, models.HostRoleMaster)
-			validateInstallCommand(installCmd, stepReply[0], models.HostRoleMaster, infraEnvId, clusterId, *host.ID, sdb.ID, []string{sda.ID, sdc.ID}, models.ClusterHighAvailabilityModeFull)
+			installCmdSteps, stepErr = installCmd.GetSteps(ctx, &host)
+			postvalidation(false, false, installCmdSteps[0], stepErr, models.HostRoleMaster)
+			validateInstallCommand(installCmd, installCmdSteps[0], models.HostRoleMaster, infraEnvId, clusterId, *host.ID, sdb.ID, []string{sda.ID, sdc.ID}, models.ClusterHighAvailabilityModeFull)
 			hostFromDb := hostutil.GetHostFromDB(*host.ID, infraEnvId, db)
 			Expect(hostFromDb.InstallerVersion).Should(Equal(DefaultInstructionConfig.InstallerImage))
-			verifyDiskFormatCommand(stepReply[0], sda.ID, true)
-			verifyDiskFormatCommand(stepReply[0], sdc.ID, true)
-			verifyDiskFormatCommand(stepReply[0], sdi.ID, false)
-			verifyDiskFormatCommand(stepReply[0], sdg.ID, false)
-			verifyDiskFormatCommand(stepReply[0], sdj.ID, false)
-			verifyDiskFormatCommand(stepReply[0], sdk.ID, false)
+			verifyDiskFormatCommand(installCmdSteps[0], sda.ID, true)
+			verifyDiskFormatCommand(installCmdSteps[0], sdc.ID, true)
+			verifyDiskFormatCommand(installCmdSteps[0], sdi.ID, false)
+			verifyDiskFormatCommand(installCmdSteps[0], sdg.ID, false)
+			verifyDiskFormatCommand(installCmdSteps[0], sdj.ID, false)
+			verifyDiskFormatCommand(installCmdSteps[0], sdk.ID, false)
 		})
 	})
 
@@ -262,7 +280,7 @@ var _ = Describe("installcmd", func() {
 		// cleanup
 		common.DeleteTestDB(db, dbName)
 		ctrl.Finish()
-		stepReply = nil
+		installCmdSteps = nil
 		stepErr = nil
 	})
 })
@@ -317,7 +335,7 @@ var _ = Describe("installcmd arguments", func() {
 			stepReply, err := installCmd.GetSteps(ctx, &host)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(stepReply).NotTo(BeNil())
-			request := getRequest(stepReply[0])
+			request := generateRequestForStep(stepReply[0])
 			Expect(swag.BoolValue(request.CheckCvo)).To(BeFalse())
 		})
 
@@ -329,7 +347,7 @@ var _ = Describe("installcmd arguments", func() {
 			stepReply, err := installCmd.GetSteps(ctx, &host)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(stepReply).NotTo(BeNil())
-			request := getRequest(stepReply[0])
+			request := generateRequestForStep(stepReply[0])
 			Expect(swag.BoolValue(request.CheckCvo)).To(BeFalse())
 		})
 
@@ -341,7 +359,7 @@ var _ = Describe("installcmd arguments", func() {
 			stepReply, err := installCmd.GetSteps(ctx, &host)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(stepReply).NotTo(BeNil())
-			request := getRequest(stepReply[0])
+			request := generateRequestForStep(stepReply[0])
 			Expect(swag.BoolValue(request.CheckCvo)).To(BeTrue())
 		})
 
@@ -350,7 +368,7 @@ var _ = Describe("installcmd arguments", func() {
 			stepReply, err := installCmd.GetSteps(ctx, &host)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(stepReply).NotTo(BeNil())
-			request := getRequest(stepReply[0])
+			request := generateRequestForStep(stepReply[0])
 			Expect(*request.HighAvailabilityMode).To(Equal(models.ClusterHighAvailabilityModeNone))
 		})
 
@@ -363,7 +381,7 @@ var _ = Describe("installcmd arguments", func() {
 			stepReply, err := installCmd.GetSteps(ctx, &host)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(stepReply).NotTo(BeNil())
-			request := getRequest(stepReply[0])
+			request := generateRequestForStep(stepReply[0])
 			Expect(request.McoImage).To(Equal(""))
 		})
 
@@ -373,7 +391,7 @@ var _ = Describe("installcmd arguments", func() {
 			stepReply, err := installCmd.GetSteps(ctx, &host)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(stepReply).NotTo(BeNil())
-			request := getRequest(stepReply[0])
+			request := generateRequestForStep(stepReply[0])
 			Expect(request.McoImage).To(BeEmpty())
 			Expect(request.OpenshiftVersion).To(BeEmpty())
 			Expect(request.MustGatherImage).To(BeEmpty())
@@ -396,7 +414,7 @@ var _ = Describe("installcmd arguments", func() {
 			stepReply, err := installCmd.GetSteps(ctx, &host)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(stepReply).NotTo(BeNil())
-			request := getRequest(stepReply[0])
+			request := generateRequestForStep(stepReply[0])
 			Expect(request.InstallerArgs).To(Equal(host.InstallerArgs))
 			Expect(request.SkipInstallationDiskCleanup).To(BeFalse())
 		})
@@ -405,7 +423,7 @@ var _ = Describe("installcmd arguments", func() {
 			stepReply, err := installCmd.GetSteps(ctx, &host)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(stepReply).NotTo(BeNil())
-			request := getRequest(stepReply[0])
+			request := generateRequestForStep(stepReply[0])
 			Expect(request.InstallerArgs).To(BeEmpty())
 		})
 
@@ -415,7 +433,7 @@ var _ = Describe("installcmd arguments", func() {
 			stepReply, err := installCmd.GetSteps(ctx, &host)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(stepReply).NotTo(BeNil())
-			request := getRequest(stepReply[0])
+			request := generateRequestForStep(stepReply[0])
 			Expect(request.InstallerArgs).To(Equal(`["--copy-network"]`))
 		})
 
@@ -425,7 +443,7 @@ var _ = Describe("installcmd arguments", func() {
 			stepReply, err := installCmd.GetSteps(ctx, &host)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(stepReply).NotTo(BeNil())
-			request := getRequest(stepReply[0])
+			request := generateRequestForStep(stepReply[0])
 			Expect(request.InstallerArgs).To(Equal(`["--append-karg","nameserver=8.8.8.8","-n","--copy-network"]`))
 		})
 
@@ -435,7 +453,7 @@ var _ = Describe("installcmd arguments", func() {
 			stepReply, err := installCmd.GetSteps(ctx, &host)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(stepReply).NotTo(BeNil())
-			request := getRequest(stepReply[0])
+			request := generateRequestForStep(stepReply[0])
 			Expect(request.InstallerArgs).To(Equal(host.InstallerArgs))
 		})
 
@@ -444,7 +462,7 @@ var _ = Describe("installcmd arguments", func() {
 			stepReply, err := installCmd.GetSteps(ctx, &host)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(stepReply).NotTo(BeNil())
-			request := getRequest(stepReply[0])
+			request := generateRequestForStep(stepReply[0])
 			Expect(request.InstallerArgs).To(Equal(host.InstallerArgs))
 			Expect(request.SkipInstallationDiskCleanup).To(BeTrue())
 		})
@@ -454,7 +472,7 @@ var _ = Describe("installcmd arguments", func() {
 			stepReply, err := installCmd.GetSteps(ctx, &host)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(stepReply).NotTo(BeNil())
-			request := getRequest(stepReply[0])
+			request := generateRequestForStep(stepReply[0])
 			Expect(request.InstallerArgs).To(Equal(host.InstallerArgs))
 			Expect(request.SkipInstallationDiskCleanup).To(BeTrue())
 		})
@@ -1022,17 +1040,23 @@ func getBootableDiskNames(disks []*models.Disk) []string {
 	}).([]string)
 }
 
-func getRequest(reply *models.Step) *models.InstallCmdRequest {
+func generateRequestForStep(reply *models.Step) *models.InstallCmdRequest {
 	request := models.InstallCmdRequest{}
 	err := json.Unmarshal([]byte(reply.Args[0]), &request)
 	Expect(err).NotTo(HaveOccurred())
 	return &request
 }
 
-func verifyDiskFormatCommand(reply *models.Step, value string, exists bool) {
-	request := getRequest(reply)
-	contains := funk.ContainsString(request.DisksToFormat, value)
-	Expect(contains).To(Equal(exists))
+func verifyDiskFormatCommand(generatedStep *models.Step, diskID string, expectWillBeFormatted bool) {
+	request := generateRequestForStep(generatedStep)
+
+	diskAppearsInToFormatList := funk.ContainsString(request.DisksToFormat, diskID)
+
+	if expectWillBeFormatted {
+		Expect(diskAppearsInToFormatList).To(BeTrue())
+	} else {
+		Expect(diskAppearsInToFormatList).To(BeFalse())
+	}
 }
 
 func createClusterInDb(db *gorm.DB, haMode string) common.Cluster {

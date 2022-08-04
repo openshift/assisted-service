@@ -53,6 +53,13 @@ type Host struct {
 	// Additional information about disks, formatted as JSON.
 	DisksInfo string `json:"disks_info,omitempty" gorm:"type:text"`
 
+	// A comma-separated list of disks that will be formatted once
+	// installation begins, unless otherwise set to be skipped by
+	// skip_formatting_disks. This means that this list also includes disks
+	// that appear in skip_formatting_disks. This property is managed by the
+	// service and cannot be modified by the user.
+	DisksToBeFormatted string `json:"disks_to_be_formatted,omitempty" gorm:"type:text"`
+
 	// The domain name resolution result.
 	DomainNameResolutions string `json:"domain_name_resolutions,omitempty" gorm:"type:text"`
 
@@ -144,6 +151,10 @@ type Host struct {
 
 	// role
 	Role HostRole `json:"role,omitempty"`
+
+	// A comma-seperated list of host disks that the service will avoid
+	// formatting.
+	SkipFormattingDisks string `json:"skip_formatting_disks,omitempty" gorm:"type:text"`
 
 	// Time at which the current progress stage started.
 	// Format: date-time

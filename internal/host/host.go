@@ -130,6 +130,7 @@ type API interface {
 	UpdateMachineConfigPoolName(ctx context.Context, db *gorm.DB, h *models.Host, machineConfigPoolName string) error
 	UpdateIgnitionEndpointToken(ctx context.Context, db *gorm.DB, h *models.Host, token string) error
 	UpdateNodeLabels(ctx context.Context, h *models.Host, nodeLabelsStr string, db *gorm.DB) error
+	UpdateNodeSkipDiskFormatting(ctx context.Context, h *models.Host, skipDiskFormatting string, db *gorm.DB) error
 	UpdateInstallationDisk(ctx context.Context, db *gorm.DB, h *models.Host, installationDiskId string) error
 	UpdateKubeKeyNS(ctx context.Context, hostID, namespace string) error
 	GetHostValidDisks(role *models.Host) ([]*models.Disk, error)
@@ -250,11 +251,12 @@ func (m *Manager) HandleMediaDisconnected(ctx context.Context, h *models.Host) e
 	return m.sm.Run(TransitionTypeMediaDisconnect, newStateHost(h), &TransitionArgsMediaDisconnected{ctx: ctx, db: m.db})
 }
 
-// populateDisksEligibility updates an inventory json string by updating the eligibility
-// struct of each disk in the inventory with service-side checks for disk eligibility, in
-// addition to agent-side checks that have already been performed. The reason that some
-// checks are performed by the agent (and not the service) is because the agent has data
-// that is not available in the service.
+// populateDisksEligibility updates a given inventory object by updating the
+// eligibility struct of each disk in the inventory with service-side checks
+// for disk eligibility, in addition to agent-side checks that have already
+// been performed. The reason that some checks are performed by the agent (and
+// not the service) is because the agent has data that is not available in the
+// service.
 func (m *Manager) populateDisksEligibility(ctx context.Context, inventory *models.Inventory, infraEnv *common.InfraEnv, cluster *common.Cluster, host *models.Host) error {
 	for _, disk := range inventory.Disks {
 		if !hardware.DiskEligibilityInitialized(disk) {
@@ -281,7 +283,7 @@ func (m *Manager) populateDisksEligibility(ctx context.Context, inventory *model
 func (m *Manager) populateDisksId(inventory *models.Inventory) {
 	for _, disk := range inventory.Disks {
 		if disk.ID == "" {
-			disk.ID = hostutil.GetDeviceIdentifier(disk)
+			disk.ID = common.GetDeviceIdentifier(disk)
 		}
 	}
 }
@@ -410,9 +412,11 @@ func (m *Manager) updateInventory(ctx context.Context, cluster *common.Cluster, 
 		installationDiskPath = ""
 		installationDiskID = ""
 	} else {
-		installationDiskPath = hostutil.GetDeviceFullName(installationDisk)
-		installationDiskID = hostutil.GetDeviceIdentifier(installationDisk)
+		installationDiskPath = common.GetDeviceFullName(installationDisk)
+		installationDiskID = common.GetDeviceIdentifier(installationDisk)
 	}
+
+	disksToBeFormatted := strings.Join(common.GetDisksIdentifiersToBeFormatted(inventory), ",")
 
 	// If there is substantial change in the inventory that might cause the state machine to move to a new status
 	// or one of the validations to change, then the updated_at field has to be modified.  Otherwise, we just
@@ -421,6 +425,7 @@ func (m *Manager) updateInventory(ctx context.Context, cluster *common.Cluster, 
 		"inventory":              inventoryStr,
 		"installation_disk_path": installationDiskPath,
 		"installation_disk_id":   installationDiskID,
+		"disks_to_be_formatted":  disksToBeFormatted,
 	}).Error
 }
 
@@ -754,6 +759,22 @@ func (m *Manager) UpdateNodeLabels(ctx context.Context, h *models.Host, nodeLabe
 	return cdb.Model(common.Host{Host: *h}).Updates(map[string]interface{}{"node_labels": nodeLabelsStr, "trigger_monitor_timestamp": time.Now()}).Error
 }
 
+func (m *Manager) UpdateNodeSkipDiskFormatting(ctx context.Context, h *models.Host, skipDiskFormatting string, db *gorm.DB) error {
+	hostStatus := swag.StringValue(h.Status)
+	if !funk.ContainsString(hostStatusesBeforeInstallationOrUnbound[:], hostStatus) {
+		return common.NewApiError(http.StatusBadRequest,
+			errors.Errorf("Host is in %s state, skip disk formatting can be set only in one of %s states",
+				hostStatus, hostStatusesBeforeInstallation[:]))
+	}
+
+	h.SkipFormattingDisks = skipDiskFormatting
+	cdb := m.db
+	if db != nil {
+		cdb = db
+	}
+	return cdb.Model(common.Host{Host: *h}).Updates(map[string]interface{}{"skip_formatting_disks": h.SkipFormattingDisks, "trigger_monitor_timestamp": time.Now()}).Error
+}
+
 func (m *Manager) UpdateNTP(ctx context.Context, h *models.Host, ntpSources []*models.NtpSource, db *gorm.DB) error {
 	bytes, err := json.Marshal(ntpSources)
 	if err != nil {
@@ -853,8 +874,8 @@ func (m *Manager) UpdateInstallationDisk(ctx context.Context, db *gorm.DB, h *mo
 			errors.Errorf("Requested installation disk is not part of the host's valid disks"))
 	}
 
-	h.InstallationDiskPath = hostutil.GetDeviceFullName(matchedInstallationDisk)
-	h.InstallationDiskID = hostutil.GetDeviceIdentifier(matchedInstallationDisk)
+	h.InstallationDiskPath = common.GetDeviceFullName(matchedInstallationDisk)
+	h.InstallationDiskID = common.GetDeviceIdentifier(matchedInstallationDisk)
 	cdb := m.db
 	if db != nil {
 		cdb = db

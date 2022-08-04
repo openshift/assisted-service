@@ -4053,7 +4053,21 @@ definitions:
         x-go-custom-tag: gorm:"type:text"
         type: string
         description: Json containing node's labels.
-
+      disks_to_be_formatted:
+        x-go-custom-tag: gorm:"type:text"
+        type: string
+        description: |-
+          A comma-separated list of disks that will be formatted once
+          installation begins, unless otherwise set to be skipped by
+          skip_formatting_disks. This means that this list also includes disks
+          that appear in skip_formatting_disks. This property is managed by the
+          service and cannot be modified by the user.
+      skip_formatting_disks:
+        x-go-custom-tag: gorm:"type:text"
+        type: string
+        description: |-
+          A comma-seperated list of host disks that the service will avoid
+          formatting.
   installer-args-params:
     type: object
     properties:
@@ -4334,6 +4348,12 @@ definitions:
         x-nullable: true
         items:
           $ref: '#/definitions/disk-config-params'
+      disks_skip_formatting:
+        type: array
+        x-nullable: true
+        description: Allows changing the host's skip_formatting_disks parameter
+        items:
+          $ref: '#/definitions/disk-skip-formatting-params'
       machine_config_pool_name:
         type: string
         x-nullable: true
@@ -5661,6 +5681,20 @@ definitions:
       role:
         $ref: "#/definitions/disk-role"
 
+  disk-skip-formatting-params:
+    type: object
+    description: Allows an addition or removal of a host disk from the host's skip_formatting_disks list
+    required:
+      - 'disk_id'
+      - 'skip_formatting'
+    properties:
+      disk_id:
+        type: string
+        description: The ID of the disk that is being added to or removed from the host's skip_formatting_disks list
+      skip_formatting:
+        type: boolean
+        description: True if you wish to add the disk to the skip_formatting_disks list, false if you wish to remove it
+
   disk-role:
     type: string
     enum:
@@ -5732,7 +5766,8 @@ definitions:
       - 'non-overlapping-subnets'
       - 'vsphere-disk-uuid-enabled'
       - 'compatible-agent'
-
+      - 'no-skip-installation-disk'
+      - 'no-skip-missing-disk'
 
   dhcp_allocation_request:
     type: object
