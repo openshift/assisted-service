@@ -168,6 +168,16 @@ func (h *handler) GetDefaultReleaseImage(cpuArchitecture string) (*models.Releas
 
 // Returns the OsImage entity
 func (h *handler) GetOsImage(openshiftVersion, cpuArchitecture string) (*models.OsImage, error) {
+	// For multiarch clusters we are offloading the validation checking for existing OS image matching the version
+	// and the architecture directly to the InfraEnv. This is because Cluster object on its own cannot know which
+	// architecture is going to be used and we cannot enforce that OS images exist for every architecture from the
+	// multiarch release image.
+	// In the multiarch scenario it's up to the InfraEnv's ISO generation part to detect whether the required
+	// OS image exists or not. This is because we still have InfraEnvs per-architecture and don't allow for multiarch
+	// InfraEnvs. Based on that, it's reasonable to skip the validation for Cluster and let InfraEnv handle it.
+	if cpuArchitecture == common.MultiCPUArchitecture {
+		return nil, nil
+	}
 	if cpuArchitecture == "" {
 		// Empty implies default CPU architecture
 		cpuArchitecture = common.DefaultCPUArchitecture
@@ -268,6 +278,12 @@ func (h *handler) GetReleaseImage(openshiftVersion, cpuArchitecture string) (*mo
 
 // Returns the latest OSImage entity for a specified CPU architecture
 func (h *handler) GetLatestOsImage(cpuArchitecture string) (*models.OsImage, error) {
+	// For multiarch we are not returning any OS image. This is because at this moment there is no multiarch OS image,
+	// therefore a specific architecture has to always be requested. This is handled by the fact that InfraEnv always
+	// specifies an architecture and "multiarch" is valid only as a Cluster property.
+	if cpuArchitecture == common.MultiCPUArchitecture {
+		return nil, nil
+	}
 	var latest *models.OsImage
 	openshiftVersions := h.GetOpenshiftVersions()
 	for _, k := range openshiftVersions {
@@ -300,18 +316,23 @@ func (h *handler) AddReleaseImage(releaseImageUrl, pullSecret, ocpReleaseVersion
 		if err != nil {
 			return nil, err
 		}
+		h.log.Debugf("For release image %s detected version: %s", releaseImageUrl, ocpReleaseVersion)
 
 		// Get CPU architecture from release image
 		cpuArchitecture, err = h.releaseHandler.GetReleaseArchitecture(h.log, releaseImageUrl, "", pullSecret)
 		if err != nil {
 			return nil, err
 		}
+		h.log.Debugf("For release image %s detected architecture: %s", releaseImageUrl, cpuArchitecture)
 	}
 
-	// Ensure a relevant OsImage exists
-	osImage, err := h.GetOsImage(ocpReleaseVersion, cpuArchitecture)
-	if err != nil || osImage.URL == nil {
-		return nil, errors.Errorf("No OS images are available for version: %s", ocpReleaseVersion)
+	// Ensure a relevant OsImage exists. For multiarch we disabling the code below because we don't know yet
+	// what is going to be the architecture of InfraEnv and Agent.
+	if cpuArchitecture != common.MultiCPUArchitecture {
+		osImage, err := h.GetOsImage(ocpReleaseVersion, cpuArchitecture)
+		if err != nil || osImage.URL == nil {
+			return nil, errors.Errorf("No OS images are available for version %s and architecture %s", ocpReleaseVersion, cpuArchitecture)
+		}
 	}
 
 	// Fetch ReleaseImage if exists (not using GetReleaseImage as we search for the x.y.z image only)
@@ -329,7 +350,7 @@ func (h *handler) AddReleaseImage(releaseImageUrl, pullSecret, ocpReleaseVersion
 
 		// Store in releaseImages array
 		h.releaseImages = append(h.releaseImages, releaseImage.(*models.ReleaseImage))
-		h.log.Infof("Stored release version: %s", ocpReleaseVersion)
+		h.log.Infof("Stored release version %s for architecture %s", ocpReleaseVersion, cpuArchitecture)
 	}
 
 	return releaseImage.(*models.ReleaseImage), nil

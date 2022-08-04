@@ -290,6 +290,12 @@ var _ = Describe("list versions", func() {
 			Expect(*osImage.CPUArchitecture).Should(Equal(common.DefaultCPUArchitecture))
 		})
 
+		It("multiarch returns empty OS image", func() {
+			osImage, err = h.GetOsImage("4.11", common.MultiCPUArchitecture)
+			Expect(err).ShouldNot(HaveOccurred())
+			Expect(osImage).Should(BeNil())
+		})
+
 		It("fetch OS image by major.minor", func() {
 			osImage, err = h.GetOsImage("4.9", common.DefaultCPUArchitecture)
 			Expect(err).ShouldNot(HaveOccurred())
@@ -539,7 +545,7 @@ var _ = Describe("list versions", func() {
 
 			_, err = h.AddReleaseImage("invalidRelease", pullSecret, "", "")
 			Expect(err).Should(HaveOccurred())
-			Expect(err.Error()).Should(Equal(fmt.Sprintf("No OS images are available for version: %s", ocpVersion)))
+			Expect(err.Error()).Should(Equal(fmt.Sprintf("No OS images are available for version %s and architecture %s", ocpVersion, cpuArchitecture)))
 		})
 
 		It("release image already exists", func() {
@@ -594,6 +600,14 @@ var _ = Describe("list versions", func() {
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(*osImage.OpenshiftVersion).Should(Equal("4.10.1"))
 			Expect(*osImage.CPUArchitecture).Should(Equal(common.TestDefaultConfig.CPUArchitecture))
+		})
+
+		It("Empty OS images for multiarch", func() {
+			h, err = NewHandler(logger, mockRelease, versions, defaultOsImages, *releaseImages, nil, "")
+			Expect(err).ShouldNot(HaveOccurred())
+			osImage, err = h.GetLatestOsImage(common.MultiCPUArchitecture)
+			Expect(err).ShouldNot(HaveOccurred())
+			Expect(osImage).Should(BeNil())
 		})
 	})
 
