@@ -387,7 +387,7 @@ func (r *BMACReconciler) addBMHDetachedAnnotationIfAgentHasStartedInstallation(c
 
 	bmh.ObjectMeta.Annotations[BMH_DETACHED_ANNOTATION] = "assisted-service-controller"
 
-	return reconcileComplete{dirty: true}
+	return reconcileComplete{dirty: true, stop: true}
 }
 
 // Reconcile BMH's HardwareDetails using the agent's inventory
@@ -500,7 +500,7 @@ func (r *BMACReconciler) reconcileAgentInventory(log logrus.FieldLogger, bmh *bm
 
 	bmh.ObjectMeta.Annotations[BMH_HARDWARE_DETAILS_ANNOTATION] = string(bytes)
 	log.Debugf("Agent Inventory reconciled to BMH \n %v \n %v", agent, bmh)
-	return reconcileComplete{dirty: true}
+	return reconcileComplete{dirty: true, stop: true}
 
 }
 
@@ -752,7 +752,7 @@ func (r *BMACReconciler) reconcileSpokeBMH(ctx context.Context, log logrus.Field
 			bmh.ObjectMeta.Annotations = make(map[string]string)
 		}
 		bmh.ObjectMeta.Annotations[BMH_DETACHED_ANNOTATION] = "assisted-service-controller"
-		return reconcileComplete{dirty: true}
+		return reconcileComplete{dirty: true, stop: true}
 	}
 	return reconcileComplete{}
 }
@@ -1085,7 +1085,7 @@ func (r *BMACReconciler) ensureMCSCert(ctx context.Context, log logrus.FieldLogg
 		bmh.ObjectMeta.Annotations[BMH_AGENT_IGNITION_CONFIG_OVERRIDES] = ignitionWithMCSCert
 	}
 	log.Info("MCS certificate injected")
-	return reconcileComplete{dirty: true}
+	return reconcileComplete{dirty: true, stop: true}
 }
 
 func (r *BMACReconciler) createIgnitionWithMCSCert(ctx context.Context, log logrus.FieldLogger, spokeClient client.Client) (string, string, error) {
