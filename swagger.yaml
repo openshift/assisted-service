@@ -5482,16 +5482,22 @@ definitions:
 
   api_vip_connectivity_response:
     type: object
-    description: |
+    description: |-
       The response from the day-2 agent's attempt to download the worker ignition file from the API machine config server of the target cluster.
       Note - the name "API VIP connectivity" is old and misleading and is preserved for backwards compatibility.
     properties:
       is_success:
         type: boolean
-        description: Whether the agent was able to contact the API of the target cluster or not
+        description: Whether the agent was able to download the ignition or not
+      url:
+        type: string
+        description: This parameter mirrors the url parameter of the corresponding api_vip_connectivity_request
+      download_error:
+        type: string
+        description: The error that occurred while downloading the worker ignition file, ignored when is_success is true
       ignition:
         type: string
-        description: |
+        description: |-
           Ignition file fetched from the target cluster's API machine config server.
           This ignition file may be incomplete as almost all files / systemd units are removed from it by the agent in order to save space.
 
