@@ -234,6 +234,10 @@ var _ = Describe("Validations test", func() {
 		host.DomainNameResolutions = string(bytes)
 	}
 
+	setHostCorruptDomainResolutions := func(host *models.Host) {
+		host.DomainNameResolutions = string("{")
+	}
+
 	Context("Ignition downloadable validation", func() {
 		ignitionDownloadableID := validationID(models.HostValidationIDIgnitionDownloadable)
 		It("day 1 host with infraenv - successful validation", func() {
@@ -373,6 +377,164 @@ var _ = Describe("Validations test", func() {
 				Fail("This should not happen")
 			}
 		}
+
+		Describe("Wildcard connectivity check is performed", func() {
+			successMessage := "DNS wildcard check was successful"
+			successMessageDay2 := "DNS wildcard check is not required for day2"
+			failureMessage := "DNS wildcard configuration was detected for domain *.test-cluster.example.com The installation will not be able to complete while the entry exists. Please remove it to proceed."
+			errorMessage := "Error while parsing DNS resolution response"
+			pendingMessage := "DNS wildcard check cannot be performed yet because the host has not yet performed DNS resolution"
+
+			// All the possible states for the DNS response
+			type DNSResponseState string
+			var DNSResponseStateNoResponse DNSResponseState = "no-response"
+			var DNSResponseStateCorruptResponse DNSResponseState = "corrupt-response"
+			var DNSResponseStateDidntResolveIllegalWildcard DNSResponseState = "didnt-resolve-illegal-wildcard"
+			var DNSResponseStateResolvedIllegalWildcard DNSResponseState = "resolved-illegal-wildcard"
+
+			for _, dnsWildcardTestCase := range []struct {
+				// Inputs
+				testCaseName string
+				isDay2       bool
+				dnsResponse  DNSResponseState
+
+				// Expectations
+				expectedValidationStatus ValidationStatus
+				expectedMessage          string
+			}{
+				{
+					testCaseName: "day 1 cluster - wildcard not resolved",
+					isDay2:       false,
+
+					dnsResponse: DNSResponseStateDidntResolveIllegalWildcard,
+
+					expectedValidationStatus: ValidationSuccess,
+					expectedMessage:          successMessage,
+				},
+				{
+					testCaseName: "day 1 cluster - wildcard resolved",
+					isDay2:       false,
+
+					dnsResponse: DNSResponseStateResolvedIllegalWildcard,
+
+					expectedValidationStatus: ValidationFailure,
+					expectedMessage:          failureMessage,
+				},
+				{
+					testCaseName: "day 1 cluster - no resolutions",
+					isDay2:       false,
+
+					dnsResponse: DNSResponseStateNoResponse,
+
+					expectedValidationStatus: ValidationPending,
+					expectedMessage:          pendingMessage,
+				},
+				{
+					testCaseName: "day 1 cluster - corrupt resolutions",
+					isDay2:       false,
+
+					dnsResponse: DNSResponseStateCorruptResponse,
+
+					expectedValidationStatus: ValidationError,
+					expectedMessage:          errorMessage,
+				},
+				{
+					testCaseName: "day 2 cluster - no resolutions",
+					isDay2:       true,
+
+					dnsResponse: DNSResponseStateNoResponse,
+
+					expectedValidationStatus: ValidationSuccess,
+					expectedMessage:          successMessageDay2,
+				},
+				{
+					testCaseName: "day 2 cluster - wildcard not resolved",
+					isDay2:       true,
+
+					dnsResponse: DNSResponseStateDidntResolveIllegalWildcard,
+
+					expectedValidationStatus: ValidationSuccess,
+					expectedMessage:          successMessageDay2,
+				},
+				{
+					testCaseName: "day 2 cluster - wildcard resolved",
+					isDay2:       true,
+
+					dnsResponse: DNSResponseStateResolvedIllegalWildcard,
+
+					expectedValidationStatus: ValidationSuccess,
+					expectedMessage:          successMessageDay2,
+				},
+				{
+					testCaseName: "day 1 cluster - corrupt resolutions",
+					isDay2:       true,
+
+					dnsResponse: DNSResponseStateCorruptResponse,
+
+					expectedValidationStatus: ValidationSuccess,
+					expectedMessage:          successMessageDay2,
+				},
+			} {
+				dnsWildcardTestCase := dnsWildcardTestCase
+
+				createTestCluster := func() {
+					var testCluster *common.Cluster
+					if dnsWildcardTestCase.isDay2 {
+						testCluster = generateDay2Cluster()
+					} else {
+						day1Cluster := hostutil.GenerateTestCluster(clusterID)
+						testCluster = &day1Cluster
+					}
+					Expect(db.Create(&testCluster).Error).ShouldNot(HaveOccurred())
+				}
+
+				createTestHost := func() *models.Host {
+					var testHost *models.Host
+					if !dnsWildcardTestCase.isDay2 {
+						day1Host := hostutil.GenerateTestHost(hostID, infraEnvID, clusterID, models.HostStatusDiscovering)
+						testHost = &day1Host
+					} else {
+						testHost = getDay2Host()
+					}
+
+					// Apply the host DNS resolutions depending on test input
+					switch dnsWildcardTestCase.dnsResponse {
+					case DNSResponseStateDidntResolveIllegalWildcard:
+						setHostDomainResolutions(testHost, common.TestDomainNameResolutionsSuccess)
+					case DNSResponseStateResolvedIllegalWildcard:
+						setHostDomainResolutions(testHost, common.TestDomainNameResolutionsWildcardResolved)
+					case DNSResponseStateCorruptResponse:
+						setHostCorruptDomainResolutions(testHost)
+					case DNSResponseStateNoResponse:
+						testHost.DomainNameResolutions = ""
+					}
+
+					Expect(db.Create(testHost).Error).ShouldNot(HaveOccurred())
+
+					return testHost
+				}
+
+				It(dnsWildcardTestCase.testCaseName, func() {
+					createTestCluster()
+
+					testHost := createTestHost()
+
+					// Process validations
+					mockAndRefreshStatus(testHost)
+
+					// Get processed host from database
+					hostFromDatabase := hostutil.GetHostFromDB(*testHost.ID, testHost.InfraEnvID, db).Host
+
+					validationStatus, validationMessage, found := getValidationResult(hostFromDatabase.ValidationsInfo, IsDNSWildcardNotConfigured)
+
+					// Verify IsDNSWildcardNotConfigured host validation exists and has the expected status/message
+					Expect(found).To(BeTrue())
+					Expect(validationStatus).To(Equal(dnsWildcardTestCase.expectedValidationStatus),
+						fmt.Sprintf("Validation status was not as expected, message: %s", validationMessage))
+					Expect(validationMessage).To(Equal(dnsWildcardTestCase.expectedMessage))
+				})
+			}
+		})
 
 		type day2TestInfo struct {
 			imported            bool
