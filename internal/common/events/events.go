@@ -615,6 +615,7 @@ type ClusterValidationFailedEvent struct {
     ClusterId strfmt.UUID
     ValidationId string
     ValidationMsg string
+    FailureMessage string
 }
 
 var ClusterValidationFailedEventName string = "cluster_validation_failed"
@@ -623,12 +624,14 @@ func NewClusterValidationFailedEvent(
     clusterId strfmt.UUID,
     validationId string,
     validationMsg string,
+    failureMessage string,
 ) *ClusterValidationFailedEvent {
     return &ClusterValidationFailedEvent{
         eventName: ClusterValidationFailedEventName,
         ClusterId: clusterId,
         ValidationId: validationId,
         ValidationMsg: validationMsg,
+        FailureMessage: failureMessage,
     }
 }
 
@@ -637,11 +640,13 @@ func SendClusterValidationFailedEvent(
     eventsHandler eventsapi.Sender,
     clusterId strfmt.UUID,
     validationId string,
-    validationMsg string,) {
+    validationMsg string,
+    failureMessage string,) {
     ev := NewClusterValidationFailedEvent(
         clusterId,
         validationId,
         validationMsg,
+        failureMessage,
     )
     eventsHandler.SendClusterEvent(ctx, ev)
 }
@@ -652,11 +657,13 @@ func SendClusterValidationFailedEventAtTime(
     clusterId strfmt.UUID,
     validationId string,
     validationMsg string,
+    failureMessage string,
     eventTime time.Time) {
     ev := NewClusterValidationFailedEvent(
         clusterId,
         validationId,
         validationMsg,
+        failureMessage,
     )
     eventsHandler.SendClusterEventAtTime(ctx, ev, eventTime)
 }
@@ -679,12 +686,13 @@ func (e *ClusterValidationFailedEvent) format(message *string) string {
         "{cluster_id}", fmt.Sprint(e.ClusterId),
         "{validation_id}", fmt.Sprint(e.ValidationId),
         "{validation_msg}", fmt.Sprint(e.ValidationMsg),
+        "{failure_message}", fmt.Sprint(e.FailureMessage),
     )
     return r.Replace(*message)
 }
 
 func (e *ClusterValidationFailedEvent) FormatMessage() string {
-    s := "Cluster validation '{validation_id}' that used to succeed is now failing"
+    s := "Cluster validation '{validation_id}' {failure_message}"
     return e.format(&s)
 }
 
@@ -3242,6 +3250,7 @@ type HostValidationFailedEvent struct {
     ClusterId *strfmt.UUID
     HostName string
     ValidationId string
+    FailureMessage string
 }
 
 var HostValidationFailedEventName string = "host_validation_failed"
@@ -3252,6 +3261,7 @@ func NewHostValidationFailedEvent(
     clusterId *strfmt.UUID,
     hostName string,
     validationId string,
+    failureMessage string,
 ) *HostValidationFailedEvent {
     return &HostValidationFailedEvent{
         eventName: HostValidationFailedEventName,
@@ -3260,6 +3270,7 @@ func NewHostValidationFailedEvent(
         ClusterId: clusterId,
         HostName: hostName,
         ValidationId: validationId,
+        FailureMessage: failureMessage,
     }
 }
 
@@ -3270,13 +3281,15 @@ func SendHostValidationFailedEvent(
     infraEnvId strfmt.UUID,
     clusterId *strfmt.UUID,
     hostName string,
-    validationId string,) {
+    validationId string,
+    failureMessage string,) {
     ev := NewHostValidationFailedEvent(
         hostId,
         infraEnvId,
         clusterId,
         hostName,
         validationId,
+        failureMessage,
     )
     eventsHandler.SendHostEvent(ctx, ev)
 }
@@ -3289,6 +3302,7 @@ func SendHostValidationFailedEventAtTime(
     clusterId *strfmt.UUID,
     hostName string,
     validationId string,
+    failureMessage string,
     eventTime time.Time) {
     ev := NewHostValidationFailedEvent(
         hostId,
@@ -3296,6 +3310,7 @@ func SendHostValidationFailedEventAtTime(
         clusterId,
         hostName,
         validationId,
+        failureMessage,
     )
     eventsHandler.SendHostEventAtTime(ctx, ev, eventTime)
 }
@@ -3326,12 +3341,13 @@ func (e *HostValidationFailedEvent) format(message *string) string {
         "{cluster_id}", fmt.Sprint(e.ClusterId),
         "{host_name}", fmt.Sprint(e.HostName),
         "{validation_id}", fmt.Sprint(e.ValidationId),
+        "{failure_message}", fmt.Sprint(e.FailureMessage),
     )
     return r.Replace(*message)
 }
 
 func (e *HostValidationFailedEvent) FormatMessage() string {
-    s := "Host {host_name}: validation '{validation_id}' that used to succeed is now failing"
+    s := "Host {host_name}: validation '{validation_id}' {failure_message}"
     return e.format(&s)
 }
 

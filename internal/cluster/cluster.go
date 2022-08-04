@@ -262,15 +262,19 @@ func (m *Manager) reportValidationStatusChanged(ctx context.Context, c *common.C
 	newValidationRes, currentValidationRes ValidationsStatus) {
 	for vCategory, vRes := range newValidationRes {
 		for _, v := range vRes {
-			if currentStatus, ok := m.getValidationStatus(currentValidationRes, vCategory, v.ID); ok {
-				if v.Status == ValidationFailure && currentStatus == ValidationSuccess {
-					m.metricAPI.ClusterValidationChanged(models.ClusterValidationID(v.ID))
-					eventgen.SendClusterValidationFailedEvent(ctx, m.eventsHandler, *c.ID, v.ID.String(), v.Message)
-				} else if v.Status == ValidationSuccess && currentStatus == ValidationFailure {
+			if previousStatus, ok := m.getValidationStatus(currentValidationRes, vCategory, v.ID); ok {
+				if v.Status == ValidationFailure && previousStatus != ValidationFailure {
+					failureMessage := "failed"
+					if previousStatus == ValidationSuccess {
+						failureMessage = "that used to succeed is now failing"
+						m.metricAPI.ClusterValidationChanged(models.ClusterValidationID(v.ID))
+					}
+					eventgen.SendClusterValidationFailedEvent(ctx, m.eventsHandler, *c.ID, v.ID.String(), v.Message, failureMessage)
+				} else if v.Status == ValidationSuccess && previousStatus == ValidationFailure {
 					eventgen.SendClusterValidationFixedEvent(ctx, m.eventsHandler, *c.ID, v.ID.String(), v.Message)
-				} else if v.Status != currentStatus {
+				} else if v.Status != previousStatus {
 					msg := fmt.Sprintf("Cluster %s: validation '%s' status changed from %s to %s",
-						*c.ID, v.ID.String(), currentStatus, v.Status)
+						*c.ID, v.ID.String(), previousStatus, v.Status)
 					m.eventsHandler.NotifyInternalEvent(ctx, c.ID, nil, nil, msg)
 				}
 			}

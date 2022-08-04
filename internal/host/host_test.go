@@ -3076,7 +3076,10 @@ var _ = Describe("Validation metrics and events", func() {
 		newValidationRes := generateTestValidationResult(ValidationSuccess)
 		// Pending -> Failure
 		m.reportValidationStatusChanged(ctx, vc, h, newValidationRes, currentValidationRes)
-		mockEvents.EXPECT().NotifyInternalEvent(ctx, h.ClusterID, h.ID, &h.InfraEnvID, gomock.Any())
+		mockEvents.EXPECT().SendHostEvent(ctx, eventstest.NewEventMatcher(
+			eventstest.WithNameMatcher(eventgen.HostValidationFailedEventName),
+			eventstest.WithHostIdMatcher(h.ID.String()),
+			eventstest.WithInfraEnvIdMatcher(h.InfraEnvID.String())))
 		newValidationRes = generateTestValidationResult(ValidationFailure)
 		m.reportValidationStatusChanged(ctx, vc, h, newValidationRes, currentValidationRes)
 	})
