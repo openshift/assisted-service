@@ -91,6 +91,7 @@ done
 wait_for_condition "infraenv/${ASSISTED_INFRAENV_NAME}" "ImageCreated" "5m" "${SPOKE_NAMESPACE}"
 
 echo "Waiting until at least ${SPOKE_CONTROLPLANE_AGENTS} agents are available..."
+sleep 999999999
 
 function get_agents_with_role() {
   oc get agent -n ${SPOKE_NAMESPACE} --no-headers | awk '{print $4}' | grep $role
