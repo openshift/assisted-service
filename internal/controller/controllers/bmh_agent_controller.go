@@ -1182,7 +1182,7 @@ func (r *BMACReconciler) ensureMCSCert(ctx context.Context, log logrus.FieldLogg
 	// User has set ignition via annotation
 	if ok {
 		log.Debug("User has set ignition via annotation")
-		res, err := ignition.MergeIgnitionConfig([]byte(userIgnition), []byte(ignitionWithMCSCert))
+		res, err := ignition.MergeIgnitionConfig([]byte(ignitionWithMCSCert), []byte(userIgnition))
 		if err != nil {
 			log.WithError(err).Errorf("Error while merging the ignitions")
 			return reconcileError{err}
