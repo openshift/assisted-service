@@ -15,13 +15,14 @@ The ClusterDeployment CRD is an API provided by Hive.
 
 See Hive documentation [here](https://github.com/openshift/hive/blob/master/docs/using-hive.md#cluster-provisioning).
 
-The ClusterDeployment can have a reference to an AgentClusterInstall (`Spec.ClusterInstallRef`) that defines the required parameters of the Cluster.
+The ClusterDeployment must have a reference to an AgentClusterInstall (`Spec.ClusterInstallRef`) that defines the required parameters of the Cluster.
 
 Deletion of ClusterDeployment will trigger the `clusterdeployments.agent-install.openshift.io/ai-deprovision` finalizer pre-deletion logic, which will delete the referenced AgentClusterInstall.
 
+The CluterDeployment's `spec.platform` should be ignored except for `spec.platform.agentBareMetal`. With the Assisted Installer, the actual platform will be set in the AgentClusterInstall CR.
 
 ### [AgentClusterInstall](../../api/hiveextension/v1beta1/agentclusterinstall_types.go)
-In the AgentClusterInstall, the user can specify requirements like Networking, number of Control Plane and Worker nodes and more.
+In the AgentClusterInstall, the user can specify requirements like networking, platform, number of Control Plane and Worker nodes and more.
 
 The installation will start automatically if the required number of hosts is available, the hosts are ready to be installed and the Agents are approved.
 

@@ -10,6 +10,7 @@ spec:
   imageSetRef:
     name: openshift-v4.8.0
   ingressVIP: 1.2.3.9
+  platformType: BareMetal
   networking:
     clusterNetwork:
     - cidr: 10.128.0.0/14
