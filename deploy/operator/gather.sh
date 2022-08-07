@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-set -xeo pipefail
+set -x
 
 __dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source ${__dir}/common.sh
@@ -8,12 +8,12 @@ source ${__dir}/common.sh
 function gather_hive_data() {
   hive_dir="${LOGS_DEST}/hive"
   mkdir -p "${hive_dir}"
-  oc get all -n "${HIVE_NAMESPACE}" > ${hive_dir}/oc_get_all.log || true
+  oc get all -n "${HIVE_NAMESPACE}" > ${hive_dir}/oc_get_all.log
 
   oc logs --tail=-1 -n "${HIVE_NAMESPACE}" --selector control-plane=hive-operator > ${hive_dir}/hive-operator.log
   oc logs --tail=-1 -n "${HIVE_NAMESPACE}" --selector control-plane=controller-manager > ${hive_dir}/hive-controller-manager.log
 
-  oc get events -n "${HIVE_NAMESPACE}" --sort-by=.metadata.creationTimestamp > ${hive_dir}/oc_get_events.log || true
+  oc get events -n "${HIVE_NAMESPACE}" --sort-by=.metadata.creationTimestamp > ${hive_dir}/oc_get_events.log
 }
 
 function gather_olm_data() {
@@ -23,21 +23,21 @@ function gather_olm_data() {
 }
 
 function gather_cluster_data() {
-  oc get nodes -o yaml > ${LOGS_DEST}/oc_get_nodes.yaml || true
-  oc cluster-info > ${LOGS_DEST}/oc_cluster_info.log || true
-  oc cluster-info dump > ${LOGS_DEST}/oc_cluster_info_dump.log || true
+  oc get nodes -o yaml > ${LOGS_DEST}/oc_get_nodes.yaml
+  oc cluster-info > ${LOGS_DEST}/oc_cluster_info.log
+  oc cluster-info dump > ${LOGS_DEST}/oc_cluster_info_dump.log
 }
 
 function gather_operator_data() {
-  oc get all -n "${ASSISTED_NAMESPACE}" > ${LOGS_DEST}/oc_get_all.log || true
-  oc get pods -n "${ASSISTED_NAMESPACE}" -o yaml > ${LOGS_DEST}/oc_get_pods.yaml || true
+  oc get all -n "${ASSISTED_NAMESPACE}" > ${LOGS_DEST}/oc_get_all.log
+  oc get pods -n "${ASSISTED_NAMESPACE}" -o yaml > ${LOGS_DEST}/oc_get_pods.yaml
 
   oc logs --tail=-1 -n "${ASSISTED_NAMESPACE}" --selector app=assisted-service -c assisted-service > ${LOGS_DEST}/assisted-service.log
   oc logs --tail=-1 -n "${ASSISTED_NAMESPACE}" --selector app=assisted-image-service -c assisted-image-service > ${LOGS_DEST}/assisted-image-service.log
   oc logs --tail=-1 -n "${ASSISTED_NAMESPACE}" --selector app=assisted-service -c postgres > ${LOGS_DEST}/postgres.log
   oc logs --tail=-1 -n "${ASSISTED_NAMESPACE}" --selector control-plane=infrastructure-operator > ${LOGS_DEST}/infrastructure-operator.log
 
-  oc get events -n "${ASSISTED_NAMESPACE}" --sort-by=.metadata.creationTimestamp > ${LOGS_DEST}/oc_get_events.log || true
+  oc get events -n "${ASSISTED_NAMESPACE}" --sort-by=.metadata.creationTimestamp > ${LOGS_DEST}/oc_get_events.log
 }
 
 function gather_agentclusterinstall_data() {
@@ -72,7 +72,7 @@ function gather_bmh_data() {
     host_name=$(echo ${bmh} | jq -r .metadata.name)
     oc get baremetalhost -n "${SPOKE_NAMESPACE}" "${host_name}" -o yaml > "${bmh_dir}/${host_name}.yaml"
     # in ocp 4.11 and above, each BMH has a  matching preprovisoning image CR that contains the image information
-    oc get preprovisioningimage -n "${SPOKE_NAMESPACE}" "${host_name}" -o yaml > "${bmh_dir}/ppi_${host_name}.yaml" || true
+    oc get preprovisioningimage -n "${SPOKE_NAMESPACE}" "${host_name}" -o yaml > "${bmh_dir}/ppi_${host_name}.yaml"
   done
 }
 
@@ -129,25 +129,25 @@ function gather_capi_data() {
     work_dir="${capi_dir}/${cr}"
     mkdir -p "${work_dir}"
 
-    oc_items=$(oc get ${cr} -A -o json | jq -c '.items[]') || true
+    oc_items=$(oc get ${cr} -A -o json | jq -c '.items[]')
     readarray -t objects < <(echo $oc_items)
     for obj in "${objects[@]}"; do
       obj_name=$(echo ${obj} | jq -r .metadata.name)
       obj_namespace=$(echo ${obj} | jq -r .metadata.namespace)
-      oc get "${cr}" -n "${obj_namespace}" "${obj_name}" -o yaml > "${work_dir}/${obj_name}_${obj_namespace}.yaml" || true
+      oc get "${cr}" -n "${obj_namespace}" "${obj_name}" -o yaml > "${work_dir}/${obj_name}_${obj_namespace}.yaml"
     done
   done
 
-  oc logs --tail=-1 deployment/operator -n hypershift > "${capi_dir}/hypershift.log" || true
+  oc logs --tail=-1 deployment/operator -n hypershift > "${capi_dir}/hypershift.log"
 
   # Detect namespace where the capi-provider lives. The specific name depends whether deployed standalone or via
   # Hypershift, that's why we grep for both.
-  capi_provider_ns=$(oc get pods --no-headers -A -o jsonpath='{range .items[*]}{@.metadata.name}{" "}{@.metadata.namespace}{"\n"}' | egrep "capi-provider|cluster-api-provider-agent" | awk -F " " '{print $2}' | head -n1) || true
+  capi_provider_ns=$(oc get pods --no-headers -A -o jsonpath='{range .items[*]}{@.metadata.name}{" "}{@.metadata.namespace}{"\n"}' | egrep "capi-provider|cluster-api-provider-agent" | awk -F " " '{print $2}' | head -n1)
   capi_provider_dir="${capi_dir}/${capi_provider_ns}"
   mkdir -p "${capi_provider_dir}"
 
-  oc get pods -n ${capi_provider_ns} -o=custom-columns=NAME:.metadata.name --no-headers | xargs -r -I {} sh -c "oc logs --tail=-1 {} -n ${capi_provider_ns} --all-containers > ${capi_provider_dir}/logs_{}.log" || true
-  oc get pods -n ${capi_provider_ns} -o=custom-columns=NAME:.metadata.name --no-headers | xargs -r -I {} sh -c "oc get pods -o yaml {} -n ${capi_provider_ns} > ${capi_provider_dir}/pods_{}.yaml" || true
+  oc get pods -n ${capi_provider_ns} -o=custom-columns=NAME:.metadata.name --no-headers | xargs -r -I {} sh -c "oc logs --tail=-1 {} -n ${capi_provider_ns} --all-containers > ${capi_provider_dir}/logs_{}.log"
+  oc get pods -n ${capi_provider_ns} -o=custom-columns=NAME:.metadata.name --no-headers | xargs -r -I {} sh -c "oc get pods -o yaml {} -n ${capi_provider_ns} > ${capi_provider_dir}/pods_{}.yaml"
 
 }
 
