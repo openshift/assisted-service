@@ -15,15 +15,19 @@ import (
 type hostNetProfile struct {
 	role     models.HostRole
 	hostname string
+	id       strfmt.UUID
 	ip       string
 }
 
-var _ = Describe("GetHostnameAndEffectiveRoleByIP", func() {
+var _ = Describe("GetHostnameAndEffectiveRoleByHostID", func() {
 
-	hostRolesIpv4 := []hostNetProfile{{role: models.HostRoleMaster, hostname: "master-0", ip: "1.2.3.1"}, {role: models.HostRoleWorker, hostname: "worker-0", ip: "1.2.3.2"}}
-	hostrolesIpv6 := []hostNetProfile{{role: models.HostRoleMaster, hostname: "master-1", ip: "1001:db8::11"}, {role: models.HostRoleWorker, hostname: "worker-1", ip: "1001:db8::12"}}
+	hostRolesIpv4 := []hostNetProfile{{role: models.HostRoleMaster, hostname: "master-0", ip: "1.2.3.1", id: strfmt.UUID(uuid.New().String())},
+		{role: models.HostRoleWorker, hostname: "worker-0", ip: "1.2.3.2", id: strfmt.UUID(uuid.New().String())}}
+	hostrolesIpv6 := []hostNetProfile{{role: models.HostRoleMaster, hostname: "master-1", ip: "1001:db8::11", id: strfmt.UUID(uuid.New().String())},
+		{role: models.HostRoleWorker, hostname: "worker-1", ip: "1001:db8::12", id: strfmt.UUID(uuid.New().String())}}
 	clusterID := strfmt.UUID(uuid.New().String())
 	infraEnvID := strfmt.UUID(uuid.New().String())
+	nonExistantHostID := strfmt.UUID(uuid.New().String())
 
 	Context("resolves hostname and role based on IP", func() {
 
@@ -31,7 +35,7 @@ var _ = Describe("GetHostnameAndEffectiveRoleByIP", func() {
 			name             string
 			hostRolesIpv4    []hostNetProfile
 			hostRolesIpv6    []hostNetProfile
-			targetIP         string
+			targetID         strfmt.UUID
 			expectedRole     models.HostRole
 			expectedHostname string
 			expectedError    error
@@ -39,14 +43,14 @@ var _ = Describe("GetHostnameAndEffectiveRoleByIP", func() {
 			{
 				name:             "resolves correctly when there are only IPv4 interfaces",
 				hostRolesIpv4:    hostRolesIpv4,
-				targetIP:         "1.2.3.1",
+				targetID:         hostRolesIpv4[0].id,
 				expectedRole:     models.HostRoleMaster,
 				expectedHostname: "master-0",
 			},
 			{
 				name:             "resolves correctly when there are only IPv6 interfaces",
 				hostRolesIpv6:    hostrolesIpv6,
-				targetIP:         "1001:db8::12",
+				targetID:         hostrolesIpv6[1].id,
 				expectedRole:     models.HostRoleWorker,
 				expectedHostname: "worker-1",
 			},
@@ -54,7 +58,7 @@ var _ = Describe("GetHostnameAndEffectiveRoleByIP", func() {
 				name:             "resolves correctly when there is a mix of IPv4 and IPv6 interfaces",
 				hostRolesIpv4:    hostRolesIpv4,
 				hostRolesIpv6:    hostrolesIpv6,
-				targetIP:         "1001:db8::11",
+				targetID:         hostrolesIpv6[0].id,
 				expectedRole:     models.HostRoleMaster,
 				expectedHostname: "master-1",
 			},
@@ -62,34 +66,34 @@ var _ = Describe("GetHostnameAndEffectiveRoleByIP", func() {
 				name:          "unable to resolve when there is a mix of IPv4 and IPv6 interfaces and no match is found",
 				hostRolesIpv4: hostRolesIpv4,
 				hostRolesIpv6: hostrolesIpv6,
-				targetIP:      "1001:db8::30",
-				expectedError: fmt.Errorf("host with IP %s not found in inventory", "1001:db8::30")},
+				targetID:      nonExistantHostID,
+				expectedError: fmt.Errorf("host with ID %s was not found", nonExistantHostID.String()),
+			},
 		}
 
+		inventoryCache := make(InventoryCache)
 		for i := range testCases {
 			test := testCases[i]
 			It(test.name, func() {
 				hosts := []*models.Host{}
 				for _, v := range test.hostRolesIpv4 {
 					netAddr := common.NetAddress{Hostname: v.hostname, IPv4Address: []string{fmt.Sprintf("%s/%d", v.ip, 24)}}
-					h := hostutil.GenerateTestHostWithNetworkAddress(strfmt.UUID(uuid.New().String()), infraEnvID, clusterID, v.role, models.HostStatusKnown, netAddr)
+					h := hostutil.GenerateTestHostWithNetworkAddress(v.id, infraEnvID, clusterID, v.role, models.HostStatusKnown, netAddr)
 					hosts = append(hosts, h)
 				}
 				for _, v := range test.hostRolesIpv6 {
 					netAddr := common.NetAddress{Hostname: v.hostname, IPv6Address: []string{fmt.Sprintf("%s/%d", v.ip, 120)}}
-					h := hostutil.GenerateTestHostWithNetworkAddress(strfmt.UUID(uuid.New().String()), infraEnvID, clusterID, v.role, models.HostStatusKnown, netAddr)
+					h := hostutil.GenerateTestHostWithNetworkAddress(v.id, infraEnvID, clusterID, v.role, models.HostStatusKnown, netAddr)
 					hosts = append(hosts, h)
 				}
-				hostname, role, err := GetHostnameAndEffectiveRoleByIP(test.targetIP, hosts)
+				hostname, role, err := GetHostnameAndEffectiveRoleByHostID(test.targetID, hosts, inventoryCache)
 				if test.expectedError != nil {
 					Expect(err).To(Equal(test.expectedError))
 				} else {
 					Expect(hostname).To(Equal(test.expectedHostname))
 					Expect(role).To(Equal(test.expectedRole))
 				}
-
 			})
 		}
 	})
-
 })

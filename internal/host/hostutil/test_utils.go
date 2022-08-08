@@ -8,7 +8,6 @@ import (
 
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
-	"github.com/google/uuid"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/models"
@@ -172,7 +171,7 @@ func GenerateL3ConnectivityReport(hosts []*models.Host, latency float64, packetL
 		}
 		Expect(ipAddr).NotTo(BeEmpty())
 		l3 := models.L3Connectivity{Successful: true, AverageRTTMs: latency, PacketLossPercentage: packetLoss, RemoteIPAddress: ipAddr}
-		con.RemoteHosts = append(con.RemoteHosts, &models.ConnectivityRemoteHost{HostID: strfmt.UUID(uuid.New().String()), L3Connectivity: []*models.L3Connectivity{&l3}})
+		con.RemoteHosts = append(con.RemoteHosts, &models.ConnectivityRemoteHost{HostID: *h.ID, L3Connectivity: []*models.L3Connectivity{&l3}})
 	}
 	return &con
 }

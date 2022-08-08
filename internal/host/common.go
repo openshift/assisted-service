@@ -2,7 +2,6 @@ package host
 
 import (
 	"fmt"
-	"net"
 	"net/http"
 	"time"
 
@@ -155,29 +154,25 @@ func updateRole(log logrus.FieldLogger, h *models.Host, role models.HostRole, su
 		*h.ID, h.InfraEnvID, srcRole).Updates(fields).Error
 }
 
-func GetHostnameAndEffectiveRoleByIP(ip string, hosts []*models.Host) (string, models.HostRole, error) {
+func FindHostByID(hostID strfmt.UUID, hosts []*models.Host) *models.Host {
 	for _, h := range hosts {
-		if h.Inventory == "" {
-			continue
-		}
-		inv, err := common.UnmarshalInventory(h.Inventory)
-		if err != nil {
-			return "", "", fmt.Errorf("unable to unmarshall cluster inventory for host %s: %s", h.RequestedHostname, err)
-		}
-		for _, i := range inv.Interfaces {
-			ips := append(i.IPV4Addresses, i.IPV6Addresses...)
-			for _, cidr := range ips {
-				parsedIP, _, err := net.ParseCIDR(cidr)
-				if err != nil {
-					return "", "", err
-				}
-				if ip == parsedIP.String() {
-					return getRealHostname(h, inv), common.GetEffectiveRole(h), nil
-				}
-			}
+		if hostID == *h.ID {
+			return h
 		}
 	}
-	return "", "", fmt.Errorf("host with IP %s not found in inventory", ip)
+	return nil
+}
+
+func GetHostnameAndEffectiveRoleByHostID(hostId strfmt.UUID, hosts []*models.Host, inventoryCache InventoryCache) (string, models.HostRole, error) {
+	host := FindHostByID(hostId, hosts)
+	if host == nil {
+		return "", "", fmt.Errorf("host with ID %s was not found", hostId.String())
+	}
+	inventory, err := inventoryCache.GetOrUnmarshal(host)
+	if err != nil {
+		return "", "", err
+	}
+	return getRealHostname(host, inventory), common.GetEffectiveRole(host), nil
 }
 
 func FindMatchingStages(role models.HostRole, bootstrap, isSNO bool) []models.HostStage {
