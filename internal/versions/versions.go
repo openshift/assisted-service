@@ -40,7 +40,7 @@ type Handler interface {
 	GetLatestOsImage(cpuArchitecture string) (*models.OsImage, error)
 	GetCPUArchitectures(openshiftVersion string) []string
 	GetOpenshiftVersions() []string
-	AddReleaseImage(releaseImageUrl, pullSecret, ocpReleaseVersion, cpuArchitecture string) (*models.ReleaseImage, error)
+	AddReleaseImage(releaseImageUrl, pullSecret, ocpReleaseVersion string, cpuArchitectures []string) (*models.ReleaseImage, error)
 }
 
 func NewHandler(log logrus.FieldLogger, releaseHandler oc.Release,
@@ -244,8 +244,13 @@ func (h *handler) GetReleaseImage(openshiftVersion, cpuArchitecture string) (*mo
 		// Empty implies default CPU architecture
 		cpuArchitecture = common.DefaultCPUArchitecture
 	}
-	// Filter Release images by specified CPU architecture
+	// Filter Release images by specified CPU architecture.
 	releaseImages := funk.Filter(h.releaseImages, func(releaseImage *models.ReleaseImage) bool {
+		for _, arch := range releaseImage.CPUArchitectures {
+			if arch == cpuArchitecture {
+				return true
+			}
+		}
 		return swag.StringValue(releaseImage.CPUArchitecture) == cpuArchitecture
 	})
 	if funk.IsEmpty(releaseImages) {
@@ -307,10 +312,14 @@ func (h *handler) GetLatestOsImage(cpuArchitecture string) (*models.OsImage, err
 	return latest, nil
 }
 
-func (h *handler) AddReleaseImage(releaseImageUrl, pullSecret, ocpReleaseVersion, cpuArchitecture string) (*models.ReleaseImage, error) {
+func (h *handler) AddReleaseImage(releaseImageUrl, pullSecret, ocpReleaseVersion string, cpuArchitectures []string) (*models.ReleaseImage, error) {
 	var err error
-	// If release version or cpu architecture are not specified, use oc to fetch values
-	if ocpReleaseVersion == "" || cpuArchitecture == "" {
+	var cpuArchitecture string
+	var osImage *models.OsImage
+
+	// If release version or cpu architectures are not specified, use oc to fetch values.
+	// If cpu architecture is passed as "multiarch" instead of unwrapped architectures, recalculate it.
+	if ocpReleaseVersion == "" || len(cpuArchitectures) == 0 || cpuArchitectures[0] == common.MultiCPUArchitecture {
 		// Get openshift version from release image metadata (oc adm release info)
 		ocpReleaseVersion, err = h.releaseHandler.GetOpenshiftVersion(h.log, releaseImageUrl, "", pullSecret)
 		if err != nil {
@@ -318,21 +327,27 @@ func (h *handler) AddReleaseImage(releaseImageUrl, pullSecret, ocpReleaseVersion
 		}
 		h.log.Debugf("For release image %s detected version: %s", releaseImageUrl, ocpReleaseVersion)
 
-		// Get CPU architecture from release image
-		cpuArchitecture, err = h.releaseHandler.GetReleaseArchitecture(h.log, releaseImageUrl, "", pullSecret)
+		// Get CPU architecture from release image. For single-arch image the returned list will contain
+		// as single entry with the architecture. For multi-arch image the list will contain all the architectures
+		// that the image references to.
+		cpuArchitectures, err = h.releaseHandler.GetReleaseArchitecture(h.log, releaseImageUrl, "", pullSecret)
 		if err != nil {
 			return nil, err
 		}
-		h.log.Debugf("For release image %s detected architecture: %s", releaseImageUrl, cpuArchitecture)
+		h.log.Debugf("For release image %s detected architecture: %s", releaseImageUrl, cpuArchitectures)
 	}
 
-	// Ensure a relevant OsImage exists. For multiarch we disabling the code below because we don't know yet
-	// what is going to be the architecture of InfraEnv and Agent.
-	if cpuArchitecture != common.MultiCPUArchitecture {
-		osImage, err := h.GetOsImage(ocpReleaseVersion, cpuArchitecture)
+	if len(cpuArchitectures) == 1 {
+		cpuArchitecture = cpuArchitectures[0]
+
+		// Ensure a relevant OsImage exists. For multiarch we disabling the code below because we don't know yet
+		// what is going to be the architecture of InfraEnv and Agent.
+		osImage, err = h.GetOsImage(ocpReleaseVersion, cpuArchitecture)
 		if err != nil || osImage.URL == nil {
 			return nil, errors.Errorf("No OS images are available for version %s and architecture %s", ocpReleaseVersion, cpuArchitecture)
 		}
+	} else {
+		cpuArchitecture = common.MultiCPUArchitecture
 	}
 
 	// Fetch ReleaseImage if exists (not using GetReleaseImage as we search for the x.y.z image only)
@@ -346,11 +361,15 @@ func (h *handler) AddReleaseImage(releaseImageUrl, pullSecret, ocpReleaseVersion
 			CPUArchitecture:  &cpuArchitecture,
 			URL:              &releaseImageUrl,
 			Version:          &ocpReleaseVersion,
+			CPUArchitectures: cpuArchitectures,
 		}
 
 		// Store in releaseImages array
 		h.releaseImages = append(h.releaseImages, releaseImage.(*models.ReleaseImage))
 		h.log.Infof("Stored release version %s for architecture %s", ocpReleaseVersion, cpuArchitecture)
+		if len(cpuArchitectures) > 1 {
+			h.log.Infof("Full list or architectures: %s", cpuArchitectures)
+		}
 	}
 
 	return releaseImage.(*models.ReleaseImage), nil

@@ -8714,10 +8714,17 @@ func init() {
       ],
       "properties": {
         "cpu_architecture": {
-          "description": "The CPU architecture of the image (x86_64/arm64/etc).",
+          "description": "(DEPRECATED) The CPU architecture of the image (x86_64/arm64/etc).",
           "type": "string",
           "default": "x86_64",
           "x-go-custom-tag": "gorm:\"default:'x86_64'\""
+        },
+        "cpu_architectures": {
+          "description": "List of CPU architectures provided by the image.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
         },
         "default": {
           "description": "Indication that the version is the recommended one.",
@@ -18073,10 +18080,17 @@ func init() {
       ],
       "properties": {
         "cpu_architecture": {
-          "description": "The CPU architecture of the image (x86_64/arm64/etc).",
+          "description": "(DEPRECATED) The CPU architecture of the image (x86_64/arm64/etc).",
           "type": "string",
           "default": "x86_64",
           "x-go-custom-tag": "gorm:\"default:'x86_64'\""
+        },
+        "cpu_architectures": {
+          "description": "List of CPU architectures provided by the image.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
         },
         "default": {
           "description": "Indication that the version is the recommended one.",

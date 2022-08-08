@@ -71,6 +71,7 @@ var TestDefaultConfig = &TestConfiguration{
 		OpenshiftVersion: &OpenShiftVersion,
 		URL:              &ReleaseImage,
 		Version:          &ReleaseVersion,
+		CPUArchitectures: []string{CPUArchitecture},
 	},
 	OsImage: &models.OsImage{
 		CPUArchitecture:  &CPUArchitecture,

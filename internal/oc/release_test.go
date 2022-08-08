@@ -1,6 +1,7 @@
 package oc
 
 import (
+	_ "embed"
 	"fmt"
 	os "os"
 	"path/filepath"
@@ -29,6 +30,9 @@ var (
 	baremetalInstallBinary = "openshift-baremetal-install"
 	installBinary          = "openshift-install"
 )
+
+//go:embed test_skopeo_multiarch_image_output
+var test_skopeo_multiarch_image_output string
 
 var _ = Describe("oc", func() {
 	var (
@@ -259,29 +263,88 @@ var _ = Describe("oc", func() {
 	})
 
 	Context("GetReleaseArchitecture", func() {
-		It("fetch cpu architecture from release image", func() {
-			command := fmt.Sprintf(templateImageInfo+" --registry-config=%s", releaseImage, tempFilePath)
-			args := splitStringToInterfacesArray(command)
-			imageInfoStr := fmt.Sprintf("{ \"config\": { \"architecture\": \"%s\" }}", common.TestDefaultConfig.CPUArchitecture)
-			mockExecuter.EXPECT().Execute(args[0], args[1:]...).Return(imageInfoStr, "", 0).Times(1)
+		Context("for single-arch release image", func() {
+			It("fetch cpu architecture", func() {
+				command := fmt.Sprintf(templateImageInfo+" --registry-config=%s", releaseImage, tempFilePath)
+				args := splitStringToInterfacesArray(command)
+				imageInfoStr := fmt.Sprintf("{ \"config\": { \"architecture\": \"%s\" }}", common.TestDefaultConfig.CPUArchitecture)
+				mockExecuter.EXPECT().Execute(args[0], args[1:]...).Return(imageInfoStr, "", 0).Times(1)
 
-			arch, err := oc.GetReleaseArchitecture(log, releaseImage, "", pullSecret)
-			Expect(arch).Should(Equal(common.TestDefaultConfig.CPUArchitecture))
-			Expect(err).ShouldNot(HaveOccurred())
+				arch, err := oc.GetReleaseArchitecture(log, releaseImage, "", pullSecret)
+				Expect(arch).Should(Equal([]string{common.TestDefaultConfig.CPUArchitecture}))
+				Expect(err).ShouldNot(HaveOccurred())
+			})
+
+			It("fail with malformed cpu architecture", func() {
+				command := fmt.Sprintf(templateImageInfo+" --registry-config=%s", releaseImage, tempFilePath)
+				args := splitStringToInterfacesArray(command)
+				imageInfoStr := fmt.Sprintf("{ \"config\": { \"not-an-architecture\": \"%s\" }}", common.TestDefaultConfig.CPUArchitecture)
+				mockExecuter.EXPECT().Execute(args[0], args[1:]...).Return(imageInfoStr, "", 0).Times(1)
+
+				arch, err := oc.GetReleaseArchitecture(log, releaseImage, "", pullSecret)
+				Expect(arch).Should(BeEmpty())
+				Expect(err).Should(HaveOccurred())
+			})
 		})
 
-		It("fetch cpu architecture from multiarch release image", func() {
-			command := fmt.Sprintf(templateImageInfo+" --registry-config=%s", releaseImage, tempFilePath)
-			command2 := fmt.Sprintf(templateSkopeoDetectMultiarch+" --authfile %s", releaseImage, tempFilePath)
-			args := splitStringToInterfacesArray(command)
-			args2 := splitStringToInterfacesArray(command2)
-			imageInfoStr := fmt.Sprintf("{ \"manifests\": { \"platform\": { \"architecture\": \"%s\" }}}", common.TestDefaultConfig.CPUArchitecture)
-			mockExecuter.EXPECT().Execute(args[0], args[1:]...).Return("", "the image is a manifest list", 1).Times(1)
-			mockExecuter.EXPECT().Execute(args2[0], args2[1:]...).Return(imageInfoStr, "", 0).Times(1)
+		Context("for multi-arch release image", func() {
+			It("fetch cpu architecture", func() {
+				command := fmt.Sprintf(templateImageInfo+" --registry-config=%s", releaseImage, tempFilePath)
+				command2 := fmt.Sprintf(templateSkopeoDetectMultiarch+" --authfile %s", releaseImage, tempFilePath)
+				args := splitStringToInterfacesArray(command)
+				args2 := splitStringToInterfacesArray(command2)
+				mockExecuter.EXPECT().Execute(args[0], args[1:]...).Return("", "the image is a manifest list", 1).Times(1)
+				mockExecuter.EXPECT().Execute(args2[0], args2[1:]...).Return(test_skopeo_multiarch_image_output, "", 0).Times(1)
 
-			arch, err := oc.GetReleaseArchitecture(log, releaseImage, "", pullSecret)
-			Expect(arch).Should(Equal(common.MultiCPUArchitecture))
-			Expect(err).ShouldNot(HaveOccurred())
+				arch, err := oc.GetReleaseArchitecture(log, releaseImage, "", pullSecret)
+				Expect(arch).Should(ConsistOf([]string{"x86_64", "ppc64le", "s390x", "arm64"}))
+				Expect(err).ShouldNot(HaveOccurred())
+			})
+
+			It("fail with malformed manifests - not a list", func() {
+				command := fmt.Sprintf(templateImageInfo+" --registry-config=%s", releaseImage, tempFilePath)
+				command2 := fmt.Sprintf(templateSkopeoDetectMultiarch+" --authfile %s", releaseImage, tempFilePath)
+				args := splitStringToInterfacesArray(command)
+				args2 := splitStringToInterfacesArray(command2)
+				imageInfoStr := fmt.Sprintf("{ \"manifests\": { \"platform\": { \"not-an-architecture\": \"%s\" }}}", common.TestDefaultConfig.CPUArchitecture)
+				mockExecuter.EXPECT().Execute(args[0], args[1:]...).Return("", "the image is a manifest list", 1).Times(1)
+				mockExecuter.EXPECT().Execute(args2[0], args2[1:]...).Return(imageInfoStr, "", 0).Times(1)
+
+				arch, err := oc.GetReleaseArchitecture(log, releaseImage, "", pullSecret)
+				Expect(arch).Should(BeEmpty())
+				Expect(err).Should(HaveOccurred())
+				Expect(err.Error()).Should(ContainSubstring("failed to get image info using oc"))
+			})
+
+			It("fail with malformed manifests - no architecture", func() {
+				command := fmt.Sprintf(templateImageInfo+" --registry-config=%s", releaseImage, tempFilePath)
+				command2 := fmt.Sprintf(templateSkopeoDetectMultiarch+" --authfile %s", releaseImage, tempFilePath)
+				args := splitStringToInterfacesArray(command)
+				args2 := splitStringToInterfacesArray(command2)
+				imageInfoStr := fmt.Sprintf("{ \"manifests\": [{ \"platform\": { \"not-an-architecture\": \"%s\" }}]}", common.TestDefaultConfig.CPUArchitecture)
+				mockExecuter.EXPECT().Execute(args[0], args[1:]...).Return("", "the image is a manifest list", 1).Times(1)
+				mockExecuter.EXPECT().Execute(args2[0], args2[1:]...).Return(imageInfoStr, "", 0).Times(1)
+
+				arch, err := oc.GetReleaseArchitecture(log, releaseImage, "", pullSecret)
+				Expect(arch).Should(BeEmpty())
+				Expect(err).Should(HaveOccurred())
+				Expect(err.Error()).Should(ContainSubstring("image manifest does not contain architecture"))
+			})
+
+			It("fail with malformed manifests - empty architecture", func() {
+				command := fmt.Sprintf(templateImageInfo+" --registry-config=%s", releaseImage, tempFilePath)
+				command2 := fmt.Sprintf(templateSkopeoDetectMultiarch+" --authfile %s", releaseImage, tempFilePath)
+				args := splitStringToInterfacesArray(command)
+				args2 := splitStringToInterfacesArray(command2)
+				imageInfoStr := "{ \"manifests\": [{ \"platform\": { \"architecture\": \"\" }}]}"
+				mockExecuter.EXPECT().Execute(args[0], args[1:]...).Return("", "the image is a manifest list", 1).Times(1)
+				mockExecuter.EXPECT().Execute(args2[0], args2[1:]...).Return(imageInfoStr, "", 0).Times(1)
+
+				arch, err := oc.GetReleaseArchitecture(log, releaseImage, "", pullSecret)
+				Expect(arch).Should(BeEmpty())
+				Expect(err).Should(HaveOccurred())
+				Expect(err.Error()).Should(ContainSubstring("image manifest does not contain architecture"))
+			})
 		})
 
 		It("broken release image", func() {

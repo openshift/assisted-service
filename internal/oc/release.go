@@ -39,7 +39,7 @@ type Release interface {
 	GetMustGatherImage(log logrus.FieldLogger, releaseImage string, releaseImageMirror string, pullSecret string) (string, error)
 	GetOpenshiftVersion(log logrus.FieldLogger, releaseImage string, releaseImageMirror string, pullSecret string) (string, error)
 	GetMajorMinorVersion(log logrus.FieldLogger, releaseImage string, releaseImageMirror string, pullSecret string) (string, error)
-	GetReleaseArchitecture(log logrus.FieldLogger, releaseImage string, releaseImageMirror string, pullSecret string) (string, error)
+	GetReleaseArchitecture(log logrus.FieldLogger, releaseImage string, releaseImageMirror string, pullSecret string) ([]string, error)
 	Extract(log logrus.FieldLogger, releaseImage string, releaseImageMirror string, cacheDir string, pullSecret string, platformType models.PlatformType, icspFile string) (string, error)
 }
 
@@ -149,19 +149,16 @@ func (r *release) GetMajorMinorVersion(log logrus.FieldLogger, releaseImage stri
 	return fmt.Sprintf("%d.%d", v.Segments()[0], v.Segments()[1]), nil
 }
 
-func (r *release) GetReleaseArchitecture(log logrus.FieldLogger, releaseImage string, releaseImageMirror string, pullSecret string) (string, error) {
-	var cmd string
-	var cmdMultiarch string
-	if releaseImage == "" && releaseImageMirror == "" {
-		return "", errors.New("no releaseImage nor releaseImageMirror provided")
+func (r *release) GetReleaseArchitecture(log logrus.FieldLogger, releaseImage string, releaseImageMirror string, pullSecret string) ([]string, error) {
+	image := releaseImageMirror
+	if image == "" {
+		image = releaseImage
 	}
-	if releaseImageMirror != "" {
-		cmd = fmt.Sprintf(templateImageInfo, releaseImageMirror)
-		cmdMultiarch = fmt.Sprintf(templateSkopeoDetectMultiarch, releaseImageMirror)
-	} else {
-		cmd = fmt.Sprintf(templateImageInfo, releaseImage)
-		cmdMultiarch = fmt.Sprintf(templateSkopeoDetectMultiarch, releaseImage)
+	if image == "" {
+		return nil, errors.New("no releaseImage nor releaseImageMirror provided")
 	}
+	cmd := fmt.Sprintf(templateImageInfo, image)
+	cmdMultiarch := fmt.Sprintf(templateSkopeoDetectMultiarch, image)
 
 	imageInfoStr, err := execute(log, r.executer, pullSecret, cmd, ocAuthArgument)
 	if err != nil {
@@ -171,18 +168,36 @@ func (r *release) GetReleaseArchitecture(log logrus.FieldLogger, releaseImage st
 		//                  feature in oc cli.
 		skopeoImageRaw, err2 := execute(log, r.executer, pullSecret, cmdMultiarch, skopeoAuthArgument)
 		if err2 != nil {
-			return "", errors.Errorf("failed to inspect image, oc: %v, skopeo: %v", err, err2)
+			return nil, errors.Errorf("failed to inspect image, oc: %v, skopeo: %v", err, err2)
 		}
-		_, _, _, err2 = jsonparser.Get([]byte(skopeoImageRaw), "manifests")
+
+		var multiarchContent []string
+		_, err2 = jsonparser.ArrayEach([]byte(skopeoImageRaw), func(value []byte, dataType jsonparser.ValueType, offset int, err error) {
+			res, _ := jsonparser.GetString(value, "platform", "architecture")
+
+			// Convert architecture naming to supported values
+			if res == "amd64" {
+				res = common.DefaultCPUArchitecture
+			} else if res == "" {
+				return
+			}
+
+			multiarchContent = append(multiarchContent, res)
+		}, "manifests")
 		if err2 != nil {
-			return "", errors.Errorf("failed to get image info using oc: %v", err)
+			return nil, errors.Errorf("failed to get image info using oc: %v", err)
 		}
-		return common.MultiCPUArchitecture, nil
+
+		if len(multiarchContent) == 0 {
+			return nil, errors.Errorf("image manifest does not contain architecture: %v", skopeoImageRaw)
+		}
+
+		return multiarchContent, nil
 	}
 
 	architecture, err := jsonparser.GetString([]byte(imageInfoStr), "config", "architecture")
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	// Convert architecture naming to supported values
@@ -191,7 +206,7 @@ func (r *release) GetReleaseArchitecture(log logrus.FieldLogger, releaseImage st
 		architecture = common.DefaultCPUArchitecture
 	}
 
-	return architecture, nil
+	return []string{architecture}, nil
 }
 
 func getImageKey(imageName, releaseImage string) string {

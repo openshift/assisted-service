@@ -1261,12 +1261,12 @@ func (r *ClusterDeploymentsReconciler) addReleaseImage(
 		// before creating the cluster the source of truth is the
 		// release image url from the ClusterImageSetRef
 		releaseImage, err = r.Installer.AddReleaseImage(ctx,
-			releaseImageUrl, pullSecret, "", "")
+			releaseImageUrl, pullSecret, "", nil)
 	} else {
 		// If the cluster is already created, take the Release Version
 		// ane architecture from the version calculated by the BE.
 		releaseImage, err = r.Installer.AddReleaseImage(ctx,
-			releaseImageUrl, pullSecret, cluster.OpenshiftVersion, cluster.CPUArchitecture)
+			releaseImageUrl, pullSecret, cluster.OpenshiftVersion, []string{cluster.CPUArchitecture})
 	}
 
 	if err != nil {

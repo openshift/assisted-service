@@ -187,12 +187,17 @@ func getReleaseVersionAndCpuArch(log *log.Logger, releaseImage string, releaseMi
 		return "", "", versionError
 	}
 
-	cpuArch, archError := releaseHandler.GetReleaseArchitecture(log, releaseImage, releaseMirror, pullSecret)
+	cpuArchs, archError := releaseHandler.GetReleaseArchitecture(log, releaseImage, releaseMirror, pullSecret)
 	if archError != nil {
 		return "", "", archError
 	}
 
-	return version, cpuArch, nil
+	// This is a safety compatibility handler. GetReleaseArchitecture() should never return nil without an error
+	// but given the caller of this function here does not check that, we want to explicitly handle this scenario.
+	if len(cpuArchs) == 0 {
+		return "", "", errors.New("could not get release architecture")
+	}
+	return version, cpuArchs[0], nil
 }
 
 func validateNMStateConfigAndInfraEnv(nmStateConfig aiv1beta1.NMStateConfig, infraEnv aiv1beta1.InfraEnv) error {
