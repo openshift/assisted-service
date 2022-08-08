@@ -171,6 +171,10 @@ type AgentClusterInstallSpec struct {
 	// Proxy defines the proxy settings used for the install config
 	// +optional
 	Proxy *Proxy `json:"proxy,omitempty"`
+
+	// PlatformType is the name for the specific platform upon which to perform the installation.
+	// +optional
+	PlatformType PlatformType `json:"platformType,omitempty"`
 }
 
 // IgnitionEndpoint stores the data to of the custom ignition endpoint.
@@ -227,6 +231,14 @@ type AgentClusterInstallStatus struct {
 	// IngressVIP is the virtual IP used for cluster ingress traffic.
 	// +optional
 	IngressVIP string `json:"ingressVIP,omitempty"`
+
+	// UserManagedNetworking indicates if the networking is managed by the user.
+	// +optional
+	UserManagedNetworking *bool `json:"userManagedNetworking,omitempty"`
+
+	// PlatformType is the name for the specific platform upon which to perform the installation.
+	// +optional
+	PlatformType PlatformType `json:"platformType,omitempty"`
 
 	// ValidationsInfo is a JSON-formatted string containing the validation results for each validation id grouped by category (network, hosts-data, etc.)
 	// +optional
@@ -327,6 +339,21 @@ const (
 const (
 	MasterAgentMachinePool string = "master"
 	WorkerAgentMachinePool string = "worker"
+)
+
+// PlatformType is a specific supported infrastructure provider.
+// +kubebuilder:validation:Enum="";BareMetal;None;VSphere
+type PlatformType string
+
+const (
+	// BareMetalPlatformType represents managed bare metal infrastructure.
+	BareMetalPlatformType PlatformType = "BareMetal"
+
+	// NonePlatformType means there is no infrastructure provider.
+	NonePlatformType PlatformType = "None"
+
+	// VSpherePlatformType represents VMWare vSphere infrastructure.
+	VSpherePlatformType PlatformType = "VSphere"
 )
 
 // AgentMachinePool is a pool of machines to be installed.
