@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net"
-	"sort"
 
 	"github.com/go-openapi/strfmt"
 	"github.com/golang-collections/go-datastructures/bitarray"
@@ -94,18 +93,15 @@ func (c *connectivitySet) intersect(other *connectivitySet) *connectivitySet {
 	}
 }
 
+func (c *connectivitySet) union(other *connectivitySet) *connectivitySet {
+	return &connectivitySet{
+		array: c.array.Or(other.array),
+	}
+}
+
 func (c *connectivitySet) containsElement(id int) bool {
 	b, err := c.array.GetBit(uint64(id))
 	return err == nil && b
-}
-
-func (c *connectivitySet) equals(other *connectivitySet) bool {
-	return c.array.Equals(other.array)
-}
-
-func (c *connectivitySet) isSupersetOf(other *connectivitySet) bool {
-	intersection := c.intersect(other)
-	return intersection.equals(other)
 }
 
 func (c *connectivitySet) id() groupId {
@@ -113,6 +109,10 @@ func (c *connectivitySet) id() groupId {
 		c.groupId = c.array.ToNums()
 	}
 	return c.groupId
+}
+
+func (c *connectivitySet) equals(other *connectivitySet) bool {
+	return c.array.Equals(other.array)
 }
 
 func (c *connectivitySet) toList(hosts []*models.Host) []strfmt.UUID {
@@ -123,7 +123,7 @@ func (c *connectivitySet) toList(hosts []*models.Host) []strfmt.UUID {
 	return ret
 }
 
-func (c *connectivitySet) len() int {
+func (c *connectivitySet) size() int {
 	return len(c.id())
 }
 
@@ -142,31 +142,150 @@ func (g groupId) isLess(other groupId) bool {
 
 // Auxiliary type to find out if the contained set has a full mesh connectivity
 type connectivityGroup struct {
-	set   *connectivitySet
-	count int
+	set                        *connectivitySet
+	participatingHosts         *connectivitySet
+	participatingPrimaryGroups *connectivitySet
+}
+
+func (c *connectivityGroup) id() groupId {
+	return c.set.id()
+}
+
+func (c *connectivityGroup) size() int {
+	return c.set.size()
+}
+
+// Merge participants between groups
+func (c *connectivityGroup) mergeParticipants(cg *connectivityGroup) {
+
+	// The participating hosts are the hosts from both groups that all appear in the connectivity group set
+	c.participatingHosts = c.set.intersect(c.participatingHosts.union(cg.participatingHosts))
+
+	if c.participatingPrimaryGroups != nil && cg.participatingPrimaryGroups != nil {
+		// Also merge the original groups
+		c.participatingPrimaryGroups = c.participatingPrimaryGroups.union(cg.participatingPrimaryGroups)
+	}
+}
+
+// When intersecting groups, the sets are intersected, and the participating hosts and groups are merged.
+func (c *connectivityGroup) intersect(cg *connectivityGroup) *connectivityGroup {
+	ret := &connectivityGroup{
+		set:                        c.set.intersect(cg.set),
+		participatingHosts:         c.participatingHosts,
+		participatingPrimaryGroups: c.participatingPrimaryGroups,
+	}
+	ret.mergeParticipants(cg)
+	return ret
+}
+
+func (c *connectivityGroup) setPrimaryGroup(primaryGroupsNum, groupIndex int) {
+	if c.participatingPrimaryGroups == nil {
+		c.participatingPrimaryGroups = NewConnectivitySet(primaryGroupsNum)
+	}
+	_ = c.participatingPrimaryGroups.add(groupIndex)
+}
+
+func (c *connectivityGroup) numParticipatingHosts() int {
+	return c.participatingHosts.size()
+}
+
+func (c *connectivityGroup) isFullMesh() bool {
+	return c.set.size() == c.participatingHosts.size()
+}
+
+func (c *connectivityGroup) equivalent(other *connectivityGroup) bool {
+	return c.set.equals(other.set)
 }
 
 // Unique list of connectivity group elements.  The uniqueness is by the set elements
 type connectivityGroupList struct {
-	groups []*connectivityGroup
+	groupsBySize map[int][]*connectivityGroup
 }
 
-func (c *connectivityGroupList) containsSet(cs *connectivitySet) bool {
-	for _, group := range c.groups {
-		if group.set.equals(cs) {
-			return true
+func newConnectivityGroupList() *connectivityGroupList {
+	return &connectivityGroupList{
+		groupsBySize: make(map[int][]*connectivityGroup),
+	}
+}
+
+func (c *connectivityGroupList) findGroup(cg *connectivityGroup) *connectivityGroup {
+	groupsForSize, exists := c.groupsBySize[cg.size()]
+	if !exists {
+		return nil
+	}
+	for _, g := range groupsForSize {
+		if g.equivalent(cg) {
+			return g
 		}
 	}
-	return false
+	return nil
 }
 
-func (c *connectivityGroupList) addSet(cs *connectivitySet) {
-	if !c.containsSet(cs) {
-		c.groups = append(c.groups, &connectivityGroup{
-			set:   cs,
-			count: 0,
-		})
+func (c *connectivityGroupList) addGroup(cg *connectivityGroup) {
+	size := cg.size()
+	c.groupsBySize[size] = append(c.groupsBySize[size], cg)
+}
+
+func (m *majorityGroupCalculator) toConnectivityGroup(candidate *groupCandidate) *connectivityGroup {
+	ret := &connectivityGroup{
+		set:                candidate.set,
+		participatingHosts: NewConnectivitySet(m.numHosts),
 	}
+	_ = ret.participatingHosts.add(candidate.me)
+	return ret
+}
+
+func (c *connectivityGroupList) addOrMergeGroup(cg *connectivityGroup) {
+	foundGroup := c.findGroup(cg)
+	if foundGroup != nil {
+		foundGroup.mergeParticipants(cg)
+	} else {
+		c.addGroup(cg)
+	}
+}
+
+func (c *connectivityGroupList) largestGroup() *connectivityGroup {
+	size := c.biggestGroupSize()
+	if size < 3 {
+		return nil
+	}
+	groupsBySize := c.groupsBySize[size]
+	var ret *connectivityGroup
+	for _, cg := range groupsBySize {
+		if ret == nil || ret.numParticipatingHosts() < cg.numParticipatingHosts() ||
+			ret.numParticipatingHosts() == cg.numParticipatingHosts() &&
+				cg.id().isLess(ret.id()) {
+			ret = cg
+		}
+	}
+	return ret
+}
+
+func (c *connectivityGroupList) biggestGroupSize() int {
+	ret := 0
+	for key := range c.groupsBySize {
+		ret = max(ret, key)
+	}
+	return ret
+}
+
+func (c *connectivityGroupList) deleteGroupsBySize(size int) {
+	delete(c.groupsBySize, size)
+}
+
+func (c *connectivityGroupList) toList() (ret []*connectivityGroup) {
+	for _, l := range c.groupsBySize {
+		ret = append(ret, l...)
+	}
+	return ret
+}
+
+func (c *connectivityGroupList) setAndMergePrimaryGroups() []*connectivityGroup {
+	primaryGroups := c.toList()
+	for i, cg := range primaryGroups {
+		cg.setPrimaryGroup(len(primaryGroups), i)
+	}
+	return primaryGroups
 }
 
 // Group candidate is the connectivity view of a single host (me)
@@ -175,83 +294,69 @@ type groupCandidate struct {
 	me  int
 }
 
-func createGroupList(groupCandidates []groupCandidate) connectivityGroupList {
-	var groupList connectivityGroupList
+func (m *majorityGroupCalculator) createFullMeshGroup(groupCandidates []*groupCandidate) *connectivityGroup {
+	groupList := newConnectivityGroupList()
 
-	// First iteration - gather the sets
+	// First iteration - gather the original groups
 	for _, candidate := range groupCandidates {
-
-		// All sets pending for insertion
-		pendingSets := make([]*connectivitySet, 0)
 
 		// Add the set of the current candidate to the pending list
-		pendingSets = append(pendingSets, candidate.set)
-		for _, group := range groupList.groups {
+		groupList.addOrMergeGroup(m.toConnectivityGroup(candidate))
+	}
 
-			// Intersect the set of the current candidate with each member of the groupList.  The result is added to the
-			// Pending sets
-			set := candidate.set.intersect(group.set)
-			if set.len() >= 3 {
-				pendingSets = append(pendingSets, set)
+	// The primary groups are used for intersection with group candidate which is not full mesh
+	primaryGroups := groupList.setAndMergePrimaryGroups()
+	for groupCandidate := groupList.largestGroup(); groupCandidate != nil; groupCandidate = groupList.largestGroup() {
+		if groupCandidate.isFullMesh() {
+			return groupCandidate
+		}
+
+		currentSize := groupCandidate.size()
+
+		// Remove all groups with the current size, since we are now looking for smaller size groups
+		groupList.deleteGroupsBySize(currentSize)
+
+		// We now want to intersect with groups not smaller than the biggest group(s) still in the group list
+		biggestGroupSize := groupList.biggestGroupSize()
+		for i := range primaryGroups {
+
+			// Do not intersect with original groups that were already intersected with this group
+			if !groupCandidate.participatingPrimaryGroups.containsElement(i) {
+				pg := primaryGroups[i]
+
+				// Skip small groups. We are not interested in them now
+				if pg.size() < biggestGroupSize {
+					continue
+				}
+				intersectedGroup := groupCandidate.intersect(pg)
+
+				// Groups have to be smaller than the existing size since it was already checked,
+				// and greater than 3 (minimal number of hosts for a cluster).
+				if intersectedGroup.size() >= 3 && intersectedGroup.size() < currentSize {
+					groupList.addOrMergeGroup(intersectedGroup)
+
+					// If the intersected group is larger than the biggest group size we already have, use this one.
+					biggestGroupSize = max(intersectedGroup.size(), biggestGroupSize)
+				}
 			}
 		}
-
-		// Add the sets in the pending list to the groupList
-		for _, set := range pendingSets {
-			groupList.addSet(set)
-		}
 	}
-
-	// Second iteration - Per groupList element. count the number of candidates that are part of that element.
-	// Since every candidate represents a host, if the number of participants == the set size, then there is a full
-	// mesh connectivity between the members
-	for _, candidate := range groupCandidates {
-		for _, cs := range groupList.groups {
-			if candidate.set.isSupersetOf(cs.set) && cs.set.containsElement(candidate.me) {
-				cs.count++
-			}
-		}
-	}
-	return groupList
-}
-
-func filterFullMeshGroups(groupList connectivityGroupList) []*connectivitySet {
-	ret := make([]*connectivitySet, 0)
-	for _, r := range groupList.groups {
-		// Add only sets with full mesh connectivity
-		if r.set.len() == r.count {
-			ret = append(ret, r.set)
-		}
-	}
-	return ret
-}
-
-// Create sorted list of connectivity sets.  The sort is by set size (descending)
-func createConnectivityGroups(groupCandidates []groupCandidate) []*connectivitySet {
-	groupList := createGroupList(groupCandidates)
-	ret := filterFullMeshGroups(groupList)
-
-	// Sort by set size descending, which means the largest group first.
-	sort.Slice(ret, func(i, j int) bool {
-		// If the sizes are equal then compare the contained elements of each set
-		return ret[i].id().isLess(ret[j].id())
-	})
-	return ret
+	return nil
 }
 
 /*
  * Create group candidate for a specific host.  The group candidate contains a set with all the hosts it has
  * connectivity to.
  */
-func createHostGroupCandidate(hostIndex, numHosts int, cMap connectivityMap) groupCandidate {
-	set := NewConnectivitySet(numHosts)
+func (m *majorityGroupCalculator) createHostGroupCandidate(hostIndex int, cMap connectivityMap) *groupCandidate {
+	set := NewConnectivitySet(m.numHosts)
 	_ = set.add(hostIndex)
-	for index := 0; index != numHosts; index++ {
+	for index := 0; index != m.numHosts; index++ {
 		if cMap.isConnected(hostIndex, index) {
 			_ = set.add(index)
 		}
 	}
-	return groupCandidate{
+	return &groupCandidate{
 		set: set,
 		me:  hostIndex,
 	}
@@ -389,6 +494,7 @@ func newL3QueryFactory(hosts []*models.Host, family AddressFamily) (hostQueryFac
 
 type majorityGroupCalculator struct {
 	hostQueryFactory hostQueryFactory
+	numHosts         int
 }
 
 /*
@@ -423,23 +529,24 @@ func (m *majorityGroupCalculator) createMajorityGroup(hosts []*models.Host) ([]s
 	if err != nil {
 		return nil, err
 	}
-	candidates := make([]groupCandidate, 0)
+	candidates := make([]*groupCandidate, 0)
 	for hostIndex := range hosts {
-		candidate := createHostGroupCandidate(hostIndex, len(hosts), cMap)
-		if candidate.set.len() >= 3 {
+		candidate := m.createHostGroupCandidate(hostIndex, cMap)
+		if candidate.set.size() >= 3 {
 			candidates = append(candidates, candidate)
 		}
 	}
-	groups := createConnectivityGroups(candidates)
-	if len(groups) > 0 {
-		return groups[0].toList(hosts), nil
+	group := m.createFullMeshGroup(candidates)
+	if group != nil {
+		return group.set.toList(hosts), nil
 	}
 	return make([]strfmt.UUID, 0), nil
 }
 
-func calculateMajoryGroup(hosts []*models.Host, factory hostQueryFactory) ([]strfmt.UUID, error) {
+func calculateMajorityGroup(hosts []*models.Host, factory hostQueryFactory) ([]strfmt.UUID, error) {
 	calc := &majorityGroupCalculator{
 		hostQueryFactory: factory,
+		numHosts:         len(hosts),
 	}
 	return calc.createMajorityGroup(hosts)
 }
@@ -455,7 +562,7 @@ func CreateL2MajorityGroup(cidr string, hosts []*models.Host) ([]strfmt.UUID, er
 	if err != nil {
 		return nil, err
 	}
-	return calculateMajoryGroup(hosts, factory)
+	return calculateMajorityGroup(hosts, factory)
 }
 
 /*
@@ -472,5 +579,5 @@ func CreateL3MajorityGroup(hosts []*models.Host, family AddressFamily) ([]strfmt
 	if err != nil {
 		return nil, err
 	}
-	return calculateMajoryGroup(hosts, factory)
+	return calculateMajorityGroup(hosts, factory)
 }
