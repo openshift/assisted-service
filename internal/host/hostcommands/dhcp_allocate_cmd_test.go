@@ -6,7 +6,7 @@ import (
 
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/host/hostutil"
@@ -23,10 +23,9 @@ var _ = Describe("dhcpallocate", func() {
 	var id, clusterId, infraEnvId strfmt.UUID
 	var stepReply []*models.Step
 	var stepErr error
-	var dbName string
 
 	BeforeEach(func() {
-		db, dbName = common.PrepareTestDB()
+		db, _ = common.PrepareTestDB()
 		dCmd = NewDhcpAllocateCmd(common.GetTestLog(), "quay.io/example/dhcp_lease_allocator:latest", db)
 
 		id = strfmt.UUID("32b4463e-5f94-4245-87cf-a6948014045c")
@@ -113,7 +112,6 @@ var _ = Describe("dhcpallocate", func() {
 
 	AfterEach(func() {
 		// cleanup
-		common.DeleteTestDB(db, dbName)
 		stepReply = nil
 		stepErr = nil
 	})

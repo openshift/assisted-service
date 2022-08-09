@@ -564,84 +564,140 @@ func (m *Manager) IndexOfStage(element models.HostStage, data []models.HostStage
 	return IndexOfStage(element, data)
 }
 
-func (m *Manager) UpdateInstallProgress(ctx context.Context, h *models.Host, progress *models.HostProgress) error {
-	previousProgress := h.Progress
-
-	if previousProgress != nil &&
-		previousProgress.CurrentStage == progress.CurrentStage {
-		if previousProgress.ProgressInfo == progress.ProgressInfo {
-			return nil
-		}
-		updates := map[string]interface{}{
-			"progress_progress_info":    progress.ProgressInfo,
-			"progress_stage_updated_at": strfmt.DateTime(time.Now()),
-		}
-		return m.db.Model(h).UpdateColumns(updates).Error
+func (m *Manager) handleInstallationProgressSameStage(h *models.Host, previousProgressInfo *models.HostProgressInfo, newProgress *models.HostProgress) error {
+	if previousProgressInfo.ProgressInfo == newProgress.ProgressInfo {
+		// The progress is already up to date
+		return nil
 	}
 
-	validStatuses := []string{
-		models.HostStatusInstalling, models.HostStatusInstallingInProgress, models.HostStatusInstallingPendingUserAction,
+	// Same stage but different progress info, simply update the info and bump the timestamp
+	updates := map[string]interface{}{
+		"progress_progress_info":    newProgress.ProgressInfo,
+		"progress_stage_updated_at": strfmt.DateTime(time.Now()),
 	}
-	if !funk.ContainsString(validStatuses, swag.StringValue(h.Status)) {
-		return errors.Errorf("Can't set progress <%s> to host in status <%s>", progress.CurrentStage, swag.StringValue(h.Status))
+
+	return m.db.Model(h).UpdateColumns(updates).Error
+}
+
+func (m *Manager) handleInstallationProgressNewStage(ctx context.Context, h *models.Host, previousProgressInfo *models.HostProgressInfo, newProgress *models.HostProgress) error {
+	allRoleStages := m.GetStagesByRole(h, hostutil.IsSingleNode(m.log, m.db, h))
+
+	if newProgress.CurrentStage != models.HostStageFailed {
+		// The "failed" stage is not real, see
+		// [handleInstallationProgressNewStage]. This means it also doesn't
+		// appear in the list of stages for the host role because otherwise it
+		// would mess with the percentage calculation. This is why we avoid
+		// validating it against the list of stages for the role.
+		if err := m.validateStage(h, previousProgressInfo, newProgress, allRoleStages); err != nil {
+			return err
+		}
 	}
 
 	var extra []interface{}
-	if progress.CurrentStage != models.HostStageFailed {
-		isSno := hostutil.IsSingleNode(m.log, m.db, h)
-
-		stages := m.GetStagesByRole(h, isSno)
-		if previousProgress != nil && previousProgress.CurrentStage != "" {
-			// Verify the new stage is higher or equal to the current host stage according to its role stages array
-			currentIndex := m.IndexOfStage(progress.CurrentStage, stages)
-
-			if currentIndex == -1 {
-				return errors.Errorf("Stages %s isn't available for host role %s bootstrap %s",
-					progress.CurrentStage, h.Role, strconv.FormatBool(h.Bootstrap))
-			}
-			if currentIndex < m.IndexOfStage(previousProgress.CurrentStage, stages) {
-				return errors.Errorf("Can't assign lower stage \"%s\" after host has been in stage \"%s\"",
-					progress.CurrentStage, previousProgress.CurrentStage)
-			}
-		}
-
-		currentIndex := m.IndexOfStage(progress.CurrentStage, stages)
-		installationPercentage := (float64(currentIndex+1) / float64(len(stages))) * 100
-		extra = append(extra, "progress_installation_percentage", installationPercentage)
+	if newProgress.CurrentStage != models.HostStageFailed {
+		// The failed stage doesn't appear in the list of stages for the host
+		// role, so we don't want to update the percentage in the failed stage
+		// for two reasons:
+		//
+		// 1. Since it's not in the list of stages for the role, the calculation itself wouldn't make sense
+		// 2. We want to maintain the current percentage calculation so the
+		// user can see what was the progress of the host while it failed
+		extra = append(extra, "progress_installation_percentage", m.calculateStagePercentage(newProgress, allRoleStages))
 	}
 
-	statusInfo := string(progress.CurrentStage)
+	statusInfo := string(newProgress.CurrentStage)
 
 	var err error
-	switch progress.CurrentStage {
+	switch newProgress.CurrentStage {
 	case models.HostStageDone:
+		// When the stage is done, we also set the status to installed
 		_, err = hostutil.UpdateHostProgress(ctx, logutil.FromContext(ctx, m.log), m.db, m.eventsHandler, h.InfraEnvID, *h.ID,
 			swag.StringValue(h.Status), models.HostStatusInstalled, statusInfo,
-			previousProgress.CurrentStage, progress.CurrentStage, progress.ProgressInfo, extra...)
-	case models.HostStageFailed:
-		// Keeps the last progress
+			previousProgressInfo.CurrentStage, newProgress.CurrentStage, newProgress.ProgressInfo, extra...)
 
-		if progress.ProgressInfo != "" {
-			statusInfo += fmt.Sprintf(" - %s", progress.ProgressInfo)
+	case models.HostStageFailed:
+		// When the stage is failed, we move the host to the error status, and we don't actually touch the stage or progress.
+		// We leave them as is so it will be easier to see what exactly the host was doing while it failed.
+		if newProgress.ProgressInfo != "" {
+			statusInfo += fmt.Sprintf(" - %s", newProgress.ProgressInfo)
 		}
 
 		_, err = hostutil.UpdateHostStatus(ctx, logutil.FromContext(ctx, m.log), m.db, m.eventsHandler, h.InfraEnvID, *h.ID,
 			swag.StringValue(h.Status), models.HostStatusError, statusInfo)
+
 	case models.HostStageRebooting:
 		if swag.StringValue(h.Kind) == models.HostKindAddToExistingClusterHost {
+			// This is the last stop for day-2 hosts. We can't take them
+			// further. Give the user a special message (see
+			// [statusInfoRebootingDay2]), move the host to the final
+			// "HostStatusAddedToExistingCluster" status and also pretend the
+			// actual stage is "HostStageDone".
 			_, err = hostutil.UpdateHostProgress(ctx, logutil.FromContext(ctx, m.log), m.db, m.eventsHandler, h.InfraEnvID, *h.ID,
 				swag.StringValue(h.Status), models.HostStatusAddedToExistingCluster, statusInfoRebootingDay2,
-				h.Progress.CurrentStage, models.HostStageDone, progress.ProgressInfo, extra...)
+				h.Progress.CurrentStage, models.HostStageDone, newProgress.ProgressInfo, extra...)
 			break
 		}
+
+		// If it's not a day-2 host, the rebooting stage doesn't get any
+		// special treatment, so we fallthrough to the default handler for all
+		// other stages
 		fallthrough
 	default:
+		// Notice that the first time we update the progress, this will cause the status to move
+		// from [HostStatusInstalling] to [HostStatusInstallingInProgress]
 		_, err = hostutil.UpdateHostProgress(ctx, logutil.FromContext(ctx, m.log), m.db, m.eventsHandler, h.InfraEnvID, *h.ID,
 			swag.StringValue(h.Status), models.HostStatusInstallingInProgress, statusInfo,
-			previousProgress.CurrentStage, progress.CurrentStage, progress.ProgressInfo, extra...)
+			previousProgressInfo.CurrentStage, newProgress.CurrentStage, newProgress.ProgressInfo, extra...)
 	}
-	m.reportInstallationMetrics(ctx, h, previousProgress, progress.CurrentStage)
+
+	m.reportInstallationMetrics(ctx, h, previousProgressInfo, newProgress.CurrentStage)
+
 	return err
+}
+
+func (m *Manager) validateStage(h *models.Host, previousProgressInfo *models.HostProgressInfo, newProgress *models.HostProgress, allRoleStages []models.HostStage) error {
+	if previousProgressInfo != nil && previousProgressInfo.CurrentStage != "" {
+		newStageIndex := m.IndexOfStage(newProgress.CurrentStage, allRoleStages)
+
+		// Make sure the stage exists
+		if newStageIndex == StageNotFound {
+			return errors.Errorf("Stages %s isn't available for host role %s bootstrap %s",
+				newProgress.CurrentStage, h.Role, strconv.FormatBool(h.Bootstrap))
+		}
+
+		// Verify the new stage is higher or equal to the current host stage according to its role stages array
+		previousStageIndex := m.IndexOfStage(previousProgressInfo.CurrentStage, allRoleStages)
+		if newStageIndex < previousStageIndex {
+			return errors.Errorf(`Can't assign lower stage "%s" after host has been in stage "%s"`,
+				newProgress.CurrentStage, previousProgressInfo.CurrentStage)
+		}
+	}
+
+	return nil
+}
+
+func (m *Manager) calculateStagePercentage(newProgress *models.HostProgress, allRoleStages []models.HostStage) float64 {
+	newStageIndex := m.IndexOfStage(newProgress.CurrentStage, allRoleStages)
+	return (float64(newStageIndex+1) / float64(len(allRoleStages))) * 100
+}
+
+func (m *Manager) UpdateInstallProgress(ctx context.Context, h *models.Host, newProgress *models.HostProgress) error {
+	if !funk.ContainsString([]string{
+		// The valid statuses (not to be confused with stages) in which updating
+		// the host progress makes sense
+		models.HostStatusInstalling,
+		models.HostStatusInstallingInProgress,
+		models.HostStatusInstallingPendingUserAction,
+	}, swag.StringValue(h.Status)) {
+		return errors.Errorf("Can't set progress <%s> to host in status <%s>", newProgress.CurrentStage, swag.StringValue(h.Status))
+	}
+
+	previousProgressInfo := h.Progress
+	if previousProgressInfo != nil && previousProgressInfo.CurrentStage == newProgress.CurrentStage {
+		return m.handleInstallationProgressSameStage(h, previousProgressInfo, newProgress)
+	}
+
+	return m.handleInstallationProgressNewStage(ctx, h, previousProgressInfo, newProgress)
 }
 
 func (m *Manager) SetBootstrap(ctx context.Context, h *models.Host, isbootstrap bool, db *gorm.DB) error {
@@ -1025,25 +1081,26 @@ func (m *Manager) IsInstallable(h *models.Host) bool {
 	return swag.StringValue(h.Status) == models.HostStatusKnown
 }
 
-func (m *Manager) reportInstallationMetrics(ctx context.Context, h *models.Host, previousProgress *models.HostProgressInfo, CurrentStage models.HostStage) {
+func (m *Manager) reportInstallationMetrics(ctx context.Context, host *models.Host, previousProgress *models.HostProgressInfo, CurrentStage models.HostStage) {
 	log := logutil.FromContext(ctx, m.log)
-	//get openshift version from cluster
+
 	var cluster common.Cluster
-	err := m.db.First(&cluster, "id = ?", h.ClusterID).Error
+	err := m.db.First(&cluster, "id = ?", host.ClusterID).Error
 	if err != nil {
-		log.WithError(err).Errorf("not reporting installation metrics - failed to find cluster %s", h.ClusterID)
+		log.WithError(err).Errorf("not reporting installation metrics - failed to find cluster %s", host.ClusterID)
 		return
 	}
 
-	boot, err := hostutil.GetHostInstallationDisk(h)
+	installationDisk, err := hostutil.GetHostInstallationDisk(host)
 
 	if err != nil {
-		log.WithError(err).Errorf("host %s in cluster %s: error fetching installation disk", h.ID.String(), h.ClusterID.String())
-	} else if boot == nil {
-		log.Errorf("host %s in cluster %s has empty installation path", h.ID.String(), h.ClusterID.String())
+		log.WithError(err).Errorf("host %s in cluster %s: error fetching installation disk", host.ID.String(), host.ClusterID.String())
+	} else if installationDisk == nil {
+		log.Errorf("host %s in cluster %s has empty installation path", host.ID.String(), host.ClusterID.String())
 	}
 
-	m.metricApi.ReportHostInstallationMetrics(ctx, cluster.OpenshiftVersion, *h.ClusterID, cluster.EmailDomain, boot, h, previousProgress, CurrentStage)
+	m.metricApi.ReportHostInstallationMetrics(ctx, cluster.OpenshiftVersion, *host.ClusterID, cluster.EmailDomain,
+		installationDisk, host, previousProgress, CurrentStage)
 }
 
 func (m *Manager) ReportValidationFailedMetrics(ctx context.Context, h *models.Host, ocpVersion, emailDomain string) error {

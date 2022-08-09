@@ -4,13 +4,14 @@ import (
 	"context"
 	"fmt"
 	"net/url"
+	"os"
 	"testing"
 	"time"
 
 	"github.com/go-openapi/runtime"
 	"github.com/kelseyhightower/envconfig"
 	bmh_v1alpha1 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	hiveext "github.com/openshift/assisted-service/api/hiveextension/v1beta1"
 	"github.com/openshift/assisted-service/api/v1beta1"
@@ -105,6 +106,10 @@ func setupKubeClient() {
 }
 
 func init() {
+	if os.Getenv("ENABLE_SUBSYSTEM_TESTS") != "true" {
+		return
+	}
+
 	var err error
 	log = logrus.New()
 	log.SetReportCaller(true)
@@ -163,6 +168,10 @@ func init() {
 }
 
 func TestSubsystem(t *testing.T) {
+	if os.Getenv("ENABLE_SUBSYSTEM_TESTS") != "true" {
+		t.Skip("Skipping subsystem tests because ENABLE_SUBSYSTEM_TESTS is not set")
+	}
+
 	AfterEach(func() {
 		subsystemAfterEach()
 	})

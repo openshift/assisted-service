@@ -8,7 +8,7 @@ import (
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 	"github.com/google/uuid"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/models"
@@ -59,10 +59,6 @@ var _ = Describe("ModifyEventsID", func() {
 		Expect(events[0].ID).ToNot(Equal(events[1].ID))
 		gm = gormigrate.New(db, gormigrate.DefaultOptions, pre())
 		Expect(gm.MigrateTo(migrationID)).ToNot(HaveOccurred())
-	})
-
-	AfterEach(func() {
-		common.DeleteTestDB(db, dbName)
 	})
 
 	It("Migrates down and up", func() {

@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"testing"
 
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	v1beta1 "github.com/openshift/assisted-service/api/v1beta1"
 	apiserver "github.com/openshift/generic-admission-server/pkg/apiserver"

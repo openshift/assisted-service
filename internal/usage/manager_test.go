@@ -1,11 +1,9 @@
 package usage
 
 import (
-	"testing"
-
 	"github.com/go-openapi/strfmt"
 	"github.com/google/uuid"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/models"
@@ -13,23 +11,15 @@ import (
 	"gorm.io/gorm"
 )
 
-func TestUsageEvents(t *testing.T) {
-	RegisterFailHandler(Fail)
-	common.InitializeDBTest()
-	defer common.TerminateDBTest()
-	RunSpecs(t, "Usage test Suite")
-}
-
 var _ = Describe("Feature Usage", func() {
 	var (
 		db        *gorm.DB
-		dbName    string
 		manager   *UsageManager
 		clusterID strfmt.UUID
 	)
 
-	var _ = BeforeSuite(func() {
-		db, dbName = common.PrepareTestDB()
+	var _ = BeforeEach(func() {
+		db, _ = common.PrepareTestDB()
 		manager = NewManager(logrus.WithField("pkg", "usage"))
 		clusterID = strfmt.UUID(uuid.New().String())
 		cluster := common.Cluster{Cluster: models.Cluster{
@@ -37,10 +27,6 @@ var _ = Describe("Feature Usage", func() {
 		},
 		}
 		Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
-	})
-
-	var _ = AfterSuite(func() {
-		common.DeleteTestDB(db, dbName)
 	})
 
 	readUsages := func() map[string]models.Usage {

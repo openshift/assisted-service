@@ -287,7 +287,7 @@ func main() {
 		oc.Config{MaxTries: oc.DefaultTries, RetryDelay: oc.DefaltRetryDelay})
 	extracterHandler := oc.NewExtracter(&executer.CommonExecuter{},
 		oc.Config{MaxTries: oc.DefaultTries, RetryDelay: oc.DefaltRetryDelay})
-	versionHandler, err := versions.NewHandler(log.WithField("pkg", "versions"), releaseHandler,
+	versionHandler, err := versions.NewVersionsHandler(log.WithField("pkg", "versions"), releaseHandler,
 		Options.Versions, osImagesArray, releaseImagesArray, mustGatherVersionsMap, Options.ReleaseImageMirror)
 	failOnError(err, "failed to create Versions handler")
 	domainHandler := domains.NewHandler(Options.BMConfig.BaseDNSDomains)

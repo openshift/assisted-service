@@ -12,7 +12,7 @@ import (
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/ghttp"
 	"github.com/openshift/assisted-service/client"
@@ -47,7 +47,6 @@ var _ = Describe("auth handler test", func() {
 	})
 
 	AfterEach(func() {
-		ctrl.Finish()
 		server.Close()
 	})
 
@@ -246,11 +245,10 @@ var _ = Describe("AuthImageAuth", func() {
 		a        *RHSSOAuthenticator
 		infraEnv *common.InfraEnv
 		db       *gorm.DB
-		dbName   string
 	)
 
 	BeforeEach(func() {
-		db, dbName = common.PrepareTestDB()
+		db, _ = common.PrepareTestDB()
 
 		key, err := gencrypto.HMACKey(32)
 		Expect(err).ToNot(HaveOccurred())
@@ -265,10 +263,6 @@ var _ = Describe("AuthImageAuth", func() {
 			log: logrus.New(),
 			db:  db,
 		}
-	})
-
-	AfterEach(func() {
-		common.DeleteTestDB(db, dbName)
 	})
 
 	It("approves a valid token", func() {

@@ -47,7 +47,7 @@ type TestConfiguration struct {
 	MonitoredOperator models.MonitoredOperator
 }
 
-const TestDiskId = "/dev/disk/by-id/test-disk-id"
+const TestDiskID = "/dev/disk/by-id/test-disk-id"
 const TestDiskPath = "/dev/test-disk"
 
 var (
@@ -83,7 +83,7 @@ var TestDefaultConfig = &TestConfiguration{
 	HostProgressStage: models.HostStage("default progress stage"),
 
 	Disks: &models.Disk{
-		ID:     TestDiskId,
+		ID:     TestDiskID,
 		Name:   "test-disk",
 		Serial: "test-serial",
 		InstallationEligibility: models.DiskInstallationEligibility{

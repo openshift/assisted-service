@@ -3,11 +3,12 @@ package hostutil
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/go-openapi/strfmt"
 	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/common"
 	eventgen "github.com/openshift/assisted-service/internal/common/events"
@@ -30,11 +31,10 @@ var _ = Describe("update_host_state", func() {
 		lastUpdatedTime strfmt.DateTime
 		returnedHost    *common.Host
 		err             error
-		dbName          string
 	)
 
 	BeforeEach(func() {
-		db, dbName = common.PrepareTestDB()
+		db, _ = common.PrepareTestDB()
 		ctrl = gomock.NewController(GinkgoT())
 		mockEvents = eventsapi.NewMockHandler(ctrl)
 		id := strfmt.UUID(uuid.New().String())
@@ -57,6 +57,8 @@ var _ = Describe("update_host_state", func() {
 					eventstest.WithClusterIdMatcher(host.ClusterID.String()),
 					eventstest.WithInfoMatcher(fmt.Sprintf("(%s)", newStatusInfo))))
 
+			// We expect the timestamp to be different, so a tiny sleep is needed
+			time.Sleep(time.Millisecond * 10)
 			returnedHost, err = UpdateHostStatus(ctx, common.GetTestLog(), db, mockEvents, host.InfraEnvID, *host.ID, common.TestDefaultConfig.Status,
 				newStatus, newStatusInfo)
 			Expect(err).ShouldNot(HaveOccurred())
@@ -102,6 +104,9 @@ var _ = Describe("update_host_state", func() {
 	Describe("UpdateHostProgress", func() {
 		Describe("same_status", func() {
 			It("new_stage", func() {
+				// We expect the timestamp to be different, so a tiny sleep is needed
+				time.Sleep(time.Millisecond * 10)
+
 				returnedHost, err = UpdateHostProgress(ctx, common.GetTestLog(), db, mockEvents, host.InfraEnvID, *host.ID, *host.Status, common.TestDefaultConfig.Status, common.TestDefaultConfig.StatusInfo,
 					host.Progress.CurrentStage, common.TestDefaultConfig.HostProgressStage, host.Progress.ProgressInfo)
 				Expect(err).ShouldNot(HaveOccurred())
@@ -113,6 +118,9 @@ var _ = Describe("update_host_state", func() {
 			})
 
 			It("same_stage", func() {
+				// We expect the timestamp to be different, so a tiny sleep is needed
+				time.Sleep(time.Millisecond * 10)
+
 				// Still updates because stage_updated_at is being updated
 				returnedHost, err = UpdateHostProgress(ctx, common.GetTestLog(), db, mockEvents, host.InfraEnvID, *host.ID, *host.Status, common.TestDefaultConfig.Status, common.TestDefaultConfig.StatusInfo,
 					host.Progress.CurrentStage, host.Progress.CurrentStage, host.Progress.ProgressInfo)
@@ -139,6 +147,9 @@ var _ = Describe("update_host_state", func() {
 				eventstest.WithHostIdMatcher(host.ID.String()),
 				eventstest.WithInfraEnvIdMatcher(host.InfraEnvID.String()),
 				eventstest.WithClusterIdMatcher(host.ClusterID.String())))
+
+			// We expect the timestamp to be different, so a tiny sleep is needed
+			time.Sleep(time.Millisecond * 10)
 			returnedHost, err = UpdateHostProgress(ctx, common.GetTestLog(), db, mockEvents, host.InfraEnvID, *host.ID, *host.Status, newStatus, newStatusInfo,
 				host.Progress.CurrentStage, common.TestDefaultConfig.HostProgressStage, "")
 			Expect(err).ShouldNot(HaveOccurred())
@@ -164,9 +175,6 @@ var _ = Describe("update_host_state", func() {
 				Expect(returnedHost.Progress.StageStartedAt.String()).Should(Equal(lastUpdatedTime.String()))
 			}
 		})
-	})
-	AfterEach(func() {
-		common.DeleteTestDB(db, dbName)
 	})
 
 })

@@ -9,7 +9,7 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
 	"github.com/kelseyhightower/envconfig"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/common"
 	eventgen "github.com/openshift/assisted-service/internal/common/events"
@@ -34,12 +34,11 @@ var _ = Describe("monitor_disconnection", func() {
 		host          models.Host
 		ctrl          *gomock.Controller
 		mockEvents    *eventsapi.MockHandler
-		dbName        string
 		mockMetricApi *metrics.MockAPI
 	)
 
 	BeforeEach(func() {
-		db, dbName = common.PrepareTestDB()
+		db, _ = common.PrepareTestDB()
 		ctrl = gomock.NewController(GinkgoT())
 		mockEvents = eventsapi.NewMockHandler(ctrl)
 		dummy := &leader.DummyElector{}
@@ -83,10 +82,6 @@ var _ = Describe("monitor_disconnection", func() {
 			{Status: api.Success, ValidationId: string(models.HostValidationIDCnvRequirementsSatisfied)},
 		}, nil)
 		mockHwValidator.EXPECT().GetHostInstallationPath(gomock.Any()).Return("abc").AnyTimes()
-	})
-
-	AfterEach(func() {
-		common.DeleteTestDB(db, dbName)
 	})
 
 	Context("host_disconnecting", func() {
@@ -139,11 +134,6 @@ var _ = Describe("monitor_disconnection", func() {
 			Expect(*host.Status).Should(Equal(models.HostStatusDiscovering))
 		})
 	})
-
-	AfterEach(func() {
-		ctrl.Finish()
-		common.CloseDB(db)
-	})
 })
 
 var _ = Describe("TestHostMonitoring - with cluster", func() {
@@ -155,14 +145,13 @@ var _ = Describe("TestHostMonitoring - with cluster", func() {
 		ctrl          *gomock.Controller
 		cfg           Config
 		mockEvents    *eventsapi.MockHandler
-		dbName        string
 		clusterID     = strfmt.UUID(uuid.New().String())
 		infraEnvID    = strfmt.UUID(uuid.New().String())
 		mockMetricApi *metrics.MockAPI
 	)
 
 	BeforeEach(func() {
-		db, dbName = common.PrepareTestDB()
+		db, _ = common.PrepareTestDB()
 		ctrl = gomock.NewController(GinkgoT())
 		mockEvents = eventsapi.NewMockHandler(ctrl)
 		mockEvents.EXPECT().SendHostEvent(gomock.Any(), gomock.Any()).AnyTimes()
@@ -198,11 +187,6 @@ var _ = Describe("TestHostMonitoring - with cluster", func() {
 			{Status: api.Success, ValidationId: string(models.HostValidationIDCnvRequirementsSatisfied)},
 		}, nil)
 		mockHwValidator.EXPECT().GetHostInstallationPath(gomock.Any()).Return("abc").AnyTimes()
-	})
-
-	AfterEach(func() {
-		common.DeleteTestDB(db, dbName)
-		ctrl.Finish()
 	})
 
 	Context("validate monitor in batches", func() {
@@ -252,13 +236,12 @@ var _ = Describe("HostMonitoring - with infra-env", func() {
 		ctrl          *gomock.Controller
 		cfg           Config
 		mockEvents    *eventsapi.MockHandler
-		dbName        string
 		infraEnvID    = strfmt.UUID(uuid.New().String())
 		mockMetricApi *metrics.MockAPI
 	)
 
 	BeforeEach(func() {
-		db, dbName = common.PrepareTestDB()
+		db, _ = common.PrepareTestDB()
 		ctrl = gomock.NewController(GinkgoT())
 		mockEvents = eventsapi.NewMockHandler(ctrl)
 		mockEvents.EXPECT().SendHostEvent(gomock.Any(), gomock.Any()).AnyTimes()
@@ -291,11 +274,6 @@ var _ = Describe("HostMonitoring - with infra-env", func() {
 			{Status: api.Success, ValidationId: string(models.HostValidationIDCnvRequirementsSatisfied)},
 		}, nil)
 		mockHwValidator.EXPECT().GetHostInstallationPath(gomock.Any()).Return("abc").AnyTimes()
-	})
-
-	AfterEach(func() {
-		common.DeleteTestDB(db, dbName)
-		ctrl.Finish()
 	})
 
 	Context("validate monitor in batches", func() {

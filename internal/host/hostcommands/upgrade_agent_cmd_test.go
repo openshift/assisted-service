@@ -5,7 +5,7 @@ import (
 
 	"github.com/go-openapi/strfmt"
 	"github.com/google/uuid"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/host/hostutil"
@@ -19,11 +19,10 @@ var _ = Describe("Upgrade agent command", func() {
 	var db *gorm.DB
 	var cmd CommandGetter
 	var id, clusterId, infraEnvId strfmt.UUID
-	var dbName string
 
 	BeforeEach(func() {
 		ctx = context.Background()
-		db, dbName = common.PrepareTestDB()
+		db, _ = common.PrepareTestDB()
 		id = strfmt.UUID(uuid.New().String())
 		clusterId = strfmt.UUID(uuid.New().String())
 		infraEnvId = strfmt.UUID(uuid.New().String())
@@ -31,10 +30,6 @@ var _ = Describe("Upgrade agent command", func() {
 		host.Inventory = common.GenerateTestDefaultInventory()
 		Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
 		cmd = NewUpgradeAgentCmd("quay.io/my/image:v1.2.3")
-	})
-
-	AfterEach(func() {
-		common.DeleteTestDB(db, dbName)
 	})
 
 	It("Creates a single upgrade agent step", func() {

@@ -14,7 +14,7 @@ import (
 	"github.com/go-openapi/swag"
 	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	common_api "github.com/openshift/assisted-service/api/common"
 	hiveext "github.com/openshift/assisted-service/api/hiveextension/v1beta1"

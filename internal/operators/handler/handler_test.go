@@ -8,7 +8,7 @@ import (
 	"github.com/go-openapi/swag"
 	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/cluster"
 	"github.com/openshift/assisted-service/internal/common"
@@ -26,7 +26,6 @@ import (
 var _ = Describe("Operators manager", func() {
 	var (
 		db                     *gorm.DB
-		dbName                 string
 		c, c2                  *common.Cluster
 		log                    = logrus.New()
 		ctrl                   *gomock.Controller
@@ -37,8 +36,10 @@ var _ = Describe("Operators manager", func() {
 		lastUpdatedTime        strfmt.DateTime
 	)
 
+	var allOperators = swag.String("")
+
 	BeforeEach(func() {
-		db, dbName = common.PrepareTestDB()
+		db, _ = common.PrepareTestDB()
 		ctrl = gomock.NewController(GinkgoT())
 		mockApi = operators.NewMockAPI(ctrl)
 		mockEvents = eventsapi.NewMockHandler(ctrl)
@@ -73,11 +74,6 @@ var _ = Describe("Operators manager", func() {
 		c2.ImageInfo = &models.ImageInfo{}
 		Expect(db.Save(&c2).Error).ShouldNot(HaveOccurred())
 		lastUpdatedTime = c.StatusUpdatedAt
-	})
-
-	AfterEach(func() {
-		ctrl.Finish()
-		common.DeleteTestDB(db, dbName)
 	})
 
 	Context("FindMonitoredOperator", func() {
@@ -153,9 +149,7 @@ var _ = Describe("Operators manager", func() {
 				eventstest.WithNameMatcher(eventgen.ClusterOperatorStatusEventName),
 				eventstest.WithClusterIdMatcher(c.ID.String()))).Times(1)
 
-			err := handler.UpdateMonitoredOperatorStatus(context.TODO(), *c.ID, operatorName, newStatus, statusInfo, db)
-
-			Expect(err).ToNot(HaveOccurred())
+			Expect(handler.UpdateMonitoredOperatorStatus(context.TODO(), *c.ID, operatorName, newStatus, statusInfo, db)).To(Succeed())
 
 			operators, err := handler.GetMonitoredOperators(context.TODO(), *c.ID, &operatorName, db)
 			Expect(err).ToNot(HaveOccurred())
@@ -163,7 +157,7 @@ var _ = Describe("Operators manager", func() {
 
 			Expect(operators[0].StatusInfo).To(Equal(statusInfo))
 			Expect(operators[0].Status).To(Equal(newStatus))
-			Expect(operators[0].StatusUpdatedAt.String()).ShouldNot(Equal(lastUpdatedTime.String()))
+			Expect(operators[0].StatusUpdatedAt.Equal(lastUpdatedTime)).Should(BeFalse())
 		})
 
 		It("should report error when operator not found", func() {
@@ -172,14 +166,13 @@ var _ = Describe("Operators manager", func() {
 			operatorName := "unknown"
 
 			err := handler.UpdateMonitoredOperatorStatus(context.TODO(), *c.ID, operatorName, newStatus, statusInfo, db)
-
 			Expect(err).To(HaveOccurred())
 			Expect(err.(*common.ApiErrorResponse).StatusCode()).To(BeEquivalentTo(http.StatusNotFound))
 
-			operators, err := handler.GetMonitoredOperators(context.TODO(), *c.ID, swag.String(""), db)
+			operators, err := handler.GetMonitoredOperators(context.TODO(), *c.ID, allOperators, db)
 			Expect(err).ToNot(HaveOccurred())
 			for _, operator := range operators {
-				Expect(operator.StatusUpdatedAt.String()).Should(Equal(lastUpdatedTime.String()))
+				Expect(operator.StatusUpdatedAt.Equal(lastUpdatedTime)).Should(BeTrue())
 			}
 		})
 
@@ -189,14 +182,13 @@ var _ = Describe("Operators manager", func() {
 			operatorName := ""
 
 			err := handler.UpdateMonitoredOperatorStatus(context.TODO(), *c.ID, operatorName, newStatus, statusInfo, db)
-
 			Expect(err).To(HaveOccurred())
 			Expect(err.(*common.ApiErrorResponse).StatusCode()).To(BeEquivalentTo(http.StatusBadRequest))
 
-			operators, err := handler.GetMonitoredOperators(context.TODO(), *c.ID, swag.String(""), db)
+			operators, err := handler.GetMonitoredOperators(context.TODO(), *c.ID, allOperators, db)
 			Expect(err).ToNot(HaveOccurred())
 			for _, operator := range operators {
-				Expect(operator.StatusUpdatedAt.String()).Should(Equal(lastUpdatedTime.String()))
+				Expect(operator.StatusUpdatedAt.Equal(lastUpdatedTime)).Should(BeTrue())
 			}
 		})
 	})

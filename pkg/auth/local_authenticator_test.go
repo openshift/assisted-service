@@ -7,7 +7,7 @@ import (
 
 	"github.com/go-openapi/strfmt"
 	"github.com/google/uuid"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/gencrypto"
@@ -21,12 +21,11 @@ var _ = Describe("AuthAgentAuth", func() {
 		a        *LocalAuthenticator
 		infraEnv *common.InfraEnv
 		db       *gorm.DB
-		dbName   string
 		token    string
 	)
 
 	BeforeEach(func() {
-		db, dbName = common.PrepareTestDB()
+		db, _ = common.PrepareTestDB()
 		infraEnvID := strfmt.UUID(uuid.New().String())
 		infraEnv = &common.InfraEnv{InfraEnv: models.InfraEnv{ID: &infraEnvID}}
 		Expect(db.Create(&infraEnv).Error).ShouldNot(HaveOccurred())
@@ -41,10 +40,6 @@ var _ = Describe("AuthAgentAuth", func() {
 
 		a, err = NewLocalAuthenticator(cfg, logrus.New(), db)
 		Expect(err).ToNot(HaveOccurred())
-	})
-
-	AfterEach(func() {
-		common.DeleteTestDB(db, dbName)
 	})
 
 	fakeTokenAlg := func(t string) string {

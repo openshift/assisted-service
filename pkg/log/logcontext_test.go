@@ -15,7 +15,7 @@ import (
 	"github.com/go-openapi/strfmt"
 	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/client"
 	clientInstaller "github.com/openshift/assisted-service/client/installer"
@@ -108,7 +108,6 @@ var _ = Describe("Log Fields on Context", func() {
 	})
 
 	AfterEach(func() {
-		ctrl.Finish()
 		server.Close()
 	})
 

@@ -88,7 +88,7 @@ type API interface {
 	InstallationStarted()
 	Duration(operation string, duration time.Duration)
 	ClusterInstallationFinished(ctx context.Context, result, prevState, clusterVersion string, clusterID strfmt.UUID, emailDomain string, installationStartedTime strfmt.DateTime)
-	ReportHostInstallationMetrics(ctx context.Context, clusterVersion string, clusterID strfmt.UUID, emailDomain string, boot *models.Disk, h *models.Host, previousProgress *models.HostProgressInfo, currentStage models.HostStage)
+	ReportHostInstallationMetrics(ctx context.Context, clusterVersion string, clusterID strfmt.UUID, emailDomain string, installationDisk *models.Disk, h *models.Host, previousProgress *models.HostProgressInfo, currentStage models.HostStage)
 	DiskSyncDuration(syncDuration int64)
 	ImagePullStatus(imageName, resultStatus string, downloadRate float64)
 	FileSystemUsage(usageInPercentage float64)
@@ -352,7 +352,7 @@ func (m *MetricsManager) ImagePullStatus(imageName, resultStatus string, downloa
 	m.serviceLogicClusterImagePullStatus.WithLabelValues(imageName, resultStatus).Observe(downloadRate)
 }
 
-func (m *MetricsManager) ReportHostInstallationMetrics(ctx context.Context, clusterVersion string, clusterID strfmt.UUID, emailDomain string, boot *models.Disk,
+func (m *MetricsManager) ReportHostInstallationMetrics(ctx context.Context, clusterVersion string, clusterID strfmt.UUID, emailDomain string, installationDisk *models.Disk,
 	h *models.Host, previousProgress *models.HostProgressInfo, currentStage models.HostStage) {
 	log := logutil.FromContext(ctx, logrus.New())
 	if previousProgress != nil && previousProgress.CurrentStage != currentStage {
@@ -372,8 +372,8 @@ func (m *MetricsManager) ReportHostInstallationMetrics(ctx context.Context, clus
 		}
 
 		diskType := models.DriveTypeUnknown
-		if boot != nil {
-			diskType = boot.DriveType
+		if installationDisk != nil {
+			diskType = installationDisk.DriveType
 		}
 		switch currentStage {
 		case models.HostStageDone, models.HostStageFailed:

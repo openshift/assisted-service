@@ -9,7 +9,7 @@ import (
 	"github.com/go-openapi/swag"
 	"github.com/google/uuid"
 	"github.com/jinzhu/copier"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/host/hostutil"
@@ -25,10 +25,9 @@ var _ = Describe("upload_logs", func() {
 	var id, clusterId, infraEnvId strfmt.UUID
 	var stepReply []*models.Step
 	var stepErr error
-	var dbName string
 
 	BeforeEach(func() {
-		db, dbName = common.PrepareTestDB()
+		db, _ = common.PrepareTestDB()
 		logsCmd = NewLogsCmd(common.GetTestLog(), db, DefaultInstructionConfig)
 
 		id = strfmt.UUID(uuid.New().String())
@@ -136,7 +135,6 @@ var _ = Describe("upload_logs", func() {
 
 	AfterEach(func() {
 		// cleanup
-		common.DeleteTestDB(db, dbName)
 		stepReply = nil
 		stepErr = nil
 	})

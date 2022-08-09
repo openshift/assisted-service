@@ -10,7 +10,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/golang/mock/gomock"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
 )
@@ -127,9 +127,5 @@ var _ = Describe("s3client", func() {
 			mockAPI.EXPECT().HeadBucket(gomock.Any()).Return(&s3.HeadBucketOutput{}, nil)
 			Expect(client.createBucket(mockAPI, "fooBucket")).To(Succeed())
 		})
-	})
-
-	AfterEach(func() {
-		ctrl.Finish()
 	})
 })

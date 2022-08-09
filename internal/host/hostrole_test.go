@@ -6,7 +6,7 @@ import (
 	"github.com/go-openapi/strfmt"
 	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/common"
 	eventgen "github.com/openshift/assisted-service/internal/common/events"
@@ -32,7 +32,6 @@ var _ = Describe("Suggested-Role on Refresh", func() {
 		cluster               common.Cluster
 		mockEvents            *eventsapi.MockHandler
 		ctrl                  *gomock.Controller
-		dbName                string
 		mockHwValidator       *hardware.MockValidator
 		validatorCfg          *hardware.ValidatorCfg
 		operatorsManager      *operators.Manager
@@ -53,13 +52,8 @@ var _ = Describe("Suggested-Role on Refresh", func() {
 		mockHwValidator.EXPECT().GetHostInstallationPath(gomock.Any()).Return("/dev/sda").AnyTimes()
 	}
 
-	AfterEach(func() {
-		common.DeleteTestDB(db, dbName)
-		ctrl.Finish()
-	})
-
 	BeforeEach(func() {
-		db, dbName = common.PrepareTestDB()
+		db, _ = common.PrepareTestDB()
 		ctrl = gomock.NewController(GinkgoT())
 
 		clusterId = strfmt.UUID(uuid.New().String())

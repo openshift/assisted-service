@@ -5,8 +5,7 @@ import (
 	"os"
 
 	"github.com/kelseyhightower/envconfig"
-	. "github.com/onsi/ginkgo"
-	"github.com/onsi/ginkgo/extensions/table"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/conversions"
@@ -34,14 +33,14 @@ var _ = Describe("Versioned Requirements", func() {
 			Expect(cfg.VersionedRequirements).To(BeEmpty())
 		})
 
-		table.DescribeTable("should be decoded from JSON", func(jsonData []map[string]interface{}, expected map[string]models.VersionedHostRequirements) {
+		DescribeTable("should be decoded from JSON", func(jsonData []map[string]interface{}, expected map[string]models.VersionedHostRequirements) {
 			cfg, err := configureRequirements(jsonData)
 
 			Expect(err).ToNot(HaveOccurred())
 			Expect(cfg.VersionedRequirements).To(BeEquivalentTo(expected))
 		},
-			table.Entry("empty", []map[string]interface{}{}, map[string]models.VersionedHostRequirements{}),
-			table.Entry("One version - full",
+			Entry("empty", []map[string]interface{}{}, map[string]models.VersionedHostRequirements{}),
+			Entry("One version - full",
 				[]map[string]interface{}{
 					{
 						"version": "4.6.0",
@@ -75,7 +74,7 @@ var _ = Describe("Versioned Requirements", func() {
 						SNORequirements: &models.ClusterHostRequirementsDetails{CPUCores: 8, DiskSizeGb: 100,
 							RAMMib: conversions.GibToMib(32), InstallationDiskSpeedThresholdMs: 4},
 					}}),
-			table.Entry("Two versions - full",
+			Entry("Two versions - full",
 				[]map[string]interface{}{
 					{
 						"version": "4.6.0",
@@ -137,7 +136,7 @@ var _ = Describe("Versioned Requirements", func() {
 					}}),
 		)
 
-		table.DescribeTable("should not be decoded due to missing node requirements", func(role string) {
+		DescribeTable("should not be decoded due to missing node requirements", func(role string) {
 			jsonData := []map[string]interface{}{
 				{
 					"version": "4.6.0",
@@ -154,12 +153,12 @@ var _ = Describe("Versioned Requirements", func() {
 
 			Expect(err).To(HaveOccurred())
 		},
-			table.Entry("master", "master"),
-			table.Entry("worker", "worker"),
-			table.Entry("sno", "sno"),
+			Entry("master", "master"),
+			Entry("worker", "worker"),
+			Entry("sno", "sno"),
 		)
 
-		table.DescribeTable("should not be decoded due to values validation problems", func(role string, cpu, ram, disk, diskSpeed int) {
+		DescribeTable("should not be decoded due to values validation problems", func(role string, cpu, ram, disk, diskSpeed int) {
 			validRequirements := map[string]interface{}{
 				"cpu_cores":                            1,
 				"ram_mib":                              1,
@@ -185,32 +184,32 @@ var _ = Describe("Versioned Requirements", func() {
 
 			Expect(err).To(HaveOccurred())
 		},
-			table.Entry("master: zero CPU", "master", 0, 1, 1, 1),
-			table.Entry("master: zero RAM", "master", 1, 0, 1, 1),
-			table.Entry("master: zero disk", "master", 1, 1, 0, 1),
+			Entry("master: zero CPU", "master", 0, 1, 1, 1),
+			Entry("master: zero RAM", "master", 1, 0, 1, 1),
+			Entry("master: zero disk", "master", 1, 1, 0, 1),
 
-			table.Entry("master: negative CPU", "master", -1, 1, 1, 1),
-			table.Entry("master: negative RAM", "master", 1, -1, 1, 1),
-			table.Entry("master: negative disk", "master", 1, 1, -1, 1),
-			table.Entry("master: negative disk sped", "master", 1, 1, 1, -1),
+			Entry("master: negative CPU", "master", -1, 1, 1, 1),
+			Entry("master: negative RAM", "master", 1, -1, 1, 1),
+			Entry("master: negative disk", "master", 1, 1, -1, 1),
+			Entry("master: negative disk sped", "master", 1, 1, 1, -1),
 
-			table.Entry("worker: zero CPU", "worker", 0, 1, 1, 1),
-			table.Entry("worker: zero RAM", "worker", 1, 0, 1, 1),
-			table.Entry("worker: zero disk", "worker", 1, 1, 0, 1),
+			Entry("worker: zero CPU", "worker", 0, 1, 1, 1),
+			Entry("worker: zero RAM", "worker", 1, 0, 1, 1),
+			Entry("worker: zero disk", "worker", 1, 1, 0, 1),
 
-			table.Entry("worker: negative CPU", "worker", -1, 1, 1, 1),
-			table.Entry("worker: negative RAM", "worker", 1, -1, 1, 1),
-			table.Entry("worker: negative disk", "worker", 1, 1, -1, 1),
-			table.Entry("worker: negative disk speed", "worker", 1, 1, 1, -1),
+			Entry("worker: negative CPU", "worker", -1, 1, 1, 1),
+			Entry("worker: negative RAM", "worker", 1, -1, 1, 1),
+			Entry("worker: negative disk", "worker", 1, 1, -1, 1),
+			Entry("worker: negative disk speed", "worker", 1, 1, 1, -1),
 
-			table.Entry("sno: zero CPU", "sno", 0, 1, 1, 1),
-			table.Entry("sno: zero RAM", "sno", 1, 0, 1, 1),
-			table.Entry("sno: zero disk", "sno", 1, 1, 0, 1),
+			Entry("sno: zero CPU", "sno", 0, 1, 1, 1),
+			Entry("sno: zero RAM", "sno", 1, 0, 1, 1),
+			Entry("sno: zero disk", "sno", 1, 1, 0, 1),
 
-			table.Entry("sno: negative CPU", "sno", -1, 1, 1, 1),
-			table.Entry("sno: negative RAM", "sno", 1, -1, 1, 1),
-			table.Entry("sno: negative disk", "sno", 1, 1, -1, 1),
-			table.Entry("sno: negative disk speed", "sno", 1, 1, 1, -1),
+			Entry("sno: negative CPU", "sno", -1, 1, 1, 1),
+			Entry("sno: negative RAM", "sno", 1, -1, 1, 1),
+			Entry("sno: negative disk", "sno", 1, 1, -1, 1),
+			Entry("sno: negative disk speed", "sno", 1, 1, 1, -1),
 		)
 	})
 

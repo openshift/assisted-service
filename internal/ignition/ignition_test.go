@@ -19,7 +19,7 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
 	bmh_v1alpha1 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/host/hostutil"
@@ -71,7 +71,6 @@ var _ = BeforeEach(func() {
 
 var _ = AfterEach(func() {
 	os.RemoveAll(workDir)
-	ctrl.Finish()
 })
 
 var _ = Describe("Bootstrap Ignition Update", func() {
@@ -717,10 +716,6 @@ var _ = Describe("Generator UploadToS3", func() {
 		generator.s3Client = mockS3Client
 	})
 
-	AfterEach(func() {
-		ctrl.Finish()
-	})
-
 	mockUploadFile := func() *gomock.Call {
 		return mockS3Client.EXPECT().UploadFile(gomock.Any(), gomock.Any(), gomock.Any())
 	}
@@ -793,10 +788,6 @@ var _ = Describe("downloadManifest", func() {
 			s3Client: mockS3Client,
 			cluster:  cluster,
 		}
-	})
-
-	AfterEach(func() {
-		ctrl.Finish()
 	})
 
 	It("writes the correct file", func() {
@@ -1214,16 +1205,16 @@ var _ = Describe("IgnitionBuilder", func() {
 
 	It("no multipath for okd", func() {
 		config := IgnitionConfig{OKDRPMsImage: "image"}
-		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(2)
+		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(1)
 		text, err := builder.FormatDiscoveryIgnitionFile(context.Background(), &infraEnv, config, false, auth.TypeRHSSO)
 
-		Expect(err).Should(BeNil())
+		Expect(err).ShouldNot(HaveOccurred())
 		Expect(text).ShouldNot(ContainSubstring("multipathd"))
 	})
 
 	It("multipath configured for non-okd", func() {
 		config := IgnitionConfig{}
-		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(2)
+		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(1)
 		text, err := builder.FormatDiscoveryIgnitionFile(context.Background(), &infraEnv, config, false, auth.TypeRHSSO)
 
 		Expect(err).Should(BeNil())
@@ -1266,7 +1257,6 @@ var _ = Describe("IgnitionBuilder", func() {
 			Expect(count).Should(Equal(3))
 		})
 		It("Doesn't include static network config for minimal isos", func() {
-			mockStaticNetworkConfig.EXPECT().GenerateStaticNetworkConfigData(gomock.Any(), formattedInput).Return(staticnetworkConfigOutput, nil).Times(1)
 			infraEnv.StaticNetworkConfig = formattedInput
 			infraEnv.Type = common.ImageTypePtr(models.ImageTypeMinimalIso)
 			mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(1)

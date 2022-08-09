@@ -2,7 +2,7 @@ package operators
 
 import (
 	"github.com/golang/mock/gomock"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/operators/api"
 	"github.com/openshift/assisted-service/models"
@@ -20,10 +20,6 @@ var _ = Describe("Operators manager builder", func() {
 		ctrl = gomock.NewController(GinkgoT())
 		operator1 = api.NewMockOperator(ctrl)
 		operator2 = api.NewMockOperator(ctrl)
-	})
-
-	AfterEach(func() {
-		ctrl.Finish()
 	})
 
 	It("should add OLM and builtin operators to monitored operators - without cvo", func() {

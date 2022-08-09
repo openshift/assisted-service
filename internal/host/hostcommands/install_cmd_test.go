@@ -10,7 +10,7 @@ import (
 	"github.com/go-openapi/swag"
 	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/common"
 	eventgen "github.com/openshift/assisted-service/internal/common/events"
@@ -58,12 +58,11 @@ var _ = Describe("installcmd", func() {
 		mockValidator     *hardware.MockValidator
 		mockRelease       *oc.MockRelease
 		instructionConfig InstructionConfig
-		dbName            string
 		mockEvents        *eventsapi.MockHandler
 		mockVersions      *versions.MockHandler
 	)
 	BeforeEach(func() {
-		db, dbName = common.PrepareTestDB()
+		db, _ = common.PrepareTestDB()
 		ctrl = gomock.NewController(GinkgoT())
 		mockValidator = hardware.NewMockValidator(ctrl)
 		instructionConfig = DefaultInstructionConfig
@@ -93,7 +92,7 @@ var _ = Describe("installcmd", func() {
 		})
 
 		It("get_step_one_master_no_mco_image", func() {
-			mockValidator.EXPECT().GetHostInstallationPath(gomock.Any()).Return(common.TestDiskId).Times(1)
+			mockValidator.EXPECT().GetHostInstallationPath(gomock.Any()).Return(common.TestDiskID).Times(1)
 			mockGetReleaseImage(1)
 			mockRelease.EXPECT().GetMCOImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return("", errors.New("error")).Times(1)
 		})
@@ -108,12 +107,12 @@ var _ = Describe("installcmd", func() {
 	})
 
 	It("get_step_one_master_success", func() {
-		mockValidator.EXPECT().GetHostInstallationPath(gomock.Any()).Return(common.TestDiskId).Times(1)
+		mockValidator.EXPECT().GetHostInstallationPath(gomock.Any()).Return(common.TestDiskID).Times(1)
 		mockGetReleaseImage(1)
 		mockImages(1)
 		installCmdSteps, stepErr = installCmd.GetSteps(ctx, &host)
 		postvalidation(false, false, installCmdSteps[0], stepErr, models.HostRoleMaster)
-		validateInstallCommand(installCmd, installCmdSteps[0], models.HostRoleMaster, infraEnvId, clusterId, *host.ID, common.TestDiskId, nil, models.ClusterHighAvailabilityModeFull)
+		validateInstallCommand(installCmd, installCmdSteps[0], models.HostRoleMaster, infraEnvId, clusterId, *host.ID, common.TestDiskID, nil, models.ClusterHighAvailabilityModeFull)
 		hostFromDb := hostutil.GetHostFromDB(*host.ID, infraEnvId, db)
 		Expect(hostFromDb.InstallerVersion).Should(Equal(DefaultInstructionConfig.InstallerImage))
 	})
@@ -121,22 +120,22 @@ var _ = Describe("installcmd", func() {
 	It("get_step_three_master_success", func() {
 		host2 := createHostInDb(db, infraEnvId, clusterId, models.HostRoleMaster, false, "")
 		host3 := createHostInDb(db, infraEnvId, clusterId, models.HostRoleMaster, true, "some_hostname")
-		mockValidator.EXPECT().GetHostInstallationPath(gomock.Any()).Return(common.TestDiskId).Times(3)
+		mockValidator.EXPECT().GetHostInstallationPath(gomock.Any()).Return(common.TestDiskID).Times(3)
 		mockGetReleaseImage(3)
 		mockImages(3)
 		installCmdSteps, stepErr = installCmd.GetSteps(ctx, &host)
 		postvalidation(false, false, installCmdSteps[0], stepErr, models.HostRoleMaster)
-		validateInstallCommand(installCmd, installCmdSteps[0], models.HostRoleMaster, infraEnvId, clusterId, *host.ID, common.TestDiskId, nil, models.ClusterHighAvailabilityModeFull)
+		validateInstallCommand(installCmd, installCmdSteps[0], models.HostRoleMaster, infraEnvId, clusterId, *host.ID, common.TestDiskID, nil, models.ClusterHighAvailabilityModeFull)
 		installCmdSteps, stepErr = installCmd.GetSteps(ctx, &host2)
 		postvalidation(false, false, installCmdSteps[0], stepErr, models.HostRoleMaster)
-		validateInstallCommand(installCmd, installCmdSteps[0], models.HostRoleMaster, infraEnvId, clusterId, *host2.ID, common.TestDiskId, nil, models.ClusterHighAvailabilityModeFull)
+		validateInstallCommand(installCmd, installCmdSteps[0], models.HostRoleMaster, infraEnvId, clusterId, *host2.ID, common.TestDiskID, nil, models.ClusterHighAvailabilityModeFull)
 		installCmdSteps, stepErr = installCmd.GetSteps(ctx, &host3)
 		postvalidation(false, false, installCmdSteps[0], stepErr, models.HostRoleBootstrap)
-		validateInstallCommand(installCmd, installCmdSteps[0], models.HostRoleBootstrap, infraEnvId, clusterId, *host3.ID, common.TestDiskId, nil, models.ClusterHighAvailabilityModeFull)
+		validateInstallCommand(installCmd, installCmdSteps[0], models.HostRoleBootstrap, infraEnvId, clusterId, *host3.ID, common.TestDiskID, nil, models.ClusterHighAvailabilityModeFull)
 	})
 	It("invalid_inventory", func() {
 		host.Inventory = "blah"
-		mockValidator.EXPECT().GetHostInstallationPath(gomock.Any()).Return(common.TestDiskId).Times(1)
+		mockValidator.EXPECT().GetHostInstallationPath(gomock.Any()).Return(common.TestDiskID).Times(1)
 		installCmdSteps, stepErr = installCmd.GetSteps(ctx, &host)
 		postvalidation(true, true, nil, stepErr, "")
 	})
@@ -278,8 +277,6 @@ var _ = Describe("installcmd", func() {
 
 	AfterEach(func() {
 		// cleanup
-		common.DeleteTestDB(db, dbName)
-		ctrl.Finish()
 		installCmdSteps = nil
 		stepErr = nil
 	})
@@ -294,7 +291,6 @@ var _ = Describe("installcmd arguments", func() {
 		db           *gorm.DB
 		validator    *hardware.MockValidator
 		mockRelease  *oc.MockRelease
-		dbName       string
 		ctrl         *gomock.Controller
 		mockEvents   *eventsapi.MockHandler
 		mockVersions *versions.MockHandler
@@ -307,25 +303,20 @@ var _ = Describe("installcmd arguments", func() {
 		mockVersions.EXPECT().GetMustGatherImages(gomock.Any(), gomock.Any(), gomock.Any()).Return(defaultMustGatherVersion, nil).AnyTimes()
 	}
 
-	BeforeSuite(func() {
-		db, dbName = common.PrepareTestDB()
+	BeforeEach(func() {
+		db, _ = common.PrepareTestDB()
 		cluster = createClusterInDb(db, models.ClusterHighAvailabilityModeNone)
 		infraEnv = createInfraEnvInDb(db, *cluster.ID)
 		infraEnvId = *infraEnv.ID
 		host = createHostInDb(db, infraEnvId, *cluster.ID, models.HostRoleMaster, false, "")
 		ctrl = gomock.NewController(GinkgoT())
 		validator = hardware.NewMockValidator(ctrl)
-		validator.EXPECT().GetHostInstallationPath(gomock.Any()).Return(common.TestDiskId).AnyTimes()
+		validator.EXPECT().GetHostInstallationPath(gomock.Any()).Return(common.TestDiskID).AnyTimes()
 		mockEvents = eventsapi.NewMockHandler(ctrl)
 		mockRelease = oc.NewMockRelease(ctrl)
 		mockVersions = versions.NewMockHandler(ctrl)
 		mockVersions.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any()).Return(common.TestDefaultConfig.ReleaseImage, nil).AnyTimes()
 		mockImages()
-	})
-
-	AfterSuite(func() {
-		ctrl.Finish()
-		common.DeleteTestDB(db, dbName)
 	})
 
 	Context("configuration_params", func() {

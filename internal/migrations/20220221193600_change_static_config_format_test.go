@@ -6,7 +6,7 @@ import (
 	"github.com/go-gormigrate/gormigrate/v2"
 	"github.com/go-openapi/strfmt"
 	"github.com/google/uuid"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/models"
@@ -16,7 +16,6 @@ import (
 var _ = Describe("Migrate static config format", func() {
 	var (
 		db                         *gorm.DB
-		dbName                     string
 		gm                         *gormigrate.Gormigrate
 		infraEnvID1, infraEnvID2   strfmt.UUID
 		staticNetworkConfigStr     string
@@ -56,7 +55,7 @@ var _ = Describe("Migrate static config format", func() {
 	}
 
 	BeforeEach(func() {
-		db, dbName = common.PrepareTestDB()
+		db, _ = common.PrepareTestDB()
 		map1 := models.MacInterfaceMap{
 			&models.MacInterfaceMapItems0{MacAddress: "mac10", LogicalNicName: "nic10"},
 		}
@@ -88,10 +87,6 @@ var _ = Describe("Migrate static config format", func() {
 		Expect(db.Create(&infraEnv).Error).ToNot(HaveOccurred())
 		gm = gormigrate.New(db, gormigrate.DefaultOptions, post())
 		Expect(gm.MigrateTo(CHANGE_STATIC_CONFIG_FORMAT_KEY)).ToNot(HaveOccurred())
-	})
-
-	AfterEach(func() {
-		common.DeleteTestDB(db, dbName)
 	})
 
 	It("Migrates down and up", func() {

@@ -118,13 +118,15 @@ func refreshHostStageUpdateTime(
 	return host, nil
 }
 
+const StageNotFound int = -1
+
 func IndexOfStage(element models.HostStage, data []models.HostStage) int {
 	for k, v := range data {
 		if element == v {
 			return k
 		}
 	}
-	return -1 // not found.
+	return StageNotFound
 }
 
 // update host role with an option to update only if the current role is srcRole to prevent races

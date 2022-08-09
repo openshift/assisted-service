@@ -6,7 +6,7 @@ import (
 	strfmt "github.com/go-openapi/strfmt"
 	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/api/v1beta1"
 	"github.com/openshift/assisted-service/internal/common"

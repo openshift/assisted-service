@@ -6,7 +6,7 @@ import (
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 	"github.com/google/uuid"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/models"
@@ -21,11 +21,10 @@ var _ = Describe("registrar", func() {
 		id              strfmt.UUID
 		updateErr       error
 		cluster         common.Cluster
-		dbName          string
 	)
 
 	BeforeEach(func() {
-		db, dbName = common.PrepareTestDB()
+		db, _ = common.PrepareTestDB()
 		registerManager = NewRegistrar(common.GetTestLog(), db)
 
 		id = strfmt.UUID(uuid.New().String())
@@ -122,7 +121,6 @@ var _ = Describe("registrar", func() {
 	})
 
 	AfterEach(func() {
-		common.DeleteTestDB(db, dbName)
 		updateErr = nil
 	})
 })

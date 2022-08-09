@@ -11,7 +11,7 @@ import (
 	"github.com/go-openapi/swag"
 	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	gomega_format "github.com/onsi/gomega/format"
 	"github.com/openshift/assisted-service/internal/common"
@@ -44,7 +44,6 @@ var _ = Describe("Validations test", func() {
 		ctrl            *gomock.Controller
 		ctx             = context.Background()
 		db              *gorm.DB
-		dbName          string
 		mockEvents      *eventsapi.MockHandler
 		mockHwValidator *hardware.MockValidator
 		mockMetric      *metrics.MockAPI
@@ -56,7 +55,7 @@ var _ = Describe("Validations test", func() {
 
 	BeforeEach(func() {
 		ctrl = gomock.NewController(GinkgoT())
-		db, dbName = common.PrepareTestDB()
+		db, _ = common.PrepareTestDB()
 		mockEvents = eventsapi.NewMockHandler(ctrl)
 		mockHwValidator = hardware.NewMockValidator(ctrl)
 		mockMetric = metrics.NewMockAPI(ctrl)
@@ -68,11 +67,6 @@ var _ = Describe("Validations test", func() {
 		clusterID = strfmt.UUID(uuid.New().String())
 		hostID = strfmt.UUID(uuid.New().String())
 		infraEnvID = strfmt.UUID(uuid.New().String())
-	})
-
-	AfterEach(func() {
-		ctrl.Finish()
-		common.DeleteTestDB(db, dbName)
 	})
 
 	mockAndRefreshStatusWithoutEvents := func(h *models.Host) {

@@ -6,7 +6,7 @@ import (
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 	"github.com/google/uuid"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/models"
@@ -22,11 +22,10 @@ var _ = Describe("update_cluster_state", func() {
 		cluster         *common.Cluster
 		lastUpdatedTime strfmt.DateTime
 		err             error
-		dbName          string
 	)
 
 	BeforeEach(func() {
-		db, dbName = common.PrepareTestDB()
+		db, _ = common.PrepareTestDB()
 
 		id := strfmt.UUID(uuid.New().String())
 		cluster = &common.Cluster{Cluster: models.Cluster{
@@ -74,9 +73,6 @@ var _ = Describe("update_cluster_state", func() {
 			Expect(err).Should(HaveOccurred())
 		})
 	})
-	AfterEach(func() {
-		common.DeleteTestDB(db, dbName)
-	})
 
 })
 
@@ -91,11 +87,10 @@ var _ = Describe("host count with 1 cluster", func() {
 	var (
 		db      *gorm.DB
 		cluster *common.Cluster
-		dbName  string
 	)
 
 	BeforeEach(func() {
-		db, dbName = common.PrepareTestDB()
+		db, _ = common.PrepareTestDB()
 		id := strfmt.UUID(uuid.New().String())
 		cluster = &common.Cluster{Cluster: models.Cluster{
 			ID:         &id,
@@ -151,22 +146,17 @@ var _ = Describe("host count with 1 cluster", func() {
 		Expect(c.Cluster.ReadyHostCount).Should(Equal(one))
 		Expect(c.Cluster.EnabledHostCount).Should(Equal(three))
 	})
-	AfterEach(func() {
-		common.DeleteTestDB(db, dbName)
-	})
-
 })
 
 var _ = Describe("host count with 2 cluster", func() {
 	var (
-		db     *gorm.DB
-		id1    = strfmt.UUID(uuid.New().String())
-		id2    = strfmt.UUID(uuid.New().String())
-		dbName string
+		db  *gorm.DB
+		id1 = strfmt.UUID(uuid.New().String())
+		id2 = strfmt.UUID(uuid.New().String())
 	)
 
 	BeforeEach(func() {
-		db, dbName = common.PrepareTestDB()
+		db, _ = common.PrepareTestDB()
 		cluster := &common.Cluster{Cluster: models.Cluster{
 			ID:         &id1,
 			Status:     &common.TestDefaultConfig.Status,
@@ -252,9 +242,6 @@ var _ = Describe("host count with 2 cluster", func() {
 		Expect(clusters[1].TotalHostCount).To(Equal(zero))
 		Expect(clusters[1].ReadyHostCount).To(Equal(zero))
 		Expect(clusters[1].EnabledHostCount).To(Equal(zero))
-	})
-	AfterEach(func() {
-		common.DeleteTestDB(db, dbName)
 	})
 
 })

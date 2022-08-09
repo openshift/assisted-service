@@ -11,7 +11,7 @@ import (
 	"github.com/go-openapi/swag"
 	"github.com/google/uuid"
 	"github.com/hashicorp/go-multierror"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/client"
 	"github.com/openshift/assisted-service/client/installer"

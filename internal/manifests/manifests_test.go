@@ -6,13 +6,12 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"testing"
 
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/manifests"
@@ -23,13 +22,6 @@ import (
 	operations "github.com/openshift/assisted-service/restapi/operations/manifests"
 	"gorm.io/gorm"
 )
-
-func TestValidator(t *testing.T) {
-	RegisterFailHandler(Fail)
-	common.InitializeDBTest()
-	defer common.TerminateDBTest()
-	RunSpecs(t, "manifests_test")
-}
 
 const contentAsYAML = `apiVersion: machineconfiguration.openshift.io/v1
 kind: MachineConfig
@@ -61,7 +53,6 @@ var _ = Describe("ClusterManifestTests", func() {
 		ctx           = context.Background()
 		ctrl          *gomock.Controller
 		mockS3Client  *s3wrapper.MockAPI
-		dbName        string
 		fileName      = "99-openshift-machineconfig-master-kargs.yaml"
 		validFolder   = "openshift"
 		defaultFolder = "manifests"
@@ -71,15 +62,10 @@ var _ = Describe("ClusterManifestTests", func() {
 
 	BeforeEach(func() {
 		ctrl = gomock.NewController(GinkgoT())
-		db, dbName = common.PrepareTestDB()
+		db, _ = common.PrepareTestDB()
 		mockS3Client = s3wrapper.NewMockAPI(ctrl)
 		mockUsageAPI = usage.NewMockAPI(ctrl)
 		manifestsAPI = manifests.NewManifestsAPI(db, common.GetTestLog(), mockS3Client, mockUsageAPI)
-	})
-
-	AfterEach(func() {
-		ctrl.Finish()
-		common.DeleteTestDB(db, dbName)
 	})
 
 	registerCluster := func() *common.Cluster {

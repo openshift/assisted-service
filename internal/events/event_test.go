@@ -3,19 +3,16 @@ package events
 import (
 	"context"
 	"encoding/json"
-	"testing"
 	"time"
 
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 	"github.com/google/uuid"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/types"
 	"github.com/openshift/assisted-service/internal/common"
 	eventgen "github.com/openshift/assisted-service/internal/common/events"
-
-	//"github.com/openshift/assisted-service/internal/events"
 	eventsapi "github.com/openshift/assisted-service/internal/events/api"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/auth"
@@ -31,14 +28,13 @@ var _ = Describe("Events library", func() {
 	var (
 		db        *gorm.DB
 		theEvents eventsapi.Handler
-		dbName    string
 		cluster1  = strfmt.UUID("46a8d745-dfce-4fd8-9df0-549ee8eabb3d")
 		cluster2  = strfmt.UUID("60415d9c-7c44-4978-89f5-53d510b03a47")
 		infraEnv1 = strfmt.UUID("46a8d745-dfce-4a69-9df0-a0c627217f3e")
 		host      = strfmt.UUID("1e45d128-4a69-4e71-9b50-a0c627217f3e")
 	)
 	BeforeEach(func() {
-		db, dbName = common.PrepareTestDB()
+		db, _ = common.PrepareTestDB()
 		theEvents = New(db, nil, logrus.WithField("pkg", "events"))
 		c1 := common.Cluster{Cluster: models.Cluster{ID: &cluster1, OpenshiftClusterID: strfmt.UUID(uuid.New().String()), UserName: "user1", OrgID: "org1"}}
 		Expect(db.Create(&c1).Error).ShouldNot(HaveOccurred())
@@ -372,11 +368,6 @@ var _ = Describe("Events library", func() {
 			})
 		})
 	})
-
-	AfterEach(func() {
-		common.DeleteTestDB(db, dbName)
-	})
-
 })
 
 func WithRequestID(requestID string) types.GomegaMatcher {
@@ -409,11 +400,4 @@ func WithTime(t time.Time) types.GomegaMatcher {
 	return WithTransform(func(e *common.Event) time.Time {
 		return time.Time(*e.EventTime)
 	}, BeTemporally("~", t, time.Millisecond*100))
-}
-
-func TestEvents(t *testing.T) {
-	RegisterFailHandler(Fail)
-	common.InitializeDBTest()
-	defer common.TerminateDBTest()
-	RunSpecs(t, "Events test Suite")
 }

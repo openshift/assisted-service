@@ -24,3 +24,6 @@ livecd.iso
 
 # Generated manifests
 deploy/operator/ztp/generated/**
+
+# Generated automatically by Ginkgo
+junit_unit_test.xml

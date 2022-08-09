@@ -2,8 +2,7 @@ package cnv
 
 import (
 	"github.com/hashicorp/go-version"
-	. "github.com/onsi/ginkgo"
-	"github.com/onsi/ginkgo/extensions/table"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/models"
@@ -16,7 +15,7 @@ var _ = Describe("CNV manifest generation", func() {
 	operator := NewCNVOperator(common.GetTestLog(), Config{Mode: true, SNOInstallHPP: true}, nil)
 
 	Context("CNV Manifest", func() {
-		table.DescribeTable("Should create manifestes", func(cluster common.Cluster, isSno bool, cfg Config) {
+		DescribeTable("Should create manifestes", func(cluster common.Cluster, isSno bool, cfg Config) {
 			cnvOperator := NewCNVOperator(common.GetTestLog(), cfg, nil)
 			openshiftManifests, manifest, err := cnvOperator.GenerateManifests(&cluster)
 			numManifests := 3
@@ -49,19 +48,19 @@ var _ = Describe("CNV manifest generation", func() {
 				Expect(err).ShouldNot(HaveOccurred())
 			}
 		},
-			table.Entry("for non-SNO cluster", common.Cluster{Cluster: models.Cluster{
+			Entry("for non-SNO cluster", common.Cluster{Cluster: models.Cluster{
 				OpenshiftVersion:     "4.10",
 				HighAvailabilityMode: &fullHaMode,
 			}}, false, Config{Mode: true, SNOInstallHPP: true}),
-			table.Entry("for SNO cluster", common.Cluster{Cluster: models.Cluster{
+			Entry("for SNO cluster", common.Cluster{Cluster: models.Cluster{
 				OpenshiftVersion:     "4.10",
 				HighAvailabilityMode: &noneHaMode,
 			}}, true, Config{Mode: true, SNOInstallHPP: true}),
-			table.Entry("for SNO cluster with openshift version (and thus CNV) lower than 4.10", common.Cluster{Cluster: models.Cluster{
+			Entry("for SNO cluster with openshift version (and thus CNV) lower than 4.10", common.Cluster{Cluster: models.Cluster{
 				OpenshiftVersion:     "4.9",
 				HighAvailabilityMode: &noneHaMode,
 			}}, true, Config{Mode: true, SNOInstallHPP: true}),
-			table.Entry("for SNO cluster and opt out of HPP via env var", common.Cluster{Cluster: models.Cluster{
+			Entry("for SNO cluster and opt out of HPP via env var", common.Cluster{Cluster: models.Cluster{
 				OpenshiftVersion:     "4.10",
 				HighAvailabilityMode: &noneHaMode,
 			}}, true, Config{Mode: true, SNOInstallHPP: false}),

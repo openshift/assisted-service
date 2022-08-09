@@ -6,7 +6,7 @@ import (
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 	"github.com/google/uuid"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/events"
@@ -25,13 +25,12 @@ var _ = Describe("installer", func() {
 		infraEnvID       strfmt.UUID
 		cluster          common.Cluster
 		hostsIds         []strfmt.UUID
-		dbName           string
 		eventsHandler    eventsapi.Handler
 	)
 
 	BeforeEach(func() {
 		eventsHandler = events.New(db, nil, logrus.New())
-		db, dbName = common.PrepareTestDB()
+		db, _ = common.PrepareTestDB()
 		installerManager = NewInstaller(common.GetTestLog(), db, eventsHandler)
 
 		clusterID = strfmt.UUID(uuid.New().String())
@@ -61,9 +60,6 @@ var _ = Describe("installer", func() {
 				Expect(checkIfIdInArr(iid, replyMasterNodesIds))
 			}
 		})
-	})
-	AfterEach(func() {
-		common.DeleteTestDB(db, dbName)
 	})
 })
 

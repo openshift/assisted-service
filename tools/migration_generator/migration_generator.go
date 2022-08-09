@@ -96,7 +96,7 @@ import (
 	"gorm.io/gorm"
 	gormigrate "github.com/go-gormigrate/gormigrate/v2"
 
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
 
@@ -108,10 +108,6 @@ var _ = Describe("{{.FuncName}}", func() {
 
 	BeforeEach(func() {
 		db, dbName = common.PrepareTestDB()
-	})
-
-	AfterEach(func() {
-		common.DeleteTestDB(db, dbName)
 	})
 
 	It("Migrates up", func() {

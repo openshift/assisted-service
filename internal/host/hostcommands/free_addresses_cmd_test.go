@@ -5,7 +5,7 @@ import (
 
 	"github.com/go-openapi/strfmt"
 	"github.com/google/uuid"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/host/hostutil"
@@ -21,9 +21,8 @@ var _ = Describe("free_addresses", func() {
 	var id, clusterId, infraEnvId strfmt.UUID
 	var stepReply []*models.Step
 	var stepErr error
-	var dbName string
 	BeforeEach(func() {
-		db, dbName = common.PrepareTestDB()
+		db, _ = common.PrepareTestDB()
 		fCmd = newFreeAddressesCmd(common.GetTestLog(), "quay.io/example/free_addresses:latest")
 
 		id = strfmt.UUID(uuid.New().String())
@@ -64,7 +63,6 @@ var _ = Describe("free_addresses", func() {
 
 	AfterEach(func() {
 		// cleanup
-		common.DeleteTestDB(db, dbName)
 		stepReply = nil
 		stepErr = nil
 	})

@@ -4,8 +4,8 @@ import (
 	"testing"
 
 	bmh_v1alpha1 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
+	"github.com/onsi/ginkgo/v2"
+	"github.com/onsi/gomega"
 	routev1 "github.com/openshift/api/route/v1"
 	hiveext "github.com/openshift/assisted-service/api/hiveextension/v1beta1"
 	"github.com/openshift/assisted-service/api/v1beta1"
@@ -32,10 +32,11 @@ const (
 )
 
 func TestControllers(t *testing.T) {
-	RegisterFailHandler(Fail)
-	common.InitializeDBTest()
-	defer common.TerminateDBTest()
-	RunSpecs(t, "controllers tests")
+	common.InitializeTestDatabase()
+	defer common.TerminateTestDatabase()
+
+	gomega.RegisterFailHandler(ginkgo.Fail)
+	ginkgo.RunSpecs(t, "controllers tests")
 }
 
 func newSecret(name, namespace string, data map[string][]byte) *corev1.Secret {

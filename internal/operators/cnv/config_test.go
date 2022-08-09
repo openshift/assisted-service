@@ -4,8 +4,7 @@ import (
 	"os"
 
 	"github.com/kelseyhightower/envconfig"
-	. "github.com/onsi/ginkgo"
-	"github.com/onsi/ginkgo/extensions/table"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/operators/cnv"
 )
@@ -70,7 +69,7 @@ var _ = Describe("CNV plugin configuration", func() {
 			Expect(cfg.SupportedGPUs).To(HaveKeyWithValue("10de:1eb8", true))
 		})
 
-		table.DescribeTable("should load supported GPUs", func(variable string, expectedKeys ...string) {
+		DescribeTable("should load supported GPUs", func(variable string, expectedKeys ...string) {
 			_ = os.Setenv(supportedGpusKey, variable)
 
 			cfg := cnv.Config{}
@@ -84,11 +83,11 @@ var _ = Describe("CNV plugin configuration", func() {
 			}
 
 		},
-			table.Entry("One key", key1, key1),
-			table.Entry("Three keys", key1+","+key2+","+key3, key1, key2, key3),
-			table.Entry("With a duplicate key", key1+","+key2+","+key2, key1, key2),
+			Entry("One key", key1, key1),
+			Entry("Three keys", key1+","+key2+","+key3, key1, key2, key3),
+			Entry("With a duplicate key", key1+","+key2+","+key2, key1, key2),
 
-			table.Entry("Empty", ""),
+			Entry("Empty", ""),
 		)
 	})
 })

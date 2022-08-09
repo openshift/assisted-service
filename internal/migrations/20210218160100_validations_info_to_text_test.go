@@ -6,7 +6,7 @@ import (
 	"github.com/go-gormigrate/gormigrate/v2"
 	"github.com/go-openapi/strfmt"
 	"github.com/google/uuid"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/models"
@@ -36,10 +36,6 @@ var _ = Describe("ChangeValidationsInfoToText", func() {
 		gm = gormigrate.New(db, gormigrate.DefaultOptions, post())
 		err = gm.MigrateTo("20210218160100")
 		Expect(err).ToNot(HaveOccurred())
-	})
-
-	AfterEach(func() {
-		common.DeleteTestDB(db, dbName)
 	})
 
 	It("Migrates down and up", func() {

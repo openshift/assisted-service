@@ -4,7 +4,7 @@ import (
 	"github.com/go-gormigrate/gormigrate/v2"
 	"github.com/go-openapi/strfmt"
 	"github.com/google/uuid"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/models"
@@ -51,10 +51,6 @@ var _ = Describe("Migrate hosts pkey", func() {
 		Expect(hosts[0].ID).ToNot(Equal(hosts[1].ID))
 		gm = gormigrate.New(db, gormigrate.DefaultOptions, post())
 		Expect(gm.MigrateTo(MIGRATE_HOSTS_PKEY_ID)).ToNot(HaveOccurred())
-	})
-
-	AfterEach(func() {
-		common.DeleteTestDB(db, dbName)
 	})
 
 	It("Migrates down and up", func() {

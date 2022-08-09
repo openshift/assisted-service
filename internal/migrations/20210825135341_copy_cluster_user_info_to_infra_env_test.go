@@ -5,7 +5,7 @@ import (
 
 	"github.com/go-openapi/strfmt"
 	"github.com/google/uuid"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/models"
@@ -14,16 +14,11 @@ import (
 
 var _ = Describe("copyClusterUserInfoToInfraEnv", func() {
 	var (
-		db     *gorm.DB
-		dbName string
+		db *gorm.DB
 	)
 
 	BeforeEach(func() {
-		db, dbName = common.PrepareTestDB()
-	})
-
-	AfterEach(func() {
-		common.DeleteTestDB(db, dbName)
+		db, _ = common.PrepareTestDB()
 	})
 
 	createClusterAndInfraEnv := func(num int) (strfmt.UUID, strfmt.UUID) {

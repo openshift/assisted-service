@@ -5,7 +5,7 @@ import (
 
 	"github.com/go-openapi/strfmt"
 	"github.com/google/uuid"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/host/hostutil"
@@ -22,12 +22,11 @@ var _ = Describe("domainNameResolution", func() {
 	var id, clusterID, infraEnvID strfmt.UUID
 	var stepReply []*models.Step
 	var stepErr error
-	var dbName string
 	var name string
 	var baseDNSDomain string
 
 	BeforeEach(func() {
-		db, dbName = common.PrepareTestDB()
+		db, _ = common.PrepareTestDB()
 		dCmd = NewDomainNameResolutionCmd(common.GetTestLog(), "quay.io/example/assisted-installer-agent:latest", db)
 		id = strfmt.UUID(uuid.New().String())
 		clusterID = strfmt.UUID(uuid.New().String())
@@ -65,7 +64,6 @@ var _ = Describe("domainNameResolution", func() {
 	})
 
 	AfterEach(func() {
-		common.DeleteTestDB(db, dbName)
 		stepReply = nil
 		stepErr = nil
 	})

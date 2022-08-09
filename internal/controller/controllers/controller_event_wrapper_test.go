@@ -8,7 +8,7 @@ import (
 	"github.com/go-openapi/swag"
 	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/types"
 	"github.com/openshift/assisted-service/internal/common"
@@ -30,10 +30,9 @@ var _ = Describe("Controller events wrapper", func() {
 		cEventsWrapper       *controllerEventsWrapper
 		mockCtrl             *gomock.Controller
 		mockCRDEventsHandler *MockCRDEventsHandler
-		dbName               string
 	)
 	BeforeEach(func() {
-		db, dbName = common.PrepareTestDB()
+		db, _ = common.PrepareTestDB()
 		mockCtrl = gomock.NewController(GinkgoT())
 		theEvents = events.New(db, nil, logrus.WithField("pkg", "events"))
 		mockCRDEventsHandler = NewMockCRDEventsHandler(mockCtrl)
@@ -259,12 +258,6 @@ var _ = Describe("Controller events wrapper", func() {
 			eventgen.NewHostRegistrationFailedEvent(*host1.ID, *infraEnv1.ID, cluster1.ID, "event1"), time.Now())
 		Expect(numOfEvents(cluster1.ID, host1.ID, infraEnv1.ID)).Should(Equal(1))
 	})
-
-	AfterEach(func() {
-		common.DeleteTestDB(db, dbName)
-		mockCtrl.Finish()
-	})
-
 })
 
 func WithMessage(msg *string) types.GomegaMatcher {

@@ -422,6 +422,7 @@ subsystem-test: test
 subsystem-test-kube-api: test-kube-api
 
 _run_subsystem_test:
+	ENABLE_SUBSYSTEM_TESTS=true \
 	INVENTORY=$(shell $(call get_service_host_port,assisted-service) | sed 's/http:\/\///g') \
 	DB_HOST=$(shell $(call get_service_host_port,postgres) | sed 's/http:\/\///g' | cut -d ":" -f 1) \
 	DB_PORT=$(shell $(call get_service_host_port,postgres) | sed 's/http:\/\///g' | cut -d ":" -f 2) \
@@ -491,7 +492,7 @@ run-db-container:
 	timeout 5m ./hack/wait_for_postgres.sh
 
 run-unit-test:
-	SKIP_UT_DB=1 $(MAKE) _unit_test TIMEOUT=30m TEST="$(or $(TEST),$(shell go list ./... | grep -v subsystem))"
+	SKIP_UT_DB=1 $(MAKE) _unit_test TIMEOUT=30m TEST="$(or $(TEST),$(shell go list ./...))"
 
 ci-unit-test:
 	./hack/start_db.sh

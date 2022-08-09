@@ -71,7 +71,9 @@ func (h *Handler) V2ReportMonitoredOperatorStatus(ctx context.Context, params re
 	return restoperators.NewV2ReportMonitoredOperatorStatusOK()
 }
 
-// GetMonitoredOperators retrieves list of monitored operators for a cluster
+// GetMonitoredOperators retrieves a list of monitored operators for a cluster.
+// operatorName can be used to retrieve a list containing just a single operator matching that name.
+// If operatorName is nil or empty, all operators are returned.
 func (h *Handler) GetMonitoredOperators(ctx context.Context, clusterID strfmt.UUID, operatorName *string, db *gorm.DB) (models.MonitoredOperatorsList, error) {
 	log := logutil.FromContext(ctx, h.log)
 	if operatorName != nil && *operatorName != "" {

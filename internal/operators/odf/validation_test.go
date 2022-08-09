@@ -9,7 +9,7 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
 	"github.com/kelseyhightower/envconfig"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	clust "github.com/openshift/assisted-service/internal/cluster"
 	"github.com/openshift/assisted-service/internal/common"
@@ -88,7 +88,6 @@ var _ = Describe("Ocs Operator use-cases", func() {
 		mockHostAPI                                   *host.MockAPI
 		mockMetric                                    *metrics.MockAPI
 		ctrl                                          *gomock.Controller
-		dbName                                        string
 		diskID1                                       = "/dev/disk/by-id/test-disk-1"
 		diskID2                                       = "/dev/disk/by-id/test-disk-2"
 		diskID3                                       = "/dev/disk/by-id/test-disk-3"
@@ -102,7 +101,7 @@ var _ = Describe("Ocs Operator use-cases", func() {
 		mockHostAPI.EXPECT().IsValidMasterCandidate(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(true, nil).AnyTimes()
 	}
 	BeforeEach(func() {
-		db, dbName = common.PrepareTestDB()
+		db, _ = common.PrepareTestDB()
 		ctrl = gomock.NewController(GinkgoT())
 		mockEvents = eventsapi.NewMockHandler(ctrl)
 		mockHostAPI = host.NewMockAPI(ctrl)
@@ -838,12 +837,6 @@ var _ = Describe("Ocs Operator use-cases", func() {
 			}
 		})
 	}
-
-	AfterEach(func() {
-		common.DeleteTestDB(db, dbName)
-		ctrl.Finish()
-	})
-
 })
 
 func getClusterFromDB(clusterId strfmt.UUID, db *gorm.DB) common.Cluster {

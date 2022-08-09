@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/golang/mock/gomock"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/metrics"
 	"github.com/sirupsen/logrus"
@@ -19,7 +19,7 @@ var _ = Describe("s3filesystem", func() {
 		ctx            = context.Background()
 		log            = logrus.New()
 		deleteTime     time.Duration
-		client         *FSClient
+		client         *FSClientDecorator
 		ctrl           *gomock.Controller
 		mockMetricsAPI *metrics.MockAPI
 		now            time.Time
@@ -36,7 +36,7 @@ var _ = Describe("s3filesystem", func() {
 
 		ctrl = gomock.NewController(GinkgoT())
 		mockMetricsAPI = metrics.NewMockAPI(ctrl)
-		client = &FSClient{basedir: baseDir, log: log}
+		client = NewFSClient(baseDir, log, mockMetricsAPI, 2)
 		deleteTime, _ = time.ParseDuration("60m")
 		now, _ = time.Parse(time.RFC3339, "2020-01-01T10:00:00+00:00")
 	})
@@ -65,7 +65,7 @@ var _ = Describe("s3filesystem", func() {
 	It("uploadfile_download", func() {
 		mockMetricsAPI.EXPECT().FileSystemUsage(gomock.Any()).Times(1)
 		expLen := len(dataStr)
-		filePath, _ := createFileObject(client.basedir, objKey, now)
+		filePath, _ := createFileObject(client.fsClient.basedir, objKey, now)
 		err := client.UploadFile(ctx, filePath, objKey)
 		Expect(err).Should(BeNil())
 
@@ -84,7 +84,7 @@ var _ = Describe("s3filesystem", func() {
 	It("uploadstream_download", func() {
 		mockMetricsAPI.EXPECT().FileSystemUsage(gomock.Any()).Times(1)
 		expLen := len(dataStr)
-		filePath, _ := createFileObject(client.basedir, "foo", now)
+		filePath, _ := createFileObject(client.fsClient.basedir, "foo", now)
 		fileReader, err := os.Open(filePath)
 		Expect(err).Should(BeNil())
 		err = client.UploadStream(ctx, fileReader, objKey)
@@ -122,11 +122,11 @@ var _ = Describe("s3filesystem", func() {
 	})
 	It("expiration", func() {
 		imgCreatedAt, _ := time.Parse(time.RFC3339, "2020-01-01T09:30:00+00:00") // Long ago
-		createFileObject(client.basedir, objKey, imgCreatedAt)
-		createFileObject(client.basedir, objKey2, imgCreatedAt)
+		createFileObject(client.fsClient.basedir, objKey, imgCreatedAt)
+		createFileObject(client.fsClient.basedir, objKey2, imgCreatedAt)
 
 		called := 0
-		mockMetricsAPI.EXPECT().FileSystemUsage(gomock.Any()).Times(2)
+		mockMetricsAPI.EXPECT().FileSystemUsage(gomock.Any()).Times(1)
 		client.ExpireObjects(ctx, "discovery-image-", deleteTime, func(ctx context.Context, log logrus.FieldLogger, objectName string) { called = called + 1 })
 		Expect(called).To(Equal(2))
 
@@ -140,34 +140,32 @@ var _ = Describe("s3filesystem", func() {
 	})
 	It("expire_not_expired_image", func() {
 		imgCreatedAt, _ := time.Parse(time.RFC3339, "2020-01-01T09:30:00+00:00") // 30 minutes ago
-		filePath, info := createFileObject(client.basedir, objKey, imgCreatedAt)
+		filePath, info := createFileObject(client.fsClient.basedir, objKey, imgCreatedAt)
 		called := false
-		mockMetricsAPI.EXPECT().FileSystemUsage(gomock.Any()).Times(1)
-		client.handleFile(ctx, log, filePath, info, now, deleteTime, func(ctx context.Context, log logrus.FieldLogger, objectName string) { called = true })
+		client.fsClient.handleFile(ctx, log, filePath, info, now, deleteTime, func(ctx context.Context, log logrus.FieldLogger, objectName string) { called = true })
 		Expect(called).To(Equal(false))
 	})
 	It("expire_expired_image", func() {
 		imgCreatedAt, _ := time.Parse(time.RFC3339, "2020-01-01T08:00:00+00:00") // Two hours ago
-		filePath, info := createFileObject(client.basedir, objKey, imgCreatedAt)
+		filePath, info := createFileObject(client.fsClient.basedir, objKey, imgCreatedAt)
 		called := false
-		mockMetricsAPI.EXPECT().FileSystemUsage(gomock.Any()).Times(1)
-		client.handleFile(ctx, log, filePath, info, now, deleteTime, func(ctx context.Context, log logrus.FieldLogger, objectName string) { called = true })
+		client.fsClient.handleFile(ctx, log, filePath, info, now, deleteTime, func(ctx context.Context, log logrus.FieldLogger, objectName string) { called = true })
 		Expect(called).To(Equal(true))
 	})
 	It("expire_delete_error", func() {
 		imgCreatedAt, _ := time.Parse(time.RFC3339, "2020-01-01T08:00:00+00:00") // Two hours ago
-		filePath, info := createFileObject(client.basedir, objKey, imgCreatedAt)
+		filePath, info := createFileObject(client.fsClient.basedir, objKey, imgCreatedAt)
 		os.Remove(filePath)
 		called := false
-		client.handleFile(ctx, log, filePath, info, now, deleteTime, func(ctx context.Context, log logrus.FieldLogger, objectName string) { called = true })
+		client.fsClient.handleFile(ctx, log, filePath, info, now, deleteTime, func(ctx context.Context, log logrus.FieldLogger, objectName string) { called = true })
 		Expect(called).To(Equal(false))
 	})
 
 	It("ListObjectByPrefix lists the correct object without a leading slash", func() {
-		_, _ = createFileObject(client.basedir, "dir/other/file", now)
-		_, _ = createFileObject(client.basedir, "dir/other/file2", now)
-		_, _ = createFileObject(client.basedir, "dir/file", now)
-		_, _ = createFileObject(client.basedir, "dir2/file", now)
+		_, _ = createFileObject(client.fsClient.basedir, "dir/other/file", now)
+		_, _ = createFileObject(client.fsClient.basedir, "dir/other/file2", now)
+		_, _ = createFileObject(client.fsClient.basedir, "dir/file", now)
+		_, _ = createFileObject(client.fsClient.basedir, "dir2/file", now)
 
 		var objects []string
 		var err error

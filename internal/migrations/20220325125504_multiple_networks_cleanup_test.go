@@ -3,7 +3,7 @@ package migrations
 import (
 	"github.com/go-openapi/strfmt"
 	"github.com/google/uuid"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/models"
@@ -13,13 +13,12 @@ import (
 var _ = Describe("multipleNetworksCleanup", func() {
 	var (
 		db        *gorm.DB
-		dbName    string
 		clusterID strfmt.UUID
 		cluster   *common.Cluster
 	)
 
 	BeforeEach(func() {
-		db, dbName = common.PrepareTestDB()
+		db, _ = common.PrepareTestDB()
 		clusterID = strfmt.UUID(uuid.New().String())
 		cluster = &common.Cluster{
 			Cluster: models.Cluster{
@@ -45,10 +44,6 @@ var _ = Describe("multipleNetworksCleanup", func() {
 		Expect(value[0]).To(Equal("1.2.3.0/24"))
 		db.Raw("SELECT service_network_cidr FROM clusters WHERE id = ?", clusterID).Scan(&value)
 		Expect(value[0]).To(Equal("1.2.5.0/24"))
-	})
-
-	AfterEach(func() {
-		common.DeleteTestDB(db, dbName)
 	})
 
 	It("Migrates up", func() {

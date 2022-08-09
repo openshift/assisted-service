@@ -8,7 +8,7 @@ import (
 	"github.com/danielerez/go-dns-client/pkg/dnsproviders"
 	"github.com/go-openapi/swag"
 	gomock "github.com/golang/mock/gomock"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/models"
@@ -135,10 +135,6 @@ var _ = Describe("DNS record set update tests", func() {
 		ctrl = gomock.NewController(GinkgoT())
 		mockProviders = NewMockDNSProviderFactory(ctrl)
 		dns = NewDNSHandlerWithProviders(baseDNSDomains, logrus.New(), mockProviders)
-	})
-
-	AfterEach(func() {
-		ctrl.Finish()
 	})
 
 	It("create with no supported domain", func() {
@@ -338,10 +334,6 @@ var _ = Describe("Base DNS domain validation", func() {
 		mockProviderFact := NewMockDNSProviderFactory(ctrl)
 		mockProviderFact.EXPECT().GetProvider(gomock.Any()).Times(1).Return(mockProvider)
 		dns = NewDNSHandlerWithProviders(make(map[string]string), logrus.New(), mockProviderFact)
-	})
-
-	AfterEach(func() {
-		ctrl.Finish()
 	})
 
 	It("validation success", func() {

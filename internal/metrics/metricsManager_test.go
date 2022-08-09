@@ -6,8 +6,7 @@ import (
 
 	"github.com/go-openapi/strfmt"
 	gomock "github.com/golang/mock/gomock"
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/ginkgo/extensions/table"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	eventsapi "github.com/openshift/assisted-service/internal/events/api"
 	"github.com/openshift/assisted-service/models"
@@ -25,7 +24,6 @@ var _ = DescribeTable(
 
 		// Create the mock controller:
 		ctrl := gomock.NewController(GinkgoT())
-		defer ctrl.Finish()
 
 		// We are not testing generation of events here, we just need to make sure that the
 		// call to generating metrics doesn't fail:

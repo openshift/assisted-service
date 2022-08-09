@@ -6,7 +6,7 @@ import (
 
 	"github.com/go-openapi/strfmt"
 	"github.com/google/uuid"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/host/hostutil"
@@ -23,10 +23,9 @@ var _ = Describe("apivipconnectivitycheckcmd", func() {
 	var id, clusterID, infraEnvID strfmt.UUID
 	var stepReply []*models.Step
 	var stepErr error
-	var dbName string
 
 	BeforeEach(func() {
-		db, dbName = common.PrepareTestDB()
+		db, _ = common.PrepareTestDB()
 		apivipConnectivityCheckCmd = NewAPIVIPConnectivityCheckCmd(common.GetTestLog(), db, "quay.io/example/assisted-installer-agent:latest")
 
 		id = strfmt.UUID(uuid.New().String())
@@ -124,7 +123,6 @@ var _ = Describe("apivipconnectivitycheckcmd", func() {
 	})
 
 	AfterEach(func() {
-		common.DeleteTestDB(db, dbName)
 		stepReply = nil
 		stepErr = nil
 	})

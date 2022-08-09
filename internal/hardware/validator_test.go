@@ -14,8 +14,7 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
 	"github.com/kelseyhightower/envconfig"
-	. "github.com/onsi/ginkgo"
-	"github.com/onsi/ginkgo/extensions/table"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/host/hostutil"
@@ -111,10 +110,6 @@ var _ = Describe("Disk eligibility", func() {
 			SizeBytes: bigEnoughSize,
 		}
 		ctx = context.TODO()
-	})
-
-	AfterEach(func() {
-		ctrl.Finish()
 	})
 
 	It("Check if SSD is eligible", func() {
@@ -537,7 +532,6 @@ var _ = Describe("Cluster host requirements", func() {
 
 	AfterEach(func() {
 		_ = os.Unsetenv(prefixedRequirementsEnv)
-		ctrl.Finish()
 	})
 
 	It("should contain correct default requirements for master host", func() {
@@ -634,7 +628,7 @@ var _ = Describe("Cluster host requirements", func() {
 		Expect(err).To(Equal(failure))
 	})
 
-	table.DescribeTable("should contain correct requirements for host role and dedicated OCP version requirements",
+	DescribeTable("should contain correct requirements for host role and dedicated OCP version requirements",
 		func(role models.HostRole, expectedOcpRequirements models.ClusterHostRequirementsDetails) {
 
 			id1 := strfmt.UUID(uuid.New().String())
@@ -659,7 +653,7 @@ var _ = Describe("Cluster host requirements", func() {
 			Expect(result.Total.NetworkLatencyThresholdMs).To(Equal(pointer.Float64Ptr(math.Min(*expectedOcpRequirements.NetworkLatencyThresholdMs, *details1.NetworkLatencyThresholdMs))))
 			Expect(result.Total.PacketLossPercentage).To(Equal(pointer.Float64Ptr(math.Min(*expectedOcpRequirements.PacketLossPercentage, *details1.PacketLossPercentage))))
 		},
-		table.Entry("Worker", models.HostRoleWorker, models.ClusterHostRequirementsDetails{
+		Entry("Worker", models.HostRoleWorker, models.ClusterHostRequirementsDetails{
 			CPUCores:                         3,
 			DiskSizeGb:                       102,
 			RAMMib:                           9 * int64(units.KiB),
@@ -667,7 +661,7 @@ var _ = Describe("Cluster host requirements", func() {
 			NetworkLatencyThresholdMs:        pointer.Float64Ptr(1000),
 			PacketLossPercentage:             pointer.Float64Ptr(10),
 		}),
-		table.Entry("Master", models.HostRoleMaster, models.ClusterHostRequirementsDetails{
+		Entry("Master", models.HostRoleMaster, models.ClusterHostRequirementsDetails{
 			CPUCores:                         5,
 			DiskSizeGb:                       101,
 			RAMMib:                           17 * int64(units.KiB),
@@ -676,7 +670,7 @@ var _ = Describe("Cluster host requirements", func() {
 			PacketLossPercentage:             pointer.Float64Ptr(0),
 		}),
 	)
-	table.DescribeTable("should contain correct requirements when no network latency or packet loss is defined in the OCP requirements",
+	DescribeTable("should contain correct requirements when no network latency or packet loss is defined in the OCP requirements",
 		func(role models.HostRole, expectedOcpRequirements models.ClusterHostRequirementsDetails) {
 
 			id1 := strfmt.UUID(uuid.New().String())
@@ -701,13 +695,13 @@ var _ = Describe("Cluster host requirements", func() {
 			Expect(result.Total.NetworkLatencyThresholdMs).To(Equal(pointer.Float64Ptr(math.Min(*details1.NetworkLatencyThresholdMs, *details2.NetworkLatencyThresholdMs))))
 			Expect(result.Total.PacketLossPercentage).To(Equal(details1.PacketLossPercentage))
 		},
-		table.Entry("Worker", models.HostRoleWorker, models.ClusterHostRequirementsDetails{
+		Entry("Worker", models.HostRoleWorker, models.ClusterHostRequirementsDetails{
 			CPUCores:                         2,
 			DiskSizeGb:                       100,
 			RAMMib:                           8 * int64(units.KiB),
 			InstallationDiskSpeedThresholdMs: 0,
 		}),
-		table.Entry("Master", models.HostRoleMaster, models.ClusterHostRequirementsDetails{
+		Entry("Master", models.HostRoleMaster, models.ClusterHostRequirementsDetails{
 			CPUCores:                         4,
 			DiskSizeGb:                       100,
 			RAMMib:                           16 * int64(units.KiB),
@@ -819,10 +813,6 @@ var _ = Describe("Preflight host requirements", func() {
 		operatorsMock = operators.NewMockAPI(ctrl)
 
 		hwvalidator = NewValidator(logrus.New(), cfg, operatorsMock)
-	})
-
-	AfterEach(func() {
-		ctrl.Finish()
 	})
 
 	It("should contain correct default preflight host requirements", func() {

@@ -5,7 +5,7 @@ import (
 	"net/http"
 
 	"github.com/go-openapi/strfmt"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/client/installer"
 	"github.com/openshift/assisted-service/internal/common"

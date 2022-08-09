@@ -1,7 +1,7 @@
 package migrations
 
 import (
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/common"
 	"gorm.io/gorm"
@@ -9,16 +9,11 @@ import (
 
 var _ = Describe("dropClusterIgnitionOverrides", func() {
 	var (
-		db     *gorm.DB
-		dbName string
+		db *gorm.DB
 	)
 
 	BeforeEach(func() {
-		db, dbName = common.PrepareTestDB()
-	})
-
-	AfterEach(func() {
-		common.DeleteTestDB(db, dbName)
+		db, _ = common.PrepareTestDB()
 	})
 
 	It("succeeds when the column is present", func() {

@@ -9,7 +9,7 @@ import (
 	"github.com/go-openapi/strfmt"
 	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/host/hostutil"
@@ -31,7 +31,6 @@ var _ = Describe("container_image_availability_cmd", func() {
 		db                        *gorm.DB
 		cmd                       *imageAvailabilityCmd
 		id, clusterID, infraEnvID strfmt.UUID
-		dbName                    string
 		ctrl                      *gomock.Controller
 		mockRelease               *oc.MockRelease
 		mockVersions              *versions.MockHandler
@@ -42,7 +41,7 @@ var _ = Describe("container_image_availability_cmd", func() {
 		mockVersions = versions.NewMockHandler(ctrl)
 		mockRelease = oc.NewMockRelease(ctrl)
 
-		db, dbName = common.PrepareTestDB()
+		db, _ = common.PrepareTestDB()
 		cmd = NewImageAvailabilityCmd(common.GetTestLog(), db, mockRelease, mockVersions, DefaultInstructionConfig, defaultImageAvailabilityTimeoutSeconds)
 
 		id = strfmt.UUID(uuid.New().String())
@@ -99,10 +98,6 @@ var _ = Describe("container_image_availability_cmd", func() {
 		step, err := cmd.GetSteps(ctx, &host)
 		Expect(err).To(HaveOccurred())
 		Expect(step).To(BeNil())
-	})
-
-	AfterEach(func() {
-		common.DeleteTestDB(db, dbName)
 	})
 })
 

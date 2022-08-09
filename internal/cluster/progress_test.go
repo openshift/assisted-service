@@ -9,7 +9,7 @@ import (
 	"github.com/go-openapi/swag"
 	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/common"
 	eventgen "github.com/openshift/assisted-service/internal/common/events"
@@ -29,7 +29,6 @@ var _ = Describe("Progress bar test", func() {
 	var (
 		ctx             = context.Background()
 		db              *gorm.DB
-		dbName          string
 		ctrl            *gomock.Controller
 		clusterApi      *Manager
 		mockEvents      *eventsapi.MockHandler
@@ -40,7 +39,7 @@ var _ = Describe("Progress bar test", func() {
 	)
 
 	BeforeEach(func() {
-		db, dbName = common.PrepareTestDB()
+		db, _ = common.PrepareTestDB()
 		ctrl = gomock.NewController(GinkgoT())
 		mockEvents = eventsapi.NewMockHandler(ctrl)
 		mockHostAPI = host.NewMockAPI(ctrl)
@@ -49,11 +48,6 @@ var _ = Describe("Progress bar test", func() {
 		mockDnsApi = dns.NewMockDNSApi(ctrl)
 		clusterApi = NewManager(getDefaultConfig(), common.GetTestLog().WithField("pkg", "cluster-monitor"), db,
 			mockEvents, mockHostAPI, mockMetric, nil, nil, mockOperatorApi, nil, nil, mockDnsApi, nil)
-	})
-
-	AfterEach(func() {
-		common.DeleteTestDB(db, dbName)
-		ctrl.Finish()
 	})
 
 	expectProgressToBe := func(c *common.Cluster, preparingForInstallationStagePercentage, installingStagePercentage, finalizingStagePercentage int) {

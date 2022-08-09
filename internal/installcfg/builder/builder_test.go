@@ -10,7 +10,7 @@ import (
 	"github.com/go-openapi/swag"
 	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/installcfg"
@@ -543,11 +543,6 @@ var _ = Describe("installcfg", func() {
 			Expect(result.Networking.MachineNetwork).To(HaveLen(2))
 			Expect(result.Networking.ServiceNetwork).To(HaveLen(2))
 		})
-	})
-
-	AfterEach(func() {
-		// cleanup
-		ctrl.Finish()
 	})
 })
 

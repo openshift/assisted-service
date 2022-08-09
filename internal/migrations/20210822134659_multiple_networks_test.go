@@ -4,7 +4,7 @@ import (
 	gormigrate "github.com/go-gormigrate/gormigrate/v2"
 	"github.com/go-openapi/strfmt"
 	"github.com/google/uuid"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/models"
@@ -14,14 +14,13 @@ import (
 var _ = Describe("multipleNetworks", func() {
 	var (
 		db            *gorm.DB
-		dbName        string
 		clusterID     strfmt.UUID
 		cluster       *common.Cluster
 		clusterFromDb *common.Cluster
 	)
 
 	BeforeEach(func() {
-		db, dbName = common.PrepareTestDB()
+		db, _ = common.PrepareTestDB()
 
 		clusterID = strfmt.UUID(uuid.New().String())
 		cluster = &common.Cluster{
@@ -34,10 +33,6 @@ var _ = Describe("multipleNetworks", func() {
 			},
 		}
 		Expect(db.Save(cluster).Error).ShouldNot(HaveOccurred())
-	})
-
-	AfterEach(func() {
-		common.DeleteTestDB(db, dbName)
 	})
 
 	It("Migrates up", func() {

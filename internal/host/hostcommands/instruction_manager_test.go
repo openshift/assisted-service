@@ -4,14 +4,13 @@ import (
 	"context"
 	"fmt"
 	"strings"
-	"testing"
 	"time"
 
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/common"
 	eventgen "github.com/openshift/assisted-service/internal/common/events"
@@ -45,11 +44,10 @@ var _ = Describe("instruction_manager", func() {
 		mockRelease                   *oc.MockRelease
 		cnValidator                   *connectivity.MockValidator
 		instructionConfig             InstructionConfig
-		dbName                        string
 	)
 
 	BeforeEach(func() {
-		db, dbName = common.PrepareTestDB()
+		db, _ = common.PrepareTestDB()
 		ctrl = gomock.NewController(GinkgoT())
 		mockEvents = eventsapi.NewMockHandler(ctrl)
 		mockVersions = versions.NewMockHandler(ctrl)
@@ -371,8 +369,6 @@ var _ = Describe("instruction_manager", func() {
 
 	AfterEach(func() {
 		// cleanup
-		common.DeleteTestDB(db, dbName)
-		ctrl.Finish()
 		stepsReply = models.Steps{}
 		stepsErr = nil
 	})
@@ -395,11 +391,10 @@ var _ = Describe("agent_upgrade", func() {
 		mockRelease                   *oc.MockRelease
 		cnValidator                   *connectivity.MockValidator
 		instructionConfig             InstructionConfig
-		dbName                        string
 	)
 
 	BeforeEach(func() {
-		db, dbName = common.PrepareTestDB()
+		db, _ = common.PrepareTestDB()
 		ctrl = gomock.NewController(GinkgoT())
 		mockEvents = eventsapi.NewMockHandler(ctrl)
 		mockVersions = versions.NewMockHandler(ctrl)
@@ -472,8 +467,6 @@ var _ = Describe("agent_upgrade", func() {
 
 	AfterEach(func() {
 		// cleanup
-		common.DeleteTestDB(db, dbName)
-		ctrl.Finish()
 		stepsReply = models.Steps{}
 		stepsErr = nil
 	})
@@ -540,11 +533,4 @@ func checkStepsByState(state string, host *models.Host, db *gorm.DB, mockEvents 
 	}
 
 	ExpectWithOffset(1, stepsErr).ShouldNot(HaveOccurred())
-}
-
-func TestHostCommands(t *testing.T) {
-	RegisterFailHandler(Fail)
-	common.InitializeDBTest()
-	defer common.TerminateDBTest()
-	RunSpecs(t, "Host commands test Suite")
 }

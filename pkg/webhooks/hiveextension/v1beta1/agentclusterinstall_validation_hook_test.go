@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/go-openapi/swag"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	hiveext "github.com/openshift/assisted-service/api/hiveextension/v1beta1"
 	apiserver "github.com/openshift/generic-admission-server/pkg/apiserver"
