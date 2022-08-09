@@ -45,6 +45,7 @@ import (
 	"github.com/openshift/assisted-service/internal/operators/handler"
 	"github.com/openshift/assisted-service/internal/provider/registry"
 	"github.com/openshift/assisted-service/internal/spec"
+	"github.com/openshift/assisted-service/internal/spoke_k8s_client"
 	"github.com/openshift/assisted-service/internal/usage"
 	"github.com/openshift/assisted-service/internal/versions"
 	"github.com/openshift/assisted-service/models"
@@ -363,7 +364,7 @@ func main() {
 	failOnError(autoMigrationWithLeader(autoMigrationLeader, db, log), "Failed auto migration process")
 
 	hostApi := host.NewManager(log.WithField("pkg", "host-state"), db, eventsHandler, hwValidator,
-		instructionApi, &Options.HWValidatorConfig, metricsManager, &Options.HostConfig, lead, operatorsManager, providerRegistry)
+		instructionApi, &Options.HWValidatorConfig, metricsManager, &Options.HostConfig, lead, operatorsManager, providerRegistry, Options.EnableKubeAPI, objectHandler)
 	dnsApi := dns.NewDNSHandler(Options.BMConfig.BaseDNSDomains, log)
 	manifestsGenerator := network.NewManifestsGenerator(manifestsApi, Options.ManifestsGeneratorConfig)
 	clusterApi := cluster.NewManager(Options.ClusterConfig, log.WithField("pkg", "cluster-state"), db,
@@ -554,7 +555,7 @@ func main() {
 				CRDEventsHandler:           crdEventsHandler,
 				ServiceBaseURL:             Options.BMConfig.ServiceBaseURL,
 				AuthType:                   Options.Auth.AuthType,
-				SpokeK8sClientFactory:      controllers.NewSpokeK8sClientFactory(log),
+				SpokeK8sClientFactory:      spoke_k8s_client.NewSpokeK8sClientFactory(log),
 				ApproveCsrsRequeueDuration: Options.ApproveCsrsRequeueDuration,
 			}).SetupWithManager(ctrlMgr), "unable to create controller Agent")
 
@@ -563,7 +564,7 @@ func main() {
 				APIReader:             ctrlMgr.GetAPIReader(),
 				Log:                   log,
 				Scheme:                ctrlMgr.GetScheme(),
-				SpokeK8sClientFactory: controllers.NewSpokeK8sClientFactory(log),
+				SpokeK8sClientFactory: spoke_k8s_client.NewSpokeK8sClientFactory(log),
 				ConvergedFlowEnabled:  useConvergedFlow,
 			}).SetupWithManager(ctrlMgr), "unable to create controller BMH")
 

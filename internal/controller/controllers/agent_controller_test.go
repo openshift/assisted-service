@@ -20,6 +20,7 @@ import (
 	"github.com/openshift/assisted-service/internal/bminventory"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/gencrypto"
+	"github.com/openshift/assisted-service/internal/spoke_k8s_client"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/restapi/operations/installer"
 	conditionsv1 "github.com/openshift/custom-resource-status/conditions/v1"
@@ -1612,7 +1613,7 @@ VU1eS0RiS/Lz6HwRs2mATNY5FrpZOgdM3cI=
 		agentKey              types.NamespacedName
 		hostId                strfmt.UUID
 		mockInstallerInternal *bminventory.MockInstallerInternals
-		mockClientFactory     *MockSpokeK8sClientFactory
+		mockClientFactory     *spoke_k8s_client.MockSpokeK8sClientFactory
 	)
 	newAciWithUserManagedNetworkingNoSNO := func(name, namespace string) *hiveext.AgentClusterInstall {
 		return &hiveext.AgentClusterInstall{
@@ -1764,7 +1765,7 @@ VU1eS0RiS/Lz6HwRs2mATNY5FrpZOgdM3cI=
 		c = fakeclient.NewClientBuilder().WithScheme(scheme.Scheme).Build()
 		mockCtrl = gomock.NewController(GinkgoT())
 		mockInstallerInternal = bminventory.NewMockInstallerInternals(mockCtrl)
-		mockClientFactory = NewMockSpokeK8sClientFactory(mockCtrl)
+		mockClientFactory = spoke_k8s_client.NewMockSpokeK8sClientFactory(mockCtrl)
 		hr = &AgentReconciler{
 			Client:                     c,
 			Scheme:                     scheme.Scheme,
@@ -2104,8 +2105,8 @@ VU1eS0RiS/Lz6HwRs2mATNY5FrpZOgdM3cI=
 			}
 			Expect(c.Create(ctx, host)).To(BeNil())
 			if t.createClient {
-				mockClient := NewMockSpokeK8sClient(mockCtrl)
-				mockClientFactory.EXPECT().Create(gomock.Any()).Return(mockClient, nil)
+				mockClient := spoke_k8s_client.NewMockSpokeK8sClient(mockCtrl)
+				mockClientFactory.EXPECT().CreateFromSecret(gomock.Any()).Return(mockClient, nil)
 				if t.node != nil || t.nodeError != nil {
 					mockClient.EXPECT().GetNode(gomock.Any()).Return(t.node, t.nodeError)
 				}

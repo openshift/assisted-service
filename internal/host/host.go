@@ -26,6 +26,7 @@ import (
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/leader"
 	logutil "github.com/openshift/assisted-service/pkg/log"
+	"github.com/openshift/assisted-service/pkg/s3wrapper"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
@@ -60,7 +61,7 @@ var InstallationTimeout = 20 * time.Minute
 
 var ReclaimTimeout = 60 * time.Minute
 
-//Weights for sorting hosts in the monitor
+// Weights for sorting hosts in the monitor
 const (
 	HostWeightMinimumCpuCores        float64 = 4
 	HostWeightMinimumMemGib          float64 = 16
@@ -159,10 +160,12 @@ type Manager struct {
 	leaderElector                 leader.Leader
 	monitorClusterQueryGenerator  *common.MonitorClusterQueryGenerator
 	monitorInfraEnvQueryGenerator *common.MonitorInfraEnvQueryGenerator
+	kubeApiEnabled                bool
+	objectHandler                 s3wrapper.API
 }
 
 func NewManager(log logrus.FieldLogger, db *gorm.DB, eventsHandler eventsapi.Handler, hwValidator hardware.Validator, instructionApi hostcommands.InstructionApi,
-	hwValidatorCfg *hardware.ValidatorCfg, metricApi metrics.API, config *Config, leaderElector leader.ElectorInterface, operatorsApi operators.API, providerRegistry registry.ProviderRegistry) *Manager {
+	hwValidatorCfg *hardware.ValidatorCfg, metricApi metrics.API, config *Config, leaderElector leader.ElectorInterface, operatorsApi operators.API, providerRegistry registry.ProviderRegistry, kubeApiEnabled bool, objectHandler s3wrapper.API) *Manager {
 	th := &transitionHandler{
 		db:            db,
 		log:           log,
@@ -182,6 +185,8 @@ func NewManager(log logrus.FieldLogger, db *gorm.DB, eventsHandler eventsapi.Han
 		metricApi:      metricApi,
 		Config:         *config,
 		leaderElector:  leaderElector,
+		kubeApiEnabled: kubeApiEnabled,
+		objectHandler:  objectHandler,
 	}
 }
 
@@ -473,11 +478,11 @@ func (m *Manager) refreshStatusInternal(ctx context.Context, h *models.Host, c *
 		conditions       map[string]bool
 		newValidationRes ValidationsStatus
 	)
-	vc, err = newValidationContext(h, c, i, db, inventoryCache, m.hwValidator)
+	vc, err = newValidationContext(ctx, h, c, i, db, inventoryCache, m.hwValidator, m.kubeApiEnabled, m.objectHandler)
 	if err != nil {
 		return err
 	}
-	conditions, newValidationRes, err = m.rp.preprocess(vc)
+	conditions, newValidationRes, err = m.rp.preprocess(ctx, vc)
 	if err != nil {
 		return err
 	}
@@ -1142,11 +1147,11 @@ func (m *Manager) AutoAssignRole(ctx context.Context, h *models.Host, db *gorm.D
 }
 
 // This function recommends a role for a given host based on these criteria:
-// 1. if there are not enough masters and the host has enough capabilities to be
-//    a master the function select it to be a master
-// 2. if there are enough masters, or it is a day2 host, or it has not enough capabilities
-//    to be a master the function select it to be a  worker
-// 3. in case of missing inventory or an internal error the function returns auto-assign
+//  1. if there are not enough masters and the host has enough capabilities to be
+//     a master the function select it to be a master
+//  2. if there are enough masters, or it is a day2 host, or it has not enough capabilities
+//     to be a master the function select it to be a  worker
+//  3. in case of missing inventory or an internal error the function returns auto-assign
 func (m *Manager) selectRole(ctx context.Context, h *models.Host, db *gorm.DB) (models.HostRole, error) {
 	var (
 		autoSelectedRole = models.HostRoleAutoAssign
@@ -1178,12 +1183,12 @@ func (m *Manager) selectRole(ctx context.Context, h *models.Host, db *gorm.DB) (
 
 	if len(masters) < common.MinMasterHostsNeededForInstallation {
 		h.Role = models.HostRoleMaster
-		vc, err = newValidationContext(h, nil, nil, db, make(InventoryCache), m.hwValidator)
+		vc, err = newValidationContext(ctx, h, nil, nil, db, make(InventoryCache), m.hwValidator, m.kubeApiEnabled, m.objectHandler)
 		if err != nil {
 			log.WithError(err).Errorf("failed to create new validation context for host %s", h.ID.String())
 			return autoSelectedRole, err
 		}
-		conditions, _, err := m.rp.preprocess(vc)
+		conditions, _, err := m.rp.preprocess(ctx, vc)
 		if err != nil {
 			log.WithError(err).Errorf("failed to run validations on host %s", h.ID.String())
 			return autoSelectedRole, err
@@ -1203,13 +1208,15 @@ func (m *Manager) IsValidMasterCandidate(h *models.Host, c *common.Cluster, db *
 
 	h.Role = models.HostRoleMaster
 
-	vc, err := newValidationContext(h, c, nil, db, make(InventoryCache), m.hwValidator)
+	ctx := context.TODO()
+
+	vc, err := newValidationContext(ctx, h, c, nil, db, make(InventoryCache), m.hwValidator, m.kubeApiEnabled, m.objectHandler)
 	if err != nil {
 		log.WithError(err).Errorf("failed to create new validation context for host %s", h.ID.String())
 		return false, err
 	}
 
-	conditions, _, err := m.rp.preprocess(vc)
+	conditions, _, err := m.rp.preprocess(ctx, vc)
 	if err != nil {
 		log.WithError(err).Errorf("failed to run validations on host %s", h.ID.String())
 		return false, err

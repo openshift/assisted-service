@@ -3,6 +3,7 @@ package host
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"sort"
 	"strings"
 
@@ -58,10 +59,15 @@ func newRefreshPreprocessor(log logrus.FieldLogger, hwValidatorCfg *hardware.Val
 
 const validationDisabledByConfiguration = "Validation disabled by configuration"
 
-func (r *refreshPreprocessor) preprocess(c *validationContext) (map[string]bool, ValidationsStatus, error) {
+func (r *refreshPreprocessor) preprocess(ctx context.Context, c *validationContext) (map[string]bool, ValidationsStatus, error) {
 	conditions := make(map[string]bool)
 	validationsOutput := make(ValidationsStatus)
 	for _, v := range r.validations {
+
+		if err := ctx.Err(); err != nil {
+			logrus.WithError(err).Warn("context error")
+			return nil, nil, fmt.Errorf("context error: %w", err)
+		}
 
 		var st ValidationStatus
 		var message string
@@ -265,6 +271,10 @@ func newValidations(v *validator) []validation {
 		{
 			id:        NoSkipMissingDisk,
 			condition: v.noSkipMissingDisk,
+		},
+		{
+			id:        HostValidationIDServiceHasSufficientSpokeKubeAPIAccess,
+			condition: v.serviceCanConnectToSpokeKubeAPI,
 		},
 	}
 }
