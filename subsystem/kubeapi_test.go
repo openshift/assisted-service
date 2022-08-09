@@ -3252,9 +3252,11 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		}
 		Eventually(agentHasAllLabels, "30s", "1s").Should(Equal(true))
 
-		a := getAgentCRD(ctx, kubeClient, key)
-		delete(a.Labels, v1beta1.InfraEnvNameLabel)
-		Expect(kubeClient.Update(ctx, a)).To(Succeed())
+		Eventually(func() error {
+			a := getAgentCRD(ctx, kubeClient, key)
+			delete(a.Labels, v1beta1.InfraEnvNameLabel)
+			return kubeClient.Update(ctx, a)
+		}, "30s", "2s").Should(Succeed())
 		Eventually(agentHasAllLabels, "30s", "1s").Should(Equal(true))
 
 		By("Approve Agent")
