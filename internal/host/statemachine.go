@@ -737,5 +737,18 @@ func NewHostStateMachine(sm stateswitch.StateMachine, th *transitionHandler) sta
 		DestinationState: stateswitch.State(models.HostStatusAddedToExistingCluster),
 	})
 
+	// Noop transitions for refresh while reclaim has not timed out
+	for _, state := range []stateswitch.State{
+		stateswitch.State(models.HostStatusReclaiming),
+		stateswitch.State(models.HostStatusReclaimingRebooting),
+	} {
+		sm.AddTransition(stateswitch.TransitionRule{
+			TransitionType:   TransitionTypeRefresh,
+			SourceStates:     []stateswitch.State{state},
+			Condition:        stateswitch.Not(th.HasStatusTimedOut(ReclaimTimeout)),
+			DestinationState: state,
+		})
+	}
+
 	return sm
 }
