@@ -141,7 +141,7 @@ type API interface {
 	GetHostByKubeKey(key types.NamespacedName) (*common.Host, error)
 	UpdateDomainNameResolution(ctx context.Context, h *models.Host, domainResolutionResponse models.DomainResolutionResponse, db *gorm.DB) error
 	BindHost(ctx context.Context, h *models.Host, clusterID strfmt.UUID, db *gorm.DB) error
-	UnbindHost(ctx context.Context, h *models.Host, db *gorm.DB) error
+	UnbindHost(ctx context.Context, h *models.Host, db *gorm.DB, reclaim bool) error
 	GetKnownHostApprovedCounts(clusterID strfmt.UUID) (registered, approved int, err error)
 	HostWithCollectedLogsExists(clusterId strfmt.UUID) (bool, error)
 	GetKnownApprovedHosts(clusterId strfmt.UUID) ([]*common.Host, error)
@@ -549,8 +549,12 @@ func (m *Manager) BindHost(ctx context.Context, h *models.Host, clusterID strfmt
 	})
 }
 
-func (m *Manager) UnbindHost(ctx context.Context, h *models.Host, db *gorm.DB) error {
-	return m.sm.Run(TransitionTypeUnbindHost, newStateHost(h), &TransitionArgsUnbindHost{
+func (m *Manager) UnbindHost(ctx context.Context, h *models.Host, db *gorm.DB, reclaim bool) error {
+	transition := TransitionTypeUnbindHost
+	if reclaim {
+		transition = TransitionTypeReclaimHost
+	}
+	return m.sm.Run(stateswitch.TransitionType(transition), newStateHost(h), &TransitionArgsUnbindHost{
 		ctx: ctx,
 		db:  db,
 	})

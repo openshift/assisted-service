@@ -496,17 +496,17 @@ func (mr *MockAPIMockRecorder) UnRegisterHost(arg0, arg1, arg2 interface{}) *gom
 }
 
 // UnbindHost mocks base method.
-func (m *MockAPI) UnbindHost(arg0 context.Context, arg1 *models.Host, arg2 *gorm.DB) error {
+func (m *MockAPI) UnbindHost(arg0 context.Context, arg1 *models.Host, arg2 *gorm.DB, arg3 bool) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "UnbindHost", arg0, arg1, arg2)
+	ret := m.ctrl.Call(m, "UnbindHost", arg0, arg1, arg2, arg3)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // UnbindHost indicates an expected call of UnbindHost.
-func (mr *MockAPIMockRecorder) UnbindHost(arg0, arg1, arg2 interface{}) *gomock.Call {
+func (mr *MockAPIMockRecorder) UnbindHost(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UnbindHost", reflect.TypeOf((*MockAPI)(nil).UnbindHost), arg0, arg1, arg2)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UnbindHost", reflect.TypeOf((*MockAPI)(nil).UnbindHost), arg0, arg1, arg2, arg3)
 }
 
 // UpdateApiVipConnectivityReport mocks base method.

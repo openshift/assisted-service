@@ -168,7 +168,7 @@ type InstallerInternals interface {
 	UpdateInfraEnvInternal(ctx context.Context, params installer.UpdateInfraEnvParams, internalIgnitionConfig *string) (*common.InfraEnv, error)
 	RegisterInfraEnvInternal(ctx context.Context, kubeKey *types.NamespacedName, params installer.RegisterInfraEnvParams) (*common.InfraEnv, error)
 	DeregisterInfraEnvInternal(ctx context.Context, params installer.DeregisterInfraEnvParams) error
-	UnbindHostInternal(ctx context.Context, params installer.UnbindHostParams) (*common.Host, error)
+	UnbindHostInternal(ctx context.Context, params installer.UnbindHostParams, reclaimHost bool) (*common.Host, error)
 	BindHostInternal(ctx context.Context, params installer.BindHostParams) (*common.Host, error)
 	GetInfraEnvHostsInternal(ctx context.Context, infraEnvId strfmt.UUID) ([]*common.Host, error)
 	GetKnownHostApprovedCounts(clusterID strfmt.UUID) (registered, approved int, err error)
@@ -881,7 +881,7 @@ func (b *bareMetalInventory) deleteOrUnbindHosts(ctx context.Context, cluster *c
 			eventgen.SendHostDeregisteredEvent(ctx, b.eventsHandler, *h.ID, h.InfraEnvID, cluster.ID,
 				hostutil.GetHostnameForMsg(h))
 		} else if h.ClusterID != nil {
-			if err = b.hostApi.UnbindHost(ctx, h, b.db); err != nil {
+			if err = b.hostApi.UnbindHost(ctx, h, b.db, false); err != nil {
 				log.WithError(err).Errorf("Failed to unbind host <%s>", h.ID.String())
 				return err
 			}
@@ -4950,7 +4950,7 @@ func (b *bareMetalInventory) BindHostInternal(ctx context.Context, params instal
 	return host, nil
 }
 
-func (b *bareMetalInventory) UnbindHostInternal(ctx context.Context, params installer.UnbindHostParams) (*common.Host, error) {
+func (b *bareMetalInventory) UnbindHostInternal(ctx context.Context, params installer.UnbindHostParams, reclaimHost bool) (*common.Host, error) {
 	log := logutil.FromContext(ctx, b.log)
 	log.Infof("Unbinding host %s", params.HostID)
 	host, err := common.GetHostFromDB(b.db, params.InfraEnvID.String(), params.HostID.String())
@@ -4972,7 +4972,7 @@ func (b *bareMetalInventory) UnbindHostInternal(ctx context.Context, params inst
 		return nil, common.NewApiError(http.StatusConflict, errors.Errorf("Cannot unbind Host %s. InfraEnv %s is bound to Cluster %s", params.HostID, params.InfraEnvID, infraEnv.ClusterID))
 	}
 
-	if err = b.hostApi.UnbindHost(ctx, &host.Host, b.db); err != nil {
+	if err = b.hostApi.UnbindHost(ctx, &host.Host, b.db, reclaimHost); err != nil {
 		log.WithError(err).Errorf("Failed to unbind host <%s>", params.HostID)
 		return nil, common.NewApiError(http.StatusInternalServerError, err)
 	}
@@ -4994,7 +4994,7 @@ func (b *bareMetalInventory) UnbindHostInternal(ctx context.Context, params inst
 }
 
 func (b *bareMetalInventory) UnbindHost(ctx context.Context, params installer.UnbindHostParams) middleware.Responder {
-	h, err := b.UnbindHostInternal(ctx, params)
+	h, err := b.UnbindHostInternal(ctx, params, false)
 	if err != nil {
 		return common.GenerateErrorResponder(err)
 	}

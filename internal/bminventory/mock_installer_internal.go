@@ -369,18 +369,18 @@ func (mr *MockInstallerInternalsMockRecorder) TransformClusterToDay2Internal(arg
 }
 
 // UnbindHostInternal mocks base method.
-func (m *MockInstallerInternals) UnbindHostInternal(arg0 context.Context, arg1 installer.UnbindHostParams) (*common.Host, error) {
+func (m *MockInstallerInternals) UnbindHostInternal(arg0 context.Context, arg1 installer.UnbindHostParams, arg2 bool) (*common.Host, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "UnbindHostInternal", arg0, arg1)
+	ret := m.ctrl.Call(m, "UnbindHostInternal", arg0, arg1, arg2)
 	ret0, _ := ret[0].(*common.Host)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // UnbindHostInternal indicates an expected call of UnbindHostInternal.
-func (mr *MockInstallerInternalsMockRecorder) UnbindHostInternal(arg0, arg1 interface{}) *gomock.Call {
+func (mr *MockInstallerInternalsMockRecorder) UnbindHostInternal(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UnbindHostInternal", reflect.TypeOf((*MockInstallerInternals)(nil).UnbindHostInternal), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UnbindHostInternal", reflect.TypeOf((*MockInstallerInternals)(nil).UnbindHostInternal), arg0, arg1, arg2)
 }
 
 // UpdateClusterInstallConfigInternal mocks base method.

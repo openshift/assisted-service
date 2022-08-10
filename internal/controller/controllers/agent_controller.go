@@ -29,6 +29,7 @@ import (
 
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
+	bmh_v1alpha1 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
 	. "github.com/openshift/assisted-service/api/common"
 	aiv1beta1 "github.com/openshift/assisted-service/api/v1beta1"
 	"github.com/openshift/assisted-service/internal/bminventory"
@@ -84,6 +85,9 @@ type AgentReconciler struct {
 	AuthType                   auth.AuthType
 	SpokeK8sClientFactory      spoke_k8s_client.SpokeK8sClientFactory
 	ApproveCsrsRequeueDuration time.Duration
+	EnableHostReclaim          bool
+	AgentContainerImage        string
+	reclaimer                  *agentReclaimer
 }
 
 // +kubebuilder:rbac:groups=agent-install.openshift.io,resources=agents,verbs=get;list;watch;create;update;patch;delete
@@ -276,17 +280,12 @@ func (r *AgentReconciler) approveAIHostsCSRs(clients spoke_k8s_client.SpokeK8sCl
 	}
 }
 
-// Attempt to approve CSRs for agent. If already approved then the node will be marked as done
-// requeue means that approval will be attempted again
-func (r *AgentReconciler) tryApproveDay2CSRs(ctx context.Context, agent *aiv1beta1.Agent) bool {
-	r.Log.Infof("Approving CSRs for agent %s/%s", agent.Namespace, agent.Name)
-
-	// Get adminKubeConfigSecretName from clusterDeployment or fallback to template
-	adminKubeConfigSecretName := fmt.Sprintf(adminKubeConfigStringTemplate, agent.Spec.ClusterDeploymentName.Name)
+func (r *AgentReconciler) spokeKubeClient(ctx context.Context, clusterRef *aiv1beta1.ClusterReference) (spoke_k8s_client.SpokeK8sClient, error) {
+	adminKubeConfigSecretName := fmt.Sprintf(adminKubeConfigStringTemplate, clusterRef.Name)
 	clusterDeployment := &hivev1.ClusterDeployment{}
 	cdKey := types.NamespacedName{
-		Namespace: agent.Spec.ClusterDeploymentName.Namespace,
-		Name:      agent.Spec.ClusterDeploymentName.Name,
+		Namespace: clusterRef.Namespace,
+		Name:      clusterRef.Name,
 	}
 	err := r.Get(ctx, cdKey, clusterDeployment)
 	if err != nil {
@@ -294,29 +293,38 @@ func (r *AgentReconciler) tryApproveDay2CSRs(ctx context.Context, agent *aiv1bet
 	}
 
 	namespacedName := types.NamespacedName{
-		Namespace: agent.Spec.ClusterDeploymentName.Namespace,
+		Namespace: clusterRef.Namespace,
 		Name:      adminKubeConfigSecretName,
 	}
 
 	secret, err := getSecret(ctx, r.Client, r.APIReader, namespacedName)
 	if err != nil {
-		r.Log.WithError(err).Errorf("Agent %s/%s: Failed to get secret", agent.Namespace, agent.Name)
-		return false
+		r.Log.WithError(err).Errorf("failed to get kubeconfig secret %s", namespacedName)
+		return nil, err
 	}
 	if err = ensureSecretIsLabelled(ctx, r.Client, secret, namespacedName); err != nil {
-		r.Log.WithError(err).Errorf("Agent %s/%s: Failed to label secret", agent.Namespace, agent.Name)
-		return false
+		r.Log.WithError(err).Errorf("failed to label kubeconfig secret %s", namespacedName)
+		return nil, err
 	}
-	clients, err := r.SpokeK8sClientFactory.CreateFromSecret(secret)
-	if err != nil {
-		r.Log.WithError(err).Errorf("Agent %s/%s: Failed to create spoke client", agent.Namespace, agent.Name)
-		return false
-	}
+	return r.SpokeK8sClientFactory.CreateFromSecret(secret)
+}
+
+// Attempt to approve CSRs for agent. If already approved then the node will be marked as done
+// requeue means that approval will be attempted again
+func (r *AgentReconciler) tryApproveDay2CSRs(ctx context.Context, agent *aiv1beta1.Agent) bool {
+	r.Log.Infof("Approving CSRs for agent %s/%s", agent.Namespace, agent.Name)
+
 	hostname := getAgentHostname(agent)
 	var (
 		validateNodeCsr       nodeCsrValidator
 		shouldApproveMoreCSRs bool
 	)
+
+	clients, err := r.spokeKubeClient(ctx, agent.Spec.ClusterDeploymentName)
+	if err != nil {
+		r.Log.WithError(err).Errorf("Agent %s/%s: Failed to create spoke client", agent.Namespace, agent.Name)
+		return false
+	}
 
 	// TODO: Node name might be FQDN and not just host name if cluster is IPv6
 	node, err := clients.GetNode(hostname)
@@ -338,14 +346,96 @@ func (r *AgentReconciler) tryApproveDay2CSRs(ctx context.Context, agent *aiv1bet
 	return !shouldApproveMoreCSRs
 }
 
+func (r *AgentReconciler) bmhExists(ctx context.Context, agent *aiv1beta1.Agent) (bool, error) {
+	bmhName, ok := agent.ObjectMeta.Labels[AGENT_BMH_LABEL]
+	if !ok {
+		return false, nil
+	}
+
+	bmhKey := types.NamespacedName{
+		Name:      bmhName,
+		Namespace: agent.Namespace,
+	}
+	if err := r.Client.Get(ctx, bmhKey, &bmh_v1alpha1.BareMetalHost{}); err != nil {
+		return false, client.IgnoreNotFound(err)
+	}
+
+	return true, nil
+}
+
+func (r *AgentReconciler) shouldReclaimOnUnbind(ctx context.Context, agent *aiv1beta1.Agent, clusterRef *aiv1beta1.ClusterReference) bool {
+	if !r.EnableHostReclaim {
+		return false
+	}
+
+	// default to not attempting to reclaim as that's the safer route
+	if foundBMH, err := r.bmhExists(ctx, agent); err != nil || foundBMH {
+		if err != nil {
+			r.Log.WithError(err).Warnf("failed to determine if BMH exists for agent")
+		}
+		return false
+	}
+	return true
+}
+
+func (r *AgentReconciler) runReclaimAgent(ctx context.Context, agent *aiv1beta1.Agent, clusterRef *aiv1beta1.ClusterReference, host *common.Host) error {
+	if !r.EnableHostReclaim {
+		return errors.Errorf("host reclaim disabled")
+	}
+
+	client, err := r.spokeKubeClient(ctx, clusterRef)
+	if err != nil {
+		r.Log.WithError(err).Warnf("failed to create spoke kube client")
+		return err
+	}
+
+	hostname := getAgentHostname(agent)
+	r.Log.Infof("Starting agent pod for reclaim on node %s", hostname)
+	if err := ensureSpokeNamespace(ctx, client); err != nil {
+		return err
+	}
+	if err := r.reclaimer.ensureSpokeAgentSecret(ctx, client, host.InfraEnvID.String()); err != nil {
+		return err
+	}
+	if err := r.reclaimer.ensureSpokeAgentCertCM(ctx, client); err != nil {
+		return err
+	}
+	return r.reclaimer.createNextStepRunnerPod(ctx, client, hostname, host.InfraEnvID.String(), host.ID.String())
+}
+
 func (r *AgentReconciler) unbindHost(ctx context.Context, log logrus.FieldLogger, agent, origAgent *aiv1beta1.Agent, h *common.Host) (ctrl.Result, error) {
-	host, err2 := r.Installer.UnbindHostInternal(ctx, installer.UnbindHostParams{
+	var reclaim bool
+
+	if r.EnableHostReclaim {
+		// log and don't reclaim if anything fails here
+		cluster, err := r.Installer.GetClusterInternal(ctx, installer.V2GetClusterParams{ClusterID: *h.ClusterID})
+		if err != nil || cluster.KubeKeyName == "" || cluster.KubeKeyNamespace == "" {
+			if err != nil {
+				r.Log.WithError(err).Warnf("failed to get cluster %s, not attempting reclaim", h.ClusterID)
+			} else {
+				r.Log.Warnf("cluster %s missing kube key (%s/%s), not attempting reclaim", h.ClusterID, cluster.KubeKeyNamespace, cluster.KubeKeyName)
+			}
+		} else {
+			clusterRef := &aiv1beta1.ClusterReference{Namespace: cluster.KubeKeyNamespace, Name: cluster.KubeKeyName}
+			reclaim = r.shouldReclaimOnUnbind(ctx, origAgent, clusterRef)
+			if reclaim {
+				if err := r.runReclaimAgent(ctx, agent, clusterRef, h); err != nil {
+					r.Log.WithError(err).Warn("failed to start agent on spoke cluster to reclaim")
+					reclaim = false
+				}
+			}
+		}
+	}
+
+	params := installer.UnbindHostParams{
 		HostID:     *h.ID,
 		InfraEnvID: h.InfraEnvID,
-	})
-	if err2 != nil {
-		return r.updateStatus(ctx, log, agent, origAgent, &h.Host, nil, err2, !IsUserError(err2))
 	}
+	host, err := r.Installer.UnbindHostInternal(ctx, params, reclaim)
+	if err != nil {
+		return r.updateStatus(ctx, log, agent, origAgent, &h.Host, nil, err, !IsUserError(err))
+	}
+
 	return r.updateStatus(ctx, log, agent, origAgent, &host.Host, h.ClusterID, nil, true)
 }
 
@@ -1252,6 +1342,11 @@ func (r *AgentReconciler) setInfraEnvNameLabel(ctx context.Context, log logrus.F
 }
 
 func (r *AgentReconciler) SetupWithManager(mgr ctrl.Manager) error {
+	var err error
+	r.reclaimer, err = newAgentReclaimer()
+	if err != nil {
+		return err
+	}
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&aiv1beta1.Agent{}).
 		Watches(&source.Channel{Source: r.CRDEventsHandler.GetAgentUpdates()},

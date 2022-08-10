@@ -1107,6 +1107,7 @@ var _ = Describe("Unbind", func() {
 		dstState  string
 		success   bool
 		sendEvent bool
+		reclaim   bool
 	}{
 		{
 			name:      "known to unbinding",
@@ -1114,6 +1115,15 @@ var _ = Describe("Unbind", func() {
 			dstState:  models.HostStatusUnbinding,
 			success:   true,
 			sendEvent: true,
+			reclaim:   false,
+		},
+		{
+			name:      "known to unbinding - reclaim",
+			srcState:  models.HostStatusKnown,
+			dstState:  models.HostStatusUnbinding,
+			success:   true,
+			sendEvent: true,
+			reclaim:   true,
 		},
 		{
 			name:      "disconnected to unbinding",
@@ -1121,6 +1131,15 @@ var _ = Describe("Unbind", func() {
 			dstState:  models.HostStatusUnbinding,
 			success:   true,
 			sendEvent: true,
+			reclaim:   false,
+		},
+		{
+			name:      "disconnected to unbinding - reclaim",
+			srcState:  models.HostStatusDisconnected,
+			dstState:  models.HostStatusUnbinding,
+			success:   true,
+			sendEvent: true,
+			reclaim:   true,
 		},
 		{
 			name:      "discovering to unbinding",
@@ -1128,6 +1147,15 @@ var _ = Describe("Unbind", func() {
 			dstState:  models.HostStatusUnbinding,
 			success:   true,
 			sendEvent: true,
+			reclaim:   false,
+		},
+		{
+			name:      "discovering to unbinding - reclaim",
+			srcState:  models.HostStatusDiscovering,
+			dstState:  models.HostStatusUnbinding,
+			success:   true,
+			sendEvent: true,
+			reclaim:   true,
 		},
 		{
 			name:      "pending-for-input to binding",
@@ -1135,27 +1163,63 @@ var _ = Describe("Unbind", func() {
 			dstState:  models.HostStatusUnbinding,
 			success:   true,
 			sendEvent: true,
+			reclaim:   false,
 		},
 		{
-			name:      "error to unbinding",
+			name:      "pending-for-input to binding - reclaim",
+			srcState:  models.HostStatusPendingForInput,
+			dstState:  models.HostStatusUnbinding,
+			success:   true,
+			sendEvent: true,
+			reclaim:   true,
+		},
+		{
+			name:      "error to unbinding-pending-user-action",
 			srcState:  models.HostStatusError,
 			dstState:  models.HostStatusUnbindingPendingUserAction,
 			success:   true,
 			sendEvent: true,
+			reclaim:   false,
 		},
 		{
-			name:      "cancelled to unbinding",
+			name:      "error to unbinding-pending-user-action - reclaim",
+			srcState:  models.HostStatusError,
+			dstState:  models.HostStatusUnbindingPendingUserAction,
+			success:   true,
+			sendEvent: true,
+			reclaim:   true,
+		},
+		{
+			name:      "cancelled to unbinding-pending-user-action",
 			srcState:  models.HostStatusCancelled,
 			dstState:  models.HostStatusUnbindingPendingUserAction,
 			success:   true,
 			sendEvent: true,
+			reclaim:   false,
 		},
 		{
-			name:      "installing to unbinding",
+			name:      "cancelled to unbinding-pending-user-action - reclaim",
+			srcState:  models.HostStatusCancelled,
+			dstState:  models.HostStatusUnbindingPendingUserAction,
+			success:   true,
+			sendEvent: true,
+			reclaim:   true,
+		},
+		{
+			name:      "installing noop",
 			srcState:  models.HostStatusInstalling,
 			dstState:  models.HostStatusInstalling,
 			success:   false,
 			sendEvent: false,
+			reclaim:   false,
+		},
+		{
+			name:      "installing noop - reclaim",
+			srcState:  models.HostStatusInstalling,
+			dstState:  models.HostStatusInstalling,
+			success:   false,
+			sendEvent: false,
+			reclaim:   true,
 		},
 		{
 			name:      "added-host-to-existing-cluster to unbinding-pending-user-action",
@@ -1163,6 +1227,23 @@ var _ = Describe("Unbind", func() {
 			dstState:  models.HostStatusUnbindingPendingUserAction,
 			success:   true,
 			sendEvent: true,
+			reclaim:   false,
+		},
+		{
+			name:      "added-host-to-existing-cluster to reclaiming",
+			srcState:  models.HostStatusAddedToExistingCluster,
+			dstState:  models.HostStatusReclaiming,
+			success:   true,
+			sendEvent: true,
+			reclaim:   true,
+		},
+		{
+			name:      "installed to reclaiming",
+			srcState:  models.HostStatusInstalled,
+			dstState:  models.HostStatusReclaiming,
+			success:   true,
+			sendEvent: true,
+			reclaim:   true,
 		},
 	}
 	for i := range tests {
@@ -1215,7 +1296,7 @@ var _ = Describe("Unbind", func() {
 				validation = failure
 				validationState = t.srcState
 			}
-			validation(hapi.UnbindHost(ctx, &host, db), validationState)
+			validation(hapi.UnbindHost(ctx, &host, db, t.reclaim), validationState)
 		})
 	}
 

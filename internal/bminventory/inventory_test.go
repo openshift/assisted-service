@@ -12417,7 +12417,7 @@ var _ = Describe("BindHost", func() {
 		}
 		mockAccountsMgmt.EXPECT().GetSubscription(ctx, gomock.Any()).Return(&amgmtv1.Subscription{}, nil)
 		mockClusterApi.EXPECT().DeregisterCluster(ctx, gomock.Any())
-		mockHostApi.EXPECT().UnbindHost(ctx, gomock.Any(), gomock.Any()).Times(1)
+		mockHostApi.EXPECT().UnbindHost(ctx, gomock.Any(), gomock.Any(), false).Times(1)
 		response = bm.V2DeregisterCluster(ctx, deregisterParams)
 		Expect(response).To(BeAssignableToTypeOf(&installer.V2DeregisterClusterNoContent{}))
 	})
@@ -12451,7 +12451,7 @@ var _ = Describe("BindHost", func() {
 		}
 		mockAccountsMgmt.EXPECT().GetSubscription(ctx, gomock.Any()).Return(&amgmtv1.Subscription{}, nil)
 		mockClusterApi.EXPECT().DeregisterCluster(ctx, gomock.Any())
-		mockHostApi.EXPECT().UnbindHost(ctx, gomock.Any(), gomock.Any()).Times(1)
+		mockHostApi.EXPECT().UnbindHost(ctx, gomock.Any(), gomock.Any(), false).Times(1)
 		mockHostApi.EXPECT().UnRegisterHost(ctx, host2ID.String(), infraEnv2ID.String()).Return(nil).Times(1)
 		mockEvents.EXPECT().SendHostEvent(gomock.Any(), eventstest.NewEventMatcher(
 			eventstest.WithNameMatcher(eventgen.HostDeregisteredEventName),
@@ -12629,7 +12629,7 @@ var _ = Describe("UnbindHost", func() {
 			eventstest.WithHostIdMatcher(params.HostID.String()),
 			eventstest.WithInfraEnvIdMatcher(infraEnvID.String()),
 			eventstest.WithSeverityMatcher(models.EventSeverityInfo)))
-		mockHostApi.EXPECT().UnbindHost(ctx, gomock.Any(), gomock.Any())
+		mockHostApi.EXPECT().UnbindHost(ctx, gomock.Any(), gomock.Any(), false)
 		mockClusterApi.EXPECT().RefreshSchedulableMastersForcedTrue(gomock.Any(), gomock.Any()).Return(nil).Times(1)
 		response := bm.UnbindHost(ctx, params)
 		Expect(response).To(BeAssignableToTypeOf(&installer.UnbindHostOK{}))
@@ -12674,7 +12674,7 @@ var _ = Describe("UnbindHost", func() {
 			InfraEnvID: infraEnvID,
 		}
 		err := errors.Errorf("Transition failed")
-		mockHostApi.EXPECT().UnbindHost(ctx, gomock.Any(), gomock.Any()).Return(err).Times(1)
+		mockHostApi.EXPECT().UnbindHost(ctx, gomock.Any(), gomock.Any(), false).Return(err).Times(1)
 		response := bm.UnbindHost(ctx, params)
 		verifyApiError(response, http.StatusInternalServerError)
 	})
