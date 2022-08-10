@@ -608,7 +608,7 @@ func NewHostStateMachine(sm stateswitch.StateMachine, th *transitionHandler) sta
 	var requiredInputFieldsExist = stateswitch.And(If(IsMachineCidrDefined))
 
 	var isSufficientForInstall = stateswitch.And(If(HasMemoryForRole), If(HasCPUCoresForRole), If(BelongsToMachineCidr), If(IsHostnameUnique), If(IsHostnameValid), If(IsIgnitionDownloadable), If(BelongsToMajorityGroup),
-		If(AreOdfRequirementsSatisfied), If(AreLsoRequirementsSatisfied), If(AreCnvRequirementsSatisfied), If(HasSufficientNetworkLatencyRequirementForRole), If(HasSufficientPacketLossRequirementForRole), If(HasDefaultRoute),
+		If(AreOdfRequirementsSatisfied), If(AreLsoRequirementsSatisfied), If(AreCnvRequirementsSatisfied), If(AreLvmRequirementsSatisfied), If(HasSufficientNetworkLatencyRequirementForRole), If(HasSufficientPacketLossRequirementForRole), If(HasDefaultRoute),
 		If(IsAPIDomainNameResolvedCorrectly), If(IsAPIInternalDomainNameResolvedCorrectly), If(IsAppsDomainNameResolvedCorrectly), If(IsDNSWildcardNotConfigured), If(IsPlatformNetworkSettingsValid),
 		If(SufficientOrUnknownInstallationDiskSpeed), If(NonOverlappingSubnets))
 

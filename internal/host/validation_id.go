@@ -88,7 +88,8 @@ func (v validationID) category() (string, error) {
 		return "hardware", nil
 	case AreLsoRequirementsSatisfied,
 		AreOdfRequirementsSatisfied,
-		AreCnvRequirementsSatisfied:
+		AreCnvRequirementsSatisfied,
+		AreLvmRequirementsSatisfied:
 		return "operators", nil
 	}
 	return "", common.NewApiError(http.StatusInternalServerError, errors.Errorf("Unexpected validation id %s", string(v)))

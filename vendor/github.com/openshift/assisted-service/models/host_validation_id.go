@@ -86,6 +86,9 @@ const (
 	// HostValidationIDOdfRequirementsSatisfied captures enum value "odf-requirements-satisfied"
 	HostValidationIDOdfRequirementsSatisfied HostValidationID = "odf-requirements-satisfied"
 
+	// HostValidationIDLvmRequirementsSatisfied captures enum value "lvm-requirements-satisfied"
+	HostValidationIDLvmRequirementsSatisfied HostValidationID = "lvm-requirements-satisfied"
+
 	// HostValidationIDSufficientInstallationDiskSpeed captures enum value "sufficient-installation-disk-speed"
 	HostValidationIDSufficientInstallationDiskSpeed HostValidationID = "sufficient-installation-disk-speed"
 
