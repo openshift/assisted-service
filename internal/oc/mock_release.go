@@ -126,10 +126,10 @@ func (mr *MockReleaseMockRecorder) GetOpenshiftVersion(log, releaseImage, releas
 }
 
 // GetReleaseArchitecture mocks base method.
-func (m *MockRelease) GetReleaseArchitecture(log logrus.FieldLogger, releaseImage, releaseImageMirror, pullSecret string) (string, error) {
+func (m *MockRelease) GetReleaseArchitecture(log logrus.FieldLogger, releaseImage, releaseImageMirror, pullSecret string) ([]string, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetReleaseArchitecture", log, releaseImage, releaseImageMirror, pullSecret)
-	ret0, _ := ret[0].(string)
+	ret0, _ := ret[0].([]string)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }

@@ -41,7 +41,7 @@ func (m *MockInstallerInternals) EXPECT() *MockInstallerInternalsMockRecorder {
 }
 
 // AddReleaseImage mocks base method.
-func (m *MockInstallerInternals) AddReleaseImage(arg0 context.Context, arg1, arg2, arg3, arg4 string) (*models.ReleaseImage, error) {
+func (m *MockInstallerInternals) AddReleaseImage(arg0 context.Context, arg1, arg2, arg3 string, arg4 []string) (*models.ReleaseImage, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "AddReleaseImage", arg0, arg1, arg2, arg3, arg4)
 	ret0, _ := ret[0].(*models.ReleaseImage)

@@ -161,7 +161,7 @@ type InstallerInternals interface {
 	UpdateClusterInstallConfigInternal(ctx context.Context, params installer.V2UpdateClusterInstallConfigParams) (*common.Cluster, error)
 	CancelInstallationInternal(ctx context.Context, params installer.V2CancelInstallationParams) (*common.Cluster, error)
 	TransformClusterToDay2Internal(ctx context.Context, clusterID strfmt.UUID) (*common.Cluster, error)
-	AddReleaseImage(ctx context.Context, releaseImageUrl, pullSecret, ocpReleaseVersion, cpuArchitecture string) (*models.ReleaseImage, error)
+	AddReleaseImage(ctx context.Context, releaseImageUrl, pullSecret, ocpReleaseVersion string, cpuArchitectures []string) (*models.ReleaseImage, error)
 	GetClusterSupportedPlatformsInternal(ctx context.Context, params installer.GetClusterSupportedPlatformsParams) (*[]models.PlatformType, error)
 	V2UpdateHostInternal(ctx context.Context, params installer.V2UpdateHostParams, interactivity Interactivity) (*common.Host, error)
 	GetInfraEnvByKubeKey(key types.NamespacedName) (*common.InfraEnv, error)
@@ -3850,7 +3850,7 @@ func (b *bareMetalInventory) V2ResetHostValidation(ctx context.Context, params i
 	return installer.NewV2ResetHostValidationOK()
 }
 
-func (b *bareMetalInventory) AddReleaseImage(ctx context.Context, releaseImageUrl, pullSecret, ocpReleaseVersion, cpuArchitecture string) (*models.ReleaseImage, error) {
+func (b *bareMetalInventory) AddReleaseImage(ctx context.Context, releaseImageUrl, pullSecret, ocpReleaseVersion string, cpuArchitectures []string) (*models.ReleaseImage, error) {
 	log := logutil.FromContext(ctx, b.log)
 
 	// Create a new OpenshiftVersion and add it to versions cache
@@ -3858,12 +3858,12 @@ func (b *bareMetalInventory) AddReleaseImage(ctx context.Context, releaseImageUr
 	if ocpReleaseVersion != "" {
 		debugTemplate = fmt.Sprintf(debugTemplate+" for version %s", ocpReleaseVersion)
 	}
-	if cpuArchitecture != "" {
-		debugTemplate = fmt.Sprintf(debugTemplate+" for architecture %s", cpuArchitecture)
+	if cpuArchitectures != nil {
+		debugTemplate = fmt.Sprintf(debugTemplate+" for architectures: %s", cpuArchitectures)
 	}
 	log.Debug(debugTemplate)
 
-	releaseImage, err := b.versionsHandler.AddReleaseImage(releaseImageUrl, pullSecret, ocpReleaseVersion, cpuArchitecture)
+	releaseImage, err := b.versionsHandler.AddReleaseImage(releaseImageUrl, pullSecret, ocpReleaseVersion, cpuArchitectures)
 	if err != nil {
 		log.WithError(err).Errorf("Failed to add OCP version for release image: %s", releaseImageUrl)
 		return nil, err

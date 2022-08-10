@@ -38,7 +38,7 @@ func (m *MockHandler) EXPECT() *MockHandlerMockRecorder {
 }
 
 // AddReleaseImage mocks base method.
-func (m *MockHandler) AddReleaseImage(arg0, arg1, arg2, arg3 string) (*models.ReleaseImage, error) {
+func (m *MockHandler) AddReleaseImage(arg0, arg1, arg2 string, arg3 []string) (*models.ReleaseImage, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "AddReleaseImage", arg0, arg1, arg2, arg3)
 	ret0, _ := ret[0].(*models.ReleaseImage)
