@@ -85,6 +85,8 @@ Upon InfraEnv creation, the InfraEnv controller will search by label+value for m
 
 The InfraEnv controller will watch for NMState config creation/changes and search for corresponding InfraEnv resources to reconcile since we need to regenerate the image for those.
 
+:stop_sign: Note that due to the ignition content length limit (`256Ki`), there is a limit to the amount of NMStateConfigs that can be included with a single InfraEnv. With a config sample such as [this one](./crds/nmstate.yaml), the limit per each InfraEnv is 3960 configurations.
+
 :warning: **It is advised to create all NMStateConfigs resources before their corresponding InfraEnv.
 The reason is that InfraEnv doesn't have a way to know how many NMStateConfigs to expect; therefore, it re-creates its ISO when new NMStateConfigs are found.
 The new ISO automatically propagates to any agents that haven't yet started installing.**
