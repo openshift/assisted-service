@@ -4879,6 +4879,7 @@ func (b *bareMetalInventory) V2UpdateHostInstallProgress(ctx context.Context, pa
 }
 
 func (b *bareMetalInventory) BindHost(ctx context.Context, params installer.BindHostParams) middleware.Responder {
+
 	h, err := b.BindHostInternal(ctx, params)
 	if err != nil {
 		return common.GenerateErrorResponder(err)

@@ -71,9 +71,9 @@ function wait_for_condition() {
     for i in {1..40}; do
         oc get ${object} --selector="${selector}" --namespace=${namespace} |& grep -ivE "(no resources found|not found)" && break || sleep 10
     done
-
+    echo "DEBUG: Loop ended"
     echo "Waiting for (${object}) on namespace (${namespace}) with labels (${selector}) to become (${condition})..."
-    oc wait -n "${namespace}" --for=condition=${condition} --selector "${selector}" ${object} --timeout=${timeout}
+    oc wait -n "${namespace}" --for=condition=${condition} --selector "${selector}" ${object} --timeout=60m
 }
 
 function wait_for_object_amount() {
