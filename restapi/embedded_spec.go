@@ -6612,9 +6612,14 @@ func init() {
       "required": [
         "kernel_url",
         "rootfs_url",
-        "initrd_url"
+        "initrd_url",
+        "host_fs_mount_dir"
       ],
       "properties": {
+        "host_fs_mount_dir": {
+          "description": "The base directory on the host that contains the /boot folder. The host will download boot\nartifacts into a folder in this directory.",
+          "type": "string"
+        },
         "initrd_url": {
           "description": "URL address to download the initrd.",
           "type": "string"
@@ -8704,6 +8709,19 @@ func init() {
         }
       },
       "x-go-custom-tag": "gorm:\"embedded;embeddedPrefix:proxy_\""
+    },
+    "reboot_for_reclaim_request": {
+      "description": "Information sent to the agent for rebooting a host into discovery.",
+      "type": "object",
+      "required": [
+        "host_fs_mount_dir"
+      ],
+      "properties": {
+        "host_fs_mount_dir": {
+          "description": "The base directory on the host that contains the /boot folder. The host needs to\nchroot into this directory in order to properly reboot.",
+          "type": "string"
+        }
+      }
     },
     "release-image": {
       "type": "object",
@@ -16023,9 +16041,14 @@ func init() {
       "required": [
         "kernel_url",
         "rootfs_url",
-        "initrd_url"
+        "initrd_url",
+        "host_fs_mount_dir"
       ],
       "properties": {
+        "host_fs_mount_dir": {
+          "description": "The base directory on the host that contains the /boot folder. The host will download boot\nartifacts into a folder in this directory.",
+          "type": "string"
+        },
         "initrd_url": {
           "description": "URL address to download the initrd.",
           "type": "string"
@@ -18071,6 +18094,19 @@ func init() {
         }
       },
       "x-go-custom-tag": "gorm:\"embedded;embeddedPrefix:proxy_\""
+    },
+    "reboot_for_reclaim_request": {
+      "description": "Information sent to the agent for rebooting a host into discovery.",
+      "type": "object",
+      "required": [
+        "host_fs_mount_dir"
+      ],
+      "properties": {
+        "host_fs_mount_dir": {
+          "description": "The base directory on the host that contains the /boot folder. The host needs to\nchroot into this directory in order to properly reboot.",
+          "type": "string"
+        }
+      }
     },
     "release-image": {
       "type": "object",
