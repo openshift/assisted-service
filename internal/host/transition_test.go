@@ -5653,6 +5653,26 @@ var _ = Describe("Refresh Host", func() {
 					"Host couldn't synchronize with any NTP server")),
 				sourceState: models.SourceStateUnreachable,
 			},
+			{
+				name:              "reclaiming to reclaiming",
+				srcState:          models.HostStatusReclaiming,
+				dstState:          models.HostStatusReclaiming,
+				validCheckInTime:  true,
+				inventory:         hostutil.GenerateMasterInventory(),
+				eventRaised:       false,
+				statusInfoChecker: makeValueChecker(statusInfoUnbinding),
+				sourceState:       models.SourceStateSynced,
+			},
+			{
+				name:              "reclaiming-rebooting to reclaiming-rebooting",
+				srcState:          models.HostStatusReclaimingRebooting,
+				dstState:          models.HostStatusReclaimingRebooting,
+				validCheckInTime:  true,
+				inventory:         hostutil.GenerateMasterInventory(),
+				eventRaised:       false,
+				statusInfoChecker: makeValueChecker(statusInfoRebootingForReclaim),
+				sourceState:       models.SourceStateSynced,
+			},
 		}
 
 		for i := range tests {
