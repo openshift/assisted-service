@@ -42,13 +42,11 @@ type clusterPreprocessContext struct {
 	hasHostsWithInventories bool
 }
 
-type validationConditon func(context *clusterPreprocessContext) ValidationStatus
-type validationStringFormatter func(context *clusterPreprocessContext, status ValidationStatus) string
+type validationConditon func(context *clusterPreprocessContext) (ValidationStatus, string)
 
 type validation struct {
 	id        ValidationID
 	condition validationConditon
-	formatter validationStringFormatter
 }
 
 func hasHostsWithInventories(c *common.Cluster) bool {
@@ -73,14 +71,6 @@ func isDhcpLeaseAllocationTimedOut(c *clusterPreprocessContext) bool {
 	return c.cluster.MachineNetworkCidrUpdatedAt.String() != "" && time.Since(c.cluster.MachineNetworkCidrUpdatedAt) > DhcpLeaseTimeoutMinutes*time.Minute
 }
 
-func boolToValidationStatus(b bool) ValidationStatus {
-	if b {
-		return ValidationSuccess
-	} else {
-		return ValidationFailure
-	}
-}
-
 func validationStatusToBool(v ValidationStatus) bool {
 	return v == ValidationSuccess
 }
@@ -90,193 +80,116 @@ type clusterValidator struct {
 	hostAPI host.API
 }
 
-func (v *clusterValidator) isMachineCidrDefined(c *clusterPreprocessContext) ValidationStatus {
-	if swag.BoolValue(c.cluster.UserManagedNetworking) && !common.IsSingleNodeCluster(c.cluster) || network.IsMachineCidrAvailable(c.cluster) {
-		return ValidationSuccess
+func (v *clusterValidator) isMachineCidrDefined(c *clusterPreprocessContext) (ValidationStatus, string) {
+	if swag.BoolValue(c.cluster.UserManagedNetworking) && !common.IsSingleNodeCluster(c.cluster) {
+		return ValidationSuccess, "No Machine Network CIDR needed: User Managed Networking"
+	} else if network.IsMachineCidrAvailable(c.cluster) {
+		return ValidationSuccess, "The Machine Network CIDR is defined."
 	}
 	if !c.hasHostsWithInventories {
-		return ValidationPending
+		return ValidationPending, "Hosts have not been discovered yet"
 	}
-	return ValidationFailure
-}
-
-func (v *clusterValidator) printIsMachineCidrDefined(context *clusterPreprocessContext, status ValidationStatus) string {
-	switch status {
-	case ValidationFailure:
-		if swag.BoolValue(context.cluster.VipDhcpAllocation) {
-			return "The Machine Network CIDR is undefined; setting the Machine Network CIDR initiates the VIPs DHCP lease allocation."
-		} else if common.IsSingleNodeCluster(context.cluster) {
-			return "The Machine Network CIDR is undefined; Setting Machine Network CIDR is required for single node cluster"
-		} else {
-			return "The Machine Network CIDR is undefined; the Machine Network CIDR can be defined by setting either the API or Ingress virtual IPs."
-		}
-	case ValidationSuccess:
-		if swag.BoolValue(context.cluster.UserManagedNetworking) && !common.IsSingleNodeCluster(context.cluster) {
-			return "No Machine Network CIDR needed: User Managed Networking"
-		}
-		return "The Machine Network CIDR is defined."
-	case ValidationPending:
-		return "Hosts have not been discovered yet"
-	default:
-		return fmt.Sprintf("Unexpected status %s", status)
+	if swag.BoolValue(c.cluster.VipDhcpAllocation) {
+		return ValidationFailure, "The Machine Network CIDR is undefined; setting the Machine Network CIDR initiates the VIPs DHCP lease allocation."
 	}
-}
-
-func (v *clusterValidator) isClusterCidrDefined(c *clusterPreprocessContext) ValidationStatus {
-	return boolToValidationStatus(common.IsSliceNonEmpty(c.cluster.ClusterNetworks))
-}
-
-func (v *clusterValidator) printIsClusterCidrDefined(context *clusterPreprocessContext, status ValidationStatus) string {
-	switch status {
-	case ValidationFailure:
-		return "The Cluster Network CIDR is undefined."
-	case ValidationSuccess:
-		return "The Cluster Network CIDR is defined."
-	default:
-		return fmt.Sprintf("Unexpected status %s", status)
+	if common.IsSingleNodeCluster(c.cluster) {
+		return ValidationFailure, "The Machine Network CIDR is undefined; Setting Machine Network CIDR is required for single node cluster"
 	}
+	return ValidationFailure, "The Machine Network CIDR is undefined; the Machine Network CIDR can be defined by setting either the API or Ingress virtual IPs."
 }
 
-func (v *clusterValidator) isServiceCidrDefined(c *clusterPreprocessContext) ValidationStatus {
-	return boolToValidationStatus(common.IsSliceNonEmpty(c.cluster.ServiceNetworks))
-}
-
-func (v *clusterValidator) printIsServiceCidrDefined(context *clusterPreprocessContext, status ValidationStatus) string {
-	switch status {
-	case ValidationFailure:
-		return "The Service Network CIDR is undefined."
-	case ValidationSuccess:
-		return "The Service Network CIDR is defined."
-	default:
-		return fmt.Sprintf("Unexpected status %s", status)
+func (v *clusterValidator) isClusterCidrDefined(c *clusterPreprocessContext) (ValidationStatus, string) {
+	if common.IsSliceNonEmpty(c.cluster.ClusterNetworks) {
+		return ValidationSuccess, "The Cluster Network CIDR is defined."
 	}
+	return ValidationFailure, "The Cluster Network CIDR is undefined."
 }
 
-func (v *clusterValidator) isMachineCidrEqualsToCalculatedCidr(c *clusterPreprocessContext) ValidationStatus {
+func (v *clusterValidator) isServiceCidrDefined(c *clusterPreprocessContext) (ValidationStatus, string) {
+	if common.IsSliceNonEmpty(c.cluster.ServiceNetworks) {
+		return ValidationSuccess, "The Service Network CIDR is defined."
+	}
+	return ValidationFailure, "The Service Network CIDR is undefined."
+}
+
+func (v *clusterValidator) isMachineCidrEqualsToCalculatedCidr(c *clusterPreprocessContext) (ValidationStatus, string) {
 	if swag.BoolValue(c.cluster.UserManagedNetworking) {
-		return ValidationSuccess
+		return ValidationSuccess, "The Cluster Machine CIDR is not required: User Managed Networking"
 	}
-	if (c.cluster.APIVip == "" && c.cluster.IngressVip == "") || !c.hasHostsWithInventories {
-		return ValidationPending
+	if c.cluster.APIVip == "" && c.cluster.IngressVip == "" {
+		return ValidationPending, "The Machine Network CIDR, API virtual IP, or Ingress virtual IP is undefined."
+	}
+	if !c.hasHostsWithInventories {
+		return ValidationPending, "Hosts have not been discovered yet"
 	}
 	cidr, err := network.CalculateMachineNetworkCIDR(c.cluster.APIVip, c.cluster.IngressVip, c.cluster.Hosts, true)
 	c.calculateCidr = cidr
-	return boolToValidationStatus(err == nil &&
-		network.IsMachineCidrAvailable(c.cluster) &&
-		network.GetMachineCidrById(c.cluster, 0) == cidr)
-}
-
-func (v *clusterValidator) printIsMachineCidrEqualsToCalculatedCidr(context *clusterPreprocessContext, status ValidationStatus) string {
-	switch status {
-	case ValidationPending:
-		if context.cluster.APIVip == "" && context.cluster.IngressVip == "" {
-			return "The Machine Network CIDR, API virtual IP, or Ingress virtual IP is undefined."
+	machineCidrAvailable := network.IsMachineCidrAvailable(c.cluster)
+	machineCidr := ""
+	if err == nil && machineCidrAvailable {
+		machineCidr = network.GetMachineCidrById(c.cluster, 0)
+		if machineCidr == cidr {
+			return ValidationSuccess, "The Cluster Machine CIDR is equivalent to the calculated CIDR."
 		}
-		return "Hosts have not been discovered yet"
-	case ValidationSuccess:
-		if swag.BoolValue(context.cluster.UserManagedNetworking) {
-			return "The Cluster Machine CIDR is not required: User Managed Networking"
-		}
-		return "The Cluster Machine CIDR is equivalent to the calculated CIDR."
-	case ValidationFailure:
-		clusterMachineCidr := ""
-		if network.IsMachineCidrAvailable(context.cluster) {
-			clusterMachineCidr = network.GetMachineCidrById(context.cluster, 0)
-		}
-		return fmt.Sprintf("The Cluster Machine CIDR %s is different than the calculated CIDR %s.", clusterMachineCidr, context.calculateCidr)
-	default:
-		return fmt.Sprintf("Unexpected status %s", status)
 	}
+	return ValidationFailure, fmt.Sprintf("The Cluster Machine CIDR %s is different than the calculated CIDR %s.", machineCidr, c.calculateCidr)
 }
 
-func (v *clusterValidator) isApiVipDefined(c *clusterPreprocessContext) ValidationStatus {
+func (v *clusterValidator) isApiVipDefined(c *clusterPreprocessContext) (ValidationStatus, string) {
 	if swag.BoolValue(c.cluster.UserManagedNetworking) {
-		return ValidationSuccess
+		return ValidationSuccess, "The API virtual IP is not required: User Managed Networking"
 	}
-	if swag.BoolValue(c.cluster.VipDhcpAllocation) && !validationStatusToBool(v.isMachineCidrDefined(c)) {
-		return ValidationPending
+	if c.cluster.APIVip != "" {
+		return ValidationSuccess, "The API virtual IP is defined."
 	}
-	return boolToValidationStatus(c.cluster.APIVip != "")
+	machineCidrDefined, _ := v.isMachineCidrDefined(c)
+	if swag.BoolValue(c.cluster.VipDhcpAllocation) {
+		if !validationStatusToBool(machineCidrDefined) {
+			return ValidationPending, "The Machine Network CIDR is undefined"
+		}
+		if isDhcpLeaseAllocationTimedOut(c) {
+			return ValidationFailure, "The API virtual IP is undefined; IP allocation from the DHCP server timed out."
+		}
+		return ValidationFailure, "The API virtual IP is undefined; after the Machine Network CIDR has been defined, the API virtual IP is received from a DHCP lease allocation task which may take up to 2 minutes."
+
+	}
+	return ValidationFailure, "The API virtual IP is undefined and must be provided."
 }
 
-func (v *clusterValidator) printIsApiVipDefined(context *clusterPreprocessContext, status ValidationStatus) string {
-	switch status {
-	case ValidationPending:
-		return "The Machine Network CIDR is undefined"
-	case ValidationFailure:
-		if swag.BoolValue(context.cluster.VipDhcpAllocation) {
-			if isDhcpLeaseAllocationTimedOut(context) {
-				return "The API virtual IP is undefined; IP allocation from the DHCP server timed out."
-			} else {
-				return "The API virtual IP is undefined; after the Machine Network CIDR has been defined, the API virtual IP is received from a DHCP lease allocation task which may take up to 2 minutes."
-			}
-		} else {
-			return "The API virtual IP is undefined and must be provided."
-		}
-	case ValidationSuccess:
-		if swag.BoolValue(context.cluster.UserManagedNetworking) {
-			return "The API virtual IP is not required: User Managed Networking"
-		}
-		return "The API virtual IP is defined."
-	default:
-		return fmt.Sprintf("Unexpected status %s", status)
-	}
-}
-
-func (v *clusterValidator) isApiVipValid(c *clusterPreprocessContext) ValidationStatus {
+func (v *clusterValidator) isApiVipValid(c *clusterPreprocessContext) (ValidationStatus, string) {
 	if swag.BoolValue(c.cluster.UserManagedNetworking) {
-		return ValidationSuccess
+		return ValidationSuccess, "The API virtual IP is not required: User Managed Networking"
 	}
-	if c.cluster.APIVip == "" || !c.hasHostsWithInventories || !validationStatusToBool(v.isMachineCidrDefined(c)) {
-		return ValidationPending
+	if c.cluster.APIVip == "" {
+		return ValidationPending, "The API virtual IP is undefined."
+	}
+	machineCidrDefined, _ := v.isMachineCidrDefined(c)
+	if !c.hasHostsWithInventories || !validationStatusToBool(machineCidrDefined) {
+		return ValidationPending, "Hosts have not been discovered yet"
 	}
 	err := network.VerifyVip(c.cluster.Hosts, network.GetMachineCidrById(c.cluster, 0), c.cluster.APIVip, ApiVipName,
 		true, v.log)
-	return boolToValidationStatus(err == nil)
+	if err == nil {
+		return ValidationSuccess, fmt.Sprintf("%s %s belongs to the Machine CIDR and is not in use.", ApiVipName, c.cluster.APIVip)
+	}
+	return ValidationFailure, fmt.Sprintf("%s %s does not belong to the Machine CIDR or is already in use.", ApiVipName, c.cluster.APIVip)
 }
 
-func (v *clusterValidator) isNetworkTypeValid(c *clusterPreprocessContext) ValidationStatus {
+func (v *clusterValidator) isNetworkTypeValid(c *clusterPreprocessContext) (ValidationStatus, string) {
 	validNetworkTypes := []string{models.ClusterNetworkTypeOVNKubernetes, models.ClusterNetworkTypeOpenShiftSDN}
 	if !funk.ContainsString(validNetworkTypes, swag.StringValue(c.cluster.NetworkType)) && c.cluster.NetworkType != nil {
-		return ValidationFailure
+		return ValidationFailure, "The network type is not valid; the valid network types are OpenShiftSDN or OVNKubernetes"
 	}
-
 	if hasClusterNetworksUnsupportedByNetworkType(c.cluster) {
-		return ValidationFailure
+		return ValidationFailure, "The cluster is configured with IPv6 which is not supported by OpenShiftSDN; use OVNKubernetes instead"
 	}
-
 	if isHighAvailabilityModeUnsupportedByNetworkType(c.cluster) {
-		return ValidationFailure
+		return ValidationFailure, "High-availability mode 'None' (SNO) is not supported by OpenShiftSDN; use another network type instead"
 	}
-
 	if isVipDhcpAllocationAndOVN(c.cluster) {
-		return ValidationFailure
+		return ValidationFailure, "VIP DHCP allocation is not supported when the cluster is configured to use OVNKubernetes."
 	}
-
-	return ValidationSuccess
-}
-
-func (v *clusterValidator) printIsNetworkTypeValid(context *clusterPreprocessContext, status ValidationStatus) string {
-	switch status {
-	case ValidationSuccess:
-		return "The cluster has a valid network type"
-	case ValidationFailure:
-		validNetworkTypes := []string{models.ClusterNetworkTypeOVNKubernetes, models.ClusterNetworkTypeOpenShiftSDN}
-		if !funk.ContainsString(validNetworkTypes, swag.StringValue(context.cluster.NetworkType)) && context.cluster.NetworkType != nil {
-			return "The network type is not valid; the valid network types are OpenShiftSDN or OVNKubernetes"
-		}
-		if hasClusterNetworksUnsupportedByNetworkType(context.cluster) {
-			return "The cluster is configured with IPv6 which is not supported by OpenShiftSDN; use OVNKubernetes instead"
-		} else if isHighAvailabilityModeUnsupportedByNetworkType(context.cluster) {
-			return "High-availability mode 'None' (SNO) is not supported by OpenShiftSDN; use another network type instead"
-		} else if isVipDhcpAllocationAndOVN(context.cluster) {
-			return "VIP DHCP allocation is not supported when the cluster is configured to use OVNKubernetes."
-		} else {
-			return "Network type is invalid for an unknown reason"
-		}
-	default:
-		return fmt.Sprintf("Unexpected status %s", status)
-	}
+	return ValidationSuccess, "The cluster has a valid network type"
 }
 
 func hasClusterNetworksUnsupportedByNetworkType(cluster *common.Cluster) bool {
@@ -299,87 +212,46 @@ func isVipDhcpAllocationAndOVN(cluster *common.Cluster) bool {
 	return isVipDhcpAllocation && isNetworkTypeOVN
 }
 
-func (v *clusterValidator) printIsApiVipValid(context *clusterPreprocessContext, status ValidationStatus) string {
-	switch status {
-	case ValidationPending:
-		if context.cluster.APIVip == "" {
-			return "The API virtual IP is undefined."
-		}
-		return "Hosts have not been discovered yet"
-	case ValidationSuccess:
-		if swag.BoolValue(context.cluster.UserManagedNetworking) {
-			return "The API virtual IP is not required: User Managed Networking"
-		}
-		return fmt.Sprintf("%s %s belongs to the Machine CIDR and is not in use.", ApiVipName, context.cluster.APIVip)
-	case ValidationFailure:
-		return fmt.Sprintf("%s %s does not belong to the Machine CIDR or is already in use.", ApiVipName, context.cluster.APIVip)
-	default:
-		return fmt.Sprintf("Unexpected status %s", status)
+func (v *clusterValidator) isIngressVipDefined(c *clusterPreprocessContext) (ValidationStatus, string) {
+	if swag.BoolValue(c.cluster.UserManagedNetworking) {
+		return ValidationSuccess, "The Ingress virtual IP is not required: User Managed Networking"
 	}
+	machineCidrDefined, _ := v.isMachineCidrDefined(c)
+	if swag.BoolValue(c.cluster.VipDhcpAllocation) && !validationStatusToBool(machineCidrDefined) {
+		return ValidationPending, "The Machine Network CIDR is undefined"
+	}
+
+	if c.cluster.IngressVip != "" {
+		return ValidationSuccess, "The Ingress virtual IP is defined."
+	}
+
+	if swag.BoolValue(c.cluster.VipDhcpAllocation) {
+		if isDhcpLeaseAllocationTimedOut(c) {
+			return ValidationFailure, "The Ingress virtual IP is undefined; IP allocation from the DHCP server timed out."
+		}
+		return ValidationFailure, "The Ingress virtual IP is undefined; after the Machine Network CIDR has been defined, the Ingress virtual IP is received from a DHCP lease allocation task which may take up to 2 minutes."
+	}
+	return ValidationFailure, "The Ingress virtual IP is undefined and must be provided."
+
 }
 
-func (v *clusterValidator) isIngressVipDefined(c *clusterPreprocessContext) ValidationStatus {
+func (v *clusterValidator) isIngressVipValid(c *clusterPreprocessContext) (ValidationStatus, string) {
 	if swag.BoolValue(c.cluster.UserManagedNetworking) {
-		return ValidationSuccess
+		return ValidationSuccess, "The Ingress virtual IP is not required: User Managed Networking"
 	}
-	if swag.BoolValue(c.cluster.VipDhcpAllocation) && !validationStatusToBool(v.isMachineCidrDefined(c)) {
-		return ValidationPending
+	if c.cluster.IngressVip == "" {
+		return ValidationPending, "The Ingress virtual IP is undefined."
 	}
-	return boolToValidationStatus(c.cluster.IngressVip != "")
-}
-
-func (v *clusterValidator) printIsIngressVipDefined(context *clusterPreprocessContext, status ValidationStatus) string {
-	switch status {
-	case ValidationPending:
-		return "The Machine Network CIDR is undefined"
-	case ValidationFailure:
-		if swag.BoolValue(context.cluster.VipDhcpAllocation) {
-			if isDhcpLeaseAllocationTimedOut(context) {
-				return "The Ingress virtual IP is undefined; IP allocation from the DHCP server timed out."
-			} else {
-				return "The Ingress virtual IP is undefined; after the Machine Network CIDR has been defined, the Ingress virtual IP is received from a DHCP lease allocation task which may take up to 2 minutes."
-			}
-		} else {
-			return "The Ingress virtual IP is undefined and must be provided."
-		}
-	case ValidationSuccess:
-		if swag.BoolValue(context.cluster.UserManagedNetworking) {
-			return "The Ingress virtual IP is not required: User Managed Networking"
-		}
-		return "The Ingress virtual IP is defined."
-	default:
-		return fmt.Sprintf("Unexpected status %s", status)
-	}
-}
-func (v *clusterValidator) isIngressVipValid(c *clusterPreprocessContext) ValidationStatus {
-	if swag.BoolValue(c.cluster.UserManagedNetworking) {
-		return ValidationSuccess
-	}
-	if c.cluster.IngressVip == "" || !c.hasHostsWithInventories || !validationStatusToBool(v.isMachineCidrDefined(c)) {
-		return ValidationPending
+	machineCidrDefined, _ := v.isMachineCidrDefined(c)
+	if !c.hasHostsWithInventories || !validationStatusToBool(machineCidrDefined) {
+		return ValidationPending, "Hosts have not been discovered yet"
 	}
 	err := network.VerifyVip(c.cluster.Hosts, network.GetMachineCidrById(c.cluster, 0), c.cluster.IngressVip, IngressVipName,
 		true, v.log)
-	return boolToValidationStatus(err == nil)
-}
-
-func (v *clusterValidator) printIsIngressVipValid(context *clusterPreprocessContext, status ValidationStatus) string {
-	switch status {
-	case ValidationPending:
-		if context.cluster.IngressVip == "" {
-			return "The Ingress virtual IP is undefined."
-		}
-		return "Hosts have not been discovered yet"
-	case ValidationSuccess:
-		if swag.BoolValue(context.cluster.UserManagedNetworking) {
-			return "The Ingress virtual IP is not required: User Managed Networking"
-		}
-		return fmt.Sprintf("%s %s belongs to the Machine CIDR and is not in use.", IngressVipName, context.cluster.IngressVip)
-	case ValidationFailure:
-		return fmt.Sprintf("%s %s does not belong to the Machine CIDR or is already in use.", IngressVipName, context.cluster.IngressVip)
-	default:
-		return fmt.Sprintf("Unexpected status %s", status)
+	if err == nil {
+		return ValidationSuccess, fmt.Sprintf("%s %s belongs to the Machine CIDR and is not in use.", IngressVipName, c.cluster.IngressVip)
 	}
+	return ValidationFailure, fmt.Sprintf("%s %s does not belong to the Machine CIDR or is already in use.", IngressVipName, c.cluster.IngressVip)
 }
 
 // conditions to have a valid number of masters
@@ -387,7 +259,10 @@ func (v *clusterValidator) printIsIngressVipValid(context *clusterPreprocessCont
 // 2. have less then 3 masters but enough to auto-assign hosts that can become masters
 // 3. have at least 2 workers or auto-assign hosts that can become workers, if workers configured
 // 4. having more then 3 known masters is illegal
-func (v *clusterValidator) sufficientMastersCount(c *clusterPreprocessContext) ValidationStatus {
+func (v *clusterValidator) sufficientMastersCount(c *clusterPreprocessContext) (ValidationStatus, string) {
+	status := ValidationSuccess
+	var message string
+
 	minMastersNeededForInstallation := common.MinMasterHostsNeededForInstallation
 	nonHAMode := swag.StringValue(c.cluster.HighAvailabilityMode) == models.ClusterHighAvailabilityModeNone
 	if nonHAMode {
@@ -430,38 +305,27 @@ func (v *clusterValidator) sufficientMastersCount(c *clusterPreprocessContext) V
 		workers = append(workers, h)
 	}
 
-	//validate master candidates count
-	if len(masters) != minMastersNeededForInstallation {
-		return boolToValidationStatus(false)
+	numWorkers := len(workers)
+	if len(masters) != minMastersNeededForInstallation ||
+		numWorkers == common.IllegalWorkerHostsCount ||
+		nonHAMode && numWorkers != common.AllowedNumberOfWorkersInNoneHaMode {
+		status = ValidationFailure
 	}
 
-	//validate worker candidates count
-	if len(workers) == common.IllegalWorkerHostsCount {
-		return boolToValidationStatus(false)
-	}
-
-	// if non ha mode, none workers allowed
-	if nonHAMode && len(workers) != common.AllowedNumberOfWorkersInNoneHaMode {
-		return boolToValidationStatus(false)
-	}
-
-	return boolToValidationStatus(true)
-}
-
-func (v *clusterValidator) printSufficientMastersCount(context *clusterPreprocessContext, status ValidationStatus) string {
-	noneHAMode := swag.StringValue(context.cluster.HighAvailabilityMode) == models.ClusterHighAvailabilityModeNone
 	switch status {
 	case ValidationSuccess:
-		return "The cluster has a sufficient number of master candidates."
+		message = "The cluster has a sufficient number of master candidates."
 	case ValidationFailure:
-		if noneHAMode {
-			return "Single-node clusters must have a single control plane node and no workers."
-		}
-		return fmt.Sprintf("Clusters must have exactly %d dedicated masters and if workers are added, there should be at least 2 workers. Please check your configuration and add or remove hosts as to meet the above requirement.",
+		message = fmt.Sprintf("Clusters must have exactly %d dedicated masters and if workers are added, there should be at least 2 workers. Please check your configuration and add or remove hosts as to meet the above requirement.",
 			common.MinMasterHostsNeededForInstallation)
+		if nonHAMode {
+			message = "Single-node clusters must have a single control plane node and no workers."
+		}
 	default:
-		return fmt.Sprintf("Unexpected status %s", status)
+		message = fmt.Sprintf("Unexpected status %s", status)
 	}
+
+	return status, message
 }
 
 func isReadyToInstall(status string) bool {
@@ -473,38 +337,25 @@ func isReadyToInstall(status string) bool {
 	return funk.ContainsString(allowedStatuses, status)
 }
 
-func (v *clusterValidator) allHostsAreReadyToInstall(c *clusterPreprocessContext) ValidationStatus {
+func (v *clusterValidator) allHostsAreReadyToInstall(c *clusterPreprocessContext) (ValidationStatus, string) {
 	readyToInstall := true
 	for _, host := range c.cluster.Hosts {
-		readyToInstall = readyToInstall && isReadyToInstall(swag.StringValue(host.Status))
+		if !isReadyToInstall(swag.StringValue(host.Status)) {
+			readyToInstall = false
+			break
+		}
 	}
-	return boolToValidationStatus(readyToInstall)
+	if readyToInstall {
+		return ValidationSuccess, "All hosts in the cluster are ready to install."
+	}
+	return ValidationFailure, "The cluster has hosts that are not ready to install."
 }
 
-func (v *clusterValidator) printAllHostsAreReadyToInstall(context *clusterPreprocessContext, status ValidationStatus) string {
-	switch status {
-	case ValidationSuccess:
-		return "All hosts in the cluster are ready to install."
-	case ValidationFailure:
-		return "The cluster has hosts that are not ready to install."
-	default:
-		return fmt.Sprintf("Unexpected status %s", status)
+func (v *clusterValidator) isDNSDomainDefined(c *clusterPreprocessContext) (ValidationStatus, string) {
+	if c.cluster.BaseDNSDomain != "" {
+		return ValidationSuccess, "The base domain is defined."
 	}
-}
-
-func (v *clusterValidator) isDNSDomainDefined(c *clusterPreprocessContext) ValidationStatus {
-	return boolToValidationStatus(c.cluster.BaseDNSDomain != "")
-}
-
-func (v *clusterValidator) printIsDNSDomainDefined(context *clusterPreprocessContext, status ValidationStatus) string {
-	switch status {
-	case ValidationFailure:
-		return "The base domain is undefined and must be provided."
-	case ValidationSuccess:
-		return "The base domain is defined."
-	default:
-		return fmt.Sprintf("Unexpected status %s", status)
-	}
+	return ValidationFailure, "The base domain is undefined and must be provided."
 }
 
 func checkCidrsOverlapping(cluster *common.Cluster) error {
@@ -528,177 +379,119 @@ func checkCidrsOverlapping(cluster *common.Cluster) error {
 	return nil
 }
 
-func (v *clusterValidator) noCidrsOverlapping(c *clusterPreprocessContext) ValidationStatus {
+func (v *clusterValidator) noCidrsOverlapping(c *clusterPreprocessContext) (ValidationStatus, string) {
+	clusterCidrDefined, _ := v.isClusterCidrDefined(c)
+	serviceCidrDefined, _ := v.isServiceCidrDefined(c)
+	machineCidrDefined, _ := v.isMachineCidrDefined(c)
 	//If one of the required Cidr fields is empty return Pending status
-	if !validationStatusToBool(v.isClusterCidrDefined(c)) || !validationStatusToBool(v.isServiceCidrDefined(c)) {
-		return ValidationPending
-	}
-	if network.IsMachineNetworkRequired(c.cluster) && !validationStatusToBool(v.isMachineCidrDefined(c)) {
-		return ValidationPending
-	}
-
-	// TODO MGMT-7587: Support any number of subnets
-	// Assumes that the number of cluster networks equal to the number of service networks
-	if len(c.cluster.ClusterNetworks) != len(c.cluster.ServiceNetworks) {
-		return ValidationError
-	}
-
-	if err := checkCidrsOverlapping(c.cluster); err != nil {
-		return ValidationFailure
-	}
-	return ValidationSuccess
-}
-
-func (v *clusterValidator) printNoCidrsOverlapping(c *clusterPreprocessContext, status ValidationStatus) string {
-	switch status {
-	case ValidationSuccess:
-		return "No CIDRS are overlapping."
-	case ValidationFailure:
-		if err := checkCidrsOverlapping(c.cluster); err != nil {
-			return fmt.Sprintf("CIDRS Overlapping: %s.", err.Error())
-		}
-		return ""
-	case ValidationPending:
+	if !validationStatusToBool(clusterCidrDefined) || !validationStatusToBool(serviceCidrDefined) || (network.IsMachineNetworkRequired(c.cluster) && !validationStatusToBool(machineCidrDefined)) {
 		if swag.BoolValue(c.cluster.UserManagedNetworking) {
-			return "At least one of the CIDRs (Cluster Network, Service Network) is undefined."
+			return ValidationPending, "At least one of the CIDRs (Cluster Network, Service Network) is undefined."
 		}
-		return "At least one of the CIDRs (Machine Network, Cluster Network, Service Network) is undefined."
-	case ValidationError:
-		return "A mismatch between the number of Cluster and Service networks"
-	default:
-		return fmt.Sprintf("Unexpected status %s", status)
+		return ValidationPending, "At least one of the CIDRs (Machine Network, Cluster Network, Service Network) is undefined."
 	}
+	if len(c.cluster.ClusterNetworks) != len(c.cluster.ServiceNetworks) {
+		// TODO MGMT-7587: Support any number of subnets
+		// Assumes that the number of cluster networks equal to the number of service networks
+		return ValidationError, "A mismatch between the number of Cluster and Service networks"
+	}
+	if err := checkCidrsOverlapping(c.cluster); err != nil {
+		return ValidationFailure, fmt.Sprintf("CIDRS Overlapping: %s.", err.Error())
+	}
+	return ValidationSuccess, "No CIDRS are overlapping."
 }
 
-func (v *clusterValidator) isNetworksSameAddressFamilies(c *clusterPreprocessContext) ValidationStatus {
-	//If one of the required Cidr fields is empty return Pending status
-	if !validationStatusToBool(v.isClusterCidrDefined(c)) || !validationStatusToBool(v.isServiceCidrDefined(c)) {
-		return ValidationPending
-	}
+func (v *clusterValidator) isNetworksSameAddressFamilies(c *clusterPreprocessContext) (ValidationStatus, string) {
+	var clusterCidrDefined ValidationStatus
+	clusterCidrDefined, _ = v.isClusterCidrDefined(c)
+
+	var serviceCidrDefined ValidationStatus
+	serviceCidrDefined, _ = v.isServiceCidrDefined(c)
+	machineCidrDefined, _ := v.isMachineCidrDefined(c)
 	machineNetworkRequired := network.IsMachineNetworkRequired(c.cluster)
-	if machineNetworkRequired && !validationStatusToBool(v.isMachineCidrDefined(c)) {
-		return ValidationPending
+
+	if !machineNetworkRequired && (!validationStatusToBool(clusterCidrDefined) || !validationStatusToBool(serviceCidrDefined)) {
+		return ValidationPending, "At least one of the CIDRs (Cluster Network, Service Network) is undefined."
 	}
+
+	if machineNetworkRequired && (!validationStatusToBool(machineCidrDefined) || !validationStatusToBool(clusterCidrDefined) || !validationStatusToBool(serviceCidrDefined)) {
+		return ValidationPending, "At least one of the CIDRs (Machine Network, Cluster Network, Service Network) is undefined."
+	}
+
 	serviceNetworkFamilies, err := network.CidrsToAddressFamilies(network.GetServiceNetworkCidrs(c.cluster))
 	if err != nil {
 		v.log.WithError(err).Errorf("Getting service address families for cluster %s", c.cluster.ID.String())
-		return ValidationError
+		return ValidationError, "Bad CIDR(s) appears in one of the networks"
 	}
 	clusterNetworkFamilies, err := network.CidrsToAddressFamilies(network.GetClusterNetworkCidrs(c.cluster))
 	if err != nil {
 		v.log.WithError(err).Errorf("Getting cluster address families for cluster %s", c.cluster.ID.String())
-		return ValidationError
+		return ValidationError, "Bad CIDR(s) appears in one of the networks"
 	}
+	// serviceNetworkFamilies should only ever have a maximum of two distinct families.
+	// clusterNetworkFamilies may have multiple indistinct families so need to be reduced to a maximum of two distinct families before comparison.
 	clusterNetworkFamilies = network.CanonizeAddressFamilies(clusterNetworkFamilies)
 	if !reflect.DeepEqual(serviceNetworkFamilies, clusterNetworkFamilies) {
-		return ValidationFailure
+		return ValidationFailure, "Address families of networks (ServiceNetworks, ClusterNetworks) are not the same."
 	}
 	if machineNetworkRequired {
 		machineNetworkFamilies, err := network.CidrsToAddressFamilies(network.GetMachineNetworkCidrs(c.cluster))
 		if err != nil {
 			v.log.WithError(err).Errorf("Getting machine address families for cluster %s", c.cluster.ID.String())
-			return ValidationError
+			return ValidationError, fmt.Sprintf("Error getting machine address families for cluster %s", c.cluster.ID.String())
 		}
 		machineNetworkFamilies = network.CanonizeAddressFamilies(machineNetworkFamilies)
 		if !reflect.DeepEqual(serviceNetworkFamilies, machineNetworkFamilies) {
-			return ValidationFailure
+			return ValidationFailure, "Address families of networks (MachineNetworks, ServiceNetworks, ClusterNetworks) are not the same."
 		}
 	}
-	return ValidationSuccess
+	return ValidationSuccess, "Same address families for all networks."
 }
 
-func (v *clusterValidator) printIsNetworksSameAddressFamilies(context *clusterPreprocessContext, status ValidationStatus) string {
-	switch status {
-	case ValidationFailure:
-		var networks string
-		if network.IsMachineNetworkRequired(context.cluster) {
-			networks = "(MachineNetworks, ServiceNetworks, ClusterNetworks)"
-		} else {
-			networks = "(ServiceNetworks, ClusterNetworks)"
-		}
-		return fmt.Sprintf("Address families of networks %s are not the same.", networks)
-	case ValidationSuccess:
-		return "Same address families for all networks."
-	case ValidationPending:
-		if swag.BoolValue(context.cluster.UserManagedNetworking) {
-			return "At least one of the CIDRs (Cluster Network, Service Network) is undefined."
-		}
-		return "At least one of the CIDRs (Machine Network, Cluster Network, Service Network) is undefined."
-	case ValidationError:
-		return "Bad CIDR(s) appears in one of the networks"
-	default:
-		return fmt.Sprintf("Unexpected status %s", status)
+func (v *clusterValidator) isPullSecretSet(c *clusterPreprocessContext) (ValidationStatus, string) {
+	if c.cluster.PullSecretSet {
+		return ValidationSuccess, "The pull secret is set."
 	}
+	return ValidationFailure, "The pull secret is not set."
 }
 
-func (v *clusterValidator) isPullSecretSet(c *clusterPreprocessContext) ValidationStatus {
-	return boolToValidationStatus(c.cluster.PullSecretSet)
-}
+func (v *clusterValidator) networkPrefixValid(c *clusterPreprocessContext) (ValidationStatus, string) {
+	var clusterCidrDefined ValidationStatus
+	clusterCidrDefined, _ = v.isClusterCidrDefined(c)
 
-func (v *clusterValidator) printIsPullSecretSet(context *clusterPreprocessContext, status ValidationStatus) string {
-	switch status {
-	case ValidationFailure:
-		return "The pull secret is not set."
-	case ValidationSuccess:
-		return "The pull secret is set."
-	default:
-		return fmt.Sprintf("Unexpected status %s", status)
+	if !validationStatusToBool(clusterCidrDefined) {
+		return ValidationPending, "The Cluster Network CIDR is undefined."
 	}
-}
-
-func (v *clusterValidator) networkPrefixValid(c *clusterPreprocessContext) ValidationStatus {
-	if !validationStatusToBool(v.isClusterCidrDefined(c)) {
-		return ValidationPending
-	}
-
 	validClusterNetworks := funk.Filter(c.cluster.ClusterNetworks, func(clusterNetwork *models.ClusterNetwork) bool {
 		return clusterNetwork != nil &&
 			network.VerifyNetworkHostPrefix(clusterNetwork.HostPrefix) == nil &&
 			network.VerifyClusterCidrSize(int(clusterNetwork.HostPrefix), string(clusterNetwork.Cidr), len(c.cluster.Hosts)) == nil
 	}).([]*models.ClusterNetwork)
 
-	return boolToValidationStatus(len(validClusterNetworks) == len(c.cluster.ClusterNetworks))
-}
-
-func (v *clusterValidator) printNetworkPrefixValid(c *clusterPreprocessContext, status ValidationStatus) string {
-	switch status {
-	case ValidationSuccess:
-		return "The Cluster Network prefix is valid."
-	case ValidationFailure:
-		var err error
-
-		for _, clusterNetwork := range c.cluster.ClusterNetworks {
-			if err = network.VerifyNetworkHostPrefix(clusterNetwork.HostPrefix); err != nil {
-				return fmt.Sprintf("Invalid Cluster Network prefix: %s.", err.Error())
-			} else if err = network.VerifyClusterCidrSize(int(clusterNetwork.HostPrefix), string(clusterNetwork.Cidr), len(c.cluster.Hosts)); err != nil {
-				return err.Error()
-			}
-		}
-
-		return ""
-	case ValidationPending:
-		return "The Cluster Network CIDR is undefined."
-	default:
-		return fmt.Sprintf("Unexpected status %s", status)
+	if len(validClusterNetworks) == len(c.cluster.ClusterNetworks) {
+		return ValidationSuccess, "The Cluster Network prefix is valid."
 	}
+
+	var err error
+	for _, clusterNetwork := range c.cluster.ClusterNetworks {
+		if err = network.VerifyNetworkHostPrefix(clusterNetwork.HostPrefix); err != nil {
+			return ValidationFailure, fmt.Sprintf("Invalid Cluster Network prefix: %s.", err.Error())
+		}
+		if err = network.VerifyClusterCidrSize(int(clusterNetwork.HostPrefix), string(clusterNetwork.Cidr), len(c.cluster.Hosts)); err != nil {
+			return ValidationFailure, err.Error()
+		}
+	}
+	return ValidationError, "Unexpected status ValidationError"
 }
 
-func (v *clusterValidator) isNtpServerConfigured(c *clusterPreprocessContext) ValidationStatus {
+func (v *clusterValidator) isNtpServerConfigured(c *clusterPreprocessContext) (ValidationStatus, string) {
 	synced, err := common.IsNtpSynced(c.cluster)
 	if err != nil {
-		return ValidationError
+		return ValidationError, fmt.Sprintf("Unexpected error %s", err.Error())
 	}
-	return boolToValidationStatus(synced)
-}
-
-func (v *clusterValidator) printNtpServerConfigured(c *clusterPreprocessContext, status ValidationStatus) string {
-	switch status {
-	case ValidationSuccess:
-		return "No ntp problems found"
-	case ValidationFailure:
-		return fmt.Sprintf("Hosts' clocks are not synchronized (there's more than a %d minutes gap between clocks), "+
-			"please configure an NTP server via DHCP or set clocks manually.", common.MaximumAllowedTimeDiffMinutes)
-	default:
-		return fmt.Sprintf("Unexpected status %s", status)
+	if synced {
+		return ValidationSuccess, "No ntp problems found"
 	}
+	return ValidationFailure, fmt.Sprintf("Hosts' clocks are not synchronized (there's more than a %d minutes gap between clocks), "+
+		"please configure an NTP server via DHCP or set clocks manually.", common.MaximumAllowedTimeDiffMinutes)
 }
