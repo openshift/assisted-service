@@ -26,7 +26,7 @@ Please refer to the [Hive Integration readme](../hive-integration/README.md) to 
 
 ### Network Configuration
 
-Please refer to the [Network Configuration introduction](network-configuration.md) for more information about advanced network configuration with the Assisted Service.
+Please refer to the [Network Configuration introduction](network-configuration/README.md) for more information about advanced network configuration with the Assisted Service.
 
 ### Infrastructure Operator
 
