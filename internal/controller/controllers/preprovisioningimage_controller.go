@@ -18,6 +18,7 @@ package controllers
 
 import (
 	"context"
+	"fmt"
 	"strconv"
 	"time"
 
@@ -88,8 +89,8 @@ func (r *PreprovisioningImageReconciler) Reconcile(origCtx context.Context, req 
 	if err != nil {
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
-	if !funk.Contains(image.Spec.AcceptFormats, metal3_v1alpha1.ImageFormatISO) {
-		// Currently, the PreprovisioningImageController only support ISO image, remove this when working on MGMT-8864
+	if !funk.Some(image.Spec.AcceptFormats, metal3_v1alpha1.ImageFormatISO, metal3_v1alpha1.ImageFormatInitRD) {
+		// Currently, the PreprovisioningImageController only support ISO and InitRD image
 		log.Infof("Unsupported image format: %s", image.Spec.AcceptFormats)
 		setUnsupportedFormatCondition(image)
 		err = r.Status().Update(ctx, image)
@@ -143,7 +144,7 @@ func (r *PreprovisioningImageReconciler) Reconcile(origCtx context.Context, req 
 		log.Info("PreprovisioningImage and InfraEnv images are in sync. Nothing to update.")
 		return ctrl.Result{}, nil
 	}
-	err = r.setImage(image.GetGeneration(), &image.Status, *infraEnv)
+	err = r.setImage(image, *infraEnv)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
@@ -166,17 +167,28 @@ func (r *PreprovisioningImageReconciler) getIronicIgnitionConfig(log logrus.Fiel
 	return string(config), err
 }
 
-func (r *PreprovisioningImageReconciler) setImage(generation int64, status *metal3_v1alpha1.PreprovisioningImageStatus, infraEnv aiv1beta1.InfraEnv) error {
+func (r *PreprovisioningImageReconciler) setImage(image *metal3_v1alpha1.PreprovisioningImage, infraEnv aiv1beta1.InfraEnv) error {
 	r.Log.Infof("Updating PreprovisioningImage ImageUrl to: %s", infraEnv.Status.ISODownloadURL)
-	status.ImageUrl = infraEnv.Status.ISODownloadURL
-	status.Architecture = infraEnv.Spec.CpuArchitecture
-	status.Format = metal3_v1alpha1.ImageFormatISO
+	image.Status.Architecture = infraEnv.Spec.CpuArchitecture
+	if funk.Contains(image.Spec.AcceptFormats, metal3_v1alpha1.ImageFormatISO) {
+		r.Log.Infof("Updating PreprovisioningImage ImageUrl with ISO artifacts")
+		image.Status.Format = metal3_v1alpha1.ImageFormatISO
+		image.Status.ImageUrl = infraEnv.Status.ISODownloadURL
+		image.Status.KernelUrl = ""
+		image.Status.ExtraKernelParams = ""
+	} else if funk.Contains(image.Spec.AcceptFormats, metal3_v1alpha1.ImageFormatInitRD) {
+		r.Log.Infof("Updating PreprovisioningImage ImageUrl with InitRD artifacts")
+		image.Status.Format = metal3_v1alpha1.ImageFormatInitRD
+		image.Status.ImageUrl = infraEnv.Status.BootArtifacts.InitrdURL
+		image.Status.KernelUrl = infraEnv.Status.BootArtifacts.KernelURL
+		image.Status.ExtraKernelParams = fmt.Sprintf("coreos.live.rootfs_url=%s", infraEnv.Status.BootArtifacts.RootfsURL)
+	}
 	imageCreatedCondition := conditionsv1.FindStatusCondition(infraEnv.Status.Conditions, aiv1beta1.ImageCreatedCondition)
 	reason := imageConditionReason(imageCreatedCondition.Reason)
 	ready := metav1.ConditionStatus(imageCreatedCondition.Status)
 	message := imageCreatedCondition.Message
-
-	setImageCondition(generation, status,
+	generation := image.GetGeneration()
+	setImageCondition(generation, &image.Status,
 		metal3_v1alpha1.ConditionImageReady, ready,
 		reason, message)
 
@@ -186,7 +198,7 @@ func (r *PreprovisioningImageReconciler) setImage(generation int64, status *meta
 	if imageCreatedCondition.Reason == aiv1beta1.ImageCreationErrorReason {
 		imageErrorStatus = metav1.ConditionTrue
 	}
-	setImageCondition(generation, status,
+	setImageCondition(generation, &image.Status,
 		metal3_v1alpha1.ConditionImageError, imageErrorStatus,
 		reason, message)
 	return nil

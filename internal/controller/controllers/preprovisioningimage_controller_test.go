@@ -83,6 +83,9 @@ var _ = Describe("PreprovisioningImage reconcile", func() {
 		sId                   strfmt.UUID
 		backendInfraEnv       = &common.InfraEnv{InfraEnv: models.InfraEnv{ClusterID: sId, ID: &sId}}
 		downloadURL           = "https://downloadurl"
+		rootfsURL             = "https://rootfs.example.com"
+		kernelURL             = "https://kernel.example.com"
+		initrdURL             = "https://initrd.example.com"
 		infraEnvArch          = "x86_64"
 		infraEnv              *aiv1beta1.InfraEnv
 		ppi                   *metal3_v1alpha1.PreprovisioningImage
@@ -119,6 +122,9 @@ var _ = Describe("PreprovisioningImage reconcile", func() {
 		BeforeEach(func() {
 			infraEnv = newInfraEnv("testInfraEnv", testNamespace, aiv1beta1.InfraEnvSpec{})
 			infraEnv.Status.ISODownloadURL = downloadURL
+			infraEnv.Status.BootArtifacts.RootfsURL = rootfsURL
+			infraEnv.Status.BootArtifacts.KernelURL = kernelURL
+			infraEnv.Status.BootArtifacts.InitrdURL = initrdURL
 			createdAt := metav1.Now().Add(-InfraEnvImageCooldownPeriod)
 			infraEnv.Status.CreatedTime = &metav1.Time{Time: createdAt}
 			infraEnv.Status.Conditions = []conditionsv1.Condition{{Type: aiv1beta1.ImageCreatedCondition,
@@ -183,8 +189,7 @@ var _ = Describe("PreprovisioningImage reconcile", func() {
 			)
 		})
 
-		It("Set the image on the PPI", func() {
-			infraEnv.Status.ISODownloadURL = downloadURL
+		It("sets the image on the PPI to the ISO URL", func() {
 			createdAt := metav1.Now().Add(-InfraEnvImageCooldownPeriod)
 			infraEnv.Status.CreatedTime = &metav1.Time{Time: createdAt}
 			infraEnv.Status.Conditions = []conditionsv1.Condition{{Type: aiv1beta1.ImageCreatedCondition,
@@ -207,6 +212,35 @@ var _ = Describe("PreprovisioningImage reconcile", func() {
 			Expect(c.Get(ctx, key, ppi)).To(BeNil())
 			validateStatus(infraEnv.Status.ISODownloadURL, conditionsv1.FindStatusCondition(infraEnv.Status.Conditions, aiv1beta1.ImageCreatedCondition), ppi)
 		})
+
+		It("sets the image on the PPI to the initrd when the PPI doesn't accept ISO format", func() {
+			ppi.Spec.AcceptFormats = []metal3_v1alpha1.ImageFormat{metal3_v1alpha1.ImageFormatInitRD}
+			Expect(c.Update(ctx, ppi)).To(BeNil())
+
+			createdAt := metav1.Now().Add(-InfraEnvImageCooldownPeriod)
+			infraEnv.Status.CreatedTime = &metav1.Time{Time: createdAt}
+			infraEnv.Status.Conditions = []conditionsv1.Condition{{Type: aiv1beta1.ImageCreatedCondition,
+				Status:  corev1.ConditionTrue,
+				Reason:  "some reason",
+				Message: "Some message",
+			}}
+			infraEnv.ObjectMeta.Annotations = make(map[string]string)
+			infraEnv.ObjectMeta.Annotations[EnableIronicAgentAnnotation] = "true"
+			Expect(c.Create(ctx, infraEnv)).To(BeNil())
+
+			res, err := pr.Reconcile(ctx, newPreprovisioningImageRequest(ppi))
+			Expect(err).To(BeNil())
+			Expect(res).To(Equal(ctrl.Result{}))
+			key := types.NamespacedName{
+				Namespace: testNamespace,
+				Name:      "testPPI",
+			}
+			Expect(c.Get(ctx, key, ppi)).To(BeNil())
+			validateStatus(initrdURL, conditionsv1.FindStatusCondition(infraEnv.Status.Conditions, aiv1beta1.ImageCreatedCondition), ppi)
+			Expect(ppi.Status.KernelUrl).To(Equal(kernelURL))
+			Expect(ppi.Status.ExtraKernelParams).To(Equal(fmt.Sprintf("coreos.live.rootfs_url=%s", rootfsURL)))
+		})
+
 		It("PreprovisioningImage ImageUrl is up to date", func() {
 			infraEnv.Status.ISODownloadURL = downloadURL
 			createdAt := metav1.Now().Add(-InfraEnvImageCooldownPeriod)
@@ -310,7 +344,7 @@ var _ = Describe("PreprovisioningImage reconcile", func() {
 	})
 	It("PreprovisioningImage doesn't accept ISO format", func() {
 		ppi = newPreprovisioningImage("testPPI", testNamespace, InfraEnvLabel, "testInfraEnv")
-		ppi.Spec.AcceptFormats = []metal3_v1alpha1.ImageFormat{metal3_v1alpha1.ImageFormatInitRD}
+		ppi.Spec.AcceptFormats = []metal3_v1alpha1.ImageFormat{"some random format"}
 		Expect(c.Create(ctx, ppi)).To(BeNil())
 
 		res, err := pr.Reconcile(ctx, newPreprovisioningImageRequest(ppi))
