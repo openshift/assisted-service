@@ -71,6 +71,8 @@ function gather_bmh_data() {
   for bmh in "${bmh_objects[@]}"; do
     host_name=$(echo ${bmh} | jq -r .metadata.name)
     oc get baremetalhost -n "${SPOKE_NAMESPACE}" "${host_name}" -o yaml > "${bmh_dir}/${host_name}.yaml"
+    # in ocp 4.11 and above, each BMH has a  matching preprovisoning image CR that contains the image information
+    oc get preprovisioningimage -n "${SPOKE_NAMESPACE}" "${host_name}" -o yaml > "${bmh_dir}/ppi_${host_name}.yaml" || true
   done
 }
 
