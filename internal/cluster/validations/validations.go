@@ -29,7 +29,7 @@ type Config struct {
 }
 
 const (
-	clusterNameRegex    = "^([a-z0-9]([-a-z0-9]*[a-z0-9])?)*$"
+	clusterNameRegex    = "^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*)*$"
 	CloudOpenShiftCom   = "cloud.openshift.com"
 	sshPublicKeyRegex   = "^(ssh-rsa AAAAB3NzaC1yc2|ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNT|ecdsa-sha2-nistp384 AAAAE2VjZHNhLXNoYTItbmlzdHAzODQAAAAIbmlzdHAzOD|ecdsa-sha2-nistp521 AAAAE2VjZHNhLXNoYTItbmlzdHA1MjEAAAAIbmlzdHA1Mj|ssh-ed25519 AAAAC3NzaC1lZDI1NTE5|ssh-dss AAAAB3NzaC1kc3)[0-9A-Za-z+/]+[=]{0,3}( .*)?$"
 	dockerHubRegistry   = "docker.io"
@@ -206,7 +206,7 @@ func (v *registryPullSecretValidator) ValidatePullSecret(secret string, username
 func ValidateClusterNameFormat(name string) error {
 	if matched, _ := regexp.MatchString(clusterNameRegex, name); !matched {
 		return errors.Errorf("Cluster name format is not valid: '%s'. "+
-			"Name must consist of lower-case letters, numbers and hyphens. "+
+			"Name must consist of lower-case letters, numbers, hyphens, and periods. "+
 			"It must start and end with either a letter or number.", name)
 	}
 	return nil

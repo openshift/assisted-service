@@ -212,12 +212,16 @@ func (m *mockOCMAuthorization) CapabilityReview(ctx context.Context, username, c
 }
 
 var _ = Describe("Cluster name validation", func() {
-	It("success", func() {
+	It("valid", func() {
 		err := ValidateClusterNameFormat("test-1")
 		Expect(err).ShouldNot(HaveOccurred())
 	})
-	It("success - name starts with number", func() {
+	It("valid - starts with number", func() {
 		err := ValidateClusterNameFormat("1-test")
+		Expect(err).ShouldNot(HaveOccurred())
+	})
+	It("valid - contains subdomain", func() {
+		err := ValidateClusterNameFormat("test.test")
 		Expect(err).ShouldNot(HaveOccurred())
 	})
 	It("invalid format - special character", func() {
@@ -238,6 +242,14 @@ var _ = Describe("Cluster name validation", func() {
 	})
 	It("invalid format - starts with hyphen", func() {
 		err := ValidateClusterNameFormat("-test")
+		Expect(err).Should(HaveOccurred())
+	})
+	It("invalid format - starts with dot", func() {
+		err := ValidateClusterNameFormat(".test")
+		Expect(err).Should(HaveOccurred())
+	})
+	It("invalid format - contains two dots in a row", func() {
+		err := ValidateClusterNameFormat("test..test")
 		Expect(err).Should(HaveOccurred())
 	})
 })
