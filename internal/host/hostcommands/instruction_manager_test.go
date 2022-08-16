@@ -289,6 +289,17 @@ var _ = Describe("instruction_manager", func() {
 		It("unbinding-pending-user-action", func() {
 			checkStep(models.HostStatusUnbindingPendingUserAction, nil)
 		})
+		It("reclaiming", func() {
+			mockVersions.EXPECT().GetOsImageOrLatest(gomock.Any(), gomock.Any()).Return(common.TestDefaultConfig.OsImage, nil).Times(1)
+			checkStep(models.HostStatusReclaiming, []models.StepType{
+				models.StepTypeDownloadBootArtifacts,
+			})
+		})
+		It("reclaiming-rebooting", func() {
+			checkStep(models.HostStatusReclaimingRebooting, []models.StepType{
+				models.StepTypeRebootForReclaim,
+			})
+		})
 	})
 
 	Context("Disable Steps verification", func() {

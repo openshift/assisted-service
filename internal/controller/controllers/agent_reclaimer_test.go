@@ -32,7 +32,7 @@ var _ = It("newAgentReclaimer pulls config from env vars", func() {
 	os.Setenv("SERVICE_CA_CERT_PATH", certPath)
 	os.Setenv("SKIP_CERT_VERIFICATION", skipVerify)
 
-	r, err := newAgentReclaimer()
+	r, err := newAgentReclaimer("/host")
 	Expect(err).NotTo(HaveOccurred())
 	Expect(r.AgentContainerImage).To(Equal(image))
 	Expect(r.AuthType).To(Equal(authType))

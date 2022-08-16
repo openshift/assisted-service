@@ -912,9 +912,9 @@ func (b *bareMetalInventory) updateExternalImageInfo(ctx context.Context, infraE
 	updates["type"] = imageType
 	infraEnv.Type = common.ImageTypePtr(imageType)
 
-	osImage, err := b.getOsImageOrLatest(infraEnv.OpenshiftVersion, infraEnv.CPUArchitecture)
+	osImage, err := b.versionsHandler.GetOsImageOrLatest(infraEnv.OpenshiftVersion, infraEnv.CPUArchitecture)
 	if err != nil {
-		return err
+		return common.NewApiError(http.StatusBadRequest, err)
 	}
 
 	var version string
@@ -4075,9 +4075,9 @@ func (b *bareMetalInventory) RegisterInfraEnvInternal(
 		return nil, err
 	}
 
-	osImage, err := b.getOsImageOrLatest(params.InfraenvCreateParams.OpenshiftVersion, params.InfraenvCreateParams.CPUArchitecture)
+	osImage, err := b.versionsHandler.GetOsImageOrLatest(params.InfraenvCreateParams.OpenshiftVersion, params.InfraenvCreateParams.CPUArchitecture)
 	if err != nil {
-		return nil, err
+		return nil, common.NewApiError(http.StatusBadRequest, err)
 	}
 
 	if kubeKey == nil {
@@ -4237,25 +4237,6 @@ func (b *bareMetalInventory) setDefaultRegisterInfraEnvParams(_ context.Context,
 	}
 
 	return params
-}
-
-func (b *bareMetalInventory) getOsImageOrLatest(version string, cpuArch string) (*models.OsImage, error) {
-	var osImage *models.OsImage
-	var err error
-	if version != "" {
-		osImage, err = b.versionsHandler.GetOsImage(version, cpuArch)
-		if err != nil {
-			err = errors.Errorf("No OS image for Openshift version %s and architecture %s", version, cpuArch)
-			return nil, common.NewApiError(http.StatusBadRequest, err)
-		}
-	} else {
-		osImage, err = b.versionsHandler.GetLatestOsImage(cpuArch)
-		if err != nil {
-			err = errors.Errorf("Failed to get latest OS image for architecture %s", cpuArch)
-			return nil, common.NewApiError(http.StatusBadRequest, err)
-		}
-	}
-	return osImage, nil
 }
 
 // Sets the feature usage for ignition config overrides for a cluster if a cluster exists

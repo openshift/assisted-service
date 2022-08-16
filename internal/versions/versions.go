@@ -38,6 +38,7 @@ type Handler interface {
 	GetDefaultReleaseImage(cpuArchitecture string) (*models.ReleaseImage, error)
 	GetOsImage(openshiftVersion, cpuArchitecture string) (*models.OsImage, error)
 	GetLatestOsImage(cpuArchitecture string) (*models.OsImage, error)
+	GetOsImageOrLatest(version string, cpuArch string) (*models.OsImage, error)
 	GetCPUArchitectures(openshiftVersion string) []string
 	GetOpenshiftVersions() []string
 	AddReleaseImage(releaseImageUrl, pullSecret, ocpReleaseVersion string, cpuArchitectures []string) (*models.ReleaseImage, error)
@@ -294,6 +295,23 @@ func (h *handler) GetLatestOsImage(cpuArchitecture string) (*models.OsImage, err
 		return nil, errors.Errorf("No OS images are available")
 	}
 	return latest, nil
+}
+
+func (h *handler) GetOsImageOrLatest(version string, cpuArch string) (*models.OsImage, error) {
+	var osImage *models.OsImage
+	var err error
+	if version != "" {
+		osImage, err = h.GetOsImage(version, cpuArch)
+		if err != nil {
+			return nil, errors.Wrapf(err, "No OS image for Openshift version %s and architecture %s", version, cpuArch)
+		}
+	} else {
+		osImage, err = h.GetLatestOsImage(cpuArch)
+		if err != nil {
+			return nil, errors.Wrapf(err, "Failed to get latest OS image for architecture %s", cpuArch)
+		}
+	}
+	return osImage, nil
 }
 
 func (h *handler) AddReleaseImage(releaseImageUrl, pullSecret, ocpReleaseVersion string, cpuArchitectures []string) (*models.ReleaseImage, error) {

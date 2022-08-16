@@ -13,7 +13,6 @@ import (
 	"github.com/go-openapi/runtime/middleware"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
-	"github.com/golang-jwt/jwt/v4"
 	"github.com/google/uuid"
 	"github.com/openshift/assisted-service/internal/common"
 	eventgen "github.com/openshift/assisted-service/internal/common/events"
@@ -544,9 +543,9 @@ func (b *bareMetalInventory) GetInfraEnvDownloadURL(ctx context.Context, params 
 		return common.GenerateErrorResponder(err)
 	}
 
-	osImage, err := b.getOsImageOrLatest(infraEnv.OpenshiftVersion, infraEnv.CPUArchitecture)
+	osImage, err := b.versionsHandler.GetOsImageOrLatest(infraEnv.OpenshiftVersion, infraEnv.CPUArchitecture)
 	if err != nil {
-		return common.GenerateErrorResponder(err)
+		return common.GenerateErrorResponder(common.NewApiError(http.StatusBadRequest, err))
 	}
 	if osImage.OpenshiftVersion == nil {
 		return common.GenerateErrorResponder(errors.Errorf("OS image entry '%+v' missing OpenshiftVersion field", osImage))
@@ -575,57 +574,40 @@ func (b *bareMetalInventory) generateImageDownloadURL(ctx context.Context, infra
 	if err != nil {
 		return "", nil, err
 	}
-	return b.signURL(ctx, infraEnvID, urlString, imageTokenKey)
+	urlString, err = b.signURL(ctx, infraEnvID, urlString, imageTokenKey)
+	if err != nil {
+		return "", nil, err
+	}
+	expiresAt, err := gencrypto.ParseExpirationFromURL(urlString)
+	if err != nil {
+		return "", nil, err
+	}
+	return urlString, expiresAt, nil
 }
 
-func (b *bareMetalInventory) signURL(ctx context.Context, infraEnvID, urlString, imageTokenKey string) (string, *strfmt.DateTime, error) {
+func (b *bareMetalInventory) signURL(ctx context.Context, infraEnvID, urlString, imageTokenKey string) (string, error) {
 	log := logutil.FromContext(ctx, b.log)
 
 	if b.authHandler.AuthType() == auth.TypeLocal {
 		var err error
 		urlString, err = gencrypto.SignURL(urlString, infraEnvID, gencrypto.InfraEnvKey)
 		if err != nil {
-			return "", nil, errors.Wrap(err, "failed to sign image URL")
+			return "", errors.Wrap(err, "failed to sign image URL")
 		}
 	} else if b.authHandler.AuthType() == auth.TypeRHSSO {
 		token, err := gencrypto.JWTForSymmetricKey([]byte(imageTokenKey), b.ImageExpirationTime, infraEnvID)
 		if err != nil {
-			return "", nil, errors.Wrapf(err, "failed to generate token for infraEnv %s", infraEnvID)
+			return "", errors.Wrapf(err, "failed to generate token for infraEnv %s", infraEnvID)
 		}
 		urlString, err = gencrypto.SignURLWithToken(urlString, "image_token", token)
 		if err != nil {
-			return "", nil, errors.Wrap(err, "failed to sign image URL with token")
+			return "", errors.Wrap(err, "failed to sign image URL with token")
 		}
 	} else if b.authHandler.AuthType() == auth.TypeNone {
 		log.Infof("Auth type is none: image URL will remain as %s", urlString)
 	}
 
-	// parse the exp claim out of the url
-	var expiresAt strfmt.DateTime
-	parsedURL, err := url.Parse(urlString)
-	if err != nil {
-		return "", nil, err
-	}
-
-	if tokenString := parsedURL.Query().Get("image_token"); tokenString != "" {
-		// we just created these claims so they are safe to parse unverified
-		token, _, err := new(jwt.Parser).ParseUnverified(tokenString, jwt.MapClaims{})
-		if err != nil {
-			return "", nil, err
-		}
-		claims, ok := token.Claims.(jwt.MapClaims)
-		if !ok {
-			return "", nil, errors.Errorf("malformed token claims in url")
-		}
-		exp, ok := claims["exp"].(float64)
-		if !ok {
-			return "", nil, errors.Errorf("token missing 'exp' claim")
-		}
-		expTime := time.Unix(int64(exp), 0)
-		expiresAt = strfmt.DateTime(expTime)
-	}
-
-	return urlString, &expiresAt, nil
+	return urlString, nil
 }
 
 const ipxeRedirectScriptFormat = `#!ipxe
@@ -651,7 +633,7 @@ func (b *bareMetalInventory) hostRedirectIPXEScript(ctx context.Context, infraEn
 		FileName:   "ipxe-script",
 	}
 	redirectUrl := builder.StringFull(parsedURL.Scheme, parsedURL.Host)
-	redirectUrl, _, err = b.signURL(ctx, infraEnv.ID.String(), redirectUrl, infraEnv.ImageTokenKey)
+	redirectUrl, err = b.signURL(ctx, infraEnv.ID.String(), redirectUrl, infraEnv.ImageTokenKey)
 	if err != nil {
 		return "", err
 	}
@@ -689,33 +671,24 @@ func (b *bareMetalInventory) canServeHostIPXEScript(infraEnv *common.InfraEnv, m
 }
 
 func (b *bareMetalInventory) bootIPXEScript(ctx context.Context, infraEnv *common.InfraEnv) (string, error) {
-	osImage, err := b.getOsImageOrLatest(infraEnv.OpenshiftVersion, infraEnv.CPUArchitecture)
+	osImage, err := b.versionsHandler.GetOsImageOrLatest(infraEnv.OpenshiftVersion, infraEnv.CPUArchitecture)
 	if err != nil {
-		return "", err
+		return "", common.NewApiError(http.StatusBadRequest, err)
 	}
 	if osImage.OpenshiftVersion == nil {
 		return "", errors.Errorf("OS image entry '%+v' missing OpenshiftVersion field", osImage)
 	}
 
-	kernelURL, err := imageservice.KernelURL(b.ImageServiceBaseURL, *osImage.OpenshiftVersion, *osImage.CPUArchitecture, b.insecureIPXEURLs)
+	bootArtifactURLs, err := imageservice.GetBootArtifactURLs(b.ImageServiceBaseURL, infraEnv.ID.String(), osImage, b.insecureIPXEURLs)
 	if err != nil {
-		return "", errors.Wrap(err, "failed to create kernel URL")
-	}
-	rootfsURL, err := imageservice.RootFSURL(b.ImageServiceBaseURL, *osImage.OpenshiftVersion, *osImage.CPUArchitecture, b.insecureIPXEURLs)
-	if err != nil {
-		return "", errors.Wrap(err, "failed to create rootfs URL")
+		return "", errors.Wrap(err, "failed to generate boot artifact URLs")
 	}
 
-	initrdURL, err := imageservice.InitrdURL(b.ImageServiceBaseURL, infraEnv.ID.String(), *osImage.OpenshiftVersion, *osImage.CPUArchitecture, b.insecureIPXEURLs)
-	if err != nil {
-		return "", errors.Wrap(err, "failed to create initrd URL")
-	}
-	initrdURL, _, err = b.signURL(ctx, infraEnv.ID.String(), initrdURL, infraEnv.ImageTokenKey)
+	initrdURL, err := b.signURL(ctx, infraEnv.ID.String(), bootArtifactURLs.InitrdURL, infraEnv.ImageTokenKey)
 	if err != nil {
 		return "", errors.Wrap(err, "failed to sign initrd URL")
 	}
-
-	return fmt.Sprintf(ipxeBootScriptFormat, initrdURL, kernelURL, rootfsURL), nil
+	return fmt.Sprintf(ipxeBootScriptFormat, initrdURL, bootArtifactURLs.KernelURL, bootArtifactURLs.RootFSURL), nil
 }
 
 func (b *bareMetalInventory) infraEnvIPXEScript(ctx context.Context, infraEnv *common.InfraEnv, mac *strfmt.MAC, ipxeScriptType *string) (string, error) {
@@ -754,11 +727,15 @@ func (b *bareMetalInventory) GetInfraEnvPresignedFileURL(ctx context.Context, pa
 	baseURL.Path = path.Join(baseURL.Path, filesURL.Path)
 	baseURL.RawQuery = filesURL.RawQuery
 
-	signedURL, exp, err := b.signURL(ctx, params.InfraEnvID.String(), baseURL.String(), infraEnv.ImageTokenKey)
+	signedURL, err := b.signURL(ctx, params.InfraEnvID.String(), baseURL.String(), infraEnv.ImageTokenKey)
 	if err != nil {
 		return common.GenerateErrorResponder(err)
 	}
 
+	exp, err := gencrypto.ParseExpirationFromURL(signedURL)
+	if err != nil {
+		return common.GenerateErrorResponder(err)
+	}
 	return &installer.GetInfraEnvPresignedFileURLOK{
 		Payload: &models.PresignedURL{
 			URL:       &signedURL,

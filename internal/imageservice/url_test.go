@@ -7,6 +7,7 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/openshift/assisted-service/models"
 )
 
 func TestImageService(t *testing.T) {
@@ -100,4 +101,26 @@ var _ = Describe("URL building", func() {
 		Expect(parsed.Query().Get("arch")).To(Equal(arch))
 		Expect(parsed.Query().Get("type")).To(Equal(isoType))
 	})
+
+	It("successfully builds all boot artifact URLs", func() {
+		osImage := models.OsImage{CPUArchitecture: &arch, OpenshiftVersion: &version}
+		bootArtifacts, err := GetBootArtifactURLs(baseURL, id, &osImage, false)
+		Expect(err).To(BeNil())
+
+		scheme := "https"
+		host := "image-service.example.com"
+		checkURL(bootArtifacts.KernelURL, scheme, host, "/v3/boot-artifacts/kernel", version, arch)
+		checkURL(bootArtifacts.RootFSURL, scheme, host, "/v3/boot-artifacts/rootfs", version, arch)
+		checkURL(bootArtifacts.InitrdURL, scheme, host, fmt.Sprintf("/v3/images/%s/pxe-initrd", id), version, arch)
+	})
 })
+
+func checkURL(u, scheme, host, path, version, arch string) {
+	parsed, err := url.Parse(u)
+	Expect(err).To(BeNil())
+	Expect(parsed.Scheme).To(Equal(scheme))
+	Expect(parsed.Host).To(Equal(host))
+	Expect(parsed.Path).To(Equal(path))
+	Expect(parsed.Query().Get("version")).To(Equal(version))
+	Expect(parsed.Query().Get("arch")).To(Equal(arch))
+}

@@ -504,32 +504,12 @@ func (r *InfraEnvReconciler) populateEventsURL(log logrus.FieldLogger, infraEnv 
 	return nil
 }
 
-func (r *InfraEnvReconciler) osImageForInfraEnv(dbInfraEnv *common.InfraEnv) (*models.OsImage, error) {
-	var osImage *models.OsImage
-	var err error
-	if dbInfraEnv.OpenshiftVersion != "" {
-		osImage, err = r.VersionsHandler.GetOsImage(dbInfraEnv.OpenshiftVersion, dbInfraEnv.CPUArchitecture)
-		if err != nil {
-			return nil, err
-		}
-	} else {
-		osImage, err = r.VersionsHandler.GetLatestOsImage(dbInfraEnv.CPUArchitecture)
-		if err != nil {
-			return nil, err
-		}
-	}
-	return osImage, nil
-}
-
-func (r *InfraEnvReconciler) setSignedBootArtifactURLs(infraEnv *aiv1beta1.InfraEnv, infraEnvID, version, arch string) error {
-	initrdURL, err := imageservice.InitrdURL(r.ImageServiceBaseURL, infraEnvID, version, arch, r.InsecureIPXEURLs)
+func (r *InfraEnvReconciler) setSignedBootArtifactURLs(infraEnv *aiv1beta1.InfraEnv, initrdURL, infraEnvID, version, arch string) error {
+	signedInitrdURL, err := signURL(initrdURL, r.AuthType, infraEnvID, gencrypto.InfraEnvKey)
 	if err != nil {
 		return err
 	}
-	infraEnv.Status.BootArtifacts.InitrdURL, err = signURL(initrdURL, r.AuthType, infraEnvID, gencrypto.InfraEnvKey)
-	if err != nil {
-		return err
-	}
+	infraEnv.Status.BootArtifacts.InitrdURL = signedInitrdURL
 
 	builder := &installer.V2DownloadInfraEnvFilesURL{
 		InfraEnvID: strfmt.UUID(infraEnvID),
@@ -564,19 +544,17 @@ func (r *InfraEnvReconciler) setSignedBootArtifactURLs(infraEnv *aiv1beta1.Infra
 func (r *InfraEnvReconciler) updateInfraEnvStatus(
 	ctx context.Context, log logrus.FieldLogger, infraEnv *aiv1beta1.InfraEnv, internalInfraEnv *common.InfraEnv) (ctrl.Result, error) {
 
-	osImage, err := r.osImageForInfraEnv(internalInfraEnv)
+	osImage, err := r.VersionsHandler.GetOsImageOrLatest(internalInfraEnv.OpenshiftVersion, internalInfraEnv.CPUArchitecture)
 	if err != nil {
 		return r.handleEnsureISOErrors(ctx, log, infraEnv, err, internalInfraEnv)
 	}
 
-	infraEnv.Status.BootArtifacts.KernelURL, err = imageservice.KernelURL(r.ImageServiceBaseURL, *osImage.OpenshiftVersion, *osImage.CPUArchitecture, r.InsecureIPXEURLs)
+	bootArtifactURLs, err := imageservice.GetBootArtifactURLs(r.ImageServiceBaseURL, internalInfraEnv.ID.String(), osImage, r.InsecureIPXEURLs)
 	if err != nil {
 		return r.handleEnsureISOErrors(ctx, log, infraEnv, err, internalInfraEnv)
 	}
-	infraEnv.Status.BootArtifacts.RootfsURL, err = imageservice.RootFSURL(r.ImageServiceBaseURL, *osImage.OpenshiftVersion, *osImage.CPUArchitecture, r.InsecureIPXEURLs)
-	if err != nil {
-		return r.handleEnsureISOErrors(ctx, log, infraEnv, err, internalInfraEnv)
-	}
+	infraEnv.Status.BootArtifacts.KernelURL = bootArtifactURLs.KernelURL
+	infraEnv.Status.BootArtifacts.RootfsURL = bootArtifactURLs.RootFSURL
 
 	if infraEnv.Status.ISODownloadURL != internalInfraEnv.DownloadURL {
 		log.Infof("ISODownloadURL changed from %s to %s", infraEnv.Status.ISODownloadURL, internalInfraEnv.DownloadURL)
@@ -591,7 +569,7 @@ func (r *InfraEnvReconciler) updateInfraEnvStatus(
 		return r.handleEnsureISOErrors(ctx, log, infraEnv, err, internalInfraEnv)
 	}
 	if r.InsecureIPXEURLs && existingInitrdURL.Scheme == "https" || !r.InsecureIPXEURLs && existingInitrdURL.Scheme == "http" || existingInitrdURL.Scheme == "" {
-		if err := r.setSignedBootArtifactURLs(infraEnv, internalInfraEnv.ID.String(), *osImage.OpenshiftVersion, *osImage.CPUArchitecture); err != nil {
+		if err := r.setSignedBootArtifactURLs(infraEnv, bootArtifactURLs.InitrdURL, internalInfraEnv.ID.String(), *osImage.OpenshiftVersion, *osImage.CPUArchitecture); err != nil {
 			return r.handleEnsureISOErrors(ctx, log, infraEnv, err, internalInfraEnv)
 		}
 	}

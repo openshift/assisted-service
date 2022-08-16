@@ -5,8 +5,15 @@ import (
 	"net/url"
 	"path"
 
+	"github.com/openshift/assisted-service/models"
 	"github.com/pkg/errors"
 )
+
+type BootArtifactURLs struct {
+	KernelURL string
+	RootFSURL string
+	InitrdURL string
+}
 
 const BootArtifactsPath = "/boot-artifacts"
 
@@ -39,6 +46,28 @@ func ImageURL(baseURL, imageID, version, arch, isoType string) (string, error) {
 		"version": version,
 		"arch":    arch,
 	})
+}
+
+func GetBootArtifactURLs(baseURL, imageID string, osImage *models.OsImage, insecure bool) (*BootArtifactURLs, error) {
+	version := *osImage.OpenshiftVersion
+	arch := *osImage.CPUArchitecture
+	kernelUrl, err := KernelURL(baseURL, version, arch, insecure)
+	if err != nil {
+		return nil, fmt.Errorf("failed generating kernel url: %w", err)
+	}
+	rootfsUrl, err := RootFSURL(baseURL, version, arch, insecure)
+	if err != nil {
+		return nil, fmt.Errorf("failed generating rootfs url: %w", err)
+	}
+	initrdUrl, err := InitrdURL(baseURL, imageID, version, arch, insecure)
+	if err != nil {
+		return nil, fmt.Errorf("failed generating initrd url: %w", err)
+	}
+	return &BootArtifactURLs{
+		KernelURL: kernelUrl,
+		RootFSURL: rootfsUrl,
+		InitrdURL: initrdUrl,
+	}, nil
 }
 
 func buildURL(baseURL string, suffix string, insecure bool, params map[string]string) (string, error) {

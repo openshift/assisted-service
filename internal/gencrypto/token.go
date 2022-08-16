@@ -5,6 +5,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/go-openapi/strfmt"
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/pkg/errors"
 )
@@ -77,4 +78,32 @@ func SignURLWithToken(urlString string, queryKey string, token string) (string, 
 	u.RawQuery = q.Encode()
 
 	return u.String(), nil
+}
+
+// ParseExpirationFromURL parses out the the `exp` claim from the `image_token` query parameter.
+// It does not verify the token before parsing so it should only be used with URLs containing trusted tokens
+func ParseExpirationFromURL(urlString string) (*strfmt.DateTime, error) {
+	var expiresAt strfmt.DateTime
+	parsedURL, err := url.Parse(urlString)
+	if err != nil {
+		return nil, err
+	}
+
+	if tokenString := parsedURL.Query().Get("image_token"); tokenString != "" {
+		token, _, err := new(jwt.Parser).ParseUnverified(tokenString, jwt.MapClaims{})
+		if err != nil {
+			return nil, err
+		}
+		claims, ok := token.Claims.(jwt.MapClaims)
+		if !ok {
+			return nil, errors.Errorf("malformed token claims in url")
+		}
+		exp, ok := claims["exp"].(float64)
+		if !ok {
+			return nil, errors.Errorf("token missing 'exp' claim")
+		}
+		expTime := time.Unix(int64(exp), 0)
+		expiresAt = strfmt.DateTime(expTime)
+	}
+	return &expiresAt, nil
 }
