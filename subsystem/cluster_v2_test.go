@@ -312,3 +312,122 @@ var _ = Describe("[V2ClusterTests]", func() {
 		}, "1m", "10s").Should(HaveOccurred())
 	})
 })
+
+var _ = Describe("[V2ClusterTests] multiarch", func() {
+	ctx := context.Background()
+	var clusterID strfmt.UUID
+	var X86infraEnvID strfmt.UUID
+	var ARMinfraEnvID strfmt.UUID
+	var ips []string
+	var h1, h2, h3 *models.Host
+
+	BeforeEach(func() {
+		clusterReq, err := userBMClient.Installer.V2RegisterCluster(ctx, &installer.V2RegisterClusterParams{
+			NewClusterParams: &models.ClusterCreateParams{
+				Name:             swag.String("test-cluster"),
+				OpenshiftVersion: swag.String(multiarchOpenshiftVersion),
+				PullSecret:       swag.String(pullSecret),
+				BaseDNSDomain:    "example.com",
+				CPUArchitecture:  common.MultiCPUArchitecture,
+			},
+		})
+
+		Expect(err).NotTo(HaveOccurred())
+		clusterID = *clusterReq.GetPayload().ID
+
+		// standalone x86 infraEnv
+		infraEnv := registerInfraEnv(nil, models.ImageTypeFullIso)
+		X86infraEnvID = *infraEnv.ID
+
+		// bound arm64 infraEnv
+		infraEnv = registerInfraEnvSpecificVersionAndArch(&clusterID, models.ImageTypeFullIso, common.ARM64CPUArchitecture, "")
+		ARMinfraEnvID = *infraEnv.ID
+
+		By("register h2 h3 to cluster via the bound arm64 infraenv")
+		ips = hostutil.GenerateIPv4Addresses(3, defaultCIDRv4)
+		h2 = registerNode(ctx, ARMinfraEnvID, "h2", ips[1])
+		h3 = registerNode(ctx, ARMinfraEnvID, "h3", ips[2])
+		v2UpdateVipParams(ctx, clusterID)
+		waitForClusterState(ctx, clusterID, models.ClusterStatusInsufficient, defaultWaitForClusterStateTimeout,
+			IgnoreStateInfo)
+	})
+
+	It("Bind single host to x86 unbound infraenv", func() {
+		By("register h1 with the unbound infraenv")
+		h1 = &registerHost(X86infraEnvID).Host
+		host := getHostV2(X86infraEnvID, *h1.ID)
+		Expect(host.ClusterID).To(BeNil())
+
+		generateHWPostStepReply(ctx, h1, getDefaultInventory(ips[0]), "h1")
+		waitForHostStateV2(ctx, models.HostStatusKnownUnbound, defaultWaitForHostStateTimeout, h1)
+
+		By("bind h1 to cluster")
+		bindHost(X86infraEnvID, *h1.ID, clusterID)
+		waitForHostStateV2(ctx, models.HostStatusBinding, defaultWaitForHostStateTimeout, h1)
+
+		By("register h1 again and define the connectivity to the other hosts")
+		h1 = &registerHostByUUID(h1.InfraEnvID, *h1.ID).Host
+
+		generateEssentialHostSteps(ctx, h1, "h1", ips[0])
+		generateFullMeshConnectivity(ctx, ips[0], h1, h2, h3)
+		waitForHostStateV2(ctx, models.HostStatusKnown, defaultWaitForHostStateTimeout, h1)
+
+		By("cluster is ready")
+		generateEssentialPrepareForInstallationSteps(ctx, h1)
+		waitForClusterState(ctx, clusterID, models.ClusterStatusReady, defaultWaitForClusterStateTimeout,
+			IgnoreStateInfo)
+	})
+
+	It("Bind single host to arm64 bound infraenv", func() {
+		By("register h1 with the bound infraenv")
+		h1 = &registerHost(ARMinfraEnvID).Host
+		host := getHostV2(ARMinfraEnvID, *h1.ID)
+		Expect(host.ClusterID).NotTo(BeNil())
+
+		generateHWPostStepReply(ctx, h1, getDefaultInventory(ips[0]), "h1")
+		generateEssentialHostSteps(ctx, h1, "h1", ips[0])
+		generateFullMeshConnectivity(ctx, ips[0], h1, h2, h3)
+		waitForHostStateV2(ctx, models.HostStatusKnown, defaultWaitForHostStateTimeout, h1)
+
+		By("cluster is ready")
+		generateEssentialPrepareForInstallationSteps(ctx, h1)
+		waitForClusterState(ctx, clusterID, models.ClusterStatusReady, defaultWaitForClusterStateTimeout,
+			IgnoreStateInfo)
+	})
+
+	It("Fail to register infraenv with missing OS image", func() {
+		_, err := userBMClient.Installer.RegisterInfraEnv(context.Background(), &installer.RegisterInfraEnvParams{
+			InfraenvCreateParams: &models.InfraEnvCreateParams{
+				Name:             swag.String("test-infra-env"),
+				OpenshiftVersion: multiarchOpenshiftVersion,
+				PullSecret:       swag.String(pullSecret),
+				SSHAuthorizedKey: swag.String(sshPublicKey),
+				ImageType:        models.ImageTypeFullIso,
+				ClusterID:        &clusterID,
+				CPUArchitecture:  common.PowerCPUArchitecture,
+			},
+		})
+
+		Expect(err).To(HaveOccurred())
+		actual := err.(*installer.RegisterInfraEnvBadRequest)
+		Expect(*actual.Payload.Reason).To(ContainSubstring("No OS image for Openshift version 4.11 and architecture ppc64le"))
+	})
+
+	It("Fail to register infraenv with missing release image and OS ", func() {
+		_, err := userBMClient.Installer.RegisterInfraEnv(context.Background(), &installer.RegisterInfraEnvParams{
+			InfraenvCreateParams: &models.InfraEnvCreateParams{
+				Name:             swag.String("test-infra-env"),
+				OpenshiftVersion: multiarchOpenshiftVersion,
+				PullSecret:       swag.String(pullSecret),
+				SSHAuthorizedKey: swag.String(sshPublicKey),
+				ImageType:        models.ImageTypeFullIso,
+				ClusterID:        &clusterID,
+				CPUArchitecture:  "fake-chocobomb-architecture",
+			},
+		})
+
+		Expect(err).To(HaveOccurred())
+		actual := err.(*installer.RegisterInfraEnvBadRequest)
+		Expect(*actual.Payload.Reason).To(ContainSubstring("The requested CPU architecture (fake-chocobomb-architecture) isn't specified in release images list"))
+	})
+})

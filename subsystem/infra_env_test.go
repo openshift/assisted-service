@@ -23,14 +23,23 @@ import (
 )
 
 var registerInfraEnv = func(clusterID *strfmt.UUID, imageType models.ImageType) *models.InfraEnv {
+	return internalRegisterInfraEnv(clusterID, imageType, "", openshiftVersion)
+}
+
+var registerInfraEnvSpecificVersionAndArch = func(clusterID *strfmt.UUID, imageType models.ImageType, cpuArch, ocpVersion string) *models.InfraEnv {
+	return internalRegisterInfraEnv(clusterID, imageType, cpuArch, ocpVersion)
+}
+
+var internalRegisterInfraEnv = func(clusterID *strfmt.UUID, imageType models.ImageType, cpuArch, ocpVersion string) *models.InfraEnv {
 	request, err := userBMClient.Installer.RegisterInfraEnv(context.Background(), &installer.RegisterInfraEnvParams{
 		InfraenvCreateParams: &models.InfraEnvCreateParams{
 			Name:             swag.String("test-infra-env"),
-			OpenshiftVersion: openshiftVersion,
+			OpenshiftVersion: ocpVersion,
 			PullSecret:       swag.String(pullSecret),
 			SSHAuthorizedKey: swag.String(sshPublicKey),
 			ImageType:        imageType,
 			ClusterID:        clusterID,
+			CPUArchitecture:  cpuArch,
 		},
 	})
 

@@ -1468,7 +1468,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			Name:      infraNsName.Name,
 		}
 		checkInfraEnvCondition(ctx, infraEnvKubeName, v1beta1.ImageCreatedCondition,
-			"Specified CPU architecture doesn't match")
+			"Specified CPU architecture (arm64) doesn't match the cluster (x86_64)")
 	})
 
 	It("[multiarch] Create multiarch cluster and bind infraenvs", func() {
@@ -1518,7 +1518,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		infraEnv2 := getInfraEnvFromDBByKubeKey(ctx, db, infraEnvX86, waitForReconcileTimeout)
 		Expect(infraEnv2.CPUArchitecture).To(Equal("x86_64"))
 
-		By("fail to deploy infraenv fake architecture")
+		By("fail to deploy infraenv with fake architecture")
 		infraEnvSpec.CpuArchitecture = "fake"
 		infraEnvFake := types.NamespacedName{
 			Name:      "infraenv" + randomNameSuffix(),
@@ -1527,7 +1527,18 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		deployInfraEnvCRD(ctx, kubeClient, infraEnvFake.Name, infraEnvSpec)
 
 		checkInfraEnvCondition(ctx, infraEnvFake, v1beta1.ImageCreatedCondition,
-			"Failed to create image: No OS image for Openshift version 4.11.0-0.nightly-multi-2022-07-26-151412 and architecture fake")
+			"Failed to create image: The requested CPU architecture (fake) isn't specified in release images list")
+
+		By("fail to deploy infraenv with PowerPC architecture")
+		infraEnvSpec.CpuArchitecture = common.PowerCPUArchitecture
+		infraEnvPPC := types.NamespacedName{
+			Name:      "infraenv" + randomNameSuffix(),
+			Namespace: Options.Namespace,
+		}
+		deployInfraEnvCRD(ctx, kubeClient, infraEnvPPC.Name, infraEnvSpec)
+
+		checkInfraEnvCondition(ctx, infraEnvPPC, v1beta1.ImageCreatedCondition,
+			"Failed to create image: No OS image for Openshift version 4.11.0-0.nightly-multi-2022-07-26-151412 and architecture ppc64le")
 	})
 
 	It("deploy CD with ACI and agents - wait for ready, delete ACI only and verify agents deletion", func() {
