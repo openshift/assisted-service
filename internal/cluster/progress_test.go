@@ -339,20 +339,22 @@ var _ = Describe("Progress bar test", func() {
 		})
 
 		tests := []struct {
-			name             string
-			clusterStatus    string
-			hostStatus       string
-			progress         models.ClusterProgressInfo
-			installStartTime strfmt.DateTime
-			expected         [3]int
+			name                  string
+			clusterStatus         string
+			hostStatus            string
+			progress              models.ClusterProgressInfo
+			installStartTime      strfmt.DateTime
+			expected              [3]int
+			expectedClusterStatus string
 		}{
 			{
-				name:             "preparing-for-installation --> installing should set the progress to 10%",
-				clusterStatus:    models.ClusterStatusPreparingForInstallation,
-				hostStatus:       models.HostStatusPreparingSuccessful,
-				progress:         models.ClusterProgressInfo{},
-				installStartTime: strfmt.DateTime(time.Time{}),
-				expected:         [3]int{100, 0, 0},
+				name:                  "preparing-for-installation --> installing should set the progress to 10%",
+				clusterStatus:         models.ClusterStatusPreparingForInstallation,
+				hostStatus:            models.HostStatusPreparingSuccessful,
+				progress:              models.ClusterProgressInfo{},
+				installStartTime:      strfmt.DateTime(time.Time{}),
+				expected:              [3]int{100, 0, 0},
+				expectedClusterStatus: models.ClusterStatusInstalling,
 			},
 			{
 				name:             "installing-pending-user-action --> installing should not change the progress",
@@ -361,7 +363,8 @@ var _ = Describe("Progress bar test", func() {
 				installStartTime: strfmt.DateTime(time.Now()),
 				progress: models.ClusterProgressInfo{PreparingForInstallationStagePercentage: 100,
 					InstallingStagePercentage: 80, FinalizingStagePercentage: 0, TotalPercentage: 66},
-				expected: [3]int{100, 80, 0},
+				expected:              [3]int{100, 80, 0},
+				expectedClusterStatus: models.ClusterStatusFinalizing,
 			},
 		}
 
@@ -400,7 +403,7 @@ var _ = Describe("Progress bar test", func() {
 				By(fmt.Sprintf("test progress from state %s to installing", t.clusterStatus))
 				cAfterRefresh, err := clusterApi.RefreshStatus(ctx, &c, db)
 				Expect(err).NotTo(HaveOccurred())
-				Expect(*cAfterRefresh.Status).To(Equal(models.ClusterStatusInstalling))
+				Expect(*cAfterRefresh.Status).To(Equal(t.expectedClusterStatus))
 
 				expectProgressToBe(cAfterRefresh, t.expected[0], t.expected[1], t.expected[2])
 			})

@@ -3367,19 +3367,19 @@ var _ = Describe("Refresh Cluster - With DHCP", func() {
 
 var _ = Describe("Refresh Cluster - Installing Cases", func() {
 	var (
-		ctx                                     = context.Background()
-		db                                      *gorm.DB
-		clusterId, hid1, hid2, hid3, hid4, hid5 strfmt.UUID
-		cluster                                 common.Cluster
-		clusterApi                              *Manager
-		mockEvents                              *eventsapi.MockHandler
-		mockHostAPI                             *host.MockAPI
-		mockMetric                              *metrics.MockAPI
-		mockS3Api                               *s3wrapper.MockAPI
-		mockAccountsMgmt                        *ocm.MockOCMAccountsMgmt
-		operatorsManager                        *operators.Manager
-		ctrl                                    *gomock.Controller
-		dbName                                  string
+		ctx                                           = context.Background()
+		db                                            *gorm.DB
+		clusterId, hid1, hid2, hid3, hid4, hid5, hid6 strfmt.UUID
+		cluster                                       common.Cluster
+		clusterApi                                    *Manager
+		mockEvents                                    *eventsapi.MockHandler
+		mockHostAPI                                   *host.MockAPI
+		mockMetric                                    *metrics.MockAPI
+		mockS3Api                                     *s3wrapper.MockAPI
+		mockAccountsMgmt                              *ocm.MockOCMAccountsMgmt
+		operatorsManager                              *operators.Manager
+		ctrl                                          *gomock.Controller
+		dbName                                        string
 	)
 
 	mockHostAPIIsRequireUserActionResetFalse := func() {
@@ -3405,6 +3405,7 @@ var _ = Describe("Refresh Cluster - Installing Cases", func() {
 		hid3 = strfmt.UUID(uuid.New().String())
 		hid4 = strfmt.UUID(uuid.New().String())
 		hid5 = strfmt.UUID(uuid.New().String())
+		hid6 = strfmt.UUID(uuid.New().String())
 		clusterId = strfmt.UUID(uuid.New().String())
 	})
 	Context("All transitions", func() {
@@ -3462,6 +3463,21 @@ var _ = Describe("Refresh Cluster - Installing Cases", func() {
 					{ID: &hid3, Status: swag.String(models.HostStatusInstalled), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
 					{ID: &hid4, Status: swag.String(models.HostStatusInstalled), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleWorker},
 					{ID: &hid5, Status: swag.String(models.HostStatusInstalled), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleWorker},
+				},
+				statusInfoChecker: makeValueChecker(statusInfoInstallingPendingUserAction),
+			},
+			{
+				name:          "finalizing to installing-pending-user-action",
+				srcState:      models.ClusterStatusFinalizing,
+				srcStatusInfo: statusInfoFinalizing,
+				dstState:      models.ClusterStatusInstallingPendingUserAction,
+				hosts: []models.Host{
+					{ID: &hid1, Status: swag.String(models.HostStatusInstalled), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
+					{ID: &hid2, Status: swag.String(models.HostStatusInstalled), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
+					{ID: &hid3, Status: swag.String(models.HostStatusInstalled), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
+					{ID: &hid4, Status: swag.String(models.HostStatusInstalled), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleWorker},
+					{ID: &hid5, Status: swag.String(models.HostStatusInstalled), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleWorker},
+					{ID: &hid6, Status: swag.String(models.HostStatusInstallingPendingUserAction), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleWorker},
 				},
 				statusInfoChecker: makeValueChecker(statusInfoInstallingPendingUserAction),
 			},
@@ -3549,6 +3565,36 @@ var _ = Describe("Refresh Cluster - Installing Cases", func() {
 					{ID: &hid5, Status: swag.String(models.HostStatusInstalling), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleWorker},
 				},
 				statusInfoChecker: makeValueChecker(statusInfoInstalling),
+			},
+			{
+				name:          "installing-pending-user-action to finalizing",
+				srcState:      models.ClusterStatusInstallingPendingUserAction,
+				srcStatusInfo: statusInfoInstallingPendingUserAction,
+				dstState:      models.ClusterStatusFinalizing,
+				hosts: []models.Host{
+					{ID: &hid1, Status: swag.String(models.HostStatusInstalled), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
+					{ID: &hid2, Status: swag.String(models.HostStatusInstalled), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
+					{ID: &hid3, Status: swag.String(models.HostStatusInstalled), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
+					{ID: &hid4, Status: swag.String(models.HostStatusInstalled), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleWorker},
+					{ID: &hid5, Status: swag.String(models.HostStatusInstalled), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleWorker},
+					{ID: &hid6, Status: swag.String(models.HostStatusInstallingInProgress), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleWorker},
+				},
+				statusInfoChecker: makeValueChecker(statusInfoFinalizing),
+			},
+			{
+				name:          "installing-pending-user-action to finalizing (2)",
+				srcState:      models.ClusterStatusInstallingPendingUserAction,
+				srcStatusInfo: statusInfoInstallingPendingUserAction,
+				dstState:      models.ClusterStatusFinalizing,
+				hosts: []models.Host{
+					{ID: &hid1, Status: swag.String(models.HostStatusInstalled), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
+					{ID: &hid2, Status: swag.String(models.HostStatusInstalled), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
+					{ID: &hid3, Status: swag.String(models.HostStatusInstalled), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
+					{ID: &hid4, Status: swag.String(models.HostStatusInstalled), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleWorker},
+					{ID: &hid5, Status: swag.String(models.HostStatusInstalled), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleWorker},
+					{ID: &hid6, Status: swag.String(models.HostStatusInstalled), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleWorker},
+				},
+				statusInfoChecker: makeValueChecker(statusInfoFinalizing),
 			},
 			{
 				name:          "installing to finalizing",
@@ -3707,7 +3753,8 @@ var _ = Describe("Refresh Cluster - Installing Cases", func() {
 						eventstest.WithNameMatcher(eventgen.ClusterStatusUpdatedEventName),
 						eventstest.WithClusterIdMatcher(clusterId.String()))).AnyTimes()
 				}
-				if t.srcState == models.ClusterStatusFinalizing && !t.requiresAMSUpdate && !t.installationTimeout {
+				if t.srcState == models.ClusterStatusFinalizing && !t.requiresAMSUpdate && !t.installationTimeout &&
+					funk.ContainsString([]string{models.ClusterStatusInstalled, models.ClusterStatusFinalizing}, t.dstState) {
 					mockS3Api.EXPECT().DoesObjectExist(ctx, fmt.Sprintf("%s/%s", cluster.ID, constants.Kubeconfig)).Return(false, nil)
 				}
 				reportInstallationCompleteStatuses := []string{models.ClusterStatusInstalled, models.ClusterStatusError, models.ClusterStatusInstallingPendingUserAction}

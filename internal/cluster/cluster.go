@@ -764,7 +764,8 @@ func (m *Manager) UpdateInstallProgress(ctx context.Context, clusterID strfmt.UU
 	} else {
 		totalPercentage = int64(common.ProgressWeightInstallingStage * float64(installingStagePercentage))
 		if cluster.Progress != nil {
-			totalPercentage += int64(common.ProgressWeightPreparingForInstallationStage * float64(cluster.Progress.PreparingForInstallationStagePercentage))
+			totalPercentage += int64(common.ProgressWeightPreparingForInstallationStage*float64(cluster.Progress.PreparingForInstallationStagePercentage) +
+				common.ProgressWeightFinalizingStage*float64(cluster.Progress.FinalizingStagePercentage))
 		}
 	}
 	updates := map[string]interface{}{
@@ -778,7 +779,7 @@ func (m *Manager) UpdateInstallProgress(ctx context.Context, clusterID strfmt.UU
 func (m *Manager) UpdateFinalizingProgress(ctx context.Context, db *gorm.DB, clusterID strfmt.UUID) error {
 	log := logutil.FromContext(ctx, m.log)
 
-	cluster, err := common.GetClusterFromDB(db, clusterID, common.UseEagerLoading)
+	cluster, err := common.GetClusterFromDB(common.LoadTableFromDB(db, common.MonitoredOperatorsTable), clusterID, common.SkipEagerLoading)
 	if err != nil {
 		log.WithError(err).Error("Failed to get cluster from DB")
 		return err
