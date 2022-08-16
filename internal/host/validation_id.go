@@ -31,6 +31,7 @@ const (
 	AreLsoRequirementsSatisfied                            = validationID(models.HostValidationIDLsoRequirementsSatisfied)
 	AreOdfRequirementsSatisfied                            = validationID(models.HostValidationIDOdfRequirementsSatisfied)
 	AreCnvRequirementsSatisfied                            = validationID(models.HostValidationIDCnvRequirementsSatisfied)
+	AreLvmRequirementsSatisfied                            = validationID(models.HostValidationIDLvmRequirementsSatisfied)
 	SufficientOrUnknownInstallationDiskSpeed               = validationID(models.HostValidationIDSufficientInstallationDiskSpeed)
 	HasSufficientNetworkLatencyRequirementForRole          = validationID(models.HostValidationIDSufficientNetworkLatencyRequirementForRole)
 	HasSufficientPacketLossRequirementForRole              = validationID(models.HostValidationIDSufficientPacketLossRequirementForRole)
