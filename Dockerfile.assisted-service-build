@@ -28,4 +28,3 @@ COPY ./hack/setup_env.sh ./dev-requirements.txt ./
 RUN ./setup_env.sh podman_remote && ./setup_env.sh assisted_service
 RUN chmod g+xw -R $GOPATH && chmod g+xw -R $(go env GOROOT)
 COPY ./data /tmp/data
-COPY . .
