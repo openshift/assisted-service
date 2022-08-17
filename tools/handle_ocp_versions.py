@@ -31,7 +31,8 @@ def verify_images(release_images: List[str]):
 
 def verify_release_version(ocp_version: str, release_image: str, release_version: str):
     oc_version = get_oc_version(release_image)
-    assert oc_version == release_version, f"{release_image} full version is {oc_version} not {release_version}"
+    assert oc_version == release_version or oc_version == release_version + "-multi", (
+      f"{release_image} full version is {oc_version} not {release_version}")
 
     major, minor, *_other_version_components = oc_version.split(".")
     ocp_major, ocp_minor, *_ = ocp_version.split(".")
