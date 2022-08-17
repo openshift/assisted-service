@@ -115,7 +115,7 @@ func (o *operator) ValidateHost(ctx context.Context, cluster *common.Cluster, ho
 		return api.ValidationResult{Status: api.Failure, ValidationId: o.GetHostValidationID(), Reasons: []string{err.Error()}}, nil
 	}
 	if diskCount == 0 {
-		message := "Insufficient disks, ODF LVM requires at least one non-installation disk on the host"
+		message := fmt.Sprintf("ODF LVM requires at least one non-installation HDD/SSD disk on the host (minimum size: %d GB)", o.config.LvmMinDiskSizeGB)
 		return api.ValidationResult{Status: api.Failure, ValidationId: o.GetHostValidationID(), Reasons: []string{message}}, nil
 	}
 
