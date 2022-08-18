@@ -5729,6 +5729,9 @@ definitions:
       installer_args:
         type: string
         description: Core-os installer addtional args
+      skip_installation_disk_cleanup:
+        type: boolean
+        description: Skip formatting installation disk
 
 
   ntp_synchronization_request:

@@ -147,6 +147,9 @@ func (i *installCmd) getFullInstallerCommand(cluster *common.Cluster, host *mode
 	if hostInstallerArgs != "" {
 		request.InstallerArgs = hostInstallerArgs
 	}
+	if hostutil.SaveDiskPartitionsIsSet(hostInstallerArgs) {
+		request.SkipInstallationDiskCleanup = true
+	}
 
 	request.Proxy = i.getProxyArguments(cluster.Name, cluster.BaseDNSDomain, cluster.HTTPProxy, cluster.HTTPSProxy, cluster.NoProxy)
 
