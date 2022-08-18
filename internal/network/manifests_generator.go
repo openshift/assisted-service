@@ -79,6 +79,15 @@ const snoDnsmasqConf = `
 address=/apps.{{.CLUSTER_NAME}}.{{.DNS_DOMAIN}}/{{.HOST_IP}}
 address=/api-int.{{.CLUSTER_NAME}}.{{.DNS_DOMAIN}}/{{.HOST_IP}}
 address=/api.{{.CLUSTER_NAME}}.{{.DNS_DOMAIN}}/{{.HOST_IP}}
+
+# Configure dnsmasq to use /run/NetworkManager/resolv.conf as its
+# resolv-file instead of /etc/resolv.conf. This way it uses a file
+# that's stable and doesn't change by our forcedns dispatcher script,
+# and also it uses a file that doesn't contain the node's own IP address.
+# We do this to alleviate https://bugzilla.redhat.com/show_bug.cgi?id=2116549
+# but we should keep it regardless, even after that bug is fixed, because
+# it's more correct.
+resolv-file=/run/NetworkManager/resolv.conf
 `
 
 const unmanagedResolvConf = `
