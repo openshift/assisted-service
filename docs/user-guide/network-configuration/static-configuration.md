@@ -93,13 +93,13 @@ curl -H "Content-Type: application/json" -X PATCH -d @$request_body ${ASSISTED_S
 
 ## Additional nmstate configuration examples
 
+> NOTE: Examples below are only meant to show a partial configuration. They are not meant to be used as-is
+> and should always be adjusted to the environment where they are applied. If used incorrectly, they may leave
+> your machines with no network connectivity.
+
 ### Tagged VLAN
 
 ```yaml
-    dns-resolver:
-      config:
-        server:
-        - 192.168.143.1
     interfaces:
     - ipv4:
         address:
@@ -115,21 +115,11 @@ curl -H "Content-Type: application/json" -X PATCH -d @$request_body ${ASSISTED_S
       vlan:
         base-iface: eth0
         id: 404
-    routes:
-      config:
-      - destination: 0.0.0.0/0
-        next-hop-address: 192.168.143.1
-        next-hop-interface: eth0.404
-        table-id: 254
 ```
 
 ### Network Bond
 
 ```yaml
-    dns-resolver:
-      config:
-        server:
-        - 192.168.138.1
     interfaces:
     - ipv4:
         address:
@@ -150,10 +140,4 @@ curl -H "Content-Type: application/json" -X PATCH -d @$request_body ${ASSISTED_S
       name: bond0
       state: up
       type: bond
-    routes:
-      config:
-      - destination: 0.0.0.0/0
-        next-hop-address: 192.168.138.1
-        next-hop-interface: bond0
-        table-id: 254
 ```
