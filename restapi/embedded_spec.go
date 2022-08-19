@@ -6793,8 +6793,7 @@ func init() {
                   "CLUSTER_MANAGED_NETWORKING_WITH_VMS",
                   "ARM64_ARCHITECTURE",
                   "ARM64_ARCHITECTURE_WITH_CLUSTER_MANAGED_NETWORKING",
-                  "SINGLE_NODE_EXPANSION",
-                  "LVMO"
+                  "SINGLE_NODE_EXPANSION"
                 ]
               },
               "support_level": {
