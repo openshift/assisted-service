@@ -145,6 +145,8 @@ def main():
             if deploy_options.allow_converged_flow:
                 y['data']['ALLOW_CONVERGED_FLOW'] = 'true'
 
+            y['data']['ENABLE_UPGRADE_AGENT'] = 'true'
+
             data = yaml.dump(y)
             dst.write(data)
 
