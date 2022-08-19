@@ -43,6 +43,7 @@ const (
 	X86CPUArchitecture     = "x86_64"
 	DefaultCPUArchitecture = X86CPUArchitecture
 	ARM64CPUArchitecture   = "arm64"
+	PowerCPUArchitecture   = "ppc64le"
 	MultiCPUArchitecture   = "multiarch"
 )
 

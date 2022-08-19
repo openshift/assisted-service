@@ -71,11 +71,20 @@ var defaultOsImages = models.OsImages{
 
 var defaultReleaseImages = models.ReleaseImages{
 	&models.ReleaseImage{
-		CPUArchitecture:  swag.String(common.MultiCPUArchitecture),
-		CPUArchitectures: []string{common.X86CPUArchitecture, common.ARM64CPUArchitecture},
+		// This image uses a syntax with missing "cpu_architectures". It is crafted
+		// in order to make sure the change in MGMT-11494 is backwards-compatible.
+		CPUArchitecture:  swag.String("fake-architecture-chocobomb"),
+		CPUArchitectures: []string{},
 		OpenshiftVersion: swag.String("4.11.1"),
 		URL:              swag.String("release_4.11.1"),
-		Version:          swag.String("4.11.1-candidate"),
+		Version:          swag.String("4.11.1-fake-chocobomb"),
+	},
+	&models.ReleaseImage{
+		CPUArchitecture:  swag.String(common.MultiCPUArchitecture),
+		CPUArchitectures: []string{common.X86CPUArchitecture, common.ARM64CPUArchitecture, common.PowerCPUArchitecture},
+		OpenshiftVersion: swag.String("4.11.1"),
+		URL:              swag.String("release_4.11.1"),
+		Version:          swag.String("4.11.1-multi"),
 	},
 	&models.ReleaseImage{
 		CPUArchitecture:  swag.String(common.X86CPUArchitecture),
@@ -408,6 +417,37 @@ var _ = Describe("list versions", func() {
 					}
 				}
 			}
+		})
+
+		Context("for single-arch release image", func() {
+			It("gets successfuly image with old syntax", func() {
+				releaseImage, err = h.GetReleaseImage("4.11.1", "fake-architecture-chocobomb")
+				Expect(err).ShouldNot(HaveOccurred())
+				Expect(*releaseImage.OpenshiftVersion).Should(Equal("4.11.1"))
+				Expect(*releaseImage.Version).Should(Equal("4.11.1-fake-chocobomb"))
+			})
+
+			It("gets successfuly image with new syntax", func() {
+				releaseImage, err = h.GetReleaseImage("4.10.1", common.X86CPUArchitecture)
+				Expect(err).ShouldNot(HaveOccurred())
+				Expect(*releaseImage.OpenshiftVersion).Should(Equal("4.10.1"))
+				Expect(*releaseImage.Version).Should(Equal("4.10.1-candidate"))
+			})
+		})
+
+		Context("for multi-arch release image", func() {
+			It("gets successfuly image using generic multiarch query", func() {
+				releaseImage, err = h.GetReleaseImage("4.11.1", common.MultiCPUArchitecture)
+				Expect(err).ShouldNot(HaveOccurred())
+				Expect(*releaseImage.OpenshiftVersion).Should(Equal("4.11.1"))
+				Expect(*releaseImage.Version).Should(Equal("4.11.1-multi"))
+			})
+			It("gets successfuly image using sub-architecture", func() {
+				releaseImage, err = h.GetReleaseImage("4.11.1", common.PowerCPUArchitecture)
+				Expect(err).ShouldNot(HaveOccurred())
+				Expect(*releaseImage.OpenshiftVersion).Should(Equal("4.11.1"))
+				Expect(*releaseImage.Version).Should(Equal("4.11.1-multi"))
+			})
 		})
 	})
 
