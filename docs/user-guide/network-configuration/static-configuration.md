@@ -67,6 +67,9 @@ mac_interface_map: [
 ]
 ```
 
+> NOTE: The mapping should use host's physical interfaces and not logical interfaces to be created (potentially virtual).
+> E.g. if creating a VLAN or bonded interfaces, the mapping should still use `eth1` and not `eth1.400` or `bond0`.
+
 In order to use `curl` to send a request for setting static network configuration in an existing infra-env, there is a need to JSON-encode the content of those files. This can be achieved using the `jq` tool as shown below
 
 ```sh
