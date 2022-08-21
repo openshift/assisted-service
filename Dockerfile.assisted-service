@@ -52,8 +52,7 @@ ARG WORK_DIR=/data
 RUN mkdir $WORK_DIR && chmod 775 $WORK_DIR
 
 # downstream this can be installed as an RPM
-ARG OC_URL=https://mirror.openshift.com/pub/openshift-v4/clients/ocp-dev-preview/4.12.0-0.nightly-2022-07-11-054352/openshift-client-linux.tar.gz
-RUN curl --retry 5 -s $OC_URL | tar -xzC /usr/local/bin/ oc
+COPY --from=quay.io/openshift/origin-cli:4.12 /usr/bin/oc /usr/local/bin/
 
 COPY --from=builder /build/assisted-service /assisted-service
 COPY --from=builder /build/assisted-service-operator /assisted-service-operator
