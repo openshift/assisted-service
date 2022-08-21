@@ -195,7 +195,7 @@ It will continue to:
 The assisted agent will not reboot the machine at the end of the installation, instead it will stop
 the assisted agent service and let the ironic agent to manage the machine power state
 
-You can disable the converged flow by setting the `ALLOW_CONVERGED_FLOW` env to false [here](../operator.md#configuring-the-assisted-service-deployment)
+The converged flow is disalbed by default, you can enable the converged flow by setting the `ALLOW_CONVERGED_FLOW` env to true [here](../operator.md##specifying-environmental-variables-via-configmap)
 To set a different default ironicAgent image you can override the following env vars:
 The environment var for the ironicAgent image to be used on X86_64 CPU architecture:
 `IRONIC_AGENT_IMAGE`
