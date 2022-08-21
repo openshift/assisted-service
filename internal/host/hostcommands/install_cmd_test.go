@@ -394,6 +394,7 @@ var _ = Describe("installcmd arguments", func() {
 			Expect(stepReply).NotTo(BeNil())
 			request := getRequest(stepReply[0])
 			Expect(request.InstallerArgs).To(Equal(host.InstallerArgs))
+			Expect(request.SkipInstallationDiskCleanup).To(BeFalse())
 		})
 		It("empty installer args", func() {
 			host.InstallerArgs = ""
@@ -432,6 +433,26 @@ var _ = Describe("installcmd arguments", func() {
 			Expect(stepReply).NotTo(BeNil())
 			request := getRequest(stepReply[0])
 			Expect(request.InstallerArgs).To(Equal(host.InstallerArgs))
+		})
+
+		It("non-empty installer args with save-partlabel value", func() {
+			host.InstallerArgs = `["--save-partlabel","data","--copy-network"]`
+			stepReply, err := installCmd.GetSteps(ctx, &host)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(stepReply).NotTo(BeNil())
+			request := getRequest(stepReply[0])
+			Expect(request.InstallerArgs).To(Equal(host.InstallerArgs))
+			Expect(request.SkipInstallationDiskCleanup).To(BeTrue())
+		})
+
+		It("non-empty installer args with save-partlabel value", func() {
+			host.InstallerArgs = `["--save-partindex","5","--copy-network"]`
+			stepReply, err := installCmd.GetSteps(ctx, &host)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(stepReply).NotTo(BeNil())
+			request := getRequest(stepReply[0])
+			Expect(request.InstallerArgs).To(Equal(host.InstallerArgs))
+			Expect(request.SkipInstallationDiskCleanup).To(BeTrue())
 		})
 	})
 

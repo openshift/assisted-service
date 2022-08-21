@@ -2161,6 +2161,19 @@ var _ = Describe("Refresh Host", func() {
 				disksInfo: createDiskInfo("/dev/sda", 10, 0),
 			},
 			{
+				name:              "Disk speed should not run on if save partition was set",
+				validCheckInTime:  true,
+				dstState:          models.HostStatusPreparingSuccessful,
+				clusterState:      models.ClusterStatusPreparingForInstallation,
+				statusInfoChecker: makeValueChecker(statusInfoHostPreparationSuccessful),
+				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
+					SufficientOrUnknownInstallationDiskSpeed:       {status: ValidationSuccess, messagePattern: "Speed of installation disk has not yet been measured"},
+					SucessfullOrUnknownContainerImagesAvailability: {status: ValidationSuccess, messagePattern: "All required container images were either pulled successfully or no attempt was made to pull them"},
+				}),
+				disksInfo:   "save_partition",
+				imageStatus: createSuccessfulImageStatuses(),
+			},
+			{
 				name:              "All succeeded",
 				validCheckInTime:  true,
 				dstState:          models.HostStatusPreparingSuccessful,
@@ -2195,6 +2208,10 @@ var _ = Describe("Refresh Host", func() {
 				host.CheckedInAt = hostCheckInAt
 				host.DisksInfo = t.disksInfo
 				host.ImagesStatus = t.imageStatus
+				if t.disksInfo == "save_partition" {
+					host.InstallerArgs = `["--save-partindex","5"]`
+					host.DisksInfo = ""
+				}
 				Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
 
 				// Test setup - Cluster creation
