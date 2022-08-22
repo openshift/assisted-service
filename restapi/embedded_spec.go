@@ -5970,6 +5970,7 @@ func init() {
         "ocs-requirements-satisfied",
         "odf-requirements-satisfied",
         "cnv-requirements-satisfied",
+        "lvm-requirements-satisfied",
         "network-type-valid"
       ]
     },
@@ -7381,6 +7382,7 @@ func init() {
         "lso-requirements-satisfied",
         "ocs-requirements-satisfied",
         "odf-requirements-satisfied",
+        "lvm-requirements-satisfied",
         "sufficient-installation-disk-speed",
         "cnv-requirements-satisfied",
         "sufficient-network-latency-requirement-for-role",
@@ -15418,6 +15420,7 @@ func init() {
         "ocs-requirements-satisfied",
         "odf-requirements-satisfied",
         "cnv-requirements-satisfied",
+        "lvm-requirements-satisfied",
         "network-type-valid"
       ]
     },
@@ -16757,6 +16760,7 @@ func init() {
         "lso-requirements-satisfied",
         "ocs-requirements-satisfied",
         "odf-requirements-satisfied",
+        "lvm-requirements-satisfied",
         "sufficient-installation-disk-speed",
         "cnv-requirements-satisfied",
         "sufficient-network-latency-requirement-for-role",
