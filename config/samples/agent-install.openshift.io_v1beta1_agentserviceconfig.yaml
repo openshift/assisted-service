@@ -50,9 +50,9 @@ spec:
     version: 410.84.202205191023-0
   - cpuArchitecture: x86_64
     openshiftVersion: '4.11'
-    url: https://mirror.openshift.com/pub/openshift-v4/x86_64/dependencies/rhcos/pre-release/4.11.0-rc.2/rhcos-4.11.0-rc.2-x86_64-live.x86_64.iso
+    url: https://mirror.openshift.com/pub/openshift-v4/x86_64/dependencies/rhcos/4.11/4.11.0/rhcos-live.x86_64.iso
     version: 411.86.202207090519-0
   - cpuArchitecture: arm64
     openshiftVersion: '4.11'
-    url: https://mirror.openshift.com/pub/openshift-v4/aarch64/dependencies/rhcos/pre-release/4.11.0-rc.2/rhcos-4.11.0-rc.2-aarch64-live.aarch64.iso
+    url: https://mirror.openshift.com/pub/openshift-v4/aarch64/dependencies/rhcos/4.11/4.11.0/rhcos-live.aarch64.iso
     version: 411.86.202207090159-0
