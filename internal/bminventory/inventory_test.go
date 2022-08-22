@@ -1343,6 +1343,54 @@ var _ = Describe("v2PostStepReply", func() {
 			Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2PostStepReplyNoContent()))
 		})
 	})
+
+	Context("download boot artifacts", func() {
+		var (
+			infraEnvID strfmt.UUID
+			hostID     strfmt.UUID
+		)
+
+		BeforeEach(func() {
+			infraEnvID = strfmt.UUID(uuid.New().String())
+			hostID = strfmt.UUID(uuid.New().String())
+
+			host := &models.Host{
+				ID:         &hostID,
+				InfraEnvID: infraEnvID,
+				Status:     swag.String(models.HostStatusReclaiming),
+			}
+			Expect(db.Create(host).Error).ToNot(HaveOccurred())
+		})
+
+		It("calls HandleReclaimBootArtifactDownload on success", func() {
+			mockHostApi.EXPECT().HandleReclaimBootArtifactDownload(gomock.Any(), gomock.Any()).Return(nil)
+			params := installer.V2PostStepReplyParams{
+				InfraEnvID: infraEnvID,
+				HostID:     hostID,
+				Reply: &models.StepReply{
+					Output:   "download success",
+					StepType: models.StepTypeDownloadBootArtifacts,
+				},
+			}
+			reply := bm.V2PostStepReply(ctx, params)
+			Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2PostStepReplyNoContent()))
+		})
+
+		It("calls HandleReclaimFailure on error", func() {
+			mockHostApi.EXPECT().HandleReclaimFailure(gomock.Any(), gomock.Any()).Return(nil)
+			params := installer.V2PostStepReplyParams{
+				InfraEnvID: infraEnvID,
+				HostID:     hostID,
+				Reply: &models.StepReply{
+					Output:   "download failed",
+					ExitCode: -1,
+					StepType: models.StepTypeDownloadBootArtifacts,
+				},
+			}
+			reply := bm.V2PostStepReply(ctx, params)
+			Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2PostStepReplyNoContent()))
+		})
+	})
 })
 
 var _ = Describe("V2UpdateHostInstallProgress", func() {

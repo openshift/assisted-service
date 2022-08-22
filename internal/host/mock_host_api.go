@@ -201,6 +201,34 @@ func (mr *MockAPIMockRecorder) HandleMediaDisconnected(arg0, arg1 interface{}) *
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "HandleMediaDisconnected", reflect.TypeOf((*MockAPI)(nil).HandleMediaDisconnected), arg0, arg1)
 }
 
+// HandleReclaimBootArtifactDownload mocks base method.
+func (m *MockAPI) HandleReclaimBootArtifactDownload(arg0 context.Context, arg1 *models.Host) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "HandleReclaimBootArtifactDownload", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// HandleReclaimBootArtifactDownload indicates an expected call of HandleReclaimBootArtifactDownload.
+func (mr *MockAPIMockRecorder) HandleReclaimBootArtifactDownload(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "HandleReclaimBootArtifactDownload", reflect.TypeOf((*MockAPI)(nil).HandleReclaimBootArtifactDownload), arg0, arg1)
+}
+
+// HandleReclaimFailure mocks base method.
+func (m *MockAPI) HandleReclaimFailure(arg0 context.Context, arg1 *models.Host) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "HandleReclaimFailure", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// HandleReclaimFailure indicates an expected call of HandleReclaimFailure.
+func (mr *MockAPIMockRecorder) HandleReclaimFailure(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "HandleReclaimFailure", reflect.TypeOf((*MockAPI)(nil).HandleReclaimFailure), arg0, arg1)
+}
+
 // HostMonitoring mocks base method.
 func (m *MockAPI) HostMonitoring() {
 	m.ctrl.T.Helper()

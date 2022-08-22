@@ -2845,6 +2845,10 @@ func (b *bareMetalInventory) handleReplyError(params installer.V2PostStepReplyPa
 
 	case models.StepTypeTangConnectivityCheck:
 		return b.hostApi.UpdateTangConnectivityReport(ctx, h, params.Reply.Error)
+
+	case models.StepTypeDownloadBootArtifacts:
+		log.Errorf("Failed to download boot artifacts to reclaim host %s, output: %s, error: %s", h.ID, params.Reply.Output, params.Reply.Error)
+		return b.hostApi.HandleReclaimFailure(ctx, h)
 	}
 	return nil
 }
@@ -3084,6 +3088,8 @@ func handleReplyByType(params installer.V2PostStepReplyParams, b *bareMetalInven
 		err = b.updateDomainNameResolutionResponse(ctx, &host, stepReply)
 	case models.StepTypeUpgradeAgent:
 		err = b.processUpgradeAgentResponse(ctx, &host, stepReply)
+	case models.StepTypeDownloadBootArtifacts:
+		err = b.hostApi.HandleReclaimBootArtifactDownload(ctx, &host)
 	}
 	return err
 }

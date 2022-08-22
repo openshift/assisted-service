@@ -4334,3 +4334,109 @@ var _ = Describe("UpdateDomainNameResolution", func() {
 		Expect(h3.TriggerMonitorTimestamp).To(Equal(h2.TriggerMonitorTimestamp))
 	})
 })
+
+var _ = Describe("HandleReclaimBootArtifactDownload", func() {
+	var (
+		ctx           = context.Background()
+		manager       API
+		db            *gorm.DB
+		dbName        string
+		hostID        strfmt.UUID
+		infraEnvID    strfmt.UUID
+		ctrl          *gomock.Controller
+		mockEventsAPI *eventsapi.MockHandler
+	)
+
+	BeforeEach(func() {
+		db, dbName = common.PrepareTestDB()
+
+		ctrl = gomock.NewController(GinkgoT())
+		mockEventsAPI = eventsapi.NewMockHandler(ctrl)
+		manager = NewManager(common.GetTestLog(), db, mockEventsAPI, nil, nil, nil, nil, defaultConfig, nil, nil, nil, false, nil)
+
+		hostID = strfmt.UUID(uuid.New().String())
+		infraEnvID = strfmt.UUID(uuid.New().String())
+	})
+
+	AfterEach(func() {
+		common.DeleteTestDB(db, dbName)
+		ctrl.Finish()
+	})
+
+	It("transitions a host from Reclaiming to ReclaimingRebooting", func() {
+		host := hostutil.GenerateUnassignedTestHost(hostID, infraEnvID, models.HostStatusReclaiming)
+		Expect(db.Create(&host).Error).ToNot(HaveOccurred())
+		eventMatcher := eventstest.NewEventMatcher(
+			eventstest.WithHostIdMatcher(hostID.String()),
+			eventstest.WithInfraEnvIdMatcher(infraEnvID.String()),
+			eventstest.WithSeverityMatcher(models.EventSeverityInfo))
+		mockEventsAPI.EXPECT().SendHostEvent(ctx, eventMatcher)
+
+		Expect(manager.HandleReclaimBootArtifactDownload(ctx, &host)).To(Succeed())
+
+		Expect(db.Take(&host, "id = ?", hostID.String()).Error).ToNot(HaveOccurred())
+		Expect(*host.Status).To(Equal(models.HostStatusReclaimingRebooting))
+		Expect(*host.StatusInfo).To(BeEquivalentTo(statusInfoRebootingForReclaim))
+	})
+})
+
+var _ = Describe("HandleReclaimFailure", func() {
+	var (
+		ctx           = context.Background()
+		manager       API
+		db            *gorm.DB
+		dbName        string
+		hostID        strfmt.UUID
+		infraEnvID    strfmt.UUID
+		ctrl          *gomock.Controller
+		mockEventsAPI *eventsapi.MockHandler
+	)
+
+	BeforeEach(func() {
+		db, dbName = common.PrepareTestDB()
+
+		ctrl = gomock.NewController(GinkgoT())
+		mockEventsAPI = eventsapi.NewMockHandler(ctrl)
+		manager = NewManager(common.GetTestLog(), db, mockEventsAPI, nil, nil, nil, nil, defaultConfig, nil, nil, nil, false, nil)
+
+		hostID = strfmt.UUID(uuid.New().String())
+		infraEnvID = strfmt.UUID(uuid.New().String())
+	})
+
+	AfterEach(func() {
+		common.DeleteTestDB(db, dbName)
+		ctrl.Finish()
+	})
+
+	It("transitions a host from Reclaiming to UnbindingPendingUserAction", func() {
+		host := hostutil.GenerateUnassignedTestHost(hostID, infraEnvID, models.HostStatusReclaiming)
+		Expect(db.Create(&host).Error).ToNot(HaveOccurred())
+		eventMatcher := eventstest.NewEventMatcher(
+			eventstest.WithHostIdMatcher(hostID.String()),
+			eventstest.WithInfraEnvIdMatcher(infraEnvID.String()),
+			eventstest.WithSeverityMatcher(models.EventSeverityInfo))
+		mockEventsAPI.EXPECT().SendHostEvent(ctx, eventMatcher)
+
+		Expect(manager.HandleReclaimFailure(ctx, &host)).To(Succeed())
+
+		Expect(db.Take(&host, "id = ?", hostID.String()).Error).ToNot(HaveOccurred())
+		Expect(*host.Status).To(Equal(models.HostStatusUnbindingPendingUserAction))
+		Expect(*host.StatusInfo).To(Equal(statusInfoUnbinding))
+	})
+
+	It("transitions a host from ReclaimingRebooting to UnbindingPendingUserAction", func() {
+		host := hostutil.GenerateUnassignedTestHost(hostID, infraEnvID, models.HostStatusReclaimingRebooting)
+		Expect(db.Create(&host).Error).ToNot(HaveOccurred())
+		eventMatcher := eventstest.NewEventMatcher(
+			eventstest.WithHostIdMatcher(hostID.String()),
+			eventstest.WithInfraEnvIdMatcher(infraEnvID.String()),
+			eventstest.WithSeverityMatcher(models.EventSeverityInfo))
+		mockEventsAPI.EXPECT().SendHostEvent(ctx, eventMatcher)
+
+		Expect(manager.HandleReclaimFailure(ctx, &host)).To(Succeed())
+
+		Expect(db.Take(&host, "id = ?", hostID.String()).Error).ToNot(HaveOccurred())
+		Expect(*host.Status).To(Equal(models.HostStatusUnbindingPendingUserAction))
+		Expect(*host.StatusInfo).To(Equal(statusInfoUnbinding))
+	})
+})

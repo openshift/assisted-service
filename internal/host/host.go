@@ -96,6 +96,8 @@ type API interface {
 	RegisterInstalledOCPHost(ctx context.Context, h *models.Host, db *gorm.DB) error
 	HandleInstallationFailure(ctx context.Context, h *models.Host) error
 	HandleMediaDisconnected(ctx context.Context, h *models.Host) error
+	HandleReclaimBootArtifactDownload(ctx context.Context, h *models.Host) error
+	HandleReclaimFailure(ctx context.Context, h *models.Host) error
 	UpdateInstallProgress(ctx context.Context, h *models.Host, progress *models.HostProgress) error
 	RefreshStatus(ctx context.Context, h *models.Host, db *gorm.DB) error
 	SetBootstrap(ctx context.Context, h *models.Host, isbootstrap bool, db *gorm.DB) error
@@ -1401,4 +1403,12 @@ func (m *Manager) HostWithCollectedLogsExists(clusterId strfmt.UUID) (bool, erro
 
 func (m *Manager) GetKnownApprovedHosts(clusterId strfmt.UUID) (hosts []*common.Host, err error) {
 	return common.GetHostsFromDBWhere(m.db, "cluster_id = ? and status = ? and approved = TRUE", clusterId.String(), models.HostStatusKnown)
+}
+
+func (m *Manager) HandleReclaimBootArtifactDownload(ctx context.Context, h *models.Host) error {
+	return m.sm.Run(TransitionTypeRebootingForReclaim, newStateHost(h), &TransitionArgsReclaimHost{ctx: ctx, db: m.db})
+}
+
+func (m *Manager) HandleReclaimFailure(ctx context.Context, h *models.Host) error {
+	return m.sm.Run(TransitionTypeReclaimFailed, newStateHost(h), &TransitionArgsUnbindHost{ctx: ctx, db: m.db})
 }
