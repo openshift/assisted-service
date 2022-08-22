@@ -44,7 +44,7 @@ const (
 	DefaultCPUArchitecture = X86CPUArchitecture
 	ARM64CPUArchitecture   = "arm64"
 	PowerCPUArchitecture   = "ppc64le"
-	MultiCPUArchitecture   = "multiarch"
+	MultiCPUArchitecture   = "multi"
 )
 
 // Configuration to be injected by discovery ignition.  It will cause IPv6 DHCP client identifier to be the same
