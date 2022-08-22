@@ -3,11 +3,9 @@ package hostcommands
 import (
 	"context"
 	"encoding/json"
-	"fmt"
-	"net/url"
-	"path"
 
 	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/internal/host/hostutil"
 	"github.com/openshift/assisted-service/models"
 	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
@@ -39,7 +37,7 @@ func (c *apivipConnectivityCheckCmd) GetSteps(ctx context.Context, host *models.
 		return nil, err
 	}
 
-	ignitionEndpointUrl, err := getIngnitionEndPoint(&cluster, host)
+	ignitionEndpointUrl, err := hostutil.GetIgnitionEndpoint(&cluster, host)
 	if err != nil {
 		c.log.WithError(err).Errorf("failed to build Ignition Endpoint %s", host.ID)
 		return nil, err
@@ -69,21 +67,4 @@ func (c *apivipConnectivityCheckCmd) GetSteps(ctx context.Context, host *models.
 		},
 	}
 	return []*models.Step{step}, nil
-}
-
-func getIngnitionEndPoint(cluster *common.Cluster, host *models.Host) (string, error) {
-	poolName := string(common.GetEffectiveRole(host))
-	if host.MachineConfigPoolName != "" {
-		poolName = host.MachineConfigPoolName
-	}
-	ignitionEndpointUrl := fmt.Sprintf("http://%s:22624/config/%s", common.GetAPIHostname(cluster), poolName)
-	if cluster.IgnitionEndpoint != nil && cluster.IgnitionEndpoint.URL != nil {
-		url, err := url.Parse(*cluster.IgnitionEndpoint.URL)
-		if err != nil {
-			return "", err
-		}
-		url.Path = path.Join(url.Path, poolName)
-		ignitionEndpointUrl = url.String()
-	}
-	return ignitionEndpointUrl, nil
 }
