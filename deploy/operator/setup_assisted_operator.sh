@@ -172,6 +172,7 @@ apiVersion: agent-install.openshift.io/v1beta1
 kind: AgentServiceConfig
 metadata:
  name: agent
+ namespace: ${ASSISTED_NAMESPACE}
  annotations:
   unsupported.agent-install.openshift.io/assisted-service-configmap: "assisted-service-config"
 spec:
@@ -210,7 +211,7 @@ EOCR
   fi
 
   wait_for_operator "assisted-service-operator" "${ASSISTED_NAMESPACE}"
-  wait_for_condition "agentserviceconfigs/agent" "ReconcileCompleted" "5m"
+  wait_for_condition "agentserviceconfigs/agent" "ReconcileCompleted" "5m" "${ASSISTED_NAMESPACE}"
   wait_for_pod "assisted-service" "${ASSISTED_NAMESPACE}" "app=assisted-service"
   wait_for_pod "assisted-image-service" "${ASSISTED_NAMESPACE}" "app=assisted-image-service"
 

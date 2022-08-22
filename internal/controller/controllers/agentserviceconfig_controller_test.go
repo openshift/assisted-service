@@ -50,8 +50,7 @@ func newTestReconciler(initObjs ...runtime.Object) *AgentServiceConfigReconciler
 		Log:    logrus.New(),
 		// TODO(djzager): If we need to verify emitted events
 		// https://github.com/kubernetes/kubernetes/blob/ea0764452222146c47ec826977f49d7001b0ea8c/pkg/controller/statefulset/stateful_pod_control_test.go#L474
-		Recorder:  record.NewFakeRecorder(10),
-		Namespace: testNamespace,
+		Recorder: record.NewFakeRecorder(10),
 	}
 }
 
@@ -158,14 +157,15 @@ var _ = Describe("agentserviceconfig_controller reconcile", func() {
 
 		It("adds the finalizer", func() {
 			instance := &aiv1beta1.AgentServiceConfig{}
-			Expect(ascr.Get(ctx, types.NamespacedName{Name: "agent"}, instance)).To(Succeed())
+			Expect(ascr.Get(ctx, types.NamespacedName{Name: "agent", Namespace: testNamespace}, instance)).To(Succeed())
 			Expect(funk.ContainsString(instance.GetFinalizers(), agentServiceConfigFinalizerName)).To(BeTrue())
 		})
 
 		It("cleans up when agentserviceconfig is deleted", func() {
 			instance := &aiv1beta1.AgentServiceConfig{
 				ObjectMeta: metav1.ObjectMeta{
-					Name: testName,
+					Name:      testName,
+					Namespace: testNamespace,
 				},
 			}
 			Expect(ascr.Delete(ctx, instance)).To(Succeed())
@@ -246,7 +246,7 @@ var _ = Describe("agentserviceconfig_controller reconcile", func() {
 		Expect(result).NotTo(Equal(ctrl.Result{}))
 
 		instance := &aiv1beta1.AgentServiceConfig{}
-		err = ascr.Get(ctx, types.NamespacedName{Name: "agent"}, instance)
+		err = ascr.Get(ctx, types.NamespacedName{Name: "agent", Namespace: testNamespace}, instance)
 
 		Expect(err).To(BeNil())
 		Expect(conditionsv1.FindStatusCondition(instance.Status.Conditions, aiv1beta1.ConditionDeploymentsHealthy).Status).To(Equal(corev1.ConditionFalse))
@@ -297,7 +297,7 @@ var _ = Describe("agentserviceconfig_controller reconcile", func() {
 		Expect(result).NotTo(Equal(ctrl.Result{}))
 
 		instance := &aiv1beta1.AgentServiceConfig{}
-		err = ascr.Get(ctx, types.NamespacedName{Name: "agent"}, instance)
+		err = ascr.Get(ctx, types.NamespacedName{Name: "agent", Namespace: testNamespace}, instance)
 		Expect(err).To(BeNil())
 		Expect(conditionsv1.FindStatusCondition(instance.Status.Conditions, aiv1beta1.ConditionDeploymentsHealthy).Status).To(Equal(corev1.ConditionFalse))
 		Expect(conditionsv1.FindStatusCondition(instance.Status.Conditions, aiv1beta1.ConditionDeploymentsHealthy).Reason).To(Equal(aiv1beta1.ReasonDeploymentFailure))
@@ -363,7 +363,7 @@ var _ = Describe("agentserviceconfig_controller reconcile", func() {
 		Expect(result).To(Equal(ctrl.Result{}))
 
 		instance := &aiv1beta1.AgentServiceConfig{}
-		err = ascr.Get(ctx, types.NamespacedName{Name: "agent"}, instance)
+		err = ascr.Get(ctx, types.NamespacedName{Name: "agent", Namespace: testNamespace}, instance)
 
 		Expect(err).To(BeNil())
 		Expect(conditionsv1.FindStatusCondition(instance.Status.Conditions, aiv1beta1.ConditionDeploymentsHealthy).Status).To(Equal(corev1.ConditionTrue))
@@ -1669,7 +1669,8 @@ func newASCDefault() *aiv1beta1.AgentServiceConfig {
 			APIVersion: testAgentServiceConfigAPIVersion,
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name: testName,
+			Name:      testName,
+			Namespace: testNamespace,
 		},
 		Spec: aiv1beta1.AgentServiceConfigSpec{
 			FileSystemStorage: corev1.PersistentVolumeClaimSpec{

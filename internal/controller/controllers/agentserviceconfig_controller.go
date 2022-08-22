@@ -106,9 +106,6 @@ type AgentServiceConfigReconciler struct {
 	Scheme   *runtime.Scheme
 	Recorder record.EventRecorder
 
-	// Namespace the operator is running in
-	Namespace string
-
 	// selector and tolerations the Operator runs in and propagates to its deployments
 	NodeSelector map[string]string
 	Tolerations  []corev1.Toleration
@@ -161,10 +158,18 @@ func (r *AgentServiceConfigReconciler) Reconcile(origCtx context.Context, req ct
 	log.Info("AgentServiceConfig Reconcile started")
 
 	instance := &aiv1beta1.AgentServiceConfig{}
+	ascKey := types.NamespacedName{Name: req.NamespacedName.Name}
 
-	// NOTE: ignoring the Namespace that seems to get set on request when syncing on namespaced objects
-	// when our AgentServiceConfig is ClusterScoped.
-	if err := r.Get(ctx, types.NamespacedName{Name: req.NamespacedName.Name}, instance); err != nil {
+	//for backwards compatability, if the namespace is assisted-installer we are looking
+	//for a cluster scoped CRD. Otherwise, we will look for a namespace-scoped resource
+	//and implicitly assume that we are in hypershift mode (L0-L1)
+	if req.NamespacedName.Namespace != "" {
+		ascKey.Namespace = req.NamespacedName.Namespace
+	} else {
+		log.Warning("DEBUG ==> ASC is not namespace scopped")
+	}
+
+	if err := r.Get(ctx, ascKey, instance); err != nil {
 		if errors.IsNotFound(err) {
 			// Request object not found, could have been deleted after reconcile request.
 			// Owned objects are automatically garbage collected. For additional cleanup logic use finalizers.
@@ -176,15 +181,7 @@ func (r *AgentServiceConfigReconciler) Reconcile(origCtx context.Context, req ct
 		return ctrl.Result{}, err
 	}
 
-	// We only support one AgentServiceConfig per cluster, and it must be called "agent". This prevents installing
-	// AgentService more than once in the cluster.
-	if instance.Name != agentServiceConfigName {
-		reason := fmt.Sprintf("Invalid name (%s)", instance.Name)
-		msg := fmt.Sprintf("Only one AgentServiceConfig supported per cluster and must be named '%s'", agentServiceConfigName)
-		log.Info(fmt.Sprintf("%s: %s", reason, msg), req.NamespacedName)
-		r.Recorder.Event(instance, "Warning", reason, msg)
-		return reconcile.Result{}, nil
-	}
+	log.Info("DEBUG ==> ASC instance is", instance.Name, instance.Namespace)
 
 	if instance.DeletionTimestamp.IsZero() {
 		if !controllerutil.ContainsFinalizer(instance, agentServiceConfigFinalizerName) {
@@ -199,7 +196,7 @@ func (r *AgentServiceConfigReconciler) Reconcile(origCtx context.Context, req ct
 		statefulSet := &appsv1.StatefulSet{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      imageServiceName,
-				Namespace: r.Namespace,
+				Namespace: req.NamespacedName.Namespace,
 			},
 		}
 		if err := r.Get(ctx, client.ObjectKeyFromObject(statefulSet), statefulSet); err != nil && !errors.IsNotFound(err) {
@@ -400,7 +397,7 @@ func (r *AgentServiceConfigReconciler) monitorOperands(ctx context.Context, log 
 	// monitor deployments
 	for _, deployName := range []string{"agentinstalladmission", "assisted-service"} {
 		deployment := &appsv1.Deployment{}
-		if err := r.Get(ctx, types.NamespacedName{Name: deployName, Namespace: r.Namespace}, deployment); err != nil {
+		if err := r.Get(ctx, types.NamespacedName{Name: deployName, Namespace: instance.Namespace}, deployment); err != nil {
 			return err
 		}
 
@@ -419,7 +416,7 @@ func (r *AgentServiceConfigReconciler) monitorOperands(ctx context.Context, log 
 
 	// monitor statefulset
 	ss := &appsv1.StatefulSet{}
-	if err := r.Get(ctx, types.NamespacedName{Name: imageServiceName, Namespace: r.Namespace}, ss); err != nil {
+	if err := r.Get(ctx, types.NamespacedName{Name: imageServiceName, Namespace: instance.Namespace}, ss); err != nil {
 		return err
 	}
 
@@ -450,7 +447,7 @@ func (r *AgentServiceConfigReconciler) newFilesystemPVC(ctx context.Context, log
 	pvc := &corev1.PersistentVolumeClaim{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      serviceName,
-			Namespace: r.Namespace,
+			Namespace: instance.Namespace,
 		},
 		Spec: instance.Spec.FileSystemStorage,
 	}
@@ -473,7 +470,7 @@ func (r *AgentServiceConfigReconciler) newDatabasePVC(ctx context.Context, log l
 	pvc := &corev1.PersistentVolumeClaim{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      databaseName,
-			Namespace: r.Namespace,
+			Namespace: instance.Namespace,
 		},
 		Spec: instance.Spec.DatabaseStorage,
 	}
@@ -496,7 +493,7 @@ func (r *AgentServiceConfigReconciler) newAgentService(ctx context.Context, log 
 	svc := &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      serviceName,
-			Namespace: r.Namespace,
+			Namespace: instance.Namespace,
 		},
 	}
 
@@ -533,7 +530,7 @@ func (r *AgentServiceConfigReconciler) newImageServiceService(ctx context.Contex
 	svc := &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      imageServiceName,
-			Namespace: r.Namespace,
+			Namespace: instance.Namespace,
 		},
 	}
 
@@ -568,7 +565,7 @@ func (r *AgentServiceConfigReconciler) newImageServiceService(ctx context.Contex
 
 func (r *AgentServiceConfigReconciler) newServiceMonitor(ctx context.Context, log logrus.FieldLogger, instance *aiv1beta1.AgentServiceConfig) (client.Object, controllerutil.MutateFn, error) {
 	service := &corev1.Service{}
-	if err := r.Get(ctx, types.NamespacedName{Name: serviceName, Namespace: r.Namespace}, service); err != nil {
+	if err := r.Get(ctx, types.NamespacedName{Name: serviceName, Namespace: instance.Namespace}, service); err != nil {
 		return nil, nil, err
 	}
 
@@ -592,7 +589,7 @@ func (r *AgentServiceConfigReconciler) newServiceMonitor(ctx context.Context, lo
 	sm := &monitoringv1.ServiceMonitor{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      service.ObjectMeta.Name,
-			Namespace: r.Namespace,
+			Namespace: instance.Namespace,
 			Labels:    labels,
 		},
 		Spec: smSpec,
@@ -616,7 +613,7 @@ func (r *AgentServiceConfigReconciler) newAgentRoute(ctx context.Context, log lo
 	route := &routev1.Route{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      serviceName,
-			Namespace: r.Namespace,
+			Namespace: instance.Namespace,
 		},
 	}
 	routeSpec := routev1.RouteSpec{
@@ -653,7 +650,7 @@ func (r *AgentServiceConfigReconciler) newAgentRoute(ctx context.Context, log lo
 func (r *AgentServiceConfigReconciler) newHTTPRoute(ctx context.Context, log logrus.FieldLogger, instance *aiv1beta1.AgentServiceConfig, serviceToExpose string) (client.Object, controllerutil.MutateFn, error) {
 	// In order to create plain http route we need https route to be created first to copy its host
 	httpsRoute := &routev1.Route{}
-	if err := r.Get(ctx, types.NamespacedName{Name: serviceToExpose, Namespace: r.Namespace}, httpsRoute); err != nil {
+	if err := r.Get(ctx, types.NamespacedName{Name: serviceToExpose, Namespace: instance.Namespace}, httpsRoute); err != nil {
 		log.WithError(err).Errorf("Failed to get https route for %s service", serviceToExpose)
 		return nil, nil, err
 	}
@@ -666,7 +663,7 @@ func (r *AgentServiceConfigReconciler) newHTTPRoute(ctx context.Context, log log
 	route := &routev1.Route{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      fmt.Sprintf("%s-ipxe", serviceToExpose),
-			Namespace: r.Namespace,
+			Namespace: instance.Namespace,
 		},
 		Spec: routev1.RouteSpec{
 			Host: httpsRoute.Spec.Host,
@@ -707,12 +704,12 @@ func (r *AgentServiceConfigReconciler) newHTTPRoute(ctx context.Context, log log
 func (r *AgentServiceConfigReconciler) removeHTTPIPXERoute(ctx context.Context, instance *aiv1beta1.AgentServiceConfig, serviceToExpose string) error {
 	route := &routev1.Route{}
 	routeName := fmt.Sprintf("%s-ipxe", serviceToExpose)
-	namespacedName := types.NamespacedName{Name: routeName, Namespace: r.Namespace}
+	namespacedName := types.NamespacedName{Name: routeName, Namespace: instance.Namespace}
 	if err := r.Get(ctx, namespacedName, route); err == nil {
 		err = r.Client.Delete(ctx, &routev1.Route{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      routeName,
-				Namespace: r.Namespace,
+				Namespace: instance.Namespace,
 			},
 		})
 		if !errors.IsNotFound(err) {
@@ -733,7 +730,7 @@ func (r *AgentServiceConfigReconciler) newImageServiceRoute(ctx context.Context,
 	route := &routev1.Route{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      imageServiceName,
-			Namespace: r.Namespace,
+			Namespace: instance.Namespace,
 		},
 	}
 	routeSpec := routev1.RouteSpec{
@@ -775,7 +772,7 @@ func (r *AgentServiceConfigReconciler) newAgentLocalAuthSecret(ctx context.Conte
 	secret := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      agentLocalAuthSecretName,
-			Namespace: r.Namespace,
+			Namespace: instance.Namespace,
 			Labels: map[string]string{
 				BackupLabel: BackupLabelValue,
 			},
@@ -810,7 +807,7 @@ func (r *AgentServiceConfigReconciler) newPostgresSecret(ctx context.Context, lo
 	secret := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      databaseName,
-			Namespace: r.Namespace,
+			Namespace: instance.Namespace,
 			Labels: map[string]string{
 				BackupLabel: BackupLabelValue,
 			},
@@ -850,7 +847,7 @@ func (r *AgentServiceConfigReconciler) newImageServiceServiceAccount(ctx context
 	sa := &corev1.ServiceAccount{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      imageServiceName,
-			Namespace: r.Namespace,
+			Namespace: instance.Namespace,
 		},
 	}
 
@@ -877,7 +874,7 @@ func (r *AgentServiceConfigReconciler) newIngressCertCM(ctx context.Context, log
 	cm := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      defaultIngressCertCMName,
-			Namespace: r.Namespace,
+			Namespace: instance.Namespace,
 		},
 	}
 
@@ -899,7 +896,7 @@ func (r *AgentServiceConfigReconciler) newImageServiceConfigMap(ctx context.Cont
 	cm := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      imageServiceName,
-			Namespace: r.Namespace,
+			Namespace: instance.Namespace,
 		},
 	}
 
@@ -918,9 +915,9 @@ func (r *AgentServiceConfigReconciler) newImageServiceConfigMap(ctx context.Cont
 	return cm, mutateFn, nil
 }
 
-func (r *AgentServiceConfigReconciler) urlForRoute(ctx context.Context, routeName string) (string, error) {
+func (r *AgentServiceConfigReconciler) urlForRoute(ctx context.Context, routeName string, instance *aiv1beta1.AgentServiceConfig) (string, error) {
 	route := &routev1.Route{}
-	err := r.Get(ctx, types.NamespacedName{Name: routeName, Namespace: r.Namespace}, route)
+	err := r.Get(ctx, types.NamespacedName{Name: routeName, Namespace: instance.Namespace}, route)
 	if err != nil || route.Spec.Host == "" {
 		if err == nil {
 			err = fmt.Errorf("%s route host is empty", routeName)
@@ -936,13 +933,13 @@ func (r *AgentServiceConfigReconciler) urlForRoute(ctx context.Context, routeNam
 var defaultControllerHardwareRequirements string
 
 func (r *AgentServiceConfigReconciler) newAssistedCM(ctx context.Context, log logrus.FieldLogger, instance *aiv1beta1.AgentServiceConfig) (client.Object, controllerutil.MutateFn, error) {
-	serviceURL, err := r.urlForRoute(ctx, serviceName)
+	serviceURL, err := r.urlForRoute(ctx, serviceName, instance)
 	if err != nil {
 		log.WithError(err).Warnf("Failed to get URL for route %s", serviceName)
 		return nil, nil, err
 	}
 
-	imageServiceURL, err := r.urlForRoute(ctx, imageServiceName)
+	imageServiceURL, err := r.urlForRoute(ctx, imageServiceName, instance)
 	if err != nil {
 		log.WithError(err).Warnf("Failed to get URL for route %s", imageServiceName)
 		return nil, nil, err
@@ -951,7 +948,7 @@ func (r *AgentServiceConfigReconciler) newAssistedCM(ctx context.Context, log lo
 	cm := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      serviceName,
-			Namespace: r.Namespace,
+			Namespace: instance.Namespace,
 		},
 	}
 
@@ -995,7 +992,7 @@ func (r *AgentServiceConfigReconciler) newAssistedCM(ctx context.Context, log lo
 			"PUBLIC_CONTAINER_REGISTRIES": "quay.io,registry.svc.ci.openshift.org",
 			"HW_VALIDATOR_REQUIREMENTS":   defaultControllerHardwareRequirements,
 
-			"NAMESPACE":       r.Namespace,
+			"NAMESPACE":       instance.Namespace,
 			"INSTALL_INVOKER": "assisted-installer-operator",
 
 			// enable https
@@ -1040,7 +1037,7 @@ func (r *AgentServiceConfigReconciler) newImageServiceStatefulSet(ctx context.Co
 		"app": imageServiceName,
 	}
 
-	imageServiceBaseURL := r.getImageService(ctx, log)
+	imageServiceBaseURL := r.getImageService(ctx, log, instance)
 
 	container := corev1.Container{
 		Name:  imageServiceName,
@@ -1063,7 +1060,7 @@ func (r *AgentServiceConfigReconciler) newImageServiceStatefulSet(ctx context.Co
 			{Name: "HTTPS_KEY_FILE", Value: "/etc/image-service/certs/tls.key"},
 			{Name: "HTTPS_CA_FILE", Value: "/etc/image-service/ca-bundle/service-ca.crt"},
 			{Name: "ASSISTED_SERVICE_SCHEME", Value: "https"},
-			{Name: "ASSISTED_SERVICE_HOST", Value: serviceName + "." + r.Namespace + ".svc:" + servicePort.String()},
+			{Name: "ASSISTED_SERVICE_HOST", Value: serviceName + "." + instance.Namespace + ".svc:" + servicePort.String()},
 			{Name: "IMAGE_SERVICE_BASE_URL", Value: imageServiceBaseURL},
 			{Name: "INSECURE_SKIP_VERIFY", Value: skipVerifyTLS},
 			{Name: "DATA_DIR", Value: "/data"},
@@ -1109,7 +1106,7 @@ func (r *AgentServiceConfigReconciler) newImageServiceStatefulSet(ctx context.Co
 	statefulSet := &appsv1.StatefulSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      imageServiceName,
-			Namespace: r.Namespace,
+			Namespace: instance.Namespace,
 		},
 		Spec: appsv1.StatefulSetSpec{
 			PodManagementPolicy: appsv1.ParallelPodManagement,
@@ -1217,7 +1214,7 @@ func (r *AgentServiceConfigReconciler) cleanupImageServiceFinalizer(ctx context.
 	}
 
 	pvcList := &corev1.PersistentVolumeClaimList{}
-	if err := r.List(ctx, pvcList, client.MatchingLabels{"app": imageServiceName}); err != nil {
+	if err := r.List(ctx, pvcList, client.MatchingLabels{"app": imageServiceName}, client.InNamespace(statefulSet.Namespace)); err != nil {
 		return err
 	}
 
@@ -1245,7 +1242,7 @@ func (r *AgentServiceConfigReconciler) reconcileImageServiceStatefulSet(ctx cont
 			_ = r.Client.Delete(ctx, &appsv1.Deployment{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      imageServiceName,
-					Namespace: r.Namespace,
+					Namespace: instance.Namespace,
 				},
 			})
 		}
@@ -1309,7 +1306,7 @@ func (r *AgentServiceConfigReconciler) newAssistedServiceDeployment(ctx context.
 	var assistedConfigHash, mirrorConfigHash, userConfigHash string
 
 	// Get hash of generated assisted config
-	assistedConfigHash, err := r.getCMHash(ctx, types.NamespacedName{Name: serviceName, Namespace: r.Namespace})
+	assistedConfigHash, err := r.getCMHash(ctx, types.NamespacedName{Name: serviceName, Namespace: instance.Namespace})
 	if err != nil {
 		return nil, nil, err
 	}
@@ -1346,8 +1343,8 @@ func (r *AgentServiceConfigReconciler) newAssistedServiceDeployment(ctx context.
 	// - removing the annotation when the configmap is deleted
 	userConfigName, ok := instance.ObjectMeta.GetAnnotations()[configmapAnnotation]
 	if ok {
-		log.Infof("ConfigMap %s from namespace %s being used to configure assisted-service deployment", userConfigName, r.Namespace)
-		userConfigHash, err = r.getCMHash(ctx, types.NamespacedName{Name: userConfigName, Namespace: r.Namespace})
+		log.Infof("ConfigMap %s from namespace %s being used to configure assisted-service deployment", userConfigName, instance.Namespace)
+		userConfigHash, err = r.getCMHash(ctx, types.NamespacedName{Name: userConfigName, Namespace: instance.Namespace})
 		if err != nil {
 			return nil, nil, err
 		}
@@ -1479,7 +1476,7 @@ func (r *AgentServiceConfigReconciler) newAssistedServiceDeployment(ctx context.
 
 	if instance.Spec.MirrorRegistryRef != nil {
 		cm := &corev1.ConfigMap{}
-		namespacedName := types.NamespacedName{Name: instance.Spec.MirrorRegistryRef.Name, Namespace: r.Namespace}
+		namespacedName := types.NamespacedName{Name: instance.Spec.MirrorRegistryRef.Name, Namespace: instance.Namespace}
 		err := r.Get(ctx, namespacedName, cm)
 		if err != nil {
 			return nil, nil, err
@@ -1561,7 +1558,7 @@ func (r *AgentServiceConfigReconciler) newAssistedServiceDeployment(ctx context.
 	deployment := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      serviceName,
-			Namespace: r.Namespace,
+			Namespace: instance.Namespace,
 		},
 		Spec: appsv1.DeploymentSpec{
 			Selector: &metav1.LabelSelector{
@@ -1974,7 +1971,7 @@ func (r *AgentServiceConfigReconciler) newWebHookServiceAccount(ctx context.Cont
 	sa := corev1.ServiceAccount{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "agentinstalladmission",
-			Namespace: r.Namespace,
+			Namespace: instance.Namespace,
 		},
 	}
 
@@ -1993,7 +1990,7 @@ func (r *AgentServiceConfigReconciler) newWebHookClusterRoleBinding(ctx context.
 	subjects := []rbacv1.Subject{
 		{
 			Kind:      "ServiceAccount",
-			Namespace: r.Namespace,
+			Namespace: instance.Namespace,
 			Name:      "agentinstalladmission",
 		},
 	}
@@ -2084,7 +2081,7 @@ func (r *AgentServiceConfigReconciler) newWebHookService(ctx context.Context, lo
 	svc := &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      webhookServiceName,
-			Namespace: r.Namespace,
+			Namespace: instance.Namespace,
 		},
 	}
 
@@ -2115,7 +2112,8 @@ func (r *AgentServiceConfigReconciler) newWebHookService(ctx context.Context, lo
 func (r *AgentServiceConfigReconciler) newWebHookAPIService(ctx context.Context, log logrus.FieldLogger, instance *aiv1beta1.AgentServiceConfig) (client.Object, controllerutil.MutateFn, error) {
 	as := &apiregv1.APIService{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: "v1.admission.agentinstall.openshift.io",
+			Name:      "v1.admission.agentinstall.openshift.io",
+			Namespace: instance.Namespace,
 		},
 	}
 
@@ -2134,7 +2132,7 @@ func (r *AgentServiceConfigReconciler) newWebHookAPIService(ctx context.Context,
 		as.Spec.Version = "v1"
 		as.Spec.Service = &apiregv1.ServiceReference{
 			Name:      "agentinstalladmission",
-			Namespace: r.Namespace,
+			Namespace: instance.Namespace,
 		}
 		return nil
 	}
@@ -2197,7 +2195,7 @@ func (r *AgentServiceConfigReconciler) newWebHookDeployment(ctx context.Context,
 	deployment := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "agentinstalladmission",
-			Namespace: r.Namespace,
+			Namespace: instance.Namespace,
 		},
 		Spec: appsv1.DeploymentSpec{
 			Selector: &metav1.LabelSelector{
@@ -2237,8 +2235,8 @@ func getStorageRequests(pvcSpec *corev1.PersistentVolumeClaimSpec) map[corev1.Re
 	return requests
 }
 
-func (r *AgentServiceConfigReconciler) getImageService(ctx context.Context, log logrus.FieldLogger) string {
-	imageServiceURL, err := r.urlForRoute(ctx, imageServiceName)
+func (r *AgentServiceConfigReconciler) getImageService(ctx context.Context, log logrus.FieldLogger, instance *aiv1beta1.AgentServiceConfig) string {
+	imageServiceURL, err := r.urlForRoute(ctx, imageServiceName, instance)
 	if err != nil {
 		log.WithError(err).Warnf("Failed to get URL for route %s", imageServiceName)
 		return ""
