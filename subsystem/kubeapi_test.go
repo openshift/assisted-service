@@ -1486,7 +1486,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			Name:      clusterDeploymentSpec.ClusterName,
 		}
 		cluster := getClusterFromDB(ctx, kubeClient, db, clusterKubeName, waitForReconcileTimeout)
-		Expect(cluster.CPUArchitecture).Should(Equal("multiarch"))
+		Expect(cluster.CPUArchitecture).Should(Equal("multi"))
 
 		By("deploy infraenv with arm64 architecure")
 		infraEnvSpec.CpuArchitecture = "arm64"
