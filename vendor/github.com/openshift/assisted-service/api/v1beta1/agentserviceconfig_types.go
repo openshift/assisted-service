@@ -172,7 +172,7 @@ type AgentServiceConfigStatus struct {
 
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
-// +kubebuilder:resource:scope=Cluster
+// +kubebuilder:resource:scope=Namespaced
 
 // AgentServiceConfig represents an Assisted Service deployment.
 // Only an AgentServiceConfig with name="agent" will be reconciled. All other

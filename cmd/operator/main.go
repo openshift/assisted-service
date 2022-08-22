@@ -141,7 +141,6 @@ func main() {
 		Log:          logrus.New(),
 		Scheme:       mgr.GetScheme(),
 		Recorder:     mgr.GetEventRecorderFor("agentserviceconfig-controller"),
-		Namespace:    ns,
 		NodeSelector: nodeSelector,
 		Tolerations:  tolerations,
 	}).SetupWithManager(mgr); err != nil {
