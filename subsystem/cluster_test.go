@@ -909,9 +909,9 @@ var _ = Describe("Validate BaseDNSDomain when creating a cluster", func() {
 	}
 	tests := []DNSTest{
 		{
-			It:            "V2RegisterCluster should throw an error. BaseDNSDomain='example', not a valid DNS structure string",
+			It:            "V2RegisterCluster should not throw an error. BaseDNSDomain='example', valid DNS",
 			BaseDNSDomain: "example",
-			ShouldThrow:   true,
+			ShouldThrow:   false,
 		},
 		{
 			It:            "V2RegisterCluster should throw an error. BaseDNSDomain='example.c', Invalid top-level domain name ",

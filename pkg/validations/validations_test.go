@@ -149,25 +149,35 @@ var _ = Describe("URL validations", func() {
 })
 
 var _ = Describe("dns name", func() {
+	hugeDomainName := "DNSnamescancontainonlyalphabeticalcharactersa-znumericcharacters0-9theminussign-andtheperiod"
+	fqnHugeDomain := hugeDomainName + ".com"
 	tests := []struct {
 		domainName string
 		valid      bool
 	}{
+		{
+			domainName: hugeDomainName,
+			valid:      false,
+		},
+		{
+			domainName: fqnHugeDomain,
+			valid:      false,
+		},
 		{
 			domainName: "a.com",
 			valid:      true,
 		},
 		{
 			domainName: "a",
-			valid:      false,
+			valid:      true,
 		},
 		{
 			domainName: "co",
-			valid:      false,
+			valid:      true,
 		},
 		{
 			domainName: "aaa",
-			valid:      false,
+			valid:      true,
 		},
 		{
 			domainName: "abc.def",
@@ -175,6 +185,10 @@ var _ = Describe("dns name", func() {
 		},
 		{
 			domainName: "-aaa.com",
+			valid:      false,
+		},
+		{
+			domainName: "aaa-.com",
 			valid:      false,
 		},
 		{
