@@ -45,4 +45,6 @@ const (
 	StaticNetworkConfigUsage string = "Static Network Config"
 	// Usage of cluster tags feature
 	ClusterTags string = "Cluster Tags"
+	// Usage of LVM
+	LVM string = "LVM"
 )

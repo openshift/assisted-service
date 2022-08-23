@@ -35,6 +35,10 @@ var SupportLevelsList = models.FeatureSupportLevels{
 				FeatureID:    models.FeatureSupportLevelFeaturesItems0FeatureIDSINGLENODEEXPANSION,
 				SupportLevel: models.FeatureSupportLevelFeaturesItems0SupportLevelUnsupported,
 			},
+			{
+				FeatureID:    models.FeatureSupportLevelFeaturesItems0FeatureIDLVM,
+				SupportLevel: models.FeatureSupportLevelFeaturesItems0SupportLevelUnsupported,
+			},
 		},
 	},
 	&models.FeatureSupportLevel{
@@ -61,6 +65,10 @@ var SupportLevelsList = models.FeatureSupportLevels{
 			},
 			{
 				FeatureID:    models.FeatureSupportLevelFeaturesItems0FeatureIDSINGLENODEEXPANSION,
+				SupportLevel: models.FeatureSupportLevelFeaturesItems0SupportLevelUnsupported,
+			},
+			{
+				FeatureID:    models.FeatureSupportLevelFeaturesItems0FeatureIDLVM,
 				SupportLevel: models.FeatureSupportLevelFeaturesItems0SupportLevelUnsupported,
 			},
 		},
@@ -91,6 +99,10 @@ var SupportLevelsList = models.FeatureSupportLevels{
 				FeatureID:    models.FeatureSupportLevelFeaturesItems0FeatureIDSINGLENODEEXPANSION,
 				SupportLevel: models.FeatureSupportLevelFeaturesItems0SupportLevelUnsupported,
 			},
+			{
+				FeatureID:    models.FeatureSupportLevelFeaturesItems0FeatureIDLVM,
+				SupportLevel: models.FeatureSupportLevelFeaturesItems0SupportLevelUnsupported,
+			},
 		},
 	},
 	&models.FeatureSupportLevel{
@@ -119,6 +131,10 @@ var SupportLevelsList = models.FeatureSupportLevels{
 				FeatureID:    models.FeatureSupportLevelFeaturesItems0FeatureIDSINGLENODEEXPANSION,
 				SupportLevel: models.FeatureSupportLevelFeaturesItems0SupportLevelUnsupported,
 			},
+			{
+				FeatureID:    models.FeatureSupportLevelFeaturesItems0FeatureIDLVM,
+				SupportLevel: models.FeatureSupportLevelFeaturesItems0SupportLevelUnsupported,
+			},
 		},
 	},
 	&models.FeatureSupportLevel{
@@ -139,6 +155,10 @@ var SupportLevelsList = models.FeatureSupportLevels{
 			},
 			{
 				FeatureID:    models.FeatureSupportLevelFeaturesItems0FeatureIDSINGLENODEEXPANSION,
+				SupportLevel: models.FeatureSupportLevelFeaturesItems0SupportLevelSupported,
+			},
+			{
+				FeatureID:    models.FeatureSupportLevelFeaturesItems0FeatureIDLVM,
 				SupportLevel: models.FeatureSupportLevelFeaturesItems0SupportLevelSupported,
 			},
 			// Dev-Preview features
