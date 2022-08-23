@@ -157,6 +157,38 @@ var SupportLevelsList = models.FeatureSupportLevels{
 				FeatureID:    models.FeatureSupportLevelFeaturesItems0FeatureIDSINGLENODEEXPANSION,
 				SupportLevel: models.FeatureSupportLevelFeaturesItems0SupportLevelSupported,
 			},
+			// Dev-Preview features
+			{
+				FeatureID:    models.FeatureSupportLevelFeaturesItems0FeatureIDVIPAUTOALLOC,
+				SupportLevel: models.FeatureSupportLevelFeaturesItems0SupportLevelDevPreview,
+			},
+			{
+				FeatureID:    models.FeatureSupportLevelFeaturesItems0FeatureIDLVM,
+				SupportLevel: models.FeatureSupportLevelFeaturesItems0SupportLevelSupported,
+			},
+			// Unsupported features
+		},
+	},
+	&models.FeatureSupportLevel{
+		OpenshiftVersion: "4.12",
+		Features: []*models.FeatureSupportLevelFeaturesItems0{
+			// Supported
+			{
+				FeatureID:    models.FeatureSupportLevelFeaturesItems0FeatureIDSNO,
+				SupportLevel: models.FeatureSupportLevelFeaturesItems0SupportLevelSupported,
+			},
+			{
+				FeatureID:    models.FeatureSupportLevelFeaturesItems0FeatureIDARM64ARCHITECTURE,
+				SupportLevel: models.FeatureSupportLevelFeaturesItems0SupportLevelSupported,
+			},
+			{
+				FeatureID:    models.FeatureSupportLevelFeaturesItems0FeatureIDARM64ARCHITECTUREWITHCLUSTERMANAGEDNETWORKING,
+				SupportLevel: models.FeatureSupportLevelFeaturesItems0SupportLevelSupported,
+			},
+			{
+				FeatureID:    models.FeatureSupportLevelFeaturesItems0FeatureIDSINGLENODEEXPANSION,
+				SupportLevel: models.FeatureSupportLevelFeaturesItems0SupportLevelSupported,
+			},
 			{
 				FeatureID:    models.FeatureSupportLevelFeaturesItems0FeatureIDLVM,
 				SupportLevel: models.FeatureSupportLevelFeaturesItems0SupportLevelSupported,
