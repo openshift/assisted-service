@@ -34,7 +34,7 @@ data:
       "editable": true,
       "fiscalYearStartMonth": 0,
       "graphTooltip": 0,
-      "iteration": 1654594719483,
+      "iteration": 1661249084120,
       "links": [],
       "liveNow": false,
       "panels": [
@@ -101,7 +101,7 @@ data:
             "showThresholdMarkers": true,
             "text": {}
           },
-          "pluginVersion": "8.5.2",
+          "pluginVersion": "9.0.3",
           "targets": [
             {
               "datasource": {
@@ -194,7 +194,7 @@ data:
             "showThresholdMarkers": true,
             "text": {}
           },
-          "pluginVersion": "8.5.2",
+          "pluginVersion": "9.0.3",
           "targets": [
             {
               "datasource": {
@@ -226,6 +226,7 @@ data:
         },
         {
           "datasource": {
+            "type": "prometheus",
             "uid": "${datasource}"
           },
           "fieldConfig": {
@@ -278,9 +279,13 @@ data:
             "text": {},
             "textMode": "auto"
           },
-          "pluginVersion": "8.5.2",
+          "pluginVersion": "9.0.3",
           "targets": [
             {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "gH4yqWBnz"
+              },
               "expr": "sum (container_network_receive_bytes_total{namespace=\"$namespace\",pod=~\"assisted-service-.*\"})",
               "interval": "",
               "legendFormat": "",
@@ -344,7 +349,7 @@ data:
             "text": {},
             "textMode": "auto"
           },
-          "pluginVersion": "8.5.2",
+          "pluginVersion": "9.0.3",
           "targets": [
             {
               "expr": "sum (container_network_transmit_bytes_total{namespace=\"$namespace\",pod=~\"assisted-service-.*\"})",
@@ -400,7 +405,7 @@ data:
             "alertThreshold": true
           },
           "percentage": false,
-          "pluginVersion": "8.5.2",
+          "pluginVersion": "9.0.3",
           "pointradius": 5,
           "points": false,
           "renderer": "flot",
@@ -553,7 +558,7 @@ data:
             "alertThreshold": true
           },
           "percentage": false,
-          "pluginVersion": "8.5.2",
+          "pluginVersion": "9.0.3",
           "pointradius": 5,
           "points": false,
           "renderer": "flot",
@@ -682,7 +687,7 @@ data:
             "alertThreshold": true
           },
           "percentage": false,
-          "pluginVersion": "8.5.2",
+          "pluginVersion": "9.0.3",
           "pointradius": 5,
           "points": false,
           "renderer": "flot",
@@ -819,7 +824,7 @@ data:
             "alertThreshold": true
           },
           "percentage": false,
-          "pluginVersion": "8.5.2",
+          "pluginVersion": "9.0.3",
           "pointradius": 5,
           "points": false,
           "renderer": "flot",
@@ -872,6 +877,133 @@ data:
           "yaxis": {
             "align": false
           }
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "description": "5XX errors from OCM gateway to Assisted Installer Service, passing through Openshift Router",
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "axisLabel": "",
+                "axisPlacement": "auto",
+                "barAlignment": 0,
+                "drawStyle": "line",
+                "fillOpacity": 0,
+                "gradientMode": "none",
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "lineInterpolation": "linear",
+                "lineWidth": 1,
+                "pointSize": 5,
+                "scaleDistribution": {
+                  "log": 2,
+                  "type": "log"
+                },
+                "showPoints": "auto",
+                "spanNulls": false,
+                "stacking": {
+                  "group": "A",
+                  "mode": "normal"
+                },
+                "thresholdsStyle": {
+                  "mode": "off"
+                }
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  },
+                  {
+                    "color": "red",
+                    "value": 80
+                  }
+                ]
+              }
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 0,
+            "y": 39
+          },
+          "id": 39,
+          "options": {
+            "legend": {
+              "calcs": [],
+              "displayMode": "list",
+              "placement": "bottom"
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "none"
+            }
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              },
+              "editorMode": "code",
+              "expr": "sum(increase(http_request_duration_seconds_count{namespace=\"$namespace\",code=~\"5..\"}[10m])) by (code)",
+              "legendFormat": "Assisted Installer {{ code }}",
+              "range": true,
+              "refId": "A"
+            },
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              },
+              "editorMode": "code",
+              "expr": "sum(increase(envoy_cluster_upstream_rq{namespace=\"$ocm_gateway_name\",envoy_cluster_name=\"assisted-install\",envoy_response_code=~\"5..\"}[10m])) by (envoy_response_code)",
+              "hide": false,
+              "legendFormat": "OCM Gateway {{envoy_response_code}}",
+              "range": true,
+              "refId": "B"
+            },
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              },
+              "editorMode": "code",
+              "expr": "sum(rate(envoy_cluster_upstream_rq_retry{namespace=\"$ocm_gateway_name\",envoy_cluster_name=\"assisted-install\"}[10m]))",
+              "hide": false,
+              "legendFormat": "OCM Gateway Retries",
+              "range": true,
+              "refId": "C"
+            },
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              },
+              "editorMode": "code",
+              "expr": "sum(rate(haproxy_server_http_responses_total{route=\"assisted-service\",code=\"5xx\"}[10m])) * 600",
+              "hide": false,
+              "legendFormat": "Openshift Router 5XX",
+              "range": true,
+              "refId": "D"
+            }
+          ],
+          "title": "5XX errors",
+          "type": "timeseries"
         }
       ],
       "refresh": false,
@@ -882,7 +1014,7 @@ data:
         "list": [
           {
             "current": {
-              "selected": false,
+              "selected": true,
               "text": "app-sre-prod-04-prometheus",
               "value": "app-sre-prod-04-prometheus"
             },
@@ -936,6 +1068,10 @@ data:
               "text": "None",
               "value": ""
             },
+            "datasource": {
+              "type": "prometheus",
+              "uid": "tuHy3WB7z"
+            },
             "definition": "",
             "hide": 0,
             "includeAll": false,
@@ -944,6 +1080,32 @@ data:
             "options": [],
             "query": {
               "query": "",
+              "refId": "StandardVariableQuery"
+            },
+            "refresh": 1,
+            "regex": "",
+            "skipUrlSync": false,
+            "sort": 0,
+            "type": "query"
+          },
+          {
+            "current": {
+              "selected": false,
+              "text": "uhc-production",
+              "value": "uhc-production"
+            },
+            "datasource": {
+              "type": "prometheus",
+              "uid": "${datasource}"
+            },
+            "definition": "label_values(envoy_cluster_upstream_rq{namespace=~\"uhc.*\"}, namespace)",
+            "hide": 2,
+            "includeAll": false,
+            "multi": false,
+            "name": "ocm_gateway_name",
+            "options": [],
+            "query": {
+              "query": "label_values(envoy_cluster_upstream_rq{namespace=~\"uhc.*\"}, namespace)",
               "refId": "StandardVariableQuery"
             },
             "refresh": 1,
@@ -986,6 +1148,6 @@ data:
       "timezone": "",
       "title": "Assisted Service Resource Dashboard",
       "uid": "assisted-service-resource-dashboard",
-      "version": 32,
+      "version": 447,
       "weekStart": ""
     }
