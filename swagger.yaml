@@ -3594,6 +3594,7 @@ definitions:
               - 'ARM64_ARCHITECTURE'
               - 'ARM64_ARCHITECTURE_WITH_CLUSTER_MANAGED_NETWORKING'
               - 'SINGLE_NODE_EXPANSION'
+              - 'LVM'
             support_level:
               type: string
               enum: [supported, unsupported, tech-preview, dev-preview]
