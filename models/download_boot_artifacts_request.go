@@ -19,6 +19,11 @@ import (
 // swagger:model download_boot_artifacts_request
 type DownloadBootArtifactsRequest struct {
 
+	// The base directory on the host that contains the /boot folder. The host will download boot
+	// artifacts into a folder in this directory.
+	// Required: true
+	HostFsMountDir *string `json:"host_fs_mount_dir"`
+
 	// URL address to download the initrd.
 	// Required: true
 	InitrdURL *string `json:"initrd_url"`
@@ -36,6 +41,10 @@ type DownloadBootArtifactsRequest struct {
 func (m *DownloadBootArtifactsRequest) Validate(formats strfmt.Registry) error {
 	var res []error
 
+	if err := m.validateHostFsMountDir(formats); err != nil {
+		res = append(res, err)
+	}
+
 	if err := m.validateInitrdURL(formats); err != nil {
 		res = append(res, err)
 	}
@@ -51,6 +60,15 @@ func (m *DownloadBootArtifactsRequest) Validate(formats strfmt.Registry) error {
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}
+	return nil
+}
+
+func (m *DownloadBootArtifactsRequest) validateHostFsMountDir(formats strfmt.Registry) error {
+
+	if err := validate.Required("host_fs_mount_dir", "body", m.HostFsMountDir); err != nil {
+		return err
+	}
+
 	return nil
 }
 

@@ -5469,6 +5469,7 @@ definitions:
       - kernel_url
       - rootfs_url
       - initrd_url
+      - host_fs_mount_dir
     properties:
       kernel_url:
         type: string
@@ -5479,6 +5480,23 @@ definitions:
       initrd_url:
         type: string
         description: URL address to download the initrd.
+      host_fs_mount_dir:
+        type: string
+        description: |-
+          The base directory on the host that contains the /boot folder. The host will download boot
+          artifacts into a folder in this directory.
+
+  reboot_for_reclaim_request:
+    type: object
+    description: Information sent to the agent for rebooting a host into discovery.
+    required:
+      - host_fs_mount_dir
+    properties:
+      host_fs_mount_dir:
+        type: string
+        description: |-
+          The base directory on the host that contains the /boot folder. The host needs to
+          chroot into this directory in order to properly reboot.
 
   api_vip_connectivity_request:
     type: object
