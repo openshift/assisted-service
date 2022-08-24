@@ -164,7 +164,7 @@ var SupportLevelsList = models.FeatureSupportLevels{
 			},
 			{
 				FeatureID:    models.FeatureSupportLevelFeaturesItems0FeatureIDLVM,
-				SupportLevel: models.FeatureSupportLevelFeaturesItems0SupportLevelSupported,
+				SupportLevel: models.FeatureSupportLevelFeaturesItems0SupportLevelDevPreview,
 			},
 			// Unsupported features
 		},
