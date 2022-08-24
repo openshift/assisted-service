@@ -1649,6 +1649,12 @@ paths:
           required: false
           type: string
           enum: ['discovery-image-always', 'boot-order-control']
+        - in: query
+          name: discovery_iso_type
+          description: Overrides the ISO type for the disovery ignition, either 'full-iso' or 'minimal-iso'.
+          required: false
+          type: string
+          enum: ['full-iso', 'minimal-iso']
       responses:
         "200":
           description: Success.

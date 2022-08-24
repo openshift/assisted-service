@@ -18,9 +18,10 @@ import (
 type V2DownloadInfraEnvFilesURL struct {
 	InfraEnvID strfmt.UUID
 
-	FileName       string
-	IpxeScriptType *string
-	Mac            *strfmt.MAC
+	DiscoveryIsoType *string
+	FileName         string
+	IpxeScriptType   *string
+	Mac              *strfmt.MAC
 
 	_basePath string
 	// avoid unkeyed usage
@@ -62,6 +63,14 @@ func (o *V2DownloadInfraEnvFilesURL) Build() (*url.URL, error) {
 	_result.Path = golangswaggerpaths.Join(_basePath, _path)
 
 	qs := make(url.Values)
+
+	var discoveryIsoTypeQ string
+	if o.DiscoveryIsoType != nil {
+		discoveryIsoTypeQ = *o.DiscoveryIsoType
+	}
+	if discoveryIsoTypeQ != "" {
+		qs.Set("discovery_iso_type", discoveryIsoTypeQ)
+	}
 
 	fileNameQ := o.FileName
 	if fileNameQ != "" {

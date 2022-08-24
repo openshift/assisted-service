@@ -3264,6 +3264,16 @@ func init() {
             "description": "Specify the script type to be served for iPXE.",
             "name": "ipxe_script_type",
             "in": "query"
+          },
+          {
+            "enum": [
+              "full-iso",
+              "minimal-iso"
+            ],
+            "type": "string",
+            "description": "Overrides the ISO type for the disovery ignition, either 'full-iso' or 'minimal-iso'.",
+            "name": "discovery_iso_type",
+            "in": "query"
           }
         ],
         "responses": {
@@ -12569,6 +12579,16 @@ func init() {
             "type": "string",
             "description": "Specify the script type to be served for iPXE.",
             "name": "ipxe_script_type",
+            "in": "query"
+          },
+          {
+            "enum": [
+              "full-iso",
+              "minimal-iso"
+            ],
+            "type": "string",
+            "description": "Overrides the ISO type for the disovery ignition, either 'full-iso' or 'minimal-iso'.",
+            "name": "discovery_iso_type",
             "in": "query"
           }
         ],
