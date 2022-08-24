@@ -93,29 +93,52 @@ func (h *handler) V2ListSupportedOpenshiftVersions(ctx context.Context, params o
 	openshiftVersions := models.OpenshiftVersions{}
 
 	for _, releaseImage := range h.releaseImages {
-		key := *releaseImage.OpenshiftVersion
-		if swag.StringValue(releaseImage.CPUArchitecture) == "" {
-			// Empty implies default architecture
-			*releaseImage.CPUArchitecture = common.DefaultCPUArchitecture
+		supportedArchs := releaseImage.CPUArchitectures
+		// We need to have backwards-compatibility for release images that provide supported
+		// architecture only as string and not []string. This code should be unreachable as
+		// at this moment we should have already propagated []string in the init handler for
+		// Versions, but for safety an additional check is added here.
+		if len(supportedArchs) == 0 {
+			supportedArchs = []string{*releaseImage.CPUArchitecture}
 		}
 
-		openshiftVersion, exists := openshiftVersions[key]
-		if !exists {
-			openshiftVersion = models.OpenshiftVersion{
-				CPUArchitectures: []string{*releaseImage.CPUArchitecture},
-				Default:          releaseImage.Default,
-				DisplayName:      releaseImage.Version,
-				SupportLevel:     h.getSupportLevel(*releaseImage),
+		for _, arch := range supportedArchs {
+			key := *releaseImage.OpenshiftVersion
+			if arch == "" {
+				// Empty implies default architecture
+				arch = common.DefaultCPUArchitecture
 			}
-			openshiftVersions[key] = openshiftVersion
-		} else {
-			openshiftVersion.CPUArchitectures = append(
-				openshiftVersion.CPUArchitectures, *releaseImage.CPUArchitecture)
-			if *releaseImage.CPUArchitecture == common.DefaultCPUArchitecture {
-				// Default flag is specified on x86 image
-				openshiftVersion.Default = releaseImage.Default
+
+			openshiftVersion, exists := openshiftVersions[key]
+			if !exists {
+				openshiftVersion = models.OpenshiftVersion{
+					CPUArchitectures: []string{arch},
+					Default:          releaseImage.Default,
+					DisplayName:      releaseImage.Version,
+					SupportLevel:     h.getSupportLevel(*releaseImage),
+				}
+				openshiftVersions[key] = openshiftVersion
+			} else {
+				// For backwards compatibility we handle a scenario when single-arch image exists
+				// next to the multi-arch one containing the same architecture. We want to avoid
+				// duplicated entry in such a case.
+				exists := func(slice []string, x string) bool {
+					for _, elem := range slice {
+						if x == elem {
+							return true
+						}
+					}
+					return false
+				}
+				if !exists(openshiftVersion.CPUArchitectures, arch) {
+					openshiftVersion.CPUArchitectures = append(openshiftVersion.CPUArchitectures, arch)
+				}
+				if arch == common.DefaultCPUArchitecture {
+					// Default flag is specified on x86 image
+					openshiftVersion.Default = releaseImage.Default
+				}
+				openshiftVersions[key] = openshiftVersion
 			}
-			openshiftVersions[key] = openshiftVersion
 		}
 	}
 	return operations.NewV2ListSupportedOpenshiftVersionsOK().WithPayload(openshiftVersions)
