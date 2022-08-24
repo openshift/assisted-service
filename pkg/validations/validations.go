@@ -14,6 +14,7 @@ import (
 )
 
 const (
+	baseDomainRegex          = "^([a-z0-9]+(-[a-z0-9]+)*)+$"
 	dnsNameRegex             = "^([a-z0-9]+(-[a-z0-9]+)*[.])+[a-z]{2,}$"
 	hostnameRegex            = `^[a-z0-9][a-z0-9\-\.]{0,61}[a-z0-9]$`
 	installerArgsValuesRegex = `^[A-Za-z0-9@!#$%*()_+-=//.,";':{}\[\]]+$`
@@ -42,7 +43,14 @@ func ValidateInstallerArgs(args []string) error {
 }
 
 func ValidateDomainNameFormat(dnsDomainName string) (int32, error) {
-	matched, err := regexp.MatchString(dnsNameRegex, dnsDomainName)
+	matched, err := regexp.MatchString(baseDomainRegex, dnsDomainName)
+	if err != nil {
+		return http.StatusInternalServerError, errors.Wrapf(err, "Single DNS base domain validation for %s", dnsDomainName)
+	}
+	if matched {
+		return 0, nil
+	}
+	matched, err = regexp.MatchString(dnsNameRegex, dnsDomainName)
 	if err != nil {
 		return http.StatusInternalServerError, errors.Wrapf(err, "DNS name validation for %s", dnsDomainName)
 	}
