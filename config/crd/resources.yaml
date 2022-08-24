@@ -1532,6 +1532,15 @@ spec:
                       backing this claim.
                     type: string
                 type: object
+              kubeconfigSecretRef:
+                description: KubeconfigSecretRef is the reference to the Secret containing
+                  a kubeconfig of an external control plane (e.g. hypershift HostCluster).
+                properties:
+                  name:
+                    description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                      TODO: Add other useful fields. apiVersion, kind, uid?'
+                    type: string
+                type: object
               mirrorRegistryRef:
                 description: 'MirrorRegistryRef is the reference to the configmap
                   that contains mirror registry configuration In case no configuration

@@ -64,11 +64,15 @@ import (
 const (
 	// agentServiceConfigName is the one and only name for an AgentServiceConfig
 	// supported in the cluster. Any others will be ignored.
-	agentServiceConfigName        = "agent"
-	serviceName            string = "assisted-service"
-	imageServiceName       string = "assisted-image-service"
-	webhookServiceName     string = "agentinstalladmission"
-	databaseName           string = "postgres"
+	agentServiceConfigName            = "agent"
+	serviceName                string = "assisted-service"
+	imageServiceName           string = "assisted-image-service"
+	webhookServiceName         string = "agentinstalladmission"
+	databaseName               string = "postgres"
+	kubeconfigSecretVolumeName string = "kubeconfig"
+	kubeconfigSecretVolumePath string = "/etc/kube"
+	kubeconfigPath             string = "/etc/kube/kubeconfig"
+	kubeconfigKeyInSecret      string = "kubeconfig"
 
 	databasePasswordLength   int = 16
 	agentLocalAuthSecretName     = serviceName + "local-auth" // #nosec
@@ -1324,8 +1328,26 @@ func (r *AgentServiceConfigReconciler) newAssistedServiceDeployment(ctx context.
 		newSecretEnvVar("EC_PRIVATE_KEY_PEM", "ec-private-key.pem", agentLocalAuthSecretName),
 	}
 
+	if instance.Spec.KubeconfigSecretRef != nil {
+		if err = r.validateKubeconfigSecretRef(ctx, instance); err != nil {
+			return nil, nil, err
+		}
+
+		// kubeconfig of an external control plane
+		envSecrets = append(envSecrets, corev1.EnvVar{Name: "KUBECONFIG", Value: kubeconfigPath})
+	}
+
 	if r.exposeIPXEHTTPRoute(instance) {
 		envSecrets = append(envSecrets, corev1.EnvVar{Name: "HTTP_LISTEN_PORT", Value: serviceHTTPPort.String()})
+	}
+
+	volumeMounts := []corev1.VolumeMount{
+		{Name: "bucket-filesystem", MountPath: "/data"},
+		{Name: "tls-certs", MountPath: "/etc/assisted-tls-config"},
+		{Name: "ingress-cert", MountPath: "/etc/assisted-ingress-cert"},
+	}
+	if instance.Spec.KubeconfigSecretRef != nil {
+		volumeMounts = append(volumeMounts, corev1.VolumeMount{Name: kubeconfigSecretVolumeName, MountPath: kubeconfigSecretVolumePath})
 	}
 
 	envFrom := []corev1.EnvFromSource{
@@ -1374,13 +1396,9 @@ func (r *AgentServiceConfigReconciler) newAssistedServiceDeployment(ctx context.
 				Protocol:      corev1.ProtocolTCP,
 			},
 		},
-		EnvFrom: envFrom,
-		Env:     envSecrets,
-		VolumeMounts: []corev1.VolumeMount{
-			{Name: "bucket-filesystem", MountPath: "/data"},
-			{Name: "tls-certs", MountPath: "/etc/assisted-tls-config"},
-			{Name: "ingress-cert", MountPath: "/etc/assisted-ingress-cert"},
-		},
+		EnvFrom:      envFrom,
+		Env:          envSecrets,
+		VolumeMounts: volumeMounts,
 		Resources: corev1.ResourceRequirements{
 			Requests: corev1.ResourceList{
 				corev1.ResourceCPU:    resource.MustParse("200m"),
@@ -1472,6 +1490,20 @@ func (r *AgentServiceConfigReconciler) newAssistedServiceDeployment(ctx context.
 				},
 			},
 		},
+	}
+
+	if instance.Spec.KubeconfigSecretRef != nil {
+		// kubeconfig of an external control plane
+		volumes = append(volumes,
+			corev1.Volume{
+				Name: kubeconfigSecretVolumeName,
+				VolumeSource: corev1.VolumeSource{
+					Secret: &corev1.SecretVolumeSource{
+						SecretName: instance.Spec.KubeconfigSecretRef.Name,
+					},
+				},
+			},
+		)
 	}
 
 	if instance.Spec.MirrorRegistryRef != nil {
@@ -1747,6 +1779,19 @@ func newSecretEnvVar(name, key, secretName string) corev1.EnvVar {
 			},
 		},
 	}
+}
+
+func (r *AgentServiceConfigReconciler) validateKubeconfigSecretRef(ctx context.Context, instance *aiv1beta1.AgentServiceConfig) error {
+	secretRef := types.NamespacedName{Namespace: instance.Namespace, Name: instance.Spec.KubeconfigSecretRef.Name}
+	secret, err := getSecret(ctx, r.Client, r, secretRef)
+	if err != nil {
+		return pkgerror.Wrapf(err, "Failed to get '%s' secret in '%s' namespace", secretRef.Name, secretRef.Namespace)
+	}
+	_, ok := secret.Data[kubeconfigKeyInSecret]
+	if !ok {
+		return pkgerror.Errorf("Secret '%s' does not contain '%s' key value", secretRef.Name, kubeconfigKeyInSecret)
+	}
+	return nil
 }
 
 func (r *AgentServiceConfigReconciler) newInfraEnvWebHook(ctx context.Context, log logrus.FieldLogger, instance *aiv1beta1.AgentServiceConfig) (client.Object, controllerutil.MutateFn, error) {
