@@ -34,7 +34,7 @@ data:
       "editable": true,
       "fiscalYearStartMonth": 0,
       "graphTooltip": 0,
-      "iteration": 1661249084120,
+      "iteration": 1661354681601,
       "links": [],
       "liveNow": false,
       "panels": [
@@ -983,7 +983,7 @@ data:
                 "uid": "${datasource}"
               },
               "editorMode": "code",
-              "expr": "sum(rate(envoy_cluster_upstream_rq_retry{namespace=\"$ocm_gateway_name\",envoy_cluster_name=\"assisted-install\"}[10m]))",
+              "expr": "sum(rate(envoy_cluster_upstream_rq_retry{namespace=\"$ocm_gateway_name\",envoy_cluster_name=\"assisted-install\"}[10m])) * 600",
               "hide": false,
               "legendFormat": "OCM Gateway Retries",
               "range": true,
@@ -1148,6 +1148,6 @@ data:
       "timezone": "",
       "title": "Assisted Service Resource Dashboard",
       "uid": "assisted-service-resource-dashboard",
-      "version": 447,
+      "version": 451,
       "weekStart": ""
     }
