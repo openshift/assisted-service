@@ -101,7 +101,7 @@ metadata:
       ]
     capabilities: Basic Install
     categories: OpenShift Optional
-    containerImage: quay.io/edge-infrastructure/assisted-service:latest
+    containerImage: quay.io/derez/assisted-service:test
     createdAt: ""
     description: The Infrastructure Operator for Red Hat OpenShift is responsible
       for managing the deployment of the Assisted Service.
@@ -159,6 +159,10 @@ spec:
           is provided 2GiB per OSImage entry is required
         displayName: Storage for images
         path: imageStorage
+      - description: KubeconfigSecretRef is the reference to the Secret containing
+          a kubeconfig of an external control plane (e.g. hypershift HostCluster).
+        displayName: Control plane kubeconfig reference
+        path: kubeconfigSecretRef
       - description: 'MirrorRegistryRef is the reference to the configmap that contains
           mirror registry configuration In case no configuration is need, this field
           will be nil. ConfigMap must contain to entries: ca-bundle.crt - hold the
@@ -725,7 +729,7 @@ spec:
                 - /assisted-service-operator
                 env:
                 - name: SERVICE_IMAGE
-                  value: quay.io/edge-infrastructure/assisted-service:latest
+                  value: quay.io/derez/assisted-service:test
                 - name: IMAGE_SERVICE_IMAGE
                   value: quay.io/edge-infrastructure/assisted-image-service:latest
                 - name: DATABASE_IMAGE
@@ -750,7 +754,7 @@ spec:
                   valueFrom:
                     fieldRef:
                       fieldPath: metadata.name
-                image: quay.io/edge-infrastructure/assisted-service:latest
+                image: quay.io/derez/assisted-service:test
                 livenessProbe:
                   httpGet:
                     path: /healthz
@@ -863,7 +867,7 @@ spec:
   provider:
     name: Red Hat
   relatedImages:
-  - image: quay.io/edge-infrastructure/assisted-service:latest
+  - image: quay.io/derez/assisted-service:test
     name: controller
   - image: quay.io/edge-infrastructure/assisted-image-service:latest
     name: image-service

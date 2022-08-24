@@ -39,6 +39,7 @@ const (
 	testHost                         = "my.test"
 	testConfigmapName                = "test-configmap"
 	testMirrorRegConfigmapName       = "test-mirror-configmap"
+	testKubeconfigName               = "external-cluster-kubeconfig"
 )
 
 func newTestReconciler(initObjs ...runtime.Object) *AgentServiceConfigReconciler {
@@ -1341,6 +1342,82 @@ var _ = Describe("ensureAssistedServiceDeployment", func() {
 		})
 	})
 
+	Describe("AgentServiceConfig - KubeconfigSecretRef", func() {
+		Context("valid KubeconfigSecretRef", func() {
+			It("should reconcile successfully", func() {
+				asc = newASCWithKubeconfigSecretRef(testKubeconfigName)
+				ascr = newTestReconciler(asc, route, assistedCM)
+
+				kubeconfigSecret := &corev1.Secret{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      testKubeconfigName,
+						Namespace: testNamespace,
+					},
+					Data: map[string][]byte{
+						kubeconfigKeyInSecret: []byte(BASIC_KUBECONFIG),
+					},
+					Type: corev1.SecretTypeOpaque,
+				}
+				Expect(ascr.Client.Create(ctx, kubeconfigSecret)).To(Succeed())
+
+				AssertReconcileSuccess(ctx, log, ascr.Client, asc, ascr.newAssistedServiceDeployment)
+
+				found := &appsv1.Deployment{}
+				Expect(ascr.Client.Get(ctx, types.NamespacedName{Name: serviceName, Namespace: testNamespace}, found)).To(Succeed())
+				Expect(found.Spec.Template.Spec.Containers[0].VolumeMounts).Should(ContainElement(
+					corev1.VolumeMount{
+						Name:      kubeconfigSecretVolumeName,
+						MountPath: kubeconfigSecretVolumePath,
+					}),
+				)
+				Expect(found.Spec.Template.Spec.Volumes).Should(ContainElement(
+					corev1.Volume{
+						Name: kubeconfigSecretVolumeName,
+						VolumeSource: corev1.VolumeSource{
+							Secret: &corev1.SecretVolumeSource{
+								SecretName: testKubeconfigName,
+							},
+						},
+					}),
+				)
+			})
+		})
+
+		Context("invalid KubeconfigSecretRef", func() {
+			It("missing kubeconfig secret", func() {
+				asc = newASCWithKubeconfigSecretRef(testKubeconfigName)
+				ascr = newTestReconciler(asc, route, assistedCM)
+
+				_, _, err := ascr.newAssistedServiceDeployment(ctx, log, asc)
+				Expect(err).ToNot(BeNil())
+				Expect(err.Error()).To(ContainSubstring(
+					fmt.Sprintf("Failed to get '%s' secret in '%s' namespace", testKubeconfigName, testNamespace)))
+			})
+
+			It("invalid key in kubeconfig secret", func() {
+				asc = newASCWithKubeconfigSecretRef(testKubeconfigName)
+				ascr = newTestReconciler(asc, route, assistedCM)
+
+				kubeconfigSecret := &corev1.Secret{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      testKubeconfigName,
+						Namespace: testNamespace,
+					},
+					Data: map[string][]byte{
+						"invalid": []byte(BASIC_KUBECONFIG),
+					},
+					Type: corev1.SecretTypeOpaque,
+				}
+				Expect(ascr.Client.Create(ctx, kubeconfigSecret)).To(Succeed())
+
+				_, _, err := ascr.newAssistedServiceDeployment(ctx, log, asc)
+				Expect(err).ToNot(BeNil())
+				Expect(err.Error()).To(ContainSubstring(
+					fmt.Sprintf("Secret '%s' does not contain '%s' key value", testKubeconfigName, kubeconfigKeyInSecret)))
+			})
+		})
+	})
+
 	It("should expose two ports for ipxe", func() {
 		asc = newASCDefault()
 		ascr = newTestReconciler(asc, route, assistedCM)
@@ -1708,6 +1785,14 @@ func newASCWithMirrorRegistryConfig() *aiv1beta1.AgentServiceConfig {
 	asc := newASCDefault()
 	asc.Spec.MirrorRegistryRef = &corev1.LocalObjectReference{
 		Name: testMirrorRegConfigmapName,
+	}
+	return asc
+}
+
+func newASCWithKubeconfigSecretRef(secretName string) *aiv1beta1.AgentServiceConfig {
+	asc := newASCDefault()
+	asc.Spec.KubeconfigSecretRef = &corev1.LocalObjectReference{
+		Name: secretName,
 	}
 	return asc
 }

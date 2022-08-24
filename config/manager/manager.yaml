@@ -27,11 +27,11 @@ spec:
         - /assisted-service-operator
         args:
         - --leader-elect
-        image: quay.io/edge-infrastructure/assisted-service:latest
+        image: quay.io/derez/assisted-service:test
         name: manager
         env:
           - name: SERVICE_IMAGE
-            value: quay.io/edge-infrastructure/assisted-service:latest
+            value: quay.io/derez/assisted-service:test
           - name: IMAGE_SERVICE_IMAGE
             value: quay.io/edge-infrastructure/assisted-image-service:latest
           - name: DATABASE_IMAGE
