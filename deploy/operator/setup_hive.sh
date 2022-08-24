@@ -82,6 +82,9 @@ function from_upstream() {
         export IMG="${HIVE_IMAGE}"
     fi
 
+    ### XXX(chocobomb)
+    export IMG="quay.io/mold/hive:ai-test-fix"
+
     make deploy HIVE_OPERATOR_NS="${HIVE_NAMESPACE}" HIVE_NS="${HIVE_NAMESPACE}"
     wait_for_pod "hive-operator" "${HIVE_NAMESPACE}" "control-plane=hive-operator"
     wait_for_pod "hive-controllers" "${HIVE_NAMESPACE}" "control-plane=controller-manager"
