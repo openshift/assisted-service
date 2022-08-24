@@ -168,16 +168,6 @@ func (h *handler) GetDefaultReleaseImage(cpuArchitecture string) (*models.Releas
 
 // Returns the OsImage entity
 func (h *handler) GetOsImage(openshiftVersion, cpuArchitecture string) (*models.OsImage, error) {
-	// For multiarch clusters we are offloading the validation checking for existing OS image matching the version
-	// and the architecture directly to the InfraEnv. This is because Cluster object on its own cannot know which
-	// architecture is going to be used and we cannot enforce that OS images exist for every architecture from the
-	// multiarch release image.
-	// In the multiarch scenario it's up to the InfraEnv's ISO generation part to detect whether the required
-	// OS image exists or not. This is because we still have InfraEnvs per-architecture and don't allow for multiarch
-	// InfraEnvs. Based on that, it's reasonable to skip the validation for Cluster and let InfraEnv handle it.
-	if cpuArchitecture == common.MultiCPUArchitecture {
-		return nil, nil
-	}
 	if cpuArchitecture == "" {
 		// Empty implies default CPU architecture
 		cpuArchitecture = common.DefaultCPUArchitecture
@@ -283,12 +273,6 @@ func (h *handler) GetReleaseImage(openshiftVersion, cpuArchitecture string) (*mo
 
 // Returns the latest OSImage entity for a specified CPU architecture
 func (h *handler) GetLatestOsImage(cpuArchitecture string) (*models.OsImage, error) {
-	// For multiarch we are not returning any OS image. This is because at this moment there is no multiarch OS image,
-	// therefore a specific architecture has to always be requested. This is handled by the fact that InfraEnv always
-	// specifies an architecture and "multiarch" is valid only as a Cluster property.
-	if cpuArchitecture == common.MultiCPUArchitecture {
-		return nil, nil
-	}
 	var latest *models.OsImage
 	openshiftVersions := h.GetOpenshiftVersions()
 	for _, k := range openshiftVersions {

@@ -5567,7 +5567,7 @@ var _ = Describe("infraEnvs", func() {
 
 			mockEvents.EXPECT().SendInfraEnvEvent(ctx, eventstest.NewEventMatcher(
 				eventstest.WithNameMatcher(eventgen.InfraEnvRegistrationFailedEventName),
-				eventstest.WithMessageContainsMatcher("Specified CPU architecture doesn't match the cluster"))).Times(1)
+				eventstest.WithMessageContainsMatcher("Specified CPU architecture (arm64) doesn't match the cluster (x86_64)"))).Times(1)
 
 			reply := bm.RegisterInfraEnv(ctx, installer.RegisterInfraEnvParams{
 				InfraenvCreateParams: &models.InfraEnvCreateParams{
@@ -5578,7 +5578,37 @@ var _ = Describe("infraEnvs", func() {
 					CPUArchitecture:  common.ARM64CPUArchitecture,
 				},
 			})
-			verifyApiErrorString(reply, http.StatusBadRequest, "CPU architecture doesn't match")
+			Expect(reply).To(BeAssignableToTypeOf(common.NewApiError(http.StatusBadRequest, errors.Errorf(""))))
+		})
+
+		It("fail to create with multiarch Cluster and missing release image", func() {
+			MinimalOpenShiftVersionForNoneHA := "4.8.0-fc.0"
+
+			clusterID := strfmt.UUID(uuid.New().String())
+			cluster := common.Cluster{Cluster: models.Cluster{
+				ID:               &clusterID,
+				OpenshiftVersion: MinimalOpenShiftVersionForNoneHA,
+				CPUArchitecture:  common.MultiCPUArchitecture,
+			}}
+			err := db.Create(&cluster).Error
+			Expect(err).ShouldNot(HaveOccurred())
+
+			mockVersions.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any()).Return(
+				nil, errors.Errorf("The requested CPU architecture (chocobomb-architecture) isn't specified in release images list")).Times(1)
+			mockEvents.EXPECT().SendInfraEnvEvent(ctx, eventstest.NewEventMatcher(
+				eventstest.WithNameMatcher(eventgen.InfraEnvRegistrationFailedEventName),
+				eventstest.WithMessageContainsMatcher("The requested CPU architecture (chocobomb-architecture) isn't specified in release images list"))).Times(1)
+
+			reply := bm.RegisterInfraEnv(ctx, installer.RegisterInfraEnvParams{
+				InfraenvCreateParams: &models.InfraEnvCreateParams{
+					Name:             swag.String("some-infra-env-name"),
+					OpenshiftVersion: MinimalOpenShiftVersionForNoneHA,
+					PullSecret:       swag.String("{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"),
+					ClusterID:        &clusterID,
+					CPUArchitecture:  "chocobomb-architecture",
+				},
+			})
+			Expect(reply).To(BeAssignableToTypeOf(common.NewApiError(http.StatusBadRequest, errors.Errorf(""))))
 		})
 
 		It("Invalid Ignition - too recent", func() {
@@ -10396,6 +10426,25 @@ var _ = Describe("TestRegisterCluster", func() {
 		Expect(reflect.TypeOf(reply)).Should(Equal(reflect.TypeOf(installer.NewV2RegisterClusterCreated())))
 		actual := reply.(*installer.V2RegisterClusterCreated)
 		Expect(actual.Payload.CPUArchitecture).To(Equal(common.ARM64CPUArchitecture))
+	})
+
+	It("Register cluster with multiarch CPU architecture", func() {
+		mockClusterRegisterSuccess(true)
+		mockAMSSubscription(ctx)
+
+		reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
+			NewClusterParams: &models.ClusterCreateParams{
+				Name:                  swag.String("some-cluster-name"),
+				OpenshiftVersion:      swag.String(common.TestDefaultConfig.OpenShiftVersion),
+				CPUArchitecture:       common.MultiCPUArchitecture,
+				UserManagedNetworking: swag.Bool(true),
+				VipDhcpAllocation:     swag.Bool(false),
+				PullSecret:            swag.String("{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"),
+			},
+		})
+		Expect(reflect.TypeOf(reply)).Should(Equal(reflect.TypeOf(installer.NewV2RegisterClusterCreated())))
+		actual := reply.(*installer.V2RegisterClusterCreated)
+		Expect(actual.Payload.CPUArchitecture).To(Equal(common.MultiCPUArchitecture))
 	})
 
 	It("Register cluster with arm64 CPU architecture - without UserManagedNetworking", func() {

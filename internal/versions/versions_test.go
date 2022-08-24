@@ -308,7 +308,7 @@ var _ = Describe("list versions", func() {
 			osImage, err = h.GetOsImage(common.TestDefaultConfig.OpenShiftVersion, "unsupported")
 			Expect(err).Should(HaveOccurred())
 			Expect(osImage).Should(BeNil())
-			Expect(err.Error()).To(ContainSubstring("isn't specified"))
+			Expect(err.Error()).To(ContainSubstring("isn't specified in OS images list"))
 		})
 
 		It("empty architecture fallback to default", func() {
@@ -317,10 +317,11 @@ var _ = Describe("list versions", func() {
 			Expect(*osImage.CPUArchitecture).Should(Equal(common.DefaultCPUArchitecture))
 		})
 
-		It("multiarch returns empty OS image", func() {
+		It("multiarch returns error", func() {
 			osImage, err = h.GetOsImage("4.11", common.MultiCPUArchitecture)
-			Expect(err).ShouldNot(HaveOccurred())
+			Expect(err).Should(HaveOccurred())
 			Expect(osImage).Should(BeNil())
+			Expect(err.Error()).To(ContainSubstring("isn't specified in OS images list"))
 		})
 
 		It("fetch OS image by major.minor", func() {
@@ -390,6 +391,18 @@ var _ = Describe("list versions", func() {
 			Expect(err).Should(HaveOccurred())
 			Expect(releaseImage).Should(BeNil())
 			Expect(err.Error()).To(ContainSubstring("isn't specified in release images list"))
+		})
+
+		It("empty openshiftVersion", func() {
+			releaseImage, err = h.GetReleaseImage("", common.TestDefaultConfig.CPUArchitecture)
+			Expect(err).Should(HaveOccurred())
+			Expect(releaseImage).Should(BeNil())
+		})
+
+		It("empty cpuArchitecture", func() {
+			releaseImage, err = h.GetReleaseImage(common.TestDefaultConfig.OpenShiftVersion, "")
+			Expect(err).Should(HaveOccurred())
+			Expect(releaseImage).Should(BeNil())
 		})
 
 		It("fetch release image by major.minor", func() {
@@ -765,12 +778,13 @@ var _ = Describe("list versions", func() {
 			Expect(*osImage.CPUArchitecture).Should(Equal(common.TestDefaultConfig.CPUArchitecture))
 		})
 
-		It("Empty OS images for multiarch", func() {
+		It("fails to get OS images for multiarch", func() {
 			h, err = NewHandler(logger, mockRelease, versions, defaultOsImages, *releaseImages, nil, "")
 			Expect(err).ShouldNot(HaveOccurred())
 			osImage, err = h.GetLatestOsImage(common.MultiCPUArchitecture)
-			Expect(err).ShouldNot(HaveOccurred())
+			Expect(err).Should(HaveOccurred())
 			Expect(osImage).Should(BeNil())
+			Expect(err.Error()).To(ContainSubstring("No OS images are available"))
 		})
 	})
 

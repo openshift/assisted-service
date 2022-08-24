@@ -3804,6 +3804,35 @@ func validateProxySettings(httpProxy, httpsProxy, noProxy, ocpVersion *string) e
 	return nil
 }
 
+// validateArchitectureAndVersion validates if architecture specified inside Infraenv matches one
+// specified for the cluster. For single-arch clusters the validation needs to only compare values
+// of the params. For multiarch cluster we want to see if the multiarch release image contains the
+// the architecture specifically requested by the InfraEnv. We don't need to explicitly validate if
+// the OS image exists because if not, this will be detected by the function generating the ISO.
+func validateArchitectureAndVersion(v versions.Handler, c *common.Cluster, cpuArch, ocpVersion string) error {
+	var err error
+
+	// For late-binding we don't know the cluster yet
+	if c == nil {
+		return nil
+	}
+	if ocpVersion == "" {
+		ocpVersion = c.OpenshiftVersion
+	}
+	if c.CPUArchitecture != common.MultiCPUArchitecture {
+		if c.CPUArchitecture != "" && c.CPUArchitecture != cpuArch {
+			return errors.Errorf("Specified CPU architecture (%s) doesn't match the cluster (%s)", cpuArch, c.CPUArchitecture)
+		}
+	} else {
+		_, err = v.GetReleaseImage(ocpVersion, cpuArch)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 func secretValidationToUserError(err error) error {
 
 	if _, ok := err.(*validations.PullSecretError); ok {
@@ -4026,7 +4055,7 @@ func (b *bareMetalInventory) RegisterInfraEnvInternal(
 		cluster, err = common.GetClusterFromDB(b.db, *clusterId, common.SkipEagerLoading)
 		if err != nil {
 			if errors.Is(err, gorm.ErrRecordNotFound) {
-				err = errors.Errorf("Cluster ID %s does not exists", clusterId.String())
+				err = errors.Errorf("Cluster ID %s does not exist", clusterId.String())
 				return nil, common.NewApiError(http.StatusNotFound, err)
 			}
 			return nil, common.NewApiError(http.StatusInternalServerError, err)
@@ -4149,12 +4178,8 @@ func (b *bareMetalInventory) RegisterInfraEnvInternal(
 
 func (b *bareMetalInventory) validateInfraEnvCreateParams(ctx context.Context, params installer.RegisterInfraEnvParams, cluster *common.Cluster) error {
 	var err error
-	// We are validating if architecture specified inside InfraEnv matches architecture of the Cluster. Please note
-	// that for Clusters created using multiarch release image we skip this validation as there can be InfraEnvs with
-	// multiple architectures that match the Cluster.
-	if cluster != nil && cluster.CPUArchitecture != "" && cluster.CPUArchitecture != common.MultiCPUArchitecture && cluster.CPUArchitecture != params.InfraenvCreateParams.CPUArchitecture {
-		err = errors.Errorf("Specified CPU architecture doesn't match the cluster (%s)",
-			cluster.CPUArchitecture)
+
+	if err = validateArchitectureAndVersion(b.versionsHandler, cluster, params.InfraenvCreateParams.CPUArchitecture, params.InfraenvCreateParams.OpenshiftVersion); err != nil {
 		return err
 	}
 
@@ -4226,7 +4251,7 @@ func (b *bareMetalInventory) getOsImageOrLatest(version string, cpuArch string) 
 	} else {
 		osImage, err = b.versionsHandler.GetLatestOsImage(cpuArch)
 		if err != nil {
-			err = errors.Errorf("Failed to get latest OS image")
+			err = errors.Errorf("Failed to get latest OS image for architecture %s", cpuArch)
 			return nil, common.NewApiError(http.StatusBadRequest, err)
 		}
 	}
@@ -4383,6 +4408,21 @@ func (b *bareMetalInventory) UpdateInfraEnvInternal(ctx context.Context, params 
 
 	if infraEnv, err = common.GetInfraEnvFromDB(b.db, params.InfraEnvID); err != nil {
 		log.WithError(err).Errorf("failed to get infraEnv %s after update", params.InfraEnvID)
+		return nil, err
+	}
+
+	var cluster *common.Cluster
+	clusterId := infraEnv.ClusterID
+	if clusterId != "" {
+		cluster, err = common.GetClusterFromDB(b.db, clusterId, common.SkipEagerLoading)
+		if err != nil {
+			// We don't want to fail here if cluster is not found. It's not responsability of this place
+			// to verify that, so if there is a real issue with non-existing cluster it will be detected
+			// and raised by someone else.
+			cluster = nil
+		}
+	}
+	if err = validateArchitectureAndVersion(b.versionsHandler, cluster, infraEnv.CPUArchitecture, infraEnv.OpenshiftVersion); err != nil {
 		return nil, err
 	}
 
