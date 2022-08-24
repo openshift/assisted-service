@@ -4442,3 +4442,58 @@ var _ = Describe("HandleReclaimFailure", func() {
 		Expect(*host.StatusInfo).To(Equal(statusInfoUnbinding))
 	})
 })
+
+var _ = Describe("Rebooting day2", func() {
+
+	var (
+		ctx           = context.Background()
+		api           *Manager
+		ctrl          *gomock.Controller
+		db            *gorm.DB
+		dbName        string
+		mockEventsAPI *eventsapi.MockHandler
+		host          models.Host
+	)
+
+	BeforeEach(func() {
+		db, dbName = common.PrepareTestDB()
+		ctrl = gomock.NewController(GinkgoT())
+		mockEventsAPI = eventsapi.NewMockHandler(ctrl)
+		api = NewManager(common.GetTestLog(), db, mockEventsAPI, nil, nil, nil, nil, defaultConfig, nil, nil, nil, false, nil)
+		host = hostutil.GenerateTestHost(strfmt.UUID(uuid.New().String()), strfmt.UUID(uuid.New().String()), strfmt.UUID(uuid.New().String()), models.HostStatusInstalling)
+		hostKindDay2 := models.HostKindAddToExistingClusterHost
+		host.Kind = &hostKindDay2
+		host.Role = models.HostRoleMaster
+		Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
+		mockEventsAPI.EXPECT().SendHostEvent(ctx, eventstest.NewEventMatcher(
+			eventstest.WithHostIdMatcher(host.ID.String()),
+			eventstest.WithInfraEnvIdMatcher(host.InfraEnvID.String()),
+			eventstest.WithSeverityMatcher(models.EventSeverityInfo)))
+	})
+
+	AfterEach(func() {
+		common.DeleteTestDB(db, dbName)
+		ctrl.Finish()
+	})
+
+	It("during rebooting phase, if kubeapi is not enabled, should have the no further updates statusinfo", func() {
+		api.kubeApiEnabled = false
+		err := api.UpdateInstallProgress(ctx, &host, &models.HostProgress{
+			CurrentStage: models.HostStageRebooting,
+		})
+		verifyHost := hostutil.GetHostFromDB(*host.ID, host.InfraEnvID, db)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(*verifyHost.StatusInfo).Should(BeEquivalentTo("Host has rebooted and no further updates will be posted. Please check console for progress and to possibly approve pending CSRs"))
+	})
+
+	It("during rebooting phase, if kubeapi is enabled, should have the rebooting statusinfo", func() {
+		api.kubeApiEnabled = true
+		err := api.UpdateInstallProgress(ctx, &host, &models.HostProgress{
+			CurrentStage: models.HostStageRebooting,
+		})
+		verifyHost := hostutil.GetHostFromDB(*host.ID, host.InfraEnvID, db)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(*verifyHost.StatusInfo).Should(BeEquivalentTo("Rebooting"))
+	})
+
+})
