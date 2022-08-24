@@ -3792,10 +3792,7 @@ func validateProxySettings(httpProxy, httpsProxy, noProxy, ocpVersion *string) e
 		}
 	}
 	if noProxy != nil && *noProxy != "" {
-		if ocpVersion == nil {
-			return errors.Errorf("Cannot validate NoProxy: Unknown OpenShift version")
-		}
-		if err := validations.ValidateNoProxyFormat(*noProxy, *ocpVersion); err != nil {
+		if err := validations.ValidateNoProxyFormat(*noProxy, swag.StringValue(ocpVersion)); err != nil {
 			return err
 		}
 	}
@@ -4147,7 +4144,7 @@ func (b *bareMetalInventory) validateInfraEnvCreateParams(ctx context.Context, p
 	if params.InfraenvCreateParams.Proxy != nil {
 		if err = validateProxySettings(params.InfraenvCreateParams.Proxy.HTTPProxy,
 			params.InfraenvCreateParams.Proxy.HTTPSProxy,
-			params.InfraenvCreateParams.Proxy.NoProxy, &params.InfraenvCreateParams.OpenshiftVersion); err != nil {
+			params.InfraenvCreateParams.Proxy.NoProxy, nil); err != nil {
 			return err
 		}
 	}
@@ -4342,7 +4339,7 @@ func (b *bareMetalInventory) UpdateInfraEnvInternal(ctx context.Context, params 
 	if params.InfraEnvUpdateParams.Proxy != nil {
 		if err = validateProxySettings(params.InfraEnvUpdateParams.Proxy.HTTPProxy,
 			params.InfraEnvUpdateParams.Proxy.HTTPSProxy,
-			params.InfraEnvUpdateParams.Proxy.NoProxy, &infraEnv.OpenshiftVersion); err != nil {
+			params.InfraEnvUpdateParams.Proxy.NoProxy, nil); err != nil {
 			log.WithError(err).Errorf("Failed to validate Proxy settings")
 			return nil, common.NewApiError(http.StatusBadRequest, err)
 		}

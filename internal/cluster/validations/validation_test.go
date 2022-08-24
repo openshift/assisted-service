@@ -245,50 +245,82 @@ var _ = Describe("Cluster name validation", func() {
 var _ = Describe("URL validations", func() {
 
 	Context("test no-proxy", func() {
-		It("domain name", func() {
-			err := ValidateNoProxyFormat("domain.com", "4.7.0")
-			Expect(err).Should(BeNil())
+
+		Context("test no-proxy with ocpVersion 4.7.0", func() {
+			It("domain name", func() {
+				err := ValidateNoProxyFormat("domain.com", "4.7.0")
+				Expect(err).Should(BeNil())
+			})
+			It("domain starts with . for all sub-domains", func() {
+				err := ValidateNoProxyFormat(".domain.com", "4.7.0")
+				Expect(err).Should(BeNil())
+			})
+			It("CIDR", func() {
+				err := ValidateNoProxyFormat("10.9.0.0/16", "4.7.0")
+				Expect(err).Should(BeNil())
+			})
+			It("IP Address", func() {
+				err := ValidateNoProxyFormat("10.9.8.7", "4.7.0")
+				Expect(err).Should(BeNil())
+			})
+			It("multiple entries", func() {
+				err := ValidateNoProxyFormat("domain.com,10.9.0.0/16,.otherdomain.com,10.9.8.7", "4.7.0")
+				Expect(err).Should(BeNil())
+			})
+			It("'*' bypass proxy for all destinations not supported pre-4.8.0-fc.4", func() {
+				err := ValidateNoProxyFormat("*", "4.7.0")
+				Expect(err).ShouldNot(BeNil())
+				Expect(err.Error()).Should(ContainSubstring("Sorry, no-proxy value '*' is not supported in release: 4.7.0"))
+			})
+			It("'*,domain.com' bypass proxy for all destinations not supported pre-4.8.0-fc.4", func() {
+				err := ValidateNoProxyFormat("*,domain.com", "4.7.0")
+				Expect(err).ShouldNot(BeNil())
+				Expect(err.Error()).Should(ContainSubstring("Sorry, no-proxy value '*' is not supported in release: 4.7.0"))
+			})
 		})
-		It("domain starts with . for all sub-domains", func() {
-			err := ValidateNoProxyFormat(".domain.com", "4.7.0")
-			Expect(err).Should(BeNil())
+		Context("test no-proxy with ocpVersion 4.8.0", func() {
+			It("'*' bypass proxy for all destinations FC version", func() {
+				err := ValidateNoProxyFormat("*", "4.8.0-fc.7")
+				Expect(err).Should(BeNil())
+			})
+			It("'*' bypass proxy for all destinations release version", func() {
+				err := ValidateNoProxyFormat("*", "4.8.0")
+				Expect(err).Should(BeNil())
+			})
+			It("invalid format", func() {
+				err := ValidateNoProxyFormat("...", "4.8.0-fc.7")
+				Expect(err).ShouldNot(BeNil())
+			})
+			It("invalid format of a single value", func() {
+				err := ValidateNoProxyFormat("domain.com,...", "4.8.0-fc.7")
+				Expect(err).ShouldNot(BeNil())
+			})
+			It("A use of asterisk", func() {
+				err := ValidateNoProxyFormat("*,domain.com", "4.8.0-fc.7")
+				Expect(err).Should(BeNil())
+			})
 		})
-		It("CIDR", func() {
-			err := ValidateNoProxyFormat("10.9.0.0/16", "4.7.0")
-			Expect(err).Should(BeNil())
-		})
-		It("IP Address", func() {
-			err := ValidateNoProxyFormat("10.9.8.7", "4.7.0")
-			Expect(err).Should(BeNil())
-		})
-		It("multiple entries", func() {
-			err := ValidateNoProxyFormat("domain.com,10.9.0.0/16,.otherdomain.com,10.9.8.7", "4.7.0")
-			Expect(err).Should(BeNil())
-		})
-		It("'*' bypass proxy for all destinations FC version", func() {
-			err := ValidateNoProxyFormat("*", "4.8.0-fc.7")
-			Expect(err).Should(BeNil())
-		})
-		It("'*' bypass proxy for all destinations release version", func() {
-			err := ValidateNoProxyFormat("*", "4.8.0")
-			Expect(err).Should(BeNil())
-		})
-		It("'*' bypass proxy for all destinations not supported pre-4.8.0-fc.4", func() {
-			err := ValidateNoProxyFormat("*", "4.7.0")
-			Expect(err).ShouldNot(BeNil())
-			Expect(err.Error()).Should(ContainSubstring("Sorry, no-proxy value '*' is not supported in this release"))
-		})
-		It("invalid format", func() {
-			err := ValidateNoProxyFormat("...", "4.8.0-fc.7")
-			Expect(err).ShouldNot(BeNil())
-		})
-		It("invalid format of a single value", func() {
-			err := ValidateNoProxyFormat("domain.com,...", "4.8.0-fc.7")
-			Expect(err).ShouldNot(BeNil())
-		})
-		It("invalid use of asterisk", func() {
-			err := ValidateNoProxyFormat("*,domain.com", "4.8.0-fc.7")
-			Expect(err).ShouldNot(BeNil())
+		Context("test no-proxy with no ocpVersion (InfraEnv)", func() {
+			It("'*' bypass proxy for all destinations FC version", func() {
+				err := ValidateNoProxyFormat("*", "")
+				Expect(err).Should(BeNil())
+			})
+			It("'*' bypass proxy for all destinations release version", func() {
+				err := ValidateNoProxyFormat("*", "")
+				Expect(err).Should(BeNil())
+			})
+			It("invalid format", func() {
+				err := ValidateNoProxyFormat("...", "")
+				Expect(err).ShouldNot(BeNil())
+			})
+			It("invalid format of a single value", func() {
+				err := ValidateNoProxyFormat("domain.com,...", "")
+				Expect(err).ShouldNot(BeNil())
+			})
+			It("A use of asterisk", func() {
+				err := ValidateNoProxyFormat("*,domain.com", "")
+				Expect(err).Should(BeNil())
+			})
 		})
 	})
 })
