@@ -225,19 +225,28 @@ var _ = Describe("list versions", func() {
 			for _, releaseImage := range *releaseImages {
 				key := *releaseImage.OpenshiftVersion
 				version := val.Payload[key]
+				architecture := *releaseImage.CPUArchitecture
 				architectures := releaseImage.CPUArchitectures
-				if len(architectures) == 0 {
-					architectures = []string{*releaseImage.CPUArchitecture}
-				}
-				for _, architecture := range architectures {
+
+				if len(architectures) == 0 && architecture != common.MultiCPUArchitecture {
+					// For single-arch release we require in the test that there is a matching
+					// OS image for the provided release image. Otherwise the whole release image
+					// is not usable and indicates a mistake.
 					if architecture == "" {
 						architecture = common.CPUArchitecture
 					}
-
 					if architecture == common.CPUArchitecture {
 						Expect(version.Default).Should(Equal(releaseImage.Default))
 					}
 					Expect(version.CPUArchitectures).Should(ContainElement(architecture))
+					Expect(version.DisplayName).Should(Equal(releaseImage.Version))
+					Expect(version.SupportLevel).Should(Equal(h.getSupportLevel(*releaseImage)))
+				} else {
+					// For multi-arch release we don't require a strict matching for every
+					// architecture supported by this image. As long as we have at least one OS
+					// image that matches, we are okay. This is to allow setups where release
+					// image supports more architectures than we have available RHCOS images.
+					Expect(len(version.CPUArchitectures)).ShouldNot(Equal(0))
 					Expect(version.DisplayName).Should(Equal(releaseImage.Version))
 					Expect(version.SupportLevel).Should(Equal(h.getSupportLevel(*releaseImage)))
 				}
@@ -282,13 +291,6 @@ var _ = Describe("list versions", func() {
 				// This image uses a syntax with missing "cpu_architectures". It is crafted
 				// in order to make sure the change in MGMT-11494 is backwards-compatible.
 				&models.ReleaseImage{
-					CPUArchitecture:  swag.String(common.ARM64CPUArchitecture),
-					CPUArchitectures: []string{},
-					OpenshiftVersion: swag.String("4.11.1"),
-					URL:              swag.String("release_4.11.1"),
-					Version:          swag.String("4.11.1-chocobomb-for-test"),
-				},
-				&models.ReleaseImage{
 					CPUArchitecture:  swag.String(common.X86CPUArchitecture),
 					CPUArchitectures: []string{},
 					OpenshiftVersion: swag.String("4.11.1"),
@@ -303,14 +305,38 @@ var _ = Describe("list versions", func() {
 			val, _ := reply.(*operations.V2ListSupportedOpenshiftVersionsOK)
 
 			version := val.Payload["4.11.1"]
-			Expect(version.CPUArchitectures).Should(ContainElement(common.ARM64CPUArchitecture))
 			Expect(version.CPUArchitectures).Should(ContainElement(common.X86CPUArchitecture))
 			Expect(version.DisplayName).Should(Equal(swag.String("4.11.1-chocobomb-for-test")))
 			Expect(version.Default).Should(Equal(true))
 		})
 
+		It("release image without matching OS image", func() {
+			readDefaultOsImages()
+			h, err = NewHandler(logger, mockRelease, versions, *osImages, models.ReleaseImages{
+				&models.ReleaseImage{
+					CPUArchitecture:  swag.String(common.MultiCPUArchitecture),
+					CPUArchitectures: []string{common.X86CPUArchitecture, common.PowerCPUArchitecture},
+					OpenshiftVersion: swag.String("4.11.1"),
+					URL:              swag.String("release_4.11.1"),
+					Default:          true,
+					Version:          swag.String("4.11.1-chocobomb-for-test"),
+				},
+			}, nil, "")
+			Expect(err).ShouldNot(HaveOccurred())
+			reply := h.V2ListSupportedOpenshiftVersions(context.Background(), operations.V2ListSupportedOpenshiftVersionsParams{})
+			Expect(reply).Should(BeAssignableToTypeOf(operations.NewV2ListSupportedOpenshiftVersionsOK()))
+			val, _ := reply.(*operations.V2ListSupportedOpenshiftVersionsOK)
+
+			version := val.Payload["4.11.1"]
+			Expect(version.CPUArchitectures).Should(ContainElement(common.X86CPUArchitecture))
+			Expect(version.CPUArchitectures).ShouldNot(ContainElement(common.PowerCPUArchitecture))
+			Expect(version.DisplayName).Should(Equal(swag.String("4.11.1-chocobomb-for-test")))
+			Expect(version.Default).Should(Equal(true))
+		})
+
 		It("single-arch and multi-arch for the same version", func() {
-			h, err = NewHandler(logger, mockRelease, versions, defaultOsImages, models.ReleaseImages{
+			readDefaultOsImages()
+			h, err = NewHandler(logger, mockRelease, versions, *osImages, models.ReleaseImages{
 				// Those images provide the same architecture using single-arch as well as multi-arch
 				// release images. This is to test if in this scenario we don't return duplicated
 				// entries in the supported architectures list.
@@ -323,7 +349,7 @@ var _ = Describe("list versions", func() {
 				},
 				&models.ReleaseImage{
 					CPUArchitecture:  swag.String(common.MultiCPUArchitecture),
-					CPUArchitectures: []string{common.X86CPUArchitecture, common.ARM64CPUArchitecture, common.PowerCPUArchitecture},
+					CPUArchitectures: []string{common.X86CPUArchitecture, common.ARM64CPUArchitecture},
 					OpenshiftVersion: swag.String("4.11.1"),
 					URL:              swag.String("release_4.11.1"),
 					Default:          true,
@@ -338,8 +364,7 @@ var _ = Describe("list versions", func() {
 			version := val.Payload["4.11.1"]
 			Expect(version.CPUArchitectures).Should(ContainElement(common.ARM64CPUArchitecture))
 			Expect(version.CPUArchitectures).Should(ContainElement(common.X86CPUArchitecture))
-			Expect(version.CPUArchitectures).Should(ContainElement(common.PowerCPUArchitecture))
-			Expect(len(version.CPUArchitectures)).Should(Equal(3))
+			Expect(len(version.CPUArchitectures)).Should(Equal(2))
 			Expect(version.DisplayName).Should(Equal(swag.String("4.11.1-chocobomb-for-test")))
 			Expect(version.Default).Should(Equal(true))
 		})
