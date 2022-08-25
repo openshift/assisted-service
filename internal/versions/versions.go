@@ -109,6 +109,13 @@ func (h *handler) V2ListSupportedOpenshiftVersions(ctx context.Context, params o
 				arch = common.DefaultCPUArchitecture
 			}
 
+			// In order to mark a specific version and architecture as supported we do not
+			// only need to have an available release image, but we need RHCOS image as well.
+			if _, err := h.GetOsImage(key, arch); err != nil {
+				h.log.Debugf("Marking architecture %s for version %s as not available because no matching OS image found", arch, key)
+				continue
+			}
+
 			openshiftVersion, exists := openshiftVersions[key]
 			if !exists {
 				openshiftVersion = models.OpenshiftVersion{
