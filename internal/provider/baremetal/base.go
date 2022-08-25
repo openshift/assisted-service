@@ -8,19 +8,21 @@ import (
 
 //
 type baremetalProvider struct {
-	Log logrus.FieldLogger
+	Log  logrus.FieldLogger
+	name models.PlatformType
 }
 
 // NewBaremetalProvider creates a new baremetal provider.
-func NewBaremetalProvider(log logrus.FieldLogger) provider.Provider {
+func NewBaremetalProvider(log logrus.FieldLogger, name models.PlatformType) provider.Provider {
 	return &baremetalProvider{
-		Log: log,
+		Log:  log,
+		name: name,
 	}
 }
 
 // Name returns the name of the provider
 func (p *baremetalProvider) Name() models.PlatformType {
-	return models.PlatformTypeBaremetal
+	return p.name
 }
 
 func (p *baremetalProvider) IsHostSupported(_ *models.Host) (bool, error) {
