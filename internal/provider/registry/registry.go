@@ -161,6 +161,7 @@ func InitProviderRegistry(log logrus.FieldLogger) ProviderRegistry {
 	providerRegistry := NewProviderRegistry()
 	providerRegistry.Register(ovirt.NewOvirtProvider(log, nil))
 	providerRegistry.Register(vsphere.NewVsphereProvider(log))
-	providerRegistry.Register(baremetal.NewBaremetalProvider(log))
+	providerRegistry.Register(baremetal.NewBaremetalProvider(log, models.PlatformTypeBaremetal))
+	providerRegistry.Register(baremetal.NewBaremetalProvider(log, models.PlatformTypeNone))
 	return providerRegistry
 }
