@@ -11010,6 +11010,38 @@ var _ = Describe("TestRegisterCluster", func() {
 		Expect(actual.Payload.CPUArchitecture).To(Equal(common.ARM64CPUArchitecture))
 	})
 
+	It("Register cluster with arm64 CPU architecture as multiarch if multiarch release image used", func() {
+		mockSecretValidator.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any()).Return(nil).Times(1)
+		mockVersions.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any()).Return(&models.ReleaseImage{
+			CPUArchitecture:  swag.String(common.MultiCPUArchitecture),
+			CPUArchitectures: []string{common.X86CPUArchitecture, common.ARM64CPUArchitecture, common.PowerCPUArchitecture},
+			OpenshiftVersion: swag.String("4.11.1"),
+			URL:              swag.String("release_4.11.1"),
+			Version:          swag.String("4.11.1-multi"),
+		}, nil).Times(1)
+		mockOperatorManager.EXPECT().GetSupportedOperatorsByType(models.OperatorTypeBuiltin).Return([]*models.MonitoredOperator{&common.TestDefaultConfig.MonitoredOperator}).Times(1)
+		mockProviderRegistry.EXPECT().SetPlatformUsages(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
+		mockMetric.EXPECT().ClusterRegistered().Times(1)
+		mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
+			eventstest.WithNameMatcher(eventgen.ClusterRegistrationSucceededEventName))).Times(1)
+		mockAMSSubscription(ctx)
+		mockVersions.EXPECT().GetCPUArchitectures(gomock.Any()).Return(
+			[]string{common.TestDefaultConfig.OpenShiftVersion, common.ARM64CPUArchitecture}).Times(1)
+
+		params := getDefaultClusterCreateParams()
+		params.CPUArchitecture = common.ARM64CPUArchitecture
+		params.Platform = &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeNone)}
+		params.UserManagedNetworking = swag.Bool(true)
+		params.VipDhcpAllocation = swag.Bool(false)
+
+		reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
+			NewClusterParams: params,
+		})
+		Expect(reflect.TypeOf(reply)).Should(Equal(reflect.TypeOf(installer.NewV2RegisterClusterCreated())))
+		actual := reply.(*installer.V2RegisterClusterCreated)
+		Expect(actual.Payload.CPUArchitecture).To(Equal(common.MultiCPUArchitecture))
+	})
+
 	It("Register cluster with multiarch CPU architecture", func() {
 		mockClusterRegisterSuccess(true)
 		mockAMSSubscription(ctx)

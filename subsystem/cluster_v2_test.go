@@ -328,12 +328,13 @@ var _ = Describe("[V2ClusterTests] multiarch", func() {
 				OpenshiftVersion: swag.String(multiarchOpenshiftVersion),
 				PullSecret:       swag.String(pullSecret),
 				BaseDNSDomain:    "example.com",
-				CPUArchitecture:  common.MultiCPUArchitecture,
 			},
 		})
 
 		Expect(err).NotTo(HaveOccurred())
 		clusterID = *clusterReq.GetPayload().ID
+		clusterArch := clusterReq.GetPayload().CPUArchitecture
+		Expect(clusterArch).To(Equal(common.MultiCPUArchitecture))
 
 		// standalone x86 infraEnv
 		infraEnv := registerInfraEnv(nil, models.ImageTypeFullIso)
