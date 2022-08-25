@@ -43,7 +43,7 @@ func (r *ironicIgniotionBuilder) GenerateIronicConfig(ironicBaseURL string, infr
 		}
 	}
 	// TODO: this should probably get the pullSecret as well
-	ib, err := iccignition.New([]byte{}, []byte{}, ironicBaseURL, ironicAgentImage, "", "", "", httpProxy, httpsProxy, noProxy, "")
+	ib, err := iccignition.New([]byte{}, []byte{}, ironicBaseURL, ironicBaseURL, ironicAgentImage, "", "", "", httpProxy, httpsProxy, noProxy, "")
 	if err != nil {
 		return []byte{}, err
 	}
