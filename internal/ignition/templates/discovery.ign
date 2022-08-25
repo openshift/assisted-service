@@ -44,7 +44,7 @@
     "files": [{
       "overwrite": true,
       "path": "/usr/local/bin/agent-fix-bz1964591",
-      "mode": 755,
+      "mode": 493,
       "user": {
           "name": "root"
       },
@@ -159,7 +159,7 @@
     }{{end}}{{if .OKDBinaries}},
     {
       "path": "/usr/local/bin/okd-binaries.sh",
-      "mode": 755,
+      "mode": 493,
       "overwrite": true,
       "user": {
         "name": "root"
