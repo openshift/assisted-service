@@ -214,7 +214,7 @@ data:
                 "uid": "${datasource}"
               },
               "editorMode": "code",
-              "expr": "sum(rate(container_memory_working_set_bytes{namespace=\"$namespace\",pod=~\"assisted-service-.*\", container=\"assisted-service\"}[5m])) / sum(kube_pod_container_resource_limits{namespace=\"$namespace\",pod=~\"assisted-service-.*\",resource=\"memory\"}) * 100",
+              "expr": "sum(container_memory_working_set_bytes{namespace=\"$namespace\",pod=~\"assisted-service-.*\", container=\"assisted-service\"}) / sum(kube_pod_container_resource_limits{namespace=\"$namespace\",pod=~\"assisted-service-.*\",resource=\"memory\"})",
               "hide": false,
               "legendFormat": "Memory",
               "range": true,
