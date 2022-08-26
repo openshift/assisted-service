@@ -460,6 +460,11 @@ func (b *bareMetalInventory) RegisterClusterInternal(
 		swag.StringValue(releaseImage.OpenshiftVersion),
 		swag.StringValue(releaseImage.URL))
 
+	if len(releaseImage.CPUArchitectures) > 1 {
+		log.Infof("Setting cluster as multi-arch because of the release image (requested was %s)", cpuArchitecture)
+		cpuArchitecture = common.MultiCPUArchitecture
+	}
+
 	if kubeKey == nil {
 		kubeKey = &types.NamespacedName{}
 	}
