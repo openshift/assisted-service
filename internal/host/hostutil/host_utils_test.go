@@ -3,9 +3,13 @@ package hostutil
 import (
 	"testing"
 
+	"github.com/go-openapi/strfmt"
+	"github.com/google/uuid"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/models"
+	"gorm.io/gorm"
 )
 
 var _ = Describe("Installation Disk selection", func() {
@@ -67,6 +71,69 @@ var _ = Describe("Installation Disk selection", func() {
 			}
 		})
 	}
+})
+
+var _ = Describe("Ignition endpoint URL generation", func() {
+	var host models.Host
+	var cluster common.Cluster
+	var db *gorm.DB
+	var id, clusterID, infraEnvID strfmt.UUID
+
+	BeforeEach(func() {
+		db, _ = common.PrepareTestDB()
+
+		id = strfmt.UUID(uuid.New().String())
+		clusterID = strfmt.UUID(uuid.New().String())
+		infraEnvID = strfmt.UUID(uuid.New().String())
+		host = GenerateTestHostAddedToCluster(id, infraEnvID, clusterID, models.HostStatusInsufficient)
+		Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
+		apiVipDNSName := "test.com"
+		cluster = common.Cluster{Cluster: models.Cluster{ID: &clusterID, APIVipDNSName: &apiVipDNSName}}
+		Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
+	})
+
+	Context("using GetIgnitionEndpoint function", func() {
+		It("for host with custom MachineConfigPoolName", func() {
+			Expect(db.Model(&host).Update("MachineConfigPoolName", "chocobomb").Error).ShouldNot(HaveOccurred())
+
+			url, err := GetIgnitionEndpoint(&cluster, &host)
+			Expect(url).Should(Equal("http://test.com:22624/config/chocobomb"))
+			Expect(err).ShouldNot(HaveOccurred())
+		})
+		It("for cluster with custom IgnitionEndpoint", func() {
+			customEndpoint := "https://foo.bar:33735/acme"
+			Expect(db.Model(&cluster).Update("ignition_endpoint_url", customEndpoint).Error).ShouldNot(HaveOccurred())
+
+			url, err := GetIgnitionEndpoint(&cluster, &host)
+			Expect(url).Should(Equal(customEndpoint + "/worker"))
+			Expect(err).ShouldNot(HaveOccurred())
+		})
+		It("failing for cluster with wrong IgnitionEndpoint", func() {
+			customEndpoint := "https\\://foo.bar:33735/acme"
+			Expect(db.Model(&cluster).Update("ignition_endpoint_url", customEndpoint).Error).ShouldNot(HaveOccurred())
+
+			url, err := GetIgnitionEndpoint(&cluster, &host)
+			Expect(url).Should(Equal(""))
+			Expect(err).Should(HaveOccurred())
+		})
+		It("for host with master role", func() {
+			Expect(db.Model(&host).Update("Role", "master").Error).ShouldNot(HaveOccurred())
+			url, err := GetIgnitionEndpoint(&cluster, &host)
+			Expect(url).Should(Equal("http://test.com:22624/config/master"))
+			Expect(err).ShouldNot(HaveOccurred())
+		})
+		It("for host with auto-assing role defaults to worker", func() {
+			Expect(db.Model(&host).Update("Role", "auto-assign").Error).ShouldNot(HaveOccurred())
+			url, err := GetIgnitionEndpoint(&cluster, &host)
+			Expect(url).Should(Equal("http://test.com:22624/config/worker"))
+			Expect(err).ShouldNot(HaveOccurred())
+		})
+		It("for host with no customizations", func() {
+			url, err := GetIgnitionEndpoint(&cluster, &host)
+			Expect(url).Should(Equal("http://test.com:22624/config/worker"))
+			Expect(err).ShouldNot(HaveOccurred())
+		})
+	})
 })
 
 func TestHostUtil(t *testing.T) {

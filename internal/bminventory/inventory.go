@@ -15,7 +15,6 @@ import (
 	"net/http"
 	"net/url"
 	"os"
-	"path"
 	"strings"
 	"time"
 
@@ -749,20 +748,9 @@ func (b *bareMetalInventory) createAndUploadDay2NodeIgnition(ctx context.Context
 	log := logutil.FromContext(ctx, b.log)
 	log.Infof("Starting createAndUploadDay2NodeIgnition for cluster %s, host %s", cluster.ID, host.ID)
 
-	// Specify ignition endpoint based on cluster configuration:
-	address := cluster.APIVip
-	if address == "" {
-		address = swag.StringValue(cluster.APIVipDNSName)
-	}
-
-	ignitionEndpointUrl := fmt.Sprintf("http://%s:22624/config/%s", address, host.MachineConfigPoolName)
-	if cluster.IgnitionEndpoint != nil && cluster.IgnitionEndpoint.URL != nil {
-		url, err := url.Parse(*cluster.IgnitionEndpoint.URL)
-		if err != nil {
-			return err
-		}
-		url.Path = path.Join(url.Path, host.MachineConfigPoolName)
-		ignitionEndpointUrl = url.String()
+	ignitionEndpointUrl, err := hostutil.GetIgnitionEndpoint(cluster, host)
+	if err != nil {
+		return errors.Wrapf(err, "Failed to build ignition endpoint for host %s in cluster %s", host.ID, cluster.ID)
 	}
 
 	var caCert *string = nil

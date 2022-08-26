@@ -9513,7 +9513,7 @@ var _ = Describe("Install Host test", func() {
 		mockHostApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 		mockHostApi.EXPECT().Install(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 		mockS3Client.EXPECT().Upload(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
-		mockIgnitionBuilder.EXPECT().FormatSecondDayWorkerIgnitionFile("http://example.com", gomock.Any(), gomock.Any(), gomock.Any()).Return(secondDayWorkerIgnition, nil).Times(1)
+		mockIgnitionBuilder.EXPECT().FormatSecondDayWorkerIgnitionFile("http://example.com/worker", gomock.Any(), gomock.Any(), gomock.Any()).Return(secondDayWorkerIgnition, nil).Times(1)
 		res := bm.V2InstallHost(ctx, params)
 		Expect(res).Should(BeAssignableToTypeOf(installer.NewV2InstallHostAccepted()))
 	})
