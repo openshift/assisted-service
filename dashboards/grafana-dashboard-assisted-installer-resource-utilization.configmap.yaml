@@ -34,7 +34,7 @@ data:
       "editable": true,
       "fiscalYearStartMonth": 0,
       "graphTooltip": 0,
-      "iteration": 1661354681601,
+      "iteration": 1661505238617,
       "links": [],
       "liveNow": false,
       "panels": [
@@ -121,7 +121,7 @@ data:
                 "uid": "${datasource}"
               },
               "editorMode": "code",
-              "expr": "sum(rate(container_memory_working_set_bytes{namespace=\"$namespace\",pod=~\"assisted-service-.*\",container=\"assisted-service\"}[5m])) / sum(kube_pod_container_resource_requests{namespace=\"$namespace\",pod=~\"assisted-service-.*\",container=\"assisted-service\",resource=\"memory\"}) * 100",
+              "expr": "sum(container_memory_working_set_bytes{namespace=\"$namespace\",pod=~\"assisted-service-.*\",container=\"assisted-service\"}) / sum(kube_pod_container_resource_requests{namespace=\"$namespace\",pod=~\"assisted-service-.*\",container=\"assisted-service\",resource=\"memory\"})",
               "hide": false,
               "legendFormat": "Memory",
               "range": true,
@@ -923,8 +923,7 @@ data:
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green",
-                    "value": null
+                    "color": "green"
                   },
                   {
                     "color": "red",
@@ -1014,7 +1013,7 @@ data:
         "list": [
           {
             "current": {
-              "selected": true,
+              "selected": false,
               "text": "app-sre-prod-04-prometheus",
               "value": "app-sre-prod-04-prometheus"
             },
@@ -1148,6 +1147,6 @@ data:
       "timezone": "",
       "title": "Assisted Service Resource Dashboard",
       "uid": "assisted-service-resource-dashboard",
-      "version": 451,
+      "version": 452,
       "weekStart": ""
     }
