@@ -53,7 +53,7 @@ function awscli() {
 
 function test_tools() {
   go get github.com/onsi/ginkgo/ginkgo@v1.16.4 \
-      github.com/golang/mock/mockgen@v1.5.0 \
+      github.com/golang/mock/mockgen@v1.6.0 \
       github.com/vektra/mockery/.../@v1.1.2 \
       gotest.tools/gotestsum@v1.6.3 \
       github.com/axw/gocov/gocov \
