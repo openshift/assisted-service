@@ -1,22 +1,31 @@
 # Build binaries
-FROM registry.ci.openshift.org/openshift/release:golang-1.17 as builder
-WORKDIR /src
-COPY . .
+FROM quay.io/centos/centos:stream9 as builder
+
+RUN dnf install --enablerepo=crb -y gcc nmstate-devel && dnf clean all
+COPY --from=registry.ci.openshift.org/openshift/release:golang-1.17 /usr/local/go /usr/local/go
+
+ENV GOROOT=/usr/local/go
+ENV PATH=$PATH:$GOROOT/bin
+
+WORKDIR /assisted-service/
+
+COPY . /assisted-service/
+
 RUN CGO_ENABLED=1 GOFLAGS="" GO111MODULE=on go build -o /build/assisted-service cmd/main.go
-RUN CGO_ENABLED=0 GOFLAGS="" GO111MODULE=on go build -o /build/assisted-service-operator cmd/operator/main.go
-RUN CGO_ENABLED=0 GOFLAGS="" GO111MODULE=on go build -o /build/assisted-service-admission cmd/webadmission/main.go
-RUN CGO_ENABLED=0 GOFLAGS="" GO111MODULE=on go build -o /build/agent-installer-client cmd/agentbasedinstaller/client/main.go
+RUN CGO_ENABLED=1 GOFLAGS="" GO111MODULE=on go build -o /build/assisted-service-operator cmd/operator/main.go
+RUN CGO_ENABLED=1 GOFLAGS="" GO111MODULE=on go build -o /build/assisted-service-admission cmd/webadmission/main.go
+RUN CGO_ENABLED=1 GOFLAGS="" GO111MODULE=on go build -o /build/agent-installer-client cmd/agentbasedinstaller/client/main.go
 
 
 FROM registry.ci.openshift.org/ocp/4.11:cli AS oc-image
 # Create final image
-FROM registry.ci.openshift.org/ocp/4.11:base
+FROM registry.access.redhat.com/ubi9/ubi:latest
 
 LABEL io.openshift.release.operator=true
 
-# ToDo: Replace postgres with SQLite DB 
+# ToDo: Replace postgres with SQLite DB
 # https://issues.redhat.com/browse/AGENT-223
-RUN dnf install -y postgresql-server libvirt-libs nmstate && dnf clean all
+RUN dnf install -y postgresql-server libvirt-libs nmstate nmstate-libs && dnf clean all
 
 COPY hack/agent_installer/start_db.sh start_db.sh
 

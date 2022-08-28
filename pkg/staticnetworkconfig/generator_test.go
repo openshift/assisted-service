@@ -17,10 +17,12 @@ func TestStaticNetworkConfig(t *testing.T) {
 }
 
 var _ = Describe("StaticNetworkConfig", func() {
+	mockNMState := MockNmstate{}
+
 	var (
 		staticNetworkGenerator = StaticNetworkConfigGenerator{log: logrus.New()}
 	)
-
+	staticNetworkGenerator.nmstate = &mockNMState
 	It("validate mac interface", func() {
 		input := models.MacInterfaceMap{
 			{LogicalNicName: "eth0", MacAddress: "macaddress0"},
