@@ -226,6 +226,49 @@ var _ = Describe("installcmd", func() {
 			verifyDiskFormatCommand(installCmdSteps[0], sdh.ID, false)
 		})
 
+		It("Formats installation disk in case it is bootable", func() {
+			sddd := createDisk("sddd", true)
+			disks := []*models.Disk{
+				sddd, //installation disk
+				sda,  //bootable disk
+				sdh,  //non-bootable, non-installation
+			}
+			host.Inventory = getInventory(disks)
+			mockFormatEvent(sda, 1)
+			mockFormatEvent(sddd, 1)
+			prepareGetStep(sddd)
+			installCmdSteps, stepErr = installCmd.GetSteps(ctx, &host)
+			postvalidation(false, false, installCmdSteps[0], stepErr, models.HostRoleMaster)
+			validateInstallCommand(installCmd, installCmdSteps[0], models.HostRoleMaster, infraEnvId, clusterId, *host.ID, sddd.ID, getBootableDiskNames(disks), models.ClusterHighAvailabilityModeFull)
+			hostFromDb := hostutil.GetHostFromDB(*host.ID, infraEnvId, db)
+			Expect(hostFromDb.InstallerVersion).Should(Equal(DefaultInstructionConfig.InstallerImage))
+			verifyDiskFormatCommand(installCmdSteps[0], sda.ID, true)
+			verifyDiskFormatCommand(installCmdSteps[0], sddd.ID, true)
+			verifyDiskFormatCommand(installCmdSteps[0], sdh.ID, false)
+		})
+
+		It("Skip formatting installation disk in case SaveDiskPartitionsIsSet is set", func() {
+			sddd := createDisk("sddd", true)
+			disks := []*models.Disk{
+				sddd, //installation disk
+				sda,  //bootable disk
+				sdh,  //non-bootable, non-installation
+			}
+			host.Inventory = getInventory(disks)
+			host.InstallerArgs = `["--save-partindex","5","--copy-network"]`
+			mockFormatEvent(sda, 1)
+			mockSkipFormatEvent(sddd, 1)
+			prepareGetStep(sddd)
+			installCmdSteps, stepErr = installCmd.GetSteps(ctx, &host)
+			postvalidation(false, false, installCmdSteps[0], stepErr, models.HostRoleMaster)
+			validateInstallCommand(installCmd, installCmdSteps[0], models.HostRoleMaster, infraEnvId, clusterId, *host.ID, sddd.ID, getBootableDiskNames(disks), models.ClusterHighAvailabilityModeFull)
+			hostFromDb := hostutil.GetHostFromDB(*host.ID, infraEnvId, db)
+			Expect(hostFromDb.InstallerVersion).Should(Equal(DefaultInstructionConfig.InstallerImage))
+			verifyDiskFormatCommand(installCmdSteps[0], sda.ID, true)
+			verifyDiskFormatCommand(installCmdSteps[0], sddd.ID, false)
+			verifyDiskFormatCommand(installCmdSteps[0], sdh.ID, false)
+		})
+
 		It("Format multiple bootable disks with some skipped", func() {
 			sdi := createDisk("sdi", true)
 			sdi.DriveType = models.DriveTypeFC
@@ -467,7 +510,7 @@ var _ = Describe("installcmd arguments", func() {
 			Expect(request.SkipInstallationDiskCleanup).To(BeTrue())
 		})
 
-		It("non-empty installer args with save-partlabel value", func() {
+		It("non-empty installer args with save-partindex value", func() {
 			host.InstallerArgs = `["--save-partindex","5","--copy-network"]`
 			stepReply, err := installCmd.GetSteps(ctx, &host)
 			Expect(err).NotTo(HaveOccurred())
