@@ -5,8 +5,8 @@
         "cpu_architectures": [
             "x86_64"
         ],
-        "url": "quay.io/openshift-release-dev/ocp-release:4.8.47-x86_64",
-        "version": "4.8.47"
+        "url": "quay.io/openshift-release-dev/ocp-release:4.8.48-x86_64",
+        "version": "4.8.48"
     },
     {
         "openshift_version": "4.9",
