@@ -328,6 +328,12 @@ var _ = Describe("[V2ClusterTests] multiarch", func() {
 				OpenshiftVersion: swag.String(multiarchOpenshiftVersion),
 				PullSecret:       swag.String(pullSecret),
 				BaseDNSDomain:    "example.com",
+				// If for the same version there is both single-arch and multi-arch release image, the logic
+				// implemented in https://github.com/openshift/assisted-service/pull/4314 will not kick in.
+				// For this reason in subsystem tests for 4.11 we are explicitly setting CPU architecture
+				// so that we use multi-arch. Once we don't carry single-arch release images anymore, this
+				// will not be needed.
+				CPUArchitecture: common.MultiCPUArchitecture,
 			},
 		})
 
