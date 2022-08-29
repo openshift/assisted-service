@@ -42,9 +42,6 @@ generate-manifests:
 	mkdir -p ${BUILD_FOLDER}
 	./hack/generate.sh generate_manifests
 
-generate-crds:
-	./hack/generate.sh generate_crds
-
 generate-bundle:
 	mkdir -p ${BUILD_FOLDER}
 	./hack/generate.sh generate_bundle
