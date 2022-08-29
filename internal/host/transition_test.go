@@ -5755,6 +5755,138 @@ var _ = Describe("Comparison builder", func() {
 	})
 })
 
+var _ = Describe("Upgrade agent feature", func() {
+	var (
+		ctx                           = context.Background()
+		hapi                          API
+		db                            *gorm.DB
+		ctrl                          *gomock.Controller
+		mockEvents                    *eventsapi.MockHandler
+		hostId, clusterId, infraEnvId strfmt.UUID
+		dbName                        string
+		mockHwValidator               *hardware.MockValidator
+		pr                            *registry.MockProviderRegistry
+	)
+
+	BeforeEach(func() {
+		ctrl = gomock.NewController(GinkgoT())
+		db, dbName = common.PrepareTestDB()
+		mockEvents = eventsapi.NewMockHandler(ctrl)
+		mockHwValidator = hardware.NewMockValidator(ctrl)
+		operatorsManager := operators.NewManager(
+			common.GetTestLog(),
+			nil,
+			operators.Options{},
+			nil,
+			nil,
+		)
+		pr = registry.NewMockProviderRegistry(ctrl)
+		hapi = NewManager(
+			common.GetTestLog(),
+			db,
+			mockEvents,
+			mockHwValidator,
+			nil,
+			createValidatorCfg(),
+			nil,
+			defaultConfig,
+			nil,
+			operatorsManager,
+			pr,
+			false,
+			nil,
+		)
+		hostId = strfmt.UUID(uuid.New().String())
+		clusterId = strfmt.UUID(uuid.New().String())
+		infraEnvId = strfmt.UUID(uuid.New().String())
+	})
+
+	AfterEach(func() {
+		common.DeleteTestDB(db, dbName)
+		ctrl.Finish()
+	})
+
+	It("Moves from known to insufficient when agent isn't compatible", func() {
+		// Create the infrastructure environment:
+		infraEnv := hostutil.GenerateTestInfraEnv(infraEnvId)
+		Expect(db.Create(&infraEnv).Error).ToNot(HaveOccurred())
+
+		// Create the cluster:
+		cluster := hostutil.GenerateTestCluster(clusterId)
+		Expect(db.Create(&cluster).Error).ToNot(HaveOccurred())
+
+		// Create the host:
+		host := hostutil.GenerateTestHost(
+			hostId,
+			infraEnvId,
+			clusterId,
+			models.HostStatusKnown,
+		)
+		host.RequestedHostname = "my-host"
+		host.NtpSources = `[{
+			"source_name": "my.ntp.org",
+			"source_state": "synced"
+		}]`
+		host.DiscoveryAgentVersion = "quay.io/my/image:bad"
+		Expect(db.Create(&host).Error).ToNot(HaveOccurred())
+
+		// Prepare the mocks:
+		mockDefaultClusterHostRequirements(mockHwValidator)
+		mockPreflightHardwareRequirements(
+			mockHwValidator,
+			&defaultMasterRequirements,
+			&defaultWorkerRequirements,
+		)
+		disks := []*models.Disk{{
+			ID:     "/dev/disks/by-id/123",
+			Name:   "my-disk",
+			Serial: "123",
+			InstallationEligibility: models.DiskInstallationEligibility{
+				Eligible: true,
+			},
+		}}
+		mockHwValidator.EXPECT().ListEligibleDisks(gomock.Any()).
+			Return(disks).AnyTimes()
+		mockHwValidator.EXPECT().GetHostInstallationPath(gomock.Any()).
+			Return("/dev/sda").AnyTimes()
+		pr.EXPECT().IsHostSupported(gomock.Any(), gomock.Any()).
+			Return(true, nil).AnyTimes()
+		mockEvents.EXPECT().SendHostEvent(gomock.Any(), gomock.Any()).
+			AnyTimes()
+
+		// Refresh the host:
+		err := hapi.RefreshStatus(ctx, &host, db)
+		Expect(err).ToNot(HaveOccurred())
+
+		// Check that the agent compatibility validation fails and that all the other
+		// succeed, as otherwise the host may be moved to the insufficent state because of
+		// some other validation and then the result of the test will be a false positive.
+		host = hostutil.GetHostFromDB(hostId, infraEnvId, db).Host
+		validations, err := GetValidations(&host)
+		Expect(err).ToNot(HaveOccurred())
+		for _, results := range validations {
+			for _, result := range results {
+				if result.ID == CompatibleAgent {
+					Expect(result.Status).To(
+						Equal(ValidationFailure),
+						"Expected compatible agent validation to fail, "+
+							"but it didn't",
+					)
+				} else {
+					Expect(result.Status).ToNot(
+						Equal(ValidationFailure),
+						"Expected '%s' validation to not fail, but it did",
+						result.ID,
+					)
+				}
+			}
+		}
+
+		// Check that it is moved to the insufficient state:
+		Expect(host.Status).To(HaveValue(Equal(models.HostStatusInsufficient)))
+	})
+})
+
 func mockDefaultClusterHostRequirements(mockHwValidator *hardware.MockValidator) {
 	mockHwValidator.EXPECT().GetClusterHostRequirements(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes().DoAndReturn(func(ctx context.Context, cluster *common.Cluster, host *models.Host) (*models.ClusterHostRequirements, error) {
 		var details models.ClusterHostRequirementsDetails

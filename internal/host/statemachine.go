@@ -602,15 +602,42 @@ func NewHostStateMachine(sm stateswitch.StateMachine, th *transitionHandler) sta
 		PostTransition:   th.PostRefreshHost(statusInfoDiscovering),
 	})
 
-	var hasMinRequiredHardware = stateswitch.And(If(HasMinValidDisks), If(HasMinCPUCores), If(HasMinMemory),
-		If(CompatibleWithClusterPlatform), If(DiskEncryptionRequirementsSatisfied))
+	var hasMinRequiredHardware = stateswitch.And(
+		If(HasMinValidDisks),
+		If(HasMinCPUCores),
+		If(HasMinMemory),
+		If(CompatibleWithClusterPlatform),
+		If(DiskEncryptionRequirementsSatisfied),
+	)
 
-	var requiredInputFieldsExist = stateswitch.And(If(IsMachineCidrDefined))
+	var requiredInputFieldsExist = stateswitch.And(
+		If(IsMachineCidrDefined),
+	)
 
-	var isSufficientForInstall = stateswitch.And(If(HasMemoryForRole), If(HasCPUCoresForRole), If(BelongsToMachineCidr), If(IsHostnameUnique), If(IsHostnameValid), If(IsIgnitionDownloadable), If(BelongsToMajorityGroup),
-		If(AreOdfRequirementsSatisfied), If(AreLsoRequirementsSatisfied), If(AreCnvRequirementsSatisfied), If(AreLvmRequirementsSatisfied), If(HasSufficientNetworkLatencyRequirementForRole), If(HasSufficientPacketLossRequirementForRole), If(HasDefaultRoute),
-		If(IsAPIDomainNameResolvedCorrectly), If(IsAPIInternalDomainNameResolvedCorrectly), If(IsAppsDomainNameResolvedCorrectly), If(IsDNSWildcardNotConfigured), If(IsPlatformNetworkSettingsValid),
-		If(SufficientOrUnknownInstallationDiskSpeed), If(NonOverlappingSubnets))
+	var isSufficientForInstall = stateswitch.And(
+		If(HasMemoryForRole),
+		If(HasCPUCoresForRole),
+		If(BelongsToMachineCidr),
+		If(IsHostnameUnique),
+		If(IsHostnameValid),
+		If(IsIgnitionDownloadable),
+		If(BelongsToMajorityGroup),
+		If(AreOdfRequirementsSatisfied),
+		If(AreLsoRequirementsSatisfied),
+		If(AreCnvRequirementsSatisfied),
+		If(AreLvmRequirementsSatisfied),
+		If(HasSufficientNetworkLatencyRequirementForRole),
+		If(HasSufficientPacketLossRequirementForRole),
+		If(HasDefaultRoute),
+		If(IsAPIDomainNameResolvedCorrectly),
+		If(IsAPIInternalDomainNameResolvedCorrectly),
+		If(IsAppsDomainNameResolvedCorrectly),
+		If(IsDNSWildcardNotConfigured),
+		If(IsPlatformNetworkSettingsValid),
+		If(SufficientOrUnknownInstallationDiskSpeed),
+		If(NonOverlappingSubnets),
+		If(CompatibleAgent),
+	)
 
 	// In order for this transition to be fired at least one of the validations in minRequiredHardwareValidations must fail.
 	// This transition handles the case that a host does not pass minimum hardware requirements for any of the roles
