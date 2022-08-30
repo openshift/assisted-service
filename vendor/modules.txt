@@ -568,11 +568,13 @@ github.com/openshift-online/ocm-sdk-go/metrics
 github.com/openshift-online/ocm-sdk-go/retry
 github.com/openshift-online/ocm-sdk-go/servicelogs
 github.com/openshift-online/ocm-sdk-go/servicelogs/v1
-# github.com/openshift/api v3.9.1-0.20191111211345-a27ff30ebf09+incompatible
-## explicit
+# github.com/openshift/api v0.0.0-20220824124051-d72820206113
+## explicit; go 1.16
+github.com/openshift/api/authorization/v1
 github.com/openshift/api/config/v1
 github.com/openshift/api/operator/v1
 github.com/openshift/api/operator/v1alpha1
+github.com/openshift/api/pkg/serialization
 github.com/openshift/api/route/v1
 # github.com/openshift/assisted-image-service v0.0.0-20220506122314-2f689a1084b8
 ## explicit; go 1.16
