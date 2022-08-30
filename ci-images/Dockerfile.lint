@@ -1,0 +1,3 @@
+FROM base
+
+COPY --from=quay.io/app-sre/golangci-lint:v1.37.1 /usr/bin/golangci-lint /usr/bin/golangci-lint
