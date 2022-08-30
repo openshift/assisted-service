@@ -1271,8 +1271,8 @@ func (r *ClusterDeploymentsReconciler) addReleaseImage(
 
 	if err != nil {
 		log.Error(err)
-		errMsg := "failed to add release image '%s'. Please ensure the releaseImage field in ClusterImageSet '%s' is valid (contact your admin with this info)."
-		return nil, errors.New(fmt.Sprintf(errMsg, releaseImageUrl, spec.ImageSetRef.Name))
+		errMsg := "failed to add release image '%s'. Please ensure the releaseImage field in ClusterImageSet '%s' is valid (error: %s)."
+		return nil, errors.New(fmt.Sprintf(errMsg, releaseImageUrl, spec.ImageSetRef.Name, err.Error()))
 	}
 
 	return releaseImage, nil
