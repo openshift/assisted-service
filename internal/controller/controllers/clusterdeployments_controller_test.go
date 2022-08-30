@@ -2254,7 +2254,8 @@ var _ = Describe("cluster reconcile", func() {
 			mockInstallerInternal.EXPECT().HostWithCollectedLogsExists(gomock.Any()).Return(false, nil)
 			mockManifestsApi.EXPECT().ListClusterManifestsInternal(gomock.Any(), gomock.Any()).Return(models.ListManifests{}, nil).Times(1)
 
-			mockInstallerInternal.EXPECT().AddReleaseImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, errors.New("failed"))
+			errMsg := "No OS images are available"
+			mockInstallerInternal.EXPECT().AddReleaseImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, errors.New(errMsg))
 
 			request := newClusterDeploymentRequest(cluster)
 			result, err := cr.Reconcile(ctx, request)
@@ -2262,8 +2263,8 @@ var _ = Describe("cluster reconcile", func() {
 			Expect(result.Requeue).To(BeFalse())
 
 			aci = getTestClusterInstall()
-			expectedErr := fmt.Sprintf("failed to add release image '%s'. Please ensure the releaseImage field in ClusterImageSet '%s' is valid (contact your admin with this info).",
-				releaseImageUrl, imageSetName)
+			expectedErr := fmt.Sprintf("failed to add release image '%s'. Please ensure the releaseImage field in ClusterImageSet '%s' is valid (error: %s).",
+				releaseImageUrl, imageSetName, errMsg)
 			expectedState := fmt.Sprintf("%s %s", hiveext.ClusterBackendErrorMsg, expectedErr)
 			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterSpecSyncedCondition).Reason).To(Equal(hiveext.ClusterBackendErrorReason))
 			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterSpecSyncedCondition).Status).To(Equal(corev1.ConditionFalse))
