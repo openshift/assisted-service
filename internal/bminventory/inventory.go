@@ -2623,6 +2623,10 @@ func (b *bareMetalInventory) updateOperatorsData(ctx context.Context, cluster *c
 	}
 
 	for _, updatedOperator := range updateOLMOperators {
+		if updatedOperator.Name == "LVM" || updatedOperator.Name == "CNV" {
+			err = errors.Wrapf(err, "failed, either LVM or CNV operator can be installed, both can not be installed")
+			return common.NewApiError(http.StatusBadRequest, err)
+		}
 		updatedOperator.ClusterID = *cluster.ID
 		if err = db.Save(updatedOperator).Error; err != nil {
 			err = errors.Wrapf(err, "failed to update operator %s of cluster %s", updatedOperator.Name, params.ClusterID)
