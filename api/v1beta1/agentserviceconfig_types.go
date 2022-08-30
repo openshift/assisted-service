@@ -102,6 +102,15 @@ type AgentServiceConfigSpec struct {
 	// +kubebuilder:validation:default:=disabled
 	// +optional
 	IPXEHTTPRoute string `json:"iPXEHTTPRoute,omitempty"`
+
+	// KubeconfigSecretRef is the reference to the Secret containing a kubeconfig of an external
+	// control plane (e.g. hypershift HostedCluster). I.e. when specified, the assisted-service
+	// Deployment would use that kubeconfig instead of the in-cluster rest config that is used
+	// by default. Which means the kube-api controllers will monitor and reconcile entities
+	// existing on the external cluster.
+	// +optional
+	//+operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Control plane kubeconfig reference"
+	KubeconfigSecretRef *corev1.LocalObjectReference `json:"kubeconfigSecretRef"`
 }
 
 // ConditionType related to our reconcile loop in addition to all the reasons

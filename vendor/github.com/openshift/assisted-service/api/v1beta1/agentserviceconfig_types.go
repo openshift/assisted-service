@@ -102,6 +102,12 @@ type AgentServiceConfigSpec struct {
 	// +kubebuilder:validation:default:=disabled
 	// +optional
 	IPXEHTTPRoute string `json:"iPXEHTTPRoute,omitempty"`
+
+	// KubeconfigSecretRef is the reference to the Secret containing a kubeconfig of an external
+	// control plane (e.g. hypershift HostCluster).
+	// +optional
+	//+operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Control plane kubeconfig reference"
+	KubeconfigSecretRef *corev1.LocalObjectReference `json:"kubeconfigSecretRef"`
 }
 
 // ConditionType related to our reconcile loop in addition to all the reasons

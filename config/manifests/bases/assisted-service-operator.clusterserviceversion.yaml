@@ -53,6 +53,14 @@ spec:
           is provided 2GiB per OSImage entry is required
         displayName: Storage for images
         path: imageStorage
+      - description: KubeconfigSecretRef is the reference to the Secret containing
+          a kubeconfig of an external control plane (e.g. hypershift HostedCluster).
+          I.e. when specified, the assisted-service Deployment would use that kubeconfig
+          instead of the in-cluster rest config that is used by default. Which means
+          the kube-api controllers will monitor and reconcile entities existing on
+          the external cluster.
+        displayName: Control plane kubeconfig reference
+        path: kubeconfigSecretRef
       - description: 'MirrorRegistryRef is the reference to the configmap that contains
           mirror registry configuration In case no configuration is need, this field
           will be nil. ConfigMap must contain to entries: ca-bundle.crt - hold the
