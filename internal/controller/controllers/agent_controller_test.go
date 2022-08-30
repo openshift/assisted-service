@@ -15,6 +15,7 @@ import (
 	bmh_v1alpha1 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	authzv1 "github.com/openshift/api/authorization/v1"
 	common_api "github.com/openshift/assisted-service/api/common"
 	hiveext "github.com/openshift/assisted-service/api/hiveextension/v1beta1"
 	"github.com/openshift/assisted-service/api/v1beta1"
@@ -29,6 +30,7 @@ import (
 	hivev1 "github.com/openshift/hive/apis/hive/v1"
 	"github.com/pkg/errors"
 	"gorm.io/gorm"
+	appsv1 "k8s.io/api/apps/v1"
 	certificatesv1 "k8s.io/api/certificates/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -748,9 +750,11 @@ var _ = Describe("agent reconcile", func() {
 			mockClient := spoke_k8s_client.NewMockSpokeK8sClient(mockCtrl)
 			mockClientFactory.EXPECT().CreateFromSecret(gomock.Any()).Return(mockClient, nil).AnyTimes()
 			mockClient.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.AssignableToTypeOf(&corev1.Namespace{})).Return(nil)
+			mockClient.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.AssignableToTypeOf(&corev1.ServiceAccount{})).Return(nil)
+			mockClient.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.AssignableToTypeOf(&authzv1.ClusterRoleBinding{})).Return(nil)
 			mockClient.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.AssignableToTypeOf(&corev1.Secret{})).Return(nil)
 			mockClient.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.AssignableToTypeOf(&corev1.Node{})).Return(nil)
-			mockClient.EXPECT().Create(gomock.Any(), gomock.AssignableToTypeOf(&corev1.Pod{})).Return(nil)
+			mockClient.EXPECT().Create(gomock.Any(), gomock.AssignableToTypeOf(&appsv1.DaemonSet{})).Return(nil)
 
 			mockInstallerInternal.EXPECT().UnbindHostInternal(gomock.Any(), gomock.Any(), true).Return(commonHost, nil)
 			result, err := hr.Reconcile(ctx, newHostRequest(host))
@@ -789,9 +793,11 @@ var _ = Describe("agent reconcile", func() {
 			mockClient := spoke_k8s_client.NewMockSpokeK8sClient(mockCtrl)
 			mockClientFactory.EXPECT().CreateFromSecret(gomock.Any()).Return(mockClient, nil).AnyTimes()
 			mockClient.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.AssignableToTypeOf(&corev1.Namespace{})).Return(nil)
+			mockClient.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.AssignableToTypeOf(&corev1.ServiceAccount{})).Return(nil)
+			mockClient.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.AssignableToTypeOf(&authzv1.ClusterRoleBinding{})).Return(nil)
 			mockClient.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.AssignableToTypeOf(&corev1.Secret{})).Return(nil)
 			mockClient.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.AssignableToTypeOf(&corev1.Node{})).Return(nil)
-			mockClient.EXPECT().Create(gomock.Any(), gomock.AssignableToTypeOf(&corev1.Pod{})).Return(errors.New("Failed to create pod"))
+			mockClient.EXPECT().Create(gomock.Any(), gomock.AssignableToTypeOf(&appsv1.DaemonSet{})).Return(errors.New("Failed to create DaemonSet"))
 
 			mockInstallerInternal.EXPECT().UnbindHostInternal(gomock.Any(), gomock.Any(), false).Return(commonHost, nil)
 			result, err := hr.Reconcile(ctx, newHostRequest(host))

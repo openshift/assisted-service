@@ -395,13 +395,19 @@ func (r *AgentReconciler) runReclaimAgent(ctx context.Context, agent *aiv1beta1.
 	if err := ensureSpokeNamespace(ctx, client); err != nil {
 		return err
 	}
+	if err := ensureSpokeServiceAccount(ctx, client); err != nil {
+		return err
+	}
+	if err := ensureSpokeClusterRoleBinding(ctx, client); err != nil {
+		return err
+	}
 	if err := r.reclaimer.ensureSpokeAgentSecret(ctx, client, host.InfraEnvID.String()); err != nil {
 		return err
 	}
 	if err := r.reclaimer.ensureSpokeAgentCertCM(ctx, client); err != nil {
 		return err
 	}
-	return r.reclaimer.createNextStepRunnerPod(ctx, client, hostname, host.InfraEnvID.String(), host.ID.String())
+	return r.reclaimer.createNextStepRunnerDaemonSet(ctx, client, hostname, host.InfraEnvID.String(), host.ID.String())
 }
 
 func (r *AgentReconciler) unbindHost(ctx context.Context, log logrus.FieldLogger, agent, origAgent *aiv1beta1.Agent, h *common.Host) (ctrl.Result, error) {
