@@ -247,7 +247,7 @@ var _ = Describe("list versions", func() {
 					// image that matches, we are okay. This is to allow setups where release
 					// image supports more architectures than we have available RHCOS images.
 					Expect(len(version.CPUArchitectures)).ShouldNot(Equal(0))
-					Expect(version.DisplayName).Should(Equal(releaseImage.Version))
+					Expect(*releaseImage.Version).Should(ContainSubstring(*version.DisplayName))
 					Expect(version.SupportLevel).Should(Equal(h.getSupportLevel(*releaseImage)))
 				}
 			}
