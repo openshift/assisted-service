@@ -147,3 +147,36 @@ var _ = Describe("SignURLWithToken", func() {
 		Expect(err).To(HaveOccurred())
 	})
 })
+
+var _ = Describe("ParseExpirationFromURL", func() {
+	var url string
+
+	BeforeEach(func() {
+		url = "example.com"
+	})
+
+	It("successfully parses an expiration from a url with an expiration", func() {
+		expiration, err := time.ParseDuration("10h")
+		Expect(err).To(BeNil())
+		exp := time.Now().Add(expiration).Format("2006-01-02 15:04:05")
+
+		imageTokenKey, err := HMACKey(32)
+		Expect(err).To(BeNil())
+
+		token, err := JWTForSymmetricKey([]byte(imageTokenKey), expiration, "test1234")
+		Expect(err).To(BeNil())
+
+		urlString, err := SignURLWithToken(url, "image_token", token)
+		Expect(err).To(BeNil())
+
+		result, err := ParseExpirationFromURL(urlString)
+		Expect(err).To(BeNil())
+		Expect(time.Time(*result).Format("2006-01-02 15:04:05")).To(Equal(exp))
+	})
+	It("fails to parse an expiration from a url with an invalid image_token key", func() {
+		urlString, err := SignURLWithToken(url, "image_token", "12345abcde")
+		Expect(err).To(BeNil())
+		_, err = ParseExpirationFromURL(urlString)
+		Expect(err).ToNot(BeNil())
+	})
+})

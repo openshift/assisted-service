@@ -140,6 +140,21 @@ func (mr *MockHandlerMockRecorder) GetOsImage(arg0, arg1 interface{}) *gomock.Ca
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetOsImage", reflect.TypeOf((*MockHandler)(nil).GetOsImage), arg0, arg1)
 }
 
+// GetOsImageOrLatest mocks base method.
+func (m *MockHandler) GetOsImageOrLatest(arg0, arg1 string) (*models.OsImage, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetOsImageOrLatest", arg0, arg1)
+	ret0, _ := ret[0].(*models.OsImage)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetOsImageOrLatest indicates an expected call of GetOsImageOrLatest.
+func (mr *MockHandlerMockRecorder) GetOsImageOrLatest(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetOsImageOrLatest", reflect.TypeOf((*MockHandler)(nil).GetOsImageOrLatest), arg0, arg1)
+}
+
 // GetReleaseImage mocks base method.
 func (m *MockHandler) GetReleaseImage(arg0, arg1 string) (*models.ReleaseImage, error) {
 	m.ctrl.T.Helper()

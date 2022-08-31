@@ -94,6 +94,7 @@ const (
 	deployment_type_ocp    = "ocp"
 	storage_filesystem     = "filesystem"
 	storage_s3             = "s3"
+	hostFSMountDir         = "/host"
 )
 
 var Options struct {
@@ -307,6 +308,7 @@ func main() {
 	hwValidator := hardware.NewValidator(log.WithField("pkg", "validators"), Options.HWValidatorConfig, operatorsManager)
 	connectivityValidator := connectivity.NewValidator(log.WithField("pkg", "validators"))
 	Options.InstructionConfig.DisabledSteps = disableFreeAddressesIfNeeded(Options.EnableKubeAPI, Options.InstructionConfig.DisabledSteps)
+	Options.InstructionConfig.HostFSMountDir = hostFSMountDir
 	instructionApi := hostcommands.NewInstructionManager(log.WithField("pkg", "instructions"), db, hwValidator,
 		releaseHandler, Options.InstructionConfig, connectivityValidator, eventsHandler, versionHandler)
 
@@ -560,6 +562,7 @@ func main() {
 				ApproveCsrsRequeueDuration: Options.ApproveCsrsRequeueDuration,
 				EnableHostReclaim:          Options.EnableHostReclaim,
 				AgentContainerImage:        Options.BMConfig.AgentDockerImg,
+				HostFSMountDir:             hostFSMountDir,
 			}).SetupWithManager(ctrlMgr), "unable to create controller Agent")
 
 			failOnError((&controllers.BMACReconciler{

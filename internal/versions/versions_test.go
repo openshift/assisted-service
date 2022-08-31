@@ -886,6 +886,49 @@ var _ = Describe("list versions", func() {
 		})
 	})
 
+	Context("GetOsImageOrLatest", func() {
+		var (
+			osImage *models.OsImage
+		)
+
+		BeforeEach(func() {
+			h, err = NewHandler(logger, mockRelease, versions, defaultOsImages, *releaseImages, nil, "")
+			Expect(err).To(BeNil())
+		})
+
+		It("successfully gets an OS image with a valid openshift version and cpu architecture", func() {
+			osImage, err = h.GetOsImageOrLatest("4.9", common.TestDefaultConfig.CPUArchitecture)
+			Expect(err).To(BeNil())
+			Expect(*osImage.OpenshiftVersion).Should(Equal("4.9"))
+			Expect(*osImage.CPUArchitecture).Should(Equal(common.TestDefaultConfig.CPUArchitecture))
+		})
+
+		It("successfully gets the latest OS image with a valid cpu architecture", func() {
+			osImage, err = h.GetOsImageOrLatest("", common.TestDefaultConfig.CPUArchitecture)
+			Expect(err).To(BeNil())
+			Expect(*osImage.OpenshiftVersion).Should(Equal("4.11.1"))
+			Expect(*osImage.CPUArchitecture).Should(Equal(common.TestDefaultConfig.CPUArchitecture))
+		})
+
+		It("fails to get OS images for invalid cpu architecture and valid openshift version", func() {
+			osImage, err = h.GetOsImageOrLatest(common.TestDefaultConfig.OpenShiftVersion, "x866")
+			Expect(err).ToNot(BeNil())
+			Expect(osImage).Should(BeNil())
+		})
+
+		It("fails to get OS images for invalid cpu architecture and invalid openshift version", func() {
+			osImage, err = h.GetOsImageOrLatest(common.TestDefaultConfig.OpenShiftVersion, "x866")
+			Expect(err).ToNot(BeNil())
+			Expect(osImage).Should(BeNil())
+		})
+
+		It("fails to get OS images for invalid cpu architecture and no openshift version", func() {
+			osImage, err = h.GetOsImageOrLatest("", "x866")
+			Expect(err).ToNot(BeNil())
+			Expect(osImage).Should(BeNil())
+		})
+	})
+
 	Context("validateVersions", func() {
 		BeforeEach(func() {
 			osImages = &models.OsImages{

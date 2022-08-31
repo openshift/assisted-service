@@ -110,6 +110,7 @@ var _ = Describe("infraEnv reconcile", func() {
 		pullSecret := getDefaultTestPullSecret("pull-secret", testNamespace)
 		eventURL = fmt.Sprintf("%s/api/assisted-install/v2/events?infra_env_id=%s", ir.ServiceBaseURL, sId)
 		Expect(c.Create(ctx, pullSecret)).To(BeNil())
+		mockVersionsHandler.EXPECT().GetOsImageOrLatest(gomock.Any(), gomock.Any()).Return(&models.OsImage{CPUArchitecture: swag.String(infraEnvArch), OpenshiftVersion: swag.String(ocpVersion)}, nil).AnyTimes()
 		mockVersionsHandler.EXPECT().GetLatestOsImage(infraEnvArch).Return(&models.OsImage{CPUArchitecture: swag.String(infraEnvArch), OpenshiftVersion: swag.String(ocpVersion)}, nil).AnyTimes()
 	})
 

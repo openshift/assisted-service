@@ -29,19 +29,20 @@ type reclaimConfig struct {
 	ServiceBaseURL       string        `envconfig:"SERVICE_BASE_URL"`
 	ServiceCACertPath    string        `envconfig:"SERVICE_CA_CERT_PATH" default:""`
 	SkipCertVerification bool          `envconfig:"SKIP_CERT_VERIFICATION" default:"false"`
+	hostFSMountDir       string
 }
 
 type agentReclaimer struct {
 	reclaimConfig
 }
 
-func newAgentReclaimer() (*agentReclaimer, error) {
+func newAgentReclaimer(hostFSMountDir string) (*agentReclaimer, error) {
 	config := reclaimConfig{}
 
 	if err := envconfig.Process("", &config); err != nil {
 		return nil, errors.Wrapf(err, "failed to populate reclaimConfig")
 	}
-
+	config.hostFSMountDir = hostFSMountDir
 	return &agentReclaimer{reclaimConfig: config}, nil
 }
 
@@ -146,6 +147,7 @@ func (r *agentReclaimer) createNextStepRunnerPod(ctx context.Context, c client.C
 		fmt.Sprintf("-host-id=%s", hostID),
 		fmt.Sprintf("-agent-version=%s", r.AgentContainerImage),
 		fmt.Sprintf("-insecure=%t", r.SkipCertVerification),
+		"-with-journal-logging=false",
 		"-with-stdout-logging=true",
 	}
 	volumes := []corev1.Volume{{
@@ -156,7 +158,7 @@ func (r *agentReclaimer) createNextStepRunnerPod(ctx context.Context, c client.C
 			},
 		},
 	}}
-	volumeMounts := []corev1.VolumeMount{{Name: "host", MountPath: "/host"}}
+	volumeMounts := []corev1.VolumeMount{{Name: "host", MountPath: r.hostFSMountDir}}
 
 	if r.ServiceCACertPath != "" {
 		cliArgs = append(cliArgs, fmt.Sprintf("-cacert=%s", common.HostCACertPath))

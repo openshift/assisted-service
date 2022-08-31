@@ -87,6 +87,7 @@ type AgentReconciler struct {
 	ApproveCsrsRequeueDuration time.Duration
 	EnableHostReclaim          bool
 	AgentContainerImage        string
+	HostFSMountDir             string
 	reclaimer                  *agentReclaimer
 }
 
@@ -1343,7 +1344,7 @@ func (r *AgentReconciler) setInfraEnvNameLabel(ctx context.Context, log logrus.F
 
 func (r *AgentReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	var err error
-	r.reclaimer, err = newAgentReclaimer()
+	r.reclaimer, err = newAgentReclaimer(r.HostFSMountDir)
 	if err != nil {
 		return err
 	}

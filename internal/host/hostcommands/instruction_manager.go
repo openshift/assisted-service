@@ -18,6 +18,7 @@ import (
 	"github.com/openshift/assisted-service/internal/oc"
 	"github.com/openshift/assisted-service/internal/versions"
 	"github.com/openshift/assisted-service/models"
+	"github.com/openshift/assisted-service/pkg/auth"
 	logutil "github.com/openshift/assisted-service/pkg/log"
 	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
@@ -56,9 +57,12 @@ type InstructionManager struct {
 type InstructionConfig struct {
 	feature.Flags
 
+	AuthType                 auth.AuthType     `envconfig:"AUTH_TYPE" default:""`
 	ServiceBaseURL           string            `envconfig:"SERVICE_BASE_URL"`
 	ServiceCACertPath        string            `envconfig:"SERVICE_CA_CERT_PATH" default:""`
 	ServiceIPs               string            `envconfig:"SERVICE_IPS" default:""`
+	ImageServiceBaseURL      string            `envconfig:"IMAGE_SERVICE_BASE_URL"`
+	ImageExpirationTime      time.Duration     `envconfig:"IMAGE_EXPIRATION_TIME" default:"4h"`
 	InstallerImage           string            `envconfig:"INSTALLER_IMAGE" default:"quay.io/edge-infrastructure/assisted-installer:latest"`
 	ControllerImage          string            `envconfig:"CONTROLLER_IMAGE" default:"quay.io/edge-infrastructure/assisted-installer-controller:latest"`
 	AgentImage               string            `envconfig:"AGENT_DOCKER_IMAGE" default:"quay.io/edge-infrastructure/assisted-installer-agent:latest"`
@@ -68,6 +72,7 @@ type InstructionConfig struct {
 	DisabledSteps            []models.StepType `envconfig:"DISABLED_STEPS" default:""`
 	ReleaseImageMirror       string
 	CheckClusterVersion      bool
+	HostFSMountDir           string
 }
 
 func NewInstructionManager(log logrus.FieldLogger, db *gorm.DB, hwValidator hardware.Validator, ocRelease oc.Release,
@@ -87,6 +92,8 @@ func NewInstructionManager(log logrus.FieldLogger, db *gorm.DB, hwValidator hard
 	domainNameResolutionCmd := NewDomainNameResolutionCmd(log, instructionConfig.AgentImage, db)
 	noopCmd := NewNoopCmd()
 	upgradeAgentCmd := NewUpgradeAgentCmd(instructionConfig.AgentImage)
+	downloadBootArtifactsCmd := NewDownloadBootArtifactsCmd(log, instructionConfig.ImageServiceBaseURL, instructionConfig.AuthType, versionHandler, db, instructionConfig.ImageExpirationTime, instructionConfig.HostFSMountDir)
+	rebootForReclaimCmd := NewRebootForReclaimCmd(log, instructionConfig.HostFSMountDir)
 
 	return &InstructionManager{
 		log:              log,
@@ -129,6 +136,8 @@ func NewInstructionManager(log logrus.FieldLogger, db *gorm.DB, hwValidator hard
 			models.HostStatusKnownUnbound:               {[]CommandGetter{inventoryCmd, ntpSynchronizerCmd}, defaultNextInstructionInSec, models.StepsPostStepActionContinue},
 			models.HostStatusUnbinding:                  {[]CommandGetter{noopCmd}, 0, models.StepsPostStepActionExit},
 			models.HostStatusUnbindingPendingUserAction: {[]CommandGetter{noopCmd}, 0, models.StepsPostStepActionExit},
+			models.HostStatusReclaiming:                 {[]CommandGetter{downloadBootArtifactsCmd}, defaultNextInstructionInSec, models.StepsPostStepActionContinue},
+			models.HostStatusReclaimingRebooting:        {[]CommandGetter{rebootForReclaimCmd}, defaultBackedOffInstructionInSec, models.StepsPostStepActionExit},
 		},
 		upgradeAgentCmd: upgradeAgentCmd,
 		eventsHandler:   eventsHandler,
