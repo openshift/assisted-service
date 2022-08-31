@@ -464,7 +464,7 @@ func (g *installerGenerator) applyInfrastructureCRPatch(ctx context.Context) err
 	// We are only patching the InfrastructureCR if the hosts count is 4
 	// and the three masters are schedulable.
 	if len(g.cluster.Hosts) != 4 {
-		log.Debug("number of hosts is different than 4, no need to patch the Infrastructure CR")
+		log.Debugf("number of hosts is different than 4, no need to patch the Infrastructure CR %s", len(g.cluster.Hosts))
 		return nil
 	}
 
@@ -473,19 +473,19 @@ func (g *installerGenerator) applyInfrastructureCRPatch(ctx context.Context) err
 	if err != nil {
 		return errors.Wrapf(err, "failed to read Infrastructure Manifest \"%s\"", infraManifest)
 	}
-	log.Debug("read the infrastructure manifest at %s", infraManifest)
+	log.Debugf("read the infrastructure manifest at %s", infraManifest)
 
 	data, err = applyYamlPatch(data, []byte(highlyAvailableInfrastructureTopologyPatch))
 	if err != nil {
 		return errors.Wrapf(err, "failed to patch Infrastructure Manifest \"%s\"", infraManifest)
 	}
-	log.Debug("applied the yaml patch to the infrastructure manifest at %s: \n %s", infraManifest, data)
+	log.Debugf("applied the yaml patch to the infrastructure manifest at %s: \n %s", infraManifest, string(data[:]))
 
 	err = ioutil.WriteFile(infraManifest, data, 0600)
 	if err != nil {
 		return errors.Wrapf(err, "failed to write Infrastructure Manifest \"%s\"", infraManifest)
 	}
-	log.Debug("wrote the resulting infrastructure manifest at %s", infraManifest)
+	log.Debugf("wrote the resulting infrastructure manifest at %s", infraManifest)
 
 	return nil
 }
