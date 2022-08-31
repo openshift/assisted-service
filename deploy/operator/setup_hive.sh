@@ -50,6 +50,7 @@ spec:
   name: hive-operator
   source: community-operators
   sourceNamespace: openshift-marketplace
+  channel: alpha
 EOCR
 
     wait_for_operator "hive-operator" "${HIVE_NAMESPACE}"
