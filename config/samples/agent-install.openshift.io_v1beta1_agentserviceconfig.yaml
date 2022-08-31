@@ -1,58 +1,37 @@
 apiVersion: agent-install.openshift.io/v1beta1
 kind: AgentServiceConfig
-metadata:
-  name: agent
+metadata: {name: agent}
 spec:
   databaseStorage:
-    accessModes:
-    - ReadWriteOnce
+    accessModes: [ReadWriteOnce]
     resources:
-      requests:
-        storage: 10Gi
+      requests: {storage: 10Gi}
   filesystemStorage:
-    accessModes:
-    - ReadWriteOnce
+    accessModes: [ReadWriteOnce]
     resources:
-      requests:
-        storage: 100Gi
+      requests: {storage: 100Gi}
   imageStorage:
-    accessModes:
-    - ReadWriteOnce
+    accessModes: [ReadWriteOnce]
     resources:
-      requests:
-        storage: 10Gi
+      requests: {storage: 10Gi}
   mustGatherImages:
-  - name: cnv
-    openshiftVersion: '4.8'
-    url: registry.redhat.io/container-native-virtualization/cnv-must-gather-rhel8:v2.6.5
-  - name: ocs
-    openshiftVersion: '4.8'
-    url: registry.redhat.io/ocs4/ocs-must-gather-rhel8
-  - name: lso
-    openshiftVersion: '4.8'
-    url: registry.redhat.io/openshift4/ose-local-storage-mustgather-rhel8
+  - {name: cnv, openshiftVersion: '4.8', url: 'registry.redhat.io/container-native-virtualization/cnv-must-gather-rhel8:v2.6.5'}
+  - {name: ocs, openshiftVersion: '4.8', url: registry.redhat.io/ocs4/ocs-must-gather-rhel8}
+  - {name: lso, openshiftVersion: '4.8', url: registry.redhat.io/openshift4/ose-local-storage-mustgather-rhel8}
   osImages:
-  - cpuArchitecture: x86_64
-    openshiftVersion: '4.8'
-    url: https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/4.8/4.8.14/rhcos-4.8.14-x86_64-live.x86_64.iso
-    version: 48.84.202109241901-0
-  - cpuArchitecture: x86_64
-    openshiftVersion: '4.9'
-    url: https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/4.9/4.9.40/rhcos-4.9.40-x86_64-live.x86_64.iso
-    version: 49.84.202206171736-0
-  - cpuArchitecture: x86_64
-    openshiftVersion: '4.10'
-    url: https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/4.10/4.10.16/rhcos-4.10.16-x86_64-live.x86_64.iso
-    version: 410.84.202205191234-0
-  - cpuArchitecture: arm64
-    openshiftVersion: '4.10'
-    url: https://mirror.openshift.com/pub/openshift-v4/aarch64/dependencies/rhcos/4.10/4.10.16/rhcos-4.10.16-aarch64-live.aarch64.iso
-    version: 410.84.202205191023-0
-  - cpuArchitecture: x86_64
-    openshiftVersion: '4.11'
-    url: https://mirror.openshift.com/pub/openshift-v4/x86_64/dependencies/rhcos/4.11/4.11.0/rhcos-4.11.0-x86_64-live.x86_64.iso
-    version: 411.86.202207150124-0
-  - cpuArchitecture: arm64
-    openshiftVersion: '4.11'
-    url: https://mirror.openshift.com/pub/openshift-v4/aarch64/dependencies/rhcos/4.11/4.11.0/rhcos-4.11.0-aarch64-live.aarch64.iso
-    version: 411.86.202207130959-0
+  - {cpuArchitecture: x86_64, openshiftVersion: '4.8', url: 'https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/4.8/4.8.14/rhcos-4.8.14-x86_64-live.x86_64.iso',
+    version: 48.84.202109241901-0}
+  - {cpuArchitecture: x86_64, openshiftVersion: '4.9', url: 'https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/4.9/4.9.40/rhcos-4.9.40-x86_64-live.x86_64.iso',
+    version: 49.84.202206171736-0}
+  - {cpuArchitecture: x86_64, openshiftVersion: '4.10', url: 'https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/4.10/4.10.16/rhcos-4.10.16-x86_64-live.x86_64.iso',
+    version: 410.84.202205191234-0}
+  - {cpuArchitecture: arm64, openshiftVersion: '4.10', url: 'https://mirror.openshift.com/pub/openshift-v4/aarch64/dependencies/rhcos/4.10/4.10.16/rhcos-4.10.16-aarch64-live.aarch64.iso',
+    version: 410.84.202205191023-0}
+  - {cpuArchitecture: x86_64, openshiftVersion: '4.11', url: 'https://mirror.openshift.com/pub/openshift-v4/x86_64/dependencies/rhcos/4.11/4.11.0/rhcos-4.11.0-x86_64-live.x86_64.iso',
+    version: 411.86.202207150124-0}
+  - {cpuArchitecture: arm64, openshiftVersion: '4.11', url: 'https://mirror.openshift.com/pub/openshift-v4/aarch64/dependencies/rhcos/4.11/4.11.0/rhcos-4.11.0-aarch64-live.aarch64.iso',
+    version: 411.86.202207130959-0}
+  - {cpuArchitecture: ppc64le, openshiftVersion: '4.11', url: 'https://mirror.openshift.com/pub/openshift-v4/ppc64le/dependencies/rhcos/4.11/4.11.0/rhcos-4.11.0-ppc64le-live.ppc64le.iso',
+    version: 411.86.202208190941-0}
+  - {cpuArchitecture: s390x, openshiftVersion: '4.11', url: 'https://mirror.openshift.com/pub/openshift-v4/s390x/dependencies/rhcos/4.11/4.11.0/rhcos-4.11.0-s390x-live.s390x.iso',
+    version: 411.86.202208190940-0}
