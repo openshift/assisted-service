@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: certs
+data:
+  tls.key: |-
+    -----BEGIN PRIVATE KEY-----
+    YOUR KEY HERE
+    -----END PRIVATE KEY-----
+  tls.crt: |-
+    -----BEGIN CERTIFICATE-----
+    YOUR CERT HERE
+    -----END CERTIFICATE-----
