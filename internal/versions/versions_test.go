@@ -315,7 +315,7 @@ var _ = Describe("list versions", func() {
 			h, err = NewHandler(logger, mockRelease, versions, *osImages, models.ReleaseImages{
 				&models.ReleaseImage{
 					CPUArchitecture:  swag.String(common.MultiCPUArchitecture),
-					CPUArchitectures: []string{common.X86CPUArchitecture, common.PowerCPUArchitecture},
+					CPUArchitectures: []string{common.X86CPUArchitecture, common.PowerCPUArchitecture, "chocobomb-fake-architecture"},
 					OpenshiftVersion: swag.String("4.11.1"),
 					URL:              swag.String("release_4.11.1"),
 					Default:          true,
@@ -329,7 +329,8 @@ var _ = Describe("list versions", func() {
 
 			version := val.Payload["4.11.1"]
 			Expect(version.CPUArchitectures).Should(ContainElement(common.X86CPUArchitecture))
-			Expect(version.CPUArchitectures).ShouldNot(ContainElement(common.PowerCPUArchitecture))
+			Expect(version.CPUArchitectures).Should(ContainElement(common.PowerCPUArchitecture))
+			Expect(version.CPUArchitectures).ShouldNot(ContainElement("chocobomb-fake-architecture"))
 			Expect(version.DisplayName).Should(Equal(swag.String("4.11.1-chocobomb-for-test")))
 			Expect(version.Default).Should(Equal(true))
 		})
