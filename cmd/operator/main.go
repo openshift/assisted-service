@@ -27,6 +27,7 @@ import (
 	aiv1beta1 "github.com/openshift/assisted-service/api/v1beta1"
 	"github.com/openshift/assisted-service/internal/controller/controllers"
 	"github.com/openshift/assisted-service/models"
+	"github.com/openshift/assisted-service/pkg/k8sclient"
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	"github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
@@ -136,13 +137,15 @@ func main() {
 		tolerations = operatorPod.Spec.Tolerations
 	}
 
+	log := logrus.New()
 	if err = (&controllers.AgentServiceConfigReconciler{
-		Client:       mgr.GetClient(),
-		Log:          logrus.New(),
-		Scheme:       mgr.GetScheme(),
-		Recorder:     mgr.GetEventRecorderFor("agentserviceconfig-controller"),
-		NodeSelector: nodeSelector,
-		Tolerations:  tolerations,
+		Client:                        mgr.GetClient(),
+		Log:                           log,
+		Scheme:                        mgr.GetScheme(),
+		Recorder:                      mgr.GetEventRecorderFor("agentserviceconfig-controller"),
+		NodeSelector:                  nodeSelector,
+		Tolerations:                   tolerations,
+		K8sApiExtensionsClientFactory: k8sclient.NewK8sApiExtensionsClientFactory(log),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "AgentServiceConfig")
 		os.Exit(1)

@@ -32,6 +32,7 @@ import (
 	"github.com/openshift/assisted-service/internal/gencrypto"
 	"github.com/openshift/assisted-service/internal/versions"
 	"github.com/openshift/assisted-service/models"
+	"github.com/openshift/assisted-service/pkg/k8sclient"
 	logutil "github.com/openshift/assisted-service/pkg/log"
 	conditionsv1 "github.com/openshift/custom-resource-status/conditions/v1"
 	pkgerror "github.com/pkg/errors"
@@ -113,6 +114,8 @@ type AgentServiceConfigReconciler struct {
 	// selector and tolerations the Operator runs in and propagates to its deployments
 	NodeSelector map[string]string
 	Tolerations  []corev1.Toleration
+
+	K8sApiExtensionsClientFactory k8sclient.K8sApiExtensionsClientFactory
 }
 
 type component struct {
@@ -146,6 +149,7 @@ type ComponentStatusFn func(context.Context, logrus.FieldLogger, string, appsv1.
 // +kubebuilder:rbac:groups="",resources=namespaces,verbs=get;list;watch
 // +kubebuilder:rbac:groups="apiregistration.k8s.io",resources=apiservices,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=authorization.k8s.io,resources=subjectaccessreviews,verbs=create
+// +kubebuilder:rbac:groups=apiextensions.k8s.io,resources=customresourcedefinitions,verbs=get;list;create
 
 func (r *AgentServiceConfigReconciler) Reconcile(origCtx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	ctx := addRequestIdIfNeeded(origCtx)
@@ -1308,9 +1312,11 @@ func (r *AgentServiceConfigReconciler) reconcileImageServiceStatefulSet(ctx cont
 
 func (r *AgentServiceConfigReconciler) newAssistedServiceDeployment(ctx context.Context, log logrus.FieldLogger, instance *aiv1beta1.AgentServiceConfig) (client.Object, controllerutil.MutateFn, error) {
 	var assistedConfigHash, mirrorConfigHash, userConfigHash string
+	var err error
+	var secret *corev1.Secret
 
 	// Get hash of generated assisted config
-	assistedConfigHash, err := r.getCMHash(ctx, types.NamespacedName{Name: serviceName, Namespace: instance.Namespace})
+	assistedConfigHash, err = r.getCMHash(ctx, types.NamespacedName{Name: serviceName, Namespace: instance.Namespace})
 	if err != nil {
 		return nil, nil, err
 	}
@@ -1329,12 +1335,19 @@ func (r *AgentServiceConfigReconciler) newAssistedServiceDeployment(ctx context.
 	}
 
 	if instance.Spec.KubeconfigSecretRef != nil {
-		if err = r.validateKubeconfigSecretRef(ctx, instance); err != nil {
+		// kubeconfig of an external control plane
+		envSecrets = append(envSecrets, corev1.EnvVar{Name: "KUBECONFIG", Value: kubeconfigPath})
+
+		// Validate kubeconfig secret reference specified in ASC
+		secret, err = r.validateKubeconfigSecretRef(ctx, instance)
+		if err != nil {
 			return nil, nil, err
 		}
 
-		// kubeconfig of an external control plane
-		envSecrets = append(envSecrets, corev1.EnvVar{Name: "KUBECONFIG", Value: kubeconfigPath})
+		// Deploy agent-install CRDs on the external cluster (using specified kubeconfig in ASC)
+		if err = r.deployAgentInstallCRDs(secret, instance.Namespace, log); err != nil {
+			return nil, nil, err
+		}
 	}
 
 	if r.exposeIPXEHTTPRoute(instance) {
@@ -1655,16 +1668,16 @@ func checkIngressCMName(obj metav1.Object) bool {
 // getMustGatherImages returns the value of MUST_GATHER_IMAGES variable
 // to be stored in the service's ConfigMap
 //
-// 1. If mustGatherImages field is not present in the AgentServiceConfig's Spec
-//    it returns the value of MUST_GATHER_IMAGES env variable. This is also the
-//    fallback behavior in case of a processing error
+//  1. If mustGatherImages field is not present in the AgentServiceConfig's Spec
+//     it returns the value of MUST_GATHER_IMAGES env variable. This is also the
+//     fallback behavior in case of a processing error
 //
-// 2. If mustGatherImages field is present in the AgentServiceConfig's Spec it
-//    converts the structure to the one that can be recognize by the service
-//    and returns it as a JSON string
+//  2. If mustGatherImages field is present in the AgentServiceConfig's Spec it
+//     converts the structure to the one that can be recognize by the service
+//     and returns it as a JSON string
 //
-// 3. In case both sources are present, the Spec values overrides the env
-//    values
+//  3. In case both sources are present, the Spec values overrides the env
+//     values
 func (r *AgentServiceConfigReconciler) getMustGatherImages(log logrus.FieldLogger, instance *aiv1beta1.AgentServiceConfig) string {
 	if instance.Spec.MustGatherImages == nil {
 		return MustGatherImages()
@@ -1697,16 +1710,16 @@ func (r *AgentServiceConfigReconciler) getMustGatherImages(log logrus.FieldLogge
 // getOSImages returns the value of OS_IMAGES variable
 // to be stored in the service's ConfigMap
 //
-// 1. If osImages field is not present in the AgentServiceConfig's Spec
-//    it returns the value of OS_IMAGES env variable.
-//    This is also the fallback behavior in case of a processing error.
+//  1. If osImages field is not present in the AgentServiceConfig's Spec
+//     it returns the value of OS_IMAGES env variable.
+//     This is also the fallback behavior in case of a processing error.
 //
-// 2. If osImages field is present in the AgentServiceConfig's Spec it
-//    converts the structure to the one that can be recognize by the service
-//    and returns it as a JSON string.
+//  2. If osImages field is present in the AgentServiceConfig's Spec it
+//     converts the structure to the one that can be recognize by the service
+//     and returns it as a JSON string.
 //
-// 3. In case both sources are present, the Spec values overrides the env
-//    values.
+//  3. In case both sources are present, the Spec values overrides the env
+//     values.
 func (r *AgentServiceConfigReconciler) getOSImages(log logrus.FieldLogger, instance *aiv1beta1.AgentServiceConfig) string {
 	if instance.Spec.OSImages == nil {
 		return OSImages()
@@ -1781,17 +1794,17 @@ func newSecretEnvVar(name, key, secretName string) corev1.EnvVar {
 	}
 }
 
-func (r *AgentServiceConfigReconciler) validateKubeconfigSecretRef(ctx context.Context, instance *aiv1beta1.AgentServiceConfig) error {
+func (r *AgentServiceConfigReconciler) validateKubeconfigSecretRef(ctx context.Context, instance *aiv1beta1.AgentServiceConfig) (*corev1.Secret, error) {
 	secretRef := types.NamespacedName{Namespace: instance.Namespace, Name: instance.Spec.KubeconfigSecretRef.Name}
 	secret, err := getSecret(ctx, r.Client, r, secretRef)
 	if err != nil {
-		return pkgerror.Wrapf(err, "Failed to get '%s' secret in '%s' namespace", secretRef.Name, secretRef.Namespace)
+		return nil, pkgerror.Wrapf(err, "Failed to get '%s' secret in '%s' namespace", secretRef.Name, secretRef.Namespace)
 	}
 	_, ok := secret.Data[kubeconfigKeyInSecret]
 	if !ok {
-		return pkgerror.Errorf("Secret '%s' does not contain '%s' key value", secretRef.Name, kubeconfigKeyInSecret)
+		return nil, pkgerror.Errorf("Secret '%s' does not contain '%s' key value", secretRef.Name, kubeconfigKeyInSecret)
 	}
-	return nil
+	return secret, nil
 }
 
 func (r *AgentServiceConfigReconciler) newInfraEnvWebHook(ctx context.Context, log logrus.FieldLogger, instance *aiv1beta1.AgentServiceConfig) (client.Object, controllerutil.MutateFn, error) {
@@ -2287,4 +2300,44 @@ func (r *AgentServiceConfigReconciler) getImageService(ctx context.Context, log 
 		return ""
 	}
 	return imageServiceURL
+}
+
+func (r *AgentServiceConfigReconciler) deployAgentInstallCRDs(secret *corev1.Secret, namespace string, log logrus.FieldLogger) error {
+	// Get in-cluster client
+	kubeClient, err := r.K8sApiExtensionsClientFactory.CreateFromInClusterConfig()
+	if err != nil {
+		return err
+	}
+
+	// Fetch all agent-install CRDs in cluster
+	crdClient := kubeClient.ApiextensionsV1().CustomResourceDefinitions()
+	crds, err := crdClient.List(context.TODO(), metav1.ListOptions{
+		LabelSelector: fmt.Sprintf("operators.coreos.com/assisted-service-operator.%s=", namespace),
+	})
+	if err != nil || len(crds.Items) == 0 {
+		log.Error(err)
+		return pkgerror.New("agent-install CRDs are not available")
+	}
+
+	// Get external cluster client (using kubeconfig specified in ASC)
+	kubeClient, err = r.K8sApiExtensionsClientFactory.CreateFromSecret(secret)
+	if err != nil {
+		return err
+	}
+
+	// Create the CRDs on the external cluster
+	crdClient = kubeClient.ApiextensionsV1().CustomResourceDefinitions()
+	for _, crd := range crds.Items {
+		// ResourceVersion should not be set on objects to be created
+		crd.ResourceVersion = ""
+		c := crd
+		_, err1 := crdClient.Create(context.TODO(), &c, metav1.CreateOptions{})
+		if err1 != nil {
+			log.Debug(pkgerror.Wrapf(err1, "Ignore '%s' CRD creation failure - probably already exists", crd.Name))
+			continue
+		}
+		log.Info(fmt.Sprintf("Created agent-install CRD on external cluster: '%s'", crd.Name))
+	}
+
+	return nil
 }

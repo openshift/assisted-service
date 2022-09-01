@@ -7,6 +7,7 @@ import (
 	"os"
 
 	"github.com/go-openapi/swag"
+	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	routev1 "github.com/openshift/api/route/v1"
@@ -14,11 +15,15 @@ import (
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/versions"
 	"github.com/openshift/assisted-service/models"
+	"github.com/openshift/assisted-service/pkg/k8sclient"
 	conditionsv1 "github.com/openshift/custom-resource-status/conditions/v1"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	fakeclientset "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/fake"
 	"k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -1342,24 +1347,77 @@ var _ = Describe("ensureAssistedServiceDeployment", func() {
 		})
 	})
 
-	Describe("AgentServiceConfig - KubeconfigSecretRef", func() {
+	Describe("AgentServiceConfig - KubeconfigSecretRef provided", func() {
+		var (
+			mockCtrl *gomock.Controller
+		)
+
+		mockKubeconfigSecret := func(ascr *AgentServiceConfigReconciler) {
+			kubeconfigSecret := &corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      testKubeconfigName,
+					Namespace: testNamespace,
+				},
+				Data: map[string][]byte{
+					kubeconfigKeyInSecret: []byte(BASIC_KUBECONFIG),
+				},
+				Type: corev1.SecretTypeOpaque,
+			}
+			Expect(ascr.Client.Create(ctx, kubeconfigSecret)).To(Succeed())
+		}
+
+		addCRDToClient := func(mockClientSet *fakeclientset.Clientset) {
+			// Add CRDs to the in-cluster mock client
+			crds, err := mockClientSet.ApiextensionsV1().CustomResourceDefinitions().Create(
+				context.TODO(),
+				&apiextensionsv1.CustomResourceDefinition{
+					TypeMeta: metav1.TypeMeta{},
+					ObjectMeta: metav1.ObjectMeta{
+						Labels: map[string]string{
+							fmt.Sprintf("operators.coreos.com/assisted-service-operator.%s", asc.Namespace): "",
+						},
+					},
+					Spec:   apiextensionsv1.CustomResourceDefinitionSpec{},
+					Status: apiextensionsv1.CustomResourceDefinitionStatus{},
+				},
+				metav1.CreateOptions{},
+			)
+			Expect(err).ShouldNot(HaveOccurred())
+			Expect(crds).ToNot(Equal(nil))
+		}
+
+		mockApiExtensionsClientSuccess := func(
+			mockClient *k8sclient.MockK8sApiExtensionsClient,
+			mockClientSpoke *k8sclient.MockK8sApiExtensionsClient,
+			mockClientSet *fakeclientset.Clientset,
+			mockClientSetSpoke *fakeclientset.Clientset,
+			mockClientFactory *k8sclient.MockK8sApiExtensionsClientFactory,
+		) {
+			mockClientFactory.EXPECT().CreateFromInClusterConfig().Return(mockClient, nil)
+			mockClientFactory.EXPECT().CreateFromSecret(gomock.Any()).Return(mockClientSpoke, nil)
+			mockClient.EXPECT().ApiextensionsV1().Return(mockClientSet.ApiextensionsV1()).Times(1)
+			mockClientSpoke.EXPECT().ApiextensionsV1().Return(mockClientSetSpoke.ApiextensionsV1()).Times(1)
+			addCRDToClient(mockClientSet)
+		}
+
+		BeforeEach(func() {
+			mockCtrl = gomock.NewController(GinkgoT())
+		})
+
+		AfterEach(func() {
+			mockCtrl.Finish()
+		})
+
 		Context("valid KubeconfigSecretRef", func() {
 			It("should reconcile successfully", func() {
 				asc = newASCWithKubeconfigSecretRef(testKubeconfigName)
 				ascr = newTestReconciler(asc, route, assistedCM)
-
-				kubeconfigSecret := &corev1.Secret{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      testKubeconfigName,
-						Namespace: testNamespace,
-					},
-					Data: map[string][]byte{
-						kubeconfigKeyInSecret: []byte(BASIC_KUBECONFIG),
-					},
-					Type: corev1.SecretTypeOpaque,
-				}
-				Expect(ascr.Client.Create(ctx, kubeconfigSecret)).To(Succeed())
-
+				mockClientFactory := k8sclient.NewMockK8sApiExtensionsClientFactory(mockCtrl)
+				ascr.K8sApiExtensionsClientFactory = mockClientFactory
+				mockKubeconfigSecret(ascr)
+				mockClient := k8sclient.NewMockK8sApiExtensionsClient(mockCtrl)
+				mockClientSet := fakeclientset.NewSimpleClientset()
+				mockApiExtensionsClientSuccess(mockClient, mockClient, mockClientSet, mockClientSet, mockClientFactory)
 				AssertReconcileSuccess(ctx, log, ascr.Client, asc, ascr.newAssistedServiceDeployment)
 
 				found := &appsv1.Deployment{}
@@ -1416,6 +1474,127 @@ var _ = Describe("ensureAssistedServiceDeployment", func() {
 					fmt.Sprintf("Secret '%s' does not contain '%s' key value", testKubeconfigName, kubeconfigKeyInSecret)))
 			})
 		})
+
+		Context("deployAgentInstallCRDs", func() {
+			It("successfully created CRDs on cluster", func() {
+				asc = newASCWithKubeconfigSecretRef(testKubeconfigName)
+				ascr = newTestReconciler(asc, route, assistedCM)
+				mockClientFactory := k8sclient.NewMockK8sApiExtensionsClientFactory(mockCtrl)
+				ascr.K8sApiExtensionsClientFactory = mockClientFactory
+				mockKubeconfigSecret(ascr)
+
+				// Mock in-cluster client
+				mockClient := k8sclient.NewMockK8sApiExtensionsClient(mockCtrl)
+				mockClientSet := fakeclientset.NewSimpleClientset()
+
+				// Mock external cluster client
+				mockClientSpoke := k8sclient.NewMockK8sApiExtensionsClient(mockCtrl)
+				mockClientSetSpoke := fakeclientset.NewSimpleClientset()
+				mockApiExtensionsClientSuccess(mockClient, mockClientSpoke, mockClientSet, mockClientSetSpoke, mockClientFactory)
+
+				// Ensure CRDs listting in mock in-cluster client
+				crds, err := mockClientSet.ApiextensionsV1().CustomResourceDefinitions().List(
+					context.TODO(),
+					metav1.ListOptions{
+						LabelSelector: fmt.Sprintf("operators.coreos.com/assisted-service-operator.%s=", asc.Namespace),
+					},
+				)
+				Expect(err).ShouldNot(HaveOccurred())
+				Expect(len(crds.Items)).To(Equal(1))
+
+				AssertReconcileSuccess(ctx, log, ascr.Client, asc, ascr.newAssistedServiceDeployment)
+
+				// Verify CRDs were created in the external cluster client
+				crds, err = mockClientSetSpoke.ApiextensionsV1().CustomResourceDefinitions().List(
+					context.TODO(),
+					metav1.ListOptions{},
+				)
+				Expect(err).ShouldNot(HaveOccurred())
+				Expect(len(crds.Items)).To(Equal(1))
+			})
+
+			It("CRDs already exist on external cluster - shouldn't fail", func() {
+				asc = newASCWithKubeconfigSecretRef(testKubeconfigName)
+				ascr = newTestReconciler(asc, route, assistedCM)
+				mockClientFactory := k8sclient.NewMockK8sApiExtensionsClientFactory(mockCtrl)
+				ascr.K8sApiExtensionsClientFactory = mockClientFactory
+				mockKubeconfigSecret(ascr)
+
+				// Mock in-cluster client
+				mockClient := k8sclient.NewMockK8sApiExtensionsClient(mockCtrl)
+				mockClientSet := fakeclientset.NewSimpleClientset()
+
+				// Mock external cluster client
+				mockClientSpoke := k8sclient.NewMockK8sApiExtensionsClient(mockCtrl)
+				mockClientSetSpoke := fakeclientset.NewSimpleClientset()
+
+				mockApiExtensionsClientSuccess(mockClient, mockClientSpoke, mockClientSet, mockClientSetSpoke, mockClientFactory)
+
+				// Add CRDs to the external cluster mock client
+				addCRDToClient(mockClientSetSpoke)
+
+				AssertReconcileSuccess(ctx, log, ascr.Client, asc, ascr.newAssistedServiceDeployment)
+
+				// Verify CRDs were created in the external cluster client
+				crds, err := mockClientSetSpoke.ApiextensionsV1().CustomResourceDefinitions().List(
+					context.TODO(),
+					metav1.ListOptions{},
+				)
+				Expect(err).ShouldNot(HaveOccurred())
+				Expect(len(crds.Items)).To(Equal(1))
+			})
+
+			It("Failure in CreateFromInClusterConfig", func() {
+				asc = newASCWithKubeconfigSecretRef(testKubeconfigName)
+				ascr = newTestReconciler(asc, route, assistedCM)
+				mockClientFactory := k8sclient.NewMockK8sApiExtensionsClientFactory(mockCtrl)
+				ascr.K8sApiExtensionsClientFactory = mockClientFactory
+				mockKubeconfigSecret(ascr)
+				mockClientFactory.EXPECT().CreateFromInClusterConfig().Return(nil, errors.Errorf("error"))
+
+				AssertReconcileFailure(ctx, log, ascr.Client, asc, ascr.newAssistedServiceDeployment)
+			})
+
+			It("Failure in CRDs listing", func() {
+				asc = newASCWithKubeconfigSecretRef(testKubeconfigName)
+				ascr = newTestReconciler(asc, route, assistedCM)
+				mockClientFactory := k8sclient.NewMockK8sApiExtensionsClientFactory(mockCtrl)
+				ascr.K8sApiExtensionsClientFactory = mockClientFactory
+				mockKubeconfigSecret(ascr)
+
+				mockClient := k8sclient.NewMockK8sApiExtensionsClient(mockCtrl)
+				mockClientSet := fakeclientset.NewSimpleClientset()
+				mockClientFactory.EXPECT().CreateFromInClusterConfig().Return(mockClient, nil)
+				mockClient.EXPECT().ApiextensionsV1().Return(mockClientSet.ApiextensionsV1()).Times(1)
+
+				AssertReconcileFailure(ctx, log, ascr.Client, asc, ascr.newAssistedServiceDeployment)
+			})
+
+			It("Failure in CreateFromSecret", func() {
+				asc = newASCWithKubeconfigSecretRef(testKubeconfigName)
+				ascr = newTestReconciler(asc, route, assistedCM)
+				mockClientFactory := k8sclient.NewMockK8sApiExtensionsClientFactory(mockCtrl)
+				ascr.K8sApiExtensionsClientFactory = mockClientFactory
+				mockKubeconfigSecret(ascr)
+
+				// Mock in-cluster client
+				mockClient := k8sclient.NewMockK8sApiExtensionsClient(mockCtrl)
+				mockClientSet := fakeclientset.NewSimpleClientset()
+
+				// Mock external cluster client
+				mockClientSpoke := k8sclient.NewMockK8sApiExtensionsClient(mockCtrl)
+
+				// Add CRDs to the in-cluster mock client
+				addCRDToClient(mockClientSet)
+
+				mockClient.EXPECT().ApiextensionsV1().Return(mockClientSet.ApiextensionsV1()).Times(1)
+				mockClientFactory.EXPECT().CreateFromInClusterConfig().Return(mockClient, nil)
+				mockClientFactory.EXPECT().CreateFromSecret(gomock.Any()).Return(mockClientSpoke, errors.Errorf("error"))
+
+				AssertReconcileFailure(ctx, log, ascr.Client, asc, ascr.newAssistedServiceDeployment)
+			})
+		})
+
 	})
 
 	It("should expose two ports for ipxe", func() {

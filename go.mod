@@ -78,6 +78,7 @@ require (
 	gorm.io/driver/postgres v1.3.5
 	gorm.io/gorm v1.23.8
 	k8s.io/api v0.24.3-rc.0
+	k8s.io/apiextensions-apiserver v0.23.5
 	k8s.io/apimachinery v0.24.3-rc.0
 	k8s.io/client-go v0.24.3-rc.0
 	k8s.io/kube-aggregator v0.24.2
@@ -225,7 +226,6 @@ require (
 	gopkg.in/tomb.v1 v1.0.0-20141024135613-dd632973f1e7 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	howett.net/plist v0.0.0-20181124034731-591f970eefbb // indirect
-	k8s.io/apiextensions-apiserver v0.23.5 // indirect
 	k8s.io/apiserver v0.24.3-rc.0 // indirect
 	k8s.io/component-base v0.24.3-rc.0 // indirect
 	k8s.io/klog/v2 v2.60.1 // indirect
