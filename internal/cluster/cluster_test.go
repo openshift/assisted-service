@@ -278,7 +278,7 @@ var _ = Describe("TestClusterMonitoring", func() {
 				shouldHaveUpdated = true
 				expectedState = "error"
 			})
-			It("with insufficien working workers count, installing -> error", func() {
+			It("with insufficient working workers count, installing -> error", func() {
 				createHost(id, "installing", db)
 				createHost(id, "installing", db)
 				createHost(id, "installing", db)
@@ -287,7 +287,7 @@ var _ = Describe("TestClusterMonitoring", func() {
 				shouldHaveUpdated = true
 				expectedState = "error"
 			})
-			It("with insufficien working workers count, installing -> error", func() {
+			It("with insufficient working workers count, installing -> error", func() {
 				createHost(id, "installing", db)
 				createHost(id, "installing", db)
 				createHost(id, "installing", db)
@@ -297,21 +297,23 @@ var _ = Describe("TestClusterMonitoring", func() {
 				shouldHaveUpdated = true
 				expectedState = "error"
 			})
-			It("with single worker in error, installing -> error", func() {
+			It("with single worker in error, installing -> installing", func() {
 				createHost(id, "installing", db)
 				createHost(id, "installing", db)
 				createHost(id, "installing", db)
 				createWorkerHost(id, "error", db)
-				shouldHaveUpdated = true
-				expectedState = "error"
+				shouldHaveUpdated = false
+				expectedState = "installing"
 			})
-			It("with single worker in error, installing -> error", func() {
+			It("with single worker in error, installed -> finalizing", func() {
 				createHost(id, "installed", db)
 				createHost(id, "installed", db)
 				createHost(id, "installed", db)
 				createWorkerHost(id, "error", db)
+
+				mockS3Client.EXPECT().DoesObjectExist(gomock.Any(), gomock.Any()).Return(false, nil).AnyTimes()
 				shouldHaveUpdated = true
-				expectedState = "error"
+				expectedState = models.ClusterStatusFinalizing
 			})
 		})
 		Context("from finalizing state", func() {

@@ -1599,12 +1599,15 @@ var _ = Describe("ICSP file for oc extract", func() {
 		icspFile, err := getIcspFileFromInstallConfig(data, log)
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(icspFile).Should(Equal(expected))
+	})
+})
 
 var _ = Describe("infrastructureCRPatch", func() {
 	var (
 		ctrl         *gomock.Controller
 		mockS3Client *s3wrapper.MockAPI
 		generator    *installerGenerator
+		ctx          = context.Background()
 	)
 
 	BeforeEach(func() {
@@ -1679,7 +1682,7 @@ status:
 
 		// remove one host to make sure this is a 5 node cluster
 		cluster.Hosts = []*models.Host{cluster.Hosts[0]}
-		Expect(generator.applyInfrastructureCRPatch()).To(Succeed())
+		Expect(generator.applyInfrastructureCRPatch(ctx)).To(Succeed())
 
 		content, err := ioutil.ReadFile(filepath.Join(manifestsDir, "cluster-infrastructure-02-config.yml"))
 		Expect(err).NotTo(HaveOccurred())
@@ -1727,7 +1730,7 @@ status:
 		err := ioutil.WriteFile(filepath.Join(manifestsDir, "cluster-infrastructure-02-config.yml"), []byte(base), 0600)
 		Expect(err).NotTo(HaveOccurred())
 
-		Expect(generator.applyInfrastructureCRPatch()).To(Succeed())
+		Expect(generator.applyInfrastructureCRPatch(ctx)).To(Succeed())
 
 		content, err := ioutil.ReadFile(filepath.Join(manifestsDir, "cluster-infrastructure-02-config.yml"))
 		Expect(err).NotTo(HaveOccurred())

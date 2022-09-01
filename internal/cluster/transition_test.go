@@ -316,12 +316,9 @@ var _ = Describe("Transition tests", func() {
 					for i := 0; i < MinMastersNeededForInstallation; i++ {
 						createHost(clusterId, models.HostStatusInstalled, db)
 					}
-
-					// Create 2 workers just for testing purposes
 					for i := 0; i < 2; i++ {
 						createWorkerHost(clusterId, models.HostStatusInstalled, db)
 					}
-
 					if t.withWorkersInstalled {
 						createWorkerHost(clusterId, models.HostStatusInstalled, db)
 					} else {
@@ -927,7 +924,7 @@ var _ = Describe("Refresh Cluster - No DHCP", func() {
 			{
 				name:            "pending-for-input to insufficient - worker = 1 with auto-assign",
 				srcState:        models.ClusterStatusPendingForInput,
-				dstState:        models.ClusterStatusInsufficient,
+				dstState:        models.ClusterStatusReady,
 				machineNetworks: common.TestIPv4Networking.MachineNetworks,
 				apiVip:          common.TestIPv4Networking.APIVip,
 				ingressVip:      common.TestIPv4Networking.IngressVip,
@@ -940,7 +937,7 @@ var _ = Describe("Refresh Cluster - No DHCP", func() {
 					{ID: &hid4, Status: swag.String(models.HostStatusKnown), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleAutoAssign},
 				},
 				candidateChecker:  checkMasterCandidates(3),
-				statusInfoChecker: makeValueChecker(StatusInfoInsufficient),
+				statusInfoChecker: makeValueChecker(StatusInfoReady),
 				validationsChecker: makeJsonChecker(map[ValidationID]validationCheckResult{
 					IsMachineCidrDefined:                {status: ValidationSuccess, messagePattern: "The Machine Network CIDR is defined"},
 					IsMachineCidrEqualsToCalculatedCidr: {status: ValidationSuccess, messagePattern: "The Cluster Machine CIDR is equivalent to the calculated CIDR"},
@@ -952,16 +949,14 @@ var _ = Describe("Refresh Cluster - No DHCP", func() {
 					IsDNSDomainDefined:                  {status: ValidationSuccess, messagePattern: "The base domain is defined"},
 					IsPullSecretSet:                     {status: ValidationSuccess, messagePattern: "The pull secret is set"},
 					isNetworkTypeValid:                  {status: ValidationSuccess, messagePattern: "The cluster has a valid network type"},
-					SufficientMastersCount: {status: ValidationFailure,
-						messagePattern: fmt.Sprintf("Clusters must have exactly %d dedicated masters",
-							common.MinMasterHostsNeededForInstallation)},
+					SufficientMastersCount:              {status: ValidationSuccess, messagePattern: "The cluster has a sufficient number of master candidates."},
 				}),
 				errorExpected: false,
 			},
 			{
 				name:            "pending-for-input to insufficient - worker = 1",
 				srcState:        models.ClusterStatusPendingForInput,
-				dstState:        models.ClusterStatusInsufficient,
+				dstState:        models.ClusterStatusReady,
 				machineNetworks: common.TestIPv4Networking.MachineNetworks,
 				apiVip:          common.TestIPv4Networking.APIVip,
 				ingressVip:      common.TestIPv4Networking.IngressVip,
@@ -973,7 +968,7 @@ var _ = Describe("Refresh Cluster - No DHCP", func() {
 					{ID: &hid3, Status: swag.String(models.HostStatusKnown), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
 					{ID: &hid4, Status: swag.String(models.HostStatusKnown), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleWorker},
 				},
-				statusInfoChecker: makeValueChecker(StatusInfoInsufficient),
+				statusInfoChecker: makeValueChecker(StatusInfoReady),
 				validationsChecker: makeJsonChecker(map[ValidationID]validationCheckResult{
 					IsMachineCidrDefined:                {status: ValidationSuccess, messagePattern: "The Machine Network CIDR is defined"},
 					IsMachineCidrEqualsToCalculatedCidr: {status: ValidationSuccess, messagePattern: "The Cluster Machine CIDR is equivalent to the calculated CIDR"},
@@ -985,9 +980,7 @@ var _ = Describe("Refresh Cluster - No DHCP", func() {
 					IsDNSDomainDefined:                  {status: ValidationSuccess, messagePattern: "The base domain is defined"},
 					IsPullSecretSet:                     {status: ValidationSuccess, messagePattern: "The pull secret is set"},
 					isNetworkTypeValid:                  {status: ValidationSuccess, messagePattern: "The cluster has a valid network type"},
-					SufficientMastersCount: {status: ValidationFailure,
-						messagePattern: fmt.Sprintf("Clusters must have exactly %d dedicated masters",
-							common.MinMasterHostsNeededForInstallation)},
+					SufficientMastersCount:              {status: ValidationSuccess, messagePattern: "The cluster has a sufficient number of master candidates."},
 				}),
 				errorExpected: false,
 			},
@@ -2996,7 +2989,7 @@ var _ = Describe("Refresh Cluster - With DHCP", func() {
 					AllHostsAreReadyToInstall:           {status: ValidationFailure, messagePattern: "The cluster has hosts that are not ready to install."},
 					IsDNSDomainDefined:                  {status: ValidationSuccess, messagePattern: "The base domain is defined"},
 					IsPullSecretSet:                     {status: ValidationSuccess, messagePattern: "The pull secret is set."},
-					SufficientMastersCount:              {status: ValidationFailure, messagePattern: "Clusters must have exactly 3 dedicated masters"},
+					SufficientMastersCount:              {status: ValidationSuccess, messagePattern: "The cluster has a sufficient number of master candidates."},
 				}),
 				errorExpected: false,
 			},
