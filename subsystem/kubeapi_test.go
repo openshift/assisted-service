@@ -1529,16 +1529,22 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		checkInfraEnvCondition(ctx, infraEnvFake, v1beta1.ImageCreatedCondition,
 			"Failed to create image: The requested CPU architecture (fake) isn't specified in release images list")
 
-		By("fail to deploy infraenv with PowerPC architecture")
-		infraEnvSpec.CpuArchitecture = common.PowerCPUArchitecture
-		infraEnvPPC := types.NamespacedName{
-			Name:      "infraenv" + randomNameSuffix(),
-			Namespace: Options.Namespace,
-		}
-		deployInfraEnvCRD(ctx, kubeClient, infraEnvPPC.Name, infraEnvSpec)
+		// We are disabling the last test below as in https://issues.redhat.com/browse/MGMT-11860 we have
+		// added OS images for all the architectures that we support to the list of defaults for the service.
+		// For this reason we no longer have missing OS images for architectures existing in the release
+		// payload. Shall the need arise we can enable this test in the future, but currently the path is
+		// covered by the unit test and does not need to be artificially faked via subsystem.
 
-		checkInfraEnvCondition(ctx, infraEnvPPC, v1beta1.ImageCreatedCondition,
-			"Failed to create image: No OS image for Openshift version 4.11.0-0.nightly-multi-2022-07-26-151412 and architecture ppc64le")
+		// By("fail to deploy infraenv with PowerPC architecture")
+		// infraEnvSpec.CpuArchitecture = common.PowerCPUArchitecture
+		// infraEnvPPC := types.NamespacedName{
+		// 	Name:      "infraenv" + randomNameSuffix(),
+		// 	Namespace: Options.Namespace,
+		// }
+		// deployInfraEnvCRD(ctx, kubeClient, infraEnvPPC.Name, infraEnvSpec)
+
+		// checkInfraEnvCondition(ctx, infraEnvPPC, v1beta1.ImageCreatedCondition,
+		// 	"Failed to create image: No OS image for Openshift version 4.11.0-0.nightly-multi-2022-07-26-151412 and architecture ppc64le")
 	})
 
 	It("deploy CD with ACI and agents - wait for ready, delete ACI only and verify agents deletion", func() {
