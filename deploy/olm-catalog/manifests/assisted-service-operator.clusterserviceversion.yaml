@@ -106,7 +106,7 @@ metadata:
                 "openshiftVersion": "4.11",
                 "url": "https://mirror.openshift.com/pub/openshift-v4/s390x/dependencies/rhcos/4.11/4.11.0/rhcos-4.11.0-s390x-live.s390x.iso",
                 "version": "411.86.202208190940-0"
-              }                
+              }
             ]
           }
         }
