@@ -14,10 +14,10 @@ import (
 	"github.com/pkg/errors"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
 const (
@@ -52,43 +52,25 @@ func newAgentReclaimer(hostFSMountDir string) (*agentReclaimer, error) {
 
 func ensureSpokeNamespace(ctx context.Context, c client.Client) error {
 	ns := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: spokeReclaimNamespaceName}}
-	if err := c.Get(ctx, types.NamespacedName{Name: ns.Name}, ns); err != nil {
-		if !k8serrors.IsNotFound(err) {
-			return errors.Wrapf(err, "failed to get namespace %s", spokeReclaimNamespaceName)
-		}
-		if err := c.Create(ctx, ns); err != nil {
-			return errors.Wrapf(err, "failed to create namespace %s", spokeReclaimNamespaceName)
-		}
-	}
-
-	return nil
+	_, err := controllerutil.CreateOrUpdate(ctx, c, ns, func() error { return nil })
+	return err
 }
 
 func ensureSpokeServiceAccount(ctx context.Context, c client.Client) error {
-	key := types.NamespacedName{
-		Name:      spokeReclaimSAName,
-		Namespace: spokeReclaimNamespaceName,
+	sa := &corev1.ServiceAccount{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      spokeReclaimSAName,
+			Namespace: spokeReclaimNamespaceName,
+		},
 	}
-
-	sa := &corev1.ServiceAccount{ObjectMeta: metav1.ObjectMeta{Name: key.Name, Namespace: key.Namespace}}
-	if err := c.Get(ctx, key, sa); err != nil {
-		if !k8serrors.IsNotFound(err) {
-			return errors.Wrapf(err, "failed to get ServiceAccount %s", spokeReclaimSAName)
-		}
-		if err := c.Create(ctx, sa); err != nil {
-			return errors.Wrapf(err, "failed to create ServiceAccount %s", spokeReclaimSAName)
-		}
-	}
-
-	return nil
+	_, err := controllerutil.CreateOrUpdate(ctx, c, sa, func() error { return nil })
+	return err
 }
 
 func ensureSpokeClusterRoleBinding(ctx context.Context, c client.Client) error {
 	crb := &authzv1.ClusterRoleBinding{ObjectMeta: metav1.ObjectMeta{Name: spokeReclaimCRBName}}
-	if err := c.Get(ctx, types.NamespacedName{Name: crb.Name}, crb); err != nil {
-		if !k8serrors.IsNotFound(err) {
-			return errors.Wrapf(err, "failed to get ClusterRoleBinding %s", spokeReclaimCRBName)
-		}
+
+	mutate := func() error {
 		crb.RoleRef = corev1.ObjectReference{
 			APIVersion: "rbac.authorization.k8s.io/v1",
 			Kind:       "ClusterRole",
@@ -99,12 +81,10 @@ func ensureSpokeClusterRoleBinding(ctx context.Context, c client.Client) error {
 			Name:      spokeReclaimSAName,
 			Namespace: spokeReclaimNamespaceName,
 		}}
-		if err := c.Create(ctx, crb); err != nil {
-			return errors.Wrapf(err, "failed to create ClusterRoleBinding %s", spokeReclaimCRBName)
-		}
+		return nil
 	}
-
-	return nil
+	_, err := controllerutil.CreateOrUpdate(ctx, c, crb, mutate)
+	return err
 }
 
 func spokeReclaimSecretName(infraEnvID string) string {
@@ -121,30 +101,19 @@ func (r *agentReclaimer) ensureSpokeAgentSecret(ctx context.Context, c client.Cl
 		}
 	}
 
-	key := types.NamespacedName{
-		Name:      spokeReclaimSecretName(infraEnvID),
-		Namespace: spokeReclaimNamespaceName,
-	}
 	secret := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      key.Name,
-			Namespace: key.Namespace,
+			Name:      spokeReclaimSecretName(infraEnvID),
+			Namespace: spokeReclaimNamespaceName,
 		},
-		Type: corev1.SecretTypeOpaque,
 	}
-	err := c.Get(ctx, key, secret)
-	if err != nil && !k8serrors.IsNotFound(err) {
-		return errors.Wrapf(err, "failed to get secret %s/%s", key.Namespace, key.Name)
-	}
-
-	if k8serrors.IsNotFound(err) {
+	mutate := func() error {
+		secret.Type = corev1.SecretTypeOpaque
 		secret.Data = map[string][]byte{"auth-token": []byte(authToken)}
-		if err := c.Create(ctx, secret); err != nil {
-			return errors.Wrapf(err, "failed to create secret %s", spokeReclaimNamespaceName)
-		}
+		return nil
 	}
-
-	return nil
+	_, err := controllerutil.CreateOrUpdate(ctx, c, secret, mutate)
+	return err
 }
 
 func (r *agentReclaimer) ensureSpokeAgentCertCM(ctx context.Context, c client.Client) error {
@@ -152,34 +121,22 @@ func (r *agentReclaimer) ensureSpokeAgentCertCM(ctx context.Context, c client.Cl
 		return nil
 	}
 
-	key := types.NamespacedName{
-		Name:      spokeReclaimCMName,
-		Namespace: spokeReclaimNamespaceName,
-	}
 	cm := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      key.Name,
-			Namespace: key.Namespace,
+			Name:      spokeReclaimCMName,
+			Namespace: spokeReclaimNamespaceName,
 		},
 	}
-
-	err := c.Get(ctx, key, cm)
-	if err != nil && !k8serrors.IsNotFound(err) {
-		return errors.Wrapf(err, "failed to get secret %s/%s", key.Namespace, key.Name)
-	}
-
-	if k8serrors.IsNotFound(err) {
+	mutate := func() error {
 		data, err := os.ReadFile(r.ServiceCACertPath)
 		if err != nil {
 			return errors.Wrap(err, "failed to read service ca cert")
 		}
 		cm.Data = map[string]string{filepath.Base(common.HostCACertPath): string(data)}
-		if err := c.Create(ctx, cm); err != nil {
-			return errors.Wrapf(err, "failed to create secret %s", spokeReclaimNamespaceName)
-		}
+		return nil
 	}
-
-	return nil
+	_, err := controllerutil.CreateOrUpdate(ctx, c, cm, mutate)
+	return err
 }
 
 func (r *agentReclaimer) createNextStepRunnerDaemonSet(ctx context.Context, c client.Client, nodeName string, infraEnvID string, hostID string) error {
@@ -205,8 +162,8 @@ func (r *agentReclaimer) createNextStepRunnerDaemonSet(ctx context.Context, c cl
 			},
 		},
 	}}
-	volumeMounts := []corev1.VolumeMount{{Name: "host", MountPath: r.hostFSMountDir}}
 
+	volumeMounts := []corev1.VolumeMount{{Name: "host", MountPath: r.hostFSMountDir}}
 	if r.ServiceCACertPath != "" {
 		cliArgs = append(cliArgs, fmt.Sprintf("-cacert=%s", common.HostCACertPath))
 		volumes = append(volumes, corev1.Volume{
@@ -227,54 +184,56 @@ func (r *agentReclaimer) createNextStepRunnerDaemonSet(ctx context.Context, c cl
 
 	name := fmt.Sprintf("%s-reclaim", nodeName)
 	var privileged bool = true
-	labels := map[string]string{"name": name}
-
-	podSpec := corev1.PodSpec{
-		NodeSelector: map[string]string{"kubernetes.io/hostname": node.Name},
-		Volumes:      volumes,
-		Tolerations: []corev1.Toleration{{
-			Operator: corev1.TolerationOpExists,
-		}},
-		PriorityClassName:  "system-node-critical",
-		ServiceAccountName: spokeReclaimSAName,
-		Containers: []corev1.Container{{
-			Name:            name,
-			Image:           r.AgentContainerImage,
-			Command:         []string{"next_step_runner"},
-			Args:            cliArgs,
-			SecurityContext: &corev1.SecurityContext{Privileged: &privileged},
-			VolumeMounts:    volumeMounts,
-			Env: []corev1.EnvVar{{
-				Name: "PULL_SECRET_TOKEN",
-				ValueFrom: &corev1.EnvVarSource{SecretKeyRef: &corev1.SecretKeySelector{
-					Key: "auth-token",
-					LocalObjectReference: corev1.LocalObjectReference{
-						Name: spokeReclaimSecretName(infraEnvID),
-					},
-				}},
+	containers := []corev1.Container{{
+		Name:            name,
+		Image:           r.AgentContainerImage,
+		Command:         []string{"next_step_runner"},
+		Args:            cliArgs,
+		SecurityContext: &corev1.SecurityContext{Privileged: &privileged},
+		VolumeMounts:    volumeMounts,
+		Env: []corev1.EnvVar{{
+			Name: "PULL_SECRET_TOKEN",
+			ValueFrom: &corev1.EnvVarSource{SecretKeyRef: &corev1.SecretKeySelector{
+				Key: "auth-token",
+				LocalObjectReference: corev1.LocalObjectReference{
+					Name: spokeReclaimSecretName(infraEnvID),
+				},
 			}},
 		}},
-	}
+	}}
 
+	labels := map[string]string{"name": name}
 	daemonSet := &appsv1.DaemonSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: spokeReclaimNamespaceName,
-			OwnerReferences: []metav1.OwnerReference{{
-				APIVersion: "v1",
-				Kind:       "Node",
-				Name:       node.Name,
-				UID:        node.UID,
-			}},
 		},
 		Spec: appsv1.DaemonSetSpec{
 			Selector: &metav1.LabelSelector{MatchLabels: labels},
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{Labels: labels},
-				Spec:       podSpec,
 			},
 		},
 	}
 
-	return c.Create(ctx, daemonSet)
+	mutate := func() error {
+		daemonSet.ObjectMeta.OwnerReferences = []metav1.OwnerReference{{
+			APIVersion: "v1",
+			Kind:       "Node",
+			Name:       node.Name,
+			UID:        node.UID,
+		}}
+		daemonSet.Spec.Template.Spec.NodeSelector = map[string]string{"kubernetes.io/hostname": node.Name}
+		daemonSet.Spec.Template.Spec.Volumes = volumes
+		daemonSet.Spec.Template.Spec.Tolerations = []corev1.Toleration{{
+			Operator: corev1.TolerationOpExists,
+		}}
+		daemonSet.Spec.Template.Spec.PriorityClassName = "system-node-critical"
+		daemonSet.Spec.Template.Spec.ServiceAccountName = spokeReclaimSAName
+		daemonSet.Spec.Template.Spec.Containers = containers
+		return nil
+	}
+
+	_, err := controllerutil.CreateOrUpdate(ctx, c, daemonSet, mutate)
+	return err
 }

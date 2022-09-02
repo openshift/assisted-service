@@ -33,7 +33,9 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	certificatesv1 "k8s.io/api/certificates/v1"
 	corev1 "k8s.io/api/core/v1"
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -754,7 +756,8 @@ var _ = Describe("agent reconcile", func() {
 			mockClient.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.AssignableToTypeOf(&authzv1.ClusterRoleBinding{})).Return(nil)
 			mockClient.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.AssignableToTypeOf(&corev1.Secret{})).Return(nil)
 			mockClient.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.AssignableToTypeOf(&corev1.Node{})).Return(nil)
-			mockClient.EXPECT().Create(gomock.Any(), gomock.AssignableToTypeOf(&appsv1.DaemonSet{})).Return(nil)
+			mockClient.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.AssignableToTypeOf(&appsv1.DaemonSet{})).Return(nil)
+			mockClient.EXPECT().Update(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 
 			mockInstallerInternal.EXPECT().UnbindHostInternal(gomock.Any(), gomock.Any(), true).Return(commonHost, nil)
 			result, err := hr.Reconcile(ctx, newHostRequest(host))
@@ -797,6 +800,10 @@ var _ = Describe("agent reconcile", func() {
 			mockClient.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.AssignableToTypeOf(&authzv1.ClusterRoleBinding{})).Return(nil)
 			mockClient.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.AssignableToTypeOf(&corev1.Secret{})).Return(nil)
 			mockClient.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.AssignableToTypeOf(&corev1.Node{})).Return(nil)
+			mockClient.EXPECT().Update(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+
+			notFoundError := k8serrors.NewNotFound(schema.GroupResource{Group: "appsv1", Resource: "DaemonSet"}, "node-reclaim")
+			mockClient.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.AssignableToTypeOf(&appsv1.DaemonSet{})).Return(notFoundError)
 			mockClient.EXPECT().Create(gomock.Any(), gomock.AssignableToTypeOf(&appsv1.DaemonSet{})).Return(errors.New("Failed to create DaemonSet"))
 
 			mockInstallerInternal.EXPECT().UnbindHostInternal(gomock.Any(), gomock.Any(), false).Return(commonHost, nil)
