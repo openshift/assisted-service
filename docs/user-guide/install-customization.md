@@ -188,7 +188,7 @@ install_config_patch=$(mktemp)
 jq -n --arg BUNDLE "$(cat ca.pem)" \
 '{
     "additionalTrustBundle": $BUNDLE
-}| tojson' > $install_config_body
+}| tojson' > $install_config_patch
 ```
 Patch the install-config with the resulting file
 ```sh
