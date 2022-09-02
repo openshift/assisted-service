@@ -52,7 +52,15 @@ func newAgentReclaimer(hostFSMountDir string) (*agentReclaimer, error) {
 
 func ensureSpokeNamespace(ctx context.Context, c client.Client) error {
 	ns := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: spokeReclaimNamespaceName}}
-	_, err := controllerutil.CreateOrUpdate(ctx, c, ns, func() error { return nil })
+	mutate := func() error {
+		if ns.Labels == nil {
+			ns.Labels = make(map[string]string)
+		}
+		// Newer versions of kubernetes require these labels for pods to run with escalated privileges
+		ns.Labels["pod-security.kubernetes.io/enforce"] = "privileged"
+		return nil
+	}
+	_, err := controllerutil.CreateOrUpdate(ctx, c, ns, mutate)
 	return err
 }
 

@@ -72,11 +72,15 @@ var _ = Context("with a fake client", func() {
 			Expect(c.Get(ctx, key, &corev1.Namespace{})).To(Succeed())
 		})
 
-		It("succeeds if the namespace already exists", func() {
+		It("updates if the namespace already exists", func() {
 			ns := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: spokeReclaimNamespaceName}}
 			Expect(c.Create(ctx, ns)).To(Succeed())
 
 			Expect(ensureSpokeNamespace(ctx, c)).To(Succeed())
+
+			key := types.NamespacedName{Name: spokeReclaimNamespaceName}
+			Expect(c.Get(ctx, key, ns)).To(Succeed())
+			Expect(ns.Labels).To(HaveKeyWithValue("pod-security.kubernetes.io/enforce", "privileged"))
 		})
 	})
 
