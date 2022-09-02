@@ -555,6 +555,7 @@ var _ = Describe("Day2 cluster with bind/unbind hosts", func() {
 		Expect(*h2.Status).Should(Equal(models.HostStatusDiscoveringUnbound))
 
 		By("host h1 become known-unbound after inventory reply")
+		generateGetNextStepsWithTimestamp(ctx, h1, time.Now().Unix())
 		generateHWPostStepReply(ctx, h1, getDefaultInventory(ips[0]), "h1")
 		waitForHostStateV2(ctx, models.HostStatusKnownUnbound, 60*time.Second, h1)
 
@@ -562,6 +563,7 @@ var _ = Describe("Day2 cluster with bind/unbind hosts", func() {
 		bindHost(infraEnvID, *h1.ID, clusterID)
 		waitForHostStateV2(ctx, models.HostStatusBinding, 60*time.Second, h1)
 		h1 = &registerHostByUUID(infraEnvID, *h1.ID).Host
+		generateGetNextStepsWithTimestamp(ctx, h1, time.Now().Unix())
 		generateHWPostStepReply(ctx, h1, getDefaultInventory(ips[0]), "h1")
 		waitForHostStateV2(ctx, models.HostStatusInsufficient, 60*time.Second, h1)
 

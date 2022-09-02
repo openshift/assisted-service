@@ -210,6 +210,11 @@ func newValidations(v *validator) []validation {
 			skippedStates: manualRebootStages,
 		},
 		{
+			id:            IsTimeSyncedBetweenHostAndService,
+			condition:     v.isTimeSyncedBetweenHostAndService,
+			skippedStates: manualRebootStages,
+		},
+		{
 			id:        SucessfullOrUnknownContainerImagesAvailability,
 			condition: v.sucessfullOrUnknownContainerImagesAvailability,
 		},

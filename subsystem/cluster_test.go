@@ -68,13 +68,12 @@ const (
 )
 
 const (
-	validDiskSize           = int64(128849018880)
-	minSuccessesInRow       = 2
-	minHosts                = 3
-	loop0Id                 = "wwn-0x1111111111111111111111"
-	sdbId                   = "wwn-0x2222222222222222222222"
-	defaultCIDRv4           = "1.2.3.10/24"
-	defaultTimestamp  int64 = 1601853088
+	validDiskSize     = int64(128849018880)
+	minSuccessesInRow = 2
+	minHosts          = 3
+	loop0Id           = "wwn-0x1111111111111111111111"
+	sdbId             = "wwn-0x2222222222222222222222"
+	defaultCIDRv4     = "1.2.3.10/24"
 )
 
 var (

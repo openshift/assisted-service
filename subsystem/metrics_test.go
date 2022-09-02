@@ -857,6 +857,41 @@ var _ = Describe("Metrics tests", func() {
 			assertHostValidationEvent(ctx, clusterID, "h1", models.HostValidationIDBelongsToMajorityGroup, false)
 		})
 
+		It("'time sync' failed", func() {
+
+			// create a validation success
+			h := &registerHost(*infraEnvID).Host
+			generateGetNextStepsWithTimestamp(ctx, h, time.Now().Unix())
+			waitForHostValidationStatus(clusterID, *infraEnvID, *h.ID, "success", models.HostValidationIDTimeSyncedBetweenHostAndService)
+
+			oldChangedMetricCounter := getValidationMetricCounter(string(models.HostValidationIDTimeSyncedBetweenHostAndService), hostValidationChangedMetric)
+			oldFailedMetricCounter := getValidationMetricCounter(string(models.HostValidationIDTimeSyncedBetweenHostAndService), hostValidationFailedMetric)
+
+			// create a validation failure
+			generateGetNextStepsWithTimestamp(ctx, h, time.Now().Add(-2*time.Hour).Unix())
+			waitForHostValidationStatus(clusterID, *infraEnvID, *h.ID, "failure", models.HostValidationIDTimeSyncedBetweenHostAndService)
+
+			// check generated metrics
+			Expect(getValidationMetricCounter(string(models.HostValidationIDTimeSyncedBetweenHostAndService), hostValidationChangedMetric)).To(Equal(oldChangedMetricCounter + 1))
+			metricsDeregisterCluster(ctx, clusterID)
+			Expect(getValidationMetricCounter(string(models.HostValidationIDTimeSyncedBetweenHostAndService), hostValidationFailedMetric)).To(Equal(oldFailedMetricCounter + 1))
+		})
+
+		It("'time sync' got fixed", func() {
+
+			// create a validation failure
+			h := &registerHost(*infraEnvID).Host
+			generateGetNextStepsWithTimestamp(ctx, h, time.Now().Add(65*time.Minute).Unix())
+			waitForHostValidationStatus(clusterID, *infraEnvID, *h.ID, "failure", models.HostValidationIDTimeSyncedBetweenHostAndService)
+
+			// create a validation success
+			generateGetNextStepsWithTimestamp(ctx, h, time.Now().Unix())
+			waitForHostValidationStatus(clusterID, *infraEnvID, *h.ID, "success", models.HostValidationIDTimeSyncedBetweenHostAndService)
+
+			// check generated events
+			assertHostValidationEvent(ctx, clusterID, string(*h.ID), models.HostValidationIDTimeSyncedBetweenHostAndService, false)
+		})
+
 		It("'ntp-synced' failed", func() {
 
 			// create a validation success
@@ -1003,7 +1038,7 @@ var _ = Describe("Metrics tests", func() {
 			oldFailedMetricCounter := getValidationMetricCounter(string(models.ClusterValidationIDNtpServerConfigured), clusterValidationFailedMetric)
 
 			// create a validation failure
-			generateGetNextStepsWithTimestamp(ctx, h1, defaultTimestamp+(common.MaximumAllowedTimeDiffMinutes+1)*60)
+			generateGetNextStepsWithTimestamp(ctx, h1, time.Now().Unix()+(common.MaximumAllowedTimeDiffMinutes+1)*60)
 			Expect(db.Model(h1).Update("status", "known").Error).NotTo(HaveOccurred())
 			waitForClusterValidationStatus(clusterID, "failure", models.ClusterValidationIDNtpServerConfigured)
 
@@ -1021,12 +1056,12 @@ var _ = Describe("Metrics tests", func() {
 			// create a validation failure
 			h1 := registerNode(ctx, *infraEnvID, "h1", ips[0])
 			registerNode(ctx, *infraEnvID, "h2", ips[1])
-			generateGetNextStepsWithTimestamp(ctx, h1, defaultTimestamp+(common.MaximumAllowedTimeDiffMinutes+1)*60)
+			generateGetNextStepsWithTimestamp(ctx, h1, time.Now().Unix()+(common.MaximumAllowedTimeDiffMinutes+1)*60)
 			Expect(db.Model(h1).Update("status", "known").Error).NotTo(HaveOccurred())
 			waitForClusterValidationStatus(clusterID, "failure", models.ClusterValidationIDNtpServerConfigured)
 
 			// create a validation success
-			generateGetNextStepsWithTimestamp(ctx, h1, defaultTimestamp)
+			generateGetNextStepsWithTimestamp(ctx, h1, time.Now().Unix())
 			generateHWPostStepReply(ctx, h1, validHwInfo, "h1")
 			waitForClusterValidationStatus(clusterID, "success", models.ClusterValidationIDNtpServerConfigured)
 
