@@ -85,21 +85,25 @@ func RegisterInfraEnv(ctx context.Context, log *log.Logger, bmInventory *client.
 		return nil, infraenvErr
 	}
 
-	var nmStateConfig aiv1beta1.NMStateConfig
-	if nmStateErr := getFileData(nmStateConfigPath, &nmStateConfig); nmStateErr != nil {
-		return nil, nmStateErr
-	}
-
-	staticNetworkConfig, processErr := processNMStateConfig(log, infraEnv, nmStateConfig)
-	if processErr != nil {
-		return nil, processErr
-	}
-
 	infraEnvParams := controllers.CreateInfraEnvParams(&infraEnv, models.ImageType(imageTypeISO), pullSecret, modelsCluster.ID, modelsCluster.OpenshiftVersion)
 
-	if len(staticNetworkConfig) > 0 {
-		log.Infof("Added %d nmstateconfigs", len(staticNetworkConfig))
-		infraEnvParams.InfraenvCreateParams.StaticNetworkConfig = staticNetworkConfig
+	var nmStateConfig aiv1beta1.NMStateConfig
+
+	fileInfo, _ := os.Stat(nmStateConfigPath)
+	if fileInfo != nil {
+		if nmStateErr := getFileData(nmStateConfigPath, &nmStateConfig); nmStateErr != nil {
+			return nil, nmStateErr
+		}
+
+		staticNetworkConfig, processErr := processNMStateConfig(log, infraEnv, nmStateConfig)
+		if processErr != nil {
+			return nil, processErr
+		}
+
+		if len(staticNetworkConfig) > 0 {
+			log.Infof("Added %d nmstateconfigs", len(staticNetworkConfig))
+			infraEnvParams.InfraenvCreateParams.StaticNetworkConfig = staticNetworkConfig
+		}
 	}
 
 	clientInfraEnvParams := &installer.RegisterInfraEnvParams{
