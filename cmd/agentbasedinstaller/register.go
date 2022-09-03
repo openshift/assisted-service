@@ -62,6 +62,11 @@ func RegisterCluster(ctx context.Context, log *log.Logger, bmInventory *client.A
 	log.Infof("releaseImage version %s cpuarch %s", releaseImageVersion, releaseImageCPUArch)
 
 	clusterParams := controllers.CreateClusterParams(&cd, &aci, pullSecret, releaseImageVersion, releaseImageCPUArch, nil)
+
+	if aci.Spec.Networking.NetworkType != "" {
+		clusterParams.NetworkType = &aci.Spec.Networking.NetworkType
+	}
+
 	clientClusterParams := &installer.V2RegisterClusterParams{
 		NewClusterParams: clusterParams,
 	}
