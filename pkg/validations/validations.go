@@ -162,7 +162,9 @@ func ValidateTags(tags string) error {
 		return nil
 	}
 	if !AllStrings(strings.Split(tags, ","), IsValidTag) {
-		return errors.Errorf("Invalid format for Tags: %s. Tags should be a comma-separated list (e.g. tag1,tag2,tag3).", tags)
+		errMsg := "Invalid format for Tags: %s. Tags should be a comma-separated list (e.g. tag1,tag2,tag3). " +
+			"Each tag can consist of the following characters: Alphanumeric (aA-zZ, 0-9), underscore (_) and white-spaces."
+		return errors.Errorf(errMsg, tags)
 	}
 	return nil
 }
