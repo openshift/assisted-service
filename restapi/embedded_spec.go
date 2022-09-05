@@ -6799,7 +6799,9 @@ func init() {
                   "ARM64_ARCHITECTURE",
                   "ARM64_ARCHITECTURE_WITH_CLUSTER_MANAGED_NETWORKING",
                   "SINGLE_NODE_EXPANSION",
-                  "LVM"
+                  "LVM",
+                  "DUAL_STACK_NETWORKING",
+                  "MULTIARCH_RELEASE_IMAGE"
                 ]
               },
               "support_level": {
@@ -14585,7 +14587,9 @@ func init() {
             "ARM64_ARCHITECTURE",
             "ARM64_ARCHITECTURE_WITH_CLUSTER_MANAGED_NETWORKING",
             "SINGLE_NODE_EXPANSION",
-            "LVM"
+            "LVM",
+            "DUAL_STACK_NETWORKING",
+            "MULTIARCH_RELEASE_IMAGE"
           ]
         },
         "support_level": {

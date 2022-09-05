@@ -39,11 +39,38 @@ var SupportLevelsList = models.FeatureSupportLevels{
 				FeatureID:    models.FeatureSupportLevelFeaturesItems0FeatureIDLVM,
 				SupportLevel: models.FeatureSupportLevelFeaturesItems0SupportLevelUnsupported,
 			},
+			{
+				FeatureID:    models.FeatureSupportLevelFeaturesItems0FeatureIDDUALSTACKNETWORKING,
+				SupportLevel: models.FeatureSupportLevelFeaturesItems0SupportLevelUnsupported,
+			},
+			{
+				FeatureID:    models.FeatureSupportLevelFeaturesItems0FeatureIDMULTIARCHRELEASEIMAGE,
+				SupportLevel: models.FeatureSupportLevelFeaturesItems0SupportLevelUnsupported,
+			},
+		},
+	},
+	&models.FeatureSupportLevel{
+		OpenshiftVersion: "4.7",
+		Features: []*models.FeatureSupportLevelFeaturesItems0{
+			// Unsupported features
+			{
+				FeatureID:    models.FeatureSupportLevelFeaturesItems0FeatureIDDUALSTACKNETWORKING,
+				SupportLevel: models.FeatureSupportLevelFeaturesItems0SupportLevelUnsupported,
+			},
+			{
+				FeatureID:    models.FeatureSupportLevelFeaturesItems0FeatureIDMULTIARCHRELEASEIMAGE,
+				SupportLevel: models.FeatureSupportLevelFeaturesItems0SupportLevelUnsupported,
+			},
 		},
 	},
 	&models.FeatureSupportLevel{
 		OpenshiftVersion: "4.8",
 		Features: []*models.FeatureSupportLevelFeaturesItems0{
+			// Supported
+			{
+				FeatureID:    models.FeatureSupportLevelFeaturesItems0FeatureIDDUALSTACKNETWORKING,
+				SupportLevel: models.FeatureSupportLevelFeaturesItems0SupportLevelSupported,
+			},
 			// Dev-Preview features
 			{
 				FeatureID:    models.FeatureSupportLevelFeaturesItems0FeatureIDVIPAUTOALLOC,
@@ -53,7 +80,6 @@ var SupportLevelsList = models.FeatureSupportLevels{
 				FeatureID:    models.FeatureSupportLevelFeaturesItems0FeatureIDSNO,
 				SupportLevel: models.FeatureSupportLevelFeaturesItems0SupportLevelDevPreview,
 			},
-
 			// Unsupported features
 			{
 				FeatureID:    models.FeatureSupportLevelFeaturesItems0FeatureIDARM64ARCHITECTURE,
@@ -71,6 +97,10 @@ var SupportLevelsList = models.FeatureSupportLevels{
 				FeatureID:    models.FeatureSupportLevelFeaturesItems0FeatureIDLVM,
 				SupportLevel: models.FeatureSupportLevelFeaturesItems0SupportLevelUnsupported,
 			},
+			{
+				FeatureID:    models.FeatureSupportLevelFeaturesItems0FeatureIDMULTIARCHRELEASEIMAGE,
+				SupportLevel: models.FeatureSupportLevelFeaturesItems0SupportLevelUnsupported,
+			},
 		},
 	},
 	&models.FeatureSupportLevel{
@@ -79,6 +109,10 @@ var SupportLevelsList = models.FeatureSupportLevels{
 			// Supported
 			{
 				FeatureID:    models.FeatureSupportLevelFeaturesItems0FeatureIDSNO,
+				SupportLevel: models.FeatureSupportLevelFeaturesItems0SupportLevelSupported,
+			},
+			{
+				FeatureID:    models.FeatureSupportLevelFeaturesItems0FeatureIDDUALSTACKNETWORKING,
 				SupportLevel: models.FeatureSupportLevelFeaturesItems0SupportLevelSupported,
 			},
 			// Dev-Preview features
@@ -101,6 +135,10 @@ var SupportLevelsList = models.FeatureSupportLevels{
 			},
 			{
 				FeatureID:    models.FeatureSupportLevelFeaturesItems0FeatureIDLVM,
+				SupportLevel: models.FeatureSupportLevelFeaturesItems0SupportLevelUnsupported,
+			},
+			{
+				FeatureID:    models.FeatureSupportLevelFeaturesItems0FeatureIDMULTIARCHRELEASEIMAGE,
 				SupportLevel: models.FeatureSupportLevelFeaturesItems0SupportLevelUnsupported,
 			},
 		},
@@ -117,6 +155,10 @@ var SupportLevelsList = models.FeatureSupportLevels{
 				FeatureID:    models.FeatureSupportLevelFeaturesItems0FeatureIDARM64ARCHITECTURE,
 				SupportLevel: models.FeatureSupportLevelFeaturesItems0SupportLevelSupported,
 			},
+			{
+				FeatureID:    models.FeatureSupportLevelFeaturesItems0FeatureIDDUALSTACKNETWORKING,
+				SupportLevel: models.FeatureSupportLevelFeaturesItems0SupportLevelSupported,
+			},
 			// Dev-Preview features
 			{
 				FeatureID:    models.FeatureSupportLevelFeaturesItems0FeatureIDVIPAUTOALLOC,
@@ -133,6 +175,10 @@ var SupportLevelsList = models.FeatureSupportLevels{
 			},
 			{
 				FeatureID:    models.FeatureSupportLevelFeaturesItems0FeatureIDLVM,
+				SupportLevel: models.FeatureSupportLevelFeaturesItems0SupportLevelUnsupported,
+			},
+			{
+				FeatureID:    models.FeatureSupportLevelFeaturesItems0FeatureIDMULTIARCHRELEASEIMAGE,
 				SupportLevel: models.FeatureSupportLevelFeaturesItems0SupportLevelUnsupported,
 			},
 		},
@@ -156,6 +202,15 @@ var SupportLevelsList = models.FeatureSupportLevels{
 			{
 				FeatureID:    models.FeatureSupportLevelFeaturesItems0FeatureIDSINGLENODEEXPANSION,
 				SupportLevel: models.FeatureSupportLevelFeaturesItems0SupportLevelSupported,
+			},
+			{
+				FeatureID:    models.FeatureSupportLevelFeaturesItems0FeatureIDDUALSTACKNETWORKING,
+				SupportLevel: models.FeatureSupportLevelFeaturesItems0SupportLevelSupported,
+			},
+			// Tech-Preview features
+			{
+				FeatureID:    models.FeatureSupportLevelFeaturesItems0FeatureIDMULTIARCHRELEASEIMAGE,
+				SupportLevel: models.FeatureSupportLevelFeaturesItems0SupportLevelTechPreview,
 			},
 			// Dev-Preview features
 			{
@@ -192,6 +247,15 @@ var SupportLevelsList = models.FeatureSupportLevels{
 			{
 				FeatureID:    models.FeatureSupportLevelFeaturesItems0FeatureIDLVM,
 				SupportLevel: models.FeatureSupportLevelFeaturesItems0SupportLevelSupported,
+			},
+			{
+				FeatureID:    models.FeatureSupportLevelFeaturesItems0FeatureIDDUALSTACKNETWORKING,
+				SupportLevel: models.FeatureSupportLevelFeaturesItems0SupportLevelSupported,
+			},
+			// Tech-Preview features
+			{
+				FeatureID:    models.FeatureSupportLevelFeaturesItems0FeatureIDMULTIARCHRELEASEIMAGE,
+				SupportLevel: models.FeatureSupportLevelFeaturesItems0SupportLevelTechPreview,
 			},
 			// Dev-Preview features
 			{
