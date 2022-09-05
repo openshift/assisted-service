@@ -395,6 +395,9 @@ var _ = Describe("ValidateTags", func() {
 				Expect(err).ToNot(HaveOccurred())
 			} else {
 				Expect(err).To(HaveOccurred())
+				Expect(err.Error()).To(ContainSubstring(
+					"Tags should be a comma-separated list (e.g. tag1,tag2,tag3). " +
+						"Each tag can consist of the following characters: Alphanumeric (aA-zZ, 0-9), underscore (_) and white-spaces."))
 			}
 		})
 	}
