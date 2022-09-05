@@ -1,12 +1,7 @@
 # Build binaries
-FROM registry.ci.openshift.org/openshift/release:golang-1.17 as golang
-FROM quay.io/centos/centos:stream9 as builder
+FROM registry.ci.openshift.org/ocp/builder:rhel-9-golang-1.18-openshift-4.12 as builder
 
-RUN dnf install --enablerepo=crb -y gcc nmstate-devel && dnf clean all
-COPY --from=golang /usr/local/go /usr/local/go
-
-ENV GOROOT=/usr/local/go
-ENV PATH=$PATH:$GOROOT/bin
+RUN dnf install -y gcc nmstate-devel && dnf clean all
 
 WORKDIR /assisted-service/
 
@@ -17,16 +12,14 @@ RUN CGO_ENABLED=1 GOFLAGS="" GO111MODULE=on go build -o /build/assisted-service-
 RUN CGO_ENABLED=1 GOFLAGS="" GO111MODULE=on go build -o /build/assisted-service-admission cmd/webadmission/main.go
 RUN CGO_ENABLED=1 GOFLAGS="" GO111MODULE=on go build -o /build/agent-installer-client cmd/agentbasedinstaller/client/main.go
 
-
-FROM registry.ci.openshift.org/ocp/4.11:cli AS oc-image
 # Create final image
-FROM registry.access.redhat.com/ubi9/ubi:latest
+FROM registry.ci.openshift.org/ocp/builder:rhel-9-base-openshift-4.12
 
 LABEL io.openshift.release.operator=true
 
 # ToDo: Replace postgres with SQLite DB
 # https://issues.redhat.com/browse/AGENT-223
-RUN dnf install -y postgresql-server libvirt-libs nmstate nmstate-libs && dnf clean all
+RUN dnf install -y postgresql-server libvirt-libs nmstate nmstate-libs openshift-client && dnf clean all
 
 COPY hack/agent_installer/start_db.sh start_db.sh
 
@@ -36,8 +29,6 @@ RUN su - postgres -c "/usr/bin/initdb -D /tmp/postgres/data"
 ARG WORK_DIR=/data
 
 RUN mkdir $WORK_DIR && chmod 775 $WORK_DIR
-
-COPY --from=oc-image /usr/bin/oc /usr/local/bin/
 
 COPY --from=builder /build/assisted-service /assisted-service
 COPY --from=builder /build/assisted-service-operator /assisted-service-operator
