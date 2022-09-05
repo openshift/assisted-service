@@ -47,6 +47,10 @@ var SupportLevelsList = models.FeatureSupportLevels{
 				FeatureID:    models.FeatureSupportLevelFeaturesItems0FeatureIDMULTIARCHRELEASEIMAGE,
 				SupportLevel: models.FeatureSupportLevelFeaturesItems0SupportLevelUnsupported,
 			},
+			{
+				FeatureID:    models.FeatureSupportLevelFeaturesItems0FeatureIDDAY2MASTER,
+				SupportLevel: models.FeatureSupportLevelFeaturesItems0SupportLevelUnsupported,
+			},
 		},
 	},
 	&models.FeatureSupportLevel{
@@ -59,6 +63,10 @@ var SupportLevelsList = models.FeatureSupportLevels{
 			},
 			{
 				FeatureID:    models.FeatureSupportLevelFeaturesItems0FeatureIDMULTIARCHRELEASEIMAGE,
+				SupportLevel: models.FeatureSupportLevelFeaturesItems0SupportLevelUnsupported,
+			},
+			{
+				FeatureID:    models.FeatureSupportLevelFeaturesItems0FeatureIDDAY2MASTER,
 				SupportLevel: models.FeatureSupportLevelFeaturesItems0SupportLevelUnsupported,
 			},
 		},
@@ -101,6 +109,10 @@ var SupportLevelsList = models.FeatureSupportLevels{
 				FeatureID:    models.FeatureSupportLevelFeaturesItems0FeatureIDMULTIARCHRELEASEIMAGE,
 				SupportLevel: models.FeatureSupportLevelFeaturesItems0SupportLevelUnsupported,
 			},
+			{
+				FeatureID:    models.FeatureSupportLevelFeaturesItems0FeatureIDDAY2MASTER,
+				SupportLevel: models.FeatureSupportLevelFeaturesItems0SupportLevelUnsupported,
+			},
 		},
 	},
 	&models.FeatureSupportLevel{
@@ -139,6 +151,10 @@ var SupportLevelsList = models.FeatureSupportLevels{
 			},
 			{
 				FeatureID:    models.FeatureSupportLevelFeaturesItems0FeatureIDMULTIARCHRELEASEIMAGE,
+				SupportLevel: models.FeatureSupportLevelFeaturesItems0SupportLevelUnsupported,
+			},
+			{
+				FeatureID:    models.FeatureSupportLevelFeaturesItems0FeatureIDDAY2MASTER,
 				SupportLevel: models.FeatureSupportLevelFeaturesItems0SupportLevelUnsupported,
 			},
 		},
@@ -181,6 +197,10 @@ var SupportLevelsList = models.FeatureSupportLevels{
 				FeatureID:    models.FeatureSupportLevelFeaturesItems0FeatureIDMULTIARCHRELEASEIMAGE,
 				SupportLevel: models.FeatureSupportLevelFeaturesItems0SupportLevelUnsupported,
 			},
+			{
+				FeatureID:    models.FeatureSupportLevelFeaturesItems0FeatureIDDAY2MASTER,
+				SupportLevel: models.FeatureSupportLevelFeaturesItems0SupportLevelUnsupported,
+			},
 		},
 	},
 	&models.FeatureSupportLevel{
@@ -219,6 +239,10 @@ var SupportLevelsList = models.FeatureSupportLevels{
 			},
 			{
 				FeatureID:    models.FeatureSupportLevelFeaturesItems0FeatureIDLVM,
+				SupportLevel: models.FeatureSupportLevelFeaturesItems0SupportLevelDevPreview,
+			},
+			{
+				FeatureID:    models.FeatureSupportLevelFeaturesItems0FeatureIDDAY2MASTER,
 				SupportLevel: models.FeatureSupportLevelFeaturesItems0SupportLevelDevPreview,
 			},
 			// Unsupported features
@@ -260,6 +284,10 @@ var SupportLevelsList = models.FeatureSupportLevels{
 			// Dev-Preview features
 			{
 				FeatureID:    models.FeatureSupportLevelFeaturesItems0FeatureIDVIPAUTOALLOC,
+				SupportLevel: models.FeatureSupportLevelFeaturesItems0SupportLevelDevPreview,
+			},
+			{
+				FeatureID:    models.FeatureSupportLevelFeaturesItems0FeatureIDDAY2MASTER,
 				SupportLevel: models.FeatureSupportLevelFeaturesItems0SupportLevelDevPreview,
 			},
 			// Unsupported features

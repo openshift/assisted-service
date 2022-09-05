@@ -6801,7 +6801,8 @@ func init() {
                   "SINGLE_NODE_EXPANSION",
                   "LVM",
                   "DUAL_STACK_NETWORKING",
-                  "MULTIARCH_RELEASE_IMAGE"
+                  "MULTIARCH_RELEASE_IMAGE",
+                  "DAY2_MASTER"
                 ]
               },
               "support_level": {
@@ -14589,7 +14590,8 @@ func init() {
             "SINGLE_NODE_EXPANSION",
             "LVM",
             "DUAL_STACK_NETWORKING",
-            "MULTIARCH_RELEASE_IMAGE"
+            "MULTIARCH_RELEASE_IMAGE",
+            "DAY2_MASTER"
           ]
         },
         "support_level": {
