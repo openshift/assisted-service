@@ -432,9 +432,12 @@ func (th *transitionHandler) enoughMastersAndWorkers(sCluster *stateCluster, sta
 		minWorkersNeededForInstallation = 2
 	}
 
-	// to be installed cluster need 3 master and at least 2 worker (if workers were given)
-	// Min number of master nodes for non-SNO clusters is 3, worker count can go from 0
-	// on.
+	// to be installed cluster need 3 master
+	// As for the workers, we need at least 2 workers when a cluster with 5 or more hosts is created
+	// otherwise no minimum workers are required. This is because in the case of 4 or less hosts the
+	// masters are set as schedulable and the workload can be shared across the available hosts. In the
+	// case of a 5 nodes cluster, masters are not schedulable so we depend on the workers to run the
+	// workload.
 	if mastersInSomeInstallingStatus >= minRequiredMasterNodes &&
 		(numberOfExpectedWorkers == 0 || workersInSomeInstallingStatus >= minWorkersNeededForInstallation) {
 		return true
