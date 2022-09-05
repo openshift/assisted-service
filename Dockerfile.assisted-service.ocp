@@ -1,8 +1,9 @@
 # Build binaries
+FROM registry.ci.openshift.org/openshift/release:golang-1.17 as golang
 FROM quay.io/centos/centos:stream9 as builder
 
 RUN dnf install --enablerepo=crb -y gcc nmstate-devel && dnf clean all
-COPY --from=registry.ci.openshift.org/openshift/release:golang-1.17 /usr/local/go /usr/local/go
+COPY --from=golang /usr/local/go /usr/local/go
 
 ENV GOROOT=/usr/local/go
 ENV PATH=$PATH:$GOROOT/bin
