@@ -141,10 +141,7 @@ func (h *handler) V2ListSupportedOpenshiftVersions(ctx context.Context, params o
 				if !exists(openshiftVersion.CPUArchitectures, arch) {
 					openshiftVersion.CPUArchitectures = append(openshiftVersion.CPUArchitectures, arch)
 				}
-				if arch == common.DefaultCPUArchitecture {
-					// Default flag is specified on x86 image
-					openshiftVersion.Default = releaseImage.Default
-				}
+				openshiftVersion.Default = releaseImage.Default || openshiftVersion.Default
 				openshiftVersions[key] = openshiftVersion
 			}
 		}
