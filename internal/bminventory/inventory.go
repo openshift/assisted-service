@@ -482,8 +482,14 @@ func (b *bareMetalInventory) RegisterClusterInternal(
 		if err != nil {
 			return nil, err
 		}
+		err = operators.EnsureLVMAndCNVNotEnabled(newOLMOperators)
+		if err != nil {
+			log.Error(err)
+			return nil, common.NewApiError(http.StatusInternalServerError, err)
+		}
 
 		monitoredOperators = append(monitoredOperators, newOLMOperators...)
+
 	}
 
 	cluster := common.Cluster{
@@ -2622,21 +2628,14 @@ func (b *bareMetalInventory) updateOperatorsData(ctx context.Context, cluster *c
 	if err != nil {
 		return err
 	}
-	cnvEnabled := false
-	lvmEnabled := false
+
+	err = operators.EnsureLVMAndCNVNotEnabled(updateOLMOperators)
+	if err != nil {
+		log.Error(err)
+		return common.NewApiError(http.StatusBadRequest, err)
+	}
 
 	for _, updatedOperator := range updateOLMOperators {
-		if updatedOperator.Name == "LVM" {
-			lvmEnabled = true
-		}
-
-		if updatedOperator.Name == "CNV" {
-			cnvEnabled = true
-		}
-
-		if lvmEnabled == true && cnvEnabled == true {
-			return errors.Errorf("Currently, you can not install OpenShift Data Foundation Logical Volume Manager operator at the same time as Virtualization operator.")
-		}
 		updatedOperator.ClusterID = *cluster.ID
 		if err = db.Save(updatedOperator).Error; err != nil {
 			err = errors.Wrapf(err, "failed to update operator %s of cluster %s", updatedOperator.Name, params.ClusterID)

@@ -14760,4 +14760,32 @@ var _ = Describe("GetHostByKubeKey", func() {
 		_, err := bm.GetHostByKubeKey(kubeKey)
 		Expect(err).To(HaveOccurred())
 	})
+
+	It("ensure lvm and cnv enabled", func() {
+		// lvmEnabled := false
+		// cnvEnabled := false
+		var removedOLMOperators []*models.MonitoredOperator
+		updatedOperators := []struct {
+			name string
+		}{
+			{
+				name: "test123",
+			},
+		}
+
+		fmt.Println(updatedOperators, removedOLMOperators)
+		// for oper, _ := range updatedOperators{
+		// 	if oper.name == "LVM"{
+		// 		lvmEnabled = true
+		// 	}
+		// 	if oper.name == "CNV"{
+		// 		cnvEnabled = true
+		// 	}
+
+		// 	if  lvmEnabled == true && cnvEnabled == true {
+		// 		return "Error "
+		// 	}
+		// }
+		Expect(removedOLMOperators).To(Equal(updatedOperators))
+	})
 })

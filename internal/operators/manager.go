@@ -380,3 +380,22 @@ func (mgr *Manager) GetSupportedOperatorsByType(operatorType models.OperatorType
 
 	return operators
 }
+
+func EnsureLVMAndCNVNotEnabled(operators []*models.MonitoredOperator) error {
+	cnvEnabled := false
+	lvmEnabled := false
+	for _, updatedOperator := range operators {
+		if updatedOperator.Name == "LVM" {
+			lvmEnabled = true
+		}
+
+		if updatedOperator.Name == "CNV" {
+			cnvEnabled = true
+		}
+
+		if lvmEnabled == true && cnvEnabled == true {
+			return errors.Errorf("Currently, you can not install OpenShift Data Foundation Logical Volume Manager operator at the same time as Virtualization operator.")
+		}
+	}
+	return nil
+}
