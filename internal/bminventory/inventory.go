@@ -2613,6 +2613,7 @@ func (b *bareMetalInventory) updateClusterCPUFeatureUsage(cluster *common.Cluste
 }
 
 func (b *bareMetalInventory) updateOperatorsData(ctx context.Context, cluster *common.Cluster, params installer.V2UpdateClusterParams, usages map[string]models.Usage, db *gorm.DB, log logrus.FieldLogger) error {
+	// var enabledoperators []*models.MonitoredOperator
 	if params.ClusterUpdateParams.OlmOperators == nil {
 		return nil
 	}
@@ -2621,11 +2622,20 @@ func (b *bareMetalInventory) updateOperatorsData(ctx context.Context, cluster *c
 	if err != nil {
 		return err
 	}
+	cnvEnabled := false
+	lvmEnabled := false
 
 	for _, updatedOperator := range updateOLMOperators {
-		if updatedOperator.Name == "LVM" || updatedOperator.Name == "CNV" {
-			err = errors.Wrapf(err, "failed, either LVM or CNV operator can be installed, both can not be installed")
-			return common.NewApiError(http.StatusBadRequest, err)
+		if updatedOperator.Name == "LVM" {
+			lvmEnabled = true
+		}
+
+		if updatedOperator.Name == "CNV" {
+			cnvEnabled = true
+		}
+
+		if lvmEnabled == true && cnvEnabled == true {
+			return errors.Errorf("Currently, you can not install OpenShift Data Foundation Logical Volume Manager operator at the same time as Virtualization operator.")
 		}
 		updatedOperator.ClusterID = *cluster.ID
 		if err = db.Save(updatedOperator).Error; err != nil {
