@@ -23,8 +23,7 @@ import (
 const (
 	spokeReclaimNamespaceName = "assisted-installer"
 	spokeReclaimCMName        = "reclaim-config"
-	spokeReclaimSAName        = "privileged-sa"
-	spokeReclaimCRBName       = "assisted-installer-privileged"
+	spokeRBACName             = "node-reclaim"
 )
 
 type reclaimConfig struct {
@@ -67,7 +66,7 @@ func ensureSpokeNamespace(ctx context.Context, c client.Client) error {
 func ensureSpokeServiceAccount(ctx context.Context, c client.Client) error {
 	sa := &corev1.ServiceAccount{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      spokeReclaimSAName,
+			Name:      spokeRBACName,
 			Namespace: spokeReclaimNamespaceName,
 		},
 	}
@@ -75,18 +74,45 @@ func ensureSpokeServiceAccount(ctx context.Context, c client.Client) error {
 	return err
 }
 
-func ensureSpokeClusterRoleBinding(ctx context.Context, c client.Client) error {
-	crb := &authzv1.ClusterRoleBinding{ObjectMeta: metav1.ObjectMeta{Name: spokeReclaimCRBName}}
+func ensureSpokeRole(ctx context.Context, c client.Client) error {
+	role := &authzv1.Role{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      spokeRBACName,
+			Namespace: spokeReclaimNamespaceName,
+		},
+	}
+
+	mutate := func() error {
+		role.Rules = []authzv1.PolicyRule{{
+			APIGroups:     []string{"security.openshift.io"},
+			Resources:     []string{"securitycontextconstraints"},
+			ResourceNames: []string{"privileged"},
+			Verbs:         []string{"use"},
+		}}
+		return nil
+	}
+	_, err := controllerutil.CreateOrUpdate(ctx, c, role, mutate)
+	return err
+}
+
+func ensureSpokeRoleBinding(ctx context.Context, c client.Client) error {
+	crb := &authzv1.RoleBinding{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      spokeRBACName,
+			Namespace: spokeReclaimNamespaceName,
+		},
+	}
 
 	mutate := func() error {
 		crb.RoleRef = corev1.ObjectReference{
 			APIVersion: "rbac.authorization.k8s.io/v1",
-			Kind:       "ClusterRole",
-			Name:       "system:openshift:scc:privileged",
+			Kind:       "Role",
+			Name:       spokeRBACName,
+			Namespace:  spokeReclaimNamespaceName,
 		}
 		crb.Subjects = []corev1.ObjectReference{{
 			Kind:      "ServiceAccount",
-			Name:      spokeReclaimSAName,
+			Name:      spokeRBACName,
 			Namespace: spokeReclaimNamespaceName,
 		}}
 		return nil
@@ -237,7 +263,7 @@ func (r *agentReclaimer) createNextStepRunnerDaemonSet(ctx context.Context, c cl
 			Operator: corev1.TolerationOpExists,
 		}}
 		daemonSet.Spec.Template.Spec.PriorityClassName = "system-node-critical"
-		daemonSet.Spec.Template.Spec.ServiceAccountName = spokeReclaimSAName
+		daemonSet.Spec.Template.Spec.ServiceAccountName = spokeRBACName
 		daemonSet.Spec.Template.Spec.Containers = containers
 		return nil
 	}

@@ -398,7 +398,10 @@ func (r *AgentReconciler) runReclaimAgent(ctx context.Context, agent *aiv1beta1.
 	if err := ensureSpokeServiceAccount(ctx, client); err != nil {
 		return err
 	}
-	if err := ensureSpokeClusterRoleBinding(ctx, client); err != nil {
+	if err := ensureSpokeRole(ctx, client); err != nil {
+		return err
+	}
+	if err := ensureSpokeRoleBinding(ctx, client); err != nil {
 		return err
 	}
 	if err := r.reclaimer.ensureSpokeAgentSecret(ctx, client, host.InfraEnvID.String()); err != nil {

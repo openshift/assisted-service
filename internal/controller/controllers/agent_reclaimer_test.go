@@ -88,14 +88,14 @@ var _ = Context("with a fake client", func() {
 		It("creates the serviceaccount", func() {
 			Expect(ensureSpokeServiceAccount(ctx, c)).To(Succeed())
 
-			key := types.NamespacedName{Name: spokeReclaimSAName, Namespace: spokeReclaimNamespaceName}
+			key := types.NamespacedName{Name: spokeRBACName, Namespace: spokeReclaimNamespaceName}
 			Expect(c.Get(ctx, key, &corev1.ServiceAccount{})).To(Succeed())
 		})
 
 		It("succeeds if the serviceaccount already exists", func() {
 			sa := &corev1.ServiceAccount{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      spokeReclaimSAName,
+					Name:      spokeRBACName,
 					Namespace: spokeReclaimNamespaceName,
 				},
 			}
@@ -105,21 +105,64 @@ var _ = Context("with a fake client", func() {
 		})
 	})
 
-	Describe("ensureSpokeClusterRoleBinding", func() {
-		It("creates the cluster role binding", func() {
-			Expect(ensureSpokeClusterRoleBinding(ctx, c)).To(Succeed())
+	Describe("ensureSpokeRole", func() {
+		It("creates the role", func() {
+			Expect(ensureSpokeRole(ctx, c)).To(Succeed())
 
-			key := types.NamespacedName{Name: spokeReclaimCRBName}
-			Expect(c.Get(ctx, key, &authzv1.ClusterRoleBinding{})).To(Succeed())
+			key := types.NamespacedName{Name: spokeRBACName, Namespace: spokeReclaimNamespaceName}
+			role := &authzv1.Role{}
+			Expect(c.Get(ctx, key, role)).To(Succeed())
+
+			rule := authzv1.PolicyRule{
+				APIGroups:     []string{"security.openshift.io"},
+				Resources:     []string{"securitycontextconstraints"},
+				ResourceNames: []string{"privileged"},
+				Verbs:         []string{"use"},
+			}
+			Expect(role.Rules).To(ConsistOf(rule))
 		})
 
-		It("succeeds if the cluster role binding already exists", func() {
-			crb := &authzv1.ClusterRoleBinding{
-				ObjectMeta: metav1.ObjectMeta{Name: spokeReclaimCRBName},
+		It("succeeds if the role already exists", func() {
+			role := &authzv1.Role{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      spokeRBACName,
+					Namespace: spokeReclaimNamespaceName,
+				},
 			}
-			Expect(c.Create(ctx, crb)).To(Succeed())
+			Expect(c.Create(ctx, role)).To(Succeed())
 
-			Expect(ensureSpokeServiceAccount(ctx, c)).To(Succeed())
+			Expect(ensureSpokeRole(ctx, c)).To(Succeed())
+		})
+	})
+
+	Describe("ensureSpokeRoleBinding", func() {
+		It("creates the role binding", func() {
+			Expect(ensureSpokeRoleBinding(ctx, c)).To(Succeed())
+
+			key := types.NamespacedName{Name: spokeRBACName, Namespace: spokeReclaimNamespaceName}
+			rb := &authzv1.RoleBinding{}
+			Expect(c.Get(ctx, key, rb)).To(Succeed())
+
+			Expect(rb.Subjects[0]).To(Equal(corev1.ObjectReference{
+				Kind:      "ServiceAccount",
+				Name:      spokeRBACName,
+				Namespace: spokeReclaimNamespaceName,
+			}))
+			Expect(rb.RoleRef).To(Equal(corev1.ObjectReference{
+				APIVersion: "rbac.authorization.k8s.io/v1",
+				Kind:       "Role",
+				Name:       spokeRBACName,
+				Namespace:  spokeReclaimNamespaceName,
+			}))
+		})
+
+		It("succeeds if the role binding already exists", func() {
+			rb := &authzv1.RoleBinding{
+				ObjectMeta: metav1.ObjectMeta{Name: spokeRBACName},
+			}
+			Expect(c.Create(ctx, rb)).To(Succeed())
+
+			Expect(ensureSpokeRoleBinding(ctx, c)).To(Succeed())
 		})
 	})
 
@@ -296,7 +339,7 @@ var _ = Context("with a fake client", func() {
 			Expect(ds.OwnerReferences).To(ContainElement(nodeOwnerRef))
 
 			Expect(ds.Spec.Template.Spec.NodeSelector).To(HaveKeyWithValue("kubernetes.io/hostname", nodeName))
-			Expect(ds.Spec.Template.Spec.ServiceAccountName).To(Equal(spokeReclaimSAName))
+			Expect(ds.Spec.Template.Spec.ServiceAccountName).To(Equal(spokeRBACName))
 			Expect(ds.Spec.Template.Spec.PriorityClassName).To(Equal("system-node-critical"))
 
 			container := ds.Spec.Template.Spec.Containers[0]
