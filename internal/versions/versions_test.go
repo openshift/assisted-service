@@ -221,14 +221,15 @@ var _ = Describe("list versions", func() {
 			reply := h.V2ListSupportedOpenshiftVersions(context.Background(), operations.V2ListSupportedOpenshiftVersionsParams{})
 			Expect(reply).Should(BeAssignableToTypeOf(operations.NewV2ListSupportedOpenshiftVersionsOK()))
 			val, _ := reply.(*operations.V2ListSupportedOpenshiftVersionsOK)
+			defaultExists := false
 
 			for _, releaseImage := range *releaseImages {
 				key := *releaseImage.OpenshiftVersion
 				version := val.Payload[key]
 				architecture := *releaseImage.CPUArchitecture
 				architectures := releaseImage.CPUArchitectures
-
-				if len(architectures) == 0 && architecture != common.MultiCPUArchitecture {
+				defaultExists = defaultExists || releaseImage.Default
+				if len(architectures) < 2 {
 					// For single-arch release we require in the test that there is a matching
 					// OS image for the provided release image. Otherwise the whole release image
 					// is not usable and indicates a mistake.
@@ -251,6 +252,11 @@ var _ = Describe("list versions", func() {
 					Expect(version.SupportLevel).Should(Equal(h.getSupportLevel(*releaseImage)))
 				}
 			}
+
+			// We want to make sure after parsing the default file, there is always a release
+			// image marked as default. It is not desired to have a service without anything
+			// to default to.
+			Expect(defaultExists).Should(Equal(true))
 		})
 
 		It("getSupportLevel", func() {
@@ -343,6 +349,13 @@ var _ = Describe("list versions", func() {
 				&models.ReleaseImage{
 					CPUArchitecture:  swag.String(common.ARM64CPUArchitecture),
 					CPUArchitectures: []string{common.ARM64CPUArchitecture},
+					OpenshiftVersion: swag.String("4.11.1"),
+					URL:              swag.String("release_4.11.1"),
+					Version:          swag.String("4.11.1-chocobomb-for-test"),
+				},
+				&models.ReleaseImage{
+					CPUArchitecture:  swag.String(common.X86CPUArchitecture),
+					CPUArchitectures: []string{common.X86CPUArchitecture},
 					OpenshiftVersion: swag.String("4.11.1"),
 					URL:              swag.String("release_4.11.1"),
 					Version:          swag.String("4.11.1-chocobomb-for-test"),
