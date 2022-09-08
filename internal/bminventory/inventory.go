@@ -174,6 +174,7 @@ type InstallerInternals interface {
 	GetKnownApprovedHosts(clusterId strfmt.UUID) ([]*common.Host, error)
 	ValidatePullSecret(secret string, username string) error
 	GetInfraEnvInternal(ctx context.Context, params installer.GetInfraEnvParams) (*common.InfraEnv, error)
+	V2UpdateHostInstallProgressInternal(ctx context.Context, params installer.V2UpdateHostInstallProgressParams) (*common.Host, error)
 }
 
 //go:generate mockgen --build_flags=--mod=mod -package bminventory -destination mock_crd_utils.go . CRDUtils
@@ -4999,19 +5000,29 @@ func (b *bareMetalInventory) V2GetHost(ctx context.Context, params installer.V2G
 }
 
 func (b *bareMetalInventory) V2UpdateHostInstallProgress(ctx context.Context, params installer.V2UpdateHostInstallProgressParams) middleware.Responder {
+	h, err := b.V2UpdateHostInstallProgressInternal(ctx, params)
+	if err != nil {
+		if h == nil {
+			return installer.NewV2UpdateHostInstallProgressNotFound().
+				WithPayload(common.GenerateError(http.StatusNotFound, err))
+		}
+		return installer.NewV2UpdateHostInstallProgressInternalServerError().WithPayload(common.GenerateError(http.StatusInternalServerError, err))
+	}
+	return installer.NewV2UpdateHostInstallProgressOK()
+}
+func (b *bareMetalInventory) V2UpdateHostInstallProgressInternal(ctx context.Context, params installer.V2UpdateHostInstallProgressParams) (*common.Host, error) {
 	log := logutil.FromContext(ctx, b.log)
 	log.Infof("Update host %s install progress", params.HostID)
 	host, err := common.GetHostFromDB(b.db, params.InfraEnvID.String(), params.HostID.String())
 	if err != nil {
 		log.WithError(err).Errorf("failed to find host %s", params.HostID)
-		return installer.NewV2UpdateHostInstallProgressNotFound().
-			WithPayload(common.GenerateError(http.StatusNotFound, err))
+		return nil, err
 	}
 
 	if host.ClusterID == nil {
 		err = fmt.Errorf("host %s is not bound to any cluster, cannot update progress", params.HostID)
 		log.WithError(err).Error()
-		return common.NewApiError(http.StatusInternalServerError, err)
+		return host, err
 	}
 
 	stageChanged := params.HostProgress.CurrentStage != host.Progress.CurrentStage
@@ -5020,7 +5031,7 @@ func (b *bareMetalInventory) V2UpdateHostInstallProgress(ctx context.Context, pa
 	if stageChanged || params.HostProgress.ProgressInfo != host.Progress.ProgressInfo {
 		if err := b.hostApi.UpdateInstallProgress(ctx, &host.Host, params.HostProgress); err != nil {
 			log.WithError(err).Errorf("failed to update host %s progress", params.HostID)
-			return installer.NewV2UpdateHostInstallProgressInternalServerError().WithPayload(common.GenerateError(http.StatusInternalServerError, err))
+			return host, err
 		}
 
 		event := fmt.Sprintf("reached installation stage %s", params.HostProgress.CurrentStage)
@@ -5033,12 +5044,12 @@ func (b *bareMetalInventory) V2UpdateHostInstallProgress(ctx context.Context, pa
 		if stageChanged {
 			if err := b.clusterApi.UpdateInstallProgress(ctx, *host.ClusterID); err != nil {
 				log.WithError(err).Errorf("failed to update cluster %s progress", host.ClusterID)
-				return installer.NewV2UpdateHostInstallProgressInternalServerError().WithPayload(common.GenerateError(http.StatusInternalServerError, err))
+				return host, err
 			}
 		}
 	}
 
-	return installer.NewV2UpdateHostInstallProgressOK()
+	return host, nil
 }
 
 func (b *bareMetalInventory) BindHost(ctx context.Context, params installer.BindHostParams) middleware.Responder {
