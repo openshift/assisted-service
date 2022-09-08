@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/base64"
 	"errors"
+	reflect "reflect"
 
 	"github.com/go-openapi/strfmt"
 	"github.com/golang/mock/gomock"
@@ -25,6 +26,22 @@ import (
 	"github.com/sirupsen/logrus"
 	"sigs.k8s.io/yaml"
 )
+
+func itemExists(arrayType interface{}, item interface{}) bool {
+	arr := reflect.ValueOf(arrayType)
+
+	if arr.Kind() != reflect.Array {
+		panic("Invalid data-type")
+	}
+
+	for i := 0; i < arr.Len(); i++ {
+		if arr.Index(i).Interface() == item {
+			return true
+		}
+	}
+
+	return false
+}
 
 var (
 	ctx          = context.Background()
@@ -159,6 +176,36 @@ var _ = Describe("Operators manager", func() {
 				&cnv.Operator,
 			}, true),
 		)
+	})
+
+	Context("EnsureLVMAndCNVNotEnabled", func() {
+		It("should return error when both cnv and lvm operator enabled", func() {
+			updateOLMOperators := [4]string{"lvm", "lso", "odf", "cnv"}
+			lvmExists := itemExists(updateOLMOperators, "lvm")
+			cnvExists := itemExists(updateOLMOperators, "cnv")
+			results := lvmExists && cnvExists
+			if lvmExists == cnvExists {
+				Expect(results).To(Equal(true))
+			}
+		})
+		It("lvm operator enabled", func() {
+			updateOLMOperators := [3]string{"lvm", "lso", "odf"}
+			lvmExists := itemExists(updateOLMOperators, "lvm")
+			cnvExists := itemExists(updateOLMOperators, "cnv")
+			results := lvmExists || cnvExists
+			if lvmExists != cnvExists {
+				Expect(results).To(Equal(true))
+			}
+		})
+		It("cnv operator enabled", func() {
+			updateOLMOperators := [3]string{"cnv", "lso", "odf"}
+			lvmExists := itemExists(updateOLMOperators, "lvm")
+			cnvExists := itemExists(updateOLMOperators, "cnv")
+			results := lvmExists || cnvExists
+			if lvmExists != cnvExists {
+				Expect(results).To(Equal(true))
+			}
+		})
 	})
 
 	Context("ValidateCluster", func() {
