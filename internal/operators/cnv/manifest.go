@@ -211,6 +211,8 @@ spec:
 const cnvHPPStorageClass = `apiVersion: storage.k8s.io/v1
 kind: StorageClass
 metadata:
+  annotations:
+    storageclass.kubernetes.io/is-default-class: "true"
   name: sno-storage
 provisioner: kubevirt.io.hostpath-provisioner
 reclaimPolicy: Delete
