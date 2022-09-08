@@ -14,8 +14,8 @@
         "cpu_architectures": [
             "x86_64"
         ],
-        "url": "quay.io/openshift-release-dev/ocp-release:4.9.46-x86_64",
-        "version": "4.9.46"
+        "url": "quay.io/openshift-release-dev/ocp-release:4.9.47-x86_64",
+        "version": "4.9.47"
     },
     {
         "openshift_version": "4.10",
@@ -23,8 +23,8 @@
         "cpu_architectures": [
             "x86_64"
         ],
-        "url": "quay.io/openshift-release-dev/ocp-release:4.10.28-x86_64",
-        "version": "4.10.28"
+        "url": "quay.io/openshift-release-dev/ocp-release:4.10.30-x86_64",
+        "version": "4.10.30"
     },
     {
         "openshift_version": "4.10",
@@ -32,27 +32,27 @@
         "cpu_architectures": [
             "arm64"
         ],
-        "url": "quay.io/openshift-release-dev/ocp-release:4.10.28-aarch64",
-        "version": "4.10.28"
+        "url": "quay.io/openshift-release-dev/ocp-release:4.10.30-aarch64",
+        "version": "4.10.30"
     },
     {
-      "openshift_version": "4.11",
-      "cpu_architecture": "x86_64",
-      "cpu_architectures": [
-          "x86_64"
-      ],
-      "url": "quay.io/openshift-release-dev/ocp-release:4.11.0-x86_64",
-      "version": "4.11.0",
-      "default": true
+        "openshift_version": "4.11",
+        "cpu_architecture": "x86_64",
+        "cpu_architectures": [
+            "x86_64"
+        ],
+        "url": "quay.io/openshift-release-dev/ocp-release:4.11.3-x86_64",
+        "version": "4.11.3",
+        "default": true
     },
     {
-      "openshift_version": "4.11",
-      "cpu_architecture": "arm64",
-      "cpu_architectures": [
-          "arm64"
-      ],
-      "url": "quay.io/openshift-release-dev/ocp-release:4.11.0-aarch64",
-      "version": "4.11.0"
+        "openshift_version": "4.11",
+        "cpu_architecture": "arm64",
+        "cpu_architectures": [
+            "arm64"
+        ],
+        "url": "quay.io/openshift-release-dev/ocp-release:4.11.3-aarch64",
+        "version": "4.11.3"
     },
     {
         "openshift_version": "4.11",
