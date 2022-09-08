@@ -30,9 +30,31 @@ def verify_images(release_images: List[str]):
 
 
 def verify_release_version(ocp_version: str, release_image: str, release_version: str):
+    """
+    This function takes the custom definition of release image as expected by the Assisted Service
+    and performs the following checks
+
+    1) 'openshift_version' field must match at least "major.minor" version as extracted from the
+       release image's "metadata.version"
+    2) 'version' field must fully match the "metadata.version" field of the release image
+
+    This logic allows us to serve release images in a simplified way so that e.g. image with
+    "4.12.0-0.nightly-multi-2022-09-08-131900" as metadata can be offered as simply "4.12-nightly".
+
+    The requirement of the full match of the 'version' field ensures awareness of what is the
+    real version of the image that is being served.
+    """
+
     oc_version = get_oc_version(release_image)
-    assert oc_version == release_version or oc_version == release_version + "-multi", (
-      f"{release_image} full version is {oc_version} not {release_version}")
+    assert oc_version == release_version, (f"{release_image} full version is {oc_version} not {release_version}")
+
+    # Valid delimiters for versions are "." as well as "-". This is in order to cover extraction
+    # for all the following combinations
+    #   * "4.11.0"
+    #   * "4.11-multi"
+    #   * "4.12.0-0.nightly-multi-2022-09-08-131900"
+    oc_version = oc_version.replace('-', '.')
+    ocp_version = ocp_version.replace('-', '.')
 
     major, minor, *_other_version_components = oc_version.split(".")
     ocp_major, ocp_minor, *_ = ocp_version.split(".")
@@ -40,6 +62,11 @@ def verify_release_version(ocp_version: str, release_image: str, release_version
 
 
 def get_oc_version(release_image: str) -> str:
+    """
+    This function takes OCP release image and returns the value of its "metadata.version"
+    without doing any modifications of the returned value.
+    """
+
     print(f"Getting release version of {release_image}...", file=sys.stderr)
     pull_secret = os.getenv("PULL_SECRET")
 

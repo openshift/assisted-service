@@ -3,6 +3,7 @@ package subsystem
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"time"
 
 	"github.com/go-openapi/strfmt"
@@ -417,7 +418,7 @@ var _ = Describe("[V2ClusterTests] multiarch", func() {
 
 		Expect(err).To(HaveOccurred())
 		actual := err.(*installer.RegisterInfraEnvBadRequest)
-		Expect(*actual.Payload.Reason).To(ContainSubstring("No OS image for Openshift version 4.11 and architecture ppc64le"))
+		Expect(*actual.Payload.Reason).To(ContainSubstring(fmt.Sprintf("No OS image for Openshift version %s and architecture %s", multiarchOpenshiftVersion, common.PowerCPUArchitecture)))
 	})
 
 	It("Fail to register infraenv with missing release image and OS ", func() {
