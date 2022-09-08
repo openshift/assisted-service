@@ -30,12 +30,14 @@ var db *gorm.DB
 var log *logrus.Logger
 var wiremock *WireMock
 var kubeClient k8sclient.Client
-var openshiftVersion string = "4.6"
+var openshiftVersion string = "4.8"
 var snoVersion string = "4.8"
 var multiarchOpenshiftVersion string = "4.11.0-multi"
+var pullSecret = "{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dXNlcjpwYXNzd29yZAo=\",\"email\":\"r@r.com\"}}}" // #nosec
 
 var (
 	agentBMClient             *client.AssistedInstall
+	agent2BMClient            *client.AssistedInstall
 	badAgentBMClient          *client.AssistedInstall
 	userBMClient              *client.AssistedInstall
 	user2BMClient             *client.AssistedInstall
@@ -119,6 +121,7 @@ func init() {
 	unallowedUserClientCfg := clientcfg(auth.UserAuthHeaderWriter("bearer " + Options.TestTokenUnallowed))
 	editclusterClientCfg := clientcfg(auth.UserAuthHeaderWriter("bearer " + Options.TestTokenClusterEditor))
 	agentClientCfg := clientcfg(auth.AgentAuthHeaderWriter(FakePS))
+	agent2ClientCfg := clientcfg(auth.AgentAuthHeaderWriter(FakePS2))
 	badAgentClientCfg := clientcfg(auth.AgentAuthHeaderWriter(WrongPullSecret))
 	userBMClient = client.New(userClientCfg)
 	user2BMClient = client.New(userClientCfg2)
@@ -126,6 +129,7 @@ func init() {
 	unallowedUserBMClient = client.New(unallowedUserClientCfg)
 	editclusterUserBMClient = client.New(editclusterClientCfg)
 	agentBMClient = client.New(agentClientCfg)
+	agent2BMClient = client.New(agent2ClientCfg)
 	badAgentBMClient = client.New(badAgentClientCfg)
 
 	db, err = gorm.Open(postgres.Open(fmt.Sprintf("host=%s port=%s user=admin database=installer password=admin sslmode=disable",

@@ -289,7 +289,7 @@ func main() {
 	extracterHandler := oc.NewExtracter(&executer.CommonExecuter{},
 		oc.Config{MaxTries: oc.DefaultTries, RetryDelay: oc.DefaltRetryDelay})
 	versionHandler, err := versions.NewHandler(log.WithField("pkg", "versions"), releaseHandler,
-		Options.Versions, osImagesArray, releaseImagesArray, mustGatherVersionsMap, Options.ReleaseImageMirror)
+		Options.Versions, osImagesArray, releaseImagesArray, mustGatherVersionsMap, Options.ReleaseImageMirror, authzHandler)
 	failOnError(err, "failed to create Versions handler")
 	domainHandler := domains.NewHandler(Options.BMConfig.BaseDNSDomains)
 	staticNetworkConfig := staticnetworkconfig.New(log.WithField("pkg", "static_network_config"), Options.StaticNetworkConfig)

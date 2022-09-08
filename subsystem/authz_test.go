@@ -12,6 +12,7 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/client/installer"
 	"github.com/openshift/assisted-service/internal/cluster"
+	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/auth"
 )
@@ -29,8 +30,8 @@ var _ = Describe("test authorization", func() {
 	var capabilityReviewUnallowedUserStubID string
 	var capabilityReviewAdminStubID string
 
-	var capabilityReviewArmNotallowedUserStubID string
-	var capabilityReviewArmallowedUserStubID string
+	var capabilityReviewMultiarchNotallowedUserStubID string
+	var capabilityReviewMultiarchAllowedUserStubID string
 
 	BeforeSuite(func() {
 		var err error
@@ -48,6 +49,12 @@ var _ = Describe("test authorization", func() {
 		Expect(err).ShouldNot(HaveOccurred())
 
 		capabilityReviewAdminStubID, err = wiremock.createStubBareMetalCapabilityReview(fakePayloadAdmin, true)
+		Expect(err).ShouldNot(HaveOccurred())
+
+		capabilityReviewMultiarchNotallowedUserStubID, err = wiremock.createStubMultiarchCapabilityReview(fakePayloadUsername, OrgId1, false)
+		Expect(err).ShouldNot(HaveOccurred())
+
+		capabilityReviewMultiarchAllowedUserStubID, err = wiremock.createStubMultiarchCapabilityReview(fakePayloadUsername2, OrgId2, true)
 		Expect(err).ShouldNot(HaveOccurred())
 	})
 
@@ -68,10 +75,10 @@ var _ = Describe("test authorization", func() {
 		err = wiremock.DeleteStub(capabilityReviewAdminStubID)
 		Expect(err).ShouldNot(HaveOccurred())
 
-		err = wiremock.DeleteStub(capabilityReviewArmNotallowedUserStubID)
+		err = wiremock.DeleteStub(capabilityReviewMultiarchNotallowedUserStubID)
 		Expect(err).ShouldNot(HaveOccurred())
 
-		err = wiremock.DeleteStub(capabilityReviewArmallowedUserStubID)
+		err = wiremock.DeleteStub(capabilityReviewMultiarchAllowedUserStubID)
 		Expect(err).ShouldNot(HaveOccurred())
 	})
 
@@ -231,6 +238,38 @@ var _ = Describe("test authorization", func() {
 			_, err = agentBMClient.Installer.GetInfraEnv(ctx, &installer.GetInfraEnvParams{InfraEnvID: *infraEnvID2})
 			Expect(err).Should(HaveOccurred())
 			Expect(err).To(BeAssignableToTypeOf(installer.NewGetInfraEnvNotFound()))
+		})
+	})
+
+	Context("organization based functionality", func() {
+		BeforeEach(func() {
+			if !Options.FeatureGate {
+				Skip("organization based functionality access is disabled")
+			}
+		})
+		It("allowed to register a multiarch cluster", func() {
+			request, err := user2BMClient.Installer.V2RegisterCluster(ctx, &installer.V2RegisterClusterParams{
+				NewClusterParams: &models.ClusterCreateParams{
+					CPUArchitecture:  common.MultiCPUArchitecture,
+					Name:             swag.String("test-multiarch-cluster"),
+					OpenshiftVersion: swag.String(multiarchOpenshiftVersion),
+					PullSecret:       swag.String(fmt.Sprintf(psTemplate, FakePS2)),
+				},
+			})
+			Expect(err).ShouldNot(HaveOccurred())
+			Expect(request.Payload.CPUArchitecture).To(Equal(common.MultiCPUArchitecture))
+		})
+		It("not allowed to register a multiarch cluster", func() {
+			_, err := userBMClient.Installer.V2RegisterCluster(ctx, &installer.V2RegisterClusterParams{
+				NewClusterParams: &models.ClusterCreateParams{
+					CPUArchitecture:  common.MultiCPUArchitecture,
+					Name:             swag.String("test-multiarch-cluster"),
+					OpenshiftVersion: swag.String(multiarchOpenshiftVersion),
+					PullSecret:       swag.String(fmt.Sprintf(psTemplate, FakePS)),
+				},
+			})
+			Expect(err).Should(HaveOccurred())
+			Expect(err).To(BeAssignableToTypeOf(installer.NewV2RegisterClusterBadRequest()))
 		})
 	})
 })

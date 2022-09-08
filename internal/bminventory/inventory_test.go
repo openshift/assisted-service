@@ -11153,6 +11153,7 @@ var _ = Describe("TestRegisterCluster", func() {
 		mockAMSSubscription(ctx)
 		mockVersions.EXPECT().GetCPUArchitectures(gomock.Any()).Return(
 			[]string{common.TestDefaultConfig.OpenShiftVersion, common.ARM64CPUArchitecture}).Times(1)
+		mockVersions.EXPECT().ValidateAccessToMultiarch(gomock.Any(), gomock.Any()).Times(1)
 
 		params := getDefaultClusterCreateParams()
 		params.CPUArchitecture = common.ARM64CPUArchitecture
@@ -11307,6 +11308,128 @@ var _ = Describe("TestRegisterCluster", func() {
 			cluster, err = common.GetClusterFromDB(db, *c2.ID, common.UseEagerLoading)
 			Expect(err).ToNot(HaveOccurred())
 			validateNetworkConfiguration(&cluster.Cluster, &clusterNetworks, &serviceNetworks, &machineNetworks)
+		})
+	})
+
+	Context("Authz and Multiarch", func() {
+		var (
+			authCtx      context.Context
+			mockOcmAuthz *ocm.MockOCMAuthorization
+			payload      *ocm.AuthPayload
+			orgID1       = "300F3CE2-F122-4DA5-A845-2A4BC5956996"
+			userName1    = "test_user_1"
+		)
+
+		BeforeEach(func() {
+			db, dbName = common.PrepareTestDB()
+			bm = createInventory(db, Config{})
+			bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog().WithField("pkg", "cluster-monitor"),
+				db, mockEvents, nil, nil, nil, nil, nil, nil, nil, nil, nil)
+		})
+
+		Context("with EnableOrgBasedFeatureGates true", func() {
+
+			BeforeEach(func() {
+				cfg := auth.GetConfigRHSSO()
+				cfg.EnableOrgBasedFeatureGates = true
+				mockOcmAuthz = ocm.NewMockOCMAuthorization(ctrl)
+				mockOcmClient := &ocm.Client{Cache: cache.New(10*time.Minute, 30*time.Minute), Authorization: mockOcmAuthz}
+				bm.authHandler = auth.NewRHSSOAuthenticator(cfg, mockOcmClient, common.GetTestLog().WithField("pkg", "auth"), db)
+				bm.authzHandler = auth.NewAuthzHandler(cfg, mockOcmClient, common.GetTestLog().WithField("pkg", "auth"), db)
+				payload = &ocm.AuthPayload{Role: ocm.UserRole}
+				payload.Username = userName1
+				payload.Organization = orgID1
+				authCtx = context.WithValue(ctx, restapi.AuthKey, payload)
+			})
+
+			It("Register a cluster with multi CPU architecture - success", func() {
+				mockSecretValidator.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any()).Return(nil).Times(1)
+				mockVersions.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any()).Return(&models.ReleaseImage{
+					CPUArchitecture:  swag.String(common.MultiCPUArchitecture),
+					CPUArchitectures: []string{common.X86CPUArchitecture, common.ARM64CPUArchitecture, common.PowerCPUArchitecture},
+					OpenshiftVersion: swag.String("its-just-a-mock"),
+					URL:              swag.String("url-of-this-release"),
+					Version:          swag.String("doesnt-really-matter"),
+				}, nil).Times(1)
+				mockOperatorManager.EXPECT().GetSupportedOperatorsByType(models.OperatorTypeBuiltin).Return([]*models.MonitoredOperator{&common.TestDefaultConfig.MonitoredOperator}).Times(1)
+				mockProviderRegistry.EXPECT().SetPlatformUsages(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
+				mockMetric.EXPECT().ClusterRegistered().Times(1)
+				mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
+					eventstest.WithNameMatcher(eventgen.ClusterRegistrationSucceededEventName))).Times(1)
+				mockAMSSubscription(authCtx)
+				mockUsageReports()
+				mockVersions.EXPECT().ValidateAccessToMultiarch(gomock.Any(), gomock.Any()).Times(1)
+
+				reply := bm.V2RegisterCluster(authCtx, installer.V2RegisterClusterParams{
+					NewClusterParams: &models.ClusterCreateParams{
+						Name:             swag.String("some-cluster-name"),
+						OpenshiftVersion: swag.String("some-version-doesnt-matter-because-we-mock"),
+						CPUArchitecture:  common.MultiCPUArchitecture,
+						PullSecret:       swag.String("{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"),
+					},
+				})
+				Expect(reply).To(BeAssignableToTypeOf(installer.NewV2RegisterClusterCreated()))
+				actual := reply.(*installer.V2RegisterClusterCreated)
+				Expect(actual.Payload.CPUArchitecture).To(Equal(common.MultiCPUArchitecture))
+			})
+
+			It("Register a cluster with multi CPU architecture - fail with no capability", func() {
+				mockVersions.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any()).Return(&models.ReleaseImage{
+					CPUArchitecture:  swag.String(common.MultiCPUArchitecture),
+					CPUArchitectures: []string{common.X86CPUArchitecture, common.ARM64CPUArchitecture, common.PowerCPUArchitecture},
+					OpenshiftVersion: swag.String("its-just-a-mock"),
+					URL:              swag.String("url-of-this-release"),
+					Version:          swag.String("doesnt-really-matter"),
+				}, nil).Times(1)
+				mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
+					eventstest.WithNameMatcher(eventgen.ClusterRegistrationFailedEventName),
+					eventstest.WithMessageContainsMatcher("multiarch clusters are not available"),
+					eventstest.WithSeverityMatcher(models.EventSeverityError))).Times(1)
+				mockVersions.EXPECT().ValidateAccessToMultiarch(gomock.Any(), gomock.Any()).Return(common.NewApiError(http.StatusBadRequest, errors.Errorf("%s", "multiarch clusters are not available")))
+
+				reply := bm.V2RegisterCluster(authCtx, installer.V2RegisterClusterParams{
+					NewClusterParams: &models.ClusterCreateParams{
+						Name:             swag.String("some-cluster-name"),
+						OpenshiftVersion: swag.String("some-version-doesnt-matter-because-we-mock"),
+						CPUArchitecture:  common.MultiCPUArchitecture,
+						PullSecret:       swag.String("{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"),
+					},
+				})
+				verifyApiError(reply, http.StatusBadRequest)
+			})
+		})
+
+		Context("with EnableOrgBasedFeatureGates false", func() {
+			BeforeEach(func() {
+				cfg := auth.GetConfigRHSSO()
+				cfg.EnableOrgBasedFeatureGates = false
+				mockOcmAuthz = ocm.NewMockOCMAuthorization(ctrl)
+				mockOcmClient := &ocm.Client{Cache: cache.New(10*time.Minute, 30*time.Minute), Authorization: mockOcmAuthz}
+				bm.authHandler = auth.NewRHSSOAuthenticator(cfg, mockOcmClient, common.GetTestLog().WithField("pkg", "auth"), db)
+				bm.authzHandler = auth.NewAuthzHandler(cfg, mockOcmClient, common.GetTestLog().WithField("pkg", "auth"), db)
+				payload = &ocm.AuthPayload{Role: ocm.UserRole}
+				payload.Username = userName1
+				payload.Organization = orgID1
+				authCtx = context.WithValue(ctx, restapi.AuthKey, payload)
+			})
+
+			It("Register cluster with multi CPU architecture - success", func() {
+				mockClusterRegisterSuccess(true)
+				mockAMSSubscription(authCtx)
+				mockUsageReports()
+
+				reply := bm.V2RegisterCluster(authCtx, installer.V2RegisterClusterParams{
+					NewClusterParams: &models.ClusterCreateParams{
+						Name:             swag.String("some-cluster-name"),
+						OpenshiftVersion: swag.String("some-version-doesnt-matter-because-we-mock"),
+						CPUArchitecture:  common.MultiCPUArchitecture,
+						PullSecret:       swag.String("{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"),
+					},
+				})
+				Expect(reply).To(BeAssignableToTypeOf(installer.NewV2RegisterClusterCreated()))
+				actual := reply.(*installer.V2RegisterClusterCreated)
+				Expect(actual.Payload.CPUArchitecture).To(Equal(common.MultiCPUArchitecture))
+			})
 		})
 	})
 })
