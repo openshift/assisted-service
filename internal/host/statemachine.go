@@ -637,6 +637,7 @@ func NewHostStateMachine(sm stateswitch.StateMachine, th *transitionHandler) sta
 		If(SufficientOrUnknownInstallationDiskSpeed),
 		If(NonOverlappingSubnets),
 		If(CompatibleAgent),
+		If(IsTimeSyncedBetweenHostAndService),
 	)
 
 	// In order for this transition to be fired at least one of the validations in minRequiredHardwareValidations must fail.

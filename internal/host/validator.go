@@ -43,6 +43,8 @@ const (
 	ValidationPending               ValidationStatus = "pending"
 	ValidationError                 ValidationStatus = "error"
 	ValidationDisabled              ValidationStatus = "disabled"
+	maxServiceAheadOfHostTimeDiff                    = 20 * time.Minute
+	maxHostAheadOfServiceTimeDiff                    = 1 * time.Hour
 )
 
 const FailedToFindAction = "failed to find action for step"
@@ -817,6 +819,23 @@ func (v *validator) isNTPSynced(c *validationContext) (ValidationStatus, string)
 	}
 
 	return status, message
+}
+
+func (v *validator) isTimeSyncedBetweenHostAndService(c *validationContext) (ValidationStatus, string) {
+	if c.host.Timestamp == 0 {
+		return ValidationPending, "Missing host time, can't determine synchronization between host and service"
+	}
+
+	diff := time.Now().UTC().Sub(time.Unix(c.host.Timestamp, 0).UTC())
+	if diff > maxServiceAheadOfHostTimeDiff {
+		return ValidationFailure, fmt.Sprintf("Host clock is not synchronized, service time is ahead of host's at least for %.1f minutes, "+
+			"please configure an NTP server via DHCP or set clock manually. Service time: %s", maxServiceAheadOfHostTimeDiff.Minutes(), time.Now().UTC())
+	} else if diff < -maxHostAheadOfServiceTimeDiff {
+		return ValidationFailure, fmt.Sprintf("Host clock is not synchronized, host time is ahead of service at least for %.1f minutes, "+
+			"please configure an NTP server via DHCP or set clock manually. Service time: %s", maxHostAheadOfServiceTimeDiff.Minutes(), time.Now().UTC())
+	}
+
+	return ValidationSuccess, "Host clock is synchronized with service"
 }
 
 func (v *validator) sucessfullOrUnknownContainerImagesAvailability(c *validationContext) (ValidationStatus, string) {

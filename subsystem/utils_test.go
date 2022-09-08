@@ -462,7 +462,7 @@ func generateEssentialHostSteps(ctx context.Context, h *models.Host, name, cidr 
 }
 
 func generateEssentialHostStepsWithInventory(ctx context.Context, h *models.Host, name string, inventory *models.Inventory) {
-	generateGetNextStepsWithTimestamp(ctx, h, defaultTimestamp)
+	generateGetNextStepsWithTimestamp(ctx, h, time.Now().Unix())
 	generateHWPostStepReply(ctx, h, inventory, name)
 	generateFAPostStepReply(ctx, h, validFreeAddresses)
 	generateNTPPostStepReply(ctx, h, []*models.NtpSource{common.TestNTPSourceSynced})

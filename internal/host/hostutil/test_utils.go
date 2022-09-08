@@ -102,6 +102,7 @@ func GenerateTestHostByKind(hostID, infraEnvID strfmt.UUID, clusterID *strfmt.UU
 		APIVipConnectivity:    GenerateTestAPIConnectivityResponseSuccessString(""),
 		Connectivity:          GenerateTestConnectivityReport(),
 		DiscoveryAgentVersion: defaultAgentImage,
+		Timestamp:             time.Now().Unix(),
 	}
 }
 
@@ -120,6 +121,7 @@ func GenerateTestHostWithInfraEnv(hostID, infraEnvID strfmt.UUID, state string, 
 		APIVipConnectivity:    GenerateTestAPIConnectivityResponseSuccessString(""),
 		Connectivity:          GenerateTestConnectivityReport(),
 		DiscoveryAgentVersion: defaultAgentImage,
+		Timestamp:             time.Now().Unix(),
 	}
 }
 
@@ -143,6 +145,7 @@ func GenerateTestHostWithNetworkAddress(hostID, infraEnvID, clusterID strfmt.UUI
 		},
 		APIVipConnectivity:    GenerateTestAPIConnectivityResponseSuccessString(""),
 		DiscoveryAgentVersion: defaultAgentImage,
+		Timestamp:             time.Now().Unix(),
 	}
 	return &h
 }

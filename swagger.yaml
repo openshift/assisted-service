@@ -5769,6 +5769,7 @@ definitions:
       - 'belongs-to-majority-group'
       - 'valid-platform-network-settings'
       - 'ntp-synced'
+      - 'time-synced-between-host-and-service'
       - 'container-images-available'
       - 'lso-requirements-satisfied'
       - 'ocs-requirements-satisfied'

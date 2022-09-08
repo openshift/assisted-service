@@ -27,6 +27,7 @@ const (
 	BelongsToMajorityGroup                                 = validationID(models.HostValidationIDBelongsToMajorityGroup)
 	IsPlatformNetworkSettingsValid                         = validationID(models.HostValidationIDValidPlatformNetworkSettings)
 	IsNTPSynced                                            = validationID(models.HostValidationIDNtpSynced)
+	IsTimeSyncedBetweenHostAndService                      = validationID(models.HostValidationIDTimeSyncedBetweenHostAndService)
 	SucessfullOrUnknownContainerImagesAvailability         = validationID(models.HostValidationIDContainerImagesAvailable)
 	AreLsoRequirementsSatisfied                            = validationID(models.HostValidationIDLsoRequirementsSatisfied)
 	AreOdfRequirementsSatisfied                            = validationID(models.HostValidationIDOdfRequirementsSatisfied)
@@ -59,6 +60,7 @@ func (v validationID) category() (string, error) {
 		IsIgnitionDownloadable,
 		BelongsToMajorityGroup,
 		IsNTPSynced,
+		IsTimeSyncedBetweenHostAndService,
 		SucessfullOrUnknownContainerImagesAvailability,
 		HasSufficientNetworkLatencyRequirementForRole,
 		HasSufficientPacketLossRequirementForRole,

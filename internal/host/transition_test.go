@@ -1534,6 +1534,7 @@ var _ = Describe("Refresh Host", func() {
 				bytes, err := json.Marshal(common.TestDomainNameResolutionsSuccess)
 				Expect(err).ShouldNot(HaveOccurred())
 				host.DomainNameResolutions = string(bytes)
+				host.Timestamp = time.Now().Unix()
 				Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
 				host = hostutil.GetHostFromDB(*host.ID, host.InfraEnvID, db).Host
 			}
@@ -2561,6 +2562,7 @@ var _ = Describe("Refresh Host", func() {
 
 			machineNetworksForGroups []*models.MachineNetwork
 			domainResolutions        *models.DomainResolutionResponse
+			timestamp                int64
 		}
 
 		tests := []TransitionTestStruct{
@@ -3100,17 +3102,18 @@ var _ = Describe("Refresh Host", func() {
 					"Failed to fetch container images needed for installation from image. This may be due to a network hiccup. Retry to install again. If this problem persists, "+
 						"check your network settings to make sure you’re not blocked.")),
 				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
-					IsConnected:          {status: ValidationSuccess, messagePattern: "Host is connected"},
-					HasInventory:         {status: ValidationSuccess, messagePattern: "Valid inventory exists for the host"},
-					HasMinCPUCores:       {status: ValidationSuccess, messagePattern: "Sufficient CPU cores"},
-					HasMinMemory:         {status: ValidationSuccess, messagePattern: "Sufficient minimum RAM"},
-					HasMinValidDisks:     {status: ValidationSuccess, messagePattern: "Sufficient disk capacity"},
-					IsMachineCidrDefined: {status: ValidationSuccess, messagePattern: "Machine Network CIDR is defined"},
-					HasCPUCoresForRole:   {status: ValidationSuccess, messagePattern: "Sufficient CPU cores for role master"},
-					HasMemoryForRole:     {status: ValidationSuccess, messagePattern: "Sufficient RAM for role master"},
-					IsHostnameUnique:     {status: ValidationSuccess, messagePattern: " is unique in cluster"},
-					BelongsToMachineCidr: {status: ValidationFailure, messagePattern: "Host does not belong to machine network CIDRs"},
-					IsNTPSynced:          {status: ValidationFailure, messagePattern: "Host couldn't synchronize with any NTP server"},
+					IsConnected:                       {status: ValidationSuccess, messagePattern: "Host is connected"},
+					HasInventory:                      {status: ValidationSuccess, messagePattern: "Valid inventory exists for the host"},
+					HasMinCPUCores:                    {status: ValidationSuccess, messagePattern: "Sufficient CPU cores"},
+					HasMinMemory:                      {status: ValidationSuccess, messagePattern: "Sufficient minimum RAM"},
+					HasMinValidDisks:                  {status: ValidationSuccess, messagePattern: "Sufficient disk capacity"},
+					IsMachineCidrDefined:              {status: ValidationSuccess, messagePattern: "Machine Network CIDR is defined"},
+					HasCPUCoresForRole:                {status: ValidationSuccess, messagePattern: "Sufficient CPU cores for role master"},
+					HasMemoryForRole:                  {status: ValidationSuccess, messagePattern: "Sufficient RAM for role master"},
+					IsHostnameUnique:                  {status: ValidationSuccess, messagePattern: " is unique in cluster"},
+					BelongsToMachineCidr:              {status: ValidationFailure, messagePattern: "Host does not belong to machine network CIDRs"},
+					IsNTPSynced:                       {status: ValidationFailure, messagePattern: "Host couldn't synchronize with any NTP server"},
+					IsTimeSyncedBetweenHostAndService: {status: ValidationSuccess, messagePattern: "Host clock is synchronized with service"},
 					SucessfullOrUnknownContainerImagesAvailability: {status: ValidationFailure, messagePattern: "Failed to fetch container images needed for installation from image."},
 				}),
 				inventory:         hostutil.GenerateMasterInventory(),
@@ -3161,18 +3164,19 @@ var _ = Describe("Refresh Host", func() {
 				role:              models.HostRoleMaster,
 				statusInfoChecker: makeValueChecker(statusInfoKnown),
 				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
-					IsConnected:          {status: ValidationSuccess, messagePattern: "Host is connected"},
-					HasInventory:         {status: ValidationSuccess, messagePattern: "Valid inventory exists for the host"},
-					HasMinCPUCores:       {status: ValidationSuccess, messagePattern: "Sufficient CPU cores"},
-					HasMinMemory:         {status: ValidationSuccess, messagePattern: "Sufficient minimum RAM"},
-					HasMinValidDisks:     {status: ValidationSuccess, messagePattern: "Sufficient disk capacity"},
-					IsMachineCidrDefined: {status: ValidationSuccess, messagePattern: "Machine Network CIDR is defined"},
-					HasCPUCoresForRole:   {status: ValidationSuccess, messagePattern: "Sufficient CPU cores for role master"},
-					HasMemoryForRole:     {status: ValidationSuccess, messagePattern: "Sufficient RAM for role master"},
-					IsHostnameUnique:     {status: ValidationSuccess, messagePattern: " is unique in cluster"},
-					BelongsToMachineCidr: {status: ValidationSuccess, messagePattern: "Host belongs to all machine network CIDRs"},
-					IsHostnameValid:      {status: ValidationSuccess, messagePattern: "Hostname .* is allowed"},
-					IsNTPSynced:          {status: ValidationSuccess, messagePattern: "Host NTP is synced"},
+					IsConnected:                       {status: ValidationSuccess, messagePattern: "Host is connected"},
+					HasInventory:                      {status: ValidationSuccess, messagePattern: "Valid inventory exists for the host"},
+					HasMinCPUCores:                    {status: ValidationSuccess, messagePattern: "Sufficient CPU cores"},
+					HasMinMemory:                      {status: ValidationSuccess, messagePattern: "Sufficient minimum RAM"},
+					HasMinValidDisks:                  {status: ValidationSuccess, messagePattern: "Sufficient disk capacity"},
+					IsMachineCidrDefined:              {status: ValidationSuccess, messagePattern: "Machine Network CIDR is defined"},
+					HasCPUCoresForRole:                {status: ValidationSuccess, messagePattern: "Sufficient CPU cores for role master"},
+					HasMemoryForRole:                  {status: ValidationSuccess, messagePattern: "Sufficient RAM for role master"},
+					IsHostnameUnique:                  {status: ValidationSuccess, messagePattern: " is unique in cluster"},
+					BelongsToMachineCidr:              {status: ValidationSuccess, messagePattern: "Host belongs to all machine network CIDRs"},
+					IsHostnameValid:                   {status: ValidationSuccess, messagePattern: "Hostname .* is allowed"},
+					IsNTPSynced:                       {status: ValidationSuccess, messagePattern: "Host NTP is synced"},
+					IsTimeSyncedBetweenHostAndService: {status: ValidationSuccess, messagePattern: "Host clock is synchronized with service"},
 					SucessfullOrUnknownContainerImagesAvailability: {status: ValidationSuccess, messagePattern: "All required container images were either pulled successfully or no attempt was made to pull them"},
 				}),
 				inventory:         hostutil.GenerateMasterInventory(),
@@ -3429,6 +3433,70 @@ var _ = Describe("Refresh Host", func() {
 				numAdditionalHosts:    2,
 			},
 			{
+				name:              "discovering to insufficient - host time not synced",
+				validCheckInTime:  true,
+				srcState:          models.HostStatusDiscovering,
+				dstState:          models.HostStatusInsufficient,
+				machineNetworks:   common.TestIPv4Networking.MachineNetworks,
+				ntpSources:        defaultNTPSources,
+				imageStatuses:     map[string]*models.ContainerImageAvailability{common.TestDefaultConfig.ImageName: common.TestImageStatusesSuccess},
+				role:              models.HostRoleWorker,
+				statusInfoChecker: makeRegexChecker("Host cannot be installed due to following failing validation"),
+				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
+					IsConnected:                       {status: ValidationSuccess, messagePattern: "Host is connected"},
+					HasInventory:                      {status: ValidationSuccess, messagePattern: "Valid inventory exists for the host"},
+					HasMinCPUCores:                    {status: ValidationSuccess, messagePattern: "Sufficient CPU cores"},
+					HasMinMemory:                      {status: ValidationSuccess, messagePattern: "Sufficient minimum RAM"},
+					HasMinValidDisks:                  {status: ValidationSuccess, messagePattern: "Sufficient disk capacity"},
+					IsMachineCidrDefined:              {status: ValidationSuccess, messagePattern: "Machine Network CIDR is defined"},
+					HasCPUCoresForRole:                {status: ValidationSuccess, messagePattern: "Sufficient CPU cores for role worker"},
+					HasMemoryForRole:                  {status: ValidationSuccess, messagePattern: "Sufficient RAM for role worker"},
+					IsHostnameUnique:                  {status: ValidationSuccess, messagePattern: " is unique in cluster"},
+					BelongsToMachineCidr:              {status: ValidationSuccess, messagePattern: "Host belongs to all machine network CIDRs"},
+					IsHostnameValid:                   {status: ValidationSuccess, messagePattern: "Hostname .* is allowed"},
+					IsNTPSynced:                       {status: ValidationSuccess, messagePattern: "Host NTP is synced"},
+					IsTimeSyncedBetweenHostAndService: {status: ValidationFailure, messagePattern: "Host clock is not synchronized, service time is ahead of host's"},
+					SucessfullOrUnknownContainerImagesAvailability: {status: ValidationSuccess, messagePattern: "All required container images were either pulled successfully or no attempt was made to pull them"},
+					SufficientOrUnknownInstallationDiskSpeed:       {status: ValidationSuccess, messagePattern: "Speed of installation disk has not yet been measured"},
+				}),
+				inventory:         hostutil.GenerateMasterInventory(),
+				domainResolutions: common.TestDomainNameResolutionsSuccess,
+				errorExpected:     false,
+				timestamp:         time.Now().Add(-25 * time.Minute).Unix(),
+			},
+			{
+				name:              "known to insufficient - host time not synced",
+				validCheckInTime:  true,
+				srcState:          models.HostStatusKnown,
+				dstState:          models.HostStatusInsufficient,
+				machineNetworks:   common.TestIPv4Networking.MachineNetworks,
+				ntpSources:        defaultNTPSources,
+				imageStatuses:     map[string]*models.ContainerImageAvailability{common.TestDefaultConfig.ImageName: common.TestImageStatusesSuccess},
+				role:              models.HostRoleWorker,
+				statusInfoChecker: makeRegexChecker("Host cannot be installed due to following failing validation"),
+				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
+					IsConnected:                       {status: ValidationSuccess, messagePattern: "Host is connected"},
+					HasInventory:                      {status: ValidationSuccess, messagePattern: "Valid inventory exists for the host"},
+					HasMinCPUCores:                    {status: ValidationSuccess, messagePattern: "Sufficient CPU cores"},
+					HasMinMemory:                      {status: ValidationSuccess, messagePattern: "Sufficient minimum RAM"},
+					HasMinValidDisks:                  {status: ValidationSuccess, messagePattern: "Sufficient disk capacity"},
+					IsMachineCidrDefined:              {status: ValidationSuccess, messagePattern: "Machine Network CIDR is defined"},
+					HasCPUCoresForRole:                {status: ValidationSuccess, messagePattern: "Sufficient CPU cores for role worker"},
+					HasMemoryForRole:                  {status: ValidationSuccess, messagePattern: "Sufficient RAM for role worker"},
+					IsHostnameUnique:                  {status: ValidationSuccess, messagePattern: " is unique in cluster"},
+					BelongsToMachineCidr:              {status: ValidationSuccess, messagePattern: "Host belongs to all machine network CIDRs"},
+					IsHostnameValid:                   {status: ValidationSuccess, messagePattern: "Hostname .* is allowed"},
+					IsNTPSynced:                       {status: ValidationSuccess, messagePattern: "Host NTP is synced"},
+					IsTimeSyncedBetweenHostAndService: {status: ValidationFailure, messagePattern: "Host clock is not synchronized, host time is ahead of service"},
+					SucessfullOrUnknownContainerImagesAvailability: {status: ValidationSuccess, messagePattern: "All required container images were either pulled successfully or no attempt was made to pull them"},
+					SufficientOrUnknownInstallationDiskSpeed:       {status: ValidationSuccess, messagePattern: "Speed of installation disk has not yet been measured"},
+				}),
+				inventory:         hostutil.GenerateMasterInventory(),
+				domainResolutions: common.TestDomainNameResolutionsSuccess,
+				errorExpected:     false,
+				timestamp:         time.Now().Add(2 * time.Hour).Unix(),
+			},
+			{
 				name:              "insufficient to known",
 				validCheckInTime:  true,
 				srcState:          models.HostStatusInsufficient,
@@ -3439,18 +3507,19 @@ var _ = Describe("Refresh Host", func() {
 				role:              models.HostRoleWorker,
 				statusInfoChecker: makeValueChecker(statusInfoKnown),
 				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
-					IsConnected:          {status: ValidationSuccess, messagePattern: "Host is connected"},
-					HasInventory:         {status: ValidationSuccess, messagePattern: "Valid inventory exists for the host"},
-					HasMinCPUCores:       {status: ValidationSuccess, messagePattern: "Sufficient CPU cores"},
-					HasMinMemory:         {status: ValidationSuccess, messagePattern: "Sufficient minimum RAM"},
-					HasMinValidDisks:     {status: ValidationSuccess, messagePattern: "Sufficient disk capacity"},
-					IsMachineCidrDefined: {status: ValidationSuccess, messagePattern: "Machine Network CIDR is defined"},
-					HasCPUCoresForRole:   {status: ValidationSuccess, messagePattern: "Sufficient CPU cores for role worker"},
-					HasMemoryForRole:     {status: ValidationSuccess, messagePattern: "Sufficient RAM for role worker"},
-					IsHostnameUnique:     {status: ValidationSuccess, messagePattern: " is unique in cluster"},
-					BelongsToMachineCidr: {status: ValidationSuccess, messagePattern: "Host belongs to all machine network CIDRs"},
-					IsHostnameValid:      {status: ValidationSuccess, messagePattern: "Hostname .* is allowed"},
-					IsNTPSynced:          {status: ValidationSuccess, messagePattern: "Host NTP is synced"},
+					IsConnected:                       {status: ValidationSuccess, messagePattern: "Host is connected"},
+					HasInventory:                      {status: ValidationSuccess, messagePattern: "Valid inventory exists for the host"},
+					HasMinCPUCores:                    {status: ValidationSuccess, messagePattern: "Sufficient CPU cores"},
+					HasMinMemory:                      {status: ValidationSuccess, messagePattern: "Sufficient minimum RAM"},
+					HasMinValidDisks:                  {status: ValidationSuccess, messagePattern: "Sufficient disk capacity"},
+					IsMachineCidrDefined:              {status: ValidationSuccess, messagePattern: "Machine Network CIDR is defined"},
+					HasCPUCoresForRole:                {status: ValidationSuccess, messagePattern: "Sufficient CPU cores for role worker"},
+					HasMemoryForRole:                  {status: ValidationSuccess, messagePattern: "Sufficient RAM for role worker"},
+					IsHostnameUnique:                  {status: ValidationSuccess, messagePattern: " is unique in cluster"},
+					BelongsToMachineCidr:              {status: ValidationSuccess, messagePattern: "Host belongs to all machine network CIDRs"},
+					IsHostnameValid:                   {status: ValidationSuccess, messagePattern: "Hostname .* is allowed"},
+					IsNTPSynced:                       {status: ValidationSuccess, messagePattern: "Host NTP is synced"},
+					IsTimeSyncedBetweenHostAndService: {status: ValidationSuccess, messagePattern: "Host clock is synchronized with service"},
 					SucessfullOrUnknownContainerImagesAvailability: {status: ValidationSuccess, messagePattern: "All required container images were either pulled successfully or no attempt was made to pull them"},
 					SufficientOrUnknownInstallationDiskSpeed:       {status: ValidationSuccess, messagePattern: "Speed of installation disk has not yet been measured"},
 				}),
@@ -4186,6 +4255,10 @@ var _ = Describe("Refresh Host", func() {
 				bytes, err = json.Marshal(t.domainResolutions)
 				Expect(err).ShouldNot(HaveOccurred())
 				host.DomainNameResolutions = string(bytes)
+				if t.timestamp == 0 {
+					t.timestamp = time.Now().Unix()
+				}
+				host.Timestamp = t.timestamp
 
 				Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
 
@@ -4726,7 +4799,6 @@ var _ = Describe("Refresh Host", func() {
 				bytes, err = json.Marshal(domainNameResolutions)
 				Expect(err).ShouldNot(HaveOccurred())
 				host.DomainNameResolutions = string(bytes)
-
 				Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
 
 				// Test setup - 2nd Host creation
