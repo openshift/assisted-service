@@ -2619,7 +2619,6 @@ func (b *bareMetalInventory) updateClusterCPUFeatureUsage(cluster *common.Cluste
 }
 
 func (b *bareMetalInventory) updateOperatorsData(ctx context.Context, cluster *common.Cluster, params installer.V2UpdateClusterParams, usages map[string]models.Usage, db *gorm.DB, log logrus.FieldLogger) error {
-	// var enabledoperators []*models.MonitoredOperator
 	if params.ClusterUpdateParams.OlmOperators == nil {
 		return nil
 	}
