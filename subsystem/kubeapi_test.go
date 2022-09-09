@@ -65,7 +65,8 @@ var (
 		"openshift-v4.9.0":        "quay.io/openshift-release-dev/ocp-release:4.9.11-x86_64",
 		"openshift-v4.10.0":       "quay.io/openshift-release-dev/ocp-release:4.10.6-x86_64",
 		"openshift-v4.10.0-arm":   "quay.io/openshift-release-dev/ocp-release:4.10.6-aarch64",
-		"openshift-v4.11.0-multi": "quay.io/openshift-release-dev/ocp-release:4.11.0-0.nightly-multi-2022-07-26-151412",
+		"openshift-v4.11.0":       "quay.io/openshift-release-dev/ocp-release:4.11.0-x86_64",
+		"openshift-v4.11.0-multi": "quay.io/openshift-release-dev/ocp-release:4.11.0-multi",
 	}
 )
 
@@ -1487,6 +1488,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		}
 		cluster := getClusterFromDB(ctx, kubeClient, db, clusterKubeName, waitForReconcileTimeout)
 		Expect(cluster.CPUArchitecture).Should(Equal("multi"))
+		Expect(cluster.OcpReleaseImage).Should(Equal("quay.io/openshift-release-dev/ocp-release:4.11.0-multi"))
 
 		By("deploy infraenv with arm64 architecure")
 		infraEnvSpec.CpuArchitecture = "arm64"
@@ -1538,7 +1540,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		deployInfraEnvCRD(ctx, kubeClient, infraEnvPPC.Name, infraEnvSpec)
 
 		checkInfraEnvCondition(ctx, infraEnvPPC, v1beta1.ImageCreatedCondition,
-			"Failed to create image: No OS image for Openshift version 4.11.0-0.nightly-multi-2022-07-26-151412 and architecture ppc64le")
+			"Failed to create image: No OS image for Openshift version")
 	})
 
 	It("deploy CD with ACI and agents - wait for ready, delete ACI only and verify agents deletion", func() {
@@ -2467,10 +2469,10 @@ var _ = Describe("[kube-api]cluster installation", func() {
 
 		By("new deployment with NoProxy")
 		aciSpec.Proxy = &hiveext.Proxy{HTTPProxy: "", HTTPSProxy: "", NoProxy: "*"}
-		imageSetRef4_10 := &hivev1.ClusterImageSetReference{
-			Name: "openshift-v4.10.0",
+		imageSetRef4_11 := &hivev1.ClusterImageSetReference{
+			Name: "openshift-v4.11.0",
 		}
-		aciSpec.ImageSetRef = imageSetRef4_10
+		aciSpec.ImageSetRef = imageSetRef4_11
 		deployClusterImageSetCRD(ctx, kubeClient, aciSpec.ImageSetRef)
 		deployAgentClusterInstallCRD(ctx, kubeClient, aciSpec, clusterDeploymentSpec.ClusterInstallRef.Name)
 		checkAgentClusterInstallCondition(ctx, installkey, hiveext.ClusterSpecSyncedCondition, hiveext.ClusterSyncedOkReason)
@@ -2479,6 +2481,10 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			c := getClusterFromDB(ctx, kubeClient, db, clusterKubeName, waitForReconcileTimeout)
 			return c.NoProxy == noProxy
 		}, "1m", "10s").Should(BeTrue())
+
+		cluster := getClusterFromDB(ctx, kubeClient, db, clusterKubeName, waitForReconcileTimeout)
+		Expect(cluster.CPUArchitecture).Should(Equal(common.X86CPUArchitecture))
+		Expect(cluster.OcpReleaseImage).Should(Equal("quay.io/openshift-release-dev/ocp-release:4.11.0-x86_64"))
 	})
 
 	It("deploy infraEnv with NoProxy wildcard", func() {
