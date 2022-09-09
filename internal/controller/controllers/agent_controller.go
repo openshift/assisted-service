@@ -289,7 +289,7 @@ func (r *AgentReconciler) spokeKubeClient(ctx context.Context, clusterRef *aiv1b
 		Name:      clusterRef.Name,
 	}
 	err := r.Get(ctx, cdKey, clusterDeployment)
-	if err != nil {
+	if err == nil {
 		adminKubeConfigSecretName = getClusterDeploymentAdminKubeConfigSecretName(clusterDeployment)
 	}
 
