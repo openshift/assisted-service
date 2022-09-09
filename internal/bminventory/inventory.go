@@ -1703,6 +1703,10 @@ func getActualUpdateClusterPlatformParams(platform *models.Platform, userManaged
 		return nil, nil, err
 	}
 
+	if platform != nil && *platform.Type != models.PlatformTypeBaremetal && *platform.Type != models.PlatformTypeNone {
+		return platform, userManagedNetworking, nil
+	}
+
 	if *cluster.Platform.Type == models.PlatformTypeBaremetal {
 		if !swag.BoolValue(userManagedNetworking) && (platform == nil || *platform.Type == models.PlatformTypeBaremetal) {
 			// Platform is already baremetal, nothing to do
@@ -1735,12 +1739,16 @@ func getActualUpdateClusterPlatformParams(platform *models.Platform, userManaged
 		}
 	}
 
-	return platform, userManagedNetworking, nil
+	return nil, nil, common.NewApiError(http.StatusBadRequest, errors.Errorf("Got invalid platform (%s) and/or user-managed-networking (%v)", *platform.Type, userManagedNetworking))
 }
 
 func getActualCreateClusterPlatformParams(platform *models.Platform, userManagedNetworking *bool, highAvailabilityMode *string) (*models.Platform, *bool, error) {
 	if err := checkPlatformWrongParamsInput(platform, userManagedNetworking); err != nil {
 		return nil, nil, err
+	}
+
+	if platform != nil && *platform.Type != models.PlatformTypeBaremetal && *platform.Type != models.PlatformTypeNone {
+		return platform, userManagedNetworking, nil
 	}
 
 	if *highAvailabilityMode == models.ClusterHighAvailabilityModeFull {
@@ -1763,7 +1771,7 @@ func getActualCreateClusterPlatformParams(platform *models.Platform, userManaged
 		return &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeNone)}, swag.Bool(true), nil
 	}
 
-	return platform, userManagedNetworking, nil
+	return nil, nil, common.NewApiError(http.StatusBadRequest, errors.Errorf("Got invalid platform (%s) and/or user-managed-networking (%v)", *platform.Type, userManagedNetworking))
 }
 
 func (b *bareMetalInventory) v2UpdateClusterInternal(ctx context.Context, params installer.V2UpdateClusterParams, interactivity Interactivity) (*common.Cluster, error) {

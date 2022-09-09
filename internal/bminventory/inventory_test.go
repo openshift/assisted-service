@@ -5106,6 +5106,23 @@ var _ = Describe("[V2ClusterUpdate] cluster", func() {
 
 				})
 
+				It("Update platform=vsphere while and UMN=true - success", func() {
+					mockSuccess()
+					mockProviderRegistry.EXPECT().SetPlatformUsages(models.PlatformTypeVsphere, gomock.Any(), mockUsage)
+
+					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
+						ClusterID: clusterID,
+						ClusterUpdateParams: &models.V2ClusterUpdateParams{
+							Platform:              &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeVsphere)},
+							UserManagedNetworking: swag.Bool(true),
+						},
+					})
+					Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2UpdateClusterCreated()))
+					actual := reply.(*installer.V2UpdateClusterCreated).Payload
+					Expect(swag.BoolValue(actual.UserManagedNetworking)).To(Equal(true))
+					Expect(*actual.Platform.Type).To(Equal(models.PlatformTypeVsphere))
+				})
+
 				It("Update UMN=true - success", func() {
 					mockSuccess()
 					mockProviderRegistry.EXPECT().SetPlatformUsages(models.PlatformTypeNone, gomock.Any(), mockUsage)
@@ -9872,6 +9889,22 @@ var _ = Describe("TestRegisterCluster", func() {
 				actual := reply.(*installer.V2RegisterClusterCreated).Payload
 				Expect(swag.BoolValue(actual.UserManagedNetworking)).To(Equal(false))
 				Expect(*actual.Platform.Type).To(Equal(models.PlatformTypeBaremetal))
+			})
+
+			It("vsphere platform and UserManagedNetworking=true", func() {
+				mockClusterRegisterSuccess(true)
+				mockAMSSubscription(ctx)
+
+				params := getClusterCreateParams(nil)
+				params.Platform = &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeVsphere)}
+				params.UserManagedNetworking = swag.Bool(true)
+				reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
+					NewClusterParams: params,
+				})
+				Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2RegisterClusterCreated()))
+				actual := reply.(*installer.V2RegisterClusterCreated).Payload
+				Expect(swag.BoolValue(actual.UserManagedNetworking)).To(Equal(true))
+				Expect(*actual.Platform.Type).To(Equal(models.PlatformTypeVsphere))
 			})
 
 			It("Baremetal platform and UserManagedNetworking=true - failed", func() {
