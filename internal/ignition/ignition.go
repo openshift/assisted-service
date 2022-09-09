@@ -1470,7 +1470,7 @@ func proxySettingsForIgnition(httpProxy, httpsProxy, noProxy string) (string, er
 	proxySettings := `"proxy": { {{.httpProxy}}{{.httpsProxy}}{{.noProxy}} }`
 	var httpProxyAttr, httpsProxyAttr, noProxyAttr string
 	if httpProxy != "" {
-		httpProxyAttr = `"httpProxy": "` + httpProxy + `"`
+		httpProxyAttr = `"httpProxy":  "` + httpProxy + `"`
 	}
 	if httpsProxy != "" {
 		if httpProxy != "" {
