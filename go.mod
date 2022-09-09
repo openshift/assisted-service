@@ -35,6 +35,7 @@ require (
 	github.com/hashicorp/go-version v1.2.1
 	github.com/iancoleman/strcase v0.1.2
 	github.com/jinzhu/gorm v1.9.12
+	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/kelseyhightower/envconfig v1.4.0
 	github.com/kennygrant/sanitize v1.2.4
 	github.com/mattn/go-sqlite3 v2.0.3+incompatible
