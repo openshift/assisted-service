@@ -30,6 +30,39 @@ type transitionHandler struct {
 	eventsHandler eventsapi.Handler
 }
 
+//go:generate mockgen -source=transition.go -package=host -destination=mock_transition.go
+type TransitionHandler interface {
+	HasClusterError(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) (bool, error)
+	HasInstallationInProgressTimedOut(sw stateswitch.StateSwitch, _ stateswitch.TransitionArgs) (bool, error)
+	HasStatusTimedOut(timeout time.Duration) stateswitch.Condition
+	HostNotResponsiveWhileInstallation(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) (bool, error)
+	HostNotResponsiveWhilePreparingInstallation(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) (bool, error)
+	IsDay2Host(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) (bool, error)
+	IsHostInDone(sw stateswitch.StateSwitch, _ stateswitch.TransitionArgs) (bool, error)
+	IsHostInReboot(sw stateswitch.StateSwitch, _ stateswitch.TransitionArgs) (bool, error)
+	IsLogCollectionTimedOut(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) (bool, error)
+	IsUnboundHost(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) (bool, error)
+	IsValidRoleForInstallation(sw stateswitch.StateSwitch, _ stateswitch.TransitionArgs) (bool, error)
+	PostBindHost(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) error
+	PostCancelInstallation(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) error
+	PostHostInstallationFailed(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) error
+	PostHostMediaDisconnected(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) error
+	PostInstallHost(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) error
+	PostPreparingForInstallationHost(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) error
+	PostReclaim(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) error
+	PostRefreshHost(reason string) stateswitch.PostTransition
+	PostRefreshHostRefreshStageUpdateTime(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) error
+	PostRefreshLogsProgress(progress string) stateswitch.PostTransition
+	PostRefreshReclaimTimeout(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) error
+	PostRegisterDuringInstallation(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) error
+	PostRegisterDuringReboot(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) error
+	PostRegisterHost(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) error
+	PostRegisterInstalledHost(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) error
+	PostResetHost(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) error
+	PostResettingPendingUserAction(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) error
+	PostUnbindHost(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) error
+}
+
 var resetLogsField = []interface{}{"logs_info", "", "logs_started_at", strfmt.DateTime(time.Time{}), "logs_collected_at", strfmt.DateTime(time.Time{})}
 var resetProgressFields = []interface{}{"progress_current_stage", "", "progress_installation_percentage", 0,
 	"progress_progress_info", "", "progress_stage_started_at", strfmt.DateTime(time.Time{}), "progress_stage_updated_at", strfmt.DateTime(time.Time{})}

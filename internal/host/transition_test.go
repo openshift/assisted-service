@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/filanov/stateswitch"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 	"github.com/golang/mock/gomock"
@@ -6060,3 +6061,187 @@ func validateEqualProgress(p1, p2 *models.HostProgressInfo) {
 		Expect(time.Time(p1.StageUpdatedAt).Equal(time.Time(p2.StageUpdatedAt))).To(BeTrue())
 	}
 }
+
+type testState struct {
+	state string
+}
+
+func newTestState(state string) *testState {
+	return &testState{
+		state: state,
+	}
+}
+
+func (ts *testState) State() stateswitch.State {
+	return stateswitch.State(ts.state)
+}
+
+func (ts *testState) SetState(state stateswitch.State) error {
+	ts.state = string(state)
+	return nil
+}
+
+var allValidationIDs []validationID = []validationID{
+	IsMediaConnected,
+	IsConnected,
+	HasInventory,
+	IsMachineCidrDefined,
+	BelongsToMachineCidr,
+	HasMinCPUCores,
+	HasMinValidDisks,
+	HasMinMemory,
+	HasCPUCoresForRole,
+	HasMemoryForRole,
+	IsHostnameUnique,
+	IsHostnameValid,
+	IsIgnitionDownloadable,
+	BelongsToMajorityGroup,
+	IsPlatformNetworkSettingsValid,
+	IsNTPSynced,
+	IsTimeSyncedBetweenHostAndService,
+	SucessfullOrUnknownContainerImagesAvailability,
+	AreLsoRequirementsSatisfied,
+	AreOdfRequirementsSatisfied,
+	AreCnvRequirementsSatisfied,
+	AreLvmRequirementsSatisfied,
+	SufficientOrUnknownInstallationDiskSpeed,
+	HasSufficientNetworkLatencyRequirementForRole,
+	HasSufficientPacketLossRequirementForRole,
+	HasDefaultRoute,
+	IsAPIDomainNameResolvedCorrectly,
+	IsAPIInternalDomainNameResolvedCorrectly,
+	IsAppsDomainNameResolvedCorrectly,
+	CompatibleWithClusterPlatform,
+	IsDNSWildcardNotConfigured,
+	DiskEncryptionRequirementsSatisfied,
+	NonOverlappingSubnets,
+	VSphereHostUUIDEnabled,
+	CompatibleAgent,
+	NoSkipInstallationDisk,
+	NoSkipMissingDisk,
+	HostValidationIDServiceHasSufficientSpokeKubeAPIAccess,
+}
+
+var allConditions []conditionId = []conditionId{
+	InstallationDiskSpeedCheckSuccessful,
+	ClusterPreparingForInstallation,
+	ClusterPendingUserAction,
+	ClusterInstalling,
+	ValidRoleForInstallation,
+	StageInWrongBootStages,
+	ClusterInError,
+	SuccessfulContainerImageAvailability,
+}
+
+var knownStateConditions map[string]bool
+
+func initKnownStateConditions() {
+	knownStateConditions = make(map[string]bool)
+	for _, condition := range allConditions {
+		knownStateConditions[string(condition)] = false
+	}
+
+	knownStateConditions[string(ValidRoleForInstallation)] = true
+}
+
+func init() {
+	initKnownStateConditions()
+}
+
+func initializeRefreshHostArgs(validationIDs []validationID, status ValidationStatus, conditions map[string]bool) TransitionArgsRefreshHost {
+	refreshHostArgs := TransitionArgsRefreshHost{
+		ctx:               context.Background(),
+		eventHandler:      nil,
+		conditions:        conditions,
+		validationResults: map[string]ValidationResults{},
+		db:                &gorm.DB{},
+	}
+
+	for _, validationID := range validationIDs {
+		validationCategory, err := validationID.category()
+		Expect(err).ToNot(HaveOccurred())
+		refreshHostArgs.validationResults[validationCategory] = append(
+			refreshHostArgs.validationResults[validationCategory], ValidationResult{
+				ID:      validationID,
+				Status:  status,
+				Message: "Test validation",
+			})
+		refreshHostArgs.conditions[string(validationID)] = true
+	}
+
+	return refreshHostArgs
+}
+
+var _ = Describe("State machine test - refresh transition", func() {
+	var (
+		mockController        *gomock.Controller
+		mockTransitionHandler *MockTransitionHandler
+		stateMachine          stateswitch.StateMachine
+		refreshHostArgs       TransitionArgsRefreshHost
+		testState             *testState
+	)
+
+	// Initializes mocks needed for [NewHostStateMachine]
+	newStateMachineMocks := func(mockTransitionHandler *MockTransitionHandler) {
+		mockTransitionHandler.EXPECT().HasStatusTimedOut(gomock.Any()).Return(func(_ stateswitch.StateSwitch, _ stateswitch.TransitionArgs) (bool, error) {
+			return false, nil
+		}).AnyTimes()
+
+		mockTransitionHandler.EXPECT().PostRefreshHost(gomock.Any()).Return(
+			func(_ stateswitch.StateSwitch, _ stateswitch.TransitionArgs) error { return nil },
+		).AnyTimes()
+
+		mockTransitionHandler.EXPECT().PostRefreshLogsProgress(gomock.Any()).Return(
+			func(_ stateswitch.StateSwitch, _ stateswitch.TransitionArgs) error { return nil },
+		).AnyTimes()
+	}
+
+	BeforeEach(func() {
+		mockController = gomock.NewController(GinkgoT())
+		mockTransitionHandler = NewMockTransitionHandler(mockController)
+
+		// Initialize the state machine
+		newStateMachineMocks(mockTransitionHandler)
+		stateMachine = NewHostStateMachine(stateswitch.NewStateMachine(), mockTransitionHandler)
+	})
+
+	Context("Host in known state", func() {
+		testState = newTestState(models.HostStatusKnown)
+
+		BeforeEach(func() {
+			mockTransitionHandler.EXPECT().PostPreparingForInstallationHost(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+
+			refreshHostArgs = initializeRefreshHostArgs(allValidationIDs, ValidationSuccess, knownStateConditions)
+
+			// Ensure we've actually set up the validations correctly by
+			// running a refresh and checking that we're still in Known
+			Expect(stateMachine.Run(TransitionTypeRefresh, testState, &refreshHostArgs)).To(Succeed())
+			Expect(string(testState.State())).To(Equal(models.HostStatusKnown))
+		})
+
+		It("Moves from known to insufficient when disk skip validations fail - no skip installation disk", func() {
+			refreshHostArgs.conditions[string(NoSkipInstallationDisk)] = false
+
+			Expect(stateMachine.Run(TransitionTypeRefresh, testState, &refreshHostArgs)).To(Succeed())
+			Expect(string(testState.State())).To(Equal(models.HostStatusInsufficient))
+
+			refreshHostArgs.conditions[string(NoSkipInstallationDisk)] = true
+
+			Expect(stateMachine.Run(TransitionTypeRefresh, testState, &refreshHostArgs)).To(Succeed())
+			Expect(string(testState.State())).To(Equal(models.HostStatusKnown))
+		})
+
+		It("Moves from known to insufficient when disk skip validations fail - no skip missing disk", func() {
+			refreshHostArgs.conditions[string(NoSkipMissingDisk)] = false
+
+			Expect(stateMachine.Run(TransitionTypeRefresh, testState, &refreshHostArgs)).To(Succeed())
+			Expect(string(testState.State())).To(Equal(models.HostStatusInsufficient))
+
+			refreshHostArgs.conditions[string(NoSkipMissingDisk)] = true
+
+			Expect(stateMachine.Run(TransitionTypeRefresh, testState, &refreshHostArgs)).To(Succeed())
+			Expect(string(testState.State())).To(Equal(models.HostStatusKnown))
+		})
+	})
+
+})

@@ -23,7 +23,7 @@ const (
 )
 
 // func NewHostStateMachine(th *transitionHandler) stateswitch.StateMachine {
-func NewHostStateMachine(sm stateswitch.StateMachine, th *transitionHandler) stateswitch.StateMachine {
+func NewHostStateMachine(sm stateswitch.StateMachine, th TransitionHandler) stateswitch.StateMachine {
 
 	// Register host by late binding
 	sm.AddTransition(stateswitch.TransitionRule{
@@ -638,6 +638,8 @@ func NewHostStateMachine(sm stateswitch.StateMachine, th *transitionHandler) sta
 		If(NonOverlappingSubnets),
 		If(CompatibleAgent),
 		If(IsTimeSyncedBetweenHostAndService),
+		If(NoSkipInstallationDisk),
+		If(NoSkipMissingDisk),
 	)
 
 	// In order for this transition to be fired at least one of the validations in minRequiredHardwareValidations must fail.
