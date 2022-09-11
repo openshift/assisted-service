@@ -621,6 +621,49 @@ func hyperthreadingInSpec(clusterInstall *hiveext.AgentClusterInstall) bool {
 		})
 }
 
+func getPlatform(openshiftPlatformType hiveext.PlatformType) *models.Platform {
+	if openshiftPlatformType == "" {
+		//empty platform type means N/A. The service assigns a platform
+		//according to the cluster specifications (HA, UserManagedNetworking etc.)
+		return nil
+	}
+
+	//convert between openshift API and the service platform name convension
+	switch openshiftPlatformType {
+	case hiveext.VSpherePlatformType:
+		return &models.Platform{
+			Type: common.PlatformTypePtr(models.PlatformTypeVsphere),
+		}
+	case hiveext.NonePlatformType:
+		return &models.Platform{
+			Type: common.PlatformTypePtr(models.PlatformTypeNone),
+		}
+	case hiveext.BareMetalPlatformType:
+		return &models.Platform{
+			Type: common.PlatformTypePtr(models.PlatformTypeBaremetal),
+		}
+	default:
+		return nil
+	}
+}
+
+func getPlatformType(platform *models.Platform) hiveext.PlatformType {
+	if platform == nil || platform.Type == nil {
+		return ""
+	}
+
+	switch *platform.Type {
+	case models.PlatformTypeBaremetal:
+		return hiveext.BareMetalPlatformType
+	case models.PlatformTypeNone:
+		return hiveext.NonePlatformType
+	case models.PlatformTypeVsphere:
+		return hiveext.VSpherePlatformType
+	default:
+		return ""
+	}
+}
+
 func getHyperthreading(clusterInstall *hiveext.AgentClusterInstall) *string {
 	const (
 		None    = 0
@@ -734,25 +777,16 @@ func (r *ClusterDeploymentsReconciler) updateIgnitionInUpdateParams(ctx context.
 	return update, nil
 }
 
-func (r *ClusterDeploymentsReconciler) updateIfNeeded(ctx context.Context,
-	log logrus.FieldLogger,
-	clusterDeployment *hivev1.ClusterDeployment,
+func (r *ClusterDeploymentsReconciler) updateNetworkParams(clusterDeployment *hivev1.ClusterDeployment,
 	clusterInstall *hiveext.AgentClusterInstall,
-	cluster *common.Cluster) (*common.Cluster, error) {
-
+	cluster *common.Cluster, params *models.V2ClusterUpdateParams) bool {
 	update := false
-	params := &models.V2ClusterUpdateParams{}
-
-	spec := clusterDeployment.Spec
 	updateString := func(new, old string, target **string) {
 		if new != old {
 			*target = swag.String(new)
 			update = true
 		}
 	}
-
-	updateString(spec.ClusterName, cluster.Name, &params.Name)
-	updateString(spec.BaseDomain, cluster.BaseDNSDomain, &params.BaseDNSDomain)
 
 	if len(clusterInstall.Spec.Networking.ClusterNetwork) > 0 {
 		newClusterNetworks := clusterNetworksEntriesToArray(clusterInstall.Spec.Networking.ClusterNetwork)
@@ -817,6 +851,34 @@ func (r *ClusterDeploymentsReconciler) updateIfNeeded(ctx context.Context,
 		updateString(clusterInstall.Spec.IngressVIP, cluster.IngressVip, &params.IngressVip)
 	}
 
+	if userManagedNetwork := isUserManagedNetwork(clusterInstall); userManagedNetwork != swag.BoolValue(cluster.UserManagedNetworking) {
+		params.UserManagedNetworking = swag.Bool(userManagedNetwork)
+	}
+	return update
+}
+
+func (r *ClusterDeploymentsReconciler) updateIfNeeded(ctx context.Context,
+	log logrus.FieldLogger,
+	clusterDeployment *hivev1.ClusterDeployment,
+	clusterInstall *hiveext.AgentClusterInstall,
+	cluster *common.Cluster) (*common.Cluster, error) {
+
+	update := false
+	params := &models.V2ClusterUpdateParams{}
+
+	spec := clusterDeployment.Spec
+	updateString := func(new, old string, target **string) {
+		if new != old {
+			*target = swag.String(new)
+			update = true
+		}
+	}
+
+	updateString(spec.ClusterName, cluster.Name, &params.Name)
+	updateString(spec.BaseDomain, cluster.BaseDNSDomain, &params.BaseDNSDomain)
+
+	update = r.updateNetworkParams(clusterDeployment, clusterInstall, cluster, params) || update
+
 	// Trim key before comapring as done in RegisterClusterInternal
 	sshPublicKey := strings.TrimSpace(clusterInstall.Spec.SSHPublicKey)
 	updateString(sshPublicKey, cluster.SSHPublicKey, &params.SSHPublicKey)
@@ -826,13 +888,7 @@ func (r *ClusterDeploymentsReconciler) updateIfNeeded(ctx context.Context,
 	if err != nil {
 		return cluster, errors.Wrap(err, "Couldn't resolve clusterdeployment ignition fields")
 	}
-	if shouldUpdate {
-		update = true
-	}
-
-	if userManagedNetwork := isUserManagedNetwork(clusterInstall); userManagedNetwork != swag.BoolValue(cluster.UserManagedNetworking) {
-		params.UserManagedNetworking = swag.Bool(userManagedNetwork)
-	}
+	update = shouldUpdate || update
 
 	pullSecretData, err := r.PullSecretHandler.GetValidPullSecret(ctx, getPullSecretKey(clusterDeployment.Namespace, spec.PullSecretRef))
 	if err != nil {
@@ -848,6 +904,13 @@ func (r *ClusterDeploymentsReconciler) updateIfNeeded(ctx context.Context,
 	hyperthreading := getHyperthreading(clusterInstall)
 	if cluster.Hyperthreading != *hyperthreading {
 		params.Hyperthreading = hyperthreading
+		update = true
+	}
+
+	//update platform
+	platform := getPlatform(clusterInstall.Spec.PlatformType)
+	if cluster.Platform != nil && platform != nil && *cluster.Platform.Type != *platform.Type {
+		params.Platform = platform
 		update = true
 	}
 
@@ -1081,6 +1144,7 @@ func CreateClusterParams(clusterDeployment *hivev1.ClusterDeployment, clusterIns
 		SSHPublicKey:          clusterInstall.Spec.SSHPublicKey,
 		CPUArchitecture:       releaseImageCPUArch,
 		UserManagedNetworking: swag.Bool(isUserManagedNetwork(clusterInstall)),
+		Platform:              getPlatform(clusterInstall.Spec.PlatformType),
 	}
 
 	if len(clusterInstall.Spec.Networking.ClusterNetwork) > 0 {
@@ -1477,6 +1541,8 @@ func (r *ClusterDeploymentsReconciler) updateStatus(ctx context.Context, log log
 			}
 			clusterInstall.Status.APIVIP = c.APIVip
 			clusterInstall.Status.IngressVIP = c.IngressVip
+			clusterInstall.Status.UserManagedNetworking = c.UserManagedNetworking
+			clusterInstall.Status.PlatformType = getPlatformType(c.Platform)
 			status := *c.Status
 			var err error
 			err = r.populateEventsURL(log, clusterInstall, c)
