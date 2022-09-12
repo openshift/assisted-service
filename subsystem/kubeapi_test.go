@@ -60,6 +60,7 @@ var (
 		"openshift-v4.8.0":     "quay.io/openshift-release-dev/ocp-release:4.8.0-fc.0-x86_64",
 		"openshift-v4.9.0":     "quay.io/openshift-release-dev/ocp-release:4.9.11-x86_64",
 		"openshift-v4.9.0-arm": "quay.io/openshift-release-dev/ocp-release:4.9.11-aarch64",
+		"openshift-v4.10.0":    "quay.io/openshift-release-dev/ocp-release:4.10.6-x86_64",
 	}
 )
 
@@ -2099,6 +2100,72 @@ var _ = Describe("[kube-api]cluster installation", func() {
 				c.HTTPSProxy == httpsProxy &&
 				c.NoProxy == noProxy
 		}, "1m", "10s").Should(BeTrue())
+	})
+
+	It("fail to deploy clusterDeployment with NoProxy wildcard - OpenshiftVersion does not support NoProxy wildcard", func() {
+		deployClusterDeploymentCRD(ctx, kubeClient, clusterDeploymentSpec)
+		installkey := types.NamespacedName{
+			Namespace: Options.Namespace,
+			Name:      clusterDeploymentSpec.ClusterInstallRef.Name,
+		}
+
+		By("new deployment with NoProxy")
+		aciSpec.Proxy = &hiveext.Proxy{HTTPProxy: "", HTTPSProxy: "", NoProxy: "*"}
+		deployAgentClusterInstallCRD(ctx, kubeClient, aciSpec, clusterDeploymentSpec.ClusterInstallRef.Name)
+		checkAgentClusterInstallCondition(ctx, installkey, hiveext.ClusterSpecSyncedCondition, hiveext.ClusterInputErrorReason)
+	})
+
+	It("deploy clusterDeployment with NoProxy wildcard - OpenshiftVersion does support NoProxy wildcard", func() {
+		noProxy := "*"
+		deployClusterDeploymentCRD(ctx, kubeClient, clusterDeploymentSpec)
+		clusterKubeName := types.NamespacedName{
+			Namespace: Options.Namespace,
+			Name:      clusterDeploymentSpec.ClusterName,
+		}
+		installkey := types.NamespacedName{
+			Namespace: Options.Namespace,
+			Name:      clusterDeploymentSpec.ClusterInstallRef.Name,
+		}
+
+		By("new deployment with NoProxy")
+		aciSpec.Proxy = &hiveext.Proxy{HTTPProxy: "", HTTPSProxy: "", NoProxy: "*"}
+		imageSetRef4_10 := &hivev1.ClusterImageSetReference{
+			Name: "openshift-v4.10.0",
+		}
+		aciSpec.ImageSetRef = imageSetRef4_10
+		deployClusterImageSetCRD(ctx, kubeClient, aciSpec.ImageSetRef)
+		deployAgentClusterInstallCRD(ctx, kubeClient, aciSpec, clusterDeploymentSpec.ClusterInstallRef.Name)
+		checkAgentClusterInstallCondition(ctx, installkey, hiveext.ClusterSpecSyncedCondition, hiveext.ClusterSyncedOkReason)
+
+		Eventually(func() bool {
+			c := getClusterFromDB(ctx, kubeClient, db, clusterKubeName, waitForReconcileTimeout)
+			return c.NoProxy == noProxy
+		}, "1m", "10s").Should(BeTrue())
+	})
+
+	It("deploy infraEnv with NoProxy wildcard", func() {
+		deployClusterDeploymentCRD(ctx, kubeClient, clusterDeploymentSpec)
+		deployAgentClusterInstallCRD(ctx, kubeClient, aciSpec, clusterDeploymentSpec.ClusterInstallRef.Name)
+
+		infraEnvSpec.Proxy = &v1beta1.Proxy{
+			NoProxy: "*",
+		}
+		deployInfraEnvCRD(ctx, kubeClient, infraNsName.Name, infraEnvSpec)
+		infraEnvKubeName := types.NamespacedName{
+			Namespace: Options.Namespace,
+			Name:      infraNsName.Name,
+		}
+		// InfraEnv Reconcile takes longer, since it needs to generate the image.
+		checkInfraEnvCondition(ctx, infraEnvKubeName, v1beta1.ImageCreatedCondition, v1beta1.ImageStateCreated)
+		infraEnvKey := types.NamespacedName{
+			Namespace: Options.Namespace,
+			Name:      infraNsName.Name,
+		}
+		infraEnv := getInfraEnvFromDBByKubeKey(ctx, db, infraEnvKey, waitForReconcileTimeout)
+		Expect(infraEnv.Generated).Should(Equal(true))
+		By("Validate NoProxy settings.", func() {
+			Expect(swag.StringValue(infraEnv.Proxy.NoProxy)).Should(Equal("*"))
+		})
 	})
 
 	It("deploy clusterDeployment with install config override", func() {
