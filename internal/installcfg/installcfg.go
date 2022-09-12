@@ -12,7 +12,7 @@ type Platform struct {
 	Baremetal *BareMetalInstallConfigPlatform `yaml:"baremetal,omitempty"`
 	None      *PlatformNone                   `yaml:"none,omitempty"`
 	Ovirt     *OvirtInstallConfigPlatform     `yaml:"ovirt,omitempty"`
-	Vsphere   *VsphereInstallConfigPlatform   `yaml:"vsphere"`
+	Vsphere   *VsphereInstallConfigPlatform   `yaml:"vsphere,omitempty"`
 }
 
 type Host struct {
@@ -39,8 +39,8 @@ type VsphereInstallConfigPlatform struct {
 	Folder           string          `yaml:"folder,omitempty"`
 	Network          string          `yaml:"network"`
 	Cluster          string          `yaml:"cluster"`
-	APIVIP           string          `yaml:"apiVIP"`
-	IngressVIP       string          `yaml:"ingressVIP"`
+	APIVIP           string          `yaml:"apiVIP,omitempty"`
+	IngressVIP       string          `yaml:"ingressVIP,omitempty"`
 }
 
 // OvirtInstallConfigPlatform represents the required parameters
