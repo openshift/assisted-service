@@ -142,13 +142,15 @@ func main() {
 	spokeClientCache := controllers.NewSpokeClientCache(spokeClientFactory)
 
 	if err = (&controllers.AgentServiceConfigReconciler{
-		Client:       mgr.GetClient(),
-		Log:          log,
-		Scheme:       mgr.GetScheme(),
-		Recorder:     mgr.GetEventRecorderFor("agentserviceconfig-controller"),
-		Namespace:    ns,
-		NodeSelector: nodeSelector,
-		Tolerations:  tolerations,
+		AgentServiceConfigReconcileContext: controllers.AgentServiceConfigReconcileContext{
+			Client:       mgr.GetClient(),
+			Log:          log,
+			Scheme:       mgr.GetScheme(),
+			NodeSelector: nodeSelector,
+			Tolerations:  tolerations,
+			Recorder:     mgr.GetEventRecorderFor("agentserviceconfig-controller"),
+		},
+		Namespace: ns,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "AgentServiceConfig")
 		os.Exit(1)
