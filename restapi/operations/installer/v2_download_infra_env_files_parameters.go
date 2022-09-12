@@ -32,6 +32,10 @@ type V2DownloadInfraEnvFilesParams struct {
 	// HTTP Request Object
 	HTTPRequest *http.Request `json:"-"`
 
+	/*Overrides the ISO type for the disovery ignition, either 'full-iso' or 'minimal-iso'.
+	  In: query
+	*/
+	DiscoveryIsoType *string
 	/*The file to be downloaded.
 	  Required: true
 	  In: query
@@ -63,6 +67,11 @@ func (o *V2DownloadInfraEnvFilesParams) BindRequest(r *http.Request, route *midd
 
 	qs := runtime.Values(r.URL.Query())
 
+	qDiscoveryIsoType, qhkDiscoveryIsoType, _ := qs.GetOK("discovery_iso_type")
+	if err := o.bindDiscoveryIsoType(qDiscoveryIsoType, qhkDiscoveryIsoType, route.Formats); err != nil {
+		res = append(res, err)
+	}
+
 	qFileName, qhkFileName, _ := qs.GetOK("file_name")
 	if err := o.bindFileName(qFileName, qhkFileName, route.Formats); err != nil {
 		res = append(res, err)
@@ -85,6 +94,38 @@ func (o *V2DownloadInfraEnvFilesParams) BindRequest(r *http.Request, route *midd
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}
+	return nil
+}
+
+// bindDiscoveryIsoType binds and validates parameter DiscoveryIsoType from query.
+func (o *V2DownloadInfraEnvFilesParams) bindDiscoveryIsoType(rawData []string, hasKey bool, formats strfmt.Registry) error {
+	var raw string
+	if len(rawData) > 0 {
+		raw = rawData[len(rawData)-1]
+	}
+
+	// Required: false
+	// AllowEmptyValue: false
+
+	if raw == "" { // empty values pass all other validations
+		return nil
+	}
+	o.DiscoveryIsoType = &raw
+
+	if err := o.validateDiscoveryIsoType(formats); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// validateDiscoveryIsoType carries on validations for parameter DiscoveryIsoType
+func (o *V2DownloadInfraEnvFilesParams) validateDiscoveryIsoType(formats strfmt.Registry) error {
+
+	if err := validate.EnumCase("discovery_iso_type", "query", *o.DiscoveryIsoType, []interface{}{"full-iso", "minimal-iso"}, true); err != nil {
+		return err
+	}
+
 	return nil
 }
 

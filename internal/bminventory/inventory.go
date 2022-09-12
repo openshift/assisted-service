@@ -1014,7 +1014,7 @@ func (b *bareMetalInventory) createAndUploadNewImage(ctx context.Context, log lo
 }
 
 func (b *bareMetalInventory) getIgnitionConfigForLogging(ctx context.Context, infraEnv *common.InfraEnv, log logrus.FieldLogger, imageType models.ImageType) string {
-	ignitionConfigForLogging, _ := b.IgnitionBuilder.FormatDiscoveryIgnitionFile(ctx, infraEnv, b.IgnitionConfig, true, b.authHandler.AuthType())
+	ignitionConfigForLogging, _ := b.IgnitionBuilder.FormatDiscoveryIgnitionFile(ctx, infraEnv, b.IgnitionConfig, true, b.authHandler.AuthType(), string(imageType))
 	log.Infof("Generated infra env <%s> image with ignition config", infraEnv.ID)
 	log.Debugf("Ignition for infra env <%s>: %s", infraEnv.ID, ignitionConfigForLogging)
 	var msgDetails []string
@@ -3368,12 +3368,6 @@ func (b *bareMetalInventory) DownloadMinimalInitrd(ctx context.Context, params i
 		return common.GenerateErrorResponder(err)
 	}
 
-	if common.ImageTypeValue(infraEnv.Type) != models.ImageTypeMinimalIso {
-		err = fmt.Errorf("Only %v image type supported but %v specified.", models.ImageTypeMinimalIso, infraEnv.Type)
-		log.WithError(err)
-		return common.NewApiError(http.StatusConflict, err)
-	}
-
 	var netFiles []staticnetworkconfig.StaticNetworkConfigData
 	if infraEnv.StaticNetworkConfig != "" {
 		netFiles, err = b.staticNetworkConfig.GenerateStaticNetworkConfigData(ctx, infraEnv.StaticNetworkConfig)
@@ -5307,7 +5301,8 @@ func (b *bareMetalInventory) V2DownloadInfraEnvFiles(ctx context.Context, params
 	var content, filename string
 	switch params.FileName {
 	case "discovery.ign":
-		content, err = b.IgnitionBuilder.FormatDiscoveryIgnitionFile(ctx, infraEnv, b.IgnitionConfig, false, b.authHandler.AuthType())
+		discoveryIsoType := swag.StringValue(params.DiscoveryIsoType)
+		content, err = b.IgnitionBuilder.FormatDiscoveryIgnitionFile(ctx, infraEnv, b.IgnitionConfig, false, b.authHandler.AuthType(), discoveryIsoType)
 		if err != nil {
 			b.log.WithError(err).Error("Failed to format ignition config")
 			return common.GenerateErrorResponder(err)
