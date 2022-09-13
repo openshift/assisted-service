@@ -227,19 +227,24 @@ func (r *ClusterDeploymentsReconciler) Reconcile(origCtx context.Context, req ct
 
 	// Create Kubeconfig no-ingress if needed
 	if *cluster.Status == models.ClusterStatusInstalling || *cluster.Status == models.ClusterStatusFinalizing {
-		if err := r.createNoIngressKubeConfig(ctx, log, clusterDeployment, cluster, clusterInstall); err != nil {
-			log.WithError(err).Error("failed to create kubeconfig no-ingress secret")
-			return r.updateStatus(ctx, log, clusterInstall, cluster, err)
+		if err1 := r.createNoIngressKubeConfig(ctx, log, clusterDeployment, cluster, clusterInstall); err1 != nil {
+			log.WithError(err1).Error("failed to create kubeconfig no-ingress secret")
+			return r.updateStatus(ctx, log, clusterInstall, cluster, err1)
 		}
+	}
+
+	pullSecret, err := getPullSecretData(ctx, r.Client, r.APIReader, clusterDeployment.Spec.PullSecretRef, req.Namespace)
+	if err != nil {
+		log.WithError(err).Error("failed to get pull secret")
+		return r.updateStatus(ctx, log, clusterInstall, nil, err)
 	}
 
 	if swag.StringValue(cluster.Kind) == models.ClusterKindCluster && !clusterInstall.Spec.HoldInstallation {
 		// Day 1
-		return r.installDay1(ctx, log, clusterDeployment, clusterInstall, cluster)
-
+		return r.installDay1(ctx, log, clusterDeployment, clusterInstall, cluster, pullSecret)
 	} else if swag.StringValue(cluster.Kind) == models.ClusterKindAddHostsCluster {
 		// Day 2
-		return r.installDay2Hosts(ctx, log, clusterDeployment, clusterInstall, cluster)
+		return r.installDay2Hosts(ctx, log, clusterDeployment, clusterInstall, cluster, pullSecret)
 	}
 
 	return r.updateStatus(ctx, log, clusterInstall, cluster, nil)
@@ -340,7 +345,7 @@ func isInstalled(clusterDeployment *hivev1.ClusterDeployment, clusterInstall *hi
 }
 
 func (r *ClusterDeploymentsReconciler) installDay1(ctx context.Context, log logrus.FieldLogger, clusterDeployment *hivev1.ClusterDeployment,
-	clusterInstall *hiveext.AgentClusterInstall, cluster *common.Cluster) (ctrl.Result, error) {
+	clusterInstall *hiveext.AgentClusterInstall, cluster *common.Cluster, pullSecret string) (ctrl.Result, error) {
 	ready, err := r.isReadyForInstallation(ctx, log, clusterInstall, cluster)
 	if err != nil {
 		log.WithError(err).Error("failed to check if cluster ready for installation")
@@ -358,6 +363,13 @@ func (r *ClusterDeploymentsReconciler) installDay1(ctx context.Context, log logr
 			return ctrl.Result{Requeue: true, RequeueAfter: longerRequeueAfterOnError}, nil
 		}
 
+		// Ensure release image exists in versions cache
+		_, err = r.addReleaseImage(ctx, clusterInstall.Spec, pullSecret)
+		if err != nil {
+			log.WithError(err)
+			return r.updateStatus(ctx, log, clusterInstall, cluster, err)
+		}
+
 		log.Infof("Installing clusterDeployment %s %s", clusterDeployment.Name, clusterDeployment.Namespace)
 		var ic *common.Cluster
 		ic, err = r.Installer.InstallClusterInternal(ctx, installer.V2InstallClusterParams{
@@ -372,7 +384,7 @@ func (r *ClusterDeploymentsReconciler) installDay1(ctx context.Context, log logr
 	return r.updateStatus(ctx, log, clusterInstall, cluster, nil)
 }
 
-func (r *ClusterDeploymentsReconciler) installDay2Hosts(ctx context.Context, log logrus.FieldLogger, clusterDeployment *hivev1.ClusterDeployment, clusterInstall *hiveext.AgentClusterInstall, cluster *common.Cluster) (ctrl.Result, error) {
+func (r *ClusterDeploymentsReconciler) installDay2Hosts(ctx context.Context, log logrus.FieldLogger, clusterDeployment *hivev1.ClusterDeployment, clusterInstall *hiveext.AgentClusterInstall, cluster *common.Cluster, pullSecret string) (ctrl.Result, error) {
 	for _, h := range cluster.Hosts {
 		commonh, err := r.Installer.GetCommonHostInternal(ctx, h.InfraEnvID.String(), h.ID.String())
 		if err != nil {
@@ -380,6 +392,13 @@ func (r *ClusterDeploymentsReconciler) installDay2Hosts(ctx context.Context, log
 			return r.updateStatus(ctx, log, clusterInstall, cluster, err)
 		}
 		if r.HostApi.IsInstallable(h) && commonh.Approved {
+			// Ensure release image exists in versions cache
+			_, err = r.addReleaseImage(ctx, clusterInstall.Spec, pullSecret)
+			if err != nil {
+				log.WithError(err)
+				return r.updateStatus(ctx, log, clusterInstall, cluster, err)
+			}
+
 			log.Infof("Installing Day2 host %s in %s %s", *h.ID, clusterDeployment.Name, clusterDeployment.Namespace)
 			err = r.Installer.InstallSingleDay2HostInternal(ctx, *cluster.ID, h.InfraEnvID, *h.ID)
 			if err != nil {
@@ -912,7 +931,7 @@ func (r *ClusterDeploymentsReconciler) createNewCluster(
 
 	releaseImage, err := r.addReleaseImage(ctx, clusterInstall.Spec, pullSecret)
 	if err != nil {
-		log.WithError(err).Error("failed to add OCP version")
+		log.WithError(err)
 		_, _ = r.updateStatus(ctx, log, clusterInstall, nil, err)
 		// The controller will requeue after one minute, giving the user a chance to fix releaseImage
 		return ctrl.Result{Requeue: true, RequeueAfter: longerRequeueAfterOnError}, nil
@@ -1007,7 +1026,7 @@ func (r *ClusterDeploymentsReconciler) createNewDay2Cluster(
 
 	releaseImage, err := r.addReleaseImage(ctx, clusterInstall.Spec, pullSecret)
 	if err != nil {
-		log.WithError(err).Error("failed to add OCP version")
+		log.WithError(err)
 		_, _ = r.updateStatus(ctx, log, clusterInstall, nil, err)
 		// The controller will requeue after one minute, giving the user a chance to fix releaseImage
 		return ctrl.Result{Requeue: true, RequeueAfter: longerRequeueAfterOnError}, nil
@@ -1049,6 +1068,7 @@ func (r *ClusterDeploymentsReconciler) addReleaseImage(
 
 	releaseImage, err := r.Installer.AddReleaseImage(ctx, releaseImageUrl, pullSecret)
 	if err != nil {
+		err = errors.Wrapf(err, "failed to add release image: %s", releaseImageUrl)
 		return nil, err
 	}
 
