@@ -5,7 +5,6 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"os"
 
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
@@ -604,33 +603,105 @@ var _ = Describe("disk encryption manifest", func() {
 	}
 })
 
-var _ = Describe("network config", func() {
-	It("Default NewConfig doesn't throw errors", func() {
-		_, err := NewConfig()
-		Expect(err).ShouldNot(HaveOccurred())
+var _ = Describe("node ip hint", func() {
+
+	clusterCreate := func(machineCidr string) *common.Cluster {
+		clusterId := strfmt.UUID(uuid.New().String())
+		cluster := createCluster("", machineCidr,
+			createInventory(&models.Interface{
+				IPV4Addresses: append([]string{}, "3.3.3.3/24"),
+				Name:          "test1",
+			}, &models.Interface{
+				IPV4Addresses: append([]string{}, "4.4.4.4/24"),
+				Name:          "test2"}))
+		cluster.ID = &clusterId
+		cluster.Hosts[0].Bootstrap = true
+		cluster.Cluster.BaseDNSDomain = "test.com"
+		cluster.Cluster.Name = "test"
+		cluster.OpenshiftVersion = "4.11.0"
+		cluster.HighAvailabilityMode = swag.String(models.ClusterHighAvailabilityModeNone)
+		return cluster
+	}
+	var (
+		ctx                   = context.Background()
+		log                   *logrus.Logger
+		ctrl                  *gomock.Controller
+		manifestsApi          *manifestsapi.MockManifestsAPI
+		manifestsGeneratorApi ManifestsGeneratorAPI
+		db                    *gorm.DB
+		dbName                string
+	)
+
+	BeforeEach(func() {
+		log = logrus.New()
+		ctrl = gomock.NewController(GinkgoT())
+		manifestsApi = manifestsapi.NewMockManifestsAPI(ctrl)
+		manifestsGeneratorApi = NewManifestsGenerator(manifestsApi, Config{})
+		db, dbName = common.PrepareTestDB()
 	})
 
-	It("NewConfig with env var set to true", func() {
-		err := os.Setenv("ENABLE_SINGLE_NODE_DNSMASQ", "True")
-		Expect(err).ShouldNot(HaveOccurred())
-		cfg, err := NewConfig()
-		Expect(err).ShouldNot(HaveOccurred())
-		Expect(cfg.EnableSingleNodeDnsmasq).Should(BeTrue())
+	AfterEach(func() {
+		ctrl.Finish()
+		common.DeleteTestDB(db, dbName)
 	})
 
-	It("NewConfig with env var set to false", func() {
-		err := os.Setenv("ENABLE_SINGLE_NODE_DNSMASQ", "false")
-		Expect(err).ShouldNot(HaveOccurred())
-		cfg, err := NewConfig()
-		Expect(err).ShouldNot(HaveOccurred())
-		Expect(cfg.EnableSingleNodeDnsmasq).Should(BeFalse())
-	})
+	Context("CreateClusterManifest - node ip hint", func() {
+		fileName := "node-ip-hint.yaml"
+		It("CreateClusterManifest success", func() {
+			cluster := clusterCreate("3.3.3.0/24")
+			manifestsApi.EXPECT().CreateClusterManifestInternal(gomock.Any(), gomock.Any()).Return(&models.Manifest{
+				FileName: fileName,
+				Folder:   models.ManifestFolderOpenshift,
+			}, nil).Times(2)
 
-	It("NewConfig with env var set to unknown", func() {
-		err := os.Setenv("ENABLE_SINGLE_NODE_DNSMASQ", "foobar")
-		Expect(err).ShouldNot(HaveOccurred())
-		_, err = NewConfig()
-		Expect(err).Should(HaveOccurred())
-	})
+			Expect(manifestsGeneratorApi.AddNodeIpHint(ctx, log, cluster)).ShouldNot(HaveOccurred())
+		})
 
+		It("CreateClusterManifest failure no machine cidr", func() {
+			cluster := clusterCreate("")
+			Expect(manifestsGeneratorApi.AddNodeIpHint(ctx, log, cluster)).Should(HaveOccurred())
+		})
+
+		It("CreateClusterManifest failure bad machine cidr", func() {
+			cluster := clusterCreate("bad_cidr")
+			Expect(manifestsGeneratorApi.AddNodeIpHint(ctx, log, cluster)).Should(HaveOccurred())
+		})
+
+		It("CreateClusterManifest failed to get host network", func() {
+			cluster := clusterCreate("bad_cidr")
+			cluster.Hosts[0].Inventory = createInventory(&models.Interface{
+				IPV4Addresses: append([]string{}, "bad one"),
+				Name:          "test1"})
+			Expect(manifestsGeneratorApi.AddNodeIpHint(ctx, log, cluster)).Should(HaveOccurred())
+		})
+
+		It("Non sno cluster should do nothing", func() {
+			cluster := clusterCreate("3.3.3.0/24")
+			cluster.HighAvailabilityMode = swag.String(models.ClusterHighAvailabilityModeFull)
+			Expect(manifestsGeneratorApi.AddNodeIpHint(ctx, log, cluster)).ShouldNot(HaveOccurred())
+		})
+
+		It("No need to create manifest if bootstrap has only one network", func() {
+			cluster := clusterCreate("3.3.3.0/24")
+			cluster.Hosts[0].Inventory = createInventory(&models.Interface{
+				IPV4Addresses: append([]string{}, "3.3.3.3/24"),
+				Name:          "test1"})
+			Expect(manifestsGeneratorApi.AddNodeIpHint(ctx, log, cluster)).ShouldNot(HaveOccurred())
+		})
+
+		It("No need to create manifest if openshift version is lower then supported", func() {
+			cluster := clusterCreate("3.3.3.0/24")
+			cluster.OpenshiftVersion = "4.10.14"
+			Expect(manifestsGeneratorApi.AddNodeIpHint(ctx, log, cluster)).ShouldNot(HaveOccurred())
+		})
+
+		It("validate expected machine cidr is set", func() {
+			cluster := clusterCreate("4.4.4.0/24")
+			log := logrus.New()
+			manifest, err := createNodeIpHintContent(log, cluster, "master")
+			Expect(err).To(Not(HaveOccurred()))
+
+			Expect(string(manifest[:])).To(ContainSubstring(base64.StdEncoding.EncodeToString([]byte("KUBELET_NODEIP_HINT=4.4.4.0"))))
+		})
+	})
 })
