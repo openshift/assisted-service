@@ -12,44 +12,6 @@ import (
 	models "github.com/openshift/assisted-service/models"
 )
 
-// MockNmstate is a mock of Nmstate interface.
-type MockNmstate struct {
-	ctrl     *gomock.Controller
-	recorder *MockNmstateMockRecorder
-}
-
-// MockNmstateMockRecorder is the mock recorder for MockNmstate.
-type MockNmstateMockRecorder struct {
-	mock *MockNmstate
-}
-
-// NewMockNmstate creates a new mock instance.
-func NewMockNmstate(ctrl *gomock.Controller) *MockNmstate {
-	mock := &MockNmstate{ctrl: ctrl}
-	mock.recorder = &MockNmstateMockRecorder{mock}
-	return mock
-}
-
-// EXPECT returns an object that allows the caller to indicate expected use.
-func (m *MockNmstate) EXPECT() *MockNmstateMockRecorder {
-	return m.recorder
-}
-
-// GenerateConfiguration mocks base method.
-func (m *MockNmstate) GenerateConfiguration(state string) (string, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GenerateConfiguration", state)
-	ret0, _ := ret[0].(string)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GenerateConfiguration indicates an expected call of GenerateConfiguration.
-func (mr *MockNmstateMockRecorder) GenerateConfiguration(state interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GenerateConfiguration", reflect.TypeOf((*MockNmstate)(nil).GenerateConfiguration), state)
-}
-
 // MockStaticNetworkConfig is a mock of StaticNetworkConfig interface.
 type MockStaticNetworkConfig struct {
 	ctrl     *gomock.Controller
@@ -104,15 +66,15 @@ func (mr *MockStaticNetworkConfigMockRecorder) GenerateStaticNetworkConfigData(c
 }
 
 // ValidateStaticConfigParams mocks base method.
-func (m *MockStaticNetworkConfig) ValidateStaticConfigParams(staticNetworkConfig []*models.HostStaticNetworkConfig) error {
+func (m *MockStaticNetworkConfig) ValidateStaticConfigParams(ctx context.Context, staticNetworkConfig []*models.HostStaticNetworkConfig) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ValidateStaticConfigParams", staticNetworkConfig)
+	ret := m.ctrl.Call(m, "ValidateStaticConfigParams", ctx, staticNetworkConfig)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // ValidateStaticConfigParams indicates an expected call of ValidateStaticConfigParams.
-func (mr *MockStaticNetworkConfigMockRecorder) ValidateStaticConfigParams(staticNetworkConfig interface{}) *gomock.Call {
+func (mr *MockStaticNetworkConfigMockRecorder) ValidateStaticConfigParams(ctx, staticNetworkConfig interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ValidateStaticConfigParams", reflect.TypeOf((*MockStaticNetworkConfig)(nil).ValidateStaticConfigParams), staticNetworkConfig)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ValidateStaticConfigParams", reflect.TypeOf((*MockStaticNetworkConfig)(nil).ValidateStaticConfigParams), ctx, staticNetworkConfig)
 }
