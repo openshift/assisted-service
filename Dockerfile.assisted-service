@@ -16,7 +16,7 @@ RUN cd /assisted-service/build && python3 ../tools/client_package_initializer.py
 # Build binaries
 FROM quay.io/centos/centos:stream8 as builder
 
-RUN dnf install --enablerepo=powertools -y gcc nmstate-devel && dnf clean all
+RUN dnf install -y gcc && dnf clean all
 COPY --from=registry.ci.openshift.org/openshift/release:golang-1.17 /usr/local/go /usr/local/go
 
 ENV GOROOT=/usr/local/go
@@ -34,9 +34,9 @@ RUN go mod download
 COPY . /assisted-service/
 
 RUN CGO_ENABLED=1 GOFLAGS="" GO111MODULE=on go build -o /build/assisted-service cmd/main.go
-RUN CGO_ENABLED=1 GOFLAGS="" GO111MODULE=on go build -o /build/assisted-service-operator cmd/operator/main.go
-RUN CGO_ENABLED=1 GOFLAGS="" GO111MODULE=on go build -o /build/assisted-service-admission cmd/webadmission/main.go
-RUN CGO_ENABLED=1 GOFLAGS="" GO111MODULE=on go build -o /build/agent-installer-client cmd/agentbasedinstaller/client/main.go
+RUN CGO_ENABLED=0 GOFLAGS="" GO111MODULE=on go build -o /build/assisted-service-operator cmd/operator/main.go
+RUN CGO_ENABLED=0 GOFLAGS="" GO111MODULE=on go build -o /build/assisted-service-admission cmd/webadmission/main.go
+RUN CGO_ENABLED=0 GOFLAGS="" GO111MODULE=on go build -o /build/agent-installer-client cmd/agentbasedinstaller/client/main.go
 
 # Create final image
 FROM quay.io/centos/centos:stream8
@@ -44,7 +44,7 @@ FROM quay.io/centos/centos:stream8
 # multiarch images need it till WRKLDS-222 and https://bugzilla.redhat.com/show_bug.cgi?id=2111537 are fixed
 RUN dnf install -y --setopt=install_weak_deps=False skopeo
 # openshift-install requires this
-RUN dnf install -y libvirt-libs nmstate nmstate-libs && \
+RUN dnf install -y libvirt-libs nmstate &&\
     dnf clean all
 
 ARG WORK_DIR=/data
