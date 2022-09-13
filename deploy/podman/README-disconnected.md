@@ -169,7 +169,21 @@ You can use the Assisted Installer web UI to set up the initial cluster settings
 
 ### Using AICLI
 
-The [aicli](https://github.com/karmab/aicli) tool is a tool that can be used to deploy OpenShift clusters using the Assisted Installer service from the command line. This is a community supported tool, and is NOT a part of the OpenShift project. 
+The [aicli](https://github.com/karmab/aicli) tool is a tool that can be used to deploy OpenShift clusters using the Assisted Installer service from the command line. This is a community supported tool, and is NOT a part of the OpenShift project. See the [How to use](https://github.com/karmab/aicli/blob/main/doc/index.md#how-to-use) section of the aicli tool on how to create a cluster using this tool. You will need to add the following additional sections in the parameters file in order to point to the mirror registry:
+
+```
+disconnected_url: <server name or IP address for assisted installer host>:8443
+installconfig:
+    additionalTrustBundle: |
+      -----BEGIN CERTIFICATE-----
+      <contents of your signing certificate>
+      -----END CERTIFICATE-----
+    imageContentSources:
+      <the values here are based on the output from the OpenShift mirror command>
+ignition_config_override: <contents of the discovery-ignition.json file created earlier>
+```
+
+The values for the imageContentSources will be based on the output of the OpenShift mirror command that you used. See the "imageContentSourcePolicy.yaml" file that is generated after the successful creation of a mirror for the exact information that should go here.
 
 ### Using the API
 
