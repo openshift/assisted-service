@@ -47,7 +47,8 @@ import (
 	"github.com/openshift/assisted-service/internal/host/hostutil"
 	"github.com/openshift/assisted-service/internal/ignition"
 	"github.com/openshift/assisted-service/internal/infraenv"
-	installcfg "github.com/openshift/assisted-service/internal/installcfg/builder"
+	installcfg "github.com/openshift/assisted-service/internal/installcfg"
+	installcfg_builder "github.com/openshift/assisted-service/internal/installcfg/builder"
 	"github.com/openshift/assisted-service/internal/metrics"
 	"github.com/openshift/assisted-service/internal/operators"
 	"github.com/openshift/assisted-service/internal/provider/registry"
@@ -59,6 +60,7 @@ import (
 	"github.com/openshift/assisted-service/pkg/filemiddleware"
 	"github.com/openshift/assisted-service/pkg/generator"
 	"github.com/openshift/assisted-service/pkg/k8sclient"
+	"github.com/openshift/assisted-service/pkg/mirrorregistries"
 	"github.com/openshift/assisted-service/pkg/ocm"
 	"github.com/openshift/assisted-service/pkg/s3wrapper"
 	"github.com/openshift/assisted-service/pkg/staticnetworkconfig"
@@ -68,32 +70,34 @@ import (
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/sirupsen/logrus/hooks/test"
+	"gopkg.in/yaml.v2"
 	"gorm.io/gorm"
 	"k8s.io/apimachinery/pkg/types"
 )
 
 var (
-	ctrl                     *gomock.Controller
-	mockClusterApi           *cluster.MockAPI
-	mockHostApi              *host.MockAPI
-	mockInfraEnvApi          *infraenv.MockAPI
-	mockEvents               *eventsapi.MockHandler
-	mockS3Client             *s3wrapper.MockAPI
-	mockSecretValidator      *validations.MockPullSecretValidator
-	mockGenerator            *generator.MockISOInstallConfigGenerator
-	mockVersions             *versions.MockHandler
-	mockMetric               *metrics.MockAPI
-	mockUsage                *usage.MockAPI
-	mockK8sClient            *k8sclient.MockK8SClient
-	mockCRDUtils             *MockCRDUtils
-	mockAccountsMgmt         *ocm.MockOCMAccountsMgmt
-	mockOperatorManager      *operators.MockAPI
-	mockHwValidator          *hardware.MockValidator
-	mockIgnitionBuilder      *ignition.MockIgnitionBuilder
-	mockInstallConfigBuilder *installcfg.MockInstallConfigBuilder
-	mockStaticNetworkConfig  *staticnetworkconfig.MockStaticNetworkConfig
-	mockProviderRegistry     *registry.MockProviderRegistry
-	secondDayWorkerIgnition  = []byte(`{
+	ctrl                              *gomock.Controller
+	mockClusterApi                    *cluster.MockAPI
+	mockHostApi                       *host.MockAPI
+	mockInfraEnvApi                   *infraenv.MockAPI
+	mockEvents                        *eventsapi.MockHandler
+	mockS3Client                      *s3wrapper.MockAPI
+	mockSecretValidator               *validations.MockPullSecretValidator
+	mockGenerator                     *generator.MockISOInstallConfigGenerator
+	mockVersions                      *versions.MockHandler
+	mockMetric                        *metrics.MockAPI
+	mockUsage                         *usage.MockAPI
+	mockK8sClient                     *k8sclient.MockK8SClient
+	mockCRDUtils                      *MockCRDUtils
+	mockAccountsMgmt                  *ocm.MockOCMAccountsMgmt
+	mockOperatorManager               *operators.MockAPI
+	mockHwValidator                   *hardware.MockValidator
+	mockIgnitionBuilder               *ignition.MockIgnitionBuilder
+	mockInstallConfigBuilder          *installcfg_builder.MockInstallConfigBuilder
+	mockStaticNetworkConfig           *staticnetworkconfig.MockStaticNetworkConfig
+	mockProviderRegistry              *registry.MockProviderRegistry
+	mockMirrorRegistriesConfigBuilder *mirrorregistries.MockMirrorRegistriesConfigBuilder
+	secondDayWorkerIgnition           = []byte(`{
 		"ignition": {
 		  "version": "3.1.0",
 		  "config": {
@@ -141,6 +145,13 @@ func mockClusterRegisterSuccess(withEvents bool) {
 		mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
 			eventstest.WithNameMatcher(eventgen.ClusterRegistrationSucceededEventName))).Times(1)
 	}
+}
+
+func createInstallConfigBuilder() installcfg_builder.InstallConfigBuilder {
+	log := common.GetTestLog().WithField("pkg", "installcfg")
+	mockMirrorRegistriesConfigBuilder = mirrorregistries.NewMockMirrorRegistriesConfigBuilder(ctrl)
+	return installcfg_builder.NewInstallConfigBuilder(log, mockMirrorRegistriesConfigBuilder, registry.InitProviderRegistry(log))
+
 }
 
 func mockClusterUpdateSuccess(times int, hosts int) {
@@ -222,7 +233,7 @@ func mockGenerateInstallConfigSuccess(mockGenerator *generator.MockISOInstallCon
 	}
 }
 
-func mockGetInstallConfigSuccess(mockInstallConfigBuilder *installcfg.MockInstallConfigBuilder) {
+func mockGetInstallConfigSuccess(mockInstallConfigBuilder *installcfg_builder.MockInstallConfigBuilder) {
 	mockInstallConfigBuilder.EXPECT().GetInstallConfig(gomock.Any(), gomock.Any(), gomock.Any()).Return([]byte("some string"), nil).Times(1)
 }
 
@@ -9970,6 +9981,81 @@ var _ = Describe("TestRegisterCluster", func() {
 				actual := reply.(*installer.V2RegisterClusterCreated).Payload
 				Expect(swag.BoolValue(actual.UserManagedNetworking)).To(Equal(true))
 				Expect(*actual.Platform.Type).To(Equal(models.PlatformTypeNone))
+
+				var result installcfg.InstallerConfigBaremetal
+				installConfig := createInstallConfigBuilder()
+				mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(2)
+
+				data, err := installConfig.GetInstallConfig(&common.Cluster{Cluster: *actual}, false, "")
+				Expect(err).ShouldNot(HaveOccurred())
+				err = yaml.Unmarshal(data, &result)
+				Expect(err).ShouldNot(HaveOccurred())
+				Expect(result.Platform.None).ShouldNot(BeNil())
+			})
+
+			It("vsphere platform and UserManagedNetworking=true", func() {
+				mockClusterRegisterSuccess(true)
+				mockAMSSubscription(ctx)
+
+				params := getClusterCreateParams(nil)
+				params.Platform = &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeVsphere)}
+				params.UserManagedNetworking = swag.Bool(true)
+				reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
+					NewClusterParams: params,
+				})
+				Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2RegisterClusterCreated()))
+				actual := reply.(*installer.V2RegisterClusterCreated).Payload
+				Expect(swag.BoolValue(actual.UserManagedNetworking)).To(Equal(true))
+				Expect(*actual.Platform.Type).To(Equal(models.PlatformTypeVsphere))
+
+				var result installcfg.InstallerConfigBaremetal
+				installConfig := createInstallConfigBuilder()
+				mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(2)
+				data, err := installConfig.GetInstallConfig(&common.Cluster{Cluster: *actual}, false, "")
+				Expect(err).ShouldNot(HaveOccurred())
+				err = yaml.Unmarshal(data, &result)
+				Expect(err).ShouldNot(HaveOccurred())
+				Expect(result.Platform.Vsphere).ShouldNot(BeNil())
+				Expect(result.Platform.None).Should(BeNil())
+				Expect(result.Platform.Baremetal).Should(BeNil())
+
+				Expect(result.Platform.Vsphere.APIVIP).Should(Equal(""))
+				Expect(result.Platform.Vsphere.IngressVIP).Should(Equal(""))
+			})
+
+			It("vsphere platform and UserManagedNetworking=false", func() {
+				mockClusterRegisterSuccess(true)
+				mockAMSSubscription(ctx)
+
+				params := getClusterCreateParams(nil)
+				apiVip := "1.2.3.5"
+				ingressVip := "1.2.3.6"
+
+				params.APIVip = apiVip
+				params.IngressVip = ingressVip
+				params.Platform = &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeVsphere)}
+				params.UserManagedNetworking = swag.Bool(false)
+				reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
+					NewClusterParams: params,
+				})
+				Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2RegisterClusterCreated()))
+				actual := reply.(*installer.V2RegisterClusterCreated).Payload
+				Expect(swag.BoolValue(actual.UserManagedNetworking)).To(Equal(false))
+				Expect(*actual.Platform.Type).To(Equal(models.PlatformTypeVsphere))
+
+				var result installcfg.InstallerConfigBaremetal
+				installConfig := createInstallConfigBuilder()
+				mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(2)
+				data, err := installConfig.GetInstallConfig(&common.Cluster{Cluster: *actual}, false, "")
+				Expect(err).ShouldNot(HaveOccurred())
+				err = yaml.Unmarshal(data, &result)
+				Expect(err).ShouldNot(HaveOccurred())
+				Expect(result.Platform.Vsphere).ShouldNot(BeNil())
+				Expect(result.Platform.None).Should(BeNil())
+				Expect(result.Platform.Baremetal).Should(BeNil())
+
+				Expect(result.Platform.Vsphere.APIVIP).Should(Equal(apiVip))
+				Expect(result.Platform.Vsphere.IngressVIP).Should(Equal(ingressVip))
 			})
 		})
 
@@ -13012,7 +13098,7 @@ func createInventory(db *gorm.DB, cfg Config) *bareMetalInventory {
 	mockOperatorManager = operators.NewMockAPI(ctrl)
 	mockIgnitionBuilder = ignition.NewMockIgnitionBuilder(ctrl)
 	mockProviderRegistry = registry.NewMockProviderRegistry(ctrl)
-	mockInstallConfigBuilder = installcfg.NewMockInstallConfigBuilder(ctrl)
+	mockInstallConfigBuilder = installcfg_builder.NewMockInstallConfigBuilder(ctrl)
 	mockHwValidator = hardware.NewMockValidator(ctrl)
 	mockStaticNetworkConfig = staticnetworkconfig.NewMockStaticNetworkConfig(ctrl)
 	dnsApi := dns.NewDNSHandler(cfg.BaseDNSDomains, common.GetTestLog())

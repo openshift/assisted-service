@@ -3,6 +3,7 @@ package vsphere
 import (
 	"errors"
 
+	"github.com/go-openapi/swag"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/installcfg"
 )
@@ -18,18 +19,22 @@ func setPlatformValues(platform *installcfg.VsphereInstallConfigPlatform) {
 	platform.Datacenter = PhDatacenter
 }
 
-func (p vsphereProvider) AddPlatformToInstallConfig(
-	cfg *installcfg.InstallerConfigBaremetal, cluster *common.Cluster) error {
-	if len(cluster.APIVip) == 0 {
-		return errors.New("invalid cluster parameters, APIVip must be provided")
+func (p vsphereProvider) AddPlatformToInstallConfig(cfg *installcfg.InstallerConfigBaremetal, cluster *common.Cluster) error {
+	vsPlatform := &installcfg.VsphereInstallConfigPlatform{}
+
+	if !swag.BoolValue(cluster.UserManagedNetworking) {
+		if len(cluster.APIVip) == 0 {
+			return errors.New("invalid cluster parameters, APIVip must be provided")
+		}
+
+		if len(cluster.IngressVip) == 0 {
+			return errors.New("invalid cluster parameters, IngressVip must be provided")
+		}
+
+		vsPlatform.APIVIP = cluster.APIVip
+		vsPlatform.IngressVIP = cluster.IngressVip
 	}
-	if len(cluster.IngressVip) == 0 {
-		return errors.New("invalid cluster parameters, IngressVip must be provided")
-	}
-	vsPlatform := &installcfg.VsphereInstallConfigPlatform{
-		APIVIP:     cluster.APIVip,
-		IngressVIP: cluster.IngressVip,
-	}
+
 	setPlatformValues(vsPlatform)
 	cfg.Platform = installcfg.Platform{
 		Vsphere: vsPlatform,
