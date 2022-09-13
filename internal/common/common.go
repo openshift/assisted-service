@@ -11,6 +11,7 @@ import (
 	"github.com/containers/image/v5/docker/reference"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
+	yamlpatch "github.com/krishicks/yaml-patch"
 	"github.com/openshift/assisted-service/models"
 	"github.com/thoas/go-funk"
 	"gorm.io/gorm"
@@ -414,4 +415,18 @@ func GetAPIHostname(c *Cluster) string {
 	// connect to the API directly. The UI even has a special dialog to help users
 	// do that.
 	return swag.StringValue(c.APIVipDNSName)
+}
+
+func ApplyYamlPatch(src []byte, ops []byte) ([]byte, error) {
+	patch, err := yamlpatch.DecodePatch(ops)
+	if err != nil {
+		return []byte{}, err
+	}
+
+	patched, err := patch.Apply(src)
+	if err != nil {
+		return []byte{}, err
+	}
+
+	return patched, nil
 }

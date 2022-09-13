@@ -26,7 +26,6 @@ import (
 	config_latest_types "github.com/coreos/ignition/v2/config/v3_2/types"
 	"github.com/coreos/vcontext/report"
 	"github.com/go-openapi/swag"
-	yamlpatch "github.com/krishicks/yaml-patch"
 	bmh_v1alpha1 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
 	operatorv1alpha1 "github.com/openshift/api/operator/v1alpha1"
 	clusterPkg "github.com/openshift/assisted-service/internal/cluster"
@@ -464,9 +463,11 @@ func (g *installerGenerator) applyInfrastructureCRPatch(ctx context.Context) err
 	// We are only patching the InfrastructureCR if the hosts count is 4
 	// and the three masters are schedulable.
 	if len(g.cluster.Hosts) != 4 {
-		log.Debugf("number of hosts is different than 4, no need to patch the Infrastructure CR %s", len(g.cluster.Hosts))
+		log.Debugf("number of hosts is different than 4, no need to patch the Infrastructure CR %d", len(g.cluster.Hosts))
 		return nil
 	}
+
+	log.Infof("Patching Infrastructure CR: Number of hosts: %d", len(g.cluster.Hosts))
 
 	infraManifest := filepath.Join(g.workDir, "manifests", "cluster-infrastructure-02-config.yml")
 	data, err := os.ReadFile(infraManifest)
@@ -475,7 +476,7 @@ func (g *installerGenerator) applyInfrastructureCRPatch(ctx context.Context) err
 	}
 	log.Debugf("read the infrastructure manifest at %s", infraManifest)
 
-	data, err = applyYamlPatch(data, []byte(highlyAvailableInfrastructureTopologyPatch))
+	data, err = common.ApplyYamlPatch(data, []byte(highlyAvailableInfrastructureTopologyPatch))
 	if err != nil {
 		return errors.Wrapf(err, "failed to patch Infrastructure Manifest \"%s\"", infraManifest)
 	}
@@ -1658,18 +1659,4 @@ func removeIcspFile(filename string) {
 	if filename != "" {
 		os.Remove(filename)
 	}
-}
-
-func applyYamlPatch(src []byte, ops []byte) ([]byte, error) {
-	patch, err := yamlpatch.DecodePatch(ops)
-	if err != nil {
-		return []byte{}, err
-	}
-
-	patched, err := patch.Apply(src)
-	if err != nil {
-		return []byte{}, err
-	}
-
-	return patched, nil
 }
