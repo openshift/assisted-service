@@ -12,6 +12,7 @@ import (
 	"github.com/openshift/assisted-service/internal/gencrypto"
 	"github.com/openshift/assisted-service/pkg/auth"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -49,7 +50,7 @@ func newAgentReclaimer(hostFSMountDir string) (*agentReclaimer, error) {
 	return &agentReclaimer{reclaimConfig: config}, nil
 }
 
-func ensureSpokeNamespace(ctx context.Context, c client.Client) error {
+func ensureSpokeNamespace(ctx context.Context, c client.Client, log logrus.FieldLogger) error {
 	ns := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: spokeReclaimNamespaceName}}
 	mutate := func() error {
 		if ns.Labels == nil {
@@ -59,22 +60,28 @@ func ensureSpokeNamespace(ctx context.Context, c client.Client) error {
 		ns.Labels["pod-security.kubernetes.io/enforce"] = "privileged"
 		return nil
 	}
-	_, err := controllerutil.CreateOrUpdate(ctx, c, ns, mutate)
+	result, err := controllerutil.CreateOrUpdate(ctx, c, ns, mutate)
+	if result != controllerutil.OperationResultNone {
+		log.Infof("Namespace %s %s for agent reclaim", spokeReclaimNamespaceName, result)
+	}
 	return err
 }
 
-func ensureSpokeServiceAccount(ctx context.Context, c client.Client) error {
+func ensureSpokeServiceAccount(ctx context.Context, c client.Client, log logrus.FieldLogger) error {
 	sa := &corev1.ServiceAccount{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      spokeRBACName,
 			Namespace: spokeReclaimNamespaceName,
 		},
 	}
-	_, err := controllerutil.CreateOrUpdate(ctx, c, sa, func() error { return nil })
+	result, err := controllerutil.CreateOrUpdate(ctx, c, sa, func() error { return nil })
+	if result != controllerutil.OperationResultNone {
+		log.Infof("ServiceAccount %s/%s %s for agent reclaim", sa.Namespace, sa.Name, result)
+	}
 	return err
 }
 
-func ensureSpokeRole(ctx context.Context, c client.Client) error {
+func ensureSpokeRole(ctx context.Context, c client.Client, log logrus.FieldLogger) error {
 	role := &authzv1.Role{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      spokeRBACName,
@@ -91,12 +98,15 @@ func ensureSpokeRole(ctx context.Context, c client.Client) error {
 		}}
 		return nil
 	}
-	_, err := controllerutil.CreateOrUpdate(ctx, c, role, mutate)
+	result, err := controllerutil.CreateOrUpdate(ctx, c, role, mutate)
+	if result != controllerutil.OperationResultNone {
+		log.Infof("Role %s/%s %s for agent reclaim", role.Namespace, role.Name, result)
+	}
 	return err
 }
 
-func ensureSpokeRoleBinding(ctx context.Context, c client.Client) error {
-	crb := &authzv1.RoleBinding{
+func ensureSpokeRoleBinding(ctx context.Context, c client.Client, log logrus.FieldLogger) error {
+	rb := &authzv1.RoleBinding{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      spokeRBACName,
 			Namespace: spokeReclaimNamespaceName,
@@ -104,20 +114,23 @@ func ensureSpokeRoleBinding(ctx context.Context, c client.Client) error {
 	}
 
 	mutate := func() error {
-		crb.RoleRef = corev1.ObjectReference{
+		rb.RoleRef = corev1.ObjectReference{
 			APIVersion: "rbac.authorization.k8s.io/v1",
 			Kind:       "Role",
 			Name:       spokeRBACName,
 			Namespace:  spokeReclaimNamespaceName,
 		}
-		crb.Subjects = []corev1.ObjectReference{{
+		rb.Subjects = []corev1.ObjectReference{{
 			Kind:      "ServiceAccount",
 			Name:      spokeRBACName,
 			Namespace: spokeReclaimNamespaceName,
 		}}
 		return nil
 	}
-	_, err := controllerutil.CreateOrUpdate(ctx, c, crb, mutate)
+	result, err := controllerutil.CreateOrUpdate(ctx, c, rb, mutate)
+	if result != controllerutil.OperationResultNone {
+		log.Infof("RoleBinding %s/%s %s for agent reclaim", rb.Namespace, rb.Name, result)
+	}
 	return err
 }
 
@@ -125,7 +138,7 @@ func spokeReclaimSecretName(infraEnvID string) string {
 	return fmt.Sprintf("reclaim-%s-token", infraEnvID)
 }
 
-func (r *agentReclaimer) ensureSpokeAgentSecret(ctx context.Context, c client.Client, infraEnvID string) error {
+func (r *agentReclaimer) ensureSpokeAgentSecret(ctx context.Context, c client.Client, log logrus.FieldLogger, infraEnvID string) error {
 	authToken := ""
 	if r.AuthType == auth.TypeLocal {
 		var err error
@@ -146,11 +159,14 @@ func (r *agentReclaimer) ensureSpokeAgentSecret(ctx context.Context, c client.Cl
 		secret.Data = map[string][]byte{"auth-token": []byte(authToken)}
 		return nil
 	}
-	_, err := controllerutil.CreateOrUpdate(ctx, c, secret, mutate)
+	result, err := controllerutil.CreateOrUpdate(ctx, c, secret, mutate)
+	if result != controllerutil.OperationResultNone {
+		log.Infof("Secret %s/%s %s for agent reclaim", secret.Namespace, secret.Name, result)
+	}
 	return err
 }
 
-func (r *agentReclaimer) ensureSpokeAgentCertCM(ctx context.Context, c client.Client) error {
+func (r *agentReclaimer) ensureSpokeAgentCertCM(ctx context.Context, c client.Client, log logrus.FieldLogger) error {
 	if r.ServiceCACertPath == "" {
 		return nil
 	}
@@ -169,11 +185,14 @@ func (r *agentReclaimer) ensureSpokeAgentCertCM(ctx context.Context, c client.Cl
 		cm.Data = map[string]string{filepath.Base(common.HostCACertPath): string(data)}
 		return nil
 	}
-	_, err := controllerutil.CreateOrUpdate(ctx, c, cm, mutate)
+	result, err := controllerutil.CreateOrUpdate(ctx, c, cm, mutate)
+	if result != controllerutil.OperationResultNone {
+		log.Infof("ConfigMap %s/%s %s for agent reclaim", cm.Namespace, cm.Name, result)
+	}
 	return err
 }
 
-func (r *agentReclaimer) createNextStepRunnerDaemonSet(ctx context.Context, c client.Client, nodeName string, infraEnvID string, hostID string) error {
+func (r *agentReclaimer) createNextStepRunnerDaemonSet(ctx context.Context, c client.Client, log logrus.FieldLogger, nodeName string, infraEnvID string, hostID string) error {
 	node := &corev1.Node{}
 	if err := c.Get(ctx, types.NamespacedName{Name: nodeName}, node); err != nil {
 		return errors.Wrapf(err, "failed to find node %s", nodeName)
@@ -268,6 +287,9 @@ func (r *agentReclaimer) createNextStepRunnerDaemonSet(ctx context.Context, c cl
 		return nil
 	}
 
-	_, err := controllerutil.CreateOrUpdate(ctx, c, daemonSet, mutate)
+	result, err := controllerutil.CreateOrUpdate(ctx, c, daemonSet, mutate)
+	if result != controllerutil.OperationResultNone {
+		log.Infof("DaemonSet %s/%s %s for agent reclaim", daemonSet.Namespace, daemonSet.Name, result)
+	}
 	return err
 }

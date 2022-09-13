@@ -379,7 +379,7 @@ func (r *AgentReconciler) shouldReclaimOnUnbind(ctx context.Context, agent *aiv1
 	return true
 }
 
-func (r *AgentReconciler) runReclaimAgent(ctx context.Context, agent *aiv1beta1.Agent, clusterRef *aiv1beta1.ClusterReference, host *common.Host) error {
+func (r *AgentReconciler) runReclaimAgent(ctx context.Context, log logrus.FieldLogger, agent *aiv1beta1.Agent, clusterRef *aiv1beta1.ClusterReference, host *common.Host) error {
 	if !r.EnableHostReclaim {
 		return errors.Errorf("host reclaim disabled")
 	}
@@ -392,25 +392,25 @@ func (r *AgentReconciler) runReclaimAgent(ctx context.Context, agent *aiv1beta1.
 
 	hostname := getAgentHostname(agent)
 	r.Log.Infof("Starting agent pod for reclaim on node %s", hostname)
-	if err := ensureSpokeNamespace(ctx, client); err != nil {
+	if err := ensureSpokeNamespace(ctx, client, log); err != nil {
 		return err
 	}
-	if err := ensureSpokeServiceAccount(ctx, client); err != nil {
+	if err := ensureSpokeServiceAccount(ctx, client, log); err != nil {
 		return err
 	}
-	if err := ensureSpokeRole(ctx, client); err != nil {
+	if err := ensureSpokeRole(ctx, client, log); err != nil {
 		return err
 	}
-	if err := ensureSpokeRoleBinding(ctx, client); err != nil {
+	if err := ensureSpokeRoleBinding(ctx, client, log); err != nil {
 		return err
 	}
-	if err := r.reclaimer.ensureSpokeAgentSecret(ctx, client, host.InfraEnvID.String()); err != nil {
+	if err := r.reclaimer.ensureSpokeAgentSecret(ctx, client, log, host.InfraEnvID.String()); err != nil {
 		return err
 	}
-	if err := r.reclaimer.ensureSpokeAgentCertCM(ctx, client); err != nil {
+	if err := r.reclaimer.ensureSpokeAgentCertCM(ctx, client, log); err != nil {
 		return err
 	}
-	return r.reclaimer.createNextStepRunnerDaemonSet(ctx, client, hostname, host.InfraEnvID.String(), host.ID.String())
+	return r.reclaimer.createNextStepRunnerDaemonSet(ctx, client, log, hostname, host.InfraEnvID.String(), host.ID.String())
 }
 
 func (r *AgentReconciler) unbindHost(ctx context.Context, log logrus.FieldLogger, agent, origAgent *aiv1beta1.Agent, h *common.Host) (ctrl.Result, error) {
@@ -421,16 +421,16 @@ func (r *AgentReconciler) unbindHost(ctx context.Context, log logrus.FieldLogger
 		cluster, err := r.Installer.GetClusterInternal(ctx, installer.V2GetClusterParams{ClusterID: *h.ClusterID})
 		if err != nil || cluster.KubeKeyName == "" || cluster.KubeKeyNamespace == "" {
 			if err != nil {
-				r.Log.WithError(err).Warnf("failed to get cluster %s, not attempting reclaim", h.ClusterID)
+				log.WithError(err).Warnf("failed to get cluster %s, not attempting reclaim", h.ClusterID)
 			} else {
-				r.Log.Warnf("cluster %s missing kube key (%s/%s), not attempting reclaim", h.ClusterID, cluster.KubeKeyNamespace, cluster.KubeKeyName)
+				log.Warnf("cluster %s missing kube key (%s/%s), not attempting reclaim", h.ClusterID, cluster.KubeKeyNamespace, cluster.KubeKeyName)
 			}
 		} else {
 			clusterRef := &aiv1beta1.ClusterReference{Namespace: cluster.KubeKeyNamespace, Name: cluster.KubeKeyName}
 			reclaim = r.shouldReclaimOnUnbind(ctx, origAgent, clusterRef)
 			if reclaim {
-				if err := r.runReclaimAgent(ctx, agent, clusterRef, h); err != nil {
-					r.Log.WithError(err).Warn("failed to start agent on spoke cluster to reclaim")
+				if err := r.runReclaimAgent(ctx, log, agent, clusterRef, h); err != nil {
+					log.WithError(err).Warn("failed to start agent on spoke cluster to reclaim")
 					reclaim = false
 				}
 			}
