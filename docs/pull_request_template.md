@@ -43,21 +43,10 @@ how this code was tested. Here are some questions that may be worth answering:
 - [ ] Manual (Elaborate on how it was tested)
 - [x] No tests needed
 
-## Assignees
-
-<!--
-Please, add one or two reviewers that could help review this PR. Use `/assign` if you want to assign
-this PR directly to someone.
--->
-
-/cc @
-/cc @
-
 ## Checklist
 
 - [ ] Title and description added to both, commit and PR.
 - [ ] Relevant issues have been associated (see [CONTRIBUTING] guide)
-- [ ] Reviewers have been listed
 - [ ] This change does not require a documentation update (docstring, `docs`, README, etc)
 - [ ] Does this change include unit-tests (note that code changes require unit-tests)
 
