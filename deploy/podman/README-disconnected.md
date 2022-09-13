@@ -22,6 +22,8 @@ Once you have mirrored the OpenShift container images, as well as the [Operator 
 
 ### Mirror assisted-installer agents
 
+You will need to mirror additional images to your internal mirror for the Assisted Installer to use. If you are using the _oc adm mirror_ process, you can run the following commands to mirror the additional images required.
+
 ```shell
 $ podman pull quay.io/edge-infrastructure/assisted-installer-agent:latest
 $ podman pull quay.io/edge-infrastructure/assisted-installer:latest
@@ -32,6 +34,15 @@ $ podman tag quay.io/edge-infrastructure/assisted-installer-controller:latest <c
 $ podman push <container image registry server:port>/edge-infrastructure/assisted-installer-agent:latest
 $ podman push <container image registry server:port>/edge-infrastructure/assisted-installer:latest
 $ podman push <container image registry server:port>/edge-infrastructure/assisted-installer-controller:latest
+```
+
+If you are using the _oc mirror_ plugin, you can add the following section to the _imageset-config.yaml_ as documented in the [Creating the image set configuration](https://docs.okd.io/latest/installing/disconnected_install/installing-mirroring-disconnected.html#oc-mirror-creating-image-set-config_installing-mirroring-disconnected) documentation.
+
+```
+additionalImages:
+  - name: quay.io/edge-infrastructure/assisted-installer-agent:latest
+  - name: quay.io/edge-infrastructure/assisted-installer:latest
+  - name: quay.io/edge-infrastructure/assisted-installer-controller:latest
 ```
 
 ## Identify a Web Server for ISO mirroring
@@ -104,7 +115,7 @@ unqualified-search-registries = ["registry.access.redhat.com", "docker.io"]
 
 '[{"openshift_version":"4.10","cpu_architecture":"x86_64","url":"http://172.16.35.23/pub/openshift-v4/dependencies/rhcos/4.10/4.10.16/rhcos-4.10.16-x86_64-live.x86_64.iso","version":"410.84.202205191234-0"}]'
 
-6. Update the tls-ca-bundle.pem file with the contents of your container image registry rootCA. (If you are using the OpenShift Mirror Registry you can find this in the `quay-rootCA/rootCA.pem` file in the root directory for the mirror registry install.)  
+6. Update the tls-ca-bundle.pem file with the contents of your container image registry rootCA. If you are using the OpenShift Mirror Registry you can find this in the `quay-rootCA/rootCA.pem` file in the root directory for the mirror registry install, or see the section [](#retrieving-tls-cert-from-mirror-registry) in the Appendix section of this document for the process to get your image registries certificate.
 
 7. Update the registries.conf section with the contents of the registries.conf file you created in step 2. 
 
@@ -171,3 +182,19 @@ Follow the instructions [rest api getting started](https://github.com/openshift/
 Then use the instructions [Install Customization - Discovery Ignition](https://github.com/openshift/assisted-service/blob/master/docs/user-guide/install-customization.md#discovery-ignition) to apply the discovery-ignition.json file created in the [Ignition Config Override](#ignition-config-override)
 
 Then use the instructions [Install Customization - Install Config](https://github.com/openshift/assisted-service/blob/master/docs/user-guide/install-customization.md#install-config) to apply the _additionalTrustBundle_ and _imageContentSources_ to the OpenShift install_config.yaml.
+
+## Appendix
+
+### Retrieving TLS cert from mirror registry
+
+If you are using an self-signed certificate on your mirror registry, you will need to retrieve the signing cert so that it can be added to the assisted installer trust bundle as well as the discovery iso trust bundle and target cluster configuration. You can use the opensssl command to retrieve this file:
+
+```shell
+$ echo | openssl s_client -servername \
+    <container image registry server:port> \
+    -connect <container image registry server:port> 2>/dev/null | openssl x509 > tls-ca-bundle.pem
+```
+
+> **NOTE:** Be sure to update the \<container image registry server:port\> with your container image registry server name and port.
+
+You will use the contents of the `tls-ca-bundle.pem` file in the [Install the Assisted Installer Service](#install-the-assisted-installer-service) as well as the [Build/Deploy a Cluster](#builddeploy-a-cluster) sections above.
