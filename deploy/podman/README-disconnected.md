@@ -14,7 +14,7 @@ If you do not have a web server to host the ISO and a container registry availab
 
 ## Identify a Container Registry and Mirror Contents
 
-You will need to have a container registry available in the disconnected environment to house all the container images that are required to complete an OpenShift install. See [Mirroring image for a disconnected installation](https://docs.okd.io/latest/installing/disconnected_install/installing-mirroring-installation-images.html) for how to mirror the required images. 
+You will need to have a container registry available in the disconnected environment to house all the container images that are required to complete an OpenShift install. See [Mirroring image for a disconnected installation](https://docs.okd.io/latest/installing/disconnected_install/installing-mirroring-installation-images.html) or [Mirroring image for a disconnected installation using the oc-mirror plug-in](https://docs.okd.io/latest/installing/disconnected_install/installing-mirroring-disconnected.html) for how to mirror the required images. 
 
 If you do not have a container registry available you, instructions for installing a container registry and mirroring the contents into that registry can be found in [Creating a mirror registry with mirror registry for Red Hat OpenShift](https://docs.okd.io/latest/installing/disconnected_install/installing-mirroring-creating-registry.html).
 
@@ -146,6 +146,28 @@ $ sed -i "s/BASE64_ENCODED_REGISTRY_CONF/$(cat registry.conf.b64)/" discovery-ig
 $ sed -i "s/BASE64_ENCODED_LOCAL_REGISTRY_CRT/$(cat quay.crt.b64)/" discovery-ignition.json
 ```
 
+You will apply this file as a part of the [Build/Deploy a Cluster](#builddeploy-a-cluster) in the next section.
+
 ## Build/Deploy a Cluster
 
-At this point, you can now follow standard Assisted Installer workflows to create a cluster. However you will need to ensure that you also apply the "ignition_config_override" created in the [Ignition Config Override](#ignition-config-override) section.
+At this point, you can now follow standard Assisted Installer workflows to create a cluster. Keep in mind that you will need to add your mirror registry certificate to the install_config as and _additionalTrustBundle_ well as add the _imageContentSources_ that define your mirror registry. The process that you use to do this will vary based on if you are using the Assisted Installer Web UI, via all api calls, or using [aicli](https://github.com/karmab/aicli).
+
+### Using the Assisted Installer GUI
+
+You can use the Assisted Installer web UI to set up the initial cluster settings, but you will need to customize the cluster using the API in order to patch the ignition_config to use the internal mirror resources. Instructions for creating a cluster through the UI can be found in the [Assisted Installer User Guide](https://github.com/openshift/assisted-service/blob/master/docs/user-guide/README.md). Once the cluster is configured (but PRIOR to downloading the ISO file), follow the steps below [Patching the Cluster Definition](#patching-the-cluster-definition).
+
+### Using AICLI
+
+The [aicli](https://github.com/karmab/aicli) tool is a tool that can be used to deploy OpenShift clusters using the Assisted Installer service from the command line. This is a community supported tool, and is NOT a part of the OpenShift project. 
+
+### Using the API
+
+#### Creating the Cluster
+
+Follow the instructions [rest api getting started](https://github.com/openshift/assisted-service/blob/master/docs/user-guide/rest-api-getting-started.md) to create your cluster. 
+
+#### Patching the Cluster Definition
+
+Then use the instructions [Install Customization - Discovery Ignition](https://github.com/openshift/assisted-service/blob/master/docs/user-guide/install-customization.md#discovery-ignition) to apply the discovery-ignition.json file created in the [Ignition Config Override](#ignition-config-override)
+
+Then use the instructions [Install Customization - Install Config](https://github.com/openshift/assisted-service/blob/master/docs/user-guide/install-customization.md#install-config) to apply the _additionalTrustBundle_ and _imageContentSources_ to the OpenShift install_config.yaml.
