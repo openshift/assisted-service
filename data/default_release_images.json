@@ -55,7 +55,7 @@
         "version": "4.11.3"
     },
     {
-        "openshift_version": "4.11-multi",
+        "openshift_version": "4.11.0-multi",
         "cpu_architecture": "multi",
         "cpu_architectures": [
             "x86_64",
