@@ -31,6 +31,7 @@ import (
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	"github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
@@ -64,6 +65,8 @@ func init() {
 	utilruntime.Must(monitoringv1.AddToScheme(scheme))
 
 	utilruntime.Must(apiregv1.AddToScheme(scheme))
+
+	utilruntime.Must(apiextensionsv1.AddToScheme(scheme))
 }
 
 func main() {
@@ -160,6 +163,7 @@ func main() {
 		Scheme:       mgr.GetScheme(),
 		NodeSelector: nodeSelector,
 		Tolerations:  tolerations,
+		Namespace:    ns,
 		SpokeClients: spokeClientCache,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "HypershiftAgentServiceConfig")
