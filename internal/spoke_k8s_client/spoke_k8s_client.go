@@ -7,6 +7,7 @@ import (
 
 	"github.com/go-openapi/strfmt"
 	bmh_v1alpha1 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
+	authzv1 "github.com/openshift/api/authorization/v1"
 	configv1 "github.com/openshift/api/config/v1"
 	routev1 "github.com/openshift/api/route/v1"
 	hiveext "github.com/openshift/assisted-service/api/hiveextension/v1beta1"
@@ -160,11 +161,11 @@ func (c *spokeK8sClient) CreateSubjectAccessReview(subjectAccessReview *authoriz
 func (c *spokeK8sClient) IsActionPermitted(verb string, resource string) (bool, error) {
 	sar := authorizationv1.SelfSubjectAccessReview{
 		Spec: authorizationv1.SelfSubjectAccessReviewSpec{
-            ResourceAttributes: &authorizationv1.ResourceAttributes{
-                Verb:      verb,
-                Resource:  resource,
-            },
-        },
+			ResourceAttributes: &authorizationv1.ResourceAttributes{
+				Verb:     verb,
+				Resource: resource,
+			},
+		},
 	}
 	sarResponse, err := c.CreateSubjectAccessReview(&sar)
 	if err != nil {
@@ -215,5 +216,6 @@ func GetKubeClientSchemes() *runtime.Scheme {
 	utilruntime.Must(apiregv1.AddToScheme(schemes))
 	utilruntime.Must(configv1.Install(schemes))
 	utilruntime.Must(metal3iov1alpha1.AddToScheme(schemes))
+	utilruntime.Must(authzv1.AddToScheme(schemes))
 	return schemes
 }

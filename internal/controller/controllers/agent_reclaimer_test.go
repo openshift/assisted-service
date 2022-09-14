@@ -8,11 +8,15 @@ import (
 	"github.com/google/uuid"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	authzv1 "github.com/openshift/api/authorization/v1"
+	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/gencrypto"
 	"github.com/openshift/assisted-service/pkg/auth"
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -51,7 +55,10 @@ var _ = Context("with a fake client", func() {
 	)
 
 	BeforeEach(func() {
-		c = fakeclient.NewClientBuilder().WithScheme(scheme.Scheme).Build()
+		schemes := runtime.NewScheme()
+		Expect(scheme.AddToScheme(schemes)).To(Succeed())
+		Expect(authzv1.AddToScheme(schemes)).To(Succeed())
+		c = fakeclient.NewClientBuilder().WithScheme(schemes).Build()
 		reclaimer = &agentReclaimer{reclaimConfig{
 			AgentContainerImage: agentImage,
 			ServiceBaseURL:      assistedBaseURL,
@@ -60,17 +67,103 @@ var _ = Context("with a fake client", func() {
 
 	Describe("ensureSpokeNamespace", func() {
 		It("creates the namespace", func() {
-			Expect(ensureSpokeNamespace(ctx, c)).To(Succeed())
+			Expect(ensureSpokeNamespace(ctx, c, common.GetTestLog())).To(Succeed())
 
 			key := types.NamespacedName{Name: spokeReclaimNamespaceName}
 			Expect(c.Get(ctx, key, &corev1.Namespace{})).To(Succeed())
 		})
 
-		It("succeeds if the namespace already exists", func() {
+		It("updates if the namespace already exists", func() {
 			ns := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: spokeReclaimNamespaceName}}
 			Expect(c.Create(ctx, ns)).To(Succeed())
 
-			Expect(ensureSpokeNamespace(ctx, c)).To(Succeed())
+			Expect(ensureSpokeNamespace(ctx, c, common.GetTestLog())).To(Succeed())
+
+			key := types.NamespacedName{Name: spokeReclaimNamespaceName}
+			Expect(c.Get(ctx, key, ns)).To(Succeed())
+			Expect(ns.Labels).To(HaveKeyWithValue("pod-security.kubernetes.io/enforce", "privileged"))
+		})
+	})
+
+	Describe("ensureSpokeServiceAccount", func() {
+		It("creates the serviceaccount", func() {
+			Expect(ensureSpokeServiceAccount(ctx, c, common.GetTestLog())).To(Succeed())
+
+			key := types.NamespacedName{Name: spokeRBACName, Namespace: spokeReclaimNamespaceName}
+			Expect(c.Get(ctx, key, &corev1.ServiceAccount{})).To(Succeed())
+		})
+
+		It("succeeds if the serviceaccount already exists", func() {
+			sa := &corev1.ServiceAccount{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      spokeRBACName,
+					Namespace: spokeReclaimNamespaceName,
+				},
+			}
+			Expect(c.Create(ctx, sa)).To(Succeed())
+
+			Expect(ensureSpokeServiceAccount(ctx, c, common.GetTestLog())).To(Succeed())
+		})
+	})
+
+	Describe("ensureSpokeRole", func() {
+		It("creates the role", func() {
+			Expect(ensureSpokeRole(ctx, c, common.GetTestLog())).To(Succeed())
+
+			key := types.NamespacedName{Name: spokeRBACName, Namespace: spokeReclaimNamespaceName}
+			role := &authzv1.Role{}
+			Expect(c.Get(ctx, key, role)).To(Succeed())
+
+			rule := authzv1.PolicyRule{
+				APIGroups:     []string{"security.openshift.io"},
+				Resources:     []string{"securitycontextconstraints"},
+				ResourceNames: []string{"privileged"},
+				Verbs:         []string{"use"},
+			}
+			Expect(role.Rules).To(ConsistOf(rule))
+		})
+
+		It("succeeds if the role already exists", func() {
+			role := &authzv1.Role{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      spokeRBACName,
+					Namespace: spokeReclaimNamespaceName,
+				},
+			}
+			Expect(c.Create(ctx, role)).To(Succeed())
+
+			Expect(ensureSpokeRole(ctx, c, common.GetTestLog())).To(Succeed())
+		})
+	})
+
+	Describe("ensureSpokeRoleBinding", func() {
+		It("creates the role binding", func() {
+			Expect(ensureSpokeRoleBinding(ctx, c, common.GetTestLog())).To(Succeed())
+
+			key := types.NamespacedName{Name: spokeRBACName, Namespace: spokeReclaimNamespaceName}
+			rb := &authzv1.RoleBinding{}
+			Expect(c.Get(ctx, key, rb)).To(Succeed())
+
+			Expect(rb.Subjects[0]).To(Equal(corev1.ObjectReference{
+				Kind:      "ServiceAccount",
+				Name:      spokeRBACName,
+				Namespace: spokeReclaimNamespaceName,
+			}))
+			Expect(rb.RoleRef).To(Equal(corev1.ObjectReference{
+				APIVersion: "rbac.authorization.k8s.io/v1",
+				Kind:       "Role",
+				Name:       spokeRBACName,
+				Namespace:  spokeReclaimNamespaceName,
+			}))
+		})
+
+		It("succeeds if the role binding already exists", func() {
+			rb := &authzv1.RoleBinding{
+				ObjectMeta: metav1.ObjectMeta{Name: spokeRBACName},
+			}
+			Expect(c.Create(ctx, rb)).To(Succeed())
+
+			Expect(ensureSpokeRoleBinding(ctx, c, common.GetTestLog())).To(Succeed())
 		})
 	})
 
@@ -82,7 +175,7 @@ var _ = Context("with a fake client", func() {
 
 		It("creates the secret with an empty value with none auth", func() {
 			reclaimer.AuthType = auth.TypeNone
-			Expect(reclaimer.ensureSpokeAgentSecret(ctx, c, infraEnvID)).To(Succeed())
+			Expect(reclaimer.ensureSpokeAgentSecret(ctx, c, common.GetTestLog(), infraEnvID)).To(Succeed())
 
 			key := types.NamespacedName{
 				Name:      fmt.Sprintf("reclaim-%s-token", infraEnvID),
@@ -102,7 +195,7 @@ var _ = Context("with a fake client", func() {
 			defer os.Unsetenv("EC_PROVATE_KEY_PEM")
 
 			reclaimer.AuthType = auth.TypeLocal
-			Expect(reclaimer.ensureSpokeAgentSecret(ctx, c, infraEnvID)).To(Succeed())
+			Expect(reclaimer.ensureSpokeAgentSecret(ctx, c, common.GetTestLog(), infraEnvID)).To(Succeed())
 
 			key := types.NamespacedName{
 				Name:      fmt.Sprintf("reclaim-%s-token", infraEnvID),
@@ -127,15 +220,15 @@ var _ = Context("with a fake client", func() {
 			Expect(c.Create(ctx, secret)).To(Succeed())
 
 			reclaimer.AuthType = auth.TypeNone
-			Expect(reclaimer.ensureSpokeAgentSecret(ctx, c, infraEnvID)).To(Succeed())
+			Expect(reclaimer.ensureSpokeAgentSecret(ctx, c, common.GetTestLog(), infraEnvID)).To(Succeed())
 		})
 
 		It("creates a second secret if one exists for a different infra-env", func() {
 			reclaimer.AuthType = auth.TypeNone
-			Expect(reclaimer.ensureSpokeAgentSecret(ctx, c, infraEnvID)).To(Succeed())
+			Expect(reclaimer.ensureSpokeAgentSecret(ctx, c, common.GetTestLog(), infraEnvID)).To(Succeed())
 
 			otherInfraEnvID := uuid.New().String()
-			Expect(reclaimer.ensureSpokeAgentSecret(ctx, c, otherInfraEnvID)).To(Succeed())
+			Expect(reclaimer.ensureSpokeAgentSecret(ctx, c, common.GetTestLog(), otherInfraEnvID)).To(Succeed())
 
 			key := types.NamespacedName{
 				Name:      fmt.Sprintf("reclaim-%s-token", infraEnvID),
@@ -160,7 +253,7 @@ var _ = Context("with a fake client", func() {
 			Expect(certFile.Sync()).To(Succeed())
 
 			reclaimer.ServiceCACertPath = fileName
-			Expect(reclaimer.ensureSpokeAgentCertCM(ctx, c)).To(Succeed())
+			Expect(reclaimer.ensureSpokeAgentCertCM(ctx, c, common.GetTestLog())).To(Succeed())
 
 			key := types.NamespacedName{
 				Name:      spokeReclaimCMName,
@@ -174,7 +267,7 @@ var _ = Context("with a fake client", func() {
 		})
 
 		It("does not create a configmap when no cert path is set", func() {
-			Expect(reclaimer.ensureSpokeAgentCertCM(ctx, c)).To(Succeed())
+			Expect(reclaimer.ensureSpokeAgentCertCM(ctx, c, common.GetTestLog())).To(Succeed())
 			key := types.NamespacedName{
 				Name:      spokeReclaimCMName,
 				Namespace: spokeReclaimNamespaceName,
@@ -193,26 +286,31 @@ var _ = Context("with a fake client", func() {
 			}
 			Expect(c.Create(ctx, cm)).To(Succeed())
 
-			Expect(reclaimer.ensureSpokeAgentCertCM(ctx, c)).To(Succeed())
+			Expect(reclaimer.ensureSpokeAgentCertCM(ctx, c, common.GetTestLog())).To(Succeed())
 		})
 	})
 
-	Describe("createNextStepRunnerPod", func() {
+	Describe("createNextStepRunnerDaemonSet", func() {
 		var (
-			nodeName   = "node.example.com"
-			podName    = "node.example.com-reclaim"
-			infraEnvID string
-			hostID     string
+			nodeName      = "node.example.com"
+			daemonSetName = "node.example.com-reclaim"
+			infraEnvID    string
+			hostID        string
+			nodeUID       string
 		)
 
 		BeforeEach(func() {
 			infraEnvID = uuid.New().String()
 			hostID = uuid.New().String()
+			nodeUID = uuid.New().String()
 		})
 
 		withANode := func(hostname string) {
 			node := &corev1.Node{
-				ObjectMeta: metav1.ObjectMeta{Name: hostname},
+				ObjectMeta: metav1.ObjectMeta{
+					Name: hostname,
+					UID:  types.UID(nodeUID),
+				},
 				Status: corev1.NodeStatus{
 					Addresses: []corev1.NodeAddress{
 						{Type: corev1.NodeHostName, Address: hostname},
@@ -222,19 +320,30 @@ var _ = Context("with a fake client", func() {
 			Expect(c.Create(ctx, node)).To(Succeed())
 		}
 
-		It("creates a pod correctly on the spoke node", func() {
+		It("creates a daemon set correctly on the spoke node", func() {
 			withANode(nodeName)
-			Expect(reclaimer.createNextStepRunnerPod(ctx, c, nodeName, infraEnvID, hostID)).To(Succeed())
+			Expect(reclaimer.createNextStepRunnerDaemonSet(ctx, c, common.GetTestLog(), nodeName, infraEnvID, hostID)).To(Succeed())
 
-			pod := &corev1.Pod{}
-			podNsName := types.NamespacedName{
-				Name:      podName,
+			ds := &appsv1.DaemonSet{}
+			daemonSetNsName := types.NamespacedName{
+				Name:      daemonSetName,
 				Namespace: spokeReclaimNamespaceName,
 			}
-			Expect(c.Get(ctx, podNsName, pod)).To(Succeed())
+			Expect(c.Get(ctx, daemonSetNsName, ds)).To(Succeed())
 
-			Expect(pod.Spec.NodeName).To(Equal(nodeName))
-			container := pod.Spec.Containers[0]
+			nodeOwnerRef := metav1.OwnerReference{
+				APIVersion: "v1",
+				Kind:       "Node",
+				Name:       nodeName,
+				UID:        types.UID(nodeUID),
+			}
+			Expect(ds.OwnerReferences).To(ContainElement(nodeOwnerRef))
+
+			Expect(ds.Spec.Template.Spec.NodeSelector).To(HaveKeyWithValue("kubernetes.io/hostname", nodeName))
+			Expect(ds.Spec.Template.Spec.ServiceAccountName).To(Equal(spokeRBACName))
+			Expect(ds.Spec.Template.Spec.PriorityClassName).To(Equal("system-node-critical"))
+
+			container := ds.Spec.Template.Spec.Containers[0]
 			Expect(container.Image).To(Equal(agentImage))
 			Expect(container.SecurityContext.Privileged).To(HaveValue(Equal(true)))
 			Expect(container.Command).To(Equal([]string{"next_step_runner"}))
@@ -246,25 +355,25 @@ var _ = Context("with a fake client", func() {
 		It("adds cert configuration when CA cert path is set", func() {
 			withANode(nodeName)
 			reclaimer.ServiceCACertPath = "/etc/assisted/cert.crt"
-			Expect(reclaimer.createNextStepRunnerPod(ctx, c, nodeName, infraEnvID, hostID)).To(Succeed())
+			Expect(reclaimer.createNextStepRunnerDaemonSet(ctx, c, common.GetTestLog(), nodeName, infraEnvID, hostID)).To(Succeed())
 
-			pod := &corev1.Pod{}
-			podNsName := types.NamespacedName{
-				Name:      podName,
+			ds := &appsv1.DaemonSet{}
+			daemonSetNsName := types.NamespacedName{
+				Name:      daemonSetName,
 				Namespace: spokeReclaimNamespaceName,
 			}
-			Expect(c.Get(ctx, podNsName, pod)).To(Succeed())
+			Expect(c.Get(ctx, daemonSetNsName, ds)).To(Succeed())
 
-			Expect(pod.Spec.Containers[0].Args).To(ContainElement("-cacert=/etc/assisted-service/service-ca-cert.crt"))
+			Expect(ds.Spec.Template.Spec.Containers[0].Args).To(ContainElement("-cacert=/etc/assisted-service/service-ca-cert.crt"))
 			foundVolume := false
-			for _, vol := range pod.Spec.Volumes {
+			for _, vol := range ds.Spec.Template.Spec.Volumes {
 				if vol.Name == "ca-cert" && vol.VolumeSource.ConfigMap.LocalObjectReference.Name == spokeReclaimCMName {
 					foundVolume = true
 				}
 			}
 			Expect(foundVolume).To(BeTrue(), "Pod should have ca-cert volume")
 			foundMount := false
-			for _, mount := range pod.Spec.Containers[0].VolumeMounts {
+			for _, mount := range ds.Spec.Template.Spec.Containers[0].VolumeMounts {
 				if mount.Name == "ca-cert" && mount.MountPath == "/etc/assisted-service" {
 					foundMount = true
 				}
@@ -273,7 +382,7 @@ var _ = Context("with a fake client", func() {
 		})
 
 		It("fails when the node doesn't exist", func() {
-			Expect(reclaimer.createNextStepRunnerPod(ctx, c, nodeName, infraEnvID, hostID)).ToNot(Succeed())
+			Expect(reclaimer.createNextStepRunnerDaemonSet(ctx, c, common.GetTestLog(), nodeName, infraEnvID, hostID)).ToNot(Succeed())
 		})
 	})
 })
