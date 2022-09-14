@@ -1272,6 +1272,13 @@ func (m *Manager) GenerateAdditionalManifests(ctx context.Context, cluster *comm
 		return errors.Wrap(err, "failed to add node ip hint")
 	}
 
+	if cluster.Platform != nil && cluster.Platform.Type != nil && *cluster.Platform.Type == models.PlatformTypeVsphere {
+		err := m.manifestsGeneratorAPI.AddVSphereConsolePluginManifest(ctx, log, cluster)
+		if err != nil {
+			return errors.Wrap(err, "failed to add VSphere console plugin manifest")
+		}
+	}
+
 	return nil
 }
 

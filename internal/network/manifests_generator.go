@@ -30,6 +30,7 @@ type ManifestsGeneratorAPI interface {
 	AddTelemeterManifest(ctx context.Context, log logrus.FieldLogger, c *common.Cluster) error
 	AddSchedulableMastersManifest(ctx context.Context, log logrus.FieldLogger, c *common.Cluster) error
 	AddDiskEncryptionManifest(ctx context.Context, log logrus.FieldLogger, c *common.Cluster) error
+	AddVSphereConsolePluginManifest(ctx context.Context, log logrus.FieldLogger, c *common.Cluster) error
 	IsSNODNSMasqEnabled() bool
 }
 
@@ -585,3 +586,29 @@ func createNodeIpHintContent(log logrus.FieldLogger, cluster *common.Cluster, ro
 
 	return fillTemplate(manifestParams, nodeIpHint, log)
 }
+func (m *ManifestsGenerator) AddVSphereConsolePluginManifest(ctx context.Context, log logrus.FieldLogger, cluster *common.Cluster) error {
+	content := []byte(vsphereConsoleManifest)
+	file := "60-vsphere_console_plugin.yaml"
+	err := m.createManifests(ctx, cluster, file, content)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+const vsphereConsoleManifest = `
+apiVersion: console.openshift.io/v1alpha1
+kind: ConsolePlugin
+metadata:
+  name: console-plugin-vsphere-connection
+  namespace: vsphere-plugin
+spec:
+  displayName: vSphere Connection Configuration
+  service:
+    name: console-plugin-vsphere-connection
+    namespace: vsphere-plugin
+    port: 9443
+    basePath: /
+
+...
+`
