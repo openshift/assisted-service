@@ -5133,6 +5133,37 @@ var _ = Describe("[V2ClusterUpdate] cluster", func() {
 					Expect(*actual.Platform.Type).To(Equal(models.PlatformTypeVsphere))
 				})
 
+				It("Update UMN=true while cluster platform already set to vsphere - success", func() {
+					mockClusterUpdateSuccess(2, 0)
+					mockProviderRegistry.EXPECT().SetPlatformUsages(models.PlatformTypeVsphere, gomock.Any(), mockUsage)
+
+					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
+						ClusterID: clusterID,
+						ClusterUpdateParams: &models.V2ClusterUpdateParams{
+							Platform: &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeVsphere)},
+						},
+					})
+					Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2UpdateClusterCreated()))
+					actual := reply.(*installer.V2UpdateClusterCreated).Payload
+					Expect(*actual.Platform.Type).To(Equal(models.PlatformTypeVsphere))
+
+					mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(1)
+
+					reply2 := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
+						ClusterID: clusterID,
+						ClusterUpdateParams: &models.V2ClusterUpdateParams{
+							UserManagedNetworking: swag.Bool(true),
+							VipDhcpAllocation:     swag.Bool(false),
+							NetworkType:           swag.String(models.ClusterNetworkTypeOpenShiftSDN),
+						},
+					})
+
+					Expect(reply2).Should(BeAssignableToTypeOf(installer.NewV2UpdateClusterCreated()))
+					actual2 := reply2.(*installer.V2UpdateClusterCreated).Payload
+					Expect(swag.BoolValue(actual2.UserManagedNetworking)).To(Equal(true))
+					Expect(*actual2.Platform.Type).To(Equal(models.PlatformTypeVsphere))
+				})
+
 				It("Update UMN=true - success", func() {
 					mockSuccess()
 					mockProviderRegistry.EXPECT().SetPlatformUsages(models.PlatformTypeNone, gomock.Any(), mockUsage)
