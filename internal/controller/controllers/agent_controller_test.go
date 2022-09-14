@@ -673,7 +673,7 @@ var _ = Describe("agent reconcile", func() {
 		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, v1beta1.SpecSyncedCondition).Status).To(Equal(corev1.ConditionTrue))
 	})
 
-	Context("host reclaim enabled", func() {
+	Context("host reclaim", func() {
 		var (
 			commonHost            *common.Host
 			clusterDeploymentName = "test-cluster"
@@ -682,7 +682,6 @@ var _ = Describe("agent reconcile", func() {
 		)
 
 		BeforeEach(func() {
-			hr.EnableHostReclaim = true
 			hr.reclaimer = &agentReclaimer{
 				reclaimConfig: reclaimConfig{
 					AgentContainerImage: "quay.io/edge-infrastructure/assisted-installer-agent:latest",
@@ -898,6 +897,8 @@ var _ = Describe("agent reconcile", func() {
 
 		errString := "failed to find host in infraEnv"
 		mockInstallerInternal.EXPECT().GetHostByKubeKey(gomock.Any()).Return(commonHost, nil).AnyTimes()
+		// Return cluster without kube key to skip reclaim
+		mockInstallerInternal.EXPECT().GetClusterInternal(gomock.Any(), installer.V2GetClusterParams{ClusterID: sId}).Return(backEndCluster, nil).AnyTimes()
 		mockInstallerInternal.EXPECT().UnbindHostInternal(gomock.Any(), gomock.Any(), false).Return(commonHost, common.NewApiError(http.StatusNotFound, errors.New(errString)))
 		allowGetInfraEnvInternal(mockInstallerInternal, infraEnvId, "infraEnvName")
 
@@ -1020,20 +1021,29 @@ var _ = Describe("agent reconcile", func() {
 			ID: &sId,
 			Hosts: []*models.Host{
 				&commonHost.Host,
-			}}}
+			},
+		}}
 		targetId := strfmt.UUID(uuid.New().String())
-		targetBECluster := &common.Cluster{Cluster: models.Cluster{
-			ID: &targetId}}
+		targetClusterName := "clusterDeployment"
+		targetBECluster := &common.Cluster{
+			KubeKeyName:      targetClusterName,
+			KubeKeyNamespace: testNamespace,
+			Cluster: models.Cluster{
+				ID: &targetId,
+			},
+		}
 		host := newAgent(hostId.String(), testNamespace, v1beta1.AgentSpec{ClusterDeploymentName: &v1beta1.ClusterReference{Name: "clusterDeployment", Namespace: testNamespace}})
-		clusterDeployment := newClusterDeployment("clusterDeployment", testNamespace, getDefaultClusterDeploymentSpec("clusterDeployment-test", "test-cluster-aci", "pull-secret"))
+		clusterDeployment := newClusterDeployment(targetClusterName, testNamespace, getDefaultClusterDeploymentSpec("clusterDeployment-test", "test-cluster-aci", "pull-secret"))
 		Expect(c.Create(ctx, clusterDeployment)).To(BeNil())
 
 		mockInstallerInternal.EXPECT().GetHostByKubeKey(gomock.Any()).Return(commonHost, nil)
-		mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(targetBECluster, nil)
+		mockInstallerInternal.EXPECT().GetClusterByKubeKey(types.NamespacedName{Name: targetClusterName, Namespace: testNamespace}).Return(targetBECluster, nil)
+		mockInstallerInternal.EXPECT().GetClusterInternal(gomock.Any(), installer.V2GetClusterParams{ClusterID: sId}).Return(backEndCluster, nil).AnyTimes()
 		mockInstallerInternal.EXPECT().UnbindHostInternal(gomock.Any(), gomock.Any(), false).Return(commonHost, nil)
 		allowGetInfraEnvInternal(mockInstallerInternal, infraEnvId, "infraEnvName")
 		Expect(c.Create(ctx, host)).To(BeNil())
 
+		// getting the spoke kube client should fail and fallback to unbind rather than reclaim
 		result, err := hr.Reconcile(ctx, newHostRequest(host))
 		Expect(err).To(BeNil())
 		Expect(result).To(Equal(ctrl.Result{}))

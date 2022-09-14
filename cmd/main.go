@@ -148,7 +148,6 @@ var Options struct {
 	HTTPListenPort                 string        `envconfig:"HTTP_LISTEN_PORT" default:""`
 	AllowConvergedFlow             bool          `envconfig:"ALLOW_CONVERGED_FLOW" default:"false"` // set to true once https://bugzilla.redhat.com/show_bug.cgi?id=2089683 is resolved
 	IronicIgnitionBuilderConfig    ignition.IronicIgniotionBuilderConfig
-	EnableHostReclaim              bool `envconfig:"ENABLE_HOST_RECLAIM" default:"false"`
 
 	// Directory containing pre-generated TLS certs/keys for the ephemeral installer
 	ClusterTLSCertOverrideDir string `envconfig:"EPHEMERAL_INSTALLER_CLUSTER_TLS_CERTS_OVERRIDE_DIR" default:""`
@@ -560,7 +559,6 @@ func main() {
 				AuthType:                   Options.Auth.AuthType,
 				SpokeK8sClientFactory:      spoke_k8s_client.NewSpokeK8sClientFactory(log),
 				ApproveCsrsRequeueDuration: Options.ApproveCsrsRequeueDuration,
-				EnableHostReclaim:          Options.EnableHostReclaim,
 				AgentContainerImage:        Options.BMConfig.AgentDockerImg,
 				HostFSMountDir:             hostFSMountDir,
 			}).SetupWithManager(ctrlMgr), "unable to create controller Agent")
