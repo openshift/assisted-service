@@ -334,13 +334,17 @@ func (g *installerGenerator) Generate(ctx context.Context, installConfig []byte,
 	}
 
 	// setting bootstrap kubelet node ip
+	// We don't want to set bootstrap ip in None platform as user can't set machine cidr
+	//and we can choose the wrong one
 	log.Debugf("Adding bootstrap ip to env vars")
-	bootstrapIp, errB := network.GetPrimaryMachineCIDRIP(common.GetBootstrapHost(g.cluster), g.cluster)
-	if errB != nil {
-		log.WithError(errB).Warn("Failed to get bootstrap primary ip for kubelet service update.")
-		return errB
+	if !swag.BoolValue(g.cluster.UserManagedNetworking) || common.IsSingleNodeCluster(g.cluster) {
+		bootstrapIp, errB := network.GetPrimaryMachineCIDRIP(common.GetBootstrapHost(g.cluster), g.cluster)
+		if errB != nil {
+			log.WithError(errB).Warn("Failed to get bootstrap primary ip for kubelet service update.")
+			return errB
+		}
+		envVars = append(envVars, "OPENSHIFT_INSTALL_BOOTSTRAP_NODE_IP="+bootstrapIp)
 	}
-	envVars = append(envVars, "OPENSHIFT_INSTALL_BOOTSTRAP_NODE_IP="+bootstrapIp)
 
 	// setting bootstrap kubelet node ip
 	if !common.IsSingleNodeCluster(g.cluster) {
