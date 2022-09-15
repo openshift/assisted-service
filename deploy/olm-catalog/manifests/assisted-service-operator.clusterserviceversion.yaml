@@ -188,6 +188,9 @@ spec:
         displayName: Operating System Images
         path: osImages
       version: v1beta1
+    - kind: HypershiftAgentServiceConfig
+      name: hypershiftagentserviceconfigs.agent-install.openshift.io
+      version: v1beta1
     - displayName: InfraEnv
       kind: InfraEnv
       name: infraenvs.agent-install.openshift.io
@@ -418,6 +421,26 @@ spec:
           - agent-install.openshift.io
           resources:
           - agentserviceconfigs/status
+          verbs:
+          - get
+          - patch
+          - update
+        - apiGroups:
+          - agent-install.openshift.io
+          resources:
+          - hypershiftagentserviceconfigs
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - agent-install.openshift.io
+          resources:
+          - hypershiftagentserviceconfigs/status
           verbs:
           - get
           - patch
