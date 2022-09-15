@@ -6277,6 +6277,21 @@ definitions:
     items:
       $ref: '#/definitions/release-image'
 
+  kernel_arguments:
+    description: List of string values to be passed to discovery image as kernel arguments.
+    type: array
+    items:
+      type: string
+      pattern: '^(?:(?:[^ \t\n\r"]+)|(?:"[^"]*"))+$'
+      description: |
+        Kernel argument can have the form <parameter> or <parameter>=<value>. The following examples should
+        be supported:
+        rd.net.timeout.carrier=60
+        isolcpus=1,2,10-20,100-2000:2/25
+        quiet
+        The parsing by the command line parser in linux kernel is much looser and this pattern follows it.
+
+
   operator-property:
     type: object
     properties:
@@ -6419,6 +6434,11 @@ definitions:
         x-nullable: false
         default: 'x86_64'
         description: The CPU architecture of the image (x86_64/arm64/etc).
+      discovery_kernel_arguments:
+        type: string
+        x-nullable: true
+        x-go-custom-tag: gorm:"type:text"
+        description: JSON formatted string array representing the discovery image kernel arguments.
 
   proxy:
     type: object
@@ -6491,6 +6511,8 @@ definitions:
         x-nullable: false
         default: 'x86_64'
         description: The CPU architecture of the image (x86_64/arm64/etc).
+      discovery_kernel_arguments:
+        $ref: '#/definitions/kernel_arguments'
 
   infra-env-update-params:
     type: object
@@ -6517,6 +6539,8 @@ definitions:
       ignition_config_override:
         type: string
         description: JSON formatted string containing the user overrides for the initial ignition config.
+      discovery_kernel_arguments:
+        $ref: '#/definitions/kernel_arguments'
 
   subnet:
     type: string
