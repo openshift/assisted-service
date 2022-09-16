@@ -517,7 +517,7 @@ func (g *installerGenerator) importClusterTLSCerts(ctx context.Context) error {
 	tlsFS := os.DirFS(g.clusterTLSCertOverrideDir)
 
 	copyFile := func(filename string) error {
-		log.Info("Copying cluster TLS cert file", "filename", filename)
+		log.WithField("filename", filename).Info("Copying cluster TLS cert file")
 
 		f, err := tlsFS.Open(filename)
 		if err != nil {
