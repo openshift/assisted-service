@@ -862,6 +862,10 @@ func (b *bareMetalInventory) createAndUploadDay2NodeIgnition(ctx context.Context
 	if err != nil {
 		return errors.Wrapf(err, "Failed to build ignition endpoint for host %s in cluster %s", host.ID, cluster.ID)
 	}
+	ignitionEndpointUrl, err = b.UpdateIgnitionEndpointIfHasMCSCert(log, host, cluster, ignitionEndpointUrl)
+	if err != nil {
+		return errors.Wrapf(err, "Failed to build ignition endpoint for host %s in cluster %s", host.ID, cluster.ID)
+	}
 
 	var caCert *string = nil
 	if cluster.IgnitionEndpoint != nil {
@@ -880,6 +884,31 @@ func (b *bareMetalInventory) createAndUploadDay2NodeIgnition(ctx context.Context
 		return errors.Errorf("Failed to upload worker ignition for cluster %s", cluster.ID)
 	}
 	return nil
+}
+
+func (b *bareMetalInventory) UpdateIgnitionEndpointIfHasMCSCert(log logrus.FieldLogger, host *models.Host, cluster *common.Cluster, ignitionEndpointUrl string) (string, error) {
+	// No ignition override set by bmh agent controller
+	if host.IgnitionConfigOverrides == "" {
+		return ignitionEndpointUrl, nil
+	}
+	// No CA certs set in ignition override
+	if !ignition.HasCACertInIgnition(host.IgnitionConfigOverrides) {
+		return ignitionEndpointUrl, nil
+	}
+	// Not an operator-backed deployment
+	if b.k8sClient == nil {
+		return ignitionEndpointUrl, nil
+	}
+	log.Infof("Found CA certificate in ignition override for cluster %s, host %s", cluster.ID, host.ID)
+	url, err := url.Parse(ignitionEndpointUrl)
+	if err != nil {
+		return ignitionEndpointUrl, err
+	}
+	url.Scheme = "https"
+	url.Host = fmt.Sprintf("%s.%s.%s:%d", constants.InternalAPIClusterSubdomain, cluster.Name, cluster.BaseDNSDomain, constants.SecureMCSPort)
+	ignitionEndpointUrl = url.String()
+	log.Infof("Resetting Ignition endpoint URL to %s for %s, host %s", ignitionEndpointUrl, cluster.ID, host.ID)
+	return ignitionEndpointUrl, nil
 }
 
 func (b *bareMetalInventory) integrateWithAMSClusterDeregistration(ctx context.Context, cluster *common.Cluster) error {
