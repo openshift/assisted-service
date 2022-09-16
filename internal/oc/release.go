@@ -318,7 +318,7 @@ func (r *release) extractFromRelease(log logrus.FieldLogger, releaseImage, cache
 	}
 	// set path
 	path := filepath.Join(workdir, binary)
-	log.Info("Successfully extracted $s binary from the release to: $s", binary, path)
+	log.Infof("Successfully extracted %s binary from the release to: %s", binary, path)
 	return path, nil
 }
 
