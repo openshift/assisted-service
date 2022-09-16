@@ -1765,6 +1765,64 @@ var _ = Describe("Refresh Host", func() {
 			info := statusInfoConnectionTimedOut
 			Expect(swag.StringValue(resultHost.StatusInfo)).To(MatchRegexp(info))
 		})
+		It("host disconnected - bootstrap disconnection timeout is longer than regular host", func() {
+			srcState = models.HostStatusInstalling
+			host = hostutil.GenerateTestHost(hostId, infraEnvId, clusterId, srcState)
+			host.Inventory = hostutil.GenerateMasterInventory()
+			host.Role = models.HostRoleMaster
+			host.Bootstrap = true
+			host.CheckedInAt = strfmt.DateTime(time.Now().Add(-MaxHostDisconnectionTime - 1*time.Minute))
+			progress := models.HostProgressInfo{
+				StageStartedAt: strfmt.DateTime(time.Now().Add(-passedTime)),
+				StageUpdatedAt: strfmt.DateTime(time.Now().Add(-passedTime)),
+			}
+
+			host.Progress = &progress
+
+			Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
+			cluster = hostutil.GenerateTestCluster(clusterId)
+			Expect(db.Create(&cluster).Error).ToNot(HaveOccurred())
+
+			err := hapi.RefreshStatus(ctx, &host, db)
+
+			Expect(err).ToNot(HaveOccurred())
+			var resultHost models.Host
+			Expect(db.Take(&resultHost, "id = ? and cluster_id = ?", hostId.String(), clusterId.String()).Error).ToNot(HaveOccurred())
+			Expect(swag.StringValue(resultHost.Status)).To(Equal(models.HostStatusInstalling))
+		})
+		It("host disconnected - bootstrap disconnection", func() {
+			srcState = models.HostStatusPreparingForInstallation
+			host = hostutil.GenerateTestHost(hostId, infraEnvId, clusterId, srcState)
+			host.Inventory = hostutil.GenerateMasterInventory()
+			host.Role = models.HostRoleMaster
+			host.Bootstrap = true
+			host.CheckedInAt = strfmt.DateTime(time.Now().Add(-MaxHostDisconnectionTime - 2*time.Minute))
+			progress := models.HostProgressInfo{
+				StageStartedAt: strfmt.DateTime(time.Now().Add(-passedTime)),
+				StageUpdatedAt: strfmt.DateTime(time.Now().Add(-passedTime)),
+			}
+
+			host.Progress = &progress
+
+			Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
+			cluster = hostutil.GenerateTestCluster(clusterId)
+			Expect(db.Create(&cluster).Error).ToNot(HaveOccurred())
+			mockEvents.EXPECT().SendHostEvent(gomock.Any(), eventstest.NewEventMatcher(
+				eventstest.WithNameMatcher(eventgen.HostStatusUpdatedEventName),
+				eventstest.WithHostIdMatcher(hostId.String()),
+				eventstest.WithInfraEnvIdMatcher(host.InfraEnvID.String()),
+				eventstest.WithClusterIdMatcher(host.ClusterID.String()),
+				eventstest.WithSeverityMatcher(hostutil.GetEventSeverityFromHostStatus(models.HostStatusDisconnected))))
+
+			err := hapi.RefreshStatus(ctx, &host, db)
+
+			Expect(err).ToNot(HaveOccurred())
+			var resultHost models.Host
+			Expect(db.Take(&resultHost, "id = ? and cluster_id = ?", hostId.String(), clusterId.String()).Error).ToNot(HaveOccurred())
+			Expect(swag.StringValue(resultHost.Status)).To(Equal(models.HostStatusDisconnected))
+			info := statusInfoConnectionTimedOut
+			Expect(swag.StringValue(resultHost.StatusInfo)).To(MatchRegexp(info))
+		})
 	})
 
 	Context("host installation timeout", func() {

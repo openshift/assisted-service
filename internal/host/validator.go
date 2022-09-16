@@ -292,7 +292,15 @@ func (v *validator) isMediaConnected(c *validationContext) (ValidationStatus, st
 }
 
 func (v *validator) isConnected(c *validationContext) (ValidationStatus, string) {
-	status := boolValue(c.host.CheckedInAt.String() == "" || time.Since(time.Time(c.host.CheckedInAt)) <= v.hwValidatorCfg.MaxHostDisconnectionTime)
+	maxHostDisconnectionTime := v.hwValidatorCfg.MaxHostDisconnectionTime
+	if c.host.Bootstrap {
+		// In case of bootstrap we increase disconnection timeout as it's resolv.conf
+		// will be recreated in the middle of installation and it can cause for dns issues
+		// It can cause bootstrap to disconnect from assisted service
+		maxHostDisconnectionTime = v.hwValidatorCfg.MaxHostDisconnectionTime + 2*time.Minute
+
+	}
+	status := boolValue(c.host.CheckedInAt.String() == "" || time.Since(time.Time(c.host.CheckedInAt)) <= maxHostDisconnectionTime)
 	switch status {
 	case ValidationSuccess:
 		return status, "Host is connected"
