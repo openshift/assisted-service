@@ -32,7 +32,7 @@ var _ = Describe("LVM manifest generation", func() {
 			}
 
 			_, err = yaml.YAMLToJSON(manifest)
-			Expect(err).ShouldNot(HaveOccurred())
+			Expect(err).ShouldNot(HaveOccurred(), "yamltojson err: %v", err)
 		})
 
 	})
