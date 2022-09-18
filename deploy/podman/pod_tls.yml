@@ -1,0 +1,63 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    app: assisted-installer
+  name: assisted-installer
+spec:
+  containers:
+    - args:
+        - run-postgresql
+      image: quay.io/centos7/postgresql-12-centos7:latest
+      name: db
+      envFrom:
+        - configMapRef:
+            name: config
+      volumeMounts:
+        - mountPath: /var/lib/pgsql
+          name: pg-data
+    - image: quay.io/edge-infrastructure/assisted-installer-ui:latest
+      name: ui
+      ports:
+        - hostPort: 8080
+      securityContext:
+        privileged: true
+      envFrom:
+        - configMapRef:
+            name: config
+      volumeMounts:
+        - name: certs-configmap-volume
+          mountPath: /etc/certs
+    - image: quay.io/edge-infrastructure/assisted-image-service:latest
+      name: image-service
+      ports:
+        - hostPort: 8888
+      envFrom:
+        - configMapRef:
+            name: config
+      volumeMounts:
+        - mountPath: /etc/certs
+          name: certs-configmap-volume
+    - image: quay.io/edge-infrastructure/assisted-service:latest
+      name: service
+      ports:
+        - hostPort: 8090
+      envFrom:
+        - configMapRef:
+            name: config
+      volumeMounts:
+        - mountPath: /data
+          name: ai-data
+        - mountPath: /etc/certs
+          name: certs-configmap-volume
+  restartPolicy: Never
+  volumes:
+    - name: ai-data
+      persistentVolumeClaim:
+        claimName: ai-service-data
+    - name: pg-data
+      persistentVolumeClaim:
+        claimName: ai-db-data
+    - name: certs-configmap-volume
+      configMap:
+        name: certs
