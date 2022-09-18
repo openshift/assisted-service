@@ -4502,6 +4502,9 @@ var _ = Describe("[V2ClusterUpdate] cluster", func() {
 			Role:       role,
 			Inventory:  inventory,
 		}
+		if role == models.HostRoleBootstrap {
+			host.Bootstrap = true
+		}
 		Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
 		return host
 	}
@@ -5116,21 +5119,68 @@ var _ = Describe("[V2ClusterUpdate] cluster", func() {
 
 				})
 
-				It("Update platform=vsphere while and UMN=true - success", func() {
-					mockSuccess()
+				addVsphereHostWithNetworking := func(clusterId strfmt.UUID, role models.HostRole) {
+					inventory := models.Inventory{
+						Interfaces: []*models.Interface{
+							{
+								Name: "eth0",
+								IPV4Addresses: []string{
+									"1.2.3.4/24",
+									"10.0.0.100/24",
+								},
+							},
+						},
+						SystemVendor: &models.SystemVendor{
+							Virtual:      true,
+							Manufacturer: "VMware, Inc.",
+							ProductName:  "VMware7,1",
+							SerialNumber: "VMware-12 34 56 78 90 12 ab cd-ef gh 12 34 56 67 89 90",
+						},
+					}
+					inventoryByte, err := json.Marshal(inventory)
+					Expect(err).ToNot(HaveOccurred())
+					addHost(strfmt.UUID(uuid.New().String()), role, models.HostStatusKnown, models.HostKindHost, clusterID, string(inventoryByte), db)
+				}
+
+				It("Update platform=vsphere with UMN=true - success", func() {
+					mockClusterUpdateSuccess(1, 1)
 					mockProviderRegistry.EXPECT().SetPlatformUsages(models.PlatformTypeVsphere, gomock.Any(), mockUsage)
+
+					addVsphereHostWithNetworking(clusterID, models.HostRoleBootstrap)
 
 					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 						ClusterID: clusterID,
 						ClusterUpdateParams: &models.V2ClusterUpdateParams{
 							Platform:              &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeVsphere)},
 							UserManagedNetworking: swag.Bool(true),
+							VipDhcpAllocation:     swag.Bool(false),
+							NetworkType:           swag.String(models.ClusterNetworkTypeOpenShiftSDN),
+							ClusterNetworks:       []*models.ClusterNetwork{{Cidr: "10.128.0.0/14", ClusterID: clusterID, HostPrefix: 23}},
+							ServiceNetworks:       []*models.ServiceNetwork{{Cidr: "172.30.0.0/16", ClusterID: clusterID}},
 						},
 					})
 					Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2UpdateClusterCreated()))
 					actual := reply.(*installer.V2UpdateClusterCreated).Payload
 					Expect(swag.BoolValue(actual.UserManagedNetworking)).To(Equal(true))
 					Expect(*actual.Platform.Type).To(Equal(models.PlatformTypeVsphere))
+
+					Expect(swag.BoolValue(actual.UserManagedNetworking)).To(Equal(true))
+					Expect(*actual.Platform.Type).To(Equal(models.PlatformTypeVsphere))
+
+					var result installcfg.InstallerConfigBaremetal
+					installConfig := createInstallConfigBuilder()
+					mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(2)
+					data, err := installConfig.GetInstallConfig(&common.Cluster{Cluster: *actual}, false, "")
+					Expect(err).ShouldNot(HaveOccurred())
+					err = yaml.Unmarshal(data, &result)
+					Expect(err).ShouldNot(HaveOccurred())
+					Expect(result.Platform.Vsphere).ShouldNot(BeNil())
+					Expect(result.Platform.None).Should(BeNil())
+					Expect(result.Platform.Baremetal).Should(BeNil())
+
+					Expect(result.Platform.Vsphere.APIVIP).Should(Equal(""))
+					Expect(result.Platform.Vsphere.IngressVIP).Should(Equal(""))
+					Expect(result.Networking.MachineNetwork).ShouldNot(BeNil())
 				})
 
 				It("Update UMN=true - success", func() {

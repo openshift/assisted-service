@@ -6,6 +6,7 @@ import (
 	"github.com/go-openapi/swag"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/installcfg"
+	"github.com/openshift/assisted-service/internal/provider"
 )
 
 func setPlatformValues(platform *installcfg.VsphereInstallConfigPlatform) {
@@ -33,6 +34,11 @@ func (p vsphereProvider) AddPlatformToInstallConfig(cfg *installcfg.InstallerCon
 
 		vsPlatform.APIVIP = cluster.APIVip
 		vsPlatform.IngressVIP = cluster.IngressVip
+	} else {
+		cfg.Networking.MachineNetwork = provider.GetMachineNetworkForUserManagedNetworking(p.Log, cluster)
+		if cluster.NetworkType != nil {
+			cfg.Networking.NetworkType = swag.StringValue(cluster.NetworkType)
+		}
 	}
 
 	setPlatformValues(vsPlatform)
