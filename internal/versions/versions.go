@@ -3,6 +3,7 @@ package versions
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"sort"
 	"strings"
 
@@ -12,6 +13,8 @@ import (
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/oc"
 	"github.com/openshift/assisted-service/models"
+	"github.com/openshift/assisted-service/pkg/auth"
+	"github.com/openshift/assisted-service/pkg/ocm"
 	"github.com/openshift/assisted-service/restapi"
 	operations "github.com/openshift/assisted-service/restapi/operations/versions"
 	"github.com/pkg/errors"
@@ -42,12 +45,13 @@ type Handler interface {
 	GetCPUArchitectures(openshiftVersion string) []string
 	GetOpenshiftVersions() []string
 	AddReleaseImage(releaseImageUrl, pullSecret, ocpReleaseVersion string, cpuArchitectures []string) (*models.ReleaseImage, error)
+	ValidateAccessToMultiarch(ctx context.Context, authzHandler auth.Authorizer) error
 }
 
 func NewHandler(log logrus.FieldLogger, releaseHandler oc.Release,
 	versions Versions, osImages models.OsImages, releaseImages models.ReleaseImages,
 	mustGatherVersions MustGatherVersions,
-	releaseImageMirror string) (*handler, error) {
+	releaseImageMirror string, authzHandler auth.Authorizer) (*handler, error) {
 	h := &handler{
 		versions:           versions,
 		mustGatherVersions: mustGatherVersions,
@@ -56,6 +60,7 @@ func NewHandler(log logrus.FieldLogger, releaseHandler oc.Release,
 		releaseHandler:     releaseHandler,
 		releaseImageMirror: releaseImageMirror,
 		log:                log,
+		authzHandler:       authzHandler,
 	}
 
 	if err := h.validateVersions(); err != nil {
@@ -75,6 +80,7 @@ type handler struct {
 	releaseHandler     oc.Release
 	releaseImageMirror string
 	log                logrus.FieldLogger
+	authzHandler       auth.Authorizer
 }
 
 func (h *handler) V2ListComponentVersions(ctx context.Context, params operations.V2ListComponentVersionsParams) middleware.Responder {
@@ -92,6 +98,8 @@ func (h *handler) V2ListComponentVersions(ctx context.Context, params operations
 
 func (h *handler) V2ListSupportedOpenshiftVersions(ctx context.Context, params operations.V2ListSupportedOpenshiftVersionsParams) middleware.Responder {
 	openshiftVersions := models.OpenshiftVersions{}
+	hasMultiarchAuthorization := false
+	checkedForMultiarchAuthorization := false
 
 	for _, releaseImage := range h.releaseImages {
 		supportedArchs := releaseImage.CPUArchitectures
@@ -101,6 +109,26 @@ func (h *handler) V2ListSupportedOpenshiftVersions(ctx context.Context, params o
 		// Versions, but for safety an additional check is added here.
 		if len(supportedArchs) == 0 {
 			supportedArchs = []string{*releaseImage.CPUArchitecture}
+		}
+
+		// (MGMT-11859) We are filtering out multiarch release images so that they are available
+		//              only for customers allowed to use them. This is in order to be able to
+		//              expose them in OCP pre-4.13 without making them generally available.
+		if len(supportedArchs) > 1 {
+			if !checkedForMultiarchAuthorization {
+				checkedForMultiarchAuthorization = true
+				if err := h.ValidateAccessToMultiarch(ctx, h.authzHandler); err != nil {
+					if strings.Contains(err.Error(), "multiarch clusters are not available") {
+						continue
+					} else {
+						return common.GenerateErrorResponder(err)
+					}
+				}
+				hasMultiarchAuthorization = true
+			}
+			if !hasMultiarchAuthorization {
+				continue
+			}
 		}
 
 		for _, arch := range supportedArchs {
@@ -436,6 +464,20 @@ func (h *handler) GetOpenshiftVersions() []string {
 		}
 	}
 	return versions
+}
+
+func (h *handler) ValidateAccessToMultiarch(ctx context.Context, authzHandler auth.Authorizer) error {
+	var err error
+	var multiarchAllowed bool
+
+	multiarchAllowed, err = authzHandler.HasOrgBasedCapability(ctx, ocm.MultiarchCapabilityName)
+	if err != nil {
+		return common.NewApiError(http.StatusInternalServerError, fmt.Errorf("error getting user %s capability, error: %w", ocm.MultiarchCapabilityName, err))
+	}
+	if !multiarchAllowed {
+		return common.NewApiError(http.StatusBadRequest, errors.Errorf("%s", "multiarch clusters are not available"))
+	}
+	return nil
 }
 
 // Returns version in major.minor format

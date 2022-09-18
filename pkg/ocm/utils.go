@@ -16,6 +16,7 @@ const (
 	AMSActionUpdate            string = "update"
 	AMSActionDelete            string = "delete"
 	BareMetalCapabilityName    string = "bare_metal_installer_admin"
+	MultiarchCapabilityName    string = "bare_metal_installer_multiarch"
 	AccountCapabilityType      string = "Account"
 	OrganizationCapabilityType string = "Organization"
 	Subscription               string = "Subscription"

@@ -11,6 +11,7 @@ import (
 	middleware "github.com/go-openapi/runtime/middleware"
 	gomock "github.com/golang/mock/gomock"
 	models "github.com/openshift/assisted-service/models"
+	auth "github.com/openshift/assisted-service/pkg/auth"
 	versions0 "github.com/openshift/assisted-service/restapi/operations/versions"
 )
 
@@ -196,4 +197,18 @@ func (m *MockHandler) V2ListSupportedOpenshiftVersions(arg0 context.Context, arg
 func (mr *MockHandlerMockRecorder) V2ListSupportedOpenshiftVersions(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "V2ListSupportedOpenshiftVersions", reflect.TypeOf((*MockHandler)(nil).V2ListSupportedOpenshiftVersions), arg0, arg1)
+}
+
+// ValidateAccessToMultiarch mocks base method.
+func (m *MockHandler) ValidateAccessToMultiarch(arg0 context.Context, arg1 auth.Authorizer) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ValidateAccessToMultiarch", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// ValidateAccessToMultiarch indicates an expected call of ValidateAccessToMultiarch.
+func (mr *MockHandlerMockRecorder) ValidateAccessToMultiarch(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ValidateAccessToMultiarch", reflect.TypeOf((*MockHandler)(nil).ValidateAccessToMultiarch), arg0, arg1)
 }

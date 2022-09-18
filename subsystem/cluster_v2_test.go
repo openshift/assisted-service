@@ -10,6 +10,7 @@ import (
 	"github.com/go-openapi/swag"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/openshift/assisted-service/client"
 	"github.com/openshift/assisted-service/client/installer"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/host/hostutil"
@@ -316,6 +317,9 @@ var _ = Describe("[V2ClusterTests]", func() {
 
 var _ = Describe("[V2ClusterTests] multiarch", func() {
 	ctx := context.Background()
+	var tmpBMClient *client.AssistedInstall
+	var tmpAgentBMClient *client.AssistedInstall
+	var tmpPullSecret string
 	var clusterID strfmt.UUID
 	var X86infraEnvID strfmt.UUID
 	var ARMinfraEnvID strfmt.UUID
@@ -323,6 +327,14 @@ var _ = Describe("[V2ClusterTests] multiarch", func() {
 	var h1, h2, h3 *models.Host
 
 	BeforeEach(func() {
+		// (MGMT-11859) "user2" has permissions to use multiarch, "user" does not
+		tmpBMClient = userBMClient
+		userBMClient = user2BMClient
+		tmpAgentBMClient = agentBMClient
+		agentBMClient = agent2BMClient
+		tmpPullSecret = pullSecret
+		pullSecret = fmt.Sprintf(psTemplate, FakePS2)
+
 		clusterReq, err := userBMClient.Installer.V2RegisterCluster(ctx, &installer.V2RegisterClusterParams{
 			NewClusterParams: &models.ClusterCreateParams{
 				Name:             swag.String("test-cluster"),
@@ -358,6 +370,14 @@ var _ = Describe("[V2ClusterTests] multiarch", func() {
 		v2UpdateVipParams(ctx, clusterID)
 		waitForClusterState(ctx, clusterID, models.ClusterStatusInsufficient, defaultWaitForClusterStateTimeout,
 			IgnoreStateInfo)
+	})
+
+	AfterEach(func() {
+		// (MGMT-11859) Reverting the switch from "user" to "user2" that is needed only to test
+		//              access to multiarch release images in environments with org-based control
+		userBMClient = tmpBMClient
+		pullSecret = tmpPullSecret
+		agentBMClient = tmpAgentBMClient
 	})
 
 	It("Bind single host to x86 unbound infraenv", func() {
