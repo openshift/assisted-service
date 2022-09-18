@@ -5,7 +5,7 @@ import (
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/host/hostutil"
 	"github.com/openshift/assisted-service/internal/installcfg"
-	"github.com/openshift/assisted-service/internal/network"
+	"github.com/openshift/assisted-service/internal/provider"
 	"github.com/openshift/assisted-service/models"
 )
 
@@ -14,18 +14,9 @@ func (p noneProvider) AddPlatformToInstallConfig(cfg *installcfg.InstallerConfig
 		None: &installcfg.PlatformNone{},
 	}
 
-	bootstrapCidr := network.GetPrimaryMachineCidrForUserManagedNetwork(cluster, p.Log)
-	if bootstrapCidr != "" {
-		p.Log.Infof("None-Platform or SNO: Selected bootstrap machine network CIDR %s for cluster %s", bootstrapCidr, cluster.ID.String())
-		machineNetwork := []installcfg.MachineNetwork{}
-		cluster.MachineNetworks = network.GetMachineNetworksFromBoostrapHost(cluster, p.Log)
-		for _, net := range cluster.MachineNetworks {
-			machineNetwork = append(machineNetwork, installcfg.MachineNetwork{Cidr: string(net.Cidr)})
-		}
-		cfg.Networking.MachineNetwork = machineNetwork
+	cfg.Networking.MachineNetwork = provider.GetMachineNetworkForUserManagedNetworking(p.Log, cluster)
+	if cluster.NetworkType != nil {
 		cfg.Networking.NetworkType = swag.StringValue(cluster.NetworkType)
-	} else {
-		cfg.Networking.MachineNetwork = nil
 	}
 
 	if common.IsSingleNodeCluster(cluster) {
