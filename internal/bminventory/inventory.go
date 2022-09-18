@@ -1699,6 +1699,18 @@ func checkPlatformWrongParamsInput(platform *models.Platform, userManagedNetwork
 	return nil
 }
 
+func doesPlatformDifferentThanBaremetalOrNone(platform *models.Platform, cluster *common.Cluster) bool {
+	if platform != nil && *platform.Type != models.PlatformTypeBaremetal && *platform.Type != models.PlatformTypeNone {
+		return true
+	}
+
+	if platform == nil && *cluster.Platform.Type != models.PlatformTypeBaremetal && *cluster.Platform.Type != models.PlatformTypeNone {
+		return true
+	}
+
+	return false
+}
+
 func getActualUpdateClusterPlatformParams(platform *models.Platform, userManagedNetworking *bool, cluster *common.Cluster) (*models.Platform, *bool, error) {
 	if platform == nil && userManagedNetworking == nil {
 		return nil, nil, nil
@@ -1708,7 +1720,7 @@ func getActualUpdateClusterPlatformParams(platform *models.Platform, userManaged
 		return nil, nil, err
 	}
 
-	if platform != nil && *platform.Type != models.PlatformTypeBaremetal && *platform.Type != models.PlatformTypeNone {
+	if doesPlatformDifferentThanBaremetalOrNone(platform, cluster) {
 		return platform, userManagedNetworking, nil
 	}
 
