@@ -1,6 +1,8 @@
 package lvm
 
 import (
+	"fmt"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/common"
@@ -32,6 +34,7 @@ var _ = Describe("LVM manifest generation", func() {
 			}
 
 			_, err = yaml.YAMLToJSON(manifest)
+			fmt.Println(err)
 			Expect(err).ShouldNot(HaveOccurred())
 		})
 
