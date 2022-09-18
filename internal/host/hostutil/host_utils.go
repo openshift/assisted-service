@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"net/url"
+	"path"
 	"regexp"
 	"strings"
 
@@ -207,4 +209,36 @@ func SaveDiskPartitionsIsSet(installerArgs string) bool {
 		}
 	}
 	return false
+}
+
+func GetIgnitionEndpoint(cluster *common.Cluster, host *models.Host) (string, error) {
+	poolName := string(common.GetEffectiveRole(host))
+
+	// At this moment the effective role should already be either master or worker. However, given that
+	// the default role is auto-assign, we want to explicitly handle this scenario. It should not happen
+	// but if there is a bug elsewhere, we need to be on the safe side.
+	if poolName == string(models.HostRoleAutoAssign) {
+		poolName = string(models.HostRoleWorker)
+	}
+
+	if host.MachineConfigPoolName != "" {
+		poolName = host.MachineConfigPoolName
+	}
+
+	// Specify ignition endpoint based on cluster configuration:
+	address := cluster.APIVip
+	if address == "" {
+		address = swag.StringValue(cluster.APIVipDNSName)
+	}
+
+	ignitionEndpointUrl := fmt.Sprintf("http://%s:22624/config/%s", address, poolName)
+	if cluster.IgnitionEndpoint != nil && cluster.IgnitionEndpoint.URL != nil {
+		url, err := url.Parse(*cluster.IgnitionEndpoint.URL)
+		if err != nil {
+			return "", err
+		}
+		url.Path = path.Join(url.Path, poolName)
+		ignitionEndpointUrl = url.String()
+	}
+	return ignitionEndpointUrl, nil
 }
