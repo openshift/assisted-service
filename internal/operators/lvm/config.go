@@ -1,10 +1,7 @@
 package lvm
 
 import (
-	"fmt"
-
 	"github.com/openshift/assisted-service/models"
-	"github.com/openshift/assisted-service/pkg/conversions"
 )
 
 type Config struct {
@@ -15,18 +12,13 @@ type Config struct {
 }
 
 // count all disks of drive type ssd or hdd
-func (o *operator) getValidDiskCount(disks []*models.Disk, installationDiskID string) (int64, error) {
+func (o *operator) getValidDiskCount(disks []*models.Disk, installationDiskID string) int64 {
 	var countDisks int64
-	var err error
 
 	for _, disk := range disks {
 		if (disk.DriveType == models.DriveTypeSSD || disk.DriveType == models.DriveTypeHDD) && installationDiskID != disk.ID && disk.SizeBytes != 0 {
-			if disk.SizeBytes < conversions.GbToBytes(o.config.LvmMinDiskSizeGB) {
-				err = fmt.Errorf("ODF LVM requires all the non-bootable disks to be more than %d GB", o.config.LvmMinDiskSizeGB)
-			} else {
-				countDisks++
-			}
+			countDisks++
 		}
 	}
-	return countDisks, err
+	return countDisks
 }
