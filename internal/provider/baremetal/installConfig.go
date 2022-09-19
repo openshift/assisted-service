@@ -7,6 +7,7 @@ import (
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/host/hostutil"
 	"github.com/openshift/assisted-service/internal/installcfg"
+	"github.com/openshift/assisted-service/internal/network"
 	"github.com/openshift/assisted-service/models"
 	"github.com/pkg/errors"
 )
@@ -42,14 +43,30 @@ func (p baremetalProvider) AddPlatformToInstallConfig(
 			return err
 		}
 
+		if len(cluster.MachineNetworks) == 0 {
+			err = errors.Errorf("Failed to find machine networks for baremetal cluster %s", cluster.ID)
+			p.Log.Error(err)
+			return err
+		}
+
 		for _, iface := range inventory.Interfaces {
-			if iface.MacAddress != "" {
-				hosts[yamlHostIdx].BootMACAddress = iface.MacAddress
-				break
+			// We are looking for the NIC that matches the first Machine Network configured
+			// for the cluster. This is to ensure that BootMACAddress belongs to the NIC that
+			// is really used and not to any fake interface even if this interface has IPs.
+			ipAddressses := append(iface.IPV4Addresses, iface.IPV6Addresses...)
+			for _, ip := range ipAddressses {
+				overlap, _ := network.NetworksOverlap(ip, string(cluster.MachineNetworks[0].Cidr))
+				if overlap {
+					hosts[yamlHostIdx].BootMACAddress = iface.MacAddress
+					break
+				}
 			}
 		}
 		if hosts[yamlHostIdx].BootMACAddress == "" {
-			err = errors.Errorf("Failed to find an interface with a mac address for host %s", hostutil.GetHostnameForMsg(host))
+			err = errors.Errorf("Failed to find a network interface matching machine network (%s) for host %s",
+				cluster.MachineNetworks[0].Cidr,
+				hostutil.GetHostnameForMsg(host),
+			)
 			p.Log.Error(err)
 			return err
 		}

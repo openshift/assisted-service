@@ -56,21 +56,21 @@ var _ = Describe("installcfg", func() {
 			ClusterNetworks:        []*models.ClusterNetwork{{Cidr: "1.1.1.0/24"}},
 			ServiceNetworks:        []*models.ServiceNetwork{{Cidr: "2.2.2.0/24"}},
 			MachineNetworks:        []*models.MachineNetwork{{Cidr: "1.2.3.0/24"}},
-			APIVip:                 "102.345.34.34",
-			IngressVip:             "376.5.56.6",
+			APIVip:                 "1.2.3.11",
+			IngressVip:             "1.2.3.12",
 			InstallConfigOverrides: `{"fips":true}`,
 			ImageInfo:              &models.ImageInfo{},
 			Platform:               &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeBaremetal)},
 			NetworkType:            swag.String("OpenShiftSDN"),
 		}}
 		id := strfmt.UUID(uuid.New().String())
-		// By default all the hosts in the cluster are IPv4-only
+		// By default all the hosts in the cluster are dual-stack
 		host1 = models.Host{
 			ID:        &id,
 			ClusterID: &clusterId,
 			Status:    swag.String(models.HostStatusKnown),
 			Role:      "master",
-			Inventory: getInventoryStr("hostname0", "bootMode", true, false),
+			Inventory: getInventoryStr("hostname0", "bootMode", true, true),
 		}
 		id = strfmt.UUID(uuid.New().String())
 		host2 = models.Host{
@@ -78,7 +78,7 @@ var _ = Describe("installcfg", func() {
 			ClusterID: &clusterId,
 			Status:    swag.String(models.HostStatusKnown),
 			Role:      "worker",
-			Inventory: getInventoryStr("hostname1", "bootMode", true, false),
+			Inventory: getInventoryStr("hostname1", "bootMode", true, true),
 		}
 
 		host3 = models.Host{
@@ -86,7 +86,7 @@ var _ = Describe("installcfg", func() {
 			ClusterID: &clusterId,
 			Status:    swag.String(models.HostStatusKnown),
 			Role:      "worker",
-			Inventory: getInventoryStr("hostname2", "bootMode", true, false),
+			Inventory: getInventoryStr("hostname2", "bootMode", true, true),
 		}
 
 		cluster.Hosts = []*models.Host{&host1, &host2, &host3}
@@ -154,7 +154,6 @@ var _ = Describe("installcfg", func() {
 		cluster.HTTPProxy = proxyURL
 		cluster.HTTPSProxy = proxyURL
 		cluster.NoProxy = "no-proxy.com"
-		cluster.MachineNetworks = []*models.MachineNetwork{}
 		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(2)
 		data, err := installConfig.GetInstallConfig(&cluster, false, "")
 		Expect(err).ShouldNot(HaveOccurred())
@@ -163,8 +162,9 @@ var _ = Describe("installcfg", func() {
 		Expect(result.Proxy.HTTPProxy).Should(Equal(proxyURL))
 		Expect(result.Proxy.HTTPSProxy).Should(Equal(proxyURL))
 		splitNoProxy := strings.Split(result.Proxy.NoProxy, ",")
-		Expect(splitNoProxy).To(HaveLen(4))
+		Expect(splitNoProxy).To(HaveLen(5))
 		Expect(splitNoProxy).To(ContainElement("no-proxy.com"))
+		Expect(splitNoProxy).To(ContainElement(network.GetMachineCidrById(&cluster, 0)))
 		Expect(splitNoProxy).To(ContainElement(string(cluster.ServiceNetworks[0].Cidr)))
 		Expect(splitNoProxy).To(ContainElement(string(cluster.ClusterNetworks[0].Cidr)))
 		domainName := "." + cluster.Name + "." + cluster.BaseDNSDomain
@@ -313,7 +313,7 @@ var _ = Describe("installcfg", func() {
 		Expect(result.Platform.Baremetal).Should(BeNil())
 		var none = installcfg.PlatformNone{}
 		Expect(*result.Platform.None).Should(Equal(none))
-		Expect(result.Networking.MachineNetwork[0].Cidr).Should(Equal("10.35.20.0/24"))
+		Expect(result.Networking.MachineNetwork[0].Cidr).Should(Equal("1.2.3.0/24"))
 	})
 
 	It("UserManagedNetworking None Platform Machine network IPV6 only", func() {
@@ -333,7 +333,7 @@ var _ = Describe("installcfg", func() {
 		var none = installcfg.PlatformNone{}
 		Expect(*result.Platform.None).Should(Equal(none))
 		Expect(len(result.Networking.MachineNetwork)).Should(Equal(1))
-		Expect(result.Networking.MachineNetwork[0].Cidr).Should(Equal("fe80::/64"))
+		Expect(result.Networking.MachineNetwork[0].Cidr).Should(Equal("1001:db8::/120"))
 	})
 
 	It("UserManagedNetworking None Platform Machine network dual-stack", func() {
@@ -353,8 +353,8 @@ var _ = Describe("installcfg", func() {
 		var none = installcfg.PlatformNone{}
 		Expect(*result.Platform.None).Should(Equal(none))
 		Expect(len(result.Networking.MachineNetwork)).Should(Equal(2))
-		Expect(result.Networking.MachineNetwork[0].Cidr).Should(Equal("10.35.20.0/24"))
-		Expect(result.Networking.MachineNetwork[1].Cidr).Should(Equal("fe80::/64"))
+		Expect(result.Networking.MachineNetwork[0].Cidr).Should(Equal("1.2.3.0/24"))
+		Expect(result.Networking.MachineNetwork[1].Cidr).Should(Equal("1001:db8::/120"))
 	})
 
 	It("UserManagedNetworking BareMetal", func() {
@@ -378,7 +378,7 @@ var _ = Describe("installcfg", func() {
 		cluster.HighAvailabilityMode = &mode
 		cluster.Hosts[0].Bootstrap = true
 		cluster.Hosts[0].InstallationDiskPath = "/dev/test"
-		cluster.MachineNetworks = []*models.MachineNetwork{{Cidr: "10.35.20.0/24"}}
+		cluster.MachineNetworks = []*models.MachineNetwork{{Cidr: "1.2.3.0/24"}}
 		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(2)
 
 		data, err := installConfig.GetInstallConfig(&cluster, false, "")
@@ -403,7 +403,7 @@ var _ = Describe("installcfg", func() {
 		cluster.NetworkType = nil
 		cluster.Hosts[0].Bootstrap = true
 		cluster.Hosts[0].InstallationDiskPath = "/dev/test"
-		cluster.MachineNetworks = []*models.MachineNetwork{{Cidr: "10.35.20.0/24"}}
+		cluster.MachineNetworks = []*models.MachineNetwork{{Cidr: "1.2.3.0/24"}}
 		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(2)
 
 		data, err := installConfig.GetInstallConfig(&cluster, false, "")
@@ -609,10 +609,12 @@ func getInventoryStr(hostname, bootMode string, ipv4 bool, ipv6 bool) string {
 		},
 	}
 	if ipv4 {
-		inventory.Interfaces[0].IPV4Addresses = []string{"10.35.20.10/24"}
+		inventory.Interfaces[0].IPV4Addresses = []string{"1.2.3.1/24"}
+
 	}
 	if ipv6 {
-		inventory.Interfaces[0].IPV6Addresses = []string{"fe80::1/64"}
+		inventory.Interfaces[0].IPV6Addresses = []string{"1001:db8::1/120"}
+
 	}
 	ret, _ := json.Marshal(&inventory)
 	return string(ret)
@@ -625,7 +627,7 @@ var _ = Describe("Generate NoProxy", func() {
 	)
 	BeforeEach(func() {
 		cluster = &common.Cluster{Cluster: models.Cluster{
-			MachineNetworks: []*models.MachineNetwork{{Cidr: "10.35.20.0/24"}},
+			MachineNetworks: []*models.MachineNetwork{{Cidr: "1.2.3.0/24"}},
 			Name:            "proxycluster",
 			BaseDNSDomain:   "myproxy.com",
 			ClusterNetworks: []*models.ClusterNetwork{{Cidr: "192.168.1.0/24"}},

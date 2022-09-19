@@ -280,6 +280,9 @@ var _ = Describe("Test AddPlatformToInstallConfig", func() {
 			Expect(cfg.Platform.Baremetal.Hosts[0].Name).Should(Equal("hostname0"))
 			Expect(cfg.Platform.Baremetal.Hosts[1].Name).Should(Equal("hostname1"))
 			Expect(cfg.Platform.Baremetal.Hosts[2].Name).Should(Equal("hostname2"))
+			Expect(cfg.Platform.Baremetal.Hosts[0].BootMACAddress).Should(Equal("EC:89:14:C0:BE:29"))
+			Expect(cfg.Platform.Baremetal.Hosts[1].BootMACAddress).Should(Equal("EC:89:14:C0:BE:29"))
+			Expect(cfg.Platform.Baremetal.Hosts[2].BootMACAddress).Should(Equal("EC:89:14:C0:BE:29"))
 		})
 		It("test with openshift version less 4.7", func() {
 			cfg := getInstallerConfigBaremetal()
@@ -301,6 +304,39 @@ var _ = Describe("Test AddPlatformToInstallConfig", func() {
 			Expect(cfg.Platform.Baremetal.Hosts[0].Name).Should(Equal("hostname0"))
 			Expect(cfg.Platform.Baremetal.Hosts[1].Name).Should(Equal("hostname1"))
 			Expect(cfg.Platform.Baremetal.Hosts[2].Name).Should(Equal("hostname2"))
+			Expect(cfg.Platform.Baremetal.Hosts[0].BootMACAddress).Should(Equal("EC:89:14:C0:BE:29"))
+			Expect(cfg.Platform.Baremetal.Hosts[1].BootMACAddress).Should(Equal("EC:89:14:C0:BE:29"))
+			Expect(cfg.Platform.Baremetal.Hosts[2].BootMACAddress).Should(Equal("EC:89:14:C0:BE:29"))
+		})
+		It("fails for host without interface from machine networks", func() {
+			cfg := getInstallerConfigBaremetal()
+			hosts := make([]*models.Host, 0)
+			hosts = append(hosts, createHost(true, models.HostStatusKnown, getBaremetalInventoryStr("hostname0", "bootMode", true, false)))
+			cluster := createClusterFromHosts(hosts)
+			cluster.MachineNetworks = []*models.MachineNetwork{{Cidr: "192.168.1.0/24"}}
+			err := providerRegistry.AddPlatformToInstallConfig(models.PlatformTypeBaremetal, &cfg, &cluster)
+			Expect(err).ToNot(BeNil())
+			Expect(err.Error()).Should(ContainSubstring("Failed to find a network interface matching machine network"))
+		})
+		It("fails for cluster without machine networks", func() {
+			cfg := getInstallerConfigBaremetal()
+			hosts := make([]*models.Host, 0)
+			hosts = append(hosts, createHost(true, models.HostStatusKnown, getBaremetalInventoryStr("hostname0", "bootMode", true, false)))
+			cluster := createClusterFromHosts(hosts)
+			cluster.MachineNetworks = nil
+			err := providerRegistry.AddPlatformToInstallConfig(models.PlatformTypeBaremetal, &cfg, &cluster)
+			Expect(err).ToNot(BeNil())
+			Expect(err.Error()).Should(ContainSubstring("Failed to find machine networks for baremetal cluster"))
+		})
+		It("fails for cluster with empty machine networks", func() {
+			cfg := getInstallerConfigBaremetal()
+			hosts := make([]*models.Host, 0)
+			hosts = append(hosts, createHost(true, models.HostStatusKnown, getBaremetalInventoryStr("hostname0", "bootMode", true, false)))
+			cluster := createClusterFromHosts(hosts)
+			cluster.MachineNetworks = []*models.MachineNetwork{}
+			err := providerRegistry.AddPlatformToInstallConfig(models.PlatformTypeBaremetal, &cfg, &cluster)
+			Expect(err).ToNot(BeNil())
+			Expect(err.Error()).Should(ContainSubstring("Failed to find machine networks for baremetal cluster"))
 		})
 		Context("vsphere", func() {
 			It("with cluster params", func() {
@@ -561,7 +597,13 @@ func getInventory(hostname, bootMode string, ipv4, ipv6 bool) models.Inventory {
 			{
 				IPV4Addresses: []string{},
 				IPV6Addresses: []string{},
-				MacAddress:    "some MAC address",
+				MacAddress:    "EC:89:14:C0:BE:29",
+				Type:          "physical",
+			},
+			{
+				IPV4Addresses: []string{},
+				IPV6Addresses: []string{},
+				MacAddress:    "DC:86:D8:97:C4:1A",
 				Type:          "physical",
 			},
 		},
@@ -631,6 +673,7 @@ func createClusterFromHosts(hosts []*models.Host) common.Cluster {
 			Hosts:            hosts,
 			IngressVip:       "192.168.10.11",
 			OpenshiftVersion: "4.7",
+			MachineNetworks:  []*models.MachineNetwork{{Cidr: "10.35.20.0/24"}},
 		},
 	}
 }
