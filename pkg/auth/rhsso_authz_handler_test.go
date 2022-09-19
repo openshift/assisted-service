@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -580,7 +580,7 @@ var _ = Describe("authz", func() {
 		authzCache  = cache.New(time.Hour, 30*time.Minute)
 	)
 
-	log.SetOutput(ioutil.Discard)
+	log.SetOutput(io.Discard)
 
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
@@ -1466,7 +1466,7 @@ var _ = Describe("imageTokenAuthorizer", func() {
 
 	BeforeEach(func() {
 		log := logrus.New()
-		log.SetOutput(ioutil.Discard)
+		log.SetOutput(io.Discard)
 		a = &AuthzHandler{log: log.WithField("pkg", "auth")}
 		ctx = context.Background()
 	})

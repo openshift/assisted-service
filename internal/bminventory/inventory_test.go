@@ -7,7 +7,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"mime/multipart"
 	"net/http"
 	"net/url"
@@ -1530,7 +1529,7 @@ var _ = Describe("cluster", func() {
 		bm = createInventory(db, cfg)
 		bm.ocmClient = nil
 
-		ignitionReader = ioutil.NopCloser(strings.NewReader(`{
+		ignitionReader = io.NopCloser(strings.NewReader(`{
 				"ignition":{"version":"3.1.0"},
 				"storage":{
 					"files":[
@@ -4037,7 +4036,7 @@ var _ = Describe("cluster", func() {
 				makeFreeNetworksAddressesStr(makeFreeAddresses("10.11.0.0/16", "10.11.12.15", "10.11.12.16", "10.11.12.13", "10.11.20.50"))).Error
 			Expect(err).ToNot(HaveOccurred())
 			mockDurationsSuccess()
-			ignitionReader = ioutil.NopCloser(strings.NewReader(`{
+			ignitionReader = io.NopCloser(strings.NewReader(`{
 					"ignition":{"version":"3.1.0"},
 					"storage":{
 						"files":[
@@ -4469,7 +4468,7 @@ var _ = Describe("[V2ClusterUpdate] cluster", func() {
 		bm = createInventory(db, cfg)
 		bm.ocmClient = nil
 
-		ignitionReader = ioutil.NopCloser(strings.NewReader(`{
+		ignitionReader = io.NopCloser(strings.NewReader(`{
 				"ignition":{"version":"3.1.0"},
 				"storage":{
 					"files":[
@@ -7779,7 +7778,7 @@ var _ = Describe("DownloadMinimalInitrd", func() {
 			Expect(err).ToNot(HaveOccurred())
 			switch hdr.Name {
 			case "/etc/systemd/system/coreos-livepxe-rootfs.service.d/10-proxy.conf":
-				rootfsServiceConfigBytes, err := ioutil.ReadAll(r)
+				rootfsServiceConfigBytes, err := io.ReadAll(r)
 				Expect(err).ToNot(HaveOccurred())
 				rootfsServiceConfigContent = string(rootfsServiceConfigBytes)
 			}
@@ -7936,7 +7935,7 @@ var _ = Describe("V2UploadClusterIngressCert test", func() {
 		status := models.ClusterStatusFinalizing
 		c.Status = &status
 		db.Save(&c)
-		r := ioutil.NopCloser(bytes.NewReader([]byte("test")))
+		r := io.NopCloser(bytes.NewReader([]byte("test")))
 		objectExists()
 		mockS3Client.EXPECT().Download(ctx, kubeconfigNoingress).Return(r, int64(0), nil).Times(1)
 		generateReply := bm.V2UploadClusterIngressCert(ctx, installer.V2UploadClusterIngressCertParams{
@@ -7964,7 +7963,7 @@ var _ = Describe("V2UploadClusterIngressCert test", func() {
 		db.Save(&c)
 		data, err := os.Open("../../subsystem/test_kubeconfig")
 		Expect(err).ShouldNot(HaveOccurred())
-		kubeConfigAsBytes, err := ioutil.ReadAll(data)
+		kubeConfigAsBytes, err := io.ReadAll(data)
 		Expect(err).ShouldNot(HaveOccurred())
 		log := logrus.New()
 		merged, err := mergeIngressCaIntoKubeconfig(kubeConfigAsBytes, []byte(ingressCa), log)
@@ -7987,7 +7986,7 @@ var _ = Describe("V2UploadClusterIngressCert test", func() {
 		db.Save(&c)
 		data, err := os.Open("../../subsystem/test_kubeconfig")
 		Expect(err).ShouldNot(HaveOccurred())
-		kubeConfigAsBytes, err := ioutil.ReadAll(data)
+		kubeConfigAsBytes, err := io.ReadAll(data)
 		Expect(err).ShouldNot(HaveOccurred())
 		log := logrus.New()
 		merged, err := mergeIngressCaIntoKubeconfig(kubeConfigAsBytes, []byte(ingressCa), log)
@@ -8542,7 +8541,7 @@ var _ = Describe("Upload and Download logs test", func() {
 		fileName := bm.getLogsFullName(clusterID.String(), host.ID.String())
 		host.LogsCollectedAt = strfmt.DateTime(time.Now())
 		db.Save(&host)
-		r := ioutil.NopCloser(bytes.NewReader([]byte("test")))
+		r := io.NopCloser(bytes.NewReader([]byte("test")))
 		mockS3Client.EXPECT().Download(ctx, fileName).Return(r, int64(4), nil)
 		generateReply := bm.V2DownloadClusterLogs(ctx, params)
 		downloadFileName := fmt.Sprintf("mycluster_bootstrap_%s.tar.gz", newHostID.String())
@@ -8557,7 +8556,7 @@ var _ = Describe("Upload and Download logs test", func() {
 		fileName := bm.getLogsFullName(clusterID.String(), logsType)
 		c.ControllerLogsCollectedAt = strfmt.DateTime(time.Now())
 		db.Save(&c)
-		r := ioutil.NopCloser(bytes.NewReader([]byte("test")))
+		r := io.NopCloser(bytes.NewReader([]byte("test")))
 		mockS3Client.EXPECT().Download(ctx, fileName).Return(r, int64(4), nil)
 		generateReply := bm.V2DownloadClusterLogs(ctx, params)
 		downloadFileName := fmt.Sprintf("mycluster_%s_%s.tar.gz", clusterID, logsType)
@@ -8670,7 +8669,7 @@ var _ = Describe("Upload and Download logs test", func() {
 		}
 		fileName := fmt.Sprintf("%s/logs/cluster_logs.tar", clusterID)
 		mockClusterApi.EXPECT().PrepareClusterLogFile(ctx, gomock.Any(), gomock.Any()).Return(fileName, nil)
-		r := ioutil.NopCloser(bytes.NewReader([]byte("test")))
+		r := io.NopCloser(bytes.NewReader([]byte("test")))
 		mockS3Client.EXPECT().Download(ctx, fileName).Return(r, int64(4), nil)
 		generateReply := bm.V2DownloadClusterLogs(ctx, params)
 		Expect(generateReply).Should(Equal(filemiddleware.NewResponder(installer.NewV2DownloadClusterLogsOK().WithPayload(r),
@@ -8712,7 +8711,7 @@ var _ = Describe("Upload and Download logs test", func() {
 		Expect(int(dbReply.RowsAffected)).Should(Equal(1))
 		dbReply = db.Where("id = ?", clusterID).Delete(&common.Cluster{})
 		Expect(int(dbReply.RowsAffected)).Should(Equal(1))
-		r := ioutil.NopCloser(bytes.NewReader([]byte("test")))
+		r := io.NopCloser(bytes.NewReader([]byte("test")))
 		fileName := bm.getLogsFullName(clusterID.String(), logsType)
 		mockS3Client.EXPECT().Download(ctx, fileName).Return(r, int64(4), nil)
 		generateReply := bm.V2DownloadClusterLogs(ctx, params)
@@ -11828,7 +11827,7 @@ var _ = Describe("AMS subscriptions", func() {
 		for i := range tests {
 			test := tests[i]
 
-			ignitionReader := ioutil.NopCloser(strings.NewReader(`{
+			ignitionReader := io.NopCloser(strings.NewReader(`{
 					"ignition":{"version":"3.1.0"},
 					"storage":{
 						"files":[
@@ -12133,7 +12132,7 @@ var _ = Describe("V2GetHostIgnition and V2DownloadHostIgnition", func() {
 	})
 
 	It("return the correct content", func() {
-		r := ioutil.NopCloser(bytes.NewReader([]byte("test")))
+		r := io.NopCloser(bytes.NewReader([]byte("test")))
 		mockS3Client.EXPECT().Download(ctx, fmt.Sprintf("%s/master-%s.ign", clusterID, hostID)).Return(r, int64(4), nil).Times(2)
 
 		getParams := installer.V2GetHostIgnitionParams{
@@ -13765,7 +13764,7 @@ var _ = Describe("GetCredentials", func() {
 
 		mockClusterApi.EXPECT().IsOperatorAvailable(gomock.Any(), operators.OperatorConsole.Name).Return(true)
 		objectName := fmt.Sprintf("%s/%s", *c.ID, "kubeadmin-password")
-		mockS3Client.EXPECT().Download(ctx, objectName).Return(ioutil.NopCloser(strings.NewReader("my_password")), int64(0), nil)
+		mockS3Client.EXPECT().Download(ctx, objectName).Return(io.NopCloser(strings.NewReader("my_password")), int64(0), nil)
 
 		reply := bm.V2GetCredentials(ctx, installer.V2GetCredentialsParams{ClusterID: *c.ID})
 		Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2GetCredentialsOK()))

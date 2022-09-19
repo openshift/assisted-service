@@ -3,7 +3,6 @@ package agentbasedinstaller
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path"
 	"path/filepath"
@@ -175,7 +174,7 @@ func LoadHostConfigs(hostConfigDir string) (HostConfigs, error) {
 		hostPath := path.Join(hostConfigDir, e.Name())
 		log.Infof("Reading directory %s", hostPath)
 
-		macs, err := ioutil.ReadFile(filepath.Join(hostPath, "mac_addresses"))
+		macs, err := os.ReadFile(filepath.Join(hostPath, "mac_addresses"))
 		if os.IsNotExist(err) {
 			log.Info("No MAC Addresses file found")
 			continue
@@ -208,7 +207,7 @@ type hostConfig struct {
 }
 
 func (hc hostConfig) RootDeviceHints() (*bmh_v1alpha1.RootDeviceHints, error) {
-	hintData, err := ioutil.ReadFile(path.Join(hc.configDir, "root-device-hints.yaml"))
+	hintData, err := os.ReadFile(path.Join(hc.configDir, "root-device-hints.yaml"))
 	if err != nil {
 		if os.IsNotExist(err) {
 			log.Info("No root device hints file found for host")
@@ -226,7 +225,7 @@ func (hc hostConfig) RootDeviceHints() (*bmh_v1alpha1.RootDeviceHints, error) {
 }
 
 func (hc hostConfig) Role() (*string, error) {
-	roleData, err := ioutil.ReadFile(path.Join(hc.configDir, "role"))
+	roleData, err := os.ReadFile(path.Join(hc.configDir, "role"))
 	if err != nil {
 		if os.IsNotExist(err) {
 			log.Info("No role file found for host")

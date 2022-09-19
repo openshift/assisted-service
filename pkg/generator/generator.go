@@ -2,7 +2,6 @@ package generator
 
 import (
 	"context"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 
@@ -64,7 +63,7 @@ func (k *installGenerator) GenerateInstallConfig(ctx context.Context, cluster co
 	if err != nil {
 		return err
 	}
-	clusterWorkDir, err := ioutil.TempDir(k.workDir, cluster.ID.String()+".")
+	clusterWorkDir, err := os.MkdirTemp(k.workDir, cluster.ID.String()+".")
 	if err != nil {
 		return err
 	}

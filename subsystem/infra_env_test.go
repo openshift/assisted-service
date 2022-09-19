@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"regexp"
@@ -145,7 +144,7 @@ var _ = Describe("Infra_Env", func() {
 			&installer.UpdateInfraEnvParams{InfraEnvID: infraEnvID,
 				InfraEnvUpdateParams: &models.InfraEnvUpdateParams{ImageType: models.ImageTypeMinimalIso}})
 		Expect(err).NotTo(HaveOccurred())
-		file, err := ioutil.TempFile("", "tmp")
+		file, err := os.CreateTemp("", "tmp")
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -155,7 +154,7 @@ var _ = Describe("Infra_Env", func() {
 	})
 
 	It("download infra-env files discovery ignition file", func() {
-		file, err := ioutil.TempFile("", "tmp")
+		file, err := os.CreateTemp("", "tmp")
 		Expect(err).NotTo(HaveOccurred())
 		_, err = userBMClient.Installer.V2DownloadInfraEnvFiles(ctx, &installer.V2DownloadInfraEnvFilesParams{InfraEnvID: infraEnvID, FileName: "discovery.ign"}, file)
 		Expect(err).NotTo(HaveOccurred())
@@ -165,7 +164,7 @@ var _ = Describe("Infra_Env", func() {
 	})
 
 	It("download infra-env files invalid filename option", func() {
-		file, err := ioutil.TempFile("", "tmp")
+		file, err := os.CreateTemp("", "tmp")
 		Expect(err).NotTo(HaveOccurred())
 		_, err = userBMClient.Installer.V2DownloadInfraEnvFiles(ctx, &installer.V2DownloadInfraEnvFilesParams{InfraEnvID: infraEnvID, FileName: "bootstrap.ign"}, file)
 		Expect(err).Should(HaveOccurred())

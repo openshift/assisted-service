@@ -7,7 +7,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net"
 	"net/url"
 	"os"
@@ -206,6 +205,7 @@ type Generator interface {
 }
 
 // IgnitionBuilder defines the ignition formatting methods for the various images
+//
 //go:generate mockgen -source=ignition.go -package=ignition -destination=mock_ignition.go
 type IgnitionBuilder interface {
 	FormatDiscoveryIgnitionFile(ctx context.Context, infraEnv *common.InfraEnv, cfg IgnitionConfig, safeForLogs bool, authType auth.AuthType, overrideDiscoveryISOType string) (string, error)
@@ -353,7 +353,7 @@ func (g *installerGenerator) Generate(ctx context.Context, installConfig []byte,
 	}
 
 	// write installConfig to install-config.yaml so openshift-install can read it
-	err = ioutil.WriteFile(installConfigPath, installConfig, 0600)
+	err = os.WriteFile(installConfigPath, installConfig, 0600)
 	if err != nil {
 		log.Errorf("failed to write file %s", installConfigPath)
 		return err
@@ -448,7 +448,7 @@ func (g *installerGenerator) Generate(ctx context.Context, installConfig []byte,
 	}
 	// We want to save install-config.yaml
 	// Installer deletes it so we need to write it one more time
-	err = ioutil.WriteFile(installConfigPath, installConfig, 0600)
+	err = os.WriteFile(installConfigPath, installConfig, 0600)
 	if err != nil {
 		log.Errorf("Failed to write file %s", installConfigPath)
 		return err
@@ -486,7 +486,7 @@ func (g *installerGenerator) applyInfrastructureCRPatch(ctx context.Context) err
 	}
 	log.Debugf("applied the yaml patch to the infrastructure manifest at %s: \n %s", infraManifest, string(data[:]))
 
-	err = ioutil.WriteFile(infraManifest, data, 0600)
+	err = os.WriteFile(infraManifest, data, 0600)
 	if err != nil {
 		return errors.Wrapf(err, "failed to write Infrastructure Manifest \"%s\"", infraManifest)
 	}
@@ -524,11 +524,11 @@ func (g *installerGenerator) importClusterTLSCerts(ctx context.Context) error {
 			return errors.Wrapf(err, "failed to open cluster TLS cert file \"%s\"", filename)
 		}
 		defer f.Close()
-		c, err := ioutil.ReadAll(f)
+		c, err := io.ReadAll(f)
 		if err != nil {
 			return errors.Wrapf(err, "failed to read cluster TLS cert file \"%s\"", filename)
 		}
-		err = ioutil.WriteFile(filepath.Join(outDir, filename), c, 0600)
+		err = os.WriteFile(filepath.Join(outDir, filename), c, 0600)
 		if err != nil {
 			return errors.Wrapf(err, "failed to write cluster TLS cert file \"%s\"", filename)
 		}
@@ -613,7 +613,7 @@ type clusterVersion struct {
 
 // ExtractClusterID gets a local path of a "bootstrap.ign" file and extracts the OpenShift cluster ID
 func ExtractClusterID(reader io.ReadCloser) (string, error) {
-	bs, err := ioutil.ReadAll(reader)
+	bs, err := io.ReadAll(reader)
 	if err != nil {
 		return "", err
 	}
@@ -1057,7 +1057,7 @@ func ParseToLatest(content []byte) (*config_latest_types.Config, error) {
 }
 
 func parseIgnitionFile(path string) (*config_latest_types.Config, error) {
-	configBytes, err := ioutil.ReadFile(path)
+	configBytes, err := os.ReadFile(path)
 	if err != nil {
 		return nil, errors.Errorf("error reading file %s: %v", path, err)
 	}
@@ -1080,7 +1080,7 @@ func writeIgnitionFile(path string, config *config_latest_types.Config) error {
 		return err
 	}
 
-	err = ioutil.WriteFile(path, updatedBytes, 0600)
+	err = os.WriteFile(path, updatedBytes, 0600)
 	if err != nil {
 		return errors.Wrapf(err, "error writing file %s", path)
 	}
@@ -1134,7 +1134,7 @@ func setCACertInIgnition(role models.HostRole, path string, workDir string, caCe
 	}
 
 	var caCertData []byte
-	caCertData, err = ioutil.ReadFile(caCertFile)
+	caCertData, err = os.ReadFile(caCertFile)
 	if err != nil {
 		return err
 	}
@@ -1180,7 +1180,7 @@ func writeHostFiles(hosts []*models.Host, baseFile string, workDir string) error
 				configBytes = []byte(merged)
 			}
 
-			err = ioutil.WriteFile(filepath.Join(workDir, hostutil.IgnitionFileName(host)), configBytes, 0600)
+			err = os.WriteFile(filepath.Join(workDir, hostutil.IgnitionFileName(host)), configBytes, 0600)
 			if err != nil {
 				return errors.Wrapf(err, "failed to write ignition for host %s", host.ID)
 			}
@@ -1308,7 +1308,7 @@ func (g *installerGenerator) downloadManifest(ctx context.Context, manifest stri
 	if err != nil {
 		return err
 	}
-	content, err := ioutil.ReadAll(respBody)
+	content, err := io.ReadAll(respBody)
 	if err != nil {
 		return err
 	}
@@ -1317,7 +1317,7 @@ func (g *installerGenerator) downloadManifest(ctx context.Context, manifest stri
 	prefix := manifests.GetManifestObjectName(*g.cluster.ID, "")
 	targetPath := filepath.Join(g.workDir, strings.TrimPrefix(manifest, prefix))
 
-	err = ioutil.WriteFile(targetPath, content, 0600)
+	err = os.WriteFile(targetPath, content, 0600)
 	if err != nil {
 		return err
 	}
@@ -1391,7 +1391,7 @@ func (ib *ignitionBuilder) FormatDiscoveryIgnitionFile(ctx context.Context, infr
 	}
 	if cfg.ServiceCACertPath != "" {
 		var caCertData []byte
-		caCertData, err = ioutil.ReadFile(cfg.ServiceCACertPath)
+		caCertData, err = os.ReadFile(cfg.ServiceCACertPath)
 		if err != nil {
 			return "", err
 		}
@@ -1602,7 +1602,7 @@ func getIcspFileFromInstallConfig(cfg []byte, log logrus.FieldLogger) (string, e
 		return "", nil
 	}
 
-	icspFile, err := ioutil.TempFile("", "icsp-file")
+	icspFile, err := os.CreateTemp("", "icsp-file")
 	if err != nil {
 		return "", err
 	}

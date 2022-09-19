@@ -2,7 +2,7 @@ package s3wrapper
 
 import (
 	"context"
-	"io/ioutil"
+	"io"
 	"os"
 	"path/filepath"
 	"time"
@@ -29,9 +29,9 @@ var _ = Describe("s3filesystem", func() {
 		objKey2        = "discovery-image-f318a87b-ba57-4c7e-ae5f-ee562a6d1e8c.iso"
 	)
 	BeforeEach(func() {
-		log.SetOutput(ioutil.Discard)
+		log.SetOutput(io.Discard)
 		var err error
-		baseDir, err = ioutil.TempDir("", "test")
+		baseDir, err = os.MkdirTemp("", "test")
 		Expect(err).Should(BeNil())
 
 		ctrl = gomock.NewController(GinkgoT())
@@ -208,7 +208,7 @@ var _ = Describe("s3filesystem", func() {
 func createFileObject(baseDir, objKey string, imgCreatedAt time.Time) (string, os.FileInfo) {
 	filePath := filepath.Join(baseDir, objKey)
 	Expect(os.MkdirAll(filepath.Dir(filePath), 0755)).To(Succeed())
-	err := ioutil.WriteFile(filePath, []byte("Hello world"), 0600)
+	err := os.WriteFile(filePath, []byte("Hello world"), 0600)
 	Expect(err).Should(BeNil())
 	err = os.Chtimes(filePath, imgCreatedAt, imgCreatedAt)
 	Expect(err).Should(BeNil())

@@ -5,7 +5,6 @@ import (
 	"compress/gzip"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"testing"
 
 	"github.com/cavaliercoder/go-cpio"
@@ -56,19 +55,19 @@ var _ = Describe("RamdiskImageArchive", func() {
 			Expect(err).ToNot(HaveOccurred())
 			switch hdr.Name {
 			case "/etc/1.nmconnection":
-				configBytes, err := ioutil.ReadAll(r)
+				configBytes, err := io.ReadAll(r)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(string(configBytes)).To(Equal("1.nmconnection contents"))
 			case "/etc/2.nmconnection":
-				configBytes, err := ioutil.ReadAll(r)
+				configBytes, err := io.ReadAll(r)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(string(configBytes)).To(Equal("2.nmconnection contents"))
 			case "/usr/lib/dracut/hooks/initqueue/settled/90-assisted-pre-static-network-config.sh":
-				scriptBytes, err := ioutil.ReadAll(r)
+				scriptBytes, err := io.ReadAll(r)
 				Expect(err).ToNot(HaveOccurred())
 				scriptContent = string(scriptBytes)
 			case "/etc/systemd/system/coreos-livepxe-rootfs.service.d/10-proxy.conf":
-				rootfsServiceConfigBytes, err := ioutil.ReadAll(r)
+				rootfsServiceConfigBytes, err := io.ReadAll(r)
 				Expect(err).ToNot(HaveOccurred())
 				rootfsServiceConfigContent = string(rootfsServiceConfigBytes)
 			}

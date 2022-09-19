@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"html/template"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -428,7 +427,7 @@ var _ = Describe("Test Hooks", func() {
 	BeforeEach(func() {
 		ctrl = gomock.NewController(GinkgoT())
 		envVars = make([]string, 0)
-		workDir, err = ioutil.TempDir("", "test-assisted-installer-hooks")
+		workDir, err = os.MkdirTemp("", "test-assisted-installer-hooks")
 		Expect(err).To(BeNil())
 		err = os.Mkdir(filepath.Join(workDir, "openshift"), 0755)
 		Expect(err).To(BeNil())
@@ -492,7 +491,7 @@ func createMasterMachineManifests(workDir, filePrefix string, cluster *common.Cl
 		buf := &bytes.Buffer{}
 		err = tmpl.Execute(buf, manifestParams)
 		Expect(err).To(BeNil())
-		err = ioutil.WriteFile(filePath, buf.Bytes(), 0600)
+		err = os.WriteFile(filePath, buf.Bytes(), 0600)
 		Expect(err).To(BeNil())
 	}
 }
@@ -509,7 +508,7 @@ func createMachineSetManifest(workDir, filePrefix string, cluster *common.Cluste
 	buf := &bytes.Buffer{}
 	err = tmpl.Execute(buf, manifestParams)
 	Expect(err).To(BeNil())
-	err = ioutil.WriteFile(filePath, buf.Bytes(), 0600)
+	err = os.WriteFile(filePath, buf.Bytes(), 0600)
 	Expect(err).To(BeNil())
 }
 

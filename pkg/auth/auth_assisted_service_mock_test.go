@@ -4,8 +4,8 @@ import (
 	"context"
 	"errors"
 	"io"
-	"io/ioutil"
 	"net/http"
+	"os"
 	"strings"
 
 	"github.com/go-openapi/runtime/middleware"
@@ -210,7 +210,7 @@ func (f fakeInventory) V2InstallHost(ctx context.Context, params installer.V2Ins
 }
 
 func (f fakeInventory) V2DownloadClusterCredentials(ctx context.Context, params installer.V2DownloadClusterCredentialsParams) middleware.Responder {
-	file, err := ioutil.TempFile("/tmp", "test.file")
+	file, err := os.CreateTemp("/tmp", "test.file")
 	if err != nil {
 		return installer.NewV2DownloadClusterCredentialsInternalServerError().WithPayload(
 			common.GenerateError(http.StatusInternalServerError, err))

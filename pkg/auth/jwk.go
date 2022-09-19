@@ -8,7 +8,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"encoding/pem"
-	"io/ioutil"
+	"io"
 	"math/big"
 	"net/http"
 
@@ -80,7 +80,7 @@ func (au *aUtils) proccessPublicKeys(cas *x509.CertPool) (keyMap map[string]*rsa
 		}
 
 		// Try to read the response body.
-		body, err = ioutil.ReadAll(res.Body)
+		body, err = io.ReadAll(res.Body)
 		if err != nil {
 			return nil, errors.Errorf("unable to read response body: %e", err)
 		}

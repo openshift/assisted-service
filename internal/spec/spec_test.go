@@ -3,7 +3,7 @@ package spec
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"log"
 	"net/http"
 	"net/http/httptest"
@@ -50,7 +50,7 @@ var _ = Describe("spec", func() {
 			if err != nil {
 				log.Fatal(err)
 			}
-			reply, err := ioutil.ReadAll(res.Body)
+			reply, err := io.ReadAll(res.Body)
 			Expect(err).To(BeNil())
 			res.Body.Close()
 			Expect(isJSON(reply)).To(BeTrue(), fmt.Sprintf("got %s", string(reply)))
@@ -62,7 +62,7 @@ var _ = Describe("spec", func() {
 		if err != nil {
 			log.Fatal(err)
 		}
-		reply, err := ioutil.ReadAll(res.Body)
+		reply, err := io.ReadAll(res.Body)
 		Expect(err).To(BeNil())
 		res.Body.Close()
 		Expect(string(reply)).To(Equal(defaultReply))

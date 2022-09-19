@@ -2,7 +2,7 @@ package oc
 
 import (
 	"fmt"
-	"io/ioutil"
+	"os"
 	"path/filepath"
 
 	"github.com/openshift/assisted-service/pkg/executer"
@@ -41,7 +41,7 @@ func (r *extract) ExtractDatabaseIndex(log logrus.FieldLogger, releaseImageMirro
 
 // Extract extracts the file from image index to the temporary file
 func (r *extract) Extract(log logrus.FieldLogger, imageIndexPath string, openshiftVersion string, filePath string, pullSecret string, insecure bool) (string, error) {
-	file, err := ioutil.TempFile("", filepath.Base(filePath))
+	file, err := os.CreateTemp("", filepath.Base(filePath))
 	if err != nil {
 		return "", err
 	}

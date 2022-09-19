@@ -3,7 +3,6 @@ package versions
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"strings"
 	"testing"
@@ -216,7 +215,7 @@ var _ = Describe("list versions", func() {
 	Context("ListSupportedOpenshiftVersions", func() {
 		readDefaultOsImages := func() {
 			var bytes []byte
-			bytes, err = ioutil.ReadFile("../../data/default_os_images.json")
+			bytes, err = os.ReadFile("../../data/default_os_images.json")
 			Expect(err).ShouldNot(HaveOccurred())
 			err = json.Unmarshal(bytes, osImages)
 			Expect(err).ShouldNot(HaveOccurred())
@@ -224,7 +223,7 @@ var _ = Describe("list versions", func() {
 
 		readDefaultReleaseImages := func() {
 			var bytes []byte
-			bytes, err = ioutil.ReadFile("../../data/default_release_images.json")
+			bytes, err = os.ReadFile("../../data/default_release_images.json")
 			Expect(err).ShouldNot(HaveOccurred())
 			err = json.Unmarshal(bytes, releaseImages)
 			Expect(err).ShouldNot(HaveOccurred())
