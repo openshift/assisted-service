@@ -2,7 +2,7 @@ package app
 
 import (
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -27,7 +27,7 @@ var _ = Describe("WithHealthMiddleware", func() {
 
 	BeforeEach(func() {
 		logger = logrus.New()
-		logger.SetOutput(ioutil.Discard)
+		logger.SetOutput(io.Discard)
 	})
 
 	It("monitors threads at /health", func() {

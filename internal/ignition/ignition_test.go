@@ -6,7 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -49,7 +49,7 @@ var (
 var _ = BeforeEach(func() {
 	// setup temp workdir
 	var err error
-	workDir, err = ioutil.TempDir("", "assisted-install-test-")
+	workDir, err = os.MkdirTemp("", "assisted-install-test-")
 	Expect(err).NotTo(HaveOccurred())
 	installerCacheDir = filepath.Join(workDir, "installercache")
 
@@ -113,7 +113,7 @@ var _ = Describe("Bootstrap Ignition Update", func() {
 	BeforeEach(func() {
 		var err1 error
 		examplePath = filepath.Join(workDir, "example1.ign")
-		err1 = ioutil.WriteFile(examplePath, []byte(bootstrap1), 0600)
+		err1 = os.WriteFile(examplePath, []byte(bootstrap1), 0600)
 		Expect(err1).NotTo(HaveOccurred())
 		mockS3Client = s3wrapper.NewMockAPI(ctrl)
 
@@ -130,7 +130,7 @@ var _ = Describe("Bootstrap Ignition Update", func() {
 		err = g.updateBootstrap(context.Background(), examplePath)
 
 		// TODO(deprecate-ignition-3.1.0)
-		bootstrapBytes, _ := ioutil.ReadFile(examplePath)
+		bootstrapBytes, _ := os.ReadFile(examplePath)
 		config, err1 = ParseToLatest(bootstrapBytes)
 		Expect(err1).NotTo(HaveOccurred())
 		Expect(config.Ignition.Version).To(Equal("3.2.0"))
@@ -255,13 +255,13 @@ SV4bRR9i0uf+xQ/oYRvugQ25Q7EahO5hJIWRf4aULbk36Zpw3++v2KFnF26zqwB6
 	BeforeEach(func() {
 		masterPath = filepath.Join(workDir, "master.ign")
 		workerPath = filepath.Join(workDir, "worker.ign")
-		err := ioutil.WriteFile(masterPath, []byte(ignition), 0600)
+		err := os.WriteFile(masterPath, []byte(ignition), 0600)
 		Expect(err).NotTo(HaveOccurred())
-		err = ioutil.WriteFile(workerPath, []byte(ignition), 0600)
+		err = os.WriteFile(workerPath, []byte(ignition), 0600)
 		Expect(err).NotTo(HaveOccurred())
 
 		caCertPath = filepath.Join(workDir, "service-ca-cert.crt")
-		err = ioutil.WriteFile(caCertPath, []byte(caCert), 0600)
+		err = os.WriteFile(caCertPath, []byte(caCert), 0600)
 		Expect(err).NotTo(HaveOccurred())
 	})
 
@@ -273,7 +273,7 @@ SV4bRR9i0uf+xQ/oYRvugQ25Q7EahO5hJIWRf4aULbk36Zpw3++v2KFnF26zqwB6
 			err := g.updateIgnitions()
 			Expect(err).NotTo(HaveOccurred())
 
-			masterBytes, err := ioutil.ReadFile(masterPath)
+			masterBytes, err := os.ReadFile(masterPath)
 			Expect(err).NotTo(HaveOccurred())
 			masterConfig, _, err := config_32.Parse(masterBytes)
 			Expect(err).NotTo(HaveOccurred())
@@ -281,7 +281,7 @@ SV4bRR9i0uf+xQ/oYRvugQ25Q7EahO5hJIWRf4aULbk36Zpw3++v2KFnF26zqwB6
 			file := &masterConfig.Storage.Files[0]
 			Expect(file.Path).To(Equal(common.HostCACertPath))
 
-			workerBytes, err := ioutil.ReadFile(workerPath)
+			workerBytes, err := os.ReadFile(workerPath)
 			Expect(err).NotTo(HaveOccurred())
 			workerConfig, _, err := config_32.Parse(workerBytes)
 			Expect(err).NotTo(HaveOccurred())
@@ -296,13 +296,13 @@ SV4bRR9i0uf+xQ/oYRvugQ25Q7EahO5hJIWRf4aULbk36Zpw3++v2KFnF26zqwB6
 			err := g.updateIgnitions()
 			Expect(err).NotTo(HaveOccurred())
 
-			masterBytes, err := ioutil.ReadFile(masterPath)
+			masterBytes, err := os.ReadFile(masterPath)
 			Expect(err).NotTo(HaveOccurred())
 			masterConfig, _, err := config_32.Parse(masterBytes)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(masterConfig.Storage.Files).To(HaveLen(0))
 
-			workerBytes, err := ioutil.ReadFile(workerPath)
+			workerBytes, err := os.ReadFile(workerPath)
 			Expect(err).NotTo(HaveOccurred())
 			workerConfig, _, err := config_32.Parse(workerBytes)
 			Expect(err).NotTo(HaveOccurred())
@@ -315,7 +315,7 @@ SV4bRR9i0uf+xQ/oYRvugQ25Q7EahO5hJIWRf4aULbk36Zpw3++v2KFnF26zqwB6
 			err := g.UpdateEtcHosts("10.10.10.1,10.10.10.2")
 			Expect(err).NotTo(HaveOccurred())
 
-			masterBytes, err := ioutil.ReadFile(masterPath)
+			masterBytes, err := os.ReadFile(masterPath)
 			Expect(err).NotTo(HaveOccurred())
 			masterConfig, _, err := config_32.Parse(masterBytes)
 			Expect(err).NotTo(HaveOccurred())
@@ -323,7 +323,7 @@ SV4bRR9i0uf+xQ/oYRvugQ25Q7EahO5hJIWRf4aULbk36Zpw3++v2KFnF26zqwB6
 			file := &masterConfig.Storage.Files[0]
 			Expect(file.Path).To(Equal("/etc/hosts"))
 
-			workerBytes, err := ioutil.ReadFile(workerPath)
+			workerBytes, err := os.ReadFile(workerPath)
 			Expect(err).NotTo(HaveOccurred())
 			workerConfig, _, err := config_32.Parse(workerBytes)
 			Expect(err).NotTo(HaveOccurred())
@@ -338,13 +338,13 @@ SV4bRR9i0uf+xQ/oYRvugQ25Q7EahO5hJIWRf4aULbk36Zpw3++v2KFnF26zqwB6
 			err := g.UpdateEtcHosts("")
 			Expect(err).NotTo(HaveOccurred())
 
-			masterBytes, err := ioutil.ReadFile(masterPath)
+			masterBytes, err := os.ReadFile(masterPath)
 			Expect(err).NotTo(HaveOccurred())
 			masterConfig, _, err := config_32.Parse(masterBytes)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(masterConfig.Storage.Files).To(HaveLen(0))
 
-			workerBytes, err := ioutil.ReadFile(workerPath)
+			workerBytes, err := os.ReadFile(workerPath)
 			Expect(err).NotTo(HaveOccurred())
 			workerConfig, _, err := config_32.Parse(workerBytes)
 			Expect(err).NotTo(HaveOccurred())
@@ -369,7 +369,7 @@ SV4bRR9i0uf+xQ/oYRvugQ25Q7EahO5hJIWRf4aULbk36Zpw3++v2KFnF26zqwB6
 				err := g.updateIgnitions()
 				Expect(err).NotTo(HaveOccurred())
 
-				masterBytes, err := ioutil.ReadFile(masterPath)
+				masterBytes, err := os.ReadFile(masterPath)
 				Expect(err).ToNot(HaveOccurred())
 				masterConfig, _, err := config_32.Parse(masterBytes)
 				Expect(err).NotTo(HaveOccurred())
@@ -390,7 +390,7 @@ SV4bRR9i0uf+xQ/oYRvugQ25Q7EahO5hJIWRf4aULbk36Zpw3++v2KFnF26zqwB6
 			err := g.updateIgnitions()
 			Expect(err).NotTo(HaveOccurred())
 
-			masterBytes, err := ioutil.ReadFile(masterPath)
+			masterBytes, err := os.ReadFile(masterPath)
 			Expect(err).ToNot(HaveOccurred())
 			masterConfig, _, err := config_32.Parse(masterBytes)
 			Expect(err).NotTo(HaveOccurred())
@@ -470,11 +470,11 @@ var _ = Describe("createHostIgnitions", func() {
 
 	BeforeEach(func() {
 		masterPath := filepath.Join(workDir, "master.ign")
-		err := ioutil.WriteFile(masterPath, []byte(masterIgn), 0600)
+		err := os.WriteFile(masterPath, []byte(masterIgn), 0600)
 		Expect(err).NotTo(HaveOccurred())
 
 		workerPath := filepath.Join(workDir, "worker.ign")
-		err = ioutil.WriteFile(workerPath, []byte(workerIgn), 0600)
+		err = os.WriteFile(workerPath, []byte(workerIgn), 0600)
 		Expect(err).NotTo(HaveOccurred())
 	})
 
@@ -512,7 +512,7 @@ var _ = Describe("createHostIgnitions", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			for _, host := range cluster.Hosts {
-				ignBytes, err := ioutil.ReadFile(filepath.Join(workDir, fmt.Sprintf("%s-%s.ign", host.Role, host.ID)))
+				ignBytes, err := os.ReadFile(filepath.Join(workDir, fmt.Sprintf("%s-%s.ign", host.Role, host.ID)))
 				Expect(err).NotTo(HaveOccurred())
 				config, _, err := config_32.Parse(ignBytes)
 				Expect(err).NotTo(HaveOccurred())
@@ -557,7 +557,7 @@ var _ = Describe("createHostIgnitions", func() {
 		err := g.createHostIgnitions()
 		Expect(err).NotTo(HaveOccurred())
 
-		ignBytes, err := ioutil.ReadFile(filepath.Join(workDir, fmt.Sprintf("%s-%s.ign", models.HostRoleMaster, hostID)))
+		ignBytes, err := os.ReadFile(filepath.Join(workDir, fmt.Sprintf("%s-%s.ign", models.HostRoleMaster, hostID)))
 		Expect(err).NotTo(HaveOccurred())
 		config, _, err := config_32.Parse(ignBytes)
 		Expect(err).NotTo(HaveOccurred())
@@ -581,19 +581,19 @@ var _ = Describe("createHostIgnitions", func() {
 
 var _ = Describe("Openshift cluster ID extraction", func() {
 	It("fails on empty ignition file", func() {
-		r := ioutil.NopCloser(strings.NewReader(""))
+		r := io.NopCloser(strings.NewReader(""))
 		_, err := ExtractClusterID(r)
 		Expect(err.Error()).To(ContainSubstring("not a config (empty)"))
 	})
 
 	It("fails on invalid JSON file", func() {
-		r := ioutil.NopCloser(strings.NewReader("{"))
+		r := io.NopCloser(strings.NewReader("{"))
 		_, err := ExtractClusterID(r)
 		Expect(err.Error()).To(ContainSubstring("config is not valid"))
 	})
 
 	It("fails on invalid ignition file", func() {
-		r := ioutil.NopCloser(strings.NewReader(`{
+		r := io.NopCloser(strings.NewReader(`{
 				"ignition":{"version":"invalid.version"}
 		}`))
 		_, err := ExtractClusterID(r)
@@ -601,7 +601,7 @@ var _ = Describe("Openshift cluster ID extraction", func() {
 	})
 
 	It("fails when there's no CVO file", func() {
-		r := ioutil.NopCloser(strings.NewReader(`{
+		r := io.NopCloser(strings.NewReader(`{
 				"ignition":{"version":"3.2.0"},
 				"storage":{
 					"files":[]
@@ -614,7 +614,7 @@ var _ = Describe("Openshift cluster ID extraction", func() {
 	})
 
 	It("fails when no ClusterID is embedded in cvo-overrides", func() {
-		r := ioutil.NopCloser(strings.NewReader(`{
+		r := io.NopCloser(strings.NewReader(`{
 				"ignition":{"version":"3.2.0"},
 				"storage":{
 					"files":[
@@ -635,7 +635,7 @@ var _ = Describe("Openshift cluster ID extraction", func() {
 
 	It("fails when cvo-overrides file cannot be un-marshalled", func() {
 		// embedded JSON in the base64 format is "{"
-		r := ioutil.NopCloser(strings.NewReader(`{
+		r := io.NopCloser(strings.NewReader(`{
 				"ignition":{"version":"3.2.0"},
 				"storage":{
 					"files":[
@@ -654,7 +654,7 @@ var _ = Describe("Openshift cluster ID extraction", func() {
 	})
 
 	It("is successfull on valid file", func() {
-		r := ioutil.NopCloser(strings.NewReader(`{
+		r := io.NopCloser(strings.NewReader(`{
 				"ignition":{"version":"3.2.0"},
 				"storage":{
 					"files":[
@@ -672,7 +672,7 @@ var _ = Describe("Openshift cluster ID extraction", func() {
 	})
 
 	It("only looks on cvo-overrides file", func() {
-		r := ioutil.NopCloser(strings.NewReader(`{
+		r := io.NopCloser(strings.NewReader(`{
 				"ignition":{"version":"3.2.0"},
 				"storage":{
 					"files":[
@@ -802,13 +802,13 @@ var _ = Describe("downloadManifest", func() {
 	It("writes the correct file", func() {
 		ctx := context.Background()
 		manifestName := fmt.Sprintf("%s/manifests/openshift/masters-chrony-configuration.yaml", cluster.ID)
-		mockS3Client.EXPECT().Download(ctx, manifestName).Return(ioutil.NopCloser(strings.NewReader("chronyconf")), int64(10), nil)
+		mockS3Client.EXPECT().Download(ctx, manifestName).Return(io.NopCloser(strings.NewReader("chronyconf")), int64(10), nil)
 		Expect(os.Mkdir(filepath.Join(workDir, "/openshift"), 0755)).To(Succeed())
 		Expect(os.Mkdir(filepath.Join(workDir, "/manifests"), 0755)).To(Succeed())
 
 		Expect(generator.downloadManifest(ctx, manifestName)).To(Succeed())
 
-		content, err := ioutil.ReadFile(filepath.Join(workDir, "/openshift/masters-chrony-configuration.yaml"))
+		content, err := os.ReadFile(filepath.Join(workDir, "/openshift/masters-chrony-configuration.yaml"))
 		Expect(err).NotTo(HaveOccurred())
 		Expect(content).To(Equal([]byte("chronyconf")))
 	})
@@ -1511,11 +1511,11 @@ var _ = Describe("Import Cluster TLS Certs for ephemeral installer", func() {
 
 	BeforeEach(func() {
 		var err error
-		certDir, err = ioutil.TempDir("", "assisted-install-cluster-tls-certs-test-")
+		certDir, err = os.MkdirTemp("", "assisted-install-cluster-tls-certs-test-")
 		Expect(err).NotTo(HaveOccurred())
 
 		for _, cf := range certFiles {
-			err = ioutil.WriteFile(filepath.Join(certDir, cf), []byte(cf), 0600)
+			err = os.WriteFile(filepath.Join(certDir, cf), []byte(cf), 0600)
 			Expect(err).NotTo(HaveOccurred())
 		}
 	})
@@ -1528,7 +1528,7 @@ var _ = Describe("Import Cluster TLS Certs for ephemeral installer", func() {
 		Expect(err).NotTo(HaveOccurred())
 
 		for _, cf := range certFiles {
-			content, err := ioutil.ReadFile(filepath.Join(workDir, "tls", cf))
+			content, err := os.ReadFile(filepath.Join(workDir, "tls", cf))
 			Expect(err).NotTo(HaveOccurred())
 			Expect(string(content)).To(Equal(cf))
 		}
@@ -1585,7 +1585,7 @@ var _ = Describe("ICSP file for oc extract", func() {
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(icspFile).Should(BeARegularFile())
 
-		contents, err := ioutil.ReadFile(icspFile)
+		contents, err := os.ReadFile(icspFile)
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(string(contents)).Should(Equal(expected))
 	})
@@ -1677,14 +1677,14 @@ status:
 		manifestsDir := filepath.Join(workDir, "/manifests")
 		Expect(os.Mkdir(manifestsDir, 0755)).To(Succeed())
 
-		err := ioutil.WriteFile(filepath.Join(manifestsDir, "cluster-infrastructure-02-config.yml"), []byte(base), 0600)
+		err := os.WriteFile(filepath.Join(manifestsDir, "cluster-infrastructure-02-config.yml"), []byte(base), 0600)
 		Expect(err).NotTo(HaveOccurred())
 
 		// remove one host to make sure this is a 5 node cluster
 		cluster.Hosts = []*models.Host{cluster.Hosts[0]}
 		Expect(generator.applyInfrastructureCRPatch(ctx)).To(Succeed())
 
-		content, err := ioutil.ReadFile(filepath.Join(manifestsDir, "cluster-infrastructure-02-config.yml"))
+		content, err := os.ReadFile(filepath.Join(manifestsDir, "cluster-infrastructure-02-config.yml"))
 		Expect(err).NotTo(HaveOccurred())
 
 		merged := map[string]interface{}{}
@@ -1727,12 +1727,12 @@ status:
 		manifestsDir := filepath.Join(workDir, "/manifests")
 		Expect(os.Mkdir(manifestsDir, 0755)).To(Succeed())
 
-		err := ioutil.WriteFile(filepath.Join(manifestsDir, "cluster-infrastructure-02-config.yml"), []byte(base), 0600)
+		err := os.WriteFile(filepath.Join(manifestsDir, "cluster-infrastructure-02-config.yml"), []byte(base), 0600)
 		Expect(err).NotTo(HaveOccurred())
 
 		Expect(generator.applyInfrastructureCRPatch(ctx)).To(Succeed())
 
-		content, err := ioutil.ReadFile(filepath.Join(manifestsDir, "cluster-infrastructure-02-config.yml"))
+		content, err := os.ReadFile(filepath.Join(manifestsDir, "cluster-infrastructure-02-config.yml"))
 		Expect(err).NotTo(HaveOccurred())
 
 		merged := map[string]interface{}{}

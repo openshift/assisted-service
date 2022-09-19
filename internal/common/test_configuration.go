@@ -3,7 +3,7 @@ package common
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net"
 
 	"github.com/go-openapi/strfmt"
@@ -480,7 +480,7 @@ func GenerateTestInventoryWithTpmVersion(tpmVersion string) string {
 
 func GetTestLog() logrus.FieldLogger {
 	l := logrus.New()
-	l.SetOutput(ioutil.Discard)
+	l.SetOutput(io.Discard)
 	return l
 }
 

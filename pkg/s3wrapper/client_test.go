@@ -3,7 +3,7 @@ package s3wrapper
 import (
 	"context"
 	"errors"
-	"io/ioutil"
+	"io"
 	"strconv"
 	"time"
 
@@ -34,7 +34,7 @@ var _ = Describe("s3client", func() {
 		ctrl = gomock.NewController(GinkgoT())
 		mockAPI = NewMockS3API(ctrl)
 		uploader = NewMockUploaderAPI(ctrl)
-		log.SetOutput(ioutil.Discard)
+		log.SetOutput(io.Discard)
 		bucket = "test"
 		cfg := Config{S3Bucket: bucket}
 		client = &S3Client{log: log, session: nil, client: mockAPI, uploader: uploader, cfg: &cfg}

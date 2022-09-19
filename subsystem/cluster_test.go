@@ -7,7 +7,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net"
 	"os"
 	"os/exec"
@@ -2052,7 +2051,7 @@ var _ = Describe("cluster install", func() {
 		It("[minimal-set]install download_config_files", func() {
 			//Test downloading kubeconfig files in worng state
 			//This test uses Agent Auth for DownloadClusterFiles (as opposed to the other tests), to cover both supported authentication types for this API endpoint.
-			file, err := ioutil.TempFile("", "tmp")
+			file, err := os.CreateTemp("", "tmp")
 			Expect(err).NotTo(HaveOccurred())
 
 			defer os.Remove(file.Name())
@@ -2076,7 +2075,7 @@ var _ = Describe("cluster install", func() {
 		})
 
 		It("download_config_files in error state", func() {
-			file, err := ioutil.TempFile("", "tmp")
+			file, err := os.CreateTemp("", "tmp")
 			Expect(err).NotTo(HaveOccurred())
 			defer os.Remove(file.Name())
 
@@ -2136,7 +2135,7 @@ var _ = Describe("cluster install", func() {
 			By("Download before upload")
 			{
 				nodes, _ := register3nodes(ctx, clusterID, *infraEnvID, defaultCIDRv4)
-				file, err := ioutil.TempFile("", "tmp")
+				file, err := os.CreateTemp("", "tmp")
 				Expect(err).NotTo(HaveOccurred())
 				_, err = userBMClient.Installer.V2DownloadClusterLogs(ctx, &installer.V2DownloadClusterLogsParams{ClusterID: clusterID, HostID: nodes[1].ID}, file)
 				Expect(err).NotTo(HaveOccurred())
@@ -2151,7 +2150,7 @@ var _ = Describe("cluster install", func() {
 				_, err = agentBMClient.Installer.V2UploadLogs(ctx, &installer.V2UploadLogsParams{ClusterID: clusterID, LogsType: string(models.LogsTypeController), Upfile: kubeconfigFile})
 				Expect(err).NotTo(HaveOccurred())
 				logsType := string(models.LogsTypeController)
-				file, err := ioutil.TempFile("", "tmp")
+				file, err := os.CreateTemp("", "tmp")
 				Expect(err).NotTo(HaveOccurred())
 				_, err = userBMClient.Installer.V2DownloadClusterLogs(ctx, &installer.V2DownloadClusterLogsParams{ClusterID: clusterID, LogsType: &logsType}, file)
 				Expect(err).NotTo(HaveOccurred())
@@ -2174,7 +2173,7 @@ var _ = Describe("cluster install", func() {
 					Upfile:     kubeconfigFile})
 				Expect(err).NotTo(HaveOccurred())
 
-				file, err := ioutil.TempFile("", "tmp")
+				file, err := os.CreateTemp("", "tmp")
 				Expect(err).NotTo(HaveOccurred())
 				_, err = userBMClient.Installer.V2DownloadClusterLogs(ctx, &installer.V2DownloadClusterLogsParams{
 					ClusterID: clusterID,
@@ -2207,7 +2206,7 @@ var _ = Describe("cluster install", func() {
 				h := getHostV2(*infraEnvID, *nodes[1].ID)
 				Expect(h.LogsCollectedAt).ShouldNot(Equal(strfmt.DateTime(time.Time{})))
 				logsType := string(models.LogsTypeHost)
-				file, err := ioutil.TempFile("", "tmp")
+				file, err := os.CreateTemp("", "tmp")
 				Expect(err).NotTo(HaveOccurred())
 				_, err = userBMClient.Installer.V2DownloadClusterLogs(ctx, &installer.V2DownloadClusterLogsParams{ClusterID: clusterID,
 					HostID: nodes[1].ID, LogsType: &logsType}, file)
@@ -2224,7 +2223,7 @@ var _ = Describe("cluster install", func() {
 				c := getCluster(clusterID)
 				Expect(c.ControllerLogsCollectedAt).ShouldNot(Equal(strfmt.DateTime(time.Time{})))
 				logsType = string(models.LogsTypeController)
-				file, err = ioutil.TempFile("", "tmp")
+				file, err = os.CreateTemp("", "tmp")
 				Expect(err).NotTo(HaveOccurred())
 				_, err = userBMClient.Installer.V2DownloadClusterLogs(ctx, &installer.V2DownloadClusterLogsParams{ClusterID: clusterID,
 					LogsType: &logsType}, file)
@@ -2297,7 +2296,7 @@ var _ = Describe("cluster install", func() {
 			{
 				setClusterAsFinalizing(ctx, clusterID)
 				// Download kubeconfig before uploading
-				kubeconfigNoIngress, err := ioutil.TempFile("", "tmp")
+				kubeconfigNoIngress, err := os.CreateTemp("", "tmp")
 				Expect(err).NotTo(HaveOccurred())
 				_, err = userBMClient.Installer.V2DownloadClusterCredentials(ctx, &installer.V2DownloadClusterCredentialsParams{ClusterID: clusterID, FileName: "kubeconfig-noingress"}, kubeconfigNoIngress)
 				Expect(err).ToNot(HaveOccurred())

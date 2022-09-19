@@ -21,7 +21,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"strings"
 	"time"
@@ -490,7 +490,7 @@ func (r *ClusterDeploymentsReconciler) updateKubeConfigSecret(ctx context.Contex
 	if err != nil {
 		return nil, err
 	}
-	respBytes, err := ioutil.ReadAll(respBody)
+	respBytes, err := io.ReadAll(respBody)
 	if err != nil {
 		return nil, err
 	}
@@ -518,7 +518,7 @@ func (r *ClusterDeploymentsReconciler) ensureKubeConfigNoIngressSecret(ctx conte
 	if err != nil {
 		return nil, err
 	}
-	respBytes, err := ioutil.ReadAll(respBody)
+	respBytes, err := io.ReadAll(respBody)
 	if err != nil {
 		return nil, err
 	}
@@ -612,7 +612,7 @@ func isDiskEncryptionEnabled(clusterInstall *hiveext.AgentClusterInstall) bool {
 	}
 }
 
-//see https://docs.openshift.com/container-platform/4.7/installing/installing_platform_agnostic/installing-platform-agnostic.html#installation-bare-metal-config-yaml_installing-platform-agnostic
+// see https://docs.openshift.com/container-platform/4.7/installing/installing_platform_agnostic/installing-platform-agnostic.html#installation-bare-metal-config-yaml_installing-platform-agnostic
 func hyperthreadingInSpec(clusterInstall *hiveext.AgentClusterInstall) bool {
 	//check if either master or worker pool hyperthreading settings are explicitly specified
 	return clusterInstall.Spec.ControlPlane != nil ||

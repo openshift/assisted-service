@@ -2,7 +2,6 @@ package ignition
 
 import (
 	"context"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 
@@ -33,7 +32,7 @@ func NewDummyGenerator(workDir string, cluster *common.Cluster, s3Client s3wrapp
 // Generate creates the expected ignition and related files but with nonsense content
 func (g *dummyGenerator) Generate(_ context.Context, installConfig []byte, platformType models.PlatformType) error {
 	installConfigPath := filepath.Join(g.workDir, "install-config.yaml")
-	err := ioutil.WriteFile(installConfigPath, installConfig, 0600)
+	err := os.WriteFile(installConfigPath, installConfig, 0600)
 	if err != nil {
 		return err
 	}

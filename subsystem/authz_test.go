@@ -3,7 +3,7 @@ package subsystem
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
+	"os"
 
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
@@ -315,7 +315,7 @@ var _ = Describe("Make sure that sensitive files are accessible only by owners o
 		fileName := name
 		it := fmt.Sprintf("Should not allow read-only-admins to download '%v' via downloads/files endpoint", fileName)
 		It(it, func() {
-			file, err := ioutil.TempFile("", "tmp")
+			file, err := os.CreateTemp("", "tmp")
 			Expect(err).NotTo(HaveOccurred())
 			_, err = readOnlyAdminUserBMClient.Installer.V2DownloadClusterCredentials(ctx, &installer.V2DownloadClusterCredentialsParams{ClusterID: clusterID, FileName: fileName}, file)
 			Expect(err).To(HaveOccurred())
@@ -331,7 +331,7 @@ var _ = Describe("Make sure that sensitive files are accessible only by owners o
 		// Access granted
 		it = fmt.Sprintf("Should allow cluster users to download '%v' via downloads/files endpoint", fileName)
 		It(it, func() {
-			file, err := ioutil.TempFile("", "tmp")
+			file, err := os.CreateTemp("", "tmp")
 			Expect(err).NotTo(HaveOccurred())
 			_, err = userBMClient.Installer.V2DownloadClusterCredentials(ctx, &installer.V2DownloadClusterCredentialsParams{ClusterID: clusterID, FileName: fileName}, file)
 			Expect(err).ToNot(HaveOccurred())

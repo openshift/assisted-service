@@ -24,7 +24,6 @@ package main
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
 	"net/url"
 	"os"
 	"path"
@@ -186,7 +185,7 @@ func recordFailures(failures []agentbasedinstaller.Failure) error {
 		messages[i] = fmt.Sprintf("%s: %s\n", f.Hostname(), f.DescribeFailure())
 	}
 
-	return ioutil.WriteFile(
+	return os.WriteFile(
 		failureOutputPath,
 		[]byte(strings.Join(messages, "")),
 		0644)

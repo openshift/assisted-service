@@ -2,7 +2,7 @@ package thread_test
 
 import (
 	"fmt"
-	"io/ioutil"
+	"io"
 	"testing"
 	"time"
 
@@ -16,7 +16,7 @@ var counter uint64
 
 func useThread() {
 	log := logrus.New()
-	log.Out = ioutil.Discard
+	log.Out = io.Discard
 	counter = 0
 
 	threadFunction := func() {

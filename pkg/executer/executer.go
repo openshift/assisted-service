@@ -3,7 +3,6 @@ package executer
 import (
 	"bytes"
 	"context"
-	"io/ioutil"
 	"os"
 	"os/exec"
 )
@@ -18,7 +17,7 @@ type Executer interface {
 type CommonExecuter struct{}
 
 func (e *CommonExecuter) TempFile(dir, pattern string) (f *os.File, err error) {
-	return ioutil.TempFile(dir, pattern)
+	return os.CreateTemp(dir, pattern)
 }
 
 func (e *CommonExecuter) Execute(command string, args ...string) (stdout string, stderr string, exitCode int) {

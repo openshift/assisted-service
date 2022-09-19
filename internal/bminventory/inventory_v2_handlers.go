@@ -3,7 +3,7 @@ package bminventory
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/url"
 	"path"
@@ -250,7 +250,7 @@ func (b *bareMetalInventory) V2UploadClusterIngressCert(ctx context.Context, par
 		return installer.NewV2UploadClusterIngressCertInternalServerError().
 			WithPayload(common.GenerateError(http.StatusInternalServerError, err))
 	}
-	kubeconfigData, err := ioutil.ReadAll(resp)
+	kubeconfigData, err := io.ReadAll(resp)
 	if err != nil {
 		log.WithError(err).Infof("Failed to convert kubeconfig s3 response to io reader")
 		return installer.NewV2UploadClusterIngressCertInternalServerError().

@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"strconv"
@@ -110,7 +109,7 @@ func verifyEventExistence(ClusterID strfmt.UUID, message string) {
 }
 
 func downloadIso(ctx context.Context, url string) {
-	file, err := ioutil.TempFile("", "tmp")
+	file, err := os.CreateTemp("", "tmp")
 	if err != nil {
 		log.Fatal(err)
 	}

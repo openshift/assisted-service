@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"strconv"
 	"strings"
@@ -149,7 +149,7 @@ func getMetricRecords() []string {
 	resp, err := http.Get(url)
 	Expect(err).NotTo(HaveOccurred())
 	defer resp.Body.Close()
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	Expect(err).NotTo(HaveOccurred())
 	return strings.Split(string(body), "\n")
 }

@@ -10,7 +10,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net"
 	"net/http"
 	"net/url"
@@ -3411,7 +3410,7 @@ func (b *bareMetalInventory) DownloadMinimalInitrd(ctx context.Context, params i
 		return installer.NewDownloadMinimalInitrdNoContent()
 	}
 
-	return installer.NewDownloadMinimalInitrdOK().WithPayload(ioutil.NopCloser(bytes.NewReader(minimalInitrd)))
+	return installer.NewDownloadMinimalInitrdOK().WithPayload(io.NopCloser(bytes.NewReader(minimalInitrd)))
 }
 
 func (b *bareMetalInventory) getLogFileForDownload(ctx context.Context, clusterId *strfmt.UUID, hostId *strfmt.UUID, logsType string) (string, string, error) {
@@ -3567,7 +3566,7 @@ func (b *bareMetalInventory) GetCredentialsInternal(ctx context.Context, params 
 		return nil, common.NewApiError(http.StatusInternalServerError, err)
 	}
 	defer r.Close()
-	password, err := ioutil.ReadAll(r)
+	password, err := io.ReadAll(r)
 	if err != nil {
 		log.WithError(errors.Errorf("%s", password)).Errorf("Failed to get clusters %s", objectName)
 		return nil, common.NewApiError(http.StatusConflict, errors.New(string(password)))
@@ -4850,7 +4849,7 @@ func (b *bareMetalInventory) V2GetHostIgnition(ctx context.Context, params insta
 		return common.GenerateErrorResponder(err)
 	}
 
-	respBytes, err := ioutil.ReadAll(respBody)
+	respBytes, err := io.ReadAll(respBody)
 	if err != nil {
 		log.WithError(err).Errorf("failed to read ignition content for host %s", params.HostID)
 		return common.NewApiError(http.StatusInternalServerError, err)
