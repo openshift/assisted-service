@@ -57,7 +57,6 @@ type TransitionHandler interface {
 	PostRegisterDuringInstallation(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) error
 	PostRegisterDuringReboot(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) error
 	PostRegisterHost(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) error
-	PostRegisterInstalledHost(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) error
 	PostResetHost(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) error
 	PostResettingPendingUserAction(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) error
 	PostUnbindHost(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) error
@@ -199,33 +198,6 @@ func (th *transitionHandler) PostRegisterDuringReboot(sw stateswitch.StateSwitch
 
 	messages = append(messages, fmt.Sprintf("(%s, %s)", installationDisk.Name, common.GetDeviceIdentifier(installationDisk)))
 	return th.updateTransitionHost(params.ctx, logutil.FromContext(params.ctx, th.log), params.db, sHost, strings.Join(messages, " "))
-}
-
-///////////////////////////////////////////////////////////////////////////
-// Register Installed host
-//////////////////////////////////////////////////////////////////////////
-
-type TransitionArgsRegisterInstalledHost struct {
-	ctx context.Context
-	db  *gorm.DB
-}
-
-func (th *transitionHandler) PostRegisterInstalledHost(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) error {
-	sHost, ok := sw.(*stateHost)
-	if !ok {
-		return errors.New("PostRegisterInstalledHost incompatible type of StateSwitch")
-	}
-	params, ok := args.(*TransitionArgsRegisterInstalledHost)
-	if !ok {
-		return errors.New("PostRegisterInstalledHost invalid argument")
-	}
-
-	log := logutil.FromContext(params.ctx, th.log)
-
-	sHost.host.StatusUpdatedAt = strfmt.DateTime(time.Now())
-	sHost.host.StatusInfo = swag.String(statusInfoDiscovering)
-	log.Infof("Register installed host %s cluster %s", sHost.host.ID.String(), sHost.host.ClusterID)
-	return params.db.Create(sHost.host).Error
 }
 
 ////////////////////////////////////////////////////////////////////////////

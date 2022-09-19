@@ -14,7 +14,6 @@ const (
 	TransitionTypeResettingPendingUserAction = "ResettingPendingUserAction"
 	TransitionTypeRefresh                    = "RefreshHost"
 	TransitionTypeMediaDisconnect            = "MediaDisconnect"
-	TransitionTypeRegisterInstalledHost      = "RegisterInstalledHost"
 	TransitionTypeBindHost                   = "BindHost"
 	TransitionTypeUnbindHost                 = "UnbindHost"
 	TransitionTypeReclaimHost                = "ReclaimHost"
@@ -108,16 +107,6 @@ func NewHostStateMachine(sm stateswitch.StateMachine, th TransitionHandler) stat
 			stateswitch.State(models.HostStatusError),
 		},
 		DestinationState: stateswitch.State(models.HostStatusError),
-	})
-
-	// Register host
-	sm.AddTransition(stateswitch.TransitionRule{
-		TransitionType: TransitionTypeRegisterInstalledHost,
-		SourceStates: []stateswitch.State{
-			"",
-		},
-		DestinationState: stateswitch.State(models.HostStatusInstalled),
-		PostTransition:   th.PostRegisterInstalledHost,
 	})
 
 	// Installation failure

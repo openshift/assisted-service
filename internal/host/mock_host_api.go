@@ -397,20 +397,6 @@ func (mr *MockAPIMockRecorder) RegisterHost(arg0, arg1, arg2 interface{}) *gomoc
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RegisterHost", reflect.TypeOf((*MockAPI)(nil).RegisterHost), arg0, arg1, arg2)
 }
 
-// RegisterInstalledOCPHost mocks base method.
-func (m *MockAPI) RegisterInstalledOCPHost(arg0 context.Context, arg1 *models.Host, arg2 *gorm.DB) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "RegisterInstalledOCPHost", arg0, arg1, arg2)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// RegisterInstalledOCPHost indicates an expected call of RegisterInstalledOCPHost.
-func (mr *MockAPIMockRecorder) RegisterInstalledOCPHost(arg0, arg1, arg2 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RegisterInstalledOCPHost", reflect.TypeOf((*MockAPI)(nil).RegisterInstalledOCPHost), arg0, arg1, arg2)
-}
-
 // ReportValidationFailedMetrics mocks base method.
 func (m *MockAPI) ReportValidationFailedMetrics(arg0 context.Context, arg1 *models.Host, arg2, arg3 string) error {
 	m.ctrl.T.Helper()

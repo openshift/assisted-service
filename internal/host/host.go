@@ -93,7 +93,6 @@ type API interface {
 	// Register a new host
 	RegisterHost(ctx context.Context, h *models.Host, db *gorm.DB) error
 	UnRegisterHost(ctx context.Context, hostID, infraEnvID string) error
-	RegisterInstalledOCPHost(ctx context.Context, h *models.Host, db *gorm.DB) error
 	HandleInstallationFailure(ctx context.Context, h *models.Host) error
 	HandleMediaDisconnected(ctx context.Context, h *models.Host) error
 	HandleReclaimBootArtifactDownload(ctx context.Context, h *models.Host) error
@@ -231,13 +230,6 @@ func (m *Manager) RegisterHost(ctx context.Context, h *models.Host, db *gorm.DB)
 		ctx:                   ctx,
 		discoveryAgentVersion: h.DiscoveryAgentVersion,
 		db:                    db,
-	})
-}
-
-func (m *Manager) RegisterInstalledOCPHost(ctx context.Context, h *models.Host, db *gorm.DB) error {
-	return m.sm.Run(TransitionTypeRegisterInstalledHost, newStateHost(h), &TransitionArgsRegisterInstalledHost{
-		ctx: ctx,
-		db:  db,
 	})
 }
 
