@@ -106,7 +106,7 @@ func NewInstructionManager(log logrus.FieldLogger, db *gorm.DB, hwValidator hard
 			models.HostStatusDisconnected:             {[]CommandGetter{inventoryCmd}, defaultBackedOffInstructionInSec, models.StepsPostStepActionContinue},
 			models.HostStatusDiscovering:              {[]CommandGetter{inventoryCmd}, defaultNextInstructionInSec, models.StepsPostStepActionContinue},
 			models.HostStatusPendingForInput:          {[]CommandGetter{inventoryCmd, connectivityCmd, tangConnectivityCmd, freeAddressesCmd, dhcpAllocateCmd, ntpSynchronizerCmd, domainNameResolutionCmd}, defaultNextInstructionInSec, models.StepsPostStepActionContinue},
-			models.HostStatusInstalling:               {[]CommandGetter{installCmd, dhcpAllocateCmd}, defaultBackedOffInstructionInSec, models.StepsPostStepActionContinue},
+			models.HostStatusInstalling:               {[]CommandGetter{installCmd, dhcpAllocateCmd}, defaultNextInstructionInSec, models.StepsPostStepActionContinue},
 			models.HostStatusInstallingInProgress:     {[]CommandGetter{dhcpAllocateCmd}, defaultNextInstructionInSec, models.StepsPostStepActionContinue}, //TODO inventory step here is a temporary solution until format command is moved to a different state
 			models.HostStatusPreparingForInstallation: {[]CommandGetter{dhcpAllocateCmd, diskPerfCheckCmd, imageAvailabilityCmd}, defaultNextInstructionInSec, models.StepsPostStepActionContinue},
 			models.HostStatusDisabled:                 {[]CommandGetter{}, defaultBackedOffInstructionInSec, models.StepsPostStepActionContinue},
@@ -121,7 +121,7 @@ func NewInstructionManager(log logrus.FieldLogger, db *gorm.DB, hwValidator hard
 			models.HostStatusDisconnected:         {[]CommandGetter{inventoryCmd}, defaultBackedOffInstructionInSec, models.StepsPostStepActionContinue},
 			models.HostStatusDiscovering:          {[]CommandGetter{inventoryCmd, ntpSynchronizerCmd, domainNameResolutionCmd}, defaultNextInstructionInSec, models.StepsPostStepActionContinue},
 			models.HostStatusPendingForInput:      {[]CommandGetter{inventoryCmd, connectivityCmd, apivipConnectivityCmd, tangConnectivityCmd}, defaultNextInstructionInSec, models.StepsPostStepActionContinue},
-			models.HostStatusInstalling:           {[]CommandGetter{installCmd}, defaultBackedOffInstructionInSec, models.StepsPostStepActionContinue},
+			models.HostStatusInstalling:           {[]CommandGetter{installCmd}, defaultNextInstructionInSec, models.StepsPostStepActionContinue},
 			models.HostStatusInstallingInProgress: {[]CommandGetter{}, defaultNextInstructionInSec, models.StepsPostStepActionContinue},
 			models.HostStatusDisabled:             {[]CommandGetter{}, defaultBackedOffInstructionInSec, models.StepsPostStepActionContinue},
 			models.HostStatusResetting:            {[]CommandGetter{}, defaultBackedOffInstructionInSec, models.StepsPostStepActionContinue},
