@@ -120,7 +120,14 @@ func IsImportedCluster(cluster *Cluster) bool {
 }
 
 func AreMastersSchedulable(cluster *Cluster) bool {
-	return swag.BoolValue(cluster.SchedulableMastersForcedTrue) || swag.BoolValue(cluster.SchedulableMasters)
+	// If the topology forces schedulable masters (i.e. there are no workers),
+	// SchedulableMastersForcedTrue will be true, but also it will be enabled
+	// by default in the installer. Since overriding it currently causes a
+	// failure due to a conflict starting with 4.12, we prefer to avoid it. We
+	// only need to override the installer when the user has set
+	// SchedulableMasters explicitly and that is not already the default in the
+	// installer.
+	return !swag.BoolValue(cluster.SchedulableMastersForcedTrue) && swag.BoolValue(cluster.SchedulableMasters)
 }
 
 func GetEffectiveRole(host *models.Host) models.HostRole {
