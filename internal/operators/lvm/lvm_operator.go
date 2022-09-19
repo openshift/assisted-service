@@ -110,7 +110,7 @@ func (o *operator) ValidateHost(ctx context.Context, cluster *common.Cluster, ho
 	}
 
 	// GetValidDiskCount counts the total number of valid disks in each host and return an error if we don't have the disk of required size
-	diskCount, err := o.getValidDiskCount(inventory.Disks, host.InstallationDiskID)
+	diskCount := o.getValidDiskCount(inventory.Disks, host.InstallationDiskID)
 	if err != nil {
 		return api.ValidationResult{Status: api.Failure, ValidationId: o.GetHostValidationID(), Reasons: []string{err.Error()}}, nil
 	}
