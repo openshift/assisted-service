@@ -13,6 +13,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/NYTimes/gziphandler"
 	"github.com/go-openapi/runtime/middleware"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
@@ -492,6 +493,7 @@ func main() {
 		h = app.SetupCORSMiddleware(h, allowedDomains)
 	}
 
+	h = gziphandler.GzipHandler(h)
 	h = app.WithMetricsResponderMiddleware(h)
 	h = app.WithHealthMiddleware(h, []*thread.Thread{hostStateMonitor, clusterStateMonitor},
 		log.WithField("pkg", "healthcheck"), Options.LivenessValidationTimeout)
