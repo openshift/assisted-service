@@ -20,6 +20,7 @@ func createInventory(interfaces ...*models.Interface) string {
 func createInterface(ipv4Addresses ...string) *models.Interface {
 	return &models.Interface{
 		IPV4Addresses: append([]string{}, ipv4Addresses...),
+		Name:          "test",
 	}
 }
 
