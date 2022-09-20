@@ -3,6 +3,7 @@
 # It should be run by config/default
 resources:
 - bases/agent-install.openshift.io_agentserviceconfigs.yaml
+- bases/agent-install.openshift.io_hypershiftagentserviceconfigs.yaml
 - bases/agent-install.openshift.io_infraenvs.yaml
 - bases/agent-install.openshift.io_agents.yaml
 - bases/agent-install.openshift.io_nmstateconfigs.yaml
