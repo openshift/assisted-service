@@ -8667,7 +8667,6 @@ func init() {
       "enum": [
         "baremetal",
         "vsphere",
-        "ovirt",
         "none"
       ]
     },
@@ -18068,7 +18067,6 @@ func init() {
       "enum": [
         "baremetal",
         "vsphere",
-        "ovirt",
         "none"
       ]
     },

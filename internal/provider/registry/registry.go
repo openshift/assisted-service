@@ -9,7 +9,6 @@ import (
 	"github.com/openshift/assisted-service/internal/provider"
 	"github.com/openshift/assisted-service/internal/provider/baremetal"
 	"github.com/openshift/assisted-service/internal/provider/none"
-	"github.com/openshift/assisted-service/internal/provider/ovirt"
 	"github.com/openshift/assisted-service/internal/provider/vsphere"
 	"github.com/openshift/assisted-service/internal/usage"
 	"github.com/openshift/assisted-service/models"
@@ -160,7 +159,6 @@ func (r *registry) PostCreateManifestsHook(cluster *common.Cluster, envVars *[]s
 
 func InitProviderRegistry(log logrus.FieldLogger) ProviderRegistry {
 	providerRegistry := NewProviderRegistry()
-	providerRegistry.Register(ovirt.NewOvirtProvider(log, nil))
 	providerRegistry.Register(vsphere.NewVsphereProvider(log))
 	providerRegistry.Register(baremetal.NewBaremetalProvider(log))
 	providerRegistry.Register(none.NewNoneProvider(log))
