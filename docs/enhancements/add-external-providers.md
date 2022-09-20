@@ -88,8 +88,6 @@ type Provider interface {
     // AddPlatformToInstallConfig adds the provider platform to the installconfig platform field,
     // sets platform fields from values within the cluster model.
     AddPlatformToInstallConfig(cfg *installcfg.InstallerConfigBaremetal, cluster *common.Cluster) error
-    // SetPlatformValuesInDBUpdates updates the `updates` data structure with platform specific values
-    SetPlatformValuesInDBUpdates(platformParams *models.Platform, updates map[string]interface{}) error
     // CleanPlatformValuesFromDBUpdates remove platform specific values from the `updates` data structure
     CleanPlatformValuesFromDBUpdates(updates map[string]interface{}) error
     // SetPlatformUsages uses the usageApi to update platform specific usages
@@ -126,8 +124,6 @@ type ProviderRegistry interface {
    // AddPlatformToInstallConfig adds the provider platform to the installconfig platform field,
    // sets platform fields from values within the cluster model.
    AddPlatformToInstallConfig(p models.PlatformType, cfg *installcfg.InstallerConfigBaremetal, cluster *common.Cluster) error
-   // SetPlatformValuesInDBUpdates updates the `updates` data structure with platform specific values
-   SetPlatformValuesInDBUpdates(p models.PlatformType, platformParams *models.Platform, updates map[string]interface{}) error
    // SetPlatformUsages uses the usageApi to update platform specific usages
    SetPlatformUsages(p models.PlatformType, platformParams *models.Platform, usages map[string]models.Usage, usageApi usage.API) error
    // IsHostSupported checks if the provider supports the host
