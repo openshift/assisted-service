@@ -4,45 +4,31 @@ aliases:
   approvers:
     - romfreiman
     - avishayt
-    - empovit
     - eranco74
     - filanov
     - gamli75
     - ori-amizur
     - tsorya
-    - yevgeny-shnaidman
     - nmagnezi
     - carbonin
     - danielerez
-    - ybettan
     - slaviered
-    - rwsu
     - omertuc
     - eliorerz
     - osherdp
     - flaper87
     - mkowalski
-    - djzager
-    - lranjbar
-    - pawanpinjarkar
-    - sagidayan
     - vrutkovs
     - paul-maidment
     - jhernand
     - rccrdpccl
-  ci-approvers:
-    - lranjbar
-    - osherdp
-    - eliorerz
-  reviewers:
-    - jakub-dzon
-    - pkliczewski
-    - masayag
-    - jordigilh
-    - machacekondra
-    - rewantsoni
-    - nbalacha
-    - priyanka19-98
     - adriengentil
-    - mresvanis
     - CrystalChun
+  emeritus_approvers:
+    - empovit
+    - yevgeny-shnaidman
+    - rwsu
+    - lranjbar
+    - pawanpinjarkar
+    - sagidayan
+    - ybettan

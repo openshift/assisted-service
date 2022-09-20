@@ -6,12 +6,8 @@ filters:
       - approvers
     reviewers:
       - approvers
-      - reviewers
-  Jenkinsfile:
-    approvers:
-      - ci-approvers
-    labels:
-      - do-not-merge/hold
+    emeritus_approvers:
+      - emeritus_approvers
   ^Dockerfile\..*:
     labels:
       - downstream-change-needed
@@ -25,3 +21,4 @@ filters:
   ^docs/events.yaml:
     labels:
       - api-review
+# More specific ownership under cmd/agentbasedinstaller/
