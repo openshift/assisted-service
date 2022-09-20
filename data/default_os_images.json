@@ -8,20 +8,20 @@
     {
         "openshift_version": "4.9",
         "cpu_architecture": "x86_64",
-        "url": "https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/4.9/4.9.40/rhcos-4.9.40-x86_64-live.x86_64.iso",
-        "version": "49.84.202206171736-0"
+        "url": "https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/4.9/4.9.45/rhcos-4.9.45-x86_64-live.x86_64.iso",
+        "version": "49.84.202207192205-0"
     },
     {
         "openshift_version": "4.10",
         "cpu_architecture": "x86_64",
-        "url": "https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/4.10/4.10.16/rhcos-4.10.16-x86_64-live.x86_64.iso",
-        "version": "410.84.202205191234-0"
+        "url": "https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/4.10/4.10.25/rhcos-4.10.25-x86_64-live.x86_64.iso",
+        "version": "410.84.202207061638-0"
     },
     {
         "openshift_version": "4.10",
         "cpu_architecture": "arm64",
-        "url": "https://mirror.openshift.com/pub/openshift-v4/aarch64/dependencies/rhcos/4.10/4.10.16/rhcos-4.10.16-aarch64-live.aarch64.iso",
-        "version": "410.84.202205191023-0"
+        "url": "https://mirror.openshift.com/pub/openshift-v4/aarch64/dependencies/rhcos/4.10/4.10.25/rhcos-4.10.25-aarch64-live.aarch64.iso",
+        "version": "410.84.202207051516-0"
     },
     {
         "openshift_version": "4.11",
