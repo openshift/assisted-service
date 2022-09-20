@@ -2446,6 +2446,23 @@ var _ = Describe("cluster", func() {
 				}
 			})
 
+			It("Ensure CNV and LVM not enabled", func() {
+				var (
+					OLMOperators = []*models.MonitoredOperator{
+						{
+							Name:         "LVM",
+							OperatorType: models.OperatorTypeOlm,
+						},
+						{
+							Name:         "CNV",
+							OperatorType: models.OperatorTypeOlm,
+						},
+					}
+				)
+				testOperators := operators.EnsureLVMAndCNVNotEnabled(OLMOperators)
+				Expect(testOperators.Error()).To(BeIdenticalTo("Currently, you can not install OpenShift Data Foundation Logical Volume Manager operator at the same time as Virtualization operator."))
+			})
+
 			It("Resolve OLM dependencies", func() {
 				clusterID = strfmt.UUID(uuid.New().String())
 				err := db.Create(&common.Cluster{Cluster: models.Cluster{
