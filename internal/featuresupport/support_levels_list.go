@@ -47,6 +47,10 @@ var SupportLevelsList = models.FeatureSupportLevels{
 				FeatureID:    models.FeatureSupportLevelFeaturesItems0FeatureIDMULTIARCHRELEASEIMAGE,
 				SupportLevel: models.FeatureSupportLevelFeaturesItems0SupportLevelUnsupported,
 			},
+			{
+				FeatureID:    models.FeatureSupportLevelFeaturesItems0FeatureIDNUTANIXINTEGRATION,
+				SupportLevel: models.FeatureSupportLevelFeaturesItems0SupportLevelUnsupported,
+			},
 		},
 	},
 	&models.FeatureSupportLevel{
@@ -59,6 +63,10 @@ var SupportLevelsList = models.FeatureSupportLevels{
 			},
 			{
 				FeatureID:    models.FeatureSupportLevelFeaturesItems0FeatureIDMULTIARCHRELEASEIMAGE,
+				SupportLevel: models.FeatureSupportLevelFeaturesItems0SupportLevelUnsupported,
+			},
+			{
+				FeatureID:    models.FeatureSupportLevelFeaturesItems0FeatureIDNUTANIXINTEGRATION,
 				SupportLevel: models.FeatureSupportLevelFeaturesItems0SupportLevelUnsupported,
 			},
 		},
@@ -101,6 +109,10 @@ var SupportLevelsList = models.FeatureSupportLevels{
 				FeatureID:    models.FeatureSupportLevelFeaturesItems0FeatureIDMULTIARCHRELEASEIMAGE,
 				SupportLevel: models.FeatureSupportLevelFeaturesItems0SupportLevelUnsupported,
 			},
+			{
+				FeatureID:    models.FeatureSupportLevelFeaturesItems0FeatureIDNUTANIXINTEGRATION,
+				SupportLevel: models.FeatureSupportLevelFeaturesItems0SupportLevelUnsupported,
+			},
 		},
 	},
 	&models.FeatureSupportLevel{
@@ -139,6 +151,10 @@ var SupportLevelsList = models.FeatureSupportLevels{
 			},
 			{
 				FeatureID:    models.FeatureSupportLevelFeaturesItems0FeatureIDMULTIARCHRELEASEIMAGE,
+				SupportLevel: models.FeatureSupportLevelFeaturesItems0SupportLevelUnsupported,
+			},
+			{
+				FeatureID:    models.FeatureSupportLevelFeaturesItems0FeatureIDNUTANIXINTEGRATION,
 				SupportLevel: models.FeatureSupportLevelFeaturesItems0SupportLevelUnsupported,
 			},
 		},
@@ -181,6 +197,10 @@ var SupportLevelsList = models.FeatureSupportLevels{
 				FeatureID:    models.FeatureSupportLevelFeaturesItems0FeatureIDMULTIARCHRELEASEIMAGE,
 				SupportLevel: models.FeatureSupportLevelFeaturesItems0SupportLevelUnsupported,
 			},
+			{
+				FeatureID:    models.FeatureSupportLevelFeaturesItems0FeatureIDNUTANIXINTEGRATION,
+				SupportLevel: models.FeatureSupportLevelFeaturesItems0SupportLevelUnsupported,
+			},
 		},
 	},
 	&models.FeatureSupportLevel{
@@ -221,6 +241,10 @@ var SupportLevelsList = models.FeatureSupportLevels{
 				FeatureID:    models.FeatureSupportLevelFeaturesItems0FeatureIDLVM,
 				SupportLevel: models.FeatureSupportLevelFeaturesItems0SupportLevelDevPreview,
 			},
+			{
+				FeatureID:    models.FeatureSupportLevelFeaturesItems0FeatureIDNUTANIXINTEGRATION,
+				SupportLevel: models.FeatureSupportLevelFeaturesItems0SupportLevelDevPreview,
+			},
 			// Unsupported features
 		},
 	},
@@ -252,6 +276,10 @@ var SupportLevelsList = models.FeatureSupportLevels{
 				FeatureID:    models.FeatureSupportLevelFeaturesItems0FeatureIDDUALSTACKNETWORKING,
 				SupportLevel: models.FeatureSupportLevelFeaturesItems0SupportLevelSupported,
 			},
+			{
+				FeatureID:    models.FeatureSupportLevelFeaturesItems0FeatureIDNUTANIXINTEGRATION,
+				SupportLevel: models.FeatureSupportLevelFeaturesItems0SupportLevelSupported,
+			},
 			// Tech-Preview features
 			{
 				FeatureID:    models.FeatureSupportLevelFeaturesItems0FeatureIDMULTIARCHRELEASEIMAGE,
@@ -267,7 +295,7 @@ var SupportLevelsList = models.FeatureSupportLevels{
 	},
 }
 
-//default is supported
+// default is supported
 func GetFeatureSupportLevel(openshiftVersion string, featureId string) string {
 	for _, supportLevel := range SupportLevelsList {
 		if supportLevel.OpenshiftVersion == openshiftVersion {

@@ -47,4 +47,6 @@ const (
 	ClusterTags string = "Cluster Tags"
 	// Usage of LVM
 	LVM string = "LVM"
+	// Nutanix integration
+	NutanixIntegration string = "Nutanix integration"
 )

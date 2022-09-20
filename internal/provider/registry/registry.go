@@ -9,6 +9,7 @@ import (
 	"github.com/openshift/assisted-service/internal/provider"
 	"github.com/openshift/assisted-service/internal/provider/baremetal"
 	"github.com/openshift/assisted-service/internal/provider/none"
+	"github.com/openshift/assisted-service/internal/provider/nutanix"
 	"github.com/openshift/assisted-service/internal/provider/vsphere"
 	"github.com/openshift/assisted-service/internal/usage"
 	"github.com/openshift/assisted-service/models"
@@ -42,8 +43,9 @@ type ProviderRegistry interface {
 	PostCreateManifestsHook(cluster *common.Cluster, envVars *[]string, workDir string) error
 }
 
-//go:generate mockgen --build_flags=--mod=mod -package registry -destination mock_registry.go . Registry
 // Registry registers the providers to their names.
+//
+//go:generate mockgen --build_flags=--mod=mod -package registry -destination mock_registry.go . Registry
 type Registry interface {
 	// Register registers a provider.
 	Register(provider provider.Provider)
@@ -162,5 +164,6 @@ func InitProviderRegistry(log logrus.FieldLogger) ProviderRegistry {
 	providerRegistry.Register(vsphere.NewVsphereProvider(log))
 	providerRegistry.Register(baremetal.NewBaremetalProvider(log))
 	providerRegistry.Register(none.NewNoneProvider(log))
+	providerRegistry.Register(nutanix.NewNutanixProvider(log))
 	return providerRegistry
 }

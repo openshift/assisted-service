@@ -19,5 +19,6 @@ func (p *nutanixProvider) SetPlatformUsages(
 	props := &map[string]interface{}{
 		"platform_type": p.Name()}
 	usageApi.Add(usages, usage.PlatformSelectionUsage, props)
+	usageApi.Add(usages, usage.NutanixIntegration, props)
 	return nil
 }
