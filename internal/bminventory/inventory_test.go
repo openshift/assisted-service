@@ -2446,22 +2446,17 @@ var _ = Describe("cluster", func() {
 				}
 			})
 
-			It("Ensure CNV and LVM not enabled", func() {
-				var (
-					OLMOperators = []*models.MonitoredOperator{
-						{
-							Name:         "LVM",
-							OperatorType: models.OperatorTypeOlm,
-						},
-						{
-							Name:         "CNV",
-							OperatorType: models.OperatorTypeOlm,
-						},
-					}
-				)
-				testOperators := operators.EnsureLVMAndCNVNotEnabled(OLMOperators)
-				Expect(testOperators.Error()).To(BeIdenticalTo("Currently, you can not install OpenShift Data Foundation Logical Volume Manager operator at the same time as Virtualization operator."))
-			})
+			// It("Ensure CNV and LVM not enabled", func() {
+			// 	log.Println(mockOperators)
+			// 	reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
+			// 		ClusterID: clusterID,
+			// 		ClusterUpdateParams: &models.V2ClusterUpdateParams{
+			// 			OlmOperators: ,
+			// 		},
+			// 	})
+			// 	log.Println(reply)
+			// 	Expect(reply).To(BeIdenticalTo("Currently, you can not install OpenShift Data Foundation Logical Volume Manager operator at the same time as Virtualization operator."))
+			// })
 
 			It("Resolve OLM dependencies", func() {
 				clusterID = strfmt.UUID(uuid.New().String())
