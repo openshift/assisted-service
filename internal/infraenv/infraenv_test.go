@@ -109,14 +109,19 @@ var _ = Describe("Delete inactive infraenvs", func() {
 		infraEnv = registerInfraEnv("")
 	})
 
+	// avoid races on slow/fast systems, could be any amount of time
+	nowPlus5sec := func() strfmt.DateTime {
+		return strfmt.DateTime(time.Now().Add(5 * time.Second))
+	}
+
 	It("Deregister inactive infraEnv", func() {
-		Expect(state.DeleteOrphanInfraEnvs(ctx, 10, strfmt.DateTime(time.Now()))).ShouldNot(HaveOccurred())
+		Expect(state.DeleteOrphanInfraEnvs(ctx, 10, nowPlus5sec())).ShouldNot(HaveOccurred())
 		Expect(wasDeleted(db, *infraEnv.ID)).To(BeTrue())
 	})
 
 	It("Deregister inactive infraEnv with hosts", func() {
 		addHosts("", *infraEnv.ID)
-		Expect(state.DeleteOrphanInfraEnvs(ctx, 10, strfmt.DateTime(time.Now()))).ShouldNot(HaveOccurred())
+		Expect(state.DeleteOrphanInfraEnvs(ctx, 10, nowPlus5sec())).ShouldNot(HaveOccurred())
 		Expect(wasDeleted(db, *infraEnv.ID)).To(BeTrue())
 		hosts, err := common.GetInfraEnvHostsFromDB(db, *infraEnv.ID)
 		Expect(err).ShouldNot(HaveOccurred())
@@ -125,9 +130,7 @@ var _ = Describe("Delete inactive infraenvs", func() {
 
 	It("Deregister inactive infraEnv with non existing cluster", func() {
 		infraEnv2 := registerInfraEnv(strfmt.UUID(uuid.New().String()))
-		// To verify that lastActive is greater than the updatedAt field of infraEnv2
-		time.Sleep(time.Millisecond)
-		Expect(state.DeleteOrphanInfraEnvs(ctx, 10, strfmt.DateTime(time.Now()))).ShouldNot(HaveOccurred())
+		Expect(state.DeleteOrphanInfraEnvs(ctx, 10, nowPlus5sec())).ShouldNot(HaveOccurred())
 		Expect(wasDeleted(db, *infraEnv2.ID)).To(BeTrue())
 		Expect(wasDeleted(db, *infraEnv.ID)).To(BeTrue())
 	})
@@ -136,7 +139,7 @@ var _ = Describe("Delete inactive infraenvs", func() {
 		clusterId := strfmt.UUID(uuid.New().String())
 		infraEnv2 := registerInfraEnv(clusterId)
 		addHosts(clusterId, *infraEnv2.ID)
-		Expect(state.DeleteOrphanInfraEnvs(ctx, 10, strfmt.DateTime(time.Now()))).ShouldNot(HaveOccurred())
+		Expect(state.DeleteOrphanInfraEnvs(ctx, 10, nowPlus5sec())).ShouldNot(HaveOccurred())
 		Expect(wasDeleted(db, *infraEnv2.ID)).To(BeTrue())
 		Expect(wasDeleted(db, *infraEnv.ID)).To(BeTrue())
 		hosts, err := common.GetInfraEnvHostsFromDB(db, *infraEnv2.ID)
@@ -151,7 +154,7 @@ var _ = Describe("Delete inactive infraenvs", func() {
 			ID: &clusterId,
 		}}
 		Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
-		Expect(state.DeleteOrphanInfraEnvs(ctx, 10, strfmt.DateTime(time.Now()))).ShouldNot(HaveOccurred())
+		Expect(state.DeleteOrphanInfraEnvs(ctx, 10, nowPlus5sec())).ShouldNot(HaveOccurred())
 		Expect(wasDeleted(db, *infraEnv2.ID)).To(BeFalse())
 		Expect(wasDeleted(db, *infraEnv.ID)).To(BeTrue())
 	})
