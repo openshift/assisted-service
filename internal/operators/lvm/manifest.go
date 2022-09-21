@@ -110,4 +110,8 @@ metadata:
 spec:
   storage:
     deviceClasses:
-    - name: vg1`
+    - name: vg1
+      thinPoolConfig:
+        name: thin-pool-1
+        sizePercent: 90
+        overprovisionRatio: 10`
