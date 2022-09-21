@@ -10018,6 +10018,110 @@ var _ = Describe("TestRegisterCluster", func() {
 		ctrl.Finish()
 	})
 
+	// Testing the default network type setting during register flow, with various combinations of platforms,
+	// OpenShift version and high availability modes
+	// Note: SNO is supported starting OpenShift v4.8, and currently only supports Platform "none"
+	It("Default Network Type Setting", func() {
+		type clusterParamsForTest struct {
+			OpenShiftVersion     *string
+			HighAvailabilityMode *string
+			DesiredNetworkType   string
+			Platform             models.Platform
+		}
+
+		tests := []clusterParamsForTest{
+			// OpenShift version >= 4.12.0-0.0, not SNO => OVNKubernetes
+			{
+				OpenShiftVersion:     swag.String("4.13"),
+				HighAvailabilityMode: swag.String(models.ClusterCreateParamsHighAvailabilityModeFull),
+				DesiredNetworkType:   models.ClusterCreateParamsNetworkTypeOVNKubernetes,
+				Platform:             models.Platform{Type: models.NewPlatformType(models.PlatformTypeBaremetal)},
+			},
+			// OpenShift version >= 4.12.0-0.0, SNO => OVNKubernetes
+			{
+				OpenShiftVersion:     swag.String("4.14.2"),
+				HighAvailabilityMode: swag.String(models.ClusterCreateParamsHighAvailabilityModeNone),
+				DesiredNetworkType:   models.ClusterCreateParamsNetworkTypeOVNKubernetes,
+				Platform:             models.Platform{Type: models.NewPlatformType(models.PlatformTypeNone)},
+			},
+			// OpenShift version < 4.12.0-0.0, not SNO => OpenShiftSDN
+			{
+				OpenShiftVersion:     swag.String("4.10.3"),
+				HighAvailabilityMode: swag.String(models.ClusterCreateParamsHighAvailabilityModeFull),
+				DesiredNetworkType:   models.ClusterCreateParamsNetworkTypeOpenShiftSDN,
+				Platform:             models.Platform{Type: models.NewPlatformType(models.PlatformTypeBaremetal)},
+			},
+			// OpenShift version < 4.12.0-0.0, SNO => OVNKubernetes
+			{
+				OpenShiftVersion:     swag.String("4.11.17"),
+				HighAvailabilityMode: swag.String(models.ClusterCreateParamsHighAvailabilityModeNone),
+				DesiredNetworkType:   models.ClusterCreateParamsNetworkTypeOVNKubernetes,
+				Platform:             models.Platform{Type: models.NewPlatformType(models.PlatformTypeNone)},
+			},
+			// OpenShift version >= 4.12.0-0.0, HighAvailability = nil => OVNKubernetes
+			{
+				OpenShiftVersion:     swag.String("4.13.2"),
+				HighAvailabilityMode: nil,
+				DesiredNetworkType:   models.ClusterCreateParamsNetworkTypeOVNKubernetes,
+				Platform:             models.Platform{Type: models.NewPlatformType(models.PlatformTypeBaremetal)},
+			},
+			// OpenShift version < 4.12.0-0.0, HighAvailability = nil => OpenShiftSDN
+			{
+				OpenShiftVersion:     swag.String("4.8.5"),
+				HighAvailabilityMode: nil,
+				DesiredNetworkType:   models.ClusterCreateParamsNetworkTypeOpenShiftSDN,
+				Platform:             models.Platform{Type: models.NewPlatformType(models.PlatformTypeBaremetal)},
+			},
+			// OpenShift version >= 4.12.0-0.0, SNO, IPv4 => OVNKubernetes
+			{
+				OpenShiftVersion:     swag.String("4.12.0-ec.3"),
+				HighAvailabilityMode: swag.String(models.ClusterCreateParamsHighAvailabilityModeNone),
+				DesiredNetworkType:   models.ClusterCreateParamsNetworkTypeOVNKubernetes,
+				Platform:             models.Platform{Type: models.NewPlatformType(models.PlatformTypeNone)},
+			},
+			// OpenShift version < 4.12.0-0.0, SNO => OVNKubernetes
+			{
+				OpenShiftVersion:     swag.String("4.11.0-rc.3"),
+				HighAvailabilityMode: swag.String(models.ClusterCreateParamsHighAvailabilityModeNone),
+				DesiredNetworkType:   models.ClusterCreateParamsNetworkTypeOVNKubernetes,
+				Platform:             models.Platform{Type: models.NewPlatformType(models.PlatformTypeNone)},
+			},
+			// OpenShift version >= 4.12.0-0.0, SNO => OVNKubernetes
+			{
+				OpenShiftVersion:     swag.String("4.12-fc.2"),
+				HighAvailabilityMode: swag.String(models.ClusterCreateParamsHighAvailabilityModeNone),
+				DesiredNetworkType:   models.ClusterCreateParamsNetworkTypeOVNKubernetes,
+				Platform:             models.Platform{Type: models.NewPlatformType(models.PlatformTypeNone)},
+			},
+			// OpenShift version >= 4.12.0-0.0, SNO => OVNKubernetes
+			{
+				OpenShiftVersion:     swag.String("4.12-rc.1"),
+				HighAvailabilityMode: swag.String(models.ClusterCreateParamsHighAvailabilityModeNone),
+				DesiredNetworkType:   models.ClusterCreateParamsNetworkTypeOVNKubernetes,
+				Platform:             models.Platform{Type: models.NewPlatformType(models.PlatformTypeNone)},
+			},
+		}
+
+		for _, t := range tests {
+
+			mockClusterRegisterSuccess(true)
+			mockAMSSubscription(ctx)
+
+			NewClusterParams := getDefaultClusterCreateParams()
+			NewClusterParams.OpenshiftVersion = t.OpenShiftVersion
+			NewClusterParams.HighAvailabilityMode = t.HighAvailabilityMode
+			NewClusterParams.Platform = &t.Platform
+
+			reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
+				NewClusterParams: NewClusterParams,
+			})
+
+			Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2RegisterClusterCreated()))
+			actual := reply.(*installer.V2RegisterClusterCreated).Payload
+			Expect(swag.StringValue(actual.NetworkType)).To(Equal(t.DesiredNetworkType))
+		}
+	})
+
 	Context("Platform", func() {
 		getClusterCreateParams := func(highAvailabilityMode *string) *models.ClusterCreateParams {
 
@@ -10531,6 +10635,7 @@ var _ = Describe("TestRegisterCluster", func() {
 						EnableOn: swag.String(models.DiskEncryptionEnableOnAll),
 						Mode:     swag.String(models.DiskEncryptionModeTang),
 					},
+					OpenshiftVersion:     swag.String("4.12.0"),
 					HighAvailabilityMode: swag.String(models.ClusterHighAvailabilityModeFull),
 				},
 			})
@@ -10550,6 +10655,7 @@ var _ = Describe("TestRegisterCluster", func() {
 							Mode:        swag.String(models.DiskEncryptionModeTang),
 							TangServers: `[{"URL":"","Thumbprint":""}]`,
 						},
+						OpenshiftVersion:     swag.String("4.12.0"),
 						HighAvailabilityMode: swag.String(models.ClusterHighAvailabilityModeFull)},
 				})
 				verifyApiErrorString(reply, http.StatusBadRequest, "empty url")
@@ -10563,6 +10669,7 @@ var _ = Describe("TestRegisterCluster", func() {
 							Mode:        swag.String(models.DiskEncryptionModeTang),
 							TangServers: `[{"URL":"invalidUrl","Thumbprint":""}]`,
 						},
+						OpenshiftVersion:     swag.String("4.12.0"),
 						HighAvailabilityMode: swag.String(models.ClusterHighAvailabilityModeFull),
 					},
 				})
@@ -10582,6 +10689,7 @@ var _ = Describe("TestRegisterCluster", func() {
 						Mode:        swag.String(models.DiskEncryptionModeTang),
 						TangServers: `[{"URL":"http://tang.example.com:7500","Thumbprint":""}]`,
 					},
+					OpenshiftVersion:     swag.String("4.12.0"),
 					HighAvailabilityMode: swag.String(models.ClusterHighAvailabilityModeFull),
 				},
 			})
@@ -11058,6 +11166,7 @@ var _ = Describe("TestRegisterCluster", func() {
 						DiskEncryption: &models.DiskEncryption{
 							EnableOn: swag.String(models.DiskEncryptionEnableOnAll),
 						},
+						OpenshiftVersion:     swag.String("4.12.0"),
 						HighAvailabilityMode: swag.String(models.ClusterHighAvailabilityModeFull),
 					},
 				})
@@ -11074,6 +11183,7 @@ var _ = Describe("TestRegisterCluster", func() {
 						DiskEncryption: &models.DiskEncryption{
 							EnableOn: swag.String(models.DiskEncryptionEnableOnMasters),
 						},
+						OpenshiftVersion:     swag.String("4.12.0"),
 						HighAvailabilityMode: swag.String(models.ClusterHighAvailabilityModeFull)},
 				})
 				verifyApiErrorString(reply, http.StatusBadRequest, errorMsg)
@@ -11089,6 +11199,7 @@ var _ = Describe("TestRegisterCluster", func() {
 						DiskEncryption: &models.DiskEncryption{
 							EnableOn: swag.String(models.DiskEncryptionEnableOnWorkers),
 						},
+						OpenshiftVersion:     swag.String("4.12.0"),
 						HighAvailabilityMode: swag.String(models.ClusterHighAvailabilityModeFull),
 					},
 				})
@@ -11548,7 +11659,7 @@ var _ = Describe("TestRegisterCluster", func() {
 				reply := bm.V2RegisterCluster(authCtx, installer.V2RegisterClusterParams{
 					NewClusterParams: &models.ClusterCreateParams{
 						Name:             swag.String("some-cluster-name"),
-						OpenshiftVersion: swag.String("some-version-doesnt-matter-because-we-mock"),
+						OpenshiftVersion: swag.String("4.12.0-someFakeFlavour"),
 						CPUArchitecture:  common.MultiCPUArchitecture,
 						PullSecret:       swag.String("{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"),
 					},
@@ -11575,7 +11686,7 @@ var _ = Describe("TestRegisterCluster", func() {
 				reply := bm.V2RegisterCluster(authCtx, installer.V2RegisterClusterParams{
 					NewClusterParams: &models.ClusterCreateParams{
 						Name:             swag.String("some-cluster-name"),
-						OpenshiftVersion: swag.String("some-version-doesnt-matter-because-we-mock"),
+						OpenshiftVersion: swag.String("4.12.0-someFakeFlavour"),
 						CPUArchitecture:  common.MultiCPUArchitecture,
 						PullSecret:       swag.String("{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"),
 					},
@@ -11606,7 +11717,7 @@ var _ = Describe("TestRegisterCluster", func() {
 				reply := bm.V2RegisterCluster(authCtx, installer.V2RegisterClusterParams{
 					NewClusterParams: &models.ClusterCreateParams{
 						Name:             swag.String("some-cluster-name"),
-						OpenshiftVersion: swag.String("some-version-doesnt-matter-because-we-mock"),
+						OpenshiftVersion: swag.String("4.12.0-someFakeFlavour"),
 						CPUArchitecture:  common.MultiCPUArchitecture,
 						PullSecret:       swag.String("{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"),
 					},
