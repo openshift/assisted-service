@@ -13829,12 +13829,6 @@ var _ = Describe("Platform tests", func() {
 				Type: common.PlatformTypePtr(models.PlatformTypeVsphere),
 			}
 		}
-
-		getovirtPlatform = func() *models.Platform {
-			return &models.Platform{
-				Type: common.PlatformTypePtr(models.PlatformTypeOvirt),
-			}
-		}
 	)
 
 	BeforeEach(func() {
@@ -13889,27 +13883,6 @@ var _ = Describe("Platform tests", func() {
 			cluster := reply.(*installer.V2RegisterClusterCreated).Payload
 			Expect(cluster.Platform).ShouldNot(BeNil())
 			Expect(common.PlatformTypeValue(cluster.Platform.Type)).Should(BeEquivalentTo(models.PlatformTypeVsphere))
-		})
-
-		It("ovirt platform", func() {
-			registerParams.NewClusterParams.Platform = &models.Platform{
-				Type: common.PlatformTypePtr(models.PlatformTypeOvirt),
-			}
-
-			reply := bm.V2RegisterCluster(ctx, *registerParams)
-			Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2RegisterClusterCreated()))
-			cluster := reply.(*installer.V2RegisterClusterCreated).Payload
-			Expect(cluster.Platform).ShouldNot(BeNil())
-			Expect(common.PlatformTypeValue(cluster.Platform.Type)).Should(BeEquivalentTo(models.PlatformTypeOvirt))
-		})
-
-		It("ovirt platform with credentials", func() {
-			registerParams.NewClusterParams.Platform = getovirtPlatform()
-			reply := bm.V2RegisterCluster(ctx, *registerParams)
-			Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2RegisterClusterCreated()))
-			cluster := reply.(*installer.V2RegisterClusterCreated).Payload
-			Expect(cluster.Platform).ShouldNot(BeNil())
-			Expect(common.PlatformTypeValue(cluster.Platform.Type)).Should(BeEquivalentTo(models.PlatformTypeOvirt))
 		})
 	})
 })

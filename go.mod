@@ -53,8 +53,6 @@ require (
 	github.com/openshift/image-customization-controller v0.0.0-20220509123740-3ad18911d14d
 	github.com/openshift/machine-api-operator v0.2.1-0.20201002104344-6abfb5440597
 	github.com/ory/dockertest/v3 v3.9.1
-	github.com/ovirt/go-ovirt-client v0.9.0
-	github.com/ovirt/go-ovirt-client-log/v2 v2.2.0
 	github.com/patrickmn/go-cache v2.1.0+incompatible
 	github.com/pelletier/go-toml v1.9.5
 	github.com/pkg/errors v0.9.1
@@ -175,6 +173,8 @@ require (
 	github.com/opencontainers/runc v1.1.2 // indirect
 	github.com/openshift/cluster-api-provider-gcp v0.0.1-0.20201002065957-9854f7420570 // indirect
 	github.com/ovirt/go-ovirt v0.0.0-20210809163552-d4276e35d3db // indirect
+	github.com/ovirt/go-ovirt-client v0.9.0 // indirect
+	github.com/ovirt/go-ovirt-client-log/v2 v2.2.0 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/prometheus/client_model v0.2.0 // indirect
 	github.com/prometheus/common v0.32.1 // indirect

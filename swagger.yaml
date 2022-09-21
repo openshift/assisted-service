@@ -5678,7 +5678,6 @@ definitions:
     enum:
       - baremetal
       - vsphere
-      - ovirt
       - none
 
   memory_method:
