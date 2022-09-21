@@ -152,6 +152,8 @@ apiVersion: config.openshift.io/v1
 kind: Scheduler
 metadata:
   name: cluster
+  annotations:
+    wking: if you see this, the assisted-installer opinion won
 spec:
   mastersSchedulable: true
   policy:
@@ -214,7 +216,7 @@ func (m *ManifestsGenerator) AddChronyManifest(ctx context.Context, log logrus.F
 
 func (m *ManifestsGenerator) AddSchedulableMastersManifest(ctx context.Context, log logrus.FieldLogger, cluster *common.Cluster) error {
 	content := []byte(schedulableMastersManifest)
-	schedulableMastersManifestFile := "50-schedulable_masters.yaml"
+	schedulableMastersManifestFile := "do-schedule-to-masters.yaml"
 	err := m.createManifests(ctx, cluster, schedulableMastersManifestFile, content)
 	if err != nil {
 		return err
