@@ -7637,6 +7637,12 @@ func init() {
             "type": "Time"
           }
         },
+        "discovery_kernel_arguments": {
+          "description": "JSON formatted string array representing the discovery image kernel arguments.",
+          "type": "string",
+          "x-go-custom-tag": "gorm:\"type:text\"",
+          "x-nullable": true
+        },
         "download_url": {
           "type": "string"
         },
@@ -7749,6 +7755,9 @@ func init() {
           "default": "x86_64",
           "x-nullable": false
         },
+        "discovery_kernel_arguments": {
+          "$ref": "#/definitions/kernel_arguments"
+        },
         "ignition_config_override": {
           "description": "JSON formatted string containing the user overrides for the initial ignition config.",
           "type": "string"
@@ -7797,6 +7806,9 @@ func init() {
           "description": "A comma-separated list of NTP sources (name or IP) going to be added to all the hosts.",
           "type": "string",
           "x-nullable": true
+        },
+        "discovery_kernel_arguments": {
+          "$ref": "#/definitions/kernel_arguments"
         },
         "ignition_config_override": {
           "description": "JSON formatted string containing the user overrides for the initial ignition config.",
@@ -8086,6 +8098,15 @@ func init() {
           "description": "99th percentile of fsync duration in milliseconds",
           "type": "integer"
         }
+      }
+    },
+    "kernel_arguments": {
+      "description": "List of string values to be passed to discovery image as kernel arguments.",
+      "type": "array",
+      "items": {
+        "description": "Kernel argument can have the form \u003cparameter\u003e or \u003cparameter\u003e=\u003cvalue\u003e. The following examples should\nbe supported:\nrd.net.timeout.carrier=60\nisolcpus=1,2,10-20,100-2000:2/25\nquiet\nThe parsing by the command line parser in linux kernel is much looser and this pattern follows it.\n",
+        "type": "string",
+        "pattern": "^(?:(?:[^ \\t\\n\\r\"]+)|(?:\"[^\"]*\"))+$"
       }
     },
     "l2-connectivity": {
@@ -17048,6 +17069,12 @@ func init() {
             "type": "Time"
           }
         },
+        "discovery_kernel_arguments": {
+          "description": "JSON formatted string array representing the discovery image kernel arguments.",
+          "type": "string",
+          "x-go-custom-tag": "gorm:\"type:text\"",
+          "x-nullable": true
+        },
         "download_url": {
           "type": "string"
         },
@@ -17161,6 +17188,9 @@ func init() {
           "default": "x86_64",
           "x-nullable": false
         },
+        "discovery_kernel_arguments": {
+          "$ref": "#/definitions/kernel_arguments"
+        },
         "ignition_config_override": {
           "description": "JSON formatted string containing the user overrides for the initial ignition config.",
           "type": "string"
@@ -17209,6 +17239,9 @@ func init() {
           "description": "A comma-separated list of NTP sources (name or IP) going to be added to all the hosts.",
           "type": "string",
           "x-nullable": true
+        },
+        "discovery_kernel_arguments": {
+          "$ref": "#/definitions/kernel_arguments"
         },
         "ignition_config_override": {
           "description": "JSON formatted string containing the user overrides for the initial ignition config.",
@@ -17498,6 +17531,15 @@ func init() {
           "description": "99th percentile of fsync duration in milliseconds",
           "type": "integer"
         }
+      }
+    },
+    "kernel_arguments": {
+      "description": "List of string values to be passed to discovery image as kernel arguments.",
+      "type": "array",
+      "items": {
+        "description": "Kernel argument can have the form \u003cparameter\u003e or \u003cparameter\u003e=\u003cvalue\u003e. The following examples should\nbe supported:\nrd.net.timeout.carrier=60\nisolcpus=1,2,10-20,100-2000:2/25\nquiet\nThe parsing by the command line parser in linux kernel is much looser and this pattern follows it.\n",
+        "type": "string",
+        "pattern": "^(?:(?:[^ \\t\\n\\r\"]+)|(?:\"[^\"]*\"))+$"
       }
     },
     "l2-connectivity": {
