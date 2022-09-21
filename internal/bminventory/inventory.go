@@ -4261,23 +4261,34 @@ func (b *bareMetalInventory) RegisterInfraEnvInternal(
 		return nil, err
 	}
 
+	var discoveryKernelArguments *string
+	if len(params.InfraenvCreateParams.DiscoveryKernelArguments) > 0 {
+		var b []byte
+		b, err = json.Marshal(&params.InfraenvCreateParams.DiscoveryKernelArguments)
+		if err != nil {
+			return nil, common.NewApiError(http.StatusBadRequest, errors.Wrap(err, "failed to format kernel arguments as json"))
+		}
+		discoveryKernelArguments = swag.String(string(b))
+	}
+
 	infraEnv := common.InfraEnv{
 		Generated: false,
 		InfraEnv: models.InfraEnv{
-			ID:                     &id,
-			Href:                   swag.String(url.String()),
-			Kind:                   swag.String(models.InfraEnvKindInfraEnv),
-			Name:                   params.InfraenvCreateParams.Name,
-			UserName:               ocm.UserNameFromContext(ctx),
-			OrgID:                  ocm.OrgIDFromContext(ctx),
-			EmailDomain:            ocm.EmailDomainFromContext(ctx),
-			OpenshiftVersion:       *osImage.OpenshiftVersion,
-			IgnitionConfigOverride: params.InfraenvCreateParams.IgnitionConfigOverride,
-			StaticNetworkConfig:    staticNetworkConfig,
-			Type:                   common.ImageTypePtr(params.InfraenvCreateParams.ImageType),
-			AdditionalNtpSources:   swag.StringValue(params.InfraenvCreateParams.AdditionalNtpSources),
-			SSHAuthorizedKey:       swag.StringValue(params.InfraenvCreateParams.SSHAuthorizedKey),
-			CPUArchitecture:        params.InfraenvCreateParams.CPUArchitecture,
+			ID:                       &id,
+			Href:                     swag.String(url.String()),
+			Kind:                     swag.String(models.InfraEnvKindInfraEnv),
+			Name:                     params.InfraenvCreateParams.Name,
+			UserName:                 ocm.UserNameFromContext(ctx),
+			OrgID:                    ocm.OrgIDFromContext(ctx),
+			EmailDomain:              ocm.EmailDomainFromContext(ctx),
+			OpenshiftVersion:         *osImage.OpenshiftVersion,
+			IgnitionConfigOverride:   params.InfraenvCreateParams.IgnitionConfigOverride,
+			StaticNetworkConfig:      staticNetworkConfig,
+			Type:                     common.ImageTypePtr(params.InfraenvCreateParams.ImageType),
+			AdditionalNtpSources:     swag.StringValue(params.InfraenvCreateParams.AdditionalNtpSources),
+			SSHAuthorizedKey:         swag.StringValue(params.InfraenvCreateParams.SSHAuthorizedKey),
+			CPUArchitecture:          params.InfraenvCreateParams.CPUArchitecture,
+			DiscoveryKernelArguments: discoveryKernelArguments,
 		},
 		KubeKeyNamespace: kubeKey.Namespace,
 		ImageTokenKey:    imageTokenKey,
@@ -4597,6 +4608,17 @@ func (b *bareMetalInventory) updateInfraEnvData(ctx context.Context, infraEnv *c
 			optionalParam(params.InfraEnvUpdateParams.Proxy.HTTPSProxy, "proxy_https_proxy", updates)
 			optionalParam(params.InfraEnvUpdateParams.Proxy.NoProxy, "proxy_no_proxy", updates)
 			updates["proxy_hash"] = proxyHash
+		}
+	}
+	if params.InfraEnvUpdateParams.DiscoveryKernelArguments != nil {
+		if len(params.InfraEnvUpdateParams.DiscoveryKernelArguments) > 0 {
+			b, err := json.Marshal(&params.InfraEnvUpdateParams.DiscoveryKernelArguments)
+			if err != nil {
+				return common.NewApiError(http.StatusBadRequest, errors.Wrap(err, "failed to format kernel arguments as json"))
+			}
+			updates["discovery_kernel_arguments"] = string(b)
+		} else {
+			updates["discovery_kernel_arguments"] = gorm.Expr("NULL")
 		}
 	}
 
