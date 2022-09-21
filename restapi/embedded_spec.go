@@ -3240,7 +3240,8 @@ func init() {
           {
             "enum": [
               "discovery.ign",
-              "ipxe-script"
+              "ipxe-script",
+              "static-network-config"
             ],
             "type": "string",
             "description": "The file to be downloaded.",
@@ -12579,7 +12580,8 @@ func init() {
           {
             "enum": [
               "discovery.ign",
-              "ipxe-script"
+              "ipxe-script",
+              "static-network-config"
             ],
             "type": "string",
             "description": "The file to be downloaded.",

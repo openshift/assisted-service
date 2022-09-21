@@ -2,6 +2,7 @@ package staticnetworkconfig
 
 import (
 	"encoding/json"
+	"path/filepath"
 	"testing"
 
 	. "github.com/onsi/ginkgo"
@@ -102,3 +103,53 @@ var _ = Describe("StaticNetworkConfig", func() {
 		Expect(formattedOutput).To(Equal(""))
 	})
 })
+
+var _ = Describe("StaticNetworkConfig.GenerateStaticNetworkConfigArchive", func() {
+	It("successfully produces an archive with one host data", func() {
+		data := []StaticNetworkConfigData{
+			{
+				FilePath:     "host1",
+				FileContents: "static network config data of first host",
+			},
+		}
+		archiveBytes, err := GenerateStaticNetworkConfigArchive(data)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(archiveBytes).ToNot(BeNil())
+		checkArchiveString(archiveBytes.String(), data)
+	})
+	It("successfully produces an archive when file contents is empty", func() {
+		data := []StaticNetworkConfigData{
+			{
+				FilePath: "host1",
+			},
+		}
+		archiveBytes, err := GenerateStaticNetworkConfigArchive(data)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(archiveBytes).ToNot(BeNil())
+		checkArchiveString(archiveBytes.String(), data)
+	})
+	It("successfully produces an archive with multiple hosts' data", func() {
+		data := []StaticNetworkConfigData{
+			{
+				FilePath:     "host1",
+				FileContents: "static network config data of first host",
+			},
+			{
+				FilePath:     "host2",
+				FileContents: "static network config data of second host",
+			},
+		}
+		archiveBytes, err := GenerateStaticNetworkConfigArchive(data)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(archiveBytes).ToNot(BeNil())
+		checkArchiveString(archiveBytes.String(), data)
+	})
+})
+
+func checkArchiveString(archiveString string, allData []StaticNetworkConfigData) {
+	for _, data := range allData {
+		Expect(archiveString).To(ContainSubstring("tar"))
+		Expect(archiveString).To(ContainSubstring(filepath.Join("/etc/assisted/network", data.FilePath)))
+		Expect(archiveString).To(ContainSubstring(data.FileContents))
+	}
+}

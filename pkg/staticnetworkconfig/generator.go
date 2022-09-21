@@ -1,6 +1,7 @@
 package staticnetworkconfig
 
 import (
+	"archive/tar"
 	"bytes"
 	"context"
 	"fmt"
@@ -294,4 +295,30 @@ func (s *StaticNetworkConfigGenerator) formatMacInterfaceMap(macInterfaceMap mod
 	}
 	sort.Strings(lines)
 	return strings.Join(lines, "\n")
+}
+
+func GenerateStaticNetworkConfigArchive(files []StaticNetworkConfigData) (*bytes.Buffer, error) {
+	buffer := new(bytes.Buffer)
+	w := tar.NewWriter(buffer)
+	for _, file := range files {
+		path := filepath.Join("/etc/assisted/network", file.FilePath)
+		content := file.FileContents
+
+		// add the file content
+		hdr := &tar.Header{
+			Name: path,
+			Mode: 0600,
+			Size: int64(len(content)),
+		}
+		if err := w.WriteHeader(hdr); err != nil {
+			return nil, err
+		}
+		if _, err := w.Write([]byte(content)); err != nil {
+			return nil, err
+		}
+	}
+	if err := w.Close(); err != nil {
+		return nil, err
+	}
+	return buffer, nil
 }

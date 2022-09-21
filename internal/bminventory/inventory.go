@@ -5342,6 +5342,21 @@ func (b *bareMetalInventory) V2DownloadInfraEnvFiles(ctx context.Context, params
 			return common.GenerateErrorResponder(err)
 		}
 		filename = fmt.Sprintf("%s-%s", params.InfraEnvID, params.FileName)
+	case "static-network-config":
+		if infraEnv.StaticNetworkConfig != "" {
+			netFiles, err := b.staticNetworkConfig.GenerateStaticNetworkConfigData(ctx, infraEnv.StaticNetworkConfig)
+			if err != nil {
+				b.log.WithError(err).Errorf("Failed to create static network config data")
+				return common.GenerateErrorResponder(err)
+			}
+			buffer, err := staticnetworkconfig.GenerateStaticNetworkConfigArchive(netFiles)
+			if err != nil {
+				b.log.WithError(err).Errorf("Failed to create static network config archive")
+				return common.GenerateErrorResponder(err)
+			}
+			content = buffer.String()
+			filename = fmt.Sprintf("%s-%s.tar", params.InfraEnvID, params.FileName)
+		}
 	default:
 		return common.NewApiError(http.StatusBadRequest, fmt.Errorf("unknown file type for download: %s", params.FileName))
 	}
