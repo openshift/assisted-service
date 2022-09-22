@@ -37,8 +37,8 @@ case "${CLUSTER_CONTEXT}" in
       rpm -ivh minikube-latest.x86_64.rpm
     fi
 
-    eval $(SHELL=${SHELL:-/bin/sh} minikube "$(get_container_runtime_command | sed "s/-remote//")-env") && \
-        make update-${DEBUG_SERVICE:+debug-}minimal
+    make update-${DEBUG_SERVICE:+debug-}minimal
+    minikube image load ${SERVICE}
     ;;
 
   "k3d")
