@@ -2,6 +2,7 @@ package bminventory
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -618,7 +619,7 @@ chain %s&mac=${net0/mac}
 
 const ipxeBootScriptFormat = `#!ipxe
 initrd --name initrd %s
-kernel %s initrd=initrd coreos.live.rootfs_url=%s random.trust_cpu=on rd.luks.options=discard ignition.firstboot ignition.platform.id=metal console=tty1 console=ttyS1,115200n8 coreos.inst.persistent-kargs="console=tty1 console=ttyS1,115200n8"
+kernel %s initrd=initrd coreos.live.rootfs_url=%s random.trust_cpu=on rd.luks.options=discard ignition.firstboot ignition.platform.id=metal console=tty1 console=ttyS1,115200n8 coreos.inst.persistent-kargs="console=tty1 console=ttyS1,115200n8"%s
 boot
 `
 
@@ -672,6 +673,36 @@ func (b *bareMetalInventory) canServeHostIPXEScript(infraEnv *common.InfraEnv, m
 	return nil
 }
 
+func kernelArgsToSlice(infraEnv *common.InfraEnv) ([]string, error) {
+	if infraEnv.DiscoveryKernelArguments == nil {
+		return nil, nil
+	}
+	var kernelArguments models.KernelArguments
+	if err := json.Unmarshal([]byte(swag.StringValue(infraEnv.DiscoveryKernelArguments)), &kernelArguments); err != nil {
+		return nil, errors.Wrap(err, "failed to unmarshal kernel arguments")
+	}
+	var args []string
+	for _, arg := range kernelArguments {
+		if arg.Operation != models.KernelArgumentOperationAppend {
+			return nil, errors.Errorf("only '%s' operation is allowed.  got '%s'", models.KernelArgumentOperationAppend,
+				arg.Operation)
+		}
+		args = append(args, arg.Value)
+	}
+	return args, nil
+}
+
+func kernelArgsAppendStr(infraEnv *common.InfraEnv) (string, error) {
+	kernelArguments, err := kernelArgsToSlice(infraEnv)
+	if err != nil {
+		return "", err
+	}
+	if len(kernelArguments) > 0 {
+		return " " + strings.Join(kernelArguments, " "), nil
+	}
+	return "", nil
+}
+
 func (b *bareMetalInventory) bootIPXEScript(ctx context.Context, infraEnv *common.InfraEnv) (string, error) {
 	osImage, err := b.versionsHandler.GetOsImageOrLatest(infraEnv.OpenshiftVersion, infraEnv.CPUArchitecture)
 	if err != nil {
@@ -690,7 +721,11 @@ func (b *bareMetalInventory) bootIPXEScript(ctx context.Context, infraEnv *commo
 	if err != nil {
 		return "", errors.Wrap(err, "failed to sign initrd URL")
 	}
-	return fmt.Sprintf(ipxeBootScriptFormat, initrdURL, bootArtifactURLs.KernelURL, bootArtifactURLs.RootFSURL), nil
+	kernelArgumentsStr, err := kernelArgsAppendStr(infraEnv)
+	if err != nil {
+		return "", errors.Wrapf(err, "failed to parse kernel arguments %s", swag.StringValue(infraEnv.DiscoveryKernelArguments))
+	}
+	return fmt.Sprintf(ipxeBootScriptFormat, initrdURL, bootArtifactURLs.KernelURL, bootArtifactURLs.RootFSURL, kernelArgumentsStr), nil
 }
 
 func (b *bareMetalInventory) infraEnvIPXEScript(ctx context.Context, infraEnv *common.InfraEnv, mac *strfmt.MAC, ipxeScriptType *string) (string, error) {
