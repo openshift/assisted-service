@@ -1982,8 +1982,8 @@ var _ = Describe("cluster", func() {
 
 					mockClusterRegisterSuccess(true)
 					mockGetOperatorByName(newOperatorName)
-					mockOperatorManager.EXPECT().ResolveDependencies(gomock.Any()).
-						DoAndReturn(func(operators []*models.MonitoredOperator) ([]*models.MonitoredOperator, error) {
+					mockOperatorManager.EXPECT().ResolveDependencies(gomock.Any(), gomock.Any()).
+						DoAndReturn(func(commonCluster *common.Cluster, operators []*models.MonitoredOperator) ([]*models.MonitoredOperator, error) {
 							return operators, nil
 						}).Times(1)
 					clusterParams := getDefaultClusterCreateParams()
@@ -2014,8 +2014,8 @@ var _ = Describe("cluster", func() {
 
 					mockClusterRegisterSuccess(true)
 					mockGetOperatorByName(newOperatorName)
-					mockOperatorManager.EXPECT().ResolveDependencies(gomock.Any()).
-						DoAndReturn(func(operators []*models.MonitoredOperator) ([]*models.MonitoredOperator, error) {
+					mockOperatorManager.EXPECT().ResolveDependencies(gomock.Any(), gomock.Any()).
+						DoAndReturn(func(commonCluster *common.Cluster, operators []*models.MonitoredOperator) ([]*models.MonitoredOperator, error) {
 							return append(operators, testOLMOperators[0]), nil
 						}).Times(1)
 					clusterParams := getDefaultClusterCreateParams()
@@ -2077,8 +2077,8 @@ var _ = Describe("cluster", func() {
 				It("should return error when both cnv and lvm operator enabled", func() {
 					mockVersions.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any()).Return(common.TestDefaultConfig.ReleaseImage, nil).Times(1)
 					mockOperatorManager.EXPECT().GetSupportedOperatorsByType(models.OperatorTypeBuiltin).Return([]*models.MonitoredOperator{&common.TestDefaultConfig.MonitoredOperator}).Times(1)
-					mockOperatorManager.EXPECT().ResolveDependencies(gomock.Any()).
-						DoAndReturn(func(operators []*models.MonitoredOperator) ([]*models.MonitoredOperator, error) {
+					mockOperatorManager.EXPECT().ResolveDependencies(gomock.Any(), gomock.Any()).
+						DoAndReturn(func(commonCluster *common.Cluster, operators []*models.MonitoredOperator) ([]*models.MonitoredOperator, error) {
 							return operators, nil
 						}).Times(1)
 					mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
@@ -2102,8 +2102,8 @@ var _ = Describe("cluster", func() {
 					mockClusterRegisterSuccess(true)
 					mockCNVGetOperatorByName("cnv")
 					mockCNVGetOperatorByName("lvm")
-					mockOperatorManager.EXPECT().ResolveDependencies(gomock.Any()).
-						DoAndReturn(func(operators []*models.MonitoredOperator) ([]*models.MonitoredOperator, error) {
+					mockOperatorManager.EXPECT().ResolveDependencies(gomock.Any(), gomock.Any()).
+						DoAndReturn(func(commonCluster *common.Cluster, operators []*models.MonitoredOperator) ([]*models.MonitoredOperator, error) {
 							return operators, nil
 						}).Times(1)
 
@@ -2129,8 +2129,8 @@ var _ = Describe("cluster", func() {
 				It("return cnv when cnv operator enabled", func() {
 					mockClusterRegisterSuccess(true)
 					mockCNVGetOperatorByName("cnv")
-					mockOperatorManager.EXPECT().ResolveDependencies(gomock.Any()).
-						DoAndReturn(func(operators []*models.MonitoredOperator) ([]*models.MonitoredOperator, error) {
+					mockOperatorManager.EXPECT().ResolveDependencies(gomock.Any(), gomock.Any()).
+						DoAndReturn(func(commonCluster *common.Cluster, operators []*models.MonitoredOperator) ([]*models.MonitoredOperator, error) {
 							return operators, nil
 						}).Times(1)
 
@@ -2154,8 +2154,8 @@ var _ = Describe("cluster", func() {
 				It("return LVM when LVM operator enabled", func() {
 					mockClusterRegisterSuccess(true)
 					mockLVMGetOperatorByName("lvm")
-					mockOperatorManager.EXPECT().ResolveDependencies(gomock.Any()).
-						DoAndReturn(func(operators []*models.MonitoredOperator) ([]*models.MonitoredOperator, error) {
+					mockOperatorManager.EXPECT().ResolveDependencies(gomock.Any(), gomock.Any()).
+						DoAndReturn(func(commonCluster *common.Cluster, operators []*models.MonitoredOperator) ([]*models.MonitoredOperator, error) {
 							return operators, nil
 						}).Times(1)
 
@@ -2297,8 +2297,8 @@ var _ = Describe("cluster", func() {
 							mockGetOperatorByName(updateOperator.Name)
 						}
 						if test.updateOperators != nil {
-							mockOperatorManager.EXPECT().ResolveDependencies(gomock.Any()).
-								DoAndReturn(func(operators []*models.MonitoredOperator) ([]*models.MonitoredOperator, error) {
+							mockOperatorManager.EXPECT().ResolveDependencies(gomock.Any(), gomock.Any()).
+								DoAndReturn(func(commonCluster *common.Cluster, operators []*models.MonitoredOperator) ([]*models.MonitoredOperator, error) {
 									return operators, nil
 								}).Times(1)
 						}
@@ -2340,8 +2340,8 @@ var _ = Describe("cluster", func() {
 					mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(1)
 					mockSuccess()
 					mockLVMGetOperatorByName("lvm")
-					mockOperatorManager.EXPECT().ResolveDependencies(gomock.Any()).
-						DoAndReturn(func(operators []*models.MonitoredOperator) ([]*models.MonitoredOperator, error) {
+					mockOperatorManager.EXPECT().ResolveDependencies(gomock.Any(), gomock.Any()).
+						DoAndReturn(func(commonCluster *common.Cluster, operators []*models.MonitoredOperator) ([]*models.MonitoredOperator, error) {
 							return append(operators, testOLMOperators[0]), nil
 						}).Times(1)
 
@@ -2378,8 +2378,8 @@ var _ = Describe("cluster", func() {
 					mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(1)
 					mockCNVGetOperatorByName("cnv")
 					mockLVMGetOperatorByName("lvm")
-					mockOperatorManager.EXPECT().ResolveDependencies(gomock.Any()).
-						DoAndReturn(func(operators []*models.MonitoredOperator) ([]*models.MonitoredOperator, error) {
+					mockOperatorManager.EXPECT().ResolveDependencies(gomock.Any(), gomock.Any()).
+						DoAndReturn(func(commonCluster *common.Cluster, operators []*models.MonitoredOperator) ([]*models.MonitoredOperator, error) {
 							return append(operators, testOLMOperators[0]), nil
 						}).Times(1)
 
@@ -2411,8 +2411,8 @@ var _ = Describe("cluster", func() {
 				newOperatorName := testOLMOperators[1].Name
 
 				mockGetOperatorByName(newOperatorName)
-				mockOperatorManager.EXPECT().ResolveDependencies(gomock.Any()).
-					DoAndReturn(func(operators []*models.MonitoredOperator) ([]*models.MonitoredOperator, error) {
+				mockOperatorManager.EXPECT().ResolveDependencies(gomock.Any(), gomock.Any()).
+					DoAndReturn(func(commonCluster *common.Cluster, operators []*models.MonitoredOperator) ([]*models.MonitoredOperator, error) {
 						return append(operators, testOLMOperators[0]), nil
 					}).Times(1)
 

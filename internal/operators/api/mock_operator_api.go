@@ -67,17 +67,18 @@ func (mr *MockOperatorMockRecorder) GetClusterValidationID() *gomock.Call {
 }
 
 // GetDependencies mocks base method.
-func (m *MockOperator) GetDependencies() []string {
+func (m *MockOperator) GetDependencies(arg0 *common.Cluster) ([]string, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetDependencies")
+	ret := m.ctrl.Call(m, "GetDependencies", arg0)
 	ret0, _ := ret[0].([]string)
-	return ret0
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
 }
 
 // GetDependencies indicates an expected call of GetDependencies.
-func (mr *MockOperatorMockRecorder) GetDependencies() *gomock.Call {
+func (mr *MockOperatorMockRecorder) GetDependencies(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetDependencies", reflect.TypeOf((*MockOperator)(nil).GetDependencies))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetDependencies", reflect.TypeOf((*MockOperator)(nil).GetDependencies), arg0)
 }
 
 // GetHostRequirements mocks base method.

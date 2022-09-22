@@ -4,6 +4,11 @@ import (
 	"github.com/openshift/assisted-service/models"
 )
 
+const (
+	// LvmMinOpenshiftVersion is the minimum OCP version in which lvmo is supported
+	LvmMinOpenshiftVersion string = "4.12.0-0.0"
+)
+
 type Config struct {
 	LvmCPUPerHost          int64  `envconfig:"LVM_CPU_PER_HOST" default:"1"`
 	LvmMemoryPerHostMiB    int64  `envconfig:"LVM_MEMORY_PER_HOST_MIB" default:"1200"`

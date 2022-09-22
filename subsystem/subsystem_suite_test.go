@@ -30,7 +30,7 @@ var db *gorm.DB
 var log *logrus.Logger
 var wiremock *WireMock
 var kubeClient k8sclient.Client
-var openshiftVersion string = "4.8"
+var openshiftVersion string = "4.8.0-0.0"
 var snoVersion string = "4.8"
 var multiarchOpenshiftVersion string = "4.11.0-multi"
 var pullSecret = "{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dXNlcjpwYXNzd29yZAo=\",\"email\":\"r@r.com\"}}}" // #nosec

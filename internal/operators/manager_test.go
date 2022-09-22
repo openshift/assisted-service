@@ -275,7 +275,7 @@ var _ = Describe("Operators manager", func() {
 	Context("ResolveDependencies", func() {
 		table.DescribeTable("should resolve dependencies", func(input []*models.MonitoredOperator, expected []*models.MonitoredOperator) {
 			cluster.MonitoredOperators = input
-			resolvedDependencies, err := manager.ResolveDependencies(cluster.MonitoredOperators)
+			resolvedDependencies, err := manager.ResolveDependencies(cluster, cluster.MonitoredOperators)
 			Expect(err).ToNot(HaveOccurred())
 
 			Expect(resolvedDependencies).To(HaveLen(len(expected)))
