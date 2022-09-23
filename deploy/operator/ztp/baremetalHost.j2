@@ -40,6 +40,9 @@ metadata:
 {% if baremetalhosts_ignition_override|string | length > 0 %}
     bmac.agent-install.openshift.io/ignition-config-overrides: '{{ baremetalhosts_ignition_override | tojson }}'
 {% endif %}
+{% if day2_masters is defined and day2_masters|string == "True" %}
+    bmac.agent-install.openshift.io/role: master
+{% endif %}
 spec:
   online: true
   bootMACAddress: '{{ host["ports"][0]["address"] }}'
