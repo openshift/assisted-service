@@ -21,7 +21,7 @@ import (
 )
 
 const (
-	MaxHostnameLength = 253
+	MaxHostnameLength = 64
 	HostnamePattern   = "^[a-z0-9][a-z0-9-]{0,62}(?:[.][a-z0-9-]{1,63})*$"
 )
 

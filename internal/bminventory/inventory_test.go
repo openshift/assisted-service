@@ -7241,7 +7241,7 @@ var _ = Describe("infraEnvs host", func() {
 			})
 
 			It("Valid splitted hostname", func() {
-				hostname := "abcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghij.abcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghij.abcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghij.abcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghij.123456789"
+				hostname := "foobar.foobar.123456789"
 				mockHostApi.EXPECT().UpdateHostname(gomock.Any(), gomock.Any(), hostname, gomock.Any()).Return(nil).Times(1)
 				postUpdateCalls()
 				resp := bm.V2UpdateHost(ctx, installer.V2UpdateHostParams{

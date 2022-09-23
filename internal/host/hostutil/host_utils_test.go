@@ -98,6 +98,16 @@ var _ = Describe("Validation", func() {
 			Expect(err).NotTo(HaveOccurred())
 		}
 	})
+
+	It("Should not allow hostnames longer than 64 characters", func() {
+		for _, hostName := range []string{
+			"foobar.local.arbitrary.hostname.longer.than.64-characters.inthis.name",
+			"foobar1234-foobar1234-foobar1234-foobar1234-foobar1234-foobar1234-foobar1234",
+		} {
+			err := ValidateHostname(hostName)
+			Expect(err).To(HaveOccurred())
+		}
+	})
 })
 
 var _ = Describe("Ignition endpoint URL generation", func() {
