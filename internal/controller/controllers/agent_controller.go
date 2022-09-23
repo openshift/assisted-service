@@ -281,16 +281,17 @@ func (r *AgentReconciler) approveAIHostsCSRs(clients spoke_k8s_client.SpokeK8sCl
 }
 
 func (r *AgentReconciler) spokeKubeClient(ctx context.Context, clusterRef *aiv1beta1.ClusterReference) (spoke_k8s_client.SpokeK8sClient, error) {
-	adminKubeConfigSecretName := fmt.Sprintf(adminKubeConfigStringTemplate, clusterRef.Name)
 	clusterDeployment := &hivev1.ClusterDeployment{}
 	cdKey := types.NamespacedName{
 		Namespace: clusterRef.Namespace,
 		Name:      clusterRef.Name,
 	}
 	err := r.Get(ctx, cdKey, clusterDeployment)
-	if err == nil {
-		adminKubeConfigSecretName = getClusterDeploymentAdminKubeConfigSecretName(clusterDeployment)
+	if err != nil {
+		// set this so it can be used by the following call
+		clusterDeployment.Name = cdKey.Name
 	}
+	adminKubeConfigSecretName := getClusterDeploymentAdminKubeConfigSecretName(clusterDeployment)
 
 	namespacedName := types.NamespacedName{
 		Namespace: clusterRef.Namespace,
