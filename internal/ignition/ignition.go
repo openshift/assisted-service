@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"io/fs"
 	"net"
 	"net/url"
 	"os"
@@ -437,7 +438,8 @@ func (g *installerGenerator) Generate(ctx context.Context, installConfig []byte,
 
 	// move all files into the working directory
 	err = os.Rename(filepath.Join(g.workDir, "auth/kubeadmin-password"), filepath.Join(g.workDir, "kubeadmin-password"))
-	if err != nil {
+	// Ephemeral agent-based installer does not generate a kubeadmin-password
+	if err != nil && !errors.Is(err, fs.ErrNotExist) {
 		return err
 	}
 	// after installation completes, a new kubeconfig will be created and made

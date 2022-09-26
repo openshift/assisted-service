@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"io/fs"
 	"math"
 	"os"
 	"path"
@@ -73,6 +74,10 @@ func (f *FSClient) UploadFile(ctx context.Context, filePath, objectName string) 
 	log := logutil.FromContext(ctx, f.log)
 	file, err := os.Open(filePath)
 	if err != nil {
+		// Ephemeral agent-based installer does not generate a kubeadmin-password
+		if errors.Is(err, fs.ErrNotExist) && filepath.Base(objectName) == "kubeadmin-password" {
+			return nil
+		}
 		err = errors.Wrapf(err, "Unable to open file %s for upload", filePath)
 		log.Error(err)
 		return err
