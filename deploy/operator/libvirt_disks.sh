@@ -3,6 +3,8 @@
 __dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source ${__dir}/utils.sh
 
+set -x
+
 function print_help() {
     echo "Usage: DISKS=\$(echo sd{b..f}) bash ${0} (create|destroy|print_help)"
 }
