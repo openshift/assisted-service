@@ -3519,7 +3519,7 @@ var _ = Describe("selectClusterNetworkType", func() {
 	}
 })
 
-var _ = Describe("Getting ClusterDeployment admin kubeconfig secret name", func() {
+var _ = Describe("getClusterDeploymentAdminKubeConfigSecretName", func() {
 	var (
 		clusterName             = "test-cluster"
 		agentClusterInstallName = "test-cluster-aci"
@@ -3532,20 +3532,16 @@ var _ = Describe("Getting ClusterDeployment admin kubeconfig secret name", func(
 		defaultClusterSpec = getDefaultClusterDeploymentSpec(clusterName, agentClusterInstallName, pullSecretName)
 		cd = newClusterDeployment(clusterName, testNamespace, defaultClusterSpec)
 	})
-	Context("ClusterMetadata.AdminKubeconfigSecretRef.Name is not present", func() {
-		It("can make secret name from template", func() {
-			Expect(getClusterDeploymentAdminKubeConfigSecretName(cd)).To(Equal(fmt.Sprintf(adminKubeConfigStringTemplate, cd.Name)))
-		})
+	It("can make secret name from template when ClusterMetadata.AdminKubeconfigSecretRef.Name is not present", func() {
+		Expect(getClusterDeploymentAdminKubeConfigSecretName(cd)).To(Equal(fmt.Sprintf(adminKubeConfigStringTemplate, cd.Name)))
 	})
-	Context("ClusterMetadata.AdminKubeconfigSecretRef.Name is present", func() {
-		It("can extract the secret from ClusterDeployment", func() {
-			cd.Spec.ClusterMetadata = &hivev1.ClusterMetadata{
-				AdminKubeconfigSecretRef: corev1.LocalObjectReference{
-					Name: adminSecretName,
-				},
-			}
-			Expect(getClusterDeploymentAdminKubeConfigSecretName(cd)).To(Equal(adminSecretName))
-		})
+	It("can extract secret name from ClusterDeployment when ClusterMetadata.AdminKubeconfigSecretRef.Name is present", func() {
+		cd.Spec.ClusterMetadata = &hivev1.ClusterMetadata{
+			AdminKubeconfigSecretRef: corev1.LocalObjectReference{
+				Name: adminSecretName,
+			},
+		}
+		Expect(getClusterDeploymentAdminKubeConfigSecretName(cd)).To(Equal(adminSecretName))
 	})
 })
 

@@ -3135,3 +3135,105 @@ var _ = Describe("TestConditions", func() {
 		})
 	}
 })
+
+var _ = Describe("spokeKubeClient", func() {
+	var (
+		clusterName       = "test-cluster"
+		adminSecretName   = "admin-secret"
+		ctx               = context.Background()
+		c                 client.Client
+		cdSpec            hivev1.ClusterDeploymentSpec
+		hr                *AgentReconciler
+		mockCtrl          *gomock.Controller
+		mockClientFactory *spoke_k8s_client.MockSpokeK8sClientFactory
+		ref               *v1beta1.ClusterReference
+	)
+
+	BeforeEach(func() {
+		c = fakeclient.NewClientBuilder().WithScheme(scheme.Scheme).Build()
+		mockCtrl = gomock.NewController(GinkgoT())
+		mockClientFactory = spoke_k8s_client.NewMockSpokeK8sClientFactory(mockCtrl)
+		hr = &AgentReconciler{
+			Client:                c,
+			Log:                   common.GetTestLog(),
+			APIReader:             c,
+			SpokeK8sClientFactory: mockClientFactory,
+		}
+		cdSpec = hivev1.ClusterDeploymentSpec{
+			ClusterName:     clusterName,
+			ClusterMetadata: &hivev1.ClusterMetadata{},
+		}
+		ref = &v1beta1.ClusterReference{
+			Name:      clusterName,
+			Namespace: testNamespace,
+		}
+	})
+
+	AfterEach(func() {
+		mockCtrl.Finish()
+	})
+
+	It("uses the cluster deployment secret ref when the cluster deployment exists", func() {
+		cdSpec.ClusterMetadata = &hivev1.ClusterMetadata{
+			AdminKubeconfigSecretRef: corev1.LocalObjectReference{
+				Name: adminSecretName,
+			},
+		}
+		cd := newClusterDeployment(clusterName, testNamespace, cdSpec)
+		Expect(c.Create(ctx, cd)).To(Succeed())
+
+		secret := &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      adminSecretName,
+				Namespace: testNamespace,
+			},
+		}
+		Expect(c.Create(ctx, secret)).To(Succeed())
+
+		mockClientFactory.EXPECT().CreateFromSecret(gomock.Any()).Do(
+			func(s *corev1.Secret) (spoke_k8s_client.SpokeK8sClient, error) {
+				Expect(s.Name).To(Equal(adminSecretName))
+				return nil, nil
+			},
+		)
+
+		_, err := hr.spokeKubeClient(ctx, ref)
+		Expect(err).NotTo(HaveOccurred())
+	})
+
+	It("fails when the secret referenced in cluster deployment doesn't exist", func() {
+		cdSpec.ClusterMetadata = &hivev1.ClusterMetadata{
+			AdminKubeconfigSecretRef: corev1.LocalObjectReference{
+				Name: adminSecretName,
+			},
+		}
+
+		cd := newClusterDeployment(clusterName, testNamespace, cdSpec)
+		Expect(c.Create(ctx, cd)).To(Succeed())
+
+		_, err := hr.spokeKubeClient(ctx, ref)
+		Expect(err).To(HaveOccurred())
+	})
+
+	It("uses the kubeconfig template format when the cluster deployment is missing", func() {
+		secretName := fmt.Sprintf(adminKubeConfigStringTemplate, clusterName)
+		secret := &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      secretName,
+				Namespace: testNamespace,
+			},
+		}
+		Expect(c.Create(ctx, secret)).To(Succeed())
+
+		mockClientFactory.EXPECT().CreateFromSecret(gomock.Any()).Do(
+			func(s *corev1.Secret) (spoke_k8s_client.SpokeK8sClient, error) {
+				Expect(s.Name).To(Equal(secretName))
+				return nil, nil
+			},
+		)
+
+		_, err := hr.spokeKubeClient(ctx, ref)
+		Expect(err).NotTo(HaveOccurred())
+	})
+
+})
