@@ -662,6 +662,7 @@ var _ = Describe("V2ListClusters", func() {
 				PullSecret:        swag.String(pullSecret),
 				SSHPublicKey:      sshPublicKey,
 				VipDhcpAllocation: swag.Bool(true),
+				NetworkType:       swag.String(models.ClusterCreateParamsNetworkTypeOpenShiftSDN),
 			},
 		})
 		Expect(err).NotTo(HaveOccurred())
@@ -794,6 +795,7 @@ var _ = Describe("cluster install - DHCP", func() {
 				PullSecret:        swag.String(pullSecret),
 				SSHPublicKey:      sshPublicKey,
 				VipDhcpAllocation: swag.Bool(true),
+				NetworkType:       swag.String(models.ClusterCreateParamsNetworkTypeOpenShiftSDN),
 			},
 		})
 		Expect(err).NotTo(HaveOccurred())
@@ -1054,14 +1056,13 @@ var _ = Describe("cluster install", func() {
 	BeforeEach(func() {
 		registerClusterReply, err := userBMClient.Installer.V2RegisterCluster(ctx, &installer.V2RegisterClusterParams{
 			NewClusterParams: &models.ClusterCreateParams{
-				BaseDNSDomain:     "example.com",
-				ClusterNetworks:   []*models.ClusterNetwork{{Cidr: models.Subnet(clusterCIDR), HostPrefix: 23}},
-				ServiceNetworks:   []*models.ServiceNetwork{{Cidr: models.Subnet(serviceCIDR)}},
-				Name:              swag.String("test-cluster"),
-				OpenshiftVersion:  swag.String(openshiftVersion),
-				PullSecret:        swag.String(pullSecret),
-				SSHPublicKey:      sshPublicKey,
-				VipDhcpAllocation: swag.Bool(true),
+				BaseDNSDomain:    "example.com",
+				ClusterNetworks:  []*models.ClusterNetwork{{Cidr: models.Subnet(clusterCIDR), HostPrefix: 23}},
+				ServiceNetworks:  []*models.ServiceNetwork{{Cidr: models.Subnet(serviceCIDR)}},
+				Name:             swag.String("test-cluster"),
+				OpenshiftVersion: swag.String(openshiftVersion),
+				PullSecret:       swag.String(pullSecret),
+				SSHPublicKey:     sshPublicKey,
 			},
 		})
 		Expect(err).NotTo(HaveOccurred())
@@ -4057,6 +4058,7 @@ var _ = Describe("disk encryption", func() {
 						Mode:     swag.String(models.DiskEncryptionModeTpmv2),
 					},
 					VipDhcpAllocation: swag.Bool(true),
+					NetworkType:       swag.String(models.ClusterCreateParamsNetworkTypeOpenShiftSDN),
 				},
 			})
 			Expect(err).NotTo(HaveOccurred())
