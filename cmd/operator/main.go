@@ -26,6 +26,7 @@ import (
 	routev1 "github.com/openshift/api/route/v1"
 	aiv1beta1 "github.com/openshift/assisted-service/api/v1beta1"
 	"github.com/openshift/assisted-service/internal/controller/controllers"
+	"github.com/openshift/assisted-service/internal/spoke_k8s_client"
 	"github.com/openshift/assisted-service/models"
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	"github.com/sirupsen/logrus"
@@ -136,9 +137,13 @@ func main() {
 		tolerations = operatorPod.Spec.Tolerations
 	}
 
+	log := logrus.New()
+	spokeClientFactory := spoke_k8s_client.NewSpokeK8sClientFactory(log)
+	spokeClientCache := controllers.NewSpokeClientCache(spokeClientFactory)
+
 	if err = (&controllers.AgentServiceConfigReconciler{
 		Client:       mgr.GetClient(),
-		Log:          logrus.New(),
+		Log:          log,
 		Scheme:       mgr.GetScheme(),
 		Recorder:     mgr.GetEventRecorderFor("agentserviceconfig-controller"),
 		Namespace:    ns,
@@ -151,10 +156,11 @@ func main() {
 
 	if err = (&controllers.HypershiftAgentServiceConfigReconciler{
 		Client:       mgr.GetClient(),
-		Log:          logrus.New(),
+		Log:          log,
 		Scheme:       mgr.GetScheme(),
 		NodeSelector: nodeSelector,
 		Tolerations:  tolerations,
+		SpokeClients: spokeClientCache,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "HypershiftAgentServiceConfig")
 		os.Exit(1)

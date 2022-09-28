@@ -21,11 +21,14 @@ import (
 	_ "embed"
 
 	aiv1beta1 "github.com/openshift/assisted-service/api/v1beta1"
+	"github.com/openshift/assisted-service/internal/spoke_k8s_client"
 	logutil "github.com/openshift/assisted-service/pkg/log"
+	pkgerror "github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
@@ -41,6 +44,8 @@ type HypershiftAgentServiceConfigReconciler struct {
 	// on the management cluster
 	NodeSelector map[string]string
 	Tolerations  []corev1.Toleration
+
+	SpokeClients SpokeClientCache
 }
 
 // +kubebuilder:rbac:groups=agent-install.openshift.io,resources=hypershiftagentserviceconfigs,verbs=get;list;watch;create;update;patch;delete
@@ -66,7 +71,46 @@ func (hr *HypershiftAgentServiceConfigReconciler) Reconcile(origCtx context.Cont
 		log.WithError(err).Errorf("Failed to get resource %s", req.NamespacedName)
 		return ctrl.Result{}, err
 	}
+
+	// Creating spoke client using specified kubeconfig secret reference
+	// TODO: use spoke client to create CRDs/CRs
+	_, err := hr.createSpokeClient(ctx, instance.Spec.KubeconfigSecretRef.Name, instance.Namespace)
+	if err != nil {
+		log.WithError(err).Error("Failed to create client using remote kubeconfig", req.NamespacedName)
+		return ctrl.Result{}, err
+	}
+
 	return ctrl.Result{}, nil
+}
+
+func (hr *HypershiftAgentServiceConfigReconciler) createSpokeClient(ctx context.Context, kubeconfigSecretName, namespace string) (spoke_k8s_client.SpokeK8sClient, error) {
+	// Fetch kubeconfig secret by specified secret reference
+	kubeconfigSecret, err := hr.getKubeconfigSecret(ctx, kubeconfigSecretName, namespace)
+	if err != nil {
+		return nil, pkgerror.Wrapf(err, "Failed to get secret '%s' in '%s' namespace", kubeconfigSecretName, namespace)
+	}
+
+	// Create spoke cluster client using kubeconfig secret
+	spokeClient, err := hr.SpokeClients.Get(kubeconfigSecret)
+	if err != nil {
+		return nil, pkgerror.Wrapf(err, "Failed to create client using kubeconfig secret '%s'", kubeconfigSecretName)
+	}
+
+	return spokeClient, nil
+}
+
+// Return kubeconfig secret by name and namespace
+func (hr *HypershiftAgentServiceConfigReconciler) getKubeconfigSecret(ctx context.Context, kubeconfigSecretName, namespace string) (*corev1.Secret, error) {
+	secretRef := types.NamespacedName{Namespace: namespace, Name: kubeconfigSecretName}
+	secret, err := getSecret(ctx, hr.Client, hr, secretRef)
+	if err != nil {
+		return nil, pkgerror.Wrapf(err, "Failed to get '%s' secret in '%s' namespace", secretRef.Name, secretRef.Namespace)
+	}
+	_, ok := secret.Data["kubeconfig"]
+	if !ok {
+		return nil, pkgerror.Errorf("Secret '%s' does not contain '%s' key value", secretRef.Name, "kubeconfig")
+	}
+	return secret, nil
 }
 
 // SetupWithManager sets up the controller with the Manager.
