@@ -6477,7 +6477,14 @@ definitions:
         x-nullable: true
         x-go-custom-tag: gorm:"type:text"
         description: JSON formatted string array representing the discovery image kernel arguments.
-
+      additional_trust_bundle:
+        type: string
+        x-nullable: false
+        description: |-
+          PEM-encoded X.509 certificate bundle. Hosts discovered by this
+          infra-env will trust the certificates in this bundle. Clusters formed
+          from the hosts discovered by this infra-env will also trust the
+          certificates in this bundle.
   proxy:
     type: object
     x-go-custom-tag: gorm:"embedded;embeddedPrefix:proxy_"
@@ -6551,7 +6558,14 @@ definitions:
         description: The CPU architecture of the image (x86_64/arm64/etc).
       kernel_arguments:
         $ref: '#/definitions/kernel_arguments'
-
+      additional_trust_bundle:
+        type: string
+        x-nullable: false
+        description: |-
+          PEM-encoded X.509 certificate bundle. Hosts discovered by this
+          infra-env will trust the certificates in this bundle. Clusters formed
+          from the hosts discovered by this infra-env will also trust the
+          certificates in this bundle.
   infra-env-update-params:
     type: object
     properties:
@@ -6579,6 +6593,10 @@ definitions:
         description: JSON formatted string containing the user overrides for the initial ignition config.
       kernel_arguments:
         $ref: '#/definitions/kernel_arguments'
+      additional_trust_bundle:
+        type: string
+        description: Allows users to change the additional_trust_bundle infra-env field
+        x-nullable: true
 
   ip:
     type: string

@@ -1512,6 +1512,10 @@ func (ib *ignitionBuilder) FormatDiscoveryIgnitionFile(ctx context.Context, infr
 		ignitionParams["ServiceCACertData"] = dataurl.EncodeBytes(caCertData)
 		ignitionParams["HostCACertPath"] = common.HostCACertPath
 	}
+	if infraEnv.AdditionalTrustBundle != "" {
+		ignitionParams["AdditionalTrustBundle"] = dataurl.EncodeBytes([]byte(infraEnv.AdditionalTrustBundle))
+		ignitionParams["AdditionalTrustBundlePath"] = common.AdditionalTrustBundlePath
+	}
 	if cfg.ServiceIPs != "" {
 		ignitionParams["ServiceIPs"] = dataurl.EncodeBytes([]byte(GetServiceIPHostnames(cfg.ServiceIPs)))
 	}

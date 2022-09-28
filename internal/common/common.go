@@ -26,6 +26,8 @@ const (
 
 	HostCACertPath = "/etc/assisted-service/service-ca-cert.crt"
 
+	AdditionalTrustBundlePath = "/etc/pki/ca-trust/source/anchors/assisted-infraenv-additional-trust-bundle.pem"
+
 	consoleUrlPrefix = "https://console-openshift-console.apps"
 
 	MirrorRegistriesCertificateFile = "tls-ca-bundle.pem"

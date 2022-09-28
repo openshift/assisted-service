@@ -153,49 +153,30 @@ curl \
 ```
 
 ## Adding aditional trust bundle
-Any additional trust bundles need to be added to both the discovery ISO and to the install-config. The trust bundle can contain one or more additional CA certificates in the format:
-```sh
------BEGIN CERTIFICATE-----
-...base-64-encoded, DER Certificate Authority cert...
------END CERTIFICATE-----
 
+When you need the cluster nodes / installation process to trust custom
+certificates, you can add them using the Assisted infra-env PATCH API's. The
+additional trust bundle can contain one or more CA certificates in the PEM
+format, for example:
+
+```
 -----BEGIN CERTIFICATE-----
-...base-64-encoded, DER Certificate Authority cert...
+...base-64-encoded
+-----END CERTIFICATE-----
+-----BEGIN CERTIFICATE-----
+...base-64-encoded
 -----END CERTIFICATE-----
 ```
-### Add additional trust bundle in discovery ISO
-The additional trust bundle must be embeded into discovery ignition override
-```sh
-request_body=$(mktemp)
-jq -n --arg OVERRIDE "{\"ignition\": {\"version\": \"3.1.0\"}, \"storage\": {\"files\": [{\"path\": \"/etc/pki/ca-trust/source/anchors/extra_ca.pem\", \"mode\": 420, \"overwrite\": true, \"user\": { \"name\": \"root\"},\"contents\": {\"source\": \"data:text/plain;base64,$(cat ca.pem | base64 -w 0)\"}}]}}" \
-'{
-   "ignition_config_override": $OVERRIDE
-}' > $request_body
-```
-Patch the discovery ignition override with the resulting file:
-```sh
+
+Following is an example of using the API. Begin by storing the certificates in
+a file called `ca.pem`, set `TOKEN`, `ASSISTED_SERVICE_IP`,
+`ASSISTED_SERVICE_PORT` and `INFRA_ENV_ID` to their appropriate values and run:
+
+```bash
 curl \
     --header "Content-Type: application/json" \
     --header "Authorization: Bearer $TOKEN" \
     --request PATCH \
-    --data  @$request_body \
-"http://$ASSISTED_SERVICE_IP:$ASSISTED_SERVICE_PORT/api/assisted-install/v2/infra-envs/$INFRA_ENV_ID"
-```
-### Add additionalTrustbundle in install-config
-Create file to patch install config
-```sh
-install_config_patch=$(mktemp)
-jq -n --arg BUNDLE "$(cat ca.pem)" \
-'{
-    "additionalTrustBundle": $BUNDLE
-}| tojson' > $install_config_patch
-```
-Patch the install-config with the resulting file
-```sh
-curl \
-    --header "Content-Type: application/json" \
-    --header "Authorization: Bearer $TOKEN" \
-    --request PATCH \
-    --data  @$install_config_patch \
-"http://$ASSISTED_SERVICE_IP:$ASSISTED_SERVICE_PORT/api/assisted-install/v2/clusters/$CLUSTER_ID/install-config"
+    --data "$( jq -n --arg BUNDLE "$(cat ca.pem)" '{ "additional_trust_bundle": $BUNDLE }' )" \
+    "http://$ASSISTED_SERVICE_IP:$ASSISTED_SERVICE_PORT/api/assisted-install/v2/infra-envs/$INFRA_ENV_ID"
 ```

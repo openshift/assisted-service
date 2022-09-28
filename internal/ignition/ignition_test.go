@@ -34,6 +34,7 @@ import (
 	"github.com/openshift/assisted-service/pkg/s3wrapper"
 	"github.com/openshift/assisted-service/pkg/staticnetworkconfig"
 	"github.com/sirupsen/logrus"
+	"github.com/vincent-petithory/dataurl"
 	"gopkg.in/yaml.v2"
 )
 
@@ -1022,6 +1023,25 @@ var _ = Describe("IgnitionBuilder", func() {
 
 			Expect(err).Should(BeNil())
 			Expect(text).Should(ContainSubstring("PULL_SECRET_TOKEN"))
+		})
+
+		It("ignition_file_contains_additoinal_trust_bundle", func() {
+			const magicString string = "somemagicstring"
+
+			// Try with bundle
+			mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(1)
+			mockVersionHandler.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any()).Return(nil, errors.New("some error")).Times(2)
+			infraEnv.AdditionalTrustBundle = magicString
+			text, err := builder.FormatDiscoveryIgnitionFile(context.Background(), &infraEnv, IgnitionConfig{}, false, auth.TypeRHSSO, "")
+			Expect(err).Should(BeNil())
+			Expect(text).Should(ContainSubstring(dataurl.EncodeBytes([]byte(magicString))))
+
+			// Try also without bundle
+			mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(1)
+			infraEnv.AdditionalTrustBundle = ""
+			text, err = builder.FormatDiscoveryIgnitionFile(context.Background(), &infraEnv, IgnitionConfig{}, false, auth.TypeRHSSO, "")
+			Expect(err).Should(BeNil())
+			Expect(text).ShouldNot(ContainSubstring(dataurl.EncodeBytes([]byte(magicString))))
 		})
 	})
 

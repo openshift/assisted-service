@@ -1,11 +1,8 @@
 package installcfg
 
 import (
-	"crypto/x509"
-	"encoding/pem"
-
 	"github.com/go-openapi/strfmt"
-	"github.com/pkg/errors"
+	cluster_validations "github.com/openshift/assisted-service/internal/cluster/validations"
 )
 
 type Platform struct {
@@ -152,22 +149,7 @@ type InstallerConfigBaremetal struct {
 
 func (c *InstallerConfigBaremetal) Validate() error {
 	if c.AdditionalTrustBundle != "" {
-		// From https://github.com/openshift/installer/blob/56e61f1df5aa51ff244465d4bebcd1649003b0c9/pkg/validate/validate.go#L29-L47
-		rest := []byte(c.AdditionalTrustBundle)
-		for {
-			var block *pem.Block
-			block, rest = pem.Decode(rest)
-			if block == nil {
-				return errors.Errorf("invalid block")
-			}
-			_, err := x509.ParseCertificate(block.Bytes)
-			if err != nil {
-				return err
-			}
-			if len(rest) == 0 {
-				break
-			}
-		}
+		return cluster_validations.ValidatePEMCertificateBundle(c.AdditionalTrustBundle)
 	}
 
 	return nil
