@@ -485,7 +485,7 @@ func (b *bareMetalInventory) RegisterClusterInternal(
 		err = operators.EnsureLVMAndCNVNotEnabled(newOLMOperators)
 		if err != nil {
 			log.Error(err)
-			return nil, common.NewApiError(http.StatusInternalServerError, err)
+			return nil, common.NewApiError(http.StatusBadRequest, err)
 		}
 
 		monitoredOperators = append(monitoredOperators, newOLMOperators...)
