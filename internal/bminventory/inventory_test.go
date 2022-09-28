@@ -303,6 +303,83 @@ var _ = Describe("V2GetHost", func() {
 		Expect(db.Create(&hostObj).Error).ShouldNot(HaveOccurred())
 	})
 
+	It("should return error when both cnv and lvm operator enabled", func() {
+		ctx := context.Background()
+		defaultParam := getDefaultClusterCreateParams()
+		defaultParam.CPUArchitecture = common.ARM64CPUArchitecture
+		defaultParam.Platform = &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeNone)}
+		defaultParam.UserManagedNetworking = swag.Bool(true)
+		defaultParam.VipDhcpAllocation = swag.Bool(false)
+		olmOperators := []*models.OperatorCreateParams{
+			{
+				Name: "LVM",
+			},
+			{
+				Name: "CNV",
+			},
+		}
+		defaultParam.OlmOperators = append(defaultParam.OlmOperators, olmOperators...)
+
+		reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
+			NewClusterParams: getDefaultClusterCreateParams(),
+		})
+
+		apiErr, ok := reply.(*common.ApiErrorResponse)
+		Expect(ok).Should(BeTrue())
+		Expect(apiErr.StatusCode()).Should(Equal(int32(http.StatusInternalServerError)))
+		//Expect(containsMonitoredOperator(actual.Payload.MonitoredOperators, &expectedMonitoredOperator)).To(BeTrue())
+	})
+
+	It("return cnv when cnv operator enabled", func() {
+		ctx := context.Background()
+		defaultParam := getDefaultClusterCreateParams()
+		defaultParam.CPUArchitecture = common.ARM64CPUArchitecture
+		defaultParam.Platform = &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeNone)}
+		defaultParam.UserManagedNetworking = swag.Bool(true)
+		defaultParam.VipDhcpAllocation = swag.Bool(false)
+		olmOperators := []*models.OperatorCreateParams{
+			{
+				Name: "CNV",
+			},
+		}
+		defaultParam.OlmOperators = append(defaultParam.OlmOperators, olmOperators...)
+
+		reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
+			NewClusterParams: getDefaultClusterCreateParams(),
+		})
+
+		actual := reply.(*installer.V2RegisterClusterCreated)
+		expectedMonitoredOperator := models.MonitoredOperator{
+			Name: "CNV",
+		}
+		Expect(actual.Payload.MonitoredOperators[0].Name).Should(Equal(expectedMonitoredOperator.Name))
+	})
+
+	It("return LVM when LVM operator enabled", func() {
+		ctx := context.Background()
+		defaultParam := getDefaultClusterCreateParams()
+		defaultParam.CPUArchitecture = common.ARM64CPUArchitecture
+		defaultParam.Platform = &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeNone)}
+		defaultParam.UserManagedNetworking = swag.Bool(true)
+		defaultParam.VipDhcpAllocation = swag.Bool(false)
+		olmOperators := []*models.OperatorCreateParams{
+			{
+				Name: "LVM",
+			},
+		}
+		defaultParam.OlmOperators = append(defaultParam.OlmOperators, olmOperators...)
+
+		reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
+			NewClusterParams: getDefaultClusterCreateParams(),
+		})
+
+		actual := reply.(*installer.V2RegisterClusterCreated)
+		expectedMonitoredOperator := models.MonitoredOperator{
+			Name: "CNV",
+		}
+		Expect(actual.Payload.MonitoredOperators[0].Name).Should(Equal(expectedMonitoredOperator.Name))
+	})
+
 	It("V2 Get host failed", func() {
 		ctx := context.Background()
 		params := installer.V2GetHostParams{
@@ -13708,6 +13785,23 @@ var _ = Describe("Dual-stack cluster", func() {
 			params = installer.V2UpdateClusterParams{
 				ClusterUpdateParams: &models.V2ClusterUpdateParams{},
 			}
+		})
+
+		Context("Ensure CNV or LVM enabled", func() {
+			It("Check CNV or LVM enabled", func() {
+				olmOperators := []*models.OperatorCreateParams{
+					{
+						Name: "LVM",
+					},
+					{
+						Name: "CNV",
+					},
+				}
+				params.ClusterUpdateParams.OlmOperators = append(params.ClusterUpdateParams.OlmOperators, olmOperators...)
+				reply := bm.V2UpdateCluster(ctx, params)
+
+				verifyApiErrorString(reply, http.StatusBadRequest, "error")
+			})
 		})
 
 		Context("Cluster with wrong network order", func() {
