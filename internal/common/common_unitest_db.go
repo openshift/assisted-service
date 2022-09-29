@@ -4,12 +4,14 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"net"
 	"os"
 	"path/filepath"
 	"strings"
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v4"
 	. "github.com/onsi/gomega"
 	"github.com/ory/dockertest/v3"
 	"gorm.io/driver/postgres"
@@ -92,6 +94,32 @@ func (c *DockerDBContext) Create() error {
 		Tag:        "latest",
 		Env:        []string{"POSTGRESQL_ADMIN_PASSWORD=admin"},
 		Name:       dbDockerName,
+	})
+	if err != nil {
+		return err
+	}
+
+	// Wait till the database is accepting connections:
+	dbAddr := resource.GetHostPort(fmt.Sprintf("%s/tcp", dbDefaultPort))
+	dbHost, dbPort, err := net.SplitHostPort(dbAddr)
+	if err != nil {
+		return err
+	}
+	dbStr := fmt.Sprintf(
+		"host=%s port=%s user=postgres password=admin sslmode=disable connect_timeout=1",
+		dbHost, dbPort,
+	)
+	err = wait.PollImmediate(time.Second*1, time.Minute*1, func() (done bool, err error) {
+		ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+		defer cancel()
+		conn, err := pgx.Connect(ctx, dbStr)
+		if err != nil {
+			err = nil
+			return
+		}
+		conn.Close(ctx)
+		done = true
+		return
 	})
 	if err != nil {
 		return err
