@@ -109,6 +109,9 @@ github.com/beorn7/perks/quantile
 # github.com/blang/semver/v4 v4.0.0
 ## explicit; go 1.14
 github.com/blang/semver/v4
+# github.com/bombsimon/logrusr/v3 v3.0.0
+## explicit; go 1.17
+github.com/bombsimon/logrusr/v3
 # github.com/buger/jsonparser v1.1.1
 ## explicit; go 1.13
 github.com/buger/jsonparser
@@ -239,7 +242,7 @@ github.com/ghodss/yaml
 # github.com/go-gormigrate/gormigrate/v2 v2.0.1
 ## explicit; go 1.17
 github.com/go-gormigrate/gormigrate/v2
-# github.com/go-logr/logr v1.2.2
+# github.com/go-logr/logr v1.2.3
 ## explicit; go 1.16
 github.com/go-logr/logr
 # github.com/go-logr/zapr v1.2.0
