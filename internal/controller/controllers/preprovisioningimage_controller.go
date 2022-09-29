@@ -114,6 +114,18 @@ func (r *PreprovisioningImageReconciler) Reconcile(origCtx context.Context, req 
 		return r.AddIronicAgentToInfraEnv(ctx, log, infraEnv)
 	}
 
+	if infraEnv.Status.CreatedTime == nil {
+		log.Info("InfraEnv image has not been created yet")
+		setNotCreatedCondition(image)
+		err = r.Status().Update(ctx, image)
+		if err != nil {
+			log.WithError(err).Error("failed to update status")
+			return ctrl.Result{}, err
+		}
+		// no need to requeue, the change in the infraenv should trigger a reconcile
+		return ctrl.Result{}, nil
+	}
+
 	// The image has been created sooner than the specified cooldown period
 	imageTimePlusCooldown := infraEnv.Status.CreatedTime.Time.Add(InfraEnvImageCooldownPeriod)
 	if imageTimePlusCooldown.After(time.Now()) {
@@ -178,6 +190,17 @@ func (r *PreprovisioningImageReconciler) setImage(generation int64, status *meta
 		metal3_v1alpha1.ConditionImageError, imageErrorStatus,
 		reason, message)
 	return nil
+}
+
+func setNotCreatedCondition(image *metal3_v1alpha1.PreprovisioningImage) {
+	message := "Waiting for InfraEnv image to be created"
+	reason := imageConditionReason(strcase.ToCamel(message))
+	setImageCondition(image.GetGeneration(), &image.Status,
+		metal3_v1alpha1.ConditionImageReady, metav1.ConditionFalse,
+		reason, message)
+	setImageCondition(image.GetGeneration(), &image.Status,
+		metal3_v1alpha1.ConditionImageError, metav1.ConditionFalse,
+		reason, message)
 }
 
 func setCoolDownCondition(image *metal3_v1alpha1.PreprovisioningImage) {
