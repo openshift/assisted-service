@@ -3603,6 +3603,7 @@ definitions:
               - 'LVM'
               - 'DUAL_STACK_NETWORKING'
               - 'MULTIARCH_RELEASE_IMAGE'
+              - 'NUTANIX_INTEGRATION'
             support_level:
               type: string
               enum: [supported, unsupported, tech-preview, dev-preview]
@@ -5677,6 +5678,7 @@ definitions:
     type: string
     enum:
       - baremetal
+      - nutanix
       - vsphere
       - none
 

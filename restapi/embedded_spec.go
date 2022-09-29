@@ -6811,7 +6811,8 @@ func init() {
                   "SINGLE_NODE_EXPANSION",
                   "LVM",
                   "DUAL_STACK_NETWORKING",
-                  "MULTIARCH_RELEASE_IMAGE"
+                  "MULTIARCH_RELEASE_IMAGE",
+                  "NUTANIX_INTEGRATION"
                 ]
               },
               "support_level": {
@@ -8687,6 +8688,7 @@ func init() {
       "type": "string",
       "enum": [
         "baremetal",
+        "nutanix",
         "vsphere",
         "none"
       ]
@@ -14630,7 +14632,8 @@ func init() {
             "SINGLE_NODE_EXPANSION",
             "LVM",
             "DUAL_STACK_NETWORKING",
-            "MULTIARCH_RELEASE_IMAGE"
+            "MULTIARCH_RELEASE_IMAGE",
+            "NUTANIX_INTEGRATION"
           ]
         },
         "support_level": {
@@ -18108,6 +18111,7 @@ func init() {
       "type": "string",
       "enum": [
         "baremetal",
+        "nutanix",
         "vsphere",
         "none"
       ]

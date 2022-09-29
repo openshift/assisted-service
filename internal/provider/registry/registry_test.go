@@ -15,6 +15,7 @@ import (
 	"github.com/openshift/assisted-service/internal/provider/vsphere"
 	"github.com/openshift/assisted-service/internal/usage"
 	"github.com/openshift/assisted-service/models"
+	"gopkg.in/yaml.v2"
 )
 
 var (
@@ -23,6 +24,24 @@ var (
 )
 
 const invalidInventory = "{\"system_vendor\": \"invalid\"}"
+
+const expectedNutanixInstallConfig = `apiVIP: 192.168.10.10
+ingressVIP: 192.168.10.11
+prismCentral:
+  endpoint:
+    address: 1.1.1.1
+    port: 8080
+  username: username_placeholder
+  password: password_placeholder
+prismElements:
+- endpoint:
+    address: 1.1.1.1
+    port: 8080
+  uuid: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+  name: prism_endpoint_name_placeholder
+subnetUUIDs:
+- yyyyyyyy-yyyy-yyyy-yyyy-yyyyyyyyyyyy
+`
 
 var _ = Describe("Test GetSupportedProvidersByHosts", func() {
 	bmInventory := getBaremetalInventoryStr("hostname0", "bootMode", true, false)
@@ -231,6 +250,25 @@ var _ = Describe("Test AddPlatformToInstallConfig", func() {
 			})
 		})
 	})
+
+	Context("nutanix", func() {
+		It("without cluster params", func() {
+			cfg := getInstallerConfigBaremetal()
+			hosts := make([]*models.Host, 0)
+			hosts = append(hosts, createHost(true, models.HostStatusKnown, getNutanixInventoryStr("hostname0", "bootMode", true, false)))
+			hosts = append(hosts, createHost(true, models.HostStatusKnown, getNutanixInventoryStr("hostname1", "bootMode", true, false)))
+			hosts = append(hosts, createHost(true, models.HostStatusKnown, getNutanixInventoryStr("hostname2", "bootMode", true, false)))
+			hosts = append(hosts, createHost(false, models.HostStatusKnown, getNutanixInventoryStr("hostname3", "bootMode", true, false)))
+			hosts = append(hosts, createHost(false, models.HostStatusKnown, getNutanixInventoryStr("hostname4", "bootMode", true, false)))
+			cluster := createClusterFromHosts(hosts)
+			err := providerRegistry.AddPlatformToInstallConfig(models.PlatformTypeNutanix, &cfg, &cluster)
+			Expect(err).To(BeNil())
+			Expect(cfg.Platform.Nutanix).ToNot(BeNil())
+			installConfigByte, err := yaml.Marshal(cfg.Platform.Nutanix)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(string(installConfigByte)).To(Equal(expectedNutanixInstallConfig))
+		})
+	})
 })
 
 var _ = Describe("Test SetPlatformUsages", func() {
@@ -332,6 +370,18 @@ func getBaremetalInventoryStr(hostname, bootMode string, ipv4, ipv6 bool) string
 		ProductName:  "KVM",
 		SerialNumber: "",
 		Virtual:      false,
+	}
+	ret, _ := json.Marshal(&inventory)
+	return string(ret)
+}
+
+func getNutanixInventoryStr(hostname, bootMode string, ipv4, ipv6 bool) string {
+	inventory := getInventory(hostname, bootMode, ipv4, ipv6)
+	inventory.SystemVendor = &models.SystemVendor{
+		Manufacturer: "Nutanix",
+		ProductName:  "AHV",
+		SerialNumber: "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
+		Virtual:      true,
 	}
 	ret, _ := json.Marshal(&inventory)
 	return string(ret)

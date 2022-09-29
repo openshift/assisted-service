@@ -29,6 +29,9 @@ const (
 	// PlatformTypeBaremetal captures enum value "baremetal"
 	PlatformTypeBaremetal PlatformType = "baremetal"
 
+	// PlatformTypeNutanix captures enum value "nutanix"
+	PlatformTypeNutanix PlatformType = "nutanix"
+
 	// PlatformTypeVsphere captures enum value "vsphere"
 	PlatformTypeVsphere PlatformType = "vsphere"
 
@@ -41,7 +44,7 @@ var platformTypeEnum []interface{}
 
 func init() {
 	var res []PlatformType
-	if err := json.Unmarshal([]byte(`["baremetal","vsphere","none"]`), &res); err != nil {
+	if err := json.Unmarshal([]byte(`["baremetal","nutanix","vsphere","none"]`), &res); err != nil {
 		panic(err)
 	}
 	for _, v := range res {
