@@ -200,7 +200,7 @@ func GetAcceptableDisksWithHints(disks []*models.Disk, hints *bmh_v1alpha1.RootD
 
 			if hints.MinSizeGigabytes != 0 {
 				sizeGB := int(conversions.BytesToGb(disk.SizeBytes))
-				if hints.MinSizeGigabytes < sizeGB {
+				if sizeGB < hints.MinSizeGigabytes {
 					continue
 				}
 			}
