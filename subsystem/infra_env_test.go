@@ -163,6 +163,42 @@ var _ = Describe("Infra_Env", func() {
 		Expect(s.Size()).ShouldNot(Equal(0))
 	})
 
+	It("download infra-env files static network config file", func() {
+		By("Patching the infra env with a static network config")
+		netYaml := `interfaces:
+- ipv4:
+    address:
+    - ip: 192.0.2.1
+      prefix-length: 24
+    dhcp: false
+    enabled: true
+  name: eth0
+  state: up
+  type: ethernet`
+		staticNetworkConfig := models.HostStaticNetworkConfig{
+			NetworkYaml: netYaml,
+		}
+		staticNetworkConfigs := []*models.HostStaticNetworkConfig{&staticNetworkConfig}
+		updateParams := &installer.UpdateInfraEnvParams{
+			InfraEnvID: infraEnvID,
+			InfraEnvUpdateParams: &models.InfraEnvUpdateParams{
+				StaticNetworkConfig: staticNetworkConfigs,
+			},
+		}
+		_, err := userBMClient.Installer.UpdateInfraEnv(ctx, updateParams)
+		Expect(err).NotTo(HaveOccurred())
+		By("Downloading the static network config archive")
+		buf := &bytes.Buffer{}
+		_, err = userBMClient.Installer.V2DownloadInfraEnvFiles(ctx, &installer.V2DownloadInfraEnvFilesParams{InfraEnvID: infraEnvID, FileName: "static-network-config"}, buf)
+		Expect(err).NotTo(HaveOccurred())
+		By("Verifying the contents of the archive")
+		contents := buf.String()
+		Expect(len(contents)).ShouldNot(Equal(0))
+		Expect(contents).To(ContainSubstring("/etc/assisted/network/host0"))
+		Expect(contents).To(ContainSubstring("192.0.2.1/24"))
+		Expect(contents).To(ContainSubstring("eth0"))
+	})
+
 	It("download infra-env files invalid filename option", func() {
 		file, err := os.CreateTemp("", "tmp")
 		Expect(err).NotTo(HaveOccurred())

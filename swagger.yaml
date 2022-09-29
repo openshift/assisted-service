@@ -1635,7 +1635,7 @@ paths:
           name: file_name
           description: The file to be downloaded.
           type: string
-          enum: [discovery.ign, ipxe-script]
+          enum: [discovery.ign, ipxe-script, static-network-config]
           required: true
         - in: query
           name: mac
