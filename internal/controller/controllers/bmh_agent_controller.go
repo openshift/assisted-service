@@ -559,7 +559,7 @@ func (r *BMACReconciler) reconcileAgentInventory(log logrus.FieldLogger, bmh *bm
 
 	// Add the memory information in MebiByte
 	if agent.Status.Inventory.Memory.PhysicalBytes > 0 {
-		hardwareDetails.RAMMebibytes = int(conversions.BytesToGiB(inventory.Memory.PhysicalBytes))
+		hardwareDetails.RAMMebibytes = int(conversions.BytesToMib(inventory.Memory.PhysicalBytes))
 	}
 
 	// Add CPU information
