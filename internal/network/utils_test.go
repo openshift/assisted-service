@@ -2,6 +2,7 @@ package network
 
 import (
 	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/models"
 )
@@ -689,4 +690,27 @@ var _ = Describe("ArClusterNetworksIdentical", func() {
 			Expect(AreClusterNetworksIdentical(t.n1, t.n2)).To(Equal(t.expectedResult))
 		})
 	}
+})
+
+var _ = Describe("Is global CIDR", func() {
+	DescribeTable(
+		"Returns the expected result",
+		func(address string, expected bool) {
+			actual, err := IsGlobalCIDR(address)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(actual).To(Equal(expected))
+		},
+		Entry("IPv4 loopback", "127.0.0.1/32", false),
+		Entry("IPv4 global", "192.168.0.1/24", true),
+		Entry("IPv6 loopback", "::1/128", false),
+		Entry("IPv6 global", "5dc8:725d:26ae:1192:d336:54a3:d7c7:23a7/64", true),
+	)
+
+	It("Returns error if address can't be parsed", func() {
+		result, err := IsGlobalCIDR("junk")
+		Expect(err).To(HaveOccurred())
+		message := err.Error()
+		Expect(message).To(ContainSubstring("junk"))
+		Expect(result).To(BeFalse())
+	})
 })

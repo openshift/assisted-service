@@ -302,3 +302,15 @@ func AreServiceNetworksIdentical(n1, n2 []*models.ServiceNetwork) bool {
 func AreClusterNetworksIdentical(n1, n2 []*models.ClusterNetwork) bool {
 	return areListsEquivalent(len(n1), len(n2), func(i, j int) bool { return n1[i].Cidr == n2[j].Cidr && n1[i].HostPrefix == n2[j].HostPrefix })
 }
+
+// IsGlobalCIDR returns a boolean flag indicating if the IP address in the given CIDR is a global
+// one and not a local one like 127.0.0.1 or ::1. Returns an error if the given string can't be
+// parsed as a CIDR.
+func IsGlobalCIDR(cidr string) (result bool, err error) {
+	ip, _, err := net.ParseCIDR(cidr)
+	if err != nil {
+		return
+	}
+	result = ip.IsGlobalUnicast()
+	return
+}

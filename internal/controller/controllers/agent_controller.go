@@ -519,6 +519,7 @@ func (r *AgentReconciler) updateStatus(ctx context.Context, log logrus.FieldLogg
 	specSynced(agent, syncErr, internal)
 
 	if h != nil && h.Status != nil {
+		agent.Status.Hostname = h.RequestedHostname
 		agent.Status.Bootstrap = h.Bootstrap
 		agent.Status.Role = h.Role
 		if h.SuggestedRole != "" && h.Role == models.HostRoleAutoAssign {

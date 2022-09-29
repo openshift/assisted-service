@@ -17,6 +17,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/kelseyhightower/envconfig"
 	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/common"
 	eventgen "github.com/openshift/assisted-service/internal/common/events"
@@ -4580,4 +4581,271 @@ var _ = Describe("Rebooting day2", func() {
 		Expect(*verifyHost.StatusInfo).Should(BeEquivalentTo("Rebooting"))
 	})
 
+})
+
+var _ = Describe("Automatically rename host", func() {
+	var (
+		ctx             = context.Background()
+		ctrl            *gomock.Controller
+		mockHwValidator *hardware.MockValidator
+		db              *gorm.DB
+		dbName          string
+		manager         API
+		clusterID       strfmt.UUID
+		cluster         common.Cluster
+		infraEnvID      strfmt.UUID
+		infraEnv        *common.InfraEnv
+		hostID          strfmt.UUID
+		host            models.Host
+	)
+
+	BeforeEach(func() {
+		ctrl = gomock.NewController(GinkgoT())
+		db, dbName = common.PrepareTestDB()
+		elector := &leader.DummyElector{}
+
+		// We don't care about events in this test, just need to avoid nil pointer errors or
+		// panics.
+		mockEventsHandler := eventsapi.NewMockHandler(ctrl)
+		mockEventsHandler.EXPECT().AddMetricsEvent(
+			gomock.Any(),
+			gomock.Any(),
+			gomock.Any(),
+			gomock.Any(),
+			gomock.Any(),
+			gomock.Any(),
+			gomock.Any(),
+		).AnyTimes()
+
+		// We don't really care about the outcome of the validations in this test, but we
+		// need to pass a working validator to the host manager to avoid nil pointer errors
+		// or panics.
+		mockHwValidator = hardware.NewMockValidator(ctrl)
+		mockHwValidator.EXPECT().ListEligibleDisks(gomock.Any()).
+			Return([]*models.Disk{}).AnyTimes()
+
+		manager = NewManager(
+			common.GetTestLog(),
+			db,
+			mockEventsHandler,
+			mockHwValidator,
+			nil,
+			createValidatorCfg(),
+			nil,
+			defaultConfig,
+			elector,
+			nil,
+			nil,
+			false,
+			nil,
+		)
+
+		// Prepare and save the cluster:
+		clusterID = strfmt.UUID(uuid.New().String())
+		cluster = hostutil.GenerateTestCluster(clusterID)
+		err := db.Create(&cluster).Error
+		Expect(err).ToNot(HaveOccurred())
+
+		// Prepare and save the infrastructure environment:
+		infraEnvID = strfmt.UUID(uuid.New().String())
+		infraEnv = hostutil.GenerateTestInfraEnv(infraEnvID)
+		err = db.Create(infraEnv).Error
+		Expect(err).ToNot(HaveOccurred())
+
+		// The regular test host contains a non empty inventory, but we reset it here to
+		// make sure that this test isn't affected by changes in the code that builds it.
+		hostID = strfmt.UUID(uuid.New().String())
+		host = hostutil.GenerateTestHost(hostID, infraEnvID, clusterID, models.HostStatusKnown)
+		host.Inventory, err = common.MarshalInventory(&models.Inventory{
+			Hostname: "",
+		})
+		Expect(err).ToNot(HaveOccurred())
+		err = db.Create(&host).Error
+		Expect(err).ToNot(HaveOccurred())
+	})
+
+	AfterEach(func() {
+		ctrl.Finish()
+		common.DeleteTestDB(db, dbName)
+	})
+
+	type Args struct {
+		Discovered string
+		Requested  string
+		Interfaces []*models.Interface
+		Expected   string
+	}
+
+	DescribeTable(
+		"Rename behaviour",
+		func(args Args) {
+			// Load the host from the database and save the requested hostname:
+			host := hostutil.GetHostFromDB(hostID, infraEnvID, db)
+			Expect(host).ToNot(BeNil())
+			err := db.Model(host).Update("requested_hostname", args.Requested).Error
+			Expect(err).ToNot(HaveOccurred())
+
+			// Update the inventory:
+			inventoryObj, err := common.UnmarshalInventory(host.Inventory)
+			Expect(err).ToNot(HaveOccurred())
+			inventoryObj.Hostname = args.Discovered
+			inventoryObj.Interfaces = []*models.Interface{{
+				Name:          "lo",
+				MacAddress:    "",
+				IPV4Addresses: []string{"127.0.0.1/32"},
+				IPV6Addresses: []string{"::1/128"},
+			}}
+			inventoryObj.Interfaces = append(inventoryObj.Interfaces, args.Interfaces...)
+			inventoryStr, err := common.MarshalInventory(inventoryObj)
+			Expect(err).ToNot(HaveOccurred())
+			err = manager.UpdateInventory(ctx, &host.Host, inventoryStr)
+			Expect(err).ToNot(HaveOccurred())
+
+			// Load the host from the database again and check that it has been renamed
+			// as expected:
+			host = hostutil.GetHostFromDB(hostID, infraEnvID, db)
+			Expect(host).ToNot(BeNil())
+			Expect(host.RequestedHostname).To(Equal(args.Expected))
+		},
+		Entry(
+			"Doesn't rename if already has acceptable name",
+			Args{
+				Discovered: "myhost",
+				Requested:  "",
+				Interfaces: []*models.Interface{
+					{
+						Name:          "eth0",
+						MacAddress:    "71:A0:A4:6F:BE:C8",
+						IPV4Addresses: []string{"192.168.0.1/24"},
+					},
+				},
+				Expected: "",
+			},
+		),
+		Entry(
+			"Doesn't rename if already renamed",
+			Args{
+				Discovered: "localhost",
+				Requested:  "myhost",
+				Interfaces: []*models.Interface{
+					{
+						Name:          "eth0",
+						MacAddress:    "71:A0:A4:6F:BE:C8",
+						IPV4Addresses: []string{"192.168.0.1/24"},
+					},
+				},
+				Expected: "myhost",
+			},
+		),
+		Entry(
+			"Replaces IPv4 localhost with MAC of first NIC",
+			Args{
+				Discovered: "localhost",
+				Requested:  "",
+				Interfaces: []*models.Interface{
+					{
+						Name:          "eth0",
+						MacAddress:    "71:A0:A4:6F:BE:C8",
+						IPV4Addresses: []string{"192.168.0.1/24"},
+					},
+				},
+				Expected: "71-a0-a4-6f-be-c8",
+			},
+		),
+		Entry(
+			"Replace IPv6 localhost with MAC of first NIC",
+			Args{
+				Discovered: "localhost6",
+				Requested:  "",
+				Interfaces: []*models.Interface{
+					{
+						Name:          "eth0",
+						MacAddress:    "71:A0:A4:6F:BE:C8",
+						IPV4Addresses: []string{"192.168.0.1/24"},
+					},
+				},
+				Expected: "71-a0-a4-6f-be-c8",
+			},
+		),
+		Entry(
+			"Ignores NIC with MAC but no IP address",
+			Args{
+				Discovered: "localhost",
+				Requested:  "",
+				Interfaces: []*models.Interface{
+					{
+						Name:          "eth0",
+						MacAddress:    "71:A0:A4:6F:BE:C8",
+						IPV4Addresses: []string{},
+					},
+					{
+						Name:          "eth1",
+						MacAddress:    "42:5a:90:c8:24:dc",
+						IPV4Addresses: []string{"192.168.0.1/24"},
+					},
+				},
+				Expected: "42-5a-90-c8-24-dc",
+			},
+		),
+		Entry(
+			"Ignores NIC with loopback IPv4 address",
+			Args{
+				Discovered: "localhost",
+				Requested:  "",
+				Interfaces: []*models.Interface{
+					{
+						Name:          "eth0",
+						MacAddress:    "71:A0:A4:6F:BE:C8",
+						IPV4Addresses: []string{"127.0.0.1/32"},
+					},
+					{
+						Name:          "eth1",
+						MacAddress:    "42:5a:90:c8:24:dc",
+						IPV4Addresses: []string{"192.168.0.1/24"},
+					},
+				},
+				Expected: "42-5a-90-c8-24-dc",
+			},
+		),
+		Entry(
+			"Ignores NIC with loopback IPv6 address",
+			Args{
+				Discovered: "localhost",
+				Requested:  "",
+				Interfaces: []*models.Interface{
+					{
+						Name:          "eth0",
+						MacAddress:    "71:A0:A4:6F:BE:C8",
+						IPV6Addresses: []string{"::1/128"},
+					},
+					{
+						Name:          "eth1",
+						MacAddress:    "42:5a:90:c8:24:dc",
+						IPV4Addresses: []string{"192.168.0.1/24"},
+					},
+				},
+				Expected: "42-5a-90-c8-24-dc",
+			},
+		),
+		Entry(
+			"Uses first NIC with IPv4 or IPv6 address",
+			Args{
+				Discovered: "localhost",
+				Requested:  "",
+				Interfaces: []*models.Interface{
+					{
+						Name:          "eth0",
+						MacAddress:    "71:A0:A4:6F:BE:C8",
+						IPV6Addresses: []string{"5dc8:725d:26ae:1192:d336:54a3:d7c7:23a7/64"},
+					},
+					{
+						Name:          "eth1",
+						MacAddress:    "42:5a:90:c8:24:dc",
+						IPV4Addresses: []string{"192.168.0.1/24"},
+					},
+				},
+				Expected: "71-a0-a4-6f-be-c8",
+			},
+		),
+	)
 })

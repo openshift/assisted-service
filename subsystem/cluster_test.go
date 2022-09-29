@@ -19,6 +19,7 @@ import (
 	"github.com/go-openapi/swag"
 	"github.com/google/uuid"
 	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/client"
 	"github.com/openshift/assisted-service/client/installer"
@@ -3199,56 +3200,24 @@ spec:
 		Expect(err).NotTo(HaveOccurred())
 	})
 
-	It("localhost is not valid", func() {
-		localhost := "localhost"
-		clusterID := *cluster.ID
-
-		hosts, ips := register3nodes(ctx, clusterID, *infraEnvID, defaultCIDRv4)
-		_, err := userBMClient.Installer.V2UpdateHost(ctx, &installer.V2UpdateHostParams{
-			HostUpdateParams: &models.HostUpdateParams{
-				HostRole: swag.String(string(models.HostRoleMaster)),
-			},
-			HostID:     *hosts[0].ID,
-			InfraEnvID: *infraEnvID,
-		})
-		Expect(err).NotTo(HaveOccurred())
-
-		h1 := getHostV2(*infraEnvID, *hosts[0].ID)
-		waitForHostState(ctx, "known", 60*time.Second, h1)
-		Expect(h1.RequestedHostname).Should(Equal("h1"))
-
-		By("Changing hostname reply to localhost")
-		generateEssentialHostSteps(ctx, h1, localhost, ips[0])
-		waitForHostState(ctx, models.HostStatusInsufficient, 60*time.Second, h1)
-		h1Host := getHostV2(*infraEnvID, *h1.ID)
-		Expect(h1Host.RequestedHostname).Should(Equal(localhost))
-
-		By("Setting hostname to valid name")
-		hostname := "reqh0"
-		_, err = userBMClient.Installer.V2UpdateHost(ctx, &installer.V2UpdateHostParams{
-			HostUpdateParams: &models.HostUpdateParams{
-				HostName: &hostname,
-			},
-			HostID:     *h1Host.ID,
-			InfraEnvID: h1Host.InfraEnvID,
-		})
-		Expect(err).NotTo(HaveOccurred())
-
-		waitForHostState(ctx, models.HostStatusKnown, 60*time.Second, h1)
-
-		By("Setting hostname to localhost should cause an API error")
-		_, err = userBMClient.Installer.V2UpdateHost(ctx, &installer.V2UpdateHostParams{
-			HostUpdateParams: &models.HostUpdateParams{
-				HostName: &localhost,
-			},
-			HostID:     *h1Host.ID,
-			InfraEnvID: h1Host.InfraEnvID,
-		})
-		Expect(err).To(HaveOccurred())
-
-		waitForHostState(ctx, models.HostStatusKnown, 60*time.Second, h1)
-
-	})
+	DescribeTable(
+		"Automatically rename host",
+		func(discovered, expected string) {
+			host := registerNode(ctx, *infraEnvID, discovered, defaultCIDRv4)
+			Eventually(func(g Gomega) {
+				reply, err := userBMClient.Installer.V2GetHost(ctx, &installer.V2GetHostParams{
+					InfraEnvID: *infraEnvID,
+					HostID:     *host.ID,
+				})
+				g.Expect(err).ToNot(HaveOccurred())
+				g.Expect(reply.Payload.RequestedHostname).To(Equal(expected))
+			}).Should(Succeed())
+		},
+		Entry("Localhost", "localhost", "e6-53-3d-a7-77-b4"),
+		Entry("Localhost IPv4", "localhost4", "e6-53-3d-a7-77-b4"),
+		Entry("Localhost IPv6", "localhost6", "e6-53-3d-a7-77-b4"),
+		Entry("Already good", "myhost", "myhost"),
+	)
 
 	It("different_roles_stages", func() {
 		clusterID := *cluster.ID

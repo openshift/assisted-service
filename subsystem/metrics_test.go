@@ -688,12 +688,12 @@ var _ = Describe("Metrics tests", func() {
 			oldFailedMetricCounter := getValidationMetricCounter(string(models.HostValidationIDHostnameValid), hostValidationFailedMetric)
 
 			// create a validation failure
-			// 'localhost' is a forbidden host name
-			generateHWPostStepReply(ctx, h, validHwInfo, "localhost")
+			// 'my host' isn't a valid host name
+			generateHWPostStepReply(ctx, h, validHwInfo, "my host")
 			waitForHostValidationStatus(clusterID, *infraEnvID, *h.ID, "failure", models.HostValidationIDHostnameValid)
 
 			// check generated events
-			assertHostValidationEvent(ctx, clusterID, "localhost", models.HostValidationIDHostnameValid, true)
+			assertHostValidationEvent(ctx, clusterID, "my host", models.HostValidationIDHostnameValid, true)
 
 			// check generated metrics
 			Expect(getValidationMetricCounter(string(models.HostValidationIDHostnameValid), hostValidationChangedMetric)).To(Equal(oldChangedMetricCounter + 1))
@@ -705,8 +705,8 @@ var _ = Describe("Metrics tests", func() {
 
 			// create a validation failure
 			h := &registerHost(*infraEnvID).Host
-			// 'localhost' is a forbidden host name
-			generateHWPostStepReply(ctx, h, validHwInfo, "localhost")
+			// 'my host' isn't a valid host name
+			generateHWPostStepReply(ctx, h, validHwInfo, "my host")
 			waitForHostValidationStatus(clusterID, *infraEnvID, *h.ID, "failure", models.HostValidationIDHostnameValid)
 
 			// create a validation success
@@ -955,7 +955,7 @@ var _ = Describe("Metrics tests", func() {
 			oldFailedMetricCounter := getValidationMetricCounter(string(models.ClusterValidationIDAllHostsAreReadyToInstall), clusterValidationFailedMetric)
 
 			// create a validation failure by causing the a host to not be ready
-			generateHWPostStepReply(ctx, hosts[0], validHwInfo, "localhost")
+			generateHWPostStepReply(ctx, hosts[0], validHwInfo, "my host")
 			waitForHostStateV2(ctx, models.HostStatusInsufficient, defaultWaitForHostStateTimeout, hosts[0])
 
 			waitForClusterValidationStatus(clusterID, "failure", models.ClusterValidationIDAllHostsAreReadyToInstall)

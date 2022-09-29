@@ -21,6 +21,7 @@ import (
 	"github.com/openshift/assisted-service/internal/host/hostcommands"
 	"github.com/openshift/assisted-service/internal/host/hostutil"
 	"github.com/openshift/assisted-service/internal/metrics"
+	"github.com/openshift/assisted-service/internal/network"
 	"github.com/openshift/assisted-service/internal/operators"
 	"github.com/openshift/assisted-service/internal/provider/registry"
 	"github.com/openshift/assisted-service/models"
@@ -286,6 +287,8 @@ func (m *Manager) UpdateInventory(ctx context.Context, h *models.Host, inventory
 func (m *Manager) updateInventory(ctx context.Context, cluster *common.Cluster, h *models.Host, inventoryStr string, db *gorm.DB) error {
 	log := logutil.FromContext(ctx, m.log)
 
+	updates := map[string]interface{}{}
+
 	hostStatus := swag.StringValue(h.Status)
 	allowedStatuses := append(hostStatusesBeforeInstallation[:], models.HostStatusInstallingInProgress)
 	allowedStatuses = append(allowedStatuses, hostStatusesInInfraEnv[:]...)
@@ -304,6 +307,10 @@ func (m *Manager) updateInventory(ctx context.Context, cluster *common.Cluster, 
 	if err != nil {
 		log.WithError(err).Errorf("not updating inventory - failed to find infra env %s", h.InfraEnvID.String())
 		return common.NewApiError(http.StatusNotFound, err)
+	}
+
+	if m.autorenameHost(h, inventory) {
+		updates["requested_hostname"] = h.RequestedHostname
 	}
 
 	if h.ClusterID != nil && h.ClusterID.String() != "" {
@@ -394,12 +401,11 @@ func (m *Manager) updateInventory(ctx context.Context, cluster *common.Cluster, 
 	// If there is substantial change in the inventory that might cause the state machine to move to a new status
 	// or one of the validations to change, then the updated_at field has to be modified.  Otherwise, we just
 	// perform update with touching the updated_at field
-	return db.Model(h).Updates(map[string]interface{}{
-		"inventory":              inventoryStr,
-		"installation_disk_path": installationDiskPath,
-		"installation_disk_id":   installationDiskID,
-		"disks_to_be_formatted":  disksToBeFormatted,
-	}).Error
+	updates["inventory"] = inventoryStr
+	updates["installation_disk_path"] = installationDiskPath
+	updates["installation_disk_id"] = installationDiskID
+	updates["disks_to_be_formatted"] = disksToBeFormatted
+	return db.Model(h).Updates(updates).Error
 }
 
 func (m *Manager) UpdateMediaConnected(_ context.Context, h *models.Host) error {
@@ -1385,4 +1391,90 @@ func (m *Manager) HandleReclaimBootArtifactDownload(ctx context.Context, h *mode
 
 func (m *Manager) HandleReclaimFailure(ctx context.Context, h *models.Host) error {
 	return m.sm.Run(TransitionTypeReclaimFailed, newStateHost(h), &TransitionArgsUnbindHost{ctx: ctx, db: m.db})
+}
+
+// autorenameHost renames a host if it is necessary and possible. For example, if the name is
+// localhost.localdomain and the host has a network interface card with MAC address
+// A8:CD:16:AE:79:01 it will be renamed to a8-cd-16-ae-79-01. Returns a boolean indicating if the
+// host was actually renamed.
+func (m *Manager) autorenameHost(host *models.Host, inventory *models.Inventory) bool {
+	if host.RequestedHostname != "" {
+		return false
+	}
+	if inventory == nil || inventory.Hostname == "" {
+		return false
+	}
+	if !funk.Contains(hostutil.ForbiddenHostnames, inventory.Hostname) {
+		return false
+	}
+	if len(inventory.Interfaces) < 1 {
+		return false
+	}
+	selectedNIC, err := m.findUsableNIC(inventory)
+	if err != nil {
+		m.log.WithError(err).WithFields(logrus.Fields{
+			"host": host.ID,
+			"name": inventory.Hostname,
+		}).Error(
+			"Host hasn't been automatically renamed because an unexpected error " +
+				"occurred while trying to find a NIC with a non-local IP address " +
+				"to calculate the new name",
+		)
+		return false
+	}
+	if selectedNIC == nil {
+		m.log.WithFields(logrus.Fields{
+			"host": host.ID,
+			"name": inventory.Hostname,
+		}).Info(
+			"Host hasn't been automatically renamed because it doesn't have a NIC " +
+				"with a non-local IP address that can be used to calculate the " +
+				"new name",
+		)
+		return false
+	}
+	host.RequestedHostname = strings.ToLower(strings.ReplaceAll(selectedNIC.MacAddress, ":", "-"))
+	m.log.WithFields(logrus.Fields{
+		"host": host.ID,
+		"old":  inventory.Hostname,
+		"new":  host.RequestedHostname,
+		"nic":  selectedNIC.Name,
+		"mac":  selectedNIC.MacAddress,
+	}).Info("Host has been automatically renamed")
+	return true
+}
+
+// findUsableNIC returns a network interface card of the given host inventory that has a MAC address
+// and a non-local IP address. Returns nil if the host doesn't have such network interface card, and
+// an error if the process fails, for example if some of the IP addresses of the host can't be
+// parsed.
+func (m *Manager) findUsableNIC(inventory *models.Inventory) (result *models.Interface, err error) {
+	for _, candidate := range inventory.Interfaces {
+		hasMAC := candidate.MacAddress != ""
+		hasV4 := false
+		for _, ip := range candidate.IPV4Addresses {
+			hasV4, err = network.IsGlobalCIDR(ip)
+			if err != nil {
+				return
+			}
+			if hasV4 {
+				break
+			}
+		}
+		hasV6 := false
+		for _, ip := range candidate.IPV6Addresses {
+			hasV6, err = network.IsGlobalCIDR(ip)
+			if err != nil {
+				return
+			}
+			if hasV6 {
+				break
+			}
+		}
+		if hasMAC && (hasV4 || hasV6) {
+			result = candidate
+			return
+		}
+	}
+	return
 }

@@ -656,7 +656,7 @@ spec:
       name: Stage
       type: string
     - description: The hostname of the Agent.
-      jsonPath: .status.inventory.hostname
+      jsonPath: .status.hostname
       name: Hostname
       priority: 1
       type: string
@@ -790,6 +790,18 @@ spec:
                       the Agent
                     type: string
                 type: object
+              hostname:
+                description: "Hostname is the name that will be assigned to the host
+                  when the cluster is eventually installed. This will be different
+                  to the host name included in the inventory if that is a forbidden
+                  host name (like localhost, localhost4 or localhost6) or if the user
+                  has explicitly requested a different name using the .spec.hostname
+                  field. \n When the host name included in the inventory is forbidden
+                  and the user hasn't explicitly requested a different one, this will
+                  be calculated from the MAC address of the host. For example, if
+                  the MAC address of the host is A8:CD:16:AE:79:01 then this will
+                  be a8-cd-16-ae-79-01."
+                type: string
               inventory:
                 properties:
                   bmcAddress:

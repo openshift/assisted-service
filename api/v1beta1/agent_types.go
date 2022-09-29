@@ -236,6 +236,17 @@ type AgentStatus struct {
 	// ValidationsInfo is a JSON-formatted string containing the validation results for each validation id grouped by category (network, hosts-data, etc.)
 	// +optional
 	ValidationsInfo common.ValidationsStatus `json:"validationsInfo,omitempty"`
+
+	// Hostname is the name that will be assigned to the host when the cluster is eventually
+	// installed. This will be different to the host name included in the inventory if that is a
+	// forbidden host name (like localhost, localhost4 or localhost6) or if the user has
+	// explicitly requested a different name using the .spec.hostname field.
+	//
+	// When the host name included in the inventory is forbidden and the user hasn't explicitly
+	// requested a different one, this will be calculated from the MAC address of the host. For
+	// example, if the MAC address of the host is A8:CD:16:AE:79:01 then this will be
+	// a8-cd-16-ae-79-01.
+	Hostname string `json:"hostname,omitempty"`
 }
 
 type DebugInfo struct {
@@ -259,7 +270,7 @@ type DebugInfo struct {
 // +kubebuilder:printcolumn:name="Approved",type="boolean",JSONPath=".spec.approved",description="The `Approve` state of the Agent."
 // +kubebuilder:printcolumn:name="Role",type="string",JSONPath=".status.role",description="The role (master/worker) of the Agent."
 // +kubebuilder:printcolumn:name="Stage",type="string",JSONPath=".status.progress.currentStage",description="The HostStage of the Agent."
-// +kubebuilder:printcolumn:name="Hostname",type="string",JSONPath=".status.inventory.hostname",description="The hostname of the Agent.",priority=1
+// +kubebuilder:printcolumn:name="Hostname",type="string",JSONPath=".status.hostname",description="The hostname of the Agent.",priority=1
 // +kubebuilder:printcolumn:name="Requested Hostname",type="string",JSONPath=".spec.hostname",description="The requested hostname for the Agent.",priority=1
 
 // Agent is the Schema for the hosts API
