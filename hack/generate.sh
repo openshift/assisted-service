@@ -95,9 +95,8 @@ function generate_manifests() (
 
     if [ "${GENERATE_CRD:-true}" == "true" ]; then
         echo "Generating CRDs"
-	generate_crds
-        cd ./api
-	generate_crds
+        generate_crds
+        (cd ./api; generate_crds)
     fi
 
     cp ${controller_crd_path}/resources.yaml ${BUILD_FOLDER}/resources.yaml

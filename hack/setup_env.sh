@@ -11,18 +11,8 @@ function get_package_manager() {
 }
 
 function print_help() {
-  ALL_FUNCS="kustomize|golang|assisted_service|hive_from_upstream|print_help"
+  ALL_FUNCS="golang|assisted_service|hive_from_upstream|print_help"
   echo "Usage: bash ${0} (${ALL_FUNCS})"
-}
-
-function kustomize() {
-  if which kustomize; then
-    return
-  fi
-
-  # We tried using "official" install_kustomize.sh script, but it used too much rate-limited APIs of GitHub
-  curl -L --retry 5 "https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2Fv4.3.0/kustomize_v4.3.0_linux_amd64.tar.gz" | \
-    tar -zx -C /usr/bin/
 }
 
 function golang() {
@@ -91,8 +81,6 @@ function assisted_service() {
 
   jq
 
-  kustomize
-
   awscli
 
   spectral
@@ -114,7 +102,6 @@ function assisted_service() {
 }
 
 function hive_from_upstream() {
-  kustomize
   golang
 }
 
