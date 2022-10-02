@@ -5788,11 +5788,11 @@ func init() {
         "network_type": {
           "description": "The desired network type used.",
           "type": "string",
-          "default": "OpenShiftSDN",
           "enum": [
             "OpenShiftSDN",
             "OVNKubernetes"
-          ]
+          ],
+          "x-nullable": true
         },
         "no_proxy": {
           "description": "An \"*\" or a comma-separated list of destination domain names, domains, IP addresses, or other network CIDRs to exclude from proxying.",
@@ -15297,11 +15297,11 @@ func init() {
         "network_type": {
           "description": "The desired network type used.",
           "type": "string",
-          "default": "OpenShiftSDN",
           "enum": [
             "OpenShiftSDN",
             "OVNKubernetes"
-          ]
+          ],
+          "x-nullable": true
         },
         "no_proxy": {
           "description": "An \"*\" or a comma-separated list of destination domain names, domains, IP addresses, or other network CIDRs to exclude from proxying.",

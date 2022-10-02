@@ -125,6 +125,7 @@ type Config struct {
 }
 
 const minimalOpenShiftVersionForSingleNode = "4.8.0-0.0"
+const minimalOpenShiftVersionForDefaultNetworkTypeOVNKubernetes = "4.12.0-0.0"
 
 type Interactivity bool
 
@@ -340,7 +341,33 @@ func (b *bareMetalInventory) setDefaultRegisterClusterParams(ctx context.Context
 		}
 	}
 
+	params.NewClusterParams.NetworkType, err = getDefaultNetworkType(params)
+	if err != nil {
+		return params, err
+	}
+
 	return params, nil
+}
+
+// If the cluster is SNO or the OpenShift version >= 4.12.0-0.0,
+// the network type will be set to "OVNKubernetes", otherwise it will be set to "OpenShiftSDN"
+func getDefaultNetworkType(params installer.V2RegisterClusterParams) (*string, error) {
+	if params.NewClusterParams.NetworkType != nil {
+		return params.NewClusterParams.NetworkType, nil
+	}
+
+	isOpenShiftVersionRecentEnough, err := common.VersionGreaterOrEqual(swag.StringValue(params.NewClusterParams.OpenshiftVersion), minimalOpenShiftVersionForDefaultNetworkTypeOVNKubernetes)
+	if err != nil {
+		return nil, err
+	}
+
+	isSingleNodeCluster := swag.StringValue(params.NewClusterParams.HighAvailabilityMode) == models.ClusterCreateParamsHighAvailabilityModeNone
+
+	if isOpenShiftVersionRecentEnough || isSingleNodeCluster {
+		return swag.String(models.ClusterCreateParamsNetworkTypeOVNKubernetes), nil
+	} else {
+		return swag.String(models.ClusterCreateParamsNetworkTypeOpenShiftSDN), nil
+	}
 }
 
 func (b *bareMetalInventory) validateRegisterClusterInternalParams(params *installer.V2RegisterClusterParams, log logrus.FieldLogger) error {

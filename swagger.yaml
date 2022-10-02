@@ -4295,7 +4295,7 @@ definitions:
         type: string
         description: "The desired network type used."
         enum: ['OpenShiftSDN', 'OVNKubernetes']
-        default: 'OpenShiftSDN'
+        x-nullable: true
       schedulable_masters:
         type: boolean
         description: Schedule workloads on masters
