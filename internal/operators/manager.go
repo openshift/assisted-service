@@ -22,6 +22,7 @@ import (
 )
 
 const customManifestFile = "custom_manifests.json"
+const minimalOpenShiftVersionForLVMAndCNV = "4.12.0"
 
 // Manifest store the operator manifest used by assisted-installer to create CRs of the OLM.
 type Manifest struct {
@@ -379,4 +380,31 @@ func (mgr *Manager) GetSupportedOperatorsByType(operatorType models.OperatorType
 	}
 
 	return operators
+}
+
+func EnsureLVMAndCNVDoNotClash(openshiftVersion string, operators []*models.MonitoredOperator) error {
+	cnvEnabled := false
+	lvmEnabled := false
+
+	operatorsCanCoexist, err := common.VersionGreaterOrEqual(openshiftVersion, minimalOpenShiftVersionForLVMAndCNV)
+	if err != nil {
+		return err
+	}
+	if operatorsCanCoexist {
+		return nil
+	}
+
+	for _, updatedOperator := range operators {
+		if updatedOperator.Name == "lvm" {
+			lvmEnabled = true
+		}
+
+		if updatedOperator.Name == "cnv" {
+			cnvEnabled = true
+		}
+	}
+	if lvmEnabled && cnvEnabled {
+		return errors.Errorf("Currently, you can not install OpenShift Data Foundation Logical Volume Manager operator at the same time as Virtualization operator.")
+	}
+	return nil
 }

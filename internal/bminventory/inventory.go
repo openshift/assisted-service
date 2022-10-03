@@ -509,8 +509,14 @@ func (b *bareMetalInventory) RegisterClusterInternal(
 		if err != nil {
 			return nil, err
 		}
+		err = operators.EnsureLVMAndCNVDoNotClash(*releaseImage.Version, newOLMOperators)
+		if err != nil {
+			log.Error(err)
+			return nil, common.NewApiError(http.StatusBadRequest, err)
+		}
 
 		monitoredOperators = append(monitoredOperators, newOLMOperators...)
+
 	}
 
 	cluster := common.Cluster{
@@ -2647,6 +2653,12 @@ func (b *bareMetalInventory) updateOperatorsData(ctx context.Context, cluster *c
 	updateOLMOperators, err := b.getOLMOperators(params.ClusterUpdateParams.OlmOperators)
 	if err != nil {
 		return err
+	}
+
+	err = operators.EnsureLVMAndCNVDoNotClash(cluster.OpenshiftVersion, updateOLMOperators)
+	if err != nil {
+		log.Error(err)
+		return common.NewApiError(http.StatusBadRequest, err)
 	}
 
 	for _, updatedOperator := range updateOLMOperators {

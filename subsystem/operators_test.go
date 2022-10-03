@@ -106,6 +106,7 @@ var _ = Describe("Operators endpoint tests", func() {
 					PullSecret:        swag.String(pullSecret),
 					SSHPublicKey:      sshPublicKey,
 					VipDhcpAllocation: swag.Bool(true),
+					NetworkType:       swag.String(models.ClusterCreateParamsNetworkTypeOpenShiftSDN),
 				},
 			})
 			Expect(err).NotTo(HaveOccurred())

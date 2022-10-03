@@ -2191,6 +2191,28 @@ var _ = Describe("cluster", func() {
 					}, nil).Times(1)
 			}
 
+			mockLVMGetOperatorByName := func(operatorName string) {
+				mockOperatorManager.EXPECT().GetOperatorByName(operatorName).Return(
+					&models.MonitoredOperator{
+						Name:             "lvm",
+						OperatorType:     models.OperatorTypeOlm,
+						Namespace:        "openshift-storage",
+						SubscriptionName: "odf-lvm-operator",
+						TimeoutSeconds:   30 * 60,
+					}, nil).Times(1)
+			}
+
+			mockCNVGetOperatorByName := func(operatorName string) {
+				mockOperatorManager.EXPECT().GetOperatorByName(operatorName).Return(
+					&models.MonitoredOperator{
+						Name:             "cnv",
+						Namespace:        "openshift-cnv",
+						OperatorType:     models.OperatorTypeOlm,
+						SubscriptionName: "hco-operatorhub",
+						TimeoutSeconds:   60 * 60,
+					}, nil).Times(1)
+			}
+
 			Context("V2 V2RegisterCluster", func() {
 				BeforeEach(func() {
 					bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog().WithField("pkg", "cluster-monitor"),
@@ -2305,6 +2327,108 @@ var _ = Describe("cluster", func() {
 					})
 					Expect(reply).Should(BeAssignableToTypeOf(common.NewApiError(http.StatusBadRequest, errors.Errorf("error"))))
 				})
+
+				It("should return error when both cnv and lvm operator enabled", func() {
+					mockVersions.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any()).Return(common.TestDefaultConfig.ReleaseImage, nil).Times(1)
+					mockOperatorManager.EXPECT().GetSupportedOperatorsByType(models.OperatorTypeBuiltin).Return([]*models.MonitoredOperator{&common.TestDefaultConfig.MonitoredOperator}).Times(1)
+					mockOperatorManager.EXPECT().ResolveDependencies(gomock.Any()).
+						DoAndReturn(func(operators []*models.MonitoredOperator) ([]*models.MonitoredOperator, error) {
+							return operators, nil
+						}).Times(1)
+					mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
+						eventstest.WithNameMatcher(eventgen.ClusterRegistrationFailedEventName),
+						eventstest.WithSeverityMatcher(models.EventSeverityError))).Times(1)
+					mockLVMGetOperatorByName("lvm")
+					mockCNVGetOperatorByName("cnv")
+
+					clusterParams := getDefaultClusterCreateParams()
+					clusterParams.OlmOperators = []*models.OperatorCreateParams{
+						{Name: "lvm"},
+						{Name: "cnv"},
+					}
+					reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
+						NewClusterParams: clusterParams,
+					})
+					verifyApiErrorString(reply, http.StatusBadRequest, "Currently, you can not install OpenShift Data Foundation Logical Volume Manager operator at the same time as Virtualization operator")
+				})
+
+				It("enable cnv and lvm after 4.12 is allowed", func() {
+					mockClusterRegisterSuccess(true)
+					mockCNVGetOperatorByName("cnv")
+					mockCNVGetOperatorByName("lvm")
+					mockOperatorManager.EXPECT().ResolveDependencies(gomock.Any()).
+						DoAndReturn(func(operators []*models.MonitoredOperator) ([]*models.MonitoredOperator, error) {
+							return operators, nil
+						}).Times(1)
+
+					clusterParams := getDefaultClusterCreateParams()
+					clusterParams.OpenshiftVersion = swag.String("4.12.0-ec.3")
+					clusterParams.OlmOperators = []*models.OperatorCreateParams{
+						{Name: "cnv"},
+						{Name: "lvm"},
+					}
+					reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
+						NewClusterParams: clusterParams,
+					})
+
+					foundExpected := false
+					for _, monitoredOperator := range reply.(*installer.V2RegisterClusterCreated).Payload.MonitoredOperators {
+						if monitoredOperator.Name == "cnv" {
+							foundExpected = true
+						}
+					}
+					Expect(foundExpected).Should(BeTrue())
+				})
+
+				It("return cnv when cnv operator enabled", func() {
+					mockClusterRegisterSuccess(true)
+					mockCNVGetOperatorByName("cnv")
+					mockOperatorManager.EXPECT().ResolveDependencies(gomock.Any()).
+						DoAndReturn(func(operators []*models.MonitoredOperator) ([]*models.MonitoredOperator, error) {
+							return operators, nil
+						}).Times(1)
+
+					clusterParams := getDefaultClusterCreateParams()
+					clusterParams.OlmOperators = []*models.OperatorCreateParams{
+						{Name: "cnv"},
+					}
+					reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
+						NewClusterParams: clusterParams,
+					})
+
+					foundExpected := false
+					for _, monitoredOperator := range reply.(*installer.V2RegisterClusterCreated).Payload.MonitoredOperators {
+						if monitoredOperator.Name == "cnv" {
+							foundExpected = true
+						}
+					}
+					Expect(foundExpected).Should(BeTrue())
+				})
+
+				It("return LVM when LVM operator enabled", func() {
+					mockClusterRegisterSuccess(true)
+					mockLVMGetOperatorByName("lvm")
+					mockOperatorManager.EXPECT().ResolveDependencies(gomock.Any()).
+						DoAndReturn(func(operators []*models.MonitoredOperator) ([]*models.MonitoredOperator, error) {
+							return operators, nil
+						}).Times(1)
+
+					clusterParams := getDefaultClusterCreateParams()
+					clusterParams.OlmOperators = []*models.OperatorCreateParams{
+						{Name: "lvm"},
+					}
+					reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
+						NewClusterParams: clusterParams,
+					})
+
+					foundExpected := false
+					for _, monitoredOperator := range reply.(*installer.V2RegisterClusterCreated).Payload.MonitoredOperators {
+						if monitoredOperator.Name == "lvm" {
+							foundExpected = true
+						}
+					}
+					Expect(foundExpected).Should(BeTrue())
+				})
 			})
 
 			Context("UpdateCluster", func() {
@@ -2415,6 +2539,7 @@ var _ = Describe("cluster", func() {
 						err := db.Create(&common.Cluster{Cluster: models.Cluster{
 							ID:                 &clusterID,
 							MonitoredOperators: test.originalOperators,
+							OpenshiftVersion:   common.TestDefaultConfig.OpenShiftVersion,
 						}}).Error
 						Expect(err).ShouldNot(HaveOccurred())
 
@@ -2446,10 +2571,90 @@ var _ = Describe("cluster", func() {
 				}
 			})
 
+			Context("Ensure CNV or LVM enabled", func() {
+				It("Replace CNV with LVM", func() {
+					// Setup
+					clusterID = strfmt.UUID(uuid.New().String())
+					originalOperators := []*models.MonitoredOperator{
+						&common.TestDefaultConfig.MonitoredOperator,
+						{
+							Name:           "cnv",
+							TimeoutSeconds: 10,
+							Properties:     "",
+						},
+					}
+					err := db.Create(&common.Cluster{Cluster: models.Cluster{
+						ID:                 &clusterID,
+						MonitoredOperators: originalOperators,
+						OpenshiftVersion:   common.TestDefaultConfig.OpenShiftVersion,
+					}}).Error
+					Expect(err).ShouldNot(HaveOccurred())
+
+					// Update
+					mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(1)
+					mockSuccess()
+					mockLVMGetOperatorByName("lvm")
+					mockOperatorManager.EXPECT().ResolveDependencies(gomock.Any()).
+						DoAndReturn(func(operators []*models.MonitoredOperator) ([]*models.MonitoredOperator, error) {
+							return append(operators, testOLMOperators[0]), nil
+						}).Times(1)
+
+					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
+						ClusterID: clusterID,
+						ClusterUpdateParams: &models.V2ClusterUpdateParams{
+							OlmOperators: []*models.OperatorCreateParams{
+								{Name: "lvm", Properties: ""},
+							},
+						},
+					})
+					Expect(reply).To(BeAssignableToTypeOf(installer.NewV2UpdateClusterCreated()))
+				})
+
+				It("Enable CNV then LVM", func() {
+					// Setup
+					clusterID = strfmt.UUID(uuid.New().String())
+					originalOperators := []*models.MonitoredOperator{
+						&common.TestDefaultConfig.MonitoredOperator,
+						{
+							Name:           "cnv",
+							TimeoutSeconds: 10,
+							Properties:     "",
+						},
+					}
+					err := db.Create(&common.Cluster{Cluster: models.Cluster{
+						ID:                 &clusterID,
+						MonitoredOperators: originalOperators,
+						OpenshiftVersion:   common.TestDefaultConfig.OpenShiftVersion,
+					}}).Error
+					Expect(err).ShouldNot(HaveOccurred())
+
+					// Update
+					mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(1)
+					mockCNVGetOperatorByName("cnv")
+					mockLVMGetOperatorByName("lvm")
+					mockOperatorManager.EXPECT().ResolveDependencies(gomock.Any()).
+						DoAndReturn(func(operators []*models.MonitoredOperator) ([]*models.MonitoredOperator, error) {
+							return append(operators, testOLMOperators[0]), nil
+						}).Times(1)
+
+					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
+						ClusterID: clusterID,
+						ClusterUpdateParams: &models.V2ClusterUpdateParams{
+							OlmOperators: []*models.OperatorCreateParams{
+								{Name: "cnv", Properties: ""},
+								{Name: "lvm", Properties: ""},
+							},
+						},
+					})
+					verifyApiErrorString(reply, http.StatusBadRequest, "Currently, you can not install OpenShift Data Foundation Logical Volume Manager operator at the same time as Virtualization operator")
+				})
+			})
+
 			It("Resolve OLM dependencies", func() {
 				clusterID = strfmt.UUID(uuid.New().String())
 				err := db.Create(&common.Cluster{Cluster: models.Cluster{
-					ID: &clusterID,
+					ID:               &clusterID,
+					OpenshiftVersion: common.TestDefaultConfig.OpenShiftVersion,
 				}}).Error
 				Expect(err).ShouldNot(HaveOccurred())
 
@@ -2506,7 +2711,8 @@ var _ = Describe("cluster", func() {
 			It("OLM invalid name", func() {
 				clusterID = strfmt.UUID(uuid.New().String())
 				err := db.Create(&common.Cluster{Cluster: models.Cluster{
-					ID: &clusterID,
+					ID:               &clusterID,
+					OpenshiftVersion: common.TestDefaultConfig.OpenShiftVersion,
 				}}).Error
 				Expect(err).ShouldNot(HaveOccurred())
 
@@ -4735,6 +4941,7 @@ var _ = Describe("[V2ClusterUpdate] cluster", func() {
 						err := db.Create(&common.Cluster{Cluster: models.Cluster{
 							ID:                 &clusterID,
 							MonitoredOperators: test.originalOperators,
+							OpenshiftVersion:   common.TestDefaultConfig.OpenShiftVersion,
 						}}).Error
 						Expect(err).ShouldNot(HaveOccurred())
 
@@ -4769,7 +4976,8 @@ var _ = Describe("[V2ClusterUpdate] cluster", func() {
 			It("Resolve OLM dependencies", func() {
 				clusterID = strfmt.UUID(uuid.New().String())
 				err := db.Create(&common.Cluster{Cluster: models.Cluster{
-					ID: &clusterID,
+					ID:               &clusterID,
+					OpenshiftVersion: common.TestDefaultConfig.OpenShiftVersion,
 				}}).Error
 				Expect(err).ShouldNot(HaveOccurred())
 
@@ -4825,7 +5033,8 @@ var _ = Describe("[V2ClusterUpdate] cluster", func() {
 			It("OLM invalid name", func() {
 				clusterID = strfmt.UUID(uuid.New().String())
 				err := db.Create(&common.Cluster{Cluster: models.Cluster{
-					ID: &clusterID,
+					ID:               &clusterID,
+					OpenshiftVersion: common.TestDefaultConfig.OpenShiftVersion,
 				}}).Error
 				Expect(err).ShouldNot(HaveOccurred())
 
