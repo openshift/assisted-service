@@ -868,7 +868,7 @@ func (m *Manager) UpdateInstallationDisk(ctx context.Context, db *gorm.DB, h *mo
 	hostStatus := swag.StringValue(h.Status)
 	if !funk.ContainsString(hostStatusesBeforeInstallationOrUnbound[:], hostStatus) {
 		return common.NewApiError(http.StatusBadRequest,
-			errors.Errorf("Host is in %s state, host name can be set only in one of %s states",
+			errors.Errorf("Host is in %s state, installation disk path can be set only in one of %s states",
 				hostStatus, hostStatusesBeforeInstallation[:]))
 	}
 
