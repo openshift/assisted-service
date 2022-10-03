@@ -1508,11 +1508,11 @@ func (b *bareMetalInventory) generateClusterInstallConfig(ctx context.Context, c
 	}
 
 	installerReleaseImageOverride := ""
-	// In case cpu architecture is not x86_64 and platform is baremetal , we should extract openshift-baremetal-installer
+	// In case cpu architecture is not x86_64 and platform is baremetal (not sno) , we should extract openshift-baremetal-installer
 	// from x86_64 release image as there is no x86_64 openshift-baremetal-installer executable in arm image
 	if cluster.CPUArchitecture != common.DefaultCPUArchitecture && common.PlatformTypeValue(cluster.Platform.Type) == models.PlatformTypeBaremetal &&
-		featuresupport.IsFeatureSupported(cluster.OpenshiftVersion,
-			models.FeatureSupportLevelFeaturesItems0FeatureIDARM64ARCHITECTUREWITHCLUSTERMANAGEDNETWORKING) {
+		!common.IsSingleNodeCluster(&cluster) && featuresupport.IsFeatureSupported(cluster.OpenshiftVersion,
+		models.FeatureSupportLevelFeaturesItems0FeatureIDARM64ARCHITECTUREWITHCLUSTERMANAGEDNETWORKING) {
 
 		defaultArchImage, err := b.versionsHandler.GetReleaseImage(cluster.OpenshiftVersion, common.DefaultCPUArchitecture)
 		if err != nil {
