@@ -408,9 +408,10 @@ var _ = Describe("infraEnv reconcile", func() {
 					DownloadURL:     "https://images.example.com/images/best-image",
 				},
 			}
-			mockInstallerInternal.EXPECT().GetInfraEnvByKubeKey(gomock.Any()).Return(backendInfraEnv, nil)
-			mockInstallerInternal.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any()).Return(nil)
-			mockInstallerInternal.EXPECT().UpdateInfraEnvInternal(gomock.Any(), gomock.Any(), nil).Return(dbInfraEnv, nil).Times(1)
+			mockInstallerInternal.EXPECT().GetInfraEnvByKubeKey(gomock.Any()).Return(backendInfraEnv, nil).AnyTimes()
+			mockInstallerInternal.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+			mockInstallerInternal.EXPECT().UpdateInfraEnvInternal(gomock.Any(), gomock.Any(), nil).Return(dbInfraEnv, nil).Times(2)
+
 			kubeInfraEnv := newInfraEnvImage("myInfraEnv", testNamespace, aiv1beta1.InfraEnvSpec{
 				PullSecretRef: &corev1.LocalObjectReference{Name: "pull-secret"},
 			})
@@ -423,14 +424,23 @@ var _ = Describe("infraEnv reconcile", func() {
 				Namespace: testNamespace,
 				Name:      "myInfraEnv",
 			}
-			Expect(c.Get(ctx, key, kubeInfraEnv)).To(BeNil())
-			initrdURL, err := url.Parse(kubeInfraEnv.Status.BootArtifacts.InitrdURL)
+			Expect(c.Get(ctx, key, kubeInfraEnv)).To(Succeed())
+			initrdURLString := kubeInfraEnv.Status.BootArtifacts.InitrdURL
+			initrdURL, err := url.Parse(initrdURLString)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(initrdURL.Query().Get("api_key")).ToNot(BeEmpty())
 
 			scriptURL, err := url.Parse(kubeInfraEnv.Status.BootArtifacts.IpxeScriptURL)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(scriptURL.Query().Get("api_key")).ToNot(BeEmpty())
+
+			By("initrd URL should change when infraenv ISO URL changes")
+			dbInfraEnv.DownloadURL = dbInfraEnv.DownloadURL + "?api_key=asdf"
+			_, err = ir.Reconcile(ctx, newInfraEnvRequest(kubeInfraEnv))
+			Expect(err).ToNot(HaveOccurred())
+
+			Expect(c.Get(ctx, key, kubeInfraEnv)).To(Succeed())
+			Expect(kubeInfraEnv.Status.BootArtifacts.InitrdURL).ToNot(Equal(initrdURLString))
 		})
 	})
 
