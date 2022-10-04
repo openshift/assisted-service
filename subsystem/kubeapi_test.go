@@ -1263,8 +1263,9 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		}, "15s", "5s").Should(Not(BeEmpty()))
 
 		infraEnv := getInfraEnvCRD(ctx, kubeClient, infraEnvKubeName)
-		firstURL := infraEnv.Status.ISODownloadURL
+		firstISO := infraEnv.Status.ISODownloadURL
 		firstCreatedAt := infraEnv.Status.CreatedTime
+		firstInitrd := infraEnv.Status.BootArtifacts.InitrdURL
 
 		By("Update InfraEnv Annotations")
 		Eventually(func() error {
@@ -1272,16 +1273,17 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			return kubeClient.Update(ctx, infraEnv)
 		}, "30s", "10s").Should(BeNil())
 
-		By("Verify InfraEnv Status ISODownloadURL has not changed")
-		Consistently(func() string {
-			return getInfraEnvCRD(ctx, kubeClient, infraEnvKubeName).Status.ISODownloadURL
-		}, "30s", "2s").Should(Equal(firstURL))
+		By("Verify InfraEnv URLs do not change")
+		Consistently(func() bool {
+			status := getInfraEnvCRD(ctx, kubeClient, infraEnvKubeName).Status
+			return status.ISODownloadURL == firstISO && status.BootArtifacts.InitrdURL == firstInitrd
+		}, "30s", "2s").Should(BeTrue())
 
 		By("Verify InfraEnv Status CreatedTime has not changed")
 		Expect(getInfraEnvCRD(ctx, kubeClient, infraEnvKubeName).Status.CreatedTime).To(Equal(firstCreatedAt))
 	})
 
-	It("verify InfraEnv ISODownloadURL and image CreatedTime are changing  - update IgnitionConfigOverride", func() {
+	It("verify InfraEnv download URLs and image CreatedTime are changing  - update IgnitionConfigOverride", func() {
 		deployClusterDeploymentCRD(ctx, kubeClient, clusterDeploymentSpec)
 		deployAgentClusterInstallCRD(ctx, kubeClient, aciSpec, clusterDeploymentSpec.ClusterInstallRef.Name)
 		By("Deploy InfraEnv")
@@ -1297,8 +1299,10 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		}, "15s", "5s").Should(Not(BeEmpty()))
 
 		infraEnv := getInfraEnvCRD(ctx, kubeClient, infraEnvKubeName)
-		firstURL := infraEnv.Status.ISODownloadURL
+		firstISO := infraEnv.Status.ISODownloadURL
 		firstCreatedAt := infraEnv.Status.CreatedTime
+		firstInitrd := infraEnv.Status.BootArtifacts.InitrdURL
+
 		By("Update InfraEnv IgnitionConfigOverride")
 		Eventually(func() error {
 			infraEnvSpec.IgnitionConfigOverride = fakeIgnitionConfigOverride
@@ -1310,10 +1314,11 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			return getInfraEnvFromDBByKubeKey(ctx, db, infraEnvKubeName, waitForReconcileTimeout).IgnitionConfigOverride
 		}, "30s", "2s").Should(Equal(fakeIgnitionConfigOverride))
 
-		By("Verify InfraEnv Status ISODownloadURL has changed")
-		Eventually(func() string {
-			return getInfraEnvCRD(ctx, kubeClient, infraEnvKubeName).Status.ISODownloadURL
-		}, "30s", "2s").ShouldNot(Equal(firstURL))
+		By("Verify InfraEnv URLs have changed")
+		Eventually(func() bool {
+			status := getInfraEnvCRD(ctx, kubeClient, infraEnvKubeName).Status
+			return status.ISODownloadURL != firstISO && status.BootArtifacts.InitrdURL != firstInitrd
+		}, "30s", "2s").Should(BeTrue())
 
 		By("Verify InfraEnv Status CreatedTime has changed")
 		Expect(getInfraEnvCRD(ctx, kubeClient, infraEnvKubeName).Status.CreatedTime).ShouldNot(Equal(firstCreatedAt))

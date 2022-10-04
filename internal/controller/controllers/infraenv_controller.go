@@ -541,6 +541,18 @@ func (r *InfraEnvReconciler) setSignedBootArtifactURLs(infraEnv *aiv1beta1.Infra
 	return nil
 }
 
+func (r *InfraEnvReconciler) initrdSchemeChanged(initrdURL string) (bool, error) {
+	u, err := url.Parse(initrdURL)
+	if err != nil {
+		return false, err
+	}
+	desiredScheme := "https"
+	if r.InsecureIPXEURLs {
+		desiredScheme = "http"
+	}
+	return u.Scheme != desiredScheme, nil
+}
+
 func (r *InfraEnvReconciler) updateInfraEnvStatus(
 	ctx context.Context, log logrus.FieldLogger, infraEnv *aiv1beta1.InfraEnv, internalInfraEnv *common.InfraEnv) (ctrl.Result, error) {
 
@@ -556,19 +568,21 @@ func (r *InfraEnvReconciler) updateInfraEnvStatus(
 	infraEnv.Status.BootArtifacts.KernelURL = bootArtifactURLs.KernelURL
 	infraEnv.Status.BootArtifacts.RootfsURL = bootArtifactURLs.RootFSURL
 
+	var isoUpdated bool
 	if infraEnv.Status.ISODownloadURL != internalInfraEnv.DownloadURL {
 		log.Infof("ISODownloadURL changed from %s to %s", infraEnv.Status.ISODownloadURL, internalInfraEnv.DownloadURL)
 		infraEnv.Status.ISODownloadURL = internalInfraEnv.DownloadURL
 		imageCreatedAt := metav1.NewTime(time.Time(internalInfraEnv.GeneratedAt))
 		infraEnv.Status.CreatedTime = &imageCreatedAt
+		isoUpdated = true
 	}
 
-	// update boot artifacts URL if IPXE insecure setting was changed
-	existingInitrdURL, err := url.Parse(infraEnv.Status.BootArtifacts.InitrdURL)
+	// update boot artifacts URL if IPXE insecure setting was changed or if the ISO was updated
+	schemeUpdated, err := r.initrdSchemeChanged(infraEnv.Status.BootArtifacts.InitrdURL)
 	if err != nil {
 		return r.handleEnsureISOErrors(ctx, log, infraEnv, err, internalInfraEnv)
 	}
-	if r.InsecureIPXEURLs && existingInitrdURL.Scheme == "https" || !r.InsecureIPXEURLs && existingInitrdURL.Scheme == "http" || existingInitrdURL.Scheme == "" {
+	if schemeUpdated || isoUpdated {
 		if err := r.setSignedBootArtifactURLs(infraEnv, bootArtifactURLs.InitrdURL, internalInfraEnv.ID.String(), *osImage.OpenshiftVersion, *osImage.CPUArchitecture); err != nil {
 			return r.handleEnsureISOErrors(ctx, log, infraEnv, err, internalInfraEnv)
 		}
