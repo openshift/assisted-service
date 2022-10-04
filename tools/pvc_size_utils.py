@@ -1,5 +1,6 @@
-import subprocess as sp
+import subprocess
 import utils
+import shlex
 
 
 class BytesSuffix(object):
@@ -85,24 +86,40 @@ def extract_requested_size_from_yaml_docs(name, docs):
     )
 
 
-def get_current_size_if_exist(target, ns, name):
-    kubectl_cmd = utils.get_kubectl_command(target, ns)
-    p = sp.Popen(
-        f'{kubectl_cmd} get persistentvolumeclaims {name} '
-        '-o=jsonpath="{.status.capacity.storage}"',
-        shell=True,
-        stdout=sp.PIPE,
-        stderr=sp.PIPE,
+def get_current_size_if_exist(target, namespace, pvc_name):
+    kubectl_cmd = utils.get_kubectl_command(target, namespace)
+
+    jsonpath = ".spec.resources.requests.storage"
+
+    command = shlex.split(kubectl_cmd) + [
+        "get",
+        "persistentvolumeclaims",
+        pvc_name,
+        f'-o=jsonpath="{jsonpath}"',
+    ]
+
+    process = subprocess.Popen(
+        command,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
     )
-    err = p.stderr.read().decode()
-    if 'not found' in err:
-        return
-    elif err:
+
+    stderr = process.stderr.read().decode()
+    stdout = process.stdout.read().decode()
+    exit_code = process.wait()
+
+    if "not found" in stderr:
+        return None
+    elif exit_code != 0:
         raise RuntimeError(
-            f'failed to get size of pvc {name}: {err}'
+            f"failed to get size of pvc {pvc_name} exit {exit_code}: {stderr}"
+        )
+    elif stdout == "":
+        raise RuntimeError(
+            f"failed to get {jsonpath} of pvc {pvc_name}: empty output"
         )
 
-    return p.stdout.read().decode()
+    return stdout
 
 
 def determine_which_size_to_deploy(req, cur=None):
