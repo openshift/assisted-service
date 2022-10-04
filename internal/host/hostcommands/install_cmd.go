@@ -119,7 +119,7 @@ func (i *installCmd) getFullInstallerCommand(cluster *common.Cluster, host *mode
 
 	// those flags are not used on day2 installation
 	if swag.StringValue(cluster.Kind) != models.ClusterKindAddHostsCluster {
-		releaseImage, err := i.versionsHandler.GetReleaseImage(cluster.OpenshiftVersion, cluster.CPUArchitecture)
+		releaseImage, err := i.versionsHandler.GetReleaseImage(cluster.OpenshiftVersion, cluster.CPUArchitecture, true)
 		if err != nil {
 			return "", err
 		}

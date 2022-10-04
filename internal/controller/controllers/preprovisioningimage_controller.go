@@ -351,7 +351,7 @@ func (r *PreprovisioningImageReconciler) getIronicAgentImage(log logrus.FieldLog
 			infraEnv.OpenshiftVersion, MinimalVersionForConvergedFlow)
 		return "", nil
 	}
-	releaseImage, err := r.VersionsHandler.GetReleaseImage(infraEnv.OpenshiftVersion, infraEnv.CPUArchitecture)
+	releaseImage, err := r.VersionsHandler.GetReleaseImage(infraEnv.OpenshiftVersion, infraEnv.CPUArchitecture, true)
 	if err != nil {
 		return "", err
 	}

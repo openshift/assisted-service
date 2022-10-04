@@ -471,7 +471,7 @@ func (b *bareMetalInventory) RegisterClusterInternal(
 	}
 
 	releaseImage, err := b.versionsHandler.GetReleaseImage(
-		swag.StringValue(params.NewClusterParams.OpenshiftVersion), cpuArchitecture)
+		swag.StringValue(params.NewClusterParams.OpenshiftVersion), cpuArchitecture, true)
 	if err != nil {
 		err = errors.Wrapf(err, "Openshift version %s for CPU architecture %s is not supported",
 			swag.StringValue(params.NewClusterParams.OpenshiftVersion), cpuArchitecture)
@@ -1559,7 +1559,7 @@ func (b *bareMetalInventory) generateClusterInstallConfig(ctx context.Context, c
 		return errors.Wrapf(err, "failed to get install config for cluster %s", cluster.ID)
 	}
 
-	releaseImage, err := b.versionsHandler.GetReleaseImage(cluster.OpenshiftVersion, cluster.CPUArchitecture)
+	releaseImage, err := b.versionsHandler.GetReleaseImage(cluster.OpenshiftVersion, cluster.CPUArchitecture, true)
 	if err != nil {
 		msg := fmt.Sprintf("failed to get OpenshiftVersion for cluster %s with openshift version %s", cluster.ID, cluster.OpenshiftVersion)
 		log.WithError(err).Errorf(msg)
@@ -1568,7 +1568,7 @@ func (b *bareMetalInventory) generateClusterInstallConfig(ctx context.Context, c
 
 	installerReleaseImageOverride := ""
 	if isBaremetalBinaryFromAnotherReleaseImageRequired(cluster.CPUArchitecture, cluster.OpenshiftVersion, cluster.Platform.Type) {
-		defaultArchImage, err := b.versionsHandler.GetReleaseImage(cluster.OpenshiftVersion, common.DefaultCPUArchitecture)
+		defaultArchImage, err := b.versionsHandler.GetReleaseImage(cluster.OpenshiftVersion, common.DefaultCPUArchitecture, true)
 		if err != nil {
 			msg := fmt.Sprintf("failed to get image for installer image override "+
 				"for cluster %s with openshift version %s and %s arch", cluster.ID, cluster.OpenshiftVersion, cluster.CPUArchitecture)
@@ -3998,7 +3998,7 @@ func validateArchitectureAndVersion(v versions.Handler, c *common.Cluster, cpuAr
 			return errors.Errorf("Specified CPU architecture (%s) doesn't match the cluster (%s)", cpuArch, c.CPUArchitecture)
 		}
 	} else {
-		_, err = v.GetReleaseImage(ocpVersion, cpuArch)
+		_, err = v.GetReleaseImage(ocpVersion, cpuArch, false)
 		if err != nil {
 			return err
 		}

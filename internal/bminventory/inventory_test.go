@@ -131,7 +131,7 @@ func toMac(macStr string) *strfmt.MAC {
 
 func mockClusterRegisterSteps() {
 	mockSecretValidator.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any()).Return(nil).Times(1)
-	mockVersions.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any()).Return(common.TestDefaultConfig.ReleaseImage, nil).Times(1)
+	mockVersions.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any(), gomock.Any()).Return(common.TestDefaultConfig.ReleaseImage, nil).Times(1)
 	mockOperatorManager.EXPECT().GetSupportedOperatorsByType(models.OperatorTypeBuiltin).Return([]*models.MonitoredOperator{&common.TestDefaultConfig.MonitoredOperator}).Times(1)
 	mockProviderRegistry.EXPECT().SetPlatformUsages(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 }
@@ -227,7 +227,7 @@ func getDefaultClusterCreateParams() *models.ClusterCreateParams {
 
 func mockGenerateInstallConfigSuccess(mockGenerator *generator.MockISOInstallConfigGenerator, mockVersions *versions.MockHandler) {
 	if mockGenerator != nil {
-		mockVersions.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any()).Return(common.TestDefaultConfig.ReleaseImage, nil).Times(1)
+		mockVersions.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any(), gomock.Any()).Return(common.TestDefaultConfig.ReleaseImage, nil).Times(1)
 		mockGenerator.EXPECT().GenerateInstallConfig(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 	}
 }
@@ -2314,7 +2314,7 @@ var _ = Describe("cluster", func() {
 						eventstest.WithNameMatcher(eventgen.ClusterRegistrationFailedEventName),
 						eventstest.WithMessageContainsMatcher("error"),
 						eventstest.WithSeverityMatcher(models.EventSeverityError))).Times(1)
-					mockVersions.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any()).Return(common.TestDefaultConfig.ReleaseImage, nil).Times(1)
+					mockVersions.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any(), gomock.Any()).Return(common.TestDefaultConfig.ReleaseImage, nil).Times(1)
 					mockOperatorManager.EXPECT().GetSupportedOperatorsByType(models.OperatorTypeBuiltin).Return([]*models.MonitoredOperator{&common.TestDefaultConfig.MonitoredOperator}).Times(1)
 					mockOperatorManager.EXPECT().GetOperatorByName(newOperatorName).Return(nil, errors.Errorf("error")).Times(1)
 
@@ -2329,7 +2329,7 @@ var _ = Describe("cluster", func() {
 				})
 
 				It("should return error when both cnv and lvm operator enabled", func() {
-					mockVersions.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any()).Return(common.TestDefaultConfig.ReleaseImage, nil).Times(1)
+					mockVersions.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any(), gomock.Any()).Return(common.TestDefaultConfig.ReleaseImage, nil).Times(1)
 					mockOperatorManager.EXPECT().GetSupportedOperatorsByType(models.OperatorTypeBuiltin).Return([]*models.MonitoredOperator{&common.TestDefaultConfig.MonitoredOperator}).Times(1)
 					mockOperatorManager.EXPECT().ResolveDependencies(gomock.Any()).
 						DoAndReturn(func(operators []*models.MonitoredOperator) ([]*models.MonitoredOperator, error) {
@@ -4323,8 +4323,8 @@ var _ = Describe("cluster", func() {
 				URL: swag.String("quay.io/openshift-release-dev/ocp-release:4.6.16-aarch64"),
 			}
 			mockGetInstallConfigSuccess(mockInstallConfigBuilder)
-			mockVersions.EXPECT().GetReleaseImage(gomock.Any(), common.ARM64CPUArchitecture).Return(armRelease, nil).Times(1)
-			mockVersions.EXPECT().GetReleaseImage(gomock.Any(), common.DefaultCPUArchitecture).Return(common.TestDefaultConfig.ReleaseImage, nil).Times(1)
+			mockVersions.EXPECT().GetReleaseImage(gomock.Any(), common.ARM64CPUArchitecture, gomock.Any()).Return(armRelease, nil).Times(1)
+			mockVersions.EXPECT().GetReleaseImage(gomock.Any(), common.DefaultCPUArchitecture, gomock.Any()).Return(common.TestDefaultConfig.ReleaseImage, nil).Times(1)
 			mockGenerator.EXPECT().GenerateInstallConfig(gomock.Any(), gomock.Any(), gomock.Any(), *armRelease.URL, *common.TestDefaultConfig.ReleaseImage.URL).Return(nil).Times(1)
 
 			mockClusterPrepareForInstallationSuccess(mockClusterApi)
@@ -4383,8 +4383,8 @@ var _ = Describe("cluster", func() {
 				URL: swag.String("quay.io/openshift-release-dev/ocp-release:4.6.16-aarch64"),
 			}
 			mockGetInstallConfigSuccess(mockInstallConfigBuilder)
-			mockVersions.EXPECT().GetReleaseImage(gomock.Any(), common.ARM64CPUArchitecture).Return(armRelease, nil).Times(1)
-			mockVersions.EXPECT().GetReleaseImage(gomock.Any(), common.DefaultCPUArchitecture).Return(nil, errors.Errorf("Dummy")).Times(1)
+			mockVersions.EXPECT().GetReleaseImage(gomock.Any(), common.ARM64CPUArchitecture, gomock.Any()).Return(armRelease, nil).Times(1)
+			mockVersions.EXPECT().GetReleaseImage(gomock.Any(), common.DefaultCPUArchitecture, gomock.Any()).Return(nil, errors.Errorf("Dummy")).Times(1)
 
 			mockClusterPrepareForInstallationSuccess(mockClusterApi)
 			mockHostPrepareForRefresh(mockHostApi)
@@ -6300,7 +6300,7 @@ var _ = Describe("infraEnvs", func() {
 			err := db.Create(&cluster).Error
 			Expect(err).ShouldNot(HaveOccurred())
 
-			mockVersions.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any()).Return(
+			mockVersions.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any(), gomock.Any()).Return(
 				nil, errors.Errorf("The requested CPU architecture (chocobomb-architecture) isn't specified in release images list")).Times(1)
 			mockEvents.EXPECT().SendInfraEnvEvent(ctx, eventstest.NewEventMatcher(
 				eventstest.WithNameMatcher(eventgen.InfraEnvRegistrationFailedEventName),
@@ -10824,7 +10824,7 @@ var _ = Describe("TestRegisterCluster", func() {
 			Version:          &openShiftVersionWithMaintenanceSupportLevel,
 			SupportLevel:     models.OpenshiftVersionSupportLevelMaintenance,
 		}
-		mockVersions.EXPECT().GetReleaseImage(*releaseImage.OpenshiftVersion, *releaseImage.CPUArchitecture).Return(releaseImage, nil).Times(1)
+		mockVersions.EXPECT().GetReleaseImage(*releaseImage.OpenshiftVersion, *releaseImage.CPUArchitecture, gomock.Any()).Return(releaseImage, nil).Times(1)
 		reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 			NewClusterParams: clusterParams,
 		})
@@ -11568,7 +11568,7 @@ var _ = Describe("TestRegisterCluster", func() {
 		mockSecretValidator.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any()).
 			Return(errors.New("error")).Times(1)
 		mockOperatorManager.EXPECT().GetSupportedOperatorsByType(models.OperatorTypeBuiltin).Return([]*models.MonitoredOperator{}).Times(1)
-		mockVersions.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any()).Return(common.TestDefaultConfig.ReleaseImage, nil).Times(1)
+		mockVersions.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any(), gomock.Any()).Return(common.TestDefaultConfig.ReleaseImage, nil).Times(1)
 
 		clusterParams := getDefaultClusterCreateParams()
 		clusterParams.PullSecret = swag.String("")
@@ -11583,7 +11583,7 @@ var _ = Describe("TestRegisterCluster", func() {
 			eventstest.WithNameMatcher(eventgen.ClusterRegistrationFailedEventName),
 			eventstest.WithMessageContainsMatcher("Openshift version 999 for CPU architecture x86_64 is not supported: OpenShift Version is not supported"),
 			eventstest.WithSeverityMatcher(models.EventSeverityError))).Times(1)
-		mockVersions.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any()).Return(nil, errors.Errorf("OpenShift Version is not supported")).Times(1)
+		mockVersions.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, errors.Errorf("OpenShift Version is not supported")).Times(1)
 
 		clusterParams := getDefaultClusterCreateParams()
 		clusterParams.OpenshiftVersion = swag.String("999")
@@ -11643,7 +11643,7 @@ var _ = Describe("TestRegisterCluster", func() {
 
 	It("Register cluster with arm64 CPU architecture as multiarch if multiarch release image used", func() {
 		mockSecretValidator.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any()).Return(nil).Times(1)
-		mockVersions.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any()).Return(&models.ReleaseImage{
+		mockVersions.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any(), gomock.Any()).Return(&models.ReleaseImage{
 			CPUArchitecture:  swag.String(common.MultiCPUArchitecture),
 			CPUArchitectures: []string{common.X86CPUArchitecture, common.ARM64CPUArchitecture, common.PowerCPUArchitecture},
 			OpenshiftVersion: swag.String("4.11.1"),
@@ -11849,7 +11849,7 @@ var _ = Describe("TestRegisterCluster", func() {
 
 			It("Register a cluster with multi CPU architecture - success", func() {
 				mockSecretValidator.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any()).Return(nil).Times(1)
-				mockVersions.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any()).Return(&models.ReleaseImage{
+				mockVersions.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any(), gomock.Any()).Return(&models.ReleaseImage{
 					CPUArchitecture:  swag.String(common.MultiCPUArchitecture),
 					CPUArchitectures: []string{common.X86CPUArchitecture, common.ARM64CPUArchitecture, common.PowerCPUArchitecture},
 					OpenshiftVersion: swag.String("its-just-a-mock"),
@@ -11879,7 +11879,7 @@ var _ = Describe("TestRegisterCluster", func() {
 			})
 
 			It("Register a cluster with multi CPU architecture - fail with no capability", func() {
-				mockVersions.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any()).Return(&models.ReleaseImage{
+				mockVersions.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any(), gomock.Any()).Return(&models.ReleaseImage{
 					CPUArchitecture:  swag.String(common.MultiCPUArchitecture),
 					CPUArchitectures: []string{common.X86CPUArchitecture, common.ARM64CPUArchitecture, common.PowerCPUArchitecture},
 					OpenshiftVersion: swag.String("its-just-a-mock"),

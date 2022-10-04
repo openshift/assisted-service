@@ -509,32 +509,32 @@ var _ = Describe("list versions", func() {
 		})
 
 		It("unsupported openshiftVersion", func() {
-			releaseImage, err = h.GetReleaseImage("unsupported", common.TestDefaultConfig.CPUArchitecture)
+			releaseImage, err = h.GetReleaseImage("unsupported", common.TestDefaultConfig.CPUArchitecture, true)
 			Expect(err).Should(HaveOccurred())
 			Expect(releaseImage).Should(BeNil())
 		})
 
 		It("unsupported cpuArchitecture", func() {
-			releaseImage, err = h.GetReleaseImage(common.TestDefaultConfig.OpenShiftVersion, "unsupported")
+			releaseImage, err = h.GetReleaseImage(common.TestDefaultConfig.OpenShiftVersion, "unsupported", true)
 			Expect(err).Should(HaveOccurred())
 			Expect(releaseImage).Should(BeNil())
 			Expect(err.Error()).To(ContainSubstring("isn't specified in release images list"))
 		})
 
 		It("empty openshiftVersion", func() {
-			releaseImage, err = h.GetReleaseImage("", common.TestDefaultConfig.CPUArchitecture)
+			releaseImage, err = h.GetReleaseImage("", common.TestDefaultConfig.CPUArchitecture, true)
 			Expect(err).Should(HaveOccurred())
 			Expect(releaseImage).Should(BeNil())
 		})
 
 		It("empty cpuArchitecture", func() {
-			releaseImage, err = h.GetReleaseImage(common.TestDefaultConfig.OpenShiftVersion, "")
+			releaseImage, err = h.GetReleaseImage(common.TestDefaultConfig.OpenShiftVersion, "", true)
 			Expect(err).Should(HaveOccurred())
 			Expect(releaseImage).Should(BeNil())
 		})
 
 		It("fetch release image by major.minor", func() {
-			releaseImage, err = h.GetReleaseImage("4.9", common.DefaultCPUArchitecture)
+			releaseImage, err = h.GetReleaseImage("4.9", common.DefaultCPUArchitecture, true)
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(*releaseImage.OpenshiftVersion).Should(Equal("4.9"))
 			Expect(*releaseImage.Version).Should(Equal("4.9-candidate"))
@@ -545,9 +545,9 @@ var _ = Describe("list versions", func() {
 				architectures = h.GetCPUArchitectures(key)
 
 				for _, architecture := range architectures {
-					releaseImage, err = h.GetReleaseImage(key, architecture)
+					releaseImage, err = h.GetReleaseImage(key, architecture, true)
 					if err != nil {
-						releaseImage, err = h.GetReleaseImage(key, common.MultiCPUArchitecture)
+						releaseImage, err = h.GetReleaseImage(key, common.MultiCPUArchitecture, true)
 						Expect(err).ShouldNot(HaveOccurred())
 					}
 
@@ -562,14 +562,14 @@ var _ = Describe("list versions", func() {
 
 		Context("for single-arch release image", func() {
 			It("gets successfuly image with old syntax", func() {
-				releaseImage, err = h.GetReleaseImage("4.11.2", "fake-architecture-chocobomb")
+				releaseImage, err = h.GetReleaseImage("4.11.2", "fake-architecture-chocobomb", true)
 				Expect(err).ShouldNot(HaveOccurred())
 				Expect(*releaseImage.OpenshiftVersion).Should(Equal("4.11.2"))
 				Expect(*releaseImage.Version).Should(Equal("4.11.2-fake-chocobomb"))
 			})
 
 			It("gets successfuly image with new syntax", func() {
-				releaseImage, err = h.GetReleaseImage("4.10.1", common.X86CPUArchitecture)
+				releaseImage, err = h.GetReleaseImage("4.10.1", common.X86CPUArchitecture, true)
 				Expect(err).ShouldNot(HaveOccurred())
 				Expect(*releaseImage.OpenshiftVersion).Should(Equal("4.10.1"))
 				Expect(*releaseImage.Version).Should(Equal("4.10.1-candidate"))
@@ -578,16 +578,53 @@ var _ = Describe("list versions", func() {
 
 		Context("for multi-arch release image", func() {
 			It("gets successfuly image using generic multiarch query", func() {
-				releaseImage, err = h.GetReleaseImage("4.11.1", common.MultiCPUArchitecture)
+				releaseImage, err = h.GetReleaseImage("4.11.1", common.MultiCPUArchitecture, true)
 				Expect(err).ShouldNot(HaveOccurred())
 				Expect(*releaseImage.OpenshiftVersion).Should(Equal("4.11.1"))
 				Expect(*releaseImage.Version).Should(Equal("4.11.1-multi"))
 			})
 			It("gets successfuly image using sub-architecture", func() {
-				releaseImage, err = h.GetReleaseImage("4.11.1", common.PowerCPUArchitecture)
+				releaseImage, err = h.GetReleaseImage("4.11.1", common.PowerCPUArchitecture, true)
 				Expect(err).ShouldNot(HaveOccurred())
 				Expect(*releaseImage.OpenshiftVersion).Should(Equal("4.11.1"))
 				Expect(*releaseImage.Version).Should(Equal("4.11.1-multi"))
+			})
+		})
+
+		Context("using weak match", func() {
+			BeforeEach(func() {
+				h, err = NewHandler(logger, mockRelease, versions, *osImages, models.ReleaseImages{
+					&models.ReleaseImage{
+						CPUArchitecture:  swag.String(common.MultiCPUArchitecture),
+						CPUArchitectures: []string{common.X86CPUArchitecture, common.ARM64CPUArchitecture},
+						OpenshiftVersion: swag.String("4.11.1"),
+						URL:              swag.String("release_4.11.1"),
+						Default:          false,
+						Version:          swag.String("4.11.1-chocobomb-for-test"),
+					},
+					&models.ReleaseImage{
+						CPUArchitecture:  swag.String(common.MultiCPUArchitecture),
+						CPUArchitectures: []string{common.X86CPUArchitecture, common.ARM64CPUArchitecture},
+						OpenshiftVersion: swag.String("4.12"),
+						URL:              swag.String("release_4.12"),
+						Default:          false,
+						Version:          swag.String("4.12"),
+					},
+				}, nil, "", authzHandler)
+				Expect(err).ShouldNot(HaveOccurred())
+			})
+
+			It("gets successfuly image using major.minor", func() {
+				releaseImage, err = h.GetReleaseImage("4.11", common.MultiCPUArchitecture, false)
+				Expect(err).ShouldNot(HaveOccurred())
+				Expect(*releaseImage.OpenshiftVersion).Should(Equal("4.11.1"))
+				Expect(*releaseImage.Version).Should(Equal("4.11.1-chocobomb-for-test"))
+			})
+			It("gets successfuly image using major.minor-something", func() {
+				releaseImage, err = h.GetReleaseImage("4.12.2-chocobomb", common.MultiCPUArchitecture, false)
+				Expect(err).ShouldNot(HaveOccurred())
+				Expect(*releaseImage.OpenshiftVersion).Should(Equal("4.12"))
+				Expect(*releaseImage.Version).Should(Equal("4.12"))
 			})
 		})
 	})
@@ -706,7 +743,7 @@ var _ = Describe("list versions", func() {
 			It("added successfuly using specified ocpReleaseVersion and cpuArchitecture", func() {
 				_, err = h.AddReleaseImage(releaseImageUrl, pullSecret, customOcpVersion, []string{cpuArchitecture})
 				Expect(err).ShouldNot(HaveOccurred())
-				releaseImageFromCache, err = h.GetReleaseImage(customOcpVersion, cpuArchitecture)
+				releaseImageFromCache, err = h.GetReleaseImage(customOcpVersion, cpuArchitecture, true)
 				Expect(err).ShouldNot(HaveOccurred())
 
 				Expect(*releaseImageFromCache.URL).Should(Equal(releaseImageUrl))
@@ -729,7 +766,7 @@ var _ = Describe("list versions", func() {
 				_, err = h.AddReleaseImage(releaseImageUrl, pullSecret, "", nil)
 				Expect(err).ShouldNot(HaveOccurred())
 
-				releaseImage, err = h.GetReleaseImage(existingOcpVersion, cpuArchitecture)
+				releaseImage, err = h.GetReleaseImage(existingOcpVersion, cpuArchitecture, true)
 				Expect(err).ShouldNot(HaveOccurred())
 				Expect(releaseImage.Version).Should(Equal(releaseImageFromCache.(*models.ReleaseImage).Version))
 			})
@@ -767,7 +804,7 @@ var _ = Describe("list versions", func() {
 			It("added successfuly using specified ocpReleaseVersion and cpuArchitecture", func() {
 				_, err = h.AddReleaseImage(releaseImageUrl, pullSecret, customOcpVersion, []string{cpuArchitecture, common.ARM64CPUArchitecture})
 				Expect(err).ShouldNot(HaveOccurred())
-				releaseImageFromCache, err = h.GetReleaseImage(customOcpVersion, common.MultiCPUArchitecture)
+				releaseImageFromCache, err = h.GetReleaseImage(customOcpVersion, common.MultiCPUArchitecture, true)
 				Expect(err).ShouldNot(HaveOccurred())
 
 				Expect(*releaseImageFromCache.URL).Should(Equal(releaseImageUrl))
@@ -784,7 +821,7 @@ var _ = Describe("list versions", func() {
 
 				_, err = h.AddReleaseImage(releaseImageUrl, pullSecret, customOcpVersion, []string{common.MultiCPUArchitecture})
 				Expect(err).ShouldNot(HaveOccurred())
-				releaseImageFromCache, err = h.GetReleaseImage(customOcpVersion, common.MultiCPUArchitecture)
+				releaseImageFromCache, err = h.GetReleaseImage(customOcpVersion, common.MultiCPUArchitecture, true)
 				Expect(err).ShouldNot(HaveOccurred())
 
 				Expect(*releaseImageFromCache.URL).Should(Equal(releaseImageUrl))
@@ -808,20 +845,20 @@ var _ = Describe("list versions", func() {
 				Expect(err).ShouldNot(HaveOccurred())
 
 				// Query for multi-arch release image using generic multiarch
-				releaseImage, err = h.GetReleaseImage("4.11.1", common.MultiCPUArchitecture)
+				releaseImage, err = h.GetReleaseImage("4.11.1", common.MultiCPUArchitecture, true)
 				Expect(err).ShouldNot(HaveOccurred())
 				Expect(releaseImage.Version).Should(Equal(releaseImageFromCache.(*models.ReleaseImage).Version))
 
 				// Query for multi-arch release image using specific arch
-				releaseImage, err = h.GetReleaseImage("4.11.1", common.X86CPUArchitecture)
+				releaseImage, err = h.GetReleaseImage("4.11.1", common.X86CPUArchitecture, true)
 				Expect(err).ShouldNot(HaveOccurred())
 				Expect(releaseImage.Version).Should(Equal(releaseImageFromCache.(*models.ReleaseImage).Version))
-				releaseImage, err = h.GetReleaseImage("4.11.1", common.ARM64CPUArchitecture)
+				releaseImage, err = h.GetReleaseImage("4.11.1", common.ARM64CPUArchitecture, true)
 				Expect(err).ShouldNot(HaveOccurred())
 				Expect(releaseImage.Version).Should(Equal(releaseImageFromCache.(*models.ReleaseImage).Version))
 
 				// Query for non-existing architecture
-				releaseImage, err = h.GetReleaseImage("4.11.1", "architecture-chocobomb")
+				releaseImage, err = h.GetReleaseImage("4.11.1", "architecture-chocobomb", true)
 				Expect(err.Error()).Should(Equal("The requested CPU architecture (architecture-chocobomb) isn't specified in release images list"))
 			})
 		})
@@ -878,7 +915,7 @@ var _ = Describe("list versions", func() {
 
 			releaseImage, err = h.AddReleaseImage(releaseImageUrl, pullSecret, "", nil)
 			Expect(err).ShouldNot(HaveOccurred())
-			releaseImage, err = h.GetReleaseImage(customOcpVersion, cpuArchitecture)
+			releaseImage, err = h.GetReleaseImage(customOcpVersion, cpuArchitecture, true)
 			Expect(err).ShouldNot(HaveOccurred())
 		})
 	})

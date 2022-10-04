@@ -157,18 +157,18 @@ func (mr *MockHandlerMockRecorder) GetOsImageOrLatest(arg0, arg1 interface{}) *g
 }
 
 // GetReleaseImage mocks base method.
-func (m *MockHandler) GetReleaseImage(arg0, arg1 string) (*models.ReleaseImage, error) {
+func (m *MockHandler) GetReleaseImage(arg0, arg1 string, arg2 bool) (*models.ReleaseImage, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetReleaseImage", arg0, arg1)
+	ret := m.ctrl.Call(m, "GetReleaseImage", arg0, arg1, arg2)
 	ret0, _ := ret[0].(*models.ReleaseImage)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetReleaseImage indicates an expected call of GetReleaseImage.
-func (mr *MockHandlerMockRecorder) GetReleaseImage(arg0, arg1 interface{}) *gomock.Call {
+func (mr *MockHandlerMockRecorder) GetReleaseImage(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetReleaseImage", reflect.TypeOf((*MockHandler)(nil).GetReleaseImage), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetReleaseImage", reflect.TypeOf((*MockHandler)(nil).GetReleaseImage), arg0, arg1, arg2)
 }
 
 // V2ListComponentVersions mocks base method.

@@ -240,7 +240,7 @@ var _ = Describe("PreprovisioningImage reconcile", func() {
 			backendInfraEnv.OpenshiftVersion = "4.11.0-test.release"
 			backendInfraEnv.CPUArchitecture = "x86_64"
 			mockInstallerInternal.EXPECT().GetInfraEnvByKubeKey(gomock.Any()).Return(backendInfraEnv, nil)
-			mockVersionHandler.EXPECT().GetReleaseImage(backendInfraEnv.OpenshiftVersion, backendInfraEnv.CPUArchitecture).Return(&models.ReleaseImage{URL: &openshiftRelaseImage}, nil)
+			mockVersionHandler.EXPECT().GetReleaseImage(backendInfraEnv.OpenshiftVersion, backendInfraEnv.CPUArchitecture, true).Return(&models.ReleaseImage{URL: &openshiftRelaseImage}, nil)
 			mockOcRelease.EXPECT().GetIronicAgentImage(gomock.Any(), openshiftRelaseImage, "", backendInfraEnv.PullSecret).Return(ironicAgentImage, nil)
 			mockInstallerInternal.EXPECT().UpdateInfraEnvInternal(gomock.Any(), gomock.Any(), gomock.Any()).
 				Do(func(ctx context.Context, params installer.UpdateInfraEnvParams, internalIgnitionConfig *string) {

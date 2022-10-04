@@ -37,7 +37,7 @@ type Versions struct {
 type Handler interface {
 	restapi.VersionsAPI
 	GetMustGatherImages(openshiftVersion, cpuArchitecture, pullSecret string) (MustGatherVersion, error)
-	GetReleaseImage(openshiftVersion, cpuArchitecture string) (*models.ReleaseImage, error)
+	GetReleaseImage(openshiftVersion, cpuArchitecture string, strongMatch bool) (*models.ReleaseImage, error)
 	GetDefaultReleaseImage(cpuArchitecture string) (*models.ReleaseImage, error)
 	GetOsImage(openshiftVersion, cpuArchitecture string) (*models.OsImage, error)
 	GetLatestOsImage(cpuArchitecture string) (*models.OsImage, error)
@@ -195,7 +195,7 @@ func (h *handler) GetMustGatherImages(openshiftVersion, cpuArchitecture, pullSec
 		return versions, nil
 	}
 	//if not, fetch it from the release image and add it to the cache
-	releaseImage, err := h.GetReleaseImage(openshiftVersion, cpuArchitecture)
+	releaseImage, err := h.GetReleaseImage(openshiftVersion, cpuArchitecture, true)
 	if err != nil {
 		return nil, err
 	}
@@ -285,7 +285,7 @@ func (h *handler) GetOsImage(openshiftVersion, cpuArchitecture string) (*models.
 }
 
 // Returns the ReleaseImage entity
-func (h *handler) GetReleaseImage(openshiftVersion, cpuArchitecture string) (*models.ReleaseImage, error) {
+func (h *handler) GetReleaseImage(openshiftVersion, cpuArchitecture string, strongMatch bool) (*models.ReleaseImage, error) {
 	if cpuArchitecture == "" {
 		// Empty implies default CPU architecture
 		cpuArchitecture = common.DefaultCPUArchitecture
@@ -294,6 +294,7 @@ func (h *handler) GetReleaseImage(openshiftVersion, cpuArchitecture string) (*mo
 	releaseImages := funk.Filter(h.releaseImages, func(releaseImage *models.ReleaseImage) bool {
 		for _, arch := range releaseImage.CPUArchitectures {
 			if arch == cpuArchitecture {
+				h.log.Debugf("For requested CPU architecture (%s) found potential release image: %+v", cpuArchitecture, releaseImage)
 				return true
 			}
 		}
@@ -307,14 +308,29 @@ func (h *handler) GetReleaseImage(openshiftVersion, cpuArchitecture string) (*mo
 		return *releaseImage.OpenshiftVersion == openshiftVersion
 	})
 
+	versionKey, err := h.getKey(openshiftVersion)
+	if err != nil {
+		return nil, err
+	}
+
 	if releaseImage == nil {
 		// Fallback to x.y version
-		versionKey, err := h.getKey(openshiftVersion)
-		if err != nil {
-			return nil, err
-		}
+		h.log.Debugf("For version %s no full match in release images found. Looking for version: %s", openshiftVersion, versionKey)
 		releaseImage = funk.Find(releaseImages, func(releaseImage *models.ReleaseImage) bool {
 			return *releaseImage.OpenshiftVersion == versionKey
+		})
+	}
+
+	// If strong match is not required, try matching the requested x.y version with any release
+	// image that fits x.y; this allows us to retrieve "x.y-something" when querying for "x.y"
+	// or for "x.y-else". It is useful when the function is called only for validation purposes
+	// or when the caller does not care about which release image will be returned as long as
+	// something is returned.
+	if releaseImage == nil && !strongMatch {
+		h.log.Debugf("Looking for release image for requested version %s using weak matching", openshiftVersion)
+		releaseImage = funk.Find(releaseImages, func(releaseImage *models.ReleaseImage) bool {
+			minor, err := h.getKey(*releaseImage.OpenshiftVersion)
+			return err == nil && minor == versionKey
 		})
 	}
 
