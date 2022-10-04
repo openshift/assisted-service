@@ -29,10 +29,13 @@ First we must prepare the minikube cluster -
 # Optionally delete the existing minikube cluster:
 # minikube delete
 
-minikube start
+# Clean remains of any networks created by minikube
+podman network rm minikube
 
-# Start the minikube container registry and make it accessible locally:
-minikube addons enable registry
+# Start minikube with registry addon
+minikube start --driver=podman --addons registry --addons dashboard --force
+
+# Make the registry addon accessible locally:
 nohup kubectl port-forward svc/registry 5000:80 -n kube-system &>/dev/null &
 export LOCAL_SUBSYSTEM_REGISTRY=localhost:5000
 
