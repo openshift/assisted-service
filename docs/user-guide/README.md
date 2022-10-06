@@ -31,3 +31,7 @@ Please refer to the [Network Configuration introduction](network-configuration/R
 ### Infrastructure Operator
 
 Please refer to [Infrastructure Operator installation](infrastructure-operator-olm.md) for more information on installing the Hive integration flavour of Assisted Installer via OLM.
+
+### Using Assisted Installer hosted in console.redhat.com with local image registry
+
+Please refer to [Saas + on premise registry](cloud-with-mirror.md) for more information on installing an OCP cluster leveraging the [console.redhat.com](https://console.redhat.com) Assisted Installer with a local mirror registry.
