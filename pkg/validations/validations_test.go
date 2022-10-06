@@ -20,6 +20,10 @@ var _ = Describe("URL validations", func() {
 			{"http://username:pswd@10.9.8.7:123", ""},
 			{"http://[1080:0:0:0:8:800:200C:417A]:8888", ""},
 			{
+				"http://[1080:0:0:0:8:800:200C:417A]:8888 ",
+				"Proxy URL format is not valid: 'http://[1080:0:0:0:8:800:200C:417A]:8888 '",
+			},
+			{
 				"https://proxy.com:3128",
 				"The URL scheme must be http; https is currently not supported: 'https://proxy.com:3128'",
 			},
@@ -78,6 +82,10 @@ var _ = Describe("URL validations", func() {
 			{"http://10.9.8.7:123/config", ""},
 			{"http://[1080::8:800:200c:417a]:123", ""},
 			{"http://[1080::8:800:200c:417a]:123/config", ""},
+			{
+				"http://[1080:0:0:0:8:800:200C:417A]:8888 ",
+				"URL 'http://[1080:0:0:0:8:800:200C:417A]:8888 ' format is not valid: parse \"http://[1080:0:0:0:8:800:200C:417A]:8888 \": invalid port \":8888 \" after host",
+			},
 			{"", "The URL scheme must be http(s) and specified in the URL: ''"},
 			{
 				"://!@#$!@#$",
