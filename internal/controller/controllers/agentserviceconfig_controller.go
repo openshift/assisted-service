@@ -144,7 +144,7 @@ type ASC struct {
 	spec *aiv1beta1.AgentServiceConfigSpec
 
 	/* Status part of AgentServiceConfig CRD family */
-	status *aiv1beta1.AgentServiceConfigStatus
+	conditions []conditionsv1.Condition
 }
 
 func (asc *ASC) init(r *AgentServiceConfigReconciler, instance *aiv1beta1.AgentServiceConfig) {
@@ -152,7 +152,7 @@ func (asc *ASC) init(r *AgentServiceConfigReconciler, instance *aiv1beta1.AgentS
 	asc.rec = &r.AgentServiceConfigReconcileContext
 	asc.Object = instance
 	asc.spec = &instance.Spec
-	asc.status = &instance.Status
+	asc.conditions = instance.Status.Conditions
 }
 
 type NewComponentFn func(context.Context, logrus.FieldLogger, ASC) (client.Object, controllerutil.MutateFn, error)
@@ -402,7 +402,7 @@ func reconcileComponent(ctx context.Context, log *logrus.Entry, asc ASC, compone
 	if err != nil {
 		msg := "Failed to generate definition for " + component.name
 		log.WithError(err).Error(msg)
-		conditionsv1.SetStatusConditionNoHeartbeat(&asc.status.Conditions, conditionsv1.Condition{
+		conditionsv1.SetStatusConditionNoHeartbeat(&asc.conditions, conditionsv1.Condition{
 			Type:    aiv1beta1.ConditionReconcileCompleted,
 			Status:  corev1.ConditionFalse,
 			Reason:  component.reason,
@@ -418,7 +418,7 @@ func reconcileComponent(ctx context.Context, log *logrus.Entry, asc ASC, compone
 	if result, err := controllerutil.CreateOrUpdate(ctx, asc.rec.Client, obj, mutateFn); err != nil {
 		msg := "Failed to ensure " + component.name
 		log.WithError(err).Error(msg)
-		conditionsv1.SetStatusConditionNoHeartbeat(&asc.status.Conditions, conditionsv1.Condition{
+		conditionsv1.SetStatusConditionNoHeartbeat(&asc.conditions, conditionsv1.Condition{
 			Type:    aiv1beta1.ConditionReconcileCompleted,
 			Status:  corev1.ConditionFalse,
 			Reason:  component.reason,
@@ -1705,16 +1705,16 @@ func checkIngressCMName(obj metav1.Object) bool {
 // getMustGatherImages returns the value of MUST_GATHER_IMAGES variable
 // to be stored in the service's ConfigMap
 //
-// 1. If mustGatherImages field is not present in the AgentServiceConfig's Spec
-//    it returns the value of MUST_GATHER_IMAGES env variable. This is also the
-//    fallback behavior in case of a processing error
+//  1. If mustGatherImages field is not present in the AgentServiceConfig's Spec
+//     it returns the value of MUST_GATHER_IMAGES env variable. This is also the
+//     fallback behavior in case of a processing error
 //
-// 2. If mustGatherImages field is present in the AgentServiceConfig's Spec it
-//    converts the structure to the one that can be recognize by the service
-//    and returns it as a JSON string
+//  2. If mustGatherImages field is present in the AgentServiceConfig's Spec it
+//     converts the structure to the one that can be recognize by the service
+//     and returns it as a JSON string
 //
-// 3. In case both sources are present, the Spec values overrides the env
-//    values
+//  3. In case both sources are present, the Spec values overrides the env
+//     values
 func getMustGatherImages(log logrus.FieldLogger, spec *aiv1beta1.AgentServiceConfigSpec) string {
 	if spec.MustGatherImages == nil {
 		return MustGatherImages()
@@ -1747,16 +1747,16 @@ func getMustGatherImages(log logrus.FieldLogger, spec *aiv1beta1.AgentServiceCon
 // getOSImages returns the value of OS_IMAGES variable
 // to be stored in the service's ConfigMap
 //
-// 1. If osImages field is not present in the AgentServiceConfig's Spec
-//    it returns the value of OS_IMAGES env variable.
-//    This is also the fallback behavior in case of a processing error.
+//  1. If osImages field is not present in the AgentServiceConfig's Spec
+//     it returns the value of OS_IMAGES env variable.
+//     This is also the fallback behavior in case of a processing error.
 //
-// 2. If osImages field is present in the AgentServiceConfig's Spec it
-//    converts the structure to the one that can be recognize by the service
-//    and returns it as a JSON string.
+//  2. If osImages field is present in the AgentServiceConfig's Spec it
+//     converts the structure to the one that can be recognize by the service
+//     and returns it as a JSON string.
 //
-// 3. In case both sources are present, the Spec values overrides the env
-//    values.
+//  3. In case both sources are present, the Spec values overrides the env
+//     values.
 func getOSImages(log logrus.FieldLogger, spec *aiv1beta1.AgentServiceConfigSpec) string {
 	if spec.OSImages == nil {
 		return OSImages()
@@ -2050,17 +2050,7 @@ func newACIWebHook(ctx context.Context, log logrus.FieldLogger, asc ASC) (client
 }
 
 func newWebHookServiceAccount(ctx context.Context, log logrus.FieldLogger, asc ASC) (client.Object, controllerutil.MutateFn, error) {
-	sa := corev1.ServiceAccount{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "agentinstalladmission",
-			Namespace: asc.namespace,
-		},
-	}
-
-	mutateFn := func() error {
-		return nil
-	}
-	return &sa, mutateFn, nil
+	return createServiceAccountFn("agentinstalladmission", asc.namespace)
 }
 
 func newWebHookClusterRoleBinding(ctx context.Context, log logrus.FieldLogger, asc ASC) (client.Object, controllerutil.MutateFn, error) {

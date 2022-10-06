@@ -22,13 +22,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// ConditionType related to our reconcile loop in addition to all the reasons
-// why ConditionStatus could be true or false.
-const (
-	// ReasonSpokeClusterCRDsSyncFailure when agent-install CRDs sync fails on spoke cluster.
-	ReasonSpokeClusterCRDsSyncFailure string = "SpokeClusterCRDsSyncFailure"
-)
-
 // HypershiftAgentServiceConfigSpec defines the desired state of HypershiftAgentServiceConfig.
 type HypershiftAgentServiceConfigSpec struct {
 	AgentServiceConfigSpec `json:",inline"`
