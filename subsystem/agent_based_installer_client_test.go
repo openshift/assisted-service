@@ -38,6 +38,29 @@ var _ = Describe("RegisterClusterAndInfraEnv", func() {
 		Expect(len(modelInfraEnv.StaticNetworkConfig)).ToNot(BeZero())
 	})
 
+	It("InstallConfig override good flow", func() {
+		modelCluster, registerClusterErr := agentbasedinstaller.RegisterCluster(ctx, log, userBMClient, pullSecret,
+			"../docs/hive-integration/crds/clusterDeployment.yaml",
+			"../docs/hive-integration/crds/agentClusterInstall-with-installconfig-overrides.yaml",
+			"../docs/hive-integration/crds/clusterImageSet.yaml", "")
+		Expect(registerClusterErr).NotTo(HaveOccurred())
+		Expect(modelCluster.APIVip).To(Equal("1.2.3.8"))
+		Expect(modelCluster.IngressVip).To(Equal("1.2.3.9"))
+		Expect(modelCluster.OpenshiftVersion).To(ContainSubstring(snoVersion))
+		Expect(modelCluster.CPUArchitecture).To(Equal("x86_64"))
+		Expect(modelCluster.InstallConfigOverrides).To(Equal(`{"fips": true}`))
+		Expect(modelCluster.Name).To(Equal("test-cluster"))
+
+		modelInfraEnv, registerInfraEnvErr := agentbasedinstaller.RegisterInfraEnv(ctx, log, userBMClient, pullSecret,
+			modelCluster, "../docs/hive-integration/crds/infraEnv.yaml",
+			"../docs/hive-integration/crds/nmstate.yaml", "full-iso")
+
+		Expect(registerInfraEnvErr).NotTo(HaveOccurred())
+		Expect(*modelInfraEnv.Name).To(Equal("myinfraenv"))
+		Expect(modelInfraEnv.ClusterID).To(Equal(*modelCluster.ID))
+		Expect(len(modelInfraEnv.StaticNetworkConfig)).ToNot(BeZero())
+	})
+
 	It("missing one of the ZTP manifests", func() {
 		modelCluster, registerClusterErr := agentbasedinstaller.RegisterCluster(ctx, log, userBMClient, pullSecret,
 			"file-does-not-exist",
