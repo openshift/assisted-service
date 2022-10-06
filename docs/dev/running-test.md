@@ -30,7 +30,7 @@ First we must prepare the minikube cluster -
 # minikube delete
 
 # Clean remains of any networks created by minikube
-podman network rm minikube
+podman network rm minikube || true
 
 # Start minikube with registry addon
 minikube start --driver=podman --addons registry --addons dashboard --force
