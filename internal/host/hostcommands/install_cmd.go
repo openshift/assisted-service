@@ -247,17 +247,27 @@ func (i *installCmd) getDisksToFormat(ctx context.Context, host models.Host, inv
 func constructHostInstallerArgs(cluster *common.Cluster, host *models.Host, inventory *models.Inventory, infraEnv *common.InfraEnv, log logrus.FieldLogger) (string, error) {
 
 	var installerArgs []string
+	var err error
+	hasStaticNetwork := (infraEnv != nil && infraEnv.StaticNetworkConfig != "") || cluster.StaticNetworkConfigured
 
 	if host.InstallerArgs != "" {
-		err := json.Unmarshal([]byte(host.InstallerArgs), &installerArgs)
+		err = json.Unmarshal([]byte(host.InstallerArgs), &installerArgs)
 		if err != nil {
 			return "", err
 		}
 	}
 
-	installerArgs, err := appendDHCPArgs(cluster, host, inventory, installerArgs, log)
-	if err != nil {
-		return "", err
+	if !hasStaticNetwork {
+		// The set of ip=<nic>:dhcp kernel arguments should be added only if there is no static
+		// network configured by the user. This is because this parameter will configure RHCOS to
+		// try to obtain IP address from the DHCP server even if we provide a static addressing.
+		// As in majority of cases it's not an issue because of the priorities set in the config
+		// of NetworkManager, in some specific scenarios (e.g. BZ-2106110) this causes machines to
+		// lose their connectivity because priorities get mixed.
+		installerArgs, err = appendDHCPArgs(cluster, host, inventory, installerArgs, log)
+		if err != nil {
+			return "", err
+		}
 	}
 
 	for _, disk := range inventory.Disks {
@@ -266,7 +276,6 @@ func constructHostInstallerArgs(cluster *common.Cluster, host *models.Host, inve
 		}
 	}
 
-	hasStaticNetwork := (infraEnv != nil && infraEnv.StaticNetworkConfig != "") || cluster.StaticNetworkConfigured
 	if hasStaticNetwork && !funk.Contains(installerArgs, "--copy-network") {
 		// network not configured statically or
 		// installer args already contain command for network configuration
