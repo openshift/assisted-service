@@ -19,18 +19,22 @@ package controllers
 import (
 	"context"
 	_ "embed"
+	"fmt"
 
 	aiv1beta1 "github.com/openshift/assisted-service/api/v1beta1"
 	"github.com/openshift/assisted-service/internal/spoke_k8s_client"
 	logutil "github.com/openshift/assisted-service/pkg/log"
 	pkgerror "github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+	"github.com/thoas/go-funk"
 	corev1 "k8s.io/api/core/v1"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
@@ -45,11 +49,15 @@ type HypershiftAgentServiceConfigReconciler struct {
 	NodeSelector map[string]string
 	Tolerations  []corev1.Toleration
 
+	// Namespace the operator is running in
+	Namespace string
+
 	SpokeClients SpokeClientCache
 }
 
 // +kubebuilder:rbac:groups=agent-install.openshift.io,resources=hypershiftagentserviceconfigs,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=agent-install.openshift.io,resources=hypershiftagentserviceconfigs/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=apiextensions.k8s.io,resources=customresourcedefinitions,verbs=get;list;watch
 
 func (hr *HypershiftAgentServiceConfigReconciler) Reconcile(origCtx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	ctx := addRequestIdIfNeeded(origCtx)
@@ -73,10 +81,15 @@ func (hr *HypershiftAgentServiceConfigReconciler) Reconcile(origCtx context.Cont
 	}
 
 	// Creating spoke client using specified kubeconfig secret reference
-	// TODO: use spoke client to create CRDs/CRs
-	_, err := hr.createSpokeClient(ctx, instance.Spec.KubeconfigSecretRef.Name, instance.Namespace)
+	spokeClient, err := hr.createSpokeClient(ctx, instance.Spec.KubeconfigSecretRef.Name, instance.Namespace)
 	if err != nil {
-		log.WithError(err).Error("Failed to create client using remote kubeconfig", req.NamespacedName)
+		log.WithError(err).Error("Failed to create client using specified kubeconfig", req.NamespacedName)
+		return ctrl.Result{}, err
+	}
+
+	// Ensure agent-install CRDs exist on spoke cluster and clean stale ones
+	if err := hr.syncSpokeAgentInstallCRDs(ctx, spokeClient); err != nil {
+		log.WithError(err).Error(fmt.Sprintf("Failed to sync agent-install CRDs on spoke cluster in namespace '%s'", instance.Namespace))
 		return ctrl.Result{}, err
 	}
 
@@ -111,6 +124,88 @@ func (hr *HypershiftAgentServiceConfigReconciler) getKubeconfigSecret(ctx contex
 		return nil, pkgerror.Errorf("Secret '%s' does not contain '%s' key value", secretRef.Name, "kubeconfig")
 	}
 	return secret, nil
+}
+
+func (hr *HypershiftAgentServiceConfigReconciler) syncSpokeAgentInstallCRDs(ctx context.Context, spokeClient client.Client) error {
+	// Fetch agent-install CRDs using in-cluster client
+	localCRDs, err := hr.getAgentInstallCRDs(ctx, hr.Client)
+	if err != nil {
+		return err
+	}
+	if len(localCRDs.Items) == 0 {
+		return pkgerror.New("agent-install CRDs are not available")
+	}
+
+	// Ensure local agent-install CRDs exist on the spoke cluster
+	if err := hr.ensureSpokeAgentInstallCRDs(ctx, spokeClient, localCRDs); err != nil {
+		return pkgerror.New("Failed to create agent-install CRDs on spoke cluster")
+	}
+
+	// Delete agent-install CRDs that don't exist locally
+	if err := hr.cleanStaleSpokeAgentInstallCRDs(ctx, spokeClient, localCRDs); err != nil {
+		hr.Log.WithError(err).Warn("Failed to remove stale agent-install CRDs from spoke cluster in namespace")
+		return nil
+	}
+
+	return nil
+}
+
+func (hr *HypershiftAgentServiceConfigReconciler) ensureSpokeAgentInstallCRDs(ctx context.Context, spokeClient client.Client, localCRDs *apiextensionsv1.CustomResourceDefinitionList) error {
+	// Ensure CRDs exist on the spoke cluster
+	for _, item := range localCRDs.Items {
+		crd := item
+		c := crd.DeepCopy()
+		c.ResourceVersion = "" // ResourceVersion should not be set on objects to be created
+		mutate := func() error {
+			c.Spec = crd.Spec
+			c.Annotations = crd.Annotations
+			c.Labels = crd.Labels
+			return nil
+		}
+		result, err := controllerutil.CreateOrUpdate(ctx, spokeClient, c, mutate)
+		if err != nil {
+			return pkgerror.Wrapf(err, "Failed to create CRD '%s' on spoke cluster", crd.Name)
+		}
+		if result != controllerutil.OperationResultNone {
+			hr.Log.Infof("CRD '%s' %s on spoke cluster", crd.Name, result)
+		}
+	}
+
+	return nil
+}
+
+func (hr *HypershiftAgentServiceConfigReconciler) cleanStaleSpokeAgentInstallCRDs(ctx context.Context, spokeClient client.Client, localCRDs *apiextensionsv1.CustomResourceDefinitionList) error {
+	// Fetch agent-install CRDs using spoke client
+	spokeCRDs, err := hr.getAgentInstallCRDs(ctx, spokeClient)
+	if err != nil {
+		return err
+	}
+
+	// Remove spoke CRDs that don't exist locally in-cluster
+	for _, item := range spokeCRDs.Items {
+		crd := item
+		existsInCluster := funk.Contains(localCRDs.Items, func(localCRD apiextensionsv1.CustomResourceDefinition) bool {
+			return localCRD.Name == crd.Name
+		})
+		if !existsInCluster {
+			if err := spokeClient.Delete(ctx, crd.DeepCopy()); err != nil {
+				hr.Log.WithError(err).Warnf("Failed to delete CRD '%s' from spoke cluster", crd.Name)
+			}
+		}
+	}
+
+	return nil
+}
+
+func (hr *HypershiftAgentServiceConfigReconciler) getAgentInstallCRDs(ctx context.Context, c client.Client) (*apiextensionsv1.CustomResourceDefinitionList, error) {
+	crds := &apiextensionsv1.CustomResourceDefinitionList{}
+	listOpts := []client.ListOption{
+		client.HasLabels{fmt.Sprintf("operators.coreos.com/assisted-service-operator.%s", hr.Namespace)},
+	}
+	if err := c.List(ctx, crds, listOpts...); err != nil {
+		return nil, pkgerror.Wrap(err, "Failed to list CRDs")
+	}
+	return crds, nil
 }
 
 // SetupWithManager sets up the controller with the Manager.

@@ -29,6 +29,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
 	corev1 "k8s.io/api/core/v1"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -240,6 +241,7 @@ func GetKubeClientSchemes() *runtime.Scheme {
 	utilruntime.Must(apiregv1.AddToScheme(schemes))
 	utilruntime.Must(configv1.Install(schemes))
 	utilruntime.Must(metal3iov1alpha1.AddToScheme(schemes))
+	utilruntime.Must(apiextensionsv1.AddToScheme(schemes))
 	return schemes
 }
 
