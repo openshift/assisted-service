@@ -38,6 +38,7 @@ func GetPullSecret(pullSecretPath string) (string, error) {
 func RegisterCluster(ctx context.Context, log *log.Logger, bmInventory *client.AssistedInstall, pullSecret string, clusterDeploymentPath string,
 	agentClusterInstallPath string, clusterImageSetPath string, releaseImageMirror string) (*models.Cluster, error) {
 
+	var result *models.Cluster
 	log.Info("Registering cluster")
 
 	var cd hivev1.ClusterDeployment
@@ -74,10 +75,36 @@ func RegisterCluster(ctx context.Context, log *log.Logger, bmInventory *client.A
 	if registerClusterErr != nil {
 		return nil, errorutil.GetAssistedError(registerClusterErr)
 	}
+	result = clusterResult.GetPayload()
 
-	log.Info("Registered cluster with id: " + clusterResult.Payload.ID.String())
+	log.Infof("Registered cluster with id: %s", clusterResult.Payload.ID)
 
-	return clusterResult.Payload, nil
+	annotations := aci.GetAnnotations()
+	if installConfigOverrides, ok := annotations[controllers.InstallConfigOverrides]; ok {
+		updateInstallConfigParams := &installer.V2UpdateClusterInstallConfigParams{
+			ClusterID:           *clusterResult.Payload.ID,
+			InstallConfigParams: installConfigOverrides,
+		}
+		_, updateClusterErr := bmInventory.Installer.V2UpdateClusterInstallConfig(ctx, updateInstallConfigParams)
+		if updateClusterErr != nil {
+			return nil, errorutil.GetAssistedError(updateClusterErr)
+		}
+
+		log.Infof("Updated cluster %s with installConfigOverrides %s", clusterResult.Payload.ID, installConfigOverrides)
+
+		// Need to GET cluster again so we can give a proper return value
+		getClusterResult, err := bmInventory.Installer.V2GetCluster(ctx, &installer.V2GetClusterParams{
+			ClusterID: *clusterResult.Payload.ID,
+		})
+
+		if err != nil {
+			log.Warnf("Updated cluster %s with installConfigOverrides %s", clusterResult.Payload.ID, installConfigOverrides)
+		} else {
+			result = getClusterResult.GetPayload()
+		}
+	}
+
+	return result, nil
 }
 
 func RegisterInfraEnv(ctx context.Context, log *log.Logger, bmInventory *client.AssistedInstall, pullSecret string, modelsCluster *models.Cluster,
