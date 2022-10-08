@@ -62,19 +62,19 @@ metadata:
               {
                 "cpuArchitecture": "x86_64",
                 "openshiftVersion": "4.8",
-                "url": "https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/4.8/4.8.14/rhcos-4.8.14-x86_64-live.x86_64.iso",
+                "url": "https://mirror.openshift.com/pub/openshift-v4/x86_64/dependencies/rhcos/4.8/4.8.14/rhcos-4.8.14-x86_64-live.x86_64.iso",
                 "version": "48.84.202109241901-0"
               },
               {
                 "cpuArchitecture": "x86_64",
                 "openshiftVersion": "4.9",
-                "url": "https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/4.9/4.9.45/rhcos-4.9.45-x86_64-live.x86_64.iso",
+                "url": "https://mirror.openshift.com/pub/openshift-v4/x86_64/dependencies/rhcos/4.9/4.9.45/rhcos-4.9.45-x86_64-live.x86_64.iso",
                 "version": "49.84.202207192205-0"
               },
               {
                 "cpuArchitecture": "x86_64",
                 "openshiftVersion": "4.10",
-                "url": "https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/4.10/4.10.25/rhcos-4.10.25-x86_64-live.x86_64.iso",
+                "url": "https://mirror.openshift.com/pub/openshift-v4/x86_64/dependencies/rhcos/4.10/4.10.25/rhcos-4.10.25-x86_64-live.x86_64.iso",
                 "version": "410.84.202207061638-0"
               },
               {
@@ -780,7 +780,7 @@ spec:
                 - name: INSTALLER_IMAGE
                   value: quay.io/edge-infrastructure/assisted-installer:latest
                 - name: OS_IMAGES
-                  value: '[{"openshift_version":"4.8","cpu_architecture":"x86_64","url":"https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/4.8/4.8.14/rhcos-4.8.14-x86_64-live.x86_64.iso","version":"48.84.202109241901-0"},{"openshift_version":"4.9","cpu_architecture":"x86_64","url":"https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/4.9/4.9.45/rhcos-4.9.45-x86_64-live.x86_64.iso","version":"49.84.202207192205-0"},{"openshift_version":"4.10","cpu_architecture":"x86_64","url":"https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/4.10/4.10.25/rhcos-4.10.25-x86_64-live.x86_64.iso","version":"410.84.202207061638-0"},{"openshift_version":"4.10","cpu_architecture":"arm64","url":"https://mirror.openshift.com/pub/openshift-v4/aarch64/dependencies/rhcos/4.10/4.10.25/rhcos-4.10.25-aarch64-live.aarch64.iso","version":"410.84.202207051516-0"},{"openshift_version":"4.11","cpu_architecture":"x86_64","url":"https://mirror.openshift.com/pub/openshift-v4/x86_64/dependencies/rhcos/4.11/4.11.2/rhcos-4.11.2-x86_64-live.x86_64.iso","version":"411.86.202208112011-0"},{"openshift_version":"4.11","cpu_architecture":"arm64","url":"https://mirror.openshift.com/pub/openshift-v4/aarch64/dependencies/rhcos/4.11/4.11.2/rhcos-4.11.2-aarch64-live.aarch64.iso","version":"411.86.202208111758-0"},{"openshift_version":"4.12","cpu_architecture":"x86_64","url":"https://mirror.openshift.com/pub/openshift-v4/x86_64/dependencies/rhcos/pre-release/4.12.0-ec.2/rhcos-4.12.0-ec.2-x86_64-live.x86_64.iso","version":"412.86.202208101039-0"},{"openshift_version":"4.12","cpu_architecture":"arm64","url":"https://mirror.openshift.com/pub/openshift-v4/aarch64/dependencies/rhcos/pre-release/4.12.0-ec.2/rhcos-4.12.0-ec.2-aarch64-live.aarch64.iso","version":"412.86.202208101040-0"}]'
+                  value: '[{"openshift_version":"4.8","cpu_architecture":"x86_64","url":"https://mirror.openshift.com/pub/openshift-v4/x86_64/dependencies/rhcos/4.8/4.8.14/rhcos-4.8.14-x86_64-live.x86_64.iso","version":"48.84.202109241901-0"},{"openshift_version":"4.9","cpu_architecture":"x86_64","url":"https://mirror.openshift.com/pub/openshift-v4/x86_64/dependencies/rhcos/4.9/4.9.45/rhcos-4.9.45-x86_64-live.x86_64.iso","version":"49.84.202207192205-0"},{"openshift_version":"4.10","cpu_architecture":"x86_64","url":"https://mirror.openshift.com/pub/openshift-v4/x86_64/dependencies/rhcos/4.10/4.10.25/rhcos-4.10.25-x86_64-live.x86_64.iso","version":"410.84.202207061638-0"},{"openshift_version":"4.10","cpu_architecture":"arm64","url":"https://mirror.openshift.com/pub/openshift-v4/aarch64/dependencies/rhcos/4.10/4.10.25/rhcos-4.10.25-aarch64-live.aarch64.iso","version":"410.84.202207051516-0"},{"openshift_version":"4.11","cpu_architecture":"x86_64","url":"https://mirror.openshift.com/pub/openshift-v4/x86_64/dependencies/rhcos/4.11/4.11.2/rhcos-4.11.2-x86_64-live.x86_64.iso","version":"411.86.202208112011-0"},{"openshift_version":"4.11","cpu_architecture":"arm64","url":"https://mirror.openshift.com/pub/openshift-v4/aarch64/dependencies/rhcos/4.11/4.11.2/rhcos-4.11.2-aarch64-live.aarch64.iso","version":"411.86.202208111758-0"},{"openshift_version":"4.12","cpu_architecture":"x86_64","url":"https://mirror.openshift.com/pub/openshift-v4/x86_64/dependencies/rhcos/pre-release/4.12.0-ec.2/rhcos-4.12.0-ec.2-x86_64-live.x86_64.iso","version":"412.86.202208101039-0"},{"openshift_version":"4.12","cpu_architecture":"arm64","url":"https://mirror.openshift.com/pub/openshift-v4/aarch64/dependencies/rhcos/pre-release/4.12.0-ec.2/rhcos-4.12.0-ec.2-aarch64-live.aarch64.iso","version":"412.86.202208101040-0"}]'
                 - name: SERVICE_ACCOUNT_NAME
                   valueFrom:
                     fieldRef:

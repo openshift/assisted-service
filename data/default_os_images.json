@@ -2,19 +2,19 @@
     {
         "openshift_version": "4.8",
         "cpu_architecture": "x86_64",
-        "url": "https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/4.8/4.8.14/rhcos-4.8.14-x86_64-live.x86_64.iso",
+        "url": "https://mirror.openshift.com/pub/openshift-v4/x86_64/dependencies/rhcos/4.8/4.8.14/rhcos-4.8.14-x86_64-live.x86_64.iso",
         "version": "48.84.202109241901-0"
     },
     {
         "openshift_version": "4.9",
         "cpu_architecture": "x86_64",
-        "url": "https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/4.9/4.9.45/rhcos-4.9.45-x86_64-live.x86_64.iso",
+        "url": "https://mirror.openshift.com/pub/openshift-v4/x86_64/dependencies/rhcos/4.9/4.9.45/rhcos-4.9.45-x86_64-live.x86_64.iso",
         "version": "49.84.202207192205-0"
     },
     {
         "openshift_version": "4.10",
         "cpu_architecture": "x86_64",
-        "url": "https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/4.10/4.10.25/rhcos-4.10.25-x86_64-live.x86_64.iso",
+        "url": "https://mirror.openshift.com/pub/openshift-v4/x86_64/dependencies/rhcos/4.10/4.10.25/rhcos-4.10.25-x86_64-live.x86_64.iso",
         "version": "410.84.202207061638-0"
     },
     {
