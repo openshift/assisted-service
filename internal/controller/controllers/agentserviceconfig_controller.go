@@ -99,19 +99,24 @@ var (
 	imageHandlerHTTPPort = intstr.Parse("8081")
 )
 
-// AgentServiceConfigReconciler reconciles a AgentServiceConfig object
-type AgentServiceConfigReconciler struct {
+type AgentServiceConfigReconcileContext struct {
 	client.Client
-	Log      logrus.FieldLogger
-	Scheme   *runtime.Scheme
-	Recorder record.EventRecorder
-
-	// Namespace the operator is running in
-	Namespace string
+	Log    logrus.FieldLogger
+	Scheme *runtime.Scheme
 
 	// selector and tolerations the Operator runs in and propagates to its deployments
 	NodeSelector map[string]string
 	Tolerations  []corev1.Toleration
+
+	Recorder record.EventRecorder
+}
+
+// AgentServiceConfigReconciler reconciles a AgentServiceConfig object
+type AgentServiceConfigReconciler struct {
+	AgentServiceConfigReconcileContext
+
+	// Namespace the operator is running in
+	Namespace string
 }
 
 type component struct {
@@ -120,7 +125,32 @@ type component struct {
 	fn     NewComponentFn
 }
 
-type NewComponentFn func(context.Context, logrus.FieldLogger, *aiv1beta1.AgentServiceConfig) (client.Object, controllerutil.MutateFn, error)
+type ASC struct {
+	/* target namespace for creating the resource */
+	namespace string
+
+	/* reference to the reconciler state */
+	rec *AgentServiceConfigReconcileContext
+
+	/* the instance itself */
+	Object client.Object
+
+	/* Spec part of AgentServiceConfig CRD family */
+	spec *aiv1beta1.AgentServiceConfigSpec
+
+	/* Status part of AgentServiceConfig CRD family */
+	status *aiv1beta1.AgentServiceConfigStatus
+}
+
+func (asc *ASC) init(r *AgentServiceConfigReconciler, instance *aiv1beta1.AgentServiceConfig) {
+	asc.namespace = r.Namespace
+	asc.rec = &r.AgentServiceConfigReconcileContext
+	asc.Object = instance
+	asc.spec = &instance.Spec
+	asc.status = &instance.Status
+}
+
+type NewComponentFn func(context.Context, logrus.FieldLogger, ASC) (client.Object, controllerutil.MutateFn, error)
 type ComponentStatusFn func(context.Context, logrus.FieldLogger, string, appsv1.DeploymentConditionType) error
 
 // +kubebuilder:rbac:groups=agent-install.openshift.io,resources=agentserviceconfigs,verbs=get;list;watch;create;update;patch;delete
@@ -147,6 +177,7 @@ type ComponentStatusFn func(context.Context, logrus.FieldLogger, string, appsv1.
 // +kubebuilder:rbac:groups=authorization.k8s.io,resources=subjectaccessreviews,verbs=create
 
 func (r *AgentServiceConfigReconciler) Reconcile(origCtx context.Context, req ctrl.Request) (ctrl.Result, error) {
+	var asc ASC
 	ctx := addRequestIdIfNeeded(origCtx)
 	log := logutil.FromContext(ctx, r.Log).WithFields(
 		logrus.Fields{
@@ -161,6 +192,7 @@ func (r *AgentServiceConfigReconciler) Reconcile(origCtx context.Context, req ct
 	log.Info("AgentServiceConfig Reconcile started")
 
 	instance := &aiv1beta1.AgentServiceConfig{}
+	asc.init(r, instance)
 
 	// NOTE: ignoring the Namespace that seems to get set on request when syncing on namespaced objects
 	// when our AgentServiceConfig is ClusterScoped.
@@ -206,7 +238,7 @@ func (r *AgentServiceConfigReconciler) Reconcile(origCtx context.Context, req ct
 			log.WithError(err).Error("failed to get image service stateful set for cleanup")
 			return ctrl.Result{Requeue: true}, err
 		}
-		if err := r.cleanupImageServiceFinalizer(ctx, statefulSet); err != nil {
+		if err := cleanupImageServiceFinalizer(ctx, asc, statefulSet); err != nil {
 			log.WithError(err).Error("failed to cleanup image service stateful set")
 			return ctrl.Result{Requeue: true}, err
 		}
@@ -221,57 +253,57 @@ func (r *AgentServiceConfigReconciler) Reconcile(origCtx context.Context, req ct
 	}
 
 	for _, component := range []component{
-		{"FilesystemStorage", aiv1beta1.ReasonStorageFailure, r.newFilesystemPVC},
-		{"DatabaseStorage", aiv1beta1.ReasonStorageFailure, r.newDatabasePVC},
-		{"ImageServiceService", aiv1beta1.ReasonImageHandlerServiceFailure, r.newImageServiceService},
-		{"AgentService", aiv1beta1.ReasonAgentServiceFailure, r.newAgentService},
-		{"ServiceMonitor", aiv1beta1.ReasonAgentServiceMonitorFailure, r.newServiceMonitor},
-		{"ImageServiceRoute", aiv1beta1.ReasonImageHandlerRouteFailure, r.newImageServiceRoute},
-		{"AgentRoute", aiv1beta1.ReasonAgentRouteFailure, r.newAgentRoute},
-		{"AgentLocalAuthSecret", aiv1beta1.ReasonAgentLocalAuthSecretFailure, r.newAgentLocalAuthSecret},
-		{"DatabaseSecret", aiv1beta1.ReasonPostgresSecretFailure, r.newPostgresSecret},
-		{"ImageServiceServiceAccount", aiv1beta1.ReasonImageHandlerServiceAccountFailure, r.newImageServiceServiceAccount},
-		{"IngressCertConfigMap", aiv1beta1.ReasonIngressCertFailure, r.newIngressCertCM},
-		{"ImageServiceConfigMap", aiv1beta1.ReasonConfigFailure, r.newImageServiceConfigMap},
-		{"AssistedServiceConfigMap", aiv1beta1.ReasonConfigFailure, r.newAssistedCM},
-		{"AssistedServiceDeployment", aiv1beta1.ReasonDeploymentFailure, r.newAssistedServiceDeployment},
-		{"AgentClusterInstallValidatingWebHook", aiv1beta1.ReasonValidatingWebHookFailure, r.newACIWebHook},
-		{"AgentClusterInstallMutatingWebHook", aiv1beta1.ReasonMutatingWebHookFailure, r.newACIMutatWebHook},
-		{"InfraEnvValidatingWebHook", aiv1beta1.ReasonValidatingWebHookFailure, r.newInfraEnvWebHook},
-		{"AgentValidatingWebHook", aiv1beta1.ReasonValidatingWebHookFailure, r.newAgentWebHook},
-		{"WebHookService", aiv1beta1.ReasonWebHookServiceFailure, r.newWebHookService},
-		{"WebHookServiceDeployment", aiv1beta1.ReasonWebHookDeploymentFailure, r.newWebHookDeployment},
-		{"WebHookServiceAccount", aiv1beta1.ReasonWebHookServiceAccountFailure, r.newWebHookServiceAccount},
-		{"WebHookClusterRole", aiv1beta1.ReasonWebHookClusterRoleFailure, r.newWebHookClusterRole},
-		{"WebHookClusterRoleBinding", aiv1beta1.ReasonWebHookClusterRoleBindingFailure, r.newWebHookClusterRoleBinding},
-		{"WebHookAPIService", aiv1beta1.ReasonWebHookAPIServiceFailure, r.newWebHookAPIService},
+		{"FilesystemStorage", aiv1beta1.ReasonStorageFailure, newFilesystemPVC},
+		{"DatabaseStorage", aiv1beta1.ReasonStorageFailure, newDatabasePVC},
+		{"ImageServiceService", aiv1beta1.ReasonImageHandlerServiceFailure, newImageServiceService},
+		{"AgentService", aiv1beta1.ReasonAgentServiceFailure, newAgentService},
+		{"ServiceMonitor", aiv1beta1.ReasonAgentServiceMonitorFailure, newServiceMonitor},
+		{"ImageServiceRoute", aiv1beta1.ReasonImageHandlerRouteFailure, newImageServiceRoute},
+		{"AgentRoute", aiv1beta1.ReasonAgentRouteFailure, newAgentRoute},
+		{"AgentLocalAuthSecret", aiv1beta1.ReasonAgentLocalAuthSecretFailure, newAgentLocalAuthSecret},
+		{"DatabaseSecret", aiv1beta1.ReasonPostgresSecretFailure, newPostgresSecret},
+		{"ImageServiceServiceAccount", aiv1beta1.ReasonImageHandlerServiceAccountFailure, newImageServiceServiceAccount},
+		{"IngressCertConfigMap", aiv1beta1.ReasonIngressCertFailure, newIngressCertCM},
+		{"ImageServiceConfigMap", aiv1beta1.ReasonConfigFailure, newImageServiceConfigMap},
+		{"AssistedServiceConfigMap", aiv1beta1.ReasonConfigFailure, newAssistedCM},
+		{"AssistedServiceDeployment", aiv1beta1.ReasonDeploymentFailure, newAssistedServiceDeployment},
+		{"AgentClusterInstallValidatingWebHook", aiv1beta1.ReasonValidatingWebHookFailure, newACIWebHook},
+		{"AgentClusterInstallMutatingWebHook", aiv1beta1.ReasonMutatingWebHookFailure, newACIMutatWebHook},
+		{"InfraEnvValidatingWebHook", aiv1beta1.ReasonValidatingWebHookFailure, newInfraEnvWebHook},
+		{"AgentValidatingWebHook", aiv1beta1.ReasonValidatingWebHookFailure, newAgentWebHook},
+		{"WebHookService", aiv1beta1.ReasonWebHookServiceFailure, newWebHookService},
+		{"WebHookServiceDeployment", aiv1beta1.ReasonWebHookDeploymentFailure, newWebHookDeployment},
+		{"WebHookServiceAccount", aiv1beta1.ReasonWebHookServiceAccountFailure, newWebHookServiceAccount},
+		{"WebHookClusterRole", aiv1beta1.ReasonWebHookClusterRoleFailure, newWebHookClusterRole},
+		{"WebHookClusterRoleBinding", aiv1beta1.ReasonWebHookClusterRoleBindingFailure, newWebHookClusterRoleBinding},
+		{"WebHookAPIService", aiv1beta1.ReasonWebHookAPIServiceFailure, newWebHookAPIService},
 	} {
-		if result, err := r.reconcileComponent(ctx, instance, log, component); err != nil {
+		if result, err := reconcileComponent(ctx, log, asc, component); err != nil {
 			return result, err
 		}
 	}
 
 	// Additional routes need to be synced if HTTP iPXE routes are exposed
-	if r.exposeIPXEHTTPRoute(instance) {
+	if exposeIPXEHTTPRoute(&instance.Spec) {
 		for _, component := range []component{
-			{"ImageServiceIPXERoute", aiv1beta1.ReasonImageHandlerRouteFailure, r.newImageServiceIPXERoute},
-			{"AgentIPXERoute", aiv1beta1.ReasonAgentRouteFailure, r.newAgentIPXERoute},
+			{"ImageServiceIPXERoute", aiv1beta1.ReasonImageHandlerRouteFailure, newImageServiceIPXERoute},
+			{"AgentIPXERoute", aiv1beta1.ReasonAgentRouteFailure, newAgentIPXERoute},
 		} {
-			if result, err := r.reconcileComponent(ctx, instance, log, component); err != nil {
+			if result, err := reconcileComponent(ctx, log, asc, component); err != nil {
 				return result, err
 			}
 		}
 	} else {
 		// Ensure HTTP routes are removed
 		for _, service := range []string{serviceName, imageServiceName} {
-			if err := r.removeHTTPIPXERoute(ctx, instance, service); err != nil {
+			if err := removeHTTPIPXERoute(ctx, asc, service); err != nil {
 				log.WithError(err).Errorf("failed to remove HTTP route for %s", service)
 				return ctrl.Result{Requeue: true}, err
 			}
 		}
 	}
 
-	if err := r.reconcileImageServiceStatefulSet(ctx, log, instance); err != nil {
+	if err := reconcileImageServiceStatefulSet(ctx, log, asc); err != nil {
 		msg := "Failed to reconcile image-service StatefulSet"
 		log.WithError(err).Error(msg)
 		conditionsv1.SetStatusConditionNoHeartbeat(&instance.Status.Conditions, conditionsv1.Condition{
@@ -294,7 +326,7 @@ func (r *AgentServiceConfigReconciler) Reconcile(origCtx context.Context, req ct
 		Message: msg,
 	})
 
-	if err := r.monitorOperands(ctx, log, instance); err != nil {
+	if err := r.monitorOperands(ctx, log, r.Namespace); err != nil {
 		conditionsv1.SetStatusConditionNoHeartbeat(&instance.Status.Conditions, conditionsv1.Condition{
 			Type:    aiv1beta1.ConditionDeploymentsHealthy,
 			Status:  corev1.ConditionFalse,
@@ -318,34 +350,34 @@ func (r *AgentServiceConfigReconciler) Reconcile(origCtx context.Context, req ct
 	return ctrl.Result{}, r.Status().Update(ctx, instance)
 }
 
-func (r *AgentServiceConfigReconciler) reconcileComponent(ctx context.Context, instance *aiv1beta1.AgentServiceConfig, log *logrus.Entry, component component) (ctrl.Result, error) {
-	obj, mutateFn, err := component.fn(ctx, log, instance)
+func reconcileComponent(ctx context.Context, log *logrus.Entry, asc ASC, component component) (ctrl.Result, error) {
+	obj, mutateFn, err := component.fn(ctx, log, asc)
 	if err != nil {
 		msg := "Failed to generate definition for " + component.name
 		log.WithError(err).Error(msg)
-		conditionsv1.SetStatusConditionNoHeartbeat(&instance.Status.Conditions, conditionsv1.Condition{
+		conditionsv1.SetStatusConditionNoHeartbeat(&asc.status.Conditions, conditionsv1.Condition{
 			Type:    aiv1beta1.ConditionReconcileCompleted,
 			Status:  corev1.ConditionFalse,
 			Reason:  component.reason,
 			Message: msg,
 		})
-		if statusErr := r.Status().Update(ctx, instance); statusErr != nil {
+		if statusErr := asc.rec.Status().Update(ctx, asc.Object); statusErr != nil {
 			log.WithError(err).Error("Failed to update status")
 			return ctrl.Result{Requeue: true}, statusErr
 		}
 		return ctrl.Result{Requeue: true}, err
 	}
 
-	if result, err := controllerutil.CreateOrUpdate(ctx, r.Client, obj, mutateFn); err != nil {
+	if result, err := controllerutil.CreateOrUpdate(ctx, asc.rec.Client, obj, mutateFn); err != nil {
 		msg := "Failed to ensure " + component.name
 		log.WithError(err).Error(msg)
-		conditionsv1.SetStatusConditionNoHeartbeat(&instance.Status.Conditions, conditionsv1.Condition{
+		conditionsv1.SetStatusConditionNoHeartbeat(&asc.status.Conditions, conditionsv1.Condition{
 			Type:    aiv1beta1.ConditionReconcileCompleted,
 			Status:  corev1.ConditionFalse,
 			Reason:  component.reason,
 			Message: msg,
 		})
-		if statusErr := r.Status().Update(ctx, instance); statusErr != nil {
+		if statusErr := asc.rec.Status().Update(ctx, asc.Object); statusErr != nil {
 			log.WithError(err).Error("Failed to update status")
 			return ctrl.Result{Requeue: true}, statusErr
 		}
@@ -387,7 +419,7 @@ func (r *AgentServiceConfigReconciler) SetupWithManager(mgr ctrl.Manager) error 
 		Complete(r)
 }
 
-func (r *AgentServiceConfigReconciler) monitorOperands(ctx context.Context, log logrus.FieldLogger, instance *aiv1beta1.AgentServiceConfig) error {
+func (r *AgentServiceConfigReconciler) monitorOperands(ctx context.Context, log logrus.FieldLogger, namespace string) error {
 	isStatusConditionFalse := func(conditions []appsv1.DeploymentCondition, conditionType appsv1.DeploymentConditionType) bool {
 		for _, condition := range conditions {
 			if condition.Type == conditionType {
@@ -400,7 +432,7 @@ func (r *AgentServiceConfigReconciler) monitorOperands(ctx context.Context, log 
 	// monitor deployments
 	for _, deployName := range []string{"agentinstalladmission", "assisted-service"} {
 		deployment := &appsv1.Deployment{}
-		if err := r.Get(ctx, types.NamespacedName{Name: deployName, Namespace: r.Namespace}, deployment); err != nil {
+		if err := r.Get(ctx, types.NamespacedName{Name: deployName, Namespace: namespace}, deployment); err != nil {
 			return err
 		}
 
@@ -419,7 +451,7 @@ func (r *AgentServiceConfigReconciler) monitorOperands(ctx context.Context, log 
 
 	// monitor statefulset
 	ss := &appsv1.StatefulSet{}
-	if err := r.Get(ctx, types.NamespacedName{Name: imageServiceName, Namespace: r.Namespace}, ss); err != nil {
+	if err := r.Get(ctx, types.NamespacedName{Name: imageServiceName, Namespace: namespace}, ss); err != nil {
 		return err
 	}
 
@@ -446,19 +478,19 @@ func (r *AgentServiceConfigReconciler) monitorOperands(ctx context.Context, log 
 	return nil
 }
 
-func (r *AgentServiceConfigReconciler) newFilesystemPVC(ctx context.Context, log logrus.FieldLogger, instance *aiv1beta1.AgentServiceConfig) (client.Object, controllerutil.MutateFn, error) {
+func newFilesystemPVC(ctx context.Context, log logrus.FieldLogger, asc ASC) (client.Object, controllerutil.MutateFn, error) {
 	pvc := &corev1.PersistentVolumeClaim{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      serviceName,
-			Namespace: r.Namespace,
+			Namespace: asc.namespace,
 		},
-		Spec: instance.Spec.FileSystemStorage,
+		Spec: asc.spec.FileSystemStorage,
 	}
 
-	requests := getStorageRequests(&instance.Spec.FileSystemStorage)
+	requests := getStorageRequests(&asc.spec.FileSystemStorage)
 
 	mutateFn := func() error {
-		if err := controllerutil.SetControllerReference(instance, pvc, r.Scheme); err != nil {
+		if err := controllerutil.SetControllerReference(asc.Object, pvc, asc.rec.Scheme); err != nil {
 			return err
 		}
 		// Everything else is immutable once bound.
@@ -469,19 +501,19 @@ func (r *AgentServiceConfigReconciler) newFilesystemPVC(ctx context.Context, log
 	return pvc, mutateFn, nil
 }
 
-func (r *AgentServiceConfigReconciler) newDatabasePVC(ctx context.Context, log logrus.FieldLogger, instance *aiv1beta1.AgentServiceConfig) (client.Object, controllerutil.MutateFn, error) {
+func newDatabasePVC(ctx context.Context, log logrus.FieldLogger, asc ASC) (client.Object, controllerutil.MutateFn, error) {
 	pvc := &corev1.PersistentVolumeClaim{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      databaseName,
-			Namespace: r.Namespace,
+			Namespace: asc.namespace,
 		},
-		Spec: instance.Spec.DatabaseStorage,
+		Spec: asc.spec.DatabaseStorage,
 	}
 
-	requests := getStorageRequests(&instance.Spec.DatabaseStorage)
+	requests := getStorageRequests(&asc.spec.DatabaseStorage)
 
 	mutateFn := func() error {
-		if err := controllerutil.SetControllerReference(instance, pvc, r.Scheme); err != nil {
+		if err := controllerutil.SetControllerReference(asc.Object, pvc, asc.rec.Scheme); err != nil {
 			return err
 		}
 		// Everything else is immutable once bound.
@@ -492,16 +524,16 @@ func (r *AgentServiceConfigReconciler) newDatabasePVC(ctx context.Context, log l
 	return pvc, mutateFn, nil
 }
 
-func (r *AgentServiceConfigReconciler) newAgentService(ctx context.Context, log logrus.FieldLogger, instance *aiv1beta1.AgentServiceConfig) (client.Object, controllerutil.MutateFn, error) {
+func newAgentService(ctx context.Context, log logrus.FieldLogger, asc ASC) (client.Object, controllerutil.MutateFn, error) {
 	svc := &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      serviceName,
-			Namespace: r.Namespace,
+			Namespace: asc.namespace,
 		},
 	}
 
 	mutateFn := func() error {
-		if err := controllerutil.SetControllerReference(instance, svc, r.Scheme); err != nil {
+		if err := controllerutil.SetControllerReference(asc.Object, svc, asc.rec.Scheme); err != nil {
 			return err
 		}
 		addAppLabel(serviceName, &svc.ObjectMeta)
@@ -529,16 +561,16 @@ func (r *AgentServiceConfigReconciler) newAgentService(ctx context.Context, log 
 	return svc, mutateFn, nil
 }
 
-func (r *AgentServiceConfigReconciler) newImageServiceService(ctx context.Context, log logrus.FieldLogger, instance *aiv1beta1.AgentServiceConfig) (client.Object, controllerutil.MutateFn, error) {
+func newImageServiceService(ctx context.Context, log logrus.FieldLogger, asc ASC) (client.Object, controllerutil.MutateFn, error) {
 	svc := &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      imageServiceName,
-			Namespace: r.Namespace,
+			Namespace: asc.namespace,
 		},
 	}
 
 	mutateFn := func() error {
-		if err := controllerutil.SetControllerReference(instance, svc, r.Scheme); err != nil {
+		if err := controllerutil.SetControllerReference(asc.Object, svc, asc.rec.Scheme); err != nil {
 			return err
 		}
 		addAppLabel(serviceName, &svc.ObjectMeta)
@@ -566,9 +598,9 @@ func (r *AgentServiceConfigReconciler) newImageServiceService(ctx context.Contex
 	return svc, mutateFn, nil
 }
 
-func (r *AgentServiceConfigReconciler) newServiceMonitor(ctx context.Context, log logrus.FieldLogger, instance *aiv1beta1.AgentServiceConfig) (client.Object, controllerutil.MutateFn, error) {
+func newServiceMonitor(ctx context.Context, log logrus.FieldLogger, asc ASC) (client.Object, controllerutil.MutateFn, error) {
 	service := &corev1.Service{}
-	if err := r.Get(ctx, types.NamespacedName{Name: serviceName, Namespace: r.Namespace}, service); err != nil {
+	if err := asc.rec.Get(ctx, types.NamespacedName{Name: serviceName, Namespace: asc.namespace}, service); err != nil {
 		return nil, nil, err
 	}
 
@@ -592,14 +624,14 @@ func (r *AgentServiceConfigReconciler) newServiceMonitor(ctx context.Context, lo
 	sm := &monitoringv1.ServiceMonitor{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      service.ObjectMeta.Name,
-			Namespace: r.Namespace,
+			Namespace: asc.namespace,
 			Labels:    labels,
 		},
 		Spec: smSpec,
 	}
 
 	mutateFn := func() error {
-		if err := controllerutil.SetControllerReference(instance, sm, r.Scheme); err != nil {
+		if err := controllerutil.SetControllerReference(asc.Object, sm, asc.rec.Scheme); err != nil {
 			return err
 		}
 
@@ -611,12 +643,12 @@ func (r *AgentServiceConfigReconciler) newServiceMonitor(ctx context.Context, lo
 	return sm, mutateFn, nil
 }
 
-func (r *AgentServiceConfigReconciler) newAgentRoute(ctx context.Context, log logrus.FieldLogger, instance *aiv1beta1.AgentServiceConfig) (client.Object, controllerutil.MutateFn, error) {
+func newAgentRoute(ctx context.Context, log logrus.FieldLogger, asc ASC) (client.Object, controllerutil.MutateFn, error) {
 	weight := int32(100)
 	route := &routev1.Route{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      serviceName,
-			Namespace: r.Namespace,
+			Namespace: asc.namespace,
 		},
 	}
 	routeSpec := routev1.RouteSpec{
@@ -633,7 +665,7 @@ func (r *AgentServiceConfigReconciler) newAgentRoute(ctx context.Context, log lo
 	}
 
 	mutateFn := func() error {
-		if err := controllerutil.SetControllerReference(instance, route, r.Scheme); err != nil {
+		if err := controllerutil.SetControllerReference(asc.Object, route, asc.rec.Scheme); err != nil {
 			return err
 		}
 		// Only update what is specified above in routeSpec.
@@ -650,10 +682,10 @@ func (r *AgentServiceConfigReconciler) newAgentRoute(ctx context.Context, log lo
 	return route, mutateFn, nil
 }
 
-func (r *AgentServiceConfigReconciler) newHTTPRoute(ctx context.Context, log logrus.FieldLogger, instance *aiv1beta1.AgentServiceConfig, serviceToExpose string) (client.Object, controllerutil.MutateFn, error) {
+func newHTTPRoute(ctx context.Context, log logrus.FieldLogger, asc ASC, serviceToExpose string) (client.Object, controllerutil.MutateFn, error) {
 	// In order to create plain http route we need https route to be created first to copy its host
 	httpsRoute := &routev1.Route{}
-	if err := r.Get(ctx, types.NamespacedName{Name: serviceToExpose, Namespace: r.Namespace}, httpsRoute); err != nil {
+	if err := asc.rec.Get(ctx, types.NamespacedName{Name: serviceToExpose, Namespace: asc.namespace}, httpsRoute); err != nil {
 		log.WithError(err).Errorf("Failed to get https route for %s service", serviceToExpose)
 		return nil, nil, err
 	}
@@ -666,7 +698,7 @@ func (r *AgentServiceConfigReconciler) newHTTPRoute(ctx context.Context, log log
 	route := &routev1.Route{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      fmt.Sprintf("%s-ipxe", serviceToExpose),
-			Namespace: r.Namespace,
+			Namespace: asc.namespace,
 		},
 		Spec: routev1.RouteSpec{
 			Host: httpsRoute.Spec.Host,
@@ -686,7 +718,7 @@ func (r *AgentServiceConfigReconciler) newHTTPRoute(ctx context.Context, log log
 	}
 
 	mutateFn := func() error {
-		if err := controllerutil.SetControllerReference(instance, route, r.Scheme); err != nil {
+		if err := controllerutil.SetControllerReference(asc.Object, route, asc.rec.Scheme); err != nil {
 			return err
 		}
 		// Only update what is specified above in routeSpec.
@@ -704,15 +736,15 @@ func (r *AgentServiceConfigReconciler) newHTTPRoute(ctx context.Context, log log
 	return route, mutateFn, nil
 }
 
-func (r *AgentServiceConfigReconciler) removeHTTPIPXERoute(ctx context.Context, instance *aiv1beta1.AgentServiceConfig, serviceToExpose string) error {
+func removeHTTPIPXERoute(ctx context.Context, asc ASC, serviceToExpose string) error {
 	route := &routev1.Route{}
 	routeName := fmt.Sprintf("%s-ipxe", serviceToExpose)
-	namespacedName := types.NamespacedName{Name: routeName, Namespace: r.Namespace}
-	if err := r.Get(ctx, namespacedName, route); err == nil {
-		err = r.Client.Delete(ctx, &routev1.Route{
+	namespacedName := types.NamespacedName{Name: routeName, Namespace: asc.namespace}
+	if err := asc.rec.Client.Get(ctx, namespacedName, route); err == nil {
+		err = asc.rec.Client.Delete(ctx, &routev1.Route{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      routeName,
-				Namespace: r.Namespace,
+				Namespace: asc.namespace,
 			},
 		})
 		if !errors.IsNotFound(err) {
@@ -724,16 +756,16 @@ func (r *AgentServiceConfigReconciler) removeHTTPIPXERoute(ctx context.Context, 
 	return nil
 }
 
-func (r *AgentServiceConfigReconciler) newAgentIPXERoute(ctx context.Context, log logrus.FieldLogger, instance *aiv1beta1.AgentServiceConfig) (client.Object, controllerutil.MutateFn, error) {
-	return r.newHTTPRoute(ctx, log, instance, serviceName)
+func newAgentIPXERoute(ctx context.Context, log logrus.FieldLogger, asc ASC) (client.Object, controllerutil.MutateFn, error) {
+	return newHTTPRoute(ctx, log, asc, serviceName)
 }
 
-func (r *AgentServiceConfigReconciler) newImageServiceRoute(ctx context.Context, log logrus.FieldLogger, instance *aiv1beta1.AgentServiceConfig) (client.Object, controllerutil.MutateFn, error) {
+func newImageServiceRoute(ctx context.Context, log logrus.FieldLogger, asc ASC) (client.Object, controllerutil.MutateFn, error) {
 	weight := int32(100)
 	route := &routev1.Route{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      imageServiceName,
-			Namespace: r.Namespace,
+			Namespace: asc.namespace,
 		},
 	}
 	routeSpec := routev1.RouteSpec{
@@ -750,7 +782,7 @@ func (r *AgentServiceConfigReconciler) newImageServiceRoute(ctx context.Context,
 	}
 
 	mutateFn := func() error {
-		if err := controllerutil.SetControllerReference(instance, route, r.Scheme); err != nil {
+		if err := controllerutil.SetControllerReference(asc.Object, route, asc.rec.Scheme); err != nil {
 			return err
 		}
 		// Only update what is specified above in routeSpec.
@@ -767,15 +799,15 @@ func (r *AgentServiceConfigReconciler) newImageServiceRoute(ctx context.Context,
 	return route, mutateFn, nil
 }
 
-func (r *AgentServiceConfigReconciler) newImageServiceIPXERoute(ctx context.Context, log logrus.FieldLogger, instance *aiv1beta1.AgentServiceConfig) (client.Object, controllerutil.MutateFn, error) {
-	return r.newHTTPRoute(ctx, log, instance, imageServiceName)
+func newImageServiceIPXERoute(ctx context.Context, log logrus.FieldLogger, asc ASC) (client.Object, controllerutil.MutateFn, error) {
+	return newHTTPRoute(ctx, log, asc, imageServiceName)
 }
 
-func (r *AgentServiceConfigReconciler) newAgentLocalAuthSecret(ctx context.Context, log logrus.FieldLogger, instance *aiv1beta1.AgentServiceConfig) (client.Object, controllerutil.MutateFn, error) {
+func newAgentLocalAuthSecret(ctx context.Context, log logrus.FieldLogger, asc ASC) (client.Object, controllerutil.MutateFn, error) {
 	secret := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      agentLocalAuthSecretName,
-			Namespace: r.Namespace,
+			Namespace: asc.namespace,
 			Labels: map[string]string{
 				BackupLabel: BackupLabelValue,
 			},
@@ -784,7 +816,7 @@ func (r *AgentServiceConfigReconciler) newAgentLocalAuthSecret(ctx context.Conte
 	}
 
 	mutateFn := func() error {
-		if err := controllerutil.SetControllerReference(instance, secret, r.Scheme); err != nil {
+		if err := controllerutil.SetControllerReference(asc.Object, secret, asc.rec.Scheme); err != nil {
 			return err
 		}
 		_, privateKeyPresent := secret.Data["ec-private-key.pem"]
@@ -806,11 +838,11 @@ func (r *AgentServiceConfigReconciler) newAgentLocalAuthSecret(ctx context.Conte
 	return secret, mutateFn, nil
 }
 
-func (r *AgentServiceConfigReconciler) newPostgresSecret(ctx context.Context, log logrus.FieldLogger, instance *aiv1beta1.AgentServiceConfig) (client.Object, controllerutil.MutateFn, error) {
+func newPostgresSecret(ctx context.Context, log logrus.FieldLogger, asc ASC) (client.Object, controllerutil.MutateFn, error) {
 	secret := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      databaseName,
-			Namespace: r.Namespace,
+			Namespace: asc.namespace,
 			Labels: map[string]string{
 				BackupLabel: BackupLabelValue,
 			},
@@ -819,7 +851,7 @@ func (r *AgentServiceConfigReconciler) newPostgresSecret(ctx context.Context, lo
 	}
 
 	mutateFn := func() error {
-		err := controllerutil.SetControllerReference(instance, secret, r.Scheme)
+		err := controllerutil.SetControllerReference(asc.Object, secret, asc.rec.Scheme)
 		if err != nil {
 			return err
 		}
@@ -846,16 +878,16 @@ func (r *AgentServiceConfigReconciler) newPostgresSecret(ctx context.Context, lo
 	return secret, mutateFn, nil
 }
 
-func (r *AgentServiceConfigReconciler) newImageServiceServiceAccount(ctx context.Context, log logrus.FieldLogger, instance *aiv1beta1.AgentServiceConfig) (client.Object, controllerutil.MutateFn, error) {
+func newImageServiceServiceAccount(ctx context.Context, log logrus.FieldLogger, asc ASC) (client.Object, controllerutil.MutateFn, error) {
 	sa := &corev1.ServiceAccount{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      imageServiceName,
-			Namespace: r.Namespace,
+			Namespace: asc.namespace,
 		},
 	}
 
 	mutateFn := func() error {
-		err := controllerutil.SetControllerReference(instance, sa, r.Scheme)
+		err := controllerutil.SetControllerReference(asc.Object, sa, asc.rec.Scheme)
 		if err != nil {
 			return err
 		}
@@ -866,10 +898,10 @@ func (r *AgentServiceConfigReconciler) newImageServiceServiceAccount(ctx context
 	return sa, mutateFn, nil
 }
 
-func (r *AgentServiceConfigReconciler) newIngressCertCM(ctx context.Context, log logrus.FieldLogger, instance *aiv1beta1.AgentServiceConfig) (client.Object, controllerutil.MutateFn, error) {
+func newIngressCertCM(ctx context.Context, log logrus.FieldLogger, asc ASC) (client.Object, controllerutil.MutateFn, error) {
 	sourceCM := &corev1.ConfigMap{}
 
-	if err := r.Get(ctx, types.NamespacedName{Name: defaultIngressCertCMName, Namespace: defaultIngressCertCMNamespace}, sourceCM); err != nil {
+	if err := asc.rec.Get(ctx, types.NamespacedName{Name: defaultIngressCertCMName, Namespace: defaultIngressCertCMNamespace}, sourceCM); err != nil {
 		log.WithError(err).Error("Failed to get default ingress cert config map")
 		return nil, nil, err
 	}
@@ -877,12 +909,12 @@ func (r *AgentServiceConfigReconciler) newIngressCertCM(ctx context.Context, log
 	cm := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      defaultIngressCertCMName,
-			Namespace: r.Namespace,
+			Namespace: asc.namespace,
 		},
 	}
 
 	mutateFn := func() error {
-		if err := controllerutil.SetControllerReference(instance, cm, r.Scheme); err != nil {
+		if err := controllerutil.SetControllerReference(asc.Object, cm, asc.rec.Scheme); err != nil {
 			return err
 		}
 		cm.Data = make(map[string]string)
@@ -895,16 +927,16 @@ func (r *AgentServiceConfigReconciler) newIngressCertCM(ctx context.Context, log
 	return cm, mutateFn, nil
 }
 
-func (r *AgentServiceConfigReconciler) newImageServiceConfigMap(ctx context.Context, log logrus.FieldLogger, instance *aiv1beta1.AgentServiceConfig) (client.Object, controllerutil.MutateFn, error) {
+func newImageServiceConfigMap(ctx context.Context, log logrus.FieldLogger, asc ASC) (client.Object, controllerutil.MutateFn, error) {
 	cm := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      imageServiceName,
-			Namespace: r.Namespace,
+			Namespace: asc.namespace,
 		},
 	}
 
 	mutateFn := func() error {
-		if err := controllerutil.SetControllerReference(instance, cm, r.Scheme); err != nil {
+		if err := controllerutil.SetControllerReference(asc.Object, cm, asc.rec.Scheme); err != nil {
 			return err
 		}
 
@@ -918,9 +950,9 @@ func (r *AgentServiceConfigReconciler) newImageServiceConfigMap(ctx context.Cont
 	return cm, mutateFn, nil
 }
 
-func (r *AgentServiceConfigReconciler) urlForRoute(ctx context.Context, routeName string) (string, error) {
+func urlForRoute(ctx context.Context, asc ASC, routeName string) (string, error) {
 	route := &routev1.Route{}
-	err := r.Get(ctx, types.NamespacedName{Name: routeName, Namespace: r.Namespace}, route)
+	err := asc.rec.Get(ctx, types.NamespacedName{Name: routeName, Namespace: asc.namespace}, route)
 	if err != nil || route.Spec.Host == "" {
 		if err == nil {
 			err = fmt.Errorf("%s route host is empty", routeName)
@@ -935,14 +967,14 @@ func (r *AgentServiceConfigReconciler) urlForRoute(ctx context.Context, routeNam
 //go:embed default_controller_hw_requirements.json
 var defaultControllerHardwareRequirements string
 
-func (r *AgentServiceConfigReconciler) newAssistedCM(ctx context.Context, log logrus.FieldLogger, instance *aiv1beta1.AgentServiceConfig) (client.Object, controllerutil.MutateFn, error) {
-	serviceURL, err := r.urlForRoute(ctx, serviceName)
+func newAssistedCM(ctx context.Context, log logrus.FieldLogger, asc ASC) (client.Object, controllerutil.MutateFn, error) {
+	serviceURL, err := urlForRoute(ctx, asc, serviceName)
 	if err != nil {
 		log.WithError(err).Warnf("Failed to get URL for route %s", serviceName)
 		return nil, nil, err
 	}
 
-	imageServiceURL, err := r.urlForRoute(ctx, imageServiceName)
+	imageServiceURL, err := urlForRoute(ctx, asc, imageServiceName)
 	if err != nil {
 		log.WithError(err).Warnf("Failed to get URL for route %s", imageServiceName)
 		return nil, nil, err
@@ -951,12 +983,12 @@ func (r *AgentServiceConfigReconciler) newAssistedCM(ctx context.Context, log lo
 	cm := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      serviceName,
-			Namespace: r.Namespace,
+			Namespace: asc.namespace,
 		},
 	}
 
 	mutateFn := func() error {
-		if err := controllerutil.SetControllerReference(instance, cm, r.Scheme); err != nil {
+		if err := controllerutil.SetControllerReference(asc.Object, cm, asc.rec.Scheme); err != nil {
 			return err
 		}
 
@@ -969,8 +1001,8 @@ func (r *AgentServiceConfigReconciler) newAssistedCM(ctx context.Context, log lo
 			"CONTROLLER_IMAGE":       ControllerImage(),
 			"INSTALLER_IMAGE":        InstallerImage(),
 			"SELF_VERSION":           ServiceImage(),
-			"OS_IMAGES":              r.getOSImages(log, instance),
-			"MUST_GATHER_IMAGES":     r.getMustGatherImages(log, instance),
+			"OS_IMAGES":              getOSImages(log, asc.spec),
+			"MUST_GATHER_IMAGES":     getMustGatherImages(log, asc.spec),
 			"ISO_IMAGE_TYPE":         "minimal-iso",
 			"S3_USE_SSL":             "false",
 			"LOG_LEVEL":              "info",
@@ -995,7 +1027,7 @@ func (r *AgentServiceConfigReconciler) newAssistedCM(ctx context.Context, log lo
 			"PUBLIC_CONTAINER_REGISTRIES": "quay.io,registry.svc.ci.openshift.org",
 			"HW_VALIDATOR_REQUIREMENTS":   defaultControllerHardwareRequirements,
 
-			"NAMESPACE":       r.Namespace,
+			"NAMESPACE":       asc.namespace,
 			"INSTALL_INVOKER": "assisted-installer-operator",
 
 			// enable https
@@ -1030,8 +1062,8 @@ func ensureVolume(volumes []corev1.Volume, vol corev1.Volume) []corev1.Volume {
 	return volumes
 }
 
-func (r *AgentServiceConfigReconciler) newImageServiceStatefulSet(ctx context.Context, log logrus.FieldLogger, instance *aiv1beta1.AgentServiceConfig) (*appsv1.StatefulSet, controllerutil.MutateFn) {
-	skipVerifyTLS, ok := instance.ObjectMeta.GetAnnotations()[imageServiceSkipVerifyTLSAnnotation]
+func newImageServiceStatefulSet(ctx context.Context, log logrus.FieldLogger, asc ASC) (*appsv1.StatefulSet, controllerutil.MutateFn) {
+	skipVerifyTLS, ok := asc.Object.GetAnnotations()[imageServiceSkipVerifyTLSAnnotation]
 	if !ok {
 		skipVerifyTLS = "false"
 	}
@@ -1040,7 +1072,7 @@ func (r *AgentServiceConfigReconciler) newImageServiceStatefulSet(ctx context.Co
 		"app": imageServiceName,
 	}
 
-	imageServiceBaseURL := r.getImageService(ctx, log)
+	imageServiceBaseURL := getImageService(ctx, log, asc)
 
 	container := corev1.Container{
 		Name:  imageServiceName,
@@ -1058,12 +1090,12 @@ func (r *AgentServiceConfigReconciler) newImageServiceStatefulSet(ctx context.Co
 		Env: []corev1.EnvVar{
 			{Name: "LISTEN_PORT", Value: imageHandlerPort.String()},
 			{Name: "HTTP_LISTEN_PORT", Value: imageHandlerHTTPPort.String()},
-			{Name: "RHCOS_VERSIONS", Value: r.getOSImages(log, instance)},
+			{Name: "RHCOS_VERSIONS", Value: getOSImages(log, asc.spec)},
 			{Name: "HTTPS_CERT_FILE", Value: "/etc/image-service/certs/tls.crt"},
 			{Name: "HTTPS_KEY_FILE", Value: "/etc/image-service/certs/tls.key"},
 			{Name: "HTTPS_CA_FILE", Value: "/etc/image-service/ca-bundle/service-ca.crt"},
 			{Name: "ASSISTED_SERVICE_SCHEME", Value: "https"},
-			{Name: "ASSISTED_SERVICE_HOST", Value: serviceName + "." + r.Namespace + ".svc:" + servicePort.String()},
+			{Name: "ASSISTED_SERVICE_HOST", Value: serviceName + "." + asc.namespace + ".svc:" + servicePort.String()},
 			{Name: "IMAGE_SERVICE_BASE_URL", Value: imageServiceBaseURL},
 			{Name: "INSECURE_SKIP_VERIFY", Value: skipVerifyTLS},
 			{Name: "DATA_DIR", Value: "/data"},
@@ -1109,7 +1141,7 @@ func (r *AgentServiceConfigReconciler) newImageServiceStatefulSet(ctx context.Co
 	statefulSet := &appsv1.StatefulSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      imageServiceName,
-			Namespace: r.Namespace,
+			Namespace: asc.namespace,
 		},
 		Spec: appsv1.StatefulSetSpec{
 			PodManagementPolicy: appsv1.ParallelPodManagement,
@@ -1126,7 +1158,7 @@ func (r *AgentServiceConfigReconciler) newImageServiceStatefulSet(ctx context.Co
 	}
 
 	mutateFn := func() error {
-		if err := controllerutil.SetControllerReference(instance, statefulSet, r.Scheme); err != nil {
+		if err := controllerutil.SetControllerReference(asc.Object, statefulSet, asc.rec.Scheme); err != nil {
 			return err
 		}
 		controllerutil.AddFinalizer(statefulSet, imageServiceStatefulSetFinalizerName)
@@ -1156,12 +1188,12 @@ func (r *AgentServiceConfigReconciler) newImageServiceStatefulSet(ctx context.Co
 			},
 		})
 
-		if instance.Spec.ImageStorage != nil {
+		if asc.spec.ImageStorage != nil {
 			var found bool
 			for i, claim := range statefulSet.Spec.VolumeClaimTemplates {
 				if claim.ObjectMeta.Name == "image-service-data" {
 					found = true
-					statefulSet.Spec.VolumeClaimTemplates[i].Spec.Resources.Requests = getStorageRequests(instance.Spec.ImageStorage)
+					statefulSet.Spec.VolumeClaimTemplates[i].Spec.Resources.Requests = getStorageRequests(asc.spec.ImageStorage)
 				}
 			}
 			if !found {
@@ -1170,7 +1202,7 @@ func (r *AgentServiceConfigReconciler) newImageServiceStatefulSet(ctx context.Co
 						ObjectMeta: metav1.ObjectMeta{
 							Name: "image-service-data",
 						},
-						Spec: *instance.Spec.ImageStorage,
+						Spec: *asc.spec.ImageStorage,
 					},
 				}
 			}
@@ -1194,14 +1226,14 @@ func (r *AgentServiceConfigReconciler) newImageServiceStatefulSet(ctx context.Co
 
 		statefulSet.Spec.Template.Spec.Volumes = volumes
 
-		if r.NodeSelector != nil {
-			statefulSet.Spec.Template.Spec.NodeSelector = r.NodeSelector
+		if asc.rec.NodeSelector != nil {
+			statefulSet.Spec.Template.Spec.NodeSelector = asc.rec.NodeSelector
 		} else {
 			statefulSet.Spec.Template.Spec.NodeSelector = map[string]string{}
 		}
 
-		if r.Tolerations != nil {
-			statefulSet.Spec.Template.Spec.Tolerations = r.Tolerations
+		if asc.rec.Tolerations != nil {
+			statefulSet.Spec.Template.Spec.Tolerations = asc.rec.Tolerations
 		} else {
 			statefulSet.Spec.Template.Spec.Tolerations = []corev1.Toleration{}
 		}
@@ -1211,50 +1243,50 @@ func (r *AgentServiceConfigReconciler) newImageServiceStatefulSet(ctx context.Co
 	return statefulSet, mutateFn
 }
 
-func (r *AgentServiceConfigReconciler) cleanupImageServiceFinalizer(ctx context.Context, statefulSet *appsv1.StatefulSet) error {
+func cleanupImageServiceFinalizer(ctx context.Context, asc ASC, statefulSet *appsv1.StatefulSet) error {
 	if !controllerutil.ContainsFinalizer(statefulSet, imageServiceStatefulSetFinalizerName) {
 		return nil
 	}
 
 	pvcList := &corev1.PersistentVolumeClaimList{}
-	if err := r.List(ctx, pvcList, client.MatchingLabels{"app": imageServiceName}); err != nil {
+	if err := asc.rec.Client.List(ctx, pvcList, client.MatchingLabels{"app": imageServiceName}); err != nil {
 		return err
 	}
 
 	for i := range pvcList.Items {
-		if err := r.Client.Delete(ctx, &pvcList.Items[i]); err != nil {
+		if err := asc.rec.Client.Delete(ctx, &pvcList.Items[i]); err != nil {
 			return err
 		}
 	}
 
 	controllerutil.RemoveFinalizer(statefulSet, imageServiceStatefulSetFinalizerName)
-	if err := r.Update(ctx, statefulSet); err != nil {
+	if err := asc.rec.Client.Update(ctx, statefulSet); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (r *AgentServiceConfigReconciler) reconcileImageServiceStatefulSet(ctx context.Context, log logrus.FieldLogger, instance *aiv1beta1.AgentServiceConfig) error {
+func reconcileImageServiceStatefulSet(ctx context.Context, log logrus.FieldLogger, asc ASC) error {
 	var err error
 	defer func() {
 		// delete old deployment if it exists and we've created the new stateful set correctly
 		// TODO: this can be removed when we no longer support upgrading from a release that used deployments for the image service
 		// NOTE: this relies on the err local variable being set correctly when the function returns
 		if err == nil {
-			_ = r.Client.Delete(ctx, &appsv1.Deployment{
+			_ = asc.rec.Client.Delete(ctx, &appsv1.Deployment{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      imageServiceName,
-					Namespace: r.Namespace,
+					Namespace: asc.namespace,
 				},
 			})
 		}
 	}()
 
-	statefulSet, mutateFn := r.newImageServiceStatefulSet(ctx, log, instance)
+	statefulSet, mutateFn := newImageServiceStatefulSet(ctx, log, asc)
 
 	key := client.ObjectKeyFromObject(statefulSet)
-	if err = r.Client.Get(ctx, key, statefulSet); err != nil {
+	if err = asc.rec.Client.Get(ctx, key, statefulSet); err != nil {
 		// if the statefulset doesn't exist, create it
 		if !errors.IsNotFound(err) {
 			return err
@@ -1263,14 +1295,14 @@ func (r *AgentServiceConfigReconciler) reconcileImageServiceStatefulSet(ctx cont
 		if err = mutateFn(); err != nil {
 			return err
 		}
-		if err = r.Client.Create(ctx, statefulSet); err != nil {
+		if err = asc.rec.Client.Create(ctx, statefulSet); err != nil {
 			return err
 		}
 		return nil
 	}
 
 	if !statefulSet.DeletionTimestamp.IsZero() {
-		if err = r.cleanupImageServiceFinalizer(ctx, statefulSet); err != nil {
+		if err = cleanupImageServiceFinalizer(ctx, asc, statefulSet); err != nil {
 			return err
 		}
 		return nil
@@ -1289,7 +1321,7 @@ func (r *AgentServiceConfigReconciler) reconcileImageServiceStatefulSet(ctx cont
 	if equality.Semantic.DeepEqual(existing.Spec.VolumeClaimTemplates, statefulSet.Spec.VolumeClaimTemplates) {
 		log.Info("Updating image service statful set in-place")
 		// if we're updating something other than the volumes, just do a regular update
-		if err = r.Client.Update(ctx, statefulSet); err != nil {
+		if err = asc.rec.Client.Update(ctx, statefulSet); err != nil {
 			return err
 		}
 		return nil
@@ -1298,18 +1330,18 @@ func (r *AgentServiceConfigReconciler) reconcileImageServiceStatefulSet(ctx cont
 	log.Info("Deleting image service stateful set on volume claim template update")
 
 	// need to delete and re-create statefulset because the volumes have changed
-	if err = r.Client.Delete(ctx, existing); err != nil {
+	if err = asc.rec.Client.Delete(ctx, existing); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (r *AgentServiceConfigReconciler) newAssistedServiceDeployment(ctx context.Context, log logrus.FieldLogger, instance *aiv1beta1.AgentServiceConfig) (client.Object, controllerutil.MutateFn, error) {
+func newAssistedServiceDeployment(ctx context.Context, log logrus.FieldLogger, asc ASC) (client.Object, controllerutil.MutateFn, error) {
 	var assistedConfigHash, mirrorConfigHash, userConfigHash string
 
 	// Get hash of generated assisted config
-	assistedConfigHash, err := r.getCMHash(ctx, types.NamespacedName{Name: serviceName, Namespace: r.Namespace})
+	assistedConfigHash, err := getCMHash(ctx, asc, types.NamespacedName{Name: serviceName, Namespace: asc.namespace})
 	if err != nil {
 		return nil, nil, err
 	}
@@ -1327,7 +1359,7 @@ func (r *AgentServiceConfigReconciler) newAssistedServiceDeployment(ctx context.
 		newSecretEnvVar("EC_PRIVATE_KEY_PEM", "ec-private-key.pem", agentLocalAuthSecretName),
 	}
 
-	if r.exposeIPXEHTTPRoute(instance) {
+	if exposeIPXEHTTPRoute(asc.spec) {
 		envSecrets = append(envSecrets, corev1.EnvVar{Name: "HTTP_LISTEN_PORT", Value: serviceHTTPPort.String()})
 	}
 
@@ -1344,10 +1376,10 @@ func (r *AgentServiceConfigReconciler) newAssistedServiceDeployment(ctx context.
 	// User is responsible for:
 	// - knowing to restart assisted-service when specifying the configmap via annotation
 	// - removing the annotation when the configmap is deleted
-	userConfigName, ok := instance.ObjectMeta.GetAnnotations()[configmapAnnotation]
+	userConfigName, ok := asc.Object.GetAnnotations()[configmapAnnotation]
 	if ok {
-		log.Infof("ConfigMap %s from namespace %s being used to configure assisted-service deployment", userConfigName, r.Namespace)
-		userConfigHash, err = r.getCMHash(ctx, types.NamespacedName{Name: userConfigName, Namespace: r.Namespace})
+		log.Infof("ConfigMap %s from namespace %s being used to configure assisted-service deployment", userConfigName, asc.namespace)
+		userConfigHash, err = getCMHash(ctx, asc, types.NamespacedName{Name: userConfigName, Namespace: asc.namespace})
 		if err != nil {
 			return nil, nil, err
 		}
@@ -1477,10 +1509,10 @@ func (r *AgentServiceConfigReconciler) newAssistedServiceDeployment(ctx context.
 		},
 	}
 
-	if instance.Spec.MirrorRegistryRef != nil {
+	if asc.spec.MirrorRegistryRef != nil {
 		cm := &corev1.ConfigMap{}
-		namespacedName := types.NamespacedName{Name: instance.Spec.MirrorRegistryRef.Name, Namespace: r.Namespace}
-		err := r.Get(ctx, namespacedName, cm)
+		namespacedName := types.NamespacedName{Name: asc.spec.MirrorRegistryRef.Name, Namespace: asc.namespace}
+		err := asc.rec.Client.Get(ctx, namespacedName, cm)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -1492,12 +1524,12 @@ func (r *AgentServiceConfigReconciler) newAssistedServiceDeployment(ctx context.
 
 		// require that the registries config key be specified before continuing
 		if _, ok := cm.Data[mirrorRegistryRefRegistryConfKey]; !ok {
-			err = fmt.Errorf("Mirror registry configmap %s missing key %s", instance.Spec.MirrorRegistryRef.Name, mirrorRegistryRefRegistryConfKey)
+			err = fmt.Errorf("Mirror registry configmap %s missing key %s", asc.spec.MirrorRegistryRef.Name, mirrorRegistryRefRegistryConfKey)
 			return nil, nil, err
 		}
 
 		// make sure configmap is being backed up
-		if err := ensureConfigMapIsLabelled(ctx, r.Client, cm, namespacedName); err != nil {
+		if err := ensureConfigMapIsLabelled(ctx, asc.rec.Client, cm, namespacedName); err != nil {
 			return nil, nil, pkgerror.Wrapf(err, "Unable to mark mirror configmap for backup")
 		}
 
@@ -1505,7 +1537,7 @@ func (r *AgentServiceConfigReconciler) newAssistedServiceDeployment(ctx context.
 			Name: mirrorRegistryConfigVolume,
 			VolumeSource: corev1.VolumeSource{
 				ConfigMap: &corev1.ConfigMapVolumeSource{
-					LocalObjectReference: *instance.Spec.MirrorRegistryRef,
+					LocalObjectReference: *asc.spec.MirrorRegistryRef,
 					DefaultMode:          swag.Int32(420),
 					Items: []corev1.KeyToPath{
 						{
@@ -1561,7 +1593,7 @@ func (r *AgentServiceConfigReconciler) newAssistedServiceDeployment(ctx context.
 	deployment := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      serviceName,
-			Namespace: r.Namespace,
+			Namespace: asc.namespace,
 		},
 		Spec: appsv1.DeploymentSpec{
 			Selector: &metav1.LabelSelector{
@@ -1577,7 +1609,7 @@ func (r *AgentServiceConfigReconciler) newAssistedServiceDeployment(ctx context.
 	}
 
 	mutateFn := func() error {
-		if err := controllerutil.SetControllerReference(instance, deployment, r.Scheme); err != nil {
+		if err := controllerutil.SetControllerReference(asc.Object, deployment, asc.rec.Scheme); err != nil {
 			return err
 		}
 		var replicas int32 = 1
@@ -1596,14 +1628,14 @@ func (r *AgentServiceConfigReconciler) newAssistedServiceDeployment(ctx context.
 		deployment.Spec.Template.Spec.Volumes = volumes
 		deployment.Spec.Template.Spec.ServiceAccountName = serviceAccountName
 
-		if r.NodeSelector != nil {
-			deployment.Spec.Template.Spec.NodeSelector = r.NodeSelector
+		if asc.rec.NodeSelector != nil {
+			deployment.Spec.Template.Spec.NodeSelector = asc.rec.NodeSelector
 		} else {
 			deployment.Spec.Template.Spec.NodeSelector = map[string]string{}
 		}
 
-		if r.Tolerations != nil {
-			deployment.Spec.Template.Spec.Tolerations = r.Tolerations
+		if asc.rec.Tolerations != nil {
+			deployment.Spec.Template.Spec.Tolerations = asc.rec.Tolerations
 		} else {
 			deployment.Spec.Template.Spec.Tolerations = []corev1.Toleration{}
 		}
@@ -1636,12 +1668,12 @@ func checkIngressCMName(obj metav1.Object) bool {
 //
 // 3. In case both sources are present, the Spec values overrides the env
 //    values
-func (r *AgentServiceConfigReconciler) getMustGatherImages(log logrus.FieldLogger, instance *aiv1beta1.AgentServiceConfig) string {
-	if instance.Spec.MustGatherImages == nil {
+func getMustGatherImages(log logrus.FieldLogger, spec *aiv1beta1.AgentServiceConfigSpec) string {
+	if spec.MustGatherImages == nil {
 		return MustGatherImages()
 	}
 	mustGatherVersions := make(versions.MustGatherVersions)
-	for _, specImage := range instance.Spec.MustGatherImages {
+	for _, specImage := range spec.MustGatherImages {
 		versionKey, err := getVersionKey(specImage.OpenshiftVersion)
 		if err != nil {
 			log.WithError(err).Error(fmt.Sprintf("Problem parsing OpenShift version %v, skipping.", specImage.OpenshiftVersion))
@@ -1678,18 +1710,18 @@ func (r *AgentServiceConfigReconciler) getMustGatherImages(log logrus.FieldLogge
 //
 // 3. In case both sources are present, the Spec values overrides the env
 //    values.
-func (r *AgentServiceConfigReconciler) getOSImages(log logrus.FieldLogger, instance *aiv1beta1.AgentServiceConfig) string {
-	if instance.Spec.OSImages == nil {
+func getOSImages(log logrus.FieldLogger, spec *aiv1beta1.AgentServiceConfigSpec) string {
+	if spec.OSImages == nil {
 		return OSImages()
 	}
 
 	osImages := make(models.OsImages, 0)
-	for i := range instance.Spec.OSImages {
+	for i := range spec.OSImages {
 		osImage := models.OsImage{
-			OpenshiftVersion: &instance.Spec.OSImages[i].OpenshiftVersion,
-			URL:              &instance.Spec.OSImages[i].Url,
-			Version:          &instance.Spec.OSImages[i].Version,
-			CPUArchitecture:  &instance.Spec.OSImages[i].CPUArchitecture,
+			OpenshiftVersion: &spec.OSImages[i].OpenshiftVersion,
+			URL:              &spec.OSImages[i].Url,
+			Version:          &spec.OSImages[i].Version,
+			CPUArchitecture:  &spec.OSImages[i].CPUArchitecture,
 		}
 		osImages = append(osImages, &osImage)
 	}
@@ -1709,8 +1741,8 @@ func (r *AgentServiceConfigReconciler) getOSImages(log logrus.FieldLogger, insta
 }
 
 // exposeIPXEHTTPRoute returns true if spec.IPXEHTTPRoute is set to true
-func (r *AgentServiceConfigReconciler) exposeIPXEHTTPRoute(instance *aiv1beta1.AgentServiceConfig) bool {
-	switch instance.Spec.IPXEHTTPRoute {
+func exposeIPXEHTTPRoute(spec *aiv1beta1.AgentServiceConfigSpec) bool {
+	switch spec.IPXEHTTPRoute {
 	case aiv1beta1.IPXEHTTPRouteEnabled:
 		return true
 	case aiv1beta1.IPXEHTTPRouteDisabled:
@@ -1720,9 +1752,9 @@ func (r *AgentServiceConfigReconciler) exposeIPXEHTTPRoute(instance *aiv1beta1.A
 	}
 }
 
-func (r *AgentServiceConfigReconciler) getCMHash(ctx context.Context, namespacedName types.NamespacedName) (string, error) {
+func getCMHash(ctx context.Context, asc ASC, namespacedName types.NamespacedName) (string, error) {
 	cm := &corev1.ConfigMap{}
-	if err := r.Get(ctx, namespacedName, cm); err != nil {
+	if err := asc.rec.Client.Get(ctx, namespacedName, cm); err != nil {
 		return "", err
 	}
 	return checksumMap(cm.Data)
@@ -1752,7 +1784,7 @@ func newSecretEnvVar(name, key, secretName string) corev1.EnvVar {
 	}
 }
 
-func (r *AgentServiceConfigReconciler) newInfraEnvWebHook(ctx context.Context, log logrus.FieldLogger, instance *aiv1beta1.AgentServiceConfig) (client.Object, controllerutil.MutateFn, error) {
+func newInfraEnvWebHook(ctx context.Context, log logrus.FieldLogger, asc ASC) (client.Object, controllerutil.MutateFn, error) {
 	fp := admregv1.Fail
 	se := admregv1.SideEffectClassNone
 	path := "/apis/admission.agentinstall.openshift.io/v1/infraenvvalidators"
@@ -1806,7 +1838,7 @@ func (r *AgentServiceConfigReconciler) newInfraEnvWebHook(ctx context.Context, l
 	return &aci, mutateFn, nil
 }
 
-func (r *AgentServiceConfigReconciler) newAgentWebHook(ctx context.Context, log logrus.FieldLogger, instance *aiv1beta1.AgentServiceConfig) (client.Object, controllerutil.MutateFn, error) {
+func newAgentWebHook(ctx context.Context, log logrus.FieldLogger, asc ASC) (client.Object, controllerutil.MutateFn, error) {
 	fp := admregv1.Fail
 	se := admregv1.SideEffectClassNone
 	path := "/apis/admission.agentinstall.openshift.io/v1/agentvalidators"
@@ -1860,7 +1892,7 @@ func (r *AgentServiceConfigReconciler) newAgentWebHook(ctx context.Context, log 
 	return &agent, mutateFn, nil
 }
 
-func (r *AgentServiceConfigReconciler) newACIMutatWebHook(ctx context.Context, log logrus.FieldLogger, instance *aiv1beta1.AgentServiceConfig) (client.Object, controllerutil.MutateFn, error) {
+func newACIMutatWebHook(ctx context.Context, log logrus.FieldLogger, asc ASC) (client.Object, controllerutil.MutateFn, error) {
 	fp := admregv1.Fail
 	se := admregv1.SideEffectClassNone
 	path := "/apis/admission.agentinstall.openshift.io/v1/agentclusterinstallmutators"
@@ -1915,7 +1947,7 @@ func (r *AgentServiceConfigReconciler) newACIMutatWebHook(ctx context.Context, l
 	return &aci, mutateFn, nil
 }
 
-func (r *AgentServiceConfigReconciler) newACIWebHook(ctx context.Context, log logrus.FieldLogger, instance *aiv1beta1.AgentServiceConfig) (client.Object, controllerutil.MutateFn, error) {
+func newACIWebHook(ctx context.Context, log logrus.FieldLogger, asc ASC) (client.Object, controllerutil.MutateFn, error) {
 	fp := admregv1.Fail
 	se := admregv1.SideEffectClassNone
 	path := "/apis/admission.agentinstall.openshift.io/v1/agentclusterinstallvalidators"
@@ -1970,11 +2002,11 @@ func (r *AgentServiceConfigReconciler) newACIWebHook(ctx context.Context, log lo
 	return &aci, mutateFn, nil
 }
 
-func (r *AgentServiceConfigReconciler) newWebHookServiceAccount(ctx context.Context, log logrus.FieldLogger, instance *aiv1beta1.AgentServiceConfig) (client.Object, controllerutil.MutateFn, error) {
+func newWebHookServiceAccount(ctx context.Context, log logrus.FieldLogger, asc ASC) (client.Object, controllerutil.MutateFn, error) {
 	sa := corev1.ServiceAccount{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "agentinstalladmission",
-			Namespace: r.Namespace,
+			Namespace: asc.namespace,
 		},
 	}
 
@@ -1984,7 +2016,7 @@ func (r *AgentServiceConfigReconciler) newWebHookServiceAccount(ctx context.Cont
 	return &sa, mutateFn, nil
 }
 
-func (r *AgentServiceConfigReconciler) newWebHookClusterRoleBinding(ctx context.Context, log logrus.FieldLogger, instance *aiv1beta1.AgentServiceConfig) (client.Object, controllerutil.MutateFn, error) {
+func newWebHookClusterRoleBinding(ctx context.Context, log logrus.FieldLogger, asc ASC) (client.Object, controllerutil.MutateFn, error) {
 	roleRef := rbacv1.RoleRef{
 		APIGroup: "rbac.authorization.k8s.io",
 		Kind:     "ClusterRole",
@@ -1993,7 +2025,7 @@ func (r *AgentServiceConfigReconciler) newWebHookClusterRoleBinding(ctx context.
 	subjects := []rbacv1.Subject{
 		{
 			Kind:      "ServiceAccount",
-			Namespace: r.Namespace,
+			Namespace: asc.namespace,
 			Name:      "agentinstalladmission",
 		},
 	}
@@ -2013,7 +2045,7 @@ func (r *AgentServiceConfigReconciler) newWebHookClusterRoleBinding(ctx context.
 	return &crb, mutateFn, nil
 }
 
-func (r *AgentServiceConfigReconciler) newWebHookClusterRole(ctx context.Context, log logrus.FieldLogger, instance *aiv1beta1.AgentServiceConfig) (client.Object, controllerutil.MutateFn, error) {
+func newWebHookClusterRole(ctx context.Context, log logrus.FieldLogger, asc ASC) (client.Object, controllerutil.MutateFn, error) {
 	rules := []rbacv1.PolicyRule{
 		{
 			APIGroups: []string{
@@ -2080,16 +2112,16 @@ func (r *AgentServiceConfigReconciler) newWebHookClusterRole(ctx context.Context
 	return &cr, mutateFn, nil
 }
 
-func (r *AgentServiceConfigReconciler) newWebHookService(ctx context.Context, log logrus.FieldLogger, instance *aiv1beta1.AgentServiceConfig) (client.Object, controllerutil.MutateFn, error) {
+func newWebHookService(ctx context.Context, log logrus.FieldLogger, asc ASC) (client.Object, controllerutil.MutateFn, error) {
 	svc := &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      webhookServiceName,
-			Namespace: r.Namespace,
+			Namespace: asc.namespace,
 		},
 	}
 
 	mutateFn := func() error {
-		if err := controllerutil.SetControllerReference(instance, svc, r.Scheme); err != nil {
+		if err := controllerutil.SetControllerReference(asc.Object, svc, asc.rec.Scheme); err != nil {
 			return err
 		}
 		addAppLabel(webhookServiceName, &svc.ObjectMeta)
@@ -2112,7 +2144,7 @@ func (r *AgentServiceConfigReconciler) newWebHookService(ctx context.Context, lo
 	return svc, mutateFn, nil
 }
 
-func (r *AgentServiceConfigReconciler) newWebHookAPIService(ctx context.Context, log logrus.FieldLogger, instance *aiv1beta1.AgentServiceConfig) (client.Object, controllerutil.MutateFn, error) {
+func newWebHookAPIService(ctx context.Context, log logrus.FieldLogger, asc ASC) (client.Object, controllerutil.MutateFn, error) {
 	as := &apiregv1.APIService{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "v1.admission.agentinstall.openshift.io",
@@ -2120,7 +2152,7 @@ func (r *AgentServiceConfigReconciler) newWebHookAPIService(ctx context.Context,
 	}
 
 	mutateFn := func() error {
-		if err := controllerutil.SetControllerReference(instance, as, r.Scheme); err != nil {
+		if err := controllerutil.SetControllerReference(asc.Object, as, asc.rec.Scheme); err != nil {
 			return err
 		}
 
@@ -2134,14 +2166,14 @@ func (r *AgentServiceConfigReconciler) newWebHookAPIService(ctx context.Context,
 		as.Spec.Version = "v1"
 		as.Spec.Service = &apiregv1.ServiceReference{
 			Name:      "agentinstalladmission",
-			Namespace: r.Namespace,
+			Namespace: asc.namespace,
 		}
 		return nil
 	}
 	return as, mutateFn, nil
 }
 
-func (r *AgentServiceConfigReconciler) newWebHookDeployment(ctx context.Context, log logrus.FieldLogger, instance *aiv1beta1.AgentServiceConfig) (client.Object, controllerutil.MutateFn, error) {
+func newWebHookDeployment(ctx context.Context, log logrus.FieldLogger, asc ASC) (client.Object, controllerutil.MutateFn, error) {
 	serviceContainer := corev1.Container{
 		Name:  "agentinstalladmission",
 		Image: ServiceImage(),
@@ -2197,7 +2229,7 @@ func (r *AgentServiceConfigReconciler) newWebHookDeployment(ctx context.Context,
 	deployment := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "agentinstalladmission",
-			Namespace: r.Namespace,
+			Namespace: asc.namespace,
 		},
 		Spec: appsv1.DeploymentSpec{
 			Selector: &metav1.LabelSelector{
@@ -2213,7 +2245,7 @@ func (r *AgentServiceConfigReconciler) newWebHookDeployment(ctx context.Context,
 	}
 
 	mutateFn := func() error {
-		if err := controllerutil.SetControllerReference(instance, deployment, r.Scheme); err != nil {
+		if err := controllerutil.SetControllerReference(asc.Object, deployment, asc.rec.Scheme); err != nil {
 			return err
 		}
 		var replicas int32 = 2
@@ -2237,8 +2269,8 @@ func getStorageRequests(pvcSpec *corev1.PersistentVolumeClaimSpec) map[corev1.Re
 	return requests
 }
 
-func (r *AgentServiceConfigReconciler) getImageService(ctx context.Context, log logrus.FieldLogger) string {
-	imageServiceURL, err := r.urlForRoute(ctx, imageServiceName)
+func getImageService(ctx context.Context, log logrus.FieldLogger, asc ASC) string {
+	imageServiceURL, err := urlForRoute(ctx, asc, imageServiceName)
 	if err != nil {
 		log.WithError(err).Warnf("Failed to get URL for route %s", imageServiceName)
 		return ""
