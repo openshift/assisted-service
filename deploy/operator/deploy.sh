@@ -65,6 +65,7 @@ ${__dir}/setup_lso.sh create_local_volume
 # Hive #
 ########
 
+export HIVE_DEPLOYMENT_METHOD="from_upstream"
 ${__dir}/setup_hive.sh "${HIVE_DEPLOYMENT_METHOD}"
 
 ############
