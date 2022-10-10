@@ -456,6 +456,6 @@ var _ = Describe("[V2ClusterTests] multiarch", func() {
 
 		Expect(err).To(HaveOccurred())
 		actual := err.(*installer.RegisterInfraEnvBadRequest)
-		Expect(*actual.Payload.Reason).To(ContainSubstring("The requested CPU architecture (fake-chocobomb-architecture) isn't specified in release images list"))
+		Expect(*actual.Payload.Reason).To(ContainSubstring("does not have a matching OpenShift release image"))
 	})
 })

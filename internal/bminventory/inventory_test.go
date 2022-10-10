@@ -6300,11 +6300,10 @@ var _ = Describe("infraEnvs", func() {
 			err := db.Create(&cluster).Error
 			Expect(err).ShouldNot(HaveOccurred())
 
-			mockVersions.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any()).Return(
-				nil, errors.Errorf("The requested CPU architecture (chocobomb-architecture) isn't specified in release images list")).Times(1)
+			mockVersions.EXPECT().ValidateReleaseImageForRHCOS(gomock.Any(), gomock.Any()).Return(
+				errors.Errorf("chocobomb-architecture is a nonsense architecture")).Times(1)
 			mockEvents.EXPECT().SendInfraEnvEvent(ctx, eventstest.NewEventMatcher(
-				eventstest.WithNameMatcher(eventgen.InfraEnvRegistrationFailedEventName),
-				eventstest.WithMessageContainsMatcher("The requested CPU architecture (chocobomb-architecture) isn't specified in release images list"))).Times(1)
+				eventstest.WithNameMatcher(eventgen.InfraEnvRegistrationFailedEventName))).Times(1)
 
 			reply := bm.RegisterInfraEnv(ctx, installer.RegisterInfraEnvParams{
 				InfraenvCreateParams: &models.InfraEnvCreateParams{
