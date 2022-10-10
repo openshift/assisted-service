@@ -419,7 +419,7 @@ var _ = Describe("Validations test", func() {
 		Describe("Wildcard connectivity check is performed", func() {
 			successMessage := "DNS wildcard check was successful"
 			successMessageDay2 := "DNS wildcard check is not required for day2"
-			failureMessage := "DNS wildcard configuration was detected for domain *.test-cluster.example.com The installation will not be able to complete while the entry exists. Please remove it to proceed."
+			failureMessage := "DNS wildcard configuration was detected for domain *.test-cluster.example.com - the installation will not be able to complete while this record exists. Please remove it to proceed. The domain resolves to addresses 7.8.9.10/24, 1003:db8::40/120"
 			errorMessage := "Error while parsing DNS resolution response"
 			pendingMessage := "DNS wildcard check cannot be performed yet because the host has not yet performed DNS resolution"
 
