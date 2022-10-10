@@ -1534,7 +1534,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		deployInfraEnvCRD(ctx, kubeClient, infraEnvFake.Name, infraEnvSpec)
 
 		checkInfraEnvCondition(ctx, infraEnvFake, v1beta1.ImageCreatedCondition,
-			"Failed to create image: The requested CPU architecture (fake) isn't specified in release images list")
+			"does not have a matching OpenShift release image")
 
 		By("fail to deploy infraenv with PowerPC architecture")
 		infraEnvSpec.CpuArchitecture = common.PowerCPUArchitecture
