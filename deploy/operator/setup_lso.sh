@@ -23,7 +23,7 @@ function install_lso() {
   catalog_source_name="redhat-operators"
 
   OC_VERSION_MAJOR_MINOR=$(oc version -o json | jq --raw-output '.openshiftVersion' | cut -d'.' -f1-2)
-  if [[ ${OC_VERSION_MAJOR_MINOR} == "4.12" ]]; then
+  if [[ ${OC_VERSION_MAJOR_MINOR} == "4.12" && "${DISCONNECTED}" != true ]]; then
       # LSO has not been published to the 4.12 redhat-operators catalog, so
       # it cannot be installed on OpenShift 4.12. Until this is resolved,
       # we explicitly install the 4.11 catalog as redhat-operators-v4-11
