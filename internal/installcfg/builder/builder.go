@@ -160,7 +160,10 @@ func (i *installConfigBuilder) applyConfigOverrides(overrides string, cfg *insta
 		return nil
 	}
 
-	if err := json.Unmarshal([]byte(overrides), cfg); err != nil {
+	overrideDecoder := json.NewDecoder(strings.NewReader(overrides))
+	overrideDecoder.DisallowUnknownFields()
+
+	if err := overrideDecoder.Decode(cfg); err != nil {
 		return err
 	}
 	return nil
