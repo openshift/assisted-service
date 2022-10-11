@@ -34,7 +34,6 @@ By continuing to read this document you will learn how to build and deploy Assis
 
 1. Docker or Podman. <br>
 For podman make sure to [enable podman socket](docs/dev/podman.md) and update skipper.yaml to map it properly
-[Buildkit](https://github.com/moby/buildkit) should be enabled (DOCKER_BUILDKIT=1 for Docker, podman 4 or greater)
 1. skipper <https://github.com/stratoscale/skipper>
 1. minikube (for tests)
 1. kubectl
