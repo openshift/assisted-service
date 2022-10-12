@@ -205,7 +205,7 @@ EOCR
 
   wait_for_operator "assisted-service-operator" "${ASSISTED_NAMESPACE}"
   wait_for_condition "agentserviceconfigs/agent" "ReconcileCompleted" "5m"
-  wait_for_pod "assisted-service" "${ASSISTED_NAMESPACE}" "app=assisted-service"
+  wait_for_deployment "assisted-service" "${ASSISTED_NAMESPACE}"
   wait_for_pod "assisted-image-service" "${ASSISTED_NAMESPACE}" "app=assisted-image-service"
 
   echo "Enabling configuration of BMH resources outside of openshift-machine-api namespace"
