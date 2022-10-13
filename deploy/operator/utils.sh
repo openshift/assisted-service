@@ -47,6 +47,19 @@ function wait_for_pods(){
   echo "Pods in namespace $1 are ready"
 }
 
+function wait_for_deployment() {
+    deployment="$1"
+    namespace="${2:-}"
+
+    echo "Waiting for (deployment) on namespace (${namespace}) with name (${deployment}) to be created..."
+    for i in {1..40}; do
+        oc get deployment "${deployment}" --namespace=${namespace} |& grep -ivE "(no resources found|not found)" && break || sleep 10
+    done
+
+    echo "Waiting for (deployment) on namespace (${namespace}) with name (${deployment}) to rollout..."
+    oc rollout status deploy/${deployment} -n "${namespace}" --timeout=${timeout}
+}
+
 function hash() {
     input=$1
     length=$2
