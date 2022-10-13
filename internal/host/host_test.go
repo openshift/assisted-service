@@ -1271,6 +1271,28 @@ var _ = Describe("UpdateInventory", func() {
 		})
 	})
 
+	It("Does not set bootstrap host when BootstrapHostMAC is specified and cluster ID is not set", func() {
+		hapi.(*Manager).Config.BootstrapHostMAC = "52:00:00:01:02:03"
+		mockValidator.EXPECT().ListEligibleDisks(gomock.Any()).Return([]*models.Disk{})
+		host = hostutil.GenerateTestHost(hostId, infraEnvId, "", models.HostStatusDiscovering)
+		inventory := models.Inventory{
+			Interfaces: []*models.Interface{
+				{
+					MacAddress: "52:00:00:01:02:03",
+				},
+			},
+		}
+		inventoryStr, err := common.MarshalInventory(&inventory)
+		Expect(err).NotTo(HaveOccurred())
+		host.Inventory = inventoryStr
+		Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
+		Expect(hapi.UpdateInventory(ctx, &host, host.Inventory)).To(Succeed())
+
+		h := hostutil.GetHostFromDB(hostId, infraEnvId, db)
+		Expect(h).NotTo(BeNil())
+		Expect(h.Role).NotTo(Equal(models.HostRoleBootstrap))
+	})
+
 	Context("Test update default installation disk", func() {
 		const (
 			diskName = "FirstDisk"
