@@ -505,6 +505,25 @@ x-events:
     cluster_id: UUID_PTR
     host_name: string
 
+- name: host_bind_succeeded
+  message: "Host {host_name}: Successfully bound to cluster {cluster_id}"
+  event_type: host
+  severity: "info"
+  properties:
+    host_id: UUID
+    infra_env_id: UUID
+    cluster_id: UUID_PTR
+    host_name: string
+
+- name: host_unbind_succeeded
+  message: "Host {host_name}: Successfully unbound from cluster"
+  event_type: host
+  severity: "info"
+  properties:
+    host_id: UUID
+    infra_env_id: UUID
+    host_name: string
+
 - name: generate_image_format_failed
   message: "Failed to generate image: error formatting ignition file"
   event_type: infra_env
@@ -553,6 +572,25 @@ x-events:
     host_id: UUID
     infra_env_id: UUID
     cluster_id: UUID_PTR
+    message: string
+
+- name: host_bind_failed
+  message: "Failed to bind host {host_id} to cluster {cluster_id}: {message}"
+  event_type: host
+  severity: "error"
+  properties:
+    host_id: UUID
+    infra_env_id: UUID
+    cluster_id: UUID_PTR
+    message: string
+
+- name: host_unbind_failed
+  message: "Failed to unbind host {host_id} to cluster: {message}"
+  event_type: host
+  severity: "error"
+  properties:
+    host_id: UUID
+    infra_env_id: UUID
     message: string
 
 - name: inactive_clusters_deregistered

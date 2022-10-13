@@ -4739,6 +4739,188 @@ func (e *HostRegistrationSucceededEvent) FormatMessage() string {
 }
 
 //
+// Event host_bind_succeeded
+//
+type HostBindSucceededEvent struct {
+    eventName string
+    HostId strfmt.UUID
+    InfraEnvId strfmt.UUID
+    ClusterId *strfmt.UUID
+    HostName string
+}
+
+var HostBindSucceededEventName string = "host_bind_succeeded"
+
+func NewHostBindSucceededEvent(
+    hostId strfmt.UUID,
+    infraEnvId strfmt.UUID,
+    clusterId *strfmt.UUID,
+    hostName string,
+) *HostBindSucceededEvent {
+    return &HostBindSucceededEvent{
+        eventName: HostBindSucceededEventName,
+        HostId: hostId,
+        InfraEnvId: infraEnvId,
+        ClusterId: clusterId,
+        HostName: hostName,
+    }
+}
+
+func SendHostBindSucceededEvent(
+    ctx context.Context,
+    eventsHandler eventsapi.Sender,
+    hostId strfmt.UUID,
+    infraEnvId strfmt.UUID,
+    clusterId *strfmt.UUID,
+    hostName string,) {
+    ev := NewHostBindSucceededEvent(
+        hostId,
+        infraEnvId,
+        clusterId,
+        hostName,
+    )
+    eventsHandler.SendHostEvent(ctx, ev)
+}
+
+func SendHostBindSucceededEventAtTime(
+    ctx context.Context,
+    eventsHandler eventsapi.Sender,
+    hostId strfmt.UUID,
+    infraEnvId strfmt.UUID,
+    clusterId *strfmt.UUID,
+    hostName string,
+    eventTime time.Time) {
+    ev := NewHostBindSucceededEvent(
+        hostId,
+        infraEnvId,
+        clusterId,
+        hostName,
+    )
+    eventsHandler.SendHostEventAtTime(ctx, ev, eventTime)
+}
+
+func (e *HostBindSucceededEvent) GetName() string {
+    return e.eventName
+}
+
+func (e *HostBindSucceededEvent) GetSeverity() string {
+    return "info"
+}
+func (e *HostBindSucceededEvent) GetClusterId() *strfmt.UUID {
+    return e.ClusterId
+}
+func (e *HostBindSucceededEvent) GetHostId() strfmt.UUID {
+    return e.HostId
+}
+func (e *HostBindSucceededEvent) GetInfraEnvId() strfmt.UUID {
+    return e.InfraEnvId
+}
+
+
+
+func (e *HostBindSucceededEvent) format(message *string) string {
+    r := strings.NewReplacer(
+        "{host_id}", fmt.Sprint(e.HostId),
+        "{infra_env_id}", fmt.Sprint(e.InfraEnvId),
+        "{cluster_id}", fmt.Sprint(e.ClusterId),
+        "{host_name}", fmt.Sprint(e.HostName),
+    )
+    return r.Replace(*message)
+}
+
+func (e *HostBindSucceededEvent) FormatMessage() string {
+    s := "Host {host_name}: Successfully bound to cluster {cluster_id}"
+    return e.format(&s)
+}
+
+//
+// Event host_unbind_succeeded
+//
+type HostUnbindSucceededEvent struct {
+    eventName string
+    HostId strfmt.UUID
+    InfraEnvId strfmt.UUID
+    HostName string
+}
+
+var HostUnbindSucceededEventName string = "host_unbind_succeeded"
+
+func NewHostUnbindSucceededEvent(
+    hostId strfmt.UUID,
+    infraEnvId strfmt.UUID,
+    hostName string,
+) *HostUnbindSucceededEvent {
+    return &HostUnbindSucceededEvent{
+        eventName: HostUnbindSucceededEventName,
+        HostId: hostId,
+        InfraEnvId: infraEnvId,
+        HostName: hostName,
+    }
+}
+
+func SendHostUnbindSucceededEvent(
+    ctx context.Context,
+    eventsHandler eventsapi.Sender,
+    hostId strfmt.UUID,
+    infraEnvId strfmt.UUID,
+    hostName string,) {
+    ev := NewHostUnbindSucceededEvent(
+        hostId,
+        infraEnvId,
+        hostName,
+    )
+    eventsHandler.SendHostEvent(ctx, ev)
+}
+
+func SendHostUnbindSucceededEventAtTime(
+    ctx context.Context,
+    eventsHandler eventsapi.Sender,
+    hostId strfmt.UUID,
+    infraEnvId strfmt.UUID,
+    hostName string,
+    eventTime time.Time) {
+    ev := NewHostUnbindSucceededEvent(
+        hostId,
+        infraEnvId,
+        hostName,
+    )
+    eventsHandler.SendHostEventAtTime(ctx, ev, eventTime)
+}
+
+func (e *HostUnbindSucceededEvent) GetName() string {
+    return e.eventName
+}
+
+func (e *HostUnbindSucceededEvent) GetSeverity() string {
+    return "info"
+}
+func (e *HostUnbindSucceededEvent) GetClusterId() *strfmt.UUID {
+    return nil
+}
+func (e *HostUnbindSucceededEvent) GetHostId() strfmt.UUID {
+    return e.HostId
+}
+func (e *HostUnbindSucceededEvent) GetInfraEnvId() strfmt.UUID {
+    return e.InfraEnvId
+}
+
+
+
+func (e *HostUnbindSucceededEvent) format(message *string) string {
+    r := strings.NewReplacer(
+        "{host_id}", fmt.Sprint(e.HostId),
+        "{infra_env_id}", fmt.Sprint(e.InfraEnvId),
+        "{host_name}", fmt.Sprint(e.HostName),
+    )
+    return r.Replace(*message)
+}
+
+func (e *HostUnbindSucceededEvent) FormatMessage() string {
+    s := "Host {host_name}: Successfully unbound from cluster"
+    return e.format(&s)
+}
+
+//
 // Event generate_image_format_failed
 //
 type GenerateImageFormatFailedEvent struct {
@@ -5213,6 +5395,188 @@ func (e *HostRegistrationFailedEvent) format(message *string) string {
 
 func (e *HostRegistrationFailedEvent) FormatMessage() string {
     s := "{message}"
+    return e.format(&s)
+}
+
+//
+// Event host_bind_failed
+//
+type HostBindFailedEvent struct {
+    eventName string
+    HostId strfmt.UUID
+    InfraEnvId strfmt.UUID
+    ClusterId *strfmt.UUID
+    Message string
+}
+
+var HostBindFailedEventName string = "host_bind_failed"
+
+func NewHostBindFailedEvent(
+    hostId strfmt.UUID,
+    infraEnvId strfmt.UUID,
+    clusterId *strfmt.UUID,
+    message string,
+) *HostBindFailedEvent {
+    return &HostBindFailedEvent{
+        eventName: HostBindFailedEventName,
+        HostId: hostId,
+        InfraEnvId: infraEnvId,
+        ClusterId: clusterId,
+        Message: message,
+    }
+}
+
+func SendHostBindFailedEvent(
+    ctx context.Context,
+    eventsHandler eventsapi.Sender,
+    hostId strfmt.UUID,
+    infraEnvId strfmt.UUID,
+    clusterId *strfmt.UUID,
+    message string,) {
+    ev := NewHostBindFailedEvent(
+        hostId,
+        infraEnvId,
+        clusterId,
+        message,
+    )
+    eventsHandler.SendHostEvent(ctx, ev)
+}
+
+func SendHostBindFailedEventAtTime(
+    ctx context.Context,
+    eventsHandler eventsapi.Sender,
+    hostId strfmt.UUID,
+    infraEnvId strfmt.UUID,
+    clusterId *strfmt.UUID,
+    message string,
+    eventTime time.Time) {
+    ev := NewHostBindFailedEvent(
+        hostId,
+        infraEnvId,
+        clusterId,
+        message,
+    )
+    eventsHandler.SendHostEventAtTime(ctx, ev, eventTime)
+}
+
+func (e *HostBindFailedEvent) GetName() string {
+    return e.eventName
+}
+
+func (e *HostBindFailedEvent) GetSeverity() string {
+    return "error"
+}
+func (e *HostBindFailedEvent) GetClusterId() *strfmt.UUID {
+    return e.ClusterId
+}
+func (e *HostBindFailedEvent) GetHostId() strfmt.UUID {
+    return e.HostId
+}
+func (e *HostBindFailedEvent) GetInfraEnvId() strfmt.UUID {
+    return e.InfraEnvId
+}
+
+
+
+func (e *HostBindFailedEvent) format(message *string) string {
+    r := strings.NewReplacer(
+        "{host_id}", fmt.Sprint(e.HostId),
+        "{infra_env_id}", fmt.Sprint(e.InfraEnvId),
+        "{cluster_id}", fmt.Sprint(e.ClusterId),
+        "{message}", fmt.Sprint(e.Message),
+    )
+    return r.Replace(*message)
+}
+
+func (e *HostBindFailedEvent) FormatMessage() string {
+    s := "Failed to bind host {host_id} to cluster {cluster_id}: {message}"
+    return e.format(&s)
+}
+
+//
+// Event host_unbind_failed
+//
+type HostUnbindFailedEvent struct {
+    eventName string
+    HostId strfmt.UUID
+    InfraEnvId strfmt.UUID
+    Message string
+}
+
+var HostUnbindFailedEventName string = "host_unbind_failed"
+
+func NewHostUnbindFailedEvent(
+    hostId strfmt.UUID,
+    infraEnvId strfmt.UUID,
+    message string,
+) *HostUnbindFailedEvent {
+    return &HostUnbindFailedEvent{
+        eventName: HostUnbindFailedEventName,
+        HostId: hostId,
+        InfraEnvId: infraEnvId,
+        Message: message,
+    }
+}
+
+func SendHostUnbindFailedEvent(
+    ctx context.Context,
+    eventsHandler eventsapi.Sender,
+    hostId strfmt.UUID,
+    infraEnvId strfmt.UUID,
+    message string,) {
+    ev := NewHostUnbindFailedEvent(
+        hostId,
+        infraEnvId,
+        message,
+    )
+    eventsHandler.SendHostEvent(ctx, ev)
+}
+
+func SendHostUnbindFailedEventAtTime(
+    ctx context.Context,
+    eventsHandler eventsapi.Sender,
+    hostId strfmt.UUID,
+    infraEnvId strfmt.UUID,
+    message string,
+    eventTime time.Time) {
+    ev := NewHostUnbindFailedEvent(
+        hostId,
+        infraEnvId,
+        message,
+    )
+    eventsHandler.SendHostEventAtTime(ctx, ev, eventTime)
+}
+
+func (e *HostUnbindFailedEvent) GetName() string {
+    return e.eventName
+}
+
+func (e *HostUnbindFailedEvent) GetSeverity() string {
+    return "error"
+}
+func (e *HostUnbindFailedEvent) GetClusterId() *strfmt.UUID {
+    return nil
+}
+func (e *HostUnbindFailedEvent) GetHostId() strfmt.UUID {
+    return e.HostId
+}
+func (e *HostUnbindFailedEvent) GetInfraEnvId() strfmt.UUID {
+    return e.InfraEnvId
+}
+
+
+
+func (e *HostUnbindFailedEvent) format(message *string) string {
+    r := strings.NewReplacer(
+        "{host_id}", fmt.Sprint(e.HostId),
+        "{infra_env_id}", fmt.Sprint(e.InfraEnvId),
+        "{message}", fmt.Sprint(e.Message),
+    )
+    return r.Replace(*message)
+}
+
+func (e *HostUnbindFailedEvent) FormatMessage() string {
+    s := "Failed to unbind host {host_id} to cluster: {message}"
     return e.format(&s)
 }
 
