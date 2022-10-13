@@ -31,6 +31,8 @@ function gather_cluster_data() {
 function gather_operator_data() {
   oc get all -n "${ASSISTED_NAMESPACE}" > ${LOGS_DEST}/oc_get_all.log
   oc get pods -n "${ASSISTED_NAMESPACE}" -o yaml > ${LOGS_DEST}/oc_get_pods.yaml
+  oc get deployments -n "${ASSISTED_NAMESPACE}" -o yaml > ${LOGS_DEST}/oc_get_deployments.yaml
+  oc get replicasets -n "${ASSISTED_NAMESPACE}" -o yaml > ${LOGS_DEST}/oc_get_replicasets.yaml
 
   oc logs --tail=-1 -n "${ASSISTED_NAMESPACE}" --selector app=assisted-service -c assisted-service > ${LOGS_DEST}/assisted-service.log
   oc logs --tail=-1 -n "${ASSISTED_NAMESPACE}" --selector app=assisted-image-service -c assisted-image-service > ${LOGS_DEST}/assisted-image-service.log
