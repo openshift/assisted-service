@@ -3984,8 +3984,6 @@ func validateProxySettings(httpProxy, httpsProxy, noProxy, ocpVersion *string) e
 // the architecture specifically requested by the InfraEnv. We don't need to explicitly validate if
 // the OS image exists because if not, this will be detected by the function generating the ISO.
 func validateArchitectureAndVersion(v versions.Handler, c *common.Cluster, cpuArch, ocpVersion string) error {
-	var err error
-
 	// For late-binding we don't know the cluster yet
 	if c == nil {
 		return nil
@@ -3998,8 +3996,7 @@ func validateArchitectureAndVersion(v versions.Handler, c *common.Cluster, cpuAr
 			return errors.Errorf("Specified CPU architecture (%s) doesn't match the cluster (%s)", cpuArch, c.CPUArchitecture)
 		}
 	} else {
-		_, err = v.GetReleaseImage(ocpVersion, cpuArch)
-		if err != nil {
+		if err := v.ValidateReleaseImageForRHCOS(ocpVersion, cpuArch); err != nil {
 			return err
 		}
 	}

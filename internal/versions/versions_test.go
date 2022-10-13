@@ -592,6 +592,62 @@ var _ = Describe("list versions", func() {
 		})
 	})
 
+	Context("ValidateReleaseImageForRHCOS", func() {
+		BeforeEach(func() {
+			osImages = &defaultOsImages
+			h, err = NewHandler(logger, mockRelease, versions, *osImages, models.ReleaseImages{
+				&models.ReleaseImage{
+					CPUArchitecture:  swag.String(common.MultiCPUArchitecture),
+					CPUArchitectures: []string{common.X86CPUArchitecture, common.ARM64CPUArchitecture},
+					OpenshiftVersion: swag.String("4.11.1"),
+					URL:              swag.String("release_4.11.1"),
+					Default:          false,
+					Version:          swag.String("4.11.1-chocobomb-for-test"),
+				},
+				&models.ReleaseImage{
+					CPUArchitecture:  swag.String(common.MultiCPUArchitecture),
+					CPUArchitectures: []string{common.X86CPUArchitecture, common.ARM64CPUArchitecture},
+					OpenshiftVersion: swag.String("4.12"),
+					URL:              swag.String("release_4.12"),
+					Default:          false,
+					Version:          swag.String("4.12"),
+				},
+			}, nil, "", authzHandler)
+			Expect(err).ShouldNot(HaveOccurred())
+		})
+
+		It("validates successfuly using exact match", func() {
+			err = h.ValidateReleaseImageForRHCOS("4.11.1", common.X86CPUArchitecture)
+			Expect(err).ShouldNot(HaveOccurred())
+		})
+		It("validates successfuly using major.minor", func() {
+			err = h.ValidateReleaseImageForRHCOS("4.11", common.X86CPUArchitecture)
+			Expect(err).ShouldNot(HaveOccurred())
+		})
+		It("validates successfuly using major.minor using default architecture", func() {
+			err = h.ValidateReleaseImageForRHCOS("4.11", "")
+			Expect(err).ShouldNot(HaveOccurred())
+		})
+		It("validates successfuly using major.minor.patch-something", func() {
+			err = h.ValidateReleaseImageForRHCOS("4.12.2-chocobomb", common.X86CPUArchitecture)
+			Expect(err).ShouldNot(HaveOccurred())
+		})
+		It("fails validation using non-existing major.minor.patch-something", func() {
+			err = h.ValidateReleaseImageForRHCOS("9.9.9-chocobomb", common.X86CPUArchitecture)
+			Expect(err).Should(HaveOccurred())
+		})
+		It("fails validation using multiarch", func() {
+			// This test is supposed to fail because there exists no RHCOS image that supports
+			// multiple architectures.
+			err = h.ValidateReleaseImageForRHCOS("4.11", common.MultiCPUArchitecture)
+			Expect(err).Should(HaveOccurred())
+		})
+		It("fails validation using invalid version", func() {
+			err = h.ValidateReleaseImageForRHCOS("invalid", common.X86CPUArchitecture)
+			Expect(err).Should(HaveOccurred())
+		})
+	})
+
 	Context("GetDefaultReleaseImage", func() {
 		var (
 			releaseImage *models.ReleaseImage

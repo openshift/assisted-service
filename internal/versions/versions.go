@@ -46,6 +46,7 @@ type Handler interface {
 	GetOpenshiftVersions() []string
 	AddReleaseImage(releaseImageUrl, pullSecret, ocpReleaseVersion string, cpuArchitectures []string) (*models.ReleaseImage, error)
 	ValidateAccessToMultiarch(ctx context.Context, authzHandler auth.Authorizer) error
+	ValidateReleaseImageForRHCOS(rhcosVersion, cpuArch string) error
 }
 
 func NewHandler(log logrus.FieldLogger, releaseHandler oc.Release,
@@ -325,6 +326,38 @@ func (h *handler) GetReleaseImage(openshiftVersion, cpuArchitecture string) (*mo
 	return nil, errors.Errorf(
 		"The requested release image for version (%s) and CPU architecture (%s) isn't specified in release images list",
 		openshiftVersion, cpuArchitecture)
+}
+
+// ValidateReleaseImageForRHCOS validates whether for a specified RHCOS version we have an OCP
+// version that can be used. This functions performs a very weak matching because RHCOS versions
+// are very loosely coupled with the OpenShift versions what allows for a variety of mix&match.
+func (h *handler) ValidateReleaseImageForRHCOS(rhcosVersion, cpuArchitecture string) error {
+	rhcosVersion, err := h.getKey(rhcosVersion)
+	if err != nil {
+		return err
+	}
+
+	if cpuArchitecture == "" {
+		// Empty implies default CPU architecture
+		cpuArchitecture = common.DefaultCPUArchitecture
+	}
+
+	for _, releaseImage := range h.releaseImages {
+		for _, arch := range releaseImage.CPUArchitectures {
+			if arch == cpuArchitecture {
+				minorVersion, err := h.getKey(*releaseImage.OpenshiftVersion)
+				if err != nil {
+					return err
+				}
+				if minorVersion == rhcosVersion {
+					h.log.Debugf("Validator for the architecture %s found the following OCP version: %s", cpuArchitecture, *releaseImage.Version)
+					return nil
+				}
+			}
+		}
+	}
+
+	return errors.Errorf("The requested RHCOS version (%s, arch: %s) does not have a matching OpenShift release image", rhcosVersion, cpuArchitecture)
 }
 
 // Returns the latest OSImage entity for a specified CPU architecture

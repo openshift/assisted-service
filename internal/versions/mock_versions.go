@@ -212,3 +212,17 @@ func (mr *MockHandlerMockRecorder) ValidateAccessToMultiarch(arg0, arg1 interfac
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ValidateAccessToMultiarch", reflect.TypeOf((*MockHandler)(nil).ValidateAccessToMultiarch), arg0, arg1)
 }
+
+// ValidateReleaseImageForRHCOS mocks base method.
+func (m *MockHandler) ValidateReleaseImageForRHCOS(arg0, arg1 string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ValidateReleaseImageForRHCOS", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// ValidateReleaseImageForRHCOS indicates an expected call of ValidateReleaseImageForRHCOS.
+func (mr *MockHandlerMockRecorder) ValidateReleaseImageForRHCOS(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ValidateReleaseImageForRHCOS", reflect.TypeOf((*MockHandler)(nil).ValidateReleaseImageForRHCOS), arg0, arg1)
+}
