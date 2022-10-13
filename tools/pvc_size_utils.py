@@ -89,7 +89,7 @@ def extract_requested_size_from_yaml_docs(name, docs):
 def get_current_size_if_exist(target, namespace, pvc_name):
     kubectl_cmd = utils.get_kubectl_command(target, namespace)
 
-    jsonpath = ".spec.resources.requests.storage"
+    jsonpath = "{.spec.resources.requests.storage}"
 
     command = shlex.split(kubectl_cmd) + [
         "get",
@@ -119,7 +119,7 @@ def get_current_size_if_exist(target, namespace, pvc_name):
             f"failed to get {jsonpath} of pvc {pvc_name}: empty output"
         )
 
-    return stdout
+    return stdout.strip('"')
 
 
 def determine_which_size_to_deploy(req, cur=None):
