@@ -12826,7 +12826,7 @@ var _ = Describe("BindHost", func() {
 			BindHostParams: &models.BindHostParams{ClusterID: &clusterID},
 		}
 		mockEvents.EXPECT().SendHostEvent(gomock.Any(), eventstest.NewEventMatcher(
-			eventstest.WithNameMatcher(eventgen.HostRegistrationFailedEventName),
+			eventstest.WithNameMatcher(eventgen.HostBindSucceededEventName),
 			eventstest.WithHostIdMatcher(params.HostID.String()),
 			eventstest.WithInfraEnvIdMatcher(infraEnvID.String()),
 			eventstest.WithSeverityMatcher(models.EventSeverityInfo)))
@@ -12844,6 +12844,11 @@ var _ = Describe("BindHost", func() {
 			InfraEnvID:     "12345",
 			BindHostParams: &models.BindHostParams{ClusterID: &clusterID},
 		}
+		mockEvents.EXPECT().SendHostEvent(gomock.Any(), eventstest.NewEventMatcher(
+			eventstest.WithNameMatcher(eventgen.HostBindFailedEventName),
+			eventstest.WithHostIdMatcher(params.HostID.String()),
+			eventstest.WithInfraEnvIdMatcher(params.InfraEnvID.String()),
+			eventstest.WithSeverityMatcher(models.EventSeverityError)))
 		response := bm.BindHost(ctx, params)
 		verifyApiError(response, http.StatusNotFound)
 	})
@@ -12855,6 +12860,11 @@ var _ = Describe("BindHost", func() {
 			InfraEnvID:     infraEnvID,
 			BindHostParams: &models.BindHostParams{ClusterID: &badClusterID},
 		}
+		mockEvents.EXPECT().SendHostEvent(gomock.Any(), eventstest.NewEventMatcher(
+			eventstest.WithNameMatcher(eventgen.HostBindFailedEventName),
+			eventstest.WithHostIdMatcher(params.HostID.String()),
+			eventstest.WithInfraEnvIdMatcher(infraEnvID.String()),
+			eventstest.WithSeverityMatcher(models.EventSeverityError)))
 		response := bm.BindHost(ctx, params)
 		verifyApiError(response, http.StatusBadRequest)
 	})
@@ -12868,6 +12878,11 @@ var _ = Describe("BindHost", func() {
 		var hostObj models.Host
 		Expect(db.First(&hostObj, "id = ?", hostID).Error).ShouldNot(HaveOccurred())
 		Expect(db.Model(&hostObj).Update("cluster_id", "some_cluster").Error).ShouldNot(HaveOccurred())
+		mockEvents.EXPECT().SendHostEvent(gomock.Any(), eventstest.NewEventMatcher(
+			eventstest.WithNameMatcher(eventgen.HostBindFailedEventName),
+			eventstest.WithHostIdMatcher(params.HostID.String()),
+			eventstest.WithInfraEnvIdMatcher(infraEnvID.String()),
+			eventstest.WithSeverityMatcher(models.EventSeverityError)))
 		response := bm.BindHost(ctx, params)
 		verifyApiError(response, http.StatusConflict)
 	})
@@ -12879,6 +12894,11 @@ var _ = Describe("BindHost", func() {
 			BindHostParams: &models.BindHostParams{ClusterID: &clusterID},
 		}
 		err := errors.Errorf("Cluster is in wrong state")
+		mockEvents.EXPECT().SendHostEvent(gomock.Any(), eventstest.NewEventMatcher(
+			eventstest.WithNameMatcher(eventgen.HostBindFailedEventName),
+			eventstest.WithHostIdMatcher(params.HostID.String()),
+			eventstest.WithInfraEnvIdMatcher(infraEnvID.String()),
+			eventstest.WithSeverityMatcher(models.EventSeverityError)))
 		mockClusterApi.EXPECT().AcceptRegistration(gomock.Any()).Return(err).Times(1)
 		response := bm.BindHost(ctx, params)
 		verifyApiError(response, http.StatusConflict)
@@ -12891,6 +12911,11 @@ var _ = Describe("BindHost", func() {
 			BindHostParams: &models.BindHostParams{ClusterID: &clusterID},
 		}
 		err := errors.Errorf("Transition failed")
+		mockEvents.EXPECT().SendHostEvent(gomock.Any(), eventstest.NewEventMatcher(
+			eventstest.WithNameMatcher(eventgen.HostBindFailedEventName),
+			eventstest.WithHostIdMatcher(params.HostID.String()),
+			eventstest.WithInfraEnvIdMatcher(infraEnvID.String()),
+			eventstest.WithSeverityMatcher(models.EventSeverityError)))
 		mockClusterApi.EXPECT().AcceptRegistration(gomock.Any()).Return(nil).Times(1)
 		mockHostApi.EXPECT().BindHost(ctx, gomock.Any(), clusterID, gomock.Any()).Return(err).Times(1)
 		response := bm.BindHost(ctx, params)
@@ -12919,11 +12944,11 @@ var _ = Describe("BindHost", func() {
 			BindHostParams: &models.BindHostParams{ClusterID: &clusterID},
 		}
 		mockEvents.EXPECT().SendHostEvent(gomock.Any(), eventstest.NewEventMatcher(
-			eventstest.WithNameMatcher(eventgen.HostRegistrationFailedEventName),
+			eventstest.WithNameMatcher(eventgen.HostBindFailedEventName),
 			eventstest.WithHostIdMatcher(params.HostID.String()),
 			eventstest.WithInfraEnvIdMatcher(infraEnvID.String()),
-			eventstest.WithSeverityMatcher(models.EventSeverityInfo)))
-		mockHostApi.EXPECT().BindHost(ctx, gomock.Any(), clusterID, gomock.Any())
+			eventstest.WithSeverityMatcher(models.EventSeverityError)))
+		mockHostApi.EXPECT().BindHost(ctx, gomock.Any(), clusterID, gomock.Any()).Times(0)
 		response := bm.BindHost(ctx, params)
 		verifyApiErrorString(response, http.StatusBadRequest, "doesn't match")
 	})
@@ -12952,7 +12977,7 @@ var _ = Describe("BindHost", func() {
 			BindHostParams: &models.BindHostParams{ClusterID: &clusterID},
 		}
 		mockEvents.EXPECT().SendHostEvent(gomock.Any(), eventstest.NewEventMatcher(
-			eventstest.WithNameMatcher(eventgen.HostRegistrationFailedEventName),
+			eventstest.WithNameMatcher(eventgen.HostBindSucceededEventName),
 			eventstest.WithHostIdMatcher(params.HostID.String()),
 			eventstest.WithInfraEnvIdMatcher(infraEnvID.String()),
 			eventstest.WithSeverityMatcher(models.EventSeverityInfo)))
@@ -12981,7 +13006,7 @@ var _ = Describe("BindHost", func() {
 			BindHostParams: &models.BindHostParams{ClusterID: &clusterID},
 		}
 		mockEvents.EXPECT().SendHostEvent(gomock.Any(), eventstest.NewEventMatcher(
-			eventstest.WithNameMatcher(eventgen.HostRegistrationFailedEventName),
+			eventstest.WithNameMatcher(eventgen.HostBindSucceededEventName),
 			eventstest.WithHostIdMatcher(params.HostID.String()),
 			eventstest.WithInfraEnvIdMatcher(infraEnvID.String()),
 			eventstest.WithSeverityMatcher(models.EventSeverityInfo)))
@@ -13000,12 +13025,12 @@ var _ = Describe("BindHost", func() {
 			BindHostParams: &models.BindHostParams{ClusterID: &clusterID},
 		}
 		mockEvents.EXPECT().SendHostEvent(gomock.Any(), eventstest.NewEventMatcher(
-			eventstest.WithNameMatcher(eventgen.HostRegistrationFailedEventName),
+			eventstest.WithNameMatcher(eventgen.HostBindSucceededEventName),
 			eventstest.WithHostIdMatcher(params.HostID.String()),
 			eventstest.WithInfraEnvIdMatcher(infraEnvID.String()),
 			eventstest.WithSeverityMatcher(models.EventSeverityInfo)))
 		mockClusterApi.EXPECT().AcceptRegistration(gomock.Any()).Return(nil).Times(1)
-		mockClusterApi.EXPECT().RefreshSchedulableMastersForcedTrue(gomock.Any(), gomock.Any()).Return(nil).Times(2)
+		mockClusterApi.EXPECT().RefreshSchedulableMastersForcedTrue(gomock.Any(), gomock.Any()).Return(nil).Times(1)
 		mockHostApi.EXPECT().BindHost(ctx, gomock.Any(), clusterID, gomock.Any())
 		response := bm.BindHost(ctx, params)
 		Expect(response).To(BeAssignableToTypeOf(&installer.BindHostOK{}))
@@ -13038,6 +13063,11 @@ var _ = Describe("BindHost", func() {
 			InfraEnvID:     infraEnvID,
 			BindHostParams: &models.BindHostParams{ClusterID: &clusterID},
 		}
+		mockEvents.EXPECT().SendHostEvent(gomock.Any(), eventstest.NewEventMatcher(
+			eventstest.WithNameMatcher(eventgen.HostBindSucceededEventName),
+			eventstest.WithHostIdMatcher(params.HostID.String()),
+			eventstest.WithInfraEnvIdMatcher(infraEnvID.String()),
+			eventstest.WithSeverityMatcher(models.EventSeverityInfo)))
 		mockClusterApi.EXPECT().AcceptRegistration(gomock.Any()).Return(nil).Times(1)
 		mockClusterApi.EXPECT().RefreshSchedulableMastersForcedTrue(gomock.Any(), gomock.Any()).Return(nil).Times(1)
 		mockHostApi.EXPECT().BindHost(ctx, gomock.Any(), clusterID, gomock.Any())
@@ -13118,7 +13148,7 @@ var _ = Describe("BindHost - with rhsso auth", func() {
 			BindHostParams: &models.BindHostParams{ClusterID: &clusterID},
 		}
 		mockEvents.EXPECT().SendHostEvent(gomock.Any(), eventstest.NewEventMatcher(
-			eventstest.WithNameMatcher(eventgen.HostRegistrationFailedEventName),
+			eventstest.WithNameMatcher(eventgen.HostBindSucceededEventName),
 			eventstest.WithHostIdMatcher(params.HostID.String()),
 			eventstest.WithInfraEnvIdMatcher(infraEnvID.String()),
 			eventstest.WithSeverityMatcher(models.EventSeverityInfo)))
@@ -13140,7 +13170,7 @@ var _ = Describe("BindHost - with rhsso auth", func() {
 			BindHostParams: &models.BindHostParams{ClusterID: &clusterID},
 		}
 		mockEvents.EXPECT().SendHostEvent(gomock.Any(), eventstest.NewEventMatcher(
-			eventstest.WithNameMatcher(eventgen.HostRegistrationFailedEventName),
+			eventstest.WithNameMatcher(eventgen.HostBindSucceededEventName),
 			eventstest.WithHostIdMatcher(params.HostID.String()),
 			eventstest.WithInfraEnvIdMatcher(infraEnvID.String()),
 			eventstest.WithSeverityMatcher(models.EventSeverityInfo)))
@@ -13167,7 +13197,11 @@ var _ = Describe("BindHost - with rhsso auth", func() {
 
 		payload.Username = userName2
 		authCtx = context.WithValue(ctx, restapi.AuthKey, payload)
-
+		mockEvents.EXPECT().SendHostEvent(gomock.Any(), eventstest.NewEventMatcher(
+			eventstest.WithNameMatcher(eventgen.HostBindFailedEventName),
+			eventstest.WithHostIdMatcher(params.HostID.String()),
+			eventstest.WithInfraEnvIdMatcher(infraEnvID.String()),
+			eventstest.WithSeverityMatcher(models.EventSeverityError)))
 		mockOcmAuthz.EXPECT().AccessReview(
 			gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(false, nil)
 
@@ -13185,7 +13219,11 @@ var _ = Describe("BindHost - with rhsso auth", func() {
 		payload.Username = userName2
 		payload.Organization = "another_org"
 		authCtx = context.WithValue(ctx, restapi.AuthKey, payload)
-
+		mockEvents.EXPECT().SendHostEvent(gomock.Any(), eventstest.NewEventMatcher(
+			eventstest.WithNameMatcher(eventgen.HostBindFailedEventName),
+			eventstest.WithHostIdMatcher(params.HostID.String()),
+			eventstest.WithInfraEnvIdMatcher(infraEnvID.String()),
+			eventstest.WithSeverityMatcher(models.EventSeverityError)))
 		mockOcmAuthz.EXPECT().AccessReview(
 			gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(false, nil)
 
@@ -13228,7 +13266,7 @@ var _ = Describe("UnbindHost", func() {
 			InfraEnvID: infraEnvID,
 		}
 		mockEvents.EXPECT().SendHostEvent(gomock.Any(), eventstest.NewEventMatcher(
-			eventstest.WithNameMatcher(eventgen.HostRegistrationFailedEventName),
+			eventstest.WithNameMatcher(eventgen.HostUnbindSucceededEventName),
 			eventstest.WithHostIdMatcher(params.HostID.String()),
 			eventstest.WithInfraEnvIdMatcher(infraEnvID.String()),
 			eventstest.WithSeverityMatcher(models.EventSeverityInfo)))
@@ -13243,6 +13281,11 @@ var _ = Describe("UnbindHost", func() {
 			HostID:     hostID,
 			InfraEnvID: "12345",
 		}
+		mockEvents.EXPECT().SendHostEvent(gomock.Any(), eventstest.NewEventMatcher(
+			eventstest.WithNameMatcher(eventgen.HostUnbindFailedEventName),
+			eventstest.WithHostIdMatcher(params.HostID.String()),
+			eventstest.WithInfraEnvIdMatcher(params.InfraEnvID.String()),
+			eventstest.WithSeverityMatcher(models.EventSeverityError)))
 		response := bm.UnbindHost(ctx, params)
 		verifyApiError(response, http.StatusNotFound)
 	})
@@ -13252,6 +13295,11 @@ var _ = Describe("UnbindHost", func() {
 			HostID:     hostID,
 			InfraEnvID: infraEnvID,
 		}
+		mockEvents.EXPECT().SendHostEvent(gomock.Any(), eventstest.NewEventMatcher(
+			eventstest.WithNameMatcher(eventgen.HostUnbindFailedEventName),
+			eventstest.WithHostIdMatcher(params.HostID.String()),
+			eventstest.WithInfraEnvIdMatcher(infraEnvID.String()),
+			eventstest.WithSeverityMatcher(models.EventSeverityError)))
 		var hostObj models.Host
 		Expect(db.First(&hostObj, "id = ?", hostID).Error).ShouldNot(HaveOccurred())
 		Expect(db.Model(&hostObj).Update("cluster_id", nil).Error).ShouldNot(HaveOccurred())
@@ -13264,6 +13312,11 @@ var _ = Describe("UnbindHost", func() {
 			HostID:     hostID,
 			InfraEnvID: infraEnvID,
 		}
+		mockEvents.EXPECT().SendHostEvent(gomock.Any(), eventstest.NewEventMatcher(
+			eventstest.WithNameMatcher(eventgen.HostUnbindFailedEventName),
+			eventstest.WithHostIdMatcher(params.HostID.String()),
+			eventstest.WithInfraEnvIdMatcher(infraEnvID.String()),
+			eventstest.WithSeverityMatcher(models.EventSeverityError)))
 		var infraEnvObj models.InfraEnv
 		Expect(db.First(&infraEnvObj, "id = ?", infraEnvID).Error).ShouldNot(HaveOccurred())
 		Expect(db.Model(&infraEnvObj).Update("cluster_id", clusterID).Error).ShouldNot(HaveOccurred())
@@ -13277,6 +13330,11 @@ var _ = Describe("UnbindHost", func() {
 			InfraEnvID: infraEnvID,
 		}
 		err := errors.Errorf("Transition failed")
+		mockEvents.EXPECT().SendHostEvent(gomock.Any(), eventstest.NewEventMatcher(
+			eventstest.WithNameMatcher(eventgen.HostUnbindFailedEventName),
+			eventstest.WithHostIdMatcher(params.HostID.String()),
+			eventstest.WithInfraEnvIdMatcher(infraEnvID.String()),
+			eventstest.WithSeverityMatcher(models.EventSeverityError)))
 		mockHostApi.EXPECT().UnbindHost(ctx, gomock.Any(), gomock.Any(), false).Return(err).Times(1)
 		response := bm.UnbindHost(ctx, params)
 		verifyApiError(response, http.StatusInternalServerError)

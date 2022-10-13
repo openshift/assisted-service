@@ -5091,8 +5091,10 @@ func (b *bareMetalInventory) V2UpdateHostInstallProgressInternal(ctx context.Con
 func (b *bareMetalInventory) BindHost(ctx context.Context, params installer.BindHostParams) middleware.Responder {
 	h, err := b.BindHostInternal(ctx, params)
 	if err != nil {
+		eventgen.SendHostBindFailedEvent(ctx, b.eventsHandler, params.HostID, params.InfraEnvID, params.BindHostParams.ClusterID, err.Error())
 		return common.GenerateErrorResponder(err)
 	}
+	eventgen.SendHostBindSucceededEvent(ctx, b.eventsHandler, params.HostID, params.InfraEnvID, params.BindHostParams.ClusterID, hostutil.GetHostnameForMsg(&h.Host))
 	return installer.NewBindHostOK().WithPayload(&h.Host)
 }
 
@@ -5198,8 +5200,10 @@ func (b *bareMetalInventory) UnbindHostInternal(ctx context.Context, params inst
 func (b *bareMetalInventory) UnbindHost(ctx context.Context, params installer.UnbindHostParams) middleware.Responder {
 	h, err := b.UnbindHostInternal(ctx, params, false)
 	if err != nil {
+		eventgen.SendHostUnbindFailedEvent(ctx, b.eventsHandler, params.HostID, params.InfraEnvID, err.Error())
 		return common.GenerateErrorResponder(err)
 	}
+	eventgen.SendHostUnbindSucceededEvent(ctx, b.eventsHandler, params.HostID, params.InfraEnvID, hostutil.GetHostnameForMsg(&h.Host))
 	return installer.NewUnbindHostOK().WithPayload(&h.Host)
 }
 
