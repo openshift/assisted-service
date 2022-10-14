@@ -9,10 +9,11 @@ If you choose to use the Assisted Installer service hosted at [console.redhat.co
 * quay.io/edge-infrastructure/assisted-installer-agent:latest
 * quay.io/edge-infrastructure/assisted-installer:latest
 * quay.io/edge-infrastructure/assisted-installer-controller:latest
+* registry.redhat.io/rhai-tech-preview/assisted-installer-agent-rhel8:v1.0.0-195
 
 The Assisted Installer service hosted at [console.redhat.com](https://console.redhat.com) does not support using mirrored instances of the above container images at this time.
 
-If you use the "minimal" ISO image to boot your machines, each host will pull an ISO image from [mirror.openshift.com](https://mirror.openshift.com) in order to complete the inital boot process. It is suggested to use the full image to keep this from occuring.
+If you use the "minimal" ISO image to boot your machines, each host will pull an ISO image from [mirror.openshift.com](https://mirror.openshift.com) in order to complete the initial boot process. It is suggested to use the full image to keep this from occurring.
 
 ## Requirements
 
@@ -30,22 +31,15 @@ If you do not have a container registry available you, instructions for installi
 
 Once you have mirrored the OpenShift container images, and the [Operator Hub catalog](https://docs.okd.io/latest/installing/disconnected_install/installing-mirroring-installation-images.html#olm-mirror-catalog_installing-mirroring-installation-images) you can move onto the next steps.
 
-> **NOTE**: You must ensure that you have mirrored a copy of OCP that _EXACTLY_ matches the version that you are installing from the Assisted Installer service hosted at [console.redhat.com](https://console.redhat.com). eg. If you are installing OpenShift 4.11.5 from the Assisted Installer, you must have previously mirrored verion 4.11.5 to your local registry.
+> **NOTE**: You must ensure that you have mirrored a copy of OCP that _EXACTLY_ matches the version that you are installing from the Assisted Installer service hosted at [console.redhat.com](https://console.redhat.com). eg. If you are installing OpenShift 4.11.5 from the Assisted Installer, you must have previously mirrored version 4.11.5 to your local registry.
 
 ## Environment Setup
 
 ### User Authentication
 
-User Authentication is using JWT tokens. The JWT token is **valid for 15 minutes** and needs to be provided in the header of the HTTP request.
+You will need to authenticate to the SaaS service. The process for authenticating is documented in the [Authentication](cloud.md#authentication) section of the `cloud.md` file located in this directory. 
 
-First you must obtain your offline token from https://console.redhat.com/openshift/token (This token does not expire, so do not share it with others) and set it as OFFLINE_TOKEN, then generate your JWT_TOKEN:
-
-```
-$ OFFLINE_TOKEN=<your offline token>
-$ JWT_TOKEN=$(curl https://sso.redhat.com/auth/realms/redhat-external/protocol/openid-connect/token -d client_id=cloud-services -d grant_type=refresh_token -d refresh_token=${OFFLINE_TOKEN} | jq -r '.access_token')
-```
-
-> **NOTE:** The JWT token is **valid for 15 minutes**, you can refresh the token by re-running the command above.
+> **NOTE:** The JWT token is **valid for 15 minutes**, you can refresh the token by re-running the process referenced above.
 
 ### Get the cert from your registry
 
@@ -61,7 +55,7 @@ NOTE: Be sure to update the <container image registry server:port> with your con
 
 ### Create a cluster in the Assisted Installer UI
 
-Create a base cluster definition in the [Assisted Installer service](https://console.redhat.com/openshift/assisted-installer/clusters/~new) hosted at [console.redhat.com](https://console.redhat.com). Select the appropriate options until you get to the "Add Hosts" step, but **DO NOT** download the ISO image yet. We will need to make modificiations to the cluster before downloading the ISO file. Once you have gotten to this step record the UUID that is generated. This can be found in the URL such as:
+Create a base cluster definition in the [Assisted Installer service](https://console.redhat.com/openshift/assisted-installer/clusters/~new) hosted at [console.redhat.com](https://console.redhat.com). Select the appropriate options until you get to the "Add Hosts" step, but **DO NOT** download the ISO image yet. We will need to make modifications to the cluster before downloading the ISO file. Once you have gotten to this step record the UUID that is generated. This can be found in the URL such as:
 
 ht<area>tps://console.redhat.com/openshift/assisted-installer/clusters/**6ad83d29-5d18-4999-8e01-88484d1d2122** where **6ad83d29-5d18-4999-8e01-88484d1d2122** is the UUID.
 
@@ -90,7 +84,7 @@ ce634417-a802-4f1f-bf62-bf502b5c98ee
 $ INFRA_ENV_ID=ce634417-a802-4f1f-bf62-bf502b5c98ee
 ```
 
-With our base environment variables set up, we can move on to making the required configuration chages to use your internal registry mirror.
+With our base environment variables set up, we can move on to making the required configuration changes to use your internal registry mirror.
 
 ## Create Discovery Ignition Patch File
 
@@ -120,7 +114,7 @@ unqualified-search-registries = ["registry.access.redhat.com", "docker.io"]
 
 Next we will create a template file that will be used to create our ignition patch file:
 
-discovery-ignition.json
+discovery-ignition.json.template
 ```json
 {"ignition_config_override": "{\"ignition\": {\"version\": \"3.1.0\"}, \"storage\": {\"files\": [{\"path\": \"/etc/containers/registries.conf\", \"mode\": 420, \"overwrite\": true, \"user\": { \"name\": \"root\"},\"contents\": {\"source\": \"data:text/plain;base64,BASE64_ENCODED_REGISTRY_CONF\"}}, {\"path\": \"/etc/pki/ca-trust/source/anchors/domain.crt\", \"mode\": 420, \"overwrite\": true, \"user\": { \"name\": \"root\"}, \"contents\": {\"source\":\"data:text/plain;base64,BASE64_ENCODED_LOCAL_REGISTRY_CRT\"}}]}}"}
 ```
@@ -130,8 +124,9 @@ Next create base64 encoded versions of the registry.conf and tls-ca-bundle and u
 ```shell
 $ base64 -w0 registries.conf > registries.conf.b64
 $ base64 -w0 tls-ca-bundle-registry.pem  > tls-ca-bundle-registry.pem.b64
-$ sed -i "s/BASE64_ENCODED_REGISTRY_CONF/$(cat registries.conf.b64)/" discovery-ignition.json.template
-$ sed -i "s/BASE64_ENCODED_LOCAL_REGISTRY_CRT/$(cat tls-ca-bundle-registry.pem.b64)/" discovery-ignition.json.
+$ cp discovery-ignition.json.template discovery-ignition.json
+$ sed -i "s/BASE64_ENCODED_REGISTRY_CONF/$(cat registries.conf.b64)/" discovery-ignition.json
+$ sed -i "s/BASE64_ENCODED_LOCAL_REGISTRY_CRT/$(cat tls-ca-bundle-registry.pem.b64)/" discovery-ignition.json
 ```
 
 Apply the patch to the Assisted Installer:
@@ -155,7 +150,7 @@ curl -s -X GET \
   | jq -r
 ```
 
-At this point our discovery ISO image is ready to be downloaded. You can follow prublished procedures to download the ISO and boot your machines into the discovery phase.
+At this point our discovery ISO image is ready to be downloaded. You can follow published procedures to download the ISO and boot your machines into the discovery phase.
 
 ## Patch your install config
 
@@ -165,7 +160,7 @@ We need to add three things to our hosted install config, the cert from your int
 
 Start by downloading a copy of your pull secret from the [Red Hat OpenSHift Cluster Manager](https://console.redhat.com/openshift/install/pull-secret) and save in your home directory. We will be updating this file with additional authentication in the next step.
 
-If you havent already set up to trust the certificate from your registry on your workstation follow these steps:
+If you haven't already set up to trust the certificate from your registry on your workstation follow these steps:
 
 ```
 $ sudo cp tls-ca-bundle-registry.pem /etc/pki/ca-trust/source/anchors/tls-ca-bundle-registry.pem
@@ -184,7 +179,7 @@ You should have completed the three previous steps, creating a `tls-ca-bundle-re
 
 ```bash
 $ install_config_patch=$(mktemp)
-$ jq -n --arg BUNDLE "$(cat tls-ca-bundle-registry.pem)" --arg SECRET "$(cat pull-secret.json)" --arg ICS "$(cat ics.json)" \
+$ jq -n --arg BUNDLE "$(cat tls-ca-bundle-registry.pem)" --arg SECRET "$(cat pull-secret.json)" \
 '{
     "pullSecret": $SECRET,
     "additionalTrustBundle": $BUNDLE,
@@ -234,8 +229,8 @@ Ensure that the resulting output has a "imageContentSource", "additionalTrustBun
 
 ## Complete your cluster build
 
-You can now follow prublished procedures to complete your cluster install from the Assisted Installer. 
+You can now follow published procedures to complete your cluster install from the Assisted Installer. 
 
 ## Enabling the Mirrored Operator Catalog Post Steps
 
-As a reminder, you will need to apply an updated ImageContentSourcePolicy object to your cluser in order to leverage the mirrored Operator catalog as documented in the [Post Install Mirrored Catalogs](https://docs.okd.io/latest/post_installation_configuration/preparing-for-users.html#post-install-mirrored-catalogs) document.
+As a reminder, you will need to apply an updated ImageContentSourcePolicy object to your cluster in order to leverage the mirrored Operator catalog as documented in the [Post Install Mirrored Catalogs](https://docs.okd.io/latest/post_installation_configuration/preparing-for-users.html#post-install-mirrored-catalogs) document.
