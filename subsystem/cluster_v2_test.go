@@ -14,6 +14,7 @@ import (
 	"github.com/openshift/assisted-service/client/installer"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/host/hostutil"
+	"github.com/openshift/assisted-service/internal/usage"
 	"github.com/openshift/assisted-service/models"
 )
 
@@ -312,6 +313,58 @@ var _ = Describe("[V2ClusterTests]", func() {
 			_, err := common.GetInfraEnvFromDBWhere(db, "id = ?", infraEnvID)
 			return err
 		}, "1m", "10s").Should(HaveOccurred())
+	})
+
+	It("Verify install config overrides", func() {
+		By("returning an error when provided an invalid override")
+		override := `{"foo": "bar"}`
+		params := installer.V2UpdateClusterInstallConfigParams{
+			ClusterID:           clusterID,
+			InstallConfigParams: override,
+		}
+
+		_, err := userBMClient.Installer.V2UpdateClusterInstallConfig(ctx, &params)
+		Expect(err).NotTo(BeNil())
+
+		By("verifying that the cluster install config override was not set")
+		c := getCluster(clusterID)
+		Expect(c.InstallConfigOverrides).To(BeEmpty())
+
+		By("verifying the feature usage for install config overrides was not set")
+		verifyUsageNotSet(c.FeatureUsage, "Install Config Overrides")
+
+		By("succeeding when provided a valid override")
+		override = `{"controlPlane": {"hyperthreading": "Disabled"}}`
+		params.InstallConfigParams = override
+		_, err = userBMClient.Installer.V2UpdateClusterInstallConfig(ctx, &params)
+		Expect(err).To(BeNil())
+
+		By("verify that the cluster install config override is correctly updated")
+		c = getCluster(clusterID)
+		Expect(c.InstallConfigOverrides).To(Equal(params.InstallConfigParams))
+
+		By("verifying the feature usage for install config overrides was set")
+		overrideUsageProps := make(map[string]interface{})
+		overrideUsageProps["controlPlane hyperthreading"] = true
+		overrideUsage := models.Usage{
+			Name: usage.InstallConfigOverrides,
+			Data: overrideUsageProps,
+		}
+		verifyUsageSet(c.FeatureUsage, overrideUsage)
+
+		By("failing when provided an invalid override")
+		originalOverride := override
+		override = `{"foo": "bar", "controlPlane": {"hyperthreading": "Enabled"}}`
+		params.InstallConfigParams = override
+		_, err = userBMClient.Installer.V2UpdateClusterInstallConfig(ctx, &params)
+		Expect(err).ToNot(BeNil())
+
+		By("verify that the cluster install config override did not get updated")
+		c = getCluster(clusterID)
+		Expect(c.InstallConfigOverrides).To(Equal(originalOverride))
+
+		By("verifying the feature usage for install config overrides was not changed")
+		verifyUsageSet(c.FeatureUsage, overrideUsage)
 	})
 })
 
