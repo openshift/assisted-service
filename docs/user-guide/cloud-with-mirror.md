@@ -37,7 +37,7 @@ Once you have mirrored the OpenShift container images, and the [Operator Hub cat
 
 ### User Authentication
 
-You will need to authenticate to the SaaS service. The process for authenticating is documented in the [Authentication](cloud.md#authentication) section of the `cloud.md` file located in this directory. 
+You will need to authenticate to the SaaS service. The process for authenticating is documented in the [Authentication](../cloud.md#authentication) section of the `cloud.md` file located in this directory. 
 
 > **NOTE:** The JWT token is **valid for 15 minutes**, you can refresh the token by re-running the process referenced above.
 
