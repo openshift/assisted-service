@@ -96,7 +96,7 @@ curl -X PATCH -H "Content-Type: application/json" \
 * Note: Configure your public SSH key here to gain SSH access to your hosts in the discovery phase (pre-install).
 
 ```bash
-curl -X POST -H "Content-Type: application/json" \
+curl -X PATCH -H "Content-Type: application/json" \
     -d '{"proxy":{"http_proxy":"","https_proxy":"","no_proxy":""},"ssh_authorized_key":"<public_key_here>","pull_secret":"","image_type":"full-iso"}' \
     <HOST>:<PORT>/api/assisted-install/v2/infra-envs/<infra_en_id>
 ```
