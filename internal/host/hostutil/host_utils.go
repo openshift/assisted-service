@@ -96,6 +96,16 @@ func ValidateHostname(hostname string) error {
 	return nil
 }
 
+func IsRoleValid(requestedRole models.HostRole, isDay2Host bool) bool {
+	roleSet := map[models.HostRole]struct{}{models.HostRoleAutoAssign: {}, models.HostRoleBootstrap: {}, models.HostRoleMaster: {}, models.HostRoleWorker: {}}
+	if isDay2Host {
+		roleSet = map[models.HostRole]struct{}{models.HostRoleMaster: {}, models.HostRoleWorker: {}}
+	}
+
+	_, exists := roleSet[requestedRole]
+	return exists
+}
+
 // determineDefaultInstallationDisk considers both the previously set installation disk and the current list of valid
 // disks to determine the current required installation disk.
 //
