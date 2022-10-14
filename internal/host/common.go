@@ -138,6 +138,10 @@ func updateRole(log logrus.FieldLogger, h *models.Host, role models.HostRole, su
 	fields := make(map[string]interface{})
 	fields["suggested_role"] = suggestedRole
 	if srcRole != string(role) {
+		if !hostutil.IsRoleValid(role, hostutil.IsDay2Host(h)) {
+			return common.NewApiError(http.StatusBadRequest,
+				errors.Errorf("Requested role (%s) is invalid for host %s from infraEnv %s", role, h.ID, h.InfraEnvID))
+		}
 		fields["role"] = role
 
 		if role == models.HostRoleWorker {

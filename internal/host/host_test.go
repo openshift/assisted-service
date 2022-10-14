@@ -74,7 +74,7 @@ var _ = Describe("update_role", func() {
 		common.DeleteTestDB(db, dbName)
 	})
 
-	Context("update role by src state", func() {
+	Context("by src state", func() {
 		success := func(srcState string) {
 			host = hostutil.GenerateTestHost(id, infraEnvID, clusterID, srcState)
 			Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
@@ -192,17 +192,73 @@ var _ = Describe("update_role", func() {
 		})
 	})
 
-	It("update role master to worker", func() {
-		By("update role worker to master")
-		host = hostutil.GenerateTestHost(id, infraEnvID, clusterID, models.HostStatusKnown)
-		Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
-		Expect(state.UpdateRole(ctx, &host, models.HostRoleMaster, nil)).NotTo(HaveOccurred())
-		h := hostutil.GetHostFromDB(id, infraEnvID, db)
-		Expect(h.Role).To(Equal(models.HostRoleMaster))
-		By("update role master to worker")
-		Expect(state.UpdateRole(ctx, &h.Host, models.HostRoleWorker, nil)).NotTo(HaveOccurred())
-		h = hostutil.GetHostFromDB(id, infraEnvID, db)
-		Expect(h.Role).To(Equal(models.HostRoleWorker))
+	Context("by requested role", func() {
+		var h *common.Host
+
+		Context("from master in day1 flow", func() {
+			BeforeEach(func() {
+				host = hostutil.GenerateTestHost(id, infraEnvID, clusterID, models.HostStatusKnown)
+				Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
+				Expect(state.UpdateRole(ctx, &host, models.HostRoleMaster, nil)).NotTo(HaveOccurred())
+				h = hostutil.GetHostFromDB(id, infraEnvID, db)
+				Expect(h.Role).To(Equal(models.HostRoleMaster))
+			})
+
+			It("to master successfuly", func() {
+				Expect(state.UpdateRole(ctx, &h.Host, models.HostRoleMaster, nil)).NotTo(HaveOccurred())
+				h = hostutil.GetHostFromDB(id, infraEnvID, db)
+				Expect(h.Role).To(Equal(models.HostRoleMaster))
+			})
+			It("to worker successfuly", func() {
+				Expect(state.UpdateRole(ctx, &h.Host, models.HostRoleWorker, nil)).NotTo(HaveOccurred())
+				h = hostutil.GetHostFromDB(id, infraEnvID, db)
+				Expect(h.Role).To(Equal(models.HostRoleWorker))
+			})
+			It("to bootstrap successfuly", func() {
+				Expect(state.UpdateRole(ctx, &h.Host, models.HostRoleBootstrap, nil)).NotTo(HaveOccurred())
+				h = hostutil.GetHostFromDB(id, infraEnvID, db)
+				Expect(h.Role).To(Equal(models.HostRoleBootstrap))
+			})
+			It("to chocobomb with failure", func() {
+				res := state.UpdateRole(ctx, &h.Host, "chocobomb", nil)
+				Expect(res).To(HaveOccurred())
+				Expect(res.Error()).Should(ContainSubstring("Requested role (chocobomb) is invalid for host"))
+			})
+		})
+
+		Context("from worker in day2 flow", func() {
+			BeforeEach(func() {
+				host = hostutil.GenerateTestHost(id, infraEnvID, clusterID, models.HostStatusKnown)
+				hostKindDay2 := models.HostKindAddToExistingClusterHost
+				host.Kind = &hostKindDay2
+				host.Role = models.HostRoleWorker
+				Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
+				h = hostutil.GetHostFromDB(id, infraEnvID, db)
+				Expect(h.Role).To(Equal(models.HostRoleWorker))
+				Expect(h.Kind).To(Equal(&hostKindDay2))
+			})
+
+			It("to master successfuly", func() {
+				Expect(state.UpdateRole(ctx, &h.Host, models.HostRoleMaster, nil)).NotTo(HaveOccurred())
+				h = hostutil.GetHostFromDB(id, infraEnvID, db)
+				Expect(h.Role).To(Equal(models.HostRoleMaster))
+			})
+			It("to worker successfuly", func() {
+				Expect(state.UpdateRole(ctx, &h.Host, models.HostRoleWorker, nil)).NotTo(HaveOccurred())
+				h = hostutil.GetHostFromDB(id, infraEnvID, db)
+				Expect(h.Role).To(Equal(models.HostRoleWorker))
+			})
+			It("to bootstrap successfuly", func() {
+				res := state.UpdateRole(ctx, &h.Host, models.HostRoleBootstrap, nil)
+				Expect(res).To(HaveOccurred())
+				Expect(res.Error()).To(ContainSubstring("Requested role (bootstrap) is invalid for host"))
+			})
+			It("to chocobomb with failure", func() {
+				res := state.UpdateRole(ctx, &h.Host, "chocobomb", nil)
+				Expect(res).To(HaveOccurred())
+				Expect(res.Error()).To(ContainSubstring("Requested role (chocobomb) is invalid for host"))
+			})
+		})
 	})
 
 	Context("update machine config pool", func() {
