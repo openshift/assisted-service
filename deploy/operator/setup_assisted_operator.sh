@@ -195,7 +195,7 @@ spec:
   - ReadWriteOnce
   resources:
    requests:
-    storage: 8Gi
+    storage: 10Gi
 
 $(mirror_config)
 EOCR

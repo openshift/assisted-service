@@ -3,6 +3,8 @@ package controllers
 import (
 	"testing"
 
+	"github.com/bombsimon/logrusr/v3"
+	"github.com/go-logr/logr"
 	bmh_v1alpha1 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -11,10 +13,12 @@ import (
 	"github.com/openshift/assisted-service/api/v1beta1"
 	"github.com/openshift/assisted-service/internal/common"
 	hivev1 "github.com/openshift/hive/apis/hive/v1"
+	"github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 )
 
@@ -37,6 +41,22 @@ func TestControllers(t *testing.T) {
 	defer common.TerminateDBTest()
 	RunSpecs(t, "controllers tests")
 }
+
+var (
+	logrusLogger *logrus.Logger
+	logger       logr.Logger
+)
+
+var _ = BeforeSuite(func() {
+	// Configure the Kubernetes and controller-runtime libraries so that they write log messages
+	// to the Ginkgo writer, this way those messages are automatically associated to the right
+	// test.
+	logrusLogger = logrus.New()
+	logrusLogger.Out = GinkgoWriter
+	logger = logrusr.New(logrusLogger)
+	klog.SetLogger(logger)
+	ctrl.SetLogger(logger)
+})
 
 func newSecret(name, namespace string, data map[string][]byte) *corev1.Secret {
 	secret := &corev1.Secret{
