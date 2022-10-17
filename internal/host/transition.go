@@ -618,10 +618,7 @@ func (th *transitionHandler) HasInstallationInProgressTimedOut(sw stateswitch.St
 	if !ok {
 		return false, errors.New("HasInstallationInProgressTimedOut incompatible type of StateSwitch")
 	}
-	maxDuration, ok := InstallationProgressTimeout[sHost.host.Progress.CurrentStage]
-	if !ok {
-		maxDuration = InstallationProgressTimeout["DEFAULT"]
-	}
+	maxDuration := th.config.HostStageTimeout(sHost.host.Progress.CurrentStage)
 	if sHost.host.Progress.CurrentStage == models.HostStageRebooting {
 		if hostutil.IsSingleNode(th.log, th.db, sHost.host) {
 			// use extended reboot timeout for SNO
@@ -653,7 +650,8 @@ func (th *transitionHandler) PostRefreshHost(reason string) stateswitch.PostTran
 			template = statusInfoInstallationInProgressWritingImageToDiskTimedOut
 		}
 		template = strings.Replace(template, "$STAGE", string(sHost.host.Progress.CurrentStage), 1)
-		template = strings.Replace(template, "$MAX_TIME", InstallationProgressTimeout[sHost.host.Progress.CurrentStage].String(), 1)
+		maxTime := th.config.HostStageTimeout(sHost.host.Progress.CurrentStage)
+		template = strings.Replace(template, "$MAX_TIME", maxTime.String(), 1)
 		if strings.Contains(template, "$INSTALLATION_DISK") {
 			var installationDisk *models.Disk
 			installationDisk, err = hostutil.GetHostInstallationDisk(sHost.host)

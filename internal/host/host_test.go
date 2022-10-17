@@ -40,7 +40,12 @@ import (
 var (
 	defaultHwInfo                  = "default hw info" // invalid hw info used only for tests
 	defaultDisabledHostValidations = DisabledHostValidations{}
-	defaultConfig                  = &Config{
+	defaultConfig                  *Config
+	defaultNTPSources              = []*models.NtpSource{common.TestNTPSourceSynced}
+)
+
+var _ = BeforeEach(func() {
+	defaultConfig = &Config{
 		ResetTimeout:             3 * time.Minute,
 		EnableAutoReset:          true,
 		EnableAutoAssign:         true,
@@ -48,8 +53,9 @@ var (
 		DisabledHostvalidations:  defaultDisabledHostValidations,
 		MaxHostDisconnectionTime: MaxHostDisconnectionTime,
 	}
-	defaultNTPSources = []*models.NtpSource{common.TestNTPSourceSynced}
-)
+	err := defaultConfig.Complete()
+	Expect(err).ToNot(HaveOccurred())
+})
 
 var _ = Describe("update_role", func() {
 	var (

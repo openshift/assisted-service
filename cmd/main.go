@@ -196,6 +196,9 @@ func maxDuration(dur time.Duration, durations ...time.Duration) time.Duration {
 
 func main() {
 	err := envconfig.Process(common.EnvConfigPrefix, &Options)
+	if err == nil {
+		err = Options.HostConfig.Complete()
+	}
 	log := InitLogs()
 
 	if err != nil {
