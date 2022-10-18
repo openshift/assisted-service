@@ -270,6 +270,33 @@ var _ = Describe("installcfg", func() {
 		Expect(result.Networking.NetworkType).To(Equal(models.ClusterNetworkTypeOpenShiftSDN))
 	})
 
+	It("CA AdditionalTrustBundle is set to mirror CA, don't overwrite InstallConfigOverrides certs", func() {
+		var result installcfg.InstallerConfigBaremetal
+
+		// Arbitrary install config override that happens to have additionalTrustBundle
+		cluster.InstallConfigOverrides = `{"additionalTrustBundle":"-----BEGIN CERTIFICATE-----\n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\n-----END CERTIFICATE-----","imageContentSources":[{"mirrors":["f04-h09-000-r640.rdu2.scalelab.redhat.com:5000/localimages/local-release-image"],"source":"quay.io/openshift-release-dev/ocp-release"},{"mirrors":["f04-h09-000-r640.rdu2.scalelab.redhat.com:5000/localimages/local-release-image"],"source":"quay.io/openshift-release-dev/ocp-v4.0-art-dev"}]}`
+
+		ca := "-----BEGIN CERTIFICATE-----\nMIIDozCCAougAwIBAgIULCOqWTF" +
+			"aEA8gNEmV+rb7h1v0r3EwDQYJKoZIhvcNAQELBQAwYTELMAkGA1UEBhMCaXMxCzAJBgNVBAgMAmRk" +
+			"2lyDI6UR3Fbz4pVVAxGXnVhBExjBE=\n-----END CERTIFICATE-----"
+		mirrorCA := "-----BEGIN CERTIFICATE-----\nMIIDozCCAougAwIBAgIULCOqWTF" +
+			"aEA8gNEmV+rb7h1v0r3EwDQYJKoZIhvcNAQELBQAwYTELMAkGA1UEBhMCaXMxCzAJBgNVBAgMAmRk" +
+			"2lyDI6UR3Fbz4pFDaxRgtF123FVTA=\n-----END CERTIFICATE-----"
+
+		gomock.InOrder(mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false),
+			mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(true))
+		mockMirrorRegistriesConfigBuilder.EXPECT().GetMirrorCA().Return([]byte(mirrorCA), nil).Times(1)
+		data, err := installConfig.GetInstallConfig(&cluster, true, ca)
+		Expect(err).ShouldNot(HaveOccurred())
+		err = yaml.Unmarshal(data, &result)
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(result.AdditionalTrustBundle).Should(Equal(" | \n-----BEGIN CERTIFICATE-----\nMIIDozCCAougAwIBAgIULCOqWTF" +
+			"aEA8gNEmV+rb7h1v0r3EwDQYJKoZIhvcNAQELBQAwYTELMAkGA1UEBhMCaXMxCzAJBgNVBAgMAmRk" +
+			"2lyDI6UR3Fbz4pFDaxRgtF123FVTA=\n-----END CERTIFICATE-----" +
+			"\n-----BEGIN CERTIFICATE-----\n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\n-----END CERTIFICATE-----"))
+		Expect(result.Networking.NetworkType).To(Equal(models.ClusterNetworkTypeOpenShiftSDN))
+	})
+
 	It("CA AdditionalTrustBundle not added", func() {
 		var result installcfg.InstallerConfigBaremetal
 		cluster.InstallConfigOverrides = ""
