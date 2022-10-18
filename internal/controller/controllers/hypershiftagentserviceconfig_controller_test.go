@@ -7,10 +7,12 @@ import (
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	routev1 "github.com/openshift/api/route/v1"
 	aiv1beta1 "github.com/openshift/assisted-service/api/v1beta1"
 	"github.com/openshift/assisted-service/internal/spoke_k8s_client"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
@@ -117,6 +119,33 @@ var _ = Describe("HypershiftAgentServiceConfig reconcile", func() {
 		return c
 	}
 
+	ingressCM := &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      defaultIngressCertCMName,
+			Namespace: defaultIngressCertCMNamespace,
+		},
+	}
+
+	route := &routev1.Route{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      serviceName,
+			Namespace: testNamespace,
+		},
+		Spec: routev1.RouteSpec{
+			Host: testHost,
+		},
+	}
+
+	imageRoute := &routev1.Route{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      imageServiceName,
+			Namespace: testNamespace,
+		},
+		Spec: routev1.RouteSpec{
+			Host: fmt.Sprintf("%s.images", testHost),
+		},
+	}
+
 	BeforeEach(func() {
 		mockCtrl = gomock.NewController(GinkgoT())
 		mockSpokeClient = spoke_k8s_client.NewMockSpokeK8sClient(mockCtrl)
@@ -125,7 +154,7 @@ var _ = Describe("HypershiftAgentServiceConfig reconcile", func() {
 		hsc = newHSCDefault()
 		kubeconfigSecret = newKubeconfigSecret()
 		crd = newAgentInstallCRD()
-		hr = newHSCTestReconciler(mockSpokeClientCache, hsc, kubeconfigSecret, crd)
+		hr = newHSCTestReconciler(mockSpokeClientCache, hsc, kubeconfigSecret, crd, ingressCM, route, imageRoute)
 	})
 
 	AfterEach(func() {
@@ -230,6 +259,43 @@ var _ = Describe("HypershiftAgentServiceConfig reconcile", func() {
 		Expect(fakeSpokeClient.Get(ctx, crdKey, &spokeCrd)).To(Not(Succeed()))
 	})
 
+	It("successfully added kubeconfig resources to service deployment", func() {
+		mockSpokeClientCache.EXPECT().Get(gomock.Any()).Return(mockSpokeClient, nil)
+		mockSpokeClient.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+		mockSpokeClient.EXPECT().List(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+		crdKey := client.ObjectKeyFromObject(crd)
+		hubClient := hr.Client
+		Expect(hubClient.Get(ctx, crdKey, crd)).To(Succeed())
+		res, err := hr.Reconcile(ctx, newHypershiftAgentServiceConfigRequest(hsc))
+		Expect(err).To(BeNil())
+		Expect(res).To(Equal(ctrl.Result{}))
+
+		found := &appsv1.Deployment{}
+		Expect(hubClient.Get(ctx, types.NamespacedName{Name: serviceName, Namespace: hsc.Namespace}, found)).To(Succeed())
+		Expect(found.Spec.Template.Spec.Containers[0].Env).To(ContainElement(
+			corev1.EnvVar{
+				Name:  "KUBECONFIG",
+				Value: "/etc/kube/kubeconfig",
+			},
+		))
+		Expect(found.Spec.Template.Spec.Containers[0].VolumeMounts).To(ContainElement(
+			corev1.VolumeMount{
+				Name:      "kubeconfig",
+				MountPath: "/etc/kube",
+			},
+		))
+		Expect(found.Spec.Template.Spec.Volumes).To(ContainElement(
+			corev1.Volume{
+				Name: "kubeconfig",
+				VolumeSource: corev1.VolumeSource{
+					Secret: &corev1.SecretVolumeSource{
+						SecretName: testKubeconfigSecretName,
+					},
+				},
+			},
+		))
+	})
+
 	Context("parsing rbac", func() {
 		var asc ASC
 
@@ -270,7 +336,7 @@ var _ = Describe("HypershiftAgentServiceConfig reconcile", func() {
 			asc.initHASC(hr, hsc)
 			obj, mutateFn, err := newAssistedServiceRole(ctx, hr.Log, asc)
 			Expect(err).To(BeNil())
-			validateObjectMeta(obj, "assisted-service-leader-election-role", testNamespace)
+			validateObjectMeta(obj, "assisted-service", testNamespace)
 			Expect(obj.(*rbacv1.Role).Rules).NotTo((BeNil()))
 			validateRoleUpdate(mutateFn, obj.(*rbacv1.Role)) //test mutate
 		})
@@ -278,8 +344,8 @@ var _ = Describe("HypershiftAgentServiceConfig reconcile", func() {
 			asc.initHASC(hr, hsc)
 			obj, mutateFn, err := newAssistedServiceRoleBinding(ctx, hr.Log, asc)
 			Expect(err).To(BeNil())
-			validateObjectMeta(obj, "assisted-service-leader-election-rolebinding", testNamespace)
-			Expect(obj.(*rbacv1.RoleBinding).RoleRef.Name).To(Equal("assisted-service-leader-election-role"))
+			validateObjectMeta(obj, "assisted-service", testNamespace)
+			Expect(obj.(*rbacv1.RoleBinding).RoleRef.Name).To(Equal("assisted-service"))
 			validateSubjectUpdate(mutateFn, obj.(*rbacv1.RoleBinding)) //test mutate
 		})
 		It("successfully for service cluster role", func() {
