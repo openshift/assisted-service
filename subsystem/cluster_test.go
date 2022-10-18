@@ -1290,7 +1290,8 @@ var _ = Describe("cluster install", func() {
 			Expect(err).NotTo(HaveOccurred())
 			log.Infof("usage after create: %s\n", getReply.Payload.FeatureUsage)
 			verifyUsageSet(getReply.Payload.FeatureUsage,
-				models.Usage{Name: usage.HighAvailabilityModeUsage})
+				models.Usage{Name: usage.HighAvailabilityModeUsage},
+				models.Usage{Name: usage.HyperthreadingUsage, Data: map[string]interface{}{"hyperthreading_enabled": models.ClusterHyperthreadingAll}})
 			verifyUsageNotSet(getReply.Payload.FeatureUsage,
 				strings.ToUpper("console"),
 				usage.VipDhcpAllocationUsage,
@@ -1313,6 +1314,7 @@ var _ = Describe("cluster install", func() {
 			no_proxy := "a.redhat.com"
 			ovn := "OVNKubernetes"
 			hostname := "h1"
+			hyperthreading := "none"
 			_, err = userBMClient.Installer.V2UpdateHost(ctx, &installer.V2UpdateHostParams{
 				HostUpdateParams: &models.HostUpdateParams{
 					HostName: &hostname,
@@ -1330,6 +1332,7 @@ var _ = Describe("cluster install", func() {
 					NoProxy:               &no_proxy,
 					NetworkType:           &ovn,
 					UserManagedNetworking: swag.Bool(false),
+					Hyperthreading:        &hyperthreading,
 				},
 				ClusterID: clusterID,
 			})
@@ -1338,7 +1341,8 @@ var _ = Describe("cluster install", func() {
 			Expect(err).NotTo(HaveOccurred())
 			verifyUsageNotSet(getReply.Payload.FeatureUsage,
 				usage.SDNNetworkTypeUsage,
-				usage.DualStackUsage)
+				usage.DualStackUsage,
+				usage.HyperthreadingUsage)
 			verifyUsageSet(getReply.Payload.FeatureUsage,
 				models.Usage{Name: usage.OVNNetworkTypeUsage},
 				models.Usage{
