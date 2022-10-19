@@ -43,17 +43,17 @@ var _ = Describe("BMOUtils", func() {
 				log:            log,
 				kubeAPIEnabled: true,
 			}
-			clusterOperator := CreateCBO("4.11.0")
+			clusterOperator := CreateCBO("4.12.0")
 			Expect(c.Create(context.Background(), clusterOperator)).To(BeNil())
 			Expect(bmoUtils.ConvergedFlowAvailable()).Should(Equal(true))
 		})
-		It("converged flow available with nightly version", func() {
+		It("converged flow available with candidate version", func() {
 			bmoUtils := BMOUtils{
 				c:              c,
 				log:            log,
 				kubeAPIEnabled: true,
 			}
-			clusterOperator := CreateCBO("4.11.0-0.nightly-2022-06-21-151125")
+			clusterOperator := CreateCBO("4.12.0-ec.4")
 			Expect(c.Create(context.Background(), clusterOperator)).To(BeNil())
 			Expect(bmoUtils.ConvergedFlowAvailable()).Should(Equal(true))
 		})
