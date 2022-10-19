@@ -288,6 +288,15 @@ var _ = Describe("PreprovisioningImage reconcile", func() {
 			Expect(infraEnv.ObjectMeta.Annotations[EnableIronicAgentAnnotation]).To(Equal("true"))
 		})
 
+		It("doesn't fail when the infraEnv image has not been created yet", func() {
+			infraEnv.Status = aiv1beta1.InfraEnvStatus{}
+			infraEnv.ObjectMeta.Annotations = map[string]string{EnableIronicAgentAnnotation: "true"}
+			Expect(c.Create(ctx, infraEnv)).To(BeNil())
+			res, err := pr.Reconcile(ctx, newPreprovisioningImageRequest(ppi))
+			Expect(err).To(BeNil())
+			Expect(res).To(Equal(ctrl.Result{}))
+		})
+
 		It("infraEnv not found", func() {
 			res, err := pr.Reconcile(ctx, newPreprovisioningImageRequest(ppi))
 			Expect(err).To(BeNil())

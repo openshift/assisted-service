@@ -4327,48 +4327,125 @@ var _ = Describe("PreprovisioningImage reconcile flow", func() {
 	if !Options.EnableKubeAPI {
 		return
 	}
-
 	ctx := context.Background()
 
-	var (
-		ppi         *metal3_v1alpha1.PreprovisioningImage
-		ppiNsName   types.NamespacedName
-		infraNsName types.NamespacedName
-		infraEnvKey types.NamespacedName
-	)
-
-	BeforeEach(func() {
-		secretRef := deployLocalObjectSecretIfNeeded(ctx, kubeClient)
-		clusterDeploymentSpec := getDefaultClusterDeploymentSpec(secretRef)
-		deployClusterDeploymentCRD(ctx, kubeClient, clusterDeploymentSpec)
-		snoSpec := getDefaultSNOAgentClusterInstallSpec(clusterDeploymentSpec.ClusterName)
-		deployAgentClusterInstallCRD(ctx, kubeClient, snoSpec, clusterDeploymentSpec.ClusterInstallRef.Name)
-		deployClusterImageSetCRD(ctx, kubeClient, snoSpec.ImageSetRef)
-
-		infraNsName = types.NamespacedName{
+	It("will correctly set the image url after an invalid infraenv is corrected", func() {
+		infraNsName := types.NamespacedName{
 			Name:      "infraenv",
 			Namespace: Options.Namespace,
 		}
-		infraEnvSpec := getDefaultInfraEnvSpec(secretRef, clusterDeploymentSpec)
-		deployInfraEnvCRD(ctx, kubeClient, infraNsName.Name, infraEnvSpec)
-
-		infraEnvKey = types.NamespacedName{
-			Namespace: Options.Namespace,
-			Name:      infraNsName.Name,
+		infraEnv := &v1beta1.InfraEnv{
+			TypeMeta: metav1.TypeMeta{
+				Kind:       "InfraEnv",
+				APIVersion: getAPIVersion(),
+			},
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace:   Options.Namespace,
+				Name:        infraNsName.Name,
+				Annotations: map[string]string{controllers.EnableIronicAgentAnnotation: "true"},
+			},
+			Spec: v1beta1.InfraEnvSpec{
+				PullSecretRef:    deployLocalObjectSecretIfNeeded(ctx, kubeClient),
+				SSHAuthorizedKey: "invalid",
+			},
 		}
-		infraEnv := getInfraEnvFromDBByKubeKey(ctx, db, infraEnvKey, waitForReconcileTimeout)
-		configureLocalAgentClient(infraEnv.ID.String())
-		host := registerNode(ctx, *infraEnv.ID, "hostname1", defaultCIDRv4)
+		Expect(kubeClient.Create(ctx, infraEnv)).To(Succeed())
 
-		ppiSpec := metal3_v1alpha1.PreprovisioningImageSpec{AcceptFormats: []metal3_v1alpha1.ImageFormat{metal3_v1alpha1.ImageFormatISO}}
-		deployPPICRD(ctx, kubeClient, host.ID.String(), &ppiSpec)
-		ppiNsName = types.NamespacedName{
+		ppiNsName := types.NamespacedName{
 			Namespace: Options.Namespace,
-			Name:      host.ID.String(),
+			Name:      "test-image",
 		}
+		ppi := &metal3_v1alpha1.PreprovisioningImage{
+			TypeMeta: metav1.TypeMeta{
+				Kind:       "PreprovisioningImage",
+				APIVersion: "metal3.io/v1alpha1",
+			},
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: Options.Namespace,
+				Name:      ppiNsName.Name,
+				Labels:    map[string]string{controllers.BMH_INFRA_ENV_LABEL: infraNsName.Name},
+			},
+			Spec: metal3_v1alpha1.PreprovisioningImageSpec{
+				AcceptFormats: []metal3_v1alpha1.ImageFormat{
+					metal3_v1alpha1.ImageFormatISO,
+				},
+			},
+		}
+		Expect(kubeClient.Create(ctx, ppi)).To(Succeed())
+
+		// check for not created condition
+		Eventually(func() bool {
+			ppi = getPPICRD(ctx, kubeClient, ppiNsName)
+			readyCondition := meta.FindStatusCondition(ppi.Status.Conditions, string(metal3_v1alpha1.ConditionImageReady))
+			if readyCondition != nil &&
+				readyCondition.Status == metav1.ConditionFalse &&
+				readyCondition.Message == "Waiting for InfraEnv image to be created" {
+				return true
+			}
+			return false
+		}, "30s", "5s").Should(Equal(true))
+
+		// correct public key
+		Eventually(func() error {
+			infraEnv := getInfraEnvCRD(ctx, kubeClient, infraNsName)
+			infraEnv.Spec.SSHAuthorizedKey = sshPublicKey
+			return kubeClient.Update(ctx, infraEnv)
+		}, "30s", "5s").Should(Succeed())
+
+		// ensure image gets set
+		Eventually(func() bool {
+			ppi = getPPICRD(ctx, kubeClient, ppiNsName)
+			readyCondition := meta.FindStatusCondition(ppi.Status.Conditions, string(metal3_v1alpha1.ConditionImageReady))
+			if readyCondition == nil {
+				return false
+			}
+			return readyCondition.Status == metav1.ConditionTrue
+		}, "120s", "10s").Should(Equal(true))
+		ppi = getPPICRD(ctx, kubeClient, ppiNsName)
+		infraEnvURL := getInfraEnvFromDBByKubeKey(ctx, db, infraNsName, waitForReconcileTimeout).DownloadURL
+		Expect(ppi.Status.ImageUrl).To(Equal(infraEnvURL))
 	})
 
 	Context("PPI with infraEnv label", func() {
+
+		var (
+			ppi         *metal3_v1alpha1.PreprovisioningImage
+			ppiNsName   types.NamespacedName
+			infraNsName types.NamespacedName
+			infraEnvKey types.NamespacedName
+		)
+
+		BeforeEach(func() {
+			secretRef := deployLocalObjectSecretIfNeeded(ctx, kubeClient)
+			clusterDeploymentSpec := getDefaultClusterDeploymentSpec(secretRef)
+			deployClusterDeploymentCRD(ctx, kubeClient, clusterDeploymentSpec)
+			snoSpec := getDefaultSNOAgentClusterInstallSpec(clusterDeploymentSpec.ClusterName)
+			deployAgentClusterInstallCRD(ctx, kubeClient, snoSpec, clusterDeploymentSpec.ClusterInstallRef.Name)
+			deployClusterImageSetCRD(ctx, kubeClient, snoSpec.ImageSetRef)
+
+			infraNsName = types.NamespacedName{
+				Name:      "infraenv",
+				Namespace: Options.Namespace,
+			}
+			infraEnvSpec := getDefaultInfraEnvSpec(secretRef, clusterDeploymentSpec)
+			deployInfraEnvCRD(ctx, kubeClient, infraNsName.Name, infraEnvSpec)
+
+			infraEnvKey = types.NamespacedName{
+				Namespace: Options.Namespace,
+				Name:      infraNsName.Name,
+			}
+			infraEnv := getInfraEnvFromDBByKubeKey(ctx, db, infraEnvKey, waitForReconcileTimeout)
+			configureLocalAgentClient(infraEnv.ID.String())
+			host := registerNode(ctx, *infraEnv.ID, "hostname1", defaultCIDRv4)
+
+			ppiSpec := metal3_v1alpha1.PreprovisioningImageSpec{AcceptFormats: []metal3_v1alpha1.ImageFormat{metal3_v1alpha1.ImageFormatISO}}
+			deployPPICRD(ctx, kubeClient, host.ID.String(), &ppiSpec)
+			ppiNsName = types.NamespacedName{
+				Namespace: Options.Namespace,
+				Name:      host.ID.String(),
+			}
+		})
+
 		It("should trigger an infraenv update", func() {
 			ppi = getPPICRD(ctx, kubeClient, ppiNsName)
 			ppi.SetLabels(map[string]string{controllers.BMH_INFRA_ENV_LABEL: infraNsName.Name})
