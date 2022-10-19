@@ -3962,6 +3962,7 @@ var _ = Describe("Installation progress", func() {
 					OpenshiftVersion:  swag.String(openshiftVersion),
 					PullSecret:        swag.String(pullSecret),
 					SSHPublicKey:      sshPublicKey,
+					NetworkType:       swag.String(models.ClusterCreateParamsNetworkTypeOpenShiftSDN),
 					VipDhcpAllocation: swag.Bool(true),
 				},
 			})
