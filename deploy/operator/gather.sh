@@ -25,6 +25,9 @@ function gather_olm_data() {
 function gather_operator_data() {
   oc cluster-info > ${LOGS_DEST}/oc_cluster_info.log
   oc get all -n "${ASSISTED_NAMESPACE}" > ${LOGS_DEST}/oc_get_all.log || true
+  oc get pods -n "${ASSISTED_NAMESPACE}" -o yaml > ${LOGS_DEST}/oc_get_pods.yaml || true
+  oc get deployments -n "${ASSISTED_NAMESPACE}" -o yaml > ${LOGS_DEST}/oc_get_deployments.yaml || true
+  oc get replicasets -n "${ASSISTED_NAMESPACE}" -o yaml > ${LOGS_DEST}/oc_get_replicasets.yaml || true
 
   oc logs -n "${ASSISTED_NAMESPACE}" --selector app=assisted-service -c assisted-service > ${LOGS_DEST}/assisted-service.log
   oc logs -n "${ASSISTED_NAMESPACE}" --selector app=assisted-service -c postgres > ${LOGS_DEST}/postgres.log
