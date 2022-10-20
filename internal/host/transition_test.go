@@ -1472,7 +1472,7 @@ var _ = Describe("Refresh Host", func() {
 				if t.expectTimeout {
 					Expect(prevStageUpdatedAt).Should(Equal(currStageUpdateAt))
 					Expect(swag.StringValue(resultHost.Status)).Should(Equal(models.HostStatusError))
-					Expect(swag.StringValue(resultHost.StatusInfo)).Should(Equal(formatProgressTimedOutInfo(t.stage)))
+					Expect(swag.StringValue(resultHost.StatusInfo)).Should(Equal(formatProgressTimedOutInfo(defaultConfig, t.stage)))
 				} else {
 					if funk.Contains(WrongBootOrderIgnoreTimeoutStages, t.stage) {
 						Expect(prevStageUpdatedAt).ShouldNot(Equal(currStageUpdateAt))
@@ -1922,7 +1922,7 @@ var _ = Describe("Refresh Host", func() {
 								Expect(swag.StringValue(resultHost.StatusInfo)).To(Equal(statusInfo))
 							} else {
 								Expect(swag.StringValue(resultHost.Status)).To(Equal(models.HostStatusError))
-								info := formatProgressTimedOutInfo(stage)
+								info := formatProgressTimedOutInfo(defaultConfig, stage)
 								Expect(swag.StringValue(resultHost.StatusInfo)).To(Equal(info))
 							}
 						}
@@ -1975,10 +1975,10 @@ var _ = Describe("Refresh Host", func() {
 			var resultHost models.Host
 			Expect(db.Take(&resultHost, "id = ? and cluster_id = ?", hostId.String(), clusterId.String()).Error).ToNot(HaveOccurred())
 
-			info := formatProgressTimedOutInfo(models.HostStageWaitingForControlPlane)
+			info := formatProgressTimedOutInfo(defaultConfig, models.HostStageWaitingForControlPlane)
 			Expect(swag.StringValue(resultMaster.StatusInfo)).To(Equal(info))
 
-			info = formatProgressTimedOutInfo(models.HostStageConfiguring)
+			info = formatProgressTimedOutInfo(defaultConfig, models.HostStageConfiguring)
 			Expect(swag.StringValue(resultHost.StatusInfo)).To(Equal(info))
 		})
 
@@ -6031,8 +6031,8 @@ func mockPreflightInfraEnvHardwareRequirements(mockHwValidator *hardware.MockVal
 		}, nil)
 }
 
-func formatProgressTimedOutInfo(stage models.HostStage) string {
-	timeFormat := InstallationProgressTimeout[stage].String()
+func formatProgressTimedOutInfo(config *Config, stage models.HostStage) string {
+	timeFormat := config.HostStageTimeout(stage).String()
 	statusInfo := statusInfoInstallationInProgressTimedOut
 	if stage == models.HostStageWritingImageToDisk {
 		statusInfo = statusInfoInstallationInProgressWritingImageToDiskTimedOut
