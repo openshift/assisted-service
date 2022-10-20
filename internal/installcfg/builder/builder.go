@@ -184,7 +184,13 @@ func (i *installConfigBuilder) getInstallConfig(cluster *common.Cluster, addRhCa
 	}
 	caContent := i.getCAContents(cluster, ca, addRhCa)
 	if caContent != "" {
-		cfg.AdditionalTrustBundle = fmt.Sprintf(` | %s`, caContent)
+		// TODO: This | symbol is actually useless, it'll be removed in a future separate PR that's already WIP
+		if cfg.AdditionalTrustBundle == "" {
+			cfg.AdditionalTrustBundle = fmt.Sprintf(` | %s`, caContent)
+		} else {
+			// Respect user's InstallConfigOverrides certs by merging (through concatentation)
+			cfg.AdditionalTrustBundle = fmt.Sprintf(" | %s\n%s", caContent, cfg.AdditionalTrustBundle)
+		}
 	}
 
 	return cfg, nil
