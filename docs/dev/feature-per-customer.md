@@ -88,3 +88,7 @@ if !hasMultiarchAuthorization {
 ```
 
 The full PR containing this example and implementing all the features mentioned above is [Allow org-based filtering for multiarch images](https://github.com/openshift/assisted-service/pull/4368).
+
+## Enabling feature gates in SaaS
+
+In order for the service to use all the logic described above, it needs to run with the setting `ENABLE_ORG_BASED_FEATURE_GATES` enabled. This is controlled by the environment variables passed to the container. For our SaaS offering that would mean you need to make sure that `data/services/assisted-installer/cicd/saas.yaml` in the [app-interface](https://gitlab.cee.redhat.com/service/app-interface) repository has the variable enabled (as it defaults to disabled).
