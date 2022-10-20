@@ -76,9 +76,7 @@ func (i *installCmd) GetSteps(ctx context.Context, host *models.Host) ([]*models
 		return nil, err
 	}
 
-	disksToFormat := i.getDisksToFormat(ctx, host, inventory)
-
-	fullCmd, err := i.getFullInstallerCommand(cluster, host, inventory, infraEnv, bootdevice, disksToFormat)
+	fullCmd, err := i.getFullInstallerCommand(ctx, cluster, host, inventory, infraEnv, bootdevice)
 	if err != nil {
 		return nil, err
 	}
@@ -93,7 +91,7 @@ func (i *installCmd) GetSteps(ctx context.Context, host *models.Host) ([]*models
 	return []*models.Step{step}, nil
 }
 
-func (i *installCmd) getFullInstallerCommand(cluster *common.Cluster, host *models.Host, inventory *models.Inventory, infraEnv *common.InfraEnv, bootdevice string, disksToFormat []string) (string, error) {
+func (i *installCmd) getFullInstallerCommand(ctx context.Context, cluster *common.Cluster, host *models.Host, inventory *models.Inventory, infraEnv *common.InfraEnv, bootdevice string) (string, error) {
 	role := common.GetEffectiveRole(host)
 	if host.Bootstrap {
 		role = models.HostRoleBootstrap
@@ -111,7 +109,6 @@ func (i *installCmd) getFullInstallerCommand(cluster *common.Cluster, host *mode
 		InfraEnvID:           &host.InfraEnvID,
 		HighAvailabilityMode: &haMode,
 		ControllerImage:      swag.String(i.instructionConfig.ControllerImage),
-		DisksToFormat:        disksToFormat,
 		CheckCvo:             swag.Bool(i.instructionConfig.CheckClusterVersion),
 		InstallerImage:       swag.String(i.instructionConfig.InstallerImage),
 		BootDevice:           swag.String(bootdevice),
@@ -150,9 +147,17 @@ func (i *installCmd) getFullInstallerCommand(cluster *common.Cluster, host *mode
 	if hostInstallerArgs != "" {
 		request.InstallerArgs = hostInstallerArgs
 	}
+
 	if hostutil.SaveDiskPartitionsIsSet(hostInstallerArgs) {
 		request.SkipInstallationDiskCleanup = true
+		if host.SkipFormattingDisks != "" {
+			host.SkipFormattingDisks += fmt.Sprintf(",%s", bootdevice)
+		} else {
+			host.SkipFormattingDisks = bootdevice
+		}
 	}
+
+	request.DisksToFormat = i.getDisksToFormat(ctx, host, inventory)
 
 	request.Proxy = i.getProxyArguments(cluster.Name, cluster.BaseDNSDomain, cluster.HTTPProxy, cluster.HTTPSProxy, cluster.NoProxy)
 
@@ -232,7 +237,6 @@ func (i *installCmd) getDisksToFormat(ctx context.Context, host *models.Host, in
 
 	for _, disk := range allFormattingCandidateDisks {
 		identifier := common.GetDeviceIdentifier(disk)
-
 		if !funk.Contains(skippedDisksIdentifiers, identifier) {
 			eventgen.SendQuickDiskFormatPerformedEvent(ctx, i.eventsHandler, *host.ID, host.InfraEnvID, host.ClusterID,
 				hostutil.GetHostnameForMsg(host), disk.Name, identifier)
