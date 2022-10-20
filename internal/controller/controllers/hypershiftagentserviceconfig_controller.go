@@ -18,7 +18,7 @@ package controllers
 
 import (
 	"context"
-	_ "embed"
+	"embed"
 	"fmt"
 
 	aiv1beta1 "github.com/openshift/assisted-service/api/v1beta1"
@@ -28,10 +28,14 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
 	corev1 "k8s.io/api/core/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	k8scheme "k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -40,19 +44,38 @@ import (
 
 // HypershiftAgentServiceConfigReconciler reconciles a HypershiftAgentServiceConfig object
 type HypershiftAgentServiceConfigReconciler struct {
-	client.Client
-	Scheme *runtime.Scheme
-	Log    logrus.FieldLogger
+	AgentServiceConfigReconcileContext
 
-	// selector and tolerations the Operator runs in and propagates to its deployments
-	// on the management cluster
-	NodeSelector map[string]string
-	Tolerations  []corev1.Toleration
+	SpokeClients SpokeClientCache
 
 	// Namespace the operator is running in
 	Namespace string
+}
 
-	SpokeClients SpokeClientCache
+//go:generate cp -r ../../../config/rbac .
+//go:embed rbac
+var rbacFS embed.FS
+
+func (asc *ASC) initHASC(r *HypershiftAgentServiceConfigReconciler, instance *aiv1beta1.HypershiftAgentServiceConfig) {
+	asc.namespace = instance.Namespace
+	asc.rec = &r.AgentServiceConfigReconcileContext
+	asc.Object = instance
+	asc.spec = &instance.Spec.AgentServiceConfigSpec
+	asc.conditions = instance.Status.Conditions
+}
+
+//TODO: check if we actually need these roles on l0
+// var assistedServiceRBAC_l0 = []component{
+// 	{"AssistedServiceRole_l0", aiv1beta1.ReasonRBACConfigurationFailure, newAssistedServiceRole},
+// 	{"AssistedServiceRoleBinding_l0", aiv1beta1.ReasonRBACConfigurationFailure, newAssistedServiceRoleBinding},
+// }
+
+var assistedServiceRBAC_l1 = []component{
+	{"AssistedServiceRole_l1", aiv1beta1.ReasonRBACConfigurationFailure, newAssistedServiceRole},
+	{"AssistedServiceRoleBinding_l1", aiv1beta1.ReasonRBACConfigurationFailure, newAssistedServiceRoleBinding},
+	{"AssistedServiceClusterRole_l1", aiv1beta1.ReasonRBACConfigurationFailure, newAssistedServiceClusterRole},
+	{"AssistedServiceClusterRoleBinding_l1", aiv1beta1.ReasonRBACConfigurationFailure, newAssistedServiceClusterRoleBinding},
+	{"AssistedServiceServiceAccount_l1", aiv1beta1.ReasonRBACConfigurationFailure, newAssistedServiceServiceAccount},
 }
 
 // +kubebuilder:rbac:groups=agent-install.openshift.io,resources=hypershiftagentserviceconfigs,verbs=get;list;watch;create;update;patch;delete
@@ -60,6 +83,7 @@ type HypershiftAgentServiceConfigReconciler struct {
 // +kubebuilder:rbac:groups=apiextensions.k8s.io,resources=customresourcedefinitions,verbs=get;list;watch
 
 func (hr *HypershiftAgentServiceConfigReconciler) Reconcile(origCtx context.Context, req ctrl.Request) (ctrl.Result, error) {
+	var asc ASC
 	ctx := addRequestIdIfNeeded(origCtx)
 	log := logutil.FromContext(ctx, hr.Log).WithFields(
 		logrus.Fields{
@@ -79,6 +103,7 @@ func (hr *HypershiftAgentServiceConfigReconciler) Reconcile(origCtx context.Cont
 		log.WithError(err).Errorf("Failed to get resource %s", req.NamespacedName)
 		return ctrl.Result{}, err
 	}
+	asc.initHASC(hr, instance)
 
 	// Creating spoke client using specified kubeconfig secret reference
 	spokeClient, err := hr.createSpokeClient(ctx, instance.Spec.KubeconfigSecretRef.Name, instance.Namespace)
@@ -91,6 +116,18 @@ func (hr *HypershiftAgentServiceConfigReconciler) Reconcile(origCtx context.Cont
 	if err := hr.syncSpokeAgentInstallCRDs(ctx, spokeClient); err != nil {
 		log.WithError(err).Error(fmt.Sprintf("Failed to sync agent-install CRDs on spoke cluster in namespace '%s'", instance.Namespace))
 		return ctrl.Result{}, err
+	}
+
+	//l0
+	//add here l0 stuff
+
+	//l1
+	asc.rec.Client = spokeClient
+	for _, component := range assistedServiceRBAC_l1 {
+		log.Infof(fmt.Sprintf("Reconcile spoke component: %s", component.name))
+		if result, err := reconcileComponent(ctx, log, asc, component); err != nil {
+			return result, err
+		}
 	}
 
 	return ctrl.Result{}, nil
@@ -212,5 +249,161 @@ func (hr *HypershiftAgentServiceConfigReconciler) getAgentInstallCRDs(ctx contex
 func (hr *HypershiftAgentServiceConfigReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&aiv1beta1.HypershiftAgentServiceConfig{}).
+		Owns(&rbacv1.ClusterRoleBinding{}).
+		Owns(&rbacv1.ClusterRole{}).
+		Owns(&corev1.ServiceAccount{}).
 		Complete(hr)
+}
+
+func parseFile(fileName string, dest interface{}) error {
+	//read object
+	bytes, err := rbacFS.ReadFile(fileName)
+	if err != nil {
+		return err
+	}
+
+	//decode yaml file into client object
+	into := unstructured.Unstructured{}
+	_, _, err = k8scheme.Codecs.UniversalDecoder().Decode(bytes, nil, &into)
+	if err != nil {
+		return err
+	}
+
+	err = runtime.DefaultUnstructuredConverter.FromUnstructured(into.UnstructuredContent(), dest)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func createRoleFn(namespace, roleFile string) (client.Object, controllerutil.MutateFn, error) {
+	template := rbacv1.Role{}
+
+	err := parseFile(roleFile, &template)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	cr := rbacv1.Role{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      template.Name,
+			Namespace: namespace,
+		},
+		Rules: template.Rules,
+	}
+
+	mutateFn := func() error {
+		cr.Rules = template.Rules
+		return nil
+	}
+	return &cr, mutateFn, nil
+}
+
+func createClusterRoleFn(namespace, roleFile string) (client.Object, controllerutil.MutateFn, error) {
+	template := rbacv1.ClusterRole{}
+
+	err := parseFile(roleFile, &template)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	cr := rbacv1.ClusterRole{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: template.Name,
+		},
+		Rules: template.Rules,
+	}
+
+	mutateFn := func() error {
+		cr.Rules = template.Rules
+		return nil
+	}
+	return &cr, mutateFn, nil
+}
+
+func createClusterRoleBindingFn(namespace, roleFile string) (client.Object, controllerutil.MutateFn, error) {
+	template := rbacv1.ClusterRoleBinding{}
+
+	err := parseFile(roleFile, &template)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	cr := rbacv1.ClusterRoleBinding{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: template.Name,
+		},
+		Subjects: template.Subjects,
+		RoleRef:  template.RoleRef,
+	}
+
+	mutateFn := func() error {
+		cr.Subjects = template.Subjects
+		cr.RoleRef = template.RoleRef
+		return nil
+	}
+	return &cr, mutateFn, nil
+}
+
+func createRoleBindingFn(namespace, roleFile string) (client.Object, controllerutil.MutateFn, error) {
+	template := rbacv1.RoleBinding{}
+
+	err := parseFile(roleFile, &template)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	cr := rbacv1.RoleBinding{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      template.Name,
+			Namespace: namespace,
+		},
+		Subjects: template.Subjects,
+		RoleRef:  template.RoleRef,
+	}
+
+	mutateFn := func() error {
+		cr.Subjects = template.Subjects
+		cr.RoleRef = template.RoleRef
+		return nil
+	}
+	return &cr, mutateFn, nil
+}
+
+func createServiceAccountFn(name, namespace string) (client.Object, controllerutil.MutateFn, error) {
+	sa := corev1.ServiceAccount{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: namespace,
+		},
+	}
+
+	mutateFn := func() error {
+		return nil
+	}
+	return &sa, mutateFn, nil
+}
+
+func newAssistedServiceRole(ctx context.Context, log logrus.FieldLogger, asc ASC) (client.Object, controllerutil.MutateFn, error) {
+	roleFile := "rbac/leader_election_role.yaml"
+	return createRoleFn(asc.namespace, roleFile)
+}
+
+func newAssistedServiceRoleBinding(ctx context.Context, log logrus.FieldLogger, asc ASC) (client.Object, controllerutil.MutateFn, error) {
+	roleFile := "rbac/leader_election_role_binding.yaml"
+	return createRoleBindingFn(asc.namespace, roleFile)
+}
+
+func newAssistedServiceClusterRole(ctx context.Context, log logrus.FieldLogger, asc ASC) (client.Object, controllerutil.MutateFn, error) {
+	roleFile := "rbac/role.yaml"
+	return createClusterRoleFn(asc.namespace, roleFile)
+}
+
+func newAssistedServiceClusterRoleBinding(ctx context.Context, log logrus.FieldLogger, asc ASC) (client.Object, controllerutil.MutateFn, error) {
+	roleFile := "rbac/role_binding.yaml"
+	return createClusterRoleBindingFn(asc.namespace, roleFile)
+}
+
+func newAssistedServiceServiceAccount(ctx context.Context, log logrus.FieldLogger, asc ASC) (client.Object, controllerutil.MutateFn, error) {
+	return createServiceAccountFn("assisted-service", asc.namespace)
 }

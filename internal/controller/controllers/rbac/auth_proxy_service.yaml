@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    control-plane: assisted-service-operator
+  name: assisted-service-operator-metrics-service
+  namespace: assisted-installer
+spec:
+  ports:
+  - name: https
+    port: 8443
+    targetPort: https
+  selector:
+    control-plane: assisted-service-operator

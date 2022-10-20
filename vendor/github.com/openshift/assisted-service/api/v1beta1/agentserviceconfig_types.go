@@ -154,6 +154,8 @@ const (
 	ReasonWebHookClusterRoleBindingFailure string = "ReasonWebHookClusterRoleBindingFailure"
 	// ReasonWebHookClusterRoleFailure when there was a failure configuring/deploying the webhook cluster role.
 	ReasonWebHookClusterRoleFailure string = "ReasonWebHookClusterRoleFailure"
+	// ReasonRBACConfigurationFailure when there was a failure configuring/deploying RBAC entities on hosted clusters.
+	ReasonRBACConfigurationFailure string = "ReasonRBACConfigurationFailure"
 	// ReasonWebHookServiceAccountFailure when there was a failure related to the webhook's service account.
 	ReasonWebHookServiceAccountFailure string = "ReasonWebHookServiceAccountFailure"
 	// ReasonWebHookAPIServiceFailure when there was a failure related to the webhook's API service.
