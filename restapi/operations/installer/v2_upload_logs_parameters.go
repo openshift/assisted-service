@@ -256,7 +256,7 @@ func (o *V2UploadLogsParams) bindLogsType(rawData []string, hasKey bool, formats
 // validateLogsType carries on validations for parameter LogsType
 func (o *V2UploadLogsParams) validateLogsType(formats strfmt.Registry) error {
 
-	if err := validate.EnumCase("logs_type", "query", o.LogsType, []interface{}{"host", "controller"}, true); err != nil {
+	if err := validate.EnumCase("logs_type", "query", o.LogsType, []interface{}{"host", "controller", "node-boot"}, true); err != nil {
 		return err
 	}
 

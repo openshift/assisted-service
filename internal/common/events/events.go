@@ -4516,6 +4516,101 @@ func (e *HostResetFetchFailedEvent) FormatMessage() string {
 }
 
 //
+// Event host_boot_logs_uploaded
+//
+type HostBootLogsUploadedEvent struct {
+    eventName string
+    HostId strfmt.UUID
+    InfraEnvId strfmt.UUID
+    ClusterId *strfmt.UUID
+    HostName string
+}
+
+var HostBootLogsUploadedEventName string = "host_boot_logs_uploaded"
+
+func NewHostBootLogsUploadedEvent(
+    hostId strfmt.UUID,
+    infraEnvId strfmt.UUID,
+    clusterId *strfmt.UUID,
+    hostName string,
+) *HostBootLogsUploadedEvent {
+    return &HostBootLogsUploadedEvent{
+        eventName: HostBootLogsUploadedEventName,
+        HostId: hostId,
+        InfraEnvId: infraEnvId,
+        ClusterId: clusterId,
+        HostName: hostName,
+    }
+}
+
+func SendHostBootLogsUploadedEvent(
+    ctx context.Context,
+    eventsHandler eventsapi.Sender,
+    hostId strfmt.UUID,
+    infraEnvId strfmt.UUID,
+    clusterId *strfmt.UUID,
+    hostName string,) {
+    ev := NewHostBootLogsUploadedEvent(
+        hostId,
+        infraEnvId,
+        clusterId,
+        hostName,
+    )
+    eventsHandler.SendHostEvent(ctx, ev)
+}
+
+func SendHostBootLogsUploadedEventAtTime(
+    ctx context.Context,
+    eventsHandler eventsapi.Sender,
+    hostId strfmt.UUID,
+    infraEnvId strfmt.UUID,
+    clusterId *strfmt.UUID,
+    hostName string,
+    eventTime time.Time) {
+    ev := NewHostBootLogsUploadedEvent(
+        hostId,
+        infraEnvId,
+        clusterId,
+        hostName,
+    )
+    eventsHandler.SendHostEventAtTime(ctx, ev, eventTime)
+}
+
+func (e *HostBootLogsUploadedEvent) GetName() string {
+    return e.eventName
+}
+
+func (e *HostBootLogsUploadedEvent) GetSeverity() string {
+    return "info"
+}
+func (e *HostBootLogsUploadedEvent) GetClusterId() *strfmt.UUID {
+    return e.ClusterId
+}
+func (e *HostBootLogsUploadedEvent) GetHostId() strfmt.UUID {
+    return e.HostId
+}
+func (e *HostBootLogsUploadedEvent) GetInfraEnvId() strfmt.UUID {
+    return e.InfraEnvId
+}
+
+
+
+func (e *HostBootLogsUploadedEvent) format(message *string) string {
+    r := strings.NewReplacer(
+        "{host_id}", fmt.Sprint(e.HostId),
+        "{infra_env_id}", fmt.Sprint(e.InfraEnvId),
+        "{cluster_id}", fmt.Sprint(e.ClusterId),
+        "{host_name}", fmt.Sprint(e.HostName),
+    )
+    return r.Replace(*message)
+}
+
+func (e *HostBootLogsUploadedEvent) FormatMessage() string {
+    s := "Uploaded node boot logs for host {host_name} cluster {cluster_id}"
+    return e.format(&s)
+}
+
+//
 // Event host_logs_uploaded
 //
 type HostLogsUploadedEvent struct {

@@ -482,6 +482,16 @@ x-events:
     infra_env_id: UUID
     host_name: string
 
+- name: host_boot_logs_uploaded
+  message: "Uploaded node boot logs for host {host_name} cluster {cluster_id}"
+  event_type: host
+  severity: "info"
+  properties:
+    host_id: UUID
+    infra_env_id: UUID
+    cluster_id: UUID_PTR
+    host_name: string
+
 - name: host_logs_uploaded
   message: "Uploaded logs for host {host_name} cluster {cluster_id}"
   event_type: host
