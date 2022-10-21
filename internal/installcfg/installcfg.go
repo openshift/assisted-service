@@ -102,6 +102,15 @@ type MachineNetwork struct {
 	Cidr string `yaml:"cidr"`
 }
 
+type ClusterVersionCapabilitySet string
+
+type ClusterVersionCapability string
+
+type Capabilities struct {
+	BaselineCapabilitySet         ClusterVersionCapabilitySet `yaml:"baselineCapabilitySet,omitempty"`
+	AdditionalEnabledCapabilities []ClusterVersionCapability  `yaml:"additionalEnabledCapabilities,omitempty"`
+}
+
 type InstallerConfigBaremetal struct {
 	APIVersion string `yaml:"apiVersion"`
 	BaseDomain string `yaml:"baseDomain"`
@@ -132,6 +141,7 @@ type InstallerConfigBaremetal struct {
 	SSHKey                string               `yaml:"sshKey"`
 	AdditionalTrustBundle string               `yaml:"additionalTrustBundle,omitempty"`
 	ImageContentSources   []ImageContentSource `yaml:"imageContentSources,omitempty"`
+	Capabilities          *Capabilities        `yaml:"capabilities,omitempty"`
 }
 
 func (c *InstallerConfigBaremetal) Validate() error {
