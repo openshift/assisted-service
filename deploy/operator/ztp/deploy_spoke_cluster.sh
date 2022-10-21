@@ -129,12 +129,17 @@ wait_for_boolean_field "clusterdeployment/${ASSISTED_CLUSTER_DEPLOYMENT_NAME}" s
 echo "Hive acknowledged cluster installation!"
 
 # For SNO we derive API IP from .status.apiVIP of the agentclusterinstall as this is the address of the single node.
-if [ ${SPOKE_CONTROLPLANE_AGENTS} -eq 1 ] ; then
+#
+# For multi-node without User Managed Networking we derive API IP in the same way as for SNO, because there is no dedicated
+# loadbalancer deployed.
+#
+# For multi-node with User Managed Networking we do not do anything as this is covered just in the condition above.
+if [ ${SPOKE_CONTROLPLANE_AGENTS} -eq 1 ] || [ "${USER_MANAGED_NETWORKING}" == "false" ] ; then
     export API_IP=$(oc get -n ${SPOKE_NAMESPACE} agentclusterinstall/${ASSISTED_AGENT_CLUSTER_INSTALL_NAME} -ojson | jq '.status.apiVIP' --raw-output)
     if [ -z "$API_IP" ]; then
         echo "Fatal:"
         echo "No value found in the agentclusterinstall for .status.apiVIP"
-        echo "Cannot determine the address of the single node API"
+        echo "Cannot determine the address of the API"
         exit
     fi
 fi
