@@ -160,6 +160,10 @@ const (
 	ReasonWebHookServiceAccountFailure string = "ReasonWebHookServiceAccountFailure"
 	// ReasonWebHookAPIServiceFailure when there was a failure related to the webhook's API service.
 	ReasonWebHookAPIServiceFailure string = "ReasonWebHookAPIServiceFailure"
+	// ReasonServiceServiceAccount when there was a failure configuring/deploying the assisted-service service-account.
+	ReasonServiceServiceAccount string = "ServiceServiceAccount"
+	// ReasonNamespaceCreationFailure when there was a failure creating the namespace.
+	ReasonNamespaceCreationFailure string = "NamespaceCreationFailure"
 
 	// IPXEHTTPRouteEnabled is expected value in IPXEHTTPRoute to enable the route
 	IPXEHTTPRouteEnabled string = "enabled"
