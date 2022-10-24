@@ -60,12 +60,12 @@ function podman_remote() {
 }
 
 function test_tools() {
-  go get github.com/onsi/ginkgo/ginkgo@v1.16.4 \
-      github.com/golang/mock/mockgen@v1.6.0 \
-      github.com/vektra/mockery/.../@v1.1.2 \
-      gotest.tools/gotestsum@v1.6.3 \
-      github.com/axw/gocov/gocov \
-      github.com/AlekSi/gocov-xml@v0.0.0-20190121064608-3a14fb1c4737
+  go install github.com/onsi/ginkgo/ginkgo@v1.16.4
+  go install github.com/golang/mock/mockgen@v1.6.0
+  go install github.com/vektra/mockery/v2@v2.12.3
+  go install gotest.tools/gotestsum@v1.6.3
+  go install github.com/axw/gocov/gocov@latest
+  go install github.com/AlekSi/gocov-xml@v0.0.0-20190121064608-3a14fb1c4737
 }
 
 function assisted_service() {
@@ -93,8 +93,8 @@ function assisted_service() {
   chmod +x operator-sdk_${OS}_${ARCH}
   install operator-sdk_${OS}_${ARCH} /usr/local/bin/operator-sdk
 
-  go get golang.org/x/tools/cmd/goimports@v0.1.5 \
-        sigs.k8s.io/controller-tools/cmd/controller-gen@v0.6.2
+  go install golang.org/x/tools/cmd/goimports@v0.1.5
+  go install sigs.k8s.io/controller-tools/cmd/controller-gen@v0.6.2
 
   python3 -m venv ${VIRTUAL_ENV:-/opt/venv}
   python3 -m pip install --upgrade pip
