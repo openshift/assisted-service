@@ -2839,7 +2839,7 @@ var _ = Describe("Permanently delete clusters", func() {
 		mockS3Api.EXPECT().DeleteObject(gomock.Any(), c2.ID.String()).Return(false, nil).Times(1)
 		mockS3Api.EXPECT().ListObjectsByPrefix(gomock.Any(), gomock.Any()).Return([]string{}, nil).AnyTimes()
 
-		Expect(state.PermanentClustersDeletion(ctx, strfmt.DateTime(time.Now()), mockS3Api)).ShouldNot(HaveOccurred())
+		Expect(state.PermanentClustersDeletion(ctx, strfmt.DateTime(time.Now().Add(time.Minute)), mockS3Api)).ShouldNot(HaveOccurred())
 
 		verifyClusterSubComponentsDeletion(*c1.ID, true)
 
