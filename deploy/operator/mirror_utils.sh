@@ -21,7 +21,12 @@ function mirror_package() {
 
   catalog_source_name="${5}"
 
-  local_registry_index_tag="${local_registry}/olm-index/${remote_index##*/}"
+  # If the remote index is referenced using name and tag, use "name:tag" for the local image.
+  # If the remote index is referenced using a digest, use "name:digest" for the local image.
+  local_index_name=${remote_index##*/}
+  local_index_name="${local_index_name/@*:/:}"
+
+  local_registry_index_tag="${local_registry}/olm-index/${local_index_name}"
   local_registry_image_tag="${local_registry}/olm"
 
   opm index prune \
