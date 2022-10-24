@@ -299,32 +299,7 @@ func (r *AgentServiceConfigReconciler) Reconcile(origCtx context.Context, req ct
 		)
 	}
 
-	for _, component := range []component{
-		{"FilesystemStorage", aiv1beta1.ReasonStorageFailure, newFilesystemPVC},
-		{"DatabaseStorage", aiv1beta1.ReasonStorageFailure, newDatabasePVC},
-		{"ImageServiceService", aiv1beta1.ReasonImageHandlerServiceFailure, newImageServiceService},
-		{"AgentService", aiv1beta1.ReasonAgentServiceFailure, newAgentService},
-		{"ServiceMonitor", aiv1beta1.ReasonAgentServiceMonitorFailure, newServiceMonitor},
-		{"ImageServiceRoute", aiv1beta1.ReasonImageHandlerRouteFailure, newImageServiceRoute},
-		{"AgentRoute", aiv1beta1.ReasonAgentRouteFailure, newAgentRoute},
-		{"AgentLocalAuthSecret", aiv1beta1.ReasonAgentLocalAuthSecretFailure, newAgentLocalAuthSecret},
-		{"DatabaseSecret", aiv1beta1.ReasonPostgresSecretFailure, newPostgresSecret},
-		{"ImageServiceServiceAccount", aiv1beta1.ReasonImageHandlerServiceAccountFailure, newImageServiceServiceAccount},
-		{"IngressCertConfigMap", aiv1beta1.ReasonIngressCertFailure, newIngressCertCM},
-		{"ImageServiceConfigMap", aiv1beta1.ReasonConfigFailure, newImageServiceConfigMap},
-		{"AssistedServiceConfigMap", aiv1beta1.ReasonConfigFailure, newAssistedCM},
-		{"AssistedServiceDeployment", aiv1beta1.ReasonDeploymentFailure, newAssistedServiceDeployment},
-		{"AgentClusterInstallValidatingWebHook", aiv1beta1.ReasonValidatingWebHookFailure, newACIWebHook},
-		{"AgentClusterInstallMutatingWebHook", aiv1beta1.ReasonMutatingWebHookFailure, newACIMutatWebHook},
-		{"InfraEnvValidatingWebHook", aiv1beta1.ReasonValidatingWebHookFailure, newInfraEnvWebHook},
-		{"AgentValidatingWebHook", aiv1beta1.ReasonValidatingWebHookFailure, newAgentWebHook},
-		{"WebHookService", aiv1beta1.ReasonWebHookServiceFailure, newWebHookService},
-		{"WebHookServiceDeployment", aiv1beta1.ReasonWebHookDeploymentFailure, newWebHookDeployment},
-		{"WebHookServiceAccount", aiv1beta1.ReasonWebHookServiceAccountFailure, newWebHookServiceAccount},
-		{"WebHookClusterRole", aiv1beta1.ReasonWebHookClusterRoleFailure, newWebHookClusterRole},
-		{"WebHookClusterRoleBinding", aiv1beta1.ReasonWebHookClusterRoleBindingFailure, newWebHookClusterRoleBinding},
-		{"WebHookAPIService", aiv1beta1.ReasonWebHookAPIServiceFailure, newWebHookAPIService},
-	} {
+	for _, component := range getComponents() {
 		if result, err := reconcileComponent(ctx, log, asc, component); err != nil {
 			return result, err
 		}
@@ -395,6 +370,35 @@ func (r *AgentServiceConfigReconciler) Reconcile(origCtx context.Context, req ct
 	})
 
 	return ctrl.Result{}, r.Status().Update(ctx, instance)
+}
+
+func getComponents() []component {
+	return []component{
+		{"FilesystemStorage", aiv1beta1.ReasonStorageFailure, newFilesystemPVC},
+		{"DatabaseStorage", aiv1beta1.ReasonStorageFailure, newDatabasePVC},
+		{"ImageServiceService", aiv1beta1.ReasonImageHandlerServiceFailure, newImageServiceService},
+		{"AgentService", aiv1beta1.ReasonAgentServiceFailure, newAgentService},
+		{"ServiceMonitor", aiv1beta1.ReasonAgentServiceMonitorFailure, newServiceMonitor},
+		{"ImageServiceRoute", aiv1beta1.ReasonImageHandlerRouteFailure, newImageServiceRoute},
+		{"AgentRoute", aiv1beta1.ReasonAgentRouteFailure, newAgentRoute},
+		{"AgentLocalAuthSecret", aiv1beta1.ReasonAgentLocalAuthSecretFailure, newAgentLocalAuthSecret},
+		{"DatabaseSecret", aiv1beta1.ReasonPostgresSecretFailure, newPostgresSecret},
+		{"ImageServiceServiceAccount", aiv1beta1.ReasonImageHandlerServiceAccountFailure, newImageServiceServiceAccount},
+		{"IngressCertConfigMap", aiv1beta1.ReasonIngressCertFailure, newIngressCertCM},
+		{"ImageServiceConfigMap", aiv1beta1.ReasonConfigFailure, newImageServiceConfigMap},
+		{"AssistedServiceConfigMap", aiv1beta1.ReasonConfigFailure, newAssistedCM},
+		{"AssistedServiceDeployment", aiv1beta1.ReasonDeploymentFailure, newAssistedServiceDeployment},
+		{"AgentClusterInstallValidatingWebHook", aiv1beta1.ReasonValidatingWebHookFailure, newACIWebHook},
+		{"AgentClusterInstallMutatingWebHook", aiv1beta1.ReasonMutatingWebHookFailure, newACIMutatWebHook},
+		{"InfraEnvValidatingWebHook", aiv1beta1.ReasonValidatingWebHookFailure, newInfraEnvWebHook},
+		{"AgentValidatingWebHook", aiv1beta1.ReasonValidatingWebHookFailure, newAgentWebHook},
+		{"WebHookService", aiv1beta1.ReasonWebHookServiceFailure, newWebHookService},
+		{"WebHookServiceDeployment", aiv1beta1.ReasonWebHookDeploymentFailure, newWebHookDeployment},
+		{"WebHookServiceAccount", aiv1beta1.ReasonWebHookServiceAccountFailure, newWebHookServiceAccount},
+		{"WebHookClusterRole", aiv1beta1.ReasonWebHookClusterRoleFailure, newWebHookClusterRole},
+		{"WebHookClusterRoleBinding", aiv1beta1.ReasonWebHookClusterRoleBindingFailure, newWebHookClusterRoleBinding},
+		{"WebHookAPIService", aiv1beta1.ReasonWebHookAPIServiceFailure, newWebHookAPIService},
+	}
 }
 
 func reconcileComponent(ctx context.Context, log *logrus.Entry, asc ASC, component component) (ctrl.Result, error) {

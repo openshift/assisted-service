@@ -18,15 +18,16 @@ package controllers
 
 import (
 	"context"
-	"embed"
 	"fmt"
 
 	aiv1beta1 "github.com/openshift/assisted-service/api/v1beta1"
+	"github.com/openshift/assisted-service/config"
 	"github.com/openshift/assisted-service/internal/spoke_k8s_client"
 	logutil "github.com/openshift/assisted-service/pkg/log"
 	pkgerror "github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
@@ -42,6 +43,12 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
+const (
+	kubeconfigSecretVolumeName string = "kubeconfig"
+	kubeconfigSecretVolumePath string = "/etc/kube"
+	kubeconfigPath             string = "/etc/kube/kubeconfig"
+)
+
 // HypershiftAgentServiceConfigReconciler reconciles a HypershiftAgentServiceConfig object
 type HypershiftAgentServiceConfigReconciler struct {
 	AgentServiceConfigReconcileContext
@@ -52,10 +59,6 @@ type HypershiftAgentServiceConfigReconciler struct {
 	Namespace string
 }
 
-//go:generate cp -r ../../../config/rbac .
-//go:embed rbac
-var rbacFS embed.FS
-
 func (asc *ASC) initHASC(r *HypershiftAgentServiceConfigReconciler, instance *aiv1beta1.HypershiftAgentServiceConfig) {
 	asc.namespace = instance.Namespace
 	asc.rec = &r.AgentServiceConfigReconcileContext
@@ -64,11 +67,10 @@ func (asc *ASC) initHASC(r *HypershiftAgentServiceConfigReconciler, instance *ai
 	asc.conditions = instance.Status.Conditions
 }
 
-//TODO: check if we actually need these roles on l0
-// var assistedServiceRBAC_l0 = []component{
-// 	{"AssistedServiceRole_l0", aiv1beta1.ReasonRBACConfigurationFailure, newAssistedServiceRole},
-// 	{"AssistedServiceRoleBinding_l0", aiv1beta1.ReasonRBACConfigurationFailure, newAssistedServiceRoleBinding},
-// }
+var assistedServiceRBAC_l0 = []component{
+	{"AssistedServiceLeaderRole", aiv1beta1.ReasonRBACConfigurationFailure, newAssistedServiceRole},
+	{"AssistedServiceLeaderRoleBinding", aiv1beta1.ReasonRBACConfigurationFailure, newAssistedServiceRoleBinding},
+}
 
 var assistedServiceRBAC_l1 = []component{
 	{"AssistedServiceRole_l1", aiv1beta1.ReasonRBACConfigurationFailure, newAssistedServiceRole},
@@ -78,9 +80,17 @@ var assistedServiceRBAC_l1 = []component{
 	{"AssistedServiceServiceAccount_l1", aiv1beta1.ReasonRBACConfigurationFailure, newAssistedServiceServiceAccount},
 }
 
+// Adding required resources to rbac
+// - customresourcedefinitions: needed for listing hub CRDs
+// - leases: needed to allow applying leader election roles on hub
+// - roles/rolebindings: needed for applying roles on hub
+
 // +kubebuilder:rbac:groups=agent-install.openshift.io,resources=hypershiftagentserviceconfigs,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=agent-install.openshift.io,resources=hypershiftagentserviceconfigs/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=apiextensions.k8s.io,resources=customresourcedefinitions,verbs=get;list;watch
+// +kubebuilder:rbac:groups=coordination.k8s.io,resources=leases,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=rbac.authorization.k8s.io,resources=roles,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=rbac.authorization.k8s.io,resources=rolebindings,verbs=get;list;watch;create;update;patch;delete
 
 func (hr *HypershiftAgentServiceConfigReconciler) Reconcile(origCtx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	var asc ASC
@@ -118,12 +128,24 @@ func (hr *HypershiftAgentServiceConfigReconciler) Reconcile(origCtx context.Cont
 		return ctrl.Result{}, err
 	}
 
-	//l0
-	//add here l0 stuff
+	// Reconcile hub components
+	hubComponents := append(assistedServiceRBAC_l0, getComponents()...)
+	for _, component := range hubComponents {
+		switch component.name {
+		case "AssistedServiceDeployment":
+			component.fn = newHypershiftAssistedServiceDeployment
+		}
 
-	//l1
+		log.Infof(fmt.Sprintf("Reconcile hub component: %s", component.name))
+		if result, err := reconcileComponent(ctx, log, asc, component); err != nil {
+			return result, err
+		}
+	}
+
+	// Reconcile spoke components
 	asc.rec.Client = spokeClient
-	for _, component := range assistedServiceRBAC_l1 {
+	spokeComponents := assistedServiceRBAC_l1
+	for _, component := range spokeComponents {
 		log.Infof(fmt.Sprintf("Reconcile spoke component: %s", component.name))
 		if result, err := reconcileComponent(ctx, log, asc, component); err != nil {
 			return result, err
@@ -257,7 +279,7 @@ func (hr *HypershiftAgentServiceConfigReconciler) SetupWithManager(mgr ctrl.Mana
 
 func parseFile(fileName string, dest interface{}) error {
 	//read object
-	bytes, err := rbacFS.ReadFile(fileName)
+	bytes, err := config.RbacFiles.ReadFile(fileName)
 	if err != nil {
 		return err
 	}
@@ -385,12 +407,12 @@ func createServiceAccountFn(name, namespace string) (client.Object, controllerut
 }
 
 func newAssistedServiceRole(ctx context.Context, log logrus.FieldLogger, asc ASC) (client.Object, controllerutil.MutateFn, error) {
-	roleFile := "rbac/leader_election_role.yaml"
+	roleFile := "rbac/base/role.yaml"
 	return createRoleFn(asc.namespace, roleFile)
 }
 
 func newAssistedServiceRoleBinding(ctx context.Context, log logrus.FieldLogger, asc ASC) (client.Object, controllerutil.MutateFn, error) {
-	roleFile := "rbac/leader_election_role_binding.yaml"
+	roleFile := "rbac/base/role_binding.yaml"
 	return createRoleBindingFn(asc.namespace, roleFile)
 }
 
@@ -406,4 +428,49 @@ func newAssistedServiceClusterRoleBinding(ctx context.Context, log logrus.FieldL
 
 func newAssistedServiceServiceAccount(ctx context.Context, log logrus.FieldLogger, asc ASC) (client.Object, controllerutil.MutateFn, error) {
 	return createServiceAccountFn("assisted-service", asc.namespace)
+}
+
+func newHypershiftAssistedServiceDeployment(ctx context.Context, log logrus.FieldLogger, asc ASC) (client.Object, controllerutil.MutateFn, error) {
+	obj, mutateFn, err := newAssistedServiceDeployment(ctx, log, asc)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	deployment := obj.(*appsv1.Deployment)
+	newMutateFn := func() error {
+		if err := controllerutil.SetControllerReference(asc.Object, deployment, asc.rec.Scheme); err != nil {
+			return err
+		}
+
+		if err := mutateFn(); err != nil {
+			return err
+		}
+
+		// Add volume with kubeconfig secret
+		deployment.Spec.Template.Spec.Volumes = append(deployment.Spec.Template.Spec.Volumes,
+			corev1.Volume{
+				Name: kubeconfigSecretVolumeName,
+				VolumeSource: corev1.VolumeSource{
+					Secret: &corev1.SecretVolumeSource{
+						SecretName: asc.Object.(*aiv1beta1.HypershiftAgentServiceConfig).Spec.KubeconfigSecretRef.Name,
+					},
+				},
+			},
+		)
+
+		// Add kubeconfig volume mount
+		serviceContainer := deployment.Spec.Template.Spec.Containers[0]
+		serviceContainer.VolumeMounts = append(serviceContainer.VolumeMounts, corev1.VolumeMount{
+			Name:      kubeconfigSecretVolumeName,
+			MountPath: kubeconfigSecretVolumePath,
+		})
+
+		// Add env var to the kubeconfig file on mounted path
+		serviceContainer.Env = append(serviceContainer.Env, corev1.EnvVar{Name: "KUBECONFIG", Value: kubeconfigPath})
+		deployment.Spec.Template.Spec.Containers[0] = serviceContainer
+
+		return nil
+	}
+
+	return deployment, newMutateFn, nil
 }

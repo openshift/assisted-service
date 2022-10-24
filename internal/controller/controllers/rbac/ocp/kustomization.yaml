@@ -1,4 +1,0 @@
-resources:
-  - ../base
-  - role.yaml
-  - role_binding.yaml
