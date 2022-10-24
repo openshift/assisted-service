@@ -390,7 +390,9 @@ func (b *bareMetalInventory) v2uploadLogs(ctx context.Context, params installer.
 
 	defer func() {
 		// Closing file and removing all temporary files created by Multipart
-		params.Upfile.Close()
+		if params.Upfile != nil {
+			params.Upfile.Close()
+		}
 		params.HTTPRequest.Body.Close()
 		err := params.HTTPRequest.MultipartForm.RemoveAll()
 		if err != nil {

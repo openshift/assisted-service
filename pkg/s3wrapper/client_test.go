@@ -3,6 +3,7 @@ package s3wrapper
 import (
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"strconv"
 	"time"
@@ -108,6 +109,13 @@ var _ = Describe("s3client", func() {
 		called := false
 		client.handleObject(ctx, log, &obj, now, deleteTime, func(ctx context.Context, log logrus.FieldLogger, objectName string) { called = true })
 		Expect(called).To(Equal(false))
+	})
+
+	It("fail UploadStream with nil reader", func() {
+		objectName := "fakeObjectName"
+		err := client.UploadStream(ctx, nil, objectName)
+		Expect(err).Should(HaveOccurred())
+		Expect(err.Error()).To(Equal(fmt.Sprintf("Upfile log may not be nil. Cannot upload %s to bucket %s", objectName, bucket)))
 	})
 
 	Describe("createBucket", func() {

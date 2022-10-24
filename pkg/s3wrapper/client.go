@@ -150,6 +150,12 @@ func (c *S3Client) CreateBucket() error {
 
 func (c *S3Client) uploadStream(ctx context.Context, reader io.Reader, objectName, bucket string, uploader s3manageriface.UploaderAPI) error {
 	log := logutil.FromContext(ctx, c.log)
+	if reader == nil {
+		err := errors.Errorf("Upfile log may not be nil. Cannot upload %s to bucket %s", objectName, bucket)
+		log.Error(err)
+		return err
+	}
+
 	_, err := uploader.Upload(&s3manager.UploadInput{
 		Bucket: aws.String(bucket),
 		Key:    aws.String(objectName),
