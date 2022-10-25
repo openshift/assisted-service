@@ -39,12 +39,14 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
 const (
-	kubeconfigSecretVolumeName string = "kubeconfig"
-	kubeconfigSecretVolumePath string = "/etc/kube"
-	kubeconfigPath             string = "/etc/kube/kubeconfig"
+	kubeconfigSecretVolumeName                string = "kubeconfig"
+	kubeconfigSecretVolumePath                string = "/etc/kube"
+	kubeconfigPath                            string = "/etc/kube/kubeconfig"
+	hypershiftAgentServiceConfigFinalizerName string = "agentserviceconfig." + aiv1beta1.Group + "/ai-deprovision"
 )
 
 // HypershiftAgentServiceConfigReconciler reconciles a HypershiftAgentServiceConfig object
@@ -77,6 +79,7 @@ func (asc *ASC) initHASC(r *HypershiftAgentServiceConfigReconciler, instance *ai
 var assistedServiceRBAC_l0 = []component{
 	{"AssistedServiceLeaderRole", aiv1beta1.ReasonRBACConfigurationFailure, newAssistedServiceRole},
 	{"AssistedServiceLeaderRoleBinding", aiv1beta1.ReasonRBACConfigurationFailure, newAssistedServiceRoleBinding},
+	{"AssistedServiceServiceAccount", aiv1beta1.ReasonServiceServiceAccount, newAssistedServiceServiceAccount},
 }
 
 var assistedServiceRBAC_l1 = []component{
@@ -84,6 +87,7 @@ var assistedServiceRBAC_l1 = []component{
 	{"AssistedServiceRoleBinding_l1", aiv1beta1.ReasonRBACConfigurationFailure, newAssistedServiceRoleBinding},
 	{"AssistedServiceClusterRole_l1", aiv1beta1.ReasonRBACConfigurationFailure, newAssistedServiceClusterRole},
 	{"AssistedServiceClusterRoleBinding_l1", aiv1beta1.ReasonRBACConfigurationFailure, newAssistedServiceClusterRoleBinding},
+	{"AssistedServiceServiceAccount_l1", aiv1beta1.ReasonServiceServiceAccount, newAssistedServiceServiceAccount},
 }
 
 // Adding required resources to rbac
@@ -101,6 +105,10 @@ var assistedServiceRBAC_l1 = []component{
 
 func (hr *HypershiftAgentServiceConfigReconciler) Reconcile(origCtx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	var asc ASC
+	var err error
+	var result reconcile.Result
+	var valid bool
+
 	ctx := addRequestIdIfNeeded(origCtx)
 	log := logutil.FromContext(ctx, hr.Log).WithFields(
 		logrus.Fields{
@@ -113,7 +121,7 @@ func (hr *HypershiftAgentServiceConfigReconciler) Reconcile(origCtx context.Cont
 
 	// read the resource from k8s
 	instance := &aiv1beta1.HypershiftAgentServiceConfig{}
-	if err := hr.Get(ctx, req.NamespacedName, instance); err != nil {
+	if err = hr.Get(ctx, req.NamespacedName, instance); err != nil {
 		log.WithError(err).Errorf("Failed to get HypershiftAgentServiceConfig %s", req.NamespacedName)
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
@@ -126,7 +134,7 @@ func (hr *HypershiftAgentServiceConfigReconciler) Reconcile(origCtx context.Cont
 	}
 
 	// Ensure agent-install CRDs exist on spoke cluster and clean stale ones
-	if err := hr.syncSpokeAgentInstallCRDs(ctx, spokeClient); err != nil {
+	if err = hr.syncSpokeAgentInstallCRDs(ctx, spokeClient); err != nil {
 		log.WithError(err).Error(fmt.Sprintf("Failed to sync agent-install CRDs on spoke cluster in namespace '%s'", instance.Namespace))
 		return ctrl.Result{}, err
 	}
@@ -134,9 +142,37 @@ func (hr *HypershiftAgentServiceConfigReconciler) Reconcile(origCtx context.Cont
 	// Initialize ASC to reconcile components according to instance context
 	asc.initHASC(hr, instance)
 
+	// Ensure relevant finalizers exist (cleanup on deletion)
+	if err = ensureFinalizers(ctx, log, asc, hypershiftAgentServiceConfigFinalizerName); err != nil {
+		return ctrl.Result{Requeue: true}, err
+	}
+	if !instance.DeletionTimestamp.IsZero() {
+		return ctrl.Result{}, nil
+	}
+
+	// Invoke validation funcs
+	valid, err = validate(ctx, log, asc)
+	if err != nil {
+		return ctrl.Result{Requeue: true}, err
+	}
+	if !valid {
+		return ctrl.Result{}, nil
+	}
+
+	// Remove IPXE HTTP routes if not needed
+	if err = cleanHTTPRoute(ctx, log, asc); err != nil {
+		return ctrl.Result{Requeue: true}, err
+	}
+
 	// Reconcile hub components
-	if result, err := hr.reconcileHubComponents(ctx, log, asc); err != nil {
+	if result, err = hr.reconcileHubComponents(ctx, log, asc); err != nil {
 		return result, err
+	}
+
+	// Reconcile image-service stateful-set
+	if err = reconcileImageServiceStatefulSet(ctx, log, asc); err != nil {
+		// TODO: update condition
+		return ctrl.Result{}, err
 	}
 
 	// Switch to spoke client in the reconciler context
@@ -145,12 +181,12 @@ func (hr *HypershiftAgentServiceConfigReconciler) Reconcile(origCtx context.Cont
 	asc.rec.Client = spokeClient
 
 	// Ensure instance namespace exists on spoke cluster
-	if err := hr.ensureSpokeNamespace(ctx, log, asc); err != nil {
+	if err = hr.ensureSpokeNamespace(ctx, log, asc); err != nil {
 		return ctrl.Result{}, err
 	}
 
 	// Reconcile spoke components
-	if result, err := hr.reconcileSpokeComponents(ctx, log, asc); err != nil {
+	if result, err = hr.reconcileSpokeComponents(ctx, log, asc); err != nil {
 		return result, err
 	}
 
@@ -160,10 +196,7 @@ func (hr *HypershiftAgentServiceConfigReconciler) Reconcile(origCtx context.Cont
 func (hr *HypershiftAgentServiceConfigReconciler) reconcileHubComponents(ctx context.Context, log *logrus.Entry, asc ASC) (ctrl.Result, error) {
 	hubComponents := []component{}
 	hubComponents = append(hubComponents, assistedServiceRBAC_l0...)
-	hubComponents = append(hubComponents, getComponents()...)
-	hubComponents = append(hubComponents,
-		component{"AssistedServiceServiceAccount", aiv1beta1.ReasonServiceServiceAccount, newAssistedServiceServiceAccount},
-	)
+	hubComponents = append(hubComponents, getComponents(asc.spec)...)
 
 	// Reconcile hub components
 	for _, component := range hubComponents {
@@ -183,9 +216,6 @@ func (hr *HypershiftAgentServiceConfigReconciler) reconcileHubComponents(ctx con
 func (hr *HypershiftAgentServiceConfigReconciler) reconcileSpokeComponents(ctx context.Context, log *logrus.Entry, asc ASC) (ctrl.Result, error) {
 	spokeComponents := []component{}
 	spokeComponents = append(spokeComponents, assistedServiceRBAC_l1...)
-	spokeComponents = append(spokeComponents,
-		component{"AssistedServiceServiceAccount_l1", aiv1beta1.ReasonServiceServiceAccount, newAssistedServiceServiceAccount},
-	)
 
 	// Reconcile spoke components
 	for _, component := range spokeComponents {

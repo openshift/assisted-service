@@ -223,105 +223,31 @@ func (r *AgentServiceConfigReconciler) Reconcile(origCtx context.Context, req ct
 		return reconcile.Result{}, nil
 	}
 
-	if instance.DeletionTimestamp.IsZero() {
-		if !controllerutil.ContainsFinalizer(instance, agentServiceConfigFinalizerName) {
-			controllerutil.AddFinalizer(instance, agentServiceConfigFinalizerName)
-			if err := r.Update(ctx, instance); err != nil {
-				log.WithError(err).Error("failed to add finalizer to AgentServiceConfig")
-				return ctrl.Result{Requeue: true}, err
-			}
-		}
-	} else {
-		// do cleanup and remove finalizer
-		statefulSet := &appsv1.StatefulSet{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      imageServiceName,
-				Namespace: r.Namespace,
-			},
-		}
-		if err := r.Get(ctx, client.ObjectKeyFromObject(statefulSet), statefulSet); err != nil && !errors.IsNotFound(err) {
-			log.WithError(err).Error("failed to get image service stateful set for cleanup")
-			return ctrl.Result{Requeue: true}, err
-		}
-		if err := cleanupImageServiceFinalizer(ctx, asc, statefulSet); err != nil {
-			log.WithError(err).Error("failed to cleanup image service stateful set")
-			return ctrl.Result{Requeue: true}, err
-		}
-
-		controllerutil.RemoveFinalizer(instance, agentServiceConfigFinalizerName)
-		if err := r.Update(ctx, instance); err != nil {
-			log.WithError(err).Error("failed to remove finalizer from AgentServiceConfig")
-			return ctrl.Result{Requeue: true}, err
-		}
-
+	// Ensure relevant finalizers exist (cleanup on deletion)
+	if err := ensureFinalizers(ctx, log, asc, agentServiceConfigFinalizerName); err != nil {
+		return ctrl.Result{Requeue: true}, err
+	}
+	if !instance.DeletionTimestamp.IsZero() {
 		return ctrl.Result{}, nil
 	}
 
-	// Validate the storage configuration. If that returns warnings then generate the
-	// corresponding events. If it returns errors then update the conditions and stop the
-	// reconciliation.
-	warnings, failures, err := r.validateStorage(ctx, log, instance)
+	// Invoke validation funcs
+	valid, err := validate(ctx, log, asc)
 	if err != nil {
-		log.WithError(err).Error("Failed to validate storage configuration")
 		return ctrl.Result{Requeue: true}, err
 	}
-	for _, warning := range warnings {
-		r.Recorder.Event(instance, "Warning", aiv1beta1.ReasonStorageFailure, warning)
-	}
-	if len(failures) > 0 {
-		log.Error("Storage configuration isn't valid")
-		conditionsv1.SetStatusConditionNoHeartbeat(
-			&instance.Status.Conditions, conditionsv1.Condition{
-				Type:    aiv1beta1.ConditionReconcileCompleted,
-				Status:  corev1.ConditionFalse,
-				Reason:  aiv1beta1.ReasonStorageFailure,
-				Message: fmt.Sprintf("%s.", strings.Join(failures, ". ")),
-			},
-		)
-		err = r.Status().Update(ctx, instance)
-		if err != nil {
-			log.WithError(err).Error("Failed to update status")
-			return ctrl.Result{Requeue: true}, err
-		}
-		return ctrl.Result{}, err
+	if !valid {
+		return ctrl.Result{}, nil
 	}
 
-	// If we are here then the storage configuration validation succeeded, so we may need to
-	// remove a previous failure condition:
-	condition := conditionsv1.FindStatusCondition(
-		instance.Status.Conditions,
-		aiv1beta1.ConditionReconcileCompleted,
-	)
-	if condition != nil && condition.Reason == aiv1beta1.ReasonStorageFailure {
-		conditionsv1.RemoveStatusCondition(
-			&instance.Status.Conditions,
-			aiv1beta1.ConditionReconcileCompleted,
-		)
+	// Remove IPXE HTTP routes if not needed
+	if err := cleanHTTPRoute(ctx, log, asc); err != nil {
+		return ctrl.Result{Requeue: true}, err
 	}
 
-	for _, component := range getComponents() {
+	for _, component := range getComponents(asc.spec) {
 		if result, err := reconcileComponent(ctx, log, asc, component); err != nil {
 			return result, err
-		}
-	}
-
-	// Additional routes need to be synced if HTTP iPXE routes are exposed
-	if exposeIPXEHTTPRoute(&instance.Spec) {
-		for _, component := range []component{
-			{"ImageServiceIPXERoute", aiv1beta1.ReasonImageHandlerRouteFailure, newImageServiceIPXERoute},
-			{"AgentIPXERoute", aiv1beta1.ReasonAgentRouteFailure, newAgentIPXERoute},
-		} {
-			if result, err := reconcileComponent(ctx, log, asc, component); err != nil {
-				return result, err
-			}
-		}
-	} else {
-		// Ensure HTTP routes are removed
-		for _, service := range []string{serviceName, imageServiceName} {
-			if err := removeHTTPIPXERoute(ctx, asc, service); err != nil {
-				log.WithError(err).Errorf("failed to remove HTTP route for %s", service)
-				return ctrl.Result{Requeue: true}, err
-			}
 		}
 	}
 
@@ -372,8 +298,8 @@ func (r *AgentServiceConfigReconciler) Reconcile(origCtx context.Context, req ct
 	return ctrl.Result{}, r.Status().Update(ctx, instance)
 }
 
-func getComponents() []component {
-	return []component{
+func getComponents(spec *aiv1beta1.AgentServiceConfigSpec) []component {
+	components := []component{
 		{"FilesystemStorage", aiv1beta1.ReasonStorageFailure, newFilesystemPVC},
 		{"DatabaseStorage", aiv1beta1.ReasonStorageFailure, newDatabasePVC},
 		{"ImageServiceService", aiv1beta1.ReasonImageHandlerServiceFailure, newImageServiceService},
@@ -399,6 +325,16 @@ func getComponents() []component {
 		{"WebHookClusterRoleBinding", aiv1beta1.ReasonWebHookClusterRoleBindingFailure, newWebHookClusterRoleBinding},
 		{"WebHookAPIService", aiv1beta1.ReasonWebHookAPIServiceFailure, newWebHookAPIService},
 	}
+
+	// Additional routes need to be synced if HTTP iPXE routes are exposed
+	if exposeIPXEHTTPRoute(spec) {
+		components = append(components,
+			component{"ImageServiceIPXERoute", aiv1beta1.ReasonImageHandlerRouteFailure, newImageServiceIPXERoute},
+			component{"AgentIPXERoute", aiv1beta1.ReasonAgentRouteFailure, newAgentIPXERoute},
+		)
+	}
+
+	return components
 }
 
 func reconcileComponent(ctx context.Context, log *logrus.Entry, asc ASC, component component) (ctrl.Result, error) {
@@ -436,6 +372,54 @@ func reconcileComponent(ctx context.Context, log *logrus.Entry, asc ASC, compone
 		log.Info(component.name + " created")
 	}
 	return ctrl.Result{Requeue: false}, nil
+}
+
+func ensureFinalizers(ctx context.Context, log logrus.FieldLogger, asc ASC, finalizerName string) error {
+	if asc.Object.GetDeletionTimestamp().IsZero() {
+		if !controllerutil.ContainsFinalizer(asc.Object, finalizerName) {
+			controllerutil.AddFinalizer(asc.Object, finalizerName)
+			if err := asc.rec.Update(ctx, asc.Object); err != nil {
+				log.WithError(err).Error("failed to add finalizer to AgentServiceConfig")
+				return err
+			}
+		}
+	} else {
+		// do cleanup and remove finalizer
+		statefulSet := &appsv1.StatefulSet{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      imageServiceName,
+				Namespace: asc.namespace,
+			},
+		}
+		if err := asc.rec.Get(ctx, client.ObjectKeyFromObject(statefulSet), statefulSet); err != nil && !errors.IsNotFound(err) {
+			log.WithError(err).Error("failed to get image service stateful set for cleanup")
+			return err
+		}
+		if err := cleanupImageServiceFinalizer(ctx, asc, statefulSet); err != nil {
+			log.WithError(err).Error("failed to cleanup image service stateful set")
+			return err
+		}
+
+		controllerutil.RemoveFinalizer(asc.Object, finalizerName)
+		if err := asc.rec.Update(ctx, asc.Object); err != nil {
+			log.WithError(err).Error("failed to remove finalizer from AgentServiceConfig")
+			return err
+		}
+	}
+	return nil
+}
+
+func cleanHTTPRoute(ctx context.Context, log logrus.FieldLogger, asc ASC) error {
+	if !exposeIPXEHTTPRoute(asc.spec) {
+		// Ensure HTTP routes are removed
+		for _, service := range []string{serviceName, imageServiceName} {
+			if err := removeHTTPIPXERoute(ctx, asc, service); err != nil {
+				log.WithError(err).Errorf("failed to remove HTTP route for %s", service)
+				return err
+			}
+		}
+	}
+	return nil
 }
 
 // SetupWithManager sets up the controller with the Manager.
@@ -2319,6 +2303,52 @@ func getImageService(ctx context.Context, log logrus.FieldLogger, asc ASC) strin
 	return imageServiceURL
 }
 
+func validate(ctx context.Context, log logrus.FieldLogger, asc ASC) (bool, error) {
+	// Validate the storage configuration. If that returns warnings then generate the
+	// corresponding events. If it returns errors then update the conditions and stop the
+	// reconciliation.
+	warnings, failures, err := validateStorage(ctx, log, asc)
+	if err != nil {
+		log.WithError(err).Error("Failed to validate storage configuration")
+		return false, err
+	}
+	for _, warning := range warnings {
+		asc.rec.Recorder.Event(asc.Object, "Warning", aiv1beta1.ReasonStorageFailure, warning)
+	}
+	if len(failures) > 0 {
+		log.Error("Storage configuration isn't valid")
+		conditionsv1.SetStatusConditionNoHeartbeat(
+			asc.conditions, conditionsv1.Condition{
+				Type:    aiv1beta1.ConditionReconcileCompleted,
+				Status:  corev1.ConditionFalse,
+				Reason:  aiv1beta1.ReasonStorageFailure,
+				Message: fmt.Sprintf("%s.", strings.Join(failures, ". ")),
+			},
+		)
+		err = asc.rec.Status().Update(ctx, asc.Object)
+		if err != nil {
+			log.WithError(err).Error("Failed to update status")
+			return false, err
+		}
+		return false, nil
+	}
+
+	// If we are here then the storage configuration validation succeeded, so we may need to
+	// remove a previous failure condition:
+	condition := conditionsv1.FindStatusCondition(
+		*asc.conditions,
+		aiv1beta1.ConditionReconcileCompleted,
+	)
+	if condition != nil && condition.Reason == aiv1beta1.ReasonStorageFailure {
+		conditionsv1.RemoveStatusCondition(
+			asc.conditions,
+			aiv1beta1.ConditionReconcileCompleted,
+		)
+	}
+
+	return true, nil
+}
+
 // validateStorage checks that the sizes of the storage volumes for the database, the file system
 // and the images are acceptable.
 //
@@ -2332,11 +2362,10 @@ func getImageService(ctx context.Context, log logrus.FieldLogger, asc ASC) strin
 // environments that were created before this validation was introduced. Those environments may be
 // working correctly even if the size was smaller that the minimum, because they aren't consuming
 // that space or because the actual volume was larger then the initial request.
-func (r *AgentServiceConfigReconciler) validateStorage(ctx context.Context, log logrus.FieldLogger,
-	instance *aiv1beta1.AgentServiceConfig) (warnings, failures []string, err error) {
+func validateStorage(ctx context.Context, log logrus.FieldLogger, asc ASC) (warnings, failures []string, err error) {
 
 	// Check the size of the database storage:
-	databaseStorage := instance.Spec.DatabaseStorage.Resources.Requests.Storage()
+	databaseStorage := asc.spec.DatabaseStorage.Resources.Requests.Storage()
 	if databaseStorage.Cmp(minDatabaseStorage) < 0 {
 		message := fmt.Sprintf(
 			"Database storage %s is too small, it must be at least %s",
@@ -2344,11 +2373,11 @@ func (r *AgentServiceConfigReconciler) validateStorage(ctx context.Context, log 
 		)
 		warnings = append(warnings, message)
 		key := client.ObjectKey{
-			Namespace: r.Namespace,
+			Namespace: asc.namespace,
 			Name:      databaseName,
 		}
 		var tmp corev1.PersistentVolumeClaim
-		err = r.Get(ctx, key, &tmp)
+		err = asc.rec.Get(ctx, key, &tmp)
 		if errors.IsNotFound(err) {
 			err = nil
 			failures = append(failures, message)
@@ -2359,7 +2388,7 @@ func (r *AgentServiceConfigReconciler) validateStorage(ctx context.Context, log 
 	}
 
 	// Check the size of the filesystem storage:
-	filesystemStorage := instance.Spec.FileSystemStorage.Resources.Requests.Storage()
+	filesystemStorage := asc.spec.FileSystemStorage.Resources.Requests.Storage()
 	if filesystemStorage.Cmp(minFilesystemStorage) < 0 {
 		message := fmt.Sprintf(
 			"Filesystem storage %s is too small, it must be at least %s",
@@ -2367,11 +2396,11 @@ func (r *AgentServiceConfigReconciler) validateStorage(ctx context.Context, log 
 		)
 		warnings = append(warnings, message)
 		key := client.ObjectKey{
-			Namespace: r.Namespace,
+			Namespace: asc.namespace,
 			Name:      serviceName,
 		}
 		var tmp corev1.PersistentVolumeClaim
-		err = r.Get(ctx, key, &tmp)
+		err = asc.rec.Get(ctx, key, &tmp)
 		if errors.IsNotFound(err) {
 			failures = append(failures, message)
 			err = nil
@@ -2382,8 +2411,8 @@ func (r *AgentServiceConfigReconciler) validateStorage(ctx context.Context, log 
 	}
 
 	// Check the size of the image storage:
-	if instance.Spec.ImageStorage != nil {
-		imageStorage := instance.Spec.ImageStorage.Resources.Requests.Storage()
+	if asc.spec.ImageStorage != nil {
+		imageStorage := asc.spec.ImageStorage.Resources.Requests.Storage()
 		if imageStorage.Cmp(minImageStorage) < 0 {
 			message := fmt.Sprintf(
 				"Image storage %s is too small, it must be at least %s",
@@ -2391,11 +2420,11 @@ func (r *AgentServiceConfigReconciler) validateStorage(ctx context.Context, log 
 			)
 			warnings = append(warnings, message)
 			key := client.ObjectKey{
-				Namespace: r.Namespace,
+				Namespace: asc.namespace,
 				Name:      imageServiceName,
 			}
 			var tmp appsv1.StatefulSet
-			err = r.Get(ctx, key, &tmp)
+			err = asc.rec.Get(ctx, key, &tmp)
 			if errors.IsNotFound(err) {
 				err = nil
 				failures = append(failures, message)
