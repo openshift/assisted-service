@@ -438,6 +438,7 @@ var _ = Describe("bmac reconcile", func() {
 						Path:                    "/dev/sda",
 						DriveType:               string(models.DriveTypeSSD),
 						Bootable:                true,
+						SizeBytes:               int64(120) * 1000 * 1000 * 1000,
 					},
 					{
 						ID:                      "2",
@@ -555,11 +556,28 @@ var _ = Describe("bmac reconcile", func() {
 				Expect(updatedAgent.Spec.IgnitionConfigOverrides).To(Equal("agent-ignition"))
 			})
 
-			It("should set invalid InstallationDiskID if RootDeviceHints don't match", func() {
+			It("should set invalid InstallationDiskID if RootDeviceHints device name doesn't match", func() {
 				updatedHost := &bmh_v1alpha1.BareMetalHost{}
 				err := c.Get(ctx, types.NamespacedName{Name: host.Name, Namespace: testNamespace}, updatedHost)
 				Expect(err).To(BeNil())
 				updatedHost.Spec.RootDeviceHints.DeviceName = "/dev/sdc"
+				Expect(c.Update(ctx, updatedHost)).To(BeNil())
+
+				result, err := bmhr.Reconcile(ctx, newBMHRequest(host))
+				Expect(err).To(BeNil())
+				Expect(result).To(Equal(ctrl.Result{}))
+
+				updatedAgent := &v1beta1.Agent{}
+				err = c.Get(ctx, types.NamespacedName{Name: agent.Name, Namespace: agent.Namespace}, updatedAgent)
+				Expect(err).To(BeNil())
+				Expect(updatedAgent.Spec.InstallationDiskID).To(Equal("/dev/not-found-by-hints"))
+			})
+
+			It("should set invalid InstallationDiskID if RootDeviceHints min size doesn't match", func() {
+				updatedHost := &bmh_v1alpha1.BareMetalHost{}
+				err := c.Get(ctx, types.NamespacedName{Name: host.Name, Namespace: testNamespace}, updatedHost)
+				Expect(err).To(BeNil())
+				updatedHost.Spec.RootDeviceHints.MinSizeGigabytes = 121
 				Expect(c.Update(ctx, updatedHost)).To(BeNil())
 
 				result, err := bmhr.Reconcile(ctx, newBMHRequest(host))
@@ -577,6 +595,7 @@ var _ = Describe("bmac reconcile", func() {
 				err := c.Get(ctx, types.NamespacedName{Name: host.Name, Namespace: testNamespace}, updatedHost)
 				Expect(err).To(BeNil())
 				updatedHost.Spec.RootDeviceHints.DeviceName = "/dev/sda"
+				updatedHost.Spec.RootDeviceHints.MinSizeGigabytes = 110
 				Expect(c.Update(ctx, updatedHost)).To(BeNil())
 
 				result, err := bmhr.Reconcile(ctx, newBMHRequest(host))
