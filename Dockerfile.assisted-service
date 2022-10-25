@@ -5,7 +5,7 @@ COPY tools/generate_python_client.sh .
 RUN chmod +x ./generate_python_client.sh && SWAGGER_FILE=swagger.yaml OUTPUT=/build ./generate_python_client.sh
 
 # TODO: Find a pure Python3 base image, rather than relying on the golang one
-FROM registry.ci.openshift.org/openshift/release:golang-1.17 as pybuilder
+FROM registry.ci.openshift.org/openshift/release:golang-1.18 as pybuilder
 COPY . /assisted-service
 COPY --from=swagger_py /build /assisted-service/build
 RUN python3 -m pip install -I pip && pip3 install -I -r /assisted-service/dev-requirements.txt
