@@ -10,6 +10,7 @@ source "${__dir}/../utils.sh"
 export REMOTE_BAREMETALHOSTS_FILE="${REMOTE_BAREMETALHOSTS_FILE:-/home/test/dev-scripts/ocp/ostest/remote_baremetalhosts.json}"
 
 export DAY2_LATE_BINDING=${DAY2_LATE_BINDING:-}
+export DAY2_MASTERS=${DAY2_MASTERS:-}
 
 # If performing late binding then we need to generate an infraenv for this.
 # Generation is handled within "add-remote-nodes-playbook"

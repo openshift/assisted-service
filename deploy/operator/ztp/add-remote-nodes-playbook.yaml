@@ -11,6 +11,7 @@
     - pull_secret_name: "{{ lookup('env', 'ASSISTED_PULLSECRET_NAME') }}"
     - ssh_public_key: "{{ lookup('file', '/root/.ssh/id_rsa.pub') }}"
     - day2: "true"
+    - day2_masters: "{{ lookup('env', 'DAY2_MASTERS') }}"
     - baremetalhosts_ignition_override: "{{ lookup('env', 'BAREMETALHOSTS_IGNITION_OVERRIDE', default='') }}"
 
   tasks:
