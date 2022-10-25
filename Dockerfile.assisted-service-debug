@@ -1,6 +1,6 @@
 ARG SERVICE=quay.io/edge-infrastructure/assisted-service:latest
 FROM registry.ci.openshift.org/openshift/release:golang-1.17 AS download_dlv
-RUN go get github.com/go-delve/delve/cmd/dlv
+RUN GOFLAGS=-mod=mod go install github.com/go-delve/delve/cmd/dlv@v1.9.1
 
 FROM $SERVICE
 ARG DEBUG_SERVICE_PORT=40000
