@@ -64,7 +64,7 @@ func (asc *ASC) initHASC(r *HypershiftAgentServiceConfigReconciler, instance *ai
 	asc.rec = &r.AgentServiceConfigReconcileContext
 	asc.Object = instance
 	asc.spec = &instance.Spec.AgentServiceConfigSpec
-	asc.conditions = instance.Status.Conditions
+	asc.conditions = &instance.Status.Conditions
 }
 
 var assistedServiceRBAC_l0 = []component{
