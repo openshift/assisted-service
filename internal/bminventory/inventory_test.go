@@ -6134,9 +6134,18 @@ var _ = Describe("infraEnvs", func() {
 			mockEvents.EXPECT().SendInfraEnvEvent(ctx, eventstest.NewEventMatcher(
 				eventstest.WithNameMatcher(eventgen.InfraEnvRegisteredEventName))).Times(1)
 			kernelArguments := models.KernelArguments{
-				"p1",
-				"p2",
-				"p3",
+				{
+					Operation: models.KernelArgumentOperationAppend,
+					Value:     "p1",
+				},
+				{
+					Operation: models.KernelArgumentOperationAppend,
+					Value:     "p2",
+				},
+				{
+					Operation: models.KernelArgumentOperationAppend,
+					Value:     "p3",
+				},
 			}
 			reply := bm.RegisterInfraEnv(ctx, installer.RegisterInfraEnvParams{
 				InfraenvCreateParams: &models.InfraEnvCreateParams{
@@ -6583,20 +6592,38 @@ var _ = Describe("infraEnvs", func() {
 				Expect(err).ToNot(HaveOccurred())
 			})
 			Context("Update discovery kernel arguments", func() {
-				jsonEncodeStringArray := func(array []string) string {
+				jsonEncodeKernelArguments := func(array models.KernelArguments) string {
 					b, e := json.Marshal(&array)
 					Expect(e).ToNot(HaveOccurred())
 					return string(b)
 				}
 				ka1 := models.KernelArguments{
-					"p1",
-					"p2",
+					{
+						Operation: models.KernelArgumentOperationAppend,
+						Value:     "p1",
+					},
+					{
+						Operation: models.KernelArgumentOperationAppend,
+						Value:     "p2",
+					},
 				}
 				ka2 := models.KernelArguments{
-					"p3",
-					"p4",
-					"p1",
-					"p5",
+					{
+						Operation: models.KernelArgumentOperationAppend,
+						Value:     "p3",
+					},
+					{
+						Operation: models.KernelArgumentOperationAppend,
+						Value:     "p4",
+					},
+					{
+						Operation: models.KernelArgumentOperationAppend,
+						Value:     "p1",
+					},
+					{
+						Operation: models.KernelArgumentOperationAppend,
+						Value:     "p5",
+					},
 				}
 				DescribeTable("Update discovery kernel arguments scenarios",
 					func(initialKernelArguments, updateKernelArguments, expectedKernelArguments models.KernelArguments) {
@@ -6604,7 +6631,7 @@ var _ = Describe("infraEnvs", func() {
 						Expect(i.DiscoveryKernelArguments).To(BeNil())
 						if initialKernelArguments != nil {
 							updateReply := db.Model(&models.InfraEnv{}).Where("id = ?", i.ID.String()).
-								Update("discovery_kernel_arguments", jsonEncodeStringArray(initialKernelArguments))
+								Update("discovery_kernel_arguments", jsonEncodeKernelArguments(initialKernelArguments))
 							Expect(updateReply.Error).ToNot(HaveOccurred())
 							Expect(updateReply.RowsAffected).To(Equal(int64(1)))
 						}
@@ -6620,7 +6647,7 @@ var _ = Describe("infraEnvs", func() {
 						if expectedKernelArguments == nil {
 							Expect(i.DiscoveryKernelArguments).To(BeNil())
 						} else {
-							Expect(swag.StringValue(i.DiscoveryKernelArguments)).To(Equal(jsonEncodeStringArray(expectedKernelArguments)))
+							Expect(swag.StringValue(i.DiscoveryKernelArguments)).To(Equal(jsonEncodeKernelArguments(expectedKernelArguments)))
 						}
 					},
 					Entry("update discovery kernel arguments when none were previously set", nil, ka1, ka1),

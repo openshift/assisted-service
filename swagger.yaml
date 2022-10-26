@@ -6278,20 +6278,31 @@ definitions:
     items:
       $ref: '#/definitions/release-image'
 
+  kernel_argument:
+    type: object
+    description: pair of [operation, argument] specifying the argument and what operation should be applied on it.
+    properties:
+      operation:
+        type: string
+        enum: ['append', 'replace', 'delete']
+        description: The operation to apply on the kernel argument.
+      value:
+        type: string
+        pattern: '^(?:(?:[^ \t\n\r"]+)|(?:"[^"]*"))+$'
+        description: |
+          Kernel argument can have the form <parameter> or <parameter>=<value>. The following examples should
+          be supported:
+          rd.net.timeout.carrier=60
+          isolcpus=1,2,10-20,100-2000:2/25
+          quiet
+          The parsing by the command line parser in linux kernel is much looser and this pattern follows it.
+       
+
   kernel_arguments:
-    description: List of string values to be passed to discovery image as kernel arguments.
+    description: List of kernel arugment objects that define the operations and values to be applied.
     type: array
     items:
-      type: string
-      pattern: '^(?:(?:[^ \t\n\r"]+)|(?:"[^"]*"))+$'
-      description: |
-        Kernel argument can have the form <parameter> or <parameter>=<value>. The following examples should
-        be supported:
-        rd.net.timeout.carrier=60
-        isolcpus=1,2,10-20,100-2000:2/25
-        quiet
-        The parsing by the command line parser in linux kernel is much looser and this pattern follows it.
-
+      $ref: '#/definitions/kernel_argument'
 
   operator-property:
     type: object
