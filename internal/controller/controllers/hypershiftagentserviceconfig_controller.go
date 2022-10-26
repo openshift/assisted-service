@@ -24,6 +24,7 @@ import (
 	"github.com/openshift/assisted-service/config"
 	"github.com/openshift/assisted-service/internal/spoke_k8s_client"
 	logutil "github.com/openshift/assisted-service/pkg/log"
+	conditionsv1 "github.com/openshift/custom-resource-status/conditions/v1"
 	pkgerror "github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
@@ -76,18 +77,18 @@ func (asc *ASC) initHASC(r *HypershiftAgentServiceConfigReconciler, instance *ai
 	}
 }
 
-var assistedServiceRBAC_l0 = []component{
+var assistedServiceRBAC_hub = []component{
 	{"AssistedServiceLeaderRole", aiv1beta1.ReasonRBACConfigurationFailure, newAssistedServiceRole},
 	{"AssistedServiceLeaderRoleBinding", aiv1beta1.ReasonRBACConfigurationFailure, newAssistedServiceRoleBinding},
 	{"AssistedServiceServiceAccount", aiv1beta1.ReasonServiceServiceAccount, newAssistedServiceServiceAccount},
 }
 
-var assistedServiceRBAC_l1 = []component{
-	{"AssistedServiceRole_l1", aiv1beta1.ReasonRBACConfigurationFailure, newAssistedServiceRole},
-	{"AssistedServiceRoleBinding_l1", aiv1beta1.ReasonRBACConfigurationFailure, newAssistedServiceRoleBinding},
-	{"AssistedServiceClusterRole_l1", aiv1beta1.ReasonRBACConfigurationFailure, newAssistedServiceClusterRole},
-	{"AssistedServiceClusterRoleBinding_l1", aiv1beta1.ReasonRBACConfigurationFailure, newAssistedServiceClusterRoleBinding},
-	{"AssistedServiceServiceAccount_l1", aiv1beta1.ReasonServiceServiceAccount, newAssistedServiceServiceAccount},
+var assistedServiceRBAC_spoke = []component{
+	{"AssistedServiceRole_spoke", aiv1beta1.ReasonRBACConfigurationFailure, newAssistedServiceRole},
+	{"AssistedServiceRoleBinding_spoke", aiv1beta1.ReasonRBACConfigurationFailure, newAssistedServiceRoleBinding},
+	{"AssistedServiceClusterRole_spoke", aiv1beta1.ReasonRBACConfigurationFailure, newAssistedServiceClusterRole},
+	{"AssistedServiceClusterRoleBinding_spoke", aiv1beta1.ReasonRBACConfigurationFailure, newAssistedServiceClusterRoleBinding},
+	{"AssistedServiceServiceAccount_spoke", aiv1beta1.ReasonServiceServiceAccount, newAssistedServiceServiceAccount},
 }
 
 // Adding required resources to rbac
@@ -133,14 +134,14 @@ func (hr *HypershiftAgentServiceConfigReconciler) Reconcile(origCtx context.Cont
 		return ctrl.Result{}, err
 	}
 
+	// Initialize ASC to reconcile components according to instance context
+	asc.initHASC(hr, instance)
+
 	// Ensure agent-install CRDs exist on spoke cluster and clean stale ones
-	if err = hr.syncSpokeAgentInstallCRDs(ctx, spokeClient); err != nil {
+	if err = hr.ensureSyncSpokeAgentInstallCRDs(ctx, log, spokeClient, asc); err != nil {
 		log.WithError(err).Error(fmt.Sprintf("Failed to sync agent-install CRDs on spoke cluster in namespace '%s'", instance.Namespace))
 		return ctrl.Result{}, err
 	}
-
-	// Initialize ASC to reconcile components according to instance context
-	asc.initHASC(hr, instance)
 
 	// Ensure relevant finalizers exist (cleanup on deletion)
 	if err = ensureFinalizers(ctx, log, asc, hypershiftAgentServiceConfigFinalizerName); err != nil {
@@ -169,10 +170,9 @@ func (hr *HypershiftAgentServiceConfigReconciler) Reconcile(origCtx context.Cont
 		return result, err
 	}
 
-	// Reconcile image-service stateful-set
-	if err = reconcileImageServiceStatefulSet(ctx, log, asc); err != nil {
-		// TODO: update condition
-		return ctrl.Result{}, err
+	// Ensure image-service StatefulSet is reconciled
+	if err = ensureImageServiceStatefulSet(ctx, log, asc); err != nil {
+		return ctrl.Result{Requeue: true}, err
 	}
 
 	// Switch to spoke client in the reconciler context
@@ -190,12 +190,17 @@ func (hr *HypershiftAgentServiceConfigReconciler) Reconcile(origCtx context.Cont
 		return result, err
 	}
 
+	asc.rec.Client = hr.Client
+	if err = updateConditions(ctx, log, asc); err != nil {
+		return ctrl.Result{}, err
+	}
+
 	return ctrl.Result{}, nil
 }
 
 func (hr *HypershiftAgentServiceConfigReconciler) reconcileHubComponents(ctx context.Context, log *logrus.Entry, asc ASC) (ctrl.Result, error) {
 	hubComponents := []component{}
-	hubComponents = append(hubComponents, assistedServiceRBAC_l0...)
+	hubComponents = append(hubComponents, assistedServiceRBAC_hub...)
 	hubComponents = append(hubComponents, getComponents(asc.spec)...)
 
 	// Reconcile hub components
@@ -215,7 +220,7 @@ func (hr *HypershiftAgentServiceConfigReconciler) reconcileHubComponents(ctx con
 
 func (hr *HypershiftAgentServiceConfigReconciler) reconcileSpokeComponents(ctx context.Context, log *logrus.Entry, asc ASC) (ctrl.Result, error) {
 	spokeComponents := []component{}
-	spokeComponents = append(spokeComponents, assistedServiceRBAC_l1...)
+	spokeComponents = append(spokeComponents, assistedServiceRBAC_spoke...)
 
 	// Reconcile spoke components
 	for _, component := range spokeComponents {
@@ -257,7 +262,27 @@ func (hr *HypershiftAgentServiceConfigReconciler) getKubeconfigSecret(ctx contex
 	return secret, nil
 }
 
-func (hr *HypershiftAgentServiceConfigReconciler) syncSpokeAgentInstallCRDs(ctx context.Context, spokeClient client.Client) error {
+func (hr *HypershiftAgentServiceConfigReconciler) ensureSyncSpokeAgentInstallCRDs(ctx context.Context, log *logrus.Entry, spokeClient client.Client, asc ASC) error {
+	if err := hr.syncSpokeAgentInstallCRDs(ctx, log, spokeClient); err != nil {
+		msg := fmt.Sprintf("Failed to sync agent-install CRDs on spoke cluster: %s", err.Error())
+		log.WithError(err).Error(msg)
+		conditionsv1.SetStatusConditionNoHeartbeat(asc.conditions, conditionsv1.Condition{
+			Type:    aiv1beta1.ConditionReconcileCompleted,
+			Status:  corev1.ConditionFalse,
+			Reason:  aiv1beta1.ReasonSpokeClusterCRDsSyncFailure,
+			Message: msg,
+		})
+		if err1 := asc.rec.Status().Update(ctx, asc.Object); err1 != nil {
+			log.WithError(err1).Error("Failed to update status")
+			return err1
+		}
+		return err
+	}
+
+	return nil
+}
+
+func (hr *HypershiftAgentServiceConfigReconciler) syncSpokeAgentInstallCRDs(ctx context.Context, log *logrus.Entry, spokeClient client.Client) error {
 	// Fetch agent-install CRDs using in-cluster client
 	localCRDs, err := hr.getAgentInstallCRDs(ctx, hr.Client)
 	if err != nil {
@@ -269,12 +294,12 @@ func (hr *HypershiftAgentServiceConfigReconciler) syncSpokeAgentInstallCRDs(ctx 
 
 	// Ensure local agent-install CRDs exist on the spoke cluster
 	if err := hr.ensureSpokeAgentInstallCRDs(ctx, spokeClient, localCRDs); err != nil {
-		return pkgerror.New("Failed to create agent-install CRDs on spoke cluster")
+		return pkgerror.Wrapf(err, "Failed to create agent-install CRDs on spoke cluster")
 	}
 
 	// Delete agent-install CRDs that don't exist locally
 	if err := hr.cleanStaleSpokeAgentInstallCRDs(ctx, spokeClient, localCRDs); err != nil {
-		hr.Log.WithError(err).Warn("Failed to remove stale agent-install CRDs from spoke cluster in namespace")
+		log.WithError(err).Warn("Failed to remove stale agent-install CRDs from spoke cluster in namespace")
 		return nil
 	}
 

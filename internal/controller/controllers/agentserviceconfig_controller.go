@@ -245,57 +245,61 @@ func (r *AgentServiceConfigReconciler) Reconcile(origCtx context.Context, req ct
 		return ctrl.Result{Requeue: true}, err
 	}
 
+	// Reconcile components
 	for _, component := range getComponents(asc.spec) {
 		if result, err := reconcileComponent(ctx, log, asc, component); err != nil {
 			return result, err
 		}
 	}
 
-	if err := reconcileImageServiceStatefulSet(ctx, log, asc); err != nil {
-		msg := "Failed to reconcile image-service StatefulSet"
-		log.WithError(err).Error(msg)
-		conditionsv1.SetStatusConditionNoHeartbeat(&instance.Status.Conditions, conditionsv1.Condition{
-			Type:    aiv1beta1.ConditionReconcileCompleted,
-			Status:  corev1.ConditionFalse,
-			Reason:  aiv1beta1.ReasonImageHandlerStatefulSetFailure,
-			Message: msg,
-		})
-		if statusErr := r.Status().Update(ctx, instance); statusErr != nil {
-			log.WithError(statusErr).Error("Failed to update status")
-			return ctrl.Result{Requeue: true}, statusErr
-		}
+	// Ensure image-service StatefulSet is reconciled
+	if err := ensureImageServiceStatefulSet(ctx, log, asc); err != nil {
+		return ctrl.Result{Requeue: true}, err
 	}
 
+	if err := updateConditions(ctx, log, asc); err != nil {
+		return ctrl.Result{Requeue: true}, err
+	}
+
+	return ctrl.Result{}, nil
+}
+
+func updateConditions(ctx context.Context, log *logrus.Entry, asc ASC) error {
 	msg := "AgentServiceConfig reconcile completed without error."
-	conditionsv1.SetStatusConditionNoHeartbeat(&instance.Status.Conditions, conditionsv1.Condition{
+	conditionsv1.SetStatusConditionNoHeartbeat(asc.conditions, conditionsv1.Condition{
 		Type:    aiv1beta1.ConditionReconcileCompleted,
 		Status:  corev1.ConditionTrue,
 		Reason:  aiv1beta1.ReasonReconcileSucceeded,
 		Message: msg,
 	})
 
-	if err := r.monitorOperands(ctx, log, r.Namespace); err != nil {
-		conditionsv1.SetStatusConditionNoHeartbeat(&instance.Status.Conditions, conditionsv1.Condition{
+	if err := monitorOperands(ctx, log, asc); err != nil {
+		conditionsv1.SetStatusConditionNoHeartbeat(asc.conditions, conditionsv1.Condition{
 			Type:    aiv1beta1.ConditionDeploymentsHealthy,
 			Status:  corev1.ConditionFalse,
 			Reason:  aiv1beta1.ReasonDeploymentFailure,
 			Message: err.Error(),
 		})
-		if updateErr := r.Status().Update(ctx, instance); updateErr != nil {
+		if updateErr := asc.rec.Status().Update(ctx, asc.Object); updateErr != nil {
 			log.WithError(updateErr).Error("Failed to update status")
-			return ctrl.Result{Requeue: true}, updateErr
+			return updateErr
 		}
-		return ctrl.Result{Requeue: true}, err
+		return err
 	}
 
-	conditionsv1.SetStatusConditionNoHeartbeat(&instance.Status.Conditions, conditionsv1.Condition{
+	conditionsv1.SetStatusConditionNoHeartbeat(asc.conditions, conditionsv1.Condition{
 		Type:    aiv1beta1.ConditionDeploymentsHealthy,
 		Status:  corev1.ConditionTrue,
 		Reason:  aiv1beta1.ReasonDeploymentSucceeded,
 		Message: "All the deployments managed by Infrastructure-operator are healthy.",
 	})
 
-	return ctrl.Result{}, r.Status().Update(ctx, instance)
+	if statusErr := asc.rec.Status().Update(ctx, asc.Object); statusErr != nil {
+		log.WithError(statusErr).Error("Failed to update status")
+		return statusErr
+	}
+
+	return nil
 }
 
 func getComponents(spec *aiv1beta1.AgentServiceConfigSpec) []component {
@@ -454,7 +458,7 @@ func (r *AgentServiceConfigReconciler) SetupWithManager(mgr ctrl.Manager) error 
 		Complete(r)
 }
 
-func (r *AgentServiceConfigReconciler) monitorOperands(ctx context.Context, log logrus.FieldLogger, namespace string) error {
+func monitorOperands(ctx context.Context, log logrus.FieldLogger, asc ASC) error {
 	isStatusConditionFalse := func(conditions []appsv1.DeploymentCondition, conditionType appsv1.DeploymentConditionType) bool {
 		for _, condition := range conditions {
 			if condition.Type == conditionType {
@@ -467,7 +471,7 @@ func (r *AgentServiceConfigReconciler) monitorOperands(ctx context.Context, log 
 	// monitor deployments
 	for _, deployName := range []string{"agentinstalladmission", "assisted-service"} {
 		deployment := &appsv1.Deployment{}
-		if err := r.Get(ctx, types.NamespacedName{Name: deployName, Namespace: namespace}, deployment); err != nil {
+		if err := asc.rec.Get(ctx, types.NamespacedName{Name: deployName, Namespace: asc.namespace}, deployment); err != nil {
 			return err
 		}
 
@@ -486,7 +490,7 @@ func (r *AgentServiceConfigReconciler) monitorOperands(ctx context.Context, log 
 
 	// monitor statefulset
 	ss := &appsv1.StatefulSet{}
-	if err := r.Get(ctx, types.NamespacedName{Name: imageServiceName, Namespace: namespace}, ss); err != nil {
+	if err := asc.rec.Get(ctx, types.NamespacedName{Name: imageServiceName, Namespace: asc.namespace}, ss); err != nil {
 		return err
 	}
 
@@ -1299,6 +1303,24 @@ func cleanupImageServiceFinalizer(ctx context.Context, asc ASC, statefulSet *app
 		return err
 	}
 
+	return nil
+}
+
+func ensureImageServiceStatefulSet(ctx context.Context, log logrus.FieldLogger, asc ASC) error {
+	if err := reconcileImageServiceStatefulSet(ctx, log, asc); err != nil {
+		msg := "Failed to reconcile image-service StatefulSet"
+		log.WithError(err).Error(msg)
+		conditionsv1.SetStatusConditionNoHeartbeat(asc.conditions, conditionsv1.Condition{
+			Type:    aiv1beta1.ConditionReconcileCompleted,
+			Status:  corev1.ConditionFalse,
+			Reason:  aiv1beta1.ReasonImageHandlerStatefulSetFailure,
+			Message: msg,
+		})
+		if statusErr := asc.rec.Status().Update(ctx, asc.Object); statusErr != nil {
+			log.WithError(statusErr).Error("Failed to update status")
+			return statusErr
+		}
+	}
 	return nil
 }
 
