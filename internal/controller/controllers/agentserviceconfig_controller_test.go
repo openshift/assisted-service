@@ -372,6 +372,21 @@ var _ = Describe("agentserviceconfig_controller reconcile", func() {
 		Expect(conditionsv1.FindStatusCondition(instance.Status.Conditions, aiv1beta1.ConditionDeploymentsHealthy).Reason).To(Equal(aiv1beta1.ReasonDeploymentSucceeded))
 	})
 
+	It("should set `ReconcileCompleted` condition to `False` on AgentServiceConfig when reconcileComponent fails", func() {
+		ascr = newTestReconciler(asc)
+		result, err := ascr.Reconcile(ctx, newAgentServiceConfigRequest(asc))
+
+		Expect(err).NotTo(Succeed())
+		Expect(result).NotTo(Equal(ctrl.Result{}))
+
+		instance := &aiv1beta1.AgentServiceConfig{}
+		err = ascr.Get(ctx, types.NamespacedName{Name: "agent"}, instance)
+		Expect(err).To(BeNil())
+		condition := conditionsv1.FindStatusCondition(instance.Status.Conditions, aiv1beta1.ConditionReconcileCompleted)
+		Expect(condition).ToNot(BeNil())
+		Expect(condition.Status).To(Equal(corev1.ConditionFalse))
+	})
+
 	Context("IPXE routes", func() {
 		var (
 			imageServiceStatefulSet *appsv1.StatefulSet

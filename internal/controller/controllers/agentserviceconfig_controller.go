@@ -144,7 +144,7 @@ type ASC struct {
 	spec *aiv1beta1.AgentServiceConfigSpec
 
 	/* Status part of AgentServiceConfig CRD family */
-	conditions []conditionsv1.Condition
+	conditions *[]conditionsv1.Condition
 }
 
 func (asc *ASC) init(r *AgentServiceConfigReconciler, instance *aiv1beta1.AgentServiceConfig) {
@@ -152,7 +152,7 @@ func (asc *ASC) init(r *AgentServiceConfigReconciler, instance *aiv1beta1.AgentS
 	asc.rec = &r.AgentServiceConfigReconcileContext
 	asc.Object = instance
 	asc.spec = &instance.Spec
-	asc.conditions = instance.Status.Conditions
+	asc.conditions = &instance.Status.Conditions
 }
 
 type NewComponentFn func(context.Context, logrus.FieldLogger, ASC) (client.Object, controllerutil.MutateFn, error)
@@ -406,7 +406,7 @@ func reconcileComponent(ctx context.Context, log *logrus.Entry, asc ASC, compone
 	if err != nil {
 		msg := "Failed to generate definition for " + component.name
 		log.WithError(err).Error(msg)
-		conditionsv1.SetStatusConditionNoHeartbeat(&asc.conditions, conditionsv1.Condition{
+		conditionsv1.SetStatusConditionNoHeartbeat(asc.conditions, conditionsv1.Condition{
 			Type:    aiv1beta1.ConditionReconcileCompleted,
 			Status:  corev1.ConditionFalse,
 			Reason:  component.reason,
@@ -422,7 +422,7 @@ func reconcileComponent(ctx context.Context, log *logrus.Entry, asc ASC, compone
 	if result, err := controllerutil.CreateOrUpdate(ctx, asc.rec.Client, obj, mutateFn); err != nil {
 		msg := "Failed to ensure " + component.name
 		log.WithError(err).Error(msg)
-		conditionsv1.SetStatusConditionNoHeartbeat(&asc.conditions, conditionsv1.Condition{
+		conditionsv1.SetStatusConditionNoHeartbeat(asc.conditions, conditionsv1.Condition{
 			Type:    aiv1beta1.ConditionReconcileCompleted,
 			Status:  corev1.ConditionFalse,
 			Reason:  component.reason,
