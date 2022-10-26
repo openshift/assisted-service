@@ -193,6 +193,7 @@ var (
 	imageServiceHost    = "image-service.example.com:8080"
 	imageServiceBaseURL = fmt.Sprintf("https://%s%s", imageServiceHost, imageServicePath)
 	fakePullSecret      = `{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"` // #nosec
+	serviceBaseURL      = "https://assisted.example.com:6008"
 )
 
 func toMac(macStr string) *strfmt.MAC {
@@ -15211,6 +15212,7 @@ func createInventoryWithEventStream(db *gorm.DB, cfg Config, stream eventstream.
 		mockStaticNetworkConfig, gcConfig, mockProviderRegistry, true)
 
 	bm.ImageServiceBaseURL = imageServiceBaseURL
+	bm.ServiceBaseURL = serviceBaseURL
 	return bm
 }
 

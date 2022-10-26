@@ -11,6 +11,7 @@ import (
 	"github.com/openshift/assisted-service/internal/operators"
 	"github.com/openshift/assisted-service/internal/provider/registry"
 	"github.com/openshift/assisted-service/models"
+	"github.com/openshift/assisted-service/pkg/auth"
 	logutil "github.com/openshift/assisted-service/pkg/log"
 	"github.com/openshift/assisted-service/pkg/s3wrapper"
 	"github.com/sirupsen/logrus"
@@ -31,10 +32,12 @@ type Config struct {
 	ReleaseImageMirror string
 	DummyIgnition      bool   `envconfig:"DUMMY_IGNITION"`
 	InstallInvoker     string `envconfig:"INSTALL_INVOKER" default:"assisted-installer"`
+	ServiceBaseURL     string `envconfig:"SERVICE_BASE_URL"`
 }
 
 type installGenerator struct {
 	Config
+	authHandler               auth.Authenticator
 	log                       logrus.FieldLogger
 	s3Client                  s3wrapper.API
 	operatorsApi              operators.API
@@ -43,10 +46,11 @@ type installGenerator struct {
 	clusterTLSCertOverrideDir string
 }
 
-func New(log logrus.FieldLogger, s3Client s3wrapper.API, cfg Config, workDir string,
-	operatorsApi operators.API, providerRegistry registry.ProviderRegistry, clusterTLSCertOverrideDir string) *installGenerator {
+func New(log logrus.FieldLogger, s3Client s3wrapper.API, cfg Config, workDir string, operatorsApi operators.API,
+	providerRegistry registry.ProviderRegistry, clusterTLSCertOverrideDir string, auth auth.Authenticator) *installGenerator {
 	return &installGenerator{
 		Config:                    cfg,
+		authHandler:               auth,
 		log:                       log,
 		s3Client:                  s3Client,
 		operatorsApi:              operatorsApi,
@@ -94,12 +98,12 @@ func (k *installGenerator) GenerateInstallConfig(ctx context.Context, cluster co
 	// runs openshift-install to generate ignition files, then modifies them as necessary
 	var generator ignition.Generator
 	if k.Config.DummyIgnition {
-		generator = ignition.NewDummyGenerator(clusterWorkDir, &cluster, k.s3Client, log)
+		generator = ignition.NewDummyGenerator(k.ServiceBaseURL, clusterWorkDir, &cluster, k.s3Client, log)
 	} else {
-		generator = ignition.NewGenerator(clusterWorkDir, installerCacheDir, &cluster, releaseImage, k.Config.ReleaseImageMirror,
+		generator = ignition.NewGenerator(k.ServiceBaseURL, clusterWorkDir, installerCacheDir, &cluster, releaseImage, k.Config.ReleaseImageMirror,
 			k.Config.ServiceCACertPath, k.Config.InstallInvoker, k.s3Client, log, k.operatorsApi, k.providerRegistry, installerReleaseImageOverride, k.clusterTLSCertOverrideDir)
 	}
-	err = generator.Generate(ctx, cfg, k.getClusterPlatformType(cluster))
+	err = generator.Generate(ctx, cfg, k.getClusterPlatformType(cluster), k.authHandler.AuthType())
 	if err != nil {
 		return err
 	}

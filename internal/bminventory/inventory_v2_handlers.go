@@ -461,12 +461,12 @@ func (b *bareMetalInventory) v2uploadLogs(ctx context.Context, params installer.
 	}()
 
 	if params.LogsType == string(models.LogsTypeHost) || params.LogsType == string(models.LogsTypeNodeBoot) {
-		if params.InfraEnvID == nil || params.HostID == nil {
+		if common.StrFmtUUIDPtr(params.ClusterID) == nil || params.HostID == nil {
 			return common.NewApiError(http.StatusInternalServerError,
-				errors.Errorf("infra_env_id and host_id are required for upload %s logs", params.LogsType))
+				errors.Errorf("cluster_id and host_id are required for upload %s logs", params.LogsType))
 		}
 
-		dbHost, err := common.GetHostFromDB(b.db, params.InfraEnvID.String(), params.HostID.String())
+		dbHost, err := common.GetClusterHostFromDB(b.db, params.ClusterID.String(), params.HostID.String())
 		if err != nil {
 			return err
 		}

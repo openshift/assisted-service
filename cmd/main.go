@@ -395,7 +395,7 @@ func main() {
 	failOnError(err, "failed to create valid bm config S3 endpoint URL from %s", Options.BMConfig.S3EndpointURL)
 	Options.BMConfig.S3EndpointURL = newUrl
 
-	generator := generator.New(log, objectHandler, Options.GeneratorConfig, Options.WorkDir, operatorsManager, providerRegistry, Options.ClusterTLSCertOverrideDir)
+	generator := generator.New(log, objectHandler, Options.GeneratorConfig, Options.WorkDir, operatorsManager, providerRegistry, Options.ClusterTLSCertOverrideDir, authHandler)
 	var crdUtils bminventory.CRDUtils
 	if ctrlMgr != nil {
 		crdUtils = controllers.NewCRDUtils(ctrlMgr.GetClient(), hostApi)
