@@ -14,6 +14,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
+	admregv1 "k8s.io/api/admissionregistration/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	authorizationv1 "k8s.io/api/authorization/v1"
 	certificatesv1 "k8s.io/api/certificates/v1"
@@ -26,6 +27,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
+	apiregv1 "k8s.io/kube-aggregator/pkg/apis/apiregistration/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	fakeclient "sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -180,6 +182,52 @@ var _ = Describe("HypershiftAgentServiceConfig reconcile", func() {
 		},
 	}
 
+	service := &corev1.Service{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      webhookServiceName,
+			Namespace: testNamespace,
+		},
+		Spec: corev1.ServiceSpec{
+			ClusterIP: "1.2.3.4",
+		},
+	}
+
+	openshift_service_ca := &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      defaultServingCertCMName,
+			Namespace: defaultServingCertNamespace,
+		},
+		Data: map[string]string{
+			"service-ca.crt": "TEST-CERT",
+		},
+	}
+
+	konnectivity := &appsv1.Deployment{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "konnectivity-agent",
+			Namespace: testNamespace,
+		},
+		Spec: appsv1.DeploymentSpec{
+			Template: corev1.PodTemplateSpec{
+				Spec: corev1.PodSpec{
+					Containers: []corev1.Container{
+						{
+							Image: "quay.io/openshift-release-dev/ocp-v4.0-art-dev",
+							Command: []string{
+								"/usr/bin/proxy-agent",
+							},
+							Args: []string{
+								"--logtostderr=true",
+								"--ca-cert",
+								"ipv4=1.2.3.4&127.0.0.1",
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
 	assertReconcileSuccess := func() {
 		schemes := GetKubeClientSchemes()
 		fakeSpokeClient = fakeclient.NewClientBuilder().WithScheme(schemes).Build()
@@ -215,7 +263,8 @@ var _ = Describe("HypershiftAgentServiceConfig reconcile", func() {
 		kubeconfigSecret = newKubeconfigSecret()
 		crd = newAgentInstallCRD()
 		imageServiceStatefulSet = newImageServiceStatefulSet(*hsc.Spec.ImageStorage)
-		hr = newHSCTestReconciler(mockSpokeClientCache, hsc, kubeconfigSecret, crd, ingressCM, route, imageRoute, imageServiceStatefulSet)
+		hr = newHSCTestReconciler(mockSpokeClientCache, hsc,
+			kubeconfigSecret, crd, ingressCM, route, imageRoute, imageServiceStatefulSet, service, konnectivity, openshift_service_ca)
 	})
 
 	AfterEach(func() {
@@ -225,6 +274,7 @@ var _ = Describe("HypershiftAgentServiceConfig reconcile", func() {
 	It("runs without error", func() {
 		mockSpokeClientCache.EXPECT().Get(gomock.Any()).Return(mockSpokeClient, nil)
 		mockSpokeClient.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+		mockSpokeClient.EXPECT().Update(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 		mockSpokeClient.EXPECT().List(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 		crdKey := client.ObjectKeyFromObject(crd)
 		Expect(hr.Client.Get(ctx, crdKey, crd)).To(Succeed())
@@ -272,8 +322,8 @@ var _ = Describe("HypershiftAgentServiceConfig reconcile", func() {
 	})
 
 	It("fails due to missing agent-install CRDs on management cluster", func() {
-		mockSpokeClientCache.EXPECT().Get(gomock.Any()).Return(mockSpokeClient, nil)
 		Expect(hr.Client.Delete(ctx, crd)).To(Succeed())
+		mockSpokeClientCache.EXPECT().Get(gomock.Any()).Return(mockSpokeClient, nil)
 		_, err := hr.Reconcile(ctx, newHypershiftAgentServiceConfigRequest(hsc))
 		Expect(err).ToNot(BeNil())
 		Expect(err.Error()).To(ContainSubstring("agent-install CRDs are not available"))
@@ -281,23 +331,19 @@ var _ = Describe("HypershiftAgentServiceConfig reconcile", func() {
 	})
 
 	It("ignores error listing CRD on spoke cluster (warns for failed cleanup)", func() {
-		mockSpokeClientCache.EXPECT().Get(gomock.Any()).Return(mockSpokeClient, nil)
 		mockSpokeClient.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 		mockSpokeClient.EXPECT().List(gomock.Any(), gomock.Any(), gomock.Any()).Return(errors.New("error"))
-		res, err := hr.Reconcile(ctx, newHypershiftAgentServiceConfigRequest(hsc))
+		err := hr.syncSpokeAgentInstallCRDs(ctx, logrus.NewEntry(logrus.New()), mockSpokeClient)
 		Expect(err).To(BeNil())
-		Expect(res).To(Equal(ctrl.Result{}))
 	})
 
 	It("successfully creates CRD on spoke cluster", func() {
-		mockSpokeClientCache.EXPECT().Get(gomock.Any()).Return(mockSpokeClient, nil)
 		notFoundError := k8serrors.NewNotFound(schema.GroupResource{Group: "v1", Resource: "CustomResourceDefinition"}, testCRDName)
 		mockSpokeClient.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any()).Return(notFoundError).AnyTimes()
 		mockSpokeClient.EXPECT().Create(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 		mockSpokeClient.EXPECT().List(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
-		res, err := hr.Reconcile(ctx, newHypershiftAgentServiceConfigRequest(hsc))
+		err := hr.syncSpokeAgentInstallCRDs(ctx, logrus.NewEntry(logrus.New()), mockSpokeClient)
 		Expect(err).To(BeNil())
-		Expect(res).To(Equal(ctrl.Result{}))
 	})
 
 	It("successfully updates existing CRD on spoke cluster", func() {
@@ -337,6 +383,7 @@ var _ = Describe("HypershiftAgentServiceConfig reconcile", func() {
 	It("successfully added kubeconfig resources to service deployment", func() {
 		mockSpokeClientCache.EXPECT().Get(gomock.Any()).Return(mockSpokeClient, nil)
 		mockSpokeClient.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+		mockSpokeClient.EXPECT().Update(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 		mockSpokeClient.EXPECT().List(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 		crdKey := client.ObjectKeyFromObject(crd)
 		hubClient := hr.Client
@@ -415,6 +462,75 @@ var _ = Describe("HypershiftAgentServiceConfig reconcile", func() {
 		condition = conditionsv1.FindStatusCondition(instance.Status.Conditions, aiv1beta1.ConditionDeploymentsHealthy)
 		Expect(condition).ToNot(BeNil())
 		Expect(condition.Status).To(Equal(corev1.ConditionTrue))
+	})
+
+	Context("web hook", func() {
+		It("successfully sets validator/mutator configuration on spoke cluster", func() {
+			assertReconcileSuccess()
+			vwc := admregv1.ValidatingWebhookConfiguration{}
+			Expect(fakeSpokeClient.Get(ctx, types.NamespacedName{
+				Name: "agentclusterinstallvalidators.admission.agentinstall.openshift.io",
+			}, &vwc)).To(Succeed())
+			mwc := admregv1.MutatingWebhookConfiguration{}
+			Expect(fakeSpokeClient.Get(ctx, types.NamespacedName{
+				Name: "agentclusterinstallmutators.admission.agentinstall.openshift.io",
+			}, &mwc)).To(Succeed())
+		})
+		It("successfully sets API service on spoke cluster", func() {
+			assertReconcileSuccess()
+			as := apiregv1.APIService{}
+			Expect(fakeSpokeClient.Get(ctx, types.NamespacedName{
+				Name: "v1.admission.agentinstall.openshift.io",
+			}, &as)).To(Succeed())
+		})
+		It("successfully sets headless service + endpoint on spoke cluster", func() {
+			assertReconcileSuccess()
+			ep := corev1.Endpoints{}
+			Expect(fakeSpokeClient.Get(ctx, types.NamespacedName{
+				Name:      webhookServiceName,
+				Namespace: testNamespace,
+			}, &ep)).To(Succeed())
+			Expect(ep.Subsets[0].Addresses[0].IP).To(Equal("1.2.3.4"))
+		})
+		It("konnectivity agent deployment created with kubeconfig args", func() {
+			hubClient := hr.Client
+			assertReconcileSuccess()
+			dep := &appsv1.Deployment{}
+			Expect(hubClient.Get(ctx, types.NamespacedName{Name: "konnectivity-agent-assisted-service", Namespace: hsc.Namespace}, dep)).To(Succeed())
+			Expect(dep.Spec.Template.Spec.Containers[0].Args).To(ContainElement("ipv4=1.2.3.4"))
+		})
+		It("creates webhook deployment with reference to kubeconfig", func() {
+			hubClient := hr.Client
+			assertReconcileSuccess()
+			dep := &appsv1.Deployment{}
+			Expect(hubClient.Get(ctx, types.NamespacedName{Name: "agentinstalladmission", Namespace: hsc.Namespace}, dep)).To(Succeed())
+			Expect(dep.Spec.Template.Spec.Containers[0].Command).To(ContainElement("--authorization-kubeconfig=/etc/kube/kubeconfig"))
+			Expect(dep.Spec.Template.Spec.Containers[0].Command).To(ContainElement("--authentication-kubeconfig=/etc/kube/kubeconfig"))
+			Expect(dep.Spec.Template.Spec.Containers[0].Command).To(ContainElement("--kubeconfig=/etc/kube/kubeconfig"))
+			Expect(dep.Spec.Template.Spec.Containers[0].Env).To(ContainElement(
+				corev1.EnvVar{
+					Name:  "KUBECONFIG",
+					Value: "/etc/kube/kubeconfig",
+				},
+			))
+			Expect(dep.Spec.Template.Spec.Containers[0].VolumeMounts).To(ContainElement(
+				corev1.VolumeMount{
+					Name:      "kubeconfig",
+					MountPath: "/etc/kube",
+				},
+			))
+			Expect(dep.Spec.Template.Spec.Volumes).To(ContainElement(
+				corev1.Volume{
+					Name: "kubeconfig",
+					VolumeSource: corev1.VolumeSource{
+						Secret: &corev1.SecretVolumeSource{
+							SecretName: testKubeconfigSecretName,
+						},
+					},
+				},
+			))
+
+		})
 	})
 
 	Context("parsing rbac", func() {

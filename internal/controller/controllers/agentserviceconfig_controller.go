@@ -145,6 +145,9 @@ type ASC struct {
 
 	/* Status part of AgentServiceConfig CRD family */
 	conditions *[]conditionsv1.Condition
+
+	/* properties. use this field for cross cluster communication */
+	properties map[string]interface{}
 }
 
 func (asc *ASC) init(r *AgentServiceConfigReconciler, instance *aiv1beta1.AgentServiceConfig) {
@@ -251,10 +254,16 @@ func (r *AgentServiceConfigReconciler) Reconcile(origCtx context.Context, req ct
 			return result, err
 		}
 	}
+	for _, component := range r.getWebhookComponents() {
+		if result, err := reconcileComponent(ctx, log, asc, component); err != nil {
+			return result, err
+		}
+	}
 
 	// Ensure image-service StatefulSet is reconciled
 	if err := ensureImageServiceStatefulSet(ctx, log, asc); err != nil {
 		return ctrl.Result{Requeue: true}, err
+
 	}
 
 	if err := updateConditions(ctx, log, asc); err != nil {
@@ -318,6 +327,20 @@ func getComponents(spec *aiv1beta1.AgentServiceConfigSpec) []component {
 		{"ImageServiceConfigMap", aiv1beta1.ReasonConfigFailure, newImageServiceConfigMap},
 		{"AssistedServiceConfigMap", aiv1beta1.ReasonConfigFailure, newAssistedCM},
 		{"AssistedServiceDeployment", aiv1beta1.ReasonDeploymentFailure, newAssistedServiceDeployment},
+	}
+	// Additional routes need to be synced if HTTP iPXE routes are exposed
+	if exposeIPXEHTTPRoute(spec) {
+		components = append(components,
+			component{"ImageServiceIPXERoute", aiv1beta1.ReasonImageHandlerRouteFailure, newImageServiceIPXERoute},
+			component{"AgentIPXERoute", aiv1beta1.ReasonAgentRouteFailure, newAgentIPXERoute},
+		)
+	}
+	return components
+
+}
+
+func (r *AgentServiceConfigReconciler) getWebhookComponents() []component {
+	return []component{
 		{"AgentClusterInstallValidatingWebHook", aiv1beta1.ReasonValidatingWebHookFailure, newACIWebHook},
 		{"AgentClusterInstallMutatingWebHook", aiv1beta1.ReasonMutatingWebHookFailure, newACIMutatWebHook},
 		{"InfraEnvValidatingWebHook", aiv1beta1.ReasonValidatingWebHookFailure, newInfraEnvWebHook},
@@ -329,16 +352,6 @@ func getComponents(spec *aiv1beta1.AgentServiceConfigSpec) []component {
 		{"WebHookClusterRoleBinding", aiv1beta1.ReasonWebHookClusterRoleBindingFailure, newWebHookClusterRoleBinding},
 		{"WebHookAPIService", aiv1beta1.ReasonWebHookAPIServiceFailure, newWebHookAPIService},
 	}
-
-	// Additional routes need to be synced if HTTP iPXE routes are exposed
-	if exposeIPXEHTTPRoute(spec) {
-		components = append(components,
-			component{"ImageServiceIPXERoute", aiv1beta1.ReasonImageHandlerRouteFailure, newImageServiceIPXERoute},
-			component{"AgentIPXERoute", aiv1beta1.ReasonAgentRouteFailure, newAgentIPXERoute},
-		)
-	}
-
-	return components
 }
 
 func reconcileComponent(ctx context.Context, log *logrus.Entry, asc ASC, component component) (ctrl.Result, error) {
@@ -2191,6 +2204,17 @@ func newWebHookService(ctx context.Context, log logrus.FieldLogger, asc ASC) (cl
 	return svc, mutateFn, nil
 }
 
+func baseApiServiceSpec(as *apiregv1.APIService, namespace string) {
+	as.Spec.Group = "admission.agentinstall.openshift.io"
+	as.Spec.GroupPriorityMinimum = 1000
+	as.Spec.VersionPriority = 15
+	as.Spec.Version = "v1"
+	as.Spec.Service = &apiregv1.ServiceReference{
+		Name:      "agentinstalladmission",
+		Namespace: namespace,
+	}
+}
+
 func newWebHookAPIService(ctx context.Context, log logrus.FieldLogger, asc ASC) (client.Object, controllerutil.MutateFn, error) {
 	as := &apiregv1.APIService{
 		ObjectMeta: metav1.ObjectMeta{
@@ -2207,14 +2231,7 @@ func newWebHookAPIService(ctx context.Context, log logrus.FieldLogger, asc ASC) 
 			as.ObjectMeta.Annotations = make(map[string]string)
 		}
 		as.ObjectMeta.Annotations["service.beta.openshift.io/inject-cabundle"] = "true"
-		as.Spec.Group = "admission.agentinstall.openshift.io"
-		as.Spec.GroupPriorityMinimum = 1000
-		as.Spec.VersionPriority = 15
-		as.Spec.Version = "v1"
-		as.Spec.Service = &apiregv1.ServiceReference{
-			Name:      "agentinstalladmission",
-			Namespace: asc.namespace,
-		}
+		baseApiServiceSpec(as, asc.namespace)
 		return nil
 	}
 	return as, mutateFn, nil
