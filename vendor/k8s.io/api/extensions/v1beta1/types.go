@@ -920,7 +920,7 @@ type ReplicaSetSpec struct {
 
 // ReplicaSetStatus represents the current status of a ReplicaSet.
 type ReplicaSetStatus struct {
-	// Replicas is the most recently oberved number of replicas.
+	// Replicas is the most recently observed number of replicas.
 	// More info: https://kubernetes.io/docs/concepts/workloads/controllers/replicationcontroller/#what-is-a-replicationcontroller
 	Replicas int32 `json:"replicas" protobuf:"varint,1,opt,name=replicas"`
 
@@ -1498,22 +1498,20 @@ type NetworkPolicyPort struct {
 	// should be allowed by the policy. This field cannot be defined if the port field
 	// is not defined or if the port field is defined as a named (string) port.
 	// The endPort must be equal or greater than port.
-	// This feature is in Beta state and is enabled by default.
-	// It can be disabled using the Feature Gate "NetworkPolicyEndPort".
 	// +optional
 	EndPort *int32 `json:"endPort,omitempty" protobuf:"bytes,3,opt,name=endPort"`
 }
 
 // DEPRECATED 1.9 - This group version of IPBlock is deprecated by networking/v1/IPBlock.
-// IPBlock describes a particular CIDR (Ex. "192.168.1.1/24","2001:db9::/64") that is allowed
+// IPBlock describes a particular CIDR (Ex. "192.168.1.0/24","2001:db8::/64") that is allowed
 // to the pods matched by a NetworkPolicySpec's podSelector. The except entry describes CIDRs
 // that should not be included within this rule.
 type IPBlock struct {
 	// CIDR is a string representing the IP Block
-	// Valid examples are "192.168.1.1/24" or "2001:db9::/64"
+	// Valid examples are "192.168.1.0/24" or "2001:db8::/64"
 	CIDR string `json:"cidr" protobuf:"bytes,1,name=cidr"`
 	// Except is a slice of CIDRs that should not be included within an IP Block
-	// Valid examples are "192.168.1.1/24" or "2001:db9::/64"
+	// Valid examples are "192.168.1.0/24" or "2001:db8::/64"
 	// Except values will be rejected if they are outside the CIDR range
 	// +optional
 	Except []string `json:"except,omitempty" protobuf:"bytes,2,rep,name=except"`
