@@ -147,7 +147,7 @@ var Options struct {
 	LivenessValidationTimeout      time.Duration `envconfig:"LIVENESS_VALIDATION_TIMEOUT" default:"5m"`
 	ApproveCsrsRequeueDuration     time.Duration `envconfig:"APPROVE_CSRS_REQUEUE_DURATION" default:"1m"`
 	HTTPListenPort                 string        `envconfig:"HTTP_LISTEN_PORT" default:""`
-	AllowConvergedFlow             bool          `envconfig:"ALLOW_CONVERGED_FLOW" default:"false"` // set to true once https://bugzilla.redhat.com/show_bug.cgi?id=2089683 is resolved
+	AllowConvergedFlow             bool          `envconfig:"ALLOW_CONVERGED_FLOW" default:"true"`
 	IronicIgnitionBuilderConfig    ignition.IronicIgniotionBuilderConfig
 
 	// Directory containing pre-generated TLS certs/keys for the ephemeral installer
@@ -514,10 +514,7 @@ func main() {
 			bmoUtils := controllers.NewBMOUtils(ctrlMgr.GetAPIReader(),
 				log.WithField("pkg", "baremetal_operator_utils"),
 				Options.EnableKubeAPI)
-			useConvergedFlow := false
-			if Options.AllowConvergedFlow {
-				useConvergedFlow = bmoUtils.ConvergedFlowAvailable()
-			}
+			useConvergedFlow := Options.AllowConvergedFlow && bmoUtils.ConvergedFlowAvailable()
 
 			c := ctrlMgr.GetClient()
 			r := ctrlMgr.GetAPIReader()

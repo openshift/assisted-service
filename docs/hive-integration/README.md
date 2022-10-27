@@ -173,7 +173,7 @@ See BMAC documentation [here](./baremetal-agent-controller.md).
 ## Bare Metal Operator Integration using the converged flow
 See reference [here](https://github.com/openshift/enhancements/blob/master/enhancements/baremetal/ztp-metal3.md)
 
-In case the Bare Metal Operator on the HUB cluster version is 4.11 or higher, the integration between the BMO and the assisted-service is slightly different.
+In case the Bare Metal Operator on the HUB cluster version is 4.12 or higher, the integration between the BMO and the assisted-service is slightly different.
 The assisted-service will run a Preprovisioning Image Controller that reconciles PreprovisioningImages and:
 - Annotates the InfraEnv for the BareMetalHost with `infraenv.agent-install.openshift.io/enable-ironic-agent="true"`
 - Adds the ironic agent config to the discovery ignition embedded in the InfraEnv ISO
@@ -196,7 +196,8 @@ It will continue to:
 The assisted agent will not reboot the machine at the end of the installation, instead it will stop
 the assisted agent service and let the ironic agent to manage the machine power state
 
-The converged flow is disalbed by default, you can enable the converged flow by setting the `ALLOW_CONVERGED_FLOW` env to true [here](../operator.md##specifying-environmental-variables-via-configmap)
+The converged flow is enabled by default, but can be disabled by setting the `ALLOW_CONVERGED_FLOW` env to false [here](../operator.md##specifying-environmental-variables-via-configmap)
+
 To set a different default ironicAgent image you can override the following env vars:
 The environment var for the ironicAgent image to be used on X86_64 CPU architecture:
 `IRONIC_AGENT_IMAGE`

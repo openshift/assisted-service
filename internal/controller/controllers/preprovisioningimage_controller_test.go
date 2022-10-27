@@ -269,9 +269,9 @@ var _ = Describe("PreprovisioningImage reconcile", func() {
 		})
 		It("Add the ironic Ignition to the infraEnv using the ironic agent image from the release", func() {
 			Expect(c.Create(ctx, infraEnv)).To(BeNil())
-			openshiftRelaseImage := "release-image:4.11.0"
-			ironicAgentImage := "ironic-image:4.11.0"
-			backendInfraEnv.OpenshiftVersion = "4.11.0-test.release"
+			openshiftRelaseImage := "release-image:4.12.0"
+			ironicAgentImage := "ironic-image:4.12.0"
+			backendInfraEnv.OpenshiftVersion = "4.12.0-test.release"
 			backendInfraEnv.CPUArchitecture = "x86_64"
 			mockInstallerInternal.EXPECT().GetInfraEnvByKubeKey(gomock.Any()).Return(backendInfraEnv, nil)
 			mockVersionHandler.EXPECT().GetReleaseImage(backendInfraEnv.OpenshiftVersion, backendInfraEnv.CPUArchitecture).Return(&models.ReleaseImage{URL: &openshiftRelaseImage}, nil)
