@@ -5205,6 +5205,22 @@ func init() {
     }
   },
   "definitions": {
+    "api_vip": {
+      "description": "The virtual IP used to reach the OpenShift cluster's API.",
+      "type": "object",
+      "properties": {
+        "cluster_id": {
+          "description": "The cluster that this VIP is associated with.",
+          "type": "string",
+          "format": "uuid",
+          "x-go-custom-tag": "gorm:\"primaryKey\""
+        },
+        "ip": {
+          "description": "The IP address.",
+          "$ref": "#/definitions/ip"
+        }
+      }
+    },
     "api_vip_connectivity_request": {
       "type": "object",
       "required": [
@@ -5304,6 +5320,15 @@ func init() {
           "description": "The domain name used to reach the OpenShift cluster API.",
           "type": "string",
           "x-nullable": true
+        },
+        "api_vips": {
+          "description": "The virtual IPs used to reach the OpenShift cluster's API. Enter one IP address for single-stack clusters, or up to two for dual-stack clusters (at most one IP address per IP stack used). The order of stacks should be the same as order of subnets in Cluster Networks, Service Networks, and Machine Networks.",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/api_vip"
+          },
+          "x-go-custom-tag": "gorm:\"foreignkey:ClusterID;references:ID\""
         },
         "base_dns_domain": {
           "description": "Base domain of the cluster. All DNS records must be sub-domains of this base and include the cluster name.",
@@ -5470,6 +5495,15 @@ func init() {
           "description": "The virtual IP used for cluster ingress traffic.",
           "type": "string",
           "pattern": "^(?:(?:(?:[0-9]{1,3}\\.){3}[0-9]{1,3})|(?:(?:[0-9a-fA-F]*:[0-9a-fA-F]*){2,}))$"
+        },
+        "ingress_vips": {
+          "description": "The virtual IPs used for cluster ingress traffic. Enter one IP address for single-stack clusters, or up to two for dual-stack clusters (at most one IP address per IP stack used). The order of stacks should be the same as order of subnets in Cluster Networks, Service Networks, and Machine Networks.",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/ingress_vip"
+          },
+          "x-go-custom-tag": "gorm:\"foreignkey:ClusterID;references:ID\""
         },
         "install_completed_at": {
           "description": "The time that this cluster completed installation.",
@@ -5693,6 +5727,14 @@ func init() {
           "type": "string",
           "pattern": "^(?:(?:(?:[0-9]{1,3}\\.){3}[0-9]{1,3})|(?:(?:[0-9a-fA-F]*:[0-9a-fA-F]*){2,}))?$"
         },
+        "api_vips": {
+          "description": "The virtual IPs used to reach the OpenShift cluster's API. Enter one IP address for single-stack clusters, or up to two for dual-stack clusters (at most one IP address per IP stack used). The order of stacks should be the same as order of subnets in Cluster Networks, Service Networks, and Machine Networks.",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/api_vip"
+          }
+        },
         "base_dns_domain": {
           "description": "Base domain of the cluster. All DNS records must be sub-domains of this base and include the cluster name.",
           "type": "string"
@@ -5769,6 +5811,14 @@ func init() {
           "description": "The virtual IP used for cluster ingress traffic.",
           "type": "string",
           "pattern": "^(?:(?:(?:[0-9]{1,3}\\.){3}[0-9]{1,3})|(?:(?:[0-9a-fA-F]*:[0-9a-fA-F]*){2,}))$"
+        },
+        "ingress_vips": {
+          "description": "The virtual IPs used for cluster ingress traffic. Enter one IP address for single-stack clusters, or up to two for dual-stack clusters (at most one IP address per IP stack used). The order of stacks should be the same as order of subnets in Cluster Networks, Service Networks, and Machine Networks.",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/ingress_vip"
+          }
         },
         "machine_networks": {
           "description": "Machine networks that are associated with this cluster.",
@@ -7862,6 +7912,22 @@ func init() {
     "ingress-cert-params": {
       "type": "string"
     },
+    "ingress_vip": {
+      "description": "The virtual IP used for cluster ingress traffic.",
+      "type": "object",
+      "properties": {
+        "cluster_id": {
+          "description": "The cluster that this VIP is associated with.",
+          "type": "string",
+          "format": "uuid",
+          "x-go-custom-tag": "gorm:\"primaryKey\""
+        },
+        "ip": {
+          "description": "The IP address.",
+          "$ref": "#/definitions/ip"
+        }
+      }
+    },
     "install_cmd_request": {
       "type": "object",
       "required": [
@@ -8101,6 +8167,11 @@ func init() {
           "type": "integer"
         }
       }
+    },
+    "ip": {
+      "type": "string",
+      "pattern": "^(?:(?:(?:[0-9]{1,3}\\.){3}[0-9]{1,3})|(?:(?:[0-9a-fA-F]*:[0-9a-fA-F]*){2,}))?$",
+      "x-go-custom-tag": "gorm:\"primaryKey\""
     },
     "kernel_argument": {
       "description": "pair of [operation, argument] specifying the argument and what operation should be applied on it.",
@@ -9122,6 +9193,15 @@ func init() {
           "type": "string",
           "x-nullable": true
         },
+        "api_vips": {
+          "description": "The virtual IPs used to reach the OpenShift cluster's API. Enter one IP address for single-stack clusters, or up to two for dual-stack clusters (at most one IP address per IP stack used). The order of stacks should be the same as order of subnets in Cluster Networks, Service Networks, and Machine Networks.",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/api_vip"
+          },
+          "x-nullable": true
+        },
         "base_dns_domain": {
           "description": "Base domain of the cluster. All DNS records must be sub-domains of this base and include the cluster name.",
           "type": "string",
@@ -9184,6 +9264,15 @@ func init() {
           "description": "The virtual IP used for cluster ingress traffic.",
           "type": "string",
           "pattern": "^(?:(?:(?:[0-9]{1,3}\\.){3}[0-9]{1,3})|(?:(?:[0-9a-fA-F]*:[0-9a-fA-F]*){2,}))?$",
+          "x-nullable": true
+        },
+        "ingress_vips": {
+          "description": "The virtual IPs used for cluster ingress traffic. Enter one IP address for single-stack clusters, or up to two for dual-stack clusters (at most one IP address per IP stack used). The order of stacks should be the same as order of subnets in Cluster Networks, Service Networks, and Machine Networks.",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/ingress_vip"
+          },
           "x-nullable": true
         },
         "machine_network_cidr": {
@@ -14732,6 +14821,22 @@ func init() {
       },
       "x-go-name": "TangServerSignatures"
     },
+    "api_vip": {
+      "description": "The virtual IP used to reach the OpenShift cluster's API.",
+      "type": "object",
+      "properties": {
+        "cluster_id": {
+          "description": "The cluster that this VIP is associated with.",
+          "type": "string",
+          "format": "uuid",
+          "x-go-custom-tag": "gorm:\"primaryKey\""
+        },
+        "ip": {
+          "description": "The IP address.",
+          "$ref": "#/definitions/ip"
+        }
+      }
+    },
     "api_vip_connectivity_request": {
       "type": "object",
       "required": [
@@ -14831,6 +14936,15 @@ func init() {
           "description": "The domain name used to reach the OpenShift cluster API.",
           "type": "string",
           "x-nullable": true
+        },
+        "api_vips": {
+          "description": "The virtual IPs used to reach the OpenShift cluster's API. Enter one IP address for single-stack clusters, or up to two for dual-stack clusters (at most one IP address per IP stack used). The order of stacks should be the same as order of subnets in Cluster Networks, Service Networks, and Machine Networks.",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/api_vip"
+          },
+          "x-go-custom-tag": "gorm:\"foreignkey:ClusterID;references:ID\""
         },
         "base_dns_domain": {
           "description": "Base domain of the cluster. All DNS records must be sub-domains of this base and include the cluster name.",
@@ -14997,6 +15111,15 @@ func init() {
           "description": "The virtual IP used for cluster ingress traffic.",
           "type": "string",
           "pattern": "^(?:(?:(?:[0-9]{1,3}\\.){3}[0-9]{1,3})|(?:(?:[0-9a-fA-F]*:[0-9a-fA-F]*){2,}))$"
+        },
+        "ingress_vips": {
+          "description": "The virtual IPs used for cluster ingress traffic. Enter one IP address for single-stack clusters, or up to two for dual-stack clusters (at most one IP address per IP stack used). The order of stacks should be the same as order of subnets in Cluster Networks, Service Networks, and Machine Networks.",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/ingress_vip"
+          },
+          "x-go-custom-tag": "gorm:\"foreignkey:ClusterID;references:ID\""
         },
         "install_completed_at": {
           "description": "The time that this cluster completed installation.",
@@ -15220,6 +15343,14 @@ func init() {
           "type": "string",
           "pattern": "^(?:(?:(?:[0-9]{1,3}\\.){3}[0-9]{1,3})|(?:(?:[0-9a-fA-F]*:[0-9a-fA-F]*){2,}))?$"
         },
+        "api_vips": {
+          "description": "The virtual IPs used to reach the OpenShift cluster's API. Enter one IP address for single-stack clusters, or up to two for dual-stack clusters (at most one IP address per IP stack used). The order of stacks should be the same as order of subnets in Cluster Networks, Service Networks, and Machine Networks.",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/api_vip"
+          }
+        },
         "base_dns_domain": {
           "description": "Base domain of the cluster. All DNS records must be sub-domains of this base and include the cluster name.",
           "type": "string"
@@ -15296,6 +15427,14 @@ func init() {
           "description": "The virtual IP used for cluster ingress traffic.",
           "type": "string",
           "pattern": "^(?:(?:(?:[0-9]{1,3}\\.){3}[0-9]{1,3})|(?:(?:[0-9a-fA-F]*:[0-9a-fA-F]*){2,}))$"
+        },
+        "ingress_vips": {
+          "description": "The virtual IPs used for cluster ingress traffic. Enter one IP address for single-stack clusters, or up to two for dual-stack clusters (at most one IP address per IP stack used). The order of stacks should be the same as order of subnets in Cluster Networks, Service Networks, and Machine Networks.",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/ingress_vip"
+          }
         },
         "machine_networks": {
           "description": "Machine networks that are associated with this cluster.",
@@ -17315,6 +17454,22 @@ func init() {
     "ingress-cert-params": {
       "type": "string"
     },
+    "ingress_vip": {
+      "description": "The virtual IP used for cluster ingress traffic.",
+      "type": "object",
+      "properties": {
+        "cluster_id": {
+          "description": "The cluster that this VIP is associated with.",
+          "type": "string",
+          "format": "uuid",
+          "x-go-custom-tag": "gorm:\"primaryKey\""
+        },
+        "ip": {
+          "description": "The IP address.",
+          "$ref": "#/definitions/ip"
+        }
+      }
+    },
     "install_cmd_request": {
       "type": "object",
       "required": [
@@ -17554,6 +17709,11 @@ func init() {
           "type": "integer"
         }
       }
+    },
+    "ip": {
+      "type": "string",
+      "pattern": "^(?:(?:(?:[0-9]{1,3}\\.){3}[0-9]{1,3})|(?:(?:[0-9a-fA-F]*:[0-9a-fA-F]*){2,}))?$",
+      "x-go-custom-tag": "gorm:\"primaryKey\""
     },
     "kernel_argument": {
       "description": "pair of [operation, argument] specifying the argument and what operation should be applied on it.",
@@ -18538,6 +18698,15 @@ func init() {
           "type": "string",
           "x-nullable": true
         },
+        "api_vips": {
+          "description": "The virtual IPs used to reach the OpenShift cluster's API. Enter one IP address for single-stack clusters, or up to two for dual-stack clusters (at most one IP address per IP stack used). The order of stacks should be the same as order of subnets in Cluster Networks, Service Networks, and Machine Networks.",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/api_vip"
+          },
+          "x-nullable": true
+        },
         "base_dns_domain": {
           "description": "Base domain of the cluster. All DNS records must be sub-domains of this base and include the cluster name.",
           "type": "string",
@@ -18600,6 +18769,15 @@ func init() {
           "description": "The virtual IP used for cluster ingress traffic.",
           "type": "string",
           "pattern": "^(?:(?:(?:[0-9]{1,3}\\.){3}[0-9]{1,3})|(?:(?:[0-9a-fA-F]*:[0-9a-fA-F]*){2,}))?$",
+          "x-nullable": true
+        },
+        "ingress_vips": {
+          "description": "The virtual IPs used for cluster ingress traffic. Enter one IP address for single-stack clusters, or up to two for dual-stack clusters (at most one IP address per IP stack used). The order of stacks should be the same as order of subnets in Cluster Networks, Service Networks, and Machine Networks.",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/ingress_vip"
+          },
           "x-nullable": true
         },
         "machine_network_cidr": {

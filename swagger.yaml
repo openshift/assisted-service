@@ -4241,10 +4241,22 @@ definitions:
         type: string
         pattern: '^(?:(?:(?:[0-9]{1,3}\.){3}[0-9]{1,3})|(?:(?:[0-9a-fA-F]*:[0-9a-fA-F]*){2,}))?$'
         description: The virtual IP used to reach the OpenShift cluster's API.
+      api_vips:
+        type: array
+        description: The virtual IPs used to reach the OpenShift cluster's API. Enter one IP address for single-stack clusters, or up to two for dual-stack clusters (at most one IP address per IP stack used). The order of stacks should be the same as order of subnets in Cluster Networks, Service Networks, and Machine Networks.
+        items:
+          type: object
+          $ref: '#/definitions/api_vip'
       ingress_vip:
         type: string
         pattern: '^(?:(?:(?:[0-9]{1,3}\.){3}[0-9]{1,3})|(?:(?:[0-9a-fA-F]*:[0-9a-fA-F]*){2,}))$'
         description: The virtual IP used for cluster ingress traffic.
+      ingress_vips:
+        type: array
+        description: The virtual IPs used for cluster ingress traffic. Enter one IP address for single-stack clusters, or up to two for dual-stack clusters (at most one IP address per IP stack used). The order of stacks should be the same as order of subnets in Cluster Networks, Service Networks, and Machine Networks.
+        items:
+          type: object
+          $ref: '#/definitions/ingress_vip'
       pull_secret:
         type: string
         description: The pull secret obtained from Red Hat OpenShift Cluster Manager at console.redhat.com/openshift/install/pull-secret.
@@ -4415,10 +4427,24 @@ definitions:
         pattern: '^(?:(?:(?:[0-9]{1,3}\.){3}[0-9]{1,3})|(?:(?:[0-9a-fA-F]*:[0-9a-fA-F]*){2,}))?$'
         description: The virtual IP used to reach the OpenShift cluster's API.
         x-nullable: true
+      api_vips:
+        type: array
+        description: The virtual IPs used to reach the OpenShift cluster's API. Enter one IP address for single-stack clusters, or up to two for dual-stack clusters (at most one IP address per IP stack used). The order of stacks should be the same as order of subnets in Cluster Networks, Service Networks, and Machine Networks.
+        items:
+          type: object
+          $ref: '#/definitions/api_vip'
+        x-nullable: true
       ingress_vip:
         type: string
         pattern: '^(?:(?:(?:[0-9]{1,3}\.){3}[0-9]{1,3})|(?:(?:[0-9a-fA-F]*:[0-9a-fA-F]*){2,}))?$'
         description: The virtual IP used for cluster ingress traffic.
+        x-nullable: true
+      ingress_vips:
+        type: array
+        description: The virtual IPs used for cluster ingress traffic. Enter one IP address for single-stack clusters, or up to two for dual-stack clusters (at most one IP address per IP stack used). The order of stacks should be the same as order of subnets in Cluster Networks, Service Networks, and Machine Networks.
+        items:
+          type: object
+          $ref: '#/definitions/ingress_vip'
         x-nullable: true
       api_vip_dns_name:
         type: string
@@ -4613,6 +4639,13 @@ definitions:
         type: string
         pattern: '^(?:(?:(?:[0-9]{1,3}\.){3}[0-9]{1,3})|(?:(?:[0-9a-fA-F]*:[0-9a-fA-F]*){2,}))$'
         description: The virtual IP used to reach the OpenShift cluster's API.
+      api_vips:
+        x-go-custom-tag: gorm:"foreignkey:ClusterID;references:ID"
+        type: array
+        description: The virtual IPs used to reach the OpenShift cluster's API. Enter one IP address for single-stack clusters, or up to two for dual-stack clusters (at most one IP address per IP stack used). The order of stacks should be the same as order of subnets in Cluster Networks, Service Networks, and Machine Networks.
+        items:
+          type: object
+          $ref: '#/definitions/api_vip'
       api_vip_dns_name:
         type: string
         description: The domain name used to reach the OpenShift cluster API.
@@ -4625,6 +4658,13 @@ definitions:
         type: string
         pattern: '^(?:(?:(?:[0-9]{1,3}\.){3}[0-9]{1,3})|(?:(?:[0-9a-fA-F]*:[0-9a-fA-F]*){2,}))$'
         description: The virtual IP used for cluster ingress traffic.
+      ingress_vips:
+        x-go-custom-tag: gorm:"foreignkey:ClusterID;references:ID"
+        type: array
+        description: The virtual IPs used for cluster ingress traffic. Enter one IP address for single-stack clusters, or up to two for dual-stack clusters (at most one IP address per IP stack used). The order of stacks should be the same as order of subnets in Cluster Networks, Service Networks, and Machine Networks.
+        items:
+          type: object
+          $ref: '#/definitions/ingress_vip'
       ssh_public_key:
         type: string
         description: SSH public key for debugging OpenShift nodes.
@@ -6554,6 +6594,11 @@ definitions:
       discovery_kernel_arguments:
         $ref: '#/definitions/kernel_arguments'
 
+  ip:
+    type: string
+    x-go-custom-tag: gorm:"primaryKey"
+    pattern: '^(?:(?:(?:[0-9]{1,3}\.){3}[0-9]{1,3})|(?:(?:[0-9a-fA-F]*:[0-9a-fA-F]*){2,}))?$'
+
   subnet:
     type: string
     x-go-custom-tag: gorm:"primaryKey"
@@ -6602,6 +6647,32 @@ definitions:
       cidr:
         $ref: '#/definitions/subnet'
         description: The IP block address pool.
+
+  api_vip:
+    type: object
+    description: The virtual IP used to reach the OpenShift cluster's API.
+    properties:
+      cluster_id:
+        type: string
+        format: uuid
+        description: The cluster that this VIP is associated with.
+        x-go-custom-tag: gorm:"primaryKey"
+      ip:
+        $ref: '#/definitions/ip'
+        description: The IP address.
+
+  ingress_vip:
+    type: object
+    description: The virtual IP used for cluster ingress traffic.
+    properties:
+      cluster_id:
+        type: string
+        format: uuid
+        description: The cluster that this VIP is associated with.
+        x-go-custom-tag: gorm:"primaryKey"
+      ip:
+        $ref: '#/definitions/ip'
+        description: The IP address.
 
   bind-host-params:
     required:
