@@ -32,8 +32,8 @@ func (p vsphereProvider) AddPlatformToInstallConfig(cfg *installcfg.InstallerCon
 			return errors.New("invalid cluster parameters, IngressVip must be provided")
 		}
 
-		vsPlatform.APIVIP = cluster.APIVip
-		vsPlatform.IngressVIP = cluster.IngressVip
+		vsPlatform.DeprecatedAPIVIP = cluster.APIVip
+		vsPlatform.DeprecatedIngressVIP = cluster.IngressVip
 	} else {
 		cfg.Networking.MachineNetwork = provider.GetMachineNetworkForUserManagedNetworking(p.Log, cluster)
 		if cluster.NetworkType != nil {

@@ -47,8 +47,8 @@ func (p nutanixProvider) AddPlatformToInstallConfig(
 			return errors.New("invalid cluster parameters, IngressVip must be provided")
 		}
 
-		nPlatform.APIVIP = cluster.APIVip
-		nPlatform.IngressVIP = cluster.IngressVip
+		nPlatform.DeprecatedAPIVIP = cluster.APIVip
+		nPlatform.DeprecatedIngressVIP = cluster.IngressVip
 	} else {
 		cfg.Networking.MachineNetwork = provider.GetMachineNetworkForUserManagedNetworking(p.Log, cluster)
 		if cluster.NetworkType != nil {
