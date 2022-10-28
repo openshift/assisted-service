@@ -1656,13 +1656,15 @@ var _ = Describe("getOSImages", func() {
 	})
 })
 
-var _ = Describe("Default ConfigMap values", func() {
+var _ = Describe("newAssistedCM", func() {
 
 	var (
-		configMap *corev1.ConfigMap
-		log       = logrus.New()
-		ctx       = context.Background()
-		route     = &routev1.Route{
+		ASCC ASC
+		asc  *aiv1beta1.AgentServiceConfig
+		ctx  context.Context
+		log  logrus.FieldLogger
+
+		route = &routev1.Route{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      serviceName,
 				Namespace: testNamespace,
@@ -1680,28 +1682,76 @@ var _ = Describe("Default ConfigMap values", func() {
 				Host: fmt.Sprintf("%s.images", testHost),
 			},
 		}
+		registryConf = `
+		unqualified-search-registries = ["registry.access.redhat.com","docker.io"]
+		[[registry]]
+			prefix = ""
+			location = "quay.io/edge-infrastructure"
+			mirror-by-digest-only = false
+	
+		[[registry.mirror]]
+			location = "mirror1.registry.corp.com:5000/edge-infrastructure"`
+		mirrorCM = &corev1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      testMirrorRegConfigmapName,
+				Namespace: testNamespace,
+			},
+			Data: map[string]string{
+				mirrorRegistryRefCertKey: "foo",
+			},
+		}
 	)
 
 	BeforeEach(func() {
-		var ASCC ASC
-		asc := newASCDefault()
+		log = logrus.New()
+		ctx = context.Background()
+		asc = newASCDefault()
 		ascr := newTestReconciler(asc, route, imageRoute)
 		ASCC.init(ascr, asc)
-		cm, mutateFn, err := newAssistedCM(ctx, log, ASCC)
-		Expect(err).ToNot(HaveOccurred())
-		Expect(mutateFn()).ShouldNot(HaveOccurred())
-		configMap = cm.(*corev1.ConfigMap)
 	})
 
 	It("INSTALL_INVOKER", func() {
-		Expect(configMap.Data["INSTALL_INVOKER"]).To(Equal("assisted-installer-operator"))
+		ensureNewAssistedConfigmapValue(ctx, log, ASCC, "INSTALL_INVOKER", "assisted-installer-operator")
 	})
 
 	It("sets the base URLs", func() {
-		Expect(configMap.Data["SERVICE_BASE_URL"]).To(Equal(fmt.Sprintf("https://%s", testHost)))
-		Expect(configMap.Data["IMAGE_SERVICE_BASE_URL"]).To(Equal(fmt.Sprintf("https://%s.images", testHost)))
+		ensureNewAssistedConfigmapValue(ctx, log, ASCC, "SERVICE_BASE_URL", fmt.Sprintf("https://%s", testHost))
+		ensureNewAssistedConfigmapValue(ctx, log, ASCC, "IMAGE_SERVICE_BASE_URL", fmt.Sprintf("https://%s.images", testHost))
+	})
+
+	It("default public container registries", func() {
+		ensureNewAssistedConfigmapValue(ctx, log, ASCC, "PUBLIC_CONTAINER_REGISTRIES", "quay.io,registry.svc.ci.openshift.org")
+	})
+	It("adds mirror registries", func() {
+		asc.Spec.MirrorRegistryRef = &corev1.LocalObjectReference{Name: testMirrorRegConfigmapName}
+		mirrorCM.Data[mirrorRegistryRefRegistryConfKey] = registryConf
+		ascr := newTestReconciler(asc, route, imageRoute, mirrorCM)
+		ASCC.rec = &ascr.AgentServiceConfigReconcileContext
+		ensureNewAssistedConfigmapValue(ctx, log, ASCC, "PUBLIC_CONTAINER_REGISTRIES", "quay.io,registry.svc.ci.openshift.org,registry.access.redhat.com,docker.io")
+	})
+	It("adds user-specified unauthenticated registries", func() {
+		asc.Spec.UnauthenticatedRegistries = []string{"example.com"}
+		ensureNewAssistedConfigmapValue(ctx, log, ASCC, "PUBLIC_CONTAINER_REGISTRIES", "quay.io,registry.svc.ci.openshift.org,example.com")
+	})
+	It("ignores duplicate values", func() {
+		asc.Spec.UnauthenticatedRegistries = []string{"example.com", "quay.io", "docker.io"}
+		asc.Spec.MirrorRegistryRef = &corev1.LocalObjectReference{Name: testMirrorRegConfigmapName}
+		mirrorCM.Data[mirrorRegistryRefRegistryConfKey] = registryConf
+		ascr := newTestReconciler(asc, route, imageRoute, mirrorCM)
+		ASCC.rec = &ascr.AgentServiceConfigReconcileContext
+		ensureNewAssistedConfigmapValue(ctx, log, ASCC, "PUBLIC_CONTAINER_REGISTRIES", "quay.io,registry.svc.ci.openshift.org,registry.access.redhat.com,docker.io,example.com")
 	})
 })
+
+func ensureNewAssistedConfigmapValue(ctx context.Context, log logrus.FieldLogger, ASCC ASC, key, value string) {
+	cm, mutateFn, err := newAssistedCM(ctx, log, ASCC)
+
+	Expect(err).ToNot(HaveOccurred())
+	Expect(mutateFn()).To(Succeed())
+	configMap := cm.(*corev1.ConfigMap)
+
+	Expect(configMap.Data[key]).To(Equal(value))
+}
 
 func newASCDefault() *aiv1beta1.AgentServiceConfig {
 	return &aiv1beta1.AgentServiceConfig{
