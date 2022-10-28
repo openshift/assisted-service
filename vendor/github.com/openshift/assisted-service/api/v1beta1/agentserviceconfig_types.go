@@ -102,6 +102,13 @@ type AgentServiceConfigSpec struct {
 	// +kubebuilder:validation:default:=disabled
 	// +optional
 	IPXEHTTPRoute string `json:"iPXEHTTPRoute,omitempty"`
+	// UnauthenticatedRegistries is a list of registries from which container images can be pulled
+	// without authentication. They will be appended to the default list (quay.io,
+	// registry.svc.ci.openshift.org). Any registry on this list will not require credentials
+	// to be in the pull secret validated by the assisted-service.
+	//+operator-sdk:csv:customresourcedefinitions:type=spec,displayName="List of container registries without authentication"
+	// +optional
+	UnauthenticatedRegistries []string `json:"unauthenticatedRegistries,omitempty"`
 }
 
 // ConditionType related to our reconcile loop in addition to all the reasons
@@ -172,7 +179,6 @@ const (
 	ReasonKubeconfigSecretFetchFailure string = "ReasonKubeconfigSecretFetchFailure"
 	// ReasonSpokeClientCreationFailure when there was a failure creating spoke client.
 	ReasonSpokeClientCreationFailure string = "ReasonSpokeClientCreationFailure"
-
 	// ReasonKonnectivityAgentFailure when there was a failure creating the namespace.
 	ReasonKonnectivityAgentFailure string = "KonnectivityAgentFailure"
 

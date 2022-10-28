@@ -1659,6 +1659,15 @@ spec:
                   - version
                   type: object
                 type: array
+              unauthenticatedRegistries:
+                description: UnauthenticatedRegistries is a list of registries from
+                  which container images can be pulled without authentication. They
+                  will be appended to the default list (quay.io, registry.svc.ci.openshift.org).
+                  Any registry on this list will not require credentials to be in
+                  the pull secret validated by the assisted-service.
+                items:
+                  type: string
+                type: array
             required:
             - databaseStorage
             - filesystemStorage
@@ -2323,6 +2332,15 @@ spec:
                   - url
                   - version
                   type: object
+                type: array
+              unauthenticatedRegistries:
+                description: UnauthenticatedRegistries is a list of registries from
+                  which container images can be pulled without authentication. They
+                  will be appended to the default list (quay.io, registry.svc.ci.openshift.org).
+                  Any registry on this list will not require credentials to be in
+                  the pull secret validated by the assisted-service.
+                items:
+                  type: string
                 type: array
             required:
             - databaseStorage
