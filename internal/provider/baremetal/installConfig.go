@@ -90,10 +90,10 @@ func (p baremetalProvider) AddPlatformToInstallConfig(
 
 	cfg.Platform = installcfg.Platform{
 		Baremetal: &installcfg.BareMetalInstallConfigPlatform{
-			ProvisioningNetwork: provNetwork,
-			APIVIP:              cluster.APIVip,
-			IngressVIP:          cluster.IngressVip,
-			Hosts:               hosts,
+			ProvisioningNetwork:  provNetwork,
+			DeprecatedAPIVIP:     cluster.APIVip,
+			DeprecatedIngressVIP: cluster.IngressVip,
+			Hosts:                hosts,
 		},
 	}
 	return nil

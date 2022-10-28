@@ -5387,8 +5387,8 @@ var _ = Describe("[V2ClusterUpdate] cluster", func() {
 					Expect(result.Platform.None).Should(BeNil())
 					Expect(result.Platform.Baremetal).Should(BeNil())
 
-					Expect(result.Platform.Vsphere.APIVIP).Should(Equal(""))
-					Expect(result.Platform.Vsphere.IngressVIP).Should(Equal(""))
+					Expect(result.Platform.Vsphere.DeprecatedAPIVIP).Should(Equal(""))
+					Expect(result.Platform.Vsphere.DeprecatedIngressVIP).Should(Equal(""))
 					Expect(result.Networking.MachineNetwork).ShouldNot(BeNil())
 				})
 
@@ -10592,8 +10592,8 @@ var _ = Describe("TestRegisterCluster", func() {
 				Expect(result.Platform.None).Should(BeNil())
 				Expect(result.Platform.Baremetal).Should(BeNil())
 
-				Expect(result.Platform.Vsphere.APIVIP).Should(Equal(""))
-				Expect(result.Platform.Vsphere.IngressVIP).Should(Equal(""))
+				Expect(result.Platform.Vsphere.DeprecatedAPIVIP).Should(Equal(""))
+				Expect(result.Platform.Vsphere.DeprecatedIngressVIP).Should(Equal(""))
 			})
 
 			It("vsphere platform and UserManagedNetworking=false", func() {
@@ -10627,8 +10627,8 @@ var _ = Describe("TestRegisterCluster", func() {
 				Expect(result.Platform.None).Should(BeNil())
 				Expect(result.Platform.Baremetal).Should(BeNil())
 
-				Expect(result.Platform.Vsphere.APIVIP).Should(Equal(apiVip))
-				Expect(result.Platform.Vsphere.IngressVIP).Should(Equal(ingressVip))
+				Expect(result.Platform.Vsphere.DeprecatedAPIVIP).Should(Equal(apiVip))
+				Expect(result.Platform.Vsphere.DeprecatedIngressVIP).Should(Equal(ingressVip))
 			})
 		})
 

@@ -23,33 +23,39 @@ type Host struct {
 }
 
 type BareMetalInstallConfigPlatform struct {
-	ProvisioningNetwork string `yaml:"provisioningNetwork"`
-	APIVIP              string `yaml:"apiVIP"`
-	IngressVIP          string `yaml:"ingressVIP"`
-	Hosts               []Host `yaml:"hosts"`
-	ClusterOSImage      string `json:"clusterOSImage,omitempty"`
+	ProvisioningNetwork  string   `yaml:"provisioningNetwork"`
+	APIVIPs              []string `yaml:"apiVIPs,omitempty"`
+	DeprecatedAPIVIP     string   `yaml:"apiVIP,omitempty"`
+	IngressVIPs          []string `yaml:"ingressVIPs,omitempty"`
+	DeprecatedIngressVIP string   `yaml:"ingressVIP,omitempty"`
+	Hosts                []Host   `yaml:"hosts"`
+	ClusterOSImage       string   `json:"clusterOSImage,omitempty"`
 }
 
 type VsphereInstallConfigPlatform struct {
-	VCenter          string          `yaml:"vCenter"`
-	Username         string          `yaml:"username"`
-	Password         strfmt.Password `yaml:"password"`
-	Datacenter       string          `yaml:"datacenter"`
-	DefaultDatastore string          `yaml:"defaultDatastore"`
-	Folder           string          `yaml:"folder,omitempty"`
-	Network          string          `yaml:"network"`
-	Cluster          string          `yaml:"cluster"`
-	APIVIP           string          `yaml:"apiVIP,omitempty"`
-	IngressVIP       string          `yaml:"ingressVIP,omitempty"`
+	VCenter              string          `yaml:"vCenter"`
+	Username             string          `yaml:"username"`
+	Password             strfmt.Password `yaml:"password"`
+	Datacenter           string          `yaml:"datacenter"`
+	DefaultDatastore     string          `yaml:"defaultDatastore"`
+	Folder               string          `yaml:"folder,omitempty"`
+	Network              string          `yaml:"network"`
+	Cluster              string          `yaml:"cluster"`
+	APIVIPs              []string        `yaml:"apiVIPs,omitempty"`
+	DeprecatedAPIVIP     string          `yaml:"apiVIP,omitempty"`
+	IngressVIPs          []string        `yaml:"ingressVIPs,omitempty"`
+	DeprecatedIngressVIP string          `yaml:"ingressVIP,omitempty"`
 }
 
 type NutanixInstallConfigPlatform struct {
-	ID            int                   `yaml:"-"`
-	APIVIP        string                `yaml:"apiVIP,omitempty"`
-	IngressVIP    string                `yaml:"ingressVIP,omitempty"`
-	PrismCentral  NutanixPrismCentral   `yaml:"prismCentral"`
-	PrismElements []NutanixPrismElement `yaml:"prismElements"`
-	SubnetUUIDs   []strfmt.UUID         `yaml:"subnetUUIDs"`
+	ID                   int                   `yaml:"-"`
+	APIVIPs              []string              `yaml:"apiVIPs,omitempty"`
+	DeprecatedAPIVIP     string                `yaml:"apiVIP,omitempty"`
+	IngressVIPs          []string              `yaml:"ingressVIPs,omitempty"`
+	DeprecatedIngressVIP string                `yaml:"ingressVIP,omitempty"`
+	PrismCentral         NutanixPrismCentral   `yaml:"prismCentral"`
+	PrismElements        []NutanixPrismElement `yaml:"prismElements"`
+	SubnetUUIDs          []strfmt.UUID         `yaml:"subnetUUIDs"`
 }
 
 type NutanixPrismCentral struct {
