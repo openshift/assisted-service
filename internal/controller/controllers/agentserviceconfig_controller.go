@@ -224,10 +224,14 @@ func (r *AgentServiceConfigReconciler) Reconcile(origCtx context.Context, req ct
 	}
 
 	// Ensure relevant finalizers exist (cleanup on deletion)
-	if err := ensureFinalizers(ctx, log, asc, agentServiceConfigFinalizerName); err != nil {
-		return ctrl.Result{Requeue: true}, err
-	}
-	if !instance.DeletionTimestamp.IsZero() {
+	if instance.DeletionTimestamp.IsZero() {
+		if err := ensureFinalizers(ctx, log, asc, agentServiceConfigFinalizerName); err != nil {
+			return ctrl.Result{Requeue: true}, err
+		}
+	} else {
+		if err := cleanFinalizers(ctx, log, asc, agentServiceConfigFinalizerName); err != nil {
+			return ctrl.Result{Requeue: true}, err
+		}
 		return ctrl.Result{}, nil
 	}
 
@@ -379,36 +383,37 @@ func reconcileComponent(ctx context.Context, log *logrus.Entry, asc ASC, compone
 }
 
 func ensureFinalizers(ctx context.Context, log logrus.FieldLogger, asc ASC, finalizerName string) error {
-	if asc.Object.GetDeletionTimestamp().IsZero() {
-		if !controllerutil.ContainsFinalizer(asc.Object, finalizerName) {
-			controllerutil.AddFinalizer(asc.Object, finalizerName)
-			if err := asc.rec.Update(ctx, asc.Object); err != nil {
-				log.WithError(err).Error("failed to add finalizer to AgentServiceConfig")
-				return err
-			}
-		}
-	} else {
-		// do cleanup and remove finalizer
-		statefulSet := &appsv1.StatefulSet{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      imageServiceName,
-				Namespace: asc.namespace,
-			},
-		}
-		if err := asc.rec.Get(ctx, client.ObjectKeyFromObject(statefulSet), statefulSet); err != nil && !errors.IsNotFound(err) {
-			log.WithError(err).Error("failed to get image service stateful set for cleanup")
-			return err
-		}
-		if err := cleanupImageServiceFinalizer(ctx, asc, statefulSet); err != nil {
-			log.WithError(err).Error("failed to cleanup image service stateful set")
-			return err
-		}
-
-		controllerutil.RemoveFinalizer(asc.Object, finalizerName)
+	if !controllerutil.ContainsFinalizer(asc.Object, finalizerName) {
+		controllerutil.AddFinalizer(asc.Object, finalizerName)
 		if err := asc.rec.Update(ctx, asc.Object); err != nil {
-			log.WithError(err).Error("failed to remove finalizer from AgentServiceConfig")
+			log.WithError(err).Error("failed to add finalizer to AgentServiceConfig")
 			return err
 		}
+	}
+	return nil
+}
+
+func cleanFinalizers(ctx context.Context, log logrus.FieldLogger, asc ASC, finalizerName string) error {
+	// do cleanup and remove finalizer
+	statefulSet := &appsv1.StatefulSet{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      imageServiceName,
+			Namespace: asc.namespace,
+		},
+	}
+	if err := asc.rec.Get(ctx, client.ObjectKeyFromObject(statefulSet), statefulSet); err != nil && !errors.IsNotFound(err) {
+		log.WithError(err).Error("failed to get image service stateful set for cleanup")
+		return err
+	}
+	if err := cleanupImageServiceFinalizer(ctx, asc, statefulSet); err != nil {
+		log.WithError(err).Error("failed to cleanup image service stateful set")
+		return err
+	}
+
+	controllerutil.RemoveFinalizer(asc.Object, finalizerName)
+	if err := asc.rec.Update(ctx, asc.Object); err != nil {
+		log.WithError(err).Error("failed to remove finalizer from AgentServiceConfig")
+		return err
 	}
 	return nil
 }

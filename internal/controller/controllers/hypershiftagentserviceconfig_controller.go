@@ -144,10 +144,14 @@ func (hr *HypershiftAgentServiceConfigReconciler) Reconcile(origCtx context.Cont
 	}
 
 	// Ensure relevant finalizers exist (cleanup on deletion)
-	if err = ensureFinalizers(ctx, log, asc, hypershiftAgentServiceConfigFinalizerName); err != nil {
-		return ctrl.Result{Requeue: true}, err
-	}
-	if !instance.DeletionTimestamp.IsZero() {
+	if instance.DeletionTimestamp.IsZero() {
+		if err = ensureFinalizers(ctx, log, asc, hypershiftAgentServiceConfigFinalizerName); err != nil {
+			return ctrl.Result{Requeue: true}, err
+		}
+	} else {
+		if err = cleanFinalizers(ctx, log, asc, hypershiftAgentServiceConfigFinalizerName); err != nil {
+			return ctrl.Result{Requeue: true}, err
+		}
 		return ctrl.Result{}, nil
 	}
 
