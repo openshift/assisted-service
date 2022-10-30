@@ -12,6 +12,7 @@ import (
 	"github.com/openshift/assisted-service/internal/spoke_k8s_client"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+	"github.com/thoas/go-funk"
 	appsv1 "k8s.io/api/apps/v1"
 	authorizationv1 "k8s.io/api/authorization/v1"
 	certificatesv1 "k8s.io/api/certificates/v1"
@@ -32,15 +33,16 @@ import (
 
 var _ = Describe("HypershiftAgentServiceConfig reconcile", func() {
 	var (
-		ctx                  = context.Background()
-		hr                   *HypershiftAgentServiceConfigReconciler
-		hsc                  *aiv1beta1.HypershiftAgentServiceConfig
-		crd                  *apiextensionsv1.CustomResourceDefinition
-		kubeconfigSecret     *corev1.Secret
-		mockCtrl             *gomock.Controller
-		mockSpokeClient      *spoke_k8s_client.MockSpokeK8sClient
-		mockSpokeClientCache *MockSpokeClientCache
-		fakeSpokeClient      client.WithWatch
+		ctx                     = context.Background()
+		hr                      *HypershiftAgentServiceConfigReconciler
+		hsc                     *aiv1beta1.HypershiftAgentServiceConfig
+		crd                     *apiextensionsv1.CustomResourceDefinition
+		imageServiceStatefulSet *appsv1.StatefulSet
+		kubeconfigSecret        *corev1.Secret
+		mockCtrl                *gomock.Controller
+		mockSpokeClient         *spoke_k8s_client.MockSpokeK8sClient
+		mockSpokeClientCache    *MockSpokeClientCache
+		fakeSpokeClient         client.WithWatch
 	)
 
 	const (
@@ -122,6 +124,33 @@ var _ = Describe("HypershiftAgentServiceConfig reconcile", func() {
 		return c
 	}
 
+	newImageServiceStatefulSet := func(imageStorage corev1.PersistentVolumeClaimSpec) *appsv1.StatefulSet {
+		var replicas int32 = 1
+		return &appsv1.StatefulSet{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "assisted-image-service",
+				Namespace: testNamespace,
+			},
+			Spec: appsv1.StatefulSetSpec{
+				Replicas: &replicas,
+				VolumeClaimTemplates: []corev1.PersistentVolumeClaim{
+					{
+						ObjectMeta: metav1.ObjectMeta{
+							Name: "image-service-data",
+						},
+						Spec: imageStorage,
+					},
+				},
+			},
+			Status: appsv1.StatefulSetStatus{
+				Replicas:        1,
+				ReadyReplicas:   1,
+				CurrentReplicas: 1,
+				UpdatedReplicas: 1,
+			},
+		}
+	}
+
 	ingressCM := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      defaultIngressCertCMName,
@@ -168,7 +197,8 @@ var _ = Describe("HypershiftAgentServiceConfig reconcile", func() {
 		hsc = newHSCDefault()
 		kubeconfigSecret = newKubeconfigSecret()
 		crd = newAgentInstallCRD()
-		hr = newHSCTestReconciler(mockSpokeClientCache, hsc, kubeconfigSecret, crd, ingressCM, route, imageRoute)
+		imageServiceStatefulSet = newImageServiceStatefulSet(*hsc.Spec.ImageStorage)
+		hr = newHSCTestReconciler(mockSpokeClientCache, hsc, kubeconfigSecret, crd, ingressCM, route, imageRoute, imageServiceStatefulSet)
 	})
 
 	AfterEach(func() {
@@ -326,6 +356,19 @@ var _ = Describe("HypershiftAgentServiceConfig reconcile", func() {
 		client := hr.Client
 		assertReconcileSuccess()
 		Expect(hr.Client).To(Equal(client))
+	})
+
+	It("adds finalizer to HASC", func() {
+		assertReconcileSuccess()
+		instance := &aiv1beta1.HypershiftAgentServiceConfig{}
+		Expect(hr.Client.Get(ctx, types.NamespacedName{Name: hsc.Name, Namespace: hsc.Namespace}, instance)).To(Succeed())
+		Expect(funk.ContainsString(instance.GetFinalizers(), agentServiceConfigFinalizerName)).To(BeTrue())
+	})
+
+	It("successfully creates image-service statefulSet", func() {
+		assertReconcileSuccess()
+		found := &appsv1.StatefulSet{}
+		Expect(hr.Client.Get(ctx, types.NamespacedName{Name: imageServiceName, Namespace: hsc.Namespace}, found)).To(Succeed())
 	})
 
 	Context("parsing rbac", func() {
