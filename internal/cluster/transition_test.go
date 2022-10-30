@@ -3025,6 +3025,68 @@ var _ = Describe("Refresh Cluster - With DHCP", func() {
 				errorExpected: false,
 			},
 			{
+				name:            "ready to insufficient - vip not matching cidr",
+				srcState:        models.ClusterStatusReady,
+				dstState:        models.ClusterStatusInsufficient,
+				machineNetworks: common.TestIPv4Networking.MachineNetworks,
+				apiVip:          "10.10.10.12",
+				ingressVip:      "10.10.10.13",
+				dnsDomain:       "test.com",
+				pullSecretSet:   true,
+				hosts: []models.Host{
+					{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
+					{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
+					{ID: &hid3, Status: swag.String(models.HostStatusKnown), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
+					{ID: &hid4, Status: swag.String(models.HostStatusKnown), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleWorker},
+					{ID: &hid5, Status: swag.String(models.HostStatusKnown), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleWorker},
+				},
+				statusInfoChecker: makeValueChecker(StatusInfoInsufficient),
+				validationsChecker: makeJsonChecker(map[ValidationID]validationCheckResult{
+					IsMachineCidrDefined:      {status: ValidationSuccess, messagePattern: "Machine Network CIDR is defined"},
+					IsApiVipDefined:           {status: ValidationSuccess, messagePattern: "API virtual IP is defined"},
+					IsApiVipValid:             {status: ValidationFailure, messagePattern: fmt.Sprintf("api vip <10.10.10.12> does not belong to machine-network-cidr <%s>", string(common.TestIPv4Networking.MachineNetworks[0].Cidr))},
+					IsIngressVipDefined:       {status: ValidationSuccess, messagePattern: "Ingress virtual IP is defined"},
+					IsIngressVipValid:         {status: ValidationFailure, messagePattern: fmt.Sprintf("ingress vip <10.10.10.13> does not belong to machine-network-cidr <%s>", string(common.TestIPv4Networking.MachineNetworks[0].Cidr))},
+					AllHostsAreReadyToInstall: {status: ValidationSuccess, messagePattern: "All hosts in the cluster are ready to install."},
+					IsDNSDomainDefined:        {status: ValidationSuccess, messagePattern: "The base domain is defined"},
+					IsPullSecretSet:           {status: ValidationSuccess, messagePattern: "The pull secret is set."},
+					SufficientMastersCount:    {status: ValidationSuccess, messagePattern: "The cluster has a sufficient number of master candidates."},
+				}),
+				errorExpected: false,
+			},
+			{
+				name:            "ready to insufficient - vip is taken",
+				srcState:        models.ClusterStatusReady,
+				dstState:        models.ClusterStatusInsufficient,
+				machineNetworks: common.TestIPv4Networking.MachineNetworks,
+				apiVip:          common.TestIPv4Networking.APIVip,
+				ingressVip:      common.TestIPv4Networking.IngressVip,
+				dnsDomain:       "test.com",
+				pullSecretSet:   true,
+				hosts: []models.Host{
+					{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster, FreeAddresses: makeFreeNetworksAddressesStr(makeFreeAddresses("1.2.3.0/24", "1.2.3.9", "1.2.3.8"))},
+					{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster, FreeAddresses: makeFreeNetworksAddressesStr(makeFreeAddresses("1.2.3.0/24", "1.2.3.9", "1.2.3.8"))},
+					{ID: &hid3, Status: swag.String(models.HostStatusKnown), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster, FreeAddresses: makeFreeNetworksAddressesStr(makeFreeAddresses("1.2.3.0/24", "1.2.3.9", "1.2.3.8"))},
+					{ID: &hid4, Status: swag.String(models.HostStatusKnown), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleWorker, FreeAddresses: makeFreeNetworksAddressesStr(makeFreeAddresses("1.2.3.0/24", "1.2.3.9", "1.2.3.8"))},
+					{ID: &hid5, Status: swag.String(models.HostStatusKnown), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleWorker, FreeAddresses: makeFreeNetworksAddressesStr(makeFreeAddresses("1.2.3.0/24", "1.2.3.59", "1.2.3.8"))},
+				},
+				statusInfoChecker: makeValueChecker(StatusInfoInsufficient),
+				validationsChecker: makeJsonChecker(map[ValidationID]validationCheckResult{
+					IsMachineCidrDefined:                {status: ValidationSuccess, messagePattern: "Machine Network CIDR is defined"},
+					IsMachineCidrEqualsToCalculatedCidr: {status: ValidationSuccess, messagePattern: "Cluster Machine CIDR is equivalent to the calculated CIDR"},
+					IsApiVipDefined:                     {status: ValidationSuccess, messagePattern: "API virtual IP is defined"},
+					IsApiVipValid:                       {status: ValidationFailure, messagePattern: fmt.Sprintf("api vip <%s> is already in use in cidr %s", common.TestIPv4Networking.APIVip, string(common.TestIPv4Networking.MachineNetworks[0].Cidr))},
+					IsIngressVipDefined:                 {status: ValidationSuccess, messagePattern: "Ingress virtual IP is defined"},
+					IsIngressVipValid:                   {status: ValidationFailure, messagePattern: fmt.Sprintf("ingress vip <%s> is already in use in cidr %s", common.TestIPv4Networking.IngressVip, string(common.TestIPv4Networking.MachineNetworks[0].Cidr))},
+					AllHostsAreReadyToInstall:           {status: ValidationSuccess, messagePattern: "All hosts in the cluster are ready to install."},
+					IsDNSDomainDefined:                  {status: ValidationSuccess, messagePattern: "The base domain is defined"},
+					IsPullSecretSet:                     {status: ValidationSuccess, messagePattern: "The pull secret is set."},
+					SufficientMastersCount:              {status: ValidationSuccess, messagePattern: "The cluster has a sufficient number of master candidates."},
+				}),
+				errorExpected: false,
+			},
+
+			{
 				name:              "ready to dhcp timeout - api vip not defined",
 				srcState:          models.ClusterStatusReady,
 				dstState:          models.ClusterStatusInsufficient,
@@ -4544,4 +4606,18 @@ func getClusterFromDB(clusterId strfmt.UUID, db *gorm.DB) common.Cluster {
 	c, err := common.GetClusterFromDB(db, clusterId, common.UseEagerLoading)
 	ExpectWithOffset(1, err).ShouldNot(HaveOccurred())
 	return *c
+}
+
+func makeFreeAddresses(network string, ips ...strfmt.IPv4) *models.FreeNetworkAddresses {
+	return &models.FreeNetworkAddresses{
+		FreeAddresses: ips,
+		Network:       network,
+	}
+}
+
+func makeFreeNetworksAddressesStr(elems ...*models.FreeNetworkAddresses) string {
+	toMarshal := models.FreeNetworksAddresses(elems)
+	b, err := json.Marshal(&toMarshal)
+	Expect(err).ToNot(HaveOccurred())
+	return string(b)
 }
