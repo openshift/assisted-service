@@ -31,7 +31,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -40,7 +39,6 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
-	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
 const (
@@ -65,6 +63,15 @@ func (asc *ASC) initHASC(r *HypershiftAgentServiceConfigReconciler, instance *ai
 	asc.Object = instance
 	asc.spec = &instance.Spec.AgentServiceConfigSpec
 	asc.conditions = &instance.Status.Conditions
+	context := r.AgentServiceConfigReconcileContext
+	asc.rec = &AgentServiceConfigReconcileContext{
+		Client:       context.Client,
+		Log:          context.Log,
+		Scheme:       context.Scheme,
+		NodeSelector: context.NodeSelector,
+		Tolerations:  context.Tolerations,
+		Recorder:     context.Recorder,
+	}
 }
 
 var assistedServiceRBAC_l0 = []component{
@@ -77,7 +84,6 @@ var assistedServiceRBAC_l1 = []component{
 	{"AssistedServiceRoleBinding_l1", aiv1beta1.ReasonRBACConfigurationFailure, newAssistedServiceRoleBinding},
 	{"AssistedServiceClusterRole_l1", aiv1beta1.ReasonRBACConfigurationFailure, newAssistedServiceClusterRole},
 	{"AssistedServiceClusterRoleBinding_l1", aiv1beta1.ReasonRBACConfigurationFailure, newAssistedServiceClusterRoleBinding},
-	{"AssistedServiceServiceAccount_l1", aiv1beta1.ReasonRBACConfigurationFailure, newAssistedServiceServiceAccount},
 }
 
 // Adding required resources to rbac
@@ -87,6 +93,7 @@ var assistedServiceRBAC_l1 = []component{
 
 // +kubebuilder:rbac:groups=agent-install.openshift.io,resources=hypershiftagentserviceconfigs,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=agent-install.openshift.io,resources=hypershiftagentserviceconfigs/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=agent-install.openshift.io,resources=hypershiftagentserviceconfigs/finalizers,verbs=update
 // +kubebuilder:rbac:groups=apiextensions.k8s.io,resources=customresourcedefinitions,verbs=get;list;watch
 // +kubebuilder:rbac:groups=coordination.k8s.io,resources=leases,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=rbac.authorization.k8s.io,resources=roles,verbs=get;list;watch;create;update;patch;delete
@@ -104,16 +111,12 @@ func (hr *HypershiftAgentServiceConfigReconciler) Reconcile(origCtx context.Cont
 	log.Info("HypershiftAgentServiceConfig Reconcile started")
 	defer log.Info("HypershiftAgentServiceConfig Reconcile ended")
 
-	//read the resource from k8s
+	// read the resource from k8s
 	instance := &aiv1beta1.HypershiftAgentServiceConfig{}
 	if err := hr.Get(ctx, req.NamespacedName, instance); err != nil {
-		if errors.IsNotFound(err) {
-			return reconcile.Result{}, nil
-		}
-		log.WithError(err).Errorf("Failed to get resource %s", req.NamespacedName)
-		return ctrl.Result{}, err
+		log.WithError(err).Errorf("Failed to get HypershiftAgentServiceConfig %s", req.NamespacedName)
+		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
-	asc.initHASC(hr, instance)
 
 	// Creating spoke client using specified kubeconfig secret reference
 	spokeClient, err := hr.createSpokeClient(ctx, instance.Spec.KubeconfigSecretRef.Name, instance.Namespace)
@@ -128,8 +131,41 @@ func (hr *HypershiftAgentServiceConfigReconciler) Reconcile(origCtx context.Cont
 		return ctrl.Result{}, err
 	}
 
+	// Initialize ASC to reconcile components according to instance context
+	asc.initHASC(hr, instance)
+
 	// Reconcile hub components
-	hubComponents := append(assistedServiceRBAC_l0, getComponents()...)
+	if result, err := hr.reconcileHubComponents(ctx, log, asc); err != nil {
+		return result, err
+	}
+
+	// Switch to spoke client in the reconciler context
+	// TODO: extract client from AgentServiceConfigReconcileContext to avoid sharing
+	//       it with both hub and spoke clients.
+	asc.rec.Client = spokeClient
+
+	// Ensure instance namespace exists on spoke cluster
+	if err := hr.ensureSpokeNamespace(ctx, log, asc); err != nil {
+		return ctrl.Result{}, err
+	}
+
+	// Reconcile spoke components
+	if result, err := hr.reconcileSpokeComponents(ctx, log, asc); err != nil {
+		return result, err
+	}
+
+	return ctrl.Result{}, nil
+}
+
+func (hr *HypershiftAgentServiceConfigReconciler) reconcileHubComponents(ctx context.Context, log *logrus.Entry, asc ASC) (ctrl.Result, error) {
+	hubComponents := []component{}
+	hubComponents = append(hubComponents, assistedServiceRBAC_l0...)
+	hubComponents = append(hubComponents, getComponents()...)
+	hubComponents = append(hubComponents,
+		component{"AssistedServiceServiceAccount", aiv1beta1.ReasonServiceServiceAccount, newAssistedServiceServiceAccount},
+	)
+
+	// Reconcile hub components
 	for _, component := range hubComponents {
 		switch component.name {
 		case "AssistedServiceDeployment":
@@ -141,17 +177,23 @@ func (hr *HypershiftAgentServiceConfigReconciler) Reconcile(origCtx context.Cont
 			return result, err
 		}
 	}
+	return ctrl.Result{}, nil
+}
+
+func (hr *HypershiftAgentServiceConfigReconciler) reconcileSpokeComponents(ctx context.Context, log *logrus.Entry, asc ASC) (ctrl.Result, error) {
+	spokeComponents := []component{}
+	spokeComponents = append(spokeComponents, assistedServiceRBAC_l1...)
+	spokeComponents = append(spokeComponents,
+		component{"AssistedServiceServiceAccount_l1", aiv1beta1.ReasonServiceServiceAccount, newAssistedServiceServiceAccount},
+	)
 
 	// Reconcile spoke components
-	asc.rec.Client = spokeClient
-	spokeComponents := assistedServiceRBAC_l1
 	for _, component := range spokeComponents {
 		log.Infof(fmt.Sprintf("Reconcile spoke component: %s", component.name))
 		if result, err := reconcileComponent(ctx, log, asc, component); err != nil {
 			return result, err
 		}
 	}
-
 	return ctrl.Result{}, nil
 }
 
@@ -265,6 +307,18 @@ func (hr *HypershiftAgentServiceConfigReconciler) getAgentInstallCRDs(ctx contex
 		return nil, pkgerror.Wrap(err, "Failed to list CRDs")
 	}
 	return crds, nil
+}
+
+func (hr *HypershiftAgentServiceConfigReconciler) ensureSpokeNamespace(ctx context.Context, log *logrus.Entry, asc ASC) error {
+	ns := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: asc.namespace}}
+	mutate := func() error {
+		return nil
+	}
+	result, err := controllerutil.CreateOrUpdate(ctx, asc.rec.Client, ns, mutate)
+	if result != controllerutil.OperationResultNone {
+		log.Infof("Namespace %s %s", asc.namespace, result)
+	}
+	return err
 }
 
 // SetupWithManager sets up the controller with the Manager.

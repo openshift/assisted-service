@@ -168,6 +168,12 @@ rules:
 - apiGroups:
   - agent-install.openshift.io
   resources:
+  - hypershiftagentserviceconfigs/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - agent-install.openshift.io
+  resources:
   - hypershiftagentserviceconfigs/status
   verbs:
   - get

@@ -13,6 +13,8 @@ import (
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	appsv1 "k8s.io/api/apps/v1"
+	authorizationv1 "k8s.io/api/authorization/v1"
+	certificatesv1 "k8s.io/api/certificates/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
@@ -38,6 +40,7 @@ var _ = Describe("HypershiftAgentServiceConfig reconcile", func() {
 		mockCtrl             *gomock.Controller
 		mockSpokeClient      *spoke_k8s_client.MockSpokeK8sClient
 		mockSpokeClientCache *MockSpokeClientCache
+		fakeSpokeClient      client.WithWatch
 	)
 
 	const (
@@ -146,6 +149,17 @@ var _ = Describe("HypershiftAgentServiceConfig reconcile", func() {
 		},
 	}
 
+	assertReconcileSuccess := func() {
+		schemes := GetKubeClientSchemes()
+		fakeSpokeClient = fakeclient.NewClientBuilder().WithScheme(schemes).Build()
+		client := fakeSpokeK8sClient{Client: fakeSpokeClient}
+
+		mockSpokeClientCache.EXPECT().Get(gomock.Any()).Return(client, nil)
+		res, err := hr.Reconcile(ctx, newHypershiftAgentServiceConfigRequest(hsc))
+		Expect(err).To(BeNil())
+		Expect(res).To(Equal(ctrl.Result{}))
+	}
+
 	BeforeEach(func() {
 		mockCtrl = gomock.NewController(GinkgoT())
 		mockSpokeClient = spoke_k8s_client.NewMockSpokeK8sClient(mockCtrl)
@@ -234,7 +248,7 @@ var _ = Describe("HypershiftAgentServiceConfig reconcile", func() {
 	It("successfully updates existing CRD on spoke cluster", func() {
 		schemes := GetKubeClientSchemes()
 		spokeCRD := newAgentInstallCRD()
-		fakeSpokeClient := fakeclient.NewClientBuilder().WithScheme(schemes).WithRuntimeObjects(spokeCRD).Build()
+		fakeSpokeClient = fakeclient.NewClientBuilder().WithScheme(schemes).WithRuntimeObjects(spokeCRD).Build()
 
 		c := crd.DeepCopy()
 		c.Labels["new"] = "label"
@@ -251,7 +265,7 @@ var _ = Describe("HypershiftAgentServiceConfig reconcile", func() {
 		schemes := GetKubeClientSchemes()
 		crd = newAgentInstallCRD()
 		crd.Name = "redundant"
-		fakeSpokeClient := fakeclient.NewClientBuilder().WithScheme(schemes).WithRuntimeObjects(crd).Build()
+		fakeSpokeClient = fakeclient.NewClientBuilder().WithScheme(schemes).WithRuntimeObjects(crd).Build()
 		crdKey := client.ObjectKeyFromObject(crd)
 		spokeCrd := apiextensionsv1.CustomResourceDefinition{}
 		Expect(fakeSpokeClient.Get(ctx, crdKey, &spokeCrd)).To(Succeed())
@@ -294,6 +308,24 @@ var _ = Describe("HypershiftAgentServiceConfig reconcile", func() {
 				},
 			},
 		))
+	})
+
+	It("successfully creates namespace on spoke cluster", func() {
+		assertReconcileSuccess()
+		found := &corev1.Namespace{}
+		Expect(fakeSpokeClient.Get(ctx, types.NamespacedName{Name: hsc.Namespace}, found)).To(Succeed())
+	})
+
+	It("successfully creates service account on spoke cluster", func() {
+		assertReconcileSuccess()
+		found := &corev1.ServiceAccount{}
+		Expect(fakeSpokeClient.Get(ctx, types.NamespacedName{Name: "assisted-service", Namespace: hsc.Namespace}, found)).To(Succeed())
+	})
+
+	It("reconcile doesn't change client on AgentServiceConfigReconcileContext", func() {
+		client := hr.Client
+		assertReconcileSuccess()
+		Expect(hr.Client).To(Equal(client))
 	})
 
 	Context("parsing rbac", func() {
@@ -366,3 +398,27 @@ var _ = Describe("HypershiftAgentServiceConfig reconcile", func() {
 		})
 	})
 })
+
+type fakeSpokeK8sClient struct {
+	client.Client
+}
+
+func (c fakeSpokeK8sClient) CreateSubjectAccessReview(subjectAccessReview *authorizationv1.SelfSubjectAccessReview) (*authorizationv1.SelfSubjectAccessReview, error) {
+	return nil, nil
+}
+
+func (c fakeSpokeK8sClient) IsActionPermitted(verb string, resource string) (bool, error) {
+	return true, nil
+}
+
+func (c fakeSpokeK8sClient) ListCsrs() (*certificatesv1.CertificateSigningRequestList, error) {
+	return nil, nil
+}
+
+func (c fakeSpokeK8sClient) ApproveCsr(csr *certificatesv1.CertificateSigningRequest) error {
+	return nil
+}
+
+func (c fakeSpokeK8sClient) GetNode(name string) (*corev1.Node, error) {
+	return nil, nil
+}
