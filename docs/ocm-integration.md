@@ -242,3 +242,149 @@ ocm get subscriptions --parameter search="status = 'Active'"
   "trial_end_date": "0001-01-01T00:00:00Z"
 }
 ```
+
+## How to add organization capabilities to AMS
+
+AMS has the concept of _organization capabilities_ that we can use to enable
+and disable feature for certain organizations. To one of this capabilities the
+first step is to add it to the AMS code. That requires a patch similar to
+[this](https://gitlab.cee.redhat.com/service/uhc-account-manager/-/merge_requests/3168):
+
+```patch
+commit 5461cd16723bffdca00c0fe0dafd9f218bda67a5
+Author: Mat Kowalski <mko@redhat.com>
+Date:   Thu Sep 15 13:49:55 2022 +0200
+
+    MGMT-11563: Add bare metal installer multiarch capability
+
+    Contributes-to: MGMT-11563
+    Contributes-to: MGMT-11859
+    Implements-enhancement: saas-per-organization-feature-access
+
+diff --git a/pkg/api/capability_types.go b/pkg/api/capability_types.go
+index 6e909a7a..ebaee754 100644
+--- a/pkg/api/capability_types.go
++++ b/pkg/api/capability_types.go
+@@ -28,6 +28,7 @@ const CapabilitySubscribedOcpMarketplace = "capability.cluster.subscribed_ocp_ma
+ const CapabilitySubscribedOsdMarketplace = "capability.cluster.subscribed_osd_marketplace"
+ const CapabilityEnableTermsEnforcement = "capability.account.enable_terms_enforcement"
+ const CapabilityBareMetalInstallerAdmin = "capability.account.bare_metal_installer_admin"
++const CapabilityBareMetalInstallerMultiarch = "capability.account.bare_metal_installer_multiarch"
+ const CapabilityReleaseOcpClusters = "capability.cluster.release_ocp_clusters"
+ const CapabilityAutoscaleClustersDeprecated = "capability.organization.autoscale_clusters"
+ const CapabilityAutoscaleClusters = "capability.cluster.autoscale_clusters"
+@@ -60,6 +61,7 @@ var CapabilityKeys = []string{
+        CapabilitySubscribedOcpMarketplace,
+        CapabilitySubscribedOsdMarketplace,
+        CapabilityBareMetalInstallerAdmin,
++       CapabilityBareMetalInstallerMultiarch,
+        CapabilityReleaseOcpClusters,
+        CapabilityEnableTermsEnforcement,
+        CapabilityUseRosaPaidAMI,
+```
+
+That needs to be merged, and then the new version of AMS pushed to the
+corresponding environment (integration, stage and eventually production). The
+SD-B team is responsible for that, ping the `@sd-b-team` in the
+[#service-development-b](https://coreos.slack.com/archives/CBDNMS43V) channel
+in Slack.
+
+The second step is to enable the capability for the organizations that you
+want, so you need to find the identifier of that organization. For example, for
+your own organization. For example, for yourself:
+
+```shell
+$ ocm whoami | jq -r '.organization.id'
+2GOuuT2l3odeHRdWqY57fviSE2K
+```
+
+And for a given user name:
+
+```shell
+$ ocm get /api/accounts_mgmt/v1/accounts -p search="username = 'jane.doe'" | jq -r '.items[].organization.id'
+2GOuxr72XcFbrWvyA9rS9McOUjO
+```
+
+Then add the label to the organization (labels are the mechanism used by AMS to
+store these capabilities):
+
+```shell
+$ ocm post /api/accounts_mgmt/v1/organizations/2GOuxr72XcFbrWvyA9rS9McOUjO/labels <<.
+{
+  "key": "capability.organization.bare_metal_installer_multiarch",
+  "value": "true",
+  "internal": true
+}
+.
+```
+
+To disable a capability just delete the label:
+
+```shell
+$ ocm delete /api/accounts_mgmt/v1/organizations/2GOuxr72XcFbrWvyA9rS9McOUjO/labels/capability.organization.bare_metal_installer_multiarch
+```
+
+To check the capabilities enabled for an organization:
+
+```shell
+$ ocm get /api/accounts_mgmt/v1/organizations/2GOuxr72XcFbrWvyA9rS9McOUjO/labels | jq -r '.items[] | select(.type == "Organization") | .key'
+sts_ocm_role
+capability.organization.bare_metal_installer_multiarch
+capability.organization.hypershift
+capability.cluster.subscribed_ocp
+moa_entitlement_expires_at
+```
+
+Chances are that you will not have permission to enable or disable
+capabilities, specially in the production environment. In that case open a
+ticket like [this](https://issues.redhat.com/browse/SDB-3211) in the
+[SDB](https://issues.redhat.com/projects/SDB) board requesting it. Make sure to
+include in the ticket the name of the capability that you want to enable, the
+identifier of the organization and the environment. For example, you could can
+write a title and description like these:
+
+```
+Enable `bare_metal_installer_multiarch` capability for `My Org` in production
+
+We need to enable the `bare_metal_installer_multiarch` capability for the
+`2GOuxr72XcFbrWvyA9rS9McOUjO` organization (also known as `My Org`) in the
+production environment. This is necessary to enable multiarch support in the
+assisted installer service.
+
+Adding the capability should be something like this:
+
+{noformat}
+$ ocm login --token ... --url production
+$ ocm post /api/accounts_mgmt/v1/organizations/2GOuxr72XcFbrWvyA9rS9McOUjO/labels <<.
+{
+  "key": "capability.organization.bare_metal_installer_multiarch",
+  "value": "true",
+  "internal": true
+}
+{noformat}
+```
+
+Note that organization identifiers and capabilities are environment specific,
+so make sure you do it in the right environment. For example, to use the
+integration environment:
+
+```shell
+$ ocm login --token ... --url integration
+```
+
+To use the stage environment:
+
+```shell
+$ ocm login --token ... --url stage
+```
+
+The default, when the `--url` option isn't provided is to use the production
+environment.
+
+If you need to do this very often in the integration or stage environments, and
+without asking the SDB team, you can request the `BareMetalInstallerAdmin` and
+`UHCSupport` roles sending a merge request similar to
+[this](https://gitlab.cee.redhat.com/service/ocm-resources/-/merge_requests/2713)
+to the [ocm-resources](https://gitlab.cee.redhat.com/service/ocm-resources)
+project. Note that for the production environment this will not be accepted, so
+you will still need to open a ticket.
