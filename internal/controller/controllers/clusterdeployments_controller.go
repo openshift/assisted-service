@@ -95,6 +95,8 @@ type ClusterDeploymentsReconciler struct {
 	AuthType auth.AuthType
 }
 
+const minimalOpenShiftVersionForDefaultNetworkTypeOVNKubernetes = "4.12.0-0.0"
+
 // +kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch;update;create
 // +kubebuilder:rbac:groups="",resources=configmaps,verbs=get;list;watch
 // +kubebuilder:rbac:groups=hive.openshift.io,resources=clusterdeployments,verbs=get;list;watch;create;update;patch;delete
@@ -779,7 +781,7 @@ func (r *ClusterDeploymentsReconciler) updateIgnitionInUpdateParams(ctx context.
 
 func (r *ClusterDeploymentsReconciler) updateNetworkParams(clusterDeployment *hivev1.ClusterDeployment,
 	clusterInstall *hiveext.AgentClusterInstall,
-	cluster *common.Cluster, params *models.V2ClusterUpdateParams) bool {
+	cluster *common.Cluster, params *models.V2ClusterUpdateParams) (*bool, error) {
 	update := false
 	updateString := func(new, old string, target **string) {
 		if new != old {
@@ -837,8 +839,12 @@ func (r *ClusterDeploymentsReconciler) updateNetworkParams(clusterDeployment *hi
 
 	if clusterInstall.Spec.Networking.NetworkType != "" {
 		updateString(clusterInstall.Spec.Networking.NetworkType, swag.StringValue(cluster.NetworkType), &params.NetworkType)
-	} else {
-		updateString(selectClusterNetworkType(params, cluster), swag.StringValue(cluster.NetworkType), &params.NetworkType)
+	} else if !clusterDeployment.Spec.Installed {
+		desiredNetworkType, err := selectClusterNetworkType(params, cluster)
+		if err != nil {
+			return nil, err
+		}
+		updateString(swag.StringValue(desiredNetworkType), swag.StringValue(cluster.NetworkType), &params.NetworkType)
 	}
 
 	// Update APIVIP and IngressVIP only if cluster is not SNO or VipDhcpAllocation is not enabled
@@ -854,7 +860,7 @@ func (r *ClusterDeploymentsReconciler) updateNetworkParams(clusterDeployment *hi
 	if userManagedNetwork := isUserManagedNetwork(clusterInstall); userManagedNetwork != swag.BoolValue(cluster.UserManagedNetworking) {
 		params.UserManagedNetworking = swag.Bool(userManagedNetwork)
 	}
-	return update
+	return swag.Bool(update), nil
 }
 
 func (r *ClusterDeploymentsReconciler) updateIfNeeded(ctx context.Context,
@@ -877,8 +883,11 @@ func (r *ClusterDeploymentsReconciler) updateIfNeeded(ctx context.Context,
 	updateString(spec.ClusterName, cluster.Name, &params.Name)
 	updateString(spec.BaseDomain, cluster.BaseDNSDomain, &params.BaseDNSDomain)
 
-	update = r.updateNetworkParams(clusterDeployment, clusterInstall, cluster, params) || update
-
+	shouldUpdateNetworkParams, err := r.updateNetworkParams(clusterDeployment, clusterInstall, cluster, params)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to update network params")
+	}
+	update = swag.BoolValue(shouldUpdateNetworkParams) || update
 	// Trim key before comapring as done in RegisterClusterInternal
 	sshPublicKey := strings.TrimSpace(clusterInstall.Spec.SSHPublicKey)
 	updateString(sshPublicKey, cluster.SSHPublicKey, &params.SSHPublicKey)
@@ -956,7 +965,7 @@ func (r *ClusterDeploymentsReconciler) updateIfNeeded(ctx context.Context,
 	return clusterAfterUpdate, nil
 }
 
-func selectClusterNetworkType(params *models.V2ClusterUpdateParams, cluster *common.Cluster) string {
+func selectClusterNetworkType(params *models.V2ClusterUpdateParams, cluster *common.Cluster) (*string, error) {
 	clusterWithNewNetworks := &common.Cluster{
 		Cluster: models.Cluster{
 			ClusterNetworks: cluster.ClusterNetworks,
@@ -975,15 +984,20 @@ func selectClusterNetworkType(params *models.V2ClusterUpdateParams, cluster *com
 		clusterWithNewNetworks.MachineNetworks = params.MachineNetworks
 	}
 
+	isOpenShiftVersionRecentEnough, err := common.VersionGreaterOrEqual(cluster.OpenshiftVersion, minimalOpenShiftVersionForDefaultNetworkTypeOVNKubernetes)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to parse cluster OpenShift version")
+	}
+
 	if funk.Any(funk.Filter(common.GetNetworksCidrs(clusterWithNewNetworks), func(ip *string) bool {
 		if ip == nil {
 			return false
 		}
 		return network.IsIPv6CIDR(*ip)
-	})) || common.IsSingleNodeCluster(cluster) {
-		return models.ClusterNetworkTypeOVNKubernetes
+	})) || common.IsSingleNodeCluster(cluster) || isOpenShiftVersionRecentEnough {
+		return swag.String(models.ClusterNetworkTypeOVNKubernetes), nil
 	} else {
-		return models.ClusterNetworkTypeOpenShiftSDN
+		return swag.String(models.ClusterNetworkTypeOpenShiftSDN), nil
 	}
 }
 
