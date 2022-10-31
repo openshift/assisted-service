@@ -138,6 +138,12 @@ parameters:
 - name: ENABLE_UPGRADE_AGENT
   value: "false"
   required: false
+- name: READINESS_PROBE_INITIAL_DELAY_SECONDS
+  value: "15"
+  required: false
+- name: LIVENESS_PROBE_INITIAL_DELAY_SECONDS
+  value: "30"
+  required: false
 apiVersion: v1
 kind: Template
 metadata:
@@ -176,11 +182,12 @@ objects:
               httpGet:
                 path: /health
                 port: 8090
-              initialDelaySeconds: 30
+              initialDelaySeconds: ${{LIVENESS_PROBE_INITIAL_DELAY_SECONDS}}
             readinessProbe:
               httpGet:
                 path: /ready
                 port: 8090
+              initialDelaySeconds: ${{READINESS_PROBE_INITIAL_DELAY_SECONDS}}
             env:
               - name: AWS_SECRET_ACCESS_KEY
                 valueFrom:
