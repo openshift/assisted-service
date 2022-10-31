@@ -138,13 +138,32 @@ const (
 	ClusterNetworksTable    = "ClusterNetworks"
 	ServiceNetworksTable    = "ServiceNetworks"
 	MachineNetworksTable    = "MachineNetworks"
+	APIVIPsTable            = "APIVips"
+	IngressVIPsTable        = "IngressVips"
 )
 
-var ClusterSubTables = [...]string{HostsTable, MonitoredOperatorsTable, ClusterNetworksTable, ServiceNetworksTable, MachineNetworksTable}
+var ClusterSubTables = [...]string{
+	HostsTable,
+	MonitoredOperatorsTable,
+	ClusterNetworksTable,
+	ServiceNetworksTable,
+	MachineNetworksTable,
+	APIVIPsTable,
+	IngressVIPsTable,
+}
 
 func AutoMigrate(db *gorm.DB) error {
-	return db.AutoMigrate(&models.MonitoredOperator{}, &Host{}, &Cluster{}, &Event{}, &InfraEnv{},
-		&models.ClusterNetwork{}, &models.ServiceNetwork{}, &models.MachineNetwork{})
+	return db.AutoMigrate(&models.MonitoredOperator{},
+		&Host{},
+		&Cluster{},
+		&Event{},
+		&InfraEnv{},
+		&models.ClusterNetwork{},
+		&models.ServiceNetwork{},
+		&models.MachineNetwork{},
+		&models.APIVip{},
+		&models.IngressVip{},
+	)
 }
 
 func LoadTableFromDB(db *gorm.DB, tableName string, conditions ...interface{}) *gorm.DB {

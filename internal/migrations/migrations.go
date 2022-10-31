@@ -39,6 +39,7 @@ func post() []*gormigrate.Migration {
 		changeStaticConfigFormat(),
 		multipleNetworksCleanup(),
 		dropClusterIgnitionOverrides(),
+		multipleVips(),
 	}
 
 	sort.SliceStable(postMigrations, func(i, j int) bool { return postMigrations[i].ID < postMigrations[j].ID })
