@@ -172,7 +172,8 @@ func (v *clusterValidator) isApiVipValid(c *clusterPreprocessContext) (Validatio
 	if err == nil {
 		return ValidationSuccess, fmt.Sprintf("%s %s belongs to the Machine CIDR and is not in use.", ApiVipName, c.cluster.APIVip)
 	}
-	return ValidationFailure, fmt.Sprintf("%s %s does not belong to the Machine CIDR or is already in use.", ApiVipName, c.cluster.APIVip)
+	// Returning error as a string as it describes in a very good way what actually was failing
+	return ValidationFailure, err.Error()
 }
 
 func (v *clusterValidator) isNetworkTypeValid(c *clusterPreprocessContext) (ValidationStatus, string) {
@@ -251,7 +252,9 @@ func (v *clusterValidator) isIngressVipValid(c *clusterPreprocessContext) (Valid
 	if err == nil {
 		return ValidationSuccess, fmt.Sprintf("%s %s belongs to the Machine CIDR and is not in use.", IngressVipName, c.cluster.IngressVip)
 	}
-	return ValidationFailure, fmt.Sprintf("%s %s does not belong to the Machine CIDR or is already in use.", IngressVipName, c.cluster.IngressVip)
+
+	// Returning error as a string as it describes in a very good way what actually was failing
+	return ValidationFailure, err.Error()
 }
 
 // conditions to have a valid number of masters
