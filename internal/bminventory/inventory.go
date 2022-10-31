@@ -4261,6 +4261,10 @@ func (b *bareMetalInventory) RegisterInfraEnvInternal(
 		return nil, err
 	}
 
+	if err = b.validateKernelArguments(ctx, params.InfraenvCreateParams.DiscoveryKernelArguments); err != nil {
+		return nil, common.NewApiError(http.StatusBadRequest, err)
+	}
+
 	var discoveryKernelArguments *string
 	if len(params.InfraenvCreateParams.DiscoveryKernelArguments) > 0 {
 		var b []byte
@@ -4560,6 +4564,10 @@ func (b *bareMetalInventory) UpdateInfraEnvInternal(ctx context.Context, params 
 		}
 	}
 
+	if err = b.validateKernelArguments(ctx, params.InfraEnvUpdateParams.DiscoveryKernelArguments); err != nil {
+		return nil, common.NewApiError(http.StatusBadRequest, err)
+	}
+
 	err = b.updateInfraEnvData(ctx, infraEnv, params, internalIgnitionConfig, tx, log)
 	if err != nil {
 		log.WithError(err).Error("updateInfraEnvData")
@@ -4718,6 +4726,19 @@ func (b *bareMetalInventory) validateInfraEnvIgnitionParams(ctx context.Context,
 		}
 	}
 
+	return nil
+}
+
+// TODO: modify (or remove) this validation when replace and delete operations are supported
+func (b *bareMetalInventory) validateKernelArguments(ctx context.Context, kernelArguments models.KernelArguments) error {
+	log := logutil.FromContext(ctx, b.log)
+	for _, arg := range kernelArguments {
+		if arg.Operation != models.KernelArgumentOperationAppend {
+			err := errors.Errorf("Only kernel argument operation %s is supported.  Got %s", models.KernelArgumentOperationAppend, arg.Operation)
+			log.WithError(err).Error("validate kernel arguments")
+			return err
+		}
+	}
 	return nil
 }
 

@@ -8102,13 +8102,31 @@ func init() {
         }
       }
     },
+    "kernel_argument": {
+      "description": "pair of [operation, argument] specifying the argument and what operation should be applied on it.",
+      "type": "object",
+      "properties": {
+        "operation": {
+          "description": "The operation to apply on the kernel argument.",
+          "type": "string",
+          "enum": [
+            "append",
+            "replace",
+            "delete"
+          ]
+        },
+        "value": {
+          "description": "Kernel argument can have the form \u003cparameter\u003e or \u003cparameter\u003e=\u003cvalue\u003e. The following examples should\nbe supported:\nrd.net.timeout.carrier=60\nisolcpus=1,2,10-20,100-2000:2/25\nquiet\nThe parsing by the command line parser in linux kernel is much looser and this pattern follows it.\n",
+          "type": "string",
+          "pattern": "^(?:(?:[^ \\t\\n\\r\"]+)|(?:\"[^\"]*\"))+$"
+        }
+      }
+    },
     "kernel_arguments": {
-      "description": "List of string values to be passed to discovery image as kernel arguments.",
+      "description": "List of kernel arugment objects that define the operations and values to be applied.",
       "type": "array",
       "items": {
-        "description": "Kernel argument can have the form \u003cparameter\u003e or \u003cparameter\u003e=\u003cvalue\u003e. The following examples should\nbe supported:\nrd.net.timeout.carrier=60\nisolcpus=1,2,10-20,100-2000:2/25\nquiet\nThe parsing by the command line parser in linux kernel is much looser and this pattern follows it.\n",
-        "type": "string",
-        "pattern": "^(?:(?:[^ \\t\\n\\r\"]+)|(?:\"[^\"]*\"))+$"
+        "$ref": "#/definitions/kernel_argument"
       }
     },
     "l2-connectivity": {
@@ -17537,13 +17555,31 @@ func init() {
         }
       }
     },
+    "kernel_argument": {
+      "description": "pair of [operation, argument] specifying the argument and what operation should be applied on it.",
+      "type": "object",
+      "properties": {
+        "operation": {
+          "description": "The operation to apply on the kernel argument.",
+          "type": "string",
+          "enum": [
+            "append",
+            "replace",
+            "delete"
+          ]
+        },
+        "value": {
+          "description": "Kernel argument can have the form \u003cparameter\u003e or \u003cparameter\u003e=\u003cvalue\u003e. The following examples should\nbe supported:\nrd.net.timeout.carrier=60\nisolcpus=1,2,10-20,100-2000:2/25\nquiet\nThe parsing by the command line parser in linux kernel is much looser and this pattern follows it.\n",
+          "type": "string",
+          "pattern": "^(?:(?:[^ \\t\\n\\r\"]+)|(?:\"[^\"]*\"))+$"
+        }
+      }
+    },
     "kernel_arguments": {
-      "description": "List of string values to be passed to discovery image as kernel arguments.",
+      "description": "List of kernel arugment objects that define the operations and values to be applied.",
       "type": "array",
       "items": {
-        "description": "Kernel argument can have the form \u003cparameter\u003e or \u003cparameter\u003e=\u003cvalue\u003e. The following examples should\nbe supported:\nrd.net.timeout.carrier=60\nisolcpus=1,2,10-20,100-2000:2/25\nquiet\nThe parsing by the command line parser in linux kernel is much looser and this pattern follows it.\n",
-        "type": "string",
-        "pattern": "^(?:(?:[^ \\t\\n\\r\"]+)|(?:\"[^\"]*\"))+$"
+        "$ref": "#/definitions/kernel_argument"
       }
     },
     "l2-connectivity": {
