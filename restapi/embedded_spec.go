@@ -2982,6 +2982,15 @@ func init() {
           },
           {
             "agentAuth": []
+          },
+          {
+            "urlAuth": []
+          },
+          {
+            "imageAuth": []
+          },
+          {
+            "imageURLAuth": []
           }
         ],
         "description": "Retrieves the details of the infra-env.",
@@ -12342,6 +12351,15 @@ func init() {
           },
           {
             "agentAuth": []
+          },
+          {
+            "urlAuth": []
+          },
+          {
+            "imageAuth": []
+          },
+          {
+            "imageURLAuth": []
           }
         ],
         "description": "Retrieves the details of the infra-env.",
