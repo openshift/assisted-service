@@ -322,6 +322,29 @@ var _ = Describe("PreprovisioningImage reconcile", func() {
 			Expect(infraEnv.ObjectMeta.Annotations[EnableIronicAgentAnnotation]).To(Equal("true"))
 		})
 
+		It("sets a failure condition when the infraEnv arch doesn't match the preprovisioningimage", func() {
+			infraEnv.Spec.CpuArchitecture = "aarch64"
+			Expect(c.Create(ctx, infraEnv)).To(BeNil())
+
+			res, err := pr.Reconcile(ctx, newPreprovisioningImageRequest(ppi))
+			Expect(err).To(BeNil())
+			Expect(res).To(Equal(ctrl.Result{}))
+
+			key := types.NamespacedName{
+				Namespace: testNamespace,
+				Name:      "testPPI",
+			}
+			Expect(c.Get(ctx, key, ppi)).To(BeNil())
+			readyCondition := meta.FindStatusCondition(ppi.Status.Conditions, string(metal3_v1alpha1.ConditionImageReady))
+			Expect(readyCondition.Status).To(Equal(metav1.ConditionFalse))
+			Expect(readyCondition.Message).To(ContainSubstring("does not match InfraEnv CPU architecture"))
+			Expect(readyCondition.Reason).To(Equal(archMismatchReason))
+			errorCondition := meta.FindStatusCondition(ppi.Status.Conditions, string(metal3_v1alpha1.ConditionImageError))
+			Expect(errorCondition.Status).To(Equal(metav1.ConditionTrue))
+			Expect(errorCondition.Message).To(ContainSubstring("does not match InfraEnv CPU architecture"))
+			Expect(errorCondition.Reason).To(Equal(archMismatchReason))
+		})
+
 		It("doesn't fail when the infraEnv image has not been created yet", func() {
 			infraEnv.Status = aiv1beta1.InfraEnvStatus{}
 			infraEnv.ObjectMeta.Annotations = map[string]string{EnableIronicAgentAnnotation: "true"}

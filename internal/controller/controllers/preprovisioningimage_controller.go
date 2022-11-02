@@ -51,6 +51,8 @@ import (
 
 type imageConditionReason string
 
+const archMismatchReason = "InfraEnvArchMismatch"
+
 // PreprovisioningImage reconciles a AgentClusterInstall object
 type PreprovisioningImageReconciler struct {
 	client.Client
@@ -106,11 +108,21 @@ func (r *PreprovisioningImageReconciler) Reconcile(origCtx context.Context, req 
 		log.WithError(err).Error("failed to get corresponding infraEnv")
 		return ctrl.Result{}, err
 	}
-
 	if infraEnv == nil {
 		log.Info("failed to find infraEnv for image")
 		return ctrl.Result{}, nil
 	}
+
+	if infraEnv.Spec.CpuArchitecture != image.Spec.Architecture {
+		log.Infof("Image arch %s does not match infraEnv arch %s", image.Spec.Architecture, infraEnv.Spec.CpuArchitecture)
+		setMismatchedArchCondition(image, infraEnv.Spec.CpuArchitecture)
+		err = r.Status().Update(ctx, image)
+		if err != nil {
+			log.WithError(err).Error("failed to update status")
+		}
+		return ctrl.Result{}, err
+	}
+
 	if !IronicAgentEnabled(log, infraEnv) {
 		return r.AddIronicAgentToInfraEnv(ctx, log, infraEnv)
 	}
@@ -230,6 +242,17 @@ func setCoolDownCondition(image *metal3_v1alpha1.PreprovisioningImage) {
 func setUnsupportedFormatCondition(image *metal3_v1alpha1.PreprovisioningImage) {
 	message := "Unsupported image format"
 	reason := imageConditionReason(strcase.ToCamel(message))
+	setImageCondition(image.GetGeneration(), &image.Status,
+		metal3_v1alpha1.ConditionImageReady, metav1.ConditionFalse,
+		reason, message)
+	setImageCondition(image.GetGeneration(), &image.Status,
+		metal3_v1alpha1.ConditionImageError, metav1.ConditionTrue,
+		reason, message)
+}
+
+func setMismatchedArchCondition(image *metal3_v1alpha1.PreprovisioningImage, infraArch string) {
+	message := fmt.Sprintf("PreprovisioningImage CPU architecture (%s) does not match InfraEnv CPU architecture (%s)", image.Spec.Architecture, infraArch)
+	reason := imageConditionReason(archMismatchReason)
 	setImageCondition(image.GetGeneration(), &image.Status,
 		metal3_v1alpha1.ConditionImageReady, metav1.ConditionFalse,
 		reason, message)
