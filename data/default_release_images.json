@@ -23,8 +23,8 @@
         "cpu_architectures": [
             "x86_64"
         ],
-        "url": "quay.io/openshift-release-dev/ocp-release:4.10.38-x86_64",
-        "version": "4.10.38"
+        "url": "quay.io/openshift-release-dev/ocp-release:4.10.39-x86_64",
+        "version": "4.10.39"
     },
     {
         "openshift_version": "4.10",
@@ -32,8 +32,8 @@
         "cpu_architectures": [
             "arm64"
         ],
-        "url": "quay.io/openshift-release-dev/ocp-release:4.10.38-aarch64",
-        "version": "4.10.38"
+        "url": "quay.io/openshift-release-dev/ocp-release:4.10.39-aarch64",
+        "version": "4.10.39"
     },
     {
         "openshift_version": "4.11",
@@ -41,8 +41,8 @@
         "cpu_architectures": [
             "x86_64"
         ],
-        "url": "quay.io/openshift-release-dev/ocp-release:4.11.9-x86_64",
-        "version": "4.11.9",
+        "url": "quay.io/openshift-release-dev/ocp-release:4.11.12-x86_64",
+        "version": "4.11.12",
         "default": true
     },
     {
@@ -51,8 +51,8 @@
         "cpu_architectures": [
             "arm64"
         ],
-        "url": "quay.io/openshift-release-dev/ocp-release:4.11.9-aarch64",
-        "version": "4.11.9"
+        "url": "quay.io/openshift-release-dev/ocp-release:4.11.12-aarch64",
+        "version": "4.11.12"
     },
     {
         "openshift_version": "4.11.0-multi",
