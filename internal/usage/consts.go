@@ -49,4 +49,6 @@ const (
 	LVM string = "LVM"
 	// Nutanix integration
 	NutanixIntegration string = "Nutanix integration"
+	// Usage of hyperthreading
+	HyperthreadingUsage string = "Hyperthreading"
 )

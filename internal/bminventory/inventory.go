@@ -2203,6 +2203,11 @@ func (b *bareMetalInventory) updateClusterData(_ context.Context, cluster *commo
 		}
 	}
 
+	if params.ClusterUpdateParams.Hyperthreading != nil {
+		b.setUsage(*params.ClusterUpdateParams.Hyperthreading != models.ClusterHyperthreadingNone, usage.HyperthreadingUsage,
+			&map[string]interface{}{"hyperthreading_enabled": *params.ClusterUpdateParams.Hyperthreading}, usages)
+	}
+
 	if len(updates) > 0 {
 		updates["trigger_monitor_timestamp"] = time.Now()
 		err = db.Model(&common.Cluster{}).Where("id = ?", cluster.ID.String()).Updates(updates).Error
@@ -2524,6 +2529,8 @@ func (b *bareMetalInventory) setDefaultUsage(cluster *models.Cluster) error {
 	b.setUsage(network.CheckIfClusterModelIsDualStack(cluster), usage.DualStackUsage, nil, usages)
 	b.setDiskEncryptionUsage(cluster, cluster.DiskEncryption, usages)
 	b.setUsage(cluster.Tags != "", usage.ClusterTags, nil, usages)
+	b.setUsage(cluster.Hyperthreading != models.ClusterHyperthreadingNone, usage.HyperthreadingUsage,
+		&map[string]interface{}{"hyperthreading_enabled": cluster.Hyperthreading}, usages)
 	//write all the usages to the cluster object
 	err := b.providerRegistry.SetPlatformUsages(common.PlatformTypeValue(cluster.Platform.Type), usages, b.usageApi)
 	if err != nil {
