@@ -10,6 +10,7 @@ import (
 	routev1 "github.com/openshift/api/route/v1"
 	aiv1beta1 "github.com/openshift/assisted-service/api/v1beta1"
 	"github.com/openshift/assisted-service/internal/spoke_k8s_client"
+	conditionsv1 "github.com/openshift/custom-resource-status/conditions/v1"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
@@ -189,6 +190,13 @@ var _ = Describe("HypershiftAgentServiceConfig reconcile", func() {
 		Expect(res).To(Equal(ctrl.Result{}))
 	}
 
+	getHASCInstance := func() *aiv1beta1.HypershiftAgentServiceConfig {
+		instance := &aiv1beta1.HypershiftAgentServiceConfig{}
+		err := hr.Get(ctx, types.NamespacedName{Name: testName, Namespace: testNamespace}, instance)
+		Expect(err).To(BeNil())
+		return instance
+	}
+
 	BeforeEach(func() {
 		mockCtrl = gomock.NewController(GinkgoT())
 		mockSpokeClient = spoke_k8s_client.NewMockSpokeK8sClient(mockCtrl)
@@ -253,6 +261,13 @@ var _ = Describe("HypershiftAgentServiceConfig reconcile", func() {
 		_, err := hr.Reconcile(ctx, newHypershiftAgentServiceConfigRequest(hsc))
 		Expect(err).ToNot(BeNil())
 		Expect(err.Error()).To(ContainSubstring("agent-install CRDs are not available"))
+
+		instance := getHASCInstance()
+
+		// ReconcileCompleted condition
+		condition := conditionsv1.FindStatusCondition(instance.Status.Conditions, aiv1beta1.ConditionReconcileCompleted)
+		Expect(condition).ToNot(BeNil())
+		Expect(condition.Status).To(Equal(corev1.ConditionFalse))
 	})
 
 	It("ignores error listing CRD on spoke cluster (warns for failed cleanup)", func() {
@@ -283,7 +298,10 @@ var _ = Describe("HypershiftAgentServiceConfig reconcile", func() {
 		c := crd.DeepCopy()
 		c.Labels["new"] = "label"
 		Expect(hr.Client.Update(ctx, c)).To(Succeed())
-		Expect(hr.syncSpokeAgentInstallCRDs(ctx, fakeSpokeClient)).To(Succeed())
+		mockSpokeClientCache.EXPECT().Get(gomock.Any()).Return(fakeSpokeK8sClient{Client: fakeSpokeClient}, nil)
+		res, err := hr.Reconcile(ctx, newHypershiftAgentServiceConfigRequest(hsc))
+		Expect(err).To(BeNil())
+		Expect(res).To(Equal(ctrl.Result{}))
 
 		crdKey := client.ObjectKeyFromObject(crd)
 		spokeCrd := apiextensionsv1.CustomResourceDefinition{}
@@ -298,8 +316,11 @@ var _ = Describe("HypershiftAgentServiceConfig reconcile", func() {
 		fakeSpokeClient = fakeclient.NewClientBuilder().WithScheme(schemes).WithRuntimeObjects(crd).Build()
 		crdKey := client.ObjectKeyFromObject(crd)
 		spokeCrd := apiextensionsv1.CustomResourceDefinition{}
-		Expect(fakeSpokeClient.Get(ctx, crdKey, &spokeCrd)).To(Succeed())
-		Expect(hr.syncSpokeAgentInstallCRDs(ctx, fakeSpokeClient)).To(Succeed())
+
+		mockSpokeClientCache.EXPECT().Get(gomock.Any()).Return(fakeSpokeK8sClient{Client: fakeSpokeClient}, nil)
+		res, err := hr.Reconcile(ctx, newHypershiftAgentServiceConfigRequest(hsc))
+		Expect(err).To(BeNil())
+		Expect(res).To(Equal(ctrl.Result{}))
 		Expect(fakeSpokeClient.Get(ctx, crdKey, &spokeCrd)).To(Not(Succeed()))
 	})
 
@@ -369,6 +390,21 @@ var _ = Describe("HypershiftAgentServiceConfig reconcile", func() {
 		assertReconcileSuccess()
 		found := &appsv1.StatefulSet{}
 		Expect(hr.Client.Get(ctx, types.NamespacedName{Name: imageServiceName, Namespace: hsc.Namespace}, found)).To(Succeed())
+	})
+
+	It("should set conditions to `True` on successful reconcile", func() {
+		assertReconcileSuccess()
+		instance := getHASCInstance()
+
+		// ReconcileCompleted condition
+		condition := conditionsv1.FindStatusCondition(instance.Status.Conditions, aiv1beta1.ConditionReconcileCompleted)
+		Expect(condition).ToNot(BeNil())
+		Expect(condition.Status).To(Equal(corev1.ConditionTrue))
+
+		// DeploymentsHealthy condition
+		condition = conditionsv1.FindStatusCondition(instance.Status.Conditions, aiv1beta1.ConditionDeploymentsHealthy)
+		Expect(condition).ToNot(BeNil())
+		Expect(condition.Status).To(Equal(corev1.ConditionTrue))
 	})
 
 	Context("parsing rbac", func() {

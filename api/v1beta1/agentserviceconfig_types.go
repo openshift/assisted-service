@@ -164,6 +164,8 @@ const (
 	ReasonServiceServiceAccount string = "ServiceServiceAccount"
 	// ReasonNamespaceCreationFailure when there was a failure creating the namespace.
 	ReasonNamespaceCreationFailure string = "NamespaceCreationFailure"
+	// ReasonSpokeClusterCRDsSyncFailure when there was a failure syncing spoke cluster CRDs.
+	ReasonSpokeClusterCRDsSyncFailure string = "SpokeClusterCRDsSyncFailure"
 
 	// IPXEHTTPRouteEnabled is expected value in IPXEHTTPRoute to enable the route
 	IPXEHTTPRouteEnabled string = "enabled"
