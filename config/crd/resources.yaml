@@ -2467,6 +2467,28 @@ spec:
                 - DiscoveryImageAlways
                 - BootOrderControl
                 type: string
+              kernelArguments:
+                description: KernelArguments is the additional kernel arguments to
+                  be passed during boot time of the discovery image. Applicable for
+                  both iPXE, and ISO streaming from Image Service.
+                items:
+                  properties:
+                    operation:
+                      description: Operation is the operation to apply on the kernel
+                        argument.
+                      enum:
+                      - append
+                      - replace
+                      - delete
+                      type: string
+                    value:
+                      description: 'Value can have the form <parameter> or <parameter>=<value>.
+                        The following examples should be supported: rd.net.timeout.carrier=60
+                        isolcpus=1,2,10-20,100-2000:2/25 quiet'
+                      pattern: ^(?:(?:[^ \t\n\r"]+)|(?:"[^"]*"))+$
+                      type: string
+                  type: object
+                type: array
               nmStateConfigLabelSelector:
                 description: NmstateConfigLabelSelector associates NMStateConfigs
                   for hosts that are considered part of this installation environment.

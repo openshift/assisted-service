@@ -13,6 +13,7 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
 	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 	aiv1beta1 "github.com/openshift/assisted-service/api/v1beta1"
 	"github.com/openshift/assisted-service/internal/bminventory"
@@ -328,6 +329,70 @@ var _ = Describe("infraEnv reconcile", func() {
 		Expect(scriptURL.Path).To(ContainSubstring(sId.String()))
 		Expect(scriptURL.Query().Get("file_name")).To(Equal("ipxe-script"))
 		Expect(scriptURL.Query().Has("ipxe_script_type")).To(BeFalse())
+	})
+
+	Context("discovery kernel arguments", func() {
+		kargs1 := []aiv1beta1.KernelArgument{
+			{
+				Operation: "append",
+				Value:     "p1",
+			},
+			{
+				Operation: "append",
+				Value:     "p2",
+			},
+		}
+		kargs2 := []aiv1beta1.KernelArgument{
+			{
+				Operation: "append",
+				Value:     "p3",
+			},
+			{
+				Operation: "append",
+				Value:     "p4",
+			},
+		}
+		emptyKargs := []aiv1beta1.KernelArgument{}
+		DescribeTable("update with kernel arguments",
+			func(initialKargs, updateKargs, expectedKargs []aiv1beta1.KernelArgument) {
+				dbInfraEnv := &common.InfraEnv{
+					GeneratedAt: strfmt.DateTime(time.Now()),
+					InfraEnv: models.InfraEnv{
+						ID:              &sId,
+						CPUArchitecture: infraEnvArch,
+						DownloadURL:     "https://images.example.com/images/best-image",
+					},
+				}
+				mockInstallerInternal.EXPECT().GetInfraEnvByKubeKey(gomock.Any()).Return(backendInfraEnv, nil)
+				mockInstallerInternal.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any()).Return(nil)
+				mockInstallerInternal.EXPECT().UpdateInfraEnvInternal(gomock.Any(), gomock.Any(), nil).Times(1).DoAndReturn(
+					func(ctx context.Context, params installer.UpdateInfraEnvParams, _ *string) (*common.InfraEnv, error) {
+						Expect(internalKernelArgs(updateKargs)).To(Equal(params.InfraEnvUpdateParams.KernelArguments))
+						return dbInfraEnv, nil
+					})
+				kubeInfraEnv := newInfraEnvImage("myInfraEnv", testNamespace, aiv1beta1.InfraEnvSpec{
+					PullSecretRef:   &corev1.LocalObjectReference{Name: "pull-secret"},
+					KernelArguments: initialKargs,
+				})
+				Expect(c.Create(ctx, kubeInfraEnv)).To(Succeed())
+				key := types.NamespacedName{
+					Namespace: testNamespace,
+					Name:      "myInfraEnv",
+				}
+
+				Expect(c.Get(ctx, key, kubeInfraEnv)).To(BeNil())
+				kubeInfraEnv.Spec.KernelArguments = updateKargs
+				Expect(c.Update(ctx, kubeInfraEnv)).To(BeNil())
+				_, err := ir.Reconcile(ctx, newInfraEnvRequest(kubeInfraEnv))
+				Expect(err).ToNot(HaveOccurred())
+				Expect(c.Get(ctx, key, kubeInfraEnv)).To(BeNil())
+				Expect(kubeInfraEnv.Spec.KernelArguments).To(Equal(expectedKargs))
+			},
+			Entry("update non existant kargs", nil, kargs1, kargs1),
+			Entry("update existing kargs", kargs1, kargs2, kargs2),
+			Entry("delete existing kargs with empty kargs", kargs2, emptyKargs, nil),
+			Entry("delete existing kargs with nil args", kargs2, nil, nil),
+		)
 	})
 
 	It("sets boot artifact URLs correctly", func() {
@@ -1016,6 +1081,16 @@ var _ = Describe("infraEnv reconcile", func() {
 			infraEnvImage := newInfraEnvImage("infraEnvImage", testNamespace, aiv1beta1.InfraEnvSpec{
 				ClusterRef:    &aiv1beta1.ClusterReference{Name: clusterName, Namespace: testNamespace},
 				PullSecretRef: &corev1.LocalObjectReference{Name: pullSecretName},
+				KernelArguments: []aiv1beta1.KernelArgument{
+					{
+						Operation: "append",
+						Value:     "p1",
+					},
+					{
+						Operation: "append",
+						Value:     "p2",
+					},
+				},
 			})
 			params := CreateInfraEnvParams(infraEnvImage, models.ImageType(imageType), pullSecretString, cluster.ID, cluster.OpenshiftVersion)
 
@@ -1026,6 +1101,7 @@ var _ = Describe("infraEnv reconcile", func() {
 			Expect(params.InfraenvCreateParams.CPUArchitecture).To(Equal(infraEnvImage.Spec.CpuArchitecture))
 			Expect(params.InfraenvCreateParams.IgnitionConfigOverride).To(Equal(infraEnvImage.Spec.IgnitionConfigOverride))
 			Expect(params.InfraenvCreateParams.SSHAuthorizedKey).To(Equal(&infraEnvImage.Spec.SSHAuthorizedKey))
+			Expect(params.InfraenvCreateParams.KernelArguments).To(Equal(internalKernelArgs(infraEnvImage.Spec.KernelArguments)))
 		})
 	})
 

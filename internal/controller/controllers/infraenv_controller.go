@@ -18,6 +18,7 @@ package controllers
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -183,8 +184,47 @@ func (r *InfraEnvReconciler) updateInfraEnv(ctx context.Context, log logrus.Fiel
 
 	updateParams.InfraEnvUpdateParams.ImageType = r.Config.ImageType
 
+	existingKargs, err := kubeKernelArgs(internalInfraEnv)
+	if err != nil {
+		return nil, err
+	}
+	if !funk.Equal(infraEnv.Spec.KernelArguments, existingKargs) {
+		updateParams.InfraEnvUpdateParams.KernelArguments = internalKernelArgs(infraEnv.Spec.KernelArguments)
+	}
+
 	// UpdateInfraEnvInternal will generate an ISO only if there it was not generated before,
 	return r.Installer.UpdateInfraEnvInternal(ctx, updateParams, nil)
+}
+
+func kubeKernelArgs(internalInfraEnv *common.InfraEnv) ([]aiv1beta1.KernelArgument, error) {
+	if internalInfraEnv == nil {
+		return nil, errors.New("kubeKernelArgs: nil infra-env argument received")
+	}
+	var args models.KernelArguments
+	if internalInfraEnv.KernelArguments != nil {
+		if err := json.Unmarshal([]byte(swag.StringValue(internalInfraEnv.KernelArguments)), &args); err != nil {
+			return nil, errors.Wrapf(err, "failed to unmarshal discovery kernel arguments of infra-env %s", internalInfraEnv.ID.String())
+		}
+	}
+	var ret []aiv1beta1.KernelArgument
+	for _, arg := range args {
+		ret = append(ret, aiv1beta1.KernelArgument{
+			Operation: arg.Operation,
+			Value:     arg.Value,
+		})
+	}
+	return ret, nil
+}
+
+func internalKernelArgs(kargs []aiv1beta1.KernelArgument) models.KernelArguments {
+	var ret models.KernelArguments
+	for _, arg := range kargs {
+		ret = append(ret, &models.KernelArgument{
+			Operation: arg.Operation,
+			Value:     arg.Value,
+		})
+	}
+	return ret
 }
 
 func BuildMacInterfaceMap(log logrus.FieldLogger, nmStateConfig aiv1beta1.NMStateConfig) models.MacInterfaceMap {
@@ -368,6 +408,10 @@ func CreateInfraEnvParams(infraEnv *aiv1beta1.InfraEnv, imageType models.ImageTy
 
 	if len(infraEnv.Spec.AdditionalNTPSources) > 0 {
 		createParams.InfraenvCreateParams.AdditionalNtpSources = swag.String(strings.Join(infraEnv.Spec.AdditionalNTPSources[:], ","))
+	}
+
+	if len(infraEnv.Spec.KernelArguments) > 0 {
+		createParams.InfraenvCreateParams.KernelArguments = internalKernelArgs(infraEnv.Spec.KernelArguments)
 	}
 
 	return createParams
