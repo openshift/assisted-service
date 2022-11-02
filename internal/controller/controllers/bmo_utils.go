@@ -4,15 +4,19 @@ import (
 	"context"
 	"fmt"
 
+	osconfigv1 "github.com/openshift/api/config/v1"
 	v1 "github.com/openshift/api/config/v1"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/network"
+	osclientset "github.com/openshift/client-go/config/clientset/versioned"
 	metal3iov1alpha1 "github.com/openshift/cluster-baremetal-operator/api/v1alpha1"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/kubernetes"
+	coreclientv1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -21,12 +25,14 @@ const MinimalVersionForConvergedFlow = "4.12.0-0.alpha"
 type BMOUtils struct {
 	// The methods of this receiver get called once before the cache is initialized hence we check the API directly
 	c              client.Reader
+	osClient       *osclientset.Clientset
+	kubeClient     *kubernetes.Clientset
 	log            logrus.FieldLogger
 	kubeAPIEnabled bool
 }
 
-func NewBMOUtils(client client.Reader, log logrus.FieldLogger, kubeAPIEnabled bool) *BMOUtils {
-	return &BMOUtils{client, log, kubeAPIEnabled}
+func NewBMOUtils(client client.Reader, osClient *osclientset.Clientset, kubeClient *kubernetes.Clientset, log logrus.FieldLogger, kubeAPIEnabled bool) *BMOUtils {
+	return &BMOUtils{client, osClient, kubeClient, log, kubeAPIEnabled}
 }
 
 // +kubebuilder:rbac:groups=config.openshift.io,resources=clusteroperators,verbs=get;list;watch
@@ -57,14 +63,13 @@ func (r *BMOUtils) ConvergedFlowAvailable() bool {
 	return available
 }
 
-// TODO: replace this with public function in BMO https://github.com/openshift/cluster-baremetal-operator/pull/261
 func (r *BMOUtils) GetIronicServiceURL() (string, error) {
 	provisioningInfo, err := r.readProvisioningCR()
 	if err != nil {
 		r.log.WithError(err).Error("unable to get provisioning CR")
 		return "", err
 	}
-	ironicIP, err := r.getIronicIP(*provisioningInfo)
+	ironicIP, _, err := getIronicIP(r.kubeClient, provisioningInfo.Namespace, &provisioningInfo.Spec, r.osClient)
 	if err != nil || ironicIP == "" {
 		r.log.WithError(err).Error("unable to determine Ironic's IP")
 		return "", err
@@ -84,15 +89,6 @@ func (r *BMOUtils) readProvisioningCR() (*metal3iov1alpha1.Provisioning, error) 
 	return instance, nil
 }
 
-func (r *BMOUtils) getIronicIP(info metal3iov1alpha1.Provisioning) (string, error) {
-	// this is how BMO get the IronicIP
-	config := info.Spec
-	if config.ProvisioningNetwork != metal3iov1alpha1.ProvisioningNetworkDisabled && !config.VirtualMediaViaExternalNetwork {
-		return config.ProvisioningIP, nil
-	}
-	return r.getPodHostIP(info.Namespace)
-}
-
 func getUrlFromIP(ipAddr string) string {
 	if network.IsIPv6Addr(ipAddr) {
 		return "https://" + fmt.Sprintf("[%s]", ipAddr)
@@ -104,7 +100,58 @@ func getUrlFromIP(ipAddr string) string {
 	}
 }
 
-func (r *BMOUtils) getPodHostIP(targetNamespace string) (string, error) {
+// TODO: replace this and following functions with GetIronicIP in BMO:
+// https://github.com/openshift/cluster-baremetal-operator/blob/01f7f551e4d26e93bf9efe5c599859242820633e/provisioning/utils.go#L86
+func getIronicIP(client kubernetes.Interface, targetNamespace string, config *metal3iov1alpha1.ProvisioningSpec, osclient osclientset.Interface) (ironicIP string, inspectorIP string, err error) {
+	if config.ProvisioningNetwork != metal3iov1alpha1.ProvisioningNetworkDisabled && !config.VirtualMediaViaExternalNetwork {
+		inspectorIP = config.ProvisioningIP
+	} else {
+		inspectorIP, err = getPodHostIP(client.CoreV1(), targetNamespace)
+		if err != nil {
+			return
+		}
+	}
+
+	if useIronicProxy(config) {
+		ironicIP, err = getServerInternalIP(osclient)
+		if ironicIP == "" {
+			ironicIP = inspectorIP
+		}
+	} else {
+		ironicIP = inspectorIP
+	}
+
+	return
+}
+
+func useIronicProxy(config *metal3iov1alpha1.ProvisioningSpec) bool {
+	return config.ProvisioningNetwork == metal3iov1alpha1.ProvisioningNetworkDisabled || config.VirtualMediaViaExternalNetwork
+}
+
+func getServerInternalIP(osclient osclientset.Interface) (string, error) {
+	infra, err := osclient.ConfigV1().Infrastructures().Get(context.Background(), "cluster", metav1.GetOptions{})
+	if err != nil {
+		err = fmt.Errorf("Cannot get the 'cluster' object from infrastructure API: %w", err)
+		return "", err
+	}
+	switch infra.Status.PlatformStatus.Type {
+	case osconfigv1.BareMetalPlatformType:
+		return infra.Status.PlatformStatus.BareMetal.APIServerInternalIP, nil
+	case osconfigv1.OpenStackPlatformType:
+		return infra.Status.PlatformStatus.OpenStack.APIServerInternalIP, nil
+	case osconfigv1.VSpherePlatformType:
+		return infra.Status.PlatformStatus.VSphere.APIServerInternalIP, nil
+	case osconfigv1.AWSPlatformType:
+		return "", nil
+	case osconfigv1.NonePlatformType:
+		return "", nil
+	default:
+		err = fmt.Errorf("Cannot detect server API VIP: Attribute not supported on platform: %v", infra.Status.PlatformStatus.Type)
+		return "", err
+	}
+}
+
+func getPodHostIP(podClient coreclientv1.PodsGetter, targetNamespace string) (string, error) {
 	metal3AppName := "metal3"
 	stateService := "metal3-state"
 	cboLabelName := "baremetal.openshift.io/cluster-baremetal-operator"
@@ -120,23 +167,34 @@ func (r *BMOUtils) getPodHostIP(targetNamespace string) (string, error) {
 		return "", err
 	}
 
-	listOptions := client.ListOptions{LabelSelector: selector,
-		Namespace: targetNamespace,
+	listOptions := metav1.ListOptions{
+		LabelSelector: selector.String(),
 	}
-	podList := &corev1.PodList{}
-	err = r.c.List(context.Background(), podList, &listOptions)
+
+	podList, err := podClient.Pods(targetNamespace).List(context.Background(), listOptions)
 	if err != nil {
 		return "", err
 	}
+
+	// On fail-over, two copies of the pod will be present: the old
+	// Terminating one and the new Running one. Ignore terminating pods.
+	var pods []corev1.Pod
+	for _, pod := range podList.Items {
+		if pod.DeletionTimestamp == nil {
+			pods = append(pods, pod)
+		}
+	}
+
 	var hostIP string
-	switch len(podList.Items) {
+	switch len(pods) {
 	case 0:
-		err = fmt.Errorf("failed to find a pod with the given label")
+		// Ironic IP not available yet, just return an empty string
 	case 1:
-		hostIP = podList.Items[0].Status.HostIP
+		hostIP = pods[0].Status.HostIP
 	default:
 		// We expect only one pod with the above LabelSelector
-		err = fmt.Errorf("there should be only one pod listed for the given label")
+		err = fmt.Errorf("there should be only one running pod listed for the given label")
 	}
+
 	return hostIP, err
 }

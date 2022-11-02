@@ -66,6 +66,7 @@ import (
 	"github.com/openshift/assisted-service/pkg/staticnetworkconfig"
 	"github.com/openshift/assisted-service/pkg/thread"
 	"github.com/openshift/assisted-service/restapi"
+	osclientset "github.com/openshift/client-go/config/clientset/versioned"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/sirupsen/logrus"
 	"go.elastic.co/apm/module/apmhttp"
@@ -511,7 +512,12 @@ func main() {
 
 	go func() {
 		if Options.EnableKubeAPI {
+			clientConfig := ctrl.GetConfigOrDie()
+			osClient := osclientset.NewForConfigOrDie(clientConfig)
+			kubeClient := kubernetes.NewForConfigOrDie(clientConfig)
 			bmoUtils := controllers.NewBMOUtils(ctrlMgr.GetAPIReader(),
+				osClient,
+				kubeClient,
 				log.WithField("pkg", "baremetal_operator_utils"),
 				Options.EnableKubeAPI)
 			useConvergedFlow := Options.AllowConvergedFlow && bmoUtils.ConvergedFlowAvailable()
