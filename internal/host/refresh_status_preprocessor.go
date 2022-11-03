@@ -277,10 +277,6 @@ func newValidations(v *validator) []validation {
 			id:        NoSkipMissingDisk,
 			condition: v.noSkipMissingDisk,
 		},
-		{
-			id:        HostValidationIDServiceHasSufficientSpokeKubeAPIAccess,
-			condition: v.serviceCanConnectToSpokeKubeAPI,
-		},
 	}
 }
 

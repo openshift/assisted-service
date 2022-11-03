@@ -7478,8 +7478,7 @@ func init() {
         "vsphere-disk-uuid-enabled",
         "compatible-agent",
         "no-skip-installation-disk",
-        "no-skip-missing-disk",
-        "service-has-sufficient-spoke-kube-api-access"
+        "no-skip-missing-disk"
       ]
     },
     "host_network": {
@@ -17027,8 +17026,7 @@ func init() {
         "vsphere-disk-uuid-enabled",
         "compatible-agent",
         "no-skip-installation-disk",
-        "no-skip-missing-disk",
-        "service-has-sufficient-spoke-kube-api-access"
+        "no-skip-missing-disk"
       ]
     },
     "host_network": {

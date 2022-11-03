@@ -6139,7 +6139,6 @@ var allValidationIDs []validationID = []validationID{
 	CompatibleAgent,
 	NoSkipInstallationDisk,
 	NoSkipMissingDisk,
-	HostValidationIDServiceHasSufficientSpokeKubeAPIAccess,
 }
 
 var allConditions []conditionId = []conditionId{
