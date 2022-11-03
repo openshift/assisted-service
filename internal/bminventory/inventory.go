@@ -290,8 +290,17 @@ func (b *bareMetalInventory) updatePullSecret(pullSecret string, log logrus.Fiel
 	return pullSecret, nil
 }
 
-func (b *bareMetalInventory) setDefaultRegisterClusterParams(ctx context.Context, params installer.V2RegisterClusterParams) (installer.V2RegisterClusterParams, error) {
+func (b *bareMetalInventory) setDefaultRegisterClusterParams(ctx context.Context, params installer.V2RegisterClusterParams, id strfmt.UUID) (installer.V2RegisterClusterParams, error) {
 	log := logutil.FromContext(ctx, b.log)
+
+	if params.NewClusterParams.APIVip != "" && len(params.NewClusterParams.APIVips) == 0 {
+		params.NewClusterParams.APIVips = []*models.APIVip{{IP: models.IP(params.NewClusterParams.APIVip), ClusterID: id}}
+	}
+
+	if params.NewClusterParams.IngressVip != "" && len(params.NewClusterParams.IngressVip) == 0 {
+		params.NewClusterParams.IngressVips = []*models.IngressVip{{IP: models.IP(params.NewClusterParams.IngressVip), ClusterID: id}}
+	}
+
 	if params.NewClusterParams.ClusterNetworks == nil {
 		params.NewClusterParams.ClusterNetworks = []*models.ClusterNetwork{
 			{Cidr: models.Subnet(b.Config.DefaultClusterNetworkCidr), HostPrefix: b.Config.DefaultClusterNetworkHostPrefix},
@@ -448,14 +457,15 @@ func (b *bareMetalInventory) RegisterClusterInternal(
 		}
 	}()
 
-	if err = validations.ValidateIPAddresses(b.IPv6Support, params.NewClusterParams); err != nil {
+	if err = validations.ValidateClusterCreateIPAddresses(b.IPv6Support, id, params.NewClusterParams); err != nil {
+		b.log.WithError(err).Error("Cannot register cluster. Failed VIP validations")
 		return nil, common.NewApiError(http.StatusBadRequest, err)
 	}
 	if err = validations.ValidateDualStackNetworks(params.NewClusterParams, false); err != nil {
 		return nil, common.NewApiError(http.StatusBadRequest, err)
 	}
 
-	params, err = b.setDefaultRegisterClusterParams(ctx, params)
+	params, err = b.setDefaultRegisterClusterParams(ctx, params, id)
 	if err != nil {
 		return nil, err
 	}
@@ -524,8 +534,10 @@ func (b *bareMetalInventory) RegisterClusterInternal(
 			Href:                         swag.String(url.String()),
 			Kind:                         swag.String(models.ClusterKindCluster),
 			APIVip:                       params.NewClusterParams.APIVip,
+			APIVips:                      params.NewClusterParams.APIVips,
 			BaseDNSDomain:                params.NewClusterParams.BaseDNSDomain,
 			IngressVip:                   params.NewClusterParams.IngressVip,
+			IngressVips:                  params.NewClusterParams.IngressVips,
 			Name:                         swag.StringValue(params.NewClusterParams.Name),
 			OpenshiftVersion:             *releaseImage.Version,
 			OcpReleaseImage:              *releaseImage.URL,
@@ -1663,8 +1675,7 @@ func (b *bareMetalInventory) v2NoneHaModeClusterUpdateValidations(cluster *commo
 	return nil
 }
 
-func (b *bareMetalInventory) validateAndUpdateClusterParams(ctx context.Context, params *installer.V2UpdateClusterParams) (installer.V2UpdateClusterParams, error) {
-
+func (b *bareMetalInventory) validateAndUpdateClusterParams(ctx context.Context, cluster *common.Cluster, params *installer.V2UpdateClusterParams) (installer.V2UpdateClusterParams, error) {
 	log := logutil.FromContext(ctx, b.log)
 
 	if swag.StringValue(params.ClusterUpdateParams.PullSecret) != "" {
@@ -1685,8 +1696,10 @@ func (b *bareMetalInventory) validateAndUpdateClusterParams(ctx context.Context,
 		}
 	}
 
-	if err := validations.ValidateIPAddresses(b.IPv6Support, params.ClusterUpdateParams); err != nil {
-		return installer.V2UpdateClusterParams{}, common.NewApiError(http.StatusBadRequest, err)
+	if err := validations.ValidateClusterUpdateVIPAddresses(b.IPv6Support, cluster, params.ClusterUpdateParams); err != nil {
+		b.log.WithError(err).Errorf("Cluster %s failed VIP validations", params.ClusterID)
+		return installer.V2UpdateClusterParams{}, err
+
 	}
 
 	if sshPublicKey := swag.StringValue(params.ClusterUpdateParams.SSHPublicKey); sshPublicKey != "" {
@@ -1722,10 +1735,6 @@ func (b *bareMetalInventory) v2UpdateClusterInternal(ctx context.Context, params
 	var err error
 	log.Infof("update cluster %s with params: %+v", params.ClusterID, params.ClusterUpdateParams)
 
-	if params, err = b.validateAndUpdateClusterParams(ctx, &params); err != nil {
-		return nil, common.NewApiError(http.StatusBadRequest, err)
-	}
-
 	txSuccess := false
 	tx := b.db.Begin()
 	defer func() {
@@ -1752,6 +1761,9 @@ func (b *bareMetalInventory) v2UpdateClusterInternal(ctx context.Context, params
 		return nil, common.NewApiError(http.StatusNotFound, err)
 	}
 
+	if params, err = b.validateAndUpdateClusterParams(ctx, cluster, &params); err != nil {
+		return nil, common.NewApiError(http.StatusBadRequest, err)
+	}
 	alreadyDualStack := network.CheckIfClusterIsDualStack(cluster)
 	if err = validations.ValidateDualStackNetworks(params.ClusterUpdateParams, alreadyDualStack); err != nil {
 		return nil, common.NewApiError(http.StatusBadRequest, err)
@@ -1868,9 +1880,6 @@ func (b *bareMetalInventory) integrateWithAMSClusterUpdateName(ctx context.Conte
 }
 
 func (b *bareMetalInventory) updateNonDhcpNetworkParams(updates map[string]interface{}, cluster *common.Cluster, params installer.V2UpdateClusterParams, log logrus.FieldLogger, interactivity Interactivity) error {
-	apiVip := cluster.APIVip
-	ingressVip := cluster.IngressVip
-
 	// In order to check if the cluster is dual-stack or single-stack we are building a structure
 	// that is a merge of the current cluster configuration and new configuration coming from
 	// V2UpdateClusterParams. This ensures that the reqDualStack flag reflects a desired state and
@@ -1881,6 +1890,9 @@ func (b *bareMetalInventory) updateNonDhcpNetworkParams(updates map[string]inter
 	targetConfiguration.ClusterNetworks = cluster.ClusterNetworks
 	targetConfiguration.ServiceNetworks = cluster.ServiceNetworks
 	targetConfiguration.MachineNetworks = cluster.MachineNetworks
+	targetConfiguration.APIVips = cluster.APIVips
+	targetConfiguration.IngressVips = cluster.IngressVips
+
 	if params.ClusterUpdateParams.ClusterNetworks != nil {
 		targetConfiguration.ClusterNetworks = params.ClusterUpdateParams.ClusterNetworks
 	}
@@ -1894,11 +1906,15 @@ func (b *bareMetalInventory) updateNonDhcpNetworkParams(updates map[string]inter
 
 	if params.ClusterUpdateParams.APIVip != nil {
 		updates["api_vip"] = *params.ClusterUpdateParams.APIVip
-		apiVip = *params.ClusterUpdateParams.APIVip
+	}
+	if params.ClusterUpdateParams.APIVips != nil {
+		targetConfiguration.APIVips = params.ClusterUpdateParams.APIVips
 	}
 	if params.ClusterUpdateParams.IngressVip != nil {
 		updates["ingress_vip"] = *params.ClusterUpdateParams.IngressVip
-		ingressVip = *params.ClusterUpdateParams.IngressVip
+	}
+	if params.ClusterUpdateParams.IngressVips != nil {
+		targetConfiguration.IngressVips = params.ClusterUpdateParams.IngressVips
 	}
 	if params.ClusterUpdateParams.MachineNetworks != nil &&
 		common.IsSliceNonEmpty(params.ClusterUpdateParams.MachineNetworks) &&
@@ -1908,24 +1924,26 @@ func (b *bareMetalInventory) updateNonDhcpNetworkParams(updates map[string]inter
 		return common.NewApiError(http.StatusBadRequest, err)
 	}
 	var err error
-	err = verifyParsableVIPs(apiVip, ingressVip)
+	err = validations.VerifyParsableVIPs(targetConfiguration.APIVips, targetConfiguration.IngressVips)
 	if err != nil {
 		log.WithError(err).Errorf("Failed validating VIPs of cluster id=%s", params.ClusterID)
 		return err
 	}
 
-	err = network.VerifyDifferentVipAddresses(apiVip, ingressVip)
+	err = network.ValidateNoVIPAddressesDuplicates(targetConfiguration.APIVips, targetConfiguration.IngressVips)
 	if err != nil {
 		log.WithError(err).Errorf("VIP verification failed for cluster: %s", params.ClusterID)
 		return common.NewApiError(http.StatusBadRequest, err)
 	}
-	if interactivity == Interactive && (params.ClusterUpdateParams.APIVip != nil || params.ClusterUpdateParams.IngressVip != nil) {
+	if interactivity == Interactive && (params.ClusterUpdateParams.APIVips != nil || params.ClusterUpdateParams.IngressVips != nil) {
 		var primaryMachineNetworkCidr string
-		matchRequired := apiVip != "" || ingressVip != ""
+		var secondaryMachineNetworkCidr string
+
+		matchRequired := network.GetApiVipById(&targetConfiguration, 0) != "" || network.GetIngressVipById(&targetConfiguration, 0) != ""
 
 		// We want to calculate Machine Network based on the API/Ingress VIPs only in case of the
-		// single-stack cluster. Autocalculation is not supported for dual-stack in which we
-		// require that user explictly provides all the Machine Networks.
+		// single-stack cluster. Auto calculation is not supported for dual-stack in which we
+		// require that user explicitly provides all the Machine Networks.
 		if reqDualStack {
 			if params.ClusterUpdateParams.MachineNetworks != nil {
 				cluster.MachineNetworks = params.ClusterUpdateParams.MachineNetworks
@@ -1939,8 +1957,25 @@ func (b *bareMetalInventory) updateNonDhcpNetworkParams(updates map[string]inter
 				log.WithError(err).Warnf("Verify dual-stack machine networks")
 				return common.NewApiError(http.StatusBadRequest, err)
 			}
+			secondaryMachineNetworkCidr, err = network.GetSecondaryMachineCidr(cluster)
+			if err != nil {
+				return common.NewApiError(http.StatusBadRequest, err)
+			}
+
+			if err = network.VerifyVips(cluster.Hosts, primaryMachineNetworkCidr, network.GetApiVipById(&targetConfiguration, 0), network.GetIngressVipById(&targetConfiguration, 0), false, log); err != nil {
+				log.WithError(err).Warnf("Verify VIPs")
+				return common.NewApiError(http.StatusBadRequest, err)
+			}
+
+			if len(targetConfiguration.IngressVips) == 2 && len(targetConfiguration.APIVips) == 2 { // in case there's a second set of VIPs
+				if err = network.VerifyVips(cluster.Hosts, secondaryMachineNetworkCidr, network.GetApiVipById(&targetConfiguration, 1), network.GetIngressVipById(&targetConfiguration, 1), false, log); err != nil {
+					log.WithError(err).Warnf("Verify VIPs")
+					return common.NewApiError(http.StatusBadRequest, err)
+				}
+			}
+
 		} else {
-			primaryMachineNetworkCidr, err = network.CalculateMachineNetworkCIDR(apiVip, ingressVip, cluster.Hosts, matchRequired)
+			primaryMachineNetworkCidr, err = network.CalculateMachineNetworkCIDR(network.GetApiVipById(&targetConfiguration, 0), network.GetIngressVipById(&targetConfiguration, 0), cluster.Hosts, matchRequired)
 			if err != nil {
 				return common.NewApiError(http.StatusBadRequest, errors.Wrap(err, "Calculate machine network CIDR"))
 			}
@@ -1953,37 +1988,19 @@ func (b *bareMetalInventory) updateNonDhcpNetworkParams(updates map[string]inter
 				// the assignment below.
 				params.ClusterUpdateParams.MachineNetworks = []*models.MachineNetwork{{Cidr: models.Subnet(primaryMachineNetworkCidr)}}
 			}
-		}
-
-		err = network.VerifyVips(cluster.Hosts, primaryMachineNetworkCidr, apiVip, ingressVip, false, log)
-		if err != nil {
-			log.WithError(err).Warnf("Verify VIPs")
-			return common.NewApiError(http.StatusBadRequest, err)
+			if err = network.VerifyVips(cluster.Hosts, primaryMachineNetworkCidr, network.GetApiVipById(&targetConfiguration, 0), network.GetIngressVipById(&targetConfiguration, 0), false, log); err != nil {
+				log.WithError(err).Warnf("Verify VIPs")
+				return common.NewApiError(http.StatusBadRequest, err)
+			}
 		}
 	}
 
 	return nil
 }
 
-func verifyParsableVIPs(apiVip string, ingressVip string) error {
-	if apiVip != "" && net.ParseIP(apiVip) == nil {
-		return common.NewApiError(http.StatusBadRequest, errors.Errorf("Could not parse VIP ip %s", apiVip))
-	}
-	if ingressVip != "" && net.ParseIP(ingressVip) == nil {
-		return common.NewApiError(http.StatusBadRequest, errors.Errorf("Could not parse VIP ip %s", ingressVip))
-	}
-	return nil
-}
-
-func (b *bareMetalInventory) updateDhcpNetworkParams(updates map[string]interface{}, params installer.V2UpdateClusterParams, primaryMachineCIDR string, log logrus.FieldLogger) error {
-	if params.ClusterUpdateParams.APIVip != nil {
-		err := errors.New("Setting API VIP is forbidden when cluster is in vip-dhcp-allocation mode")
-		log.WithError(err).Warnf("Set API VIP")
-		return common.NewApiError(http.StatusBadRequest, err)
-	}
-	if params.ClusterUpdateParams.IngressVip != nil {
-		err := errors.New("Setting Ingress VIP is forbidden when cluster is in vip-dhcp-allocation mode")
-		log.WithError(err).Warnf("Set Ingress VIP")
+func (b *bareMetalInventory) updateDhcpNetworkParams(updates map[string]interface{}, params installer.V2UpdateClusterParams, primaryMachineCIDR string) error {
+	if err := validations.ValidateVIPsWereNotSetDhcpMode(swag.StringValue(params.ClusterUpdateParams.APIVip), swag.StringValue(params.ClusterUpdateParams.IngressVip),
+		params.ClusterUpdateParams.APIVips, params.ClusterUpdateParams.IngressVips); err != nil {
 		return common.NewApiError(http.StatusBadRequest, err)
 	}
 	// VIPs are always allocated from the first provided machine network. We want to trigger
@@ -2105,6 +2122,83 @@ func (b *bareMetalInventory) updateClusterData(_ context.Context, cluster *commo
 		err = db.Model(&common.Cluster{}).Where("id = ?", cluster.ID.String()).Updates(updates).Error
 		if err != nil {
 			return common.NewApiError(http.StatusInternalServerError, errors.Wrapf(err, "failed to update cluster: %s", params.ClusterID))
+		}
+	}
+
+	return nil
+}
+
+func wereClusterVipsUpdated(clusterVips []string, paramsVips []string) bool {
+	if len(clusterVips) != len(paramsVips) {
+		return true
+	}
+	for i := range clusterVips {
+		if clusterVips[i] != paramsVips[i] {
+			return true
+		}
+	}
+	return false
+}
+
+func (b *bareMetalInventory) updateVips(db *gorm.DB, params installer.V2UpdateClusterParams, cluster *common.Cluster) error {
+	var apiVipUpdated bool
+	var ingressVipUpdated bool
+
+	paramVips := common.Cluster{
+		Cluster: models.Cluster{
+			APIVips:     params.ClusterUpdateParams.APIVips,
+			IngressVips: params.ClusterUpdateParams.IngressVips,
+		},
+	}
+
+	if params.ClusterUpdateParams.APIVips != nil && len(params.ClusterUpdateParams.APIVips) > 0 {
+		if wereClusterVipsUpdated(network.GetApiVips(cluster), network.GetApiVips(&paramVips)) {
+			apiVipUpdated = true
+			cluster.APIVips = params.ClusterUpdateParams.APIVips
+		}
+	}
+	if params.ClusterUpdateParams.IngressVips != nil && len(params.ClusterUpdateParams.IngressVips) > 0 {
+		if wereClusterVipsUpdated(network.GetIngressVips(cluster), network.GetIngressVips(&paramVips)) {
+			ingressVipUpdated = true
+			cluster.IngressVips = params.ClusterUpdateParams.IngressVips
+		}
+	}
+
+	if apiVipUpdated || ingressVipUpdated {
+		return b.updateVipsTables(db, cluster, apiVipUpdated, ingressVipUpdated)
+	}
+
+	return nil
+}
+
+func (b *bareMetalInventory) updateVipsTables(db *gorm.DB, cluster *common.Cluster, apiVipUpdated bool, ingressVipUpdated bool) error {
+	var err error
+
+	if apiVipUpdated {
+		if err = db.Where("cluster_id = ?", *cluster.ID).Delete(&models.APIVip{}).Error; err != nil {
+			err = errors.Wrapf(err, "failed to delete api vips of cluster %s", *cluster.ID)
+			return common.NewApiError(http.StatusInternalServerError, err)
+		}
+		for _, apiVip := range cluster.APIVips {
+			apiVip.ClusterID = *cluster.ID
+			if err = db.Save(apiVip).Error; err != nil {
+				err = errors.Wrapf(err, "failed to update cluster apiVip %v of cluster %s", *apiVip, *cluster.ID)
+				return common.NewApiError(http.StatusInternalServerError, err)
+			}
+		}
+	}
+
+	if ingressVipUpdated {
+		if err = db.Where("cluster_id = ?", *cluster.ID).Delete(&models.IngressVip{}).Error; err != nil {
+			err = errors.Wrapf(err, "failed to delete ingress vips of cluster %s", *cluster.ID)
+			return common.NewApiError(http.StatusInternalServerError, err)
+		}
+		for _, ingressVip := range cluster.IngressVips {
+			ingressVip.ClusterID = *cluster.ID
+			if err = db.Save(ingressVip).Error; err != nil {
+				err = errors.Wrapf(err, "failed to update cluster ingressVip %v of cluster %s", *ingressVip, *cluster.ID)
+				return common.NewApiError(http.StatusInternalServerError, err)
+			}
 		}
 	}
 
@@ -2316,7 +2410,7 @@ func (b *bareMetalInventory) updateNetworkParams(params installer.V2UpdateCluste
 			if network.IsMachineCidrAvailable(cluster) {
 				primaryMachineCIDR = network.GetMachineCidrById(cluster, 0)
 			}
-			err = b.updateDhcpNetworkParams(updates, params, primaryMachineCIDR, log)
+			err = b.updateDhcpNetworkParams(updates, params, primaryMachineCIDR)
 		} else {
 			// The primary Machine CIDR can be calculated on not none-platform machines
 			// (the machines are on the same network)
@@ -2328,6 +2422,9 @@ func (b *bareMetalInventory) updateNetworkParams(params installer.V2UpdateCluste
 	}
 
 	if err = b.updateNetworks(db, params, updates, cluster, userManagedNetworking, vipDhcpAllocation); err != nil {
+		return err
+	}
+	if err = b.updateVips(db, params, cluster); err != nil {
 		return err
 	}
 
@@ -2368,18 +2465,7 @@ func (b *bareMetalInventory) updateNtpSources(params installer.V2UpdateClusterPa
 }
 
 func validateUserManagedNetworkConflicts(params *models.V2ClusterUpdateParams, singleNodeCluster bool, log logrus.FieldLogger) error {
-	if params.VipDhcpAllocation != nil && swag.BoolValue(params.VipDhcpAllocation) {
-		err := errors.Errorf("VIP DHCP Allocation cannot be enabled with User Managed Networking")
-		log.WithError(err)
-		return common.NewApiError(http.StatusBadRequest, err)
-	}
-	if params.IngressVip != nil {
-		err := errors.Errorf("Ingress VIP cannot be set with User Managed Networking")
-		log.WithError(err)
-		return common.NewApiError(http.StatusBadRequest, err)
-	}
-	if params.APIVip != nil {
-		err := errors.Errorf("API VIP cannot be set with User Managed Networking")
+	if err := validations.ValidateVIPsWereNotSetUserManagedNetworking(swag.StringValue(params.APIVip), swag.StringValue(params.IngressVip), params.APIVips, params.IngressVips, swag.BoolValue(params.VipDhcpAllocation)); err != nil {
 		log.WithError(err)
 		return common.NewApiError(http.StatusBadRequest, err)
 	}

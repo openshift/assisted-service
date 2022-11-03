@@ -1445,10 +1445,12 @@ var _ = Describe("cluster install", func() {
 		It("MachineNetworkCIDR successful allocating", func() {
 			clusterID := *cluster.ID
 			apiVip := "1.2.3.8"
+			ingressVip := "1.2.3.100"
 			_ = registerNode(ctx, *infraEnvID, "test-host", defaultCIDRv4)
 			c, err := userBMClient.Installer.V2UpdateCluster(ctx, &installer.V2UpdateClusterParams{
 				ClusterUpdateParams: &models.V2ClusterUpdateParams{
 					APIVip:            &apiVip,
+					IngressVip:        &ingressVip,
 					VipDhcpAllocation: swag.Bool(false),
 				},
 				ClusterID: clusterID,
@@ -1462,10 +1464,12 @@ var _ = Describe("cluster install", func() {
 		It("MachineNetworkCIDR successful deallocating ", func() {
 			clusterID := *cluster.ID
 			apiVip := "1.2.3.8"
+			ingressVip := "1.2.3.100"
 			host := registerNode(ctx, *infraEnvID, "test-host", defaultCIDRv4)
 			c, err := userBMClient.Installer.V2UpdateCluster(ctx, &installer.V2UpdateClusterParams{
 				ClusterUpdateParams: &models.V2ClusterUpdateParams{
 					APIVip:            &apiVip,
+					IngressVip:        &ingressVip,
 					VipDhcpAllocation: swag.Bool(false),
 				},
 				ClusterID: clusterID,
@@ -3598,6 +3602,742 @@ var _ = Describe("Preflight Cluster Requirements", func() {
 			}
 		}
 	})
+})
+
+var _ = Describe("Multiple-VIPs Support", func() {
+	var (
+		ctx          = context.Background()
+		cluster      *common.Cluster
+		infraEnvID   *strfmt.UUID
+		apiVip       = "1.2.3.8"
+		ingressVip   = "1.2.3.9"
+		apiVipv6     = "1003:db8::1"
+		ingressVipv6 = "1003:db8::2"
+		clusterCIDR  = "10.128.0.0/14"
+		serviceCIDR  = "172.30.0.0/16"
+	)
+
+	AfterEach(func() {
+		deregisterResources()
+		clearDB()
+	})
+
+	setClusterIdForApiVips := func(apiVips []*models.APIVip, clusterID *strfmt.UUID) {
+		for i := range apiVips {
+			apiVips[i].ClusterID = *clusterID
+		}
+	}
+	setClusterIdForIngressVips := func(ingressVips []*models.IngressVip, clusterID *strfmt.UUID) {
+		for i := range ingressVips {
+			ingressVips[i].ClusterID = *clusterID
+		}
+	}
+
+	Context("V2RegisterCluster", func() {
+
+		Context("API and Ingress VIPs Backwards Compatibility", func() {
+
+			It("API VIP and Ingress VIP populated in APIVips and IngressVips", func() {
+				reply, err := userBMClient.Installer.V2RegisterCluster(ctx, &installer.V2RegisterClusterParams{
+					NewClusterParams: &models.ClusterCreateParams{
+						BaseDNSDomain:    "example.com",
+						ClusterNetworks:  []*models.ClusterNetwork{{Cidr: models.Subnet(clusterCIDR), HostPrefix: 23}},
+						ServiceNetworks:  []*models.ServiceNetwork{{Cidr: models.Subnet(serviceCIDR)}},
+						Name:             swag.String("test-cluster"),
+						OpenshiftVersion: swag.String(openshiftVersion),
+						PullSecret:       swag.String(pullSecret),
+						SSHPublicKey:     sshPublicKey,
+						APIVip:           apiVip,
+						IngressVip:       ingressVip,
+					},
+				})
+				Expect(err).NotTo(HaveOccurred())
+				Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2RegisterClusterCreated()))
+
+				cluster = &common.Cluster{Cluster: *reply.Payload}
+
+				Expect(cluster.APIVip).To(Equal(apiVip))
+				Expect(network.GetApiVipById(cluster, 0)).To(Equal(apiVip))
+				Expect(cluster.IngressVip).To(Equal(ingressVip))
+				Expect(network.GetIngressVipById(cluster, 0)).To(Equal(ingressVip))
+			})
+
+			It("API VIP match APIVips first element", func() {
+				apiVips := []*models.APIVip{{IP: models.IP(apiVip)}}
+
+				reply, err := userBMClient.Installer.V2RegisterCluster(ctx, &installer.V2RegisterClusterParams{
+					NewClusterParams: &models.ClusterCreateParams{
+						BaseDNSDomain:    "example.com",
+						ClusterNetworks:  []*models.ClusterNetwork{{Cidr: models.Subnet(clusterCIDR), HostPrefix: 23}},
+						ServiceNetworks:  []*models.ServiceNetwork{{Cidr: models.Subnet(serviceCIDR)}},
+						Name:             swag.String("test-cluster"),
+						OpenshiftVersion: swag.String(openshiftVersion),
+						PullSecret:       swag.String(pullSecret),
+						SSHPublicKey:     sshPublicKey,
+						APIVip:           apiVip,
+						APIVips:          apiVips,
+						IngressVip:       ingressVip,
+					},
+				})
+				Expect(err).NotTo(HaveOccurred())
+				Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2RegisterClusterCreated()))
+
+				cluster = &common.Cluster{Cluster: *reply.Payload}
+				setClusterIdForApiVips(apiVips, cluster.ID)
+
+				Expect(cluster.APIVip).To(Equal(apiVip))
+				Expect(cluster.APIVips).To(Equal(apiVips))
+				Expect(cluster.IngressVip).To(Equal(ingressVip))
+				Expect(network.GetIngressVipById(cluster, 0)).To(Equal(ingressVip))
+			})
+
+			It("Ingress VIP match IngressVips first element", func() {
+				ingressVips := []*models.IngressVip{{IP: models.IP(ingressVip)}}
+
+				reply, err := userBMClient.Installer.V2RegisterCluster(ctx, &installer.V2RegisterClusterParams{
+					NewClusterParams: &models.ClusterCreateParams{
+						BaseDNSDomain:    "example.com",
+						ClusterNetworks:  []*models.ClusterNetwork{{Cidr: models.Subnet(clusterCIDR), HostPrefix: 23}},
+						ServiceNetworks:  []*models.ServiceNetwork{{Cidr: models.Subnet(serviceCIDR)}},
+						Name:             swag.String("test-cluster"),
+						OpenshiftVersion: swag.String(openshiftVersion),
+						PullSecret:       swag.String(pullSecret),
+						SSHPublicKey:     sshPublicKey,
+						APIVip:           apiVip,
+						IngressVip:       ingressVip,
+						IngressVips:      ingressVips,
+					},
+				})
+				Expect(err).NotTo(HaveOccurred())
+				Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2RegisterClusterCreated()))
+
+				cluster = &common.Cluster{Cluster: *reply.Payload}
+				setClusterIdForIngressVips(ingressVips, cluster.ID)
+
+				Expect(cluster.APIVip).To(Equal(apiVip))
+				Expect(cluster.IngressVip).To(Equal(ingressVip))
+				Expect(cluster.IngressVips).To(Equal(ingressVips))
+			})
+
+			It("API VIP not matching APIVips first element", func() {
+				apiVips := []*models.APIVip{{IP: models.IP("1.2.3.18")}}
+
+				_, err := userBMClient.Installer.V2RegisterCluster(ctx, &installer.V2RegisterClusterParams{
+					NewClusterParams: &models.ClusterCreateParams{
+						BaseDNSDomain:    "example.com",
+						ClusterNetworks:  []*models.ClusterNetwork{{Cidr: models.Subnet(clusterCIDR), HostPrefix: 23}},
+						ServiceNetworks:  []*models.ServiceNetwork{{Cidr: models.Subnet(serviceCIDR)}},
+						Name:             swag.String("test-cluster"),
+						OpenshiftVersion: swag.String(openshiftVersion),
+						PullSecret:       swag.String(pullSecret),
+						SSHPublicKey:     sshPublicKey,
+						APIVip:           apiVip,
+						APIVips:          apiVips,
+						IngressVip:       ingressVip,
+					},
+				})
+				Expect(err).To(BeAssignableToTypeOf(installer.NewV2RegisterClusterBadRequest()))
+			})
+
+			It("Ingress VIP not matching IngressVips first element", func() {
+				ingressVips := []*models.IngressVip{{IP: models.IP("1.2.3.18")}}
+
+				_, err := userBMClient.Installer.V2RegisterCluster(ctx, &installer.V2RegisterClusterParams{
+					NewClusterParams: &models.ClusterCreateParams{
+						BaseDNSDomain:    "example.com",
+						ClusterNetworks:  []*models.ClusterNetwork{{Cidr: models.Subnet(clusterCIDR), HostPrefix: 23}},
+						ServiceNetworks:  []*models.ServiceNetwork{{Cidr: models.Subnet(serviceCIDR)}},
+						Name:             swag.String("test-cluster"),
+						OpenshiftVersion: swag.String(openshiftVersion),
+						PullSecret:       swag.String(pullSecret),
+						SSHPublicKey:     sshPublicKey,
+						APIVip:           apiVip,
+						IngressVip:       ingressVip,
+						IngressVips:      ingressVips,
+					},
+				})
+				Expect(err).To(BeAssignableToTypeOf(installer.NewV2RegisterClusterBadRequest()))
+			})
+
+			It("Reject APIVips if no APIVip was provided", func() {
+				apiVips := []*models.APIVip{{IP: models.IP("1.2.3.18")}}
+
+				_, err := userBMClient.Installer.V2RegisterCluster(ctx, &installer.V2RegisterClusterParams{
+					NewClusterParams: &models.ClusterCreateParams{
+						BaseDNSDomain:    "example.com",
+						ClusterNetworks:  []*models.ClusterNetwork{{Cidr: models.Subnet(clusterCIDR), HostPrefix: 23}},
+						ServiceNetworks:  []*models.ServiceNetwork{{Cidr: models.Subnet(serviceCIDR)}},
+						Name:             swag.String("test-cluster"),
+						OpenshiftVersion: swag.String(openshiftVersion),
+						PullSecret:       swag.String(pullSecret),
+						SSHPublicKey:     sshPublicKey,
+						APIVips:          apiVips,
+						IngressVip:       ingressVip,
+					},
+				})
+				Expect(err).To(BeAssignableToTypeOf(installer.NewV2RegisterClusterBadRequest()))
+			})
+
+			It("Reject IngressVips if no IngressVip was provided", func() {
+				ingressVips := []*models.IngressVip{{IP: models.IP("1.2.3.18")}}
+
+				_, err := userBMClient.Installer.V2RegisterCluster(ctx, &installer.V2RegisterClusterParams{
+					NewClusterParams: &models.ClusterCreateParams{
+						BaseDNSDomain:    "example.com",
+						ClusterNetworks:  []*models.ClusterNetwork{{Cidr: models.Subnet(clusterCIDR), HostPrefix: 23}},
+						ServiceNetworks:  []*models.ServiceNetwork{{Cidr: models.Subnet(serviceCIDR)}},
+						Name:             swag.String("test-cluster"),
+						OpenshiftVersion: swag.String(openshiftVersion),
+						PullSecret:       swag.String(pullSecret),
+						SSHPublicKey:     sshPublicKey,
+						APIVip:           apiVip,
+						IngressVips:      ingressVips,
+					},
+				})
+				Expect(err).To(BeAssignableToTypeOf(installer.NewV2RegisterClusterBadRequest()))
+			})
+		})
+
+		It("Two APIVips and Two IngressVips - both IPv4 - negative", func() {
+			apiVips := []*models.APIVip{{IP: models.IP(apiVip)}, {IP: models.IP("8.8.8.8")}}
+			ingressVips := []*models.IngressVip{{IP: models.IP(ingressVip)}, {IP: models.IP("8.8.8.2")}}
+
+			_, err := userBMClient.Installer.V2RegisterCluster(ctx, &installer.V2RegisterClusterParams{
+				NewClusterParams: &models.ClusterCreateParams{
+					BaseDNSDomain:    "example.com",
+					ClusterNetworks:  []*models.ClusterNetwork{{Cidr: models.Subnet(clusterCIDR), HostPrefix: 23}},
+					ServiceNetworks:  []*models.ServiceNetwork{{Cidr: models.Subnet(serviceCIDR)}},
+					Name:             swag.String("test-cluster"),
+					OpenshiftVersion: swag.String(openshiftVersion),
+					PullSecret:       swag.String(pullSecret),
+					SSHPublicKey:     sshPublicKey,
+					APIVip:           apiVip,
+					APIVips:          apiVips,
+					IngressVip:       ingressVip,
+					IngressVips:      ingressVips,
+				},
+			})
+			Expect(err).To(BeAssignableToTypeOf(installer.NewV2RegisterClusterBadRequest()))
+		})
+
+		It("Two APIVips and Two IngressVips - IPv4 first and IPv6 second - positive", func() {
+			apiVips := []*models.APIVip{{IP: models.IP(apiVip)}, {IP: models.IP("2001:db8::1")}}
+			ingressVips := []*models.IngressVip{{IP: models.IP(ingressVip)}, {IP: models.IP("2001:db8::2")}}
+
+			reply, err := userBMClient.Installer.V2RegisterCluster(ctx, &installer.V2RegisterClusterParams{
+				NewClusterParams: &models.ClusterCreateParams{
+					BaseDNSDomain:    "example.com",
+					ClusterNetworks:  []*models.ClusterNetwork{{Cidr: models.Subnet(clusterCIDR), HostPrefix: 23}},
+					ServiceNetworks:  []*models.ServiceNetwork{{Cidr: models.Subnet(serviceCIDR)}},
+					Name:             swag.String("test-cluster"),
+					OpenshiftVersion: swag.String(openshiftVersion),
+					PullSecret:       swag.String(pullSecret),
+					SSHPublicKey:     sshPublicKey,
+					APIVip:           apiVip,
+					APIVips:          apiVips,
+					IngressVip:       ingressVip,
+					IngressVips:      ingressVips,
+				},
+			})
+			Expect(err).NotTo(HaveOccurred())
+			Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2RegisterClusterCreated()))
+
+			cluster = &common.Cluster{Cluster: *reply.Payload}
+			setClusterIdForApiVips(apiVips, cluster.ID)
+			setClusterIdForIngressVips(ingressVips, cluster.ID)
+
+			Expect(cluster.APIVip).To(Equal(apiVip))
+			Expect(cluster.APIVips).To(Equal(apiVips))
+			Expect(cluster.IngressVip).To(Equal(ingressVip))
+			Expect(cluster.IngressVips).To(Equal(ingressVips))
+		})
+
+		It("Two APIVips and Two IngressVips - IPv6 first and IPv4 second - negative", func() {
+			apiVips := []*models.APIVip{{IP: models.IP(apiVipv6)}, {IP: models.IP("8.8.8.7")}}
+			ingressVips := []*models.IngressVip{{IP: models.IP(ingressVipv6)}, {IP: models.IP("8.8.8.1")}}
+
+			_, err := userBMClient.Installer.V2RegisterCluster(ctx, &installer.V2RegisterClusterParams{
+				NewClusterParams: &models.ClusterCreateParams{
+					BaseDNSDomain:    "example.com",
+					ClusterNetworks:  []*models.ClusterNetwork{{Cidr: models.Subnet(clusterCIDR), HostPrefix: 23}},
+					ServiceNetworks:  []*models.ServiceNetwork{{Cidr: models.Subnet(serviceCIDR)}},
+					Name:             swag.String("test-cluster"),
+					OpenshiftVersion: swag.String(openshiftVersion),
+					PullSecret:       swag.String(pullSecret),
+					SSHPublicKey:     sshPublicKey,
+					APIVip:           apiVipv6,
+					APIVips:          apiVips,
+					IngressVip:       ingressVipv6,
+					IngressVips:      ingressVips,
+				},
+			})
+			Expect(err).To(BeAssignableToTypeOf(installer.NewV2RegisterClusterBadRequest()))
+		})
+
+		It("Two APIVips and Two IngressVips - IPv6 - negative", func() {
+			apiVips := []*models.APIVip{{IP: models.IP(apiVipv6)}, {IP: models.IP("2001:db8::3")}}
+			ingressVips := []*models.IngressVip{{IP: models.IP(ingressVipv6)}, {IP: models.IP("2001:db8::4")}}
+
+			_, err := userBMClient.Installer.V2RegisterCluster(ctx, &installer.V2RegisterClusterParams{
+				NewClusterParams: &models.ClusterCreateParams{
+					BaseDNSDomain:    "example.com",
+					ClusterNetworks:  []*models.ClusterNetwork{{Cidr: models.Subnet(clusterCIDR), HostPrefix: 23}},
+					ServiceNetworks:  []*models.ServiceNetwork{{Cidr: models.Subnet(serviceCIDR)}},
+					Name:             swag.String("test-cluster"),
+					OpenshiftVersion: swag.String(openshiftVersion),
+					PullSecret:       swag.String(pullSecret),
+					SSHPublicKey:     sshPublicKey,
+					APIVip:           apiVipv6,
+					APIVips:          apiVips,
+					IngressVip:       ingressVipv6,
+					IngressVips:      ingressVips,
+				},
+			})
+			Expect(err).To(BeAssignableToTypeOf(installer.NewV2RegisterClusterBadRequest()))
+		})
+
+		It("More than two APIVips and More than two IngressVips -  negative", func() {
+			apiVips := []*models.APIVip{{IP: models.IP(apiVip)}, {IP: models.IP("2001:db8::3")}, {IP: models.IP("8.8.8.3")}}
+			ingressVips := []*models.IngressVip{{IP: models.IP(ingressVip)}, {IP: models.IP("2001:db8::4")}, {IP: models.IP("8.8.8.4")}}
+
+			_, err := userBMClient.Installer.V2RegisterCluster(ctx, &installer.V2RegisterClusterParams{
+				NewClusterParams: &models.ClusterCreateParams{
+					BaseDNSDomain:    "example.com",
+					ClusterNetworks:  []*models.ClusterNetwork{{Cidr: models.Subnet(clusterCIDR), HostPrefix: 23}},
+					ServiceNetworks:  []*models.ServiceNetwork{{Cidr: models.Subnet(serviceCIDR)}},
+					Name:             swag.String("test-cluster"),
+					OpenshiftVersion: swag.String(openshiftVersion),
+					PullSecret:       swag.String(pullSecret),
+					SSHPublicKey:     sshPublicKey,
+					APIVip:           apiVip,
+					APIVips:          apiVips,
+					IngressVip:       ingressVip,
+					IngressVips:      ingressVips,
+				},
+			})
+			Expect(err).To(BeAssignableToTypeOf(installer.NewV2RegisterClusterBadRequest()))
+		})
+
+		It("Non parsable APIVips and non parsable IngressVips - negative", func() {
+			apiVip = "1.1.1.300"
+			ingressVip = "1.1.1.301"
+			apiVips := []*models.APIVip{{IP: models.IP(apiVip)}, {IP: models.IP("1.1.1.333")}}
+			ingressVips := []*models.IngressVip{{IP: models.IP(ingressVip)}, {IP: models.IP("1.1.1.311")}}
+
+			_, err := userBMClient.Installer.V2RegisterCluster(ctx, &installer.V2RegisterClusterParams{
+				NewClusterParams: &models.ClusterCreateParams{
+					BaseDNSDomain:    "example.com",
+					ClusterNetworks:  []*models.ClusterNetwork{{Cidr: models.Subnet(clusterCIDR), HostPrefix: 23}},
+					ServiceNetworks:  []*models.ServiceNetwork{{Cidr: models.Subnet(serviceCIDR)}},
+					Name:             swag.String("test-cluster"),
+					OpenshiftVersion: swag.String(openshiftVersion),
+					PullSecret:       swag.String(pullSecret),
+					SSHPublicKey:     sshPublicKey,
+					APIVip:           apiVip,
+					APIVips:          apiVips,
+					IngressVip:       ingressVip,
+					IngressVips:      ingressVips,
+				},
+			})
+			Expect(err).To(BeAssignableToTypeOf(installer.NewV2RegisterClusterBadRequest()))
+		})
+
+		It("Non parsable APIVips and parsable IngressVips - negative", func() {
+			apiVip = "1.1.1.300"
+			apiVips := []*models.APIVip{{IP: models.IP(apiVip)}, {IP: models.IP("2001:db8::3")}}
+			ingressVips := []*models.IngressVip{{IP: models.IP(ingressVip)}, {IP: models.IP("2001:db8::4")}}
+
+			_, err := userBMClient.Installer.V2RegisterCluster(ctx, &installer.V2RegisterClusterParams{
+				NewClusterParams: &models.ClusterCreateParams{
+					BaseDNSDomain:    "example.com",
+					ClusterNetworks:  []*models.ClusterNetwork{{Cidr: models.Subnet(clusterCIDR), HostPrefix: 23}},
+					ServiceNetworks:  []*models.ServiceNetwork{{Cidr: models.Subnet(serviceCIDR)}},
+					Name:             swag.String("test-cluster"),
+					OpenshiftVersion: swag.String(openshiftVersion),
+					PullSecret:       swag.String(pullSecret),
+					SSHPublicKey:     sshPublicKey,
+					APIVip:           apiVip,
+					APIVips:          apiVips,
+					IngressVip:       ingressVip,
+					IngressVips:      ingressVips,
+				},
+			})
+			Expect(err).To(BeAssignableToTypeOf(installer.NewV2RegisterClusterBadRequest()))
+		})
+
+		It("Different number of APIVips and IngressVips - negative", func() {
+			apiVips := []*models.APIVip{{IP: models.IP(apiVip)}, {IP: models.IP("2001:db8::3")}}
+			ingressVips := []*models.IngressVip{{IP: models.IP(ingressVip)}}
+
+			_, err := userBMClient.Installer.V2RegisterCluster(ctx, &installer.V2RegisterClusterParams{
+				NewClusterParams: &models.ClusterCreateParams{
+					BaseDNSDomain:    "example.com",
+					ClusterNetworks:  []*models.ClusterNetwork{{Cidr: models.Subnet(clusterCIDR), HostPrefix: 23}},
+					ServiceNetworks:  []*models.ServiceNetwork{{Cidr: models.Subnet(serviceCIDR)}},
+					Name:             swag.String("test-cluster"),
+					OpenshiftVersion: swag.String(openshiftVersion),
+					PullSecret:       swag.String(pullSecret),
+					SSHPublicKey:     sshPublicKey,
+					APIVip:           apiVip,
+					APIVips:          apiVips,
+					IngressVip:       ingressVip,
+					IngressVips:      ingressVips,
+				},
+			})
+			Expect(err).To(BeAssignableToTypeOf(installer.NewV2RegisterClusterBadRequest()))
+		})
+
+		It("Duplicated addresses in APIVips - negative", func() {
+			apiVips := []*models.APIVip{{IP: models.IP(apiVip)}, {IP: models.IP(apiVip)}}
+			ingressVips := []*models.IngressVip{{IP: models.IP(ingressVip)}, {IP: models.IP("2001:db8::3")}}
+
+			_, err := userBMClient.Installer.V2RegisterCluster(ctx, &installer.V2RegisterClusterParams{
+				NewClusterParams: &models.ClusterCreateParams{
+					BaseDNSDomain:    "example.com",
+					ClusterNetworks:  []*models.ClusterNetwork{{Cidr: models.Subnet(clusterCIDR), HostPrefix: 23}},
+					ServiceNetworks:  []*models.ServiceNetwork{{Cidr: models.Subnet(serviceCIDR)}},
+					Name:             swag.String("test-cluster"),
+					OpenshiftVersion: swag.String(openshiftVersion),
+					PullSecret:       swag.String(pullSecret),
+					SSHPublicKey:     sshPublicKey,
+					APIVip:           apiVip,
+					APIVips:          apiVips,
+					IngressVip:       ingressVip,
+					IngressVips:      ingressVips,
+				},
+			})
+			Expect(err).To(BeAssignableToTypeOf(installer.NewV2RegisterClusterBadRequest()))
+		})
+
+		It("Duplicated addresses in IngressVips - negative", func() {
+			apiVips := []*models.APIVip{{IP: models.IP(apiVip)}, {IP: models.IP("2001:db8::3")}}
+			ingressVips := []*models.IngressVip{{IP: models.IP(ingressVip)}, {IP: models.IP(ingressVip)}}
+
+			_, err := userBMClient.Installer.V2RegisterCluster(ctx, &installer.V2RegisterClusterParams{
+				NewClusterParams: &models.ClusterCreateParams{
+					BaseDNSDomain:    "example.com",
+					ClusterNetworks:  []*models.ClusterNetwork{{Cidr: models.Subnet(clusterCIDR), HostPrefix: 23}},
+					ServiceNetworks:  []*models.ServiceNetwork{{Cidr: models.Subnet(serviceCIDR)}},
+					Name:             swag.String("test-cluster"),
+					OpenshiftVersion: swag.String(openshiftVersion),
+					PullSecret:       swag.String(pullSecret),
+					SSHPublicKey:     sshPublicKey,
+					APIVip:           apiVip,
+					APIVips:          apiVips,
+					IngressVip:       ingressVip,
+					IngressVips:      ingressVips,
+				},
+			})
+			Expect(err).To(BeAssignableToTypeOf(installer.NewV2RegisterClusterBadRequest()))
+		})
+
+		It("Duplicated address across APIVips and IngressVips - negative", func() {
+			apiVips := []*models.APIVip{{IP: models.IP(apiVip)}, {IP: models.IP("2001:db8::3")}}
+			ingressVips := []*models.IngressVip{{IP: models.IP(apiVip)}, {IP: models.IP("2001:db8::4")}}
+
+			_, err := userBMClient.Installer.V2RegisterCluster(ctx, &installer.V2RegisterClusterParams{
+				NewClusterParams: &models.ClusterCreateParams{
+					BaseDNSDomain:    "example.com",
+					ClusterNetworks:  []*models.ClusterNetwork{{Cidr: models.Subnet(clusterCIDR), HostPrefix: 23}},
+					ServiceNetworks:  []*models.ServiceNetwork{{Cidr: models.Subnet(serviceCIDR)}},
+					Name:             swag.String("test-cluster"),
+					OpenshiftVersion: swag.String(openshiftVersion),
+					PullSecret:       swag.String(pullSecret),
+					SSHPublicKey:     sshPublicKey,
+					APIVip:           apiVip,
+					APIVips:          apiVips,
+					IngressVip:       apiVip,
+					IngressVips:      ingressVips,
+				},
+			})
+			Expect(err).To(BeAssignableToTypeOf(installer.NewV2RegisterClusterBadRequest()))
+		})
+	})
+
+	Context("V2UpdateCluster", func() {
+
+		BeforeEach(func() {
+			reply, err := userBMClient.Installer.V2RegisterCluster(ctx, &installer.V2RegisterClusterParams{
+				NewClusterParams: &models.ClusterCreateParams{
+					BaseDNSDomain:    "example.com",
+					ClusterNetworks:  []*models.ClusterNetwork{{Cidr: models.Subnet(clusterCIDR), HostPrefix: 23}},
+					ServiceNetworks:  []*models.ServiceNetwork{{Cidr: models.Subnet(serviceCIDR)}},
+					Name:             swag.String("test-cluster"),
+					OpenshiftVersion: swag.String(openshiftVersion),
+					PullSecret:       swag.String(pullSecret),
+					SSHPublicKey:     sshPublicKey,
+				},
+			})
+			Expect(err).NotTo(HaveOccurred())
+			Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2RegisterClusterCreated()))
+
+			cluster = &common.Cluster{Cluster: *reply.Payload}
+
+			infraEnvID = registerInfraEnv(cluster.ID, models.ImageTypeMinimalIso).ID
+			_, _ = register3nodes(ctx, *cluster.ID, *infraEnvID, defaultCIDRv4)
+		})
+
+		AfterEach(func() {
+			deregisterResources()
+			clearDB()
+		})
+
+		Context("API and Ingress VIPs Backwards Compatibility", func() {
+
+			It("API VIP and Ingress VIP populated in APIVips and ingressVips", func() {
+				apiVip = "1.2.3.8"
+				ingressVip = "1.2.3.9"
+				reply, err := userBMClient.Installer.V2UpdateCluster(ctx, &installer.V2UpdateClusterParams{
+					ClusterUpdateParams: &models.V2ClusterUpdateParams{
+						VipDhcpAllocation: swag.Bool(false),
+						APIVip:            &apiVip,
+						IngressVip:        &ingressVip,
+					},
+					ClusterID: *cluster.ID,
+				})
+				Expect(err).NotTo(HaveOccurred())
+				Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2UpdateClusterCreated()))
+
+				cluster = &common.Cluster{Cluster: *reply.Payload}
+
+				Expect(cluster.APIVip).To(Equal(apiVip))
+				Expect(network.GetApiVipById(cluster, 0)).To(Equal(apiVip))
+				Expect(cluster.IngressVip).To(Equal(ingressVip))
+				Expect(network.GetIngressVipById(cluster, 0)).To(Equal(ingressVip))
+			})
+
+			It("API VIP match APIVips first element", func() {
+
+				apiVip = "1.2.3.8"
+				ingressVip = "1.2.3.9"
+				apiVips := []*models.APIVip{{IP: models.IP(apiVip)}}
+
+				ingressVip = "1.2.3.9"
+				reply, err := userBMClient.Installer.V2UpdateCluster(ctx, &installer.V2UpdateClusterParams{
+					ClusterUpdateParams: &models.V2ClusterUpdateParams{
+						VipDhcpAllocation: swag.Bool(false),
+						APIVip:            &apiVip,
+						APIVips:           apiVips,
+						IngressVip:        &ingressVip,
+					},
+					ClusterID: *cluster.ID,
+				})
+				Expect(err).NotTo(HaveOccurred())
+				Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2UpdateClusterCreated()))
+
+				cluster = &common.Cluster{Cluster: *reply.Payload}
+				setClusterIdForApiVips(apiVips, cluster.ID)
+
+				Expect(cluster.APIVip).To(Equal(apiVip))
+				Expect(cluster.APIVips).To(Equal(apiVips))
+				Expect(cluster.IngressVip).To(Equal(ingressVip))
+				Expect(network.GetIngressVipById(cluster, 0)).To(Equal(ingressVip))
+			})
+
+			It("Ingress VIP match ingressVips first element", func() {
+				ingressVips := []*models.IngressVip{{IP: models.IP(ingressVip)}}
+
+				reply, err := userBMClient.Installer.V2UpdateCluster(ctx, &installer.V2UpdateClusterParams{
+					ClusterUpdateParams: &models.V2ClusterUpdateParams{
+						VipDhcpAllocation: swag.Bool(false),
+						APIVip:            &apiVip,
+						IngressVip:        &ingressVip,
+						IngressVips:       ingressVips,
+					},
+					ClusterID: *cluster.ID,
+				})
+				Expect(err).NotTo(HaveOccurred())
+				Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2UpdateClusterCreated()))
+
+				cluster = &common.Cluster{Cluster: *reply.Payload}
+				setClusterIdForIngressVips(ingressVips, cluster.ID)
+
+				Expect(cluster.APIVip).To(Equal(apiVip))
+				Expect(cluster.IngressVip).To(Equal(ingressVip))
+				Expect(cluster.IngressVips).To(Equal(ingressVips))
+			})
+
+			It("API VIP not matching APIVips first element", func() {
+				apiVip = "1.2.3.100"
+				ingressVip = "1.2.3.101"
+				apiVips := []*models.APIVip{{IP: models.IP("1.2.3.111")}}
+
+				_, err := userBMClient.Installer.V2UpdateCluster(ctx, &installer.V2UpdateClusterParams{
+					ClusterUpdateParams: &models.V2ClusterUpdateParams{
+						VipDhcpAllocation: swag.Bool(false),
+						APIVip:            swag.String(apiVip),
+						APIVips:           apiVips,
+						IngressVip:        swag.String(ingressVip),
+					},
+					ClusterID: *cluster.ID,
+				})
+				Expect(err).To(BeAssignableToTypeOf(installer.NewV2UpdateClusterBadRequest()))
+			})
+
+			It("Ingress VIP not matching ingressVips first element", func() {
+				apiVip = "1.2.3.100"
+				ingressVip = "1.2.3.101"
+				ingressVips := []*models.IngressVip{{IP: models.IP("1.2.3.111")}}
+
+				_, err := userBMClient.Installer.V2UpdateCluster(ctx, &installer.V2UpdateClusterParams{
+					ClusterUpdateParams: &models.V2ClusterUpdateParams{
+						VipDhcpAllocation: swag.Bool(false),
+						APIVip:            swag.String(apiVip),
+						IngressVip:        swag.String(ingressVip),
+						IngressVips:       ingressVips,
+					},
+					ClusterID: *cluster.ID,
+				})
+				Expect(err).To(BeAssignableToTypeOf(installer.NewV2UpdateClusterBadRequest()))
+			})
+
+			It("Reject APIVips if no APIVip was provided", func() {
+				ingressVip = "1.2.3.101"
+				apiVips := []*models.APIVip{{IP: models.IP("1.2.3.111")}}
+
+				_, err := userBMClient.Installer.V2UpdateCluster(ctx, &installer.V2UpdateClusterParams{
+					ClusterUpdateParams: &models.V2ClusterUpdateParams{
+						VipDhcpAllocation: swag.Bool(false),
+						APIVips:           apiVips,
+						IngressVip:        swag.String(ingressVip),
+					},
+					ClusterID: *cluster.ID,
+				})
+				Expect(err).To(BeAssignableToTypeOf(installer.NewV2UpdateClusterBadRequest()))
+			})
+
+			It("Reject ingressVips if no ingressVip was provided", func() {
+				apiVip = "1.2.3.100"
+				ingressVips := []*models.IngressVip{{IP: models.IP("1.2.3.111")}}
+
+				_, err := userBMClient.Installer.V2UpdateCluster(ctx, &installer.V2UpdateClusterParams{
+					ClusterUpdateParams: &models.V2ClusterUpdateParams{
+						VipDhcpAllocation: swag.Bool(false),
+						APIVip:            swag.String(apiVip),
+						IngressVips:       ingressVips,
+					},
+					ClusterID: *cluster.ID,
+				})
+				Expect(err).To(BeAssignableToTypeOf(installer.NewV2UpdateClusterBadRequest()))
+			})
+
+		})
+
+		It("Two APIVips and Two ingressVips - IPv6 first and IPv4 second - negative", func() {
+			apiVip = "2001:db8::1"
+			ingressVip = "2001:db8::2"
+			apiVips := []*models.APIVip{{IP: models.IP(apiVip)}, {IP: models.IP("8.8.8.7")}}
+			ingressVips := []*models.IngressVip{{IP: models.IP(ingressVip)}, {IP: models.IP("8.8.8.1")}}
+
+			_, err := userBMClient.Installer.V2UpdateCluster(ctx, &installer.V2UpdateClusterParams{
+				ClusterUpdateParams: &models.V2ClusterUpdateParams{
+					VipDhcpAllocation: swag.Bool(false),
+					APIVip:            swag.String(apiVip),
+					APIVips:           apiVips,
+					IngressVip:        swag.String(ingressVip),
+					IngressVips:       ingressVips,
+				},
+				ClusterID: *cluster.ID,
+			})
+			Expect(err).To(BeAssignableToTypeOf(installer.NewV2UpdateClusterBadRequest()))
+		})
+
+		It("Two APIVips and Two ingressVips - IPv6 - negative", func() {
+			apiVip = "2001:db8::1"
+			ingressVip = "2001:db8::2"
+			apiVips := []*models.APIVip{{IP: models.IP(apiVip)}, {IP: models.IP("2001:db8::3")}}
+			ingressVips := []*models.IngressVip{{IP: models.IP(ingressVip)}, {IP: models.IP("2001:db8::4")}}
+
+			_, err := userBMClient.Installer.V2UpdateCluster(ctx, &installer.V2UpdateClusterParams{
+				ClusterUpdateParams: &models.V2ClusterUpdateParams{
+					VipDhcpAllocation: swag.Bool(false),
+					APIVip:            swag.String(apiVip),
+					APIVips:           apiVips,
+					IngressVip:        swag.String(ingressVip),
+					IngressVips:       ingressVips,
+				},
+				ClusterID: *cluster.ID,
+			})
+			Expect(err).To(BeAssignableToTypeOf(installer.NewV2UpdateClusterBadRequest()))
+		})
+
+		It("More than two APIVips and More than two ingressVips -  negative", func() {
+			apiVip = "1.2.3.100"
+			ingressVip = "1.2.3.101"
+			apiVips := []*models.APIVip{{IP: models.IP(apiVip)}, {IP: models.IP("2001:db8::3")}, {IP: models.IP("8.8.8.3")}}
+			ingressVips := []*models.IngressVip{{IP: models.IP(ingressVip)}, {IP: models.IP("2001:db8::4")}, {IP: models.IP("8.8.8.4")}}
+
+			_, err := userBMClient.Installer.V2UpdateCluster(ctx, &installer.V2UpdateClusterParams{
+				ClusterUpdateParams: &models.V2ClusterUpdateParams{
+					VipDhcpAllocation: swag.Bool(false),
+					APIVip:            swag.String(apiVip),
+					APIVips:           apiVips,
+					IngressVip:        swag.String(ingressVip),
+					IngressVips:       ingressVips,
+				},
+				ClusterID: *cluster.ID,
+			})
+			Expect(err).To(BeAssignableToTypeOf(installer.NewV2UpdateClusterBadRequest()))
+		})
+
+		It("Non parsable APIVips and non parsable ingressVips - negative", func() {
+			apiVip = "1.1.1.300"
+			ingressVip = "1.1.1.301"
+			apiVips := []*models.APIVip{{IP: models.IP(apiVip)}, {IP: models.IP("1.1.1.333")}}
+			ingressVips := []*models.IngressVip{{IP: models.IP(ingressVip)}, {IP: models.IP("1.1.1.311")}}
+
+			_, err := userBMClient.Installer.V2UpdateCluster(ctx, &installer.V2UpdateClusterParams{
+				ClusterUpdateParams: &models.V2ClusterUpdateParams{
+					VipDhcpAllocation: swag.Bool(false),
+					APIVip:            swag.String(apiVip),
+					APIVips:           apiVips,
+					IngressVip:        swag.String(ingressVip),
+					IngressVips:       ingressVips,
+				},
+				ClusterID: *cluster.ID,
+			})
+			Expect(err).To(BeAssignableToTypeOf(installer.NewV2UpdateClusterBadRequest()))
+		})
+
+		It("Non parsable APIVips and parsable ingressVips - negative", func() {
+			apiVip = "1.1.1.300"
+			ingressVip = "1.2.3.101"
+			apiVips := []*models.APIVip{{IP: models.IP(apiVip)}, {IP: models.IP("2001:db8::3")}}
+			ingressVips := []*models.IngressVip{{IP: models.IP(ingressVip)}, {IP: models.IP("2001:db8::4")}}
+
+			_, err := userBMClient.Installer.V2UpdateCluster(ctx, &installer.V2UpdateClusterParams{
+				ClusterUpdateParams: &models.V2ClusterUpdateParams{
+					VipDhcpAllocation: swag.Bool(false),
+					APIVip:            swag.String(apiVip),
+					APIVips:           apiVips,
+					IngressVip:        swag.String(ingressVip),
+					IngressVips:       ingressVips,
+				},
+				ClusterID: *cluster.ID,
+			})
+			Expect(err).To(BeAssignableToTypeOf(installer.NewV2UpdateClusterBadRequest()))
+		})
+
+		It("Duplicated address across APIVips and ingressVips - negative", func() {
+			apiVip = "1.2.3.100"
+			apiVips := []*models.APIVip{{IP: models.IP(apiVip)}, {IP: models.IP("2001:db8::3")}}
+			ingressVips := []*models.IngressVip{{IP: models.IP(apiVip)}, {IP: models.IP("2001:db8::4")}}
+
+			_, err := userBMClient.Installer.V2UpdateCluster(ctx, &installer.V2UpdateClusterParams{
+				ClusterUpdateParams: &models.V2ClusterUpdateParams{
+					VipDhcpAllocation: swag.Bool(false),
+					APIVip:            swag.String(apiVip),
+					APIVips:           apiVips,
+					IngressVip:        swag.String(apiVip),
+					IngressVips:       ingressVips,
+				},
+				ClusterID: *cluster.ID,
+			})
+			Expect(err).To(BeAssignableToTypeOf(installer.NewV2UpdateClusterBadRequest()))
+		})
+
+	})
+
 })
 
 func checkUpdateAtWhileStatic(ctx context.Context, clusterID strfmt.UUID) {

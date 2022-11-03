@@ -126,7 +126,11 @@ func IsMachineCidrAvailable(cluster *common.Cluster) bool {
 }
 
 func GetMachineCidrById(cluster *common.Cluster, index int) string {
-	return string(cluster.MachineNetworks[index].Cidr)
+	if len(cluster.MachineNetworks) <= index {
+		return ""
+	} else {
+		return string(cluster.MachineNetworks[index].Cidr)
+	}
 }
 
 func DerefMachineNetworks(obj interface{}) []*models.MachineNetwork {
