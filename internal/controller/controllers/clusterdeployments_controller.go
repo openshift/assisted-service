@@ -1642,16 +1642,17 @@ func (r *ClusterDeploymentsReconciler) getNumOfClusterAgents(c *common.Cluster) 
 // The AgentClusterInstall <-> Agent relation is one-to-many.
 // Thsi function returns all Agents whose ClusterDeploymentName name
 // matches the ClusterDeploymentRef name in the provided ACI.
-func findAgentsByAgentClusterInstall(k8sclient client.Client, ctx context.Context, log logrus.FieldLogger, aci *hiveext.AgentClusterInstall) ([]aiv1beta1.Agent, error) {
+func findAgentsByAgentClusterInstall(k8sclient client.Client, ctx context.Context, log logrus.FieldLogger, aci *hiveext.AgentClusterInstall) ([]*aiv1beta1.Agent, error) {
 	agentList := aiv1beta1.AgentList{}
-	agents := []aiv1beta1.Agent{}
+	agents := []*aiv1beta1.Agent{}
 	err := k8sclient.List(ctx, &agentList, client.MatchingLabels{AgentLabelClusterDeploymentNamespace: aci.Namespace})
 
 	if err != nil {
-		return agents, err
+		return nil, err
 	}
 
-	for _, agent := range agentList.Items {
+	for i := range agentList.Items {
+		agent := &agentList.Items[i]
 		if agent.Spec.ClusterDeploymentName == nil {
 			continue
 		}
@@ -1674,7 +1675,7 @@ func findAgentsByAgentClusterInstall(k8sclient client.Client, ctx context.Contex
 	return agents, nil
 }
 
-func getNumOfUnsyncedAgents(agents []aiv1beta1.Agent) int {
+func getNumOfUnsyncedAgents(agents []*aiv1beta1.Agent) int {
 	num := 0
 	for _, agent := range agents {
 		for _, cond := range agent.Status.Conditions {
