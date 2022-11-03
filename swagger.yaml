@@ -3607,6 +3607,7 @@ definitions:
               - 'DUAL_STACK_NETWORKING'
               - 'MULTIARCH_RELEASE_IMAGE'
               - 'NUTANIX_INTEGRATION'
+              - 'DUAL_STACK_VIPS'
             support_level:
               type: string
               enum: [supported, unsupported, tech-preview, dev-preview]
@@ -6316,7 +6317,6 @@ definitions:
           isolcpus=1,2,10-20,100-2000:2/25
           quiet
           The parsing by the command line parser in linux kernel is much looser and this pattern follows it.
-
 
   kernel_arguments:
     description: List of kernel arugment objects that define the operations and values to be applied.
