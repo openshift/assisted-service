@@ -3,6 +3,7 @@ package network
 import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/models"
 )
 
@@ -689,4 +690,89 @@ var _ = Describe("ArClusterNetworksIdentical", func() {
 			Expect(AreClusterNetworksIdentical(t.n1, t.n2)).To(Equal(t.expectedResult))
 		})
 	}
+})
+
+var _ = Describe("GetVips", func() {
+	var cluster *common.Cluster
+	var ApiVips []string
+	var IngressVips []string
+	var PrimaryApiVip string
+	var PrimaryIngressVip string
+	Context("for cluster with no vips", func() {
+		BeforeEach(func() {
+			cluster = &common.Cluster{
+				Cluster: models.Cluster{
+					Name:             "cluster",
+					OpenshiftVersion: "4.12",
+					MachineNetworks:  []*models.MachineNetwork{{Cidr: "192.168.10.0/24"}},
+				},
+			}
+			ApiVips = GetApiVips(cluster)
+			IngressVips = GetIngressVips(cluster)
+			PrimaryApiVip = GetApiVipById(cluster, 0)
+			PrimaryIngressVip = GetIngressVipById(cluster, 0)
+		})
+		It("returns empty value as API and Ingress VIPs", func() {
+			Expect(len(ApiVips)).To(Equal(0))
+			Expect(len(IngressVips)).To(Equal(0))
+			Expect(PrimaryApiVip).To(Equal(""))
+			Expect(PrimaryIngressVip).To(Equal(""))
+		})
+	})
+	Context("for cluster with single vip", func() {
+		BeforeEach(func() {
+			cluster = &common.Cluster{
+				Cluster: models.Cluster{
+					Name:             "cluster",
+					APIVip:           "192.168.10.10",
+					APIVips:          []*models.APIVip{{IP: "192.168.10.10"}},
+					IngressVip:       "192.168.10.11",
+					IngressVips:      []*models.IngressVip{{IP: "192.168.10.11"}},
+					OpenshiftVersion: "4.12",
+					MachineNetworks:  []*models.MachineNetwork{{Cidr: "192.168.10.0/24"}},
+				},
+			}
+			ApiVips = GetApiVips(cluster)
+			IngressVips = GetIngressVips(cluster)
+			PrimaryApiVip = GetApiVipById(cluster, 0)
+			PrimaryIngressVip = GetIngressVipById(cluster, 0)
+		})
+		It("returns API and Ingress VIP correctly", func() {
+			Expect(len(ApiVips)).To(Equal(1))
+			Expect(len(IngressVips)).To(Equal(1))
+			Expect(ApiVips[0]).To(Equal("192.168.10.10"))
+			Expect(IngressVips[0]).To(Equal("192.168.10.11"))
+			Expect(PrimaryApiVip).To(Equal("192.168.10.10"))
+			Expect(PrimaryIngressVip).To(Equal("192.168.10.11"))
+		})
+	})
+	Context("for cluster with dual-stack vips", func() {
+		BeforeEach(func() {
+			cluster = &common.Cluster{
+				Cluster: models.Cluster{
+					Name:             "cluster",
+					APIVip:           "192.168.10.10",
+					APIVips:          []*models.APIVip{{IP: "192.168.10.10"}, {IP: "1001:db8:0:200::78"}},
+					IngressVip:       "192.168.10.11",
+					IngressVips:      []*models.IngressVip{{IP: "192.168.10.11"}, {IP: "1001:db8:0:200::79"}},
+					OpenshiftVersion: "4.12",
+					MachineNetworks:  []*models.MachineNetwork{{Cidr: "192.168.10.0/24"}, {Cidr: "1001:db8:0:200::/40"}},
+				},
+			}
+			ApiVips = GetApiVips(cluster)
+			IngressVips = GetIngressVips(cluster)
+			PrimaryApiVip = GetApiVipById(cluster, 0)
+			PrimaryIngressVip = GetIngressVipById(cluster, 0)
+		})
+		It("returns API and Ingress VIP correctly", func() {
+			Expect(len(ApiVips)).To(Equal(2))
+			Expect(len(IngressVips)).To(Equal(2))
+			Expect(ApiVips[0]).To(Equal("192.168.10.10"))
+			Expect(IngressVips[0]).To(Equal("192.168.10.11"))
+			Expect(ApiVips[1]).To(Equal("1001:db8:0:200::78"))
+			Expect(IngressVips[1]).To(Equal("1001:db8:0:200::79"))
+			Expect(PrimaryApiVip).To(Equal("192.168.10.10"))
+			Expect(PrimaryIngressVip).To(Equal("192.168.10.11"))
+		})
+	})
 })

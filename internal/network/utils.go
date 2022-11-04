@@ -177,6 +177,34 @@ func GetClusterNetworkCidrs(cluster *common.Cluster) (ret []string) {
 	return
 }
 
+func GetApiVips(cluster *common.Cluster) (ret []string) {
+	ret = funk.Map(cluster.APIVips, func(x *models.APIVip) string { return string(x.IP) }).([]string)
+	return
+}
+
+func GetIngressVips(cluster *common.Cluster) (ret []string) {
+	ret = funk.Map(cluster.IngressVips, func(x *models.IngressVip) string { return string(x.IP) }).([]string)
+	return
+}
+
+func GetApiVipById(cluster *common.Cluster, index int) string {
+	vips := GetApiVips(cluster)
+	if len(vips) <= index {
+		return ""
+	} else {
+		return vips[index]
+	}
+}
+
+func GetIngressVipById(cluster *common.Cluster, index int) string {
+	vips := GetIngressVips(cluster)
+	if len(vips) <= index {
+		return ""
+	} else {
+		return vips[index]
+	}
+}
+
 func CidrToAddressFamily(cidr string) (AddressFamily, error) {
 	_, _, err := net.ParseCIDR(cidr)
 	if err != nil {
