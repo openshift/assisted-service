@@ -34,7 +34,6 @@ data:
       "editable": true,
       "fiscalYearStartMonth": 0,
       "graphTooltip": 0,
-      "id": 23839,
       "links": [],
       "liveNow": false,
       "panels": [
@@ -56,11 +55,55 @@ data:
             "type": "cloudwatch",
             "uid": "P1A97A9592CB7F392"
           },
-          "description": "Assisted Installer Service Production error logs",
+          "description": "Last lines for Assisted Installer Service Production logs",
           "gridPos": {
-            "h": 9,
+            "h": 12,
             "w": 12,
             "x": 0,
+            "y": 1
+          },
+          "id": 6,
+          "options": {
+            "dedupStrategy": "none",
+            "enableLogDetails": true,
+            "prettifyLogMessage": false,
+            "showCommonLabels": false,
+            "showLabels": false,
+            "showTime": false,
+            "sortOrder": "Descending",
+            "wrapLogMessage": false
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "cloudwatch",
+                "uid": "P1A97A9592CB7F392"
+              },
+              "expression": "fields message\n| filter kubernetes.container_name = \"assisted-service\" and kubernetes.namespace_name = \"assisted-installer-production\"\n| sort @timestamp desc\n| limit 300",
+              "id": "",
+              "logGroupNames": [
+                "app-sre-prod-04.assisted-installer-production"
+              ],
+              "namespace": "",
+              "queryMode": "Logs",
+              "refId": "A",
+              "region": "default",
+              "statsGroups": []
+            }
+          ],
+          "title": "Production Logs - Tail",
+          "type": "logs"
+        },
+        {
+          "datasource": {
+            "type": "cloudwatch",
+            "uid": "P1A97A9592CB7F392"
+          },
+          "description": "Assisted Installer Service Production error logs",
+          "gridPos": {
+            "h": 12,
+            "w": 12,
+            "x": 12,
             "y": 1
           },
           "id": 2,
@@ -100,14 +143,14 @@ data:
             "type": "cloudwatch",
             "uid": "P1A97A9592CB7F392"
           },
-          "description": "Last lines for Assisted Installer Service Production logs",
+          "description": "Assisted Installer Service Production warning logs",
           "gridPos": {
-            "h": 9,
+            "h": 12,
             "w": 12,
-            "x": 12,
-            "y": 1
+            "x": 0,
+            "y": 13
           },
-          "id": 6,
+          "id": 7,
           "options": {
             "dedupStrategy": "none",
             "enableLogDetails": true,
@@ -124,7 +167,7 @@ data:
                 "type": "cloudwatch",
                 "uid": "P1A97A9592CB7F392"
               },
-              "expression": "fields message\n| filter kubernetes.container_name = \"assisted-service\" and kubernetes.namespace_name = \"assisted-installer-production\"\n| sort @timestamp desc\n| limit 300",
+              "expression": "fields message\n| filter kubernetes.container_name = \"assisted-service\" and kubernetes.namespace_name = \"assisted-installer-production\"\n| filter message LIKE 'level=warning'\n| sort @timestamp desc\n| limit 300",
               "id": "",
               "logGroupNames": [
                 "app-sre-prod-04.assisted-installer-production"
@@ -136,7 +179,7 @@ data:
               "statsGroups": []
             }
           ],
-          "title": "Production Logs - Tail",
+          "title": "Production Logs - Warning",
           "type": "logs"
         }
       ],
@@ -148,13 +191,13 @@ data:
         "list": []
       },
       "time": {
-        "from": "now-3h",
+        "from": "now-15m",
         "to": "now"
       },
       "timepicker": {},
       "timezone": "utc",
       "title": "Assisted Installer Logs",
       "uid": "F8vaevHVz",
-      "version": 2,
+      "version": 4,
       "weekStart": ""
     }
