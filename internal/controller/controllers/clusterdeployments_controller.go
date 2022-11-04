@@ -575,6 +575,7 @@ func (r *ClusterDeploymentsReconciler) isReadyForInstallation(ctx context.Contex
 	}
 
 	unsyncedHosts := getNumOfUnsyncedAgents(agents)
+	log.Debugf("Calculating installation readiness, found %d unsynced agents out of total of %d agents", unsyncedHosts, len(agents))
 	expectedHosts := clusterInstall.Spec.ProvisionRequirements.ControlPlaneAgents +
 		clusterInstall.Spec.ProvisionRequirements.WorkerAgents
 	return approvedHosts == expectedHosts && registered == approvedHosts && unsyncedHosts == 0, nil
@@ -1566,6 +1567,7 @@ func (r *ClusterDeploymentsReconciler) updateStatus(ctx context.Context, log log
 					return ctrl.Result{Requeue: true}, nil
 				}
 				unsyncedHosts = getNumOfUnsyncedAgents(agents)
+				log.Debugf("Updating ACI conditions, found %d unsynced agents out of total of %d agents", unsyncedHosts, len(agents))
 			}
 			clusterRequirementsMet(clusterInstall, status, registeredHosts, approvedHosts, unsyncedHosts)
 			clusterValidated(clusterInstall, status, c)
@@ -1650,6 +1652,7 @@ func findAgentsByAgentClusterInstall(k8sclient client.Client, ctx context.Contex
 			agents = append(agents, agent)
 		}
 	}
+	log.Debugf("Found %d agents matching ClusterDeployment %s", len(agents), aci.Spec.ClusterDeploymentRef.Name)
 
 	return agents, nil
 }
