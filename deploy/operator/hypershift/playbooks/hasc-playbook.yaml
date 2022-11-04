@@ -1,0 +1,19 @@
+- name: Create HypershiftAgentServiceConfig CR
+  hosts: localhost
+  collections:
+   - community.general
+  gather_facts: no
+  vars:
+    - spoke_namespace: "{{ lookup('env', 'SPOKE_NAMESPACE') }}"
+    - spoke_kubeconfig_secret: "{{ lookup('env', 'SPOKE_KUBECONFIG_SECRET') }}"
+
+  tasks:
+  - name: create directory for generated resources
+    file:
+      name: generated
+      state: directory
+
+  - name: write HypershiftAgentServiceConfig CR
+    template:
+      src: "templates/hasc.j2"
+      dest: "generated/hasc.yaml"

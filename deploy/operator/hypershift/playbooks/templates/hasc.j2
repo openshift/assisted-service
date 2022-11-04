@@ -1,0 +1,26 @@
+apiVersion: agent-install.openshift.io/v1beta1
+kind: HypershiftAgentServiceConfig
+metadata:
+ name: hypershift-agent
+ namespace: {{ spoke_namespace }}
+spec:
+ kubeconfigSecretRef:
+   name: {{ spoke_kubeconfig_secret }}
+ databaseStorage:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+   requests:
+    storage: 8Gi
+ filesystemStorage:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+   requests:
+    storage: 8Gi
+ imageStorage:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+   requests:
+    storage: 10Gi

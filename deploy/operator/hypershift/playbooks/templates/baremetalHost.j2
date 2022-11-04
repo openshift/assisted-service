@@ -1,0 +1,32 @@
+{% set bmhs = baremetalhosts %}
+{% for host in bmhs %}
+
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: '{{ host["name"] }}-bmc-secret'
+  namespace: '{{ spoke_namespace }}'
+type: Opaque
+data:
+  username: '{{ host["driver_info"]["username"] | b64encode }}'
+  password: '{{ host["driver_info"]["password"] | b64encode }}'
+
+---
+apiVersion: metal3.io/v1alpha1
+kind: BareMetalHost
+metadata:
+  name: '{{ host["name"] }}'
+  namespace: '{{ spoke_namespace }}'
+  annotations:
+    bmac.agent-install.openshift.io/hostname: '{{ host["name"] }}'
+spec:
+  online: true
+  bootMACAddress: '{{ host["ports"][0]["address"] }}'
+  bmc:
+    address: '{{ host["driver_info"]["address"] }}'
+    credentialsName: '{{ host["name"] }}-bmc-secret'
+  image:
+    format: live-iso
+    url: '{{ iso_download_url }}'
+{% endfor %}
