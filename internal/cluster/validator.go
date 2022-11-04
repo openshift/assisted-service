@@ -316,7 +316,7 @@ func (v *clusterValidator) sufficientMastersCount(c *clusterPreprocessContext) (
 
 	switch status {
 	case ValidationSuccess:
-		message = "The cluster has a sufficient number of master candidates."
+		message = "The cluster has the exact amount of dedicated control plane nodes."
 	case ValidationFailure:
 		message = fmt.Sprintf("Clusters must have at most %d dedicated masters. Please check your configuration and add or remove hosts as needed to meet the requirement.", common.MinMasterHostsNeededForInstallation)
 		if nonHAMode {
