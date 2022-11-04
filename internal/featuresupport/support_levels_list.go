@@ -1,7 +1,10 @@
 package featuresupport
 
 import (
+	"fmt"
+
 	"github.com/go-openapi/swag"
+	"github.com/hashicorp/go-version"
 	"github.com/openshift/assisted-service/internal/usage"
 	"github.com/openshift/assisted-service/models"
 )
@@ -326,6 +329,10 @@ var SupportLevelsList = models.FeatureSupportLevels{
 
 // default is supported
 func GetFeatureSupportLevel(openshiftVersion string, featureId string) string {
+	openshiftVersion, err := getVersionKey(openshiftVersion)
+	if err != nil {
+		return models.FeatureSupportLevelFeaturesItems0SupportLevelSupported
+	}
 	for _, supportLevel := range SupportLevelsList {
 		if supportLevel.OpenshiftVersion == openshiftVersion {
 			for _, feature := range supportLevel.Features {
@@ -341,4 +348,14 @@ func GetFeatureSupportLevel(openshiftVersion string, featureId string) string {
 
 func IsFeatureSupported(openshiftVersion string, featureId string) bool {
 	return GetFeatureSupportLevel(openshiftVersion, featureId) == models.FeatureSupportLevelFeaturesItems0SupportLevelSupported
+}
+
+func getVersionKey(openshiftVersion string) (string, error) {
+	v, err := version.NewVersion(openshiftVersion)
+	if err != nil {
+		return openshiftVersion, err
+	}
+
+	// put string in x.y format
+	return fmt.Sprintf("%d.%d", v.Segments()[0], v.Segments()[1]), nil
 }

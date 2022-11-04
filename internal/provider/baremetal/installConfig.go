@@ -5,6 +5,7 @@ import (
 	"sort"
 
 	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/internal/featuresupport"
 	"github.com/openshift/assisted-service/internal/host/hostutil"
 	"github.com/openshift/assisted-service/internal/installcfg"
 	"github.com/openshift/assisted-service/internal/network"
@@ -88,13 +89,24 @@ func (p baremetalProvider) AddPlatformToInstallConfig(
 	}
 	p.Log.Infof("setting Baremetal.ProvisioningNetwork to %s", provNetwork)
 
-	cfg.Platform = installcfg.Platform{
-		Baremetal: &installcfg.BareMetalInstallConfigPlatform{
-			ProvisioningNetwork:  provNetwork,
-			DeprecatedAPIVIP:     cluster.APIVip,
-			DeprecatedIngressVIP: cluster.IngressVip,
-			Hosts:                hosts,
-		},
+	if featuresupport.IsFeatureSupported(cluster.OpenshiftVersion, models.FeatureSupportLevelFeaturesItems0FeatureIDDUALSTACKVIPS) {
+		cfg.Platform = installcfg.Platform{
+			Baremetal: &installcfg.BareMetalInstallConfigPlatform{
+				ProvisioningNetwork: provNetwork,
+				APIVIPs:             network.GetApiVips(cluster),
+				IngressVIPs:         network.GetIngressVips(cluster),
+				Hosts:               hosts,
+			},
+		}
+	} else {
+		cfg.Platform = installcfg.Platform{
+			Baremetal: &installcfg.BareMetalInstallConfigPlatform{
+				ProvisioningNetwork:  provNetwork,
+				DeprecatedAPIVIP:     network.GetApiVipById(cluster, 0),
+				DeprecatedIngressVIP: network.GetIngressVipById(cluster, 0),
+				Hosts:                hosts,
+			},
+		}
 	}
 	return nil
 }

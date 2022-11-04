@@ -25,8 +25,27 @@ var (
 
 const invalidInventory = "{\"system_vendor\": \"invalid\"}"
 
-const expectedNutanixInstallConfig = `apiVIP: 192.168.10.10
+const expectedNutanixInstallConfig411 = `apiVIP: 192.168.10.10
 ingressVIP: 192.168.10.11
+prismCentral:
+  endpoint:
+    address: 1.1.1.1
+    port: 8080
+  username: username_placeholder
+  password: password_placeholder
+prismElements:
+- endpoint:
+    address: 1.1.1.1
+    port: 8080
+  uuid: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+  name: prism_endpoint_name_placeholder
+subnetUUIDs:
+- yyyyyyyy-yyyy-yyyy-yyyy-yyyyyyyyyyyy
+`
+const expectedNutanixInstallConfig412 = `apiVIPs:
+- 192.168.10.10
+ingressVIPs:
+- 192.168.10.11
 prismCentral:
   endpoint:
     address: 1.1.1.1
@@ -134,7 +153,35 @@ var _ = Describe("Test AddPlatformToInstallConfig", func() {
 		})
 	})
 	Context("baremetal", func() {
-		It("test with openshift greater then 4.7", func() {
+		It("test with openshift version 4.12", func() {
+			cfg := getInstallerConfigBaremetal()
+			hosts := make([]*models.Host, 0)
+			hosts = append(hosts, createHost(true, models.HostStatusKnown, getBaremetalInventoryStr("hostname0", "bootMode", true, false)))
+			hosts = append(hosts, createHost(true, models.HostStatusKnown, getBaremetalInventoryStr("hostname1", "bootMode", true, false)))
+			hosts = append(hosts, createHost(true, models.HostStatusKnown, getBaremetalInventoryStr("hostname2", "bootMode", true, false)))
+			hosts = append(hosts, createHost(false, models.HostStatusKnown, getBaremetalInventoryStr("hostname3", "bootMode", true, false)))
+			hosts = append(hosts, createHost(false, models.HostStatusKnown, getBaremetalInventoryStr("hostname4", "bootMode", true, false)))
+			cluster := createClusterFromHosts(hosts)
+			cluster.Cluster.OpenshiftVersion = "4.12"
+			err := providerRegistry.AddPlatformToInstallConfig(models.PlatformTypeBaremetal, &cfg, &cluster)
+			Expect(err).To(BeNil())
+			Expect(cfg.Platform.Baremetal).ToNot(BeNil())
+			Expect(cfg.Platform.Baremetal.DeprecatedAPIVIP).To(Equal(""))
+			Expect(len(cfg.Platform.Baremetal.APIVIPs)).To(Equal(len(cluster.Cluster.APIVips)))
+			Expect(cfg.Platform.Baremetal.APIVIPs[0]).To(Equal(string(cluster.Cluster.APIVips[0].IP)))
+			Expect(cfg.Platform.Baremetal.DeprecatedIngressVIP).To(Equal(""))
+			Expect(len(cfg.Platform.Baremetal.IngressVIPs)).To(Equal(len(cluster.Cluster.IngressVips)))
+			Expect(cfg.Platform.Baremetal.IngressVIPs[0]).To(Equal(string(cluster.Cluster.IngressVips[0].IP)))
+			Expect(cfg.Platform.Baremetal.ProvisioningNetwork).To(Equal("Disabled"))
+			Expect(len(cfg.Platform.Baremetal.Hosts)).To(Equal(len(cluster.Cluster.Hosts)))
+			Expect(cfg.Platform.Baremetal.Hosts[0].Name).Should(Equal("hostname0"))
+			Expect(cfg.Platform.Baremetal.Hosts[1].Name).Should(Equal("hostname1"))
+			Expect(cfg.Platform.Baremetal.Hosts[2].Name).Should(Equal("hostname2"))
+			Expect(cfg.Platform.Baremetal.Hosts[0].BootMACAddress).Should(Equal("EC:89:14:C0:BE:29"))
+			Expect(cfg.Platform.Baremetal.Hosts[1].BootMACAddress).Should(Equal("EC:89:14:C0:BE:29"))
+			Expect(cfg.Platform.Baremetal.Hosts[2].BootMACAddress).Should(Equal("EC:89:14:C0:BE:29"))
+		})
+		It("test with openshift version 4.8", func() {
 			cfg := getInstallerConfigBaremetal()
 			hosts := make([]*models.Host, 0)
 			hosts = append(hosts, createHost(true, models.HostStatusKnown, getBaremetalInventoryStr("hostname0", "bootMode", true, false)))
@@ -158,7 +205,7 @@ var _ = Describe("Test AddPlatformToInstallConfig", func() {
 			Expect(cfg.Platform.Baremetal.Hosts[1].BootMACAddress).Should(Equal("EC:89:14:C0:BE:29"))
 			Expect(cfg.Platform.Baremetal.Hosts[2].BootMACAddress).Should(Equal("EC:89:14:C0:BE:29"))
 		})
-		It("test with openshift version less 4.7", func() {
+		It("test with openshift version 4.6", func() {
 			cfg := getInstallerConfigBaremetal()
 			hosts := make([]*models.Host, 0)
 			hosts = append(hosts, createHost(true, models.HostStatusKnown, getBaremetalInventoryStr("hostname0", "bootMode", true, false)))
@@ -213,7 +260,7 @@ var _ = Describe("Test AddPlatformToInstallConfig", func() {
 			Expect(err.Error()).Should(ContainSubstring("Failed to find machine networks for baremetal cluster"))
 		})
 		Context("vsphere", func() {
-			It("with cluster params", func() {
+			It("with cluster params openshift version 4.12", func() {
 				cfg := getInstallerConfigBaremetal()
 				hosts := make([]*models.Host, 0)
 				hosts = append(hosts, createHost(true, models.HostStatusKnown, getVsphereInventoryStr("hostname0", "bootMode", true, false)))
@@ -222,15 +269,20 @@ var _ = Describe("Test AddPlatformToInstallConfig", func() {
 				hosts = append(hosts, createHost(false, models.HostStatusKnown, getVsphereInventoryStr("hostname3", "bootMode", true, false)))
 				hosts = append(hosts, createHost(false, models.HostStatusKnown, getVsphereInventoryStr("hostname4", "bootMode", true, false)))
 				cluster := createClusterFromHosts(hosts)
+				cluster.Cluster.OpenshiftVersion = "4.12"
 				cluster.Platform = createVspherePlatformParams()
 				err := providerRegistry.AddPlatformToInstallConfig(models.PlatformTypeVsphere, &cfg, &cluster)
 				Expect(err).To(BeNil())
 				Expect(cfg.Platform.Vsphere).ToNot(BeNil())
-				Expect(cfg.Platform.Vsphere.DeprecatedAPIVIP).To(Equal(cluster.Cluster.APIVip))
-				Expect(cfg.Platform.Vsphere.DeprecatedIngressVIP).To(Equal(cluster.Cluster.IngressVip))
+				Expect(cfg.Platform.Vsphere.DeprecatedAPIVIP).To(Equal(""))
+				Expect(len(cfg.Platform.Vsphere.APIVIPs)).To(Equal(len(cluster.Cluster.APIVips)))
+				Expect(cfg.Platform.Vsphere.APIVIPs[0]).To(Equal(string(cluster.Cluster.APIVips[0].IP)))
+				Expect(cfg.Platform.Vsphere.DeprecatedIngressVIP).To(Equal(""))
+				Expect(len(cfg.Platform.Vsphere.IngressVIPs)).To(Equal(len(cluster.Cluster.IngressVips)))
+				Expect(cfg.Platform.Vsphere.IngressVIPs[0]).To(Equal(string(cluster.Cluster.IngressVips[0].IP)))
 				Expect(cfg.Platform.Vsphere.VCenter).To(Equal(vsphere.PhVcenter))
 			})
-			It("without cluster params", func() {
+			It("without cluster params openshift version 4.11", func() {
 				cfg := getInstallerConfigBaremetal()
 				hosts := make([]*models.Host, 0)
 				vsphereInventory := getVsphereInventoryStr("hostname0", "bootMode", true, false)
@@ -240,6 +292,7 @@ var _ = Describe("Test AddPlatformToInstallConfig", func() {
 				hosts = append(hosts, createHost(false, models.HostStatusKnown, vsphereInventory))
 				hosts = append(hosts, createHost(false, models.HostStatusKnown, getVsphereInventoryStr("hostname4", "bootMode", true, false)))
 				cluster := createClusterFromHosts(hosts)
+				cluster.Cluster.OpenshiftVersion = "4.11"
 				cluster.Platform = createVspherePlatformParams()
 				err := providerRegistry.AddPlatformToInstallConfig(models.PlatformTypeVsphere, &cfg, &cluster)
 				Expect(err).To(BeNil())
@@ -252,7 +305,7 @@ var _ = Describe("Test AddPlatformToInstallConfig", func() {
 	})
 
 	Context("nutanix", func() {
-		It("without cluster params", func() {
+		It("without cluster params openshift version 4.12", func() {
 			cfg := getInstallerConfigBaremetal()
 			hosts := make([]*models.Host, 0)
 			hosts = append(hosts, createHost(true, models.HostStatusKnown, getNutanixInventoryStr("hostname0", "bootMode", true, false)))
@@ -261,12 +314,30 @@ var _ = Describe("Test AddPlatformToInstallConfig", func() {
 			hosts = append(hosts, createHost(false, models.HostStatusKnown, getNutanixInventoryStr("hostname3", "bootMode", true, false)))
 			hosts = append(hosts, createHost(false, models.HostStatusKnown, getNutanixInventoryStr("hostname4", "bootMode", true, false)))
 			cluster := createClusterFromHosts(hosts)
+			cluster.Cluster.OpenshiftVersion = "4.12"
 			err := providerRegistry.AddPlatformToInstallConfig(models.PlatformTypeNutanix, &cfg, &cluster)
 			Expect(err).To(BeNil())
 			Expect(cfg.Platform.Nutanix).ToNot(BeNil())
 			installConfigByte, err := yaml.Marshal(cfg.Platform.Nutanix)
 			Expect(err).ToNot(HaveOccurred())
-			Expect(string(installConfigByte)).To(Equal(expectedNutanixInstallConfig))
+			Expect(string(installConfigByte)).To(Equal(expectedNutanixInstallConfig412))
+		})
+		It("without cluster params openshift version 4.11", func() {
+			cfg := getInstallerConfigBaremetal()
+			hosts := make([]*models.Host, 0)
+			hosts = append(hosts, createHost(true, models.HostStatusKnown, getNutanixInventoryStr("hostname0", "bootMode", true, false)))
+			hosts = append(hosts, createHost(true, models.HostStatusKnown, getNutanixInventoryStr("hostname1", "bootMode", true, false)))
+			hosts = append(hosts, createHost(true, models.HostStatusKnown, getNutanixInventoryStr("hostname2", "bootMode", true, false)))
+			hosts = append(hosts, createHost(false, models.HostStatusKnown, getNutanixInventoryStr("hostname3", "bootMode", true, false)))
+			hosts = append(hosts, createHost(false, models.HostStatusKnown, getNutanixInventoryStr("hostname4", "bootMode", true, false)))
+			cluster := createClusterFromHosts(hosts)
+			cluster.Cluster.OpenshiftVersion = "4.11"
+			err := providerRegistry.AddPlatformToInstallConfig(models.PlatformTypeNutanix, &cfg, &cluster)
+			Expect(err).To(BeNil())
+			Expect(cfg.Platform.Nutanix).ToNot(BeNil())
+			installConfigByte, err := yaml.Marshal(cfg.Platform.Nutanix)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(string(installConfigByte)).To(Equal(expectedNutanixInstallConfig411))
 		})
 	})
 })
@@ -398,8 +469,10 @@ func createClusterFromHosts(hosts []*models.Host) common.Cluster {
 		Cluster: models.Cluster{
 			Name:             "cluster",
 			APIVip:           "192.168.10.10",
+			APIVips:          []*models.APIVip{{IP: "192.168.10.10"}},
 			Hosts:            hosts,
 			IngressVip:       "192.168.10.11",
+			IngressVips:      []*models.IngressVip{{IP: "192.168.10.11"}},
 			OpenshiftVersion: "4.7",
 			MachineNetworks:  []*models.MachineNetwork{{Cidr: "10.35.20.0/24"}},
 		},
