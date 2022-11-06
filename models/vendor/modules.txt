@@ -75,7 +75,7 @@ go.mongodb.org/mongo-driver/x/bsonx/bsoncore
 # golang.org/x/net v0.0.0-20210421230115-4e50805a0758
 ## explicit; go 1.11
 golang.org/x/net/idna
-# golang.org/x/text v0.3.7
+# golang.org/x/text v0.3.8
 ## explicit; go 1.17
 golang.org/x/text/secure/bidirule
 golang.org/x/text/transform
