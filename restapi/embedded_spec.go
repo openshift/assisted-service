@@ -6858,7 +6858,8 @@ func init() {
                   "DUAL_STACK_NETWORKING",
                   "MULTIARCH_RELEASE_IMAGE",
                   "NUTANIX_INTEGRATION",
-                  "DUAL_STACK_VIPS"
+                  "DUAL_STACK_VIPS",
+                  "USER_MANAGED_NETWORKING_WITH_MULTI_NODE"
                 ]
               },
               "support_level": {
@@ -14750,7 +14751,8 @@ func init() {
             "DUAL_STACK_NETWORKING",
             "MULTIARCH_RELEASE_IMAGE",
             "NUTANIX_INTEGRATION",
-            "DUAL_STACK_VIPS"
+            "DUAL_STACK_VIPS",
+            "USER_MANAGED_NETWORKING_WITH_MULTI_NODE"
           ]
         },
         "support_level": {

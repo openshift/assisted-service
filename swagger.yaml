@@ -3608,6 +3608,7 @@ definitions:
               - 'MULTIARCH_RELEASE_IMAGE'
               - 'NUTANIX_INTEGRATION'
               - 'DUAL_STACK_VIPS'
+              - 'USER_MANAGED_NETWORKING_WITH_MULTI_NODE'
             support_level:
               type: string
               enum: [supported, unsupported, tech-preview, dev-preview]

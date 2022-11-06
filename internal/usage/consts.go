@@ -55,4 +55,6 @@ const (
 	DiscoveryKernelArgumentsUsage = "discovery kernel arguments"
 	// Cluster uses dual-stack VIPs
 	DualStackVipsUsage string = "Dual-stack VIPs"
+	// Usage of User Managed Networking With Multi Node
+	UserManagedNetworkingWithMultiNode string = "User Managed Networking With Multi Node"
 )
