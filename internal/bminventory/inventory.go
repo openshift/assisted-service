@@ -45,6 +45,7 @@ import (
 	"github.com/openshift/assisted-service/internal/metrics"
 	"github.com/openshift/assisted-service/internal/network"
 	"github.com/openshift/assisted-service/internal/operators"
+	"github.com/openshift/assisted-service/internal/provider"
 	"github.com/openshift/assisted-service/internal/provider/registry"
 	"github.com/openshift/assisted-service/internal/usage"
 	"github.com/openshift/assisted-service/internal/versions"
@@ -321,7 +322,7 @@ func (b *bareMetalInventory) setDefaultRegisterClusterParams(ctx context.Context
 	}
 
 	log.Infof("Verifying cluster platform and user-managed-networking, got platform=%v and userManagedNetworking=%v", params.NewClusterParams.Platform, params.NewClusterParams.UserManagedNetworking)
-	platform, userManagedNetworking, err := getActualCreateClusterPlatformParams(params.NewClusterParams.Platform, params.NewClusterParams.UserManagedNetworking, params.NewClusterParams.HighAvailabilityMode)
+	platform, userManagedNetworking, err := provider.GetActualCreateClusterPlatformParams(params.NewClusterParams.Platform, params.NewClusterParams.UserManagedNetworking, params.NewClusterParams.HighAvailabilityMode)
 	if err != nil {
 		log.Error(err)
 		return params, err
@@ -1717,113 +1718,6 @@ func (b *bareMetalInventory) UpdateClusterNonInteractive(ctx context.Context, pa
 	return b.v2UpdateClusterInternal(ctx, params, NonInteractive)
 }
 
-func checkPlatformWrongParamsInput(platform *models.Platform, userManagedNetworking *bool) error {
-	if platform != nil && userManagedNetworking != nil {
-		userManagedNetworkingStatus := "enabled"
-		if !*userManagedNetworking {
-			userManagedNetworkingStatus = "disabled"
-		}
-
-		if (!*userManagedNetworking && *platform.Type == models.PlatformTypeNone) || (*userManagedNetworking && models.PlatformTypeBaremetal == *platform.Type) {
-			return common.NewApiError(http.StatusBadRequest, errors.Errorf("Can't set %s platform with user-managed-networking %s", *platform.Type, userManagedNetworkingStatus))
-		}
-	}
-
-	return nil
-}
-
-func doesPlatformDifferentThanBaremetalOrNone(platform *models.Platform, cluster *common.Cluster) bool {
-	if platform != nil && *platform.Type != models.PlatformTypeBaremetal && *platform.Type != models.PlatformTypeNone {
-		return true
-	}
-
-	if platform == nil && *cluster.Platform.Type != models.PlatformTypeBaremetal && *cluster.Platform.Type != models.PlatformTypeNone {
-		return true
-	}
-
-	return false
-}
-
-func getActualUpdateClusterPlatformParams(platform *models.Platform, userManagedNetworking *bool, cluster *common.Cluster) (*models.Platform, *bool, error) {
-	if platform == nil && userManagedNetworking == nil {
-		return nil, nil, nil
-	}
-
-	if err := checkPlatformWrongParamsInput(platform, userManagedNetworking); err != nil {
-		return nil, nil, err
-	}
-
-	if doesPlatformDifferentThanBaremetalOrNone(platform, cluster) {
-		return platform, userManagedNetworking, nil
-	}
-
-	if *cluster.Platform.Type == models.PlatformTypeBaremetal {
-		if !swag.BoolValue(userManagedNetworking) && (platform == nil || *platform.Type == models.PlatformTypeBaremetal) {
-			// Platform is already baremetal, nothing to do
-			return nil, nil, nil
-		}
-
-		if (platform != nil && *platform.Type == models.PlatformTypeNone) || (swag.BoolValue(userManagedNetworking) && platform == nil) {
-			return &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeNone)}, swag.Bool(true), nil
-		}
-	} else if *cluster.Platform.Type == models.PlatformTypeNone {
-		if (userManagedNetworking == nil || *userManagedNetworking) && (platform == nil || *platform.Type == models.PlatformTypeNone) {
-			// Platform is already none, nothing to do
-			return nil, nil, nil
-		}
-
-		if *cluster.HighAvailabilityMode == models.ClusterHighAvailabilityModeNone {
-			if !swag.BoolValue(userManagedNetworking) || (platform != nil && *platform.Type != models.PlatformTypeNone) {
-				return nil, nil, common.NewApiError(http.StatusBadRequest, errors.New("disabling User Managed Networking or setting platform different than none platform is not allowed in single node Openshift"))
-			}
-		}
-
-		if !swag.BoolValue(userManagedNetworking) {
-			if platform == nil || *platform.Type == models.PlatformTypeBaremetal {
-				if cluster.CPUArchitecture != common.X86CPUArchitecture && !featuresupport.IsFeatureSupported(cluster.OpenshiftVersion, models.FeatureSupportLevelFeaturesItems0FeatureIDARM64ARCHITECTUREWITHCLUSTERMANAGEDNETWORKING) {
-					return nil, nil, common.NewApiError(http.StatusBadRequest, errors.New("disabling User Managed Networking or setting Bare-Metal platform is not allowed for clusters with non-x86_64 CPU architecture"))
-				}
-
-				return &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeBaremetal)}, swag.Bool(false), nil
-			}
-		}
-	}
-
-	return nil, nil, common.NewApiError(http.StatusBadRequest, errors.Errorf("Got invalid platform (%s) and/or user-managed-networking (%v)", *platform.Type, userManagedNetworking))
-}
-
-func getActualCreateClusterPlatformParams(platform *models.Platform, userManagedNetworking *bool, highAvailabilityMode *string) (*models.Platform, *bool, error) {
-	if err := checkPlatformWrongParamsInput(platform, userManagedNetworking); err != nil {
-		return nil, nil, err
-	}
-
-	if platform != nil && *platform.Type != models.PlatformTypeBaremetal && *platform.Type != models.PlatformTypeNone {
-		return platform, userManagedNetworking, nil
-	}
-
-	if *highAvailabilityMode == models.ClusterHighAvailabilityModeFull {
-		if (platform == nil || *platform.Type == models.PlatformTypeBaremetal) && !swag.BoolValue(userManagedNetworking) {
-			return &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeBaremetal)}, swag.Bool(false), nil
-		}
-
-		if swag.BoolValue(userManagedNetworking) || (platform != nil && *platform.Type == models.PlatformTypeNone) {
-			return &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeNone)}, swag.Bool(true), nil
-		}
-	} else { // *highAvailabilityMode == models.ClusterHighAvailabilityModeNone
-		if platform != nil && *platform.Type == models.PlatformTypeBaremetal {
-			return nil, nil, common.NewApiError(http.StatusBadRequest, errors.Errorf("Can't set %s platform on single node OpenShift", *platform.Type))
-		}
-
-		if userManagedNetworking != nil && !*userManagedNetworking {
-			return nil, nil, common.NewApiError(http.StatusBadRequest, errors.New("Can't disable user-managed-networking on single node OpenShift"))
-		}
-
-		return &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeNone)}, swag.Bool(true), nil
-	}
-
-	return nil, nil, common.NewApiError(http.StatusBadRequest, errors.Errorf("Got invalid platform (%s) and/or user-managed-networking (%v)", *platform.Type, userManagedNetworking))
-}
-
 func (b *bareMetalInventory) v2UpdateClusterInternal(ctx context.Context, params installer.V2UpdateClusterParams, interactivity Interactivity) (*common.Cluster, error) {
 	log := logutil.FromContext(ctx, b.log)
 	var cluster *common.Cluster
@@ -1878,7 +1772,7 @@ func (b *bareMetalInventory) v2UpdateClusterInternal(ctx context.Context, params
 
 	log.Infof("Current cluster platform is set to %v and user-managed-networking is set to %v", cluster.Platform, cluster.UserManagedNetworking)
 	log.Infof("Verifying cluster platform and user-managed-networking, got platform=%v and userManagedNetworking=%v", params.ClusterUpdateParams.Platform, params.ClusterUpdateParams.UserManagedNetworking)
-	platform, userManagedNetworking, err := getActualUpdateClusterPlatformParams(params.ClusterUpdateParams.Platform, params.ClusterUpdateParams.UserManagedNetworking, cluster)
+	platform, userManagedNetworking, err := provider.GetActualUpdateClusterPlatformParams(params.ClusterUpdateParams.Platform, params.ClusterUpdateParams.UserManagedNetworking, cluster)
 	if err != nil {
 		log.Error(err)
 		return nil, err

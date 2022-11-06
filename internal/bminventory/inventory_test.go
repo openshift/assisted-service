@@ -5456,6 +5456,117 @@ var _ = Describe("[V2ClusterUpdate] cluster", func() {
 					Expect(*actual2.Platform.Type).To(Equal(models.PlatformTypeVsphere))
 				})
 
+				It("Update UMN=nil and baremetal platform while cluster platform is set to vsphere - success", func() {
+					mockClusterUpdateSuccess(2, 0)
+					mockProviderRegistry.EXPECT().SetPlatformUsages(models.PlatformTypeVsphere, gomock.Any(), mockUsage)
+
+					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
+						ClusterID: clusterID,
+						ClusterUpdateParams: &models.V2ClusterUpdateParams{
+							UserManagedNetworking: swag.Bool(true),
+							Platform:              &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeVsphere)},
+						},
+					})
+					Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2UpdateClusterCreated()))
+					actual := reply.(*installer.V2UpdateClusterCreated).Payload
+					Expect(*actual.Platform.Type).To(Equal(models.PlatformTypeVsphere))
+
+					mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(1)
+					mockProviderRegistry.EXPECT().SetPlatformUsages(models.PlatformTypeNone, gomock.Any(), mockUsage)
+
+					reply2 := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
+						ClusterID: clusterID,
+						ClusterUpdateParams: &models.V2ClusterUpdateParams{
+							Platform: &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeNone)},
+						},
+					})
+
+					Expect(reply2).Should(BeAssignableToTypeOf(installer.NewV2UpdateClusterCreated()))
+					actual2 := reply2.(*installer.V2UpdateClusterCreated).Payload
+					Expect(swag.BoolValue(actual2.UserManagedNetworking)).To(Equal(true))
+					Expect(*actual2.Platform.Type).To(Equal(models.PlatformTypeNone))
+				})
+
+				It("Update UMN=nil and none platform while cluster platform is set to vsphere - success", func() {
+					mockClusterUpdateSuccess(2, 0)
+					mockProviderRegistry.EXPECT().SetPlatformUsages(models.PlatformTypeVsphere, gomock.Any(), mockUsage)
+
+					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
+						ClusterID: clusterID,
+						ClusterUpdateParams: &models.V2ClusterUpdateParams{
+							Platform: &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeVsphere)},
+						},
+					})
+					Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2UpdateClusterCreated()))
+					actual := reply.(*installer.V2UpdateClusterCreated).Payload
+					Expect(*actual.Platform.Type).To(Equal(models.PlatformTypeVsphere))
+
+					mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(1)
+					mockProviderRegistry.EXPECT().SetPlatformUsages(models.PlatformTypeBaremetal, gomock.Any(), mockUsage)
+
+					reply2 := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
+						ClusterID: clusterID,
+						ClusterUpdateParams: &models.V2ClusterUpdateParams{
+							Platform: &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeBaremetal)},
+						},
+					})
+
+					Expect(reply2).Should(BeAssignableToTypeOf(installer.NewV2UpdateClusterCreated()))
+					actual2 := reply2.(*installer.V2UpdateClusterCreated).Payload
+					Expect(swag.BoolValue(actual2.UserManagedNetworking)).To(Equal(false))
+					Expect(*actual2.Platform.Type).To(Equal(models.PlatformTypeBaremetal))
+				})
+
+				It("Update UMN=nil and baremetal platform while cluster platform is set to vsphere and umn true- failure", func() {
+					mockClusterUpdateSuccess(1, 0)
+					mockProviderRegistry.EXPECT().SetPlatformUsages(models.PlatformTypeVsphere, gomock.Any(), mockUsage)
+
+					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
+						ClusterID: clusterID,
+						ClusterUpdateParams: &models.V2ClusterUpdateParams{
+							UserManagedNetworking: swag.Bool(true),
+							Platform:              &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeVsphere)},
+						},
+					})
+					Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2UpdateClusterCreated()))
+					actual := reply.(*installer.V2UpdateClusterCreated).Payload
+					Expect(*actual.Platform.Type).To(Equal(models.PlatformTypeVsphere))
+
+					mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(1)
+					reply2 := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
+						ClusterID: clusterID,
+						ClusterUpdateParams: &models.V2ClusterUpdateParams{
+							Platform: &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeBaremetal)},
+						},
+					})
+					verifyApiErrorString(reply2, http.StatusBadRequest, "Can't set baremetal platform with user-managed-networking enabled")
+				})
+
+				It("Update UMN=nil and none platform while cluster platform is set to vsphere and umn false- failure", func() {
+					mockClusterUpdateSuccess(1, 0)
+					mockProviderRegistry.EXPECT().SetPlatformUsages(models.PlatformTypeVsphere, gomock.Any(), mockUsage)
+
+					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
+						ClusterID: clusterID,
+						ClusterUpdateParams: &models.V2ClusterUpdateParams{
+							UserManagedNetworking: swag.Bool(false),
+							Platform:              &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeVsphere)},
+						},
+					})
+					Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2UpdateClusterCreated()))
+					actual := reply.(*installer.V2UpdateClusterCreated).Payload
+					Expect(*actual.Platform.Type).To(Equal(models.PlatformTypeVsphere))
+
+					mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(1)
+					reply2 := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
+						ClusterID: clusterID,
+						ClusterUpdateParams: &models.V2ClusterUpdateParams{
+							Platform: &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeNone)},
+						},
+					})
+					verifyApiErrorString(reply2, http.StatusBadRequest, "Can't set none platform with user-managed-networking disabled")
+				})
+
 				It("Update UMN=false and vphsere platform while cluster platform already set to none - success", func() {
 					mockClusterUpdateSuccess(2, 0)
 					mockProviderRegistry.EXPECT().SetPlatformUsages(models.PlatformTypeNone, gomock.Any(), mockUsage)
