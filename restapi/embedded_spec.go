@@ -5334,10 +5334,10 @@ func init() {
           "description": "The virtual IPs used to reach the OpenShift cluster's API. Enter one IP address for single-stack clusters, or up to two for dual-stack clusters (at most one IP address per IP stack used). The order of stacks should be the same as order of subnets in Cluster Networks, Service Networks, and Machine Networks.",
           "type": "array",
           "items": {
-            "type": "object",
             "$ref": "#/definitions/api_vip"
           },
-          "x-go-custom-tag": "gorm:\"foreignkey:ClusterID;references:ID\""
+          "x-go-custom-tag": "gorm:\"foreignkey:ClusterID;references:ID\"",
+          "x-nullable": true
         },
         "base_dns_domain": {
           "description": "Base domain of the cluster. All DNS records must be sub-domains of this base and include the cluster name.",
@@ -5358,10 +5358,10 @@ func init() {
           "description": "Cluster networks that are associated with this cluster.",
           "type": "array",
           "items": {
-            "type": "object",
             "$ref": "#/definitions/cluster_network"
           },
-          "x-go-custom-tag": "gorm:\"foreignkey:ClusterID;references:ID\""
+          "x-go-custom-tag": "gorm:\"foreignkey:ClusterID;references:ID\"",
+          "x-nullable": true
         },
         "connectivity_majority_groups": {
           "description": "Json formatted string containing the majority groups for connectivity checks.",
@@ -5415,7 +5415,6 @@ func init() {
         },
         "disk_encryption": {
           "description": "Information regarding hosts' installation disks encryption.",
-          "type": "object",
           "$ref": "#/definitions/disk-encryption"
         },
         "email_domain": {
@@ -5447,13 +5446,13 @@ func init() {
           "items": {
             "$ref": "#/definitions/host_network"
           },
-          "x-go-custom-tag": "gorm:\"-\""
+          "x-go-custom-tag": "gorm:\"-\"",
+          "x-nullable": true
         },
         "hosts": {
           "description": "Hosts that are associated with this cluster.",
           "type": "array",
           "items": {
-            "type": "object",
             "$ref": "#/definitions/host"
           },
           "x-go-custom-tag": "gorm:\"foreignkey:ClusterID;references:ID\""
@@ -5489,7 +5488,6 @@ func init() {
         },
         "ignition_endpoint": {
           "description": "Explicit ignition endpoint overrides the default ignition endpoint.",
-          "type": "object",
           "$ref": "#/definitions/ignition-endpoint"
         },
         "image_info": {
@@ -5509,10 +5507,10 @@ func init() {
           "description": "The virtual IPs used for cluster ingress traffic. Enter one IP address for single-stack clusters, or up to two for dual-stack clusters (at most one IP address per IP stack used). The order of stacks should be the same as order of subnets in Cluster Networks, Service Networks, and Machine Networks.",
           "type": "array",
           "items": {
-            "type": "object",
             "$ref": "#/definitions/ingress_vip"
           },
-          "x-go-custom-tag": "gorm:\"foreignkey:ClusterID;references:ID\""
+          "x-go-custom-tag": "gorm:\"foreignkey:ClusterID;references:ID\"",
+          "x-nullable": true
         },
         "install_completed_at": {
           "description": "The time that this cluster completed installation.",
@@ -5553,16 +5551,15 @@ func init() {
           "description": "Machine networks that are associated with this cluster.",
           "type": "array",
           "items": {
-            "type": "object",
             "$ref": "#/definitions/machine_network"
           },
-          "x-go-custom-tag": "gorm:\"foreignkey:ClusterID;references:ID\""
+          "x-go-custom-tag": "gorm:\"foreignkey:ClusterID;references:ID\"",
+          "x-nullable": true
         },
         "monitored_operators": {
           "description": "Operators that are associated with this cluster.",
           "type": "array",
           "items": {
-            "type": "object",
             "$ref": "#/definitions/monitored-operator"
           },
           "x-go-custom-tag": "gorm:\"foreignkey:ClusterID;references:ID\""
@@ -5636,10 +5633,10 @@ func init() {
           "description": "Service networks that are associated with this cluster.",
           "type": "array",
           "items": {
-            "type": "object",
             "$ref": "#/definitions/service_network"
           },
-          "x-go-custom-tag": "gorm:\"foreignkey:ClusterID;references:ID\""
+          "x-go-custom-tag": "gorm:\"foreignkey:ClusterID;references:ID\"",
+          "x-nullable": true
         },
         "ssh_public_key": {
           "description": "SSH public key for debugging OpenShift nodes.",
@@ -5740,7 +5737,6 @@ func init() {
           "description": "The virtual IPs used to reach the OpenShift cluster's API. Enter one IP address for single-stack clusters, or up to two for dual-stack clusters (at most one IP address per IP stack used). The order of stacks should be the same as order of subnets in Cluster Networks, Service Networks, and Machine Networks.",
           "type": "array",
           "items": {
-            "type": "object",
             "$ref": "#/definitions/api_vip"
           }
         },
@@ -5765,7 +5761,6 @@ func init() {
           "description": "Cluster networks that are associated with this cluster.",
           "type": "array",
           "items": {
-            "type": "object",
             "$ref": "#/definitions/cluster_network"
           },
           "x-nullable": true
@@ -5778,7 +5773,6 @@ func init() {
         },
         "disk_encryption": {
           "description": "Installation disks encryption mode and host roles to be applied.",
-          "type": "object",
           "$ref": "#/definitions/disk-encryption"
         },
         "high_availability_mode": {
@@ -5813,7 +5807,6 @@ func init() {
         },
         "ignition_endpoint": {
           "description": "Explicit ignition endpoint overrides the default ignition endpoint.",
-          "type": "object",
           "$ref": "#/definitions/ignition-endpoint"
         },
         "ingress_vip": {
@@ -5825,7 +5818,6 @@ func init() {
           "description": "The virtual IPs used for cluster ingress traffic. Enter one IP address for single-stack clusters, or up to two for dual-stack clusters (at most one IP address per IP stack used). The order of stacks should be the same as order of subnets in Cluster Networks, Service Networks, and Machine Networks.",
           "type": "array",
           "items": {
-            "type": "object",
             "$ref": "#/definitions/ingress_vip"
           }
         },
@@ -5833,7 +5825,6 @@ func init() {
           "description": "Machine networks that are associated with this cluster.",
           "type": "array",
           "items": {
-            "type": "object",
             "$ref": "#/definitions/machine_network"
           },
           "x-nullable": true
@@ -5874,7 +5865,6 @@ func init() {
           "type": "string"
         },
         "platform": {
-          "type": "object",
           "x-nullable": true,
           "$ref": "#/definitions/platform"
         },
@@ -5897,7 +5887,6 @@ func init() {
           "description": "Service networks that are associated with this cluster.",
           "type": "array",
           "items": {
-            "type": "object",
             "$ref": "#/definitions/service_network"
           },
           "x-nullable": true
@@ -6059,14 +6048,12 @@ func init() {
         "cluster_networks_dualstack": {
           "type": "array",
           "items": {
-            "type": "object",
             "$ref": "#/definitions/cluster_network"
           }
         },
         "cluster_networks_ipv4": {
           "type": "array",
           "items": {
-            "type": "object",
             "$ref": "#/definitions/cluster_network"
           }
         },
@@ -6091,14 +6078,12 @@ func init() {
         "service_networks_dualstack": {
           "type": "array",
           "items": {
-            "type": "object",
             "$ref": "#/definitions/service_network"
           }
         },
         "service_networks_ipv4": {
           "type": "array",
           "items": {
-            "type": "object",
             "$ref": "#/definitions/service_network"
           }
         }
@@ -6840,12 +6825,12 @@ func init() {
       "properties": {
         "features": {
           "type": "array",
-          "required": [
-            "feature_id",
-            "support_level"
-          ],
           "items": {
             "type": "object",
+            "required": [
+              "feature_id",
+              "support_level"
+            ],
             "properties": {
               "feature_id": {
                 "description": "The ID of the feature",
@@ -7106,7 +7091,7 @@ func init() {
         },
         "logs_collected_at": {
           "type": "string",
-          "format": "datetime",
+          "format": "date-time",
           "x-go-custom-tag": "gorm:\"type:timestamp with time zone\""
         },
         "logs_info": {
@@ -7115,7 +7100,7 @@ func init() {
         },
         "logs_started_at": {
           "type": "string",
-          "format": "datetime",
+          "format": "date-time",
           "x-go-custom-tag": "gorm:\"type:timestamp with time zone\""
         },
         "machine_config_pool_name": {
@@ -7148,7 +7133,8 @@ func init() {
           "items": {
             "$ref": "#/definitions/host-stage"
           },
-          "x-go-custom-tag": "gorm:\"-\""
+          "x-go-custom-tag": "gorm:\"-\"",
+          "x-nullable": true
         },
         "registered_at": {
           "description": "The last time the host's agent tried to register in the service.",
@@ -9205,7 +9191,6 @@ func init() {
           "description": "The virtual IPs used to reach the OpenShift cluster's API. Enter one IP address for single-stack clusters, or up to two for dual-stack clusters (at most one IP address per IP stack used). The order of stacks should be the same as order of subnets in Cluster Networks, Service Networks, and Machine Networks.",
           "type": "array",
           "items": {
-            "type": "object",
             "$ref": "#/definitions/api_vip"
           },
           "x-nullable": true
@@ -9232,14 +9217,12 @@ func init() {
           "description": "Cluster networks that are associated with this cluster.",
           "type": "array",
           "items": {
-            "type": "object",
             "$ref": "#/definitions/cluster_network"
           },
           "x-nullable": true
         },
         "disk_encryption": {
           "description": "Installation disks encryption mode and host roles to be applied.",
-          "type": "object",
           "$ref": "#/definitions/disk-encryption"
         },
         "http_proxy": {
@@ -9265,7 +9248,6 @@ func init() {
         },
         "ignition_endpoint": {
           "description": "Explicit ignition endpoint overrides the default ignition endpoint.",
-          "type": "object",
           "$ref": "#/definitions/ignition-endpoint"
         },
         "ingress_vip": {
@@ -9278,7 +9260,6 @@ func init() {
           "description": "The virtual IPs used for cluster ingress traffic. Enter one IP address for single-stack clusters, or up to two for dual-stack clusters (at most one IP address per IP stack used). The order of stacks should be the same as order of subnets in Cluster Networks, Service Networks, and Machine Networks.",
           "type": "array",
           "items": {
-            "type": "object",
             "$ref": "#/definitions/ingress_vip"
           },
           "x-nullable": true
@@ -9293,7 +9274,6 @@ func init() {
           "description": "Machine networks that are associated with this cluster.",
           "type": "array",
           "items": {
-            "type": "object",
             "$ref": "#/definitions/machine_network"
           },
           "x-nullable": true
@@ -9327,7 +9307,6 @@ func init() {
           }
         },
         "platform": {
-          "type": "object",
           "$ref": "#/definitions/platform"
         },
         "pull_secret": {
@@ -9350,7 +9329,6 @@ func init() {
           "description": "Service networks that are associated with this cluster.",
           "type": "array",
           "items": {
-            "type": "object",
             "$ref": "#/definitions/service_network"
           },
           "x-nullable": true
@@ -14733,6 +14711,10 @@ func init() {
     },
     "FeatureSupportLevelFeaturesItems0": {
       "type": "object",
+      "required": [
+        "feature_id",
+        "support_level"
+      ],
       "properties": {
         "feature_id": {
           "description": "The ID of the feature",
@@ -14958,10 +14940,10 @@ func init() {
           "description": "The virtual IPs used to reach the OpenShift cluster's API. Enter one IP address for single-stack clusters, or up to two for dual-stack clusters (at most one IP address per IP stack used). The order of stacks should be the same as order of subnets in Cluster Networks, Service Networks, and Machine Networks.",
           "type": "array",
           "items": {
-            "type": "object",
             "$ref": "#/definitions/api_vip"
           },
-          "x-go-custom-tag": "gorm:\"foreignkey:ClusterID;references:ID\""
+          "x-go-custom-tag": "gorm:\"foreignkey:ClusterID;references:ID\"",
+          "x-nullable": true
         },
         "base_dns_domain": {
           "description": "Base domain of the cluster. All DNS records must be sub-domains of this base and include the cluster name.",
@@ -14982,10 +14964,10 @@ func init() {
           "description": "Cluster networks that are associated with this cluster.",
           "type": "array",
           "items": {
-            "type": "object",
             "$ref": "#/definitions/cluster_network"
           },
-          "x-go-custom-tag": "gorm:\"foreignkey:ClusterID;references:ID\""
+          "x-go-custom-tag": "gorm:\"foreignkey:ClusterID;references:ID\"",
+          "x-nullable": true
         },
         "connectivity_majority_groups": {
           "description": "Json formatted string containing the majority groups for connectivity checks.",
@@ -15039,7 +15021,6 @@ func init() {
         },
         "disk_encryption": {
           "description": "Information regarding hosts' installation disks encryption.",
-          "type": "object",
           "$ref": "#/definitions/disk-encryption"
         },
         "email_domain": {
@@ -15071,13 +15052,13 @@ func init() {
           "items": {
             "$ref": "#/definitions/host_network"
           },
-          "x-go-custom-tag": "gorm:\"-\""
+          "x-go-custom-tag": "gorm:\"-\"",
+          "x-nullable": true
         },
         "hosts": {
           "description": "Hosts that are associated with this cluster.",
           "type": "array",
           "items": {
-            "type": "object",
             "$ref": "#/definitions/host"
           },
           "x-go-custom-tag": "gorm:\"foreignkey:ClusterID;references:ID\""
@@ -15113,7 +15094,6 @@ func init() {
         },
         "ignition_endpoint": {
           "description": "Explicit ignition endpoint overrides the default ignition endpoint.",
-          "type": "object",
           "$ref": "#/definitions/ignition-endpoint"
         },
         "image_info": {
@@ -15133,10 +15113,10 @@ func init() {
           "description": "The virtual IPs used for cluster ingress traffic. Enter one IP address for single-stack clusters, or up to two for dual-stack clusters (at most one IP address per IP stack used). The order of stacks should be the same as order of subnets in Cluster Networks, Service Networks, and Machine Networks.",
           "type": "array",
           "items": {
-            "type": "object",
             "$ref": "#/definitions/ingress_vip"
           },
-          "x-go-custom-tag": "gorm:\"foreignkey:ClusterID;references:ID\""
+          "x-go-custom-tag": "gorm:\"foreignkey:ClusterID;references:ID\"",
+          "x-nullable": true
         },
         "install_completed_at": {
           "description": "The time that this cluster completed installation.",
@@ -15177,16 +15157,15 @@ func init() {
           "description": "Machine networks that are associated with this cluster.",
           "type": "array",
           "items": {
-            "type": "object",
             "$ref": "#/definitions/machine_network"
           },
-          "x-go-custom-tag": "gorm:\"foreignkey:ClusterID;references:ID\""
+          "x-go-custom-tag": "gorm:\"foreignkey:ClusterID;references:ID\"",
+          "x-nullable": true
         },
         "monitored_operators": {
           "description": "Operators that are associated with this cluster.",
           "type": "array",
           "items": {
-            "type": "object",
             "$ref": "#/definitions/monitored-operator"
           },
           "x-go-custom-tag": "gorm:\"foreignkey:ClusterID;references:ID\""
@@ -15260,10 +15239,10 @@ func init() {
           "description": "Service networks that are associated with this cluster.",
           "type": "array",
           "items": {
-            "type": "object",
             "$ref": "#/definitions/service_network"
           },
-          "x-go-custom-tag": "gorm:\"foreignkey:ClusterID;references:ID\""
+          "x-go-custom-tag": "gorm:\"foreignkey:ClusterID;references:ID\"",
+          "x-nullable": true
         },
         "ssh_public_key": {
           "description": "SSH public key for debugging OpenShift nodes.",
@@ -15364,7 +15343,6 @@ func init() {
           "description": "The virtual IPs used to reach the OpenShift cluster's API. Enter one IP address for single-stack clusters, or up to two for dual-stack clusters (at most one IP address per IP stack used). The order of stacks should be the same as order of subnets in Cluster Networks, Service Networks, and Machine Networks.",
           "type": "array",
           "items": {
-            "type": "object",
             "$ref": "#/definitions/api_vip"
           }
         },
@@ -15389,7 +15367,6 @@ func init() {
           "description": "Cluster networks that are associated with this cluster.",
           "type": "array",
           "items": {
-            "type": "object",
             "$ref": "#/definitions/cluster_network"
           },
           "x-nullable": true
@@ -15402,7 +15379,6 @@ func init() {
         },
         "disk_encryption": {
           "description": "Installation disks encryption mode and host roles to be applied.",
-          "type": "object",
           "$ref": "#/definitions/disk-encryption"
         },
         "high_availability_mode": {
@@ -15437,7 +15413,6 @@ func init() {
         },
         "ignition_endpoint": {
           "description": "Explicit ignition endpoint overrides the default ignition endpoint.",
-          "type": "object",
           "$ref": "#/definitions/ignition-endpoint"
         },
         "ingress_vip": {
@@ -15449,7 +15424,6 @@ func init() {
           "description": "The virtual IPs used for cluster ingress traffic. Enter one IP address for single-stack clusters, or up to two for dual-stack clusters (at most one IP address per IP stack used). The order of stacks should be the same as order of subnets in Cluster Networks, Service Networks, and Machine Networks.",
           "type": "array",
           "items": {
-            "type": "object",
             "$ref": "#/definitions/ingress_vip"
           }
         },
@@ -15457,7 +15431,6 @@ func init() {
           "description": "Machine networks that are associated with this cluster.",
           "type": "array",
           "items": {
-            "type": "object",
             "$ref": "#/definitions/machine_network"
           },
           "x-nullable": true
@@ -15498,7 +15471,6 @@ func init() {
           "type": "string"
         },
         "platform": {
-          "type": "object",
           "x-nullable": true,
           "$ref": "#/definitions/platform"
         },
@@ -15521,7 +15493,6 @@ func init() {
           "description": "Service networks that are associated with this cluster.",
           "type": "array",
           "items": {
-            "type": "object",
             "$ref": "#/definitions/service_network"
           },
           "x-nullable": true
@@ -15683,14 +15654,12 @@ func init() {
         "cluster_networks_dualstack": {
           "type": "array",
           "items": {
-            "type": "object",
             "$ref": "#/definitions/cluster_network"
           }
         },
         "cluster_networks_ipv4": {
           "type": "array",
           "items": {
-            "type": "object",
             "$ref": "#/definitions/cluster_network"
           }
         },
@@ -15715,14 +15684,12 @@ func init() {
         "service_networks_dualstack": {
           "type": "array",
           "items": {
-            "type": "object",
             "$ref": "#/definitions/service_network"
           }
         },
         "service_networks_ipv4": {
           "type": "array",
           "items": {
-            "type": "object",
             "$ref": "#/definitions/service_network"
           }
         }
@@ -16427,10 +16394,6 @@ func init() {
       "properties": {
         "features": {
           "type": "array",
-          "required": [
-            "feature_id",
-            "support_level"
-          ],
           "items": {
             "$ref": "#/definitions/FeatureSupportLevelFeaturesItems0"
           }
@@ -16654,7 +16617,7 @@ func init() {
         },
         "logs_collected_at": {
           "type": "string",
-          "format": "datetime",
+          "format": "date-time",
           "x-go-custom-tag": "gorm:\"type:timestamp with time zone\""
         },
         "logs_info": {
@@ -16663,7 +16626,7 @@ func init() {
         },
         "logs_started_at": {
           "type": "string",
-          "format": "datetime",
+          "format": "date-time",
           "x-go-custom-tag": "gorm:\"type:timestamp with time zone\""
         },
         "machine_config_pool_name": {
@@ -16696,7 +16659,8 @@ func init() {
           "items": {
             "$ref": "#/definitions/host-stage"
           },
-          "x-go-custom-tag": "gorm:\"-\""
+          "x-go-custom-tag": "gorm:\"-\"",
+          "x-nullable": true
         },
         "registered_at": {
           "description": "The last time the host's agent tried to register in the service.",
@@ -18718,7 +18682,6 @@ func init() {
           "description": "The virtual IPs used to reach the OpenShift cluster's API. Enter one IP address for single-stack clusters, or up to two for dual-stack clusters (at most one IP address per IP stack used). The order of stacks should be the same as order of subnets in Cluster Networks, Service Networks, and Machine Networks.",
           "type": "array",
           "items": {
-            "type": "object",
             "$ref": "#/definitions/api_vip"
           },
           "x-nullable": true
@@ -18745,14 +18708,12 @@ func init() {
           "description": "Cluster networks that are associated with this cluster.",
           "type": "array",
           "items": {
-            "type": "object",
             "$ref": "#/definitions/cluster_network"
           },
           "x-nullable": true
         },
         "disk_encryption": {
           "description": "Installation disks encryption mode and host roles to be applied.",
-          "type": "object",
           "$ref": "#/definitions/disk-encryption"
         },
         "http_proxy": {
@@ -18778,7 +18739,6 @@ func init() {
         },
         "ignition_endpoint": {
           "description": "Explicit ignition endpoint overrides the default ignition endpoint.",
-          "type": "object",
           "$ref": "#/definitions/ignition-endpoint"
         },
         "ingress_vip": {
@@ -18791,7 +18751,6 @@ func init() {
           "description": "The virtual IPs used for cluster ingress traffic. Enter one IP address for single-stack clusters, or up to two for dual-stack clusters (at most one IP address per IP stack used). The order of stacks should be the same as order of subnets in Cluster Networks, Service Networks, and Machine Networks.",
           "type": "array",
           "items": {
-            "type": "object",
             "$ref": "#/definitions/ingress_vip"
           },
           "x-nullable": true
@@ -18806,7 +18765,6 @@ func init() {
           "description": "Machine networks that are associated with this cluster.",
           "type": "array",
           "items": {
-            "type": "object",
             "$ref": "#/definitions/machine_network"
           },
           "x-nullable": true
@@ -18840,7 +18798,6 @@ func init() {
           }
         },
         "platform": {
-          "type": "object",
           "$ref": "#/definitions/platform"
         },
         "pull_secret": {
@@ -18863,7 +18820,6 @@ func init() {
           "description": "Service networks that are associated with this cluster.",
           "type": "array",
           "items": {
-            "type": "object",
             "$ref": "#/definitions/service_network"
           },
           "x-nullable": true

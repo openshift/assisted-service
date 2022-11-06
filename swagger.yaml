@@ -3575,11 +3575,11 @@ definitions:
         description: Version of the OpenShift cluster.
       features:
         type: array
-        required:
-        - feature_id
-        - support_level
         items:
           type: object
+          required:
+          - feature_id
+          - support_level
           properties:
             feature_id:
               type: string
@@ -3938,6 +3938,7 @@ definitions:
         items:
           $ref: '#/definitions/host-stage'
         x-go-custom-tag: gorm:"-"
+        x-nullable: true
       connectivity:
         x-go-custom-tag: gorm:"type:text"
         type: string
@@ -3970,11 +3971,11 @@ definitions:
         type: boolean
       logs_collected_at:
         type: string
-        format: datetime
+        format: date-time
         x-go-custom-tag: gorm:"type:timestamp with time zone"
       logs_started_at:
         type: string
-        format: datetime
+        format: date-time
         x-go-custom-tag: gorm:"type:timestamp with time zone"
       installer_version:
         type: string
@@ -4248,7 +4249,6 @@ definitions:
         type: array
         description: The virtual IPs used to reach the OpenShift cluster's API. Enter one IP address for single-stack clusters, or up to two for dual-stack clusters (at most one IP address per IP stack used). The order of stacks should be the same as order of subnets in Cluster Networks, Service Networks, and Machine Networks.
         items:
-          type: object
           $ref: '#/definitions/api_vip'
       ingress_vip:
         type: string
@@ -4258,7 +4258,6 @@ definitions:
         type: array
         description: The virtual IPs used for cluster ingress traffic. Enter one IP address for single-stack clusters, or up to two for dual-stack clusters (at most one IP address per IP stack used). The order of stacks should be the same as order of subnets in Cluster Networks, Service Networks, and Machine Networks.
         items:
-          type: object
           $ref: '#/definitions/ingress_vip'
       pull_secret:
         type: string
@@ -4319,25 +4318,21 @@ definitions:
         type: array
         description: Cluster networks that are associated with this cluster.
         items:
-          type: object
           $ref: '#/definitions/cluster_network'
         x-nullable: true
       service_networks:
         type: array
         description: Service networks that are associated with this cluster.
         items:
-          type: object
           $ref: '#/definitions/service_network'
         x-nullable: true
       machine_networks:
         type: array
         description: Machine networks that are associated with this cluster.
         items:
-          type: object
           $ref: '#/definitions/machine_network'
         x-nullable: true
       platform:
-        type: object
         $ref: '#/definitions/platform'
         x-nullable: true
       cpu_architecture:
@@ -4346,11 +4341,9 @@ definitions:
         default: 'x86_64'
         description: The CPU architecture of the image (x86_64/arm64/etc).
       disk_encryption:
-        type: object
         $ref: '#/definitions/disk-encryption'
         description: Installation disks encryption mode and host roles to be applied.
       ignition_endpoint:
-        type: object
         $ref: '#/definitions/ignition-endpoint'
         description: Explicit ignition endpoint overrides the default ignition endpoint.
       tags:
@@ -4412,7 +4405,6 @@ definitions:
         pattern: '^(?:(?:(?:[0-9]{1,3}\.){3}[0-9]{1,3}\/(?:(?:[0-9])|(?:[1-2][0-9])|(?:3[0-2])))|(?:(?:[0-9a-fA-F]*:[0-9a-fA-F]*){2,})/(?:(?:[0-9])|(?:[1-9][0-9])|(?:1[0-1][0-9])|(?:12[0-8])))$'
         x-nullable: true
       platform:
-        type: object
         $ref: '#/definitions/platform'
       cluster_network_host_prefix:
         type: integer
@@ -4434,7 +4426,6 @@ definitions:
         type: array
         description: The virtual IPs used to reach the OpenShift cluster's API. Enter one IP address for single-stack clusters, or up to two for dual-stack clusters (at most one IP address per IP stack used). The order of stacks should be the same as order of subnets in Cluster Networks, Service Networks, and Machine Networks.
         items:
-          type: object
           $ref: '#/definitions/api_vip'
         x-nullable: true
       ingress_vip:
@@ -4446,7 +4437,6 @@ definitions:
         type: array
         description: The virtual IPs used for cluster ingress traffic. Enter one IP address for single-stack clusters, or up to two for dual-stack clusters (at most one IP address per IP stack used). The order of stacks should be the same as order of subnets in Cluster Networks, Service Networks, and Machine Networks.
         items:
-          type: object
           $ref: '#/definitions/ingress_vip'
         x-nullable: true
       api_vip_dns_name:
@@ -4517,29 +4507,24 @@ definitions:
         type: array
         description: Cluster networks that are associated with this cluster.
         items:
-          type: object
           $ref: '#/definitions/cluster_network'
         x-nullable: true
       service_networks:
         type: array
         description: Service networks that are associated with this cluster.
         items:
-          type: object
           $ref: '#/definitions/service_network'
         x-nullable: true
       machine_networks:
         type: array
         description: Machine networks that are associated with this cluster.
         items:
-          type: object
           $ref: '#/definitions/machine_network'
         x-nullable: true
       disk_encryption:
-        type: object
         $ref: '#/definitions/disk-encryption'
         description: Installation disks encryption mode and host roles to be applied.
       ignition_endpoint:
-        type: object
         $ref: '#/definitions/ignition-endpoint'
         description: Explicit ignition endpoint overrides the default ignition endpoint.
       tags:
@@ -4644,10 +4629,10 @@ definitions:
         description: The virtual IP used to reach the OpenShift cluster's API.
       api_vips:
         x-go-custom-tag: gorm:"foreignkey:ClusterID;references:ID"
+        x-nullable: true
         type: array
         description: The virtual IPs used to reach the OpenShift cluster's API. Enter one IP address for single-stack clusters, or up to two for dual-stack clusters (at most one IP address per IP stack used). The order of stacks should be the same as order of subnets in Cluster Networks, Service Networks, and Machine Networks.
         items:
-          type: object
           $ref: '#/definitions/api_vip'
       api_vip_dns_name:
         type: string
@@ -4663,10 +4648,10 @@ definitions:
         description: The virtual IP used for cluster ingress traffic.
       ingress_vips:
         x-go-custom-tag: gorm:"foreignkey:ClusterID;references:ID"
+        x-nullable: true
         type: array
         description: The virtual IPs used for cluster ingress traffic. Enter one IP address for single-stack clusters, or up to two for dual-stack clusters (at most one IP address per IP stack used). The order of stacks should be the same as order of subnets in Cluster Networks, Service Networks, and Machine Networks.
         items:
-          type: object
           $ref: '#/definitions/ingress_vip'
       ssh_public_key:
         type: string
@@ -4713,7 +4698,6 @@ definitions:
         $ref: '#/definitions/cluster-progress-info'
         description: Installation progress percentages of the cluster.
       disk_encryption:
-        type: object
         $ref: '#/definitions/disk-encryption'
         description: Information regarding hosts' installation disks encryption.
       hosts:
@@ -4721,7 +4705,6 @@ definitions:
         type: array
         description: Hosts that are associated with this cluster.
         items:
-          type: object
           $ref: '#/definitions/host'
       ready_host_count:
         type: integer
@@ -4785,6 +4768,7 @@ definitions:
         items:
           $ref: '#/definitions/host_network'
         x-go-custom-tag: gorm:"-"
+        x-nullable: true
         description: List of host networks to be filled during query.
       pull_secret_set:
         type: boolean
@@ -4839,7 +4823,6 @@ definitions:
         type: array
         description: Operators that are associated with this cluster.
         items:
-          type: object
           $ref: '#/definitions/monitored-operator'
       ams_subscription_id:
         type: string
@@ -4860,24 +4843,24 @@ definitions:
         x-nullable: true
       cluster_networks:
         x-go-custom-tag: gorm:"foreignkey:ClusterID;references:ID"
+        x-nullable: true
         type: array
         description: Cluster networks that are associated with this cluster.
         items:
-          type: object
           $ref: '#/definitions/cluster_network'
       service_networks:
         x-go-custom-tag: gorm:"foreignkey:ClusterID;references:ID"
+        x-nullable: true
         type: array
         description: Service networks that are associated with this cluster.
         items:
-          type: object
           $ref: '#/definitions/service_network'
       machine_networks:
         x-go-custom-tag: gorm:"foreignkey:ClusterID;references:ID"
+        x-nullable: true
         type: array
         description: Machine networks that are associated with this cluster.
         items:
-          type: object
           $ref: '#/definitions/machine_network'
       cpu_architecture:
         type: string
@@ -4885,7 +4868,6 @@ definitions:
         default: 'x86_64'
         description: The CPU architecture of the image (x86_64/arm64/etc).
       ignition_endpoint:
-        type: object
         $ref: '#/definitions/ignition-endpoint'
         description: Explicit ignition endpoint overrides the default ignition endpoint.
       imported:
@@ -5212,22 +5194,18 @@ definitions:
       cluster_networks_ipv4:
         type: array
         items:
-          type: object
           $ref: '#/definitions/cluster_network'
       cluster_networks_dualstack:
         type: array
         items:
-          type: object
           $ref: '#/definitions/cluster_network'
       service_networks_ipv4:
         type: array
         items:
-          type: object
           $ref: '#/definitions/service_network'
       service_networks_dualstack:
         type: array
         items:
-          type: object
           $ref: '#/definitions/service_network'
       forbidden_hostnames:
         description: This provides a list of forbidden hostnames. If this list is empty or not present, this implies that the UI should fall back to a hard coded list.
@@ -6338,7 +6316,7 @@ definitions:
           isolcpus=1,2,10-20,100-2000:2/25
           quiet
           The parsing by the command line parser in linux kernel is much looser and this pattern follows it.
-       
+
 
   kernel_arguments:
     description: List of kernel arugment objects that define the operations and values to be applied.

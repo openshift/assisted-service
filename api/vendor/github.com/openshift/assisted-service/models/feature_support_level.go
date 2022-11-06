@@ -126,12 +126,14 @@ func (m *FeatureSupportLevel) UnmarshalBinary(b []byte) error {
 type FeatureSupportLevelFeaturesItems0 struct {
 
 	// The ID of the feature
+	// Required: true
 	// Enum: [ADDITIONAL_NTP_SOURCE REQUESTED_HOSTNAME PROXY SNO DAY2_HOSTS VIP_AUTO_ALLOC DISK_SELECTION OVN_NETWORK_TYPE SDN_NETWORK_TYPE PLATFORM_SELECTION SCHEDULABLE_MASTERS AUTO_ASSIGN_ROLE CUSTOM_MANIFEST DISK_ENCRYPTION CLUSTER_MANAGED_NETWORKING_WITH_VMS ARM64_ARCHITECTURE ARM64_ARCHITECTURE_WITH_CLUSTER_MANAGED_NETWORKING SINGLE_NODE_EXPANSION LVM DUAL_STACK_NETWORKING MULTIARCH_RELEASE_IMAGE NUTANIX_INTEGRATION]
-	FeatureID string `json:"feature_id,omitempty"`
+	FeatureID *string `json:"feature_id"`
 
 	// support level
+	// Required: true
 	// Enum: [supported unsupported tech-preview dev-preview]
-	SupportLevel string `json:"support_level,omitempty"`
+	SupportLevel *string `json:"support_level"`
 }
 
 // Validate validates this feature support level features items0
@@ -242,12 +244,13 @@ func (m *FeatureSupportLevelFeaturesItems0) validateFeatureIDEnum(path, location
 }
 
 func (m *FeatureSupportLevelFeaturesItems0) validateFeatureID(formats strfmt.Registry) error {
-	if swag.IsZero(m.FeatureID) { // not required
-		return nil
+
+	if err := validate.Required("feature_id", "body", m.FeatureID); err != nil {
+		return err
 	}
 
 	// value enum
-	if err := m.validateFeatureIDEnum("feature_id", "body", m.FeatureID); err != nil {
+	if err := m.validateFeatureIDEnum("feature_id", "body", *m.FeatureID); err != nil {
 		return err
 	}
 
@@ -290,12 +293,13 @@ func (m *FeatureSupportLevelFeaturesItems0) validateSupportLevelEnum(path, locat
 }
 
 func (m *FeatureSupportLevelFeaturesItems0) validateSupportLevel(formats strfmt.Registry) error {
-	if swag.IsZero(m.SupportLevel) { // not required
-		return nil
+
+	if err := validate.Required("support_level", "body", m.SupportLevel); err != nil {
+		return err
 	}
 
 	// value enum
-	if err := m.validateSupportLevelEnum("support_level", "body", m.SupportLevel); err != nil {
+	if err := m.validateSupportLevelEnum("support_level", "body", *m.SupportLevel); err != nil {
 		return err
 	}
 
