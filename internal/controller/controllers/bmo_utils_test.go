@@ -5,6 +5,7 @@ import (
 
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 	v1 "github.com/openshift/api/config/v1"
 	"github.com/openshift/assisted-service/internal/common"
@@ -36,28 +37,24 @@ var _ = Describe("BMOUtils", func() {
 	AfterEach(func() {
 		mockCtrl.Finish()
 	})
-	Context("Check converged flow availability", func() {
-		It("converged flow available", func() {
-			bmoUtils := BMOUtils{
-				c:              c,
-				log:            log,
-				kubeAPIEnabled: true,
-			}
-			clusterOperator := CreateCBO("4.12.0")
-			Expect(c.Create(context.Background(), clusterOperator)).To(BeNil())
-			Expect(bmoUtils.ConvergedFlowAvailable()).Should(Equal(true))
-		})
-		It("converged flow available with candidate version", func() {
-			bmoUtils := BMOUtils{
-				c:              c,
-				log:            log,
-				kubeAPIEnabled: true,
-			}
-			clusterOperator := CreateCBO("4.12.0-ec.4")
-			Expect(c.Create(context.Background(), clusterOperator)).To(BeNil())
-			Expect(bmoUtils.ConvergedFlowAvailable()).Should(Equal(true))
-		})
-		It("converged flow unavailable cluster version is lower than minimal version", func() {
+	Context("ConvergedFlowAvailable", func() {
+		DescribeTable("returns true with",
+			func(version string) {
+				bmoUtils := BMOUtils{
+					c:              c,
+					log:            log,
+					kubeAPIEnabled: true,
+				}
+				clusterOperator := CreateCBO(version)
+				Expect(c.Create(context.Background(), clusterOperator)).To(BeNil())
+				Expect(bmoUtils.ConvergedFlowAvailable()).Should(Equal(true))
+			},
+			Entry("version 4.12.0", "4.12.0"),
+			Entry("version 4.12.1", "4.12.1"),
+			Entry("version 4.12.0-ec.4", "4.12.0-ec.4"),
+			Entry("version 4.12.0-0.nightly-2022-10-25-210451", "4.12.0-0.nightly-2022-10-25-210451"),
+		)
+		It("returns false when version is lower than minimal version", func() {
 			bmoUtils := BMOUtils{
 				c:              c,
 				log:            log,
@@ -67,7 +64,7 @@ var _ = Describe("BMOUtils", func() {
 			Expect(c.Create(context.Background(), clusterOperator)).To(BeNil())
 			Expect(bmoUtils.ConvergedFlowAvailable()).Should(Equal(false))
 		})
-		It("converged flow unavailable failed to find cluster version", func() {
+		It("returns false when it fails to find cluster version", func() {
 			bmoUtils := BMOUtils{
 				c:              c,
 				log:            log,
