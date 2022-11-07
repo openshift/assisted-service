@@ -601,11 +601,11 @@ func (m *Manager) UpdateInstallProgress(ctx context.Context, h *models.Host, pro
 			swag.StringValue(h.Status), models.HostStatusError, statusInfo)
 	case models.HostStageRebooting:
 		if swag.StringValue(h.Kind) == models.HostKindAddToExistingClusterHost {
-			infoMessage := statusInfo
+			infoMessage := statusInfoRebootingDay2
 			stage := models.HostStageDone
-			if !m.kubeApiEnabled {
+			if m.kubeApiEnabled {
 				// in case kubeApiEnabled the agent controller will keep updating the host stage until the installation is complete
-				infoMessage = statusInfoRebootingDay2
+				infoMessage = statusInfo
 				stage = models.HostStageRebooting
 			}
 			_, err = hostutil.UpdateHostProgress(ctx, logutil.FromContext(ctx, m.log), m.db, m.eventsHandler, h.InfraEnvID, *h.ID,
