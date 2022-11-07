@@ -32,16 +32,20 @@ func TestValidator(t *testing.T) {
 }
 
 const (
-	defaultMasterCores              = 1
-	defaultMasterRam                = 1024
-	defaultMasterDiskSize           = 10
-	defaultMasterDiskSpeedThreshold = 4
-	defaultWorkerCores              = 2
-	defaultWorkerRam                = 2048
-	defaultWorkerDiskSize           = 20
-	defaultWorkerDiskSpeedThreshold = 2
-	defaultSnoCores                 = 8
-	defaultSnoRam                   = 16384
+	defaultMasterCores                  = 1
+	defaultMasterRam                    = 1024
+	defaultMasterDiskSize               = 10
+	defaultMasterDiskSpeedThreshold     = 4
+	defaultWorkerCores                  = 2
+	defaultWorkerRam                    = 2048
+	defaultWorkerDiskSize               = 20
+	defaultWorkerDiskSpeedThreshold     = 2
+	defaultSnoCores                     = 8
+	defaultSnoRam                       = 16384
+	defaultEdgeWorkerCores              = 1
+	defaultEdgeWorkerRam                = 3048
+	defaultEdgeWorkerDiskSize           = 16
+	defaultEdgeWorkerDiskSpeedThreshold = 5
 )
 
 var _ = Describe("Disk eligibility", func() {
@@ -68,6 +72,12 @@ var _ = Describe("Disk eligibility", func() {
 				RAMMib:                           defaultSnoRam,
 				DiskSizeGb:                       minDiskSizeGb,
 				InstallationDiskSpeedThresholdMs: defaultMasterDiskSpeedThreshold,
+			},
+			EdgeWorkerRequirements: &models.ClusterHostRequirementsDetails{
+				CPUCores:                         defaultEdgeWorkerCores,
+				RAMMib:                           defaultEdgeWorkerRam,
+				DiskSizeGb:                       defaultEdgeWorkerDiskSize,
+				InstallationDiskSpeedThresholdMs: defaultEdgeWorkerDiskSpeedThreshold,
 			},
 		},
 	}
@@ -436,6 +446,12 @@ var _ = Describe("Cluster host requirements", func() {
 				"disk_size_gb":                         defaultMasterDiskSize,
 				"installation_disk_speed_threshold_ms": defaultMasterDiskSpeedThreshold,
 			},
+			"edge-worker": map[string]interface{}{
+				"cpu_cores":                            defaultEdgeWorkerCores,
+				"ram_mib":                              defaultEdgeWorkerRam,
+				"disk_size_gb":                         defaultEdgeWorkerDiskSize,
+				"installation_disk_speed_threshold_ms": defaultEdgeWorkerDiskSpeedThreshold,
+			},
 		},
 		{
 			"version": "4.6",
@@ -481,6 +497,14 @@ var _ = Describe("Cluster host requirements", func() {
 				"network_latency_threshold_ms":         1100,
 				"packet_loss_percentage":               11,
 			},
+			"edge-worker": map[string]interface{}{
+				"cpu_cores":                            7,
+				"ram_mib":                              3444,
+				"disk_size_gb":                         16,
+				"installation_disk_speed_threshold_ms": 3,
+				"network_latency_threshold_ms":         1100,
+				"packet_loss_percentage":               11,
+			},
 		},
 	}
 
@@ -505,6 +529,7 @@ var _ = Describe("Cluster host requirements", func() {
 		versionRequirements, err := json.Marshal(versionRequirementsSource)
 		Expect(err).ToNot(HaveOccurred())
 		_ = os.Setenv(prefixedRequirementsEnv, string(versionRequirements))
+		_ = os.Setenv("EDGE_WORKERS_PRODUCT_NAMES", "test, BlueField SoC,marvell")
 		Expect(envconfig.Process(common.EnvConfigPrefix, &cfg)).ShouldNot(HaveOccurred())
 		Expect(cfg.VersionedRequirements).ToNot(HaveKey(openShiftVersionNotInJSON))
 		details1 = models.ClusterHostRequirementsDetails{
@@ -618,6 +643,126 @@ var _ = Describe("Cluster host requirements", func() {
 		Expect(result.Total.InstallationDiskSpeedThresholdMs).To(BeEquivalentTo(defaultWorkerDiskSpeedThreshold))
 		Expect(result.Total.NetworkLatencyThresholdMs).To(Equal(details1.NetworkLatencyThresholdMs))
 		Expect(result.Total.PacketLossPercentage).To(Equal(details1.PacketLossPercentage))
+	})
+
+	It("edge worker requirements - should contain correct default edge worker for bluefield card", func() {
+		role := models.HostRoleWorker
+		id1 := strfmt.UUID(uuid.New().String())
+		inventory := &models.Inventory{
+			CPU:          &models.CPU{Count: 2, Architecture: common.ARM64CPUArchitecture},
+			SystemVendor: &models.SystemVendor{ProductName: "blueField SoC"},
+		}
+		hw, err := json.Marshal(&inventory)
+		Expect(err).NotTo(HaveOccurred())
+		host = &models.Host{ID: &id1, ClusterID: cluster.ID, Role: role, Inventory: string(hw)}
+
+		operatorsMock.EXPECT().GetRequirementsBreakdownForHostInCluster(gomock.Any(), gomock.Eq(cluster), gomock.Eq(host)).Return(operatorRequirements, nil)
+
+		result, err := hwvalidator.GetClusterHostRequirements(context.TODO(), cluster, host)
+
+		Expect(err).ToNot(HaveOccurred())
+		Expect(result).ToNot(BeNil())
+
+		Expect(result.Ocp.DiskSizeGb).To(BeEquivalentTo(defaultEdgeWorkerDiskSize))
+		Expect(result.Ocp.CPUCores).To(BeEquivalentTo(defaultEdgeWorkerCores))
+		Expect(result.Ocp.RAMMib).To(BeEquivalentTo(defaultEdgeWorkerRam))
+		Expect(result.Ocp.InstallationDiskSpeedThresholdMs).To(BeEquivalentTo(defaultEdgeWorkerDiskSpeedThreshold))
+	})
+
+	It("edge worker requirements with master role - even if it is bluefield cards, we still must return master requirements", func() {
+		role := models.HostRoleMaster
+		id1 := strfmt.UUID(uuid.New().String())
+		inventory := &models.Inventory{
+			CPU:          &models.CPU{Count: 2, Architecture: common.ARM64CPUArchitecture},
+			SystemVendor: &models.SystemVendor{ProductName: "blueField SoC"},
+		}
+		hw, err := json.Marshal(&inventory)
+		Expect(err).NotTo(HaveOccurred())
+		host = &models.Host{ID: &id1, ClusterID: cluster.ID, Role: role, Inventory: string(hw)}
+
+		operatorsMock.EXPECT().GetRequirementsBreakdownForHostInCluster(gomock.Any(), gomock.Eq(cluster), gomock.Eq(host)).Return(operatorRequirements, nil)
+
+		result, err := hwvalidator.GetClusterHostRequirements(context.TODO(), cluster, host)
+
+		Expect(err).ToNot(HaveOccurred())
+		Expect(result).ToNot(BeNil())
+
+		Expect(result.Ocp.DiskSizeGb).To(BeEquivalentTo(defaultMasterDiskSize))
+		Expect(result.Ocp.CPUCores).To(BeEquivalentTo(defaultMasterCores))
+		Expect(result.Ocp.RAMMib).To(BeEquivalentTo(defaultMasterRam))
+		Expect(result.Ocp.InstallationDiskSpeedThresholdMs).To(BeEquivalentTo(defaultMasterDiskSpeedThreshold))
+	})
+
+	It("edge worker requirements with x86 cpu type - return default worker requirements", func() {
+		role := models.HostRoleWorker
+		id1 := strfmt.UUID(uuid.New().String())
+		inventory := &models.Inventory{
+			CPU:          &models.CPU{Count: 2, Architecture: common.DefaultCPUArchitecture},
+			SystemVendor: &models.SystemVendor{ProductName: "blueField SoC"},
+		}
+		hw, err := json.Marshal(&inventory)
+		Expect(err).NotTo(HaveOccurred())
+		host = &models.Host{ID: &id1, ClusterID: cluster.ID, Role: role, Inventory: string(hw)}
+
+		operatorsMock.EXPECT().GetRequirementsBreakdownForHostInCluster(gomock.Any(), gomock.Eq(cluster), gomock.Eq(host)).Return(operatorRequirements, nil)
+
+		result, err := hwvalidator.GetClusterHostRequirements(context.TODO(), cluster, host)
+
+		Expect(err).ToNot(HaveOccurred())
+		Expect(result).ToNot(BeNil())
+
+		Expect(result.Ocp.DiskSizeGb).To(BeEquivalentTo(defaultWorkerDiskSize))
+		Expect(result.Ocp.CPUCores).To(BeEquivalentTo(defaultWorkerCores))
+		Expect(result.Ocp.RAMMib).To(BeEquivalentTo(defaultWorkerRam))
+		Expect(result.Ocp.InstallationDiskSpeedThresholdMs).To(BeEquivalentTo(defaultWorkerDiskSpeedThreshold))
+	})
+
+	It("edge worker requirements with wrong product name - return default worker requirements", func() {
+		role := models.HostRoleWorker
+		id1 := strfmt.UUID(uuid.New().String())
+		inventory := &models.Inventory{
+			CPU:          &models.CPU{Count: 2, Architecture: common.DefaultCPUArchitecture},
+			SystemVendor: &models.SystemVendor{ProductName: "ding dong SoC"},
+		}
+		hw, err := json.Marshal(&inventory)
+		Expect(err).NotTo(HaveOccurred())
+		host = &models.Host{ID: &id1, ClusterID: cluster.ID, Role: role, Inventory: string(hw)}
+
+		operatorsMock.EXPECT().GetRequirementsBreakdownForHostInCluster(gomock.Any(), gomock.Eq(cluster), gomock.Eq(host)).Return(operatorRequirements, nil)
+
+		result, err := hwvalidator.GetClusterHostRequirements(context.TODO(), cluster, host)
+
+		Expect(err).ToNot(HaveOccurred())
+		Expect(result).ToNot(BeNil())
+
+		Expect(result.Ocp.DiskSizeGb).To(BeEquivalentTo(defaultWorkerDiskSize))
+		Expect(result.Ocp.CPUCores).To(BeEquivalentTo(defaultWorkerCores))
+		Expect(result.Ocp.RAMMib).To(BeEquivalentTo(defaultWorkerRam))
+		Expect(result.Ocp.InstallationDiskSpeedThresholdMs).To(BeEquivalentTo(defaultWorkerDiskSpeedThreshold))
+	})
+
+	It("edge worker requirements lower case product name - should contain correct default edge worker for bluefield card", func() {
+		role := models.HostRoleWorker
+		id1 := strfmt.UUID(uuid.New().String())
+		inventory := &models.Inventory{
+			CPU:          &models.CPU{Count: 2, Architecture: common.ARM64CPUArchitecture},
+			SystemVendor: &models.SystemVendor{ProductName: "bluefield soc "},
+		}
+		hw, err := json.Marshal(&inventory)
+		Expect(err).NotTo(HaveOccurred())
+		host = &models.Host{ID: &id1, ClusterID: cluster.ID, Role: role, Inventory: string(hw)}
+
+		operatorsMock.EXPECT().GetRequirementsBreakdownForHostInCluster(gomock.Any(), gomock.Eq(cluster), gomock.Eq(host)).Return(operatorRequirements, nil)
+
+		result, err := hwvalidator.GetClusterHostRequirements(context.TODO(), cluster, host)
+
+		Expect(err).ToNot(HaveOccurred())
+		Expect(result).ToNot(BeNil())
+
+		Expect(result.Ocp.DiskSizeGb).To(BeEquivalentTo(defaultEdgeWorkerDiskSize))
+		Expect(result.Ocp.CPUCores).To(BeEquivalentTo(defaultEdgeWorkerCores))
+		Expect(result.Ocp.RAMMib).To(BeEquivalentTo(defaultEdgeWorkerRam))
+		Expect(result.Ocp.InstallationDiskSpeedThresholdMs).To(BeEquivalentTo(defaultEdgeWorkerDiskSpeedThreshold))
 	})
 
 	It("should fail providing on operator API error", func() {
@@ -750,6 +895,12 @@ var _ = Describe("Preflight host requirements", func() {
 				DiskSizeGb:                       defaultMasterDiskSize,
 				InstallationDiskSpeedThresholdMs: defaultMasterDiskSpeedThreshold,
 			},
+			EdgeWorkerRequirements: &models.ClusterHostRequirementsDetails{
+				CPUCores:                         defaultWorkerCores,
+				RAMMib:                           defaultWorkerRam,
+				DiskSizeGb:                       defaultWorkerDiskSize,
+				InstallationDiskSpeedThresholdMs: defaultWorkerDiskSpeedThreshold,
+			},
 		},
 		"4.6": {
 			Version: "4.6",
@@ -766,6 +917,11 @@ var _ = Describe("Preflight host requirements", func() {
 			SNORequirements: &models.ClusterHostRequirementsDetails{
 				CPUCores:   8,
 				RAMMib:     16384,
+				DiskSizeGb: 100,
+			},
+			EdgeWorkerRequirements: &models.ClusterHostRequirementsDetails{
+				CPUCores:   2,
+				RAMMib:     8192,
 				DiskSizeGb: 100,
 			},
 		},
@@ -787,6 +943,12 @@ var _ = Describe("Preflight host requirements", func() {
 				CPUCores:   7,
 				RAMMib:     31744,
 				DiskSizeGb: 103,
+			},
+			EdgeWorkerRequirements: &models.ClusterHostRequirementsDetails{
+				CPUCores:                         3,
+				RAMMib:                           9216,
+				DiskSizeGb:                       102,
+				InstallationDiskSpeedThresholdMs: 2,
 			},
 		},
 	}

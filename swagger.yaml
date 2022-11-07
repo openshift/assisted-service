@@ -3742,6 +3742,10 @@ definitions:
         x-go-name: SNORequirements
         $ref: '#/definitions/cluster-host-requirements-details'
         description: Single node OpenShift node requirements
+      edge-worker:
+        x-go-name: EdgeWorkerRequirements
+        $ref: '#/definitions/cluster-host-requirements-details'
+        description: Edge Worker OpenShift node requirements
 
   event-list:
     type: array

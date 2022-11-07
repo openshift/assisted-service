@@ -9359,6 +9359,11 @@ func init() {
     "versioned-host-requirements": {
       "type": "object",
       "properties": {
+        "edge-worker": {
+          "description": "Edge Worker OpenShift node requirements",
+          "x-go-name": "EdgeWorkerRequirements",
+          "$ref": "#/definitions/cluster-host-requirements-details"
+        },
         "master": {
           "description": "Master node requirements",
           "x-go-name": "MasterRequirements",
@@ -18851,6 +18856,11 @@ func init() {
     "versioned-host-requirements": {
       "type": "object",
       "properties": {
+        "edge-worker": {
+          "description": "Edge Worker OpenShift node requirements",
+          "x-go-name": "EdgeWorkerRequirements",
+          "$ref": "#/definitions/cluster-host-requirements-details"
+        },
         "master": {
           "description": "Master node requirements",
           "x-go-name": "MasterRequirements",

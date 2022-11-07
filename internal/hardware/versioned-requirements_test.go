@@ -63,6 +63,12 @@ var _ = Describe("Versioned Requirements", func() {
 							"disk_size_gb":                         100,
 							"installation_disk_speed_threshold_ms": 4,
 						},
+						"edge-worker": map[string]interface{}{
+							"cpu_cores":                            2,
+							"ram_mib":                              8192,
+							"disk_size_gb":                         100,
+							"installation_disk_speed_threshold_ms": 3,
+						},
 					},
 				},
 				map[string]models.VersionedHostRequirements{
@@ -74,6 +80,8 @@ var _ = Describe("Versioned Requirements", func() {
 							RAMMib: conversions.GibToMib(8), InstallationDiskSpeedThresholdMs: 3},
 						SNORequirements: &models.ClusterHostRequirementsDetails{CPUCores: 8, DiskSizeGb: 100,
 							RAMMib: conversions.GibToMib(32), InstallationDiskSpeedThresholdMs: 4},
+						EdgeWorkerRequirements: &models.ClusterHostRequirementsDetails{CPUCores: 2, DiskSizeGb: 100,
+							RAMMib: conversions.GibToMib(8), InstallationDiskSpeedThresholdMs: 3},
 					}}),
 			table.Entry("Two versions - full",
 				[]map[string]interface{}{
@@ -97,6 +105,12 @@ var _ = Describe("Versioned Requirements", func() {
 							"disk_size_gb":                         100,
 							"installation_disk_speed_threshold_ms": 4,
 						},
+						"edge-worker": map[string]interface{}{
+							"cpu_cores":                            2,
+							"ram_mib":                              8192,
+							"disk_size_gb":                         100,
+							"installation_disk_speed_threshold_ms": 1,
+						},
 					}, {
 						"version": "4.7.0",
 						"master": map[string]interface{}{
@@ -116,6 +130,11 @@ var _ = Describe("Versioned Requirements", func() {
 							"disk_size_gb":                         103,
 							"installation_disk_speed_threshold_ms": 4,
 						},
+						"edge-worker": map[string]interface{}{
+							"cpu_cores":    3,
+							"ram_mib":      9216,
+							"disk_size_gb": 102,
+						},
 					},
 				},
 				map[string]models.VersionedHostRequirements{
@@ -127,6 +146,8 @@ var _ = Describe("Versioned Requirements", func() {
 							RAMMib: conversions.GibToMib(8), InstallationDiskSpeedThresholdMs: 1},
 						SNORequirements: &models.ClusterHostRequirementsDetails{CPUCores: 8, DiskSizeGb: 100,
 							RAMMib: conversions.GibToMib(32), InstallationDiskSpeedThresholdMs: 4},
+						EdgeWorkerRequirements: &models.ClusterHostRequirementsDetails{CPUCores: 2, DiskSizeGb: 100,
+							RAMMib: conversions.GibToMib(8), InstallationDiskSpeedThresholdMs: 1},
 					},
 					"4.7.0": {Version: "4.7.0",
 						MasterRequirements: &models.ClusterHostRequirementsDetails{CPUCores: 5, DiskSizeGb: 101,
@@ -134,6 +155,7 @@ var _ = Describe("Versioned Requirements", func() {
 						WorkerRequirements: &models.ClusterHostRequirementsDetails{CPUCores: 3, DiskSizeGb: 102, RAMMib: conversions.GibToMib(9)},
 						SNORequirements: &models.ClusterHostRequirementsDetails{CPUCores: 7, DiskSizeGb: 103,
 							RAMMib: conversions.GibToMib(31), InstallationDiskSpeedThresholdMs: 4},
+						EdgeWorkerRequirements: &models.ClusterHostRequirementsDetails{CPUCores: 3, DiskSizeGb: 102, RAMMib: conversions.GibToMib(9)},
 					}}),
 		)
 
@@ -237,6 +259,12 @@ var _ = Describe("Versioned Requirements", func() {
 						"disk_size_gb":                         100,
 						"installation_disk_speed_threshold_ms": 4,
 					},
+					"edge-worker": map[string]interface{}{
+						"cpu_cores":                            2,
+						"ram_mib":                              8192,
+						"disk_size_gb":                         100,
+						"installation_disk_speed_threshold_ms": 3,
+					},
 				},
 			}
 			cfg, err := configureRequirements(jsonSpec)
@@ -253,6 +281,8 @@ var _ = Describe("Versioned Requirements", func() {
 					RAMMib: conversions.GibToMib(8), InstallationDiskSpeedThresholdMs: 3},
 				SNORequirements: &models.ClusterHostRequirementsDetails{CPUCores: 8, DiskSizeGb: 100,
 					RAMMib: conversions.GibToMib(32), InstallationDiskSpeedThresholdMs: 4},
+				EdgeWorkerRequirements: &models.ClusterHostRequirementsDetails{CPUCores: 2, DiskSizeGb: 100,
+					RAMMib: conversions.GibToMib(8), InstallationDiskSpeedThresholdMs: 3},
 			}
 			Expect(*requirements).To(BeEquivalentTo(expected))
 		})
@@ -315,6 +345,8 @@ var _ = Describe("Versioned Requirements", func() {
 					RAMMib: conversions.GibToMib(8), InstallationDiskSpeedThresholdMs: 3},
 				SNORequirements: &models.ClusterHostRequirementsDetails{CPUCores: 8, DiskSizeGb: 100,
 					RAMMib: conversions.GibToMib(32), InstallationDiskSpeedThresholdMs: 4},
+				EdgeWorkerRequirements: &models.ClusterHostRequirementsDetails{CPUCores: 2, DiskSizeGb: 100,
+					RAMMib: conversions.GibToMib(8), InstallationDiskSpeedThresholdMs: 3},
 			}
 			Expect(*requirements).To(BeEquivalentTo(expected))
 		})
@@ -341,6 +373,12 @@ var _ = Describe("Versioned Requirements", func() {
 						"disk_size_gb":                         100,
 						"installation_disk_speed_threshold_ms": 4,
 					},
+					"edge-worker": map[string]interface{}{
+						"cpu_cores":                            2,
+						"ram_mib":                              8192,
+						"disk_size_gb":                         100,
+						"installation_disk_speed_threshold_ms": 3,
+					},
 				},
 			}
 			cfg, err := configureRequirements(jsonSpec)
@@ -357,6 +395,8 @@ var _ = Describe("Versioned Requirements", func() {
 					RAMMib: conversions.GibToMib(8), InstallationDiskSpeedThresholdMs: 3},
 				SNORequirements: &models.ClusterHostRequirementsDetails{CPUCores: 8, DiskSizeGb: 100,
 					RAMMib: conversions.GibToMib(32), InstallationDiskSpeedThresholdMs: 4},
+				EdgeWorkerRequirements: &models.ClusterHostRequirementsDetails{CPUCores: 2, DiskSizeGb: 100,
+					RAMMib: conversions.GibToMib(8), InstallationDiskSpeedThresholdMs: 3},
 			}
 			Expect(*requirements).To(BeEquivalentTo(expected))
 
