@@ -10,9 +10,19 @@ spec:
     name: '{{ cluster_image_set_name }}'
 {% if spoke_api_vip %}
   apiVIP: '{{ spoke_api_vip }}'
+  apiVIPs:
+    - '{{ spoke_api_vip }}'
+{% if spoke_api_vip_secondary|length %}
+    - '{{ spoke_api_vip_secondary }}'
+{% endif %}
 {% endif %}
 {% if spoke_ingress_vip %}
   ingressVIP: '{{ spoke_ingress_vip }}'
+  ingressVIPs:
+    - '{{ spoke_ingress_vip }}'
+{% if spoke_ingress_vip_secondary|length %}
+    - '{{ spoke_ingress_vip_secondary }}'
+{% endif %}
 {% endif %}
   networking:
     clusterNetwork:
