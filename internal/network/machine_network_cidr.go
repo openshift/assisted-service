@@ -243,7 +243,7 @@ func GetPrimaryMachineCidrForUserManagedNetwork(cluster *common.Cluster, log log
 		return ""
 	}
 
-	networks := GetClusterNetworks([]*models.Host{bootstrap}, log)
+	networks := GetInventoryNetworks([]*models.Host{bootstrap}, log)
 	if len(networks) > 0 {
 		// if there is ipv4 network, return it or return the first one
 		for _, network := range networks {
@@ -269,7 +269,7 @@ func GetMachineNetworksFromBoostrapHost(cluster *common.Cluster, log logrus.Fiel
 		return []*models.MachineNetwork{}
 	}
 
-	networks := GetClusterNetworks([]*models.Host{bootstrap}, log)
+	networks := GetInventoryNetworks([]*models.Host{bootstrap}, log)
 	var v4net, v6net string
 	res := []*models.MachineNetwork{}
 	if len(networks) > 0 {
@@ -311,7 +311,7 @@ func GetIpForSingleNodeInstallation(cluster *common.Cluster, log logrus.FieldLog
 	return hostIp, nil
 }
 
-func GetClusterNetworks(hosts []*models.Host, log logrus.FieldLogger) []string {
+func GetInventoryNetworks(hosts []*models.Host, log logrus.FieldLogger) []string {
 	var err error
 	cidrs := make(map[string]bool)
 	for _, h := range hosts {
@@ -351,8 +351,8 @@ func GetClusterNetworks(hosts []*models.Host, log logrus.FieldLogger) []string {
 	return ret
 }
 
-func GetClusterNetworksByFamily(hosts []*models.Host, log logrus.FieldLogger) (map[AddressFamily][]string, error) {
-	networks := GetClusterNetworks(hosts, log)
+func GetInventoryNetworksByFamily(hosts []*models.Host, log logrus.FieldLogger) (map[AddressFamily][]string, error) {
+	networks := GetInventoryNetworks(hosts, log)
 	ret := make(map[AddressFamily][]string)
 	for _, n := range networks {
 		family, err := CidrToAddressFamily(n)

@@ -398,7 +398,7 @@ func (m *Manager) GetMasterNodesIds(ctx context.Context, c *common.Cluster, db *
 }
 
 func (m *Manager) tryAssignMachineCidrDHCPMode(cluster *common.Cluster) error {
-	networks := network.GetClusterNetworks(cluster.Hosts, m.log)
+	networks := network.GetInventoryNetworks(cluster.Hosts, m.log)
 	if len(networks) == 1 {
 		/*
 		 * Auto assign machine network CIDR is relevant if there is only single host network.  Otherwise the user
@@ -437,7 +437,7 @@ func (m *Manager) tryAssignMachineCidrSNO(cluster *common.Cluster) error {
 	}
 	if reflect.DeepEqual(clusterFamilies, serviceFamilies) {
 		var pendingCidrs []string
-		cidrsByFamily, err := network.GetClusterNetworksByFamily(cluster.Hosts, m.log)
+		cidrsByFamily, err := network.GetInventoryNetworksByFamily(cluster.Hosts, m.log)
 		if err != nil {
 			return err
 		}
@@ -1062,7 +1062,7 @@ func (m *Manager) setConnectivityMajorityGroupsForClusterInternal(cluster *commo
 		return hosts[i].ID.String() < hosts[j].ID.String()
 	})
 	majorityGroups := make(map[string][]strfmt.UUID)
-	for _, cidr := range network.GetClusterNetworks(hosts, m.log) {
+	for _, cidr := range network.GetInventoryNetworks(hosts, m.log) {
 		majorityGroup, err := network.CreateL2MajorityGroup(cidr, hosts)
 		if err != nil {
 			m.log.WithError(err).Warnf("Create majority group for %s", cidr)
