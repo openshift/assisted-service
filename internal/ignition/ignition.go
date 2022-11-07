@@ -391,6 +391,12 @@ func (g *installerGenerator) Generate(ctx context.Context, installConfig []byte,
 		}
 	}
 
+	err = g.applyManifestPatches(ctx)
+	if err != nil {
+		log.WithError(err).Errorf("failed to apply manifests' patches for cluster '%s'", g.cluster.ID)
+		return err
+	}
+
 	err = g.applyInfrastructureCRPatch(ctx)
 	if err != nil {
 		log.WithError(err).Errorf("failed to patch the infrastructure CR manifest '%s'", common.PlatformTypeValue(g.cluster.Platform.Type))
@@ -466,6 +472,77 @@ func (g *installerGenerator) addBootstrapKubeletIpIfRequired(log logrus.FieldLog
 		envVars = append(envVars, "OPENSHIFT_INSTALL_BOOTSTRAP_NODE_IP="+bootstrapIp)
 	}
 	return envVars, nil
+}
+
+func (g *installerGenerator) applyManifestPatches(ctx context.Context) error {
+	log := logutil.FromContext(ctx, g.log)
+	manifestsOpenShiftDir := filepath.Join(g.workDir, "openshift")
+
+	// File path walks the directory in lexical order, which means it's possible to have some control on
+	// how files are being walked through by using a numeric prefix for the patch extension. For example:
+	// - cluster-scheduler-02-config.yml.patch_01_set_schedulable_masters
+	// - cluster-scheduler-02-config.yml.patch_02_something_else
+	err := filepath.Walk(manifestsOpenShiftDir, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+
+		// We allow files that have the following extension .y(a)ml.patch(_something).
+		// This allows to pushing multuple patches for the same Manifest.
+		extension := filepath.Ext(info.Name())
+		if !strings.HasPrefix(extension, ".patch") {
+			return nil
+		}
+
+		// This is the path to the patch
+		manifestPatchPath := filepath.Join(manifestsOpenShiftDir, info.Name())
+		log.Debugf("Applying the following patch: %s", manifestPatchPath)
+		manifestPatch, err := os.ReadFile(manifestPatchPath)
+		if err != nil {
+			return errors.Wrapf(err, "failed to read manifest patch %s", manifestPatchPath)
+		}
+		log.Debugf("read the manifest at %s", manifestPatchPath)
+
+		// Let's look for the actual manifest. Code first looks in the `openshift` directory and
+		// fallsback to the `manifests` directory if no patch was found in the former.
+		manifestPath := filepath.Join(manifestsOpenShiftDir, strings.TrimSuffix(info.Name(), extension))
+		if _, err = os.Stat(manifestPath); errors.Is(err, os.ErrNotExist) {
+			log.Debugf("Manifest %s does not exist. Trying with the openshift dir next")
+			manifestPath = filepath.Join(g.workDir, "manifests", strings.TrimSuffix(info.Name(), extension))
+		}
+
+		data, err := os.ReadFile(manifestPath)
+		if err != nil {
+			return errors.Wrapf(err, "failed to read manifest %s", manifestPath)
+		}
+		log.Debugf("read the manifest at %s", manifestPath)
+
+		// Let's apply the patch now since both files have been read
+		data, err = common.ApplyYamlPatch(data, manifestPatch)
+		if err != nil {
+			return errors.Wrapf(err, "failed to patch manifest \"%s\"", manifestPath)
+		}
+		log.Debugf("applied the yaml patch to the manifest at %s: \n %s", manifestPath, string(data[:]))
+
+		err = os.WriteFile(manifestPath, data, 0600)
+		if err != nil {
+			return errors.Wrapf(err, "failed to write manifest \"%s\"", manifestPath)
+		}
+
+		log.Debugf("wrote the resulting manifest at %s", manifestPath)
+
+		err = os.Remove(manifestPatchPath)
+		if err != nil {
+			return errors.Wrapf(err, "failed to remove patch %s", manifestPatchPath)
+		}
+		return nil
+	})
+
+	if err != nil {
+		return errors.Wrapf(err, "failed to apply patches")
+	}
+
+	return nil
 }
 
 func (g *installerGenerator) applyInfrastructureCRPatch(ctx context.Context) error {
