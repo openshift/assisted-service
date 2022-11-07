@@ -51,7 +51,7 @@ const (
 	InfraEnvLabel                    = "infraenvs.agent-install.openshift.io"
 )
 
-//go:generate mockgen --build_flags=--mod=mod -package=controllers -destination=mock_k8s_client.go . K8sClient
+//go:generate mockgen --build_flags=--mod=mod -package=controllers -destination=mock_k8s_client.generated_go . K8sClient
 type K8sClient interface {
 	client.Client
 }

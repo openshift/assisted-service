@@ -29,7 +29,7 @@ const (
 	wrongMultipathTypeTemplate = "Multipath device has path of type %s, it must be %s"
 )
 
-//go:generate mockgen -source=validator.go -package=hardware -destination=mock_validator.go
+//go:generate mockgen -source=validator.go -package=hardware -destination=mock_validator.generated_go
 type Validator interface {
 	GetHostValidDisks(host *models.Host) ([]*models.Disk, error)
 	GetHostInstallationPath(host *models.Host) string

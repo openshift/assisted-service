@@ -25,7 +25,7 @@ type StaticNetworkConfigData struct {
 	FileContents string
 }
 
-//go:generate mockgen -source=generator.go -package=staticnetworkconfig -destination=mock_generator.go
+//go:generate mockgen -source=generator.go -package=staticnetworkconfig -destination=mock_generator.generated_go
 type StaticNetworkConfig interface {
 	GenerateStaticNetworkConfigData(ctx context.Context, hostsYAMLS string) ([]StaticNetworkConfigData, error)
 	FormatStaticNetworkConfigForDB(staticNetworkConfig []*models.HostStaticNetworkConfig) (string, error)

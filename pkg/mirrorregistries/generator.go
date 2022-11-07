@@ -8,7 +8,7 @@ import (
 	"github.com/pelletier/go-toml"
 )
 
-//go:generate mockgen -source=generator.go -package=mirrorregistries -destination=mock_generator.go
+//go:generate mockgen -source=generator.go -package=mirrorregistries -destination=mock_generator.generated_go
 type MirrorRegistriesConfigBuilder interface {
 	IsMirrorRegistriesConfigured() bool
 	GetMirrorCA() ([]byte, error)

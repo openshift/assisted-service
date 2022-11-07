@@ -30,7 +30,7 @@ type transitionHandler struct {
 	eventsHandler eventsapi.Handler
 }
 
-//go:generate mockgen -source=transition.go -package=host -destination=mock_transition.go
+//go:generate mockgen -source=transition.go -package=host -destination=mock_transition.generated_go
 type TransitionHandler interface {
 	HasClusterError(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) (bool, error)
 	HasInstallationInProgressTimedOut(sw stateswitch.StateSwitch, _ stateswitch.TransitionArgs) (bool, error)

@@ -9,7 +9,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-//go:generate mockgen -source=extract.go -package=oc -destination=mock_extract.go
+//go:generate mockgen -source=extract.go -package=oc -destination=mock_extract.generated_go
 type Extracter interface {
 	Extract(log logrus.FieldLogger, imageIndexPath string, openshiftVersion string, filePath string, pullSecret string, insecure bool) (string, error)
 	ExtractDatabaseIndex(log logrus.FieldLogger, releaseImageMirror string, openshiftVersion string, pullSecret string) (string, error)

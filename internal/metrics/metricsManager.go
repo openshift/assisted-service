@@ -14,7 +14,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-//go:generate mockgen -source=metricsManager.go -package=metrics -destination=mock_metrics_manager_api.go
+//go:generate mockgen -source=metricsManager.go -package=metrics -destination=mock_metrics_manager_api.generated_go
 
 //////////////////////////////////////////
 // counters name and description

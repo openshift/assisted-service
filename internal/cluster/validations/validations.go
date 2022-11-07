@@ -52,7 +52,7 @@ func init() {
 
 // PullSecretValidator is used run validations on a provided pull secret
 // it verifies the format of the pull secrete and access to required image registries
-//go:generate mockgen -source=validations.go -package=validations -destination=mock_validations.go
+//go:generate mockgen -source=validations.go -package=validations -destination=mock_validations.generated_go
 type PullSecretValidator interface {
 	ValidatePullSecret(secret string, username string) error
 }

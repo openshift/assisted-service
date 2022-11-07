@@ -21,7 +21,7 @@ import (
 	"github.com/thoas/go-funk"
 )
 
-//go:generate mockgen -source=manifests_generator.go -package=network -destination=mock_manifests_generator.go
+//go:generate mockgen -source=manifests_generator.go -package=network -destination=mock_manifests_generator.generated_go
 
 type ManifestsGeneratorAPI interface {
 	AddChronyManifest(ctx context.Context, log logrus.FieldLogger, c *common.Cluster) error

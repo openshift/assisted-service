@@ -10,7 +10,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-//go:generate mockgen -source=pullsecret_auth.go -package=ocm -destination=mock_pullsecret_auth.go
+//go:generate mockgen -source=pullsecret_auth.go -package=ocm -destination=mock_pullsecret_auth.generated_go
 type OCMAuthentication interface {
 	AuthenticatePullSecret(ctx context.Context, pullSecret string) (user *AuthPayload, err error)
 }

@@ -11,7 +11,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-//go:generate mockgen -source=authorization.go -package=ocm -destination=mock_authorization.go
+//go:generate mockgen -source=authorization.go -package=ocm -destination=mock_authorization.generated_go
 type OCMAuthorization interface {
 	AccessReview(ctx context.Context, username, action, subscriptionId, resourceType string) (allowed bool, err error)
 	CapabilityReview(ctx context.Context, username, capabilityName, capabilityType string) (allowed bool, err error)

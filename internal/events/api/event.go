@@ -34,7 +34,7 @@ type Sender interface {
 	SendInfraEnvEventAtTime(ctx context.Context, event InfraEnvEvent, eventTime time.Time)
 }
 
-//go:generate mockgen -source=event.go -package=api -destination=mock_event.go
+//go:generate mockgen -source=event.go -package=api -destination=mock_event.generated_go
 type Handler interface {
 	Sender
 	V2GetEvents(ctx context.Context, clusterID *strfmt.UUID, hostID *strfmt.UUID, infraEnvID *strfmt.UUID, categories ...string) ([]*common.Event, error)

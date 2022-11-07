@@ -67,7 +67,7 @@ var ClusterOwnerFileNames = []string{
 	"kubeconfig-noingress",
 }
 
-//go:generate mockgen -source=cluster.go -package=cluster -destination=mock_cluster_api.go
+//go:generate mockgen -source=cluster.go -package=cluster -destination=mock_cluster_api.generated_go
 
 type RegistrationAPI interface {
 	// Register a new cluster

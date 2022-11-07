@@ -26,7 +26,7 @@ type ValidationResult struct {
 }
 
 // Operator provides generic API of an OLM operator installation plugin
-//go:generate mockgen --build_flags=--mod=mod -package=api -self_package=github.com/openshift/assisted-service/internal/operators/api -destination=mock_operator_api.go . Operator
+//go:generate mockgen --build_flags=--mod=mod -package=api -self_package=github.com/openshift/assisted-service/internal/operators/api -destination=mock_operator_api.generated_go . Operator
 type Operator interface {
 	// GetName reports the name of an operator this Operator manages
 	GetName() string

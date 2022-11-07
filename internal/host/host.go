@@ -61,7 +61,7 @@ type LogTimeoutConfig struct {
 	LogPendingTimeout    time.Duration `envconfig:"HOST_LOG_PENDING_TIMEOUT" default:"2m"`
 }
 
-//go:generate mockgen --build_flags=--mod=mod -package=host -aux_files=github.com/openshift/assisted-service/internal/host/hostcommands=instruction_manager.go -destination=mock_host_api.go . API
+//go:generate mockgen --build_flags=--mod=mod -package=host -aux_files=github.com/openshift/assisted-service/internal/host/hostcommands=instruction_manager.go -destination=mock_host_api.generated_go . API
 type API interface {
 	hostcommands.InstructionApi
 	// Register a new host

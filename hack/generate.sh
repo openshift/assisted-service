@@ -19,7 +19,7 @@ function generate_python_client() {
     cp "${dest}"/assisted-service-client/dist/assisted-service-client-*.tar.gz "${dest}"
 }
 
-function validate_swagger_file() {
+function validate_generated_models() {
     egrep -r 'Dash|Dot' models/*.go | grep -v //  | awk '\
         {reversed=gensub("Dash","-","g", $2); \
          reversed=gensub("Dot",".","g",reversed); \

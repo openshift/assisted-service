@@ -15,7 +15,7 @@ var _ API = &UsageManager{}
 
 type FeatureUsage map[string]models.Usage
 
-//go:generate mockgen -source=manager.go -package=usage -destination=mock_usage_manager.go
+//go:generate mockgen -source=manager.go -package=usage -destination=mock_usage_manager.generated_go
 type API interface {
 	Add(usages FeatureUsage, Name string, data *map[string]interface{})
 	Remove(usages FeatureUsage, name string)

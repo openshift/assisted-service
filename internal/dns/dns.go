@@ -44,7 +44,7 @@ type DNSApi interface {
 	ValidateDNSRecords(cluster common.Cluster, domain *DNSDomain) error
 }
 
-//go:generate mockgen -source=dns.go -package=dns -destination=mock_dns.go
+//go:generate mockgen -source=dns.go -package=dns -destination=mock_dns.generated_go
 type DNSProviderFactory interface {
 	GetProviderByRecordType(domain *DNSDomain, recordType string) dnsproviders.Provider
 	GetProvider(domain *DNSDomain) dnsproviders.Provider

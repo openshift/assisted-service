@@ -44,7 +44,7 @@ type Manager struct {
 }
 
 // API defines Operator management operation
-//go:generate mockgen --build_flags=--mod=mod -package=operators -destination=mock_operators_api.go . API
+//go:generate mockgen --build_flags=--mod=mod -package=operators -destination=mock_operators_api.generated_go . API
 type API interface {
 	// ValidateCluster validates cluster requirements
 	ValidateCluster(ctx context.Context, cluster *common.Cluster) ([]api.ValidationResult, error)

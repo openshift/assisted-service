@@ -11,7 +11,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 )
 
-//go:generate mockgen --build_flags=--mod=mod -package=controllers -destination=mock_spoke_client_cache.go . SpokeClientCache
+//go:generate mockgen --build_flags=--mod=mod -package=controllers -destination=mock_spoke_client_cache.generated_go . SpokeClientCache
 type SpokeClientCache interface {
 	Get(secret *corev1.Secret) (spoke_k8s_client.SpokeK8sClient, error)
 }

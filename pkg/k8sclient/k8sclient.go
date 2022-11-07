@@ -14,7 +14,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
-//go:generate mockgen -source=k8sclient.go -package=k8sclient -destination=mock_k8sclient.go
+//go:generate mockgen -source=k8sclient.go -package=k8sclient -destination=mock_k8sclient.generated_go
 type K8SClient interface {
 	GetConfigMap(namespace string, name string) (*v1.ConfigMap, error)
 	GetClusterVersion(name string) (*configv1.ClusterVersion, error)

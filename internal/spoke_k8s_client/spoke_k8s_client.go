@@ -38,14 +38,14 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-//go:generate mockgen --build_flags=--mod=mod -package=spoke_k8s_client -destination=mock_spoke_k8s_client_factory.go . SpokeK8sClientFactory
+//go:generate mockgen --build_flags=--mod=mod -package=spoke_k8s_client -destination=mock_spoke_k8s_client_factory.generated_go . SpokeK8sClientFactory
 type SpokeK8sClientFactory interface {
 	CreateFromSecret(secret *corev1.Secret) (SpokeK8sClient, error)
 	CreateFromRawKubeconfig(kubeconfig []byte) (SpokeK8sClient, error)
 	CreateFromStorageKubeconfig(ctx context.Context, clusterId *strfmt.UUID, objectHandler s3wrapper.API) (SpokeK8sClient, error)
 }
 
-//go:generate mockgen --build_flags=--mod=mod -package=spoke_k8s_client -destination=mock_spoke_k8s_client.go . SpokeK8sClient
+//go:generate mockgen --build_flags=--mod=mod -package=spoke_k8s_client -destination=mock_spoke_k8s_client.generated_go . SpokeK8sClient
 type SpokeK8sClient interface {
 	client.Client
 	ListCsrs() (*certificatesv1.CertificateSigningRequestList, error)

@@ -16,7 +16,7 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-//go:generate mockgen -source=builder.go -package=builder -destination=mock_installcfg.go
+//go:generate mockgen -source=builder.go -package=builder -destination=mock_installcfg.generated_go
 type InstallConfigBuilder interface {
 	GetInstallConfig(cluster *common.Cluster, clusterInfraenvs []*common.InfraEnv, rhRootCA string) ([]byte, error)
 	ValidateInstallConfigPatch(cluster *common.Cluster, clusterInfraenvs []*common.InfraEnv, patch string) error

@@ -20,7 +20,7 @@ import (
 type MustGatherVersion map[string]string
 type MustGatherVersions map[string]MustGatherVersion
 
-//go:generate mockgen --build_flags=--mod=mod -package versions -destination mock_versions.go -self_package github.com/openshift/assisted-service/internal/versions . Handler
+//go:generate mockgen --build_flags=--mod=mod -package versions -destination mock_versions.generated_go -self_package github.com/openshift/assisted-service/internal/versions . Handler
 type Handler interface {
 	GetReleaseImage(ctx context.Context, openshiftVersion, cpuArchitecture, pullSecret string) (*models.ReleaseImage, error)
 	GetDefaultReleaseImage(cpuArchitecture string) (*models.ReleaseImage, error)

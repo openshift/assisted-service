@@ -38,7 +38,7 @@ type Config struct {
 	RetryDelay time.Duration
 }
 
-//go:generate mockgen -source=release.go -package=oc -destination=mock_release.go
+//go:generate mockgen -source=release.go -package=oc -destination=mock_release.generated_go
 type Release interface {
 	GetMCOImage(log logrus.FieldLogger, releaseImage string, releaseImageMirror string, pullSecret string) (string, error)
 	GetIronicAgentImage(log logrus.FieldLogger, releaseImage string, releaseImageMirror string, pullSecret string) (string, error)

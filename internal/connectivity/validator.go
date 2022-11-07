@@ -10,7 +10,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-//go:generate mockgen -source=validator.go -package=connectivity -destination=mock_connectivity_validator.go
+//go:generate mockgen -source=validator.go -package=connectivity -destination=mock_connectivity_validator.generated_go
 type Validator interface {
 	GetHostValidInterfaces(host *models.Host) ([]*models.Interface, error)
 }

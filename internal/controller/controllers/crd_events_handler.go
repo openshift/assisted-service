@@ -7,7 +7,7 @@ import (
 
 const EventsChannelSize = 200
 
-//go:generate mockgen --build_flags=--mod=mod -package controllers -destination mock_crd_events_handler.go . CRDEventsHandler
+//go:generate mockgen --build_flags=--mod=mod -package controllers -destination mock_crd_events_handler.generated_go . CRDEventsHandler
 type CRDEventsHandler interface {
 	NotifyClusterDeploymentUpdates(clusterDeploymentName string, clusterDeploymentNamespace string)
 	NotifyInfraEnvUpdates(infraEnvName string, infraEnvNamespace string)

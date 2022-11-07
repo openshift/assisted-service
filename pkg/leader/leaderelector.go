@@ -23,7 +23,7 @@ type Config struct {
 	Namespace     string        `envconfig:"NAMESPACE" default:"assisted-installer"`
 }
 
-//go:generate mockgen -source=leaderelector.go -package=leader -destination=mock_leader_elector.go
+//go:generate mockgen -source=leaderelector.go -package=leader -destination=mock_leader_elector.generated_go
 
 type Leader interface {
 	IsLeader() bool

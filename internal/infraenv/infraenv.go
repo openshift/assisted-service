@@ -13,7 +13,7 @@ import (
 	"gorm.io/gorm"
 )
 
-//go:generate mockgen --build_flags=--mod=mod -package=infraenv -destination=mock_infraenv_api.go . API
+//go:generate mockgen --build_flags=--mod=mod -package=infraenv -destination=mock_infraenv_api.generated_go . API
 type API interface {
 	DeleteOrphanInfraEnvs(ctx context.Context, maxDeletePerInterval int, inactiveSince strfmt.DateTime) error
 	DeregisterInfraEnv(ctx context.Context, infraEnvId strfmt.UUID) error
