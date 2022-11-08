@@ -6857,7 +6857,8 @@ func init() {
                   "LVM",
                   "DUAL_STACK_NETWORKING",
                   "MULTIARCH_RELEASE_IMAGE",
-                  "NUTANIX_INTEGRATION"
+                  "NUTANIX_INTEGRATION",
+                  "DUAL_STACK_VIPS"
                 ]
               },
               "support_level": {
@@ -14741,7 +14742,8 @@ func init() {
             "LVM",
             "DUAL_STACK_NETWORKING",
             "MULTIARCH_RELEASE_IMAGE",
-            "NUTANIX_INTEGRATION"
+            "NUTANIX_INTEGRATION",
+            "DUAL_STACK_VIPS"
           ]
         },
         "support_level": {
