@@ -1311,14 +1311,6 @@ func (r *ClusterDeploymentsReconciler) createNewDay2Cluster(
 	return r.updateStatus(ctx, log, clusterInstall, c, err)
 }
 
-func (r *ClusterDeploymentsReconciler) getReleaseImage(ctx context.Context, spec hiveext.AgentClusterInstallSpec) (string, error) {
-	releaseImage, err := getReleaseImage(ctx, r.Client, spec.ImageSetRef.Name)
-	if err != nil {
-		return "", err
-	}
-	return releaseImage, nil
-}
-
 func (r *ClusterDeploymentsReconciler) addReleaseImage(
 	ctx context.Context,
 	log logrus.FieldLogger,
@@ -1330,7 +1322,7 @@ func (r *ClusterDeploymentsReconciler) addReleaseImage(
 
 	// retrieve the release image url from the associated
 	// ClusterImageSetRef
-	releaseImageUrl, err := r.getReleaseImage(ctx, spec)
+	releaseImageUrl, err := getReleaseImage(ctx, r.Client, spec.ImageSetRef.Name)
 	if err != nil {
 		return nil, err
 	}
