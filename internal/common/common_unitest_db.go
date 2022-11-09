@@ -28,11 +28,11 @@ import (
 )
 
 /*
-  Database connection handling funcs. This supports running Postgres in:
-	* k8s cluster
-	* if k8s connection is not available try to run it as docker container
+	  Database connection handling funcs. This supports running Postgres in:
+		* k8s cluster
+		* if k8s connection is not available try to run it as docker container
 
-	When SKIP_UT_DB env var is set localhost:5432 is being used.
+		When SKIP_UT_DB env var is set localhost:5432 is being used.
 */
 const (
 	dbDockerName  = "ut-postgres"
@@ -41,7 +41,7 @@ const (
 	k8sNamespace = "assisted-installer"
 )
 
-/// DBContext is an interface for various DB implementations
+// / DBContext is an interface for various DB implementations
 type DBContext interface {
 	GetHostPort() (string, string)
 	Create() error
@@ -330,7 +330,9 @@ func getDBContext() DBContext {
 
 func InitializeDBTest() {
 	var dbTemp *gorm.DB
-	dbTemp, _ = openTopTestDBConn()
+	var err error
+	dbTemp, err = openTopTestDBConn()
+	Expect(err).To(BeNil())
 	CloseDB(dbTemp)
 }
 
@@ -397,10 +399,22 @@ func openTestDB(dbName string) (*gorm.DB, error) {
 			IgnoreRecordNotFoundError: true,        // Ignore ErrRecordNotFound error for logger
 		},
 	)
-	return gorm.Open(postgres.Open(dsn), &gorm.Config{
-		DisableForeignKeyConstraintWhenMigrating: true,
-		Logger:                                   newLogger,
-	})
+
+	open := func() (*gorm.DB, error) {
+		return gorm.Open(postgres.Open(dsn), &gorm.Config{
+			DisableForeignKeyConstraintWhenMigrating: true,
+			Logger:                                   newLogger,
+		})
+	}
+
+	for attempts := 0; attempts < 5; attempts++ {
+		db, err := open()
+		if err == nil {
+			return db, nil
+		}
+		time.Sleep(time.Second)
+	}
+	return open()
 }
 
 func openTopTestDBConn() (*gorm.DB, error) {
