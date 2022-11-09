@@ -114,10 +114,11 @@ var _ = Describe("Ignition endpoint URL generation", func() {
 	var host models.Host
 	var cluster common.Cluster
 	var db *gorm.DB
+	var dbName string
 	var id, clusterID, infraEnvID strfmt.UUID
 
 	BeforeEach(func() {
-		db, _ = common.PrepareTestDB()
+		db, dbName = common.PrepareTestDB()
 
 		id = strfmt.UUID(uuid.New().String())
 		clusterID = strfmt.UUID(uuid.New().String())
@@ -127,6 +128,10 @@ var _ = Describe("Ignition endpoint URL generation", func() {
 		apiVipDNSName := "test.com"
 		cluster = common.Cluster{Cluster: models.Cluster{ID: &clusterID, APIVipDNSName: &apiVipDNSName}}
 		Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
+	})
+
+	AfterEach(func() {
+		common.DeleteTestDB(db, dbName)
 	})
 
 	Context("using GetIgnitionEndpoint function", func() {
@@ -175,5 +180,7 @@ var _ = Describe("Ignition endpoint URL generation", func() {
 
 func TestHostUtil(t *testing.T) {
 	RegisterFailHandler(Fail)
+	common.InitializeDBTest()
+	defer common.TerminateDBTest()
 	RunSpecs(t, "HostUtil Tests")
 }
