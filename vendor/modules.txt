@@ -583,12 +583,12 @@ github.com/openshift/api/route/v1
 ## explicit; go 1.16
 github.com/openshift/assisted-image-service/pkg/servers
 # github.com/openshift/assisted-service/api v0.0.0 => ./api
-## explicit; go 1.17
+## explicit; go 1.18
 github.com/openshift/assisted-service/api/common
 github.com/openshift/assisted-service/api/hiveextension/v1beta1
 github.com/openshift/assisted-service/api/v1beta1
 # github.com/openshift/assisted-service/models v0.0.0 => ./models
-## explicit; go 1.17
+## explicit; go 1.18
 github.com/openshift/assisted-service/models
 # github.com/openshift/client-go v0.0.0-20201020074620-f8fd44879f7c
 ## explicit; go 1.13
@@ -1000,8 +1000,6 @@ golang.org/x/tools/internal/gocommand
 golang.org/x/tools/internal/gopathwalk
 golang.org/x/tools/internal/imports
 golang.org/x/tools/internal/typeparams
-# golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1
-## explicit; go 1.11
 # gomodules.xyz/jsonpatch/v2 v2.2.0
 ## explicit; go 1.12
 gomodules.xyz/jsonpatch/v2

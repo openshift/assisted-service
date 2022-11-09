@@ -93,7 +93,7 @@ github.com/oklog/ulid
 ## explicit; go 1.15
 github.com/openshift/api/config/v1
 # github.com/openshift/assisted-service/models v0.0.0 => ../models
-## explicit; go 1.17
+## explicit; go 1.18
 github.com/openshift/assisted-service/models
 # github.com/openshift/custom-resource-status v1.1.1
 ## explicit; go 1.12

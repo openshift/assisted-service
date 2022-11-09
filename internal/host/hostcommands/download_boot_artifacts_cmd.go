@@ -41,7 +41,7 @@ func NewDownloadBootArtifactsCmd(log logrus.FieldLogger, imageServiceBaseUrl str
 }
 
 func (c *downloadBootArtifactsCmd) GetSteps(ctx context.Context, host *models.Host) ([]*models.Step, error) {
-	var infraEnv *common.InfraEnv = nil
+	var infraEnv *common.InfraEnv
 	infraEnv, err := common.GetInfraEnvFromDB(c.db, host.InfraEnvID)
 	if err != nil {
 		return nil, err
