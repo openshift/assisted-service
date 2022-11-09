@@ -16,7 +16,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-const MinimalVersionForConvergedFlow = "4.12.0-ec.4"
+const MinimalVersionForConvergedFlow = "4.12.0-0.alpha"
 
 type BMOUtils struct {
 	// The methods of this receiver get called once before the cache is initialized hence we check the API directly
