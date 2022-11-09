@@ -38,20 +38,33 @@ func (f *freeAddressesCmd) prepareParam(host *models.Host) (string, error) {
 		f.log.WithError(err).Warn("Inventory parse")
 		return "", err
 	}
-	m := make(map[string]struct{})
+
+	cidrDedupSet := make(map[string]struct{})
+	ipv4InterfaceSkipped := false
 	for _, intf := range inventory.Interfaces {
 		for _, ipv4 := range intf.IPV4Addresses {
 			var cidr *net.IPNet
 			_, cidr, err = net.ParseCIDR(ipv4)
+
+			ones, bits := cidr.Mask.Size()
+
+			// Ignore subnets with size 8192 or more
+			if bits-ones > 12 {
+				f.log.Warnf("Skipping address scan for IPv4 CIDR %s for host %s because it contains more than 4096 addresses",
+					cidr.String(), host.ID.String())
+				ipv4InterfaceSkipped = true
+				continue
+			}
+
 			if err != nil {
 				f.log.WithError(err).Warn("Cidr parse")
 				return "", err
 			}
-			m[cidr.String()] = struct{}{}
+			cidrDedupSet[cidr.String()] = struct{}{}
 		}
 	}
-	if len(m) == 0 {
-		if hasIPv6Addresses(&inventory) {
+	if len(cidrDedupSet) == 0 {
+		if hasIPv6Addresses(&inventory) || ipv4InterfaceSkipped {
 			return "", nil
 		}
 		err = errors.Errorf("No networks found for host %s", host.ID.String())
@@ -59,7 +72,7 @@ func (f *freeAddressesCmd) prepareParam(host *models.Host) (string, error) {
 		return "", err
 	}
 	request := models.FreeAddressesRequest{}
-	for cidr := range m {
+	for cidr := range cidrDedupSet {
 		request = append(request, cidr)
 	}
 	b, err := json.Marshal(&request)

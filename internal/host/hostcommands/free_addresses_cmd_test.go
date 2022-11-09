@@ -2,6 +2,7 @@ package hostcommands
 
 import (
 	"context"
+	"encoding/json"
 
 	"github.com/go-openapi/strfmt"
 	"github.com/google/uuid"
@@ -53,6 +54,53 @@ var _ = Describe("free_addresses", func() {
 		stepReply, stepErr = fCmd.GetSteps(ctx, &host)
 		Expect(stepReply).To(BeNil())
 		Expect(stepErr).To(HaveOccurred())
+	})
+
+	It("Some large ipv4 networks", func() {
+		var originalInventory models.Inventory
+		Expect(json.Unmarshal([]byte(host.Inventory), &originalInventory)).To(Succeed())
+
+		originalInventory.Interfaces = []*models.Interface{}
+
+		newInterface1 := models.Interface{
+			IPV4Addresses: []string{"192.18.128.0/18"},
+			IPV6Addresses: []string{},
+			Name:          "chocobomb",
+		}
+		originalInventory.Interfaces = append(originalInventory.Interfaces, &newInterface1)
+
+		newInterface2 := models.Interface{
+			IPV4Addresses: []string{"192.18.128.0/22"},
+			IPV6Addresses: []string{},
+			Name:          "chocobomb",
+		}
+		originalInventory.Interfaces = append(originalInventory.Interfaces, &newInterface2)
+
+		newInventoryBytes, err := json.Marshal(&originalInventory)
+		Expect(err).ToNot(HaveOccurred())
+		host.Inventory = string(newInventoryBytes)
+		stepReply, stepErr = fCmd.GetSteps(ctx, &host)
+		Expect(stepReply[0].StepType).To(Equal(models.StepTypeFreeNetworkAddresses))
+		stepReplyDecoded := &models.FreeAddressesRequest{}
+		Expect(json.Unmarshal([]byte(stepReply[0].Args[0]), stepReplyDecoded)).To(Succeed())
+		Expect(stepReplyDecoded).To(Equal(&models.FreeAddressesRequest{"192.18.128.0/22"}))
+		Expect(stepErr).ShouldNot(HaveOccurred())
+	})
+
+	It("Only large ipv4 networks - no error", func() {
+		var originalInventory models.Inventory
+		Expect(json.Unmarshal([]byte(host.Inventory), &originalInventory)).To(Succeed())
+		originalInventory.Interfaces = []*models.Interface{{
+			IPV4Addresses: []string{"192.18.128.0/18"},
+			IPV6Addresses: []string{},
+			Name:          "chocobomb",
+		}}
+		newInventoryBytes, err := json.Marshal(&originalInventory)
+		Expect(err).ToNot(HaveOccurred())
+		host.Inventory = string(newInventoryBytes)
+		stepReply, stepErr = fCmd.GetSteps(ctx, &host)
+		Expect(stepReply).To(BeNil())
+		Expect(stepErr).ShouldNot(HaveOccurred())
 	})
 
 	It("IPv6 only", func() {
