@@ -1297,7 +1297,8 @@ var _ = Describe("cluster install", func() {
 				usage.VipDhcpAllocationUsage,
 				usage.CPUArchitectureARM64,
 				usage.SDNNetworkTypeUsage,
-				usage.DualStackUsage)
+				usage.DualStackUsage,
+				usage.DualStackVipsUsage)
 		})
 
 		It("report usage on update cluster", func() {
@@ -1342,6 +1343,7 @@ var _ = Describe("cluster install", func() {
 			verifyUsageNotSet(getReply.Payload.FeatureUsage,
 				usage.SDNNetworkTypeUsage,
 				usage.DualStackUsage,
+				usage.DualStackVipsUsage,
 				usage.HyperthreadingUsage)
 			verifyUsageSet(getReply.Payload.FeatureUsage,
 				models.Usage{Name: usage.OVNNetworkTypeUsage},
@@ -1414,6 +1416,49 @@ var _ = Describe("cluster install", func() {
 				strings.ToUpper("console"),
 				usage.VipDhcpAllocationUsage,
 				usage.CPUArchitectureARM64,
+				usage.SDNNetworkTypeUsage,
+				usage.DualStackVipsUsage)
+		})
+
+		It("report usage new dual-stack cluster with dual-stack VIPs", func() {
+			registerClusterReply, err := userBMClient.Installer.V2RegisterCluster(ctx, &installer.V2RegisterClusterParams{
+				NewClusterParams: &models.ClusterCreateParams{
+					APIVip:        "1.2.3.8",
+					APIVips:       []*models.APIVip{{IP: "1.2.3.8"}, {IP: "1001:db8::8"}},
+					IngressVip:    "1.2.3.9",
+					IngressVips:   []*models.IngressVip{{IP: "1.2.3.9"}, {IP: "1001:db8::9"}},
+					BaseDNSDomain: "example.com",
+					ClusterNetworks: []*models.ClusterNetwork{
+						{Cidr: models.Subnet(clusterCIDR), HostPrefix: 23},
+						{Cidr: models.Subnet(clusterCIDRv6), HostPrefix: 64}},
+					ServiceNetworks: []*models.ServiceNetwork{
+						{Cidr: models.Subnet(serviceCIDR)},
+						{Cidr: models.Subnet(serviceCIDRv6)}},
+					MachineNetworks: []*models.MachineNetwork{
+						{Cidr: models.Subnet(machineCIDR)},
+						{Cidr: models.Subnet(machineCIDRv6)}},
+					Name:                 swag.String("sno-cluster"),
+					OpenshiftVersion:     swag.String(snoVersion),
+					PullSecret:           swag.String(pullSecret),
+					SSHPublicKey:         sshPublicKey,
+					VipDhcpAllocation:    swag.Bool(false),
+					NetworkType:          swag.String("OVNKubernetes"),
+					HighAvailabilityMode: swag.String(models.ClusterHighAvailabilityModeNone),
+				},
+			})
+			Expect(err).NotTo(HaveOccurred())
+			cluster = registerClusterReply.GetPayload()
+			getReply, err := userBMClient.Installer.V2GetCluster(ctx, &installer.V2GetClusterParams{ClusterID: *cluster.ID})
+			Expect(err).NotTo(HaveOccurred())
+			log.Infof("usage after create: %s\n", getReply.Payload.FeatureUsage)
+			verifyUsageSet(getReply.Payload.FeatureUsage,
+				models.Usage{Name: usage.HighAvailabilityModeUsage},
+				models.Usage{Name: usage.DualStackUsage},
+				models.Usage{Name: usage.DualStackVipsUsage})
+			verifyUsageNotSet(getReply.Payload.FeatureUsage,
+				strings.ToUpper("console"),
+				usage.VipDhcpAllocationUsage,
+				usage.CPUArchitectureARM64,
 				usage.SDNNetworkTypeUsage)
 		})
 
@@ -1436,7 +1481,8 @@ var _ = Describe("cluster install", func() {
 			verifyUsageNotSet(getReply.Payload.FeatureUsage,
 				usage.VipDhcpAllocationUsage,
 				usage.SDNNetworkTypeUsage,
-				usage.DualStackUsage)
+				usage.DualStackUsage,
+				usage.DualStackVipsUsage)
 		})
 	})
 

@@ -2471,6 +2471,7 @@ func (b *bareMetalInventory) updateNetworkParams(params installer.V2UpdateCluste
 
 	b.setUsage(vipDhcpAllocation, usage.VipDhcpAllocationUsage, nil, usages)
 	b.setUsage(network.CheckIfClusterIsDualStack(cluster), usage.DualStackUsage, nil, usages)
+	b.setUsage(len(cluster.APIVips) > 1, usage.DualStackVipsUsage, nil, usages)
 	return nil
 }
 
@@ -2546,6 +2547,7 @@ func (b *bareMetalInventory) setDefaultUsage(cluster *models.Cluster) error {
 	b.setOperatorsUsage(olmOperators, []*models.MonitoredOperator{}, usages)
 	b.setNetworkTypeUsage(cluster.NetworkType, usages)
 	b.setUsage(network.CheckIfClusterModelIsDualStack(cluster), usage.DualStackUsage, nil, usages)
+	b.setUsage(len(cluster.APIVips) > 1, usage.DualStackVipsUsage, nil, usages)
 	b.setDiskEncryptionUsage(cluster, cluster.DiskEncryption, usages)
 	b.setUsage(cluster.Tags != "", usage.ClusterTags, nil, usages)
 	b.setUsage(cluster.Hyperthreading != models.ClusterHyperthreadingNone, usage.HyperthreadingUsage,

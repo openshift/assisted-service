@@ -53,4 +53,6 @@ const (
 	HyperthreadingUsage string = "Hyperthreading"
 	// Usage of discovery kernel arguments
 	DiscoveryKernelArgumentsUsage = "discovery kernel arguments"
+	// Cluster uses dual-stack VIPs
+	DualStackVipsUsage string = "Dual-stack VIPs"
 )
