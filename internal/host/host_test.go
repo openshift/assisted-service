@@ -47,7 +47,6 @@ var (
 var _ = BeforeEach(func() {
 	defaultConfig = &Config{
 		ResetTimeout:             3 * time.Minute,
-		EnableAutoReset:          true,
 		EnableAutoAssign:         true,
 		MonitorBatchSize:         100,
 		DisabledHostvalidations:  defaultDisabledHostValidations,
@@ -852,7 +851,7 @@ var _ = Describe("reset host", func() {
 			Expect(h.LogsCollectedAt).ShouldNot(Equal(strfmt.DateTime(time.Time{})))
 			Expect(state.ResetHost(ctx, &h, "some reason", db)).ShouldNot(HaveOccurred())
 			db.First(&h, "id = ? and cluster_id = ?", h.ID, *h.ClusterID)
-			Expect(*h.Status).Should(Equal(models.HostStatusResetting))
+			Expect(*h.Status).Should(Equal(models.HostStatusResettingPendingUserAction))
 			events, err := eventsHandler.V2GetEvents(ctx, h.ClusterID, h.ID, nil)
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(len(events)).ShouldNot(Equal(0))
@@ -860,7 +859,6 @@ var _ = Describe("reset host", func() {
 			Expect(*resetEvent.Severity).Should(Equal(models.EventSeverityInfo))
 			eventMessage := fmt.Sprintf("Installation reset for host %s", hostutil.GetHostnameForMsg(&h))
 			Expect(*resetEvent.Message).Should(Equal(eventMessage))
-			Expect(time.Time(h.LogsCollectedAt).Equal(time.Time{})).Should(BeTrue())
 		})
 
 		It("register resetting host", func() {
@@ -938,7 +936,7 @@ var _ = Describe("reset host", func() {
 				OpenshiftClusterID: strfmt.UUID(uuid.New().String()),
 			}}
 			Expect(db.Create(&c).Error).ShouldNot(HaveOccurred())
-			h = hostutil.GenerateTestHost(id, infraEnvId, clusterId, models.HostStatusDiscovering)
+			h = hostutil.GenerateTestHost(id, infraEnvId, clusterId, models.HostStatusReclaiming)
 			Expect(db.Create(&h).Error).ShouldNot(HaveOccurred())
 			reply := state.ResetHost(ctx, &h, "some reason", db)
 			Expect(int(reply.StatusCode())).Should(Equal(http.StatusConflict))

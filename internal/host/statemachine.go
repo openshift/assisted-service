@@ -9,7 +9,6 @@ const (
 	TransitionTypeRegisterHost               = "RegisterHost"
 	TransitionTypeHostInstallationFailed     = "HostInstallationFailed"
 	TransitionTypeCancelInstallation         = "CancelInstallation"
-	TransitionTypeResetHost                  = "ResetHost"
 	TransitionTypeInstallHost                = "InstallHost"
 	TransitionTypeResettingPendingUserAction = "ResettingPendingUserAction"
 	TransitionTypeRefresh                    = "RefreshHost"
@@ -152,40 +151,6 @@ func NewHostStateMachine(sm stateswitch.StateMachine, th TransitionHandler) stat
 		DestinationState: stateswitch.State(models.HostStatusKnown),
 	})
 
-	// Reset host
-	sm.AddTransition(stateswitch.TransitionRule{
-		TransitionType: TransitionTypeResetHost,
-		SourceStates: []stateswitch.State{
-			stateswitch.State(models.HostStatusInstallingPendingUserAction),
-			stateswitch.State(models.HostStatusInstalling),
-			stateswitch.State(models.HostStatusInstallingInProgress),
-			stateswitch.State(models.HostStatusInstalled),
-			stateswitch.State(models.HostStatusError),
-			stateswitch.State(models.HostStatusCancelled),
-			stateswitch.State(models.HostStatusAddedToExistingCluster),
-		},
-		DestinationState: stateswitch.State(models.HostStatusResetting),
-		PostTransition:   th.PostResetHost,
-	})
-
-	sm.AddTransition(stateswitch.TransitionRule{
-		TransitionType: TransitionTypeResetHost,
-		SourceStates: []stateswitch.State{
-			stateswitch.State(models.HostStatusPreparingForInstallation),
-			stateswitch.State(models.HostStatusPreparingSuccessful),
-		},
-		DestinationState: stateswitch.State(models.HostStatusKnown),
-		PostTransition:   th.PostResetHost,
-	})
-
-	sm.AddTransition(stateswitch.TransitionRule{
-		TransitionType: TransitionTypeResetHost,
-		SourceStates: []stateswitch.State{
-			stateswitch.State(models.HostStatusKnown),
-		},
-		DestinationState: stateswitch.State(models.HostStatusKnown),
-	})
-
 	// Install host
 
 	// Install day2 host
@@ -210,6 +175,9 @@ func NewHostStateMachine(sm stateswitch.StateMachine, th TransitionHandler) stat
 			stateswitch.State(models.HostStatusInstalling),
 			stateswitch.State(models.HostStatusPreparingForInstallation),
 			stateswitch.State(models.HostStatusPreparingSuccessful),
+			stateswitch.State(models.HostStatusPreparingFailed),
+			stateswitch.State(models.HostStatusPendingForInput),
+			stateswitch.State(models.HostStatusResettingPendingUserAction),
 			stateswitch.State(models.HostStatusInstallingInProgress),
 			stateswitch.State(models.HostStatusInstalled),
 			stateswitch.State(models.HostStatusError),

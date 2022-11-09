@@ -12,7 +12,6 @@ import (
 
 type Config struct {
 	LogTimeoutConfig
-	EnableAutoReset          bool                    `envconfig:"ENABLE_AUTO_RESET" default:"false"`
 	EnableAutoAssign         bool                    `envconfig:"ENABLE_AUTO_ASSIGN" default:"true"`
 	ResetTimeout             time.Duration           `envconfig:"RESET_CLUSTER_TIMEOUT" default:"3m"`
 	MonitorBatchSize         int                     `envconfig:"HOST_MONITOR_BATCH_SIZE" default:"100"`
