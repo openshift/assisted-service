@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -832,6 +833,83 @@ var _ = Describe("cluster reconcile", func() {
 		Expect(c.Get(ctx, agentClusterInstallKey, clusterInstall)).To(BeNil())
 		Expect(clusterInstall.Status.DebugInfo.EventsURL).NotTo(BeEmpty())
 		Expect(clusterInstall.Status.DebugInfo.EventsURL).To(HavePrefix(expectedEventUrlPrefix))
+	})
+
+	It("validate ignitionEndpoint override doesn't trigger clusterUpdate unless required", func() {
+		mockInstallerInternal.EXPECT().HostWithCollectedLogsExists(gomock.Any()).Return(false, nil).Times(2)
+		mockInstallerInternal.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any()).Return(nil).Times(2)
+		pullSecret := getDefaultTestPullSecret("pull-secret", testNamespace)
+		Expect(c.Create(ctx, pullSecret)).To(BeNil())
+		imageSet := getDefaultTestImageSet(imageSetName, releaseImageUrl)
+		Expect(c.Create(ctx, imageSet)).To(BeNil())
+
+		cluster := newClusterDeployment(clusterName, testNamespace, defaultClusterSpec)
+		Expect(c.Create(ctx, cluster)).ShouldNot(HaveOccurred())
+		aci := newAgentClusterInstall(agentClusterInstallName, testNamespace, defaultAgentClusterInstallSpec, cluster)
+		aci.Spec.Networking.ClusterNetwork = []hiveext.ClusterNetworkEntry{}
+		aci.Spec.Networking.ServiceNetwork = []string{}
+
+		sId := strfmt.UUID(uuid.New().String())
+		ignitionURL := "https://fakeurl:8080/config"
+		ignitionCert := []byte("cert...")
+		encodedCertString := base64.StdEncoding.EncodeToString(ignitionCert)
+		backEndCluster := &common.Cluster{
+			Cluster: models.Cluster{
+				ID:               &sId,
+				Name:             clusterName,
+				BaseDNSDomain:    cluster.Spec.BaseDomain,
+				Status:           swag.String(models.ClusterStatusInsufficient),
+				OpenshiftVersion: arbitraryOCPVersion,
+				IgnitionEndpoint: &models.IgnitionEndpoint{CaCertificate: &encodedCertString, URL: &ignitionURL},
+				PullSecretSet:    true,
+				Hyperthreading:   models.ClusterHyperthreadingAll,
+				SSHPublicKey:     "some-key",
+				NetworkType:      swag.String(models.ClusterNetworkTypeOVNKubernetes),
+				APIVip:           aci.Spec.APIVIP,
+				IngressVip:       aci.Spec.IngressVIP,
+			},
+			PullSecret: testPullSecretVal,
+		}
+
+		// caCertificateReference := aci.Spec.IgnitionEndpoint.CaCertificateReference
+		caCertificateData := map[string][]byte{
+			corev1.TLSCertKey: ignitionCert,
+		}
+		caCertificateSecret := newSecret(aci.Namespace, caCertificateSecretName, caCertificateData)
+		Expect(c.Create(ctx, caCertificateSecret)).ShouldNot(HaveOccurred())
+		ignitionEndpoint := &hiveext.IgnitionEndpoint{
+			CaCertificateReference: &hiveext.CaCertificateReference{
+				Namespace: caCertificateSecret.Namespace,
+				Name:      caCertificateSecret.Name,
+			},
+			Url: ignitionURL,
+		}
+		aci.Spec.IgnitionEndpoint = ignitionEndpoint
+		Expect(c.Create(ctx, aci)).ShouldNot(HaveOccurred())
+		request := newClusterDeploymentRequest(cluster)
+		mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil)
+
+		By("no changes to the spec - update should not get called")
+		_, err := cr.Reconcile(ctx, request)
+		Expect(err).ShouldNot(HaveOccurred())
+		clusterInstall := &hiveext.AgentClusterInstall{}
+		agentClusterInstallKey := types.NamespacedName{
+			Namespace: testNamespace,
+			Name:      agentClusterInstallName,
+		}
+		Expect(c.Get(ctx, agentClusterInstallKey, clusterInstall)).ShouldNot(HaveOccurred())
+		Expect(clusterInstall.Spec.IgnitionEndpoint).To(Equal(ignitionEndpoint))
+
+		By("ignition override doesn't match")
+		backEndCluster.IgnitionEndpoint.URL = swag.String("https://anotherfakeurl:8080/config")
+		mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil)
+		mockInstallerInternal.EXPECT().UpdateClusterNonInteractive(gomock.Any(), gomock.Any()).Return(backEndCluster, nil)
+		_, err = cr.Reconcile(ctx, request)
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(c.Get(ctx, agentClusterInstallKey, clusterInstall)).ShouldNot(HaveOccurred())
+		Expect(clusterInstall.Spec.IgnitionEndpoint.Url).To(Equal(ignitionEndpoint.Url))
+		Expect(FindStatusCondition(clusterInstall.Status.Conditions, hiveext.ClusterSpecSyncedCondition).Status).To(Equal(corev1.ConditionTrue))
+
 	})
 
 	It("validate Logs URL - before and after host log collection", func() {
