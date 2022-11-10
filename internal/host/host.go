@@ -937,25 +937,10 @@ func (m *Manager) ResetHost(ctx context.Context, h *models.Host, reason string, 
 		}
 	}()
 
-	var transitionType stateswitch.TransitionType
-	var transitionArgs stateswitch.TransitionArgs
-
-	if m.Config.EnableAutoReset {
-		transitionType = TransitionTypeResetHost
-		transitionArgs = &TransitionArgsResetHost{
-			ctx:    ctx,
-			reason: reason,
-			db:     db,
-		}
-	} else {
-		transitionType = TransitionTypeResettingPendingUserAction
-		transitionArgs = &TransitionResettingPendingUserAction{
-			ctx: ctx,
-			db:  db,
-		}
-	}
-
-	if err = m.sm.Run(transitionType, newStateHost(h), transitionArgs); err != nil {
+	if err = m.sm.Run(TransitionTypeResettingPendingUserAction, newStateHost(h), &TransitionResettingPendingUserAction{
+		ctx: ctx,
+		db:  db,
+	}); err != nil {
 		isFailed = true
 		return common.NewApiError(http.StatusConflict, err)
 	}

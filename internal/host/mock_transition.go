@@ -395,20 +395,6 @@ func (mr *MockTransitionHandlerMockRecorder) PostRegisterHost(sw, args interface
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PostRegisterHost", reflect.TypeOf((*MockTransitionHandler)(nil).PostRegisterHost), sw, args)
 }
 
-// PostResetHost mocks base method.
-func (m *MockTransitionHandler) PostResetHost(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "PostResetHost", sw, args)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// PostResetHost indicates an expected call of PostResetHost.
-func (mr *MockTransitionHandlerMockRecorder) PostResetHost(sw, args interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PostResetHost", reflect.TypeOf((*MockTransitionHandler)(nil).PostResetHost), sw, args)
-}
-
 // PostResettingPendingUserAction mocks base method.
 func (m *MockTransitionHandler) PostResettingPendingUserAction(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) error {
 	m.ctrl.T.Helper()

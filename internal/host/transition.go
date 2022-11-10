@@ -57,7 +57,6 @@ type TransitionHandler interface {
 	PostRegisterDuringInstallation(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) error
 	PostRegisterDuringReboot(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) error
 	PostRegisterHost(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) error
-	PostResetHost(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) error
 	PostResettingPendingUserAction(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) error
 	PostUnbindHost(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) error
 }
@@ -200,9 +199,9 @@ func (th *transitionHandler) PostRegisterDuringReboot(sw stateswitch.StateSwitch
 	return th.updateTransitionHost(params.ctx, logutil.FromContext(params.ctx, th.log), params.db, sHost, strings.Join(messages, " "))
 }
 
-////////////////////////////////////////////////////////////////////////////
+// //////////////////////////////////////////////////////////////////////////
 // Media disconnected
-////////////////////////////////////////////////////////////////////////////
+// //////////////////////////////////////////////////////////////////////////
 type TransitionArgsMediaDisconnected struct {
 	ctx context.Context
 	db  *gorm.DB
@@ -296,31 +295,6 @@ func (th *transitionHandler) PostCancelInstallation(sw stateswitch.StateSwitch, 
 
 	return th.updateTransitionHost(params.ctx, logutil.FromContext(params.ctx, th.log), params.db, sHost,
 		params.reason)
-}
-
-////////////////////////////////////////////////////////////////////////////
-// Reset Host
-////////////////////////////////////////////////////////////////////////////
-
-type TransitionArgsResetHost struct {
-	ctx    context.Context
-	reason string
-	db     *gorm.DB
-}
-
-func (th *transitionHandler) PostResetHost(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) error {
-	sHost, ok := sw.(*stateHost)
-	if !ok {
-		return errors.New("PostResetHost incompatible type of StateSwitch")
-	}
-	params, ok := args.(*TransitionArgsResetHost)
-	if !ok {
-		return errors.New("PostResetHost invalid argument")
-	}
-
-	extra := append(make([]interface{}, 0), resetLogsField...)
-	return th.updateTransitionHost(params.ctx, logutil.FromContext(params.ctx, th.log), params.db, sHost,
-		params.reason, extra...)
 }
 
 ////////////////////////////////////////////////////////////////////////////
@@ -569,7 +543,7 @@ func (th *transitionHandler) PostRefreshLogsProgress(progress string) stateswitc
 	return ret
 }
 
-//check if log collection on cluster level reached timeout
+// check if log collection on cluster level reached timeout
 func (th *transitionHandler) IsLogCollectionTimedOut(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) (bool, error) {
 	sHost, ok := sw.(*stateHost)
 	if !ok {
