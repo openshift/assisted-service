@@ -274,7 +274,7 @@ func installAlreadyStarted(conditions []hivev1.ClusterInstallCondition) bool {
 		return false
 	}
 	switch cond.Reason {
-	case hiveext.ClusterInstallationFailedReason, hiveext.ClusterInstalledReason, hiveext.ClusterInstallationInProgressReason:
+	case hiveext.ClusterInstallationFailedReason, hiveext.ClusterInstalledReason, hiveext.ClusterInstallationInProgressReason, hiveext.ClusterAlreadyInstallingReason:
 		return true
 	default:
 		return false
