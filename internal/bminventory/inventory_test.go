@@ -9364,6 +9364,27 @@ var _ = Describe("V2DownloadInfraEnvFiles", func() {
 		return body
 	}
 
+	strArrayToKernelArguments := func(args []string) (kargs models.KernelArguments) {
+		for _, s := range args {
+			kargs = append(kargs, &models.KernelArgument{
+				Operation: models.KernelArgumentOperationAppend,
+				Value:     s,
+			})
+		}
+		return
+	}
+
+	updateKernelArgs := func(kernelArgs ...string) {
+		params := installer.UpdateInfraEnvParams{
+			InfraEnvUpdateParams: &models.InfraEnvUpdateParams{},
+			InfraEnvID:           infraEnvID,
+		}
+		params.InfraEnvUpdateParams.DiscoveryKernelArguments = append(params.InfraEnvUpdateParams.DiscoveryKernelArguments, strArrayToKernelArguments(kernelArgs)...)
+		response := bm.UpdateInfraEnv(ctx, params)
+		_, ok := response.(*installer.UpdateInfraEnvCreated)
+		Expect(ok).To(BeTrue())
+	}
+
 	It("should ensure the correct discovery iso type is passed to the ignition builder", func() {
 		mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), "").Return(discovery_ignition_3_1, nil).Times(1)
 		body := getResponseData("discovery.ign", false, nil, "")
@@ -9449,6 +9470,46 @@ var _ = Describe("V2DownloadInfraEnvFiles", func() {
 		Expect(initrdURL.Query().Get("arch")).To(Equal(*common.TestDefaultConfig.OsImage.CPUArchitecture))
 
 		Expect(lines[3]).To(Equal("boot"))
+	})
+
+	It("returns ipxe-script successfully - with kernel arguments", func() {
+		kernelArguments := []string{
+			"p1",
+			"p2=argument",
+			"p3=\"this is an argument\"",
+		}
+		initialKernelArguments := `random.trust_cpu=on rd.luks.options=discard ignition.firstboot ignition.platform.id=metal console=tty1 console=ttyS1,115200n8 coreos.inst.persistent-kargs="console=tty1 console=ttyS1,115200n8"`
+		mockVersions.EXPECT().GetOsImageOrLatest(common.TestDefaultConfig.OpenShiftVersion, gomock.Any()).Return(common.TestDefaultConfig.OsImage, nil).Times(3)
+		content := getResponseData("ipxe-script", false, nil, "")
+		lines := strings.Split(string(content), "\n")
+
+		Expect(lines[0]).To(Equal("#!ipxe"))
+
+		By("validating the kernel line")
+		kernelRegex := regexp.MustCompile(`^kernel (\S+) initrd=initrd coreos.live.rootfs_url=(\S+) (.+)`)
+		match := kernelRegex.FindStringSubmatch(lines[2])
+		Expect(match).NotTo(BeNil())
+
+		Expect(match[3]).To(Equal(initialKernelArguments))
+
+		By("update infra env with kernel arguments")
+		mockEvents.EXPECT().SendInfraEnvEvent(gomock.Any(), eventstest.NewEventMatcher(
+			eventstest.WithInfraEnvIdMatcher(infraEnvID.String())))
+		mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(),
+			gomock.Any()).Return(discovery_ignition_3_1, nil).Times(1)
+		updateKernelArgs(kernelArguments...)
+		By("get ipxe script again")
+		content = getResponseData("ipxe-script", false, nil, "")
+		lines = strings.Split(string(content), "\n")
+
+		Expect(lines[0]).To(Equal("#!ipxe"))
+
+		By("validating the kernel line")
+		match = kernelRegex.FindStringSubmatch(lines[2])
+		Expect(match).NotTo(BeNil())
+
+		strToCompare := initialKernelArguments + " " + strings.Join(kernelArguments, " ")
+		Expect(match[3]).To(Equal(strToCompare))
 	})
 
 	It("returns ipxe-script successfully with mac", func() {
