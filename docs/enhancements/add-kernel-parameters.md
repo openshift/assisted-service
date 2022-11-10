@@ -3,7 +3,7 @@ title: add-discovery-kernel-arguments
 authors:
 - "@oamizur"
   creation-date: 2022-09-20
-  last-updated: 2022-10-23
+  last-updated: 2022-11-11
 ---
 
 # Add discovery kernel arguments
@@ -92,7 +92,7 @@ They will have the following format:
 In InfraEnv Spec section:
 
 ```sh
-DiscoveryKernelArguments []KernelArgument `json:"discoveryKernelArguments,omitempty"`
+KernelArguments []KernelArgument `json:"kernelArguments,omitempty"`
 ```
 
 In addition there is the definition of **KernelArgument**:

@@ -6466,7 +6466,7 @@ definitions:
         x-nullable: false
         default: 'x86_64'
         description: The CPU architecture of the image (x86_64/arm64/etc).
-      discovery_kernel_arguments:
+      kernel_arguments:
         type: string
         x-nullable: true
         x-go-custom-tag: gorm:"type:text"
@@ -6543,7 +6543,7 @@ definitions:
         x-nullable: false
         default: 'x86_64'
         description: The CPU architecture of the image (x86_64/arm64/etc).
-      discovery_kernel_arguments:
+      kernel_arguments:
         $ref: '#/definitions/kernel_arguments'
 
   infra-env-update-params:
@@ -6571,7 +6571,7 @@ definitions:
       ignition_config_override:
         type: string
         description: JSON formatted string containing the user overrides for the initial ignition config.
-      discovery_kernel_arguments:
+      kernel_arguments:
         $ref: '#/definitions/kernel_arguments'
 
   ip:

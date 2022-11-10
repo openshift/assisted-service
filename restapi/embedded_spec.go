@@ -7684,12 +7684,6 @@ func init() {
             "type": "Time"
           }
         },
-        "discovery_kernel_arguments": {
-          "description": "JSON formatted string array representing the discovery image kernel arguments.",
-          "type": "string",
-          "x-go-custom-tag": "gorm:\"type:text\"",
-          "x-nullable": true
-        },
         "download_url": {
           "type": "string"
         },
@@ -7718,6 +7712,12 @@ func init() {
         "ignition_config_override": {
           "description": "Json formatted string containing the user overrides for the initial ignition config.",
           "type": "string"
+        },
+        "kernel_arguments": {
+          "description": "JSON formatted string array representing the discovery image kernel arguments.",
+          "type": "string",
+          "x-go-custom-tag": "gorm:\"type:text\"",
+          "x-nullable": true
         },
         "kind": {
           "description": "Indicates the type of this object.",
@@ -7802,15 +7802,15 @@ func init() {
           "default": "x86_64",
           "x-nullable": false
         },
-        "discovery_kernel_arguments": {
-          "$ref": "#/definitions/kernel_arguments"
-        },
         "ignition_config_override": {
           "description": "JSON formatted string containing the user overrides for the initial ignition config.",
           "type": "string"
         },
         "image_type": {
           "$ref": "#/definitions/image_type"
+        },
+        "kernel_arguments": {
+          "$ref": "#/definitions/kernel_arguments"
         },
         "name": {
           "description": "Name of the infra-env.",
@@ -7854,15 +7854,15 @@ func init() {
           "type": "string",
           "x-nullable": true
         },
-        "discovery_kernel_arguments": {
-          "$ref": "#/definitions/kernel_arguments"
-        },
         "ignition_config_override": {
           "description": "JSON formatted string containing the user overrides for the initial ignition config.",
           "type": "string"
         },
         "image_type": {
           "$ref": "#/definitions/image_type"
+        },
+        "kernel_arguments": {
+          "$ref": "#/definitions/kernel_arguments"
         },
         "proxy": {
           "$ref": "#/definitions/proxy"
@@ -17212,12 +17212,6 @@ func init() {
             "type": "Time"
           }
         },
-        "discovery_kernel_arguments": {
-          "description": "JSON formatted string array representing the discovery image kernel arguments.",
-          "type": "string",
-          "x-go-custom-tag": "gorm:\"type:text\"",
-          "x-nullable": true
-        },
         "download_url": {
           "type": "string"
         },
@@ -17246,6 +17240,12 @@ func init() {
         "ignition_config_override": {
           "description": "Json formatted string containing the user overrides for the initial ignition config.",
           "type": "string"
+        },
+        "kernel_arguments": {
+          "description": "JSON formatted string array representing the discovery image kernel arguments.",
+          "type": "string",
+          "x-go-custom-tag": "gorm:\"type:text\"",
+          "x-nullable": true
         },
         "kind": {
           "description": "Indicates the type of this object.",
@@ -17331,15 +17331,15 @@ func init() {
           "default": "x86_64",
           "x-nullable": false
         },
-        "discovery_kernel_arguments": {
-          "$ref": "#/definitions/kernel_arguments"
-        },
         "ignition_config_override": {
           "description": "JSON formatted string containing the user overrides for the initial ignition config.",
           "type": "string"
         },
         "image_type": {
           "$ref": "#/definitions/image_type"
+        },
+        "kernel_arguments": {
+          "$ref": "#/definitions/kernel_arguments"
         },
         "name": {
           "description": "Name of the infra-env.",
@@ -17383,15 +17383,15 @@ func init() {
           "type": "string",
           "x-nullable": true
         },
-        "discovery_kernel_arguments": {
-          "$ref": "#/definitions/kernel_arguments"
-        },
         "ignition_config_override": {
           "description": "JSON formatted string containing the user overrides for the initial ignition config.",
           "type": "string"
         },
         "image_type": {
           "$ref": "#/definitions/image_type"
+        },
+        "kernel_arguments": {
+          "$ref": "#/definitions/kernel_arguments"
         },
         "proxy": {
           "$ref": "#/definitions/proxy"

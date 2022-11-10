@@ -674,11 +674,11 @@ func (b *bareMetalInventory) canServeHostIPXEScript(infraEnv *common.InfraEnv, m
 }
 
 func kernelArgsToSlice(infraEnv *common.InfraEnv) ([]string, error) {
-	if infraEnv.DiscoveryKernelArguments == nil {
+	if infraEnv.KernelArguments == nil {
 		return nil, nil
 	}
 	var kernelArguments models.KernelArguments
-	if err := json.Unmarshal([]byte(swag.StringValue(infraEnv.DiscoveryKernelArguments)), &kernelArguments); err != nil {
+	if err := json.Unmarshal([]byte(swag.StringValue(infraEnv.KernelArguments)), &kernelArguments); err != nil {
 		return nil, errors.Wrap(err, "failed to unmarshal kernel arguments")
 	}
 	var args []string
@@ -723,7 +723,7 @@ func (b *bareMetalInventory) bootIPXEScript(ctx context.Context, infraEnv *commo
 	}
 	kernelArgumentsStr, err := kernelArgsAppendStr(infraEnv)
 	if err != nil {
-		return "", errors.Wrapf(err, "failed to parse kernel arguments %s", swag.StringValue(infraEnv.DiscoveryKernelArguments))
+		return "", errors.Wrapf(err, "failed to parse kernel arguments %s", swag.StringValue(infraEnv.KernelArguments))
 	}
 	return fmt.Sprintf(ipxeBootScriptFormat, initrdURL, bootArtifactURLs.KernelURL, bootArtifactURLs.RootFSURL, kernelArgumentsStr), nil
 }
