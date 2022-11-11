@@ -298,7 +298,15 @@ func (g *installerGenerator) UploadToS3(ctx context.Context) error {
 // Generate generates ignition files and applies modifications.
 func (g *installerGenerator) Generate(ctx context.Context, installConfig []byte, platformType models.PlatformType) error {
 	var icspFile string
+	var err error
 	log := logutil.FromContext(ctx, g.log)
+
+	defer func() {
+		if err != nil {
+			os.Remove(filepath.Join(g.workDir, "manifests"))
+			os.Remove(filepath.Join(g.workDir, "openshift"))
+		}
+	}()
 
 	// In case we don't want to override image for extracting installer use release one
 	if g.installerReleaseImageOverride == "" {
@@ -306,7 +314,7 @@ func (g *installerGenerator) Generate(ctx context.Context, installConfig []byte,
 	}
 
 	// If ImageContentSources are defined, store in a file for the 'oc' command
-	icspFile, err := getIcspFileFromInstallConfig(installConfig, log)
+	icspFile, err = getIcspFileFromInstallConfig(installConfig, log)
 	if err != nil {
 		return errors.Wrap(err, "failed to create file with ImageContentSources")
 	}
@@ -384,8 +392,6 @@ func (g *installerGenerator) Generate(ctx context.Context, installConfig []byte,
 		log.Infof("adding manifest %s to working dir for cluster %s", manifest, g.cluster.ID)
 		err = g.downloadManifest(ctx, manifest)
 		if err != nil {
-			_ = os.Remove(filepath.Join(g.workDir, "manifests"))
-			_ = os.Remove(filepath.Join(g.workDir, "openshift"))
 			log.WithError(err).Errorf("Failed to download manifest %s to working dir for cluster %s", manifest, g.cluster.ID)
 			return err
 		}
