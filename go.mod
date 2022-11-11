@@ -41,6 +41,7 @@ require (
 	github.com/krishicks/yaml-patch v0.0.10
 	github.com/metal3-io/baremetal-operator/apis v0.1.0
 	github.com/moby/moby v20.10.21+incompatible
+	github.com/nmstate/nmstate/rust/src/go/nmstate v0.0.0-20220811151154-801022633c42
 	github.com/onsi/ginkgo v1.16.5
 	github.com/onsi/gomega v1.20.0
 	github.com/openshift-online/ocm-sdk-go v0.1.205
@@ -171,7 +172,6 @@ require (
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
-	github.com/nmstate/nmstate/rust/src/go/nmstate v0.0.0-20220811151154-801022633c42 // indirect
 	github.com/nxadm/tail v1.4.8 // indirect
 	github.com/oklog/ulid v1.3.1 // indirect
 	github.com/opencontainers/go-digest v1.0.0 // indirect
