@@ -3087,6 +3087,116 @@ spec:
 		waitForHostState(ctx, models.HostStatusInsufficient, defaultWaitForClusterStateTimeout, h1)
 	})
 
+	It("install_cluster with edge worker", func() {
+		clusterID := *cluster.ID
+
+		By("set host with log hw info for master")
+		sdc := models.Disk{
+			ID:        sdbId,
+			ByID:      sdbId,
+			DriveType: "HDD",
+			Name:      "sdc",
+			SizeBytes: int64(17179869184),
+		}
+
+		hwInfo := &models.Inventory{
+			CPU:    &models.CPU{Count: 2, Architecture: common.ARM64CPUArchitecture},
+			Memory: &models.Memory{PhysicalBytes: int64(8 * units.GiB), UsableBytes: int64(8 * units.GiB)},
+			Disks:  []*models.Disk{&sdc},
+			Interfaces: []*models.Interface{
+				{
+					IPV4Addresses: []string{
+						"1.2.3.4/24",
+					},
+				},
+			},
+			SystemVendor: &models.SystemVendor{Manufacturer: "mellanox", ProductName: "Bluefield soc", SerialNumber: "3534"},
+			Routes:       common.TestDefaultRouteConfiguration,
+		}
+
+		By("Register edge worker with 16Gb disk")
+		h1 := &registerHost(*infraEnvID).Host
+		generateEssentialHostStepsWithInventory(ctx, h1, "h1", hwInfo)
+
+		By("Register rergular worker with 16Gb disk")
+		hwInfo.SystemVendor.ProductName = "ding dong soc"
+		h5 := &registerHost(*infraEnvID).Host
+		generateEssentialHostStepsWithInventory(ctx, h5, "h5", hwInfo)
+
+		apiVip := "1.2.3.8"
+		ingressVip := "1.2.3.9"
+		_, err := userBMClient.Installer.V2UpdateCluster(ctx, &installer.V2UpdateClusterParams{
+			ClusterUpdateParams: &models.V2ClusterUpdateParams{
+				VipDhcpAllocation: swag.Bool(false),
+				APIVip:            &apiVip,
+				IngressVip:        &ingressVip,
+			},
+			ClusterID: clusterID,
+		})
+		Expect(err).To(Not(HaveOccurred()))
+
+		By("Register 3 more hosts with valid hw info")
+		ips := hostutil.GenerateIPv4Addresses(3, defaultCIDRv4)
+		h2 := registerNode(ctx, *infraEnvID, "h2", ips[0])
+		h3 := registerNode(ctx, *infraEnvID, "h3", ips[1])
+		h4 := registerNode(ctx, *infraEnvID, "h4", ips[2])
+
+		generateFullMeshConnectivity(ctx, ips[0], h1, h2, h3, h4, h5)
+
+		_, err = userBMClient.Installer.V2UpdateHost(ctx, &installer.V2UpdateHostParams{
+			HostUpdateParams: &models.HostUpdateParams{
+				HostRole: swag.String(string(models.HostRoleWorker)),
+			},
+			HostID:     *h1.ID,
+			InfraEnvID: *infraEnvID,
+		})
+		Expect(err).NotTo(HaveOccurred())
+
+		_, err = userBMClient.Installer.V2UpdateHost(ctx, &installer.V2UpdateHostParams{
+			HostUpdateParams: &models.HostUpdateParams{
+				HostRole: swag.String(string(models.HostRoleWorker)),
+			},
+			HostID:     *h5.ID,
+			InfraEnvID: *infraEnvID,
+		})
+		Expect(err).NotTo(HaveOccurred())
+
+		_, err = userBMClient.Installer.V2UpdateHost(ctx, &installer.V2UpdateHostParams{
+			HostUpdateParams: &models.HostUpdateParams{
+				HostRole: swag.String(string(models.HostRoleMaster)),
+			},
+			HostID:     *h2.ID,
+			InfraEnvID: *infraEnvID,
+		})
+		Expect(err).NotTo(HaveOccurred())
+
+		_, err = userBMClient.Installer.V2UpdateHost(ctx, &installer.V2UpdateHostParams{
+			HostUpdateParams: &models.HostUpdateParams{
+				HostRole: swag.String(string(models.HostRoleMaster)),
+			},
+			HostID:     *h3.ID,
+			InfraEnvID: *infraEnvID,
+		})
+		Expect(err).NotTo(HaveOccurred())
+
+		_, err = userBMClient.Installer.V2UpdateHost(ctx, &installer.V2UpdateHostParams{
+			HostUpdateParams: &models.HostUpdateParams{
+				HostRole: swag.String(string(models.HostRoleMaster)),
+			},
+			HostID:     *h4.ID,
+			InfraEnvID: *infraEnvID,
+		})
+		Expect(err).NotTo(HaveOccurred())
+
+		By("validate that host 5 that is not edge worker is insufficient")
+		waitForHostState(ctx, models.HostStatusInsufficient, defaultWaitForClusterStateTimeout, h5)
+		h5 = getHostV2(*infraEnvID, *h5.ID)
+		Expect(h5.ValidationsInfo).Should(ContainSubstring("No eligible disks were found"))
+
+		By("validate that edge worker is passing the validation")
+		waitForHostState(ctx, models.HostStatusKnown, defaultWaitForClusterStateTimeout, h1)
+	})
+
 	It("unique_hostname_validation", func() {
 		clusterID := *cluster.ID
 		//define h1 as known master

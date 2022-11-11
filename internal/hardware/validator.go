@@ -51,11 +51,13 @@ func NewValidator(log logrus.FieldLogger, cfg ValidatorCfg, operatorsAPI operato
 		compileDiskReasonTemplate(wrongDriveTypeTemplate, ".*", ".*"),
 		compileDiskReasonTemplate(wrongMultipathTypeTemplate, ".*", ".*"),
 	}
+
 	return &validator{
 		ValidatorCfg:            cfg,
 		log:                     log,
 		operatorsAPI:            operatorsAPI,
 		diskEligibilityMatchers: diskEligibilityMatchers,
+		edgeWorkersProductList:  strings.Split(strings.ToLower(strings.ReplaceAll(cfg.EdgeWorkerProductNames, " ", "")), ","),
 	}
 }
 
@@ -66,6 +68,7 @@ type ValidatorCfg struct {
 	VersionedRequirements         VersionedRequirementsDecoder `envconfig:"HW_VALIDATOR_REQUIREMENTS" default:"[]"`
 	MaxHostDisconnectionTime      time.Duration                `envconfig:"HOST_MAX_DISCONNECTION_TIME" default:"3m"`
 	AgentDockerImage              string                       `envconfig:"AGENT_DOCKER_IMAGE" default:"quay.io/edge-infrastructure/assisted-installer-agent:latest"`
+	EdgeWorkerProductNames        string                       `envconfig:"EDGE_WORKERS_PRODUCT_NAMES" default:"BlueField SoC"`
 }
 
 type validator struct {
@@ -73,6 +76,7 @@ type validator struct {
 	log                     logrus.FieldLogger
 	operatorsAPI            operators.API
 	diskEligibilityMatchers []*regexp.Regexp
+	edgeWorkersProductList  []string
 }
 
 // DiskEligibilityInitialized is used to detect inventories created by older versions of the agent/service
@@ -195,7 +199,7 @@ func (v *validator) GetClusterHostRequirements(ctx context.Context, cluster *com
 		return nil, err
 	}
 
-	ocpRequirements, err := v.getOCPClusterHostRoleRequirementsForVersion(cluster, common.GetEffectiveRole(host))
+	ocpRequirements, err := v.getOCPClusterHostRoleRequirementsForVersion(cluster, host)
 	if err != nil {
 		return nil, err
 	}
@@ -279,7 +283,7 @@ func (v *validator) GetPreflightInfraEnvHardwareRequirements(ctx context.Context
 }
 
 func (v *validator) GetInstallationDiskSpeedThresholdMs(ctx context.Context, cluster *common.Cluster, host *models.Host) (int64, error) {
-	ocpRequirements, err := v.getOCPClusterHostRoleRequirementsForVersion(cluster, common.GetEffectiveRole(host))
+	ocpRequirements, err := v.getOCPClusterHostRoleRequirementsForVersion(cluster, host)
 	if err != nil {
 		return 0, err
 	}
@@ -318,19 +322,37 @@ func totalizeRequirements(ocpRequirements models.ClusterHostRequirementsDetails,
 	return total
 }
 
-func (v *validator) getOCPClusterHostRoleRequirementsForVersion(cluster *common.Cluster, role models.HostRole) (models.ClusterHostRequirementsDetails, error) {
+func (v *validator) getOCPClusterHostRoleRequirementsForVersion(cluster *common.Cluster, host *models.Host) (models.ClusterHostRequirementsDetails, error) {
 	requirements, err := v.getOCPRequirementsForVersion(cluster.OpenshiftVersion)
 	if err != nil {
 		return models.ClusterHostRequirementsDetails{}, err
 	}
 
-	if role == models.HostRoleMaster {
+	if common.GetEffectiveRole(host) == models.HostRoleMaster {
 		if common.IsSingleNodeCluster(cluster) {
 			return *requirements.SNORequirements, nil
 		}
 		return *requirements.MasterRequirements, nil
 	}
+
+	if v.isEdgeWorker(host) {
+		return *requirements.EdgeWorkerRequirements, nil
+	}
+
 	return *requirements.WorkerRequirements, nil
+}
+
+// There is no need to fail here, failed to get inventory just return false
+func (v *validator) isEdgeWorker(host *models.Host) bool {
+	inventory, err := common.UnmarshalInventory(host.Inventory)
+	if err != nil {
+		return false
+	}
+	if inventory.CPU.Architecture != common.ARM64CPUArchitecture {
+		return false
+	}
+
+	return funk.Contains(v.edgeWorkersProductList, strings.ToLower(strings.ReplaceAll(inventory.SystemVendor.ProductName, " ", "")))
 }
 
 func (v *validator) getOCPInfraEnvHostRoleRequirementsForVersion(infraEnv *common.InfraEnv, role models.HostRole) (models.ClusterHostRequirementsDetails, error) {

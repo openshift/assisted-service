@@ -75,10 +75,11 @@ func createValidatorCfg() *hardware.ValidatorCfg {
 		},
 		VersionedRequirements: hardware.VersionedRequirementsDecoder{
 			"default": {
-				Version:            "default",
-				MasterRequirements: &defaultMasterRequirements,
-				WorkerRequirements: &defaultWorkerRequirements,
-				SNORequirements:    &defaultSnoRequirements,
+				Version:                "default",
+				MasterRequirements:     &defaultMasterRequirements,
+				WorkerRequirements:     &defaultWorkerRequirements,
+				SNORequirements:        &defaultSnoRequirements,
+				EdgeWorkerRequirements: &defaultWorkerRequirements,
 			},
 		},
 		MaximumAllowedTimeDiffMinutes: 4,

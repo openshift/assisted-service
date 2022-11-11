@@ -169,7 +169,6 @@ func createChronyManifestContent(c *common.Cluster, role models.HostRole, log lo
 
 		var ntpSources []*models.NtpSource
 		if err := json.Unmarshal([]byte(host.NtpSources), &ntpSources); err != nil {
-			log.Errorln("sss", "sss", "ssss")
 			return nil, errors.Wrapf(err, "Failed to unmarshal %s", host.NtpSources)
 		}
 

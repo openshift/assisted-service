@@ -31,6 +31,11 @@ func (d *VersionedRequirementsDecoder) Decode(value string) error {
 
 	versionToRequirements := make(VersionedRequirementsDecoder)
 	for _, rq := range requirements {
+		// in case we don't set edge worker requirements
+		// we should handle it as regular worker
+		if rq.EdgeWorkerRequirements == nil {
+			rq.EdgeWorkerRequirements = rq.WorkerRequirements
+		}
 		versionToRequirements[rq.Version] = rq
 	}
 	*d = versionToRequirements
@@ -48,6 +53,10 @@ func (d *VersionedRequirementsDecoder) validate() error {
 			return err
 		}
 		err = validateDetails(requirements.SNORequirements, version, "SNO")
+		if err != nil {
+			return err
+		}
+		err = validateDetails(requirements.EdgeWorkerRequirements, version, "EDGE-WORKER")
 		if err != nil {
 			return err
 		}
@@ -76,10 +85,11 @@ func validateDetails(details *models.ClusterHostRequirementsDetails, version str
 
 func copyVersionedHostRequirements(requirements *models.VersionedHostRequirements) *models.VersionedHostRequirements {
 	return &models.VersionedHostRequirements{
-		Version:            requirements.Version,
-		MasterRequirements: copyClusterHostRequirementsDetails(requirements.MasterRequirements),
-		WorkerRequirements: copyClusterHostRequirementsDetails(requirements.WorkerRequirements),
-		SNORequirements:    copyClusterHostRequirementsDetails(requirements.SNORequirements),
+		Version:                requirements.Version,
+		MasterRequirements:     copyClusterHostRequirementsDetails(requirements.MasterRequirements),
+		WorkerRequirements:     copyClusterHostRequirementsDetails(requirements.WorkerRequirements),
+		SNORequirements:        copyClusterHostRequirementsDetails(requirements.SNORequirements),
+		EdgeWorkerRequirements: copyClusterHostRequirementsDetails(requirements.EdgeWorkerRequirements),
 	}
 }
 
