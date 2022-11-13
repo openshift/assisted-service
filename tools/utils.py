@@ -7,8 +7,8 @@ import yaml
 import waiting
 from distutils.spawn import find_executable
 from functools import reduce
-from typing import Optional
-from deployment_options import INGRESS_REMOTE_TARGET, OCP_TARGET
+from typing import Optional, Tuple
+from deployment_options import INGRESS_REMOTE_TARGET, OCP_TARGET, KIND_TARGET
 
 
 KUBECTL_CMD = 'kubectl'
@@ -102,6 +102,8 @@ def get_service_host(
         kubectl_cmd = get_kubectl_command(target, namespace)
         cmd = f'{kubectl_cmd} get nodes -o=jsonpath={{.items[0].status.addresses[0].address}}'
         host = check_output(cmd)
+    elif target == KIND_TARGET:
+        host = socket.gethostname()
     else:
         kubectl_cmd = get_kubectl_command(target, namespace)
         cmd = f'{kubectl_cmd} get service {service} | grep {service}'
@@ -110,13 +112,13 @@ def get_service_host(
     return host.strip()
 
 
-def get_service_port(service, target=None, namespace='assisted-installer'):
+def get_service_port(service, target=None, namespace='assisted-installer') -> int:
     kubectl_cmd = get_kubectl_command(target, namespace)
     cmd = f'{kubectl_cmd} get service {service} | grep {service}'
     reply = check_output(cmd)[:-1].split()
     ports = reply[4].split(":")
     port = ports[0] if target != OCP_TARGET else ports[1].split("/")[0]
-    return port.strip()
+    return int(port.strip())
 
 
 def get_service_address(
@@ -125,12 +127,14 @@ def get_service_address(
         domain: str = '',
         namespace: str = 'assisted-installer',
         disable_tls: bool = False
-) -> (str, str):
+) -> Tuple[str, int]:
     # TODO: delete once rename everything to assisted-installer
     if target == INGRESS_REMOTE_TARGET:
         domain = get_domain(domain, target, namespace)
         service_host = f"assisted-installer.{domain}"
         service_port = 80 if disable_tls else 443
+    elif target == KIND_TARGET:
+        service_host, service_port = socket.gethostname(), 80
     else:
         service_host = get_service_host(
             service,

@@ -1,4 +1,5 @@
 import os
+import socket
 
 import yaml
 
@@ -59,6 +60,13 @@ def main():
             template = "assisted-installer-ingress-tls.yaml"
 
         deploy_ingress(hostname=hostname, namespace=deploy_options.namespace, template_file=template)
+
+    elif deploy_options.target == "kind":
+        deploy_ingress(
+            hostname=socket.gethostname(),
+            namespace=deploy_options.namespace,
+            template_file="assisted-installer-ingress.yaml",
+        )
 
 
 def deploy_ingress(hostname, namespace, template_file):

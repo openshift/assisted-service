@@ -10,6 +10,7 @@ INGRESS_REMOTE_TARGET = 'oc-ingress'
 IMAGE_FQDN_TEMPLATE = "quay.io/{}/{}:{}"
 OCP_TARGET = 'ocp'
 OPENSHIFT_TARGET = 'oc'
+KIND_TARGET = 'kind'
 
 
 def load_deployment_options(parser=None):
@@ -25,7 +26,7 @@ def load_deployment_options(parser=None):
     parser.add_argument(
         '--target',
         help='Target kubernetes distribution',
-        choices=[LOCAL_TARGET, OPENSHIFT_TARGET, INGRESS_REMOTE_TARGET, OCP_TARGET],
+        choices=[LOCAL_TARGET, OPENSHIFT_TARGET, INGRESS_REMOTE_TARGET, OCP_TARGET, KIND_TARGET],
         default=LOCAL_TARGET
     )
     parser.add_argument(
