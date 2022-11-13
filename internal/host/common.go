@@ -173,7 +173,7 @@ func GetHostnameAndEffectiveRoleByHostID(hostId strfmt.UUID, hosts []*models.Hos
 		return "", "", fmt.Errorf("host with ID %s was not found", hostId.String())
 	}
 	inventory, err := inventoryCache.GetOrUnmarshal(host)
-	if err != nil {
+	if err != nil || inventory == nil {
 		return "", "", err
 	}
 	return getRealHostname(host, inventory), common.GetEffectiveRole(host), nil

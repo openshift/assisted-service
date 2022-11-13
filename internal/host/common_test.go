@@ -96,4 +96,13 @@ var _ = Describe("GetHostnameAndEffectiveRoleByHostID", func() {
 			})
 		}
 	})
+
+	Context("Inventory is empty string", func() {
+		hostID := strfmt.UUID(uuid.New().String())
+		hosts := []*models.Host{{ID: &hostID, Inventory: "", RequestedHostname: "master"}}
+		inventoryCache := make(InventoryCache)
+		hostname, _, err := GetHostnameAndEffectiveRoleByHostID(hostID, hosts, inventoryCache)
+		Expect(hostname).To(Equal(""))
+		Expect(err).ToNot(HaveOccurred())
+	})
 })
