@@ -3,9 +3,7 @@ package bminventory
 import (
 	"bytes"
 	"context"
-
-	// #nosec
-	"crypto/md5"
+	"crypto/md5" // #nosec
 	"crypto/x509"
 	"encoding/json"
 	"fmt"
@@ -1134,8 +1132,8 @@ func (b *bareMetalInventory) integrateWithAMSClusterPreInstallation(ctx context.
 
 func (b *bareMetalInventory) InstallClusterInternal(ctx context.Context, params installer.V2InstallClusterParams) (*common.Cluster, error) {
 	log := logutil.FromContext(ctx, b.log)
-	cluster := &common.Cluster{}
 	var err error
+	var cluster *common.Cluster
 
 	log.Infof("preparing for cluster %s installation", params.ClusterID)
 	if cluster, err = common.GetClusterFromDBWithHosts(b.db, params.ClusterID); err != nil {

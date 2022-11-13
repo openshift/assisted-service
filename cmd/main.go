@@ -704,19 +704,15 @@ func createS3Bucket(objectHandler s3wrapper.API, log logrus.FieldLogger) {
 
 func createStorageClient(deployTarget string, storage string, s3cfg *s3wrapper.Config, fsWorkDir string,
 	log logrus.FieldLogger, metricsAPI metrics.API, fsThreshold int) s3wrapper.API {
-	var storageClient s3wrapper.API
+	var storageClient s3wrapper.API = nil
 	if storage != "" {
 		switch storage {
 		case storage_s3:
-			storageClient = s3wrapper.NewS3Client(s3cfg, log)
-			if storageClient == nil {
+			if storageClient = s3wrapper.NewS3Client(s3cfg, log); storageClient == nil { //nolint:staticcheck
 				log.Fatal("failed to create S3 client")
 			}
 		case storage_filesystem:
 			storageClient = s3wrapper.NewFSClient(fsWorkDir, log, metricsAPI, fsThreshold)
-			if storageClient == nil {
-				log.Fatal("failed to create filesystem client")
-			}
 		default:
 			log.Fatalf("unsupported storage client: %s", storage)
 		}
@@ -724,15 +720,11 @@ func createStorageClient(deployTarget string, storage string, s3cfg *s3wrapper.C
 		// Retain original logic for backwards capability
 		switch deployTarget {
 		case deployment_type_k8s:
-			storageClient = s3wrapper.NewS3Client(s3cfg, log)
-			if storageClient == nil {
+			if storageClient = s3wrapper.NewS3Client(s3cfg, log); storageClient == nil { //nolint:staticcheck
 				log.Fatal("failed to create S3 client")
 			}
 		case deployment_type_onprem, deployment_type_ocp:
 			storageClient = s3wrapper.NewFSClient(fsWorkDir, log, metricsAPI, fsThreshold)
-			if storageClient == nil {
-				log.Fatal("failed to create S3 filesystem client")
-			}
 		default:
 			log.Fatalf("unsupported deploy target %s", deployTarget)
 		}

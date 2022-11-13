@@ -682,10 +682,10 @@ func (g *installerGenerator) updateBootstrap(ctx context.Context, bootstrapPath 
 			g.fixMOTDFile(&config.Storage.Files[i])
 		case isBMHFile(&config.Storage.Files[i]):
 			// extract bmh
-			bmh, err := fileToBMH(&config.Storage.Files[i]) //nolint,shadow
-			if err != nil {
-				log.Errorf("error parsing File contents to BareMetalHost: %v", err)
-				return err
+			bmh, err2 := fileToBMH(&config.Storage.Files[i]) //nolint,shadow
+			if err2 != nil {
+				log.Errorf("error parsing File contents to BareMetalHost: %v", err2)
+				return err2
 			}
 
 			// get corresponding host
@@ -1296,7 +1296,7 @@ func firstN(s string, n int) string {
 
 func (g *installerGenerator) runCreateCommand(ctx context.Context, installerPath, command string, envVars []string) error {
 	log := logutil.FromContext(ctx, g.log)
-	cmd := exec.Command(installerPath, "create", command, "--dir", g.workDir)
+	cmd := exec.Command(installerPath, "create", command, "--dir", g.workDir) //nolint:gosec
 	var out bytes.Buffer
 	cmd.Stdout = &out
 	cmd.Stderr = &out

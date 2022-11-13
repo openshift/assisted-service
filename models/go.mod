@@ -1,6 +1,6 @@
 module github.com/openshift/assisted-service/models
 
-go 1.17
+go 1.18
 
 require (
 	github.com/go-openapi/errors v0.20.2
