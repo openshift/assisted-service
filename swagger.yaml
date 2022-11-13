@@ -6324,6 +6324,7 @@ definitions:
 
   kernel_arguments:
     description: List of kernel arugment objects that define the operations and values to be applied.
+    x-omitempty: false
     type: array
     items:
       $ref: '#/definitions/kernel_argument'

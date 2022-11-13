@@ -29,7 +29,7 @@ type InfraEnvUpdateParams struct {
 	ImageType ImageType `json:"image_type,omitempty"`
 
 	// kernel arguments
-	KernelArguments KernelArguments `json:"kernel_arguments,omitempty"`
+	KernelArguments KernelArguments `json:"kernel_arguments"`
 
 	// proxy
 	Proxy *Proxy `json:"proxy,omitempty" gorm:"embedded;embeddedPrefix:proxy_"`

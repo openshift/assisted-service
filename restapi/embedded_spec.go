@@ -8193,7 +8193,8 @@ func init() {
       "type": "array",
       "items": {
         "$ref": "#/definitions/kernel_argument"
-      }
+      },
+      "x-omitempty": false
     },
     "l2-connectivity": {
       "type": "object",
@@ -17727,7 +17728,8 @@ func init() {
       "type": "array",
       "items": {
         "$ref": "#/definitions/kernel_argument"
-      }
+      },
+      "x-omitempty": false
     },
     "l2-connectivity": {
       "type": "object",

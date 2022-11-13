@@ -37,7 +37,7 @@ type InfraEnvCreateParams struct {
 	ImageType ImageType `json:"image_type,omitempty"`
 
 	// kernel arguments
-	KernelArguments KernelArguments `json:"kernel_arguments,omitempty"`
+	KernelArguments KernelArguments `json:"kernel_arguments"`
 
 	// Name of the infra-env.
 	// Required: true
