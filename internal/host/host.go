@@ -587,8 +587,12 @@ func (m *Manager) UpdateInstallProgress(ctx context.Context, h *models.Host, pro
 	var err error
 	switch progress.CurrentStage {
 	case models.HostStageDone:
+		newStatus := models.HostStatusInstalled
+		if swag.StringValue(h.Kind) == models.HostKindAddToExistingClusterHost {
+			newStatus = models.HostStatusAddedToExistingCluster
+		}
 		_, err = hostutil.UpdateHostProgress(ctx, logutil.FromContext(ctx, m.log), m.db, m.eventsHandler, h.InfraEnvID, *h.ID,
-			swag.StringValue(h.Status), models.HostStatusInstalled, statusInfo,
+			swag.StringValue(h.Status), newStatus, statusInfo,
 			previousProgress.CurrentStage, progress.CurrentStage, progress.ProgressInfo, extra...)
 	case models.HostStageFailed:
 		// Keeps the last progress
@@ -603,13 +607,15 @@ func (m *Manager) UpdateInstallProgress(ctx context.Context, h *models.Host, pro
 		if swag.StringValue(h.Kind) == models.HostKindAddToExistingClusterHost {
 			infoMessage := statusInfoRebootingDay2
 			stage := models.HostStageDone
+			newStatus := models.HostStatusAddedToExistingCluster
 			if m.kubeApiEnabled {
 				// in case kubeApiEnabled the agent controller will keep updating the host stage until the installation is complete
 				infoMessage = statusInfo
 				stage = models.HostStageRebooting
+				newStatus = swag.StringValue(h.Status)
 			}
 			_, err = hostutil.UpdateHostProgress(ctx, logutil.FromContext(ctx, m.log), m.db, m.eventsHandler, h.InfraEnvID, *h.ID,
-				swag.StringValue(h.Status), models.HostStatusAddedToExistingCluster, infoMessage,
+				swag.StringValue(h.Status), newStatus, infoMessage,
 				h.Progress.CurrentStage, stage, progress.ProgressInfo, extra...)
 			break
 		}

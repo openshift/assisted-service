@@ -1967,7 +1967,7 @@ VU1eS0RiS/Lz6HwRs2mATNY5FrpZOgdM3cI=
 				ClusterID:  &sId,
 				Kind:       swag.String(models.HostKindAddToExistingClusterHost),
 				Inventory:  generateInventory(),
-				Status:     swag.String(models.HostStatusAddedToExistingCluster),
+				Status:     swag.String(models.HostStatusInstalling),
 				Progress: &models.HostProgressInfo{
 					CurrentStage: models.HostStageRebooting,
 				},
@@ -2017,6 +2017,7 @@ VU1eS0RiS/Lz6HwRs2mATNY5FrpZOgdM3cI=
 		clusterInstall      *hiveext.AgentClusterInstall
 		updateProgressStage bool
 		getNodeCount        int
+		isDay1Host          bool
 	}{
 		{
 			name:                "Not day 2 host - do nothing",
@@ -2028,6 +2029,7 @@ VU1eS0RiS/Lz6HwRs2mATNY5FrpZOgdM3cI=
 			clusterInstall:      newAciWithUserManagedNetworkingNoSNO("test-cluster-aci", testNamespace),
 			updateProgressStage: false,
 			getNodeCount:        0,
+			isDay1Host:          true,
 		},
 		{
 			name:                "No matching node - No csrs",
@@ -2035,7 +2037,7 @@ VU1eS0RiS/Lz6HwRs2mATNY5FrpZOgdM3cI=
 			csrs:                &certificatesv1.CertificateSigningRequestList{},
 			nodeError:           &notFoundError{},
 			expectedResult:      ctrl.Result{RequeueAfter: time.Minute},
-			expectedStatus:      models.HostStatusAddedToExistingCluster,
+			expectedStatus:      models.HostStatusInstalling,
 			expectedStage:       models.HostStageRebooting,
 			clusterInstall:      newAciWithUserManagedNetworkingNoSNO("test-cluster-aci", testNamespace),
 			updateProgressStage: false,
@@ -2068,7 +2070,7 @@ VU1eS0RiS/Lz6HwRs2mATNY5FrpZOgdM3cI=
 			expectedResult: ctrl.Result{
 				RequeueAfter: time.Minute,
 			},
-			expectedStatus:      models.HostStatusAddedToExistingCluster,
+			expectedStatus:      models.HostStatusInstalling,
 			expectedStage:       models.HostStageJoined,
 			clusterInstall:      newAciNoUserManagedNetworkingNoSNO("test-cluster-aci", testNamespace),
 			updateProgressStage: true,
@@ -2099,7 +2101,7 @@ VU1eS0RiS/Lz6HwRs2mATNY5FrpZOgdM3cI=
 			},
 			approveExpected:     false,
 			expectedResult:      ctrl.Result{},
-			expectedStatus:      models.HostStatusAddedToExistingCluster,
+			expectedStatus:      models.HostStatusInstalling,
 			expectedStage:       models.HostStageDone,
 			clusterInstall:      newAciNoUserManagedNetworkingNoSNO("test-cluster-aci", testNamespace),
 			updateProgressStage: true,
@@ -2133,7 +2135,7 @@ VU1eS0RiS/Lz6HwRs2mATNY5FrpZOgdM3cI=
 			expectedResult: ctrl.Result{
 				RequeueAfter: time.Minute,
 			},
-			expectedStatus:      models.HostStatusAddedToExistingCluster,
+			expectedStatus:      models.HostStatusInstalling,
 			expectedStage:       models.HostStageJoined,
 			clusterInstall:      newAciWithUserManagedNetworkingNoSNO("test-cluster-aci", testNamespace),
 			updateProgressStage: true,
@@ -2167,7 +2169,7 @@ VU1eS0RiS/Lz6HwRs2mATNY5FrpZOgdM3cI=
 			expectedResult: ctrl.Result{
 				RequeueAfter: time.Minute,
 			},
-			expectedStatus:      models.HostStatusAddedToExistingCluster,
+			expectedStatus:      models.HostStatusInstalling,
 			expectedStage:       models.HostStageJoined,
 			clusterInstall:      newAciNoUserManagedNetworkingWithSNO("test-cluster-aci", testNamespace),
 			updateProgressStage: true,
@@ -2197,7 +2199,7 @@ VU1eS0RiS/Lz6HwRs2mATNY5FrpZOgdM3cI=
 			expectedResult: ctrl.Result{
 				RequeueAfter: time.Minute,
 			},
-			expectedStatus:      models.HostStatusAddedToExistingCluster,
+			expectedStatus:      models.HostStatusInstalling,
 			expectedStage:       models.HostStageRebooting,
 			clusterInstall:      newAciWithUserManagedNetworkingNoSNO("test-cluster-aci", testNamespace),
 			updateProgressStage: false,
@@ -2226,7 +2228,7 @@ VU1eS0RiS/Lz6HwRs2mATNY5FrpZOgdM3cI=
 			expectedResult: ctrl.Result{
 				RequeueAfter: time.Minute,
 			},
-			expectedStatus:      models.HostStatusAddedToExistingCluster,
+			expectedStatus:      models.HostStatusInstalling,
 			expectedStage:       models.HostStageJoined,
 			clusterInstall:      newAciWithUserManagedNetworkingNoSNO("test-cluster-aci", testNamespace),
 			updateProgressStage: true,
@@ -2257,7 +2259,7 @@ VU1eS0RiS/Lz6HwRs2mATNY5FrpZOgdM3cI=
 			csrs:                serverCsrs(),
 			approveExpected:     true,
 			expectedResult:      ctrl.Result{},
-			expectedStatus:      models.HostStatusAddedToExistingCluster,
+			expectedStatus:      models.HostStatusInstalling,
 			expectedStage:       models.HostStageDone,
 			clusterInstall:      newAciWithUserManagedNetworkingNoSNO("test-cluster-aci", testNamespace),
 			updateProgressStage: true,
@@ -2273,7 +2275,7 @@ VU1eS0RiS/Lz6HwRs2mATNY5FrpZOgdM3cI=
 			expectedResult: ctrl.Result{
 				RequeueAfter: time.Minute,
 			},
-			expectedStatus:      models.HostStatusAddedToExistingCluster,
+			expectedStatus:      models.HostStatusInstalling,
 			expectedStage:       models.HostStageRebooting,
 			clusterInstall:      newAciWithUserManagedNetworkingNoSNO("test-cluster-aci", testNamespace),
 			updateProgressStage: false,
@@ -2289,7 +2291,7 @@ VU1eS0RiS/Lz6HwRs2mATNY5FrpZOgdM3cI=
 			expectedResult: ctrl.Result{
 				RequeueAfter: time.Minute,
 			},
-			expectedStatus:      models.HostStatusAddedToExistingCluster,
+			expectedStatus:      models.HostStatusInstalling,
 			expectedStage:       models.HostStageRebooting,
 			clusterInstall:      newAciWithUserManagedNetworkingNoSNO("test-cluster-aci", testNamespace),
 			updateProgressStage: false,
@@ -2318,7 +2320,7 @@ VU1eS0RiS/Lz6HwRs2mATNY5FrpZOgdM3cI=
 			expectedResult: ctrl.Result{
 				RequeueAfter: time.Minute,
 			},
-			expectedStatus:      models.HostStatusAddedToExistingCluster,
+			expectedStatus:      models.HostStatusInstalling,
 			expectedStage:       models.HostStageJoined,
 			clusterInstall:      newAciWithUserManagedNetworkingNoSNO("test-cluster-aci", testNamespace),
 			updateProgressStage: true,
@@ -2326,11 +2328,22 @@ VU1eS0RiS/Lz6HwRs2mATNY5FrpZOgdM3cI=
 		},
 		{
 			name:                "Already done",
-			createClient:        true,
+			createClient:        false,
 			hostInitialStage:    models.HostStageDone,
 			expectedResult:      ctrl.Result{},
-			expectedStatus:      models.HostStatusAddedToExistingCluster,
+			expectedStatus:      models.HostStatusInstalling,
 			expectedStage:       models.HostStageDone,
+			clusterInstall:      newAciWithUserManagedNetworkingNoSNO("test-cluster-aci", testNamespace),
+			updateProgressStage: false,
+			getNodeCount:        0,
+		},
+		{
+			name:                "Not rebooting yet - do nothing",
+			createClient:        false,
+			hostInitialStage:    models.HostStageWritingImageToDisk,
+			expectedResult:      ctrl.Result{},
+			expectedStatus:      models.HostStatusInstalling,
+			expectedStage:       models.HostStageWritingImageToDisk,
 			clusterInstall:      newAciWithUserManagedNetworkingNoSNO("test-cluster-aci", testNamespace),
 			updateProgressStage: false,
 			getNodeCount:        0,
@@ -2346,6 +2359,9 @@ VU1eS0RiS/Lz6HwRs2mATNY5FrpZOgdM3cI=
 			agentSpec := v1beta1.AgentSpec{ClusterDeploymentName: &v1beta1.ClusterReference{Name: "clusterDeployment", Namespace: testNamespace}}
 			if t.hostname != "" {
 				agentSpec.Hostname = t.hostname
+			}
+			if t.isDay1Host {
+				commonHost.Kind = swag.String(models.HostKindHost)
 			}
 			host := newAgent(hostId.String(), testNamespace, agentSpec)
 			host.Spec.Approved = true
