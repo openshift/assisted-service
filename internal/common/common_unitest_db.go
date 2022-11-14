@@ -88,10 +88,13 @@ func (c *DockerDBContext) Create() error {
 		oldResource.Close()
 	}
 	resource, err := c.pool.RunWithOptions(&dockertest.RunOptions{
-		Repository: "quay.io/centos7/postgresql-12-centos7",
-		Tag:        "latest",
-		Env:        []string{"POSTGRESQL_ADMIN_PASSWORD=admin"},
+		Repository: "docker.io/postgres",
+		Tag:        "14",
+		Env:        []string{"POSTGRES_PASSWORD=admin"},
 		Name:       dbDockerName,
+		Cmd: []string{
+			"-c", "fsync=off",
+		},
 	})
 	if err != nil {
 		return err
