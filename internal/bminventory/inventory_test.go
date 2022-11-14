@@ -11395,7 +11395,6 @@ var _ = Describe("TestRegisterCluster", func() {
 		mockAMSSubscription(ctx)
 		mockVersions.EXPECT().GetCPUArchitectures(gomock.Any()).Return(
 			[]string{common.TestDefaultConfig.OpenShiftVersion, common.ARM64CPUArchitecture}).Times(1)
-		mockVersions.EXPECT().ValidateAccessToMultiarch(gomock.Any(), gomock.Any()).Times(1)
 
 		params := getDefaultClusterCreateParams()
 		params.CPUArchitecture = common.ARM64CPUArchitecture
@@ -11600,7 +11599,7 @@ var _ = Describe("TestRegisterCluster", func() {
 					eventstest.WithNameMatcher(eventgen.ClusterRegistrationSucceededEventName))).Times(1)
 				mockAMSSubscription(authCtx)
 				mockUsageReports()
-				mockVersions.EXPECT().ValidateAccessToMultiarch(gomock.Any(), gomock.Any()).Times(1)
+				mockOcmAuthz.EXPECT().CapabilityReview(gomock.Any(), userName1, ocm.MultiarchCapabilityName, ocm.OrganizationCapabilityType).Return(true, nil).Times(1)
 
 				reply := bm.V2RegisterCluster(authCtx, installer.V2RegisterClusterParams{
 					NewClusterParams: &models.ClusterCreateParams{
@@ -11627,7 +11626,7 @@ var _ = Describe("TestRegisterCluster", func() {
 					eventstest.WithNameMatcher(eventgen.ClusterRegistrationFailedEventName),
 					eventstest.WithMessageContainsMatcher("multiarch clusters are not available"),
 					eventstest.WithSeverityMatcher(models.EventSeverityError))).Times(1)
-				mockVersions.EXPECT().ValidateAccessToMultiarch(gomock.Any(), gomock.Any()).Return(common.NewApiError(http.StatusBadRequest, errors.Errorf("%s", "multiarch clusters are not available")))
+				mockOcmAuthz.EXPECT().CapabilityReview(gomock.Any(), userName1, ocm.MultiarchCapabilityName, ocm.OrganizationCapabilityType).Return(false, nil).Times(1)
 
 				reply := bm.V2RegisterCluster(authCtx, installer.V2RegisterClusterParams{
 					NewClusterParams: &models.ClusterCreateParams{

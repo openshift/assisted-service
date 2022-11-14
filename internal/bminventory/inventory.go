@@ -497,7 +497,7 @@ func (b *bareMetalInventory) RegisterClusterInternal(
 		cpuArchitecture = common.MultiCPUArchitecture
 		// (MGMT-11859) Additional check here ensures that the customer cannot just guess a version
 		//              with multiarch in order to get access to that release payload.
-		if err = b.versionsHandler.ValidateAccessToMultiarch(ctx, b.authzHandler); err != nil {
+		if err = auth.ValidateAccessToMultiarch(ctx, b.authzHandler); err != nil {
 			return nil, err
 		}
 	}

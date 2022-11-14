@@ -1266,36 +1266,4 @@ var _ = Describe("Test list versions with capability restrictions", func() {
 			Expect(hasMultiarch(val.Payload)).To(BeTrue())
 		})
 	})
-
-	Context("ValidateAccessToMultiarch", func() {
-		It("succeeds with multiarch capability", func() {
-			cfg.EnableOrgBasedFeatureGates = true
-			h.authzHandler = auth.NewAuthzHandler(cfg, mockOcmClient, common.GetTestLog().WithField("pkg", "auth"), db)
-
-			mockOcmAuthz.EXPECT().CapabilityReview(context.Background(), userName1, ocm.MultiarchCapabilityName, ocm.OrganizationCapabilityType).Return(true, nil).Times(1)
-
-			err := h.ValidateAccessToMultiarch(authCtx, h.authzHandler)
-			Expect(err).ShouldNot(HaveOccurred())
-		})
-		It("fails without multiarch capability", func() {
-			cfg.EnableOrgBasedFeatureGates = true
-			h.authzHandler = auth.NewAuthzHandler(cfg, mockOcmClient, common.GetTestLog().WithField("pkg", "auth"), db)
-
-			mockOcmAuthz.EXPECT().CapabilityReview(context.Background(), userName1, ocm.MultiarchCapabilityName, ocm.OrganizationCapabilityType).Return(false, nil).Times(1)
-
-			err := h.ValidateAccessToMultiarch(authCtx, h.authzHandler)
-			Expect(err).Should(HaveOccurred())
-			Expect(err.Error()).Should(ContainSubstring("multiarch clusters are not available"))
-		})
-		It("fails with internal error", func() {
-			cfg.EnableOrgBasedFeatureGates = true
-			h.authzHandler = auth.NewAuthzHandler(cfg, mockOcmClient, common.GetTestLog().WithField("pkg", "auth"), db)
-
-			mockOcmAuthz.EXPECT().CapabilityReview(context.Background(), userName1, ocm.MultiarchCapabilityName, ocm.OrganizationCapabilityType).Return(false, errors.New("some internal error")).Times(1)
-
-			err := h.ValidateAccessToMultiarch(authCtx, h.authzHandler)
-			Expect(err).Should(HaveOccurred())
-			Expect(err.Error()).Should(ContainSubstring(fmt.Sprintf("error getting user %s capability", ocm.MultiarchCapabilityName)))
-		})
-	})
 })

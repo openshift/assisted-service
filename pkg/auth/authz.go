@@ -2,9 +2,12 @@ package auth
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 
+	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/pkg/ocm"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
 )
@@ -54,4 +57,18 @@ func NewAuthzHandler(cfg *Config, ocmCLient *ocm.Client, log logrus.FieldLogger,
 		}
 	}
 	return &NoneHandler{}
+}
+
+func ValidateAccessToMultiarch(ctx context.Context, authzHandler Authorizer) error {
+	var err error
+	var multiarchAllowed bool
+
+	multiarchAllowed, err = authzHandler.HasOrgBasedCapability(ctx, ocm.MultiarchCapabilityName)
+	if err != nil {
+		return common.NewApiError(http.StatusInternalServerError, fmt.Errorf("error getting user %s capability, error: %w", ocm.MultiarchCapabilityName, err))
+	}
+	if !multiarchAllowed {
+		return common.NewApiError(http.StatusBadRequest, errors.Errorf("%s", "multiarch clusters are not available"))
+	}
+	return nil
 }
