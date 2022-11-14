@@ -5,13 +5,10 @@
 package versions
 
 import (
-	context "context"
 	reflect "reflect"
 
-	middleware "github.com/go-openapi/runtime/middleware"
 	gomock "github.com/golang/mock/gomock"
 	models "github.com/openshift/assisted-service/models"
-	versions0 "github.com/openshift/assisted-service/restapi/operations/versions"
 )
 
 // MockHandler is a mock of Handler interface.
@@ -168,34 +165,6 @@ func (m *MockHandler) GetReleaseImage(arg0, arg1 string) (*models.ReleaseImage, 
 func (mr *MockHandlerMockRecorder) GetReleaseImage(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetReleaseImage", reflect.TypeOf((*MockHandler)(nil).GetReleaseImage), arg0, arg1)
-}
-
-// V2ListComponentVersions mocks base method.
-func (m *MockHandler) V2ListComponentVersions(arg0 context.Context, arg1 versions0.V2ListComponentVersionsParams) middleware.Responder {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "V2ListComponentVersions", arg0, arg1)
-	ret0, _ := ret[0].(middleware.Responder)
-	return ret0
-}
-
-// V2ListComponentVersions indicates an expected call of V2ListComponentVersions.
-func (mr *MockHandlerMockRecorder) V2ListComponentVersions(arg0, arg1 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "V2ListComponentVersions", reflect.TypeOf((*MockHandler)(nil).V2ListComponentVersions), arg0, arg1)
-}
-
-// V2ListSupportedOpenshiftVersions mocks base method.
-func (m *MockHandler) V2ListSupportedOpenshiftVersions(arg0 context.Context, arg1 versions0.V2ListSupportedOpenshiftVersionsParams) middleware.Responder {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "V2ListSupportedOpenshiftVersions", arg0, arg1)
-	ret0, _ := ret[0].(middleware.Responder)
-	return ret0
-}
-
-// V2ListSupportedOpenshiftVersions indicates an expected call of V2ListSupportedOpenshiftVersions.
-func (mr *MockHandlerMockRecorder) V2ListSupportedOpenshiftVersions(arg0, arg1 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "V2ListSupportedOpenshiftVersions", reflect.TypeOf((*MockHandler)(nil).V2ListSupportedOpenshiftVersions), arg0, arg1)
 }
 
 // ValidateReleaseImageForRHCOS mocks base method.

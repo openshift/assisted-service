@@ -290,8 +290,9 @@ func main() {
 		oc.Config{MaxTries: oc.DefaultTries, RetryDelay: oc.DefaltRetryDelay}, mirrorRegistriesBuilder)
 	extracterHandler := oc.NewExtracter(&executer.CommonExecuter{},
 		oc.Config{MaxTries: oc.DefaultTries, RetryDelay: oc.DefaltRetryDelay})
-	versionHandler, err := versions.NewHandler(log.WithField("pkg", "versions"), releaseHandler,
-		Options.Versions, osImagesArray, releaseImagesArray, mustGatherVersionsMap, Options.ReleaseImageMirror, authzHandler)
+	versionHandler, err := versions.NewHandler(log.WithField("pkg", "versions"), releaseHandler, osImagesArray,
+		releaseImagesArray, mustGatherVersionsMap, Options.ReleaseImageMirror)
+	versionsAPIHandler := versions.NewAPIHandler(log, Options.Versions, authzHandler, versionHandler)
 	failOnError(err, "failed to create Versions handler")
 	domainHandler := domains.NewHandler(Options.BMConfig.BaseDNSDomains)
 	staticNetworkConfig := staticnetworkconfig.New(log.WithField("pkg", "static_network_config"), Options.StaticNetworkConfig)
@@ -478,7 +479,7 @@ func main() {
 		InstallerAPI:        bm,
 		EventsAPI:           events,
 		Logger:              log.Printf,
-		VersionsAPI:         versionHandler,
+		VersionsAPI:         versionsAPIHandler,
 		ManagedDomainsAPI:   domainHandler,
 		InnerMiddleware:     innerHandler(),
 		ManifestsAPI:        manifestsApi,
