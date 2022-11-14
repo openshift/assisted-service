@@ -36,9 +36,6 @@ type InfraEnv struct {
 	// Format: date-time
 	CreatedAt *timeext.Time `json:"created_at" gorm:"type:timestamp with time zone"`
 
-	// JSON formatted string array representing the discovery image kernel arguments.
-	DiscoveryKernelArguments *string `json:"discovery_kernel_arguments,omitempty" gorm:"type:text"`
-
 	// download url
 	DownloadURL string `json:"download_url,omitempty"`
 
@@ -63,6 +60,9 @@ type InfraEnv struct {
 
 	// Json formatted string containing the user overrides for the initial ignition config.
 	IgnitionConfigOverride string `json:"ignition_config_override,omitempty"`
+
+	// JSON formatted string array representing the discovery image kernel arguments.
+	KernelArguments *string `json:"kernel_arguments,omitempty" gorm:"type:text"`
 
 	// Indicates the type of this object.
 	// Required: true

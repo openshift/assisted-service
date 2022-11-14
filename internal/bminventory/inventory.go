@@ -4160,38 +4160,38 @@ func (b *bareMetalInventory) RegisterInfraEnvInternal(
 		return nil, err
 	}
 
-	if err = b.validateKernelArguments(ctx, params.InfraenvCreateParams.DiscoveryKernelArguments); err != nil {
+	if err = b.validateKernelArguments(ctx, params.InfraenvCreateParams.KernelArguments); err != nil {
 		return nil, common.NewApiError(http.StatusBadRequest, err)
 	}
 
-	var discoveryKernelArguments *string
-	if len(params.InfraenvCreateParams.DiscoveryKernelArguments) > 0 {
+	var kernelArguments *string
+	if len(params.InfraenvCreateParams.KernelArguments) > 0 {
 		var b []byte
-		b, err = json.Marshal(&params.InfraenvCreateParams.DiscoveryKernelArguments)
+		b, err = json.Marshal(&params.InfraenvCreateParams.KernelArguments)
 		if err != nil {
 			return nil, common.NewApiError(http.StatusBadRequest, errors.Wrap(err, "failed to format kernel arguments as json"))
 		}
-		discoveryKernelArguments = swag.String(string(b))
+		kernelArguments = swag.String(string(b))
 	}
 
 	infraEnv := common.InfraEnv{
 		Generated: false,
 		InfraEnv: models.InfraEnv{
-			ID:                       &id,
-			Href:                     swag.String(url.String()),
-			Kind:                     swag.String(models.InfraEnvKindInfraEnv),
-			Name:                     params.InfraenvCreateParams.Name,
-			UserName:                 ocm.UserNameFromContext(ctx),
-			OrgID:                    ocm.OrgIDFromContext(ctx),
-			EmailDomain:              ocm.EmailDomainFromContext(ctx),
-			OpenshiftVersion:         *osImage.OpenshiftVersion,
-			IgnitionConfigOverride:   params.InfraenvCreateParams.IgnitionConfigOverride,
-			StaticNetworkConfig:      staticNetworkConfig,
-			Type:                     common.ImageTypePtr(params.InfraenvCreateParams.ImageType),
-			AdditionalNtpSources:     swag.StringValue(params.InfraenvCreateParams.AdditionalNtpSources),
-			SSHAuthorizedKey:         swag.StringValue(params.InfraenvCreateParams.SSHAuthorizedKey),
-			CPUArchitecture:          params.InfraenvCreateParams.CPUArchitecture,
-			DiscoveryKernelArguments: discoveryKernelArguments,
+			ID:                     &id,
+			Href:                   swag.String(url.String()),
+			Kind:                   swag.String(models.InfraEnvKindInfraEnv),
+			Name:                   params.InfraenvCreateParams.Name,
+			UserName:               ocm.UserNameFromContext(ctx),
+			OrgID:                  ocm.OrgIDFromContext(ctx),
+			EmailDomain:            ocm.EmailDomainFromContext(ctx),
+			OpenshiftVersion:       *osImage.OpenshiftVersion,
+			IgnitionConfigOverride: params.InfraenvCreateParams.IgnitionConfigOverride,
+			StaticNetworkConfig:    staticNetworkConfig,
+			Type:                   common.ImageTypePtr(params.InfraenvCreateParams.ImageType),
+			AdditionalNtpSources:   swag.StringValue(params.InfraenvCreateParams.AdditionalNtpSources),
+			SSHAuthorizedKey:       swag.StringValue(params.InfraenvCreateParams.SSHAuthorizedKey),
+			CPUArchitecture:        params.InfraenvCreateParams.CPUArchitecture,
+			KernelArguments:        kernelArguments,
 		},
 		KubeKeyNamespace: kubeKey.Namespace,
 		ImageTokenKey:    imageTokenKey,
@@ -4463,7 +4463,7 @@ func (b *bareMetalInventory) UpdateInfraEnvInternal(ctx context.Context, params 
 		}
 	}
 
-	if err = b.validateKernelArguments(ctx, params.InfraEnvUpdateParams.DiscoveryKernelArguments); err != nil {
+	if err = b.validateKernelArguments(ctx, params.InfraEnvUpdateParams.KernelArguments); err != nil {
 		return nil, common.NewApiError(http.StatusBadRequest, err)
 	}
 
@@ -4517,15 +4517,15 @@ func (b *bareMetalInventory) updateInfraEnvData(ctx context.Context, infraEnv *c
 			updates["proxy_hash"] = proxyHash
 		}
 	}
-	if params.InfraEnvUpdateParams.DiscoveryKernelArguments != nil {
-		if len(params.InfraEnvUpdateParams.DiscoveryKernelArguments) > 0 {
-			b, err := json.Marshal(&params.InfraEnvUpdateParams.DiscoveryKernelArguments)
+	if params.InfraEnvUpdateParams.KernelArguments != nil {
+		if len(params.InfraEnvUpdateParams.KernelArguments) > 0 {
+			b, err := json.Marshal(&params.InfraEnvUpdateParams.KernelArguments)
 			if err != nil {
 				return common.NewApiError(http.StatusBadRequest, errors.Wrap(err, "failed to format kernel arguments as json"))
 			}
-			updates["discovery_kernel_arguments"] = string(b)
+			updates["kernel_arguments"] = string(b)
 		} else {
-			updates["discovery_kernel_arguments"] = gorm.Expr("NULL")
+			updates["kernel_arguments"] = gorm.Expr("NULL")
 		}
 	}
 

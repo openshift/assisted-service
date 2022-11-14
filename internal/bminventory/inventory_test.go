@@ -6005,10 +6005,10 @@ var _ = Describe("infraEnvs", func() {
 			}
 			reply := bm.RegisterInfraEnv(ctx, installer.RegisterInfraEnvParams{
 				InfraenvCreateParams: &models.InfraEnvCreateParams{
-					Name:                     swag.String("some-infra-env-name"),
-					OpenshiftVersion:         MinimalOpenShiftVersionForNoneHA,
-					PullSecret:               swag.String("{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"),
-					DiscoveryKernelArguments: kernelArguments,
+					Name:             swag.String("some-infra-env-name"),
+					OpenshiftVersion: MinimalOpenShiftVersionForNoneHA,
+					PullSecret:       swag.String("{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"),
+					KernelArguments:  kernelArguments,
 				},
 			})
 			Expect(reflect.TypeOf(reply)).Should(Equal(reflect.TypeOf(installer.NewRegisterInfraEnvCreated())))
@@ -6019,7 +6019,7 @@ var _ = Describe("infraEnvs", func() {
 			Expect(dbInfraEnv.ImageTokenKey).NotTo(Equal(""))
 			jsonEncodedKernelParameters, err := json.Marshal(&kernelArguments)
 			Expect(err).ToNot(HaveOccurred())
-			Expect(swag.StringValue(dbInfraEnv.DiscoveryKernelArguments)).To(Equal(string(jsonEncodedKernelParameters)))
+			Expect(swag.StringValue(dbInfraEnv.KernelArguments)).To(Equal(string(jsonEncodedKernelParameters)))
 		})
 
 		It("sets the ignition config override feature usage when given a valid override", func() {
@@ -6484,26 +6484,26 @@ var _ = Describe("infraEnvs", func() {
 				DescribeTable("Update discovery kernel arguments scenarios",
 					func(initialKernelArguments, updateKernelArguments, expectedKernelArguments models.KernelArguments) {
 						mockInfraEnvUpdateSuccess()
-						Expect(i.DiscoveryKernelArguments).To(BeNil())
+						Expect(i.KernelArguments).To(BeNil())
 						if initialKernelArguments != nil {
 							updateReply := db.Model(&models.InfraEnv{}).Where("id = ?", i.ID.String()).
-								Update("discovery_kernel_arguments", jsonEncodeKernelArguments(initialKernelArguments))
+								Update("kernel_arguments", jsonEncodeKernelArguments(initialKernelArguments))
 							Expect(updateReply.Error).ToNot(HaveOccurred())
 							Expect(updateReply.RowsAffected).To(Equal(int64(1)))
 						}
 						reply := bm.UpdateInfraEnv(ctx, installer.UpdateInfraEnvParams{
 							InfraEnvID: *i.ID,
 							InfraEnvUpdateParams: &models.InfraEnvUpdateParams{
-								DiscoveryKernelArguments: updateKernelArguments,
+								KernelArguments: updateKernelArguments,
 							},
 						})
 						Expect(reply).To(BeAssignableToTypeOf(installer.NewUpdateInfraEnvCreated()))
 						i, err = bm.GetInfraEnvInternal(ctx, installer.GetInfraEnvParams{InfraEnvID: *i.ID})
 						Expect(err).ToNot(HaveOccurred())
 						if expectedKernelArguments == nil {
-							Expect(i.DiscoveryKernelArguments).To(BeNil())
+							Expect(i.KernelArguments).To(BeNil())
 						} else {
-							Expect(swag.StringValue(i.DiscoveryKernelArguments)).To(Equal(jsonEncodeKernelArguments(expectedKernelArguments)))
+							Expect(swag.StringValue(i.KernelArguments)).To(Equal(jsonEncodeKernelArguments(expectedKernelArguments)))
 						}
 					},
 					Entry("update discovery kernel arguments when none were previously set", nil, ka1, ka1),
@@ -9124,7 +9124,7 @@ var _ = Describe("V2DownloadInfraEnvFiles", func() {
 			InfraEnvUpdateParams: &models.InfraEnvUpdateParams{},
 			InfraEnvID:           infraEnvID,
 		}
-		params.InfraEnvUpdateParams.DiscoveryKernelArguments = append(params.InfraEnvUpdateParams.DiscoveryKernelArguments, strArrayToKernelArguments(kernelArgs)...)
+		params.InfraEnvUpdateParams.KernelArguments = append(params.InfraEnvUpdateParams.KernelArguments, strArrayToKernelArguments(kernelArgs)...)
 		response := bm.UpdateInfraEnv(ctx, params)
 		_, ok := response.(*installer.UpdateInfraEnvCreated)
 		Expect(ok).To(BeTrue())

@@ -30,14 +30,14 @@ type InfraEnvCreateParams struct {
 	// The CPU architecture of the image (x86_64/arm64/etc).
 	CPUArchitecture string `json:"cpu_architecture,omitempty"`
 
-	// discovery kernel arguments
-	DiscoveryKernelArguments KernelArguments `json:"discovery_kernel_arguments,omitempty"`
-
 	// JSON formatted string containing the user overrides for the initial ignition config.
 	IgnitionConfigOverride string `json:"ignition_config_override,omitempty"`
 
 	// image type
 	ImageType ImageType `json:"image_type,omitempty"`
+
+	// kernel arguments
+	KernelArguments KernelArguments `json:"kernel_arguments,omitempty"`
 
 	// Name of the infra-env.
 	// Required: true
@@ -68,11 +68,11 @@ func (m *InfraEnvCreateParams) Validate(formats strfmt.Registry) error {
 		res = append(res, err)
 	}
 
-	if err := m.validateDiscoveryKernelArguments(formats); err != nil {
+	if err := m.validateImageType(formats); err != nil {
 		res = append(res, err)
 	}
 
-	if err := m.validateImageType(formats); err != nil {
+	if err := m.validateKernelArguments(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -110,23 +110,6 @@ func (m *InfraEnvCreateParams) validateClusterID(formats strfmt.Registry) error 
 	return nil
 }
 
-func (m *InfraEnvCreateParams) validateDiscoveryKernelArguments(formats strfmt.Registry) error {
-	if swag.IsZero(m.DiscoveryKernelArguments) { // not required
-		return nil
-	}
-
-	if err := m.DiscoveryKernelArguments.Validate(formats); err != nil {
-		if ve, ok := err.(*errors.Validation); ok {
-			return ve.ValidateName("discovery_kernel_arguments")
-		} else if ce, ok := err.(*errors.CompositeError); ok {
-			return ce.ValidateName("discovery_kernel_arguments")
-		}
-		return err
-	}
-
-	return nil
-}
-
 func (m *InfraEnvCreateParams) validateImageType(formats strfmt.Registry) error {
 	if swag.IsZero(m.ImageType) { // not required
 		return nil
@@ -137,6 +120,23 @@ func (m *InfraEnvCreateParams) validateImageType(formats strfmt.Registry) error 
 			return ve.ValidateName("image_type")
 		} else if ce, ok := err.(*errors.CompositeError); ok {
 			return ce.ValidateName("image_type")
+		}
+		return err
+	}
+
+	return nil
+}
+
+func (m *InfraEnvCreateParams) validateKernelArguments(formats strfmt.Registry) error {
+	if swag.IsZero(m.KernelArguments) { // not required
+		return nil
+	}
+
+	if err := m.KernelArguments.Validate(formats); err != nil {
+		if ve, ok := err.(*errors.Validation); ok {
+			return ve.ValidateName("kernel_arguments")
+		} else if ce, ok := err.(*errors.CompositeError); ok {
+			return ce.ValidateName("kernel_arguments")
 		}
 		return err
 	}
@@ -211,11 +211,11 @@ func (m *InfraEnvCreateParams) validateStaticNetworkConfig(formats strfmt.Regist
 func (m *InfraEnvCreateParams) ContextValidate(ctx context.Context, formats strfmt.Registry) error {
 	var res []error
 
-	if err := m.contextValidateDiscoveryKernelArguments(ctx, formats); err != nil {
+	if err := m.contextValidateImageType(ctx, formats); err != nil {
 		res = append(res, err)
 	}
 
-	if err := m.contextValidateImageType(ctx, formats); err != nil {
+	if err := m.contextValidateKernelArguments(ctx, formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -233,20 +233,6 @@ func (m *InfraEnvCreateParams) ContextValidate(ctx context.Context, formats strf
 	return nil
 }
 
-func (m *InfraEnvCreateParams) contextValidateDiscoveryKernelArguments(ctx context.Context, formats strfmt.Registry) error {
-
-	if err := m.DiscoveryKernelArguments.ContextValidate(ctx, formats); err != nil {
-		if ve, ok := err.(*errors.Validation); ok {
-			return ve.ValidateName("discovery_kernel_arguments")
-		} else if ce, ok := err.(*errors.CompositeError); ok {
-			return ce.ValidateName("discovery_kernel_arguments")
-		}
-		return err
-	}
-
-	return nil
-}
-
 func (m *InfraEnvCreateParams) contextValidateImageType(ctx context.Context, formats strfmt.Registry) error {
 
 	if err := m.ImageType.ContextValidate(ctx, formats); err != nil {
@@ -254,6 +240,20 @@ func (m *InfraEnvCreateParams) contextValidateImageType(ctx context.Context, for
 			return ve.ValidateName("image_type")
 		} else if ce, ok := err.(*errors.CompositeError); ok {
 			return ce.ValidateName("image_type")
+		}
+		return err
+	}
+
+	return nil
+}
+
+func (m *InfraEnvCreateParams) contextValidateKernelArguments(ctx context.Context, formats strfmt.Registry) error {
+
+	if err := m.KernelArguments.ContextValidate(ctx, formats); err != nil {
+		if ve, ok := err.(*errors.Validation); ok {
+			return ve.ValidateName("kernel_arguments")
+		} else if ce, ok := err.(*errors.CompositeError); ok {
+			return ce.ValidateName("kernel_arguments")
 		}
 		return err
 	}
