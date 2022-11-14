@@ -558,7 +558,7 @@ func (v *validator) isHostnameUnique(c *validationContext) (ValidationStatus, st
 	for _, h := range c.cluster.Hosts {
 		if h.ID.String() != c.host.ID.String() && h.Inventory != "" {
 			otherInventory, err := c.inventoryCache.GetOrUnmarshal(h)
-			if err != nil {
+			if err != nil || otherInventory == nil {
 				v.log.WithError(err).Warnf("Illegal inventory for host %s", h.ID.String())
 				// It is not our hostname
 				continue
@@ -1662,7 +1662,7 @@ func (v *validator) noSkipMissingDisk(c *validationContext) (ValidationStatus, s
 	// so we don't accidentally erase it under its new ID.
 	for _, skipFormattingDiskID := range common.GetSkippedFormattingDiskIdentifiers(c.host) {
 		inventory, err := c.inventoryCache.GetOrUnmarshal(c.host)
-		if err != nil {
+		if err != nil || inventory == nil {
 			return ValidationError, errorMessage
 		}
 
