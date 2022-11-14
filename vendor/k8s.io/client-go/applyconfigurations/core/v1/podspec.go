@@ -61,6 +61,8 @@ type PodSpecApplyConfiguration struct {
 	TopologySpreadConstraints     []TopologySpreadConstraintApplyConfiguration `json:"topologySpreadConstraints,omitempty"`
 	SetHostnameAsFQDN             *bool                                        `json:"setHostnameAsFQDN,omitempty"`
 	OS                            *PodOSApplyConfiguration                     `json:"os,omitempty"`
+	HostUsers                     *bool                                        `json:"hostUsers,omitempty"`
+	SchedulingGates               []PodSchedulingGateApplyConfiguration        `json:"schedulingGates,omitempty"`
 }
 
 // PodSpecApplyConfiguration constructs an declarative configuration of the PodSpec type for use with
@@ -405,5 +407,26 @@ func (b *PodSpecApplyConfiguration) WithSetHostnameAsFQDN(value bool) *PodSpecAp
 // If called multiple times, the OS field is set to the value of the last call.
 func (b *PodSpecApplyConfiguration) WithOS(value *PodOSApplyConfiguration) *PodSpecApplyConfiguration {
 	b.OS = value
+	return b
+}
+
+// WithHostUsers sets the HostUsers field in the declarative configuration to the given value
+// and returns the receiver, so that objects can be built by chaining "With" function invocations.
+// If called multiple times, the HostUsers field is set to the value of the last call.
+func (b *PodSpecApplyConfiguration) WithHostUsers(value bool) *PodSpecApplyConfiguration {
+	b.HostUsers = &value
+	return b
+}
+
+// WithSchedulingGates adds the given value to the SchedulingGates field in the declarative configuration
+// and returns the receiver, so that objects can be build by chaining "With" function invocations.
+// If called multiple times, values provided by each call will be appended to the SchedulingGates field.
+func (b *PodSpecApplyConfiguration) WithSchedulingGates(values ...*PodSchedulingGateApplyConfiguration) *PodSpecApplyConfiguration {
+	for i := range values {
+		if values[i] == nil {
+			panic("nil value passed to WithSchedulingGates")
+		}
+		b.SchedulingGates = append(b.SchedulingGates, *values[i])
+	}
 	return b
 }
