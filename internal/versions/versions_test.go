@@ -258,7 +258,7 @@ var _ = Describe("list versions", func() {
 					}
 					Expect(version.CPUArchitectures).Should(ContainElement(architecture))
 					Expect(version.DisplayName).Should(Equal(releaseImage.Version))
-					Expect(version.SupportLevel).Should(Equal(h.getSupportLevel(*releaseImage)))
+					Expect(version.SupportLevel).Should(Equal(getSupportLevel(*releaseImage)))
 				} else {
 					// For multi-arch release we don't require a strict matching for every
 					// architecture supported by this image. As long as we have at least one OS
@@ -266,7 +266,7 @@ var _ = Describe("list versions", func() {
 					// image supports more architectures than we have available RHCOS images.
 					Expect(len(version.CPUArchitectures)).ShouldNot(Equal(0))
 					Expect(*releaseImage.Version).Should(ContainSubstring(*version.DisplayName))
-					Expect(version.SupportLevel).Should(Equal(h.getSupportLevel(*releaseImage)))
+					Expect(version.SupportLevel).Should(Equal(getSupportLevel(*releaseImage)))
 				}
 			}
 
@@ -289,15 +289,15 @@ var _ = Describe("list versions", func() {
 
 			// Production release version
 			releaseImage.Version = swag.String("4.8.12")
-			Expect(*h.getSupportLevel(releaseImage)).Should(Equal(models.OpenshiftVersionSupportLevelProduction))
+			Expect(*getSupportLevel(releaseImage)).Should(Equal(models.OpenshiftVersionSupportLevelProduction))
 
 			// Beta release version
 			releaseImage.Version = swag.String("4.9.0-rc.4")
-			Expect(*h.getSupportLevel(releaseImage)).Should(Equal(models.OpenshiftVersionSupportLevelBeta))
+			Expect(*getSupportLevel(releaseImage)).Should(Equal(models.OpenshiftVersionSupportLevelBeta))
 
 			// Support level specified in release image
 			releaseImage.SupportLevel = models.OpenshiftVersionSupportLevelProduction
-			Expect(*h.getSupportLevel(releaseImage)).Should(Equal(models.OpenshiftVersionSupportLevelProduction))
+			Expect(*getSupportLevel(releaseImage)).Should(Equal(models.OpenshiftVersionSupportLevelProduction))
 		})
 
 		It("missing release images", func() {
