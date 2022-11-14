@@ -474,7 +474,7 @@ var _ = Describe("schedulable masters manifest", func() {
 	})
 
 	Context("CreateClusterManifest success", func() {
-		fileName := "50-schedulable_masters.yaml.patch"
+		fileName := "cluster-scheduler-02-config.yml.patch_ai_set_masters_schedulable"
 		It("CreateClusterManifest success", func() {
 			manifestsApi.EXPECT().CreateClusterManifestInternal(gomock.Any(), gomock.Any()).Return(&models.Manifest{
 				FileName: fileName,
