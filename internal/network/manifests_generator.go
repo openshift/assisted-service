@@ -208,7 +208,7 @@ func (m *ManifestsGenerator) AddChronyManifest(ctx context.Context, log logrus.F
 
 func (m *ManifestsGenerator) AddSchedulableMastersManifest(ctx context.Context, log logrus.FieldLogger, cluster *common.Cluster) error {
 	content := []byte(schedulableMastersManifestPatch)
-	schedulableMastersManifestFile := "cluster-scheduler-02-config.yml.patch"
+	schedulableMastersManifestFile := "cluster-scheduler-02-config.yml.patch_ai_set_masters_schedulable"
 	err := m.createManifests(ctx, cluster, schedulableMastersManifestFile, content)
 	if err != nil {
 		return err
