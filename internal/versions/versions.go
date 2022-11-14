@@ -179,7 +179,7 @@ func (h *handler) V2ListSupportedOpenshiftVersions(ctx context.Context, params o
 }
 
 func (h *handler) GetMustGatherImages(openshiftVersion, cpuArchitecture, pullSecret string) (MustGatherVersion, error) {
-	versionKey, err := getKey(openshiftVersion)
+	versionKey, err := toMajorMinor(openshiftVersion)
 	if err != nil {
 		return nil, err
 	}
@@ -245,7 +245,7 @@ func (h *handler) GetOsImage(openshiftVersion, cpuArchitecture string) (*models.
 		return swag.StringValue(osImage.OpenshiftVersion) == openshiftVersion
 	})
 
-	versionKey, err := getKey(openshiftVersion)
+	versionKey, err := toMajorMinor(openshiftVersion)
 	if err != nil {
 		return nil, err
 	}
@@ -260,7 +260,7 @@ func (h *handler) GetOsImage(openshiftVersion, cpuArchitecture string) (*models.
 	if osImage == nil {
 		// Find latest available patch version by x.y version
 		osImages := funk.Filter(osImages, func(osImage *models.OsImage) bool {
-			imageVersionKey, err := getKey(*osImage.OpenshiftVersion)
+			imageVersionKey, err := toMajorMinor(*osImage.OpenshiftVersion)
 			if err != nil {
 				return false
 			}
@@ -310,7 +310,7 @@ func (h *handler) GetReleaseImage(openshiftVersion, cpuArchitecture string) (*mo
 
 	if releaseImage == nil {
 		// Fallback to x.y version
-		versionKey, err := getKey(openshiftVersion)
+		versionKey, err := toMajorMinor(openshiftVersion)
 		if err != nil {
 			return nil, err
 		}
@@ -332,7 +332,7 @@ func (h *handler) GetReleaseImage(openshiftVersion, cpuArchitecture string) (*mo
 // version that can be used. This functions performs a very weak matching because RHCOS versions
 // are very loosely coupled with the OpenShift versions what allows for a variety of mix&match.
 func (h *handler) ValidateReleaseImageForRHCOS(rhcosVersion, cpuArchitecture string) error {
-	rhcosVersion, err := getKey(rhcosVersion)
+	rhcosVersion, err := toMajorMinor(rhcosVersion)
 	if err != nil {
 		return err
 	}
@@ -345,7 +345,7 @@ func (h *handler) ValidateReleaseImageForRHCOS(rhcosVersion, cpuArchitecture str
 	for _, releaseImage := range h.releaseImages {
 		for _, arch := range releaseImage.CPUArchitectures {
 			if arch == cpuArchitecture {
-				minorVersion, err := getKey(*releaseImage.OpenshiftVersion)
+				minorVersion, err := toMajorMinor(*releaseImage.OpenshiftVersion)
 				if err != nil {
 					return err
 				}
@@ -469,7 +469,7 @@ func (h *handler) AddReleaseImage(releaseImageUrl, pullSecret, ocpReleaseVersion
 // according to the OS images list.
 func (h *handler) GetCPUArchitectures(openshiftVersion string) []string {
 	cpuArchitectures := []string{}
-	versionKey, err := getKey(openshiftVersion)
+	versionKey, err := toMajorMinor(openshiftVersion)
 	if err != nil {
 		return cpuArchitectures
 	}
@@ -514,7 +514,7 @@ func (h *handler) ValidateAccessToMultiarch(ctx context.Context, authzHandler au
 }
 
 // Returns version in major.minor format
-func getKey(openshiftVersion string) (string, error) {
+func toMajorMinor(openshiftVersion string) (string, error) {
 	v, err := version.NewVersion(openshiftVersion)
 	if err != nil {
 		return "", err

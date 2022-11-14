@@ -1153,50 +1153,27 @@ var _ = Describe("list versions", func() {
 	})
 })
 
-var _ = Describe("list versions", func() {
-	var (
-		h            *handler
-		err          error
-		db           *gorm.DB
-		dbName       string
-		authzHandler auth.Authorizer
-	)
-	BeforeEach(func() {
-		ctrl := gomock.NewController(GinkgoT())
-		mockRelease := oc.NewMockRelease(ctrl)
-
-		var versions Versions
-		Expect(envconfig.Process("test", &versions)).ShouldNot(HaveOccurred())
-
-		db, dbName = common.PrepareTestDB()
-		logger := logrus.New()
-		cfg := auth.GetConfigRHSSO()
-		authzHandler = auth.NewAuthzHandler(cfg, nil, common.GetTestLog().WithField("pkg", "auth"), db)
-
-		h, err = NewHandler(logger, mockRelease, versions, defaultOsImages, models.ReleaseImages{}, nil, "", authzHandler)
-		Expect(err).ShouldNot(HaveOccurred())
-	})
-
-	AfterEach(func() {
-		common.DeleteTestDB(db, dbName)
-	})
-
-	It("positive", func() {
-		res, err := h.getKey("4.6")
-		Expect(err).ShouldNot(HaveOccurred())
-		Expect(res).Should(Equal("4.6"))
-
-		res, err = h.getKey("4.6.9")
-		Expect(err).ShouldNot(HaveOccurred())
-		Expect(res).Should(Equal("4.6"))
-
-		res, err = h.getKey("4.6.9-beta")
+var _ = Describe("toMajorMinor", func() {
+	It("works for x.y", func() {
+		res, err := toMajorMinor("4.6")
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(res).Should(Equal("4.6"))
 	})
 
-	It("negative", func() {
-		res, err := h.getKey("ere.654.45")
+	It("works for x.y.z", func() {
+		res, err := toMajorMinor("4.6.9")
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(res).Should(Equal("4.6"))
+	})
+
+	It("works for x.y.z-thing", func() {
+		res, err := toMajorMinor("4.6.9-beta")
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(res).Should(Equal("4.6"))
+	})
+
+	It("fails when the version cannot parse", func() {
+		res, err := toMajorMinor("ere.654.45")
 		Expect(err).Should(HaveOccurred())
 		Expect(res).Should(Equal(""))
 	})
