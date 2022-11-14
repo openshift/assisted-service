@@ -8737,8 +8737,9 @@ func init() {
           "x-go-custom-tag": "gorm:\"default:'x86_64'\""
         },
         "openshift_version": {
-          "description": "Version of the OpenShift cluster.",
-          "type": "string"
+          "description": "Version of the operating system image",
+          "type": "string",
+          "example": "4.12"
         },
         "url": {
           "description": "The base OS image used for the discovery iso.",
@@ -18260,8 +18261,9 @@ func init() {
           "x-go-custom-tag": "gorm:\"default:'x86_64'\""
         },
         "openshift_version": {
-          "description": "Version of the OpenShift cluster.",
-          "type": "string"
+          "description": "Version of the operating system image",
+          "type": "string",
+          "example": "4.12"
         },
         "url": {
           "description": "The base OS image used for the discovery iso.",
