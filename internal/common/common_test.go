@@ -253,8 +253,8 @@ var _ = Describe("Test AreMastersSchedulable", func() {
 		}{
 			{schedulableMastersForcedTrue: false, schedulableMasters: false, expectedSchedulableMasters: false},
 			{schedulableMastersForcedTrue: false, schedulableMasters: true, expectedSchedulableMasters: true},
-			{schedulableMastersForcedTrue: true, schedulableMasters: false, expectedSchedulableMasters: false}, // Handled by installer
-			{schedulableMastersForcedTrue: true, schedulableMasters: true, expectedSchedulableMasters: false},  // Handled by installer
+			{schedulableMastersForcedTrue: true, schedulableMasters: false, expectedSchedulableMasters: true},
+			{schedulableMastersForcedTrue: true, schedulableMasters: true, expectedSchedulableMasters: true},
 		} {
 			test := test
 			It(fmt.Sprintf("schedulableMastersForcedTrue=%v schedulableMasters=%v AreMastersSchedulable? %v", test.schedulableMastersForcedTrue, test.schedulableMasters, test.expectedSchedulableMasters), func() {
