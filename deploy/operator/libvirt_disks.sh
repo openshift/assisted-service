@@ -16,6 +16,7 @@ function create() {
 
     echo "Creating libvirt disks and attaching them..."
     for node in ${NODES}; do
+        possible_targets=(sd{b..z})
         for disk in ${DISKS}; do
             img_path="/tmp/${node}-${disk}.img"
             if [ ! -f "${img_path}" ]; then
@@ -24,15 +25,30 @@ function create() {
                 echo "Image ${img_path} already existing. Skipping creation"
             fi
 
-            node_disks=$(virsh domblklist "${node}" | awk '{print $1}')
-            if [[ ! "${node_disks}" =~ "${disk}" ]]; then
+            if virsh domblklist "${node}" | grep -q "${img_path}"; then
+                echo "Image ${img_path} is already attached to ${node}. Skipping attachment"
+                continue
+            fi
+
+            failed=true
+            while [ "${#possible_targets[@]}" -gt 0 ]; do
+                target="${possible_targets[0]}" # get the first element
+                possible_targets=("${possible_targets[@]:1}") # remove the first element
+
                 # Libvirt cannot guarantee the device name on the guest OS (It's controlled by udev)
                 # In order to make an absolute expected destination, we provide a WWN
                 # that could be derived from the disk name.
-                # The disk would be available as a link on /dev/disk/by-id/wwn-.
-                virsh attach-disk "${node}" "${img_path}" "${disk}" --wwn "$(disk_to_wwn ${disk})"
-            else
-                echo "Disk ${disk} is already attached to ${node}. Skipping attachment"
+                # The disk would be available as a link on /dev/disk/by-id/wwn-.}}
+                # https://bugzilla.redhat.com/show_bug.cgi?id=693372
+                if virsh attach-disk "${node}" "${img_path}" "${target}" --wwn "$(disk_to_wwn ${disk})"; then
+                    failed=false
+                    break
+                fi
+            done
+
+            if ${failed}; then
+                echo "Failed to attach image ${img_path} to node ${node}."
+                exit 1
             fi
         done
     done
@@ -45,12 +61,12 @@ function destroy() {
 
     for node in ${NODES}; do
         for disk in ${DISKS}; do
-            node_disks=$(virsh domblklist "${node}" | awk '{print $1}')
-            if [[ "${node_disks}" =~ "${disk}" ]]; then
+            img_path="/tmp/${node}-${disk}.img"
+
+            if virsh domblklist "${node}" | grep -q "${img_path}"; then
                 virsh detach-disk "${node}" "${disk}" || true
             fi
 
-            img_path="/tmp/${node}-${disk}.img"
             if [ -f "${img_path}" ]; then
                 rm -rf "${img_path}"
             fi
