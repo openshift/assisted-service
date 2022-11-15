@@ -348,7 +348,7 @@ func (v *validator) isEdgeWorker(host *models.Host) bool {
 	if err != nil {
 		return false
 	}
-	if inventory.CPU.Architecture != common.ARM64CPUArchitecture {
+	if inventory.CPU.Architecture != common.AARCH64CPUArchitecture {
 		return false
 	}
 

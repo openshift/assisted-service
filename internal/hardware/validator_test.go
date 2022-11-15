@@ -649,7 +649,7 @@ var _ = Describe("Cluster host requirements", func() {
 		role := models.HostRoleWorker
 		id1 := strfmt.UUID(uuid.New().String())
 		inventory := &models.Inventory{
-			CPU:          &models.CPU{Count: 2, Architecture: common.ARM64CPUArchitecture},
+			CPU:          &models.CPU{Count: 2, Architecture: common.AARCH64CPUArchitecture},
 			SystemVendor: &models.SystemVendor{ProductName: "blueField SoC"},
 		}
 		hw, err := json.Marshal(&inventory)
@@ -673,7 +673,7 @@ var _ = Describe("Cluster host requirements", func() {
 		role := models.HostRoleMaster
 		id1 := strfmt.UUID(uuid.New().String())
 		inventory := &models.Inventory{
-			CPU:          &models.CPU{Count: 2, Architecture: common.ARM64CPUArchitecture},
+			CPU:          &models.CPU{Count: 2, Architecture: common.AARCH64CPUArchitecture},
 			SystemVendor: &models.SystemVendor{ProductName: "blueField SoC"},
 		}
 		hw, err := json.Marshal(&inventory)
@@ -745,7 +745,7 @@ var _ = Describe("Cluster host requirements", func() {
 		role := models.HostRoleWorker
 		id1 := strfmt.UUID(uuid.New().String())
 		inventory := &models.Inventory{
-			CPU:          &models.CPU{Count: 2, Architecture: common.ARM64CPUArchitecture},
+			CPU:          &models.CPU{Count: 2, Architecture: common.AARCH64CPUArchitecture},
 			SystemVendor: &models.SystemVendor{ProductName: "bluefield soc "},
 		}
 		hw, err := json.Marshal(&inventory)
