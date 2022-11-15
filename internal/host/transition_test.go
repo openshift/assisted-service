@@ -111,6 +111,11 @@ var _ = Describe("RegisterHost", func() {
 		infraEnvId = strfmt.UUID(uuid.New().String())
 	})
 
+	AfterEach(func() {
+		ctrl.Finish()
+		common.DeleteTestDB(db, dbName)
+	})
+
 	It("register_new", func() {
 		Expect(hapi.RegisterHost(ctx, &models.Host{ID: &hostId, ClusterID: &clusterId, InfraEnvID: infraEnvId, DiscoveryAgentVersion: "v1.0.1"}, db)).ShouldNot(HaveOccurred())
 		h := hostutil.GetHostFromDB(hostId, infraEnvId, db)
@@ -588,11 +593,6 @@ var _ = Describe("RegisterHost", func() {
 		}
 
 	})
-
-	AfterEach(func() {
-		common.DeleteTestDB(db, dbName)
-		ctrl.Finish()
-	})
 })
 
 var _ = Describe("HostInstallationFailed", func() {
@@ -624,6 +624,11 @@ var _ = Describe("HostInstallationFailed", func() {
 		Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
 	})
 
+	AfterEach(func() {
+		ctrl.Finish()
+		common.DeleteTestDB(db, dbName)
+	})
+
 	It("handle_installation_error", func() {
 		mockEvents.EXPECT().SendHostEvent(gomock.Any(), eventstest.NewEventMatcher(
 			eventstest.WithNameMatcher(eventgen.HostStatusUpdatedEventName),
@@ -631,15 +636,10 @@ var _ = Describe("HostInstallationFailed", func() {
 			eventstest.WithInfraEnvIdMatcher(infraEnvId.String()),
 			eventstest.WithClusterIdMatcher(clusterId.String()),
 			eventstest.WithSeverityMatcher(models.EventSeverityError)))
-		mockMetric.EXPECT().ReportHostInstallationMetrics(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any())
 		Expect(hapi.HandleInstallationFailure(ctx, &host)).ShouldNot(HaveOccurred())
 		h := hostutil.GetHostFromDB(hostId, infraEnvId, db)
 		Expect(swag.StringValue(h.Status)).Should(Equal(models.HostStatusError))
 		Expect(swag.StringValue(h.StatusInfo)).Should(Equal("installation command failed"))
-	})
-
-	AfterEach(func() {
-		common.DeleteTestDB(db, dbName)
 	})
 })
 
@@ -662,6 +662,11 @@ var _ = Describe("Cancel host installation", func() {
 		mockHwValidator := hardware.NewMockValidator(ctrl)
 		operatorsManager := operators.NewManager(common.GetTestLog(), nil, operators.Options{}, nil, nil)
 		hapi = NewManager(common.GetTestLog(), db, mockEventsHandler, mockHwValidator, nil, createValidatorCfg(), nil, defaultConfig, nil, operatorsManager, nil, false, nil)
+	})
+
+	AfterEach(func() {
+		ctrl.Finish()
+		common.DeleteTestDB(db, dbName)
 	})
 
 	tests := []struct {
@@ -727,11 +732,6 @@ var _ = Describe("Cancel host installation", func() {
 			}
 		})
 	}
-
-	AfterEach(func() {
-		ctrl.Finish()
-		common.DeleteTestDB(db, dbName)
-	})
 })
 
 var _ = Describe("Install", func() {
@@ -755,77 +755,66 @@ var _ = Describe("Install", func() {
 		mockHwValidator = hardware.NewMockValidator(ctrl)
 		operatorsManager := operators.NewManager(common.GetTestLog(), nil, operators.Options{}, nil, nil)
 		pr := registry.NewMockProviderRegistry(ctrl)
-		pr.EXPECT().IsHostSupported(gomock.Any(), gomock.Any()).Return(true, nil)
+		pr.EXPECT().IsHostSupported(gomock.Any(), gomock.Any()).Return(true, nil).AnyTimes()
 		hapi = NewManager(common.GetTestLog(), db, mockEvents, mockHwValidator, nil, createValidatorCfg(), nil, defaultConfig, nil, operatorsManager, pr, false, nil)
 		hostId = strfmt.UUID(uuid.New().String())
 		clusterId = strfmt.UUID(uuid.New().String())
 		infraEnvId = strfmt.UUID(uuid.New().String())
 	})
 
-	Context("install host", func() {
-		failure := func(reply error) {
-			Expect(reply).To(HaveOccurred())
-		}
+	AfterEach(func() {
+		ctrl.Finish()
+		common.DeleteTestDB(db, dbName)
+	})
 
+	Context("install host", func() {
 		tests := []struct {
-			name       string
-			srcState   string
-			validation func(error)
+			name     string
+			srcState string
 		}{
 			{
-				name:       "prepared",
-				srcState:   models.HostStatusPreparingSuccessful,
-				validation: failure,
+				name:     "prepared",
+				srcState: models.HostStatusPreparingSuccessful,
 			},
 			{
-				name:       "preparing",
-				srcState:   models.HostStatusPreparingForInstallation,
-				validation: failure,
+				name:     "preparing",
+				srcState: models.HostStatusPreparingForInstallation,
 			},
 			{
-				name:       "known",
-				srcState:   models.HostStatusKnown,
-				validation: failure,
+				name:     "known",
+				srcState: models.HostStatusKnown,
 			},
 			{
-				name:       "disconnected",
-				srcState:   models.HostStatusDisconnected,
-				validation: failure,
+				name:     "disconnected",
+				srcState: models.HostStatusDisconnected,
 			},
 			{
-				name:       "discovering",
-				srcState:   models.HostStatusDiscovering,
-				validation: failure,
+				name:     "discovering",
+				srcState: models.HostStatusDiscovering,
 			},
 			{
-				name:       "error",
-				srcState:   models.HostStatusError,
-				validation: failure,
+				name:     "error",
+				srcState: models.HostStatusError,
 			},
 			{
-				name:       "installed",
-				srcState:   models.HostStatusInstalled,
-				validation: failure,
+				name:     "installed",
+				srcState: models.HostStatusInstalled,
 			},
 			{
-				name:       "installing",
-				srcState:   models.HostStatusInstalling,
-				validation: failure,
+				name:     "installing",
+				srcState: models.HostStatusInstalling,
 			},
 			{
-				name:       "in-progress",
-				srcState:   models.HostStatusInstallingInProgress,
-				validation: failure,
+				name:     "in-progress",
+				srcState: models.HostStatusInstallingInProgress,
 			},
 			{
-				name:       "insufficient",
-				srcState:   models.HostStatusInsufficient,
-				validation: failure,
+				name:     "insufficient",
+				srcState: models.HostStatusInsufficient,
 			},
 			{
-				name:       "resetting",
-				srcState:   models.HostStatusResetting,
-				validation: failure,
+				name:     "resetting",
+				srcState: models.HostStatusResetting,
 			},
 		}
 
@@ -834,15 +823,7 @@ var _ = Describe("Install", func() {
 			It(t.name, func() {
 				host = hostutil.GenerateTestHost(hostId, infraEnvId, clusterId, t.srcState)
 				Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
-				mockEvents.EXPECT().SendHostEvent(gomock.Any(), eventstest.NewEventMatcher(
-					eventstest.WithNameMatcher(eventgen.HostStatusUpdatedEventName),
-					eventstest.WithHostIdMatcher(hostId.String()),
-					eventstest.WithInfraEnvIdMatcher(infraEnvId.String()),
-					eventstest.WithClusterIdMatcher(clusterId.String()),
-					eventstest.WithMessageMatcher(fmt.Sprintf("Host %s: updated status from \"%s\" to \"installing\" (Installation is in progress)",
-						host.ID.String(), t.srcState)),
-					eventstest.WithSeverityMatcher(models.EventSeverityInfo)))
-				t.validation(hapi.Install(ctx, &host, nil))
+				Expect(hapi.Install(ctx, &host, nil)).To(HaveOccurred())
 			})
 		}
 	})
@@ -901,10 +882,6 @@ var _ = Describe("Install", func() {
 			Expect(*h.StatusInfo).Should(Equal(statusInfoHostPreparationSuccessful))
 		})
 	})
-
-	AfterEach(func() {
-		common.DeleteTestDB(db, dbName)
-	})
 })
 
 var _ = Describe("Unbind", func() {
@@ -929,6 +906,11 @@ var _ = Describe("Unbind", func() {
 		hostId = strfmt.UUID(uuid.New().String())
 		clusterId = strfmt.UUID(uuid.New().String())
 		infraEnvId = strfmt.UUID(uuid.New().String())
+	})
+
+	AfterEach(func() {
+		ctrl.Finish()
+		common.DeleteTestDB(db, dbName)
 	})
 
 	success := func(reply error, dstState string) {
@@ -1179,10 +1161,6 @@ var _ = Describe("Unbind", func() {
 			validation(hapi.UnbindHost(ctx, &host, db, t.reclaim), validationState)
 		})
 	}
-
-	AfterEach(func() {
-		common.DeleteTestDB(db, dbName)
-	})
 })
 
 type statusInfoChecker interface {
@@ -1319,6 +1297,11 @@ var _ = Describe("Refresh Host", func() {
 		hostId = strfmt.UUID(uuid.New().String())
 		clusterId = strfmt.UUID(uuid.New().String())
 		infraEnvId = strfmt.UUID(uuid.New().String())
+	})
+
+	AfterEach(func() {
+		ctrl.Finish()
+		common.DeleteTestDB(db, dbName)
 	})
 
 	Context("host installation timeout - cluster is pending user action", func() {
@@ -5726,11 +5709,6 @@ var _ = Describe("Refresh Host", func() {
 			})
 		}
 	})
-
-	AfterEach(func() {
-		common.DeleteTestDB(db, dbName)
-		ctrl.Finish()
-	})
 })
 
 var _ = Describe("validationResult sort", func() {
@@ -5805,8 +5783,8 @@ var _ = Describe("Upgrade agent feature", func() {
 	})
 
 	AfterEach(func() {
-		common.DeleteTestDB(db, dbName)
 		ctrl.Finish()
+		common.DeleteTestDB(db, dbName)
 	})
 
 	It("Moves from known to insufficient when agent isn't compatible", func() {
@@ -6132,6 +6110,10 @@ var _ = Describe("State machine test - refresh transition", func() {
 		// Initialize the state machine
 		newStateMachineMocks(mockTransitionHandler)
 		stateMachine = NewHostStateMachine(stateswitch.NewStateMachine(), mockTransitionHandler)
+	})
+
+	AfterEach(func() {
+		mockController.Finish()
 	})
 
 	Context("Host in known state", func() {
