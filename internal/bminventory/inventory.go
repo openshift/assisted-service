@@ -202,6 +202,7 @@ type bareMetalInventory struct {
 	leaderElector        leader.Leader
 	secretValidator      validations.PullSecretValidator
 	versionsHandler      versions.Handler
+	osImages             versions.OSImages
 	crdUtils             CRDUtils
 	IgnitionBuilder      ignition.IgnitionBuilder
 	hwValidator          hardware.Validator
@@ -232,6 +233,7 @@ func NewBareMetalInventory(
 	leaderElector leader.Leader,
 	pullSecretValidator validations.PullSecretValidator,
 	versionsHandler versions.Handler,
+	osImages versions.OSImages,
 	crdUtils CRDUtils,
 	IgnitionBuilder ignition.IgnitionBuilder,
 	hwValidator hardware.Validator,
@@ -263,6 +265,7 @@ func NewBareMetalInventory(
 		leaderElector:        leaderElector,
 		secretValidator:      pullSecretValidator,
 		versionsHandler:      versionsHandler,
+		osImages:             osImages,
 		crdUtils:             crdUtils,
 		IgnitionBuilder:      IgnitionBuilder,
 		hwValidator:          hwValidator,
@@ -767,7 +770,7 @@ func (b *bareMetalInventory) getNewClusterCPUArchitecture(newClusterParams *mode
 		return "", errors.Errorf("Non x86_64 CPU architectures for version %s are supported only with User Managed Networking", swag.StringValue(newClusterParams.OpenshiftVersion))
 	}
 
-	cpuArchitectures := b.versionsHandler.GetCPUArchitectures(*newClusterParams.OpenshiftVersion)
+	cpuArchitectures := b.osImages.GetCPUArchitectures(*newClusterParams.OpenshiftVersion)
 	for _, cpuArchitecture := range cpuArchitectures {
 		if cpuArchitecture == newClusterParams.CPUArchitecture {
 			return cpuArchitecture, nil
@@ -1021,7 +1024,7 @@ func (b *bareMetalInventory) updateExternalImageInfo(ctx context.Context, infraE
 	updates["type"] = imageType
 	infraEnv.Type = common.ImageTypePtr(imageType)
 
-	osImage, err := b.versionsHandler.GetOsImageOrLatest(infraEnv.OpenshiftVersion, infraEnv.CPUArchitecture)
+	osImage, err := b.osImages.GetOsImageOrLatest(infraEnv.OpenshiftVersion, infraEnv.CPUArchitecture)
 	if err != nil {
 		return common.NewApiError(http.StatusBadRequest, err)
 	}
@@ -4336,7 +4339,7 @@ func (b *bareMetalInventory) RegisterInfraEnvInternal(
 		return nil, err
 	}
 
-	osImage, err := b.versionsHandler.GetOsImageOrLatest(params.InfraenvCreateParams.OpenshiftVersion, params.InfraenvCreateParams.CPUArchitecture)
+	osImage, err := b.osImages.GetOsImageOrLatest(params.InfraenvCreateParams.OpenshiftVersion, params.InfraenvCreateParams.CPUArchitecture)
 	if err != nil {
 		return nil, common.NewApiError(http.StatusBadRequest, err)
 	}

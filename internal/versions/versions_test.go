@@ -129,81 +129,17 @@ var defaultReleaseImages = models.ReleaseImages{
 	},
 }
 
-var _ = Describe("GetOsImage", func() {
-	var h *handler
-
-	BeforeEach(func() {
-		var err error
-		h, err = NewHandler(common.GetTestLog(), nil, defaultOsImages, models.ReleaseImages{}, nil, "")
-		Expect(err).ShouldNot(HaveOccurred())
-	})
-
-	It("unsupported openshiftVersion", func() {
-		osImage, err := h.GetOsImage("unsupported", common.TestDefaultConfig.CPUArchitecture)
-		Expect(err).Should(HaveOccurred())
-		Expect(osImage).Should(BeNil())
-	})
-
-	It("unsupported cpuArchitecture", func() {
-		osImage, err := h.GetOsImage(common.TestDefaultConfig.OpenShiftVersion, "unsupported")
-		Expect(err).Should(HaveOccurred())
-		Expect(osImage).Should(BeNil())
-		Expect(err.Error()).To(ContainSubstring("isn't specified in OS images list"))
-	})
-
-	It("empty architecture fallback to default", func() {
-		osImage, err := h.GetOsImage("4.9", "")
-		Expect(err).ShouldNot(HaveOccurred())
-		Expect(*osImage.CPUArchitecture).Should(Equal(common.DefaultCPUArchitecture))
-	})
-
-	It("multiarch returns error", func() {
-		osImage, err := h.GetOsImage("4.11", common.MultiCPUArchitecture)
-		Expect(err).Should(HaveOccurred())
-		Expect(osImage).Should(BeNil())
-		Expect(err.Error()).To(ContainSubstring("isn't specified in OS images list"))
-	})
-
-	It("fetch OS image by major.minor", func() {
-		osImage, err := h.GetOsImage("4.9", common.DefaultCPUArchitecture)
-		Expect(err).ShouldNot(HaveOccurred())
-		Expect(*osImage.OpenshiftVersion).Should(Equal("4.9"))
-	})
-
-	It("fetch missing major.minor.patch - find latest patch version by major.minor", func() {
-		osImage, err := h.GetOsImage("4.10.0", common.DefaultCPUArchitecture)
-		Expect(err).ShouldNot(HaveOccurred())
-		Expect(*osImage.OpenshiftVersion).Should(Equal("4.10.2"))
-	})
-
-	It("missing major.minor - find latest patch version by major.minor", func() {
-		osImage, err := h.GetOsImage("4.10", common.DefaultCPUArchitecture)
-		Expect(err).ShouldNot(HaveOccurred())
-		Expect(*osImage.OpenshiftVersion).Should(Equal("4.10.2"))
-	})
-
-	It("get from OsImages", func() {
-		for _, key := range h.GetOpenshiftVersions() {
-			for _, architecture := range h.GetCPUArchitectures(key) {
-				osImage, err := h.GetOsImage(key, architecture)
-				Expect(err).ShouldNot(HaveOccurred())
-
-				for _, rhcos := range defaultOsImages {
-					if *rhcos.OpenshiftVersion == key && *rhcos.CPUArchitecture == architecture {
-						Expect(osImage).Should(Equal(rhcos))
-					}
-				}
-			}
-		}
-	})
-})
-
 var _ = Describe("GetReleaseImage", func() {
-	var h *handler
+	var (
+		h        *handler
+		osImages OSImages
+	)
 
 	BeforeEach(func() {
 		var err error
-		h, err = NewHandler(common.GetTestLog(), nil, defaultOsImages, defaultReleaseImages, nil, "")
+		osImages, err = NewOSImages(defaultOsImages)
+		Expect(err).ShouldNot(HaveOccurred())
+		h, err = NewHandler(common.GetTestLog(), nil, osImages, defaultReleaseImages, nil, "")
 		Expect(err).ShouldNot(HaveOccurred())
 	})
 
@@ -240,8 +176,8 @@ var _ = Describe("GetReleaseImage", func() {
 	})
 
 	It("get from ReleaseImages", func() {
-		for _, key := range h.GetOpenshiftVersions() {
-			for _, architecture := range h.GetCPUArchitectures(key) {
+		for _, key := range osImages.GetOpenshiftVersions() {
+			for _, architecture := range osImages.GetCPUArchitectures(key) {
 				releaseImage, err := h.GetReleaseImage(key, architecture)
 				if err != nil {
 					releaseImage, err = h.GetReleaseImage(key, common.MultiCPUArchitecture)
@@ -290,7 +226,6 @@ var _ = Describe("ValidateReleaseImageForRHCOS", func() {
 	var h *handler
 
 	BeforeEach(func() {
-		var err error
 		releaseImages := models.ReleaseImages{
 			&models.ReleaseImage{
 				CPUArchitecture:  swag.String(common.MultiCPUArchitecture),
@@ -309,7 +244,9 @@ var _ = Describe("ValidateReleaseImageForRHCOS", func() {
 				Version:          swag.String("4.12"),
 			},
 		}
-		h, err = NewHandler(common.GetTestLog(), nil, defaultOsImages, releaseImages, nil, "")
+		osImages, err := NewOSImages(defaultOsImages)
+		Expect(err).ShouldNot(HaveOccurred())
+		h, err = NewHandler(common.GetTestLog(), nil, osImages, releaseImages, nil, "")
 		Expect(err).ShouldNot(HaveOccurred())
 	})
 
@@ -339,8 +276,16 @@ var _ = Describe("ValidateReleaseImageForRHCOS", func() {
 })
 
 var _ = Describe("GetDefaultReleaseImage", func() {
+	var osImages OSImages
+
+	BeforeEach(func() {
+		var err error
+		osImages, err = NewOSImages(defaultOsImages)
+		Expect(err).ShouldNot(HaveOccurred())
+	})
+
 	It("Default release image exists", func() {
-		h, err := NewHandler(common.GetTestLog(), nil, defaultOsImages, defaultReleaseImages, nil, "")
+		h, err := NewHandler(common.GetTestLog(), nil, osImages, defaultReleaseImages, nil, "")
 		Expect(err).ShouldNot(HaveOccurred())
 
 		releaseImage, err := h.GetDefaultReleaseImage(common.TestDefaultConfig.CPUArchitecture)
@@ -351,7 +296,7 @@ var _ = Describe("GetDefaultReleaseImage", func() {
 	})
 
 	It("Missing default release image", func() {
-		h, err := NewHandler(common.GetTestLog(), nil, defaultOsImages, models.ReleaseImages{}, nil, "")
+		h, err := NewHandler(common.GetTestLog(), nil, osImages, models.ReleaseImages{}, nil, "")
 		Expect(err).ShouldNot(HaveOccurred())
 
 		_, err = h.GetDefaultReleaseImage(common.TestDefaultConfig.CPUArchitecture)
@@ -379,10 +324,10 @@ var _ = Describe("GetMustGatherImages", func() {
 	)
 
 	BeforeEach(func() {
+		var err error
 		ctrl = gomock.NewController(GinkgoT())
 		mockRelease = oc.NewMockRelease(ctrl)
-		var err error
-		h, err = NewHandler(common.GetTestLog(), mockRelease, defaultOsImages, defaultReleaseImages, mustgatherImages, mirror)
+		h, err = NewHandler(common.GetTestLog(), mockRelease, nil, defaultReleaseImages, mustgatherImages, mirror)
 		Expect(err).ShouldNot(HaveOccurred())
 	})
 
@@ -444,8 +389,9 @@ var _ = Describe("AddReleaseImage", func() {
 		ctrl = gomock.NewController(GinkgoT())
 		mockRelease = oc.NewMockRelease(ctrl)
 
-		var err error
-		h, err = NewHandler(common.GetTestLog(), mockRelease, defaultOsImages, defaultReleaseImages, nil, "")
+		osImages, err := NewOSImages(defaultOsImages)
+		Expect(err).ShouldNot(HaveOccurred())
+		h, err = NewHandler(common.GetTestLog(), mockRelease, osImages, defaultReleaseImages, nil, "")
 		Expect(err).ShouldNot(HaveOccurred())
 	})
 
@@ -650,100 +596,19 @@ var _ = Describe("AddReleaseImage", func() {
 	})
 })
 
-var _ = Describe("GetLatestOsImage", func() {
-	It("only one OS image", func() {
-		h, err := NewHandler(common.GetTestLog(), nil, defaultOsImages[0:1], models.ReleaseImages{}, nil, "")
-		Expect(err).ShouldNot(HaveOccurred())
-		osImage, err := h.GetLatestOsImage(common.TestDefaultConfig.CPUArchitecture)
-		Expect(err).ShouldNot(HaveOccurred())
-		Expect(*osImage.OpenshiftVersion).Should(Equal("4.11.1"))
-		Expect(*osImage.CPUArchitecture).Should(Equal(common.TestDefaultConfig.CPUArchitecture))
-	})
-
-	It("Multiple OS images", func() {
-		h, err := NewHandler(common.GetTestLog(), nil, defaultOsImages, models.ReleaseImages{}, nil, "")
-		Expect(err).ShouldNot(HaveOccurred())
-		osImage, err := h.GetLatestOsImage(common.TestDefaultConfig.CPUArchitecture)
-		Expect(err).ShouldNot(HaveOccurred())
-		Expect(*osImage.OpenshiftVersion).Should(Equal("4.11.1"))
-		Expect(*osImage.CPUArchitecture).Should(Equal(common.TestDefaultConfig.CPUArchitecture))
-	})
-
-	It("fails to get OS images for multiarch", func() {
-		h, err := NewHandler(common.GetTestLog(), nil, defaultOsImages, models.ReleaseImages{}, nil, "")
-		Expect(err).ShouldNot(HaveOccurred())
-		osImage, err := h.GetLatestOsImage(common.MultiCPUArchitecture)
-		Expect(err).Should(HaveOccurred())
-		Expect(osImage).Should(BeNil())
-		Expect(err.Error()).To(ContainSubstring("No OS images are available"))
-	})
-})
-
-var _ = Describe("GetOsImageOrLatest", func() {
-	var h *handler
-
-	BeforeEach(func() {
-		var err error
-		h, err = NewHandler(common.GetTestLog(), nil, defaultOsImages, models.ReleaseImages{}, nil, "")
-		Expect(err).To(BeNil())
-	})
-
-	It("successfully gets an OS image with a valid openshift version and cpu architecture", func() {
-		osImage, err := h.GetOsImageOrLatest("4.9", common.TestDefaultConfig.CPUArchitecture)
-		Expect(err).To(BeNil())
-		Expect(*osImage.OpenshiftVersion).Should(Equal("4.9"))
-		Expect(*osImage.CPUArchitecture).Should(Equal(common.TestDefaultConfig.CPUArchitecture))
-	})
-
-	It("successfully gets the latest OS image with a valid cpu architecture", func() {
-		osImage, err := h.GetOsImageOrLatest("", common.TestDefaultConfig.CPUArchitecture)
-		Expect(err).To(BeNil())
-		Expect(*osImage.OpenshiftVersion).Should(Equal("4.11.1"))
-		Expect(*osImage.CPUArchitecture).Should(Equal(common.TestDefaultConfig.CPUArchitecture))
-	})
-
-	It("fails to get OS images for invalid cpu architecture and valid openshift version", func() {
-		osImage, err := h.GetOsImageOrLatest(common.TestDefaultConfig.OpenShiftVersion, "x866")
-		Expect(err).ToNot(BeNil())
-		Expect(osImage).Should(BeNil())
-	})
-
-	It("fails to get OS images for invalid cpu architecture and invalid openshift version", func() {
-		osImage, err := h.GetOsImageOrLatest(common.TestDefaultConfig.OpenShiftVersion, "x866")
-		Expect(err).ToNot(BeNil())
-		Expect(osImage).Should(BeNil())
-	})
-
-	It("fails to get OS images for invalid cpu architecture and no openshift version", func() {
-		osImage, err := h.GetOsImageOrLatest("", "x866")
-		Expect(err).ToNot(BeNil())
-		Expect(osImage).Should(BeNil())
-	})
-})
-
 var _ = Describe("NewHandler", func() {
-	var (
-		osImages      models.OsImages
-		releaseImages models.ReleaseImages
-	)
+	validateNewHandler := func(releaseImages models.ReleaseImages) error {
+		_, err := NewHandler(common.GetTestLog(), nil, nil, releaseImages, nil, "")
+		return err
+	}
 
-	BeforeEach(func() {
-		osImages = models.OsImages{
-			&models.OsImage{
-				CPUArchitecture:  swag.String(common.X86CPUArchitecture),
-				OpenshiftVersion: swag.String("4.9"),
-				URL:              swag.String("rhcos_4.9"),
-				Version:          swag.String("version-49.123-0"),
-			},
-			&models.OsImage{
-				CPUArchitecture:  swag.String(common.ARM64CPUArchitecture),
-				OpenshiftVersion: swag.String("4.9"),
-				URL:              swag.String("rhcos_4.9_arm64"),
-				Version:          swag.String("version-49.123-0_arm64"),
-			},
-		}
+	It("succeeds if no release images are specified", func() {
+		releaseImages := models.ReleaseImages{}
+		Expect(validateNewHandler(releaseImages)).To(Succeed())
+	})
 
-		releaseImages = models.ReleaseImages{
+	It("succeeds with valid release images", func() {
+		releaseImages := models.ReleaseImages{
 			&models.ReleaseImage{
 				CPUArchitecture:  swag.String(common.X86CPUArchitecture),
 				OpenshiftVersion: swag.String("4.9"),
@@ -757,96 +622,59 @@ var _ = Describe("NewHandler", func() {
 				Version:          swag.String("4.9-candidate_arm64"),
 			},
 		}
+		Expect(validateNewHandler(releaseImages)).To(Succeed())
 	})
 
-	It("both images specified", func() {
-		_, err := NewHandler(common.GetTestLog(), nil, osImages, releaseImages, nil, "")
-		Expect(err).ShouldNot(HaveOccurred())
-	})
-
-	It("only OS images specified", func() {
-		_, err := NewHandler(common.GetTestLog(), nil, osImages, models.ReleaseImages{}, nil, "")
-		Expect(err).ShouldNot(HaveOccurred())
-	})
-
-	It("missing URL in OS images", func() {
-		osImages[0].URL = nil
-		_, err := NewHandler(common.GetTestLog(), nil, osImages, releaseImages, nil, "")
-		Expect(err).Should(HaveOccurred())
-		Expect(err.Error()).To(ContainSubstring("url"))
-	})
-
-	It("missing Version in OS images", func() {
-		osImages[0].Version = nil
-		_, err := NewHandler(common.GetTestLog(), nil, osImages, releaseImages, nil, "")
-		Expect(err).Should(HaveOccurred())
-		Expect(err.Error()).To(ContainSubstring("version"))
-	})
-
-	It("missing CPUArchitecture in Release images", func() {
-		releaseImages[0].CPUArchitecture = nil
-		_, err := NewHandler(common.GetTestLog(), nil, osImages, releaseImages, nil, "")
+	It("fails when missing CPUArchitecture in Release images", func() {
+		releaseImages := models.ReleaseImages{
+			&models.ReleaseImage{
+				OpenshiftVersion: swag.String("4.9"),
+				URL:              swag.String("release_4.9"),
+				Version:          swag.String("4.9-candidate"),
+			},
+		}
+		err := validateNewHandler(releaseImages)
 		Expect(err).Should(HaveOccurred())
 		Expect(err.Error()).To(ContainSubstring("cpu_architecture"))
 	})
 
-	It("missing URL in Release images", func() {
-		releaseImages[0].URL = nil
-		_, err := NewHandler(common.GetTestLog(), nil, osImages, releaseImages, nil, "")
+	It("fails when missing URL in Release images", func() {
+		releaseImages := models.ReleaseImages{
+			&models.ReleaseImage{
+				CPUArchitecture:  swag.String(common.X86CPUArchitecture),
+				OpenshiftVersion: swag.String("4.9"),
+				Version:          swag.String("4.9-candidate"),
+			},
+		}
+		err := validateNewHandler(releaseImages)
 		Expect(err).Should(HaveOccurred())
 		Expect(err.Error()).To(ContainSubstring("url"))
 	})
 
-	It("missing Version in Release images", func() {
-		releaseImages[0].Version = nil
-		_, err := NewHandler(common.GetTestLog(), nil, osImages, releaseImages, nil, "")
+	It("fails when missing Version in Release images", func() {
+		releaseImages := models.ReleaseImages{
+			&models.ReleaseImage{
+				CPUArchitecture:  swag.String(common.X86CPUArchitecture),
+				OpenshiftVersion: swag.String("4.9"),
+				URL:              swag.String("release_4.9"),
+			},
+		}
+		err := validateNewHandler(releaseImages)
 		Expect(err).Should(HaveOccurred())
 		Expect(err.Error()).To(ContainSubstring("version"))
 	})
 
-	It("empty osImages and openshiftVersions", func() {
-		_, err := NewHandler(common.GetTestLog(), nil, models.OsImages{}, releaseImages, nil, "")
+	It("fails when missing OpenshiftVersion in Release images", func() {
+		releaseImages := models.ReleaseImages{
+			&models.ReleaseImage{
+				CPUArchitecture: swag.String(common.X86CPUArchitecture),
+				URL:             swag.String("release_4.9"),
+				Version:         swag.String("4.9-candidate"),
+			},
+		}
+		err := validateNewHandler(releaseImages)
 		Expect(err).Should(HaveOccurred())
-		Expect(err.Error()).To(ContainSubstring("No OS images are available"))
-	})
-})
-
-var _ = Describe("GetCPUArchitectures", func() {
-	It("returns an empty list for an unsupported version", func() {
-		h, err := NewHandler(common.GetTestLog(), nil, defaultOsImages, models.ReleaseImages{}, nil, "")
-		Expect(err).ShouldNot(HaveOccurred())
-		Expect(h.GetCPUArchitectures("unsupported")).To(BeEmpty())
-	})
-
-	It("multiple CPU architectures", func() {
-		h, err := NewHandler(common.GetTestLog(), nil, defaultOsImages, models.ReleaseImages{}, nil, "")
-		Expect(err).ShouldNot(HaveOccurred())
-
-		Expect(h.GetCPUArchitectures("4.9")).Should(Equal([]string{common.TestDefaultConfig.CPUArchitecture, common.ARM64CPUArchitecture}))
-		Expect(h.GetCPUArchitectures("4.9.1")).Should(Equal([]string{common.TestDefaultConfig.CPUArchitecture, common.ARM64CPUArchitecture}))
-	})
-
-	It("empty architecture fallback to default", func() {
-		osImages := models.OsImages{
-			&models.OsImage{
-				CPUArchitecture:  swag.String(""),
-				OpenshiftVersion: swag.String("4.9"),
-				URL:              swag.String("rhcos_4.9"),
-				Version:          swag.String("version-49.123-0"),
-			},
-			&models.OsImage{
-				CPUArchitecture:  nil,
-				OpenshiftVersion: swag.String("4.9"),
-				URL:              swag.String("rhcos_4.9"),
-				Version:          swag.String("version-49.123-0"),
-			},
-		}
-		h, err := NewHandler(common.GetTestLog(), nil, osImages, models.ReleaseImages{}, nil, "")
-		Expect(err).ShouldNot(HaveOccurred())
-
-		for _, key := range h.GetOpenshiftVersions() {
-			Expect(h.GetCPUArchitectures(key)).Should(Equal([]string{common.TestDefaultConfig.CPUArchitecture}))
-		}
+		Expect(err.Error()).To(ContainSubstring("version"))
 	})
 })
 

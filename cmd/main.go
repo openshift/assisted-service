@@ -225,6 +225,8 @@ func main() {
 	}
 	failOnError(json.Unmarshal([]byte(Options.OsImages), &osImagesArray),
 		"Failed to parse OS_IMAGES json %s", Options.OsImages)
+	osImages, err := versions.NewOSImages(osImagesArray)
+	failOnError(err, "Failed to initialize OSImages")
 
 	var releaseImagesArray models.ReleaseImages
 	if Options.ReleaseImages == "" {
@@ -290,9 +292,9 @@ func main() {
 		oc.Config{MaxTries: oc.DefaultTries, RetryDelay: oc.DefaltRetryDelay}, mirrorRegistriesBuilder)
 	extracterHandler := oc.NewExtracter(&executer.CommonExecuter{},
 		oc.Config{MaxTries: oc.DefaultTries, RetryDelay: oc.DefaltRetryDelay})
-	versionHandler, err := versions.NewHandler(log.WithField("pkg", "versions"), releaseHandler, osImagesArray,
+	versionHandler, err := versions.NewHandler(log.WithField("pkg", "versions"), releaseHandler, osImages,
 		releaseImagesArray, mustGatherVersionsMap, Options.ReleaseImageMirror)
-	versionsAPIHandler := versions.NewAPIHandler(log, Options.Versions, authzHandler, versionHandler)
+	versionsAPIHandler := versions.NewAPIHandler(log, Options.Versions, authzHandler, versionHandler, osImages)
 	failOnError(err, "failed to create Versions handler")
 	domainHandler := domains.NewHandler(Options.BMConfig.BaseDNSDomains)
 	staticNetworkConfig := staticnetworkconfig.New(log.WithField("pkg", "static_network_config"), Options.StaticNetworkConfig)
@@ -311,7 +313,7 @@ func main() {
 	Options.InstructionConfig.DisabledSteps = disableFreeAddressesIfNeeded(Options.EnableKubeAPI, Options.InstructionConfig.DisabledSteps)
 	Options.InstructionConfig.HostFSMountDir = hostFSMountDir
 	instructionApi := hostcommands.NewInstructionManager(log.WithField("pkg", "instructions"), db, hwValidator,
-		releaseHandler, Options.InstructionConfig, connectivityValidator, eventsHandler, versionHandler)
+		releaseHandler, Options.InstructionConfig, connectivityValidator, eventsHandler, versionHandler, osImages)
 
 	images := []string{
 		Options.ReleaseImageMirror,
@@ -443,7 +445,7 @@ func main() {
 
 	bm := bminventory.NewBareMetalInventory(db, log.WithField("pkg", "Inventory"), hostApi, clusterApi, infraEnvApi, Options.BMConfig,
 		generator, eventsHandler, objectHandler, metricsManager, usageManager, operatorsManager, authHandler, authzHandler, ocpClient, ocmClient,
-		lead, pullSecretValidator, versionHandler, crdUtils, ignitionBuilder, hwValidator, dnsApi, installConfigBuilder, staticNetworkConfig,
+		lead, pullSecretValidator, versionHandler, osImages, crdUtils, ignitionBuilder, hwValidator, dnsApi, installConfigBuilder, staticNetworkConfig,
 		Options.GCConfig, providerRegistry, generateInsecureIPXEURLs)
 
 	events := events.NewApi(eventsHandler, logrus.WithField("pkg", "eventsApi"))
@@ -526,7 +528,7 @@ func main() {
 				ServiceBaseURL:      Options.BMConfig.ServiceBaseURL,
 				ImageServiceBaseURL: Options.BMConfig.ImageServiceBaseURL,
 				AuthType:            Options.Auth.AuthType,
-				VersionsHandler:     versionHandler,
+				OsImages:            osImages,
 				PullSecretHandler:   controllers.NewPullSecretHandler(c, r, bm),
 				InsecureIPXEURLs:    generateInsecureIPXEURLs,
 			}).SetupWithManager(ctrlMgr), "unable to create controller InfraEnv")

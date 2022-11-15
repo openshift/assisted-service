@@ -28,16 +28,18 @@ type apiHandler struct {
 	versions        Versions
 	log             logrus.FieldLogger
 	versionsHandler *handler
+	osImages        OSImages
 }
 
 var _ restapi.VersionsAPI = (*apiHandler)(nil)
 
-func NewAPIHandler(log logrus.FieldLogger, versions Versions, authzHandler auth.Authorizer, versionsHandler *handler) restapi.VersionsAPI {
+func NewAPIHandler(log logrus.FieldLogger, versions Versions, authzHandler auth.Authorizer, versionsHandler *handler, osImages OSImages) restapi.VersionsAPI {
 	return &apiHandler{
 		authzHandler:    authzHandler,
 		versions:        versions,
 		log:             log,
 		versionsHandler: versionsHandler,
+		osImages:        osImages,
 	}
 }
 
@@ -97,7 +99,7 @@ func (h *apiHandler) V2ListSupportedOpenshiftVersions(ctx context.Context, param
 
 			// In order to mark a specific version and architecture as supported we do not
 			// only need to have an available release image, but we need RHCOS image as well.
-			if _, err := h.versionsHandler.GetOsImage(key, arch); err != nil {
+			if _, err := h.osImages.GetOsImage(key, arch); err != nil {
 				h.log.Debugf("Marking architecture %s for version %s as not available because no matching OS image found", arch, key)
 				continue
 			}

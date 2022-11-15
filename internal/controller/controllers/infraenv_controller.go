@@ -77,7 +77,7 @@ type InfraEnvReconciler struct {
 	ServiceBaseURL      string
 	ImageServiceBaseURL string
 	AuthType            auth.AuthType
-	VersionsHandler     versions.Handler
+	OsImages            versions.OSImages
 	PullSecretHandler
 	InsecureIPXEURLs bool
 }
@@ -610,7 +610,7 @@ func (r *InfraEnvReconciler) initrdSchemeChanged(initrdURL string) (bool, error)
 func (r *InfraEnvReconciler) updateInfraEnvStatus(
 	ctx context.Context, log logrus.FieldLogger, infraEnv *aiv1beta1.InfraEnv, internalInfraEnv *common.InfraEnv) (ctrl.Result, error) {
 
-	osImage, err := r.VersionsHandler.GetOsImageOrLatest(internalInfraEnv.OpenshiftVersion, internalInfraEnv.CPUArchitecture)
+	osImage, err := r.OsImages.GetOsImageOrLatest(internalInfraEnv.OpenshiftVersion, internalInfraEnv.CPUArchitecture)
 	if err != nil {
 		return r.handleEnsureISOErrors(ctx, log, infraEnv, err, internalInfraEnv)
 	}
