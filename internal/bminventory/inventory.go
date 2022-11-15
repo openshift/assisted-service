@@ -4684,7 +4684,23 @@ func (b *bareMetalInventory) V2RegisterHost(ctx context.Context, params installe
 		}
 	}()
 
-	dbHost, err := common.GetHostFromDB(transaction.AddForUpdateQueryOption(tx), params.InfraEnvID.String(), params.NewHostParams.HostID.String())
+	infraEnv, err := common.GetInfraEnvFromDB(tx, params.InfraEnvID)
+	if err != nil {
+		log.WithError(err).Errorf("failed to get infra env: %s", params.InfraEnvID)
+		return common.GenerateErrorResponder(err)
+	}
+
+	var cluster *common.Cluster
+	var c *models.Cluster
+
+	// The query for cluster must appear before the host query to avoid potential deadlock
+	cluster, err = b.getBoundClusterForUpdate(tx, infraEnv, params.InfraEnvID, *params.NewHostParams.HostID)
+	if err != nil {
+		log.WithError(err).Errorf("Bound Cluster get")
+		return common.NewApiError(http.StatusInternalServerError, err)
+	}
+
+	_, err = common.GetHostFromDB(transaction.AddForUpdateQueryOption(tx), params.InfraEnvID.String(), params.NewHostParams.HostID.String())
 	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 		log.WithError(err).Errorf("failed to get host %s in infra-env: %s",
 			*params.NewHostParams.HostID, params.InfraEnvID.String())
@@ -4694,11 +4710,6 @@ func (b *bareMetalInventory) V2RegisterHost(ctx context.Context, params installe
 
 	// In case host doesn't exists check if the cluster accept new hosts registration
 	newRecord := err != nil && errors.Is(err, gorm.ErrRecordNotFound)
-	infraEnv, err := common.GetInfraEnvFromDB(tx, params.InfraEnvID)
-	if err != nil {
-		log.WithError(err).Errorf("failed to get infra env: %s", params.InfraEnvID)
-		return common.GenerateErrorResponder(err)
-	}
 
 	url := installer.V2GetHostURL{InfraEnvID: params.InfraEnvID, HostID: *params.NewHostParams.HostID}
 	kind := swag.String(models.HostKindHost)
@@ -4724,13 +4735,6 @@ func (b *bareMetalInventory) V2RegisterHost(ctx context.Context, params installe
 		IgnitionEndpointTokenSet: false,
 	}
 
-	var cluster *common.Cluster
-	var c *models.Cluster
-	cluster, err = b.getBoundCluster(transaction.AddForUpdateQueryOption(tx), infraEnv, dbHost)
-	if err != nil {
-		log.WithError(err).Errorf("Bound Cluster get")
-		return common.NewApiError(http.StatusInternalServerError, err)
-	}
 	if cluster != nil {
 		if newRecord {
 			if err = b.clusterApi.AcceptRegistration(cluster); err != nil {
@@ -5416,11 +5420,26 @@ func (b *bareMetalInventory) V2UpdateHostLogsProgress(ctx context.Context, param
 	return installer.NewV2UpdateHostLogsProgressNoContent()
 }
 
+// Get the cluster id from the host.  The host is not locked for update during this query
+func (b *bareMetalInventory) getClusterIDFromHost(db *gorm.DB, hostID, infraEnvID strfmt.UUID) (strfmt.UUID, error) {
+	h, err := common.GetHostFromDB(db.Select("cluster_id"), infraEnvID.String(), hostID.String())
+	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+		return "", common.NewApiError(http.StatusInternalServerError,
+			errors.Wrapf(err, "failed to get cluster id for host %s infra-env %s", hostID.String(), infraEnvID.String()))
+	}
+	if h == nil || h.ClusterID == nil {
+		return "", nil
+	}
+	return *h.ClusterID, nil
+}
+
 func (b *bareMetalInventory) V2UpdateHostInternal(ctx context.Context, params installer.V2UpdateHostParams, interactivity Interactivity) (*common.Host, error) {
 	log := logutil.FromContext(ctx, b.log)
 	var c *models.Cluster
 	var cluster *common.Cluster
 	var usages usage.FeatureUsage = make(usage.FeatureUsage)
+	var clusterID strfmt.UUID
+	var err error
 
 	txSuccess := false
 	tx := b.db.Begin()
@@ -5437,6 +5456,20 @@ func (b *bareMetalInventory) V2UpdateHostInternal(ctx context.Context, params in
 		}
 	}()
 
+	// Get the cluster id from the host.  The host is not locked for update during this query
+	if clusterID, err = b.getClusterIDFromHost(tx, params.HostID, params.InfraEnvID); err != nil {
+		return nil, err
+	}
+	if clusterID != "" {
+
+		// Get first the bound cluster to verify that the cluster is locked before the host
+		// to avoid deadlocks
+		cluster, err = common.GetClusterFromDBForUpdate(tx, clusterID, common.SkipEagerLoading)
+		if err != nil {
+			err = fmt.Errorf("can not find a cluster for host %s", params.HostID.String())
+			return nil, common.NewApiError(http.StatusInternalServerError, err)
+		}
+	}
 	host, err := common.GetHostFromDB(transaction.AddForUpdateQueryOption(tx), params.InfraEnvID.String(), params.HostID.String())
 	if err != nil {
 		log.WithError(err).Errorf("failed to find host <%s>, infra env <%s>", params.HostID, params.InfraEnvID)
@@ -5473,12 +5506,7 @@ func (b *bareMetalInventory) V2UpdateHostInternal(ctx context.Context, params in
 	}
 
 	//get bound cluster
-	if host.ClusterID != nil {
-		cluster, err = common.GetClusterFromDBForUpdate(tx, *host.ClusterID, common.SkipEagerLoading)
-		if err != nil {
-			err = fmt.Errorf("can not find a cluster for host %s", params.HostID.String())
-			return nil, common.NewApiError(http.StatusInternalServerError, err)
-		}
+	if cluster != nil {
 		c = &cluster.Cluster
 
 		//in case a cluster is bound, report the host related usages
@@ -5740,16 +5768,21 @@ func (b *bareMetalInventory) refreshAfterUpdate(ctx context.Context, cluster *co
 	return err
 }
 
-func (b *bareMetalInventory) getBoundCluster(db *gorm.DB, infraEnv *common.InfraEnv, host *common.Host) (*common.Cluster, error) {
+func (b *bareMetalInventory) getBoundClusterForUpdate(db *gorm.DB, infraEnv *common.InfraEnv, infraEnvID, hostID strfmt.UUID) (*common.Cluster, error) {
+	var err error
 	var clusterID strfmt.UUID
 	if infraEnv.ClusterID != "" {
 		clusterID = infraEnv.ClusterID
-	} else if host != nil && host.Host.ClusterID != nil {
-		clusterID = *host.Host.ClusterID
+	} else {
+
+		// This query is not locked for update.  Therefore, it will not be part of deadlock
+		if clusterID, err = b.getClusterIDFromHost(db, hostID, infraEnvID); err != nil {
+			return nil, err
+		}
 	}
 
 	if clusterID != "" {
-		cluster, err := common.GetClusterFromDB(db, clusterID, common.SkipEagerLoading)
+		cluster, err := common.GetClusterFromDBForUpdate(db, clusterID, common.SkipEagerLoading)
 		if err != nil {
 			return nil, err
 		}
