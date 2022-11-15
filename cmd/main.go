@@ -147,7 +147,7 @@ var Options struct {
 	LivenessValidationTimeout      time.Duration `envconfig:"LIVENESS_VALIDATION_TIMEOUT" default:"5m"`
 	ApproveCsrsRequeueDuration     time.Duration `envconfig:"APPROVE_CSRS_REQUEUE_DURATION" default:"1m"`
 	HTTPListenPort                 string        `envconfig:"HTTP_LISTEN_PORT" default:""`
-	AllowConvergedFlow             bool          `envconfig:"ALLOW_CONVERGED_FLOW" default:"true"`
+	AllowConvergedFlow             bool          `envconfig:"ALLOW_CONVERGED_FLOW" default:"false"`
 	IronicIgnitionBuilderConfig    ignition.IronicIgniotionBuilderConfig
 
 	// Directory containing pre-generated TLS certs/keys for the ephemeral installer
