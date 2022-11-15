@@ -537,7 +537,10 @@ func (r *AgentReconciler) updateStatus(ctx context.Context, log logrus.FieldLogg
 			agent.Status.ValidationsInfo = newValidationsInfo
 		}
 		if h.Progress != nil && h.Progress.CurrentStage != "" {
-			if swag.StringValue(h.Status) == models.HostStatusAddedToExistingCluster {
+			// In case the node didn't reboot yet, we get the stage from the host (else)
+			if swag.StringValue(h.Kind) == models.HostKindAddToExistingClusterHost &&
+				funk.Contains([]models.HostStage{models.HostStageRebooting, models.HostStageJoined, models.HostStageConfiguring}, h.Progress.CurrentStage) {
+
 				spokeClient, err = r.spokeKubeClient(ctx, agent.Spec.ClusterDeploymentName)
 				if err != nil {
 					r.Log.WithError(err).Errorf("Agent %s/%s: Failed to create spoke client", agent.Namespace, agent.Name)
@@ -611,11 +614,6 @@ func (r *AgentReconciler) updateStatus(ctx context.Context, log logrus.FieldLogg
 }
 
 func (r *AgentReconciler) UpdateDay2InstallPogress(ctx context.Context, h *models.Host, agent *aiv1beta1.Agent, spokeClient spoke_k8s_client.SpokeK8sClient) (ctrl.Result, error) {
-	if !funk.Contains([]models.HostStage{models.HostStageRebooting, models.HostStageJoined, models.HostStageConfiguring}, h.Progress.CurrentStage) {
-		// In case the node didn't reboot yet, we get the stage from the host
-		agent.Status.Progress.CurrentStage = h.Progress.CurrentStage
-		return ctrl.Result{}, nil
-	}
 	node, err := r.getNode(agent, spokeClient)
 	if err != nil {
 		if k8serrors.IsNotFound(err) {
@@ -1390,7 +1388,7 @@ func (r *AgentReconciler) SetupWithManager(mgr ctrl.Manager) error {
 }
 
 func (r *AgentReconciler) updateHostInstallProgress(ctx context.Context, host *models.Host, stage models.HostStage) error {
-	r.Log.Info("Updating host %s install progress to %s", host.ID, stage)
+	r.Log.Infof("Updating host %s install progress to %s", host.ID, stage)
 	_, err := r.Installer.V2UpdateHostInstallProgressInternal(ctx, installer.V2UpdateHostInstallProgressParams{
 		InfraEnvID: host.InfraEnvID,
 		HostID:     *host.ID,

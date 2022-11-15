@@ -4547,10 +4547,6 @@ var _ = Describe("Rebooting day2", func() {
 		host.Kind = &hostKindDay2
 		host.Role = models.HostRoleMaster
 		Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
-		mockEventsAPI.EXPECT().SendHostEvent(ctx, eventstest.NewEventMatcher(
-			eventstest.WithHostIdMatcher(host.ID.String()),
-			eventstest.WithInfraEnvIdMatcher(host.InfraEnvID.String()),
-			eventstest.WithSeverityMatcher(models.EventSeverityInfo)))
 	})
 
 	AfterEach(func() {
@@ -4559,6 +4555,10 @@ var _ = Describe("Rebooting day2", func() {
 	})
 
 	It("during rebooting phase, if kubeapi is not enabled, should have the no further updates statusinfo", func() {
+		mockEventsAPI.EXPECT().SendHostEvent(ctx, eventstest.NewEventMatcher(
+			eventstest.WithHostIdMatcher(host.ID.String()),
+			eventstest.WithInfraEnvIdMatcher(host.InfraEnvID.String()),
+			eventstest.WithSeverityMatcher(models.EventSeverityInfo)))
 		api.kubeApiEnabled = false
 		err := api.UpdateInstallProgress(ctx, &host, &models.HostProgress{
 			CurrentStage: models.HostStageRebooting,
@@ -4566,6 +4566,7 @@ var _ = Describe("Rebooting day2", func() {
 		verifyHost := hostutil.GetHostFromDB(*host.ID, host.InfraEnvID, db)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(*verifyHost.StatusInfo).Should(BeEquivalentTo("Host has rebooted and no further updates will be posted. Please check console for progress and to possibly approve pending CSRs"))
+		Expect(*verifyHost.Status).Should(BeEquivalentTo(models.HostStatusAddedToExistingCluster))
 	})
 
 	It("during rebooting phase, if kubeapi is enabled, should have the rebooting statusinfo", func() {
@@ -4576,6 +4577,22 @@ var _ = Describe("Rebooting day2", func() {
 		verifyHost := hostutil.GetHostFromDB(*host.ID, host.InfraEnvID, db)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(*verifyHost.StatusInfo).Should(BeEquivalentTo("Rebooting"))
+		Expect(*verifyHost.Status).Should(BeEquivalentTo(models.HostStatusInstalling))
+	})
+
+	It("day-2 host with stage Done should move to HostStatusAddedToExistingCluster", func() {
+		api.kubeApiEnabled = true
+		mockEventsAPI.EXPECT().SendHostEvent(ctx, eventstest.NewEventMatcher(
+			eventstest.WithHostIdMatcher(host.ID.String()),
+			eventstest.WithInfraEnvIdMatcher(host.InfraEnvID.String()),
+			eventstest.WithSeverityMatcher(models.EventSeverityInfo)))
+		err := api.UpdateInstallProgress(ctx, &host, &models.HostProgress{
+			CurrentStage: models.HostStageDone,
+		})
+		verifyHost := hostutil.GetHostFromDB(*host.ID, host.InfraEnvID, db)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(*verifyHost.StatusInfo).Should(BeEquivalentTo(models.HostStageDone))
+		Expect(*verifyHost.Status).Should(BeEquivalentTo(models.HostStatusAddedToExistingCluster))
 	})
 
 })
