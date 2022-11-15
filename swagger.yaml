@@ -6245,7 +6245,8 @@ definitions:
     properties:
       openshift_version:
         type: string
-        description: Version of the OpenShift cluster.
+        description: Version of the operating system image
+        example: "4.12"
       cpu_architecture:
         type: string
         default: "x86_64"

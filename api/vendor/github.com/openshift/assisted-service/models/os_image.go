@@ -23,7 +23,8 @@ type OsImage struct {
 	// Required: true
 	CPUArchitecture *string `json:"cpu_architecture" gorm:"default:'x86_64'"`
 
-	// Version of the OpenShift cluster.
+	// Version of the operating system image
+	// Example: 4.12
 	// Required: true
 	OpenshiftVersion *string `json:"openshift_version"`
 
