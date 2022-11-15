@@ -992,6 +992,10 @@ var _ = Describe("IgnitionBuilder", func() {
 		Expect(err).ToNot(HaveOccurred())
 	})
 
+	AfterEach(func() {
+		ctrl.Finish()
+	})
+
 	Context("with auth enabled", func() {
 
 		It("ignition_file_fails_missing_Pull_Secret_token", func() {
@@ -1213,7 +1217,7 @@ var _ = Describe("IgnitionBuilder", func() {
 
 	It("no multipath for okd", func() {
 		config := IgnitionConfig{OKDRPMsImage: "image"}
-		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(2)
+		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(1)
 		text, err := builder.FormatDiscoveryIgnitionFile(context.Background(), &infraEnv, config, false, auth.TypeRHSSO, "")
 
 		Expect(err).Should(BeNil())
@@ -1222,7 +1226,7 @@ var _ = Describe("IgnitionBuilder", func() {
 
 	It("multipath configured for non-okd", func() {
 		config := IgnitionConfig{}
-		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(2)
+		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(1)
 		text, err := builder.FormatDiscoveryIgnitionFile(context.Background(), &infraEnv, config, false, auth.TypeRHSSO, "")
 
 		Expect(err).Should(BeNil())
@@ -1265,7 +1269,6 @@ var _ = Describe("IgnitionBuilder", func() {
 			Expect(count).Should(Equal(3))
 		})
 		It("Doesn't include static network config for minimal isos", func() {
-			mockStaticNetworkConfig.EXPECT().GenerateStaticNetworkConfigData(gomock.Any(), formattedInput).Return(staticnetworkConfigOutput, nil).Times(1)
 			infraEnv.StaticNetworkConfig = formattedInput
 			infraEnv.Type = common.ImageTypePtr(models.ImageTypeMinimalIso)
 			mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(1)
@@ -1303,7 +1306,6 @@ var _ = Describe("IgnitionBuilder", func() {
 		})
 
 		It("Will not include static network config for full iso type in infraenv if overridden in call to FormatDiscoveryIgnitionFile", func() {
-			mockStaticNetworkConfig.EXPECT().GenerateStaticNetworkConfigData(gomock.Any(), formattedInput).Return(staticnetworkConfigOutput, nil).Times(1)
 			infraEnv.StaticNetworkConfig = formattedInput
 			infraEnv.Type = common.ImageTypePtr(models.ImageTypeFullIso)
 			mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(1)
@@ -1363,6 +1365,7 @@ var _ = Describe("Ignition SSH key building", func() {
 			Expect(text).ShouldNot(ContainSubstring(subStr))
 		}
 	}
+
 	BeforeEach(func() {
 		infraEnvID = strfmt.UUID("a64fff36-dcb1-11ea-87d0-0242ac130003")
 		ctrl = gomock.NewController(GinkgoT())
@@ -1381,6 +1384,11 @@ var _ = Describe("Ignition SSH key building", func() {
 		Expect(err).ToNot(HaveOccurred())
 		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(1)
 	})
+
+	AfterEach(func() {
+		ctrl.Finish()
+	})
+
 	Context("when empty or invalid input", func() {
 		It("white_space_string should return an empty string", func() {
 			buildIgnitionAndAssertSubString("  \n  \n \t \n  ", false, "sshAuthorizedKeys")
@@ -1437,6 +1445,10 @@ var _ = Describe("FormatSecondDayWorkerIgnitionFile", func() {
 		var err error
 		builder, err = NewBuilder(log, mockStaticNetworkConfig, mockMirrorRegistriesConfigBuilder)
 		Expect(err).ToNot(HaveOccurred())
+	})
+
+	AfterEach(func() {
+		ctrl.Finish()
 	})
 
 	Context("test custom ignition endpoint", func() {
