@@ -127,15 +127,15 @@ func (hr *HypershiftAgentServiceConfigReconciler) Reconcile(origCtx context.Cont
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
-	// Creating spoke client using specified kubeconfig secret reference
-	spokeClient, err := hr.createSpokeClient(ctx, instance.Spec.KubeconfigSecretRef.Name, instance.Namespace)
-	if err != nil {
-		log.WithError(err).Error("Failed to create client using specified kubeconfig", req.NamespacedName)
-		return ctrl.Result{}, err
-	}
-
 	// Initialize ASC to reconcile components according to instance context
 	asc.initHASC(hr, instance)
+
+	// Creating spoke client using specified kubeconfig secret reference
+	spokeClient, err := hr.createSpokeClient(ctx, instance.Spec.KubeconfigSecretRef.Name, asc)
+	if err != nil {
+		log.WithError(err).Error("Failed to create client using specified kubeconfig", req.NamespacedName)
+		return ctrl.Result{Requeue: true}, err
+	}
 
 	// Ensure agent-install CRDs exist on spoke cluster and clean stale ones
 	if err = hr.ensureSyncSpokeAgentInstallCRDs(ctx, log, spokeClient, asc); err != nil {
@@ -232,20 +232,43 @@ func (hr *HypershiftAgentServiceConfigReconciler) reconcileSpokeComponents(ctx c
 	return ctrl.Result{}, nil
 }
 
-func (hr *HypershiftAgentServiceConfigReconciler) createSpokeClient(ctx context.Context, kubeconfigSecretName, namespace string) (spoke_k8s_client.SpokeK8sClient, error) {
+func (hr *HypershiftAgentServiceConfigReconciler) createSpokeClient(ctx context.Context, kubeconfigSecretName string, asc ASC) (spoke_k8s_client.SpokeK8sClient, error) {
 	// Fetch kubeconfig secret by specified secret reference
-	kubeconfigSecret, err := hr.getKubeconfigSecret(ctx, kubeconfigSecretName, namespace)
+	kubeconfigSecret, err := hr.getKubeconfigSecret(ctx, kubeconfigSecretName, asc.namespace)
 	if err != nil {
-		return nil, pkgerror.Wrapf(err, "Failed to get secret '%s' in '%s' namespace", kubeconfigSecretName, namespace)
+		reason := aiv1beta1.ReasonKubeconfigSecretFetchFailure
+		msg := fmt.Sprintf("Failed to get secret specified in KubeconfigSecretRef: %s", err.Error())
+		if err1 := hr.updateReconcileCondition(ctx, asc, reason, msg, corev1.ConditionFalse); err1 != nil {
+			return nil, err1
+		}
+		return nil, pkgerror.Wrapf(err, "Failed to get secret '%s' in '%s' namespace", kubeconfigSecretName, asc.namespace)
 	}
 
 	// Create spoke cluster client using kubeconfig secret
 	spokeClient, err := hr.SpokeClients.Get(kubeconfigSecret)
 	if err != nil {
+		reason := aiv1beta1.ReasonSpokeClientCreationFailure
+		msg := fmt.Sprintf("Failed to create kubeconfig client: %s", err.Error())
+		if err1 := hr.updateReconcileCondition(ctx, asc, reason, msg, corev1.ConditionFalse); err1 != nil {
+			return nil, err1
+		}
 		return nil, pkgerror.Wrapf(err, "Failed to create client using kubeconfig secret '%s'", kubeconfigSecretName)
 	}
 
 	return spokeClient, nil
+}
+
+func (hr *HypershiftAgentServiceConfigReconciler) updateReconcileCondition(ctx context.Context, asc ASC, reason, msg string, status corev1.ConditionStatus) error {
+	conditionsv1.SetStatusConditionNoHeartbeat(asc.conditions, conditionsv1.Condition{
+		Type:    aiv1beta1.ConditionReconcileCompleted,
+		Status:  status,
+		Reason:  reason,
+		Message: msg,
+	})
+	if err := asc.rec.Status().Update(ctx, asc.Object); err != nil {
+		return pkgerror.Wrapf(err, "Failed to update status")
+	}
+	return nil
 }
 
 // Return kubeconfig secret by name and namespace
@@ -264,21 +287,14 @@ func (hr *HypershiftAgentServiceConfigReconciler) getKubeconfigSecret(ctx contex
 
 func (hr *HypershiftAgentServiceConfigReconciler) ensureSyncSpokeAgentInstallCRDs(ctx context.Context, log *logrus.Entry, spokeClient client.Client, asc ASC) error {
 	if err := hr.syncSpokeAgentInstallCRDs(ctx, log, spokeClient); err != nil {
+		reason := aiv1beta1.ReasonSpokeClusterCRDsSyncFailure
 		msg := fmt.Sprintf("Failed to sync agent-install CRDs on spoke cluster: %s", err.Error())
 		log.WithError(err).Error(msg)
-		conditionsv1.SetStatusConditionNoHeartbeat(asc.conditions, conditionsv1.Condition{
-			Type:    aiv1beta1.ConditionReconcileCompleted,
-			Status:  corev1.ConditionFalse,
-			Reason:  aiv1beta1.ReasonSpokeClusterCRDsSyncFailure,
-			Message: msg,
-		})
-		if err1 := asc.rec.Status().Update(ctx, asc.Object); err1 != nil {
-			log.WithError(err1).Error("Failed to update status")
+		if err1 := hr.updateReconcileCondition(ctx, asc, reason, msg, corev1.ConditionFalse); err1 != nil {
 			return err1
 		}
 		return err
 	}
-
 	return nil
 }
 

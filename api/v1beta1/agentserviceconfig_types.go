@@ -166,6 +166,10 @@ const (
 	ReasonNamespaceCreationFailure string = "NamespaceCreationFailure"
 	// ReasonSpokeClusterCRDsSyncFailure when there was a failure syncing spoke cluster CRDs.
 	ReasonSpokeClusterCRDsSyncFailure string = "SpokeClusterCRDsSyncFailure"
+	// ReasonKubeconfigSecretFetchFailure when there was a failure fetching kubeconfig secret.
+	ReasonKubeconfigSecretFetchFailure string = "ReasonKubeconfigSecretFetchFailure"
+	// ReasonSpokeClientCreationFailure when there was a failure creating spoke client.
+	ReasonSpokeClientCreationFailure string = "ReasonSpokeClientCreationFailure"
 
 	// IPXEHTTPRouteEnabled is expected value in IPXEHTTPRoute to enable the route
 	IPXEHTTPRouteEnabled string = "enabled"
