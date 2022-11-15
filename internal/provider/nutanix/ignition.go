@@ -26,6 +26,15 @@ func (p nutanixProvider) PostCreateManifestsHook(_ *common.Cluster, _ *[]string,
 		return fmt.Errorf("error deleting master machine: %w", err)
 	}
 
+	// Delete machine-set
+	p.Log.Info("Deleting machine set manifest")
+	files, _ = filepath.Glob(path.Join(workDir, "openshift", "*_openshift-cluster-api_worker-machineset-*.yaml"))
+	err = p.deleteAllFiles(files)
+
+	if err != nil {
+		return fmt.Errorf("error deleting machineset: %w", err)
+	}
+
 	return nil
 }
 
