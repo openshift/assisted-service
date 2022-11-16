@@ -14,6 +14,7 @@ import (
 	"github.com/openshift/assisted-service/internal/oc"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/auth"
+	"github.com/openshift/assisted-service/pkg/ocm"
 	"github.com/openshift/assisted-service/restapi"
 	operations "github.com/openshift/assisted-service/restapi/operations/versions"
 	"github.com/pkg/errors"
@@ -117,14 +118,11 @@ func (h *handler) V2ListSupportedOpenshiftVersions(ctx context.Context, params o
 		if len(supportedArchs) > 1 {
 			if !checkedForMultiarchAuthorization {
 				checkedForMultiarchAuthorization = true
-				if err := auth.ValidateAccessToMultiarch(ctx, h.authzHandler); err != nil {
-					if strings.Contains(err.Error(), "multiarch clusters are not available") {
-						continue
-					} else {
-						return common.GenerateErrorResponder(err)
-					}
+				var err error
+				hasMultiarchAuthorization, err = h.authzHandler.HasOrgBasedCapability(ctx, ocm.MultiarchCapabilityName)
+				if err != nil {
+					return common.GenerateErrorResponder(err)
 				}
-				hasMultiarchAuthorization = true
 			}
 			if !hasMultiarchAuthorization {
 				continue

@@ -497,7 +497,14 @@ func (b *bareMetalInventory) RegisterClusterInternal(
 		cpuArchitecture = common.MultiCPUArchitecture
 		// (MGMT-11859) Additional check here ensures that the customer cannot just guess a version
 		//              with multiarch in order to get access to that release payload.
-		if err = auth.ValidateAccessToMultiarch(ctx, b.authzHandler); err != nil {
+		var multiarchAllowed bool
+		multiarchAllowed, err = b.authzHandler.HasOrgBasedCapability(ctx, ocm.MultiarchCapabilityName)
+		if err != nil {
+			err = common.NewApiError(http.StatusInternalServerError, fmt.Errorf("error getting user %s capability, error: %w", ocm.MultiarchCapabilityName, err))
+			return nil, err
+		}
+		if !multiarchAllowed {
+			err = common.NewApiError(http.StatusBadRequest, errors.Errorf("%s", "multiarch clusters are not available"))
 			return nil, err
 		}
 	}
