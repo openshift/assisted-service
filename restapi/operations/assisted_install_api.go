@@ -162,6 +162,18 @@ func NewAssistedInstallAPI(spec *loads.Document) *AssistedInstallAPI {
 		InstallerV2DownloadInfraEnvFilesHandler: installer.V2DownloadInfraEnvFilesHandlerFunc(func(params installer.V2DownloadInfraEnvFilesParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation installer.V2DownloadInfraEnvFiles has not yet been implemented")
 		}),
+		InstallerV2EventsSubscribeHandler: installer.V2EventsSubscribeHandlerFunc(func(params installer.V2EventsSubscribeParams, principal interface{}) middleware.Responder {
+			return middleware.NotImplemented("operation installer.V2EventsSubscribe has not yet been implemented")
+		}),
+		InstallerV2EventsSubscriptionDeleteHandler: installer.V2EventsSubscriptionDeleteHandlerFunc(func(params installer.V2EventsSubscriptionDeleteParams, principal interface{}) middleware.Responder {
+			return middleware.NotImplemented("operation installer.V2EventsSubscriptionDelete has not yet been implemented")
+		}),
+		InstallerV2EventsSubscriptionGetHandler: installer.V2EventsSubscriptionGetHandlerFunc(func(params installer.V2EventsSubscriptionGetParams, principal interface{}) middleware.Responder {
+			return middleware.NotImplemented("operation installer.V2EventsSubscriptionGet has not yet been implemented")
+		}),
+		InstallerV2EventsSubscriptionListHandler: installer.V2EventsSubscriptionListHandlerFunc(func(params installer.V2EventsSubscriptionListParams, principal interface{}) middleware.Responder {
+			return middleware.NotImplemented("operation installer.V2EventsSubscriptionList has not yet been implemented")
+		}),
 		InstallerV2GetClusterHandler: installer.V2GetClusterHandlerFunc(func(params installer.V2GetClusterParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation installer.V2GetCluster has not yet been implemented")
 		}),
@@ -414,6 +426,14 @@ type AssistedInstallAPI struct {
 	InstallerV2DownloadHostIgnitionHandler installer.V2DownloadHostIgnitionHandler
 	// InstallerV2DownloadInfraEnvFilesHandler sets the operation handler for the v2 download infra env files operation
 	InstallerV2DownloadInfraEnvFilesHandler installer.V2DownloadInfraEnvFilesHandler
+	// InstallerV2EventsSubscribeHandler sets the operation handler for the v2 events subscribe operation
+	InstallerV2EventsSubscribeHandler installer.V2EventsSubscribeHandler
+	// InstallerV2EventsSubscriptionDeleteHandler sets the operation handler for the v2 events subscription delete operation
+	InstallerV2EventsSubscriptionDeleteHandler installer.V2EventsSubscriptionDeleteHandler
+	// InstallerV2EventsSubscriptionGetHandler sets the operation handler for the v2 events subscription get operation
+	InstallerV2EventsSubscriptionGetHandler installer.V2EventsSubscriptionGetHandler
+	// InstallerV2EventsSubscriptionListHandler sets the operation handler for the v2 events subscription list operation
+	InstallerV2EventsSubscriptionListHandler installer.V2EventsSubscriptionListHandler
 	// InstallerV2GetClusterHandler sets the operation handler for the v2 get cluster operation
 	InstallerV2GetClusterHandler installer.V2GetClusterHandler
 	// InstallerV2GetClusterInstallConfigHandler sets the operation handler for the v2 get cluster install config operation
@@ -683,6 +703,18 @@ func (o *AssistedInstallAPI) Validate() error {
 	}
 	if o.InstallerV2DownloadInfraEnvFilesHandler == nil {
 		unregistered = append(unregistered, "installer.V2DownloadInfraEnvFilesHandler")
+	}
+	if o.InstallerV2EventsSubscribeHandler == nil {
+		unregistered = append(unregistered, "installer.V2EventsSubscribeHandler")
+	}
+	if o.InstallerV2EventsSubscriptionDeleteHandler == nil {
+		unregistered = append(unregistered, "installer.V2EventsSubscriptionDeleteHandler")
+	}
+	if o.InstallerV2EventsSubscriptionGetHandler == nil {
+		unregistered = append(unregistered, "installer.V2EventsSubscriptionGetHandler")
+	}
+	if o.InstallerV2EventsSubscriptionListHandler == nil {
+		unregistered = append(unregistered, "installer.V2EventsSubscriptionListHandler")
 	}
 	if o.InstallerV2GetClusterHandler == nil {
 		unregistered = append(unregistered, "installer.V2GetClusterHandler")
@@ -1039,6 +1071,22 @@ func (o *AssistedInstallAPI) initHandlerCache() {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
 	o.handlers["GET"]["/v2/infra-envs/{infra_env_id}/downloads/files"] = installer.NewV2DownloadInfraEnvFiles(o.context, o.InstallerV2DownloadInfraEnvFilesHandler)
+	if o.handlers["POST"] == nil {
+		o.handlers["POST"] = make(map[string]http.Handler)
+	}
+	o.handlers["POST"]["/v2/events/subscription"] = installer.NewV2EventsSubscribe(o.context, o.InstallerV2EventsSubscribeHandler)
+	if o.handlers["DELETE"] == nil {
+		o.handlers["DELETE"] = make(map[string]http.Handler)
+	}
+	o.handlers["DELETE"]["/v2/events/subscription/{subscription_id}"] = installer.NewV2EventsSubscriptionDelete(o.context, o.InstallerV2EventsSubscriptionDeleteHandler)
+	if o.handlers["GET"] == nil {
+		o.handlers["GET"] = make(map[string]http.Handler)
+	}
+	o.handlers["GET"]["/v2/events/subscription/{subscription_id}"] = installer.NewV2EventsSubscriptionGet(o.context, o.InstallerV2EventsSubscriptionGetHandler)
+	if o.handlers["GET"] == nil {
+		o.handlers["GET"] = make(map[string]http.Handler)
+	}
+	o.handlers["GET"]["/v2/events/subscription"] = installer.NewV2EventsSubscriptionList(o.context, o.InstallerV2EventsSubscriptionListHandler)
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
