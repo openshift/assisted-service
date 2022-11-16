@@ -23,6 +23,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"reflect"
 	"strings"
 	"time"
 
@@ -757,7 +758,9 @@ func (r *ClusterDeploymentsReconciler) updateIgnitionInUpdateParams(ctx context.
 		ignitionEndpoint, err := r.parseIgnitionEndpoint(ctx, log, clusterInstall.Spec.IgnitionEndpoint)
 		if err == nil {
 			params.IgnitionEndpoint = ignitionEndpoint
-			update = true
+			if cluster.IgnitionEndpoint == nil || !reflect.DeepEqual(cluster.IgnitionEndpoint, ignitionEndpoint) {
+				update = true
+			}
 		} else {
 			log.WithError(err).Errorf("Failed to get and parse ignition ca certificate %s/%s", clusterInstall.Namespace, clusterInstall.Name)
 			return false, errors.Wrap(err, fmt.Sprintf("Failed to get and parse ignition ca certificate %s/%s", clusterInstall.Namespace, clusterInstall.Name))
