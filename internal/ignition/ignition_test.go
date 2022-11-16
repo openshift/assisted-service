@@ -1698,7 +1698,7 @@ status:
 		// the infra name should not have changed
 		Expect(status["infrastructureName"].(string)).To(Equal("test-cluster-s9qbn"))
 	})
-	It("patches the manifest correctly", func() {
+	It("patches the infrastructure manifest correctly", func() {
 		base := `---
 apiVersion: config.openshift.io/v1
 kind: Infrastructure
@@ -1745,6 +1745,71 @@ status:
 
 		// the infra name should not have changed
 		Expect(status["infrastructureName"].(string)).To(Equal("test-cluster-s9qbn"))
+	})
+
+	It("patches core manifests correctly", func() {
+		base := `---
+apiVersion: config.openshift.io/v1
+kind: Scheduler
+metadata:
+  creationTimestamp: "2022-11-03T06:20:17Z"
+  generation: 1
+  name: cluster
+  resourceVersion: "620"
+  uid: b74da926-8664-41a2-8fbf-4217156a63c6
+spec:
+  mastersSchedulable: false
+  policy:
+    name: ""`
+
+		schedulableMastersManifestPatch := `---
+- op: replace
+  path: /spec/mastersSchedulable
+  value: true
+`
+		schedulerPatchCustomTest := `---
+- op: add
+  path: /spec/customTest
+  value: true
+`
+
+		manifestsOpenshiftDir := filepath.Join(workDir, "/openshift")
+		Expect(os.Mkdir(manifestsOpenshiftDir, 0755)).To(Succeed())
+
+		manifestPatchPath := filepath.Join(manifestsOpenshiftDir, "cluster-scheduler-02-config.yml.patch")
+		err := os.WriteFile(manifestPatchPath, []byte(schedulableMastersManifestPatch), 0600)
+		Expect(err).NotTo(HaveOccurred())
+
+		manifestPatchCustomTestPath := filepath.Join(manifestsOpenshiftDir, "cluster-scheduler-02-config.yml.patch_custom_test")
+		err = os.WriteFile(manifestPatchCustomTestPath, []byte(schedulerPatchCustomTest), 0600)
+		Expect(err).NotTo(HaveOccurred())
+
+		manifestsDir := filepath.Join(workDir, "/manifests")
+		Expect(os.Mkdir(manifestsDir, 0755)).To(Succeed())
+
+		err = os.WriteFile(filepath.Join(manifestsDir, "cluster-scheduler-02-config.yml"), []byte(base), 0600)
+		Expect(err).NotTo(HaveOccurred())
+
+		Expect(generator.applyManifestPatches(ctx)).To(Succeed())
+
+		content, err := os.ReadFile(filepath.Join(manifestsDir, "cluster-scheduler-02-config.yml"))
+		Expect(err).NotTo(HaveOccurred())
+
+		merged := map[string]interface{}{}
+		err = yaml.Unmarshal(content, &merged)
+		Expect(err).NotTo(HaveOccurred())
+
+		status := merged["spec"].(map[interface{}]interface{})
+
+		// Master should now be schedulable
+		Expect(status["mastersSchedulable"].(bool)).To(Equal(true))
+		Expect(status["customTest"].(bool)).To(Equal(true))
+
+		_, err = os.Stat(manifestPatchPath)
+		Expect(errors.Is(err, os.ErrNotExist)).To(Equal(true))
+
+		_, err = os.Stat(manifestPatchCustomTestPath)
+		Expect(errors.Is(err, os.ErrNotExist)).To(Equal(true))
 	})
 })
 

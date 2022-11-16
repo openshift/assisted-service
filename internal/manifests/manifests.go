@@ -91,6 +91,11 @@ func (m *Manifests) CreateClusterManifestInternal(ctx context.Context, params op
 		if !json.Valid(manifestContent) {
 			return nil, common.NewApiError(http.StatusBadRequest, errors.New("Manifest content has an illegal JSON format"))
 		}
+	} else if strings.HasPrefix(extension, ".patch") && (strings.Contains(fileName, ".yaml.patch") || strings.Contains(fileName, ".yml.patch")) {
+		var s []map[interface{}]interface{}
+		if yaml.Unmarshal(manifestContent, &s) != nil {
+			return nil, common.NewApiError(http.StatusBadRequest, errors.New("Patch content has an invalid YAML format"))
+		}
 	} else {
 		return nil, common.NewApiError(http.StatusBadRequest, errors.New("Unsupported manifest extension. Only json, yaml and yml extensions are supported"))
 	}
