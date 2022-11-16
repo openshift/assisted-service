@@ -131,7 +131,7 @@ func (hr *HypershiftAgentServiceConfigReconciler) Reconcile(origCtx context.Cont
 	asc.initHASC(hr, instance)
 
 	// Creating spoke client using specified kubeconfig secret reference
-	spokeClient, err := hr.createSpokeClient(ctx, instance.Spec.KubeconfigSecretRef.Name, asc)
+	spokeClient, err := hr.createSpokeClient(ctx, log, instance.Spec.KubeconfigSecretRef.Name, asc)
 	if err != nil {
 		log.WithError(err).Error("Failed to create client using specified kubeconfig", req.NamespacedName)
 		return ctrl.Result{Requeue: true}, err
@@ -232,13 +232,12 @@ func (hr *HypershiftAgentServiceConfigReconciler) reconcileSpokeComponents(ctx c
 	return ctrl.Result{}, nil
 }
 
-func (hr *HypershiftAgentServiceConfigReconciler) createSpokeClient(ctx context.Context, kubeconfigSecretName string, asc ASC) (spoke_k8s_client.SpokeK8sClient, error) {
+func (hr *HypershiftAgentServiceConfigReconciler) createSpokeClient(ctx context.Context, log *logrus.Entry, kubeconfigSecretName string, asc ASC) (spoke_k8s_client.SpokeK8sClient, error) {
 	// Fetch kubeconfig secret by specified secret reference
-	kubeconfigSecret, err := hr.getKubeconfigSecret(ctx, kubeconfigSecretName, asc.namespace)
+	kubeconfigSecret, err := hr.getKubeconfigSecret(ctx, log, kubeconfigSecretName, asc.namespace)
 	if err != nil {
 		reason := aiv1beta1.ReasonKubeconfigSecretFetchFailure
-		msg := fmt.Sprintf("Failed to get secret specified in KubeconfigSecretRef: %s", err.Error())
-		if err1 := hr.updateReconcileCondition(ctx, asc, reason, msg, corev1.ConditionFalse); err1 != nil {
+		if err1 := hr.updateReconcileCondition(ctx, asc, reason, err.Error(), corev1.ConditionFalse); err1 != nil {
 			return nil, err1
 		}
 		return nil, pkgerror.Wrapf(err, "Failed to get secret '%s' in '%s' namespace", kubeconfigSecretName, asc.namespace)
@@ -272,11 +271,13 @@ func (hr *HypershiftAgentServiceConfigReconciler) updateReconcileCondition(ctx c
 }
 
 // Return kubeconfig secret by name and namespace
-func (hr *HypershiftAgentServiceConfigReconciler) getKubeconfigSecret(ctx context.Context, kubeconfigSecretName, namespace string) (*corev1.Secret, error) {
+func (hr *HypershiftAgentServiceConfigReconciler) getKubeconfigSecret(ctx context.Context, log *logrus.Entry, kubeconfigSecretName, namespace string) (*corev1.Secret, error) {
 	secretRef := types.NamespacedName{Namespace: namespace, Name: kubeconfigSecretName}
 	secret, err := getSecret(ctx, hr.Client, hr, secretRef)
 	if err != nil {
-		return nil, pkgerror.Wrapf(err, "Failed to get '%s' secret in '%s' namespace", secretRef.Name, secretRef.Namespace)
+		msg := fmt.Sprintf("Failed to get '%s' secret in '%s' namespace (check `kubeconfigSecretRef` property)", secretRef.Name, secretRef.Namespace)
+		log.WithError(err).Error(msg)
+		return nil, pkgerror.Errorf(msg)
 	}
 	_, ok := secret.Data["kubeconfig"]
 	if !ok {
