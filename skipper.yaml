@@ -5,9 +5,7 @@ containers:
   assisted-service-build: Dockerfile.assisted-service-build
 volumes:
   # programs
-  - /usr/bin/minikube:/usr/bin/minikube
-  - /usr/local/bin/minikube:/usr/local/bin/minikube
-  - /usr/local/bin/k3d:/usr/local/bin/k3d
+  - $(which minikube || echo /usr/local/bin/minikube):/usr/local/bin/minikube
 
   # config
   - $MINIKUBE_HOME:$MINIKUBE_HOME

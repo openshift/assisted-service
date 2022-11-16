@@ -2,6 +2,7 @@ import argparse
 import json
 import os
 import yaml
+import socket
 import subprocess
 
 import deployment_options
@@ -58,95 +59,107 @@ def get_deployment_tag(args):
 def main():
     utils.verify_build_directory(deploy_options.namespace)
     verify_images(release_images=json.loads(json.loads('"{}"'.format(deploy_options.release_images))))
+
     with open(SRC_FILE, "r") as src:
-        with open(DST_FILE, "w+") as dst:
-            data = src.read()
-            data = data.replace("REPLACE_DOMAINS", '"{}"'.format(deploy_options.base_dns_domains))
+        data = src.read()
 
-            if deploy_options.apply_manifest:
-                data = data.replace("REPLACE_BASE_URL", utils.get_service_url(service=SERVICE,
-                                                                            target=deploy_options.target,
-                                                                            domain=deploy_options.domain,
-                                                                            namespace=deploy_options.namespace,
-                                                                            disable_tls=deploy_options.disable_tls,
-                                                                            check_connection=True))
-                data = data.replace("REPLACE_IMAGE_SERVICE_BASE_URL", utils.get_service_url(service=IMAGE_SERVICE,
-                                                                            target=deploy_options.target,
-                                                                            domain=deploy_options.domain,
-                                                                            namespace=deploy_options.namespace,
-                                                                            disable_tls=deploy_options.disable_tls,
-                                                                            check_connection=True))
+    data = data.replace("REPLACE_DOMAINS", '"{}"'.format(deploy_options.base_dns_domains))
 
-            data = data.replace('REPLACE_NAMESPACE', f'"{deploy_options.namespace}"')
-            data = data.replace('REPLACE_AUTH_TYPE_FLAG', '"{}"'.format(deploy_options.auth_type))
-            data = data.replace('REPLACE_CHECK_CLUSTER_VERSION_FLAG', '"{}"'.format(deploy_options.check_cvo))
-            data = data.replace('REPLACE_JWKS_URL', '"{}"'.format(deploy_options.jwks_url))
-            data = data.replace('REPLACE_OCM_BASE_URL', '"{}"'.format(deploy_options.ocm_url))
-            data = data.replace('REPLACE_OPENSHIFT_VERSIONS', '"{}"'.format(deploy_options.ocp_versions))
-            data = data.replace('REPLACE_OS_IMAGES', '"{}"'.format(deploy_options.os_images))
-            data = data.replace('REPLACE_RELEASE_IMAGES', '"{}"'.format(deploy_options.release_images))
-            data = data.replace('REPLACE_MUST_GATHER_IMAGES', '"{}"'.format(deploy_options.must_gather_images))
-            data = data.replace('REPLACE_PUBLIC_CONTAINER_REGISTRIES', '"{}"'.format(deploy_options.public_registries))
-            data = data.replace('REPLACE_IPV6_SUPPORT', '"{}"'.format(deploy_options.ipv6_support))
-            data = data.replace('REPLACE_ISO_IMAGE_TYPE', '"{}"'.format(deploy_options.iso_image_type))
-            data = data.replace('REPLACE_HW_VALIDATOR_REQUIREMENTS', '"{}"'.format(deploy_options.hw_requirements))
-            data = data.replace('REPLACE_DISABLED_HOST_VALIDATIONS', '"{}"'.format(deploy_options.disabled_host_validations))
-            data = data.replace('REPLACE_DISABLED_STEPS', '"{}"'.format(deploy_options.disabled_steps))
+    if deploy_options.apply_manifest:
+        if deploy_options.target == "kind":
+            assisted_service_base_url = f"http://{socket.gethostname()}"
+            image_service_base_url = f"http://{socket.gethostname()}"
+        else:
+            assisted_service_base_url = utils.get_service_url(
+                service=SERVICE,
+                target=deploy_options.target,
+                domain=deploy_options.domain,
+                namespace=deploy_options.namespace,
+                disable_tls=deploy_options.disable_tls,
+                check_connection=True,
+            )
+            image_service_base_url = utils.get_service_url(
+                service=IMAGE_SERVICE,
+                target=deploy_options.target,
+                domain=deploy_options.domain,
+                namespace=deploy_options.namespace,
+                disable_tls=deploy_options.disable_tls,
+                check_connection=True,
+            )
 
-            versions = {"INSTALLER_IMAGE": "assisted-installer",
-                        "CONTROLLER_IMAGE": "assisted-installer-controller",
-                        "AGENT_DOCKER_IMAGE": "assisted-installer-agent"}
-            for env_var_name, image_short_name in versions.items():
-                versions[env_var_name] = deployment_options.get_image_override(deploy_options, image_short_name, env_var_name)
-                log.info(f"Logging {image_short_name} information")
-                log_image_revision(versions[env_var_name])
+        data = data.replace("REPLACE_BASE_URL", assisted_service_base_url)
+        data = data.replace("REPLACE_IMAGE_SERVICE_BASE_URL", image_service_base_url)
 
-            # Edge case for controller image override
-            if os.environ.get("INSTALLER_IMAGE") and not os.environ.get("CONTROLLER_IMAGE"):
-                versions["CONTROLLER_IMAGE"] = deployment_options.IMAGE_FQDN_TEMPLATE.format(
-                    "edge-infrastructure", "assisted-installer-controller",
-                    deployment_options.get_tag(versions["INSTALLER_IMAGE"]))
+    data = data.replace('REPLACE_NAMESPACE', f'"{deploy_options.namespace}"')
+    data = data.replace('REPLACE_AUTH_TYPE_FLAG', '"{}"'.format(deploy_options.auth_type))
+    data = data.replace('REPLACE_CHECK_CLUSTER_VERSION_FLAG', '"{}"'.format(deploy_options.check_cvo))
+    data = data.replace('REPLACE_JWKS_URL', '"{}"'.format(deploy_options.jwks_url))
+    data = data.replace('REPLACE_OCM_BASE_URL', '"{}"'.format(deploy_options.ocm_url))
+    data = data.replace('REPLACE_OPENSHIFT_VERSIONS', '"{}"'.format(deploy_options.ocp_versions))
+    data = data.replace('REPLACE_OS_IMAGES', '"{}"'.format(deploy_options.os_images))
+    data = data.replace('REPLACE_RELEASE_IMAGES', '"{}"'.format(deploy_options.release_images))
+    data = data.replace('REPLACE_MUST_GATHER_IMAGES', '"{}"'.format(deploy_options.must_gather_images))
+    data = data.replace('REPLACE_PUBLIC_CONTAINER_REGISTRIES', '"{}"'.format(deploy_options.public_registries))
+    data = data.replace('REPLACE_IPV6_SUPPORT', '"{}"'.format(deploy_options.ipv6_support))
+    data = data.replace('REPLACE_ISO_IMAGE_TYPE', '"{}"'.format(deploy_options.iso_image_type))
+    data = data.replace('REPLACE_HW_VALIDATOR_REQUIREMENTS', '"{}"'.format(deploy_options.hw_requirements))
+    data = data.replace('REPLACE_DISABLED_HOST_VALIDATIONS', '"{}"'.format(deploy_options.disabled_host_validations))
+    data = data.replace('REPLACE_DISABLED_STEPS', '"{}"'.format(deploy_options.disabled_steps))
 
-            versions["SELF_VERSION"] = deployment_options.get_image_override(deploy_options, "assisted-service", "SERVICE")
-            log.info(f"Logging assisted-service information")
-            log_image_revision(versions["SELF_VERSION"])
-            deploy_tag = get_deployment_tag(deploy_options)
-            if deploy_tag:
-                versions["RELEASE_TAG"] = deploy_tag
+    versions = {"INSTALLER_IMAGE": "assisted-installer",
+                "CONTROLLER_IMAGE": "assisted-installer-controller",
+                "AGENT_DOCKER_IMAGE": "assisted-installer-agent"}
+    for env_var_name, image_short_name in versions.items():
+        versions[env_var_name] = deployment_options.get_image_override(deploy_options, image_short_name, env_var_name)
+        log.info(f"Logging {image_short_name} information")
+        log_image_revision(versions[env_var_name])
 
-            y = yaml.safe_load(data)
-            y['data'].update(versions)
+    # Edge case for controller image override
+    if os.environ.get("INSTALLER_IMAGE") and not os.environ.get("CONTROLLER_IMAGE"):
+        versions["CONTROLLER_IMAGE"] = deployment_options.IMAGE_FQDN_TEMPLATE.format(
+            "edge-infrastructure", "assisted-installer-controller",
+            deployment_options.get_tag(versions["INSTALLER_IMAGE"]))
 
-            y['data']['ENABLE_SINGLE_NODE_DNSMASQ'] = deploy_options.enable_sno_dnsmasq
-            y['data']['STORAGE'] = deploy_options.storage
+    versions["SELF_VERSION"] = deployment_options.get_image_override(deploy_options, "assisted-service", "SERVICE")
+    log.info(f"Logging assisted-service information")
+    log_image_revision(versions["SELF_VERSION"])
+    deploy_tag = get_deployment_tag(deploy_options)
+    if deploy_tag:
+        versions["RELEASE_TAG"] = deploy_tag
 
-            if deploy_options.installation_timeout:
-                y['data']['INSTALLATION_TIMEOUT'] = str(deploy_options.installation_timeout)
+    y = yaml.safe_load(data)
+    y['data'].update(versions)
 
-            admins = get_admin_users()
-            if admins:
-                y['data']['ADMIN_USERS'] = admins
+    y['data']['ENABLE_SINGLE_NODE_DNSMASQ'] = deploy_options.enable_sno_dnsmasq
+    y['data']['STORAGE'] = deploy_options.storage
 
-            if deploy_options.img_expr_time:
-                y['data']['IMAGE_EXPIRATION_TIME'] = deploy_options.img_expr_time
+    if deploy_options.installation_timeout:
+        y['data']['INSTALLATION_TIMEOUT'] = str(deploy_options.installation_timeout)
 
-            if deploy_options.img_expr_time:
-                y['data']['IMAGE_EXPIRATION_INTERVAL'] = deploy_options.img_expr_interval
+    admins = get_admin_users()
+    if admins:
+        y['data']['ADMIN_USERS'] = admins
 
-            if deploy_options.enable_kube_api:
-                y['data']['ENABLE_KUBE_API'] = 'true'
+    if deploy_options.img_expr_time:
+        y['data']['IMAGE_EXPIRATION_TIME'] = deploy_options.img_expr_time
 
-            y['data']['DISK_ENCRYPTION_SUPPORT'] = deploy_options.disk_encryption_support
+    if deploy_options.img_expr_time:
+        y['data']['IMAGE_EXPIRATION_INTERVAL'] = deploy_options.img_expr_interval
 
-            y['data']['ENABLE_ORG_TENANCY'] = deploy_options.enable_org_tenancy
+    if deploy_options.enable_kube_api:
+        y['data']['ENABLE_KUBE_API'] = 'true'
 
-            y['data']['ENABLE_ORG_BASED_FEATURE_GATES'] = deploy_options.enable_org_based_feature_gates
+    y['data']['DISK_ENCRYPTION_SUPPORT'] = deploy_options.disk_encryption_support
 
-            if deploy_options.allow_converged_flow:
-                y['data']['ALLOW_CONVERGED_FLOW'] = 'true'
+    y['data']['ENABLE_ORG_TENANCY'] = deploy_options.enable_org_tenancy
 
-            data = yaml.dump(y)
-            dst.write(data)
+    y['data']['ENABLE_ORG_BASED_FEATURE_GATES'] = deploy_options.enable_org_based_feature_gates
+
+    if deploy_options.allow_converged_flow:
+        y['data']['ALLOW_CONVERGED_FLOW'] = 'true'
+
+    with open(DST_FILE, "w+") as dst:
+        dst.write(yaml.dump(y))
 
     if deploy_options.apply_manifest:
         log.info("Deploying {}".format(DST_FILE))

@@ -2,6 +2,7 @@ import argparse
 import os
 import utils
 import deployment_options
+import socket
 
 UI_REPOSITORY = "https://github.com/openshift-assisted/assisted-ui"
 
@@ -47,27 +48,36 @@ def main():
             file=dst_file
         )
 
-    # in case of openshift deploy ingress as well
-    if deploy_options.target == "oc-ingress":
+    if deploy_options.target == "kind":
+        hostname = socket.gethostname()
+    elif deploy_options.target == "oc-ingress":
+        hostname = utils.get_service_host(
+            'assisted-installer-ui',
+            deploy_options.target,
+            deploy_options.domain,
+            deploy_options.namespace
+        )
+    else:
+        hostname = None
+
+    # in case of openshift or kind - deploy ingress as well
+    if hostname is not None:
         src_file = os.path.join(os.getcwd(), 'deploy/ui/ui_ingress.yaml')
-        dst_file = os.path.join(os.getcwd(), 'build', deploy_options.namespace, 'ui_ingress.yaml')
         with open(src_file, "r") as src:
-            with open(dst_file, "w+") as dst:
-                data = src.read()
-                data = data.replace('REPLACE_NAMESPACE', f'"{deploy_options.namespace}"')
-                data = data.replace('REPLACE_HOSTNAME', utils.get_service_host(
-                    'assisted-installer-ui',
-                    deploy_options.target,
-                    deploy_options.domain,
-                    deploy_options.namespace
-                ))
-                dst.write(data)
+            data = src.read()
+
+        dst_file = os.path.join(os.getcwd(), 'build', deploy_options.namespace, 'ui_ingress.yaml')
+        with open(dst_file, "w+") as dst:
+            data = data.replace('REPLACE_NAMESPACE', f'"{deploy_options.namespace}"')
+            data = data.replace('REPLACE_HOSTNAME', hostname)
+            dst.write(data)
+
         if deploy_options.apply_manifest:
             log.info("Deploying ingress from %s", dst_file)
             utils.apply(
                 target=deploy_options.target,
                 namespace=deploy_options.namespace,
-                file=dst_file
+                file=dst_file,
             )
 
 

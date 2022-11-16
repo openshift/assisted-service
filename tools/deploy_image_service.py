@@ -1,5 +1,6 @@
 import argparse
 import os
+import socket
 from urllib.parse import urlparse
 
 import yaml
@@ -47,12 +48,21 @@ def main():
         # Getting IMAGE_SERVICE_BASE_URL variable from environment which should be specified
         # as part of service deployment flow in assisted-test-infra (sets custom hostname and port).
         # Otherwise, fetching the base url from the deployed image-service `service`.
-        image_service_base_url = os.environ.get("IMAGE_SERVICE_BASE_URL", utils.get_service_url(service="assisted-image-service",
-                                                                            target=deploy_options.target,
-                                                                            domain=deploy_options.domain,
-                                                                            namespace=deploy_options.namespace,
-                                                                            disable_tls=deploy_options.disable_tls,
-                                                                            check_connection=True))
+        if deploy_options.target == "kind":
+            image_service_base_url = f"http://{socket.gethostname()}"
+        else:
+            image_service_base_url = os.environ.get(
+                "IMAGE_SERVICE_BASE_URL",
+                utils.get_service_url(
+                    service="assisted-image-service",
+                    target=deploy_options.target,
+                    domain=deploy_options.domain,
+                    namespace=deploy_options.namespace,
+                    disable_tls=deploy_options.disable_tls,
+                    check_connection=True,
+                )
+            )
+
         raw_data = raw_data.replace('REPLACE_IMAGE_SERVICE_BASE_URL', image_service_base_url)
 
         data = yaml.safe_load(raw_data)
