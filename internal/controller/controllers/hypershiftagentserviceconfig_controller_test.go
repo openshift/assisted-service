@@ -44,6 +44,7 @@ var _ = Describe("HypershiftAgentServiceConfig reconcile", func() {
 		mockSpokeClient         *spoke_k8s_client.MockSpokeK8sClient
 		mockSpokeClientCache    *MockSpokeClientCache
 		fakeSpokeClient         client.WithWatch
+		asc                     ASC
 	)
 
 	const (
@@ -197,6 +198,14 @@ var _ = Describe("HypershiftAgentServiceConfig reconcile", func() {
 		return instance
 	}
 
+	assertReconcileCompletedCondition := func(status corev1.ConditionStatus, reason string) {
+		instance := getHASCInstance()
+		condition := conditionsv1.FindStatusCondition(instance.Status.Conditions, aiv1beta1.ConditionReconcileCompleted)
+		Expect(condition).ToNot(BeNil())
+		Expect(condition.Status).To(Equal(status))
+		Expect(condition.Reason).To(Equal(reason))
+	}
+
 	BeforeEach(func() {
 		mockCtrl = gomock.NewController(GinkgoT())
 		mockSpokeClient = spoke_k8s_client.NewMockSpokeK8sClient(mockCtrl)
@@ -231,6 +240,7 @@ var _ = Describe("HypershiftAgentServiceConfig reconcile", func() {
 		Expect(err.Error()).To(ContainSubstring(
 			fmt.Sprintf("Failed to get '%s' secret in '%s' namespace",
 				hsc.Spec.KubeconfigSecretRef.Name, testNamespace)))
+		assertReconcileCompletedCondition(corev1.ConditionFalse, aiv1beta1.ReasonKubeconfigSecretFetchFailure)
 	})
 
 	It("fails due to invalid key in kubeconfig secret", func() {
@@ -240,12 +250,14 @@ var _ = Describe("HypershiftAgentServiceConfig reconcile", func() {
 		secret.Data = map[string][]byte{
 			"invalid": []byte(BASIC_KUBECONFIG),
 		}
+		asc.initHASC(hr, hsc)
 		Expect(hr.Client.Create(ctx, secret)).To(Succeed())
-		_, err := hr.createSpokeClient(ctx, secret.Name, secret.Namespace)
+		_, err := hr.createSpokeClient(ctx, secret.Name, asc)
 		Expect(err).ToNot(BeNil())
 		Expect(err.Error()).To(ContainSubstring(
 			fmt.Sprintf("Secret '%s' does not contain '%s' key value",
 				hsc.Spec.KubeconfigSecretRef.Name, "kubeconfig")))
+		assertReconcileCompletedCondition(corev1.ConditionFalse, aiv1beta1.ReasonKubeconfigSecretFetchFailure)
 	})
 
 	It("fails due to an error getting client", func() {
@@ -253,6 +265,7 @@ var _ = Describe("HypershiftAgentServiceConfig reconcile", func() {
 		_, err := hr.Reconcile(ctx, newHypershiftAgentServiceConfigRequest(hsc))
 		Expect(err).ToNot(BeNil())
 		Expect(err.Error()).To(ContainSubstring("Failed to create client"))
+		assertReconcileCompletedCondition(corev1.ConditionFalse, aiv1beta1.ReasonSpokeClientCreationFailure)
 	})
 
 	It("fails due to missing agent-install CRDs on management cluster", func() {
@@ -261,13 +274,7 @@ var _ = Describe("HypershiftAgentServiceConfig reconcile", func() {
 		_, err := hr.Reconcile(ctx, newHypershiftAgentServiceConfigRequest(hsc))
 		Expect(err).ToNot(BeNil())
 		Expect(err.Error()).To(ContainSubstring("agent-install CRDs are not available"))
-
-		instance := getHASCInstance()
-
-		// ReconcileCompleted condition
-		condition := conditionsv1.FindStatusCondition(instance.Status.Conditions, aiv1beta1.ConditionReconcileCompleted)
-		Expect(condition).ToNot(BeNil())
-		Expect(condition.Status).To(Equal(corev1.ConditionFalse))
+		assertReconcileCompletedCondition(corev1.ConditionFalse, aiv1beta1.ReasonSpokeClusterCRDsSyncFailure)
 	})
 
 	It("ignores error listing CRD on spoke cluster (warns for failed cleanup)", func() {
