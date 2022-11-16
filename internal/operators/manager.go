@@ -77,6 +77,9 @@ type API interface {
 func (mgr Manager) GetPreflightRequirementsBreakdownForCluster(ctx context.Context, cluster *common.Cluster) ([]*models.OperatorHardwareRequirements, error) {
 	logger := logutil.FromContext(ctx, mgr.log)
 	var requirements []*models.OperatorHardwareRequirements
+	if common.IsDay2Cluster(cluster) {
+		return requirements, nil
+	}
 	for operatorName, operator := range mgr.olmOperators {
 		reqs, err := operator.GetPreflightRequirements(ctx, cluster)
 		if err != nil {
@@ -92,6 +95,9 @@ func (mgr Manager) GetPreflightRequirementsBreakdownForCluster(ctx context.Conte
 func (mgr *Manager) GetRequirementsBreakdownForHostInCluster(ctx context.Context, cluster *common.Cluster, host *models.Host) ([]*models.OperatorHostRequirements, error) {
 	logger := logutil.FromContext(ctx, mgr.log)
 	var requirements []*models.OperatorHostRequirements
+	if common.IsDay2Cluster(cluster) {
+		return requirements, nil
+	}
 	for _, monitoredOperator := range cluster.MonitoredOperators {
 		operatorName := monitoredOperator.Name
 		operator := mgr.olmOperators[operatorName]
