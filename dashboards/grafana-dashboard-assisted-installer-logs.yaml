@@ -181,6 +181,151 @@ data:
           ],
           "title": "Production Logs - Warning",
           "type": "logs"
+        },
+        {
+          "collapsed": false,
+          "gridPos": {
+            "h": 1,
+            "w": 24,
+            "x": 0,
+            "y": 25
+          },
+          "id": 9,
+          "panels": [],
+          "title": "Stage logs",
+          "type": "row"
+        },
+        {
+          "datasource": {
+            "type": "cloudwatch",
+            "uid": "P1A97A9592CB7F392"
+          },
+          "description": "Last lines for Assisted Installer Service Stage logs",
+          "gridPos": {
+            "h": 12,
+            "w": 12,
+            "x": 0,
+            "y": 26
+          },
+          "id": 10,
+          "options": {
+            "dedupStrategy": "none",
+            "enableLogDetails": true,
+            "prettifyLogMessage": false,
+            "showCommonLabels": false,
+            "showLabels": false,
+            "showTime": false,
+            "sortOrder": "Descending",
+            "wrapLogMessage": false
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "cloudwatch",
+                "uid": "P1A97A9592CB7F392"
+              },
+              "expression": "fields message\n| filter kubernetes.container_name = \"assisted-service\" and kubernetes.namespace_name = \"assisted-installer-stage\"\n| sort @timestamp desc\n| limit 300",
+              "id": "",
+              "logGroupNames": [
+                "app-sre-stage-01.assisted-installer-stage"
+              ],
+              "namespace": "",
+              "queryMode": "Logs",
+              "refId": "A",
+              "region": "default",
+              "statsGroups": []
+            }
+          ],
+          "title": "Stage Logs - Tail",
+          "type": "logs"
+        },
+        {
+          "datasource": {
+            "type": "cloudwatch",
+            "uid": "P1A97A9592CB7F392"
+          },
+          "description": "Assisted Installer Service Stage error logs",
+          "gridPos": {
+            "h": 12,
+            "w": 12,
+            "x": 12,
+            "y": 26
+          },
+          "id": 11,
+          "options": {
+            "dedupStrategy": "none",
+            "enableLogDetails": true,
+            "prettifyLogMessage": false,
+            "showCommonLabels": false,
+            "showLabels": false,
+            "showTime": false,
+            "sortOrder": "Descending",
+            "wrapLogMessage": false
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "cloudwatch",
+                "uid": "P1A97A9592CB7F392"
+              },
+              "expression": "fields message\n| filter kubernetes.container_name = \"assisted-service\" and kubernetes.namespace_name = \"assisted-installer-stage\"\n| filter message LIKE 'level=error'\n| sort @timestamp desc\n| limit 300",
+              "id": "",
+              "logGroupNames": [
+                "app-sre-stage-01.assisted-installer-stage"
+              ],
+              "namespace": "",
+              "queryMode": "Logs",
+              "refId": "A",
+              "region": "default",
+              "statsGroups": []
+            }
+          ],
+          "title": "Stage Logs - Error",
+          "type": "logs"
+        },
+        {
+          "datasource": {
+            "type": "cloudwatch",
+            "uid": "P1A97A9592CB7F392"
+          },
+          "description": "Assisted Installer Service Stage warning logs",
+          "gridPos": {
+            "h": 12,
+            "w": 12,
+            "x": 0,
+            "y": 38
+          },
+          "id": 12,
+          "options": {
+            "dedupStrategy": "none",
+            "enableLogDetails": true,
+            "prettifyLogMessage": false,
+            "showCommonLabels": false,
+            "showLabels": false,
+            "showTime": false,
+            "sortOrder": "Descending",
+            "wrapLogMessage": false
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "cloudwatch",
+                "uid": "P1A97A9592CB7F392"
+              },
+              "expression": "fields message\n| filter kubernetes.container_name = \"assisted-service\" and kubernetes.namespace_name = \"assisted-installer-stage\"\n| filter message LIKE 'level=warning'\n| sort @timestamp desc\n| limit 300",
+              "id": "",
+              "logGroupNames": [
+                "app-sre-stage-01.assisted-installer-stage"
+              ],
+              "namespace": "",
+              "queryMode": "Logs",
+              "refId": "A",
+              "region": "default",
+              "statsGroups": []
+            }
+          ],
+          "title": "Stage Logs - Warning",
+          "type": "logs"
         }
       ],
       "refresh": false,
@@ -198,6 +343,6 @@ data:
       "timezone": "utc",
       "title": "Assisted Installer Logs",
       "uid": "F8vaevHVz",
-      "version": 4,
+      "version": 2,
       "weekStart": ""
     }
