@@ -3,6 +3,7 @@ package subsystem
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"io"
 	"net/http"
 	"os"
@@ -14,6 +15,7 @@ import (
 	"github.com/go-openapi/swag"
 	"github.com/google/uuid"
 	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/client/installer"
 	"github.com/openshift/assisted-service/internal/bminventory"
@@ -45,6 +47,65 @@ var internalRegisterInfraEnv = func(clusterID *strfmt.UUID, imageType models.Ima
 	Expect(err).NotTo(HaveOccurred())
 	return request.GetPayload()
 }
+
+func validateKernelArgs(infraEnv *models.InfraEnv, expectedKargs models.KernelArguments) {
+	if expectedKargs == nil {
+		Expect(infraEnv.KernelArguments).To(BeNil())
+	} else {
+		Expect(infraEnv.KernelArguments).ToNot(BeNil())
+		var kargs models.KernelArguments
+		Expect(json.Unmarshal([]byte(*infraEnv.KernelArguments), &kargs)).ToNot(HaveOccurred())
+		Expect(kargs).To(Equal(expectedKargs))
+	}
+}
+
+var _ = Describe("Register InfraEnv- kernel arguments", func() {
+	register := func(kernelArgs models.KernelArguments) (*installer.RegisterInfraEnvCreated, error) {
+		return userBMClient.Installer.RegisterInfraEnv(context.Background(), &installer.RegisterInfraEnvParams{
+			InfraenvCreateParams: &models.InfraEnvCreateParams{
+				Name:             swag.String("test-infra-env"),
+				OpenshiftVersion: openshiftVersion,
+				PullSecret:       swag.String(pullSecret),
+				SSHAuthorizedKey: swag.String(sshPublicKey),
+				ImageType:        models.ImageTypeMinimalIso,
+				KernelArguments:  kernelArgs,
+			},
+		})
+	}
+
+	It("happy flow", func() {
+		kargs := models.KernelArguments{
+			{
+				Operation: models.KernelArgumentOperationAppend,
+				Value:     "p1",
+			},
+			{
+				Operation: models.KernelArgumentOperationAppend,
+				Value:     `p2="this is an argument"`,
+			},
+		}
+		res, err := register(kargs)
+		Expect(err).ToNot(HaveOccurred())
+		validateKernelArgs(res.Payload, kargs)
+	})
+
+	DescribeTable("unsupported cases",
+		func(operation, value string) {
+			kargs := models.KernelArguments{
+				{
+					Operation: operation,
+					Value:     value,
+				},
+			}
+			_, err := register(kargs)
+			Expect(err).To(HaveOccurred())
+		},
+		Entry("unsupported replace operation", models.KernelArgumentOperationReplace, "p1"),
+		Entry("unsupported delete operation", models.KernelArgumentOperationDelete, "p1"),
+		Entry("illegal operation", "illegal", "p1"),
+		Entry("value is illegal", models.KernelArgumentOperationAppend, "illegal value with unquoted space"),
+	)
+})
 
 var _ = Describe("Infra_Env", func() {
 	ctx := context.Background()
@@ -82,6 +143,90 @@ var _ = Describe("Infra_Env", func() {
 
 		infraEnv = resp.Payload
 	}
+
+	Context("update kernel arguments", func() {
+		It("update kernel arguments scenarios", func() {
+			kargs1 := models.KernelArguments{
+				{
+					Operation: models.KernelArgumentOperationAppend,
+					Value:     "p1",
+				},
+				{
+					Operation: models.KernelArgumentOperationAppend,
+					Value:     "p2",
+				},
+			}
+
+			By("setting kernel arguments")
+			updateParams := &installer.UpdateInfraEnvParams{
+				InfraEnvID: infraEnvID,
+				InfraEnvUpdateParams: &models.InfraEnvUpdateParams{
+					KernelArguments: kargs1,
+				},
+			}
+			res, err := userBMClient.Installer.UpdateInfraEnv(ctx, updateParams)
+			Expect(err).NotTo(HaveOccurred())
+			validateKernelArgs(res.Payload, kargs1)
+
+			By("override kernel arguments with new ones")
+			kargs2 := models.KernelArguments{
+				{
+					Operation: models.KernelArgumentOperationAppend,
+					Value:     "p3",
+				},
+				{
+					Operation: models.KernelArgumentOperationAppend,
+					Value:     "p4",
+				},
+				{
+					Operation: models.KernelArgumentOperationAppend,
+					Value:     `p1="this is an argument"`,
+				},
+			}
+			updateParams.InfraEnvUpdateParams.KernelArguments = kargs2
+			res, err = userBMClient.Installer.UpdateInfraEnv(ctx, updateParams)
+			Expect(err).NotTo(HaveOccurred())
+			validateKernelArgs(res.Payload, kargs2)
+
+			By("update without setting value")
+			updateParams.InfraEnvUpdateParams.KernelArguments = nil
+
+			// Need to update with some field other than kernel arguments
+			updateParams.InfraEnvUpdateParams.PullSecret = pullSecret
+			res, err = userBMClient.Installer.UpdateInfraEnv(ctx, updateParams)
+			Expect(err).NotTo(HaveOccurred())
+			validateKernelArgs(res.Payload, kargs2)
+
+			By("clear existing kernel arguments")
+			// Return to default
+			updateParams.InfraEnvUpdateParams.PullSecret = ""
+			updateParams.InfraEnvUpdateParams.KernelArguments = make(models.KernelArguments, 0)
+			res, err = userBMClient.Installer.UpdateInfraEnv(ctx, updateParams)
+			Expect(err).NotTo(HaveOccurred())
+			validateKernelArgs(res.Payload, nil)
+		})
+		DescribeTable("unsupported cases",
+			func(operation, value string) {
+				updateParams := &installer.UpdateInfraEnvParams{
+					InfraEnvID: infraEnvID,
+					InfraEnvUpdateParams: &models.InfraEnvUpdateParams{
+						KernelArguments: models.KernelArguments{
+							{
+								Operation: operation,
+								Value:     value,
+							},
+						},
+					},
+				}
+				_, err := userBMClient.Installer.UpdateInfraEnv(ctx, updateParams)
+				Expect(err).To(HaveOccurred())
+			},
+			Entry("unsupported replace operation", models.KernelArgumentOperationReplace, "p1"),
+			Entry("unsupported delete operation", models.KernelArgumentOperationDelete, "p1"),
+			Entry("illegal operation", "illegal", "p1"),
+			Entry("value is illegal", models.KernelArgumentOperationAppend, "illegal value with unquoted space"),
+		)
+	})
 
 	It("update infra env with NoProxy wildcard", func() {
 		updateParams := &installer.UpdateInfraEnvParams{
