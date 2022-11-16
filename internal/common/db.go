@@ -163,6 +163,7 @@ func AutoMigrate(db *gorm.DB) error {
 		&models.MachineNetwork{},
 		&models.APIVip{},
 		&models.IngressVip{},
+		&models.EventSubscription{},
 	)
 }
 

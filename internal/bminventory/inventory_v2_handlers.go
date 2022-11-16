@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/url"
 	"path"
+	"runtime/debug"
 	"strings"
 	"time"
 
@@ -779,4 +780,101 @@ func (b *bareMetalInventory) GetInfraEnvPresignedFileURL(ctx context.Context, pa
 			ExpiresAt: *exp,
 		},
 	}
+}
+
+// EventsSubscribe will register a call back url on a given even
+// This url will be called in case the event occur
+func (b *bareMetalInventory) V2EventsSubscribe(ctx context.Context, params installer.V2EventsSubscribeParams) middleware.Responder {
+	log := logutil.FromContext(ctx, b.log)
+	log.Infof("EventsSubscribe: %+v", params)
+
+	txSuccess := false
+	tx := b.db.Begin()
+	defer func() {
+		if !txSuccess {
+			log.Error("EventsSubscribe failed")
+			tx.Rollback()
+		}
+		if r := recover(); r != nil {
+			log.Errorf("EventsSubscribe failed to recover: %s", r)
+			log.Error(string(debug.Stack()))
+			tx.Rollback()
+		}
+	}()
+
+	if params.NewEventSubscriptionParams.ClusterID == nil {
+		return common.NewApiError(http.StatusBadRequest, fmt.Errorf("Event subscription require cluster id"))
+	}
+	// TODO: verify the event name
+	// TODO: verify the url is valid
+
+	cluster, err := b.GetClusterInternal(ctx, installer.V2GetClusterParams{ClusterID: *params.NewEventSubscriptionParams.ClusterID})
+	if err != nil {
+		log.WithError(err).Errorf("failed to get cluster: %s", *params.NewEventSubscriptionParams.ClusterID)
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return common.NewApiError(http.StatusNotFound, err)
+		}
+		return common.NewApiError(http.StatusInternalServerError, err)
+	}
+	b.log.Infof("Adding event subsctiption for cluster: %s", cluster.ID)
+	id := strfmt.UUID(uuid.New().String())
+	e := &models.EventSubscription{
+		ID:        &id,
+		ClusterID: params.NewEventSubscriptionParams.ClusterID,
+		EventName: params.NewEventSubscriptionParams.EventName,
+		URL:       params.NewEventSubscriptionParams.URL,
+		Status:    swag.String("Pending"),
+	}
+
+	if err = b.db.Create(e).Error; err != nil {
+		log.Error(err)
+		return installer.NewV2EventsSubscribeInternalServerError().
+			WithPayload(common.GenerateError(http.StatusInternalServerError, err))
+
+	}
+
+	if err = tx.Commit().Error; err != nil {
+		log.Error(err)
+		return installer.NewV2EventsSubscribeInternalServerError().
+			WithPayload(common.GenerateError(http.StatusInternalServerError, err))
+	}
+	txSuccess = true
+
+	return installer.NewV2EventsSubscribeCreated().WithPayload(e)
+}
+
+func (b *bareMetalInventory) V2EventsSubscriptionGet(ctx context.Context, params installer.V2EventsSubscriptionGetParams) middleware.Responder {
+	log := logutil.FromContext(ctx, b.log)
+	var eventSubscription models.EventSubscription
+	log.Debugf("Getting event subscription %s", params.SubscriptionID)
+	err := b.db.First(&eventSubscription, "id = ?", params.SubscriptionID).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return common.NewApiError(http.StatusNotFound, err)
+		}
+		log.WithError(err).Errorf("Failed to find event subscription %s", params.SubscriptionID)
+		return common.NewApiError(http.StatusInternalServerError, err)
+	}
+	return installer.NewV2EventsSubscriptionGetOK().WithPayload(&eventSubscription)
+}
+
+func (b *bareMetalInventory) V2EventsSubscriptionList(ctx context.Context, params installer.V2EventsSubscriptionListParams) middleware.Responder {
+	log := logutil.FromContext(ctx, b.log)
+	var eventSubscriptions models.EventSubscriptionList
+	log.Debugf("Listing event subscription %s", params.ClusterID)
+	err := b.db.Find(&eventSubscriptions, "cluster_id = ?", params.ClusterID).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return common.NewApiError(http.StatusNotFound, err)
+		}
+		log.WithError(err).Errorf("Failed to find event subscription for cluster id %s", params.ClusterID)
+		return common.NewApiError(http.StatusInternalServerError, err)
+	}
+	return installer.NewV2EventsSubscriptionListOK().WithPayload(eventSubscriptions)
+}
+
+func (b *bareMetalInventory) V2EventsSubscriptionDelete(ctx context.Context, params installer.V2EventsSubscriptionDeleteParams) middleware.Responder {
+	log := logutil.FromContext(ctx, b.log)
+	log.Debugf("V2EventsSubscriptionDelete doing noting for no", params)
+	return installer.NewV2EventsSubscriptionDeleteInternalServerError()
 }

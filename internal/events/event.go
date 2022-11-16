@@ -1,9 +1,11 @@
 package events
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"strings"
 	"time"
 
@@ -14,6 +16,7 @@ import (
 	"github.com/openshift/assisted-service/pkg/auth"
 	logutil "github.com/openshift/assisted-service/pkg/log"
 	"github.com/openshift/assisted-service/pkg/requestid"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
 )
@@ -75,6 +78,7 @@ func (e *Events) saveEvent(ctx context.Context, clusterID strfmt.UUID, hostID *s
 	if dberr = tx.Create(&event).Error; err != nil {
 		log.WithError(err).Error("Error adding event")
 	}
+	e.handleEventSubscription(&clusterID, event)
 	return dberr
 }
 
@@ -126,6 +130,7 @@ func (e *Events) v2SaveEvent(ctx context.Context, clusterID *strfmt.UUID, hostID
 		}
 	}()
 	dberr = tx.Create(&event).Error
+	e.handleEventSubscription(clusterID, event)
 }
 
 func (e *Events) SendClusterEvent(ctx context.Context, event eventsapi.ClusterEvent) {
@@ -267,6 +272,51 @@ func (e Events) V2GetEvents(ctx context.Context, clusterID *strfmt.UUID, hostID 
 	}
 
 	return e.queryEvents(ctx, selectedCategories, clusterID, hostID, infraEnvID)
+}
+
+func (e Events) handleEventSubscription(clusterID *strfmt.UUID, event common.Event) {
+	var eventSubscriptionList models.EventSubscriptionList
+	if clusterID == nil {
+		return
+	}
+	e.log.Infof("Searching event subscriptions with cluster_id = %s, event_name: %s", clusterID.String(), event.Name)
+	err := e.db.Find(&eventSubscriptionList, "cluster_id = ? and event_name = ?", clusterID.String(), event.Name).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return
+		}
+		e.log.WithError(err).Errorf("Failed to get event subscription for cluster_id: %s, event_name: %s", clusterID, event.Name)
+	}
+	for i, _ := range eventSubscriptionList {
+		e.callEventSubscriptionURL(*eventSubscriptionList[i], event)
+	}
+
+}
+
+func (e Events) callEventSubscriptionURL(eventSubscription models.EventSubscription, event common.Event) {
+	e.log.Infof("Calling event callback for cluster_id: %s, event_name: %s, url: %s",
+		*eventSubscription.ClusterID, *eventSubscription.EventName, *eventSubscription.URL)
+
+	status := "Failed"
+	defer func() {
+		e.db.Model(&models.EventSubscription{}).Where("id = ?", eventSubscription.ID).Update("status", &status)
+	}()
+
+	json_data, err := json.Marshal(event)
+	if err != nil {
+		e.log.WithError(err).Error("Failed to marshal event")
+	}
+
+	resp, err := http.Post(*eventSubscription.URL, "application/json",
+		bytes.NewBuffer(json_data))
+
+	if err != nil {
+		e.log.WithError(err).Errorf("event subscription callback failed")
+		status = err.Error()
+	} else {
+		status = resp.Status
+		e.log.Infof("event subscription callback status: %s", status)
+	}
 }
 
 func toProps(attrs ...interface{}) (result string, err error) {

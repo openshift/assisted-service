@@ -358,6 +358,62 @@ func (mr *MockInstallerAPIMockRecorder) V2DownloadInfraEnvFiles(arg0, arg1 inter
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "V2DownloadInfraEnvFiles", reflect.TypeOf((*MockInstallerAPI)(nil).V2DownloadInfraEnvFiles), arg0, arg1)
 }
 
+// V2EventsSubscribe mocks base method.
+func (m *MockInstallerAPI) V2EventsSubscribe(arg0 context.Context, arg1 installer.V2EventsSubscribeParams) middleware.Responder {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "V2EventsSubscribe", arg0, arg1)
+	ret0, _ := ret[0].(middleware.Responder)
+	return ret0
+}
+
+// V2EventsSubscribe indicates an expected call of V2EventsSubscribe.
+func (mr *MockInstallerAPIMockRecorder) V2EventsSubscribe(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "V2EventsSubscribe", reflect.TypeOf((*MockInstallerAPI)(nil).V2EventsSubscribe), arg0, arg1)
+}
+
+// V2EventsSubscriptionDelete mocks base method.
+func (m *MockInstallerAPI) V2EventsSubscriptionDelete(arg0 context.Context, arg1 installer.V2EventsSubscriptionDeleteParams) middleware.Responder {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "V2EventsSubscriptionDelete", arg0, arg1)
+	ret0, _ := ret[0].(middleware.Responder)
+	return ret0
+}
+
+// V2EventsSubscriptionDelete indicates an expected call of V2EventsSubscriptionDelete.
+func (mr *MockInstallerAPIMockRecorder) V2EventsSubscriptionDelete(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "V2EventsSubscriptionDelete", reflect.TypeOf((*MockInstallerAPI)(nil).V2EventsSubscriptionDelete), arg0, arg1)
+}
+
+// V2EventsSubscriptionGet mocks base method.
+func (m *MockInstallerAPI) V2EventsSubscriptionGet(arg0 context.Context, arg1 installer.V2EventsSubscriptionGetParams) middleware.Responder {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "V2EventsSubscriptionGet", arg0, arg1)
+	ret0, _ := ret[0].(middleware.Responder)
+	return ret0
+}
+
+// V2EventsSubscriptionGet indicates an expected call of V2EventsSubscriptionGet.
+func (mr *MockInstallerAPIMockRecorder) V2EventsSubscriptionGet(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "V2EventsSubscriptionGet", reflect.TypeOf((*MockInstallerAPI)(nil).V2EventsSubscriptionGet), arg0, arg1)
+}
+
+// V2EventsSubscriptionList mocks base method.
+func (m *MockInstallerAPI) V2EventsSubscriptionList(arg0 context.Context, arg1 installer.V2EventsSubscriptionListParams) middleware.Responder {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "V2EventsSubscriptionList", arg0, arg1)
+	ret0, _ := ret[0].(middleware.Responder)
+	return ret0
+}
+
+// V2EventsSubscriptionList indicates an expected call of V2EventsSubscriptionList.
+func (mr *MockInstallerAPIMockRecorder) V2EventsSubscriptionList(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "V2EventsSubscriptionList", reflect.TypeOf((*MockInstallerAPI)(nil).V2EventsSubscriptionList), arg0, arg1)
+}
+
 // V2GetCluster mocks base method.
 func (m *MockInstallerAPI) V2GetCluster(arg0 context.Context, arg1 installer.V2GetClusterParams) middleware.Responder {
 	m.ctrl.T.Helper()
