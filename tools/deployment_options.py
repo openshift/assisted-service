@@ -5,12 +5,14 @@ import requests
 import yaml
 
 
-LOCAL_TARGET = 'local'
+# Deployment options
+MINIKUBE_TARGET = 'minikube'
 INGRESS_REMOTE_TARGET = 'oc-ingress'
-IMAGE_FQDN_TEMPLATE = "quay.io/{}/{}:{}"
 OCP_TARGET = 'ocp'
 OPENSHIFT_TARGET = 'oc'
 KIND_TARGET = 'kind'
+
+IMAGE_FQDN_TEMPLATE = "quay.io/{}/{}:{}"
 
 
 def load_deployment_options(parser=None):
@@ -26,8 +28,8 @@ def load_deployment_options(parser=None):
     parser.add_argument(
         '--target',
         help='Target kubernetes distribution',
-        choices=[LOCAL_TARGET, OPENSHIFT_TARGET, INGRESS_REMOTE_TARGET, OCP_TARGET, KIND_TARGET],
-        default=LOCAL_TARGET
+        choices=[MINIKUBE_TARGET, OPENSHIFT_TARGET, INGRESS_REMOTE_TARGET, OCP_TARGET, KIND_TARGET],
+        default=MINIKUBE_TARGET
     )
     parser.add_argument(
         '--domain',
