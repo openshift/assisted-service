@@ -20,7 +20,9 @@ type TestNetworking struct {
 	ServiceNetworks []*models.ServiceNetwork
 	MachineNetworks []*models.MachineNetwork
 	APIVip          string
+	APIVips         []*models.APIVip
 	IngressVip      string
+	IngressVips     []*models.IngressVip
 }
 
 type TestConfiguration struct {
@@ -203,7 +205,9 @@ var TestIPv4Networking = TestNetworking{
 	ServiceNetworks: []*models.ServiceNetwork{{Cidr: "1.2.5.0/24"}},
 	MachineNetworks: []*models.MachineNetwork{{Cidr: "1.2.3.0/24"}},
 	APIVip:          "1.2.3.5",
+	APIVips:         []*models.APIVip{{IP: "1.2.3.5"}},
 	IngressVip:      "1.2.3.6",
+	IngressVips:     []*models.IngressVip{{IP: "1.2.3.6"}},
 }
 
 // TestIPv6Networking The values of TestIPv6Networking and TestEquivalentIPv6Networking are not equal, but are equivalent
@@ -214,7 +218,9 @@ var TestIPv6Networking = TestNetworking{
 	ServiceNetworks: []*models.ServiceNetwork{{Cidr: "1002:db8::/119"}},
 	MachineNetworks: []*models.MachineNetwork{{Cidr: "1001:db8::/120"}},
 	APIVip:          "1001:db8::64",
+	APIVips:         []*models.APIVip{{IP: "1001:db8::64"}},
 	IngressVip:      "1001:db8::65",
+	IngressVips:     []*models.IngressVip{{IP: "1001:db8::65"}},
 }
 
 var TestEquivalentIPv6Networking = TestNetworking{
@@ -222,7 +228,9 @@ var TestEquivalentIPv6Networking = TestNetworking{
 	ServiceNetworks: []*models.ServiceNetwork{{Cidr: "1002:0db8:0::/119"}},
 	MachineNetworks: []*models.MachineNetwork{{Cidr: "1001:0db8:0::/120"}},
 	APIVip:          "1001:0db8:0::64",
+	APIVips:         []*models.APIVip{{IP: "1001:db8::64"}},
 	IngressVip:      "1001:0db8:0::65",
+	IngressVips:     []*models.IngressVip{{IP: "1001:db8::65"}},
 }
 
 var TestDualStackNetworking = TestNetworking{
@@ -230,7 +238,9 @@ var TestDualStackNetworking = TestNetworking{
 	ServiceNetworks: append(TestIPv4Networking.ServiceNetworks, TestIPv6Networking.ServiceNetworks...),
 	MachineNetworks: append(TestIPv4Networking.MachineNetworks, TestIPv6Networking.MachineNetworks...),
 	APIVip:          TestIPv4Networking.APIVip,
+	APIVips:         TestIPv4Networking.APIVips,
 	IngressVip:      TestIPv4Networking.IngressVip,
+	IngressVips:     TestIPv4Networking.IngressVips,
 }
 
 func IncrementCidrIP(subnet string) string {

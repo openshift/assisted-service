@@ -3,14 +3,17 @@ package cluster
 import (
 	"fmt"
 	"reflect"
+	"strings"
 	"time"
 
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
+	"github.com/hashicorp/go-multierror"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/host"
 	"github.com/openshift/assisted-service/internal/network"
 	"github.com/openshift/assisted-service/models"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
 	"gorm.io/gorm"
@@ -26,8 +29,8 @@ const (
 )
 
 const (
-	ApiVipName     = "api vip"
-	IngressVipName = "ingress vip"
+	ApiVipsName     = "api vips"
+	IngressVipsName = "ingress vips"
 )
 
 func (v ValidationStatus) String() string {
@@ -113,34 +116,44 @@ func (v *clusterValidator) isServiceCidrDefined(c *clusterPreprocessContext) (Va
 }
 
 func (v *clusterValidator) isMachineCidrEqualsToCalculatedCidr(c *clusterPreprocessContext) (ValidationStatus, string) {
+	var multiErr error
+
 	if swag.BoolValue(c.cluster.UserManagedNetworking) {
 		return ValidationSuccess, "The Cluster Machine CIDR is not required: User Managed Networking"
 	}
-	if c.cluster.APIVip == "" && c.cluster.IngressVip == "" {
-		return ValidationPending, "The Machine Network CIDR, API virtual IP, or Ingress virtual IP is undefined."
+	if len(c.cluster.APIVips) == 0 && len(c.cluster.IngressVips) == 0 {
+		return ValidationPending, "The Machine Network CIDR, API virtual IPs, or Ingress virtual IPs are undefined."
 	}
 	if !c.hasHostsWithInventories {
 		return ValidationPending, "Hosts have not been discovered yet"
 	}
-	cidr, err := network.CalculateMachineNetworkCIDR(c.cluster.APIVip, c.cluster.IngressVip, c.cluster.Hosts, true)
-	c.calculateCidr = cidr
-	machineCidrAvailable := network.IsMachineCidrAvailable(c.cluster)
-	machineCidr := ""
-	if err == nil && machineCidrAvailable {
-		machineCidr = network.GetMachineCidrById(c.cluster, 0)
-		if machineCidr == cidr {
-			return ValidationSuccess, "The Cluster Machine CIDR is equivalent to the calculated CIDR."
+
+	for i := range c.cluster.APIVips {
+		cidr, err := network.CalculateMachineNetworkCIDR(string(c.cluster.APIVips[i].IP), string(c.cluster.IngressVips[i].IP), c.cluster.Hosts, true)
+		if err != nil {
+			multiErr = multierror.Append(multiErr, err)
+			continue
+		}
+		c.calculateCidr = cidr
+		machineCidrAvailable := network.IsMachineCidrAvailable(c.cluster)
+		if machineCidrAvailable {
+			if cidr != network.GetMachineCidrById(c.cluster, i) {
+				multiErr = multierror.Append(multiErr, errors.Errorf("The Cluster Machine CIDR %s is different than the calculated CIDR %s.", network.GetMachineCidrById(c.cluster, i), c.calculateCidr))
+			}
 		}
 	}
-	return ValidationFailure, fmt.Sprintf("The Cluster Machine CIDR %s is different than the calculated CIDR %s.", machineCidr, c.calculateCidr)
+	if multiErr != nil && !strings.Contains(multiErr.Error(), "0 errors occurred") {
+		return ValidationFailure, multiErr.Error()
+	}
+	return ValidationSuccess, "The Cluster Machine CIDR is equivalent to the calculated CIDR."
 }
 
-func (v *clusterValidator) isApiVipDefined(c *clusterPreprocessContext) (ValidationStatus, string) {
+func (v *clusterValidator) areApiVipsDefined(c *clusterPreprocessContext) (ValidationStatus, string) {
 	if swag.BoolValue(c.cluster.UserManagedNetworking) {
-		return ValidationSuccess, "The API virtual IP is not required: User Managed Networking"
+		return ValidationSuccess, "API virtual IPs are not required: User Managed Networking"
 	}
-	if c.cluster.APIVip != "" {
-		return ValidationSuccess, "The API virtual IP is defined."
+	if len(c.cluster.APIVips) > 0 {
+		return ValidationSuccess, "API virtual IPs are defined."
 	}
 	machineCidrDefined, _ := v.isMachineCidrDefined(c)
 	if swag.BoolValue(c.cluster.VipDhcpAllocation) {
@@ -148,32 +161,44 @@ func (v *clusterValidator) isApiVipDefined(c *clusterPreprocessContext) (Validat
 			return ValidationPending, "The Machine Network CIDR is undefined"
 		}
 		if isDhcpLeaseAllocationTimedOut(c) {
-			return ValidationFailure, "The API virtual IP is undefined; IP allocation from the DHCP server timed out."
+			return ValidationFailure, "API virtual IPs are undefined; IP allocation from the DHCP server timed out."
 		}
-		return ValidationFailure, "The API virtual IP is undefined; after the Machine Network CIDR has been defined, the API virtual IP is received from a DHCP lease allocation task which may take up to 2 minutes."
-
+		return ValidationFailure, "API virtual IPs are undefined; after the Machine Network CIDR has been defined, API virtual IPs are received from a DHCP lease allocation task which may take up to 2 minutes."
 	}
-	return ValidationFailure, "The API virtual IP is undefined and must be provided."
+	return ValidationFailure, "API virtual IPs are undefined and must be provided."
 }
 
-func (v *clusterValidator) isApiVipValid(c *clusterPreprocessContext) (ValidationStatus, string) {
+func (v *clusterValidator) areApiVipsValid(c *clusterPreprocessContext) (ValidationStatus, string) {
+	var (
+		err      error
+		multiErr error
+	)
+
 	if swag.BoolValue(c.cluster.UserManagedNetworking) {
-		return ValidationSuccess, "The API virtual IP is not required: User Managed Networking"
+		return ValidationSuccess, "API virtual IPs are not required: User Managed Networking"
 	}
-	if c.cluster.APIVip == "" {
-		return ValidationPending, "The API virtual IP is undefined."
+
+	if len(c.cluster.APIVips) == 0 {
+		return ValidationPending, "API virtual IPs are undefined."
 	}
+
 	machineCidrDefined, _ := v.isMachineCidrDefined(c)
 	if !c.hasHostsWithInventories || !validationStatusToBool(machineCidrDefined) {
 		return ValidationPending, "Hosts have not been discovered yet"
 	}
-	err := network.VerifyVip(c.cluster.Hosts, network.GetMachineCidrById(c.cluster, 0), c.cluster.APIVip, ApiVipName,
-		true, v.log)
-	if err == nil {
-		return ValidationSuccess, fmt.Sprintf("%s %s belongs to the Machine CIDR and is not in use.", ApiVipName, c.cluster.APIVip)
+
+	for i := range c.cluster.APIVips {
+		err = network.VerifyVip(c.cluster.Hosts, network.GetMachineCidrById(c.cluster, i), string(c.cluster.APIVips[i].IP), ApiVipsName,
+			true, v.log)
+		if err != nil {
+			multiErr = multierror.Append(multiErr, err)
+		}
 	}
-	// Returning error as a string as it describes in a very good way what actually was failing
-	return ValidationFailure, err.Error()
+
+	if multiErr != nil && !strings.Contains(multiErr.Error(), "0 errors occurred") {
+		return ValidationFailure, multiErr.Error()
+	}
+	return ValidationSuccess, fmt.Sprintf("%s %s belongs to the Machine CIDR and is not in use.", ApiVipsName, strings.Join(network.GetApiVips(c.cluster), `, `))
 }
 
 func (v *clusterValidator) isNetworkTypeValid(c *clusterPreprocessContext) (ValidationStatus, string) {
@@ -213,48 +238,60 @@ func isVipDhcpAllocationAndOVN(cluster *common.Cluster) bool {
 	return isVipDhcpAllocation && isNetworkTypeOVN
 }
 
-func (v *clusterValidator) isIngressVipDefined(c *clusterPreprocessContext) (ValidationStatus, string) {
+func (v *clusterValidator) areIngressVipsDefined(c *clusterPreprocessContext) (ValidationStatus, string) {
 	if swag.BoolValue(c.cluster.UserManagedNetworking) {
-		return ValidationSuccess, "The Ingress virtual IP is not required: User Managed Networking"
+		return ValidationSuccess, "Ingress virtual IPs are not required: User Managed Networking"
 	}
+
 	machineCidrDefined, _ := v.isMachineCidrDefined(c)
 	if swag.BoolValue(c.cluster.VipDhcpAllocation) && !validationStatusToBool(machineCidrDefined) {
 		return ValidationPending, "The Machine Network CIDR is undefined"
 	}
 
-	if c.cluster.IngressVip != "" {
-		return ValidationSuccess, "The Ingress virtual IP is defined."
+	if len(c.cluster.IngressVips) > 0 {
+		return ValidationSuccess, "Ingress virtual IPs are defined."
 	}
 
 	if swag.BoolValue(c.cluster.VipDhcpAllocation) {
 		if isDhcpLeaseAllocationTimedOut(c) {
-			return ValidationFailure, "The Ingress virtual IP is undefined; IP allocation from the DHCP server timed out."
+			return ValidationFailure, "Ingress virtual IPs are undefined; IP allocation from the DHCP server timed out."
 		}
-		return ValidationFailure, "The Ingress virtual IP is undefined; after the Machine Network CIDR has been defined, the Ingress virtual IP is received from a DHCP lease allocation task which may take up to 2 minutes."
+		return ValidationFailure, "Ingress virtual IPs are undefined; after the Machine Network CIDR has been defined, the Ingress virtual IPs are received from a DHCP lease allocation task which may take up to 2 minutes."
 	}
-	return ValidationFailure, "The Ingress virtual IP is undefined and must be provided."
-
+	return ValidationFailure, "Ingress virtual IPs are undefined and must be provided."
 }
 
-func (v *clusterValidator) isIngressVipValid(c *clusterPreprocessContext) (ValidationStatus, string) {
+func (v *clusterValidator) areIngressVipsValid(c *clusterPreprocessContext) (ValidationStatus, string) {
+	var (
+		err      error
+		multiErr error
+	)
+
 	if swag.BoolValue(c.cluster.UserManagedNetworking) {
-		return ValidationSuccess, "The Ingress virtual IP is not required: User Managed Networking"
+		return ValidationSuccess, "Ingress virtual IPs are not required: User Managed Networking"
 	}
-	if c.cluster.IngressVip == "" {
-		return ValidationPending, "The Ingress virtual IP is undefined."
+
+	if len(c.cluster.IngressVips) == 0 {
+		return ValidationPending, "Ingress virtual IPs are undefined."
 	}
+
 	machineCidrDefined, _ := v.isMachineCidrDefined(c)
 	if !c.hasHostsWithInventories || !validationStatusToBool(machineCidrDefined) {
 		return ValidationPending, "Hosts have not been discovered yet"
 	}
-	err := network.VerifyVip(c.cluster.Hosts, network.GetMachineCidrById(c.cluster, 0), c.cluster.IngressVip, IngressVipName,
-		true, v.log)
-	if err == nil {
-		return ValidationSuccess, fmt.Sprintf("%s %s belongs to the Machine CIDR and is not in use.", IngressVipName, c.cluster.IngressVip)
+
+	for i := range c.cluster.IngressVips {
+		err = network.VerifyVip(c.cluster.Hosts, network.GetMachineCidrById(c.cluster, i), string(c.cluster.IngressVips[i].IP), IngressVipsName,
+			true, v.log)
+		if err != nil {
+			multiErr = multierror.Append(multiErr, err)
+		}
 	}
 
-	// Returning error as a string as it describes in a very good way what actually was failing
-	return ValidationFailure, err.Error()
+	if multiErr != nil && !strings.Contains(multiErr.Error(), "0 errors occurred") {
+		return ValidationFailure, multiErr.Error()
+	}
+	return ValidationSuccess, fmt.Sprintf("%s %s belongs to the Machine CIDR and is not in use.", IngressVipsName, strings.Join(network.GetIngressVips(c.cluster), `, `))
 }
 
 // conditions to have a valid number of masters

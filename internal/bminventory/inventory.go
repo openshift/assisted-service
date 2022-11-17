@@ -2206,41 +2206,7 @@ func (b *bareMetalInventory) updateVips(db *gorm.DB, params installer.V2UpdateCl
 	}
 
 	if apiVipUpdated || ingressVipUpdated {
-		return b.updateVipsTables(db, cluster, apiVipUpdated, ingressVipUpdated)
-	}
-
-	return nil
-}
-
-func (b *bareMetalInventory) updateVipsTables(db *gorm.DB, cluster *common.Cluster, apiVipUpdated bool, ingressVipUpdated bool) error {
-	var err error
-
-	if apiVipUpdated {
-		if err = db.Where("cluster_id = ?", *cluster.ID).Delete(&models.APIVip{}).Error; err != nil {
-			err = errors.Wrapf(err, "failed to delete api vips of cluster %s", *cluster.ID)
-			return common.NewApiError(http.StatusInternalServerError, err)
-		}
-		for _, apiVip := range cluster.APIVips {
-			apiVip.ClusterID = *cluster.ID
-			if err = db.Save(apiVip).Error; err != nil {
-				err = errors.Wrapf(err, "failed to update cluster apiVip %v of cluster %s", *apiVip, *cluster.ID)
-				return common.NewApiError(http.StatusInternalServerError, err)
-			}
-		}
-	}
-
-	if ingressVipUpdated {
-		if err = db.Where("cluster_id = ?", *cluster.ID).Delete(&models.IngressVip{}).Error; err != nil {
-			err = errors.Wrapf(err, "failed to delete ingress vips of cluster %s", *cluster.ID)
-			return common.NewApiError(http.StatusInternalServerError, err)
-		}
-		for _, ingressVip := range cluster.IngressVips {
-			ingressVip.ClusterID = *cluster.ID
-			if err = db.Save(ingressVip).Error; err != nil {
-				err = errors.Wrapf(err, "failed to update cluster ingressVip %v of cluster %s", *ingressVip, *cluster.ID)
-				return common.NewApiError(http.StatusInternalServerError, err)
-			}
-		}
+		return network.UpdateVipsTables(db, cluster, apiVipUpdated, ingressVipUpdated)
 	}
 
 	return nil
@@ -2437,13 +2403,19 @@ func (b *bareMetalInventory) updateNetworkParams(params installer.V2UpdateCluste
 		}
 	} else {
 		if params.ClusterUpdateParams.VipDhcpAllocation != nil && swag.BoolValue(params.ClusterUpdateParams.VipDhcpAllocation) != vipDhcpAllocation {
-			// VIP DHCP mode has changed
+			// We are removing all the previously configured VIPs because the VIP DHCP mode has changed. Doing so will prevent situations where:
+			// 1. Non-DHCP mode use VIPs previously obtained via DHCP transparently.
+			// 2. DHCP mode to be fed with manually provided VIPs.
 			vipDhcpAllocation = swag.BoolValue(params.ClusterUpdateParams.VipDhcpAllocation)
 			updates["vip_dhcp_allocation"] = vipDhcpAllocation
 			updates["machine_network_cidr_updated_at"] = time.Now()
 			updates["api_vip"] = ""
 			updates["ingress_vip"] = ""
 			cluster.MachineNetworks = []*models.MachineNetwork{}
+			emptyCluster := common.Cluster{Cluster: models.Cluster{ID: cluster.ID}}
+			if err = network.UpdateVipsTables(db, &emptyCluster, true, true); err != nil {
+				return err
+			}
 		}
 
 		if vipDhcpAllocation {

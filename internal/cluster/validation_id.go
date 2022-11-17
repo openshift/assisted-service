@@ -18,11 +18,11 @@ const (
 	IsMachineCidrDefined                = ValidationID(models.ClusterValidationIDMachineCidrDefined)
 	IsMachineCidrEqualsToCalculatedCidr = ValidationID(models.ClusterValidationIDMachineCidrEqualsToCalculatedCidr)
 	NetworksSameAddressFamilies         = ValidationID(models.ClusterValidationIDNetworksSameAddressFamilies)
-	IsApiVipDefined                     = ValidationID(models.ClusterValidationIDAPIVipDefined)
-	IsApiVipValid                       = ValidationID(models.ClusterValidationIDAPIVipValid)
+	AreApiVipsDefined                   = ValidationID(models.ClusterValidationIDAPIVipsDefined)
+	AreApiVipsValid                     = ValidationID(models.ClusterValidationIDAPIVipsValid)
 	isNetworkTypeValid                  = ValidationID(models.ClusterValidationIDNetworkTypeValid)
-	IsIngressVipDefined                 = ValidationID(models.ClusterValidationIDIngressVipDefined)
-	IsIngressVipValid                   = ValidationID(models.ClusterValidationIDIngressVipValid)
+	AreIngressVipsDefined               = ValidationID(models.ClusterValidationIDIngressVipsDefined)
+	AreIngressVipsValid                 = ValidationID(models.ClusterValidationIDIngressVipsValid)
 	AllHostsAreReadyToInstall           = ValidationID(models.ClusterValidationIDAllHostsAreReadyToInstall)
 	SufficientMastersCount              = ValidationID(models.ClusterValidationIDSufficientMastersCount)
 	IsDNSDomainDefined                  = ValidationID(models.ClusterValidationIDDNSDomainDefined)
@@ -36,8 +36,8 @@ const (
 
 func (v ValidationID) Category() (string, error) {
 	switch v {
-	case IsMachineCidrDefined, IsMachineCidrEqualsToCalculatedCidr, IsApiVipDefined, IsApiVipValid, IsIngressVipDefined,
-		IsIngressVipValid, isClusterCidrDefined, isServiceCidrDefined, noCidrOverlapping, networkPrefixValid,
+	case IsMachineCidrDefined, IsMachineCidrEqualsToCalculatedCidr, AreApiVipsDefined, AreApiVipsValid, AreIngressVipsDefined,
+		AreIngressVipsValid, isClusterCidrDefined, isServiceCidrDefined, noCidrOverlapping, networkPrefixValid,
 		IsDNSDomainDefined, IsNtpServerConfigured, isNetworkTypeValid, NetworksSameAddressFamilies:
 		return "network", nil
 	case AllHostsAreReadyToInstall, SufficientMastersCount:
