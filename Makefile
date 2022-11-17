@@ -15,7 +15,7 @@ ifeq ($(CONTAINER_COMMAND), docker)
 	CONTAINER_COMMAND = $(shell docker -v 2>/dev/null | cut -f1 -d' ' | tr '[:upper:]' '[:lower:]')
 endif
 
-TARGET := $(or ${TARGET},local)
+TARGET := $(or ${TARGET},minikube)
 KUBECTL=kubectl -n $(NAMESPACE)
 
 define get_service_host_port
@@ -123,7 +123,7 @@ BUNDLE_METADATA_OPTS ?= --channels=$(BUNDLE_CHANNELS) --default-channel=alpha
 # We decided to have an option to change replicas count only while running locally
 # check if SERVICE_REPLICAS_COUNT was set and if yes change default value to required one
 # Default for 1 replica
-REPLICAS_COUNT = $(shell if ! [ "${TARGET}" = "local" ] && ! [ "${TARGET}" = "oc" ];then echo 3; else echo $(or ${SERVICE_REPLICAS_COUNT},1);fi)
+REPLICAS_COUNT = $(shell if [[ "${TARGET}" != @(minikube|kind|oc) ]]; then echo 3; else echo $(or ${SERVICE_REPLICAS_COUNT},1);fi)
 
 ifdef INSTALLATION_TIMEOUT
 	INSTALLATION_TIMEOUT_FLAG = --installation-timeout $(INSTALLATION_TIMEOUT)
