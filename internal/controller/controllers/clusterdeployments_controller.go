@@ -1328,7 +1328,7 @@ func (r *ClusterDeploymentsReconciler) addReleaseImage(
 
 	// before creating the cluster the source of truth is the
 	// release image url from the ClusterImageSetRef
-	releaseImage, err := r.VersionsHandler.AddReleaseImage(releaseImageUrl, pullSecret, "", nil)
+	releaseImage, err := r.VersionsHandler.AddReleaseImage(releaseImageUrl, pullSecret)
 	if err != nil {
 		log.Error(err)
 		errMsg := "failed to add release image '%s'. Please ensure the releaseImage field in ClusterImageSet '%s' is valid (error: %s)."

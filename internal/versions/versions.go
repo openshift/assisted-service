@@ -24,7 +24,7 @@ type MustGatherVersions map[string]MustGatherVersion
 type Handler interface {
 	GetReleaseImage(ctx context.Context, openshiftVersion, cpuArchitecture, pullSecret string) (*models.ReleaseImage, error)
 	GetDefaultReleaseImage(cpuArchitecture string) (*models.ReleaseImage, error)
-	AddReleaseImage(releaseImageUrl, pullSecret, ocpReleaseVersion string, cpuArchitectures []string) (*models.ReleaseImage, error)
+	AddReleaseImage(releaseImageUrl, pullSecret string) (*models.ReleaseImage, error)
 	GetMustGatherImages(openshiftVersion, cpuArchitecture, pullSecret string) (MustGatherVersion, error)
 	ValidateReleaseImageForRHCOS(rhcosVersion, cpuArch string) error
 }
@@ -123,7 +123,7 @@ func (h *handler) GetReleaseImage(ctx context.Context, openshiftVersion, cpuArch
 			}
 		}
 		if !existsInCache {
-			_, err := h.AddReleaseImage(clusterImageSet.Spec.ReleaseImage, pullSecret, "", nil)
+			_, err := h.AddReleaseImage(clusterImageSet.Spec.ReleaseImage, pullSecret)
 			if err != nil {
 				h.log.WithError(err).Warnf("Failed to add release image %s", clusterImageSet.Spec.ReleaseImage)
 			}
@@ -207,37 +207,30 @@ func (h *handler) ValidateReleaseImageForRHCOS(rhcosVersion, cpuArchitecture str
 	return errors.Errorf("The requested RHCOS version (%s, arch: %s) does not have a matching OpenShift release image", rhcosVersion, cpuArchitecture)
 }
 
-func (h *handler) AddReleaseImage(releaseImageUrl, pullSecret, ocpReleaseVersion string, cpuArchitectures []string) (*models.ReleaseImage, error) {
-	var err error
-	var cpuArchitecture string
-	var osImage *models.OsImage
-
-	// If release version or cpu architectures are not specified, use oc to fetch values.
-	// If cpu architecture is passed as "multiarch" instead of unwrapped architectures, recalculate it.
-	if ocpReleaseVersion == "" || len(cpuArchitectures) == 0 || cpuArchitectures[0] == common.MultiCPUArchitecture {
-		// Get openshift version from release image metadata (oc adm release info)
-		ocpReleaseVersion, err = h.releaseHandler.GetOpenshiftVersion(h.log, releaseImageUrl, "", pullSecret)
-		if err != nil {
-			return nil, err
-		}
-		h.log.Debugf("For release image %s detected version: %s", releaseImageUrl, ocpReleaseVersion)
-
-		// Get CPU architecture from release image. For single-arch image the returned list will contain
-		// as single entry with the architecture. For multi-arch image the list will contain all the architectures
-		// that the image references to.
-		cpuArchitectures, err = h.releaseHandler.GetReleaseArchitecture(h.log, releaseImageUrl, "", pullSecret)
-		if err != nil {
-			return nil, err
-		}
-		h.log.Debugf("For release image %s detected architecture: %s", releaseImageUrl, cpuArchitectures)
+func (h *handler) AddReleaseImage(releaseImageUrl, pullSecret string) (*models.ReleaseImage, error) {
+	// Get openshift version from release image metadata (oc adm release info)
+	ocpReleaseVersion, err := h.releaseHandler.GetOpenshiftVersion(h.log, releaseImageUrl, "", pullSecret)
+	if err != nil {
+		return nil, err
 	}
+	h.log.Debugf("For release image %s detected version: %s", releaseImageUrl, ocpReleaseVersion)
 
+	// Get CPU architecture from release image. For single-arch image the returned list will contain
+	// as single entry with the architecture. For multi-arch image the list will contain all the architectures
+	// that the image references to.
+	cpuArchitectures, err := h.releaseHandler.GetReleaseArchitecture(h.log, releaseImageUrl, "", pullSecret)
+	if err != nil {
+		return nil, err
+	}
+	h.log.Debugf("For release image %s detected architecture: %s", releaseImageUrl, cpuArchitectures)
+
+	var cpuArchitecture string
 	if len(cpuArchitectures) == 1 {
 		cpuArchitecture = cpuArchitectures[0]
 
 		// Ensure a relevant OsImage exists. For multiarch we disabling the code below because we don't know yet
 		// what is going to be the architecture of InfraEnv and Agent.
-		osImage, err = h.osImages.GetOsImage(ocpReleaseVersion, cpuArchitecture)
+		osImage, err := h.osImages.GetOsImage(ocpReleaseVersion, cpuArchitecture)
 		if err != nil || osImage.URL == nil {
 			return nil, errors.Errorf("No OS images are available for version %s and architecture %s", ocpReleaseVersion, cpuArchitecture)
 		}

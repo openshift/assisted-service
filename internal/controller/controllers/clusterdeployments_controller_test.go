@@ -292,7 +292,7 @@ var _ = Describe("cluster reconcile", func() {
 					Do(func(arg1, arg2 interface{}, params installer.V2RegisterClusterParams) {
 						Expect(swag.StringValue(params.NewClusterParams.OpenshiftVersion)).To(Equal(*releaseImage.Version))
 					}).Return(clusterReply, nil)
-				mockVersions.EXPECT().AddReleaseImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(releaseImage, nil)
+				mockVersions.EXPECT().AddReleaseImage(gomock.Any(), gomock.Any()).Return(releaseImage, nil)
 				mockInstallerInternal.EXPECT().HostWithCollectedLogsExists(gomock.Any()).Return(false, nil)
 
 				cluster := newClusterDeployment(clusterName, testNamespace, defaultClusterSpec)
@@ -312,7 +312,7 @@ var _ = Describe("cluster reconcile", func() {
 						Expect(swag.StringValue(params.NewClusterParams.HTTPSProxy)).To(Equal(httpsProxy))
 						Expect(swag.StringValue(params.NewClusterParams.NoProxy)).To(Equal(noProxy))
 					}).Return(clusterReply, nil)
-				mockVersions.EXPECT().AddReleaseImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(releaseImage, nil)
+				mockVersions.EXPECT().AddReleaseImage(gomock.Any(), gomock.Any()).Return(releaseImage, nil)
 				mockInstallerInternal.EXPECT().HostWithCollectedLogsExists(gomock.Any()).Return(false, nil)
 
 				cluster := newClusterDeployment(clusterName, testNamespace, defaultClusterSpec)
@@ -328,7 +328,7 @@ var _ = Describe("cluster reconcile", func() {
 					Do(func(arg1, arg2 interface{}, params installer.V2RegisterClusterParams) {
 						Expect(swag.StringValue(params.NewClusterParams.OpenshiftVersion)).To(Equal(*releaseImage.Version))
 					}).Return(clusterReply, nil)
-				mockVersions.EXPECT().AddReleaseImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(releaseImage, nil)
+				mockVersions.EXPECT().AddReleaseImage(gomock.Any(), gomock.Any()).Return(releaseImage, nil)
 				mockInstallerInternal.EXPECT().HostWithCollectedLogsExists(gomock.Any()).Return(false, nil)
 
 				cluster := newClusterDeployment(clusterName, testNamespace, defaultClusterSpec)
@@ -367,7 +367,7 @@ var _ = Describe("cluster reconcile", func() {
 						Expect(swag.StringValue(params.NewClusterParams.OpenshiftVersion)).To(Equal(*armReleaseImage.Version))
 						Expect(params.NewClusterParams.CPUArchitecture).To(Equal(CpuArchitectureArm))
 					}).Return(clusterReply, nil)
-				mockVersions.EXPECT().AddReleaseImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(armReleaseImage, nil)
+				mockVersions.EXPECT().AddReleaseImage(gomock.Any(), gomock.Any()).Return(armReleaseImage, nil)
 				mockInstallerInternal.EXPECT().HostWithCollectedLogsExists(gomock.Any()).Return(false, nil)
 
 				cluster := newClusterDeployment(clusterName, testNamespace, defaultClusterSpec)
@@ -400,7 +400,7 @@ var _ = Describe("cluster reconcile", func() {
 						Expect(swag.StringValue(params.NewClusterParams.DiskEncryption.Mode)).To(Equal(models.DiskEncryptionModeTang))
 						Expect(params.NewClusterParams.DiskEncryption.TangServers).To(Equal(tangServersConfig))
 					}).Return(clusterReply, nil)
-				mockVersions.EXPECT().AddReleaseImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(releaseImage, nil)
+				mockVersions.EXPECT().AddReleaseImage(gomock.Any(), gomock.Any()).Return(releaseImage, nil)
 				mockInstallerInternal.EXPECT().HostWithCollectedLogsExists(gomock.Any()).Return(false, nil)
 
 				cluster := newClusterDeployment(clusterName, testNamespace, defaultClusterSpec)
@@ -420,7 +420,7 @@ var _ = Describe("cluster reconcile", func() {
 					Do(func(arg1, arg2 interface{}, params installer.V2RegisterClusterParams) {
 						Expect(swag.StringValue(params.NewClusterParams.OpenshiftVersion)).To(Equal(ocpReleaseVersion))
 					}).Return(clusterReply, nil)
-				mockVersions.EXPECT().AddReleaseImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(releaseImage, nil)
+				mockVersions.EXPECT().AddReleaseImage(gomock.Any(), gomock.Any()).Return(releaseImage, nil)
 				mockInstallerInternal.EXPECT().HostWithCollectedLogsExists(gomock.Any()).Return(false, nil)
 
 				cluster := newClusterDeployment(clusterName, testNamespace,
@@ -440,7 +440,7 @@ var _ = Describe("cluster reconcile", func() {
 						Expect(swag.StringValue(params.NewClusterParams.HighAvailabilityMode)).
 							To(Equal(HighAvailabilityModeNone))
 					}).Return(clusterReply, nil)
-				mockVersions.EXPECT().AddReleaseImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(releaseImage, nil)
+				mockVersions.EXPECT().AddReleaseImage(gomock.Any(), gomock.Any()).Return(releaseImage, nil)
 				mockInstallerInternal.EXPECT().HostWithCollectedLogsExists(gomock.Any()).Return(false, nil)
 
 				cluster := newClusterDeployment(clusterName, testNamespace, defaultClusterSpec)
@@ -460,7 +460,7 @@ var _ = Describe("cluster reconcile", func() {
 						Expect(swag.BoolValue(params.NewClusterParams.UserManagedNetworking)).
 							To(BeTrue())
 					}).Return(clusterReply, nil)
-				mockVersions.EXPECT().AddReleaseImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(releaseImage, nil)
+				mockVersions.EXPECT().AddReleaseImage(gomock.Any(), gomock.Any()).Return(releaseImage, nil)
 				mockInstallerInternal.EXPECT().HostWithCollectedLogsExists(gomock.Any()).Return(false, nil)
 
 				cluster := newClusterDeployment(clusterName, testNamespace, defaultClusterSpec)
@@ -544,7 +544,7 @@ var _ = Describe("cluster reconcile", func() {
 			})
 
 			It("fail to get openshift version when trying to create a cluster", func() {
-				mockVersions.EXPECT().AddReleaseImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, errors.Errorf("some-error"))
+				mockVersions.EXPECT().AddReleaseImage(gomock.Any(), gomock.Any()).Return(nil, errors.Errorf("some-error"))
 				mockInstallerInternal.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any()).Return(nil).Times(1)
 
 				cluster := newClusterDeployment(clusterName, testNamespace, defaultClusterSpec)
@@ -576,7 +576,7 @@ var _ = Describe("cluster reconcile", func() {
 			mockInstallerInternal.EXPECT().RegisterClusterInternal(gomock.Any(), gomock.Any(), gomock.Any()).
 				Return(nil, errors.Errorf(errString))
 			mockInstallerInternal.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any()).Return(nil)
-			mockVersions.EXPECT().AddReleaseImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(releaseImage, nil)
+			mockVersions.EXPECT().AddReleaseImage(gomock.Any(), gomock.Any()).Return(releaseImage, nil)
 
 			cluster := newClusterDeployment(clusterName, testNamespace, defaultClusterSpec)
 			Expect(c.Create(ctx, cluster)).ShouldNot(HaveOccurred())
@@ -1205,7 +1205,7 @@ var _ = Describe("cluster reconcile", func() {
 			}
 			mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil).Times(2)
 			mockInstallerInternal.EXPECT().DeregisterClusterInternal(gomock.Any(), gomock.Any()).Return(nil)
-			mockVersions.EXPECT().AddReleaseImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(releaseImage, nil)
+			mockVersions.EXPECT().AddReleaseImage(gomock.Any(), gomock.Any()).Return(releaseImage, nil)
 
 			simulateACIDeletionWithFinalizer(ctx, c, aci)
 			request := newClusterDeploymentRequest(cd)

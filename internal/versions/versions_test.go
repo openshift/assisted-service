@@ -490,7 +490,7 @@ var _ = Describe("AddReleaseImage", func() {
 			mockRelease.EXPECT().GetReleaseArchitecture(
 				gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return([]string{cpuArchitecture}, nil).AnyTimes()
 
-			releaseImage, err := h.AddReleaseImage(releaseImageUrl, pullSecret, "", nil)
+			releaseImage, err := h.AddReleaseImage(releaseImageUrl, pullSecret)
 			Expect(err).ShouldNot(HaveOccurred())
 
 			Expect(*releaseImage.CPUArchitecture).Should(Equal(cpuArchitecture))
@@ -498,18 +498,6 @@ var _ = Describe("AddReleaseImage", func() {
 			Expect(*releaseImage.OpenshiftVersion).Should(Equal(customOcpVersion))
 			Expect(*releaseImage.URL).Should(Equal(releaseImageUrl))
 			Expect(*releaseImage.Version).Should(Equal(customOcpVersion))
-		})
-
-		It("added successfuly using specified ocpReleaseVersion and cpuArchitecture", func() {
-			_, err := h.AddReleaseImage(releaseImageUrl, pullSecret, customOcpVersion, []string{cpuArchitecture})
-			Expect(err).ShouldNot(HaveOccurred())
-			releaseImageFromCache, err := h.GetReleaseImage(ctx, customOcpVersion, cpuArchitecture, pullSecret)
-			Expect(err).ShouldNot(HaveOccurred())
-
-			Expect(*releaseImageFromCache.URL).Should(Equal(releaseImageUrl))
-			Expect(*releaseImageFromCache.Version).Should(Equal(customOcpVersion))
-			Expect(*releaseImageFromCache.CPUArchitecture).Should(Equal(cpuArchitecture))
-			Expect(releaseImageFromCache.CPUArchitectures).Should(Equal([]string{cpuArchitecture}))
 		})
 
 		It("when release image already exists", func() {
@@ -523,7 +511,7 @@ var _ = Describe("AddReleaseImage", func() {
 			})
 			Expect(releaseImageFromCache).ShouldNot(BeNil())
 
-			_, err := h.AddReleaseImage(releaseImageUrl, pullSecret, "", nil)
+			_, err := h.AddReleaseImage(releaseImageUrl, pullSecret)
 			Expect(err).ShouldNot(HaveOccurred())
 
 			releaseImage, err := h.GetReleaseImage(ctx, existingOcpVersion, cpuArchitecture, pullSecret)
@@ -538,7 +526,7 @@ var _ = Describe("AddReleaseImage", func() {
 			mockRelease.EXPECT().GetReleaseArchitecture(
 				gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return([]string{cpuArchitecture}, nil).AnyTimes()
 
-			_, err := h.AddReleaseImage("invalidRelease", pullSecret, "", nil)
+			_, err := h.AddReleaseImage("invalidRelease", pullSecret)
 			Expect(err).Should(HaveOccurred())
 			Expect(err.Error()).Should(Equal(fmt.Sprintf("No OS images are available for version %s and architecture %s", ocpVersion, cpuArchitecture)))
 		})
@@ -551,7 +539,7 @@ var _ = Describe("AddReleaseImage", func() {
 			mockRelease.EXPECT().GetReleaseArchitecture(
 				gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return([]string{cpuArchitecture, common.ARM64CPUArchitecture}, nil).AnyTimes()
 
-			releaseImage, err := h.AddReleaseImage(releaseImageUrl, pullSecret, "", nil)
+			releaseImage, err := h.AddReleaseImage(releaseImageUrl, pullSecret)
 			Expect(err).ShouldNot(HaveOccurred())
 
 			Expect(*releaseImage.CPUArchitecture).Should(Equal(common.MultiCPUArchitecture))
@@ -559,35 +547,6 @@ var _ = Describe("AddReleaseImage", func() {
 			Expect(*releaseImage.OpenshiftVersion).Should(Equal(customOcpVersion))
 			Expect(*releaseImage.URL).Should(Equal(releaseImageUrl))
 			Expect(*releaseImage.Version).Should(Equal(customOcpVersion))
-		})
-
-		It("added successfuly using specified ocpReleaseVersion and cpuArchitecture", func() {
-			_, err := h.AddReleaseImage(releaseImageUrl, pullSecret, customOcpVersion, []string{cpuArchitecture, common.ARM64CPUArchitecture})
-			Expect(err).ShouldNot(HaveOccurred())
-			releaseImageFromCache, err := h.GetReleaseImage(ctx, customOcpVersion, common.MultiCPUArchitecture, pullSecret)
-			Expect(err).ShouldNot(HaveOccurred())
-
-			Expect(*releaseImageFromCache.URL).Should(Equal(releaseImageUrl))
-			Expect(*releaseImageFromCache.Version).Should(Equal(customOcpVersion))
-			Expect(*releaseImageFromCache.CPUArchitecture).Should(Equal(common.MultiCPUArchitecture))
-			Expect(releaseImageFromCache.CPUArchitectures).Should(Equal([]string{cpuArchitecture, common.ARM64CPUArchitecture}))
-		})
-
-		It("added successfuly and recalculated using specified ocpReleaseVersion and 'multiarch' cpuArchitecture", func() {
-			mockRelease.EXPECT().GetOpenshiftVersion(
-				gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(customOcpVersion, nil).AnyTimes()
-			mockRelease.EXPECT().GetReleaseArchitecture(
-				gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return([]string{cpuArchitecture, common.ARM64CPUArchitecture}, nil).AnyTimes()
-
-			_, err := h.AddReleaseImage(releaseImageUrl, pullSecret, customOcpVersion, []string{common.MultiCPUArchitecture})
-			Expect(err).ShouldNot(HaveOccurred())
-			releaseImageFromCache, err := h.GetReleaseImage(ctx, customOcpVersion, common.MultiCPUArchitecture, pullSecret)
-			Expect(err).ShouldNot(HaveOccurred())
-
-			Expect(*releaseImageFromCache.URL).Should(Equal(releaseImageUrl))
-			Expect(*releaseImageFromCache.Version).Should(Equal(customOcpVersion))
-			Expect(*releaseImageFromCache.CPUArchitecture).Should(Equal(common.MultiCPUArchitecture))
-			Expect(releaseImageFromCache.CPUArchitectures).Should(Equal([]string{cpuArchitecture, common.ARM64CPUArchitecture}))
 		})
 
 		It("when release image already exists", func() {
@@ -601,7 +560,7 @@ var _ = Describe("AddReleaseImage", func() {
 			})
 			Expect(releaseImageFromCache).ShouldNot(BeNil())
 
-			_, err := h.AddReleaseImage(releaseImageUrl, pullSecret, "", nil)
+			_, err := h.AddReleaseImage(releaseImageUrl, pullSecret)
 			Expect(err).ShouldNot(HaveOccurred())
 
 			// Query for multi-arch release image using generic multiarch
@@ -623,48 +582,24 @@ var _ = Describe("AddReleaseImage", func() {
 		})
 	})
 
-	Context("with failing OCP version extraction", func() {
-		It("using default syntax", func() {
-			mockRelease.EXPECT().GetOpenshiftVersion(
-				gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return("", errors.New("invalid")).AnyTimes()
-			mockRelease.EXPECT().GetReleaseArchitecture(
-				gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return([]string{cpuArchitecture}, nil).AnyTimes()
+	It("fails when the version extraction fails", func() {
+		mockRelease.EXPECT().GetOpenshiftVersion(
+			gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return("", errors.New("invalid")).AnyTimes()
+		mockRelease.EXPECT().GetReleaseArchitecture(
+			gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return([]string{cpuArchitecture}, nil).AnyTimes()
 
-			_, err := h.AddReleaseImage(releaseImageUrl, pullSecret, "", nil)
-			Expect(err).Should(HaveOccurred())
-		})
-
-		It("using specified cpuArchitectures", func() {
-			mockRelease.EXPECT().GetOpenshiftVersion(
-				gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return("", errors.New("invalid")).AnyTimes()
-			mockRelease.EXPECT().GetReleaseArchitecture(
-				gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return([]string{cpuArchitecture}, nil).AnyTimes()
-
-			_, err := h.AddReleaseImage(releaseImageUrl, pullSecret, "", []string{cpuArchitecture})
-			Expect(err).Should(HaveOccurred())
-		})
+		_, err := h.AddReleaseImage(releaseImageUrl, pullSecret)
+		Expect(err).Should(HaveOccurred())
 	})
 
-	Context("with failing architecture extraction", func() {
-		It("using default syntax", func() {
-			mockRelease.EXPECT().GetOpenshiftVersion(
-				gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(customOcpVersion, nil).AnyTimes()
-			mockRelease.EXPECT().GetReleaseArchitecture(
-				gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, errors.New("some error when getting architecture")).AnyTimes()
+	It("fails when the arch extraction fails", func() {
+		mockRelease.EXPECT().GetOpenshiftVersion(
+			gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(customOcpVersion, nil).AnyTimes()
+		mockRelease.EXPECT().GetReleaseArchitecture(
+			gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, errors.New("some error when getting architecture")).AnyTimes()
 
-			_, err := h.AddReleaseImage(releaseImageUrl, pullSecret, "", nil)
-			Expect(err).Should(HaveOccurred())
-		})
-
-		It("using specified ocpReleaseVersion", func() {
-			mockRelease.EXPECT().GetOpenshiftVersion(
-				gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(customOcpVersion, nil).AnyTimes()
-			mockRelease.EXPECT().GetReleaseArchitecture(
-				gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, errors.New("some error when getting architecture")).AnyTimes()
-
-			_, err := h.AddReleaseImage(releaseImageUrl, pullSecret, customOcpVersion, nil)
-			Expect(err).Should(HaveOccurred())
-		})
+		_, err := h.AddReleaseImage(releaseImageUrl, pullSecret)
+		Expect(err).Should(HaveOccurred())
 	})
 
 	It("keep support level from cache", func() {
@@ -673,7 +608,7 @@ var _ = Describe("AddReleaseImage", func() {
 		mockRelease.EXPECT().GetReleaseArchitecture(
 			gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return([]string{cpuArchitecture}, nil).AnyTimes()
 
-		_, err := h.AddReleaseImage(releaseImageUrl, pullSecret, "", nil)
+		_, err := h.AddReleaseImage(releaseImageUrl, pullSecret)
 		Expect(err).ShouldNot(HaveOccurred())
 		_, err = h.GetReleaseImage(ctx, customOcpVersion, cpuArchitecture, pullSecret)
 		Expect(err).ShouldNot(HaveOccurred())

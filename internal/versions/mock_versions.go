@@ -36,18 +36,18 @@ func (m *MockHandler) EXPECT() *MockHandlerMockRecorder {
 }
 
 // AddReleaseImage mocks base method.
-func (m *MockHandler) AddReleaseImage(arg0, arg1, arg2 string, arg3 []string) (*models.ReleaseImage, error) {
+func (m *MockHandler) AddReleaseImage(arg0, arg1 string) (*models.ReleaseImage, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "AddReleaseImage", arg0, arg1, arg2, arg3)
+	ret := m.ctrl.Call(m, "AddReleaseImage", arg0, arg1)
 	ret0, _ := ret[0].(*models.ReleaseImage)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // AddReleaseImage indicates an expected call of AddReleaseImage.
-func (mr *MockHandlerMockRecorder) AddReleaseImage(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
+func (mr *MockHandlerMockRecorder) AddReleaseImage(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddReleaseImage", reflect.TypeOf((*MockHandler)(nil).AddReleaseImage), arg0, arg1, arg2, arg3)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddReleaseImage", reflect.TypeOf((*MockHandler)(nil).AddReleaseImage), arg0, arg1)
 }
 
 // GetDefaultReleaseImage mocks base method.
