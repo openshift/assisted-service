@@ -3100,7 +3100,7 @@ spec:
 		}
 
 		hwInfo := &models.Inventory{
-			CPU:    &models.CPU{Count: 2, Architecture: common.ARM64CPUArchitecture},
+			CPU:    &models.CPU{Count: 2, Architecture: common.AARCH64CPUArchitecture},
 			Memory: &models.Memory{PhysicalBytes: int64(8 * units.GiB), UsableBytes: int64(8 * units.GiB)},
 			Disks:  []*models.Disk{&sdc},
 			Interfaces: []*models.Interface{

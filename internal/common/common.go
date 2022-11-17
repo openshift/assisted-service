@@ -43,6 +43,8 @@ const (
 	X86CPUArchitecture     = "x86_64"
 	DefaultCPUArchitecture = X86CPUArchitecture
 	ARM64CPUArchitecture   = "arm64"
+	// rchos is sending aarch64 and not arm as arm64 arch
+	AARCH64CPUArchitecture = "aarch64"
 	PowerCPUArchitecture   = "ppc64le"
 	MultiCPUArchitecture   = "multi"
 )
