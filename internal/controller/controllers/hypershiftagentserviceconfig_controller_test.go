@@ -238,7 +238,7 @@ var _ = Describe("HypershiftAgentServiceConfig reconcile", func() {
 		_, err := hr.Reconcile(ctx, newHypershiftAgentServiceConfigRequest(hsc))
 		Expect(err).ToNot(BeNil())
 		Expect(err.Error()).To(ContainSubstring(
-			fmt.Sprintf("Failed to get '%s' secret in '%s' namespace",
+			fmt.Sprintf("Failed to get '%s' secret in '%s' namespace (check `kubeconfigSecretRef` property)",
 				hsc.Spec.KubeconfigSecretRef.Name, testNamespace)))
 		assertReconcileCompletedCondition(corev1.ConditionFalse, aiv1beta1.ReasonKubeconfigSecretFetchFailure)
 	})
@@ -252,7 +252,10 @@ var _ = Describe("HypershiftAgentServiceConfig reconcile", func() {
 		}
 		asc.initHASC(hr, hsc)
 		Expect(hr.Client.Create(ctx, secret)).To(Succeed())
-		_, err := hr.createSpokeClient(ctx, secret.Name, asc)
+		Expect(hr.Client.Update(ctx, hsc)).To(Succeed())
+		mockSpokeClient.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+		mockSpokeClient.EXPECT().List(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+		_, err := hr.Reconcile(ctx, newHypershiftAgentServiceConfigRequest(hsc))
 		Expect(err).ToNot(BeNil())
 		Expect(err.Error()).To(ContainSubstring(
 			fmt.Sprintf("Secret '%s' does not contain '%s' key value",
