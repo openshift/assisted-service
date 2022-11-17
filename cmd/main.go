@@ -223,11 +223,9 @@ func main() {
 	var osImagesArray models.OsImages
 	if Options.OsImages == "" {
 		log.Fatal("OS_IMAGES list is empty")
-		osImagesArray = models.OsImages{}
-	} else {
-		failOnError(json.Unmarshal([]byte(Options.OsImages), &osImagesArray),
-			"Failed to parse OS_IMAGES json %s", Options.OsImages)
 	}
+	failOnError(json.Unmarshal([]byte(Options.OsImages), &osImagesArray),
+		"Failed to parse OS_IMAGES json %s", Options.OsImages)
 
 	var releaseImagesArray models.ReleaseImages
 	if Options.ReleaseImages == "" {

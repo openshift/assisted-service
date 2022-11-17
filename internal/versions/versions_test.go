@@ -258,7 +258,7 @@ var _ = Describe("list versions", func() {
 					}
 					Expect(version.CPUArchitectures).Should(ContainElement(architecture))
 					Expect(version.DisplayName).Should(Equal(releaseImage.Version))
-					Expect(version.SupportLevel).Should(Equal(h.getSupportLevel(*releaseImage)))
+					Expect(version.SupportLevel).Should(Equal(getSupportLevel(*releaseImage)))
 				} else {
 					// For multi-arch release we don't require a strict matching for every
 					// architecture supported by this image. As long as we have at least one OS
@@ -266,7 +266,7 @@ var _ = Describe("list versions", func() {
 					// image supports more architectures than we have available RHCOS images.
 					Expect(len(version.CPUArchitectures)).ShouldNot(Equal(0))
 					Expect(*releaseImage.Version).Should(ContainSubstring(*version.DisplayName))
-					Expect(version.SupportLevel).Should(Equal(h.getSupportLevel(*releaseImage)))
+					Expect(version.SupportLevel).Should(Equal(getSupportLevel(*releaseImage)))
 				}
 			}
 
@@ -289,15 +289,15 @@ var _ = Describe("list versions", func() {
 
 			// Production release version
 			releaseImage.Version = swag.String("4.8.12")
-			Expect(*h.getSupportLevel(releaseImage)).Should(Equal(models.OpenshiftVersionSupportLevelProduction))
+			Expect(*getSupportLevel(releaseImage)).Should(Equal(models.OpenshiftVersionSupportLevelProduction))
 
 			// Beta release version
 			releaseImage.Version = swag.String("4.9.0-rc.4")
-			Expect(*h.getSupportLevel(releaseImage)).Should(Equal(models.OpenshiftVersionSupportLevelBeta))
+			Expect(*getSupportLevel(releaseImage)).Should(Equal(models.OpenshiftVersionSupportLevelBeta))
 
 			// Support level specified in release image
 			releaseImage.SupportLevel = models.OpenshiftVersionSupportLevelProduction
-			Expect(*h.getSupportLevel(releaseImage)).Should(Equal(models.OpenshiftVersionSupportLevelProduction))
+			Expect(*getSupportLevel(releaseImage)).Should(Equal(models.OpenshiftVersionSupportLevelProduction))
 		})
 
 		It("missing release images", func() {
@@ -1153,50 +1153,27 @@ var _ = Describe("list versions", func() {
 	})
 })
 
-var _ = Describe("list versions", func() {
-	var (
-		h            *handler
-		err          error
-		db           *gorm.DB
-		dbName       string
-		authzHandler auth.Authorizer
-	)
-	BeforeEach(func() {
-		ctrl := gomock.NewController(GinkgoT())
-		mockRelease := oc.NewMockRelease(ctrl)
-
-		var versions Versions
-		Expect(envconfig.Process("test", &versions)).ShouldNot(HaveOccurred())
-
-		db, dbName = common.PrepareTestDB()
-		logger := logrus.New()
-		cfg := auth.GetConfigRHSSO()
-		authzHandler = auth.NewAuthzHandler(cfg, nil, common.GetTestLog().WithField("pkg", "auth"), db)
-
-		h, err = NewHandler(logger, mockRelease, versions, defaultOsImages, models.ReleaseImages{}, nil, "", authzHandler)
-		Expect(err).ShouldNot(HaveOccurred())
-	})
-
-	AfterEach(func() {
-		common.DeleteTestDB(db, dbName)
-	})
-
-	It("positive", func() {
-		res, err := h.getKey("4.6")
-		Expect(err).ShouldNot(HaveOccurred())
-		Expect(res).Should(Equal("4.6"))
-
-		res, err = h.getKey("4.6.9")
-		Expect(err).ShouldNot(HaveOccurred())
-		Expect(res).Should(Equal("4.6"))
-
-		res, err = h.getKey("4.6.9-beta")
+var _ = Describe("toMajorMinor", func() {
+	It("works for x.y", func() {
+		res, err := toMajorMinor("4.6")
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(res).Should(Equal("4.6"))
 	})
 
-	It("negative", func() {
-		res, err := h.getKey("ere.654.45")
+	It("works for x.y.z", func() {
+		res, err := toMajorMinor("4.6.9")
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(res).Should(Equal("4.6"))
+	})
+
+	It("works for x.y.z-thing", func() {
+		res, err := toMajorMinor("4.6.9-beta")
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(res).Should(Equal("4.6"))
+	})
+
+	It("fails when the version cannot parse", func() {
+		res, err := toMajorMinor("ere.654.45")
 		Expect(err).Should(HaveOccurred())
 		Expect(res).Should(Equal(""))
 	})
