@@ -376,13 +376,6 @@ func (r *ClusterDeploymentsReconciler) installDay1(ctx context.Context, log logr
 			return ctrl.Result{Requeue: true, RequeueAfter: longerRequeueAfterOnError}, nil
 		}
 
-		// Ensure release image exists in versions cache
-		_, err = r.addReleaseImage(ctx, log, clusterInstall.Spec, pullSecret, cluster)
-		if err != nil {
-			log.WithError(err)
-			return r.updateStatus(ctx, log, clusterInstall, cluster, err)
-		}
-
 		log.Infof("Installing clusterDeployment %s %s", clusterDeployment.Name, clusterDeployment.Namespace)
 		var ic *common.Cluster
 		ic, err = r.Installer.InstallClusterInternal(ctx, installer.V2InstallClusterParams{
