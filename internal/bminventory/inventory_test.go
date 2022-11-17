@@ -13652,35 +13652,6 @@ var _ = Describe("Dual-stack cluster", func() {
 		})
 	})
 
-	Context("[V2] Update cluster", func() {
-		var params installer.V2UpdateClusterParams
-
-		BeforeEach(func() {
-			mockUsageReports()
-			params = installer.V2UpdateClusterParams{
-				ClusterUpdateParams: &models.V2ClusterUpdateParams{},
-			}
-		})
-
-		Context("Cluster with wrong network order", func() {
-			It("v6-first in cluster networks rejected", func() {
-				params.ClusterUpdateParams.ClusterNetworks = TestDualStackNetworkingWrongOrder.ClusterNetworks
-				reply := bm.V2UpdateCluster(ctx, params)
-				verifyApiErrorString(reply, http.StatusBadRequest, "First cluster network has to be IPv4 subnet")
-			})
-			It("v6-first in service networks rejected", func() {
-				params.ClusterUpdateParams.ServiceNetworks = TestDualStackNetworkingWrongOrder.ServiceNetworks
-				reply := bm.V2UpdateCluster(ctx, params)
-				verifyApiErrorString(reply, http.StatusBadRequest, "First service network has to be IPv4 subnet")
-			})
-			It("v6-first in machine networks rejected", func() {
-				params.ClusterUpdateParams.MachineNetworks = TestDualStackNetworkingWrongOrder.MachineNetworks
-				reply := bm.V2UpdateCluster(ctx, params)
-				verifyApiErrorString(reply, http.StatusBadRequest, "First machine network has to be IPv4 subnet")
-			})
-		})
-	})
-
 })
 
 var _ = Describe("GetCredentials", func() {
