@@ -350,7 +350,7 @@ var _ = Describe("installcmd arguments", func() {
 		mockVersions.EXPECT().GetMustGatherImages(gomock.Any(), gomock.Any(), gomock.Any()).Return(defaultMustGatherVersion, nil).AnyTimes()
 	}
 
-	BeforeSuite(func() {
+	BeforeEach(func() {
 		db, dbName = common.PrepareTestDB()
 		cluster = createClusterInDb(db, models.ClusterHighAvailabilityModeNone)
 		infraEnv = createInfraEnvInDb(db, *cluster.ID)
@@ -366,7 +366,7 @@ var _ = Describe("installcmd arguments", func() {
 		mockImages()
 	})
 
-	AfterSuite(func() {
+	AfterEach(func() {
 		ctrl.Finish()
 		common.DeleteTestDB(db, dbName)
 	})
