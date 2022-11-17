@@ -1238,7 +1238,7 @@ func (r *ClusterDeploymentsReconciler) createNewCluster(
 		return r.updateStatus(ctx, log, clusterInstall, nil, err)
 	}
 
-	releaseImage, err := r.addReleaseImage(ctx, log, clusterInstall.Spec, pullSecret, nil)
+	releaseImage, err := r.addReleaseImage(ctx, log, clusterInstall.Spec, pullSecret)
 
 	if err != nil {
 		log.WithError(err)
@@ -1315,8 +1315,7 @@ func (r *ClusterDeploymentsReconciler) addReleaseImage(
 	ctx context.Context,
 	log logrus.FieldLogger,
 	spec hiveext.AgentClusterInstallSpec,
-	pullSecret string,
-	cluster *common.Cluster) (*models.ReleaseImage, error) {
+	pullSecret string) (*models.ReleaseImage, error) {
 
 	var err error
 
@@ -1327,17 +1326,9 @@ func (r *ClusterDeploymentsReconciler) addReleaseImage(
 		return nil, err
 	}
 
-	var releaseImage *models.ReleaseImage
-	if cluster == nil {
-		// before creating the cluster the source of truth is the
-		// release image url from the ClusterImageSetRef
-		releaseImage, err = r.VersionsHandler.AddReleaseImage(releaseImageUrl, pullSecret, "", nil)
-	} else {
-		// If the cluster is already created, take the Release Version
-		// ane architecture from the version calculated by the BE.
-		releaseImage, err = r.VersionsHandler.AddReleaseImage(releaseImageUrl, pullSecret, cluster.OpenshiftVersion, []string{cluster.CPUArchitecture})
-	}
-
+	// before creating the cluster the source of truth is the
+	// release image url from the ClusterImageSetRef
+	releaseImage, err := r.VersionsHandler.AddReleaseImage(releaseImageUrl, pullSecret, "", nil)
 	if err != nil {
 		log.Error(err)
 		errMsg := "failed to add release image '%s'. Please ensure the releaseImage field in ClusterImageSet '%s' is valid (error: %s)."
