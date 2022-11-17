@@ -5,6 +5,7 @@
 package versions
 
 import (
+	context "context"
 	reflect "reflect"
 
 	gomock "github.com/golang/mock/gomock"
@@ -80,18 +81,18 @@ func (mr *MockHandlerMockRecorder) GetMustGatherImages(arg0, arg1, arg2 interfac
 }
 
 // GetReleaseImage mocks base method.
-func (m *MockHandler) GetReleaseImage(arg0, arg1 string) (*models.ReleaseImage, error) {
+func (m *MockHandler) GetReleaseImage(arg0 context.Context, arg1, arg2, arg3 string) (*models.ReleaseImage, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetReleaseImage", arg0, arg1)
+	ret := m.ctrl.Call(m, "GetReleaseImage", arg0, arg1, arg2, arg3)
 	ret0, _ := ret[0].(*models.ReleaseImage)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetReleaseImage indicates an expected call of GetReleaseImage.
-func (mr *MockHandlerMockRecorder) GetReleaseImage(arg0, arg1 interface{}) *gomock.Call {
+func (mr *MockHandlerMockRecorder) GetReleaseImage(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetReleaseImage", reflect.TypeOf((*MockHandler)(nil).GetReleaseImage), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetReleaseImage", reflect.TypeOf((*MockHandler)(nil).GetReleaseImage), arg0, arg1, arg2, arg3)
 }
 
 // ValidateReleaseImageForRHCOS mocks base method.

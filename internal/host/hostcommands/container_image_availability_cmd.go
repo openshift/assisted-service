@@ -33,9 +33,9 @@ func NewImageAvailabilityCmd(log logrus.FieldLogger, db *gorm.DB, ocRelease oc.R
 	}
 }
 
-func (cmd *imageAvailabilityCmd) getImages(cluster *common.Cluster) ([]string, error) {
+func (cmd *imageAvailabilityCmd) getImages(ctx context.Context, cluster *common.Cluster) ([]string, error) {
 	images := make([]string, 0)
-	releaseImage, err := cmd.versionsHandler.GetReleaseImage(cluster.OpenshiftVersion, cluster.CPUArchitecture)
+	releaseImage, err := cmd.versionsHandler.GetReleaseImage(ctx, cluster.OpenshiftVersion, cluster.CPUArchitecture, cluster.PullSecret)
 	if err != nil {
 		return images, err
 	}
@@ -61,14 +61,14 @@ func (cmd *imageAvailabilityCmd) getImages(cluster *common.Cluster) ([]string, e
 	return images, nil
 }
 
-func (cmd *imageAvailabilityCmd) prepareParam(host *models.Host) (string, error) {
+func (cmd *imageAvailabilityCmd) prepareParam(ctx context.Context, host *models.Host) (string, error) {
 	var cluster common.Cluster
 	if err := cmd.db.First(&cluster, "id = ?", host.ClusterID).Error; err != nil {
 		cmd.log.Errorf("failed to get cluster %s", host.ClusterID)
 		return "", err
 	}
 
-	images, err := cmd.getImages(&cluster)
+	images, err := cmd.getImages(ctx, &cluster)
 	if err != nil {
 		return "", err
 	}
@@ -112,7 +112,7 @@ func (cmd *imageAvailabilityCmd) filterImagesWithStatus(host *models.Host, candi
 }
 
 func (cmd *imageAvailabilityCmd) GetSteps(ctx context.Context, host *models.Host) ([]*models.Step, error) {
-	param, err := cmd.prepareParam(host)
+	param, err := cmd.prepareParam(ctx, host)
 	if err != nil {
 		return nil, err
 	}

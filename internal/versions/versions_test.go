@@ -1,6 +1,7 @@
 package versions
 
 import (
+	context "context"
 	"fmt"
 	"testing"
 
@@ -11,8 +12,14 @@ import (
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/oc"
 	"github.com/openshift/assisted-service/models"
+	hivev1 "github.com/openshift/hive/apis/hive/v1"
 	"github.com/pkg/errors"
 	"github.com/thoas/go-funk"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	fakeclient "sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
 func TestHandler_ListComponentVersions(t *testing.T) {
@@ -95,7 +102,7 @@ var defaultReleaseImages = models.ReleaseImages{
 		CPUArchitecture:  swag.String(common.X86CPUArchitecture),
 		CPUArchitectures: []string{common.X86CPUArchitecture},
 		OpenshiftVersion: swag.String("4.10.2"),
-		URL:              swag.String("release_4.10.1"),
+		URL:              swag.String("release_4.10.2"),
 		Version:          swag.String("4.10.1-candidate"),
 	},
 	&models.ReleaseImage{
@@ -131,45 +138,55 @@ var defaultReleaseImages = models.ReleaseImages{
 
 var _ = Describe("GetReleaseImage", func() {
 	var (
-		h        *handler
-		osImages OSImages
+		h           *handler
+		osImages    OSImages
+		ctx         = context.Background()
+		pullSecret  = "mypullsecret"
+		ctrl        *gomock.Controller
+		mockRelease *oc.MockRelease
 	)
 
 	BeforeEach(func() {
 		var err error
 		osImages, err = NewOSImages(defaultOsImages)
 		Expect(err).ShouldNot(HaveOccurred())
-		h, err = NewHandler(common.GetTestLog(), nil, osImages, defaultReleaseImages, nil, "")
+		ctrl = gomock.NewController(GinkgoT())
+		mockRelease = oc.NewMockRelease(ctrl)
+		h, err = NewHandler(common.GetTestLog(), mockRelease, osImages, defaultReleaseImages, nil, "", nil)
 		Expect(err).ShouldNot(HaveOccurred())
 	})
 
+	AfterEach(func() {
+		ctrl.Finish()
+	})
+
 	It("unsupported openshiftVersion", func() {
-		releaseImage, err := h.GetReleaseImage("unsupported", common.TestDefaultConfig.CPUArchitecture)
+		releaseImage, err := h.GetReleaseImage(ctx, "unsupported", common.TestDefaultConfig.CPUArchitecture, pullSecret)
 		Expect(err).Should(HaveOccurred())
 		Expect(releaseImage).Should(BeNil())
 	})
 
 	It("unsupported cpuArchitecture", func() {
-		releaseImage, err := h.GetReleaseImage(common.TestDefaultConfig.OpenShiftVersion, "unsupported")
+		releaseImage, err := h.GetReleaseImage(ctx, common.TestDefaultConfig.OpenShiftVersion, "unsupported", pullSecret)
 		Expect(err).Should(HaveOccurred())
 		Expect(releaseImage).Should(BeNil())
 		Expect(err.Error()).To(ContainSubstring("isn't specified in release images list"))
 	})
 
 	It("empty openshiftVersion", func() {
-		releaseImage, err := h.GetReleaseImage("", common.TestDefaultConfig.CPUArchitecture)
+		releaseImage, err := h.GetReleaseImage(ctx, "", common.TestDefaultConfig.CPUArchitecture, pullSecret)
 		Expect(err).Should(HaveOccurred())
 		Expect(releaseImage).Should(BeNil())
 	})
 
 	It("empty cpuArchitecture", func() {
-		releaseImage, err := h.GetReleaseImage(common.TestDefaultConfig.OpenShiftVersion, "")
+		releaseImage, err := h.GetReleaseImage(ctx, common.TestDefaultConfig.OpenShiftVersion, "", pullSecret)
 		Expect(err).Should(HaveOccurred())
 		Expect(releaseImage).Should(BeNil())
 	})
 
 	It("fetch release image by major.minor", func() {
-		releaseImage, err := h.GetReleaseImage("4.9", common.DefaultCPUArchitecture)
+		releaseImage, err := h.GetReleaseImage(ctx, "4.9", common.DefaultCPUArchitecture, pullSecret)
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(*releaseImage.OpenshiftVersion).Should(Equal("4.9"))
 		Expect(*releaseImage.Version).Should(Equal("4.9-candidate"))
@@ -178,9 +195,9 @@ var _ = Describe("GetReleaseImage", func() {
 	It("get from ReleaseImages", func() {
 		for _, key := range osImages.GetOpenshiftVersions() {
 			for _, architecture := range osImages.GetCPUArchitectures(key) {
-				releaseImage, err := h.GetReleaseImage(key, architecture)
+				releaseImage, err := h.GetReleaseImage(ctx, key, architecture, pullSecret)
 				if err != nil {
-					releaseImage, err = h.GetReleaseImage(key, common.MultiCPUArchitecture)
+					releaseImage, err = h.GetReleaseImage(ctx, key, common.MultiCPUArchitecture, pullSecret)
 					Expect(err).ShouldNot(HaveOccurred())
 				}
 
@@ -194,31 +211,97 @@ var _ = Describe("GetReleaseImage", func() {
 	})
 
 	It("gets successfuly image with old syntax", func() {
-		releaseImage, err := h.GetReleaseImage("4.11.2", "fake-architecture-chocobomb")
+		releaseImage, err := h.GetReleaseImage(ctx, "4.11.2", "fake-architecture-chocobomb", pullSecret)
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(*releaseImage.OpenshiftVersion).Should(Equal("4.11.2"))
 		Expect(*releaseImage.Version).Should(Equal("4.11.2-fake-chocobomb"))
 	})
 
 	It("gets successfuly image with new syntax", func() {
-		releaseImage, err := h.GetReleaseImage("4.10.1", common.X86CPUArchitecture)
+		releaseImage, err := h.GetReleaseImage(ctx, "4.10.1", common.X86CPUArchitecture, pullSecret)
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(*releaseImage.OpenshiftVersion).Should(Equal("4.10.1"))
 		Expect(*releaseImage.Version).Should(Equal("4.10.1-candidate"))
 	})
 
 	It("gets successfuly image using generic multiarch query", func() {
-		releaseImage, err := h.GetReleaseImage("4.11.1", common.MultiCPUArchitecture)
+		releaseImage, err := h.GetReleaseImage(ctx, "4.11.1", common.MultiCPUArchitecture, pullSecret)
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(*releaseImage.OpenshiftVersion).Should(Equal("4.11.1"))
 		Expect(*releaseImage.Version).Should(Equal("4.11.1-multi"))
 	})
 
 	It("gets successfuly image using sub-architecture", func() {
-		releaseImage, err := h.GetReleaseImage("4.11.1", common.PowerCPUArchitecture)
+		releaseImage, err := h.GetReleaseImage(ctx, "4.11.1", common.PowerCPUArchitecture, pullSecret)
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(*releaseImage.OpenshiftVersion).Should(Equal("4.11.1"))
 		Expect(*releaseImage.Version).Should(Equal("4.11.1-multi"))
+	})
+
+	Context("with a kube client", func() {
+		var (
+			client client.Client
+		)
+		BeforeEach(func() {
+			schemes := runtime.NewScheme()
+			utilruntime.Must(hivev1.AddToScheme(schemes))
+			client = fakeclient.NewClientBuilder().WithScheme(schemes).Build()
+			h.kubeClient = client
+		})
+
+		It("returns no image when no clusterimageset matches", func() {
+			image, err := h.GetReleaseImage(ctx, "4.20.0", common.X86CPUArchitecture, pullSecret)
+			Expect(err).To(HaveOccurred())
+			Expect(image).To(BeNil())
+		})
+
+		It("returns an existing image from the cache", func() {
+			image, err := h.GetReleaseImage(ctx, "4.11.1", common.X86CPUArchitecture, pullSecret)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(image.URL).To(HaveValue(Equal("release_4.11.1")))
+		})
+
+		It("adds a release to the cache from a clusterimageset when no image in the cache matches", func() {
+			releaseImageURL := "example.com/openshift-release-dev/ocp-release:4.11.999"
+			cis := &hivev1.ClusterImageSet{
+				ObjectMeta: metav1.ObjectMeta{Name: "new-release"},
+				Spec:       hivev1.ClusterImageSetSpec{ReleaseImage: releaseImageURL},
+			}
+			Expect(client.Create(ctx, cis)).To(Succeed())
+
+			mockRelease.EXPECT().GetOpenshiftVersion(gomock.Any(), releaseImageURL, "", pullSecret).Return("4.11.999", nil).Times(1)
+			mockRelease.EXPECT().GetReleaseArchitecture(gomock.Any(), releaseImageURL, "", pullSecret).Return([]string{common.X86CPUArchitecture}, nil).Times(1)
+
+			image, err := h.GetReleaseImage(ctx, "4.11.999", common.X86CPUArchitecture, pullSecret)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(image.URL).To(HaveValue(Equal(releaseImageURL)))
+			image, err = h.GetReleaseImage(ctx, "4.11.999", common.X86CPUArchitecture, pullSecret)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(image.URL).To(HaveValue(Equal(releaseImageURL)))
+		})
+
+		It("doesn't re-add existing releases", func() {
+			for _, rel := range defaultReleaseImages {
+				cis := &hivev1.ClusterImageSet{
+					ObjectMeta: metav1.ObjectMeta{Name: *rel.URL},
+					Spec:       hivev1.ClusterImageSetSpec{ReleaseImage: *rel.URL},
+				}
+				Expect(client.Create(ctx, cis)).To(Succeed())
+			}
+			releaseImageURL := "example.com/openshift-release-dev/ocp-release:4.11.999"
+			cis := &hivev1.ClusterImageSet{
+				ObjectMeta: metav1.ObjectMeta{Name: "new-release"},
+				Spec:       hivev1.ClusterImageSetSpec{ReleaseImage: releaseImageURL},
+			}
+			Expect(client.Create(ctx, cis)).To(Succeed())
+
+			mockRelease.EXPECT().GetOpenshiftVersion(gomock.Any(), releaseImageURL, "", pullSecret).Return("4.11.999", nil).Times(1)
+			mockRelease.EXPECT().GetReleaseArchitecture(gomock.Any(), releaseImageURL, "", pullSecret).Return([]string{common.X86CPUArchitecture}, nil).Times(1)
+
+			image, err := h.GetReleaseImage(ctx, "4.11.999", common.X86CPUArchitecture, pullSecret)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(image.URL).To(HaveValue(Equal(releaseImageURL)))
+		})
 	})
 })
 
@@ -246,7 +329,7 @@ var _ = Describe("ValidateReleaseImageForRHCOS", func() {
 		}
 		osImages, err := NewOSImages(defaultOsImages)
 		Expect(err).ShouldNot(HaveOccurred())
-		h, err = NewHandler(common.GetTestLog(), nil, osImages, releaseImages, nil, "")
+		h, err = NewHandler(common.GetTestLog(), nil, osImages, releaseImages, nil, "", nil)
 		Expect(err).ShouldNot(HaveOccurred())
 	})
 
@@ -285,7 +368,7 @@ var _ = Describe("GetDefaultReleaseImage", func() {
 	})
 
 	It("Default release image exists", func() {
-		h, err := NewHandler(common.GetTestLog(), nil, osImages, defaultReleaseImages, nil, "")
+		h, err := NewHandler(common.GetTestLog(), nil, osImages, defaultReleaseImages, nil, "", nil)
 		Expect(err).ShouldNot(HaveOccurred())
 
 		releaseImage, err := h.GetDefaultReleaseImage(common.TestDefaultConfig.CPUArchitecture)
@@ -296,7 +379,7 @@ var _ = Describe("GetDefaultReleaseImage", func() {
 	})
 
 	It("Missing default release image", func() {
-		h, err := NewHandler(common.GetTestLog(), nil, osImages, models.ReleaseImages{}, nil, "")
+		h, err := NewHandler(common.GetTestLog(), nil, osImages, models.ReleaseImages{}, nil, "", nil)
 		Expect(err).ShouldNot(HaveOccurred())
 
 		_, err = h.GetDefaultReleaseImage(common.TestDefaultConfig.CPUArchitecture)
@@ -327,7 +410,7 @@ var _ = Describe("GetMustGatherImages", func() {
 		var err error
 		ctrl = gomock.NewController(GinkgoT())
 		mockRelease = oc.NewMockRelease(ctrl)
-		h, err = NewHandler(common.GetTestLog(), mockRelease, nil, defaultReleaseImages, mustgatherImages, mirror)
+		h, err = NewHandler(common.GetTestLog(), mockRelease, nil, defaultReleaseImages, mustgatherImages, mirror, nil)
 		Expect(err).ShouldNot(HaveOccurred())
 	})
 
@@ -383,6 +466,7 @@ var _ = Describe("AddReleaseImage", func() {
 		releaseImageUrl    = "releaseImage"
 		customOcpVersion   = "4.8.0"
 		existingOcpVersion = "4.9.1"
+		ctx                = context.Background()
 	)
 
 	BeforeEach(func() {
@@ -391,7 +475,7 @@ var _ = Describe("AddReleaseImage", func() {
 
 		osImages, err := NewOSImages(defaultOsImages)
 		Expect(err).ShouldNot(HaveOccurred())
-		h, err = NewHandler(common.GetTestLog(), mockRelease, osImages, defaultReleaseImages, nil, "")
+		h, err = NewHandler(common.GetTestLog(), mockRelease, osImages, defaultReleaseImages, nil, "", nil)
 		Expect(err).ShouldNot(HaveOccurred())
 	})
 
@@ -419,7 +503,7 @@ var _ = Describe("AddReleaseImage", func() {
 		It("added successfuly using specified ocpReleaseVersion and cpuArchitecture", func() {
 			_, err := h.AddReleaseImage(releaseImageUrl, pullSecret, customOcpVersion, []string{cpuArchitecture})
 			Expect(err).ShouldNot(HaveOccurred())
-			releaseImageFromCache, err := h.GetReleaseImage(customOcpVersion, cpuArchitecture)
+			releaseImageFromCache, err := h.GetReleaseImage(ctx, customOcpVersion, cpuArchitecture, pullSecret)
 			Expect(err).ShouldNot(HaveOccurred())
 
 			Expect(*releaseImageFromCache.URL).Should(Equal(releaseImageUrl))
@@ -442,7 +526,7 @@ var _ = Describe("AddReleaseImage", func() {
 			_, err := h.AddReleaseImage(releaseImageUrl, pullSecret, "", nil)
 			Expect(err).ShouldNot(HaveOccurred())
 
-			releaseImage, err := h.GetReleaseImage(existingOcpVersion, cpuArchitecture)
+			releaseImage, err := h.GetReleaseImage(ctx, existingOcpVersion, cpuArchitecture, pullSecret)
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(releaseImage.Version).Should(Equal(releaseImageFromCache.(*models.ReleaseImage).Version))
 		})
@@ -480,7 +564,7 @@ var _ = Describe("AddReleaseImage", func() {
 		It("added successfuly using specified ocpReleaseVersion and cpuArchitecture", func() {
 			_, err := h.AddReleaseImage(releaseImageUrl, pullSecret, customOcpVersion, []string{cpuArchitecture, common.ARM64CPUArchitecture})
 			Expect(err).ShouldNot(HaveOccurred())
-			releaseImageFromCache, err := h.GetReleaseImage(customOcpVersion, common.MultiCPUArchitecture)
+			releaseImageFromCache, err := h.GetReleaseImage(ctx, customOcpVersion, common.MultiCPUArchitecture, pullSecret)
 			Expect(err).ShouldNot(HaveOccurred())
 
 			Expect(*releaseImageFromCache.URL).Should(Equal(releaseImageUrl))
@@ -497,7 +581,7 @@ var _ = Describe("AddReleaseImage", func() {
 
 			_, err := h.AddReleaseImage(releaseImageUrl, pullSecret, customOcpVersion, []string{common.MultiCPUArchitecture})
 			Expect(err).ShouldNot(HaveOccurred())
-			releaseImageFromCache, err := h.GetReleaseImage(customOcpVersion, common.MultiCPUArchitecture)
+			releaseImageFromCache, err := h.GetReleaseImage(ctx, customOcpVersion, common.MultiCPUArchitecture, pullSecret)
 			Expect(err).ShouldNot(HaveOccurred())
 
 			Expect(*releaseImageFromCache.URL).Should(Equal(releaseImageUrl))
@@ -521,20 +605,20 @@ var _ = Describe("AddReleaseImage", func() {
 			Expect(err).ShouldNot(HaveOccurred())
 
 			// Query for multi-arch release image using generic multiarch
-			releaseImage, err := h.GetReleaseImage("4.11.1", common.MultiCPUArchitecture)
+			releaseImage, err := h.GetReleaseImage(ctx, "4.11.1", common.MultiCPUArchitecture, pullSecret)
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(releaseImage.Version).Should(Equal(releaseImageFromCache.(*models.ReleaseImage).Version))
 
 			// Query for multi-arch release image using specific arch
-			releaseImage, err = h.GetReleaseImage("4.11.1", common.X86CPUArchitecture)
+			releaseImage, err = h.GetReleaseImage(ctx, "4.11.1", common.X86CPUArchitecture, pullSecret)
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(releaseImage.Version).Should(Equal(releaseImageFromCache.(*models.ReleaseImage).Version))
-			releaseImage, err = h.GetReleaseImage("4.11.1", common.ARM64CPUArchitecture)
+			releaseImage, err = h.GetReleaseImage(ctx, "4.11.1", common.ARM64CPUArchitecture, pullSecret)
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(releaseImage.Version).Should(Equal(releaseImageFromCache.(*models.ReleaseImage).Version))
 
 			// Query for non-existing architecture
-			_, err = h.GetReleaseImage("4.11.1", "architecture-chocobomb")
+			_, err = h.GetReleaseImage(ctx, "4.11.1", "architecture-chocobomb", pullSecret)
 			Expect(err.Error()).Should(Equal("The requested CPU architecture (architecture-chocobomb) isn't specified in release images list"))
 		})
 	})
@@ -591,14 +675,14 @@ var _ = Describe("AddReleaseImage", func() {
 
 		_, err := h.AddReleaseImage(releaseImageUrl, pullSecret, "", nil)
 		Expect(err).ShouldNot(HaveOccurred())
-		_, err = h.GetReleaseImage(customOcpVersion, cpuArchitecture)
+		_, err = h.GetReleaseImage(ctx, customOcpVersion, cpuArchitecture, pullSecret)
 		Expect(err).ShouldNot(HaveOccurred())
 	})
 })
 
 var _ = Describe("NewHandler", func() {
 	validateNewHandler := func(releaseImages models.ReleaseImages) error {
-		_, err := NewHandler(common.GetTestLog(), nil, nil, releaseImages, nil, "")
+		_, err := NewHandler(common.GetTestLog(), nil, nil, releaseImages, nil, "", nil)
 		return err
 	}
 

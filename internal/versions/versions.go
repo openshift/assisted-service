@@ -1,6 +1,7 @@
 package versions
 
 import (
+	context "context"
 	"fmt"
 	"runtime/debug"
 
@@ -9,9 +10,11 @@ import (
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/oc"
 	"github.com/openshift/assisted-service/models"
+	hivev1 "github.com/openshift/hive/apis/hive/v1"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 type MustGatherVersion map[string]string
@@ -19,7 +22,7 @@ type MustGatherVersions map[string]MustGatherVersion
 
 //go:generate mockgen --build_flags=--mod=mod -package versions -destination mock_versions.go -self_package github.com/openshift/assisted-service/internal/versions . Handler
 type Handler interface {
-	GetReleaseImage(openshiftVersion, cpuArchitecture string) (*models.ReleaseImage, error)
+	GetReleaseImage(ctx context.Context, openshiftVersion, cpuArchitecture, pullSecret string) (*models.ReleaseImage, error)
 	GetDefaultReleaseImage(cpuArchitecture string) (*models.ReleaseImage, error)
 	AddReleaseImage(releaseImageUrl, pullSecret, ocpReleaseVersion string, cpuArchitectures []string) (*models.ReleaseImage, error)
 	GetMustGatherImages(openshiftVersion, cpuArchitecture, pullSecret string) (MustGatherVersion, error)
@@ -27,7 +30,7 @@ type Handler interface {
 }
 
 func NewHandler(log logrus.FieldLogger, releaseHandler oc.Release, osImages OSImages, releaseImages models.ReleaseImages,
-	mustGatherVersions MustGatherVersions, releaseImageMirror string) (*handler, error) {
+	mustGatherVersions MustGatherVersions, releaseImageMirror string, kubeClient client.Client) (*handler, error) {
 
 	h := &handler{
 		mustGatherVersions: mustGatherVersions,
@@ -36,6 +39,7 @@ func NewHandler(log logrus.FieldLogger, releaseHandler oc.Release, osImages OSIm
 		releaseHandler:     releaseHandler,
 		releaseImageMirror: releaseImageMirror,
 		log:                log,
+		kubeClient:         kubeClient,
 	}
 
 	if err := h.validateVersions(); err != nil {
@@ -52,6 +56,7 @@ type handler struct {
 	releaseHandler     oc.Release
 	releaseImageMirror string
 	log                logrus.FieldLogger
+	kubeClient         client.Client
 }
 
 func (h *handler) GetMustGatherImages(openshiftVersion, cpuArchitecture, pullSecret string) (MustGatherVersion, error) {
@@ -72,7 +77,7 @@ func (h *handler) GetMustGatherImages(openshiftVersion, cpuArchitecture, pullSec
 		return versions, nil
 	}
 	//if not, fetch it from the release image and add it to the cache
-	releaseImage, err := h.GetReleaseImage(openshiftVersion, cpuArchitecture)
+	releaseImage, err := h.GetReleaseImage(context.Background(), openshiftVersion, cpuArchitecture, pullSecret)
 	if err != nil {
 		return nil, err
 	}
@@ -99,8 +104,36 @@ func (h *handler) GetDefaultReleaseImage(cpuArchitecture string) (*models.Releas
 	return defaultReleaseImage.(*models.ReleaseImage), nil
 }
 
-// Returns the ReleaseImage entity
-func (h *handler) GetReleaseImage(openshiftVersion, cpuArchitecture string) (*models.ReleaseImage, error) {
+func (h *handler) GetReleaseImage(ctx context.Context, openshiftVersion, cpuArchitecture, pullSecret string) (*models.ReleaseImage, error) {
+	image, err := h.getReleaseImageFromCache(openshiftVersion, cpuArchitecture)
+	if err == nil || h.kubeClient == nil {
+		return image, err
+	}
+
+	clusterImageSets := &hivev1.ClusterImageSetList{}
+	if err := h.kubeClient.List(ctx, clusterImageSets); err != nil {
+		return nil, err
+	}
+	for _, clusterImageSet := range clusterImageSets.Items {
+		existsInCache := false
+		for _, releaseImage := range h.releaseImages {
+			if releaseImage.URL != nil && *releaseImage.URL == clusterImageSet.Spec.ReleaseImage {
+				existsInCache = true
+				break
+			}
+		}
+		if !existsInCache {
+			_, err := h.AddReleaseImage(clusterImageSet.Spec.ReleaseImage, pullSecret, "", nil)
+			if err != nil {
+				h.log.WithError(err).Warnf("Failed to add release image %s", clusterImageSet.Spec.ReleaseImage)
+			}
+		}
+	}
+
+	return h.getReleaseImageFromCache(openshiftVersion, cpuArchitecture)
+}
+
+func (h *handler) getReleaseImageFromCache(openshiftVersion, cpuArchitecture string) (*models.ReleaseImage, error) {
 	if cpuArchitecture == "" {
 		// Empty implies default CPU architecture
 		cpuArchitecture = common.DefaultCPUArchitecture

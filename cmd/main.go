@@ -67,6 +67,7 @@ import (
 	"github.com/openshift/assisted-service/pkg/thread"
 	"github.com/openshift/assisted-service/restapi"
 	osclientset "github.com/openshift/client-go/config/clientset/versioned"
+	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/sirupsen/logrus"
 	"go.elastic.co/apm/module/apmhttp"
@@ -240,12 +241,6 @@ func main() {
 	log.Println(fmt.Sprintf("Started service with OS images %v, Release images %v",
 		Options.OsImages, Options.ReleaseImages))
 
-	var mustGatherVersionsMap = make(versions.MustGatherVersions)
-	if Options.MustGatherImages != "" {
-		failOnError(json.Unmarshal([]byte(Options.MustGatherImages), &mustGatherVersionsMap),
-			"Failed to parse feature must-gather images JSON %s", Options.MustGatherImages)
-	}
-
 	failOnError(os.MkdirAll(Options.BMConfig.ISOCacheDir, 0700), "Failed to create ISO cache directory %s", Options.BMConfig.ISOCacheDir)
 
 	// Connect to db
@@ -292,10 +287,9 @@ func main() {
 		oc.Config{MaxTries: oc.DefaultTries, RetryDelay: oc.DefaltRetryDelay}, mirrorRegistriesBuilder)
 	extracterHandler := oc.NewExtracter(&executer.CommonExecuter{},
 		oc.Config{MaxTries: oc.DefaultTries, RetryDelay: oc.DefaltRetryDelay})
-	versionHandler, err := versions.NewHandler(log.WithField("pkg", "versions"), releaseHandler, osImages,
-		releaseImagesArray, mustGatherVersionsMap, Options.ReleaseImageMirror)
-	versionsAPIHandler := versions.NewAPIHandler(log, Options.Versions, authzHandler, versionHandler, osImages)
-	failOnError(err, "failed to create Versions handler")
+
+	versionHandler, versionsAPIHandler, err := createVersionHandlers(log, ctrlMgr, releaseHandler, osImages, releaseImagesArray, authzHandler)
+	failOnError(err, "failed to create Versions handlers")
 	domainHandler := domains.NewHandler(Options.BMConfig.BaseDNSDomains)
 	staticNetworkConfig := staticnetworkconfig.New(log.WithField("pkg", "static_network_config"))
 	ignitionBuilder, err := ignition.NewBuilder(log.WithField("pkg", "ignition"), staticNetworkConfig, mirrorRegistriesBuilder, releaseHandler, versionHandler)
@@ -822,4 +816,25 @@ func disableFreeAddressesIfNeeded(enableKubeAPI bool, disabledSteps []models.Ste
 		return append(disabledSteps, models.StepTypeFreeNetworkAddresses)
 	}
 	return disabledSteps
+}
+
+func createVersionHandlers(log logrus.FieldLogger, ctrlMgr manager.Manager, releaseHandler oc.Release, osImages versions.OSImages, releaseImagesArray models.ReleaseImages, authzHandler auth.Authorizer) (versions.Handler, restapi.VersionsAPI, error) {
+	var versionsClient client.Client
+	if ctrlMgr != nil {
+		versionsClient = ctrlMgr.GetClient()
+	}
+	var mustGatherVersionsMap = make(versions.MustGatherVersions)
+	if Options.MustGatherImages != "" {
+		if err := json.Unmarshal([]byte(Options.MustGatherImages), &mustGatherVersionsMap); err != nil {
+			return nil, nil, errors.Wrapf(err, "Failed to parse feature must-gather images JSON %s", Options.MustGatherImages)
+		}
+	}
+	versionsHandler, err := versions.NewHandler(log.WithField("pkg", "versions"), releaseHandler, osImages,
+		releaseImagesArray, mustGatherVersionsMap, Options.ReleaseImageMirror, versionsClient)
+	if err != nil {
+		return nil, nil, err
+	}
+	versionsAPIHandler := versions.NewAPIHandler(log, Options.Versions, authzHandler, versionsHandler, osImages)
+
+	return versionsHandler, versionsAPIHandler, nil
 }
