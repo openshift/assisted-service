@@ -502,22 +502,6 @@ func (b *bareMetalInventory) RegisterClusterInternal(
 
 	monitoredOperators := b.operatorManagerApi.GetSupportedOperatorsByType(models.OperatorTypeBuiltin)
 
-	if params.NewClusterParams.OlmOperators != nil {
-		var newOLMOperators []*models.MonitoredOperator
-		newOLMOperators, err = b.getOLMOperators(params.NewClusterParams.OlmOperators)
-		if err != nil {
-			return nil, err
-		}
-		err = operators.EnsureLVMAndCNVDoNotClash(*releaseImage.Version, newOLMOperators)
-		if err != nil {
-			log.Error(err)
-			return nil, common.NewApiError(http.StatusBadRequest, err)
-		}
-
-		monitoredOperators = append(monitoredOperators, newOLMOperators...)
-
-	}
-
 	cluster := common.Cluster{
 		Cluster: models.Cluster{
 			ID:                           &id,
@@ -558,6 +542,24 @@ func (b *bareMetalInventory) RegisterClusterInternal(
 		TriggerMonitorTimestamp:     time.Now(),
 		MachineNetworkCidrUpdatedAt: time.Now(),
 	}
+
+	if params.NewClusterParams.OlmOperators != nil {
+		var newOLMOperators []*models.MonitoredOperator
+		newOLMOperators, err = b.getOLMOperators(&cluster, params.NewClusterParams.OlmOperators)
+		if err != nil {
+			return nil, err
+		}
+
+		err = operators.EnsureLVMAndCNVDoNotClash(*releaseImage.Version, newOLMOperators)
+		if err != nil {
+			log.Error(err)
+			return nil, common.NewApiError(http.StatusBadRequest, err)
+		}
+
+		monitoredOperators = append(monitoredOperators, newOLMOperators...)
+	}
+
+	cluster.MonitoredOperators = monitoredOperators
 
 	pullSecret := swag.StringValue(params.NewClusterParams.PullSecret)
 	err = b.ValidatePullSecret(pullSecret, ocm.UserNameFromContext(ctx))
@@ -2549,7 +2551,7 @@ func (b *bareMetalInventory) updateOperatorsData(ctx context.Context, cluster *c
 		return nil
 	}
 
-	updateOLMOperators, err := b.getOLMOperators(params.ClusterUpdateParams.OlmOperators)
+	updateOLMOperators, err := b.getOLMOperators(cluster, params.ClusterUpdateParams.OlmOperators)
 	if err != nil {
 		return err
 	}
@@ -2603,7 +2605,7 @@ func (b *bareMetalInventory) updateOperatorsData(ctx context.Context, cluster *c
 	return nil
 }
 
-func (b *bareMetalInventory) getOLMOperators(newOperators []*models.OperatorCreateParams) ([]*models.MonitoredOperator, error) {
+func (b *bareMetalInventory) getOLMOperators(cluster *common.Cluster, newOperators []*models.OperatorCreateParams) ([]*models.MonitoredOperator, error) {
 	monitoredOperators := make([]*models.MonitoredOperator, 0)
 
 	for _, newOperator := range newOperators {
@@ -2619,7 +2621,7 @@ func (b *bareMetalInventory) getOLMOperators(newOperators []*models.OperatorCrea
 		monitoredOperators = append(monitoredOperators, operator)
 	}
 
-	return b.operatorManagerApi.ResolveDependencies(monitoredOperators)
+	return b.operatorManagerApi.ResolveDependencies(cluster, monitoredOperators)
 }
 
 func (b *bareMetalInventory) updateHostsAndClusterStatus(ctx context.Context, cluster *common.Cluster, db *gorm.DB, log logrus.FieldLogger) error {

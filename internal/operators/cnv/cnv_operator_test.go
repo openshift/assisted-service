@@ -10,6 +10,7 @@ import (
 	"github.com/openshift/assisted-service/internal/operators/api"
 	"github.com/openshift/assisted-service/internal/operators/cnv"
 	"github.com/openshift/assisted-service/internal/operators/lso"
+	"github.com/openshift/assisted-service/internal/operators/lvm"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/conversions"
 	"github.com/sirupsen/logrus"
@@ -34,6 +35,32 @@ var _ = Describe("CNV operator", func() {
 		operator = cnv.NewCNVOperator(log, cfg, nil)
 	})
 
+	Context("getDependencies", func() {
+		It("request for lvmo", func() {
+			haMode := models.ClusterHighAvailabilityModeNone
+			cluster := common.Cluster{
+				Cluster: models.Cluster{HighAvailabilityMode: &haMode, OpenshiftVersion: lvm.LvmMinOpenshiftVersion},
+			}
+
+			requirements, err := operator.GetDependencies(&cluster)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(requirements).ToNot(BeNil())
+			Expect(requirements[0]).To(BeEquivalentTo(lvm.Operator.Name))
+		})
+
+		It("request for lso, ocp version older than 4.11 will not get lvmo", func() {
+			haMode := models.ClusterHighAvailabilityModeNone
+			cluster := common.Cluster{
+				Cluster: models.Cluster{HighAvailabilityMode: &haMode, OpenshiftVersion: "4.11.0-0.0"},
+			}
+
+			requirements, err := operator.GetDependencies(&cluster)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(requirements).ToNot(BeNil())
+			Expect(requirements[0]).To(BeEquivalentTo(lso.Operator.Name))
+		})
+	})
+
 	Context("host requirements", func() {
 
 		var cluster common.Cluster
@@ -41,7 +68,7 @@ var _ = Describe("CNV operator", func() {
 		BeforeEach(func() {
 			mode := models.ClusterHighAvailabilityModeFull
 			cluster = common.Cluster{
-				Cluster: models.Cluster{HighAvailabilityMode: &mode},
+				Cluster: models.Cluster{HighAvailabilityMode: &mode, OpenshiftVersion: lvm.LvmMinOpenshiftVersion},
 			}
 		})
 
@@ -207,7 +234,7 @@ var _ = Describe("CNV operator", func() {
 			host := models.Host{Role: models.HostRoleMaster}
 			haMode := models.ClusterHighAvailabilityModeNone
 			cluster = common.Cluster{
-				Cluster: models.Cluster{HighAvailabilityMode: &haMode},
+				Cluster: models.Cluster{HighAvailabilityMode: &haMode, OpenshiftVersion: lvm.LvmMinOpenshiftVersion},
 			}
 
 			requirements, err := operator.GetHostRequirements(context.TODO(), &cluster, &host)

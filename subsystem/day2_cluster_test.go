@@ -106,6 +106,7 @@ var _ = Describe("Day2 cluster tests", func() {
 				OpenshiftClusterID: &openshiftClusterID,
 			},
 		})
+		cluster.Payload.OpenshiftVersion = openshiftVersion
 
 		Expect(err).NotTo(HaveOccurred())
 		By(fmt.Sprintf("clusterID is %s", *cluster.GetPayload().ID))
@@ -598,6 +599,7 @@ var _ = Describe("Installation progress", func() {
 			})
 			Expect(err).NotTo(HaveOccurred())
 			c = importClusterReply.GetPayload()
+			c.OpenshiftVersion = openshiftVersion
 
 			_, err = userBMClient.Installer.V2UpdateCluster(ctx, &installer.V2UpdateClusterParams{
 				ClusterUpdateParams: &models.V2ClusterUpdateParams{

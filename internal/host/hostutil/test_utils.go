@@ -10,6 +10,7 @@ import (
 	"github.com/go-openapi/swag"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/internal/operators/lvm"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/conversions"
 	"gorm.io/gorm"
@@ -32,6 +33,7 @@ func GenerateTestClusterWithMachineNetworks(clusterID strfmt.UUID, machineNetwor
 				EnableOn: swag.String(models.DiskEncryptionEnableOnNone),
 				Mode:     swag.String(models.DiskEncryptionModeTpmv2),
 			},
+			OpenshiftVersion: lvm.LvmMinOpenshiftVersion,
 		},
 	}
 }
@@ -49,6 +51,7 @@ func GenerateTestCluster(clusterID strfmt.UUID) common.Cluster {
 				EnableOn: swag.String(models.DiskEncryptionEnableOnNone),
 				Mode:     swag.String(models.DiskEncryptionModeTpmv2),
 			},
+			OpenshiftVersion: lvm.LvmMinOpenshiftVersion,
 		},
 	}
 }

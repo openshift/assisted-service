@@ -31,7 +31,7 @@ type Operator interface {
 	// GetName reports the name of an operator this Operator manages
 	GetName() string
 	// GetDependencies provides a list of dependencies of the Operator
-	GetDependencies() []string
+	GetDependencies(cluster *common.Cluster) ([]string, error)
 	// ValidateCluster verifies whether this operator is valid for given cluster
 	ValidateCluster(ctx context.Context, cluster *common.Cluster) (ValidationResult, error)
 	// ValidateHost verifies whether this operator is valid for given host

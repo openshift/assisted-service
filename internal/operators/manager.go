@@ -9,9 +9,11 @@ import (
 	"path"
 
 	"github.com/go-openapi/swag"
+	"github.com/hashicorp/go-version"
 	"github.com/openshift/assisted-service/internal/common"
 	manifestsapi "github.com/openshift/assisted-service/internal/manifests/api"
 	"github.com/openshift/assisted-service/internal/operators/api"
+	"github.com/openshift/assisted-service/internal/operators/lvm"
 	"github.com/openshift/assisted-service/models"
 	logutil "github.com/openshift/assisted-service/pkg/log"
 	"github.com/openshift/assisted-service/pkg/s3wrapper"
@@ -54,7 +56,7 @@ type API interface {
 	// AnyOLMOperatorEnabled checks whether any OLM operator has been enabled for the given cluster
 	AnyOLMOperatorEnabled(cluster *common.Cluster) bool
 	// ResolveDependencies amends the list of requested additional operators with any missing dependencies
-	ResolveDependencies(operators []*models.MonitoredOperator) ([]*models.MonitoredOperator, error)
+	ResolveDependencies(cluster *common.Cluster, operators []*models.MonitoredOperator) ([]*models.MonitoredOperator, error)
 	// GetMonitoredOperatorsList returns the monitored operators available by the manager.
 	GetMonitoredOperatorsList() map[string]*models.MonitoredOperator
 	// GetOperatorByName the manager's supported operator object by name.
@@ -75,6 +77,9 @@ type API interface {
 func (mgr Manager) GetPreflightRequirementsBreakdownForCluster(ctx context.Context, cluster *common.Cluster) ([]*models.OperatorHardwareRequirements, error) {
 	logger := logutil.FromContext(ctx, mgr.log)
 	var requirements []*models.OperatorHardwareRequirements
+	if common.IsDay2Cluster(cluster) {
+		return requirements, nil
+	}
 	for operatorName, operator := range mgr.olmOperators {
 		reqs, err := operator.GetPreflightRequirements(ctx, cluster)
 		if err != nil {
@@ -90,6 +95,9 @@ func (mgr Manager) GetPreflightRequirementsBreakdownForCluster(ctx context.Conte
 func (mgr *Manager) GetRequirementsBreakdownForHostInCluster(ctx context.Context, cluster *common.Cluster, host *models.Host) ([]*models.OperatorHostRequirements, error) {
 	logger := logutil.FromContext(ctx, mgr.log)
 	var requirements []*models.OperatorHostRequirements
+	if common.IsDay2Cluster(cluster) {
+		return requirements, nil
+	}
 	for _, monitoredOperator := range cluster.MonitoredOperators {
 		operatorName := monitoredOperator.Name
 		operator := mgr.olmOperators[operatorName]
@@ -285,8 +293,11 @@ func (mgr *Manager) GetOperatorProperties(operatorName string) (models.OperatorP
 	return nil, errors.Errorf("Operator %s not found", operatorName)
 }
 
-func (mgr *Manager) ResolveDependencies(operators []*models.MonitoredOperator) ([]*models.MonitoredOperator, error) {
-	allDependentOperators := mgr.getDependencies(operators)
+func (mgr *Manager) ResolveDependencies(cluster *common.Cluster, operators []*models.MonitoredOperator) ([]*models.MonitoredOperator, error) {
+	allDependentOperators, err := mgr.getDependencies(cluster, operators)
+	if err != nil {
+		return operators, nil
+	}
 
 	inputOperatorNames := make([]string, len(operators))
 	for _, inputOperator := range operators {
@@ -309,23 +320,30 @@ func (mgr *Manager) ResolveDependencies(operators []*models.MonitoredOperator) (
 	return operators, nil
 }
 
-func (mgr *Manager) getDependencies(operators []*models.MonitoredOperator) map[string]bool {
+func (mgr *Manager) getDependencies(cluster *common.Cluster, operators []*models.MonitoredOperator) (map[string]bool, error) {
 	fifo := list.New()
 	visited := make(map[string]bool)
 	for _, op := range operators {
 		if op.OperatorType != models.OperatorTypeOlm {
 			continue
 		}
-
+		deps, err := mgr.olmOperators[op.Name].GetDependencies(cluster)
+		if err != nil {
+			return map[string]bool{}, err
+		}
 		visited[op.Name] = true
-		for _, dep := range mgr.olmOperators[op.Name].GetDependencies() {
+		for _, dep := range deps {
 			fifo.PushBack(dep)
 		}
 	}
 	for fifo.Len() > 0 {
 		first := fifo.Front()
 		op := first.Value.(string)
-		for _, dep := range mgr.olmOperators[op].GetDependencies() {
+		deps, err := mgr.olmOperators[op].GetDependencies(cluster)
+		if err != nil {
+			return map[string]bool{}, err
+		}
+		for _, dep := range deps {
 			if !visited[dep] {
 				fifo.PushBack(dep)
 			}
@@ -334,7 +352,7 @@ func (mgr *Manager) getDependencies(operators []*models.MonitoredOperator) map[s
 		fifo.Remove(first)
 	}
 
-	return visited
+	return visited, nil
 }
 
 func findOperator(operators []*models.MonitoredOperator, operatorName string) *models.MonitoredOperator {
@@ -383,6 +401,22 @@ func (mgr *Manager) GetSupportedOperatorsByType(operatorType models.OperatorType
 }
 
 func EnsureLVMAndCNVDoNotClash(openshiftVersion string, operators []*models.MonitoredOperator) error {
+
+	minOCPVersionForLVM, err := version.NewVersion(lvm.LvmMinOpenshiftVersion)
+	if err != nil {
+		return err
+	}
+
+	ocpVersion, err := version.NewVersion(openshiftVersion)
+	if err != nil {
+		return err
+	}
+
+	// Openshift version greater or Equal to 4.12.0 support cnv and lvm
+	if ocpVersion.GreaterThanOrEqual(minOCPVersionForLVM) {
+		return nil
+	}
+
 	cnvEnabled := false
 	lvmEnabled := false
 

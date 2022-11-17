@@ -744,6 +744,7 @@ func ExtractClusterID(reader io.ReadCloser) (string, error) {
 // bootstrap ignition file
 func (g *installerGenerator) updateBootstrap(ctx context.Context, bootstrapPath string) error {
 	log := logutil.FromContext(ctx, g.log)
+	//nolint:shadow
 	config, err := parseIgnitionFile(bootstrapPath)
 	if err != nil {
 		g.log.Error(err)

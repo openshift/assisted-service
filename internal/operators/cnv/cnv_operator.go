@@ -5,11 +5,13 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/hashicorp/go-version"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/hardware/virt"
 	"github.com/openshift/assisted-service/internal/oc"
 	"github.com/openshift/assisted-service/internal/operators/api"
 	"github.com/openshift/assisted-service/internal/operators/lso"
+	"github.com/openshift/assisted-service/internal/operators/lvm"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/conversions"
 	logutil "github.com/openshift/assisted-service/pkg/log"
@@ -55,8 +57,21 @@ func (o *operator) GetName() string {
 }
 
 // GetDependencies provides a list of dependencies of the Operator
-func (o *operator) GetDependencies() []string {
-	return []string{lso.Operator.Name}
+func (o *operator) GetDependencies(cluster *common.Cluster) ([]string, error) {
+	ocpVersion, err := version.NewVersion(cluster.OpenshiftVersion)
+	if err != nil {
+		return []string{}, err
+	}
+
+	minOCPVersionForLVM, err := version.NewVersion(lvm.LvmMinOpenshiftVersion)
+	if err != nil {
+		return []string{}, err
+	}
+	if common.IsSingleNodeCluster(cluster) && ocpVersion.GreaterThanOrEqual(minOCPVersionForLVM) {
+		return []string{lvm.Operator.Name}, nil
+	}
+
+	return []string{lso.Operator.Name}, nil
 }
 
 // GetClusterValidationID returns cluster validation ID for the Operator
@@ -208,9 +223,13 @@ func (o *operator) GetPreflightRequirements(_ context.Context, cluster *common.C
 		qualitativeRequirements = append(qualitativeRequirements, fmt.Sprintf("Additional disk with %d Gi", o.config.SNOPoolSizeRequestHPPGib))
 	}
 
+	cnvODependencies, err := o.GetDependencies(cluster)
+	if err != nil {
+		return &models.OperatorHardwareRequirements{}, err
+	}
 	requirements := models.OperatorHardwareRequirements{
 		OperatorName: o.GetName(),
-		Dependencies: o.GetDependencies(),
+		Dependencies: cnvODependencies,
 		Requirements: &models.HostTypeHardwareRequirementsWrapper{
 			Master: &models.HostTypeHardwareRequirements{
 				Qualitative: qualitativeRequirements,
