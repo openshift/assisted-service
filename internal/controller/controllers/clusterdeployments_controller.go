@@ -1238,8 +1238,7 @@ func (r *ClusterDeploymentsReconciler) createNewCluster(
 		return r.updateStatus(ctx, log, clusterInstall, nil, err)
 	}
 
-	releaseImage, err := r.addReleaseImage(ctx, log, clusterInstall.Spec, pullSecret)
-
+	releaseImage, err := r.getReleaseImage(ctx, log, clusterInstall.Spec, pullSecret)
 	if err != nil {
 		log.WithError(err)
 		_, _ = r.updateStatus(ctx, log, clusterInstall, nil, err)
@@ -1311,28 +1310,26 @@ func (r *ClusterDeploymentsReconciler) createNewDay2Cluster(
 	return r.updateStatus(ctx, log, clusterInstall, c, err)
 }
 
-func (r *ClusterDeploymentsReconciler) addReleaseImage(
+func (r *ClusterDeploymentsReconciler) getReleaseImage(
 	ctx context.Context,
 	log logrus.FieldLogger,
 	spec hiveext.AgentClusterInstallSpec,
 	pullSecret string) (*models.ReleaseImage, error) {
 
-	var err error
-
-	// retrieve the release image url from the associated
-	// ClusterImageSetRef
-	releaseImageUrl, err := getReleaseImage(ctx, r.Client, spec.ImageSetRef.Name)
-	if err != nil {
-		return nil, err
+	clusterImageSet := &hivev1.ClusterImageSet{}
+	key := types.NamespacedName{
+		Namespace: "",
+		Name:      spec.ImageSetRef.Name,
+	}
+	if err := r.Client.Get(ctx, key, clusterImageSet); err != nil {
+		return nil, errors.Wrapf(err, "failed to get cluster image set %s", key.Name)
 	}
 
-	// before creating the cluster the source of truth is the
-	// release image url from the ClusterImageSetRef
-	releaseImage, err := r.VersionsHandler.AddReleaseImage(releaseImageUrl, pullSecret)
+	releaseImage, err := r.VersionsHandler.GetReleaseImageByURL(ctx, clusterImageSet.Spec.ReleaseImage, pullSecret)
 	if err != nil {
 		log.Error(err)
-		errMsg := "failed to add release image '%s'. Please ensure the releaseImage field in ClusterImageSet '%s' is valid (error: %s)."
-		return nil, errors.New(fmt.Sprintf(errMsg, releaseImageUrl, spec.ImageSetRef.Name, err.Error()))
+		errMsg := "failed to get release image '%s'. Please ensure the releaseImage field in ClusterImageSet '%s' is valid (error: %s)."
+		return nil, errors.New(fmt.Sprintf(errMsg, clusterImageSet.Spec.ReleaseImage, spec.ImageSetRef.Name, err.Error()))
 	}
 
 	return releaseImage, nil

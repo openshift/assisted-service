@@ -24,7 +24,7 @@ type MustGatherVersions map[string]MustGatherVersion
 type Handler interface {
 	GetReleaseImage(ctx context.Context, openshiftVersion, cpuArchitecture, pullSecret string) (*models.ReleaseImage, error)
 	GetDefaultReleaseImage(cpuArchitecture string) (*models.ReleaseImage, error)
-	AddReleaseImage(releaseImageUrl, pullSecret string) (*models.ReleaseImage, error)
+	GetReleaseImageByURL(ctx context.Context, url, pullSecret string) (*models.ReleaseImage, error)
 	GetMustGatherImages(openshiftVersion, cpuArchitecture, pullSecret string) (MustGatherVersion, error)
 	ValidateReleaseImageForRHCOS(rhcosVersion, cpuArch string) error
 }
@@ -123,7 +123,7 @@ func (h *handler) GetReleaseImage(ctx context.Context, openshiftVersion, cpuArch
 			}
 		}
 		if !existsInCache {
-			_, err := h.AddReleaseImage(clusterImageSet.Spec.ReleaseImage, pullSecret)
+			_, err := h.addReleaseImage(clusterImageSet.Spec.ReleaseImage, pullSecret)
 			if err != nil {
 				h.log.WithError(err).Warnf("Failed to add release image %s", clusterImageSet.Spec.ReleaseImage)
 			}
@@ -131,6 +131,16 @@ func (h *handler) GetReleaseImage(ctx context.Context, openshiftVersion, cpuArch
 	}
 
 	return h.getReleaseImageFromCache(openshiftVersion, cpuArchitecture)
+}
+
+func (h *handler) GetReleaseImageByURL(ctx context.Context, url, pullSecret string) (*models.ReleaseImage, error) {
+	for _, image := range h.releaseImages {
+		if swag.StringValue(image.URL) == url {
+			return image, nil
+		}
+	}
+
+	return h.addReleaseImage(url, pullSecret)
 }
 
 func (h *handler) getReleaseImageFromCache(openshiftVersion, cpuArchitecture string) (*models.ReleaseImage, error) {
@@ -207,7 +217,7 @@ func (h *handler) ValidateReleaseImageForRHCOS(rhcosVersion, cpuArchitecture str
 	return errors.Errorf("The requested RHCOS version (%s, arch: %s) does not have a matching OpenShift release image", rhcosVersion, cpuArchitecture)
 }
 
-func (h *handler) AddReleaseImage(releaseImageUrl, pullSecret string) (*models.ReleaseImage, error) {
+func (h *handler) addReleaseImage(releaseImageUrl, pullSecret string) (*models.ReleaseImage, error) {
 	// Get openshift version from release image metadata (oc adm release info)
 	ocpReleaseVersion, err := h.releaseHandler.GetOpenshiftVersion(h.log, releaseImageUrl, "", pullSecret)
 	if err != nil {
