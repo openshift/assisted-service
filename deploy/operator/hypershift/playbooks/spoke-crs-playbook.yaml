@@ -1,0 +1,57 @@
+- name: Create CRs in order to deploy a spoke cluster via Assisted Installer
+  hosts: localhost
+  collections:
+   - community.general
+  gather_facts: no
+  vars:
+    - spoke_namespace: "{{ lookup('env', 'SPOKE_NAMESPACE') }}"
+    - infraenv_name: "{{ lookup('env', 'ASSISTED_INFRAENV_NAME') }}"
+    - pull_secret_name: "{{ lookup('env', 'ASSISTED_PULLSECRET_NAME') }}"
+    - spoke_controlplane_agents: "{{ lookup('env', 'SPOKE_CONTROLPLANE_AGENTS') }}"
+    - ssh_private_key_name: "{{ lookup('env', 'ASSISTED_PRIVATEKEY_NAME') }}"
+    - ssh_public_key: "{{ lookup('file', '/root/.ssh/id_rsa.pub') }}"
+    - spoke_api_vip: "{{ lookup('env', 'SPOKE_API_VIP') }}"
+    - spoke_ingress_vip: "{{ lookup('env', 'SPOKE_INGRESS_VIP') }}"
+    - cluster_name: "{{ lookup('env', 'ASSISTED_CLUSTER_NAME') }}"
+    - cluster_image_set_name: "{{ lookup('env', 'ASSISTED_OPENSHIFT_VERSION') }}"
+    - cluster_release_image: "{{ lookup('env', 'ASSISTED_OPENSHIFT_INSTALL_RELEASE_IMAGE') }}"
+    - cluster_deployment_name: "{{ lookup('env', 'ASSISTED_CLUSTER_DEPLOYMENT_NAME') }}"
+    - agent_cluster_install_name: "{{ lookup('env', 'ASSISTED_AGENT_CLUSTER_INSTALL_NAME') }}"
+    - cluster_subnet: "{{ lookup('env', 'CLUSTER_SUBNET') }}"
+    - cluster_host_prefix: "{{ lookup('env', 'CLUSTER_HOST_PREFIX') }}"
+    - external_subnet: "{{ lookup('env', 'EXTERNAL_SUBNET') }}"
+    - service_subnet: "{{ lookup('env', 'SERVICE_SUBNET') }}"
+    - cluster_subnet_additional: "{{ lookup('env', 'CLUSTER_SUBNET_ADDITIONAL') }}"
+    - cluster_host_prefix_additional: "{{ lookup('env', 'CLUSTER_HOST_PREFIX_ADDITIONAL') }}"
+    - external_subnet_additional: "{{ lookup('env', 'EXTERNAL_SUBNET_ADDITIONAL') }}"
+    - service_subnet_additional: "{{ lookup('env', 'SERVICE_SUBNET_ADDITIONAL') }}"
+    - baremetalhosts: "{{ lookup('file', lookup('env', 'EXTRA_BAREMETALHOSTS_FILE')) | from_json }}"
+    - assisted_upgrade_operator: "{{ lookup('env', 'ASSISTED_UPGRADE_OPERATOR') }}"
+    - assisted_stop_after_agent_discovery: "{{ lookup('env', 'ASSISTED_STOP_AFTER_AGENT_DISCOVERY') }}"
+    - user_managed_networking: "{{ lookup('env', 'USER_MANAGED_NETWORKING') }}"
+
+  tasks:
+  - name: create directory for generated resources
+    file:
+      name: generated
+      state: directory
+
+  - name: write the infraEnv CR
+    template:
+      src: "../../ztp/infraEnv.j2"
+      dest: "generated/infraEnv.yaml"
+
+  - name: write the cluster image set CR
+    template:
+      src: "../../ztp/clusterImageSet.j2"
+      dest: "generated/clusterImageSet.yaml"
+
+  - name: write the clusterDeployment CR
+    template:
+      src: "../../ztp/clusterDeployment.j2"
+      dest: "generated/clusterDeployment.yaml"
+
+  - name: write the agentClusterInstall CR
+    template:
+      src: "../../ztp/agentClusterInstall.j2"
+      dest: "generated/agentClusterInstall.yaml"

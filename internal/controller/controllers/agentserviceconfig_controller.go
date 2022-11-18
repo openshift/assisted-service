@@ -1063,7 +1063,7 @@ func newAssistedCM(ctx context.Context, log logrus.FieldLogger, asc ASC) (client
 			"ENABLE_SINGLE_NODE_DNSMASQ":  "True",
 			"IPV6_SUPPORT":                "True",
 			"JWKS_URL":                    "https://api.openshift.com/.well-known/jwks.json",
-			"PUBLIC_CONTAINER_REGISTRIES": "quay.io,registry.svc.ci.openshift.org",
+			"PUBLIC_CONTAINER_REGISTRIES": getEnvVar("PUBLIC_CONTAINER_REGISTRIES", "quay.io,registry.svc.ci.openshift.org"),
 			"HW_VALIDATOR_REQUIREMENTS":   defaultControllerHardwareRequirements,
 
 			"NAMESPACE":       asc.namespace,

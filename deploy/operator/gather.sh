@@ -153,6 +153,38 @@ function gather_capi_data() {
 
 }
 
+function gather_hypershift_data() {
+  hypershift_dir="${LOGS_DEST}/hypershift"
+  mkdir -p "${hypershift_dir}"
+
+  oc get all -n "${SPOKE_NAMESPACE}" > ${hypershift_dir}/oc_get_all.log
+  oc get configmap -n "${SPOKE_NAMESPACE}" assisted-service -o yaml > ${hypershift_dir}/oc_get_configmap.yaml
+  oc get events -n "${SPOKE_NAMESPACE}" --sort-by=.metadata.creationTimestamp > ${hypershift_dir}/oc_get_events.log
+
+  oc logs --tail=-1 -n "${SPOKE_NAMESPACE}" --selector app=assisted-service -c assisted-service > ${hypershift_dir}/assisted-service.log
+  oc logs --tail=-1 -n "${SPOKE_NAMESPACE}" --selector app=assisted-image-service -c assisted-image-service > ${hypershift_dir}/assisted-image-service.log
+  oc logs --tail=-1 -n "${SPOKE_NAMESPACE}" --selector app=assisted-service -c postgres > ${hypershift_dir}/postgres.log
+  oc logs --tail=-1 -n "${SPOKE_NAMESPACE}" --selector control-plane=infrastructure-operator > ${hypershift_dir}/infrastructure-operator.log
+
+  hub_dir="${hypershift_dir}/hub_cluster"
+  mkdir -p "${hub_dir}"
+  CRS=(pods baremetalhosts deployments clusterdeployments replicasets hypershiftagentserviceconfigs)
+  for cr in "${CRS[@]}"; do
+    oc get "${cr}" -n "${SPOKE_NAMESPACE}" -o yaml > "${hub_dir}/oc_get_${cr}.yaml"
+  done
+
+  spoke_dir="${hypershift_dir}/spoke_cluster"
+  mkdir -p "${spoke_dir}"
+
+  SPOKE_KUBECONFIG=/tmp/spoke-cluster-kubeconfig
+  if [ -f "$SPOKE_KUBECONFIG" ]; then
+    CRS=(agents infraenvs clusterdeployments agentclusterinstalls clusterimagesets)
+    for cr in "${CRS[@]}"; do
+      oc --kubeconfig ${SPOKE_KUBECONFIG} get "${cr}" -n "${SPOKE_NAMESPACE}" -o yaml > "${spoke_dir}/oc_get_${cr}.yaml"
+    done
+  fi
+}
+
 function gather_all() {
   gather_cluster_data
   gather_hive_data
@@ -165,6 +197,7 @@ function gather_all() {
   gather_clusterdeployment_data
   gather_imageset_data
   gather_capi_data
+  gather_hypershift_data
 }
 
 gather_all
