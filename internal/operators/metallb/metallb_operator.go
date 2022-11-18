@@ -1,0 +1,143 @@
+package metallb
+
+import (
+	"context"
+	"fmt"
+
+	"github.com/hashicorp/go-version"
+	"github.com/kelseyhightower/envconfig"
+	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/internal/oc"
+	"github.com/openshift/assisted-service/internal/operators/api"
+	"github.com/openshift/assisted-service/models"
+	logutil "github.com/openshift/assisted-service/pkg/log"
+	"github.com/sirupsen/logrus"
+)
+
+// operator is an ODF MetalLB OLM operator plugin; it implements api.Operator
+type operator struct {
+	log       logrus.FieldLogger
+	config    *Config
+	extracter oc.Extracter
+}
+
+var Operator = models.MonitoredOperator{
+	Name:             "metallb",
+	OperatorType:     models.OperatorTypeOlm,
+	Namespace:        "metallb",
+	SubscriptionName: "metallb-operator",
+	TimeoutSeconds:   30 * 60,
+}
+
+// NewMetalLBOperator creates new MetalLBOperator
+func NewMetalLBOperator(log logrus.FieldLogger, extracter oc.Extracter) *operator {
+	cfg := Config{}
+	err := envconfig.Process(common.EnvConfigPrefix, &cfg)
+	if err != nil {
+		log.Fatal(err.Error())
+	}
+	return newMetalLBOperatorWithConfig(log, &cfg, extracter)
+}
+
+// newOdfOperatorWithConfig creates new ODFOperator with given configuration
+func newMetalLBOperatorWithConfig(log logrus.FieldLogger, config *Config, extracter oc.Extracter) *operator {
+	return &operator{
+		log:       log,
+		config:    config,
+		extracter: extracter,
+	}
+}
+
+// GetName reports the name of an operator this Operator manages
+func (o *operator) GetName() string {
+	return Operator.Name
+}
+
+// GetDependencies provides a list of dependencies of the Operator
+func (o *operator) GetDependencies() []string {
+	return make([]string, 0)
+}
+
+// GetClusterValidationID returns cluster validation ID for the Operator
+func (o *operator) GetClusterValidationID() string {
+	return string(models.ClusterValidationIDMetallbRequirementsSatisfied)
+}
+
+// GetHostValidationID returns host validation ID for the Operator
+func (o *operator) GetHostValidationID() string {
+	return string(models.HostValidationIDMetallbRequirementsSatisfied)
+}
+
+// ValidateCluster always return "valid" result
+func (o *operator) ValidateCluster(_ context.Context, cluster *common.Cluster) (api.ValidationResult, error) {
+	var ocpVersion, minOpenshiftVersionForMetalLB *version.Version
+	var err error
+
+	ocpVersion, err = version.NewVersion(cluster.OpenshiftVersion)
+	if err != nil {
+		return api.ValidationResult{Status: api.Failure, ValidationId: o.GetHostValidationID(), Reasons: []string{err.Error()}}, nil
+	}
+	minOpenshiftVersionForMetalLB, err = version.NewVersion(o.config.MetalLBMinOpenshiftVersion)
+	if err != nil {
+		return api.ValidationResult{Status: api.Failure, ValidationId: o.GetHostValidationID(), Reasons: []string{err.Error()}}, nil
+	}
+	if ocpVersion.LessThan(minOpenshiftVersionForMetalLB) {
+		message := fmt.Sprintf("MetalLB operator is only supported for openshift versions %s and above", o.config.MetalLBMinOpenshiftVersion)
+		return api.ValidationResult{Status: api.Failure, ValidationId: o.GetClusterValidationID(), Reasons: []string{message}}, nil
+	}
+
+	return api.ValidationResult{Status: api.Success, ValidationId: o.GetClusterValidationID()}, nil
+}
+
+// ValidateHost always return "valid" result
+func (o *operator) ValidateHost(ctx context.Context, cluster *common.Cluster, host *models.Host) (api.ValidationResult, error) {
+	return api.ValidationResult{Status: api.Success, ValidationId: o.GetHostValidationID()}, nil
+}
+
+// GenerateManifests generates manifests for the operator
+func (o *operator) GenerateManifests(_ *common.Cluster) (map[string][]byte, []byte, error) {
+	return Manifests()
+}
+
+// GetProperties provides description of operator properties: none required
+func (o *operator) GetProperties() models.OperatorProperties {
+	return models.OperatorProperties{}
+}
+
+// GetMonitoredOperator returns MonitoredOperator corresponding to the LSO
+func (o *operator) GetMonitoredOperator() *models.MonitoredOperator {
+	return &Operator
+}
+
+// GetHostRequirements provides operator's requirements towards the host
+func (o *operator) GetHostRequirements(ctx context.Context, cluster *common.Cluster, _ *models.Host) (*models.ClusterHostRequirementsDetails, error) {
+	log := logutil.FromContext(ctx, o.log)
+	preflightRequirements, err := o.GetPreflightRequirements(ctx, cluster)
+	if err != nil {
+		log.WithError(err).Errorf("Cannot retrieve preflight requirements for cluster %s", cluster.ID)
+		return nil, err
+	}
+	return preflightRequirements.Requirements.Master.Quantitative, nil
+}
+
+// GetPreflightRequirements returns operator hardware requirements that can be determined with cluster data only
+func (o *operator) GetPreflightRequirements(context.Context, *common.Cluster) (*models.OperatorHardwareRequirements, error) {
+	return &models.OperatorHardwareRequirements{
+		OperatorName: o.GetName(),
+		Dependencies: o.GetDependencies(),
+		Requirements: &models.HostTypeHardwareRequirementsWrapper{
+			Master: &models.HostTypeHardwareRequirements{
+				Quantitative: &models.ClusterHostRequirementsDetails{
+					CPUCores: o.config.MetalLBCPUPerHost,
+					RAMMib:   o.config.MetalLBMemoryPerHostMiB,
+				},
+				Qualitative: []string{
+					"At least 1 non-installation disk wih no partitions or filesystems",
+				},
+			},
+			Worker: &models.HostTypeHardwareRequirements{
+				Quantitative: &models.ClusterHostRequirementsDetails{},
+			},
+		},
+	}, nil
+}
