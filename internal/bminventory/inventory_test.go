@@ -15251,42 +15251,6 @@ var _ = Describe("GetCredentials", func() {
 	})
 })
 
-var _ = Describe("AddReleaseImage", func() {
-	var (
-		cfg          = Config{}
-		ctx          = context.Background()
-		bm           *bareMetalInventory
-		db           *gorm.DB
-		dbName       string
-		pullSecret   = "test_pull_secret"
-		releaseImage = "releaseImage"
-	)
-
-	BeforeEach(func() {
-		db, dbName = common.PrepareTestDB()
-		bm = createInventory(db, cfg)
-	})
-
-	AfterEach(func() {
-		common.DeleteTestDB(db, dbName)
-	})
-
-	It("successfully added version", func() {
-		mockVersions.EXPECT().AddReleaseImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(common.TestDefaultConfig.ReleaseImage, nil).Times(1)
-
-		image, err := bm.AddReleaseImage(ctx, releaseImage, pullSecret, "", nil)
-		Expect(err).ShouldNot(HaveOccurred())
-		Expect(image).Should(Equal(common.TestDefaultConfig.ReleaseImage))
-	})
-
-	It("failed to added version", func() {
-		mockVersions.EXPECT().AddReleaseImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, errors.New("failed")).Times(1)
-
-		_, err := bm.AddReleaseImage(ctx, releaseImage, pullSecret, "", nil)
-		Expect(err).Should(HaveOccurred())
-	})
-})
-
 var _ = Describe("Platform tests", func() {
 
 	var (

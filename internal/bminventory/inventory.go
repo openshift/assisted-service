@@ -162,7 +162,6 @@ type InstallerInternals interface {
 	UpdateClusterInstallConfigInternal(ctx context.Context, params installer.V2UpdateClusterInstallConfigParams) (*common.Cluster, error)
 	CancelInstallationInternal(ctx context.Context, params installer.V2CancelInstallationParams) (*common.Cluster, error)
 	TransformClusterToDay2Internal(ctx context.Context, clusterID strfmt.UUID) (*common.Cluster, error)
-	AddReleaseImage(ctx context.Context, releaseImageUrl, pullSecret, ocpReleaseVersion string, cpuArchitectures []string) (*models.ReleaseImage, error)
 	GetClusterSupportedPlatformsInternal(ctx context.Context, params installer.GetClusterSupportedPlatformsParams) (*[]models.PlatformType, error)
 	V2UpdateHostInternal(ctx context.Context, params installer.V2UpdateHostParams, interactivity Interactivity) (*common.Host, error)
 	GetInfraEnvByKubeKey(key types.NamespacedName) (*common.InfraEnv, error)
@@ -4157,28 +4156,6 @@ func (b *bareMetalInventory) V2ResetHostValidation(ctx context.Context, params i
 		return common.GenerateErrorResponder(err)
 	}
 	return installer.NewV2ResetHostValidationOK()
-}
-
-func (b *bareMetalInventory) AddReleaseImage(ctx context.Context, releaseImageUrl, pullSecret, ocpReleaseVersion string, cpuArchitectures []string) (*models.ReleaseImage, error) {
-	log := logutil.FromContext(ctx, b.log)
-
-	// Create a new OpenshiftVersion and add it to versions cache
-	debugTemplate := fmt.Sprintf("Creating OpenShiftVersion from release image %s", releaseImageUrl)
-	if ocpReleaseVersion != "" {
-		debugTemplate = fmt.Sprintf(debugTemplate+" for version %s", ocpReleaseVersion)
-	}
-	if cpuArchitectures != nil {
-		debugTemplate = fmt.Sprintf(debugTemplate+" for architectures: %s", cpuArchitectures)
-	}
-	log.Debug(debugTemplate)
-
-	releaseImage, err := b.versionsHandler.AddReleaseImage(releaseImageUrl, pullSecret, ocpReleaseVersion, cpuArchitectures)
-	if err != nil {
-		log.WithError(err).Errorf("Failed to add OCP version for release image: %s", releaseImageUrl)
-		return nil, err
-	}
-
-	return releaseImage, nil
 }
 
 func (b *bareMetalInventory) DeregisterInfraEnv(ctx context.Context, params installer.DeregisterInfraEnvParams) middleware.Responder {

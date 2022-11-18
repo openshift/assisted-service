@@ -43,6 +43,7 @@ import (
 	manifestsapi "github.com/openshift/assisted-service/internal/manifests/api"
 	"github.com/openshift/assisted-service/internal/network"
 	"github.com/openshift/assisted-service/internal/operators"
+	"github.com/openshift/assisted-service/internal/versions"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/auth"
 	logutil "github.com/openshift/assisted-service/pkg/log"
@@ -93,7 +94,8 @@ type ClusterDeploymentsReconciler struct {
 	Manifests        manifestsapi.ClusterManifestsInternals
 	ServiceBaseURL   string
 	PullSecretHandler
-	AuthType auth.AuthType
+	AuthType        auth.AuthType
+	VersionsHandler versions.Handler
 }
 
 const minimalOpenShiftVersionForDefaultNetworkTypeOVNKubernetes = "4.12.0-0.0"
@@ -1336,13 +1338,11 @@ func (r *ClusterDeploymentsReconciler) addReleaseImage(
 	if cluster == nil {
 		// before creating the cluster the source of truth is the
 		// release image url from the ClusterImageSetRef
-		releaseImage, err = r.Installer.AddReleaseImage(ctx,
-			releaseImageUrl, pullSecret, "", nil)
+		releaseImage, err = r.VersionsHandler.AddReleaseImage(releaseImageUrl, pullSecret, "", nil)
 	} else {
 		// If the cluster is already created, take the Release Version
 		// ane architecture from the version calculated by the BE.
-		releaseImage, err = r.Installer.AddReleaseImage(ctx,
-			releaseImageUrl, pullSecret, cluster.OpenshiftVersion, []string{cluster.CPUArchitecture})
+		releaseImage, err = r.VersionsHandler.AddReleaseImage(releaseImageUrl, pullSecret, cluster.OpenshiftVersion, []string{cluster.CPUArchitecture})
 	}
 
 	if err != nil {

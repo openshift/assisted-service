@@ -548,6 +548,7 @@ func main() {
 				ServiceBaseURL:    Options.BMConfig.ServiceBaseURL,
 				PullSecretHandler: controllers.NewPullSecretHandler(cluster_client, cluster_reader, bm),
 				AuthType:          Options.Auth.AuthType,
+				VersionsHandler:   versionHandler,
 			}).SetupWithManager(ctrlMgr), "unable to create controller ClusterDeployment")
 
 			failOnError((&controllers.AgentReconciler{
