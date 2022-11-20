@@ -572,6 +572,10 @@ github.com/felixge/httpsnoop v1.0.1 h1:lvB5Jl89CsZtGIWuTcDM1E/vkVs49/Ml7JJe07l8S
 github.com/felixge/httpsnoop v1.0.1/go.mod h1:m8KPJKqk1gH5J9DgRY2ASl2lWCfGKXixSwevea8zH2U=
 github.com/filanov/stateswitch v0.0.0-20200714113403-51a42a34c604 h1:aZhbnjYgDH0XJXQPYGxJjla3bOsx+I4V1F3eqMuiIpQ=
 github.com/filanov/stateswitch v0.0.0-20200714113403-51a42a34c604/go.mod h1:GYnXtGE0e/uuFBz4CbjJL0JmP3DWwzGtcpjZYYC9ikc=
+github.com/filanov/stateswitch v1.0.1-0.20221115122927-775ae5822fad h1:pc0NHPxVnTThGFQDoxL9nsgrE347+veHR0M5C5s/k1Q=
+github.com/filanov/stateswitch v1.0.1-0.20221115122927-775ae5822fad/go.mod h1:GYnXtGE0e/uuFBz4CbjJL0JmP3DWwzGtcpjZYYC9ikc=
+github.com/filanov/stateswitch v1.0.1-0.20221122134945-bfa198e3a83a h1:pjBflcDo/fRYYtzrMxlQu6UefT+8uIWHbH9hOXfOlp8=
+github.com/filanov/stateswitch v1.0.1-0.20221122134945-bfa198e3a83a/go.mod h1:GYnXtGE0e/uuFBz4CbjJL0JmP3DWwzGtcpjZYYC9ikc=
 github.com/flynn/go-shlex v0.0.0-20150515145356-3f9db97f8568/go.mod h1:xEzjJPgXI435gkrCt3MPfRiAkVrwSbHsst4LCFVfpJc=
 github.com/form3tech-oss/jwt-go v3.2.2+incompatible/go.mod h1:pbq4aXjuKjdthFRnoDwaVPLA+WlJuPGy+QneDUgJi2k=
 github.com/form3tech-oss/jwt-go v3.2.3+incompatible h1:7ZaBxOI7TMoYBfyA3cQHErNNyAWIKUMIwqxEtgHOs5c=

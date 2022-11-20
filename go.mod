@@ -15,7 +15,7 @@ require (
 	github.com/coreos/vcontext v0.0.0-20211021162308-f1dbbca7bef4
 	github.com/danielerez/go-dns-client v0.0.0-20200630114514-0b60d1703f0b
 	github.com/dustin/go-humanize v1.0.0
-	github.com/filanov/stateswitch v0.0.0-20200714113403-51a42a34c604
+	github.com/filanov/stateswitch v1.0.1-0.20221122134945-bfa198e3a83a
 	github.com/go-gormigrate/gormigrate/v2 v2.0.1
 	github.com/go-logr/logr v1.2.3
 	github.com/go-openapi/errors v0.20.3

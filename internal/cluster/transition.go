@@ -43,6 +43,30 @@ type transitionHandler struct {
 	eventsHandler       eventsapi.Handler
 }
 
+//go:generate mockgen -source=transition.go -package=cluster -destination=mock_transition.go
+type TransitionHandler interface {
+	PostCancelInstallation(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) error
+	PostResetCluster(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) error
+	PostPrepareForInstallation(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) error
+	PostCompleteInstallation(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) error
+	PostHandlePreInstallationError(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) error
+	IsFinalizing(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) (bool, error)
+	IsInstalling(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) (bool, error)
+	IsInstallingPendingUserAction(sw stateswitch.StateSwitch, _ stateswitch.TransitionArgs) (bool, error)
+	WithAMSSubscriptions(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) (bool, error)
+	PostUpdateFinalizingAMSConsoleUrl(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) error
+	IsInstallationTimedOut(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) (bool, error)
+	IsFinalizingTimedOut(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) (bool, error)
+	IsPreparingTimedOut(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) (bool, error)
+	PostPreparingTimedOut(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) error
+	PostRefreshCluster(reason string) stateswitch.PostTransition
+	InstallCluster(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) error
+	PostRefreshLogsProgress(progress string) stateswitch.PostTransition
+	IsLogCollectionTimedOut(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) (bool, error)
+	areAllHostsDone(sw stateswitch.StateSwitch, _ stateswitch.TransitionArgs) (bool, error)
+	hasClusterCompleteInstallation(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) (bool, error)
+}
+
 ////////////////////////////////////////////////////////////////////////////
 // CancelInstallation
 ////////////////////////////////////////////////////////////////////////////
@@ -323,7 +347,7 @@ func If(id stringer) stateswitch.Condition {
 	return ret
 }
 
-//check if we should move to finalizing state
+// check if we should move to finalizing state
 func (th *transitionHandler) IsFinalizing(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) (bool, error) {
 	sCluster, ok := sw.(*stateCluster)
 	installedStatus := []string{models.HostStatusInstalled}
@@ -337,7 +361,7 @@ func (th *transitionHandler) IsFinalizing(sw stateswitch.StateSwitch, args state
 	return false, nil
 }
 
-//check if we should stay in installing state
+// check if we should stay in installing state
 func (th *transitionHandler) IsInstalling(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) (bool, error) {
 	sCluster, _ := sw.(*stateCluster)
 	installingStatuses := []string{models.HostStatusInstalling, models.HostStatusInstallingInProgress,
@@ -345,7 +369,7 @@ func (th *transitionHandler) IsInstalling(sw stateswitch.StateSwitch, args state
 	return th.enoughMastersAndWorkers(sCluster, installingStatuses), nil
 }
 
-//check if we should stay in installing state
+// check if we should stay in installing state
 func (th *transitionHandler) areAllHostsDone(sw stateswitch.StateSwitch, _ stateswitch.TransitionArgs) (bool, error) {
 	sCluster, _ := sw.(*stateCluster)
 	doneStatuses := []string{models.HostStatusInstalled, models.HostStatusError}
@@ -357,7 +381,7 @@ func (th *transitionHandler) areAllHostsDone(sw stateswitch.StateSwitch, _ state
 	return true, nil
 }
 
-//check if we should move to installing-pending-user-action state
+// check if we should move to installing-pending-user-action state
 func (th *transitionHandler) IsInstallingPendingUserAction(
 	sw stateswitch.StateSwitch,
 	_ stateswitch.TransitionArgs,
@@ -445,7 +469,7 @@ func (th *transitionHandler) enoughMastersAndWorkers(sCluster *stateCluster, sta
 	return false
 }
 
-//check if installation reach to timeout
+// check if installation reach to timeout
 func (th *transitionHandler) IsInstallationTimedOut(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) (bool, error) {
 	sCluster, ok := sw.(*stateCluster)
 	if !ok {
@@ -457,7 +481,7 @@ func (th *transitionHandler) IsInstallationTimedOut(sw stateswitch.StateSwitch, 
 	return false, nil
 }
 
-//check if finalizing reach to timeout
+// check if finalizing reach to timeout
 func (th *transitionHandler) IsFinalizingTimedOut(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) (bool, error) {
 	sCluster, ok := sw.(*stateCluster)
 	if !ok {
@@ -470,7 +494,7 @@ func (th *transitionHandler) IsFinalizingTimedOut(sw stateswitch.StateSwitch, ar
 	return false, nil
 }
 
-//check if prepare for installation reach to timeout
+// check if prepare for installation reach to timeout
 func (th *transitionHandler) IsPreparingTimedOut(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) (bool, error) {
 	sCluster, ok := sw.(*stateCluster)
 	if !ok {
@@ -602,7 +626,7 @@ func (th *transitionHandler) PostRefreshLogsProgress(progress string) stateswitc
 	}
 }
 
-//check if log collection on cluster level reached timeout
+// check if log collection on cluster level reached timeout
 func (th *transitionHandler) IsLogCollectionTimedOut(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) (bool, error) {
 	sCluster, ok := sw.(*stateCluster)
 	if !ok {
