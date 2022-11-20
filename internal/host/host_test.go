@@ -380,8 +380,8 @@ var _ = Describe("update_progress", func() {
 	})
 
 	AfterEach(func() {
-		common.DeleteTestDB(db, dbName)
 		ctrl.Finish()
+		common.DeleteTestDB(db, dbName)
 	})
 
 	Context("installing host", func() {
@@ -391,7 +391,6 @@ var _ = Describe("update_progress", func() {
 		)
 
 		BeforeEach(func() {
-			ctrl = gomock.NewController(GinkgoT())
 			mockMetric = metrics.NewMockAPI(ctrl)
 			setDefaultReportHostInstallationMetrics(mockMetric)
 			host.Status = swag.String(models.HostStatusInstalling)
@@ -570,12 +569,6 @@ var _ = Describe("update_progress", func() {
 					newProgress := models.HostProgress{
 						CurrentStage: models.HostStageInstalling,
 					}
-					mockEvents.EXPECT().SendHostEvent(gomock.Any(), eventstest.NewEventMatcher(
-						eventstest.WithNameMatcher(eventgen.HostStatusUpdatedEventName),
-						eventstest.WithHostIdMatcher(host.ID.String()),
-						eventstest.WithInfraEnvIdMatcher(host.InfraEnvID.String()),
-						eventstest.WithClusterIdMatcher(host.ClusterID.String()),
-						eventstest.WithSeverityMatcher(models.EventSeverityInfo)))
 					Expect(state.UpdateInstallProgress(ctx, &hostFromDB.Host, &newProgress)).Should(HaveOccurred())
 					verifyDb()
 				})
@@ -649,9 +642,10 @@ var _ = Describe("update progress special cases", func() {
 	})
 
 	AfterEach(func() {
-		common.DeleteTestDB(db, dbName)
 		ctrl.Finish()
+		common.DeleteTestDB(db, dbName)
 	})
+
 	Context("installing host", func() {
 		var (
 			progress   models.HostProgress
@@ -969,13 +963,15 @@ var _ = Describe("register host", func() {
 		config = *defaultConfig
 		dummy := &leader.DummyElector{}
 		state = NewManager(common.GetTestLog(), db, eventsHandler, nil, nil, nil, nil, &config, dummy, nil, nil, false, nil)
-	})
-
-	BeforeEach(func() {
 		id := strfmt.UUID(uuid.New().String())
 		clusterId := strfmt.UUID(uuid.New().String())
 		infraEnvId := strfmt.UUID(uuid.New().String())
 		h = hostutil.GenerateTestHost(id, infraEnvId, clusterId, models.HostStatusDiscovering)
+	})
+
+	AfterEach(func() {
+		ctrl.Finish()
+		common.DeleteTestDB(db, dbName)
 	})
 
 	It("register host success", func() {
@@ -995,12 +991,6 @@ var _ = Describe("register host", func() {
 		Expect(*h.Status).Should(Equal(models.HostStatusDiscovering))
 
 	})
-
-	AfterEach(func() {
-		ctrl.Finish()
-		common.DeleteTestDB(db, dbName)
-	})
-
 })
 
 func insufficientHWInventory() string {
@@ -1115,8 +1105,8 @@ var _ = Describe("UpdateInventory", func() {
 	})
 
 	AfterEach(func() {
-		common.DeleteTestDB(db, dbName)
 		ctrl.Finish()
+		common.DeleteTestDB(db, dbName)
 	})
 
 	Context("Check populate disk id", func() {
@@ -1678,6 +1668,7 @@ var _ = Describe("Bind host", func() {
 	})
 
 	AfterEach(func() {
+		ctrl.Finish()
 		common.DeleteTestDB(db, dbName)
 	})
 
@@ -1695,101 +1686,120 @@ var _ = Describe("Bind host", func() {
 		}
 
 		tests := []struct {
-			name       string
-			srcState   string
-			validation func(error)
+			name        string
+			srcState    string
+			validation  func(error)
+			expectEvent bool
 		}{
 			{
-				name:       models.HostStatusKnown,
-				srcState:   models.HostStatusKnown,
-				validation: failure,
+				name:        models.HostStatusKnown,
+				srcState:    models.HostStatusKnown,
+				validation:  failure,
+				expectEvent: false,
 			},
 			{
-				name:       models.HostStatusDisconnected,
-				srcState:   models.HostStatusDisconnected,
-				validation: failure,
+				name:        models.HostStatusDisconnected,
+				srcState:    models.HostStatusDisconnected,
+				validation:  failure,
+				expectEvent: false,
 			},
 			{
-				name:       models.HostStatusDiscovering,
-				srcState:   models.HostStatusDiscovering,
-				validation: failure,
+				name:        models.HostStatusDiscovering,
+				srcState:    models.HostStatusDiscovering,
+				validation:  failure,
+				expectEvent: false,
 			},
 			{
-				name:       models.HostStatusError,
-				srcState:   models.HostStatusError,
-				validation: failure,
+				name:        models.HostStatusError,
+				srcState:    models.HostStatusError,
+				validation:  failure,
+				expectEvent: false,
 			},
 			{
-				name:       models.HostStatusInstalled,
-				srcState:   models.HostStatusInstalled,
-				validation: failure,
+				name:        models.HostStatusInstalled,
+				srcState:    models.HostStatusInstalled,
+				validation:  failure,
+				expectEvent: false,
 			},
 			{
-				name:       models.HostStatusInstalling,
-				srcState:   models.HostStatusInstalling,
-				validation: failure,
+				name:        models.HostStatusInstalling,
+				srcState:    models.HostStatusInstalling,
+				validation:  failure,
+				expectEvent: false,
 			},
 			{
-				name:       models.HostStatusInstallingInProgress,
-				srcState:   models.HostStatusInstallingInProgress,
-				validation: failure,
+				name:        models.HostStatusInstallingInProgress,
+				srcState:    models.HostStatusInstallingInProgress,
+				validation:  failure,
+				expectEvent: false,
 			},
 			{
-				name:       models.HostStatusResettingPendingUserAction,
-				srcState:   models.HostStatusResettingPendingUserAction,
-				validation: failure,
+				name:        models.HostStatusResettingPendingUserAction,
+				srcState:    models.HostStatusResettingPendingUserAction,
+				validation:  failure,
+				expectEvent: false,
 			},
 			{
-				name:       models.HostStatusInsufficient,
-				srcState:   models.HostStatusInsufficient,
-				validation: failure,
+				name:        models.HostStatusInsufficient,
+				srcState:    models.HostStatusInsufficient,
+				validation:  failure,
+				expectEvent: false,
 			},
 			{
-				name:       models.HostStatusResetting,
-				srcState:   models.HostStatusResetting,
-				validation: failure,
+				name:        models.HostStatusResetting,
+				srcState:    models.HostStatusResetting,
+				validation:  failure,
+				expectEvent: false,
 			},
 			{
-				name:       models.HostStatusPendingForInput,
-				srcState:   models.HostStatusPendingForInput,
-				validation: failure,
+				name:        models.HostStatusPendingForInput,
+				srcState:    models.HostStatusPendingForInput,
+				validation:  failure,
+				expectEvent: false,
 			},
 			{
-				name:       models.HostStatusKnownUnbound,
-				srcState:   models.HostStatusKnownUnbound,
-				validation: success,
+				name:        models.HostStatusKnownUnbound,
+				srcState:    models.HostStatusKnownUnbound,
+				validation:  success,
+				expectEvent: true,
 			},
 			{
-				name:       models.HostStatusDisconnectedUnbound,
-				srcState:   models.HostStatusDisconnectedUnbound,
-				validation: failure,
+				name:        models.HostStatusDisconnectedUnbound,
+				srcState:    models.HostStatusDisconnectedUnbound,
+				validation:  failure,
+				expectEvent: false,
 			},
 			{
-				name:       models.HostStatusInsufficientUnbound,
-				srcState:   models.HostStatusInsufficientUnbound,
-				validation: failure,
+				name:        models.HostStatusInsufficientUnbound,
+				srcState:    models.HostStatusInsufficientUnbound,
+				validation:  failure,
+				expectEvent: false,
 			},
 			{
-				name:       models.HostStatusDiscoveringUnbound,
-				srcState:   models.HostStatusDiscoveringUnbound,
-				validation: failure,
+				name:        models.HostStatusDiscoveringUnbound,
+				srcState:    models.HostStatusDiscoveringUnbound,
+				validation:  failure,
+				expectEvent: false,
 			},
 			{
-				name:       models.HostStatusUnbinding,
-				srcState:   models.HostStatusUnbinding,
-				validation: failure,
+				name:        models.HostStatusUnbinding,
+				srcState:    models.HostStatusUnbinding,
+				validation:  failure,
+				expectEvent: false,
 			},
 		}
 
 		for i := range tests {
 			t := tests[i]
 			It(t.name, func() {
-				mockEvents.EXPECT().SendHostEvent(gomock.Any(), eventstest.NewEventMatcher(
-					eventstest.WithNameMatcher(eventgen.HostStatusUpdatedEventName),
-					eventstest.WithHostIdMatcher(hostId.String()),
-					eventstest.WithInfraEnvIdMatcher(infraEnvId.String()),
-					eventstest.WithClusterIdMatcher(clusterId.String()),
-					eventstest.WithSeverityMatcher(models.EventSeverityInfo))).Times(1)
+				if t.expectEvent {
+					mockEvents.EXPECT().SendHostEvent(gomock.Any(), eventstest.NewEventMatcher(
+						eventstest.WithNameMatcher(eventgen.HostStatusUpdatedEventName),
+						eventstest.WithHostIdMatcher(hostId.String()),
+						eventstest.WithInfraEnvIdMatcher(infraEnvId.String()),
+						eventstest.WithClusterIdMatcher(clusterId.String()),
+						eventstest.WithSeverityMatcher(models.EventSeverityInfo))).Times(1)
+				}
 				host = hostutil.GenerateTestHost(hostId, infraEnvId, "", t.srcState)
 				Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
 				t.validation(hapi.BindHost(ctx, &host, clusterId, db))
@@ -1822,6 +1832,7 @@ var _ = Describe("Unbind host", func() {
 	})
 
 	AfterEach(func() {
+		ctrl.Finish()
 		common.DeleteTestDB(db, dbName)
 	})
 
@@ -1840,98 +1851,116 @@ var _ = Describe("Unbind host", func() {
 		}
 
 		tests := []struct {
-			name       string
-			srcState   string
-			kind       *string
-			validation func(error)
+			name        string
+			srcState    string
+			kind        *string
+			validation  func(error)
+			expectEvent bool
 		}{
 			{
-				name:       models.HostStatusKnown,
-				srcState:   models.HostStatusKnown,
-				validation: success,
+				name:        models.HostStatusKnown,
+				srcState:    models.HostStatusKnown,
+				validation:  success,
+				expectEvent: true,
 			},
 			{
-				name:       models.HostStatusDisconnected,
-				srcState:   models.HostStatusDisconnected,
-				validation: success,
+				name:        models.HostStatusDisconnected,
+				srcState:    models.HostStatusDisconnected,
+				validation:  success,
+				expectEvent: true,
 			},
 			{
-				name:       models.HostStatusDiscovering,
-				srcState:   models.HostStatusDiscovering,
-				validation: success,
+				name:        models.HostStatusDiscovering,
+				srcState:    models.HostStatusDiscovering,
+				validation:  success,
+				expectEvent: true,
 			},
 			{
-				name:       models.HostStatusError,
-				srcState:   models.HostStatusError,
-				validation: success,
+				name:        models.HostStatusError,
+				srcState:    models.HostStatusError,
+				validation:  success,
+				expectEvent: true,
 			},
 			{
-				name:       models.HostStatusInstalled,
-				srcState:   models.HostStatusInstalled,
-				validation: success,
+				name:        models.HostStatusInstalled,
+				srcState:    models.HostStatusInstalled,
+				validation:  success,
+				expectEvent: true,
 			},
 			{
-				name:       models.HostStatusInstalling,
-				srcState:   models.HostStatusInstalling,
-				validation: failure,
+				name:        models.HostStatusInstalling,
+				srcState:    models.HostStatusInstalling,
+				validation:  failure,
+				expectEvent: false,
 			},
 			{
-				name:       models.HostStatusInstallingInProgress,
-				srcState:   models.HostStatusInstallingInProgress,
-				validation: failure,
+				name:        models.HostStatusInstallingInProgress,
+				srcState:    models.HostStatusInstallingInProgress,
+				validation:  failure,
+				expectEvent: false,
 			},
 			{
-				name:       models.HostStatusResettingPendingUserAction,
-				srcState:   models.HostStatusResettingPendingUserAction,
-				validation: failure,
+				name:        models.HostStatusResettingPendingUserAction,
+				srcState:    models.HostStatusResettingPendingUserAction,
+				validation:  failure,
+				expectEvent: false,
 			},
 			{
-				name:       models.HostStatusInsufficient,
-				srcState:   models.HostStatusInsufficient,
-				kind:       swag.String(models.HostKindAddToExistingClusterHost),
-				validation: success,
+				name:        models.HostStatusInsufficient,
+				srcState:    models.HostStatusInsufficient,
+				kind:        swag.String(models.HostKindAddToExistingClusterHost),
+				validation:  success,
+				expectEvent: true,
 			},
 			{
-				name:       models.HostStatusResetting,
-				srcState:   models.HostStatusResetting,
-				validation: failure,
+				name:        models.HostStatusResetting,
+				srcState:    models.HostStatusResetting,
+				validation:  failure,
+				expectEvent: false,
 			},
 			{
-				name:       models.HostStatusPendingForInput,
-				srcState:   models.HostStatusPendingForInput,
-				validation: success,
+				name:        models.HostStatusPendingForInput,
+				srcState:    models.HostStatusPendingForInput,
+				validation:  success,
+				expectEvent: true,
 			},
 			{
-				name:       models.HostStatusKnownUnbound,
-				srcState:   models.HostStatusKnownUnbound,
-				validation: failure,
+				name:        models.HostStatusKnownUnbound,
+				srcState:    models.HostStatusKnownUnbound,
+				validation:  failure,
+				expectEvent: false,
 			},
 			{
-				name:       models.HostStatusDisconnectedUnbound,
-				srcState:   models.HostStatusDisconnectedUnbound,
-				validation: failure,
+				name:        models.HostStatusDisconnectedUnbound,
+				srcState:    models.HostStatusDisconnectedUnbound,
+				validation:  failure,
+				expectEvent: false,
 			},
 			{
-				name:       models.HostStatusInsufficientUnbound,
-				srcState:   models.HostStatusInsufficientUnbound,
-				validation: failure,
+				name:        models.HostStatusInsufficientUnbound,
+				srcState:    models.HostStatusInsufficientUnbound,
+				validation:  failure,
+				expectEvent: false,
 			},
 			{
-				name:       models.HostStatusDiscoveringUnbound,
-				srcState:   models.HostStatusDiscoveringUnbound,
-				validation: failure,
+				name:        models.HostStatusDiscoveringUnbound,
+				srcState:    models.HostStatusDiscoveringUnbound,
+				validation:  failure,
+				expectEvent: false,
 			},
 		}
 
 		for i := range tests {
 			t := tests[i]
 			It(t.name, func() {
-				mockEvents.EXPECT().SendHostEvent(gomock.Any(), eventstest.NewEventMatcher(
-					eventstest.WithNameMatcher(eventgen.HostStatusUpdatedEventName),
-					eventstest.WithHostIdMatcher(hostId.String()),
-					eventstest.WithInfraEnvIdMatcher(infraEnvId.String()),
-					eventstest.WithClusterIdMatcher(swag.StringValue(nil)),
-					eventstest.WithSeverityMatcher(models.EventSeverityInfo))).Times(1)
+				if t.expectEvent {
+					mockEvents.EXPECT().SendHostEvent(gomock.Any(), eventstest.NewEventMatcher(
+						eventstest.WithNameMatcher(eventgen.HostStatusUpdatedEventName),
+						eventstest.WithHostIdMatcher(hostId.String()),
+						eventstest.WithInfraEnvIdMatcher(infraEnvId.String()),
+						eventstest.WithClusterIdMatcher(swag.StringValue(nil)),
+						eventstest.WithSeverityMatcher(models.EventSeverityInfo))).Times(1)
+				}
 				host = hostutil.GenerateTestHost(hostId, infraEnvId, clusterId, t.srcState)
 				if t.kind != nil {
 					host.Kind = t.kind
@@ -1968,8 +1997,8 @@ var _ = Describe("Update disk installation path", func() {
 	})
 
 	AfterEach(func() {
-		common.DeleteTestDB(db, dbName)
 		ctrl.Finish()
+		common.DeleteTestDB(db, dbName)
 	})
 
 	success := func(reply error) {
@@ -2122,6 +2151,11 @@ var _ = Describe("SetBootstrap", func() {
 		Expect(h.Bootstrap).Should(Equal(false))
 	})
 
+	AfterEach(func() {
+		common.DeleteTestDB(db, dbName)
+		ctrl.Finish()
+	})
+
 	tests := []struct {
 		IsBootstrap bool
 	}{
@@ -2148,11 +2182,6 @@ var _ = Describe("SetBootstrap", func() {
 			Expect(h.Bootstrap).Should(Equal(t.IsBootstrap))
 		})
 	}
-
-	AfterEach(func() {
-		common.DeleteTestDB(db, dbName)
-		ctrl.Finish()
-	})
 })
 
 var _ = Describe("UpdateNTP", func() {
@@ -2184,6 +2213,11 @@ var _ = Describe("UpdateNTP", func() {
 		Expect(h.NtpSources).Should(BeEmpty())
 	})
 
+	AfterEach(func() {
+		ctrl.Finish()
+		common.DeleteTestDB(db, dbName)
+	})
+
 	tests := []struct {
 		name       string
 		ntpSources []*models.NtpSource
@@ -2211,11 +2245,6 @@ var _ = Describe("UpdateNTP", func() {
 			Expect(h.NtpSources).Should(Equal(string(marshalled)))
 		})
 	}
-
-	AfterEach(func() {
-		common.DeleteTestDB(db, dbName)
-		ctrl.Finish()
-	})
 })
 
 var _ = Describe("UpdateMachineConfigPoolName", func() {
@@ -2239,6 +2268,11 @@ var _ = Describe("UpdateMachineConfigPoolName", func() {
 		hostId = strfmt.UUID(uuid.New().String())
 		clusterId = strfmt.UUID(uuid.New().String())
 		infraEnvId = strfmt.UUID(uuid.New().String())
+	})
+
+	AfterEach(func() {
+		ctrl.Finish()
+		common.DeleteTestDB(db, dbName)
 	})
 
 	tests := []struct {
@@ -2326,11 +2360,6 @@ var _ = Describe("UpdateMachineConfigPoolName", func() {
 
 		})
 	}
-
-	AfterEach(func() {
-		common.DeleteTestDB(db, dbName)
-		ctrl.Finish()
-	})
 })
 
 var _ = Describe("UpdateIgnitionEndpointToken", func() {
@@ -2354,6 +2383,11 @@ var _ = Describe("UpdateIgnitionEndpointToken", func() {
 		hostId = strfmt.UUID(uuid.New().String())
 		clusterId = strfmt.UUID(uuid.New().String())
 		infraEnvId = strfmt.UUID(uuid.New().String())
+	})
+
+	AfterEach(func() {
+		ctrl.Finish()
+		common.DeleteTestDB(db, dbName)
 	})
 
 	tests := []struct {
@@ -2450,11 +2484,6 @@ var _ = Describe("UpdateIgnitionEndpointToken", func() {
 
 		})
 	}
-
-	AfterEach(func() {
-		common.DeleteTestDB(db, dbName)
-		ctrl.Finish()
-	})
 })
 
 var _ = Describe("update logs_info", func() {
@@ -2555,6 +2584,11 @@ var _ = Describe("UpdateImageStatus", func() {
 
 		h := hostutil.GetHostFromDB(*host.ID, host.InfraEnvID, db)
 		Expect(h.ImagesStatus).Should(BeEmpty())
+	})
+
+	AfterEach(func() {
+		ctrl.Finish()
+		common.DeleteTestDB(db, dbName)
 	})
 
 	var testAlreadyPulledImageStatuses = &models.ContainerImageAvailability{
@@ -2671,11 +2705,6 @@ var _ = Describe("UpdateImageStatus", func() {
 			}
 		})
 	}
-
-	AfterEach(func() {
-		common.DeleteTestDB(db, dbName)
-		ctrl.Finish()
-	})
 })
 
 var _ = Describe("UpdateKubeKeyNS", func() {
@@ -2707,6 +2736,11 @@ var _ = Describe("UpdateKubeKeyNS", func() {
 		Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
 	})
 
+	AfterEach(func() {
+		ctrl.Finish()
+		common.DeleteTestDB(db, dbName)
+	})
+
 	tests := []struct {
 		name      string
 		namespace string
@@ -2733,11 +2767,6 @@ var _ = Describe("UpdateKubeKeyNS", func() {
 			Expect(h.KubeKeyNamespace).Should(Equal(t.namespace))
 		})
 	}
-
-	AfterEach(func() {
-		common.DeleteTestDB(db, dbName)
-		ctrl.Finish()
-	})
 })
 
 var _ = Describe("AutoAssignRole", func() {
@@ -2821,9 +2850,8 @@ var _ = Describe("AutoAssignRole", func() {
 	})
 
 	AfterEach(func() {
-		common.DeleteTestDB(db, dbName)
-		common.CloseDB(db)
 		ctrl.Finish()
+		common.DeleteTestDB(db, dbName)
 	})
 
 	mockRoleSuggestionEvent := func(h *models.Host) {
@@ -2975,9 +3003,8 @@ var _ = Describe("IsValidMasterCandidate", func() {
 	})
 
 	AfterEach(func() {
-		common.DeleteTestDB(db, dbName)
-		common.CloseDB(db)
 		ctrl.Finish()
+		common.DeleteTestDB(db, dbName)
 	})
 
 	Context("single host role selection", func() {
@@ -3234,6 +3261,11 @@ var _ = Describe("SetDiskSpeed", func() {
 		h = registerTestHost(strfmt.UUID(uuid.New().String()), strfmt.UUID(uuid.New().String()))
 	})
 
+	AfterEach(func() {
+		ctrl.Finish()
+		common.DeleteTestDB(db, dbName)
+	})
+
 	verifyValidResult := func(h *models.Host, path string, exitCode int64, speedMs int64) {
 		diskInfo, err := common.GetDiskInfo(h.DisksInfo, path)
 		Expect(err).ToNot(HaveOccurred())
@@ -3245,11 +3277,6 @@ var _ = Describe("SetDiskSpeed", func() {
 			Expect(diskInfo.DiskSpeed.SpeedMs).To(Equal(speedMs))
 		}
 	}
-
-	AfterEach(func() {
-		ctrl.Finish()
-		common.DeleteTestDB(db, dbName)
-	})
 
 	It("Happy flow", func() {
 		err := m.SetDiskSpeed(ctx, h, "/dev/sda", 2, 0, nil)
@@ -3341,6 +3368,11 @@ var _ = Describe("ResetHostValidation", func() {
 			eventstest.WithInfraEnvIdMatcher(h.InfraEnvID.String()))).AnyTimes()
 	})
 
+	AfterEach(func() {
+		ctrl.Finish()
+		common.DeleteTestDB(db, dbName)
+	})
+
 	verifyExistingDiskResult := func(h *models.Host, path string, exitCode int64, speedMs int64) {
 		diskInfo, err := common.GetDiskInfo(h.DisksInfo, path)
 		Expect(err).ToNot(HaveOccurred())
@@ -3359,11 +3391,6 @@ var _ = Describe("ResetHostValidation", func() {
 		Expect(diskInfo).ToNot(BeNil())
 		Expect(diskInfo.DiskSpeed).To(BeNil())
 	}
-
-	AfterEach(func() {
-		ctrl.Finish()
-		common.DeleteTestDB(db, dbName)
-	})
 
 	It("One disk in error", func() {
 		Expect(m.SetDiskSpeed(ctx, h, "/dev/sda", 2, 5, nil)).ToNot(HaveOccurred())
@@ -3459,7 +3486,6 @@ var _ = Describe("Get host by Kube key", func() {
 
 	BeforeEach(func() {
 		ctrl = gomock.NewController(GinkgoT())
-		ctrl = gomock.NewController(GinkgoT())
 		db, dbName = common.PrepareTestDB()
 		mockEvents = eventsapi.NewMockHandler(ctrl)
 		mockHwValidator = hardware.NewMockValidator(ctrl)
@@ -3472,6 +3498,11 @@ var _ = Describe("Get host by Kube key", func() {
 			Namespace: kubeKeyNamespace,
 			Name:      id.String(),
 		}
+	})
+
+	AfterEach(func() {
+		ctrl.Finish()
+		common.DeleteTestDB(db, dbName)
 	})
 
 	It("host not exist", func() {
@@ -3491,11 +3522,6 @@ var _ = Describe("Get host by Kube key", func() {
 		h2, err := state.GetHostByKubeKey(key)
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(h2.ID.String()).Should(Equal(h1.ID.String()))
-	})
-
-	AfterEach(func() {
-		ctrl.Finish()
-		common.DeleteTestDB(db, dbName)
 	})
 })
 
@@ -3530,8 +3556,8 @@ var _ = Describe("Media disconnection", func() {
 	})
 
 	AfterEach(func() {
-		common.DeleteTestDB(db, dbName)
 		ctrl.Finish()
+		common.DeleteTestDB(db, dbName)
 	})
 
 	const errorMessage string = "Failed - " + statusInfoMediaDisconnected
@@ -3630,6 +3656,7 @@ var _ = Describe("Installation stages", func() {
 	})
 
 	AfterEach(func() {
+		ctrl.Finish()
 		common.DeleteTestDB(db, dbName)
 	})
 
@@ -3673,11 +3700,6 @@ var _ = Describe("Installation stages", func() {
 			progress := models.HostProgress{
 				CurrentStage: newStage,
 			}
-
-			mockEventApi.EXPECT().SendHostEvent(ctx, eventstest.NewEventMatcher(
-				eventstest.WithHostIdMatcher(h.ID.String()),
-				eventstest.WithInfraEnvIdMatcher(h.InfraEnvID.String()),
-				eventstest.WithSeverityMatcher(models.EventSeverityInfo)))
 
 			err := api.UpdateInstallProgress(ctx, &h, &progress)
 			Expect(err).NotTo(HaveOccurred())
@@ -3725,11 +3747,6 @@ var _ = Describe("Installation stages", func() {
 				CurrentStage: newStage,
 			}
 
-			mockEventApi.EXPECT().SendHostEvent(ctx, eventstest.NewEventMatcher(
-				eventstest.WithHostIdMatcher(h.ID.String()),
-				eventstest.WithInfraEnvIdMatcher(h.InfraEnvID.String()),
-				eventstest.WithSeverityMatcher(models.EventSeverityInfo)))
-
 			err := api.UpdateInstallProgress(ctx, &h, &progress)
 			Expect(err).NotTo(HaveOccurred())
 
@@ -3745,11 +3762,6 @@ var _ = Describe("Installation stages", func() {
 			progress := models.HostProgress{
 				CurrentStage: newStage,
 			}
-
-			mockEventApi.EXPECT().SendHostEvent(ctx, eventstest.NewEventMatcher(
-				eventstest.WithHostIdMatcher(h.ID.String()),
-				eventstest.WithInfraEnvIdMatcher(h.InfraEnvID.String()),
-				eventstest.WithSeverityMatcher(models.EventSeverityInfo)))
 
 			err := api.UpdateInstallProgress(ctx, &h, &progress)
 			Expect(err).NotTo(HaveOccurred())
@@ -4443,8 +4455,8 @@ var _ = Describe("HandleReclaimBootArtifactDownload", func() {
 	})
 
 	AfterEach(func() {
-		common.DeleteTestDB(db, dbName)
 		ctrl.Finish()
+		common.DeleteTestDB(db, dbName)
 	})
 
 	It("transitions a host from Reclaiming to ReclaimingRebooting", func() {
@@ -4488,8 +4500,8 @@ var _ = Describe("HandleReclaimFailure", func() {
 	})
 
 	AfterEach(func() {
-		common.DeleteTestDB(db, dbName)
 		ctrl.Finish()
+		common.DeleteTestDB(db, dbName)
 	})
 
 	It("transitions a host from Reclaiming to UnbindingPendingUserAction", func() {
@@ -4550,8 +4562,8 @@ var _ = Describe("Rebooting day2", func() {
 	})
 
 	AfterEach(func() {
-		common.DeleteTestDB(db, dbName)
 		ctrl.Finish()
+		common.DeleteTestDB(db, dbName)
 	})
 
 	It("during rebooting phase, if kubeapi is not enabled, should have the no further updates statusinfo", func() {
