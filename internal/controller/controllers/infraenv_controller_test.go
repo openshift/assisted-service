@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -332,6 +333,16 @@ var _ = Describe("infraEnv reconcile", func() {
 	})
 
 	Context("discovery kernel arguments", func() {
+		encodeKernelArguments := func(kargs []aiv1beta1.KernelArgument) *string {
+			internalKargs := internalKernelArgs(kargs)
+			if len(internalKargs) == 0 {
+				return nil
+			}
+			b, err := json.Marshal(&internalKargs)
+			Expect(err).ToNot(HaveOccurred())
+			return swag.String(string(b))
+		}
+
 		kargs1 := []aiv1beta1.KernelArgument{
 			{
 				Operation: "append",
@@ -363,13 +374,9 @@ var _ = Describe("infraEnv reconcile", func() {
 						DownloadURL:     "https://images.example.com/images/best-image",
 					},
 				}
-				mockInstallerInternal.EXPECT().GetInfraEnvByKubeKey(gomock.Any()).Return(backendInfraEnv, nil)
-				mockInstallerInternal.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any()).Return(nil)
-				mockInstallerInternal.EXPECT().UpdateInfraEnvInternal(gomock.Any(), gomock.Any(), nil).Times(1).DoAndReturn(
-					func(ctx context.Context, params installer.UpdateInfraEnvParams, _ *string) (*common.InfraEnv, error) {
-						Expect(internalKernelArgs(updateKargs)).To(Equal(params.InfraEnvUpdateParams.KernelArguments))
-						return dbInfraEnv, nil
-					})
+				backendInfraEnv.KernelArguments = encodeKernelArguments(initialKargs)
+				mockInstallerInternal.EXPECT().GetInfraEnvByKubeKey(gomock.Any()).Return(backendInfraEnv, nil).Times(1)
+				mockInstallerInternal.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any()).Return(nil).Times(1)
 				kubeInfraEnv := newInfraEnvImage("myInfraEnv", testNamespace, aiv1beta1.InfraEnvSpec{
 					PullSecretRef:   &corev1.LocalObjectReference{Name: "pull-secret"},
 					KernelArguments: initialKargs,
@@ -381,6 +388,11 @@ var _ = Describe("infraEnv reconcile", func() {
 				}
 
 				Expect(c.Get(ctx, key, kubeInfraEnv)).To(BeNil())
+				mockInstallerInternal.EXPECT().UpdateInfraEnvInternal(gomock.Any(), gomock.Any(), nil).Times(1).DoAndReturn(
+					func(ctx context.Context, params installer.UpdateInfraEnvParams, _ *string) (*common.InfraEnv, error) {
+						Expect(internalKernelArgs(updateKargs)).To(Equal(params.InfraEnvUpdateParams.KernelArguments))
+						return dbInfraEnv, nil
+					})
 				kubeInfraEnv.Spec.KernelArguments = updateKargs
 				Expect(c.Update(ctx, kubeInfraEnv)).To(BeNil())
 				_, err := ir.Reconcile(ctx, newInfraEnvRequest(kubeInfraEnv))

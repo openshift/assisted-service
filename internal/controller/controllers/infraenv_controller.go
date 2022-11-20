@@ -23,6 +23,7 @@ import (
 	"net/http"
 	"net/url"
 	"path"
+	"reflect"
 	"strings"
 	"time"
 
@@ -188,12 +189,21 @@ func (r *InfraEnvReconciler) updateInfraEnv(ctx context.Context, log logrus.Fiel
 	if err != nil {
 		return nil, err
 	}
-	if !funk.Equal(infraEnv.Spec.KernelArguments, existingKargs) {
+	if !areKernelArgsIdentical(infraEnv.Spec.KernelArguments, existingKargs) {
 		updateParams.InfraEnvUpdateParams.KernelArguments = internalKernelArgs(infraEnv.Spec.KernelArguments)
 	}
 
 	// UpdateInfraEnvInternal will generate an ISO only if there it was not generated before,
 	return r.Installer.UpdateInfraEnvInternal(ctx, updateParams, nil)
+}
+
+func areKernelArgsIdentical(k1, k2 []aiv1beta1.KernelArgument) bool {
+	switch len(k1) {
+	case 0:
+		return len(k2) == 0
+	default:
+		return reflect.DeepEqual(k1, k2)
+	}
 }
 
 func kubeKernelArgs(internalInfraEnv *common.InfraEnv) ([]aiv1beta1.KernelArgument, error) {
@@ -217,7 +227,7 @@ func kubeKernelArgs(internalInfraEnv *common.InfraEnv) ([]aiv1beta1.KernelArgume
 }
 
 func internalKernelArgs(kargs []aiv1beta1.KernelArgument) models.KernelArguments {
-	var ret models.KernelArguments
+	ret := make(models.KernelArguments, 0)
 	for _, arg := range kargs {
 		ret = append(ret, &models.KernelArgument{
 			Operation: arg.Operation,
