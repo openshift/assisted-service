@@ -3396,7 +3396,7 @@ paths:
   /v2/events/subscription:
     post:
       tags:
-        - installer
+        - events
       description: Subscribe to an event type with URL callback.
       operationId: v2EventsSubscribe
       parameters:
@@ -3433,7 +3433,7 @@ paths:
             $ref: '#/definitions/error'
     get:
       tags:
-        - installer
+        - events
       description: Get event subscriptions.
       operationId: v2EventsSubscriptionList
       parameters:
@@ -3468,7 +3468,7 @@ paths:
   /v2/events/subscription/{subscription_id}:
     get:
       tags:
-        - installer
+        - events
       description: Get event subscription.
       operationId: v2EventsSubscriptionGet
       parameters:
@@ -3506,7 +3506,7 @@ paths:
 
     delete:
       tags:
-        - installer
+        - events
       description: Delete event subscription.
       operationId: v2EventsSubscriptionDelete
       parameters:
