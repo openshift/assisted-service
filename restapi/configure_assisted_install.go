@@ -31,6 +31,18 @@ const AuthKey contextKey = "Auth"
 
 /* EventsAPI  */
 type EventsAPI interface {
+	/* V2EventsSubscribe Subscribe to an event type with URL callback. */
+	V2EventsSubscribe(ctx context.Context, params events.V2EventsSubscribeParams) middleware.Responder
+
+	/* V2EventsSubscriptionDelete Delete event subscription. */
+	V2EventsSubscriptionDelete(ctx context.Context, params events.V2EventsSubscriptionDeleteParams) middleware.Responder
+
+	/* V2EventsSubscriptionGet Get event subscription. */
+	V2EventsSubscriptionGet(ctx context.Context, params events.V2EventsSubscriptionGetParams) middleware.Responder
+
+	/* V2EventsSubscriptionList Get event subscriptions. */
+	V2EventsSubscriptionList(ctx context.Context, params events.V2EventsSubscriptionListParams) middleware.Responder
+
 	/* V2ListEvents Lists events for a cluster. */
 	V2ListEvents(ctx context.Context, params events.V2ListEventsParams) middleware.Responder
 }
@@ -126,18 +138,6 @@ type InstallerAPI interface {
 
 	/* V2DownloadInfraEnvFiles Downloads the customized ignition file for this host */
 	V2DownloadInfraEnvFiles(ctx context.Context, params installer.V2DownloadInfraEnvFilesParams) middleware.Responder
-
-	/* V2EventsSubscribe Subscribe to an event type with URL callback. */
-	V2EventsSubscribe(ctx context.Context, params installer.V2EventsSubscribeParams) middleware.Responder
-
-	/* V2EventsSubscriptionDelete Delete event subscription. */
-	V2EventsSubscriptionDelete(ctx context.Context, params installer.V2EventsSubscriptionDeleteParams) middleware.Responder
-
-	/* V2EventsSubscriptionGet Get event subscription. */
-	V2EventsSubscriptionGet(ctx context.Context, params installer.V2EventsSubscriptionGetParams) middleware.Responder
-
-	/* V2EventsSubscriptionList Get event subscriptions. */
-	V2EventsSubscriptionList(ctx context.Context, params installer.V2EventsSubscriptionListParams) middleware.Responder
 
 	/* V2GetCluster Retrieves the details of the OpenShift cluster. */
 	V2GetCluster(ctx context.Context, params installer.V2GetClusterParams) middleware.Responder
@@ -565,25 +565,25 @@ func HandlerAPI(c Config) (http.Handler, *operations.AssistedInstallAPI, error) 
 		ctx = storeAuth(ctx, principal)
 		return c.InstallerAPI.V2DownloadInfraEnvFiles(ctx, params)
 	})
-	api.InstallerV2EventsSubscribeHandler = installer.V2EventsSubscribeHandlerFunc(func(params installer.V2EventsSubscribeParams, principal interface{}) middleware.Responder {
+	api.EventsV2EventsSubscribeHandler = events.V2EventsSubscribeHandlerFunc(func(params events.V2EventsSubscribeParams, principal interface{}) middleware.Responder {
 		ctx := params.HTTPRequest.Context()
 		ctx = storeAuth(ctx, principal)
-		return c.InstallerAPI.V2EventsSubscribe(ctx, params)
+		return c.EventsAPI.V2EventsSubscribe(ctx, params)
 	})
-	api.InstallerV2EventsSubscriptionDeleteHandler = installer.V2EventsSubscriptionDeleteHandlerFunc(func(params installer.V2EventsSubscriptionDeleteParams, principal interface{}) middleware.Responder {
+	api.EventsV2EventsSubscriptionDeleteHandler = events.V2EventsSubscriptionDeleteHandlerFunc(func(params events.V2EventsSubscriptionDeleteParams, principal interface{}) middleware.Responder {
 		ctx := params.HTTPRequest.Context()
 		ctx = storeAuth(ctx, principal)
-		return c.InstallerAPI.V2EventsSubscriptionDelete(ctx, params)
+		return c.EventsAPI.V2EventsSubscriptionDelete(ctx, params)
 	})
-	api.InstallerV2EventsSubscriptionGetHandler = installer.V2EventsSubscriptionGetHandlerFunc(func(params installer.V2EventsSubscriptionGetParams, principal interface{}) middleware.Responder {
+	api.EventsV2EventsSubscriptionGetHandler = events.V2EventsSubscriptionGetHandlerFunc(func(params events.V2EventsSubscriptionGetParams, principal interface{}) middleware.Responder {
 		ctx := params.HTTPRequest.Context()
 		ctx = storeAuth(ctx, principal)
-		return c.InstallerAPI.V2EventsSubscriptionGet(ctx, params)
+		return c.EventsAPI.V2EventsSubscriptionGet(ctx, params)
 	})
-	api.InstallerV2EventsSubscriptionListHandler = installer.V2EventsSubscriptionListHandlerFunc(func(params installer.V2EventsSubscriptionListParams, principal interface{}) middleware.Responder {
+	api.EventsV2EventsSubscriptionListHandler = events.V2EventsSubscriptionListHandlerFunc(func(params events.V2EventsSubscriptionListParams, principal interface{}) middleware.Responder {
 		ctx := params.HTTPRequest.Context()
 		ctx = storeAuth(ctx, principal)
-		return c.InstallerAPI.V2EventsSubscriptionList(ctx, params)
+		return c.EventsAPI.V2EventsSubscriptionList(ctx, params)
 	})
 	api.InstallerV2GetClusterHandler = installer.V2GetClusterHandlerFunc(func(params installer.V2GetClusterParams, principal interface{}) middleware.Responder {
 		ctx := params.HTTPRequest.Context()

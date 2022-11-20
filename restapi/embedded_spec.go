@@ -2687,7 +2687,7 @@ func init() {
       "get": {
         "description": "Get event subscriptions.",
         "tags": [
-          "installer"
+          "events"
         ],
         "operationId": "v2EventsSubscriptionList",
         "parameters": [
@@ -2735,7 +2735,7 @@ func init() {
       "post": {
         "description": "Subscribe to an event type with URL callback.",
         "tags": [
-          "installer"
+          "events"
         ],
         "operationId": "v2EventsSubscribe",
         "parameters": [
@@ -2793,7 +2793,7 @@ func init() {
       "get": {
         "description": "Get event subscription.",
         "tags": [
-          "installer"
+          "events"
         ],
         "operationId": "v2EventsSubscriptionGet",
         "parameters": [
@@ -2848,7 +2848,7 @@ func init() {
       "delete": {
         "description": "Delete event subscription.",
         "tags": [
-          "installer"
+          "events"
         ],
         "operationId": "v2EventsSubscriptionDelete",
         "parameters": [
@@ -12407,7 +12407,7 @@ func init() {
       "get": {
         "description": "Get event subscriptions.",
         "tags": [
-          "installer"
+          "events"
         ],
         "operationId": "v2EventsSubscriptionList",
         "parameters": [
@@ -12455,7 +12455,7 @@ func init() {
       "post": {
         "description": "Subscribe to an event type with URL callback.",
         "tags": [
-          "installer"
+          "events"
         ],
         "operationId": "v2EventsSubscribe",
         "parameters": [
@@ -12513,7 +12513,7 @@ func init() {
       "get": {
         "description": "Get event subscription.",
         "tags": [
-          "installer"
+          "events"
         ],
         "operationId": "v2EventsSubscriptionGet",
         "parameters": [
@@ -12568,7 +12568,7 @@ func init() {
       "delete": {
         "description": "Delete event subscription.",
         "tags": [
-          "installer"
+          "events"
         ],
         "operationId": "v2EventsSubscriptionDelete",
         "parameters": [
