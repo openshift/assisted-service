@@ -274,6 +274,22 @@ var _ restapi.InstallerAPI = fakeInventory{}
 
 type fakeEventsAPI struct{}
 
+func (f fakeEventsAPI) V2EventsSubscribe(ctx context.Context, params eventsapi.V2EventsSubscribeParams) middleware.Responder {
+	return eventsapi.NewV2EventsSubscribeCreated()
+}
+
+func (f fakeEventsAPI) V2EventsSubscriptionDelete(ctx context.Context, params eventsapi.V2EventsSubscriptionDeleteParams) middleware.Responder {
+	return eventsapi.NewV2EventsSubscriptionDeleteNoContent()
+}
+
+func (f fakeEventsAPI) V2EventsSubscriptionGet(ctx context.Context, params eventsapi.V2EventsSubscriptionGetParams) middleware.Responder {
+	return eventsapi.NewV2EventsSubscriptionGetOK()
+}
+
+func (f fakeEventsAPI) V2EventsSubscriptionList(ctx context.Context, params eventsapi.V2EventsSubscriptionListParams) middleware.Responder {
+	return eventsapi.NewV2EventsSubscriptionListOK()
+}
+
 func (f fakeEventsAPI) V2ListEvents(ctx context.Context, params eventsapi.V2ListEventsParams) middleware.Responder {
 	return eventsapi.NewV2ListEventsOK()
 }

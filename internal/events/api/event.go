@@ -4,9 +4,11 @@ import (
 	"context"
 	"time"
 
+	"github.com/go-openapi/runtime/middleware"
 	"github.com/go-openapi/strfmt"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/models"
+	"github.com/openshift/assisted-service/restapi/operations/events"
 )
 
 type Sender interface {
@@ -40,6 +42,10 @@ type Sender interface {
 type Handler interface {
 	Sender
 	V2GetEvents(ctx context.Context, clusterID *strfmt.UUID, hostID *strfmt.UUID, infraEnvID *strfmt.UUID, categories ...string) ([]*common.Event, error)
+	V2EventsSubscribe(ctx context.Context, params events.V2EventsSubscribeParams) middleware.Responder
+	V2EventsSubscriptionDelete(ctx context.Context, params events.V2EventsSubscriptionDeleteParams) middleware.Responder
+	V2EventsSubscriptionGet(ctx context.Context, params events.V2EventsSubscriptionGetParams) middleware.Responder
+	V2EventsSubscriptionList(ctx context.Context, params events.V2EventsSubscriptionListParams) middleware.Responder
 }
 
 var DefaultEventCategories = []string{

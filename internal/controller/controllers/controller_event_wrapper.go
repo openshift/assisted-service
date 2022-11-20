@@ -4,10 +4,12 @@ import (
 	"context"
 	"time"
 
+	"github.com/go-openapi/runtime/middleware"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 	"github.com/openshift/assisted-service/internal/common"
 	eventsapi "github.com/openshift/assisted-service/internal/events/api"
+	"github.com/openshift/assisted-service/restapi/operations/events"
 	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
 )
@@ -17,6 +19,22 @@ type controllerEventsWrapper struct {
 	crdEventsHandler CRDEventsHandler
 	db               *gorm.DB
 	log              logrus.FieldLogger
+}
+
+func (c *controllerEventsWrapper) V2EventsSubscribe(ctx context.Context, params events.V2EventsSubscribeParams) middleware.Responder {
+	return c.events.V2EventsSubscribe(ctx, params)
+}
+
+func (c *controllerEventsWrapper) V2EventsSubscriptionDelete(ctx context.Context, params events.V2EventsSubscriptionDeleteParams) middleware.Responder {
+	return c.events.V2EventsSubscriptionDelete(ctx, params)
+}
+
+func (c *controllerEventsWrapper) V2EventsSubscriptionGet(ctx context.Context, params events.V2EventsSubscriptionGetParams) middleware.Responder {
+	return c.events.V2EventsSubscriptionGet(ctx, params)
+}
+
+func (c *controllerEventsWrapper) V2EventsSubscriptionList(ctx context.Context, params events.V2EventsSubscriptionListParams) middleware.Responder {
+	return c.events.V2EventsSubscriptionList(ctx, params)
 }
 
 var _ eventsapi.Handler = &controllerEventsWrapper{}

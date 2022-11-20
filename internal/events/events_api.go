@@ -23,6 +23,22 @@ type Api struct {
 	log     logrus.FieldLogger
 }
 
+func (a *Api) V2EventsSubscribe(ctx context.Context, params events.V2EventsSubscribeParams) middleware.Responder {
+	return a.handler.V2EventsSubscribe(ctx, params)
+}
+
+func (a *Api) V2EventsSubscriptionDelete(ctx context.Context, params events.V2EventsSubscriptionDeleteParams) middleware.Responder {
+	return a.handler.V2EventsSubscriptionDelete(ctx, params)
+}
+
+func (a *Api) V2EventsSubscriptionGet(ctx context.Context, params events.V2EventsSubscriptionGetParams) middleware.Responder {
+	return a.handler.V2EventsSubscriptionGet(ctx, params)
+}
+
+func (a *Api) V2EventsSubscriptionList(ctx context.Context, params events.V2EventsSubscriptionListParams) middleware.Responder {
+	return a.handler.V2EventsSubscriptionList(ctx, params)
+}
+
 func NewApi(handler eventsapi.Handler, log logrus.FieldLogger) *Api {
 	return &Api{
 		handler: handler,

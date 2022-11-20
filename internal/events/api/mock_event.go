@@ -9,9 +9,11 @@ import (
 	reflect "reflect"
 	time "time"
 
+	middleware "github.com/go-openapi/runtime/middleware"
 	strfmt "github.com/go-openapi/strfmt"
 	gomock "github.com/golang/mock/gomock"
 	common "github.com/openshift/assisted-service/internal/common"
+	events "github.com/openshift/assisted-service/restapi/operations/events"
 )
 
 // MockSender is a mock of Sender interface.
@@ -362,6 +364,62 @@ func (mr *MockHandlerMockRecorder) V2AddMetricsEvent(ctx, clusterID, hostID, inf
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{ctx, clusterID, hostID, infraEnvID, name, severity, msg, eventTime}, props...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "V2AddMetricsEvent", reflect.TypeOf((*MockHandler)(nil).V2AddMetricsEvent), varargs...)
+}
+
+// V2EventsSubscribe mocks base method.
+func (m *MockHandler) V2EventsSubscribe(ctx context.Context, params events.V2EventsSubscribeParams) middleware.Responder {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "V2EventsSubscribe", ctx, params)
+	ret0, _ := ret[0].(middleware.Responder)
+	return ret0
+}
+
+// V2EventsSubscribe indicates an expected call of V2EventsSubscribe.
+func (mr *MockHandlerMockRecorder) V2EventsSubscribe(ctx, params interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "V2EventsSubscribe", reflect.TypeOf((*MockHandler)(nil).V2EventsSubscribe), ctx, params)
+}
+
+// V2EventsSubscriptionDelete mocks base method.
+func (m *MockHandler) V2EventsSubscriptionDelete(ctx context.Context, params events.V2EventsSubscriptionDeleteParams) middleware.Responder {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "V2EventsSubscriptionDelete", ctx, params)
+	ret0, _ := ret[0].(middleware.Responder)
+	return ret0
+}
+
+// V2EventsSubscriptionDelete indicates an expected call of V2EventsSubscriptionDelete.
+func (mr *MockHandlerMockRecorder) V2EventsSubscriptionDelete(ctx, params interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "V2EventsSubscriptionDelete", reflect.TypeOf((*MockHandler)(nil).V2EventsSubscriptionDelete), ctx, params)
+}
+
+// V2EventsSubscriptionGet mocks base method.
+func (m *MockHandler) V2EventsSubscriptionGet(ctx context.Context, params events.V2EventsSubscriptionGetParams) middleware.Responder {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "V2EventsSubscriptionGet", ctx, params)
+	ret0, _ := ret[0].(middleware.Responder)
+	return ret0
+}
+
+// V2EventsSubscriptionGet indicates an expected call of V2EventsSubscriptionGet.
+func (mr *MockHandlerMockRecorder) V2EventsSubscriptionGet(ctx, params interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "V2EventsSubscriptionGet", reflect.TypeOf((*MockHandler)(nil).V2EventsSubscriptionGet), ctx, params)
+}
+
+// V2EventsSubscriptionList mocks base method.
+func (m *MockHandler) V2EventsSubscriptionList(ctx context.Context, params events.V2EventsSubscriptionListParams) middleware.Responder {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "V2EventsSubscriptionList", ctx, params)
+	ret0, _ := ret[0].(middleware.Responder)
+	return ret0
+}
+
+// V2EventsSubscriptionList indicates an expected call of V2EventsSubscriptionList.
+func (mr *MockHandlerMockRecorder) V2EventsSubscriptionList(ctx, params interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "V2EventsSubscriptionList", reflect.TypeOf((*MockHandler)(nil).V2EventsSubscriptionList), ctx, params)
 }
 
 // V2GetEvents mocks base method.
