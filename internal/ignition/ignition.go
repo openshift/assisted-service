@@ -35,8 +35,10 @@ import (
 	"github.com/openshift/assisted-service/internal/installercache"
 	"github.com/openshift/assisted-service/internal/manifests"
 	"github.com/openshift/assisted-service/internal/network"
+	"github.com/openshift/assisted-service/internal/oc"
 	"github.com/openshift/assisted-service/internal/operators"
 	"github.com/openshift/assisted-service/internal/provider/registry"
+	"github.com/openshift/assisted-service/internal/versions"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/auth"
 	logutil "github.com/openshift/assisted-service/pkg/log"
@@ -148,10 +150,6 @@ do
     sleep 5
 done
 mnt=$(podman image mount "${RPMS_IMAGE}")
-# Extract machine-config-daemon binary
-cp -rvf ${mnt}/binaries/machine-config-daemon /usr/local/bin/machine-config-daemon
-chmod a+x /usr/local/bin/machine-config-daemon
-restorecon -Rv /usr/local/bin/machine-config-daemon
 # Install RPMs in overlayed FS
 mkdir /tmp/rpms
 cp -rvf ${mnt}/rpms/* /tmp/rpms
@@ -168,6 +166,9 @@ fi
 losetup -c /dev/loop0
 xfs_growfs /var
 mount -o remount,size=6G /run
+# Symlink kubelet pull secret
+mkdir -p /var/lib/kubelet
+ln -s /root/.docker/config.json /var/lib/kubelet/config.json
 `
 
 const okdHoldAgentUntilBinariesLanded = `[Unit]
@@ -247,10 +248,12 @@ type ignitionBuilder struct {
 	templates               *template.Template
 	staticNetworkConfig     staticnetworkconfig.StaticNetworkConfig
 	mirrorRegistriesBuilder mirrorregistries.MirrorRegistriesConfigBuilder
+	ocRelease               oc.Release
+	versionHandler          versions.Handler
 }
 
 func NewBuilder(log logrus.FieldLogger, staticNetworkConfig staticnetworkconfig.StaticNetworkConfig,
-	mirrorRegistriesBuilder mirrorregistries.MirrorRegistriesConfigBuilder) (result IgnitionBuilder, err error) {
+	mirrorRegistriesBuilder mirrorregistries.MirrorRegistriesConfigBuilder, ocRelease oc.Release, versionHandler versions.Handler) (result IgnitionBuilder, err error) {
 	// Parse the templates file system:
 	templates, err := loadTemplates()
 	if err != nil {
@@ -263,6 +266,8 @@ func NewBuilder(log logrus.FieldLogger, staticNetworkConfig staticnetworkconfig.
 		templates:               templates,
 		staticNetworkConfig:     staticNetworkConfig,
 		mirrorRegistriesBuilder: mirrorRegistriesBuilder,
+		ocRelease:               ocRelease,
+		versionHandler:          versionHandler,
 	}
 	return
 }
@@ -1435,6 +1440,24 @@ func SetHostnameForNodeIgnition(ignition []byte, host *models.Host) ([]byte, err
 	return configBytes, nil
 }
 
+func (ib *ignitionBuilder) shouldAppendOKDFiles(ctx context.Context, infraEnv *common.InfraEnv, cfg IgnitionConfig) (string, bool) {
+	// Use OKD override if OKD_RPMS_IMAGE explicitly set in config
+	if cfg.OKDRPMsImage != "" {
+		return cfg.OKDRPMsImage, true
+	}
+	// Check if selected payload contains `okd-rpms` image
+	releaseImage, err := ib.versionHandler.GetReleaseImage(infraEnv.OpenshiftVersion, infraEnv.CPUArchitecture)
+	if err != nil {
+		ib.log.Warnf("unable to find release image for %s/%s", infraEnv.OpenshiftVersion, infraEnv.CPUArchitecture)
+		return "", false
+	}
+	okdRpmsImage, err := ib.ocRelease.GetOKDRPMSImage(ib.log, *releaseImage.URL, "", infraEnv.PullSecret)
+	if err != nil {
+		return "", false
+	}
+	return okdRpmsImage, true
+}
+
 func (ib *ignitionBuilder) FormatDiscoveryIgnitionFile(ctx context.Context, infraEnv *common.InfraEnv, cfg IgnitionConfig, safeForLogs bool, authType auth.AuthType, overrideDiscoveryISOType string) (string, error) {
 	pullSecretToken, err := clusterPkg.AgentToken(infraEnv, authType)
 	if err != nil {
@@ -1522,8 +1545,8 @@ func (ib *ignitionBuilder) FormatDiscoveryIgnitionFile(ctx context.Context, infr
 		ignitionParams["MirrorRegistriesCAConfig"] = base64.StdEncoding.EncodeToString(caContents)
 	}
 
-	if cfg.OKDRPMsImage != "" {
-		okdBinariesOverlay := fmt.Sprintf(okdBinariesOverlayTemplate, cfg.OKDRPMsImage)
+	if okdRpmsImage, ok := ib.shouldAppendOKDFiles(ctx, infraEnv, cfg); ok {
+		okdBinariesOverlay := fmt.Sprintf(okdBinariesOverlayTemplate, okdRpmsImage)
 		ignitionParams["OKDBinaries"] = base64.StdEncoding.EncodeToString([]byte(okdBinariesOverlay))
 		ignitionParams["OKDHoldPivot"] = base64.StdEncoding.EncodeToString([]byte(okdHoldPivot))
 		ignitionParams["OKDHoldAgent"] = base64.StdEncoding.EncodeToString([]byte(okdHoldAgentUntilBinariesLanded))
