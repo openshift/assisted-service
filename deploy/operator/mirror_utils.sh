@@ -51,6 +51,25 @@ function mirror_package() {
 
   oc apply -f "${manifests_dir}/imageContentSourcePolicy.yaml"
 
+  # Modify openshift-marketplace namespace in order to allow workaround the new pod security
+  # admissions. Details are described in https://access.redhat.com/articles/6977554 and they
+  # are used to allow `securityContextConfig: legacy` stanza in the CatalogSource definition.
+  cat > "${manifests_dir}/namespaceHotfix.yaml" << EOF
+apiVersion: v1
+kind: Namespace
+metadata:
+  labels:
+    security.openshift.io/scc.podSecurityLabelSync: "false"
+    openshift.io/cluster-monitoring: "true"
+    pod-security.kubernetes.io/enforce: baseline
+  name: openshift-marketplace
+EOF
+
+  echo "Applied hotfix for marketplace namespace:"
+  cat "${manifests_dir}/namespaceHotfix.yaml"
+
+  oc apply -f "${manifests_dir}/namespaceHotfix.yaml"
+
   cat > "${manifests_dir}/catalogSource.yaml" << EOF
 apiVersion: operators.coreos.com/v1alpha1
 kind: CatalogSource
@@ -62,6 +81,8 @@ spec:
   image: ${local_registry_index_tag}
   displayName: Mirror index for package ${package} from ${remote_index}
   publisher: Local
+  grpcPodConfig:
+    securityContextConfig: legacy
   updateStrategy:
     registryPoll:
       interval: 30m
