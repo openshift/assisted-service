@@ -984,7 +984,7 @@ func (m *Manager) GetStagesByRole(h *models.Host, isSNO bool) []models.HostStage
 	stages := FindMatchingStages(h.Role, h.Bootstrap, isSNO)
 
 	// for day2 hosts, rebooting stage is considered as the last state as we don't have any way to follow up on it further.
-	if swag.StringValue(h.Kind) == models.HostKindAddToExistingClusterHost && len(stages) > 0 {
+	if swag.StringValue(h.Kind) == models.HostKindAddToExistingClusterHost && len(stages) > 0 && !m.kubeApiEnabled {
 		rebootingIndex := m.IndexOfStage(models.HostStageRebooting, stages)
 		stages = stages[:rebootingIndex+1]
 	}
