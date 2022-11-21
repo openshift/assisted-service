@@ -160,6 +160,8 @@ const (
 	ReasonWebHookServiceAccountFailure string = "ReasonWebHookServiceAccountFailure"
 	// ReasonWebHookAPIServiceFailure when there was a failure related to the webhook's API service.
 	ReasonWebHookAPIServiceFailure string = "ReasonWebHookAPIServiceFailure"
+	//ReasonWebHookEndpointFailure when there was a failure related to configuring the endpoint that routes to the admission service.
+	ReasonWebHookEndpointFailure string = "ReasonWebHookEndpointFailure"
 	// ReasonServiceServiceAccount when there was a failure configuring/deploying the assisted-service service-account.
 	ReasonServiceServiceAccount string = "ServiceServiceAccount"
 	// ReasonNamespaceCreationFailure when there was a failure creating the namespace.
@@ -170,6 +172,9 @@ const (
 	ReasonKubeconfigSecretFetchFailure string = "ReasonKubeconfigSecretFetchFailure"
 	// ReasonSpokeClientCreationFailure when there was a failure creating spoke client.
 	ReasonSpokeClientCreationFailure string = "ReasonSpokeClientCreationFailure"
+
+	// ReasonKonnectivityAgentFailure when there was a failure creating the namespace.
+	ReasonKonnectivityAgentFailure string = "KonnectivityAgentFailure"
 
 	// IPXEHTTPRouteEnabled is expected value in IPXEHTTPRoute to enable the route
 	IPXEHTTPRouteEnabled string = "enabled"

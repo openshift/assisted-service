@@ -19,13 +19,16 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"strings"
 
+	routev1 "github.com/openshift/api/route/v1"
 	aiv1beta1 "github.com/openshift/assisted-service/api/v1beta1"
 	"github.com/openshift/assisted-service/config"
 	"github.com/openshift/assisted-service/internal/spoke_k8s_client"
 	logutil "github.com/openshift/assisted-service/pkg/log"
 	conditionsv1 "github.com/openshift/custom-resource-status/conditions/v1"
 	pkgerror "github.com/pkg/errors"
+	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	"github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
 	appsv1 "k8s.io/api/apps/v1"
@@ -36,7 +39,9 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	k8scheme "k8s.io/client-go/kubernetes/scheme"
+	apiregv1 "k8s.io/kube-aggregator/pkg/apis/apiregistration/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -48,7 +53,13 @@ const (
 	kubeconfigSecretVolumePath                string = "/etc/kube"
 	kubeconfigPath                            string = "/etc/kube/kubeconfig"
 	hypershiftAgentServiceConfigFinalizerName string = "agentserviceconfig." + aiv1beta1.Group + "/ai-deprovision"
+
+	defaultServingCertNamespace string = "openshift-service-ca-operator"
+	defaultServingCertCMName    string = "openshift-service-ca.crt"
 )
+
+/** parameter name for exporting the webhook admission clusterIP */
+const clusterIPParam string = "ClusterIP"
 
 // HypershiftAgentServiceConfigReconciler reconciles a HypershiftAgentServiceConfig object
 type HypershiftAgentServiceConfigReconciler struct {
@@ -67,6 +78,7 @@ func (asc *ASC) initHASC(r *HypershiftAgentServiceConfigReconciler, instance *ai
 	asc.spec = &instance.Spec.AgentServiceConfigSpec
 	asc.conditions = &instance.Status.Conditions
 	context := r.AgentServiceConfigReconcileContext
+	asc.properties = make(map[string]interface{})
 	asc.rec = &AgentServiceConfigReconcileContext{
 		Client:       context.Client,
 		Log:          context.Log,
@@ -81,6 +93,9 @@ var assistedServiceRBAC_hub = []component{
 	{"AssistedServiceLeaderRole", aiv1beta1.ReasonRBACConfigurationFailure, newAssistedServiceRole},
 	{"AssistedServiceLeaderRoleBinding", aiv1beta1.ReasonRBACConfigurationFailure, newAssistedServiceRoleBinding},
 	{"AssistedServiceServiceAccount", aiv1beta1.ReasonServiceServiceAccount, newAssistedServiceServiceAccount},
+	{"WebHookServiceAccount", aiv1beta1.ReasonWebHookServiceAccountFailure, newWebHookServiceAccount},
+	{"WebHookClusterRole_hub", aiv1beta1.ReasonWebHookClusterRoleFailure, newWebHookClusterRole},
+	{"WebHookClusterRoleBinding_hub", aiv1beta1.ReasonWebHookClusterRoleBindingFailure, newWebHookClusterRoleBinding},
 }
 
 var assistedServiceRBAC_spoke = []component{
@@ -89,6 +104,27 @@ var assistedServiceRBAC_spoke = []component{
 	{"AssistedServiceClusterRole_spoke", aiv1beta1.ReasonRBACConfigurationFailure, newAssistedServiceClusterRole},
 	{"AssistedServiceClusterRoleBinding_spoke", aiv1beta1.ReasonRBACConfigurationFailure, newAssistedServiceClusterRoleBinding},
 	{"AssistedServiceServiceAccount_spoke", aiv1beta1.ReasonServiceServiceAccount, newAssistedServiceServiceAccount},
+	{"WebHookClusterRole_spoke", aiv1beta1.ReasonWebHookClusterRoleFailure, newWebHookClusterRole},
+	{"WebHookClusterRoleBinding_spoke", aiv1beta1.ReasonWebHookClusterRoleBindingFailure, newWebHookClusterRoleBinding},
+}
+
+func (hr *HypershiftAgentServiceConfigReconciler) getWebhookComponents_spoke() []component {
+	return []component{
+		{"AgentClusterInstallValidatingWebHook", aiv1beta1.ReasonValidatingWebHookFailure, newACIWebHook},
+		{"AgentClusterInstallMutatingWebHook", aiv1beta1.ReasonMutatingWebHookFailure, newACIMutatWebHook},
+		{"InfraEnvValidatingWebHook", aiv1beta1.ReasonValidatingWebHookFailure, newInfraEnvWebHook},
+		{"AgentValidatingWebHook", aiv1beta1.ReasonValidatingWebHookFailure, newAgentWebHook},
+		{"WebHookHostedService", aiv1beta1.ReasonWebHookServiceFailure, newHeadlessWebHookService},
+		{"WebHookEndpoint", aiv1beta1.ReasonWebHookEndpointFailure, newWebHookEndpoint},
+		{"WebHookAPIService", aiv1beta1.ReasonWebHookAPIServiceFailure, newHypershiftWebHookAPIService},
+	}
+}
+
+func (hr *HypershiftAgentServiceConfigReconciler) getWebhookComponents_hub() []component {
+	return []component{
+		{"WebHookService", aiv1beta1.ReasonWebHookServiceFailure, newWebHookService},
+		{"WebHookServiceDeployment", aiv1beta1.ReasonWebHookDeploymentFailure, newHypershiftWebHookDeployment},
+	}
 }
 
 // Adding required resources to rbac
@@ -131,19 +167,22 @@ func (hr *HypershiftAgentServiceConfigReconciler) Reconcile(origCtx context.Cont
 	asc.initHASC(hr, instance)
 
 	// Creating spoke client using specified kubeconfig secret reference
+	log.Info("creating spoke client on namespace")
 	spokeClient, err := hr.createSpokeClient(ctx, log, instance.Spec.KubeconfigSecretRef.Name, asc)
 	if err != nil {
-		log.WithError(err).Error("Failed to create client using specified kubeconfig", req.NamespacedName)
+		log.WithError(err).Errorf("Failed to create client using %s on namespace %s", instance.Spec.KubeconfigSecretRef.Name, req.NamespacedName)
 		return ctrl.Result{Requeue: true}, err
 	}
 
 	// Ensure agent-install CRDs exist on spoke cluster and clean stale ones
+	log.Info("synching agent-install CRDs on spoke cluster in namespace")
 	if err = hr.ensureSyncSpokeAgentInstallCRDs(ctx, log, spokeClient, asc); err != nil {
 		log.WithError(err).Error(fmt.Sprintf("Failed to sync agent-install CRDs on spoke cluster in namespace '%s'", instance.Namespace))
 		return ctrl.Result{}, err
 	}
 
 	// Ensure relevant finalizers exist (cleanup on deletion)
+	log.Infof("handling finalizers %s", hypershiftAgentServiceConfigFinalizerName)
 	if err = ensureFinalizers(ctx, log, asc, hypershiftAgentServiceConfigFinalizerName); err != nil {
 		return ctrl.Result{Requeue: true}, err
 	}
@@ -161,11 +200,13 @@ func (hr *HypershiftAgentServiceConfigReconciler) Reconcile(origCtx context.Cont
 	}
 
 	// Remove IPXE HTTP routes if not needed
+	log.Infof("cleaning ipxe http route")
 	if err = cleanHTTPRoute(ctx, log, asc); err != nil {
 		return ctrl.Result{Requeue: true}, err
 	}
 
 	// Reconcile hub components
+	log.Info("reconciling hub components ... ")
 	if result, err = hr.reconcileHubComponents(ctx, log, asc); err != nil {
 		return result, err
 	}
@@ -175,9 +216,15 @@ func (hr *HypershiftAgentServiceConfigReconciler) Reconcile(origCtx context.Cont
 		return ctrl.Result{Requeue: true}, err
 	}
 
+	log.Info("read certificate from hub")
+	if err = readServiceCertificate(ctx, log, asc); err != nil {
+		return ctrl.Result{}, err
+	}
+
 	// Switch to spoke client in the reconciler context
 	// TODO: extract client from AgentServiceConfigReconcileContext to avoid sharing
 	//       it with both hub and spoke clients.
+	log.Info("switching to spoke client")
 	asc.rec.Client = spokeClient
 
 	// Ensure instance namespace exists on spoke cluster
@@ -186,6 +233,7 @@ func (hr *HypershiftAgentServiceConfigReconciler) Reconcile(origCtx context.Cont
 	}
 
 	// Reconcile spoke components
+	log.Info("reconciling spoke components ... ")
 	if result, err = hr.reconcileSpokeComponents(ctx, log, asc); err != nil {
 		return result, err
 	}
@@ -202,6 +250,7 @@ func (hr *HypershiftAgentServiceConfigReconciler) reconcileHubComponents(ctx con
 	hubComponents := []component{}
 	hubComponents = append(hubComponents, assistedServiceRBAC_hub...)
 	hubComponents = append(hubComponents, getComponents(asc.spec)...)
+	hubComponents = append(hubComponents, hr.getWebhookComponents_hub()...)
 
 	// Reconcile hub components
 	for _, component := range hubComponents {
@@ -212,20 +261,65 @@ func (hr *HypershiftAgentServiceConfigReconciler) reconcileHubComponents(ctx con
 
 		log.Infof(fmt.Sprintf("Reconcile hub component: %s", component.name))
 		if result, err := reconcileComponent(ctx, log, asc, component); err != nil {
+			log.WithError(err).Errorf("Failed to reconcile hub component %s", component.name)
 			return result, err
 		}
 	}
+
+	// save the webhook service clusterIP
+	if err := readAdmissionClusterIP(ctx, log, asc); err != nil {
+		return ctrl.Result{Requeue: true}, err
+	}
+
+	//reconcile Konnectivity agent
+	if result, err := ensureKonnectivityAgent(ctx, log, asc); err != nil {
+		return result, err
+	}
+
 	return ctrl.Result{}, nil
+}
+
+func ensureKonnectivityAgent(ctx context.Context, log *logrus.Entry, asc ASC) (ctrl.Result, error) {
+	log.Info("reconciling the assisted-service konnectivity agent")
+	konnectivity := component{"KonnectivityAgent", aiv1beta1.ReasonKonnectivityAgentFailure, newKonnectivityAgentDeployment}
+	if result, err := reconcileComponent(ctx, log, asc, konnectivity); err != nil {
+		log.WithError(err).Errorf("Failed to reconcile konnectivity agent")
+		return result, err
+	}
+
+	return ctrl.Result{}, nil
+}
+
+func readServiceCertificate(ctx context.Context, log *logrus.Entry, asc ASC) error {
+	sourceCM := &corev1.ConfigMap{}
+	if err := asc.rec.Get(ctx, types.NamespacedName{Name: defaultServingCertCMName, Namespace: defaultServingCertNamespace}, sourceCM); err != nil {
+		log.WithError(err).Error("Failed to get default webhook serving cert config map")
+		return err
+	}
+	asc.properties["ca"] = sourceCM.Data
+	return nil
+}
+
+func readAdmissionClusterIP(ctx context.Context, log *logrus.Entry, asc ASC) error {
+	svc := &corev1.Service{}
+	if err := asc.rec.Get(ctx, types.NamespacedName{Name: webhookServiceName, Namespace: asc.namespace}, svc); err != nil {
+		return err
+	}
+	asc.properties[clusterIPParam] = svc.Spec.ClusterIP
+	log.Infof("saving webhook clusterIP on the hub: %s", svc.Spec.ClusterIP)
+	return nil
 }
 
 func (hr *HypershiftAgentServiceConfigReconciler) reconcileSpokeComponents(ctx context.Context, log *logrus.Entry, asc ASC) (ctrl.Result, error) {
 	spokeComponents := []component{}
 	spokeComponents = append(spokeComponents, assistedServiceRBAC_spoke...)
+	spokeComponents = append(spokeComponents, hr.getWebhookComponents_spoke()...)
 
 	// Reconcile spoke components
 	for _, component := range spokeComponents {
 		log.Infof(fmt.Sprintf("Reconcile spoke component: %s", component.name))
 		if result, err := reconcileComponent(ctx, log, asc, component); err != nil {
+			log.WithError(err).Errorf("Failed to reconcile spoke component %s", component.name)
 			return result, err
 		}
 	}
@@ -387,9 +481,12 @@ func (hr *HypershiftAgentServiceConfigReconciler) ensureSpokeNamespace(ctx conte
 		return nil
 	}
 	result, err := controllerutil.CreateOrUpdate(ctx, asc.rec.Client, ns, mutate)
-	if result != controllerutil.OperationResultNone {
+	if err != nil {
+		log.WithError(err).Errorf("Failed to create spoke namespace %s", asc.namespace)
+	} else if result != controllerutil.OperationResultNone {
 		log.Infof("Namespace %s %s", asc.namespace, result)
 	}
+
 	return err
 }
 
@@ -400,6 +497,16 @@ func (hr *HypershiftAgentServiceConfigReconciler) SetupWithManager(mgr ctrl.Mana
 		Owns(&rbacv1.ClusterRoleBinding{}).
 		Owns(&rbacv1.ClusterRole{}).
 		Owns(&corev1.ServiceAccount{}).
+		Owns(&corev1.PersistentVolumeClaim{}).
+		Owns(&monitoringv1.ServiceMonitor{}).
+		Owns(&corev1.Service{}).
+		Owns(&corev1.ServiceAccount{}).
+		Owns(&corev1.Secret{}).
+		Owns(&routev1.Route{}).
+		Owns(&appsv1.Deployment{}).
+		Owns(&appsv1.StatefulSet{}).
+		Owns(&corev1.ConfigMap{}).
+		Owns(&apiregv1.APIService{}).
 		Complete(hr)
 }
 
@@ -556,6 +663,149 @@ func newAssistedServiceServiceAccount(ctx context.Context, log logrus.FieldLogge
 	return createServiceAccountFn("assisted-service", asc.namespace)
 }
 
+func newHeadlessWebHookService(ctx context.Context, log logrus.FieldLogger, asc ASC) (client.Object, controllerutil.MutateFn, error) {
+	svc := &corev1.Service{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      webhookServiceName,
+			Namespace: asc.namespace,
+		},
+	}
+
+	mutateFn := func() error {
+		addAppLabel(webhookServiceName, &svc.ObjectMeta)
+		if svc.ObjectMeta.Annotations == nil {
+			svc.ObjectMeta.Annotations = make(map[string]string)
+		}
+		svc.ObjectMeta.Annotations[servingCertAnnotation] = webhookServiceName
+		if len(svc.Spec.Ports) == 0 {
+			svc.Spec.Ports = append(svc.Spec.Ports, corev1.ServicePort{})
+		}
+		svc.Spec.Ports[0].Name = webhookServiceName
+		svc.Spec.Ports[0].Port = 443
+		svc.Spec.Ports[0].TargetPort = intstr.IntOrString{Type: intstr.Int, IntVal: 9443}
+		svc.Spec.Ports[0].Protocol = corev1.ProtocolTCP
+		svc.Spec.Type = corev1.ServiceTypeClusterIP
+		return nil
+	}
+
+	return svc, mutateFn, nil
+}
+
+func newWebHookEndpoint(ctx context.Context, log logrus.FieldLogger, asc ASC) (client.Object, controllerutil.MutateFn, error) {
+
+	//retrieve the admission service IP from the ASC context
+	//the reconciler should fill this value before reconciling
+	//the endpoint
+	clusterIP := asc.properties[clusterIPParam]
+	if clusterIP == "" || clusterIP == nil {
+		return nil, nil, pkgerror.New("missing webhook admision service clusterIP")
+	}
+
+	ep := &corev1.Endpoints{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      webhookServiceName,
+			Namespace: asc.namespace,
+		},
+	}
+
+	endpointAddress := corev1.EndpointAddress{
+		IP: clusterIP.(string),
+	}
+
+	endpointPort := corev1.EndpointPort{
+		Name:     webhookServiceName,
+		Port:     443,
+		Protocol: corev1.ProtocolTCP,
+	}
+
+	ep.Subsets = []corev1.EndpointSubset{
+		{
+			Addresses: []corev1.EndpointAddress{endpointAddress},
+			Ports:     []corev1.EndpointPort{endpointPort},
+		},
+	}
+
+	mutateFn := func() error {
+		//TODO: services and endpoints on the spoke can not be controlled by our controller
+		//this is an open integration issue
+		ep.Subsets = []corev1.EndpointSubset{
+			{
+				Addresses: []corev1.EndpointAddress{endpointAddress},
+				Ports:     []corev1.EndpointPort{endpointPort},
+			},
+		}
+		return nil
+	}
+	return ep, mutateFn, nil
+}
+
+func newHypershiftWebHookAPIService(ctx context.Context, log logrus.FieldLogger, asc ASC) (client.Object, controllerutil.MutateFn, error) {
+	obj, _, _ := newWebHookAPIService(ctx, log, asc)
+	as := obj.(*apiregv1.APIService)
+
+	data, ok := asc.properties["ca"]
+	if !ok {
+		err := pkgerror.Errorf("no ca data on context %v on namespace %s", asc.properties, asc.namespace)
+		log.WithError(err)
+		return nil, nil, err
+	}
+
+	cmdata, ok := data.(map[string]string)
+	if !ok {
+		err := pkgerror.Errorf("bad format of ca context %v on namespace %s", asc.properties, asc.namespace)
+		log.WithError(err)
+		return nil, nil, err
+	}
+
+	ca, ok := cmdata["service-ca.crt"]
+	if !ok {
+		err := pkgerror.Errorf("Missing ca certificate for API service on namespace %s", asc.namespace)
+		log.WithError(err)
+		return nil, nil, err
+	}
+
+	mutateFn := func() error {
+		baseApiServiceSpec(as, asc.namespace)
+		as.Spec.CABundle = []byte(ca)
+		return nil
+	}
+	return as, mutateFn, nil
+}
+
+func newKonnectivityAgentDeployment(ctx context.Context, log logrus.FieldLogger, asc ASC) (client.Object, controllerutil.MutateFn, error) {
+	//read the existing konnectivity deployment
+	ka := &appsv1.Deployment{}
+	if err := asc.rec.Get(ctx, types.NamespacedName{Name: "konnectivity-agent", Namespace: asc.namespace}, ka); err != nil {
+		log.WithError(err).Errorf("Failed retrieving konnectivity-agend Deployment from namespace %s", asc.namespace)
+	}
+	ka.ObjectMeta = metav1.ObjectMeta{
+		Name:      "konnectivity-agent-assisted-service",
+		Namespace: asc.namespace,
+	}
+	ka.OwnerReferences = nil
+
+	//retrieve the admission service IP from the ASC context
+	//the reconciler should fill this value before reconciling
+	//the endpoint
+	clusterIP := asc.properties[clusterIPParam]
+	if clusterIP == "" || clusterIP == nil {
+		return nil, nil, pkgerror.New("missing webhook admision service clusterIP")
+	}
+
+	//TODO: this element can not be controlled by this current controller
+	//      this is an intgeration issue to be resolved with hypershift
+	mutateFn := func() error {
+		for i, arg := range ka.Spec.Template.Spec.Containers[0].Args {
+			if strings.HasPrefix(arg, "ipv4=") {
+				ka.Spec.Template.Spec.Containers[0].Args[i] = "ipv4=" + clusterIP.(string)
+				break
+			}
+		}
+		return nil
+	}
+	return ka, mutateFn, nil
+}
+
 func newHypershiftAssistedServiceDeployment(ctx context.Context, log logrus.FieldLogger, asc ASC) (client.Object, controllerutil.MutateFn, error) {
 	obj, mutateFn, err := newAssistedServiceDeployment(ctx, log, asc)
 	if err != nil {
@@ -598,5 +848,57 @@ func newHypershiftAssistedServiceDeployment(ctx context.Context, log logrus.Fiel
 		return nil
 	}
 
+	return deployment, newMutateFn, nil
+}
+
+func newHypershiftWebHookDeployment(ctx context.Context, log logrus.FieldLogger, asc ASC) (client.Object, controllerutil.MutateFn, error) {
+	obj, mutateFn, err := newWebHookDeployment(ctx, log, asc)
+	if err != nil {
+		log.WithError(err).Errorf("Failed to define Webhook Deployment scheme")
+	}
+	deployment := obj.(*appsv1.Deployment)
+
+	newMutateFn := func() error {
+		if err := controllerutil.SetControllerReference(asc.Object, deployment, asc.rec.Scheme); err != nil {
+			return err
+		}
+
+		if err := mutateFn(); err != nil {
+			return err
+		}
+
+		// Add volume with kubeconfig secret
+		deployment.Spec.Template.Spec.Volumes = append(deployment.Spec.Template.Spec.Volumes,
+			corev1.Volume{
+				Name: kubeconfigSecretVolumeName,
+				VolumeSource: corev1.VolumeSource{
+					Secret: &corev1.SecretVolumeSource{
+						SecretName: asc.Object.(*aiv1beta1.HypershiftAgentServiceConfig).Spec.KubeconfigSecretRef.Name,
+					},
+				},
+			},
+		)
+
+		// Add kubeconfig volume mount
+		serviceContainer := deployment.Spec.Template.Spec.Containers[0]
+		serviceContainer.VolumeMounts = append(serviceContainer.VolumeMounts, corev1.VolumeMount{
+			Name:      kubeconfigSecretVolumeName,
+			MountPath: kubeconfigSecretVolumePath,
+		})
+
+		// Add env var to the kubeconfig file on mounted path
+		serviceContainer.Env = append(serviceContainer.Env, corev1.EnvVar{Name: "KUBECONFIG", Value: kubeconfigPath})
+		deployment.Spec.Template.Spec.Containers[0] = serviceContainer
+
+		// add the kubeconfig to the container command
+		commands := append(make([]string, 0), deployment.Spec.Template.Spec.Containers[0].Command...)
+		commands = append(commands,
+			"--authorization-kubeconfig=/etc/kube/kubeconfig",
+			"--authentication-kubeconfig=/etc/kube/kubeconfig",
+			"--kubeconfig=/etc/kube/kubeconfig")
+		deployment.Spec.Template.Spec.Containers[0].Command = commands
+
+		return nil
+	}
 	return deployment, newMutateFn, nil
 }
