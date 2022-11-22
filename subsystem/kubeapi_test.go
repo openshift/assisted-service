@@ -21,6 +21,7 @@ import (
 	"github.com/hashicorp/go-multierror"
 	metal3_v1alpha1 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
 	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 	hiveext "github.com/openshift/assisted-service/api/hiveextension/v1beta1"
 	"github.com/openshift/assisted-service/api/v1beta1"
@@ -746,6 +747,22 @@ func cleanUpCRs(ctx context.Context, client k8sclient.Client) {
 			return client.Delete(ctx, secret)
 		}, "1m", "2s").Should(BeNil())
 	}
+}
+
+func extractKernelArgs(internalInfraEnv *common.InfraEnv) (ret []v1beta1.KernelArgument) {
+	ret = make([]v1beta1.KernelArgument, 0)
+	if internalInfraEnv.KernelArguments == nil {
+		return
+	}
+	var args models.KernelArguments
+	Expect(json.Unmarshal([]byte(swag.StringValue(internalInfraEnv.KernelArguments)), &args)).ToNot(HaveOccurred())
+	for _, arg := range args {
+		ret = append(ret, v1beta1.KernelArgument{
+			Operation: arg.Operation,
+			Value:     arg.Value,
+		})
+	}
+	return
 }
 
 func verifyCleanUP(ctx context.Context, client k8sclient.Client) {
@@ -2960,6 +2977,120 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			agent := getAgentCRD(ctx, kubeClient, hostKey)
 			return agent.Status.DebugInfo.State == models.HostStatusKnown
 		}, "1m", "10s").Should(BeTrue())
+	})
+
+	Context("kernel arguments", func() {
+		expectedSpecKargs := func(k []v1beta1.KernelArgument) []v1beta1.KernelArgument {
+			if k == nil {
+				return make([]v1beta1.KernelArgument, 0)
+			}
+			return k
+		}
+
+		It("Create infraenv with kernel arguments", func() {
+			infraEnvSpec.ClusterRef = nil
+			kargs := []v1beta1.KernelArgument{
+				{
+					Operation: "append",
+					Value:     "p1",
+				},
+				{
+					Operation: "append",
+					Value:     `p2="this is an argument"`,
+				},
+			}
+			infraEnvSpec.KernelArguments = kargs
+			infraEnvKey := types.NamespacedName{
+				Namespace: Options.Namespace,
+				Name:      infraNsName.Name,
+			}
+			deployInfraEnvCRD(ctx, kubeClient, infraNsName.Name, infraEnvSpec)
+			infraEnv := getInfraEnvFromDBByKubeKey(ctx, db, infraEnvKey, waitForReconcileTimeout)
+			Expect(extractKernelArgs(infraEnv)).To(Equal(kargs))
+		})
+
+		setAndCheck := func(kargs []v1beta1.KernelArgument) {
+			infraEnvKey := types.NamespacedName{
+				Namespace: Options.Namespace,
+				Name:      infraNsName.Name,
+			}
+
+			Eventually(func() error {
+				infraEnv := getInfraEnvCRD(ctx, kubeClient, infraEnvKey)
+				infraEnv.Spec.KernelArguments = kargs
+				return kubeClient.Update(ctx, infraEnv)
+			}, "10s", "1s").ShouldNot(HaveOccurred())
+			Eventually(func(g Gomega) {
+				infraEnv := getInfraEnvCRD(ctx, kubeClient, infraEnvKey)
+				g.Expect(expectedSpecKargs(infraEnv.Spec.KernelArguments)).To(Equal(kargs))
+				dbInfraEnv := getInfraEnvFromDBByKubeKey(ctx, db, infraEnvKey, 1)
+				g.Expect(extractKernelArgs(dbInfraEnv)).To(Equal(kargs))
+			}, "30s", "1s").Should(Succeed())
+		}
+
+		It("Update kernel arguments", func() {
+			By("Register infra env")
+			infraEnvSpec.ClusterRef = nil
+			deployInfraEnvCRD(ctx, kubeClient, infraNsName.Name, infraEnvSpec)
+
+			infraEnvKey := types.NamespacedName{
+				Namespace: Options.Namespace,
+				Name:      infraNsName.Name,
+			}
+			dbInfraEnv := getInfraEnvFromDBByKubeKey(ctx, db, infraEnvKey, waitForReconcileTimeout)
+			Expect(dbInfraEnv.KernelArguments).To(BeNil())
+			infraEnv := getInfraEnvCRD(ctx, kubeClient, infraEnvKey)
+			Expect(infraEnv).ToNot(BeNil())
+
+			By("Set with kernel arguments")
+			kargs1 := []v1beta1.KernelArgument{
+				{
+					Operation: "append",
+					Value:     "p1",
+				},
+				{
+					Operation: "append",
+					Value:     `p2="this is an argument"`,
+				},
+			}
+			setAndCheck(kargs1)
+
+			By("Set with different kernel arguments")
+			kargs2 := []v1beta1.KernelArgument{
+				{
+					Operation: "append",
+					Value:     "p3",
+				},
+				{
+					Operation: "append",
+					Value:     `p4="this is another argument"`,
+				},
+			}
+			setAndCheck(kargs2)
+
+			By("Clear kernel arguments")
+			setAndCheck(make([]v1beta1.KernelArgument, 0))
+		})
+		DescribeTable("unsupported cases",
+			func(operation, value string) {
+				infraEnvSpec.ClusterRef = nil
+				infraEnvKey := types.NamespacedName{
+					Namespace: Options.Namespace,
+					Name:      infraNsName.Name,
+				}
+				deployInfraEnvCRD(ctx, kubeClient, infraNsName.Name, infraEnvSpec)
+				infraEnv := getInfraEnvCRD(ctx, kubeClient, infraEnvKey)
+				infraEnv.Spec.KernelArguments = []v1beta1.KernelArgument{
+					{
+						Operation: operation,
+						Value:     value,
+					},
+				}
+				Expect(kubeClient.Update(ctx, infraEnv)).To(HaveOccurred())
+			},
+			Entry("illegal operation", "illegal", "p1"),
+			Entry("illegal value", "append", "value with unquoted spaces"),
+		)
 	})
 
 	It("Delete infraenv with bound agents", func() {
