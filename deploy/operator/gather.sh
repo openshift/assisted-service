@@ -164,6 +164,7 @@ function gather_hypershift_data() {
   oc logs --tail=-1 -n "${SPOKE_NAMESPACE}" --selector app=assisted-service -c assisted-service > ${hypershift_dir}/assisted-service.log
   oc logs --tail=-1 -n "${SPOKE_NAMESPACE}" --selector app=assisted-image-service -c assisted-image-service > ${hypershift_dir}/assisted-image-service.log
   oc logs --tail=-1 -n "${SPOKE_NAMESPACE}" --selector app=assisted-service -c postgres > ${hypershift_dir}/postgres.log
+  oc logs --tail=-1 -n "${SPOKE_NAMESPACE}" --selector app=agentinstalladmission > ${hypershift_dir}/agentinstalladmission.log
   oc logs --tail=-1 -n "${SPOKE_NAMESPACE}" --selector control-plane=infrastructure-operator > ${hypershift_dir}/infrastructure-operator.log
 
   hub_dir="${hypershift_dir}/hub_cluster"

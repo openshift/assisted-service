@@ -121,3 +121,37 @@ echo "Cluster installation has been stopped (either for good or bad reasons)"
 
 KUBECONFIG=$SPOKE_KUBECONFIG wait_for_condition "agentclusterinstall/${ASSISTED_AGENT_CLUSTER_INSTALL_NAME}" "Completed" "90m" "${SPOKE_NAMESPACE}"
 echo "Cluster has been installed successfully!"
+
+
+# Test webhooks
+
+function validate_by_pattern() {
+  log="$1"
+  pattern="$2"
+  success_msg="$3"
+  failure_msg="$4"
+
+  if [[ $log == *$pattern* ]];
+  then
+    echo "SUCCESS:" $success_msg
+  else
+    echo "FAILURE:" $failure_msg
+    exit 1
+  fi
+}
+export -f validate_by_pattern
+
+echo "Test webhooks for InfraEnv successful update"
+oc --kubeconfig $SPOKE_KUBECONFIG -n $SPOKE_NAMESPACE patch infraenv $ASSISTED_INFRAENV_NAME \
+    -p '{"metadata": {"annotations":{"foo":"bar"}}}' --type merge
+webhook_log=$(oc logs -n $SPOKE_NAMESPACE -l app=agentinstalladmission --since=5s | grep -E 'UPDATE(.)*infraenvs' | tail -1)
+validate_by_pattern "$webhook_log" "Successful validation" \
+    "Webhook successful validation for InfraEnv update" \
+    "Missing webhook validation"
+
+echo "Test webhooks for InfraEnv failing update"
+error_msg=$(oc --kubeconfig $SPOKE_KUBECONFIG -n $SPOKE_NAMESPACE patch infraenv  $ASSISTED_INFRAENV_NAME \
+    -p '{"spec": {"clusterRef":{"name":"test"}}}' --type merge 2>&1) || true
+validate_by_pattern "$error_msg" "Attempted to change Spec.ClusterRef which is immutable" \
+    "Webhook failed validation for InfraEnv invalid update" \
+    "Missing webhook validation"
