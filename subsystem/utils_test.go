@@ -232,8 +232,9 @@ func getStepFromListByStepType(steps models.Steps, sType models.StepType) *model
 
 func getNextSteps(infraEnvID, hostID strfmt.UUID) models.Steps {
 	steps, err := agentBMClient.Installer.V2GetNextSteps(context.Background(), &installer.V2GetNextStepsParams{
-		InfraEnvID: infraEnvID,
-		HostID:     hostID,
+		InfraEnvID:            infraEnvID,
+		HostID:                hostID,
+		DiscoveryAgentVersion: swag.String("quay.io/edge-infrastructure/assisted-installer-agent:latest"),
 	})
 	Expect(err).NotTo(HaveOccurred())
 	return *steps.GetPayload()
@@ -288,9 +289,10 @@ func updateHostProgressWithInfo(hostID strfmt.UUID, infraEnvID strfmt.UUID, curr
 
 func generateGetNextStepsWithTimestamp(ctx context.Context, h *models.Host, timestamp int64) {
 	_, err := agentBMClient.Installer.V2GetNextSteps(ctx, &installer.V2GetNextStepsParams{
-		HostID:     *h.ID,
-		InfraEnvID: h.InfraEnvID,
-		Timestamp:  &timestamp,
+		HostID:                *h.ID,
+		InfraEnvID:            h.InfraEnvID,
+		DiscoveryAgentVersion: swag.String("quay.io/edge-infrastructure/assisted-installer-agent:latest"),
+		Timestamp:             &timestamp,
 	})
 	Expect(err).ToNot(HaveOccurred())
 }
