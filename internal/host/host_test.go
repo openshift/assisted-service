@@ -3794,6 +3794,121 @@ var _ = Describe("Installation stages", func() {
 			Expect(*h.Status).To(Equal(models.HostStatusAddedToExistingCluster))
 		})
 	})
+	It("UpdateInstallProgress test - day2 hosts with kubeapi enabled", func() {
+		api = NewManager(common.GetTestLog(), db, mockEventApi, nil, nil, nil, nil, &config, &leader.DummyElector{}, nil, nil, true, nil)
+		h := hostutil.GenerateTestHost(strfmt.UUID(uuid.New().String()), strfmt.UUID(uuid.New().String()), strfmt.UUID(uuid.New().String()), models.HostStatusInstalling)
+		hostKindDay2 := models.HostKindAddToExistingClusterHost
+		h.Kind = &hostKindDay2
+		h.Role = models.HostRoleWorker
+		Expect(db.Create(&h).Error).ShouldNot(HaveOccurred())
+
+		By("report first progress", func() {
+
+			newStage := models.HostStageStartingInstallation
+			progress := models.HostProgress{
+				CurrentStage: newStage,
+			}
+
+			mockEventApi.EXPECT().SendHostEvent(ctx, eventstest.NewEventMatcher(
+				eventstest.WithHostIdMatcher(h.ID.String()),
+				eventstest.WithInfraEnvIdMatcher(h.InfraEnvID.String()),
+				eventstest.WithSeverityMatcher(models.EventSeverityInfo)))
+
+			err := api.UpdateInstallProgress(ctx, &h, &progress)
+			Expect(err).NotTo(HaveOccurred())
+
+			hFromDB := hostutil.GetHostFromDB(*h.ID, h.InfraEnvID, db)
+			h = hFromDB.Host
+			expectedInstallationPercentage := int64(float64(api.IndexOfStage(newStage, WorkerStages[:])+1) / float64(len(WorkerStages[:])) * 100)
+			Expect(h.Progress.InstallationPercentage).To(Equal(expectedInstallationPercentage))
+		})
+
+		By("report second progress", func() {
+
+			newStage := models.HostStageInstalling
+			progress := models.HostProgress{
+				CurrentStage: newStage,
+			}
+
+			err := api.UpdateInstallProgress(ctx, &h, &progress)
+			Expect(err).NotTo(HaveOccurred())
+
+			hFromDB := hostutil.GetHostFromDB(*h.ID, h.InfraEnvID, db)
+			h = hFromDB.Host
+			expectedInstallationPercentage := int64(float64(api.IndexOfStage(newStage, WorkerStages[:])+1) / float64(len(WorkerStages[:])) * 100)
+			Expect(h.Progress.InstallationPercentage).To(Equal(expectedInstallationPercentage))
+		})
+
+		By("report another progress", func() {
+
+			newStage := models.HostStageWritingImageToDisk
+			progress := models.HostProgress{
+				CurrentStage: newStage,
+			}
+
+			err := api.UpdateInstallProgress(ctx, &h, &progress)
+			Expect(err).NotTo(HaveOccurred())
+
+			hFromDB := hostutil.GetHostFromDB(*h.ID, h.InfraEnvID, db)
+			h = hFromDB.Host
+			expectedInstallationPercentage := int64(float64(api.IndexOfStage(newStage, WorkerStages[:])+1) / float64(len(WorkerStages[:])) * 100)
+			Expect(h.Progress.InstallationPercentage).To(Equal(expectedInstallationPercentage))
+		})
+
+		By("report rebooting progress", func() {
+
+			newStage := models.HostStageRebooting
+			progress := models.HostProgress{
+				CurrentStage: newStage,
+			}
+
+			err := api.UpdateInstallProgress(ctx, &h, &progress)
+			Expect(err).NotTo(HaveOccurred())
+
+			hFromDB := hostutil.GetHostFromDB(*h.ID, h.InfraEnvID, db)
+			h = hFromDB.Host
+			expectedInstallationPercentage := int64(float64(api.IndexOfStage(newStage, WorkerStages[:])+1) / float64(len(WorkerStages[:])) * 100)
+			Expect(h.Progress.InstallationPercentage).To(Equal(expectedInstallationPercentage))
+		})
+		By("report joined progress", func() {
+
+			newStage := models.HostStageJoined
+			progress := models.HostProgress{
+				CurrentStage: newStage,
+			}
+
+			err := api.UpdateInstallProgress(ctx, &h, &progress)
+			Expect(err).NotTo(HaveOccurred())
+
+			hFromDB := hostutil.GetHostFromDB(*h.ID, h.InfraEnvID, db)
+			h = hFromDB.Host
+			expectedInstallationPercentage := int64(float64(api.IndexOfStage(newStage, WorkerStages[:])+1) / float64(len(WorkerStages[:])) * 100)
+			Expect(h.Progress.InstallationPercentage).To(Equal(expectedInstallationPercentage))
+		})
+
+		By("report last progress", func() {
+
+			newStage := models.HostStageDone
+			progress := models.HostProgress{
+				CurrentStage: newStage,
+			}
+
+			mockEventApi.EXPECT().SendHostEvent(ctx, eventstest.NewEventMatcher(
+				eventstest.WithHostIdMatcher(h.ID.String()),
+				eventstest.WithInfraEnvIdMatcher(h.InfraEnvID.String()),
+				eventstest.WithSeverityMatcher(models.EventSeverityInfo)))
+
+			err := api.UpdateInstallProgress(ctx, &h, &progress)
+			Expect(err).NotTo(HaveOccurred())
+
+			hFromDB := hostutil.GetHostFromDB(*h.ID, h.InfraEnvID, db)
+			h = hFromDB.Host
+			expectedInstallationPercentage := int64(100)
+			Expect(h.Progress.InstallationPercentage).To(Equal(expectedInstallationPercentage))
+			Expect(*h.Status).To(Equal(models.HostStatusAddedToExistingCluster))
+		})
+	})
+
 })
 
 var _ = Describe("sortHost by hardware", func() {
