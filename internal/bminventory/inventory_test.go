@@ -4842,6 +4842,52 @@ var _ = Describe("[V2ClusterUpdate] cluster", func() {
 					verifyApiErrorString(reply2, http.StatusBadRequest, "Can't set baremetal platform with user-managed-networking enabled")
 				})
 
+				Context("Single node cluster", func() {
+					BeforeEach(func() {
+						clusterID = strfmt.UUID(uuid.New().String())
+						err := db.Create(&common.Cluster{Cluster: models.Cluster{
+							ID:                    &clusterID,
+							HighAvailabilityMode:  swag.String(models.ClusterHighAvailabilityModeNone),
+							UserManagedNetworking: swag.Bool(true),
+							Platform: &models.Platform{
+								Type: common.PlatformTypePtr(models.PlatformTypeNone),
+							},
+						}}).Error
+						Expect(err).ShouldNot(HaveOccurred())
+
+					})
+
+					It("Update to vsphere platform while single node cluster - failure", func() {
+						reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
+							ClusterID: clusterID,
+							ClusterUpdateParams: &models.V2ClusterUpdateParams{
+								Platform: &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeVsphere)},
+							},
+						})
+						verifyApiErrorString(reply, http.StatusBadRequest, "Single node cluster is not supported alongside vsphere platform")
+					})
+
+					It("Update to baremetal platform while single node cluster - failure", func() {
+						reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
+							ClusterID: clusterID,
+							ClusterUpdateParams: &models.V2ClusterUpdateParams{
+								Platform: &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeBaremetal)},
+							},
+						})
+						verifyApiErrorString(reply, http.StatusBadRequest, "disabling User Managed Networking or setting platform different than none platform is not allowed in single node Openshift")
+					})
+
+					It("Update to nutanix platform while single node cluster - failure", func() {
+						reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
+							ClusterID: clusterID,
+							ClusterUpdateParams: &models.V2ClusterUpdateParams{
+								Platform: &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeNutanix)},
+							},
+						})
+						verifyApiErrorString(reply, http.StatusBadRequest, "Single node cluster is not supported alongside nutanix platform")
+					})
+				})
+
 				It("Update UMN=nil and none platform while cluster platform is set to vsphere and umn false- failure", func() {
 					mockClusterUpdateSuccess(1, 0)
 					mockProviderRegistry.EXPECT().SetPlatformUsages(models.PlatformTypeVsphere, gomock.Any(), mockUsage)
@@ -10203,6 +10249,36 @@ var _ = Describe("TestRegisterCluster", func() {
 				params.OpenshiftVersion = swag.String("4.9")
 				params.UserManagedNetworking = swag.Bool(false)
 				params.Platform = &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeBaremetal)}
+				reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
+					NewClusterParams: params,
+				})
+				verifyApiError(reply, http.StatusBadRequest)
+			})
+
+			It("Fail to set vsphere platform when HighAvailabilityMode is None", func() {
+				mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
+					eventstest.WithNameMatcher(eventgen.ClusterRegistrationFailedEventName),
+					eventstest.WithMessageContainsMatcher("Failed to register cluster. Error: Single node cluster is not supported alongside vsphere platform"),
+					eventstest.WithSeverityMatcher(models.EventSeverityError))).Times(1)
+
+				params := getClusterCreateParams(swag.String(models.ClusterCreateParamsHighAvailabilityModeNone))
+				params.OpenshiftVersion = swag.String("4.9")
+				params.Platform = &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeVsphere)}
+				reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
+					NewClusterParams: params,
+				})
+				verifyApiError(reply, http.StatusBadRequest)
+			})
+
+			It("Fail to set nutanix platform when HighAvailabilityMode is None", func() {
+				mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
+					eventstest.WithNameMatcher(eventgen.ClusterRegistrationFailedEventName),
+					eventstest.WithMessageContainsMatcher("Failed to register cluster. Error: Single node cluster is not supported alongside nutanix platform"),
+					eventstest.WithSeverityMatcher(models.EventSeverityError))).Times(1)
+
+				params := getClusterCreateParams(swag.String(models.ClusterCreateParamsHighAvailabilityModeNone))
+				params.OpenshiftVersion = swag.String("4.9")
+				params.Platform = &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeNutanix)}
 				reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 					NewClusterParams: params,
 				})
