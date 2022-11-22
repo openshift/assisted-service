@@ -190,6 +190,20 @@ func (mr *MockInstallerAPIMockRecorder) RegisterInfraEnv(arg0, arg1 interface{})
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RegisterInfraEnv", reflect.TypeOf((*MockInstallerAPI)(nil).RegisterInfraEnv), arg0, arg1)
 }
 
+// TransformClusterToAddingHosts mocks base method.
+func (m *MockInstallerAPI) TransformClusterToAddingHosts(arg0 context.Context, arg1 installer.TransformClusterToAddingHostsParams) middleware.Responder {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "TransformClusterToAddingHosts", arg0, arg1)
+	ret0, _ := ret[0].(middleware.Responder)
+	return ret0
+}
+
+// TransformClusterToAddingHosts indicates an expected call of TransformClusterToAddingHosts.
+func (mr *MockInstallerAPIMockRecorder) TransformClusterToAddingHosts(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "TransformClusterToAddingHosts", reflect.TypeOf((*MockInstallerAPI)(nil).TransformClusterToAddingHosts), arg0, arg1)
+}
+
 // TransformClusterToDay2 mocks base method.
 func (m *MockInstallerAPI) TransformClusterToDay2(arg0 context.Context, arg1 installer.TransformClusterToDay2Params) middleware.Responder {
 	m.ctrl.T.Helper()

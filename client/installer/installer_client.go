@@ -53,7 +53,10 @@ type API interface {
 	   RegisterInfraEnv Creates a new OpenShift Discovery ISO.*/
 	RegisterInfraEnv(ctx context.Context, params *RegisterInfraEnvParams) (*RegisterInfraEnvCreated, error)
 	/*
-	   TransformClusterToDay2 Transforming cluster to day2 and allowing adding hosts*/
+	   TransformClusterToAddingHosts Transforms installed cluster to a state which allows adding hosts.*/
+	TransformClusterToAddingHosts(ctx context.Context, params *TransformClusterToAddingHostsParams) (*TransformClusterToAddingHostsAccepted, error)
+	/*
+	   TransformClusterToDay2 Deprecated, maintained for legacy purposes. Does the same thing as allow-add-hosts. Use allow-add-hosts instead.*/
 	TransformClusterToDay2(ctx context.Context, params *TransformClusterToDay2Params) (*TransformClusterToDay2Accepted, error)
 	/*
 	   UnbindHost Unbind host to a cluster*/
@@ -489,7 +492,32 @@ func (a *Client) RegisterInfraEnv(ctx context.Context, params *RegisterInfraEnvP
 }
 
 /*
-TransformClusterToDay2 Transforming cluster to day2 and allowing adding hosts
+TransformClusterToAddingHosts Transforms installed cluster to a state which allows adding hosts.
+*/
+func (a *Client) TransformClusterToAddingHosts(ctx context.Context, params *TransformClusterToAddingHostsParams) (*TransformClusterToAddingHostsAccepted, error) {
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "TransformClusterToAddingHosts",
+		Method:             "POST",
+		PathPattern:        "/v2/clusters/{cluster_id}/actions/allow-add-hosts",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http", "https"},
+		Params:             params,
+		Reader:             &TransformClusterToAddingHostsReader{formats: a.formats},
+		AuthInfo:           a.authInfo,
+		Context:            ctx,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*TransformClusterToAddingHostsAccepted), nil
+
+}
+
+/*
+TransformClusterToDay2 Deprecated, maintained for legacy purposes. Does the same thing as allow-add-hosts. Use allow-add-hosts instead.
 */
 func (a *Client) TransformClusterToDay2(ctx context.Context, params *TransformClusterToDay2Params) (*TransformClusterToDay2Accepted, error) {
 

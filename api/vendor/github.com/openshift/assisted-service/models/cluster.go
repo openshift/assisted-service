@@ -134,7 +134,7 @@ type Cluster struct {
 	// regular cluster. Clusters are considered imported when they are
 	// created via the ../clusters/import endpoint. Day-2 clusters converted
 	// from day-1 clusters by kube-api controllers or the
-	// ../clusters/<cluster_id>/actions/allow-add-workers endpoint are not
+	// ../clusters/<cluster_id>/actions/allow-add-hosts endpoint are not
 	// considered imported. Imported clusters usually lack a lot of
 	// information and are filled with default values that don't necessarily
 	// reflect the actual cluster they represent

@@ -266,6 +266,10 @@ func (f fakeInventory) TransformClusterToDay2(ctx context.Context, params instal
 	return installer.NewTransformClusterToDay2Accepted()
 }
 
+func (f fakeInventory) TransformClusterToAddingHosts(ctx context.Context, params installer.TransformClusterToAddingHostsParams) middleware.Responder {
+	return installer.NewTransformClusterToAddingHostsAccepted()
+}
+
 func (f fakeInventory) ListClusterHosts(ctx context.Context, params installer.ListClusterHostsParams) middleware.Responder {
 	return installer.NewListClusterHostsOK()
 }

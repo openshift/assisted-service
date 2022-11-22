@@ -136,11 +136,20 @@ func (b *bareMetalInventory) V2CancelInstallation(ctx context.Context, params in
 }
 
 func (b *bareMetalInventory) TransformClusterToDay2(ctx context.Context, params installer.TransformClusterToDay2Params) middleware.Responder {
+	// Does the same thing as TransformClusterToAddingHosts, endpoint maintained for legacy purposes
 	cluster, err := b.TransformClusterToDay2Internal(ctx, params.ClusterID)
 	if err != nil {
 		return common.GenerateErrorResponder(err)
 	}
 	return installer.NewTransformClusterToDay2Accepted().WithPayload(&cluster.Cluster)
+}
+
+func (b *bareMetalInventory) TransformClusterToAddingHosts(ctx context.Context, params installer.TransformClusterToAddingHostsParams) middleware.Responder {
+	c, err := b.TransformClusterToDay2Internal(ctx, params.ClusterID)
+	if err != nil {
+		return common.GenerateErrorResponder(err)
+	}
+	return installer.NewTransformClusterToAddingHostsAccepted().WithPayload(&c.Cluster)
 }
 
 func (b *bareMetalInventory) V2ResetCluster(ctx context.Context, params installer.V2ResetClusterParams) middleware.Responder {
