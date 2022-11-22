@@ -142,7 +142,7 @@ parameters:
   value: "minimal-iso"
   required: false
 - name: ENABLE_UPGRADE_AGENT
-  value: "false"
+  value: "true"
   required: false
 - name: READINESS_PROBE_INITIAL_DELAY_SECONDS
   value: "15"

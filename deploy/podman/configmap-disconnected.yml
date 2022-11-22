@@ -29,7 +29,7 @@ data:
   RELEASE_IMAGES: '[{"openshift_version":"4.10","cpu_architecture":"x86_64","cpu_architectures":["x86_64"],"url":"<container image registry server:port>/ocp4/openshift4:4.10.22-x86_64","version":"4.10.22","default":true}]'
   SERVICE_BASE_URL: http://<IP address of assisted installer host>:8090
   STORAGE: filesystem
-  ENABLE_UPGRADE_AGENT: "false"
+  ENABLE_UPGRADE_AGENT: "true"
   AGENT_DOCKER_IMAGE: "<container image registry server:port>/edge-infrastructure/assisted-installer-agent:latest"
   CONTROLLER_IMAGE: "<container image registry server:port>/edge-infrastructure/assisted-installer-controller:latest"
   INSTALLER_IMAGE: "<container image registry server:port>/edge-infrastructure/assisted-installer:latest"
