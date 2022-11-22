@@ -55,6 +55,7 @@ type TransitionHandler interface {
 	PostRefreshLogsProgress(progress string) stateswitch.PostTransition
 	PostRefreshReclaimTimeout(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) error
 	PostRegisterDuringInstallation(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) error
+	PostRegisterAfterInstallation(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) error
 	PostRegisterDuringReboot(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) error
 	PostRegisterHost(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) error
 	PostResettingPendingUserAction(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) error
@@ -136,6 +137,28 @@ func (th *transitionHandler) PostRegisterDuringInstallation(sw stateswitch.State
 
 	return th.updateTransitionHost(params.ctx, logutil.FromContext(params.ctx, th.log), params.db, sHost,
 		"The host unexpectedly restarted during the installation")
+}
+
+func (th *transitionHandler) PostRegisterAfterInstallation(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) error {
+	_, ok := sw.(*stateHost)
+	if !ok {
+		return errors.New("RegisterNewHost incompatible type of StateSwitch")
+	}
+	_, ok = args.(*TransitionArgsRegisterHost)
+	if !ok {
+		return errors.New("PostRegisterAfterInstallation invalid argument")
+	}
+
+	return common.NewApiError(
+		http.StatusForbidden,
+		errors.New(
+			"Host is trying to register after the cluster has already been installed. "+
+				"That most probably means that the host is booting from the "+
+				"installation ISO, and therefore not effectively joining the "+
+				"cluster. The request will be ignored. Fix the boot order and "+
+				"reboot the host.",
+		),
+	)
 }
 
 func (th *transitionHandler) IsHostInReboot(sw stateswitch.StateSwitch, _ stateswitch.TransitionArgs) (bool, error) {

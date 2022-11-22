@@ -353,6 +353,20 @@ func (mr *MockTransitionHandlerMockRecorder) PostRefreshReclaimTimeout(sw, args 
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PostRefreshReclaimTimeout", reflect.TypeOf((*MockTransitionHandler)(nil).PostRefreshReclaimTimeout), sw, args)
 }
 
+// PostRegisterAfterInstallation mocks base method.
+func (m *MockTransitionHandler) PostRegisterAfterInstallation(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "PostRegisterAfterInstallation", sw, args)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// PostRegisterAfterInstallation indicates an expected call of PostRegisterAfterInstallation.
+func (mr *MockTransitionHandlerMockRecorder) PostRegisterAfterInstallation(sw, args interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PostRegisterAfterInstallation", reflect.TypeOf((*MockTransitionHandler)(nil).PostRegisterAfterInstallation), sw, args)
+}
+
 // PostRegisterDuringInstallation mocks base method.
 func (m *MockTransitionHandler) PostRegisterDuringInstallation(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) error {
 	m.ctrl.T.Helper()
