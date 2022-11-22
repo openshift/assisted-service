@@ -4210,6 +4210,10 @@ func (b *bareMetalInventory) RegisterInfraEnvInternal(
 		if err = b.setStaticNetworkUsage(tx, infraEnv.ClusterID, infraEnv.StaticNetworkConfig); err != nil {
 			log.WithError(err).Warnf("failed to set static network usage for cluster %s", infraEnv.ClusterID)
 		}
+
+		if err = b.setDiscoveryKernelArgumentsUsage(tx, infraEnv.ClusterID, params.InfraenvCreateParams.KernelArguments); err != nil {
+			log.WithError(err).Warnf("failed to set discovery kernel arguments usage for cluster %s", infraEnv.ClusterID)
+		}
 	}
 	if params.InfraenvCreateParams.Proxy != nil {
 		proxy := models.Proxy{
@@ -4389,6 +4393,28 @@ func (b *bareMetalInventory) setStaticNetworkUsage(db *gorm.DB, clusterId strfmt
 	return nil
 }
 
+// Sets the feature usage for discovery kernel arguments
+func (b *bareMetalInventory) setDiscoveryKernelArgumentsUsage(db *gorm.DB, clusterId strfmt.UUID, kargs models.KernelArguments) error {
+	var err error
+
+	cluster, err := common.GetClusterFromDBForUpdate(db, clusterId, common.SkipEagerLoading)
+	if err != nil {
+		return err
+	}
+
+	usages, err := usage.Unmarshal(cluster.Cluster.FeatureUsage)
+	if err != nil {
+		return err
+	}
+
+	isDiscoveryKernelArgsUsed := len(kargs) > 0
+
+	b.setUsage(isDiscoveryKernelArgsUsed, usage.DiscoveryKernelArgumentsUsage, nil, usages)
+	b.usageApi.Save(db, *cluster.ID, usages)
+
+	return nil
+}
+
 func (b *bareMetalInventory) UpdateInfraEnv(ctx context.Context, params installer.UpdateInfraEnvParams) middleware.Responder {
 	i, err := b.UpdateInfraEnvInternal(ctx, params, nil)
 	if err != nil {
@@ -4528,6 +4554,11 @@ func (b *bareMetalInventory) updateInfraEnvData(ctx context.Context, infraEnv *c
 			updates["kernel_arguments"] = string(b)
 		} else {
 			updates["kernel_arguments"] = gorm.Expr("NULL")
+		}
+		if infraEnv.ClusterID != "" {
+			if err := b.setDiscoveryKernelArgumentsUsage(db, infraEnv.ClusterID, params.InfraEnvUpdateParams.KernelArguments); err != nil {
+				log.WithError(err).Warnf("failed to set discovery kernel arguments usage for cluster %s", infraEnv.ClusterID)
+			}
 		}
 	}
 

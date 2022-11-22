@@ -5576,6 +5576,50 @@ var _ = Describe("infraEnvs", func() {
 			Expect(err).ToNot(HaveOccurred())
 			Expect(swag.StringValue(dbInfraEnv.KernelArguments)).To(Equal(string(jsonEncodedKernelParameters)))
 		})
+		It("happy flow with kernel parameters + cluster and usage", func() {
+			mockInfraEnvRegisterSuccess()
+			cluster := createCluster(db, models.ClusterStatusInsufficient)
+			MinimalOpenShiftVersionForNoneHA := "4.8.0-fc.0"
+			mockEvents.EXPECT().SendInfraEnvEvent(ctx, eventstest.NewEventMatcher(
+				eventstest.WithNameMatcher(eventgen.InfraEnvRegisteredEventName))).Times(1)
+			mockUsage.EXPECT().Add(gomock.Any(), gomock.Not(usage.DiscoveryKernelArgumentsUsage), gomock.Any()).AnyTimes()
+			mockUsage.EXPECT().Remove(gomock.Any(), gomock.Not(usage.DiscoveryKernelArgumentsUsage)).AnyTimes()
+			mockUsage.EXPECT().Add(gomock.Any(), usage.DiscoveryKernelArgumentsUsage, nil)
+			mockUsage.EXPECT().Save(gomock.Any(), gomock.Any(), gomock.Any()).MinTimes(1)
+
+			kernelArguments := models.KernelArguments{
+				{
+					Operation: models.KernelArgumentOperationAppend,
+					Value:     "p1",
+				},
+				{
+					Operation: models.KernelArgumentOperationAppend,
+					Value:     "p2",
+				},
+				{
+					Operation: models.KernelArgumentOperationAppend,
+					Value:     "p3",
+				},
+			}
+			reply := bm.RegisterInfraEnv(ctx, installer.RegisterInfraEnvParams{
+				InfraenvCreateParams: &models.InfraEnvCreateParams{
+					Name:             swag.String("some-infra-env-name"),
+					OpenshiftVersion: MinimalOpenShiftVersionForNoneHA,
+					PullSecret:       swag.String("{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"),
+					KernelArguments:  kernelArguments,
+					ClusterID:        cluster.ID,
+				},
+			})
+			Expect(reflect.TypeOf(reply)).Should(Equal(reflect.TypeOf(installer.NewRegisterInfraEnvCreated())))
+			actual := reply.(*installer.RegisterInfraEnvCreated)
+
+			var dbInfraEnv common.InfraEnv
+			Expect(db.First(&dbInfraEnv, "id = ?", actual.Payload.ID.String()).Error).To(Succeed())
+			Expect(dbInfraEnv.ImageTokenKey).NotTo(Equal(""))
+			jsonEncodedKernelParameters, err := json.Marshal(&kernelArguments)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(swag.StringValue(dbInfraEnv.KernelArguments)).To(Equal(string(jsonEncodedKernelParameters)))
+		})
 
 		It("sets the ignition config override feature usage when given a valid override", func() {
 			override := `{"ignition": {"version": "3.1.0"}, "storage": {"files": [{"path": "/tmp/example", "contents": {"source": "data:text/plain;base64,aGVscGltdHJhcHBlZGluYXN3YWdnZXJzcGVj"}}]}}`
@@ -6065,6 +6109,49 @@ var _ = Describe("infraEnvs", func() {
 					Entry("overwrites existing discovery kernel arguments with new ones", ka1, ka2, ka2),
 					Entry("clears existing kernel arguments", ka2, models.KernelArguments{}, nil),
 				)
+				Context("kernel arguments with usage", func() {
+					var cluster *common.Cluster
+					BeforeEach(func() {
+						cluster = createCluster(db, models.ClusterStatusInsufficient)
+						Expect(db.Model(&models.InfraEnv{}).Where("id = ?", i.ID.String()).Update("cluster_id", cluster.ID.String()).Error).ToNot(HaveOccurred())
+					})
+					It("add kernel arguments", func() {
+						mockInfraEnvUpdateSuccess()
+						mockUsage.EXPECT().Add(gomock.Any(), gomock.Not(usage.DiscoveryKernelArgumentsUsage), gomock.Any()).AnyTimes()
+						mockUsage.EXPECT().Remove(gomock.Any(), gomock.Not(usage.DiscoveryKernelArgumentsUsage)).AnyTimes()
+						mockUsage.EXPECT().Add(gomock.Any(), usage.DiscoveryKernelArgumentsUsage, nil)
+						mockUsage.EXPECT().Save(gomock.Any(), gomock.Any(), gomock.Any()).MinTimes(1)
+						kargs := models.KernelArguments{
+							{
+								Operation: models.KernelArgumentOperationAppend,
+								Value:     "p1",
+							},
+						}
+						reply := bm.UpdateInfraEnv(ctx, installer.UpdateInfraEnvParams{
+							InfraEnvID: *i.ID,
+							InfraEnvUpdateParams: &models.InfraEnvUpdateParams{
+								KernelArguments: kargs,
+							},
+						})
+						Expect(reply).To(BeAssignableToTypeOf(installer.NewUpdateInfraEnvCreated()))
+					})
+					It("clear kernel arguments", func() {
+						Expect(db.Model(&models.InfraEnv{}).Where("id = ?", i.ID.String()).
+							Update("kernel_arguments", `[{"operation": "append", "value": "p1"}]`).Error).ToNot(HaveOccurred())
+						mockInfraEnvUpdateSuccess()
+						mockUsage.EXPECT().Add(gomock.Any(), gomock.Not(usage.DiscoveryKernelArgumentsUsage), gomock.Any()).AnyTimes()
+						mockUsage.EXPECT().Remove(gomock.Any(), gomock.Not(usage.DiscoveryKernelArgumentsUsage)).AnyTimes()
+						mockUsage.EXPECT().Remove(gomock.Any(), usage.DiscoveryKernelArgumentsUsage)
+						mockUsage.EXPECT().Save(gomock.Any(), gomock.Any(), gomock.Any()).MinTimes(1)
+						reply := bm.UpdateInfraEnv(ctx, installer.UpdateInfraEnvParams{
+							InfraEnvID: *i.ID,
+							InfraEnvUpdateParams: &models.InfraEnvUpdateParams{
+								KernelArguments: make(models.KernelArguments, 0),
+							},
+						})
+						Expect(reply).To(BeAssignableToTypeOf(installer.NewUpdateInfraEnvCreated()))
+					})
+				})
 			})
 			It("Update AdditionalNtpSources", func() {
 				mockInfraEnvUpdateSuccess()
