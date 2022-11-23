@@ -35,9 +35,11 @@ import (
 	"github.com/openshift/assisted-service/models"
 	logutil "github.com/openshift/assisted-service/pkg/log"
 	conditionsv1 "github.com/openshift/custom-resource-status/conditions/v1"
+	toml "github.com/pelletier/go-toml"
 	pkgerror "github.com/pkg/errors"
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	"github.com/sirupsen/logrus"
+	"github.com/thoas/go-funk"
 	admregv1 "k8s.io/api/admissionregistration/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -1016,6 +1018,35 @@ func urlForRoute(ctx context.Context, asc ASC, routeName string) (string, error)
 	return u.String(), nil
 }
 
+// unauthenticatedRegistries appends mirror registries and user-specified unauthenticated registries to the default list
+func unauthenticatedRegistries(ctx context.Context, asc ASC) string {
+	unauthenticatedRegistries := []string{"quay.io", "registry.svc.ci.openshift.org"}
+	if asc.spec.MirrorRegistryRef != nil {
+		cm := &corev1.ConfigMap{}
+		// Any errors in the following code block is not handled since they indicate a problem with the
+		// format of the mirror registry config, and an incorrectly formatted config does not mean that
+		// the public container registries should not be set.
+		if err := asc.rec.Client.Get(ctx, types.NamespacedName{Name: asc.spec.MirrorRegistryRef.Name, Namespace: asc.namespace}, cm); err == nil {
+			if contents, ok := cm.Data[mirrorRegistryRefRegistryConfKey]; ok {
+				if tomlTree, err := toml.Load(contents); err == nil {
+					if registries, ok := tomlTree.Get("unqualified-search-registries").([]interface{}); ok {
+						for _, registry := range registries {
+							if registryStr, ok := registry.(string); ok {
+								unauthenticatedRegistries = append(unauthenticatedRegistries, registryStr)
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+	if asc.spec.UnauthenticatedRegistries != nil {
+		unauthenticatedRegistries = append(unauthenticatedRegistries, asc.spec.UnauthenticatedRegistries...)
+	}
+
+	return strings.Join(funk.UniqString(unauthenticatedRegistries), ",")
+}
+
 //go:embed default_controller_hw_requirements.json
 var defaultControllerHardwareRequirements string
 
@@ -1076,7 +1107,7 @@ func newAssistedCM(ctx context.Context, log logrus.FieldLogger, asc ASC) (client
 			"ENABLE_SINGLE_NODE_DNSMASQ":  "True",
 			"IPV6_SUPPORT":                "True",
 			"JWKS_URL":                    "https://api.openshift.com/.well-known/jwks.json",
-			"PUBLIC_CONTAINER_REGISTRIES": getEnvVar("PUBLIC_CONTAINER_REGISTRIES", "quay.io,registry.svc.ci.openshift.org"),
+			"PUBLIC_CONTAINER_REGISTRIES": unauthenticatedRegistries(ctx, asc),
 			"HW_VALIDATOR_REQUIREMENTS":   defaultControllerHardwareRequirements,
 
 			"NAMESPACE":       asc.namespace,
