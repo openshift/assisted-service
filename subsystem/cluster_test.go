@@ -185,6 +185,7 @@ var _ = Describe("Cluster", func() {
 				Name:             swag.String("test-cluster"),
 				OpenshiftVersion: swag.String(openshiftVersion),
 				PullSecret:       swag.String(pullSecret),
+				BaseDNSDomain:    "example.com",
 			},
 		})
 
@@ -216,6 +217,22 @@ var _ = Describe("Cluster", func() {
 		c := getCluster(clusterID)
 		Expect(len(c.Hosts)).Should(Equal(1))
 		Expect(c.Hosts[0].ID.String()).Should(Equal(h.ID.String()))
+	})
+
+	It("Deregister host triggers cluster validations", func() {
+		By("registering 3 nodes in a cluster")
+		infraEnvID = registerInfraEnv(&clusterID, models.ImageTypeMinimalIso).ID
+		c := cluster.GetPayload()
+		hosts := registerHostsAndSetRoles(clusterID, *infraEnvID, 3, c.Name, c.BaseDNSDomain)
+		By("deregister node and check master count validation")
+		_, err = userBMClient.Installer.V2DeregisterHost(ctx, &installer.V2DeregisterHostParams{
+			InfraEnvID: *infraEnvID,
+			HostID:     *hosts[0].ID,
+		})
+		Expect(err).ShouldNot(HaveOccurred())
+		vStatus, err1 := isClusterValidationInStatus(clusterID, models.ClusterValidationIDSufficientMastersCount, "failure")
+		Expect(err1).NotTo(HaveOccurred())
+		Expect(vStatus).To(BeTrue())
 	})
 
 	It("update cluster name exceed max length (54 characters)", func() {

@@ -146,7 +146,7 @@ type InstallerInternals interface {
 	GetHostByKubeKey(key types.NamespacedName) (*common.Host, error)
 	InstallClusterInternal(ctx context.Context, params installer.V2InstallClusterParams) (*common.Cluster, error)
 	DeregisterClusterInternal(ctx context.Context, cluster *common.Cluster) error
-	V2DeregisterHostInternal(ctx context.Context, params installer.V2DeregisterHostParams) error
+	V2DeregisterHostInternal(ctx context.Context, params installer.V2DeregisterHostParams, interactivity Interactivity) error
 	GetCommonHostInternal(ctx context.Context, infraEnvId string, hostId string) (*common.Host, error)
 	UpdateHostApprovedInternal(ctx context.Context, infraEnvId string, hostId string, approved bool) error
 	V2UpdateHostInstallerArgsInternal(ctx context.Context, params installer.V2UpdateHostInstallerArgsParams) (*models.Host, error)
@@ -166,7 +166,7 @@ type InstallerInternals interface {
 	UpdateInfraEnvInternal(ctx context.Context, params installer.UpdateInfraEnvParams, internalIgnitionConfig *string) (*common.InfraEnv, error)
 	RegisterInfraEnvInternal(ctx context.Context, kubeKey *types.NamespacedName, params installer.RegisterInfraEnvParams) (*common.InfraEnv, error)
 	DeregisterInfraEnvInternal(ctx context.Context, params installer.DeregisterInfraEnvParams) error
-	UnbindHostInternal(ctx context.Context, params installer.UnbindHostParams, reclaimHost bool) (*common.Host, error)
+	UnbindHostInternal(ctx context.Context, params installer.UnbindHostParams, reclaimHost bool, interactivity Interactivity) (*common.Host, error)
 	BindHostInternal(ctx context.Context, params installer.BindHostParams) (*common.Host, error)
 	GetInfraEnvHostsInternal(ctx context.Context, infraEnvId strfmt.UUID) ([]*common.Host, error)
 	GetKnownHostApprovedCounts(clusterID strfmt.UUID) (registered, approved int, err error)
@@ -971,7 +971,7 @@ func (b *bareMetalInventory) deleteOrUnbindHosts(ctx context.Context, cluster *c
 			return err
 		}
 		if infraEnv.ClusterID == *cluster.ID {
-			if err = b.hostApi.UnRegisterHost(ctx, h.ID.String(), h.InfraEnvID.String()); err != nil {
+			if err = b.hostApi.UnRegisterHost(ctx, h); err != nil {
 				log.WithError(err).Errorf("failed to delete host: %s", h.ID.String())
 				return err
 			}
@@ -2955,7 +2955,7 @@ func isRegisterHostForbidden(err error) bool {
 	return false
 }
 
-func (b *bareMetalInventory) V2DeregisterHostInternal(ctx context.Context, params installer.V2DeregisterHostParams) error {
+func (b *bareMetalInventory) V2DeregisterHostInternal(ctx context.Context, params installer.V2DeregisterHostParams, interactivity Interactivity) error {
 	log := logutil.FromContext(ctx, b.log)
 	log.Infof("Deregister host: %s infra env %s", params.HostID, params.InfraEnvID)
 
@@ -2963,7 +2963,7 @@ func (b *bareMetalInventory) V2DeregisterHostInternal(ctx context.Context, param
 	if err != nil {
 		return common.NewApiError(http.StatusInternalServerError, err)
 	}
-	if err = b.hostApi.UnRegisterHost(ctx, params.HostID.String(), params.InfraEnvID.String()); err != nil {
+	if err = b.hostApi.UnRegisterHost(ctx, &h.Host); err != nil {
 		// TODO: check error type
 		return common.NewApiError(http.StatusBadRequest, err)
 	}
@@ -2978,6 +2978,11 @@ func (b *bareMetalInventory) V2DeregisterHostInternal(ctx context.Context, param
 		hostutil.GetHostnameForMsg(&h.Host))
 
 	if h.ClusterID != nil {
+		if interactivity == Interactive {
+			if _, err = b.refreshClusterStatus(ctx, h.ClusterID, b.db); err != nil {
+				log.WithError(err).Warnf("Failed to refresh cluster after de-registerating host <%s>", params.HostID)
+			}
+		}
 		if err := b.clusterApi.RefreshSchedulableMastersForcedTrue(ctx, *h.ClusterID); err != nil {
 			log.WithError(err).Errorf("Failed to refresh SchedulableMastersForcedTrue while de-registering host <%s> to cluster <%s>", h.ID, h.ClusterID)
 			return err
@@ -4941,7 +4946,7 @@ func (b *bareMetalInventory) V2RegisterHost(ctx context.Context, params installe
 	// Create AgentCR if needed, after commit in DB as KubeKey will be updated.
 	if err := b.crdUtils.CreateAgentCR(ctx, log, params.NewHostParams.HostID.String(), infraEnv, cluster); err != nil {
 		log.WithError(err).Errorf("Fail to create Agent CR, deleting host. Namespace: %s, InfraEnv: %s, HostID: %s", infraEnv.KubeKeyNamespace, swag.StringValue(infraEnv.Name), params.NewHostParams.HostID.String())
-		if err2 := b.hostApi.UnRegisterHost(ctx, params.NewHostParams.HostID.String(), params.InfraEnvID.String()); err2 != nil {
+		if err2 := b.hostApi.UnRegisterHost(ctx, host); err2 != nil {
 			return installer.NewV2RegisterHostInternalServerError().
 				WithPayload(common.GenerateError(http.StatusInternalServerError, err))
 		}
@@ -5239,7 +5244,7 @@ func (b *bareMetalInventory) BindHostInternal(ctx context.Context, params instal
 	return host, nil
 }
 
-func (b *bareMetalInventory) UnbindHostInternal(ctx context.Context, params installer.UnbindHostParams, reclaimHost bool) (*common.Host, error) {
+func (b *bareMetalInventory) UnbindHostInternal(ctx context.Context, params installer.UnbindHostParams, reclaimHost bool, interactivity Interactivity) (*common.Host, error) {
 	log := logutil.FromContext(ctx, b.log)
 	log.Infof("Unbinding host %s", params.HostID)
 	host, err := common.GetHostFromDB(b.db, params.InfraEnvID.String(), params.HostID.String())
@@ -5266,8 +5271,10 @@ func (b *bareMetalInventory) UnbindHostInternal(ctx context.Context, params inst
 		return nil, common.NewApiError(http.StatusInternalServerError, err)
 	}
 
-	if _, err = b.refreshClusterStatus(ctx, host.ClusterID, b.db); err != nil {
-		log.WithError(err).Warnf("Failed to refresh cluster after unbind of host <%s>", params.HostID)
+	if interactivity == Interactive {
+		if _, err = b.refreshClusterStatus(ctx, host.ClusterID, b.db); err != nil {
+			log.WithError(err).Warnf("Failed to refresh cluster after unbind of host <%s>", params.HostID)
+		}
 	}
 
 	if err = b.clusterApi.RefreshSchedulableMastersForcedTrue(ctx, *host.ClusterID); err != nil {
@@ -5283,7 +5290,7 @@ func (b *bareMetalInventory) UnbindHostInternal(ctx context.Context, params inst
 }
 
 func (b *bareMetalInventory) UnbindHost(ctx context.Context, params installer.UnbindHostParams) middleware.Responder {
-	h, err := b.UnbindHostInternal(ctx, params, false)
+	h, err := b.UnbindHostInternal(ctx, params, false, Interactive)
 	if err != nil {
 		eventgen.SendHostUnbindFailedEvent(ctx, b.eventsHandler, params.HostID, params.InfraEnvID, err.Error())
 		return common.GenerateErrorResponder(err)
@@ -5316,7 +5323,7 @@ func (b *bareMetalInventory) V2ListHosts(ctx context.Context, params installer.V
 }
 
 func (b *bareMetalInventory) V2DeregisterHost(ctx context.Context, params installer.V2DeregisterHostParams) middleware.Responder {
-	if err := b.V2DeregisterHostInternal(ctx, params); err != nil {
+	if err := b.V2DeregisterHostInternal(ctx, params, Interactive); err != nil {
 		return common.GenerateErrorResponder(err)
 	}
 	return installer.NewV2DeregisterHostNoContent()

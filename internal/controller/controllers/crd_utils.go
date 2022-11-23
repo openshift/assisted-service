@@ -117,7 +117,7 @@ func (u *CRDUtils) CreateAgentCR(ctx context.Context, log logrus.FieldLogger, ho
 				return nil
 			}
 			//delete previous host
-			if err3 := u.hostApi.UnRegisterHost(ctx, h.ID.String(), h.InfraEnvID.String()); err3 != nil {
+			if err3 := u.hostApi.UnRegisterHost(ctx, &h.Host); err3 != nil {
 				return errors.Wrapf(err3, "Failed to UnRegisterHost ID: %s ClusterID: %s", h.ID.String(), h.ClusterID.String())
 			}
 		}

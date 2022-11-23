@@ -759,7 +759,7 @@ var _ = Describe("agent reconcile", func() {
 			mockClient.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.AssignableToTypeOf(&appsv1.DaemonSet{})).Return(nil)
 			mockClient.EXPECT().Update(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 
-			mockInstallerInternal.EXPECT().UnbindHostInternal(gomock.Any(), gomock.Any(), true).Return(commonHost, nil)
+			mockInstallerInternal.EXPECT().UnbindHostInternal(gomock.Any(), gomock.Any(), true, bminventory.NonInteractive).Return(commonHost, nil)
 			result, err := hr.Reconcile(ctx, newHostRequest(host))
 			Expect(err).To(BeNil())
 			Expect(result).To(Equal(ctrl.Result{}))
@@ -769,7 +769,7 @@ var _ = Describe("agent reconcile", func() {
 		It("unbind does not attempt to reclaim if kubeconfig secret is missing", func() {
 			expectDBClusterWithKubeKeys()
 
-			mockInstallerInternal.EXPECT().UnbindHostInternal(gomock.Any(), gomock.Any(), false).Return(commonHost, nil)
+			mockInstallerInternal.EXPECT().UnbindHostInternal(gomock.Any(), gomock.Any(), false, bminventory.NonInteractive).Return(commonHost, nil)
 			result, err := hr.Reconcile(ctx, newHostRequest(host))
 			Expect(err).To(BeNil())
 			Expect(result).To(Equal(ctrl.Result{}))
@@ -782,7 +782,7 @@ var _ = Describe("agent reconcile", func() {
 
 			mockClientFactory.EXPECT().CreateFromSecret(gomock.Any()).Return(nil, errors.New("failed to create client"))
 
-			mockInstallerInternal.EXPECT().UnbindHostInternal(gomock.Any(), gomock.Any(), false).Return(commonHost, nil)
+			mockInstallerInternal.EXPECT().UnbindHostInternal(gomock.Any(), gomock.Any(), false, bminventory.NonInteractive).Return(commonHost, nil)
 			result, err := hr.Reconcile(ctx, newHostRequest(host))
 			Expect(err).To(BeNil())
 			Expect(result).To(Equal(ctrl.Result{}))
@@ -807,7 +807,7 @@ var _ = Describe("agent reconcile", func() {
 			mockClient.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.AssignableToTypeOf(&appsv1.DaemonSet{})).Return(notFoundError)
 			mockClient.EXPECT().Create(gomock.Any(), gomock.AssignableToTypeOf(&appsv1.DaemonSet{})).Return(errors.New("Failed to create DaemonSet"))
 
-			mockInstallerInternal.EXPECT().UnbindHostInternal(gomock.Any(), gomock.Any(), false).Return(commonHost, nil)
+			mockInstallerInternal.EXPECT().UnbindHostInternal(gomock.Any(), gomock.Any(), false, bminventory.NonInteractive).Return(commonHost, nil)
 			result, err := hr.Reconcile(ctx, newHostRequest(host))
 			Expect(err).To(BeNil())
 			Expect(result).To(Equal(ctrl.Result{}))
@@ -824,7 +824,7 @@ var _ = Describe("agent reconcile", func() {
 			Expect(c.Delete(ctx, clusterDeployment)).To(Succeed())
 			expectDBClusterWithKubeKeys()
 
-			mockInstallerInternal.EXPECT().UnbindHostInternal(gomock.Any(), gomock.Any(), false).Return(commonHost, nil)
+			mockInstallerInternal.EXPECT().UnbindHostInternal(gomock.Any(), gomock.Any(), false, bminventory.NonInteractive).Return(commonHost, nil)
 			result, err := hr.Reconcile(ctx, newHostRequest(host))
 			Expect(err).To(BeNil())
 			Expect(result).To(Equal(ctrl.Result{}))
@@ -834,7 +834,7 @@ var _ = Describe("agent reconcile", func() {
 		It("unbind does not attempt to reclaim if cluster isn't found in DB", func() {
 			mockInstallerInternal.EXPECT().GetClusterInternal(gomock.Any(), installer.V2GetClusterParams{ClusterID: sId}).Return(nil, errors.New("some error getting cluster"))
 
-			mockInstallerInternal.EXPECT().UnbindHostInternal(gomock.Any(), gomock.Any(), false).Return(commonHost, nil)
+			mockInstallerInternal.EXPECT().UnbindHostInternal(gomock.Any(), gomock.Any(), false, bminventory.NonInteractive).Return(commonHost, nil)
 			result, err := hr.Reconcile(ctx, newHostRequest(host))
 			Expect(err).To(BeNil())
 			Expect(result).To(Equal(ctrl.Result{}))
@@ -844,7 +844,7 @@ var _ = Describe("agent reconcile", func() {
 		It("unbind does not attempt to reclaim if cluster doesn't have kubekeys set", func() {
 			mockInstallerInternal.EXPECT().GetClusterInternal(gomock.Any(), installer.V2GetClusterParams{ClusterID: sId}).Return(backEndCluster, nil)
 
-			mockInstallerInternal.EXPECT().UnbindHostInternal(gomock.Any(), gomock.Any(), false).Return(commonHost, nil)
+			mockInstallerInternal.EXPECT().UnbindHostInternal(gomock.Any(), gomock.Any(), false, bminventory.NonInteractive).Return(commonHost, nil)
 			result, err := hr.Reconcile(ctx, newHostRequest(host))
 			Expect(err).To(BeNil())
 			Expect(result).To(Equal(ctrl.Result{}))
@@ -868,7 +868,7 @@ var _ = Describe("agent reconcile", func() {
 			Expect(c.Update(ctx, host)).To(Succeed())
 			expectDBClusterWithKubeKeys()
 
-			mockInstallerInternal.EXPECT().UnbindHostInternal(gomock.Any(), gomock.Any(), false).Return(commonHost, nil)
+			mockInstallerInternal.EXPECT().UnbindHostInternal(gomock.Any(), gomock.Any(), false, bminventory.NonInteractive).Return(commonHost, nil)
 			result, err := hr.Reconcile(ctx, newHostRequest(host))
 			Expect(err).To(BeNil())
 			Expect(result).To(Equal(ctrl.Result{}))
@@ -899,7 +899,7 @@ var _ = Describe("agent reconcile", func() {
 		mockInstallerInternal.EXPECT().GetHostByKubeKey(gomock.Any()).Return(commonHost, nil).AnyTimes()
 		// Return cluster without kube key to skip reclaim
 		mockInstallerInternal.EXPECT().GetClusterInternal(gomock.Any(), installer.V2GetClusterParams{ClusterID: sId}).Return(backEndCluster, nil).AnyTimes()
-		mockInstallerInternal.EXPECT().UnbindHostInternal(gomock.Any(), gomock.Any(), false).Return(commonHost, common.NewApiError(http.StatusNotFound, errors.New(errString)))
+		mockInstallerInternal.EXPECT().UnbindHostInternal(gomock.Any(), gomock.Any(), false, bminventory.NonInteractive).Return(commonHost, common.NewApiError(http.StatusNotFound, errors.New(errString)))
 		allowGetInfraEnvInternal(mockInstallerInternal, infraEnvId, "infraEnvName")
 
 		result, err := hr.Reconcile(ctx, newHostRequest(host))
@@ -1039,7 +1039,7 @@ var _ = Describe("agent reconcile", func() {
 		mockInstallerInternal.EXPECT().GetHostByKubeKey(gomock.Any()).Return(commonHost, nil)
 		mockInstallerInternal.EXPECT().GetClusterByKubeKey(types.NamespacedName{Name: targetClusterName, Namespace: testNamespace}).Return(targetBECluster, nil)
 		mockInstallerInternal.EXPECT().GetClusterInternal(gomock.Any(), installer.V2GetClusterParams{ClusterID: sId}).Return(backEndCluster, nil).AnyTimes()
-		mockInstallerInternal.EXPECT().UnbindHostInternal(gomock.Any(), gomock.Any(), false).Return(commonHost, nil)
+		mockInstallerInternal.EXPECT().UnbindHostInternal(gomock.Any(), gomock.Any(), false, bminventory.NonInteractive).Return(commonHost, nil)
 		allowGetInfraEnvInternal(mockInstallerInternal, infraEnvId, "infraEnvName")
 		Expect(c.Create(ctx, host)).To(BeNil())
 

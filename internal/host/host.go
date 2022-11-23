@@ -66,7 +66,7 @@ type API interface {
 	hostcommands.InstructionApi
 	// Register a new host
 	RegisterHost(ctx context.Context, h *models.Host, db *gorm.DB) error
-	UnRegisterHost(ctx context.Context, hostID, infraEnvID string) error
+	UnRegisterHost(ctx context.Context, h *models.Host) error
 	HandleInstallationFailure(ctx context.Context, h *models.Host) error
 	HandleMediaDisconnected(ctx context.Context, h *models.Host) error
 	HandleReclaimBootArtifactDownload(ctx context.Context, h *models.Host) error
@@ -1331,8 +1331,16 @@ func (m *Manager) GetHostByKubeKey(key types.NamespacedName) (*common.Host, erro
 	return host, nil
 }
 
-func (m *Manager) UnRegisterHost(ctx context.Context, hostID, infraEnvID string) error {
-	return common.DeleteHostFromDB(m.db, hostID, infraEnvID)
+func (m *Manager) UnRegisterHost(ctx context.Context, h *models.Host) error {
+	if err := common.DeleteHostFromDB(m.db, h.ID.String(), h.InfraEnvID.String()); err != nil {
+		return err
+	}
+	if h.ClusterID != nil {
+		if err := m.db.Model(&common.Cluster{}).Where("id = ?", h.ClusterID).Update("trigger_monitor_timestamp", time.Now()).Error; err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (m *Manager) GetKnownHostApprovedCounts(clusterID strfmt.UUID) (registered, approved int, err error) {

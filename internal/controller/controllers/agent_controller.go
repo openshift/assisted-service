@@ -429,7 +429,7 @@ func (r *AgentReconciler) unbindHost(ctx context.Context, log logrus.FieldLogger
 		HostID:     *h.ID,
 		InfraEnvID: h.InfraEnvID,
 	}
-	host, err := r.Installer.UnbindHostInternal(ctx, params, reclaim)
+	host, err := r.Installer.UnbindHostInternal(ctx, params, reclaim, bminventory.NonInteractive)
 	if err != nil {
 		return r.updateStatus(ctx, log, agent, origAgent, &h.Host, nil, err, !IsUserError(err))
 	}
@@ -478,7 +478,7 @@ func (r *AgentReconciler) deregisterHostIfNeeded(ctx context.Context, log logrus
 		ctx, installer.V2DeregisterHostParams{
 			InfraEnvID: h.InfraEnvID,
 			HostID:     *h.ID,
-		})
+		}, bminventory.NonInteractive)
 
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
