@@ -200,6 +200,7 @@ func main() {
 		err = Options.HostConfig.Complete()
 	}
 	log := InitLogs()
+	log.Infof("Starting assisted-service version: %s", versions.GetRevision())
 
 	if err != nil {
 		log.Fatal(err.Error())

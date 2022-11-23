@@ -208,10 +208,10 @@ build-in-docker:
 
 build-assisted-service:
 	# We need the CGO_ENABLED for the go-sqlite library build.
-	CGO_ENABLED=1 go build $(DEBUG_ARGS) -o $(BUILD_FOLDER)/assisted-service cmd/main.go
+	cd ./cmd && CGO_ENABLED=1 go build $(DEBUG_ARGS) -o $(BUILD_FOLDER)/assisted-service
 
 build-assisted-service-operator:
-	CGO_ENABLED=0 go build $(DEBUG_ARGS) -o $(BUILD_FOLDER)/assisted-service-operator cmd/operator/main.go
+	cd ./cmd/operator && CGO_ENABLED=0 go build $(DEBUG_ARGS) -o $(BUILD_FOLDER)/assisted-service-operator
 
 build-minimal: $(BUILD_FOLDER)
 	$(MAKE) -j build-assisted-service build-assisted-service-operator

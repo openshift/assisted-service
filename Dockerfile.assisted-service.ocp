@@ -6,10 +6,11 @@ FROM registry.ci.openshift.org/ocp/builder:rhel-8-golang-1.19-openshift-4.12 AS 
 WORKDIR /src
 COPY . .
 
-RUN CGO_ENABLED=1 GOFLAGS="" GO111MODULE=on go build -o /build/assisted-service cmd/main.go
-RUN CGO_ENABLED=0 GOFLAGS="" GO111MODULE=on go build -o /build/assisted-service-operator cmd/operator/main.go
-RUN CGO_ENABLED=0 GOFLAGS="" GO111MODULE=on go build -o /build/assisted-service-admission cmd/webadmission/main.go
-RUN CGO_ENABLED=0 GOFLAGS="" GO111MODULE=on go build -o /build/agent-installer-client cmd/agentbasedinstaller/client/main.go
+RUN dnf install -y git && dnf clean all
+RUN cd cmd && CGO_ENABLED=1 GOFLAGS="" GO111MODULE=on go build -o /build/assisted-service
+RUN cd ./cmd/operator && CGO_ENABLED=0 GOFLAGS="" GO111MODULE=on go build -o /build/assisted-service-operator
+RUN cd ./cmd/webadmission && CGO_ENABLED=0 GOFLAGS="" GO111MODULE=on go build -o /build/assisted-service-admission
+RUN cd ./cmd/agentbasedinstaller/client && CGO_ENABLED=0 GOFLAGS="" GO111MODULE=on go build -o /build/agent-installer-client
 
 
 FROM registry.ci.openshift.org/ocp/4.12:cli AS oc-image
