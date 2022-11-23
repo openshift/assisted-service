@@ -51,4 +51,6 @@ const (
 	NutanixIntegration string = "Nutanix integration"
 	// Usage of hyperthreading
 	HyperthreadingUsage string = "Hyperthreading"
+	// Usage of discovery kernel arguments
+	DiscoveryKernelArgumentsUsage = "discovery kernel arguments"
 )
