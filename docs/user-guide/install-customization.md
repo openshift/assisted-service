@@ -199,3 +199,85 @@ curl \
     --data  @$install_config_patch \
 "http://$ASSISTED_SERVICE_IP:$ASSISTED_SERVICE_PORT/api/assisted-install/v2/clusters/$CLUSTER_ID/install-config"
 ```
+## Modifying Kernel Arguments for the Live ISO
+
+Update the InfraEnv resource to modify the kernel arguments used in the live ISO (during the host discovery phase) .  Currently, only the **append** (additional argument) operation is supported.
+
+### REST API
+
+#### During InfraEnv Registeration
+
+Note: additional parameters that are needed for InfraEnv creation are omitted from this example.
+```bash
+curl -X 'POST' \
+  'http://api.openshift.com/api/assisted-install/v2/infra-envs' \
+  -H 'accept: application/json' \
+  -H 'Content-Type: application/json' \
+  -d '{
+      "kernel_arguments": [
+          {
+            "operation": "append",
+            "value": "audit=0"
+          },
+          {
+            "operation": "append",
+            "value": "trace=1"
+          }
+      ]
+  }'
+```
+
+#### During InfraEnv Update
+
+```bash
+curl -X 'PATCH' \
+    'http://api.openshift.com/api/assisted-install/v2/infra-envs/3fa85f64-5717-4562-b3fc-2c963f66afa6' \
+    -H 'accept: application/json' \
+    -H 'Content-Type: application/json' \
+    -d '{
+        "kernel_arguments": [
+          {
+            "operation": "append",
+            "value": "audit=0"
+          },
+          {
+            "operation": "append",
+            "value": "trace=1"
+          }
+        ]
+    }'
+```
+When updating kernel arguments using this API call, all the kernel arguments are replaced.  So the way to clear the
+kernel arguments is just to provide empty list:
+```bash
+curl -X 'PATCH' \
+    'http://api.openshift.com/api/assisted-install/v2/infra-envs/3fa85f64-5717-4562-b3fc-2c963f66afa6' \
+    -H 'accept: application/json' \
+    -H 'Content-Type: application/json' \
+    -d '{
+        "kernel_arguments": []
+    }'
+```
+
+### Kubernetes API
+
+When using the Kubernetes API, the kernel arguments are set in the InfraEnv spec section:
+
+```yaml
+apiVersion: agent-install.openshift.io/v1beta1
+kind: InfraEnv
+metadata:
+  name: myinfraenv
+  namespace: spoke-cluster
+spec:
+  kernelArguments:
+    - operation: append
+      value: audit=0
+    - operation: append
+      value: trace=1
+  clusterRef:
+    name: single-node
+    namespace: spoke-cluster
+  pullSecretRef:
+    name: pull-secret
+```
