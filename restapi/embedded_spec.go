@@ -5321,7 +5321,7 @@ func init() {
           "format": "uuid"
         },
         "api_vip": {
-          "description": "The virtual IP used to reach the OpenShift cluster's API.",
+          "description": "(DEPRECATED) The virtual IP used to reach the OpenShift cluster's API.",
           "type": "string",
           "pattern": "^(?:(?:(?:[0-9]{1,3}\\.){3}[0-9]{1,3})|(?:(?:[0-9a-fA-F]*:[0-9a-fA-F]*){2,}))$"
         },
@@ -5499,7 +5499,7 @@ func init() {
           "default": false
         },
         "ingress_vip": {
-          "description": "The virtual IP used for cluster ingress traffic.",
+          "description": "(DEPRECATED) The virtual IP used for cluster ingress traffic.",
           "type": "string",
           "pattern": "^(?:(?:(?:[0-9]{1,3}\\.){3}[0-9]{1,3})|(?:(?:[0-9a-fA-F]*:[0-9a-fA-F]*){2,}))$"
         },
@@ -5729,7 +5729,7 @@ func init() {
           "x-nullable": true
         },
         "api_vip": {
-          "description": "The virtual IP used to reach the OpenShift cluster's API.",
+          "description": "(DEPRECATED) The virtual IP used to reach the OpenShift cluster's API.",
           "type": "string",
           "pattern": "^(?:(?:(?:[0-9]{1,3}\\.){3}[0-9]{1,3})|(?:(?:[0-9a-fA-F]*:[0-9a-fA-F]*){2,}))?$"
         },
@@ -5810,7 +5810,7 @@ func init() {
           "$ref": "#/definitions/ignition-endpoint"
         },
         "ingress_vip": {
-          "description": "The virtual IP used for cluster ingress traffic.",
+          "description": "(DEPRECATED) The virtual IP used for cluster ingress traffic.",
           "type": "string",
           "pattern": "^(?:(?:(?:[0-9]{1,3}\\.){3}[0-9]{1,3})|(?:(?:[0-9a-fA-F]*:[0-9a-fA-F]*){2,}))$"
         },
@@ -9180,7 +9180,7 @@ func init() {
           "x-nullable": true
         },
         "api_vip": {
-          "description": "The virtual IP used to reach the OpenShift cluster's API.",
+          "description": "(DEPRECATED) The virtual IP used to reach the OpenShift cluster's API.",
           "type": "string",
           "pattern": "^(?:(?:(?:[0-9]{1,3}\\.){3}[0-9]{1,3})|(?:(?:[0-9a-fA-F]*:[0-9a-fA-F]*){2,}))?$",
           "x-nullable": true
@@ -9254,7 +9254,7 @@ func init() {
           "$ref": "#/definitions/ignition-endpoint"
         },
         "ingress_vip": {
-          "description": "The virtual IP used for cluster ingress traffic.",
+          "description": "(DEPRECATED) The virtual IP used for cluster ingress traffic.",
           "type": "string",
           "pattern": "^(?:(?:(?:[0-9]{1,3}\\.){3}[0-9]{1,3})|(?:(?:[0-9a-fA-F]*:[0-9a-fA-F]*){2,}))?$",
           "x-nullable": true
@@ -14936,7 +14936,7 @@ func init() {
           "format": "uuid"
         },
         "api_vip": {
-          "description": "The virtual IP used to reach the OpenShift cluster's API.",
+          "description": "(DEPRECATED) The virtual IP used to reach the OpenShift cluster's API.",
           "type": "string",
           "pattern": "^(?:(?:(?:[0-9]{1,3}\\.){3}[0-9]{1,3})|(?:(?:[0-9a-fA-F]*:[0-9a-fA-F]*){2,}))$"
         },
@@ -15114,7 +15114,7 @@ func init() {
           "default": false
         },
         "ingress_vip": {
-          "description": "The virtual IP used for cluster ingress traffic.",
+          "description": "(DEPRECATED) The virtual IP used for cluster ingress traffic.",
           "type": "string",
           "pattern": "^(?:(?:(?:[0-9]{1,3}\\.){3}[0-9]{1,3})|(?:(?:[0-9a-fA-F]*:[0-9a-fA-F]*){2,}))$"
         },
@@ -15344,7 +15344,7 @@ func init() {
           "x-nullable": true
         },
         "api_vip": {
-          "description": "The virtual IP used to reach the OpenShift cluster's API.",
+          "description": "(DEPRECATED) The virtual IP used to reach the OpenShift cluster's API.",
           "type": "string",
           "pattern": "^(?:(?:(?:[0-9]{1,3}\\.){3}[0-9]{1,3})|(?:(?:[0-9a-fA-F]*:[0-9a-fA-F]*){2,}))?$"
         },
@@ -15425,7 +15425,7 @@ func init() {
           "$ref": "#/definitions/ignition-endpoint"
         },
         "ingress_vip": {
-          "description": "The virtual IP used for cluster ingress traffic.",
+          "description": "(DEPRECATED) The virtual IP used for cluster ingress traffic.",
           "type": "string",
           "pattern": "^(?:(?:(?:[0-9]{1,3}\\.){3}[0-9]{1,3})|(?:(?:[0-9a-fA-F]*:[0-9a-fA-F]*){2,}))$"
         },
@@ -18679,7 +18679,7 @@ func init() {
           "x-nullable": true
         },
         "api_vip": {
-          "description": "The virtual IP used to reach the OpenShift cluster's API.",
+          "description": "(DEPRECATED) The virtual IP used to reach the OpenShift cluster's API.",
           "type": "string",
           "pattern": "^(?:(?:(?:[0-9]{1,3}\\.){3}[0-9]{1,3})|(?:(?:[0-9a-fA-F]*:[0-9a-fA-F]*){2,}))?$",
           "x-nullable": true
@@ -18753,7 +18753,7 @@ func init() {
           "$ref": "#/definitions/ignition-endpoint"
         },
         "ingress_vip": {
-          "description": "The virtual IP used for cluster ingress traffic.",
+          "description": "(DEPRECATED) The virtual IP used for cluster ingress traffic.",
           "type": "string",
           "pattern": "^(?:(?:(?:[0-9]{1,3}\\.){3}[0-9]{1,3})|(?:(?:[0-9a-fA-F]*:[0-9a-fA-F]*){2,}))?$",
           "x-nullable": true
