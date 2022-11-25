@@ -89,6 +89,9 @@ const (
 	// ClusterValidationIDLvmRequirementsSatisfied captures enum value "lvm-requirements-satisfied"
 	ClusterValidationIDLvmRequirementsSatisfied ClusterValidationID = "lvm-requirements-satisfied"
 
+	// ClusterValidationIDMceRequirementsSatisfied captures enum value "mce-requirements-satisfied"
+	ClusterValidationIDMceRequirementsSatisfied ClusterValidationID = "mce-requirements-satisfied"
+
 	// ClusterValidationIDNetworkTypeValid captures enum value "network-type-valid"
 	ClusterValidationIDNetworkTypeValid ClusterValidationID = "network-type-valid"
 )
@@ -98,7 +101,7 @@ var clusterValidationIdEnum []interface{}
 
 func init() {
 	var res []ClusterValidationID
-	if err := json.Unmarshal([]byte(`["machine-cidr-defined","cluster-cidr-defined","service-cidr-defined","no-cidrs-overlapping","networks-same-address-families","network-prefix-valid","machine-cidr-equals-to-calculated-cidr","api-vip-defined","api-vip-valid","ingress-vip-defined","ingress-vip-valid","all-hosts-are-ready-to-install","sufficient-masters-count","dns-domain-defined","pull-secret-set","ntp-server-configured","lso-requirements-satisfied","ocs-requirements-satisfied","odf-requirements-satisfied","cnv-requirements-satisfied","lvm-requirements-satisfied","network-type-valid"]`), &res); err != nil {
+	if err := json.Unmarshal([]byte(`["machine-cidr-defined","cluster-cidr-defined","service-cidr-defined","no-cidrs-overlapping","networks-same-address-families","network-prefix-valid","machine-cidr-equals-to-calculated-cidr","api-vip-defined","api-vip-valid","ingress-vip-defined","ingress-vip-valid","all-hosts-are-ready-to-install","sufficient-masters-count","dns-domain-defined","pull-secret-set","ntp-server-configured","lso-requirements-satisfied","ocs-requirements-satisfied","odf-requirements-satisfied","cnv-requirements-satisfied","lvm-requirements-satisfied","mce-requirements-satisfied","network-type-valid"]`), &res); err != nil {
 		panic(err)
 	}
 	for _, v := range res {
