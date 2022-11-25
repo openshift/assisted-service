@@ -2,6 +2,7 @@ package agentbasedinstaller
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"os"
 	"path"
@@ -28,7 +29,31 @@ func ApplyHostConfigs(ctx context.Context, log *log.Logger, bmInventory *client.
 	failures := []Failure{}
 
 	for _, host := range hostList.Payload {
-		if err := applyHostConfig(ctx, log, bmInventory, host, hostConfigs); err != nil {
+		hostConfig, inventory, err := getHostConfigAndInventory(ctx, log, host, hostConfigs)
+		if err != nil {
+			if fail, ok := err.(Failure); ok {
+				failures = append(failures, fail)
+				log.Error(err.Error())
+				continue
+			} else {
+				return failures, err
+			}
+		}
+
+		if hostConfig == nil {
+			continue
+		}
+
+		if err := applyHostConfig(ctx, log, bmInventory, host, inventory, hostConfig); err != nil {
+			if fail, ok := err.(Failure); ok {
+				failures = append(failures, fail)
+				log.Error(err.Error())
+			} else {
+				return failures, err
+			}
+		}
+
+		if err := applyInstallerArgOverrides(ctx, log, bmInventory, host, inventory, hostConfig); err != nil {
 			if fail, ok := err.(Failure); ok {
 				failures = append(failures, fail)
 				log.Error(err.Error())
@@ -50,24 +75,30 @@ func ApplyHostConfigs(ctx context.Context, log *log.Logger, bmInventory *client.
 	return failures, nil
 }
 
-func applyHostConfig(ctx context.Context, log *log.Logger, bmInventory *client.AssistedInstall, host *models.Host, hostConfigs HostConfigs) error {
-	log.Infof("Checking configuration for host %s", *host.ID)
+func getHostConfigAndInventory(ctx context.Context, log *log.Logger, host *models.Host, hostConfigs HostConfigs) (*hostConfig, *models.Inventory, error) {
+	log.Infof("Getting configuration for host %s", *host.ID)
 
 	if len(host.Inventory) == 0 {
 		log.Info("Inventory information not yet available")
-		return nil
+		return nil, nil, nil
 	}
 
 	inventory := &models.Inventory{}
 	err := inventory.UnmarshalBinary([]byte(host.Inventory))
 	if err != nil {
-		return fmt.Errorf("failed to unmarshal host inventory: %w", err)
+		return nil, nil, fmt.Errorf("failed to unmarshal host inventory: %w", err)
 	}
 
 	config := hostConfigs.findHostConfig(*host.ID, inventory)
 	if config == nil {
-		return nil
+		return nil, nil, nil
 	}
+
+	return config, inventory, nil
+}
+
+func applyHostConfig(ctx context.Context, log *log.Logger, bmInventory *client.AssistedInstall, host *models.Host, inventory *models.Inventory, config *hostConfig) error {
+	log.Infof("Checking configuration for host %s", *host.ID)
 
 	updateParams := &models.HostUpdateParams{}
 	changed := false
@@ -106,6 +137,68 @@ func applyHostConfig(ctx context.Context, log *log.Logger, bmInventory *client.A
 				params:    updateParams,
 				host:      host,
 				inventory: inventory,
+				config:    config,
+			}
+		}
+		return fmt.Errorf("failed to update Host: %w", err)
+	}
+	return nil
+}
+
+func applyInstallerArgOverrides(ctx context.Context, log *log.Logger, bmInventory *client.AssistedInstall, host *models.Host, inventory *models.Inventory, config *hostConfig) error {
+	log.Infof("Checking installer overrides for host %s", *host.ID)
+
+	installerArgs, err := config.InstallerArgs()
+	if err != nil {
+		return err
+	}
+
+	if len(installerArgs) == 0 {
+		log.Info("No installerArgs configured")
+		return nil
+	}
+
+	var existingInstallerArgs []string
+	if len(host.InstallerArgs) > 0 {
+		if err = json.Unmarshal([]byte(host.InstallerArgs), &existingInstallerArgs); err != nil {
+			return fmt.Errorf("failed to parse installerArgs from host inventory")
+		}
+	}
+
+	needUpdate := false
+	if len(installerArgs) == len(existingInstallerArgs) {
+		for i := range installerArgs {
+			if installerArgs[i] != existingInstallerArgs[i] {
+				needUpdate = true
+			}
+		}
+	} else {
+		needUpdate = true
+	}
+
+	if !needUpdate {
+		log.Info("installerArgs already configured")
+		return nil
+	}
+
+	log.Info("Updating installerArgs for host")
+	updateParams := &models.InstallerArgsParams{
+		Args: installerArgs,
+	}
+	params := installer.NewV2UpdateHostInstallerArgsParams().
+		WithHostID(*host.ID).
+		WithInfraEnvID(host.InfraEnvID).
+		WithInstallerArgsParams(updateParams)
+
+	_, err = bmInventory.Installer.V2UpdateHostInstallerArgs(ctx, params)
+	if err != nil {
+		if errorResponse, ok := err.(errorutil.AssistedServiceErrorAPI); ok {
+			return &UpdateInstallerArgsFailure{
+				response:  errorResponse,
+				params:    updateParams,
+				host:      host,
+				inventory: inventory,
+				config:    config,
 			}
 		}
 		return fmt.Errorf("failed to update Host: %w", err)
@@ -244,6 +337,25 @@ func (hc hostConfig) Role() (*string, error) {
 	return &role, nil
 }
 
+func (hc hostConfig) InstallerArgs() ([]string, error) {
+	var installerArgs []string
+	installerArgsData, err := os.ReadFile(path.Join(hc.configDir, "installerArgs"))
+	if err != nil {
+		if os.IsNotExist(err) {
+			log.Info("No installerArgs file found for host")
+			return nil, nil
+		}
+		return nil, fmt.Errorf("failed to read installerArgs file: %w", err)
+	}
+
+	if err := json.Unmarshal(installerArgsData, &installerArgs); err != nil {
+		return nil, fmt.Errorf("failed to parse installerArgs file: %w", err)
+	}
+
+	log.Infof("Found installerArgs %s", installerArgs)
+	return installerArgs, nil
+}
+
 type HostConfigs []*hostConfig
 
 func (configs HostConfigs) findHostConfig(hostID strfmt.UUID, inventory *models.Inventory) *hostConfig {
@@ -329,6 +441,38 @@ func (uf *UpdateFailure) DescribeFailure() string {
 	return fmt.Sprintf("Failed to update host %s: %s",
 		strings.Join(changes, " and "),
 		reason)
+}
+
+type UpdateInstallerArgsFailure struct {
+	response  errorutil.AssistedServiceErrorAPI
+	params    *models.InstallerArgsParams
+	config    *hostConfig
+	host      *models.Host
+	inventory *models.Inventory
+}
+
+func (uf *UpdateInstallerArgsFailure) Error() string {
+	return fmt.Sprintf("Host %s installer args update refused: %s", uf.Hostname(), errorutil.GetAssistedError(uf.response).Error())
+}
+
+func (uf *UpdateInstallerArgsFailure) Unwrap() error {
+	return uf.response
+}
+
+func (uf *UpdateInstallerArgsFailure) Hostname() string {
+	if uf.inventory != nil {
+		return uf.inventory.Hostname
+	}
+	return path.Base(uf.config.configDir)
+}
+
+func (uf *UpdateInstallerArgsFailure) DescribeFailure() string {
+	reason := "unknown reason"
+	if payload := uf.response.GetPayload(); payload != nil && payload.Reason != nil {
+		reason = *payload.Reason
+	}
+
+	return fmt.Sprintf("Failed to update host installer args: %s", reason)
 }
 
 type missingHost struct {
