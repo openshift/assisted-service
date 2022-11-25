@@ -181,6 +181,21 @@ var _ = Describe("Disk eligibility", func() {
 		Expect(eligible).ToNot(BeEmpty())
 	})
 
+	It("Check if FC is eligible", func() {
+		testDisk.DriveType = models.DriveTypeFC
+
+		eligible, err := hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, &cluster, &host, []*models.Disk{&testDisk})
+
+		Expect(err).ToNot(HaveOccurred())
+		Expect(eligible).To(BeEmpty())
+
+		By("Check infra env FC is eligible")
+		eligible, err = hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, nil, &host, []*models.Disk{&testDisk})
+
+		Expect(err).ToNot(HaveOccurred())
+		Expect(eligible).To(BeEmpty())
+	})
+
 	It("Check that ODD is not eligible", func() {
 		testDisk.DriveType = models.DriveTypeODD
 
