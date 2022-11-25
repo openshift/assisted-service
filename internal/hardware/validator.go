@@ -390,7 +390,7 @@ func (v *validator) getOCPRequirementsForVersion(openshiftVersion string) (*mode
 }
 
 func (v *validator) getValidDeviceStorageTypes() []string {
-	return []string{string(models.DriveTypeHDD), string(models.DriveTypeSSD), string(models.DriveTypeMultipath)}
+	return []string{string(models.DriveTypeHDD), string(models.DriveTypeSSD), string(models.DriveTypeMultipath), string(models.DriveTypeFC)}
 }
 
 func compileDiskReasonTemplate(template string, wildcards ...interface{}) *regexp.Regexp {
