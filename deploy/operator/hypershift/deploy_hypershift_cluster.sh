@@ -50,10 +50,6 @@ oc get namespace "${HYPERSHIFT_AGENT_NS}" || oc create namespace "${HYPERSHIFT_A
 # We need a storage for etcd of the hosted cluster
 oc patch storageclass assisted-service -p '{"metadata": {"annotations":{"storageclass.kubernetes.io/is-default-class":"true"}}}'
 
-# Update assisted-service-operator Subscription to ignore validating pull-secret against non-auth registries
-oc -n $ASSISTED_NAMESPACE patch subscription assisted-service-operator --type merge \
-    -p '{"spec":{"config":{"env":[{"name":"PUBLIC_CONTAINER_REGISTRIES","value":"'${PUBLIC_CONTAINER_REGISTRIES}'"}]}}}'
-
 echo "Installing HyperShift using upstream image"
 hypershift install --hypershift-image $HYPERSHIFT_IMAGE --namespace hypershift
 wait_for_pods "hypershift"
