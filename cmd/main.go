@@ -37,6 +37,7 @@ import (
 	"github.com/openshift/assisted-service/internal/ignition"
 	"github.com/openshift/assisted-service/internal/infraenv"
 	installcfg "github.com/openshift/assisted-service/internal/installcfg/builder"
+	internaljson "github.com/openshift/assisted-service/internal/json"
 	"github.com/openshift/assisted-service/internal/manifests"
 	"github.com/openshift/assisted-service/internal/metrics"
 	"github.com/openshift/assisted-service/internal/migrations"
@@ -485,6 +486,7 @@ func main() {
 		InnerMiddleware:     innerHandler(),
 		ManifestsAPI:        manifestsApi,
 		OperatorsAPI:        operatorsHandler,
+		JSONConsumer:        internaljson.Consumer(),
 	})
 	failOnError(err, "Failed to init rest handler")
 

@@ -7,7 +7,8 @@ generate-go-client:
 
 generate-go-server:
 	rm -rf restapi/
-	goswagger generate server --template=stratoscale -f swagger.yaml
+	goswagger generate server --template-dir=templates -f swagger.yaml
+	rm cmd/assisted-install-server/main.go
 
 generate-python-client:
 	mkdir -p ${BUILD_FOLDER}
