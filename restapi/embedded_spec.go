@@ -6422,6 +6422,13 @@ func init() {
         "installation_eligibility": {
           "type": "object",
           "properties": {
+            "eligibility_warnings": {
+              "description": "Warnings for why this disk is not recommended for installation.",
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
             "eligible": {
               "description": "Whether the disk is eligible for installation or not.",
               "type": "boolean"
@@ -14661,6 +14668,13 @@ func init() {
     "DiskInstallationEligibility": {
       "type": "object",
       "properties": {
+        "eligibility_warnings": {
+          "description": "Warnings for why this disk is not recommended for installation.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
         "eligible": {
           "description": "Whether the disk is eligible for installation or not.",
           "type": "boolean"
@@ -16038,6 +16052,13 @@ func init() {
         "installation_eligibility": {
           "type": "object",
           "properties": {
+            "eligibility_warnings": {
+              "description": "Warnings for why this disk is not recommended for installation.",
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
             "eligible": {
               "description": "Whether the disk is eligible for installation or not.",
               "type": "boolean"

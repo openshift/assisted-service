@@ -243,6 +243,9 @@ func (m *Disk) UnmarshalBinary(b []byte) error {
 // swagger:model DiskInstallationEligibility
 type DiskInstallationEligibility struct {
 
+	// Warnings for why this disk is not recommended for installation.
+	EligibilityWarnings []string `json:"eligibility_warnings"`
+
 	// Whether the disk is eligible for installation or not.
 	Eligible bool `json:"eligible,omitempty"`
 

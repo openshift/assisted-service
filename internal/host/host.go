@@ -236,6 +236,7 @@ func (m *Manager) populateDisksEligibility(ctx context.Context, inventory *model
 			// for backwards compatibility, pretend that the agent has decided that this disk is eligible
 			disk.InstallationEligibility.Eligible = true
 			disk.InstallationEligibility.NotEligibleReasons = make([]string, 0)
+			disk.InstallationEligibility.EligibilityWarnings = make([]string, 0)
 		}
 
 		// Append to the existing reasons already filled in by the agent
@@ -243,7 +244,9 @@ func (m *Manager) populateDisksEligibility(ctx context.Context, inventory *model
 		if err != nil {
 			return err
 		}
+
 		disk.InstallationEligibility.NotEligibleReasons = reasons
+		disk.InstallationEligibility.EligibilityWarnings = m.hwValidator.DiskEligibilityWarnings(disk)
 
 		disk.InstallationEligibility.Eligible = len(disk.InstallationEligibility.NotEligibleReasons) == 0
 	}

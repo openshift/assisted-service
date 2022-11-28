@@ -36,6 +36,7 @@ type Validator interface {
 	GetClusterHostRequirements(ctx context.Context, cluster *common.Cluster, host *models.Host) (*models.ClusterHostRequirements, error)
 	GetInfraEnvHostRequirements(ctx context.Context, infraEnv *common.InfraEnv) (*models.ClusterHostRequirements, error)
 	DiskIsEligible(ctx context.Context, disk *models.Disk, infraEnv *common.InfraEnv, cluster *common.Cluster, host *models.Host, allDisks []*models.Disk) ([]string, error)
+	DiskEligibilityWarnings(disk *models.Disk) []string
 	ListEligibleDisks(inventory *models.Inventory) []*models.Disk
 	IsValidStorageDeviceType(disk *models.Disk) bool
 	GetInstallationDiskSpeedThresholdMs(ctx context.Context, cluster *common.Cluster, host *models.Host) (int64, error)
@@ -147,6 +148,24 @@ func (v *validator) DiskIsEligible(ctx context.Context, disk *models.Disk, infra
 	return notEligibleReasons, nil
 }
 
+func (v *validator) DiskEligibilityWarnings(disk *models.Disk) []string {
+	warnings := make([]string, 0)
+
+	if disk.Removable {
+		warnings = append(warnings, "Disk is removable")
+	}
+
+	if disk.DriveType == models.DriveTypeFC {
+		warnings = append(warnings, "FC disk has a single path, consider choosing a multipath device")
+	}
+
+	if len(disk.Holders) > 0 {
+		warnings = append(warnings, fmt.Sprintf("Disk is in use by %s", disk.Holders))
+	}
+
+	return warnings
+}
+
 func (v *validator) IsValidStorageDeviceType(disk *models.Disk) bool {
 	return funk.ContainsString(v.getValidDeviceStorageTypes(), string(disk.DriveType))
 }
@@ -173,8 +192,18 @@ func (v *validator) ListEligibleDisks(inventory *models.Inventory) []*models.Dis
 		return disk.InstallationEligibility.Eligible
 	}).([]*models.Disk)
 
-	// Sorting list by size increase
+	// Sorting list by size increase, disks with warnings get lowest priority
 	sort.Slice(eligibleDisks, func(i, j int) bool {
+		// Disks with warnings get least priority
+		warnings1 := len(eligibleDisks[i].InstallationEligibility.EligibilityWarnings) != 0
+		warnings2 := len(eligibleDisks[j].InstallationEligibility.EligibilityWarnings) != 0
+		// If both disks don't have warnings or both have warnings, continue the comparison
+		if warnings1 != warnings2 {
+			// Return true if j has warnings, false if i has warnings
+			return warnings2
+		}
+
+		// We give lower priority to NVME drives regardless of size
 		isNvme1 := isNvme(eligibleDisks[i].Name)
 		isNvme2 := isNvme(eligibleDisks[j].Name)
 		if isNvme1 != isNvme2 {

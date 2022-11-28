@@ -368,7 +368,13 @@ var _ = Describe("hardware_validator", func() {
 		nvmename := "nvme01fs"
 
 		eligible := models.DiskInstallationEligibility{
-			Eligible: true,
+			Eligible:            true,
+			EligibilityWarnings: []string{},
+		}
+
+		warning := models.DiskInstallationEligibility{
+			Eligible:            true,
+			EligibilityWarnings: []string{"warning"},
 		}
 
 		inventory.Disks = []*models.Disk{
@@ -385,18 +391,32 @@ var _ = Describe("hardware_validator", func() {
 			{DriveType: models.DriveTypeHDD, Name: "sdb", SizeBytes: validDiskSize + 2, InstallationEligibility: eligible},
 			{DriveType: models.DriveTypeHDD, Name: "sda", SizeBytes: validDiskSize + 100, InstallationEligibility: eligible},
 			{DriveType: models.DriveTypeHDD, Name: "sdh", SizeBytes: validDiskSize + 1, InstallationEligibility: eligible},
+
+			{DriveType: models.DriveTypeSSD, Name: "nvme02fs", SizeBytes: validDiskSize + 1, InstallationEligibility: warning},
+			{DriveType: models.DriveTypeSSD, Name: "sdw", SizeBytes: validDiskSize, InstallationEligibility: warning},
+			{DriveType: models.DriveTypeHDD, Name: "sdx", SizeBytes: validDiskSize + 2, InstallationEligibility: warning},
+			{DriveType: models.DriveTypeHDD, Name: "sdy", SizeBytes: validDiskSize + 100, InstallationEligibility: warning},
+			{DriveType: models.DriveTypeHDD, Name: "sdz", SizeBytes: validDiskSize + 1, InstallationEligibility: warning},
 		}
 		hw, err := json.Marshal(&inventory)
 		Expect(err).NotTo(HaveOccurred())
 		host1.Inventory = string(hw)
 		disks, err := hwvalidator.GetHostValidDisks(host1)
 		Expect(err).NotTo(HaveOccurred())
+		Expect(len(disks)).Should(Equal(10))
+
+		// No warnings, starting with smaller HDDs, then SSDs, then NVMEs
 		Expect(disks[0].Name).Should(Equal("sdh"))
-		Expect(len(disks)).Should(Equal(5))
-		Expect(isBlockDeviceNameInlist(disks, nvmename)).Should(BeTrue())
-		Expect(disks[3].DriveType).To(Equal(models.DriveTypeSSD))
-		Expect(disks[4].DriveType).To(Equal(models.DriveTypeSSD))
-		Expect(disks[4].Name).To(HavePrefix("nvme"))
+		Expect(disks[1].Name).Should(Equal("sdb"))
+		Expect(disks[2].Name).Should(Equal("sda"))
+		Expect(disks[3].Name).Should(Equal("stam"))
+		Expect(disks[4].Name).Should(Equal(nvmename))
+		// With warnings, starting with smaller HDDs, then SSDs, then NVMEs
+		Expect(disks[5].Name).Should(Equal("sdz"))
+		Expect(disks[6].Name).Should(Equal("sdx"))
+		Expect(disks[7].Name).Should(Equal("sdy"))
+		Expect(disks[8].Name).Should(Equal("sdw"))
+		Expect(disks[9].Name).Should(Equal("nvme02fs"))
 	})
 
 	It("validate_aws_disk_detected", func() {
@@ -1207,13 +1227,3 @@ var _ = Describe("Preflight host requirements", func() {
 		})
 	})
 })
-
-func isBlockDeviceNameInlist(disks []*models.Disk, name string) bool {
-	for _, disk := range disks {
-		// Valid disk: type=disk, not removable, not readonly and size bigger than minimum required
-		if disk.Name == name {
-			return true
-		}
-	}
-	return false
-}

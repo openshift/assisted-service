@@ -1142,6 +1142,7 @@ var _ = Describe("UpdateInventory", func() {
 				host = hostutil.GenerateTestHost(hostId, infraEnvId, clusterId, models.HostStatusDiscovering)
 				Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
 				mockValidator.EXPECT().DiskIsEligible(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any())
+				mockValidator.EXPECT().DiskEligibilityWarnings(gomock.Any())
 				mockValidator.EXPECT().ListEligibleDisks(gomock.Any()).Return(test.inventory.Disks)
 				mockEvents.EXPECT().AddMetricsEvent(ctx, clusterId, &hostId, models.EventSeverityInfo, "nic.virtual_interfaces", gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any())
 				mockEvents.EXPECT().AddMetricsEvent(ctx, clusterId, &hostId, models.EventSeverityInfo, "nic.physical_interfaces", gomock.Any(), gomock.Any(), gomock.Any())
@@ -1204,6 +1205,7 @@ var _ = Describe("UpdateInventory", func() {
 			test := test
 			It(test.testName, func() {
 				mockValidator.EXPECT().DiskIsEligible(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(append(test.agentReasons, test.serviceReasons...), nil)
+				mockValidator.EXPECT().DiskEligibilityWarnings(gomock.Any())
 
 				testInventory := models.Inventory{Disks: []*models.Disk{
 					{InstallationEligibility: models.DiskInstallationEligibility{
@@ -1275,6 +1277,7 @@ var _ = Describe("UpdateInventory", func() {
 				mockEvents.EXPECT().AddMetricsEvent(ctx, *host.ClusterID, &hostId, models.EventSeverityInfo, "nic.virtual_interfaces", gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any())
 				mockEvents.EXPECT().AddMetricsEvent(ctx, *host.ClusterID, &hostId, models.EventSeverityInfo, "nic.physical_interfaces", gomock.Any(), gomock.Any(), gomock.Any())
 				mockValidator.EXPECT().DiskIsEligible(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any())
+				mockValidator.EXPECT().DiskEligibilityWarnings(gomock.Any())
 				mockValidator.EXPECT().ListEligibleDisks(gomock.Any()).Return(inventory.Disks)
 				if test.expectMatch {
 					mockEvents.EXPECT().SendHostEvent(gomock.Any(), eventstest.NewEventMatcher(
@@ -1309,6 +1312,7 @@ var _ = Describe("UpdateInventory", func() {
 		})
 		It("Happy flow", func() {
 			mockValidator.EXPECT().DiskIsEligible(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any())
+			mockValidator.EXPECT().DiskEligibilityWarnings(gomock.Any())
 			mockValidator.EXPECT().ListEligibleDisks(gomock.Any()).Return(
 				[]*models.Disk{{ID: diskId, Name: diskName}},
 			)
@@ -1356,7 +1360,7 @@ var _ = Describe("UpdateInventory", func() {
 			host.InstallationDiskPath = ""
 			Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
 			mockValidator.EXPECT().DiskIsEligible(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any())
-
+			mockValidator.EXPECT().DiskEligibilityWarnings(gomock.Any())
 		})
 
 		It("Make sure UpdateInventory updates the db", func() {
@@ -1372,6 +1376,7 @@ var _ = Describe("UpdateInventory", func() {
 
 			// Now make sure it gets removed if the disk is no longer in the inventory
 			mockValidator.EXPECT().DiskIsEligible(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any())
+			mockValidator.EXPECT().DiskEligibilityWarnings(gomock.Any())
 			mockValidator.EXPECT().ListEligibleDisks(gomock.Any()).Return(
 				[]*models.Disk{},
 			)
@@ -1395,6 +1400,7 @@ var _ = Describe("UpdateInventory", func() {
 				[]*models.Disk{{ID: diskId, Name: diskName}},
 			)
 			mockValidator.EXPECT().DiskIsEligible(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any())
+			mockValidator.EXPECT().DiskEligibilityWarnings(gomock.Any())
 			Expect(hapi.UpdateInventory(ctx, &host, host.Inventory)).ToNot(HaveOccurred())
 			h = hostutil.GetHostFromDB(hostId, infraEnvId, db)
 			Expect(h.InstallationDiskPath).To(Equal(diskPath))
@@ -1416,6 +1422,7 @@ var _ = Describe("UpdateInventory", func() {
 			host.InstallationDiskPath = ""
 			Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
 			mockValidator.EXPECT().DiskIsEligible(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+			mockValidator.EXPECT().DiskEligibilityWarnings(gomock.Any())
 			mockValidator.EXPECT().ListEligibleDisks(gomock.Any()).Return(
 				[]*models.Disk{{ID: diskId, Name: diskName}},
 			).AnyTimes()

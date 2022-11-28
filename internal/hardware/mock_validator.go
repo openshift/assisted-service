@@ -36,6 +36,20 @@ func (m *MockValidator) EXPECT() *MockValidatorMockRecorder {
 	return m.recorder
 }
 
+// DiskEligibilityWarnings mocks base method.
+func (m *MockValidator) DiskEligibilityWarnings(disk *models.Disk) []string {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DiskEligibilityWarnings", disk)
+	ret0, _ := ret[0].([]string)
+	return ret0
+}
+
+// DiskEligibilityWarnings indicates an expected call of DiskEligibilityWarnings.
+func (mr *MockValidatorMockRecorder) DiskEligibilityWarnings(disk interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DiskEligibilityWarnings", reflect.TypeOf((*MockValidator)(nil).DiskEligibilityWarnings), disk)
+}
+
 // DiskIsEligible mocks base method.
 func (m *MockValidator) DiskIsEligible(ctx context.Context, disk *models.Disk, infraEnv *common.InfraEnv, cluster *common.Cluster, host *models.Host, allDisks []*models.Disk) ([]string, error) {
 	m.ctrl.T.Helper()

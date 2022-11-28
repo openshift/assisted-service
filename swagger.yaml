@@ -5321,6 +5321,11 @@ definitions:
             description: Reasons for why this disk is not eligible for installation.
             items:
               type: string
+          eligibility_warnings:
+            type: array
+            description: Warnings for why this disk is not recommended for installation.
+            items:
+              type: string
       smart:
         type: string
       io_perf:
