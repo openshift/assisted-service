@@ -162,6 +162,11 @@ var _ = Describe("RegisterHost", func() {
 			t := tests[i]
 
 			It(t.name, func() {
+				cluster := hostutil.GenerateTestCluster(clusterId)
+				cluster.Platform = &models.Platform{
+					Type: common.PlatformTypePtr(models.PlatformTypeNone),
+				}
+				Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
 				Expect(db.Create(&models.Host{
 					ID:         &hostId,
 					InfraEnvID: infraEnvId,
@@ -483,6 +488,106 @@ var _ = Describe("RegisterHost", func() {
 				Expect(h.Role).Should(Equal(t.expectedRole))
 				Expect(h.Inventory).Should(Equal(t.expectedInventory))
 				Expect(swag.StringValue(h.StatusInfo)).Should(Equal(t.expectedStatusInfo))
+			})
+		}
+	})
+
+	Context("platform-specific pending-user-action message", func() {
+		tests := []struct {
+			srcState      string
+			expectedError string
+			hostKind      string
+			platformType  models.PlatformType
+		}{
+			{
+				srcState:      models.HostStatusInstallingPendingUserAction,
+				expectedError: "Host is required to be booted from disk /dev/disk/by-id/test-disk-id",
+				hostKind:      models.HostKindHost,
+				platformType:  models.PlatformTypeNone,
+			},
+			{
+				srcState:      models.HostStatusInstallingPendingUserAction,
+				expectedError: "Host is required to be booted from disk /dev/disk/by-id/test-disk-id",
+				hostKind:      models.HostKindAddToExistingClusterHost,
+				platformType:  models.PlatformTypeNone,
+			},
+			{
+				srcState:      models.HostStatusInstallingPendingUserAction,
+				expectedError: "Host is required to be booted from disk /dev/disk/by-id/test-disk-id",
+				hostKind:      models.HostKindHost,
+				platformType:  models.PlatformTypeBaremetal,
+			},
+			{
+				srcState:      models.HostStatusInstallingPendingUserAction,
+				expectedError: "Host is required to be booted from disk /dev/disk/by-id/test-disk-id",
+				hostKind:      models.HostKindAddToExistingClusterHost,
+				platformType:  models.PlatformTypeBaremetal,
+			},
+			{
+				srcState:      models.HostStatusInstallingPendingUserAction,
+				expectedError: "Change boot order on VM to be booted from disk /dev/disk/by-id/test-disk-id",
+				hostKind:      models.HostKindHost,
+				platformType:  models.PlatformTypeVsphere,
+			},
+			{
+				srcState:      models.HostStatusInstallingPendingUserAction,
+				expectedError: "Change boot order on VM to be booted from disk /dev/disk/by-id/test-disk-id",
+				hostKind:      models.HostKindAddToExistingClusterHost,
+				platformType:  models.PlatformTypeVsphere,
+			},
+			{
+				srcState:      models.HostStatusInstallingPendingUserAction,
+				expectedError: "Unmount CDROM in VM properties to be booted from disk /dev/disk/by-id/test-disk-id",
+				hostKind:      models.HostKindHost,
+				platformType:  models.PlatformTypeNutanix,
+			},
+			{
+				srcState:      models.HostStatusInstallingPendingUserAction,
+				expectedError: "Unmount CDROM in VM properties to be booted from disk /dev/disk/by-id/test-disk-id",
+				hostKind:      models.HostKindAddToExistingClusterHost,
+				platformType:  models.PlatformTypeNutanix,
+			},
+		}
+
+		for i := range tests {
+			t := tests[i]
+
+			It(fmt.Sprintf("register %s host in reboot", t.srcState), func() {
+				cluster := hostutil.GenerateTestCluster(clusterId)
+				cluster.Platform = &models.Platform{
+					Type: common.PlatformTypePtr(t.platformType),
+				}
+				Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
+				progress := models.HostProgressInfo{
+					CurrentStage: models.HostStageRebooting,
+				}
+				Expect(db.Create(&models.Host{
+					ID:                   &hostId,
+					ClusterID:            &clusterId,
+					InfraEnvID:           infraEnvId,
+					Role:                 models.HostRoleMaster,
+					Inventory:            common.GenerateTestDefaultInventory(),
+					Status:               swag.String(t.srcState),
+					Progress:             &progress,
+					InstallationDiskPath: common.TestDiskId,
+					Kind:                 &t.hostKind,
+				}).Error).ShouldNot(HaveOccurred())
+
+				// mockEvents.EXPECT().SendHostEvent(gomock.Any(), eventstest.NewEventMatcher(
+				// 	eventstest.WithNameMatcher(eventgen.HostStatusUpdatedEventName),
+				// 	eventstest.WithHostIdMatcher(hostId.String()),
+				// 	eventstest.WithInfraEnvIdMatcher(infraEnvId.String()),
+				// 	eventstest.WithClusterIdMatcher(clusterId.String()),
+				// 	eventstest.WithSeverityMatcher(models.EventSeverityWarning)))
+
+				apiResponse := hapi.RegisterHost(ctx, &models.Host{
+					ID:         &hostId,
+					InfraEnvID: infraEnvId,
+					ClusterID:  &clusterId,
+					Status:     swag.String(t.srcState),
+				},
+					db)
+				Expect(apiResponse.Error()).Should(Equal(t.expectedError))
 			})
 		}
 	})

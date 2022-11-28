@@ -71,6 +71,12 @@ var restFieldsOnUnbind = append(append(resetProgressFields, resetLogsField...), 
 	"role", "auto-assign", "api_vip_connectivity", "", "suggested_role", "", "images_status", "",
 	"stage_started_at", strfmt.DateTime(time.Time{}), "stage_updated_at", strfmt.DateTime(time.Time{}))
 
+var defaultPendingUserActionErrorFormat = "Host is required to be booted from disk %s"
+var platformPendingUserActionErrorFormat = map[string]string{
+	"nutanix": "Unmount CDROM in VM properties to be booted from disk %s",
+	"vsphere": "Change boot order on VM to be booted from disk %s",
+}
+
 ////////////////////////////////////////////////////////////////////////////
 // RegisterHost
 ////////////////////////////////////////////////////////////////////////////
@@ -156,6 +162,15 @@ func (th *transitionHandler) IsHostInDone(sw stateswitch.StateSwitch, _ stateswi
 	return sHost.host.Progress.CurrentStage == models.HostStageDone, nil
 }
 
+func getClusterPlatform(params *TransitionArgsRegisterHost, sHost *stateHost) (string, error) {
+	var cluster common.Cluster
+	err := params.db.Select("platform_type").Take(&cluster, "id = ?", sHost.host.ClusterID.String()).Error
+	if err != nil {
+		return "", err
+	}
+	return string(*cluster.Platform.Type), nil
+}
+
 func (th *transitionHandler) PostRegisterDuringReboot(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) error {
 	sHost, ok := sw.(*stateHost)
 	if !ok {
@@ -165,12 +180,21 @@ func (th *transitionHandler) PostRegisterDuringReboot(sw stateswitch.StateSwitch
 	host := sHost.host
 	hostInstallationPath := hostutil.GetHostInstallationPath(host)
 
-	if swag.StringValue(&sHost.srcState) == models.HostStatusInstallingPendingUserAction {
-		return common.NewApiError(http.StatusForbidden, errors.Errorf("Host is required to be booted from disk %s", hostInstallationPath))
-	}
 	params, ok := args.(*TransitionArgsRegisterHost)
 	if !ok {
 		return errors.New("PostRegisterDuringReboot invalid argument")
+	}
+
+	if swag.StringValue(&sHost.srcState) == models.HostStatusInstallingPendingUserAction {
+		pendingUserActionErrorFormat := defaultPendingUserActionErrorFormat
+		platform, err := getClusterPlatform(params, sHost)
+		if err != nil {
+			return common.NewApiError(http.StatusInternalServerError, errors.New("Failed to get cluster platform"))
+		}
+		if v, ok := platformPendingUserActionErrorFormat[platform]; ok {
+			pendingUserActionErrorFormat = v
+		}
+		return common.NewApiError(http.StatusForbidden, errors.Errorf(pendingUserActionErrorFormat, hostInstallationPath))
 	}
 
 	if hostInstallationPath == "" || host.Inventory == "" {
