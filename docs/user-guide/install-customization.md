@@ -180,6 +180,7 @@ curl \
     --data "$( jq -n --arg BUNDLE "$(cat ca.pem)" '{ "additional_trust_bundle": $BUNDLE }' )" \
     "http://$ASSISTED_SERVICE_IP:$ASSISTED_SERVICE_PORT/api/assisted-install/v2/infra-envs/$INFRA_ENV_ID"
 ```
+
 ## Modifying Kernel Arguments for the Live ISO
 
 Update the InfraEnv resource to modify the kernel arguments used in the live ISO (during the host discovery phase) .  Currently, only the **append** (additional argument) operation is supported.
