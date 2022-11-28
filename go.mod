@@ -18,7 +18,7 @@ require (
 	github.com/filanov/stateswitch v0.0.0-20200714113403-51a42a34c604
 	github.com/go-gormigrate/gormigrate/v2 v2.0.1
 	github.com/go-logr/logr v1.2.3
-	github.com/go-openapi/errors v0.20.2
+	github.com/go-openapi/errors v0.20.3
 	github.com/go-openapi/loads v0.21.1
 	github.com/go-openapi/runtime v0.19.24
 	github.com/go-openapi/spec v0.20.6
