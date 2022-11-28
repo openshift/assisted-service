@@ -24,3 +24,8 @@ spec:
   resources:
    requests:
     storage: 10Gi
+ unauthenticatedRegistries:
+{% set registries = unauthenticatedRegistries.split(',') %}
+{% for registry in registries %}
+ - {{ registry }}
+{% endfor %}

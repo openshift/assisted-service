@@ -6,6 +6,7 @@
   vars:
     - spoke_namespace: "{{ lookup('env', 'SPOKE_NAMESPACE') }}"
     - spoke_kubeconfig_secret: "{{ lookup('env', 'SPOKE_KUBECONFIG_SECRET') }}"
+    - unauthenticatedRegistries: "{{ lookup('env', 'PUBLIC_CONTAINER_REGISTRIES') }}"
 
   tasks:
   - name: create directory for generated resources
