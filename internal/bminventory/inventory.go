@@ -328,7 +328,7 @@ func (b *bareMetalInventory) setDefaultRegisterClusterParams(ctx context.Context
 		params.NewClusterParams.HighAvailabilityMode = swag.String(models.ClusterHighAvailabilityModeFull)
 	}
 
-	log.Infof("Verifying cluster platform and user-managed-networking, got platform=%v and userManagedNetworking=%v", params.NewClusterParams.Platform, params.NewClusterParams.UserManagedNetworking)
+	log.Infof("Verifying cluster platform and user-managed-networking, got platform=%s and userManagedNetworking=%t", getPlatformType(params.NewClusterParams.Platform), swag.BoolValue(params.NewClusterParams.UserManagedNetworking))
 	platform, userManagedNetworking, err := provider.GetActualCreateClusterPlatformParams(params.NewClusterParams.Platform, params.NewClusterParams.UserManagedNetworking, params.NewClusterParams.HighAvailabilityMode)
 	if err != nil {
 		log.Error(err)
@@ -337,7 +337,7 @@ func (b *bareMetalInventory) setDefaultRegisterClusterParams(ctx context.Context
 
 	params.NewClusterParams.Platform = platform
 	params.NewClusterParams.UserManagedNetworking = userManagedNetworking
-	log.Infof("Cluster high-availability-mode is set to %v, setting platform type to %v and user-managed-networking to %v", params.NewClusterParams.HighAvailabilityMode, platform, userManagedNetworking)
+	log.Infof("Cluster high-availability-mode is set to %s, setting platform type to %s and user-managed-networking to %t", swag.StringValue(params.NewClusterParams.HighAvailabilityMode), getPlatformType(platform), swag.BoolValue(userManagedNetworking))
 
 	if params.NewClusterParams.AdditionalNtpSource == nil {
 		params.NewClusterParams.AdditionalNtpSource = &b.Config.DefaultNTPSource
@@ -691,7 +691,7 @@ func (b *bareMetalInventory) integrateWithAMSClusterRegistration(ctx context.Con
 	}
 	log.Infof("AMS subscription %s was created for cluster %s", sub.ID(), *cluster.ID)
 	if err := b.clusterApi.UpdateAmsSubscriptionID(ctx, *cluster.ID, strfmt.UUID(sub.ID())); err != nil {
-		log.WithError(err).Errorf("Failed to update ams_subscription_id in cluster %v, rolling back AMS subscription and cluster registration", *cluster.ID)
+		log.WithError(err).Errorf("Failed to update ams_subscription_id in cluster %s, rolling back AMS subscription and cluster registration", *cluster.ID)
 		if deleteSubErr := b.ocmClient.AccountsMgmt.DeleteSubscription(ctx, strfmt.UUID(sub.ID())); deleteSubErr != nil {
 			log.WithError(deleteSubErr).Errorf("Failed to rollback AMS subscription %s in cluster %s", sub.ID(), *cluster.ID)
 		}
@@ -1687,7 +1687,7 @@ func (b *bareMetalInventory) refreshInventory(ctx context.Context, cluster *comm
 				// In RefreshInventory there is a precondition on host's status that on failure returns StatusConflict.
 				// In case of cluster update we don't want to fail the whole update if host can't be, according to
 				// business rules, updated. An example of such case is disabled host.
-				log.Infof("ignoring wrong status error (%v) for host %s in cluster %s", err, host.ID, cluster.ID.String())
+				log.Infof("ignoring wrong status error (%s) for host %s in cluster %s", err.Error(), host.ID, cluster.ID.String())
 			default:
 				return common.NewApiError(http.StatusInternalServerError, err)
 			}
@@ -1766,6 +1766,13 @@ func (b *bareMetalInventory) UpdateClusterNonInteractive(ctx context.Context, pa
 	return b.v2UpdateClusterInternal(ctx, params, NonInteractive)
 }
 
+func getPlatformType(platform *models.Platform) string {
+	if platform != nil && platform.Type != nil {
+		return string(*platform.Type)
+	}
+	return ""
+}
+
 func (b *bareMetalInventory) v2UpdateClusterInternal(ctx context.Context, params installer.V2UpdateClusterParams, interactivity Interactivity) (*common.Cluster, error) {
 	log := logutil.FromContext(ctx, b.log)
 	var cluster *common.Cluster
@@ -1817,8 +1824,8 @@ func (b *bareMetalInventory) v2UpdateClusterInternal(ctx context.Context, params
 		return nil, common.NewApiError(http.StatusConflict, err)
 	}
 
-	log.Infof("Current cluster platform is set to %v and user-managed-networking is set to %v", cluster.Platform, cluster.UserManagedNetworking)
-	log.Infof("Verifying cluster platform and user-managed-networking, got platform=%v and userManagedNetworking=%v", params.ClusterUpdateParams.Platform, params.ClusterUpdateParams.UserManagedNetworking)
+	log.Infof("Current cluster platform is set to %s and user-managed-networking is set to %t", getPlatformType(cluster.Platform), swag.BoolValue(cluster.UserManagedNetworking))
+	log.Infof("Verifying cluster platform and user-managed-networking, got platform=%s and userManagedNetworking=%t", getPlatformType(params.ClusterUpdateParams.Platform), swag.BoolValue(params.ClusterUpdateParams.UserManagedNetworking))
 	platform, userManagedNetworking, err := provider.GetActualUpdateClusterPlatformParams(params.ClusterUpdateParams.Platform, params.ClusterUpdateParams.UserManagedNetworking, cluster)
 	if err != nil {
 		log.Error(err)
@@ -1827,7 +1834,7 @@ func (b *bareMetalInventory) v2UpdateClusterInternal(ctx context.Context, params
 
 	params.ClusterUpdateParams.Platform = platform
 	params.ClusterUpdateParams.UserManagedNetworking = userManagedNetworking
-	log.Infof("Platform verification completed, setting platform type to %v and user-managed-networking to %v", platform, userManagedNetworking)
+	log.Infof("Platform verification completed, setting platform type to %s and user-managed-networking to %t", getPlatformType(platform), swag.BoolValue(userManagedNetworking))
 
 	if err = b.v2NoneHaModeClusterUpdateValidations(cluster, params); err != nil {
 		log.WithError(err).Warnf("Unsupported update params in none ha mode")
@@ -2343,7 +2350,7 @@ func (b *bareMetalInventory) updateNetworkTables(db *gorm.DB, cluster *common.Cl
 		for _, clusterNetwork := range cluster.ClusterNetworks {
 			clusterNetwork.ClusterID = *cluster.ID
 			if err = db.Save(clusterNetwork).Error; err != nil {
-				err = errors.Wrapf(err, "failed to update cluster network %v of cluster %s", *clusterNetwork, *cluster.ID)
+				err = errors.Wrapf(err, "failed to update cluster network %s of cluster %s", clusterNetwork.Cidr, *cluster.ID)
 				return common.NewApiError(http.StatusInternalServerError, err)
 			}
 		}
@@ -2356,7 +2363,7 @@ func (b *bareMetalInventory) updateNetworkTables(db *gorm.DB, cluster *common.Cl
 		for _, serviceNetwork := range cluster.ServiceNetworks {
 			serviceNetwork.ClusterID = *cluster.ID
 			if err = db.Save(serviceNetwork).Error; err != nil {
-				err = errors.Wrapf(err, "failed to update service network %v of cluster %s", *serviceNetwork, params.ClusterID)
+				err = errors.Wrapf(err, "failed to update service network %s of cluster %s", serviceNetwork.Cidr, params.ClusterID)
 				return common.NewApiError(http.StatusInternalServerError, err)
 			}
 		}
@@ -2380,7 +2387,7 @@ func (b *bareMetalInventory) updateNetworkTables(db *gorm.DB, cluster *common.Cl
 			machineNetwork.ClusterID = *cluster.ID
 			// MGMT-8853: Nothing is done when there's a conflict since there's no change to what's being inserted/updated.
 			if err = db.Clauses(clause.OnConflict{DoNothing: true}).Create(machineNetwork).Error; err != nil {
-				err = errors.Wrapf(err, "failed to update machine network %v of cluster %s", *machineNetwork, params.ClusterID)
+				err = errors.Wrapf(err, "failed to update machine network %s of cluster %s", machineNetwork.Cidr, params.ClusterID)
 				return common.NewApiError(http.StatusInternalServerError, err)
 			}
 		}
@@ -3558,7 +3565,7 @@ func (b *bareMetalInventory) checkFileDownloadAccess(ctx context.Context, fileNa
 	if funk.Contains(clusterPkg.ClusterOwnerFileNames, fileName) && b.authHandler.AuthType() == auth.TypeRHSSO {
 		authPayload := ocm.PayloadFromContext(ctx)
 		if ocm.UserRole != authPayload.Role {
-			errMsg := fmt.Sprintf("File '%v' is accessible only for cluster owners", fileName)
+			errMsg := fmt.Sprintf("File '%s' is accessible only for cluster owners", fileName)
 			return errors.New(errMsg)
 		}
 	}
