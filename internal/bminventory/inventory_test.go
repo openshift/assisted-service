@@ -14859,3 +14859,88 @@ var _ = Describe("GetHostByKubeKey", func() {
 		Expect(err).To(HaveOccurred())
 	})
 })
+
+var _ = Describe("UpdateIgnitionEndpointIfHasMCSCert", func() {
+	var (
+		bm      *bareMetalInventory
+		cfg     Config
+		db      *gorm.DB
+		dbName  string
+		cluster *common.Cluster
+		log     logrus.FieldLogger
+	)
+	const (
+		httpIgnitionEndpointUrl  = "http://api.foo.bar.com:22624/config/custom-pool"
+		httpsIgnitionEndpointUrl = "https://api-int.foo.bar.com:22623/config/custom-pool"
+		masterIgn                = `{
+		  "ignition": {
+		    "config": {
+		      "merge": [
+			{
+			  "source": "https://192.168.126.199:22623/config/master"
+			}
+		      ]
+		    },
+		    "security": {
+		      "tls": {
+			"certificateAuthorities": [
+			  {
+			    "source": "data:text/plain;charset=utf-8;base64,LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSURFRENDQWZpZ0F3SUJBZ0lJUk90aUgvOC82ckF3RFFZSktvWklodmNOQVFFTEJRQXdKakVTTUJBR0ExVUUKQ3hNSmIzQmxibk5vYVdaME1SQXdEZ1lEVlFRREV3ZHliMjkwTFdOaE1CNFhEVEl3TURreE9ERTVORFV3TVZvWApEVE13TURreE5qRTVORFV3TVZvd0pqRVNNQkFHQTFVRUN4TUpiM0JsYm5Ob2FXWjBNUkF3RGdZRFZRUURFd2R5CmIyOTBMV05oTUlJQklqQU5CZ2txaGtpRzl3MEJBUUVGQUFPQ0FROEFNSUlCQ2dLQ0FRRUE1c1orVWtaaGsxUWQKeFU3cWI3YXArNFczaS9ZWTFzZktURC8ybDVJTjFJeVhPajlSL1N2VG5SOGYvajNJa1JHMWN5ZXR4bnNlNm1aZwpaOW1IRDJMV0srSEFlTTJSYXpuRkEwVmFwOWxVbVRrd3Vza2Z3QzhnMWJUZUVHUlEyQmFId09KekpvdjF4a0ZICmU2TUZCMlcxek1rTWxLTkwycnlzMzRTeVYwczJpNTFmTTJvTEM2SXRvWU91RVVVa2o0dnVUbThPYm5rV0t4ZnAKR1VGMThmNzVYeHJId0tVUEd0U0lYMGxpVGJNM0tiTDY2V2lzWkFIeStoN1g1dnVaaFYzYXhwTVFMdlczQ2xvcQpTaG9zSXY4SWNZbUJxc210d2t1QkN3cWxibEo2T2gzblFrelorVHhQdGhkdWsrZytzaVBUNi9va0JKU2M2cURjClBaNUNyN3FrR3dJREFRQUJvMEl3UURBT0JnTlZIUThCQWY4RUJBTUNBcVF3RHdZRFZSMFRBUUgvQkFVd0F3RUIKL3pBZEJnTlZIUTRFRmdRVWNSbHFHT1g3MWZUUnNmQ0tXSGFuV3NwMFdmRXdEUVlKS29aSWh2Y05BUUVMQlFBRApnZ0VCQU5Xc0pZMDY2RnNYdzFOdXluMEkwNUtuVVdOMFY4NVJVV2drQk9Wd0J5bHluTVRneGYyM3RaY1FsS0U4CjVHMlp4Vzl5NmpBNkwzMHdSNWhOcnBzM2ZFcUhobjg3UEM3L2tWQWlBOWx6NjBwV2ovTE5GU1hobDkyejBGMEIKcGNUQllFc1JNYU0zTFZOK0tZb3Q2cnJiamlXdmxFMU9hS0Q4dnNBdkk5YXVJREtOdTM0R2pTaUJGWXMrelRjSwphUUlTK3UzRHVYMGpVY001aUgrMmwzNGxNR0hlY2tjS1hnUWNXMGJiT28xNXY1Q2ExenJtQ2hIUHUwQ2NhMU1MCjJaM2MxMHVXZnR2OVZnbC9LcEpzSjM3b0phbTN1Mmp6MXN0K3hHby9iTmVSdHpOMjdXQSttaDZ6bXFwRldYKzUKdWFjZUY1SFRWc0FkbmtJWHpwWXBuek5qb0lFPQotLS0tLUVORCBDRVJUSUZJQ0FURS0tLS0tCg=="
+			  }
+			]
+		      }
+		    },
+		    "version": "3.2.0"
+		  },
+		  "storage": {}
+		}`
+	)
+
+	BeforeEach(func() {
+		db, dbName = common.PrepareTestDB()
+		bm = createInventory(db, cfg)
+		cluster = createClusterWithAvailability(db, models.ClusterStatusReady, models.ClusterCreateParamsHighAvailabilityModeNone)
+		cluster.Name = "foo"
+		cluster.BaseDNSDomain = "bar.com"
+		// this doesn't need to be a VM, but any host works for this test
+		addVMToCluster(cluster, db)
+		log = logrus.New()
+	})
+
+	AfterEach(func() {
+		common.DeleteTestDB(db, dbName)
+		ctrl.Finish()
+	})
+
+	It("no ignition overrides for host set", func() {
+		h := cluster.Hosts[0]
+		ignitionEndpointUrl, err := bm.UpdateIgnitionEndpointIfHasMCSCert(log, h, cluster, httpIgnitionEndpointUrl)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(ignitionEndpointUrl).To(Equal(httpIgnitionEndpointUrl))
+	})
+
+	It("ignition override has no CA set", func() {
+		h := cluster.Hosts[0]
+		h.IgnitionConfigOverrides = "{}"
+		ignitionEndpointUrl, err := bm.UpdateIgnitionEndpointIfHasMCSCert(log, h, cluster, httpIgnitionEndpointUrl)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(ignitionEndpointUrl).To(Equal(httpIgnitionEndpointUrl))
+	})
+
+	It("bm has no k8sclient", func() {
+		h := cluster.Hosts[0]
+		h.IgnitionConfigOverrides = masterIgn
+		bm.k8sClient = nil
+		ignitionEndpointUrl, err := bm.UpdateIgnitionEndpointIfHasMCSCert(log, h, cluster, httpIgnitionEndpointUrl)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(ignitionEndpointUrl).To(Equal(httpIgnitionEndpointUrl))
+	})
+
+	It("should use https", func() {
+		h := cluster.Hosts[0]
+		h.IgnitionConfigOverrides = masterIgn
+		ignitionEndpointUrl, err := bm.UpdateIgnitionEndpointIfHasMCSCert(log, h, cluster, httpIgnitionEndpointUrl)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(ignitionEndpointUrl).To(Equal(httpsIgnitionEndpointUrl))
+	})
+})
