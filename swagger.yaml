@@ -5342,6 +5342,7 @@ definitions:
       - iSCSI
       - FC
       - LVM
+      - RAID
 
   io_perf:
     type: object

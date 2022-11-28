@@ -6702,7 +6702,8 @@ func init() {
         "Multipath",
         "iSCSI",
         "FC",
-        "LVM"
+        "LVM",
+        "RAID"
       ]
     },
     "error": {
@@ -16280,7 +16281,8 @@ func init() {
         "Multipath",
         "iSCSI",
         "FC",
-        "LVM"
+        "LVM",
+        "RAID"
       ]
     },
     "error": {
