@@ -30,7 +30,7 @@ type Cluster struct {
 	// Format: uuid
 	AmsSubscriptionID strfmt.UUID `json:"ams_subscription_id,omitempty"`
 
-	// The virtual IP used to reach the OpenShift cluster's API.
+	// (DEPRECATED) The virtual IP used to reach the OpenShift cluster's API.
 	// Pattern: ^(?:(?:(?:[0-9]{1,3}\.){3}[0-9]{1,3})|(?:(?:[0-9a-fA-F]*:[0-9a-fA-F]*){2,}))$
 	APIVip string `json:"api_vip,omitempty"`
 
@@ -140,7 +140,7 @@ type Cluster struct {
 	// reflect the actual cluster they represent
 	Imported *bool `json:"imported,omitempty"`
 
-	// The virtual IP used for cluster ingress traffic.
+	// (DEPRECATED) The virtual IP used for cluster ingress traffic.
 	// Pattern: ^(?:(?:(?:[0-9]{1,3}\.){3}[0-9]{1,3})|(?:(?:[0-9a-fA-F]*:[0-9a-fA-F]*){2,}))$
 	IngressVip string `json:"ingress_vip,omitempty"`
 
