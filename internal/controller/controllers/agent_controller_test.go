@@ -2018,6 +2018,7 @@ VU1eS0RiS/Lz6HwRs2mATNY5FrpZOgdM3cI=
 		updateProgressStage bool
 		getNodeCount        int
 		isDay1Host          bool
+		bmhExists           bool
 	}{
 		{
 			name:                "Not day 2 host - do nothing",
@@ -2044,7 +2045,7 @@ VU1eS0RiS/Lz6HwRs2mATNY5FrpZOgdM3cI=
 			getNodeCount:        2,
 		},
 		{
-			name:         "Do not auto approve CSR for Not ready matching node and UserManagedNetworking is false and cluster is not SNO, should update stage to joined",
+			name:         "Do not auto approve CSR for Not ready matching node and UserManagedNetworking is false and BMH exists - should update stage to joined",
 			createClient: true,
 			hostname:     CommonHostname,
 			node: &corev1.Node{
@@ -2075,9 +2076,10 @@ VU1eS0RiS/Lz6HwRs2mATNY5FrpZOgdM3cI=
 			clusterInstall:      newAciNoUserManagedNetworkingNoSNO("test-cluster-aci", testNamespace),
 			updateProgressStage: true,
 			getNodeCount:        1,
+			bmhExists:           true,
 		},
 		{
-			name:         "Do not auto approve CSR for ready matching node and UserManagedNetworking is false and cluster is not SNO, should update stage to Done",
+			name:         "Do not auto approve CSR for ready matching node and UserManagedNetworking is false and BMH exists - should update stage to Done",
 			createClient: true,
 			hostname:     CommonHostname,
 			node: &corev1.Node{
@@ -2106,6 +2108,74 @@ VU1eS0RiS/Lz6HwRs2mATNY5FrpZOgdM3cI=
 			clusterInstall:      newAciNoUserManagedNetworkingNoSNO("test-cluster-aci", testNamespace),
 			updateProgressStage: true,
 			getNodeCount:        1,
+			bmhExists:           true,
+		},
+		{
+			name:         "Auto approve CSR for ready matching node, UserManagedNetworking is false and BMH doesn't exist",
+			createClient: true,
+			hostname:     CommonHostname,
+			node: &corev1.Node{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: CommonHostname,
+				},
+				Status: corev1.NodeStatus{
+					Conditions: []corev1.NodeCondition{
+						{
+							Type:   corev1.NodeReady,
+							Status: corev1.ConditionTrue,
+						},
+					},
+					Addresses: []corev1.NodeAddress{
+						{
+							Type:    corev1.NodeInternalIP,
+							Address: "192.168.111.28",
+						},
+					},
+				},
+			},
+			csrs:                serverCsrs(),
+			approveExpected:     true,
+			expectedResult:      ctrl.Result{},
+			expectedStatus:      models.HostStatusInstalling,
+			expectedStage:       models.HostStageDone,
+			clusterInstall:      newAciNoUserManagedNetworkingWithSNO("test-cluster-aci", testNamespace),
+			updateProgressStage: true,
+			getNodeCount:        2,
+			bmhExists:           false,
+		},
+		{
+			name:         "Do not auto approve CSR for not ready matching node and UserManagedNetworking is false and BMH exists - should update stage to Done",
+			createClient: true,
+			hostname:     CommonHostname,
+			node: &corev1.Node{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: CommonHostname,
+				},
+				Status: corev1.NodeStatus{
+					Conditions: []corev1.NodeCondition{
+						{
+							Type:   corev1.NodeReady,
+							Status: corev1.ConditionFalse,
+						},
+					},
+					Addresses: []corev1.NodeAddress{
+						{
+							Type:    corev1.NodeInternalIP,
+							Address: "192.168.111.28",
+						},
+					},
+				},
+			},
+			approveExpected: false,
+			expectedResult: ctrl.Result{
+				RequeueAfter: time.Minute,
+			},
+			expectedStatus:      models.HostStatusInstalling,
+			expectedStage:       models.HostStageJoined,
+			clusterInstall:      newAciNoUserManagedNetworkingNoSNO("test-cluster-aci", testNamespace),
+			updateProgressStage: true,
+			getNodeCount:        1,
+			bmhExists:           true,
 		},
 		{
 			name:         "Auto approve CSR for Not ready matching node and UserManagedNetworking is true",
@@ -2140,6 +2210,41 @@ VU1eS0RiS/Lz6HwRs2mATNY5FrpZOgdM3cI=
 			clusterInstall:      newAciWithUserManagedNetworkingNoSNO("test-cluster-aci", testNamespace),
 			updateProgressStage: true,
 			getNodeCount:        2,
+		},
+		{
+			name:         "Auto approve CSR for Not ready matching node and UserManagedNetworking is true and BMH exists",
+			createClient: true,
+			hostname:     CommonHostname,
+			node: &corev1.Node{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: CommonHostname,
+				},
+				Status: corev1.NodeStatus{
+					Conditions: []corev1.NodeCondition{
+						{
+							Type:   corev1.NodeReady,
+							Status: corev1.ConditionFalse,
+						},
+					},
+					Addresses: []corev1.NodeAddress{
+						{
+							Type:    corev1.NodeInternalIP,
+							Address: "192.168.111.28",
+						},
+					},
+				},
+			},
+			csrs:            serverCsrs(),
+			approveExpected: true,
+			expectedResult: ctrl.Result{
+				RequeueAfter: time.Minute,
+			},
+			expectedStatus:      models.HostStatusInstalling,
+			expectedStage:       models.HostStageJoined,
+			clusterInstall:      newAciWithUserManagedNetworkingNoSNO("test-cluster-aci", testNamespace),
+			updateProgressStage: true,
+			getNodeCount:        2,
+			bmhExists:           true,
 		},
 		{
 			name:         "Auto approve CSR for Not ready matching node and UserManagedNetworking is false for SNO cluster",
@@ -2374,6 +2479,12 @@ VU1eS0RiS/Lz6HwRs2mATNY5FrpZOgdM3cI=
 			}
 			if t.updateProgressStage {
 				mockInstallerInternal.EXPECT().V2UpdateHostInstallProgressInternal(gomock.Any(), gomock.Any())
+			}
+			if t.bmhExists {
+				bmh := newBMH("testBMH", &bmh_v1alpha1.BareMetalHostSpec{})
+				Expect(c.Create(ctx, bmh)).To(Succeed())
+				host.ObjectMeta.Labels = make(map[string]string)
+				host.ObjectMeta.Labels[AGENT_BMH_LABEL] = bmh.Name
 			}
 			Expect(c.Create(ctx, host)).To(BeNil())
 			if t.createClient {

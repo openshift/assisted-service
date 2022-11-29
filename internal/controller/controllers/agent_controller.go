@@ -494,13 +494,24 @@ func (r *AgentReconciler) deregisterHostIfNeeded(ctx context.Context, log logrus
 	return buildReply(nil)
 }
 
-func (r *AgentReconciler) isNonePlatformHostRebooting(ctx context.Context, agent *aiv1beta1.Agent, h *models.Host) (bool, error) {
+// CSRs should be approved in the following cases:
+// * Agent belongs to a none platform cluster
+// * No BMH exists for agent
+func (r *AgentReconciler) shouldApproveCSRsForAgent(ctx context.Context, agent *aiv1beta1.Agent, h *models.Host) (bool, error) {
 	if funk.Contains([]models.HostStage{models.HostStageRebooting, models.HostStageJoined}, h.Progress.CurrentStage) {
 		isNone, err := isAgentInNonePlatformCluster(ctx, r.Client, agent)
 		if err != nil {
 			return false, err
 		}
-		return isNone, nil
+		if isNone {
+			return true, nil
+		}
+
+		bmhExists, err := r.bmhExists(ctx, agent)
+		if err != nil {
+			return false, err
+		}
+		return !bmhExists, nil
 	}
 	return false, nil
 }
@@ -550,8 +561,8 @@ func (r *AgentReconciler) updateStatus(ctx context.Context, log logrus.FieldLogg
 				if err != nil {
 					return ret, err
 				}
-				if shouldAutoApproveCSRs, err = r.isNonePlatformHostRebooting(ctx, agent, h); err != nil {
-					log.WithError(err).Errorf("Failed to find if agent %s/%s belongs to none platform cluster and is rebooting", agent.Namespace, agent.Name)
+				if shouldAutoApproveCSRs, err = r.shouldApproveCSRsForAgent(ctx, agent, h); err != nil {
+					log.WithError(err).Errorf("Failed to determine if agent %s/%s is rebooting and belongs to none platform cluster or has an associated BMH", agent.Namespace, agent.Name)
 					return ctrl.Result{RequeueAfter: defaultRequeueAfterOnError}, nil
 				}
 				if shouldAutoApproveCSRs {
@@ -716,8 +727,8 @@ func setConditionsUnknown(agent *aiv1beta1.Agent) {
 }
 
 // specSynced is updating the Agent SpecSynced Condition.
-//Internal bool differentiate between the reason BackendErrorReason/InputErrorReason.
-//if true then it is a backend server error (internal HTTP 5XX) otherwise an user input error (HTTP 4XXX)
+// Internal bool differentiate between the reason BackendErrorReason/InputErrorReason.
+// if true then it is a backend server error (internal HTTP 5XX) otherwise an user input error (HTTP 4XXX)
 func specSynced(agent *aiv1beta1.Agent, syncErr error, internal bool) {
 	var condStatus corev1.ConditionStatus
 	var reason string
