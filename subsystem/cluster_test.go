@@ -858,8 +858,10 @@ var _ = Describe("cluster install - DHCP", func() {
 		generateDhcpStepReply(reply.Payload.Hosts[0], "1.2.3.102", "1.2.3.103", true)
 		_, err = userBMClient.Installer.V2UpdateCluster(ctx, &installer.V2UpdateClusterParams{
 			ClusterUpdateParams: &models.V2ClusterUpdateParams{
-				APIVip:     swag.String("1.2.3.100"),
-				IngressVip: swag.String("1.2.3.101"),
+				APIVip:      swag.String("1.2.3.100"),
+				IngressVip:  swag.String("1.2.3.101"),
+				APIVips:     []*models.APIVip{{IP: "1.2.3.100", ClusterID: clusterID}},
+				IngressVips: []*models.IngressVip{{IP: "1.2.3.101", ClusterID: clusterID}},
 			},
 			ClusterID: clusterID,
 		})
@@ -886,8 +888,10 @@ var _ = Describe("cluster install - DHCP", func() {
 			IgnoreStateInfo)
 		_, err = userBMClient.Installer.V2UpdateCluster(ctx, &installer.V2UpdateClusterParams{
 			ClusterUpdateParams: &models.V2ClusterUpdateParams{
-				APIVip:     swag.String("1.2.3.100"),
-				IngressVip: swag.String("1.2.3.101"),
+				APIVip:      swag.String("1.2.3.100"),
+				IngressVip:  swag.String("1.2.3.101"),
+				APIVips:     []*models.APIVip{{IP: "1.2.3.100", ClusterID: clusterID}},
+				IngressVips: []*models.IngressVip{{IP: "1.2.3.101", ClusterID: clusterID}},
 			},
 			ClusterID: clusterID,
 		})
@@ -1385,6 +1389,8 @@ var _ = Describe("cluster install", func() {
 				NewClusterParams: &models.ClusterCreateParams{
 					APIVip:        "1.2.3.8",
 					IngressVip:    "1.2.3.9",
+					APIVips:       []*models.APIVip{{IP: "1.2.3.8"}},
+					IngressVips:   []*models.IngressVip{{IP: "1.2.3.9"}},
 					BaseDNSDomain: "example.com",
 					ClusterNetworks: []*models.ClusterNetwork{
 						{Cidr: models.Subnet(clusterCIDR), HostPrefix: 23},
@@ -1497,6 +1503,8 @@ var _ = Describe("cluster install", func() {
 				ClusterUpdateParams: &models.V2ClusterUpdateParams{
 					APIVip:            &apiVip,
 					IngressVip:        &ingressVip,
+					APIVips:           []*models.APIVip{{IP: models.IP(apiVip), ClusterID: clusterID}},
+					IngressVips:       []*models.IngressVip{{IP: models.IP(ingressVip), ClusterID: clusterID}},
 					VipDhcpAllocation: swag.Bool(false),
 				},
 				ClusterID: clusterID,
@@ -1516,6 +1524,8 @@ var _ = Describe("cluster install", func() {
 				ClusterUpdateParams: &models.V2ClusterUpdateParams{
 					APIVip:            &apiVip,
 					IngressVip:        &ingressVip,
+					APIVips:           []*models.APIVip{{IP: models.IP(apiVip), ClusterID: clusterID}},
+					IngressVips:       []*models.IngressVip{{IP: models.IP(ingressVip), ClusterID: clusterID}},
 					VipDhcpAllocation: swag.Bool(false),
 				},
 				ClusterID: clusterID,
@@ -1560,6 +1570,7 @@ var _ = Describe("cluster install", func() {
 			_, err := userBMClient.Installer.V2UpdateCluster(ctx, &installer.V2UpdateClusterParams{
 				ClusterUpdateParams: &models.V2ClusterUpdateParams{
 					APIVip:            &apiVip,
+					APIVips:           []*models.APIVip{{IP: models.IP(apiVip), ClusterID: clusterID}},
 					VipDhcpAllocation: swag.Bool(false),
 				},
 				ClusterID: clusterID,
@@ -2843,8 +2854,10 @@ spec:
 
 		_, err = userBMClient.Installer.V2UpdateCluster(ctx, &installer.V2UpdateClusterParams{
 			ClusterUpdateParams: &models.V2ClusterUpdateParams{
-				APIVip:     &apiVip,
-				IngressVip: &ingressVip,
+				APIVip:      &apiVip,
+				IngressVip:  &ingressVip,
+				APIVips:     []*models.APIVip{{IP: models.IP(apiVip), ClusterID: clusterID}},
+				IngressVips: []*models.IngressVip{{IP: models.IP(ingressVip), ClusterID: clusterID}},
 			},
 			ClusterID: clusterID,
 		})
@@ -2935,6 +2948,8 @@ spec:
 				VipDhcpAllocation: swag.Bool(false),
 				APIVip:            &apiVip,
 				IngressVip:        &ingressVip,
+				APIVips:           []*models.APIVip{{IP: models.IP(apiVip), ClusterID: clusterID}},
+				IngressVips:       []*models.IngressVip{{IP: models.IP(ingressVip), ClusterID: clusterID}},
 			},
 			ClusterID: clusterID,
 		})
@@ -3086,6 +3101,8 @@ spec:
 				VipDhcpAllocation: swag.Bool(false),
 				APIVip:            &apiVip,
 				IngressVip:        &ingressVip,
+				APIVips:           []*models.APIVip{{IP: models.IP(apiVip), ClusterID: clusterID}},
+				IngressVips:       []*models.IngressVip{{IP: models.IP(ingressVip), ClusterID: clusterID}},
 			},
 			ClusterID: clusterID,
 		})
@@ -3180,6 +3197,8 @@ spec:
 				VipDhcpAllocation: swag.Bool(false),
 				APIVip:            &apiVip,
 				IngressVip:        &ingressVip,
+				APIVips:           []*models.APIVip{{IP: models.IP(apiVip), ClusterID: clusterID}},
+				IngressVips:       []*models.IngressVip{{IP: models.IP(ingressVip), ClusterID: clusterID}},
 			},
 			ClusterID: clusterID,
 		})
@@ -3695,6 +3714,8 @@ var _ = Describe("Multiple-VIPs Support", func() {
 						SSHPublicKey:     sshPublicKey,
 						APIVip:           apiVip,
 						IngressVip:       ingressVip,
+						APIVips:          []*models.APIVip{{IP: models.IP(apiVip)}},
+						IngressVips:      []*models.IngressVip{{IP: models.IP(ingressVip)}},
 					},
 				})
 				Expect(err).NotTo(HaveOccurred())
@@ -4570,8 +4591,10 @@ func registerHostsAndSetRoles(clusterID, infraenvID strfmt.UUID, numHosts int, c
 	ingressVip = "1.2.3.9"
 	_, err = userBMClient.Installer.V2UpdateCluster(ctx, &installer.V2UpdateClusterParams{
 		ClusterUpdateParams: &models.V2ClusterUpdateParams{
-			APIVip:     &apiVip,
-			IngressVip: &ingressVip,
+			APIVip:      &apiVip,
+			IngressVip:  &ingressVip,
+			APIVips:     []*models.APIVip{{IP: models.IP(apiVip), ClusterID: clusterID}},
+			IngressVips: []*models.IngressVip{{IP: models.IP(ingressVip), ClusterID: clusterID}},
 		},
 		ClusterID: clusterID,
 	})
@@ -4632,8 +4655,10 @@ func registerHostsAndSetRolesTang(clusterID, infraenvID strfmt.UUID, numHosts in
 	ingressVip = "1.2.3.9"
 	_, err = userBMClient.Installer.V2UpdateCluster(ctx, &installer.V2UpdateClusterParams{
 		ClusterUpdateParams: &models.V2ClusterUpdateParams{
-			APIVip:     &apiVip,
-			IngressVip: &ingressVip,
+			APIVip:      &apiVip,
+			IngressVip:  &ingressVip,
+			APIVips:     []*models.APIVip{{IP: models.IP(apiVip), ClusterID: clusterID}},
+			IngressVips: []*models.IngressVip{{IP: models.IP(ingressVip), ClusterID: clusterID}},
 		},
 		ClusterID: clusterID,
 	})

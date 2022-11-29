@@ -6,6 +6,8 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/cmd/agentbasedinstaller"
+	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/internal/network"
 )
 
 // Note: userBMClient is used because subsystems defaults to use "rhsso" as AUTH_TYPE.
@@ -23,7 +25,9 @@ var _ = Describe("RegisterClusterAndInfraEnv", func() {
 			"../docs/hive-integration/crds/clusterImageSet.yaml", "")
 		Expect(registerClusterErr).NotTo(HaveOccurred())
 		Expect(modelCluster.APIVip).To(Equal("1.2.3.8"))
+		Expect(network.GetApiVipById(&common.Cluster{Cluster: *modelCluster}, 0)).To(Equal("1.2.3.8"))
 		Expect(modelCluster.IngressVip).To(Equal("1.2.3.9"))
+		Expect(network.GetIngressVipById(&common.Cluster{Cluster: *modelCluster}, 0)).To(Equal("1.2.3.9"))
 		Expect(modelCluster.OpenshiftVersion).To(ContainSubstring(snoVersion))
 		Expect(modelCluster.CPUArchitecture).To(Equal("x86_64"))
 		Expect(modelCluster.Name).To(Equal("test-cluster"))
@@ -45,7 +49,9 @@ var _ = Describe("RegisterClusterAndInfraEnv", func() {
 			"../docs/hive-integration/crds/clusterImageSet.yaml", "")
 		Expect(registerClusterErr).NotTo(HaveOccurred())
 		Expect(modelCluster.APIVip).To(Equal("1.2.3.8"))
+		Expect(network.GetApiVipById(&common.Cluster{Cluster: *modelCluster}, 0)).To(Equal("1.2.3.8"))
 		Expect(modelCluster.IngressVip).To(Equal("1.2.3.9"))
+		Expect(network.GetIngressVipById(&common.Cluster{Cluster: *modelCluster}, 0)).To(Equal("1.2.3.9"))
 		Expect(modelCluster.OpenshiftVersion).To(ContainSubstring(snoVersion))
 		Expect(modelCluster.CPUArchitecture).To(Equal("x86_64"))
 		Expect(modelCluster.InstallConfigOverrides).To(Equal(`{"fips": true}`))

@@ -2,6 +2,7 @@ package network
 
 import (
 	"net"
+	"net/http"
 	"sort"
 	"strings"
 
@@ -10,6 +11,7 @@ import (
 	"github.com/openshift/assisted-service/models"
 	"github.com/pkg/errors"
 	"github.com/thoas/go-funk"
+	"gorm.io/gorm"
 )
 
 // Obtains the IP addresses used by a host
@@ -333,4 +335,38 @@ func AreServiceNetworksIdentical(n1, n2 []*models.ServiceNetwork) bool {
 
 func AreClusterNetworksIdentical(n1, n2 []*models.ClusterNetwork) bool {
 	return areListsEquivalent(len(n1), len(n2), func(i, j int) bool { return n1[i].Cidr == n2[j].Cidr && n1[i].HostPrefix == n2[j].HostPrefix })
+}
+
+func UpdateVipsTables(db *gorm.DB, cluster *common.Cluster, apiVipUpdated bool, ingressVipUpdated bool) error {
+	var err error
+
+	if apiVipUpdated {
+		if err = db.Where("cluster_id = ?", *cluster.ID).Delete(&models.APIVip{}).Error; err != nil {
+			err = errors.Wrapf(err, "failed to delete api vips of cluster %s", *cluster.ID)
+			return common.NewApiError(http.StatusInternalServerError, err)
+		}
+		for _, apiVip := range cluster.APIVips {
+			apiVip.ClusterID = *cluster.ID
+			if err = db.Save(apiVip).Error; err != nil {
+				err = errors.Wrapf(err, "failed to update cluster apiVip %v of cluster %s", *apiVip, *cluster.ID)
+				return common.NewApiError(http.StatusInternalServerError, err)
+			}
+		}
+	}
+
+	if ingressVipUpdated {
+		if err = db.Where("cluster_id = ?", *cluster.ID).Delete(&models.IngressVip{}).Error; err != nil {
+			err = errors.Wrapf(err, "failed to delete ingress vips of cluster %s", *cluster.ID)
+			return common.NewApiError(http.StatusInternalServerError, err)
+		}
+		for _, ingressVip := range cluster.IngressVips {
+			ingressVip.ClusterID = *cluster.ID
+			if err = db.Save(ingressVip).Error; err != nil {
+				err = errors.Wrapf(err, "failed to update cluster ingressVip %v of cluster %s", *ingressVip, *cluster.ID)
+				return common.NewApiError(http.StatusInternalServerError, err)
+			}
+		}
+	}
+
+	return nil
 }

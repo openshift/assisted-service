@@ -120,24 +120,24 @@ func newValidations(v *clusterValidator) []validation {
 			condition: v.isMachineCidrEqualsToCalculatedCidr,
 		},
 		{
-			id:        IsApiVipDefined,
-			condition: v.isApiVipDefined,
+			id:        AreApiVipsDefined,
+			condition: v.areApiVipsDefined,
 		},
 		{
-			id:        IsApiVipValid,
-			condition: v.isApiVipValid,
+			id:        AreApiVipsValid,
+			condition: v.areApiVipsValid,
 		},
 		{
 			id:        isNetworkTypeValid,
 			condition: v.isNetworkTypeValid,
 		},
 		{
-			id:        IsIngressVipDefined,
-			condition: v.isIngressVipDefined,
+			id:        AreIngressVipsDefined,
+			condition: v.areIngressVipsDefined,
 		},
 		{
-			id:        IsIngressVipValid,
-			condition: v.isIngressVipValid,
+			id:        AreIngressVipsValid,
+			condition: v.areIngressVipsValid,
 		},
 		{
 			id:        AllHostsAreReadyToInstall,

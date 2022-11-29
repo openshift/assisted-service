@@ -911,14 +911,19 @@ func (m *Manager) SetVipsData(ctx context.Context, c *common.Cluster, apiVip, in
 	log := logutil.FromContext(ctx, m.log)
 	formattedApiLease := network.FormatLease(apiVipLease)
 	formattedIngressVip := network.FormatLease(ingressVipLease)
-	if apiVip == c.APIVip &&
-		ingressVip == c.IngressVip &&
+	if apiVip == c.APIVip && apiVip == network.GetApiVipById(c, 0) &&
+		ingressVip == c.IngressVip && ingressVip == network.GetIngressVipById(c, 0) &&
 		formattedApiLease == c.ApiVipLease &&
 		formattedIngressVip == c.IngressVipLease {
 		return nil
 	}
 	switch swag.StringValue(c.Status) {
 	case models.ClusterStatusPendingForInput, models.ClusterStatusInsufficient, models.ClusterStatusReady:
+		c.APIVips = []*models.APIVip{{IP: models.IP(apiVip), ClusterID: *c.ID}}
+		c.IngressVips = []*models.IngressVip{{IP: models.IP(ingressVip), ClusterID: *c.ID}}
+		if err = network.UpdateVipsTables(db, c, true, true); err != nil {
+			return err
+		}
 		if err = db.Model(&common.Cluster{}).Where("id = ?", c.ID.String()).
 			Updates(map[string]interface{}{
 				"api_vip":           apiVip,
