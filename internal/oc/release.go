@@ -1,6 +1,7 @@
 package oc
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -10,13 +11,17 @@ import (
 
 	"github.com/buger/jsonparser"
 	"github.com/hashicorp/go-version"
+	operatorv1alpha1 "github.com/openshift/api/operator/v1alpha1"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/executer"
+	"github.com/openshift/assisted-service/pkg/mirrorregistries"
 	"github.com/patrickmn/go-cache"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/thedevsaddam/retry"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	k8syaml "sigs.k8s.io/yaml"
 )
 
 const (
@@ -51,23 +56,28 @@ type imageValue struct {
 }
 
 type release struct {
-	executer executer.Executer
-	config   Config
+	executer                executer.Executer
+	config                  Config
+	mirrorRegistriesBuilder mirrorregistries.MirrorRegistriesConfigBuilder
 
 	// A map for caching images (image name > release image URL > image)
 	imagesMap common.ExpiringCache
 }
 
-func NewRelease(executer executer.Executer, config Config) Release {
-	return &release{executer: executer, config: config, imagesMap: common.NewExpiringCache(cache.NoExpiration, cache.NoExpiration)}
+func NewRelease(executer executer.Executer, config Config, mirrorRegistriesBuilder mirrorregistries.MirrorRegistriesConfigBuilder) Release {
+	return &release{executer: executer, config: config, imagesMap: common.NewExpiringCache(cache.NoExpiration, cache.NoExpiration),
+		mirrorRegistriesBuilder: mirrorRegistriesBuilder}
 }
 
 const (
 	templateGetImage              = "oc adm release info --image-for=%s --insecure=%t %s"
+	templateGetImageWithIcsp      = "oc adm release info --image-for=%s --insecure=%t --icsp-file=%s %s"
 	templateGetVersion            = "oc adm release info -o template --template '{{.metadata.version}}' --insecure=%t %s"
+	templateGetVersionWithIcsp    = "oc adm release info -o template --template '{{.metadata.version}}' --insecure=%t --icsp-file=%s %s"
 	templateExtract               = "oc adm release extract --command=%s --to=%s --insecure=%t %s"
 	templateExtractWithIcsp       = "oc adm release extract --command=%s --to=%s --insecure=%t --icsp-file=%s %s"
 	templateImageInfo             = "oc image info --output json %s"
+	templateImageInfoWithIcsp     = "oc image info --output json --icsp-file=%s %s"
 	templateSkopeoDetectMultiarch = "skopeo inspect --raw --no-tags docker://%s"
 	ocAuthArgument                = " --registry-config="
 	skopeoAuthArgument            = " --authfile "
@@ -101,15 +111,22 @@ func (r *release) getImageByName(log logrus.FieldLogger, imageName, releaseImage
 	if releaseImage == "" && releaseImageMirror == "" {
 		return "", errors.New("neither releaseImage, nor releaseImageMirror are provided")
 	}
+
+	icspFile, err := r.getIcspFileFromRegistriesConfig(log)
+	if err != nil {
+		return "", errors.Wrap(err, "failed to create file ICSP file from registries config")
+	}
+	defer removeIcspFile(icspFile)
+
 	if releaseImageMirror != "" {
 		//TODO: Get mirror registry certificate from install-config
-		image, err = r.getImageFromRelease(log, imageName, releaseImageMirror, pullSecret, true)
+		image, err = r.getImageFromRelease(log, imageName, releaseImageMirror, pullSecret, icspFile, true)
 		if err != nil {
 			log.WithError(err).Errorf("failed to get %s image from mirror release image %s", imageName, releaseImageMirror)
 			return "", err
 		}
 	} else {
-		image, err = r.getImageFromRelease(log, imageName, releaseImage, pullSecret, false)
+		image, err = r.getImageFromRelease(log, imageName, releaseImage, pullSecret, icspFile, false)
 		if err != nil {
 			log.WithError(err).Errorf("failed to get %s image from release image %s", imageName, releaseImage)
 			return "", err
@@ -124,15 +141,22 @@ func (r *release) GetOpenshiftVersion(log logrus.FieldLogger, releaseImage strin
 	if releaseImage == "" && releaseImageMirror == "" {
 		return "", errors.New("no releaseImage nor releaseImageMirror provided")
 	}
+
+	icspFile, err := r.getIcspFileFromRegistriesConfig(log)
+	if err != nil {
+		return "", errors.Wrap(err, "failed to create file ICSP file from registries config")
+	}
+	defer removeIcspFile(icspFile)
+
 	if releaseImageMirror != "" {
 		//TODO: Get mirror registry certificate from install-config
-		openshiftVersion, err = r.getOpenshiftVersionFromRelease(log, releaseImageMirror, pullSecret, true)
+		openshiftVersion, err = r.getOpenshiftVersionFromRelease(log, releaseImageMirror, pullSecret, icspFile, true)
 		if err != nil {
 			log.WithError(err).Errorf("failed to get image openshift version from mirror release image %s", releaseImageMirror)
 			return "", err
 		}
 	} else {
-		openshiftVersion, err = r.getOpenshiftVersionFromRelease(log, releaseImage, pullSecret, false)
+		openshiftVersion, err = r.getOpenshiftVersionFromRelease(log, releaseImage, pullSecret, icspFile, false)
 		if err != nil {
 			log.WithError(err).Errorf("failed to get image openshift version from release image %s", releaseImage)
 			return "", err
@@ -164,7 +188,20 @@ func (r *release) GetReleaseArchitecture(log logrus.FieldLogger, releaseImage st
 	if image == "" {
 		return nil, errors.New("no releaseImage nor releaseImageMirror provided")
 	}
-	cmd := fmt.Sprintf(templateImageInfo, image)
+
+	icspFile, err := r.getIcspFileFromRegistriesConfig(log)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to create file ICSP file from registries config")
+	}
+	defer removeIcspFile(icspFile)
+
+	var cmd string
+	if icspFile == "" {
+		cmd = fmt.Sprintf(templateImageInfo, image)
+	} else {
+		cmd = fmt.Sprintf(templateImageInfoWithIcsp, icspFile, image)
+	}
+
 	cmdMultiarch := fmt.Sprintf(templateSkopeoDetectMultiarch, image)
 
 	imageInfoStr, err := execute(log, r.executer, pullSecret, cmd, ocAuthArgument)
@@ -229,7 +266,7 @@ func (r *release) getImageValue(imageName, releaseImage string) (*imageValue, er
 	return value, nil
 }
 
-func (r *release) getImageFromRelease(log logrus.FieldLogger, imageName, releaseImage, pullSecret string, insecure bool) (string, error) {
+func (r *release) getImageFromRelease(log logrus.FieldLogger, imageName, releaseImage, pullSecret, icspFile string, insecure bool) (string, error) {
 	// Fetch image URL from cache
 	actualImageValue, err := r.getImageValue(imageName, releaseImage)
 	if err != nil {
@@ -244,7 +281,12 @@ func (r *release) getImageFromRelease(log logrus.FieldLogger, imageName, release
 		return actualImageValue.value, nil
 	}
 
-	cmd := fmt.Sprintf(templateGetImage, imageName, insecure, releaseImage)
+	var cmd string
+	if icspFile == "" {
+		cmd = fmt.Sprintf(templateGetImage, imageName, insecure, releaseImage)
+	} else {
+		cmd = fmt.Sprintf(templateGetImageWithIcsp, imageName, insecure, icspFile, releaseImage)
+	}
 
 	log.Infof("Fetching image from OCP release (%s)", cmd)
 	image, err := execute(log, r.executer, pullSecret, cmd, ocAuthArgument)
@@ -258,8 +300,13 @@ func (r *release) getImageFromRelease(log logrus.FieldLogger, imageName, release
 	return image, nil
 }
 
-func (r *release) getOpenshiftVersionFromRelease(log logrus.FieldLogger, releaseImage string, pullSecret string, insecure bool) (string, error) {
-	cmd := fmt.Sprintf(templateGetVersion, insecure, releaseImage)
+func (r *release) getOpenshiftVersionFromRelease(log logrus.FieldLogger, releaseImage, pullSecret, icspFile string, insecure bool) (string, error) {
+	var cmd string
+	if icspFile == "" {
+		cmd = fmt.Sprintf(templateGetVersion, insecure, releaseImage)
+	} else {
+		cmd = fmt.Sprintf(templateGetVersionWithIcsp, insecure, icspFile, releaseImage)
+	}
 	version, err := execute(log, r.executer, pullSecret, cmd, ocAuthArgument)
 	if err != nil {
 		return "", err
@@ -356,5 +403,82 @@ func execute(log logrus.FieldLogger, executer executer.Executer, pullSecret stri
 		err = fmt.Errorf("command '%s' exited with non-zero exit code %d: %s\n%s", executeCommand, exitCode, stdout, stderr)
 		log.Error(err)
 		return "", err
+	}
+}
+
+// Create a temporary file containing the ImageContentPolicySources
+func (r *release) getIcspFileFromRegistriesConfig(log logrus.FieldLogger) (string, error) {
+
+	if !r.mirrorRegistriesBuilder.IsMirrorRegistriesConfigured() {
+		log.Debugf("No mirrors configured to build ICSP file")
+		return "", nil
+	}
+
+	mirrorRegistriesConfig, err := r.mirrorRegistriesBuilder.ExtractLocationMirrorDataFromRegistries()
+	if err != nil {
+		log.WithError(err).Errorf("Failed to get the mirror registries needed for ImageContentSources")
+		return "", err
+	}
+
+	contents, err := getIcspContents(mirrorRegistriesConfig)
+	if err != nil {
+		log.WithError(err).Errorf("Failed to create the ICSP file from registries.conf")
+		return "", err
+	}
+	if contents == nil {
+		log.Debugf("No registry entries to build ICSP file")
+		return "", nil
+	}
+
+	icspFile, err := os.CreateTemp("", "icsp-file")
+	if err != nil {
+		return "", err
+	}
+	log.Debugf("Building ICSP file from registries.conf with contents %s", contents)
+	if _, err := icspFile.Write(contents); err != nil {
+		icspFile.Close()
+		os.Remove(icspFile.Name())
+		return "", err
+	}
+	icspFile.Close()
+
+	return icspFile.Name(), nil
+}
+
+// Convert the data in registries.conf into ICSP format
+func getIcspContents(mirrorConfig []mirrorregistries.RegistriesConf) ([]byte, error) {
+
+	icsp := operatorv1alpha1.ImageContentSourcePolicy{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: operatorv1alpha1.SchemeGroupVersion.String(),
+			Kind:       "ImageContentSourcePolicy",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "image-policy",
+			// not namespaced
+		},
+	}
+
+	icsp.Spec.RepositoryDigestMirrors = make([]operatorv1alpha1.RepositoryDigestMirrors, len(mirrorConfig))
+	for i, mirrorRegistries := range mirrorConfig {
+		icsp.Spec.RepositoryDigestMirrors[i] = operatorv1alpha1.RepositoryDigestMirrors{Source: mirrorRegistries.Location, Mirrors: []string{mirrorRegistries.Mirror}}
+	}
+
+	// Convert to json first so json tags are handled
+	jsonData, err := json.Marshal(&icsp)
+	if err != nil {
+		return nil, err
+	}
+	contents, err := k8syaml.JSONToYAML(jsonData)
+	if err != nil {
+		return nil, err
+	}
+
+	return contents, nil
+}
+
+func removeIcspFile(filename string) {
+	if filename != "" {
+		os.Remove(filename)
 	}
 }
