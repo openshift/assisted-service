@@ -15,6 +15,7 @@ import (
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/executer"
+	"github.com/openshift/assisted-service/pkg/mirrorregistries"
 	logrus "github.com/sirupsen/logrus"
 )
 
@@ -46,7 +47,8 @@ var _ = Describe("oc", func() {
 		ctrl = gomock.NewController(GinkgoT())
 		mockExecuter = executer.NewMockExecuter(ctrl)
 		config := Config{MaxTries: DefaultTries, RetryDelay: time.Millisecond}
-		oc = NewRelease(mockExecuter, config)
+		mirrorRegistriesBuilder := mirrorregistries.New()
+		oc = NewRelease(mockExecuter, config, mirrorRegistriesBuilder)
 		tempFilePath = "/tmp/pull-secret"
 		mockExecuter.EXPECT().TempFile(gomock.Any(), gomock.Any()).DoAndReturn(
 			func(dir, pattern string) (*os.File, error) {
@@ -535,7 +537,7 @@ var _ = Describe("getImageFromRelease", func() {
 							}
 							doneChan <- true
 						}()
-						ret, err := oc.getImageFromRelease(log, r.imageName, r.releaseName, "pull", false)
+						ret, err := oc.getImageFromRelease(log, r.imageName, r.releaseName, "pull", "", false)
 						Expect(err).ToNot(HaveOccurred())
 						Expect(ret).To(Equal(r.expectedResult))
 					}()
@@ -554,6 +556,54 @@ var _ = Describe("getImageFromRelease", func() {
 
 	AfterEach(func() {
 		ctrl.Finish()
+	})
+})
+
+var _ = Describe("getIcspFileFromRegistriesConfig", func() {
+	var (
+		oc                                *release
+		mockMirrorRegistriesConfigBuilder *mirrorregistries.MockMirrorRegistriesConfigBuilder
+		ctrl                              *gomock.Controller
+		mockExecuter                      *executer.MockExecuter
+	)
+
+	BeforeEach(func() {
+		ctrl = gomock.NewController(GinkgoT())
+		mockExecuter = executer.NewMockExecuter(ctrl)
+		mockMirrorRegistriesConfigBuilder = mirrorregistries.NewMockMirrorRegistriesConfigBuilder(ctrl)
+		config := Config{MaxTries: DefaultTries, RetryDelay: time.Millisecond}
+		oc = &release{executer: mockExecuter, config: config, imagesMap: common.NewExpiringCache(time.Hour, time.Hour),
+			mirrorRegistriesBuilder: mockMirrorRegistriesConfigBuilder}
+		log = logrus.New()
+	})
+
+	It("valid_mirror_registries", func() {
+		regData := []mirrorregistries.RegistriesConf{{Location: "registry.ci.org", Mirror: "host1.example.org:5000/localimages"}, {Location: "quay.io", Mirror: "host1.example.org:5000/localimages"}}
+		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(true).Times(1)
+		mockMirrorRegistriesConfigBuilder.EXPECT().ExtractLocationMirrorDataFromRegistries().Return(regData, nil).Times(1)
+		expected := "apiVersion: operator.openshift.io/v1alpha1\nkind: ImageContentSourcePolicy\nmetadata:\n  creationTimestamp: null\n  name: image-policy\nspec:\n  repositoryDigestMirrors:\n  - mirrors:\n    - host1.example.org:5000/localimages\n    source: registry.ci.org\n  - mirrors:\n    - host1.example.org:5000/localimages\n    source: quay.io\n"
+		icspFile, err := oc.getIcspFileFromRegistriesConfig(log)
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(icspFile).ShouldNot(Equal(""))
+		data, err := os.ReadFile(icspFile)
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(string(data)).Should(Equal(expected))
+	})
+
+	It("no_registries", func() {
+		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(1)
+		icspFile, err := oc.getIcspFileFromRegistriesConfig(log)
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(icspFile).Should(Equal(""))
+	})
+
+	It("mirror_registries_invalid", func() {
+		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(true).Times(1)
+		mockMirrorRegistriesConfigBuilder.EXPECT().ExtractLocationMirrorDataFromRegistries().Return(nil, fmt.Errorf("extract failed")).Times(1)
+		icspFile, err := oc.getIcspFileFromRegistriesConfig(log)
+		Expect(err).Should(HaveOccurred())
+		Expect(err).Should(MatchError("extract failed"))
+		Expect(icspFile).Should(Equal(""))
 	})
 })
 
