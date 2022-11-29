@@ -18,6 +18,8 @@ kind: BareMetalHost
 metadata:
   name: '{{ host["name"] }}'
   namespace: '{{ spoke_namespace }}'
+  labels:
+    infraenvs.agent-install.openshift.io: '{{ infraenv_name }}'
   annotations:
     bmac.agent-install.openshift.io/hostname: '{{ host["name"] }}'
 spec:

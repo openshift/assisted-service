@@ -106,8 +106,6 @@ export -f wait_for_cmd_amount
 export -f get_agents
 timeout --signal=SIGKILL 20m bash -c "wait_for_cmd_amount 1 30 get_agents" || \
     (echo "Timed-out waiting for agents to be ready" && exit 124)
-agent_name=$(oc --kubeconfig $SPOKE_KUBECONFIG get -n ${SPOKE_NAMESPACE} agent -ojson | jq -r '.items[] | .metadata.name')
-oc --kubeconfig $SPOKE_KUBECONFIG -n $SPOKE_NAMESPACE patch agent $agent_name -p '{"spec":{"approved":true}}' --type merge
 
 
 echo "Waiting until cluster is installed"

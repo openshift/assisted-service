@@ -19,6 +19,7 @@
     - baremetalhosts: "{{ lookup('file', lookup('env', 'EXTRA_BAREMETALHOSTS_FILE')) | from_json }}"
     - iso_download_url: "{{ lookup('env', 'ISO_DOWNLOAD_URL') }}"
     - spoke_namespace: "{{ lookup('env', 'SPOKE_NAMESPACE') }}"
+    - infraenv_name: "{{ lookup('env', 'ASSISTED_INFRAENV_NAME') }}"
 
   tasks:
   - name: create directory for generated resources
