@@ -500,11 +500,10 @@ func (b *bareMetalInventory) RegisterClusterInternal(
 		var multiarchAllowed bool
 		multiarchAllowed, err = b.authzHandler.HasOrgBasedCapability(ctx, ocm.MultiarchCapabilityName)
 		if err != nil {
-			err = common.NewApiError(http.StatusInternalServerError, fmt.Errorf("error getting user %s capability, error: %w", ocm.MultiarchCapabilityName, err))
-			return nil, err
+			log.WithError(err).Errorf("error getting user %s capability", ocm.MultiarchCapabilityName)
 		}
-		if !multiarchAllowed {
-			err = common.NewApiError(http.StatusBadRequest, errors.Errorf("%s", "multiarch clusters are not available"))
+		if err != nil || !multiarchAllowed {
+			err = common.NewApiError(http.StatusBadRequest, errors.New("multiarch clusters are not available"))
 			return nil, err
 		}
 	}

@@ -117,11 +117,13 @@ func (h *handler) V2ListSupportedOpenshiftVersions(ctx context.Context, params o
 		//              expose them in OCP pre-4.13 without making them generally available.
 		if len(supportedArchs) > 1 {
 			if !checkedForMultiarchAuthorization {
-				checkedForMultiarchAuthorization = true
 				var err error
 				hasMultiarchAuthorization, err = h.authzHandler.HasOrgBasedCapability(ctx, ocm.MultiarchCapabilityName)
-				if err != nil {
-					return common.GenerateErrorResponder(err)
+				if err == nil {
+					checkedForMultiarchAuthorization = true
+				} else {
+					h.log.WithError(err).Errorf("failed to get %s capability", ocm.MultiarchCapabilityName)
+					continue
 				}
 			}
 			if !hasMultiarchAuthorization {

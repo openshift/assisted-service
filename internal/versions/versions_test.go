@@ -1255,6 +1255,17 @@ var _ = Describe("Test list versions with capability restrictions", func() {
 			val, _ := reply.(*operations.V2ListSupportedOpenshiftVersionsOK)
 			Expect(hasMultiarch(val.Payload)).To(BeFalse())
 		})
+		It("does not return multiarch when capability query fails", func() {
+			cfg.EnableOrgBasedFeatureGates = true
+			h.authzHandler = auth.NewAuthzHandler(cfg, mockOcmClient, common.GetTestLog().WithField("pkg", "auth"), db)
+
+			mockOcmAuthz.EXPECT().CapabilityReview(context.Background(), userName1, ocm.MultiarchCapabilityName, ocm.OrganizationCapabilityType).Return(false, errors.New("failed to query capability")).Times(1)
+			reply := h.V2ListSupportedOpenshiftVersions(authCtx, operations.V2ListSupportedOpenshiftVersionsParams{})
+			Expect(reply).Should(BeAssignableToTypeOf(operations.NewV2ListSupportedOpenshiftVersionsOK()))
+
+			val, _ := reply.(*operations.V2ListSupportedOpenshiftVersionsOK)
+			Expect(hasMultiarch(val.Payload)).To(BeFalse())
+		})
 		It("returns multiarch with org-based features disabled", func() {
 			cfg.EnableOrgBasedFeatureGates = false
 			h.authzHandler = auth.NewAuthzHandler(cfg, mockOcmClient, common.GetTestLog().WithField("pkg", "auth"), db)
