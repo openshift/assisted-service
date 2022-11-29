@@ -5,8 +5,11 @@ import (
 
 	"github.com/go-openapi/swag"
 	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/internal/featuresupport"
 	"github.com/openshift/assisted-service/internal/installcfg"
+	"github.com/openshift/assisted-service/internal/network"
 	"github.com/openshift/assisted-service/internal/provider"
+	"github.com/openshift/assisted-service/models"
 )
 
 func setPlatformValues(platform *installcfg.VsphereInstallConfigPlatform) {
@@ -24,16 +27,21 @@ func (p vsphereProvider) AddPlatformToInstallConfig(cfg *installcfg.InstallerCon
 	vsPlatform := &installcfg.VsphereInstallConfigPlatform{}
 
 	if !swag.BoolValue(cluster.UserManagedNetworking) {
-		if len(cluster.APIVip) == 0 {
+		if len(cluster.APIVips) == 0 {
 			return errors.New("invalid cluster parameters, APIVip must be provided")
 		}
 
-		if len(cluster.IngressVip) == 0 {
+		if len(cluster.IngressVips) == 0 {
 			return errors.New("invalid cluster parameters, IngressVip must be provided")
 		}
 
-		vsPlatform.DeprecatedAPIVIP = cluster.APIVip
-		vsPlatform.DeprecatedIngressVIP = cluster.IngressVip
+		if featuresupport.IsFeatureSupported(cluster.OpenshiftVersion, models.FeatureSupportLevelFeaturesItems0FeatureIDDUALSTACKVIPS) {
+			vsPlatform.APIVIPs = network.GetApiVips(cluster)
+			vsPlatform.IngressVIPs = network.GetIngressVips(cluster)
+		} else {
+			vsPlatform.DeprecatedAPIVIP = network.GetApiVipById(cluster, 0)
+			vsPlatform.DeprecatedIngressVIP = network.GetIngressVipById(cluster, 0)
+		}
 	} else {
 		cfg.Networking.MachineNetwork = provider.GetMachineNetworkForUserManagedNetworking(p.Log, cluster)
 		if cluster.NetworkType != nil {
