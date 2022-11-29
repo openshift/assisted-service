@@ -5,13 +5,16 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"net"
 	"net/http"
 	"net/url"
 	"regexp"
 	"strings"
 
 	"github.com/containers/image/v5/docker/reference"
+	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
+	"github.com/hashicorp/go-multierror"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/network"
 	"github.com/openshift/assisted-service/models"
@@ -312,73 +315,349 @@ func ValidateVipDHCPAllocationWithIPv6(vipDhcpAllocation bool, machineNetworkCID
 	return nil
 }
 
-func ValidateIPAddresses(ipV6Supported bool, obj interface{}) error {
-	var allAddresses []*string
-	var apiVip string
-	var ingressVip string
-	var machineNetworks []*models.MachineNetwork
-	userManagedNetworking := false
-	vipDhcpAllocation := false
+func handleApiVipBackwardsCompatibility(clusterId strfmt.UUID, apiVip string, apiVips []*models.APIVip) ([]*models.APIVip, error) {
+	// APIVip provided, but APIVips were not.
+	if apiVip != "" && len(apiVips) == 0 {
+		return []*models.APIVip{{IP: models.IP(apiVip), ClusterID: clusterId}}, nil
+	}
+	// Both APIVip and APIVips were provided.
+	if apiVip != "" && len(apiVips) > 0 && apiVip != string(apiVips[0].IP) {
+		return nil, errors.New("apiVIP must be the same as the first element of apiVIPs")
+	}
+	// APIVips were provided, but APIVip was not.
+	if apiVip == "" && apiVips != nil && len(apiVips) > 0 {
+		return nil, errors.New("request must include apiVIP alongside apiVIPs")
+	}
+	return apiVips, nil
+}
+
+func handleIngressVipUpdateBackwardsCompatibility(cluster *common.Cluster, params *models.V2ClusterUpdateParams) error {
+	if cluster.IngressVip != "" {
+		// IngressVip was cleared and IngressVips were not provided, clear both fields.
+		if swag.StringValue(params.IngressVip) == "" && len(params.IngressVips) == 0 {
+			params.IngressVip = nil
+			params.IngressVips = nil
+		}
+		// IngressVip was changed (but not cleared), IngressVips will be forcefully set to the value of IngressVips as a one-element list.
+		if params.IngressVip != nil && swag.StringValue(params.IngressVip) != "" && swag.StringValue(params.IngressVip) != cluster.IngressVip {
+			if err := validateIngressVipAddressesInput(params.IngressVips); err != nil {
+				return err
+			}
+			params.IngressVips = []*models.IngressVip{{IP: models.IP(swag.StringValue(params.IngressVip)), ClusterID: *cluster.ID}}
+		}
+	}
+	return nil
+}
+
+func handleApiVipUpdateBackwardsCompatibility(cluster *common.Cluster, params *models.V2ClusterUpdateParams) error {
+	if cluster.APIVip != "" {
+		// APIVip was cleared and APIVips were not provided, clear both fields.
+		if swag.StringValue(params.APIVip) == "" && len(params.APIVips) == 0 {
+			params.APIVip = nil
+			params.APIVips = nil
+		}
+		// APIVip was changed (but not cleared), APIVips will be forcefully set to the value of APIVip as a one-element list.
+		if params.APIVip != nil && swag.StringValue(params.APIVip) != "" && swag.StringValue(params.APIVip) != cluster.APIVip {
+			if err := validateApiVipAddressesInput(params.APIVips); err != nil {
+				return err
+			}
+			params.APIVips = []*models.APIVip{{IP: models.IP(swag.StringValue(params.APIVip)), ClusterID: *cluster.ID}}
+		}
+	}
+	return nil
+}
+
+func handleIngressVipBackwardsCompatibility(clusterId strfmt.UUID, ingressVip string, ingressVips []*models.IngressVip) ([]*models.IngressVip, error) {
+	// IngressVip provided, but IngressVips were not.
+	if ingressVip != "" && len(ingressVips) == 0 {
+		return []*models.IngressVip{{IP: models.IP(ingressVip), ClusterID: clusterId}}, nil
+	}
+	// Both IngressVip and IngressVips were provided.
+	if ingressVip != "" && len(ingressVips) > 0 && ingressVip != string(ingressVips[0].IP) {
+		return nil, errors.New("ingressVIP must be the same as the first element of ingressVIPs")
+	}
+	// IngressVips were provided, but IngressVip was not.
+	if ingressVip == "" && ingressVips != nil && len(ingressVips) > 0 {
+		return nil, errors.New("request must include ingressVIP alongside ingressVIPs")
+	}
+	return ingressVips, nil
+}
+
+func ValidateClusterCreateIPAddresses(ipV6Supported bool, clusterId strfmt.UUID, params *models.ClusterCreateParams) error {
+	var err error
 	targetConfiguration := common.Cluster{}
 
-	switch c := obj.(type) {
-	case *models.ClusterCreateParams:
-		apiVip = c.APIVip
-		ingressVip = c.IngressVip
-		machineNetworks = c.MachineNetworks
-		if c.UserManagedNetworking != nil {
-			userManagedNetworking = *c.UserManagedNetworking
-		}
-		if c.VipDhcpAllocation != nil {
-			vipDhcpAllocation = *c.VipDhcpAllocation
-		}
-		targetConfiguration.ClusterNetworks = c.ClusterNetworks
-		targetConfiguration.ServiceNetworks = c.ServiceNetworks
-		targetConfiguration.MachineNetworks = c.MachineNetworks
-	case *models.V2ClusterUpdateParams:
-		if c.APIVip != nil {
-			apiVip = *c.APIVip
-		}
-		if c.IngressVip != nil {
-			ingressVip = *c.IngressVip
-		}
-		machineNetworks = c.MachineNetworks
-		if c.UserManagedNetworking != nil {
-			userManagedNetworking = *c.UserManagedNetworking
-		}
-		if c.VipDhcpAllocation != nil {
-			vipDhcpAllocation = *c.VipDhcpAllocation
-		}
-		targetConfiguration.ClusterNetworks = c.ClusterNetworks
-		targetConfiguration.ServiceNetworks = c.ServiceNetworks
-		targetConfiguration.MachineNetworks = c.MachineNetworks
+	// Backwards compatibility: An old client is used and it can't send fields it doesn't know about.
+	params.APIVips, err = handleApiVipBackwardsCompatibility(clusterId, params.APIVip, params.APIVips)
+	if err != nil {
+		return common.NewApiError(http.StatusBadRequest, err)
 	}
 
-	allAddresses = append(allAddresses, swag.String(ingressVip), swag.String(apiVip))
-	allAddresses = append(allAddresses, common.GetNetworksCidrs(obj)...)
+	params.IngressVips, err = handleIngressVipBackwardsCompatibility(clusterId, params.IngressVip, params.IngressVips)
+	if err != nil {
+		return common.NewApiError(http.StatusBadRequest, err)
+	}
 
-	err := ValidateIPAddressFamily(ipV6Supported, allAddresses...)
+	targetConfiguration.UserManagedNetworking = swag.Bool(false)
+	if params.UserManagedNetworking != nil {
+		targetConfiguration.UserManagedNetworking = params.UserManagedNetworking
+	}
+	targetConfiguration.VipDhcpAllocation = swag.Bool(false)
+	if params.VipDhcpAllocation != nil {
+		targetConfiguration.VipDhcpAllocation = params.VipDhcpAllocation
+	}
+	targetConfiguration.ID = &clusterId
+	targetConfiguration.APIVip = params.APIVip
+	targetConfiguration.IngressVip = params.IngressVip
+	targetConfiguration.APIVips = params.APIVips
+	targetConfiguration.IngressVips = params.IngressVips
+	targetConfiguration.UserManagedNetworking = params.UserManagedNetworking
+	targetConfiguration.VipDhcpAllocation = params.VipDhcpAllocation
+	targetConfiguration.ClusterNetworks = params.ClusterNetworks
+	targetConfiguration.ServiceNetworks = params.ServiceNetworks
+	targetConfiguration.MachineNetworks = params.MachineNetworks
+
+	return validateVIPAddresses(ipV6Supported, targetConfiguration)
+}
+
+func ValidateClusterUpdateVIPAddresses(ipV6Supported bool, cluster *common.Cluster, params *models.V2ClusterUpdateParams) error {
+	var err error
+	targetConfiguration := common.Cluster{}
+
+	// Backwards compatibility: An old client is used and it can't send fields it doesn't know about.
+	params.APIVips, err = handleApiVipBackwardsCompatibility(*cluster.ID, swag.StringValue(params.APIVip), params.APIVips)
+	if err != nil {
+		return common.NewApiError(http.StatusBadRequest, err)
+	}
+	params.IngressVips, err = handleIngressVipBackwardsCompatibility(*cluster.ID, swag.StringValue(params.IngressVip), params.IngressVips)
+	if err != nil {
+		return common.NewApiError(http.StatusBadRequest, err)
+	}
+
+	// Update-flow backwards compatibility: An old client is used and it can't send fields it doesn't know about.
+	if err1 := handleApiVipUpdateBackwardsCompatibility(cluster, params); err1 != nil {
+		err = multierror.Append(err, err1)
+	}
+	if err2 := handleIngressVipUpdateBackwardsCompatibility(cluster, params); err2 != nil {
+		err = multierror.Append(err, err2)
+	}
+	if err != nil && !strings.Contains(err.Error(), "0 errors occurred") {
+		return common.NewApiError(http.StatusBadRequest, err)
+	}
+
+	targetConfiguration.UserManagedNetworking = swag.Bool(false)
+	if params.UserManagedNetworking != nil {
+		targetConfiguration.UserManagedNetworking = params.UserManagedNetworking
+	}
+	targetConfiguration.VipDhcpAllocation = swag.Bool(false)
+	if params.VipDhcpAllocation != nil {
+		targetConfiguration.VipDhcpAllocation = params.VipDhcpAllocation
+	}
+
+	targetConfiguration.ID = cluster.ID
+	if params.APIVip != nil {
+		targetConfiguration.APIVip = *params.APIVip
+	}
+
+	if params.IngressVip != nil {
+		targetConfiguration.IngressVip = *params.IngressVip
+	}
+
+	targetConfiguration.APIVips = params.APIVips
+	targetConfiguration.IngressVips = params.IngressVips
+	targetConfiguration.UserManagedNetworking = params.UserManagedNetworking
+	targetConfiguration.VipDhcpAllocation = params.VipDhcpAllocation
+	targetConfiguration.ClusterNetworks = params.ClusterNetworks
+	targetConfiguration.ServiceNetworks = params.ServiceNetworks
+	targetConfiguration.MachineNetworks = params.MachineNetworks
+
+	return validateVIPAddresses(ipV6Supported, targetConfiguration)
+}
+
+func VerifyParsableVIPs(apiVips []*models.APIVip, ingressVips []*models.IngressVip) error {
+	var multiErr error
+
+	for i := range apiVips {
+		if string(apiVips[i].IP) != "" && net.ParseIP(string(apiVips[i].IP)) == nil {
+			multiErr = multierror.Append(multiErr, errors.Errorf("Could not parse VIP ip %s", string(apiVips[i].IP)))
+		}
+	}
+	for i := range ingressVips {
+		if string(ingressVips[i].IP) != "" && net.ParseIP(string(ingressVips[i].IP)) == nil {
+			multiErr = multierror.Append(multiErr, errors.Errorf("Could not parse VIP ip %s", string(ingressVips[i].IP)))
+		}
+	}
+	if multiErr != nil && !strings.Contains(multiErr.Error(), "0 errors occurred") {
+		return multiErr
+	}
+
+	return nil
+}
+
+func validateApiVipAddressesInput(apiVips []*models.APIVip) error {
+	if len(apiVips) > 2 {
+		return errors.Errorf("apiVIPs supports 2 vips. got: %d", len(apiVips))
+	}
+
+	if err := VerifyParsableVIPs(apiVips, nil); err != nil {
+		return err
+	}
+	return nil
+}
+
+func validateIngressVipAddressesInput(ingressVips []*models.IngressVip) error {
+	if len(ingressVips) > 2 {
+		return errors.Errorf("ingressVips supports 2 vips. got: %d", len(ingressVips))
+	}
+
+	if err := VerifyParsableVIPs(nil, ingressVips); err != nil {
+		return err
+	}
+	return nil
+}
+
+func validateIPAddressesInput(apiVips []*models.APIVip, ingressVips []*models.IngressVip) error {
+	var err error
+	var multiErr error
+
+	if err = validateApiVipAddressesInput(apiVips); err != nil {
+		multiErr = multierror.Append(multiErr, err)
+	}
+	if err = validateIngressVipAddressesInput(ingressVips); err != nil {
+		multiErr = multierror.Append(multiErr, err)
+	}
+	if len(apiVips) != len(ingressVips) {
+		err = errors.Errorf("configuration must include the same number of apiVIPs (got %d) and ingressVIPs (got %d)",
+			len(apiVips), len(ingressVips))
+		multiErr = multierror.Append(multiErr, err)
+
+	}
+	if multiErr != nil && !strings.Contains(multiErr.Error(), "0 errors occurred") {
+		return multiErr
+	}
+	return nil
+}
+
+func validateNetworksIPAddressFamily(ipV6Supported bool, targetConfiguration common.Cluster) error {
+	var (
+		networks []*string
+		err      error
+		multiErr error
+	)
+
+	machineNetworks := network.DerefMachineNetworks(funk.Get(targetConfiguration, "MachineNetworks"))
+	serviceNetworks := network.DerefServiceNetworks(funk.Get(targetConfiguration, "ServiceNetworks"))
+	clusterNetworks := network.DerefClusterNetworks(funk.Get(targetConfiguration, "ClusterNetworks"))
+
+	for i := range machineNetworks {
+		networks = append(networks, swag.String(string(machineNetworks[i].Cidr)))
+	}
+	if err = ValidateIPAddressFamily(ipV6Supported, networks...); err != nil {
+		multiErr = multierror.Append(multiErr, err)
+	}
+	for i := range serviceNetworks {
+		networks = append(networks, swag.String(string(serviceNetworks[i].Cidr)))
+	}
+	if err = ValidateIPAddressFamily(ipV6Supported, networks...); err != nil {
+		multiErr = multierror.Append(multiErr, err)
+	}
+	for i := range clusterNetworks {
+		networks = append(networks, swag.String(string(clusterNetworks[i].Cidr)))
+	}
+	if err = ValidateIPAddressFamily(ipV6Supported, networks...); err != nil {
+		multiErr = multierror.Append(multiErr, err)
+	}
+
+	if multiErr != nil && !strings.Contains(multiErr.Error(), "0 errors occurred") {
+		return multiErr
+	}
+	return nil
+}
+
+func validateVIPAddressFamily(ipV6Supported bool, targetConfiguration common.Cluster) ([]*string, error) {
+	var allAddresses []*string
+	var err error
+
+	if len(targetConfiguration.APIVips) == 1 {
+		if network.IsIPv6Addr(network.GetApiVipById(&targetConfiguration, 0)) && !ipV6Supported {
+			err = errors.New("IPv6 is not supported in this setup")
+			return nil, err
+		}
+		allAddresses = append(allAddresses, swag.String(network.GetApiVipById(&targetConfiguration, 0)))
+	} else if len(targetConfiguration.APIVips) == 2 {
+		if !network.IsIPv4Addr(network.GetApiVipById(&targetConfiguration, 0)) {
+			err = errors.Errorf("the first element of apiVIPs must be an IPv4 address. got: %s", network.GetApiVipById(&targetConfiguration, 0))
+			return nil, err
+		}
+		allAddresses = append(allAddresses, swag.String(network.GetApiVipById(&targetConfiguration, 0)))
+
+		if !network.IsIPv6Addr(network.GetApiVipById(&targetConfiguration, 1)) {
+			err = errors.Errorf("the second element of apiVIPs must be an IPv6 address. got: %s", network.GetApiVipById(&targetConfiguration, 1))
+			return nil, err
+		}
+		allAddresses = append(allAddresses, swag.String(network.GetApiVipById(&targetConfiguration, 1)))
+	}
+
+	if len(targetConfiguration.IngressVips) == 1 {
+		if network.IsIPv6Addr(network.GetIngressVipById(&targetConfiguration, 0)) && !ipV6Supported {
+			err = errors.New("IPv6 is not supported in this setup")
+			return nil, err
+		}
+		allAddresses = append(allAddresses, swag.String(network.GetIngressVipById(&targetConfiguration, 0)))
+	} else if len(targetConfiguration.IngressVips) == 2 {
+		if !network.IsIPv4Addr(network.GetIngressVipById(&targetConfiguration, 0)) {
+			err = errors.Errorf("the first element of ingressVips must be an IPv4 address. got: %s", network.GetIngressVipById(&targetConfiguration, 0))
+			return nil, err
+		}
+		allAddresses = append(allAddresses, swag.String(network.GetIngressVipById(&targetConfiguration, 0)))
+
+		if !network.IsIPv6Addr(network.GetIngressVipById(&targetConfiguration, 1)) {
+			err = errors.Errorf("the second element of ingressVips must be an IPv6 address. got: %s", network.GetIngressVipById(&targetConfiguration, 1))
+			return nil, err
+		}
+		allAddresses = append(allAddresses, swag.String(network.GetIngressVipById(&targetConfiguration, 1)))
+	}
+	return allAddresses, nil
+}
+
+func validateVIPAddresses(ipV6Supported bool, targetConfiguration common.Cluster) error {
+	var allAddresses []*string
+	var multiErr error
+	var err error
+
+	// Basic input validations
+	if err = validateIPAddressesInput(targetConfiguration.APIVips, targetConfiguration.IngressVips); err != nil {
+		return common.NewApiError(http.StatusBadRequest, err)
+	}
+
+	// In-depth input validations
+	if err = network.ValidateNoVIPAddressesDuplicates(targetConfiguration.APIVips, targetConfiguration.IngressVips); err != nil {
+		return common.NewApiError(http.StatusBadRequest, err)
+	}
+
+	if err = validateNetworksIPAddressFamily(ipV6Supported, targetConfiguration); err != nil {
+		return common.NewApiError(http.StatusBadRequest, err)
+	}
+
+	if allAddresses, err = validateVIPAddressFamily(ipV6Supported, targetConfiguration); err != nil {
+		return common.NewApiError(http.StatusBadRequest, err)
+	}
+
+	allAddresses = append(allAddresses, common.GetNetworksCidrs(targetConfiguration)...)
+	err = ValidateIPAddressFamily(ipV6Supported, allAddresses...)
 	if err != nil {
 		return err
 	}
-	err = ValidateDualStackNetworks(obj, false)
+	err = ValidateDualStackNetworks(targetConfiguration, false)
 	if err != nil {
 		return err
 	}
 
 	// When running with User Managed Networking we do not allow setting any advanced network
 	// parameters via the Cluster configuration
-	if userManagedNetworking {
-		if vipDhcpAllocation {
-			err = errors.Errorf("VIP DHCP Allocation cannot be enabled with User Managed Networking")
-			return common.NewApiError(http.StatusBadRequest, err)
-		}
-		if ingressVip != "" {
-			err = errors.Errorf("Ingress VIP cannot be set with User Managed Networking")
-			return common.NewApiError(http.StatusBadRequest, err)
-		}
-		if apiVip != "" {
-			err = errors.Errorf("API VIP cannot be set with User Managed Networking")
+	if swag.BoolValue(targetConfiguration.UserManagedNetworking) {
+		if err = ValidateVIPsWereNotSetUserManagedNetworking(targetConfiguration.APIVip, targetConfiguration.IngressVip,
+			targetConfiguration.APIVips, targetConfiguration.IngressVips, swag.BoolValue(targetConfiguration.VipDhcpAllocation)); err != nil {
 			return common.NewApiError(http.StatusBadRequest, err)
 		}
 	}
@@ -387,28 +666,72 @@ func ValidateIPAddresses(ipV6Supported bool, obj interface{}) error {
 
 	// In any case, if VIPs are provided, they must pass the validation for being part of the
 	// primary Machine Network and for non-overlapping addresses
-	if vipDhcpAllocation {
-		if apiVip != "" {
-			err = errors.Errorf("Setting API VIP is forbidden when cluster is in vip-dhcp-allocation mode")
-			return common.NewApiError(http.StatusBadRequest, err)
-		}
-		if ingressVip != "" {
-			err = errors.Errorf("Setting Ingress VIP is forbidden when cluster is in vip-dhcp-allocation mode")
+	if swag.BoolValue(targetConfiguration.VipDhcpAllocation) {
+		if err = ValidateVIPsWereNotSetDhcpMode(targetConfiguration.APIVip, targetConfiguration.IngressVip,
+			targetConfiguration.APIVips, targetConfiguration.IngressVips); err != nil {
 			return common.NewApiError(http.StatusBadRequest, err)
 		}
 	} else {
-		if len(machineNetworks) > 0 {
-			err = network.VerifyVips(nil, string(machineNetworks[0].Cidr), apiVip, ingressVip, false, nil)
+		if len(targetConfiguration.MachineNetworks) > 0 {
+			for i := range targetConfiguration.APIVips { // len of APIVips and IngressVips should be the same. asserted above.
+				err = network.VerifyVips(nil, string(targetConfiguration.MachineNetworks[i].Cidr),
+					string(targetConfiguration.APIVips[i].IP), string(targetConfiguration.IngressVips[i].IP), false, nil)
+				if err != nil {
+					multiErr = multierror.Append(multiErr, err)
+				}
+			}
+			if multiErr != nil && !strings.Contains(multiErr.Error(), "0 errors occurred") {
+				return multiErr
+			}
 		} else if reqDualStack {
-			err = errors.Errorf("Dual-stack cluster cannot be created with empty Machine Networks")
-		} else {
-			err = network.VerifyDifferentVipAddresses(apiVip, ingressVip)
-		}
-		if err != nil {
-			return err
+			return errors.New("Dual-stack cluster cannot be created with empty Machine Networks")
 		}
 	}
 
+	return nil
+}
+
+func ValidateVIPsWereNotSetUserManagedNetworking(apiVip string, ingressVip string, apiVips []*models.APIVip, ingressVips []*models.IngressVip, vipDhcpAllocation bool) error {
+	if vipDhcpAllocation {
+		err := errors.Errorf("VIP DHCP Allocation cannot be enabled with User Managed Networking")
+		return err
+	}
+	if apiVip != "" {
+		err := errors.New("API VIP cannot be set with User Managed Networking")
+		return err
+	}
+	if apiVips != nil {
+		err := errors.New("API VIPs cannot be set with User Managed Networking")
+		return err
+	}
+	if ingressVip != "" {
+		err := errors.New("Ingress VIP cannot be set with User Managed Networking")
+		return err
+	}
+	if ingressVips != nil {
+		err := errors.New("Ingress VIPs cannot be set with User Managed Networking")
+		return err
+	}
+	return nil
+}
+
+func ValidateVIPsWereNotSetDhcpMode(apiVip string, ingressVip string, apiVips []*models.APIVip, ingressVips []*models.IngressVip) error {
+	if apiVip != "" {
+		err := errors.New("Setting API VIP is forbidden when cluster is in vip-dhcp-allocation mode")
+		return err
+	}
+	if apiVips != nil {
+		err := errors.New("Setting API VIPs is forbidden when cluster is in vip-dhcp-allocation mode")
+		return err
+	}
+	if ingressVip != "" {
+		err := errors.New("Setting Ingress VIP is forbidden when cluster is in vip-dhcp-allocation mode")
+		return err
+	}
+	if ingressVips != nil {
+		err := errors.New("Setting Ingress VIPs is forbidden when cluster is in vip-dhcp-allocation mode")
+		return err
+	}
 	return nil
 }
 

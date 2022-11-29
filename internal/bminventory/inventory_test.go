@@ -50,6 +50,7 @@ import (
 	installcfg "github.com/openshift/assisted-service/internal/installcfg"
 	installcfg_builder "github.com/openshift/assisted-service/internal/installcfg/builder"
 	"github.com/openshift/assisted-service/internal/metrics"
+	"github.com/openshift/assisted-service/internal/network"
 	"github.com/openshift/assisted-service/internal/operators"
 	"github.com/openshift/assisted-service/internal/provider/registry"
 	"github.com/openshift/assisted-service/internal/provider/vsphere"
@@ -123,6 +124,7 @@ var (
 	imageServicePath    = "/api/image-services"
 	imageServiceHost    = "image-service.example.com:8080"
 	imageServiceBaseURL = fmt.Sprintf("https://%s%s", imageServiceHost, imageServicePath)
+	fakePullSecret      = `{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"` // #nosec
 )
 
 func toMac(macStr string) *strfmt.MAC {
@@ -218,7 +220,7 @@ func getDefaultClusterCreateParams() *models.ClusterCreateParams {
 	return &models.ClusterCreateParams{
 		Name:             swag.String("some-cluster-name"),
 		OpenshiftVersion: swag.String(common.TestDefaultConfig.OpenShiftVersion),
-		PullSecret:       swag.String("{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"),
+		PullSecret:       swag.String(fakePullSecret),
 		Platform: &models.Platform{
 			Type: common.PlatformTypePtr(models.PlatformTypeBaremetal),
 		},
@@ -1078,7 +1080,7 @@ var _ = Describe("v2PostStepReply", func() {
 				ID:               clusterId,
 				PullSecretSet:    true,
 				OpenshiftVersion: common.TestDefaultConfig.OpenShiftVersion,
-			}, PullSecret: "{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"}
+			}, PullSecret: fakePullSecret}
 
 			Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
 			Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
@@ -1834,10 +1836,12 @@ var _ = Describe("cluster", func() {
 			mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(errors.Errorf("wrong state")).Times(1)
 
 			apiVip := "8.8.8.8"
+			ingressVip := "1.1.1.1"
 			reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 				ClusterID: clusterID,
 				ClusterUpdateParams: &models.V2ClusterUpdateParams{
-					APIVip: &apiVip,
+					APIVip:     swag.String(apiVip),
+					IngressVip: swag.String(ingressVip),
 				},
 			})
 			Expect(reply).To(BeAssignableToTypeOf(common.NewApiError(http.StatusConflict, errors.Errorf("error"))))
@@ -1959,10 +1963,463 @@ var _ = Describe("cluster", func() {
 					}, nil).Times(1)
 			}
 
-			Context("V2 V2RegisterCluster", func() {
+			Context("V2RegisterCluster", func() {
 				BeforeEach(func() {
 					bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog().WithField("pkg", "cluster-monitor"),
 						db, mockEvents, nil, nil, nil, nil, nil, nil, nil, nil, nil)
+				})
+				Context("RegisterCluster - Multiple-VIPs Support", func() {
+
+					Context("API and Ingress VIPs Backwards Compatibility", func() {
+
+						It("API VIP and Ingress VIP populated in APIVips and IngressVips", func() {
+							mockClusterRegisterSuccess(true)
+
+							apiVip := "8.8.8.8"
+							ingressVip := "8.8.8.9"
+							reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
+								NewClusterParams: &models.ClusterCreateParams{
+									Name:             swag.String("some-cluster-name"),
+									OpenshiftVersion: swag.String(common.TestDefaultConfig.OpenShiftVersion),
+									PullSecret:       swag.String(fakePullSecret),
+									APIVip:           apiVip,
+									IngressVip:       ingressVip,
+								},
+							})
+							Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2RegisterClusterCreated()))
+							cluster := &common.Cluster{Cluster: *reply.(*installer.V2RegisterClusterCreated).Payload}
+							Expect(cluster.APIVip).To(Equal(apiVip))
+							Expect(network.GetApiVipById(cluster, 0)).To(Equal(apiVip))
+							Expect(cluster.IngressVip).To(Equal(ingressVip))
+							Expect(network.GetIngressVipById(cluster, 0)).To(Equal(ingressVip))
+						})
+
+						It("API VIP match APIVips first element", func() {
+							mockClusterRegisterSuccess(true)
+
+							apiVip := "8.8.8.8"
+							apiVips := []*models.APIVip{{IP: models.IP(apiVip)}}
+							ingressVip := "8.8.8.9"
+							reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
+								NewClusterParams: &models.ClusterCreateParams{
+									Name:             swag.String("some-cluster-name"),
+									OpenshiftVersion: swag.String(common.TestDefaultConfig.OpenShiftVersion),
+									PullSecret:       swag.String(fakePullSecret),
+									APIVip:           apiVip,
+									APIVips:          apiVips,
+									IngressVip:       ingressVip,
+								},
+							})
+							Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2RegisterClusterCreated()))
+							cluster := &common.Cluster{Cluster: *reply.(*installer.V2RegisterClusterCreated).Payload}
+							Expect(cluster.APIVip).To(Equal(apiVip))
+							Expect(cluster.APIVips).To(Equal(apiVips))
+							Expect(cluster.IngressVip).To(Equal(ingressVip))
+							Expect(network.GetIngressVipById(cluster, 0)).To(Equal(ingressVip))
+						})
+
+						It("Ingress VIP match IngressVips first element", func() {
+							mockClusterRegisterSuccess(true)
+
+							apiVip := "8.8.8.8"
+							ingressVip := "8.8.8.9"
+							ingressVips := []*models.IngressVip{{IP: models.IP(ingressVip)}}
+
+							reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
+								NewClusterParams: &models.ClusterCreateParams{
+									Name:             swag.String("some-cluster-name"),
+									OpenshiftVersion: swag.String(common.TestDefaultConfig.OpenShiftVersion),
+									PullSecret:       swag.String(fakePullSecret),
+									APIVip:           apiVip,
+									IngressVip:       ingressVip,
+									IngressVips:      ingressVips,
+								},
+							})
+							Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2RegisterClusterCreated()))
+							cluster := reply.(*installer.V2RegisterClusterCreated).Payload
+							Expect(cluster.APIVip).To(Equal(apiVip))
+							Expect(cluster.IngressVip).To(Equal(ingressVip))
+							Expect(cluster.IngressVips).To(Equal(ingressVips))
+						})
+
+						It("API VIP not matching APIVips first element", func() {
+							apiVip := "8.8.8.8"
+							apiVips := []*models.APIVip{{IP: models.IP("8.8.8.7")}}
+							ingressVip := "8.8.8.9"
+							err := "apiVIP must be the same as the first element of apiVIPs"
+
+							mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
+								eventstest.WithNameMatcher(eventgen.ClusterRegistrationFailedEventName),
+								eventstest.WithMessageContainsMatcher(err),
+								eventstest.WithSeverityMatcher(models.EventSeverityError))).Times(1)
+
+							reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
+								NewClusterParams: &models.ClusterCreateParams{
+									Name:             swag.String("some-cluster-name"),
+									OpenshiftVersion: swag.String(common.TestDefaultConfig.OpenShiftVersion),
+									PullSecret:       swag.String(fakePullSecret),
+									APIVip:           apiVip,
+									APIVips:          apiVips,
+									IngressVip:       ingressVip,
+								},
+							})
+							verifyApiErrorString(reply, http.StatusBadRequest, err)
+						})
+
+						It("Ingress VIP not matching IngressVips first element", func() {
+							apiVip := "8.8.8.8"
+							ingressVip := "8.8.8.9"
+							ingressVips := []*models.IngressVip{{IP: models.IP("8.8.8.7")}}
+							err := "ingressVIP must be the same as the first element of ingressVIPs"
+
+							mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
+								eventstest.WithNameMatcher(eventgen.ClusterRegistrationFailedEventName),
+								eventstest.WithMessageContainsMatcher(err),
+								eventstest.WithSeverityMatcher(models.EventSeverityError))).Times(1)
+
+							reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
+								NewClusterParams: &models.ClusterCreateParams{
+									Name:             swag.String("some-cluster-name"),
+									OpenshiftVersion: swag.String(common.TestDefaultConfig.OpenShiftVersion),
+									PullSecret:       swag.String(fakePullSecret),
+									APIVip:           apiVip,
+									IngressVip:       ingressVip,
+									IngressVips:      ingressVips,
+								},
+							})
+							verifyApiErrorString(reply, http.StatusBadRequest, err)
+						})
+
+						It("Reject APIVips if no APIVip was provided", func() {
+							apiVips := []*models.APIVip{{IP: models.IP("8.8.8.7")}}
+							ingressVip := "8.8.8.9"
+							err := "request must include apiVIP alongside apiVIPs"
+
+							mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
+								eventstest.WithNameMatcher(eventgen.ClusterRegistrationFailedEventName),
+								eventstest.WithMessageContainsMatcher(err),
+								eventstest.WithSeverityMatcher(models.EventSeverityError))).Times(1)
+
+							reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
+								NewClusterParams: &models.ClusterCreateParams{
+									Name:             swag.String("some-cluster-name"),
+									OpenshiftVersion: swag.String(common.TestDefaultConfig.OpenShiftVersion),
+									PullSecret:       swag.String(fakePullSecret),
+									APIVips:          apiVips,
+									IngressVip:       ingressVip,
+								},
+							})
+							verifyApiErrorString(reply, http.StatusBadRequest, err)
+						})
+
+						It("Reject IngressVips if no IngressVip was provided", func() {
+							apiVip := "8.8.8.9"
+							ingressVips := []*models.IngressVip{{IP: models.IP("8.8.8.7")}}
+							err := "request must include ingressVIP alongside ingressVIPs"
+
+							mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
+								eventstest.WithNameMatcher(eventgen.ClusterRegistrationFailedEventName),
+								eventstest.WithMessageContainsMatcher(err),
+								eventstest.WithSeverityMatcher(models.EventSeverityError))).Times(1)
+
+							reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
+								NewClusterParams: &models.ClusterCreateParams{
+									Name:             swag.String("some-cluster-name"),
+									OpenshiftVersion: swag.String(common.TestDefaultConfig.OpenShiftVersion),
+									PullSecret:       swag.String(fakePullSecret),
+									APIVip:           apiVip,
+									IngressVips:      ingressVips,
+								},
+							})
+							verifyApiErrorString(reply, http.StatusBadRequest, err)
+						})
+
+					})
+
+					It("Two APIVips and Two IngressVips - both IPv4 - negative", func() {
+						apiVip := "8.8.8.7"
+						ingressVip := "8.8.8.1"
+						apiVips := []*models.APIVip{{IP: models.IP(apiVip)}, {IP: models.IP("8.8.8.8")}}
+						ingressVips := []*models.IngressVip{{IP: models.IP(ingressVip)}, {IP: models.IP("8.8.8.2")}}
+						err := "the second element of apiVIPs must be an IPv6 address. got: 8.8.8.8"
+
+						mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
+							eventstest.WithNameMatcher(eventgen.ClusterRegistrationFailedEventName),
+							eventstest.WithMessageContainsMatcher(err),
+							eventstest.WithSeverityMatcher(models.EventSeverityError))).Times(1)
+
+						reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
+							NewClusterParams: &models.ClusterCreateParams{
+								Name:             swag.String("some-cluster-name"),
+								OpenshiftVersion: swag.String(common.TestDefaultConfig.OpenShiftVersion),
+								PullSecret:       swag.String(fakePullSecret),
+								APIVip:           apiVip,
+								APIVips:          apiVips,
+								IngressVip:       ingressVip,
+								IngressVips:      ingressVips,
+							},
+						})
+						verifyApiErrorString(reply, http.StatusBadRequest, err)
+					})
+
+					It("Two APIVips and Two IngressVips - IPv4 first and IPv6 second - positive", func() {
+						mockClusterRegisterSuccess(true)
+
+						apiVip := "8.8.8.7"
+						ingressVip := "8.8.8.1"
+						apiVips := []*models.APIVip{{IP: models.IP(apiVip)}, {IP: models.IP("2001:db8::1")}}
+						ingressVips := []*models.IngressVip{{IP: models.IP(ingressVip)}, {IP: models.IP("2001:db8::2")}}
+
+						reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
+							NewClusterParams: &models.ClusterCreateParams{
+								Name:             swag.String("some-cluster-name"),
+								OpenshiftVersion: swag.String(common.TestDefaultConfig.OpenShiftVersion),
+								PullSecret:       swag.String(fakePullSecret),
+								APIVip:           apiVip,
+								APIVips:          apiVips,
+								IngressVip:       ingressVip,
+								IngressVips:      ingressVips,
+							},
+						})
+						Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2RegisterClusterCreated()))
+						cluster := reply.(*installer.V2RegisterClusterCreated).Payload
+						Expect(cluster.APIVip).To(Equal(apiVip))
+						Expect(cluster.APIVips).To(Equal(apiVips))
+						Expect(cluster.IngressVip).To(Equal(ingressVip))
+						Expect(cluster.IngressVips).To(Equal(ingressVips))
+					})
+
+					It("Two APIVips and Two IngressVips - IPv6 first and IPv4 second - negative", func() {
+						apiVip := "2001:db8::1"
+						ingressVip := "2001:db8::2"
+						apiVips := []*models.APIVip{{IP: models.IP(apiVip)}, {IP: models.IP("8.8.8.7")}}
+						ingressVips := []*models.IngressVip{{IP: models.IP(ingressVip)}, {IP: models.IP("8.8.8.1")}}
+						err := "the first element of apiVIPs must be an IPv4 address. got: 2001:db8::1"
+
+						mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
+							eventstest.WithNameMatcher(eventgen.ClusterRegistrationFailedEventName),
+							eventstest.WithMessageContainsMatcher(err),
+							eventstest.WithSeverityMatcher(models.EventSeverityError))).Times(1)
+
+						reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
+							NewClusterParams: &models.ClusterCreateParams{
+								Name:             swag.String("some-cluster-name"),
+								OpenshiftVersion: swag.String(common.TestDefaultConfig.OpenShiftVersion),
+								PullSecret:       swag.String(fakePullSecret),
+								APIVip:           apiVip,
+								APIVips:          apiVips,
+								IngressVip:       ingressVip,
+								IngressVips:      ingressVips,
+							},
+						})
+						verifyApiErrorString(reply, http.StatusBadRequest, err)
+					})
+
+					It("Two APIVips and Two IngressVips - IPv6 - negative", func() {
+						apiVip := "2001:db8::1"
+						ingressVip := "2001:db8::2"
+						apiVips := []*models.APIVip{{IP: models.IP(apiVip)}, {IP: models.IP("2001:db8::3")}}
+						ingressVips := []*models.IngressVip{{IP: models.IP(ingressVip)}, {IP: models.IP("2001:db8::4")}}
+						err := "the first element of apiVIPs must be an IPv4 address. got: 2001:db8::1"
+
+						mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
+							eventstest.WithNameMatcher(eventgen.ClusterRegistrationFailedEventName),
+							eventstest.WithMessageContainsMatcher(err),
+							eventstest.WithSeverityMatcher(models.EventSeverityError))).Times(1)
+
+						reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
+							NewClusterParams: &models.ClusterCreateParams{
+								Name:             swag.String("some-cluster-name"),
+								OpenshiftVersion: swag.String(common.TestDefaultConfig.OpenShiftVersion),
+								PullSecret:       swag.String(fakePullSecret),
+								APIVip:           apiVip,
+								APIVips:          apiVips,
+								IngressVip:       ingressVip,
+								IngressVips:      ingressVips,
+							},
+						})
+						verifyApiErrorString(reply, http.StatusBadRequest, err)
+					})
+
+					It("More than two APIVips and More than two IngressVips -  negative", func() {
+						apiVip := "8.8.8.1"
+						ingressVip := "8.8.8.2"
+						apiVips := []*models.APIVip{{IP: models.IP(apiVip)}, {IP: models.IP("2001:db8::3")}, {IP: models.IP("8.8.8.3")}}
+						ingressVips := []*models.IngressVip{{IP: models.IP(ingressVip)}, {IP: models.IP("2001:db8::4")}, {IP: models.IP("8.8.8.4")}}
+						err := "apiVIPs supports 2 vips. got: 3"
+
+						mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
+							eventstest.WithNameMatcher(eventgen.ClusterRegistrationFailedEventName),
+							eventstest.WithMessageContainsMatcher(err),
+							eventstest.WithSeverityMatcher(models.EventSeverityError))).Times(1)
+
+						reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
+							NewClusterParams: &models.ClusterCreateParams{
+								Name:             swag.String("some-cluster-name"),
+								OpenshiftVersion: swag.String(common.TestDefaultConfig.OpenShiftVersion),
+								PullSecret:       swag.String(fakePullSecret),
+								APIVip:           apiVip,
+								APIVips:          apiVips,
+								IngressVip:       ingressVip,
+								IngressVips:      ingressVips,
+							},
+						})
+						verifyApiErrorString(reply, http.StatusBadRequest, err)
+					})
+
+					It("Non parsable APIVips and non parsable IngressVips - negative", func() {
+						apiVip := "invalid apiVip"
+						ingressVip := "invalid ingressVip"
+						apiVips := []*models.APIVip{{IP: models.IP(apiVip)}, {IP: models.IP("invalid apiVip 2")}}
+						ingressVips := []*models.IngressVip{{IP: models.IP(ingressVip)}, {IP: models.IP("invalid ingressVip 2")}}
+						multiErr := "4 errors occurred:\n\t* Could not parse VIP ip invalid apiVip\n\t* Could not parse VIP ip invalid apiVip 2\n\t* Could not parse VIP ip invalid ingressVip\n\t* Could not parse VIP ip invalid ingressVip 2"
+						mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
+							eventstest.WithNameMatcher(eventgen.ClusterRegistrationFailedEventName),
+							eventstest.WithMessageContainsMatcher(multiErr),
+							eventstest.WithSeverityMatcher(models.EventSeverityError))).Times(1)
+
+						reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
+							NewClusterParams: &models.ClusterCreateParams{
+								Name:             swag.String("some-cluster-name"),
+								OpenshiftVersion: swag.String(common.TestDefaultConfig.OpenShiftVersion),
+								PullSecret:       swag.String(fakePullSecret),
+								APIVip:           apiVip,
+								APIVips:          apiVips,
+								IngressVip:       ingressVip,
+								IngressVips:      ingressVips,
+							},
+						})
+						verifyApiErrorString(reply, http.StatusBadRequest, multiErr)
+					})
+
+					It("Non parsable APIVips and parsable IngressVips - negative", func() {
+						apiVip := "invalid apiVip"
+						ingressVip := "8.8.8.2"
+						apiVips := []*models.APIVip{{IP: models.IP(apiVip)}, {IP: models.IP("2001:db8::3")}}
+						ingressVips := []*models.IngressVip{{IP: models.IP(ingressVip)}, {IP: models.IP("2001:db8::4")}}
+						err := "1 error occurred:\n\t* Could not parse VIP ip invalid apiVip\n"
+						mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
+							eventstest.WithNameMatcher(eventgen.ClusterRegistrationFailedEventName),
+							eventstest.WithMessageContainsMatcher(err),
+							eventstest.WithSeverityMatcher(models.EventSeverityError))).Times(1)
+
+						reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
+							NewClusterParams: &models.ClusterCreateParams{
+								Name:             swag.String("some-cluster-name"),
+								OpenshiftVersion: swag.String(common.TestDefaultConfig.OpenShiftVersion),
+								PullSecret:       swag.String(fakePullSecret),
+								APIVip:           apiVip,
+								APIVips:          apiVips,
+								IngressVip:       ingressVip,
+								IngressVips:      ingressVips,
+							},
+						})
+						verifyApiErrorString(reply, http.StatusBadRequest, err)
+					})
+
+					It("Different number of APIVips and IngressVips - negative", func() {
+						apiVip := "8.8.8.1"
+						ingressVip := "8.8.8.2"
+						apiVips := []*models.APIVip{{IP: models.IP(apiVip)}, {IP: models.IP("2001:db8::3")}}
+						ingressVips := []*models.IngressVip{{IP: models.IP(ingressVip)}}
+						err := "configuration must include the same number of apiVIPs (got 2) and ingressVIPs (got 1)"
+
+						mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
+							eventstest.WithNameMatcher(eventgen.ClusterRegistrationFailedEventName),
+							eventstest.WithMessageContainsMatcher(err),
+							eventstest.WithSeverityMatcher(models.EventSeverityError))).Times(1)
+
+						reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
+							NewClusterParams: &models.ClusterCreateParams{
+								Name:             swag.String("some-cluster-name"),
+								OpenshiftVersion: swag.String(common.TestDefaultConfig.OpenShiftVersion),
+								PullSecret:       swag.String(fakePullSecret),
+								APIVip:           apiVip,
+								APIVips:          apiVips,
+								IngressVip:       ingressVip,
+								IngressVips:      ingressVips,
+							},
+						})
+						verifyApiErrorString(reply, http.StatusBadRequest, err)
+					})
+
+					It("Duplicated addresses in APIVips - negative", func() {
+						apiVip := "8.8.8.1"
+						ingressVip := "8.8.8.2"
+						apiVips := []*models.APIVip{{IP: models.IP(apiVip)}, {IP: models.IP(apiVip)}}
+						ingressVips := []*models.IngressVip{{IP: models.IP(ingressVip)}, {IP: models.IP("2001:db8::3")}}
+						err := "The IP address \"8.8.8.1\" appears multiple times in apiVIPs"
+
+						mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
+							eventstest.WithNameMatcher(eventgen.ClusterRegistrationFailedEventName),
+							eventstest.WithMessageContainsMatcher(err),
+							eventstest.WithSeverityMatcher(models.EventSeverityError))).Times(1)
+
+						reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
+							NewClusterParams: &models.ClusterCreateParams{
+								Name:             swag.String("some-cluster-name"),
+								OpenshiftVersion: swag.String(common.TestDefaultConfig.OpenShiftVersion),
+								PullSecret:       swag.String(fakePullSecret),
+								APIVip:           apiVip,
+								APIVips:          apiVips,
+								IngressVip:       ingressVip,
+								IngressVips:      ingressVips,
+							},
+						})
+						verifyApiErrorString(reply, http.StatusBadRequest, err)
+					})
+
+					It("Duplicated addresses in IngressVips - negative", func() {
+						apiVip := "8.8.8.1"
+						ingressVip := "8.8.8.2"
+						apiVips := []*models.APIVip{{IP: models.IP(apiVip)}, {IP: models.IP("2001:db8::3")}}
+						ingressVips := []*models.IngressVip{{IP: models.IP(ingressVip)}, {IP: models.IP(ingressVip)}}
+						err := "The IP address \"8.8.8.2\" appears multiple times in ingressVIPs"
+
+						mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
+							eventstest.WithNameMatcher(eventgen.ClusterRegistrationFailedEventName),
+							eventstest.WithMessageContainsMatcher(err),
+							eventstest.WithSeverityMatcher(models.EventSeverityError))).Times(1)
+
+						reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
+							NewClusterParams: &models.ClusterCreateParams{
+								Name:             swag.String("some-cluster-name"),
+								OpenshiftVersion: swag.String(common.TestDefaultConfig.OpenShiftVersion),
+								PullSecret:       swag.String(fakePullSecret),
+								APIVip:           apiVip,
+								APIVips:          apiVips,
+								IngressVip:       ingressVip,
+								IngressVips:      ingressVips,
+							},
+						})
+						verifyApiErrorString(reply, http.StatusBadRequest, err)
+					})
+
+					It("Duplicated address across APIVips and IngressVips - negative", func() {
+						apiVip := "8.8.8.1"
+						apiVips := []*models.APIVip{{IP: models.IP(apiVip)}, {IP: models.IP("2001:db8::3")}}
+						ingressVips := []*models.IngressVip{{IP: models.IP(apiVip)}, {IP: models.IP("2001:db8::4")}}
+						err := "The IP address \"8.8.8.1\" appears both in apiVIPs and ingressVIPs"
+
+						mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
+							eventstest.WithNameMatcher(eventgen.ClusterRegistrationFailedEventName),
+							eventstest.WithMessageContainsMatcher(err),
+							eventstest.WithSeverityMatcher(models.EventSeverityError))).Times(1)
+
+						reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
+							NewClusterParams: &models.ClusterCreateParams{
+								Name:             swag.String("some-cluster-name"),
+								OpenshiftVersion: swag.String(common.TestDefaultConfig.OpenShiftVersion),
+								PullSecret:       swag.String(fakePullSecret),
+								APIVip:           apiVip,
+								APIVips:          apiVips,
+								IngressVip:       apiVip,
+								IngressVips:      ingressVips,
+							},
+						})
+						verifyApiErrorString(reply, http.StatusBadRequest, err)
+					})
+
 				})
 
 				It("OLM register default value - only builtins", func() {
@@ -2394,6 +2851,469 @@ var _ = Describe("cluster", func() {
 					})
 					verifyApiErrorString(reply, http.StatusBadRequest, "Currently, you can not install OpenShift Data Foundation Logical Volume Manager operator at the same time as Virtualization operator")
 				})
+			})
+
+			Context("UpdateCluster - Multiple-VIPs Support ", func() {
+
+				BeforeEach(func() {
+					Expect(envconfig.Process("test", &cfg)).ShouldNot(HaveOccurred())
+					db, dbName = common.PrepareTestDB()
+					bm = createInventory(db, cfg)
+					bm.ocmClient = nil
+					mockUsageReports()
+
+					clusterID = strfmt.UUID(uuid.New().String())
+					infraEnvID = strfmt.UUID(uuid.New().String())
+
+					err := db.Create(&common.Cluster{Cluster: models.Cluster{
+						ID:                    &clusterID,
+						Platform:              &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeBaremetal)},
+						UserManagedNetworking: swag.Bool(false),
+						CPUArchitecture:       common.X86CPUArchitecture,
+						MachineNetworks:       []*models.MachineNetwork{{Cidr: "1.3.4.0/24"}},
+					}}).Error
+					Expect(err).ShouldNot(HaveOccurred())
+					addHost(masterHostId1, models.HostRoleMaster, "known", models.HostKindHost, infraEnvID, clusterID, getInventoryStr("hostname0", "bootMode", "1.2.3.4/24", "10.11.50.90/16"), db)
+					addHost(masterHostId2, models.HostRoleMaster, "known", models.HostKindHost, infraEnvID, clusterID, getInventoryStr("hostname1", "bootMode", "1.2.3.5/24", "10.11.50.80/16"), db)
+					addHost(masterHostId3, models.HostRoleMaster, "known", models.HostKindHost, infraEnvID, clusterID, getInventoryStr("hostname2", "bootMode", "1.2.3.6/24", "7.8.9.10/24"), db)
+				})
+
+				AfterEach(func() {
+					ctrl.Finish()
+					common.DeleteTestDB(db, dbName)
+				})
+
+				Context("API and Ingress VIPs Backwards Compatibility", func() {
+
+					It("API VIP and Ingress VIP populated in APIVips and ingressVips", func() {
+						mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(1)
+						mockClusterApi.EXPECT().SetConnectivityMajorityGroupsForCluster(gomock.Any(), gomock.Any()).Return(nil).Times(1)
+						mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
+						mockHostApi.EXPECT().RefreshInventory(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(3)
+						mockHostApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(3)
+						mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any()).Return(nil).Times(3)
+
+						apiVip := "1.2.3.100"
+						ingressVip := "1.2.3.101"
+						reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
+							ClusterID: clusterID,
+							ClusterUpdateParams: &models.V2ClusterUpdateParams{
+								APIVip:     swag.String(apiVip),
+								IngressVip: swag.String(ingressVip),
+							},
+						})
+						Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2UpdateClusterCreated()))
+						cluster := &common.Cluster{Cluster: *reply.(*installer.V2UpdateClusterCreated).Payload}
+						Expect(cluster.APIVip).To(Equal(apiVip))
+						Expect(network.GetApiVipById(cluster, 0)).To(Equal(apiVip))
+						Expect(cluster.IngressVip).To(Equal(ingressVip))
+						Expect(network.GetIngressVipById(cluster, 0)).To(Equal(ingressVip))
+					})
+
+					It("API VIP match APIVips first element", func() {
+						mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(1)
+						mockClusterApi.EXPECT().SetConnectivityMajorityGroupsForCluster(gomock.Any(), gomock.Any()).Return(nil).Times(1)
+						mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
+						mockHostApi.EXPECT().RefreshInventory(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(3)
+						mockHostApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(3)
+						mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any()).Return(nil).Times(3)
+						mockSecretValidator.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any()).Return(nil).Times(1)
+
+						apiVip := "1.2.3.100"
+						apiVips := []*models.APIVip{{IP: models.IP(apiVip)}}
+						ingressVip := "1.2.3.101"
+						reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
+							ClusterID: clusterID,
+							ClusterUpdateParams: &models.V2ClusterUpdateParams{
+								Name:       swag.String("some-cluster-name"),
+								PullSecret: swag.String(fakePullSecret),
+								APIVip:     swag.String(apiVip),
+								APIVips:    apiVips,
+								IngressVip: swag.String(ingressVip),
+							},
+						})
+						Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2UpdateClusterCreated()))
+						cluster := &common.Cluster{Cluster: *reply.(*installer.V2UpdateClusterCreated).Payload}
+						Expect(cluster.APIVip).To(Equal(apiVip))
+						Expect(cluster.APIVips).To(Equal(apiVips))
+						Expect(cluster.IngressVip).To(Equal(ingressVip))
+						Expect(network.GetIngressVipById(cluster, 0)).To(Equal(ingressVip))
+					})
+
+					It("Ingress VIP match ingressVips first element", func() {
+						mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(1)
+						mockClusterApi.EXPECT().SetConnectivityMajorityGroupsForCluster(gomock.Any(), gomock.Any()).Return(nil).Times(1)
+						mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
+						mockHostApi.EXPECT().RefreshInventory(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(3)
+						mockHostApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(3)
+						mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any()).Return(nil).Times(3)
+						mockSecretValidator.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any()).Return(nil).Times(1)
+
+						apiVip := "1.2.3.100"
+						ingressVip := "1.2.3.101"
+						ingressVips := []*models.IngressVip{{IP: models.IP(ingressVip)}}
+
+						reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
+							ClusterID: clusterID,
+							ClusterUpdateParams: &models.V2ClusterUpdateParams{
+								Name:        swag.String("some-cluster-name"),
+								PullSecret:  swag.String(fakePullSecret),
+								APIVip:      swag.String(apiVip),
+								IngressVip:  swag.String(ingressVip),
+								IngressVips: ingressVips,
+							},
+						})
+						Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2UpdateClusterCreated()))
+						cluster := reply.(*installer.V2UpdateClusterCreated).Payload
+						Expect(cluster.APIVip).To(Equal(apiVip))
+						Expect(cluster.IngressVip).To(Equal(ingressVip))
+						Expect(cluster.IngressVips).To(Equal(ingressVips))
+					})
+
+					It("API VIP not matching APIVips first element", func() {
+						apiVip := "1.2.3.100"
+						apiVips := []*models.APIVip{{IP: models.IP("1.2.3.111")}}
+						ingressVip := "1.2.3.101"
+						err := "apiVIP must be the same as the first element of apiVIPs"
+
+						mockSecretValidator.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any()).Return(nil).Times(1)
+
+						reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
+							ClusterID: clusterID,
+							ClusterUpdateParams: &models.V2ClusterUpdateParams{
+								Name:       swag.String("some-cluster-name"),
+								PullSecret: swag.String(fakePullSecret),
+								APIVip:     swag.String(apiVip),
+								APIVips:    apiVips,
+								IngressVip: swag.String(ingressVip),
+							},
+						})
+						verifyApiErrorString(reply, http.StatusBadRequest, err)
+					})
+
+					It("Ingress VIP not matching ingressVips first element", func() {
+						apiVip := "1.2.3.100"
+						ingressVip := "1.2.3.101"
+						ingressVips := []*models.IngressVip{{IP: models.IP("1.2.3.111")}}
+						err := "ingressVIP must be the same as the first element of ingressVIPs"
+
+						mockSecretValidator.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any()).Return(nil).Times(1)
+
+						reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
+							ClusterID: clusterID,
+							ClusterUpdateParams: &models.V2ClusterUpdateParams{
+								Name:        swag.String("some-cluster-name"),
+								PullSecret:  swag.String(fakePullSecret),
+								APIVip:      swag.String(apiVip),
+								IngressVip:  swag.String(ingressVip),
+								IngressVips: ingressVips,
+							},
+						})
+						verifyApiErrorString(reply, http.StatusBadRequest, err)
+					})
+
+					It("Reject APIVips if no APIVip was provided", func() {
+						apiVips := []*models.APIVip{{IP: models.IP("1.2.3.111")}}
+						ingressVip := "1.2.3.101"
+						err := "request must include apiVIP alongside apiVIPs"
+
+						mockSecretValidator.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any()).Return(nil).Times(1)
+
+						reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
+							ClusterID: clusterID,
+							ClusterUpdateParams: &models.V2ClusterUpdateParams{
+								Name:       swag.String("some-cluster-name"),
+								PullSecret: swag.String(fakePullSecret),
+								APIVips:    apiVips,
+								IngressVip: swag.String(ingressVip),
+							},
+						})
+						verifyApiErrorString(reply, http.StatusBadRequest, err)
+					})
+
+					It("Reject ingressVips if no ingressVip was provided", func() {
+						apiVip := "1.2.3.100"
+						ingressVips := []*models.IngressVip{{IP: models.IP("1.2.3.111")}}
+						err := "request must include ingressVIP alongside ingressVIPs"
+
+						mockSecretValidator.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any()).Return(nil).Times(1)
+
+						reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
+							ClusterID: clusterID,
+							ClusterUpdateParams: &models.V2ClusterUpdateParams{
+								Name:        swag.String("some-cluster-name"),
+								PullSecret:  swag.String(fakePullSecret),
+								APIVip:      swag.String(apiVip),
+								IngressVips: ingressVips,
+							},
+						})
+						verifyApiErrorString(reply, http.StatusBadRequest, err)
+					})
+
+				})
+
+				It("Two APIVips and Two ingressVips - both IPv4 - negative", func() {
+					apiVip := "1.2.3.100"
+					ingressVip := "1.2.3.101"
+					apiVips := []*models.APIVip{{IP: models.IP(apiVip)}, {IP: models.IP("8.8.8.8")}}
+					ingressVips := []*models.IngressVip{{IP: models.IP(ingressVip)}, {IP: models.IP("8.8.8.2")}}
+					err := "the second element of apiVIPs must be an IPv6 address. got: 8.8.8.8"
+
+					mockSecretValidator.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any()).Return(nil).Times(1)
+
+					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
+						ClusterID: clusterID,
+						ClusterUpdateParams: &models.V2ClusterUpdateParams{
+							Name:        swag.String("some-cluster-name"),
+							PullSecret:  swag.String(fakePullSecret),
+							APIVip:      swag.String(apiVip),
+							APIVips:     apiVips,
+							IngressVip:  swag.String(ingressVip),
+							IngressVips: ingressVips,
+						},
+					})
+					verifyApiErrorString(reply, http.StatusBadRequest, err)
+				})
+
+				It("Two APIVips and Two ingressVips - IPv4 first and IPv6 second - positive", func() {
+					mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(1)
+					mockClusterApi.EXPECT().SetConnectivityMajorityGroupsForCluster(gomock.Any(), gomock.Any()).Return(nil).Times(1)
+					mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
+					mockHostApi.EXPECT().RefreshInventory(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(3)
+					mockHostApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(3)
+					mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any()).Return(nil).Times(3)
+					mockSecretValidator.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any()).Return(nil).Times(1)
+
+					apiVip := "1.2.3.100"
+					ingressVip := "1.2.3.101"
+					apiVips := []*models.APIVip{{IP: models.IP(apiVip)}, {IP: models.IP("2001:db8::1")}}
+					ingressVips := []*models.IngressVip{{IP: models.IP(ingressVip)}, {IP: models.IP("2001:db8::2")}}
+
+					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
+						ClusterID: clusterID,
+						ClusterUpdateParams: &models.V2ClusterUpdateParams{
+							Name:        swag.String("some-cluster-name"),
+							PullSecret:  swag.String(fakePullSecret),
+							APIVip:      swag.String(apiVip),
+							APIVips:     apiVips,
+							IngressVip:  swag.String(ingressVip),
+							IngressVips: ingressVips,
+						},
+					})
+					Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2UpdateClusterCreated()))
+					cluster := reply.(*installer.V2UpdateClusterCreated).Payload
+					Expect(cluster.APIVip).To(Equal(apiVip))
+					Expect(cluster.APIVips).To(Equal(apiVips))
+					Expect(cluster.IngressVip).To(Equal(ingressVip))
+					Expect(cluster.IngressVips).To(Equal(ingressVips))
+				})
+
+				It("Two APIVips and Two ingressVips - IPv6 first and IPv4 second - negative", func() {
+					apiVip := "2001:db8::1"
+					ingressVip := "2001:db8::2"
+					apiVips := []*models.APIVip{{IP: models.IP(apiVip)}, {IP: models.IP("8.8.8.7")}}
+					ingressVips := []*models.IngressVip{{IP: models.IP(ingressVip)}, {IP: models.IP("8.8.8.1")}}
+					err := "the first element of apiVIPs must be an IPv4 address. got: 2001:db8::1"
+
+					mockSecretValidator.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any()).Return(nil).Times(1)
+
+					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
+						ClusterID: clusterID,
+						ClusterUpdateParams: &models.V2ClusterUpdateParams{
+							Name:        swag.String("some-cluster-name"),
+							PullSecret:  swag.String(fakePullSecret),
+							APIVip:      swag.String(apiVip),
+							APIVips:     apiVips,
+							IngressVip:  swag.String(ingressVip),
+							IngressVips: ingressVips,
+						},
+					})
+					verifyApiErrorString(reply, http.StatusBadRequest, err)
+				})
+
+				It("Two APIVips and Two ingressVips - IPv6 - negative", func() {
+					apiVip := "2001:db8::1"
+					ingressVip := "2001:db8::2"
+					apiVips := []*models.APIVip{{IP: models.IP(apiVip)}, {IP: models.IP("2001:db8::3")}}
+					ingressVips := []*models.IngressVip{{IP: models.IP(ingressVip)}, {IP: models.IP("2001:db8::4")}}
+					err := "the first element of apiVIPs must be an IPv4 address. got: 2001:db8::1"
+
+					mockSecretValidator.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any()).Return(nil).Times(1)
+
+					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
+						ClusterID: clusterID,
+						ClusterUpdateParams: &models.V2ClusterUpdateParams{
+							Name:        swag.String("some-cluster-name"),
+							PullSecret:  swag.String(fakePullSecret),
+							APIVip:      swag.String(apiVip),
+							APIVips:     apiVips,
+							IngressVip:  swag.String(ingressVip),
+							IngressVips: ingressVips,
+						},
+					})
+					verifyApiErrorString(reply, http.StatusBadRequest, err)
+				})
+
+				It("More than two APIVips and More than two ingressVips -  negative", func() {
+					apiVip := "1.2.3.100"
+					ingressVip := "1.2.3.101"
+					apiVips := []*models.APIVip{{IP: models.IP(apiVip)}, {IP: models.IP("2001:db8::3")}, {IP: models.IP("8.8.8.3")}}
+					ingressVips := []*models.IngressVip{{IP: models.IP(ingressVip)}, {IP: models.IP("2001:db8::4")}, {IP: models.IP("8.8.8.4")}}
+					err := "apiVIPs supports 2 vips. got: 3"
+
+					mockSecretValidator.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any()).Return(nil).Times(1)
+
+					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
+						ClusterID: clusterID,
+						ClusterUpdateParams: &models.V2ClusterUpdateParams{
+							Name:        swag.String("some-cluster-name"),
+							PullSecret:  swag.String(fakePullSecret),
+							APIVip:      swag.String(apiVip),
+							APIVips:     apiVips,
+							IngressVip:  swag.String(ingressVip),
+							IngressVips: ingressVips,
+						},
+					})
+					verifyApiErrorString(reply, http.StatusBadRequest, err)
+				})
+
+				It("Non parsable APIVips and non parsable ingressVips - negative", func() {
+					apiVip := "invalid apiVip"
+					ingressVip := "invalid ingressVip"
+					apiVips := []*models.APIVip{{IP: models.IP(apiVip)}, {IP: models.IP("invalid apiVip 2")}}
+					ingressVips := []*models.IngressVip{{IP: models.IP(ingressVip)}, {IP: models.IP("invalid ingressVip 2")}}
+					multiErr := "4 errors occurred:\n\t* Could not parse VIP ip invalid apiVip\n\t* Could not parse VIP ip invalid apiVip 2\n\t* Could not parse VIP ip invalid ingressVip\n\t* Could not parse VIP ip invalid ingressVip 2"
+
+					mockSecretValidator.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any()).Return(nil).Times(1)
+
+					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
+						ClusterID: clusterID,
+						ClusterUpdateParams: &models.V2ClusterUpdateParams{
+							Name:        swag.String("some-cluster-name"),
+							PullSecret:  swag.String(fakePullSecret),
+							APIVip:      swag.String(apiVip),
+							APIVips:     apiVips,
+							IngressVip:  swag.String(ingressVip),
+							IngressVips: ingressVips,
+						},
+					})
+					verifyApiErrorString(reply, http.StatusBadRequest, multiErr)
+				})
+
+				It("Non parsable APIVips and parsable ingressVips - negative", func() {
+					apiVip := "invalid apiVip"
+					ingressVip := "1.2.3.101"
+					apiVips := []*models.APIVip{{IP: models.IP(apiVip)}, {IP: models.IP("2001:db8::3")}}
+					ingressVips := []*models.IngressVip{{IP: models.IP(ingressVip)}, {IP: models.IP("2001:db8::4")}}
+					multiErr := "1 error occurred:\n\t* Could not parse VIP ip invalid apiVip\n"
+
+					mockSecretValidator.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any()).Return(nil).Times(1)
+
+					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
+						ClusterID: clusterID,
+						ClusterUpdateParams: &models.V2ClusterUpdateParams{
+							Name:        swag.String("some-cluster-name"),
+							PullSecret:  swag.String(fakePullSecret),
+							APIVip:      swag.String(apiVip),
+							APIVips:     apiVips,
+							IngressVip:  swag.String(ingressVip),
+							IngressVips: ingressVips,
+						},
+					})
+					verifyApiErrorString(reply, http.StatusBadRequest, multiErr)
+				})
+
+				It("Different number of APIVips and ingressVips - negative", func() {
+					apiVip := "1.2.3.100"
+					ingressVip := "1.2.3.101"
+					apiVips := []*models.APIVip{{IP: models.IP(apiVip)}, {IP: models.IP("2001:db8::3")}}
+					ingressVips := []*models.IngressVip{{IP: models.IP(ingressVip)}}
+					err := "configuration must include the same number of apiVIPs (got 2) and ingressVIPs (got 1)"
+
+					mockSecretValidator.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any()).Return(nil).Times(1)
+
+					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
+						ClusterID: clusterID,
+						ClusterUpdateParams: &models.V2ClusterUpdateParams{
+							Name:        swag.String("some-cluster-name"),
+							PullSecret:  swag.String(fakePullSecret),
+							APIVip:      swag.String(apiVip),
+							APIVips:     apiVips,
+							IngressVip:  swag.String(ingressVip),
+							IngressVips: ingressVips,
+						},
+					})
+					verifyApiErrorString(reply, http.StatusBadRequest, err)
+				})
+
+				It("Duplicated addresses in APIVips - negative", func() {
+					apiVip := "1.2.3.100"
+					ingressVip := "1.2.3.101"
+					apiVips := []*models.APIVip{{IP: models.IP(apiVip)}, {IP: models.IP(apiVip)}}
+					ingressVips := []*models.IngressVip{{IP: models.IP(ingressVip)}, {IP: models.IP("2001:db8::3")}}
+					err := "The IP address \"1.2.3.100\" appears multiple times in apiVIPs"
+
+					mockSecretValidator.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any()).Return(nil).Times(1)
+
+					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
+						ClusterID: clusterID,
+						ClusterUpdateParams: &models.V2ClusterUpdateParams{
+							Name:        swag.String("some-cluster-name"),
+							PullSecret:  swag.String(fakePullSecret),
+							APIVip:      swag.String(apiVip),
+							APIVips:     apiVips,
+							IngressVip:  swag.String(ingressVip),
+							IngressVips: ingressVips,
+						},
+					})
+					verifyApiErrorString(reply, http.StatusBadRequest, err)
+				})
+
+				It("Duplicated addresses in ingressVips - negative", func() {
+					apiVip := "1.2.3.100"
+					ingressVip := "1.2.3.101"
+					apiVips := []*models.APIVip{{IP: models.IP(apiVip)}, {IP: models.IP("2001:db8::3")}}
+					ingressVips := []*models.IngressVip{{IP: models.IP(ingressVip)}, {IP: models.IP(ingressVip)}}
+					err := "The IP address \"1.2.3.101\" appears multiple times in ingressVIPs"
+
+					mockSecretValidator.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any()).Return(nil).Times(1)
+
+					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
+						ClusterID: clusterID,
+						ClusterUpdateParams: &models.V2ClusterUpdateParams{
+							Name:        swag.String("some-cluster-name"),
+							PullSecret:  swag.String(fakePullSecret),
+							APIVip:      swag.String(apiVip),
+							APIVips:     apiVips,
+							IngressVip:  swag.String(ingressVip),
+							IngressVips: ingressVips,
+						},
+					})
+					verifyApiErrorString(reply, http.StatusBadRequest, err)
+				})
+
+				It("Duplicated address across APIVips and ingressVips - negative", func() {
+					apiVip := "1.2.3.100"
+					apiVips := []*models.APIVip{{IP: models.IP(apiVip)}, {IP: models.IP("2001:db8::3")}}
+					ingressVips := []*models.IngressVip{{IP: models.IP(apiVip)}, {IP: models.IP("2001:db8::4")}}
+					err := "The IP address \"1.2.3.100\" appears both in apiVIPs and ingressVIPs"
+
+					mockSecretValidator.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any()).Return(nil).Times(1)
+
+					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
+						ClusterID: clusterID,
+						ClusterUpdateParams: &models.V2ClusterUpdateParams{
+							Name:        swag.String("some-cluster-name"),
+							PullSecret:  swag.String(fakePullSecret),
+							APIVip:      swag.String(apiVip),
+							APIVips:     apiVips,
+							IngressVip:  swag.String(apiVip),
+							IngressVips: ingressVips,
+						},
+					})
+					verifyApiErrorString(reply, http.StatusBadRequest, err)
+				})
+
 			})
 
 			It("Resolve OLM dependencies", func() {
@@ -2877,21 +3797,34 @@ var _ = Describe("cluster", func() {
 						ClusterID: clusterID,
 						ClusterUpdateParams: &models.V2ClusterUpdateParams{
 							UserManagedNetworking: swag.Bool(true),
+							APIVip:                swag.String("10.35.20.9"),
 							IngressVip:            swag.String("10.35.20.10"),
 						},
 					})
-					verifyApiErrorString(reply, http.StatusBadRequest, "Ingress VIP cannot be set with User Managed Networking")
+					verifyApiErrorString(reply, http.StatusBadRequest, "API VIP cannot be set with User Managed Networking")
 				})
 
-				It("Fail with API VIP", func() {
+				It("Fail with API and Ingress VIPs", func() {
+					By("Fail VIPs with User Managed Networking")
 					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
+						ClusterID: clusterID,
+						ClusterUpdateParams: &models.V2ClusterUpdateParams{
+							UserManagedNetworking: swag.Bool(true),
+							APIVip:                swag.String("10.35.20.10"),
+							IngressVip:            swag.String("10.35.30.10"),
+						},
+					})
+					verifyApiErrorString(reply, http.StatusBadRequest, "API VIP cannot be set with User Managed Networking")
+
+					By("Fail API VIP with no Ingress VIP")
+					reply = bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 						ClusterID: clusterID,
 						ClusterUpdateParams: &models.V2ClusterUpdateParams{
 							UserManagedNetworking: swag.Bool(true),
 							APIVip:                swag.String("10.35.20.10"),
 						},
 					})
-					verifyApiErrorString(reply, http.StatusBadRequest, "API VIP cannot be set with User Managed Networking")
+					verifyApiErrorString(reply, http.StatusBadRequest, "configuration must include the same number of apiVIPs (got 1) and ingressVIPs (got 0)")
 				})
 
 				It("Fail with Machine CIDR", func() {
@@ -2975,10 +3908,12 @@ var _ = Describe("cluster", func() {
 				It("No machine network", func() {
 					mockClusterUpdatability(1)
 					apiVip := "8.8.8.8"
+					ingressVip := "1.2.3.4"
 					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 						ClusterID: clusterID,
 						ClusterUpdateParams: &models.V2ClusterUpdateParams{
-							APIVip: &apiVip,
+							APIVip:     swag.String(apiVip),
+							IngressVip: swag.String(ingressVip),
 						},
 					})
 					verifyApiErrorString(reply, http.StatusBadRequest,
@@ -2991,8 +3926,8 @@ var _ = Describe("cluster", func() {
 					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 						ClusterID: clusterID,
 						ClusterUpdateParams: &models.V2ClusterUpdateParams{
-							APIVip:     &apiVip,
-							IngressVip: &ingressVip,
+							APIVip:     swag.String(apiVip),
+							IngressVip: swag.String(ingressVip),
 						},
 					})
 					verifyApiErrorString(reply, http.StatusBadRequest,
@@ -3004,33 +3939,30 @@ var _ = Describe("cluster", func() {
 					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 						ClusterID: clusterID,
 						ClusterUpdateParams: &models.V2ClusterUpdateParams{
-							APIVip:     &apiVip,
-							IngressVip: &ingressVip,
+							APIVip:     swag.String(apiVip),
+							IngressVip: swag.String(ingressVip),
 						},
 					})
-					verifyApiErrorString(reply, http.StatusBadRequest, fmt.Sprintf("api-vip and ingress-vip cannot have the same value: %s", apiVip))
+					verifyApiErrorString(reply, http.StatusBadRequest, fmt.Sprintf("The IP address \"%s\" appears both in apiVIPs and ingressVIPs", apiVip))
 				})
 
 				It("Bad apiVip ip", func() {
-					mockClusterUpdatability(1)
-
 					apiVip := "not.an.ip.test"
 					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 						ClusterID: clusterID,
 						ClusterUpdateParams: &models.V2ClusterUpdateParams{
-							APIVip: &apiVip,
+							APIVip: swag.String(apiVip),
 						},
 					})
 					verifyApiErrorString(reply, http.StatusBadRequest, fmt.Sprintf("Could not parse VIP ip %s", apiVip))
 				})
 
 				It("Bad ingressVip ip", func() {
-					mockClusterUpdatability(1)
 					ingressVip := "not.an.ip.test"
 					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 						ClusterID: clusterID,
 						ClusterUpdateParams: &models.V2ClusterUpdateParams{
-							IngressVip: &ingressVip,
+							IngressVip: swag.String(ingressVip),
 						},
 					})
 					verifyApiErrorString(reply, http.StatusBadRequest, fmt.Sprintf("Could not parse VIP ip %s", ingressVip))
@@ -3045,8 +3977,8 @@ var _ = Describe("cluster", func() {
 					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 						ClusterID: clusterID,
 						ClusterUpdateParams: &models.V2ClusterUpdateParams{
-							APIVip:     &apiVip,
-							IngressVip: &ingressVip,
+							APIVip:     swag.String(apiVip),
+							IngressVip: swag.String(ingressVip),
 						},
 					})
 					Expect(reply).To(BeAssignableToTypeOf(installer.NewV2UpdateClusterCreated()))
@@ -3093,8 +4025,8 @@ var _ = Describe("cluster", func() {
 					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 						ClusterID: clusterID,
 						ClusterUpdateParams: &models.V2ClusterUpdateParams{
-							APIVip:          &apiVip,
-							IngressVip:      &ingressVip,
+							APIVip:          swag.String(apiVip),
+							IngressVip:      swag.String(ingressVip),
 							MachineNetworks: []*models.MachineNetwork{{Cidr: "10.11.0.0/16"}},
 						},
 					})
@@ -3111,8 +4043,8 @@ var _ = Describe("cluster", func() {
 					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 						ClusterID: clusterID,
 						ClusterUpdateParams: &models.V2ClusterUpdateParams{
-							APIVip:          &apiVip,
-							IngressVip:      &ingressVip,
+							APIVip:          swag.String(apiVip),
+							IngressVip:      swag.String(ingressVip),
 							ClusterNetworks: []*models.ClusterNetwork{{Cidr: "10.128.0.0/14", HostPrefix: 23}, {Cidr: "fd01::/48", HostPrefix: 64}},
 							MachineNetworks: []*models.MachineNetwork{{Cidr: "10.11.0.0/16"}, {Cidr: "fd2e:6f44:5dd8:c956::/120"}},
 						},
@@ -3130,8 +4062,8 @@ var _ = Describe("cluster", func() {
 					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 						ClusterID: clusterID,
 						ClusterUpdateParams: &models.V2ClusterUpdateParams{
-							APIVip:          &apiVip,
-							IngressVip:      &ingressVip,
+							APIVip:          swag.String(apiVip),
+							IngressVip:      swag.String(ingressVip),
 							ClusterNetworks: []*models.ClusterNetwork{{Cidr: "10.128.0.0/14", HostPrefix: 23}, {Cidr: "fd01::/48", HostPrefix: 64}},
 							MachineNetworks: []*models.MachineNetwork{{Cidr: "10.11.0.0/16"}, {Cidr: "fd2e:6f44:5dd8:c956::/120"}},
 						},
@@ -3141,8 +4073,8 @@ var _ = Describe("cluster", func() {
 					reply = bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 						ClusterID: clusterID,
 						ClusterUpdateParams: &models.V2ClusterUpdateParams{
-							APIVip:          &apiVip,
-							IngressVip:      &ingressVip,
+							APIVip:          swag.String(apiVip),
+							IngressVip:      swag.String(ingressVip),
 							MachineNetworks: []*models.MachineNetwork{{Cidr: "fd2e:6f44:5dd8:c956::/120"}, {Cidr: "10.12.0.0/16"}},
 						},
 					})
@@ -3154,8 +4086,8 @@ var _ = Describe("cluster", func() {
 					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 						ClusterID: clusterID,
 						ClusterUpdateParams: &models.V2ClusterUpdateParams{
-							APIVip:          &apiVip,
-							IngressVip:      &ingressVip,
+							APIVip:          swag.String(apiVip),
+							IngressVip:      swag.String(ingressVip),
 							ClusterNetworks: []*models.ClusterNetwork{{Cidr: "10.128.0.0/14", HostPrefix: 23}, {Cidr: "fd01::/48", HostPrefix: 64}},
 							MachineNetworks: []*models.MachineNetwork{{Cidr: "10.12.0.0/16"}, {Cidr: "fd2e:6f44:5dd8:c956::/120"}},
 						},
@@ -3184,8 +4116,8 @@ var _ = Describe("cluster", func() {
 					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 						ClusterID: clusterID,
 						ClusterUpdateParams: &models.V2ClusterUpdateParams{
-							APIVip:          &apiVip,
-							IngressVip:      &ingressVip,
+							APIVip:          swag.String(apiVip),
+							IngressVip:      swag.String(ingressVip),
 							ClusterNetworks: clusterNetworks,
 							ServiceNetworks: serviceNetworks,
 						},
@@ -3271,8 +4203,8 @@ var _ = Describe("cluster", func() {
 					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 						ClusterID: clusterID,
 						ClusterUpdateParams: &models.V2ClusterUpdateParams{
-							APIVip:          &apiVip,
-							IngressVip:      &ingressVip,
+							APIVip:          swag.String(apiVip),
+							IngressVip:      swag.String(ingressVip),
 							ClusterNetworks: []*models.ClusterNetwork{{Cidr: "192.168.5.0/24", HostPrefix: 26}},
 							ServiceNetworks: []*models.ServiceNetwork{{Cidr: "193.168.4.0/23"}},
 						},
@@ -3284,8 +4216,8 @@ var _ = Describe("cluster", func() {
 					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 						ClusterID: clusterID,
 						ClusterUpdateParams: &models.V2ClusterUpdateParams{
-							APIVip:          &apiVip,
-							IngressVip:      &ingressVip,
+							APIVip:          swag.String(apiVip),
+							IngressVip:      swag.String(ingressVip),
 							ClusterNetworks: []*models.ClusterNetwork{{Cidr: "192.168.0.0/23", HostPrefix: 25}},
 							ServiceNetworks: []*models.ServiceNetwork{{Cidr: "193.168.4.0/27"}},
 						},
@@ -3297,8 +4229,8 @@ var _ = Describe("cluster", func() {
 					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 						ClusterID: clusterID,
 						ClusterUpdateParams: &models.V2ClusterUpdateParams{
-							APIVip:          &apiVip,
-							IngressVip:      &ingressVip,
+							APIVip:          swag.String(apiVip),
+							IngressVip:      swag.String(ingressVip),
 							ClusterNetworks: []*models.ClusterNetwork{{Cidr: "1.168.0.0/23", HostPrefix: 23}},
 							ServiceNetworks: []*models.ServiceNetwork{{Cidr: "193.168.4.0/1"}},
 						},
@@ -3310,8 +4242,8 @@ var _ = Describe("cluster", func() {
 					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 						ClusterID: clusterID,
 						ClusterUpdateParams: &models.V2ClusterUpdateParams{
-							APIVip:          &apiVip,
-							IngressVip:      &ingressVip,
+							APIVip:          swag.String(apiVip),
+							IngressVip:      swag.String(ingressVip),
 							ClusterNetworks: []*models.ClusterNetwork{{Cidr: "192.168.0.0/23", HostPrefix: 24}},
 							ServiceNetworks: []*models.ServiceNetwork{{Cidr: "193.168.4.0/25"}},
 						},
@@ -3339,8 +4271,8 @@ var _ = Describe("cluster", func() {
 					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 						ClusterID: clusterID,
 						ClusterUpdateParams: &models.V2ClusterUpdateParams{
-							APIVip:            &apiVip,
-							IngressVip:        &ingressVip,
+							APIVip:            swag.String(apiVip),
+							IngressVip:        swag.String(ingressVip),
 							VipDhcpAllocation: swag.Bool(true),
 							MachineNetworks:   []*models.MachineNetwork{{Cidr: primaryMachineCIDR}},
 						},
@@ -3348,26 +4280,13 @@ var _ = Describe("cluster", func() {
 					verifyApiErrorString(reply, http.StatusBadRequest, "Setting API VIP is forbidden when cluster is in vip-dhcp-allocation mode")
 				})
 
-				It("Success in DHCP", func() {
-					mockClusterUpdatability(2)
-					mockSuccess(3)
-
-					By("Original machine cidr", func() {
-						verifyMachineCIDRTimestampUpdated(time.Time{})
-						reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
-							ClusterID: clusterID,
-							ClusterUpdateParams: &models.V2ClusterUpdateParams{
-								APIVip:     &apiVip,
-								IngressVip: &ingressVip,
-							},
-						})
-						Expect(reply).To(BeAssignableToTypeOf(installer.NewV2UpdateClusterCreated()))
-						actual := reply.(*installer.V2UpdateClusterCreated)
-						Expect(actual.Payload.APIVip).To(Equal(apiVip))
-						Expect(actual.Payload.IngressVip).To(Equal(ingressVip))
-						validateNetworkConfiguration(actual.Payload, nil, nil, &[]*models.MachineNetwork{{Cidr: primaryMachineCIDR}})
-						validateHostsRequestedHostname(actual.Payload)
-					})
+				It("Fail in DHCP", func() {
+					mockClusterUpdatability(1)
+					mockHostApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+					mockHostApi.EXPECT().RefreshInventory(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+					mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+					mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).AnyTimes()
+					mockClusterApi.EXPECT().SetConnectivityMajorityGroupsForCluster(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 
 					By("Override machine cidr", func() {
 						machineNetworks := common.TestIPv4Networking.MachineNetworks
@@ -3424,8 +4343,8 @@ var _ = Describe("cluster", func() {
 						reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 							ClusterID: clusterID,
 							ClusterUpdateParams: &models.V2ClusterUpdateParams{
-								APIVip:            &apiVip,
-								IngressVip:        &ingressVip,
+								APIVip:            swag.String(apiVip),
+								IngressVip:        swag.String(ingressVip),
 								VipDhcpAllocation: swag.Bool(false),
 							},
 						})
@@ -3920,7 +4839,7 @@ var _ = Describe("cluster", func() {
 					Name:                 swag.String("some-cluster-name"),
 					OpenshiftVersion:     swag.String("4.8.0-fc.1"),
 					NoProxy:              swag.String("*"),
-					PullSecret:           swag.String(`{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"`),
+					PullSecret:           swag.String(fakePullSecret),
 					HighAvailabilityMode: swag.String(models.ClusterHighAvailabilityModeFull),
 				},
 			})
@@ -5573,7 +6492,7 @@ var _ = Describe("infraEnvs", func() {
 				InfraenvCreateParams: &models.InfraEnvCreateParams{
 					Name:             swag.String("some-infra-env-name"),
 					OpenshiftVersion: MinimalOpenShiftVersionForNoneHA,
-					PullSecret:       swag.String("{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"),
+					PullSecret:       swag.String(fakePullSecret),
 				},
 			})
 			Expect(reflect.TypeOf(reply)).Should(Equal(reflect.TypeOf(installer.NewRegisterInfraEnvCreated())))
@@ -5608,7 +6527,7 @@ var _ = Describe("infraEnvs", func() {
 				InfraenvCreateParams: &models.InfraEnvCreateParams{
 					Name:             swag.String("some-infra-env-name"),
 					OpenshiftVersion: MinimalOpenShiftVersionForNoneHA,
-					PullSecret:       swag.String("{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"),
+					PullSecret:       swag.String(fakePullSecret),
 					KernelArguments:  kernelArguments,
 				},
 			})
@@ -5690,7 +6609,7 @@ var _ = Describe("infraEnvs", func() {
 			bm.RegisterInfraEnv(ctx, installer.RegisterInfraEnvParams{
 				InfraenvCreateParams: &models.InfraEnvCreateParams{
 					Name:                   swag.String("some-infra-env-name"),
-					PullSecret:             swag.String("{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"),
+					PullSecret:             swag.String(fakePullSecret),
 					OpenshiftVersion:       MinimalOpenShiftVersionForNoneHA,
 					IgnitionConfigOverride: override,
 					ClusterID:              &clusterID,
@@ -5712,7 +6631,7 @@ var _ = Describe("infraEnvs", func() {
 			bm.RegisterInfraEnv(ctx, installer.RegisterInfraEnvParams{
 				InfraenvCreateParams: &models.InfraEnvCreateParams{
 					Name:                   swag.String("some-infra-env-name"),
-					PullSecret:             swag.String("{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"),
+					PullSecret:             swag.String(fakePullSecret),
 					OpenshiftVersion:       MinimalOpenShiftVersionForNoneHA,
 					IgnitionConfigOverride: override,
 				},
@@ -5740,7 +6659,7 @@ var _ = Describe("infraEnvs", func() {
 			bm.RegisterInfraEnv(ctx, installer.RegisterInfraEnvParams{
 				InfraenvCreateParams: &models.InfraEnvCreateParams{
 					Name:                   swag.String("some-infra-env-name"),
-					PullSecret:             swag.String("{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"),
+					PullSecret:             swag.String(fakePullSecret),
 					OpenshiftVersion:       MinimalOpenShiftVersionForNoneHA,
 					IgnitionConfigOverride: override,
 				},
@@ -5766,7 +6685,7 @@ var _ = Describe("infraEnvs", func() {
 				InfraenvCreateParams: &models.InfraEnvCreateParams{
 					Name:             swag.String("some-infra-env-name"),
 					OpenshiftVersion: MinimalOpenShiftVersionForNoneHA,
-					PullSecret:       swag.String("{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"),
+					PullSecret:       swag.String(fakePullSecret),
 					ClusterID:        &clusterID,
 					CPUArchitecture:  "x86_64",
 				},
@@ -5792,7 +6711,7 @@ var _ = Describe("infraEnvs", func() {
 			reply := bm.RegisterInfraEnv(ctx, installer.RegisterInfraEnvParams{
 				InfraenvCreateParams: &models.InfraEnvCreateParams{
 					Name:       swag.String("some-infra-env-name"),
-					PullSecret: swag.String("{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"),
+					PullSecret: swag.String(fakePullSecret),
 				},
 			})
 			Expect(reflect.TypeOf(reply)).Should(Equal(reflect.TypeOf(installer.NewRegisterInfraEnvCreated())))
@@ -5820,7 +6739,7 @@ var _ = Describe("infraEnvs", func() {
 				InfraenvCreateParams: &models.InfraEnvCreateParams{
 					Name:             swag.String("some-infra-env-name"),
 					OpenshiftVersion: MinimalOpenShiftVersionForNoneHA,
-					PullSecret:       swag.String("{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"),
+					PullSecret:       swag.String(fakePullSecret),
 					ClusterID:        &clusterID,
 					CPUArchitecture:  common.ARM64CPUArchitecture,
 				},
@@ -5849,7 +6768,7 @@ var _ = Describe("infraEnvs", func() {
 				InfraenvCreateParams: &models.InfraEnvCreateParams{
 					Name:             swag.String("some-infra-env-name"),
 					OpenshiftVersion: MinimalOpenShiftVersionForNoneHA,
-					PullSecret:       swag.String("{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"),
+					PullSecret:       swag.String(fakePullSecret),
 					ClusterID:        &clusterID,
 					CPUArchitecture:  "chocobomb-architecture",
 				},
@@ -5867,7 +6786,7 @@ var _ = Describe("infraEnvs", func() {
 				InfraenvCreateParams: &models.InfraEnvCreateParams{
 					Name:                   swag.String("some-infra-env-name"),
 					OpenshiftVersion:       MinimalOpenShiftVersionForNoneHA,
-					PullSecret:             swag.String("{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"),
+					PullSecret:             swag.String(fakePullSecret),
 					IgnitionConfigOverride: override,
 				},
 			})
@@ -5892,7 +6811,7 @@ var _ = Describe("infraEnvs", func() {
 			bm.RegisterInfraEnv(ctx, installer.RegisterInfraEnvParams{
 				InfraenvCreateParams: &models.InfraEnvCreateParams{
 					Name:                swag.String("some-infra-env-name"),
-					PullSecret:          swag.String("{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"),
+					PullSecret:          swag.String(fakePullSecret),
 					OpenshiftVersion:    MinimalOpenShiftVersionForNoneHA,
 					StaticNetworkConfig: staticNetworkConfig,
 					ClusterID:           cluster.ID,
@@ -5925,7 +6844,7 @@ var _ = Describe("infraEnvs", func() {
 			bm.RegisterInfraEnv(ctx, installer.RegisterInfraEnvParams{
 				InfraenvCreateParams: &models.InfraEnvCreateParams{
 					Name:                swag.String("some-infra-env-name"),
-					PullSecret:          swag.String("{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"),
+					PullSecret:          swag.String(fakePullSecret),
 					OpenshiftVersion:    MinimalOpenShiftVersionForNoneHA,
 					StaticNetworkConfig: staticNetworkConfig,
 					ClusterID:           cluster.ID,
@@ -5981,7 +6900,7 @@ var _ = Describe("infraEnvs", func() {
 					Name:             swag.String("some-infra-env-name"),
 					ClusterID:        &clusterID,
 					OpenshiftVersion: MinimalOpenShiftVersionForNoneHA,
-					PullSecret:       swag.String("{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"),
+					PullSecret:       swag.String(fakePullSecret),
 				},
 			})
 			Expect(reflect.TypeOf(reply)).Should(Equal(reflect.TypeOf(installer.NewRegisterInfraEnvCreated())))
@@ -6011,7 +6930,7 @@ var _ = Describe("infraEnvs", func() {
 					Name:             swag.String("some-infra-env-name"),
 					ClusterID:        &clusterID,
 					OpenshiftVersion: MinimalOpenShiftVersionForNoneHA,
-					PullSecret:       swag.String("{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"),
+					PullSecret:       swag.String(fakePullSecret),
 				},
 			})
 			Expect(reflect.TypeOf(reply)).Should(Equal(reflect.TypeOf(installer.NewRegisterInfraEnvCreated())))
@@ -6038,7 +6957,7 @@ var _ = Describe("infraEnvs", func() {
 					Name:             swag.String("some-infra-env-name"),
 					ClusterID:        &clusterID,
 					OpenshiftVersion: MinimalOpenShiftVersionForNoneHA,
-					PullSecret:       swag.String("{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"),
+					PullSecret:       swag.String(fakePullSecret),
 				},
 			})
 			verifyApiError(reply, http.StatusForbidden)
@@ -6060,7 +6979,7 @@ var _ = Describe("infraEnvs", func() {
 					Name:             swag.String("some-infra-env-name"),
 					ClusterID:        &clusterID,
 					OpenshiftVersion: MinimalOpenShiftVersionForNoneHA,
-					PullSecret:       swag.String("{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"),
+					PullSecret:       swag.String(fakePullSecret),
 				},
 			})
 			verifyApiError(reply, http.StatusNotFound)
@@ -6082,7 +7001,7 @@ var _ = Describe("infraEnvs", func() {
 					InfraenvCreateParams: &models.InfraEnvCreateParams{
 						Name:             swag.String(infraEnvName),
 						OpenshiftVersion: common.TestDefaultConfig.OpenShiftVersion,
-						PullSecret:       swag.String(`{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"`),
+						PullSecret:       swag.String(fakePullSecret),
 					},
 				})
 				Expect(reply).Should(BeAssignableToTypeOf(installer.NewRegisterInfraEnvCreated()))
@@ -7611,7 +8530,7 @@ var _ = Describe("DownloadMinimalInitrd", func() {
 				PullSecretSet: true,
 				Type:          common.ImageTypePtr(imageType),
 			},
-			PullSecret: "{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}",
+			PullSecret: fakePullSecret,
 		}
 		return result
 	}
@@ -8766,7 +9685,7 @@ var _ = Describe("V2DownloadInfraEnvFiles", func() {
 				Type:             common.ImageTypePtr(models.ImageTypeFullIso),
 			},
 			ImageTokenKey: testTokenKey,
-			PullSecret:    "{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}",
+			PullSecret:    fakePullSecret,
 		}
 		Expect(db.Create(&infraEnv).Error).To(Succeed())
 	})
@@ -9207,7 +10126,7 @@ var _ = Describe("UpdateInfraEnv - Ignition", func() {
 		err := db.Create(&c).Error
 		Expect(err).ShouldNot(HaveOccurred())
 		infraEnv = common.InfraEnv{
-			PullSecret: `{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"`,
+			PullSecret: fakePullSecret,
 			InfraEnv:   models.InfraEnv{ID: &clusterID, PullSecretSet: true, ClusterID: clusterID},
 		}
 		err = db.Create(&infraEnv).Error
@@ -9371,7 +10290,7 @@ var _ = Describe("GetSupportedPlatformsFromInventory", func() {
 			NewClusterParams: &models.ClusterCreateParams{
 				Name:                 swag.String("some-cluster-name"),
 				OpenshiftVersion:     swag.String(common.TestDefaultConfig.OpenShiftVersion),
-				PullSecret:           swag.String(`{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"`),
+				PullSecret:           swag.String(fakePullSecret),
 				HighAvailabilityMode: swag.String(models.ClusterHighAvailabilityModeFull),
 			},
 		})
@@ -10044,7 +10963,7 @@ var _ = Describe("TestRegisterCluster", func() {
 			return &models.ClusterCreateParams{
 				Name:                 swag.String("some-cluster-name"),
 				OpenshiftVersion:     swag.String(common.TestDefaultConfig.OpenShiftVersion),
-				PullSecret:           swag.String("{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"),
+				PullSecret:           swag.String(fakePullSecret),
 				HighAvailabilityMode: highAvailabilityMode,
 			}
 		}
@@ -10533,13 +11452,14 @@ var _ = Describe("TestRegisterCluster", func() {
 		verifyApiError(reply, http.StatusBadRequest)
 	})
 
-	It("Fail UserManagedNetworking with Ingress Vip", func() {
+	It("Fail UserManagedNetworking with API Vip and Ingress Vip", func() {
 		mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
 			eventstest.WithNameMatcher(eventgen.ClusterRegistrationFailedEventName),
-			eventstest.WithMessageContainsMatcher("Failed to register cluster. Error: Ingress VIP cannot be set with User Managed Networking"),
+			eventstest.WithMessageContainsMatcher("Failed to register cluster. Error: API VIP cannot be set with User Managed Networking"),
 			eventstest.WithSeverityMatcher(models.EventSeverityError))).Times(1)
 		clusterParams := getDefaultClusterCreateParams()
 		clusterParams.UserManagedNetworking = swag.Bool(true)
+		clusterParams.APIVip = "10.35.10.11"
 		clusterParams.IngressVip = "10.35.10.10"
 		reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 			NewClusterParams: clusterParams,
@@ -10899,7 +11819,7 @@ var _ = Describe("TestRegisterCluster", func() {
 						VipDhcpAllocation: swag.Bool(false),
 					},
 				})
-				verifyApiErrorString(reply, http.StatusBadRequest, "api-vip and ingress-vip cannot have the same value: 1.2.3.5")
+				verifyApiErrorString(reply, http.StatusBadRequest, "The IP address \"1.2.3.5\" appears both in apiVIPs and ingressVIPs")
 			})
 			It("API VIP not in Machine Network", func() {
 				mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
@@ -10941,32 +11861,17 @@ var _ = Describe("TestRegisterCluster", func() {
 				})
 				verifyApiErrorString(reply, http.StatusBadRequest, "ingress-vip <10.11.12.16> does not belong to machine-network-cidr <1.2.3.0/24>")
 			})
-			It("API VIP with empty Machine Networks", func() {
+			It("API VIP and Ingress VIP with empty Machine Networks", func() {
 				mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
 					eventstest.WithNameMatcher(eventgen.ClusterRegistrationFailedEventName),
 					eventstest.WithSeverityMatcher(models.EventSeverityError))).Times(1)
 
 				apiVip := "10.11.12.15"
+				ingressVip := "10.11.12.16"
 
 				reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 					NewClusterParams: &models.ClusterCreateParams{
 						APIVip:            apiVip,
-						ClusterNetworks:   common.TestDualStackNetworking.ClusterNetworks,
-						ServiceNetworks:   common.TestDualStackNetworking.ServiceNetworks,
-						VipDhcpAllocation: swag.Bool(false),
-					},
-				})
-				verifyApiErrorString(reply, http.StatusBadRequest, "Dual-stack cluster cannot be created with empty Machine Networks")
-			})
-			It("Ingress VIP with empty Machine Networks", func() {
-				mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
-					eventstest.WithNameMatcher(eventgen.ClusterRegistrationFailedEventName),
-					eventstest.WithSeverityMatcher(models.EventSeverityError))).Times(1)
-
-				ingressVip := "1.2.3.6"
-
-				reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
-					NewClusterParams: &models.ClusterCreateParams{
 						IngressVip:        ingressVip,
 						ClusterNetworks:   common.TestDualStackNetworking.ClusterNetworks,
 						ServiceNetworks:   common.TestDualStackNetworking.ServiceNetworks,
@@ -10975,6 +11880,7 @@ var _ = Describe("TestRegisterCluster", func() {
 				})
 				verifyApiErrorString(reply, http.StatusBadRequest, "Dual-stack cluster cannot be created with empty Machine Networks")
 			})
+
 			It("API VIP from IPv6 Machine Network", func() {
 				mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
 					eventstest.WithNameMatcher(eventgen.ClusterRegistrationFailedEventName),
@@ -10995,6 +11901,7 @@ var _ = Describe("TestRegisterCluster", func() {
 				})
 				verifyApiErrorString(reply, http.StatusBadRequest, "api-vip <1001:db8::64> does not belong to machine-network-cidr <1.2.3.0/24>")
 			})
+
 			It("Ingress VIP from IPv6 Machine Network", func() {
 				mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
 					eventstest.WithNameMatcher(eventgen.ClusterRegistrationFailedEventName),
@@ -11053,12 +11960,14 @@ var _ = Describe("TestRegisterCluster", func() {
 					},
 				})
 				Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2UpdateClusterCreated()))
-				actual := reply.(*installer.V2UpdateClusterCreated).Payload
-				Expect(actual.APIVip).To(Equal(apiVip))
-				Expect(actual.IngressVip).To(Equal(ingressVip))
-				Expect(actual.ClusterNetworks).To(Equal(common.TestDualStackNetworking.ClusterNetworks))
-				Expect(actual.MachineNetworks).To(Equal(common.TestDualStackNetworking.MachineNetworks))
-				Expect(actual.ServiceNetworks).To(Equal(common.TestDualStackNetworking.ServiceNetworks))
+				cluster := &common.Cluster{Cluster: *reply.(*installer.V2UpdateClusterCreated).Payload}
+				Expect(cluster.APIVip).To(Equal(apiVip))
+				Expect(network.GetApiVipById(cluster, 0)).To(Equal(apiVip))
+				Expect(cluster.IngressVip).To(Equal(ingressVip))
+				Expect(network.GetIngressVipById(cluster, 0)).To(Equal(ingressVip))
+				Expect(cluster.ClusterNetworks).To(Equal(common.TestDualStackNetworking.ClusterNetworks))
+				Expect(cluster.MachineNetworks).To(Equal(common.TestDualStackNetworking.MachineNetworks))
+				Expect(cluster.ServiceNetworks).To(Equal(common.TestDualStackNetworking.ServiceNetworks))
 			})
 		})
 	})
@@ -11422,7 +12331,7 @@ var _ = Describe("TestRegisterCluster", func() {
 				CPUArchitecture:       common.MultiCPUArchitecture,
 				UserManagedNetworking: swag.Bool(true),
 				VipDhcpAllocation:     swag.Bool(false),
-				PullSecret:            swag.String("{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"),
+				PullSecret:            swag.String(fakePullSecret),
 			},
 		})
 		Expect(reflect.TypeOf(reply)).Should(Equal(reflect.TypeOf(installer.NewV2RegisterClusterCreated())))
@@ -11607,7 +12516,7 @@ var _ = Describe("TestRegisterCluster", func() {
 						Name:             swag.String("some-cluster-name"),
 						OpenshiftVersion: swag.String("4.12.0-someFakeFlavour"),
 						CPUArchitecture:  common.MultiCPUArchitecture,
-						PullSecret:       swag.String("{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"),
+						PullSecret:       swag.String(fakePullSecret),
 					},
 				})
 				Expect(reply).To(BeAssignableToTypeOf(installer.NewV2RegisterClusterCreated()))
@@ -11634,7 +12543,7 @@ var _ = Describe("TestRegisterCluster", func() {
 						Name:             swag.String("some-cluster-name"),
 						OpenshiftVersion: swag.String("4.12.0-someFakeFlavour"),
 						CPUArchitecture:  common.MultiCPUArchitecture,
-						PullSecret:       swag.String("{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"),
+						PullSecret:       swag.String(fakePullSecret),
 					},
 				})
 				verifyApiError(reply, http.StatusBadRequest)
@@ -11665,7 +12574,7 @@ var _ = Describe("TestRegisterCluster", func() {
 						Name:             swag.String("some-cluster-name"),
 						OpenshiftVersion: swag.String("4.12.0-someFakeFlavour"),
 						CPUArchitecture:  common.MultiCPUArchitecture,
-						PullSecret:       swag.String("{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"),
+						PullSecret:       swag.String(fakePullSecret),
 					},
 				})
 				Expect(reply).To(BeAssignableToTypeOf(installer.NewV2RegisterClusterCreated()))
@@ -13542,20 +14451,23 @@ var _ = Describe("IPv6 support disabled", func() {
 	const errorMsg = "IPv6 is not supported in this setup"
 
 	var (
-		bm  *bareMetalInventory
-		cfg Config
-		db  *gorm.DB
-		ctx = context.Background()
+		bm     *bareMetalInventory
+		cfg    Config
+		db     *gorm.DB
+		dbName string
+		ctx    = context.Background()
 	)
 
 	BeforeEach(func() {
 		Expect(envconfig.Process("test", &cfg)).ShouldNot(HaveOccurred())
 		Expect(cfg.IPv6Support).Should(BeTrue())
 		cfg.IPv6Support = false
+		db, dbName = common.PrepareTestDB()
 		bm = createInventory(db, cfg)
 	})
 
 	AfterEach(func() {
+		common.DeleteTestDB(db, dbName)
 		ctrl.Finish()
 	})
 
@@ -13582,6 +14494,9 @@ var _ = Describe("IPv6 support disabled", func() {
 				params.NewClusterParams.ClusterNetworks = []*models.ClusterNetwork{
 					{Cidr: "2001:db8::/64"},
 				}
+				params.NewClusterParams.MachineNetworks = []*models.MachineNetwork{
+					{Cidr: "2001:db9::/64"},
+				}
 				reply := bm.V2RegisterCluster(ctx, params)
 				verifyApiErrorString(reply, http.StatusBadRequest, errorMsg)
 			})
@@ -13590,11 +14505,15 @@ var _ = Describe("IPv6 support disabled", func() {
 				params.NewClusterParams.ServiceNetworks = []*models.ServiceNetwork{
 					{Cidr: "2001:db8::/64"},
 				}
+				params.NewClusterParams.MachineNetworks = []*models.MachineNetwork{
+					{Cidr: "2001:db9::/64"},
+				}
 				reply := bm.V2RegisterCluster(ctx, params)
 				verifyApiErrorString(reply, http.StatusBadRequest, errorMsg)
 			})
 
 			It("IPv6 ingress VIP rejected", func() {
+				params.NewClusterParams.APIVip = "2001:db8::2"
 				params.NewClusterParams.IngressVip = "2001:db8::1"
 				reply := bm.V2RegisterCluster(ctx, params)
 				verifyApiErrorString(reply, http.StatusBadRequest, errorMsg)
@@ -13608,9 +14527,27 @@ var _ = Describe("IPv6 support disabled", func() {
 
 		BeforeEach(func() {
 			mockUsageReports()
-			params = installer.V2UpdateClusterParams{
+
+			db, dbName = common.PrepareTestDB()
+			cfg.IPv6Support = false
+
+			bm = createInventory(db, cfg)
+			clusterID := strfmt.UUID(uuid.New().String())
+			err := db.Create(&common.Cluster{Cluster: models.Cluster{
+				ID:               &clusterID,
+				OpenshiftVersion: common.TestDefaultConfig.OpenShiftVersion,
+				Status:           swag.String(models.ClusterStatusReady),
+			}}).Error
+			Expect(err).ShouldNot(HaveOccurred())
+
+			params = installer.V2UpdateClusterParams{ClusterID: clusterID,
 				ClusterUpdateParams: &models.V2ClusterUpdateParams{},
 			}
+		})
+
+		AfterEach(func() {
+			common.DeleteTestDB(db, dbName)
+			ctrl.Finish()
 		})
 
 		It("IPv6 cluster network rejected", func() {
@@ -13639,12 +14576,16 @@ var _ = Describe("IPv6 support disabled", func() {
 
 		It("IPv6 API VIP rejected", func() {
 			params.ClusterUpdateParams.APIVip = swag.String("2003:db8::a")
+			params.ClusterUpdateParams.IngressVip = swag.String("2003:db8::b")
+
 			reply := bm.V2UpdateCluster(ctx, params)
 			verifyApiErrorString(reply, http.StatusBadRequest, errorMsg)
 		})
 
 		It("IPv6 ingress VIP rejected", func() {
 			params.ClusterUpdateParams.IngressVip = swag.String("2002:db8::1")
+			params.ClusterUpdateParams.APIVip = swag.String("2002:db8::2")
+
 			reply := bm.V2UpdateCluster(ctx, params)
 			verifyApiErrorString(reply, http.StatusBadRequest, errorMsg)
 		})
@@ -13657,6 +14598,7 @@ var _ = Describe("Dual-stack cluster", func() {
 		bm                                *bareMetalInventory
 		cfg                               Config
 		db                                *gorm.DB
+		dbName                            string
 		ctx                               = context.Background()
 		TestDualStackNetworkingWrongOrder = common.TestNetworking{
 			ClusterNetworks: append(common.TestIPv4Networking.ClusterNetworks, common.TestIPv6Networking.ClusterNetworks...),
@@ -13679,10 +14621,12 @@ var _ = Describe("Dual-stack cluster", func() {
 	BeforeEach(func() {
 		Expect(envconfig.Process("test", &cfg)).ShouldNot(HaveOccurred())
 		Expect(cfg.IPv6Support).Should(BeTrue())
+		db, dbName = common.PrepareTestDB()
 		bm = createInventory(db, cfg)
 	})
 
 	AfterEach(func() {
+		common.DeleteTestDB(db, dbName)
 		ctrl.Finish()
 	})
 
@@ -13770,7 +14714,15 @@ var _ = Describe("Dual-stack cluster", func() {
 
 		BeforeEach(func() {
 			mockUsageReports()
-			params = installer.V2UpdateClusterParams{
+			clusterID := strfmt.UUID(uuid.New().String())
+			err := db.Create(&common.Cluster{Cluster: models.Cluster{
+				ID:               &clusterID,
+				OpenshiftVersion: common.TestDefaultConfig.OpenShiftVersion,
+				Status:           swag.String(models.ClusterStatusReady),
+			}}).Error
+			Expect(err).ShouldNot(HaveOccurred())
+
+			params = installer.V2UpdateClusterParams{ClusterID: clusterID,
 				ClusterUpdateParams: &models.V2ClusterUpdateParams{},
 			}
 		})
@@ -14059,7 +15011,7 @@ var _ = Describe("[V2] V2DownloadClusterCredentials", func() {
 			PullSecretSet:    true,
 			OpenshiftVersion: common.TestDefaultConfig.OpenShiftVersion,
 			Status:           swag.String(models.ClusterStatusPreparingForInstallation),
-		}, PullSecret: "{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"}
+		}, PullSecret: fakePullSecret}
 		Expect(db.Create(c).Error).ShouldNot(HaveOccurred())
 		Expect(common.CreateInfraEnvForCluster(db, c, models.ImageTypeFullIso)).ShouldNot(HaveOccurred())
 	})

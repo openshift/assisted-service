@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/go-openapi/strfmt"
+	"github.com/hashicorp/go-multierror"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/models"
 	"github.com/pkg/errors"
@@ -104,9 +105,49 @@ func VerifyVip(hosts []*models.Host, machineNetworkCidr string, vip string, vipN
 	return nil
 }
 
-func VerifyDifferentVipAddresses(apiVip string, ingressVip string) error {
-	if apiVip == ingressVip && apiVip != "" {
-		return errors.Errorf("api-vip and ingress-vip cannot have the same value: %s", apiVip)
+func ValidateNoVIPAddressesDuplicates(apiVips []*models.APIVip, ingressVips []*models.IngressVip) error {
+	var (
+		err                     error
+		multiErr                error
+		seenApiVipAddresses     = make(map[string]bool)
+		seenIngressVipAddresses = make(map[string]bool)
+	)
+	for i := range apiVips {
+		ipAddress := string(apiVips[i].IP)
+		if ipAddress == "" {
+			continue
+		}
+		_, found := seenApiVipAddresses[ipAddress]
+		if found {
+			err = errors.Errorf("The IP address \"%s\" appears multiple times in apiVIPs", ipAddress)
+			multiErr = multierror.Append(multiErr, err)
+		} else {
+			seenApiVipAddresses[ipAddress] = true
+		}
+	}
+
+	for i := range ingressVips {
+		ipAddress := string(ingressVips[i].IP)
+		if ipAddress == "" {
+			continue
+		}
+		_, found := seenIngressVipAddresses[ipAddress]
+		if found {
+			err = errors.Errorf("The IP address \"%s\" appears multiple times in ingressVIPs", ipAddress)
+			multiErr = multierror.Append(multiErr, err)
+		} else {
+			seenIngressVipAddresses[ipAddress] = true
+		}
+		// Should also assert for duplicates between Ingress VIPs and API VIPs
+		_, found = seenApiVipAddresses[ipAddress]
+		if found {
+			err = errors.Errorf("The IP address \"%s\" appears both in apiVIPs and ingressVIPs", ipAddress)
+			multiErr = multierror.Append(multiErr, err)
+		}
+	}
+
+	if multiErr != nil && !strings.Contains(multiErr.Error(), "0 errors occurred") {
+		return multiErr
 	}
 	return nil
 }
@@ -117,7 +158,7 @@ func VerifyVips(hosts []*models.Host, machineNetworkCidr string, apiVip string, 
 		err = VerifyVip(hosts, machineNetworkCidr, ingressVip, "ingress-vip", mustExist, log)
 	}
 	if err == nil {
-		err = VerifyDifferentVipAddresses(apiVip, ingressVip)
+		err = ValidateNoVIPAddressesDuplicates([]*models.APIVip{{IP: models.IP(apiVip)}}, []*models.IngressVip{{IP: models.IP(ingressVip)}})
 	}
 	return err
 }
@@ -254,6 +295,18 @@ func GetPrimaryMachineCidrForUserManagedNetwork(cluster *common.Cluster, log log
 		return networks[0]
 	}
 	return ""
+}
+
+func GetSecondaryMachineCidr(cluster *common.Cluster) (string, error) {
+	var secondaryMachineCidr string
+
+	if IsMachineCidrAvailable(cluster) {
+		secondaryMachineCidr = GetMachineCidrById(cluster, 1)
+	}
+	if secondaryMachineCidr != "" {
+		return secondaryMachineCidr, nil
+	}
+	return "", errors.Errorf("unable to get secondary machine network for cluster %s", cluster.ID.String())
 }
 
 // GetMachineNetworksFromBoostrapHost used to collect machine networks from the cluster's bootstrap host.
