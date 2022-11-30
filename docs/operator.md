@@ -285,6 +285,8 @@ EOF
 
 The ConfigMap should be installed in the same namespace as the infrastructure-operator (ie. `assisted-installer`).
 
+Registries listed in the `unqualified-search-registries` will be automatically added to an authentication ignore list (`PUBLIC_CONTAINER_REGISTRIES` environment variable) and will not be required by `assisted-service` when it is validating the pull secret.
+
 Registries defined in the *registries.conf* file should use "mirror-by-digest-only = false" mode.
 
 Registries defined in the *registries.conf* must be scoped by repository and not by registry. In the above example, *quay.io/edge-infrastructure* and *mirror1.registry.corp.com:5000/edge-infrastructure* are both scoped by the *edge-infrastructure* repository and this is a valid configuration. In the example below, removing the repository *edge-infrastructure* from location is an invalid configuration and will not pass openshift-installer validation:
@@ -333,3 +335,27 @@ EOF
 ```
 
 For more details on how to specify the CR, see [AgentServiceConfig CRD](https://github.com/openshift/assisted-service/blob/master/config/crd/bases/agent-install.openshift.io_agentserviceconfigs.yaml).
+
+### Image Registries Without Authentication
+
+`assisted-service` validates the [pull secret](hive-integration/kube-api-getting-started.md#2-create-a-pull-secret) provided for spoke cluster installation by making sure it contains the authentication information for every image registry used for installation. 
+
+Registries that don't require authentication can be listed under `spec.unauthenticatedRegistries` in the `AgentServiceConfig` resource. Any registry on this list is not required to have an entry in the pull secret validated by the `assisted-service`.
+
+``` bash
+apiVersion: agent-install.openshift.io/v1beta1
+kind: AgentServiceConfig
+metadata:
+  name: agent
+spec:
+  unauthenticatedRegistries:
+  - example.registry.com
+  - example.registry2.com
+  ...
+```
+
+**NOTE:**
+
+[Mirror registries](#mirror-registry-configuration) will automatically be added to the ignore list and does need not to be added under `spec.unauthenticatedRegistries`.
+
+Specifying the `PUBLIC_CONTAINER_REGISTRIES` environment variable in the [ConfigMap override](#specifying-environmental-variables-via-configmap) is still supported and will completely overwrite the list to whatever is in the override.
