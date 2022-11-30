@@ -276,8 +276,6 @@ func (r *AgentReconciler) approveAIHostsCSRs(clients SpokeK8sClient, agent *aiv1
 func (r *AgentReconciler) tryApproveDay2CSRs(ctx context.Context, agent *aiv1beta1.Agent) bool {
 	r.Log.Infof("Approving CSRs for agent %s/%s", agent.Namespace, agent.Name)
 
-	// Get adminKubeConfigSecretName from clusterDeployment or fallback to template
-	adminKubeConfigSecretName := fmt.Sprintf(adminKubeConfigStringTemplate, agent.Spec.ClusterDeploymentName.Name)
 	clusterDeployment := &hivev1.ClusterDeployment{}
 	cdKey := types.NamespacedName{
 		Namespace: agent.Spec.ClusterDeploymentName.Namespace,
@@ -285,8 +283,11 @@ func (r *AgentReconciler) tryApproveDay2CSRs(ctx context.Context, agent *aiv1bet
 	}
 	err := r.Get(ctx, cdKey, clusterDeployment)
 	if err != nil {
-		adminKubeConfigSecretName = getClusterDeploymentAdminKubeConfigSecretName(clusterDeployment)
+		r.Log.WithError(err).Error("Failed to get clusterdeployment, falling back to clusterdeployment name based template")
+		// set this so it can be used by the following call
+		clusterDeployment.Name = cdKey.Name
 	}
+	adminKubeConfigSecretName := getClusterDeploymentAdminKubeConfigSecretName(clusterDeployment)
 
 	namespacedName := types.NamespacedName{
 		Namespace: agent.Spec.ClusterDeploymentName.Namespace,
