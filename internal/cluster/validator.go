@@ -129,7 +129,7 @@ func (v *clusterValidator) isMachineCidrEqualsToCalculatedCidr(c *clusterPreproc
 	}
 
 	for i := range c.cluster.APIVips {
-		cidr, err := network.CalculateMachineNetworkCIDR(string(c.cluster.APIVips[i].IP), string(c.cluster.IngressVips[i].IP), c.cluster.Hosts, true)
+		cidr, err := network.CalculateMachineNetworkCIDR(network.GetApiVipById(c.cluster, i), network.GetIngressVipById(c.cluster, i), c.cluster.Hosts, true)
 		if err != nil {
 			multiErr = multierror.Append(multiErr, err)
 			continue

@@ -1969,6 +1969,7 @@ var _ = Describe("cluster", func() {
 						db, mockEvents, nil, nil, nil, nil, nil, nil, nil, nil, nil)
 				})
 				Context("RegisterCluster - Multiple-VIPs Support", func() {
+					var openshiftVersion = "4.12.0"
 
 					Context("API and Ingress VIPs Backwards Compatibility", func() {
 
@@ -1980,7 +1981,7 @@ var _ = Describe("cluster", func() {
 							reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 								NewClusterParams: &models.ClusterCreateParams{
 									Name:             swag.String("some-cluster-name"),
-									OpenshiftVersion: swag.String(common.TestDefaultConfig.OpenShiftVersion),
+									OpenshiftVersion: swag.String(openshiftVersion),
 									PullSecret:       swag.String(fakePullSecret),
 									APIVip:           apiVip,
 									IngressVip:       ingressVip,
@@ -2003,7 +2004,7 @@ var _ = Describe("cluster", func() {
 							reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 								NewClusterParams: &models.ClusterCreateParams{
 									Name:             swag.String("some-cluster-name"),
-									OpenshiftVersion: swag.String(common.TestDefaultConfig.OpenShiftVersion),
+									OpenshiftVersion: swag.String(openshiftVersion),
 									PullSecret:       swag.String(fakePullSecret),
 									APIVip:           apiVip,
 									APIVips:          apiVips,
@@ -2028,7 +2029,7 @@ var _ = Describe("cluster", func() {
 							reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 								NewClusterParams: &models.ClusterCreateParams{
 									Name:             swag.String("some-cluster-name"),
-									OpenshiftVersion: swag.String(common.TestDefaultConfig.OpenShiftVersion),
+									OpenshiftVersion: swag.String(openshiftVersion),
 									PullSecret:       swag.String(fakePullSecret),
 									APIVip:           apiVip,
 									IngressVip:       ingressVip,
@@ -2056,7 +2057,7 @@ var _ = Describe("cluster", func() {
 							reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 								NewClusterParams: &models.ClusterCreateParams{
 									Name:             swag.String("some-cluster-name"),
-									OpenshiftVersion: swag.String(common.TestDefaultConfig.OpenShiftVersion),
+									OpenshiftVersion: swag.String(openshiftVersion),
 									PullSecret:       swag.String(fakePullSecret),
 									APIVip:           apiVip,
 									APIVips:          apiVips,
@@ -2080,7 +2081,7 @@ var _ = Describe("cluster", func() {
 							reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 								NewClusterParams: &models.ClusterCreateParams{
 									Name:             swag.String("some-cluster-name"),
-									OpenshiftVersion: swag.String(common.TestDefaultConfig.OpenShiftVersion),
+									OpenshiftVersion: swag.String(openshiftVersion),
 									PullSecret:       swag.String(fakePullSecret),
 									APIVip:           apiVip,
 									IngressVip:       ingressVip,
@@ -2103,7 +2104,7 @@ var _ = Describe("cluster", func() {
 							reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 								NewClusterParams: &models.ClusterCreateParams{
 									Name:             swag.String("some-cluster-name"),
-									OpenshiftVersion: swag.String(common.TestDefaultConfig.OpenShiftVersion),
+									OpenshiftVersion: swag.String(openshiftVersion),
 									PullSecret:       swag.String(fakePullSecret),
 									APIVips:          apiVips,
 									IngressVip:       ingressVip,
@@ -2125,7 +2126,7 @@ var _ = Describe("cluster", func() {
 							reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 								NewClusterParams: &models.ClusterCreateParams{
 									Name:             swag.String("some-cluster-name"),
-									OpenshiftVersion: swag.String(common.TestDefaultConfig.OpenShiftVersion),
+									OpenshiftVersion: swag.String(openshiftVersion),
 									PullSecret:       swag.String(fakePullSecret),
 									APIVip:           apiVip,
 									IngressVips:      ingressVips,
@@ -2151,7 +2152,7 @@ var _ = Describe("cluster", func() {
 						reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 							NewClusterParams: &models.ClusterCreateParams{
 								Name:             swag.String("some-cluster-name"),
-								OpenshiftVersion: swag.String(common.TestDefaultConfig.OpenShiftVersion),
+								OpenshiftVersion: swag.String(openshiftVersion),
 								PullSecret:       swag.String(fakePullSecret),
 								APIVip:           apiVip,
 								APIVips:          apiVips,
@@ -2173,7 +2174,7 @@ var _ = Describe("cluster", func() {
 						reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 							NewClusterParams: &models.ClusterCreateParams{
 								Name:             swag.String("some-cluster-name"),
-								OpenshiftVersion: swag.String(common.TestDefaultConfig.OpenShiftVersion),
+								OpenshiftVersion: swag.String(openshiftVersion),
 								PullSecret:       swag.String(fakePullSecret),
 								APIVip:           apiVip,
 								APIVips:          apiVips,
@@ -2204,7 +2205,7 @@ var _ = Describe("cluster", func() {
 						reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 							NewClusterParams: &models.ClusterCreateParams{
 								Name:             swag.String("some-cluster-name"),
-								OpenshiftVersion: swag.String(common.TestDefaultConfig.OpenShiftVersion),
+								OpenshiftVersion: swag.String(openshiftVersion),
 								PullSecret:       swag.String(fakePullSecret),
 								APIVip:           apiVip,
 								APIVips:          apiVips,
@@ -2230,7 +2231,7 @@ var _ = Describe("cluster", func() {
 						reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 							NewClusterParams: &models.ClusterCreateParams{
 								Name:             swag.String("some-cluster-name"),
-								OpenshiftVersion: swag.String(common.TestDefaultConfig.OpenShiftVersion),
+								OpenshiftVersion: swag.String(openshiftVersion),
 								PullSecret:       swag.String(fakePullSecret),
 								APIVip:           apiVip,
 								APIVips:          apiVips,
@@ -2256,7 +2257,7 @@ var _ = Describe("cluster", func() {
 						reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 							NewClusterParams: &models.ClusterCreateParams{
 								Name:             swag.String("some-cluster-name"),
-								OpenshiftVersion: swag.String(common.TestDefaultConfig.OpenShiftVersion),
+								OpenshiftVersion: swag.String(openshiftVersion),
 								PullSecret:       swag.String(fakePullSecret),
 								APIVip:           apiVip,
 								APIVips:          apiVips,
@@ -2281,7 +2282,7 @@ var _ = Describe("cluster", func() {
 						reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 							NewClusterParams: &models.ClusterCreateParams{
 								Name:             swag.String("some-cluster-name"),
-								OpenshiftVersion: swag.String(common.TestDefaultConfig.OpenShiftVersion),
+								OpenshiftVersion: swag.String(openshiftVersion),
 								PullSecret:       swag.String(fakePullSecret),
 								APIVip:           apiVip,
 								APIVips:          apiVips,
@@ -2306,7 +2307,7 @@ var _ = Describe("cluster", func() {
 						reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 							NewClusterParams: &models.ClusterCreateParams{
 								Name:             swag.String("some-cluster-name"),
-								OpenshiftVersion: swag.String(common.TestDefaultConfig.OpenShiftVersion),
+								OpenshiftVersion: swag.String(openshiftVersion),
 								PullSecret:       swag.String(fakePullSecret),
 								APIVip:           apiVip,
 								APIVips:          apiVips,
@@ -2332,7 +2333,7 @@ var _ = Describe("cluster", func() {
 						reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 							NewClusterParams: &models.ClusterCreateParams{
 								Name:             swag.String("some-cluster-name"),
-								OpenshiftVersion: swag.String(common.TestDefaultConfig.OpenShiftVersion),
+								OpenshiftVersion: swag.String(openshiftVersion),
 								PullSecret:       swag.String(fakePullSecret),
 								APIVip:           apiVip,
 								APIVips:          apiVips,
@@ -2358,7 +2359,7 @@ var _ = Describe("cluster", func() {
 						reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 							NewClusterParams: &models.ClusterCreateParams{
 								Name:             swag.String("some-cluster-name"),
-								OpenshiftVersion: swag.String(common.TestDefaultConfig.OpenShiftVersion),
+								OpenshiftVersion: swag.String(openshiftVersion),
 								PullSecret:       swag.String(fakePullSecret),
 								APIVip:           apiVip,
 								APIVips:          apiVips,
@@ -2384,7 +2385,7 @@ var _ = Describe("cluster", func() {
 						reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 							NewClusterParams: &models.ClusterCreateParams{
 								Name:             swag.String("some-cluster-name"),
-								OpenshiftVersion: swag.String(common.TestDefaultConfig.OpenShiftVersion),
+								OpenshiftVersion: swag.String(openshiftVersion),
 								PullSecret:       swag.String(fakePullSecret),
 								APIVip:           apiVip,
 								APIVips:          apiVips,
@@ -2409,7 +2410,7 @@ var _ = Describe("cluster", func() {
 						reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 							NewClusterParams: &models.ClusterCreateParams{
 								Name:             swag.String("some-cluster-name"),
-								OpenshiftVersion: swag.String(common.TestDefaultConfig.OpenShiftVersion),
+								OpenshiftVersion: swag.String(openshiftVersion),
 								PullSecret:       swag.String(fakePullSecret),
 								APIVip:           apiVip,
 								APIVips:          apiVips,
@@ -2418,6 +2419,88 @@ var _ = Describe("cluster", func() {
 							},
 						})
 						verifyApiErrorString(reply, http.StatusBadRequest, err)
+					})
+
+					Context("forbidden with OCP pre-4.12", func() {
+						var openshiftVersion = "4.11.0"
+
+						It("2 APIVips and 2 IngressVips", func() {
+							apiVip := "8.8.8.7"
+							ingressVip := "8.8.8.1"
+							apiVips := []*models.APIVip{{IP: models.IP(apiVip)}, {IP: models.IP("2001:db8::1")}}
+							ingressVips := []*models.IngressVip{{IP: models.IP(ingressVip)}, {IP: models.IP("2001:db8::2")}}
+							err := "dual-stack VIPs are not supported in OpenShift 4.11.0"
+
+							mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
+								eventstest.WithNameMatcher(eventgen.ClusterRegistrationFailedEventName),
+								eventstest.WithMessageContainsMatcher(err),
+								eventstest.WithSeverityMatcher(models.EventSeverityError))).Times(1)
+
+							reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
+								NewClusterParams: &models.ClusterCreateParams{
+									Name:             swag.String("some-cluster-name"),
+									OpenshiftVersion: swag.String(openshiftVersion),
+									PullSecret:       swag.String(fakePullSecret),
+									APIVip:           apiVip,
+									APIVips:          apiVips,
+									IngressVip:       ingressVip,
+									IngressVips:      ingressVips,
+								},
+							})
+							verifyApiErrorString(reply, http.StatusBadRequest, err)
+						})
+
+						It("2 APIVips and 1 IngressVip", func() {
+							apiVip := "8.8.8.7"
+							ingressVip := "8.8.8.1"
+							apiVips := []*models.APIVip{{IP: models.IP(apiVip)}, {IP: models.IP("2001:db8::1")}}
+							ingressVips := []*models.IngressVip{{IP: models.IP(ingressVip)}}
+							err := "dual-stack VIPs are not supported in OpenShift 4.11.0"
+
+							mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
+								eventstest.WithNameMatcher(eventgen.ClusterRegistrationFailedEventName),
+								eventstest.WithMessageContainsMatcher(err),
+								eventstest.WithSeverityMatcher(models.EventSeverityError))).Times(1)
+
+							reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
+								NewClusterParams: &models.ClusterCreateParams{
+									Name:             swag.String("some-cluster-name"),
+									OpenshiftVersion: swag.String(openshiftVersion),
+									PullSecret:       swag.String(fakePullSecret),
+									APIVip:           apiVip,
+									APIVips:          apiVips,
+									IngressVip:       ingressVip,
+									IngressVips:      ingressVips,
+								},
+							})
+							verifyApiErrorString(reply, http.StatusBadRequest, err)
+						})
+
+						It("1 APIVip and 2 IngressVips", func() {
+							apiVip := "8.8.8.7"
+							ingressVip := "8.8.8.1"
+							apiVips := []*models.APIVip{{IP: models.IP(apiVip)}}
+							ingressVips := []*models.IngressVip{{IP: models.IP(ingressVip)}, {IP: models.IP("2001:db8::2")}}
+							err := "dual-stack VIPs are not supported in OpenShift 4.11.0"
+
+							mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
+								eventstest.WithNameMatcher(eventgen.ClusterRegistrationFailedEventName),
+								eventstest.WithMessageContainsMatcher(err),
+								eventstest.WithSeverityMatcher(models.EventSeverityError))).Times(1)
+
+							reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
+								NewClusterParams: &models.ClusterCreateParams{
+									Name:             swag.String("some-cluster-name"),
+									OpenshiftVersion: swag.String(openshiftVersion),
+									PullSecret:       swag.String(fakePullSecret),
+									APIVip:           apiVip,
+									APIVips:          apiVips,
+									IngressVip:       ingressVip,
+									IngressVips:      ingressVips,
+								},
+							})
+							verifyApiErrorString(reply, http.StatusBadRequest, err)
+						})
 					})
 
 				})
@@ -2867,6 +2950,7 @@ var _ = Describe("cluster", func() {
 
 					err := db.Create(&common.Cluster{Cluster: models.Cluster{
 						ID:                    &clusterID,
+						OpenshiftVersion:      "4.12.0",
 						Platform:              &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeBaremetal)},
 						UserManagedNetworking: swag.Bool(false),
 						CPUArchitecture:       common.X86CPUArchitecture,
@@ -3624,6 +3708,7 @@ var _ = Describe("cluster", func() {
 				infraEnvID = strfmt.UUID(uuid.New().String())
 				err := db.Create(&common.Cluster{Cluster: models.Cluster{
 					ID:                    &clusterID,
+					OpenshiftVersion:      common.TestDefaultConfig.OpenShiftVersion,
 					Platform:              &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeBaremetal)},
 					UserManagedNetworking: swag.Bool(false),
 					CPUArchitecture:       common.X86CPUArchitecture,
@@ -4821,6 +4906,65 @@ var _ = Describe("cluster", func() {
 					var dbMachineNetworks []*models.MachineNetwork
 					Expect(db.Find(&dbMachineNetworks).Error).ShouldNot(HaveOccurred())
 					Expect(dbMachineNetworks).To(HaveLen(len(machineNetworks) * 2))
+				})
+			})
+
+			Context("Multiple VIPs forbidden in update for pre-4.12", func() {
+				It("2 APIVips and 2 IngressVips", func() {
+					apiVip := "8.8.8.7"
+					ingressVip := "8.8.8.1"
+					apiVips := []*models.APIVip{{IP: models.IP(apiVip)}, {IP: models.IP("2001:db8::1")}}
+					ingressVips := []*models.IngressVip{{IP: models.IP(ingressVip)}, {IP: models.IP("2001:db8::2")}}
+
+					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
+						ClusterID: clusterID,
+						ClusterUpdateParams: &models.V2ClusterUpdateParams{
+							APIVip:      &apiVip,
+							APIVips:     apiVips,
+							IngressVip:  &ingressVip,
+							IngressVips: ingressVips,
+						},
+					})
+
+					verifyApiErrorString(reply, http.StatusBadRequest, "dual-stack VIPs are not supported in OpenShift 4.6")
+				})
+
+				It("2 APIVips and 1 IngressVips", func() {
+					apiVip := "8.8.8.7"
+					ingressVip := "8.8.8.1"
+					apiVips := []*models.APIVip{{IP: models.IP(apiVip)}, {IP: models.IP("2001:db8::1")}}
+					ingressVips := []*models.IngressVip{{IP: models.IP(ingressVip)}}
+
+					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
+						ClusterID: clusterID,
+						ClusterUpdateParams: &models.V2ClusterUpdateParams{
+							APIVip:      &apiVip,
+							APIVips:     apiVips,
+							IngressVip:  &ingressVip,
+							IngressVips: ingressVips,
+						},
+					})
+
+					verifyApiErrorString(reply, http.StatusBadRequest, "dual-stack VIPs are not supported in OpenShift 4.6")
+				})
+
+				It("1 APIVip and 2 IngressVips", func() {
+					apiVip := "8.8.8.7"
+					ingressVip := "8.8.8.1"
+					apiVips := []*models.APIVip{{IP: models.IP(apiVip)}}
+					ingressVips := []*models.IngressVip{{IP: models.IP(ingressVip)}, {IP: models.IP("2001:db8::2")}}
+
+					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
+						ClusterID: clusterID,
+						ClusterUpdateParams: &models.V2ClusterUpdateParams{
+							APIVip:      &apiVip,
+							APIVips:     apiVips,
+							IngressVip:  &ingressVip,
+							IngressVips: ingressVips,
+						},
+					})
+
+					verifyApiErrorString(reply, http.StatusBadRequest, "dual-stack VIPs are not supported in OpenShift 4.6")
 				})
 			})
 		})
