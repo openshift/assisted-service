@@ -44,8 +44,6 @@ const (
 	ValidationDisabled              ValidationStatus = "disabled"
 	maxServiceAheadOfHostTimeDiff                    = 20 * time.Minute
 	maxHostAheadOfServiceTimeDiff                    = 1 * time.Hour
-	maxHostTimingMetrics                             = 4
-	maxPingCommandExamples                           = 4
 )
 
 const FailedToFindAction = "failed to find action for step"
@@ -918,54 +916,41 @@ func (v *validator) sufficientOrUnknownInstallationDiskSpeed(c *validationContex
 	return ValidationFailure, "While preparing the previous installation the installation disk speed measurement failed or was found to be insufficient"
 }
 
-type hostTimingMetric struct {
-	otherHostName string
-	timingMetric  float64
-	timingSuffix  string
-}
-
-func (v *validator) summarizeHostTimingMetrics(packetLossInfo []hostTimingMetric, truncateMetrics bool) string {
-	result := []string{}
-	for i, p := range packetLossInfo {
-		//If there a lot of hosts in the cluster, this list could be rather large, so we shorten it
-		if truncateMetrics && i > maxHostTimingMetrics {
-			result = append(result, fmt.Sprintf("%s (%.2f%s) and others...", p.otherHostName, p.timingMetric, p.timingSuffix))
-			break
-		}
-		result = append(result, fmt.Sprintf("%s (%.2f%s)", p.otherHostName, p.timingMetric, p.timingSuffix))
+func (v *validator) hasSufficientNetworkLatencyRequirementForRole(c *validationContext) (ValidationStatus, string) {
+	if c.infraEnv != nil {
+		return ValidationSuccessSuppressOutput, ""
 	}
-	return strings.Join(result, ", ")
+	if len(c.cluster.Hosts) == 1 || c.clusterHostRequirements.Total.NetworkLatencyThresholdMs == nil || common.GetEffectiveRole(c.host) == models.HostRoleAutoAssign || hostutil.IsDay2Host(c.host) {
+		// Single Node use case || no requirements defined || role is auto assign
+		return ValidationSuccess, "Network latency requirement has been satisfied."
+	}
+	if len(c.host.Connectivity) == 0 {
+		return ValidationPending, "Missing network latency information."
+	}
+	s, hostLatencies, err := v.validateNetworkLatencyForRole(c.host, c.clusterHostRequirements, c.cluster.Hosts, c.inventoryCache)
+	if s == ValidationFailure {
+		if err != nil {
+			return ValidationFailure, fmt.Sprintf("Error while attempting to validate network latency: %s", err)
+		}
+		return ValidationFailure, fmt.Sprintf("Network latency requirements of %s %.2f ms not met for connectivity between %s and%s.", comparisonBuilder(*c.clusterHostRequirements.Total.NetworkLatencyThresholdMs), *c.clusterHostRequirements.Total.NetworkLatencyThresholdMs, c.host.ID, strings.Join(hostLatencies, ","))
+	}
+	if s == ValidationError {
+		return ValidationError, "Parse error while attempting to process the connectivity report"
+	}
+	return ValidationSuccess, "Network latency requirement has been satisfied."
 }
 
-type thresholdTestType int
-
-const (
-	thresholdTestL3AverageRTTMs thresholdTestType = 0
-	thresholdTestL3PacketLoss   thresholdTestType = 1
-)
-
-func (v *validator) thresholdExceededTest(testType thresholdTestType, host *models.Host, clusterRoleReqs *models.ClusterHostRequirements, hosts []*models.Host, inventoryCache InventoryCache) (ValidationStatus, []hostTimingMetric, error) {
-
+func (v *validator) validateNetworkLatencyForRole(host *models.Host, clusterRoleReqs *models.ClusterHostRequirements, hosts []*models.Host, inventoryCache InventoryCache) (ValidationStatus, []string, error) {
 	connectivityReport, err := hostutil.UnmarshalConnectivityReport(host.Connectivity)
 	if err != nil {
 		v.log.Errorf("Unable to unmarshall host connectivity for %s:%s", host.ID, err)
 		return ValidationError, nil, nil
 	}
 	failedHostIPs := map[string]struct{}{}
-	failedHostMetrics := []hostTimingMetric{}
+	failedHostLatencies := []string{}
 	for _, r := range connectivityReport.RemoteHosts {
 		for _, l3 := range r.L3Connectivity {
-
-			var hostHasExceededThreshold bool
-			switch testType {
-			case thresholdTestL3AverageRTTMs:
-				hostHasExceededThreshold = l3.AverageRTTMs > *clusterRoleReqs.Total.NetworkLatencyThresholdMs
-			case thresholdTestL3PacketLoss:
-				hostHasExceededThreshold = l3.PacketLossPercentage > *clusterRoleReqs.Total.PacketLossPercentage
-			default:
-				return ValidationError, nil, fmt.Errorf("unexpected testType")
-			}
-			if hostHasExceededThreshold {
+			if l3.AverageRTTMs > *clusterRoleReqs.Total.NetworkLatencyThresholdMs {
 				if _, ok := failedHostIPs[l3.RemoteIPAddress]; !ok {
 					hostname, role, err := GetHostnameAndEffectiveRoleByHostID(r.HostID, hosts, inventoryCache)
 					if err != nil {
@@ -974,22 +959,28 @@ func (v *validator) thresholdExceededTest(testType thresholdTestType, host *mode
 					}
 					if role == common.GetEffectiveRole(host) {
 						failedHostIPs[l3.RemoteIPAddress] = struct{}{}
-						switch testType {
-						case thresholdTestL3AverageRTTMs:
-							failedHostMetrics = append(failedHostMetrics, hostTimingMetric{otherHostName: hostname, timingMetric: l3.AverageRTTMs, timingSuffix: " ms"})
-						case thresholdTestL3PacketLoss:
-							failedHostMetrics = append(failedHostMetrics, hostTimingMetric{otherHostName: hostname, timingMetric: l3.PacketLossPercentage, timingSuffix: "%"})
-						}
+						failedHostLatencies = append(failedHostLatencies, fmt.Sprintf(" %s (%.2f ms)", hostname, l3.AverageRTTMs))
 					}
 				}
 			}
 		}
 	}
-	if len(failedHostMetrics) > 0 {
-		return ValidationFailure, failedHostMetrics, nil
+	if len(failedHostLatencies) > 0 {
+		return ValidationFailure, failedHostLatencies, nil
 	}
 	return ValidationSuccess, nil, nil
+}
 
+const (
+	lessThanOr = "less than or"
+	equals     = "equals"
+)
+
+func comparisonBuilder(value float64) string {
+	if value > 0 {
+		return fmt.Sprintf("%s %s", lessThanOr, equals)
+	}
+	return equals
 }
 
 func (v *validator) hasSufficientPacketLossRequirementForRole(c *validationContext) (ValidationStatus, string) {
@@ -1003,7 +994,7 @@ func (v *validator) hasSufficientPacketLossRequirementForRole(c *validationConte
 	if len(c.host.Connectivity) == 0 {
 		return ValidationPending, "Missing packet loss information."
 	}
-	status, hostMetrics, err := v.thresholdExceededTest(thresholdTestL3PacketLoss, c.host, c.clusterHostRequirements, c.cluster.Hosts, c.inventoryCache)
+	status, hostPacketLoss, err := v.validatePacketLossForRole(c.host, c.clusterHostRequirements, c.cluster.Hosts, c.inventoryCache)
 	if err != nil {
 		return status, fmt.Sprintf("Error while attempting to validate packet loss validation: %s", err)
 	}
@@ -1012,120 +1003,43 @@ func (v *validator) hasSufficientPacketLossRequirementForRole(c *validationConte
 	case ValidationSuccess:
 		return status, "Packet loss requirement has been satisfied."
 	case ValidationFailure:
-		// When logging, make sure the full timing metrics are logged.
-		fullHostTimingMetrics := v.summarizeHostTimingMetrics(hostMetrics, false)
-		v.log.Error(fmt.Sprintf(`A total packet loss above the tolerated threshold of %.2f%% was encountered when performing connectivity validation between host %s and %s\n`,
-			*c.clusterHostRequirements.Total.PacketLossPercentage,
-			c.host.ID,
-			fullHostTimingMetrics,
-		))
-		// For the advisory message, a truncated summary of the timing metrics.
-		shortHostTimingMetrics := v.summarizeHostTimingMetrics(hostMetrics, true)
-		packetLossAdvisoryMessage := fmt.Sprintf(`A total packet loss above the tolerated threshold of %.2f%% was encountered when performing connectivity validation between host %s and %s\n`,
-			*c.clusterHostRequirements.Total.PacketLossPercentage,
-			c.host.ID,
-			shortHostTimingMetrics,
-		)
-		packetLossAdvisoryMessage += v.generatePacketLossAdvisoryMessageForHost(c)
-		return status, packetLossAdvisoryMessage
+
+		return status, fmt.Sprintf("Packet loss percentage requirement of %s %.2f%% not met for connectivity between %s and%s.", comparisonBuilder(*c.clusterHostRequirements.Total.PacketLossPercentage), *c.clusterHostRequirements.Total.PacketLossPercentage, c.host.ID, strings.Join(hostPacketLoss, ","))
 	case ValidationError:
 		return status, "Parse error while attempting to process the connectivity report"
 	}
 	return status, fmt.Sprintf("Unexpected status %s", status)
 }
 
-func (v *validator) generatePingCommand(c *validationContext, interfaceName string, addresses []string) string {
-	var message string
-
-	for i, address := range addresses {
-		//If there a lot of hosts in the cluster, this list could be rather large, so we shorten it
-		if i > maxPingCommandExamples {
-			message += "etc... \n"
-			break
-		}
-		// This command must be kept in sync with the agent repo https://github.com/openshift/assisted-installer-agent/blob/a35f7c36951313f6a6948a190ca6b56d1472516b/src/connectivity_check/connectivity_check.go#L87
-		message += fmt.Sprintf("ping -c 10 -W 3 -q -I %s %s\n", interfaceName, address)
-	}
-
-	return message
-}
-
-func (v *validator) generatePingCommandAdvisoryForInventory(c *validationContext, inventory *models.Inventory) string {
-	var message string
-	hostName := getRealHostname(c.host, inventory)
-	if len(inventory.Interfaces) > 0 {
-		message += fmt.Sprintf("2: Please try the following commands on the host %s to investigate the packet loss further\n\n", hostName)
-		for _, intf := range inventory.Interfaces {
-			message += v.generatePingCommand(c, intf.Name, intf.IPV4Addresses)
-		}
-	}
-	return message
-}
-
-func (v *validator) generatePacketLossAdvisoryMessageForHost(c *validationContext) string {
-	message := "Actions:\n"
-	message += "1: Check if there are multiple devices on the same L2 network, if so then use the built-in nmstate-based advanced networking configuration to create a bond or disable all but one of the interfaces.\n"
-
-	inventory, err := c.inventoryCache.GetOrUnmarshal(c.host)
+func (v *validator) validatePacketLossForRole(host *models.Host, clusterRoleReqs *models.ClusterHostRequirements, hosts []*models.Host, inventoryCache InventoryCache) (ValidationStatus, []string, error) {
+	connectivityReport, err := hostutil.UnmarshalConnectivityReport(host.Connectivity)
 	if err != nil {
-		v.log.WithError(err).Warnf("Could not parse inventory of host %s\n", *c.host.ID)
+		v.log.Errorf("Unable to unmarshall host connectivity for %s:%s", host.ID, err)
+		return ValidationError, nil, nil
 	}
-	return message + v.generatePingCommandAdvisoryForInventory(c, inventory)
-}
-
-func (v *validator) hasSufficientNetworkLatencyRequirementForRole(c *validationContext) (ValidationStatus, string) {
-	if c.infraEnv != nil {
-		return ValidationSuccessSuppressOutput, ""
-	}
-	if len(c.cluster.Hosts) == 1 || c.clusterHostRequirements.Total.NetworkLatencyThresholdMs == nil || common.GetEffectiveRole(c.host) == models.HostRoleAutoAssign || hostutil.IsDay2Host(c.host) {
-		// Single Node use case || no requirements defined || role is auto assign
-		return ValidationSuccess, "Network latency requirement has been satisfied."
-	}
-	if len(c.host.Connectivity) == 0 {
-		return ValidationPending, "Missing network latency information."
-	}
-	status, hostMetrics, err := v.thresholdExceededTest(thresholdTestL3AverageRTTMs, c.host, c.clusterHostRequirements, c.cluster.Hosts, c.inventoryCache)
-	if status == ValidationFailure {
-		if err != nil {
-			return ValidationFailure, fmt.Sprintf("Error while attempting to validate network latency: %s", err)
+	failedHostIPs := map[string]struct{}{}
+	failedHostPacketLoss := []string{}
+	for _, r := range connectivityReport.RemoteHosts {
+		for _, l3 := range r.L3Connectivity {
+			if l3.PacketLossPercentage > *clusterRoleReqs.Total.PacketLossPercentage {
+				if _, ok := failedHostIPs[l3.RemoteIPAddress]; !ok {
+					hostname, role, err := GetHostnameAndEffectiveRoleByHostID(r.HostID, hosts, inventoryCache)
+					if err != nil {
+						v.log.Error(err)
+						return ValidationFailure, nil, err
+					}
+					if role == common.GetEffectiveRole(host) {
+						failedHostIPs[l3.RemoteIPAddress] = struct{}{}
+						failedHostPacketLoss = append(failedHostPacketLoss, fmt.Sprintf(" %s (%.2f%%)", hostname, l3.PacketLossPercentage))
+					}
+				}
+			}
 		}
-
-		// When logging, make sure the full timing metrics are logged.
-		fullHostTimingMetrics := v.summarizeHostTimingMetrics(hostMetrics, false)
-		v.log.Info(fmt.Sprintf(`A total network latency above the tolerated threshold of %.2f ms was encountered when performing network latency tests between host %s and %s\n`,
-			*c.clusterHostRequirements.Total.NetworkLatencyThresholdMs,
-			c.host.ID,
-			fullHostTimingMetrics,
-		))
-
-		// For the advisory message, a truncated summary of the timing metrics.
-		shortHostTimingMetrics := v.summarizeHostTimingMetrics(hostMetrics, true)
-		networkLatencyAdvisoryMessage := fmt.Sprintf(`A total network latency above the tolerated threshold of %.2f ms was encountered when performing network latency tests between host %s and %s\n`,
-			*c.clusterHostRequirements.Total.NetworkLatencyThresholdMs,
-			c.host.ID,
-			shortHostTimingMetrics,
-		)
-
-		networkLatencyAdvisoryMessage += v.generateExcessiveLatencyAdvisoryForHost(c)
-		return ValidationFailure, networkLatencyAdvisoryMessage
 	}
-	if status == ValidationError {
-		return ValidationError, "Parse error while attempting to process the connectivity report"
+	if len(failedHostPacketLoss) > 0 {
+		return ValidationFailure, failedHostPacketLoss, nil
 	}
-	return ValidationSuccess, "Network latency requirement has been satisfied."
-}
-
-func (v *validator) generateExcessiveLatencyAdvisoryForHost(c *validationContext) string {
-	var message string
-	inventory, err := c.inventoryCache.GetOrUnmarshal(c.host)
-	if err != nil {
-		v.log.WithError(err).Warnf("Could not parse inventory of host %s\n", *c.host.ID)
-	}
-	if len(inventory.Interfaces) > 0 {
-		message += fmt.Sprintf("Actions:\n1: Please try the following commands on the host %s and examine averages to investigate the latency issue further\n\n", getRealHostname(c.host, inventory))
-		message += v.generatePingCommandAdvisoryForInventory(c, inventory)
-	}
-	return message
+	return ValidationSuccess, nil, nil
 }
 
 func (v *validator) hasDefaultRoute(c *validationContext) (ValidationStatus, string) {
