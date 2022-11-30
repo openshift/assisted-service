@@ -208,7 +208,7 @@ build-assisted-service:
 	cd ./cmd && CGO_ENABLED=1 go build $(DEBUG_ARGS) -o $(BUILD_FOLDER)/assisted-service
 
 build-assisted-service-operator:
-	cd ./cmd/operator && CGO_ENABLED=0 go build $(DEBUG_ARGS) -o $(BUILD_FOLDER)/assisted-service-operator
+	cd ./cmd/operator && CGO_ENABLED=1 go build $(DEBUG_ARGS) -o $(BUILD_FOLDER)/assisted-service-operator
 
 build-minimal: $(BUILD_FOLDER)
 	$(MAKE) -j build-assisted-service build-assisted-service-operator

@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/nmstate/nmstate/rust/src/go/nmstate"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/common"
@@ -16,6 +17,39 @@ func TestStaticNetworkConfig(t *testing.T) {
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "StaticNetworkConfig Suite")
 }
+
+var _ = Describe("generateConfiguration", func() {
+	var (
+		staticNetworkGenerator = StaticNetworkConfigGenerator{log: logrus.New(), nmstate: nmstate.New()}
+	)
+
+	It("Fail with an empty host YAML", func() {
+		_, err := staticNetworkGenerator.generateConfiguration("")
+		Expect(err).To(HaveOccurred())
+	})
+
+	It("Fail with an invalid host YAML", func() {
+		_, err := staticNetworkGenerator.generateConfiguration("interfaces:\n    - foo: badConfig")
+		Expect(err).To(HaveOccurred())
+		Expect(err.Error()).To(ContainSubstring("InvalidArgument"))
+	})
+
+	It("Success", func() {
+		hostYaml := `interfaces:
+- ipv4:
+    address:
+    - ip: 192.0.2.1
+      prefix-length: 24
+    dhcp: false
+    enabled: true
+  name: eth0
+  state: up
+  type: ethernet`
+		config, err := staticNetworkGenerator.generateConfiguration(hostYaml)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(config).To(ContainSubstring("address0=192.0.2.1/24"))
+	})
+})
 
 var _ = Describe("StaticNetworkConfig", func() {
 	var (

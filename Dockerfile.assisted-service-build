@@ -21,8 +21,8 @@ COPY --from=k8s.gcr.io/kustomize/kustomize:v4.3.0 /app/kustomize /usr/bin/
 
 RUN dnf install -y 'dnf-command(config-manager)' && \
     dnf config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo && \
-    dnf install -y \
-        openssl postgresql sqlite gcc genisoimage git docker-ce-cli libvirt-client libvirt-devel java && \
+    dnf install -y --enablerepo=powertools \
+        openssl postgresql nmstate-devel sqlite gcc genisoimage git docker-ce-cli libvirt-client libvirt-devel java && \
     dnf clean all
 
 WORKDIR /home/assisted-service
