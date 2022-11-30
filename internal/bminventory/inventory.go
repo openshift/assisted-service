@@ -2938,7 +2938,7 @@ func readConfiguredAgentImage(fullName string, tagOnly bool) string {
 func returnRegisterHostTransitionError(
 	defaultCode int32,
 	err error) middleware.Responder {
-	if isRegisterHostForbiddenDueWrongBootOrder(err) {
+	if isRegisterHostForbidden(err) {
 		return installer.NewV2RegisterHostForbidden().WithPayload(
 			&models.InfraError{
 				Code:    swag.Int32(http.StatusForbidden),
@@ -2948,7 +2948,7 @@ func returnRegisterHostTransitionError(
 	return common.NewApiError(defaultCode, err)
 }
 
-func isRegisterHostForbiddenDueWrongBootOrder(err error) bool {
+func isRegisterHostForbidden(err error) bool {
 	if serr, ok := err.(*common.ApiErrorResponse); ok {
 		return serr.StatusCode() == http.StatusForbidden
 	}

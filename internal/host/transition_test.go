@@ -123,7 +123,7 @@ var _ = Describe("RegisterHost", func() {
 		Expect(h.DiscoveryAgentVersion).To(Equal("v1.0.1"))
 	})
 
-	Context("register during installation", func() {
+	Context("register during or after installation", func() {
 		tests := []struct {
 			name                  string
 			progressStage         models.HostStage
@@ -153,6 +153,15 @@ var _ = Describe("RegisterHost", func() {
 				progressStage:         models.HostStageRebooting,
 				srcState:              models.HostStatusInstallingPendingUserAction,
 				dstState:              models.HostStatusInstallingPendingUserAction,
+				errorCode:             http.StatusForbidden,
+				expectedEventInfo:     "",
+				expectedNilStatusInfo: true,
+			},
+			{
+				name:                  "pending-user-action",
+				progressStage:         models.HostStageDone,
+				srcState:              models.HostStatusInstalled,
+				dstState:              models.HostStatusInstalled,
 				errorCode:             http.StatusForbidden,
 				expectedEventInfo:     "",
 				expectedNilStatusInfo: true,

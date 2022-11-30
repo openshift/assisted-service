@@ -108,6 +108,18 @@ func NewHostStateMachine(sm stateswitch.StateMachine, th TransitionHandler) stat
 		DestinationState: stateswitch.State(models.HostStatusError),
 	})
 
+	// A host may boot from the installation ISO after the cluster has been installed. In that
+	// case we want to ask the host to go away, as otherwise it will flood the log and the
+	// events.
+	sm.AddTransition(stateswitch.TransitionRule{
+		TransitionType: TransitionTypeRegisterHost,
+		SourceStates: []stateswitch.State{
+			stateswitch.State(models.HostStatusInstalled),
+		},
+		DestinationState: stateswitch.State(models.HostStatusInstalled),
+		PostTransition:   th.PostRegisterAfterInstallation,
+	})
+
 	// Installation failure
 	sm.AddTransition(stateswitch.TransitionRule{
 		TransitionType: TransitionTypeHostInstallationFailed,
