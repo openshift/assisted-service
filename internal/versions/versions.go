@@ -3,7 +3,6 @@ package versions
 import (
 	"context"
 	"fmt"
-	"net/http"
 	"runtime/debug"
 	"sort"
 	"strings"
@@ -46,7 +45,6 @@ type Handler interface {
 	GetCPUArchitectures(openshiftVersion string) []string
 	GetOpenshiftVersions() []string
 	AddReleaseImage(releaseImageUrl, pullSecret, ocpReleaseVersion string, cpuArchitectures []string) (*models.ReleaseImage, error)
-	ValidateAccessToMultiarch(ctx context.Context, authzHandler auth.Authorizer) error
 	ValidateReleaseImageForRHCOS(rhcosVersion, cpuArch string) error
 }
 
@@ -54,6 +52,7 @@ func NewHandler(log logrus.FieldLogger, releaseHandler oc.Release,
 	versions Versions, osImages models.OsImages, releaseImages models.ReleaseImages,
 	mustGatherVersions MustGatherVersions,
 	releaseImageMirror string, authzHandler auth.Authorizer) (*handler, error) {
+
 	h := &handler{
 		versions:           versions,
 		mustGatherVersions: mustGatherVersions,
@@ -118,15 +117,14 @@ func (h *handler) V2ListSupportedOpenshiftVersions(ctx context.Context, params o
 		//              expose them in OCP pre-4.13 without making them generally available.
 		if len(supportedArchs) > 1 {
 			if !checkedForMultiarchAuthorization {
-				checkedForMultiarchAuthorization = true
-				if err := h.ValidateAccessToMultiarch(ctx, h.authzHandler); err != nil {
-					if strings.Contains(err.Error(), "multiarch clusters are not available") {
-						continue
-					} else {
-						return common.GenerateErrorResponder(err)
-					}
+				var err error
+				hasMultiarchAuthorization, err = h.authzHandler.HasOrgBasedCapability(ctx, ocm.MultiarchCapabilityName)
+				if err == nil {
+					checkedForMultiarchAuthorization = true
+				} else {
+					h.log.WithError(err).Errorf("failed to get %s capability", ocm.MultiarchCapabilityName)
+					continue
 				}
-				hasMultiarchAuthorization = true
 			}
 			if !hasMultiarchAuthorization {
 				continue
@@ -498,20 +496,6 @@ func (h *handler) GetOpenshiftVersions() []string {
 		}
 	}
 	return versions
-}
-
-func (h *handler) ValidateAccessToMultiarch(ctx context.Context, authzHandler auth.Authorizer) error {
-	var err error
-	var multiarchAllowed bool
-
-	multiarchAllowed, err = authzHandler.HasOrgBasedCapability(ctx, ocm.MultiarchCapabilityName)
-	if err != nil {
-		return common.NewApiError(http.StatusInternalServerError, fmt.Errorf("error getting user %s capability, error: %w", ocm.MultiarchCapabilityName, err))
-	}
-	if !multiarchAllowed {
-		return common.NewApiError(http.StatusBadRequest, errors.Errorf("%s", "multiarch clusters are not available"))
-	}
-	return nil
 }
 
 // Returns version in major.minor format
