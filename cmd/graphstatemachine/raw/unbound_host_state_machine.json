@@ -1,0 +1,390 @@
+{
+  "transition_rules": [
+    {
+      "transition_type": "CancelInstallation",
+      "source_states": [
+        "installing",
+        "installing-pending-user-action",
+        "error",
+        "finalizing"
+      ],
+      "destination_state": "cancelled",
+      "name": "Cancel installation of installing cluster",
+      "description": "Move cluster to the cancelled state when user cancels installation"
+    },
+    {
+      "transition_type": "CancelInstallation",
+      "source_states": [
+        "preparing-for-installation"
+      ],
+      "destination_state": "ready",
+      "name": "Cancel installation of preparing cluster",
+      "description": "Cancelling a cluster during preperation simply cancels the preperation and moves it back to the ready, rather than putting the cluster in the cancelled state"
+    },
+    {
+      "transition_type": "PrepareForInstallation",
+      "source_states": [
+        "ready"
+      ],
+      "destination_state": "preparing-for-installation",
+      "name": "Start installation",
+      "description": "Begins preparing the cluster for installation"
+    },
+    {
+      "transition_type": "RefreshStatus",
+      "source_states": [
+        "pending-for-input",
+        "ready",
+        "insufficient"
+      ],
+      "destination_state": "pending-for-input",
+      "name": "Refresh discovering cluster - detect required input",
+      "description": "In order for this transition to be fired at least one of the validations in requiredInputFieldsExistNonDhcp must fail. This transition handles the case that there is missing input that has to be provided from a user or other external means"
+    },
+    {
+      "transition_type": "RefreshStatus",
+      "source_states": [
+        "pending-for-input",
+        "ready",
+        "insufficient"
+      ],
+      "destination_state": "insufficient",
+      "name": "Refresh discovering cluster - detect insufficient",
+      "description": "In order for this transition to be fired at least one of the validations in isSufficientForInstallNonDhcp must fail. This transition handles the case that one of the required validations that are required in order for the cluster to be in ready state  has failed"
+    },
+    {
+      "transition_type": "RefreshStatus",
+      "source_states": [
+        "pending-for-input",
+        "ready",
+        "insufficient"
+      ],
+      "destination_state": "pending-for-input",
+      "name": "TODO: Name this transition",
+      "description": "In order for this transition to be fired at least one of the validation IsMachineCidrDefined must fail. This transition handles the case that there is missing input that has to be provided from a user or other external means"
+    },
+    {
+      "transition_type": "RefreshStatus",
+      "source_states": [
+        "pending-for-input",
+        "ready",
+        "insufficient"
+      ],
+      "destination_state": "insufficient",
+      "name": "TODO: Name this transition",
+      "description": "In order for this transition to be fired at least one of the validations in isSufficientForInstallDhcp must fail. This transition handles the case that one of the required validations that are required in order for the host to be in known state (ready for installation) has failed"
+    },
+    {
+      "transition_type": "RefreshStatus",
+      "source_states": [
+        "pending-for-input",
+        "ready",
+        "insufficient"
+      ],
+      "destination_state": "ready",
+      "name": "Refresh discovering cluster - detect ready",
+      "description": "This transition is fired when all validations pass"
+    },
+    {
+      "transition_type": "RefreshStatus",
+      "source_states": [
+        "preparing-for-installation"
+      ],
+      "destination_state": "ready",
+      "name": "Refresh preparing cluster - detect timeout",
+      "description": "This transition is fired when the preparing installation reach the timeout"
+    },
+    {
+      "transition_type": "RefreshStatus",
+      "source_states": [
+        "preparing-for-installation"
+      ],
+      "destination_state": "installing",
+      "name": "Refresh preparing cluster - done preparing",
+      "description": "This transition is fired when cluster installation preperation is complete and all hosts within the cluster have also finished preparing"
+    },
+    {
+      "transition_type": "RefreshStatus",
+      "source_states": [
+        "preparing-for-installation"
+      ],
+      "destination_state": "insufficient",
+      "name": "Refresh preparing cluster - insufficient",
+      "description": "TODO: Document this transition"
+    },
+    {
+      "transition_type": "RefreshStatus",
+      "source_states": [
+        "preparing-for-installation"
+      ],
+      "destination_state": "ready",
+      "name": "Refresh preparing cluster - failed",
+      "description": "TODO: Document this transition"
+    },
+    {
+      "transition_type": "RefreshStatus",
+      "source_states": [
+        "installing-pending-user-action"
+      ],
+      "destination_state": "error",
+      "name": "TODO: Name this transition",
+      "description": "TODO: Document this transition"
+    },
+    {
+      "transition_type": "RefreshStatus",
+      "source_states": [
+        "installing-pending-user-action"
+      ],
+      "destination_state": "installing-pending-user-action",
+      "name": "TODO: Name this transition",
+      "description": "TODO: Document this transition"
+    },
+    {
+      "transition_type": "RefreshStatus",
+      "source_states": [
+        "installing-pending-user-action"
+      ],
+      "destination_state": "error",
+      "name": "Timed out while waiting for user",
+      "description": "User was asked to take action and did not do so in time, give up and display appropriate error"
+    },
+    {
+      "transition_type": "RefreshStatus",
+      "source_states": [
+        "finalizing"
+      ],
+      "destination_state": "error",
+      "name": "Timed out while finalizing",
+      "description": "Cluster finalization took too long, display appropriate error"
+    },
+    {
+      "transition_type": "RefreshStatus",
+      "source_states": [
+        "installing-pending-user-action"
+      ],
+      "destination_state": "installing",
+      "name": "TODO: Name this transition",
+      "description": "TODO: Document this transition"
+    },
+    {
+      "transition_type": "RefreshStatus",
+      "source_states": [
+        "installing-pending-user-action"
+      ],
+      "destination_state": "finalizing",
+      "name": "TODO: Name this transition",
+      "description": "TODO: Document this transition"
+    },
+    {
+      "transition_type": "RefreshStatus",
+      "source_states": [
+        "installing",
+        "finalizing"
+      ],
+      "destination_state": "installing-pending-user-action",
+      "name": "TODO: Name this transition",
+      "description": "TODO: Document this transition"
+    },
+    {
+      "transition_type": "RefreshStatus",
+      "source_states": [
+        "installing"
+      ],
+      "destination_state": "finalizing",
+      "name": "Move to finalizing",
+      "description": "This transition is fired when the cluster is in installing and should move to finalizing"
+    },
+    {
+      "transition_type": "RefreshStatus",
+      "source_states": [
+        "installing"
+      ],
+      "destination_state": "installing",
+      "name": "Stay in installing",
+      "description": "Installing cluster should stay in installing"
+    },
+    {
+      "transition_type": "RefreshStatus",
+      "source_states": [
+        "finalizing"
+      ],
+      "destination_state": "finalizing",
+      "name": "Update AMS subscription",
+      "description": "Update AMS subscription with console URL"
+    },
+    {
+      "transition_type": "RefreshStatus",
+      "source_states": [
+        "finalizing"
+      ],
+      "destination_state": "installed",
+      "name": "Finalizing complete",
+      "description": "The cluster has completed finalizing"
+    },
+    {
+      "transition_type": "RefreshStatus",
+      "source_states": [
+        "installing"
+      ],
+      "destination_state": "error",
+      "name": "Installation error",
+      "description": "This transition is fired when the cluster is in installing and should move to error"
+    },
+    {
+      "transition_type": "RefreshStatus",
+      "source_states": [
+        "error"
+      ],
+      "destination_state": "error",
+      "name": "Log collection timeout during error",
+      "description": "Stay in error state and update logs progress to timeout"
+    },
+    {
+      "transition_type": "RefreshStatus",
+      "source_states": [
+        "cancelled"
+      ],
+      "destination_state": "cancelled",
+      "name": "Log collection timeout during cancelled",
+      "description": "Stay in cancelled state and update logs progress to timeout"
+    },
+    {
+      "transition_type": "RefreshStatus",
+      "source_states": [
+        "preparing-for-installation"
+      ],
+      "destination_state": "preparing-for-installation",
+      "name": "Maintain preparing-for-installation state",
+      "description": "Stay in preparing-for-installation state"
+    },
+    {
+      "transition_type": "RefreshStatus",
+      "source_states": [
+        "finalizing"
+      ],
+      "destination_state": "finalizing",
+      "name": "Maintain finalizing state",
+      "description": "Stay in finalizing state"
+    },
+    {
+      "transition_type": "RefreshStatus",
+      "source_states": [
+        "installed"
+      ],
+      "destination_state": "installed",
+      "name": "Maintain installed state",
+      "description": "Stay in installed state"
+    },
+    {
+      "transition_type": "RefreshStatus",
+      "source_states": [
+        "error"
+      ],
+      "destination_state": "error",
+      "name": "Maintain error state",
+      "description": "Stay in error state"
+    },
+    {
+      "transition_type": "RefreshStatus",
+      "source_states": [
+        "cancelled"
+      ],
+      "destination_state": "cancelled",
+      "name": "Maintain cancelled state",
+      "description": "Stay in cancelled state"
+    },
+    {
+      "transition_type": "RefreshStatus",
+      "source_states": [
+        "adding-hosts"
+      ],
+      "destination_state": "adding-hosts",
+      "name": "Maintain adding-hosts state",
+      "description": "Stay in adding-hosts state"
+    },
+    {
+      "transition_type": "ResetCluster",
+      "source_states": [
+        "preparing-for-installation",
+        "installing",
+        "installing-pending-user-action",
+        "error",
+        "cancelled",
+        "finalizing"
+      ],
+      "destination_state": "insufficient",
+      "name": "Reset installation",
+      "description": "Reset the cluster, allowing it to be installed again"
+    }
+  ],
+  "states": {
+    "adding-hosts": {
+      "name": "AddingHosts",
+      "description": "The cluster is fully installed and is ready to accept new hosts. Installed clusters usually transition to this state automatically when installation is complete, depending on the configuration of the service. This is the initial state for imported clusters, as they are already installed"
+    },
+    "cancelled": {
+      "name": "Cancelled",
+      "description": "The cluster installation was cancelled by the user. Cluster must be reset to be able to install again"
+    },
+    "error": {
+      "name": "Error",
+      "description": "The cluster has encountered an error during installation and cannot proceed. Usually due to a timeout"
+    },
+    "finalizing": {
+      "name": "Finalizing",
+      "description": "The cluster has sufficient ready control-plane and worker nodes, but OCP is still finalizing the installation"
+    },
+    "initial": {
+      "name": "Initial",
+      "description": "The initial state of the state machine. This is a synthetic state that is not actually part of the state machine. It appears in documentation when transition rules hold a single source state that is an empty string"
+    },
+    "installed": {
+      "name": "Installed",
+      "description": "The cluster installation is considered complete, all operators are healthy and the cluster is ready to use"
+    },
+    "installing": {
+      "name": "Installing",
+      "description": "The cluster installation is in progress"
+    },
+    "installing-pending-user-action": {
+      "name": "Installing, Pending User Action",
+      "description": "Installation is in progress, but is blocked and cannot continue until the user takes action"
+    },
+    "insufficient": {
+      "name": "Insufficient",
+      "description": "This is the initial state for regular, non-imported clusters"
+    },
+    "pending-for-input": {
+      "name": "Pending For Input",
+      "description": "The cluster is not ready for installation because it needs more information from the user"
+    },
+    "preparing-for-installation": {
+      "name": "Preparing For Installation",
+      "description": "A transient state between Ready and Installing, cluster hosts are performing pre-installation validations"
+    },
+    "ready": {
+      "name": "Ready",
+      "description": "The cluster is ready to begin installation"
+    }
+  },
+  "transition_types": {
+    "CancelInstallation": {
+      "name": "Cancel Installation",
+      "description": "Triggered when the user cancels the installation"
+    },
+    "PrepareForInstallation": {
+      "name": "PrepareForInstallation",
+      "description": "Triggered when the user starts the installation"
+    },
+    "RefreshStatus": {
+      "name": "RefreshStatus",
+      "description": "Triggered on some clusters periodically by the background cluster monitor goroutine that runs on the leader instance of the Assisted Service. Responsible for driving transitions between states that require re-evaluation of all the validation results and potential timeout conditions"
+    },
+    "ResetCluster": {
+      "name": "Reset Cluster",
+      "description": "Triggered when the user resets the cluster"
+    }
+  },
+  "name": "Unbound Host",
+  "description": "The unbound host state machine helps the service orchestrate the host lifecycle of hosts that are not bound to a cluster"
+}

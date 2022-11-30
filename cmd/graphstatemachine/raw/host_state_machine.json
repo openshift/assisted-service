@@ -1,0 +1,786 @@
+{
+  "transition_rules": [
+    {
+      "transition_type": "CancelInstallation",
+      "source_states": [
+        "installing-pending-user-action",
+        "installing",
+        "installing-in-progress",
+        "installed",
+        "error"
+      ],
+      "destination_state": "cancelled",
+      "name": "Installation canceled while host is installing",
+      "description": "When the installation is canceled while the host is installing or finished installing, the host needs to move to the cancelled state"
+    },
+    {
+      "transition_type": "CancelInstallation",
+      "source_states": [
+        "preparing-for-installation",
+        "preparing-successful"
+      ],
+      "destination_state": "known",
+      "name": "Cancel while preparing",
+      "description": "TODO: Document this transition rule"
+    },
+    {
+      "transition_type": "CancelInstallation",
+      "source_states": [
+        "known"
+      ],
+      "destination_state": "known",
+      "name": "Cancel while known",
+      "description": "TODO: Document this transition rule"
+    },
+    {
+      "transition_type": "HostInstallationFailed",
+      "source_states": [
+        "installing",
+        "installing-in-progress"
+      ],
+      "destination_state": "error",
+      "name": "Installation failed while host is installing",
+      "description": "When the installation fails while a host is installing, the host should be moved to the error state because it is no longer actually installing"
+    },
+    {
+      "transition_type": "InstallHost",
+      "source_states": [
+        "known"
+      ],
+      "destination_state": "installing",
+      "name": "Install known host",
+      "description": "TODO: Document this transition rule"
+    },
+    {
+      "transition_type": "MediaDisconnect",
+      "source_states": [
+        "discovering",
+        "insufficient",
+        "known",
+        "pending-for-input",
+        "disconnected",
+        "binding"
+      ],
+      "destination_state": "disconnected",
+      "name": "Move to disconnected when virtual media disconnects pre-installation",
+      "description": "TODO: Document this transition rule."
+    },
+    {
+      "transition_type": "MediaDisconnect",
+      "source_states": [
+        "preparing-for-installation",
+        "preparing-failed",
+        "preparing-successful",
+        "installing",
+        "installing-in-progress",
+        "error"
+      ],
+      "destination_state": "error",
+      "name": "Move to error when virtual media disconnects post-installation",
+      "description": "TODO: Document this transition rule."
+    },
+    {
+      "transition_type": "RebootingForReclaim",
+      "source_states": [
+        "reclaiming"
+      ],
+      "destination_state": "reclaiming-rebooting",
+      "name": "Rebooting for reclaim reclaiming host",
+      "description": "TODO: Document this transition rule"
+    },
+    {
+      "transition_type": "ReclaimHost",
+      "source_states": [
+        "installed",
+        "added-to-existing-cluster"
+      ],
+      "destination_state": "reclaiming",
+      "name": "Reclaim successful host",
+      "description": "TODO: Document this transition rule"
+    },
+    {
+      "transition_type": "ReclaimHost",
+      "source_states": [
+        "known",
+        "discovering",
+        "disconnected",
+        "insufficient",
+        "pending-for-input"
+      ],
+      "destination_state": "unbinding",
+      "name": "Reclaim pre-installation",
+      "description": "TODO: Document this transition rule"
+    },
+    {
+      "transition_type": "ReclaimHost",
+      "source_states": [
+        "error",
+        "cancelled"
+      ],
+      "destination_state": "unbinding-pending-user-action",
+      "name": "Reclaim failed host",
+      "description": "TODO: Document this transition rule"
+    },
+    {
+      "transition_type": "ReclaimHostFailed",
+      "source_states": [
+        "reclaiming",
+        "reclaiming-rebooting"
+      ],
+      "destination_state": "unbinding-pending-user-action",
+      "name": "Reclaim failure for reclaiming host",
+      "description": "TODO: Document this transition rule"
+    },
+    {
+      "transition_type": "RefreshHost",
+      "source_states": [
+        "reclaiming",
+        "reclaiming-rebooting"
+      ],
+      "destination_state": "unbinding-pending-user-action",
+      "name": "Refresh reclaiming host",
+      "description": "TODO: Document this transition rule"
+    },
+    {
+      "transition_type": "RefreshHost",
+      "source_states": [
+        "known"
+      ],
+      "destination_state": "preparing-for-installation",
+      "name": "Refresh known host in preparing cluster",
+      "description": "TODO: Document this transition rule"
+    },
+    {
+      "transition_type": "RefreshHost",
+      "source_states": [
+        "preparing-for-installation"
+      ],
+      "destination_state": "preparing-successful",
+      "name": "Refresh successfully preparing host",
+      "description": "TODO: Document this transition rule"
+    },
+    {
+      "transition_type": "RefreshHost",
+      "source_states": [
+        "preparing-successful"
+      ],
+      "destination_state": "preparing-successful",
+      "name": "Stay in preparing successful",
+      "description": "TODO: Document this transition rule"
+    },
+    {
+      "transition_type": "RefreshHost",
+      "source_states": [
+        "preparing-successful"
+      ],
+      "destination_state": "installing",
+      "name": "Move successfully prepared host to installing",
+      "description": "TODO: Document this transition rule"
+    },
+    {
+      "transition_type": "RefreshHost",
+      "source_states": [
+        "preparing-for-installation"
+      ],
+      "destination_state": "known",
+      "name": "Move preparing host to known when cluster stops preparing",
+      "description": "TODO: Document this transition rule"
+    },
+    {
+      "transition_type": "RefreshHost",
+      "source_states": [
+        "preparing-for-installation",
+        "preparing-failed",
+        "known"
+      ],
+      "destination_state": "insufficient",
+      "name": "Preparing failed disk speed host move to insufficient",
+      "description": "TODO: Document this transition rule"
+    },
+    {
+      "transition_type": "RefreshHost",
+      "source_states": [
+        "preparing-for-installation"
+      ],
+      "destination_state": "preparing-failed",
+      "name": "Preparing failed image pull host move to preparing failed",
+      "description": "TODO: Document this transition rule"
+    },
+    {
+      "transition_type": "RefreshHost",
+      "source_states": [
+        "preparing-for-installation"
+      ],
+      "destination_state": "preparing-for-installation",
+      "name": "Stay in preparing for installation",
+      "description": "TODO: Document this transition rule"
+    },
+    {
+      "transition_type": "RefreshHost",
+      "source_states": [
+        "preparing-failed"
+      ],
+      "destination_state": "known",
+      "name": "Failed preparing to known when cluster is no longer preparing",
+      "description": "TODO: Document this transition rule"
+    },
+    {
+      "transition_type": "RefreshHost",
+      "source_states": [
+        "preparing-successful"
+      ],
+      "destination_state": "known",
+      "name": "Successful preparing to known when cluster is no longer preparing",
+      "description": "TODO: Document this transition rule. Why is ClusterInstalling relevant here?"
+    },
+    {
+      "transition_type": "RefreshHost",
+      "source_states": [
+        "discovering",
+        "insufficient",
+        "known",
+        "pending-for-input",
+        "disconnected",
+        "preparing-failed"
+      ],
+      "destination_state": "disconnected",
+      "name": "Move host to disconnected when connected times out",
+      "description": "TODO: Document this transition rule."
+    },
+    {
+      "transition_type": "RefreshHost",
+      "source_states": [
+        "installing",
+        "installing-in-progress",
+        "installed",
+        "resetting-pending-user-action",
+        "installing-pending-user-action"
+      ],
+      "destination_state": "error",
+      "name": "Move host to error when cluster is in error",
+      "description": "TODO: Document this transition rule. Why not day 2?"
+    },
+    {
+      "transition_type": "RefreshHost",
+      "source_states": [
+        "installing"
+      ],
+      "destination_state": "error",
+      "name": "Move host to error when installation times out",
+      "description": "TODO: Document this transition rule."
+    },
+    {
+      "transition_type": "RefreshHost",
+      "source_states": [
+        "installing"
+      ],
+      "destination_state": "error",
+      "name": "Move installing host to error when connection times out",
+      "description": "TODO: Document this transition rule."
+    },
+    {
+      "transition_type": "RefreshHost",
+      "source_states": [
+        "preparing-for-installation",
+        "preparing-successful"
+      ],
+      "destination_state": "disconnected",
+      "name": "Move preparing host to disconnected when connection times out",
+      "description": "TODO: Document this transition rule."
+    },
+    {
+      "transition_type": "RefreshHost",
+      "source_states": [
+        "installing",
+        "installing-in-progress"
+      ],
+      "destination_state": "error",
+      "name": "Move installing host to error when connection times out",
+      "description": "TODO: Document this transition rule."
+    },
+    {
+      "transition_type": "RefreshHost",
+      "source_states": [
+        "installing-in-progress"
+      ],
+      "destination_state": "installing-in-progress",
+      "name": "Ignore timeout if host is in particular installation in progress stages",
+      "description": "TODO: Document this transition rule."
+    },
+    {
+      "transition_type": "RefreshHost",
+      "source_states": [
+        "installing-in-progress"
+      ],
+      "destination_state": "error",
+      "name": "Move to error on timeout if host is in particular installation in progress stages",
+      "description": "TODO: Document this transition rule."
+    },
+    {
+      "transition_type": "RefreshHost",
+      "source_states": [
+        "installing-in-progress"
+      ],
+      "destination_state": "installing-pending-user-action",
+      "name": "Tell user about boot order wen reboot takes too long",
+      "description": "TODO: Document this transition rule."
+    },
+    {
+      "transition_type": "RefreshHost",
+      "source_states": [
+        "installing"
+      ],
+      "destination_state": "installing",
+      "name": "Refresh during installing state without cluster error should stay in installing state",
+      "description": "TODO: Document this transition rule. Is this necessary?"
+    },
+    {
+      "transition_type": "RefreshHost",
+      "source_states": [
+        "installing-in-progress"
+      ],
+      "destination_state": "installing-in-progress",
+      "name": "Refresh during installing-in-progress state without cluster error should stay in installing-in-progress state",
+      "description": "TODO: Document this transition rule. Is this necessary?"
+    },
+    {
+      "transition_type": "RefreshHost",
+      "source_states": [
+        "installed"
+      ],
+      "destination_state": "installed",
+      "name": "Refresh during installed state without cluster error should stay in installed state",
+      "description": "TODO: Document this transition rule. Is this necessary?"
+    },
+    {
+      "transition_type": "RefreshHost",
+      "source_states": [
+        "installing-pending-user-action"
+      ],
+      "destination_state": "installing-pending-user-action",
+      "name": "Refresh during installing-pending-user-action state without cluster error should stay in installing-pending-user-action state",
+      "description": "TODO: Document this transition rule. Is this necessary?"
+    },
+    {
+      "transition_type": "RefreshHost",
+      "source_states": [
+        "resetting-pending-user-action"
+      ],
+      "destination_state": "resetting-pending-user-action",
+      "name": "Refresh during resetting-pending-user-action state without cluster error should stay in resetting-pending-user-action state",
+      "description": "TODO: Document this transition rule. Is this necessary?"
+    },
+    {
+      "transition_type": "RefreshHost",
+      "source_states": [
+        "disconnected",
+        "discovering"
+      ],
+      "destination_state": "discovering",
+      "name": "Host reconnected without inventory",
+      "description": "TODO: Document this transition rule. Why is Discovering in the source states?"
+    },
+    {
+      "transition_type": "RefreshHost",
+      "source_states": [
+        "disconnected",
+        "discovering",
+        "insufficient",
+        "known"
+      ],
+      "destination_state": "insufficient",
+      "name": "Host has insufficient hardware",
+      "description": "In order for this transition to be fired at least one of the validations in minRequiredHardwareValidations must fail. This transition handles the case that a host does not pass minimum hardware requirements for any of the roles"
+    },
+    {
+      "transition_type": "RefreshHost",
+      "source_states": [
+        "disconnected",
+        "discovering",
+        "insufficient",
+        "known",
+        "pending-for-input"
+      ],
+      "destination_state": "pending-for-input",
+      "name": "Host pending input",
+      "description": "In order for this transition to be fired at least one of the validations in sufficientInputValidations must fail. This transition handles the case that there is missing input that has to be provided from a user or other external means"
+    },
+    {
+      "transition_type": "RefreshHost",
+      "source_states": [
+        "disconnected",
+        "insufficient",
+        "pending-for-input",
+        "discovering",
+        "known"
+      ],
+      "destination_state": "insufficient",
+      "name": "Host not ready",
+      "description": "In order for this transition to be fired at least one of the validations in sufficientForInstallValidations must fail. This transition handles the case that one of the required validations that are required in order for the host to be in known state (ready for installation) has failed"
+    },
+    {
+      "transition_type": "RefreshHost",
+      "source_states": [
+        "disconnected",
+        "insufficient",
+        "pending-for-input",
+        "discovering"
+      ],
+      "destination_state": "known",
+      "name": "Host ready",
+      "description": "This transition is fired when all validations pass. TODO: Why is the vSphere validation given special treatment here?"
+    },
+    {
+      "transition_type": "RefreshHost",
+      "source_states": [
+        "known"
+      ],
+      "destination_state": "known",
+      "name": "Host stay ready",
+      "description": "TODO: Document this transition rule."
+    },
+    {
+      "transition_type": "RefreshHost",
+      "source_states": [
+        "error"
+      ],
+      "destination_state": "error",
+      "name": "Log collection timed out during error should stay in error",
+      "description": "TODO: Document this transition rule."
+    },
+    {
+      "transition_type": "RefreshHost",
+      "source_states": [
+        "cancelled"
+      ],
+      "destination_state": "cancelled",
+      "name": "Log collection timed out during cancelled should stay in cancelled",
+      "description": "TODO: Document this transition rule."
+    },
+    {
+      "transition_type": "RefreshHost",
+      "source_states": [
+        "error"
+      ],
+      "destination_state": "error",
+      "name": "Refresh during error should stay in error",
+      "description": "TODO: Document this transition rule."
+    },
+    {
+      "transition_type": "RefreshHost",
+      "source_states": [
+        "cancelled"
+      ],
+      "destination_state": "cancelled",
+      "name": "Refresh during cancelled should stay in cancelled",
+      "description": "TODO: Document this transition rule."
+    },
+    {
+      "transition_type": "RefreshHost",
+      "source_states": [
+        "resetting"
+      ],
+      "destination_state": "resetting",
+      "name": "Refresh during resetting should stay in resetting",
+      "description": "TODO: Document this transition rule."
+    },
+    {
+      "transition_type": "RefreshHost",
+      "source_states": [
+        "added-to-existing-cluster"
+      ],
+      "destination_state": "added-to-existing-cluster",
+      "name": "Day 2 hosts should stay in added state",
+      "description": "TODO: Document this transition rule."
+    },
+    {
+      "transition_type": "RefreshHost",
+      "source_states": [
+        "reclaiming"
+      ],
+      "destination_state": "reclaiming",
+      "name": "Refresh without timeout during reclaiming should stay in reclaiming",
+      "description": "TODO: Document this transition rule."
+    },
+    {
+      "transition_type": "RefreshHost",
+      "source_states": [
+        "reclaiming-rebooting"
+      ],
+      "destination_state": "reclaiming-rebooting",
+      "name": "Refresh without timeout during reclaiming-rebooting should stay in reclaiming-rebooting",
+      "description": "TODO: Document this transition rule."
+    },
+    {
+      "transition_type": "RegisterHost",
+      "source_states": [
+        "initial"
+      ],
+      "destination_state": "discovering",
+      "name": "Initial registration",
+      "description": "When new host is first registered. This transition is not executed on unbound hosts because <unknown, TODO>"
+    },
+    {
+      "transition_type": "RegisterHost",
+      "source_states": [
+        "discovering",
+        "known",
+        "disconnected",
+        "insufficient",
+        "resetting-pending-user-action",
+        "preparing-for-installation",
+        "preparing-successful",
+        "binding"
+      ],
+      "destination_state": "discovering",
+      "name": "Re-registration",
+      "description": "When the host attempts to register while it's in one of the non-installation states. We move the host back to the discovering state instead of keeping it in its current state because we consider it a new host with potentially different hardware. See PostRegisterHost function"
+    },
+    {
+      "transition_type": "RegisterHost",
+      "source_states": [
+        "resetting"
+      ],
+      "destination_state": "resetting",
+      "name": "Ignore register while rebooting host in resetting",
+      "description": "On such cases cluster monitor is responsible to set the host state to resetting-pending-user-action. There are some edge cases on installation where user tries to reset installation on the same time reboot is called. On some cases the agent will get to reset itself and register again just before the reboot and the cluster monitor will not get to set the status in resetting-pending-user-action on time. Created to prevent OCPBUGSM-13597"
+    },
+    {
+      "transition_type": "RegisterHost",
+      "source_states": [
+        "resetting"
+      ],
+      "destination_state": "discovering",
+      "name": "Register non-rebooting host in resetting",
+      "description": "The opposite of the 'Ignore register while rebooting host in resetting' transition rule, move host to discovering"
+    },
+    {
+      "transition_type": "RegisterHost",
+      "source_states": [
+        "installing-in-progress",
+        "installing-pending-user-action",
+        "added-to-existing-cluster"
+      ],
+      "destination_state": "installing-pending-user-action",
+      "name": "Wrong boot order detection",
+      "description": "A day-1 host trying to register while it's in the rebooting stage or a day-2 host trying to register while it's in the done stage indicate that the host, after installing the operating system to disk and then rebooting, booted from the discovery ISO again instead of booting the installed operating system as it should've done (the first thing the discovery ISO live OS tries to do is register). This indicates that the user has a wrong boot order that they should fix. This transition makes sure to let the user know about what happened and what they should do to fix that"
+    },
+    {
+      "transition_type": "RegisterHost",
+      "source_states": [
+        "installing",
+        "installing-in-progress"
+      ],
+      "destination_state": "error",
+      "name": "Register during installation",
+      "description": "Any host registering during installation but doesn't match the 'Wrong boot order detection' transition is performing an invalid operation and thus should move to the error state"
+    },
+    {
+      "transition_type": "RegisterHost",
+      "source_states": [
+        "error"
+      ],
+      "destination_state": "error",
+      "name": "Register during error",
+      "description": "Host in error should be able to register without changes. If the registration return conflict or error then we have infinite number of events. If the registration is blocked (403) it will break auto-reset feature. It can happen that user rebooted the host manually after installation failure without changes in the cluster. So the best option is just accept the registration without changes in the DB"
+    },
+    {
+      "transition_type": "ResettingPendingUserAction",
+      "source_states": [
+        "resetting",
+        "discovering",
+        "known",
+        "installing-pending-user-action",
+        "installing",
+        "preparing-for-installation",
+        "preparing-successful",
+        "preparing-failed",
+        "pending-for-input",
+        "resetting-pending-user-action",
+        "installing-in-progress",
+        "installed",
+        "error",
+        "cancelled",
+        "added-to-existing-cluster"
+      ],
+      "destination_state": "resetting-pending-user-action",
+      "name": "Reset pending user action all states",
+      "description": "TODO: Document this transition rule"
+    },
+    {
+      "transition_type": "UnbindHost",
+      "source_states": [
+        "known",
+        "discovering",
+        "disconnected",
+        "insufficient",
+        "pending-for-input"
+      ],
+      "destination_state": "unbinding",
+      "name": "Unbind pre-installation",
+      "description": "TODO: Document this transition rule"
+    },
+    {
+      "transition_type": "UnbindHost",
+      "source_states": [
+        "installed",
+        "added-to-existing-cluster",
+        "error",
+        "cancelled"
+      ],
+      "destination_state": "unbinding-pending-user-action",
+      "name": "Unbind during or after installation",
+      "description": "TODO: Document this transition rule"
+    }
+  ],
+  "states": {
+    "added-to-existing-cluster": {
+      "name": "Added to Existing Cluster",
+      "description": "This is the final, successful state day-2 hosts reach when the Assisted Installer has done everything it can to help them join the target cluster"
+    },
+    "binding": {
+      "name": "Binding",
+      "description": "TODO: Describe this state"
+    },
+    "cancelled": {
+      "name": "Cancelled",
+      "description": "TODO: Describe this state"
+    },
+    "disabled": {
+      "name": "Disabled",
+      "description": "TODO: Describe this state. This seems like an obsolete state that is no longer being used"
+    },
+    "disconnected": {
+      "name": "Disconnected",
+      "description": "Hosts reach this state when the agent stops communicating with the service for a period of time. This can happen if the host is rebooted, if the agent is stopped for some reason, or if the host lost connectivity. Hosts can also reach this state if the agent that runs them detects and reports that the virtual media serving the live ISO doesn't seem to be responding"
+    },
+    "discovering": {
+      "name": "Discovering",
+      "description": "This is the first state that the host is in after it has been registered. We usually don't know much about the host at this point, unless it reached this state through other circumstances"
+    },
+    "error": {
+      "name": "Error",
+      "description": "Hosts can reach this state in many ways when something goes wrong and there's nothing the service or the user can do to remedy the situation. For example, when the cluster state machine goes into error, all hosts within the cluster will also go into error. The only way to get a host out of this state is by resetting the cluster installation. It is possible that a cluster installation would be considered successful even when some of the hosts reach this state, for example when the host that reached this state is a worker and there are other workers that are sufficient for healthy cluster operation"
+    },
+    "initial": {
+      "name": "Initial",
+      "description": "The initial state of the state machine. This is a synthetic state that is not actually part of the state machine. It appears in documentation when transition rules hold a single source state that is an empty string"
+    },
+    "installed": {
+      "name": "Installed",
+      "description": "Hosts reach this state after they have been successfully installed. This state does not indicate that the cluster has successfully finished installing and initializing, only that this particular host seems to have successfuly joined and become an active member of the cluster"
+    },
+    "installing": {
+      "name": "Installing",
+      "description": "The host installation has just begun. Hosts usually quickly move from this state to the 'Installing in Progress' state once they begin executing the install step"
+    },
+    "installing-in-progress": {
+      "name": "Installing in Progress",
+      "description": "Hosts stay in this state for a long time while they're being installed. The actual host installation progress is tracked via the host's progress stages, percentage and messages rather than moving the hosts to different states"
+    },
+    "installing-pending-user-action": {
+      "name": "Installing, Pending User Action",
+      "description": "Hosts in this state are waiting for the user to perform some action before the installation can continue. For example, when the host boots into the discovery ISO after it has been rebooted by the Assisted Installer - the user must manually reboot the host into the installation disk"
+    },
+    "insufficient": {
+      "name": "Insufficient",
+      "description": "Hosts in this state do not meet all the requirements required for installation to start. In other words, hosts for which some of the validations which we deem required for installation have a negative status"
+    },
+    "known": {
+      "name": "Known",
+      "description": "Hosts in this state meet all the requirements and are ready for installation to start. All hosts must reach this state before cluster installation can begin"
+    },
+    "pending-for-input": {
+      "name": "Pending for Input",
+      "description": "Similar to the 'Insufficient' state, except for validations which the user can resolve by providing some input, such as the machine CIDR for the cluster"
+    },
+    "preparing-failed": {
+      "name": "Preparing Failed",
+      "description": "A state reached after the 'Preparing for Installation' state validations fail. This state is transient and the host automatically moves to and from it, it exists mostly to set the correct host status message to help the user understand what went wrong"
+    },
+    "preparing-for-installation": {
+      "name": "Preparing for Installation",
+      "description": "A transient state which occurs after the user triggers installation and before installation actually begins. This state was made for performing destructive validations such as disk speed check. We don't perform those validations in prior states because before the user clicks install, we don't have their consent to perform disk writes. If those validations fail, we do not continue with the installation process"
+    },
+    "preparing-successful": {
+      "name": "Preparing Successful",
+      "description": "A state reached after the 'Preparing for Installation' state validations succeed. This state is transient and the host automatically moves to and from it, it exists mostly to set the correct host status message"
+    },
+    "reclaiming": {
+      "name": "Reclaiming",
+      "description": "TODO: Describe this state"
+    },
+    "reclaiming-rebooting": {
+      "name": "Reclaiming, Rebooting",
+      "description": "TODO: Describe this state"
+    },
+    "resetting": {
+      "name": "Resetting",
+      "description": "Hosts reach this state when the user triggers a reset of the cluster installation. When ENABLE_AUTO_RESET is set to false (which it always is), this is a very short lived state and the host immediately proceeds to 'Resetting, Pending User Action' from it. This is a legacy state and it should eventually be merged with 'Resetting, Pending User Action'"
+    },
+    "resetting-pending-user-action": {
+      "name": "Resetting, Pending User Action",
+      "description": "This is the true resetting state when ENABLE_AUTO_RESET is set to false (which it always is). In this state we wait for and tell the user to reboot the host into the live ISO in order to proceed"
+    },
+    "unbinding": {
+      "name": "Unbinding",
+      "description": "TODO: Describe this state"
+    },
+    "unbinding-pending-user-action": {
+      "name": "Unbinding, Pending User Action",
+      "description": "TODO: Describe this state"
+    }
+  },
+  "transition_types": {
+    "BindHost": {
+      "name": "Bind Host",
+      "description": "Triggered when a previously unbound host is bound to a cluster"
+    },
+    "CancelInstallation": {
+      "name": "Cancel Installation",
+      "description": "Triggered on each host when the user cancels the cluster installation"
+    },
+    "HostInstallationFailed": {
+      "name": "Installation Failed",
+      "description": "TODO: Document this transition type"
+    },
+    "InstallHost": {
+      "name": "Install Host",
+      "description": "Triggered on each host when the user or Assisted kube-API controllers trigger cluster installation"
+    },
+    "MediaDisconnect": {
+      "name": "Media Disconnect",
+      "description": "Triggered when the a step response returned by the agent indicates that a virtual media disconnection has occurred"
+    },
+    "RebootingForReclaim": {
+      "name": "Rebooting for Reclaim",
+      "description": "TODO: Document this transition type"
+    },
+    "ReclaimHost": {
+      "name": "Reclaim Host",
+      "description": "TODO: Document this transition"
+    },
+    "ReclaimHostFailed": {
+      "name": "Reclaim Failed",
+      "description": "TODO: Document this transition type"
+    },
+    "RefreshHost": {
+      "name": "Refresh",
+      "description": "Triggered on some hosts periodically by the background host monitor goroutine that runs on the leader instance of the Assisted Service. Responsible for driving transitions between states that require re-evaluation of all the validation results and potential timeout conditions"
+    },
+    "RegisterHost": {
+      "name": "Register Host",
+      "description": "Triggered when a host boots the discovery ISO and calls the Register API"
+    },
+    "ResettingPendingUserAction": {
+      "name": "Resetting, Pending User Action",
+      "description": "TODO: Document this transition type"
+    },
+    "UnbindHost": {
+      "name": "Unbind Host",
+      "description": "TODO: Document this transition"
+    }
+  },
+  "name": "Host",
+  "description": "The host state machine helps the service orchestrate the host lifecycle of hosts that are already bound to a cluster"
+}

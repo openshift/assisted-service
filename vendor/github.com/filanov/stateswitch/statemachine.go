@@ -4,29 +4,43 @@ import (
 	"github.com/pkg/errors"
 )
 
+var (
+	NoConditionPassedToRunTransaction = errors.New("no condition found to run transition")
+	NoMatchForTransitionType          = errors.New("no match for transition type")
+)
+
 type StateMachine interface {
-	// AddTransition to state machine
+	// AddTransitionRule adds a new transition rule to the state machine
+	AddTransitionRule(rule TransitionRule)
+	// AddTransition is a deprecated method, use AddTransitionRule instead
 	AddTransition(rule TransitionRule)
 	// Run transition by type
 	Run(transitionType TransitionType, stateSwitch StateSwitch, args TransitionArgs) error
+
+	StateMachineDocumentation
 }
 
 // Create new default state machine
 func NewStateMachine() *stateMachine {
-	return &stateMachine{
+	sm := stateMachine{
 		transitionRules: map[TransitionType]TransitionRules{},
 	}
+
+	initStateMachineDocumentation(&sm)
+
+	return &sm
 }
 
 type stateMachine struct {
 	transitionRules map[TransitionType]TransitionRules
+	stateMachineDocumentation
 }
 
 // Run transition by type, will search for the first transition that will pass a condition.
 func (sm *stateMachine) Run(transitionType TransitionType, stateSwitch StateSwitch, args TransitionArgs) error {
 	transByType, ok := sm.transitionRules[transitionType]
 	if !ok {
-		return errors.Errorf("no match for transition type %s", transitionType)
+		return NoMatchForTransitionType
 	}
 
 	for _, tr := range transByType {
@@ -40,7 +54,6 @@ func (sm *stateMachine) Run(transitionType TransitionType, stateSwitch StateSwit
 					return err
 				}
 			}
-			//return sm.StateSwitchObj.SetState(tr.DestinationState)
 			if err := stateSwitch.SetState(tr.DestinationState); err != nil {
 				return err
 			}
@@ -50,11 +63,13 @@ func (sm *stateMachine) Run(transitionType TransitionType, stateSwitch StateSwit
 			return nil
 		}
 	}
-	return errors.Errorf("no condition passed to run transition %s from state %s",
-		transitionType, stateSwitch.State())
+	return NoConditionPassedToRunTransaction
 }
 
-// AddTransition to state machine
 func (sm *stateMachine) AddTransition(rule TransitionRule) {
+	sm.AddTransitionRule(rule)
+}
+
+func (sm *stateMachine) AddTransitionRule(rule TransitionRule) {
 	sm.transitionRules[rule.TransitionType] = append(sm.transitionRules[rule.TransitionType], rule)
 }
