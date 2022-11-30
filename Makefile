@@ -194,9 +194,6 @@ format:
 
 .PHONY: build
 
-dashboards-validate:
-	oc apply --dry-run=client --validate=true --filename=dashboards/
-
 validate: lint unit-test
 
 build: validate build-minimal
