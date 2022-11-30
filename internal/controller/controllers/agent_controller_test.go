@@ -1449,6 +1449,8 @@ VU1eS0RiS/Lz6HwRs2mATNY5FrpZOgdM3cI=
 		hostId                strfmt.UUID
 		mockInstallerInternal *bminventory.MockInstallerInternals
 		mockClientFactory     *MockSpokeK8sClientFactory
+		clusterDeployment     *hivev1.ClusterDeployment
+		adminKubeconfigSecret *corev1.Secret
 	)
 	newAciWithUserManagedNetworkingNoSNO := func(name, namespace string) *hiveext.AgentClusterInstall {
 		return &hiveext.AgentClusterInstall{
@@ -1629,7 +1631,7 @@ VU1eS0RiS/Lz6HwRs2mATNY5FrpZOgdM3cI=
 			Hosts: []*models.Host{
 				&commonHost.Host,
 			}}}
-		clusterDeployment := newClusterDeployment("clusterDeployment", testNamespace, getDefaultClusterDeploymentSpec("clusterDeployment-test", "test-cluster-aci", "pull-secret"))
+		clusterDeployment = newClusterDeployment("clusterDeployment", testNamespace, getDefaultClusterDeploymentSpec("clusterDeployment-test", "test-cluster-aci", "pull-secret"))
 		Expect(c.Create(ctx, clusterDeployment)).To(BeNil())
 		mockInstallerInternal.EXPECT().GetHostByKubeKey(gomock.Any()).Return(commonHost, nil).AnyTimes()
 		agentKey = types.NamespacedName{
@@ -1638,7 +1640,7 @@ VU1eS0RiS/Lz6HwRs2mATNY5FrpZOgdM3cI=
 		}
 		mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil).Times(1)
 		secretName := fmt.Sprintf(adminKubeConfigStringTemplate, clusterDeployment.Name)
-		adminKubeconfigSecret := &corev1.Secret{
+		adminKubeconfigSecret = &corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      secretName,
 				Namespace: clusterDeployment.Namespace,
@@ -1663,6 +1665,7 @@ VU1eS0RiS/Lz6HwRs2mATNY5FrpZOgdM3cI=
 		expectedStatus  string
 		expectedStage   models.HostStage
 		clusterInstall  *hiveext.AgentClusterInstall
+		kubeconfigName  string
 	}{
 		{
 			name:           "No matching node - No csrs",
@@ -1736,6 +1739,40 @@ VU1eS0RiS/Lz6HwRs2mATNY5FrpZOgdM3cI=
 
 			clusterInstall: newAciWithUserManagedNetworkingNoSNO("test-cluster-aci", testNamespace),
 		},
+		{
+			name:         "Auto approve CSR for Not ready matching node and UserManagedNetworking is true, get secret name from CD",
+			createClient: true,
+			hostname:     CommonHostname,
+			node: &corev1.Node{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: CommonHostname,
+				},
+				Status: corev1.NodeStatus{
+					Conditions: []corev1.NodeCondition{
+						{
+							Type:   corev1.NodeReady,
+							Status: corev1.ConditionFalse,
+						},
+					},
+					Addresses: []corev1.NodeAddress{
+						{
+							Type:    corev1.NodeInternalIP,
+							Address: "192.168.111.28",
+						},
+					},
+				},
+			},
+			csrs:            serverCsrs(),
+			approveExpected: true,
+			expectedResult: ctrl.Result{
+				RequeueAfter: time.Minute,
+			},
+			expectedStatus: models.HostStatusAddedToExistingCluster,
+			expectedStage:  models.HostStageRebooting,
+			kubeconfigName: "mySpecialKubeconfigSecret",
+			clusterInstall: newAciWithUserManagedNetworkingNoSNO("test-cluster-aci", testNamespace),
+		},
+
 		{
 			name:         "Auto approve CSR for Not ready matching node and UserManagedNetworking is false for SNO cluster",
 			createClient: true,
@@ -1937,6 +1974,22 @@ VU1eS0RiS/Lz6HwRs2mATNY5FrpZOgdM3cI=
 			}
 			Expect(c.Create(ctx, host)).To(BeNil())
 			if t.createClient {
+				if t.kubeconfigName != "" {
+					clusterDeployment.Spec.ClusterMetadata = &hivev1.ClusterMetadata{AdminKubeconfigSecretRef: corev1.LocalObjectReference{Name: t.kubeconfigName}}
+					Expect(c.Update(ctx, clusterDeployment)).To(BeNil())
+					// delete the default secret and create the secret that match the clustermetadata
+					Expect(c.Delete(ctx, adminKubeconfigSecret)).ShouldNot(HaveOccurred())
+					adminKubeconfigSecret = &corev1.Secret{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      t.kubeconfigName,
+							Namespace: clusterDeployment.Namespace,
+						},
+						Data: map[string][]byte{
+							"kubeconfig": []byte(BASIC_KUBECONFIG),
+						},
+					}
+					Expect(c.Create(ctx, adminKubeconfigSecret)).ShouldNot(HaveOccurred())
+				}
 				mockClient := NewMockSpokeK8sClient(mockCtrl)
 				mockClientFactory.EXPECT().Create(gomock.Any()).Return(mockClient, nil)
 				if t.node != nil || t.nodeError != nil {
