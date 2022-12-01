@@ -571,6 +571,9 @@ func (th *transitionHandler) PostRefreshCluster(reason string) stateswitch.PostT
 			}
 			updatedCluster, err = updateClusterStatus(params.ctx, log, params.db, *sCluster.cluster.ID, sCluster.srcState, *sCluster.cluster.Status,
 				reason, params.eventHandler, extra...)
+			if err != nil {
+				return err
+			}
 		}
 
 		//update hosts status to models.HostStatusResettingPendingUserAction if needed

@@ -530,11 +530,15 @@ var _ = Describe("Reset cluster", func() {
 				Expect(err).ShouldNot(HaveOccurred())
 				Expect(cluster.Cluster.APIVip).Should(Equal(""))
 				Expect(cluster.Cluster.IngressVip).Should(Equal(""))
+				Expect(len(cluster.Cluster.APIVips)).Should(Equal(0))
+				Expect(len(cluster.Cluster.IngressVips)).Should(Equal(0))
 			} else {
 				Expect(err).Should(HaveOccurred())
 				Expect(err.StatusCode()).Should(Equal(t.statusCode))
 				Expect(cluster.Cluster.APIVip).ShouldNot(Equal(""))
 				Expect(cluster.Cluster.IngressVip).ShouldNot(Equal(""))
+				Expect(len(cluster.Cluster.APIVips)).ShouldNot(Equal(0))
+				Expect(len(cluster.Cluster.IngressVips)).ShouldNot(Equal(0))
 			}
 		})
 	}

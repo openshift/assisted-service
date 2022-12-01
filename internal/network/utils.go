@@ -340,6 +340,13 @@ func AreClusterNetworksIdentical(n1, n2 []*models.ClusterNetwork) bool {
 func UpdateVipsTables(db *gorm.DB, cluster *common.Cluster, apiVipUpdated bool, ingressVipUpdated bool) error {
 	var err error
 
+	if cluster == nil {
+		return nil
+	}
+	if db == nil {
+		return common.NewApiError(http.StatusInternalServerError, errors.New("DB error, tried to use empty DB connector"))
+	}
+
 	if apiVipUpdated {
 		if err = db.Where("cluster_id = ?", *cluster.ID).Delete(&models.APIVip{}).Error; err != nil {
 			err = errors.Wrapf(err, "failed to delete api vips of cluster %s", *cluster.ID)

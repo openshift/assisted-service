@@ -486,7 +486,7 @@ func (m *Manager) shouldTriggerLeaseTimeoutEvent(c *common.Cluster, curMonitorIn
 		return false
 	}
 	timeToCompare := c.MachineNetworkCidrUpdatedAt.Add(DhcpLeaseTimeoutMinutes * time.Minute)
-	return swag.BoolValue(c.VipDhcpAllocation) && (c.APIVip == "" || c.IngressVip == "") && network.IsMachineCidrAvailable(c) &&
+	return swag.BoolValue(c.VipDhcpAllocation) && (network.GetApiVipById(c, 0) == "" || network.GetIngressVipById(c, 0) == "") && network.IsMachineCidrAvailable(c) &&
 		(m.prevMonitorInvokedAt.Before(timeToCompare) || m.prevMonitorInvokedAt.Equal(timeToCompare)) &&
 		curMonitorInvokedAt.After(timeToCompare)
 }

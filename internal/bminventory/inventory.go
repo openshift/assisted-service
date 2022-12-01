@@ -2052,7 +2052,7 @@ func (b *bareMetalInventory) updateNonDhcpNetworkParams(updates map[string]inter
 	return nil
 }
 
-func (b *bareMetalInventory) updateDhcpNetworkParams(updates map[string]interface{}, params installer.V2UpdateClusterParams, primaryMachineCIDR string) error {
+func (b *bareMetalInventory) updateDhcpNetworkParams(db *gorm.DB, id *strfmt.UUID, updates map[string]interface{}, params installer.V2UpdateClusterParams, primaryMachineCIDR string) error {
 	if err := validations.ValidateVIPsWereNotSetDhcpMode(swag.StringValue(params.ClusterUpdateParams.APIVip), swag.StringValue(params.ClusterUpdateParams.IngressVip),
 		params.ClusterUpdateParams.APIVips, params.ClusterUpdateParams.IngressVips); err != nil {
 		return common.NewApiError(http.StatusBadRequest, err)
@@ -2068,6 +2068,10 @@ func (b *bareMetalInventory) updateDhcpNetworkParams(updates map[string]interfac
 	if params.ClusterUpdateParams.MachineNetworks != nil && params.ClusterUpdateParams.MachineNetworks[0] != nil && string(params.ClusterUpdateParams.MachineNetworks[0].Cidr) != primaryMachineCIDR {
 		updates["api_vip"] = ""
 		updates["ingress_vip"] = ""
+		emptyCluster := common.Cluster{Cluster: models.Cluster{ID: id}}
+		if err := network.UpdateVipsTables(db, &emptyCluster, true, true); err != nil {
+			return err
+		}
 	}
 	return nil
 }
@@ -2415,7 +2419,7 @@ func (b *bareMetalInventory) updateNetworkParams(params installer.V2UpdateCluste
 	}
 
 	if userManagedNetworking {
-		err, vipDhcpAllocation = setCommonUserNetworkManagedParams(params.ClusterUpdateParams, common.IsSingleNodeCluster(cluster), updates, log)
+		err, vipDhcpAllocation = setCommonUserNetworkManagedParams(db, cluster.ID, params.ClusterUpdateParams, common.IsSingleNodeCluster(cluster), updates, log)
 		if err != nil {
 			return err
 		}
@@ -2441,7 +2445,7 @@ func (b *bareMetalInventory) updateNetworkParams(params installer.V2UpdateCluste
 			if network.IsMachineCidrAvailable(cluster) {
 				primaryMachineCIDR = network.GetMachineCidrById(cluster, 0)
 			}
-			err = b.updateDhcpNetworkParams(updates, params, primaryMachineCIDR)
+			err = b.updateDhcpNetworkParams(db, cluster.ID, updates, params, primaryMachineCIDR)
 		} else {
 			// The primary Machine CIDR can be calculated on not none-platform machines
 			// (the machines are on the same network)
@@ -2465,7 +2469,7 @@ func (b *bareMetalInventory) updateNetworkParams(params installer.V2UpdateCluste
 	return nil
 }
 
-func setCommonUserNetworkManagedParams(params *models.V2ClusterUpdateParams, singleNodeCluster bool, updates map[string]interface{}, log logrus.FieldLogger) (error, bool) {
+func setCommonUserNetworkManagedParams(db *gorm.DB, id *strfmt.UUID, params *models.V2ClusterUpdateParams, singleNodeCluster bool, updates map[string]interface{}, log logrus.FieldLogger) (error, bool) {
 	err := validateUserManagedNetworkConflicts(params, singleNodeCluster, log)
 	if err != nil {
 		return err, false
@@ -2473,6 +2477,10 @@ func setCommonUserNetworkManagedParams(params *models.V2ClusterUpdateParams, sin
 	updates["vip_dhcp_allocation"] = false
 	updates["api_vip"] = ""
 	updates["ingress_vip"] = ""
+	emptyCluster := common.Cluster{Cluster: models.Cluster{ID: id}}
+	if err = network.UpdateVipsTables(db, &emptyCluster, true, true); err != nil {
+		return err, false
+	}
 
 	return nil, false
 }

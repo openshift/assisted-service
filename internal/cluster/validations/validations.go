@@ -316,7 +316,7 @@ func ValidateVipDHCPAllocationWithIPv6(vipDhcpAllocation bool, machineNetworkCID
 	return nil
 }
 
-func handleApiVipBackwardsCompatibility(clusterId strfmt.UUID, apiVip string, apiVips []*models.APIVip) ([]*models.APIVip, error) {
+func HandleApiVipBackwardsCompatibility(clusterId strfmt.UUID, apiVip string, apiVips []*models.APIVip) ([]*models.APIVip, error) {
 	// APIVip provided, but APIVips were not.
 	if apiVip != "" && len(apiVips) == 0 {
 		return []*models.APIVip{{IP: models.IP(apiVip), ClusterID: clusterId}}, nil
@@ -368,7 +368,7 @@ func handleApiVipUpdateBackwardsCompatibility(cluster *common.Cluster, params *m
 	return nil
 }
 
-func handleIngressVipBackwardsCompatibility(clusterId strfmt.UUID, ingressVip string, ingressVips []*models.IngressVip) ([]*models.IngressVip, error) {
+func HandleIngressVipBackwardsCompatibility(clusterId strfmt.UUID, ingressVip string, ingressVips []*models.IngressVip) ([]*models.IngressVip, error) {
 	// IngressVip provided, but IngressVips were not.
 	if ingressVip != "" && len(ingressVips) == 0 {
 		return []*models.IngressVip{{IP: models.IP(ingressVip), ClusterID: clusterId}}, nil
@@ -389,12 +389,12 @@ func ValidateClusterCreateIPAddresses(ipV6Supported bool, clusterId strfmt.UUID,
 	targetConfiguration := common.Cluster{}
 
 	// Backwards compatibility: An old client is used and it can't send fields it doesn't know about.
-	params.APIVips, err = handleApiVipBackwardsCompatibility(clusterId, params.APIVip, params.APIVips)
+	params.APIVips, err = HandleApiVipBackwardsCompatibility(clusterId, params.APIVip, params.APIVips)
 	if err != nil {
 		return common.NewApiError(http.StatusBadRequest, err)
 	}
 
-	params.IngressVips, err = handleIngressVipBackwardsCompatibility(clusterId, params.IngressVip, params.IngressVips)
+	params.IngressVips, err = HandleIngressVipBackwardsCompatibility(clusterId, params.IngressVip, params.IngressVips)
 	if err != nil {
 		return common.NewApiError(http.StatusBadRequest, err)
 	}
@@ -432,11 +432,11 @@ func ValidateClusterUpdateVIPAddresses(ipV6Supported bool, cluster *common.Clust
 	targetConfiguration := common.Cluster{}
 
 	// Backwards compatibility: An old client is used and it can't send fields it doesn't know about.
-	params.APIVips, err = handleApiVipBackwardsCompatibility(*cluster.ID, swag.StringValue(params.APIVip), params.APIVips)
+	params.APIVips, err = HandleApiVipBackwardsCompatibility(*cluster.ID, swag.StringValue(params.APIVip), params.APIVips)
 	if err != nil {
 		return common.NewApiError(http.StatusBadRequest, err)
 	}
-	params.IngressVips, err = handleIngressVipBackwardsCompatibility(*cluster.ID, swag.StringValue(params.IngressVip), params.IngressVips)
+	params.IngressVips, err = HandleIngressVipBackwardsCompatibility(*cluster.ID, swag.StringValue(params.IngressVip), params.IngressVips)
 	if err != nil {
 		return common.NewApiError(http.StatusBadRequest, err)
 	}
