@@ -92,7 +92,6 @@ var _ = Describe("[V2ClusterTests]", func() {
 
 		By("verify that the cluster status is updated immediately")
 		c := getCluster(clusterID)
-		log.Info(c.ValidationsInfo)
 		Expect(*c.Status).To(Equal(models.ClusterStatusInsufficient))
 
 		By("verify that the unbound host still retains its name and disks count")
@@ -261,7 +260,6 @@ var _ = Describe("[V2ClusterTests]", func() {
 		}
 		h1 = updateHostV2(ctx, hostReq)
 		c := getCluster(clusterID)
-		log.Info(c.ValidationsInfo)
 		Expect(*c.Status).To(Equal(models.ClusterStatusInsufficient))
 	})
 

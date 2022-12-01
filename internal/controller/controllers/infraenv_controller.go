@@ -517,7 +517,7 @@ func (r *InfraEnvReconciler) deregisterInfraEnvWithHosts(ctx context.Context, lo
 				ctx, installer.V2DeregisterHostParams{
 					InfraEnvID: h.InfraEnvID,
 					HostID:     hostId,
-				})
+				}, bminventory.NonInteractive)
 
 			if err != nil {
 				if !errors.Is(err, gorm.ErrRecordNotFound) {

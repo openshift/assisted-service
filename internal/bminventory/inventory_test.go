@@ -494,7 +494,7 @@ var _ = Describe("RegisterHost", func() {
 				Expect(h.InfraEnvID).Should(Equal(*infraEnv.ID))
 				return nil
 			}).Times(1)
-		mockHostApi.EXPECT().UnRegisterHost(ctx, hostID.String(), infraEnv.ID.String()).Return(nil).Times(1)
+		mockHostApi.EXPECT().UnRegisterHost(ctx, gomock.Any()).Return(nil).Times(1)
 		mockCRDUtils.EXPECT().CreateAgentCR(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(errors.New(expectedErrMsg)).Times(1)
 		mockEvents.EXPECT().SendHostEvent(gomock.Any(), eventstest.NewEventMatcher(
 			eventstest.WithNameMatcher(eventgen.HostRegistrationSucceededEventName),
@@ -13875,7 +13875,7 @@ var _ = Describe("BindHost", func() {
 		mockAccountsMgmt.EXPECT().GetSubscription(ctx, gomock.Any()).Return(&amgmtv1.Subscription{}, nil)
 		mockClusterApi.EXPECT().DeregisterCluster(ctx, gomock.Any())
 		mockHostApi.EXPECT().UnbindHost(ctx, gomock.Any(), gomock.Any(), false).Times(1)
-		mockHostApi.EXPECT().UnRegisterHost(ctx, host2ID.String(), infraEnv2ID.String()).Return(nil).Times(1)
+		mockHostApi.EXPECT().UnRegisterHost(ctx, gomock.Any()).Return(nil).Times(1)
 		mockEvents.EXPECT().SendHostEvent(gomock.Any(), eventstest.NewEventMatcher(
 			eventstest.WithNameMatcher(eventgen.HostDeregisteredEventName),
 			eventstest.WithHostIdMatcher(host2ID.String()),
@@ -14019,6 +14019,52 @@ var _ = Describe("BindHost - with rhsso auth", func() {
 
 		response := bm.BindHost(authCtx, params)
 		verifyApiError(response, http.StatusNotFound)
+	})
+})
+
+var _ = Describe("V2DeregisterHost", func() {
+	var (
+		bm         *bareMetalInventory
+		cfg        Config
+		db         *gorm.DB
+		ctx        = context.Background()
+		clusterID  strfmt.UUID
+		hostID     strfmt.UUID
+		infraEnvID strfmt.UUID
+		dbName     string
+	)
+
+	BeforeEach(func() {
+		db, dbName = common.PrepareTestDB()
+		clusterID = strfmt.UUID(uuid.New().String())
+		hostID = strfmt.UUID(uuid.New().String())
+		infraEnvID = strfmt.UUID(uuid.New().String())
+		bm = createInventory(db, cfg)
+		err := db.Create(&common.InfraEnv{InfraEnv: models.InfraEnv{ID: &infraEnvID}}).Error
+		Expect(err).ShouldNot(HaveOccurred())
+		err = db.Create(&common.Host{Host: models.Host{ID: &hostID, InfraEnvID: infraEnvID, ClusterID: &clusterID}}).Error
+		Expect(err).ShouldNot(HaveOccurred())
+	})
+
+	AfterEach(func() {
+		common.DeleteTestDB(db, dbName)
+	})
+
+	It("refresh cluster after deregister fails silently", func() {
+		params := installer.V2DeregisterHostParams{
+			HostID:     hostID,
+			InfraEnvID: infraEnvID,
+		}
+		mockHostApi.EXPECT().UnRegisterHost(gomock.Any(), gomock.Any()).Return(nil)
+		mockEvents.EXPECT().SendHostEvent(gomock.Any(), eventstest.NewEventMatcher(
+			eventstest.WithNameMatcher(eventgen.HostDeregisteredEventName),
+			eventstest.WithHostIdMatcher(params.HostID.String()),
+			eventstest.WithInfraEnvIdMatcher(infraEnvID.String()),
+			eventstest.WithSeverityMatcher(models.EventSeverityInfo)))
+		mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, fmt.Errorf("Bad Refresh Status"))
+		mockClusterApi.EXPECT().RefreshSchedulableMastersForcedTrue(gomock.Any(), gomock.Any()).Return(nil).Times(1)
+		response := bm.V2DeregisterHost(ctx, params)
+		Expect(response).To(BeAssignableToTypeOf(&installer.V2DeregisterHostNoContent{}))
 	})
 })
 

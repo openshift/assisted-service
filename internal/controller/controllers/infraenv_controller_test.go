@@ -963,7 +963,7 @@ var _ = Describe("infraEnv reconcile", func() {
 		hostId := strfmt.UUID(uuid.New().String())
 		host := &common.Host{Host: models.Host{ID: &hostId, Status: swag.String(models.HostStatusKnownUnbound)}}
 		mockInstallerInternal.EXPECT().GetInfraEnvHostsInternal(gomock.Any(), gomock.Any()).Return([]*common.Host{host}, nil)
-		mockInstallerInternal.EXPECT().V2DeregisterHostInternal(gomock.Any(), gomock.Any()).Return(nil)
+		mockInstallerInternal.EXPECT().V2DeregisterHostInternal(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 		mockInstallerInternal.EXPECT().DeregisterInfraEnvInternal(gomock.Any(), gomock.Any()).Return(nil)
 		res, err = ir.Reconcile(ctx, newInfraEnvRequest(infraEnvImage))
 		Expect(err).To(BeNil())
@@ -1015,7 +1015,7 @@ var _ = Describe("infraEnv reconcile", func() {
 		mockInstallerInternal.EXPECT().V2DeregisterHostInternal(gomock.Any(), installer.V2DeregisterHostParams{
 			InfraEnvID: *backendInfraEnv.ID,
 			HostID:     hostUnboundId,
-		}).Return(nil)
+		}, bminventory.NonInteractive).Return(nil)
 		res, err = ir.Reconcile(ctx, newInfraEnvRequest(infraEnvImage))
 		Expect(err).To(Not(BeNil()))
 		Expect(res).To(Equal(ctrl.Result{RequeueAfter: longerRequeueAfterOnError}))

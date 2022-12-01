@@ -224,7 +224,7 @@ var _ = Describe("create agent CR", func() {
 				},
 			}
 			mockHostApi.EXPECT().GetHostByKubeKey(gomock.Any()).Return(&h, nil).Times(1)
-			mockHostApi.EXPECT().UnRegisterHost(ctx, id.String(), infraEnvId.String()).Return(nil).Times(1)
+			mockHostApi.EXPECT().UnRegisterHost(ctx, gomock.Any()).Return(nil).Times(1)
 			mockHostApi.EXPECT().UpdateKubeKeyNS(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 			err = crdUtils.CreateAgentCR(ctx, log, hostId, infraEnv2, cluster)
 			Expect(err).NotTo(HaveOccurred())
