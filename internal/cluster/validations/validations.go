@@ -16,6 +16,7 @@ import (
 	"github.com/go-openapi/swag"
 	"github.com/hashicorp/go-multierror"
 	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/internal/featuresupport"
 	"github.com/openshift/assisted-service/internal/network"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/auth"
@@ -398,6 +399,12 @@ func ValidateClusterCreateIPAddresses(ipV6Supported bool, clusterId strfmt.UUID,
 		return common.NewApiError(http.StatusBadRequest, err)
 	}
 
+	if (len(params.APIVips) > 1 || len(params.IngressVips) > 1) && !featuresupport.IsFeatureSupported(swag.StringValue(params.OpenshiftVersion),
+		models.FeatureSupportLevelFeaturesItems0FeatureIDDUALSTACKVIPS) {
+
+		return common.NewApiError(http.StatusBadRequest, errors.Errorf("%s %s", "dual-stack VIPs are not supported in OpenShift", *params.OpenshiftVersion))
+	}
+
 	targetConfiguration.UserManagedNetworking = swag.Bool(false)
 	if params.UserManagedNetworking != nil {
 		targetConfiguration.UserManagedNetworking = params.UserManagedNetworking
@@ -432,6 +439,12 @@ func ValidateClusterUpdateVIPAddresses(ipV6Supported bool, cluster *common.Clust
 	params.IngressVips, err = handleIngressVipBackwardsCompatibility(*cluster.ID, swag.StringValue(params.IngressVip), params.IngressVips)
 	if err != nil {
 		return common.NewApiError(http.StatusBadRequest, err)
+	}
+
+	if (len(params.APIVips) > 1 || len(params.IngressVips) > 1) && !featuresupport.IsFeatureSupported(cluster.OpenshiftVersion,
+		models.FeatureSupportLevelFeaturesItems0FeatureIDDUALSTACKVIPS) {
+
+		return common.NewApiError(http.StatusBadRequest, errors.Errorf("%s %s", "dual-stack VIPs are not supported in OpenShift", cluster.OpenshiftVersion))
 	}
 
 	// Update-flow backwards compatibility: An old client is used and it can't send fields it doesn't know about.
