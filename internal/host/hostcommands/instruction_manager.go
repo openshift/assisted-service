@@ -218,8 +218,8 @@ func (i *InstructionManager) GetNextSteps(ctx context.Context, host *models.Host
 		if err != nil {
 			return models.Steps{}, err
 		}
-		returnSteps.PostStepAction = swag.String(models.StepsPostStepActionContinue)
-		returnSteps.NextInstructionSeconds = defaultNextInstructionInSec
+		returnSteps.PostStepAction = swag.String(models.StepsPostStepActionExit)
+		returnSteps.NextInstructionSeconds = defaultBackedOffInstructionInSec
 		events.SendUpgradeAgentStartedEvent(
 			ctx,
 			i.eventsHandler,
