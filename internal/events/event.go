@@ -231,14 +231,14 @@ func (e Events) queryEvents(ctx context.Context, selectedCategories []string, cl
 	//relative to the cluster ownership
 	if clusterBoundEvents() {
 		result = db.Model(&common.Cluster{}).Select("events.*, clusters.user_name, clusters.org_id").
-			Joins("INNER JOIN \"events\" ON events.cluster_id = clusters.id")
+			Joins("INNER JOIN \"events\" ON events.cluster_id = clusters.id").Order("event_time").Limit(200)
 	}
 
 	//for unbound events that are searched with infra-env id (whether events on hosts or the
 	//infra-env level itself) check the access permission relative to the infra-env ownership
 	if nonBoundEvents() {
 		result = db.Model(&common.InfraEnv{}).Select("events.*, infra_envs.user_name, infra_envs.org_id").
-			Joins("INNER JOIN events ON events.infra_env_id = infra_envs.id")
+			Joins("INNER JOIN events ON events.infra_env_id = infra_envs.id").Order("event_time").Limit(200)
 	}
 
 	//for query made on the host only check the permission relative to it's infra-env. since
@@ -246,7 +246,7 @@ func (e Events) queryEvents(ctx context.Context, selectedCategories []string, cl
 	//through the infra-env table which is good because authorization is done on the infra-level
 	if hostOnlyEvents() {
 		result = db.Model(&common.Host{}).Select("events.*, infra_envs.user_name, infra_envs.org_id").
-			Joins("INNER JOIN infra_envs ON hosts.infra_env_id = infra_envs.id").Joins("INNER JOIN events ON events.host_id = hosts.id")
+			Joins("INNER JOIN infra_envs ON hosts.infra_env_id = infra_envs.id").Joins("INNER JOIN events ON events.host_id = hosts.id").Order("event_time").Limit(200)
 	}
 
 	if result == nil { //non supported option
