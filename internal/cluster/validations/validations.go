@@ -718,8 +718,8 @@ func validateVIPAddresses(ipV6Supported bool, targetConfiguration common.Cluster
 			if multiErr != nil && !strings.Contains(multiErr.Error(), "0 errors occurred") {
 				return multiErr
 			}
-		} else if reqDualStack {
-			return errors.New("Dual-stack cluster cannot be created with empty Machine Networks")
+		} else if reqDualStack && len(targetConfiguration.APIVips) == 1 {
+			return errors.New("Dual-stack cluster with single-stack VIPs cannot be created with empty Machine Networks")
 		}
 	}
 

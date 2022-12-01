@@ -91,6 +91,10 @@ func GetAddressFamilies(networks interface{}) (ipv4 bool, ipv6 bool, err error) 
 	ipv4 = false
 	ipv6 = false
 
+	if networks == nil {
+		return false, false, nil
+	}
+
 	switch v := networks.(type) {
 	case []*models.ClusterNetwork:
 		for _, net := range v {

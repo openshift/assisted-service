@@ -401,8 +401,9 @@ func (m *Manager) tryAssignMachineCidrDHCPMode(cluster *common.Cluster) error {
 	networks := network.GetInventoryNetworks(cluster.Hosts, m.log)
 	if len(networks) == 1 {
 		/*
-		 * Auto assign machine network CIDR is relevant if there is only single host network.  Otherwise the user
-		 * has to select the machine network CIDR
+		 * For dual-stack clusters we do not support DHCP mode. For single-stack it's possible in specific cases.
+		 * Auto assign machine network CIDR is relevant if there is only single host network. Otherwise the user
+		 * has to select the machine network CIDR.
 		 */
 		return UpdateMachineCidr(m.db, cluster, []string{networks[0]})
 	}
@@ -410,16 +411,42 @@ func (m *Manager) tryAssignMachineCidrDHCPMode(cluster *common.Cluster) error {
 }
 
 func (m *Manager) tryAssignMachineCidrNonDHCPMode(cluster *common.Cluster) error {
-	machineCidr, err := network.CalculateMachineNetworkCIDR(
-		cluster.APIVip, cluster.IngressVip, cluster.Hosts, false)
+	m.log.Infof("CHOCOBOMB: Starting autocalculation")
+	// CHOCOBOMB: For some reason API VIPs are empty at this stage
+	m.log.Infof("CHOCOBOMB: Cluster: %+v", cluster.Cluster)
+	m.log.Infof("CHOCOBOMB: API VIP: %s", network.GetApiVipById(cluster, 0))
+	m.log.Infof("CHOCOBOMB: Ingress VIP: %s", network.GetIngressVipById(cluster, 0))
+	updates := []string{}
 
+	primaryMachineNetworkCidr, err := network.CalculateMachineNetworkCIDR(
+		network.GetApiVipById(cluster, 0), network.GetIngressVipById(cluster, 0), cluster.Hosts, false)
 	if err != nil {
 		return err
-	} else if network.IsMachineCidrAvailable(cluster) && machineCidr == network.GetMachineCidrById(cluster, 0) {
+	}
+	updates = append(updates, primaryMachineNetworkCidr)
+	m.log.Infof("CHOCOBOMB: Calculated 1st machine network: %s", primaryMachineNetworkCidr)
+
+	secondaryMachineNetworkCidr := ""
+	if len(cluster.APIVips) > 1 {
+		secondaryMachineNetworkCidr, err = network.CalculateMachineNetworkCIDR(
+			network.GetApiVipById(cluster, 1), network.GetIngressVipById(cluster, 1), cluster.Hosts, false)
+		if err != nil {
+			return err
+		}
+	}
+	updates = append(updates, secondaryMachineNetworkCidr)
+	m.log.Infof("CHOCOBOMB: Calculated 2nd machine network: %s", secondaryMachineNetworkCidr)
+
+	if network.IsMachineCidrAvailable(cluster) &&
+		primaryMachineNetworkCidr == network.GetMachineCidrById(cluster, 0) &&
+		secondaryMachineNetworkCidr == network.GetMachineCidrById(cluster, 1) {
+
+		m.log.Infof("CHOCOBOMB: Bailing out, everything is the same")
 		return nil
 	}
 
-	return UpdateMachineCidr(m.db, cluster, []string{machineCidr})
+	m.log.Infof("CHOCOBOMB: Updating with: %s", updates)
+	return UpdateMachineCidr(m.db, cluster, updates)
 }
 
 func (m *Manager) tryAssignMachineCidrSNO(cluster *common.Cluster) error {

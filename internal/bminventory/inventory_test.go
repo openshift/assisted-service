@@ -12123,7 +12123,7 @@ var _ = Describe("TestRegisterCluster", func() {
 				})
 				verifyApiErrorString(reply, http.StatusBadRequest, "ingress-vip <10.11.12.16> does not belong to machine-network-cidr <1.2.3.0/24>")
 			})
-			It("API VIP and Ingress VIP with empty Machine Networks", func() {
+			It("single-stack API VIP and Ingress VIP fails with empty Machine Networks", func() {
 				mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
 					eventstest.WithNameMatcher(eventgen.ClusterRegistrationFailedEventName),
 					eventstest.WithSeverityMatcher(models.EventSeverityError))).Times(1)
@@ -12140,7 +12140,41 @@ var _ = Describe("TestRegisterCluster", func() {
 						VipDhcpAllocation: swag.Bool(false),
 					},
 				})
-				verifyApiErrorString(reply, http.StatusBadRequest, "Dual-stack cluster cannot be created with empty Machine Networks")
+				verifyApiErrorString(reply, http.StatusBadRequest, "Dual-stack cluster with single-stack VIPs cannot be created with empty Machine Networks")
+			})
+			It("dual-stack API VIP and Ingress VIP succeeds with empty Machine Networks", func() {
+				mockClusterRegisterSuccess(true)
+				mockAMSSubscription(ctx)
+
+				apiVip := "10.11.12.15"
+				ingressVip := "10.11.12.16"
+				apiVips := []*models.APIVip{{IP: models.IP(apiVip)}, {IP: models.IP("2001:db8::1")}}
+				ingressVips := []*models.IngressVip{{IP: models.IP(ingressVip)}, {IP: models.IP("2001:db8::2")}}
+
+				clusterCreateParams := getDefaultClusterCreateParams()
+				clusterCreateParams.OpenshiftVersion = swag.String("4.12.0")
+				clusterCreateParams.APIVip = apiVip
+				clusterCreateParams.IngressVip = ingressVip
+				clusterCreateParams.APIVips = apiVips
+				clusterCreateParams.IngressVips = ingressVips
+				clusterCreateParams.ClusterNetworks = common.TestDualStackNetworking.ClusterNetworks
+				clusterCreateParams.ServiceNetworks = common.TestDualStackNetworking.ServiceNetworks
+				clusterCreateParams.VipDhcpAllocation = swag.Bool(false)
+
+				reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
+					NewClusterParams: clusterCreateParams,
+				})
+				Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2RegisterClusterCreated()))
+				actual := reply.(*installer.V2RegisterClusterCreated).Payload
+				Expect(actual.APIVip).To(Equal(apiVip))
+				Expect(actual.IngressVip).To(Equal(ingressVip))
+				Expect(actual.APIVips).To(Equal(apiVips))
+				Expect(actual.IngressVips).To(Equal(ingressVips))
+				Expect(actual.VipDhcpAllocation).To(Equal(swag.Bool(false)))
+				Expect(actual.ClusterNetworks).To(Equal(common.TestDualStackNetworking.ClusterNetworks))
+				Expect(len(actual.MachineNetworks)).To(Equal(0))
+				Expect(actual.ServiceNetworks).To(Equal(common.TestDualStackNetworking.ServiceNetworks))
+
 			})
 
 			It("API VIP from IPv6 Machine Network", func() {

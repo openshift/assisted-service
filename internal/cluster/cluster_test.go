@@ -862,6 +862,9 @@ var _ = Describe("Auto assign machine CIDR", func() {
 		expectedMachineCIDR     string
 		expectedMachineNetworks []string
 		apiVip                  string
+		apiVips                 []*models.APIVip
+		ingressVip              string
+		ingressVips             []*models.IngressVip
 		hosts                   []*models.Host
 		eventCallExpected       bool
 		userActionResetExpected bool
@@ -982,6 +985,9 @@ var _ = Describe("Auto assign machine CIDR", func() {
 			srcState:    models.ClusterStatusPendingForInput,
 			dhcpEnabled: false,
 			apiVip:      "1.2.3.8",
+			apiVips:     []*models.APIVip{{IP: models.IP("1.2.3.8")}},
+			ingressVip:  "1.2.3.9",
+			ingressVips: []*models.IngressVip{{IP: models.IP("1.2.3.9")}},
 		},
 		{
 			name:     "One discovering host - dhcp disabled",
@@ -993,6 +999,9 @@ var _ = Describe("Auto assign machine CIDR", func() {
 			},
 			dhcpEnabled: false,
 			apiVip:      "1.2.3.8",
+			apiVips:     []*models.APIVip{{IP: models.IP("1.2.3.8")}},
+			ingressVip:  "1.2.3.9",
+			ingressVips: []*models.IngressVip{{IP: models.IP("1.2.3.9")}},
 		},
 		{
 			name:     "One insufficient host, one network - dhcp disabled",
@@ -1008,6 +1017,9 @@ var _ = Describe("Auto assign machine CIDR", func() {
 			expectedMachineCIDR:     "1.2.3.0/24",
 			dhcpEnabled:             false,
 			apiVip:                  "1.2.3.8",
+			apiVips:                 []*models.APIVip{{IP: models.IP("1.2.3.8")}},
+			ingressVip:              "1.2.3.9",
+			ingressVips:             []*models.IngressVip{{IP: models.IP("1.2.3.9")}},
 		},
 		{
 			name:     "Host with two networks - dhcp disabled",
@@ -1020,6 +1032,9 @@ var _ = Describe("Auto assign machine CIDR", func() {
 			},
 			dhcpEnabled:         false,
 			apiVip:              "1.2.3.8",
+			apiVips:             []*models.APIVip{{IP: models.IP("1.2.3.8")}},
+			ingressVip:          "1.2.3.9",
+			ingressVips:         []*models.IngressVip{{IP: models.IP("1.2.3.9")}},
 			expectedMachineCIDR: "1.2.3.0/24",
 		},
 		{
@@ -1040,6 +1055,9 @@ var _ = Describe("Auto assign machine CIDR", func() {
 			dhcpEnabled:             false,
 			expectedMachineCIDR:     "1.2.3.0/24",
 			apiVip:                  "1.2.3.8",
+			apiVips:                 []*models.APIVip{{IP: models.IP("1.2.3.8")}},
+			ingressVip:              "1.2.3.9",
+			ingressVips:             []*models.IngressVip{{IP: models.IP("1.2.3.9")}},
 		},
 		{
 			name:     "Two hosts, one networks - dhcp disabled, user managed networking",
@@ -1058,6 +1076,9 @@ var _ = Describe("Auto assign machine CIDR", func() {
 			eventCallExpected:       true,
 			dhcpEnabled:             false,
 			apiVip:                  "1.2.3.8",
+			apiVips:                 []*models.APIVip{{IP: models.IP("1.2.3.8")}},
+			ingressVip:              "1.2.3.9",
+			ingressVips:             []*models.IngressVip{{IP: models.IP("1.2.3.9")}},
 			userManagedNetworking:   true,
 		},
 		{
@@ -1078,6 +1099,9 @@ var _ = Describe("Auto assign machine CIDR", func() {
 			expectedMachineCIDR:     "1.2.3.0/24",
 			dhcpEnabled:             false,
 			apiVip:                  "1.2.3.8",
+			apiVips:                 []*models.APIVip{{IP: models.IP("1.2.3.8")}},
+			ingressVip:              "1.2.3.9",
+			ingressVips:             []*models.IngressVip{{IP: models.IP("1.2.3.9")}},
 		},
 		{
 			name:     "Two hosts, two networks - dhcp disabled",
@@ -1095,6 +1119,33 @@ var _ = Describe("Auto assign machine CIDR", func() {
 			dhcpEnabled:         false,
 			expectedMachineCIDR: "1.2.3.0/24",
 			apiVip:              "1.2.3.8",
+			apiVips:             []*models.APIVip{{IP: models.IP("1.2.3.8")}},
+			ingressVip:          "1.2.3.9",
+			ingressVips:         []*models.IngressVip{{IP: models.IP("1.2.3.9")}},
+		},
+		{
+			name:     "Two dual-stack hosts - dhcp disabled",
+			srcState: models.ClusterStatusPendingForInput,
+			hosts: []*models.Host{
+				{
+					Status:    swag.String(models.HostStatusPendingForInput),
+					Inventory: common.GenerateTestDefaultInventory(),
+				},
+				{
+					Status:    swag.String(models.HostStatusPendingForInput),
+					Inventory: common.GenerateTestDefaultInventory(),
+				},
+			},
+			dhcpEnabled:         false,
+			expectedMachineCIDR: "1.2.3.0/24",
+			expectedMachineNetworks: []string{
+				"1.2.3.0/24",
+				"1001:db8::/120",
+			},
+			apiVip:      "1.2.3.8",
+			apiVips:     []*models.APIVip{{IP: models.IP("1.2.3.8")}, {IP: models.IP("1001:db8::11")}},
+			ingressVip:  "1.2.3.9",
+			ingressVips: []*models.IngressVip{{IP: models.IP("1.2.3.9")}, {IP: models.IP("1001:db8::12")}},
 		},
 		{
 			name:     "One insufficient host, one network, different machine cidr already set - dhcp disabled",
@@ -1111,6 +1162,9 @@ var _ = Describe("Auto assign machine CIDR", func() {
 			expectedMachineCIDR:     "1.2.3.0/24",
 			dhcpEnabled:             false,
 			apiVip:                  "1.2.3.8",
+			apiVips:                 []*models.APIVip{{IP: models.IP("1.2.3.8")}},
+			ingressVip:              "1.2.3.9",
+			ingressVips:             []*models.IngressVip{{IP: models.IP("1.2.3.9")}},
 		},
 		{
 			name:     "One insufficient host, one network, same machine cidr already set - dhcp disabled",
@@ -1127,6 +1181,9 @@ var _ = Describe("Auto assign machine CIDR", func() {
 			expectedMachineCIDR:     "1.2.3.0/24",
 			dhcpEnabled:             false,
 			apiVip:                  "1.2.3.8",
+			apiVips:                 []*models.APIVip{{IP: models.IP("1.2.3.8")}},
+			ingressVip:              "1.2.3.9",
+			ingressVips:             []*models.IngressVip{{IP: models.IP("1.2.3.9")}},
 		},
 		{
 			name:                    "No hosts, machine cidr already set - dhcp disabled",
@@ -1136,6 +1193,9 @@ var _ = Describe("Auto assign machine CIDR", func() {
 			machineNetworkCIDR:      "192.168.0.0/16",
 			dhcpEnabled:             false,
 			apiVip:                  "1.2.3.8",
+			apiVips:                 []*models.APIVip{{IP: models.IP("1.2.3.8")}},
+			ingressVip:              "1.2.3.9",
+			ingressVips:             []*models.IngressVip{{IP: models.IP("1.2.3.9")}},
 		},
 		{
 			name:     "One insufficient host, no networks, machine cidr already set - dhcp disabled",
@@ -1150,6 +1210,9 @@ var _ = Describe("Auto assign machine CIDR", func() {
 			machineNetworkCIDR:      "192.168.0.0/16",
 			dhcpEnabled:             false,
 			apiVip:                  "1.2.3.8",
+			apiVips:                 []*models.APIVip{{IP: models.IP("1.2.3.8")}},
+			ingressVip:              "1.2.3.9",
+			ingressVips:             []*models.IngressVip{{IP: models.IP("1.2.3.9")}},
 		},
 		{
 			name:     "One insufficient host, one network, machine cidr already set, no vips - dhcp disabled",
@@ -1275,6 +1338,9 @@ var _ = Describe("Auto assign machine CIDR", func() {
 				BaseDNSDomain:         "test.com",
 				PullSecretSet:         true,
 				APIVip:                t.apiVip,
+				APIVips:               t.apiVips,
+				IngressVip:            t.ingressVip,
+				IngressVips:           t.ingressVips,
 				ClusterNetworks:       common.TestIPv4Networking.ClusterNetworks,
 				ServiceNetworks:       common.TestIPv4Networking.ServiceNetworks,
 				MachineNetworks:       network.CreateMachineNetworksArray(t.machineNetworkCIDR),
