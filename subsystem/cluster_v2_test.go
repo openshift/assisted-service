@@ -509,4 +509,9 @@ var _ = Describe("[V2ClusterTests] multiarch", func() {
 		actual := err.(*installer.RegisterInfraEnvBadRequest)
 		Expect(*actual.Payload.Reason).To(ContainSubstring("does not have a matching OpenShift release image"))
 	})
+
+	It("Service should continue to function if inventory is nil", func() {
+		
+	})
+
 })

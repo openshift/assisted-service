@@ -23,6 +23,14 @@ var _ = Describe("Host tests v2", func() {
 	var cluster *installer.V2RegisterClusterCreated
 	var clusterID strfmt.UUID
 
+	type ValidationResult struct {
+		ID      models.HostValidationID     `json:"id"`
+		Status  string `json:"status"`
+		Message string           `json:"message"`
+	}
+	type ValidationResults []ValidationResult
+	type ValidationsStatus map[string]ValidationResults
+
 	BeforeEach(func() {
 		var err error
 		infraEnv, err = userBMClient.Installer.RegisterInfraEnv(ctx, &installer.RegisterInfraEnvParams{
@@ -46,6 +54,34 @@ var _ = Describe("Host tests v2", func() {
 		})
 		Expect(err).NotTo(HaveOccurred())
 		clusterID = *cluster.GetPayload().ID
+	})
+
+	It("the service should continue to run host validations if the inventory has not been set", func() {
+		host := &registerHost(infraEnvID).Host
+		time.Sleep(time.Second * 10)
+
+		var hostV2 *models.Host
+		Consistently(func() error {
+			hostV2 = getHostV2(infraEnvID, *host.ID)
+			if hostV2 != nil {
+				return nil
+			}
+			return fmt.Errorf("Could not fetch host")
+		}, time.Second * 30, time.Second * 1).Should(Succeed())
+
+		var validations ValidationsStatus
+		err := json.Unmarshal([]byte(hostV2.ValidationsInfo), &validations)
+		Expect(err).NotTo(HaveOccurred())
+
+		inventoryValidationPresent := false
+		hardwareValidations := validations["hardware"]
+		for _, validationResult := range hardwareValidations {
+			if validationResult.ID == "has-inventory" {
+				inventoryValidationPresent = true
+				Expect(validationResult.Status).To(BeEquivalentTo("failure"))
+			}
+		}
+		Expect(inventoryValidationPresent).To(BeTrue())
 	})
 
 	It("host infra env CRUD", func() {
