@@ -1657,6 +1657,14 @@ func findAgentsByAgentClusterInstall(k8sclient client.Client, ctx context.Contex
 	}
 	log.Debugf("Found %d agents matching ClusterDeployment %s", len(agents), aci.Spec.ClusterDeploymentRef.Name)
 
+	for _, x := range agents {
+		log.Debugf("Agent '%s', dumping below:", x.Name)
+		log.Debugf("Ignition: '%s'", x.Spec.IgnitionConfigOverrides)
+		for _, y := range x.Status.Conditions {
+			log.Debugf("Type: '%s', Status: '%s', Reason: '%s', Message: '%s'", y.Type, y.Status, y.Reason, y.Message)
+		}
+	}
+
 	return agents, nil
 }
 
