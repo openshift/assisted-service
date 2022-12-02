@@ -22,6 +22,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/go-openapi/swag"
 	"github.com/iancoleman/strcase"
 	metal3_v1alpha1 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
 	aiv1beta1 "github.com/openshift/assisted-service/api/v1beta1"
@@ -175,16 +176,6 @@ func (r *PreprovisioningImageReconciler) Reconcile(origCtx context.Context, req 
 	}
 	log.Info("PreprovisioningImage updated successfully")
 	return ctrl.Result{}, nil
-}
-
-// getConvergedDiscoveryTemplate merge the ironic ignition with the discovery ignition
-func (r *PreprovisioningImageReconciler) getIronicIgnitionConfig(log logrus.FieldLogger, infraEnvInternal common.InfraEnv, ironicAgentImage string) (string, error) {
-	config, err := ignition.GenerateIronicConfig(r.IronicServiceURL, infraEnvInternal, ironicAgentImage)
-	if err != nil {
-		log.WithError(err).Error("failed to generate Ironic ignition config")
-		return "", err
-	}
-	return string(config), err
 }
 
 func (r *PreprovisioningImageReconciler) setImage(image *metal3_v1alpha1.PreprovisioningImage, infraEnv aiv1beta1.InfraEnv) error {
@@ -383,8 +374,8 @@ func (r *PreprovisioningImageReconciler) AddIronicAgentToInfraEnv(ctx context.Co
 		}
 	}
 
+	// if ironicAgentImage can't be found by version use the default
 	if ironicAgentImage == "" {
-		// if ironicAgentImage wasn't specified use the default image for the CPU arch
 		if infraEnvInternal.CPUArchitecture == common.ARM64CPUArchitecture {
 			ironicAgentImage = r.Config.BaremetalIronicAgentImageForArm
 		} else {
@@ -392,14 +383,13 @@ func (r *PreprovisioningImageReconciler) AddIronicAgentToInfraEnv(ctx context.Co
 		}
 	}
 
-	// if the infraEnv doesn't have the enableIronicAgent annotation add the ironicIgnition to the invfraEnv
-	// set the annotation and notify the infraEnv changed
-	conf, err := r.getIronicIgnitionConfig(log, *infraEnvInternal, ironicAgentImage)
+	conf, err := ignition.GenerateIronicConfig(r.IronicServiceURL, *infraEnvInternal, ironicAgentImage)
 	if err != nil {
+		log.WithError(err).Error("failed to generate Ironic ignition config")
 		return ctrl.Result{}, err
 	}
 
-	_, err = r.Installer.UpdateInfraEnvInternal(ctx, installer.UpdateInfraEnvParams{InfraEnvID: *infraEnvInternal.ID, InfraEnvUpdateParams: &models.InfraEnvUpdateParams{}}, &conf)
+	_, err = r.Installer.UpdateInfraEnvInternal(ctx, installer.UpdateInfraEnvParams{InfraEnvID: *infraEnvInternal.ID, InfraEnvUpdateParams: &models.InfraEnvUpdateParams{}}, swag.String(string(conf)))
 	if err != nil {
 		return ctrl.Result{}, err
 	}
