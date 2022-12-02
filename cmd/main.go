@@ -99,56 +99,56 @@ const (
 )
 
 var Options struct {
-	Auth                           auth.Config
-	BMConfig                       bminventory.Config
-	DBConfig                       dbPkg.Config
-	HWValidatorConfig              hardware.ValidatorCfg
-	GeneratorConfig                generator.Config
-	InstructionConfig              hostcommands.InstructionConfig
-	OperatorsConfig                operators.Options
-	GCConfig                       garbagecollector.Config
-	StaticNetworkConfig            staticnetworkconfig.Config
-	ClusterStateMonitorInterval    time.Duration `envconfig:"CLUSTER_MONITOR_INTERVAL" default:"10s"`
-	S3Config                       s3wrapper.Config
-	HostStateMonitorInterval       time.Duration `envconfig:"HOST_MONITOR_INTERVAL" default:"8s"`
-	Versions                       versions.Versions
-	OsImages                       string        `envconfig:"OS_IMAGES" default:""`
-	ReleaseImages                  string        `envconfig:"RELEASE_IMAGES" default:""`
-	MustGatherImages               string        `envconfig:"MUST_GATHER_IMAGES" default:""`
-	ReleaseImageMirror             string        `envconfig:"OPENSHIFT_INSTALL_RELEASE_IMAGE_MIRROR" default:""`
-	CreateS3Bucket                 bool          `envconfig:"CREATE_S3_BUCKET" default:"false"`
-	ImageExpirationInterval        time.Duration `envconfig:"IMAGE_EXPIRATION_INTERVAL" default:"30m"`
-	ClusterConfig                  cluster.Config
-	DeployTarget                   string `envconfig:"DEPLOY_TARGET" default:"k8s"`
-	Storage                        string `envconfig:"STORAGE" default:"s3"`
-	OCMConfig                      ocm.Config
-	HostConfig                     host.Config
-	LogConfig                      logconfig.Config
-	LeaderConfig                   leader.Config
-	ValidationsConfig              validations.Config
-	ManifestsGeneratorConfig       network.Config
-	EnableKubeAPI                  bool `envconfig:"ENABLE_KUBE_API" default:"false"`
-	InfraEnvConfig                 controllers.InfraEnvConfig
-	CheckClusterVersion            bool          `envconfig:"CHECK_CLUSTER_VERSION" default:"false"`
-	DeletionWorkerInterval         time.Duration `envconfig:"DELETION_WORKER_INTERVAL" default:"1h"`
-	InfraEnvDeletionWorkerInterval time.Duration `envconfig:"INFRAENV_DELETION_WORKER_INTERVAL" default:"1h"`
-	DeregisterWorkerInterval       time.Duration `envconfig:"DEREGISTER_WORKER_INTERVAL" default:"1h"`
-	EnableDeletedUnregisteredGC    bool          `envconfig:"ENABLE_DELETE_UNREGISTER_GC" default:"true"`
-	EnableDeregisterInactiveGC     bool          `envconfig:"ENABLE_DEREGISTER_INACTIVE_GC" default:"true"`
-	ServeHTTPS                     bool          `envconfig:"SERVE_HTTPS" default:"false"`
-	HTTPSKeyFile                   string        `envconfig:"HTTPS_KEY_FILE" default:""`
-	HTTPSCertFile                  string        `envconfig:"HTTPS_CERT_FILE" default:""`
-	MaxIdleConns                   int           `envconfig:"DB_MAX_IDLE_CONNECTIONS" default:"50"`
-	MaxOpenConns                   int           `envconfig:"DB_MAX_OPEN_CONNECTIONS" default:"90"`
-	ConnMaxLifetime                time.Duration `envconfig:"DB_CONNECTIONS_MAX_LIFETIME" default:"30m"`
-	FileSystemUsageThreshold       int           `envconfig:"FILESYSTEM_USAGE_THRESHOLD" default:"80"`
-	EnableElasticAPM               bool          `envconfig:"ENABLE_ELASTIC_APM" default:"false"`
-	WorkDir                        string        `envconfig:"WORK_DIR" default:"/data/"`
-	LivenessValidationTimeout      time.Duration `envconfig:"LIVENESS_VALIDATION_TIMEOUT" default:"5m"`
-	ApproveCsrsRequeueDuration     time.Duration `envconfig:"APPROVE_CSRS_REQUEUE_DURATION" default:"1m"`
-	HTTPListenPort                 string        `envconfig:"HTTP_LISTEN_PORT" default:""`
-	AllowConvergedFlow             bool          `envconfig:"ALLOW_CONVERGED_FLOW" default:"false"`
-	IronicIgnitionBuilderConfig    ignition.IronicIgnitionBuilderConfig
+	Auth                                 auth.Config
+	BMConfig                             bminventory.Config
+	DBConfig                             dbPkg.Config
+	HWValidatorConfig                    hardware.ValidatorCfg
+	GeneratorConfig                      generator.Config
+	InstructionConfig                    hostcommands.InstructionConfig
+	OperatorsConfig                      operators.Options
+	GCConfig                             garbagecollector.Config
+	StaticNetworkConfig                  staticnetworkconfig.Config
+	ClusterStateMonitorInterval          time.Duration `envconfig:"CLUSTER_MONITOR_INTERVAL" default:"10s"`
+	S3Config                             s3wrapper.Config
+	HostStateMonitorInterval             time.Duration `envconfig:"HOST_MONITOR_INTERVAL" default:"8s"`
+	Versions                             versions.Versions
+	OsImages                             string        `envconfig:"OS_IMAGES" default:""`
+	ReleaseImages                        string        `envconfig:"RELEASE_IMAGES" default:""`
+	MustGatherImages                     string        `envconfig:"MUST_GATHER_IMAGES" default:""`
+	ReleaseImageMirror                   string        `envconfig:"OPENSHIFT_INSTALL_RELEASE_IMAGE_MIRROR" default:""`
+	CreateS3Bucket                       bool          `envconfig:"CREATE_S3_BUCKET" default:"false"`
+	ImageExpirationInterval              time.Duration `envconfig:"IMAGE_EXPIRATION_INTERVAL" default:"30m"`
+	ClusterConfig                        cluster.Config
+	DeployTarget                         string `envconfig:"DEPLOY_TARGET" default:"k8s"`
+	Storage                              string `envconfig:"STORAGE" default:"s3"`
+	OCMConfig                            ocm.Config
+	HostConfig                           host.Config
+	LogConfig                            logconfig.Config
+	LeaderConfig                         leader.Config
+	ValidationsConfig                    validations.Config
+	ManifestsGeneratorConfig             network.Config
+	EnableKubeAPI                        bool `envconfig:"ENABLE_KUBE_API" default:"false"`
+	InfraEnvConfig                       controllers.InfraEnvConfig
+	CheckClusterVersion                  bool          `envconfig:"CHECK_CLUSTER_VERSION" default:"false"`
+	DeletionWorkerInterval               time.Duration `envconfig:"DELETION_WORKER_INTERVAL" default:"1h"`
+	InfraEnvDeletionWorkerInterval       time.Duration `envconfig:"INFRAENV_DELETION_WORKER_INTERVAL" default:"1h"`
+	DeregisterWorkerInterval             time.Duration `envconfig:"DEREGISTER_WORKER_INTERVAL" default:"1h"`
+	EnableDeletedUnregisteredGC          bool          `envconfig:"ENABLE_DELETE_UNREGISTER_GC" default:"true"`
+	EnableDeregisterInactiveGC           bool          `envconfig:"ENABLE_DEREGISTER_INACTIVE_GC" default:"true"`
+	ServeHTTPS                           bool          `envconfig:"SERVE_HTTPS" default:"false"`
+	HTTPSKeyFile                         string        `envconfig:"HTTPS_KEY_FILE" default:""`
+	HTTPSCertFile                        string        `envconfig:"HTTPS_CERT_FILE" default:""`
+	MaxIdleConns                         int           `envconfig:"DB_MAX_IDLE_CONNECTIONS" default:"50"`
+	MaxOpenConns                         int           `envconfig:"DB_MAX_OPEN_CONNECTIONS" default:"90"`
+	ConnMaxLifetime                      time.Duration `envconfig:"DB_CONNECTIONS_MAX_LIFETIME" default:"30m"`
+	FileSystemUsageThreshold             int           `envconfig:"FILESYSTEM_USAGE_THRESHOLD" default:"80"`
+	EnableElasticAPM                     bool          `envconfig:"ENABLE_ELASTIC_APM" default:"false"`
+	WorkDir                              string        `envconfig:"WORK_DIR" default:"/data/"`
+	LivenessValidationTimeout            time.Duration `envconfig:"LIVENESS_VALIDATION_TIMEOUT" default:"5m"`
+	ApproveCsrsRequeueDuration           time.Duration `envconfig:"APPROVE_CSRS_REQUEUE_DURATION" default:"1m"`
+	HTTPListenPort                       string        `envconfig:"HTTP_LISTEN_PORT" default:""`
+	AllowConvergedFlow                   bool          `envconfig:"ALLOW_CONVERGED_FLOW" default:"false"`
+	PreprovisioningImageControllerConfig controllers.PreprovisioningImageControllerConfig
 
 	// Directory containing pre-generated TLS certs/keys for the ephemeral installer
 	ClusterTLSCertOverrideDir string `envconfig:"EPHEMERAL_INSTALLER_CLUSTER_TLS_CERTS_OVERRIDE_DIR" default:""`
@@ -593,14 +593,14 @@ func main() {
 					log.WithError(err).Fatal("failed to get IronicServiceURL")
 				}
 				failOnError((&controllers.PreprovisioningImageReconciler{
-					Client:                ctrlMgr.GetClient(),
-					Log:                   log,
-					Installer:             bm,
-					CRDEventsHandler:      crdEventsHandler,
-					VersionsHandler:       versionHandler,
-					OcRelease:             releaseHandler,
-					IronicIgnitionBuilder: ignition.NewIronicIgnitionBuilder(Options.IronicIgnitionBuilderConfig),
-					IronicServiceURL:      ironicBaseURL,
+					Client:           ctrlMgr.GetClient(),
+					Log:              log,
+					Installer:        bm,
+					CRDEventsHandler: crdEventsHandler,
+					VersionsHandler:  versionHandler,
+					OcRelease:        releaseHandler,
+					IronicServiceURL: ironicBaseURL,
+					Config:           Options.PreprovisioningImageControllerConfig,
 				}).SetupWithManager(ctrlMgr), "failed to create PreprovisioningImage ceontroller")
 			}
 			log.Infof("Starting controllers")

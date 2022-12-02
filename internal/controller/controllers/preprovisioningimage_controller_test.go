@@ -14,7 +14,6 @@ import (
 	aiv1beta1 "github.com/openshift/assisted-service/api/v1beta1"
 	"github.com/openshift/assisted-service/internal/bminventory"
 	"github.com/openshift/assisted-service/internal/common"
-	"github.com/openshift/assisted-service/internal/ignition"
 	"github.com/openshift/assisted-service/internal/oc"
 	"github.com/openshift/assisted-service/internal/versions"
 	"github.com/openshift/assisted-service/models"
@@ -78,7 +77,6 @@ var _ = Describe("PreprovisioningImage reconcile", func() {
 		mockCRDEventsHandler  *MockCRDEventsHandler
 		mockVersionHandler    *versions.MockHandler
 		mockOcRelease         *oc.MockRelease
-		ironicIgnitionBuilder *ignition.IronicIgnitionBuilder
 		ctx                   = context.Background()
 		sId                   strfmt.UUID
 		backendInfraEnv       = &common.InfraEnv{InfraEnv: models.InfraEnv{ClusterID: sId, ID: &sId}}
@@ -96,19 +94,18 @@ var _ = Describe("PreprovisioningImage reconcile", func() {
 		mockCtrl = gomock.NewController(GinkgoT())
 		mockInstallerInternal = bminventory.NewMockInstallerInternals(mockCtrl)
 		mockCRDEventsHandler = NewMockCRDEventsHandler(mockCtrl)
-		ironicIgnitionBuilder = ignition.NewIronicIgnitionBuilder(ignition.IronicIgnitionBuilderConfig{BaremetalIronicAgentImage: "ironic-agent-image:latest"})
 		mockVersionHandler = versions.NewMockHandler(mockCtrl)
 		mockOcRelease = oc.NewMockRelease(mockCtrl)
 		sId = strfmt.UUID(uuid.New().String())
 		pr = &PreprovisioningImageReconciler{
-			Client:                c,
-			Log:                   common.GetTestLog(),
-			Installer:             mockInstallerInternal,
-			CRDEventsHandler:      mockCRDEventsHandler,
-			IronicIgnitionBuilder: ironicIgnitionBuilder,
-			VersionsHandler:       mockVersionHandler,
-			OcRelease:             mockOcRelease,
-			IronicServiceURL:      "ironic.url",
+			Client:           c,
+			Log:              common.GetTestLog(),
+			Installer:        mockInstallerInternal,
+			CRDEventsHandler: mockCRDEventsHandler,
+			VersionsHandler:  mockVersionHandler,
+			OcRelease:        mockOcRelease,
+			IronicServiceURL: "ironic.url",
+			Config:           PreprovisioningImageControllerConfig{BaremetalIronicAgentImage: "ironic-agent-image:latest"},
 		}
 	})
 

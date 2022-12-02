@@ -53,17 +53,25 @@ type imageConditionReason string
 
 const archMismatchReason = "InfraEnvArchMismatch"
 
+type PreprovisioningImageControllerConfig struct {
+	// The default ironic agent image was obtained by running "oc adm release info --image-for=ironic-agent  quay.io/openshift-release-dev/ocp-release:4.11.0-fc.0-x86_64"
+	BaremetalIronicAgentImage string `envconfig:"IRONIC_AGENT_IMAGE" default:"quay.io/openshift-release-dev/ocp-v4.0-art-dev@sha256:d3f1d4d3cd5fbcf1b9249dd71d01be4b901d337fdc5f8f66569eb71df4d9d446"`
+	// The default ironic agent image for arm architecture was obtained by running "oc adm release info --image-for=ironic-agent quay.io/openshift-release-dev/ocp-release@sha256:1b8e71b9bccc69c732812ebf2bfba62af6de77378f8329c8fec10b63a0dbc33c"
+	// The release image digest for arm architecture was obtained from this link https://mirror.openshift.com/pub/openshift-v4/aarch64/clients/ocp-dev-preview/4.11.0-fc.0/release.txt
+	BaremetalIronicAgentImageForArm string `envconfig:"IRONIC_AGENT_IMAGE_ARM" default:"quay.io/openshift-release-dev/ocp-v4.0-art-dev@sha256:cb0edf19fffc17f542a7efae76939b1e9757dc75782d4727fb0aa77ed5809b43"`
+}
+
 // PreprovisioningImage reconciles a AgentClusterInstall object
 type PreprovisioningImageReconciler struct {
 	client.Client
-	Log                   logrus.FieldLogger
-	Installer             bminventory.InstallerInternals
-	CRDEventsHandler      CRDEventsHandler
-	IronicIgnitionBuilder *ignition.IronicIgnitionBuilder
-	VersionsHandler       versions.Handler
-	OcRelease             oc.Release
-	ReleaseImageMirror    string
-	IronicServiceURL      string
+	Log                logrus.FieldLogger
+	Installer          bminventory.InstallerInternals
+	CRDEventsHandler   CRDEventsHandler
+	VersionsHandler    versions.Handler
+	OcRelease          oc.Release
+	ReleaseImageMirror string
+	IronicServiceURL   string
+	Config             PreprovisioningImageControllerConfig
 }
 
 // +kubebuilder:rbac:groups=metal3.io,resources=preprovisioningimages,verbs=get;list;watch;create;update;patch;delete
@@ -171,7 +179,7 @@ func (r *PreprovisioningImageReconciler) Reconcile(origCtx context.Context, req 
 
 // getConvergedDiscoveryTemplate merge the ironic ignition with the discovery ignition
 func (r *PreprovisioningImageReconciler) getIronicIgnitionConfig(log logrus.FieldLogger, infraEnvInternal common.InfraEnv, ironicAgentImage string) (string, error) {
-	config, err := r.IronicIgnitionBuilder.GenerateIronicConfig(r.IronicServiceURL, infraEnvInternal, ironicAgentImage)
+	config, err := ignition.GenerateIronicConfig(r.IronicServiceURL, infraEnvInternal, ironicAgentImage)
 	if err != nil {
 		log.WithError(err).Error("failed to generate Ironic ignition config")
 		return "", err
@@ -372,6 +380,15 @@ func (r *PreprovisioningImageReconciler) AddIronicAgentToInfraEnv(ctx context.Co
 		ironicAgentImage, err = r.getIronicAgentImage(log, *infraEnvInternal)
 		if err != nil {
 			log.WithError(err).Warningf("Failed to get ironicAgentImage for infraEnv: %s", infraEnv.Name)
+		}
+	}
+
+	if ironicAgentImage == "" {
+		// if ironicAgentImage wasn't specified use the default image for the CPU arch
+		if infraEnvInternal.CPUArchitecture == common.ARM64CPUArchitecture {
+			ironicAgentImage = r.Config.BaremetalIronicAgentImageForArm
+		} else {
+			ironicAgentImage = r.Config.BaremetalIronicAgentImage
 		}
 	}
 
