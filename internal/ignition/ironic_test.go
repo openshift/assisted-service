@@ -11,12 +11,11 @@ import (
 	"github.com/openshift/assisted-service/models"
 )
 
-var _ = Describe("Ignition with converged flow", func() {
+var _ = Describe("GenerateIronicConfig", func() {
 	var (
 		infraEnv      common.InfraEnv
 		infraEnvID    strfmt.UUID
 		ironicBaseURL string
-		iib           *IronicIgnitionBuilder
 	)
 	BeforeEach(func() {
 		infraEnvID = "a64fff36-dcb1-11ea-87d0-0242ac130003"
@@ -30,48 +29,21 @@ var _ = Describe("Ignition with converged flow", func() {
 			PullSecret: "{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}",
 		}
 	})
-	It("GenerateIronicConfig success", func() {
-		config := IronicIgnitionBuilderConfig{BaremetalIronicAgentImage: "defaultIronicAgentImage:latest", BaremetalIronicAgentImageForArm: "defaultIronicAgentImageForArm:latest"}
-		iib = NewIronicIgnitionBuilder(config)
-
-		conf, err := iib.GenerateIronicConfig(ironicBaseURL, infraEnv, "")
-		Expect(err).NotTo(HaveOccurred())
-		Expect(conf).Should(ContainSubstring("ironic-agent.service"))
-		Expect(conf).Should(ContainSubstring(url.QueryEscape(ironicBaseURL)))
-		Expect(conf).Should(ContainSubstring(config.BaremetalIronicAgentImage))
-		validateIgnition(conf)
-	})
 	It("GenerateIronicConfig override default ironic agent image", func() {
-		iib = NewIronicIgnitionBuilder(IronicIgnitionBuilderConfig{BaremetalIronicAgentImage: "defaultIronicAgentImage:latest"})
 		ironicAgentImage := "ironicAgentImage:custom"
-		conf, err := iib.GenerateIronicConfig(ironicBaseURL, infraEnv, ironicAgentImage)
+		conf, err := GenerateIronicConfig(ironicBaseURL, infraEnv, ironicAgentImage)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(conf).Should(ContainSubstring("ironic-agent.service"))
 		Expect(conf).Should(ContainSubstring(url.QueryEscape(ironicBaseURL)))
 		Expect(conf).Should(ContainSubstring(ironicAgentImage))
 		validateIgnition(conf)
 	})
-	It("GenerateIronicConfig use default ironic agent image for arm", func() {
-		config := IronicIgnitionBuilderConfig{BaremetalIronicAgentImage: "defaultIronicAgentImage:latest", BaremetalIronicAgentImageForArm: "defaultIronicAgentImageForArm:latest"}
-		iib = NewIronicIgnitionBuilder(config)
-		infraEnv.CPUArchitecture = common.ARM64CPUArchitecture
-
-		conf, err := iib.GenerateIronicConfig(ironicBaseURL, infraEnv, "")
-		Expect(err).NotTo(HaveOccurred())
-		Expect(conf).Should(ContainSubstring("ironic-agent.service"))
-		Expect(conf).Should(ContainSubstring(url.QueryEscape(ironicBaseURL)))
-		Expect(conf).Should(ContainSubstring(config.BaremetalIronicAgentImageForArm))
-		Expect(conf).ShouldNot(ContainSubstring(config.BaremetalIronicAgentImage))
-		validateIgnition(conf)
-	})
 	It("GenerateIronicConfig missing ironic service URL", func() {
-		iib = NewIronicIgnitionBuilder(IronicIgnitionBuilderConfig{BaremetalIronicAgentImage: "defaultIronicAgentImage:latest"})
-		_, err := iib.GenerateIronicConfig("", infraEnv, "")
+		_, err := GenerateIronicConfig("", infraEnv, "")
 		Expect(err).To(HaveOccurred())
 	})
 	It("GenerateIronicConfig missing ironic agent image", func() {
-		iib = NewIronicIgnitionBuilder(IronicIgnitionBuilderConfig{BaremetalIronicAgentImage: ""})
-		_, err := iib.GenerateIronicConfig(ironicBaseURL, infraEnv, "")
+		_, err := GenerateIronicConfig(ironicBaseURL, infraEnv, "")
 		Expect(err).To(HaveOccurred())
 	})
 })
