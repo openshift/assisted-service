@@ -1,7 +1,9 @@
 package events
 
 import (
+	"bytes"
 	"context"
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"strings"
@@ -10,6 +12,7 @@ import (
 	"github.com/go-openapi/strfmt"
 	"github.com/openshift/assisted-service/internal/common"
 	eventsapi "github.com/openshift/assisted-service/internal/events/api"
+	"github.com/openshift/assisted-service/internal/streaming"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/auth"
 	logutil "github.com/openshift/assisted-service/pkg/log"
@@ -181,83 +184,195 @@ func (e *Events) V2AddMetricsEvent(ctx context.Context, clusterID *strfmt.UUID, 
 	e.v2SaveEvent(ctx, clusterID, hostID, infraEnvID, name, models.EventCategoryMetrics, severity, msg, eventTime, requestID, props...)
 }
 
-func (e Events) queryEvents(ctx context.Context, selectedCategories []string, clusterID *strfmt.UUID, hostID *strfmt.UUID, infraEnvID *strfmt.UUID) ([]*common.Event, error) {
+func (e Events) queryEvents(ctx context.Context, selectedCategories []string,
+	clusterID *strfmt.UUID, hostID *strfmt.UUID,
+	infraEnvID *strfmt.UUID) (stream streaming.Stream[*common.Event], err error) {
 
-	WithIDs := func(db *gorm.DB) *gorm.DB {
-		if clusterID != nil {
-			db = db.Where("cluster_id = ?", clusterID.String())
+	// Prepare the parts of the query:
+	selectColumns := []string{
+		"e.name",
+		"e.cluster_id",
+		"e.host_id",
+		"e.infra_env_id",
+		"e.severity",
+		"e.event_time",
+		"e.message",
+		"e.props",
+	}
+	selectTables := []string{
+		"events as e",
+	}
+	whereClauses := []string{
+		fmt.Sprintf("e.category in (%s)", quote(selectedCategories...)),
+	}
+	orderClauses := []string{
+		"e.event_time",
+	}
+
+	if clusterID != nil {
+		whereClauses = append(
+			whereClauses,
+			fmt.Sprintf("e.cluster_id = %s", quote(clusterID.String())),
+		)
+	}
+	if infraEnvID != nil {
+		whereClauses = append(
+			whereClauses,
+			fmt.Sprintf("e.infra_env_id = %s", quote(infraEnvID.String())),
+		)
+	}
+	if hostID != nil {
+		whereClauses = append(
+			whereClauses,
+			fmt.Sprintf("e.host_id = %s", quote(hostID.String())),
+		)
+	}
+
+	// TODO: Add authorization checks, don't merge without that!
+
+	// Assemble the query:
+	buffer := &bytes.Buffer{}
+	fmt.Fprintf(buffer, "select\n")
+	for i, selectColumn := range selectColumns {
+		fmt.Fprintf(buffer, "\t%s", selectColumn)
+		if i < len(selectColumns)-1 {
+			fmt.Fprintf(buffer, ", ")
 		}
-		if infraEnvID != nil {
-			db = db.Where("infra_env_id = ?", infraEnvID.String())
+		fmt.Fprintf(buffer, "\n")
+	}
+	fmt.Fprintf(buffer, "from\n")
+	for i, selectTable := range selectTables {
+		fmt.Fprintf(buffer, "\t%s", selectTable)
+		if i < len(selectTables)-1 {
+			fmt.Fprintf(buffer, ", ")
 		}
-		if hostID != nil {
-			db = db.Where("host_id = ?", hostID.String())
+		fmt.Fprintf(buffer, "\n")
+	}
+	if len(whereClauses) > 0 {
+		fmt.Fprintf(buffer, "where\n")
+		for i, whereClause := range whereClauses {
+			fmt.Fprintf(buffer, "\t%s", whereClause)
+			if i < len(whereClauses)-1 {
+				fmt.Fprintf(buffer, " and")
+			}
+			fmt.Fprintf(buffer, "\n")
 		}
-		return db
+	}
+	if len(orderClauses) > 0 {
+		fmt.Fprintf(buffer, "order by\n")
+		for i, orderClause := range orderClauses {
+			fmt.Fprintf(buffer, "\t%s", orderClause)
+			if i < len(orderClauses)-1 {
+				fmt.Fprintf(buffer, ", ")
+			}
+		}
+		fmt.Fprintf(buffer, "\n")
+	}
+	query := buffer.String()
+
+	// Create the row scanner:
+	scanner := func(rows *sql.Rows) (event *common.Event, err error) {
+		var (
+			name       sql.NullString
+			clusterID  sql.NullString
+			hostID     sql.NullString
+			infraEnvID sql.NullString
+			severity   sql.NullString
+			eventTime  sql.NullTime
+			message    sql.NullString
+			props      sql.NullString
+		)
+		err = rows.Scan(
+			&name,
+			&clusterID,
+			&hostID,
+			&infraEnvID,
+			&severity,
+			&eventTime,
+			&message,
+			&props,
+		)
+		if err != nil {
+			return
+		}
+		event = &common.Event{}
+		if name.Valid {
+			event.Name = name.String
+		}
+		if clusterID.Valid {
+			event.ClusterID = new(strfmt.UUID)
+			*event.ClusterID = strfmt.UUID(clusterID.String)
+		}
+		if hostID.Valid {
+			event.HostID = new(strfmt.UUID)
+			*event.HostID = strfmt.UUID(hostID.String)
+		}
+		if infraEnvID.Valid {
+			event.InfraEnvID = new(strfmt.UUID)
+			*event.InfraEnvID = strfmt.UUID(infraEnvID.String)
+		}
+		if severity.Valid {
+			event.Severity = new(string)
+			*event.Severity = severity.String
+		}
+		if eventTime.Valid {
+			event.EventTime = new(strfmt.DateTime)
+			*event.EventTime = strfmt.DateTime(eventTime.Time)
+		}
+		if message.Valid {
+			event.Message = new(string)
+			*event.Message = message.String
+		}
+		if props.Valid {
+			event.Props = props.String
+		}
+		return
 	}
 
-	allEvents := func() bool {
-		return clusterID == nil && infraEnvID == nil && hostID == nil
+	// Start the transaction:
+	db, err := e.db.DB()
+	if err != nil {
+		return nil, err
 	}
 
-	clusterBoundEvents := func() bool {
-		return clusterID != nil
-	}
-
-	nonBoundEvents := func() bool {
-		return clusterID == nil && infraEnvID != nil
-	}
-
-	hostOnlyEvents := func() bool {
-		return clusterID == nil && infraEnvID == nil && hostID != nil
-	}
-
-	//prepare the common parts of the query
-	db := e.db.Order("event_time").Where("category IN (?)", selectedCategories)
-	if e.authz != nil {
-		db = e.authz.OwnedBy(ctx, db)
-	}
-
-	var result *gorm.DB
-
-	//retrieveing all events can be done only by admins. This is done to restrict data
-	//intensive queries by common users
-	if allEvents() && e.authz.IsAdmin(ctx) {
-		result = db
-	}
-
-	//for bound events that are searched with cluster id (whether on clusters, bound infra-env ,
-	//host bound to a cluster or registered to a bound infra-env) check the access permission
-	//relative to the cluster ownership
-	if clusterBoundEvents() {
-		result = db.Model(&common.Cluster{}).Select("events.*, clusters.user_name, clusters.org_id").
-			Joins("INNER JOIN \"events\" ON events.cluster_id = clusters.id")
-	}
-
-	//for unbound events that are searched with infra-env id (whether events on hosts or the
-	//infra-env level itself) check the access permission relative to the infra-env ownership
-	if nonBoundEvents() {
-		result = db.Model(&common.InfraEnv{}).Select("events.*, infra_envs.user_name, infra_envs.org_id").
-			Joins("INNER JOIN events ON events.infra_env_id = infra_envs.id")
-	}
-
-	//for query made on the host only check the permission relative to it's infra-env. since
-	//host table does not contain an org_id we can not perform a join on that table and has to go
-	//through the infra-env table which is good because authorization is done on the infra-level
-	if hostOnlyEvents() {
-		result = db.Model(&common.Host{}).Select("events.*, infra_envs.user_name, infra_envs.org_id").
-			Joins("INNER JOIN infra_envs ON hosts.infra_env_id = infra_envs.id").Joins("INNER JOIN events ON events.host_id = hosts.id")
-	}
-
-	if result == nil { //non supported option
-		return make([]*common.Event, 0), nil
-	}
-
-	var events []*common.Event
-	return events, WithIDs(result).Find(&events).Error
+	// Build the stream:
+	stream, err = streaming.NewQuery[*common.Event]().
+		DB(db).
+		Text(query).
+		Scanner(scanner).
+		Fetch(100).
+		Build()
+	return
 }
 
-func (e Events) V2GetEvents(ctx context.Context, clusterID *strfmt.UUID, hostID *strfmt.UUID, infraEnvID *strfmt.UUID, categories ...string) ([]*common.Event, error) {
+func quote(values ...string) string {
+	buffer := &bytes.Buffer{}
+	for _, value := range values {
+		if buffer.Len() > 0 {
+			buffer.WriteString(", ")
+		}
+		buffer.WriteString("'")
+		buffer.WriteString(strings.ReplaceAll(value, "'", "''"))
+		buffer.WriteString("'")
+	}
+	return buffer.String()
+}
+
+func (e Events) V2GetEvents(ctx context.Context, clusterID *strfmt.UUID, hostID *strfmt.UUID,
+	infraEnvID *strfmt.UUID, categories ...string) (slice []*common.Event, err error) {
+	stream, err := e.V2GetEventStream(ctx, clusterID, hostID, infraEnvID, categories...)
+	if err != nil {
+		return
+	}
+	slice, err = streaming.Collect(ctx, stream)
+	if err != nil {
+		return
+	}
+	return
+}
+
+func (e Events) V2GetEventStream(ctx context.Context, clusterID *strfmt.UUID, hostID *strfmt.UUID,
+	infraEnvID *strfmt.UUID, categories ...string) (stream streaming.Stream[*common.Event], err error) {
 	//initialize the selectedCategories either from the filter, if exists, or from the default values
 	selectedCategories := make([]string, 0)
 	if len(categories) > 0 {

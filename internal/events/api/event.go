@@ -6,6 +6,7 @@ import (
 
 	"github.com/go-openapi/strfmt"
 	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/internal/streaming"
 	"github.com/openshift/assisted-service/models"
 )
 
@@ -40,6 +41,7 @@ type Sender interface {
 type Handler interface {
 	Sender
 	V2GetEvents(ctx context.Context, clusterID *strfmt.UUID, hostID *strfmt.UUID, infraEnvID *strfmt.UUID, categories ...string) ([]*common.Event, error)
+	V2GetEventStream(ctx context.Context, clusterID *strfmt.UUID, hostID *strfmt.UUID, infraEnvID *strfmt.UUID, categories ...string) (streaming.Stream[*common.Event], error)
 }
 
 var DefaultEventCategories = []string{

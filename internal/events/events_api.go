@@ -7,6 +7,7 @@ import (
 	"github.com/go-openapi/runtime/middleware"
 	"github.com/openshift/assisted-service/internal/common"
 	eventsapi "github.com/openshift/assisted-service/internal/events/api"
+	"github.com/openshift/assisted-service/internal/streaming"
 	"github.com/openshift/assisted-service/models"
 	logutil "github.com/openshift/assisted-service/pkg/log"
 	"github.com/openshift/assisted-service/restapi"
@@ -33,7 +34,7 @@ func NewApi(handler eventsapi.Handler, log logrus.FieldLogger) *Api {
 func (a *Api) V2ListEvents(ctx context.Context, params events.V2ListEventsParams) middleware.Responder {
 	log := logutil.FromContext(ctx, a.log)
 
-	evs, err := a.handler.V2GetEvents(ctx, params.ClusterID, params.HostID, params.InfraEnvID, params.Categories...)
+	eventStream, err := a.handler.V2GetEventStream(ctx, params.ClusterID, params.HostID, params.InfraEnvID, params.Categories...)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return common.NewApiError(http.StatusNotFound, err)
@@ -41,18 +42,28 @@ func (a *Api) V2ListEvents(ctx context.Context, params events.V2ListEventsParams
 		log.WithError(err).Errorf("failed to get events")
 		return common.NewApiError(http.StatusInternalServerError, err)
 	}
-	ret := make(models.EventList, len(evs))
-	for i, ev := range evs {
-		ret[i] = &models.Event{
-			Name:       ev.Name,
-			ClusterID:  ev.ClusterID,
-			HostID:     ev.HostID,
-			InfraEnvID: ev.InfraEnvID,
-			Severity:   ev.Severity,
-			EventTime:  ev.EventTime,
-			Message:    ev.Message,
-			Props:      ev.Props,
+	eventMapper := func(ctx context.Context, event *common.Event) (model *models.Event, err error) {
+		model = &models.Event{
+			Name:       event.Name,
+			ClusterID:  event.ClusterID,
+			HostID:     event.HostID,
+			InfraEnvID: event.InfraEnvID,
+			Severity:   event.Severity,
+			EventTime:  event.EventTime,
+			Message:    event.Message,
+			Props:      event.Props,
 		}
+		return
 	}
-	return events.NewV2ListEventsOK().WithPayload(ret)
+	modelStream := streaming.Map(eventStream, eventMapper)
+	responder, err := streaming.NewResponder[*models.Event]().
+		Source(modelStream).
+		Flush(100).
+		Context(ctx).
+		Build()
+	if err != nil {
+		log.WithError(err).Errorf("failed to create responder")
+		return common.NewApiError(http.StatusInternalServerError, err)
+	}
+	return responder
 }
