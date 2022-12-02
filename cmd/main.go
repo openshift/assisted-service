@@ -154,7 +154,7 @@ var Options struct {
 	ClusterTLSCertOverrideDir string `envconfig:"EPHEMERAL_INSTALLER_CLUSTER_TLS_CERTS_OVERRIDE_DIR" default:""`
 }
 
-func InitLogs() *logrus.Entry {
+func InitLogs() *logrus.Logger {
 	log := logrus.New()
 
 	fmt.Println(Options.EnableElasticAPM)
@@ -164,24 +164,22 @@ func InitLogs() *logrus.Entry {
 
 	log.SetReportCaller(true)
 
-	logger := log.WithFields(logrus.Fields{})
-
 	//set log format according to configuration
-	logger.Info("Setting log format: ", Options.LogConfig.LogFormat)
+	log.Info("Setting log format: ", Options.LogConfig.LogFormat)
 	if Options.LogConfig.LogFormat == logconfig.LogFormatJson {
 		log.SetFormatter(&logrus.JSONFormatter{})
 	}
 
 	//set log level according to configuration
-	logger.Info("Setting Log Level: ", Options.LogConfig.LogLevel)
+	log.Info("Setting Log Level: ", Options.LogConfig.LogLevel)
 	logLevel, err := logrus.ParseLevel(Options.LogConfig.LogLevel)
 	if err != nil {
-		logger.Error("Invalid Log Level: ", Options.LogConfig.LogLevel)
+		log.Error("Invalid Log Level: ", Options.LogConfig.LogLevel)
 	} else {
 		log.SetLevel(logLevel)
 	}
 
-	return logger
+	return log
 }
 
 func maxDuration(dur time.Duration, durations ...time.Duration) time.Duration {
