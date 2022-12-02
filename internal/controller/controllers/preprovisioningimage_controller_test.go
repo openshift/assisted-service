@@ -78,7 +78,7 @@ var _ = Describe("PreprovisioningImage reconcile", func() {
 		mockCRDEventsHandler  *MockCRDEventsHandler
 		mockVersionHandler    *versions.MockHandler
 		mockOcRelease         *oc.MockRelease
-		ironicIgnitionBuilder ignition.IronicIgniotionBuilder
+		ironicIgnitionBuilder ignition.IronicIgnitionBuilder
 		ctx                   = context.Background()
 		sId                   strfmt.UUID
 		backendInfraEnv       = &common.InfraEnv{InfraEnv: models.InfraEnv{ClusterID: sId, ID: &sId}}
@@ -96,19 +96,19 @@ var _ = Describe("PreprovisioningImage reconcile", func() {
 		mockCtrl = gomock.NewController(GinkgoT())
 		mockInstallerInternal = bminventory.NewMockInstallerInternals(mockCtrl)
 		mockCRDEventsHandler = NewMockCRDEventsHandler(mockCtrl)
-		ironicIgnitionBuilder = ignition.NewIronicIgniotionBuilder(ignition.IronicIgniotionBuilderConfig{BaremetalIronicAgentImage: "ironic-agent-image:latest"})
+		ironicIgnitionBuilder = ignition.NewIronicIgnitionBuilder(ignition.IronicIgnitionBuilderConfig{BaremetalIronicAgentImage: "ironic-agent-image:latest"})
 		mockVersionHandler = versions.NewMockHandler(mockCtrl)
 		mockOcRelease = oc.NewMockRelease(mockCtrl)
 		sId = strfmt.UUID(uuid.New().String())
 		pr = &PreprovisioningImageReconciler{
-			Client:                 c,
-			Log:                    common.GetTestLog(),
-			Installer:              mockInstallerInternal,
-			CRDEventsHandler:       mockCRDEventsHandler,
-			IronicIgniotionBuilder: ironicIgnitionBuilder,
-			VersionsHandler:        mockVersionHandler,
-			OcRelease:              mockOcRelease,
-			IronicServiceURL:       "ironic.url",
+			Client:                c,
+			Log:                   common.GetTestLog(),
+			Installer:             mockInstallerInternal,
+			CRDEventsHandler:      mockCRDEventsHandler,
+			IronicIgnitionBuilder: ironicIgnitionBuilder,
+			VersionsHandler:       mockVersionHandler,
+			OcRelease:             mockOcRelease,
+			IronicServiceURL:      "ironic.url",
 		}
 	})
 

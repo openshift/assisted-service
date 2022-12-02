@@ -56,14 +56,14 @@ const archMismatchReason = "InfraEnvArchMismatch"
 // PreprovisioningImage reconciles a AgentClusterInstall object
 type PreprovisioningImageReconciler struct {
 	client.Client
-	Log                    logrus.FieldLogger
-	Installer              bminventory.InstallerInternals
-	CRDEventsHandler       CRDEventsHandler
-	IronicIgniotionBuilder ignition.IronicIgniotionBuilder
-	VersionsHandler        versions.Handler
-	OcRelease              oc.Release
-	ReleaseImageMirror     string
-	IronicServiceURL       string
+	Log                   logrus.FieldLogger
+	Installer             bminventory.InstallerInternals
+	CRDEventsHandler      CRDEventsHandler
+	IronicIgnitionBuilder ignition.IronicIgnitionBuilder
+	VersionsHandler       versions.Handler
+	OcRelease             oc.Release
+	ReleaseImageMirror    string
+	IronicServiceURL      string
 }
 
 // +kubebuilder:rbac:groups=metal3.io,resources=preprovisioningimages,verbs=get;list;watch;create;update;patch;delete
@@ -171,7 +171,7 @@ func (r *PreprovisioningImageReconciler) Reconcile(origCtx context.Context, req 
 
 // getConvergedDiscoveryTemplate merge the ironic ignition with the discovery ignition
 func (r *PreprovisioningImageReconciler) getIronicIgnitionConfig(log logrus.FieldLogger, infraEnvInternal common.InfraEnv, ironicAgentImage string) (string, error) {
-	config, err := r.IronicIgniotionBuilder.GenerateIronicConfig(r.IronicServiceURL, infraEnvInternal, ironicAgentImage)
+	config, err := r.IronicIgnitionBuilder.GenerateIronicConfig(r.IronicServiceURL, infraEnvInternal, ironicAgentImage)
 	if err != nil {
 		log.WithError(err).Error("failed to generate Ironic ignition config")
 		return "", err
