@@ -148,7 +148,7 @@ var Options struct {
 	ApproveCsrsRequeueDuration     time.Duration `envconfig:"APPROVE_CSRS_REQUEUE_DURATION" default:"1m"`
 	HTTPListenPort                 string        `envconfig:"HTTP_LISTEN_PORT" default:""`
 	AllowConvergedFlow             bool          `envconfig:"ALLOW_CONVERGED_FLOW" default:"false"`
-	IronicIgnitionBuilderConfig    ignition.IronicIgniotionBuilderConfig
+	IronicIgnitionBuilderConfig    ignition.IronicIgnitionBuilderConfig
 
 	// Directory containing pre-generated TLS certs/keys for the ephemeral installer
 	ClusterTLSCertOverrideDir string `envconfig:"EPHEMERAL_INSTALLER_CLUSTER_TLS_CERTS_OVERRIDE_DIR" default:""`
@@ -593,14 +593,14 @@ func main() {
 					log.WithError(err).Fatal("failed to get IronicServiceURL")
 				}
 				failOnError((&controllers.PreprovisioningImageReconciler{
-					Client:                 ctrlMgr.GetClient(),
-					Log:                    log,
-					Installer:              bm,
-					CRDEventsHandler:       crdEventsHandler,
-					VersionsHandler:        versionHandler,
-					OcRelease:              releaseHandler,
-					IronicIgniotionBuilder: ignition.NewIronicIgniotionBuilder(Options.IronicIgnitionBuilderConfig),
-					IronicServiceURL:       ironicBaseURL,
+					Client:                ctrlMgr.GetClient(),
+					Log:                   log,
+					Installer:             bm,
+					CRDEventsHandler:      crdEventsHandler,
+					VersionsHandler:       versionHandler,
+					OcRelease:             releaseHandler,
+					IronicIgnitionBuilder: ignition.NewIronicIgnitionBuilder(Options.IronicIgnitionBuilderConfig),
+					IronicServiceURL:      ironicBaseURL,
 				}).SetupWithManager(ctrlMgr), "failed to create PreprovisioningImage ceontroller")
 			}
 			log.Infof("Starting controllers")

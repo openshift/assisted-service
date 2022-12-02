@@ -16,7 +16,7 @@ var _ = Describe("Ignition with converged flow", func() {
 		infraEnv      common.InfraEnv
 		infraEnvID    strfmt.UUID
 		ironicBaseURL string
-		iib           IronicIgniotionBuilder
+		iib           IronicIgnitionBuilder
 	)
 	BeforeEach(func() {
 		infraEnvID = "a64fff36-dcb1-11ea-87d0-0242ac130003"
@@ -31,8 +31,8 @@ var _ = Describe("Ignition with converged flow", func() {
 		}
 	})
 	It("GenerateIronicConfig success", func() {
-		config := IronicIgniotionBuilderConfig{BaremetalIronicAgentImage: "defaultIronicAgentImage:latest", BaremetalIronicAgentImageForArm: "defaultIronicAgentImageForArm:latest"}
-		iib = NewIronicIgniotionBuilder(config)
+		config := IronicIgnitionBuilderConfig{BaremetalIronicAgentImage: "defaultIronicAgentImage:latest", BaremetalIronicAgentImageForArm: "defaultIronicAgentImageForArm:latest"}
+		iib = NewIronicIgnitionBuilder(config)
 
 		conf, err := iib.GenerateIronicConfig(ironicBaseURL, infraEnv, "")
 		Expect(err).NotTo(HaveOccurred())
@@ -42,7 +42,7 @@ var _ = Describe("Ignition with converged flow", func() {
 		validateIgnition(conf)
 	})
 	It("GenerateIronicConfig override default ironic agent image", func() {
-		iib = NewIronicIgniotionBuilder(IronicIgniotionBuilderConfig{BaremetalIronicAgentImage: "defaultIronicAgentImage:latest"})
+		iib = NewIronicIgnitionBuilder(IronicIgnitionBuilderConfig{BaremetalIronicAgentImage: "defaultIronicAgentImage:latest"})
 		ironicAgentImage := "ironicAgentImage:custom"
 		conf, err := iib.GenerateIronicConfig(ironicBaseURL, infraEnv, ironicAgentImage)
 		Expect(err).NotTo(HaveOccurred())
@@ -52,8 +52,8 @@ var _ = Describe("Ignition with converged flow", func() {
 		validateIgnition(conf)
 	})
 	It("GenerateIronicConfig use default ironic agent image for arm", func() {
-		config := IronicIgniotionBuilderConfig{BaremetalIronicAgentImage: "defaultIronicAgentImage:latest", BaremetalIronicAgentImageForArm: "defaultIronicAgentImageForArm:latest"}
-		iib = NewIronicIgniotionBuilder(config)
+		config := IronicIgnitionBuilderConfig{BaremetalIronicAgentImage: "defaultIronicAgentImage:latest", BaremetalIronicAgentImageForArm: "defaultIronicAgentImageForArm:latest"}
+		iib = NewIronicIgnitionBuilder(config)
 		infraEnv.CPUArchitecture = common.ARM64CPUArchitecture
 
 		conf, err := iib.GenerateIronicConfig(ironicBaseURL, infraEnv, "")
@@ -65,12 +65,12 @@ var _ = Describe("Ignition with converged flow", func() {
 		validateIgnition(conf)
 	})
 	It("GenerateIronicConfig missing ironic service URL", func() {
-		iib = NewIronicIgniotionBuilder(IronicIgniotionBuilderConfig{BaremetalIronicAgentImage: "defaultIronicAgentImage:latest"})
+		iib = NewIronicIgnitionBuilder(IronicIgnitionBuilderConfig{BaremetalIronicAgentImage: "defaultIronicAgentImage:latest"})
 		_, err := iib.GenerateIronicConfig("", infraEnv, "")
 		Expect(err).To(HaveOccurred())
 	})
 	It("GenerateIronicConfig missing ironic agent image", func() {
-		iib = NewIronicIgniotionBuilder(IronicIgniotionBuilderConfig{BaremetalIronicAgentImage: ""})
+		iib = NewIronicIgnitionBuilder(IronicIgnitionBuilderConfig{BaremetalIronicAgentImage: ""})
 		_, err := iib.GenerateIronicConfig(ironicBaseURL, infraEnv, "")
 		Expect(err).To(HaveOccurred())
 	})
