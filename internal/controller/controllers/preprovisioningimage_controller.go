@@ -59,7 +59,7 @@ type PreprovisioningImageReconciler struct {
 	Log                   logrus.FieldLogger
 	Installer             bminventory.InstallerInternals
 	CRDEventsHandler      CRDEventsHandler
-	IronicIgnitionBuilder ignition.IronicIgnitionBuilder
+	IronicIgnitionBuilder *ignition.IronicIgnitionBuilder
 	VersionsHandler       versions.Handler
 	OcRelease             oc.Release
 	ReleaseImageMirror    string

@@ -16,7 +16,7 @@ var _ = Describe("Ignition with converged flow", func() {
 		infraEnv      common.InfraEnv
 		infraEnvID    strfmt.UUID
 		ironicBaseURL string
-		iib           IronicIgnitionBuilder
+		iib           *IronicIgnitionBuilder
 	)
 	BeforeEach(func() {
 		infraEnvID = "a64fff36-dcb1-11ea-87d0-0242ac130003"

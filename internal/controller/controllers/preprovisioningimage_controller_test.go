@@ -78,7 +78,7 @@ var _ = Describe("PreprovisioningImage reconcile", func() {
 		mockCRDEventsHandler  *MockCRDEventsHandler
 		mockVersionHandler    *versions.MockHandler
 		mockOcRelease         *oc.MockRelease
-		ironicIgnitionBuilder ignition.IronicIgnitionBuilder
+		ironicIgnitionBuilder *ignition.IronicIgnitionBuilder
 		ctx                   = context.Background()
 		sId                   strfmt.UUID
 		backendInfraEnv       = &common.InfraEnv{InfraEnv: models.InfraEnv{ClusterID: sId, ID: &sId}}
