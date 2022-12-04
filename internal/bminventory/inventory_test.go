@@ -3712,6 +3712,7 @@ var _ = Describe("cluster", func() {
 					Platform:              &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeBaremetal)},
 					UserManagedNetworking: swag.Bool(false),
 					CPUArchitecture:       common.X86CPUArchitecture,
+					HighAvailabilityMode:  swag.String(models.ClusterCreateParamsHighAvailabilityModeFull),
 				}}).Error
 				Expect(err).ShouldNot(HaveOccurred())
 				addHost(masterHostId1, models.HostRoleMaster, "known", models.HostKindHost, infraEnvID, clusterID, getInventoryStr("hostname0", "bootMode", "1.2.3.4/24", "10.11.50.90/16"), db)
@@ -15457,6 +15458,40 @@ var _ = Describe("Update cluster - feature usage flags", func() {
 			mockUsage.EXPECT().Save(gomock.Any(), *cluster.ID, usages).Times(1)
 			err := bm.setStaticNetworkUsage(db, *cluster.ID, "")
 			Expect(err).ToNot(HaveOccurred())
+		})
+	})
+
+	Context("User Managed Network With Multi Node Usage", func() {
+		It("feature usage when userManagedNetworking is true and highAvailabilityMode is Full should be on", func() {
+			userManagedNetwork := true
+			highAvailabilityMode := models.ClusterCreateParamsHighAvailabilityModeFull
+			mockUsage.EXPECT().Add(usages, usage.UserManagedNetworkingWithMultiNode, nil).Times(1)
+			mockUsage.EXPECT().Remove(usages, usage.UserManagedNetworkingWithMultiNode).Times(0)
+			bm.setUserManagedNetworkingAndMultiNodeUsage(userManagedNetwork, highAvailabilityMode, usages)
+		})
+
+		It("feature usage when userManagedNetworking is false and highAvailabilityMode is Full should be off", func() {
+			userManagedNetwork := false
+			highAvailabilityMode := models.ClusterCreateParamsHighAvailabilityModeFull
+			mockUsage.EXPECT().Add(usages, usage.UserManagedNetworkingWithMultiNode, nil).Times(0)
+			mockUsage.EXPECT().Remove(usages, usage.UserManagedNetworkingWithMultiNode).Times(1)
+			bm.setUserManagedNetworkingAndMultiNodeUsage(userManagedNetwork, highAvailabilityMode, usages)
+		})
+
+		It("feature usage when userManagedNetworking is true and highAvailabilityMode is None should be off", func() {
+			userManagedNetwork := true
+			highAvailabilityMode := models.ClusterCreateParamsHighAvailabilityModeNone
+			mockUsage.EXPECT().Add(usages, usage.UserManagedNetworkingWithMultiNode, nil).Times(0)
+			mockUsage.EXPECT().Remove(usages, usage.UserManagedNetworkingWithMultiNode).Times(1)
+			bm.setUserManagedNetworkingAndMultiNodeUsage(userManagedNetwork, highAvailabilityMode, usages)
+		})
+
+		It("feature usage when userManagedNetworking is false and highAvailabilityMode is None should be off", func() {
+			userManagedNetwork := false
+			highAvailabilityMode := models.ClusterCreateParamsHighAvailabilityModeNone
+			mockUsage.EXPECT().Add(usages, usage.UserManagedNetworkingWithMultiNode, nil).Times(0)
+			mockUsage.EXPECT().Remove(usages, usage.UserManagedNetworkingWithMultiNode).Times(1)
+			bm.setUserManagedNetworkingAndMultiNodeUsage(userManagedNetwork, highAvailabilityMode, usages)
 		})
 	})
 })

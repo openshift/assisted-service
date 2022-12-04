@@ -2138,6 +2138,7 @@ func (b *bareMetalInventory) updateClusterData(_ context.Context, cluster *commo
 			return common.NewApiError(http.StatusBadRequest, errors.Errorf(msg))
 		}
 	}
+
 	if params.ClusterUpdateParams.SchedulableMasters != nil {
 		value := swag.BoolValue(params.ClusterUpdateParams.SchedulableMasters)
 		updates["schedulable_masters"] = value
@@ -2169,6 +2170,10 @@ func (b *bareMetalInventory) updateClusterData(_ context.Context, cluster *commo
 	if params.ClusterUpdateParams.Hyperthreading != nil {
 		b.setUsage(*params.ClusterUpdateParams.Hyperthreading != models.ClusterHyperthreadingNone, usage.HyperthreadingUsage,
 			&map[string]interface{}{"hyperthreading_enabled": *params.ClusterUpdateParams.Hyperthreading}, usages)
+	}
+
+	if params.ClusterUpdateParams.UserManagedNetworking != nil && cluster.HighAvailabilityMode != nil {
+		b.setUserManagedNetworkingAndMultiNodeUsage(swag.BoolValue(params.ClusterUpdateParams.UserManagedNetworking), *cluster.HighAvailabilityMode, usages)
 	}
 
 	if len(updates) > 0 {
@@ -2537,6 +2542,7 @@ func (b *bareMetalInventory) setDefaultUsage(cluster *models.Cluster) error {
 	b.setUsage(cluster.Tags != "", usage.ClusterTags, nil, usages)
 	b.setUsage(cluster.Hyperthreading != models.ClusterHyperthreadingNone, usage.HyperthreadingUsage,
 		&map[string]interface{}{"hyperthreading_enabled": cluster.Hyperthreading}, usages)
+	b.setUserManagedNetworkingAndMultiNodeUsage(swag.BoolValue(cluster.UserManagedNetworking), swag.StringValue(cluster.HighAvailabilityMode), usages)
 	//write all the usages to the cluster object
 	err := b.providerRegistry.SetPlatformUsages(common.PlatformTypeValue(cluster.Platform.Type), usages, b.usageApi)
 	if err != nil {
@@ -2578,6 +2584,11 @@ func (b *bareMetalInventory) setProxyUsage(httpProxy *string, httpsProxy *string
 	} else {
 		b.usageApi.Remove(usages, usage.ProxyUsage)
 	}
+}
+
+func (b *bareMetalInventory) setUserManagedNetworkingAndMultiNodeUsage(userManagedNetworking bool, highAvailabilityMode string, usages map[string]models.Usage) {
+	b.setUsage(userManagedNetworking && highAvailabilityMode == models.ClusterCreateParamsHighAvailabilityModeFull,
+		usage.UserManagedNetworkingWithMultiNode, nil, usages)
 }
 
 func (b *bareMetalInventory) setOperatorsUsage(updateOLMOperators []*models.MonitoredOperator, removedOLMOperators []*models.MonitoredOperator, usages map[string]models.Usage) {
