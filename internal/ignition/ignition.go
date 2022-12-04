@@ -153,6 +153,9 @@ mnt=$(podman image mount "${RPMS_IMAGE}")
 # Install RPMs in overlayed FS
 mkdir /tmp/rpms
 cp -rvf ${mnt}/rpms/* /tmp/rpms
+# If RPMs image contants manifests these need to be copied as well
+mkdir -p /opt/openshift/openshift
+cp -rvf ${mnt}/manifests/* /opt/openshift/openshift || true
 tmpd=$(mktemp -d)
 mkdir ${tmpd}/{upper,work}
 mount -t overlay -o lowerdir=/usr,upperdir=${tmpd}/upper,workdir=${tmpd}/work overlay /usr
