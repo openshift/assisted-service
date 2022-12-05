@@ -135,8 +135,9 @@ var _ = Describe("PreprovisioningImage reconcile", func() {
 		AfterEach(func() {
 			mockCtrl.Finish()
 		})
-		It("Add the ironic Ignition to the infraEnv", func() {
+		It("Adds the default ironic Ignition to the infraEnv when no clusterID is set", func() {
 			Expect(c.Create(ctx, infraEnv)).To(BeNil())
+			backendInfraEnv.ClusterID = ""
 			mockInstallerInternal.EXPECT().GetInfraEnvByKubeKey(gomock.Any()).Return(backendInfraEnv, nil)
 			mockInstallerInternal.EXPECT().UpdateInfraEnvInternal(gomock.Any(), gomock.Any(), gomock.Any()).
 				Do(func(ctx context.Context, params installer.UpdateInfraEnvParams, internalIgnitionConfig *string) {
@@ -270,8 +271,10 @@ var _ = Describe("PreprovisioningImage reconcile", func() {
 			ironicAgentImage := "ironic-image:4.12.0"
 			backendInfraEnv.OpenshiftVersion = "4.12.0-test.release"
 			backendInfraEnv.CPUArchitecture = "x86_64"
+			backendCluster := common.Cluster{Cluster: models.Cluster{ID: &clusterID, OpenshiftVersion: "4.12"}}
+			mockInstallerInternal.EXPECT().GetClusterInternal(gomock.Any(), installer.V2GetClusterParams{ClusterID: clusterID}).Return(&backendCluster, nil)
 			mockInstallerInternal.EXPECT().GetInfraEnvByKubeKey(gomock.Any()).Return(backendInfraEnv, nil)
-			mockVersionHandler.EXPECT().GetReleaseImage(backendInfraEnv.OpenshiftVersion, backendInfraEnv.CPUArchitecture).Return(&models.ReleaseImage{URL: &openshiftRelaseImage}, nil)
+			mockVersionHandler.EXPECT().GetReleaseImage(backendCluster.OpenshiftVersion, backendInfraEnv.CPUArchitecture).Return(&models.ReleaseImage{URL: &openshiftRelaseImage}, nil)
 			mockOcRelease.EXPECT().GetIronicAgentImage(gomock.Any(), openshiftRelaseImage, "", backendInfraEnv.PullSecret).Return(ironicAgentImage, nil)
 			mockInstallerInternal.EXPECT().UpdateInfraEnvInternal(gomock.Any(), gomock.Any(), gomock.Any()).
 				Do(func(ctx context.Context, params installer.UpdateInfraEnvParams, internalIgnitionConfig *string) {
@@ -293,10 +296,12 @@ var _ = Describe("PreprovisioningImage reconcile", func() {
 			Expect(c.Get(ctx, key, infraEnv)).To(BeNil())
 			Expect(infraEnv.ObjectMeta.Annotations[EnableIronicAgentAnnotation]).To(Equal("true"))
 		})
-		It("infraEnv openshift version is too low, use the default ironic agent image", func() {
+		It("uses the default ironic agent image when the cluster openshift version is too low", func() {
 			Expect(c.Create(ctx, infraEnv)).To(BeNil())
 			backendInfraEnv.OpenshiftVersion = "4.10.0-test.release"
 			backendInfraEnv.CPUArchitecture = "x86_64"
+			backendCluster := common.Cluster{Cluster: models.Cluster{ID: &clusterID, OpenshiftVersion: "4.10"}}
+			mockInstallerInternal.EXPECT().GetClusterInternal(gomock.Any(), installer.V2GetClusterParams{ClusterID: clusterID}).Return(&backendCluster, nil)
 			mockInstallerInternal.EXPECT().GetInfraEnvByKubeKey(gomock.Any()).Return(backendInfraEnv, nil)
 			mockInstallerInternal.EXPECT().UpdateInfraEnvInternal(gomock.Any(), gomock.Any(), gomock.Any()).
 				Do(func(ctx context.Context, params installer.UpdateInfraEnvParams, internalIgnitionConfig *string) {
@@ -397,14 +402,18 @@ var _ = Describe("PreprovisioningImage reconcile", func() {
 		Expect(err.Error()).To(Equal("Failed to get internal infra env"))
 		Expect(res).To(Equal(ctrl.Result{}))
 	})
-	It("Failed during getIronicIgnitionConfig", func() {
+	It("returns an error when the ironic ignition fails to generate", func() {
 		ppi = newPreprovisioningImage("testPPI", testNamespace, InfraEnvLabel, "testInfraEnv")
 		Expect(c.Create(ctx, ppi)).To(BeNil())
+
 		infraEnv = newInfraEnv("testInfraEnv", testNamespace, aiv1beta1.InfraEnvSpec{})
 		infraEnv.ObjectMeta.Annotations = make(map[string]string)
 		infraEnv.ObjectMeta.Annotations[EnableIronicAgentAnnotation] = "invalid value"
-		mockInstallerInternal.EXPECT().GetInfraEnvByKubeKey(gomock.Any()).Return(backendInfraEnv, nil)
 		Expect(c.Create(ctx, infraEnv)).To(BeNil())
+
+		backendInfraEnv.ClusterID = ""
+		mockInstallerInternal.EXPECT().GetInfraEnvByKubeKey(gomock.Any()).Return(backendInfraEnv, nil)
+
 		// This should fail the IronicIgnitionBuilder
 		pr.IronicServiceURL = ""
 		res, err := pr.Reconcile(ctx, newPreprovisioningImageRequest(ppi))
@@ -418,6 +427,7 @@ var _ = Describe("PreprovisioningImage reconcile", func() {
 		infraEnv = newInfraEnv("testInfraEnv", testNamespace, aiv1beta1.InfraEnvSpec{})
 		infraEnv.ObjectMeta.Annotations = make(map[string]string)
 		infraEnv.ObjectMeta.Annotations[EnableIronicAgentAnnotation] = "invalid value"
+		backendInfraEnv.ClusterID = ""
 		mockInstallerInternal.EXPECT().GetInfraEnvByKubeKey(gomock.Any()).Return(backendInfraEnv, nil)
 		Expect(c.Create(ctx, infraEnv)).To(BeNil())
 		mockInstallerInternal.EXPECT().UpdateInfraEnvInternal(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, errors.New("Failed to update infraEnvInternal"))
