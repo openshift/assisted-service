@@ -46,6 +46,7 @@ func NewHostStateMachine(sm stateswitch.StateMachine, th TransitionHandler) stat
 			stateswitch.State(models.HostStatusPreparingForInstallation),
 			stateswitch.State(models.HostStatusPreparingSuccessful),
 			stateswitch.State(models.HostStatusBinding),
+			stateswitch.State(models.HostStatusPendingForInput),
 		},
 		DestinationState: stateswitch.State(models.HostStatusDiscovering),
 		PostTransition:   th.PostRegisterHost,
