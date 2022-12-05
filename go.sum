@@ -570,10 +570,6 @@ github.com/fatih/color v1.13.0/go.mod h1:kLAiJbzzSOZDVNGyDpeOxJ47H46qBXwg5ILebYF
 github.com/fatih/structtag v1.2.0/go.mod h1:mBJUNpUnHmRKrKlQQlmCrh5PuhftFbNv8Ys4/aAZl94=
 github.com/felixge/httpsnoop v1.0.1 h1:lvB5Jl89CsZtGIWuTcDM1E/vkVs49/Ml7JJe07l8SPQ=
 github.com/felixge/httpsnoop v1.0.1/go.mod h1:m8KPJKqk1gH5J9DgRY2ASl2lWCfGKXixSwevea8zH2U=
-github.com/filanov/stateswitch v0.0.0-20200714113403-51a42a34c604 h1:aZhbnjYgDH0XJXQPYGxJjla3bOsx+I4V1F3eqMuiIpQ=
-github.com/filanov/stateswitch v0.0.0-20200714113403-51a42a34c604/go.mod h1:GYnXtGE0e/uuFBz4CbjJL0JmP3DWwzGtcpjZYYC9ikc=
-github.com/filanov/stateswitch v1.0.1-0.20221115122927-775ae5822fad h1:pc0NHPxVnTThGFQDoxL9nsgrE347+veHR0M5C5s/k1Q=
-github.com/filanov/stateswitch v1.0.1-0.20221115122927-775ae5822fad/go.mod h1:GYnXtGE0e/uuFBz4CbjJL0JmP3DWwzGtcpjZYYC9ikc=
 github.com/filanov/stateswitch v1.0.1-0.20221122134945-bfa198e3a83a h1:pjBflcDo/fRYYtzrMxlQu6UefT+8uIWHbH9hOXfOlp8=
 github.com/filanov/stateswitch v1.0.1-0.20221122134945-bfa198e3a83a/go.mod h1:GYnXtGE0e/uuFBz4CbjJL0JmP3DWwzGtcpjZYYC9ikc=
 github.com/flynn/go-shlex v0.0.0-20150515145356-3f9db97f8568/go.mod h1:xEzjJPgXI435gkrCt3MPfRiAkVrwSbHsst4LCFVfpJc=
@@ -1404,8 +1400,8 @@ github.com/mitchellh/osext v0.0.0-20151018003038-5e2d6d41470f/go.mod h1:OkQIRizQ
 github.com/mitchellh/reflectwalk v1.0.0/go.mod h1:mSTlrgnPZtwu0c4WaC2kGObEpuNDbx0jmZXqmk4esnw=
 github.com/mitchellh/reflectwalk v1.0.1/go.mod h1:mSTlrgnPZtwu0c4WaC2kGObEpuNDbx0jmZXqmk4esnw=
 github.com/moby/locker v1.0.1/go.mod h1:S7SDdo5zpBK84bzzVlKr2V0hz+7x9hWbYC/kq7oQppc=
-github.com/moby/moby v20.10.17+incompatible h1:TJJfyk2fLEgK+RzqVpFNkDkm0oEi+MLUfwt9lEYnp5g=
-github.com/moby/moby v20.10.17+incompatible/go.mod h1:fDXVQ6+S340veQPv35CzDahGBmHsiclFwfEygB/TWMc=
+github.com/moby/moby v20.10.21+incompatible h1:LfdCNzNpDYtOTtlO5wxLcUEk0nyM3KqPyeIyXVdvl/U=
+github.com/moby/moby v20.10.21+incompatible/go.mod h1:fDXVQ6+S340veQPv35CzDahGBmHsiclFwfEygB/TWMc=
 github.com/moby/spdystream v0.2.0/go.mod h1:f7i0iNDQJ059oMTcWxx8MA/zKFIuD/lY+0GqbN2Wy8c=
 github.com/moby/sys/mountinfo v0.4.0/go.mod h1:rEr8tzG/lsIZHBtN/JjGG+LMYx9eXgW2JI+6q0qou+A=
 github.com/moby/sys/mountinfo v0.4.1/go.mod h1:rEr8tzG/lsIZHBtN/JjGG+LMYx9eXgW2JI+6q0qou+A=
