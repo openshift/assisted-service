@@ -146,13 +146,13 @@ func main() {
 
 	if err = (&controllers.AgentServiceConfigReconciler{
 		AgentServiceConfigReconcileContext: controllers.AgentServiceConfigReconcileContext{
-			Client:       mgr.GetClient(),
 			Log:          log,
 			Scheme:       mgr.GetScheme(),
 			NodeSelector: nodeSelector,
 			Tolerations:  tolerations,
 			Recorder:     mgr.GetEventRecorderFor("agentserviceconfig-controller"),
 		},
+		Client:    mgr.GetClient(),
 		Namespace: ns,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "AgentServiceConfig")
@@ -161,13 +161,13 @@ func main() {
 
 	if err = (&controllers.HypershiftAgentServiceConfigReconciler{
 		AgentServiceConfigReconcileContext: controllers.AgentServiceConfigReconcileContext{
-			Client:       mgr.GetClient(),
 			Log:          log,
 			Scheme:       mgr.GetScheme(),
 			NodeSelector: nodeSelector,
 			Tolerations:  tolerations,
-			Recorder:     mgr.GetEventRecorderFor("agentserviceconfig-controller"),
+			Recorder:     mgr.GetEventRecorderFor("hypershiftagentserviceconfig-controller"),
 		},
+		Client:       mgr.GetClient(),
 		SpokeClients: spokeClientCache,
 		Namespace:    ns,
 	}).SetupWithManager(mgr); err != nil {
