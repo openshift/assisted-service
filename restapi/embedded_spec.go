@@ -7659,6 +7659,11 @@ func init() {
           "description": "A comma-separated list of NTP sources (name or IP) going to be added to all the hosts.",
           "type": "string"
         },
+        "additional_trust_bundle": {
+          "description": "PEM-encoded X.509 certificate bundle. Hosts discovered by this\ninfra-env will trust the certificates in this bundle. Clusters formed\nfrom the hosts discovered by this infra-env will also trust the\ncertificates in this bundle.",
+          "type": "string",
+          "x-nullable": false
+        },
         "cluster_id": {
           "description": "If set, all hosts that register will be associated with the specified cluster.",
           "type": "string",
@@ -7791,6 +7796,11 @@ func init() {
           "type": "string",
           "x-nullable": true
         },
+        "additional_trust_bundle": {
+          "description": "PEM-encoded X.509 certificate bundle. Hosts discovered by this\ninfra-env will trust the certificates in this bundle. Clusters formed\nfrom the hosts discovered by this infra-env will also trust the\ncertificates in this bundle.",
+          "type": "string",
+          "x-nullable": false
+        },
         "cluster_id": {
           "description": "If set, all hosts that register will be associated with the specified cluster.",
           "type": "string",
@@ -7852,6 +7862,11 @@ func init() {
       "properties": {
         "additional_ntp_sources": {
           "description": "A comma-separated list of NTP sources (name or IP) going to be added to all the hosts.",
+          "type": "string",
+          "x-nullable": true
+        },
+        "additional_trust_bundle": {
+          "description": "Allows users to change the additional_trust_bundle infra-env field",
           "type": "string",
           "x-nullable": true
         },
@@ -17195,6 +17210,11 @@ func init() {
           "description": "A comma-separated list of NTP sources (name or IP) going to be added to all the hosts.",
           "type": "string"
         },
+        "additional_trust_bundle": {
+          "description": "PEM-encoded X.509 certificate bundle. Hosts discovered by this\ninfra-env will trust the certificates in this bundle. Clusters formed\nfrom the hosts discovered by this infra-env will also trust the\ncertificates in this bundle.",
+          "type": "string",
+          "x-nullable": false
+        },
         "cluster_id": {
           "description": "If set, all hosts that register will be associated with the specified cluster.",
           "type": "string",
@@ -17328,6 +17348,11 @@ func init() {
           "type": "string",
           "x-nullable": true
         },
+        "additional_trust_bundle": {
+          "description": "PEM-encoded X.509 certificate bundle. Hosts discovered by this\ninfra-env will trust the certificates in this bundle. Clusters formed\nfrom the hosts discovered by this infra-env will also trust the\ncertificates in this bundle.",
+          "type": "string",
+          "x-nullable": false
+        },
         "cluster_id": {
           "description": "If set, all hosts that register will be associated with the specified cluster.",
           "type": "string",
@@ -17389,6 +17414,11 @@ func init() {
       "properties": {
         "additional_ntp_sources": {
           "description": "A comma-separated list of NTP sources (name or IP) going to be added to all the hosts.",
+          "type": "string",
+          "x-nullable": true
+        },
+        "additional_trust_bundle": {
+          "description": "Allows users to change the additional_trust_bundle infra-env field",
           "type": "string",
           "x-nullable": true
         },

@@ -22,6 +22,9 @@ type InfraEnvUpdateParams struct {
 	// A comma-separated list of NTP sources (name or IP) going to be added to all the hosts.
 	AdditionalNtpSources *string `json:"additional_ntp_sources,omitempty"`
 
+	// Allows users to change the additional_trust_bundle infra-env field
+	AdditionalTrustBundle *string `json:"additional_trust_bundle,omitempty"`
+
 	// JSON formatted string containing the user overrides for the initial ignition config.
 	IgnitionConfigOverride string `json:"ignition_config_override,omitempty"`
 

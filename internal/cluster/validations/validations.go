@@ -2,8 +2,10 @@ package validations
 
 import (
 	"bytes"
+	"crypto/x509"
 	"encoding/base64"
 	"encoding/json"
+	"encoding/pem"
 	"fmt"
 	"net"
 	"net/http"
@@ -255,6 +257,26 @@ func ValidateSSHPublicKey(sshPublicKeys string) error {
 		}
 	}
 
+	return nil
+}
+
+func ValidatePEMCertificateBundle(bundle string) error {
+	// From https://github.com/openshift/installer/blob/56e61f1df5aa51ff244465d4bebcd1649003b0c9/pkg/validate/validate.go#L29-L47
+	rest := []byte(bundle)
+	for {
+		var block *pem.Block
+		block, rest = pem.Decode(rest)
+		if block == nil {
+			return errors.Errorf("invalid block")
+		}
+		_, err := x509.ParseCertificate(block.Bytes)
+		if err != nil {
+			return fmt.Errorf("parse failed: %w", err)
+		}
+		if len(rest) == 0 {
+			break
+		}
+	}
 	return nil
 }
 

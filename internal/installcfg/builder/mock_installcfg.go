@@ -35,30 +35,30 @@ func (m *MockInstallConfigBuilder) EXPECT() *MockInstallConfigBuilderMockRecorde
 }
 
 // GetInstallConfig mocks base method.
-func (m *MockInstallConfigBuilder) GetInstallConfig(cluster *common.Cluster, addRhCa bool, ca string) ([]byte, error) {
+func (m *MockInstallConfigBuilder) GetInstallConfig(cluster *common.Cluster, clusterInfraenvs []*common.InfraEnv, rhRootCA string) ([]byte, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetInstallConfig", cluster, addRhCa, ca)
+	ret := m.ctrl.Call(m, "GetInstallConfig", cluster, clusterInfraenvs, rhRootCA)
 	ret0, _ := ret[0].([]byte)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetInstallConfig indicates an expected call of GetInstallConfig.
-func (mr *MockInstallConfigBuilderMockRecorder) GetInstallConfig(cluster, addRhCa, ca interface{}) *gomock.Call {
+func (mr *MockInstallConfigBuilderMockRecorder) GetInstallConfig(cluster, clusterInfraenvs, rhRootCA interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetInstallConfig", reflect.TypeOf((*MockInstallConfigBuilder)(nil).GetInstallConfig), cluster, addRhCa, ca)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetInstallConfig", reflect.TypeOf((*MockInstallConfigBuilder)(nil).GetInstallConfig), cluster, clusterInfraenvs, rhRootCA)
 }
 
 // ValidateInstallConfigPatch mocks base method.
-func (m *MockInstallConfigBuilder) ValidateInstallConfigPatch(cluster *common.Cluster, patch string) error {
+func (m *MockInstallConfigBuilder) ValidateInstallConfigPatch(cluster *common.Cluster, clusterInfraenvs []*common.InfraEnv, patch string) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ValidateInstallConfigPatch", cluster, patch)
+	ret := m.ctrl.Call(m, "ValidateInstallConfigPatch", cluster, clusterInfraenvs, patch)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // ValidateInstallConfigPatch indicates an expected call of ValidateInstallConfigPatch.
-func (mr *MockInstallConfigBuilderMockRecorder) ValidateInstallConfigPatch(cluster, patch interface{}) *gomock.Call {
+func (mr *MockInstallConfigBuilderMockRecorder) ValidateInstallConfigPatch(cluster, clusterInfraenvs, patch interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ValidateInstallConfigPatch", reflect.TypeOf((*MockInstallConfigBuilder)(nil).ValidateInstallConfigPatch), cluster, patch)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ValidateInstallConfigPatch", reflect.TypeOf((*MockInstallConfigBuilder)(nil).ValidateInstallConfigPatch), cluster, clusterInfraenvs, patch)
 }

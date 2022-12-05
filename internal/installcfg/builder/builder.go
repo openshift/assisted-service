@@ -18,8 +18,8 @@ import (
 
 //go:generate mockgen -source=builder.go -package=builder -destination=mock_installcfg.go
 type InstallConfigBuilder interface {
-	GetInstallConfig(cluster *common.Cluster, addRhCa bool, ca string) ([]byte, error)
-	ValidateInstallConfigPatch(cluster *common.Cluster, patch string) error
+	GetInstallConfig(cluster *common.Cluster, clusterInfraenvs []*common.InfraEnv, rhRootCA string) ([]byte, error)
+	ValidateInstallConfigPatch(cluster *common.Cluster, clusterInfraenvs []*common.InfraEnv, patch string) error
 }
 
 type installConfigBuilder struct {
@@ -169,7 +169,7 @@ func (i *installConfigBuilder) applyConfigOverrides(overrides string, cfg *insta
 	return nil
 }
 
-func (i *installConfigBuilder) getInstallConfig(cluster *common.Cluster, addRhCa bool, ca string) (*installcfg.InstallerConfigBaremetal, error) {
+func (i *installConfigBuilder) getInstallConfig(cluster *common.Cluster, clusterInfraenvs []*common.InfraEnv, rhRootCA string) (*installcfg.InstallerConfigBaremetal, error) {
 	cfg, err := i.getBasicInstallConfig(cluster)
 	if err != nil {
 		return nil, err
@@ -185,22 +185,16 @@ func (i *installConfigBuilder) getInstallConfig(cluster *common.Cluster, addRhCa
 	if err != nil {
 		return nil, err
 	}
-	caContent := i.getCAContents(cluster, ca, addRhCa)
+	caContent := i.mergeAllCASources(cluster, clusterInfraenvs, rhRootCA, cfg.AdditionalTrustBundle)
 	if caContent != "" {
-		// TODO: This | symbol is actually useless, it'll be removed in a future separate PR that's already WIP
-		if cfg.AdditionalTrustBundle == "" {
-			cfg.AdditionalTrustBundle = fmt.Sprintf(` | %s`, caContent)
-		} else {
-			// Respect user's InstallConfigOverrides certs by merging (through concatentation)
-			cfg.AdditionalTrustBundle = fmt.Sprintf(" | %s\n%s", caContent, cfg.AdditionalTrustBundle)
-		}
+		cfg.AdditionalTrustBundle = caContent
 	}
 
 	return cfg, nil
 }
 
-func (i *installConfigBuilder) GetInstallConfig(cluster *common.Cluster, addRhCa bool, ca string) ([]byte, error) {
-	cfg, err := i.getInstallConfig(cluster, addRhCa, ca)
+func (i *installConfigBuilder) GetInstallConfig(cluster *common.Cluster, clusterInfraenvs []*common.InfraEnv, rhRootCA string) ([]byte, error) {
+	cfg, err := i.getInstallConfig(cluster, clusterInfraenvs, rhRootCA)
 	if err != nil {
 		return nil, err
 	}
@@ -208,8 +202,8 @@ func (i *installConfigBuilder) GetInstallConfig(cluster *common.Cluster, addRhCa
 	return yaml.Marshal(*cfg)
 }
 
-func (i *installConfigBuilder) ValidateInstallConfigPatch(cluster *common.Cluster, patch string) error {
-	config, err := i.getInstallConfig(cluster, false, "")
+func (i *installConfigBuilder) ValidateInstallConfigPatch(cluster *common.Cluster, clusterInfraenvs []*common.InfraEnv, patch string) error {
+	config, err := i.getInstallConfig(cluster, clusterInfraenvs, "")
 	if err != nil {
 		return err
 	}
@@ -238,16 +232,37 @@ func (i *installConfigBuilder) getHypethreadingConfiguration(cluster *common.Clu
 	return "Disabled"
 }
 
-func (i *installConfigBuilder) getCAContents(cluster *common.Cluster, rhRootCA string, installRHRootCAFlag bool) string {
-	// CA for mirror registries and RH CA are mutually exclusive
+// mergeAllCASources merges all the CA sources into a single string, seperated
+// by newlines. CA sources include:
+// - The Red Hat root CA (used during the product's CI tests),
+// - User configured mirror registry CAs
+// - Additional trust bundle from the cluster's infraenvs
+// - Certs from user-provided install config overrides
+func (i *installConfigBuilder) mergeAllCASources(cluster *common.Cluster,
+	clusterInfraenvs []*common.InfraEnv, rhRootCA string, installConfigOverrideCerts string) string {
+	certs := []string{}
+
+	if installConfigOverrideCerts != "" {
+		certs = append(certs, installConfigOverrideCerts)
+	}
+
+	if rhRootCA != "" {
+		certs = append(certs, rhRootCA)
+	}
+
 	if i.mirrorRegistriesBuilder.IsMirrorRegistriesConfigured() {
 		caContents, err := i.mirrorRegistriesBuilder.GetMirrorCA()
 		if err == nil {
-			return "\n" + string(caContents)
+			certs = append(certs, string(caContents))
 		}
 	}
-	if installRHRootCAFlag {
-		return rhRootCA
+
+	// Add CA trust bundles from host infraenvs
+	for _, infraenv := range clusterInfraenvs {
+		if infraenv.AdditionalTrustBundle != "" {
+			certs = append(certs, infraenv.AdditionalTrustBundle)
+		}
 	}
-	return ""
+
+	return strings.TrimSpace(strings.Join(certs, "\n"))
 }

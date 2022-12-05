@@ -93,14 +93,19 @@ func (b *bareMetalInventory) V2DeregisterCluster(ctx context.Context, params ins
 }
 
 func (b *bareMetalInventory) V2GetClusterInstallConfig(ctx context.Context, params installer.V2GetClusterInstallConfigParams) middleware.Responder {
-	c, err := b.getCluster(ctx, params.ClusterID.String())
+	cluster, err := b.getCluster(ctx, params.ClusterID.String())
 	if err != nil {
-		return common.GenerateErrorResponder(err)
+		return common.GenerateErrorResponder(fmt.Errorf("Failed to get cluster %s: %w", params.ClusterID, err))
 	}
 
-	cfg, err := b.installConfigBuilder.GetInstallConfig(c, false, "")
+	clusterInfraenvs, err := b.getClusterInfraenvs(ctx, cluster)
 	if err != nil {
-		return common.GenerateErrorResponder(err)
+		return common.GenerateErrorResponder(fmt.Errorf("Failed to get cluster %s infraenvs: %w", params.ClusterID, err))
+	}
+
+	cfg, err := b.installConfigBuilder.GetInstallConfig(cluster, clusterInfraenvs, "")
+	if err != nil {
+		return common.GenerateErrorResponder(fmt.Errorf("Failed to get cluster %s install config: %w", params.ClusterID, err))
 	}
 
 	return installer.NewV2GetClusterInstallConfigOK().WithPayload(string(cfg))
@@ -115,27 +120,27 @@ func (b *bareMetalInventory) V2UpdateClusterInstallConfig(ctx context.Context, p
 }
 
 func (b *bareMetalInventory) V2InstallCluster(ctx context.Context, params installer.V2InstallClusterParams) middleware.Responder {
-	c, err := b.InstallClusterInternal(ctx, params)
+	cluster, err := b.InstallClusterInternal(ctx, params)
 	if err != nil {
 		return common.GenerateErrorResponder(err)
 	}
-	return installer.NewV2InstallClusterAccepted().WithPayload(&c.Cluster)
+	return installer.NewV2InstallClusterAccepted().WithPayload(&cluster.Cluster)
 }
 
 func (b *bareMetalInventory) V2CancelInstallation(ctx context.Context, params installer.V2CancelInstallationParams) middleware.Responder {
-	c, err := b.CancelInstallationInternal(ctx, params)
+	cluster, err := b.CancelInstallationInternal(ctx, params)
 	if err != nil {
 		return common.GenerateErrorResponder(err)
 	}
-	return installer.NewV2CancelInstallationAccepted().WithPayload(&c.Cluster)
+	return installer.NewV2CancelInstallationAccepted().WithPayload(&cluster.Cluster)
 }
 
 func (b *bareMetalInventory) TransformClusterToDay2(ctx context.Context, params installer.TransformClusterToDay2Params) middleware.Responder {
-	c, err := b.TransformClusterToDay2Internal(ctx, params.ClusterID)
+	cluster, err := b.TransformClusterToDay2Internal(ctx, params.ClusterID)
 	if err != nil {
 		return common.GenerateErrorResponder(err)
 	}
-	return installer.NewTransformClusterToDay2Accepted().WithPayload(&c.Cluster)
+	return installer.NewTransformClusterToDay2Accepted().WithPayload(&cluster.Cluster)
 }
 
 func (b *bareMetalInventory) V2ResetCluster(ctx context.Context, params installer.V2ResetClusterParams) middleware.Responder {
@@ -457,11 +462,11 @@ func (b *bareMetalInventory) v2uploadLogs(ctx context.Context, params installer.
 }
 
 func (b *bareMetalInventory) V2GetCredentials(ctx context.Context, params installer.V2GetCredentialsParams) middleware.Responder {
-	c, err := b.GetCredentialsInternal(ctx, params)
+	cluster, err := b.GetCredentialsInternal(ctx, params)
 	if err != nil {
 		return common.GenerateErrorResponder(err)
 	}
-	return installer.NewV2GetCredentialsOK().WithPayload(c)
+	return installer.NewV2GetCredentialsOK().WithPayload(cluster)
 }
 
 func (b *bareMetalInventory) V2ListFeatureSupportLevels(ctx context.Context, params installer.V2ListFeatureSupportLevelsParams) middleware.Responder {
@@ -471,11 +476,11 @@ func (b *bareMetalInventory) V2ListFeatureSupportLevels(ctx context.Context, par
 
 func (b *bareMetalInventory) V2ImportCluster(ctx context.Context, params installer.V2ImportClusterParams) middleware.Responder {
 	id := strfmt.UUID(uuid.New().String())
-	c, err := b.V2ImportClusterInternal(ctx, nil, &id, params)
+	cluster, err := b.V2ImportClusterInternal(ctx, nil, &id, params)
 	if err != nil {
 		return common.GenerateErrorResponder(err)
 	}
-	return installer.NewV2ImportClusterCreated().WithPayload(&c.Cluster)
+	return installer.NewV2ImportClusterCreated().WithPayload(&cluster.Cluster)
 }
 
 func (b *bareMetalInventory) RegenerateInfraEnvSigningKey(ctx context.Context, params installer.RegenerateInfraEnvSigningKeyParams) middleware.Responder {

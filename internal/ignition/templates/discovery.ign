@@ -112,6 +112,15 @@
         "name": "root"
       },
       "contents": { "source": "{{.ServiceCACertData}}" }
+    }{{end}}{{if .AdditionalTrustBundlePath}},
+    {
+      "path": "{{.AdditionalTrustBundlePath}}",
+      "mode": 420,
+      "overwrite": true,
+      "user": {
+        "name": "root"
+      },
+      "contents": { "source": "{{.AdditionalTrustBundle}}" }
     }{{end}}{{if .ServiceIPs}},
     {
       "path": "/etc/hosts",
