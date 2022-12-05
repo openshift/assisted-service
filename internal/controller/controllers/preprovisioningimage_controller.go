@@ -366,11 +366,11 @@ func (r *PreprovisioningImageReconciler) AddIronicAgentToInfraEnv(ctx context.Co
 		log.WithError(err).Error("failed to get corresponding infraEnv")
 		return ctrl.Result{}, err
 	}
-	ironicAgentImage := ""
-	if infraEnvInternal.OpenshiftVersion != "" {
-		ironicAgentImage, err = r.getIronicAgentImage(log, *infraEnvInternal)
+	var ironicAgentImage string
+	if infraEnvInternal.ClusterID != "" {
+		ironicAgentImage, err = r.getIronicAgentImageByRelease(ctx, log, *infraEnvInternal)
 		if err != nil {
-			log.WithError(err).Warningf("Failed to get ironicAgentImage for infraEnv: %s", infraEnv.Name)
+			log.WithError(err).Warningf("Failed to get ironic agent image by release for infraEnv: %s", infraEnv.Name)
 		}
 	}
 
@@ -381,6 +381,7 @@ func (r *PreprovisioningImageReconciler) AddIronicAgentToInfraEnv(ctx context.Co
 		} else {
 			ironicAgentImage = r.Config.BaremetalIronicAgentImage
 		}
+		log.Infof("Setting default ironic agent image (%s) for infraEnv %s", ironicAgentImage, infraEnv.Name)
 	}
 
 	conf, err := ignition.GenerateIronicConfig(r.IronicServiceURL, *infraEnvInternal, ironicAgentImage)
@@ -407,16 +408,18 @@ func (r *PreprovisioningImageReconciler) AddIronicAgentToInfraEnv(ctx context.Co
 	return ctrl.Result{}, err
 }
 
-func (r *PreprovisioningImageReconciler) getIronicAgentImage(log logrus.FieldLogger, infraEnv common.InfraEnv) (string, error) {
-	SupportConvergedFlow, _ := common.VersionGreaterOrEqual(infraEnv.OpenshiftVersion, MinimalVersionForConvergedFlow)
-	// Get the ironic agent image from the release only if the openshift version is higher then the MinimalVersionForConvergedFlow
-	if !SupportConvergedFlow {
-		r.Log.Infof("Openshift version (%s) is lower than the minimal version for the converged flow (%s)."+
-			" this means that the service will use the default ironic agent image and not the ironic agent image from the release",
-			infraEnv.OpenshiftVersion, MinimalVersionForConvergedFlow)
-		return "", nil
+func (r *PreprovisioningImageReconciler) getIronicAgentImageByRelease(ctx context.Context, log logrus.FieldLogger, infraEnv common.InfraEnv) (string, error) {
+	cluster, err := r.Installer.GetClusterInternal(ctx, installer.V2GetClusterParams{ClusterID: infraEnv.ClusterID})
+	if err != nil {
+		return "", err
 	}
-	releaseImage, err := r.VersionsHandler.GetReleaseImage(infraEnv.OpenshiftVersion, infraEnv.CPUArchitecture)
+
+	supportConvergedFlow, _ := common.VersionGreaterOrEqual(cluster.OpenshiftVersion, MinimalVersionForConvergedFlow)
+	if !supportConvergedFlow {
+		return "", fmt.Errorf("Openshift version (%s) is lower than the minimal version for the converged flow (%s)", cluster.OpenshiftVersion, MinimalVersionForConvergedFlow)
+	}
+
+	releaseImage, err := r.VersionsHandler.GetReleaseImage(cluster.OpenshiftVersion, infraEnv.CPUArchitecture)
 	if err != nil {
 		return "", err
 	}
