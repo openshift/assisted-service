@@ -78,8 +78,8 @@ var _ = Describe("PreprovisioningImage reconcile", func() {
 		mockVersionHandler    *versions.MockHandler
 		mockOcRelease         *oc.MockRelease
 		ctx                   = context.Background()
-		sId                   strfmt.UUID
-		backendInfraEnv       = &common.InfraEnv{InfraEnv: models.InfraEnv{ClusterID: sId, ID: &sId}}
+		infraEnvID, clusterID strfmt.UUID
+		backendInfraEnv       *common.InfraEnv
 		downloadURL           = "https://downloadurl"
 		rootfsURL             = "https://rootfs.example.com"
 		kernelURL             = "https://kernel.example.com"
@@ -96,7 +96,9 @@ var _ = Describe("PreprovisioningImage reconcile", func() {
 		mockCRDEventsHandler = NewMockCRDEventsHandler(mockCtrl)
 		mockVersionHandler = versions.NewMockHandler(mockCtrl)
 		mockOcRelease = oc.NewMockRelease(mockCtrl)
-		sId = strfmt.UUID(uuid.New().String())
+		infraEnvID = strfmt.UUID(uuid.New().String())
+		clusterID = strfmt.UUID(uuid.New().String())
+		backendInfraEnv = &common.InfraEnv{InfraEnv: models.InfraEnv{ClusterID: clusterID, ID: &infraEnvID}}
 		pr = &PreprovisioningImageReconciler{
 			Client:           c,
 			Log:              common.GetTestLog(),
@@ -111,8 +113,6 @@ var _ = Describe("PreprovisioningImage reconcile", func() {
 
 	AfterEach(func() {
 		mockCtrl.Finish()
-		backendInfraEnv = &common.InfraEnv{InfraEnv: models.InfraEnv{ClusterID: sId, ID: &sId}}
-
 	})
 
 	Context("reconcile new PreprovisioningImage - success", func() {
@@ -144,7 +144,7 @@ var _ = Describe("PreprovisioningImage reconcile", func() {
 					Expect(params.InfraEnvUpdateParams.IgnitionConfigOverride).To(Equal(""))
 					Expect(*internalIgnitionConfig).Should(ContainSubstring("ironic"))
 				}).Return(
-				&common.InfraEnv{InfraEnv: models.InfraEnv{ClusterID: sId, ID: &sId, DownloadURL: downloadURL, CPUArchitecture: infraEnvArch}, GeneratedAt: strfmt.DateTime(time.Now())}, nil).Times(1)
+				&common.InfraEnv{InfraEnv: models.InfraEnv{ClusterID: clusterID, ID: &infraEnvID, DownloadURL: downloadURL, CPUArchitecture: infraEnvArch}, GeneratedAt: strfmt.DateTime(time.Now())}, nil).Times(1)
 			mockCRDEventsHandler.EXPECT().NotifyInfraEnvUpdates(infraEnv.Name, infraEnv.Namespace).Times(1)
 			res, err := pr.Reconcile(ctx, newPreprovisioningImageRequest(ppi))
 			Expect(err).To(BeNil())
@@ -280,7 +280,7 @@ var _ = Describe("PreprovisioningImage reconcile", func() {
 					Expect(*internalIgnitionConfig).Should(ContainSubstring("ironic"))
 					Expect(*internalIgnitionConfig).Should(ContainSubstring(ironicAgentImage))
 				}).Return(
-				&common.InfraEnv{InfraEnv: models.InfraEnv{ClusterID: sId, ID: &sId, DownloadURL: downloadURL, CPUArchitecture: infraEnvArch}, GeneratedAt: strfmt.DateTime(time.Now())}, nil).Times(1)
+				&common.InfraEnv{InfraEnv: models.InfraEnv{ClusterID: clusterID, ID: &infraEnvID, DownloadURL: downloadURL, CPUArchitecture: infraEnvArch}, GeneratedAt: strfmt.DateTime(time.Now())}, nil).Times(1)
 			mockCRDEventsHandler.EXPECT().NotifyInfraEnvUpdates(infraEnv.Name, infraEnv.Namespace).Times(1)
 			res, err := pr.Reconcile(ctx, newPreprovisioningImageRequest(ppi))
 			Expect(err).To(BeNil())
@@ -305,7 +305,7 @@ var _ = Describe("PreprovisioningImage reconcile", func() {
 					Expect(*internalIgnitionConfig).Should(ContainSubstring("ironic"))
 					Expect(*internalIgnitionConfig).Should(ContainSubstring("ironic-agent-image:latest"))
 				}).Return(
-				&common.InfraEnv{InfraEnv: models.InfraEnv{ClusterID: sId, ID: &sId, DownloadURL: downloadURL, CPUArchitecture: infraEnvArch}, GeneratedAt: strfmt.DateTime(time.Now())}, nil).Times(1)
+				&common.InfraEnv{InfraEnv: models.InfraEnv{ClusterID: clusterID, ID: &infraEnvID, DownloadURL: downloadURL, CPUArchitecture: infraEnvArch}, GeneratedAt: strfmt.DateTime(time.Now())}, nil).Times(1)
 			mockCRDEventsHandler.EXPECT().NotifyInfraEnvUpdates(infraEnv.Name, infraEnv.Namespace).Times(1)
 			res, err := pr.Reconcile(ctx, newPreprovisioningImageRequest(ppi))
 			Expect(err).To(BeNil())
