@@ -158,6 +158,8 @@ parameters:
   value: 512Mi
 - name: SVC_TARGET_PORT
   value: "8900"
+- name: RATE_LIMIT_DOMAIN
+  value: "development:assisted_install"
 apiVersion: v1
 kind: Template
 metadata:
@@ -429,6 +431,7 @@ objects:
     name: assisted-service-envoy-config
   data:
     main.yaml: |
+
       admin:
         access_log:
         - name: envoy.access_loggers.file
@@ -467,6 +470,7 @@ objects:
                         upstream_duration: "%RESP(X-ENVOY-UPSTREAM-SERVICE-TIME)%"
                         x_forwarded_for: "%REQ(X-FORWARDED-FOR)%"
                         x_request_id: "%REQ(X-REQUEST-ID)%"
+                        x_host_id: "%REQ(X-HOST-ID)%"
                 stat_prefix: ingress_http
                 codec_type: AUTO
                 route_config:
@@ -475,12 +479,84 @@ objects:
                   - name: local_service
                     domains: ["*"]
                     routes:
+
+                    # Check rate limits for requests to get next steps and post results:
+                    - name: get_and_post_steps
+                      match:
+                        safe_regex:
+                          regex: "^/api/assisted-install/v2/infra-envs/.*/hosts/.*/instructions$"
+                      route:
+                        cluster: assisted_service
+                        rate_limits:
+                        - actions:
+                          - generic_key:
+                              descriptor_key: operation
+                              descriptor_value: get_and_post_steps
+                          - request_headers:
+                              header_name: x-host-id
+                              descriptor_key: host_id
+
+                    # Check rate limits for requests to register hosts:
+                    - name: post_host
+                      match:
+                        headers:
+                        - name: :method
+                          string_match:
+                            exact: POST
+                        safe_regex:
+                          regex: "^/api/assisted-install/v2/infra-envs/.*/hosts$"
+                      route:
+                        cluster: assisted_service
+                        rate_limits:
+                        - actions:
+                          - generic_key:
+                              descriptor_key: operation
+                              descriptor_value: post_host
+                          - request_headers:
+                              header_name: x-host-id
+                              descriptor_key: host_id
+
+                    # For everything else there are no rate limits:
                     - match: { prefix: "/" }
                       route: { cluster: assisted_service }
+
                 http_filters:
+
+                # This is needed to enable the rate limiter, and to specify how and where to connect
+                # to it:
+                - name: envoy.filters.http.ratelimit
+                  typed_config:
+                    "@type": type.googleapis.com/envoy.extensions.filters.http.ratelimit.v3.RateLimit
+                    domain: ${RATE_LIMIT_DOMAIN}
+                    failure_mode_deny: false
+                    timeout: 0.05s
+                    rate_limit_service:
+                      grpc_service:
+                        envoy_grpc:
+                          cluster_name: limiter
+                      transport_api_version: v3
+
                 - name: envoy.filters.http.router
                   typed_config:
                     "@type": type.googleapis.com/envoy.extensions.filters.http.router.v3.Router
+
+                # We need this in order to generate JSON responses according to our API practices,
+                # otherwise Envoy will generate plain text responses which will be hard to understand
+                # for our clients.
+                local_reply_config:
+                  mappers:
+                  - filter:
+                      status_code_filter:
+                        comparison:
+                          op: EQ
+                          value:
+                            default_value: 429
+                            runtime_key: none
+                    body_format_override:
+                      json_format:
+                        code: "%RESPONSE_CODE%"
+                        message: "Too many requests"
+
         clusters:
         - name: assisted_service
           connect_timeout: 1s
@@ -495,4 +571,19 @@ objects:
                     socket_address:
                       address: 127.0.0.1
                       port_value: 8090
- 
+
+        # This cluster us used to send requests to the rate limiting service:
+        - name: limiter
+          connect_timeout: 1s
+          type: STRICT_DNS
+          lb_policy: ROUND_ROBIN
+          http2_protocol_options: {}
+          load_assignment:
+            cluster_name: limiter
+            endpoints:
+            - lb_endpoints:
+              - endpoint:
+                  address:
+                    socket_address:
+                      address: limitador.app-sre-rate-limit.svc
+                      port_value: 8081
