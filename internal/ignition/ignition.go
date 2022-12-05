@@ -153,11 +153,17 @@ mnt=$(podman image mount "${RPMS_IMAGE}")
 # Install RPMs in overlayed FS
 mkdir /tmp/rpms
 cp -rvf ${mnt}/rpms/* /tmp/rpms
+# If RPMs image contants manifests these need to be copied as well
+mkdir -p /opt/openshift/openshift
+cp -rvf ${mnt}/manifests/* /opt/openshift/openshift || true
 tmpd=$(mktemp -d)
 mkdir ${tmpd}/{upper,work}
 mount -t overlay -o lowerdir=/usr,upperdir=${tmpd}/upper,workdir=${tmpd}/work overlay /usr
 rpm -Uvh /tmp/rpms/*
 podman rmi -f "${RPMS_IMAGE}"
+# Symlink kubelet pull secret
+mkdir -p /var/lib/kubelet
+ln -s /root/.docker/config.json /var/lib/kubelet/config.json
 # Expand /var to 6G if necessary
 if (( $(stat -c%%s /run/ephemeral.xfsloop) > 6*1024*1024*1024 )); then
   exit 0
@@ -166,9 +172,6 @@ fi
 losetup -c /dev/loop0
 xfs_growfs /var
 mount -o remount,size=6G /run
-# Symlink kubelet pull secret
-mkdir -p /var/lib/kubelet
-ln -s /root/.docker/config.json /var/lib/kubelet/config.json
 `
 
 const okdHoldAgentUntilBinariesLanded = `[Unit]
