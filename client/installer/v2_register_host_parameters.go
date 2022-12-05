@@ -81,6 +81,14 @@ type V2RegisterHostParams struct {
 	*/
 	NewHostParams *models.HostCreateParams
 
+	/* XHostID.
+
+	   Identifier of the host, used for rate limiting.
+
+	   Format: uuid
+	*/
+	XHostID *strfmt.UUID
+
 	timeout    time.Duration
 	Context    context.Context
 	HTTPClient *http.Client
@@ -167,6 +175,17 @@ func (o *V2RegisterHostParams) SetNewHostParams(newHostParams *models.HostCreate
 	o.NewHostParams = newHostParams
 }
 
+// WithXHostID adds the xHostID to the v2 register host params
+func (o *V2RegisterHostParams) WithXHostID(xHostID *strfmt.UUID) *V2RegisterHostParams {
+	o.SetXHostID(xHostID)
+	return o
+}
+
+// SetXHostID adds the xHostId to the v2 register host params
+func (o *V2RegisterHostParams) SetXHostID(xHostID *strfmt.UUID) {
+	o.XHostID = xHostID
+}
+
 // WriteToRequest writes these params to a swagger request
 func (o *V2RegisterHostParams) WriteToRequest(r runtime.ClientRequest, reg strfmt.Registry) error {
 
@@ -189,6 +208,14 @@ func (o *V2RegisterHostParams) WriteToRequest(r runtime.ClientRequest, reg strfm
 	}
 	if o.NewHostParams != nil {
 		if err := r.SetBodyParam(o.NewHostParams); err != nil {
+			return err
+		}
+	}
+
+	if o.XHostID != nil {
+
+		// header param x-host-id
+		if err := r.SetHeaderParam("x-host-id", o.XHostID.String()); err != nil {
 			return err
 		}
 	}

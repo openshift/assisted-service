@@ -3708,6 +3708,13 @@ func init() {
             "description": "The software version of the discovery agent that is registering the agent.",
             "name": "discovery_agent_version",
             "in": "header"
+          },
+          {
+            "type": "string",
+            "format": "uuid",
+            "description": "Identifier of the host, used for rate limiting.",
+            "name": "x-host-id",
+            "in": "header"
           }
         ],
         "responses": {
@@ -4684,6 +4691,13 @@ func init() {
             "description": "The software version of the discovery agent that is retrieving instructions.",
             "name": "discovery_agent_version",
             "in": "header"
+          },
+          {
+            "type": "string",
+            "format": "uuid",
+            "description": "Identifier of the host used for rate limiting.",
+            "name": "x-host-id",
+            "in": "header"
           }
         ],
         "responses": {
@@ -4770,6 +4784,13 @@ func init() {
             "name": "host_id",
             "in": "path",
             "required": true
+          },
+          {
+            "type": "string",
+            "format": "uuid",
+            "description": "Identifier of the host used for rate limiting.",
+            "name": "x-host-id",
+            "in": "header"
           },
           {
             "description": "The results to be posted.",
@@ -13152,6 +13173,13 @@ func init() {
             "description": "The software version of the discovery agent that is registering the agent.",
             "name": "discovery_agent_version",
             "in": "header"
+          },
+          {
+            "type": "string",
+            "format": "uuid",
+            "description": "Identifier of the host, used for rate limiting.",
+            "name": "x-host-id",
+            "in": "header"
           }
         ],
         "responses": {
@@ -14128,6 +14156,13 @@ func init() {
             "description": "The software version of the discovery agent that is retrieving instructions.",
             "name": "discovery_agent_version",
             "in": "header"
+          },
+          {
+            "type": "string",
+            "format": "uuid",
+            "description": "Identifier of the host used for rate limiting.",
+            "name": "x-host-id",
+            "in": "header"
           }
         ],
         "responses": {
@@ -14214,6 +14249,13 @@ func init() {
             "name": "host_id",
             "in": "path",
             "required": true
+          },
+          {
+            "type": "string",
+            "format": "uuid",
+            "description": "Identifier of the host used for rate limiting.",
+            "name": "x-host-id",
+            "in": "header"
           },
           {
             "description": "The results to be posted.",

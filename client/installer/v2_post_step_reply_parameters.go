@@ -89,6 +89,14 @@ type V2PostStepReplyParams struct {
 	*/
 	Reply *models.StepReply
 
+	/* XHostID.
+
+	   Identifier of the host used for rate limiting.
+
+	   Format: uuid
+	*/
+	XHostID *strfmt.UUID
+
 	timeout    time.Duration
 	Context    context.Context
 	HTTPClient *http.Client
@@ -186,6 +194,17 @@ func (o *V2PostStepReplyParams) SetReply(reply *models.StepReply) {
 	o.Reply = reply
 }
 
+// WithXHostID adds the xHostID to the v2 post step reply params
+func (o *V2PostStepReplyParams) WithXHostID(xHostID *strfmt.UUID) *V2PostStepReplyParams {
+	o.SetXHostID(xHostID)
+	return o
+}
+
+// SetXHostID adds the xHostId to the v2 post step reply params
+func (o *V2PostStepReplyParams) SetXHostID(xHostID *strfmt.UUID) {
+	o.XHostID = xHostID
+}
+
 // WriteToRequest writes these params to a swagger request
 func (o *V2PostStepReplyParams) WriteToRequest(r runtime.ClientRequest, reg strfmt.Registry) error {
 
@@ -213,6 +232,14 @@ func (o *V2PostStepReplyParams) WriteToRequest(r runtime.ClientRequest, reg strf
 	}
 	if o.Reply != nil {
 		if err := r.SetBodyParam(o.Reply); err != nil {
+			return err
+		}
+	}
+
+	if o.XHostID != nil {
+
+		// header param x-host-id
+		if err := r.SetHeaderParam("x-host-id", o.XHostID.String()); err != nil {
 			return err
 		}
 	}

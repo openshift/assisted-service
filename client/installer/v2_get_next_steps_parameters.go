@@ -88,6 +88,14 @@ type V2GetNextStepsParams struct {
 	*/
 	Timestamp *int64
 
+	/* XHostID.
+
+	   Identifier of the host used for rate limiting.
+
+	   Format: uuid
+	*/
+	XHostID *strfmt.UUID
+
 	timeout    time.Duration
 	Context    context.Context
 	HTTPClient *http.Client
@@ -185,6 +193,17 @@ func (o *V2GetNextStepsParams) SetTimestamp(timestamp *int64) {
 	o.Timestamp = timestamp
 }
 
+// WithXHostID adds the xHostID to the v2 get next steps params
+func (o *V2GetNextStepsParams) WithXHostID(xHostID *strfmt.UUID) *V2GetNextStepsParams {
+	o.SetXHostID(xHostID)
+	return o
+}
+
+// SetXHostID adds the xHostId to the v2 get next steps params
+func (o *V2GetNextStepsParams) SetXHostID(xHostID *strfmt.UUID) {
+	o.XHostID = xHostID
+}
+
 // WriteToRequest writes these params to a swagger request
 func (o *V2GetNextStepsParams) WriteToRequest(r runtime.ClientRequest, reg strfmt.Registry) error {
 
@@ -225,6 +244,14 @@ func (o *V2GetNextStepsParams) WriteToRequest(r runtime.ClientRequest, reg strfm
 			if err := r.SetQueryParam("timestamp", qTimestamp); err != nil {
 				return err
 			}
+		}
+	}
+
+	if o.XHostID != nil {
+
+		// header param x-host-id
+		if err := r.SetHeaderParam("x-host-id", o.XHostID.String()); err != nil {
+			return err
 		}
 	}
 

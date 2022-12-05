@@ -743,6 +743,12 @@ paths:
           description: The software version of the discovery agent that is registering the agent.
           type: string
           required: false
+        - in: header
+          name: x-host-id
+          description: Identifier of the host, used for rate limiting.
+          type: string
+          format: uuid
+          required: false
       responses:
         "201":
           description: Success.
@@ -1013,6 +1019,12 @@ paths:
           description: The software version of the discovery agent that is retrieving instructions.
           type: string
           required: false
+        - in: header
+          name: x-host-id
+          description: Identifier of the host used for rate limiting.
+          type: string
+          format: uuid
+          required: false
       responses:
         "200":
           description: Success.
@@ -1072,6 +1084,12 @@ paths:
           type: string
           format: uuid
           required: true
+        - in: header
+          name: x-host-id
+          description: Identifier of the host used for rate limiting.
+          type: string
+          format: uuid
+          required: false
         - name: reply
           description: The results to be posted.
           in: body
