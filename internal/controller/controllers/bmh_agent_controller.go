@@ -494,7 +494,6 @@ func (r *BMACReconciler) addBMHDetachedAnnotationIfAgentHasStartedInstallation(l
 // This will trigger a reconcile on the BMH side, resulting in this data
 // being copied from the annotation into the BMH's HardwareDetails status.
 //
-//
 // Care must be taken to only update the data when really needed. Doing an update
 // on every BMAC reconcile will trigger an infinite loop of reconciles between
 // BMAC and the BMH reconcile as the former will update the hardwaredetails annotation
@@ -604,7 +603,6 @@ func (r *BMACReconciler) reconcileAgentInventory(log logrus.FieldLogger, bmh *bm
 //
 // By re-attaching the BMH and clearing the Image field on it, BMAC will clear
 // the Image data to force the boot from ISO
-//
 func (r *BMACReconciler) reconcileUnboundAgent(log logrus.FieldLogger, bmh *bmh_v1alpha1.BareMetalHost, agent *aiv1beta1.Agent) reconcileResult {
 	log.Debugf("Started Unbound Agent reconcile for agent %s/%s and bmh %s/%s", agent.Namespace, agent.Name, bmh.Namespace, bmh.Name)
 
@@ -652,8 +650,9 @@ func (r *BMACReconciler) reconcileUnboundAgent(log logrus.FieldLogger, bmh *bmh_
 // 4. If reconciling should not continue, a reason that will be printed in the log
 //
 // TODO: This function should return `reconcileResult` or some other interface suitable
-//       to contain multiple informations instead of a bunch of variables that are later on
-//       separately interpreted.
+//
+//	to contain multiple informations instead of a bunch of variables that are later on
+//	separately interpreted.
 func shouldReconcileBMH(bmh *bmh_v1alpha1.BareMetalHost, infraEnv *aiv1beta1.InfraEnv) (bool, bool, time.Duration, string) {
 	// This is a separate check because an existing
 	// InfraEnv with an empty ISODownloadURL means the
@@ -1216,7 +1215,16 @@ func (r *BMACReconciler) createIgnitionWithMCSCert(ctx context.Context, log logr
 	}
 	if err := spokeClient.Get(ctx, key, configMap); err != nil {
 		if k8serrors.IsNotFound(err) {
-			return encodedMCSCrt, ignitionWithMCSCert, err
+			// Hypershift stores root ca in a different configmap and different namespace
+			key = types.NamespacedName{
+				Namespace: "openshift-config",
+				Name:      "kube-root-ca",
+			}
+			if err := spokeClient.Get(ctx, key, configMap); err != nil {
+				if k8serrors.IsNotFound(err) {
+					return encodedMCSCrt, ignitionWithMCSCert, err
+				}
+			}
 		}
 	}
 	if configMap.Data == nil {

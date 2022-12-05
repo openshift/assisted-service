@@ -894,17 +894,6 @@ var _ = Describe("bmac reconcile", func() {
 				},
 			}
 			Expect(bmhr.spokeClient.Create(ctx, spokeMachineMaster)).To(BeNil())
-
-			configMap := &corev1.ConfigMap{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "root-ca",
-					Namespace: "kube-system",
-				},
-				Data: map[string]string{
-					"ca.crt": BASIC_CERT,
-				},
-			}
-			Expect(bmhr.spokeClient.Create(ctx, configMap)).ShouldNot(HaveOccurred())
 		})
 
 		AfterEach(func() {
@@ -916,6 +905,16 @@ var _ = Describe("bmac reconcile", func() {
 
 		Context("when agent role worker and cluster deployment is set", func() {
 			It("should set spoke BMH", func() {
+				configMap := &corev1.ConfigMap{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "root-ca",
+						Namespace: "kube-system",
+					},
+					Data: map[string]string{
+						"ca.crt": BASIC_CERT,
+					},
+				}
+				Expect(bmhr.spokeClient.Create(ctx, configMap)).ShouldNot(HaveOccurred())
 				for range [3]int{} {
 					result, err := bmhr.Reconcile(ctx, newBMHRequest(host))
 					Expect(err).To(BeNil())
@@ -986,6 +985,16 @@ var _ = Describe("bmac reconcile", func() {
 			})
 
 			It("validate label on Secrets", func() {
+				configMap := &corev1.ConfigMap{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "root-ca",
+						Namespace: "kube-system",
+					},
+					Data: map[string]string{
+						"ca.crt": BASIC_CERT,
+					},
+				}
+				Expect(bmhr.spokeClient.Create(ctx, configMap)).ShouldNot(HaveOccurred())
 				for range [3]int{} {
 					result, err := bmhr.Reconcile(ctx, newBMHRequest(host))
 					Expect(err).To(BeNil())
@@ -1006,6 +1015,26 @@ var _ = Describe("bmac reconcile", func() {
 			It("ClusterDeployment not set in Agent", func() {
 				agent.Spec.ClusterDeploymentName = nil
 				Expect(c.Update(ctx, agent)).To(BeNil())
+				result, err := bmhr.Reconcile(ctx, newBMHRequest(host))
+				Expect(err).To(BeNil())
+				Expect(result).To(Equal(ctrl.Result{}))
+			})
+
+			It("should fall back to Hypershift root CA storage", func() {
+				_, err := bmhr.Reconcile(ctx, newBMHRequest(host))
+				Expect(err).NotTo(HaveOccurred())
+				_, err = bmhr.Reconcile(ctx, newBMHRequest(host))
+				Expect(err).To(HaveOccurred())
+				configMap := &corev1.ConfigMap{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "kube-root-ca",
+						Namespace: "openshift-config",
+					},
+					Data: map[string]string{
+						"ca.crt": BASIC_CERT,
+					},
+				}
+				Expect(bmhr.spokeClient.Create(ctx, configMap)).ShouldNot(HaveOccurred())
 				result, err := bmhr.Reconcile(ctx, newBMHRequest(host))
 				Expect(err).To(BeNil())
 				Expect(result).To(Equal(ctrl.Result{}))
