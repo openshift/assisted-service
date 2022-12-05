@@ -269,6 +269,11 @@ var _ = Describe("RegisterHost", func() {
 				kind:     models.HostKindHost,
 			},
 			{
+				name:     "pending for input",
+				srcState: models.HostStatusPendingForInput,
+				kind:     models.HostKindHost,
+			},
+			{
 				name:     "binding day1",
 				srcState: models.HostStatusBinding,
 				kind:     models.HostKindHost,
