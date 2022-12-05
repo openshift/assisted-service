@@ -920,7 +920,9 @@ var _ = Describe("cluster install - DHCP", func() {
 		c := getReply.Payload
 		Expect(swag.StringValue(c.Status)).To(Equal(models.ClusterStatusReady))
 		Expect(c.APIVip).To(Equal("1.2.3.102"))
+		Expect(string(c.APIVips[0].IP)).To(Equal("1.2.3.102"))
 		Expect(c.IngressVip).To(Equal("1.2.3.103"))
+		Expect(string(c.IngressVips[0].IP)).To(Equal("1.2.3.103"))
 	})
 })
 
@@ -1529,6 +1531,7 @@ var _ = Describe("cluster install", func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(len(c.GetPayload().Hosts)).Should(Equal(1))
 			Expect(c.Payload.APIVip).Should(Equal(apiVip))
+			Expect(string(c.Payload.APIVips[0].IP)).Should(Equal(apiVip))
 			Expect(string(c.Payload.MachineNetworks[0].Cidr)).Should(Equal("1.2.3.0/24"))
 		})
 
@@ -1549,6 +1552,7 @@ var _ = Describe("cluster install", func() {
 			})
 			Expect(err).NotTo(HaveOccurred())
 			Expect(c.Payload.APIVip).Should(Equal(apiVip))
+			Expect(string(c.Payload.APIVips[0].IP)).Should(Equal(apiVip))
 			Expect(waitForMachineNetworkCIDR(
 				ctx, clusterID, "1.2.3.0/24", defaultWaitForMachineNetworkCIDRTimeout)).ShouldNot(HaveOccurred())
 			_, err1 := userBMClient.Installer.V2DeregisterHost(ctx, &installer.V2DeregisterHostParams{
@@ -1571,7 +1575,9 @@ var _ = Describe("cluster install", func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(len(c.GetPayload().Hosts)).Should(Equal(0))
 			Expect(c.Payload.APIVip).Should(Equal(""))
+			Expect(len(c.Payload.APIVips)).Should(Equal(0))
 			Expect(c.Payload.IngressVip).Should(Equal(""))
+			Expect(len(c.Payload.IngressVips)).Should(Equal(0))
 			Expect(c.Payload.MachineNetworks).Should(BeEmpty())
 			_ = registerNode(ctx, *infraEnvID, "test-host", defaultCIDRv4)
 			Expect(waitForMachineNetworkCIDR(
@@ -2978,6 +2984,7 @@ spec:
 		Expect(getErr).ToNot(HaveOccurred())
 
 		Expect(clusterReply.Payload.APIVip).To(Equal(apiVip))
+		Expect(string(clusterReply.Payload.APIVips[0].IP)).To(Equal(apiVip))
 		Expect(string(clusterReply.Payload.MachineNetworks[0].Cidr)).To(Equal("1.2.3.0/24"))
 		Expect(len(clusterReply.Payload.HostNetworks)).To(Equal(1))
 		Expect(clusterReply.Payload.HostNetworks[0].Cidr).To(Equal("1.2.3.0/24"))
@@ -4237,6 +4244,7 @@ var _ = Describe("Multiple-VIPs Support", func() {
 				setClusterIdForIngressVips(ingressVips, cluster.ID)
 
 				Expect(cluster.APIVip).To(Equal(apiVip))
+				Expect(network.GetApiVipById(cluster, 0)).To(Equal(apiVip))
 				Expect(cluster.IngressVip).To(Equal(ingressVip))
 				Expect(cluster.IngressVips).To(Equal(ingressVips))
 			})

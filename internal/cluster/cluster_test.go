@@ -753,7 +753,7 @@ var _ = Describe("lease timeout event", func() {
 			apiVip:              "1.2.3.4",
 			ingressVip:          "1.2.3.5",
 			shouldTimeout:       true,
-			eventCalllsExpected: 1,
+			eventCalllsExpected: 2,
 		},
 		{
 			name:                "API Vip missing with timeout",

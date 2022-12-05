@@ -859,6 +859,8 @@ func (r *ClusterDeploymentsReconciler) updateNetworkParams(clusterDeployment *hi
 	if !isSNO && !isDHCPEnabled {
 		updateString(clusterInstall.Spec.APIVIP, cluster.APIVip, &params.APIVip)
 		updateString(clusterInstall.Spec.IngressVIP, cluster.IngressVip, &params.IngressVip)
+		// TODO(MGMT-9915) Add logic here to propagate Spec.APIVIPs and Spec.IngressVIPs
+		// so that KubeAPI for non-SNO with DHCP disabled gets the values properly propagated.
 	}
 
 	if userManagedNetwork := isUserManagedNetwork(clusterInstall); userManagedNetwork != swag.BoolValue(cluster.UserManagedNetworking) {
