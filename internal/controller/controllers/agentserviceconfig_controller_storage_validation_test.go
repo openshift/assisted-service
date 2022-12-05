@@ -88,11 +88,11 @@ var _ = Describe("Agent service config controller storage validation", func() {
 		// Create the reconciler:
 		reconciler = &AgentServiceConfigReconciler{
 			AgentServiceConfigReconcileContext: AgentServiceConfigReconcileContext{
-				Client:   client,
 				Scheme:   cluster.Scheme(),
 				Log:      logrusLogger,
 				Recorder: cluster.Recorder(),
 			},
+			Client:    client,
 			Namespace: "assisted-installer",
 		}
 	})

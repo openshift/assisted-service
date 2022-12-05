@@ -63,30 +63,29 @@ const clusterIPParam string = "ClusterIP"
 
 // HypershiftAgentServiceConfigReconciler reconciles a HypershiftAgentServiceConfig object
 type HypershiftAgentServiceConfigReconciler struct {
+	client.Client
+
 	AgentServiceConfigReconcileContext
 
+	// A cache for the spoke clients
 	SpokeClients SpokeClientCache
 
 	// Namespace the operator is running in
 	Namespace string
 }
 
-func (asc *ASC) initHASC(r *HypershiftAgentServiceConfigReconciler, instance *aiv1beta1.HypershiftAgentServiceConfig) {
+func initHASC(r *HypershiftAgentServiceConfigReconciler, instance *aiv1beta1.HypershiftAgentServiceConfig,
+	client client.Client, properties map[string]interface{}) ASC {
+
+	var asc ASC
 	asc.namespace = instance.Namespace
-	asc.rec = &r.AgentServiceConfigReconcileContext
+	asc.Client = client
 	asc.Object = instance
 	asc.spec = &instance.Spec.AgentServiceConfigSpec
 	asc.conditions = &instance.Status.Conditions
-	context := r.AgentServiceConfigReconcileContext
-	asc.properties = make(map[string]interface{})
-	asc.rec = &AgentServiceConfigReconcileContext{
-		Client:       context.Client,
-		Log:          context.Log,
-		Scheme:       context.Scheme,
-		NodeSelector: context.NodeSelector,
-		Tolerations:  context.Tolerations,
-		Recorder:     context.Recorder,
-	}
+	asc.properties = properties
+	asc.rec = &r.AgentServiceConfigReconcileContext
+	return asc
 }
 
 var assistedServiceRBAC_hub = []component{
@@ -141,7 +140,6 @@ func (hr *HypershiftAgentServiceConfigReconciler) getWebhookComponents_hub() []c
 // +kubebuilder:rbac:groups=rbac.authorization.k8s.io,resources=rolebindings,verbs=get;list;watch;create;update;patch;delete
 
 func (hr *HypershiftAgentServiceConfigReconciler) Reconcile(origCtx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	var asc ASC
 	var err error
 	var result reconcile.Result
 	var valid bool
@@ -163,8 +161,11 @@ func (hr *HypershiftAgentServiceConfigReconciler) Reconcile(origCtx context.Cont
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
+	// Create a map for properties that are shared between ASC objects
+	ascProperties := make(map[string]interface{})
+
 	// Initialize ASC to reconcile components according to instance context
-	asc.initHASC(hr, instance)
+	asc := initHASC(hr, instance, hr.Client, ascProperties)
 
 	// Creating spoke client using specified kubeconfig secret reference
 	log.Info("creating spoke client on namespace")
@@ -221,24 +222,20 @@ func (hr *HypershiftAgentServiceConfigReconciler) Reconcile(origCtx context.Cont
 		return ctrl.Result{}, err
 	}
 
-	// Switch to spoke client in the reconciler context
-	// TODO: extract client from AgentServiceConfigReconcileContext to avoid sharing
-	//       it with both hub and spoke clients.
-	log.Info("switching to spoke client")
-	asc.rec.Client = spokeClient
+	// Initialize spokeASC with the spoke client
+	spokeASC := initHASC(hr, instance, spokeClient, ascProperties)
 
 	// Ensure instance namespace exists on spoke cluster
-	if err = hr.ensureSpokeNamespace(ctx, log, asc); err != nil {
+	if err = hr.ensureSpokeNamespace(ctx, log, spokeASC); err != nil {
 		return ctrl.Result{}, err
 	}
 
 	// Reconcile spoke components
 	log.Info("reconciling spoke components ... ")
-	if result, err = hr.reconcileSpokeComponents(ctx, log, asc); err != nil {
+	if result, err = hr.reconcileSpokeComponents(ctx, log, spokeASC); err != nil {
 		return result, err
 	}
 
-	asc.rec.Client = hr.Client
 	if err = updateConditions(ctx, log, asc); err != nil {
 		return ctrl.Result{}, err
 	}
@@ -292,7 +289,7 @@ func ensureKonnectivityAgent(ctx context.Context, log *logrus.Entry, asc ASC) (c
 
 func readServiceCertificate(ctx context.Context, log *logrus.Entry, asc ASC) error {
 	sourceCM := &corev1.ConfigMap{}
-	if err := asc.rec.Get(ctx, types.NamespacedName{Name: defaultServingCertCMName, Namespace: defaultServingCertNamespace}, sourceCM); err != nil {
+	if err := asc.Client.Get(ctx, types.NamespacedName{Name: defaultServingCertCMName, Namespace: defaultServingCertNamespace}, sourceCM); err != nil {
 		log.WithError(err).Error("Failed to get default webhook serving cert config map")
 		return err
 	}
@@ -302,7 +299,7 @@ func readServiceCertificate(ctx context.Context, log *logrus.Entry, asc ASC) err
 
 func readAdmissionClusterIP(ctx context.Context, log *logrus.Entry, asc ASC) error {
 	svc := &corev1.Service{}
-	if err := asc.rec.Get(ctx, types.NamespacedName{Name: webhookServiceName, Namespace: asc.namespace}, svc); err != nil {
+	if err := asc.Client.Get(ctx, types.NamespacedName{Name: webhookServiceName, Namespace: asc.namespace}, svc); err != nil {
 		return err
 	}
 	asc.properties[clusterIPParam] = svc.Spec.ClusterIP
@@ -358,7 +355,7 @@ func (hr *HypershiftAgentServiceConfigReconciler) updateReconcileCondition(ctx c
 		Reason:  reason,
 		Message: msg,
 	})
-	if err := asc.rec.Status().Update(ctx, asc.Object); err != nil {
+	if err := asc.Client.Status().Update(ctx, asc.Object); err != nil {
 		return pkgerror.Wrapf(err, "Failed to update status")
 	}
 	return nil
@@ -480,7 +477,7 @@ func (hr *HypershiftAgentServiceConfigReconciler) ensureSpokeNamespace(ctx conte
 	mutate := func() error {
 		return nil
 	}
-	result, err := controllerutil.CreateOrUpdate(ctx, asc.rec.Client, ns, mutate)
+	result, err := controllerutil.CreateOrUpdate(ctx, asc.Client, ns, mutate)
 	if err != nil {
 		log.WithError(err).Errorf("Failed to create spoke namespace %s", asc.namespace)
 	} else if result != controllerutil.OperationResultNone {
@@ -775,7 +772,7 @@ func newHypershiftWebHookAPIService(ctx context.Context, log logrus.FieldLogger,
 func newKonnectivityAgentDeployment(ctx context.Context, log logrus.FieldLogger, asc ASC) (client.Object, controllerutil.MutateFn, error) {
 	//read the existing konnectivity deployment
 	ka := &appsv1.Deployment{}
-	if err := asc.rec.Get(ctx, types.NamespacedName{Name: "konnectivity-agent", Namespace: asc.namespace}, ka); err != nil {
+	if err := asc.Client.Get(ctx, types.NamespacedName{Name: "konnectivity-agent", Namespace: asc.namespace}, ka); err != nil {
 		log.WithError(err).Errorf("Failed retrieving konnectivity-agend Deployment from namespace %s", asc.namespace)
 	}
 	ka.ObjectMeta = metav1.ObjectMeta{
