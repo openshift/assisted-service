@@ -90,6 +90,13 @@ func (o *operator) ValidateCluster(_ context.Context, cluster *common.Cluster) (
 	return api.ValidationResult{Status: status, ValidationId: o.GetClusterValidationID(), Reasons: []string{message}}, nil
 }
 
+func getODFDeploymentMode(numOfHosts int) odfDeploymentMode {
+	if numOfHosts <= 3 {
+		return compactMode
+	}
+	return standardMode
+}
+
 // ValidateHost verifies whether this operator is valid for given host
 func (o *operator) ValidateHost(_ context.Context, cluster *common.Cluster, host *models.Host) (api.ValidationResult, error) {
 	numOfHosts := len(cluster.Hosts)
@@ -102,14 +109,15 @@ func (o *operator) ValidateHost(_ context.Context, cluster *common.Cluster, host
 		return api.ValidationResult{Status: api.Failure, ValidationId: o.GetHostValidationID(), Reasons: []string{message}}, err
 	}
 
+	mode := getODFDeploymentMode(numOfHosts)
+
 	// GetValidDiskCount counts the total number of valid disks in each host and return a error if we don't have the disk of required size
-	diskCount, err := o.getValidDiskCount(inventory.Disks, host.InstallationDiskID)
+	diskCount, err := o.getValidDiskCount(inventory.Disks, host.InstallationDiskID, mode)
 	if err != nil {
 		return api.ValidationResult{Status: api.Failure, ValidationId: o.GetHostValidationID(), Reasons: []string{err.Error()}}, nil
 	}
 
-	// compact mode
-	if numOfHosts <= 3 {
+	if mode == compactMode {
 		if host.Role == models.HostRoleMaster || host.Role == models.HostRoleAutoAssign {
 			if diskCount == 0 {
 				return api.ValidationResult{Status: api.Failure, ValidationId: o.GetHostValidationID(), Reasons: []string{"Insufficient disks, ODF requires at least one non-bootable disk on each host in compact mode."}}, nil
@@ -148,6 +156,7 @@ func (o *operator) GetMonitoredOperator() *models.MonitoredOperator {
 func (o *operator) GetHostRequirements(_ context.Context, cluster *common.Cluster, host *models.Host) (*models.ClusterHostRequirementsDetails, error) {
 	numOfHosts := len(cluster.Hosts)
 
+	mode := getODFDeploymentMode(numOfHosts)
 	var diskCount int64 = 0
 	if host.Inventory != "" {
 		inventory, err := common.UnmarshalInventory(host.Inventory)
@@ -157,11 +166,11 @@ func (o *operator) GetHostRequirements(_ context.Context, cluster *common.Cluste
 
 		/* GetValidDiskCount counts the total number of valid disks in each host and return a error if we don't have the disk of required size,
 		we ignore the error as its treated as 500 in the UI */
-		diskCount, _ = o.getValidDiskCount(inventory.Disks, host.InstallationDiskID)
+		diskCount, _ = o.getValidDiskCount(inventory.Disks, host.InstallationDiskID, mode)
 	}
 
 	role := common.GetEffectiveRole(host)
-	if numOfHosts <= 3 { // Compact Mode
+	if mode == compactMode {
 		var reqDisks int64 = 1
 		if diskCount > 0 {
 			reqDisks = diskCount

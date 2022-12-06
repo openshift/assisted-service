@@ -3,6 +3,7 @@ package odf
 import (
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/operators/api"
@@ -68,28 +69,29 @@ func (o *operator) computeResourcesAllNodes(cluster *models.Cluster, odfClusterR
 	var err error
 
 	hosts := cluster.Hosts
-	compactMode := int64(len(hosts)) == 3
+	isCompactMode := int64(len(hosts)) == 3
 	for _, host := range hosts { // if the worker nodes >=3 , install ODF on all the worker nodes if they satisfy ODF requirements
 
 		/* If the Role is set to Auto-assign for a host, it is not possible to determine whether the node will end up as a master or worker node.
 		As ODF will use only worker nodes for non-compact deployments, the ODF validations cannot be performed as it cannot know which nodes will be worker nodes.
 		We ignore the role check for a cluster of 3 nodes as they will all be master nodes. ODF validations will proceed as for a compact deployment.
 		*/
+
 		role := common.GetEffectiveRole(host)
-		if !compactMode {
+		if !isCompactMode {
 			if role == models.HostRoleAutoAssign {
 				status = "For ODF Standard Mode, all host roles must be assigned to master or worker."
 				err = errors.New("Role is set to auto-assign for host ")
 				return status, err
 			}
 			if role == models.HostRoleWorker {
-				status, err = o.computeNodeResourceUtil(host, odfClusterResources)
+				status, err = o.computeNodeResourceUtil(host, odfClusterResources, standardMode)
 				if err != nil {
 					return status, err
 				}
 			}
 		} else {
-			status, err = o.computeNodeResourceUtil(host, odfClusterResources)
+			status, err = o.computeNodeResourceUtil(host, odfClusterResources, compactMode)
 			if err != nil {
 				return status, err
 			}
@@ -99,7 +101,7 @@ func (o *operator) computeResourcesAllNodes(cluster *models.Cluster, odfClusterR
 	return status, nil
 }
 
-func (o *operator) computeNodeResourceUtil(host *models.Host, odfClusterResources *odfClusterResourcesInfo) (string, error) {
+func (o *operator) computeNodeResourceUtil(host *models.Host, odfClusterResources *odfClusterResourcesInfo, mode odfDeploymentMode) (string, error) {
 	var status string
 
 	// if inventory is empty, return an error
@@ -113,7 +115,7 @@ func (o *operator) computeNodeResourceUtil(host *models.Host, odfClusterResource
 		return status, err
 	}
 
-	diskCount, err := o.getValidDiskCount(inventory.Disks, host.InstallationDiskID)
+	diskCount, err := o.getValidDiskCount(inventory.Disks, host.InstallationDiskID, mode)
 	if err != nil {
 		return err.Error(), err
 	}
@@ -154,24 +156,24 @@ func validateRequirements(o *operator, odfClusterResources *odfClusterResourcesI
 }
 
 func (o *operator) setStatusInsufficientResources(odfClusterResources *odfClusterResourcesInfo, mode odfDeploymentMode) string {
-	status := fmt.Sprint("Insufficient Resources to deploy ODF in ", string(mode), " Mode. ")
+	status := fmt.Sprint("Insufficient resources to deploy ODF in ", strings.ToLower(string(mode)), " mode. ")
 
 	if odfClusterResources.numberOfDisks < o.config.ODFNumMinimumDisks || odfClusterResources.hostsWithDisks < o.config.ODFNumMinimumHosts {
-		status = status + fmt.Sprint("ODF requires a minimum of ", o.config.ODFNumMinimumHosts, " hosts with one non-bootable disk on each host of size at least ", o.config.ODFMinDiskSizeGB, " GB.")
+		status = status + fmt.Sprint("ODF requires a minimum of ", o.config.ODFNumMinimumHosts, " hosts. Each host must have at least 1 additional disk of ", o.config.ODFMinDiskSizeGB, " GB minimum and an installation disk.")
 	}
 
 	return status
 }
 
 // count all disks of drive type ssd or hdd
-func (o *operator) getValidDiskCount(disks []*models.Disk, installationDiskID string) (int64, error) {
+func (o *operator) getValidDiskCount(disks []*models.Disk, installationDiskID string, mode odfDeploymentMode) (int64, error) {
 	var countDisks int64
 	var err error
 
 	for _, disk := range disks {
 		if (disk.DriveType == models.DriveTypeSSD || disk.DriveType == models.DriveTypeHDD) && installationDiskID != disk.ID && disk.SizeBytes != 0 {
 			if disk.SizeBytes < conversions.GbToBytes(o.config.ODFMinDiskSizeGB) {
-				err = fmt.Errorf("ODF requires all the non-bootable disks to be more than %d GB", o.config.ODFMinDiskSizeGB)
+				err = fmt.Errorf("Insufficient resources to deploy ODF in %s mode. ODF requires a minimum of 3 hosts. Each host must have at least 1 additional disk of %d GB minimum and an installation disk.", strings.ToLower(string(mode)), o.config.ODFMinDiskSizeGB)
 			} else {
 				countDisks++
 			}
