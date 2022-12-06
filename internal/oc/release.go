@@ -28,7 +28,6 @@ const (
 	mcoImageName         = "machine-config-operator"
 	ironicAgentImageName = "ironic-agent"
 	mustGatherImageName  = "must-gather"
-	okdRPMSImageName     = "okd-rpms"
 	DefaultTries         = 5
 	DefaltRetryDelay     = time.Second * 5
 )
@@ -42,7 +41,6 @@ type Config struct {
 type Release interface {
 	GetMCOImage(log logrus.FieldLogger, releaseImage string, releaseImageMirror string, pullSecret string) (string, error)
 	GetIronicAgentImage(log logrus.FieldLogger, releaseImage string, releaseImageMirror string, pullSecret string) (string, error)
-	GetOKDRPMSImage(log logrus.FieldLogger, releaseImage string, releaseImageMirror string, pullSecret string) (string, error)
 	GetMustGatherImage(log logrus.FieldLogger, releaseImage string, releaseImageMirror string, pullSecret string) (string, error)
 	GetOpenshiftVersion(log logrus.FieldLogger, releaseImage string, releaseImageMirror string, pullSecret string) (string, error)
 	GetMajorMinorVersion(log logrus.FieldLogger, releaseImage string, releaseImageMirror string, pullSecret string) (string, error)
@@ -93,11 +91,6 @@ func (r *release) GetMCOImage(log logrus.FieldLogger, releaseImage string, relea
 // Else gets it from the source releaseImage
 func (r *release) GetIronicAgentImage(log logrus.FieldLogger, releaseImage string, releaseImageMirror string, pullSecret string) (string, error) {
 	return r.getImageByName(log, ironicAgentImageName, releaseImage, releaseImageMirror, pullSecret)
-}
-
-// GetOKDRPMSImage gets okd RPMS image URL from the release image or releaseImageMirror, if provided.
-func (r *release) GetOKDRPMSImage(log logrus.FieldLogger, releaseImage string, releaseImageMirror string, pullSecret string) (string, error) {
-	return r.getImageByName(log, okdRPMSImageName, releaseImage, releaseImageMirror, pullSecret)
 }
 
 // GetMustGatherImage gets must-gather image URL from the release image or releaseImageMirror, if provided.

@@ -297,7 +297,7 @@ func main() {
 	failOnError(err, "failed to create Versions handler")
 	domainHandler := domains.NewHandler(Options.BMConfig.BaseDNSDomains)
 	staticNetworkConfig := staticnetworkconfig.New(log.WithField("pkg", "static_network_config"), Options.StaticNetworkConfig)
-	ignitionBuilder, err := ignition.NewBuilder(log.WithField("pkg", "ignition"), staticNetworkConfig, mirrorRegistriesBuilder, releaseHandler, versionHandler)
+	ignitionBuilder, err := ignition.NewBuilder(log.WithField("pkg", "ignition"), staticNetworkConfig, mirrorRegistriesBuilder)
 	failOnError(err, "failed to create ignition builder")
 	installConfigBuilder := installcfg.NewInstallConfigBuilder(log.WithField("pkg", "installcfg"), mirrorRegistriesBuilder, providerRegistry)
 

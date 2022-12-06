@@ -110,21 +110,6 @@ func (mr *MockReleaseMockRecorder) GetMustGatherImage(log, releaseImage, release
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetMustGatherImage", reflect.TypeOf((*MockRelease)(nil).GetMustGatherImage), log, releaseImage, releaseImageMirror, pullSecret)
 }
 
-// GetOKDRPMSImage mocks base method.
-func (m *MockRelease) GetOKDRPMSImage(log logrus.FieldLogger, releaseImage, releaseImageMirror, pullSecret string) (string, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetOKDRPMSImage", log, releaseImage, releaseImageMirror, pullSecret)
-	ret0, _ := ret[0].(string)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetOKDRPMSImage indicates an expected call of GetOKDRPMSImage.
-func (mr *MockReleaseMockRecorder) GetOKDRPMSImage(log, releaseImage, releaseImageMirror, pullSecret interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetOKDRPMSImage", reflect.TypeOf((*MockRelease)(nil).GetOKDRPMSImage), log, releaseImage, releaseImageMirror, pullSecret)
-}
-
 // GetOpenshiftVersion mocks base method.
 func (m *MockRelease) GetOpenshiftVersion(log logrus.FieldLogger, releaseImage, releaseImageMirror, pullSecret string) (string, error) {
 	m.ctrl.T.Helper()
