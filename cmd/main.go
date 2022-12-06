@@ -154,7 +154,7 @@ var Options struct {
 	ClusterTLSCertOverrideDir string `envconfig:"EPHEMERAL_INSTALLER_CLUSTER_TLS_CERTS_OVERRIDE_DIR" default:""`
 }
 
-func InitLogs() *logrus.Logger {
+func InitLogs(logLevel, logFormat string) *logrus.Logger {
 	log := logrus.New()
 
 	fmt.Println(Options.EnableElasticAPM)
@@ -165,18 +165,18 @@ func InitLogs() *logrus.Logger {
 	log.SetReportCaller(true)
 
 	//set log format according to configuration
-	log.Info("Setting log format: ", Options.LogConfig.LogFormat)
-	if Options.LogConfig.LogFormat == logconfig.LogFormatJson {
+	log.Info("Setting log format: ", logFormat)
+	if logFormat == logconfig.LogFormatJson {
 		log.SetFormatter(&logrus.JSONFormatter{})
 	}
 
 	//set log level according to configuration
-	log.Info("Setting Log Level: ", Options.LogConfig.LogLevel)
-	logLevel, err := logrus.ParseLevel(Options.LogConfig.LogLevel)
+	log.Info("Setting Log Level: ", logLevel)
+	level, err := logrus.ParseLevel(logLevel)
 	if err != nil {
-		log.Error("Invalid Log Level: ", Options.LogConfig.LogLevel)
+		log.Error("Invalid Log Level: ", logLevel)
 	} else {
-		log.SetLevel(logLevel)
+		log.SetLevel(level)
 	}
 
 	return log
@@ -197,7 +197,7 @@ func main() {
 	if err == nil {
 		err = Options.HostConfig.Complete()
 	}
-	log := InitLogs()
+	log := InitLogs(Options.LogConfig.LogLevel, Options.LogConfig.LogFormat)
 	log.Infof("Starting assisted-service version: %s", versions.GetRevision())
 
 	if err != nil {
@@ -501,6 +501,7 @@ func main() {
 	h = spec.WithSpecMiddleware(h)
 
 	go func() {
+		log.Printf("Starting pprof... log level: %s\n", log.Level)
 		if log.Level == logrus.DebugLevel {
 			log.Println(http.ListenAndServe("localhost:6060", nil))
 		}
@@ -679,13 +680,13 @@ func setupDB(log logrus.FieldLogger) *gorm.DB {
 	return db
 }
 
-func getOCMClient(log logrus.FieldLogger) *ocm.Client {
+func getOCMClient(logger *logrus.Logger) *ocm.Client {
 	var ocmClient *ocm.Client
 	var err error
 	if Options.Auth.AuthType == auth.TypeRHSSO {
-		ocmClient, err = ocm.NewClient(Options.OCMConfig, log.WithField("pkg", "ocm"))
+		ocmClient, err = ocm.NewClient(Options.OCMConfig, logger.WithField("pkg", "ocm"))
 		if err != nil {
-			log.WithError(err).Fatal("Failed to Create OCM Client")
+			logger.WithError(err).Fatal("Failed to Create OCM Client")
 		}
 	}
 	return ocmClient
