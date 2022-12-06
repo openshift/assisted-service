@@ -1704,4 +1704,54 @@ var _ = Describe("Validations test", func() {
 			})
 		}
 	})
+
+	Context("Has sufficient packet loss requirements for role", func() {
+		var (
+			host    models.Host
+			cluster common.Cluster
+		)
+		BeforeEach(func() {
+			cluster = hostutil.GenerateTestCluster(clusterID)
+			Expect(db.Create(&cluster).Error).ToNot(HaveOccurred())
+			hostId, infraEnvId := strfmt.UUID(uuid.New().String()), strfmt.UUID(uuid.New().String())
+			host = hostutil.GenerateTestHostByKind(hostId, infraEnvId, &clusterID, models.HostStatusDiscovering, models.HostKindHost, models.HostRoleMaster)
+			Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
+			host = hostutil.GetHostFromDB(*host.ID, host.InfraEnvID, db).Host
+		})
+		It("Should be a pending validation if the inventory is nil", func() {
+			var inventoryBytes = []byte("")
+			host.Inventory = string(inventoryBytes)
+			mockAndRefreshStatusWithoutEvents(&host)
+			host = hostutil.GetHostFromDB(*host.ID, host.InfraEnvID, db).Host
+			status, message, ok := getValidationResult(host.ValidationsInfo, HasSufficientPacketLossRequirementForRole)
+			Expect(ok).To(BeTrue())
+			Expect(message).To(Equal("The inventory is not available yet."))
+			Expect(status).To(Equal(ValidationPending))
+		})
+	})
+
+	Context("Has sufficient network latency requirements for role", func() {
+		var (
+			host    models.Host
+			cluster common.Cluster
+		)
+		BeforeEach(func() {
+			cluster = hostutil.GenerateTestCluster(clusterID)
+			Expect(db.Create(&cluster).Error).ToNot(HaveOccurred())
+			hostId, infraEnvId := strfmt.UUID(uuid.New().String()), strfmt.UUID(uuid.New().String())
+			host = hostutil.GenerateTestHostByKind(hostId, infraEnvId, &clusterID, models.HostStatusDiscovering, models.HostKindHost, models.HostRoleMaster)
+			Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
+			host = hostutil.GetHostFromDB(*host.ID, host.InfraEnvID, db).Host
+		})
+		It("Should be a pending validation if the inventory is nil", func() {
+			var inventoryBytes = []byte("")
+			host.Inventory = string(inventoryBytes)
+			mockAndRefreshStatusWithoutEvents(&host)
+			host = hostutil.GetHostFromDB(*host.ID, host.InfraEnvID, db).Host
+			status, message, ok := getValidationResult(host.ValidationsInfo, HasSufficientNetworkLatencyRequirementForRole)
+			Expect(ok).To(BeTrue())
+			Expect(message).To(Equal("The inventory is not available yet."))
+			Expect(status).To(Equal(ValidationPending))
+		})
+	})
 })
