@@ -1321,8 +1321,8 @@ var _ = Describe("Auto assign machine CIDR", func() {
 			}
 			if t.expectedMachineNetworks != nil {
 				Expect(cluster.MachineNetworks).To(HaveLen(len(t.expectedMachineNetworks)))
-				for _, m := range t.expectedMachineNetworks {
-					Expect(t.expectedMachineNetworks).To(ContainElement(m))
+				for i, cidr := range t.expectedMachineNetworks {
+					Expect(string(cluster.MachineNetworks[i].Cidr)).To(Equal(cidr))
 				}
 			}
 
