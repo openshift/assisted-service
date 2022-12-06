@@ -11,6 +11,7 @@ import (
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/models"
+	"gorm.io/gorm"
 )
 
 const redHatIntermediateChain string = `
@@ -313,6 +314,47 @@ var _ = Describe("Test GetInventoryInterfaces", func() {
 		res, err := GetInventoryInterfaces("\"hostname\":\"localhost\",\"interfaces\":[{\"biosdevname\":\"em2\",\"flags\":[\"up\",\"broadcast\",\"multicast\"],\"ipv4_addresses\":[],\"ipv6_addresses\":[],\"mac_address\":\"b4:7a:f1:da:fe:85\",\"mtu\":1500,\"name\":\"eno2\",\"product\":\"0x37ce\",\"speed_mbps\":-1,\"vendor\":\"0x8086\"},{\"biosdevname\":\"em1\",\"flags\":[\"up\",\"broadcast\",\"multicast\"],\"has_carrier\":true,\"ipv4_addresses\":[],\"ipv6_addresses\":[],\"mac_address\":\"b4:7a:f1:da:fe:84\",\"mtu\":1500,\"name\":\"eno1\",\"product\":\"0x1537\",\"speed_mbps\":1000,\"vendor\":\"0x8086\"},{\"biosdevname\":\"em3\",\"flags\":[\"up\",\"broadcast\",\"multicast\"],\"ipv4_addresses\":[],\"ipv6_addresses\":[],\"mac_address\":\"b4:7a:f1:da:fe:86\",\"mtu\":1500,\"name\":\"eno3\",\"product\":\"0x37ce\",\"speed_mbps\":-1,\"vendor\":\"0x8086\"},{\"biosdevname\":\"em4\",\"flags\":[\"up\",\"broadcast\",\"multicast\"],\"ipv4_addresses\":[],\"ipv6_addresses\":[],\"mac_address\":\"b4:7a:f1:da:fe:87\",\"mtu\":1500,\"name\":\"eno4\",\"product\":\"0x37ce\",\"speed_mbps\":-1,\"vendor\":\"0x8086\"},{\"biosdevname\":\"em5\",\"flags\":[\"up\",\"broadcast\",\"multicast\"],\"ipv4_addresses\":[],\"ipv6_addresses\":[],\"mac_address\":\"b4:7a:f1:da:fe:88\",\"mtu\":1500,\"name\":\"eno5\",\"product\":\"0x37ce\",\"speed_mbps\":-1,\"vendor\":\"0x8086\"},{\"biosdevname\":\"p1p1\",\"flags\":[\"up\",\"broadcast\",\"multicast\"],\"has_carrier\":true,\"ipv4_addresses\":[],\"ipv6_addresses\":[],\"mac_address\":\"d4:f5:ef:56:35:64\",\"mtu\":8000,\"name\":\"ens1f0\",\"product\":\"0x158b\",\"speed_mbps\":25000,\"vendor\":\"0x8086\"},{\"biosdevname\":\"p1p2\",\"flags\":[\"up\",\"broadcast\",\"multicast\"],\"has_carrier\":true,\"ipv4_addresses\":[],\"ipv6_addresses\":[],\"mac_address\":\"d4:f5:ef:56:35:64\",\"mtu\":8000,\"name\":\"ens1f1\",\"product\":\"0x158b\",\"speed_mbps\":25000,\"vendor\":\"0x8086\"},{\"flags\":[\"up\",\"broadcast\",\"multicast\"],\"has_carrier\":true,\"ipv4_addresses\":[\"10.195.70.120/24\"],\"ipv6_addresses\":[],\"mac_address\":\"d4:f5:ef:5")
 		Expect(res).To(Equal(""))
 		Expect(err.Error()).Should(Equal("inventory is malformed"))
+	})
+})
+
+var _ = Describe("db features", func() {
+	var (
+		db *gorm.DB
+	)
+	BeforeEach(func() {
+		db, _ = PrepareTestDB()
+	})
+	AfterEach(func() {
+		CloseDB(db)
+	})
+	Context("embedded struct", func() {
+		type inner struct {
+			String *string
+			Int    int
+		}
+		type Outer struct {
+			Inner *inner `gorm:"embedded;embeddedPrefix:inner_"`
+			ID    int
+		}
+		BeforeEach(func() {
+			Expect(db.Migrator().AutoMigrate(&Outer{})).ToNot(HaveOccurred())
+		})
+		It("default embedded struct is not nil", func() {
+			Expect(db.Create(&Outer{ID: 1}).Error).ToNot(HaveOccurred())
+			var outer Outer
+			Expect(db.Where("inner_string is null and inner_int is null").Take(&outer).Error).ToNot(HaveOccurred())
+			Expect(outer.Inner).ToNot(BeNil())
+			Expect(outer.Inner.Int).To(Equal(0))
+			Expect(outer.Inner.String).To(BeNil())
+		})
+		It("embedded struct with values", func() {
+			Expect(db.Create(&Outer{ID: 1, Inner: &inner{String: swag.String("blah")}}).Error).ToNot(HaveOccurred())
+			var outer Outer
+			Expect(db.Where("inner_string = 'blah'").Take(&outer).Error).ToNot(HaveOccurred())
+			Expect(outer.Inner).ToNot(BeNil())
+			Expect(outer.Inner.Int).To(Equal(0))
+			Expect(outer.Inner.String).To(Equal(swag.String("blah")))
+		})
 	})
 })
 
