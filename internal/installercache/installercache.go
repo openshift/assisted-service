@@ -6,6 +6,7 @@ import (
 	"github.com/openshift/assisted-service/internal/oc"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/executer"
+	"github.com/openshift/assisted-service/pkg/mirrorregistries"
 	"github.com/sirupsen/logrus"
 )
 
@@ -48,8 +49,9 @@ func Get(releaseID, releaseIDMirror, cacheDir, pullSecret string, platformType m
 	var err error
 	//cache miss
 	if r.path == "" {
+		mirrorRegistriesBuilder := mirrorregistries.New()
 		path, err = oc.NewRelease(&executer.CommonExecuter{}, oc.Config{
-			MaxTries: oc.DefaultTries, RetryDelay: oc.DefaltRetryDelay}).Extract(log, releaseID, releaseIDMirror, cacheDir, pullSecret, platformType, icspFile)
+			MaxTries: oc.DefaultTries, RetryDelay: oc.DefaltRetryDelay}, mirrorRegistriesBuilder).Extract(log, releaseID, releaseIDMirror, cacheDir, pullSecret, platformType, icspFile)
 		if err != nil {
 			return "", err
 		}

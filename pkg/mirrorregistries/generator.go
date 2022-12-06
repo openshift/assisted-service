@@ -33,7 +33,11 @@ func (m *mirrorRegistriesConfigBuilder) IsMirrorRegistriesConfigured() bool {
 	if err != nil {
 		return false
 	}
-	_, err = m.GetMirrorRegistries()
+	content, err := m.GetMirrorRegistries()
+	if err != nil {
+		return false
+	}
+	_, err = loadRegistriesConf(string(content))
 	return err == nil
 }
 
@@ -59,14 +63,9 @@ func (m *mirrorRegistriesConfigBuilder) ExtractLocationMirrorDataFromRegistries(
 }
 
 func extractLocationMirrorDataFromRegistries(registriesConfToml string) ([]RegistriesConf, error) {
-	tomlTree, err := toml.Load(registriesConfToml)
+	registriesTree, err := loadRegistriesConf(registriesConfToml)
 	if err != nil {
 		return nil, err
-	}
-
-	registriesTree, ok := tomlTree.Get("registry").([]*toml.Tree)
-	if !ok {
-		return nil, fmt.Errorf("Failed to cast registry key to toml Tree")
 	}
 	registriesConfList := make([]RegistriesConf, len(registriesTree))
 	for i, registryTree := range registriesTree {
@@ -86,6 +85,19 @@ func extractLocationMirrorDataFromRegistries(registriesConfToml string) ([]Regis
 	}
 
 	return registriesConfList, nil
+}
+
+func loadRegistriesConf(registriesConfToml string) ([]*toml.Tree, error) {
+	tomlTree, err := toml.Load(registriesConfToml)
+	if err != nil {
+		return nil, err
+	}
+
+	registriesTree, ok := tomlTree.Get("registry").([]*toml.Tree)
+	if !ok {
+		return nil, fmt.Errorf("failed to cast registry key to toml Tree. content: %s", registriesConfToml)
+	}
+	return registriesTree, nil
 }
 
 func readFile(filePath string) ([]byte, error) {
