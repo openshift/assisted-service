@@ -14,19 +14,19 @@ import (
 	"github.com/go-openapi/validate"
 )
 
-// NewTransformClusterToDay2Params creates a new TransformClusterToDay2Params object
+// NewTransformClusterToAddingHostsParams creates a new TransformClusterToAddingHostsParams object
 //
 // There are no default values defined in the spec.
-func NewTransformClusterToDay2Params() TransformClusterToDay2Params {
+func NewTransformClusterToAddingHostsParams() TransformClusterToAddingHostsParams {
 
-	return TransformClusterToDay2Params{}
+	return TransformClusterToAddingHostsParams{}
 }
 
-// TransformClusterToDay2Params contains all the bound params for the transform cluster to day2 operation
+// TransformClusterToAddingHostsParams contains all the bound params for the transform cluster to adding hosts operation
 // typically these are obtained from a http.Request
 //
-// swagger:parameters TransformClusterToDay2
-type TransformClusterToDay2Params struct {
+// swagger:parameters TransformClusterToAddingHosts
+type TransformClusterToAddingHostsParams struct {
 
 	// HTTP Request Object
 	HTTPRequest *http.Request `json:"-"`
@@ -41,8 +41,8 @@ type TransformClusterToDay2Params struct {
 // BindRequest both binds and validates a request, it assumes that complex things implement a Validatable(strfmt.Registry) error interface
 // for simple values it will use straight method calls.
 //
-// To ensure default values, the struct must have been initialized with NewTransformClusterToDay2Params() beforehand.
-func (o *TransformClusterToDay2Params) BindRequest(r *http.Request, route *middleware.MatchedRoute) error {
+// To ensure default values, the struct must have been initialized with NewTransformClusterToAddingHostsParams() beforehand.
+func (o *TransformClusterToAddingHostsParams) BindRequest(r *http.Request, route *middleware.MatchedRoute) error {
 	var res []error
 
 	o.HTTPRequest = r
@@ -58,7 +58,7 @@ func (o *TransformClusterToDay2Params) BindRequest(r *http.Request, route *middl
 }
 
 // bindClusterID binds and validates parameter ClusterID from path.
-func (o *TransformClusterToDay2Params) bindClusterID(rawData []string, hasKey bool, formats strfmt.Registry) error {
+func (o *TransformClusterToAddingHostsParams) bindClusterID(rawData []string, hasKey bool, formats strfmt.Registry) error {
 	var raw string
 	if len(rawData) > 0 {
 		raw = rawData[len(rawData)-1]
@@ -82,7 +82,7 @@ func (o *TransformClusterToDay2Params) bindClusterID(rawData []string, hasKey bo
 }
 
 // validateClusterID carries on validations for parameter ClusterID
-func (o *TransformClusterToDay2Params) validateClusterID(formats strfmt.Registry) error {
+func (o *TransformClusterToAddingHostsParams) validateClusterID(formats strfmt.Registry) error {
 
 	if err := validate.FormatOf("cluster_id", "path", "uuid", o.ClusterID.String(), formats); err != nil {
 		return err

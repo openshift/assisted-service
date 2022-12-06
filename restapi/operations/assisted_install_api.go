@@ -84,6 +84,9 @@ func NewAssistedInstallAPI(spec *loads.Document) *AssistedInstallAPI {
 		InstallerRegisterInfraEnvHandler: installer.RegisterInfraEnvHandlerFunc(func(params installer.RegisterInfraEnvParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation installer.RegisterInfraEnv has not yet been implemented")
 		}),
+		InstallerTransformClusterToAddingHostsHandler: installer.TransformClusterToAddingHostsHandlerFunc(func(params installer.TransformClusterToAddingHostsParams, principal interface{}) middleware.Responder {
+			return middleware.NotImplemented("operation installer.TransformClusterToAddingHosts has not yet been implemented")
+		}),
 		InstallerTransformClusterToDay2Handler: installer.TransformClusterToDay2HandlerFunc(func(params installer.TransformClusterToDay2Params, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation installer.TransformClusterToDay2 has not yet been implemented")
 		}),
@@ -362,6 +365,8 @@ type AssistedInstallAPI struct {
 	InstallerRegenerateInfraEnvSigningKeyHandler installer.RegenerateInfraEnvSigningKeyHandler
 	// InstallerRegisterInfraEnvHandler sets the operation handler for the register infra env operation
 	InstallerRegisterInfraEnvHandler installer.RegisterInfraEnvHandler
+	// InstallerTransformClusterToAddingHostsHandler sets the operation handler for the transform cluster to adding hosts operation
+	InstallerTransformClusterToAddingHostsHandler installer.TransformClusterToAddingHostsHandler
 	// InstallerTransformClusterToDay2Handler sets the operation handler for the transform cluster to day2 operation
 	InstallerTransformClusterToDay2Handler installer.TransformClusterToDay2Handler
 	// InstallerUnbindHostHandler sets the operation handler for the unbind host operation
@@ -605,6 +610,9 @@ func (o *AssistedInstallAPI) Validate() error {
 	}
 	if o.InstallerRegisterInfraEnvHandler == nil {
 		unregistered = append(unregistered, "installer.RegisterInfraEnvHandler")
+	}
+	if o.InstallerTransformClusterToAddingHostsHandler == nil {
+		unregistered = append(unregistered, "installer.TransformClusterToAddingHostsHandler")
 	}
 	if o.InstallerTransformClusterToDay2Handler == nil {
 		unregistered = append(unregistered, "installer.TransformClusterToDay2Handler")
@@ -935,6 +943,10 @@ func (o *AssistedInstallAPI) initHandlerCache() {
 		o.handlers["POST"] = make(map[string]http.Handler)
 	}
 	o.handlers["POST"]["/v2/infra-envs"] = installer.NewRegisterInfraEnv(o.context, o.InstallerRegisterInfraEnvHandler)
+	if o.handlers["POST"] == nil {
+		o.handlers["POST"] = make(map[string]http.Handler)
+	}
+	o.handlers["POST"]["/v2/clusters/{cluster_id}/actions/allow-add-hosts"] = installer.NewTransformClusterToAddingHosts(o.context, o.InstallerTransformClusterToAddingHostsHandler)
 	if o.handlers["POST"] == nil {
 		o.handlers["POST"] = make(map[string]http.Handler)
 	}

@@ -61,7 +61,7 @@ type TransformClusterToDay2Params struct {
 
 	/* ClusterID.
 
-	   The cluster to transform to day2 and to allow adding hosts by this.
+	   The cluster to transform.
 
 	   Format: uuid
 	*/

@@ -516,18 +516,82 @@ func init() {
         }
       }
     },
-    "/v2/clusters/{cluster_id}/actions/allow-add-workers": {
+    "/v2/clusters/{cluster_id}/actions/allow-add-hosts": {
       "post": {
-        "description": "Transforming cluster to day2 and allowing adding hosts",
+        "description": "Transforms installed cluster to a state which allows adding hosts.",
         "tags": [
           "installer"
         ],
-        "operationId": "TransformClusterToDay2",
+        "operationId": "TransformClusterToAddingHosts",
         "parameters": [
           {
             "type": "string",
             "format": "uuid",
-            "description": "The cluster to transform to day2 and to allow adding hosts by this.",
+            "description": "The cluster to transform.",
+            "name": "cluster_id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "Success.",
+            "schema": {
+              "$ref": "#/definitions/cluster"
+            }
+          },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "404": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "409": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "500": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
+    "/v2/clusters/{cluster_id}/actions/allow-add-workers": {
+      "post": {
+        "description": "Deprecated, maintained for legacy purposes. Does the same thing as allow-add-hosts. Use allow-add-hosts instead.",
+        "tags": [
+          "installer"
+        ],
+        "operationId": "TransformClusterToDay2",
+        "deprecated": true,
+        "parameters": [
+          {
+            "type": "string",
+            "format": "uuid",
+            "description": "The cluster to transform.",
             "name": "cluster_id",
             "in": "path",
             "required": true
@@ -5494,7 +5558,7 @@ func init() {
           "$ref": "#/definitions/image_info"
         },
         "imported": {
-          "description": "Indicates whether this cluster is an imported day-2 cluster or a\nregular cluster. Clusters are considered imported when they are\ncreated via the ../clusters/import endpoint. Day-2 clusters converted\nfrom day-1 clusters by kube-api controllers or the\n../clusters/\u003ccluster_id\u003e/actions/allow-add-workers endpoint are not\nconsidered imported. Imported clusters usually lack a lot of\ninformation and are filled with default values that don't necessarily\nreflect the actual cluster they represent",
+          "description": "Indicates whether this cluster is an imported day-2 cluster or a\nregular cluster. Clusters are considered imported when they are\ncreated via the ../clusters/import endpoint. Day-2 clusters converted\nfrom day-1 clusters by kube-api controllers or the\n../clusters/\u003ccluster_id\u003e/actions/allow-add-hosts endpoint are not\nconsidered imported. Imported clusters usually lack a lot of\ninformation and are filled with default values that don't necessarily\nreflect the actual cluster they represent",
           "type": "boolean",
           "default": false
         },
@@ -9975,18 +10039,82 @@ func init() {
         }
       }
     },
-    "/v2/clusters/{cluster_id}/actions/allow-add-workers": {
+    "/v2/clusters/{cluster_id}/actions/allow-add-hosts": {
       "post": {
-        "description": "Transforming cluster to day2 and allowing adding hosts",
+        "description": "Transforms installed cluster to a state which allows adding hosts.",
         "tags": [
           "installer"
         ],
-        "operationId": "TransformClusterToDay2",
+        "operationId": "TransformClusterToAddingHosts",
         "parameters": [
           {
             "type": "string",
             "format": "uuid",
-            "description": "The cluster to transform to day2 and to allow adding hosts by this.",
+            "description": "The cluster to transform.",
+            "name": "cluster_id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "Success.",
+            "schema": {
+              "$ref": "#/definitions/cluster"
+            }
+          },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "404": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "409": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "500": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
+    "/v2/clusters/{cluster_id}/actions/allow-add-workers": {
+      "post": {
+        "description": "Deprecated, maintained for legacy purposes. Does the same thing as allow-add-hosts. Use allow-add-hosts instead.",
+        "tags": [
+          "installer"
+        ],
+        "operationId": "TransformClusterToDay2",
+        "deprecated": true,
+        "parameters": [
+          {
+            "type": "string",
+            "format": "uuid",
+            "description": "The cluster to transform.",
             "name": "cluster_id",
             "in": "path",
             "required": true
@@ -15126,7 +15254,7 @@ func init() {
           "$ref": "#/definitions/image_info"
         },
         "imported": {
-          "description": "Indicates whether this cluster is an imported day-2 cluster or a\nregular cluster. Clusters are considered imported when they are\ncreated via the ../clusters/import endpoint. Day-2 clusters converted\nfrom day-1 clusters by kube-api controllers or the\n../clusters/\u003ccluster_id\u003e/actions/allow-add-workers endpoint are not\nconsidered imported. Imported clusters usually lack a lot of\ninformation and are filled with default values that don't necessarily\nreflect the actual cluster they represent",
+          "description": "Indicates whether this cluster is an imported day-2 cluster or a\nregular cluster. Clusters are considered imported when they are\ncreated via the ../clusters/import endpoint. Day-2 clusters converted\nfrom day-1 clusters by kube-api controllers or the\n../clusters/\u003ccluster_id\u003e/actions/allow-add-hosts endpoint are not\nconsidered imported. Imported clusters usually lack a lot of\ninformation and are filled with default values that don't necessarily\nreflect the actual cluster they represent",
           "type": "boolean",
           "default": false
         },

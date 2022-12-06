@@ -2474,12 +2474,56 @@ paths:
     post:
       tags:
         - installer
-      description: Transforming cluster to day2 and allowing adding hosts
+      description: Deprecated, maintained for legacy purposes. Does the same thing as allow-add-hosts. Use allow-add-hosts instead. 
+      deprecated: true
       operationId: TransformClusterToDay2
       parameters:
         - in: path
           name: cluster_id
-          description: The cluster to transform to day2 and to allow adding hosts by this.
+          description: The cluster to transform.
+          type: string
+          format: uuid
+          required: true
+      responses:
+        "202":
+          description: Success.
+          schema:
+            $ref: '#/definitions/cluster'
+        "401":
+          description: Unauthorized.
+          schema:
+            $ref: '#/definitions/infra_error'
+        "403":
+          description: Forbidden.
+          schema:
+            $ref: '#/definitions/infra_error'
+        "404":
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+        "405":
+          description: Method Not Allowed.
+          schema:
+            $ref: '#/definitions/error'
+        "409":
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+        "500":
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+
+  /v2/clusters/{cluster_id}/actions/allow-add-hosts:
+    post:
+      tags:
+        - installer
+      description: Transforms installed cluster to a state which allows adding hosts.
+      operationId: TransformClusterToAddingHosts
+      parameters:
+        - in: path
+          name: cluster_id
+          description: The cluster to transform.
           type: string
           format: uuid
           required: true
@@ -4884,7 +4928,7 @@ definitions:
           regular cluster. Clusters are considered imported when they are
           created via the ../clusters/import endpoint. Day-2 clusters converted
           from day-1 clusters by kube-api controllers or the
-          ../clusters/<cluster_id>/actions/allow-add-workers endpoint are not
+          ../clusters/<cluster_id>/actions/allow-add-hosts endpoint are not
           considered imported. Imported clusters usually lack a lot of
           information and are filled with default values that don't necessarily
           reflect the actual cluster they represent

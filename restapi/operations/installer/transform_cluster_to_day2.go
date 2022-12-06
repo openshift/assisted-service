@@ -31,7 +31,7 @@ func NewTransformClusterToDay2(ctx *middleware.Context, handler TransformCluster
 
 /* TransformClusterToDay2 swagger:route POST /v2/clusters/{cluster_id}/actions/allow-add-workers installer transformClusterToDay2
 
-Transforming cluster to day2 and allowing adding hosts
+Deprecated, maintained for legacy purposes. Does the same thing as allow-add-hosts. Use allow-add-hosts instead.
 
 */
 type TransformClusterToDay2 struct {
