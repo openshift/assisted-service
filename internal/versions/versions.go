@@ -1,22 +1,15 @@
 package versions
 
 import (
-	"context"
 	"fmt"
 	"runtime/debug"
 	"sort"
-	"strings"
 
-	"github.com/go-openapi/runtime/middleware"
 	"github.com/go-openapi/swag"
 	"github.com/hashicorp/go-version"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/oc"
 	"github.com/openshift/assisted-service/models"
-	"github.com/openshift/assisted-service/pkg/auth"
-	"github.com/openshift/assisted-service/pkg/ocm"
-	"github.com/openshift/assisted-service/restapi"
-	operations "github.com/openshift/assisted-service/restapi/operations/versions"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
@@ -25,17 +18,8 @@ import (
 type MustGatherVersion map[string]string
 type MustGatherVersions map[string]MustGatherVersion
 
-type Versions struct {
-	SelfVersion     string `envconfig:"SELF_VERSION" default:"Unknown"`
-	AgentDockerImg  string `envconfig:"AGENT_DOCKER_IMAGE" default:"quay.io/edge-infrastructure/assisted-installer-agent:latest"`
-	InstallerImage  string `envconfig:"INSTALLER_IMAGE" default:"quay.io/edge-infrastructure/assisted-installer:latest"`
-	ControllerImage string `envconfig:"CONTROLLER_IMAGE" default:"quay.io/edge-infrastructure/assisted-installer-controller:latest"`
-	ReleaseTag      string `envconfig:"RELEASE_TAG" default:""`
-}
-
 //go:generate mockgen --build_flags=--mod=mod -package versions -destination mock_versions.go -self_package github.com/openshift/assisted-service/internal/versions . Handler
 type Handler interface {
-	restapi.VersionsAPI
 	GetMustGatherImages(openshiftVersion, cpuArchitecture, pullSecret string) (MustGatherVersion, error)
 	GetReleaseImage(openshiftVersion, cpuArchitecture string) (*models.ReleaseImage, error)
 	GetDefaultReleaseImage(cpuArchitecture string) (*models.ReleaseImage, error)
@@ -48,20 +32,16 @@ type Handler interface {
 	ValidateReleaseImageForRHCOS(rhcosVersion, cpuArch string) error
 }
 
-func NewHandler(log logrus.FieldLogger, releaseHandler oc.Release,
-	versions Versions, osImages models.OsImages, releaseImages models.ReleaseImages,
-	mustGatherVersions MustGatherVersions,
-	releaseImageMirror string, authzHandler auth.Authorizer) (*handler, error) {
+func NewHandler(log logrus.FieldLogger, releaseHandler oc.Release, osImages models.OsImages, releaseImages models.ReleaseImages,
+	mustGatherVersions MustGatherVersions, releaseImageMirror string) (*handler, error) {
 
 	h := &handler{
-		versions:           versions,
 		mustGatherVersions: mustGatherVersions,
 		osImages:           osImages,
 		releaseImages:      releaseImages,
 		releaseHandler:     releaseHandler,
 		releaseImageMirror: releaseImageMirror,
 		log:                log,
-		authzHandler:       authzHandler,
 	}
 
 	if err := h.validateVersions(); err != nil {
@@ -71,110 +51,13 @@ func NewHandler(log logrus.FieldLogger, releaseHandler oc.Release,
 	return h, nil
 }
 
-var _ restapi.VersionsAPI = (*handler)(nil)
-
 type handler struct {
-	versions           Versions
 	mustGatherVersions MustGatherVersions
 	osImages           models.OsImages
 	releaseImages      models.ReleaseImages
 	releaseHandler     oc.Release
 	releaseImageMirror string
 	log                logrus.FieldLogger
-	authzHandler       auth.Authorizer
-}
-
-func (h *handler) V2ListComponentVersions(ctx context.Context, params operations.V2ListComponentVersionsParams) middleware.Responder {
-	return operations.NewV2ListComponentVersionsOK().WithPayload(
-		&models.ListVersions{
-			Versions: models.Versions{
-				"assisted-installer-service":    h.versions.SelfVersion,
-				"discovery-agent":               h.versions.AgentDockerImg,
-				"assisted-installer":            h.versions.InstallerImage,
-				"assisted-installer-controller": h.versions.ControllerImage,
-			},
-			ReleaseTag: h.versions.ReleaseTag,
-		})
-}
-
-func (h *handler) V2ListSupportedOpenshiftVersions(ctx context.Context, params operations.V2ListSupportedOpenshiftVersionsParams) middleware.Responder {
-	openshiftVersions := models.OpenshiftVersions{}
-	hasMultiarchAuthorization := false
-	checkedForMultiarchAuthorization := false
-
-	for _, releaseImage := range h.releaseImages {
-		supportedArchs := releaseImage.CPUArchitectures
-		// We need to have backwards-compatibility for release images that provide supported
-		// architecture only as string and not []string. This code should be unreachable as
-		// at this moment we should have already propagated []string in the init handler for
-		// Versions, but for safety an additional check is added here.
-		if len(supportedArchs) == 0 {
-			supportedArchs = []string{*releaseImage.CPUArchitecture}
-		}
-
-		// (MGMT-11859) We are filtering out multiarch release images so that they are available
-		//              only for customers allowed to use them. This is in order to be able to
-		//              expose them in OCP pre-4.13 without making them generally available.
-		if len(supportedArchs) > 1 {
-			if !checkedForMultiarchAuthorization {
-				var err error
-				hasMultiarchAuthorization, err = h.authzHandler.HasOrgBasedCapability(ctx, ocm.MultiarchCapabilityName)
-				if err == nil {
-					checkedForMultiarchAuthorization = true
-				} else {
-					h.log.WithError(err).Errorf("failed to get %s capability", ocm.MultiarchCapabilityName)
-					continue
-				}
-			}
-			if !hasMultiarchAuthorization {
-				continue
-			}
-		}
-
-		for _, arch := range supportedArchs {
-			key := *releaseImage.OpenshiftVersion
-			if arch == "" {
-				// Empty implies default architecture
-				arch = common.DefaultCPUArchitecture
-			}
-
-			// In order to mark a specific version and architecture as supported we do not
-			// only need to have an available release image, but we need RHCOS image as well.
-			if _, err := h.GetOsImage(key, arch); err != nil {
-				h.log.Debugf("Marking architecture %s for version %s as not available because no matching OS image found", arch, key)
-				continue
-			}
-
-			openshiftVersion, exists := openshiftVersions[key]
-			if !exists {
-				openshiftVersion = models.OpenshiftVersion{
-					CPUArchitectures: []string{arch},
-					Default:          releaseImage.Default,
-					DisplayName:      releaseImage.Version,
-					SupportLevel:     getSupportLevel(*releaseImage),
-				}
-				openshiftVersions[key] = openshiftVersion
-			} else {
-				// For backwards compatibility we handle a scenario when single-arch image exists
-				// next to the multi-arch one containing the same architecture. We want to avoid
-				// duplicated entry in such a case.
-				exists := func(slice []string, x string) bool {
-					for _, elem := range slice {
-						if x == elem {
-							return true
-						}
-					}
-					return false
-				}
-				if !exists(openshiftVersion.CPUArchitectures, arch) {
-					openshiftVersion.CPUArchitectures = append(openshiftVersion.CPUArchitectures, arch)
-				}
-				openshiftVersion.Default = releaseImage.Default || openshiftVersion.Default
-				openshiftVersions[key] = openshiftVersion
-			}
-		}
-	}
-	return operations.NewV2ListSupportedOpenshiftVersionsOK().WithPayload(openshiftVersions)
 }
 
 func (h *handler) GetMustGatherImages(openshiftVersion, cpuArchitecture, pullSecret string) (MustGatherVersion, error) {
@@ -505,20 +388,6 @@ func toMajorMinor(openshiftVersion string) (string, error) {
 		return "", err
 	}
 	return fmt.Sprintf("%d.%d", v.Segments()[0], v.Segments()[1]), nil
-}
-
-func getSupportLevel(releaseImage models.ReleaseImage) *string {
-	if releaseImage.SupportLevel != "" {
-		return &releaseImage.SupportLevel
-	}
-
-	preReleases := []string{"-fc", "-rc", "nightly"}
-	for _, preRelease := range preReleases {
-		if strings.Contains(*releaseImage.Version, preRelease) {
-			return swag.String(models.OpenshiftVersionSupportLevelBeta)
-		}
-	}
-	return swag.String(models.OpenshiftVersionSupportLevelProduction)
 }
 
 // Ensure no missing values in OS images and Release images.
