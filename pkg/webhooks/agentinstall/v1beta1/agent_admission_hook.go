@@ -135,7 +135,8 @@ func (a *AgentValidatingAdmissionHook) validateUpdate(admissionSpec *admissionv1
 	})
 
 	newObject := &v1beta1.Agent{}
-	if err := a.decoder.DecodeRaw(admissionSpec.Object, newObject); err != nil {
+	err := a.decoder.DecodeRaw(admissionSpec.Object, newObject)
+	if err != nil {
 		contextLogger.Errorf("Failed unmarshaling Object: %v", err.Error())
 		return &admissionv1.AdmissionResponse{
 			Allowed: false,
