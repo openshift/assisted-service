@@ -23,6 +23,7 @@ import (
 	eventsapi "github.com/openshift/assisted-service/internal/events/api"
 	"github.com/openshift/assisted-service/internal/events/eventstest"
 	"github.com/openshift/assisted-service/internal/host"
+	"github.com/openshift/assisted-service/internal/host/hostutil"
 	"github.com/openshift/assisted-service/internal/metrics"
 	"github.com/openshift/assisted-service/internal/network"
 	"github.com/openshift/assisted-service/internal/operators"
@@ -1321,8 +1322,8 @@ var _ = Describe("Auto assign machine CIDR", func() {
 			}
 			if t.expectedMachineNetworks != nil {
 				Expect(cluster.MachineNetworks).To(HaveLen(len(t.expectedMachineNetworks)))
-				for _, m := range t.expectedMachineNetworks {
-					Expect(t.expectedMachineNetworks).To(ContainElement(m))
+				for i, cidr := range t.expectedMachineNetworks {
+					Expect(string(cluster.MachineNetworks[i].Cidr)).To(Equal(cidr))
 				}
 			}
 
@@ -3513,5 +3514,99 @@ var _ = Describe("Test RefreshSchedulableMastersForcedTrue", func() {
 		invalidClusterID := strfmt.UUID(uuid.New().String())
 		err := clusterApi.RefreshSchedulableMastersForcedTrue(ctx, invalidClusterID)
 		Expect(err).To(HaveOccurred())
+	})
+})
+
+var _ = Describe("detectAndStoreCollidingIPsForCluster(cluster *common.Cluster, db *gorm.DB)", func() {
+	var (
+		db         *gorm.DB
+		dbName     string
+		clusterID  strfmt.UUID
+		hostID     strfmt.UUID
+		capi       API
+		mockEvents *eventsapi.MockHandler
+		ctrl       *gomock.Controller
+	)
+
+	createCluster := func(l2Connectivity []*models.L2Connectivity) common.Cluster {
+		clusterID = strfmt.UUID(uuid.New().String())
+		cluster := common.Cluster{
+			Cluster: models.Cluster{
+				ID:     &clusterID,
+				Status: swag.String(models.ClusterStatusReady),
+			},
+		}
+
+		hostID = strfmt.UUID(uuid.New().String())
+		host := models.Host{
+			ID: &hostID,
+		}
+		var connectivityReport *models.ConnectivityReport = &models.ConnectivityReport{}
+		connectivityReport.RemoteHosts = append(connectivityReport.RemoteHosts, &models.ConnectivityRemoteHost{
+			HostID:         hostID,
+			L2Connectivity: l2Connectivity,
+		})
+		connectivity, err := hostutil.MarshalConnectivityReport(connectivityReport)
+		Expect(err).ShouldNot(HaveOccurred())
+
+		host.Connectivity = connectivity
+		Expect(db.Create(&host).Error).ToNot(HaveOccurred())
+
+		cluster.Hosts = append(cluster.Hosts, &host)
+		Expect(db.Create(&cluster).Error).ToNot(HaveOccurred())
+		return cluster
+	}
+
+	BeforeEach(func() {
+		db, dbName = common.PrepareTestDB()
+		dummy := &leader.DummyElector{}
+		ctrl = gomock.NewController(GinkgoT())
+		mockOperators := operators.NewMockAPI(ctrl)
+		capi = NewManager(getDefaultConfig(), common.GetTestLog(), db, mockEvents, nil, nil, nil, dummy, mockOperators, nil, nil, nil, nil)
+	})
+
+	AfterEach(func() {
+		common.DeleteTestDB(db, dbName)
+		ctrl.Finish()
+	})
+
+	It("if no IP collisions are detected then there should be no collisions stored in the DB", func() {
+		var l2Connectivity []*models.L2Connectivity
+		createCluster(l2Connectivity)
+		err := capi.DetectAndStoreCollidingIPsForCluster(clusterID, db)
+		Expect(err).ToNot(HaveOccurred())
+		var verifyCluster common.Cluster
+		err = db.Take(&verifyCluster, "id = ?", clusterID).Error
+		Expect(err).ToNot(HaveOccurred())
+	})
+
+	It("if ip collisions are detected then there should be collisions stored in the DB", func() {
+		var l2Connectivity []*models.L2Connectivity
+		l2Connectivity = append(l2Connectivity, &models.L2Connectivity{
+			OutgoingIPAddress: "192.168.1.1",
+			OutgoingNic:       "eth0",
+			RemoteIPAddress:   "192.168.1.2",
+			RemoteMac:         "de:ad:be:ef:00:00",
+		})
+		l2Connectivity = append(l2Connectivity, &models.L2Connectivity{
+			OutgoingIPAddress: "192.168.1.1",
+			OutgoingNic:       "eth0",
+			RemoteIPAddress:   "192.168.1.2",
+			RemoteMac:         "be:ef:de:ad:00:00",
+		})
+		createCluster(l2Connectivity)
+		err := capi.DetectAndStoreCollidingIPsForCluster(clusterID, db)
+		Expect(err).ToNot(HaveOccurred())
+		var verifyCluster common.Cluster
+		err = db.Take(&verifyCluster, "id = ?", clusterID).Error
+		Expect(err).ToNot(HaveOccurred())
+		ipCollisions := make(map[string][]string)
+		err = json.Unmarshal([]byte(verifyCluster.Cluster.IPCollisions), &ipCollisions)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(len(ipCollisions)).To(Equal(1))
+		expectedCollision := ipCollisions["192.168.1.2"]
+		Expect(expectedCollision).ToNot(BeNil())
+		Expect(expectedCollision[0]).To(BeEquivalentTo("be:ef:de:ad:00:00"))
+		Expect(expectedCollision[1]).To(BeEquivalentTo("de:ad:be:ef:00:00"))
 	})
 })

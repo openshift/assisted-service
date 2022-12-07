@@ -159,6 +159,9 @@ type Cluster struct {
 	// Format: date-time
 	InstallStartedAt strfmt.DateTime `json:"install_started_at,omitempty" gorm:"type:timestamp with time zone"`
 
+	// Json formatted string containing ip collisions detected in the cluster.
+	IPCollisions string `json:"ip_collisions,omitempty" gorm:"type:text"`
+
 	// Indicates the type of this object. Will be 'Cluster' if this is a complete object,
 	// 'AddHostsCluster' for cluster that add hosts to existing OCP cluster,
 	//

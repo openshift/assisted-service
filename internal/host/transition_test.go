@@ -6032,6 +6032,7 @@ var allValidationIDs []validationID = []validationID{
 	CompatibleAgent,
 	NoSkipInstallationDisk,
 	NoSkipMissingDisk,
+	NoIPCollisionsInNetwork,
 }
 
 var allConditions []conditionId = []conditionId{
@@ -6154,6 +6155,18 @@ var _ = Describe("State machine test - refresh transition", func() {
 			Expect(string(testState.State())).To(Equal(models.HostStatusInsufficient))
 
 			refreshHostArgs.conditions[string(NoSkipMissingDisk)] = true
+
+			Expect(stateMachine.Run(TransitionTypeRefresh, testState, &refreshHostArgs)).To(Succeed())
+			Expect(string(testState.State())).To(Equal(models.HostStatusKnown))
+		})
+
+		It("Moves from known to insufficient when arping-no-ip-collision validation fails", func() {
+			refreshHostArgs.conditions[string(NoIPCollisionsInNetwork)] = false
+
+			Expect(stateMachine.Run(TransitionTypeRefresh, testState, &refreshHostArgs)).To(Succeed())
+			Expect(string(testState.State())).To(Equal(models.HostStatusInsufficient))
+
+			refreshHostArgs.conditions[string(NoIPCollisionsInNetwork)] = true
 
 			Expect(stateMachine.Run(TransitionTypeRefresh, testState, &refreshHostArgs)).To(Succeed())
 			Expect(string(testState.State())).To(Equal(models.HostStatusKnown))

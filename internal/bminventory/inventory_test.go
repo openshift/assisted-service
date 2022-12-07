@@ -226,6 +226,7 @@ func mockClusterUpdateSuccess(times int, hosts int) {
 	mockClusterApi.EXPECT().SetConnectivityMajorityGroupsForCluster(gomock.Any(), gomock.Any()).Return(nil).Times(times)
 	mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).Times(times)
 	mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any()).Return(nil).Times(hosts * times)
+	mockDetectAndStoreCollidingIPsForCluster(mockClusterApi, times)
 }
 
 func mockInfraEnvRegisterSuccess() {
@@ -1316,6 +1317,10 @@ var _ = Describe("V2UpdateHostInstallProgress", func() {
 
 func mockSetConnectivityMajorityGroupsForCluster(mockClusterApi *cluster.MockAPI) {
 	mockClusterApi.EXPECT().SetConnectivityMajorityGroupsForCluster(gomock.Any(), gomock.Any()).Return(nil).Times(1)
+}
+
+func mockDetectAndStoreCollidingIPsForCluster(mockClusterApi *cluster.MockAPI, times int) {
+	mockClusterApi.EXPECT().DetectAndStoreCollidingIPsForCluster(gomock.Any(), gomock.Any()).Return(nil).Times(times)
 }
 
 var _ = Describe("cluster", func() {
@@ -3034,6 +3039,7 @@ var _ = Describe("cluster", func() {
 				Context("API and Ingress VIPs Backwards Compatibility", func() {
 
 					It("API VIP and Ingress VIP populated in APIVips and ingressVips", func() {
+						mockDetectAndStoreCollidingIPsForCluster(mockClusterApi, 1)
 						mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(1)
 						mockClusterApi.EXPECT().SetConnectivityMajorityGroupsForCluster(gomock.Any(), gomock.Any()).Return(nil).Times(1)
 						mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
@@ -3059,6 +3065,7 @@ var _ = Describe("cluster", func() {
 					})
 
 					It("API VIP match APIVips first element", func() {
+						mockDetectAndStoreCollidingIPsForCluster(mockClusterApi, 1)
 						mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(1)
 						mockClusterApi.EXPECT().SetConnectivityMajorityGroupsForCluster(gomock.Any(), gomock.Any()).Return(nil).Times(1)
 						mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
@@ -3089,6 +3096,7 @@ var _ = Describe("cluster", func() {
 					})
 
 					It("Ingress VIP match ingressVips first element", func() {
+						mockDetectAndStoreCollidingIPsForCluster(mockClusterApi, 1)
 						mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(1)
 						mockClusterApi.EXPECT().SetConnectivityMajorityGroupsForCluster(gomock.Any(), gomock.Any()).Return(nil).Times(1)
 						mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
@@ -3224,6 +3232,7 @@ var _ = Describe("cluster", func() {
 				})
 
 				It("Two APIVips and Two ingressVips - IPv4 first and IPv6 second - positive", func() {
+					mockDetectAndStoreCollidingIPsForCluster(mockClusterApi, 1)
 					mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(1)
 					mockClusterApi.EXPECT().SetConnectivityMajorityGroupsForCluster(gomock.Any(), gomock.Any()).Return(nil).Times(1)
 					mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
@@ -4431,6 +4440,7 @@ var _ = Describe("cluster", func() {
 				})
 
 				It("Fail in DHCP", func() {
+					mockClusterApi.EXPECT().DetectAndStoreCollidingIPsForCluster(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 					mockClusterUpdatability(1)
 					mockHostApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 					mockHostApi.EXPECT().RefreshInventory(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
@@ -5136,7 +5146,7 @@ var _ = Describe("cluster", func() {
 		})
 
 		It("success", func() {
-
+			mockDetectAndStoreCollidingIPsForCluster(mockClusterApi, 1)
 			mockAutoAssignSuccess(3)
 			mockClusterRefreshStatusSuccess()
 			mockClusterIsReadyForInstallationSuccess()
@@ -5191,7 +5201,7 @@ var _ = Describe("cluster", func() {
 			err = db.Model(&models.Host{ID: &masterHostId3, ClusterID: &clusterID}).UpdateColumn("free_addresses",
 				makeFreeNetworksAddressesStr(makeFreeAddresses("10.11.0.0/16", "10.11.12.15", "10.11.12.16", "10.11.12.13", "10.11.20.50"))).Error
 			Expect(err).ToNot(HaveOccurred())
-
+			mockDetectAndStoreCollidingIPsForCluster(mockClusterApi, 1)
 			mockAutoAssignSuccess(3)
 			mockClusterRefreshStatusSuccess()
 			mockClusterIsReadyForInstallationSuccess()
@@ -5252,7 +5262,7 @@ var _ = Describe("cluster", func() {
 			err = db.Model(&models.Host{ID: &masterHostId3, ClusterID: &clusterID}).UpdateColumn("free_addresses",
 				makeFreeNetworksAddressesStr(makeFreeAddresses("10.11.0.0/16", "10.11.12.15", "10.11.12.16", "10.11.12.13", "10.11.20.50"))).Error
 			Expect(err).ToNot(HaveOccurred())
-
+			mockDetectAndStoreCollidingIPsForCluster(mockClusterApi, 1)
 			mockAutoAssignSuccess(3)
 			mockClusterRefreshStatusSuccess()
 			mockClusterIsReadyForInstallationSuccess()
@@ -5296,6 +5306,7 @@ var _ = Describe("cluster", func() {
 		})
 
 		It("failed to prepare cluster", func() {
+			mockDetectAndStoreCollidingIPsForCluster(mockClusterApi, 1)
 			mockAutoAssignSuccess(3)
 			mockClusterRefreshStatusSuccess()
 			mockClusterIsReadyForInstallationSuccess()
@@ -5315,6 +5326,7 @@ var _ = Describe("cluster", func() {
 		})
 
 		It("cluster is not ready to install", func() {
+			mockDetectAndStoreCollidingIPsForCluster(mockClusterApi, 1)
 			mockAutoAssignSuccess(3)
 			mockClusterRefreshStatusSuccess()
 			mockHostPrepareForRefresh(mockHostApi)
@@ -5341,6 +5353,7 @@ var _ = Describe("cluster", func() {
 		})
 
 		It("list of masters for setting bootstrap return empty list", func() {
+			mockDetectAndStoreCollidingIPsForCluster(mockClusterApi, 1)
 			mockAutoAssignSuccess(3)
 			mockClusterRefreshStatusSuccess()
 			mockHostPrepareForRefresh(mockHostApi)
@@ -5358,6 +5371,7 @@ var _ = Describe("cluster", func() {
 		})
 
 		It("GetMasterNodesIds fails in the go routine", func() {
+			mockDetectAndStoreCollidingIPsForCluster(mockClusterApi, 1)
 			mockAutoAssignSuccess(3)
 			mockClusterRefreshStatusSuccess()
 			mockHostPrepareForRefresh(mockHostApi)
@@ -5374,6 +5388,7 @@ var _ = Describe("cluster", func() {
 		})
 
 		It("GetMasterNodesIds returns empty list", func() {
+			mockDetectAndStoreCollidingIPsForCluster(mockClusterApi, 1)
 			mockAutoAssignSuccess(3)
 			mockClusterRefreshStatusSuccess()
 			mockHostPrepareForRefresh(mockHostApi)
@@ -5391,6 +5406,7 @@ var _ = Describe("cluster", func() {
 		})
 
 		It("failed to delete logs", func() {
+			mockDetectAndStoreCollidingIPsForCluster(mockClusterApi, 1)
 			mockAutoAssignSuccess(3)
 			mockClusterRefreshStatusSuccess()
 			mockClusterIsReadyForInstallationSuccess()
@@ -12206,7 +12222,7 @@ var _ = Describe("TestRegisterCluster", func() {
 				mockUsageReports()
 				mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
 				mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(1)
-
+				mockDetectAndStoreCollidingIPsForCluster(mockClusterApi, 1)
 				apiVip := "1.2.3.5"
 				ingressVip := "1.2.3.6"
 

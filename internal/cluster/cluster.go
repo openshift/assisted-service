@@ -111,6 +111,7 @@ type API interface {
 	PrepareClusterLogFile(ctx context.Context, c *common.Cluster, objectHandler s3wrapper.API) (string, error)
 	SetUploadControllerLogsAt(ctx context.Context, c *common.Cluster, db *gorm.DB) error
 	SetConnectivityMajorityGroupsForCluster(clusterID strfmt.UUID, db *gorm.DB) error
+	DetectAndStoreCollidingIPsForCluster(clusterID strfmt.UUID, db *gorm.DB) error
 	DeleteClusterLogs(ctx context.Context, c *common.Cluster, objectHandler s3wrapper.API) error
 	DeleteClusterFiles(ctx context.Context, c *common.Cluster, objectHandler s3wrapper.API) error
 	UpdateLogsProgress(ctx context.Context, c *common.Cluster, progress string) error
@@ -571,6 +572,10 @@ func (m *Manager) ClusterMonitoring() {
 				_ = m.autoAssignMachineNetworkCidr(cluster)
 				if err = m.setConnectivityMajorityGroupsForClusterInternal(cluster, m.db); err != nil {
 					log.WithError(err).Error("failed to set majority group for clusters")
+				}
+				err = m.detectAndStoreCollidingIPsForCluster(cluster, m.db)
+				if err != nil {
+					m.log.WithError(err).Errorf("Failed to detect and store colliding IPs for cluster %s", cluster.ID.String())
 				}
 				clusterAfterRefresh, err = m.refreshStatusInternal(ctx, cluster, m.db)
 				if err != nil {
@@ -1044,6 +1049,94 @@ func (m *Manager) IsReadyForInstallation(c *common.Cluster) (bool, string) {
 	return true, ""
 }
 
+func (m *Manager) detectAndStoreCollidingIPsForCluster(cluster *common.Cluster, db *gorm.DB) error {
+	if db == nil {
+		db = m.db
+	}
+	// We want to calculate ip collisions only when in pre-install states since it is needed for pre-install validations
+	allowedStates := []string{
+		models.ClusterStatusPendingForInput,
+		models.ClusterStatusInsufficient,
+		models.ClusterStatusReady,
+	}
+	if !funk.ContainsString(allowedStates, swag.StringValue(cluster.Status)) {
+		return nil
+	}
+
+	hosts := make([]*models.Host, len(cluster.Hosts))
+	copy(hosts, cluster.Hosts)
+	sort.Slice(hosts, func(i, j int) bool {
+		return hosts[i].ID.String() < hosts[j].ID.String()
+	})
+	// Note on ipCollisions map structure:
+	// The key is a remote IP for which collision has been detected.
+	// The map value is an array of macs found to be involved in the collision.
+	ipCollisions := make(map[string][]string)
+	collidingIPSWithMacs := make(map[string][]string)
+	for _, host := range hosts {
+		if len(host.Connectivity) > 0 {
+			connectivityReport, err := hostutil.UnmarshalConnectivityReport(host.Connectivity)
+			if err != nil {
+				// Let's not stop iterating over hosts but let's log this error.
+				m.log.WithError(err).Errorf("unable to unmarshall connectivity report for host %d due to error: %s", host.ID, err.Error())
+			} else {
+				collidingIPSWithMacs = getCollidingIPs(connectivityReport)
+				for k := range collidingIPSWithMacs {
+					ipCollisions[k] = collidingIPSWithMacs[k]
+				}
+			}
+
+		}
+	}
+
+	b, err := json.Marshal(&collidingIPSWithMacs)
+	if err != nil {
+		return common.NewApiError(http.StatusInternalServerError, err)
+	}
+
+	marshalledCollidingIPSWithMacs := string(b)
+	if marshalledCollidingIPSWithMacs != cluster.IPCollisions {
+		err = db.Model(&common.Cluster{}).Where("id = ?", cluster.ID.String()).Updates(&common.Cluster{
+			Cluster: models.Cluster{
+				IPCollisions: marshalledCollidingIPSWithMacs,
+			},
+			TriggerMonitorTimestamp: time.Now(),
+		}).Error
+		if err != nil {
+			return common.NewApiError(http.StatusInternalServerError, err)
+		}
+	}
+	return nil
+}
+
+func getCollidingIPs(connectivityReport *models.ConnectivityReport) map[string][]string {
+	collidingIPSWithMacs := make(map[string][]string)
+	collisionHistory := make(map[string]map[string]string)
+	for _, remoteHost := range connectivityReport.RemoteHosts {
+		for _, c := range remoteHost.L2Connectivity {
+			if collisionHistory[c.OutgoingNic] != nil {
+				if previousMac, ok := collisionHistory[c.OutgoingNic][c.RemoteIPAddress]; ok {
+					if previousMac != "" && previousMac != c.RemoteMac {
+						// Collision detected.
+						if collidingIPSWithMacs[c.RemoteIPAddress] == nil {
+							collidingIPSWithMacs[c.RemoteIPAddress] = []string{}
+						}
+						// For cache reasons, make sure that macs are in the same order every time
+						macs := []string{previousMac, c.RemoteMac}
+						sort.Strings(macs)
+						collidingIPSWithMacs[c.RemoteIPAddress] = macs
+					}
+				}
+			}
+			if collisionHistory[c.OutgoingNic] == nil {
+				collisionHistory[c.OutgoingNic] = make(map[string]string)
+			}
+			collisionHistory[c.OutgoingNic][c.RemoteIPAddress] = c.RemoteMac
+		}
+	}
+	return collidingIPSWithMacs
+}
+
 func (m *Manager) setConnectivityMajorityGroupsForClusterInternal(cluster *common.Cluster, db *gorm.DB) error {
 	if db == nil {
 		db = m.db
@@ -1101,6 +1194,18 @@ func (m *Manager) setConnectivityMajorityGroupsForClusterInternal(cluster *commo
 		}
 	}
 	return nil
+}
+
+func (m *Manager) DetectAndStoreCollidingIPsForCluster(clusterID strfmt.UUID, db *gorm.DB) error {
+	cluster, err := common.GetClusterFromDBWithHosts(db, clusterID)
+	if err != nil {
+		var statusCode int32 = http.StatusInternalServerError
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			statusCode = http.StatusNotFound
+		}
+		return common.NewApiError(statusCode, errors.Wrapf(err, "Getting cluster %s", clusterID.String()))
+	}
+	return m.detectAndStoreCollidingIPsForCluster(cluster, db)
 }
 
 func (m *Manager) SetConnectivityMajorityGroupsForCluster(clusterID strfmt.UUID, db *gorm.DB) error {

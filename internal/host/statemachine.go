@@ -774,6 +774,7 @@ func NewHostStateMachine(sm stateswitch.StateMachine, th TransitionHandler) stat
 		If(IsTimeSyncedBetweenHostAndService),
 		If(NoSkipInstallationDisk),
 		If(NoSkipMissingDisk),
+		If(NoIPCollisionsInNetwork),
 	)
 
 	sm.AddTransitionRule(stateswitch.TransitionRule{

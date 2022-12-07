@@ -277,6 +277,10 @@ func newValidations(v *validator) []validation {
 			id:        NoSkipMissingDisk,
 			condition: v.noSkipMissingDisk,
 		},
+		{
+			id:        NoIPCollisionsInNetwork,
+			condition: v.noIPCollisionsInNetwork,
+		},
 	}
 }
 

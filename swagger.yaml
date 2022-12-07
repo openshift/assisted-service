@@ -4851,6 +4851,10 @@ definitions:
         type: string
         description: Json formatted string containing the majority groups for connectivity checks.
         x-go-custom-tag: gorm:"type:text"
+      ip_collisions:
+        type: string
+        description: Json formatted string containing ip collisions detected in the cluster.
+        x-go-custom-tag: gorm:"type:text"
       deleted_at:
         description: swagger:ignore
         x-go-custom-tag: gorm:"type:timestamp with time zone;index"
@@ -5869,7 +5873,7 @@ definitions:
       - 'compatible-agent'
       - 'no-skip-installation-disk'
       - 'no-skip-missing-disk'
-
+      - 'no-ip-collisions-in-network'
 
   dhcp_allocation_request:
     type: object

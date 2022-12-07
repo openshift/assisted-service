@@ -5594,6 +5594,11 @@ func init() {
           "format": "date-time",
           "x-go-custom-tag": "gorm:\"type:timestamp with time zone\""
         },
+        "ip_collisions": {
+          "description": "Json formatted string containing ip collisions detected in the cluster.",
+          "type": "string",
+          "x-go-custom-tag": "gorm:\"type:text\""
+        },
         "kind": {
           "description": "Indicates the type of this object. Will be 'Cluster' if this is a complete object,\n'AddHostsCluster' for cluster that add hosts to existing OCP cluster,\n",
           "type": "string",
@@ -7530,7 +7535,8 @@ func init() {
         "vsphere-disk-uuid-enabled",
         "compatible-agent",
         "no-skip-installation-disk",
-        "no-skip-missing-disk"
+        "no-skip-missing-disk",
+        "no-ip-collisions-in-network"
       ]
     },
     "host_network": {
@@ -15290,6 +15296,11 @@ func init() {
           "format": "date-time",
           "x-go-custom-tag": "gorm:\"type:timestamp with time zone\""
         },
+        "ip_collisions": {
+          "description": "Json formatted string containing ip collisions detected in the cluster.",
+          "type": "string",
+          "x-go-custom-tag": "gorm:\"type:text\""
+        },
         "kind": {
           "description": "Indicates the type of this object. Will be 'Cluster' if this is a complete object,\n'AddHostsCluster' for cluster that add hosts to existing OCP cluster,\n",
           "type": "string",
@@ -17144,7 +17155,8 @@ func init() {
         "vsphere-disk-uuid-enabled",
         "compatible-agent",
         "no-skip-installation-disk",
-        "no-skip-missing-disk"
+        "no-skip-missing-disk",
+        "no-ip-collisions-in-network"
       ]
     },
     "host_network": {
