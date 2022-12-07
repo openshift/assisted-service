@@ -412,7 +412,7 @@ objects:
         targetPort: ${{SVC_TARGET_PORT}}
     selector:
       app: assisted-service
-- apiVersion: policy/v1beta1
+- apiVersion: policy/v1
   kind: PodDisruptionBudget
   metadata:
     labels:
