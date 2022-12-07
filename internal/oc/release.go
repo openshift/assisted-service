@@ -454,7 +454,7 @@ func getIcspContents(mirrorConfig []mirrorregistries.RegistriesConf) ([]byte, er
 
 	icsp.Spec.RepositoryDigestMirrors = make([]operatorv1alpha1.RepositoryDigestMirrors, len(mirrorConfig))
 	for i, mirrorRegistries := range mirrorConfig {
-		icsp.Spec.RepositoryDigestMirrors[i] = operatorv1alpha1.RepositoryDigestMirrors{Source: mirrorRegistries.Location, Mirrors: []string{mirrorRegistries.Mirror}}
+		icsp.Spec.RepositoryDigestMirrors[i] = operatorv1alpha1.RepositoryDigestMirrors{Source: mirrorRegistries.Location, Mirrors: mirrorRegistries.Mirror}
 	}
 
 	// Convert to json first so json tags are handled

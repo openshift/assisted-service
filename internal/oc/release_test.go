@@ -578,10 +578,22 @@ var _ = Describe("getIcspFileFromRegistriesConfig", func() {
 	})
 
 	It("valid_mirror_registries", func() {
-		regData := []mirrorregistries.RegistriesConf{{Location: "registry.ci.org", Mirror: "host1.example.org:5000/localimages"}, {Location: "quay.io", Mirror: "host1.example.org:5000/localimages"}}
+		regData := []mirrorregistries.RegistriesConf{{Location: "registry.ci.org", Mirror: []string{"host1.example.org:5000/localimages"}}, {Location: "quay.io", Mirror: []string{"host1.example.org:5000/localimages"}}}
 		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(true).Times(1)
 		mockMirrorRegistriesConfigBuilder.EXPECT().ExtractLocationMirrorDataFromRegistries().Return(regData, nil).Times(1)
 		expected := "apiVersion: operator.openshift.io/v1alpha1\nkind: ImageContentSourcePolicy\nmetadata:\n  creationTimestamp: null\n  name: image-policy\nspec:\n  repositoryDigestMirrors:\n  - mirrors:\n    - host1.example.org:5000/localimages\n    source: registry.ci.org\n  - mirrors:\n    - host1.example.org:5000/localimages\n    source: quay.io\n"
+		icspFile, err := oc.getIcspFileFromRegistriesConfig(log)
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(icspFile).ShouldNot(Equal(""))
+		data, err := os.ReadFile(icspFile)
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(string(data)).Should(Equal(expected))
+	})
+	It("valid_multiple_mirror_registries", func() {
+		regData := []mirrorregistries.RegistriesConf{{Location: "registry.ci.org", Mirror: []string{"host1.example.org:5000/localimages", "host1.example.org:5000/openshift"}}, {Location: "quay.io", Mirror: []string{"host1.example.org:5000/localimages"}}}
+		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(true).Times(1)
+		mockMirrorRegistriesConfigBuilder.EXPECT().ExtractLocationMirrorDataFromRegistries().Return(regData, nil).Times(1)
+		expected := "apiVersion: operator.openshift.io/v1alpha1\nkind: ImageContentSourcePolicy\nmetadata:\n  creationTimestamp: null\n  name: image-policy\nspec:\n  repositoryDigestMirrors:\n  - mirrors:\n    - host1.example.org:5000/localimages\n    - host1.example.org:5000/openshift\n    source: registry.ci.org\n  - mirrors:\n    - host1.example.org:5000/localimages\n    source: quay.io\n"
 		icspFile, err := oc.getIcspFileFromRegistriesConfig(log)
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(icspFile).ShouldNot(Equal(""))
