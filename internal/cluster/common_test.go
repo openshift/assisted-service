@@ -300,34 +300,41 @@ var _ = Describe("UpdateMachineCidr", func() {
 			expectedClusterMachineNetworks: []*models.MachineNetwork{{Cidr: "5.6.7.0/24"}},
 			update:                         true,
 		},
-		// TODO MGMT-7678: Support dual-stack. It requires to indicate primary by a new flag field / ordinal numbering
-		// {
-		// 	name:                           "cluster with multiple machine networks with an empty new value",
-		// 	clusterMachineNetworks:         append(common.TestIPv4Networking.MachineNetworks, common.TestIPv6Networking.MachineNetworks...),
-		// 	expectedClusterMachineNetworks: common.TestIPv6Networking.MachineNetworks,
-		// 	update:                         true,
-		// },
-		// {
-		// 	name:                           "cluster with multiple machine networks with existing primary new value",
-		// 	clusterMachineNetworks:         append(common.TestIPv4Networking.MachineNetworks, common.TestIPv6Networking.MachineNetworks...),
-		// 	newMachineCidr:                 string(common.TestIPv4Networking.MachineNetworks[0].Cidr),
-		// 	expectedClusterMachineNetworks: append(common.TestIPv4Networking.MachineNetworks, common.TestIPv6Networking.MachineNetworks...),
-		// 	update:                         false,
-		// },
-		// {
-		// 	name:                           "cluster with multiple machine networks with existing secondary new value",
-		// 	clusterMachineNetworks:         append(common.TestIPv4Networking.MachineNetworks, common.TestIPv6Networking.MachineNetworks...),
-		// 	newMachineCidr:                 string(common.TestIPv6Networking.MachineNetworks[0].Cidr),
-		// 	expectedClusterMachineNetworks: common.TestIPv6Networking.MachineNetworks,
-		// 	update:                         true,
-		// },
-		// {
-		// 	name:                           "cluster with multiple machine networks with different new value",
-		// 	clusterMachineNetworks:         append(common.TestIPv4Networking.MachineNetworks, common.TestIPv6Networking.MachineNetworks...),
-		// 	newMachineCidr:                 "5.6.7.0/24",
-		// 	expectedClusterMachineNetworks: append([]*models.MachineNetwork{{Cidr: "5.6.7.0/24"}}, common.TestIPv6Networking.MachineNetworks...),
-		// 	update:                         true,
-		// },
+		{
+			name:                           "cluster with multiple machine networks with an empty new value",
+			clusterMachineNetworks:         append(common.TestIPv4Networking.MachineNetworks, common.TestIPv6Networking.MachineNetworks...),
+			newMachineCidr:                 "",
+			expectedClusterMachineNetworks: []*models.MachineNetwork{},
+			update:                         true,
+		},
+		{
+			// (MGMT-9915) This test scenario is an accepted collateral that in a full deployment
+			//             will be prevented by another validation. It does not update the DB
+			//             if the update request contains only single network that is equal to the
+			//             first network already configured.
+			//             This scenario reflects an use case when an old version of requester
+			//             would try to interact with an object created by the new version and
+			//             could potentially break it.
+			name:                           "cluster with multiple machine networks with existing primary new value",
+			clusterMachineNetworks:         append(common.TestIPv4Networking.MachineNetworks, common.TestIPv6Networking.MachineNetworks...),
+			newMachineCidr:                 string(common.TestIPv4Networking.MachineNetworks[0].Cidr),
+			expectedClusterMachineNetworks: append(common.TestIPv4Networking.MachineNetworks, common.TestIPv6Networking.MachineNetworks...),
+			update:                         false,
+		},
+		{
+			name:                           "cluster with multiple machine networks with existing secondary new value",
+			clusterMachineNetworks:         append(common.TestIPv4Networking.MachineNetworks, common.TestIPv6Networking.MachineNetworks...),
+			newMachineCidr:                 string(common.TestIPv6Networking.MachineNetworks[0].Cidr),
+			expectedClusterMachineNetworks: common.TestIPv6Networking.MachineNetworks,
+			update:                         true,
+		},
+		{
+			name:                           "cluster with multiple machine networks with different new value",
+			clusterMachineNetworks:         append(common.TestIPv4Networking.MachineNetworks, common.TestIPv6Networking.MachineNetworks...),
+			newMachineCidr:                 "5.6.7.0/24",
+			expectedClusterMachineNetworks: []*models.MachineNetwork{{Cidr: "5.6.7.0/24"}},
+			update:                         true,
+		},
 	}
 
 	BeforeEach(func() {
@@ -350,7 +357,7 @@ var _ = Describe("UpdateMachineCidr", func() {
 			cluster, err := common.GetClusterFromDB(common.LoadTableFromDB(db, common.MachineNetworksTable), id, common.SkipEagerLoading)
 			Expect(err).ShouldNot(HaveOccurred())
 
-			Expect(UpdateMachineCidr(db, cluster, test.newMachineCidr)).ShouldNot(HaveOccurred())
+			Expect(UpdateMachineCidr(db, cluster, []string{test.newMachineCidr})).ShouldNot(HaveOccurred())
 
 			var clusterFromDb *common.Cluster
 			clusterFromDb, err = common.GetClusterFromDB(common.LoadTableFromDB(db, common.MachineNetworksTable), id, common.SkipEagerLoading)
