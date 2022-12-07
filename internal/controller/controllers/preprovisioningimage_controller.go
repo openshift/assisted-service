@@ -22,6 +22,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/go-openapi/swag"
 	"github.com/iancoleman/strcase"
 	metal3_v1alpha1 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
 	aiv1beta1 "github.com/openshift/assisted-service/api/v1beta1"
@@ -53,17 +54,25 @@ type imageConditionReason string
 
 const archMismatchReason = "InfraEnvArchMismatch"
 
+type PreprovisioningImageControllerConfig struct {
+	// The default ironic agent image was obtained by running "oc adm release info --image-for=ironic-agent  quay.io/openshift-release-dev/ocp-release:4.11.0-fc.0-x86_64"
+	BaremetalIronicAgentImage string `envconfig:"IRONIC_AGENT_IMAGE" default:"quay.io/openshift-release-dev/ocp-v4.0-art-dev@sha256:d3f1d4d3cd5fbcf1b9249dd71d01be4b901d337fdc5f8f66569eb71df4d9d446"`
+	// The default ironic agent image for arm architecture was obtained by running "oc adm release info --image-for=ironic-agent quay.io/openshift-release-dev/ocp-release@sha256:1b8e71b9bccc69c732812ebf2bfba62af6de77378f8329c8fec10b63a0dbc33c"
+	// The release image digest for arm architecture was obtained from this link https://mirror.openshift.com/pub/openshift-v4/aarch64/clients/ocp-dev-preview/4.11.0-fc.0/release.txt
+	BaremetalIronicAgentImageForArm string `envconfig:"IRONIC_AGENT_IMAGE_ARM" default:"quay.io/openshift-release-dev/ocp-v4.0-art-dev@sha256:cb0edf19fffc17f542a7efae76939b1e9757dc75782d4727fb0aa77ed5809b43"`
+}
+
 // PreprovisioningImage reconciles a AgentClusterInstall object
 type PreprovisioningImageReconciler struct {
 	client.Client
-	Log                    logrus.FieldLogger
-	Installer              bminventory.InstallerInternals
-	CRDEventsHandler       CRDEventsHandler
-	IronicIgniotionBuilder ignition.IronicIgniotionBuilder
-	VersionsHandler        versions.Handler
-	OcRelease              oc.Release
-	ReleaseImageMirror     string
-	IronicServiceURL       string
+	Log                logrus.FieldLogger
+	Installer          bminventory.InstallerInternals
+	CRDEventsHandler   CRDEventsHandler
+	VersionsHandler    versions.Handler
+	OcRelease          oc.Release
+	ReleaseImageMirror string
+	IronicServiceURL   string
+	Config             PreprovisioningImageControllerConfig
 }
 
 // +kubebuilder:rbac:groups=metal3.io,resources=preprovisioningimages,verbs=get;list;watch;create;update;patch;delete
@@ -167,16 +176,6 @@ func (r *PreprovisioningImageReconciler) Reconcile(origCtx context.Context, req 
 	}
 	log.Info("PreprovisioningImage updated successfully")
 	return ctrl.Result{}, nil
-}
-
-// getConvergedDiscoveryTemplate merge the ironic ignition with the discovery ignition
-func (r *PreprovisioningImageReconciler) getIronicIgnitionConfig(log logrus.FieldLogger, infraEnvInternal common.InfraEnv, ironicAgentImage string) (string, error) {
-	config, err := r.IronicIgniotionBuilder.GenerateIronicConfig(r.IronicServiceURL, infraEnvInternal, ironicAgentImage)
-	if err != nil {
-		log.WithError(err).Error("failed to generate Ironic ignition config")
-		return "", err
-	}
-	return string(config), err
 }
 
 func (r *PreprovisioningImageReconciler) setImage(image *metal3_v1alpha1.PreprovisioningImage, infraEnv aiv1beta1.InfraEnv) error {
@@ -367,22 +366,31 @@ func (r *PreprovisioningImageReconciler) AddIronicAgentToInfraEnv(ctx context.Co
 		log.WithError(err).Error("failed to get corresponding infraEnv")
 		return ctrl.Result{}, err
 	}
-	ironicAgentImage := ""
-	if infraEnvInternal.OpenshiftVersion != "" {
-		ironicAgentImage, err = r.getIronicAgentImage(log, *infraEnvInternal)
+	var ironicAgentImage string
+	if infraEnvInternal.ClusterID != "" {
+		ironicAgentImage, err = r.getIronicAgentImageByRelease(ctx, log, *infraEnvInternal)
 		if err != nil {
-			log.WithError(err).Warningf("Failed to get ironicAgentImage for infraEnv: %s", infraEnv.Name)
+			log.WithError(err).Warningf("Failed to get ironic agent image by release for infraEnv: %s", infraEnv.Name)
 		}
 	}
 
-	// if the infraEnv doesn't have the enableIronicAgent annotation add the ironicIgnition to the invfraEnv
-	// set the annotation and notify the infraEnv changed
-	conf, err := r.getIronicIgnitionConfig(log, *infraEnvInternal, ironicAgentImage)
+	// if ironicAgentImage can't be found by version use the default
+	if ironicAgentImage == "" {
+		if infraEnvInternal.CPUArchitecture == common.ARM64CPUArchitecture {
+			ironicAgentImage = r.Config.BaremetalIronicAgentImageForArm
+		} else {
+			ironicAgentImage = r.Config.BaremetalIronicAgentImage
+		}
+		log.Infof("Setting default ironic agent image (%s) for infraEnv %s", ironicAgentImage, infraEnv.Name)
+	}
+
+	conf, err := ignition.GenerateIronicConfig(r.IronicServiceURL, *infraEnvInternal, ironicAgentImage)
 	if err != nil {
+		log.WithError(err).Error("failed to generate Ironic ignition config")
 		return ctrl.Result{}, err
 	}
 
-	_, err = r.Installer.UpdateInfraEnvInternal(ctx, installer.UpdateInfraEnvParams{InfraEnvID: *infraEnvInternal.ID, InfraEnvUpdateParams: &models.InfraEnvUpdateParams{}}, &conf)
+	_, err = r.Installer.UpdateInfraEnvInternal(ctx, installer.UpdateInfraEnvParams{InfraEnvID: *infraEnvInternal.ID, InfraEnvUpdateParams: &models.InfraEnvUpdateParams{}}, swag.String(string(conf)))
 	if err != nil {
 		return ctrl.Result{}, err
 	}
@@ -400,16 +408,18 @@ func (r *PreprovisioningImageReconciler) AddIronicAgentToInfraEnv(ctx context.Co
 	return ctrl.Result{}, err
 }
 
-func (r *PreprovisioningImageReconciler) getIronicAgentImage(log logrus.FieldLogger, infraEnv common.InfraEnv) (string, error) {
-	SupportConvergedFlow, _ := common.VersionGreaterOrEqual(infraEnv.OpenshiftVersion, MinimalVersionForConvergedFlow)
-	// Get the ironic agent image from the release only if the openshift version is higher then the MinimalVersionForConvergedFlow
-	if !SupportConvergedFlow {
-		r.Log.Infof("Openshift version (%s) is lower than the minimal version for the converged flow (%s)."+
-			" this means that the service will use the default ironic agent image and not the ironic agent image from the release",
-			infraEnv.OpenshiftVersion, MinimalVersionForConvergedFlow)
-		return "", nil
+func (r *PreprovisioningImageReconciler) getIronicAgentImageByRelease(ctx context.Context, log logrus.FieldLogger, infraEnv common.InfraEnv) (string, error) {
+	cluster, err := r.Installer.GetClusterInternal(ctx, installer.V2GetClusterParams{ClusterID: infraEnv.ClusterID})
+	if err != nil {
+		return "", err
 	}
-	releaseImage, err := r.VersionsHandler.GetReleaseImage(infraEnv.OpenshiftVersion, infraEnv.CPUArchitecture)
+
+	supportConvergedFlow, _ := common.VersionGreaterOrEqual(cluster.OpenshiftVersion, MinimalVersionForConvergedFlow)
+	if !supportConvergedFlow {
+		return "", fmt.Errorf("Openshift version (%s) is lower than the minimal version for the converged flow (%s)", cluster.OpenshiftVersion, MinimalVersionForConvergedFlow)
+	}
+
+	releaseImage, err := r.VersionsHandler.GetReleaseImage(cluster.OpenshiftVersion, infraEnv.CPUArchitecture)
 	if err != nil {
 		return "", err
 	}
