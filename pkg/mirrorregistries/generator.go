@@ -17,15 +17,20 @@ type MirrorRegistriesConfigBuilder interface {
 }
 
 type mirrorRegistriesConfigBuilder struct {
+	MirrorRegistriesConfigPath      string
+	MirrorRegistriesCertificatePath string
 }
 
 func New() MirrorRegistriesConfigBuilder {
-	return &mirrorRegistriesConfigBuilder{}
+	return &mirrorRegistriesConfigBuilder{
+		MirrorRegistriesConfigPath:      common.MirrorRegistriesConfigPath,
+		MirrorRegistriesCertificatePath: common.MirrorRegistriesCertificatePath,
+	}
 }
 
 type RegistriesConf struct {
 	Location string
-	Mirror   string
+	Mirror   []string
 }
 
 func (m *mirrorRegistriesConfigBuilder) IsMirrorRegistriesConfigured() bool {
@@ -45,13 +50,13 @@ func (m *mirrorRegistriesConfigBuilder) IsMirrorRegistriesConfigured() bool {
 // the mirror registries are not configured.
 // empty dir is due to the way we mao configmap in the assisted-service pod
 func (m *mirrorRegistriesConfigBuilder) GetMirrorCA() ([]byte, error) {
-	return readFile(common.MirrorRegistriesCertificatePath)
+	return readFile(m.MirrorRegistriesCertificatePath)
 }
 
 // returns error if the file is not present, which will also indicate that
 // mirror registries are not confgiured
 func (m *mirrorRegistriesConfigBuilder) GetMirrorRegistries() ([]byte, error) {
-	return readFile(common.MirrorRegistriesConfigPath)
+	return readFile(m.MirrorRegistriesConfigPath)
 }
 
 func (m *mirrorRegistriesConfigBuilder) ExtractLocationMirrorDataFromRegistries() ([]RegistriesConf, error) {
@@ -77,11 +82,15 @@ func extractLocationMirrorDataFromRegistries(registriesConfToml string) ([]Regis
 		if !ok {
 			return nil, fmt.Errorf("Failed to cast mirror key to toml Tree")
 		}
-		mirror, ok := mirrorTree[0].Get("location").(string)
-		if !ok {
-			return nil, fmt.Errorf("Failed to cast mirror location key to string")
+		var mirrors []string
+		for i := range mirrorTree {
+			currentMirror, ok := mirrorTree[i].Get("location").(string)
+			if !ok {
+				return nil, fmt.Errorf("failed to cast mirror location key to string, registriesConfToml: %s", registriesConfToml)
+			}
+			mirrors = append(mirrors, currentMirror)
 		}
-		registriesConfList[i] = RegistriesConf{Location: location, Mirror: mirror}
+		registriesConfList[i] = RegistriesConf{Location: location, Mirror: mirrors}
 	}
 
 	return registriesConfList, nil
