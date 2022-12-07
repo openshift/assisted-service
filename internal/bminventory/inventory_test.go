@@ -150,6 +150,7 @@ var (
 	mockSecretValidator               *validations.MockPullSecretValidator
 	mockGenerator                     *generator.MockISOInstallConfigGenerator
 	mockVersions                      *versions.MockHandler
+	mockOSImages                      *versions.MockOSImages
 	mockMetric                        *metrics.MockAPI
 	mockUsage                         *usage.MockAPI
 	mockK8sClient                     *k8sclient.MockK8SClient
@@ -229,8 +230,8 @@ func mockClusterUpdateSuccess(times int, hosts int) {
 }
 
 func mockInfraEnvRegisterSuccess() {
-	mockVersions.EXPECT().GetOsImageOrLatest(gomock.Any(), gomock.Any()).Return(common.TestDefaultConfig.OsImage, nil).AnyTimes()
-	mockVersions.EXPECT().GetOsImage(gomock.Any(), gomock.Any()).Return(common.TestDefaultConfig.OsImage, nil).AnyTimes()
+	mockOSImages.EXPECT().GetOsImageOrLatest(gomock.Any(), gomock.Any()).Return(common.TestDefaultConfig.OsImage, nil).AnyTimes()
+	mockOSImages.EXPECT().GetOsImage(gomock.Any(), gomock.Any()).Return(common.TestDefaultConfig.OsImage, nil).AnyTimes()
 	mockStaticNetworkConfig.EXPECT().FormatStaticNetworkConfigForDB(gomock.Any()).Return("", nil).Times(1)
 	mockSecretValidator.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any()).Return(nil).Times(1)
 	mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(discovery_ignition_3_1, nil).Times(1)
@@ -239,8 +240,8 @@ func mockInfraEnvRegisterSuccess() {
 }
 
 func mockInfraEnvUpdateSuccess() {
-	mockVersions.EXPECT().GetOsImageOrLatest(gomock.Any(), gomock.Any()).Return(common.TestDefaultConfig.OsImage, nil).AnyTimes()
-	mockVersions.EXPECT().GetOsImage(gomock.Any(), gomock.Any()).Return(common.TestDefaultConfig.OsImage, nil).AnyTimes()
+	mockOSImages.EXPECT().GetOsImageOrLatest(gomock.Any(), gomock.Any()).Return(common.TestDefaultConfig.OsImage, nil).AnyTimes()
+	mockOSImages.EXPECT().GetOsImage(gomock.Any(), gomock.Any()).Return(common.TestDefaultConfig.OsImage, nil).AnyTimes()
 	mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(discovery_ignition_3_1, nil).Times(1)
 	mockEvents.EXPECT().SendInfraEnvEvent(gomock.Any(), eventstest.NewEventMatcher(
 		eventstest.WithNameMatcher(eventgen.ImageInfoUpdatedEventName))).AnyTimes()
@@ -6909,8 +6910,8 @@ var _ = Describe("infraEnvs", func() {
 		})
 
 		It("No version specified", func() {
-			mockVersions.EXPECT().GetOsImageOrLatest(gomock.Any(), gomock.Any()).Return(common.TestDefaultConfig.OsImage, nil).Times(1)
-			mockVersions.EXPECT().GetOsImageOrLatest(
+			mockOSImages.EXPECT().GetOsImageOrLatest(gomock.Any(), gomock.Any()).Return(common.TestDefaultConfig.OsImage, nil).Times(1)
+			mockOSImages.EXPECT().GetOsImageOrLatest(
 				*common.TestDefaultConfig.OsImage.OpenshiftVersion,
 				*common.TestDefaultConfig.OsImage.CPUArchitecture).Return(common.TestDefaultConfig.OsImage, nil).Times(1)
 			mockStaticNetworkConfig.EXPECT().FormatStaticNetworkConfigForDB(gomock.Any()).Return("", nil).Times(1)
@@ -7038,8 +7039,8 @@ var _ = Describe("infraEnvs", func() {
 
 			cluster := createCluster(db, models.ClusterStatusInstallingPendingUserAction)
 
-			mockVersions.EXPECT().GetOsImageOrLatest(gomock.Any(), gomock.Any()).Return(common.TestDefaultConfig.OsImage, nil).AnyTimes()
-			mockVersions.EXPECT().GetOsImage(gomock.Any(), gomock.Any()).Return(common.TestDefaultConfig.OsImage, nil).AnyTimes()
+			mockOSImages.EXPECT().GetOsImageOrLatest(gomock.Any(), gomock.Any()).Return(common.TestDefaultConfig.OsImage, nil).AnyTimes()
+			mockOSImages.EXPECT().GetOsImage(gomock.Any(), gomock.Any()).Return(common.TestDefaultConfig.OsImage, nil).AnyTimes()
 			mockSecretValidator.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any()).Return(nil).Times(1)
 			mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(discovery_ignition_3_1, nil).Times(1)
 			mockEvents.EXPECT().SendInfraEnvEvent(gomock.Any(), eventstest.NewEventMatcher(
@@ -7780,7 +7781,7 @@ var _ = Describe("infraEnvs", func() {
 				i, err := bm.GetInfraEnvInternal(ctx, installer.GetInfraEnvParams{InfraEnvID: infraEnvID})
 				Expect(err).ToNot(HaveOccurred())
 
-				mockVersions.EXPECT().GetOsImageOrLatest(common.TestDefaultConfig.OpenShiftVersion, "").Return(common.TestDefaultConfig.OsImage, nil)
+				mockOSImages.EXPECT().GetOsImageOrLatest(common.TestDefaultConfig.OpenShiftVersion, "").Return(common.TestDefaultConfig.OsImage, nil)
 				mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), gomock.Any(), bm.IgnitionConfig, true, bm.authHandler.AuthType(), gomock.Any()).Return("ignitionconfigforlogging", nil).Times(1)
 				mockEvents.EXPECT().SendInfraEnvEvent(ctx, eventstest.NewEventMatcher(
 					eventstest.WithNameMatcher(eventgen.ImageInfoUpdatedEventName),
@@ -7826,7 +7827,7 @@ var _ = Describe("infraEnvs", func() {
 				err := db.Create(boundedInfraEnv).Error
 				Expect(err).ToNot(HaveOccurred())
 
-				mockVersions.EXPECT().GetOsImageOrLatest(common.TestDefaultConfig.OpenShiftVersion, "").Return(common.TestDefaultConfig.OsImage, nil)
+				mockOSImages.EXPECT().GetOsImageOrLatest(common.TestDefaultConfig.OpenShiftVersion, "").Return(common.TestDefaultConfig.OsImage, nil)
 				mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), gomock.Any(), bm.IgnitionConfig, true, bm.authHandler.AuthType(), gomock.Any()).Return("ignitionconfigforlogging", nil).Times(1)
 				mockEvents.EXPECT().SendInfraEnvEvent(ctx, eventstest.NewEventMatcher(
 					eventstest.WithNameMatcher(eventgen.ImageInfoUpdatedEventName),
@@ -7867,7 +7868,7 @@ var _ = Describe("infraEnvs", func() {
 				It("sets a valid image_token", func() {
 					i, err := bm.GetInfraEnvInternal(ctx, installer.GetInfraEnvParams{InfraEnvID: infraEnvID})
 					Expect(err).ToNot(HaveOccurred())
-					mockVersions.EXPECT().GetOsImageOrLatest(common.TestDefaultConfig.OpenShiftVersion, "").Return(common.TestDefaultConfig.OsImage, nil)
+					mockOSImages.EXPECT().GetOsImageOrLatest(common.TestDefaultConfig.OpenShiftVersion, "").Return(common.TestDefaultConfig.OsImage, nil)
 					mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), gomock.Any(), bm.IgnitionConfig, true, bm.authHandler.AuthType(), gomock.Any()).Return("ignitionconfigforlogging", nil)
 					mockEvents.EXPECT().SendInfraEnvEvent(ctx, eventstest.NewEventMatcher(
 						eventstest.WithNameMatcher(eventgen.ImageInfoUpdatedEventName),
@@ -7891,7 +7892,7 @@ var _ = Describe("infraEnvs", func() {
 				It("updates the infra-env expires_at time", func() {
 					i, err := bm.GetInfraEnvInternal(ctx, installer.GetInfraEnvParams{InfraEnvID: infraEnvID})
 					Expect(err).ToNot(HaveOccurred())
-					mockVersions.EXPECT().GetOsImageOrLatest(common.TestDefaultConfig.OpenShiftVersion, "").Return(common.TestDefaultConfig.OsImage, nil)
+					mockOSImages.EXPECT().GetOsImageOrLatest(common.TestDefaultConfig.OpenShiftVersion, "").Return(common.TestDefaultConfig.OsImage, nil)
 					mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), gomock.Any(), bm.IgnitionConfig, true, bm.authHandler.AuthType(), gomock.Any()).Return("ignitionconfigforlogging", nil)
 					mockEvents.EXPECT().SendInfraEnvEvent(ctx, eventstest.NewEventMatcher(
 						eventstest.WithNameMatcher(eventgen.ImageInfoUpdatedEventName),
@@ -7944,7 +7945,7 @@ var _ = Describe("infraEnvs", func() {
 				It("does not update the image service url if nothing changed", func() {
 					i, err := bm.GetInfraEnvInternal(ctx, installer.GetInfraEnvParams{InfraEnvID: infraEnvID})
 					Expect(err).ToNot(HaveOccurred())
-					mockVersions.EXPECT().GetOsImageOrLatest(common.TestDefaultConfig.OpenShiftVersion, "").Return(common.TestDefaultConfig.OsImage, nil).Times(2)
+					mockOSImages.EXPECT().GetOsImageOrLatest(common.TestDefaultConfig.OpenShiftVersion, "").Return(common.TestDefaultConfig.OsImage, nil).Times(2)
 					mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), gomock.Any(), bm.IgnitionConfig, true, bm.authHandler.AuthType(), gomock.Any()).Return("ignitionconfigforlogging", nil).Times(1)
 					mockEvents.EXPECT().SendInfraEnvEvent(ctx, eventstest.NewEventMatcher(
 						eventstest.WithNameMatcher(eventgen.ImageInfoUpdatedEventName),
@@ -7960,7 +7961,7 @@ var _ = Describe("infraEnvs", func() {
 				It("updates the image service url when things change", func() {
 					i, err := bm.GetInfraEnvInternal(ctx, installer.GetInfraEnvParams{InfraEnvID: infraEnvID})
 					Expect(err).ToNot(HaveOccurred())
-					mockVersions.EXPECT().GetOsImageOrLatest(common.TestDefaultConfig.OpenShiftVersion, "").Return(common.TestDefaultConfig.OsImage, nil).Times(7)
+					mockOSImages.EXPECT().GetOsImageOrLatest(common.TestDefaultConfig.OpenShiftVersion, "").Return(common.TestDefaultConfig.OsImage, nil).Times(7)
 					mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), gomock.Any(), bm.IgnitionConfig, true, bm.authHandler.AuthType(), gomock.Any()).Return("ignitionconfigforlogging", nil).Times(7)
 					mockEvents.EXPECT().SendInfraEnvEvent(ctx, eventstest.NewEventMatcher(
 						eventstest.WithNameMatcher(eventgen.ImageInfoUpdatedEventName),
@@ -10040,7 +10041,7 @@ var _ = Describe("V2DownloadInfraEnvFiles", func() {
 	})
 
 	It("returns ipxe-script successfully", func() {
-		mockVersions.EXPECT().GetOsImageOrLatest(common.TestDefaultConfig.OpenShiftVersion, gomock.Any()).Return(common.TestDefaultConfig.OsImage, nil).Times(1)
+		mockOSImages.EXPECT().GetOsImageOrLatest(common.TestDefaultConfig.OpenShiftVersion, gomock.Any()).Return(common.TestDefaultConfig.OsImage, nil).Times(1)
 		content := getResponseData("ipxe-script", false, nil, "")
 		lines := strings.Split(string(content), "\n")
 
@@ -10092,7 +10093,7 @@ var _ = Describe("V2DownloadInfraEnvFiles", func() {
 			"p3=\"this is an argument\"",
 		}
 		initialKernelArguments := `random.trust_cpu=on rd.luks.options=discard ignition.firstboot ignition.platform.id=metal console=tty1 console=ttyS1,115200n8 coreos.inst.persistent-kargs="console=tty1 console=ttyS1,115200n8"`
-		mockVersions.EXPECT().GetOsImageOrLatest(common.TestDefaultConfig.OpenShiftVersion, gomock.Any()).Return(common.TestDefaultConfig.OsImage, nil).Times(3)
+		mockOSImages.EXPECT().GetOsImageOrLatest(common.TestDefaultConfig.OpenShiftVersion, gomock.Any()).Return(common.TestDefaultConfig.OsImage, nil).Times(3)
 		content := getResponseData("ipxe-script", false, nil, "")
 		lines := strings.Split(string(content), "\n")
 
@@ -10126,7 +10127,7 @@ var _ = Describe("V2DownloadInfraEnvFiles", func() {
 	})
 
 	It("returns ipxe-script successfully with mac", func() {
-		mockVersions.EXPECT().GetOsImageOrLatest(common.TestDefaultConfig.OpenShiftVersion, gomock.Any()).Return(common.TestDefaultConfig.OsImage, nil).Times(1)
+		mockOSImages.EXPECT().GetOsImageOrLatest(common.TestDefaultConfig.OpenShiftVersion, gomock.Any()).Return(common.TestDefaultConfig.OsImage, nil).Times(1)
 		content := getResponseData("ipxe-script", true, nil, "")
 		lines := strings.Split(string(content), "\n")
 
@@ -10172,14 +10173,14 @@ var _ = Describe("V2DownloadInfraEnvFiles", func() {
 	})
 
 	It("fails to return ipxe-script when openshift version is nil", func() {
-		mockVersions.EXPECT().GetOsImageOrLatest(common.TestDefaultConfig.OpenShiftVersion, gomock.Any()).Return(&models.OsImage{}, nil).Times(1)
+		mockOSImages.EXPECT().GetOsImageOrLatest(common.TestDefaultConfig.OpenShiftVersion, gomock.Any()).Return(&models.OsImage{}, nil).Times(1)
 		params := installer.V2DownloadInfraEnvFilesParams{InfraEnvID: infraEnvID, FileName: "ipxe-script"}
 		response := bm.V2DownloadInfraEnvFiles(ctx, params)
 		verifyApiError(response, http.StatusInternalServerError)
 	})
 
 	It("fails to return ipxe-script when openshift version can't be found", func() {
-		mockVersions.EXPECT().GetOsImageOrLatest(common.TestDefaultConfig.OpenShiftVersion, gomock.Any()).Return(nil, fmt.Errorf("some error")).Times(1)
+		mockOSImages.EXPECT().GetOsImageOrLatest(common.TestDefaultConfig.OpenShiftVersion, gomock.Any()).Return(nil, fmt.Errorf("some error")).Times(1)
 		params := installer.V2DownloadInfraEnvFilesParams{InfraEnvID: infraEnvID, FileName: "ipxe-script"}
 		response := bm.V2DownloadInfraEnvFiles(ctx, params)
 		verifyApiError(response, http.StatusBadRequest)
@@ -10220,7 +10221,7 @@ var _ = Describe("V2DownloadInfraEnvFiles", func() {
 				}
 			}
 			Expect(db.Create(&host).Error).ToNot(HaveOccurred())
-			mockVersions.EXPECT().GetOsImageOrLatest(common.TestDefaultConfig.OpenShiftVersion, gomock.Any()).Return(common.TestDefaultConfig.OsImage, nil).Times(1)
+			mockOSImages.EXPECT().GetOsImageOrLatest(common.TestDefaultConfig.OpenShiftVersion, gomock.Any()).Return(common.TestDefaultConfig.OsImage, nil).Times(1)
 			content := getResponseData("ipxe-script", true, nil, "")
 			initrdRegex := regexp.MustCompile(`^initrd --name initrd (.+)`)
 			match := initrdRegex.FindStringSubmatch(strings.Split(string(content), "\n")[1])
@@ -10329,7 +10330,7 @@ var _ = Describe("V2DownloadInfraEnvFiles", func() {
 		})
 
 		It("signs the initrd ipxe-script url correctly", func() {
-			mockVersions.EXPECT().GetOsImageOrLatest(common.TestDefaultConfig.OpenShiftVersion, gomock.Any()).Return(common.TestDefaultConfig.OsImage, nil).Times(1)
+			mockOSImages.EXPECT().GetOsImageOrLatest(common.TestDefaultConfig.OpenShiftVersion, gomock.Any()).Return(common.TestDefaultConfig.OsImage, nil).Times(1)
 			content := getResponseData("ipxe-script", false, nil, "")
 			initrdRegex := regexp.MustCompile(`^initrd --name initrd (.+)`)
 			match := initrdRegex.FindStringSubmatch(strings.Split(string(content), "\n")[1])
@@ -10352,7 +10353,7 @@ var _ = Describe("V2DownloadInfraEnvFiles", func() {
 		})
 
 		It("signs the initrd ipxe-script url correctly", func() {
-			mockVersions.EXPECT().GetOsImageOrLatest(common.TestDefaultConfig.OpenShiftVersion, gomock.Any()).Return(common.TestDefaultConfig.OsImage, nil).Times(1)
+			mockOSImages.EXPECT().GetOsImageOrLatest(common.TestDefaultConfig.OpenShiftVersion, gomock.Any()).Return(common.TestDefaultConfig.OsImage, nil).Times(1)
 			content := getResponseData("ipxe-script", false, nil, "")
 			initrdRegex := regexp.MustCompile(`^initrd --name initrd (.+)`)
 			match := initrdRegex.FindStringSubmatch(strings.Split(string(content), "\n")[1])
@@ -10406,7 +10407,7 @@ var _ = Describe("UpdateInfraEnv - Ignition", func() {
 			InfraEnvUpdateParams: &models.InfraEnvUpdateParams{IgnitionConfigOverride: override},
 		}
 		mockUsageReports()
-		mockVersions.EXPECT().GetOsImageOrLatest("", gomock.Any()).Return(common.TestDefaultConfig.OsImage, nil).Times(1)
+		mockOSImages.EXPECT().GetOsImageOrLatest("", gomock.Any()).Return(common.TestDefaultConfig.OsImage, nil).Times(1)
 		mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(discovery_ignition_3_1, nil).Times(1)
 		mockEvents.EXPECT().SendInfraEnvEvent(gomock.Any(), eventstest.NewEventMatcher(
 			eventstest.WithNameMatcher(eventgen.ImageInfoUpdatedEventName),
@@ -10480,7 +10481,7 @@ var _ = Describe("UpdateInfraEnv - Ignition", func() {
 			InfraEnvID:           *infraEnv.ID,
 			InfraEnvUpdateParams: &models.InfraEnvUpdateParams{IgnitionConfigOverride: override},
 		}
-		mockVersions.EXPECT().GetOsImageOrLatest("", gomock.Any()).Return(common.TestDefaultConfig.OsImage, nil).Times(1)
+		mockOSImages.EXPECT().GetOsImageOrLatest("", gomock.Any()).Return(common.TestDefaultConfig.OsImage, nil).Times(1)
 		mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(discovery_ignition_3_1, nil).Times(1)
 		mockEvents.EXPECT().SendInfraEnvEvent(gomock.Any(), eventstest.NewEventMatcher(
 			eventstest.WithNameMatcher(eventgen.ImageInfoUpdatedEventName),
@@ -10513,7 +10514,7 @@ var _ = Describe("UpdateInfraEnv - Ignition", func() {
 			InfraEnvID:           *infraEnv.ID,
 			InfraEnvUpdateParams: &models.InfraEnvUpdateParams{IgnitionConfigOverride: override},
 		}
-		mockVersions.EXPECT().GetOsImageOrLatest("", gomock.Any()).Return(common.TestDefaultConfig.OsImage, nil).Times(1)
+		mockOSImages.EXPECT().GetOsImageOrLatest("", gomock.Any()).Return(common.TestDefaultConfig.OsImage, nil).Times(1)
 		mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(discovery_ignition_3_1, nil).Times(1)
 		mockEvents.EXPECT().SendInfraEnvEvent(gomock.Any(), eventstest.NewEventMatcher(
 			eventstest.WithNameMatcher(eventgen.ImageInfoUpdatedEventName),
@@ -12531,7 +12532,7 @@ var _ = Describe("TestRegisterCluster", func() {
 	It("Register cluster with arm64 CPU architecture", func() {
 		mockClusterRegisterSuccess(true)
 		mockAMSSubscription(ctx)
-		mockVersions.EXPECT().GetCPUArchitectures(gomock.Any()).Return(
+		mockOSImages.EXPECT().GetCPUArchitectures(gomock.Any()).Return(
 			[]string{common.TestDefaultConfig.OpenShiftVersion, common.ARM64CPUArchitecture}).Times(1)
 
 		params := getDefaultClusterCreateParams()
@@ -12563,7 +12564,7 @@ var _ = Describe("TestRegisterCluster", func() {
 		mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
 			eventstest.WithNameMatcher(eventgen.ClusterRegistrationSucceededEventName))).Times(1)
 		mockAMSSubscription(ctx)
-		mockVersions.EXPECT().GetCPUArchitectures(gomock.Any()).Return(
+		mockOSImages.EXPECT().GetCPUArchitectures(gomock.Any()).Return(
 			[]string{common.TestDefaultConfig.OpenShiftVersion, common.ARM64CPUArchitecture}).Times(1)
 
 		params := getDefaultClusterCreateParams()
@@ -14732,6 +14733,7 @@ func createInventory(db *gorm.DB, cfg Config) *bareMetalInventory {
 	ocmClient := &ocm.Client{AccountsMgmt: mockAccountsMgmt}
 	mockSecretValidator = validations.NewMockPullSecretValidator(ctrl)
 	mockVersions = versions.NewMockHandler(ctrl)
+	mockOSImages = versions.NewMockOSImages(ctrl)
 	mockCRDUtils = NewMockCRDUtils(ctrl)
 	mockOperatorManager = operators.NewMockAPI(ctrl)
 	mockIgnitionBuilder = ignition.NewMockIgnitionBuilder(ctrl)
@@ -14745,8 +14747,8 @@ func createInventory(db *gorm.DB, cfg Config) *bareMetalInventory {
 	bm := NewBareMetalInventory(db, common.GetTestLog(), mockHostApi, mockClusterApi, mockInfraEnvApi, cfg,
 		mockGenerator, mockEvents, mockS3Client, mockMetric, mockUsage, mockOperatorManager,
 		getTestAuthHandler(), getTestAuthzHandler(), mockK8sClient, ocmClient, nil, mockSecretValidator, mockVersions,
-		mockCRDUtils, mockIgnitionBuilder, mockHwValidator, dnsApi, mockInstallConfigBuilder, mockStaticNetworkConfig,
-		gcConfig, mockProviderRegistry, true)
+		mockOSImages, mockCRDUtils, mockIgnitionBuilder, mockHwValidator, dnsApi, mockInstallConfigBuilder,
+		mockStaticNetworkConfig, gcConfig, mockProviderRegistry, true)
 
 	bm.ImageServiceBaseURL = imageServiceBaseURL
 	return bm
@@ -15842,7 +15844,7 @@ var _ = Describe("GetInfraEnvDownloadURL", func() {
 	})
 
 	getNewURL := func() *models.PresignedURL {
-		mockVersions.EXPECT().GetOsImageOrLatest(common.TestDefaultConfig.OpenShiftVersion, gomock.Any()).Return(common.TestDefaultConfig.OsImage, nil).Times(1)
+		mockOSImages.EXPECT().GetOsImageOrLatest(common.TestDefaultConfig.OpenShiftVersion, gomock.Any()).Return(common.TestDefaultConfig.OsImage, nil).Times(1)
 		params := installer.GetInfraEnvDownloadURLParams{InfraEnvID: infraEnvID}
 		resp := bm.GetInfraEnvDownloadURL(ctx, params)
 		Expect(resp).To(BeAssignableToTypeOf(&installer.GetInfraEnvDownloadURLOK{}))

@@ -21,21 +21,21 @@ type downloadBootArtifactsCmd struct {
 	baseCmd
 	imageServiceBaseURL string
 	authType            auth.AuthType
-	versionsHandler     versions.Handler
+	osImages            versions.OSImages
 	db                  *gorm.DB
 	imageDuration       time.Duration
 	hostFSMountDir      string
 }
 
 func NewDownloadBootArtifactsCmd(log logrus.FieldLogger, imageServiceBaseUrl string, authType auth.AuthType,
-	versionsHandler versions.Handler, db *gorm.DB, imageDuration time.Duration, hostFSMountDir string) *downloadBootArtifactsCmd {
+	osImages versions.OSImages, db *gorm.DB, imageDuration time.Duration, hostFSMountDir string) *downloadBootArtifactsCmd {
 	return &downloadBootArtifactsCmd{
 		baseCmd:             baseCmd{log: log},
 		imageServiceBaseURL: imageServiceBaseUrl,
 		authType:            authType,
 		db:                  db,
 		imageDuration:       imageDuration,
-		versionsHandler:     versionsHandler,
+		osImages:            osImages,
 		hostFSMountDir:      hostFSMountDir,
 	}
 }
@@ -46,7 +46,7 @@ func (c *downloadBootArtifactsCmd) GetSteps(ctx context.Context, host *models.Ho
 	if err != nil {
 		return nil, err
 	}
-	osImage, err := c.versionsHandler.GetOsImageOrLatest(infraEnv.OpenshiftVersion, infraEnv.CPUArchitecture)
+	osImage, err := c.osImages.GetOsImageOrLatest(infraEnv.OpenshiftVersion, infraEnv.CPUArchitecture)
 	if err != nil {
 		return nil, err
 	}

@@ -49,20 +49,6 @@ func (mr *MockHandlerMockRecorder) AddReleaseImage(arg0, arg1, arg2, arg3 interf
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddReleaseImage", reflect.TypeOf((*MockHandler)(nil).AddReleaseImage), arg0, arg1, arg2, arg3)
 }
 
-// GetCPUArchitectures mocks base method.
-func (m *MockHandler) GetCPUArchitectures(arg0 string) []string {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetCPUArchitectures", arg0)
-	ret0, _ := ret[0].([]string)
-	return ret0
-}
-
-// GetCPUArchitectures indicates an expected call of GetCPUArchitectures.
-func (mr *MockHandlerMockRecorder) GetCPUArchitectures(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetCPUArchitectures", reflect.TypeOf((*MockHandler)(nil).GetCPUArchitectures), arg0)
-}
-
 // GetDefaultReleaseImage mocks base method.
 func (m *MockHandler) GetDefaultReleaseImage(arg0 string) (*models.ReleaseImage, error) {
 	m.ctrl.T.Helper()
@@ -78,21 +64,6 @@ func (mr *MockHandlerMockRecorder) GetDefaultReleaseImage(arg0 interface{}) *gom
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetDefaultReleaseImage", reflect.TypeOf((*MockHandler)(nil).GetDefaultReleaseImage), arg0)
 }
 
-// GetLatestOsImage mocks base method.
-func (m *MockHandler) GetLatestOsImage(arg0 string) (*models.OsImage, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetLatestOsImage", arg0)
-	ret0, _ := ret[0].(*models.OsImage)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetLatestOsImage indicates an expected call of GetLatestOsImage.
-func (mr *MockHandlerMockRecorder) GetLatestOsImage(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetLatestOsImage", reflect.TypeOf((*MockHandler)(nil).GetLatestOsImage), arg0)
-}
-
 // GetMustGatherImages mocks base method.
 func (m *MockHandler) GetMustGatherImages(arg0, arg1, arg2 string) (MustGatherVersion, error) {
 	m.ctrl.T.Helper()
@@ -106,50 +77,6 @@ func (m *MockHandler) GetMustGatherImages(arg0, arg1, arg2 string) (MustGatherVe
 func (mr *MockHandlerMockRecorder) GetMustGatherImages(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetMustGatherImages", reflect.TypeOf((*MockHandler)(nil).GetMustGatherImages), arg0, arg1, arg2)
-}
-
-// GetOpenshiftVersions mocks base method.
-func (m *MockHandler) GetOpenshiftVersions() []string {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetOpenshiftVersions")
-	ret0, _ := ret[0].([]string)
-	return ret0
-}
-
-// GetOpenshiftVersions indicates an expected call of GetOpenshiftVersions.
-func (mr *MockHandlerMockRecorder) GetOpenshiftVersions() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetOpenshiftVersions", reflect.TypeOf((*MockHandler)(nil).GetOpenshiftVersions))
-}
-
-// GetOsImage mocks base method.
-func (m *MockHandler) GetOsImage(arg0, arg1 string) (*models.OsImage, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetOsImage", arg0, arg1)
-	ret0, _ := ret[0].(*models.OsImage)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetOsImage indicates an expected call of GetOsImage.
-func (mr *MockHandlerMockRecorder) GetOsImage(arg0, arg1 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetOsImage", reflect.TypeOf((*MockHandler)(nil).GetOsImage), arg0, arg1)
-}
-
-// GetOsImageOrLatest mocks base method.
-func (m *MockHandler) GetOsImageOrLatest(arg0, arg1 string) (*models.OsImage, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetOsImageOrLatest", arg0, arg1)
-	ret0, _ := ret[0].(*models.OsImage)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetOsImageOrLatest indicates an expected call of GetOsImageOrLatest.
-func (mr *MockHandlerMockRecorder) GetOsImageOrLatest(arg0, arg1 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetOsImageOrLatest", reflect.TypeOf((*MockHandler)(nil).GetOsImageOrLatest), arg0, arg1)
 }
 
 // GetReleaseImage mocks base method.

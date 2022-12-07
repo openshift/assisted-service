@@ -36,6 +36,7 @@ var _ = Describe("instruction_manager", func() {
 		db                            *gorm.DB
 		mockEvents                    *eventsapi.MockHandler
 		mockVersions                  *versions.MockHandler
+		mockOSImages                  *versions.MockOSImages
 		stepsReply                    models.Steps
 		hostId, clusterId, infraEnvId strfmt.UUID
 		stepsErr                      error
@@ -53,10 +54,11 @@ var _ = Describe("instruction_manager", func() {
 		ctrl = gomock.NewController(GinkgoT())
 		mockEvents = eventsapi.NewMockHandler(ctrl)
 		mockVersions = versions.NewMockHandler(ctrl)
+		mockOSImages = versions.NewMockOSImages(ctrl)
 		hwValidator = hardware.NewMockValidator(ctrl)
 		mockRelease = oc.NewMockRelease(ctrl)
 		cnValidator = connectivity.NewMockValidator(ctrl)
-		instMng = NewInstructionManager(common.GetTestLog(), db, hwValidator, mockRelease, instructionConfig, cnValidator, mockEvents, mockVersions)
+		instMng = NewInstructionManager(common.GetTestLog(), db, hwValidator, mockRelease, instructionConfig, cnValidator, mockEvents, mockVersions, mockOSImages)
 		hostId = strfmt.UUID(uuid.New().String())
 		clusterId = strfmt.UUID(uuid.New().String())
 		infraEnvId = strfmt.UUID(uuid.New().String())
@@ -290,7 +292,7 @@ var _ = Describe("instruction_manager", func() {
 			checkStep(models.HostStatusUnbindingPendingUserAction, nil)
 		})
 		It("reclaiming", func() {
-			mockVersions.EXPECT().GetOsImageOrLatest(gomock.Any(), gomock.Any()).Return(common.TestDefaultConfig.OsImage, nil).Times(1)
+			mockOSImages.EXPECT().GetOsImageOrLatest(gomock.Any(), gomock.Any()).Return(common.TestDefaultConfig.OsImage, nil).Times(1)
 			checkStep(models.HostStatusReclaiming, []models.StepType{
 				models.StepTypeDownloadBootArtifacts,
 			})
@@ -305,7 +307,7 @@ var _ = Describe("instruction_manager", func() {
 	Context("Disable Steps verification", func() {
 		createInstMngWithDisabledSteps := func(steps []models.StepType) *InstructionManager {
 			instructionConfig.DisabledSteps = steps
-			return NewInstructionManager(common.GetTestLog(), db, hwValidator, mockRelease, instructionConfig, cnValidator, mockEvents, mockVersions)
+			return NewInstructionManager(common.GetTestLog(), db, hwValidator, mockRelease, instructionConfig, cnValidator, mockEvents, mockVersions, mockOSImages)
 		}
 		Context("disabledStepsMap in InstructionManager", func() {
 			It("Should except empty DISABLED_STEPS", func() {
@@ -397,6 +399,7 @@ var _ = Describe("agent_upgrade", func() {
 		db                            *gorm.DB
 		mockEvents                    *eventsapi.MockHandler
 		mockVersions                  *versions.MockHandler
+		mockOSImages                  *versions.MockOSImages
 		stepsReply                    models.Steps
 		hostId, clusterId, infraEnvId strfmt.UUID
 		stepsErr                      error
@@ -414,12 +417,13 @@ var _ = Describe("agent_upgrade", func() {
 		ctrl = gomock.NewController(GinkgoT())
 		mockEvents = eventsapi.NewMockHandler(ctrl)
 		mockVersions = versions.NewMockHandler(ctrl)
+		mockOSImages = versions.NewMockOSImages(ctrl)
 		hwValidator = hardware.NewMockValidator(ctrl)
 		mockRelease = oc.NewMockRelease(ctrl)
 		cnValidator = connectivity.NewMockValidator(ctrl)
 		instructionConfig = InstructionConfig{AgentImage: "quay.io/my/image:v1.2.3"}
 		instructionConfig.EnableUpgradeAgent = true
-		instMng = NewInstructionManager(common.GetTestLog(), db, hwValidator, mockRelease, instructionConfig, cnValidator, mockEvents, mockVersions)
+		instMng = NewInstructionManager(common.GetTestLog(), db, hwValidator, mockRelease, instructionConfig, cnValidator, mockEvents, mockVersions, mockOSImages)
 		hostId = strfmt.UUID(uuid.New().String())
 		clusterId = strfmt.UUID(uuid.New().String())
 		infraEnvId = strfmt.UUID(uuid.New().String())

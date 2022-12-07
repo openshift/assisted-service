@@ -86,7 +86,7 @@ var _ = Describe("ListSupportedOpenshiftVersions", func() {
 		common.DeleteTestDB(db, dbName)
 	})
 
-	readDefaultOsImages := func() models.OsImages {
+	readDefaultOsImages := func() OSImages {
 		bytes, err := os.ReadFile("../../data/default_os_images.json")
 		Expect(err).ShouldNot(HaveOccurred())
 
@@ -94,10 +94,13 @@ var _ = Describe("ListSupportedOpenshiftVersions", func() {
 		err = json.Unmarshal(bytes, &osImages)
 		Expect(err).ShouldNot(HaveOccurred())
 
-		return osImages
+		osi, err := NewOSImages(osImages)
+		Expect(err).ShouldNot(HaveOccurred())
+
+		return osi
 	}
 
-	readDefaultReleaseImages := func(osImages models.OsImages) *handler {
+	readDefaultReleaseImages := func(osImages OSImages) *handler {
 		bytes, err := os.ReadFile("../../data/default_release_images.json")
 		Expect(err).ShouldNot(HaveOccurred())
 
@@ -114,7 +117,7 @@ var _ = Describe("ListSupportedOpenshiftVersions", func() {
 		osImages := readDefaultOsImages()
 		versionsHandler := readDefaultReleaseImages(osImages)
 
-		h := NewAPIHandler(logger, versions, authzHandler, versionsHandler)
+		h := NewAPIHandler(logger, versions, authzHandler, versionsHandler, osImages)
 		reply := h.V2ListSupportedOpenshiftVersions(context.Background(), operations.V2ListSupportedOpenshiftVersionsParams{})
 		Expect(reply).Should(BeAssignableToTypeOf(operations.NewV2ListSupportedOpenshiftVersionsOK()))
 		val, _ := reply.(*operations.V2ListSupportedOpenshiftVersionsOK)
@@ -181,7 +184,7 @@ var _ = Describe("ListSupportedOpenshiftVersions", func() {
 		osImages := readDefaultOsImages()
 		versionsHandler, err := NewHandler(logger, mockRelease, osImages, models.ReleaseImages{}, nil, "")
 		Expect(err).ToNot(HaveOccurred())
-		h := NewAPIHandler(logger, versions, authzHandler, versionsHandler)
+		h := NewAPIHandler(logger, versions, authzHandler, versionsHandler, osImages)
 		reply := h.V2ListSupportedOpenshiftVersions(context.Background(), operations.V2ListSupportedOpenshiftVersionsParams{})
 		Expect(reply).Should(BeAssignableToTypeOf(operations.NewV2ListSupportedOpenshiftVersionsOK()))
 		val, _ := reply.(*operations.V2ListSupportedOpenshiftVersionsOK)
@@ -205,7 +208,7 @@ var _ = Describe("ListSupportedOpenshiftVersions", func() {
 		osImages := readDefaultOsImages()
 		versionsHandler, err := NewHandler(logger, mockRelease, osImages, releaseImages, nil, "")
 		Expect(err).ToNot(HaveOccurred())
-		h := NewAPIHandler(logger, versions, authzHandler, versionsHandler)
+		h := NewAPIHandler(logger, versions, authzHandler, versionsHandler, osImages)
 
 		reply := h.V2ListSupportedOpenshiftVersions(context.Background(), operations.V2ListSupportedOpenshiftVersionsParams{})
 		Expect(reply).Should(BeAssignableToTypeOf(operations.NewV2ListSupportedOpenshiftVersionsOK()))
@@ -231,7 +234,7 @@ var _ = Describe("ListSupportedOpenshiftVersions", func() {
 		osImages := readDefaultOsImages()
 		versionsHandler, err := NewHandler(logger, mockRelease, osImages, releaseImages, nil, "")
 		Expect(err).ToNot(HaveOccurred())
-		h := NewAPIHandler(logger, versions, authzHandler, versionsHandler)
+		h := NewAPIHandler(logger, versions, authzHandler, versionsHandler, osImages)
 
 		reply := h.V2ListSupportedOpenshiftVersions(context.Background(), operations.V2ListSupportedOpenshiftVersionsParams{})
 		Expect(reply).Should(BeAssignableToTypeOf(operations.NewV2ListSupportedOpenshiftVersionsOK()))
@@ -275,7 +278,7 @@ var _ = Describe("ListSupportedOpenshiftVersions", func() {
 		osImages := readDefaultOsImages()
 		versionsHandler, err := NewHandler(logger, mockRelease, osImages, releaseImages, nil, "")
 		Expect(err).ToNot(HaveOccurred())
-		h := NewAPIHandler(logger, versions, authzHandler, versionsHandler)
+		h := NewAPIHandler(logger, versions, authzHandler, versionsHandler, osImages)
 
 		reply := h.V2ListSupportedOpenshiftVersions(context.Background(), operations.V2ListSupportedOpenshiftVersionsParams{})
 		Expect(reply).Should(BeAssignableToTypeOf(operations.NewV2ListSupportedOpenshiftVersionsOK()))
@@ -326,10 +329,12 @@ var _ = Describe("Test list versions with capability restrictions", func() {
 		cfg.EnableOrgBasedFeatureGates = enableOrgBasedFeatureGates
 		authzHandler := auth.NewAuthzHandler(cfg, mockOcmClient, common.GetTestLog(), db)
 
-		versionsHandler, err := NewHandler(common.GetTestLog(), nil, defaultOsImages, defaultReleaseImages, nil, "")
+		osImages, err := NewOSImages(defaultOsImages)
+		Expect(err).ShouldNot(HaveOccurred())
+		versionsHandler, err := NewHandler(common.GetTestLog(), nil, osImages, defaultReleaseImages, nil, "")
 		Expect(err).ShouldNot(HaveOccurred())
 
-		return NewAPIHandler(common.GetTestLog(), Versions{}, authzHandler, versionsHandler)
+		return NewAPIHandler(common.GetTestLog(), Versions{}, authzHandler, versionsHandler, osImages)
 	}
 
 	hasMultiarch := func(versions models.OpenshiftVersions) bool {

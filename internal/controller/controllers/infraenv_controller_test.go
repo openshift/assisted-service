@@ -80,7 +80,7 @@ var _ = Describe("infraEnv reconcile", func() {
 		ir                    *InfraEnvReconciler
 		mockCtrl              *gomock.Controller
 		mockInstallerInternal *bminventory.MockInstallerInternals
-		mockVersionsHandler   *versions.MockHandler
+		mockOSImages          *versions.MockOSImages
 		ctx                   = context.Background()
 		sId                   strfmt.UUID
 		backEndCluster        = &common.Cluster{Cluster: models.Cluster{ID: &sId}}
@@ -95,7 +95,7 @@ var _ = Describe("infraEnv reconcile", func() {
 		c = fakeclient.NewClientBuilder().WithScheme(scheme.Scheme).Build()
 		mockCtrl = gomock.NewController(GinkgoT())
 		mockInstallerInternal = bminventory.NewMockInstallerInternals(mockCtrl)
-		mockVersionsHandler = versions.NewMockHandler(mockCtrl)
+		mockOSImages = versions.NewMockOSImages(mockCtrl)
 		sId = strfmt.UUID(uuid.New().String())
 		ir = &InfraEnvReconciler{
 			Client:              c,
@@ -105,15 +105,15 @@ var _ = Describe("infraEnv reconcile", func() {
 			APIReader:           c,
 			ServiceBaseURL:      "https://www.acme.com",
 			ImageServiceBaseURL: "https://images.example.com",
-			VersionsHandler:     mockVersionsHandler,
+			OsImages:            mockOSImages,
 			PullSecretHandler:   NewPullSecretHandler(c, c, mockInstallerInternal),
 			AuthType:            auth.TypeNone,
 		}
 		pullSecret := getDefaultTestPullSecret("pull-secret", testNamespace)
 		eventURL = fmt.Sprintf("%s/api/assisted-install/v2/events?infra_env_id=%s", ir.ServiceBaseURL, sId)
 		Expect(c.Create(ctx, pullSecret)).To(BeNil())
-		mockVersionsHandler.EXPECT().GetOsImageOrLatest(gomock.Any(), gomock.Any()).Return(&models.OsImage{CPUArchitecture: swag.String(infraEnvArch), OpenshiftVersion: swag.String(ocpVersion)}, nil).AnyTimes()
-		mockVersionsHandler.EXPECT().GetLatestOsImage(infraEnvArch).Return(&models.OsImage{CPUArchitecture: swag.String(infraEnvArch), OpenshiftVersion: swag.String(ocpVersion)}, nil).AnyTimes()
+		mockOSImages.EXPECT().GetOsImageOrLatest(gomock.Any(), gomock.Any()).Return(&models.OsImage{CPUArchitecture: swag.String(infraEnvArch), OpenshiftVersion: swag.String(ocpVersion)}, nil).AnyTimes()
+		mockOSImages.EXPECT().GetLatestOsImage(infraEnvArch).Return(&models.OsImage{CPUArchitecture: swag.String(infraEnvArch), OpenshiftVersion: swag.String(ocpVersion)}, nil).AnyTimes()
 	})
 
 	AfterEach(func() {
