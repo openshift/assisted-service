@@ -401,7 +401,7 @@ func execute(log logrus.FieldLogger, executer executer.Executer, pullSecret stri
 		return strings.TrimSpace(stdout), nil
 	} else {
 		err = fmt.Errorf("command '%s' exited with non-zero exit code %d: %s\n%s", executeCommand, exitCode, stdout, stderr)
-		log.Error(err)
+		log.Warn(err)
 		return "", err
 	}
 }
