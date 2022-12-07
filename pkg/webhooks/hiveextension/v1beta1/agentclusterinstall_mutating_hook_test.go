@@ -2,6 +2,7 @@ package v1beta1
 
 import (
 	"encoding/json"
+	"time"
 
 	"github.com/go-openapi/swag"
 	. "github.com/onsi/ginkgo"
@@ -25,6 +26,7 @@ var _ = Describe("ACI mutator hook", func() {
 		expectedAllowed bool
 		patched         bool
 		patchedValue    bool
+		deleted         bool
 		gvr             *metav1.GroupVersionResource
 	}{
 		{
@@ -59,6 +61,45 @@ var _ = Describe("ACI mutator hook", func() {
 			expectedAllowed: true,
 			patched:         false,
 		},
+		{
+			name: "ACI updated after install start --> no change",
+			oldSpec: hiveext.AgentClusterInstallSpec{
+				Networking:            hiveext.Networking{},
+				ProvisionRequirements: hiveext.ProvisionRequirements{ControlPlaneAgents: 1},
+			},
+			newSpec: hiveext.AgentClusterInstallSpec{
+				Networking: hiveext.Networking{
+					UserManagedNetworking: swag.Bool(true),
+				},
+				ProvisionRequirements: hiveext.ProvisionRequirements{ControlPlaneAgents: 1},
+			},
+			conditions: []hivev1.ClusterInstallCondition{
+				{
+					Type:   hiveext.ClusterCompletedCondition,
+					Reason: hiveext.ClusterInstallationInProgressReason,
+				},
+			},
+			operation:       admissionv1.Update,
+			expectedAllowed: true,
+			patched:         false,
+		},
+		{
+			name: "ACI updated after install start --> no change",
+			oldSpec: hiveext.AgentClusterInstallSpec{
+				Networking:            hiveext.Networking{},
+				ProvisionRequirements: hiveext.ProvisionRequirements{ControlPlaneAgents: 1},
+			},
+			newSpec: hiveext.AgentClusterInstallSpec{
+				Networking: hiveext.Networking{
+					UserManagedNetworking: swag.Bool(true),
+				},
+				ProvisionRequirements: hiveext.ProvisionRequirements{ControlPlaneAgents: 1},
+			},
+			operation:       admissionv1.Update,
+			deleted:         true,
+			expectedAllowed: true,
+			patched:         false,
+		},
 	}
 
 	for i := range cases {
@@ -71,6 +112,11 @@ var _ = Describe("ACI mutator hook", func() {
 			newObject.Status.Conditions = tc.conditions
 			oldObject := &hiveext.AgentClusterInstall{
 				Spec: tc.oldSpec,
+			}
+
+			if tc.deleted {
+				t := metav1.NewTime(time.Now())
+				newObject.DeletionTimestamp = &t
 			}
 
 			if tc.newObjectRaw == nil {
