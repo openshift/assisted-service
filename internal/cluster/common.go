@@ -2,6 +2,7 @@ package cluster
 
 import (
 	"context"
+	"net/http"
 	"time"
 
 	"github.com/go-openapi/strfmt"
@@ -16,7 +17,6 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
 	"gorm.io/gorm"
-	"gorm.io/gorm/clause"
 )
 
 const (
@@ -259,75 +259,45 @@ func MapHostsByStatus(c *common.Cluster) map[string][]*models.Host {
 	return mapHostsByStatus(c, "")
 }
 
-func UpdateMachineCidr(db *gorm.DB, cluster *common.Cluster, machineCidr string) error {
-	// In case of dual-stack clusters the autocalculation feature is not supported. That means
-	// as soon as we detect that current Machine Network configuration indicates we have such
-	// a cluster, the function stops its execution.
-	reqDualStack := network.CheckIfClusterIsDualStack(cluster)
-	if reqDualStack {
-		return nil
+func UpdateMachineCidr(db *gorm.DB, cluster *common.Cluster, machineCidr []string) error {
+	if len(machineCidr) > 2 {
+		return common.NewApiError(http.StatusInternalServerError,
+			errors.Errorf("for cluster %s received request to update %d machine networks", cluster.ID, len(machineCidr)))
 	}
 
 	previousPrimaryMachineCidr := ""
+	previousSecondaryMachineCidr := ""
 	if network.IsMachineCidrAvailable(cluster) {
 		previousPrimaryMachineCidr = network.GetMachineCidrById(cluster, 0)
+		previousSecondaryMachineCidr = network.GetMachineCidrById(cluster, 1)
 	}
 
-	if machineCidr != previousPrimaryMachineCidr {
-		if machineCidr != "" {
-			// MGMT-8853: Nothing is done when there's a conflict since there's no change to what's being inserted/updated.
-			if err := db.Clauses(clause.OnConflict{
-				DoNothing: true,
-			}).Create(&models.MachineNetwork{
-				ClusterID: *cluster.ID,
-				Cidr:      models.Subnet(machineCidr),
-			}).Error; err != nil {
-				return err
+	if machineCidr[0] != previousPrimaryMachineCidr || (len(machineCidr) > 1 && machineCidr[1] != previousSecondaryMachineCidr) {
+		err := db.Transaction(func(tx *gorm.DB) error {
+			if err := db.Where("cluster_id = ?", *cluster.ID).Delete(&models.MachineNetwork{}).Error; err != nil {
+				err = errors.Wrapf(err, "failed to delete machine networks of cluster %s", *cluster.ID)
+				return common.NewApiError(http.StatusInternalServerError, err)
 			}
-		}
-
-		// Delete previous primary machine CIDR
-		if network.IsMachineCidrAvailable(cluster) {
-			if err := common.DeleteRecordsByClusterID(db, *cluster.ID, []interface{}{&models.MachineNetwork{}}, "cidr = ?", network.GetMachineCidrById(cluster, 0)); err != nil {
-				return err
+			for _, cidr := range machineCidr {
+				if cidr != "" {
+					machineNetwork := &models.MachineNetwork{
+						ClusterID: *cluster.ID,
+						Cidr:      models.Subnet(cidr),
+					}
+					if err := db.Save(machineNetwork).Error; err != nil {
+						err = errors.Wrapf(err, "failed to update cluster machineNetwork %v of cluster %s", *machineNetwork, *cluster.ID)
+						return common.NewApiError(http.StatusInternalServerError, err)
+					}
+				}
 			}
-		}
-
-		return db.Model(&common.Cluster{}).Where("id = ?", cluster.ID.String()).Updates(map[string]interface{}{
-			"machine_network_cidr_updated_at": time.Now(),
-		}).Error
+			if err := db.Model(&common.Cluster{}).Where("id = ?", cluster.ID.String()).Updates(map[string]interface{}{
+				"machine_network_cidr_updated_at": time.Now()}).Error; err != nil {
+				err = errors.Wrapf(err, "failed to update machine networks timestamp in cluster %s", *cluster.ID)
+				return common.NewApiError(http.StatusInternalServerError, err)
+			}
+			return nil
+		})
+		return err
 	}
 	return nil
-}
-
-func machineNetworksAlreadyExist(cluster *common.Cluster, machineNetworks []string) bool {
-	if len(cluster.MachineNetworks) != len(machineNetworks) {
-		return false
-	}
-	for _, m := range cluster.MachineNetworks {
-		if !funk.ContainsString(machineNetworks, string(m.Cidr)) {
-			return false
-		}
-	}
-	return true
-}
-
-func updateMachineNetworks(db *gorm.DB, cluster *common.Cluster, machineNetworks []string) error {
-	if len(machineNetworks) == 0 || machineNetworksAlreadyExist(cluster, machineNetworks) {
-		return nil
-	}
-	return db.Transaction(func(tx *gorm.DB) error {
-		if err := tx.Delete(&models.MachineNetwork{}, "cluster_id = ?", cluster.ID.String()).Error; err != nil {
-			return err
-		}
-		if err := tx.Model(&common.Cluster{}).Where("id = ?", cluster.ID.String()).Update("machine_network_cidr_updated_at", time.Now()).Error; err != nil {
-			return err
-		}
-		for _, m := range machineNetworks {
-			if err := tx.Create(&models.MachineNetwork{ClusterID: *cluster.ID, Cidr: models.Subnet(m)}).Error; err != nil {
-				return err
-			}
-		}
-		return nil
-	})
 }
