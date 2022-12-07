@@ -23,6 +23,7 @@ import (
 	"fmt"
 	"net/url"
 	"os"
+	"strings"
 
 	"github.com/go-openapi/swag"
 	"github.com/hashicorp/go-version"
@@ -97,6 +98,10 @@ var (
 	databasePort         = intstr.Parse("5432")
 	imageHandlerPort     = intstr.Parse("8080")
 	imageHandlerHTTPPort = intstr.Parse("8081")
+
+	minDatabaseStorage   = resource.MustParse("1Gi")
+	minFilesystemStorage = resource.MustParse("1Gi")
+	minImageStorage      = resource.MustParse("10Gi")
 )
 
 // AgentServiceConfigReconciler reconciles a AgentServiceConfig object
@@ -218,6 +223,48 @@ func (r *AgentServiceConfigReconciler) Reconcile(origCtx context.Context, req ct
 		}
 
 		return ctrl.Result{}, nil
+	}
+
+	// Validate the storage configuration. If that returns warnings then generate the
+	// corresponding events. If it returns errors then update the conditions and stop the
+	// reconciliation.
+	warnings, failures, err := r.validateStorage(ctx, log, instance)
+	if err != nil {
+		log.WithError(err).Error("Failed to validate storage configuration")
+		return ctrl.Result{Requeue: true}, err
+	}
+	for _, warning := range warnings {
+		r.Recorder.Event(instance, "Warning", aiv1beta1.ReasonStorageFailure, warning)
+	}
+	if len(failures) > 0 {
+		log.Error("Storage configuration isn't valid")
+		conditionsv1.SetStatusConditionNoHeartbeat(
+			&instance.Status.Conditions, conditionsv1.Condition{
+				Type:    aiv1beta1.ConditionReconcileCompleted,
+				Status:  corev1.ConditionFalse,
+				Reason:  aiv1beta1.ReasonStorageFailure,
+				Message: fmt.Sprintf("%s.", strings.Join(failures, ". ")),
+			},
+		)
+		err = r.Status().Update(ctx, instance)
+		if err != nil {
+			log.WithError(err).Error("Failed to update status")
+			return ctrl.Result{Requeue: true}, err
+		}
+		return ctrl.Result{}, err
+	}
+
+	// If we are here then the storage configuration validation succeeded, so we may need to
+	// remove a previous failure condition:
+	condition := conditionsv1.FindStatusCondition(
+		instance.Status.Conditions,
+		aiv1beta1.ConditionReconcileCompleted,
+	)
+	if condition != nil && condition.Reason == aiv1beta1.ReasonStorageFailure {
+		conditionsv1.RemoveStatusCondition(
+			&instance.Status.Conditions,
+			aiv1beta1.ConditionReconcileCompleted,
+		)
 	}
 
 	for _, component := range []component{
@@ -2244,4 +2291,94 @@ func (r *AgentServiceConfigReconciler) getImageService(ctx context.Context, log 
 		return ""
 	}
 	return imageServiceURL
+}
+
+// validateStorage checks that the sizes of the storage volumes for the database, the file system
+// and the images are acceptable.
+//
+// Returns two slices of strings containing warnings and failures. Warnings are intended for
+// creation of events. Failures are intended for reporting in conditions, and for stopping the
+// reconciliation.
+//
+// If a volume size is smaller than the minimum it will generate a warning. It will generate an
+// error only if the corresponding persistent volume claim (or the stateful set for the image
+// storage) has not been created yet. This is for backwards compatility, to prevent breaking
+// environments that were created before this validation was introduced. Those environments may be
+// working correctly even if the size was smaller that the minimum, because they aren't consuming
+// that space or because the actual volume was larger then the initial request.
+func (r *AgentServiceConfigReconciler) validateStorage(ctx context.Context, log logrus.FieldLogger,
+	instance *aiv1beta1.AgentServiceConfig) (warnings, failures []string, err error) {
+
+	// Check the size of the database storage:
+	databaseStorage := instance.Spec.DatabaseStorage.Resources.Requests.Storage()
+	if databaseStorage.Cmp(minDatabaseStorage) < 0 {
+		message := fmt.Sprintf(
+			"Database storage %s is too small, it must be at least %s",
+			databaseStorage, &minDatabaseStorage,
+		)
+		warnings = append(warnings, message)
+		key := client.ObjectKey{
+			Namespace: r.Namespace,
+			Name:      databaseName,
+		}
+		var tmp corev1.PersistentVolumeClaim
+		err = r.Get(ctx, key, &tmp)
+		if errors.IsNotFound(err) {
+			err = nil
+			failures = append(failures, message)
+		}
+		if err != nil {
+			return
+		}
+	}
+
+	// Check the size of the filesystem storage:
+	filesystemStorage := instance.Spec.FileSystemStorage.Resources.Requests.Storage()
+	if filesystemStorage.Cmp(minFilesystemStorage) < 0 {
+		message := fmt.Sprintf(
+			"Filesystem storage %s is too small, it must be at least %s",
+			filesystemStorage, &minFilesystemStorage,
+		)
+		warnings = append(warnings, message)
+		key := client.ObjectKey{
+			Namespace: r.Namespace,
+			Name:      serviceName,
+		}
+		var tmp corev1.PersistentVolumeClaim
+		err = r.Get(ctx, key, &tmp)
+		if errors.IsNotFound(err) {
+			failures = append(failures, message)
+			err = nil
+		}
+		if err != nil {
+			return
+		}
+	}
+
+	// Check the size of the image storage:
+	if instance.Spec.ImageStorage != nil {
+		imageStorage := instance.Spec.ImageStorage.Resources.Requests.Storage()
+		if imageStorage.Cmp(minImageStorage) < 0 {
+			message := fmt.Sprintf(
+				"Image storage %s is too small, it must be at least %s",
+				imageStorage, &minImageStorage,
+			)
+			warnings = append(warnings, message)
+			key := client.ObjectKey{
+				Namespace: r.Namespace,
+				Name:      imageServiceName,
+			}
+			var tmp appsv1.StatefulSet
+			err = r.Get(ctx, key, &tmp)
+			if errors.IsNotFound(err) {
+				err = nil
+				failures = append(failures, message)
+			}
+			if err != nil {
+				return
+			}
+		}
+	}
+
+	return
 }
