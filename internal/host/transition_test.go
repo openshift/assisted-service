@@ -3361,6 +3361,37 @@ var _ = Describe("Refresh Host", func() {
 				numAdditionalHosts:    2,
 			},
 			{
+				name:              "known to insufficient user managed networking - 3 hosts, machine cidr not matching bootstrap",
+				validCheckInTime:  true,
+				srcState:          models.HostStatusKnown,
+				dstState:          models.HostStatusInsufficient,
+				imageStatuses:     map[string]*models.ContainerImageAvailability{common.TestDefaultConfig.ImageName: common.TestImageStatusesSuccess},
+				machineNetworks:   []*models.MachineNetwork{{Cidr: "1.2.6.0/24"}},
+				role:              models.HostRoleBootstrap,
+				statusInfoChecker: makeRegexChecker("Host cannot be installed due to following failing validation"),
+				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
+					IsConnected:          {status: ValidationSuccess, messagePattern: "Host is connected"},
+					HasInventory:         {status: ValidationSuccess, messagePattern: "Valid inventory exists for the host"},
+					HasMinCPUCores:       {status: ValidationSuccess, messagePattern: "Sufficient CPU cores"},
+					HasMinMemory:         {status: ValidationSuccess, messagePattern: "Sufficient minimum RAM"},
+					HasMinValidDisks:     {status: ValidationSuccess, messagePattern: "Sufficient disk capacity"},
+					IsMachineCidrDefined: {status: ValidationSuccess, messagePattern: "No Machine Network CIDR needed: User Managed Networking"},
+					HasCPUCoresForRole:   {status: ValidationSuccess, messagePattern: "Sufficient CPU cores for role master"},
+					HasMemoryForRole:     {status: ValidationSuccess, messagePattern: "Sufficient RAM for role master"},
+					IsHostnameUnique:     {status: ValidationSuccess, messagePattern: " is unique in cluster"},
+					BelongsToMachineCidr: {status: ValidationFailure, messagePattern: "Host does not belong to machine network CIDRs."},
+					IsHostnameValid:      {status: ValidationSuccess, messagePattern: "Hostname .* is allowed"},
+					SucessfullOrUnknownContainerImagesAvailability: {status: ValidationSuccess, messagePattern: "All required container images were either pulled successfully or no attempt was made to pull them"},
+					SufficientOrUnknownInstallationDiskSpeed:       {status: ValidationSuccess, messagePattern: "Speed of installation disk has not yet been measured"},
+				}),
+				inventory:             hostutil.GenerateMasterInventory(),
+				domainResolutions:     common.TestDomainNameResolutionsSuccess,
+				errorExpected:         false,
+				userManagedNetworking: true,
+				connectivity:          fmt.Sprintf("{\"%s\":[]}", network.IPv4.String()),
+				numAdditionalHosts:    2,
+			},
+			{
 				name:              "discovering to insufficient - host time not synced",
 				validCheckInTime:  true,
 				srcState:          models.HostStatusDiscovering,
@@ -4170,6 +4201,10 @@ var _ = Describe("Refresh Host", func() {
 				srcState = t.srcState
 				host = hostutil.GenerateTestHost(hostId, infraEnvId, clusterId, srcState)
 				host.Inventory = t.inventory
+				if t.role == models.HostRoleBootstrap {
+					t.role = models.HostRoleMaster
+					host.Bootstrap = true
+				}
 				host.Role = t.role
 				host.CheckedInAt = hostCheckInAt
 				host.Kind = swag.String(t.kind)
