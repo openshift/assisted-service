@@ -1772,3 +1772,65 @@ func (v *validator) noSkipMissingDisk(c *validationContext) (ValidationStatus, s
 	}
 	return ValidationSuccess, successMessage
 }
+
+func (v *validator) noIPCollisionsInNetwork(c *validationContext) (ValidationStatus, string) {
+	if c.cluster == nil {
+		return ValidationSuccess, "Cluster has not yet been defined, skipping validation."
+	}
+	if common.IsDay2Cluster(c.cluster) {
+		return ValidationSuccess, fmt.Sprintf("Skipping validation for day 2 host %s", c.host.ID)
+	}
+	if len(c.cluster.IPCollisions) == 0 {
+		return ValidationSuccess, "IP collisions have not yet been evaluated"
+	}
+
+	var ipCollisions map[string][]string
+	err := json.Unmarshal([]byte(c.cluster.IPCollisions), &ipCollisions)
+	if err != nil {
+		message := "Unable to unmarshall ip collision report for cluster"
+		v.log.Errorf(message)
+		return ValidationError, message
+	}
+
+	var collisionValidationText string
+	hasCollisions := false
+	for ip, macs := range ipCollisions {
+		hasIP, err := v.inventoryHasIP(c.inventory, ip)
+		if err != nil {
+			message := fmt.Sprintf("inventory of host %s contains bad CIDR: %s", c.host.ID, err.Error())
+			v.log.Errorf(message)
+			return ValidationError, message
+		}
+		if hasIP {
+			hasCollisions = true
+			message := fmt.Sprintf("Collisions detected for host ID %s, IP address: %s Mac addresses: %s", c.host.ID, ip, strings.Join(macs[:], ","))
+			v.log.Errorf(message)
+			collisionValidationText += fmt.Sprintf("%s\n", message)
+		}
+	}
+	if hasCollisions {
+		return ValidationFailure, collisionValidationText
+	}
+
+	return ValidationSuccess, fmt.Sprintf("No IP collisions were detected by host %s", c.host.ID)
+}
+
+func (v *validator) inventoryHasIP(inventory *models.Inventory, ipAddress string) (bool, error) {
+	ip := net.ParseIP(ipAddress)
+	if ip != nil {
+		for _, intf := range inventory.Interfaces {
+			addresses := intf.IPV4Addresses
+			addresses = append(addresses, intf.IPV6Addresses...)
+			for _, address := range addresses {
+				addrIP, _, err := net.ParseCIDR(address)
+				if err != nil {
+					return false, err
+				}
+				if addrIP.Equal(ip) {
+					return true, nil
+				}
+			}
+		}
+	}
+	return false, nil
+}

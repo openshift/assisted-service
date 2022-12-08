@@ -1136,6 +1136,11 @@ func (b *bareMetalInventory) refreshAllHostsOnInstall(ctx context.Context, clust
 	if err != nil {
 		return err
 	}
+	err = b.detectAndStoreCollidingIPsForCluster(cluster.ID, b.db)
+	if err != nil {
+		b.log.WithError(err).Errorf("Failed to detect and store colliding IPs for cluster %s", cluster.ID.String())
+		return err
+	}
 	for _, chost := range cluster.Hosts {
 		if swag.StringValue(chost.Status) != models.HostStatusKnown && swag.StringValue(chost.Kind) == models.HostKindHost {
 			return common.NewApiError(http.StatusBadRequest, errors.Errorf("Host %s is in status %s and not ready for install",
@@ -1668,6 +1673,12 @@ func (b *bareMetalInventory) refreshClusterHosts(ctx context.Context, cluster *c
 	err := b.setMajorityGroupForCluster(cluster.ID, tx)
 	if err != nil {
 		log.WithError(err).Errorf("Failed to set cluster %s majority groups", cluster.ID.String())
+		return common.NewApiError(http.StatusInternalServerError, err)
+	}
+
+	err = b.detectAndStoreCollidingIPsForCluster(cluster.ID, tx)
+	if err != nil {
+		log.WithError(err).Errorf("Failed to detect and store colliding IPs for cluster %s", cluster.ID.String())
 		return common.NewApiError(http.StatusInternalServerError, err)
 	}
 
@@ -3407,6 +3418,10 @@ func filterReply(expected interface{}, input string) (string, error) {
 
 func (b *bareMetalInventory) setMajorityGroupForCluster(clusterID *strfmt.UUID, db *gorm.DB) error {
 	return b.clusterApi.SetConnectivityMajorityGroupsForCluster(*clusterID, db)
+}
+
+func (b *bareMetalInventory) detectAndStoreCollidingIPsForCluster(clusterID *strfmt.UUID, db *gorm.DB) error {
+	return b.clusterApi.DetectAndStoreCollidingIPsForCluster(*clusterID, db)
 }
 
 func (b *bareMetalInventory) refreshClusterStatus(

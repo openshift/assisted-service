@@ -48,6 +48,7 @@ const (
 	CompatibleAgent                                = validationID(models.HostValidationIDCompatibleAgent)
 	NoSkipInstallationDisk                         = validationID(models.HostValidationIDNoSkipInstallationDisk)
 	NoSkipMissingDisk                              = validationID(models.HostValidationIDNoSkipMissingDisk)
+	NoIPCollisionsInNetwork                        = validationID(models.HostValidationIDNoIPCollisionsInNetwork)
 )
 
 func (v validationID) category() (string, error) {
@@ -69,7 +70,8 @@ func (v validationID) category() (string, error) {
 		IsPlatformNetworkSettingsValid,
 		IsAppsDomainNameResolvedCorrectly,
 		IsDNSWildcardNotConfigured,
-		NonOverlappingSubnets:
+		NonOverlappingSubnets,
+		NoIPCollisionsInNetwork:
 		return "network", nil
 	case HasInventory,
 		HasMinCPUCores,

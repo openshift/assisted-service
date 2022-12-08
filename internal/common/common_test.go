@@ -1,7 +1,11 @@
 package common
 
 import (
+	"crypto/rand"
+	"encoding/json"
 	"fmt"
+	"math"
+	"math/big"
 	"testing"
 
 	"github.com/go-openapi/strfmt"
@@ -355,6 +359,39 @@ var _ = Describe("db features", func() {
 			Expect(outer.Inner.Int).To(Equal(0))
 			Expect(outer.Inner.String).To(Equal(swag.String("blah")))
 		})
+	})
+})
+
+/**
+* This test is to ensure that our assumptions about how golang handles the serialisation of a map is consistent with how we understand this to work.
+* to cover any changes in the implementation of json.Marshal that could affect the order in which items are serialized.
+ */
+var _ = Describe("JSON serialization checks", func() {
+	It("json serialization of a map should return a consistent string for the same entries irrespective of the order in which they were added", func() {
+		testMap := func() string {
+			var slice []string
+			for i := 0; i != 1000; i++ {
+				slice = append(slice, fmt.Sprintf("value %d", i))
+			}
+			m := make(map[string]string)
+			for i := 0; i != 1000; i++ {
+				r, err := rand.Int(rand.Reader, big.NewInt(math.MaxUint32))
+				Expect(err).ToNot(HaveOccurred())
+				index := int(r.Int64()) % len(slice)
+				value := slice[index]
+				slice = append(slice[:index], slice[index+1:]...)
+				m[value] = value
+			}
+			j, e := json.Marshal(m)
+			if e != nil {
+				fmt.Println("Error")
+			}
+			return string(j)
+		}
+		v := testMap()
+		for i := 0; i != 100; i++ {
+			Expect(testMap()).To(Equal(v))
+		}
 	})
 })
 

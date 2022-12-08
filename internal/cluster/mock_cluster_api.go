@@ -318,6 +318,20 @@ func (mr *MockAPIMockRecorder) DeregisterInactiveCluster(ctx, maxDeregisterPerIn
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeregisterInactiveCluster", reflect.TypeOf((*MockAPI)(nil).DeregisterInactiveCluster), ctx, maxDeregisterPerInterval, inactiveSince)
 }
 
+// DetectAndStoreCollidingIPsForCluster mocks base method.
+func (m *MockAPI) DetectAndStoreCollidingIPsForCluster(clusterID strfmt.UUID, db *gorm.DB) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DetectAndStoreCollidingIPsForCluster", clusterID, db)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DetectAndStoreCollidingIPsForCluster indicates an expected call of DetectAndStoreCollidingIPsForCluster.
+func (mr *MockAPIMockRecorder) DetectAndStoreCollidingIPsForCluster(clusterID, db interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DetectAndStoreCollidingIPsForCluster", reflect.TypeOf((*MockAPI)(nil).DetectAndStoreCollidingIPsForCluster), clusterID, db)
+}
+
 // GenerateAdditionalManifests mocks base method.
 func (m *MockAPI) GenerateAdditionalManifests(ctx context.Context, cluster *common.Cluster) error {
 	m.ctrl.T.Helper()

@@ -86,7 +86,6 @@ var _ = Describe("Validations test", func() {
 			{Status: api.Success, ValidationId: string(models.HostValidationIDCnvRequirementsSatisfied)},
 			{Status: api.Success, ValidationId: string(models.HostValidationIDLvmRequirementsSatisfied)},
 		}, nil).AnyTimes()
-
 		err := m.RefreshStatus(ctx, h, db)
 		Expect(err).ToNot(HaveOccurred())
 	}
@@ -1752,6 +1751,141 @@ var _ = Describe("Validations test", func() {
 			Expect(ok).To(BeTrue())
 			Expect(message).To(Equal("The inventory is not available yet."))
 			Expect(status).To(Equal(ValidationPending))
+		})
+	})
+
+	Context("NoIpCollisionsInNetwork", func() {
+
+		var (
+			host       models.Host
+			cluster    common.Cluster
+			hostId     strfmt.UUID
+			infraEnvId strfmt.UUID
+		)
+
+		mockRawIPCollisions := func(ipCollisions string) {
+			cluster.IPCollisions = ipCollisions
+			err := db.Save(&cluster).Error
+			Expect(err).ToNot(HaveOccurred())
+		}
+
+		mockIPCollisions := func(ipCollisions map[string][]string) {
+			cluster.IPCollisions = ""
+			if ipCollisions != nil {
+				collisionStr, err := json.Marshal(&ipCollisions)
+				Expect(err).ToNot(HaveOccurred())
+				cluster.IPCollisions = string(collisionStr)
+			}
+			err := db.Save(&cluster).Error
+			Expect(err).ToNot(HaveOccurred())
+		}
+
+		mockHost := func() {
+			hostId, infraEnvId = strfmt.UUID(uuid.New().String()), strfmt.UUID(uuid.New().String())
+			host = hostutil.GenerateTestHostByKind(hostId, infraEnvId, &clusterID, models.HostStatusDiscovering, models.HostKindHost, models.HostRoleMaster)
+			Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
+			host = hostutil.GetHostFromDB(*host.ID, host.InfraEnvID, db).Host
+		}
+
+		mockBadInventory := func(badCIDR string) {
+			host.Inventory = common.GenerateTestInventoryWithMutate(
+				func(inventory *models.Inventory) {
+
+					inventory.Interfaces = []*models.Interface{
+						{IPV4Addresses: []string{"192.168.1.31/24"}},
+						{IPV6Addresses: []string{badCIDR}},
+					}
+				},
+			)
+			Expect(db.Save(&host).Error).ShouldNot(HaveOccurred())
+		}
+
+		BeforeEach(func() {
+			cluster = hostutil.GenerateTestCluster(clusterID)
+			Expect(db.Create(&cluster).Error).ToNot(HaveOccurred())
+		})
+
+		It("if there is a bad CIDR in the inventory, the IP check should exit with an error", func() {
+			badCIDR := "xxxyyyybbaaaad"
+			mockHost()
+			mockBadInventory(badCIDR)
+			ipCollisions := make(map[string][]string)
+			ipCollisions["4.3.2.1"] = []string{"a1:1a:11:22:33:44", "a2:2b:22:33:44:55"}
+			mockIPCollisions(ipCollisions)
+			mockAndRefreshStatus(&host)
+			host = hostutil.GetHostFromDB(*host.ID, host.InfraEnvID, db).Host
+			status, message, ok := getValidationResult(host.ValidationsInfo, NoIPCollisionsInNetwork)
+			Expect(status).To(Equal(ValidationError))
+			Expect(message).To(Equal(fmt.Sprintf("inventory of host %s contains bad CIDR: invalid CIDR address: %s", hostId, badCIDR)))
+			Expect(ok).To(BeTrue())
+		})
+
+		It("should skip validation for a host that is part of a day 2 cluster", func() {
+			mockHost()
+			clusterKind := models.ClusterKindAddHostsCluster
+			cluster.Kind = &clusterKind
+			err := db.Save(&cluster).Error
+			Expect(err).ToNot(HaveOccurred())
+			mockAndRefreshStatus(&host)
+			host = hostutil.GetHostFromDB(*host.ID, host.InfraEnvID, db).Host
+			status, message, ok := getValidationResult(host.ValidationsInfo, NoIPCollisionsInNetwork)
+			Expect(status).To(Equal(ValidationSuccess))
+			Expect(message).To(Equal(fmt.Sprintf("Skipping validation for day 2 host %s", hostId)))
+			Expect(ok).To(BeTrue())
+		})
+
+		It("validation should fail with an error if the IP collision field is corrupt", func() {
+			mockHost()
+			mockRawIPCollisions("corrupted data")
+			mockAndRefreshStatus(&host)
+			host = hostutil.GetHostFromDB(*host.ID, host.InfraEnvID, db).Host
+			status, message, ok := getValidationResult(host.ValidationsInfo, NoIPCollisionsInNetwork)
+			Expect(status).To(Equal(ValidationError))
+			Expect(message).To(Equal("Unable to unmarshall ip collision report for cluster"))
+			Expect(ok).To(BeTrue())
+		})
+
+		It("should skip IP collision validation if IP collision info is not available yet", func() {
+			mockHost()
+			mockIPCollisions(nil)
+			mockAndRefreshStatus(&host)
+			host = hostutil.GetHostFromDB(*host.ID, host.InfraEnvID, db).Host
+			status, message, ok := getValidationResult(host.ValidationsInfo, NoIPCollisionsInNetwork)
+			Expect(status).To(Equal(ValidationSuccess))
+			Expect(message).To(Equal("IP collisions have not yet been evaluated"))
+			Expect(ok).To(BeTrue())
+		})
+
+		It("should raise a validation error if IP collision is detected for a host", func() {
+			mockHost()
+			ipCollisions := make(map[string][]string)
+			ipCollisions["4.3.2.1"] = []string{"a1:1a:11:22:33:44", "a2:2b:22:33:44:55"}
+			ipCollisions["1.2.3.4"] = []string{"de:ad:be:ef:cf:fe", "be:ef:c0:ff:ee:00"}
+			ipCollisions["1001:db8::10"] = []string{"de:ad:06:06:be:ef", "de:ad:06:06:c0:ff"}
+			mockIPCollisions(ipCollisions)
+			mockAndRefreshStatus(&host)
+			host = hostutil.GetHostFromDB(*host.ID, host.InfraEnvID, db).Host
+			status, message, ok := getValidationResult(host.ValidationsInfo, NoIPCollisionsInNetwork)
+			Expect(status).To(Equal(ValidationFailure))
+			Expect(message).To(ContainSubstring(fmt.Sprintf("Collisions detected for host ID %s", hostId)))
+			Expect(message).To(Not(ContainSubstring("a1:1a:11:22:33:44,a2:2b:22:33:44:55")))
+			Expect(message).To(ContainSubstring("de:ad:be:ef:cf:fe,be:ef:c0:ff:ee:00"))
+			Expect(message).To(ContainSubstring("de:ad:06:06:be:ef,de:ad:06:06:c0:ff"))
+			Expect(ok).To(BeTrue())
+		})
+
+		It("should not raise a validation error if there are ip collisions but not for this host", func() {
+			mockHost()
+			ipCollisions := make(map[string][]string)
+			ipCollisions["1.2.3.5"] = []string{"de:ad:be:ef:cf:fe", "be:ef:c0:ff:ee:00"}
+			ipCollisions["1001:db8::11"] = []string{"de:ad:06:06:be:ef", "de:ad:06:06:c0:ff"}
+			mockIPCollisions(ipCollisions)
+			mockAndRefreshStatus(&host)
+			host = hostutil.GetHostFromDB(*host.ID, host.InfraEnvID, db).Host
+			status, message, ok := getValidationResult(host.ValidationsInfo, NoIPCollisionsInNetwork)
+			Expect(status).To(Equal(ValidationSuccess))
+			Expect(message).To(ContainSubstring(fmt.Sprintf("No IP collisions were detected by host %s", hostId)))
+			Expect(ok).To(BeTrue())
 		})
 	})
 })
