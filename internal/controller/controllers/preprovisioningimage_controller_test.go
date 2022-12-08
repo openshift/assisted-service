@@ -239,6 +239,38 @@ var _ = Describe("PreprovisioningImage reconcile", func() {
 			Expect(ppi.Status.ExtraKernelParams).To(Equal(fmt.Sprintf("coreos.live.rootfs_url=%s", rootfsURL)))
 		})
 
+		It("sets the extra kernel params on the PPI based on the infraenv when the PPI doesn't accept ISO format", func() {
+			ppi.Spec.AcceptFormats = []metal3_v1alpha1.ImageFormat{metal3_v1alpha1.ImageFormatInitRD}
+			Expect(c.Update(ctx, ppi)).To(BeNil())
+
+			createdAt := metav1.Now().Add(-InfraEnvImageCooldownPeriod)
+			infraEnv.Status.CreatedTime = &metav1.Time{Time: createdAt}
+			infraEnv.Status.Conditions = []conditionsv1.Condition{{Type: aiv1beta1.ImageCreatedCondition,
+				Status:  corev1.ConditionTrue,
+				Reason:  "some reason",
+				Message: "Some message",
+			}}
+			infraEnv.ObjectMeta.Annotations = make(map[string]string)
+			infraEnv.ObjectMeta.Annotations[EnableIronicAgentAnnotation] = "true"
+			infraEnv.Spec.KernelArguments = []aiv1beta1.KernelArgument{
+				{Operation: models.KernelArgumentOperationAppend, Value: "arg=thing"},
+				{Operation: models.KernelArgumentOperationAppend, Value: "other.arg"},
+			}
+			Expect(c.Create(ctx, infraEnv)).To(BeNil())
+
+			res, err := pr.Reconcile(ctx, newPreprovisioningImageRequest(ppi))
+			Expect(err).To(BeNil())
+			Expect(res).To(Equal(ctrl.Result{}))
+			key := types.NamespacedName{
+				Namespace: testNamespace,
+				Name:      "testPPI",
+			}
+			Expect(c.Get(ctx, key, ppi)).To(BeNil())
+			validateStatus(initrdURL, conditionsv1.FindStatusCondition(infraEnv.Status.Conditions, aiv1beta1.ImageCreatedCondition), ppi)
+			Expect(ppi.Status.KernelUrl).To(Equal(kernelURL))
+			Expect(ppi.Status.ExtraKernelParams).To(Equal(fmt.Sprintf("coreos.live.rootfs_url=%s arg=thing other.arg", rootfsURL)))
+		})
+
 		It("PreprovisioningImage ImageUrl is up to date", func() {
 			infraEnv.Status.ISODownloadURL = downloadURL
 			createdAt := metav1.Now().Add(-InfraEnvImageCooldownPeriod)
