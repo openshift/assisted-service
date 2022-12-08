@@ -285,7 +285,7 @@ func UpdateMachineCidr(db *gorm.DB, cluster *common.Cluster, machineCidr []strin
 						Cidr:      models.Subnet(cidr),
 					}
 					if err := db.Save(machineNetwork).Error; err != nil {
-						err = errors.Wrapf(err, "failed to update cluster machineNetwork %v of cluster %s", *machineNetwork, *cluster.ID)
+						err = errors.Wrapf(err, "failed to update cluster machineNetwork %s of cluster %s", cidr, *cluster.ID)
 						return common.NewApiError(http.StatusInternalServerError, err)
 					}
 				}
