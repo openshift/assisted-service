@@ -150,7 +150,7 @@ aEA8gNEmV+rb7h1v0r3EwDQYJKoZIhvcNAQELBQAwYTELMAkGA1UEBhMCaXMxCzAJBgNVBAgMAmRk
 
 	It("create_configuration_with_mirror_registries", func() {
 		var result installcfg.InstallerConfigBaremetal
-		regData := []mirrorregistries.RegistriesConf{{Location: "location1", Mirror: "mirror1"}, {Location: "location2", Mirror: "mirror2"}}
+		regData := []mirrorregistries.RegistriesConf{{Location: "location1", Mirror: []string{"mirror1"}}, {Location: "location2", Mirror: []string{"mirror2"}}}
 		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(true).Times(2)
 		mockMirrorRegistriesConfigBuilder.EXPECT().ExtractLocationMirrorDataFromRegistries().Return(regData, nil).Times(1)
 		mockMirrorRegistriesConfigBuilder.EXPECT().GetMirrorCA().Return([]byte("some sa data"), nil).Times(1)
