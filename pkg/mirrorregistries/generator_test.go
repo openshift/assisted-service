@@ -14,7 +14,7 @@ func TestMirrorRegistriesConfig(t *testing.T) {
 }
 
 var (
-	expectedExtractList  = []RegistriesConf{{"location1", "mirror_location1"}, {"location2", "mirror_location2"}, {"location3", "mirror_location3"}}
+	expectedExtractList  = []RegistriesConf{{"location1", []string{"mirror_location1"}}, {"location2", []string{"mirror_location2"}}, {"location3", []string{"mirror_location3"}}}
 	configWithGarbage    = `?;,!`
 	configWithoutMirrors = `unqualified-search-registries = ["registry1", "registry2", "registry3"]`
 	configWithMirrors    = `unqualified-search-registries = ["registry1", "registry2", "registry3"]
