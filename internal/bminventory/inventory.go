@@ -4504,7 +4504,7 @@ func (b *bareMetalInventory) validateInfraEnvCreateParams(ctx context.Context, p
 	}
 
 	if params.InfraenvCreateParams.StaticNetworkConfig != nil {
-		if err = b.staticNetworkConfig.ValidateStaticConfigParams(ctx, params.InfraenvCreateParams.StaticNetworkConfig); err != nil {
+		if err = b.staticNetworkConfig.ValidateStaticConfigParams(params.InfraenvCreateParams.StaticNetworkConfig); err != nil {
 			return err
 		}
 	}
@@ -4700,7 +4700,7 @@ func (b *bareMetalInventory) UpdateInfraEnvInternal(ctx context.Context, params 
 	}
 
 	if params.InfraEnvUpdateParams.StaticNetworkConfig != nil {
-		if err = b.staticNetworkConfig.ValidateStaticConfigParams(ctx, params.InfraEnvUpdateParams.StaticNetworkConfig); err != nil {
+		if err = b.staticNetworkConfig.ValidateStaticConfigParams(params.InfraEnvUpdateParams.StaticNetworkConfig); err != nil {
 			return nil, common.NewApiError(http.StatusBadRequest, err)
 		}
 	}

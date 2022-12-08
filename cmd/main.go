@@ -107,7 +107,6 @@ var Options struct {
 	InstructionConfig                    hostcommands.InstructionConfig
 	OperatorsConfig                      operators.Options
 	GCConfig                             garbagecollector.Config
-	StaticNetworkConfig                  staticnetworkconfig.Config
 	ClusterStateMonitorInterval          time.Duration `envconfig:"CLUSTER_MONITOR_INTERVAL" default:"10s"`
 	S3Config                             s3wrapper.Config
 	HostStateMonitorInterval             time.Duration `envconfig:"HOST_MONITOR_INTERVAL" default:"8s"`
@@ -297,7 +296,7 @@ func main() {
 	versionsAPIHandler := versions.NewAPIHandler(log, Options.Versions, authzHandler, versionHandler, osImages)
 	failOnError(err, "failed to create Versions handler")
 	domainHandler := domains.NewHandler(Options.BMConfig.BaseDNSDomains)
-	staticNetworkConfig := staticnetworkconfig.New(log.WithField("pkg", "static_network_config"), Options.StaticNetworkConfig)
+	staticNetworkConfig := staticnetworkconfig.New(log.WithField("pkg", "static_network_config"))
 	ignitionBuilder, err := ignition.NewBuilder(log.WithField("pkg", "ignition"), staticNetworkConfig, mirrorRegistriesBuilder, releaseHandler, versionHandler)
 	failOnError(err, "failed to create ignition builder")
 	installConfigBuilder := installcfg.NewInstallConfigBuilder(log.WithField("pkg", "installcfg"), mirrorRegistriesBuilder, providerRegistry)
