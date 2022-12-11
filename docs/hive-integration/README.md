@@ -170,6 +170,8 @@ In case that the Bare Metal Operator is installed, the Baremetal Agent Controlle
 
 See BMAC documentation [here](./baremetal-agent-controller.md).
 
+[ZTP flow](ZTP_flow.png)
+
 ## Bare Metal Operator Integration using the converged flow
 See reference [here](https://github.com/openshift/enhancements/blob/master/enhancements/baremetal/ztp-metal3.md)
 
@@ -203,6 +205,8 @@ The environment var for the ironicAgent image to be used on X86_64 CPU architect
 `IRONIC_AGENT_IMAGE`
 The environment var for the ironicAgent image to be used on arm64 CPU architecture:
 `IRONIC_AGENT_IMAGE_ARM`
+
+[ZTP converged flow](ZTP_converged_flow.png)
 
 ## Working with mirror registry
 In case all of your images are in mirror registries, the service, discovery ISO, and installed nodes must be configured with the proper registries.conf and authentication certificate.  To do so, see the Mirror Registry Configuration section [here](../operator.md#mirror-registry-configuration).
