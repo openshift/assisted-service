@@ -30,7 +30,7 @@ func New() MirrorRegistriesConfigBuilder {
 
 type RegistriesConf struct {
 	Location string
-	Mirror   string
+	Mirror   []string
 }
 
 // We consider mirror registries to be configured if the following conditions are all met
@@ -97,11 +97,15 @@ func extractLocationMirrorDataFromRegistries(registriesConfToml string) ([]Regis
 		if !ok {
 			return nil, fmt.Errorf("failed to cast mirror key to toml Tree, registriesConfToml: %s", registriesConfToml)
 		}
-		mirror, ok := mirrorTree[0].Get("location").(string)
-		if !ok {
-			return nil, fmt.Errorf("failed to cast mirror location key to string, registriesConfToml: %s", registriesConfToml)
+		var mirrors []string
+		for i := range mirrorTree {
+			currentMirror, ok := mirrorTree[i].Get("location").(string)
+			if !ok {
+				return nil, fmt.Errorf("failed to cast mirror location key to string, registriesConfToml: %s", registriesConfToml)
+			}
+			mirrors = append(mirrors, currentMirror)
 		}
-		registriesConfList[i] = RegistriesConf{Location: location, Mirror: mirror}
+		registriesConfList[i] = RegistriesConf{Location: location, Mirror: mirrors}
 	}
 
 	return registriesConfList, nil
