@@ -18,6 +18,7 @@ import (
 	"github.com/openshift/assisted-service/models"
 	errorutil "github.com/openshift/assisted-service/pkg/error"
 	"github.com/openshift/assisted-service/pkg/executer"
+	"github.com/openshift/assisted-service/pkg/mirrorregistries"
 	hivev1 "github.com/openshift/hive/apis/hive/v1"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
@@ -179,8 +180,9 @@ func getReleaseVersion(clusterImageSetPath string) (string, error) {
 
 func getReleaseVersionAndCpuArch(log *log.Logger, releaseImage string, releaseMirror string, pullSecret string) (string, string, error) {
 	// releaseImage is in the form: quay.io:443/openshift-release-dev/ocp-release:4.9.17-x86_64
+	mirrorRegistriesBuilder := mirrorregistries.New()
 	releaseHandler := oc.NewRelease(&executer.CommonExecuter{},
-		oc.Config{MaxTries: oc.DefaultTries, RetryDelay: oc.DefaltRetryDelay})
+		oc.Config{MaxTries: oc.DefaultTries, RetryDelay: oc.DefaltRetryDelay}, mirrorRegistriesBuilder)
 
 	version, versionError := releaseHandler.GetOpenshiftVersion(log, releaseImage, releaseMirror, pullSecret)
 	if versionError != nil {
