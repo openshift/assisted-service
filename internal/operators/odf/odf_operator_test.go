@@ -280,7 +280,7 @@ var _ = Describe("Odf Operator", func() {
 					masterWithThreeDisk, masterWithNoDisk, masterWithLessDiskSize,
 				}}},
 				masterWithLessDiskSize,
-				api.ValidationResult{Status: api.Failure, ValidationId: operator.GetHostValidationID(), Reasons: []string{"ODF requires all the non-bootable disks to be more than 25 GB"}},
+				api.ValidationResult{Status: api.Failure, ValidationId: operator.GetHostValidationID(), Reasons: []string{"Insufficient resources to deploy ODF in compact mode. ODF requires a minimum of 3 hosts. Each host must have at least 1 additional disk of 25 GB minimum and an installation disk."}},
 			),
 		)
 
@@ -328,7 +328,7 @@ var _ = Describe("Odf Operator", func() {
 					masterWithThreeDisk, masterWithNoDisk, masterWithOneDisk, workerWithTwoDisk, workerWithThreeDisk, workerWithLessDiskSize,
 				}}},
 				workerWithLessDiskSize,
-				api.ValidationResult{Status: api.Failure, ValidationId: operator.GetHostValidationID(), Reasons: []string{"ODF requires all the non-bootable disks to be more than 25 GB"}},
+				api.ValidationResult{Status: api.Failure, ValidationId: operator.GetHostValidationID(), Reasons: []string{"Insufficient resources to deploy ODF in standard mode. ODF requires a minimum of 3 hosts. Each host must have at least 1 additional disk of 25 GB minimum and an installation disk."}},
 			),
 			table.Entry("worker with disk of size zero",
 				&common.Cluster{Cluster: models.Cluster{Hosts: []*models.Host{
