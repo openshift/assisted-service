@@ -170,6 +170,9 @@ In case that the Bare Metal Operator is installed, the Baremetal Agent Controlle
 
 See BMAC documentation [here](./baremetal-agent-controller.md).
 
+Workflow:
+<img src="https://docs.google.com/drawings/d/e/2PACX-1vRAP7uNomw4i7peWaXLsJvPnOvVn0LyrVLPNImknThpLUD1Q1QQS9bu3wC0qAQsSyJnOIm7spi_6v2b/pub?w=1416&amp;h=1206">
+
 ## Bare Metal Operator Integration using the converged flow
 See reference [here](https://github.com/openshift/enhancements/blob/master/enhancements/baremetal/ztp-metal3.md)
 
@@ -203,6 +206,9 @@ The environment var for the ironicAgent image to be used on X86_64 CPU architect
 `IRONIC_AGENT_IMAGE`
 The environment var for the ironicAgent image to be used on arm64 CPU architecture:
 `IRONIC_AGENT_IMAGE_ARM`
+
+Workflow:
+<img src="https://docs.google.com/drawings/d/e/2PACX-1vSODGl-U9L1pI6TstffWXwDux_PjGzZNGi7yLJcf0YPTtK8Uvxy__6IWOc2XmsE2JUDxoaQYYqsi3EC/pub?w=1413&amp;h=3157">
 
 ## Working with mirror registry
 In case all of your images are in mirror registries, the service, discovery ISO, and installed nodes must be configured with the proper registries.conf and authentication certificate.  To do so, see the Mirror Registry Configuration section [here](../operator.md#mirror-registry-configuration).
