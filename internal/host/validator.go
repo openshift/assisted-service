@@ -599,9 +599,11 @@ func (v *validator) belongsToMachineCidr(c *validationContext) (ValidationStatus
 	if c.infraEnv != nil {
 		return ValidationSuccessSuppressOutput, ""
 	}
-	if swag.BoolValue(c.cluster.UserManagedNetworking) && !common.IsSingleNodeCluster(c.cluster) {
+
+	if swag.BoolValue(c.cluster.UserManagedNetworking) && !common.IsSingleNodeCluster(c.cluster) && !c.host.Bootstrap {
 		return ValidationSuccess, "No machine network CIDR validation needed: User Managed Networking"
 	}
+
 	if swag.StringValue(c.cluster.Kind) == models.ClusterKindAddHostsCluster {
 		return ValidationSuccess, "No machine network CIDR validation needed: Day2 cluster"
 	}

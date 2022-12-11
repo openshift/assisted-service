@@ -2541,11 +2541,6 @@ func validateUserManagedNetworkConflicts(params *models.V2ClusterUpdateParams, s
 		log.WithError(err)
 		return common.NewApiError(http.StatusBadRequest, err)
 	}
-	if common.IsSliceNonEmpty(params.MachineNetworks) && !singleNodeCluster {
-		err := errors.Errorf("Machine Network CIDR cannot be set with User Managed Networking")
-		log.WithError(err)
-		return common.NewApiError(http.StatusBadRequest, err)
-	}
 	return nil
 }
 

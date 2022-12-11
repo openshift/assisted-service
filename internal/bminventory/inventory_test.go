@@ -3987,8 +3987,9 @@ var _ = Describe("cluster", func() {
 					verifyApiErrorString(reply, http.StatusBadRequest, "configuration must include the same number of apiVIPs (got 1) and ingressVIPs (got 0)")
 				})
 
-				It("Fail with Machine CIDR", func() {
+				It("Don't fail with Machine CIDR", func() {
 					mockProviderRegistry.EXPECT().SetPlatformUsages(models.PlatformTypeNone, gomock.Any(), mockUsage)
+					mockSuccess(1)
 					mockClusterUpdatability(1)
 					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 						ClusterID: clusterID,
@@ -3997,7 +3998,8 @@ var _ = Describe("cluster", func() {
 							MachineNetworks:       []*models.MachineNetwork{{Cidr: "10.11.0.0/16"}},
 						},
 					})
-					verifyApiErrorString(reply, http.StatusBadRequest, "Machine Network CIDR cannot be set with User Managed Networking")
+
+					Expect(reply).To(BeAssignableToTypeOf(installer.NewV2UpdateClusterCreated()))
 				})
 
 				It("Fail with non-x86_64 CPU architecture with 4.10", func() {
