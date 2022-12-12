@@ -68,6 +68,11 @@ type Cluster struct {
 type Event struct {
 	gorm.Model
 	models.Event
+
+	// Copies is the number of copies of this event that have been previously detected and
+	// deduplicated. If the value is one it means that there is only one copy and the event
+	// has never been deduplicated.
+	Copies int32 `gorm:"type:integer;not null;default:1"`
 }
 
 type Host struct {

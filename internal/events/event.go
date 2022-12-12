@@ -2,6 +2,7 @@ package events
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"strings"
@@ -9,6 +10,7 @@ import (
 
 	"github.com/go-openapi/strfmt"
 	"github.com/openshift/assisted-service/internal/common"
+	commonevents "github.com/openshift/assisted-service/internal/common/events"
 	eventsapi "github.com/openshift/assisted-service/internal/events/api"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/auth"
@@ -83,7 +85,81 @@ func (e *Events) v2SaveEvent(ctx context.Context, clusterID *strfmt.UUID, hostID
 			tx.Commit()
 		}
 	}()
+
+	// Check and remove copies of events that exceed the limits:
+	dberr = e.cleanCopies(ctx, tx, &event)
+	if dberr != nil {
+		return
+	}
+
+	// Create the new event:
 	dberr = tx.Create(&event).Error
+}
+
+// cleanCopies deletes copies of the given event and updates the message to reflect the number of
+// copies.
+func (e *Events) cleanCopies(ctx context.Context, tx *gorm.DB, event *common.Event) error {
+	// Don't delete anything if no limit has been defined for this event:
+	limit, ok := eventCopyLimits[event.Name]
+	if !ok {
+		return nil
+	}
+
+	// Prepare the search criteria to find the copies: events with the same name and that
+	// have been created within the specified limit.
+	filter := tx.Unscoped().Table("events").
+		Where("name = ?", event.Name).
+		Where("event_time > ?", time.Now().Add(-limit))
+	if event.ClusterID != nil {
+		filter = filter.Where("cluster_id = ?", event.ClusterID.String())
+	}
+	if event.HostID != nil {
+		filter = filter.Where("host_id = ?", event.HostID.String())
+	}
+	if event.InfraEnvID != nil {
+		filter = filter.Where("infra_env_id = ?", event.InfraEnvID.String())
+	}
+
+	// Get the number of copies from the database. Note that the event may have already been
+	// cleaned up before, that is why whe need to sum the values of the `copies` column and
+	// not just count the number of rows.
+	var sum sql.NullInt32
+	err := filter.Select("sum(copies)").Scan(&sum).Error
+	if err != nil {
+		return err
+	}
+	count := sum.Int32
+
+	// If there are copies within the specified limit then delete them, increase the number of
+	// copies of the new event and adjust the message to include that number of copies.
+	if count > 0 {
+		err = filter.Delete(nil).Error
+		if err != nil {
+			return err
+		}
+		event.Copies = count + 1
+		if event.Copies > 1 {
+			if event.Message == nil {
+				event.Message = new(string)
+			}
+			*event.Message = fmt.Sprintf(
+				"%s (repeated %d times)",
+				*event.Message, event.Copies,
+			)
+		}
+	} else {
+		event.Copies = 1
+	}
+
+	return nil
+}
+
+// eventCopyLimits contains the copy limits for events. The key of the map is the name of the event
+// and the value is the period of time.
+var eventCopyLimits = map[string]time.Duration{
+	commonevents.UpgradeAgentFailedEventName:   time.Hour,
+	commonevents.UpgradeAgentFinishedEventName: time.Hour,
+	commonevents.UpgradeAgentStartedEventName:  time.Hour,
 }
 
 func (e *Events) SendClusterEvent(ctx context.Context, event eventsapi.ClusterEvent) {
