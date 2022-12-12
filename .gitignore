@@ -2,7 +2,7 @@
 .vscode/
 .venv/
 venv/
-build/
+/build/
 kubevirtci/
 **/RCS/**
 .*.swp
