@@ -15,7 +15,6 @@ type Sender interface {
 	//     host added to cluster, we have the host-ID as the main entityID and
 	//     the cluster-ID as another ID that this event should be related to
 	// Use the prop field to add list of arbitrary key value pairs when additional information is needed (for example: "vendor": "RedHat")
-	AddEvent(ctx context.Context, clusterID strfmt.UUID, hostID *strfmt.UUID, severity string, msg string, eventTime time.Time, props ...interface{})
 	V2AddEvent(ctx context.Context, clusterID *strfmt.UUID, hostID *strfmt.UUID, infraEnvID *strfmt.UUID, name string, severity string, msg string, eventTime time.Time, props ...interface{})
 	// Used for events that are not interesting for metrics or for users, but we still
 	// want to raise them for internal notification between systems. e.g. notify kube-api
@@ -25,7 +24,6 @@ type Sender interface {
 	NotifyInternalEvent(ctx context.Context, clusterID *strfmt.UUID, hostID *strfmt.UUID, infraEnvID *strfmt.UUID, msg string)
 
 	//Add metric-related event. These events are hidden from the user and has 'metrics' Category field
-	AddMetricsEvent(ctx context.Context, clusterID strfmt.UUID, hostID *strfmt.UUID, severity string, msg string, eventTime time.Time, props ...interface{})
 	V2AddMetricsEvent(ctx context.Context, clusterID *strfmt.UUID, hostID *strfmt.UUID, infraEnvID *strfmt.UUID, name string, severity string, msg string, eventTime time.Time, props ...interface{})
 
 	SendClusterEvent(ctx context.Context, event ClusterEvent)

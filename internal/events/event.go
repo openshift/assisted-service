@@ -36,48 +36,6 @@ func New(db *gorm.DB, authz auth.Authorizer, log logrus.FieldLogger) eventsapi.H
 	}
 }
 
-func (e *Events) saveEvent(ctx context.Context, clusterID strfmt.UUID, hostID *strfmt.UUID, category string, severity string, message string, t time.Time, requestID string, props ...interface{}) error {
-	log := logutil.FromContext(ctx, e.log)
-	tt := strfmt.DateTime(t)
-	uid := clusterID
-	rid := strfmt.UUID(requestID)
-
-	additionalProps, err := toProps(props...)
-	if err != nil {
-		log.WithError(err).Error("failed to parse event's properties field")
-	}
-	event := common.Event{
-		Event: models.Event{
-			EventTime: &tt,
-			ClusterID: &uid,
-			Severity:  &severity,
-			Category:  category,
-			Message:   &message,
-			RequestID: rid,
-			Props:     additionalProps,
-		},
-	}
-	if hostID != nil {
-		event.HostID = hostID
-	}
-
-	//each event is saved in its own embedded transaction
-	var dberr error
-	tx := e.db.Begin()
-	defer func() {
-		if dberr != nil {
-			log.Warnf("Rolling back transaction on event=%s", message)
-			tx.Rollback()
-		} else {
-			tx.Commit()
-		}
-	}()
-	if dberr = tx.Create(&event).Error; err != nil {
-		log.WithError(err).Error("Error adding event")
-	}
-	return dberr
-}
-
 func (e *Events) v2SaveEvent(ctx context.Context, clusterID *strfmt.UUID, hostID *strfmt.UUID, infraEnvID *strfmt.UUID, name string, category string, severity string, message string, t time.Time, requestID string, props ...interface{}) {
 	log := logutil.FromContext(ctx, e.log)
 	tt := strfmt.DateTime(t)
@@ -154,16 +112,6 @@ func (e *Events) SendInfraEnvEvent(ctx context.Context, event eventsapi.InfraEnv
 func (e *Events) SendInfraEnvEventAtTime(ctx context.Context, event eventsapi.InfraEnvEvent, eventTime time.Time) {
 	infraEnvID := event.GetInfraEnvId()
 	e.V2AddEvent(ctx, event.GetClusterId(), nil, &infraEnvID, event.GetName(), event.GetSeverity(), event.FormatMessage(), eventTime)
-}
-
-func (e *Events) AddEvent(ctx context.Context, clusterID strfmt.UUID, hostID *strfmt.UUID, severity string, msg string, eventTime time.Time, props ...interface{}) {
-	requestID := requestid.FromContext(ctx)
-	_ = e.saveEvent(ctx, clusterID, hostID, models.EventCategoryUser, severity, msg, eventTime, requestID, props...)
-}
-
-func (e *Events) AddMetricsEvent(ctx context.Context, clusterID strfmt.UUID, hostID *strfmt.UUID, severity string, msg string, eventTime time.Time, props ...interface{}) {
-	requestID := requestid.FromContext(ctx)
-	_ = e.saveEvent(ctx, clusterID, hostID, models.EventCategoryMetrics, severity, msg, eventTime, requestID, props...)
 }
 
 func (e *Events) V2AddEvent(ctx context.Context, clusterID *strfmt.UUID, hostID *strfmt.UUID, infraEnvID *strfmt.UUID, name string, severity string, msg string, eventTime time.Time, props ...interface{}) {

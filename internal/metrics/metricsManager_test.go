@@ -30,7 +30,9 @@ var _ = DescribeTable(
 		// We are not testing generation of events here, we just need to make sure that the
 		// call to generating metrics doesn't fail:
 		handler := eventsapi.NewMockHandler(ctrl)
-		handler.EXPECT().AddMetricsEvent(
+		handler.EXPECT().V2AddMetricsEvent(
+			gomock.Any(),
+			gomock.Any(),
 			gomock.Any(),
 			gomock.Any(),
 			gomock.Any(),

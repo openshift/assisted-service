@@ -1143,8 +1143,8 @@ var _ = Describe("UpdateInventory", func() {
 				Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
 				mockValidator.EXPECT().DiskIsEligible(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any())
 				mockValidator.EXPECT().ListEligibleDisks(gomock.Any()).Return(test.inventory.Disks)
-				mockEvents.EXPECT().AddMetricsEvent(ctx, clusterId, &hostId, models.EventSeverityInfo, "nic.virtual_interfaces", gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any())
-				mockEvents.EXPECT().AddMetricsEvent(ctx, clusterId, &hostId, models.EventSeverityInfo, "nic.physical_interfaces", gomock.Any(), gomock.Any(), gomock.Any())
+				mockEvents.EXPECT().V2AddMetricsEvent(ctx, &clusterId, &hostId, gomock.Any(), gomock.Any(), models.EventSeverityInfo, "nic.virtual_interfaces", gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any())
+				mockEvents.EXPECT().V2AddMetricsEvent(ctx, &clusterId, &hostId, gomock.Any(), gomock.Any(), models.EventSeverityInfo, "nic.physical_interfaces", gomock.Any(), gomock.Any(), gomock.Any())
 				inventoryStr, err := common.MarshalInventory(&test.inventory)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(hapi.(*Manager).UpdateInventory(ctx, &host, inventoryStr)).ToNot(HaveOccurred())
@@ -1272,8 +1272,8 @@ var _ = Describe("UpdateInventory", func() {
 					},
 				}
 
-				mockEvents.EXPECT().AddMetricsEvent(ctx, *host.ClusterID, &hostId, models.EventSeverityInfo, "nic.virtual_interfaces", gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any())
-				mockEvents.EXPECT().AddMetricsEvent(ctx, *host.ClusterID, &hostId, models.EventSeverityInfo, "nic.physical_interfaces", gomock.Any(), gomock.Any(), gomock.Any())
+				mockEvents.EXPECT().V2AddMetricsEvent(ctx, host.ClusterID, &hostId, gomock.Any(), gomock.Any(), models.EventSeverityInfo, "nic.virtual_interfaces", gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any())
+				mockEvents.EXPECT().V2AddMetricsEvent(ctx, host.ClusterID, &hostId, gomock.Any(), gomock.Any(), models.EventSeverityInfo, "nic.physical_interfaces", gomock.Any(), gomock.Any(), gomock.Any())
 				mockValidator.EXPECT().DiskIsEligible(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any())
 				mockValidator.EXPECT().ListEligibleDisks(gomock.Any()).Return(inventory.Disks)
 				if test.expectMatch {
@@ -1432,8 +1432,8 @@ var _ = Describe("UpdateInventory", func() {
 			Expect(inventory.Interfaces).Should(HaveLen(1))
 		})
 		It("Doesn't save virtual interfaces when virtual interface flag is not enabled", func() {
-			mockEvents.EXPECT().AddMetricsEvent(ctx, *host.ClusterID, &hostId, models.EventSeverityInfo, "nic.virtual_interfaces", gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any())
-			mockEvents.EXPECT().AddMetricsEvent(ctx, *host.ClusterID, &hostId, models.EventSeverityInfo, "nic.physical_interfaces", gomock.Any(), gomock.Any(), gomock.Any())
+			mockEvents.EXPECT().V2AddMetricsEvent(ctx, host.ClusterID, &hostId, gomock.Any(), gomock.Any(), models.EventSeverityInfo, "nic.virtual_interfaces", gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any())
+			mockEvents.EXPECT().V2AddMetricsEvent(ctx, host.ClusterID, &hostId, gomock.Any(), gomock.Any(), models.EventSeverityInfo, "nic.physical_interfaces", gomock.Any(), gomock.Any(), gomock.Any())
 			Expect(hapi.UpdateInventory(ctx, &host, host.Inventory)).To(Succeed())
 
 			h := hostutil.GetHostFromDB(hostId, infraEnvId, db)
@@ -1462,8 +1462,8 @@ var _ = Describe("UpdateInventory", func() {
 			defaultConfig.EnableVirtualInterfaces = true
 			enabled_hapi := NewManager(common.GetTestLog(), db, mockEvents, mockValidator,
 				nil, createValidatorCfg(), nil, defaultConfig, dummy, nil, nil, false, nil)
-			mockEvents.EXPECT().AddMetricsEvent(ctx, *host.ClusterID, &hostId, models.EventSeverityInfo, "nic.virtual_interfaces", gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any())
-			mockEvents.EXPECT().AddMetricsEvent(ctx, *host.ClusterID, &hostId, models.EventSeverityInfo, "nic.physical_interfaces", gomock.Any(), gomock.Any(), gomock.Any())
+			mockEvents.EXPECT().V2AddMetricsEvent(ctx, host.ClusterID, &hostId, gomock.Any(), gomock.Any(), models.EventSeverityInfo, "nic.virtual_interfaces", gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any())
+			mockEvents.EXPECT().V2AddMetricsEvent(ctx, host.ClusterID, &hostId, gomock.Any(), gomock.Any(), models.EventSeverityInfo, "nic.physical_interfaces", gomock.Any(), gomock.Any(), gomock.Any())
 			Expect(enabled_hapi.UpdateInventory(ctx, &host, host.Inventory)).To(Succeed())
 
 			h := hostutil.GetHostFromDB(hostId, infraEnvId, db)
@@ -1484,27 +1484,27 @@ var _ = Describe("UpdateInventory", func() {
 		It("Records metrics for new inventory", func() {
 			newInventory := common.GenerateTestInventoryWithVirtualInterface(2, 1)
 			host.Inventory = ""
-			mockEvents.EXPECT().AddMetricsEvent(ctx, clusterId, &hostId, models.EventSeverityInfo, "nic.virtual_interfaces", gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(1)
-			mockEvents.EXPECT().AddMetricsEvent(ctx, clusterId, &hostId, models.EventSeverityInfo, "nic.physical_interfaces", gomock.Any(), gomock.Any(), gomock.Any()).Times(1)
+			mockEvents.EXPECT().V2AddMetricsEvent(ctx, &clusterId, &hostId, gomock.Any(), gomock.Any(), models.EventSeverityInfo, "nic.virtual_interfaces", gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(1)
+			mockEvents.EXPECT().V2AddMetricsEvent(ctx, &clusterId, &hostId, gomock.Any(), gomock.Any(), models.EventSeverityInfo, "nic.physical_interfaces", gomock.Any(), gomock.Any(), gomock.Any()).Times(1)
 			Expect(hapi.UpdateInventory(ctx, &host, newInventory)).To(Succeed())
 		})
 		It("Records metrics for changed inventory", func() {
 			newInventory := common.GenerateTestInventoryWithVirtualInterface(3, 1)
-			mockEvents.EXPECT().AddMetricsEvent(ctx, clusterId, &hostId, models.EventSeverityInfo, "nic.virtual_interfaces", gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(1)
-			mockEvents.EXPECT().AddMetricsEvent(ctx, clusterId, &hostId, models.EventSeverityInfo, "nic.physical_interfaces", gomock.Any(), gomock.Any(), gomock.Any()).Times(1)
+			mockEvents.EXPECT().V2AddMetricsEvent(ctx, &clusterId, &hostId, gomock.Any(), gomock.Any(), models.EventSeverityInfo, "nic.virtual_interfaces", gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(1)
+			mockEvents.EXPECT().V2AddMetricsEvent(ctx, &clusterId, &hostId, gomock.Any(), gomock.Any(), models.EventSeverityInfo, "nic.physical_interfaces", gomock.Any(), gomock.Any(), gomock.Any()).Times(1)
 			Expect(hapi.UpdateInventory(ctx, &host, newInventory)).To(Succeed())
 		})
 		It("Doesn't record metrics for unchanged inventory", func() {
-			mockEvents.EXPECT().AddMetricsEvent(ctx, clusterId, &hostId, models.EventSeverityInfo, "nic.virtual_interfaces", gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(1)
-			mockEvents.EXPECT().AddMetricsEvent(ctx, clusterId, &hostId, models.EventSeverityInfo, "nic.physical_interfaces", gomock.Any(), gomock.Any(), gomock.Any()).Times(1)
+			mockEvents.EXPECT().V2AddMetricsEvent(ctx, &clusterId, &hostId, gomock.Any(), gomock.Any(), models.EventSeverityInfo, "nic.virtual_interfaces", gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(1)
+			mockEvents.EXPECT().V2AddMetricsEvent(ctx, &clusterId, &hostId, gomock.Any(), gomock.Any(), models.EventSeverityInfo, "nic.physical_interfaces", gomock.Any(), gomock.Any(), gomock.Any()).Times(1)
 			Expect(hapi.UpdateInventory(ctx, &host, host.Inventory)).To(Succeed())
 		})
 		It("Doesn't record metrics for unbound hosts", func() {
 			newInventory := common.GenerateTestInventoryWithVirtualInterface(2, 1)
 			host.Inventory = ""
 			host.ClusterID = nil
-			mockEvents.EXPECT().AddMetricsEvent(ctx, clusterId, &hostId, models.EventSeverityInfo, "nic.virtual_interfaces", gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
-			mockEvents.EXPECT().AddMetricsEvent(ctx, clusterId, &hostId, models.EventSeverityInfo, "nic.physical_interfaces", gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
+			mockEvents.EXPECT().V2AddMetricsEvent(ctx, &clusterId, &hostId, gomock.Any(), gomock.Any(), models.EventSeverityInfo, "nic.virtual_interfaces", gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
+			mockEvents.EXPECT().V2AddMetricsEvent(ctx, &clusterId, &hostId, gomock.Any(), gomock.Any(), models.EventSeverityInfo, "nic.physical_interfaces", gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
 			Expect(hapi.UpdateInventory(ctx, &host, newInventory)).To(Succeed())
 		})
 	})

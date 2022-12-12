@@ -332,7 +332,7 @@ func (m *MetricsManager) InstallationStarted() {
 
 func (m *MetricsManager) ClusterInstallationFinished(ctx context.Context, result string, prevState string, clusterVersion string, clusterID strfmt.UUID, emailDomain string, installationStartedTime strfmt.DateTime) {
 	duration := time.Since(time.Time(installationStartedTime)).Seconds()
-	m.handler.AddMetricsEvent(ctx, clusterID, nil, models.EventSeverityInfo, "cluster.installation.results", time.Now(),
+	m.handler.V2AddMetricsEvent(ctx, &clusterID, nil, nil, "", models.EventSeverityInfo, "cluster.installation.results", time.Now(),
 		"duration", duration, "result", result, "lastState", prevState)
 
 	log := logutil.FromContext(ctx, logrus.New())
@@ -389,7 +389,7 @@ func (m *MetricsManager) ReportHostInstallationMetrics(ctx context.Context, clus
 			}
 			log.Infof("service Logic Host Installation Phase Seconds phase %s, vendor %s product %s disk %s result %s, duration %f",
 				string(previousProgress.CurrentStage), hwVendor, hwProduct, diskType, string(phaseResult), duration)
-			m.handler.AddMetricsEvent(ctx, clusterID, h.ID, models.EventSeverityInfo, "host.stage.duration", time.Now(),
+			m.handler.V2AddMetricsEvent(ctx, &clusterID, h.ID, nil, "", models.EventSeverityInfo, "host.stage.duration", time.Now(),
 				"result", string(phaseResult), "duration", duration, "host_stage", string(previousProgress.CurrentStage), "vendor", hwVendor, "product", hwProduct, "disk_type", diskType, "host_role", roleStr)
 
 			m.serviceLogicHostInstallationPhaseSeconds.WithLabelValues(string(previousProgress.CurrentStage),
@@ -427,7 +427,7 @@ func (m *MetricsManager) reportHostMetricsOnInstallationComplete(ctx context.Con
 	m.serviceLogicClusterHostRAMGb.WithLabelValues(roleStr, installationStageStr).
 		Observe(float64(bytesToGib(hwInfo.Memory.PhysicalBytes)))
 
-	m.handler.AddMetricsEvent(ctx, clusterID, h.ID, models.EventSeverityInfo, "host.mem.cpu", time.Now(),
+	m.handler.V2AddMetricsEvent(ctx, &clusterID, h.ID, nil, "", models.EventSeverityInfo, "host.mem.cpu", time.Now(),
 		"host_result", installationStageStr, "host_role", roleStr, "mem_bytes", bytesToGib(hwInfo.Memory.PhysicalBytes),
 		"core_count", hwInfo.CPU.Count)
 
@@ -438,7 +438,7 @@ func (m *MetricsManager) reportHostMetricsOnInstallationComplete(ctx context.Con
 		diskTypeStr := string(disk.DriveType) //+ "-" + disk.StorageController
 		log.Infof("service Logic Cluster Host DiskGb role %s, result %s diskType %s diskSize %d",
 			roleStr, installationStageStr, diskTypeStr, bytesToGib(disk.SizeBytes))
-		m.handler.AddMetricsEvent(ctx, clusterID, h.ID, models.EventSeverityInfo, "disk.size.type", time.Now(),
+		m.handler.V2AddMetricsEvent(ctx, &clusterID, h.ID, nil, "", models.EventSeverityInfo, "disk.size.type", time.Now(),
 			"host_result", installationStageStr, "host_role", roleStr, "disk_type", diskTypeStr, "disk_size", bytesToGib(disk.SizeBytes))
 
 		m.serviceLogicClusterHostDiskGb.WithLabelValues(diskTypeStr, roleStr, installationStageStr).
@@ -448,7 +448,7 @@ func (m *MetricsManager) reportHostMetricsOnInstallationComplete(ctx context.Con
 	for _, inter := range hwInfo.Interfaces {
 		log.Infof("service Logic Cluster Host NicGb role %s, result %s SpeedMbps %f",
 			roleStr, installationStageStr, float64(inter.SpeedMbps))
-		m.handler.AddMetricsEvent(ctx, clusterID, h.ID, models.EventSeverityInfo, "nic.speed", time.Now(),
+		m.handler.V2AddMetricsEvent(ctx, &clusterID, h.ID, nil, "", models.EventSeverityInfo, "nic.speed", time.Now(),
 			"host_result", installationStageStr, "host_role", roleStr, "nic_speed", inter.SpeedMbps)
 
 		m.serviceLogicClusterHostNicGb.WithLabelValues(roleStr, installationStageStr).
