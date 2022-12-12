@@ -26,7 +26,7 @@ func BytesToGb(bytes int64) int64 {
 	return bytes / int64(units.GB)
 }
 
-func BytesToGiB(bytes int64) int64 {
+func BytesToGib(bytes int64) int64 {
 	return bytes / int64(units.GiB)
 }
 

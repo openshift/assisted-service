@@ -58,7 +58,7 @@ func SortHosts(hosts []*models.Host) ([]*models.Host, bool) {
 	diskCapacityGiB := func(disks []*models.Disk) int64 {
 		return funk.Reduce(disks, func(acc int64, d *models.Disk) int64 {
 			if d.InstallationEligibility.Eligible {
-				return acc + conversions.BytesToGiB(d.SizeBytes)
+				return acc + conversions.BytesToGib(d.SizeBytes)
 			} else {
 				return acc
 			}
@@ -75,7 +75,7 @@ func SortHosts(hosts []*models.Host) ([]*models.Host, bool) {
 
 	memInGib := func(inventory *models.Inventory) int64 {
 		if inventory.Memory != nil {
-			return conversions.BytesToGiB(inventory.Memory.UsableBytes)
+			return conversions.BytesToGib(inventory.Memory.UsableBytes)
 		} else {
 			return 0
 		}
