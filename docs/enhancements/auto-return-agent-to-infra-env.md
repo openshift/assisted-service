@@ -31,18 +31,18 @@ process.
 
 ### Goals
 
-* Reconfigure a host to boot the discovery image as a part of unbinding from a
+- Reconfigure a host to boot the discovery image as a part of unbinding from a
   cluster without a BareMetalHost
-* Do not run an agent on a node if it is not being unbound
+- Do not run an agent on a node if it is not being unbound
 
 ### Non-Goals
 
-* Automate graceful removal of a node from an existing cluster
-* Booting a node that is unresponsive or not currently part of an installed
+- Automate graceful removal of a node from an existing cluster
+- Booting a node that is unresponsive or not currently part of an installed
   cluster
-* Registering an agent to an InfraEnv other than the one it is currently
+- Registering an agent to an InfraEnv other than the one it is currently
   associated with
-* Wiping a host's storage when it is removed from a cluster
+- Wiping a host's storage when it is removed from a cluster
 
 ## Proposal
 
@@ -60,17 +60,22 @@ the SaaS this feature will not be used.
 1. User unbinds the host from the cluster
 2. Assisted service creates a DaemonSet to run the assisted-installer-agent
    on the host as a privileged pod
-  * If there is no BareMetalHost associated with the agent CR, the service
-    executes a new host state transition (`TransitionTypeReclaimHost`)
-  * Host moves to state `HostStatusReclaiming`
+
+- If there is no BareMetalHost associated with the agent CR, the service
+  executes a new host state transition (`TransitionTypeReclaimHost`)
+- Host moves to state `HostStatusReclaiming`
+
 3. The agent downloads the InfraEnv's kernel and initrd (including discovery
    ignition) to the host's `/boot` partition
 4. The agent creates a boot entry to boot into the discovery kernel and initrd
    and posts a successful step response to the service
-  * Host moves to state `HostStatusReclaimingPendingReboot`
+
+- Host moves to state `HostStatusReclaimingPendingReboot`
+
 5. The agent reboots the host into the discovery image
 6. Discovery agent registers host
-  * Service moves host to `HostStatusDiscoveringUnbound`
+
+- Service moves host to `HostStatusDiscoveringUnbound`
 
 ### User Stories
 
@@ -82,13 +87,13 @@ infrastructure (BMC, hypervisor, etc).
 
 ### Implementation Details/Notes/Constraints [optional]
 
-* The boot artifact URLs (initrd, kernel, and rootfs) will be provided to the
+- The boot artifact URLs (initrd, kernel, and rootfs) will be provided to the
   agent directly as a part of the pod spec that runs the agent.
-* The agent will require two new commands; one for each of the new states
+- The agent will require two new commands; one for each of the new states
   1. Download boot artifacts and write boot entry (`HostStatusReclaiming`)
   2. Reboot the node (`HostStatusReclaimingPendingReboot`)
-* The existing unbind API will be used to trigger this process
-  * This means removing the cluster ref from the agent CR when using the kubeAPI
+- The existing unbind API will be used to trigger this process
+  - This means removing the cluster ref from the agent CR when using the kubeAPI
 
 #### Example boot entry
 
@@ -105,6 +110,7 @@ The name of this file and the version number ensure that it should always be the
 first boot entry and will be selected upon reboot.
 
 #### State Machine Changes
+
 Currently when a host is installed, all unbind APIs will call the `UnbindHost`
 transition. This will always move the host to
 `HostStatusUnbindingPendingUserAction`. If the agent has a BMH associated with
@@ -166,19 +172,19 @@ running agent should execute the reclaim procedure.
 
 #### Assumptions
 
-* This approach only works if the host is currently part of a working cluster
+- This approach only works if the host is currently part of a working cluster
   - This cluster needs to have been installed by assisted service so that
     it has access to the kubeconfig
-* This reclaim procedure will only be triggered if assisted service is running
+- This reclaim procedure will only be triggered if assisted service is running
   the kubernetes API controllers
   - Assisted service needs to ensure the host isn't being managed by a bare
     metal host (only possible with the kubernetes API)
   - When using the REST API there is no way for a user to indicate if a host
     should be unbound normally or if it should be reclaimed
-* There must be enough free space on the `/boot` partition
+- There must be enough free space on the `/boot` partition
   - Space is required to store the initrd and kernel (~90MB)
   - The agent can check for this
-* A node in a spoke cluster can be identified by the hostname in the agent
+- A node in a spoke cluster can be identified by the hostname in the agent
   - In a non-CAPI scenario there are no other reliable means to identify which
     node maps to which agent
   - With CAPI a string of references exist that could be used to identify the
@@ -233,22 +239,25 @@ This specifically means that it won't be usable in the SaaS.
 ## Alternatives
 
 1. Install an agent when the cluster is first installed
-  - This would be a full polling approach where the agent is always polling the
-    service to determine if it should reprovision.
-  - This is likely not worth the resources and clusters don't exist long enough in
-    the cloud for this to work currently.
+
+- This would be a full polling approach where the agent is always polling the
+  service to determine if it should reprovision.
+- This is likely not worth the resources and clusters don't exist long enough in
+  the cloud for this to work currently.
+
 2. Implement starting the agent in MAPI and/or CAPI
-  - These components are already the starting point for removing a node from a
-    cluster and would likely be the ones triggering the unbind
-  - In this case the assisted-service wouldn't require the spoke cluster
-    kubeconfig as MAPI/CAPI should already have this access.
-  - A lot of information will be required to properly start the agent
-    - Agent image pull spec
-    - Hub cluster CA cert
-    - http(s) proxy information
-    - Agent authentication information (pull secret)
-    - Boot artifact URLs
-  - There's not much relevant difference between doing any of this in the CAPI
-    provider vs assisted
-  - Adding a MAPI provider would involve creating our own platform type which
-    is not something we want to take on
+
+- These components are already the starting point for removing a node from a
+  cluster and would likely be the ones triggering the unbind
+- In this case the assisted-service wouldn't require the spoke cluster
+  kubeconfig as MAPI/CAPI should already have this access.
+- A lot of information will be required to properly start the agent
+  - Agent image pull spec
+  - Hub cluster CA cert
+  - http(s) proxy information
+  - Agent authentication information (pull secret)
+  - Boot artifact URLs
+- There's not much relevant difference between doing any of this in the CAPI
+  provider vs assisted
+- Adding a MAPI provider would involve creating our own platform type which
+  is not something we want to take on

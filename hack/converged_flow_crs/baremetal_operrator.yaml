@@ -9,4 +9,3 @@ status:
  versions:
   - name: operator
     version: 4.11.0-0.nightly-2022-06-15-222801
-

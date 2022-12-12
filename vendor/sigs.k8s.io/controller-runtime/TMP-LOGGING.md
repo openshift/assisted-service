@@ -1,17 +1,16 @@
-Logging Guidelines
-==================
+# Logging Guidelines
 
-controller-runtime uses a kind of logging called *structured logging*. If
+controller-runtime uses a kind of logging called _structured logging_. If
 you've used a library like Zap or logrus before, you'll be familiar with
-the concepts we use.  If you've only used a logging library like the "log"
+the concepts we use. If you've only used a logging library like the "log"
 package (in the Go standard library) or "glog" (in Kubernetes), you'll
 need to adjust how you think about logging a bit.
 
 ### Getting Started With Structured Logging
 
-With structured logging, we associate a *constant* log message with some
-variable key-value pairs.  For instance, suppose we wanted to log that we
-were starting reconciliation on a pod.  In the Go standard library logger,
+With structured logging, we associate a _constant_ log message with some
+variable key-value pairs. For instance, suppose we wanted to log that we
+were starting reconciliation on a pod. In the Go standard library logger,
 we might write:
 
 ```go
@@ -36,24 +35,24 @@ func (r *Reconciler) Reconcile(req reconcile.Request) (reconcile.Response, error
 
 Notice how we've broken out the information that we want to convey into
 a constant message (`"starting reconciliation"`) and some key-value pairs
-that convey variable information (`"pod", req.NamespacedName`).  We've
+that convey variable information (`"pod", req.NamespacedName`). We've
 there-by added "structure" to our logs, which makes them easier to save
 and search later, as well as correlate with metrics and events.
 
 All of controller-runtime's logging is done via
 [logr](https://github.com/go-logr/logr), a generic interface for
-structured logging.  You can use whichever logging library you want to
-implement the actual mechanics of the logging.  controller-runtime
+structured logging. You can use whichever logging library you want to
+implement the actual mechanics of the logging. controller-runtime
 provides some helpers to make it easy to use
 [Zap](https://go.uber.org/zap) as the implementation.
 
 You can configure the logging implementation using
-`"sigs.k8s.io/controller-runtime/pkg/log".SetLogger`.  That
+`"sigs.k8s.io/controller-runtime/pkg/log".SetLogger`. That
 package also contains the convenience functions for setting up Zap.
 
 You can get a handle to the the "root" logger using
 `"sigs.k8s.io/controller-runtime/pkg/log".Log`, and can then call
-`WithName` to create individual named loggers.  You can call `WithName`
+`WithName` to create individual named loggers. You can call `WithName`
 repeatedly to chain names together:
 
 ```go
@@ -82,16 +81,16 @@ wondering why particular logs lines are at `V(5)` instead of `V(7)`.
 
 ## Logging errors
 
-Errors should *always* be logged with `log.Error`, which allows logr
+Errors should _always_ be logged with `log.Error`, which allows logr
 implementations to provide special handling of errors (for instance,
 providing stack traces in debug mode).
 
-It's acceptable to log call `log.Error` with a nil error object.  This
+It's acceptable to log call `log.Error` with a nil error object. This
 conveys that an error occurred in some capacity, but that no actual
 `error` object was involved.
 
 Errors returned by the `Reconcile` implementation of the `Reconciler` interface are commonly logged as a `Reconciler error`.
-It's a developer choice to create an additional error log in the `Reconcile` implementation so a more specific file name and line for the error are returned. 
+It's a developer choice to create an additional error log in the `Reconcile` implementation so a more specific file name and line for the error are returned.
 
 ## Logging messages
 
@@ -104,16 +103,15 @@ It's a developer choice to create an additional error log in the `Reconcile` imp
 
 ## Logging Kubernetes Objects
 
-Kubernetes objects should be logged directly, like `log.Info("this is
-a Kubernetes object", "pod", somePod)`.  controller-runtime provides
+Kubernetes objects should be logged directly, like `log.Info("this is a Kubernetes object", "pod", somePod)`. controller-runtime provides
 a special encoder for Zap that will transform Kubernetes objects into
 `name, namespace, apiVersion, kind` objects, when available and not in
-development mode.  Other logr implementations should implement similar
+development mode. Other logr implementations should implement similar
 logic.
 
 ## Logging Structured Values (Key-Value pairs)
 
-- Use lower-case, space separated keys.  For example `object` for objects,
+- Use lower-case, space separated keys. For example `object` for objects,
   `api version` for `APIVersion`
 
 - Be consistent across your application, and with controller-runtime when
@@ -128,7 +126,7 @@ logic.
 
 ### Groups, Versions, and Kinds
 
-- Kinds should not be logged alone (they're meaningless alone).  Use
+- Kinds should not be logged alone (they're meaningless alone). Use
   a `GroupKind` object to log them instead, or a `GroupVersionKind` when
   version is relevant.
 
@@ -139,7 +137,7 @@ logic.
 ### Objects and Types
 
 - If code works with a generic Kubernetes `runtime.Object`, use the
-  `object` key.  For specific objects, prefer the resource name as the key
+  `object` key. For specific objects, prefer the resource name as the key
   (e.g. `pod` for `v1.Pod` objects).
 
 - For non-Kubernetes objects, the `object` key may also be used, if you
@@ -150,8 +148,7 @@ logic.
 
 - If there's specific context around a type, the key may be more specific,
   but should end with `type` -- for instance, `OwnerType` should be logged
-  as `owner` in the context of `log.Error(err, "Could not get ObjectKinds
-  for OwnerType", `owner type`, fmt.Sprintf("%T"))`.  When possible, favor
+  as `owner` in the context of `log.Error(err, "Could not get ObjectKinds for OwnerType", `owner type`, fmt.Sprintf("%T"))`. When possible, favor
   communicating kind instead.
 
 ### Multiple things
@@ -164,6 +161,5 @@ logic.
   should favor logging the key.
 
 - Reconcile keys should be logged as with the same key as if you were
-  logging the object directly (e.g. `log.Info("reconciling pod", "pod",
-  req.NamespacedName)`).  This ends up having a similar effect to logging
+  logging the object directly (e.g. `log.Info("reconciling pod", "pod", req.NamespacedName)`). This ends up having a similar effect to logging
   the object directly.

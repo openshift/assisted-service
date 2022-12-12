@@ -503,7 +503,7 @@ Set value at a path of a struct
 .. code-block:: go
 
     var bar Bar = Bar{
-        Name: "level-0", 
+        Name: "level-0",
         Bar: &Bar{
             Name: "level-1",
             Bars: []*Bar{
@@ -825,14 +825,14 @@ Generates a sharded string with a fixed length and depth.
 funk.Subset
 .............
 
-Returns true if a collection is a subset of another 
+Returns true if a collection is a subset of another
 
 .. code-block:: go
 
     funk.Subset([]int{1, 2, 4}, []int{1, 2, 3, 4, 5}) // true
     funk.Subset([]string{"foo", "bar"},[]string{"foo", "bar", "hello", "bar", "hi"}) //true
-   
-    
+
+
 Performance
 -----------
 

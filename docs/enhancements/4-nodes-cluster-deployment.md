@@ -42,21 +42,21 @@ were encouraged to pursue manifests' overwrite as a way to provide this through 
 ### Non-Goals
 
 - Expose this through SaaS at this stage. This would require changes in the UI and other validations
-that may not worth the effort at this stage.
+  that may not worth the effort at this stage.
 
 ## Proposal
 
 The biggest changes anticipated for this enhancement are:
 
 - Modify Assisted Service so that 3 nodes will be set as schedulable masters and 1 as worker, whenever a 4-node cluster
-is created.
+  is created.
 
 - Modify the `enoughMastersAndWorkers` validation so that it allows 1 worker when masters are
-schedulable. [PoC here](https://github.com/flaper87/assisted-service/commit/f07fc6589e4f2d316266ac5533d76bd2faf471d7)
-and [here](https://github.com/flaper87/assisted-service/commit/bb2d82eaacaee7790d2f18711e2ba3a442a4967d)
+  schedulable. [PoC here](https://github.com/flaper87/assisted-service/commit/f07fc6589e4f2d316266ac5533d76bd2faf471d7)
+  and [here](https://github.com/flaper87/assisted-service/commit/bb2d82eaacaee7790d2f18711e2ba3a442a4967d)
 
 - Modify Assisted Installer so that it will automatically set the `InfrastructureTopology` to `HighlyAvailable` in the
-`cluster-infrastructure-02-config.yml` manifest, whenever a 4 nodes cluster is requested.
+  `cluster-infrastructure-02-config.yml` manifest, whenever a 4 nodes cluster is requested.
 
 ### User Stories
 
@@ -103,7 +103,7 @@ then think how to expose it on the cloud service with a better UX.
 ### Test Plan
 
 - Add a basic ZTP job that deploys a 4-nodes cluster. Alternatively, we could modify the existing
-job and have it always deploy 4 nodes, which would cover multiple scenarios at once.
+  job and have it always deploy 4 nodes, which would cover multiple scenarios at once.
 
 ## Drawbacks
 
@@ -112,6 +112,6 @@ N/A
 ## Alternatives
 
 - Request users to explicitly set the InfrastructureTopology as HighlyAvailable and not make any
-decision for them. This would open the doors for undefined behavior and it may result in broken, or
-unhealthy clusters being created. The idea in this enhancement is to start with sane, useful,
-defaults and then expand the functionality to provide more control.
+  decision for them. This would open the doors for undefined behavior and it may result in broken, or
+  unhealthy clusters being created. The idea in this enhancement is to start with sane, useful,
+  defaults and then expand the functionality to provide more control.

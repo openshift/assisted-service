@@ -40,9 +40,8 @@ go get github.com/oklog/ulid
 An ULID is constructed with a `time.Time` and an `io.Reader` entropy source.
 This design allows for greater flexibility in choosing your trade-offs.
 
-Please note that `rand.Rand` from the `math` package is *not* safe for concurrent use.
+Please note that `rand.Rand` from the `math` package is _not_ safe for concurrent use.
 Instantiate one per long living go-routine or use a `sync.Pool` if you want to avoid the potential contention of a locked `rand.Source` as its been frequently observed in the package level functions.
-
 
 ```go
 func ExampleULID() {
@@ -61,11 +60,13 @@ Below is the current specification of ULID as implemented in this repository.
 ### Components
 
 **Timestamp**
+
 - 48 bits
 - UNIX-time in milliseconds
 - Won't run out of space till the year 10895 AD
 
 **Entropy**
+
 - 80 bits
 - User defined entropy source.
 - Monotonicity within the same millisecond with [`ulid.Monotonic`](https://godoc.org/github.com/oklog/ulid#Monotonic)

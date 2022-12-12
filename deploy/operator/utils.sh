@@ -16,7 +16,7 @@ function wait_for_operator() {
 
     for _ in $(seq 1 60); do
         csv=$(oc -n "${namespace}" get subscription "${subscription}" -o jsonpath='{.status.installedCSV}' || true)
-        if [[ -n "${csv}" ]]; then
+        if [[ -n ${csv} ]]; then
             if [[ "$(oc -n "${namespace}" get csv "${csv}" -o jsonpath='{.status.phase}')" == "Succeeded" ]]; then
                 echo "ClusterServiceVersion (${csv}) is ready"
                 return 0
@@ -38,13 +38,13 @@ function wait_for_pod() {
     wait_for_condition "pod" "Ready" "30m" "${namespace}" "${selector}"
 }
 
-function wait_for_pods(){
-  while [[ $(oc get pods -n $1 -o 'jsonpath={..status.conditions[?(@.type=="Ready")].status}'| tr ' ' '\n'  | sort -u) != "True" ]]; do
-    echo "Waiting for pods in namespace $1 to be ready"
-    oc get pods -n $1 -o 'jsonpath={..status.containerStatuses}' | jq "."
-    sleep 5;
-  done
-  echo "Pods in namespace $1 are ready"
+function wait_for_pods() {
+    while [[ $(oc get pods -n $1 -o 'jsonpath={..status.conditions[?(@.type=="Ready")].status}' | tr ' ' '\n' | sort -u) != "True" ]]; do
+        echo "Waiting for pods in namespace $1 to be ready"
+        oc get pods -n $1 -o 'jsonpath={..status.containerStatuses}' | jq "."
+        sleep 5
+    done
+    echo "Pods in namespace $1 are ready"
 }
 
 function wait_for_deployment() {
@@ -164,10 +164,10 @@ function get_image_repository_only() {
 }
 
 function nth_ip() {
-  network=$1
-  idx=$2
+    network=$1
+    idx=$2
 
-  python -c "from ansible_collections.ansible.utils.plugins.filter import nthhost; print(nthhost.nthhost('"$network"', $idx))"
+    python -c "from ansible_collections.ansible.utils.plugins.filter import nthhost; print(nthhost.nthhost('"$network"', $idx))"
 }
 
 function retry() {
@@ -175,23 +175,22 @@ function retry() {
     interval=1
 
     local OPTIND
-    while getopts "a:i:" opt ; do
-      case "${opt}" in
-          a )
-              attempts="${OPTARG}"
-              ;;
-          i )
-              interval="${OPTARG}"
-              ;;
-          * )
-              ;;
-      esac
+    while getopts "a:i:" opt; do
+        case "${opt}" in
+        a)
+            attempts="${OPTARG}"
+            ;;
+        i)
+            interval="${OPTARG}"
+            ;;
+        *) ;;
+
+        esac
     done
-    shift $((OPTIND-1))
+    shift $((OPTIND - 1))
 
     rc=0
-    for attempt in $(seq "${attempts}")
-    do
+    for attempt in $(seq "${attempts}"); do
         echo "Attempt ${attempt}/${attempts} to execute \"$*\"..."
 
         if "$@"; then

@@ -63,7 +63,7 @@ digraph HostStateMachine {
 
     resetting -> discovering [color=goldenrod, fontcolor=goldenrod, ltail = cluster_level3];
     resetting -> "resetting-pending-user-action" [label = "wrong boot\norder", color=yellow3, fontcolor=yellow3];
- 
+
     installed -> error [label = "installation", color=crimson, fontcolor=crimson, ltail = cluster_level2];
     installed-> cancelled [label = "cancel", color=slategray, fontcolor=slategray, ltail = cluster_level2];
 

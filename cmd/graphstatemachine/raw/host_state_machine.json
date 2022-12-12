@@ -15,38 +15,28 @@
     },
     {
       "transition_type": "CancelInstallation",
-      "source_states": [
-        "preparing-for-installation",
-        "preparing-successful"
-      ],
+      "source_states": ["preparing-for-installation", "preparing-successful"],
       "destination_state": "known",
       "name": "Cancel while preparing",
       "description": "TODO: Document this transition rule"
     },
     {
       "transition_type": "CancelInstallation",
-      "source_states": [
-        "known"
-      ],
+      "source_states": ["known"],
       "destination_state": "known",
       "name": "Cancel while known",
       "description": "TODO: Document this transition rule"
     },
     {
       "transition_type": "HostInstallationFailed",
-      "source_states": [
-        "installing",
-        "installing-in-progress"
-      ],
+      "source_states": ["installing", "installing-in-progress"],
       "destination_state": "error",
       "name": "Installation failed while host is installing",
       "description": "When the installation fails while a host is installing, the host should be moved to the error state because it is no longer actually installing"
     },
     {
       "transition_type": "InstallHost",
-      "source_states": [
-        "known"
-      ],
+      "source_states": ["known"],
       "destination_state": "installing",
       "name": "Install known host",
       "description": "TODO: Document this transition rule"
@@ -81,19 +71,14 @@
     },
     {
       "transition_type": "RebootingForReclaim",
-      "source_states": [
-        "reclaiming"
-      ],
+      "source_states": ["reclaiming"],
       "destination_state": "reclaiming-rebooting",
       "name": "Rebooting for reclaim reclaiming host",
       "description": "TODO: Document this transition rule"
     },
     {
       "transition_type": "ReclaimHost",
-      "source_states": [
-        "installed",
-        "added-to-existing-cluster"
-      ],
+      "source_states": ["installed", "added-to-existing-cluster"],
       "destination_state": "reclaiming",
       "name": "Reclaim successful host",
       "description": "TODO: Document this transition rule"
@@ -113,75 +98,56 @@
     },
     {
       "transition_type": "ReclaimHost",
-      "source_states": [
-        "error",
-        "cancelled"
-      ],
+      "source_states": ["error", "cancelled"],
       "destination_state": "unbinding-pending-user-action",
       "name": "Reclaim failed host",
       "description": "TODO: Document this transition rule"
     },
     {
       "transition_type": "ReclaimHostFailed",
-      "source_states": [
-        "reclaiming",
-        "reclaiming-rebooting"
-      ],
+      "source_states": ["reclaiming", "reclaiming-rebooting"],
       "destination_state": "unbinding-pending-user-action",
       "name": "Reclaim failure for reclaiming host",
       "description": "TODO: Document this transition rule"
     },
     {
       "transition_type": "RefreshHost",
-      "source_states": [
-        "reclaiming",
-        "reclaiming-rebooting"
-      ],
+      "source_states": ["reclaiming", "reclaiming-rebooting"],
       "destination_state": "unbinding-pending-user-action",
       "name": "Refresh reclaiming host",
       "description": "TODO: Document this transition rule"
     },
     {
       "transition_type": "RefreshHost",
-      "source_states": [
-        "known"
-      ],
+      "source_states": ["known"],
       "destination_state": "preparing-for-installation",
       "name": "Refresh known host in preparing cluster",
       "description": "TODO: Document this transition rule"
     },
     {
       "transition_type": "RefreshHost",
-      "source_states": [
-        "preparing-for-installation"
-      ],
+      "source_states": ["preparing-for-installation"],
       "destination_state": "preparing-successful",
       "name": "Refresh successfully preparing host",
       "description": "TODO: Document this transition rule"
     },
     {
       "transition_type": "RefreshHost",
-      "source_states": [
-        "preparing-successful"
-      ],
+      "source_states": ["preparing-successful"],
       "destination_state": "preparing-successful",
       "name": "Stay in preparing successful",
       "description": "TODO: Document this transition rule"
     },
     {
       "transition_type": "RefreshHost",
-      "source_states": [
-        "preparing-successful"
-      ],
+      "source_states": ["preparing-successful"],
       "destination_state": "installing",
       "name": "Move successfully prepared host to installing",
       "description": "TODO: Document this transition rule"
     },
     {
       "transition_type": "RefreshHost",
-      "source_states": [
-        "preparing-for-installation"
-      ],
+      "source_states": ["preparing-for-installation"],
       "destination_state": "known",
       "name": "Move preparing host to known when cluster stops preparing",
       "description": "TODO: Document this transition rule"
@@ -199,36 +165,28 @@
     },
     {
       "transition_type": "RefreshHost",
-      "source_states": [
-        "preparing-for-installation"
-      ],
+      "source_states": ["preparing-for-installation"],
       "destination_state": "preparing-failed",
       "name": "Preparing failed image pull host move to preparing failed",
       "description": "TODO: Document this transition rule"
     },
     {
       "transition_type": "RefreshHost",
-      "source_states": [
-        "preparing-for-installation"
-      ],
+      "source_states": ["preparing-for-installation"],
       "destination_state": "preparing-for-installation",
       "name": "Stay in preparing for installation",
       "description": "TODO: Document this transition rule"
     },
     {
       "transition_type": "RefreshHost",
-      "source_states": [
-        "preparing-failed"
-      ],
+      "source_states": ["preparing-failed"],
       "destination_state": "known",
       "name": "Failed preparing to known when cluster is no longer preparing",
       "description": "TODO: Document this transition rule"
     },
     {
       "transition_type": "RefreshHost",
-      "source_states": [
-        "preparing-successful"
-      ],
+      "source_states": ["preparing-successful"],
       "destination_state": "known",
       "name": "Successful preparing to known when cluster is no longer preparing",
       "description": "TODO: Document this transition rule. Why is ClusterInstalling relevant here?"
@@ -262,132 +220,98 @@
     },
     {
       "transition_type": "RefreshHost",
-      "source_states": [
-        "installing"
-      ],
+      "source_states": ["installing"],
       "destination_state": "error",
       "name": "Move host to error when installation times out",
       "description": "TODO: Document this transition rule."
     },
     {
       "transition_type": "RefreshHost",
-      "source_states": [
-        "installing"
-      ],
+      "source_states": ["installing"],
       "destination_state": "error",
       "name": "Move installing host to error when connection times out",
       "description": "TODO: Document this transition rule."
     },
     {
       "transition_type": "RefreshHost",
-      "source_states": [
-        "preparing-for-installation",
-        "preparing-successful"
-      ],
+      "source_states": ["preparing-for-installation", "preparing-successful"],
       "destination_state": "disconnected",
       "name": "Move preparing host to disconnected when connection times out",
       "description": "TODO: Document this transition rule."
     },
     {
       "transition_type": "RefreshHost",
-      "source_states": [
-        "installing",
-        "installing-in-progress"
-      ],
+      "source_states": ["installing", "installing-in-progress"],
       "destination_state": "error",
       "name": "Move installing host to error when connection times out",
       "description": "TODO: Document this transition rule."
     },
     {
       "transition_type": "RefreshHost",
-      "source_states": [
-        "installing-in-progress"
-      ],
+      "source_states": ["installing-in-progress"],
       "destination_state": "installing-in-progress",
       "name": "Ignore timeout if host is in particular installation in progress stages",
       "description": "TODO: Document this transition rule."
     },
     {
       "transition_type": "RefreshHost",
-      "source_states": [
-        "installing-in-progress"
-      ],
+      "source_states": ["installing-in-progress"],
       "destination_state": "error",
       "name": "Move to error on timeout if host is in particular installation in progress stages",
       "description": "TODO: Document this transition rule."
     },
     {
       "transition_type": "RefreshHost",
-      "source_states": [
-        "installing-in-progress"
-      ],
+      "source_states": ["installing-in-progress"],
       "destination_state": "installing-pending-user-action",
       "name": "Tell user about boot order wen reboot takes too long",
       "description": "TODO: Document this transition rule."
     },
     {
       "transition_type": "RefreshHost",
-      "source_states": [
-        "installing"
-      ],
+      "source_states": ["installing"],
       "destination_state": "installing",
       "name": "Refresh during installing state without cluster error should stay in installing state",
       "description": "TODO: Document this transition rule. Is this necessary?"
     },
     {
       "transition_type": "RefreshHost",
-      "source_states": [
-        "installing-in-progress"
-      ],
+      "source_states": ["installing-in-progress"],
       "destination_state": "installing-in-progress",
       "name": "Refresh during installing-in-progress state without cluster error should stay in installing-in-progress state",
       "description": "TODO: Document this transition rule. Is this necessary?"
     },
     {
       "transition_type": "RefreshHost",
-      "source_states": [
-        "installed"
-      ],
+      "source_states": ["installed"],
       "destination_state": "installed",
       "name": "Refresh during installed state without cluster error should stay in installed state",
       "description": "TODO: Document this transition rule. Is this necessary?"
     },
     {
       "transition_type": "RefreshHost",
-      "source_states": [
-        "installing-pending-user-action"
-      ],
+      "source_states": ["installing-pending-user-action"],
       "destination_state": "installing-pending-user-action",
       "name": "Refresh during installing-pending-user-action state without cluster error should stay in installing-pending-user-action state",
       "description": "TODO: Document this transition rule. Is this necessary?"
     },
     {
       "transition_type": "RefreshHost",
-      "source_states": [
-        "resetting-pending-user-action"
-      ],
+      "source_states": ["resetting-pending-user-action"],
       "destination_state": "resetting-pending-user-action",
       "name": "Refresh during resetting-pending-user-action state without cluster error should stay in resetting-pending-user-action state",
       "description": "TODO: Document this transition rule. Is this necessary?"
     },
     {
       "transition_type": "RefreshHost",
-      "source_states": [
-        "disconnected",
-        "discovering"
-      ],
+      "source_states": ["disconnected", "discovering"],
       "destination_state": "discovering",
       "name": "Host reconnected without inventory",
       "description": "TODO: Document this transition rule. Why is Discovering in the source states?"
     },
     {
       "transition_type": "RefreshHost",
-      "source_states": [
-        "disconnected",
-        "discovering",
-        "insufficient",
-        "known"
-      ],
+      "source_states": ["disconnected", "discovering", "insufficient", "known"],
       "destination_state": "insufficient",
       "name": "Host has insufficient hardware",
       "description": "In order for this transition to be fired at least one of the validations in minRequiredHardwareValidations must fail. This transition handles the case that a host does not pass minimum hardware requirements for any of the roles"
@@ -432,90 +356,70 @@
     },
     {
       "transition_type": "RefreshHost",
-      "source_states": [
-        "known"
-      ],
+      "source_states": ["known"],
       "destination_state": "known",
       "name": "Host stay ready",
       "description": "TODO: Document this transition rule."
     },
     {
       "transition_type": "RefreshHost",
-      "source_states": [
-        "error"
-      ],
+      "source_states": ["error"],
       "destination_state": "error",
       "name": "Log collection timed out during error should stay in error",
       "description": "TODO: Document this transition rule."
     },
     {
       "transition_type": "RefreshHost",
-      "source_states": [
-        "cancelled"
-      ],
+      "source_states": ["cancelled"],
       "destination_state": "cancelled",
       "name": "Log collection timed out during cancelled should stay in cancelled",
       "description": "TODO: Document this transition rule."
     },
     {
       "transition_type": "RefreshHost",
-      "source_states": [
-        "error"
-      ],
+      "source_states": ["error"],
       "destination_state": "error",
       "name": "Refresh during error should stay in error",
       "description": "TODO: Document this transition rule."
     },
     {
       "transition_type": "RefreshHost",
-      "source_states": [
-        "cancelled"
-      ],
+      "source_states": ["cancelled"],
       "destination_state": "cancelled",
       "name": "Refresh during cancelled should stay in cancelled",
       "description": "TODO: Document this transition rule."
     },
     {
       "transition_type": "RefreshHost",
-      "source_states": [
-        "resetting"
-      ],
+      "source_states": ["resetting"],
       "destination_state": "resetting",
       "name": "Refresh during resetting should stay in resetting",
       "description": "TODO: Document this transition rule."
     },
     {
       "transition_type": "RefreshHost",
-      "source_states": [
-        "added-to-existing-cluster"
-      ],
+      "source_states": ["added-to-existing-cluster"],
       "destination_state": "added-to-existing-cluster",
       "name": "Day 2 hosts should stay in added state",
       "description": "TODO: Document this transition rule."
     },
     {
       "transition_type": "RefreshHost",
-      "source_states": [
-        "reclaiming"
-      ],
+      "source_states": ["reclaiming"],
       "destination_state": "reclaiming",
       "name": "Refresh without timeout during reclaiming should stay in reclaiming",
       "description": "TODO: Document this transition rule."
     },
     {
       "transition_type": "RefreshHost",
-      "source_states": [
-        "reclaiming-rebooting"
-      ],
+      "source_states": ["reclaiming-rebooting"],
       "destination_state": "reclaiming-rebooting",
       "name": "Refresh without timeout during reclaiming-rebooting should stay in reclaiming-rebooting",
       "description": "TODO: Document this transition rule."
     },
     {
       "transition_type": "RegisterHost",
-      "source_states": [
-        "initial"
-      ],
+      "source_states": ["initial"],
       "destination_state": "discovering",
       "name": "Initial registration",
       "description": "When new host is first registered. This transition is not executed on unbound hosts because <unknown, TODO>"
@@ -538,18 +442,14 @@
     },
     {
       "transition_type": "RegisterHost",
-      "source_states": [
-        "resetting"
-      ],
+      "source_states": ["resetting"],
       "destination_state": "resetting",
       "name": "Ignore register while rebooting host in resetting",
       "description": "On such cases cluster monitor is responsible to set the host state to resetting-pending-user-action. There are some edge cases on installation where user tries to reset installation on the same time reboot is called. On some cases the agent will get to reset itself and register again just before the reboot and the cluster monitor will not get to set the status in resetting-pending-user-action on time. Created to prevent OCPBUGSM-13597"
     },
     {
       "transition_type": "RegisterHost",
-      "source_states": [
-        "resetting"
-      ],
+      "source_states": ["resetting"],
       "destination_state": "discovering",
       "name": "Register non-rebooting host in resetting",
       "description": "The opposite of the 'Ignore register while rebooting host in resetting' transition rule, move host to discovering"
@@ -567,19 +467,14 @@
     },
     {
       "transition_type": "RegisterHost",
-      "source_states": [
-        "installing",
-        "installing-in-progress"
-      ],
+      "source_states": ["installing", "installing-in-progress"],
       "destination_state": "error",
       "name": "Register during installation",
       "description": "Any host registering during installation but doesn't match the 'Wrong boot order detection' transition is performing an invalid operation and thus should move to the error state"
     },
     {
       "transition_type": "RegisterHost",
-      "source_states": [
-        "error"
-      ],
+      "source_states": ["error"],
       "destination_state": "error",
       "name": "Register during error",
       "description": "Host in error should be able to register without changes. If the registration return conflict or error then we have infinite number of events. If the registration is blocked (403) it will break auto-reset feature. It can happen that user rebooted the host manually after installation failure without changes in the cluster. So the best option is just accept the registration without changes in the DB"

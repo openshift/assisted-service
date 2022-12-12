@@ -75,7 +75,7 @@ Here is an example:
 PULL_SECRET_FILE=$HOME/.docker/config.json
 PULL_SECRET_TOKEN=$(jq -r '.auths."cloud.openshift.com".auth' $PULL_SECRET_FILE)
 curl -X POST https://api.openshift.com/api/assisted-install/v2/clusters/f74fe2e3-1d99-4383-b2f3-8213af03ddeb/hosts -H "X-Secret-Key: <PULL_SECRET_TOKEN>"
- ```
+```
 
 # UUIDs
 

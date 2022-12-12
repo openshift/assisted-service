@@ -12,8 +12,8 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ### Changed
 
-- The `go.opentelemetry.io/contrib/instrumentation/go.mongodb.org/mongo-driver/mongo/otelmongo` instrumentation now accepts a `WithCommandAttributeDisabled`, 
-   so the caller can specify whether to opt-out of tracing the mongo command. (#712)
+- The `go.opentelemetry.io/contrib/instrumentation/go.mongodb.org/mongo-driver/mongo/otelmongo` instrumentation now accepts a `WithCommandAttributeDisabled`,
+  so the caller can specify whether to opt-out of tracing the mongo command. (#712)
 - Upgrade to v0.20.0 of `go.opentelemetry.io/otel`. (#758)
 - The B3 and Jaeger propagators now store their debug or deferred state in the context.Context instead of the SpanContext. (#758)
 
@@ -107,7 +107,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 ## Changed
 
 - The `go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc` package instrumentation no longer accepts a `Tracer` as an argument to the interceptor function.
-   Instead, a new `WithTracerProvider` option is added to configure the `TracerProvider` used when creating the `Tracer` for the instrumentation. (#373)
+  Instead, a new `WithTracerProvider` option is added to configure the `TracerProvider` used when creating the `Tracer` for the instrumentation. (#373)
 - The `go.opentelemetry.io/contrib/instrumentation/gopkg.in/macaron.v1/otelmacaron` instrumentation now accepts a `TracerProvider` rather than a `Tracer`. (#374)
 - Remove `go.opentelemetry.io/otel/sdk` dependency from instrumentation. (#381)
 - Use `httpsnoop` in `go.opentelemetry.io/contrib/instrumentation/github.com/gorilla/mux/otelmux` to ensure `http.ResponseWriter` additional interfaces are preserved. (#388)
@@ -138,7 +138,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - Update instrumentation guidelines about uniform provider options. Also, update style guide. (#303)
 - Make config struct of instrumentation unexported. (#303)
 - Instrumentations have been updated to adhere to the [configuration style guide's](https://github.com/open-telemetry/opentelemetry-go/blob/master/CONTRIBUTING.md#config)
-   updated recommendation to use `newConfig()` instead of `configure()`. (#336)
+  updated recommendation to use `newConfig()` instead of `configure()`. (#336)
 - A new instrumentation naming scheme is implemented to avoid package name conflicts for instrumented packages while still remaining discoverable. (#359)
   - `google.golang.org/grpc` -> `google.golang.org/grpc/otelgrpc`
   - `go.mongodb.org/mongo-driver` -> `go.mongodb.org/mongo-driver/mongo/otelmongo`
@@ -247,7 +247,7 @@ This release upgrades its [go.opentelemetry.io/otel](https://github.com/open-tel
 ### Fixed
 
 - Update README to include information about external instrumentation.
-   To start, this includes native instrumentation found in the `go-redis/redis` package. (#117)
+  To start, this includes native instrumentation found in the `go-redis/redis` package. (#117)
 - Bump github.com/golangci/golangci-lint from 1.27.0 to 1.28.2 in /tools. (#122, #123, #125)
 - Bump go.mongodb.org/mongo-driver from 1.3.4 to 1.3.5 in /instrumentation/go.mongodb.org/mongo-driver. (#124)
 
@@ -299,7 +299,7 @@ First official tagged release of `contrib` repository.
 - Prefix support for dogstatsd (#34)
 - Update Go Runtime package to use batch observer (#44)
 
-[Unreleased]: https://github.com/open-telemetry/opentelemetry-go-contrib/compare/v0.20.0...HEAD
+[unreleased]: https://github.com/open-telemetry/opentelemetry-go-contrib/compare/v0.20.0...HEAD
 [0.20.0]: https://github.com/open-telemetry/opentelemetry-go-contrib/releases/tag/v0.20.0
 [0.19.0]: https://github.com/open-telemetry/opentelemetry-go-contrib/releases/tag/v0.19.0
 [0.18.0]: https://github.com/open-telemetry/opentelemetry-go-contrib/releases/tag/v0.18.0

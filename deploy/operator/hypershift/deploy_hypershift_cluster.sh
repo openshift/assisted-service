@@ -33,14 +33,14 @@ playbooks_dir=${__dir}/playbooks
 
 # Hypershift CLI needs access to the kubeconfig, pull-secret and public SSH key
 function hypershift() {
-  podman run -it --net host --rm --entrypoint /usr/bin/hypershift \
-    -v $KUBECONFIG:/root/.kube/config -v $ASSISTED_PULLSECRET_JSON:/root/pull-secret.json \
-    -v /root/.ssh/id_rsa.pub:/root/.ssh/id_rsa.pub $HYPERSHIFT_IMAGE "$@"
+    podman run -it --net host --rm --entrypoint /usr/bin/hypershift \
+        -v $KUBECONFIG:/root/.kube/config -v $ASSISTED_PULLSECRET_JSON:/root/pull-secret.json \
+        -v /root/.ssh/id_rsa.pub:/root/.ssh/id_rsa.pub $HYPERSHIFT_IMAGE "$@"
 }
 
 # Get agents on spoke cluster
 function get_agents() {
-  oc --kubeconfig $SPOKE_KUBECONFIG get agent -n $SPOKE_NAMESPACE --no-headers
+    oc --kubeconfig $SPOKE_KUBECONFIG get agent -n $SPOKE_NAMESPACE --no-headers
 }
 
 # Ensure namespaces exist
@@ -55,7 +55,7 @@ hypershift install --hypershift-image $HYPERSHIFT_IMAGE --namespace hypershift
 wait_for_pods "hypershift"
 
 echo "Creating HostedCluster"
-oc get hostedcluster ${ASSISTED_CLUSTER_NAME} -n ${HYPERSHIFT_AGENT_NS} || \
+oc get hostedcluster ${ASSISTED_CLUSTER_NAME} -n ${HYPERSHIFT_AGENT_NS} ||
     hypershift create cluster agent --name $ASSISTED_CLUSTER_NAME --base-domain redhat.example --pull-secret /root/pull-secret.json \
         --ssh-key /root/.ssh/id_rsa.pub --agent-namespace $HYPERSHIFT_AGENT_NS --namespace $HYPERSHIFT_AGENT_NS
 
@@ -65,11 +65,11 @@ wait_for_condition "nodepool/$ASSISTED_CLUSTER_NAME" "Ready" "10m" "$HYPERSHIFT_
 wait_for_condition "hostedcluster/$ASSISTED_CLUSTER_NAME" "Available" "10m" "$HYPERSHIFT_AGENT_NS"
 
 echo "Extract spoke kubeconfig"
-oc extract -n $HYPERSHIFT_AGENT_NS secret/$ASSISTED_CLUSTER_NAME-admin-kubeconfig --to=- > /tmp/$ASSISTED_CLUSTER_NAME-kubeconfig
+oc extract -n $HYPERSHIFT_AGENT_NS secret/$ASSISTED_CLUSTER_NAME-admin-kubeconfig --to=- >/tmp/$ASSISTED_CLUSTER_NAME-kubeconfig
 export SPOKE_KUBECONFIG=/tmp/$SPOKE_KUBECONFIG_SECRET
 
 echo "Create spoke kubeconfig secret"
-oc get secret "${SPOKE_KUBECONFIG_SECRET}" -n "${SPOKE_NAMESPACE}" || \
+oc get secret "${SPOKE_KUBECONFIG_SECRET}" -n "${SPOKE_NAMESPACE}" ||
     oc create secret generic $SPOKE_KUBECONFIG_SECRET --from-file=kubeconfig=$SPOKE_KUBECONFIG -n $SPOKE_NAMESPACE
 
 echo "Apply hive CRDs"
@@ -81,9 +81,9 @@ oc apply -f ${playbooks_dir}/generated/hasc.yaml -n $SPOKE_NAMESPACE
 wait_for_condition "hypershiftagentserviceconfigs/hypershift-agent" "DeploymentsHealthy" "20m" "$SPOKE_NAMESPACE"
 
 echo "Create assisted secrets"
-oc --kubeconfig $SPOKE_KUBECONFIG get secret "${ASSISTED_PULLSECRET_NAME}" -n "${SPOKE_NAMESPACE}" || \
+oc --kubeconfig $SPOKE_KUBECONFIG get secret "${ASSISTED_PULLSECRET_NAME}" -n "${SPOKE_NAMESPACE}" ||
     oc --kubeconfig $SPOKE_KUBECONFIG create secret generic "${ASSISTED_PULLSECRET_NAME}" --from-file=.dockerconfigjson="${ASSISTED_PULLSECRET_JSON}" --type=kubernetes.io/dockerconfigjson -n "${SPOKE_NAMESPACE}"
-oc --kubeconfig $SPOKE_KUBECONFIG get secret "${ASSISTED_PRIVATEKEY_NAME}" -n "${SPOKE_NAMESPACE}" || \
+oc --kubeconfig $SPOKE_KUBECONFIG get secret "${ASSISTED_PRIVATEKEY_NAME}" -n "${SPOKE_NAMESPACE}" ||
     oc --kubeconfig $SPOKE_KUBECONFIG create secret generic "${ASSISTED_PRIVATEKEY_NAME}" --from-file=ssh-privatekey=/root/.ssh/id_rsa --type=kubernetes.io/ssh-auth -n "${SPOKE_NAMESPACE}"
 
 echo "Apply spoke CRs"
@@ -104,11 +104,10 @@ oc apply -f ${playbooks_dir}/generated/baremetalHost.yaml -n $SPOKE_NAMESPACE
 echo "Waiting until an agent is available"
 export -f wait_for_cmd_amount
 export -f get_agents
-timeout --signal=SIGKILL 20m bash -c "wait_for_cmd_amount 1 30 get_agents" || \
+timeout --signal=SIGKILL 20m bash -c "wait_for_cmd_amount 1 30 get_agents" ||
     (echo "Timed-out waiting for agents to be ready" && exit 124)
 agent_name=$(oc --kubeconfig $SPOKE_KUBECONFIG get -n ${SPOKE_NAMESPACE} agent -ojson | jq -r '.items[] | .metadata.name')
 oc --kubeconfig $SPOKE_KUBECONFIG -n $SPOKE_NAMESPACE patch agent $agent_name -p '{"spec":{"approved":true}}' --type merge
-
 
 echo "Waiting until cluster is installed"
 
@@ -118,22 +117,20 @@ echo "Cluster installation has been stopped (either for good or bad reasons)"
 KUBECONFIG=$SPOKE_KUBECONFIG wait_for_condition "agentclusterinstall/${ASSISTED_AGENT_CLUSTER_INSTALL_NAME}" "Completed" "90m" "${SPOKE_NAMESPACE}"
 echo "Cluster has been installed successfully!"
 
-
 # Test webhooks
 
 function validate_by_pattern() {
-  log="$1"
-  pattern="$2"
-  success_msg="$3"
-  failure_msg="$4"
+    log="$1"
+    pattern="$2"
+    success_msg="$3"
+    failure_msg="$4"
 
-  if [[ $log == *$pattern* ]];
-  then
-    echo "SUCCESS:" $success_msg
-  else
-    echo "FAILURE:" $failure_msg
-    exit 1
-  fi
+    if [[ $log == *$pattern* ]]; then
+        echo "SUCCESS:" $success_msg
+    else
+        echo "FAILURE:" $failure_msg
+        exit 1
+    fi
 }
 export -f validate_by_pattern
 
@@ -146,7 +143,7 @@ validate_by_pattern "$webhook_log" "Successful validation" \
     "Missing webhook validation"
 
 echo "Test webhooks for InfraEnv failing update"
-error_msg=$(oc --kubeconfig $SPOKE_KUBECONFIG -n $SPOKE_NAMESPACE patch infraenv  $ASSISTED_INFRAENV_NAME \
+error_msg=$(oc --kubeconfig $SPOKE_KUBECONFIG -n $SPOKE_NAMESPACE patch infraenv $ASSISTED_INFRAENV_NAME \
     -p '{"spec": {"clusterRef":{"name":"test"}}}' --type merge 2>&1) || true
 validate_by_pattern "$error_msg" "Attempted to change Spec.ClusterRef which is immutable" \
     "Webhook failed validation for InfraEnv invalid update" \

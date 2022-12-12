@@ -14,10 +14,10 @@ Migrations are run at startup right after the automigration is run.
 
 - Each migration should have a separate file in `/internal/migrations` prefixed with a timestamp which will also be the migration ID
 - Each migration should have a single function named to describe the change which returns a `*gormigrate.Migration`
-    - Both migrate (up) and rollback (down) should be implemented if possible
+  - Both migrate (up) and rollback (down) should be implemented if possible
 - Every migration should have a corresponding test (especially for migrations which are changing data)
 - A new migration scaffold can be created using `MIGRATION_NAME=someMigrationNameHere make generate-migration`
-    - This will give the migration files a proper timestamp as well as (empty) tests
+  - This will give the migration files a proper timestamp as well as (empty) tests
 
 To be run, every migration function should be added to the list in `postMigrations`
 

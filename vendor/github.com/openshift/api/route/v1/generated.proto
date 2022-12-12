@@ -249,4 +249,3 @@ message TLSConfig {
   // * Redirect - clients are redirected to the secure port.
   optional string insecureEdgeTerminationPolicy = 6;
 }
-

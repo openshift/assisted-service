@@ -17,7 +17,7 @@ further if the need arises and is very pressing (e.g. security updates).
 
 ### Dependency Support
 
-Note the [guidelines on dependency versions][dep-versions].  Particularly:
+Note the [guidelines on dependency versions][dep-versions]. Particularly:
 
 - We **DO** guarantee Kubernetes REST API compability -- if a given
   version of controller-runtime stops working with what should be

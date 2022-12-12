@@ -23,7 +23,7 @@ set -e
 
 CN_BASE="webhook_tests"
 
-cat > intermediate_ca.conf << EOF
+cat >intermediate_ca.conf <<EOF
 [ v3_ca ]
 subjectKeyIdentifier=hash
 authorityKeyIdentifier=keyid:always,issuer
@@ -31,7 +31,7 @@ basicConstraints = critical,CA:true
 keyUsage = cRLSign, keyCertSign
 EOF
 
-cat > server.conf << EOF
+cat >server.conf <<EOF
 [req]
 req_extensions = v3_req
 distinguished_name = req_distinguished_name
@@ -46,7 +46,7 @@ IP.1 = 127.0.0.1
 DNS.1 = localhost
 EOF
 
-cat > server_no_san.conf << EOF
+cat >server_no_san.conf <<EOF
 [req]
 req_extensions = v3_req
 distinguished_name = req_distinguished_name
@@ -57,7 +57,7 @@ keyUsage = nonRepudiation, digitalSignature, keyEncipherment
 extendedKeyUsage = clientAuth, serverAuth
 EOF
 
-cat > client.conf << EOF
+cat >client.conf <<EOF
 [req]
 req_extensions = v3_req
 distinguished_name = req_distinguished_name
@@ -112,7 +112,7 @@ openssl x509 -req -in client.csr -CA caCert.pem -CAkey caKey.pem -CAcreateserial
 
 outfile=certs_test.go
 
-cat > $outfile << EOF
+cat >$outfile <<EOF
 /*
 Copyright 2017 The Kubernetes Authors.
 
@@ -136,9 +136,9 @@ package webhook
 EOF
 
 for file in caKey caCert badCAKey badCACert caCertInter caCertInterSHA1 serverKey serverCert serverCertNoSAN clientKey clientCert sha1ServerCertInter serverCertInterSHA1; do
-	data=$(cat ${file}.pem)
-	echo "" >> $outfile
-	echo "var $file = []byte(\`$data\`)" >> $outfile
+    data=$(cat ${file}.pem)
+    echo "" >>$outfile
+    echo "var $file = []byte(\`$data\`)" >>$outfile
 done
 
 # Clean up after we're done.

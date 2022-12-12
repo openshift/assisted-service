@@ -78,7 +78,6 @@ Optionally, add this to your `~/.vimrc` to automatically run `golint` on `:w`
 
     autocmd BufWritePost,FileWritePost *.go execute 'Lint' | cwindow
 
-
 ## Emacs
 
 Add this to your `.emacs` file:

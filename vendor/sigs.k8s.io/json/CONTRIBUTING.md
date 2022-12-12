@@ -6,18 +6,19 @@ _As contributors and maintainers of this project, and in the interest of fosteri
 
 ## Criteria for adding code here
 
-This library adapts the stdlib `encoding/json` decoder to be compatible with 
+This library adapts the stdlib `encoding/json` decoder to be compatible with
 Kubernetes JSON decoding, and is not expected to actively add new features.
 
 It may be updated with changes from the stdlib `encoding/json` decoder.
 
 Any code that is added must:
-* Have full unit test and benchmark coverage
-* Be backward compatible with the existing exposed go API
-* Have zero external dependencies
-* Preserve existing benchmark performance
-* Preserve compatibility with existing decoding behavior of `UnmarshalCaseSensitivePreserveInts()` or `UnmarshalStrict()`
-* Avoid use of `unsafe`
+
+- Have full unit test and benchmark coverage
+- Be backward compatible with the existing exposed go API
+- Have zero external dependencies
+- Preserve existing benchmark performance
+- Preserve compatibility with existing decoding behavior of `UnmarshalCaseSensitivePreserveInts()` or `UnmarshalStrict()`
+- Avoid use of `unsafe`
 
 ## Getting Started
 
@@ -33,10 +34,9 @@ If your repo has certain guidelines for contribution, put them here ahead of the
 
 ## Community, discussion, contribution, and support
 
-You can reach the maintainers of this project via the 
+You can reach the maintainers of this project via the
 [sig-api-machinery mailing list / channels](https://github.com/kubernetes/community/tree/master/sig-api-machinery#contact).
 
 ## Mentorship
 
 - [Mentoring Initiatives](https://git.k8s.io/community/mentoring) - We have a diverse set of mentorship programs available that are always looking for volunteers!
-

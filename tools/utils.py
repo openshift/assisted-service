@@ -3,30 +3,30 @@ import os
 import socket
 import subprocess
 import time
-import yaml
-import waiting
-from distutils.spawn import find_executable
 from functools import reduce
 from typing import Optional, Tuple
-from deployment_options import INGRESS_REMOTE_TARGET, OCP_TARGET, KIND_TARGET
 
+import waiting
+import yaml
+from deployment_options import INGRESS_REMOTE_TARGET, KIND_TARGET, OCP_TARGET
+from distutils.spawn import find_executable
 
-KUBECTL_CMD = 'kubectl'
+KUBECTL_CMD = "kubectl"
 DOCKER = "docker"
 PODMAN = "podman"
 PODMAN_REMOTE = "podman-remote"
 
 
 def verify_build_directory(namespace):
-    dirname = os.path.join(os.getcwd(), 'build', namespace)
+    dirname = os.path.join(os.getcwd(), "build", namespace)
     if os.path.isdir(dirname):
         return
     os.makedirs(dirname)
-    logging.info('Created build directory: %s', dirname)
+    logging.info("Created build directory: %s", dirname)
 
 
 def get_logger(name, level=logging.INFO):
-    fmt = '[%(levelname)s] %(asctime)s - %(name)s - %(message)s'
+    fmt = "[%(levelname)s] %(asctime)s - %(name)s - %(message)s"
     formatter = logging.Formatter(fmt)
     sh = logging.StreamHandler()
     sh.setFormatter(formatter)
@@ -40,11 +40,11 @@ def deploy_from_dir(log, deploy_options, dir_name):
     resources_dir = os.path.join(os.getcwd(), dir_name)
     for resource in os.listdir(resources_dir):
         file_path = f"{resources_dir}/{resource}"
-        log.info("Deploying {}".format(file_path))
+        log.info(f"Deploying {file_path}")
         apply(
             target=deploy_options.target,
             namespace=deploy_options.namespace,
-            file=file_path
+            file=file_path,
         )
 
 
@@ -56,7 +56,7 @@ def load_yaml_file_docs(basename):
 
 def dump_yaml_file_docs(basename, docs):
     dst_file = os.path.join(os.getcwd(), basename)
-    with open(dst_file, 'w') as fp:
+    with open(dst_file, "w") as fp:
         yaml.dump_all(docs, fp, Dumper=yaml.SafeDumper)
 
     return dst_file
@@ -65,56 +65,52 @@ def dump_yaml_file_docs(basename, docs):
 def set_namespace_in_yaml_docs(docs, ns):
     for doc in docs:
         try:
-            if 'namespace' in doc['metadata']:
-                doc['metadata']['namespace'] = ns
+            if "namespace" in doc["metadata"]:
+                doc["metadata"]["namespace"] = ns
         except KeyError:
             continue
 
 
 def check_output(command, raise_on_error=True):
-    process = subprocess.run(
-        command,
-        shell=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        universal_newlines=True
-    )
+    process = subprocess.run(command, shell=True, capture_output=True, text=True)
 
     out = process.stdout.strip()
     err = process.stderr.strip()
 
     if raise_on_error and process.returncode != 0:
-        raise RuntimeError(f'command={command} exited with an error={err if err else out} code={process.returncode}')
+        raise RuntimeError(
+            f"command={command} exited with an error={err if err else out} code={process.returncode}"
+        )
 
     return out if out else err
 
 
 def get_service_host(
-        service,
-        target=None,
-        domain='',
-        namespace='assisted-installer',
+    service,
+    target=None,
+    domain="",
+    namespace="assisted-installer",
 ):
     if target == INGRESS_REMOTE_TARGET:
         domain = get_domain(domain, target, namespace)
-        host = f'{service}.{domain}'
+        host = f"{service}.{domain}"
     elif target == OCP_TARGET:
         kubectl_cmd = get_kubectl_command(target, namespace)
-        cmd = f'{kubectl_cmd} get nodes -o=jsonpath={{.items[0].status.addresses[0].address}}'
+        cmd = f"{kubectl_cmd} get nodes -o=jsonpath={{.items[0].status.addresses[0].address}}"
         host = check_output(cmd)
     elif target == KIND_TARGET:
         host = socket.gethostname()
     else:
         kubectl_cmd = get_kubectl_command(target, namespace)
-        cmd = f'{kubectl_cmd} get service {service} | grep {service}'
+        cmd = f"{kubectl_cmd} get service {service} | grep {service}"
         reply = check_output(cmd)[:-1].split()
         host = reply[3]
     return host.strip()
 
 
-def get_service_port(service, target=None, namespace='assisted-installer') -> int:
+def get_service_port(service, target=None, namespace="assisted-installer") -> int:
     kubectl_cmd = get_kubectl_command(target, namespace)
-    cmd = f'{kubectl_cmd} get service {service} | grep {service}'
+    cmd = f"{kubectl_cmd} get service {service} | grep {service}"
     reply = check_output(cmd)[:-1].split()
     ports = reply[4].split(":")
     port = ports[0] if target != OCP_TARGET else ports[1].split("/")[0]
@@ -122,12 +118,12 @@ def get_service_port(service, target=None, namespace='assisted-installer') -> in
 
 
 def get_service_address(
-        service: str,
-        target: Optional[str] = None,
-        domain: str = '',
-        namespace: str = 'assisted-installer',
-        disable_tls: bool = False
-) -> Tuple[str, int]:
+    service: str,
+    target: Optional[str] = None,
+    domain: str = "",
+    namespace: str = "assisted-installer",
+    disable_tls: bool = False,
+) -> tuple[str, int]:
     # TODO: delete once rename everything to assisted-installer
     if target == INGRESS_REMOTE_TARGET:
         domain = get_domain(domain, target, namespace)
@@ -136,93 +132,90 @@ def get_service_address(
     elif target == KIND_TARGET:
         service_host, service_port = socket.gethostname(), 80
     else:
-        service_host = get_service_host(
-            service,
-            target,
-            namespace=namespace
-        )
-        service_port = get_service_port(
-            service,
-            target,
-            namespace=namespace
-        )
+        service_host = get_service_host(service, target, namespace=namespace)
+        service_port = get_service_port(service, target, namespace=namespace)
 
     return service_host, service_port
 
 
 def get_service_url(
-        service: str,
-        target: Optional[str] = None,
-        domain: str = '',
-        namespace: str = 'assisted-installer',
-        disable_tls: bool = False,
-        check_connection: bool = False
+    service: str,
+    target: Optional[str] = None,
+    domain: str = "",
+    namespace: str = "assisted-installer",
+    disable_tls: bool = False,
+    check_connection: bool = False,
 ) -> str:
     if check_connection:
         print(f"Checking connection to service {service}")
         waiting.wait(
-            lambda: socket.getaddrinfo(*get_service_address(
-                service=service,
-                target=target,
-                domain=domain,
-                namespace=namespace,
-                disable_tls=disable_tls)),
+            lambda: socket.getaddrinfo(
+                *get_service_address(
+                    service=service,
+                    target=target,
+                    domain=domain,
+                    namespace=namespace,
+                    disable_tls=disable_tls,
+                )
+            ),
             timeout_seconds=1800,
             expected_exceptions=(socket.error),
-            sleep_seconds=5)
+            sleep_seconds=5,
+        )
 
     service_host, service_port = get_service_address(
         service=service,
         target=target,
         domain=domain,
         namespace=namespace,
-        disable_tls=disable_tls)
+        disable_tls=disable_tls,
+    )
 
     return to_url(host=service_host, port=service_port, disable_tls=disable_tls)
 
 
 def to_url(host, port=None, disable_tls=False):
-    protocol = 'http' if disable_tls else 'https'
+    protocol = "http" if disable_tls else "https"
     port = port if port else 80 if disable_tls else 443
-    return f'{protocol}://{host}:{port}'
+    return f"{protocol}://{host}:{port}"
 
 
 def apply(target, namespace, file):
     kubectl_cmd = get_kubectl_command(target, namespace)
-    print(check_output(f'{kubectl_cmd} apply -f {file}'))
+    print(check_output(f"{kubectl_cmd} apply -f {file}"))
 
 
 def apply_kustomize(target, namespace, file):
     kubectl_cmd = get_kubectl_command(target, namespace)
-    print(check_output(f'kustomize build {file} | {kubectl_cmd} apply -f -'))
+    print(check_output(f"kustomize build {file} | {kubectl_cmd} apply -f -"))
 
 
-def get_domain(domain="", target=None, namespace='assisted-installer'):
+def get_domain(domain="", target=None, namespace="assisted-installer"):
     if domain:
         return domain
     kubectl_cmd = get_kubectl_command(target, namespace)
-    cmd = f'{kubectl_cmd} get ingresscontrollers.operator.openshift.io -n openshift-ingress-operator -o custom-columns=:.status.domain'
+    cmd = f"{kubectl_cmd} get ingresscontrollers.operator.openshift.io -n openshift-ingress-operator -o custom-columns=:.status.domain"
     return check_output(cmd).split()[-1]
 
 
 def check_k8s_rollout(
-        k8s_object,
-        k8s_object_name,
-        target,
-        namespace='assisted-installer',
+    k8s_object,
+    k8s_object_name,
+    target,
+    namespace="assisted-installer",
 ):
     kubectl_cmd = get_kubectl_command(target, namespace)
-    cmd = f'{kubectl_cmd} rollout status {k8s_object}/{k8s_object_name}'
+    cmd = f"{kubectl_cmd} rollout status {k8s_object}/{k8s_object_name}"
     return check_output(cmd)
 
 
 def wait_for_rollout(
-        k8s_object,
-        k8s_object_name,
-        target,
-        namespace='assisted-installer',
-        limit=10,
-        desired_status='successfully rolled out'
+    k8s_object,
+    k8s_object_name,
+    target,
+    namespace="assisted-installer",
+    limit=10,
+    desired_status="successfully rolled out",
 ):
     # Wait for the element to ensure it exists
     for x in range(0, limit):
@@ -231,7 +224,7 @@ def wait_for_rollout(
                 k8s_object=k8s_object,
                 k8s_object_name=k8s_object_name,
                 target=target,
-                namespace=namespace
+                namespace=namespace,
             )
             if status:
                 break
@@ -246,9 +239,9 @@ def wait_for_rollout(
             k8s_object=k8s_object,
             k8s_object_name=k8s_object_name,
             target=target,
-            namespace=namespace
+            namespace=namespace,
         )
-        print("Waiting for {}/{} to be ready".format(k8s_object, k8s_object_name))
+        print(f"Waiting for {k8s_object}/{k8s_object_name} to be ready")
         if desired_status in status:
             break
         else:
@@ -256,7 +249,7 @@ def wait_for_rollout(
 
 
 def get_config_value(key, cfg):
-    return reduce(lambda c, k: c[k], key.split('.'), cfg)
+    return reduce(lambda c, k: c[k], key.split("."), cfg)
 
 
 def get_yaml_field(field, yaml_path):
@@ -268,14 +261,14 @@ def get_yaml_field(field, yaml_path):
 
 
 def check_if_exists(
-        k8s_object,
-        k8s_object_name,
-        target=None,
-        namespace='assisted-installer',
+    k8s_object,
+    k8s_object_name,
+    target=None,
+    namespace="assisted-installer",
 ):
     try:
         kubectl_cmd = get_kubectl_command(target, namespace)
-        cmd = f'{kubectl_cmd} get {k8s_object} {k8s_object_name} --no-headers'
+        cmd = f"{kubectl_cmd} get {k8s_object} {k8s_object_name} --no-headers"
         subprocess.check_output(cmd, stderr=None, shell=True).decode("utf-8")
         output = True
     except:
@@ -302,19 +295,19 @@ def get_kubectl_command(target=None, namespace=None):
     cmd = KUBECTL_CMD
 
     if namespace:
-        cmd += f' --namespace {namespace}'
+        cmd += f" --namespace {namespace}"
 
     if target == OCP_TARGET:
         kubeconfig = os.environ.get("OCP_KUBECONFIG")
         if kubeconfig is None:
             kubeconfig = "build/kubeconfig"
-        cmd += f' --kubeconfig {kubeconfig}'
+        cmd += f" --kubeconfig {kubeconfig}"
         return cmd
 
     return cmd
 
 
-def get_cluster_server(cluster_name='default'):
+def get_cluster_server(cluster_name="default"):
     p = subprocess.Popen(
         f"""kubectl config view -o jsonpath='{{.clusters[?(@.name == "{cluster_name}")].cluster.server}}'""",
         shell=True,
@@ -324,8 +317,6 @@ def get_cluster_server(cluster_name='default'):
     out = p.stdout.read().decode().strip()
     err = p.stderr.read().decode().strip()
     if err:
-        raise RuntimeError(
-            f'failed to get server ip for cluster {cluster_name}: {err}'
-        )
+        raise RuntimeError(f"failed to get server ip for cluster {cluster_name}: {err}")
 
     return out

@@ -65,17 +65,20 @@ This option will select the required tag that will be used for each dependency.
 If deploy-all use a new tag the update will be done automatically and there is no need to reboot/rollout any deployment.
 
 Deploy images according to the manifest:
+
 ```
 skipper make deploy-all DEPLOY_MANIFEST_PATH=./assisted-installer.yaml
 ```
 
 Deploy images according to the manifest in the assisted-installer-deployment repo (require git tag/branch/hash):
+
 ```
 skipper make deploy-all DEPLOY_MANIFEST_TAG=master
 ```
 
 Deploy all the images with the same tag.
 The tag is not validated, so you need to make sure it actually exists.
+
 ```
 skipper make deploy-all DEPLOY_TAG=<tag>
 ```

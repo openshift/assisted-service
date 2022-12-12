@@ -16,6 +16,7 @@ The YAML `title` should be lowercased and spaces/punctuation should be
 replaced with `-`.
 
 To get started with this template:
+
 1. **Make a copy of this template.** Copy this template.
 1. **Fill out the "overview" sections.** This includes the Summary and
    Motivation sections. These should be easy and explain why the community
@@ -61,7 +62,7 @@ Include as much detail as possible so that people can understand the "how" of
 the system. The goal here is to make this feel real for users without getting
 bogged down.
 
-Include a story on how this proposal will be deployed in production: 
+Include a story on how this proposal will be deployed in production:
 lifecycle, monitoring and scale requirements or benefits.
 
 #### Story 1
@@ -83,7 +84,7 @@ made in the agent (openshift/assisted-installer-agent) and the installer
 
 What are the risks of this proposal and how do we mitigate. Think broadly. For
 example, consider both security and how this will impact the larger OKD
-ecosystem. 
+ecosystem.
 
 Will choices made here affect adoption of assisted-installer?
 Will this work make it harder to integrate with other upstream projects?
@@ -100,9 +101,10 @@ enable more thoughtful discussion about the enhancement and it's impact.
 ### Open Questions
 
 This is where to call out areas of the design that require closure before deciding
-to implement the design.  For instance,
- > 1. This requires exposing previously private resources which contain sensitive
-  information.  Can we do this?
+to implement the design. For instance,
+
+> 1.  This requires exposing previously private resources which contain sensitive
+>     information. Can we do this?
 
 ### UI Impact
 
@@ -114,13 +116,13 @@ would be.
 ### Test Plan
 
 Consider the following in developing a test plan for this enhancement:
+
 - Will there be e2e and integration tests, in addition to unit tests?
 - How will it be tested in isolation vs with other components?
 
 No need to outline all of the test cases, just the general strategy. Anything
 that would count as tricky in the implementation and anything particularly
 challenging to test should be called out.
-
 
 ## Drawbacks
 

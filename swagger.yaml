@@ -2474,7 +2474,7 @@ paths:
     post:
       tags:
         - installer
-      description: Deprecated, maintained for legacy purposes. Does the same thing as allow-add-hosts. Use allow-add-hosts instead. 
+      description: Deprecated, maintained for legacy purposes. Does the same thing as allow-add-hosts. Use allow-add-hosts instead.
       deprecated: true
       operationId: TransformClusterToDay2
       parameters:

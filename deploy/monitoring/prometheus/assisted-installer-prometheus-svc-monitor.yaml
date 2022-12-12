@@ -12,7 +12,7 @@ spec:
     port: assisted-service
     path: /metrics
     params:
-      'match[]': 
+      'match[]':
         - '{__name__=~".+"}'
     scheme: http
   namespaceSelector:

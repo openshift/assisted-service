@@ -14,6 +14,6 @@ if git diff --quiet $LAST_SYNC_REF:$STD_PATH FETCH_HEAD:$STD_PATH; then
 else
     NEW_REF=$(git rev-parse FETCH_HEAD | tee $LOCAL_PATH/sync.checkpoint)
     echo "Applying changes from $LAST_SYNC_REF to $NEW_REF..."
-    git diff $LAST_SYNC_REF:$STD_PATH FETCH_HEAD:$STD_PATH | \
+    git diff $LAST_SYNC_REF:$STD_PATH FETCH_HEAD:$STD_PATH |
         git apply -3 --directory=$LOCAL_PATH
 fi

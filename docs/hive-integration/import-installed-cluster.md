@@ -8,27 +8,28 @@ Here are the needed CRDs to import an existing cluster:
 
 ### InfraEnv
 
-* [InfraEnv](crds/infraEnv.yaml) or
-* [InfraEnv Late Binding](crds/infraEnvLateBinding.yaml)
+- [InfraEnv](crds/infraEnv.yaml) or
+- [InfraEnv Late Binding](crds/infraEnvLateBinding.yaml)
 
 ### NMState Config
 
 Optional network configuration.
-* [NMState Config](crds/nmstate.yaml)
+
+- [NMState Config](crds/nmstate.yaml)
 
 ### Pull Secret
 
-* [PullSecret Secret](crds/pullsecret.yaml)
+- [PullSecret Secret](crds/pullsecret.yaml)
 
 ### Cluster Image Set
 
-* [ClusterImageSet](crds/clusterImageSet.yaml)
+- [ClusterImageSet](crds/clusterImageSet.yaml)
 
 ### AgentClusterInstall
 
 Configure the number of control planes in the `provisionRequirements` field to be greater than `1`. This is needed because adding additional nodes to a Single Node OpenShift is not currently supported.
 
-* [AgentClusterInstall](crds/agentClusterInstall.yaml)
+- [AgentClusterInstall](crds/agentClusterInstall.yaml)
 
 ### ClusterDeployment
 

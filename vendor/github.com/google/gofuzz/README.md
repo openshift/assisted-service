@@ -1,5 +1,4 @@
-gofuzz
-======
+# gofuzz
 
 gofuzz is a library for populating go objects with random values.
 
@@ -8,12 +7,13 @@ gofuzz is a library for populating go objects with random values.
 
 This is useful for testing:
 
-* Do your project's objects really serialize/unserialize correctly in all cases?
-* Is there an incorrectly formatted object that will cause your project to panic?
+- Do your project's objects really serialize/unserialize correctly in all cases?
+- Is there an incorrectly formatted object that will cause your project to panic?
 
-Import with ```import "github.com/google/gofuzz"```
+Import with `import "github.com/google/gofuzz"`
 
 You can use it on single variables:
+
 ```go
 f := fuzz.New()
 var myInt int
@@ -21,6 +21,7 @@ f.Fuzz(&myInt) // myInt gets a random value.
 ```
 
 You can use it on maps:
+
 ```go
 f := fuzz.New().NilChance(0).NumElements(1, 1)
 var myMap map[ComplexKeyType]string
@@ -28,6 +29,7 @@ f.Fuzz(&myMap) // myMap will have exactly one element.
 ```
 
 Customize the chance of getting a nil pointer:
+
 ```go
 f := fuzz.New().NilChance(.5)
 var fancyStruct struct {
@@ -37,6 +39,7 @@ f.Fuzz(&fancyStruct) // About half the pointers should be set.
 ```
 
 You can even customize the randomization completely if needed:
+
 ```go
 type MyEnum string
 const (
@@ -66,6 +69,6 @@ var myObject MyInfo
 f.Fuzz(&myObject) // Type will correspond to whether A or B info is set.
 ```
 
-See more examples in ```example_test.go```.
+See more examples in `example_test.go`.
 
 Happy testing!

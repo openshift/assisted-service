@@ -147,7 +147,7 @@ request, go through this checklist:
 1. Run `make format` if a `Makefile` is available, `gofmt -s` if the project is
    written in Go, `npm run format` if the project is written for NodeJS.
 1. Ensure that each commit has a descriptive prefix. This ensures a uniform
-   commit history and helps structure the changelog.  
+   commit history and helps structure the changelog.
    Please refer to this
    [list of prefixes for Dockertest](https://github.com/ory/dockertest/blob/master/.github/semantic.yml)
    for an overview.

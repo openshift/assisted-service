@@ -38,9 +38,8 @@ compiler := jsonschema.NewCompiler()
 compler.Draft = jsonschema.Draft4
 ```
 
-you can also validate go value using `schema.ValidateInterface(interface{})` method.  
+you can also validate go value using `schema.ValidateInterface(interface{})` method.
 but the argument should not be user-defined struct.
-
 
 This package supports loading json-schema from filePath and fileURL.
 
@@ -76,7 +75,8 @@ if err = schema.Validate(f); err != nil {
 }
 ```
 
-This package supports json string formats: 
+This package supports json string formats:
+
 - date-time
 - date
 - time
@@ -104,37 +104,41 @@ Developers can register their own formats using package "github.com/santhosh-tek
 The ValidationError returned by Validate method contains detailed context to understand why and where the error is.
 
 schema.json:
+
 ```json
 {
-      "$ref": "t.json#/definitions/employee"
+  "$ref": "t.json#/definitions/employee"
 }
 ```
 
 t.json:
+
 ```json
 {
-    "definitions": {
-        "employee": {
-            "type": "string"
-        }
+  "definitions": {
+    "employee": {
+      "type": "string"
     }
+  }
 }
 ```
 
 doc.json:
+
 ```json
 1
 ```
 
 Validating `doc.json` with `schema.json`, gives following ValidationError:
+
 ```
 I[#] S[#] doesn't validate with "schema.json#"
   I[#] S[#/$ref] doesn't valide with "t.json#/definitions/employee"
     I[#] S[#/definitions/employee/type] expected string, but got number
 ```
 
-Here `I` stands for instance document and `S` stands for schema document.  
-The json-fragments that caused error in instance and schema documents are represented using json-pointer notation.  
+Here `I` stands for instance document and `S` stands for schema document.
+The json-fragments that caused error in instance and schema documents are represented using json-pointer notation.
 Nested causes are printed with indent.
 
 ## CLI

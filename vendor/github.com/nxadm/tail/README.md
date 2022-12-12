@@ -6,7 +6,7 @@ nxadm/tail provides a Go library that emulates the features of the BSD `tail`
 program. The library comes with full support for truncation/move detection as
 it is designed to work with log rotation tools. The library works on all
 operating systems supported by Go, including POSIX systems like Linux and
-*BSD, and MS Windows. Go 1.9 is the oldest compiler release supported.
+\*BSD, and MS Windows. Go 1.9 is the oldest compiler release supported.
 
 A simple example:
 
@@ -41,4 +41,5 @@ nxadm/tail continues the development by keeping up to date with the Go toolchain
 and fixing bugs.
 
 ## Examples
+
 Examples, e.g. used to debug an issue, are kept in the [examples directory](/examples).

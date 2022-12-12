@@ -11,13 +11,28 @@ Please note this is not an OpenShift feature and it's been implemented in the As
 ### Enabling autoallocation
 
 ```json
-{"vip_dhcp_allocation":true,"network_type":"OVNKubernetes","user_managed_networking":false,"cluster_networks":[{"cidr":"10.128.0.0/14","host_prefix":23}],"service_networks":[{"cidr":"172.30.0.0/16"}],"machine_networks":[{"cidr":"192.168.127.0/24"}]}
+{
+  "vip_dhcp_allocation": true,
+  "network_type": "OVNKubernetes",
+  "user_managed_networking": false,
+  "cluster_networks": [{ "cidr": "10.128.0.0/14", "host_prefix": 23 }],
+  "service_networks": [{ "cidr": "172.30.0.0/16" }],
+  "machine_networks": [{ "cidr": "192.168.127.0/24" }]
+}
 ```
 
 ### Disabling autoallocation
 
 ```json
-{"api_vip":"192.168.127.201","ingress_vip":"192.168.127.202","vip_dhcp_allocation":false,"network_type":"OVNKubernetes","user_managed_networking":false,"cluster_networks":[{"cidr":"10.128.0.0/14","host_prefix":23}],"service_networks":[{"cidr":"172.30.0.0/16"}]}
+{
+  "api_vip": "192.168.127.201",
+  "ingress_vip": "192.168.127.202",
+  "vip_dhcp_allocation": false,
+  "network_type": "OVNKubernetes",
+  "user_managed_networking": false,
+  "cluster_networks": [{ "cidr": "10.128.0.0/14", "host_prefix": 23 }],
+  "service_networks": [{ "cidr": "172.30.0.0/16" }]
+}
 ```
 
 ## Additional reading

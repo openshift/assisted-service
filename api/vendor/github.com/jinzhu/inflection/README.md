@@ -46,9 +46,9 @@ You can help to make the project better, check out [http://gorm.io/contribute.ht
 
 **jinzhu**
 
-* <http://github.com/jinzhu>
-* <wosmvp@gmail.com>
-* <http://twitter.com/zhangjinzhu>
+- <http://github.com/jinzhu>
+- <wosmvp@gmail.com>
+- <http://twitter.com/zhangjinzhu>
 
 ## License
 

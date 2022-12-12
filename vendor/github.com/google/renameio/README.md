@@ -7,7 +7,7 @@ symbolic link.
 
 ## Atomicity vs durability
 
-`renameio` concerns itself *only* with atomicity, i.e. making sure applications
+`renameio` concerns itself _only_ with atomicity, i.e. making sure applications
 never see unexpected file content (a half-written file, or a 0-byte file).
 
 As a practical example, consider https://manpages.debian.org/: if there is a
@@ -25,17 +25,16 @@ A naive approach to the problem is to create a temporary file followed by a call
 to `os.Rename()`. However, there are a number of subtleties which make the
 correct sequence of operations hard to identify:
 
-* The temporary file should be removed when an error occurs, but a remove must
+- The temporary file should be removed when an error occurs, but a remove must
   not be attempted if the rename succeeded, as a new file might have been
-  created with the same name. This renders a throwaway `defer
-  os.Remove(t.Name())` insufficient; state must be kept.
+  created with the same name. This renders a throwaway `defer os.Remove(t.Name())` insufficient; state must be kept.
 
-* The temporary file must be created on the same file system (same mount point)
+- The temporary file must be created on the same file system (same mount point)
   for the rename to work, but the TMPDIR environment variable should still be
   respected, e.g. to direct temporary files into a separate directory outside of
   the webserver’s document root but on the same file system.
 
-* On POSIX operating systems, the
+- On POSIX operating systems, the
   [`fsync`](https://manpages.debian.org/stretch/manpages-dev/fsync.2) system
   call must be used to ensure that the `os.Rename()` call will not result in a
   0-length file.

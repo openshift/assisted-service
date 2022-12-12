@@ -10,11 +10,11 @@
 
 Stable: No breaking changes will be made before 2.0.
 
--------------------------------------------------------------------------------
+---
 
 Released under the [MIT License].
 
-[MIT License]: LICENSE.txt
+[mit license]: LICENSE.txt
 [doc-img]: https://godoc.org/go.uber.org/multierr?status.svg
 [doc]: https://godoc.org/go.uber.org/multierr
 [ci-img]: https://travis-ci.com/uber-go/multierr.svg?branch=master

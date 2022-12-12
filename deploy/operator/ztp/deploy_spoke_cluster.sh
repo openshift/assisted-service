@@ -30,7 +30,7 @@ else
     export USER_MANAGED_NETWORKING="${USER_MANAGED_NETWORKING:-false}"
 fi
 
-if [[ "${IP_STACK}" == "v4" ]]; then
+if [[ ${IP_STACK} == "v4" ]]; then
     export CLUSTER_SUBNET="${CLUSTER_SUBNET_V4}"
     export CLUSTER_HOST_PREFIX="${CLUSTER_HOST_PREFIX_V4}"
     if [ "${USER_MANAGED_NETWORKING}" != "true" ] || [ ${SPOKE_CONTROLPLANE_AGENTS} -eq 1 ]; then
@@ -39,12 +39,12 @@ if [[ "${IP_STACK}" == "v4" ]]; then
         unset EXTERNAL_SUBNET
     fi
     export SERVICE_SUBNET="${SERVICE_SUBNET_V4}"
-elif [[ "${IP_STACK}" == "v6" ]]; then
+elif [[ ${IP_STACK} == "v6" ]]; then
     export CLUSTER_SUBNET="${CLUSTER_SUBNET_V6}"
     export CLUSTER_HOST_PREFIX="${CLUSTER_HOST_PREFIX_V6}"
     export EXTERNAL_SUBNET="${EXTERNAL_SUBNET_V6}"
     export SERVICE_SUBNET="${SERVICE_SUBNET_V6}"
-elif [[ "${IP_STACK}" == "v4v6" ]]; then
+elif [[ ${IP_STACK} == "v4v6" ]]; then
     export CLUSTER_SUBNET="${CLUSTER_SUBNET_V4}"
     export CLUSTER_HOST_PREFIX="${CLUSTER_HOST_PREFIX_V4}"
     export EXTERNAL_SUBNET="${EXTERNAL_SUBNET_V4}"
@@ -56,7 +56,7 @@ elif [[ "${IP_STACK}" == "v4v6" ]]; then
 fi
 
 #  If spoke is a multi cluster then we need to pick IPs for API and Ingress
-if [ ${SPOKE_CONTROLPLANE_AGENTS} -ne 1 ] && [ "${USER_MANAGED_NETWORKING}" != "true" ] ; then
+if [ ${SPOKE_CONTROLPLANE_AGENTS} -ne 1 ] && [ "${USER_MANAGED_NETWORKING}" != "true" ]; then
     export SPOKE_API_VIP=${SPOKE_API_VIP:-$(nth_ip $EXTERNAL_SUBNET 85)}
     export SPOKE_INGRESS_VIP=${SPOKE_INGRESS_VIP:-$(nth_ip $EXTERNAL_SUBNET 87)}
 fi
@@ -77,9 +77,9 @@ ansible-playbook "${__dir}/assisted-installer-crds-playbook.yaml"
 
 oc get namespace "${SPOKE_NAMESPACE}" || oc create namespace "${SPOKE_NAMESPACE}"
 
-oc get secret "${ASSISTED_PULLSECRET_NAME}" -n "${SPOKE_NAMESPACE}" || \
+oc get secret "${ASSISTED_PULLSECRET_NAME}" -n "${SPOKE_NAMESPACE}" ||
     oc create secret generic "${ASSISTED_PULLSECRET_NAME}" --from-file=.dockerconfigjson="${ASSISTED_PULLSECRET_JSON}" --type=kubernetes.io/dockerconfigjson -n "${SPOKE_NAMESPACE}"
-oc get secret "${ASSISTED_PRIVATEKEY_NAME}" -n "${SPOKE_NAMESPACE}" || \
+oc get secret "${ASSISTED_PRIVATEKEY_NAME}" -n "${SPOKE_NAMESPACE}" ||
     oc create secret generic "${ASSISTED_PRIVATEKEY_NAME}" --from-file=ssh-privatekey=/root/.ssh/id_rsa --type=kubernetes.io/ssh-auth -n "${SPOKE_NAMESPACE}"
 
 for manifest in $(find ${__dir}/generated -type f); do
@@ -93,27 +93,27 @@ wait_for_condition "infraenv/${ASSISTED_INFRAENV_NAME}" "ImageCreated" "5m" "${S
 echo "Waiting until at least ${SPOKE_CONTROLPLANE_AGENTS} agents are available..."
 
 function get_agents_with_role() {
-  oc get agent -n ${SPOKE_NAMESPACE} --no-headers | awk '{print $4}' | grep $role
+    oc get agent -n ${SPOKE_NAMESPACE} --no-headers | awk '{print $4}' | grep $role
 }
 
 export role=master
 export -f wait_for_cmd_amount
 export -f get_agents_with_role
-timeout --signal=SIGKILL 20m bash -c "wait_for_cmd_amount ${SPOKE_CONTROLPLANE_AGENTS} 30 get_agents_with_role" || \
+timeout --signal=SIGKILL 20m bash -c "wait_for_cmd_amount ${SPOKE_CONTROLPLANE_AGENTS} 30 get_agents_with_role" ||
     (echo "Timed-out waiting for agents to be ready" && exit 124)
 
 echo "All ${SPOKE_CONTROLPLANE_AGENTS} agents have been discovered!"
 
-if [[ "${ASSISTED_STOP_AFTER_AGENT_DISCOVERY}" == "true" ]]; then
+if [[ ${ASSISTED_STOP_AFTER_AGENT_DISCOVERY} == "true" ]]; then
     echo "Agents have been discovered, do not wait for the cluster installation to finish."
     exit
 fi
 
-if [ ${SPOKE_CONTROLPLANE_AGENTS} -ne 1 ] && [ "${USER_MANAGED_NETWORKING}" == "true" ] ; then
-    if [ "${SPAWN_NONE_PLATFORM_LOAD_BALANCER}" == "true" ] ; then
+if [ ${SPOKE_CONTROLPLANE_AGENTS} -ne 1 ] && [ "${USER_MANAGED_NETWORKING}" == "true" ]; then
+    if [ "${SPAWN_NONE_PLATFORM_LOAD_BALANCER}" == "true" ]; then
         setup_and_run_load_balancer
     fi
-    if [ "${ADD_NONE_PLATFORM_LIBVIRT_DNS}" == "true" ] ; then
+    if [ "${ADD_NONE_PLATFORM_LIBVIRT_DNS}" == "true" ]; then
         setup_libvirt_dns
         open_firewall_ports
     fi
@@ -134,7 +134,7 @@ echo "Hive acknowledged cluster installation!"
 # loadbalancer deployed.
 #
 # For multi-node with User Managed Networking we do not do anything as this is covered just in the condition above.
-if [ ${SPOKE_CONTROLPLANE_AGENTS} -eq 1 ] || [ "${USER_MANAGED_NETWORKING}" == "false" ] ; then
+if [ ${SPOKE_CONTROLPLANE_AGENTS} -eq 1 ] || [ "${USER_MANAGED_NETWORKING}" == "false" ]; then
     export API_IP=$(oc get -n ${SPOKE_NAMESPACE} agentclusterinstall/${ASSISTED_AGENT_CLUSTER_INSTALL_NAME} -ojson | jq '.status.apiVIP' --raw-output)
     if [ -z "$API_IP" ]; then
         echo "Fatal:"

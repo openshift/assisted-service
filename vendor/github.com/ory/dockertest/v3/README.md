@@ -7,6 +7,7 @@ Use Docker to run your Golang integration tests against third party services on 
 
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+
 **Table of Contents**
 
 - [Why should I use Dockertest?](#why-should-i-use-dockertest)
@@ -35,10 +36,13 @@ Using Dockertest is straightforward and simple. Check the [releases tab](https:/
 for available releases.
 
 To install dockertest, run
+
 ```
 go get -u github.com/ory/dockertest/v3
 ```
+
 or
+
 ```
 dep ensure -add github.com/ory/dockertest@v3.x.y
 ```
@@ -87,12 +91,12 @@ func TestMain(m *testing.M) {
 	}
 
 	code := m.Run()
-	
+
 	// You can't defer this because os.Exit doesn't care for defer
 	if err := pool.Purge(resource); err != nil {
 		log.Fatalf("Could not purge resource: %s", err)
 	}
-	
+
 	os.Exit(code)
 }
 
@@ -114,7 +118,7 @@ Try cleaning up the images with [docker-cleanup-volumes](https://github.com/chad
 ### Removing old containers
 
 Sometimes container clean up fails. Check out
-[this stackoverflow question](http://stackoverflow.com/questions/21398087/how-to-delete-dockers-images) on how to fix this. You may also set an absolute lifetime on containers: 
+[this stackoverflow question](http://stackoverflow.com/questions/21398087/how-to-delete-dockers-images) on how to fix this. You may also set an absolute lifetime on containers:
 
 ```go
 resource.Expire(60) // Tell docker to hard kill the container in 60 seconds
@@ -141,14 +145,15 @@ postgres, err := pool.RunWithOptions(&dockertest.RunOptions{
 ```
 
 ## Running dockertest in Gitlab CI
- 
+
 ### How to run dockertest on shared gitlab runners?
 
-You should add docker dind service to your job which starts in sibling container. 
-That means database will be available on host `docker`.   
+You should add docker dind service to your job which starts in sibling container.
+That means database will be available on host `docker`.
 You app should be able to change db host through environment variable.
 
 Here is the simple example of `gitlab-ci.yml`:
+
 ```yaml
 stages:
   - test
@@ -166,12 +171,13 @@ go-test:
 ```
 
 Plus in the `pool.Retry` method that checks for connection readiness,
- you need to use `$YOUR_APP_DB_HOST` instead of localhost.
+you need to use `$YOUR_APP_DB_HOST` instead of localhost.
 
 ### How to run dockertest on group(custom) gitlab runners?
 
-Gitlab runner can be run in docker executor mode to save compatibility with shared runners.    
+Gitlab runner can be run in docker executor mode to save compatibility with shared runners.
 Here is the simple register command:
+
 ```shell script
 gitlab-runner register -n \
  --url https://gitlab.com/ \
@@ -182,9 +188,9 @@ gitlab-runner register -n \
  --docker-privileged
 ```
 
-You only need to instruct docker dind to start with disabled tls.  
+You only need to instruct docker dind to start with disabled tls.
 Add variable `DOCKER_TLS_CERTDIR: ""` to `gitlab-ci.yml` above.
-It will tell docker daemon to start on 2375 port over http. 
+It will tell docker daemon to start on 2375 port over http.
 
 ### How to run dockertest with remote Docker
 

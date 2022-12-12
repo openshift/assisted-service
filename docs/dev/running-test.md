@@ -2,8 +2,8 @@
 
 There are two "flavors" of subsystem tests:
 
-* subsystem tests for the service deployed in REST-API mode
-* subsystem tests for the service deployed in kube-api mode
+- subsystem tests for the service deployed in REST-API mode
+- subsystem tests for the service deployed in kube-api mode
 
 Assisted-service subsystem tests require that you first deploy the
 assisted-service on a k8s cluster (e.g. minikube).
@@ -52,7 +52,7 @@ done
 nohup minikube tunnel &>/dev/null &
 ```
 
-Now that the cluster is prepared, we can deploy the service - 
+Now that the cluster is prepared, we can deploy the service -
 
 To deploy the service in REST-API mode, run:
 
@@ -83,9 +83,9 @@ skipper make subsystem-test-kube-api
 
 Optionally the following environment variables can be exported:
 
-* `FOCUS="install_cluster"` - An optional flag used for [focused specs](https://onsi.github.io/ginkgo/#focused-specs) with regular expression.
-* `SKIP="install_cluster"` - An optional flag to skip scopes with regular expressions.
-* `VERBOSE=true` - An optional flag to print verbosed data.
+- `FOCUS="install_cluster"` - An optional flag used for [focused specs](https://onsi.github.io/ginkgo/#focused-specs) with regular expression.
+- `SKIP="install_cluster"` - An optional flag to skip scopes with regular expressions.
+- `VERBOSE=true` - An optional flag to print verbosed data.
 
 ## Update service for the subsystem tests
 

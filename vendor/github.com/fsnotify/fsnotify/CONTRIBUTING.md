@@ -2,9 +2,9 @@
 
 ## Issues
 
-* Request features and report bugs using the [GitHub Issue Tracker](https://github.com/fsnotify/fsnotify/issues).
-* Please indicate the platform you are using fsnotify on.
-* A code example to reproduce the problem is appreciated.
+- Request features and report bugs using the [GitHub Issue Tracker](https://github.com/fsnotify/fsnotify/issues).
+- Please indicate the platform you are using fsnotify on.
+- A code example to reproduce the problem is appreciated.
 
 ## Pull Requests
 
@@ -16,17 +16,17 @@ Please indicate that you have signed the CLA in your pull request.
 
 ### How fsnotify is Developed
 
-* Development is done on feature branches.
-* Tests are run on BSD, Linux, macOS and Windows.
-* Pull requests are reviewed and [applied to master][am] using [hub][].
-  * Maintainers may modify or squash commits rather than asking contributors to.
-* To issue a new release, the maintainers will:
-  * Update the CHANGELOG
-  * Tag a version, which will become available through gopkg.in.
- 
+- Development is done on feature branches.
+- Tests are run on BSD, Linux, macOS and Windows.
+- Pull requests are reviewed and [applied to master][am] using [hub][].
+  - Maintainers may modify or squash commits rather than asking contributors to.
+- To issue a new release, the maintainers will:
+  - Update the CHANGELOG
+  - Tag a version, which will become available through gopkg.in.
+
 ### How to Fork
 
-For smooth sailing, always use the original import path. Installing with `go get` makes this easy. 
+For smooth sailing, always use the original import path. Installing with `go get` makes this easy.
 
 1. Install from GitHub (`go get -u github.com/fsnotify/fsnotify`)
 2. Create your feature branch (`git checkout -b my-new-feature`)
@@ -50,11 +50,11 @@ Before doing a pull request, please do your best to test your changes on multipl
 
 To aid in cross-platform testing there is a Vagrantfile for Linux and BSD.
 
-* Install [Vagrant](http://www.vagrantup.com/) and [VirtualBox](https://www.virtualbox.org/)
-* Setup [Vagrant Gopher](https://github.com/nathany/vagrant-gopher) in your `src` folder.
-* Run `vagrant up` from the project folder. You can also setup just one box with `vagrant up linux` or `vagrant up bsd` (note: the BSD box doesn't support Windows hosts at this time, and NFS may prompt for your host OS password)
-* Once setup, you can run the test suite on a given OS with a single command `vagrant ssh linux -c 'cd fsnotify/fsnotify; go test'`.
-* When you're done, you will want to halt or destroy the Vagrant boxes.
+- Install [Vagrant](http://www.vagrantup.com/) and [VirtualBox](https://www.virtualbox.org/)
+- Setup [Vagrant Gopher](https://github.com/nathany/vagrant-gopher) in your `src` folder.
+- Run `vagrant up` from the project folder. You can also setup just one box with `vagrant up linux` or `vagrant up bsd` (note: the BSD box doesn't support Windows hosts at this time, and NFS may prompt for your host OS password)
+- Once setup, you can run the test suite on a given OS with a single command `vagrant ssh linux -c 'cd fsnotify/fsnotify; go test'`.
+- When you're done, you will want to halt or destroy the Vagrant boxes.
 
 Notice: fsnotify file system events won't trigger in shared folders. The tests get around this limitation by using the /tmp directory.
 
@@ -64,8 +64,8 @@ Right now there is no equivalent solution for Windows and macOS, but there are W
 
 Help maintaining fsnotify is welcome. To be a maintainer:
 
-* Submit a pull request and sign the CLA as above.
-* You must be able to run the test suite on Mac, Windows, Linux and BSD.
+- Submit a pull request and sign the CLA as above.
+- You must be able to run the test suite on Mac, Windows, Linux and BSD.
 
 To keep master clean, the fsnotify project uses the "apply mail" workflow outlined in Nathaniel Talbott's post ["Merge pull request" Considered Harmful][am]. This requires installing [hub][].
 

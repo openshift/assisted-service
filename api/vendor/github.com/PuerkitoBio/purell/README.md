@@ -12,12 +12,12 @@ Based on the [wikipedia paper][wiki] and the [RFC 3986 document][rfc].
 
 ## Changelog
 
-*    **v1.1.1** : Fix failing test due to Go1.12 changes (thanks to @ianlancetaylor).
-*    **2016-11-14 (v1.1.0)** : IDN: Conform to RFC 5895: Fold character width (thanks to @beeker1121).
-*    **2016-07-27 (v1.0.0)** : Normalize IDN to ASCII (thanks to @zenovich).
-*    **2015-02-08** : Add fix for relative paths issue ([PR #5][pr5]) and add fix for unnecessary encoding of reserved characters ([see issue #7][iss7]).
-*    **v0.2.0** : Add benchmarks, Attempt IDN support.
-*    **v0.1.0** : Initial release.
+- **v1.1.1** : Fix failing test due to Go1.12 changes (thanks to @ianlancetaylor).
+- **2016-11-14 (v1.1.0)** : IDN: Conform to RFC 5895: Fold character width (thanks to @beeker1121).
+- **2016-07-27 (v1.0.0)** : Normalize IDN to ASCII (thanks to @zenovich).
+- **2015-02-08** : Add fix for relative paths issue ([PR #5][pr5]) and add fix for unnecessary encoding of reserved characters ([see issue #7][iss7]).
+- **v0.2.0** : Add benchmarks, Attempt IDN support.
+- **v0.1.0** : Initial release.
 
 ## Examples
 
@@ -124,24 +124,24 @@ The [full godoc reference is available on gopkgdoc][godoc].
 
 Some things to note:
 
-*    `FlagDecodeUnnecessaryEscapes`, `FlagEncodeNecessaryEscapes`, `FlagUppercaseEscapes` and `FlagRemoveEmptyQuerySeparator` are always implicitly set, because internally, the URL string is parsed as an URL object, which automatically decodes unnecessary escapes, uppercases and encodes necessary ones, and removes empty query separators (an unnecessary `?` at the end of the url). So this operation cannot **not** be done. For this reason, `FlagRemoveEmptyQuerySeparator` (as well as the other three) has been included in the `FlagsSafe` convenience set, instead of `FlagsUnsafe`, where Wikipedia puts it.
+- `FlagDecodeUnnecessaryEscapes`, `FlagEncodeNecessaryEscapes`, `FlagUppercaseEscapes` and `FlagRemoveEmptyQuerySeparator` are always implicitly set, because internally, the URL string is parsed as an URL object, which automatically decodes unnecessary escapes, uppercases and encodes necessary ones, and removes empty query separators (an unnecessary `?` at the end of the url). So this operation cannot **not** be done. For this reason, `FlagRemoveEmptyQuerySeparator` (as well as the other three) has been included in the `FlagsSafe` convenience set, instead of `FlagsUnsafe`, where Wikipedia puts it.
 
-*    The `FlagDecodeUnnecessaryEscapes` decodes the following escapes (*from -> to*):
-    -    %24 -> $
-    -    %26 -> &
-    -    %2B-%3B -> +,-./0123456789:;
-    -    %3D -> =
-    -    %40-%5A -> @ABCDEFGHIJKLMNOPQRSTUVWXYZ
-    -    %5F -> _
-    -    %61-%7A -> abcdefghijklmnopqrstuvwxyz
-    -    %7E -> ~
+- The `FlagDecodeUnnecessaryEscapes` decodes the following escapes (_from -> to_):
 
+  - %24 -> $
+  - %26 -> &
+  - %2B-%3B -> +,-./0123456789:;
+  - %3D -> =
+  - %40-%5A -> @ABCDEFGHIJKLMNOPQRSTUVWXYZ
+  - %5F -> \_
+  - %61-%7A -> abcdefghijklmnopqrstuvwxyz
+  - %7E -> ~
 
-*    When the `NormalizeURL` function is used (passing an URL object), this source URL object is modified (that is, after the call, the URL object will be modified to reflect the normalization).
+- When the `NormalizeURL` function is used (passing an URL object), this source URL object is modified (that is, after the call, the URL object will be modified to reflect the normalization).
 
-*    The *replace IP with domain name* normalization (`http://208.77.188.166/ → http://www.example.com/`) is obviously not possible for a library without making some network requests. This is not implemented in purell.
+- The _replace IP with domain name_ normalization (`http://208.77.188.166/ → http://www.example.com/`) is obviously not possible for a library without making some network requests. This is not implemented in purell.
 
-*    The *remove unused query string parameters* and *remove default query parameters* are also not implemented, since this is a very case-specific normalization, and it is quite trivial to do with an URL object.
+- The _remove unused query string parameters_ and _remove default query parameters_ are also not implemented, since this is a very case-specific normalization, and it is quite trivial to do with an URL object.
 
 ### Safe vs Usually Safe vs Unsafe
 
@@ -165,7 +165,7 @@ And with `FlagsUnsafeGreedy`:
 
 ## TODOs
 
-*    Add a class/default instance to allow specifying custom directory index names? At the moment, removing directory index removes `(^|/)((?:default|index)\.\w{1,4})$`.
+- Add a class/default instance to allow specifying custom directory index names? At the moment, removing directory index removes `(^|/)((?:default|index)\.\w{1,4})$`.
 
 ## Thanks / Contributions
 

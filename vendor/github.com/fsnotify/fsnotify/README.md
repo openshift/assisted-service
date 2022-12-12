@@ -10,16 +10,16 @@ go get -u golang.org/x/sys/...
 
 Cross platform: Windows, Linux, BSD and macOS.
 
-| Adapter               | OS                               | Status                                                                                                                          |
-| --------------------- | -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
-| inotify               | Linux 2.6.27 or later, Android\* | Supported |
-| kqueue                | BSD, macOS, iOS\*                | Supported |
-| ReadDirectoryChangesW | Windows                          | Supported |
-| FSEvents              | macOS                            | [Planned](https://github.com/fsnotify/fsnotify/issues/11)                                                                       |
-| FEN                   | Solaris 11                       | [In Progress](https://github.com/fsnotify/fsnotify/issues/12)                                                                   |
-| fanotify              | Linux 2.6.37+                    | [Planned](https://github.com/fsnotify/fsnotify/issues/114)                                                                      |
-| USN Journals          | Windows                          | [Maybe](https://github.com/fsnotify/fsnotify/issues/53)                                                                         |
-| Polling               | *All*                            | [Maybe](https://github.com/fsnotify/fsnotify/issues/9)                                                                          |
+| Adapter               | OS                               | Status                                                        |
+| --------------------- | -------------------------------- | ------------------------------------------------------------- |
+| inotify               | Linux 2.6.27 or later, Android\* | Supported                                                     |
+| kqueue                | BSD, macOS, iOS\*                | Supported                                                     |
+| ReadDirectoryChangesW | Windows                          | Supported                                                     |
+| FSEvents              | macOS                            | [Planned](https://github.com/fsnotify/fsnotify/issues/11)     |
+| FEN                   | Solaris 11                       | [In Progress](https://github.com/fsnotify/fsnotify/issues/12) |
+| fanotify              | Linux 2.6.37+                    | [Planned](https://github.com/fsnotify/fsnotify/issues/114)    |
+| USN Journals          | Windows                          | [Maybe](https://github.com/fsnotify/fsnotify/issues/53)       |
+| Polling               | _All_                            | [Maybe](https://github.com/fsnotify/fsnotify/issues/9)        |
 
 \* Android and iOS are untested.
 
@@ -27,7 +27,7 @@ Please see [the documentation](https://godoc.org/github.com/fsnotify/fsnotify) a
 
 ## API stability
 
-fsnotify is a fork of [howeyc/fsnotify](https://godoc.org/github.com/howeyc/fsnotify) with a new API as of v1.0. The API is based on [this design document](http://goo.gl/MrYxyA). 
+fsnotify is a fork of [howeyc/fsnotify](https://godoc.org/github.com/howeyc/fsnotify) with a new API as of v1.0. The API is based on [this design document](http://goo.gl/MrYxyA).
 
 All [releases](https://github.com/fsnotify/fsnotify/releases) are tagged based on [Semantic Versioning](http://semver.org/). Further API changes are [planned](https://github.com/fsnotify/fsnotify/milestones), and will be tagged with a new major revision number.
 
@@ -104,13 +104,14 @@ As of now, yes. Looking into making this single-thread friendly (see [howeyc #7]
 
 **Why am I receiving multiple events for the same file on OS X?**
 
-Spotlight indexing on OS X can result in multiple events (see [howeyc #62][#62]). A temporary workaround is to add your folder(s) to the *Spotlight Privacy settings* until we have a native FSEvents implementation (see [#11][]).
+Spotlight indexing on OS X can result in multiple events (see [howeyc #62][#62]). A temporary workaround is to add your folder(s) to the _Spotlight Privacy settings_ until we have a native FSEvents implementation (see [#11][]).
 
 **How many files can be watched at once?**
 
 There are OS-specific limits as to how many watches can be created:
-* Linux: /proc/sys/fs/inotify/max_user_watches contains the limit, reaching this limit results in a "no space left on device" error.
-* BSD / OSX: sysctl variables "kern.maxfiles" and "kern.maxfilesperproc", reaching these limits results in a "too many open files" error.
+
+- Linux: /proc/sys/fs/inotify/max_user_watches contains the limit, reaching this limit results in a "no space left on device" error.
+- BSD / OSX: sysctl variables "kern.maxfiles" and "kern.maxfilesperproc", reaching these limits results in a "too many open files" error.
 
 **Why don't notifications work with NFS filesystems or filesystem in userspace (FUSE)?**
 
@@ -120,11 +121,9 @@ fsnotify requires support from underlying OS to work. The current NFS protocol d
 [#18]: https://github.com/fsnotify/fsnotify/issues/18
 [#11]: https://github.com/fsnotify/fsnotify/issues/11
 [#7]: https://github.com/howeyc/fsnotify/issues/7
-
 [contributing]: https://github.com/fsnotify/fsnotify/blob/master/CONTRIBUTING.md
 
 ## Related Projects
 
-* [notify](https://github.com/rjeczalik/notify)
-* [fsevents](https://github.com/fsnotify/fsevents)
-
+- [notify](https://github.com/rjeczalik/notify)
+- [fsevents](https://github.com/fsnotify/fsevents)

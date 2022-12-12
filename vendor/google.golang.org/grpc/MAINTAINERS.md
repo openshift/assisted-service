@@ -16,6 +16,7 @@ for general contribution guidelines.
 - [srini100](https://github.com/srini100), Google LLC
 
 ## Emeritus Maintainers (in alphabetical order)
+
 - [adelez](https://github.com/adelez), Google LLC
 - [canguler](https://github.com/canguler), Google LLC
 - [iamqizhao](https://github.com/iamqizhao), Google LLC

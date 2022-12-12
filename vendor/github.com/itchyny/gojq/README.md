@@ -1,4 +1,5 @@
 # gojq
+
 [![CI Status](https://github.com/itchyny/gojq/workflows/CI/badge.svg)](https://github.com/itchyny/gojq/actions)
 [![Go Report Card](https://goreportcard.com/badge/github.com/itchyny/gojq)](https://goreportcard.com/report/github.com/itchyny/gojq)
 [![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/itchyny/gojq/blob/main/LICENSE)
@@ -6,10 +7,12 @@
 [![pkg.go.dev](https://pkg.go.dev/badge/github.com/itchyny/gojq)](https://pkg.go.dev/github.com/itchyny/gojq)
 
 ### Pure Go implementation of [jq](https://github.com/stedolan/jq)
+
 This is an implementation of jq command written in Go language.
 You can also embed gojq as a library to your Go products.
 
 ## Usage
+
 ```sh
  $ echo '{"foo": 128}' | gojq '.foo'
 128
@@ -39,6 +42,7 @@ You can also embed gojq as a library to your Go products.
 ```
 
 Nice error messages.
+
 ```sh
  $ echo '[1,2,3]' | gojq '.foo & .bar'
 gojq: invalid query: .foo & .bar
@@ -51,28 +55,34 @@ gojq: invalid json: <stdin>
 ```
 
 ## Installation
+
 ### Homebrew
+
 ```sh
 brew install gojq
 ```
 
 ### Zero Install
+
 ```sh
 0install add gojq https://apps.0install.net/utils/gojq.xml
 ```
 
 ### Build from source
+
 ```sh
 go install github.com/itchyny/gojq/cmd/gojq@latest
 ```
 
 ### Docker
+
 ```sh
 docker run -i --rm itchyny/gojq
 docker run -i --rm ghcr.io/itchyny/gojq
 ```
 
 ## Difference to jq
+
 - gojq is purely implemented with Go language and is completely portable. jq depends on the C standard library so the availability of math functions depends on the library. jq also depends on the regular expression library and it makes build scripts complex.
 - gojq implements nice error messages for invalid query and JSON input. The error message of jq is sometimes difficult to tell where to fix the query.
 - gojq does not keep the order of object keys. I understand this might cause problems for some scripts but basically, we should not rely on the order of object keys. Due to this limitation, gojq does not have `keys_unsorted` function and `--sort-keys` (`-S`) option. I would implement when ordered map is implemented in the standard library of Go but I'm less motivated.
@@ -83,6 +93,7 @@ docker run -i --rm ghcr.io/itchyny/gojq
 - gojq supports reading from YAML input (`--yaml-input`) while jq does not. gojq also supports YAML output (`--yaml-output`).
 
 ### Color configuration
+
 The gojq command automatically disables coloring output when the output is not a tty.
 To force coloring output, specify `--color-output` (`-C`) option.
 When [`NO_COLOR` environment variable](https://no-color.org/) is present or `--monochrome-output` (`-M`) option is specified, gojq disables coloring output.
@@ -92,6 +103,7 @@ The variable is a colon-separated list of ANSI escape sequences of `null`, `fals
 The default configuration is `90:33:33:36:32:34;1`.
 
 ## Usage as a library
+
 You can use the gojq parser and interpreter from your Go products.
 
 ```go
@@ -143,10 +155,13 @@ func main() {
 - [`gojq.WithInputIter`](https://pkg.go.dev/github.com/itchyny/gojq#WithInputIter) allows to use `input` and `inputs` functions. By default, these functions are disabled.
 
 ## Bug Tracker
+
 Report bug at [Issues・itchyny/gojq - GitHub](https://github.com/itchyny/gojq/issues).
 
 ## Author
+
 itchyny (https://github.com/itchyny)
 
 ## License
+
 This software is released under the MIT License, see LICENSE.

@@ -2,21 +2,20 @@
 
 ## Goals
 
-* Progress should be computed in the BE by design and not in the UI
-  * that will also make it usable from other APIs as kube-api
-* Installed clusters with failed non-essential workers or OLM-operators should still reach 100% progress.
-
+- Progress should be computed in the BE by design and not in the UI
+  - that will also make it usable from other APIs as kube-api
+- Installed clusters with failed non-essential workers or OLM-operators should still reach 100% progress.
 
 ## Current implementation
 
-* Computed in UI
-* `progressPercent = hostsProgressPercent * 0.75 + operatorsProgressPercent * 0.25`
-  * `operatorsProgressPercent =(completedOperators / monitoredOperators) * 100`
-    * A completedOperator is one of the following:
-      * A built-in operator with `available` status
-      * An OLM operator with `available` or `failed` status
-  * `hostsProgressPercent = (ΣcompletedStages / ΣallStages) * 100`
-    * For each host the data is retrieved by using the following APIs
+- Computed in UI
+- `progressPercent = hostsProgressPercent * 0.75 + operatorsProgressPercent * 0.25`
+  - `operatorsProgressPercent =(completedOperators / monitoredOperators) * 100`
+    - A completedOperator is one of the following:
+      - A built-in operator with `available` status
+      - An OLM operator with `available` or `failed` status
+  - `hostsProgressPercent = (ΣcompletedStages / ΣallStages) * 100`
+    - For each host the data is retrieved by using the following APIs
 
 ```
 GET api/assisted-install/v1/clusters/{cluster_id} | jq '.hosts[0].progress'
@@ -41,31 +40,29 @@ GET /api/assisted-install/v1/clusters/{cluster_id} | jq '.hosts[0].progress_stag
 
 ## New implementation
 
-* Will be computed in BE
-* `progres =ΣclusterStageProgress * Wi = preparingForInstallation * Wpi + installing * Wi + finalizing * Wf` while `ΣWi=1`
-  * We can manually compute an avg duration for the previous installations based on events to choose those weights and hardcode them.
-
+- Will be computed in BE
+- `progres =ΣclusterStageProgress * Wi = preparingForInstallation * Wpi + installing * Wi + finalizing * Wf` while `ΣWi=1`
+  - We can manually compute an avg duration for the previous installations based on events to choose those weights and hardcode them.
 
 #### Preparing for installation
 
-This stage mostly generates manifests and installation configs, therefore, we will set  `preparingForInstallationProgress={1, 0}` depending on if it is done or not.
-
+This stage mostly generates manifests and installation configs, therefore, we will set `preparingForInstallationProgress={1, 0}` depending on if it is done or not.
 
 #### Installing
 
-* This stage refers to hosts' installation
-* We will “assume” all host’s stages have a similar duration, therfore, they will be equally weighted.  
-* Hosts' progresses will be computed the same way we it is done in the current implementation, aka `hostsProgressPercent = ΣcompletedStages / ΣallStages`
-
+- This stage refers to hosts' installation
+- We will “assume” all host’s stages have a similar duration, therfore, they will be equally weighted.
+- Hosts' progresses will be computed the same way we it is done in the current implementation, aka `hostsProgressPercent = ΣcompletedStages / ΣallStages`
 
 #### Finalizing
 
-* This stage refers to operators' installation
-* We will “assume” all operatos have a similar installation duration.
-* Operators' progresses will be computed the same way we it is done in the current implementation, aka `operatorsProgressPercent = completedOperators / monitoredOperators`
+- This stage refers to operators' installation
+- We will “assume” all operatos have a similar installation duration.
+- Operators' progresses will be computed the same way we it is done in the current implementation, aka `operatorsProgressPercent = completedOperators / monitoredOperators`
 
 Suggested APIs:
-* Note that those new percentage values should be reset on clusters' installation reset
+
+- Note that those new percentage values should be reset on clusters' installation reset
 
 ```
 diff --git a/swagger.yaml b/swagger.yaml

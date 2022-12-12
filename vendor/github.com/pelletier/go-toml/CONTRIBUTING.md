@@ -13,7 +13,7 @@ small, is more than welcomed!
 ### Ask questions
 
 Any question you may have, somebody else might have it too. Always feel
-free to ask them on the [issues tracker][issues-tracker].  We will try to
+free to ask them on the [issues tracker][issues-tracker]. We will try to
 answer them as clearly and quickly as possible, time permitting.
 
 Asking questions also helps us identify areas where the documentation needs
@@ -51,17 +51,17 @@ Want to contribute a patch? Very happy to hear that!
 
 First, some high-level rules:
 
-* A short proposal with some POC code is better than a lengthy piece of
+- A short proposal with some POC code is better than a lengthy piece of
   text with no code. Code speaks louder than words.
-* No backward-incompatible patch will be accepted unless discussed.
+- No backward-incompatible patch will be accepted unless discussed.
   Sometimes it's hard, and Go's lack of versioning by default does not
   help, but we try not to break people's programs unless we absolutely have
   to.
-* If you are writing a new feature or extending an existing one, make sure
+- If you are writing a new feature or extending an existing one, make sure
   to write some documentation.
-* Bug fixes need to be accompanied with regression tests.
-* New code needs to be tested.
-* Your commit messages need to explain why the change is needed, even if
+- Bug fixes need to be accompanied with regression tests.
+- New code needs to be tested.
+- Your commit messages need to explain why the change is needed, even if
   already included in the PR description.
 
 It does sound like a lot, but those best practices are here to save time
@@ -101,10 +101,10 @@ the code. We enforce using `go fmt` on the whole code base.
 
 Checklist:
 
-* Passing CI.
-* Does not introduce backward-incompatible changes (unless discussed).
-* Has relevant doc changes.
-* Has relevant unit tests.
+- Passing CI.
+- Does not introduce backward-incompatible changes (unless discussed).
+- Has relevant doc changes.
+- Has relevant unit tests.
 
 1. Merge using "squash and merge".
 2. Make sure to edit the commit message to keep all the useful information

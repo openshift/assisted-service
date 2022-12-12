@@ -177,13 +177,11 @@ The agent will be changed so that it sends the full image reference in the
 
 When the agent receives the `upgrade-agent` step it will do the following:
 
-1. It will check if the new image is already downloaded with the `podman image
-   exists ...` command. If the image has already been downloaded it will return
+1. It will check if the new image is already downloaded with the `podman image exists ...` command. If the image has already been downloaded it will return
    to the service a response indicating that the image has been successfully
    downloaded.
 
-2. If the image hasn't been downloaded it will try to download it using `podman
-   pull ...`. If that succeeds it will exit the next step runner process, so
+2. If the image hasn't been downloaded it will try to download it using `podman pull ...`. If that succeeds it will exit the next step runner process, so
    that the main process will start it again with the new image.
 
 3. If downloading the image fails the agent will return to the service a

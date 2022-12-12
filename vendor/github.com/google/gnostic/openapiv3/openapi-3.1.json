@@ -4,11 +4,7 @@
   "$schema": "http://json-schema.org/draft-04/schema#",
   "type": "object",
   "description": "This is the root document object of the OpenAPI document.",
-  "required": [
-    "openapi",
-    "info",
-    "paths"
-  ],
+  "required": ["openapi", "info", "paths"],
   "additionalProperties": false,
   "patternProperties": {
     "^x-": {
@@ -57,10 +53,7 @@
     "info": {
       "type": "object",
       "description": "The object provides metadata about the API. The metadata MAY be used by the clients if needed, and MAY be presented in editing or documentation generation tools for convenience.",
-      "required": [
-        "title",
-        "version"
-      ],
+      "required": ["title", "version"],
       "additionalProperties": false,
       "patternProperties": {
         "^x-": {
@@ -117,9 +110,7 @@
     "license": {
       "type": "object",
       "description": "License information for the exposed API.",
-      "required": [
-        "name"
-      ],
+      "required": ["name"],
       "additionalProperties": false,
       "patternProperties": {
         "^x-": {
@@ -138,9 +129,7 @@
     "server": {
       "type": "object",
       "description": "An object representing a Server.",
-      "required": [
-        "url"
-      ],
+      "required": ["url"],
       "additionalProperties": false,
       "patternProperties": {
         "^x-": {
@@ -162,9 +151,7 @@
     "serverVariable": {
       "type": "object",
       "description": "An object representing a Server Variable for server URL template substitution.",
-      "required": [
-        "default"
-      ],
+      "required": ["default"],
       "additionalProperties": false,
       "patternProperties": {
         "^x-": {
@@ -301,9 +288,7 @@
     "operation": {
       "type": "object",
       "description": "Describes a single API operation on a path.",
-      "required": [
-        "responses"
-      ],
+      "required": ["responses"],
       "additionalProperties": false,
       "patternProperties": {
         "^x-": {
@@ -368,9 +353,7 @@
     "externalDocs": {
       "type": "object",
       "description": "Allows referencing an external resource for extended documentation.",
-      "required": [
-        "url"
-      ],
+      "required": ["url"],
       "additionalProperties": false,
       "patternProperties": {
         "^x-": {
@@ -389,10 +372,7 @@
     "parameter": {
       "type": "object",
       "description": "Describes a single operation parameter.  A unique parameter is defined by a combination of a name and location.",
-      "required": [
-        "name",
-        "in"
-      ],
+      "required": ["name", "in"],
       "additionalProperties": false,
       "patternProperties": {
         "^x-": {
@@ -444,9 +424,7 @@
     "requestBody": {
       "type": "object",
       "description": "Describes a single request body.",
-      "required": [
-        "content"
-      ],
+      "required": ["content"],
       "additionalProperties": false,
       "patternProperties": {
         "^x-": {
@@ -537,9 +515,7 @@
     "response": {
       "type": "object",
       "description": "Describes a single response from an API Operation, including design-time, static  `links` to operations based on the response.",
-      "required": [
-        "description"
-      ],
+      "required": ["description"],
       "additionalProperties": false,
       "patternProperties": {
         "^x-": {
@@ -676,9 +652,7 @@
     "tag": {
       "type": "object",
       "description": "Adds metadata to a single tag that is used by the Operation Object. It is not mandatory to have a Tag Object per tag defined in the Operation Object instances.",
-      "required": [
-        "name"
-      ],
+      "required": ["name"],
       "additionalProperties": false,
       "patternProperties": {
         "^x-": {
@@ -700,9 +674,7 @@
     "reference": {
       "type": "object",
       "description": "A simple object to allow referencing other components in the specification, internally and externally.  The Reference Object is defined by JSON Reference and follows the same structure, behavior and rules.   For this specification, reference resolution is accomplished as defined by the JSON Reference specification and not by the JSON Schema specification.",
-      "required": [
-        "$ref"
-      ],
+      "required": ["$ref"],
       "additionalProperties": false,
       "properties": {
         "$ref": {
@@ -869,9 +841,7 @@
     "discriminator": {
       "type": "object",
       "description": "When request bodies or response payloads may be one of a number of different schemas, a `discriminator` object can be used to aid in serialization, deserialization, and validation.  The discriminator is a specific object in a schema which is used to inform the consumer of the specification of an alternative schema based on the value associated with it.  When using the discriminator, _inline_ schemas will not be considered.",
-      "required": [
-        "propertyName"
-      ],
+      "required": ["propertyName"],
       "additionalProperties": false,
       "patternProperties": {
         "^x-": {
@@ -917,9 +887,7 @@
     "securityScheme": {
       "type": "object",
       "description": "Defines a security scheme that can be used by the operations. Supported schemes are HTTP authentication, an API key (either as a header, a cookie parameter or as a query parameter), mutual TLS (use of a client certificate), OAuth2's common flows (implicit, password, application and access code) as defined in RFC6749, and OpenID Connect.   Please note that currently (2019) the implicit flow is about to be deprecated OAuth 2.0 Security Best Current Practice. Recommended for most use case is Authorization Code Grant flow with PKCE.",
-      "required": [
-        "type"
-      ],
+      "required": ["type"],
       "additionalProperties": false,
       "patternProperties": {
         "^x-": {

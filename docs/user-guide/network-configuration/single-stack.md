@@ -6,15 +6,15 @@ When using Assisted Service on-premises, configuration of the IP stack is done i
 
 ### IPv4
 
-* [Deploying a SNO cluster](../../hive-integration/crds/agentClusterInstall-SNO.yaml)
-* [Deploying a multi-node OCP cluster](../../hive-integration/crds/agentClusterInstall.yaml)
+- [Deploying a SNO cluster](../../hive-integration/crds/agentClusterInstall-SNO.yaml)
+- [Deploying a multi-node OCP cluster](../../hive-integration/crds/agentClusterInstall.yaml)
 
 ### IPv6
 
 Deploying a SNO cluster
 
-* [Deploying a SNO cluster](../../hive-integration/crds/agentClusterInstall-IPv6-SNO.yaml)
-* [Deploying a multi-node OCP cluster](../../hive-integration/crds/agentClusterInstall-IPv6.yaml)
+- [Deploying a SNO cluster](../../hive-integration/crds/agentClusterInstall-IPv6-SNO.yaml)
+- [Deploying a multi-node OCP cluster](../../hive-integration/crds/agentClusterInstall-IPv6.yaml)
 
 ## Sample REST API payload
 
@@ -32,9 +32,7 @@ Deploying a SNO cluster
       "host_prefix": 23
     }
   ],
-  "service_networks": [
-    {"cidr": "172.30.0.0/16"}
-  ]
+  "service_networks": [{ "cidr": "172.30.0.0/16" }]
 }
 ```
 
@@ -53,9 +51,7 @@ Deploying a multi-node OCP cluster
       "host_prefix": 23
     }
   ],
-  "service_networks": [
-    {"cidr": "172.30.0.0/16"}
-  ]
+  "service_networks": [{ "cidr": "172.30.0.0/16" }]
 }
 ```
 
@@ -70,9 +66,7 @@ Deploying a multi-node OCP cluster
       "host_prefix": 23
     }
   ],
-  "service_networks": [
-    {"cidr": "172.30.0.0/16"}
-  ]
+  "service_networks": [{ "cidr": "172.30.0.0/16" }]
 }
 ```
 

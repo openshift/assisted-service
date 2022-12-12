@@ -1,4 +1,3 @@
-
 #!/usr/bin/env bash
 
 set -o nounset
@@ -22,8 +21,8 @@ function destroy_hub() {
 }
 
 if [ -z "$@" ]; then
-  destroy_spoke
-  destroy_hub
+    destroy_spoke
+    destroy_hub
 fi
 
 "$@"

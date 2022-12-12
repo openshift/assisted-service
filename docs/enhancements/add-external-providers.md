@@ -14,6 +14,7 @@ Currently, the assisted installer enables you to install on any platform where y
 resulting in a cluster with platform set to none, and also supports vSphere and Bare-Metal platforms.
 
 Openshift can also be installed on other on-prem providers such as:
+
 - Red Hat Virtualization (oVirt).
 - OpenStack.
 
@@ -24,7 +25,7 @@ This enhancement will define a clear interface to extend the assisted installer 
 
 ## Motivation
 
-Assisted Installer can be a great tool to perform User Provisioned installation (UPI)  installation on external providers,
+Assisted Installer can be a great tool to perform User Provisioned installation (UPI) installation on external providers,
 providing the user with clear UI to see its provisioned machines joining the cluster, and lowering installation
 resources requirements.
 It is only natural that on-prem providers will want to follow vSphere path and extend assisted installer to support
@@ -41,14 +42,14 @@ define a clear interface which each provider can implement and maintain.
 
 - Support IPI installations.
 - Integrating any relevant [Openshift installer types](https://github.com/openshift/installer/tree/master/pkg/types)
-into the assisted installer code - this will require a large refactor of the assisted installer code.
+  into the assisted installer code - this will require a large refactor of the assisted installer code.
 - Remove "Baremetal" or "BM" words from inappropriate struct/function names. (as this is how the assisted installer was originally implemented)
 - Adding Support for new providers.
 
 ## Proposal
 
 - Create a Provider interface, and hooks in the assisted installer code which separates the assisted installer core code
- from the provider-specific code.
+  from the provider-specific code.
 - Add clear documentation for each provider specific function.
 - Document steps to add a provider to the assisted installer.
 
@@ -152,9 +153,9 @@ After the agent is running on the host, the provider should be determined from t
 The [GetVendor](https://github.com/openshift/assisted-installer-agent/blob/master/src/inventory/system_vendor.go#L29-L45)
 method calculates if a node is virtual or not and populates the SystemVendor model which is later being used by the
 assisted service to determine if a node is running on a certain provider.
-We need to make sure that the provider is listed in the 
+We need to make sure that the provider is listed in the
 [isVirtual](https://github.com/openshift/assisted-installer-agent/blob/master/src/inventory/system_vendor.go#L15-L19]
-list and that it can be detected using the fields in 
+list and that it can be detected using the fields in
 [SystemVendor](https://github.com/openshift/assisted-service/blob/master/models/system_vendor.go).
 
 See [PR](https://github.com/openshift/assisted-installer-agent/pull/225) as an example.
@@ -163,7 +164,7 @@ See [PR](https://github.com/openshift/assisted-installer-agent/pull/225) as an e
 
 A small change is required in the installer project.
 Since the openshift installer is generating a random InfraID the names of the Nodes(in the manifest) are different
-from the nodes the user provisions, and since we have a provider set then the provider will try to start new machines 
+from the nodes the user provisions, and since we have a provider set then the provider will try to start new machines
 due to the naming mismatch.
 Since the InfraID is random we can't tell the user to create the Nodes with specific names.
 Also, the InfraID is later used by the platforms in various ways to identify the cluster,
@@ -184,29 +185,32 @@ This can be mitigated by sanity testing and making sure each provider implements
 ### Closed Questions
 
 > 1. Throughout the assisted installer code we have structs and functions that are specific to baremetal(at least from the name),
-> - Are they safe to be extended to support providers? 
+>
+> - Are they safe to be extended to support providers?
 
 Yes, of course they need to be extented without breaking anything.
-> - Is there anything baremetal specific we should be concerned about? 
+
+> - Is there anything baremetal specific we should be concerned about?
 
 No
+
 > - Is the assisted installer team aims to modify the names to be generic? for example I don't see why the
-[InstallerConfig](https://github.com/openshift/assisted-service/blob/master/internal/installcfg/installcfg.go#L75-L110)
- struct is BareMetal.
->
+>   [InstallerConfig](https://github.com/openshift/assisted-service/blob/master/internal/installcfg/installcfg.go#L75-L110)
+>   struct is BareMetal.
 
 No plans but we can modify them if it make sense as we develop.
 
 > Some examples but it is on every file:
+>
 > - [BMACReconciler](https://github.com/openshift/assisted-service/blob/master/internal/controller/controllers/bmh_agent_controller.go#L50-L55)
 > - [bareMetalInventory](https://github.com/openshift/assisted-service/blob/master/internal/bminventory/inventory.go#L149-L175)
 > - [InstallerConfigBaremetal](https://github.com/openshift/assisted-service/blob/master/internal/installcfg/installcfg.go#L75-L110)
 > - [bmhIsMaster](https://github.com/openshift/assisted-service/blob/master/internal/ignition/ignition.go#L541-L551)
 
 > 2. Is there a use case in which the user will provision the Nodes on a certain provider but want to disable
-provider integration? meaning nodes will be provider will be discovered but we want platform none anyway?
-in which case what would be the best way to handle this in terms of user interaction?
-would an env var flag to disable provider integration is enough?
+>    provider integration? meaning nodes will be provider will be discovered but we want platform none anyway?
+>    in which case what would be the best way to handle this in terms of user interaction?
+>    would an env var flag to disable provider integration is enough?
 
 We have to support that use case, currently the selection is done in the UI, this will be answered per provider
 implementation and it is out of scope for this enhancement
@@ -215,7 +219,7 @@ implementation and it is out of scope for this enhancement
 
 Currently, no UI changes are required.
 Each provider added should consider UI changes like vSphere(MGMT-7102)
-but this is out of scope for this enhancement 
+but this is out of scope for this enhancement
 
 ### Test Plan
 

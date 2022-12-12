@@ -7,8 +7,8 @@
 [![rcard](https://goreportcard.com/badge/github.com/modern-go/concurrent)](https://goreportcard.com/report/github.com/modern-go/concurrent)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://raw.githubusercontent.com/modern-go/concurrent/master/LICENSE)
 
-* concurrent.Map: backport sync.Map for go below 1.9
-* concurrent.Executor: goroutine with explicit ownership and cancellable
+- concurrent.Map: backport sync.Map for go below 1.9
+- concurrent.Executor: goroutine with explicit ownership and cancellable
 
 # concurrent.Map
 
@@ -45,5 +45,5 @@ fmt.Println("executor stopped")
 
 attach goroutine to executor instance, so that we can
 
-* cancel it by stop the executor with Stop/StopAndWait/StopAndWaitForever
-* handle panic by callback: the default behavior will no longer crash your application
+- cancel it by stop the executor with Stop/StopAndWait/StopAndWaitForever
+- handle panic by callback: the default behavior will no longer crash your application

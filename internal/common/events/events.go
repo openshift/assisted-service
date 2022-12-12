@@ -6245,4 +6245,3 @@ func (e *UpgradeAgentFailedEvent) FormatMessage() string {
     s := "Host {host_name}: Agent failed to download image '{agent_image}', will try again"
     return e.format(&s)
 }
-

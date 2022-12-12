@@ -1,7 +1,9 @@
 import argparse
 import os
-import utils
+
 import deployment_options
+import utils
+
 
 def handle_arguments():
     parser = argparse.ArgumentParser()
@@ -12,34 +14,45 @@ def handle_arguments():
 
 
 deploy_options = handle_arguments()
-log = utils.get_logger('deploy-service-registry-ca-configmap')
+log = utils.get_logger("deploy-service-registry-ca-configmap")
 
-SRC_FILE = os.path.join(os.getcwd(), 'deploy/assisted-service-configmap-registry-ca.yaml')
-DST_FILE = os.path.join(os.getcwd(), 'build', deploy_options.namespace, 'assisted-service-configmap-registry-ca.yaml')
+SRC_FILE = os.path.join(
+    os.getcwd(), "deploy/assisted-service-configmap-registry-ca.yaml"
+)
+DST_FILE = os.path.join(
+    os.getcwd(),
+    "build",
+    deploy_options.namespace,
+    "assisted-service-configmap-registry-ca.yaml",
+)
 
 
 def read_input_data_file(file_name):
-    with open(file_name, "r") as src:
+    with open(file_name) as src:
         contents = src.read()
-        contents = ['    {0}\n'.format(elem) for elem in contents.split("\n")]
+        contents = [f"    {elem}\n" for elem in contents.split("\n")]
         contents = "".join(contents)
         return contents
 
 
 def constuct_deployment_yaml(ca_content, registries_conf_content):
-    with open(SRC_FILE, "r") as src:
+    with open(SRC_FILE) as src:
         with open(DST_FILE, "w+") as dst:
             data = src.read()
-            data = data.replace('REPLACE_NAMESPACE', f'"{deploy_options.namespace}"')
-            data = data.replace('REPLACE_WITH_TLS_CA_BUNDLE_PEM',f'{ca_content}')
-            data = data.replace('REPLACE_WITH_REGISTRIES_CONF',f'{registries_conf_content}')
+            data = data.replace("REPLACE_NAMESPACE", f'"{deploy_options.namespace}"')
+            data = data.replace("REPLACE_WITH_TLS_CA_BUNDLE_PEM", f"{ca_content}")
+            data = data.replace(
+                "REPLACE_WITH_REGISTRIES_CONF", f"{registries_conf_content}"
+            )
             dst.write(data)
 
 
 def main():
     utils.verify_build_directory(deploy_options.namespace)
     if not deploy_options.ca_file_path or not deploy_options.registries_file_path:
-        print("mirror registry CA file or registries file are not provided, skipping generation of assisted-service-configmap-registry-ca.yaml")
+        print(
+            "mirror registry CA file or registries file are not provided, skipping generation of assisted-service-configmap-registry-ca.yaml"
+        )
         return
 
     ca_content = read_input_data_file(deploy_options.ca_file_path)
@@ -50,9 +63,7 @@ def main():
         return
 
     utils.apply(
-        target=deploy_options.target,
-        namespace=deploy_options.namespace,
-        file=DST_FILE
+        target=deploy_options.target, namespace=deploy_options.namespace, file=DST_FILE
     )
 
 

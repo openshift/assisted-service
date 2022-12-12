@@ -4,8 +4,8 @@ This page describes a process of adding a control plane node (master) to the Ope
 
 Differences come from multiple facts:
 
-* etcd versions used by different versions of OpenShift
-* healthy cluster can be managed by etcd-operator, whereas an unhealthy one needs additional set of manual operations
+- etcd versions used by different versions of OpenShift
+- healthy cluster can be managed by etcd-operator, whereas an unhealthy one needs additional set of manual operations
 
 It is important to highlight that Assisted Service only enables downloading ignition for the master node, but is not implementing any of the logic related to managing the etcd cluster itself. Therefore, an upstream OpenShift guide should always be used as the authoritary source. The guides below are only meant to provide a fast and streamlined description of the process.
 

@@ -33,49 +33,49 @@ The openshift-ci bot looks for `Bug XXX:` in the title of the pull request in or
 
 1. JIRA reference without a Bugzilla link
 
-    ```text
-    MGMT-6075: Implement ResetHostValidation API call
-    ```
+   ```text
+   MGMT-6075: Implement ResetHostValidation API call
+   ```
 
 1. No reference
 
-    ```text
-    NO-ISSUE: allow GitHub-created reverts to be used
-    ```
+   ```text
+   NO-ISSUE: allow GitHub-created reverts to be used
+   ```
 
 1. Bugzilla and JIRA reference
 
-    ```text
-    Bug 1957227: Allow overriding defaults via provided ConfigMap
+   ```text
+   Bug 1957227: Allow overriding defaults via provided ConfigMap
 
-    [...]
+   [...]
 
-    Closes: OCPBUGSM-28781
-    ```
+   Closes: OCPBUGSM-28781
+   ```
 
-    **NOTE**: For this commit the following is also correct, but the PR is not automatically linked with the bug tracker. Linking only to Bugzilla without referencing JIRA is not correct.
+   **NOTE**: For this commit the following is also correct, but the PR is not automatically linked with the bug tracker. Linking only to Bugzilla without referencing JIRA is not correct.
 
-    ```text
-    OCPBUGSM-28781: Allow overriding defaults via provided ConfigMap
-    ```
+   ```text
+   OCPBUGSM-28781: Allow overriding defaults via provided ConfigMap
+   ```
 
 1. GitHub reference
 
-    ```text
-    #1 Fixing the very first GitHub issue
-    ```
+   ```text
+   #1 Fixing the very first GitHub issue
+   ```
 
-    **NOTE**: The following is also correct
+   **NOTE**: The following is also correct
 
-    ```text
-    Fixing the very first GitHub issue
+   ```text
+   Fixing the very first GitHub issue
 
-    [...]
+   [...]
 
-    Closes: #1
-    ```
+   Closes: #1
+   ```
 
-[PULL_REQUEST_TEMPLATE]: https://github.com/openshift/assisted-service/blob/master/docs/pull_request_template.md
+[pull_request_template]: https://github.com/openshift/assisted-service/blob/master/docs/pull_request_template.md
 
 ## Testing
 

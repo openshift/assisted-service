@@ -27,41 +27,38 @@ declare CONTRIB_TAG
 declare OTEL_TAG
 
 help() {
-   printf "\n"
-   printf "Usage: %s [-o otel_tag] [-t tag]\n" "$0"
-   printf "\t-o Otel release tag. Update all go.mod to reference go.opentelemetry.io/otel <otel_tag>.\n"
-   printf "\t-t New Contrib unreleased tag. Update all go.mod files with this tag.\n"
-   exit 1 # Exit script after printing help
+    printf "\n"
+    printf "Usage: %s [-o otel_tag] [-t tag]\n" "$0"
+    printf "\t-o Otel release tag. Update all go.mod to reference go.opentelemetry.io/otel <otel_tag>.\n"
+    printf "\t-t New Contrib unreleased tag. Update all go.mod files with this tag.\n"
+    exit 1 # Exit script after printing help
 }
 
-while getopts "t:o:" opt
-do
-   case "$opt" in
-      t ) CONTRIB_TAG="$OPTARG" ;;
-      o ) OTEL_TAG="$OPTARG" ;;
-      ? ) help ;; # Print help
-   esac
+while getopts "t:o:" opt; do
+    case "$opt" in
+    t) CONTRIB_TAG="$OPTARG" ;;
+    o) OTEL_TAG="$OPTARG" ;;
+    ?) help ;; # Print help
+    esac
 done
 
 declare -r SEMVER_REGEX="^v(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(\\-[0-9A-Za-z-]+(\\.[0-9A-Za-z-]+)*)?(\\+[0-9A-Za-z-]+(\\.[0-9A-Za-z-]+)*)?$"
 
 validate_tag() {
     local tag_=$1
-    if [[ "${tag_}" =~ ${SEMVER_REGEX} ]]; then
-	    printf "%s is valid semver tag.\n" "${tag_}"
+    if [[ ${tag_} =~ ${SEMVER_REGEX} ]]; then
+        printf "%s is valid semver tag.\n" "${tag_}"
     else
-	    printf "%s is not a valid semver tag.\n" "${tag_}"
-	    return 1
+        printf "%s is not a valid semver tag.\n" "${tag_}"
+        return 1
     fi
 }
 
 # Print help in case parameters are empty
-if [[ -z "$CONTRIB_TAG" && -z "$OTEL_TAG" ]]
-then
+if [[ -z $CONTRIB_TAG && -z $OTEL_TAG ]]; then
     printf "At least one of '-o' or '-t' must be specified.\n"
     help
 fi
-
 
 ## Validate tags first
 if [ -n "${OTEL_TAG}" ]; then
@@ -80,12 +77,12 @@ fi
 if [ -n "${CONTRIB_TAG}" ]; then
     validate_tag "${CONTRIB_TAG}" || exit $?
     TAG_FOUND=$(git tag --list "${CONTRIB_TAG}")
-    if [[ ${TAG_FOUND} = "${CONTRIB_TAG}" ]] ; then
+    if [[ ${TAG_FOUND} == "${CONTRIB_TAG}" ]]; then
         printf "Tag %s already exists in this repo\n" "${CONTRIB_TAG}"
         exit 1
     fi
 else
-    CONTRIB_TAG=${OTEL_TAG}  # if contrib_tag not specified, but OTEL_TAG is, then set it to OTEL_TAG
+    CONTRIB_TAG=${OTEL_TAG} # if contrib_tag not specified, but OTEL_TAG is, then set it to OTEL_TAG
 fi
 
 # Get version for contrib.go
@@ -95,7 +92,7 @@ OTEL_CONTRIB_VERSION="${OTEL_CONTRIB_VERSION#v}"
 
 cd "$(dirname "$0")"
 
-if ! git diff --quiet; then \
+if ! git diff --quiet; then
     printf "Working tree is not clean, can't proceed\n"
     git status
     git diff
@@ -104,7 +101,7 @@ fi
 
 # Update contrib.go version definition
 cp contrib.go contrib.go.bak
-sed "s/\(return \"\)[0-9]*\.[0-9]*\.[0-9]*\"/\1${OTEL_CONTRIB_VERSION}\"/" ./contrib.go.bak > ./contrib.go
+sed "s/\(return \"\)[0-9]*\.[0-9]*\.[0-9]*\"/\1${OTEL_CONTRIB_VERSION}\"/" ./contrib.go.bak >./contrib.go
 rm -f ./contrib.go.bak
 
 declare -r BRANCH_NAME=pre_release_${CONTRIB_TAG}
@@ -117,9 +114,9 @@ patch_gomods() {
     # quote any '.' characters in the pkg name
     local quoted_pkg_=${pkg_//./\\.}
     for dir in $PACKAGE_DIRS; do
-	    cp "${dir}/go.mod" "${dir}/go.mod.bak"
-	    sed "s|${quoted_pkg_}\([^ ]*\) v[0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*[^0-9]*.*$|${pkg_}\1 ${tag_}|" "${dir}/go.mod.bak" >"${dir}/go.mod"
-	    rm -f "${dir}/go.mod.bak"
+        cp "${dir}/go.mod" "${dir}/go.mod.bak"
+        sed "s|${quoted_pkg_}\([^ ]*\) v[0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*[^0-9]*.*$|${pkg_}\1 ${tag_}|" "${dir}/go.mod.bak" >"${dir}/go.mod"
+        rm -f "${dir}/go.mod.bak"
     done
 }
 

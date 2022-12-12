@@ -2,25 +2,25 @@
 
 The assisted-installer tests are divided into 3 categories:
 
-* **Unit tests** - Focused on a module/function level while other modules are mocked.
-Unit tests are located in the package, where the code they are testing resides, using the pattern `<module_name>_test.go`.
-Unit tests needs a postgresql db container. The image for db container `quay.io/centos7/postgresql-12-centos7:latest` is built from `https://github.com/sclorg/postgresql-container`
+- **Unit tests** - Focused on a module/function level while other modules are mocked.
+  Unit tests are located in the package, where the code they are testing resides, using the pattern `<module_name>_test.go`.
+  Unit tests needs a postgresql db container. The image for db container `quay.io/centos7/postgresql-12-centos7:latest` is built from `https://github.com/sclorg/postgresql-container`
 
-* **Subsystem tests** - Focused on the component while mocking other component.
-For example, assisted-service subsystem tests mock the agent responses.
+- **Subsystem tests** - Focused on the component while mocking other component.
+  For example, assisted-service subsystem tests mock the agent responses.
 
-* **System tests** (a.k.a e2e) - Running full flows with all components.
-The e2e tests are divided into u/s (upstream) basic workflows on [assisted-test-infra](https://github.com/openshift/assisted-test-infra/tree/master/discovery-infra/tests) and d/s (downstream) extended regression tests maintained by both DEV and QE teams on [kni-assisted-installer-auto](https://gitlab.cee.redhat.com/ocp-edge-qe/kni-assisted-installer-auto/-/tree/master/api_tests).
+- **System tests** (a.k.a e2e) - Running full flows with all components.
+  The e2e tests are divided into u/s (upstream) basic workflows on [assisted-test-infra](https://github.com/openshift/assisted-test-infra/tree/master/discovery-infra/tests) and d/s (downstream) extended regression tests maintained by both DEV and QE teams on [kni-assisted-installer-auto](https://gitlab.cee.redhat.com/ocp-edge-qe/kni-assisted-installer-auto/-/tree/master/api_tests).
 
 ## Repository CI
 
 Our CI jobs are currently managed and ran by two CI tools - a Jenkins hosted on <http://assisted-jenkins.usersys.redhat.com> and a Prow hosts on <https://prow.ci.openshift.org>.
 
-| [Jenkins]((http://assisted-jenkins.usersys.redhat.com)) | [Prow](https://prow.ci.openshift.org) |
-|---|---|
-| Local for Assisted ecosystem | Company-wide |
-| Checks comments for JIRA | Runs e2e
-| Manages images in quay.io/edge-infrastructure | Runs all testing checks (lint, unit, etc)
+| [Jenkins](<(http://assisted-jenkins.usersys.redhat.com)>) | [Prow](https://prow.ci.openshift.org)     |
+| --------------------------------------------------------- | ----------------------------------------- |
+| Local for Assisted ecosystem                              | Company-wide                              |
+| Checks comments for JIRA                                  | Runs e2e                                  |
+| Manages images in quay.io/edge-infrastructure             | Runs all testing checks (lint, unit, etc) |
 
 Assisted-service CI jobs are defined under [openshift/release](https://github.com/openshift/release) repository on [openshift-assisted-service-master.yaml](https://github.com/openshift/release/blob/master/ci-operator/config/openshift/assisted-service/openshift-assisted-service-master.yaml).
 Read more about OpenShift CI infrastructure on [OpenShift CI Docs](https://docs.ci.openshift.org/docs/).
@@ -31,18 +31,18 @@ All the currently available jobs for the openshift/assisted-service repository c
 
 When adding a new job the following rules of thumbs should be taken into account:
 
-* Test logic needs to be maintained in the repository under test and not under openshift/release.
-It would allow easier integration with other tools, less dependency of the CI infrastructure, and most importantly the availability to run it locally.
+- Test logic needs to be maintained in the repository under test and not under openshift/release.
+  It would allow easier integration with other tools, less dependency of the CI infrastructure, and most importantly the availability to run it locally.
 
-* When introducing a new job it should be both a presubmit job and a periodic job. A presubmit job needs to be available so contributors would be able to run it on their PRs before merging.
+- When introducing a new job it should be both a presubmit job and a periodic job. A presubmit job needs to be available so contributors would be able to run it on their PRs before merging.
 
-    The presubmit job needs to be configured as `always_run: false` and `optional: true` (not blocking a merge) until proving stability.
-    New OCP releases might break one of Assisted workflows since Assisted isn't part of OCP.
+  The presubmit job needs to be configured as `always_run: false` and `optional: true` (not blocking a merge) until proving stability.
+  New OCP releases might break one of Assisted workflows since Assisted isn't part of OCP.
 
-    The periodic job needs to run on a frequent basis (e.g. daily) and have a `reporter_config` configured, in order to be notified on Slack whenever there's a breakage.
+  The periodic job needs to run on a frequent basis (e.g. daily) and have a `reporter_config` configured, in order to be notified on Slack whenever there's a breakage.
 
-* In case the new job affects multiple repositories - every repository should have the same presubmit job so it could be tested for every component change.
-For example, you can see that the `e2e-metal-assisted-olm` job is defined on several different repositories in this [link](https://steps.ci.openshift.org/search?job=e2e-metal-assisted-olm).
+- In case the new job affects multiple repositories - every repository should have the same presubmit job so it could be tested for every component change.
+  For example, you can see that the `e2e-metal-assisted-olm` job is defined on several different repositories in this [link](https://steps.ci.openshift.org/search?job=e2e-metal-assisted-olm).
 
 [An example of a PR adding a new job](https://github.com/openshift/release/pull/21604)
 
@@ -76,10 +76,10 @@ The retest job is defined under [infra-periodics.yaml](https://github.com/opensh
 
 Depends on the job.
 
-* Single-stage tests (e.g. lint, unit tests) run inside of a scheduled container. [Read more](https://docs.ci.openshift.org/docs/architecture/ci-operator/#declaring-tests)
-* Jobs that require a cluster (e.g. subsystem) run on a claimed OCP cluster from an hibernated pool of clusters.
-[Read more](https://docs.ci.openshift.org/docs/architecture/ci-operator/#testing-with-a-cluster-from-a-cluster-pool)
-* Baremetal jobs (i.e. e2e) run on a provisioned baremetal machine by [Equnix](https://www.equinix.nl/).
+- Single-stage tests (e.g. lint, unit tests) run inside of a scheduled container. [Read more](https://docs.ci.openshift.org/docs/architecture/ci-operator/#declaring-tests)
+- Jobs that require a cluster (e.g. subsystem) run on a claimed OCP cluster from an hibernated pool of clusters.
+  [Read more](https://docs.ci.openshift.org/docs/architecture/ci-operator/#testing-with-a-cluster-from-a-cluster-pool)
+- Baremetal jobs (i.e. e2e) run on a provisioned baremetal machine by [Equnix](https://www.equinix.nl/).
 
 ## How to run Assisted-service subsystem tests
 

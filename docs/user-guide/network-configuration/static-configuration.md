@@ -15,8 +15,8 @@ NMStateConfig is a declarative way of managing configuration of networking setti
 
 The static network configurations per each host should contain:
 
-* NMState file in YAML format, specifying the desired network configuration for the host. The file will contain interface logical names that will be replaced with host's actual interface name at discovery time
-* A map (mac-interface-mapping) containing the mapping of mac-address to the logical interface name
+- NMState file in YAML format, specifying the desired network configuration for the host. The file will contain interface logical names that will be replaced with host's actual interface name at discovery time
+- A map (mac-interface-mapping) containing the mapping of mac-address to the logical interface name
 
 In the following example `server-a.yaml` and `server-b.yaml` files contain the nmstate configuration in YAML format for two nodes. Here is an example of the content of `server-a.yaml`, setting network configuration for two of its network interfaces:
 
@@ -24,47 +24,42 @@ In the following example `server-a.yaml` and `server-b.yaml` files contain the n
 dns-resolver:
   config:
     server:
-    - 192.168.126.1
+      - 192.168.126.1
 interfaces:
-- ipv4:
-    address:
-    - ip: 192.168.126.30
-      prefix-length: 24
-    dhcp: false
-    enabled: true
-  name: eth0
-  state: up
-  type: ethernet
-- ipv4:
-    address:
-    - ip: 192.168.141.30
-      prefix-length: 24
-    dhcp: false
-    enabled: true
-  name: eth1
-  state: up
-  type: ethernet
+  - ipv4:
+      address:
+        - ip: 192.168.126.30
+          prefix-length: 24
+      dhcp: false
+      enabled: true
+    name: eth0
+    state: up
+    type: ethernet
+  - ipv4:
+      address:
+        - ip: 192.168.141.30
+          prefix-length: 24
+      dhcp: false
+      enabled: true
+    name: eth1
+    state: up
+    type: ethernet
 routes:
   config:
-  - destination: 0.0.0.0/0
-    next-hop-address: 192.168.126.1
-    next-hop-interface: eth0
-    table-id: 254
+    - destination: 0.0.0.0/0
+      next-hop-address: 192.168.126.1
+      next-hop-interface: eth0
+      table-id: 254
 ```
 
 The `mac-interface-mapping` attribute should map the MAC Addresses of the host to the logical interface name as used in the `network_yaml` element (nmstate files):
 
 ```yaml
-mac_interface_map: [
-    {
-      mac_address: 02:00:00:2c:23:a5,
-      logical_nic_name: eth0
-    },
-    {
-      mac_address: 02:00:00:68:73:dc,
-      logical_nic_name: eth1
-    }
-]
+mac_interface_map:
+  [
+    { mac_address: 02:00:00:2c:23:a5, logical_nic_name: eth0 },
+    { mac_address: 02:00:00:68:73:dc, logical_nic_name: eth1 },
+  ]
 ```
 
 > NOTE: The mapping should use host's physical interfaces and not logical interfaces to be created (potentially virtual).
@@ -103,44 +98,44 @@ curl -H "Content-Type: application/json" -X PATCH -d @$request_body ${ASSISTED_S
 ### Tagged VLAN
 
 ```yaml
-    interfaces:
-    - ipv4:
-        address:
+interfaces:
+  - ipv4:
+      address:
         - ip: 192.168.143.15
           prefix-length: 24
-        dhcp: false
-        enabled: true
-      ipv6:
-        enabled: false
-      name: eth0.404
-      state: up
-      type: vlan
-      vlan:
-        base-iface: eth0
-        id: 404
+      dhcp: false
+      enabled: true
+    ipv6:
+      enabled: false
+    name: eth0.404
+    state: up
+    type: vlan
+    vlan:
+      base-iface: eth0
+      id: 404
 ```
 
 ### Network Bond
 
 ```yaml
-    interfaces:
-    - ipv4:
-        address:
+interfaces:
+  - ipv4:
+      address:
         - ip: 192.168.138.15
           prefix-length: 24
-        dhcp: false
-        enabled: true
-      ipv6:
-        enabled: false
-      link-aggregation:
-        mode: active-backup
-        options:
-          all_slaves_active: delivered
-          miimon: "140"
-        slaves:
+      dhcp: false
+      enabled: true
+    ipv6:
+      enabled: false
+    link-aggregation:
+      mode: active-backup
+      options:
+        all_slaves_active: delivered
+        miimon: "140"
+      slaves:
         - eth0
         - eth1
-      name: bond0
-      state: up
-      type: bond
+    name: bond0
+    state: up
+    type: bond
 ```

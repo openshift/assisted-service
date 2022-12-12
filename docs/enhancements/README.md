@@ -12,29 +12,29 @@ place to describe AI enhancements via an actionable design proposal.
 
 A rough heuristic for an enhancement is anything that:
 
-* impacts multiple Assisted Installer projects
-* requires significant effort to complete
-* requires consensus across multiple domains of Assisted Installer
-* impacts the UX or operation of Assisted Installer substantially
-* users of Assisted Installer will notice and come to rely on
+- impacts multiple Assisted Installer projects
+- requires significant effort to complete
+- requires consensus across multiple domains of Assisted Installer
+- impacts the UX or operation of Assisted Installer substantially
+- users of Assisted Installer will notice and come to rely on
 
 A rough heuristic for when an enhancement should be made in
 openshift/enhancements instead:
 
-* requires changes to OpenShift
-* requires changes and/or consensus with other components related to
+- requires changes to OpenShift
+- requires changes and/or consensus with other components related to
   OpenShift
-* substanitally impacts the requirements for and/or experience of installing and
+- substanitally impacts the requirements for and/or experience of installing and
   provisioning OpenShift
-* would benefit from approval by OpenShift architects
+- would benefit from approval by OpenShift architects
 
 It is unlikely to require an enhancement if it:
 
-* is covered by an existing OpenShift enhancement proposal
-* fixes a bug
-* adds more testing
-* internally refactors a code or component only visible to that components domain
-* minimal impact to Assisted Installer as a whole
+- is covered by an existing OpenShift enhancement proposal
+- fixes a bug
+- adds more testing
+- internally refactors a code or component only visible to that components domain
+- minimal impact to Assisted Installer as a whole
 
 ## Getting Started
 

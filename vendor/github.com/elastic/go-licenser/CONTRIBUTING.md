@@ -2,7 +2,7 @@
 
 Contributions are very welcome, this includes documentation, tutorials, bug reports, issues, feature requests, feature implementations, pull requests or simply organizing the repository issues.
 
-*Pull requests that contain changes on the code base **and** related documentation, e.g. for a new feature, shall remain a single, atomic one.*
+_Pull requests that contain changes on the code base **and** related documentation, e.g. for a new feature, shall remain a single, atomic one._
 
 ## Building From Source
 
@@ -22,19 +22,17 @@ go get -u github.com/elastic/go-licenser
 
 If you have found an issue or defect in `go-licenser` or the latest documentation, use the GitHub [issue tracker](https://github.com/elastic/go-licenser/issues) to report the problem. Make sure to follow the template provided for you to provide all the useful details possible.
 
-
 ### Code Contribution Guidelines
 
 For the benefit of all, here are some recommendations with regards to your PR:
 
-* Go ahead and fork the project and make your changes.  We encourage pull requests to allow for review and discussion of code changes.
-* As a best practice it's best to open an Issue on the repository before submitting a PR.
-* When you’re ready to create a pull request, be sure to:
-    * Sign your commit messages, see [DCO details](https://probot.github.io/apps/dco/)
-    * Have test cases for the new code. If you have questions about how to do this, please ask in your pull request.
-    * Run `make format` and `make lint`.
-    * Ensure that `make unit` succeeds.
-
+- Go ahead and fork the project and make your changes. We encourage pull requests to allow for review and discussion of code changes.
+- As a best practice it's best to open an Issue on the repository before submitting a PR.
+- When you’re ready to create a pull request, be sure to:
+  - Sign your commit messages, see [DCO details](https://probot.github.io/apps/dco/)
+  - Have test cases for the new code. If you have questions about how to do this, please ask in your pull request.
+  - Run `make format` and `make lint`.
+  - Ensure that `make unit` succeeds.
 
 ### Golden Files
 

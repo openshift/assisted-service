@@ -7,10 +7,10 @@ However, Denco is optimized and some features added.
 
 ## Features
 
-* Fast (See [go-http-routing-benchmark](https://github.com/naoina/go-http-routing-benchmark))
-* [URL patterns](#url-patterns) (`/foo/:bar` and `/foo/*wildcard`)
-* Small (but enough) URL router API
-* HTTP request multiplexer like `http.ServeMux`
+- Fast (See [go-http-routing-benchmark](https://github.com/naoina/go-http-routing-benchmark))
+- [URL patterns](#url-patterns) (`/foo/:bar` and `/foo/*wildcard`)
+- Small (but enough) URL router API
+- HTTP request multiplexer like `http.ServeMux`
 
 ## Installation
 
@@ -167,8 +167,8 @@ Routes matching are:
 
 Denco has some limitations below.
 
-* Number of param records (such as `/:name`) must be less than 2^22
-* Number of elements of internal slice must be less than 2^22
+- Number of param records (such as `/:name`) must be less than 2^22
+- Number of elements of internal slice must be less than 2^22
 
 ## Benchmarks
 

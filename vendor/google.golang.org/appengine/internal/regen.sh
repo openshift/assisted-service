@@ -7,17 +7,17 @@
 PKG=google.golang.org/appengine
 
 function die() {
-	echo 1>&2 $*
-	exit 1
+    echo 1>&2 $*
+    exit 1
 }
 
 # Sanity check that the right tools are accessible.
 for tool in go protoc protoc-gen-go; do
-	q=$(which $tool) || die "didn't find $tool"
-	echo 1>&2 "$tool: $q"
+    q=$(which $tool) || die "didn't find $tool"
+    echo 1>&2 "$tool: $q"
 done
 
-echo -n 1>&2 "finding package dir... "
+echo -n "finding package dir... " 1>&2
 pkgdir=$(go list -f '{{.Dir}}' $PKG)
 echo 1>&2 $pkgdir
 base=$(echo $pkgdir | sed "s,/$PKG\$,,")
@@ -26,15 +26,15 @@ cd $base
 
 # Run protoc once per package.
 for dir in $(find $PKG/internal -name '*.proto' | xargs dirname | sort | uniq); do
-	echo 1>&2 "* $dir"
-	protoc --go_out=. $dir/*.proto
+    echo 1>&2 "* $dir"
+    protoc --go_out=. $dir/*.proto
 done
 
 for f in $(find $PKG/internal -name '*.pb.go'); do
-  # Remove proto.RegisterEnum calls.
-  # These cause duplicate registration panics when these packages
-  # are used on classic App Engine. proto.RegisterEnum only affects
-  # parsing the text format; we don't care about that.
-  # https://code.google.com/p/googleappengine/issues/detail?id=11670#c17
-  sed -i '/proto.RegisterEnum/d' $f
+    # Remove proto.RegisterEnum calls.
+    # These cause duplicate registration panics when these packages
+    # are used on classic App Engine. proto.RegisterEnum only affects
+    # parsing the text format; we don't care about that.
+    # https://code.google.com/p/googleappengine/issues/detail?id=11670#c17
+    sed -i '/proto.RegisterEnum/d' $f
 done

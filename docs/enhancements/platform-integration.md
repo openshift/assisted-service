@@ -9,6 +9,7 @@ last-updated: 2022-07-26
 # Platform integration in Assisted Installer
 
 ## Summary
+
 Assisted installer has historically been used to configure baremetal clusters. Eventually, users have grown accustomed to use it for virtual machines in the cloud, as it helped them to validate networking settings. The installed cluster however could not make use of cloud features (like scaling, volumes or loadbalancers) as it was installed with platform: none. Later on basic platform integration was added, described in [Define Providers Interface](https://github.com/openshift/assisted-service/blob/master/docs/enhancements/add-external-providers.md).
 
 This enhancement extends providers API and describes how other components are interacting with this feature.
@@ -31,6 +32,7 @@ Adding other providers for integration with assisted installer should be easy an
 ## Proposal
 
 - Extend [feature-support-levels](https://github.com/openshift/assisted-service/blob/master/swagger.yaml#L3561-L3599) to accept provider parameter:
+
 ```yaml
   feature-support-level:
   ...
@@ -51,6 +53,7 @@ Adding other providers for integration with assisted installer should be easy an
               - 'SNO'
   ...
 ```
+
 - Rework UI to use `ALLOW_` features - i.e. disable network type selection when `ENABLE_NETWORK_TYPE_SELECTION` is false
 - Allow providers list all enabled UI features via `SetPlatformUsages` Provider interface
 - `platform_type` feature should be validated by assisted-service against version support matrix (i.e. Nutanix platform available for 4.11+ clusters)
@@ -80,12 +83,12 @@ As an Openshift developer working on the assisted installer UI team I want to us
 ##### Step 1: Design API for provider-specific features
 
 Extend Usages API to include:
-* additional validations
-* UI features
-* provider's `SetPlatformUsages` should list all enabled UI features.
-  If provider doesn't list a feature its condsidered to be disabled.
-* Post-install configuration reference (KB, documentation link etc.)
 
+- additional validations
+- UI features
+- provider's `SetPlatformUsages` should list all enabled UI features.
+  If provider doesn't list a feature its condsidered to be disabled.
+- Post-install configuration reference (KB, documentation link etc.)
 
 #### Changes to the assisted-ui project:
 
@@ -110,8 +113,9 @@ data in install-config.yaml. User is expected to update this information after i
 This step should not require provider API connection to pass, but `create cluster` should be able to.
 
 All validations requiring API access in installer should be moved out of:
-* `pkg/asset/installconfig/<provider name>/validation.go`'s `Validate` to `ValidateForProvisioning` function
-* `pkg/asset/manifests/infrastructure.go`
+
+- `pkg/asset/installconfig/<provider name>/validation.go`'s `Validate` to `ValidateForProvisioning` function
+- `pkg/asset/manifests/infrastructure.go`
 
 ### Risks and Mitigations
 

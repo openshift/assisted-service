@@ -1,2 +1,3 @@
 # Openshift deployment with OAS - On Local
+
 work in progress...

@@ -14,8 +14,7 @@ join the meeting or get in touch on
 ## Development
 
 There are some generated files checked into the repo. To make sure
-that the generated files are up-to-date, run `make` (or `make
-precommit` - the `precommit` target is the default).
+that the generated files are up-to-date, run `make` (or `make precommit` - the `precommit` target is the default).
 
 The `precommit` target also fixes the formatting of the code and
 checks the status of the go module files.
@@ -37,6 +36,7 @@ repo:
 ```sh
 $ git clone https://github.com/open-telemetry/opentelemetry-go-contrib
 ```
+
 This would put the project in the `opentelemetry-go-contrib` directory in
 current working directory.
 
@@ -64,53 +64,55 @@ request ID to the entry you added to `CHANGELOG.md`.
 
 ### How to Receive Comments
 
-* If the PR is not ready for review, please put `[WIP]` in the title,
+- If the PR is not ready for review, please put `[WIP]` in the title,
   tag it as `work-in-progress`, or mark it as
   [`draft`](https://github.blog/2019-02-14-introducing-draft-pull-requests/).
-* Make sure CLA is signed and CI is clear.
+- Make sure CLA is signed and CI is clear.
 
 ### How to Get PRs Merged
 
 A PR is considered to be **ready to merge** when:
 
-* It has received two approvals from Approvers/Maintainers (at
+- It has received two approvals from Approvers/Maintainers (at
   different companies).
-* Feedback has been addressed.
-* Any substantive changes to your PR will require that you clear any prior
+- Feedback has been addressed.
+- Any substantive changes to your PR will require that you clear any prior
   Approval reviews, this includes changes resulting from other feedback. Unless
   the approver explicitly stated that their approval will persist across
   changes it should be assumed that the PR needs their review again. Other
   project members (e.g. approvers, maintainers) can help with this if there are
   any questions or if you forget to clear reviews.
-* It has been open for review for at least one working day. This gives
+- It has been open for review for at least one working day. This gives
   people reasonable time to review.
-* Trivial change (typo, cosmetic, doc, etc.) doesn't have to wait for
+- Trivial change (typo, cosmetic, doc, etc.) doesn't have to wait for
   one day.
-* `CHANGELOG.md` has been updated to reflect what has been
+- `CHANGELOG.md` has been updated to reflect what has been
   added, changed, removed, or fixed.
-* Urgent fix can take exception as long as it has been actively
+- Urgent fix can take exception as long as it has been actively
   communicated.
 
 Any Maintainer can merge the PR once it is **ready to merge**.
 
 ## Style Guide
 
-* Make sure to run `make precommit` - this will find and fix the code
+- Make sure to run `make precommit` - this will find and fix the code
   formatting.
-* Check [opentelemetry-go Style Guide](https://github.com/open-telemetry/opentelemetry-go/blob/main/CONTRIBUTING.md#style-guide)
+- Check [opentelemetry-go Style Guide](https://github.com/open-telemetry/opentelemetry-go/blob/main/CONTRIBUTING.md#style-guide)
 
 ## Adding a new Contrib package
 
 To add a new contrib package follow an existing one. An empty Sample instrumentation
-provides base structure with an example and a test. Each contrib package 
+provides base structure with an example and a test. Each contrib package
 should be its own module. A contrib package may contain more than one go package.
 
 ### Folder Structure
-- instrumentation/\<instrumentation-package>  (**Common**)
+
+- instrumentation/\<instrumentation-package> (**Common**)
 - instrumentation/\<instrumentation-package>/trace (**specific to trace**)
 - instrumentation/\<instrumentation-package>/metrics (**specific to metrics**)
 
 #### Example
+
 - instrumentation/gorm/trace
 - instrumentation/kafka/metrics
 

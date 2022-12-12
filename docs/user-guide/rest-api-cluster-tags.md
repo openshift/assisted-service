@@ -1,16 +1,15 @@
 # REST-API - Cluster Tags
 
 The `tags` property in cluster object is a comma-separated list of tags that are associated to the cluster. Each tag is a free-text string that can consist of the following characters:
-Alphanumeric (aA-zZ, 0-9), underscore (_) and white-spaces.
+Alphanumeric (aA-zZ, 0-9), underscore (\_) and white-spaces.
 
 Tags are not read or manipulated by the system, so they can be used for marking clusters with some filtering criteria, installation tracking indication, etc.
 
 ## Usage
 
-* The property can be specified when creating (v2RegisterCluster) or updating (V2UpdateCluster) a cluster.
-* The tags are stored in the cluster object, so the property can be fetched when getting (v2GetCluster) the cluster.
-* The property can be cleared by specifying an empty string.
-
+- The property can be specified when creating (v2RegisterCluster) or updating (V2UpdateCluster) a cluster.
+- The tags are stored in the cluster object, so the property can be fetched when getting (v2GetCluster) the cluster.
+- The property can be cleared by specifying an empty string.
 
 ## Examples
 

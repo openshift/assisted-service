@@ -26,24 +26,24 @@ The current implementation of dual-stack support assumes that everything in the 
 
 ### Goals
 
-* Allow configuring both IPv4 and IPv6 VIP for dual-stack clusters.
-* Allow configuring only IPv4 VIPs for dual-stack clusters (it is supported already today and will not be removed with implementation of this enhancement).
+- Allow configuring both IPv4 and IPv6 VIP for dual-stack clusters.
+- Allow configuring only IPv4 VIPs for dual-stack clusters (it is supported already today and will not be removed with implementation of this enhancement).
 
 ### Non-goals
 
-* Allow configuring more than single IPv4 and single IPv6 VIP. This is still not supported by the OCP. MetalLB is a better solution to creating arbitrary loadbalancers.
-* Allow configuring IPv6 as the primary networking stack. This is still not supported by the OCP. For dual-stack deployments the IPv4 stack is always to be the primary.
-* Allow DHCPv6 allocation of IPv6 VIPs. This is because DHCPv6 is not the model way of deploying IPv6 networks as well as that we intentionally decided not to offer IPv4 DHCP allocation for dual-stack clusters.
-* Allow VIP(s) to be placed outside of subnet(s) defined as machine network(s).
-* Change behaviour of VIPs in a single-stack scenario.
+- Allow configuring more than single IPv4 and single IPv6 VIP. This is still not supported by the OCP. MetalLB is a better solution to creating arbitrary loadbalancers.
+- Allow configuring IPv6 as the primary networking stack. This is still not supported by the OCP. For dual-stack deployments the IPv4 stack is always to be the primary.
+- Allow DHCPv6 allocation of IPv6 VIPs. This is because DHCPv6 is not the model way of deploying IPv6 networks as well as that we intentionally decided not to offer IPv4 DHCP allocation for dual-stack clusters.
+- Allow VIP(s) to be placed outside of subnet(s) defined as machine network(s).
+- Change behaviour of VIPs in a single-stack scenario.
 
 ## Proposal
 
 ### User Stories
 
-* As an operator of the IPv6-only Hub cluster I want to deploy dual-stack Spoke cluster.
+- As an operator of the IPv6-only Hub cluster I want to deploy dual-stack Spoke cluster.
 
-* As an user of a dual stack OCP cluster I want to run IPv6-only applications that need access to the API and/or Ingress VIPs.
+- As an user of a dual stack OCP cluster I want to run IPv6-only applications that need access to the API and/or Ingress VIPs.
 
 ### API Extensions
 
@@ -57,15 +57,15 @@ Our change can be simply described as "making a singular field plural". For this
 
 `cluster-create-params`, `v2-cluster-update-params` and `cluster` will get new fields
 
-* `api_vips` of type `array`
-* `ingress_vips` of type `array`
+- `api_vips` of type `array`
+- `ingress_vips` of type `array`
 
 Respective AgentClusterInstall CR will also get those new fields.
 
 The database schema will be updated by creating new tables `api_vips` and `ingress_vips` with the following columns
 
-* `cluster_id`
-* `ip`
+- `cluster_id`
+- `ip`
 
 Creation of the new tables in the database happens transparently thanks to the golang libraries in use. Copying current data to the new tables will be done using DB migration (as defined by the GORM library).
 
@@ -75,19 +75,19 @@ Given that all the newly introduced fields are optional, there is no need to rel
 
 A set of functions for cluster creation will provide a compatiblity between already existing fields (`api_vip` and `ingress_vip`) and new ones (`api_vips` and `ingress_vips`). The behaviour will be as follows
 
-* If only `api_vip` is provided, the `api_vips` will be automatically populated by a simple conversion from `string` to `[]string`. This guarantees no change in behaviour for users not aware of introduction of the new field.
+- If only `api_vip` is provided, the `api_vips` will be automatically populated by a simple conversion from `string` to `[]string`. This guarantees no change in behaviour for users not aware of introduction of the new field.
 
-* If both `api_vip` and `api_vips` are provided, the value of `api_vips[0]` must match the value of `api_vip`.
+- If both `api_vip` and `api_vips` are provided, the value of `api_vips[0]` must match the value of `api_vip`.
 
-* If only `api_vips` are provided, the error will be raised. This is the case when plural field is specified and the singular is not. The rationale is that in an update it's impossible to tell the difference between an old client clearing the singular field via patch and a new client setting the plural field. The update semantics must not differ from create, therefore behaviour as described.
+- If only `api_vips` are provided, the error will be raised. This is the case when plural field is specified and the singular is not. The rationale is that in an update it's impossible to tell the difference between an old client clearing the singular field via patch and a new client setting the plural field. The update semantics must not differ from create, therefore behaviour as described.
 
 For cluster update the following logic will apply
 
-* If `api_vip` is cleared and `api_vips` are not provided, we will clear both fields. This is a scenario when an old client (not aware of plural field) is used.
+- If `api_vip` is cleared and `api_vips` are not provided, we will clear both fields. This is a scenario when an old client (not aware of plural field) is used.
 
-* If `api_vips` is cleared and `api_vip` is not provided, the change will not apply. This is a scenario when an old client is used and it can't send fields it doesn't know about.
+- If `api_vips` is cleared and `api_vip` is not provided, the change will not apply. This is a scenario when an old client is used and it can't send fields it doesn't know about.
 
-* If `api_vip` is changed (but not cleared), `api_vips` will be forcefully set to the value of `api_vip` as a one-element list. This is a scenario when an old client is used to change the field it knows about.
+- If `api_vip` is changed (but not cleared), `api_vips` will be forcefully set to the value of `api_vip` as a one-element list. This is a scenario when an old client is used to change the field it knows about.
 
 All the points described above will behave in an equivalent way for `ingress_vip` and `ingress_vips`. The logic above covers all CRUD operations that are reasonable for a specific combination in order to provide compatibility between various versions of clients.
 
@@ -101,8 +101,8 @@ The new version of API will be released as we are removing an existing field.
 
 UI changes will be required in order to
 
-* display details of dual-stack clusters with dual-stack VIPs correctly
-* allow configuring dual-stack VIPs for dual-stack clusters
+- display details of dual-stack clusters with dual-stack VIPs correctly
+- allow configuring dual-stack VIPs for dual-stack clusters
 
 For displaying the changes, the UI will need to display the value of `api_vips` and `ingress_vips` instead of the current `api_vip` and `ingress_vip`.
 
@@ -116,15 +116,17 @@ As UI is a web client, it's going to transition to the new API faster than other
 
 The process outlined here ultimately leads to the deprecation of some API fields and introduction of the new ones. This has impact on all the tooling that contacts the Assisted Service API. With the relation to the mentioned before phases, the following applies
 
-* Phase 1
-    * no impact for tooling; no changes needed
+- Phase 1
 
-* Phase 2
-    * no changes needed for tools that only use single-stack VIPs
-    * changes needed for tools that want to offer dual-stack VIPs
+  - no impact for tooling; no changes needed
 
-* Phase 3
-    * changes needed for all the tools
+- Phase 2
+
+  - no changes needed for tools that only use single-stack VIPs
+  - changes needed for tools that want to offer dual-stack VIPs
+
+- Phase 3
+  - changes needed for all the tools
 
 ### Risks and Mitigations
 
@@ -136,9 +138,9 @@ Given that the core of the feature is implemented in the baremetal networking co
 
 Before moving from phase 2 to phase 3 we need to make sure that developers of the supported tools around Assisted Service are aware of this change. This includes but is not limited to:
 
-* aicli
-* Crucible
-* siteconfig generator
+- aicli
+- Crucible
+- siteconfig generator
 
 ### Test Plan
 

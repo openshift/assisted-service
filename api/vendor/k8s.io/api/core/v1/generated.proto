@@ -5759,4 +5759,3 @@ message WindowsSecurityContextOptions {
   // +optional
   optional bool hostProcess = 4;
 }
-

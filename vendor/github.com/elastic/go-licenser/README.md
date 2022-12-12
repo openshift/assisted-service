@@ -6,13 +6,13 @@ is useful outside of Elastic **_at the current stage_**, but the `licensing` pac
 
 ## Supported Licenses
 
-* Apache 2.0
-* Elastic
-* Elastic Cloud
+- Apache 2.0
+- Elastic
+- Elastic Cloud
 
 ## Supported languages
 
-* Go
+- Go
 
 ## Installing
 
@@ -46,4 +46,3 @@ Options:
 ## Contributing
 
 See [CONTRIBUTING.md](./CONTRIBUTING.md).
-

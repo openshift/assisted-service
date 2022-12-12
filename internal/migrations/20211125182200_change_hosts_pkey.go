@@ -12,8 +12,8 @@ const MIGRATE_HOSTS_PKEY_ID = "21211125182200"
 
 func getHostsPkeyColumns(db *gorm.DB) ([]string, error) {
 	var columnNames []string
-	err := db.Raw(`SELECT a.attname FROM pg_index i JOIN 
-				pg_attribute a ON a.attrelid = i.indrelid AND a.attnum = ANY(i.indkey) 
+	err := db.Raw(`SELECT a.attname FROM pg_index i JOIN
+				pg_attribute a ON a.attrelid = i.indrelid AND a.attnum = ANY(i.indkey)
 				WHERE i.indrelid = 'hosts'::regclass AND i.indisprimary`).Pluck("attrname", &columnNames).Error
 	return columnNames, err
 }

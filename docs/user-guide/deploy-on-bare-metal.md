@@ -1,4 +1,5 @@
 # Openshift deployment with OAS - On Bare Metal
+
 This guide contains all the sections regarding Bare Metal deployment method, like iPXE/PXE, VirtualMedia, etc... let's get started
 
 ## General
@@ -35,18 +36,19 @@ _*Note*: This method could be used also in Virtual environment_
 
 ![img](img/discovery_iso_generated.png)
 
-
 ## iPXE
 
-*NOTE*: We use a sample URL, please change to fit your use case accordingly
+_NOTE_: We use a sample URL, please change to fit your use case accordingly
 
 ### Accessing the iPXE boot script and artifacts
 
 The service serves an iPXE boot script for each infra-env
 The script can be downloaded using:
+
 ```
 GET /api/assisted-install/v2/infra-envs/{infra_env_id}/downloads/files?file_name=ipxe-script
 ```
+
 This URL can either be used directly or the script can be downloaded and hosted separately.
 
 ```
@@ -55,18 +57,20 @@ initrd --name initrd http://assisted.example.com:8888/images/a7acfb01-d89f-40c8-
 kernel http://assisted.example.com:8888/boot-artifacts/kernel?arch=x86_64&version=4.9 initrd=initrd coreos.live.rootfs_url=http://assisted.example.com:8888/boot-artifacts/rootfs?arch=x86_64&version=4.9 random.trust_cpu=on rd.luks.options=discard ignition.firstboot ignition.platform.id=metal console=tty1 console=ttyS1,115200n8 coreos.inst.persistent-kargs="console=tty1 console=ttyS1,115200n8"
 boot
 ```
+
 A presigned URL for the script URL can be retrieved using:
 `GET /api/assisted-install/v2/infra-envs/{infra_env_id}/downloads/files-presigned?file_name=ipxe-script`
 
 #### Boot Control
-In order to complete installation using iPXE, iPXE script cannot always be served.  After the 
-disk image has been completely written to the disk and the node went to reboot, the node should 
-boot from the disk.  To enable this, the following boot order has to be set: `[hd, network]`
-(hd first).  This causes the node to attempt booting first from hard disk. If it fails to boot from 
+
+In order to complete installation using iPXE, iPXE script cannot always be served. After the
+disk image has been completely written to the disk and the node went to reboot, the node should
+boot from the disk. To enable this, the following boot order has to be set: `[hd, network]`
+(hd first). This causes the node to attempt booting first from hard disk. If it fails to boot from
 hd, it defaults to the network (iPXE).
 
-When using iPXE, it is more desirable to put the network first.  Also, even if the image has been 
-written to the disk and the installation has failed, the node should boot from network.  To enable this
+When using iPXE, it is more desirable to put the network first. Also, even if the image has been
+written to the disk and the installation has failed, the node should boot from network. To enable this
 the boot order should be reversed to `[network, hd]`, and the assisted service manages this flow.
 
 To enable this flow, additional optional parameter `ipxe_script_type` has to be added to the iPXE download URL.
@@ -83,9 +87,9 @@ The assisted service returns a script having the following format:
 chain http://assisted.example.com/api/assisted-install/v2/infra-envs/{infra_env_id}/downloads/files?mac=${net0/mac}
 ```
 
-This script is actually a redirect script.  It indicates to IPXE to call again with the provided 
-URL which contains the mac address.  The iPXE infrastructure replaces the macro ${net0/mac} to the 
-mac address.  The mac address is used to recognize the host.  The assisted service will skip serving 
+This script is actually a redirect script. It indicates to IPXE to call again with the provided
+URL which contains the mac address. The iPXE infrastructure replaces the macro ${net0/mac} to the
+mac address. The mac address is used to recognize the host. The assisted service will skip serving
 the boot script in case it is in stage that requires booting from hd.
 
 To get a presigned URL with boot_control enabled, the boot_control parameter can be added to the
@@ -94,8 +98,10 @@ presigning URL request:
 `GET /api/assisted-install/v2/infra-envs/{infra_env_id}/downloads/files-presigned?file_name=ipxe-script&ipxe_script_type=boot-order-control`
 
 ##### Boot Control with Kube API
+
 When working with Kube API, the iPXE script URL is part of the infra-env status section - `ipxeScript` field.
-There is a field in infra-env spec section `ipxeScriptType` which can be used to set the boot control behavior.  There are 2 possible values to this field:
+There is a field in infra-env spec section `ipxeScriptType` which can be used to set the boot control behavior. There are 2 possible values to this field:
+
 - `DiscoveryImageAlways` (the default): Return a script that boots the discovery ISO from the network.
 - `BootOrderControl`: Return a redirect script.
 

@@ -54,6 +54,7 @@ See the [getting started guide](https://github.com/jackc/pgx/wiki/Getting-starte
 ## Choosing Between the pgx and database/sql Interfaces
 
 It is recommended to use the pgx interface if:
+
 1. The application only targets PostgreSQL.
 2. No other libraries that require `database/sql` are in use.
 
@@ -67,25 +68,25 @@ The `database/sql` interface only allows the underlying driver to return or rece
 
 pgx supports many features beyond what is available through `database/sql`:
 
-* Support for approximately 70 different PostgreSQL types
-* Automatic statement preparation and caching
-* Batch queries
-* Single-round trip query mode
-* Full TLS connection control
-* Binary format support for custom types (allows for much quicker encoding/decoding)
-* COPY protocol support for faster bulk data loads
-* Extendable logging support including built-in support for `log15adapter`, [`logrus`](https://github.com/sirupsen/logrus), [`zap`](https://github.com/uber-go/zap), and [`zerolog`](https://github.com/rs/zerolog)
-* Connection pool with after-connect hook for arbitrary connection setup
-* Listen / notify
-* Conversion of PostgreSQL arrays to Go slice mappings for integers, floats, and strings
-* Hstore support
-* JSON and JSONB support
-* Maps `inet` and `cidr` PostgreSQL types to `net.IPNet` and `net.IP`
-* Large object support
-* NULL mapping to Null* struct or pointer to pointer
-* Supports `database/sql.Scanner` and `database/sql/driver.Valuer` interfaces for custom types
-* Notice response handling
-* Simulated nested transactions with savepoints
+- Support for approximately 70 different PostgreSQL types
+- Automatic statement preparation and caching
+- Batch queries
+- Single-round trip query mode
+- Full TLS connection control
+- Binary format support for custom types (allows for much quicker encoding/decoding)
+- COPY protocol support for faster bulk data loads
+- Extendable logging support including built-in support for `log15adapter`, [`logrus`](https://github.com/sirupsen/logrus), [`zap`](https://github.com/uber-go/zap), and [`zerolog`](https://github.com/rs/zerolog)
+- Connection pool with after-connect hook for arbitrary connection setup
+- Listen / notify
+- Conversion of PostgreSQL arrays to Go slice mappings for integers, floats, and strings
+- Hstore support
+- JSON and JSONB support
+- Maps `inet` and `cidr` PostgreSQL types to `net.IPNet` and `net.IP`
+- Large object support
+- NULL mapping to Null\* struct or pointer to pointer
+- Supports `database/sql.Scanner` and `database/sql/driver.Valuer` interfaces for custom types
+- Notice response handling
+- Simulated nested transactions with savepoints
 
 ## Performance
 

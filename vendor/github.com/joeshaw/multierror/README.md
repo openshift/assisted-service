@@ -1,22 +1,22 @@
-# multierror #
+# multierror
 
 multierror is a simple Go package for combining multiple `error`s.
 This is handy if you are concurrently running operations within
 a function that returns only a single `error`.
 
-## API ##
+## API
 
 multierror exposes two types.
 
 `multierror.Errors` is a `[]error` with a receiver method `Err()`,
-which returns a `multierror.MultiError` instance or `nil`.  You use
+which returns a `multierror.MultiError` instance or `nil`. You use
 this type to collect your errors by appending to it.
 
-`multierror.MultiError` implements the `error` interface.  Its
+`multierror.MultiError` implements the `error` interface. Its
 `Errors` field contains the `multierror.Errors` you originally
 constructed.
 
-## Example ##
+## Example
 
 ```go
 package main

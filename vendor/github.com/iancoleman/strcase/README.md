@@ -1,4 +1,5 @@
 # strcase
+
 [![Godoc Reference](https://godoc.org/github.com/iancoleman/strcase?status.svg)](http://godoc.org/github.com/iancoleman/strcase)
 [![Build Status](https://travis-ci.com/iancoleman/strcase.svg)](https://travis-ci.com/iancoleman/strcase)
 [![Coverage](http://gocover.io/_badge/github.com/iancoleman/strcase?0)](http://gocover.io/github.com/iancoleman/strcase)
@@ -13,7 +14,7 @@ s := "AnyKind of_string"
 ```
 
 | Function                                  | Result               |
-|-------------------------------------------|----------------------|
+| ----------------------------------------- | -------------------- |
 | `ToSnake(s)`                              | `any_kind_of_string` |
 | `ToSnakeWithIgnore(s, '.')`               | `any_kind.of_string` |
 | `ToScreamingSnake(s)`                     | `ANY_KIND_OF_STRING` |
@@ -24,7 +25,6 @@ s := "AnyKind of_string"
 | `ToScreamingDelimited(s, '.', ' ', true)` | `ANY.KIND OF.STRING` |
 | `ToCamel(s)`                              | `AnyKindOfString`    |
 | `ToLowerCamel(s)`                         | `anyKindOfString`    |
-
 
 ## Install
 
@@ -49,7 +49,7 @@ func init() {
     // results in "Api" using ToCamel("API")
     // results in "api" using ToLowerCamel("API")
     strcase.ConfigureAcronym("API", "api")
-    
+
     // results in "PostgreSQL" using ToCamel("PostgreSQL")
     // results in "postgreSQL" using ToLowerCamel("PostgreSQL")
     strcase.ConfigureAcronym("PostgreSQL", "PostgreSQL")

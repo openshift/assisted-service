@@ -1,15 +1,14 @@
 #!/usr/bin/env python3
 
 import json
-import sys
 import os
+import sys
 import tempfile
 from pathlib import Path
 from typing import List
 
-from utils import check_output
 from retry import retry
-
+from utils import check_output
 
 RELEASE_IMAGES_FILE = os.path.join("data", "default_release_images.json")
 
@@ -23,10 +22,12 @@ def main():
     print(json.dumps(release_images, indent=4))
 
 
-def verify_images(release_images: List[str]):
+def verify_images(release_images: list[str]):
     if release_images is not None:
         for release in release_images:
-            verify_release_version(release["openshift_version"], release["url"], release["version"])
+            verify_release_version(
+                release["openshift_version"], release["url"], release["version"]
+            )
 
 
 def verify_release_version(ocp_version: str, release_image: str, release_version: str):
@@ -46,19 +47,24 @@ def verify_release_version(ocp_version: str, release_image: str, release_version
     """
 
     oc_version = get_oc_version(release_image)
-    assert oc_version == release_version, (f"{release_image} full version is {oc_version} not {release_version}")
+    assert (
+        oc_version == release_version
+    ), f"{release_image} full version is {oc_version} not {release_version}"
 
     # Valid delimiters for versions are "." as well as "-". This is in order to cover extraction
     # for all the following combinations
     #   * "4.11.0"
     #   * "4.11-multi"
     #   * "4.12.0-0.nightly-multi-2022-09-08-131900"
-    oc_version = oc_version.replace('-', '.')
-    ocp_version = ocp_version.replace('-', '.')
+    oc_version = oc_version.replace("-", ".")
+    ocp_version = ocp_version.replace("-", ".")
 
     major, minor, *_other_version_components = oc_version.split(".")
     ocp_major, ocp_minor, *_ = ocp_version.split(".")
-    assert (ocp_major, ocp_minor) == (major, minor), f"{release_image} major.minor key should be {major}.{minor} not {ocp_major}.{ocp_minor}"
+    assert (ocp_major, ocp_minor) == (
+        major,
+        minor,
+    ), f"{release_image} major.minor key should be {major}.{minor} not {ocp_major}.{ocp_minor}"
 
 
 def get_oc_version(release_image: str) -> str:
@@ -77,10 +83,12 @@ def get_oc_version(release_image: str) -> str:
         try:
             json.loads(pull_secret)
         except json.JSONDecodeError as e:
-            raise ValueError(f"Value of PULL_SECRET environment variable "
-                             f"is not a valid JSON payload: '{pull_secret}'") from e
+            raise ValueError(
+                f"Value of PULL_SECRET environment variable "
+                f"is not a valid JSON payload: '{pull_secret}'"
+            ) from e
 
-        with tempfile.NamedTemporaryFile(mode='w', delete=False) as f:
+        with tempfile.NamedTemporaryFile(mode="w", delete=False) as f:
             f.write(pull_secret)
             pull_secret_file = f.name
             registry_config = f"--registry-config '{pull_secret_file}'"
@@ -95,7 +103,8 @@ def get_oc_version(release_image: str) -> str:
 @retry(exceptions=RuntimeError, tries=5, delay=5)
 def get_release_information(release_image, registry_config):
     return check_output(
-        f"oc adm release info '{release_image}' {registry_config} -o template --template {{{{.metadata.version}}}}")
+        f"oc adm release info '{release_image}' {registry_config} -o template --template {{{{.metadata.version}}}}"
+    )
 
 
 if __name__ == "__main__":

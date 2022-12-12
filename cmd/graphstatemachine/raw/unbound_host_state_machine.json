@@ -14,290 +14,217 @@
     },
     {
       "transition_type": "CancelInstallation",
-      "source_states": [
-        "preparing-for-installation"
-      ],
+      "source_states": ["preparing-for-installation"],
       "destination_state": "ready",
       "name": "Cancel installation of preparing cluster",
       "description": "Cancelling a cluster during preperation simply cancels the preperation and moves it back to the ready, rather than putting the cluster in the cancelled state"
     },
     {
       "transition_type": "PrepareForInstallation",
-      "source_states": [
-        "ready"
-      ],
+      "source_states": ["ready"],
       "destination_state": "preparing-for-installation",
       "name": "Start installation",
       "description": "Begins preparing the cluster for installation"
     },
     {
       "transition_type": "RefreshStatus",
-      "source_states": [
-        "pending-for-input",
-        "ready",
-        "insufficient"
-      ],
+      "source_states": ["pending-for-input", "ready", "insufficient"],
       "destination_state": "pending-for-input",
       "name": "Refresh discovering cluster - detect required input",
       "description": "In order for this transition to be fired at least one of the validations in requiredInputFieldsExistNonDhcp must fail. This transition handles the case that there is missing input that has to be provided from a user or other external means"
     },
     {
       "transition_type": "RefreshStatus",
-      "source_states": [
-        "pending-for-input",
-        "ready",
-        "insufficient"
-      ],
+      "source_states": ["pending-for-input", "ready", "insufficient"],
       "destination_state": "insufficient",
       "name": "Refresh discovering cluster - detect insufficient",
       "description": "In order for this transition to be fired at least one of the validations in isSufficientForInstallNonDhcp must fail. This transition handles the case that one of the required validations that are required in order for the cluster to be in ready state  has failed"
     },
     {
       "transition_type": "RefreshStatus",
-      "source_states": [
-        "pending-for-input",
-        "ready",
-        "insufficient"
-      ],
+      "source_states": ["pending-for-input", "ready", "insufficient"],
       "destination_state": "pending-for-input",
       "name": "TODO: Name this transition",
       "description": "In order for this transition to be fired at least one of the validation IsMachineCidrDefined must fail. This transition handles the case that there is missing input that has to be provided from a user or other external means"
     },
     {
       "transition_type": "RefreshStatus",
-      "source_states": [
-        "pending-for-input",
-        "ready",
-        "insufficient"
-      ],
+      "source_states": ["pending-for-input", "ready", "insufficient"],
       "destination_state": "insufficient",
       "name": "TODO: Name this transition",
       "description": "In order for this transition to be fired at least one of the validations in isSufficientForInstallDhcp must fail. This transition handles the case that one of the required validations that are required in order for the host to be in known state (ready for installation) has failed"
     },
     {
       "transition_type": "RefreshStatus",
-      "source_states": [
-        "pending-for-input",
-        "ready",
-        "insufficient"
-      ],
+      "source_states": ["pending-for-input", "ready", "insufficient"],
       "destination_state": "ready",
       "name": "Refresh discovering cluster - detect ready",
       "description": "This transition is fired when all validations pass"
     },
     {
       "transition_type": "RefreshStatus",
-      "source_states": [
-        "preparing-for-installation"
-      ],
+      "source_states": ["preparing-for-installation"],
       "destination_state": "ready",
       "name": "Refresh preparing cluster - detect timeout",
       "description": "This transition is fired when the preparing installation reach the timeout"
     },
     {
       "transition_type": "RefreshStatus",
-      "source_states": [
-        "preparing-for-installation"
-      ],
+      "source_states": ["preparing-for-installation"],
       "destination_state": "installing",
       "name": "Refresh preparing cluster - done preparing",
       "description": "This transition is fired when cluster installation preperation is complete and all hosts within the cluster have also finished preparing"
     },
     {
       "transition_type": "RefreshStatus",
-      "source_states": [
-        "preparing-for-installation"
-      ],
+      "source_states": ["preparing-for-installation"],
       "destination_state": "insufficient",
       "name": "Refresh preparing cluster - insufficient",
       "description": "TODO: Document this transition"
     },
     {
       "transition_type": "RefreshStatus",
-      "source_states": [
-        "preparing-for-installation"
-      ],
+      "source_states": ["preparing-for-installation"],
       "destination_state": "ready",
       "name": "Refresh preparing cluster - failed",
       "description": "TODO: Document this transition"
     },
     {
       "transition_type": "RefreshStatus",
-      "source_states": [
-        "installing-pending-user-action"
-      ],
+      "source_states": ["installing-pending-user-action"],
       "destination_state": "error",
       "name": "TODO: Name this transition",
       "description": "TODO: Document this transition"
     },
     {
       "transition_type": "RefreshStatus",
-      "source_states": [
-        "installing-pending-user-action"
-      ],
+      "source_states": ["installing-pending-user-action"],
       "destination_state": "installing-pending-user-action",
       "name": "TODO: Name this transition",
       "description": "TODO: Document this transition"
     },
     {
       "transition_type": "RefreshStatus",
-      "source_states": [
-        "installing-pending-user-action"
-      ],
+      "source_states": ["installing-pending-user-action"],
       "destination_state": "error",
       "name": "Timed out while waiting for user",
       "description": "User was asked to take action and did not do so in time, give up and display appropriate error"
     },
     {
       "transition_type": "RefreshStatus",
-      "source_states": [
-        "finalizing"
-      ],
+      "source_states": ["finalizing"],
       "destination_state": "error",
       "name": "Timed out while finalizing",
       "description": "Cluster finalization took too long, display appropriate error"
     },
     {
       "transition_type": "RefreshStatus",
-      "source_states": [
-        "installing-pending-user-action"
-      ],
+      "source_states": ["installing-pending-user-action"],
       "destination_state": "installing",
       "name": "TODO: Name this transition",
       "description": "TODO: Document this transition"
     },
     {
       "transition_type": "RefreshStatus",
-      "source_states": [
-        "installing-pending-user-action"
-      ],
+      "source_states": ["installing-pending-user-action"],
       "destination_state": "finalizing",
       "name": "TODO: Name this transition",
       "description": "TODO: Document this transition"
     },
     {
       "transition_type": "RefreshStatus",
-      "source_states": [
-        "installing",
-        "finalizing"
-      ],
+      "source_states": ["installing", "finalizing"],
       "destination_state": "installing-pending-user-action",
       "name": "TODO: Name this transition",
       "description": "TODO: Document this transition"
     },
     {
       "transition_type": "RefreshStatus",
-      "source_states": [
-        "installing"
-      ],
+      "source_states": ["installing"],
       "destination_state": "finalizing",
       "name": "Move to finalizing",
       "description": "This transition is fired when the cluster is in installing and should move to finalizing"
     },
     {
       "transition_type": "RefreshStatus",
-      "source_states": [
-        "installing"
-      ],
+      "source_states": ["installing"],
       "destination_state": "installing",
       "name": "Stay in installing",
       "description": "Installing cluster should stay in installing"
     },
     {
       "transition_type": "RefreshStatus",
-      "source_states": [
-        "finalizing"
-      ],
+      "source_states": ["finalizing"],
       "destination_state": "finalizing",
       "name": "Update AMS subscription",
       "description": "Update AMS subscription with console URL"
     },
     {
       "transition_type": "RefreshStatus",
-      "source_states": [
-        "finalizing"
-      ],
+      "source_states": ["finalizing"],
       "destination_state": "installed",
       "name": "Finalizing complete",
       "description": "The cluster has completed finalizing"
     },
     {
       "transition_type": "RefreshStatus",
-      "source_states": [
-        "installing"
-      ],
+      "source_states": ["installing"],
       "destination_state": "error",
       "name": "Installation error",
       "description": "This transition is fired when the cluster is in installing and should move to error"
     },
     {
       "transition_type": "RefreshStatus",
-      "source_states": [
-        "error"
-      ],
+      "source_states": ["error"],
       "destination_state": "error",
       "name": "Log collection timeout during error",
       "description": "Stay in error state and update logs progress to timeout"
     },
     {
       "transition_type": "RefreshStatus",
-      "source_states": [
-        "cancelled"
-      ],
+      "source_states": ["cancelled"],
       "destination_state": "cancelled",
       "name": "Log collection timeout during cancelled",
       "description": "Stay in cancelled state and update logs progress to timeout"
     },
     {
       "transition_type": "RefreshStatus",
-      "source_states": [
-        "preparing-for-installation"
-      ],
+      "source_states": ["preparing-for-installation"],
       "destination_state": "preparing-for-installation",
       "name": "Maintain preparing-for-installation state",
       "description": "Stay in preparing-for-installation state"
     },
     {
       "transition_type": "RefreshStatus",
-      "source_states": [
-        "finalizing"
-      ],
+      "source_states": ["finalizing"],
       "destination_state": "finalizing",
       "name": "Maintain finalizing state",
       "description": "Stay in finalizing state"
     },
     {
       "transition_type": "RefreshStatus",
-      "source_states": [
-        "installed"
-      ],
+      "source_states": ["installed"],
       "destination_state": "installed",
       "name": "Maintain installed state",
       "description": "Stay in installed state"
     },
     {
       "transition_type": "RefreshStatus",
-      "source_states": [
-        "error"
-      ],
+      "source_states": ["error"],
       "destination_state": "error",
       "name": "Maintain error state",
       "description": "Stay in error state"
     },
     {
       "transition_type": "RefreshStatus",
-      "source_states": [
-        "cancelled"
-      ],
+      "source_states": ["cancelled"],
       "destination_state": "cancelled",
       "name": "Maintain cancelled state",
       "description": "Stay in cancelled state"
     },
     {
       "transition_type": "RefreshStatus",
-      "source_states": [
-        "adding-hosts"
-      ],
+      "source_states": ["adding-hosts"],
       "destination_state": "adding-hosts",
       "name": "Maintain adding-hosts state",
       "description": "Stay in adding-hosts state"

@@ -27,14 +27,14 @@ these deployments separately.
 
 ### Goals
 
-* Allow image serving to be scaled independently of the rest of the application.
-* Remove performance impact due to generating and serving images from the assisted service.
-* Simplify assisted service codebase
-* Make minimal changes to existing (or proposed) APIs.
+- Allow image serving to be scaled independently of the rest of the application.
+- Remove performance impact due to generating and serving images from the assisted service.
+- Simplify assisted service codebase
+- Make minimal changes to existing (or proposed) APIs.
 
 ### Non-Goals
 
-* Serve a discovery image directly to a BMC
+- Serve a discovery image directly to a BMC
 
 ## Proposal
 
@@ -80,8 +80,10 @@ created is still an open question.
 #### Request Flow
 
 1. Image service receives a request to download an image
-  - This request contains as query parameters, the assisted service api key,
-    the image type (minimal/full), and image version
+
+- This request contains as query parameters, the assisted service api key,
+  the image type (minimal/full), and image version
+
 2. Image service queries assisted service for the image ignition
 3. Assisted service generates the ignition and serves it
 4. If the iso is minimal, the image service queries the assisted service for the initrd

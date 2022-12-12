@@ -58,16 +58,16 @@ git push origin cool_new_feature
 
 Then use the GitHub UI to open a pull request.
 
-At this point, you're waiting on us to review your changes. We *try* to respond
+At this point, you're waiting on us to review your changes. We _try_ to respond
 to issues and pull requests within a few business days, and we may suggest some
 improvements or alternatives. Once your changes are approved, one of the
 project maintainers will merge them.
 
 We're much more likely to approve your changes if you:
 
-* Add tests for new functionality.
-* Write a [good commit message][commit-message].
-* Maintain backward compatibility.
+- Add tests for new functionality.
+- Write a [good commit message][commit-message].
+- Maintain backward compatibility.
 
 [fork]: https://github.com/uber-go/zap/fork
 [open-issue]: https://github.com/uber-go/zap/issues/new

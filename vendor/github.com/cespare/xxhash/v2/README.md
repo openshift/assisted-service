@@ -34,9 +34,9 @@ This package is in a module and the latest code is in version 2 of the module.
 You need a version of Go with at least "minimal module compatibility" to use
 github.com/cespare/xxhash/v2:
 
-* 1.9.7+ for Go 1.9
-* 1.10.3+ for Go 1.10
-* Go 1.11 or later
+- 1.9.7+ for Go 1.9
+- 1.10.3+ for Go 1.10
+- Go 1.11 or later
 
 I recommend using the latest release of Go.
 
@@ -45,12 +45,12 @@ I recommend using the latest release of Go.
 Here are some quick benchmarks comparing the pure-Go and assembly
 implementations of Sum64.
 
-| input size | purego | asm |
-| --- | --- | --- |
-| 5 B   |  979.66 MB/s |  1291.17 MB/s  |
-| 100 B | 7475.26 MB/s | 7973.40 MB/s  |
-| 4 KB  | 17573.46 MB/s | 17602.65 MB/s |
-| 10 MB | 17131.46 MB/s | 17142.16 MB/s |
+| input size | purego        | asm           |
+| ---------- | ------------- | ------------- |
+| 5 B        | 979.66 MB/s   | 1291.17 MB/s  |
+| 100 B      | 7475.26 MB/s  | 7973.40 MB/s  |
+| 4 KB       | 17573.46 MB/s | 17602.65 MB/s |
+| 10 MB      | 17131.46 MB/s | 17142.16 MB/s |
 
 These numbers were generated on Ubuntu 18.04 with an Intel i7-8700K CPU using
 the following commands under Go 1.11.2:

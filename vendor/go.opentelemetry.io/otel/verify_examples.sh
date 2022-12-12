@@ -19,26 +19,26 @@ set -euo pipefail
 cd $(dirname $0)
 TOOLS_DIR=$(pwd)/.tools
 
-if [ -z "${GOPATH}" ] ; then
-	printf "GOPATH is not defined.\n"
-	exit -1
+if [ -z "${GOPATH}" ]; then
+    printf "GOPATH is not defined.\n"
+    exit -1
 fi
 
-if [ ! -d "${GOPATH}" ] ; then
-	printf "GOPATH ${GOPATH} is invalid \n"
-	exit -1
+if [ ! -d "${GOPATH}" ]; then
+    printf "GOPATH ${GOPATH} is invalid \n"
+    exit -1
 fi
 
 # Pre-requisites
-if ! git diff --quiet; then \
-	git status
-	printf "\n\nError: working tree is not clean\n"
-	exit -1
+if ! git diff --quiet; then
+    git status
+    printf "\n\nError: working tree is not clean\n"
+    exit -1
 fi
 
-if [ "$(git tag --contains $(git log -1 --pretty=format:"%H"))" = "" ] ; then
-	printf "$(git log -1)"
-	printf "\n\nError: HEAD is not pointing to a tagged version"
+if [ "$(git tag --contains $(git log -1 --pretty=format:"%H"))" = "" ]; then
+    printf "$(git log -1)"
+    printf "\n\nError: HEAD is not pointing to a tagged version"
 fi
 
 make ${TOOLS_DIR}/gojq
@@ -56,17 +56,17 @@ printf "Update go.mod: rename module and remove replace\n"
 PACKAGE_DIRS=$(find . -mindepth 2 -type f -name 'go.mod' -exec dirname {} \; | egrep 'example' | sed 's/^\.\///' | sort)
 
 for dir in $PACKAGE_DIRS; do
-	printf "  Update go.mod for $dir\n"
-	(cd "${DIR_TMP}/${dir}" && \
-	 # replaces is ("mod1" "mod2" …)
-	 replaces=($(go mod edit -json | ${TOOLS_DIR}/gojq '.Replace[].Old.Path')) && \
-	 # strip double quotes
-	 replaces=("${replaces[@]%\"}") && \
-	 replaces=("${replaces[@]#\"}") && \
-	 # make an array (-dropreplace=mod1 -dropreplace=mod2 …)
-	 dropreplaces=("${replaces[@]/#/-dropreplace=}") && \
-	 go mod edit -module "oteltmp/${dir}" "${dropreplaces[@]}" && \
-	 go mod tidy)
+    printf "  Update go.mod for $dir\n"
+    (cd "${DIR_TMP}/${dir}" &&
+        # replaces is ("mod1" "mod2" …)
+        replaces=($(go mod edit -json | ${TOOLS_DIR}/gojq '.Replace[].Old.Path')) &&
+        # strip double quotes
+        replaces=("${replaces[@]%\"}") &&
+        replaces=("${replaces[@]#\"}") &&
+        # make an array (-dropreplace=mod1 -dropreplace=mod2 …)
+        dropreplaces=("${replaces[@]/#/-dropreplace=}") &&
+        go mod edit -module "oteltmp/${dir}" "${dropreplaces[@]}" &&
+        go mod tidy)
 done
 printf "Update done:\n\n"
 
@@ -75,9 +75,9 @@ printf "Update done:\n\n"
 printf "Build examples:\n"
 EXAMPLES=$(./get_main_pkgs.sh ./example)
 for ex in $EXAMPLES; do
-	printf "  Build $ex in ${DIR_TMP}/${ex}\n"
-	(cd "${DIR_TMP}/${ex}" && \
-	 go build .)
+    printf "  Build $ex in ${DIR_TMP}/${ex}\n"
+    (cd "${DIR_TMP}/${ex}" &&
+        go build .)
 done
 
 # Cleanup

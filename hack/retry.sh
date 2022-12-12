@@ -9,7 +9,7 @@ retries=$1
 wait_retry=$2
 command=$3
 
-for i in `seq 1 $retries`; do
+for i in $(seq 1 $retries); do
     echo "$command"
     bash -c "$command"
     ret_value=$?

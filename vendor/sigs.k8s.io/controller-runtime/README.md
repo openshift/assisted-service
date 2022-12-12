@@ -34,11 +34,11 @@ Contributors:
 - All code PR must be labeled with :bug: (patch fixes), :sparkles: (backwards-compatible features), or :warning: (breaking changes)
 - Breaking changes will find their way into the next major release, other changes will go into an semi-immediate patch or minor release
 - For a quick PR template suggesting the right information, use one of these PR templates:
-  * [Breaking Changes/Features](/.github/PULL_REQUEST_TEMPLATE/breaking_change.md)
-  * [Backwards-Compatible Features](/.github/PULL_REQUEST_TEMPLATE/compat_feature.md)
-  * [Bug fixes](/.github/PULL_REQUEST_TEMPLATE/bug_fix.md)
-  * [Documentation Changes](/.github/PULL_REQUEST_TEMPLATE/docs.md)
-  * [Test/Build/Other Changes](/.github/PULL_REQUEST_TEMPLATE/other.md)
+  - [Breaking Changes/Features](/.github/PULL_REQUEST_TEMPLATE/breaking_change.md)
+  - [Backwards-Compatible Features](/.github/PULL_REQUEST_TEMPLATE/compat_feature.md)
+  - [Bug fixes](/.github/PULL_REQUEST_TEMPLATE/bug_fix.md)
+  - [Documentation Changes](/.github/PULL_REQUEST_TEMPLATE/docs.md)
+  - [Test/Build/Other Changes](/.github/PULL_REQUEST_TEMPLATE/other.md)
 
 ## FAQ
 
@@ -57,6 +57,7 @@ You can reach the maintainers of this project at:
 - Google Group: [kubebuilder@googlegroups.com](https://groups.google.com/forum/#!forum/kubebuilder)
 
 ## Contributing
+
 Contributions are greatly appreciated. The maintainers actively manage the issues list, and try to highlight issues suitable for newcomers.
 The project follows the typical GitHub pull request model. See [CONTRIBUTING.md](CONTRIBUTING.md) for more details.
 Before starting any work, please either comment on an existing issue, or file a new one.

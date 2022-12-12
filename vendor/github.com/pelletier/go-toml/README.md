@@ -12,7 +12,6 @@ This library supports TOML version
 [![Go Report Card](https://goreportcard.com/badge/github.com/pelletier/go-toml)](https://goreportcard.com/report/github.com/pelletier/go-toml)
 [![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2Fpelletier%2Fgo-toml.svg?type=shield)](https://app.fossa.io/projects/git%2Bgithub.com%2Fpelletier%2Fgo-toml?ref=badge_shield)
 
-
 ## Development status
 
 **ℹ️ Consider go-toml v2!**
@@ -41,12 +40,12 @@ deprecated.
 
 Go-toml provides the following features for using data parsed from TOML documents:
 
-* Load TOML documents from files and string data
-* Easily navigate TOML structure using Tree
-* Marshaling and unmarshaling to and from data structures
-* Line & column position data for all parsed elements
-* [Query support similar to JSON-Path](query/)
-* Syntax errors contain line and column numbers
+- Load TOML documents from files and string data
+- Easily navigate TOML structure using Tree
+- Marshaling and unmarshaling to and from data structures
+- Line & column position data for all parsed elements
+- [Query support similar to JSON-Path](query/)
+- Syntax errors contain line and column numbers
 
 ## Import
 
@@ -112,25 +111,26 @@ The documentation and additional examples are available at
 
 Go-toml provides three handy command line tools:
 
-* `tomll`: Reads TOML files and lints them.
+- `tomll`: Reads TOML files and lints them.
 
-    ```
-    go install github.com/pelletier/go-toml/cmd/tomll
-    tomll --help
-    ```
-* `tomljson`: Reads a TOML file and outputs its JSON representation.
+  ```
+  go install github.com/pelletier/go-toml/cmd/tomll
+  tomll --help
+  ```
 
-    ```
-    go install github.com/pelletier/go-toml/cmd/tomljson
-    tomljson --help
-    ```
+- `tomljson`: Reads a TOML file and outputs its JSON representation.
 
- * `jsontoml`: Reads a JSON file and outputs a TOML representation.
+  ```
+  go install github.com/pelletier/go-toml/cmd/tomljson
+  tomljson --help
+  ```
 
-    ```
-    go install github.com/pelletier/go-toml/cmd/jsontoml
-    jsontoml --help
-    ```
+- `jsontoml`: Reads a JSON file and outputs a TOML representation.
+
+  ```
+  go install github.com/pelletier/go-toml/cmd/jsontoml
+  jsontoml --help
+  ```
 
 ### Docker image
 

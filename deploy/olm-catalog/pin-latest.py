@@ -6,13 +6,13 @@
 # current digest at the time of running the script and will be replaced
 # inline with that digest instead of the original tag.
 
+import logging
 import os
 import re
+from functools import lru_cache
 from hashlib import sha256
 from pathlib import Path
 from typing import Iterable, List
-from functools import lru_cache
-import logging
 
 import ruamel.yaml
 from dxf import DXF
@@ -40,7 +40,7 @@ ignore_patterns = {
         # Pinnining can only be done if there's at-least one tag
         # that's going to point at that manifest forever. For
         # assisted components, we always have such tag. But for
-        # postgres we have no control over the quay repo, so 
+        # postgres we have no control over the quay repo, so
         # we just resort to not pinning the database image. It's
         # not too important to pin it anyway, postgres is stable
         # enough.
@@ -104,7 +104,7 @@ def resolve_tag(image_loc: str):
     return resolved
 
 
-def pin_path(obj: dict, path: List[str]):
+def pin_path(obj: dict, path: list[str]):
     logging.info(f"Iterating {'.'.join(path)}")
 
     current_key, *rest = path

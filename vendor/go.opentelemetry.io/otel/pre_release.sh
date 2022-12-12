@@ -16,42 +16,39 @@
 
 set -e
 
-help()
-{
-   printf "\n"
-   printf "Usage: $0 -t tag\n"
-   printf "\t-t Unreleased tag. Update all go.mod with this tag.\n"
-   exit 1 # Exit script after printing help
+help() {
+    printf "\n"
+    printf "Usage: $0 -t tag\n"
+    printf "\t-t Unreleased tag. Update all go.mod with this tag.\n"
+    exit 1 # Exit script after printing help
 }
 
-while getopts "t:" opt
-do
-   case "$opt" in
-      t ) TAG="$OPTARG" ;;
-      ? ) help ;; # Print help
-   esac
+while getopts "t:" opt; do
+    case "$opt" in
+    t) TAG="$OPTARG" ;;
+    ?) help ;; # Print help
+    esac
 done
 
 # Print help in case parameters are empty
-if [ -z "$TAG" ]
-then
-   printf "Tag is missing\n";
-   help
+if [ -z "$TAG" ]; then
+    printf "Tag is missing\n"
+    help
 fi
 
 # Validate semver
 SEMVER_REGEX="^v(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(\\-[0-9A-Za-z-]+(\\.[0-9A-Za-z-]+)*)?(\\+[0-9A-Za-z-]+(\\.[0-9A-Za-z-]+)*)?$"
-if [[ "${TAG}" =~ ${SEMVER_REGEX} ]]; then
-	printf "${TAG} is valid semver tag.\n"
+if [[ ${TAG} =~ ${SEMVER_REGEX} ]]; then
+    printf "${TAG} is valid semver tag.\n"
 else
-	printf "${TAG} is not a valid semver tag.\n"
-	exit -1
+    printf "${TAG} is not a valid semver tag.\n"
+    exit -1
 fi
 
-TAG_FOUND=`git tag --list ${TAG}`
-if [[ ${TAG_FOUND} = ${TAG} ]] ; then
-        printf "Tag ${TAG} already exists\n"
-        exit -1
+TAG_FOUND=$(git tag --list ${TAG})
+if [[ ${TAG_FOUND} == ${TAG} ]]; then
+    printf "Tag ${TAG} already exists\n"
+    exit -1
 fi
 
 # Get version for version.go
@@ -61,11 +58,11 @@ OTEL_VERSION="${OTEL_VERSION#v}"
 
 cd $(dirname $0)
 
-if ! git diff --quiet; then \
-	printf "Working tree is not clean, can't proceed with the release process\n"
-	git status
-	git diff
-	exit 1
+if ! git diff --quiet; then
+    printf "Working tree is not clean, can't proceed with the release process\n"
+    git status
+    git diff
+    exit 1
 fi
 
 # Update version.go
@@ -78,9 +75,9 @@ git checkout -b pre_release_${TAG} main
 PACKAGE_DIRS=$(find . -mindepth 2 -type f -name 'go.mod' -exec dirname {} \; | egrep -v 'tools' | sed 's/^\.\///' | sort)
 
 for dir in $PACKAGE_DIRS; do
-	cp "${dir}/go.mod" "${dir}/go.mod.bak"
-	sed "s/opentelemetry.io\/otel\([^ ]*\) v[0-9]*\.[0-9]*\.[0-9]/opentelemetry.io\/otel\1 ${TAG}/" "${dir}/go.mod.bak" >"${dir}/go.mod"
-	rm -f "${dir}/go.mod.bak"
+    cp "${dir}/go.mod" "${dir}/go.mod.bak"
+    sed "s/opentelemetry.io\/otel\([^ ]*\) v[0-9]*\.[0-9]*\.[0-9]/opentelemetry.io\/otel\1 ${TAG}/" "${dir}/go.mod.bak" >"${dir}/go.mod"
+    rm -f "${dir}/go.mod.bak"
 done
 
 # Run lint to update go.sum

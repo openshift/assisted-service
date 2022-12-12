@@ -4,7 +4,6 @@
 
 This exporter exports OpenTelemetry spans and metrics to the OpenTelemetry Collector.
 
-
 ## Installation and Setup
 
 The exporter can be installed using standard `go` functionality.

@@ -1,11 +1,11 @@
-#!/bin/bash 
+#!/bin/bash
 
 set -eu -o pipefail
 dir=$(git rev-parse --show-toplevel)
 scratch=$(mktemp -d -t tmp.XXXXXXXXXX)
 
-function finish {
-  rm -rf "$scratch"
+function finish() {
+    rm -rf "$scratch"
 }
 trap finish EXIT SIGHUP SIGINT SIGTERM
 

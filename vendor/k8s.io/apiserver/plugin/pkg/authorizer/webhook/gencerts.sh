@@ -21,7 +21,7 @@ set -e
 # It is not expected to be run often (there is no go generate rule), and mainly
 # exists for documentation purposes.
 
-cat > server.conf << EOF
+cat >server.conf <<EOF
 [req]
 req_extensions = v3_req
 distinguished_name = req_distinguished_name
@@ -35,7 +35,7 @@ subjectAltName = @alt_names
 IP.1 = 127.0.0.1
 EOF
 
-cat > client.conf << EOF
+cat >client.conf <<EOF
 [req]
 req_extensions = v3_req
 distinguished_name = req_distinguished_name
@@ -66,7 +66,7 @@ openssl x509 -req -in client.csr -CA caCert.pem -CAkey caKey.pem -CAcreateserial
 
 outfile=certs_test.go
 
-cat > $outfile << EOF
+cat >$outfile <<EOF
 /*
 Copyright 2016 The Kubernetes Authors.
 
@@ -90,9 +90,9 @@ package webhook
 EOF
 
 for file in caKey caCert badCAKey badCACert serverKey serverCert clientKey clientCert; do
-	data=$(cat ${file}.pem)
-	echo "" >> $outfile
-	echo "var $file = []byte(\`$data\`)" >> $outfile
+    data=$(cat ${file}.pem)
+    echo "" >>$outfile
+    echo "var $file = []byte(\`$data\`)" >>$outfile
 done
 
 # Clean up after we're done.

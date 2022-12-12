@@ -17,18 +17,19 @@ Cobra is a library providing a simple interface to create powerful modern CLI
 interfaces similar to git & go tools.
 
 Cobra provides:
-* Easy subcommand-based CLIs: `app server`, `app fetch`, etc.
-* Fully POSIX-compliant flags (including short & long versions)
-* Nested subcommands
-* Global, local and cascading flags
-* Intelligent suggestions (`app srver`... did you mean `app server`?)
-* Automatic help generation for commands and flags
-* Automatic help flag recognition of `-h`, `--help`, etc.
-* Automatically generated shell autocomplete for your application (bash, zsh, fish, powershell)
-* Automatically generated man pages for your application
-* Command aliases so you can change things without breaking them
-* The flexibility to define your own help, usage, etc.
-* Optional seamless integration with [viper](http://github.com/spf13/viper) for 12-factor apps
+
+- Easy subcommand-based CLIs: `app server`, `app fetch`, etc.
+- Fully POSIX-compliant flags (including short & long versions)
+- Nested subcommands
+- Global, local and cascading flags
+- Intelligent suggestions (`app srver`... did you mean `app server`?)
+- Automatic help generation for commands and flags
+- Automatic help flag recognition of `-h`, `--help`, etc.
+- Automatically generated shell autocomplete for your application (bash, zsh, fish, powershell)
+- Automatically generated man pages for your application
+- Command aliases so you can change things without breaking them
+- The flexibility to define your own help, usage, etc.
+- Optional seamless integration with [viper](http://github.com/spf13/viper) for 12-factor apps
 
 # Concepts
 
@@ -41,7 +42,7 @@ intuitively know how to interact with them.
 
 The pattern to follow is
 `APPNAME VERB NOUN --ADJECTIVE.`
-    or
+or
 `APPNAME COMMAND ARG --FLAG`
 
 A few good real world examples may better illustrate this point.
@@ -78,8 +79,9 @@ library](https://github.com/spf13/pflag), a fork of the flag standard library
 which maintains the same interface while adding POSIX compliance.
 
 # Installing
+
 Using Cobra is easy. First, use `go get` to install the latest version
-of the library.     
+of the library.
 
 ```
 go get -u github.com/spf13/cobra@latest
@@ -92,6 +94,7 @@ import "github.com/spf13/cobra"
 ```
 
 # Usage
+
 `cobra-cli` is a command line program to generate cobra applications and command files.
 It will bootstrap your application scaffolding to rapidly
 develop a Cobra-based application. It is the easiest way to incorporate Cobra into your application.

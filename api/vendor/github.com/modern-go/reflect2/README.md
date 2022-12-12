@@ -9,9 +9,9 @@
 
 reflect api that avoids runtime reflect.Value cost
 
-* reflect get/set interface{}, with type checking
-* reflect get/set unsafe.Pointer, without type checking
-* `reflect2.TypeByName` works like `Class.forName` found in java
+- reflect get/set interface{}, with type checking
+- reflect get/set unsafe.Pointer, without type checking
+- `reflect2.TypeByName` works like `Class.forName` found in java
 
 [json-iterator](https://github.com/json-iterator/go) use this package to save runtime dispatching cost.
 This package is designed for low level libraries to optimize reflection performance.
@@ -58,8 +58,8 @@ to get set `type`, always use its pointer `*type`
 # benchmark
 
 Benchmark is not necessary for this package. It does nothing actually.
-As it is just a thin wrapper to make go runtime public. 
-Both `reflect2` and `reflect` call same function 
+As it is just a thin wrapper to make go runtime public.
+Both `reflect2` and `reflect` call same function
 provided by `runtime` package exposed by go language.
 
 # unsafe safety

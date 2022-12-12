@@ -1,5 +1,4 @@
-Retry
-==================
+# Retry
 
 [![Build Status](https://travis-ci.org/thedevsaddam/retry.svg?branch=master)](https://travis-ci.org/thedevsaddam/retry)
 [![Project status](https://img.shields.io/badge/version-1.2-green.svg)](https://github.com/thedevsaddam/retry/releases)
@@ -8,12 +7,12 @@ Retry
 [![GoDoc](https://godoc.org/github.com/thedevsaddam/retry?status.svg)](https://pkg.go.dev/github.com/thedevsaddam/retry)
 [![License](https://img.shields.io/dub/l/vibe-d.svg)](https://github.com/thedevsaddam/retry/blob/dev/LICENSE.md)
 
-
 Simple and easy retry mechanism package for Go
 
 ### Installation
 
 Install the package using
+
 ```go
 $ go get github.com/thedevsaddam/retry
 ```
@@ -21,6 +20,7 @@ $ go get github.com/thedevsaddam/retry
 ### Usage
 
 To use the package import it in your `*.go` code
+
 ```go
 import "github.com/thedevsaddam/retry"
 ```
@@ -94,7 +94,9 @@ func main() {
 ```
 
 ### **Contribution**
-If you are interested to make the package better please send pull requests or create an issue so that others can fix. Read the [contribution guide here](CONTRIBUTING.md). 
+
+If you are interested to make the package better please send pull requests or create an issue so that others can fix. Read the [contribution guide here](CONTRIBUTING.md).
 
 ### **License**
+
 The **retry** is an open-source software licensed under the [MIT License](LICENSE.md).

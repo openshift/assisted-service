@@ -3,16 +3,19 @@
 1. Sign one of the contributor license agreements below.
 1. Get the package:
 
-    `go get -d google.golang.org/appengine`
+   `go get -d google.golang.org/appengine`
+
 1. Change into the checked out source:
 
-    `cd $GOPATH/src/google.golang.org/appengine`
+   `cd $GOPATH/src/google.golang.org/appengine`
+
 1. Fork the repo.
 1. Set your fork as a remote:
 
-    `git remote add fork git@github.com:GITHUB_USERNAME/appengine.git`
+   `git remote add fork git@github.com:GITHUB_USERNAME/appengine.git`
+
 1. Make changes, commit to your fork.
-1. Send a pull request with your changes. 
+1. Send a pull request with your changes.
    The first line of your commit message is conventionally a one-line summary of the change, prefixed by the primary affected package, and is used as the title of your pull request.
 
 # Testing
@@ -35,9 +38,9 @@ Before we can accept your pull requests you'll need to sign a Contributor
 License Agreement (CLA):
 
 - **If you are an individual writing original source code** and **you own the
-intellectual property**, then you'll need to sign an [individual CLA][indvcla].
+  intellectual property**, then you'll need to sign an [individual CLA][indvcla].
 - **If you work for a company that wants to allow you to contribute your work**,
-then you'll need to sign a [corporate CLA][corpcla].
+  then you'll need to sign a [corporate CLA][corpcla].
 
 You can sign these electronically (just scroll to the bottom). After that,
 we'll be able to accept your pull requests.
@@ -58,14 +61,14 @@ body size, race, ethnicity, age, religion, or nationality.
 
 Examples of unacceptable behavior by participants include:
 
-* The use of sexualized language or imagery
-* Personal attacks
-* Trolling or insulting/derogatory comments
-* Public or private harassment
-* Publishing other's private information,
-such as physical or electronic
-addresses, without explicit permission
-* Other unethical or unprofessional conduct.
+- The use of sexualized language or imagery
+- Personal attacks
+- Trolling or insulting/derogatory comments
+- Public or private harassment
+- Publishing other's private information,
+  such as physical or electronic
+  addresses, without explicit permission
+- Other unethical or unprofessional conduct.
 
 Project maintainers have the right and responsibility to remove, edit, or reject
 comments, commits, code, wiki edits, issues, and other contributions

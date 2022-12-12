@@ -103,7 +103,7 @@ Then you need to create state machine
 sm := stateswitch.NewStateMachine()
 ```
 
-Add transitions with the expected behavior 
+Add transitions with the expected behavior
 
 ```go
 sm.AddTransitionRule(stateswitch.TransitionRule{
@@ -122,11 +122,11 @@ sm.AddTransitionRule(stateswitch.TransitionRule{
 
 `TransitionRule` define the behavior that will be selected for your object by transition type,
 source state and conditions that you define.
-The first transition that will satisfy those requirements will be activated. 
+The first transition that will satisfy those requirements will be activated.
 `Condtion`, `Transition`, `PostTranstion` and `Documentation` are all optional, the transition may only change the state.
 
-Since `Condtion` represent boolean entity, stateswitch provides means to create a combination of these entities from basic 
-boolean operations: `Not`,`And`, `Or`.  For example, rule with complex condition:
+Since `Condtion` represent boolean entity, stateswitch provides means to create a combination of these entities from basic
+boolean operations: `Not`,`And`, `Or`. For example, rule with complex condition:
 
 ```go
 sm.AddTransitionRule(stateswitch.TransitionRule{

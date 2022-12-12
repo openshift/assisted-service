@@ -6,10 +6,10 @@ It is possible to use the Assisted Installer service hosted at [console.redhat.c
 
 If you choose to use the Assisted Installer service hosted at [console.redhat.com](https://console.redhat.com) for your cluster installs, the machines in the cluster will STILL require access to _console.redhat.com_ either directly or via a proxy configuration. In addition, as of right now, clusters built leveraging this process will still need the ability to pull the following images directly from quay.io:
 
-* quay.io/edge-infrastructure/assisted-installer-agent:latest
-* quay.io/edge-infrastructure/assisted-installer:latest
-* quay.io/edge-infrastructure/assisted-installer-controller:latest
-* registry.redhat.io/rhai-tech-preview/assisted-installer-agent-rhel8:v1.0.0-195
+- quay.io/edge-infrastructure/assisted-installer-agent:latest
+- quay.io/edge-infrastructure/assisted-installer:latest
+- quay.io/edge-infrastructure/assisted-installer-controller:latest
+- registry.redhat.io/rhai-tech-preview/assisted-installer-agent-rhel8:v1.0.0-195
 
 The Assisted Installer service hosted at [console.redhat.com](https://console.redhat.com) does not support using mirrored instances of the above container images at this time.
 
@@ -17,15 +17,15 @@ If you use the "minimal" ISO image to boot your machines, each host will pull an
 
 ## Requirements
 
-* A container registry to mirror an OpenShift release
-* curl
-* jq
-* sed
-* base64
+- A container registry to mirror an OpenShift release
+- curl
+- jq
+- sed
+- base64
 
 ## Identify a Container Registry and Mirror Contents
 
-You will need to have a container registry available in the disconnected environment to house all the container images that are required to complete an OpenShift install. See [Mirroring image for a disconnected installation](https://docs.okd.io/latest/installing/disconnected_install/installing-mirroring-installation-images.html) or [Mirroring image for a disconnected installation using the oc-mirror plug-in](https://docs.okd.io/latest/installing/disconnected_install/installing-mirroring-disconnected.html) for how to mirror the required images. 
+You will need to have a container registry available in the disconnected environment to house all the container images that are required to complete an OpenShift install. See [Mirroring image for a disconnected installation](https://docs.okd.io/latest/installing/disconnected_install/installing-mirroring-installation-images.html) or [Mirroring image for a disconnected installation using the oc-mirror plug-in](https://docs.okd.io/latest/installing/disconnected_install/installing-mirroring-disconnected.html) for how to mirror the required images.
 
 If you do not have a container registry available you, instructions for installing a container registry and mirroring the contents into that registry can be found in [Creating a mirror registry with mirror registry for Red Hat OpenShift](https://docs.okd.io/latest/installing/disconnected_install/installing-mirroring-creating-registry.html).
 
@@ -37,7 +37,7 @@ Once you have mirrored the OpenShift container images, and the [Operator Hub cat
 
 ### User Authentication
 
-You will need to authenticate to the SaaS service. The process for authenticating is documented in the [Authentication](../cloud.md#authentication) section of the `cloud.md` file located in this directory. 
+You will need to authenticate to the SaaS service. The process for authenticating is documented in the [Authentication](../cloud.md#authentication) section of the `cloud.md` file located in this directory.
 
 > **NOTE:** The JWT token is **valid for 15 minutes**, you can refresh the token by re-running the process referenced above.
 
@@ -110,13 +110,16 @@ unqualified-search-registries = ["registry.access.redhat.com", "docker.io"]
    location = "<mirror_host_name>:<mirror_host_port>/ocp4/openshift4"
 ```
 
-> **NOTE:** Make sure to update the "mirror_host_name" and "mirror_host_port" to reflect _your_ local registry mirror.
+> **NOTE:** Make sure to update the "mirror*host_name" and "mirror_host_port" to reflect \_your* local registry mirror.
 
 Next we will create a template file that will be used to create our ignition patch file:
 
 discovery-ignition.json.template
+
 ```json
-{"ignition_config_override": "{\"ignition\": {\"version\": \"3.1.0\"}, \"storage\": {\"files\": [{\"path\": \"/etc/containers/registries.conf\", \"mode\": 420, \"overwrite\": true, \"user\": { \"name\": \"root\"},\"contents\": {\"source\": \"data:text/plain;base64,BASE64_ENCODED_REGISTRY_CONF\"}}, {\"path\": \"/etc/pki/ca-trust/source/anchors/domain.crt\", \"mode\": 420, \"overwrite\": true, \"user\": { \"name\": \"root\"}, \"contents\": {\"source\":\"data:text/plain;base64,BASE64_ENCODED_LOCAL_REGISTRY_CRT\"}}]}}"}
+{
+  "ignition_config_override": "{\"ignition\": {\"version\": \"3.1.0\"}, \"storage\": {\"files\": [{\"path\": \"/etc/containers/registries.conf\", \"mode\": 420, \"overwrite\": true, \"user\": { \"name\": \"root\"},\"contents\": {\"source\": \"data:text/plain;base64,BASE64_ENCODED_REGISTRY_CONF\"}}, {\"path\": \"/etc/pki/ca-trust/source/anchors/domain.crt\", \"mode\": 420, \"overwrite\": true, \"user\": { \"name\": \"root\"}, \"contents\": {\"source\":\"data:text/plain;base64,BASE64_ENCODED_LOCAL_REGISTRY_CRT\"}}]}}"
+}
 ```
 
 Next create base64 encoded versions of the registry.conf and tls-ca-bundle and update our discovery-ignition.json file:
@@ -171,7 +174,7 @@ Now log into your internal registry using podman and be sure to point to the "pu
 
 ```
 $ podman login --authfile=~/pull-secret.json <mirror_host_name>:<mirror_host_port>
-``` 
+```
 
 ### Apply the patch to the Cluster Definition
 
@@ -201,8 +204,8 @@ $ jq -n --arg BUNDLE "$(cat tls-ca-bundle-registry.pem)" --arg SECRET "$(cat pul
 ```
 
 > **NOTE:** Make sure to update the "mirror_host_name" and "mirror_host_port" to reflect your local registry mirror
-​
-Now apply the patch to your cluster.
+> ​
+> Now apply the patch to your cluster.
 
 ```bash
 $ curl \
@@ -229,7 +232,7 @@ Ensure that the resulting output has a "imageContentSource", "additionalTrustBun
 
 ## Complete your cluster build
 
-You can now follow published procedures to complete your cluster install from the Assisted Installer. 
+You can now follow published procedures to complete your cluster install from the Assisted Installer.
 
 ## Enabling the Mirrored Operator Catalog Post Steps
 

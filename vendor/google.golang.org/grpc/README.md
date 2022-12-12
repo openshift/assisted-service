@@ -1,7 +1,7 @@
 # gRPC-Go
 
 [![Build Status](https://travis-ci.org/grpc/grpc-go.svg)](https://travis-ci.org/grpc/grpc-go)
-[![GoDoc](https://pkg.go.dev/badge/google.golang.org/grpc)][API]
+[![GoDoc](https://pkg.go.dev/badge/google.golang.org/grpc)][api]
 [![GoReportCard](https://goreportcard.com/badge/grpc/grpc-go)](https://goreportcard.com/report/github.com/grpc/grpc-go)
 
 The [Go][] implementation of [gRPC][]: A high performance, open source, general
@@ -35,7 +35,7 @@ $ go get -u google.golang.org/grpc
 ## Learn more
 
 - [Go gRPC docs][], which include a [quick start][] and [API
-  reference][API] among other resources
+  reference][api] among other resources
 - [Low-level technical docs](Documentation) from this repository
 - [Performance benchmark][]
 - [Examples](examples)
@@ -65,8 +65,7 @@ To build Go code, there are several options:
   You will need to do the same for all of grpc's dependencies in `golang.org`,
   e.g. `golang.org/x/net`.
 
-- With Go module support: it is possible to use the `replace` feature of `go
-  mod` to create aliases for golang.org packages.  In your project's directory:
+- With Go module support: it is possible to use the `replace` feature of `go mod` to create aliases for golang.org packages. In your project's directory:
 
   ```sh
   go mod edit -replace=google.golang.org/grpc=github.com/grpc/grpc-go@latest
@@ -83,7 +82,7 @@ To build Go code, there are several options:
 #### If you are using Go modules:
 
 Ensure your gRPC-Go version is `require`d at the appropriate version in
-the same module containing the generated `.pb.go` files.  For example,
+the same module containing the generated `.pb.go` files. For example,
 `SupportPackageIsVersion6` needs `v1.27.0`, so in your `go.mod` file:
 
 ```go
@@ -94,7 +93,7 @@ require (
 )
 ```
 
-#### If you are *not* using Go modules:
+#### If you are _not_ using Go modules:
 
 Update the `proto` package, gRPC package, and rebuild the `.proto` files:
 
@@ -118,24 +117,25 @@ $ export GRPC_GO_LOG_SEVERITY_LEVEL=info
 
 This error means the connection the RPC is using was closed, and there are many
 possible reasons, including:
- 1. mis-configured transport credentials, connection failed on handshaking
- 1. bytes disrupted, possibly by a proxy in between
- 1. server shutdown
- 1. Keepalive parameters caused connection shutdown, for example if you have configured
+
+1.  mis-configured transport credentials, connection failed on handshaking
+1.  bytes disrupted, possibly by a proxy in between
+1.  server shutdown
+1.  Keepalive parameters caused connection shutdown, for example if you have configured
     your server to terminate connections regularly to [trigger DNS lookups](https://github.com/grpc/grpc-go/issues/3170#issuecomment-552517779).
     If this is the case, you may want to increase your [MaxConnectionAgeGrace](https://pkg.go.dev/google.golang.org/grpc/keepalive?tab=doc#ServerParameters),
     to allow longer RPC calls to finish.
 
 It can be tricky to debug this because the error happens on the client side but
 the root cause of the connection being closed is on the server side. Turn on
-logging on __both client and server__, and see if there are any transport
+logging on **both client and server**, and see if there are any transport
 errors.
 
-[API]: https://pkg.go.dev/google.golang.org/grpc
-[Go]: https://golang.org
-[Go module]: https://github.com/golang/go/wiki/Modules
-[gRPC]: https://grpc.io
-[Go gRPC docs]: https://grpc.io/docs/languages/go
-[Performance benchmark]: https://performance-dot-grpc-testing.appspot.com/explore?dashboard=5180705743044608
+[api]: https://pkg.go.dev/google.golang.org/grpc
+[go]: https://golang.org
+[go module]: https://github.com/golang/go/wiki/Modules
+[grpc]: https://grpc.io
+[go grpc docs]: https://grpc.io/docs/languages/go
+[performance benchmark]: https://performance-dot-grpc-testing.appspot.com/explore?dashboard=5180705743044608
 [quick start]: https://grpc.io/docs/languages/go/quickstart
 [go-releases]: https://golang.org/doc/devel/release.html

@@ -9,7 +9,7 @@
 ## Building the operator bundle (optional)
 
 For development and testing purposes it may be beneficial to build the operator
-bundle and index images. If you don't __need__ to build it, just skip to
+bundle and index images. If you don't **need** to build it, just skip to
 [Deploying the Operator](#deploying-the-operator).
 
 Build the bundle:
@@ -41,7 +41,7 @@ EOF
 Having the ClusterDeployment CRD installed is a prerequisite.
 Install Hive, if it has not already been installed.
 
-``` bash
+```bash
 cat <<EOF | kubectl create -f -
 apiVersion: operators.coreos.com/v1alpha1
 kind: Subscription
@@ -82,8 +82,7 @@ The Assisted Service is deployed by creating an AgentServiceConfig.
 At a minimum, you must specify the `databaseStorage` and `filesystemStorage` to
 be used.
 
-
-``` bash
+```bash
 cat <<EOF | kubectl create -f -
 apiVersion: agent-install.openshift.io/v1beta1
 kind: AgentServiceConfig
@@ -119,7 +118,7 @@ The operator subscription can be used to configure the images used in the
 assisted-service deployment and the installer + controller + agent images used by
 the assisted-service.
 
-``` bash
+```bash
 cat <<EOF | kubectl apply -f -
 apiVersion: operators.coreos.com/v1alpha1
 kind: Subscription
@@ -204,7 +203,7 @@ installed.
 
 Simply create a ConfigMap in the `assisted-installer` namespace:
 
-``` bash
+```bash
 cat <<EOF | kubectl create -f -
 apiVersion: v1
 kind: ConfigMap
@@ -246,14 +245,14 @@ oc annotate --overwrite AgentServiceConfig agent unsupported.agent-install.opens
 
 A ConfigMap can be used to configure assisted service to create installations using mirrored content. The ConfigMap contains two keys:
 
-- *ca-bundle.crt* - This key contains the contents of the certificate for accessing the mirror registry, if necessary. It may be a certificate bundle and is defined as a single string.
-- *registries.conf* - This key contains the contents of the registries.conf file that configures mappings to the mirror registry.
+- _ca-bundle.crt_ - This key contains the contents of the certificate for accessing the mirror registry, if necessary. It may be a certificate bundle and is defined as a single string.
+- _registries.conf_ - This key contains the contents of the registries.conf file that configures mappings to the mirror registry.
 
-The mirror registry configuration changes the discovery image's ignition config, with *ca-bundle.crt* written out to */etc/pki/ca-trust/source/anchors/domain.crt* and with *registries.conf* written out to */etc/containers/registries.conf*. The configuration also changes the *install-config.yaml* file used to install a new cluster, with the contents of *ca-bundle.crt* added to *additionalTrustBundle* and with the registries defined *registries.conf* added to *imageContentSources* as mirrors.
+The mirror registry configuration changes the discovery image's ignition config, with _ca-bundle.crt_ written out to _/etc/pki/ca-trust/source/anchors/domain.crt_ and with _registries.conf_ written out to _/etc/containers/registries.conf_. The configuration also changes the _install-config.yaml_ file used to install a new cluster, with the contents of _ca-bundle.crt_ added to _additionalTrustBundle_ and with the registries defined _registries.conf_ added to _imageContentSources_ as mirrors.
 
-1. To configure the mirror registry, first create and upload the ConfigMap containing the *ca-bundle.crt* and *registries.conf* keys.
+1. To configure the mirror registry, first create and upload the ConfigMap containing the _ca-bundle.crt_ and _registries.conf_ keys.
 
-``` bash
+```bash
 cat <<EOF | kubectl create -f -
 apiVersion: v1
 kind: ConfigMap
@@ -287,11 +286,11 @@ The ConfigMap should be installed in the same namespace as the infrastructure-op
 
 Registries listed in the `unqualified-search-registries` will be automatically added to an authentication ignore list (`PUBLIC_CONTAINER_REGISTRIES` environment variable) and will not be required by `assisted-service` when it is validating the pull secret.
 
-Registries defined in the *registries.conf* file should use "mirror-by-digest-only = false" mode.
+Registries defined in the _registries.conf_ file should use "mirror-by-digest-only = false" mode.
 
-Registries defined in the *registries.conf* must be scoped by repository and not by registry. In the above example, *quay.io/edge-infrastructure* and *mirror1.registry.corp.com:5000/edge-infrastructure* are both scoped by the *edge-infrastructure* repository and this is a valid configuration. In the example below, removing the repository *edge-infrastructure* from location is an invalid configuration and will not pass openshift-installer validation:
+Registries defined in the _registries.conf_ must be scoped by repository and not by registry. In the above example, _quay.io/edge-infrastructure_ and _mirror1.registry.corp.com:5000/edge-infrastructure_ are both scoped by the _edge-infrastructure_ repository and this is a valid configuration. In the example below, removing the repository _edge-infrastructure_ from location is an invalid configuration and will not pass openshift-installer validation:
 
-``` 
+```
 # invalid configuration
     [[registry]]
        prefix = ""
@@ -304,7 +303,7 @@ Registries defined in the *registries.conf* must be scoped by repository and not
 
 2. Then set the mirrorRegistryRef in the spec of AgentServiceConfig to the name of uploaded ConfigMap. Example:
 
-``` bash
+```bash
 cat <<EOF | kubectl apply -f -
 apiVersion: agent-install.openshift.io/v1beta1
 kind: AgentServiceConfig
@@ -338,11 +337,11 @@ For more details on how to specify the CR, see [AgentServiceConfig CRD](https://
 
 ### Image Registries Without Authentication
 
-`assisted-service` validates the [pull secret](hive-integration/kube-api-getting-started.md#2-create-a-pull-secret) provided for spoke cluster installation by making sure it contains the authentication information for every image registry used for installation. 
+`assisted-service` validates the [pull secret](hive-integration/kube-api-getting-started.md#2-create-a-pull-secret) provided for spoke cluster installation by making sure it contains the authentication information for every image registry used for installation.
 
 Registries that don't require authentication can be listed under `spec.unauthenticatedRegistries` in the `AgentServiceConfig` resource. Any registry on this list is not required to have an entry in the pull secret validated by the `assisted-service`.
 
-``` bash
+```bash
 apiVersion: agent-install.openshift.io/v1beta1
 kind: AgentServiceConfig
 metadata:

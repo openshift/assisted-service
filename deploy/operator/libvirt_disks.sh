@@ -34,7 +34,7 @@ function create() {
 
             failed=true
             while [ "${#possible_targets[@]}" -gt 0 ]; do
-                target="${possible_targets[0]}" # get the first element
+                target="${possible_targets[0]}"               # get the first element
                 possible_targets=("${possible_targets[@]:1}") # remove the first element
 
                 # Libvirt cannot guarantee the device name on the guest OS (It's controlled by udev)
@@ -79,8 +79,8 @@ function destroy() {
 }
 
 if [ -z "$@" ] || ! declare -F "$@"; then
-  print_help
-  exit 1
+    print_help
+    exit 1
 fi
 
 "$@"

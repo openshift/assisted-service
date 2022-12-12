@@ -3,34 +3,37 @@
 This document is a step-by-step guide that demonstrates how to deploy a single-node cluster end to end.
 
 **Note**:
-* This document is not meant to expand on each and every resource in detail; [other documents already do that](README.md). Instead, expect the details needed to understand the context and what is currently happening.
 
-* The order in which actions are performed here is **optional**, and you may choose to go by a different one. The one order restriction the API does have is in regards to creating `NMstateConfigs` (which are optional) before `InfraEnv`, for more details, [check the warning mentioned here](README.md#NMStateConfig).
+- This document is not meant to expand on each and every resource in detail; [other documents already do that](README.md). Instead, expect the details needed to understand the context and what is currently happening.
+
+- The order in which actions are performed here is **optional**, and you may choose to go by a different one. The one order restriction the API does have is in regards to creating `NMstateConfigs` (which are optional) before `InfraEnv`, for more details, [check the warning mentioned here](README.md#NMStateConfig).
+
 ## What To Expect
-* A walk through of custom resource definitions (CRDs) and understand how they relate to each other.
 
-* A clear understanding of what happened, both in OpenShift / Kubernetes and assisted-service backend per each action described below.
+- A walk through of custom resource definitions (CRDs) and understand how they relate to each other.
+
+- A clear understanding of what happened, both in OpenShift / Kubernetes and assisted-service backend per each action described below.
 
 ## How To Use This guide
 
-* Make sure that for each step you follow, you understand how and why it is done.
+- Make sure that for each step you follow, you understand how and why it is done.
 
-* You are encouraged to copy and paste the below-mentioned commands to your terminal and see things in action.
+- You are encouraged to copy and paste the below-mentioned commands to your terminal and see things in action.
 
-* Note the inline comments in the `yaml` examples. There is no need to remove those in case you which to copy and create the resources directly in your environment.
+- Note the inline comments in the `yaml` examples. There is no need to remove those in case you which to copy and create the resources directly in your environment.
 
 ## Assumptions
-* You have deployed both the operator and assisted-service by, for example, [using these instructions](../operator.md).  Alternatively, you may choose to deploy via OLM or as a part of ACM, which is also applicable.
-* Using the discovery image:
 
-    * **Boot it yourself**: You are able to use the generated discovery image to boot your host.
+- You have deployed both the operator and assisted-service by, for example, [using these instructions](../operator.md). Alternatively, you may choose to deploy via OLM or as a part of ACM, which is also applicable.
+- Using the discovery image:
 
-    * **Zero Touch Provisioning (ZTP)**:  Detailed in the [advanced section](#advanced-zero-touch-provisioning). Configure `BMH` / `BareMetalHost` to automate the host discovery procedure. This document uses [dev-scripts](https://github.com/openshift-metal3/dev-scripts/) for that. [read about it here](baremetal-agent-controller.md).
+  - **Boot it yourself**: You are able to use the generated discovery image to boot your host.
 
+  - **Zero Touch Provisioning (ZTP)**: Detailed in the [advanced section](#advanced-zero-touch-provisioning). Configure `BMH` / `BareMetalHost` to automate the host discovery procedure. This document uses [dev-scripts](https://github.com/openshift-metal3/dev-scripts/) for that. [read about it here](baremetal-agent-controller.md).
 
 ## Resource Types and Relationships
-![kubeAPI4.9](kubeAPI4.9.jpg)
 
+![kubeAPI4.9](kubeAPI4.9.jpg)
 
 ## Cluster Prerequisites
 
@@ -47,7 +50,8 @@ EOF
 
 ### 2. Create a Pull Secret
 
-   * Use the secret obtained from [console.redhat.com](https://console.redhat.com/openshift/install/pull-secret)
+- Use the secret obtained from [console.redhat.com](https://console.redhat.com/openshift/install/pull-secret)
+
 ```yaml
 cat <<EOF | kubectl create -f -
 apiVersion: v1
@@ -73,10 +77,13 @@ spec:
    releaseImage: quay.io/openshift-release-dev/ocp-release:4.8.0-rc.0-x86_64  # That version may change over time
 EOF
 ```
+
 ## Creating Cluster Resources
 
 ### Define a cluster with assisted-service
+
 For that, you'll to need create two resources:
+
 #### 1. Create [ClusterDepoyment](README.md#clusterdeployment)
 
 ```yaml
@@ -105,14 +112,17 @@ For that, you'll to need create two resources:
          name: pull-secret  # Use the pull secret name mentioned in Cluster Prerequisites step 2
    EOF
 ```
+
 ##### Result
 
-* At this point, there is no `AgentClusterInstall`, so it won't do much and won't even register the cluster.
+- At this point, there is no `AgentClusterInstall`, so it won't do much and won't even register the cluster.
 
 ###### ClusterDeployment resource conditions:
+
 ```bash
 kubectl -n demo-worker4 get clusterdeployments.hive.openshift.io single-node -o=jsonpath="{.metadata.name}{'\n'}{range .status.conditions[*]}{.type}{'\t'}{.message}{'\n'}"
 ```
+
 ```bash
 single-node
 RelocationFailed	no ClusterRelocates match
@@ -121,6 +131,7 @@ AuthenticationFailure	Platform credentials passed authentication check
 ```
 
 ###### assisted-service log:
+
 ```go
 time="2021-06-28T20:45:07Z" level=info msg="ClusterDeployment Reconcile started" func="github.com/openshift/assisted-service/internal/controller/controllers.(*ClusterDeploymentsReconciler).Reconcile" file="/go/src/github.com/openshift/origin/internal/controller/controllers/clusterdeployments_controller.go:115" cluster_deployment=single-node cluster_deployment_namespace=demo-worker4 go-id=684 request_id=b5022e40-4a1e-4658-ba0a-5159938b7789
 time="2021-06-28T20:45:07Z" level=info msg="AgentClusterInstall does not exist for ClusterDeployment single-node" func="github.com/openshift/assisted-service/internal/controller/controllers.(*ClusterDeploymentsReconciler).Reconcile" file="/go/src/github.com/openshift/origin/internal/controller/controllers/clusterdeployments_controller.go:147" AgentClusterInstall=test-agent-cluster-install cluster_deployment=single-node cluster_deployment_namespace=demo-worker4 go-id=684 request_id=b5022e40-4a1e-4658-ba0a-5159938b7789
@@ -157,14 +168,15 @@ EOF
 
 ##### Result
 
-* The cluster is fully defined in assisted-service backend (PostgreSQL DB).
-* No discovery image has been created at this point.
+- The cluster is fully defined in assisted-service backend (PostgreSQL DB).
+- No discovery image has been created at this point.
 
 ###### AgentClusterInstall resource conditions:
 
 ```bash
 kubectl -n demo-worker4 get agentclusterinstalls.extensions.hive.openshift.io test-agent-cluster-install -o=jsonpath="{.metadata.name}{'\n'}{range .status.conditions[*]}{.type}{'\t'}{.message}{'\n'}"
 ```
+
 ```bash
 test-agent-cluster-install
 SpecSynced	The Spec has been successfully applied
@@ -176,6 +188,7 @@ Stopped	The installation is waiting to start or in progress
 ```
 
 ###### assisted-service log:
+
 ```go
 time="2021-06-28T21:01:31Z" level=info msg="ClusterDeployment Reconcile started" func="github.com/openshift/assisted-service/internal/controller/controllers.(*ClusterDeploymentsReconciler).Reconcile" file="/go/src/github.com/openshift/origin/internal/controller/controllers/clusterdeployments_controller.go:115" cluster_deployment=single-node cluster_deployment_namespace=demo-worker4 go-id=684 request_id=562c4762-532a-4a2a-b99f-53fa57d0b966
 time="2021-06-28T21:01:31Z" level=info msg="Creating a new cluster single-node demo-worker4" func="github.com/openshift/assisted-service/internal/controller/controllers.(*ClusterDeploymentsReconciler).createNewCluster" file="/go/src/github.com/openshift/origin/internal/controller/controllers/clusterdeployments_controller.go:843" agent_cluster_install=test-agent-cluster-install agent_cluster_install_namespace=demo-worker4 cluster_deployment=single-node cluster_deployment_namespace=demo-worker4 go-id=684 request_id=562c4762-532a-4a2a-b99f-53fa57d0b966
@@ -195,7 +208,8 @@ time="2021-06-28T21:01:31Z" level=info msg="ClusterDeployment Reconcile ended" f
 ### Generate Cluster Discovery Image
 
 #### 1. Optional - Create [NMStateConfig](README.md#NMStateConfig)
-* Needed for optional host-level network configuration, such as static IP addresses and more.
+
+- Needed for optional host-level network configuration, such as static IP addresses and more.
 
 ```yaml
 cat <<EOF | kubectl create -f -
@@ -252,7 +266,9 @@ EOF
 ```
 
 #### 2. Create [InfraEnv](README.md#InfraEnv)
-* The `InfraEnv` resource describes everything about the infrastructure environment that is needed in order to create a discovery ISO.
+
+- The `InfraEnv` resource describes everything about the infrastructure environment that is needed in order to create a discovery ISO.
+
 ```yaml
 cat <<EOF | kubectl create -f -
 apiVersion: agent-install.openshift.io/v1beta1
@@ -274,34 +290,40 @@ EOF
 ```
 
 ##### Result
-* Discovery Image Created.
-* Note that the log does specify that nmStateConfigs were included.
 
+- Discovery Image Created.
+- Note that the log does specify that nmStateConfigs were included.
 
 ###### InfraEnv resource conditions:
+
 ```bash
 kubectl -n demo-worker4 get infraenvs.agent-install.openshift.io myinfraenv -o=jsonpath="{.metadata.name}{'\n'}{range .status.conditions[*]}{.type}{'\t'}{.message}{'\n'}"
 ```
+
 ```bash
 myinfraenv
 ImageCreated	Image has been created
 ```
 
 ###### custom resource isoDownloadURL:
+
 ```bash
 kubectl -n demo-worker4 get infraenvs.agent-install.openshift.io myinfraenv  -o=jsonpath="{.status.createdTime}{'\n'}{.status.isoDownloadURL}{'\n'}"
 ```
+
 ```bash
 2021-06-28T21:42:19Z
 https://assisted-service-assisted-installer.apps.ostest.test.metalkube.org/api/assisted-install/v1/clusters/02a89bb9-6141-4d14-a82e-42f254217502/downloads/image?api_key=eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCJ9.eyJjbHVzdGVyX2lkIjoiMDJhODliYjktNjE0MS00ZDE0LWE4MmUtNDJmMjU0MjE3NTAyIn0.ciL2w3g89ftu-R-Z3-KwrDtlll2kd4EMhbrE3YLZkQNQBEdCJ1gg5Sjgjfj4Ekbi7C3XsDEsIRSYTGJPL-Pu8A
 ```
 
 ###### iPXE script and artifacts URLs:
+
 If booting hosts using [iPXE](https://github.com/openshift/assisted-service/blob/5d4d836747862f43fa2ec882e5871648bd12c780/docs/enhancements/ipxe-host-boot.md#ipxe-host-boot), the `InfraEnv` CR will update and display the download URLs for the iPXE script and its artifacts once they're ready to be downloaded.
 
 ```bash
 kubectl -n demo-worker4 get infraenvs.agent-install.openshift.io myinfraenv -o=jsonpath="{'iPXE Script Download URL: '}{.status.bootArtifacts.ipxeScript}{'\n'}{'Initrd Download URL: '}{.status.bootArtifacts.initrd}{'\n'}{'Rootfs Download URL: '}{.status.bootArtifacts.rootfs}{'\n'}{'Kernel Download URL: '}{.status.bootArtifacts.kernel}{'\n'}"
 ```
+
 ```bash
 iPXE Script Download URL: https://assisted-service.example.com/v2/infra-envs/afe293b9-e3a0-47ed-8952-f26721626497/downloads/files?file_name=ipxe-script
 Initrd Download URL: https://image-service.example.com/images/afe293b9-e3a0-47ed-8952-f26721626497/pxe-initrd?version=4.10&arch=x86_64
@@ -310,6 +332,7 @@ Kernel Download URL: https://image-service.example.com/boot-artifacts/kernel?ver
 ```
 
 ###### assisted-service log:
+
 ```go
 time="2021-06-28T21:42:19Z" level=info msg="InfraEnv Reconcile started" func="github.com/openshift/assisted-service/internal/controller/controllers.(*InfraEnvReconciler).Reconcile" file="/go/src/github.com/openshift/origin/internal/controller/controllers/infraenv_controller.go:81" go-id=654 infra_env=myinfraenv infra_env_namespace=demo-worker4 request_id=5ad649fd-bf49-4b41-aa33-c35a601c1555
 time="2021-06-28T21:42:19Z" level=info msg="the amount of nmStateConfigs included in the image is: 1" func="github.com/openshift/assisted-service/internal/controller/controllers.(*InfraEnvReconciler).ensureISO" file="/go/src/github.com/openshift/origin/internal/controller/controllers/infraenv_controller.go:288" go-id=654 infra_env=myinfraenv infra_env_namespace=demo-worker4 request_id=5ad649fd-bf49-4b41-aa33-c35a601c1555
@@ -331,12 +354,15 @@ time="2021-06-28T21:42:20Z" level=info msg="the amount of nmStateConfigs include
 ```
 
 ###### Inspect Assisted Service Cluster Events
+
 Get the full event list here:
+
 ```bash
 curl -s -k $(kubectl -n demo-worker4 get agentclusterinstalls.extensions.hive.openshift.io test-agent-cluster-install -o=jsonpath="{.status.debugInfo.eventsURL}")  | jq "."
 ```
 
 At this point, you should expect to see events such as:
+
 ```json
   {
     "cluster_id": "02a89bb9-6141-4d14-a82e-42f254217502",
@@ -359,49 +385,63 @@ At this point, you should expect to see events such as:
 ```
 
 ### Boot The Host From The Discovery Image
-* The procedure described below is called: **Boot It Yourself**.
-* There is an alternative automated procedure using `BMH`. For details, check the [Zero Touch Provisioning (ZTP) advanced section](#advanced-zero-touch-provisioning).
+
+- The procedure described below is called: **Boot It Yourself**.
+- There is an alternative automated procedure using `BMH`. For details, check the [Zero Touch Provisioning (ZTP) advanced section](#advanced-zero-touch-provisioning).
 
 #### 1. Download the image
-* Minimal-ISO is the default image type here; therefore, expect an image at the size of ~100MB.
+
+- Minimal-ISO is the default image type here; therefore, expect an image at the size of ~100MB.
 
 ```bash
 curl --insecure -o image.iso $(kubectl -n demo-worker4 get infraenvs.agent-install.openshift.io myinfraenv -o=jsonpath="{.status.isoDownloadURL}")
 ```
 
 #### 2. Boot the host from image
-* Use virtual media / USB drive / other methods to boot your host using the discovery image.
+
+- Use virtual media / USB drive / other methods to boot your host using the discovery image.
 
 ### 3. Host discovery and approval
-* The Agent CRD represents a Host that boot from a discovery image and registered to a cluster, and created automatically by assisted-service. [Find more details about the agent CRD here](README.md#agent).
-* At first, it will look as follows:
+
+- The Agent CRD represents a Host that boot from a discovery image and registered to a cluster, and created automatically by assisted-service. [Find more details about the agent CRD here](README.md#agent).
+- At first, it will look as follows:
+
 ```bash
 kubectl -n demo-worker4 get agents
 ```
+
 ```bash
 NAME                                   CLUSTER        APPROVED
 07e80ea9-200c-4f82-aff4-4932acb773d4   test-cluster   false
 ```
-* To trigger the installation, you will need to approve the agent
+
+- To trigger the installation, you will need to approve the agent
 
 ```bash
 kubectl -n demo-worker4 patch agents.agent-install.openshift.io 07e80ea9-200c-4f82-aff4-4932acb773d4 -p '{"spec":{"approved":true}}' --type merge
 ```
-* You should now see it got approved
+
+- You should now see it got approved
+
 ```bash
 NAME                                   CLUSTER        APPROVED
 07e80ea9-200c-4f82-aff4-4932acb773d4   test-cluster   true
 ```
 
 ### 4. Cluster Installation
-* Installation has started, to monitor the progress you may inspect cluster events:
+
+- Installation has started, to monitor the progress you may inspect cluster events:
+
 ```bash
 curl -s -k $(kubectl -n demo-worker4 get agentclusterinstalls.extensions.hive.openshift.io test-agent-cluster-install -o=jsonpath="{.status.debugInfo.eventsURL}")  | jq "."
 ```
-* Another option is to inspect `AgentClusterInstall` conditions, [as mentioned above](#AgentClusterInstall-resource-conditions).
+
+- Another option is to inspect `AgentClusterInstall` conditions, [as mentioned above](#AgentClusterInstall-resource-conditions).
 
 ### 5. End Result
-* Lastly, when installed successfully:
+
+- Lastly, when installed successfully:
+
 ```json
 {
   "cluster_id": "02a89bb9-6141-4d14-a82e-42f254217502",
@@ -412,13 +452,14 @@ curl -s -k $(kubectl -n demo-worker4 get agentclusterinstalls.extensions.hive.op
 ```
 
 ## Advanced: Zero Touch Provisioning
-* The procedure described below is called: **Zero Touch Provisioning (ZTP)**.
-* There is an alternative manual procedure, not involving `BMH`. For details, check the [Boot The Host From The Discovery Image](#boot-the-host-from-the-discovery-image).
+
+- The procedure described below is called: **Zero Touch Provisioning (ZTP)**.
+- There is an alternative manual procedure, not involving `BMH`. For details, check the [Boot The Host From The Discovery Image](#boot-the-host-from-the-discovery-image).
 
 ### Utilize BareMetalHost
 
-* Examples below generated by [dev-scripts](https://github.com/openshift-metal3/dev-scripts/) and were modified manually.
-* Control the host via BMC, which allows a host remote connection and ability to power cycle independently from the host operating system.
+- Examples below generated by [dev-scripts](https://github.com/openshift-metal3/dev-scripts/) and were modified manually.
+- Control the host via BMC, which allows a host remote connection and ability to power cycle independently from the host operating system.
 
 #### 1. Create BMC Secret
 
@@ -435,7 +476,9 @@ data:
   password: bar # Change me
 EOF
 ```
+
 #### 2. Create [BareMetalHost](baremetal-agent-controller.md#creating-baremetalhost-resources)
+
 ```yaml
 cat <<EOF | kubectl create -f -
 apiVersion: metal3.io/v1alpha1
@@ -458,22 +501,25 @@ EOF
 ```
 
 ---
+
 **NOTE**
 
 We are always setting `automatedCleaningMode: disabled` even if the `BareMetalHost` manifest specifies another value (e.g. `automatedCleaningMode: metadata`). This may be changed in the future releases, but currently we do not support using Ironic to clean the node.
 
 ---
 
-
 ##### Result
-* Host turned on.
-* Image download started. This might take a while.
-* Host discovery happened. An `Agent` CR got created automatically.
+
+- Host turned on.
+- Image download started. This might take a while.
+- Host discovery happened. An `Agent` CR got created automatically.
 
 Having issues? try this [troubleshooting section](baremetal-agent-controller.md#Troubleshooting)
 
 ###### virsh status example:
-* Relevant only for deployments that use virtual machines (managed by libvirt) for simulating bare metal hosts.
+
+- Relevant only for deployments that use virtual machines (managed by libvirt) for simulating bare metal hosts.
+
 ```bash
  Id   Name                   State
 ---------------------------------------
@@ -486,9 +532,11 @@ Having issues? try this [troubleshooting section](baremetal-agent-controller.md#
 ```
 
 ###### custom resource events:
+
 ```bash
 kubectl -n demo-worker4 describe baremetalhosts.metal3.io ostest-extraworker-4 | grep Events\: -A30
 ```
+
 ```bash
 Events:
   Type    Reason                Age   From                         Message
@@ -502,6 +550,7 @@ Events:
 ```
 
 ###### assisted-service log:
+
 ```go
 time="2021-06-29T15:45:19Z" level=info msg="BareMetalHost Reconcile started" func="github.com/openshift/assisted-service/internal/controller/controllers.(*BMACReconciler).Reconcile" file="/go/src/github.com/openshift/origin/internal/controller/controllers/bmh_agent_controller.go:139" bare_metal_host=ostest-extraworker-4 bare_metal_host_namespace=demo-worker4 go-id=655 request_id=e526f6a1-77a1-4aea-8331-4872dbfe3b4a
 time="2021-06-29T15:45:19Z" level=debug msg="Started BMH reconcile for demo-worker4/ostest-extraworker-4" func="github.com/openshift/assisted-service/internal/controller/controllers.(*BMACReconciler).reconcileBMH" file="/go/src/github.com/openshift/origin/internal/controller/controllers/bmh_agent_controller.go:503" bare_metal_host=ostest-extraworker-4 bare_metal_host_namespace=demo-worker4 go-id=655 request_id=e526f6a1-77a1-4aea-8331-4872dbfe3b4a
@@ -533,36 +582,46 @@ time="2021-06-29T15:45:33Z" level=info msg="ClusterDeployment Reconcile ended" f
 ```
 
 ###### Inspect Assisted Service Cluster Events
+
 Get the full event list here:
+
 ```bash
 curl -s -k $(kubectl -n demo-worker4 get agentclusterinstalls.extensions.hive.openshift.io test-agent-cluster-install -o=jsonpath="{.status.debugInfo.eventsURL}")  | jq "."
 ```
 
 Expect to see an event that indicate the image download started:
+
 ```json
-  {
-    "cluster_id": "02a89bb9-6141-4d14-a82e-42f254217502",
-    "event_time": "2021-06-29T15:45:33.489Z",
-    "message": "Started image download (image type is \"minimal-iso\")",
-    "severity": "info"
-  }
+{
+  "cluster_id": "02a89bb9-6141-4d14-a82e-42f254217502",
+  "event_time": "2021-06-29T15:45:33.489Z",
+  "message": "Started image download (image type is \"minimal-iso\")",
+  "severity": "info"
+}
 ```
+
 ### Agent Discovery and Installation
-* When the host boots from the discovery image, it gets registered to assisted-service. At first it will look like this:
+
+- When the host boots from the discovery image, it gets registered to assisted-service. At first it will look like this:
+
 ```bash
 kubectl -n demo-worker4 get agents
 ```
+
 ```bash
 NAME                                   CLUSTER        APPROVED
 07e80ea9-200c-4f82-aff4-4932acb773d4   test-cluster   false
 ```
-* BMAC will automatically approve the agent, which will start the installation.
+
+- BMAC will automatically approve the agent, which will start the installation.
 
 ```bash
 NAME                                   CLUSTER        APPROVED
 07e80ea9-200c-4f82-aff4-4932acb773d4   test-cluster   true
 ```
+
 Lastly, when installed successfully:
+
 ```json
 {
   "cluster_id": "02a89bb9-6141-4d14-a82e-42f254217502",

@@ -24,49 +24,50 @@ ready to submit for review:
 
 1. Sign the Contributor License Agreement
 
-    Please make sure you have signed our [Contributor License Agreement](https://www.elastic.co/contributor-agreement/).
-    We are not asking you to assign copyright to us, but to give us the right to distribute
-    your code without restriction. We ask this of all contributors in order to assure our
-    users of the origin and continuing existence of the code. You only need to sign the CLA once.
+   Please make sure you have signed our [Contributor License Agreement](https://www.elastic.co/contributor-agreement/).
+   We are not asking you to assign copyright to us, but to give us the right to distribute
+   your code without restriction. We ask this of all contributors in order to assure our
+   users of the origin and continuing existence of the code. You only need to sign the CLA once.
 
 2. Test your changes
 
-    Run the test suite to make sure that nothing is broken.
-    See [testing](#testing) for details.
+   Run the test suite to make sure that nothing is broken.
+   See [testing](#testing) for details.
 
 3. Review your changes
 
-    Before sending your changes for review, it pays to review it yourself first!
+   Before sending your changes for review, it pays to review it yourself first!
 
-    If you're making significant changes, please familiarize yourself with [Effective Go](https://golang.org/doc/effective_go.html)
-    and [go/wiki/CodeReviewComments](https://github.com/golang/go/wiki/CodeReviewComments).
-    These documents will walk you through writing idiomatic Go code, which we strive for.
+   If you're making significant changes, please familiarize yourself with [Effective Go](https://golang.org/doc/effective_go.html)
+   and [go/wiki/CodeReviewComments](https://github.com/golang/go/wiki/CodeReviewComments).
+   These documents will walk you through writing idiomatic Go code, which we strive for.
 
-    Here are a few things to check:
-    - format the code with [gofmt](https://golang.org/cmd/gofmt/) or [goimports](https://godoc.org/golang.org/x/tools/cmd/goimports)
-    - lint your code using [golint](https://github.com/golang/lint)
-    - check for common errors using [go vet](https://golang.org/cmd/vet/)
+   Here are a few things to check:
+
+   - format the code with [gofmt](https://golang.org/cmd/gofmt/) or [goimports](https://godoc.org/golang.org/x/tools/cmd/goimports)
+   - lint your code using [golint](https://github.com/golang/lint)
+   - check for common errors using [go vet](https://golang.org/cmd/vet/)
 
 4. Rebase your changes
 
-    Update your local repository with the most recent code from the main repo, and rebase your
-    branch on top of the latest master branch.  We prefer your initial changes to be squashed
-    into a single commit. Later, if we ask you to make changes, add them as separate commits.
-    This makes them easier to review. As a final step before merging we will either ask you to
-    squash all commits yourself or we'll do it for you.
+   Update your local repository with the most recent code from the main repo, and rebase your
+   branch on top of the latest master branch. We prefer your initial changes to be squashed
+   into a single commit. Later, if we ask you to make changes, add them as separate commits.
+   This makes them easier to review. As a final step before merging we will either ask you to
+   squash all commits yourself or we'll do it for you.
 
 5. Submit a pull request
 
-    Push your local changes to your forked copy of the repository and [submit a pull request](https://help.github.com/articles/using-pull-requests).
-    In the pull request, choose a title which sums up the changes that you have made, and in
-    the body provide more details about what your changes do, and the reason for making them.
-    Also mention the number of the issue where discussion has taken place, or issues that are
-    fixed/closed by the changes, e.g. "Closes #123".
+   Push your local changes to your forked copy of the repository and [submit a pull request](https://help.github.com/articles/using-pull-requests).
+   In the pull request, choose a title which sums up the changes that you have made, and in
+   the body provide more details about what your changes do, and the reason for making them.
+   Also mention the number of the issue where discussion has taken place, or issues that are
+   fixed/closed by the changes, e.g. "Closes #123".
 
 6. Be patient
 
-    We might not be able to review your code as fast as we would like to, but we'll do our
-    best to dedicate it the attention it deserves. Your effort is much appreciated!
+   We might not be able to review your code as fast as we would like to, but we'll do our
+   best to dedicate it the attention it deserves. Your effort is much appreciated!
 
 ### Testing
 

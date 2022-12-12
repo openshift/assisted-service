@@ -1,4 +1,5 @@
 # timefmt-go
+
 [![CI Status](https://github.com/itchyny/timefmt-go/workflows/CI/badge.svg)](https://github.com/itchyny/timefmt-go/actions)
 [![Go Report Card](https://goreportcard.com/badge/github.com/itchyny/timefmt-go)](https://goreportcard.com/report/github.com/itchyny/timefmt-go)
 [![MIT License](http://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/itchyny/timefmt-go/blob/main/LICENSE)
@@ -6,6 +7,7 @@
 [![pkg.go.dev](https://pkg.go.dev/badge/github.com/itchyny/timefmt-go)](https://pkg.go.dev/github.com/itchyny/timefmt-go)
 
 ### Efficient time formatting library (strftime, strptime) for Golang
+
 This is a Go language package for formatting and parsing date time strings.
 
 ```go
@@ -38,6 +40,7 @@ Please refer to [`man 3 strftime`](https://linux.die.net/man/3/strftime) and
 Note that `E` and `O` modifier characters are not supported.
 
 ## Comparison to other libraries
+
 - This library
   - provides both formatting and parsing functions in pure Go language,
   - depends only on the Go standard libraries not to grows up the module file.
@@ -59,10 +62,13 @@ Note that `E` and `O` modifier characters are not supported.
 ![](https://user-images.githubusercontent.com/375258/88606920-de475c80-d0b8-11ea-8d40-cbfee9e35c2e.jpg)
 
 ## Bug Tracker
+
 Report bug at [Issues・itchyny/timefmt-go - GitHub](https://github.com/itchyny/timefmt-go/issues).
 
 ## Author
+
 itchyny (https://github.com/itchyny)
 
 ## License
+
 This software is released under the MIT License, see LICENSE.

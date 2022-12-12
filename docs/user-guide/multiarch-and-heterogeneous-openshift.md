@@ -2,9 +2,9 @@
 
 ## Glossary
 
-* multi-arch release payload - OpenShift release image that supports more than a single CPU architecture. E.g. `quay.io/openshift-release-dev/ocp-release:4.11.10-x86_64` is to be used with x86_64 only, whereas `quay.io/openshift-release-dev/ocp-release:4.11.10-multi` can be used for other architectures too.
+- multi-arch release payload - OpenShift release image that supports more than a single CPU architecture. E.g. `quay.io/openshift-release-dev/ocp-release:4.11.10-x86_64` is to be used with x86_64 only, whereas `quay.io/openshift-release-dev/ocp-release:4.11.10-multi` can be used for other architectures too.
 
-* Heterogeneous cluster - OpenShift cluster consisting of Nodes of multiple architectures. E.g. a cluster with control plane running on x86_64 and worker nodes running on arm64.
+- Heterogeneous cluster - OpenShift cluster consisting of Nodes of multiple architectures. E.g. a cluster with control plane running on x86_64 and worker nodes running on arm64.
 
 > NOTE: You need to use multi-arch release payload in order to install heterogeneous cluster. It is however not forbidden to use multi-arch release payload for installing a cluster that uses only single architecture.
 

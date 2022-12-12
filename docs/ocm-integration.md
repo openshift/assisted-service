@@ -1,6 +1,6 @@
 # OCM Integration
 
-OpenShift Cluster Manager (OCM) is a managed service where users can install, operate and upgrade Red Hat OpenShift 4 clusters.  This document describes the integration was done such that Assisted Installed (AI) clusters are shown as part of a user's clusters in the OCM UI.
+OpenShift Cluster Manager (OCM) is a managed service where users can install, operate and upgrade Red Hat OpenShift 4 clusters. This document describes the integration was done such that Assisted Installed (AI) clusters are shown as part of a user's clusters in the OCM UI.
 To achieve this, the assisted-installer users the [OCM client](https://github.com/openshift-online/ocm-sdk-go) to make several calls during a cluster's installation.
 
 ## AMS
@@ -12,6 +12,7 @@ AMS is the micro-service in OCM which holds the users' clusters list, which is i
 ### Cluster registration
 
 On cluster registration, the service will create an AMS subscription for the cluster with some initial values:
+
 ```
 status: "Reserved"
 cluster_id: The cluster id registered in AI DB.
@@ -29,16 +30,19 @@ In this case, the assisted-service will patch the subscription with the new clus
 The assisted-service contacts AMS at several points during the cluster installation process.
 
 Once an `openshift_cluster_id` is generated during the `preparing-for-installation` state, the service will patch the subscription with:
+
 ```
 external_cluster_id: Openshift cluster ID
 ```
 
 Later on, when console operator is installed during the `finalizing` state, the service will patch the subscription with:
+
 ```
 console_url: Cluster's console URL
 ```
 
 Finally, when the cluster is successfully installed, the service will patch the subscription with:
+
 ```
 status: "Active"
 ```
@@ -70,16 +74,19 @@ You can sign-in to AMS using the [ocm-cli](https://github.com/openshift-online/o
 First, follow how to [install](https://github.com/openshift-online/ocm-cli#installation) ocm-cli.
 
 Then you need to log in to your user:
+
 ```
 ocm login --token <your token from https://console.redhat.com/openshift/token>
 ```
 
 You can also use assisted-service service-account authZ to get subscription that are owned by other users using the following command:
+
 ```
 ocm login --client-id <id> --client-secret <secret> --url=<url>
 ```
 
 For the cloud use:
+
 ```
 --client-id assisted-installer-int, --url=https://api.integration.openshift.com
 --client-id assisted-installer-stage, --url=https://api.stage.openshift.com
@@ -87,6 +94,7 @@ For the cloud use:
 ```
 
 Then you can query AMS for data (use `jq` to process the result):
+
 ```
 // get a list of 100 subscriptions max
 ocm get subscriptions

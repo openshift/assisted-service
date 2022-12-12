@@ -56,5 +56,5 @@ how this code was tested. Here are some questions that may be worth answering:
 - Is there a bug required (and linked) for this change?
 - Should this PR be backported?
 
-[Kubernetes community documentation]: https://github.com/kubernetes/community/blob/master/contributors/guide/pull-requests.md#commit-message-guidelines
-[CONTRIBUTING]: https://github.com/openshift/assisted-service/blob/master/CONTRIBUTING.md
+[kubernetes community documentation]: https://github.com/kubernetes/community/blob/master/contributors/guide/pull-requests.md#commit-message-guidelines
+[contributing]: https://github.com/openshift/assisted-service/blob/master/CONTRIBUTING.md

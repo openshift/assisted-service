@@ -1,26 +1,22 @@
-Baremetal Agent Controller (a.k.a BMAC)
-==
+# Baremetal Agent Controller (a.k.a BMAC)
 
 BMAC is a Kubernetes controller responsible for reconciling [BareMetalHost][bmo] and Agent (defined
 and maintained in this repo) resources for the agent-based deployment scenario.
 
-Testing
-==
+# Testing
 
 The testing environment for BMAC consists of
 
 - [Downstream dev-scripts][dev-scripts] deployment
 - [Baremetal Operator][bmo]: It defines the BareMetalHost custom resource
-- [Assisted Installer Operator](../operator.md): To deploy and manage the  assisted installer
+- [Assisted Installer Operator](../operator.md): To deploy and manage the assisted installer
   deployment. Read the operator docs to know more about its dependencies and installation process.
-
 
 Each of the components listed above provide their own documentation on how to deploy and configure
 them. However, you can find below a set of recommended configs that can be used for each of these
 components:
 
-Dev Scripts
-===
+# Dev Scripts
 
 ```bash
 # Giving Master nodes some extra CPU since we won't be
@@ -62,8 +58,7 @@ and the steps required:
 
 The default hardware requirements for the OCP cluster are higher than the values provided below. A guide on how to customize validator requirements can be found [here](../dev/hardware-requirements.md).
 
-Local Baremetal Operator (optional)
-==
+# Local Baremetal Operator (optional)
 
 **NOTE**
 
@@ -83,6 +78,7 @@ script. This will make the script less noisy which will make debugging easier.
 ```bash
 ./metal3-dev/pause-control-plane.sh
 ```
+
 The `pause-control-plane.sh` script only pauses the control plane. You can do the same for the worker
 nodes with the following command
 
@@ -104,8 +100,7 @@ export BAREMETAL_OPERATOR_PATH=/path/to/your/local/clone
 ./metal3-dev/local-bmo.sh
 ```
 
-Assisted Installer Operator
-===
+# Assisted Installer Operator
 
 Once the dev-script environment is up-and-running, and the [bmo][bmo] has been deployed, you can
 proceed to deploying the Assisted Installer Operator. There's a script in the dev-scripts repo that
@@ -118,28 +113,28 @@ facilitates this step:
 Take a look at the [script itself][assisted-deployment-sh]
 to know what variables can be customized for the Assisted Installer Operator deployment.
 
-Creating AgentClusterInstall, ClusterDeployment and InfraEnv resources
-===
+# Creating AgentClusterInstall, ClusterDeployment and InfraEnv resources
 
 A number of resources has to be created in order to have the deployment fully ready for deploying OCP clusters. A typical workflow is as follows
 
-* create the [PullSecret](crds/pullsecret.yaml)
-  * in order to create it directly from file you can use the following
+- create the [PullSecret](crds/pullsecret.yaml)
+  - in order to create it directly from file you can use the following
   ```
   kubectl create secret -n assisted-installer generic pull-secret --from-file=.dockerconfigjson=pull_secret.json
   ```
-* create the [ClusterImageSet](crds/clusterImageSet.yaml)
-* optionally create a [custom `ConfigMap` overriding default Assisted Service configuration](operator.md#specifying-environmental-variables-via-configmap)
-* create the [AgentClusterInstall](crds/agentClusterInstall.yaml) or [AgentClusterInstall for SNO](crds/agentClusterInstall-SNO.yaml)
-  * more manifests (e.g. IPv6 deployments) can be found [here](https://docs.google.com/document/d/1jDrwSyKFssIh-yxJ-wSdB-OCcPvsfm06P54oTk1C6BI/edit#heading=h.acv4csx2xph6)
-* create the [ClusterDeployment](crds/clusterDeployment.yaml)
-* create the [InfraEnv](crds/infraEnv.yaml)
-* patch BareMetalOperator to watch namespaces other than `openshift-machine-api`
+- create the [ClusterImageSet](crds/clusterImageSet.yaml)
+- optionally create a [custom `ConfigMap` overriding default Assisted Service configuration](operator.md#specifying-environmental-variables-via-configmap)
+- create the [AgentClusterInstall](crds/agentClusterInstall.yaml) or [AgentClusterInstall for SNO](crds/agentClusterInstall-SNO.yaml)
+  - more manifests (e.g. IPv6 deployments) can be found [here](https://docs.google.com/document/d/1jDrwSyKFssIh-yxJ-wSdB-OCcPvsfm06P54oTk1C6BI/edit#heading=h.acv4csx2xph6)
+- create the [ClusterDeployment](crds/clusterDeployment.yaml)
+- create the [InfraEnv](crds/infraEnv.yaml)
+- patch BareMetalOperator to watch namespaces other than `openshift-machine-api`
   ```
   $ oc patch provisioning provisioning-configuration --type merge -p '{"spec":{"watchAllNamespaces": true}}'
   ```
 
 ---
+
 **NOTE**
 
 When deploying `AgentClusterInstall` for SNO it is important to make sure that `machineNetwork` subnet matches the subnet used by libvirt VMs (configured by passing `EXTERNAL_SUBNET_V4` to the [dev-scripts config](https://github.com/openshift-metal3/dev-scripts/blob/master/config_example.sh)). It defaults to `192.168.111.0/24` therefore the sample manifest linked above needs to be adapted.
@@ -147,12 +142,12 @@ When deploying `AgentClusterInstall` for SNO it is important to make sure that `
 At this moment it's good to check logs and verify that there are no conflicting parameters, the ISO has been created correctly and that the installation can be started once a suitable node is provided.
 
 To check if the ISO has been created correctly, do
+
 ```
 oc get infraenv myinfraenv -o jsonpath='{.status.isoDownloadURL}' -n assisted-installer
 ```
 
-Creating BareMetalHost resources
-===
+# Creating BareMetalHost resources
 
 The [baremetal operator][bmo] creates the `BareMetalHost` resources for the existing nodes
 automatically. For scenarios using extra worker nodes (like SNO), it will be necessary to create
@@ -198,11 +193,13 @@ used to tell the installer what disk to use as the installation disk. Refer to t
 [baremetal-operator documentation](https://github.com/metal3-io/baremetal-operator/blob/master/docs/api.md#rootdevicehints) to know more.
 
 ---
+
 **NOTE**
 
 BMAC is always setting `automatedCleaningMode: disabled` even if the `BareMetalHost` manifest specifies another value (e.g. `automatedCleaningMode: metadata`). This may be changed in the future releases, but currently we do not support using Ironic to clean the node.
 
 ---
+
 **NOTE**
 
 BMAC uses the `RootDeviceHints` from the `BareMetalHost` resource to find a matching disk in the corresponding `Agent`'s inventory, and then sets that disk in `agent.Spec.InstallationDiskID`. If the hints provided to the BMH do not match any disk discovered in the discovery phase, BMAC sets the disk in the Agent's Spec as `/dev/not-found-by-hints`. This will cause the service to notice that the specified disk does not exist and fail the respective validation, showing the following condition in the `Agent` resource.
@@ -219,8 +216,7 @@ The log of the service will show the following message indicating that the speci
 level=error msg="failed to set installation disk path </dev/not-found-by-hints> host <29d87175-[...]-eb1efd15fdc0> infra env <d46b1dcd-[...]-2412cd69a0b4>" func="github.com/openshift/assisted-service/internal/bminventory.(*bareMetalInventory).updateHostDisksSelectionConfig" file="/go/src/github.com/openshift/origin/internal/bminventory/inventory.go:5229" error="Requested installation disk is not part of the host's valid disks"
 ```
 
-Installation flow
-===
+# Installation flow
 
 After all the resources described above are created the installation starts automatically. A detailed flow is out of scope of this document and can be found [here](architecture.md#installation-flow).
 
@@ -245,12 +241,12 @@ $ oc get secret single-node-admin-kubeconfig -o json -n assisted-installer | jq 
 ```
 
 ---
+
 **NOTE**
 
 `ClusterDeployment` resource defines `baseDomain` for the installed OCP cluster. This one will be used in the generated kubeconfig file so it may happen (depending on the domain chosen) that there is no connectivity caused by name not being resolved. In such a scenario a manual intervention may be needed (e.g. manual entry in `/etc/hosts`).
 
-Troubleshooting
-==
+# Troubleshooting
 
 - I have created the BMH, the ClusterDeployment, and the InfraEnv resources. Why doesn't the node start?
 
@@ -261,20 +257,24 @@ BMH. Here are a few commands that can be run to achieve this:
 $ oc describe infraenv $YOUR_INFRAENV | grep ISO
 $ oc describe bmh $YOUR_BMH | grep Image
 ```
+
 **NOTE**
 
 In case the HUB cluster version is 4.11 or above instead of checking the `Image` on the BMH you should check the PreprovisioningImage status:
+
 ```
 $ oc get preprovisioningimage -n {BMH_NAMESPACE} {BMH_NAME} -ojsonpath={'.status}' | jq
 ```
 
 ---
+
 - InfraEnv's ISO Url doesn't have an URL set
 
 This means something may have gone wrong during the ISO generation. Check the assisted-service logs
 (and docs) to know what happened.
 
 ---
+
 - InfraEnv has an URL associated but the BMH Image URL field is not set:
 
 Check that the `infraenvs.agent-install.openshift.io` label is set in your `BareMetalHost` resource
@@ -293,12 +293,14 @@ $ oc describe clusterversion version --namespace openshift-cluster-version
 ```
 
 ---
+
 - URL is set everywhere, node still doesn't start
 
 Double check that the `BareMetalHost` definition has `online` set to true. BMAC should take care of
 this during the reconcile but, you know, software, computer gnomes, and dark magic.
 
 ---
+
 - Node boots but it loooks like it is booting something else
 
 Check that the `inspect.metal3.io` and `automatedCleaningMode` are both set to `disabled`. This will
@@ -313,11 +315,13 @@ errors related to the BMH.
 
 In case the HUB cluster version is 4.11 or above these annotations shouldn't be set and the IPA is expected to run on the node and register with Ironic.
 Try checking the BMH custom deploy method is set to `start_assisted_install`
+
 ```
 $ oc get bmh -n  {BMH_NAMESPACE} {BMH_NAME} -ojsonpath={'.spec.customDeploy}' | jq
 ```
 
 ---
+
 - Node boots, but nothing else seems to be happening
 
 Check that an agent has been registered for this cluster and BMH. You can verify this by chekcing
@@ -331,14 +335,13 @@ may need to wait a few minutes.
 
 In case the HUB cluster version is 4.11 or above, IPA is expected to start the assisted agent on the node in order for the node to register.
 Try checking the BMH custom deploy method is set to `start_assisted_install`
+
 ```
 $ oc get bmh -n  {BMH_NAMESPACE} {BMH_NAME} -ojsonpath={'.spec.customDeploy}' | jq
 ```
 
-
 If there is an agent, the next thing to check is that all validations have passed. This can be done
 by inspecting the `ClusterDeployment` and verify that the validation phase has succeeded.
-
 
 [bmo]: https://github.com/openshift/baremetal-operator
 [local-bmo]: https://github.com/openshift-metal3/dev-scripts/blob/master/metal3-dev/local-bmo.sh

@@ -534,4 +534,3 @@ message UserRestriction {
   // +nullable
   repeated k8s.io.apimachinery.pkg.apis.meta.v1.LabelSelector labels = 3;
 }
-

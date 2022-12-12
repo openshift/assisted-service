@@ -24,20 +24,20 @@ When the assisted service is deployed in the cloud, it relies on Red Hat
 SSO for user authentication and authentication tokens from Red Hat SSO are not
 usable with pre-signed URLs for two main reasons:
 
-* Size - these tokens are typically ~2000 characters long
-* Expiration - these tokens have a maximum lifespan of 15 minutes
+- Size - these tokens are typically ~2000 characters long
+- Expiration - these tokens have a maximum lifespan of 15 minutes
 
 ### Goals
 
-* Define an authentication strategy suitable for pre-signed URLs in the cloud. This includes a
-token with a longer expiration (several hours) and a reasonable size (10s to 100s of characters)
-which will be included directly in a download URL
+- Define an authentication strategy suitable for pre-signed URLs in the cloud. This includes a
+  token with a longer expiration (several hours) and a reasonable size (10s to 100s of characters)
+  which will be included directly in a download URL
 
 ### Non-Goals
 
-* Tie an image download URL to a Red Hat account or organization
-* Maintain public/private key pairs as service configuration to generate and issue tokens
-* Add additional external identity management components
+- Tie an image download URL to a Red Hat account or organization
+- Maintain public/private key pairs as service configuration to generate and issue tokens
+- Add additional external identity management components
 
 ## Proposal
 
@@ -84,8 +84,8 @@ definition applies to more endpoints than we would want to expose for this enhan
 
 This new security definition will apply only to the following endpoints:
 
-* `/v2/infra-envs/{infra_env_id}/downloads/files`
-* `/v2/infra-envs/{infra_env_id}/downloads/minimal-initrd`
+- `/v2/infra-envs/{infra_env_id}/downloads/files`
+- `/v2/infra-envs/{infra_env_id}/downloads/minimal-initrd`
 
 These are the endpoints that the image service uses to fetch image customization information.
 
@@ -95,11 +95,11 @@ be accessible through the infraEnv API. The expiration time for tokens will be 4
 
 New API endpoints:
 
-* `GET /v2/infra-envs/{infra_env_id}/downloads/image-url`
+- `GET /v2/infra-envs/{infra_env_id}/downloads/image-url`
   - Get a new pre-signed download URL for an infraEnv's discovery image
   - Example response:
     - `{"url": "https://image-service.example.com/images/{infra_env_id}?image_token=<some-jwt>&version=4.9&arch=x86_64&type=full-iso", "expires_at": "2021-11-15T21:36:46.000Z"}`
-* `POST /v2/infra-envs/{infra_env_id}/regenerate-signing-key`
+- `POST /v2/infra-envs/{infra_env_id}/regenerate-signing-key`
   - Create a new symmetric key for an infraEnv (invalidates all existing JWTs)
 
 These new endpoints and will be protected by SSO user credential authentication and authorization.
@@ -131,7 +131,7 @@ could come up.
 
 ### Open Questions
 
-* Should we also support RHSSO user tokens in a header for these endpoints?
+- Should we also support RHSSO user tokens in a header for these endpoints?
   - The image service could also pass a header through the assisted service
 
 ### UI Impact
@@ -157,7 +157,7 @@ to require an OCM JWT token for this download, just as we do for every other API
 
 ## Alternatives
 
-* Use RHSSO and a token in the header as we do for all other API requests
+- Use RHSSO and a token in the header as we do for all other API requests
   - Discussed in "Drawbacks", but this would be much less work and one less authentication
     system to maintain.
   - Downsides are UX

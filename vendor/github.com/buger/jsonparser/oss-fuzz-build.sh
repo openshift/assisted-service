@@ -44,4 +44,3 @@ compile_go_fuzzer github.com/buger/jsonparser FuzzGetBoolean fuzzgetboolean
 
 cp corpus.zip $OUT/fuzzgetunsafestring_seed_corpus.zip
 compile_go_fuzzer github.com/buger/jsonparser FuzzGetUnsafeString fuzzgetunsafestring
-

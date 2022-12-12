@@ -87,64 +87,65 @@ run="sh"
 
 case "$1" in
 -syscalls)
-	for i in zsyscall*go
-	do
-		sed 1q $i | sed 's;^// ;;' | sh > _$i && gofmt < _$i > $i
-		rm _$i
-	done
-	exit 0
-	;;
+    for i in zsyscall*go; do
+        sed 1q $i | sed 's;^// ;;' | sh >_$i && gofmt <_$i >$i
+        rm _$i
+    done
+    exit 0
+    ;;
 -n)
-	run="cat"
-	shift
+    run="cat"
+    shift
+    ;;
 esac
 
 case "$#" in
-0)
-	;;
+0) ;;
+
 *)
-	echo 'usage: mkall.sh [-n]' 1>&2
-	exit 2
+    echo 'usage: mkall.sh [-n]' 1>&2
+    exit 2
+    ;;
 esac
 
 case "$GOOSARCH" in
 _* | *_ | _)
-	echo 'undefined $GOOS_$GOARCH:' "$GOOSARCH" 1>&2
-	exit 1
-	;;
+    echo 'undefined $GOOS_$GOARCH:' "$GOOSARCH" 1>&2
+    exit 1
+    ;;
 plan9_386)
-	mkerrors=
-	mksyscall="go run mksyscall.go -l32 -plan9 -tags plan9,386"
-	mksysnum="./mksysnum_plan9.sh /n/sources/plan9/sys/src/libc/9syscall/sys.h"
-	mktypes="XXX"
-	;;
+    mkerrors=
+    mksyscall="go run mksyscall.go -l32 -plan9 -tags plan9,386"
+    mksysnum="./mksysnum_plan9.sh /n/sources/plan9/sys/src/libc/9syscall/sys.h"
+    mktypes="XXX"
+    ;;
 plan9_amd64)
-	mkerrors=
-	mksyscall="go run mksyscall.go -l32 -plan9 -tags plan9,amd64"
-	mksysnum="./mksysnum_plan9.sh /n/sources/plan9/sys/src/libc/9syscall/sys.h"
-	mktypes="XXX"
-	;;
+    mkerrors=
+    mksyscall="go run mksyscall.go -l32 -plan9 -tags plan9,amd64"
+    mksysnum="./mksysnum_plan9.sh /n/sources/plan9/sys/src/libc/9syscall/sys.h"
+    mktypes="XXX"
+    ;;
 plan9_arm)
-	mkerrors=
-	mksyscall="go run mksyscall.go -l32 -plan9 -tags plan9,arm"
-	mksysnum="./mksysnum_plan9.sh /n/sources/plan9/sys/src/libc/9syscall/sys.h"
-	mktypes="XXX"
-	;;
+    mkerrors=
+    mksyscall="go run mksyscall.go -l32 -plan9 -tags plan9,arm"
+    mksysnum="./mksysnum_plan9.sh /n/sources/plan9/sys/src/libc/9syscall/sys.h"
+    mktypes="XXX"
+    ;;
 *)
-	echo 'unrecognized $GOOS_$GOARCH: ' "$GOOSARCH" 1>&2
-	exit 1
-	;;
+    echo 'unrecognized $GOOS_$GOARCH: ' "$GOOSARCH" 1>&2
+    exit 1
+    ;;
 esac
 
 (
-	if [ -n "$mkerrors" ]; then echo "$mkerrors |gofmt >$zerrors"; fi
-	case "$GOOS" in
-	plan9)
-		syscall_goos="syscall_$GOOS.go"
-		if [ -n "$mksyscall" ]; then echo "$mksyscall $syscall_goos |gofmt >zsyscall_$GOOSARCH.go"; fi
-		;;
-	esac
-	if [ -n "$mksysctl" ]; then echo "$mksysctl |gofmt >$zsysctl"; fi
-	if [ -n "$mksysnum" ]; then echo "$mksysnum |gofmt >zsysnum_$GOOSARCH.go"; fi
-	if [ -n "$mktypes" ]; then echo "$mktypes types_$GOOS.go |gofmt >ztypes_$GOOSARCH.go"; fi
+    if [ -n "$mkerrors" ]; then echo "$mkerrors |gofmt >$zerrors"; fi
+    case "$GOOS" in
+    plan9)
+        syscall_goos="syscall_$GOOS.go"
+        if [ -n "$mksyscall" ]; then echo "$mksyscall $syscall_goos |gofmt >zsyscall_$GOOSARCH.go"; fi
+        ;;
+    esac
+    if [ -n "$mksysctl" ]; then echo "$mksysctl |gofmt >$zsysctl"; fi
+    if [ -n "$mksysnum" ]; then echo "$mksysnum |gofmt >zsysnum_$GOOSARCH.go"; fi
+    if [ -n "$mktypes" ]; then echo "$mktypes types_$GOOS.go |gofmt >ztypes_$GOOSARCH.go"; fi
 ) | $run

@@ -8,7 +8,7 @@ Package go-autorest provides an HTTP request client for use with [Autorest](http
 
 An authentication client tested with Azure Active Directory (AAD) is also
 provided in this repo in the package
-`github.com/Azure/go-autorest/autorest/adal`.  Despite its name, this package
+`github.com/Azure/go-autorest/autorest/adal`. Despite its name, this package
 is maintained only as part of the Azure Go SDK and is not related to other
 "ADAL" libraries in [github.com/AzureAD](https://github.com/AzureAD).
 
@@ -105,6 +105,7 @@ example,
     S *string
   }{ S: &"foo" }
 ```
+
 fails, while, this
 
 ```go
@@ -113,6 +114,7 @@ fails, while, this
     S *string
   }{ S: &v }
 ```
+
 succeeds.
 
 To ease using pointers, the subpackage `to` contains helpers that convert to and from pointers for
@@ -136,6 +138,7 @@ go get github.com/Azure/go-autorest/autorest/to
 ```
 
 ### Using with Go Modules
+
 In [v12.0.1](https://github.com/Azure/go-autorest/pull/386), this repository introduced the following modules.
 
 - autorest/adal
@@ -155,7 +158,7 @@ Tagging cumulative SDK releases as a whole (e.g. `v12.3.0`) is still enabled to 
 
 See LICENSE file.
 
------
+---
 
 This project has adopted the [Microsoft Open Source Code of
 Conduct](https://opensource.microsoft.com/codeofconduct/). For more information

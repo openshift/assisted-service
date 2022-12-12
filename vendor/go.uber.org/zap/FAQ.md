@@ -8,7 +8,7 @@ Of course, most applications won't notice the impact of a slow logger: they
 already take tens or hundreds of milliseconds for each operation, so an extra
 millisecond doesn't matter.
 
-On the other hand, why *not* make structured logging fast? The `SugaredLogger`
+On the other hand, why _not_ make structured logging fast? The `SugaredLogger`
 isn't any harder to use than other logging packages, and the `Logger` makes
 structured logging possible in performance-sensitive contexts. Across a fleet
 of Go microservices, making each application even slightly more efficient adds
@@ -17,9 +17,9 @@ up quickly.
 ### Why aren't `Logger` and `SugaredLogger` interfaces?
 
 Unlike the familiar `io.Writer` and `http.Handler`, `Logger` and
-`SugaredLogger` interfaces would include *many* methods. As [Rob Pike points
+`SugaredLogger` interfaces would include _many_ methods. As [Rob Pike points
 out][go-proverbs], "The bigger the interface, the weaker the abstraction."
-Interfaces are also rigid &mdash; *any* change requires releasing a new major
+Interfaces are also rigid &mdash; _any_ change requires releasing a new major
 version, since it breaks all third-party implementations.
 
 Making the `Logger` and `SugaredLogger` concrete types doesn't sacrifice much
@@ -87,7 +87,7 @@ See the discussion in uber-go/zap#207 for more details.
 `DPanic` stands for "panic in development." In development, it logs at
 `PanicLevel`; otherwise, it logs at `ErrorLevel`. `DPanic` makes it easier to
 catch errors that are theoretically possible, but shouldn't actually happen,
-*without* crashing in production.
+_without_ crashing in production.
 
 If you've ever written code like this, you need `DPanic`:
 
@@ -110,9 +110,7 @@ maintainers, the freedom to move the source code if necessary. However, it
 means that you need to take a little care when installing and using the
 package.
 
-If you follow two simple rules, everything should work: install zap with `go
-get -u go.uber.org/zap`, and always import it in your code with `import
-"go.uber.org/zap"`. Your code shouldn't contain *any* references to
+If you follow two simple rules, everything should work: install zap with `go get -u go.uber.org/zap`, and always import it in your code with `import "go.uber.org/zap"`. Your code shouldn't contain _any_ references to
 `github.com/uber-go/zap`.
 
 ## Usage
@@ -151,13 +149,13 @@ support, we'd rather grow an ecosystem of zap extensions.
 
 We're aware of the following extensions, but haven't used them ourselves:
 
-| Package | Integration |
-| --- | --- |
-| `github.com/tchap/zapext` | Sentry, syslog |
-| `github.com/fgrosse/zaptest` | Ginkgo |
-| `github.com/blendle/zapdriver` | Stackdriver |
-| `github.com/moul/zapgorm` | Gorm |
-| `github.com/moul/zapfilter` | Advanced filtering rules |
+| Package                        | Integration              |
+| ------------------------------ | ------------------------ |
+| `github.com/tchap/zapext`      | Sentry, syslog           |
+| `github.com/fgrosse/zaptest`   | Ginkgo                   |
+| `github.com/blendle/zapdriver` | Stackdriver              |
+| `github.com/moul/zapgorm`      | Gorm                     |
+| `github.com/moul/zapfilter`    | Advanced filtering rules |
 
 [go-proverbs]: https://go-proverbs.github.io/
 [import-path]: https://golang.org/cmd/go/#hdr-Remote_import_paths

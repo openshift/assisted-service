@@ -4,9 +4,9 @@
 
 Sometimes we implement a feature that should not be available to all the customers in SaaS, but only to selected group of accounts or organizations. In order to do so, we leverage the OCM capabilities and the fact that Assisted Service can query for those with the context of the user calling the service. This allows for a very easy implementation of the following logic
 
-* if the Service runs on-prem, feature is always allowed
-* if the Service runs in the cloud with OCM non-available, feature is always allowed
-* if the Service runs in the cloud with OCM available, feature availability depends on the OCM
+- if the Service runs on-prem, feature is always allowed
+- if the Service runs in the cloud with OCM non-available, feature is always allowed
+- if the Service runs in the cloud with OCM available, feature availability depends on the OCM
 
 ## Capability definition in OCM
 

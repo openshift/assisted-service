@@ -1,3 +1,4 @@
+#!/usr/bin/env bash
 __dir=${__dir:-"$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"}
 __root=${__root:-"$(realpath ${__dir}/../..)"}
 
@@ -36,11 +37,11 @@ DEFAULT_RELEASE_IMAGES="${DEFAULT_RELEASE_IMAGES:-$(cat ${__root}/data/default_r
 # Get sorted release images relevant for the operator (only default cpu architecture)
 SORTED_RELEASE_IMAGES=$(echo ${DEFAULT_RELEASE_IMAGES} | jq -rc 'map(select(.cpu_architecture=="x86_64")) | sort_by(.openshift_version|split(".")|map(tonumber))')
 
-if [[ "${ASSISTED_UPGRADE_OPERATOR}" == "false" ]]; then
+if [[ ${ASSISTED_UPGRADE_OPERATOR} == "false" ]]; then
     RELEASE_IMAGE=$(echo ${SORTED_RELEASE_IMAGES} | jq -rc '[.[].url][-1]')
     VERSION=$(echo ${SORTED_RELEASE_IMAGES} | jq -rc '[.[].openshift_version][-1]')
 else
-    # Before the AI operator upgrade, we install the version prior to the most current one of OCP. 
+    # Before the AI operator upgrade, we install the version prior to the most current one of OCP.
     # E.g. the most current version of OCP we are installing is 4.9, and the version previous to that is 4.8.
     RELEASE_IMAGE=$(echo ${SORTED_RELEASE_IMAGES} | jq -rc '[.[].url][-2]')
     VERSION=$(echo ${SORTED_RELEASE_IMAGES} | jq -rc '[.[].openshift_version][-2]')

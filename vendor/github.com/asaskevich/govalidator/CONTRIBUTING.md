@@ -1,7 +1,9 @@
 #### Support
+
 If you do have a contribution to the package, feel free to create a Pull Request or an Issue.
 
 #### What to contribute
+
 If you don't know what to do, there are some features and functions that need to be done
 
 - [ ] Refactor code
@@ -20,7 +22,9 @@ If you don't know what to do, there are some features and functions that need to
 - [ ] Look at forks for new features and fixes
 
 #### Advice
+
 Feel free to create what you want, but keep in mind when you implement new features:
+
 - Code must be clear and readable, names of variables/constants clearly describes what they are doing
 - Public functions must be documented and described in source file and added to README.md to the list of available functions
 - There are must be unit-tests for any new functions and improvements
@@ -30,22 +34,18 @@ Feel free to create what you want, but keep in mind when you implement new featu
 We also welcome financial contributions in full transparency on our [open collective](https://opencollective.com/govalidator).
 Anyone can file an expense. If the expense makes sense for the development of the community, it will be "merged" in the ledger of our open collective by the core contributors and the person who filed the expense will be reimbursed.
 
-
 ## Credits
-
 
 ### Contributors
 
 Thank you to all the people who have already contributed to govalidator!
 <a href="https://github.com/asaskevich/govalidator/graphs/contributors"><img src="https://opencollective.com/govalidator/contributors.svg?width=890" /></a>
 
-
 ### Backers
 
 Thank you to all our backers! [[Become a backer](https://opencollective.com/govalidator#backer)]
 
 <a href="https://opencollective.com/govalidator#backers" target="_blank"><img src="https://opencollective.com/govalidator/backers.svg?width=890"></a>
-
 
 ### Sponsors
 

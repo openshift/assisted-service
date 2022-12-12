@@ -1,7 +1,9 @@
 # OAI object model
 
 [![Build Status](https://travis-ci.org/go-openapi/spec.svg?branch=master)](https://travis-ci.org/go-openapi/spec)
+
 <!-- [![Build status](https://ci.appveyor.com/api/projects/status/x377t5o9ennm847o/branch/master?svg=true)](https://ci.appveyor.com/project/casualjim/go-openapi/spec/branch/master) -->
+
 [![codecov](https://codecov.io/gh/go-openapi/spec/branch/master/graph/badge.svg)](https://codecov.io/gh/go-openapi/spec)
 [![Slack Status](https://slackin.goswagger.io/badge.svg)](https://slackin.goswagger.io)
 [![license](http://img.shields.io/badge/license-Apache%20v2-orange.svg)](https://raw.githubusercontent.com/go-openapi/spec/master/LICENSE)
@@ -12,19 +14,19 @@ The object model for OpenAPI specification documents.
 
 ### FAQ
 
-* What does this do?
+- What does this do?
 
 > 1. This package knows how to marshal and unmarshal Swagger API specifications into a golang object model
 > 2. It knows how to resolve $ref and expand them to make a single root document
 
-* How does it play with the rest of the go-openapi packages ?
+- How does it play with the rest of the go-openapi packages ?
 
 > 1. This package is at the core of the go-openapi suite of packages and [code generator](https://github.com/go-swagger/go-swagger)
 > 2. There is a [spec loading package](https://github.com/go-openapi/loads) to fetch specs as JSON or YAML from local or remote locations
 > 3. There is a [spec validation package](https://github.com/go-openapi/validate) built on top of it
 > 4. There is a [spec analysis package](https://github.com/go-openapi/analysis) built on top of it, to analyze, flatten, fix and merge spec documents
 
-* Does this library support OpenAPI 3?
+- Does this library support OpenAPI 3?
 
 > No.
 > This package currently only supports OpenAPI 2.0 (aka Swagger 2.0).

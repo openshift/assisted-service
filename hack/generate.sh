@@ -14,13 +14,13 @@ function generate_python_client() {
     SWAGGER_FILE="${__root}"/swagger.yaml \
         OUTPUT="${dest}"/assisted-service-client/ \
         "${__root}"/tools/generate_python_client.sh
-    cd "${dest}"/assisted-service-client/ && \
+    cd "${dest}"/assisted-service-client/ &&
         python3 "${__root}"/tools/client_package_initializer.py "${dest}"/assisted-service-client/ https://github.com/openshift/assisted-service
     cp "${dest}"/assisted-service-client/dist/assisted-service-client-*.tar.gz "${dest}"
 }
 
 function validate_swagger_file() {
-    egrep -r 'Dash|Dot' models/*.go | grep -v //  | awk '\
+    egrep -r 'Dash|Dot' models/*.go | grep -v // | awk '\
         {reversed=gensub("Dash","-","g", $2); \
          reversed=gensub("Dot",".","g",reversed); \
          original=gensub("\"","","g", $5);\
@@ -28,21 +28,21 @@ function validate_swagger_file() {
              printf("Enum value %s does not match go generated value %s. Usage of Dash or Dot in the swagger file is not supported\n", original, $2); \
              exit(-1); \
          }}'
-    if [ $? != 0 ] ; then
+    if [ $? != 0 ]; then
         echo "Failed validating swagger generated files before replacing Dash (-) and Dot (.) Please see https://github.com/go-swagger/go-swagger/issues/2515"
         exit -1
     fi
 }
 
 function generate_configuration() {
-    OS_IMAGES=$(< ${__root}/data/default_os_images.json tr -d "\n\t ")
-    RELEASE_IMAGES=$(< ${__root}/data/default_release_images.json tr -d "\n\t ")
-    OKD_OS_IMAGES=$(< ${__root}/data/default_okd_os_images.json tr -d "\n\t ")
-    OKD_RELEASE_IMAGES=$(< ${__root}/data/default_okd_release_images.json tr -d "\n\t ")
-    MUST_GATHER_IMAGES=$(< ${__root}/data/default_must_gather_versions.json tr -d "\n\t ")
-    OPERATOR_OS_IMAGES=$(< ${__root}/data/default_os_images.json jq -c 'del (.[] | select(.openshift_version == "4.6",.openshift_version == "4.7"))')
-    PUBLIC_CONTAINER_REGISTRIES=$(< ${__root}/data/default_public_container_registries.txt)
-    HW_VALIDATOR_REQUIREMENTS=$(< ${__root}/data/default_hw_requirements.json tr -d "\n\t ")
+    OS_IMAGES=$(tr <${__root}/data/default_os_images.json -d "\n\t ")
+    RELEASE_IMAGES=$(tr <${__root}/data/default_release_images.json -d "\n\t ")
+    OKD_OS_IMAGES=$(tr <${__root}/data/default_okd_os_images.json -d "\n\t ")
+    OKD_RELEASE_IMAGES=$(tr <${__root}/data/default_okd_release_images.json -d "\n\t ")
+    MUST_GATHER_IMAGES=$(tr <${__root}/data/default_must_gather_versions.json -d "\n\t ")
+    OPERATOR_OS_IMAGES=$(jq <${__root}/data/default_os_images.json -c 'del (.[] | select(.openshift_version == "4.6",.openshift_version == "4.7"))')
+    PUBLIC_CONTAINER_REGISTRIES=$(<${__root}/data/default_public_container_registries.txt)
+    HW_VALIDATOR_REQUIREMENTS=$(tr <${__root}/data/default_hw_requirements.json -d "\n\t ")
 
     cp "${__root}/data/default_hw_requirements.json" "${__root}/internal/controller/controllers/default_controller_hw_requirements.json"
 
@@ -96,7 +96,10 @@ function generate_manifests() (
     if [ "${GENERATE_CRD:-true}" == "true" ]; then
         echo "Generating CRDs"
         generate_crds
-        (cd ./api; generate_crds)
+        (
+            cd ./api
+            generate_crds
+        )
     fi
 
     cp ${controller_crd_path}/resources.yaml ${BUILD_FOLDER}/resources.yaml
@@ -106,7 +109,7 @@ function generate_crds() {
     controller-gen ${crd_options} rbac:roleName=assisted-service-manager-role \
         paths="./..." output:rbac:dir=${controller_rbac_path} \
         webhook paths="./..." output:crd:artifacts:config=${controller_crd_path}/bases
-    kustomize build ${controller_crd_path} > ${controller_crd_path}/resources.yaml
+    kustomize build ${controller_crd_path} >${controller_crd_path}/resources.yaml
     controller-gen object:headerFile=${hack_boilerplate} paths="./..."
     goimports -w ${controller_path}
 }

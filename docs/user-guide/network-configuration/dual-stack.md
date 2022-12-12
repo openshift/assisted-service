@@ -6,8 +6,8 @@ This configuration allows deployment of a cluster with pods residing in both IPv
 
 When using Assisted Service on-premises, configuration of the IP stack is done in the [AgentClusterInstall custom resource](../../hive-integration/README.md#AgentClusterInstall).
 
-* [Deploying a SNO cluster](../../hive-integration/crds/agentClusterInstall-dualstack-SNO.yaml)
-* [Deploying a multi-node OCP cluster](../../hive-integration/crds/agentClusterInstall-dualstack.yaml)
+- [Deploying a SNO cluster](../../hive-integration/crds/agentClusterInstall-dualstack-SNO.yaml)
+- [Deploying a multi-node OCP cluster](../../hive-integration/crds/agentClusterInstall-dualstack.yaml)
 
 ## Sample REST API payload
 
@@ -27,11 +27,10 @@ Deploying a SNO cluster
       "host_prefix": 64
     }
   ],
-  "service_networks": [
-    {"cidr": "172.30.0.0/16"}, {"cidr": "fd02::/112"}
-  ],
+  "service_networks": [{ "cidr": "172.30.0.0/16" }, { "cidr": "fd02::/112" }],
   "machine_networks": [
-    {"cidr": "192.168.127.0/24"},{"cidr": "1001:db8::/120"}
+    { "cidr": "192.168.127.0/24" },
+    { "cidr": "1001:db8::/120" }
   ]
 }
 ```
@@ -55,11 +54,10 @@ Deploying a multi-node OCP cluster
       "host_prefix": 64
     }
   ],
-  "service_networks": [
-    {"cidr": "172.30.0.0/16"}, {"cidr": "fd02::/112"}
-  ],
+  "service_networks": [{ "cidr": "172.30.0.0/16" }, { "cidr": "fd02::/112" }],
   "machine_networks": [
-    {"cidr": "192.168.127.0/24"},{"cidr": "1001:db8::/120"}
+    { "cidr": "192.168.127.0/24" },
+    { "cidr": "1001:db8::/120" }
   ]
 }
 ```

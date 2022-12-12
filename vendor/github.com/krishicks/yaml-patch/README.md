@@ -5,7 +5,6 @@
 of [JavaScript Object Notation (JSON) Patch](https://tools.ietf.org/html/rfc6902),
 but for YAML.
 
-
 ## Installing
 
 `go get github.com/krishicks/yaml-patch`

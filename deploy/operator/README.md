@@ -1,9 +1,10 @@
 # Assisted Service Operator
 
 This directory includes two main actions:
-* Assisted Service operator installation workflow, including
+
+- Assisted Service operator installation workflow, including
   installation of Local Storage Operator and Hive Operator.
-* ZTP workflow of spoke clusters.
+- ZTP workflow of spoke clusters.
 
 ## Dependencies
 
@@ -36,11 +37,11 @@ REDFISH_EMULATOR_IGNORE_BOOT_DEVICE=True
 
 A complete installation of hub-cluster consists on the following:
 
-* Setting up several (virtual) disks for persistent storage.
-* Installing Local Storage Operator and creating a storage class.
-* Installing Hive Operator.
-* Installing Assisted Service Operator.
-* Configuring BMO to watch all namespaces searching for BMH objects.
+- Setting up several (virtual) disks for persistent storage.
+- Installing Local Storage Operator and creating a storage class.
+- Installing Hive Operator.
+- Installing Assisted Service Operator.
+- Configuring BMO to watch all namespaces searching for BMH objects.
 
 Installation of the operator is pretty simple:
 
@@ -83,14 +84,16 @@ cd deploy/operator/ztp/
 ```
 
 The following actions are happening in this script:
-* Secrets for pull-secret and for private SSH key will be created.
-* A BMH object will be created for the extra host specified on the provided json file.
-* The following objects will be created as well: cluster-deployment, infra-env,
+
+- Secrets for pull-secret and for private SSH key will be created.
+- A BMH object will be created for the extra host specified on the provided json file.
+- The following objects will be created as well: cluster-deployment, infra-env,
   cluster-image-set, agent-cluster-install.
-* It will wait for an agent object to get created, indicating the host has joined the cluster.
-* It will wait for the installation to successfully pass.
+- It will wait for an agent object to get created, indicating the host has joined the cluster.
+- It will wait for the installation to successfully pass.
 
 You can customize this script with the following arguments:
+
 ```
 export ASSISTED_NAMESPACE=assisted-installer
 export ASSISTED_CLUSTER_NAME=assisted-test-cluster
@@ -119,7 +122,7 @@ The following environment variables were added to support this flow:
 # Set to true to use none platform
 export USER_MANAGED_NETWORKING="${USER_MANAGED_NETWORKING:-false}"
 
-# Spawn load balancer for none platform on local machine 
+# Spawn load balancer for none platform on local machine
 export SPAWN_NONE_PLATFORM_LOAD_BALANCER="${SPAWN_NONE_PLATFORM_LOAD_BALANCER:-false}"
 
 # Add DNS entrries in LIBVIRT network to point to the load balancer IP address
@@ -178,4 +181,3 @@ The following is an example of a JSON formatted file referenced by REMOTE_BAREME
 ```
 
 The script will attempt to install all the nodes that appear in this file
-

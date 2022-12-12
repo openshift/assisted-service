@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 import datetime
 
-import utils
 import deployment_options
+import utils
 from retry import retry
 
 TRIES = 10
@@ -24,8 +24,10 @@ def is_cluster_info_ready(kubectl_cmd):
 
 def main():
     deploy_options = deployment_options.load_deployment_options()
-    is_cluster_info_ready(kubectl_cmd=utils.get_kubectl_command(namespace=deploy_options.namespace))
+    is_cluster_info_ready(
+        kubectl_cmd=utils.get_kubectl_command(namespace=deploy_options.namespace)
+    )
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

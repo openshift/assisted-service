@@ -129,7 +129,7 @@ If envconfig can't find an environment variable value for `MYAPP_DEFAULTVAR`,
 it will populate it with "foobar" as a default value.
 
 If envconfig can't find an environment variable value for `MYAPP_REQUIREDVAR`,
-it will return an error when asked to process the struct.  If
+it will return an error when asked to process the struct. If
 `MYAPP_REQUIREDVAR` is present but empty, envconfig will not return an error.
 
 If envconfig can't find an environment variable in the form `PREFIX_MYVAR`, and there
@@ -140,6 +140,7 @@ variable that directly matches the envconfig tag in your struct definition:
 export SERVICE_HOST=127.0.0.1
 export MYAPP_DEBUG=true
 ```
+
 ```Go
 type Specification struct {
     ServiceHost string `envconfig:"SERVICE_HOST"`
@@ -154,15 +155,15 @@ environment variable is set.
 
 envconfig supports these struct field types:
 
-  * string
-  * int8, int16, int32, int64
-  * bool
-  * float32, float64
-  * slices of any supported type
-  * maps (keys and values of any supported type)
-  * [encoding.TextUnmarshaler](https://golang.org/pkg/encoding/#TextUnmarshaler)
-  * [encoding.BinaryUnmarshaler](https://golang.org/pkg/encoding/#BinaryUnmarshaler)
-  * [time.Duration](https://golang.org/pkg/time/#Duration)
+- string
+- int8, int16, int32, int64
+- bool
+- float32, float64
+- slices of any supported type
+- maps (keys and values of any supported type)
+- [encoding.TextUnmarshaler](https://golang.org/pkg/encoding/#TextUnmarshaler)
+- [encoding.BinaryUnmarshaler](https://golang.org/pkg/encoding/#BinaryUnmarshaler)
+- [time.Duration](https://golang.org/pkg/time/#Duration)
 
 Embedded structs using these fields are also supported.
 

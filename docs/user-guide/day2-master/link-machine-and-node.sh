@@ -20,7 +20,7 @@ node_name=$(echo $node | cut -f2 -d':')
 
 oc proxy &
 proxy_pid=$!
-function kill_proxy {
+function kill_proxy() {
     kill $proxy_pid
 }
 trap kill_proxy EXIT SIGINT
@@ -44,10 +44,10 @@ function wait_for_json() {
     curl_opts="$@"
     echo -n "Waiting for $name to respond"
     start_time=$(date +%s)
-    until curl -g -X GET "$url" "${curl_opts[@]}" 2> /dev/null | jq '.' 2> /dev/null > /dev/null; do
+    until curl -g -X GET "$url" "${curl_opts[@]}" 2>/dev/null | jq '.' 2>/dev/null >/dev/null; do
         echo -n "."
         curr_time=$(date +%s)
-        time_diff=$(($curr_time - $start_time))
+        time_diff=$((curr_time - start_time))
         if [[ $time_diff -gt $timeout ]]; then
             echo "\nTimed out waiting for $name"
             return 1
@@ -121,9 +121,9 @@ echo "PATCHING HOST"
 echo "${host_patch}" | jq .
 
 curl -s \
-     -X PATCH \
-     ${HOST_PROXY_API_PATH}/${host}/status \
-     -H "Content-type: application/merge-patch+json" \
-     -d "${host_patch}"
+    -X PATCH \
+    ${HOST_PROXY_API_PATH}/${host}/status \
+    -H "Content-type: application/merge-patch+json" \
+    -d "${host_patch}"
 
 oc get baremetalhost -n openshift-machine-api -o yaml "${host}"

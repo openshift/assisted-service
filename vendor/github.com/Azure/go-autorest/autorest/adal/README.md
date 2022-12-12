@@ -22,7 +22,6 @@ An Active Directory application is required in order to use this library. An app
 
 ### Register an Azure AD Application with secret
 
-
 1. Register a new application with a `secret` credential
 
    ```
@@ -39,7 +38,7 @@ An Active Directory application is required in order to use this library. An app
    az ad sp create --id "Application ID"
    ```
 
-   * Replace `Application ID` with `appId` from step 1.
+   - Replace `Application ID` with `appId` from step 1.
 
 ### Register an Azure AD Application with certificate
 
@@ -82,8 +81,7 @@ An Active Directory application is required in order to use this library. An app
    az ad sp create --id "APPLICATION_ID"
    ```
 
-   * Replace `APPLICATION_ID` with `appId` from step 4.
-
+   - Replace `APPLICATION_ID` with `appId` from step 4.
 
 ### Grant the necessary permissions
 
@@ -95,8 +93,8 @@ which can be assigned to a service principal of an Azure AD application dependin
 az role assignment create --assigner "SERVICE_PRINCIPAL_ID" --role "ROLE_NAME"
 ```
 
-* Replace the `SERVICE_PRINCIPAL_ID` with the `appId` from previous step.
-* Replace the `ROLE_NAME` with a role name of your choice.
+- Replace the `SERVICE_PRINCIPAL_ID` with the `appId` from previous step.
+- Replace the `ROLE_NAME` with a role name of your choice.
 
 It is also possible to define custom role definitions.
 
@@ -104,8 +102,7 @@ It is also possible to define custom role definitions.
 az role definition create --role-definition role-definition.json
 ```
 
-* Check [custom roles](https://docs.microsoft.com/en-us/azure/active-directory/role-based-access-control-custom-roles) for more details regarding the content of `role-definition.json` file.
-
+- Check [custom roles](https://docs.microsoft.com/en-us/azure/active-directory/role-based-access-control-custom-roles) for more details regarding the content of `role-definition.json` file.
 
 ### Acquire Access Token
 
@@ -126,8 +123,8 @@ callback := func(token adal.Token) error {
 resource := "https://management.core.windows.net/"
 ```
 
-* Replace the `TENANT_ID` with your tenant ID.
-* Replace the `APPLICATION_ID` with the value from previous section.
+- Replace the `TENANT_ID` with your tenant ID.
+- Replace the `APPLICATION_ID` with the value from previous section.
 
 #### Client Credentials
 
@@ -151,7 +148,7 @@ if (err == nil) {
 }
 ```
 
-* Replace the `APPLICATION_SECRET` with the `password` value from previous section.
+- Replace the `APPLICATION_SECRET` with the `password` value from previous section.
 
 #### Client Certificate
 
@@ -184,8 +181,7 @@ if (err == nil) {
 }
 ```
 
-* Update the certificate path to point to the example-app.pfx file which was created in previous section.
-
+- Update the certificate path to point to the example-app.pfx file which was created in previous section.
 
 #### Device Code
 
@@ -241,7 +237,7 @@ if (err == nil) {
 
 #### Authorization code authenticate
 
-``` Go
+```Go
 spt, err := adal.NewServicePrincipalTokenFromAuthorizationCode(
 	*oauthConfig,
 	applicationID,

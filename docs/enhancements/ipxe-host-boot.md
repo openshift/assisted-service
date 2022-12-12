@@ -11,16 +11,16 @@ last-updated: 2022-03-14
 
 ## Summary
 
-Not all user infrastructure is able to boot isos directly, and iPXE is a commonly 
-used alternative for booting machines. We should support this by making the 
+Not all user infrastructure is able to boot isos directly, and iPXE is a commonly
+used alternative for booting machines. We should support this by making the
 Assisted Installer directly serve iPXE artifacts so that systems can boot with no
 other iPXE infrastructure required.
 
 ## Motivation
 
 Booting a host using iPXE should be a first-class operation when using
-assisted-service. This has been found to be at least as common a method 
-as providing the live ISO via virtual media and is also required in some 
+assisted-service. This has been found to be at least as common a method
+as providing the live ISO via virtual media and is also required in some
 environments. Users are already unpacking the ISO we provide into PXE
 artifacts and serving those in their infrastructure. We can make this much
 easier for them by serving those artifacts as well as the iPXE boot script
@@ -41,32 +41,32 @@ directly from our application.
 
 ## Proposal
 
-The image-service will serve the kernel, rootfs, and initrd with ignition 
-appended (see Implementation Details), while the assisted service will 
-provide an API to download the boot script. The boot script created and served 
-by the assisted service will contain URLs to the required artifacts hosted by 
+The image-service will serve the kernel, rootfs, and initrd with ignition
+appended (see Implementation Details), while the assisted service will
+provide an API to download the boot script. The boot script created and served
+by the assisted service will contain URLs to the required artifacts hosted by
 the image service.
 
 ### User Stories
 
 #### Story 1
 
-As a user of assisted installer I want to boot my hosts using iPXE without 
+As a user of assisted installer I want to boot my hosts using iPXE without
 setting up my own http server to host artifacts.
 
 ### Implementation Details/Notes/Constraints
 
 #### Ironic Integration
 
-To support integration with Ironic’s existing iPXE boot methods, the 
-discovery ignition must be appended to the initrd rather than specified as 
-a separate kernel parameter. The image service will also handle this initrd 
+To support integration with Ironic’s existing iPXE boot methods, the
+discovery ignition must be appended to the initrd rather than specified as
+a separate kernel parameter. The image service will also handle this initrd
 manipulation when an initrd is requested for a particular infra-env.
 
 #### New Image Service APIs
 
-Image service APIs will be added to download the required boot artifacts. The 
-rootfs and kernel will be served directly from the template image. The initrd 
+Image service APIs will be added to download the required boot artifacts. The
+rootfs and kernel will be served directly from the template image. The initrd
 endpoint will be specific to an infra-env in order to embed the ignition.
 
 - `GET /boot-artifacts/{artifact-name}?{params}`
@@ -85,7 +85,7 @@ endpoint will be specific to an infra-env in order to embed the ignition.
 
 #### New Assisted Service REST APIs
 
-Assisted service APIs will be added to download the ipxe boot script and to 
+Assisted service APIs will be added to download the ipxe boot script and to
 retrieve a presigned url for downloading the boot script.
 
 - `GET /v2/infra-envs/{infra-env-id}/downloads/files?file_name=ipxe-script`
@@ -113,19 +113,19 @@ status:
 
 #### Authentication Tokens
 
-Both the iPXE boot script and the initrd download URLs will be presigned with an 
-authentication token. In the cloud offering (console.redhat.com) the same mechanism 
-described in image-service-cloud-authentication will be used which means the tokens 
+Both the iPXE boot script and the initrd download URLs will be presigned with an
+authentication token. In the cloud offering (console.redhat.com) the same mechanism
+described in image-service-cloud-authentication will be used which means the tokens
 will include an expiration.
 
 This expiration will be set to four hours for both the iPXE boot script and the initrd.
-The expected use case will be for users to point their machines directly at the boot 
+The expected use case will be for users to point their machines directly at the boot
 script URL which can be refreshed by the UI easily.
 
-This only becomes a potential problem if a user downloads and hosts the iPXE script, but 
-not the initrd. This is because the URL in the boot script for the initrd will expire after 
-four hours and machines will no longer be able to boot. In this case the expectation is that 
-such a user would download all the artifacts, host them in their own infrastructure, and edit 
+This only becomes a potential problem if a user downloads and hosts the iPXE script, but
+not the initrd. This is because the URL in the boot script for the initrd will expire after
+four hours and machines will no longer be able to boot. In this case the expectation is that
+such a user would download all the artifacts, host them in their own infrastructure, and edit
 the boot script accordingly.
 
 #### Proxy Support

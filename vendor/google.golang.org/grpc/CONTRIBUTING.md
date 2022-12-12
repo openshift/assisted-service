@@ -12,6 +12,7 @@ In order to protect both you and ourselves, you will need to sign the
 [Contributor License Agreement](https://identity.linuxfoundation.org/projects/cncf).
 
 ## Guidelines for Pull Requests
+
 How to get your contributions merged smoothly and quickly.
 
 - Create **small PRs** that are narrowly focused on **addressing a single
@@ -53,6 +54,7 @@ How to get your contributions merged smoothly and quickly.
 - **All tests need to be passing** before your change can be merged. We
   recommend you **run tests locally** before creating your PR to catch breakages
   early on.
+
   - `make all` to test everything, OR
   - `make vet` to catch vet errors
   - `make test` to run the tests

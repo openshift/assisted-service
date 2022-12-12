@@ -4,9 +4,9 @@ These instructions detail how to deploy the assisted installer service in a disc
 
 ## Requirements
 
-* A server with at least 8GB of RAM and 2+ vCPU
-* A container registry to mirror an OpenShift release
-* A web server to hold the Red Hat CoreOS (RHCOS) boot ISO
+- A server with at least 8GB of RAM and 2+ vCPU
+- A container registry to mirror an OpenShift release
+- A web server to hold the Red Hat CoreOS (RHCOS) boot ISO
 
 Make sure you have [podman](https://podman.io) version 3.3+ installed. If you must use an older version of podman, reference the [previous documentation and procedure](https://github.com/openshift/assisted-service/tree/v2.0.11#deploy-without-a-kubernetes-cluster) to avoid a [podman bug](https://github.com/containers/podman/issues/9609).
 
@@ -14,7 +14,7 @@ If you do not have a web server to host the ISO and a container registry availab
 
 ## Identify a Container Registry and Mirror Contents
 
-You will need to have a container registry available in the disconnected environment to house all the container images that are required to complete an OpenShift install. See [Mirroring image for a disconnected installation](https://docs.okd.io/latest/installing/disconnected_install/installing-mirroring-installation-images.html) or [Mirroring image for a disconnected installation using the oc-mirror plug-in](https://docs.okd.io/latest/installing/disconnected_install/installing-mirroring-disconnected.html) for how to mirror the required images. 
+You will need to have a container registry available in the disconnected environment to house all the container images that are required to complete an OpenShift install. See [Mirroring image for a disconnected installation](https://docs.okd.io/latest/installing/disconnected_install/installing-mirroring-installation-images.html) or [Mirroring image for a disconnected installation using the oc-mirror plug-in](https://docs.okd.io/latest/installing/disconnected_install/installing-mirroring-disconnected.html) for how to mirror the required images.
 
 If you do not have a container registry available you, instructions for installing a container registry and mirroring the contents into that registry can be found in [Creating a mirror registry with mirror registry for Red Hat OpenShift](https://docs.okd.io/latest/installing/disconnected_install/installing-mirroring-creating-registry.html).
 
@@ -49,7 +49,7 @@ additionalImages:
 
 You will need to have a Web server available within your disconnected environment. The Assisted Installer requires a URL to retrieve the RHCOS ISO from on the fly. If you have an existing web server available in your disconnected environment you can use that to host this file. Otherwise, this section will detail some steps for a Fedora/RHEL box.
 
-We need to host the RHCOS image required for booting. We will use NGINX to handle this for us. First get a copy of the RHCOS images and place them in /usr/share/nginx/html... 
+We need to host the RHCOS image required for booting. We will use NGINX to handle this for us. First get a copy of the RHCOS images and place them in /usr/share/nginx/html...
 
 ```shell
 $ sudo dnf install -y nginx
@@ -71,9 +71,9 @@ $ sudo systemctl enable nginx --now
 
 You will need to configure multiple files to properly use the Assisted Installer in a disconnected environment. You will need to gather up the following information before proceeding:
 
-* signing cert for your container image registry
-* host name for your container image registry
-* hostname or IP address for the web server hosting the RHCOS ISO file (if not using the assisted installer host)
+- signing cert for your container image registry
+- host name for your container image registry
+- hostname or IP address for the web server hosting the RHCOS ISO file (if not using the assisted installer host)
 
 ### Install the Assisted Installer Service
 
@@ -104,8 +104,8 @@ unqualified-search-registries = ["registry.access.redhat.com", "docker.io"]
 
 3. Edit `configmap-disconnected.yml` and update the following values to point to the IP address of the assisted installer host:
 
-* IMAGE_SERVICE_BASE_URL - http://<IP address of assisted installer host>:8888
-* SERVICE_BASE_URL - http://<IP address of assisted installer host>:8090
+- IMAGE_SERVICE_BASE_URL - http://<IP address of assisted installer host>:8888
+- SERVICE_BASE_URL - http://<IP address of assisted installer host>:8090
 
 4. Edit the "RELEASE_IMAGES" section. Replace "quay.io/openshift-release-dev/ocp-release:4.10.22-x86_64" with the "Update Image" from the [Identify a Container Registry and Mirror Contents](#identify-a-container-registry-and-mirror-contents) steps.
 
@@ -117,7 +117,7 @@ unqualified-search-registries = ["registry.access.redhat.com", "docker.io"]
 
 6. Update the tls-ca-bundle.pem file with the contents of your container image registry rootCA. If you are using the OpenShift Mirror Registry you can find this in the `quay-rootCA/rootCA.pem` file in the root directory for the mirror registry install, or see the section [](#retrieving-tls-cert-from-mirror-registry) in the Appendix section of this document for the process to get your image registries certificate.
 
-7. Update the registries.conf section with the contents of the registries.conf file you created in step 2. 
+7. Update the registries.conf section with the contents of the registries.conf file you created in step 2.
 
 8. Update "AGENT_DOCKER_IMAGE" to point to your mirror copy of the assisted-installer-agent, for example "\<container image registry server:port\>/edge-infrastructure/assisted-installer-agent:latest"
 
@@ -127,7 +127,8 @@ unqualified-search-registries = ["registry.access.redhat.com", "docker.io"]
 
 11. Save the file
 
-12. Run the AssistedInstaller 
+12. Run the AssistedInstaller
+
 ```shell
 $ podman play kube --configmap configmap-disconnected.yml pod-persistent-disconnected.yml
 # startup can be slower when the VM is not connected to the internet
@@ -144,8 +145,11 @@ The assisted installer is now available at http://<your host ip address>:8080
 We need to create a "ignition_config_override" that will allow the assisted install boot CD to use the container image mirror. You will need to have the registry.conf file that we created previously and you will need the certificate for the Image Registry if it is using a self-signed certificate. Create a file called `discovery-ignition.json` with the following contents:
 
 discovery-ignition.json.template
+
 ```json
-{"ignition_config_override": "{\"ignition\": {\"version\": \"3.1.0\"}, \"storage\": {\"files\": [{\"path\": \"/etc/containers/registries.conf\", \"mode\": 420, \"overwrite\": true, \"user\": { \"name\": \"root\"},\"contents\": {\"source\": \"data:text/plain;base64,BASE64_ENCODED_REGISTRY_CONF\"}}, {\"path\": \"/etc/pki/ca-trust/source/anchors/domain.crt\", \"mode\": 420, \"overwrite\": true, \"user\": { \"name\": \"root\"}, \"contents\": {\"source\":\"data:text/plain;base64,BASE64_ENCODED_LOCAL_REGISTRY_CRT\"}}]}}"}
+{
+  "ignition_config_override": "{\"ignition\": {\"version\": \"3.1.0\"}, \"storage\": {\"files\": [{\"path\": \"/etc/containers/registries.conf\", \"mode\": 420, \"overwrite\": true, \"user\": { \"name\": \"root\"},\"contents\": {\"source\": \"data:text/plain;base64,BASE64_ENCODED_REGISTRY_CONF\"}}, {\"path\": \"/etc/pki/ca-trust/source/anchors/domain.crt\", \"mode\": 420, \"overwrite\": true, \"user\": { \"name\": \"root\"}, \"contents\": {\"source\":\"data:text/plain;base64,BASE64_ENCODED_LOCAL_REGISTRY_CRT\"}}]}}"
+}
 ```
 
 Now create base64 encoded versions of the registry.conf you created in [Install Assisted Installer](#install-the-assisted-installer-service) and the root CA for the image registry and update our discovery-ignition.json file:
@@ -161,7 +165,7 @@ You will apply this file as a part of the [Build/Deploy a Cluster](#builddeploy-
 
 ## Build/Deploy a Cluster
 
-At this point, you can now follow standard Assisted Installer workflows to create a cluster. Keep in mind that you will need to add your mirror registry certificate to the install_config as and _additionalTrustBundle_ well as add the _imageContentSources_ that define your mirror registry. The process that you use to do this will vary based on if you are using the Assisted Installer Web UI, via all api calls, or using [aicli](https://github.com/karmab/aicli).
+At this point, you can now follow standard Assisted Installer workflows to create a cluster. Keep in mind that you will need to add your mirror registry certificate to the install*config as and \_additionalTrustBundle* well as add the _imageContentSources_ that define your mirror registry. The process that you use to do this will vary based on if you are using the Assisted Installer Web UI, via all api calls, or using [aicli](https://github.com/karmab/aicli).
 
 ### Using the Assisted Installer GUI
 
@@ -189,7 +193,7 @@ The values for the imageContentSources will be based on the output of the OpenSh
 
 #### Creating the Cluster
 
-Follow the instructions [rest api getting started](https://github.com/openshift/assisted-service/blob/master/docs/user-guide/rest-api-getting-started.md) to create your cluster. 
+Follow the instructions [rest api getting started](https://github.com/openshift/assisted-service/blob/master/docs/user-guide/rest-api-getting-started.md) to create your cluster.
 
 #### Patching the Cluster Definition
 

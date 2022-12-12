@@ -114,7 +114,7 @@ func (b *ignitionBuilder) GenerateConfig() (config ignition_config_types_32.Conf
 
 	if b.hostname != "" {
 		update_hostname := fmt.Sprintf(`
-	    [[ "$DHCP6_FQDN_FQDN" =~ "." ]] && hostnamectl set-hostname --static --transient $DHCP6_FQDN_FQDN 
+	    [[ "$DHCP6_FQDN_FQDN" =~ "." ]] && hostnamectl set-hostname --static --transient $DHCP6_FQDN_FQDN
 	    [[ "$(< /proc/sys/kernel/hostname)" =~ (localhost|localhost.localdomain) ]] && hostnamectl set-hostname --transient %s`, b.hostname)
 
 		config.Storage.Files = append(config.Storage.Files, ignitionFileEmbed(

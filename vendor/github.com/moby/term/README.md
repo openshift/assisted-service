@@ -33,4 +33,5 @@ func main() {
 Want to hack on term? [Docker's contributions guidelines](https://github.com/docker/docker/blob/master/CONTRIBUTING.md) apply.
 
 ## Copyright and license
+
 Code and documentation copyright 2015 Docker, inc. Code released under the Apache 2.0 license. Docs released under Creative commons.

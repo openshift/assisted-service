@@ -7,18 +7,19 @@ typically like small images, or when you use the FileReader API of the browser.
 
 Common use-cases:
 
- * generate a data URL out of a `string`, `[]byte`, `io.Reader` for inclusion in HTML templates,
- * parse a data URL sent by a browser in a http.Handler, and do something with the data (save to disk, etc.)
- * ...
+- generate a data URL out of a `string`, `[]byte`, `io.Reader` for inclusion in HTML templates,
+- parse a data URL sent by a browser in a http.Handler, and do something with the data (save to disk, etc.)
+- ...
 
 Install the package with:
-~~~
+
+```
 go get github.com/vincent-petithory/dataurl
-~~~
+```
 
 ## Usage
 
-~~~ go
+```go
 package main
 
 import (
@@ -35,11 +36,11 @@ func main() {
 	fmt.Printf("content type: %s, data: %s\n", dataURL.MediaType.ContentType(), string(dataURL.Data))
 	// Output: content type: text/plain, data: heya
 }
-~~~
+```
 
 From a `http.Handler`:
 
-~~~ go
+```go
 func handleDataURLUpload(w http.ResponseWriter, r *http.Request) {
 	dataURL, err := dataurl.Decode(r.Body)
 	defer r.Body.Close()
@@ -53,13 +54,13 @@ func handleDataURLUpload(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "not a png", http.StatusBadRequest)
 	}
 }
-~~~
+```
 
 ## Command
 
 For convenience, a `dataurl` command is provided to encode/decode dataurl streams.
 
-~~~
+```
 dataurl - Encode or decode dataurl data and print to standard output
 
 Usage: dataurl [OPTION]... [FILE]
@@ -74,7 +75,7 @@ Options:
   -decode=false: decode data instead of encoding
   -m="": force the mimetype of the data to encode to this value
   -mimetype="": force the mimetype of the data to encode to this value
-~~~
+```
 
 ## Contributing
 

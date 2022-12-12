@@ -16,25 +16,24 @@ oc apply -f https://raw.githubusercontent.com/openshift/hive/ocm-2.4/config/crds
 ## Install Infrastructure Operator
 
 !!! note
-    Infrastructure Operator requires persistent storage.
-
+Infrastructure Operator requires persistent storage.
 
 1. Go to the Operator Hub and search for "Infrastructure Operator".
 
-    ![Operator Hub](img/OperatorHub.png)
+   ![Operator Hub](img/OperatorHub.png)
 
 2. Click and go to `Install`. Select `alpha` in `Update channel`, and leave the defaults for other options.
 
-    ![Installation](img/InstallOperator.png)
+   ![Installation](img/InstallOperator.png)
 
 3. Wait for the installation to finish.
 
-    ![Installed](img/InstalledOperator.png)
+   ![Installed](img/InstalledOperator.png)
 
 4. Go to `Operator Details` of `Infrastructure Operator` in `assisted-installer` namespace. Click on `Create an instance` of `Agent Service Config`:
 
-    ![Operator Details](img/OperatorDetails.png)
+   ![Operator Details](img/OperatorDetails.png)
 
 5. Use `agent` as the name for the CR. If needed, edit the PVCs configuration, and click on `Create`:
 
-    ![Operator Details](img/AgentServiceConfig.png)
+   ![Operator Details](img/AgentServiceConfig.png)

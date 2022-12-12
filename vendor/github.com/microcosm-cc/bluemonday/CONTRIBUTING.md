@@ -4,7 +4,7 @@ Third-party patches are essential for keeping bluemonday secure and offering the
 
 ## Getting Started
 
-* Make sure you have a [Github account](https://github.com/signup/free)
+- Make sure you have a [Github account](https://github.com/signup/free)
 
 ## Guidelines
 
@@ -13,20 +13,20 @@ Third-party patches are essential for keeping bluemonday secure and offering the
 
 ## Submitting an Issue
 
-* Submit a ticket for your issue, assuming one does not already exist
-* Clearly describe the issue including the steps to reproduce (with sample input and output) if it is a bug
+- Submit a ticket for your issue, assuming one does not already exist
+- Clearly describe the issue including the steps to reproduce (with sample input and output) if it is a bug
 
 If you are reporting a security flaw, you may expect that we will provide the code to fix it for you. Otherwise you may want to submit a pull request to ensure the resolution is applied sooner rather than later:
 
-* Fork the repository on Github
-* Issue a pull request containing code to resolve the issue
+- Fork the repository on Github
+- Issue a pull request containing code to resolve the issue
 
 ## Submitting a Pull Request
 
-* Submit a ticket for your issue, assuming one does not already exist
-* Describe the reason for the pull request and if applicable show some example inputs and outputs to demonstrate what the patch does
-* Fork the repository on Github
-* Before submitting the pull request you should
+- Submit a ticket for your issue, assuming one does not already exist
+- Describe the reason for the pull request and if applicable show some example inputs and outputs to demonstrate what the patch does
+- Fork the repository on Github
+- Before submitting the pull request you should
   1. Include tests for your patch, 1 test should encapsulate the entire patch and should refer to the Github issue
   1. If you have added new exposed/public functionality, you should ensure it is documented appropriately
   1. If you have added new exposed/public functionality, you should consider demonstrating how to use it within one of the helpers or shipped policies if appropriate or within a test if modifying a helper or policy is not appropriate
@@ -34,10 +34,10 @@ If you are reporting a security flaw, you may expect that we will provide the co
   1. Run gofmt `gofmt -w ./$*` or `make fmt`
   1. Run vet `go tool vet *.go` or `make vet` and resolve any issues
   1. Install golint using `go get -u github.com/golang/lint/golint` and run vet `golint *.go` or `make lint` and resolve every warning
-* When submitting the pull request you should
+- When submitting the pull request you should
   1. Note the issue(s) it resolves, i.e. `Closes #6` in the pull request comment to close issue #6 when the pull request is accepted
 
-Once you have submitted a pull request, we *may* merge it without changes. If we have any comments or feedback, or need you to make changes to your pull request we will update the Github pull request or the associated issue. We expect responses from you within two weeks, and we may close the pull request is there is no activity.
+Once you have submitted a pull request, we _may_ merge it without changes. If we have any comments or feedback, or need you to make changes to your pull request we will update the Github pull request or the associated issue. We expect responses from you within two weeks, and we may close the pull request is there is no activity.
 
 ### Contributor Licence Agreement
 

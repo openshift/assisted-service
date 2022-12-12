@@ -8,8 +8,9 @@ You'll find instructions on how to add hosts to a cluster with an without [late 
 ### Register Hosts To InfraEnv
 
 #### Register An InfraEnv
-* `POST /v2/infra-envs`
-* operationId: `RegisterInfraEnv`
+
+- `POST /v2/infra-envs`
+- operationId: `RegisterInfraEnv`
 
 ```bash
 curl -X POST -H "Content-Type: application/json" \
@@ -20,19 +21,22 @@ curl -X POST -H "Content-Type: application/json" \
 Note: `openshift_version` is optional, if not specified it defaults to the latest available OpenShift version.
 
 #### Get InfraEnv Image Download URL
-* `GET /v2/infra-envs/{infra_env_id}/downloads/image-url`
-* operationId: `GetInfraEnvDownloadURL`
+
+- `GET /v2/infra-envs/{infra_env_id}/downloads/image-url`
+- operationId: `GetInfraEnvDownloadURL`
 
 ```bash
 curl <HOST>:<PORT>/api/assisted-install/v2/infra-envs/<infra_env_id>/downloads/image-url | jq '.url'
 ```
 
 #### Boot Hosts from Discovery Image
-* Download the image using the above-mentiond url, and boot your hosts using that image.
+
+- Download the image using the above-mentiond url, and boot your hosts using that image.
 
 #### Inspect Registered Hosts
-* `GET /v2/infra-envs/{infra_env_id}/hosts`
-* operationId: `v2ListHosts`
+
+- `GET /v2/infra-envs/{infra_env_id}/hosts`
+- operationId: `v2ListHosts`
 
 ```bash
 curl <HOST>:<PORT>/api/assisted-install/v2/infra-envs/<infra_env_id>/hosts  | jq '.'
@@ -42,8 +46,8 @@ curl <HOST>:<PORT>/api/assisted-install/v2/infra-envs/<infra_env_id>/hosts  | jq
 
 #### Import
 
-* `POST /v2/clusters/import`
-* operationId: `v2ImportCluster`
+- `POST /v2/clusters/import`
+- operationId: `v2ImportCluster`
 
 ```bash
 curl -X POST -H "Content-Type: application/json" \
@@ -52,8 +56,9 @@ curl -X POST -H "Content-Type: application/json" \
 ```
 
 #### Bind host to Cluster
-* `POST /v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/bind`
-* operationId: `BindHost`
+
+- `POST /v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/bind`
+- operationId: `BindHost`
 
 Repeat this step once per each host.
 
@@ -64,8 +69,9 @@ curl -X POST -H "Content-Type: application/json" \
 ```
 
 #### Install Host For Day2 Cluster
-* `POST /v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/install`
-* operationId: `v2InstallHost`
+
+- `POST /v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/install`
+- operationId: `v2InstallHost`
 
 Repeat this step once per each host.
 
@@ -79,8 +85,8 @@ curl -X POST -H <HOST>:<PORT>/api/assisted-install/v2/infra-envs/<infra_en_id>/h
 
 #### Import
 
-* `POST /v2/clusters/import`
-* operationId: `v2ImportCluster`
+- `POST /v2/clusters/import`
+- operationId: `v2ImportCluster`
 
 ```bash
 curl -X POST -H "Content-Type: application/json" \
@@ -89,10 +95,12 @@ curl -X POST -H "Content-Type: application/json" \
 ```
 
 #### Register An InfraEnv
-* `POST /v2/infra-envs`
-* operationId: `RegisterInfraEnv`
+
+- `POST /v2/infra-envs`
+- operationId: `RegisterInfraEnv`
 
 To associate the `InfraEnv` with the imported cluster, you **must** specify the imported `cluster_id`.
+
 ```bash
 curl -X POST -H "Content-Type: application/json" \
     -d '{"name":"testcluster_infra-env","pull_secret":"<pull_secret_here>","openshift_version":"4.9", "cluster_id": "<imported cluster_id>"}' \
@@ -102,8 +110,9 @@ curl -X POST -H "Content-Type: application/json" \
 Note: `openshift_version` is optional, if not specified it defaults to the latest available OpenShift version.
 
 #### Get InfraEnv Image Download URL
-* `GET /v2/infra-envs/{infra_env_id}/downloads/image-url`
-* operationId: `GetInfraEnvDownloadURL`
+
+- `GET /v2/infra-envs/{infra_env_id}/downloads/image-url`
+- operationId: `GetInfraEnvDownloadURL`
 
 ```bash
 curl <HOST>:<PORT>/api/assisted-install/v2/infra-envs/<infra_env_id>/downloads/image-url | jq '.url'
@@ -112,19 +121,22 @@ curl <HOST>:<PORT>/api/assisted-install/v2/infra-envs/<infra_env_id>/downloads/i
 ### Register Day2 Host(s) And Install
 
 #### Boot Hosts from Discovery Image
-* Download the image using the above-mentiond url, and boot your hosts using that image.
+
+- Download the image using the above-mentiond url, and boot your hosts using that image.
 
 #### Inspect Registered Hosts
-* `GET /v2/infra-envs/{infra_env_id}/hosts`
-* operationId: `v2ListHosts`
+
+- `GET /v2/infra-envs/{infra_env_id}/hosts`
+- operationId: `v2ListHosts`
 
 ```bash
 curl <HOST>:<PORT>/api/assisted-install/v2/infra-envs/<infra_env_id>/hosts  | jq '.'
 ```
 
 #### Install Host For Day2 Cluster
-* `POST /v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/install`
-* operationId: `v2InstallHost`
+
+- `POST /v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/install`
+- operationId: `v2InstallHost`
 
 Repeat this step once per each host.
 

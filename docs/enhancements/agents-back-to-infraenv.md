@@ -10,7 +10,7 @@ last-updated: 2021-11-03
 
 ## Summary
 
-When a user deletes a ClusterDeployment/AgentClusterInstall resource, the Agents resources bound to that CD should not be deleted. 
+When a user deletes a ClusterDeployment/AgentClusterInstall resource, the Agents resources bound to that CD should not be deleted.
 In that case, the Agents should be unbound and if needed the host should be rebooted with the Discovery ISO.
 
 In addition, the user should be able to unbind a single Agent from a ClusterDeployment so that this Agent should be available back in the InfraEnv running with the Discovery ISO even if the Agent is already installed or in error/cancelled phases.
@@ -47,10 +47,10 @@ In case of Zero Touch Provisioning, the Bare Metal Agent Controller will detect 
 
 In case of Boot It YourSelf, it is the user responsibility to reboot the host.
 
-
 ### assisted-service
 
 When a cluster is deleted:
+
 - For each of the hosts:
   - If the Host's InfraEnv is associated to the Cluster (not late binding):
     - Delete the Host
@@ -97,7 +97,7 @@ As a Cluster Creator, I want to be able to unbind an Agent from a ClusterDeploym
 
 ### Implementation Details/Notes/Constraints
 
-* On Boot It Yourself flow, it is the user responsibility to reboot the host and remove the need-boot label.
+- On Boot It Yourself flow, it is the user responsibility to reboot the host and remove the need-boot label.
 
 ### Risks and Mitigations
 
@@ -115,14 +115,15 @@ There should be no impact for UI in Central Management Infrastructure flows.
 ### Test Plan
 
 Test Cases:
-* Create a cluster with Agents not using late-binding
+
+- Create a cluster with Agents not using late-binding
   - Delete the cluster. Agents should be deleted.
-* Create a cluster with Agents using late-binding
+- Create a cluster with Agents using late-binding
   - Delete the cluster. Agents should not be deleted.
   - The Agents should not have a reference to the CD.
   - `Bound` condition should be if `false` with reason `UnbindingPendingUserAction` if the agents were in `Installed`, `Cancelled`, `Error` or `Added To Existing Cluster`.
   - If BMH is used, the host should be rebooted.
-* Install a cluster with Agents using late-binding
+- Install a cluster with Agents using late-binding
   - Unbind an installed Agent
   - `Bound` condition should be if `false` with reason `UnbindingPendingUserAction` if the agents were in `Installed`, `Cancelled`, `Error` or `Added To Existing Cluster`.
   - If BMH is used, the host should be rebooted.
@@ -137,4 +138,3 @@ The Agent will be recreated after the reboot of the host.
 In this case, the spec of the Agent will be lost (Hostname, Role, Installation Disk) and all the hosts will be rebooted regardless of the Agent state.
 
 Note, that having the Agent CR provides easier debug source for the user.
-

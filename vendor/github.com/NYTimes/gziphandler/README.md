@@ -1,5 +1,4 @@
-Gzip Handler
-============
+# Gzip Handler
 
 This is a tiny Go package which wraps HTTP handlers to transparently gzip the
 response body, for clients which support it. Although it's usually simpler to
@@ -7,6 +6,7 @@ leave that to a reverse proxy (like nginx or Varnish), this package is useful
 when that's undesirable.
 
 ## Install
+
 ```bash
 go get -u github.com/NYTimes/gziphandler
 ```
@@ -39,18 +39,13 @@ func main() {
 }
 ```
 
-
 ## Documentation
 
 The docs can be found at [godoc.org][docs], as usual.
-
 
 ## License
 
 [Apache 2.0][license].
 
-
-
-
-[docs]:     https://godoc.org/github.com/NYTimes/gziphandler
-[license]:  https://github.com/NYTimes/gziphandler/blob/master/LICENSE
+[docs]: https://godoc.org/github.com/NYTimes/gziphandler
+[license]: https://github.com/NYTimes/gziphandler/blob/master/LICENSE

@@ -1,5 +1,5 @@
-govalidator
-===========
+# govalidator
+
 [![Gitter](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/asaskevich/govalidator?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge) [![GoDoc](https://godoc.org/github.com/asaskevich/govalidator?status.png)](https://godoc.org/github.com/asaskevich/govalidator)
 [![Build Status](https://travis-ci.org/asaskevich/govalidator.svg?branch=master)](https://travis-ci.org/asaskevich/govalidator)
 [![Coverage](https://codecov.io/gh/asaskevich/govalidator/branch/master/graph/badge.svg)](https://codecov.io/gh/asaskevich/govalidator) [![Go Report Card](https://goreportcard.com/badge/github.com/asaskevich/govalidator)](https://goreportcard.com/report/github.com/asaskevich/govalidator) [![GoSearch](http://go-search.org/badge?id=github.com%2Fasaskevich%2Fgovalidator)](http://go-search.org/view?id=github.com%2Fasaskevich%2Fgovalidator) [![Backers on Open Collective](https://opencollective.com/govalidator/backers/badge.svg)](#backers) [![Sponsors on Open Collective](https://opencollective.com/govalidator/sponsors/badge.svg)](#sponsors) [![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2Fasaskevich%2Fgovalidator.svg?type=shield)](https://app.fossa.io/projects/git%2Bgithub.com%2Fasaskevich%2Fgovalidator?ref=badge_shield)
@@ -7,24 +7,28 @@ govalidator
 A package of validators and sanitizers for strings, structs and collections. Based on [validator.js](https://github.com/chriso/validator.js).
 
 #### Installation
+
 Make sure that Go is installed on your computer.
 Type the following command in your terminal:
 
-	go get github.com/asaskevich/govalidator
+    go get github.com/asaskevich/govalidator
 
 or you can get specified release of the package with `gopkg.in`:
 
-	go get gopkg.in/asaskevich/govalidator.v10
+    go get gopkg.in/asaskevich/govalidator.v10
 
 After it the package is ready to use.
 
-
 #### Import package in your project
+
 Add following line in your `*.go` file:
+
 ```go
 import "github.com/asaskevich/govalidator"
 ```
+
 If you are unhappy to use long `govalidator`, you can do something like this:
+
 ```go
 import (
   valid "github.com/asaskevich/govalidator"
@@ -32,6 +36,7 @@ import (
 ```
 
 #### Activate behavior to require all fields have a validation tag by default
+
 `SetFieldsRequiredByDefault` causes validation to fail when struct fields do not include validations or are not explicitly marked as exempt (using `valid:"-"` or `valid:"email,optional"`). A good place to activate this is a package init function or the main() function.
 
 `SetNilPtrAllowedByRequired` causes validation to pass when struct fields marked by `required` are set to nil. This is disabled by default for consistency, but some packages that need to be able to determine between `nil` and `zero value` state can use this. If disabled, both `nil` and `zero` values cause validation errors.
@@ -45,6 +50,7 @@ func init() {
 ```
 
 Here's some code to explain it:
+
 ```go
 // this struct definition will fail govalidator.ValidateStruct() (and the field values do not matter):
 type exampleStruct struct {
@@ -66,8 +72,11 @@ type exampleStruct2 struct {
 ```
 
 #### Recent breaking changes (see [#123](https://github.com/asaskevich/govalidator/pull/123))
+
 ##### Custom validator function signature
+
 A context was added as the second parameter, for structs this is the object being validated – this makes dependent validation possible.
+
 ```go
 import "github.com/asaskevich/govalidator"
 
@@ -79,7 +88,9 @@ func(i interface{}, o interface{}) bool
 ```
 
 ##### Adding a custom validator
+
 This was changed to prevent data races when accessing custom validators.
+
 ```go
 import "github.com/asaskevich/govalidator"
 
@@ -95,6 +106,7 @@ govalidator.CustomTypeTagMap.Set("customByteArrayValidator", func(i interface{},
 ```
 
 #### List of functions:
+
 ```go
 func Abs(value float64) float64
 func BlackList(str, chars string) string
@@ -263,11 +275,15 @@ type Validator
 ```
 
 #### Examples
+
 ###### IsURL
+
 ```go
 println(govalidator.IsURL(`http://user@pass:domain.com/path/page`))
 ```
+
 ###### IsType
+
 ```go
 println(govalidator.IsType("Bob", "string"))
 println(govalidator.IsType(1, "int"))
@@ -276,6 +292,7 @@ println(govalidator.IsType(&i, "*int"))
 ```
 
 IsType can be used through the tag `type` which is essential for map validation:
+
 ```go
 type User	struct {
   Name string      `valid:"type(string)"`
@@ -288,7 +305,9 @@ if err != nil {
 }
 println(result)
 ```
+
 ###### ToString
+
 ```go
 type User struct {
 	FirstName string
@@ -298,8 +317,11 @@ type User struct {
 str := govalidator.ToString(&User{"John", "Juan"})
 println(str)
 ```
+
 ###### Each, Map, Filter, Count for slices
+
 Each iterates over the slice/array and calls Iterator for every item
+
 ```go
 data := []interface{}{1, 2, 3, 4, 5}
 var fn govalidator.Iterator = func(value interface{}, index int) {
@@ -307,6 +329,7 @@ var fn govalidator.Iterator = func(value interface{}, index int) {
 }
 govalidator.Each(data, fn)
 ```
+
 ```go
 data := []interface{}{1, 2, 3, 4, 5}
 var fn govalidator.ResultIterator = func(value interface{}, index int) interface{} {
@@ -314,6 +337,7 @@ var fn govalidator.ResultIterator = func(value interface{}, index int) interface
 }
 _ = govalidator.Map(data, fn) // result = []interface{}{1, 6, 9, 12, 15}
 ```
+
 ```go
 data := []interface{}{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
 var fn govalidator.ConditionIterator = func(value interface{}, index int) bool {
@@ -322,16 +346,21 @@ var fn govalidator.ConditionIterator = func(value interface{}, index int) bool {
 _ = govalidator.Filter(data, fn) // result = []interface{}{2, 4, 6, 8, 10}
 _ = govalidator.Count(data, fn) // result = 5
 ```
+
 ###### ValidateStruct [#2](https://github.com/asaskevich/govalidator/pull/2)
+
 If you want to validate structs, you can use tag `valid` for any field in your structure. All validators used with this field in one tag are separated by comma. If you want to skip validation, place `-` in your tag. If you need a validator that is not on the list below, you can add it like this:
+
 ```go
 govalidator.TagMap["duck"] = govalidator.Validator(func(str string) bool {
 	return str == "duck"
 })
 ```
+
 For completely custom validators (interface-based), see below.
 
 Here is a list of available validators for struct fields (validator - used function):
+
 ```go
 "email":              IsEmail,
 "url":                IsURL,
@@ -386,6 +415,7 @@ Here is a list of available validators for struct fields (validator - used funct
 "ISO3166Alpha3":      IsISO3166Alpha3,
 "ulid":               IsULID,
 ```
+
 Validators with parameters
 
 ```go
@@ -399,6 +429,7 @@ Validators with parameters
 "minstringlength(int): MinStringLength,
 "maxstringlength(int): MaxStringLength,
 ```
+
 Validators with parameters for any type
 
 ```go
@@ -406,6 +437,7 @@ Validators with parameters for any type
 ```
 
 And here is small example of usage:
+
 ```go
 type Post struct {
 	Title    string `valid:"alphanum,required"`
@@ -439,10 +471,13 @@ if err != nil {
 }
 println(result)
 ```
+
 ###### ValidateMap [#2](https://github.com/asaskevich/govalidator/pull/338)
+
 If you want to validate maps, you can use the map to be validated and a validation map that contain the same tags used in ValidateStruct, both maps have to be in the form `map[string]interface{}`
 
 So here is small example of usage:
+
 ```go
 var mapTemplate = map[string]interface{}{
 	"name":"required,alpha",
@@ -475,13 +510,16 @@ println(result)
 ```
 
 ###### WhiteList
+
 ```go
 // Remove all characters from string ignoring characters between "a" and "z"
 println(govalidator.WhiteList("a3a43a5a4a3a2a23a4a5a4a3a4", "a-z") == "aaaaaaaaaaaa")
 ```
 
 ###### Custom validation functions
+
 Custom validation using your own domain specific validators is also available - here's an example of how to use it:
+
 ```go
 import "github.com/asaskevich/govalidator"
 
@@ -524,7 +562,9 @@ govalidator.CustomTypeTagMap.Set("customMinLengthValidator", func(i interface{},
 ```
 
 ###### Loop over Error()
+
 By default .Error() returns all errors in a single String. To access each error you can do this:
+
 ```go
   if err != nil {
     errs := err.(govalidator.Errors).Errors()
@@ -535,7 +575,9 @@ By default .Error() returns all errors in a single String. To access each error 
 ```
 
 ###### Custom error messages
+
 Custom error messages are supported via annotations by adding the `~` separator - here's an example of how to use it:
+
 ```go
 type Ticket struct {
   Id        int64     `json:"id"`
@@ -544,13 +586,16 @@ type Ticket struct {
 ```
 
 #### Notes
+
 Documentation is available here: [godoc.org](https://godoc.org/github.com/asaskevich/govalidator).
 Full information about code coverage is also available here: [govalidator on gocover.io](http://gocover.io/github.com/asaskevich/govalidator).
 
 #### Support
+
 If you do have a contribution to the package, feel free to create a Pull Request or an Issue.
 
 #### What to contribute
+
 If you don't know what to do, there are some features and functions that need to be done
 
 - [ ] Refactor code
@@ -569,36 +614,38 @@ If you don't know what to do, there are some features and functions that need to
 - [ ] Look at forks for new features and fixes
 
 #### Advice
+
 Feel free to create what you want, but keep in mind when you implement new features:
+
 - Code must be clear and readable, names of variables/constants clearly describes what they are doing
 - Public functions must be documented and described in source file and added to README.md to the list of available functions
 - There are must be unit-tests for any new functions and improvements
 
 ## Credits
+
 ### Contributors
 
 This project exists thanks to all the people who contribute. [[Contribute](CONTRIBUTING.md)].
 
 #### Special thanks to [contributors](https://github.com/asaskevich/govalidator/graphs/contributors)
-* [Daniel Lohse](https://github.com/annismckenzie)
-* [Attila Oláh](https://github.com/attilaolah)
-* [Daniel Korner](https://github.com/Dadie)
-* [Steven Wilkin](https://github.com/stevenwilkin)
-* [Deiwin Sarjas](https://github.com/deiwin)
-* [Noah Shibley](https://github.com/slugmobile)
-* [Nathan Davies](https://github.com/nathj07)
-* [Matt Sanford](https://github.com/mzsanford)
-* [Simon ccl1115](https://github.com/ccl1115)
+
+- [Daniel Lohse](https://github.com/annismckenzie)
+- [Attila Oláh](https://github.com/attilaolah)
+- [Daniel Korner](https://github.com/Dadie)
+- [Steven Wilkin](https://github.com/stevenwilkin)
+- [Deiwin Sarjas](https://github.com/deiwin)
+- [Noah Shibley](https://github.com/slugmobile)
+- [Nathan Davies](https://github.com/nathj07)
+- [Matt Sanford](https://github.com/mzsanford)
+- [Simon ccl1115](https://github.com/ccl1115)
 
 <a href="https://github.com/asaskevich/govalidator/graphs/contributors"><img src="https://opencollective.com/govalidator/contributors.svg?width=890" /></a>
-
 
 ### Backers
 
 Thank you to all our backers! 🙏 [[Become a backer](https://opencollective.com/govalidator#backer)]
 
 <a href="https://opencollective.com/govalidator#backers" target="_blank"><img src="https://opencollective.com/govalidator/backers.svg?width=890"></a>
-
 
 ### Sponsors
 
@@ -615,8 +662,6 @@ Support this project by becoming a sponsor. Your logo will show up here with a l
 <a href="https://opencollective.com/govalidator/sponsor/8/website" target="_blank"><img src="https://opencollective.com/govalidator/sponsor/8/avatar.svg"></a>
 <a href="https://opencollective.com/govalidator/sponsor/9/website" target="_blank"><img src="https://opencollective.com/govalidator/sponsor/9/avatar.svg"></a>
 
-
-
-
 ## License
+
 [![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2Fasaskevich%2Fgovalidator.svg?type=large)](https://app.fossa.io/projects/git%2Bgithub.com%2Fasaskevich%2Fgovalidator?ref=badge_large)

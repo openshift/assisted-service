@@ -10,6 +10,7 @@ This package exposes a registry of data types to support string formats in the g
 strfmt represents a well known string format such as credit card or email. The go toolkit for OpenAPI specifications knows how to deal with those.
 
 ## Supported data formats
+
 go-openapi/strfmt follows the swagger 2.0 specification with the following formats
 defined [here](https://github.com/OAI/OpenAPI-Specification/blob/master/versions/2.0.md#data-types).
 
@@ -58,9 +59,11 @@ The `conv` subpackage provides helpers to convert the types to and from pointers
 with primitive types.
 
 ## Format types
+
 Types defined in strfmt expose marshaling and validation capabilities.
 
 List of defined types:
+
 - Base64
 - CreditCard
 - Date

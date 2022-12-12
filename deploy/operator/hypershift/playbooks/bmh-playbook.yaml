@@ -30,4 +30,3 @@
     template:
       src: "templates/baremetalHost.j2"
       dest: "generated/baremetalHost.yaml"
-

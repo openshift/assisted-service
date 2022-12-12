@@ -1,2 +1,3 @@
 # Openshift deployment with OAS - On vSphere
+
 work in progress...

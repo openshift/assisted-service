@@ -27,17 +27,17 @@
 
 ## Breaking Changes
 
-- By default, the `DoRetryForStatusCodes` functions will no longer infinitely retry a request when the response returns an HTTP status code of 429 (StatusTooManyRequests).  To opt in to the old behavior set `autorest.Count429AsRetry` to `false`.
+- By default, the `DoRetryForStatusCodes` functions will no longer infinitely retry a request when the response returns an HTTP status code of 429 (StatusTooManyRequests). To opt in to the old behavior set `autorest.Count429AsRetry` to `false`.
 
 ## New Features
 
-- Variable `autorest.Max429Delay` can be used to control the maximum delay between retries when a 429 is received with no `Retry-After` header.  The default is zero which means there is no cap.
+- Variable `autorest.Max429Delay` can be used to control the maximum delay between retries when a 429 is received with no `Retry-After` header. The default is zero which means there is no cap.
 
 ## v13.4.0
 
 ## New Features
 
-- Added field `SendDecorators` to the `Client` type.  This can be used to specify a custom chain of SendDecorators per client.
+- Added field `SendDecorators` to the `Client` type. This can be used to specify a custom chain of SendDecorators per client.
 - Added method `Client.Send()` which includes logic for selecting the preferred chain of SendDecorators.
 
 ## v13.3.3
@@ -107,18 +107,22 @@
 
 The `tracing` package has been rewritten to provide a common interface for consumers to wire in the tracing package of their choice.
 What this means is that by default no tracing provider will be compiled into your program and setting the `AZURE_SDK_TRACING_ENABLED`
-environment variable will have no effect.  To enable this previous behavior you must now add the following import to your source file.
+environment variable will have no effect. To enable this previous behavior you must now add the following import to your source file.
+
 ```go
   import _ "github.com/Azure/go-autorest/tracing/opencensus"
 ```
+
 The APIs required by autorest-generated code have remained but some APIs have been removed and new ones added.
 The following APIs and variables have been removed (the majority of them were moved to the `opencensus` package).
+
 - tracing.Transport
 - tracing.Enable()
 - tracing.EnableWithAIForwarding()
 - tracing.Disable()
 
 The following APIs and types have been added
+
 - tracing.Tracer
 - tracing.Register()
 
@@ -158,7 +162,7 @@ To hook up a tracer simply call `tracing.Register()` passing in a type that sati
 
 - Support for multi-tenant via x-ms-authorization-auxiliary header has been added for client credentials with
   secret scenario; this basically bundles multiple OAuthConfig and ServicePrincipalToken types into corresponding
-  MultiTenant* types along with a new authorizer that adds the primary and auxiliary token headers to the reqest.
+  MultiTenant\* types along with a new authorizer that adds the primary and auxiliary token headers to the reqest.
   The authenticaion helpers have been updated to support this scenario; if environment var AZURE_AUXILIARY_TENANT_IDS
   is set with a semicolon delimited list of tenants the multi-tenant codepath will kick in to create the appropriate authorizer.
   See `adal.NewMultiTenantOAuthConfig`, `adal.NewMultiTenantServicePrincipalToken` and `autorest.NewMultiTenantServicePrincipalTokenAuthorizer`
@@ -191,13 +195,13 @@ To hook up a tracer simply call `tracing.Register()` passing in a type that sati
 
 In preparation for modules the following deprecated content has been removed.
 
-  - async.NewFuture()
-  - async.Future.Done()
-  - async.Future.WaitForCompletion()
-  - async.DoPollForAsynchronous()
-  - The `utils` package
-  - validation.NewErrorWithValidationError()
-  - The `version` package
+- async.NewFuture()
+- async.Future.Done()
+- async.Future.WaitForCompletion()
+- async.DoPollForAsynchronous()
+- The `utils` package
+- validation.NewErrorWithValidationError()
+- The `version` package
 
 ## v11.9.0
 

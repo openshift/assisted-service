@@ -46,19 +46,20 @@ Using [Merkle DAGs](https://en.wikipedia.org/wiki/Merkle_tree), this can power a
 While the [godoc](https://godoc.org/github.com/opencontainers/go-digest) is considered the best resource, a few important items need to be called out when using this package.
 
 1. Make sure to import the hash implementations into your application or the package will panic.
-    You should have something like the following in the main (or other entrypoint) of your application:
-   
-    ```go
-    import (
-        _ "crypto/sha256"
-        _ "crypto/sha512"
-    )
-    ```
-    This may seem inconvenient but it allows you replace the hash 
-    implementations with others, such as https://github.com/stevvooe/resumable.
- 
+   You should have something like the following in the main (or other entrypoint) of your application:
+
+   ```go
+   import (
+       _ "crypto/sha256"
+       _ "crypto/sha512"
+   )
+   ```
+
+   This may seem inconvenient but it allows you replace the hash
+   implementations with others, such as https://github.com/stevvooe/resumable.
+
 2. Even though `digest.Digest` may be assemblable as a string, _always_ verify your input with `digest.Parse` or use `Digest.Validate` when accepting untrusted input.
-    While there are measures to avoid common problems, this will ensure you have valid digests in the rest of your application.
+   While there are measures to avoid common problems, this will ensure you have valid digests in the rest of your application.
 
 3. While alternative encodings of hash values (digests) are possible (for example, base64), this package deals exclusively with hex-encoded digests.
 

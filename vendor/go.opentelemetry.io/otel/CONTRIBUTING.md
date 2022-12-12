@@ -19,11 +19,10 @@ You can view and edit the source code by cloning this repository:
 git clone https://github.com/open-telemetry/opentelemetry-go.git
 ```
 
-Run `make test` to run the tests instead of `go test`. 
+Run `make test` to run the tests instead of `go test`.
 
 There are some generated files checked into the repo. To make sure
-that the generated files are up-to-date, run `make` (or `make
-precommit` - the `precommit` target is the default).
+that the generated files are up-to-date, run `make` (or `make precommit` - the `precommit` target is the default).
 
 The `precommit` target also fixes the formatting of the code and
 checks the status of the go module files.
@@ -56,7 +55,7 @@ can alternatively use `git` directly with:
 $ git clone https://github.com/open-telemetry/opentelemetry-go
 ```
 
-(Note that `git clone` is *not* using the `go.opentelemetry.io/otel` name -
+(Note that `git clone` is _not_ using the `go.opentelemetry.io/otel` name -
 that name is a kind of a redirector to GitHub that `go get` can
 understand, but `git` does not.)
 
@@ -87,33 +86,33 @@ request ID to the entry you added to `CHANGELOG.md`.
 
 ### How to Receive Comments
 
-* If the PR is not ready for review, please put `[WIP]` in the title,
+- If the PR is not ready for review, please put `[WIP]` in the title,
   tag it as `work-in-progress`, or mark it as
   [`draft`](https://github.blog/2019-02-14-introducing-draft-pull-requests/).
-* Make sure CLA is signed and CI is clear.
+- Make sure CLA is signed and CI is clear.
 
 ### How to Get PRs Merged
 
 A PR is considered to be **ready to merge** when:
 
-* It has received two approvals from Collaborators/Maintainers (at
+- It has received two approvals from Collaborators/Maintainers (at
   different companies). This is not enforced through technical means
   and a PR may be **ready to merge** with a single approval if the change
   and its approach have been discussed and consensus reached.
-* Feedback has been addressed.
-* Any substantive changes to your PR will require that you clear any prior
+- Feedback has been addressed.
+- Any substantive changes to your PR will require that you clear any prior
   Approval reviews, this includes changes resulting from other feedback. Unless
   the approver explicitly stated that their approval will persist across
   changes it should be assumed that the PR needs their review again. Other
   project members (e.g. approvers, maintainers) can help with this if there are
   any questions or if you forget to clear reviews.
-* It has been open for review for at least one working day. This gives
+- It has been open for review for at least one working day. This gives
   people reasonable time to review.
-* Trivial changes (typo, cosmetic, doc, etc.) do not have to wait for
+- Trivial changes (typo, cosmetic, doc, etc.) do not have to wait for
   one day and may be merged with a single Maintainer's approval.
-* `CHANGELOG.md` has been updated to reflect what has been
+- `CHANGELOG.md` has been updated to reflect what has been
   added, changed, removed, or fixed.
-* Urgent fix can take exception as long as it has been actively
+- Urgent fix can take exception as long as it has been actively
   communicated.
 
 Any Maintainer can merge the PR once it is **ready to merge**.
@@ -271,7 +270,7 @@ func (o defaultTrueOption) Apply(c *config) {
 func WithoutOption() Option {
     return defaultTrueOption(false)
 }
-````
+```
 
 ##### Declared Type Options
 

@@ -17,4 +17,3 @@ spec:
     name: prometheus-k8s
     weight: 100
   wildcardPolicy: None
-

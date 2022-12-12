@@ -26,7 +26,7 @@ objects:
           - lag:
               usage: "GAUGE"
               description: "Replication lag behind master in seconds"
-      
+
       pg_postmaster:
         query: "SELECT pg_postmaster_start_time as start_time_seconds from pg_postmaster_start_time()"
         master: true
@@ -34,7 +34,7 @@ objects:
           - start_time_seconds:
               usage: "GAUGE"
               description: "Time at which postmaster started"
-      
+
       pg_stat_user_tables:
         query: |
          SELECT
@@ -129,7 +129,7 @@ objects:
           - autoanalyze_count:
               usage: "COUNTER"
               description: "Number of times this table has been analyzed by the autovacuum daemon"
-      
+
       pg_statio_user_tables:
         query: "SELECT current_database() datname, schemaname, relname, heap_blks_read, heap_blks_hit, idx_blks_read, idx_blks_hit, toast_blks_read, toast_blks_hit, tidx_blks_read, tidx_blks_hit FROM pg_statio_user_tables"
         metrics:
@@ -166,7 +166,7 @@ objects:
           - tidx_blks_hit:
               usage: "COUNTER"
               description: "Number of buffer hits in this table's TOAST table indexes (if any)"
-      
+
       pg_database:
         query: "SELECT pg_database.datname, pg_database_size(pg_database.datname) as size_bytes FROM pg_database"
         master: true

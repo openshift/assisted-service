@@ -2,24 +2,24 @@
 
 There are various network types and addresses used by OCP and listed in the table below.
 
-| Type           | DNS                                   | Description                                                                                                                                                    |
-|----------------|---------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| clusterNetwork |                                       | IP address pools from which pod IP addresses are allocated                                                                                                     |
-| serviceNetwork |                                       | IP address pool for services                                                                                                                                   |
-| machineNetwork |                                       | IP address blocks for machines forming the cluster                                                                                                             |
-| apiVIP         | api.<clustername.clusterdomain>       | The VIP to use for API communication. This setting must either be provided or pre-configured in the DNS so that the default name resolves correctly.           |
-| ingressVIP     | test.apps.<clustername.clusterdomain> | The VIP to use for ingress traffic                                                                                                                             |
+| Type           | DNS                                   | Description                                                                                                                                          |
+| -------------- | ------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| clusterNetwork |                                       | IP address pools from which pod IP addresses are allocated                                                                                           |
+| serviceNetwork |                                       | IP address pool for services                                                                                                                         |
+| machineNetwork |                                       | IP address blocks for machines forming the cluster                                                                                                   |
+| apiVIP         | api.<clustername.clusterdomain>       | The VIP to use for API communication. This setting must either be provided or pre-configured in the DNS so that the default name resolves correctly. |
+| ingressVIP     | test.apps.<clustername.clusterdomain> | The VIP to use for ingress traffic                                                                                                                   |
 
 Apart from this, depending on the desired network stack, different network controllers can be selected. Currently Assisted Service can deploy OCP clusters using one of the following configurations
 
-* IPv4
-* IPv6
-* Dual-stack (IPv4 + IPv6)
+- IPv4
+- IPv6
+- Dual-stack (IPv4 + IPv6)
 
 Supported network controllers depend on the selected stack and are summarized in the table below. For a detailed CNI network provider feature comparison you may want to check the [OCP Networking documentation](https://docs.openshift.com/container-platform/4.8/networking/openshift_sdn/about-openshift-sdn.html#nw-ovn-kubernetes-matrix_about-openshift-sdn).
 
 | Stack      | SDN | OVN |
-|------------|-----|-----|
+| ---------- | --- | --- |
 | IPv4       | Yes | Yes |
 | IPv6       | No  | Yes |
 | Dual-stack | No  | Yes |
@@ -28,8 +28,8 @@ Supported network controllers depend on the selected stack and are summarized in
 
 ### SDN
 
-* With single node OpenShift (SNO), the SDN controller is not supported.
-* The SDN controller does not support IPv6.
+- With single node OpenShift (SNO), the SDN controller is not supported.
+- The SDN controller does not support IPv6.
 
 ### OVN-Kubernetes
 
@@ -42,16 +42,16 @@ Cluster network is a network from which every pod deployed in the cluster gets i
 Host prefix specifies a lenght of the subnet assigned to each individual node in the cluster. An example of how a cluster may assign addresses for the multi-node cluster
 
 ```yaml
-  clusterNetwork:
+clusterNetwork:
   - cidr: 10.128.0.0/14
     hostPrefix: 23
 ```
 
 Creating a 3-node cluster using the snippet above may create the following network topology
 
-* pods scheduled in node #1 get IPs from `10.128.0.0/23`
-* pods scheduled in node #2 get IPs from `10.128.2.0/23`
-* pods scheduled in node #3 get IPs from `10.128.4.0/23`
+- pods scheduled in node #1 get IPs from `10.128.0.0/23`
+- pods scheduled in node #2 get IPs from `10.128.2.0/23`
+- pods scheduled in node #3 get IPs from `10.128.4.0/23`
 
 Explaining OVN-K8s internals is out of scope of this document, but the pattern described above gives us an easy way to route pod-to-pod traffic between different nodes without keeping a big list of mapping between pods and their corresponding nodes.
 
@@ -64,14 +64,14 @@ Machine network is a network used by all the hosts forming the cluster to commun
 Depending on whether a Single Node OpenShift or a Multi-Node cluster is deployed, different values are mandatory. The table below explains this in more detail.
 
 | Parameter      | SNO                       | Multi-Node Cluster with [DHCP mode](dhcp-vip-allocation.md) | Multi-Node Cluster without DHCP mode |
-|----------------|---------------------------|-------------------------------------------------------------|--------------------------------------|
+| -------------- | ------------------------- | ----------------------------------------------------------- | ------------------------------------ |
 | clusterNetwork | Required                  | Required                                                    | Required                             |
 | serviceNetwork | Required                  | Required                                                    | Required                             |
-| machineNetwork | Auto-assign possible (*)  | Auto-assign possible (*)                                    | Auto-assign possible (*)             |
+| machineNetwork | Auto-assign possible (\*) | Auto-assign possible (\*)                                   | Auto-assign possible (\*)            |
 | apiVIP         | Forbidden                 | Forbidden                                                   | Required                             |
 | ingressVIP     | Forbidden                 | Forbidden                                                   | Required                             |
 
-(*) Auto assignment of machine network CIDR happens if there is only a single host network. Otherwise it has to be selected explicitly.
+(\*) Auto assignment of machine network CIDR happens if there is only a single host network. Otherwise it has to be selected explicitly.
 
 ## Airgapped environments
 

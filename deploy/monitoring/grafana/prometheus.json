@@ -1,16 +1,16 @@
 {
-    "apiVersion": 1,
-    "datasources": [
-        {
-            "access": "proxy",
-            "basicAuth": false,
-            "withCredentials": false,
-            "editable": false,
-            "name": "assisted-installer-prometheus",
-            "orgId": 1,
-            "type": "prometheus",
-            "url": "http://prometheus-k8s:9090",
-            "version": 1
-        }
-    ]
+  "apiVersion": 1,
+  "datasources": [
+    {
+      "access": "proxy",
+      "basicAuth": false,
+      "withCredentials": false,
+      "editable": false,
+      "name": "assisted-installer-prometheus",
+      "orgId": 1,
+      "type": "prometheus",
+      "url": "http://prometheus-k8s:9090",
+      "version": 1
+    }
+  ]
 }

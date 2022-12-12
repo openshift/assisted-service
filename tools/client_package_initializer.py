@@ -34,7 +34,7 @@ setuptools.setup(
     keywords={keywords},
     install_requires={install_requires},
     packages={packages},
-    include_package_data={include_package_data},    
+    include_package_data={include_package_data},
     python_requires='>=3.6',
     long_description='''
     {long_description}''',
@@ -64,12 +64,15 @@ class SetupInitializer:
         self._setup_path = os.path.join(project_path, self.DEFAULT_SETUP_PATH)
         self._url = url
         self._version = None
-        self._setup_data = {Setup.SETUP_REQUIRES_KEY: ['vcversioner'],
-                            Setup.VCVERSIONER_KEY: {'vcs_args': ['git', 'describe', '--tags', '--long']},
-                            Setup.AUTHOR_KEY: "RedHat",
-                            Setup.AUTHOR_EMAIL_KEY: "UNKNOWN",
-                            Setup.URL_KEY: url
-                            }
+        self._setup_data = {
+            Setup.SETUP_REQUIRES_KEY: ["vcversioner"],
+            Setup.VCVERSIONER_KEY: {
+                "vcs_args": ["git", "describe", "--tags", "--long"]
+            },
+            Setup.AUTHOR_KEY: "RedHat",
+            Setup.AUTHOR_EMAIL_KEY: "UNKNOWN",
+            Setup.URL_KEY: url,
+        }
 
         with open(os.path.join(self._project_path, "MANIFEST.in"), "w") as f:
             f.write(f"include {self.DEFAULT_README_PATH}")
@@ -78,8 +81,10 @@ class SetupInitializer:
         with open(os.path.join(self._project_path, "README.md")) as f:
             readme = f.read()
 
-        self._setup_data[Setup.LONG_DESCRIPTION_KEY] = \
-            readme.replace("git+https://github.com/GIT_USER_ID/GIT_REPO_ID.git", "assisted-service-client")
+        self._setup_data[Setup.LONG_DESCRIPTION_KEY] = readme.replace(
+            "git+https://github.com/GIT_USER_ID/GIT_REPO_ID.git",
+            "assisted-service-client",
+        )
 
     def _load_setup(self) -> None:
         """
@@ -112,7 +117,7 @@ class SetupInitializer:
         return self
 
     @classmethod
-    def _execute(cls, data: str) -> Dict[str, Dict]:
+    def _execute(cls, data: str) -> dict[str, dict]:
         """
         Load dict from string into python dict
         :param data: Python dict as string
@@ -123,7 +128,7 @@ class SetupInitializer:
         return d
 
     def dump(self) -> "SetupInitializer":
-        """ Dump setup.py into file and build the python artifacts - wheel and tar.gz """
+        """Dump setup.py into file and build the python artifacts - wheel and tar.gz"""
         if Setup.VERSION_KEY in self._setup_data:
             self._setup_data.pop(Setup.VERSION_KEY)
 
@@ -139,7 +144,9 @@ class SetupInitializer:
 
         self._setup_data[Setup.SETUP_REQUIRES_KEY] = []
         self._setup_data.pop(Setup.VCVERSIONER_KEY)
-        Setup.FORMAT = Setup.FORMAT.replace("vcversioner={vcversioner},", 'version="{version}",')
+        Setup.FORMAT = Setup.FORMAT.replace(
+            "vcversioner={vcversioner},", 'version="{version}",'
+        )
 
         with open(os.path.join(self._project_path, self.DEFAULT_VERSION_PATH)) as f:
             self._setup_data[Setup.VERSION_KEY] = f.read()
@@ -151,7 +158,7 @@ class SetupInitializer:
         return self
 
     def build(self, distribution: str) -> None:
-        """ Build python library """
+        """Build python library"""
         try:
             cmd = f"python3 {self._setup_path} {distribution} --dist-dir {os.path.join(self._project_path, 'dist/')}"
             out = subprocess.check_output(cmd.split())
@@ -162,9 +169,11 @@ class SetupInitializer:
             print(e.output)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Swagger package builder")
-    parser.add_argument("base_path", help="Generated Python project directory path", type=str)
+    parser.add_argument(
+        "base_path", help="Generated Python project directory path", type=str
+    )
     parser.add_argument("url", help="Project url", type=str)
     args = parser.parse_args()
 

@@ -31,15 +31,15 @@ if handleCounter, ok := process.(types.OpenHandleCounter); ok {
 These tables show what methods are implemented as well as the extra interfaces
 that are implemented.
 
-| `Host` Features  | Darwin | Linux | Windows |
-|------------------|--------|-------|---------|
-| `Info()`         | x      | x     | x       |
-| `Memory()`       | x      | x     | x       |
-| `CPUTimer`       | x      | x     | x       |
-| `VMStat`         |        | x     |         |
+| `Host` Features | Darwin | Linux | Windows |
+| --------------- | ------ | ----- | ------- |
+| `Info()`        | x      | x     | x       |
+| `Memory()`      | x      | x     | x       |
+| `CPUTimer`      | x      | x     | x       |
+| `VMStat`        |        | x     |         |
 
 | `Process` Features     | Darwin | Linux | Windows |
-|------------------------|--------|-------|---------|
+| ---------------------- | ------ | ----- | ------- |
 | `Info()`               | x      | x     | x       |
 | `Memory()`             | x      | x     | x       |
 | `User()`               | x      | x     | x       |
@@ -50,5 +50,3 @@ that are implemented.
 | `OpenHandleCounter`    |        | x     |         |
 | `Seccomp`              |        | x     |         |
 | `Capabilities`         |        | x     |         |
-
-

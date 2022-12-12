@@ -167,7 +167,7 @@ func init() {
 					}
 				]
 			},
-			"format": { 
+			"format": {
 				"type": "string",
 				"format": "format"
 			},

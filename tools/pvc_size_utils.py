@@ -1,66 +1,65 @@
-import subprocess
-import utils
 import shlex
+import subprocess
+
+import utils
 
 
-class BytesSuffix(object):
+class BytesSuffix:
     suffix_length = 0
-    suffix_to_bytes = {'': 2 ** 0}
+    suffix_to_bytes = {"": 2**0}
 
     @classmethod
     def has_suffix(cls, s):
         if cls.suffix_length > len(s):
             return False
 
-        return bool(cls.suffix_to_bytes.get(s[-cls.suffix_length:]))
+        return bool(cls.suffix_to_bytes.get(s[-cls.suffix_length :]))
 
     @classmethod
     def to_bytes(cls, s):
         amount = cls.get_amount(s)
         if amount is None:
-            raise ValueError(
-                f'failed to convert size to bytes: {s}'
-            )
+            raise ValueError(f"failed to convert size to bytes: {s}")
 
         b = cls.suffix_to_bytes[cls.get_suffix(s)]
         return amount * b
 
     @classmethod
     def get_suffix(cls, s):
-        return s[-cls.suffix_length:]
+        return s[-cls.suffix_length :]
 
     @classmethod
     def get_amount(cls, s):
-        if not s[:-cls.suffix_length].isdigit():
+        if not s[: -cls.suffix_length].isdigit():
             return
 
-        return int(s[:-cls.suffix_length])
+        return int(s[: -cls.suffix_length])
 
 
 class BinBytesSuffix(BytesSuffix):
     suffix_length = 2
     suffix_to_bytes = {
-        'Ki': 2 ** 10,
-        'Mi': 2 ** 20,
-        'Gi': 2 ** 30,
-        'Ti': 2 ** 40,
-        'Pi': 2 ** 50,
-        'Ei': 2 ** 60,
+        "Ki": 2**10,
+        "Mi": 2**20,
+        "Gi": 2**30,
+        "Ti": 2**40,
+        "Pi": 2**50,
+        "Ei": 2**60,
     }
 
 
 class DecBytesSuffix(BytesSuffix):
     suffix_length = 1
     suffix_to_bytes = {
-        'n': 10 ** -9,
-        'u': 10 ** -6,
-        'm': 10 ** -3,
-        'k': 10 ** 3,
-        'M': 10 ** 6,
-        'G': 10 ** 9,
-        'T': 10 ** 12,
-        'P': 10 ** 15,
-        'E': 10 ** 18
+        "n": 10**-9,
+        "u": 10**-6,
+        "m": 10**-3,
+        "k": 10**3,
+        "M": 10**6,
+        "G": 10**9,
+        "T": 10**12,
+        "P": 10**15,
+        "E": 10**18,
     }
 
 
@@ -74,16 +73,14 @@ def update_size_in_yaml_docs(target, ns, name, docs):
 def extract_requested_size_from_yaml_docs(name, docs):
     for d in docs:
         try:
-            if name != d['metadata']['name'] or d['kind'] != 'PersistentVolumeClaim':
+            if name != d["metadata"]["name"] or d["kind"] != "PersistentVolumeClaim":
                 continue
         except KeyError:
             continue
 
-        return d['spec']['resources']['requests']['storage']
+        return d["spec"]["resources"]["requests"]["storage"]
 
-    raise ValueError(
-        f'pvc: {name} was not found in yaml docs: {docs}'
-    )
+    raise ValueError(f"pvc: {name} was not found in yaml docs: {docs}")
 
 
 def get_current_size_if_exist(target, namespace, pvc_name):
@@ -115,9 +112,7 @@ def get_current_size_if_exist(target, namespace, pvc_name):
             f"failed to get size of pvc {pvc_name} exit {exit_code}: {stderr}"
         )
     elif stdout == "":
-        raise RuntimeError(
-            f"failed to get {jsonpath} of pvc {pvc_name}: empty output"
-        )
+        raise RuntimeError(f"failed to get {jsonpath} of pvc {pvc_name}: empty output")
 
     return stdout.strip('"')
 
@@ -143,10 +138,10 @@ def size_to_bytes(s):
 def set_size_in_yaml_docs(name, size, docs):
     for d in docs:
         try:
-            if name != d['metadata']['name'] or d['kind'] != 'PersistentVolumeClaim':
+            if name != d["metadata"]["name"] or d["kind"] != "PersistentVolumeClaim":
                 continue
         except KeyError:
             continue
 
-        d['spec']['resources']['requests']['storage'] = size
+        d["spec"]["resources"]["requests"]["storage"] = size
         return

@@ -1,12 +1,15 @@
 # Hypershift zero worker deployment
 
 ## Prerequisites
-1. Deploy hub cluster. For development setup you can use [dev-scripts]((https://github.com/javipolo/openshift-assisted-installer-tests/tree/4515edfc9d60a587cabd3bcfdd77826cab8cc02d/ai-in-zero-worker-hypershift#deploy-an-l0-hub-cluster-using-dev-scripts))
-2. Hive [installation](https://github.com/javipolo/openshift-assisted-installer-tests/tree/4515edfc9d60a587cabd3bcfdd77826cab8cc02d/ai-in-zero-worker-hypershift#install-hypershift) 
+
+1. Deploy hub cluster. For development setup you can use [dev-scripts](<(https://github.com/javipolo/openshift-assisted-installer-tests/tree/4515edfc9d60a587cabd3bcfdd77826cab8cc02d/ai-in-zero-worker-hypershift#deploy-an-l0-hub-cluster-using-dev-scripts)>)
+2. Hive [installation](https://github.com/javipolo/openshift-assisted-installer-tests/tree/4515edfc9d60a587cabd3bcfdd77826cab8cc02d/ai-in-zero-worker-hypershift#install-hypershift)
 3. Create [hypershift cluster](https://github.com/javipolo/openshift-assisted-installer-tests/tree/4515edfc9d60a587cabd3bcfdd77826cab8cc02d/ai-in-zero-worker-hypershift#create-hypershift-cluster)
 
 ## Deploying Hyperhisft on the hub cluster
+
 ### Set up our environment
+
 ```bash
 AGENT_NAMESPACE=myclusters
 CLUSTERNAME=acm-1
@@ -16,6 +19,7 @@ SSHKEY=~/.ssh/id_rsa.pub
 ```
 
 ### Deploy Hypershift
+
 ```bash
 export HYPERSHIFT_IMAGE=quay.io/hypershift/hypershift-operator:4.11
 
@@ -24,8 +28,11 @@ alias hypershift="podman run --net host --rm --entrypoint /usr/bin/hypershift -e
 hypershift install --hypershift-image $HYPERSHIFT_IMAGE
 oc -n hypershift get pods -w
 ```
+
 Also refer to the official documentation of the hypershift project at https://hypershift-docs.netlify.app/how-to/agent/create-agent-cluster/.
+
 ### Deploy Hyperhisft cluster
+
 ```bash
 # Create namespace
 oc create namespace $AGENT_NAMESPACE
@@ -37,7 +44,7 @@ hypershift create cluster agent --name $CLUSTER_NAMESPACE --base-domain $BASEDOM
 oc get po -n $CLUSTER_NAMESPACE -w
 oc get hostedclusters -A -w
 
-# Generate kubeconfig for the generated spoke (hypershift) cluster 
+# Generate kubeconfig for the generated spoke (hypershift) cluster
 hypershift create kubeconfig --name $CLUSTER_NAMESPACE --namespace $AGENT_NAMESPACE | sed s/admin/$CLUSTER_NAMESPACE/g > /tmp/kubeconfig.$CLUSTER_NAMESPACE
 
 # save the generated kubeconfig in a secret on the hub cluster
@@ -45,6 +52,7 @@ oc -n $CLUSTER_NAMESPACE create secret generic $CLUSTER_NAMESPACE-kubeconfig --f
 ```
 
 ## Install CRDS
+
 ```bash
 # install hive CRDs on the hub cluster
 oc apply -f hive.openshift.io_clusterdeployments.yaml
@@ -58,9 +66,12 @@ oc --kubeconfig /tmp/kubeconfig.$CLUSTER_NAMESPACE apply -f metal3.io_baremetalh
 ```
 
 ## Infrastructure Operator
+
 ### Install the operator on the hub cluster
-OLM is available by default on OCP installations. However, for development environment please refer to 
+
+OLM is available by default on OCP installations. However, for development environment please refer to
 [OLM's official installation guide](https://github.com/operator-framework/operator-lifecycle-manager/blob/master/doc/install/install.md#openshift) or use the following installation shell script:
+
 ```bash
 # download the installation script (change versions as they progress)
 https://github.com/operator-framework/operator-lifecycle-manager/releases/download/v0.22.0/install.sh -o install.sh
@@ -75,6 +86,7 @@ operator-sdk run bundle -n assisted-installer $BUNDLE_IMAGE
 ```
 
 ### Define HypershiftAgentServiceConfig
+
 ```bash
 cat <<EOF | kubectl create -f -
 apiVersion: agent-install.openshift.io/v1beta1
@@ -110,11 +122,13 @@ spec:
       version: 411.86.202207150124-0
 EOF
 ```
+
 Note that the secret this CR refers to was generated early on in the `deploy hyperhisft` step. In production environment this secret will be deployed by ACM. For more details on the other parameters please refer to the [Infrastructure operator documentation](https://github.com/openshift/assisted-service/blob/master/docs/operator.md).
 
-
 # Sanity test
+
 ## Create an infraenv on the spoke cluster
+
 ```bash
 oc create --kubeconfig /tmp/kubeconfig.$CLUSTER_NAMESPACE ns test
 
