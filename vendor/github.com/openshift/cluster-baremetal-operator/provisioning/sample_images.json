@@ -1,0 +1,10 @@
+{
+  "clusterBaremetalOperator": "registry.ci.openshift.org/openshift:cluster-baremetal-operator",
+  "baremetalOperator": "registry.ci.openshift.org/openshift:baremetal-operator",
+  "baremetalIronic": "registry.ci.openshift.org/openshift:ironic",
+  "baremetalMachineOsDownloader": "registry.ci.openshift.org/openshift:ironic-machine-os-downloader",
+  "baremetalStaticIpManager": "registry.ci.openshift.org/openshift:ironic-static-ip-manager",
+  "baremetalIronicAgent": "registry.ci.openshift.org/openshift:ironic-agent",
+  "imageCustomizationController": "registry.ci.openshift.org/openshift:machine-image-customization-controller",
+  "machineOSImages": "registry.ci.openshift.org/openshift:machine-os-images"
+}
