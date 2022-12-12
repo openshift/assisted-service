@@ -136,7 +136,7 @@ const agentFixBZ1964591 = `#!/usr/bin/sh
 # In such a scenario agent.service will detect the image is not present and pull it again. In case
 # the image is present and can be detected correctly, no any action is required.
 
-IMAGE=$(echo $1 | sed 's/:.*//')
+IMAGE=$(echo $1 | sed 's/[@:].*//')
 podman images | grep $IMAGE || podman rmi --force $1 || true
 `
 
