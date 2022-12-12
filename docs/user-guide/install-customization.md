@@ -9,7 +9,7 @@ These will only take effect after the machine config operator is up and running 
 ### Create a cluster manifest
 
 ```sh
-# base64 encoding of the example from https://docs.openshift.com/container-platform/4.6/installing/install_config/installing-customizing.html 
+# base64 encoding of the example from https://docs.openshift.com/container-platform/4.6/installing/install_config/installing-customizing.html
 content=YXBpVmVyc2lvbjogbWFjaGluZWNvbmZpZ3VyYXRpb24ub3BlbnNoaWZ0LmlvL3YxCmtpbmQ6IE1hY2hpbmVDb25maWcKbWV0YWRhdGE6CiAgbGFiZWxzOgogICAgbWFjaGluZWNvbmZpZ3VyYXRpb24ub3BlbnNoaWZ0LmlvL3JvbGU6IG1hc3RlcgogIG5hbWU6IDk5LW9wZW5zaGlmdC1tYWNoaW5lY29uZmlnLW1hc3Rlci1rYXJncwpzcGVjOgogIGtlcm5lbEFyZ3VtZW50czoKICAgIC0gJ2xvZ2xldmVsPTcnCg==
 file=99-openshift-machineconfig-master-kargs.yaml
 folder=openshift
@@ -68,6 +68,7 @@ Note, some of this content will be pinned to particular values by the assisted-i
 
 You can compose the install-config overrides by creating a json string with the options you wish to set.
 An example install config with disabled hyperthreading for the control plane:
+
 ```yaml
 apiVersion: extensions.hive.openshift.io/v1beta1
 baseDomain: example.com
@@ -75,15 +76,17 @@ controlPlane:
   name: master
   hyperthreading: Disabled
 compute:
-- name: worker
-  replicas: 5
+  - name: worker
+    replicas: 5
 metadata:
   name: test-cluster
 platform: ...
 pullSecret: '{"auths": ...}'
 sshKey: ssh-ed25519 AAAA...
 ```
+
 should look like this:
+
 ```sh
 "{\"controlPlane\":{\"hyperthreading\":\"Disabled\"}}"
 ```
@@ -105,6 +108,42 @@ curl \
 curl --header "Authorization: Bearer $TOKEN" "http://$ASSISTED_SERVICE_IP:$ASSISTED_SERVICE_PORT/api/assisted-install/v2/clusters/$CLUSTER_ID/install-config"
 ```
 
+### Exclude one or more optional components (capabilities)
+
+Since [OpenShift 4.12](https://github.com/openshift/enhancements/blob/master/enhancements/installer/component-selection.md#resource-management), it is possible to customize the install config to disable some components.
+
+The features (`baremetal-operator`, `marketplace`, `Console`, `Insights`, `Storage`, `CSISnapshot` and `openshift-samples-content`) can be disabled by setting the `baselineCapabilitySet` and `addittionalEnabledCapabilities` parameters in the `install-config.yaml`.
+
+To perform the customization, spec for capabilities must be adjusted, for example:
+
+```yaml
+capabilities:
+  baselineCapabilitySet: None
+  additionalEnabledCapabilities:
+    - openshift-samples
+```
+
+The `CVO`, will then calculate the effective status, that means, based on the [axioms](https://github.com/openshift/enhancements/blob/master/enhancements/installer/component-selection.md#axioms), CVO will allow to have them disabled at install time or still install them based on requirements, etc. Note that axioms will help in day-2 behaviors, for an installation, it will install the components not excluded or the required ones for dependencies.
+
+#### Patching the install config
+
+As with the parent example, install config can be patched with:
+
+```sh
+curl \
+    --header "Content-Type: application/json" \
+    --header "Authorization: Bearer $TOKEN" \
+    --request PATCH \
+    --data '"{\"capabilities\": {\"baselineCapabilitySet\": \"None\", \"additionalEnabledCapabilities\": [\"openshift-samples\"]}"' \
+"http://$ASSISTED_SERVICE_IP:$ASSISTED_SERVICE_PORT/api/assisted-install/v2/clusters/$CLUSTER_ID/install-config"
+```
+
+and the configuration verified via:
+
+```sh
+curl --header "Authorization: Bearer $TOKEN" "http://$ASSISTED_SERVICE_IP:$ASSISTED_SERVICE_PORT/api/assisted-install/v2/clusters/$CLUSTER_ID/install-config"
+```
+
 ## Pointer Ignition
 
 The pointer ignition is used to customize the particular host when it reboots into the installed system.
@@ -115,7 +154,7 @@ The pointer ignition override version must match the version of the ignition gen
 This means that the version required for the override will change depending on the cluster version being installed.
 
 | OCP Version(s)      | Ignition version |
-|---------------------|------------------|
+| ------------------- | ---------------- |
 | 4.6                 | 3.1.0            |
 | 4.7, 4.8, 4.9, 4.10 | 3.2.0            |
 
@@ -180,15 +219,17 @@ curl \
     --data "$( jq -n --arg BUNDLE "$(cat ca.pem)" '{ "additional_trust_bundle": $BUNDLE }' )" \
     "http://$ASSISTED_SERVICE_IP:$ASSISTED_SERVICE_PORT/api/assisted-install/v2/infra-envs/$INFRA_ENV_ID"
 ```
+
 ## Modifying Kernel Arguments for the Live ISO
 
-Update the InfraEnv resource to modify the kernel arguments used in the live ISO (during the host discovery phase) .  Currently, only the **append** (additional argument) operation is supported.
+Update the InfraEnv resource to modify the kernel arguments used in the live ISO (during the host discovery phase) . Currently, only the **append** (additional argument) operation is supported.
 
 ### REST API
 
 #### During InfraEnv Registeration
 
 Note: additional parameters that are needed for InfraEnv creation are omitted from this example.
+
 ```bash
 curl -X 'POST' \
   'http://api.openshift.com/api/assisted-install/v2/infra-envs' \
@@ -228,8 +269,10 @@ curl -X 'PATCH' \
         ]
     }'
 ```
-When updating kernel arguments using this API call, all the kernel arguments are replaced.  So the way to clear the
+
+When updating kernel arguments using this API call, all the kernel arguments are replaced. So the way to clear the
 kernel arguments is just to provide empty list:
+
 ```bash
 curl -X 'PATCH' \
     'http://api.openshift.com/api/assisted-install/v2/infra-envs/3fa85f64-5717-4562-b3fc-2c963f66afa6' \
