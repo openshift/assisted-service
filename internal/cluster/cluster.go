@@ -410,16 +410,38 @@ func (m *Manager) tryAssignMachineCidrDHCPMode(cluster *common.Cluster) error {
 }
 
 func (m *Manager) tryAssignMachineCidrNonDHCPMode(cluster *common.Cluster) error {
-	machineCidr, err := network.CalculateMachineNetworkCIDR(
-		cluster.APIVip, cluster.IngressVip, cluster.Hosts, false)
-
+	primaryMachineCidr, err := network.CalculateMachineNetworkCIDR(
+		network.GetApiVipById(cluster, 0), network.GetIngressVipById(cluster, 0), cluster.Hosts, false)
 	if err != nil {
 		return err
-	} else if network.IsMachineCidrAvailable(cluster) && machineCidr == network.GetMachineCidrById(cluster, 0) {
+	} else if primaryMachineCidr == "" && network.CheckIfClusterIsDualStack(cluster) {
+		// This function is running inside the monitoring loop, therefore it only relates to
+		// cases when we autocalculate Machine Networks. In case we run it against a cluster with
+		// no hosts, it will remove currently configured entries (provided e.g. in the creation
+		// payload). In order to prevent this, for a cluster with no hosts we return without any
+		// modifications.
 		return nil
 	}
 
-	return UpdateMachineCidr(m.db, cluster, []string{machineCidr})
+	secondaryMachineCidr, err := network.CalculateMachineNetworkCIDR(
+		network.GetApiVipById(cluster, 1), network.GetIngressVipById(cluster, 1), cluster.Hosts, false)
+	if err != nil {
+		return err
+	}
+
+	// The condition below is preventing a scenario where a cluster has 2 Machine Networks
+	// configured manually, but we can only autocalculate the first one. We need to prevent the
+	// case where we would transparently remove the second network. Therefore we will skip if the
+	// following happens
+	//   * autocalculated 1st machine network is the same as currently configured, and
+	//   * autocalculated 2nd machine network is empty or the same as currently configured
+	if primaryMachineCidr == network.GetMachineCidrById(cluster, 0) &&
+		(secondaryMachineCidr == "" || secondaryMachineCidr == network.GetMachineCidrById(cluster, 1)) {
+
+		return nil
+	}
+
+	return UpdateMachineCidr(m.db, cluster, []string{primaryMachineCidr, secondaryMachineCidr})
 }
 
 func (m *Manager) tryAssignMachineCidrSNO(cluster *common.Cluster) error {
