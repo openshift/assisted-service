@@ -358,8 +358,8 @@ func (m *Manager) updateInventory(ctx context.Context, cluster *common.Cluster, 
 	// Only record metrics if it's new/changed inventory and the host is associated with a cluster
 	if existingHostInventory == nil || (existingHostInventory != nil && len(physicalInterfaces) != len(existingHostInventory.Interfaces)) {
 		if h.ClusterID != nil {
-			m.eventsHandler.AddMetricsEvent(ctx, *h.ClusterID, h.ID, models.EventSeverityInfo, "nic.virtual_interfaces", time.Now(), "count", len(virtualInterfaces), "types", virtualInterfaces)
-			m.eventsHandler.AddMetricsEvent(ctx, *h.ClusterID, h.ID, models.EventSeverityInfo, "nic.physical_interfaces", time.Now(), "count", len(physicalInterfaces))
+			m.eventsHandler.V2AddMetricsEvent(ctx, h.ClusterID, h.ID, nil, "", models.EventSeverityInfo, "nic.virtual_interfaces", time.Now(), "count", len(virtualInterfaces), "types", virtualInterfaces)
+			m.eventsHandler.V2AddMetricsEvent(ctx, h.ClusterID, h.ID, nil, "", models.EventSeverityInfo, "nic.physical_interfaces", time.Now(), "count", len(physicalInterfaces))
 		}
 	}
 
