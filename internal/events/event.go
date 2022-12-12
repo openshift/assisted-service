@@ -9,6 +9,7 @@ import (
 
 	"github.com/go-openapi/strfmt"
 	"github.com/openshift/assisted-service/internal/common"
+	commonevents "github.com/openshift/assisted-service/internal/common/events"
 	eventsapi "github.com/openshift/assisted-service/internal/events/api"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/auth"
@@ -83,7 +84,103 @@ func (e *Events) v2SaveEvent(ctx context.Context, clusterID *strfmt.UUID, hostID
 			tx.Commit()
 		}
 	}()
+
+	// Check and if the event exceeds the limits:
+	limitExceeded, limitReason, dberr := e.exceedsLimits(ctx, tx, &event)
+	if dberr != nil {
+		return
+	}
+	if limitExceeded {
+		e.reportDiscarded(ctx, &event, limitReason)
+		return
+	}
+
+	// Create the new event:
 	dberr = tx.Create(&event).Error
+}
+
+// exceedsLimit checks if there are already events that are too close to the given one. It returns
+// a boolean flag with the result and a set of log fields that explain why the limit was exceeded.
+func (e *Events) exceedsLimits(ctx context.Context, tx *gorm.DB, event *common.Event) (result bool,
+	reason logrus.Fields, err error) {
+	// Do nothing if there is no configured limit:
+	limit, ok := eventLimits[event.Name]
+	if !ok {
+		return
+	}
+
+	// Prepare the query to find the events whose distance to this one is less than the limit:
+	query := tx.Table("events").
+		Select("count(*)").
+		Where("name = ?", event.Name).
+		Where("event_time > ?", time.Now().Add(-limit))
+	if event.ClusterID != nil {
+		query = query.Where("cluster_id = ?", event.ClusterID.String())
+	}
+	if event.HostID != nil {
+		query = query.Where("host_id = ?", event.HostID.String())
+	}
+	if event.InfraEnvID != nil {
+		query = query.Where("infra_env_id = ?", event.InfraEnvID.String())
+	}
+
+	// Run the query:
+	var count int
+	err = query.Scan(&count).Error
+	if err != nil {
+		return
+	}
+	if count > 0 {
+		result = true
+		reason = logrus.Fields{
+			"limit": limit,
+			"count": count,
+		}
+	}
+	return
+}
+
+// reportDiscarded writes to the log a message indicating that the given event has been discarded.
+// The log message will include the details of the event and the reason.
+func (e *Events) reportDiscarded(ctx context.Context, event *common.Event,
+	reason logrus.Fields) {
+	log := logutil.FromContext(ctx, e.log)
+	fields := logrus.Fields{
+		"name":       event.Name,
+		"category":   event.Category,
+		"request_id": event.RequestID.String(),
+		"props":      event.Props,
+	}
+	if event.EventTime != nil {
+		fields["time"] = event.EventTime.String()
+	}
+	if event.ClusterID != nil {
+		fields["cluster_id"] = event.ClusterID.String()
+	}
+	if event.HostID != nil {
+		fields["host_id"] = event.HostID.String()
+	}
+	if event.InfraEnvID != nil {
+		fields["infra_env_id"] = event.InfraEnvID.String()
+	}
+	if event.Severity != nil {
+		fields["severity"] = *event.Severity
+	}
+	if event.Message != nil {
+		fields["message"] = *event.Message
+	}
+	for name, value := range reason {
+		fields[name] = value
+	}
+	log.WithFields(fields).Warn("Event will be discarded")
+}
+
+// eventLimits contains the minimum distance in time between events. The key of the map is the
+// event name and the value is the distance.
+var eventLimits = map[string]time.Duration{
+	commonevents.UpgradeAgentFailedEventName:   time.Hour,
+	commonevents.UpgradeAgentFinishedEventName: time.Hour,
+	commonevents.UpgradeAgentStartedEventName:  time.Hour,
 }
 
 func (e *Events) SendClusterEvent(ctx context.Context, event eventsapi.ClusterEvent) {
