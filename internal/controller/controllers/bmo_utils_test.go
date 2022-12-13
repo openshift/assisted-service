@@ -92,9 +92,10 @@ var _ = Describe("BMOUtils", func() {
 				},
 			}
 			Expect(c.Create(context.Background(), provisioningInfo)).To(BeNil())
-			url, err := bmoUtils.GetIronicServiceURL()
+			serviceURL, inspectorURL, err := bmoUtils.GetIronicServiceURLS()
 			Expect(err).Should(BeNil())
-			Expect(url).Should(Equal("https://" + ironicIP))
+			Expect(serviceURL).Should(Equal("https://" + ironicIP))
+			Expect(inspectorURL).Should(Equal("https://" + ironicIP))
 		})
 	})
 })

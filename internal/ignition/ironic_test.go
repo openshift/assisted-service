@@ -15,12 +15,11 @@ var _ = Describe("GenerateIronicConfig", func() {
 	var (
 		infraEnv      common.InfraEnv
 		infraEnvID    strfmt.UUID
-		ironicBaseURL string
+		ironicBaseURL = "https://10.10.10.10"
+		inspectorURL  = "https://10.10.10.11"
 	)
 	BeforeEach(func() {
 		infraEnvID = "a64fff36-dcb1-11ea-87d0-0242ac130003"
-		ironicBaseURL = "https://10.10.10.10"
-
 		infraEnv = common.InfraEnv{
 			InfraEnv: models.InfraEnv{
 				ID:            &infraEnvID,
@@ -31,7 +30,7 @@ var _ = Describe("GenerateIronicConfig", func() {
 	})
 	It("GenerateIronicConfig override default ironic agent image", func() {
 		ironicAgentImage := "ironicAgentImage:custom"
-		conf, err := GenerateIronicConfig(ironicBaseURL, infraEnv, ironicAgentImage)
+		conf, err := GenerateIronicConfig(ironicBaseURL, inspectorURL, infraEnv, ironicAgentImage)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(conf).Should(ContainSubstring("ironic-agent.service"))
 		Expect(conf).Should(ContainSubstring(url.QueryEscape(ironicBaseURL)))
@@ -39,11 +38,11 @@ var _ = Describe("GenerateIronicConfig", func() {
 		validateIgnition(conf)
 	})
 	It("GenerateIronicConfig missing ironic service URL", func() {
-		_, err := GenerateIronicConfig("", infraEnv, "")
+		_, err := GenerateIronicConfig("", "", infraEnv, "")
 		Expect(err).To(HaveOccurred())
 	})
 	It("GenerateIronicConfig missing ironic agent image", func() {
-		_, err := GenerateIronicConfig(ironicBaseURL, infraEnv, "")
+		_, err := GenerateIronicConfig(ironicBaseURL, inspectorURL, infraEnv, "")
 		Expect(err).To(HaveOccurred())
 	})
 })

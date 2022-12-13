@@ -597,19 +597,20 @@ func main() {
 			}).SetupWithManager(ctrlMgr), "unable to create controller AgentLabel")
 
 			if useConvergedFlow {
-				ironicBaseURL, err := bmoUtils.GetIronicServiceURL()
+				ironicBaseURL, inspectorURL, err := bmoUtils.GetIronicServiceURLS()
 				if err != nil {
 					log.WithError(err).Fatal("failed to get IronicServiceURL")
 				}
 				failOnError((&controllers.PreprovisioningImageReconciler{
-					Client:           ctrlMgr.GetClient(),
-					Log:              log,
-					Installer:        bm,
-					CRDEventsHandler: crdEventsHandler,
-					VersionsHandler:  versionHandler,
-					OcRelease:        releaseHandler,
-					IronicServiceURL: ironicBaseURL,
-					Config:           Options.PreprovisioningImageControllerConfig,
+					Client:             ctrlMgr.GetClient(),
+					Log:                log,
+					Installer:          bm,
+					CRDEventsHandler:   crdEventsHandler,
+					VersionsHandler:    versionHandler,
+					OcRelease:          releaseHandler,
+					IronicServiceURL:   ironicBaseURL,
+					IronicInspectorURL: inspectorURL,
+					Config:             Options.PreprovisioningImageControllerConfig,
 				}).SetupWithManager(ctrlMgr), "failed to create PreprovisioningImage ceontroller")
 			}
 			log.Infof("Starting controllers")
