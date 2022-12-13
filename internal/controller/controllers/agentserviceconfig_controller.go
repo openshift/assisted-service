@@ -107,7 +107,6 @@ var (
 )
 
 type AgentServiceConfigReconcileContext struct {
-	client.Client
 	Log    logrus.FieldLogger
 	Scheme *runtime.Scheme
 
@@ -120,6 +119,8 @@ type AgentServiceConfigReconcileContext struct {
 
 // AgentServiceConfigReconciler reconciles a AgentServiceConfig object
 type AgentServiceConfigReconciler struct {
+	client.Client
+
 	AgentServiceConfigReconcileContext
 
 	// Namespace the operator is running in
@@ -139,6 +140,11 @@ type ASC struct {
 	/* reference to the reconciler state */
 	rec *AgentServiceConfigReconcileContext
 
+	/* The client for cluster API, which is used for either hub or spoke cluster client.
+	   I.e. it should be set according to the required cluster communication (hub/spoke).
+	*/
+	Client client.Client
+
 	/* the instance itself */
 	Object client.Object
 
@@ -152,12 +158,15 @@ type ASC struct {
 	properties map[string]interface{}
 }
 
-func (asc *ASC) init(r *AgentServiceConfigReconciler, instance *aiv1beta1.AgentServiceConfig) {
+func initASC(r *AgentServiceConfigReconciler, instance *aiv1beta1.AgentServiceConfig) ASC {
+	var asc ASC
 	asc.namespace = r.Namespace
 	asc.rec = &r.AgentServiceConfigReconcileContext
+	asc.Client = r.Client
 	asc.Object = instance
 	asc.spec = &instance.Spec
 	asc.conditions = &instance.Status.Conditions
+	return asc
 }
 
 type NewComponentFn func(context.Context, logrus.FieldLogger, ASC) (client.Object, controllerutil.MutateFn, error)
@@ -202,7 +211,7 @@ func (r *AgentServiceConfigReconciler) Reconcile(origCtx context.Context, req ct
 	log.Info("AgentServiceConfig Reconcile started")
 
 	instance := &aiv1beta1.AgentServiceConfig{}
-	asc.init(r, instance)
+	asc = initASC(r, instance)
 
 	// NOTE: ignoring the Namespace that seems to get set on request when syncing on namespaced objects
 	// when our AgentServiceConfig is ClusterScoped.
@@ -291,7 +300,7 @@ func updateConditions(ctx context.Context, log *logrus.Entry, asc ASC) error {
 			Reason:  aiv1beta1.ReasonDeploymentFailure,
 			Message: err.Error(),
 		})
-		if updateErr := asc.rec.Status().Update(ctx, asc.Object); updateErr != nil {
+		if updateErr := asc.Client.Status().Update(ctx, asc.Object); updateErr != nil {
 			log.WithError(updateErr).Error("Failed to update status")
 			return updateErr
 		}
@@ -305,7 +314,7 @@ func updateConditions(ctx context.Context, log *logrus.Entry, asc ASC) error {
 		Message: "All the deployments managed by Infrastructure-operator are healthy.",
 	})
 
-	if statusErr := asc.rec.Status().Update(ctx, asc.Object); statusErr != nil {
+	if statusErr := asc.Client.Status().Update(ctx, asc.Object); statusErr != nil {
 		log.WithError(statusErr).Error("Failed to update status")
 		return statusErr
 	}
@@ -367,14 +376,14 @@ func reconcileComponent(ctx context.Context, log *logrus.Entry, asc ASC, compone
 			Reason:  component.reason,
 			Message: msg,
 		})
-		if statusErr := asc.rec.Status().Update(ctx, asc.Object); statusErr != nil {
+		if statusErr := asc.Client.Status().Update(ctx, asc.Object); statusErr != nil {
 			log.WithError(err).Error("Failed to update status")
 			return ctrl.Result{Requeue: true}, statusErr
 		}
 		return ctrl.Result{Requeue: true}, err
 	}
 
-	if result, err := controllerutil.CreateOrUpdate(ctx, asc.rec.Client, obj, mutateFn); err != nil {
+	if result, err := controllerutil.CreateOrUpdate(ctx, asc.Client, obj, mutateFn); err != nil {
 		msg := "Failed to ensure " + component.name
 		log.WithError(err).Error(msg)
 		conditionsv1.SetStatusConditionNoHeartbeat(asc.conditions, conditionsv1.Condition{
@@ -383,7 +392,7 @@ func reconcileComponent(ctx context.Context, log *logrus.Entry, asc ASC, compone
 			Reason:  component.reason,
 			Message: msg,
 		})
-		if statusErr := asc.rec.Status().Update(ctx, asc.Object); statusErr != nil {
+		if statusErr := asc.Client.Status().Update(ctx, asc.Object); statusErr != nil {
 			log.WithError(err).Error("Failed to update status")
 			return ctrl.Result{Requeue: true}, statusErr
 		}
@@ -397,7 +406,7 @@ func ensureFinalizers(ctx context.Context, log logrus.FieldLogger, asc ASC, fina
 	if asc.Object.GetDeletionTimestamp().IsZero() {
 		if !controllerutil.ContainsFinalizer(asc.Object, finalizerName) {
 			controllerutil.AddFinalizer(asc.Object, finalizerName)
-			if err := asc.rec.Update(ctx, asc.Object); err != nil {
+			if err := asc.Client.Update(ctx, asc.Object); err != nil {
 				log.WithError(err).Error("failed to add finalizer to AgentServiceConfig")
 				return err
 			}
@@ -410,7 +419,7 @@ func ensureFinalizers(ctx context.Context, log logrus.FieldLogger, asc ASC, fina
 				Namespace: asc.namespace,
 			},
 		}
-		if err := asc.rec.Get(ctx, client.ObjectKeyFromObject(statefulSet), statefulSet); err != nil && !errors.IsNotFound(err) {
+		if err := asc.Client.Get(ctx, client.ObjectKeyFromObject(statefulSet), statefulSet); err != nil && !errors.IsNotFound(err) {
 			log.WithError(err).Error("failed to get image service stateful set for cleanup")
 			return err
 		}
@@ -420,7 +429,7 @@ func ensureFinalizers(ctx context.Context, log logrus.FieldLogger, asc ASC, fina
 		}
 
 		controllerutil.RemoveFinalizer(asc.Object, finalizerName)
-		if err := asc.rec.Update(ctx, asc.Object); err != nil {
+		if err := asc.Client.Update(ctx, asc.Object); err != nil {
 			log.WithError(err).Error("failed to remove finalizer from AgentServiceConfig")
 			return err
 		}
@@ -486,7 +495,7 @@ func monitorOperands(ctx context.Context, log logrus.FieldLogger, asc ASC) error
 	// monitor deployments
 	for _, deployName := range []string{"agentinstalladmission", "assisted-service"} {
 		deployment := &appsv1.Deployment{}
-		if err := asc.rec.Get(ctx, types.NamespacedName{Name: deployName, Namespace: asc.namespace}, deployment); err != nil {
+		if err := asc.Client.Get(ctx, types.NamespacedName{Name: deployName, Namespace: asc.namespace}, deployment); err != nil {
 			return err
 		}
 
@@ -505,7 +514,7 @@ func monitorOperands(ctx context.Context, log logrus.FieldLogger, asc ASC) error
 
 	// monitor statefulset
 	ss := &appsv1.StatefulSet{}
-	if err := asc.rec.Get(ctx, types.NamespacedName{Name: imageServiceName, Namespace: asc.namespace}, ss); err != nil {
+	if err := asc.Client.Get(ctx, types.NamespacedName{Name: imageServiceName, Namespace: asc.namespace}, ss); err != nil {
 		return err
 	}
 
@@ -654,7 +663,7 @@ func newImageServiceService(ctx context.Context, log logrus.FieldLogger, asc ASC
 
 func newServiceMonitor(ctx context.Context, log logrus.FieldLogger, asc ASC) (client.Object, controllerutil.MutateFn, error) {
 	service := &corev1.Service{}
-	if err := asc.rec.Get(ctx, types.NamespacedName{Name: serviceName, Namespace: asc.namespace}, service); err != nil {
+	if err := asc.Client.Get(ctx, types.NamespacedName{Name: serviceName, Namespace: asc.namespace}, service); err != nil {
 		return nil, nil, err
 	}
 
@@ -739,7 +748,7 @@ func newAgentRoute(ctx context.Context, log logrus.FieldLogger, asc ASC) (client
 func newHTTPRoute(ctx context.Context, log logrus.FieldLogger, asc ASC, serviceToExpose string) (client.Object, controllerutil.MutateFn, error) {
 	// In order to create plain http route we need https route to be created first to copy its host
 	httpsRoute := &routev1.Route{}
-	if err := asc.rec.Get(ctx, types.NamespacedName{Name: serviceToExpose, Namespace: asc.namespace}, httpsRoute); err != nil {
+	if err := asc.Client.Get(ctx, types.NamespacedName{Name: serviceToExpose, Namespace: asc.namespace}, httpsRoute); err != nil {
 		log.WithError(err).Errorf("Failed to get https route for %s service", serviceToExpose)
 		return nil, nil, err
 	}
@@ -794,8 +803,8 @@ func removeHTTPIPXERoute(ctx context.Context, asc ASC, serviceToExpose string) e
 	route := &routev1.Route{}
 	routeName := fmt.Sprintf("%s-ipxe", serviceToExpose)
 	namespacedName := types.NamespacedName{Name: routeName, Namespace: asc.namespace}
-	if err := asc.rec.Client.Get(ctx, namespacedName, route); err == nil {
-		err = asc.rec.Client.Delete(ctx, &routev1.Route{
+	if err := asc.Client.Get(ctx, namespacedName, route); err == nil {
+		err = asc.Client.Delete(ctx, &routev1.Route{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      routeName,
 				Namespace: asc.namespace,
@@ -955,7 +964,7 @@ func newImageServiceServiceAccount(ctx context.Context, log logrus.FieldLogger, 
 func newIngressCertCM(ctx context.Context, log logrus.FieldLogger, asc ASC) (client.Object, controllerutil.MutateFn, error) {
 	sourceCM := &corev1.ConfigMap{}
 
-	if err := asc.rec.Get(ctx, types.NamespacedName{Name: defaultIngressCertCMName, Namespace: defaultIngressCertCMNamespace}, sourceCM); err != nil {
+	if err := asc.Client.Get(ctx, types.NamespacedName{Name: defaultIngressCertCMName, Namespace: defaultIngressCertCMNamespace}, sourceCM); err != nil {
 		log.WithError(err).Error("Failed to get default ingress cert config map")
 		return nil, nil, err
 	}
@@ -1006,7 +1015,7 @@ func newImageServiceConfigMap(ctx context.Context, log logrus.FieldLogger, asc A
 
 func urlForRoute(ctx context.Context, asc ASC, routeName string) (string, error) {
 	route := &routev1.Route{}
-	err := asc.rec.Get(ctx, types.NamespacedName{Name: routeName, Namespace: asc.namespace}, route)
+	err := asc.Client.Get(ctx, types.NamespacedName{Name: routeName, Namespace: asc.namespace}, route)
 	if err != nil || route.Spec.Host == "" {
 		if err == nil {
 			err = fmt.Errorf("%s route host is empty", routeName)
@@ -1026,7 +1035,7 @@ func unauthenticatedRegistries(ctx context.Context, asc ASC) string {
 		// Any errors in the following code block is not handled since they indicate a problem with the
 		// format of the mirror registry config, and an incorrectly formatted config does not mean that
 		// the public container registries should not be set.
-		if err := asc.rec.Client.Get(ctx, types.NamespacedName{Name: asc.spec.MirrorRegistryRef.Name, Namespace: asc.namespace}, cm); err == nil {
+		if err := asc.Client.Get(ctx, types.NamespacedName{Name: asc.spec.MirrorRegistryRef.Name, Namespace: asc.namespace}, cm); err == nil {
 			if contents, ok := cm.Data[mirrorRegistryRefRegistryConfKey]; ok {
 				if tomlTree, err := toml.Load(contents); err == nil {
 					if registries, ok := tomlTree.Get("unqualified-search-registries").([]interface{}); ok {
@@ -1332,18 +1341,18 @@ func cleanupImageServiceFinalizer(ctx context.Context, asc ASC, statefulSet *app
 	}
 
 	pvcList := &corev1.PersistentVolumeClaimList{}
-	if err := asc.rec.Client.List(ctx, pvcList, client.MatchingLabels{"app": imageServiceName}); err != nil {
+	if err := asc.Client.List(ctx, pvcList, client.MatchingLabels{"app": imageServiceName}); err != nil {
 		return err
 	}
 
 	for i := range pvcList.Items {
-		if err := asc.rec.Client.Delete(ctx, &pvcList.Items[i]); err != nil {
+		if err := asc.Client.Delete(ctx, &pvcList.Items[i]); err != nil {
 			return err
 		}
 	}
 
 	controllerutil.RemoveFinalizer(statefulSet, imageServiceStatefulSetFinalizerName)
-	if err := asc.rec.Client.Update(ctx, statefulSet); err != nil {
+	if err := asc.Client.Update(ctx, statefulSet); err != nil {
 		return err
 	}
 
@@ -1360,7 +1369,7 @@ func ensureImageServiceStatefulSet(ctx context.Context, log logrus.FieldLogger, 
 			Reason:  aiv1beta1.ReasonImageHandlerStatefulSetFailure,
 			Message: msg,
 		})
-		if statusErr := asc.rec.Status().Update(ctx, asc.Object); statusErr != nil {
+		if statusErr := asc.Client.Status().Update(ctx, asc.Object); statusErr != nil {
 			log.WithError(statusErr).Error("Failed to update status")
 			return statusErr
 		}
@@ -1375,7 +1384,7 @@ func reconcileImageServiceStatefulSet(ctx context.Context, log logrus.FieldLogge
 		// TODO: this can be removed when we no longer support upgrading from a release that used deployments for the image service
 		// NOTE: this relies on the err local variable being set correctly when the function returns
 		if err == nil {
-			_ = asc.rec.Client.Delete(ctx, &appsv1.Deployment{
+			_ = asc.Client.Delete(ctx, &appsv1.Deployment{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      imageServiceName,
 					Namespace: asc.namespace,
@@ -1387,7 +1396,7 @@ func reconcileImageServiceStatefulSet(ctx context.Context, log logrus.FieldLogge
 	statefulSet, mutateFn := newImageServiceStatefulSet(ctx, log, asc)
 
 	key := client.ObjectKeyFromObject(statefulSet)
-	if err = asc.rec.Client.Get(ctx, key, statefulSet); err != nil {
+	if err = asc.Client.Get(ctx, key, statefulSet); err != nil {
 		// if the statefulset doesn't exist, create it
 		if !errors.IsNotFound(err) {
 			return err
@@ -1396,7 +1405,7 @@ func reconcileImageServiceStatefulSet(ctx context.Context, log logrus.FieldLogge
 		if err = mutateFn(); err != nil {
 			return err
 		}
-		if err = asc.rec.Client.Create(ctx, statefulSet); err != nil {
+		if err = asc.Client.Create(ctx, statefulSet); err != nil {
 			return err
 		}
 		return nil
@@ -1422,7 +1431,7 @@ func reconcileImageServiceStatefulSet(ctx context.Context, log logrus.FieldLogge
 	if equality.Semantic.DeepEqual(existing.Spec.VolumeClaimTemplates, statefulSet.Spec.VolumeClaimTemplates) {
 		log.Info("Updating image service statful set in-place")
 		// if we're updating something other than the volumes, just do a regular update
-		if err = asc.rec.Client.Update(ctx, statefulSet); err != nil {
+		if err = asc.Client.Update(ctx, statefulSet); err != nil {
 			return err
 		}
 		return nil
@@ -1431,7 +1440,7 @@ func reconcileImageServiceStatefulSet(ctx context.Context, log logrus.FieldLogge
 	log.Info("Deleting image service stateful set on volume claim template update")
 
 	// need to delete and re-create statefulset because the volumes have changed
-	if err = asc.rec.Client.Delete(ctx, existing); err != nil {
+	if err = asc.Client.Delete(ctx, existing); err != nil {
 		return err
 	}
 
@@ -1613,7 +1622,7 @@ func newAssistedServiceDeployment(ctx context.Context, log logrus.FieldLogger, a
 	if asc.spec.MirrorRegistryRef != nil {
 		cm := &corev1.ConfigMap{}
 		namespacedName := types.NamespacedName{Name: asc.spec.MirrorRegistryRef.Name, Namespace: asc.namespace}
-		err := asc.rec.Client.Get(ctx, namespacedName, cm)
+		err := asc.Client.Get(ctx, namespacedName, cm)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -1630,7 +1639,7 @@ func newAssistedServiceDeployment(ctx context.Context, log logrus.FieldLogger, a
 		}
 
 		// make sure configmap is being backed up
-		if err := ensureConfigMapIsLabelled(ctx, asc.rec.Client, cm, namespacedName); err != nil {
+		if err := ensureConfigMapIsLabelled(ctx, asc.Client, cm, namespacedName); err != nil {
 			return nil, nil, pkgerror.Wrapf(err, "Unable to mark mirror configmap for backup")
 		}
 
@@ -1855,7 +1864,7 @@ func exposeIPXEHTTPRoute(spec *aiv1beta1.AgentServiceConfigSpec) bool {
 
 func getCMHash(ctx context.Context, asc ASC, namespacedName types.NamespacedName) (string, error) {
 	cm := &corev1.ConfigMap{}
-	if err := asc.rec.Client.Get(ctx, namespacedName, cm); err != nil {
+	if err := asc.Client.Get(ctx, namespacedName, cm); err != nil {
 		return "", err
 	}
 	return checksumMap(cm.Data)
@@ -2395,7 +2404,7 @@ func validate(ctx context.Context, log logrus.FieldLogger, asc ASC) (bool, error
 				Message: fmt.Sprintf("%s.", strings.Join(failures, ". ")),
 			},
 		)
-		err = asc.rec.Status().Update(ctx, asc.Object)
+		err = asc.Client.Status().Update(ctx, asc.Object)
 		if err != nil {
 			log.WithError(err).Error("Failed to update status")
 			return false, err
@@ -2447,7 +2456,7 @@ func validateStorage(ctx context.Context, log logrus.FieldLogger, asc ASC) (warn
 			Name:      databaseName,
 		}
 		var tmp corev1.PersistentVolumeClaim
-		err = asc.rec.Get(ctx, key, &tmp)
+		err = asc.Client.Get(ctx, key, &tmp)
 		if errors.IsNotFound(err) {
 			err = nil
 			failures = append(failures, message)
@@ -2470,7 +2479,7 @@ func validateStorage(ctx context.Context, log logrus.FieldLogger, asc ASC) (warn
 			Name:      serviceName,
 		}
 		var tmp corev1.PersistentVolumeClaim
-		err = asc.rec.Get(ctx, key, &tmp)
+		err = asc.Client.Get(ctx, key, &tmp)
 		if errors.IsNotFound(err) {
 			failures = append(failures, message)
 			err = nil
@@ -2494,7 +2503,7 @@ func validateStorage(ctx context.Context, log logrus.FieldLogger, asc ASC) (warn
 				Name:      imageServiceName,
 			}
 			var tmp appsv1.StatefulSet
-			err = asc.rec.Get(ctx, key, &tmp)
+			err = asc.Client.Get(ctx, key, &tmp)
 			if errors.IsNotFound(err) {
 				err = nil
 				failures = append(failures, message)
