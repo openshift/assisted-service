@@ -81,7 +81,7 @@ var _ = Describe("Lvm Operator", func() {
 			table.Entry("host with insufficient disks",
 				&common.Cluster{Cluster: models.Cluster{Hosts: []*models.Host{hostWithInsufficientDisks}}},
 				hostWithInsufficientDisks,
-				api.ValidationResult{Status: api.Failure, ValidationId: operator.GetHostValidationID(), Reasons: []string{"ODF LVM requires at least one non-installation HDD/SSD disk on the host (minimum size: 0 GB)"}},
+				api.ValidationResult{Status: api.Failure, ValidationId: operator.GetHostValidationID(), Reasons: []string{"ODF LVM requires at least one non-installation HDD/SSD disk on the host"}},
 			),
 
 			table.Entry("master with sufficient resources",
