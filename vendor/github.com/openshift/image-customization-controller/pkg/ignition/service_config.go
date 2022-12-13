@@ -14,13 +14,9 @@ func (b *ignitionBuilder) IronicAgentConf() ignition_config_types_32.File {
 api_url = %s:6385
 inspection_callback_url = %s:5050/v1/continue
 insecure = True
-
-collect_lldp = True
 enable_vlan_interfaces = %s
-inspection_collectors = default,extra-hardware,logs
-inspection_dhcp_all_interfaces = True
 `
-	contents := fmt.Sprintf(template, b.ironicBaseURL, b.ironicBaseURL, ironicInspectorVlanInterfaces)
+	contents := fmt.Sprintf(template, b.ironicBaseURL, b.ironicInspectorBaseURL, ironicInspectorVlanInterfaces)
 	return ignitionFileEmbed("/etc/ironic-python-agent.conf", 0644, false, []byte(contents))
 }
 
@@ -40,8 +36,10 @@ Environment="HTTPS_PROXY=%s"
 Environment="NO_PROXY=%s"
 TimeoutStartSec=0
 Restart=on-failure
+RestartSec=5
+StartLimitIntervalSec=0
 ExecStartPre=/bin/podman pull %s %s
-ExecStart=/bin/podman run --privileged --network host --mount type=bind,src=/etc/ironic-python-agent.conf,dst=/etc/ironic-python-agent/ignition.conf --mount type=bind,src=/dev,dst=/dev --mount type=bind,src=/sys,dst=/sys --mount type=bind,src=/run/dbus/system_bus_socket,dst=/run/dbus/system_bus_socket --mount type=bind,src=/,dst=/mnt/coreos --env "IPA_COREOS_IP_OPTIONS=%s" --env IPA_COREOS_COPY_NETWORK=%v --name ironic-agent %s
+ExecStart=/bin/podman run --rm --privileged --network host --mount type=bind,src=/etc/ironic-python-agent.conf,dst=/etc/ironic-python-agent/ignition.conf --mount type=bind,src=/dev,dst=/dev --mount type=bind,src=/sys,dst=/sys --mount type=bind,src=/run/dbus/system_bus_socket,dst=/run/dbus/system_bus_socket --mount type=bind,src=/,dst=/mnt/coreos --env "IPA_COREOS_IP_OPTIONS=%s" --env IPA_COREOS_COPY_NETWORK=%v --name ironic-agent %s
 [Install]
 WantedBy=multi-user.target
 `
