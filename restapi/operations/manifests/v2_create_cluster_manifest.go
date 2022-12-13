@@ -29,10 +29,10 @@ func NewV2CreateClusterManifest(ctx *middleware.Context, handler V2CreateCluster
 	return &V2CreateClusterManifest{Context: ctx, Handler: handler}
 }
 
-/* V2CreateClusterManifest swagger:route POST /v2/clusters/{cluster_id}/manifests manifests v2CreateClusterManifest
+/*
+	V2CreateClusterManifest swagger:route POST /v2/clusters/{cluster_id}/manifests manifests v2CreateClusterManifest
 
 Creates a manifest for customizing cluster installation.
-
 */
 type V2CreateClusterManifest struct {
 	Context *middleware.Context

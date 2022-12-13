@@ -29,10 +29,10 @@ func NewV2ListFeatureSupportLevels(ctx *middleware.Context, handler V2ListFeatur
 	return &V2ListFeatureSupportLevels{Context: ctx, Handler: handler}
 }
 
-/* V2ListFeatureSupportLevels swagger:route GET /v2/feature-support-levels installer v2ListFeatureSupportLevels
+/*
+	V2ListFeatureSupportLevels swagger:route GET /v2/feature-support-levels installer v2ListFeatureSupportLevels
 
 Retrieves the support levels for features for each OpenShift version.
-
 */
 type V2ListFeatureSupportLevels struct {
 	Context *middleware.Context

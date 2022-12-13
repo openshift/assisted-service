@@ -16,7 +16,8 @@ import (
 // V2UpdateHostCreatedCode is the HTTP code returned for type V2UpdateHostCreated
 const V2UpdateHostCreatedCode int = 201
 
-/*V2UpdateHostCreated Success.
+/*
+V2UpdateHostCreated Success.
 
 swagger:response v2UpdateHostCreated
 */
@@ -60,7 +61,8 @@ func (o *V2UpdateHostCreated) WriteResponse(rw http.ResponseWriter, producer run
 // V2UpdateHostBadRequestCode is the HTTP code returned for type V2UpdateHostBadRequest
 const V2UpdateHostBadRequestCode int = 400
 
-/*V2UpdateHostBadRequest Error.
+/*
+V2UpdateHostBadRequest Error.
 
 swagger:response v2UpdateHostBadRequest
 */
@@ -104,7 +106,8 @@ func (o *V2UpdateHostBadRequest) WriteResponse(rw http.ResponseWriter, producer 
 // V2UpdateHostUnauthorizedCode is the HTTP code returned for type V2UpdateHostUnauthorized
 const V2UpdateHostUnauthorizedCode int = 401
 
-/*V2UpdateHostUnauthorized Unauthorized.
+/*
+V2UpdateHostUnauthorized Unauthorized.
 
 swagger:response v2UpdateHostUnauthorized
 */
@@ -148,7 +151,8 @@ func (o *V2UpdateHostUnauthorized) WriteResponse(rw http.ResponseWriter, produce
 // V2UpdateHostForbiddenCode is the HTTP code returned for type V2UpdateHostForbidden
 const V2UpdateHostForbiddenCode int = 403
 
-/*V2UpdateHostForbidden Forbidden.
+/*
+V2UpdateHostForbidden Forbidden.
 
 swagger:response v2UpdateHostForbidden
 */
@@ -192,7 +196,8 @@ func (o *V2UpdateHostForbidden) WriteResponse(rw http.ResponseWriter, producer r
 // V2UpdateHostNotFoundCode is the HTTP code returned for type V2UpdateHostNotFound
 const V2UpdateHostNotFoundCode int = 404
 
-/*V2UpdateHostNotFound Error.
+/*
+V2UpdateHostNotFound Error.
 
 swagger:response v2UpdateHostNotFound
 */
@@ -236,7 +241,8 @@ func (o *V2UpdateHostNotFound) WriteResponse(rw http.ResponseWriter, producer ru
 // V2UpdateHostMethodNotAllowedCode is the HTTP code returned for type V2UpdateHostMethodNotAllowed
 const V2UpdateHostMethodNotAllowedCode int = 405
 
-/*V2UpdateHostMethodNotAllowed Method Not Allowed.
+/*
+V2UpdateHostMethodNotAllowed Method Not Allowed.
 
 swagger:response v2UpdateHostMethodNotAllowed
 */
@@ -280,7 +286,8 @@ func (o *V2UpdateHostMethodNotAllowed) WriteResponse(rw http.ResponseWriter, pro
 // V2UpdateHostConflictCode is the HTTP code returned for type V2UpdateHostConflict
 const V2UpdateHostConflictCode int = 409
 
-/*V2UpdateHostConflict Error.
+/*
+V2UpdateHostConflict Error.
 
 swagger:response v2UpdateHostConflict
 */
@@ -324,7 +331,8 @@ func (o *V2UpdateHostConflict) WriteResponse(rw http.ResponseWriter, producer ru
 // V2UpdateHostInternalServerErrorCode is the HTTP code returned for type V2UpdateHostInternalServerError
 const V2UpdateHostInternalServerErrorCode int = 500
 
-/*V2UpdateHostInternalServerError Error.
+/*
+V2UpdateHostInternalServerError Error.
 
 swagger:response v2UpdateHostInternalServerError
 */

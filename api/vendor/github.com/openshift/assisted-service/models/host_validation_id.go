@@ -20,8 +20,12 @@ import (
 type HostValidationID string
 
 func NewHostValidationID(value HostValidationID) *HostValidationID {
-	v := value
-	return &v
+	return &value
+}
+
+// Pointer returns a pointer to a freshly-allocated HostValidationID.
+func (m HostValidationID) Pointer() *HostValidationID {
+	return &m
 }
 
 const (

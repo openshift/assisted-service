@@ -29,12 +29,12 @@ func NewV2ResetHostValidation(ctx *middleware.Context, handler V2ResetHostValida
 	return &V2ResetHostValidation{Context: ctx, Handler: handler}
 }
 
-/* V2ResetHostValidation swagger:route PATCH /v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/reset-validation/{validation_id} installer v2ResetHostValidation
+/*
+	V2ResetHostValidation swagger:route PATCH /v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/reset-validation/{validation_id} installer v2ResetHostValidation
 
 Reset failed host validation.
 
 Reset failed host validation. It may be performed on any host validation with persistent validation result.
-
 */
 type V2ResetHostValidation struct {
 	Context *middleware.Context

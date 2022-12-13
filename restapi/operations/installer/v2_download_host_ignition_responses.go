@@ -17,7 +17,8 @@ import (
 // V2DownloadHostIgnitionOKCode is the HTTP code returned for type V2DownloadHostIgnitionOK
 const V2DownloadHostIgnitionOKCode int = 200
 
-/*V2DownloadHostIgnitionOK Success.
+/*
+V2DownloadHostIgnitionOK Success.
 
 swagger:response v2DownloadHostIgnitionOK
 */
@@ -59,7 +60,8 @@ func (o *V2DownloadHostIgnitionOK) WriteResponse(rw http.ResponseWriter, produce
 // V2DownloadHostIgnitionUnauthorizedCode is the HTTP code returned for type V2DownloadHostIgnitionUnauthorized
 const V2DownloadHostIgnitionUnauthorizedCode int = 401
 
-/*V2DownloadHostIgnitionUnauthorized Unauthorized.
+/*
+V2DownloadHostIgnitionUnauthorized Unauthorized.
 
 swagger:response v2DownloadHostIgnitionUnauthorized
 */
@@ -103,7 +105,8 @@ func (o *V2DownloadHostIgnitionUnauthorized) WriteResponse(rw http.ResponseWrite
 // V2DownloadHostIgnitionForbiddenCode is the HTTP code returned for type V2DownloadHostIgnitionForbidden
 const V2DownloadHostIgnitionForbiddenCode int = 403
 
-/*V2DownloadHostIgnitionForbidden Forbidden.
+/*
+V2DownloadHostIgnitionForbidden Forbidden.
 
 swagger:response v2DownloadHostIgnitionForbidden
 */
@@ -147,7 +150,8 @@ func (o *V2DownloadHostIgnitionForbidden) WriteResponse(rw http.ResponseWriter, 
 // V2DownloadHostIgnitionNotFoundCode is the HTTP code returned for type V2DownloadHostIgnitionNotFound
 const V2DownloadHostIgnitionNotFoundCode int = 404
 
-/*V2DownloadHostIgnitionNotFound Error.
+/*
+V2DownloadHostIgnitionNotFound Error.
 
 swagger:response v2DownloadHostIgnitionNotFound
 */
@@ -191,7 +195,8 @@ func (o *V2DownloadHostIgnitionNotFound) WriteResponse(rw http.ResponseWriter, p
 // V2DownloadHostIgnitionMethodNotAllowedCode is the HTTP code returned for type V2DownloadHostIgnitionMethodNotAllowed
 const V2DownloadHostIgnitionMethodNotAllowedCode int = 405
 
-/*V2DownloadHostIgnitionMethodNotAllowed Method Not Allowed.
+/*
+V2DownloadHostIgnitionMethodNotAllowed Method Not Allowed.
 
 swagger:response v2DownloadHostIgnitionMethodNotAllowed
 */
@@ -235,7 +240,8 @@ func (o *V2DownloadHostIgnitionMethodNotAllowed) WriteResponse(rw http.ResponseW
 // V2DownloadHostIgnitionConflictCode is the HTTP code returned for type V2DownloadHostIgnitionConflict
 const V2DownloadHostIgnitionConflictCode int = 409
 
-/*V2DownloadHostIgnitionConflict Error.
+/*
+V2DownloadHostIgnitionConflict Error.
 
 swagger:response v2DownloadHostIgnitionConflict
 */
@@ -279,7 +285,8 @@ func (o *V2DownloadHostIgnitionConflict) WriteResponse(rw http.ResponseWriter, p
 // V2DownloadHostIgnitionInternalServerErrorCode is the HTTP code returned for type V2DownloadHostIgnitionInternalServerError
 const V2DownloadHostIgnitionInternalServerErrorCode int = 500
 
-/*V2DownloadHostIgnitionInternalServerError Error.
+/*
+V2DownloadHostIgnitionInternalServerError Error.
 
 swagger:response v2DownloadHostIgnitionInternalServerError
 */
@@ -323,7 +330,8 @@ func (o *V2DownloadHostIgnitionInternalServerError) WriteResponse(rw http.Respon
 // V2DownloadHostIgnitionServiceUnavailableCode is the HTTP code returned for type V2DownloadHostIgnitionServiceUnavailable
 const V2DownloadHostIgnitionServiceUnavailableCode int = 503
 
-/*V2DownloadHostIgnitionServiceUnavailable Unavailable.
+/*
+V2DownloadHostIgnitionServiceUnavailable Unavailable.
 
 swagger:response v2DownloadHostIgnitionServiceUnavailable
 */

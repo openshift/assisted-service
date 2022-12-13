@@ -16,7 +16,8 @@ import (
 // V2DeregisterHostNoContentCode is the HTTP code returned for type V2DeregisterHostNoContent
 const V2DeregisterHostNoContentCode int = 204
 
-/*V2DeregisterHostNoContent Success.
+/*
+V2DeregisterHostNoContent Success.
 
 swagger:response v2DeregisterHostNoContent
 */
@@ -40,7 +41,8 @@ func (o *V2DeregisterHostNoContent) WriteResponse(rw http.ResponseWriter, produc
 // V2DeregisterHostBadRequestCode is the HTTP code returned for type V2DeregisterHostBadRequest
 const V2DeregisterHostBadRequestCode int = 400
 
-/*V2DeregisterHostBadRequest Error.
+/*
+V2DeregisterHostBadRequest Error.
 
 swagger:response v2DeregisterHostBadRequest
 */
@@ -84,7 +86,8 @@ func (o *V2DeregisterHostBadRequest) WriteResponse(rw http.ResponseWriter, produ
 // V2DeregisterHostUnauthorizedCode is the HTTP code returned for type V2DeregisterHostUnauthorized
 const V2DeregisterHostUnauthorizedCode int = 401
 
-/*V2DeregisterHostUnauthorized Unauthorized.
+/*
+V2DeregisterHostUnauthorized Unauthorized.
 
 swagger:response v2DeregisterHostUnauthorized
 */
@@ -128,7 +131,8 @@ func (o *V2DeregisterHostUnauthorized) WriteResponse(rw http.ResponseWriter, pro
 // V2DeregisterHostForbiddenCode is the HTTP code returned for type V2DeregisterHostForbidden
 const V2DeregisterHostForbiddenCode int = 403
 
-/*V2DeregisterHostForbidden Forbidden.
+/*
+V2DeregisterHostForbidden Forbidden.
 
 swagger:response v2DeregisterHostForbidden
 */
@@ -172,7 +176,8 @@ func (o *V2DeregisterHostForbidden) WriteResponse(rw http.ResponseWriter, produc
 // V2DeregisterHostNotFoundCode is the HTTP code returned for type V2DeregisterHostNotFound
 const V2DeregisterHostNotFoundCode int = 404
 
-/*V2DeregisterHostNotFound Error.
+/*
+V2DeregisterHostNotFound Error.
 
 swagger:response v2DeregisterHostNotFound
 */
@@ -216,7 +221,8 @@ func (o *V2DeregisterHostNotFound) WriteResponse(rw http.ResponseWriter, produce
 // V2DeregisterHostMethodNotAllowedCode is the HTTP code returned for type V2DeregisterHostMethodNotAllowed
 const V2DeregisterHostMethodNotAllowedCode int = 405
 
-/*V2DeregisterHostMethodNotAllowed Method Not Allowed.
+/*
+V2DeregisterHostMethodNotAllowed Method Not Allowed.
 
 swagger:response v2DeregisterHostMethodNotAllowed
 */
@@ -260,7 +266,8 @@ func (o *V2DeregisterHostMethodNotAllowed) WriteResponse(rw http.ResponseWriter,
 // V2DeregisterHostInternalServerErrorCode is the HTTP code returned for type V2DeregisterHostInternalServerError
 const V2DeregisterHostInternalServerErrorCode int = 500
 
-/*V2DeregisterHostInternalServerError Error.
+/*
+V2DeregisterHostInternalServerError Error.
 
 swagger:response v2DeregisterHostInternalServerError
 */

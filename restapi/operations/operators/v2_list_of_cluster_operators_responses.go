@@ -16,7 +16,8 @@ import (
 // V2ListOfClusterOperatorsOKCode is the HTTP code returned for type V2ListOfClusterOperatorsOK
 const V2ListOfClusterOperatorsOKCode int = 200
 
-/*V2ListOfClusterOperatorsOK Success.
+/*
+V2ListOfClusterOperatorsOK Success.
 
 swagger:response v2ListOfClusterOperatorsOK
 */
@@ -63,7 +64,8 @@ func (o *V2ListOfClusterOperatorsOK) WriteResponse(rw http.ResponseWriter, produ
 // V2ListOfClusterOperatorsUnauthorizedCode is the HTTP code returned for type V2ListOfClusterOperatorsUnauthorized
 const V2ListOfClusterOperatorsUnauthorizedCode int = 401
 
-/*V2ListOfClusterOperatorsUnauthorized Unauthorized.
+/*
+V2ListOfClusterOperatorsUnauthorized Unauthorized.
 
 swagger:response v2ListOfClusterOperatorsUnauthorized
 */
@@ -107,7 +109,8 @@ func (o *V2ListOfClusterOperatorsUnauthorized) WriteResponse(rw http.ResponseWri
 // V2ListOfClusterOperatorsForbiddenCode is the HTTP code returned for type V2ListOfClusterOperatorsForbidden
 const V2ListOfClusterOperatorsForbiddenCode int = 403
 
-/*V2ListOfClusterOperatorsForbidden Forbidden.
+/*
+V2ListOfClusterOperatorsForbidden Forbidden.
 
 swagger:response v2ListOfClusterOperatorsForbidden
 */
@@ -151,7 +154,8 @@ func (o *V2ListOfClusterOperatorsForbidden) WriteResponse(rw http.ResponseWriter
 // V2ListOfClusterOperatorsNotFoundCode is the HTTP code returned for type V2ListOfClusterOperatorsNotFound
 const V2ListOfClusterOperatorsNotFoundCode int = 404
 
-/*V2ListOfClusterOperatorsNotFound Error.
+/*
+V2ListOfClusterOperatorsNotFound Error.
 
 swagger:response v2ListOfClusterOperatorsNotFound
 */
@@ -195,7 +199,8 @@ func (o *V2ListOfClusterOperatorsNotFound) WriteResponse(rw http.ResponseWriter,
 // V2ListOfClusterOperatorsMethodNotAllowedCode is the HTTP code returned for type V2ListOfClusterOperatorsMethodNotAllowed
 const V2ListOfClusterOperatorsMethodNotAllowedCode int = 405
 
-/*V2ListOfClusterOperatorsMethodNotAllowed Method Not Allowed.
+/*
+V2ListOfClusterOperatorsMethodNotAllowed Method Not Allowed.
 
 swagger:response v2ListOfClusterOperatorsMethodNotAllowed
 */
@@ -239,7 +244,8 @@ func (o *V2ListOfClusterOperatorsMethodNotAllowed) WriteResponse(rw http.Respons
 // V2ListOfClusterOperatorsInternalServerErrorCode is the HTTP code returned for type V2ListOfClusterOperatorsInternalServerError
 const V2ListOfClusterOperatorsInternalServerErrorCode int = 500
 
-/*V2ListOfClusterOperatorsInternalServerError Error.
+/*
+V2ListOfClusterOperatorsInternalServerError Error.
 
 swagger:response v2ListOfClusterOperatorsInternalServerError
 */

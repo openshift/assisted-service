@@ -16,7 +16,8 @@ import (
 // V2GetPresignedForClusterCredentialsOKCode is the HTTP code returned for type V2GetPresignedForClusterCredentialsOK
 const V2GetPresignedForClusterCredentialsOKCode int = 200
 
-/*V2GetPresignedForClusterCredentialsOK Success.
+/*
+V2GetPresignedForClusterCredentialsOK Success.
 
 swagger:response v2GetPresignedForClusterCredentialsOK
 */
@@ -60,7 +61,8 @@ func (o *V2GetPresignedForClusterCredentialsOK) WriteResponse(rw http.ResponseWr
 // V2GetPresignedForClusterCredentialsBadRequestCode is the HTTP code returned for type V2GetPresignedForClusterCredentialsBadRequest
 const V2GetPresignedForClusterCredentialsBadRequestCode int = 400
 
-/*V2GetPresignedForClusterCredentialsBadRequest Error.
+/*
+V2GetPresignedForClusterCredentialsBadRequest Error.
 
 swagger:response v2GetPresignedForClusterCredentialsBadRequest
 */
@@ -104,7 +106,8 @@ func (o *V2GetPresignedForClusterCredentialsBadRequest) WriteResponse(rw http.Re
 // V2GetPresignedForClusterCredentialsUnauthorizedCode is the HTTP code returned for type V2GetPresignedForClusterCredentialsUnauthorized
 const V2GetPresignedForClusterCredentialsUnauthorizedCode int = 401
 
-/*V2GetPresignedForClusterCredentialsUnauthorized Unauthorized.
+/*
+V2GetPresignedForClusterCredentialsUnauthorized Unauthorized.
 
 swagger:response v2GetPresignedForClusterCredentialsUnauthorized
 */
@@ -148,7 +151,8 @@ func (o *V2GetPresignedForClusterCredentialsUnauthorized) WriteResponse(rw http.
 // V2GetPresignedForClusterCredentialsForbiddenCode is the HTTP code returned for type V2GetPresignedForClusterCredentialsForbidden
 const V2GetPresignedForClusterCredentialsForbiddenCode int = 403
 
-/*V2GetPresignedForClusterCredentialsForbidden Forbidden.
+/*
+V2GetPresignedForClusterCredentialsForbidden Forbidden.
 
 swagger:response v2GetPresignedForClusterCredentialsForbidden
 */
@@ -192,7 +196,8 @@ func (o *V2GetPresignedForClusterCredentialsForbidden) WriteResponse(rw http.Res
 // V2GetPresignedForClusterCredentialsNotFoundCode is the HTTP code returned for type V2GetPresignedForClusterCredentialsNotFound
 const V2GetPresignedForClusterCredentialsNotFoundCode int = 404
 
-/*V2GetPresignedForClusterCredentialsNotFound Error.
+/*
+V2GetPresignedForClusterCredentialsNotFound Error.
 
 swagger:response v2GetPresignedForClusterCredentialsNotFound
 */
@@ -236,7 +241,8 @@ func (o *V2GetPresignedForClusterCredentialsNotFound) WriteResponse(rw http.Resp
 // V2GetPresignedForClusterCredentialsMethodNotAllowedCode is the HTTP code returned for type V2GetPresignedForClusterCredentialsMethodNotAllowed
 const V2GetPresignedForClusterCredentialsMethodNotAllowedCode int = 405
 
-/*V2GetPresignedForClusterCredentialsMethodNotAllowed Method Not Allowed.
+/*
+V2GetPresignedForClusterCredentialsMethodNotAllowed Method Not Allowed.
 
 swagger:response v2GetPresignedForClusterCredentialsMethodNotAllowed
 */
@@ -280,7 +286,8 @@ func (o *V2GetPresignedForClusterCredentialsMethodNotAllowed) WriteResponse(rw h
 // V2GetPresignedForClusterCredentialsConflictCode is the HTTP code returned for type V2GetPresignedForClusterCredentialsConflict
 const V2GetPresignedForClusterCredentialsConflictCode int = 409
 
-/*V2GetPresignedForClusterCredentialsConflict Error.
+/*
+V2GetPresignedForClusterCredentialsConflict Error.
 
 swagger:response v2GetPresignedForClusterCredentialsConflict
 */
@@ -324,7 +331,8 @@ func (o *V2GetPresignedForClusterCredentialsConflict) WriteResponse(rw http.Resp
 // V2GetPresignedForClusterCredentialsInternalServerErrorCode is the HTTP code returned for type V2GetPresignedForClusterCredentialsInternalServerError
 const V2GetPresignedForClusterCredentialsInternalServerErrorCode int = 500
 
-/*V2GetPresignedForClusterCredentialsInternalServerError Error.
+/*
+V2GetPresignedForClusterCredentialsInternalServerError Error.
 
 swagger:response v2GetPresignedForClusterCredentialsInternalServerError
 */

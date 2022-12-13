@@ -29,10 +29,10 @@ func NewV2GetNextSteps(ctx *middleware.Context, handler V2GetNextStepsHandler) *
 	return &V2GetNextSteps{Context: ctx, Handler: handler}
 }
 
-/* V2GetNextSteps swagger:route GET /v2/infra-envs/{infra_env_id}/hosts/{host_id}/instructions installer v2GetNextSteps
+/*
+	V2GetNextSteps swagger:route GET /v2/infra-envs/{infra_env_id}/hosts/{host_id}/instructions installer v2GetNextSteps
 
 Retrieves the next operations that the host agent needs to perform.
-
 */
 type V2GetNextSteps struct {
 	Context *middleware.Context

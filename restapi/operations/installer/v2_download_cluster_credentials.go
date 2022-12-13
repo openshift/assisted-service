@@ -29,10 +29,10 @@ func NewV2DownloadClusterCredentials(ctx *middleware.Context, handler V2Download
 	return &V2DownloadClusterCredentials{Context: ctx, Handler: handler}
 }
 
-/* V2DownloadClusterCredentials swagger:route GET /v2/clusters/{cluster_id}/downloads/credentials installer v2DownloadClusterCredentials
+/*
+	V2DownloadClusterCredentials swagger:route GET /v2/clusters/{cluster_id}/downloads/credentials installer v2DownloadClusterCredentials
 
 Downloads credentials relating to the installed/installing cluster.
-
 */
 type V2DownloadClusterCredentials struct {
 	Context *middleware.Context

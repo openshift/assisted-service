@@ -16,7 +16,8 @@ import (
 // DeregisterInfraEnvNoContentCode is the HTTP code returned for type DeregisterInfraEnvNoContent
 const DeregisterInfraEnvNoContentCode int = 204
 
-/*DeregisterInfraEnvNoContent Success.
+/*
+DeregisterInfraEnvNoContent Success.
 
 swagger:response deregisterInfraEnvNoContent
 */
@@ -40,7 +41,8 @@ func (o *DeregisterInfraEnvNoContent) WriteResponse(rw http.ResponseWriter, prod
 // DeregisterInfraEnvUnauthorizedCode is the HTTP code returned for type DeregisterInfraEnvUnauthorized
 const DeregisterInfraEnvUnauthorizedCode int = 401
 
-/*DeregisterInfraEnvUnauthorized Unauthorized.
+/*
+DeregisterInfraEnvUnauthorized Unauthorized.
 
 swagger:response deregisterInfraEnvUnauthorized
 */
@@ -84,7 +86,8 @@ func (o *DeregisterInfraEnvUnauthorized) WriteResponse(rw http.ResponseWriter, p
 // DeregisterInfraEnvForbiddenCode is the HTTP code returned for type DeregisterInfraEnvForbidden
 const DeregisterInfraEnvForbiddenCode int = 403
 
-/*DeregisterInfraEnvForbidden Forbidden.
+/*
+DeregisterInfraEnvForbidden Forbidden.
 
 swagger:response deregisterInfraEnvForbidden
 */
@@ -128,7 +131,8 @@ func (o *DeregisterInfraEnvForbidden) WriteResponse(rw http.ResponseWriter, prod
 // DeregisterInfraEnvNotFoundCode is the HTTP code returned for type DeregisterInfraEnvNotFound
 const DeregisterInfraEnvNotFoundCode int = 404
 
-/*DeregisterInfraEnvNotFound Error.
+/*
+DeregisterInfraEnvNotFound Error.
 
 swagger:response deregisterInfraEnvNotFound
 */
@@ -172,7 +176,8 @@ func (o *DeregisterInfraEnvNotFound) WriteResponse(rw http.ResponseWriter, produ
 // DeregisterInfraEnvMethodNotAllowedCode is the HTTP code returned for type DeregisterInfraEnvMethodNotAllowed
 const DeregisterInfraEnvMethodNotAllowedCode int = 405
 
-/*DeregisterInfraEnvMethodNotAllowed Method Not Allowed.
+/*
+DeregisterInfraEnvMethodNotAllowed Method Not Allowed.
 
 swagger:response deregisterInfraEnvMethodNotAllowed
 */
@@ -216,7 +221,8 @@ func (o *DeregisterInfraEnvMethodNotAllowed) WriteResponse(rw http.ResponseWrite
 // DeregisterInfraEnvConflictCode is the HTTP code returned for type DeregisterInfraEnvConflict
 const DeregisterInfraEnvConflictCode int = 409
 
-/*DeregisterInfraEnvConflict Error.
+/*
+DeregisterInfraEnvConflict Error.
 
 swagger:response deregisterInfraEnvConflict
 */
@@ -260,7 +266,8 @@ func (o *DeregisterInfraEnvConflict) WriteResponse(rw http.ResponseWriter, produ
 // DeregisterInfraEnvInternalServerErrorCode is the HTTP code returned for type DeregisterInfraEnvInternalServerError
 const DeregisterInfraEnvInternalServerErrorCode int = 500
 
-/*DeregisterInfraEnvInternalServerError Error.
+/*
+DeregisterInfraEnvInternalServerError Error.
 
 swagger:response deregisterInfraEnvInternalServerError
 */
@@ -304,7 +311,8 @@ func (o *DeregisterInfraEnvInternalServerError) WriteResponse(rw http.ResponseWr
 // DeregisterInfraEnvNotImplementedCode is the HTTP code returned for type DeregisterInfraEnvNotImplemented
 const DeregisterInfraEnvNotImplementedCode int = 501
 
-/*DeregisterInfraEnvNotImplemented Not implemented.
+/*
+DeregisterInfraEnvNotImplemented Not implemented.
 
 swagger:response deregisterInfraEnvNotImplemented
 */

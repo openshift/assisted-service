@@ -16,7 +16,8 @@ import (
 // V2UpdateHostLogsProgressNoContentCode is the HTTP code returned for type V2UpdateHostLogsProgressNoContent
 const V2UpdateHostLogsProgressNoContentCode int = 204
 
-/*V2UpdateHostLogsProgressNoContent Update cluster install progress.
+/*
+V2UpdateHostLogsProgressNoContent Update cluster install progress.
 
 swagger:response v2UpdateHostLogsProgressNoContent
 */
@@ -40,7 +41,8 @@ func (o *V2UpdateHostLogsProgressNoContent) WriteResponse(rw http.ResponseWriter
 // V2UpdateHostLogsProgressUnauthorizedCode is the HTTP code returned for type V2UpdateHostLogsProgressUnauthorized
 const V2UpdateHostLogsProgressUnauthorizedCode int = 401
 
-/*V2UpdateHostLogsProgressUnauthorized Unauthorized.
+/*
+V2UpdateHostLogsProgressUnauthorized Unauthorized.
 
 swagger:response v2UpdateHostLogsProgressUnauthorized
 */
@@ -84,7 +86,8 @@ func (o *V2UpdateHostLogsProgressUnauthorized) WriteResponse(rw http.ResponseWri
 // V2UpdateHostLogsProgressForbiddenCode is the HTTP code returned for type V2UpdateHostLogsProgressForbidden
 const V2UpdateHostLogsProgressForbiddenCode int = 403
 
-/*V2UpdateHostLogsProgressForbidden Forbidden.
+/*
+V2UpdateHostLogsProgressForbidden Forbidden.
 
 swagger:response v2UpdateHostLogsProgressForbidden
 */
@@ -128,7 +131,8 @@ func (o *V2UpdateHostLogsProgressForbidden) WriteResponse(rw http.ResponseWriter
 // V2UpdateHostLogsProgressNotFoundCode is the HTTP code returned for type V2UpdateHostLogsProgressNotFound
 const V2UpdateHostLogsProgressNotFoundCode int = 404
 
-/*V2UpdateHostLogsProgressNotFound Error.
+/*
+V2UpdateHostLogsProgressNotFound Error.
 
 swagger:response v2UpdateHostLogsProgressNotFound
 */
@@ -172,7 +176,8 @@ func (o *V2UpdateHostLogsProgressNotFound) WriteResponse(rw http.ResponseWriter,
 // V2UpdateHostLogsProgressMethodNotAllowedCode is the HTTP code returned for type V2UpdateHostLogsProgressMethodNotAllowed
 const V2UpdateHostLogsProgressMethodNotAllowedCode int = 405
 
-/*V2UpdateHostLogsProgressMethodNotAllowed Method Not Allowed.
+/*
+V2UpdateHostLogsProgressMethodNotAllowed Method Not Allowed.
 
 swagger:response v2UpdateHostLogsProgressMethodNotAllowed
 */
@@ -216,7 +221,8 @@ func (o *V2UpdateHostLogsProgressMethodNotAllowed) WriteResponse(rw http.Respons
 // V2UpdateHostLogsProgressConflictCode is the HTTP code returned for type V2UpdateHostLogsProgressConflict
 const V2UpdateHostLogsProgressConflictCode int = 409
 
-/*V2UpdateHostLogsProgressConflict Error.
+/*
+V2UpdateHostLogsProgressConflict Error.
 
 swagger:response v2UpdateHostLogsProgressConflict
 */
@@ -260,7 +266,8 @@ func (o *V2UpdateHostLogsProgressConflict) WriteResponse(rw http.ResponseWriter,
 // V2UpdateHostLogsProgressInternalServerErrorCode is the HTTP code returned for type V2UpdateHostLogsProgressInternalServerError
 const V2UpdateHostLogsProgressInternalServerErrorCode int = 500
 
-/*V2UpdateHostLogsProgressInternalServerError Error.
+/*
+V2UpdateHostLogsProgressInternalServerError Error.
 
 swagger:response v2UpdateHostLogsProgressInternalServerError
 */
@@ -304,7 +311,8 @@ func (o *V2UpdateHostLogsProgressInternalServerError) WriteResponse(rw http.Resp
 // V2UpdateHostLogsProgressNotImplementedCode is the HTTP code returned for type V2UpdateHostLogsProgressNotImplemented
 const V2UpdateHostLogsProgressNotImplementedCode int = 501
 
-/*V2UpdateHostLogsProgressNotImplemented Not implemented.
+/*
+V2UpdateHostLogsProgressNotImplemented Not implemented.
 
 swagger:response v2UpdateHostLogsProgressNotImplemented
 */
@@ -348,7 +356,8 @@ func (o *V2UpdateHostLogsProgressNotImplemented) WriteResponse(rw http.ResponseW
 // V2UpdateHostLogsProgressServiceUnavailableCode is the HTTP code returned for type V2UpdateHostLogsProgressServiceUnavailable
 const V2UpdateHostLogsProgressServiceUnavailableCode int = 503
 
-/*V2UpdateHostLogsProgressServiceUnavailable Unavailable.
+/*
+V2UpdateHostLogsProgressServiceUnavailable Unavailable.
 
 swagger:response v2UpdateHostLogsProgressServiceUnavailable
 */

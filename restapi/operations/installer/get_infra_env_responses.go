@@ -16,7 +16,8 @@ import (
 // GetInfraEnvOKCode is the HTTP code returned for type GetInfraEnvOK
 const GetInfraEnvOKCode int = 200
 
-/*GetInfraEnvOK Success.
+/*
+GetInfraEnvOK Success.
 
 swagger:response getInfraEnvOK
 */
@@ -60,7 +61,8 @@ func (o *GetInfraEnvOK) WriteResponse(rw http.ResponseWriter, producer runtime.P
 // GetInfraEnvUnauthorizedCode is the HTTP code returned for type GetInfraEnvUnauthorized
 const GetInfraEnvUnauthorizedCode int = 401
 
-/*GetInfraEnvUnauthorized Unauthorized.
+/*
+GetInfraEnvUnauthorized Unauthorized.
 
 swagger:response getInfraEnvUnauthorized
 */
@@ -104,7 +106,8 @@ func (o *GetInfraEnvUnauthorized) WriteResponse(rw http.ResponseWriter, producer
 // GetInfraEnvForbiddenCode is the HTTP code returned for type GetInfraEnvForbidden
 const GetInfraEnvForbiddenCode int = 403
 
-/*GetInfraEnvForbidden Forbidden.
+/*
+GetInfraEnvForbidden Forbidden.
 
 swagger:response getInfraEnvForbidden
 */
@@ -148,7 +151,8 @@ func (o *GetInfraEnvForbidden) WriteResponse(rw http.ResponseWriter, producer ru
 // GetInfraEnvNotFoundCode is the HTTP code returned for type GetInfraEnvNotFound
 const GetInfraEnvNotFoundCode int = 404
 
-/*GetInfraEnvNotFound Error.
+/*
+GetInfraEnvNotFound Error.
 
 swagger:response getInfraEnvNotFound
 */
@@ -192,7 +196,8 @@ func (o *GetInfraEnvNotFound) WriteResponse(rw http.ResponseWriter, producer run
 // GetInfraEnvMethodNotAllowedCode is the HTTP code returned for type GetInfraEnvMethodNotAllowed
 const GetInfraEnvMethodNotAllowedCode int = 405
 
-/*GetInfraEnvMethodNotAllowed Method Not Allowed.
+/*
+GetInfraEnvMethodNotAllowed Method Not Allowed.
 
 swagger:response getInfraEnvMethodNotAllowed
 */
@@ -236,7 +241,8 @@ func (o *GetInfraEnvMethodNotAllowed) WriteResponse(rw http.ResponseWriter, prod
 // GetInfraEnvInternalServerErrorCode is the HTTP code returned for type GetInfraEnvInternalServerError
 const GetInfraEnvInternalServerErrorCode int = 500
 
-/*GetInfraEnvInternalServerError Error.
+/*
+GetInfraEnvInternalServerError Error.
 
 swagger:response getInfraEnvInternalServerError
 */
@@ -280,7 +286,8 @@ func (o *GetInfraEnvInternalServerError) WriteResponse(rw http.ResponseWriter, p
 // GetInfraEnvNotImplementedCode is the HTTP code returned for type GetInfraEnvNotImplemented
 const GetInfraEnvNotImplementedCode int = 501
 
-/*GetInfraEnvNotImplemented Not implemented.
+/*
+GetInfraEnvNotImplemented Not implemented.
 
 swagger:response getInfraEnvNotImplemented
 */
@@ -324,7 +331,8 @@ func (o *GetInfraEnvNotImplemented) WriteResponse(rw http.ResponseWriter, produc
 // GetInfraEnvServiceUnavailableCode is the HTTP code returned for type GetInfraEnvServiceUnavailable
 const GetInfraEnvServiceUnavailableCode int = 503
 
-/*GetInfraEnvServiceUnavailable Unavailable.
+/*
+GetInfraEnvServiceUnavailable Unavailable.
 
 swagger:response getInfraEnvServiceUnavailable
 */

@@ -16,7 +16,8 @@ import (
 // V2UpdateHostIgnitionCreatedCode is the HTTP code returned for type V2UpdateHostIgnitionCreated
 const V2UpdateHostIgnitionCreatedCode int = 201
 
-/*V2UpdateHostIgnitionCreated Success.
+/*
+V2UpdateHostIgnitionCreated Success.
 
 swagger:response v2UpdateHostIgnitionCreated
 */
@@ -40,7 +41,8 @@ func (o *V2UpdateHostIgnitionCreated) WriteResponse(rw http.ResponseWriter, prod
 // V2UpdateHostIgnitionBadRequestCode is the HTTP code returned for type V2UpdateHostIgnitionBadRequest
 const V2UpdateHostIgnitionBadRequestCode int = 400
 
-/*V2UpdateHostIgnitionBadRequest Error.
+/*
+V2UpdateHostIgnitionBadRequest Error.
 
 swagger:response v2UpdateHostIgnitionBadRequest
 */
@@ -84,7 +86,8 @@ func (o *V2UpdateHostIgnitionBadRequest) WriteResponse(rw http.ResponseWriter, p
 // V2UpdateHostIgnitionUnauthorizedCode is the HTTP code returned for type V2UpdateHostIgnitionUnauthorized
 const V2UpdateHostIgnitionUnauthorizedCode int = 401
 
-/*V2UpdateHostIgnitionUnauthorized Unauthorized.
+/*
+V2UpdateHostIgnitionUnauthorized Unauthorized.
 
 swagger:response v2UpdateHostIgnitionUnauthorized
 */
@@ -128,7 +131,8 @@ func (o *V2UpdateHostIgnitionUnauthorized) WriteResponse(rw http.ResponseWriter,
 // V2UpdateHostIgnitionForbiddenCode is the HTTP code returned for type V2UpdateHostIgnitionForbidden
 const V2UpdateHostIgnitionForbiddenCode int = 403
 
-/*V2UpdateHostIgnitionForbidden Forbidden.
+/*
+V2UpdateHostIgnitionForbidden Forbidden.
 
 swagger:response v2UpdateHostIgnitionForbidden
 */
@@ -172,7 +176,8 @@ func (o *V2UpdateHostIgnitionForbidden) WriteResponse(rw http.ResponseWriter, pr
 // V2UpdateHostIgnitionNotFoundCode is the HTTP code returned for type V2UpdateHostIgnitionNotFound
 const V2UpdateHostIgnitionNotFoundCode int = 404
 
-/*V2UpdateHostIgnitionNotFound Error.
+/*
+V2UpdateHostIgnitionNotFound Error.
 
 swagger:response v2UpdateHostIgnitionNotFound
 */
@@ -216,7 +221,8 @@ func (o *V2UpdateHostIgnitionNotFound) WriteResponse(rw http.ResponseWriter, pro
 // V2UpdateHostIgnitionMethodNotAllowedCode is the HTTP code returned for type V2UpdateHostIgnitionMethodNotAllowed
 const V2UpdateHostIgnitionMethodNotAllowedCode int = 405
 
-/*V2UpdateHostIgnitionMethodNotAllowed Method Not Allowed.
+/*
+V2UpdateHostIgnitionMethodNotAllowed Method Not Allowed.
 
 swagger:response v2UpdateHostIgnitionMethodNotAllowed
 */
@@ -260,7 +266,8 @@ func (o *V2UpdateHostIgnitionMethodNotAllowed) WriteResponse(rw http.ResponseWri
 // V2UpdateHostIgnitionInternalServerErrorCode is the HTTP code returned for type V2UpdateHostIgnitionInternalServerError
 const V2UpdateHostIgnitionInternalServerErrorCode int = 500
 
-/*V2UpdateHostIgnitionInternalServerError Error.
+/*
+V2UpdateHostIgnitionInternalServerError Error.
 
 swagger:response v2UpdateHostIgnitionInternalServerError
 */
@@ -304,7 +311,8 @@ func (o *V2UpdateHostIgnitionInternalServerError) WriteResponse(rw http.Response
 // V2UpdateHostIgnitionNotImplementedCode is the HTTP code returned for type V2UpdateHostIgnitionNotImplemented
 const V2UpdateHostIgnitionNotImplementedCode int = 501
 
-/*V2UpdateHostIgnitionNotImplemented Not implemented.
+/*
+V2UpdateHostIgnitionNotImplemented Not implemented.
 
 swagger:response v2UpdateHostIgnitionNotImplemented
 */

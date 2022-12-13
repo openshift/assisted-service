@@ -29,10 +29,10 @@ func NewV2GetClusterDefaultConfig(ctx *middleware.Context, handler V2GetClusterD
 	return &V2GetClusterDefaultConfig{Context: ctx, Handler: handler}
 }
 
-/* V2GetClusterDefaultConfig swagger:route GET /v2/clusters/default-config installer v2GetClusterDefaultConfig
+/*
+	V2GetClusterDefaultConfig swagger:route GET /v2/clusters/default-config installer v2GetClusterDefaultConfig
 
 Get the default values for various cluster properties.
-
 */
 type V2GetClusterDefaultConfig struct {
 	Context *middleware.Context

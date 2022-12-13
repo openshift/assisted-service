@@ -29,10 +29,10 @@ func NewV2UpdateHost(ctx *middleware.Context, handler V2UpdateHostHandler) *V2Up
 	return &V2UpdateHost{Context: ctx, Handler: handler}
 }
 
-/* V2UpdateHost swagger:route PATCH /v2/infra-envs/{infra_env_id}/hosts/{host_id} installer v2UpdateHost
+/*
+	V2UpdateHost swagger:route PATCH /v2/infra-envs/{infra_env_id}/hosts/{host_id} installer v2UpdateHost
 
 Update an Openshift host
-
 */
 type V2UpdateHost struct {
 	Context *middleware.Context

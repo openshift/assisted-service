@@ -17,7 +17,8 @@ import (
 // DownloadMinimalInitrdOKCode is the HTTP code returned for type DownloadMinimalInitrdOK
 const DownloadMinimalInitrdOKCode int = 200
 
-/*DownloadMinimalInitrdOK Success.
+/*
+DownloadMinimalInitrdOK Success.
 
 swagger:response downloadMinimalInitrdOK
 */
@@ -59,7 +60,8 @@ func (o *DownloadMinimalInitrdOK) WriteResponse(rw http.ResponseWriter, producer
 // DownloadMinimalInitrdNoContentCode is the HTTP code returned for type DownloadMinimalInitrdNoContent
 const DownloadMinimalInitrdNoContentCode int = 204
 
-/*DownloadMinimalInitrdNoContent Empty Success.
+/*
+DownloadMinimalInitrdNoContent Empty Success.
 
 swagger:response downloadMinimalInitrdNoContent
 */
@@ -83,7 +85,8 @@ func (o *DownloadMinimalInitrdNoContent) WriteResponse(rw http.ResponseWriter, p
 // DownloadMinimalInitrdUnauthorizedCode is the HTTP code returned for type DownloadMinimalInitrdUnauthorized
 const DownloadMinimalInitrdUnauthorizedCode int = 401
 
-/*DownloadMinimalInitrdUnauthorized Unauthorized.
+/*
+DownloadMinimalInitrdUnauthorized Unauthorized.
 
 swagger:response downloadMinimalInitrdUnauthorized
 */
@@ -127,7 +130,8 @@ func (o *DownloadMinimalInitrdUnauthorized) WriteResponse(rw http.ResponseWriter
 // DownloadMinimalInitrdForbiddenCode is the HTTP code returned for type DownloadMinimalInitrdForbidden
 const DownloadMinimalInitrdForbiddenCode int = 403
 
-/*DownloadMinimalInitrdForbidden Forbidden.
+/*
+DownloadMinimalInitrdForbidden Forbidden.
 
 swagger:response downloadMinimalInitrdForbidden
 */
@@ -171,7 +175,8 @@ func (o *DownloadMinimalInitrdForbidden) WriteResponse(rw http.ResponseWriter, p
 // DownloadMinimalInitrdNotFoundCode is the HTTP code returned for type DownloadMinimalInitrdNotFound
 const DownloadMinimalInitrdNotFoundCode int = 404
 
-/*DownloadMinimalInitrdNotFound Error.
+/*
+DownloadMinimalInitrdNotFound Error.
 
 swagger:response downloadMinimalInitrdNotFound
 */
@@ -215,7 +220,8 @@ func (o *DownloadMinimalInitrdNotFound) WriteResponse(rw http.ResponseWriter, pr
 // DownloadMinimalInitrdMethodNotAllowedCode is the HTTP code returned for type DownloadMinimalInitrdMethodNotAllowed
 const DownloadMinimalInitrdMethodNotAllowedCode int = 405
 
-/*DownloadMinimalInitrdMethodNotAllowed Method Not Allowed.
+/*
+DownloadMinimalInitrdMethodNotAllowed Method Not Allowed.
 
 swagger:response downloadMinimalInitrdMethodNotAllowed
 */
@@ -259,7 +265,8 @@ func (o *DownloadMinimalInitrdMethodNotAllowed) WriteResponse(rw http.ResponseWr
 // DownloadMinimalInitrdConflictCode is the HTTP code returned for type DownloadMinimalInitrdConflict
 const DownloadMinimalInitrdConflictCode int = 409
 
-/*DownloadMinimalInitrdConflict Conflict.
+/*
+DownloadMinimalInitrdConflict Conflict.
 
 swagger:response downloadMinimalInitrdConflict
 */
@@ -303,7 +310,8 @@ func (o *DownloadMinimalInitrdConflict) WriteResponse(rw http.ResponseWriter, pr
 // DownloadMinimalInitrdInternalServerErrorCode is the HTTP code returned for type DownloadMinimalInitrdInternalServerError
 const DownloadMinimalInitrdInternalServerErrorCode int = 500
 
-/*DownloadMinimalInitrdInternalServerError Error.
+/*
+DownloadMinimalInitrdInternalServerError Error.
 
 swagger:response downloadMinimalInitrdInternalServerError
 */

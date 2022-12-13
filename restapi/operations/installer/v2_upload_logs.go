@@ -29,10 +29,10 @@ func NewV2UploadLogs(ctx *middleware.Context, handler V2UploadLogsHandler) *V2Up
 	return &V2UploadLogs{Context: ctx, Handler: handler}
 }
 
-/* V2UploadLogs swagger:route POST /v2/clusters/{cluster_id}/logs installer v2UploadLogs
+/*
+	V2UploadLogs swagger:route POST /v2/clusters/{cluster_id}/logs installer v2UploadLogs
 
 Agent API to upload logs.
-
 */
 type V2UploadLogs struct {
 	Context *middleware.Context

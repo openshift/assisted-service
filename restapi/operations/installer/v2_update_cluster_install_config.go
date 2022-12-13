@@ -29,10 +29,10 @@ func NewV2UpdateClusterInstallConfig(ctx *middleware.Context, handler V2UpdateCl
 	return &V2UpdateClusterInstallConfig{Context: ctx, Handler: handler}
 }
 
-/* V2UpdateClusterInstallConfig swagger:route PATCH /v2/clusters/{cluster_id}/install-config installer v2UpdateClusterInstallConfig
+/*
+	V2UpdateClusterInstallConfig swagger:route PATCH /v2/clusters/{cluster_id}/install-config installer v2UpdateClusterInstallConfig
 
 Override values in the install config.
-
 */
 type V2UpdateClusterInstallConfig struct {
 	Context *middleware.Context

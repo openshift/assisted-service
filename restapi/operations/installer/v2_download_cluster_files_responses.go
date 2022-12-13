@@ -17,7 +17,8 @@ import (
 // V2DownloadClusterFilesOKCode is the HTTP code returned for type V2DownloadClusterFilesOK
 const V2DownloadClusterFilesOKCode int = 200
 
-/*V2DownloadClusterFilesOK Success.
+/*
+V2DownloadClusterFilesOK Success.
 
 swagger:response v2DownloadClusterFilesOK
 */
@@ -59,7 +60,8 @@ func (o *V2DownloadClusterFilesOK) WriteResponse(rw http.ResponseWriter, produce
 // V2DownloadClusterFilesUnauthorizedCode is the HTTP code returned for type V2DownloadClusterFilesUnauthorized
 const V2DownloadClusterFilesUnauthorizedCode int = 401
 
-/*V2DownloadClusterFilesUnauthorized Unauthorized.
+/*
+V2DownloadClusterFilesUnauthorized Unauthorized.
 
 swagger:response v2DownloadClusterFilesUnauthorized
 */
@@ -103,7 +105,8 @@ func (o *V2DownloadClusterFilesUnauthorized) WriteResponse(rw http.ResponseWrite
 // V2DownloadClusterFilesForbiddenCode is the HTTP code returned for type V2DownloadClusterFilesForbidden
 const V2DownloadClusterFilesForbiddenCode int = 403
 
-/*V2DownloadClusterFilesForbidden Forbidden.
+/*
+V2DownloadClusterFilesForbidden Forbidden.
 
 swagger:response v2DownloadClusterFilesForbidden
 */
@@ -147,7 +150,8 @@ func (o *V2DownloadClusterFilesForbidden) WriteResponse(rw http.ResponseWriter, 
 // V2DownloadClusterFilesNotFoundCode is the HTTP code returned for type V2DownloadClusterFilesNotFound
 const V2DownloadClusterFilesNotFoundCode int = 404
 
-/*V2DownloadClusterFilesNotFound Error.
+/*
+V2DownloadClusterFilesNotFound Error.
 
 swagger:response v2DownloadClusterFilesNotFound
 */
@@ -191,7 +195,8 @@ func (o *V2DownloadClusterFilesNotFound) WriteResponse(rw http.ResponseWriter, p
 // V2DownloadClusterFilesMethodNotAllowedCode is the HTTP code returned for type V2DownloadClusterFilesMethodNotAllowed
 const V2DownloadClusterFilesMethodNotAllowedCode int = 405
 
-/*V2DownloadClusterFilesMethodNotAllowed Method Not Allowed.
+/*
+V2DownloadClusterFilesMethodNotAllowed Method Not Allowed.
 
 swagger:response v2DownloadClusterFilesMethodNotAllowed
 */
@@ -235,7 +240,8 @@ func (o *V2DownloadClusterFilesMethodNotAllowed) WriteResponse(rw http.ResponseW
 // V2DownloadClusterFilesConflictCode is the HTTP code returned for type V2DownloadClusterFilesConflict
 const V2DownloadClusterFilesConflictCode int = 409
 
-/*V2DownloadClusterFilesConflict Error.
+/*
+V2DownloadClusterFilesConflict Error.
 
 swagger:response v2DownloadClusterFilesConflict
 */
@@ -279,7 +285,8 @@ func (o *V2DownloadClusterFilesConflict) WriteResponse(rw http.ResponseWriter, p
 // V2DownloadClusterFilesInternalServerErrorCode is the HTTP code returned for type V2DownloadClusterFilesInternalServerError
 const V2DownloadClusterFilesInternalServerErrorCode int = 500
 
-/*V2DownloadClusterFilesInternalServerError Error.
+/*
+V2DownloadClusterFilesInternalServerError Error.
 
 swagger:response v2DownloadClusterFilesInternalServerError
 */
@@ -323,7 +330,8 @@ func (o *V2DownloadClusterFilesInternalServerError) WriteResponse(rw http.Respon
 // V2DownloadClusterFilesServiceUnavailableCode is the HTTP code returned for type V2DownloadClusterFilesServiceUnavailable
 const V2DownloadClusterFilesServiceUnavailableCode int = 503
 
-/*V2DownloadClusterFilesServiceUnavailable Unavailable.
+/*
+V2DownloadClusterFilesServiceUnavailable Unavailable.
 
 swagger:response v2DownloadClusterFilesServiceUnavailable
 */

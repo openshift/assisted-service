@@ -16,7 +16,8 @@ import (
 // V2ListEventsOKCode is the HTTP code returned for type V2ListEventsOK
 const V2ListEventsOKCode int = 200
 
-/*V2ListEventsOK Success.
+/*
+V2ListEventsOK Success.
 
 swagger:response v2ListEventsOK
 */
@@ -63,7 +64,8 @@ func (o *V2ListEventsOK) WriteResponse(rw http.ResponseWriter, producer runtime.
 // V2ListEventsUnauthorizedCode is the HTTP code returned for type V2ListEventsUnauthorized
 const V2ListEventsUnauthorizedCode int = 401
 
-/*V2ListEventsUnauthorized Unauthorized.
+/*
+V2ListEventsUnauthorized Unauthorized.
 
 swagger:response v2ListEventsUnauthorized
 */
@@ -107,7 +109,8 @@ func (o *V2ListEventsUnauthorized) WriteResponse(rw http.ResponseWriter, produce
 // V2ListEventsForbiddenCode is the HTTP code returned for type V2ListEventsForbidden
 const V2ListEventsForbiddenCode int = 403
 
-/*V2ListEventsForbidden Forbidden.
+/*
+V2ListEventsForbidden Forbidden.
 
 swagger:response v2ListEventsForbidden
 */
@@ -151,7 +154,8 @@ func (o *V2ListEventsForbidden) WriteResponse(rw http.ResponseWriter, producer r
 // V2ListEventsNotFoundCode is the HTTP code returned for type V2ListEventsNotFound
 const V2ListEventsNotFoundCode int = 404
 
-/*V2ListEventsNotFound Error.
+/*
+V2ListEventsNotFound Error.
 
 swagger:response v2ListEventsNotFound
 */
@@ -195,7 +199,8 @@ func (o *V2ListEventsNotFound) WriteResponse(rw http.ResponseWriter, producer ru
 // V2ListEventsMethodNotAllowedCode is the HTTP code returned for type V2ListEventsMethodNotAllowed
 const V2ListEventsMethodNotAllowedCode int = 405
 
-/*V2ListEventsMethodNotAllowed Method Not Allowed.
+/*
+V2ListEventsMethodNotAllowed Method Not Allowed.
 
 swagger:response v2ListEventsMethodNotAllowed
 */
@@ -239,7 +244,8 @@ func (o *V2ListEventsMethodNotAllowed) WriteResponse(rw http.ResponseWriter, pro
 // V2ListEventsInternalServerErrorCode is the HTTP code returned for type V2ListEventsInternalServerError
 const V2ListEventsInternalServerErrorCode int = 500
 
-/*V2ListEventsInternalServerError Error.
+/*
+V2ListEventsInternalServerError Error.
 
 swagger:response v2ListEventsInternalServerError
 */

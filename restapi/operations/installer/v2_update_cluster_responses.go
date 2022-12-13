@@ -16,7 +16,8 @@ import (
 // V2UpdateClusterCreatedCode is the HTTP code returned for type V2UpdateClusterCreated
 const V2UpdateClusterCreatedCode int = 201
 
-/*V2UpdateClusterCreated Success.
+/*
+V2UpdateClusterCreated Success.
 
 swagger:response v2UpdateClusterCreated
 */
@@ -60,7 +61,8 @@ func (o *V2UpdateClusterCreated) WriteResponse(rw http.ResponseWriter, producer 
 // V2UpdateClusterBadRequestCode is the HTTP code returned for type V2UpdateClusterBadRequest
 const V2UpdateClusterBadRequestCode int = 400
 
-/*V2UpdateClusterBadRequest Error.
+/*
+V2UpdateClusterBadRequest Error.
 
 swagger:response v2UpdateClusterBadRequest
 */
@@ -104,7 +106,8 @@ func (o *V2UpdateClusterBadRequest) WriteResponse(rw http.ResponseWriter, produc
 // V2UpdateClusterUnauthorizedCode is the HTTP code returned for type V2UpdateClusterUnauthorized
 const V2UpdateClusterUnauthorizedCode int = 401
 
-/*V2UpdateClusterUnauthorized Unauthorized.
+/*
+V2UpdateClusterUnauthorized Unauthorized.
 
 swagger:response v2UpdateClusterUnauthorized
 */
@@ -148,7 +151,8 @@ func (o *V2UpdateClusterUnauthorized) WriteResponse(rw http.ResponseWriter, prod
 // V2UpdateClusterForbiddenCode is the HTTP code returned for type V2UpdateClusterForbidden
 const V2UpdateClusterForbiddenCode int = 403
 
-/*V2UpdateClusterForbidden Forbidden.
+/*
+V2UpdateClusterForbidden Forbidden.
 
 swagger:response v2UpdateClusterForbidden
 */
@@ -192,7 +196,8 @@ func (o *V2UpdateClusterForbidden) WriteResponse(rw http.ResponseWriter, produce
 // V2UpdateClusterNotFoundCode is the HTTP code returned for type V2UpdateClusterNotFound
 const V2UpdateClusterNotFoundCode int = 404
 
-/*V2UpdateClusterNotFound Error.
+/*
+V2UpdateClusterNotFound Error.
 
 swagger:response v2UpdateClusterNotFound
 */
@@ -236,7 +241,8 @@ func (o *V2UpdateClusterNotFound) WriteResponse(rw http.ResponseWriter, producer
 // V2UpdateClusterMethodNotAllowedCode is the HTTP code returned for type V2UpdateClusterMethodNotAllowed
 const V2UpdateClusterMethodNotAllowedCode int = 405
 
-/*V2UpdateClusterMethodNotAllowed Method Not Allowed.
+/*
+V2UpdateClusterMethodNotAllowed Method Not Allowed.
 
 swagger:response v2UpdateClusterMethodNotAllowed
 */
@@ -280,7 +286,8 @@ func (o *V2UpdateClusterMethodNotAllowed) WriteResponse(rw http.ResponseWriter, 
 // V2UpdateClusterConflictCode is the HTTP code returned for type V2UpdateClusterConflict
 const V2UpdateClusterConflictCode int = 409
 
-/*V2UpdateClusterConflict Error.
+/*
+V2UpdateClusterConflict Error.
 
 swagger:response v2UpdateClusterConflict
 */
@@ -324,7 +331,8 @@ func (o *V2UpdateClusterConflict) WriteResponse(rw http.ResponseWriter, producer
 // V2UpdateClusterInternalServerErrorCode is the HTTP code returned for type V2UpdateClusterInternalServerError
 const V2UpdateClusterInternalServerErrorCode int = 500
 
-/*V2UpdateClusterInternalServerError Error.
+/*
+V2UpdateClusterInternalServerError Error.
 
 swagger:response v2UpdateClusterInternalServerError
 */

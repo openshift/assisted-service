@@ -29,11 +29,10 @@ func NewDownloadMinimalInitrd(ctx *middleware.Context, handler DownloadMinimalIn
 	return &DownloadMinimalInitrd{Context: ctx, Handler: handler}
 }
 
-/* DownloadMinimalInitrd swagger:route GET /v2/infra-envs/{infra_env_id}/downloads/minimal-initrd installer downloadMinimalInitrd
+/*
+	DownloadMinimalInitrd swagger:route GET /v2/infra-envs/{infra_env_id}/downloads/minimal-initrd installer downloadMinimalInitrd
 
 Get the initial ramdisk for minimal ISO based installations.
-
-
 */
 type DownloadMinimalInitrd struct {
 	Context *middleware.Context

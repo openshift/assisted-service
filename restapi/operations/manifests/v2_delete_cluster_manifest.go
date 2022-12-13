@@ -29,10 +29,10 @@ func NewV2DeleteClusterManifest(ctx *middleware.Context, handler V2DeleteCluster
 	return &V2DeleteClusterManifest{Context: ctx, Handler: handler}
 }
 
-/* V2DeleteClusterManifest swagger:route DELETE /v2/clusters/{cluster_id}/manifests manifests v2DeleteClusterManifest
+/*
+	V2DeleteClusterManifest swagger:route DELETE /v2/clusters/{cluster_id}/manifests manifests v2DeleteClusterManifest
 
 Deletes a manifest from the cluster.
-
 */
 type V2DeleteClusterManifest struct {
 	Context *middleware.Context

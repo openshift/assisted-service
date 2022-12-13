@@ -16,7 +16,8 @@ import (
 // V2RegisterClusterCreatedCode is the HTTP code returned for type V2RegisterClusterCreated
 const V2RegisterClusterCreatedCode int = 201
 
-/*V2RegisterClusterCreated Success.
+/*
+V2RegisterClusterCreated Success.
 
 swagger:response v2RegisterClusterCreated
 */
@@ -60,7 +61,8 @@ func (o *V2RegisterClusterCreated) WriteResponse(rw http.ResponseWriter, produce
 // V2RegisterClusterBadRequestCode is the HTTP code returned for type V2RegisterClusterBadRequest
 const V2RegisterClusterBadRequestCode int = 400
 
-/*V2RegisterClusterBadRequest Error.
+/*
+V2RegisterClusterBadRequest Error.
 
 swagger:response v2RegisterClusterBadRequest
 */
@@ -104,7 +106,8 @@ func (o *V2RegisterClusterBadRequest) WriteResponse(rw http.ResponseWriter, prod
 // V2RegisterClusterUnauthorizedCode is the HTTP code returned for type V2RegisterClusterUnauthorized
 const V2RegisterClusterUnauthorizedCode int = 401
 
-/*V2RegisterClusterUnauthorized Unauthorized.
+/*
+V2RegisterClusterUnauthorized Unauthorized.
 
 swagger:response v2RegisterClusterUnauthorized
 */
@@ -148,7 +151,8 @@ func (o *V2RegisterClusterUnauthorized) WriteResponse(rw http.ResponseWriter, pr
 // V2RegisterClusterForbiddenCode is the HTTP code returned for type V2RegisterClusterForbidden
 const V2RegisterClusterForbiddenCode int = 403
 
-/*V2RegisterClusterForbidden Forbidden.
+/*
+V2RegisterClusterForbidden Forbidden.
 
 swagger:response v2RegisterClusterForbidden
 */
@@ -192,7 +196,8 @@ func (o *V2RegisterClusterForbidden) WriteResponse(rw http.ResponseWriter, produ
 // V2RegisterClusterMethodNotAllowedCode is the HTTP code returned for type V2RegisterClusterMethodNotAllowed
 const V2RegisterClusterMethodNotAllowedCode int = 405
 
-/*V2RegisterClusterMethodNotAllowed Method Not Allowed.
+/*
+V2RegisterClusterMethodNotAllowed Method Not Allowed.
 
 swagger:response v2RegisterClusterMethodNotAllowed
 */
@@ -236,7 +241,8 @@ func (o *V2RegisterClusterMethodNotAllowed) WriteResponse(rw http.ResponseWriter
 // V2RegisterClusterInternalServerErrorCode is the HTTP code returned for type V2RegisterClusterInternalServerError
 const V2RegisterClusterInternalServerErrorCode int = 500
 
-/*V2RegisterClusterInternalServerError Error.
+/*
+V2RegisterClusterInternalServerError Error.
 
 swagger:response v2RegisterClusterInternalServerError
 */

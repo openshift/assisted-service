@@ -17,7 +17,8 @@ import (
 // V2DownloadClusterManifestOKCode is the HTTP code returned for type V2DownloadClusterManifestOK
 const V2DownloadClusterManifestOKCode int = 200
 
-/*V2DownloadClusterManifestOK Success.
+/*
+V2DownloadClusterManifestOK Success.
 
 swagger:response v2DownloadClusterManifestOK
 */
@@ -59,7 +60,8 @@ func (o *V2DownloadClusterManifestOK) WriteResponse(rw http.ResponseWriter, prod
 // V2DownloadClusterManifestUnauthorizedCode is the HTTP code returned for type V2DownloadClusterManifestUnauthorized
 const V2DownloadClusterManifestUnauthorizedCode int = 401
 
-/*V2DownloadClusterManifestUnauthorized Unauthorized.
+/*
+V2DownloadClusterManifestUnauthorized Unauthorized.
 
 swagger:response v2DownloadClusterManifestUnauthorized
 */
@@ -103,7 +105,8 @@ func (o *V2DownloadClusterManifestUnauthorized) WriteResponse(rw http.ResponseWr
 // V2DownloadClusterManifestForbiddenCode is the HTTP code returned for type V2DownloadClusterManifestForbidden
 const V2DownloadClusterManifestForbiddenCode int = 403
 
-/*V2DownloadClusterManifestForbidden Forbidden.
+/*
+V2DownloadClusterManifestForbidden Forbidden.
 
 swagger:response v2DownloadClusterManifestForbidden
 */
@@ -147,7 +150,8 @@ func (o *V2DownloadClusterManifestForbidden) WriteResponse(rw http.ResponseWrite
 // V2DownloadClusterManifestNotFoundCode is the HTTP code returned for type V2DownloadClusterManifestNotFound
 const V2DownloadClusterManifestNotFoundCode int = 404
 
-/*V2DownloadClusterManifestNotFound Error.
+/*
+V2DownloadClusterManifestNotFound Error.
 
 swagger:response v2DownloadClusterManifestNotFound
 */
@@ -191,7 +195,8 @@ func (o *V2DownloadClusterManifestNotFound) WriteResponse(rw http.ResponseWriter
 // V2DownloadClusterManifestMethodNotAllowedCode is the HTTP code returned for type V2DownloadClusterManifestMethodNotAllowed
 const V2DownloadClusterManifestMethodNotAllowedCode int = 405
 
-/*V2DownloadClusterManifestMethodNotAllowed Method Not Allowed.
+/*
+V2DownloadClusterManifestMethodNotAllowed Method Not Allowed.
 
 swagger:response v2DownloadClusterManifestMethodNotAllowed
 */
@@ -235,7 +240,8 @@ func (o *V2DownloadClusterManifestMethodNotAllowed) WriteResponse(rw http.Respon
 // V2DownloadClusterManifestConflictCode is the HTTP code returned for type V2DownloadClusterManifestConflict
 const V2DownloadClusterManifestConflictCode int = 409
 
-/*V2DownloadClusterManifestConflict Error.
+/*
+V2DownloadClusterManifestConflict Error.
 
 swagger:response v2DownloadClusterManifestConflict
 */
@@ -279,7 +285,8 @@ func (o *V2DownloadClusterManifestConflict) WriteResponse(rw http.ResponseWriter
 // V2DownloadClusterManifestInternalServerErrorCode is the HTTP code returned for type V2DownloadClusterManifestInternalServerError
 const V2DownloadClusterManifestInternalServerErrorCode int = 500
 
-/*V2DownloadClusterManifestInternalServerError Error.
+/*
+V2DownloadClusterManifestInternalServerError Error.
 
 swagger:response v2DownloadClusterManifestInternalServerError
 */

@@ -16,7 +16,8 @@ import (
 // V2ResetHostOKCode is the HTTP code returned for type V2ResetHostOK
 const V2ResetHostOKCode int = 200
 
-/*V2ResetHostOK Success.
+/*
+V2ResetHostOK Success.
 
 swagger:response v2ResetHostOK
 */
@@ -60,7 +61,8 @@ func (o *V2ResetHostOK) WriteResponse(rw http.ResponseWriter, producer runtime.P
 // V2ResetHostUnauthorizedCode is the HTTP code returned for type V2ResetHostUnauthorized
 const V2ResetHostUnauthorizedCode int = 401
 
-/*V2ResetHostUnauthorized Unauthorized.
+/*
+V2ResetHostUnauthorized Unauthorized.
 
 swagger:response v2ResetHostUnauthorized
 */
@@ -104,7 +106,8 @@ func (o *V2ResetHostUnauthorized) WriteResponse(rw http.ResponseWriter, producer
 // V2ResetHostForbiddenCode is the HTTP code returned for type V2ResetHostForbidden
 const V2ResetHostForbiddenCode int = 403
 
-/*V2ResetHostForbidden Forbidden.
+/*
+V2ResetHostForbidden Forbidden.
 
 swagger:response v2ResetHostForbidden
 */
@@ -148,7 +151,8 @@ func (o *V2ResetHostForbidden) WriteResponse(rw http.ResponseWriter, producer ru
 // V2ResetHostNotFoundCode is the HTTP code returned for type V2ResetHostNotFound
 const V2ResetHostNotFoundCode int = 404
 
-/*V2ResetHostNotFound Error.
+/*
+V2ResetHostNotFound Error.
 
 swagger:response v2ResetHostNotFound
 */
@@ -192,7 +196,8 @@ func (o *V2ResetHostNotFound) WriteResponse(rw http.ResponseWriter, producer run
 // V2ResetHostConflictCode is the HTTP code returned for type V2ResetHostConflict
 const V2ResetHostConflictCode int = 409
 
-/*V2ResetHostConflict Error.
+/*
+V2ResetHostConflict Error.
 
 swagger:response v2ResetHostConflict
 */
@@ -236,7 +241,8 @@ func (o *V2ResetHostConflict) WriteResponse(rw http.ResponseWriter, producer run
 // V2ResetHostInternalServerErrorCode is the HTTP code returned for type V2ResetHostInternalServerError
 const V2ResetHostInternalServerErrorCode int = 500
 
-/*V2ResetHostInternalServerError Error.
+/*
+V2ResetHostInternalServerError Error.
 
 swagger:response v2ResetHostInternalServerError
 */

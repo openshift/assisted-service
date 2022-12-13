@@ -16,7 +16,8 @@ import (
 // ListInfraEnvsOKCode is the HTTP code returned for type ListInfraEnvsOK
 const ListInfraEnvsOKCode int = 200
 
-/*ListInfraEnvsOK Success.
+/*
+ListInfraEnvsOK Success.
 
 swagger:response listInfraEnvsOK
 */
@@ -63,7 +64,8 @@ func (o *ListInfraEnvsOK) WriteResponse(rw http.ResponseWriter, producer runtime
 // ListInfraEnvsUnauthorizedCode is the HTTP code returned for type ListInfraEnvsUnauthorized
 const ListInfraEnvsUnauthorizedCode int = 401
 
-/*ListInfraEnvsUnauthorized Unauthorized.
+/*
+ListInfraEnvsUnauthorized Unauthorized.
 
 swagger:response listInfraEnvsUnauthorized
 */
@@ -107,7 +109,8 @@ func (o *ListInfraEnvsUnauthorized) WriteResponse(rw http.ResponseWriter, produc
 // ListInfraEnvsForbiddenCode is the HTTP code returned for type ListInfraEnvsForbidden
 const ListInfraEnvsForbiddenCode int = 403
 
-/*ListInfraEnvsForbidden Forbidden.
+/*
+ListInfraEnvsForbidden Forbidden.
 
 swagger:response listInfraEnvsForbidden
 */
@@ -151,7 +154,8 @@ func (o *ListInfraEnvsForbidden) WriteResponse(rw http.ResponseWriter, producer 
 // ListInfraEnvsMethodNotAllowedCode is the HTTP code returned for type ListInfraEnvsMethodNotAllowed
 const ListInfraEnvsMethodNotAllowedCode int = 405
 
-/*ListInfraEnvsMethodNotAllowed Method Not Allowed.
+/*
+ListInfraEnvsMethodNotAllowed Method Not Allowed.
 
 swagger:response listInfraEnvsMethodNotAllowed
 */
@@ -195,7 +199,8 @@ func (o *ListInfraEnvsMethodNotAllowed) WriteResponse(rw http.ResponseWriter, pr
 // ListInfraEnvsInternalServerErrorCode is the HTTP code returned for type ListInfraEnvsInternalServerError
 const ListInfraEnvsInternalServerErrorCode int = 500
 
-/*ListInfraEnvsInternalServerError Error.
+/*
+ListInfraEnvsInternalServerError Error.
 
 swagger:response listInfraEnvsInternalServerError
 */
@@ -239,7 +244,8 @@ func (o *ListInfraEnvsInternalServerError) WriteResponse(rw http.ResponseWriter,
 // ListInfraEnvsNotImplementedCode is the HTTP code returned for type ListInfraEnvsNotImplemented
 const ListInfraEnvsNotImplementedCode int = 501
 
-/*ListInfraEnvsNotImplemented Not implemented.
+/*
+ListInfraEnvsNotImplemented Not implemented.
 
 swagger:response listInfraEnvsNotImplemented
 */
@@ -283,7 +289,8 @@ func (o *ListInfraEnvsNotImplemented) WriteResponse(rw http.ResponseWriter, prod
 // ListInfraEnvsServiceUnavailableCode is the HTTP code returned for type ListInfraEnvsServiceUnavailable
 const ListInfraEnvsServiceUnavailableCode int = 503
 
-/*ListInfraEnvsServiceUnavailable Unavailable.
+/*
+ListInfraEnvsServiceUnavailable Unavailable.
 
 swagger:response listInfraEnvsServiceUnavailable
 */

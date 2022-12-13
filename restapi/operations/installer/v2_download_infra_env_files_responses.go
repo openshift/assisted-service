@@ -17,7 +17,8 @@ import (
 // V2DownloadInfraEnvFilesOKCode is the HTTP code returned for type V2DownloadInfraEnvFilesOK
 const V2DownloadInfraEnvFilesOKCode int = 200
 
-/*V2DownloadInfraEnvFilesOK Success.
+/*
+V2DownloadInfraEnvFilesOK Success.
 
 swagger:response v2DownloadInfraEnvFilesOK
 */
@@ -59,7 +60,8 @@ func (o *V2DownloadInfraEnvFilesOK) WriteResponse(rw http.ResponseWriter, produc
 // V2DownloadInfraEnvFilesBadRequestCode is the HTTP code returned for type V2DownloadInfraEnvFilesBadRequest
 const V2DownloadInfraEnvFilesBadRequestCode int = 400
 
-/*V2DownloadInfraEnvFilesBadRequest Bad Request.
+/*
+V2DownloadInfraEnvFilesBadRequest Bad Request.
 
 swagger:response v2DownloadInfraEnvFilesBadRequest
 */
@@ -103,7 +105,8 @@ func (o *V2DownloadInfraEnvFilesBadRequest) WriteResponse(rw http.ResponseWriter
 // V2DownloadInfraEnvFilesUnauthorizedCode is the HTTP code returned for type V2DownloadInfraEnvFilesUnauthorized
 const V2DownloadInfraEnvFilesUnauthorizedCode int = 401
 
-/*V2DownloadInfraEnvFilesUnauthorized Unauthorized.
+/*
+V2DownloadInfraEnvFilesUnauthorized Unauthorized.
 
 swagger:response v2DownloadInfraEnvFilesUnauthorized
 */
@@ -147,7 +150,8 @@ func (o *V2DownloadInfraEnvFilesUnauthorized) WriteResponse(rw http.ResponseWrit
 // V2DownloadInfraEnvFilesForbiddenCode is the HTTP code returned for type V2DownloadInfraEnvFilesForbidden
 const V2DownloadInfraEnvFilesForbiddenCode int = 403
 
-/*V2DownloadInfraEnvFilesForbidden Forbidden.
+/*
+V2DownloadInfraEnvFilesForbidden Forbidden.
 
 swagger:response v2DownloadInfraEnvFilesForbidden
 */
@@ -191,7 +195,8 @@ func (o *V2DownloadInfraEnvFilesForbidden) WriteResponse(rw http.ResponseWriter,
 // V2DownloadInfraEnvFilesNotFoundCode is the HTTP code returned for type V2DownloadInfraEnvFilesNotFound
 const V2DownloadInfraEnvFilesNotFoundCode int = 404
 
-/*V2DownloadInfraEnvFilesNotFound Error.
+/*
+V2DownloadInfraEnvFilesNotFound Error.
 
 swagger:response v2DownloadInfraEnvFilesNotFound
 */
@@ -235,7 +240,8 @@ func (o *V2DownloadInfraEnvFilesNotFound) WriteResponse(rw http.ResponseWriter, 
 // V2DownloadInfraEnvFilesMethodNotAllowedCode is the HTTP code returned for type V2DownloadInfraEnvFilesMethodNotAllowed
 const V2DownloadInfraEnvFilesMethodNotAllowedCode int = 405
 
-/*V2DownloadInfraEnvFilesMethodNotAllowed Method Not Allowed.
+/*
+V2DownloadInfraEnvFilesMethodNotAllowed Method Not Allowed.
 
 swagger:response v2DownloadInfraEnvFilesMethodNotAllowed
 */
@@ -279,7 +285,8 @@ func (o *V2DownloadInfraEnvFilesMethodNotAllowed) WriteResponse(rw http.Response
 // V2DownloadInfraEnvFilesConflictCode is the HTTP code returned for type V2DownloadInfraEnvFilesConflict
 const V2DownloadInfraEnvFilesConflictCode int = 409
 
-/*V2DownloadInfraEnvFilesConflict Error.
+/*
+V2DownloadInfraEnvFilesConflict Error.
 
 swagger:response v2DownloadInfraEnvFilesConflict
 */
@@ -323,7 +330,8 @@ func (o *V2DownloadInfraEnvFilesConflict) WriteResponse(rw http.ResponseWriter, 
 // V2DownloadInfraEnvFilesInternalServerErrorCode is the HTTP code returned for type V2DownloadInfraEnvFilesInternalServerError
 const V2DownloadInfraEnvFilesInternalServerErrorCode int = 500
 
-/*V2DownloadInfraEnvFilesInternalServerError Error.
+/*
+V2DownloadInfraEnvFilesInternalServerError Error.
 
 swagger:response v2DownloadInfraEnvFilesInternalServerError
 */
@@ -367,7 +375,8 @@ func (o *V2DownloadInfraEnvFilesInternalServerError) WriteResponse(rw http.Respo
 // V2DownloadInfraEnvFilesNotImplementedCode is the HTTP code returned for type V2DownloadInfraEnvFilesNotImplemented
 const V2DownloadInfraEnvFilesNotImplementedCode int = 501
 
-/*V2DownloadInfraEnvFilesNotImplemented Not implemented.
+/*
+V2DownloadInfraEnvFilesNotImplemented Not implemented.
 
 swagger:response v2DownloadInfraEnvFilesNotImplemented
 */
@@ -411,7 +420,8 @@ func (o *V2DownloadInfraEnvFilesNotImplemented) WriteResponse(rw http.ResponseWr
 // V2DownloadInfraEnvFilesServiceUnavailableCode is the HTTP code returned for type V2DownloadInfraEnvFilesServiceUnavailable
 const V2DownloadInfraEnvFilesServiceUnavailableCode int = 503
 
-/*V2DownloadInfraEnvFilesServiceUnavailable Unavailable.
+/*
+V2DownloadInfraEnvFilesServiceUnavailable Unavailable.
 
 swagger:response v2DownloadInfraEnvFilesServiceUnavailable
 */

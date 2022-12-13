@@ -16,7 +16,8 @@ import (
 // BindHostOKCode is the HTTP code returned for type BindHostOK
 const BindHostOKCode int = 200
 
-/*BindHostOK Success.
+/*
+BindHostOK Success.
 
 swagger:response bindHostOK
 */
@@ -60,7 +61,8 @@ func (o *BindHostOK) WriteResponse(rw http.ResponseWriter, producer runtime.Prod
 // BindHostBadRequestCode is the HTTP code returned for type BindHostBadRequest
 const BindHostBadRequestCode int = 400
 
-/*BindHostBadRequest Error.
+/*
+BindHostBadRequest Error.
 
 swagger:response bindHostBadRequest
 */
@@ -104,7 +106,8 @@ func (o *BindHostBadRequest) WriteResponse(rw http.ResponseWriter, producer runt
 // BindHostUnauthorizedCode is the HTTP code returned for type BindHostUnauthorized
 const BindHostUnauthorizedCode int = 401
 
-/*BindHostUnauthorized Unauthorized.
+/*
+BindHostUnauthorized Unauthorized.
 
 swagger:response bindHostUnauthorized
 */
@@ -148,7 +151,8 @@ func (o *BindHostUnauthorized) WriteResponse(rw http.ResponseWriter, producer ru
 // BindHostForbiddenCode is the HTTP code returned for type BindHostForbidden
 const BindHostForbiddenCode int = 403
 
-/*BindHostForbidden Forbidden.
+/*
+BindHostForbidden Forbidden.
 
 swagger:response bindHostForbidden
 */
@@ -192,7 +196,8 @@ func (o *BindHostForbidden) WriteResponse(rw http.ResponseWriter, producer runti
 // BindHostNotFoundCode is the HTTP code returned for type BindHostNotFound
 const BindHostNotFoundCode int = 404
 
-/*BindHostNotFound Error.
+/*
+BindHostNotFound Error.
 
 swagger:response bindHostNotFound
 */
@@ -236,7 +241,8 @@ func (o *BindHostNotFound) WriteResponse(rw http.ResponseWriter, producer runtim
 // BindHostMethodNotAllowedCode is the HTTP code returned for type BindHostMethodNotAllowed
 const BindHostMethodNotAllowedCode int = 405
 
-/*BindHostMethodNotAllowed Method Not Allowed.
+/*
+BindHostMethodNotAllowed Method Not Allowed.
 
 swagger:response bindHostMethodNotAllowed
 */
@@ -280,7 +286,8 @@ func (o *BindHostMethodNotAllowed) WriteResponse(rw http.ResponseWriter, produce
 // BindHostInternalServerErrorCode is the HTTP code returned for type BindHostInternalServerError
 const BindHostInternalServerErrorCode int = 500
 
-/*BindHostInternalServerError Error.
+/*
+BindHostInternalServerError Error.
 
 swagger:response bindHostInternalServerError
 */
@@ -324,7 +331,8 @@ func (o *BindHostInternalServerError) WriteResponse(rw http.ResponseWriter, prod
 // BindHostNotImplementedCode is the HTTP code returned for type BindHostNotImplemented
 const BindHostNotImplementedCode int = 501
 
-/*BindHostNotImplemented Not implemented.
+/*
+BindHostNotImplemented Not implemented.
 
 swagger:response bindHostNotImplemented
 */
@@ -368,7 +376,8 @@ func (o *BindHostNotImplemented) WriteResponse(rw http.ResponseWriter, producer 
 // BindHostServiceUnavailableCode is the HTTP code returned for type BindHostServiceUnavailable
 const BindHostServiceUnavailableCode int = 503
 
-/*BindHostServiceUnavailable Unavailable.
+/*
+BindHostServiceUnavailable Unavailable.
 
 swagger:response bindHostServiceUnavailable
 */

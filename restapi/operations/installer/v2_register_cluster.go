@@ -29,10 +29,10 @@ func NewV2RegisterCluster(ctx *middleware.Context, handler V2RegisterClusterHand
 	return &V2RegisterCluster{Context: ctx, Handler: handler}
 }
 
-/* V2RegisterCluster swagger:route POST /v2/clusters installer v2RegisterCluster
+/*
+	V2RegisterCluster swagger:route POST /v2/clusters installer v2RegisterCluster
 
 Creates a new OpenShift cluster definition.
-
 */
 type V2RegisterCluster struct {
 	Context *middleware.Context

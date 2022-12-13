@@ -29,10 +29,10 @@ func NewV2ListOperatorProperties(ctx *middleware.Context, handler V2ListOperator
 	return &V2ListOperatorProperties{Context: ctx, Handler: handler}
 }
 
-/* V2ListOperatorProperties swagger:route GET /v2/supported-operators/{operator_name} operators v2ListOperatorProperties
+/*
+	V2ListOperatorProperties swagger:route GET /v2/supported-operators/{operator_name} operators v2ListOperatorProperties
 
 Lists properties for an operator.
-
 */
 type V2ListOperatorProperties struct {
 	Context *middleware.Context

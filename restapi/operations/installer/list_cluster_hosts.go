@@ -29,10 +29,10 @@ func NewListClusterHosts(ctx *middleware.Context, handler ListClusterHostsHandle
 	return &ListClusterHosts{Context: ctx, Handler: handler}
 }
 
-/* ListClusterHosts swagger:route GET /v2/clusters/{cluster_id}/hosts installer listClusterHosts
+/*
+	ListClusterHosts swagger:route GET /v2/clusters/{cluster_id}/hosts installer listClusterHosts
 
 Get a list of cluster hosts according to supplied filters.
-
 */
 type ListClusterHosts struct {
 	Context *middleware.Context

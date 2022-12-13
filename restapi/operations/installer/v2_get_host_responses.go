@@ -16,7 +16,8 @@ import (
 // V2GetHostOKCode is the HTTP code returned for type V2GetHostOK
 const V2GetHostOKCode int = 200
 
-/*V2GetHostOK Success.
+/*
+V2GetHostOK Success.
 
 swagger:response v2GetHostOK
 */
@@ -60,7 +61,8 @@ func (o *V2GetHostOK) WriteResponse(rw http.ResponseWriter, producer runtime.Pro
 // V2GetHostUnauthorizedCode is the HTTP code returned for type V2GetHostUnauthorized
 const V2GetHostUnauthorizedCode int = 401
 
-/*V2GetHostUnauthorized Unauthorized.
+/*
+V2GetHostUnauthorized Unauthorized.
 
 swagger:response v2GetHostUnauthorized
 */
@@ -104,7 +106,8 @@ func (o *V2GetHostUnauthorized) WriteResponse(rw http.ResponseWriter, producer r
 // V2GetHostForbiddenCode is the HTTP code returned for type V2GetHostForbidden
 const V2GetHostForbiddenCode int = 403
 
-/*V2GetHostForbidden Forbidden.
+/*
+V2GetHostForbidden Forbidden.
 
 swagger:response v2GetHostForbidden
 */
@@ -148,7 +151,8 @@ func (o *V2GetHostForbidden) WriteResponse(rw http.ResponseWriter, producer runt
 // V2GetHostNotFoundCode is the HTTP code returned for type V2GetHostNotFound
 const V2GetHostNotFoundCode int = 404
 
-/*V2GetHostNotFound Error.
+/*
+V2GetHostNotFound Error.
 
 swagger:response v2GetHostNotFound
 */
@@ -192,7 +196,8 @@ func (o *V2GetHostNotFound) WriteResponse(rw http.ResponseWriter, producer runti
 // V2GetHostMethodNotAllowedCode is the HTTP code returned for type V2GetHostMethodNotAllowed
 const V2GetHostMethodNotAllowedCode int = 405
 
-/*V2GetHostMethodNotAllowed Method Not Allowed.
+/*
+V2GetHostMethodNotAllowed Method Not Allowed.
 
 swagger:response v2GetHostMethodNotAllowed
 */
@@ -236,7 +241,8 @@ func (o *V2GetHostMethodNotAllowed) WriteResponse(rw http.ResponseWriter, produc
 // V2GetHostInternalServerErrorCode is the HTTP code returned for type V2GetHostInternalServerError
 const V2GetHostInternalServerErrorCode int = 500
 
-/*V2GetHostInternalServerError Error.
+/*
+V2GetHostInternalServerError Error.
 
 swagger:response v2GetHostInternalServerError
 */
@@ -280,7 +286,8 @@ func (o *V2GetHostInternalServerError) WriteResponse(rw http.ResponseWriter, pro
 // V2GetHostNotImplementedCode is the HTTP code returned for type V2GetHostNotImplemented
 const V2GetHostNotImplementedCode int = 501
 
-/*V2GetHostNotImplemented Not implemented.
+/*
+V2GetHostNotImplemented Not implemented.
 
 swagger:response v2GetHostNotImplemented
 */

@@ -300,6 +300,11 @@ type Config struct {
 	BasicAuthenticator func(security.UserPassAuthentication) runtime.Authenticator
 	// Authenticator to use for all Basic authentication
 	BearerAuthenticator func(string, security.ScopedTokenAuthentication) runtime.Authenticator
+
+	// JSONConsumer is a json consumer that will replace the default if not nil.
+	JSONConsumer runtime.Consumer
+	// MultipartformConsumer is a multipartform consumer that will replace the default if not nil.
+	MultipartformConsumer runtime.Consumer
 }
 
 // Handler returns an http.Handler given the handler configuration
@@ -331,8 +336,16 @@ func HandlerAPI(c Config) (http.Handler, *operations.AssistedInstallAPI, error) 
 		api.BearerAuthenticator = c.BearerAuthenticator
 	}
 
-	api.JSONConsumer = runtime.JSONConsumer()
-	api.MultipartformConsumer = runtime.DiscardConsumer
+	if c.JSONConsumer != nil {
+		api.JSONConsumer = c.JSONConsumer
+	} else {
+		api.JSONConsumer = runtime.JSONConsumer()
+	}
+	if c.MultipartformConsumer != nil {
+		api.MultipartformConsumer = c.MultipartformConsumer
+	} else {
+		api.MultipartformConsumer = runtime.DiscardConsumer
+	}
 	api.BinProducer = runtime.ByteStreamProducer()
 	api.JSONProducer = runtime.JSONProducer()
 	api.AgentAuthAuth = func(token string) (interface{}, error) {

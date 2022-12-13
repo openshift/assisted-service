@@ -29,10 +29,10 @@ func NewV2InstallHost(ctx *middleware.Context, handler V2InstallHostHandler) *V2
 	return &V2InstallHost{Context: ctx, Handler: handler}
 }
 
-/* V2InstallHost swagger:route POST /v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/install installer v2InstallHost
+/*
+	V2InstallHost swagger:route POST /v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/install installer v2InstallHost
 
 install specific host for day2 cluster.
-
 */
 type V2InstallHost struct {
 	Context *middleware.Context

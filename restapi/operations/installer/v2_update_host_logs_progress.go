@@ -29,10 +29,10 @@ func NewV2UpdateHostLogsProgress(ctx *middleware.Context, handler V2UpdateHostLo
 	return &V2UpdateHostLogsProgress{Context: ctx, Handler: handler}
 }
 
-/* V2UpdateHostLogsProgress swagger:route PUT /v2/infra-envs/{infra_env_id}/hosts/{host_id}/logs-progress installer v2UpdateHostLogsProgress
+/*
+	V2UpdateHostLogsProgress swagger:route PUT /v2/infra-envs/{infra_env_id}/hosts/{host_id}/logs-progress installer v2UpdateHostLogsProgress
 
 Update log collection state and progress.
-
 */
 type V2UpdateHostLogsProgress struct {
 	Context *middleware.Context

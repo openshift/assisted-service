@@ -16,7 +16,8 @@ import (
 // V2CreateClusterManifestCreatedCode is the HTTP code returned for type V2CreateClusterManifestCreated
 const V2CreateClusterManifestCreatedCode int = 201
 
-/*V2CreateClusterManifestCreated Success.
+/*
+V2CreateClusterManifestCreated Success.
 
 swagger:response v2CreateClusterManifestCreated
 */
@@ -60,7 +61,8 @@ func (o *V2CreateClusterManifestCreated) WriteResponse(rw http.ResponseWriter, p
 // V2CreateClusterManifestBadRequestCode is the HTTP code returned for type V2CreateClusterManifestBadRequest
 const V2CreateClusterManifestBadRequestCode int = 400
 
-/*V2CreateClusterManifestBadRequest Error.
+/*
+V2CreateClusterManifestBadRequest Error.
 
 swagger:response v2CreateClusterManifestBadRequest
 */
@@ -104,7 +106,8 @@ func (o *V2CreateClusterManifestBadRequest) WriteResponse(rw http.ResponseWriter
 // V2CreateClusterManifestUnauthorizedCode is the HTTP code returned for type V2CreateClusterManifestUnauthorized
 const V2CreateClusterManifestUnauthorizedCode int = 401
 
-/*V2CreateClusterManifestUnauthorized Unauthorized.
+/*
+V2CreateClusterManifestUnauthorized Unauthorized.
 
 swagger:response v2CreateClusterManifestUnauthorized
 */
@@ -148,7 +151,8 @@ func (o *V2CreateClusterManifestUnauthorized) WriteResponse(rw http.ResponseWrit
 // V2CreateClusterManifestForbiddenCode is the HTTP code returned for type V2CreateClusterManifestForbidden
 const V2CreateClusterManifestForbiddenCode int = 403
 
-/*V2CreateClusterManifestForbidden Forbidden.
+/*
+V2CreateClusterManifestForbidden Forbidden.
 
 swagger:response v2CreateClusterManifestForbidden
 */
@@ -192,7 +196,8 @@ func (o *V2CreateClusterManifestForbidden) WriteResponse(rw http.ResponseWriter,
 // V2CreateClusterManifestNotFoundCode is the HTTP code returned for type V2CreateClusterManifestNotFound
 const V2CreateClusterManifestNotFoundCode int = 404
 
-/*V2CreateClusterManifestNotFound Error.
+/*
+V2CreateClusterManifestNotFound Error.
 
 swagger:response v2CreateClusterManifestNotFound
 */
@@ -236,7 +241,8 @@ func (o *V2CreateClusterManifestNotFound) WriteResponse(rw http.ResponseWriter, 
 // V2CreateClusterManifestMethodNotAllowedCode is the HTTP code returned for type V2CreateClusterManifestMethodNotAllowed
 const V2CreateClusterManifestMethodNotAllowedCode int = 405
 
-/*V2CreateClusterManifestMethodNotAllowed Method Not Allowed.
+/*
+V2CreateClusterManifestMethodNotAllowed Method Not Allowed.
 
 swagger:response v2CreateClusterManifestMethodNotAllowed
 */
@@ -280,7 +286,8 @@ func (o *V2CreateClusterManifestMethodNotAllowed) WriteResponse(rw http.Response
 // V2CreateClusterManifestConflictCode is the HTTP code returned for type V2CreateClusterManifestConflict
 const V2CreateClusterManifestConflictCode int = 409
 
-/*V2CreateClusterManifestConflict Error.
+/*
+V2CreateClusterManifestConflict Error.
 
 swagger:response v2CreateClusterManifestConflict
 */
@@ -324,7 +331,8 @@ func (o *V2CreateClusterManifestConflict) WriteResponse(rw http.ResponseWriter, 
 // V2CreateClusterManifestInternalServerErrorCode is the HTTP code returned for type V2CreateClusterManifestInternalServerError
 const V2CreateClusterManifestInternalServerErrorCode int = 500
 
-/*V2CreateClusterManifestInternalServerError Error.
+/*
+V2CreateClusterManifestInternalServerError Error.
 
 swagger:response v2CreateClusterManifestInternalServerError
 */

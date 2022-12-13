@@ -16,7 +16,8 @@ import (
 // V2ReportMonitoredOperatorStatusOKCode is the HTTP code returned for type V2ReportMonitoredOperatorStatusOK
 const V2ReportMonitoredOperatorStatusOKCode int = 200
 
-/*V2ReportMonitoredOperatorStatusOK Success.
+/*
+V2ReportMonitoredOperatorStatusOK Success.
 
 swagger:response v2ReportMonitoredOperatorStatusOK
 */
@@ -40,7 +41,8 @@ func (o *V2ReportMonitoredOperatorStatusOK) WriteResponse(rw http.ResponseWriter
 // V2ReportMonitoredOperatorStatusBadRequestCode is the HTTP code returned for type V2ReportMonitoredOperatorStatusBadRequest
 const V2ReportMonitoredOperatorStatusBadRequestCode int = 400
 
-/*V2ReportMonitoredOperatorStatusBadRequest Bad Request
+/*
+V2ReportMonitoredOperatorStatusBadRequest Bad Request
 
 swagger:response v2ReportMonitoredOperatorStatusBadRequest
 */
@@ -84,7 +86,8 @@ func (o *V2ReportMonitoredOperatorStatusBadRequest) WriteResponse(rw http.Respon
 // V2ReportMonitoredOperatorStatusUnauthorizedCode is the HTTP code returned for type V2ReportMonitoredOperatorStatusUnauthorized
 const V2ReportMonitoredOperatorStatusUnauthorizedCode int = 401
 
-/*V2ReportMonitoredOperatorStatusUnauthorized Unauthorized.
+/*
+V2ReportMonitoredOperatorStatusUnauthorized Unauthorized.
 
 swagger:response v2ReportMonitoredOperatorStatusUnauthorized
 */
@@ -128,7 +131,8 @@ func (o *V2ReportMonitoredOperatorStatusUnauthorized) WriteResponse(rw http.Resp
 // V2ReportMonitoredOperatorStatusForbiddenCode is the HTTP code returned for type V2ReportMonitoredOperatorStatusForbidden
 const V2ReportMonitoredOperatorStatusForbiddenCode int = 403
 
-/*V2ReportMonitoredOperatorStatusForbidden Forbidden.
+/*
+V2ReportMonitoredOperatorStatusForbidden Forbidden.
 
 swagger:response v2ReportMonitoredOperatorStatusForbidden
 */
@@ -172,7 +176,8 @@ func (o *V2ReportMonitoredOperatorStatusForbidden) WriteResponse(rw http.Respons
 // V2ReportMonitoredOperatorStatusNotFoundCode is the HTTP code returned for type V2ReportMonitoredOperatorStatusNotFound
 const V2ReportMonitoredOperatorStatusNotFoundCode int = 404
 
-/*V2ReportMonitoredOperatorStatusNotFound Error.
+/*
+V2ReportMonitoredOperatorStatusNotFound Error.
 
 swagger:response v2ReportMonitoredOperatorStatusNotFound
 */
@@ -216,7 +221,8 @@ func (o *V2ReportMonitoredOperatorStatusNotFound) WriteResponse(rw http.Response
 // V2ReportMonitoredOperatorStatusMethodNotAllowedCode is the HTTP code returned for type V2ReportMonitoredOperatorStatusMethodNotAllowed
 const V2ReportMonitoredOperatorStatusMethodNotAllowedCode int = 405
 
-/*V2ReportMonitoredOperatorStatusMethodNotAllowed Method Not Allowed.
+/*
+V2ReportMonitoredOperatorStatusMethodNotAllowed Method Not Allowed.
 
 swagger:response v2ReportMonitoredOperatorStatusMethodNotAllowed
 */
@@ -260,7 +266,8 @@ func (o *V2ReportMonitoredOperatorStatusMethodNotAllowed) WriteResponse(rw http.
 // V2ReportMonitoredOperatorStatusConflictCode is the HTTP code returned for type V2ReportMonitoredOperatorStatusConflict
 const V2ReportMonitoredOperatorStatusConflictCode int = 409
 
-/*V2ReportMonitoredOperatorStatusConflict Error.
+/*
+V2ReportMonitoredOperatorStatusConflict Error.
 
 swagger:response v2ReportMonitoredOperatorStatusConflict
 */
@@ -304,7 +311,8 @@ func (o *V2ReportMonitoredOperatorStatusConflict) WriteResponse(rw http.Response
 // V2ReportMonitoredOperatorStatusInternalServerErrorCode is the HTTP code returned for type V2ReportMonitoredOperatorStatusInternalServerError
 const V2ReportMonitoredOperatorStatusInternalServerErrorCode int = 500
 
-/*V2ReportMonitoredOperatorStatusInternalServerError Error.
+/*
+V2ReportMonitoredOperatorStatusInternalServerError Error.
 
 swagger:response v2ReportMonitoredOperatorStatusInternalServerError
 */
@@ -348,7 +356,8 @@ func (o *V2ReportMonitoredOperatorStatusInternalServerError) WriteResponse(rw ht
 // V2ReportMonitoredOperatorStatusServiceUnavailableCode is the HTTP code returned for type V2ReportMonitoredOperatorStatusServiceUnavailable
 const V2ReportMonitoredOperatorStatusServiceUnavailableCode int = 503
 
-/*V2ReportMonitoredOperatorStatusServiceUnavailable Unavailable.
+/*
+V2ReportMonitoredOperatorStatusServiceUnavailable Unavailable.
 
 swagger:response v2ReportMonitoredOperatorStatusServiceUnavailable
 */

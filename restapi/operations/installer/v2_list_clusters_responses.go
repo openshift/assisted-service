@@ -16,7 +16,8 @@ import (
 // V2ListClustersOKCode is the HTTP code returned for type V2ListClustersOK
 const V2ListClustersOKCode int = 200
 
-/*V2ListClustersOK Success.
+/*
+V2ListClustersOK Success.
 
 swagger:response v2ListClustersOK
 */
@@ -63,7 +64,8 @@ func (o *V2ListClustersOK) WriteResponse(rw http.ResponseWriter, producer runtim
 // V2ListClustersUnauthorizedCode is the HTTP code returned for type V2ListClustersUnauthorized
 const V2ListClustersUnauthorizedCode int = 401
 
-/*V2ListClustersUnauthorized Unauthorized.
+/*
+V2ListClustersUnauthorized Unauthorized.
 
 swagger:response v2ListClustersUnauthorized
 */
@@ -107,7 +109,8 @@ func (o *V2ListClustersUnauthorized) WriteResponse(rw http.ResponseWriter, produ
 // V2ListClustersForbiddenCode is the HTTP code returned for type V2ListClustersForbidden
 const V2ListClustersForbiddenCode int = 403
 
-/*V2ListClustersForbidden Forbidden.
+/*
+V2ListClustersForbidden Forbidden.
 
 swagger:response v2ListClustersForbidden
 */
@@ -151,7 +154,8 @@ func (o *V2ListClustersForbidden) WriteResponse(rw http.ResponseWriter, producer
 // V2ListClustersMethodNotAllowedCode is the HTTP code returned for type V2ListClustersMethodNotAllowed
 const V2ListClustersMethodNotAllowedCode int = 405
 
-/*V2ListClustersMethodNotAllowed Method Not Allowed.
+/*
+V2ListClustersMethodNotAllowed Method Not Allowed.
 
 swagger:response v2ListClustersMethodNotAllowed
 */
@@ -195,7 +199,8 @@ func (o *V2ListClustersMethodNotAllowed) WriteResponse(rw http.ResponseWriter, p
 // V2ListClustersInternalServerErrorCode is the HTTP code returned for type V2ListClustersInternalServerError
 const V2ListClustersInternalServerErrorCode int = 500
 
-/*V2ListClustersInternalServerError Error.
+/*
+V2ListClustersInternalServerError Error.
 
 swagger:response v2ListClustersInternalServerError
 */
@@ -239,7 +244,8 @@ func (o *V2ListClustersInternalServerError) WriteResponse(rw http.ResponseWriter
 // V2ListClustersServiceUnavailableCode is the HTTP code returned for type V2ListClustersServiceUnavailable
 const V2ListClustersServiceUnavailableCode int = 503
 
-/*V2ListClustersServiceUnavailable Unavailable.
+/*
+V2ListClustersServiceUnavailable Unavailable.
 
 swagger:response v2ListClustersServiceUnavailable
 */

@@ -29,10 +29,10 @@ func NewV2DownloadClusterLogs(ctx *middleware.Context, handler V2DownloadCluster
 	return &V2DownloadClusterLogs{Context: ctx, Handler: handler}
 }
 
-/* V2DownloadClusterLogs swagger:route GET /v2/clusters/{cluster_id}/logs installer v2DownloadClusterLogs
+/*
+	V2DownloadClusterLogs swagger:route GET /v2/clusters/{cluster_id}/logs installer v2DownloadClusterLogs
 
 Download cluster logs.
-
 */
 type V2DownloadClusterLogs struct {
 	Context *middleware.Context

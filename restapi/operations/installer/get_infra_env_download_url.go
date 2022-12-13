@@ -29,10 +29,10 @@ func NewGetInfraEnvDownloadURL(ctx *middleware.Context, handler GetInfraEnvDownl
 	return &GetInfraEnvDownloadURL{Context: ctx, Handler: handler}
 }
 
-/* GetInfraEnvDownloadURL swagger:route GET /v2/infra-envs/{infra_env_id}/downloads/image-url installer getInfraEnvDownloadUrl
+/*
+	GetInfraEnvDownloadURL swagger:route GET /v2/infra-envs/{infra_env_id}/downloads/image-url installer getInfraEnvDownloadUrl
 
 Creates a new pre-signed image download URL for the infra-env.
-
 */
 type GetInfraEnvDownloadURL struct {
 	Context *middleware.Context

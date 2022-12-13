@@ -29,10 +29,10 @@ func NewUpdateInfraEnv(ctx *middleware.Context, handler UpdateInfraEnvHandler) *
 	return &UpdateInfraEnv{Context: ctx, Handler: handler}
 }
 
-/* UpdateInfraEnv swagger:route PATCH /v2/infra-envs/{infra_env_id} installer updateInfraEnv
+/*
+	UpdateInfraEnv swagger:route PATCH /v2/infra-envs/{infra_env_id} installer updateInfraEnv
 
 Updates an infra-env.
-
 */
 type UpdateInfraEnv struct {
 	Context *middleware.Context

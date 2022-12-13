@@ -29,10 +29,10 @@ func NewV2GetCluster(ctx *middleware.Context, handler V2GetClusterHandler) *V2Ge
 	return &V2GetCluster{Context: ctx, Handler: handler}
 }
 
-/* V2GetCluster swagger:route GET /v2/clusters/{cluster_id} installer v2GetCluster
+/*
+	V2GetCluster swagger:route GET /v2/clusters/{cluster_id} installer v2GetCluster
 
 Retrieves the details of the OpenShift cluster.
-
 */
 type V2GetCluster struct {
 	Context *middleware.Context

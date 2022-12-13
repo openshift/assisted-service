@@ -29,10 +29,10 @@ func NewV2InstallCluster(ctx *middleware.Context, handler V2InstallClusterHandle
 	return &V2InstallCluster{Context: ctx, Handler: handler}
 }
 
-/* V2InstallCluster swagger:route POST /v2/clusters/{cluster_id}/actions/install installer v2InstallCluster
+/*
+	V2InstallCluster swagger:route POST /v2/clusters/{cluster_id}/actions/install installer v2InstallCluster
 
 Installs the OpenShift cluster.
-
 */
 type V2InstallCluster struct {
 	Context *middleware.Context

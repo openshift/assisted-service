@@ -20,8 +20,12 @@ import (
 type ClusterValidationID string
 
 func NewClusterValidationID(value ClusterValidationID) *ClusterValidationID {
-	v := value
-	return &v
+	return &value
+}
+
+// Pointer returns a pointer to a freshly-allocated ClusterValidationID.
+func (m ClusterValidationID) Pointer() *ClusterValidationID {
+	return &m
 }
 
 const (

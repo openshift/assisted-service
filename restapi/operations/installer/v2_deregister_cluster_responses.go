@@ -16,7 +16,8 @@ import (
 // V2DeregisterClusterNoContentCode is the HTTP code returned for type V2DeregisterClusterNoContent
 const V2DeregisterClusterNoContentCode int = 204
 
-/*V2DeregisterClusterNoContent Success.
+/*
+V2DeregisterClusterNoContent Success.
 
 swagger:response v2DeregisterClusterNoContent
 */
@@ -40,7 +41,8 @@ func (o *V2DeregisterClusterNoContent) WriteResponse(rw http.ResponseWriter, pro
 // V2DeregisterClusterUnauthorizedCode is the HTTP code returned for type V2DeregisterClusterUnauthorized
 const V2DeregisterClusterUnauthorizedCode int = 401
 
-/*V2DeregisterClusterUnauthorized Unauthorized.
+/*
+V2DeregisterClusterUnauthorized Unauthorized.
 
 swagger:response v2DeregisterClusterUnauthorized
 */
@@ -84,7 +86,8 @@ func (o *V2DeregisterClusterUnauthorized) WriteResponse(rw http.ResponseWriter, 
 // V2DeregisterClusterForbiddenCode is the HTTP code returned for type V2DeregisterClusterForbidden
 const V2DeregisterClusterForbiddenCode int = 403
 
-/*V2DeregisterClusterForbidden Forbidden.
+/*
+V2DeregisterClusterForbidden Forbidden.
 
 swagger:response v2DeregisterClusterForbidden
 */
@@ -128,7 +131,8 @@ func (o *V2DeregisterClusterForbidden) WriteResponse(rw http.ResponseWriter, pro
 // V2DeregisterClusterNotFoundCode is the HTTP code returned for type V2DeregisterClusterNotFound
 const V2DeregisterClusterNotFoundCode int = 404
 
-/*V2DeregisterClusterNotFound Error.
+/*
+V2DeregisterClusterNotFound Error.
 
 swagger:response v2DeregisterClusterNotFound
 */
@@ -172,7 +176,8 @@ func (o *V2DeregisterClusterNotFound) WriteResponse(rw http.ResponseWriter, prod
 // V2DeregisterClusterMethodNotAllowedCode is the HTTP code returned for type V2DeregisterClusterMethodNotAllowed
 const V2DeregisterClusterMethodNotAllowedCode int = 405
 
-/*V2DeregisterClusterMethodNotAllowed Method Not Allowed.
+/*
+V2DeregisterClusterMethodNotAllowed Method Not Allowed.
 
 swagger:response v2DeregisterClusterMethodNotAllowed
 */
@@ -216,7 +221,8 @@ func (o *V2DeregisterClusterMethodNotAllowed) WriteResponse(rw http.ResponseWrit
 // V2DeregisterClusterConflictCode is the HTTP code returned for type V2DeregisterClusterConflict
 const V2DeregisterClusterConflictCode int = 409
 
-/*V2DeregisterClusterConflict Error.
+/*
+V2DeregisterClusterConflict Error.
 
 swagger:response v2DeregisterClusterConflict
 */
@@ -260,7 +266,8 @@ func (o *V2DeregisterClusterConflict) WriteResponse(rw http.ResponseWriter, prod
 // V2DeregisterClusterInternalServerErrorCode is the HTTP code returned for type V2DeregisterClusterInternalServerError
 const V2DeregisterClusterInternalServerErrorCode int = 500
 
-/*V2DeregisterClusterInternalServerError Error.
+/*
+V2DeregisterClusterInternalServerError Error.
 
 swagger:response v2DeregisterClusterInternalServerError
 */

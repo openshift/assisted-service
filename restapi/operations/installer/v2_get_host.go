@@ -29,10 +29,10 @@ func NewV2GetHost(ctx *middleware.Context, handler V2GetHostHandler) *V2GetHost 
 	return &V2GetHost{Context: ctx, Handler: handler}
 }
 
-/* V2GetHost swagger:route GET /v2/infra-envs/{infra_env_id}/hosts/{host_id} installer v2GetHost
+/*
+	V2GetHost swagger:route GET /v2/infra-envs/{infra_env_id}/hosts/{host_id} installer v2GetHost
 
 Retrieves the details of the OpenShift host.
-
 */
 type V2GetHost struct {
 	Context *middleware.Context

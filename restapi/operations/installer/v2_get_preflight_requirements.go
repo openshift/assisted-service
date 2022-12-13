@@ -29,10 +29,10 @@ func NewV2GetPreflightRequirements(ctx *middleware.Context, handler V2GetPreflig
 	return &V2GetPreflightRequirements{Context: ctx, Handler: handler}
 }
 
-/* V2GetPreflightRequirements swagger:route GET /v2/clusters/{cluster_id}/preflight-requirements installer v2GetPreflightRequirements
+/*
+	V2GetPreflightRequirements swagger:route GET /v2/clusters/{cluster_id}/preflight-requirements installer v2GetPreflightRequirements
 
 Get preflight requirements for a cluster.
-
 */
 type V2GetPreflightRequirements struct {
 	Context *middleware.Context

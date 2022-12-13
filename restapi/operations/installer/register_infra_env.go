@@ -29,10 +29,10 @@ func NewRegisterInfraEnv(ctx *middleware.Context, handler RegisterInfraEnvHandle
 	return &RegisterInfraEnv{Context: ctx, Handler: handler}
 }
 
-/* RegisterInfraEnv swagger:route POST /v2/infra-envs installer registerInfraEnv
+/*
+	RegisterInfraEnv swagger:route POST /v2/infra-envs installer registerInfraEnv
 
 Creates a new OpenShift Discovery ISO.
-
 */
 type RegisterInfraEnv struct {
 	Context *middleware.Context

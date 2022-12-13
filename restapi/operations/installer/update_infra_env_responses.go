@@ -16,7 +16,8 @@ import (
 // UpdateInfraEnvCreatedCode is the HTTP code returned for type UpdateInfraEnvCreated
 const UpdateInfraEnvCreatedCode int = 201
 
-/*UpdateInfraEnvCreated Success.
+/*
+UpdateInfraEnvCreated Success.
 
 swagger:response updateInfraEnvCreated
 */
@@ -60,7 +61,8 @@ func (o *UpdateInfraEnvCreated) WriteResponse(rw http.ResponseWriter, producer r
 // UpdateInfraEnvBadRequestCode is the HTTP code returned for type UpdateInfraEnvBadRequest
 const UpdateInfraEnvBadRequestCode int = 400
 
-/*UpdateInfraEnvBadRequest Error.
+/*
+UpdateInfraEnvBadRequest Error.
 
 swagger:response updateInfraEnvBadRequest
 */
@@ -104,7 +106,8 @@ func (o *UpdateInfraEnvBadRequest) WriteResponse(rw http.ResponseWriter, produce
 // UpdateInfraEnvUnauthorizedCode is the HTTP code returned for type UpdateInfraEnvUnauthorized
 const UpdateInfraEnvUnauthorizedCode int = 401
 
-/*UpdateInfraEnvUnauthorized Unauthorized.
+/*
+UpdateInfraEnvUnauthorized Unauthorized.
 
 swagger:response updateInfraEnvUnauthorized
 */
@@ -148,7 +151,8 @@ func (o *UpdateInfraEnvUnauthorized) WriteResponse(rw http.ResponseWriter, produ
 // UpdateInfraEnvForbiddenCode is the HTTP code returned for type UpdateInfraEnvForbidden
 const UpdateInfraEnvForbiddenCode int = 403
 
-/*UpdateInfraEnvForbidden Forbidden.
+/*
+UpdateInfraEnvForbidden Forbidden.
 
 swagger:response updateInfraEnvForbidden
 */
@@ -192,7 +196,8 @@ func (o *UpdateInfraEnvForbidden) WriteResponse(rw http.ResponseWriter, producer
 // UpdateInfraEnvNotFoundCode is the HTTP code returned for type UpdateInfraEnvNotFound
 const UpdateInfraEnvNotFoundCode int = 404
 
-/*UpdateInfraEnvNotFound Error.
+/*
+UpdateInfraEnvNotFound Error.
 
 swagger:response updateInfraEnvNotFound
 */
@@ -236,7 +241,8 @@ func (o *UpdateInfraEnvNotFound) WriteResponse(rw http.ResponseWriter, producer 
 // UpdateInfraEnvMethodNotAllowedCode is the HTTP code returned for type UpdateInfraEnvMethodNotAllowed
 const UpdateInfraEnvMethodNotAllowedCode int = 405
 
-/*UpdateInfraEnvMethodNotAllowed Method Not Allowed.
+/*
+UpdateInfraEnvMethodNotAllowed Method Not Allowed.
 
 swagger:response updateInfraEnvMethodNotAllowed
 */
@@ -280,7 +286,8 @@ func (o *UpdateInfraEnvMethodNotAllowed) WriteResponse(rw http.ResponseWriter, p
 // UpdateInfraEnvConflictCode is the HTTP code returned for type UpdateInfraEnvConflict
 const UpdateInfraEnvConflictCode int = 409
 
-/*UpdateInfraEnvConflict Error.
+/*
+UpdateInfraEnvConflict Error.
 
 swagger:response updateInfraEnvConflict
 */
@@ -324,7 +331,8 @@ func (o *UpdateInfraEnvConflict) WriteResponse(rw http.ResponseWriter, producer 
 // UpdateInfraEnvInternalServerErrorCode is the HTTP code returned for type UpdateInfraEnvInternalServerError
 const UpdateInfraEnvInternalServerErrorCode int = 500
 
-/*UpdateInfraEnvInternalServerError Error.
+/*
+UpdateInfraEnvInternalServerError Error.
 
 swagger:response updateInfraEnvInternalServerError
 */
@@ -368,7 +376,8 @@ func (o *UpdateInfraEnvInternalServerError) WriteResponse(rw http.ResponseWriter
 // UpdateInfraEnvNotImplementedCode is the HTTP code returned for type UpdateInfraEnvNotImplemented
 const UpdateInfraEnvNotImplementedCode int = 501
 
-/*UpdateInfraEnvNotImplemented Not implemented.
+/*
+UpdateInfraEnvNotImplemented Not implemented.
 
 swagger:response updateInfraEnvNotImplemented
 */

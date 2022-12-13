@@ -29,10 +29,10 @@ func NewUnbindHost(ctx *middleware.Context, handler UnbindHostHandler) *UnbindHo
 	return &UnbindHost{Context: ctx, Handler: handler}
 }
 
-/* UnbindHost swagger:route POST /v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/unbind installer unbindHost
+/*
+	UnbindHost swagger:route POST /v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/unbind installer unbindHost
 
 Unbind host to a cluster
-
 */
 type UnbindHost struct {
 	Context *middleware.Context

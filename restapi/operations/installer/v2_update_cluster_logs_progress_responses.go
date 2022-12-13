@@ -16,7 +16,8 @@ import (
 // V2UpdateClusterLogsProgressNoContentCode is the HTTP code returned for type V2UpdateClusterLogsProgressNoContent
 const V2UpdateClusterLogsProgressNoContentCode int = 204
 
-/*V2UpdateClusterLogsProgressNoContent Update cluster install progress.
+/*
+V2UpdateClusterLogsProgressNoContent Update cluster install progress.
 
 swagger:response v2UpdateClusterLogsProgressNoContent
 */
@@ -40,7 +41,8 @@ func (o *V2UpdateClusterLogsProgressNoContent) WriteResponse(rw http.ResponseWri
 // V2UpdateClusterLogsProgressUnauthorizedCode is the HTTP code returned for type V2UpdateClusterLogsProgressUnauthorized
 const V2UpdateClusterLogsProgressUnauthorizedCode int = 401
 
-/*V2UpdateClusterLogsProgressUnauthorized Unauthorized.
+/*
+V2UpdateClusterLogsProgressUnauthorized Unauthorized.
 
 swagger:response v2UpdateClusterLogsProgressUnauthorized
 */
@@ -84,7 +86,8 @@ func (o *V2UpdateClusterLogsProgressUnauthorized) WriteResponse(rw http.Response
 // V2UpdateClusterLogsProgressForbiddenCode is the HTTP code returned for type V2UpdateClusterLogsProgressForbidden
 const V2UpdateClusterLogsProgressForbiddenCode int = 403
 
-/*V2UpdateClusterLogsProgressForbidden Forbidden.
+/*
+V2UpdateClusterLogsProgressForbidden Forbidden.
 
 swagger:response v2UpdateClusterLogsProgressForbidden
 */
@@ -128,7 +131,8 @@ func (o *V2UpdateClusterLogsProgressForbidden) WriteResponse(rw http.ResponseWri
 // V2UpdateClusterLogsProgressNotFoundCode is the HTTP code returned for type V2UpdateClusterLogsProgressNotFound
 const V2UpdateClusterLogsProgressNotFoundCode int = 404
 
-/*V2UpdateClusterLogsProgressNotFound Error.
+/*
+V2UpdateClusterLogsProgressNotFound Error.
 
 swagger:response v2UpdateClusterLogsProgressNotFound
 */
@@ -172,7 +176,8 @@ func (o *V2UpdateClusterLogsProgressNotFound) WriteResponse(rw http.ResponseWrit
 // V2UpdateClusterLogsProgressMethodNotAllowedCode is the HTTP code returned for type V2UpdateClusterLogsProgressMethodNotAllowed
 const V2UpdateClusterLogsProgressMethodNotAllowedCode int = 405
 
-/*V2UpdateClusterLogsProgressMethodNotAllowed Method Not Allowed.
+/*
+V2UpdateClusterLogsProgressMethodNotAllowed Method Not Allowed.
 
 swagger:response v2UpdateClusterLogsProgressMethodNotAllowed
 */
@@ -216,7 +221,8 @@ func (o *V2UpdateClusterLogsProgressMethodNotAllowed) WriteResponse(rw http.Resp
 // V2UpdateClusterLogsProgressConflictCode is the HTTP code returned for type V2UpdateClusterLogsProgressConflict
 const V2UpdateClusterLogsProgressConflictCode int = 409
 
-/*V2UpdateClusterLogsProgressConflict Error.
+/*
+V2UpdateClusterLogsProgressConflict Error.
 
 swagger:response v2UpdateClusterLogsProgressConflict
 */
@@ -260,7 +266,8 @@ func (o *V2UpdateClusterLogsProgressConflict) WriteResponse(rw http.ResponseWrit
 // V2UpdateClusterLogsProgressInternalServerErrorCode is the HTTP code returned for type V2UpdateClusterLogsProgressInternalServerError
 const V2UpdateClusterLogsProgressInternalServerErrorCode int = 500
 
-/*V2UpdateClusterLogsProgressInternalServerError Error.
+/*
+V2UpdateClusterLogsProgressInternalServerError Error.
 
 swagger:response v2UpdateClusterLogsProgressInternalServerError
 */
@@ -304,7 +311,8 @@ func (o *V2UpdateClusterLogsProgressInternalServerError) WriteResponse(rw http.R
 // V2UpdateClusterLogsProgressServiceUnavailableCode is the HTTP code returned for type V2UpdateClusterLogsProgressServiceUnavailable
 const V2UpdateClusterLogsProgressServiceUnavailableCode int = 503
 
-/*V2UpdateClusterLogsProgressServiceUnavailable Unavailable.
+/*
+V2UpdateClusterLogsProgressServiceUnavailable Unavailable.
 
 swagger:response v2UpdateClusterLogsProgressServiceUnavailable
 */

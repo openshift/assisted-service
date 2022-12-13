@@ -16,7 +16,8 @@ import (
 // V2InstallClusterAcceptedCode is the HTTP code returned for type V2InstallClusterAccepted
 const V2InstallClusterAcceptedCode int = 202
 
-/*V2InstallClusterAccepted Success.
+/*
+V2InstallClusterAccepted Success.
 
 swagger:response v2InstallClusterAccepted
 */
@@ -60,7 +61,8 @@ func (o *V2InstallClusterAccepted) WriteResponse(rw http.ResponseWriter, produce
 // V2InstallClusterBadRequestCode is the HTTP code returned for type V2InstallClusterBadRequest
 const V2InstallClusterBadRequestCode int = 400
 
-/*V2InstallClusterBadRequest Error.
+/*
+V2InstallClusterBadRequest Error.
 
 swagger:response v2InstallClusterBadRequest
 */
@@ -104,7 +106,8 @@ func (o *V2InstallClusterBadRequest) WriteResponse(rw http.ResponseWriter, produ
 // V2InstallClusterUnauthorizedCode is the HTTP code returned for type V2InstallClusterUnauthorized
 const V2InstallClusterUnauthorizedCode int = 401
 
-/*V2InstallClusterUnauthorized Unauthorized.
+/*
+V2InstallClusterUnauthorized Unauthorized.
 
 swagger:response v2InstallClusterUnauthorized
 */
@@ -148,7 +151,8 @@ func (o *V2InstallClusterUnauthorized) WriteResponse(rw http.ResponseWriter, pro
 // V2InstallClusterForbiddenCode is the HTTP code returned for type V2InstallClusterForbidden
 const V2InstallClusterForbiddenCode int = 403
 
-/*V2InstallClusterForbidden Forbidden.
+/*
+V2InstallClusterForbidden Forbidden.
 
 swagger:response v2InstallClusterForbidden
 */
@@ -192,7 +196,8 @@ func (o *V2InstallClusterForbidden) WriteResponse(rw http.ResponseWriter, produc
 // V2InstallClusterNotFoundCode is the HTTP code returned for type V2InstallClusterNotFound
 const V2InstallClusterNotFoundCode int = 404
 
-/*V2InstallClusterNotFound Error.
+/*
+V2InstallClusterNotFound Error.
 
 swagger:response v2InstallClusterNotFound
 */
@@ -236,7 +241,8 @@ func (o *V2InstallClusterNotFound) WriteResponse(rw http.ResponseWriter, produce
 // V2InstallClusterMethodNotAllowedCode is the HTTP code returned for type V2InstallClusterMethodNotAllowed
 const V2InstallClusterMethodNotAllowedCode int = 405
 
-/*V2InstallClusterMethodNotAllowed Method Not Allowed.
+/*
+V2InstallClusterMethodNotAllowed Method Not Allowed.
 
 swagger:response v2InstallClusterMethodNotAllowed
 */
@@ -280,7 +286,8 @@ func (o *V2InstallClusterMethodNotAllowed) WriteResponse(rw http.ResponseWriter,
 // V2InstallClusterConflictCode is the HTTP code returned for type V2InstallClusterConflict
 const V2InstallClusterConflictCode int = 409
 
-/*V2InstallClusterConflict Error.
+/*
+V2InstallClusterConflict Error.
 
 swagger:response v2InstallClusterConflict
 */
@@ -324,7 +331,8 @@ func (o *V2InstallClusterConflict) WriteResponse(rw http.ResponseWriter, produce
 // V2InstallClusterInternalServerErrorCode is the HTTP code returned for type V2InstallClusterInternalServerError
 const V2InstallClusterInternalServerErrorCode int = 500
 
-/*V2InstallClusterInternalServerError Error.
+/*
+V2InstallClusterInternalServerError Error.
 
 swagger:response v2InstallClusterInternalServerError
 */

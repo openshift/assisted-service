@@ -29,10 +29,10 @@ func NewV2ResetHost(ctx *middleware.Context, handler V2ResetHostHandler) *V2Rese
 	return &V2ResetHost{Context: ctx, Handler: handler}
 }
 
-/* V2ResetHost swagger:route POST /v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/reset installer v2ResetHost
+/*
+	V2ResetHost swagger:route POST /v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/reset installer v2ResetHost
 
 reset a failed host for day2 cluster.
-
 */
 type V2ResetHost struct {
 	Context *middleware.Context

@@ -16,7 +16,8 @@ import (
 // V2ResetClusterAcceptedCode is the HTTP code returned for type V2ResetClusterAccepted
 const V2ResetClusterAcceptedCode int = 202
 
-/*V2ResetClusterAccepted Success.
+/*
+V2ResetClusterAccepted Success.
 
 swagger:response v2ResetClusterAccepted
 */
@@ -60,7 +61,8 @@ func (o *V2ResetClusterAccepted) WriteResponse(rw http.ResponseWriter, producer 
 // V2ResetClusterUnauthorizedCode is the HTTP code returned for type V2ResetClusterUnauthorized
 const V2ResetClusterUnauthorizedCode int = 401
 
-/*V2ResetClusterUnauthorized Unauthorized.
+/*
+V2ResetClusterUnauthorized Unauthorized.
 
 swagger:response v2ResetClusterUnauthorized
 */
@@ -104,7 +106,8 @@ func (o *V2ResetClusterUnauthorized) WriteResponse(rw http.ResponseWriter, produ
 // V2ResetClusterForbiddenCode is the HTTP code returned for type V2ResetClusterForbidden
 const V2ResetClusterForbiddenCode int = 403
 
-/*V2ResetClusterForbidden Forbidden.
+/*
+V2ResetClusterForbidden Forbidden.
 
 swagger:response v2ResetClusterForbidden
 */
@@ -148,7 +151,8 @@ func (o *V2ResetClusterForbidden) WriteResponse(rw http.ResponseWriter, producer
 // V2ResetClusterNotFoundCode is the HTTP code returned for type V2ResetClusterNotFound
 const V2ResetClusterNotFoundCode int = 404
 
-/*V2ResetClusterNotFound Error.
+/*
+V2ResetClusterNotFound Error.
 
 swagger:response v2ResetClusterNotFound
 */
@@ -192,7 +196,8 @@ func (o *V2ResetClusterNotFound) WriteResponse(rw http.ResponseWriter, producer 
 // V2ResetClusterMethodNotAllowedCode is the HTTP code returned for type V2ResetClusterMethodNotAllowed
 const V2ResetClusterMethodNotAllowedCode int = 405
 
-/*V2ResetClusterMethodNotAllowed Method Not Allowed.
+/*
+V2ResetClusterMethodNotAllowed Method Not Allowed.
 
 swagger:response v2ResetClusterMethodNotAllowed
 */
@@ -236,7 +241,8 @@ func (o *V2ResetClusterMethodNotAllowed) WriteResponse(rw http.ResponseWriter, p
 // V2ResetClusterConflictCode is the HTTP code returned for type V2ResetClusterConflict
 const V2ResetClusterConflictCode int = 409
 
-/*V2ResetClusterConflict Error.
+/*
+V2ResetClusterConflict Error.
 
 swagger:response v2ResetClusterConflict
 */
@@ -280,7 +286,8 @@ func (o *V2ResetClusterConflict) WriteResponse(rw http.ResponseWriter, producer 
 // V2ResetClusterInternalServerErrorCode is the HTTP code returned for type V2ResetClusterInternalServerError
 const V2ResetClusterInternalServerErrorCode int = 500
 
-/*V2ResetClusterInternalServerError Error.
+/*
+V2ResetClusterInternalServerError Error.
 
 swagger:response v2ResetClusterInternalServerError
 */

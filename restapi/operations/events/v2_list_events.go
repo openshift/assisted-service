@@ -29,10 +29,10 @@ func NewV2ListEvents(ctx *middleware.Context, handler V2ListEventsHandler) *V2Li
 	return &V2ListEvents{Context: ctx, Handler: handler}
 }
 
-/* V2ListEvents swagger:route GET /v2/events events v2ListEvents
+/*
+	V2ListEvents swagger:route GET /v2/events events v2ListEvents
 
 Lists events for a cluster.
-
 */
 type V2ListEvents struct {
 	Context *middleware.Context

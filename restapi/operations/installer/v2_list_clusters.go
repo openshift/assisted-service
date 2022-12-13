@@ -29,10 +29,10 @@ func NewV2ListClusters(ctx *middleware.Context, handler V2ListClustersHandler) *
 	return &V2ListClusters{Context: ctx, Handler: handler}
 }
 
-/* V2ListClusters swagger:route GET /v2/clusters installer v2ListClusters
+/*
+	V2ListClusters swagger:route GET /v2/clusters installer v2ListClusters
 
 Retrieves the list of OpenShift clusters.
-
 */
 type V2ListClusters struct {
 	Context *middleware.Context

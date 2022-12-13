@@ -16,7 +16,8 @@ import (
 // GetInfraEnvPresignedFileURLOKCode is the HTTP code returned for type GetInfraEnvPresignedFileURLOK
 const GetInfraEnvPresignedFileURLOKCode int = 200
 
-/*GetInfraEnvPresignedFileURLOK Success.
+/*
+GetInfraEnvPresignedFileURLOK Success.
 
 swagger:response getInfraEnvPresignedFileUrlOK
 */
@@ -60,7 +61,8 @@ func (o *GetInfraEnvPresignedFileURLOK) WriteResponse(rw http.ResponseWriter, pr
 // GetInfraEnvPresignedFileURLUnauthorizedCode is the HTTP code returned for type GetInfraEnvPresignedFileURLUnauthorized
 const GetInfraEnvPresignedFileURLUnauthorizedCode int = 401
 
-/*GetInfraEnvPresignedFileURLUnauthorized Unauthorized.
+/*
+GetInfraEnvPresignedFileURLUnauthorized Unauthorized.
 
 swagger:response getInfraEnvPresignedFileUrlUnauthorized
 */
@@ -104,7 +106,8 @@ func (o *GetInfraEnvPresignedFileURLUnauthorized) WriteResponse(rw http.Response
 // GetInfraEnvPresignedFileURLForbiddenCode is the HTTP code returned for type GetInfraEnvPresignedFileURLForbidden
 const GetInfraEnvPresignedFileURLForbiddenCode int = 403
 
-/*GetInfraEnvPresignedFileURLForbidden Forbidden.
+/*
+GetInfraEnvPresignedFileURLForbidden Forbidden.
 
 swagger:response getInfraEnvPresignedFileUrlForbidden
 */
@@ -148,7 +151,8 @@ func (o *GetInfraEnvPresignedFileURLForbidden) WriteResponse(rw http.ResponseWri
 // GetInfraEnvPresignedFileURLNotFoundCode is the HTTP code returned for type GetInfraEnvPresignedFileURLNotFound
 const GetInfraEnvPresignedFileURLNotFoundCode int = 404
 
-/*GetInfraEnvPresignedFileURLNotFound Error.
+/*
+GetInfraEnvPresignedFileURLNotFound Error.
 
 swagger:response getInfraEnvPresignedFileUrlNotFound
 */
@@ -192,7 +196,8 @@ func (o *GetInfraEnvPresignedFileURLNotFound) WriteResponse(rw http.ResponseWrit
 // GetInfraEnvPresignedFileURLMethodNotAllowedCode is the HTTP code returned for type GetInfraEnvPresignedFileURLMethodNotAllowed
 const GetInfraEnvPresignedFileURLMethodNotAllowedCode int = 405
 
-/*GetInfraEnvPresignedFileURLMethodNotAllowed Method Not Allowed.
+/*
+GetInfraEnvPresignedFileURLMethodNotAllowed Method Not Allowed.
 
 swagger:response getInfraEnvPresignedFileUrlMethodNotAllowed
 */
@@ -236,7 +241,8 @@ func (o *GetInfraEnvPresignedFileURLMethodNotAllowed) WriteResponse(rw http.Resp
 // GetInfraEnvPresignedFileURLInternalServerErrorCode is the HTTP code returned for type GetInfraEnvPresignedFileURLInternalServerError
 const GetInfraEnvPresignedFileURLInternalServerErrorCode int = 500
 
-/*GetInfraEnvPresignedFileURLInternalServerError Error.
+/*
+GetInfraEnvPresignedFileURLInternalServerError Error.
 
 swagger:response getInfraEnvPresignedFileUrlInternalServerError
 */
@@ -280,7 +286,8 @@ func (o *GetInfraEnvPresignedFileURLInternalServerError) WriteResponse(rw http.R
 // GetInfraEnvPresignedFileURLNotImplementedCode is the HTTP code returned for type GetInfraEnvPresignedFileURLNotImplemented
 const GetInfraEnvPresignedFileURLNotImplementedCode int = 501
 
-/*GetInfraEnvPresignedFileURLNotImplemented Not implemented.
+/*
+GetInfraEnvPresignedFileURLNotImplemented Not implemented.
 
 swagger:response getInfraEnvPresignedFileUrlNotImplemented
 */
@@ -324,7 +331,8 @@ func (o *GetInfraEnvPresignedFileURLNotImplemented) WriteResponse(rw http.Respon
 // GetInfraEnvPresignedFileURLServiceUnavailableCode is the HTTP code returned for type GetInfraEnvPresignedFileURLServiceUnavailable
 const GetInfraEnvPresignedFileURLServiceUnavailableCode int = 503
 
-/*GetInfraEnvPresignedFileURLServiceUnavailable Unavailable.
+/*
+GetInfraEnvPresignedFileURLServiceUnavailable Unavailable.
 
 swagger:response getInfraEnvPresignedFileUrlServiceUnavailable
 */

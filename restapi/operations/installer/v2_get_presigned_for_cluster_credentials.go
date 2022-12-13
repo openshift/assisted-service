@@ -29,10 +29,10 @@ func NewV2GetPresignedForClusterCredentials(ctx *middleware.Context, handler V2G
 	return &V2GetPresignedForClusterCredentials{Context: ctx, Handler: handler}
 }
 
-/* V2GetPresignedForClusterCredentials swagger:route GET /v2/clusters/{cluster_id}/downloads/credentials-presigned installer v2GetPresignedForClusterCredentials
+/*
+	V2GetPresignedForClusterCredentials swagger:route GET /v2/clusters/{cluster_id}/downloads/credentials-presigned installer v2GetPresignedForClusterCredentials
 
 Get the cluster admin credentials.
-
 */
 type V2GetPresignedForClusterCredentials struct {
 	Context *middleware.Context

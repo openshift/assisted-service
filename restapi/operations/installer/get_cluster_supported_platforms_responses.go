@@ -16,7 +16,8 @@ import (
 // GetClusterSupportedPlatformsOKCode is the HTTP code returned for type GetClusterSupportedPlatformsOK
 const GetClusterSupportedPlatformsOKCode int = 200
 
-/*GetClusterSupportedPlatformsOK Success.
+/*
+GetClusterSupportedPlatformsOK Success.
 
 swagger:response getClusterSupportedPlatformsOK
 */
@@ -63,7 +64,8 @@ func (o *GetClusterSupportedPlatformsOK) WriteResponse(rw http.ResponseWriter, p
 // GetClusterSupportedPlatformsUnauthorizedCode is the HTTP code returned for type GetClusterSupportedPlatformsUnauthorized
 const GetClusterSupportedPlatformsUnauthorizedCode int = 401
 
-/*GetClusterSupportedPlatformsUnauthorized Unauthorized.
+/*
+GetClusterSupportedPlatformsUnauthorized Unauthorized.
 
 swagger:response getClusterSupportedPlatformsUnauthorized
 */
@@ -107,7 +109,8 @@ func (o *GetClusterSupportedPlatformsUnauthorized) WriteResponse(rw http.Respons
 // GetClusterSupportedPlatformsForbiddenCode is the HTTP code returned for type GetClusterSupportedPlatformsForbidden
 const GetClusterSupportedPlatformsForbiddenCode int = 403
 
-/*GetClusterSupportedPlatformsForbidden Forbidden.
+/*
+GetClusterSupportedPlatformsForbidden Forbidden.
 
 swagger:response getClusterSupportedPlatformsForbidden
 */
@@ -151,7 +154,8 @@ func (o *GetClusterSupportedPlatformsForbidden) WriteResponse(rw http.ResponseWr
 // GetClusterSupportedPlatformsNotFoundCode is the HTTP code returned for type GetClusterSupportedPlatformsNotFound
 const GetClusterSupportedPlatformsNotFoundCode int = 404
 
-/*GetClusterSupportedPlatformsNotFound Error.
+/*
+GetClusterSupportedPlatformsNotFound Error.
 
 swagger:response getClusterSupportedPlatformsNotFound
 */
@@ -195,7 +199,8 @@ func (o *GetClusterSupportedPlatformsNotFound) WriteResponse(rw http.ResponseWri
 // GetClusterSupportedPlatformsInternalServerErrorCode is the HTTP code returned for type GetClusterSupportedPlatformsInternalServerError
 const GetClusterSupportedPlatformsInternalServerErrorCode int = 500
 
-/*GetClusterSupportedPlatformsInternalServerError Error.
+/*
+GetClusterSupportedPlatformsInternalServerError Error.
 
 swagger:response getClusterSupportedPlatformsInternalServerError
 */

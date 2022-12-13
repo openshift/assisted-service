@@ -29,10 +29,10 @@ func NewV2ResetCluster(ctx *middleware.Context, handler V2ResetClusterHandler) *
 	return &V2ResetCluster{Context: ctx, Handler: handler}
 }
 
-/* V2ResetCluster swagger:route POST /v2/clusters/{cluster_id}/actions/reset installer v2ResetCluster
+/*
+	V2ResetCluster swagger:route POST /v2/clusters/{cluster_id}/actions/reset installer v2ResetCluster
 
 Resets a failed installation.
-
 */
 type V2ResetCluster struct {
 	Context *middleware.Context

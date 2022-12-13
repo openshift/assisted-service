@@ -16,7 +16,8 @@ import (
 // V2RegisterHostCreatedCode is the HTTP code returned for type V2RegisterHostCreated
 const V2RegisterHostCreatedCode int = 201
 
-/*V2RegisterHostCreated Success.
+/*
+V2RegisterHostCreated Success.
 
 swagger:response v2RegisterHostCreated
 */
@@ -60,7 +61,8 @@ func (o *V2RegisterHostCreated) WriteResponse(rw http.ResponseWriter, producer r
 // V2RegisterHostBadRequestCode is the HTTP code returned for type V2RegisterHostBadRequest
 const V2RegisterHostBadRequestCode int = 400
 
-/*V2RegisterHostBadRequest Error.
+/*
+V2RegisterHostBadRequest Error.
 
 swagger:response v2RegisterHostBadRequest
 */
@@ -104,7 +106,8 @@ func (o *V2RegisterHostBadRequest) WriteResponse(rw http.ResponseWriter, produce
 // V2RegisterHostUnauthorizedCode is the HTTP code returned for type V2RegisterHostUnauthorized
 const V2RegisterHostUnauthorizedCode int = 401
 
-/*V2RegisterHostUnauthorized Unauthorized.
+/*
+V2RegisterHostUnauthorized Unauthorized.
 
 swagger:response v2RegisterHostUnauthorized
 */
@@ -148,7 +151,8 @@ func (o *V2RegisterHostUnauthorized) WriteResponse(rw http.ResponseWriter, produ
 // V2RegisterHostForbiddenCode is the HTTP code returned for type V2RegisterHostForbidden
 const V2RegisterHostForbiddenCode int = 403
 
-/*V2RegisterHostForbidden Forbidden.
+/*
+V2RegisterHostForbidden Forbidden.
 
 swagger:response v2RegisterHostForbidden
 */
@@ -192,7 +196,8 @@ func (o *V2RegisterHostForbidden) WriteResponse(rw http.ResponseWriter, producer
 // V2RegisterHostNotFoundCode is the HTTP code returned for type V2RegisterHostNotFound
 const V2RegisterHostNotFoundCode int = 404
 
-/*V2RegisterHostNotFound Error.
+/*
+V2RegisterHostNotFound Error.
 
 swagger:response v2RegisterHostNotFound
 */
@@ -236,7 +241,8 @@ func (o *V2RegisterHostNotFound) WriteResponse(rw http.ResponseWriter, producer 
 // V2RegisterHostMethodNotAllowedCode is the HTTP code returned for type V2RegisterHostMethodNotAllowed
 const V2RegisterHostMethodNotAllowedCode int = 405
 
-/*V2RegisterHostMethodNotAllowed Method Not Allowed.
+/*
+V2RegisterHostMethodNotAllowed Method Not Allowed.
 
 swagger:response v2RegisterHostMethodNotAllowed
 */
@@ -280,7 +286,8 @@ func (o *V2RegisterHostMethodNotAllowed) WriteResponse(rw http.ResponseWriter, p
 // V2RegisterHostConflictCode is the HTTP code returned for type V2RegisterHostConflict
 const V2RegisterHostConflictCode int = 409
 
-/*V2RegisterHostConflict Cluster cannot accept new agents due to its current state.
+/*
+V2RegisterHostConflict Cluster cannot accept new agents due to its current state.
 
 swagger:response v2RegisterHostConflict
 */
@@ -324,7 +331,8 @@ func (o *V2RegisterHostConflict) WriteResponse(rw http.ResponseWriter, producer 
 // V2RegisterHostInternalServerErrorCode is the HTTP code returned for type V2RegisterHostInternalServerError
 const V2RegisterHostInternalServerErrorCode int = 500
 
-/*V2RegisterHostInternalServerError Error.
+/*
+V2RegisterHostInternalServerError Error.
 
 swagger:response v2RegisterHostInternalServerError
 */
@@ -368,7 +376,8 @@ func (o *V2RegisterHostInternalServerError) WriteResponse(rw http.ResponseWriter
 // V2RegisterHostNotImplementedCode is the HTTP code returned for type V2RegisterHostNotImplemented
 const V2RegisterHostNotImplementedCode int = 501
 
-/*V2RegisterHostNotImplemented Not implemented.
+/*
+V2RegisterHostNotImplemented Not implemented.
 
 swagger:response v2RegisterHostNotImplemented
 */
@@ -412,7 +421,8 @@ func (o *V2RegisterHostNotImplemented) WriteResponse(rw http.ResponseWriter, pro
 // V2RegisterHostServiceUnavailableCode is the HTTP code returned for type V2RegisterHostServiceUnavailable
 const V2RegisterHostServiceUnavailableCode int = 503
 
-/*V2RegisterHostServiceUnavailable Unavailable.
+/*
+V2RegisterHostServiceUnavailable Unavailable.
 
 swagger:response v2RegisterHostServiceUnavailable
 */

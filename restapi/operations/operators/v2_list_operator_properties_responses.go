@@ -16,7 +16,8 @@ import (
 // V2ListOperatorPropertiesOKCode is the HTTP code returned for type V2ListOperatorPropertiesOK
 const V2ListOperatorPropertiesOKCode int = 200
 
-/*V2ListOperatorPropertiesOK Success.
+/*
+V2ListOperatorPropertiesOK Success.
 
 swagger:response v2ListOperatorPropertiesOK
 */
@@ -63,7 +64,8 @@ func (o *V2ListOperatorPropertiesOK) WriteResponse(rw http.ResponseWriter, produ
 // V2ListOperatorPropertiesUnauthorizedCode is the HTTP code returned for type V2ListOperatorPropertiesUnauthorized
 const V2ListOperatorPropertiesUnauthorizedCode int = 401
 
-/*V2ListOperatorPropertiesUnauthorized Unauthorized.
+/*
+V2ListOperatorPropertiesUnauthorized Unauthorized.
 
 swagger:response v2ListOperatorPropertiesUnauthorized
 */
@@ -107,7 +109,8 @@ func (o *V2ListOperatorPropertiesUnauthorized) WriteResponse(rw http.ResponseWri
 // V2ListOperatorPropertiesForbiddenCode is the HTTP code returned for type V2ListOperatorPropertiesForbidden
 const V2ListOperatorPropertiesForbiddenCode int = 403
 
-/*V2ListOperatorPropertiesForbidden Forbidden.
+/*
+V2ListOperatorPropertiesForbidden Forbidden.
 
 swagger:response v2ListOperatorPropertiesForbidden
 */
@@ -151,7 +154,8 @@ func (o *V2ListOperatorPropertiesForbidden) WriteResponse(rw http.ResponseWriter
 // V2ListOperatorPropertiesNotFoundCode is the HTTP code returned for type V2ListOperatorPropertiesNotFound
 const V2ListOperatorPropertiesNotFoundCode int = 404
 
-/*V2ListOperatorPropertiesNotFound Error.
+/*
+V2ListOperatorPropertiesNotFound Error.
 
 swagger:response v2ListOperatorPropertiesNotFound
 */
@@ -195,7 +199,8 @@ func (o *V2ListOperatorPropertiesNotFound) WriteResponse(rw http.ResponseWriter,
 // V2ListOperatorPropertiesInternalServerErrorCode is the HTTP code returned for type V2ListOperatorPropertiesInternalServerError
 const V2ListOperatorPropertiesInternalServerErrorCode int = 500
 
-/*V2ListOperatorPropertiesInternalServerError Error.
+/*
+V2ListOperatorPropertiesInternalServerError Error.
 
 swagger:response v2ListOperatorPropertiesInternalServerError
 */

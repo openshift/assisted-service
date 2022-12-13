@@ -20,8 +20,12 @@ import (
 type StepType string
 
 func NewStepType(value StepType) *StepType {
-	v := value
-	return &v
+	return &value
+}
+
+// Pointer returns a pointer to a freshly-allocated StepType.
+func (m StepType) Pointer() *StepType {
+	return &m
 }
 
 const (

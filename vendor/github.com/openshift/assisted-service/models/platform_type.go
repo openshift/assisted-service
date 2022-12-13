@@ -20,8 +20,12 @@ import (
 type PlatformType string
 
 func NewPlatformType(value PlatformType) *PlatformType {
-	v := value
-	return &v
+	return &value
+}
+
+// Pointer returns a pointer to a freshly-allocated PlatformType.
+func (m PlatformType) Pointer() *PlatformType {
+	return &m
 }
 
 const (

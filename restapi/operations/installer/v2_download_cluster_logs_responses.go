@@ -17,7 +17,8 @@ import (
 // V2DownloadClusterLogsOKCode is the HTTP code returned for type V2DownloadClusterLogsOK
 const V2DownloadClusterLogsOKCode int = 200
 
-/*V2DownloadClusterLogsOK Success.
+/*
+V2DownloadClusterLogsOK Success.
 
 swagger:response v2DownloadClusterLogsOK
 */
@@ -59,7 +60,8 @@ func (o *V2DownloadClusterLogsOK) WriteResponse(rw http.ResponseWriter, producer
 // V2DownloadClusterLogsUnauthorizedCode is the HTTP code returned for type V2DownloadClusterLogsUnauthorized
 const V2DownloadClusterLogsUnauthorizedCode int = 401
 
-/*V2DownloadClusterLogsUnauthorized Unauthorized.
+/*
+V2DownloadClusterLogsUnauthorized Unauthorized.
 
 swagger:response v2DownloadClusterLogsUnauthorized
 */
@@ -103,7 +105,8 @@ func (o *V2DownloadClusterLogsUnauthorized) WriteResponse(rw http.ResponseWriter
 // V2DownloadClusterLogsForbiddenCode is the HTTP code returned for type V2DownloadClusterLogsForbidden
 const V2DownloadClusterLogsForbiddenCode int = 403
 
-/*V2DownloadClusterLogsForbidden Forbidden.
+/*
+V2DownloadClusterLogsForbidden Forbidden.
 
 swagger:response v2DownloadClusterLogsForbidden
 */
@@ -147,7 +150,8 @@ func (o *V2DownloadClusterLogsForbidden) WriteResponse(rw http.ResponseWriter, p
 // V2DownloadClusterLogsNotFoundCode is the HTTP code returned for type V2DownloadClusterLogsNotFound
 const V2DownloadClusterLogsNotFoundCode int = 404
 
-/*V2DownloadClusterLogsNotFound Error.
+/*
+V2DownloadClusterLogsNotFound Error.
 
 swagger:response v2DownloadClusterLogsNotFound
 */
@@ -191,7 +195,8 @@ func (o *V2DownloadClusterLogsNotFound) WriteResponse(rw http.ResponseWriter, pr
 // V2DownloadClusterLogsMethodNotAllowedCode is the HTTP code returned for type V2DownloadClusterLogsMethodNotAllowed
 const V2DownloadClusterLogsMethodNotAllowedCode int = 405
 
-/*V2DownloadClusterLogsMethodNotAllowed Method Not Allowed.
+/*
+V2DownloadClusterLogsMethodNotAllowed Method Not Allowed.
 
 swagger:response v2DownloadClusterLogsMethodNotAllowed
 */
@@ -235,7 +240,8 @@ func (o *V2DownloadClusterLogsMethodNotAllowed) WriteResponse(rw http.ResponseWr
 // V2DownloadClusterLogsConflictCode is the HTTP code returned for type V2DownloadClusterLogsConflict
 const V2DownloadClusterLogsConflictCode int = 409
 
-/*V2DownloadClusterLogsConflict Error.
+/*
+V2DownloadClusterLogsConflict Error.
 
 swagger:response v2DownloadClusterLogsConflict
 */
@@ -279,7 +285,8 @@ func (o *V2DownloadClusterLogsConflict) WriteResponse(rw http.ResponseWriter, pr
 // V2DownloadClusterLogsInternalServerErrorCode is the HTTP code returned for type V2DownloadClusterLogsInternalServerError
 const V2DownloadClusterLogsInternalServerErrorCode int = 500
 
-/*V2DownloadClusterLogsInternalServerError Error.
+/*
+V2DownloadClusterLogsInternalServerError Error.
 
 swagger:response v2DownloadClusterLogsInternalServerError
 */

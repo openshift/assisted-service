@@ -29,10 +29,10 @@ func NewV2PostStepReply(ctx *middleware.Context, handler V2PostStepReplyHandler)
 	return &V2PostStepReply{Context: ctx, Handler: handler}
 }
 
-/* V2PostStepReply swagger:route POST /v2/infra-envs/{infra_env_id}/hosts/{host_id}/instructions installer v2PostStepReply
+/*
+	V2PostStepReply swagger:route POST /v2/infra-envs/{infra_env_id}/hosts/{host_id}/instructions installer v2PostStepReply
 
 Posts the result of the operations from the host agent.
-
 */
 type V2PostStepReply struct {
 	Context *middleware.Context

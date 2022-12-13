@@ -16,7 +16,8 @@ import (
 // V2ListManagedDomainsOKCode is the HTTP code returned for type V2ListManagedDomainsOK
 const V2ListManagedDomainsOKCode int = 200
 
-/*V2ListManagedDomainsOK Success.
+/*
+V2ListManagedDomainsOK Success.
 
 swagger:response v2ListManagedDomainsOK
 */
@@ -63,7 +64,8 @@ func (o *V2ListManagedDomainsOK) WriteResponse(rw http.ResponseWriter, producer 
 // V2ListManagedDomainsInternalServerErrorCode is the HTTP code returned for type V2ListManagedDomainsInternalServerError
 const V2ListManagedDomainsInternalServerErrorCode int = 500
 
-/*V2ListManagedDomainsInternalServerError Error.
+/*
+V2ListManagedDomainsInternalServerError Error.
 
 swagger:response v2ListManagedDomainsInternalServerError
 */

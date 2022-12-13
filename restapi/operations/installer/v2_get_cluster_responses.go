@@ -16,7 +16,8 @@ import (
 // V2GetClusterOKCode is the HTTP code returned for type V2GetClusterOK
 const V2GetClusterOKCode int = 200
 
-/*V2GetClusterOK Success.
+/*
+V2GetClusterOK Success.
 
 swagger:response v2GetClusterOK
 */
@@ -60,7 +61,8 @@ func (o *V2GetClusterOK) WriteResponse(rw http.ResponseWriter, producer runtime.
 // V2GetClusterUnauthorizedCode is the HTTP code returned for type V2GetClusterUnauthorized
 const V2GetClusterUnauthorizedCode int = 401
 
-/*V2GetClusterUnauthorized Unauthorized.
+/*
+V2GetClusterUnauthorized Unauthorized.
 
 swagger:response v2GetClusterUnauthorized
 */
@@ -104,7 +106,8 @@ func (o *V2GetClusterUnauthorized) WriteResponse(rw http.ResponseWriter, produce
 // V2GetClusterForbiddenCode is the HTTP code returned for type V2GetClusterForbidden
 const V2GetClusterForbiddenCode int = 403
 
-/*V2GetClusterForbidden Forbidden.
+/*
+V2GetClusterForbidden Forbidden.
 
 swagger:response v2GetClusterForbidden
 */
@@ -148,7 +151,8 @@ func (o *V2GetClusterForbidden) WriteResponse(rw http.ResponseWriter, producer r
 // V2GetClusterNotFoundCode is the HTTP code returned for type V2GetClusterNotFound
 const V2GetClusterNotFoundCode int = 404
 
-/*V2GetClusterNotFound Error.
+/*
+V2GetClusterNotFound Error.
 
 swagger:response v2GetClusterNotFound
 */
@@ -192,7 +196,8 @@ func (o *V2GetClusterNotFound) WriteResponse(rw http.ResponseWriter, producer ru
 // V2GetClusterMethodNotAllowedCode is the HTTP code returned for type V2GetClusterMethodNotAllowed
 const V2GetClusterMethodNotAllowedCode int = 405
 
-/*V2GetClusterMethodNotAllowed Method Not Allowed.
+/*
+V2GetClusterMethodNotAllowed Method Not Allowed.
 
 swagger:response v2GetClusterMethodNotAllowed
 */
@@ -236,7 +241,8 @@ func (o *V2GetClusterMethodNotAllowed) WriteResponse(rw http.ResponseWriter, pro
 // V2GetClusterInternalServerErrorCode is the HTTP code returned for type V2GetClusterInternalServerError
 const V2GetClusterInternalServerErrorCode int = 500
 
-/*V2GetClusterInternalServerError Error.
+/*
+V2GetClusterInternalServerError Error.
 
 swagger:response v2GetClusterInternalServerError
 */
@@ -280,7 +286,8 @@ func (o *V2GetClusterInternalServerError) WriteResponse(rw http.ResponseWriter, 
 // V2GetClusterServiceUnavailableCode is the HTTP code returned for type V2GetClusterServiceUnavailable
 const V2GetClusterServiceUnavailableCode int = 503
 
-/*V2GetClusterServiceUnavailable Unavailable.
+/*
+V2GetClusterServiceUnavailable Unavailable.
 
 swagger:response v2GetClusterServiceUnavailable
 */
