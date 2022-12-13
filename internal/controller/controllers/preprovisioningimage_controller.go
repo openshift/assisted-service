@@ -20,6 +20,7 @@ import (
 	"context"
 	"fmt"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/go-openapi/swag"
@@ -178,6 +179,16 @@ func (r *PreprovisioningImageReconciler) Reconcile(origCtx context.Context, req 
 	return ctrl.Result{}, nil
 }
 
+func initrdExtraKernelParams(infraEnv aiv1beta1.InfraEnv) string {
+	params := []string{fmt.Sprintf("coreos.live.rootfs_url=%s", infraEnv.Status.BootArtifacts.RootfsURL)}
+	for _, arg := range infraEnv.Spec.KernelArguments {
+		if arg.Operation == models.KernelArgumentOperationAppend {
+			params = append(params, arg.Value)
+		}
+	}
+	return strings.Join(params, " ")
+}
+
 func (r *PreprovisioningImageReconciler) setImage(image *metal3_v1alpha1.PreprovisioningImage, infraEnv aiv1beta1.InfraEnv) error {
 	r.Log.Infof("Updating PreprovisioningImage ImageUrl to: %s", infraEnv.Status.ISODownloadURL)
 	image.Status.Architecture = infraEnv.Spec.CpuArchitecture
@@ -192,7 +203,7 @@ func (r *PreprovisioningImageReconciler) setImage(image *metal3_v1alpha1.Preprov
 		image.Status.Format = metal3_v1alpha1.ImageFormatInitRD
 		image.Status.ImageUrl = infraEnv.Status.BootArtifacts.InitrdURL
 		image.Status.KernelUrl = infraEnv.Status.BootArtifacts.KernelURL
-		image.Status.ExtraKernelParams = fmt.Sprintf("coreos.live.rootfs_url=%s", infraEnv.Status.BootArtifacts.RootfsURL)
+		image.Status.ExtraKernelParams = initrdExtraKernelParams(infraEnv)
 	}
 	imageCreatedCondition := conditionsv1.FindStatusCondition(infraEnv.Status.Conditions, aiv1beta1.ImageCreatedCondition)
 	reason := imageConditionReason(imageCreatedCondition.Reason)
