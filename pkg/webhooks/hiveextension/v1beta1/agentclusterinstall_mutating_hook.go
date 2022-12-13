@@ -115,8 +115,10 @@ func (a *AgentClusterInstallMutatingAdmissionHook) SetDefaults(admissionSpec *ad
 
 	// if UserNetworkManagement is not set by the user apply the defaults:
 	// true for SNO and false for multi-node
-	if newObject.Spec.Networking.UserManagedNetworking == nil {
-		patchList = append(patchList, patchUserManagedNetworking(newObject, contextLogger))
+	if !installAlreadyStarted(newObject.Status.Conditions) && newObject.DeletionTimestamp.IsZero() {
+		if newObject.Spec.Networking.UserManagedNetworking == nil {
+			patchList = append(patchList, patchUserManagedNetworking(newObject, contextLogger))
+		}
 	}
 
 	if len(patchList) > 0 {
