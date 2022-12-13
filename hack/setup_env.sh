@@ -77,7 +77,7 @@ function assisted_service() {
     rm -f /tmp/kubectl
 
   $(get_package_manager) install -y --setopt=skip_missing_names_on_install=False \
-    unzip diffutils python3-pip genisoimage skopeo
+    unzip diffutils python3-pip genisoimage skopeo && dnf clean all && rm -rf /var/cache/yum
 
   jq
 
@@ -98,7 +98,7 @@ function assisted_service() {
 
   python3 -m venv ${VIRTUAL_ENV:-/opt/venv}
   python3 -m pip install --upgrade pip
-  python3 -m pip install -r ./dev-requirements.txt
+  python3 -m pip install --no-cache-dir -r ./dev-requirements.txt
 }
 
 function hive_from_upstream() {
