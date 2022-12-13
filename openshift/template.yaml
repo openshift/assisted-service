@@ -34,9 +34,6 @@ parameters:
 - name: OCM_BASE_URL
   value: ''
   required: true
-- name: OCM_LOG_LEVEL
-  value: "info"
-  required: false
 - name: S3_USE_SSL
   value: "true"
 - name: ENABLE_AUTO_ASSIGN
@@ -322,8 +319,6 @@ objects:
                 value: ${ALLOWED_DOMAINS}
               - name: OCM_BASE_URL
                 value: ${OCM_BASE_URL}
-              - name: OCM_LOG_LEVEL
-                value: ${OCM_LOG_LEVEL}
               - name: HW_VALIDATOR_REQUIREMENTS
                 value: ${HW_VALIDATOR_REQUIREMENTS}
               - name: INSTALLER_IMAGE
