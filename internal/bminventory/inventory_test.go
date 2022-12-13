@@ -302,7 +302,7 @@ func mockGenerateInstallConfigSuccess(mockGenerator *generator.MockISOInstallCon
 }
 
 func mockGetInstallConfigSuccess(mockInstallConfigBuilder *installcfg_builder.MockInstallConfigBuilder) {
-	mockInstallConfigBuilder.EXPECT().GetInstallConfig(gomock.Any(), gomock.Any(), gomock.Any()).Return([]byte("some string"), nil).Times(1)
+	mockInstallConfigBuilder.EXPECT().GetInstallConfig(gomock.Any(), gomock.Any(), gomock.Any()).Return([]byte("{}"), nil).AnyTimes()
 }
 
 func addVMToCluster(cluster *common.Cluster, db *gorm.DB) {
@@ -9869,6 +9869,7 @@ var _ = Describe("UpdateClusterInstallConfig", func() {
 			eventstest.WithNameMatcher(eventgen.InstallConfigAppliedEventName),
 			eventstest.WithClusterIdMatcher(params.ClusterID.String())))
 		mockInstallConfigBuilder.EXPECT().ValidateInstallConfigPatch(gomock.Any(), gomock.Any(), params.InstallConfigParams).Return(nil).Times(1)
+		mockGetInstallConfigSuccess(mockInstallConfigBuilder)
 		mockUsageReports()
 		response := bm.V2UpdateClusterInstallConfig(ctx, params)
 		Expect(response).To(BeAssignableToTypeOf(&installer.V2UpdateClusterInstallConfigCreated{}))
@@ -9915,6 +9916,7 @@ var _ = Describe("UpdateClusterInstallConfig", func() {
 			eventstest.WithNameMatcher(eventgen.InstallConfigAppliedEventName),
 			eventstest.WithClusterIdMatcher(params.ClusterID.String())))
 		mockInstallConfigBuilder.EXPECT().ValidateInstallConfigPatch(gomock.Any(), gomock.Any(), params.InstallConfigParams).Return(nil).Times(1)
+		mockGetInstallConfigSuccess(mockInstallConfigBuilder)
 		bm.V2UpdateClusterInstallConfig(ctx, params)
 	})
 
@@ -9929,11 +9931,117 @@ var _ = Describe("UpdateClusterInstallConfig", func() {
 			eventstest.WithNameMatcher(eventgen.InstallConfigAppliedEventName),
 			eventstest.WithClusterIdMatcher(params.ClusterID.String())))
 		mockInstallConfigBuilder.EXPECT().ValidateInstallConfigPatch(gomock.Any(), gomock.Any(), params.InstallConfigParams).Return(nil).Times(1)
+		mockGetInstallConfigSuccess(mockInstallConfigBuilder)
 		bm.V2UpdateClusterInstallConfig(ctx, params)
 		var updated common.Cluster
 		err := db.First(&updated, "id = ?", clusterID).Error
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(updated.Cluster.FeatureUsage).To(Equal(""))
+	})
+
+	DescribeTable(
+		"Removes the console from the list of monitored operators for 4.12 or newer",
+		func(version string) {
+			err := db.Model(&common.Cluster{}).Where("id = ?", clusterID).Update("openshift_version", version).Error
+			Expect(err).ToNot(HaveOccurred())
+			operator := &models.MonitoredOperator{
+				ClusterID: clusterID,
+				Name:      "console",
+			}
+			err = db.FirstOrCreate(operator).Error
+			Expect(err).ToNot(HaveOccurred())
+			installConfig := installcfg.InstallerConfigBaremetal{
+				Capabilities: &installcfg.Capabilities{
+					BaselineCapabilitySet: "None",
+					AdditionalEnabledCapabilities: []installcfg.ClusterVersionCapability{
+						"baremetal",
+					},
+				},
+			}
+			installConfigData, err := yaml.Marshal(installConfig)
+			Expect(err).ToNot(HaveOccurred())
+			mockEvents.EXPECT().SendClusterEvent(gomock.Any(), gomock.Any()).AnyTimes()
+			mockInstallConfigBuilder.EXPECT().ValidateInstallConfigPatch(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+			mockInstallConfigBuilder.EXPECT().GetInstallConfig(gomock.Any(), gomock.Any(), gomock.Any()).Return(installConfigData, nil).AnyTimes()
+			params := installer.V2UpdateClusterInstallConfigParams{
+				ClusterID:           clusterID,
+				InstallConfigParams: "{}",
+			}
+			bm.V2UpdateClusterInstallConfig(ctx, params)
+			err = db.First(&operator).Error
+			Expect(err).To(Equal(gorm.ErrRecordNotFound))
+		},
+		Entry("Release 4.12", "4.12.7"),
+		Entry("Release 4.13", "4.13.0"),
+		Entry("Prerelease 4.13", "4.13.0-ec.5"),
+	)
+
+	DescribeTable(
+		"Doesn't remove the console from the list of monitored operators for 4.11 or older",
+		func(version string) {
+			err := db.Model(&common.Cluster{}).Where("id = ?", clusterID).Update("openshift_version", version).Error
+			Expect(err).ToNot(HaveOccurred())
+			operator := &models.MonitoredOperator{
+				ClusterID: clusterID,
+				Name:      "console",
+			}
+			err = db.FirstOrCreate(operator).Error
+			Expect(err).ToNot(HaveOccurred())
+			installConfig := installcfg.InstallerConfigBaremetal{
+				Capabilities: &installcfg.Capabilities{
+					BaselineCapabilitySet: "None",
+					AdditionalEnabledCapabilities: []installcfg.ClusterVersionCapability{
+						"baremetal",
+					},
+				},
+			}
+			installConfigData, err := yaml.Marshal(installConfig)
+			Expect(err).ToNot(HaveOccurred())
+			mockEvents.EXPECT().SendClusterEvent(gomock.Any(), gomock.Any()).AnyTimes()
+			mockInstallConfigBuilder.EXPECT().ValidateInstallConfigPatch(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+			mockInstallConfigBuilder.EXPECT().GetInstallConfig(gomock.Any(), gomock.Any(), gomock.Any()).Return(installConfigData, nil).AnyTimes()
+			params := installer.V2UpdateClusterInstallConfigParams{
+				ClusterID:           clusterID,
+				InstallConfigParams: "{}",
+			}
+			bm.V2UpdateClusterInstallConfig(ctx, params)
+			err = db.First(&operator).Error
+			Expect(err).ToNot(HaveOccurred())
+		},
+		Entry("Release 4.10", "4.10.2"),
+		Entry("Release 4.11", "4.11.3"),
+		Entry("Prerelease 4.11", "4.11.0-ec.2"),
+	)
+
+	It("Adds the console from the list of monitored operators", func() {
+		err := db.Model(&common.Cluster{}).Where("id = ?", clusterID).Update("openshift_version", "4.12.7").Error
+		Expect(err).ToNot(HaveOccurred())
+		operator := &models.MonitoredOperator{
+			ClusterID: clusterID,
+			Name:      "console",
+		}
+		err = db.Delete(operator).Error
+		Expect(err).ToNot(HaveOccurred())
+		installConfig := installcfg.InstallerConfigBaremetal{
+			Capabilities: &installcfg.Capabilities{
+				BaselineCapabilitySet: "None",
+				AdditionalEnabledCapabilities: []installcfg.ClusterVersionCapability{
+					"Console",
+				},
+			},
+		}
+		installConfigData, err := yaml.Marshal(installConfig)
+		Expect(err).ToNot(HaveOccurred())
+		mockEvents.EXPECT().SendClusterEvent(gomock.Any(), gomock.Any()).AnyTimes()
+		mockInstallConfigBuilder.EXPECT().ValidateInstallConfigPatch(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+		mockInstallConfigBuilder.EXPECT().GetInstallConfig(gomock.Any(), gomock.Any(), gomock.Any()).Return(installConfigData, nil).AnyTimes()
+		params := installer.V2UpdateClusterInstallConfigParams{
+			ClusterID:           clusterID,
+			InstallConfigParams: "{}",
+		}
+		bm.V2UpdateClusterInstallConfig(ctx, params)
+		err = db.First(&operator).Error
+		Expect(err).ToNot(HaveOccurred())
 	})
 })
 
