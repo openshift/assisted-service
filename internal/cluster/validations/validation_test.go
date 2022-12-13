@@ -212,44 +212,48 @@ func (m *mockOCMAuthorization) CapabilityReview(ctx context.Context, username, c
 }
 
 var _ = Describe("Cluster name validation", func() {
+	const (
+		bareMetalPlatform = string(models.PlatformTypeBaremetal)
+		nonePlatform      = string(models.PlatformTypeNone)
+	)
 	It("valid", func() {
-		err := ValidateClusterNameFormat("test-1")
+		err := ValidateClusterNameFormat("test-1", bareMetalPlatform)
 		Expect(err).ShouldNot(HaveOccurred())
 	})
 	It("valid - starts with number", func() {
-		err := ValidateClusterNameFormat("1-test")
+		err := ValidateClusterNameFormat("1-test", bareMetalPlatform)
 		Expect(err).ShouldNot(HaveOccurred())
 	})
-	It("valid - contains subdomain", func() {
-		err := ValidateClusterNameFormat("test.test")
+	It("valid - contains a period and None platform", func() {
+		err := ValidateClusterNameFormat("test.test", nonePlatform)
 		Expect(err).ShouldNot(HaveOccurred())
+	})
+	It("invalid format - contains a period and not None platform", func() {
+		err := ValidateClusterNameFormat("test.test", bareMetalPlatform)
+		Expect(err).Should(HaveOccurred())
 	})
 	It("invalid format - special character", func() {
-		err := ValidateClusterNameFormat("test!")
+		err := ValidateClusterNameFormat("test!", bareMetalPlatform)
 		Expect(err).Should(HaveOccurred())
 	})
 	It("invalid format - capital letter", func() {
-		err := ValidateClusterNameFormat("testA")
+		err := ValidateClusterNameFormat("testA", bareMetalPlatform)
 		Expect(err).Should(HaveOccurred())
 	})
 	It("invalid format - starts with capital letter", func() {
-		err := ValidateClusterNameFormat("Test")
+		err := ValidateClusterNameFormat("Test", bareMetalPlatform)
 		Expect(err).Should(HaveOccurred())
 	})
 	It("invalid format - ends with hyphen", func() {
-		err := ValidateClusterNameFormat("test-")
+		err := ValidateClusterNameFormat("test-", bareMetalPlatform)
 		Expect(err).Should(HaveOccurred())
 	})
 	It("invalid format - starts with hyphen", func() {
-		err := ValidateClusterNameFormat("-test")
+		err := ValidateClusterNameFormat("-test", bareMetalPlatform)
 		Expect(err).Should(HaveOccurred())
 	})
-	It("invalid format - starts with dot", func() {
-		err := ValidateClusterNameFormat(".test")
-		Expect(err).Should(HaveOccurred())
-	})
-	It("invalid format - contains two dots in a row", func() {
-		err := ValidateClusterNameFormat("test..test")
+	It("invalid format - starts with a period", func() {
+		err := ValidateClusterNameFormat(".test", bareMetalPlatform)
 		Expect(err).Should(HaveOccurred())
 	})
 })

@@ -35,13 +35,14 @@ type Config struct {
 }
 
 const (
-	clusterNameRegex    = "^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*)*$"
-	CloudOpenShiftCom   = "cloud.openshift.com"
-	sshPublicKeyRegex   = "^(ssh-rsa AAAAB3NzaC1yc2|ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNT|ecdsa-sha2-nistp384 AAAAE2VjZHNhLXNoYTItbmlzdHAzODQAAAAIbmlzdHAzOD|ecdsa-sha2-nistp521 AAAAE2VjZHNhLXNoYTItbmlzdHA1MjEAAAAIbmlzdHA1Mj|ssh-ed25519 AAAAC3NzaC1lZDI1NTE5|ssh-dss AAAAB3NzaC1kc3)[0-9A-Za-z+/]+[=]{0,3}( .*)?$"
-	dockerHubRegistry   = "docker.io"
-	dockerHubLegacyAuth = "https://index.docker.io/v1/"
-	stageRegistry       = "registry.stage.redhat.io"
-	ignoreListSeparator = ","
+	clusterNameRegex                = "^([a-z0-9]([-a-z0-9]*[a-z0-9])?)*$"
+	clusterNameRegexForNonePlatform = "^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*)*$"
+	CloudOpenShiftCom               = "cloud.openshift.com"
+	sshPublicKeyRegex               = "^(ssh-rsa AAAAB3NzaC1yc2|ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNT|ecdsa-sha2-nistp384 AAAAE2VjZHNhLXNoYTItbmlzdHAzODQAAAAIbmlzdHAzOD|ecdsa-sha2-nistp521 AAAAE2VjZHNhLXNoYTItbmlzdHA1MjEAAAAIbmlzdHA1Mj|ssh-ed25519 AAAAC3NzaC1lZDI1NTE5|ssh-dss AAAAB3NzaC1kc3)[0-9A-Za-z+/]+[=]{0,3}( .*)?$"
+	dockerHubRegistry               = "docker.io"
+	dockerHubLegacyAuth             = "https://index.docker.io/v1/"
+	stageRegistry                   = "registry.stage.redhat.io"
+	ignoreListSeparator             = ","
 )
 
 var regexpSshPublicKey *regexp.Regexp
@@ -209,11 +210,17 @@ func (v *registryPullSecretValidator) ValidatePullSecret(secret string, username
 }
 
 // ValidateClusterNameFormat validates specified cluster name format
-func ValidateClusterNameFormat(name string) error {
-	if matched, _ := regexp.MatchString(clusterNameRegex, name); !matched {
+func ValidateClusterNameFormat(name string, platform string) error {
+	regex := clusterNameRegex
+	if platform == string(models.PlatformTypeNone) {
+		regex = clusterNameRegexForNonePlatform
+	}
+	if matched, _ := regexp.MatchString(regex, name); !matched {
 		return errors.Errorf("Cluster name format is not valid: '%s'. "+
-			"Name must consist of lower-case letters, numbers, hyphens, and periods. "+
-			"It must start and end with either a letter or number.", name)
+			"Name must start and end with either a letter or number and "+
+			"consist of lower-case letters, numbers, and hyphens. "+
+			"Subdomains in cluster names are only valid with %s platform.",
+			name, models.PlatformTypeNone)
 	}
 	return nil
 }
