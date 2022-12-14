@@ -1249,14 +1249,6 @@ func setCACertInIgnition(role models.HostRole, path string, workDir string, caCe
 	return nil
 }
 
-func HasCACertInIgnition(contents string) bool {
-	config, err := ParseToLatest([]byte(contents))
-	if err != nil {
-		return false
-	}
-	return len(config.Ignition.Security.TLS.CertificateAuthorities) > 0
-}
-
 func writeHostFiles(hosts []*models.Host, baseFile string, workDir string) error {
 	g := new(errgroup.Group)
 	for i := range hosts {
