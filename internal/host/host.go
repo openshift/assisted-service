@@ -555,7 +555,9 @@ func (m *Manager) UpdateInstallProgress(ctx context.Context, h *models.Host, pro
 		models.HostStatusInstalling, models.HostStatusInstallingInProgress, models.HostStatusInstallingPendingUserAction,
 	}
 	if !funk.ContainsString(validStatuses, swag.StringValue(h.Status)) {
-		return errors.Errorf("Can't set progress <%s> to host in status <%s>", progress.CurrentStage, swag.StringValue(h.Status))
+		return common.NewApiError(http.StatusConflict,
+			errors.Errorf("Can't set progress <%s> to host in status <%s>",
+				progress.CurrentStage, swag.StringValue(h.Status)))
 	}
 
 	var extra []interface{}
@@ -568,12 +570,14 @@ func (m *Manager) UpdateInstallProgress(ctx context.Context, h *models.Host, pro
 			currentIndex := m.IndexOfStage(progress.CurrentStage, stages)
 
 			if currentIndex == -1 {
-				return errors.Errorf("Stages %s isn't available for host role %s bootstrap %s",
-					progress.CurrentStage, h.Role, strconv.FormatBool(h.Bootstrap))
+				return common.NewApiError(http.StatusConflict,
+					errors.Errorf("Stages %s isn't available for host role %s bootstrap %s",
+						progress.CurrentStage, h.Role, strconv.FormatBool(h.Bootstrap)))
 			}
 			if currentIndex < m.IndexOfStage(previousProgress.CurrentStage, stages) {
-				return errors.Errorf("Can't assign lower stage \"%s\" after host has been in stage \"%s\"",
-					progress.CurrentStage, previousProgress.CurrentStage)
+				return common.NewApiError(http.StatusConflict,
+					errors.Errorf("Can't assign lower stage \"%s\" after host has been in stage \"%s\"",
+						progress.CurrentStage, previousProgress.CurrentStage))
 			}
 		}
 
