@@ -36,6 +36,7 @@ import (
 	restclient "github.com/openshift/assisted-service/client"
 	"github.com/openshift/assisted-service/internal/bminventory"
 	"github.com/openshift/assisted-service/internal/cluster"
+	"github.com/openshift/assisted-service/internal/cluster/validations"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/constants"
 	"github.com/openshift/assisted-service/internal/gencrypto"
@@ -851,16 +852,37 @@ func (r *ClusterDeploymentsReconciler) updateNetworkParams(clusterDeployment *hi
 		updateString(swag.StringValue(desiredNetworkType), swag.StringValue(cluster.NetworkType), &params.NetworkType)
 	}
 
-	// Update APIVIP and IngressVIP only if cluster is not SNO or VipDhcpAllocation is not enabled
-	// In absence of this check, the reconcile loop in the controller fails all the time
+	// Update APIVIP and IngressVIP only if cluster spec has VIPs defined and no DHCP enabled.
+	// In absence of this check, the reconcile loop in the controller fails all the time.
+	//
+	// We must not run this reconciler in case VIPs are missing from the cluster spec as this can
+	// indicate a scenario when backend calculates them automatically, e.g. SNO cluster.
 	isDHCPEnabled := swag.BoolValue(cluster.VipDhcpAllocation)
-	isSNO := common.IsSingleNodeCluster(cluster)
+	if !isDHCPEnabled && (clusterInstall.Spec.APIVIP != "" || clusterInstall.Spec.IngressVIP != "") {
+		desiredApiVips, _ := validations.HandleApiVipBackwardsCompatibility(
+			*cluster.ID,
+			clusterInstall.Spec.APIVIP,
+			apiVipsEntriesToArray(clusterInstall.Spec.APIVIPs))
 
-	if !isSNO && !isDHCPEnabled {
-		updateString(clusterInstall.Spec.APIVIP, cluster.APIVip, &params.APIVip)
-		updateString(clusterInstall.Spec.IngressVIP, cluster.IngressVip, &params.IngressVip)
-		// TODO(MGMT-9915) Add logic here to propagate Spec.APIVIPs and Spec.IngressVIPs
-		// so that KubeAPI for non-SNO with DHCP disabled gets the values properly propagated.
+		if clusterInstall.Spec.APIVIP != cluster.APIVip ||
+			!reflect.DeepEqual(desiredApiVips, cluster.APIVips) {
+
+			params.APIVip = swag.String(clusterInstall.Spec.APIVIP)
+			params.APIVips = desiredApiVips
+			update = true
+		}
+
+		desiredIngressVips, _ := validations.HandleIngressVipBackwardsCompatibility(*cluster.ID,
+			clusterInstall.Spec.IngressVIP,
+			ingressVipsEntriesToArray(clusterInstall.Spec.IngressVIPs))
+
+		if clusterInstall.Spec.IngressVIP != cluster.IngressVip ||
+			!reflect.DeepEqual(desiredIngressVips, cluster.IngressVips) {
+
+			params.IngressVip = swag.String(clusterInstall.Spec.IngressVIP)
+			params.IngressVips = desiredIngressVips
+			update = true
+		}
 	}
 
 	if userManagedNetwork := isUserManagedNetwork(clusterInstall); userManagedNetwork != swag.BoolValue(cluster.UserManagedNetworking) {
@@ -1553,6 +1575,8 @@ func (r *ClusterDeploymentsReconciler) updateStatus(ctx context.Context, log log
 			}
 			clusterInstall.Status.APIVIP = c.APIVip
 			clusterInstall.Status.IngressVIP = c.IngressVip
+			clusterInstall.Status.APIVIPs = apiVipsArrayToStrings(c.APIVips)
+			clusterInstall.Status.IngressVIPs = ingressVipsArrayToStrings(c.IngressVips)
 			clusterInstall.Status.UserManagedNetworking = c.UserManagedNetworking
 			clusterInstall.Status.PlatformType = getPlatformType(c.Platform)
 			status := *c.Status

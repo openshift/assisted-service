@@ -3932,10 +3932,34 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			return aci.Status.APIVIP
 		}, "30s", "1s").Should(Equal(aciSpec.APIVIP))
 
+		By("Ensure APIVIPs exist in status")
+		Eventually(func() int {
+			aci := getAgentClusterInstallCRD(ctx, kubeClient, installkey)
+			return len(aci.Status.APIVIPs)
+		}, "30s", "1s").ShouldNot(Equal(0))
+
+		By("Ensure correct APIVIPs exist in status")
+		Eventually(func() string {
+			aci := getAgentClusterInstallCRD(ctx, kubeClient, installkey)
+			return aci.Status.APIVIPs[0]
+		}, "30s", "1s").Should(Equal(aciSpec.APIVIP))
+
 		By("Ensure IngressVIP exists in status")
 		Eventually(func() string {
 			aci := getAgentClusterInstallCRD(ctx, kubeClient, installkey)
 			return aci.Status.IngressVIP
+		}, "30s", "1s").Should(Equal(aciSpec.IngressVIP))
+
+		By("Ensure IngressVIPs exists in status")
+		Eventually(func() int {
+			aci := getAgentClusterInstallCRD(ctx, kubeClient, installkey)
+			return len(aci.Status.IngressVIPs)
+		}, "30s", "1s").ShouldNot(Equal(0))
+
+		By("Ensure correct IngressVIPs exist in status")
+		Eventually(func() string {
+			aci := getAgentClusterInstallCRD(ctx, kubeClient, installkey)
+			return aci.Status.IngressVIPs[0]
 		}, "30s", "1s").Should(Equal(aciSpec.IngressVIP))
 
 		By("Complete Installation")

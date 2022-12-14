@@ -11840,7 +11840,7 @@ var _ = Describe("TestRegisterCluster", func() {
 		verifyApiError(reply, http.StatusBadRequest)
 	})
 
-	It("Fail UserManagedNetworking with API Vip and Ingress Vip", func() {
+	It("Fail multi-node UserManagedNetworking with API Vip and Ingress Vip", func() {
 		mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
 			eventstest.WithNameMatcher(eventgen.ClusterRegistrationFailedEventName),
 			eventstest.WithMessageContainsMatcher("Failed to register cluster. Error: API VIP cannot be set with User Managed Networking"),
@@ -11849,6 +11849,26 @@ var _ = Describe("TestRegisterCluster", func() {
 		clusterParams.UserManagedNetworking = swag.Bool(true)
 		clusterParams.APIVip = "10.35.10.11"
 		clusterParams.IngressVip = "10.35.10.10"
+		reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
+			NewClusterParams: clusterParams,
+		})
+		verifyApiError(reply, http.StatusBadRequest)
+	})
+
+	It("Fail SNO (UserManagedNetworking) with API Vip and Ingress Vip", func() {
+		mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
+			eventstest.WithNameMatcher(eventgen.ClusterRegistrationFailedEventName),
+			eventstest.WithMessageContainsMatcher("Failed to register cluster. Error: API VIP cannot be set with User Managed Networking"),
+			eventstest.WithSeverityMatcher(models.EventSeverityError))).Times(1)
+		clusterParams := getDefaultClusterCreateParams()
+		clusterParams.UserManagedNetworking = swag.Bool(true)
+		clusterParams.APIVip = "10.35.10.11"
+		clusterParams.IngressVip = "10.35.10.10"
+		clusterParams.HighAvailabilityMode = swag.String(models.ClusterHighAvailabilityModeNone)
+		clusterParams.OpenshiftVersion = swag.String("4.12")
+		clusterParams.Platform = &models.Platform{
+			Type: common.PlatformTypePtr(models.PlatformTypeNone),
+		}
 		reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 			NewClusterParams: clusterParams,
 		})
