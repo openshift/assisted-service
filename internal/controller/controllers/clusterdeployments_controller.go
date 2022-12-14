@@ -44,6 +44,7 @@ import (
 	manifestsapi "github.com/openshift/assisted-service/internal/manifests/api"
 	"github.com/openshift/assisted-service/internal/network"
 	"github.com/openshift/assisted-service/internal/operators"
+	"github.com/openshift/assisted-service/internal/versions"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/auth"
 	logutil "github.com/openshift/assisted-service/pkg/log"
@@ -94,7 +95,8 @@ type ClusterDeploymentsReconciler struct {
 	Manifests        manifestsapi.ClusterManifestsInternals
 	ServiceBaseURL   string
 	PullSecretHandler
-	AuthType auth.AuthType
+	AuthType        auth.AuthType
+	VersionsHandler versions.Handler
 }
 
 const minimalOpenShiftVersionForDefaultNetworkTypeOVNKubernetes = "4.12.0-0.0"
@@ -373,13 +375,6 @@ func (r *ClusterDeploymentsReconciler) installDay1(ctx context.Context, log logr
 			// this timeout allows us not to run reconcile too much time and
 			// still have a nice feedback when user will fix the error
 			return ctrl.Result{Requeue: true, RequeueAfter: longerRequeueAfterOnError}, nil
-		}
-
-		// Ensure release image exists in versions cache
-		_, err = r.addReleaseImage(ctx, log, clusterInstall.Spec, pullSecret, cluster)
-		if err != nil {
-			log.WithError(err)
-			return r.updateStatus(ctx, log, clusterInstall, cluster, err)
 		}
 
 		log.Infof("Installing clusterDeployment %s %s", clusterDeployment.Name, clusterDeployment.Namespace)
@@ -1265,8 +1260,7 @@ func (r *ClusterDeploymentsReconciler) createNewCluster(
 		return r.updateStatus(ctx, log, clusterInstall, nil, err)
 	}
 
-	releaseImage, err := r.addReleaseImage(ctx, log, clusterInstall.Spec, pullSecret, nil)
-
+	releaseImage, err := r.getReleaseImage(ctx, log, clusterInstall.Spec, pullSecret)
 	if err != nil {
 		log.WithError(err)
 		_, _ = r.updateStatus(ctx, log, clusterInstall, nil, err)
@@ -1338,39 +1332,26 @@ func (r *ClusterDeploymentsReconciler) createNewDay2Cluster(
 	return r.updateStatus(ctx, log, clusterInstall, c, err)
 }
 
-func (r *ClusterDeploymentsReconciler) addReleaseImage(
+func (r *ClusterDeploymentsReconciler) getReleaseImage(
 	ctx context.Context,
 	log logrus.FieldLogger,
 	spec hiveext.AgentClusterInstallSpec,
-	pullSecret string,
-	cluster *common.Cluster) (*models.ReleaseImage, error) {
+	pullSecret string) (*models.ReleaseImage, error) {
 
-	var err error
-
-	// retrieve the release image url from the associated
-	// ClusterImageSetRef
-	releaseImageUrl, err := getReleaseImage(ctx, r.Client, spec.ImageSetRef.Name)
-	if err != nil {
-		return nil, err
+	clusterImageSet := &hivev1.ClusterImageSet{}
+	key := types.NamespacedName{
+		Namespace: "",
+		Name:      spec.ImageSetRef.Name,
+	}
+	if err := r.Client.Get(ctx, key, clusterImageSet); err != nil {
+		return nil, errors.Wrapf(err, "failed to get cluster image set %s", key.Name)
 	}
 
-	var releaseImage *models.ReleaseImage
-	if cluster == nil {
-		// before creating the cluster the source of truth is the
-		// release image url from the ClusterImageSetRef
-		releaseImage, err = r.Installer.AddReleaseImage(ctx,
-			releaseImageUrl, pullSecret, "", nil)
-	} else {
-		// If the cluster is already created, take the Release Version
-		// ane architecture from the version calculated by the BE.
-		releaseImage, err = r.Installer.AddReleaseImage(ctx,
-			releaseImageUrl, pullSecret, cluster.OpenshiftVersion, []string{cluster.CPUArchitecture})
-	}
-
+	releaseImage, err := r.VersionsHandler.GetReleaseImageByURL(ctx, clusterImageSet.Spec.ReleaseImage, pullSecret)
 	if err != nil {
 		log.Error(err)
-		errMsg := "failed to add release image '%s'. Please ensure the releaseImage field in ClusterImageSet '%s' is valid (error: %s)."
-		return nil, errors.New(fmt.Sprintf(errMsg, releaseImageUrl, spec.ImageSetRef.Name, err.Error()))
+		errMsg := "failed to get release image '%s'. Please ensure the releaseImage field in ClusterImageSet '%s' is valid (error: %s)."
+		return nil, errors.New(fmt.Sprintf(errMsg, clusterImageSet.Spec.ReleaseImage, spec.ImageSetRef.Name, err.Error()))
 	}
 
 	return releaseImage, nil

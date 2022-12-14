@@ -1457,7 +1457,7 @@ func (ib *ignitionBuilder) shouldAppendOKDFiles(ctx context.Context, infraEnv *c
 		return cfg.OKDRPMsImage, true
 	}
 	// Check if selected payload contains `okd-rpms` image
-	releaseImage, err := ib.versionHandler.GetReleaseImage(infraEnv.OpenshiftVersion, infraEnv.CPUArchitecture)
+	releaseImage, err := ib.versionHandler.GetReleaseImage(ctx, infraEnv.OpenshiftVersion, infraEnv.CPUArchitecture, infraEnv.PullSecret)
 	if err != nil {
 		ib.log.Warnf("unable to find release image for %s/%s", infraEnv.OpenshiftVersion, infraEnv.CPUArchitecture)
 		return "", false

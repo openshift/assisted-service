@@ -430,7 +430,7 @@ func (r *PreprovisioningImageReconciler) getIronicAgentImageByRelease(ctx contex
 		return "", fmt.Errorf("Openshift version (%s) is lower than the minimal version for the converged flow (%s)", cluster.OpenshiftVersion, MinimalVersionForConvergedFlow)
 	}
 
-	releaseImage, err := r.VersionsHandler.GetReleaseImage(cluster.OpenshiftVersion, infraEnv.CPUArchitecture)
+	releaseImage, err := r.VersionsHandler.GetReleaseImage(ctx, cluster.OpenshiftVersion, infraEnv.CPUArchitecture, infraEnv.PullSecret)
 	if err != nil {
 		return "", err
 	}

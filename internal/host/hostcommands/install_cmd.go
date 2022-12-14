@@ -116,7 +116,7 @@ func (i *installCmd) getFullInstallerCommand(ctx context.Context, cluster *commo
 
 	// those flags are not used on day2 installation
 	if swag.StringValue(cluster.Kind) != models.ClusterKindAddHostsCluster {
-		releaseImage, err := i.versionsHandler.GetReleaseImage(cluster.OpenshiftVersion, cluster.CPUArchitecture)
+		releaseImage, err := i.versionsHandler.GetReleaseImage(ctx, cluster.OpenshiftVersion, cluster.CPUArchitecture, cluster.PullSecret)
 		if err != nil {
 			return "", err
 		}

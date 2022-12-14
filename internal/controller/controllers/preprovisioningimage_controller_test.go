@@ -303,10 +303,11 @@ var _ = Describe("PreprovisioningImage reconcile", func() {
 			ironicAgentImage := "ironic-image:4.12.0"
 			backendInfraEnv.OpenshiftVersion = "4.12.0-test.release"
 			backendInfraEnv.CPUArchitecture = "x86_64"
+			backendInfraEnv.PullSecret = "mypullsecret"
 			backendCluster := common.Cluster{Cluster: models.Cluster{ID: &clusterID, OpenshiftVersion: "4.12"}}
 			mockInstallerInternal.EXPECT().GetClusterInternal(gomock.Any(), installer.V2GetClusterParams{ClusterID: clusterID}).Return(&backendCluster, nil)
 			mockInstallerInternal.EXPECT().GetInfraEnvByKubeKey(gomock.Any()).Return(backendInfraEnv, nil)
-			mockVersionHandler.EXPECT().GetReleaseImage(backendCluster.OpenshiftVersion, backendInfraEnv.CPUArchitecture).Return(&models.ReleaseImage{URL: &openshiftRelaseImage}, nil)
+			mockVersionHandler.EXPECT().GetReleaseImage(gomock.Any(), backendCluster.OpenshiftVersion, backendInfraEnv.CPUArchitecture, backendInfraEnv.PullSecret).Return(&models.ReleaseImage{URL: &openshiftRelaseImage}, nil)
 			mockOcRelease.EXPECT().GetIronicAgentImage(gomock.Any(), openshiftRelaseImage, "", backendInfraEnv.PullSecret).Return(ironicAgentImage, nil)
 			mockInstallerInternal.EXPECT().UpdateInfraEnvInternal(gomock.Any(), gomock.Any(), gomock.Any()).
 				Do(func(ctx context.Context, params installer.UpdateInfraEnvParams, internalIgnitionConfig *string) {
