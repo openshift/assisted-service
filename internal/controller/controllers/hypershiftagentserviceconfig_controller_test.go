@@ -115,12 +115,12 @@ var _ = Describe("HypershiftAgentServiceConfig reconcile", func() {
 		c := &apiextensionsv1.CustomResourceDefinition{
 			TypeMeta: metav1.TypeMeta{},
 			ObjectMeta: metav1.ObjectMeta{
-				Name: testCRDName,
-				Labels: map[string]string{
-					fmt.Sprintf("operators.coreos.com/assisted-service-operator.%s", testNamespace): "",
-				},
+				Name:   testCRDName,
+				Labels: map[string]string{},
 			},
-			Spec:   apiextensionsv1.CustomResourceDefinitionSpec{},
+			Spec: apiextensionsv1.CustomResourceDefinitionSpec{
+				Group: "agent-install.openshift.io",
+			},
 			Status: apiextensionsv1.CustomResourceDefinitionStatus{},
 		}
 		c.ResourceVersion = ""
