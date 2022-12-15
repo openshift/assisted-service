@@ -266,8 +266,9 @@ func newValidations(v *validator) []validation {
 			condition: v.isVSphereDiskUUIDEnabled,
 		},
 		{
-			id:        CompatibleAgent,
-			condition: v.compatibleAgent,
+			id:            CompatibleAgent,
+			condition:     v.compatibleAgent,
+			skippedStates: allStages,
 		},
 		{
 			id:        NoSkipInstallationDisk,
