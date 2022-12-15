@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/NYTimes/gziphandler"
+	"github.com/go-openapi/runtime"
 	"github.com/go-openapi/runtime/middleware"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
@@ -30,6 +31,7 @@ import (
 	"github.com/openshift/assisted-service/internal/domains"
 	"github.com/openshift/assisted-service/internal/events"
 	eventsapi "github.com/openshift/assisted-service/internal/events/api"
+	"github.com/openshift/assisted-service/internal/feature"
 	"github.com/openshift/assisted-service/internal/garbagecollector"
 	"github.com/openshift/assisted-service/internal/hardware"
 	"github.com/openshift/assisted-service/internal/host"
@@ -37,6 +39,7 @@ import (
 	"github.com/openshift/assisted-service/internal/ignition"
 	"github.com/openshift/assisted-service/internal/infraenv"
 	installcfg "github.com/openshift/assisted-service/internal/installcfg/builder"
+	internaljson "github.com/openshift/assisted-service/internal/json"
 	"github.com/openshift/assisted-service/internal/manifests"
 	"github.com/openshift/assisted-service/internal/metrics"
 	"github.com/openshift/assisted-service/internal/migrations"
@@ -100,6 +103,8 @@ const (
 )
 
 var Options struct {
+	feature.Flags
+
 	Auth                                 auth.Config
 	BMConfig                             bminventory.Config
 	DBConfig                             dbPkg.Config
@@ -469,6 +474,11 @@ func main() {
 		}
 	}
 
+	jsonConsumer := runtime.JSONConsumer()
+	if Options.EnableRejectUnknownFields {
+		jsonConsumer = internaljson.UnknownFieldsRejectingConsumer()
+	}
+
 	operatorsHandler := handler.NewHandler(operatorsManager, log.WithField("pkg", "operators"), db, eventsHandler, clusterApi)
 	h, err := restapi.Handler(restapi.Config{
 		AuthAgentAuth:       authHandler.AuthAgentAuth,
@@ -486,6 +496,7 @@ func main() {
 		InnerMiddleware:     innerHandler(),
 		ManifestsAPI:        manifestsApi,
 		OperatorsAPI:        operatorsHandler,
+		JSONConsumer:        jsonConsumer,
 	})
 	failOnError(err, "Failed to init rest handler")
 
