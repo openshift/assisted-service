@@ -1400,7 +1400,7 @@ func (r *AgentReconciler) SetupWithManager(mgr ctrl.Manager) error {
 
 func (r *AgentReconciler) updateHostInstallProgress(ctx context.Context, host *models.Host, stage models.HostStage) error {
 	r.Log.Infof("Updating host %s install progress to %s", host.ID, stage)
-	_, err := r.Installer.V2UpdateHostInstallProgressInternal(ctx, installer.V2UpdateHostInstallProgressParams{
+	err := r.Installer.V2UpdateHostInstallProgressInternal(ctx, installer.V2UpdateHostInstallProgressParams{
 		InfraEnvID: host.InfraEnvID,
 		HostID:     *host.ID,
 		HostProgress: &models.HostProgress{

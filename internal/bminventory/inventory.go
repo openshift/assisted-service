@@ -176,7 +176,7 @@ type InstallerInternals interface {
 	GetKnownApprovedHosts(clusterId strfmt.UUID) ([]*common.Host, error)
 	ValidatePullSecret(secret string, username string) error
 	GetInfraEnvInternal(ctx context.Context, params installer.GetInfraEnvParams) (*common.InfraEnv, error)
-	V2UpdateHostInstallProgressInternal(ctx context.Context, params installer.V2UpdateHostInstallProgressParams) (*common.Host, error)
+	V2UpdateHostInstallProgressInternal(ctx context.Context, params installer.V2UpdateHostInstallProgressParams) error
 }
 
 //go:generate mockgen --build_flags=--mod=mod -package bminventory -destination mock_crd_utils.go . CRDUtils
