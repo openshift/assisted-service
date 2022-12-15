@@ -935,7 +935,11 @@ func (b *bareMetalInventory) UpdateIgnitionEndpointIfHasMCSCert(log logrus.Field
 		return ignitionEndpointUrl, err
 	}
 	url.Scheme = "https"
-	url.Host = fmt.Sprintf("%s.%s.%s:%d", constants.InternalAPIClusterSubdomain, cluster.Name, cluster.BaseDNSDomain, constants.SecureMCSPort)
+	address := fmt.Sprintf("%s.%s.%s", constants.InternalAPIClusterSubdomain, cluster.Name, cluster.BaseDNSDomain)
+	if cluster.APIVip != "" {
+		address = cluster.APIVip
+	}
+	url.Host = fmt.Sprintf("%s:%d", address, constants.SecureMCSPort)
 	ignitionEndpointUrl = url.String()
 	log.Infof("Resetting Ignition endpoint URL to %s for %s, host %s", ignitionEndpointUrl, cluster.ID, host.ID)
 	return ignitionEndpointUrl, nil
