@@ -2770,9 +2770,15 @@ var _ = Describe("cluster", func() {
 						}).Times(1)
 
 					clusterParams := getDefaultClusterCreateParams()
+					clusterParams.Platform = &models.Platform{
+						Type: common.PlatformTypePtr(models.PlatformTypeNone),
+					}
+					clusterParams.HighAvailabilityMode = swag.String(models.ClusterHighAvailabilityModeNone)
 					clusterParams.OlmOperators = []*models.OperatorCreateParams{
 						{Name: "lvm"},
 					}
+					clusterParams.OpenshiftVersion = swag.String("4.12")
+
 					reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 						NewClusterParams: clusterParams,
 					})
@@ -2940,9 +2946,11 @@ var _ = Describe("cluster", func() {
 						},
 					}
 					err := db.Create(&common.Cluster{Cluster: models.Cluster{
-						ID:                 &clusterID,
-						MonitoredOperators: originalOperators,
-						OpenshiftVersion:   common.TestDefaultConfig.OpenShiftVersion,
+						ID:                   &clusterID,
+						MonitoredOperators:   originalOperators,
+						OpenshiftVersion:     "4.12",
+						HighAvailabilityMode: swag.String(models.ClusterHighAvailabilityModeNone),
+						Platform:             &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeNone)},
 					}}).Error
 					Expect(err).ShouldNot(HaveOccurred())
 

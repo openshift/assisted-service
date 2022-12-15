@@ -169,7 +169,7 @@ var _ = Describe("Operators manager", func() {
 				{Name: "odf"},
 				{Name: "cnv"},
 			}
-			err := operators.EnsureLVMAndCNVDoNotClash("4.11.0", monitoredOperators)
+			err := operators.EnsureLVMAndCNVDoNotClash(cluster, "4.11.0", monitoredOperators)
 			Expect(err).To(Not(BeNil()))
 		})
 		It("no error when both cnv and lvm operator enabled after 4.12", func() {
@@ -178,7 +178,7 @@ var _ = Describe("Operators manager", func() {
 				{Name: "lso"},
 				{Name: "odf"},
 			}
-			err := operators.EnsureLVMAndCNVDoNotClash("4.12.0-ec.3", monitoredOperators)
+			err := operators.EnsureLVMAndCNVDoNotClash(cluster, "4.12.0-ec.3", monitoredOperators)
 			Expect(err).To(BeNil())
 		})
 		It("lvm operator enabled without cnv before 4.12", func() {
@@ -187,8 +187,8 @@ var _ = Describe("Operators manager", func() {
 				{Name: "lso"},
 				{Name: "odf"},
 			}
-			err := operators.EnsureLVMAndCNVDoNotClash("4.11.0", monitoredOperators)
-			Expect(err).To(BeNil())
+			err := operators.EnsureLVMAndCNVDoNotClash(cluster, "4.11.0", monitoredOperators)
+			Expect(err).To(Not(BeNil()))
 		})
 		It("cnv operator enabled without lvm before 4.12", func() {
 			monitoredOperators := []*models.MonitoredOperator{
@@ -196,7 +196,7 @@ var _ = Describe("Operators manager", func() {
 				{Name: "lso"},
 				{Name: "odf"},
 			}
-			err := operators.EnsureLVMAndCNVDoNotClash("4.11.0", monitoredOperators)
+			err := operators.EnsureLVMAndCNVDoNotClash(cluster, "4.11.0", monitoredOperators)
 			Expect(err).To(BeNil())
 		})
 	})

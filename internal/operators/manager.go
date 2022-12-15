@@ -400,7 +400,7 @@ func (mgr *Manager) GetSupportedOperatorsByType(operatorType models.OperatorType
 	return operators
 }
 
-func EnsureLVMAndCNVDoNotClash(openshiftVersion string, operators []*models.MonitoredOperator) error {
+func EnsureLVMAndCNVDoNotClash(cluster *common.Cluster, openshiftVersion string, operators []*models.MonitoredOperator) error {
 
 	minOCPVersionForLVM, err := version.NewVersion(lvm.LvmMinOpenshiftVersion)
 	if err != nil {
@@ -437,8 +437,13 @@ func EnsureLVMAndCNVDoNotClash(openshiftVersion string, operators []*models.Moni
 			cnvEnabled = true
 		}
 	}
+
 	if lvmEnabled && cnvEnabled {
 		return errors.Errorf("Currently, you can not install OpenShift Data Foundation Logical Volume Manager operator at the same time as Virtualization operator.")
+	}
+
+	if lvmEnabled && !common.IsSingleNodeCluster(cluster) {
+		return errors.Errorf("OpenShift Data Foundation Logical Volume Manager operator is only supported for Single Node Openshift")
 	}
 	return nil
 }
