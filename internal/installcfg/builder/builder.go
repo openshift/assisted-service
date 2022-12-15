@@ -151,7 +151,7 @@ func (i *installConfigBuilder) setImageContentSources(cfg *installcfg.InstallerC
 	}
 	imageContentSourceList := make([]installcfg.ImageContentSource, len(mirrorRegistriesConfigs))
 	for i, mirrorRegistriesConfig := range mirrorRegistriesConfigs {
-		imageContentSourceList[i] = installcfg.ImageContentSource{Source: mirrorRegistriesConfig.Location, Mirrors: []string{mirrorRegistriesConfig.Mirror}}
+		imageContentSourceList[i] = installcfg.ImageContentSource{Source: mirrorRegistriesConfig.Location, Mirrors: mirrorRegistriesConfig.Mirror}
 	}
 	cfg.ImageContentSources = imageContentSourceList
 	return nil
