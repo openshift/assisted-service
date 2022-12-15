@@ -33,6 +33,7 @@ func NewBMOUtils(client client.Reader, osClient *osclientset.Clientset, kubeClie
 }
 
 // +kubebuilder:rbac:groups=config.openshift.io,resources=clusteroperators,verbs=get;list;watch
+// +kubebuilder:rbac:groups=config.openshift.io,resources=infrastructures,verbs=get;list;watch
 // +kubebuilder:rbac:groups=metal3.io,resources=provisionings,verbs=get
 
 // ConvergedFlowAvailable checks the baremetal operator version and returns true if it's equal or higher than the minimal version for converged flow
