@@ -10,6 +10,7 @@ import (
 	"github.com/go-openapi/swag"
 	"github.com/google/uuid"
 	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/types"
 	"github.com/openshift/assisted-service/internal/common"
@@ -33,7 +34,9 @@ var _ = Describe("Events library", func() {
 		cluster1  = strfmt.UUID("46a8d745-dfce-4fd8-9df0-549ee8eabb3d")
 		cluster2  = strfmt.UUID("60415d9c-7c44-4978-89f5-53d510b03a47")
 		infraEnv1 = strfmt.UUID("46a8d745-dfce-4a69-9df0-a0c627217f3e")
+		infraEnv2 = strfmt.UUID("705c994b-eaa0-4b77-880b-66d4cd34cb4e")
 		host      = strfmt.UUID("1e45d128-4a69-4e71-9b50-a0c627217f3e")
+		host2     = strfmt.UUID("ad647798-a7af-4b1d-b96e-69f1beb9b4c3")
 	)
 	BeforeEach(func() {
 		db, dbName = common.PrepareTestDB()
@@ -44,6 +47,8 @@ var _ = Describe("Events library", func() {
 		Expect(db.Create(&c2).Error).ShouldNot(HaveOccurred())
 		i1 := common.InfraEnv{InfraEnv: models.InfraEnv{ID: &infraEnv1, UserName: "user1", OrgID: "org1"}}
 		Expect(db.Create(&i1).Error).ShouldNot(HaveOccurred())
+		i2 := common.InfraEnv{InfraEnv: models.InfraEnv{ID: &infraEnv2, UserName: "user2", OrgID: "org1"}}
+		Expect(db.Create(&i2).Error).ShouldNot(HaveOccurred())
 	})
 	numOfEvents := func(clusterID *strfmt.UUID, hostID *strfmt.UUID, infraEnvID *strfmt.UUID) int {
 		evs, err := theEvents.V2GetEvents(context.TODO(), clusterID, hostID, infraEnvID)
@@ -371,10 +376,144 @@ var _ = Describe("Events library", func() {
 		})
 	})
 
+	Context("Limits", func() {
+		var ctx context.Context
+
+		BeforeEach(func() {
+			ctx = context.Background()
+		})
+
+		DescribeTable(
+			"Discards event if sent multiple times",
+			func(count int) {
+				for i := 0; i < count; i++ {
+					theEvents.V2AddEvent(
+						ctx,
+						&cluster1,
+						&host,
+						&infraEnv1,
+						eventgen.UpgradeAgentFailedEventName,
+						models.EventSeverityError,
+						"Upgrade failed",
+						time.Now(),
+					)
+				}
+				events, err := theEvents.V2GetEvents(
+					ctx,
+					&cluster1,
+					&host,
+					&infraEnv1,
+					models.EventCategoryUser,
+				)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(events).To(HaveLen(1))
+			},
+			Entry("Twice", 2),
+			Entry("Ten times", 10),
+			Entry("Many times", 42),
+		)
+
+		It("Doesn't discard events from different clusters", func() {
+			theEvents.V2AddEvent(
+				ctx,
+				&cluster1,
+				&host,
+				&infraEnv1,
+				eventgen.UpgradeAgentFailedEventName,
+				models.EventSeverityError,
+				"Upgrade failed",
+				time.Now(),
+			)
+			theEvents.V2AddEvent(
+				ctx,
+				&cluster2,
+				&host2,
+				&infraEnv2,
+				eventgen.UpgradeAgentFailedEventName,
+				models.EventSeverityError,
+				"Upgrade failed",
+				time.Now(),
+			)
+			events1, err := theEvents.V2GetEvents(
+				ctx,
+				&cluster1,
+				&host,
+				&infraEnv1,
+				models.EventCategoryUser,
+			)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(events1).To(HaveLen(1))
+			events2, err := theEvents.V2GetEvents(
+				ctx,
+				&cluster2,
+				&host2,
+				&infraEnv2,
+				models.EventCategoryUser,
+			)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(events2).To(HaveLen(1))
+		})
+
+		It("Doesn't discard event that doesn't exceed limit", func() {
+			theEvents.V2AddEvent(
+				ctx,
+				&cluster1,
+				&host,
+				&infraEnv1,
+				eventgen.UpgradeAgentFailedEventName,
+				models.EventSeverityError,
+				"Upgrade failed",
+				time.Now().Add(-2*time.Hour),
+			)
+			theEvents.V2AddEvent(
+				ctx,
+				&cluster1,
+				&host,
+				&infraEnv1,
+				eventgen.UpgradeAgentFailedEventName,
+				models.EventSeverityError,
+				"Upgrade failed",
+				time.Now(),
+			)
+			events, err := theEvents.V2GetEvents(
+				ctx,
+				&cluster1,
+				&host,
+				&infraEnv1,
+				models.EventCategoryUser,
+			)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(events).To(HaveLen(2))
+		})
+
+		It("Doesn't discard events that don't have limits", func() {
+			for i := 0; i < 2; i++ {
+				theEvents.V2AddEvent(
+					ctx,
+					&cluster1,
+					&host,
+					&infraEnv1,
+					eventgen.ClusterInstallationCompletedEventName,
+					models.EventSeverityInfo,
+					"Installation completed",
+					time.Now(),
+				)
+			}
+			events, err := theEvents.V2GetEvents(
+				ctx,
+				&cluster1,
+				&host,
+				&infraEnv1,
+				models.EventCategoryUser,
+			)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(events).To(HaveLen(2))
+		})
+	})
+
 	AfterEach(func() {
 		common.DeleteTestDB(db, dbName)
 	})
-
 })
 
 func WithRequestID(requestID string) types.GomegaMatcher {

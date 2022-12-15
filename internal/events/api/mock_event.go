@@ -37,40 +37,6 @@ func (m *MockSender) EXPECT() *MockSenderMockRecorder {
 	return m.recorder
 }
 
-// AddEvent mocks base method.
-func (m *MockSender) AddEvent(ctx context.Context, clusterID strfmt.UUID, hostID *strfmt.UUID, severity, msg string, eventTime time.Time, props ...interface{}) {
-	m.ctrl.T.Helper()
-	varargs := []interface{}{ctx, clusterID, hostID, severity, msg, eventTime}
-	for _, a := range props {
-		varargs = append(varargs, a)
-	}
-	m.ctrl.Call(m, "AddEvent", varargs...)
-}
-
-// AddEvent indicates an expected call of AddEvent.
-func (mr *MockSenderMockRecorder) AddEvent(ctx, clusterID, hostID, severity, msg, eventTime interface{}, props ...interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	varargs := append([]interface{}{ctx, clusterID, hostID, severity, msg, eventTime}, props...)
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddEvent", reflect.TypeOf((*MockSender)(nil).AddEvent), varargs...)
-}
-
-// AddMetricsEvent mocks base method.
-func (m *MockSender) AddMetricsEvent(ctx context.Context, clusterID strfmt.UUID, hostID *strfmt.UUID, severity, msg string, eventTime time.Time, props ...interface{}) {
-	m.ctrl.T.Helper()
-	varargs := []interface{}{ctx, clusterID, hostID, severity, msg, eventTime}
-	for _, a := range props {
-		varargs = append(varargs, a)
-	}
-	m.ctrl.Call(m, "AddMetricsEvent", varargs...)
-}
-
-// AddMetricsEvent indicates an expected call of AddMetricsEvent.
-func (mr *MockSenderMockRecorder) AddMetricsEvent(ctx, clusterID, hostID, severity, msg, eventTime interface{}, props ...interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	varargs := append([]interface{}{ctx, clusterID, hostID, severity, msg, eventTime}, props...)
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddMetricsEvent", reflect.TypeOf((*MockSender)(nil).AddMetricsEvent), varargs...)
-}
-
 // NotifyInternalEvent mocks base method.
 func (m *MockSender) NotifyInternalEvent(ctx context.Context, clusterID, hostID, infraEnvID *strfmt.UUID, msg string) {
 	m.ctrl.T.Helper()
@@ -210,40 +176,6 @@ func NewMockHandler(ctrl *gomock.Controller) *MockHandler {
 // EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockHandler) EXPECT() *MockHandlerMockRecorder {
 	return m.recorder
-}
-
-// AddEvent mocks base method.
-func (m *MockHandler) AddEvent(ctx context.Context, clusterID strfmt.UUID, hostID *strfmt.UUID, severity, msg string, eventTime time.Time, props ...interface{}) {
-	m.ctrl.T.Helper()
-	varargs := []interface{}{ctx, clusterID, hostID, severity, msg, eventTime}
-	for _, a := range props {
-		varargs = append(varargs, a)
-	}
-	m.ctrl.Call(m, "AddEvent", varargs...)
-}
-
-// AddEvent indicates an expected call of AddEvent.
-func (mr *MockHandlerMockRecorder) AddEvent(ctx, clusterID, hostID, severity, msg, eventTime interface{}, props ...interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	varargs := append([]interface{}{ctx, clusterID, hostID, severity, msg, eventTime}, props...)
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddEvent", reflect.TypeOf((*MockHandler)(nil).AddEvent), varargs...)
-}
-
-// AddMetricsEvent mocks base method.
-func (m *MockHandler) AddMetricsEvent(ctx context.Context, clusterID strfmt.UUID, hostID *strfmt.UUID, severity, msg string, eventTime time.Time, props ...interface{}) {
-	m.ctrl.T.Helper()
-	varargs := []interface{}{ctx, clusterID, hostID, severity, msg, eventTime}
-	for _, a := range props {
-		varargs = append(varargs, a)
-	}
-	m.ctrl.Call(m, "AddMetricsEvent", varargs...)
-}
-
-// AddMetricsEvent indicates an expected call of AddMetricsEvent.
-func (mr *MockHandlerMockRecorder) AddMetricsEvent(ctx, clusterID, hostID, severity, msg, eventTime interface{}, props ...interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	varargs := append([]interface{}{ctx, clusterID, hostID, severity, msg, eventTime}, props...)
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddMetricsEvent", reflect.TypeOf((*MockHandler)(nil).AddMetricsEvent), varargs...)
 }
 
 // NotifyInternalEvent mocks base method.
