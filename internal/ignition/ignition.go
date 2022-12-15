@@ -136,7 +136,7 @@ const agentFixBZ1964591 = `#!/usr/bin/sh
 # In such a scenario agent.service will detect the image is not present and pull it again. In case
 # the image is present and can be detected correctly, no any action is required.
 
-IMAGE=$(echo $1 | sed 's/:.*//')
+IMAGE=$(echo $1 | sed 's/[@:].*//')
 podman images | grep $IMAGE || podman rmi --force $1 || true
 `
 
@@ -1457,7 +1457,7 @@ func (ib *ignitionBuilder) shouldAppendOKDFiles(ctx context.Context, infraEnv *c
 		return cfg.OKDRPMsImage, true
 	}
 	// Check if selected payload contains `okd-rpms` image
-	releaseImage, err := ib.versionHandler.GetReleaseImage(infraEnv.OpenshiftVersion, infraEnv.CPUArchitecture)
+	releaseImage, err := ib.versionHandler.GetReleaseImage(ctx, infraEnv.OpenshiftVersion, infraEnv.CPUArchitecture, infraEnv.PullSecret)
 	if err != nil {
 		ib.log.Warnf("unable to find release image for %s/%s", infraEnv.OpenshiftVersion, infraEnv.CPUArchitecture)
 		return "", false

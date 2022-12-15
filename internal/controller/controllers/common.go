@@ -206,19 +206,6 @@ func generatePassword(length int) (string, error) {
 	return string(password), nil
 }
 
-func getReleaseImage(ctx context.Context, c client.Client, imageSetName string) (string, error) {
-	clusterImageSet := &hivev1.ClusterImageSet{}
-	key := types.NamespacedName{
-		Namespace: "",
-		Name:      imageSetName,
-	}
-	if err := c.Get(ctx, key, clusterImageSet); err != nil {
-		return "", errors.Wrapf(err, "failed to get cluster image set %s", key.Name)
-	}
-
-	return clusterImageSet.Spec.ReleaseImage, nil
-}
-
 func addRequestIdIfNeeded(ctx context.Context) context.Context {
 	ctxWithReqID := ctx
 	if requestid.FromContext(ctx) == "" {
@@ -313,6 +300,30 @@ func machineNetworksEntriesToArray(entries []hiveext.MachineNetworkEntry) []*mod
 	return funk.Map(entries, func(entry hiveext.MachineNetworkEntry) *models.MachineNetwork {
 		return &models.MachineNetwork{Cidr: models.Subnet(entry.CIDR)}
 	}).([]*models.MachineNetwork)
+}
+
+func apiVipsArrayToStrings(vips []*models.APIVip) []string {
+	return funk.Map(vips, func(vip *models.APIVip) string {
+		return string(vip.IP)
+	}).([]string)
+}
+
+func apiVipsEntriesToArray(entries []string) []*models.APIVip {
+	return funk.Map(entries, func(entry string) *models.APIVip {
+		return &models.APIVip{IP: models.IP(entry)}
+	}).([]*models.APIVip)
+}
+
+func ingressVipsArrayToStrings(vips []*models.IngressVip) []string {
+	return funk.Map(vips, func(vip *models.IngressVip) string {
+		return string(vip.IP)
+	}).([]string)
+}
+
+func ingressVipsEntriesToArray(entries []string) []*models.IngressVip {
+	return funk.Map(entries, func(entry string) *models.IngressVip {
+		return &models.IngressVip{IP: models.IP(entry)}
+	}).([]*models.IngressVip)
 }
 
 func signURL(urlString string, authType auth.AuthType, id string, keyType gencrypto.LocalJWTKeyType) (string, error) {

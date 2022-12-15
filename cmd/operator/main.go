@@ -169,7 +169,6 @@ func main() {
 		},
 		Client:       mgr.GetClient(),
 		SpokeClients: spokeClientCache,
-		Namespace:    ns,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "HypershiftAgentServiceConfig")
 		os.Exit(1)

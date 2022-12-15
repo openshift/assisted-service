@@ -1,6 +1,7 @@
 package versions
 
 import (
+	context "context"
 	"fmt"
 	"runtime/debug"
 
@@ -9,9 +10,11 @@ import (
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/oc"
 	"github.com/openshift/assisted-service/models"
+	hivev1 "github.com/openshift/hive/apis/hive/v1"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 type MustGatherVersion map[string]string
@@ -19,15 +22,15 @@ type MustGatherVersions map[string]MustGatherVersion
 
 //go:generate mockgen --build_flags=--mod=mod -package versions -destination mock_versions.go -self_package github.com/openshift/assisted-service/internal/versions . Handler
 type Handler interface {
-	GetReleaseImage(openshiftVersion, cpuArchitecture string) (*models.ReleaseImage, error)
+	GetReleaseImage(ctx context.Context, openshiftVersion, cpuArchitecture, pullSecret string) (*models.ReleaseImage, error)
 	GetDefaultReleaseImage(cpuArchitecture string) (*models.ReleaseImage, error)
-	AddReleaseImage(releaseImageUrl, pullSecret, ocpReleaseVersion string, cpuArchitectures []string) (*models.ReleaseImage, error)
+	GetReleaseImageByURL(ctx context.Context, url, pullSecret string) (*models.ReleaseImage, error)
 	GetMustGatherImages(openshiftVersion, cpuArchitecture, pullSecret string) (MustGatherVersion, error)
 	ValidateReleaseImageForRHCOS(rhcosVersion, cpuArch string) error
 }
 
 func NewHandler(log logrus.FieldLogger, releaseHandler oc.Release, osImages OSImages, releaseImages models.ReleaseImages,
-	mustGatherVersions MustGatherVersions, releaseImageMirror string) (*handler, error) {
+	mustGatherVersions MustGatherVersions, releaseImageMirror string, kubeClient client.Client) (*handler, error) {
 
 	h := &handler{
 		mustGatherVersions: mustGatherVersions,
@@ -36,6 +39,7 @@ func NewHandler(log logrus.FieldLogger, releaseHandler oc.Release, osImages OSIm
 		releaseHandler:     releaseHandler,
 		releaseImageMirror: releaseImageMirror,
 		log:                log,
+		kubeClient:         kubeClient,
 	}
 
 	if err := h.validateVersions(); err != nil {
@@ -52,6 +56,7 @@ type handler struct {
 	releaseHandler     oc.Release
 	releaseImageMirror string
 	log                logrus.FieldLogger
+	kubeClient         client.Client
 }
 
 func (h *handler) GetMustGatherImages(openshiftVersion, cpuArchitecture, pullSecret string) (MustGatherVersion, error) {
@@ -72,7 +77,7 @@ func (h *handler) GetMustGatherImages(openshiftVersion, cpuArchitecture, pullSec
 		return versions, nil
 	}
 	//if not, fetch it from the release image and add it to the cache
-	releaseImage, err := h.GetReleaseImage(openshiftVersion, cpuArchitecture)
+	releaseImage, err := h.GetReleaseImage(context.Background(), openshiftVersion, cpuArchitecture, pullSecret)
 	if err != nil {
 		return nil, err
 	}
@@ -99,8 +104,46 @@ func (h *handler) GetDefaultReleaseImage(cpuArchitecture string) (*models.Releas
 	return defaultReleaseImage.(*models.ReleaseImage), nil
 }
 
-// Returns the ReleaseImage entity
-func (h *handler) GetReleaseImage(openshiftVersion, cpuArchitecture string) (*models.ReleaseImage, error) {
+func (h *handler) GetReleaseImage(ctx context.Context, openshiftVersion, cpuArchitecture, pullSecret string) (*models.ReleaseImage, error) {
+	image, err := h.getReleaseImageFromCache(openshiftVersion, cpuArchitecture)
+	if err == nil || h.kubeClient == nil {
+		return image, err
+	}
+
+	clusterImageSets := &hivev1.ClusterImageSetList{}
+	if err := h.kubeClient.List(ctx, clusterImageSets); err != nil {
+		return nil, err
+	}
+	for _, clusterImageSet := range clusterImageSets.Items {
+		existsInCache := false
+		for _, releaseImage := range h.releaseImages {
+			if releaseImage.URL != nil && *releaseImage.URL == clusterImageSet.Spec.ReleaseImage {
+				existsInCache = true
+				break
+			}
+		}
+		if !existsInCache {
+			_, err := h.addReleaseImage(clusterImageSet.Spec.ReleaseImage, pullSecret)
+			if err != nil {
+				h.log.WithError(err).Warnf("Failed to add release image %s", clusterImageSet.Spec.ReleaseImage)
+			}
+		}
+	}
+
+	return h.getReleaseImageFromCache(openshiftVersion, cpuArchitecture)
+}
+
+func (h *handler) GetReleaseImageByURL(ctx context.Context, url, pullSecret string) (*models.ReleaseImage, error) {
+	for _, image := range h.releaseImages {
+		if swag.StringValue(image.URL) == url {
+			return image, nil
+		}
+	}
+
+	return h.addReleaseImage(url, pullSecret)
+}
+
+func (h *handler) getReleaseImageFromCache(openshiftVersion, cpuArchitecture string) (*models.ReleaseImage, error) {
 	if cpuArchitecture == "" {
 		// Empty implies default CPU architecture
 		cpuArchitecture = common.DefaultCPUArchitecture
@@ -174,37 +217,30 @@ func (h *handler) ValidateReleaseImageForRHCOS(rhcosVersion, cpuArchitecture str
 	return errors.Errorf("The requested RHCOS version (%s, arch: %s) does not have a matching OpenShift release image", rhcosVersion, cpuArchitecture)
 }
 
-func (h *handler) AddReleaseImage(releaseImageUrl, pullSecret, ocpReleaseVersion string, cpuArchitectures []string) (*models.ReleaseImage, error) {
-	var err error
-	var cpuArchitecture string
-	var osImage *models.OsImage
-
-	// If release version or cpu architectures are not specified, use oc to fetch values.
-	// If cpu architecture is passed as "multiarch" instead of unwrapped architectures, recalculate it.
-	if ocpReleaseVersion == "" || len(cpuArchitectures) == 0 || cpuArchitectures[0] == common.MultiCPUArchitecture {
-		// Get openshift version from release image metadata (oc adm release info)
-		ocpReleaseVersion, err = h.releaseHandler.GetOpenshiftVersion(h.log, releaseImageUrl, "", pullSecret)
-		if err != nil {
-			return nil, err
-		}
-		h.log.Debugf("For release image %s detected version: %s", releaseImageUrl, ocpReleaseVersion)
-
-		// Get CPU architecture from release image. For single-arch image the returned list will contain
-		// as single entry with the architecture. For multi-arch image the list will contain all the architectures
-		// that the image references to.
-		cpuArchitectures, err = h.releaseHandler.GetReleaseArchitecture(h.log, releaseImageUrl, "", pullSecret)
-		if err != nil {
-			return nil, err
-		}
-		h.log.Debugf("For release image %s detected architecture: %s", releaseImageUrl, cpuArchitectures)
+func (h *handler) addReleaseImage(releaseImageUrl, pullSecret string) (*models.ReleaseImage, error) {
+	// Get openshift version from release image metadata (oc adm release info)
+	ocpReleaseVersion, err := h.releaseHandler.GetOpenshiftVersion(h.log, releaseImageUrl, "", pullSecret)
+	if err != nil {
+		return nil, err
 	}
+	h.log.Debugf("For release image %s detected version: %s", releaseImageUrl, ocpReleaseVersion)
 
+	// Get CPU architecture from release image. For single-arch image the returned list will contain
+	// as single entry with the architecture. For multi-arch image the list will contain all the architectures
+	// that the image references to.
+	cpuArchitectures, err := h.releaseHandler.GetReleaseArchitecture(h.log, releaseImageUrl, "", pullSecret)
+	if err != nil {
+		return nil, err
+	}
+	h.log.Debugf("For release image %s detected architecture: %s", releaseImageUrl, cpuArchitectures)
+
+	var cpuArchitecture string
 	if len(cpuArchitectures) == 1 {
 		cpuArchitecture = cpuArchitectures[0]
 
 		// Ensure a relevant OsImage exists. For multiarch we disabling the code below because we don't know yet
 		// what is going to be the architecture of InfraEnv and Agent.
-		osImage, err = h.osImages.GetOsImage(ocpReleaseVersion, cpuArchitecture)
+		osImage, err := h.osImages.GetOsImage(ocpReleaseVersion, cpuArchitecture)
 		if err != nil || osImage.URL == nil {
 			return nil, errors.Errorf("No OS images are available for version %s and architecture %s", ocpReleaseVersion, cpuArchitecture)
 		}

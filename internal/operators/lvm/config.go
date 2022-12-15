@@ -12,7 +12,6 @@ const (
 type Config struct {
 	LvmCPUPerHost          int64  `envconfig:"LVM_CPU_PER_HOST" default:"1"`
 	LvmMemoryPerHostMiB    int64  `envconfig:"LVM_MEMORY_PER_HOST_MIB" default:"1200"`
-	LvmMinDiskSizeGB       int64  `envconfig:"LVM_MIN_DISK_SIZE_GB" default:"0"`
 	LvmMinOpenshiftVersion string `envconfig:"LVM_MIN_OPENSHIFT_VERSION" default:"4.11.0"`
 }
 

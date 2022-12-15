@@ -22,6 +22,7 @@ import (
 	"strings"
 
 	routev1 "github.com/openshift/api/route/v1"
+	hiveext "github.com/openshift/assisted-service/api/hiveextension/v1beta1"
 	aiv1beta1 "github.com/openshift/assisted-service/api/v1beta1"
 	"github.com/openshift/assisted-service/config"
 	"github.com/openshift/assisted-service/internal/spoke_k8s_client"
@@ -69,9 +70,6 @@ type HypershiftAgentServiceConfigReconciler struct {
 
 	// A cache for the spoke clients
 	SpokeClients SpokeClientCache
-
-	// Namespace the operator is running in
-	Namespace string
 }
 
 func initHASC(r *HypershiftAgentServiceConfigReconciler, instance *aiv1beta1.HypershiftAgentServiceConfig,
@@ -461,14 +459,21 @@ func (hr *HypershiftAgentServiceConfigReconciler) cleanStaleSpokeAgentInstallCRD
 	return nil
 }
 
+// Returns 'agent-install' CRDs by querying the specified client, and filter according their group.
+// I.e. we need the CRDs created in config/crd/resources.yaml ('agent-install' and 'extensions.hive' groups).
 func (hr *HypershiftAgentServiceConfigReconciler) getAgentInstallCRDs(ctx context.Context, c client.Client) (*apiextensionsv1.CustomResourceDefinitionList, error) {
 	crds := &apiextensionsv1.CustomResourceDefinitionList{}
-	listOpts := []client.ListOption{
-		client.HasLabels{fmt.Sprintf("operators.coreos.com/assisted-service-operator.%s", hr.Namespace)},
-	}
-	if err := c.List(ctx, crds, listOpts...); err != nil {
+	if err := c.List(ctx, crds); err != nil {
 		return nil, pkgerror.Wrap(err, "Failed to list CRDs")
 	}
+
+	// Filter CRDs by 'agent-install.openshift.io' and 'extensions.hive.openshift.io' groups
+	// (to include our agentclusterinstalls hive extension)
+	agentInstallCRDs := funk.Filter(crds.Items, func(crd apiextensionsv1.CustomResourceDefinition) bool {
+		return crd.Spec.Group == aiv1beta1.Group || crd.Spec.Group == hiveext.Group
+	}).([]apiextensionsv1.CustomResourceDefinition)
+
+	crds.Items = agentInstallCRDs
 	return crds, nil
 }
 
