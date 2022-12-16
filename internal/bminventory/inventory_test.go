@@ -1300,7 +1300,7 @@ var _ = Describe("V2UpdateHostInstallProgress", func() {
 				HostProgress: progressParams,
 				HostID:       hostID,
 			})
-			Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2UpdateHostInstallProgressInternalServerError()))
+			Expect(reply).Should(BeAssignableToTypeOf(common.NewApiError(http.StatusInternalServerError, errors.Errorf("some error"))))
 		})
 	})
 
@@ -1312,7 +1312,7 @@ var _ = Describe("V2UpdateHostInstallProgress", func() {
 			},
 			HostID: strfmt.UUID(uuid.New().String()),
 		})
-		Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2UpdateHostInstallProgressNotFound()))
+		Expect(reply).Should(BeAssignableToTypeOf(common.NewApiError(http.StatusNotFound, errors.Errorf(""))))
 	})
 })
 
