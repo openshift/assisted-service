@@ -29,10 +29,10 @@ func NewBindHost(ctx *middleware.Context, handler BindHostHandler) *BindHost {
 	return &BindHost{Context: ctx, Handler: handler}
 }
 
-/* BindHost swagger:route POST /v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/bind installer bindHost
+/*
+	BindHost swagger:route POST /v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/bind installer bindHost
 
 Bind host to a cluster
-
 */
 type BindHost struct {
 	Context *middleware.Context

@@ -29,10 +29,10 @@ func NewV2UpdateHostIgnition(ctx *middleware.Context, handler V2UpdateHostIgniti
 	return &V2UpdateHostIgnition{Context: ctx, Handler: handler}
 }
 
-/* V2UpdateHostIgnition swagger:route PATCH /v2/infra-envs/{infra_env_id}/hosts/{host_id}/ignition installer v2UpdateHostIgnition
+/*
+	V2UpdateHostIgnition swagger:route PATCH /v2/infra-envs/{infra_env_id}/hosts/{host_id}/ignition installer v2UpdateHostIgnition
 
 Patch the ignition file for this host
-
 */
 type V2UpdateHostIgnition struct {
 	Context *middleware.Context

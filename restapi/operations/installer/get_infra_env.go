@@ -29,10 +29,10 @@ func NewGetInfraEnv(ctx *middleware.Context, handler GetInfraEnvHandler) *GetInf
 	return &GetInfraEnv{Context: ctx, Handler: handler}
 }
 
-/* GetInfraEnv swagger:route GET /v2/infra-envs/{infra_env_id} installer getInfraEnv
+/*
+	GetInfraEnv swagger:route GET /v2/infra-envs/{infra_env_id} installer getInfraEnv
 
 Retrieves the details of the infra-env.
-
 */
 type GetInfraEnv struct {
 	Context *middleware.Context

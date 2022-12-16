@@ -29,10 +29,10 @@ func NewV2UpdateClusterLogsProgress(ctx *middleware.Context, handler V2UpdateClu
 	return &V2UpdateClusterLogsProgress{Context: ctx, Handler: handler}
 }
 
-/* V2UpdateClusterLogsProgress swagger:route PUT /v2/clusters/{cluster_id}/logs-progress installer v2UpdateClusterLogsProgress
+/*
+	V2UpdateClusterLogsProgress swagger:route PUT /v2/clusters/{cluster_id}/logs-progress installer v2UpdateClusterLogsProgress
 
 Update log collection state and progress.
-
 */
 type V2UpdateClusterLogsProgress struct {
 	Context *middleware.Context

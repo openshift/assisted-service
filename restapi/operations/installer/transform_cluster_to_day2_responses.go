@@ -16,7 +16,8 @@ import (
 // TransformClusterToDay2AcceptedCode is the HTTP code returned for type TransformClusterToDay2Accepted
 const TransformClusterToDay2AcceptedCode int = 202
 
-/*TransformClusterToDay2Accepted Success.
+/*
+TransformClusterToDay2Accepted Success.
 
 swagger:response transformClusterToDay2Accepted
 */
@@ -60,7 +61,8 @@ func (o *TransformClusterToDay2Accepted) WriteResponse(rw http.ResponseWriter, p
 // TransformClusterToDay2UnauthorizedCode is the HTTP code returned for type TransformClusterToDay2Unauthorized
 const TransformClusterToDay2UnauthorizedCode int = 401
 
-/*TransformClusterToDay2Unauthorized Unauthorized.
+/*
+TransformClusterToDay2Unauthorized Unauthorized.
 
 swagger:response transformClusterToDay2Unauthorized
 */
@@ -104,7 +106,8 @@ func (o *TransformClusterToDay2Unauthorized) WriteResponse(rw http.ResponseWrite
 // TransformClusterToDay2ForbiddenCode is the HTTP code returned for type TransformClusterToDay2Forbidden
 const TransformClusterToDay2ForbiddenCode int = 403
 
-/*TransformClusterToDay2Forbidden Forbidden.
+/*
+TransformClusterToDay2Forbidden Forbidden.
 
 swagger:response transformClusterToDay2Forbidden
 */
@@ -148,7 +151,8 @@ func (o *TransformClusterToDay2Forbidden) WriteResponse(rw http.ResponseWriter, 
 // TransformClusterToDay2NotFoundCode is the HTTP code returned for type TransformClusterToDay2NotFound
 const TransformClusterToDay2NotFoundCode int = 404
 
-/*TransformClusterToDay2NotFound Error.
+/*
+TransformClusterToDay2NotFound Error.
 
 swagger:response transformClusterToDay2NotFound
 */
@@ -192,7 +196,8 @@ func (o *TransformClusterToDay2NotFound) WriteResponse(rw http.ResponseWriter, p
 // TransformClusterToDay2MethodNotAllowedCode is the HTTP code returned for type TransformClusterToDay2MethodNotAllowed
 const TransformClusterToDay2MethodNotAllowedCode int = 405
 
-/*TransformClusterToDay2MethodNotAllowed Method Not Allowed.
+/*
+TransformClusterToDay2MethodNotAllowed Method Not Allowed.
 
 swagger:response transformClusterToDay2MethodNotAllowed
 */
@@ -236,7 +241,8 @@ func (o *TransformClusterToDay2MethodNotAllowed) WriteResponse(rw http.ResponseW
 // TransformClusterToDay2ConflictCode is the HTTP code returned for type TransformClusterToDay2Conflict
 const TransformClusterToDay2ConflictCode int = 409
 
-/*TransformClusterToDay2Conflict Error.
+/*
+TransformClusterToDay2Conflict Error.
 
 swagger:response transformClusterToDay2Conflict
 */
@@ -280,7 +286,8 @@ func (o *TransformClusterToDay2Conflict) WriteResponse(rw http.ResponseWriter, p
 // TransformClusterToDay2InternalServerErrorCode is the HTTP code returned for type TransformClusterToDay2InternalServerError
 const TransformClusterToDay2InternalServerErrorCode int = 500
 
-/*TransformClusterToDay2InternalServerError Error.
+/*
+TransformClusterToDay2InternalServerError Error.
 
 swagger:response transformClusterToDay2InternalServerError
 */

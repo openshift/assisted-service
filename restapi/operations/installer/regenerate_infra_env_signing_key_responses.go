@@ -16,7 +16,8 @@ import (
 // RegenerateInfraEnvSigningKeyNoContentCode is the HTTP code returned for type RegenerateInfraEnvSigningKeyNoContent
 const RegenerateInfraEnvSigningKeyNoContentCode int = 204
 
-/*RegenerateInfraEnvSigningKeyNoContent Success.
+/*
+RegenerateInfraEnvSigningKeyNoContent Success.
 
 swagger:response regenerateInfraEnvSigningKeyNoContent
 */
@@ -40,7 +41,8 @@ func (o *RegenerateInfraEnvSigningKeyNoContent) WriteResponse(rw http.ResponseWr
 // RegenerateInfraEnvSigningKeyUnauthorizedCode is the HTTP code returned for type RegenerateInfraEnvSigningKeyUnauthorized
 const RegenerateInfraEnvSigningKeyUnauthorizedCode int = 401
 
-/*RegenerateInfraEnvSigningKeyUnauthorized Unauthorized.
+/*
+RegenerateInfraEnvSigningKeyUnauthorized Unauthorized.
 
 swagger:response regenerateInfraEnvSigningKeyUnauthorized
 */
@@ -84,7 +86,8 @@ func (o *RegenerateInfraEnvSigningKeyUnauthorized) WriteResponse(rw http.Respons
 // RegenerateInfraEnvSigningKeyForbiddenCode is the HTTP code returned for type RegenerateInfraEnvSigningKeyForbidden
 const RegenerateInfraEnvSigningKeyForbiddenCode int = 403
 
-/*RegenerateInfraEnvSigningKeyForbidden Forbidden.
+/*
+RegenerateInfraEnvSigningKeyForbidden Forbidden.
 
 swagger:response regenerateInfraEnvSigningKeyForbidden
 */
@@ -128,7 +131,8 @@ func (o *RegenerateInfraEnvSigningKeyForbidden) WriteResponse(rw http.ResponseWr
 // RegenerateInfraEnvSigningKeyNotFoundCode is the HTTP code returned for type RegenerateInfraEnvSigningKeyNotFound
 const RegenerateInfraEnvSigningKeyNotFoundCode int = 404
 
-/*RegenerateInfraEnvSigningKeyNotFound Error.
+/*
+RegenerateInfraEnvSigningKeyNotFound Error.
 
 swagger:response regenerateInfraEnvSigningKeyNotFound
 */
@@ -172,7 +176,8 @@ func (o *RegenerateInfraEnvSigningKeyNotFound) WriteResponse(rw http.ResponseWri
 // RegenerateInfraEnvSigningKeyMethodNotAllowedCode is the HTTP code returned for type RegenerateInfraEnvSigningKeyMethodNotAllowed
 const RegenerateInfraEnvSigningKeyMethodNotAllowedCode int = 405
 
-/*RegenerateInfraEnvSigningKeyMethodNotAllowed Method Not Allowed.
+/*
+RegenerateInfraEnvSigningKeyMethodNotAllowed Method Not Allowed.
 
 swagger:response regenerateInfraEnvSigningKeyMethodNotAllowed
 */
@@ -216,7 +221,8 @@ func (o *RegenerateInfraEnvSigningKeyMethodNotAllowed) WriteResponse(rw http.Res
 // RegenerateInfraEnvSigningKeyInternalServerErrorCode is the HTTP code returned for type RegenerateInfraEnvSigningKeyInternalServerError
 const RegenerateInfraEnvSigningKeyInternalServerErrorCode int = 500
 
-/*RegenerateInfraEnvSigningKeyInternalServerError Error.
+/*
+RegenerateInfraEnvSigningKeyInternalServerError Error.
 
 swagger:response regenerateInfraEnvSigningKeyInternalServerError
 */

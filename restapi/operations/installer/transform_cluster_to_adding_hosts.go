@@ -29,10 +29,10 @@ func NewTransformClusterToAddingHosts(ctx *middleware.Context, handler Transform
 	return &TransformClusterToAddingHosts{Context: ctx, Handler: handler}
 }
 
-/* TransformClusterToAddingHosts swagger:route POST /v2/clusters/{cluster_id}/actions/allow-add-hosts installer transformClusterToAddingHosts
+/*
+	TransformClusterToAddingHosts swagger:route POST /v2/clusters/{cluster_id}/actions/allow-add-hosts installer transformClusterToAddingHosts
 
 Transforms installed cluster to a state which allows adding hosts.
-
 */
 type TransformClusterToAddingHosts struct {
 	Context *middleware.Context

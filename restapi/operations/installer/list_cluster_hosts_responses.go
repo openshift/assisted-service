@@ -16,7 +16,8 @@ import (
 // ListClusterHostsOKCode is the HTTP code returned for type ListClusterHostsOK
 const ListClusterHostsOKCode int = 200
 
-/*ListClusterHostsOK Success.
+/*
+ListClusterHostsOK Success.
 
 swagger:response listClusterHostsOK
 */
@@ -63,7 +64,8 @@ func (o *ListClusterHostsOK) WriteResponse(rw http.ResponseWriter, producer runt
 // ListClusterHostsUnauthorizedCode is the HTTP code returned for type ListClusterHostsUnauthorized
 const ListClusterHostsUnauthorizedCode int = 401
 
-/*ListClusterHostsUnauthorized Unauthorized.
+/*
+ListClusterHostsUnauthorized Unauthorized.
 
 swagger:response listClusterHostsUnauthorized
 */
@@ -107,7 +109,8 @@ func (o *ListClusterHostsUnauthorized) WriteResponse(rw http.ResponseWriter, pro
 // ListClusterHostsForbiddenCode is the HTTP code returned for type ListClusterHostsForbidden
 const ListClusterHostsForbiddenCode int = 403
 
-/*ListClusterHostsForbidden Forbidden.
+/*
+ListClusterHostsForbidden Forbidden.
 
 swagger:response listClusterHostsForbidden
 */
@@ -151,7 +154,8 @@ func (o *ListClusterHostsForbidden) WriteResponse(rw http.ResponseWriter, produc
 // ListClusterHostsNotFoundCode is the HTTP code returned for type ListClusterHostsNotFound
 const ListClusterHostsNotFoundCode int = 404
 
-/*ListClusterHostsNotFound Error.
+/*
+ListClusterHostsNotFound Error.
 
 swagger:response listClusterHostsNotFound
 */
@@ -195,7 +199,8 @@ func (o *ListClusterHostsNotFound) WriteResponse(rw http.ResponseWriter, produce
 // ListClusterHostsInternalServerErrorCode is the HTTP code returned for type ListClusterHostsInternalServerError
 const ListClusterHostsInternalServerErrorCode int = 500
 
-/*ListClusterHostsInternalServerError Error.
+/*
+ListClusterHostsInternalServerError Error.
 
 swagger:response listClusterHostsInternalServerError
 */

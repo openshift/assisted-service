@@ -16,7 +16,8 @@ import (
 // V2UploadClusterIngressCertCreatedCode is the HTTP code returned for type V2UploadClusterIngressCertCreated
 const V2UploadClusterIngressCertCreatedCode int = 201
 
-/*V2UploadClusterIngressCertCreated Success.
+/*
+V2UploadClusterIngressCertCreated Success.
 
 swagger:response v2UploadClusterIngressCertCreated
 */
@@ -40,7 +41,8 @@ func (o *V2UploadClusterIngressCertCreated) WriteResponse(rw http.ResponseWriter
 // V2UploadClusterIngressCertBadRequestCode is the HTTP code returned for type V2UploadClusterIngressCertBadRequest
 const V2UploadClusterIngressCertBadRequestCode int = 400
 
-/*V2UploadClusterIngressCertBadRequest Error.
+/*
+V2UploadClusterIngressCertBadRequest Error.
 
 swagger:response v2UploadClusterIngressCertBadRequest
 */
@@ -84,7 +86,8 @@ func (o *V2UploadClusterIngressCertBadRequest) WriteResponse(rw http.ResponseWri
 // V2UploadClusterIngressCertUnauthorizedCode is the HTTP code returned for type V2UploadClusterIngressCertUnauthorized
 const V2UploadClusterIngressCertUnauthorizedCode int = 401
 
-/*V2UploadClusterIngressCertUnauthorized Unauthorized.
+/*
+V2UploadClusterIngressCertUnauthorized Unauthorized.
 
 swagger:response v2UploadClusterIngressCertUnauthorized
 */
@@ -128,7 +131,8 @@ func (o *V2UploadClusterIngressCertUnauthorized) WriteResponse(rw http.ResponseW
 // V2UploadClusterIngressCertForbiddenCode is the HTTP code returned for type V2UploadClusterIngressCertForbidden
 const V2UploadClusterIngressCertForbiddenCode int = 403
 
-/*V2UploadClusterIngressCertForbidden Forbidden.
+/*
+V2UploadClusterIngressCertForbidden Forbidden.
 
 swagger:response v2UploadClusterIngressCertForbidden
 */
@@ -172,7 +176,8 @@ func (o *V2UploadClusterIngressCertForbidden) WriteResponse(rw http.ResponseWrit
 // V2UploadClusterIngressCertNotFoundCode is the HTTP code returned for type V2UploadClusterIngressCertNotFound
 const V2UploadClusterIngressCertNotFoundCode int = 404
 
-/*V2UploadClusterIngressCertNotFound Error.
+/*
+V2UploadClusterIngressCertNotFound Error.
 
 swagger:response v2UploadClusterIngressCertNotFound
 */
@@ -216,7 +221,8 @@ func (o *V2UploadClusterIngressCertNotFound) WriteResponse(rw http.ResponseWrite
 // V2UploadClusterIngressCertMethodNotAllowedCode is the HTTP code returned for type V2UploadClusterIngressCertMethodNotAllowed
 const V2UploadClusterIngressCertMethodNotAllowedCode int = 405
 
-/*V2UploadClusterIngressCertMethodNotAllowed Method Not Allowed.
+/*
+V2UploadClusterIngressCertMethodNotAllowed Method Not Allowed.
 
 swagger:response v2UploadClusterIngressCertMethodNotAllowed
 */
@@ -260,7 +266,8 @@ func (o *V2UploadClusterIngressCertMethodNotAllowed) WriteResponse(rw http.Respo
 // V2UploadClusterIngressCertInternalServerErrorCode is the HTTP code returned for type V2UploadClusterIngressCertInternalServerError
 const V2UploadClusterIngressCertInternalServerErrorCode int = 500
 
-/*V2UploadClusterIngressCertInternalServerError Error.
+/*
+V2UploadClusterIngressCertInternalServerError Error.
 
 swagger:response v2UploadClusterIngressCertInternalServerError
 */
@@ -304,7 +311,8 @@ func (o *V2UploadClusterIngressCertInternalServerError) WriteResponse(rw http.Re
 // V2UploadClusterIngressCertServiceUnavailableCode is the HTTP code returned for type V2UploadClusterIngressCertServiceUnavailable
 const V2UploadClusterIngressCertServiceUnavailableCode int = 503
 
-/*V2UploadClusterIngressCertServiceUnavailable Unavailable.
+/*
+V2UploadClusterIngressCertServiceUnavailable Unavailable.
 
 swagger:response v2UploadClusterIngressCertServiceUnavailable
 */

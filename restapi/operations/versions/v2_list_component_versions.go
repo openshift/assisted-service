@@ -29,10 +29,10 @@ func NewV2ListComponentVersions(ctx *middleware.Context, handler V2ListComponent
 	return &V2ListComponentVersions{Context: ctx, Handler: handler}
 }
 
-/* V2ListComponentVersions swagger:route GET /v2/component-versions versions v2ListComponentVersions
+/*
+	V2ListComponentVersions swagger:route GET /v2/component-versions versions v2ListComponentVersions
 
 List of component versions.
-
 */
 type V2ListComponentVersions struct {
 	Context *middleware.Context

@@ -29,10 +29,10 @@ func NewV2DeregisterCluster(ctx *middleware.Context, handler V2DeregisterCluster
 	return &V2DeregisterCluster{Context: ctx, Handler: handler}
 }
 
-/* V2DeregisterCluster swagger:route DELETE /v2/clusters/{cluster_id} installer v2DeregisterCluster
+/*
+	V2DeregisterCluster swagger:route DELETE /v2/clusters/{cluster_id} installer v2DeregisterCluster
 
 Deletes an OpenShift cluster definition.
-
 */
 type V2DeregisterCluster struct {
 	Context *middleware.Context

@@ -16,7 +16,8 @@ import (
 // V2UpdateHostInstallProgressOKCode is the HTTP code returned for type V2UpdateHostInstallProgressOK
 const V2UpdateHostInstallProgressOKCode int = 200
 
-/*V2UpdateHostInstallProgressOK Update install progress.
+/*
+V2UpdateHostInstallProgressOK Update install progress.
 
 swagger:response v2UpdateHostInstallProgressOK
 */
@@ -40,7 +41,8 @@ func (o *V2UpdateHostInstallProgressOK) WriteResponse(rw http.ResponseWriter, pr
 // V2UpdateHostInstallProgressUnauthorizedCode is the HTTP code returned for type V2UpdateHostInstallProgressUnauthorized
 const V2UpdateHostInstallProgressUnauthorizedCode int = 401
 
-/*V2UpdateHostInstallProgressUnauthorized Unauthorized.
+/*
+V2UpdateHostInstallProgressUnauthorized Unauthorized.
 
 swagger:response v2UpdateHostInstallProgressUnauthorized
 */
@@ -84,7 +86,8 @@ func (o *V2UpdateHostInstallProgressUnauthorized) WriteResponse(rw http.Response
 // V2UpdateHostInstallProgressForbiddenCode is the HTTP code returned for type V2UpdateHostInstallProgressForbidden
 const V2UpdateHostInstallProgressForbiddenCode int = 403
 
-/*V2UpdateHostInstallProgressForbidden Forbidden.
+/*
+V2UpdateHostInstallProgressForbidden Forbidden.
 
 swagger:response v2UpdateHostInstallProgressForbidden
 */
@@ -128,7 +131,8 @@ func (o *V2UpdateHostInstallProgressForbidden) WriteResponse(rw http.ResponseWri
 // V2UpdateHostInstallProgressNotFoundCode is the HTTP code returned for type V2UpdateHostInstallProgressNotFound
 const V2UpdateHostInstallProgressNotFoundCode int = 404
 
-/*V2UpdateHostInstallProgressNotFound Error.
+/*
+V2UpdateHostInstallProgressNotFound Error.
 
 swagger:response v2UpdateHostInstallProgressNotFound
 */
@@ -172,7 +176,8 @@ func (o *V2UpdateHostInstallProgressNotFound) WriteResponse(rw http.ResponseWrit
 // V2UpdateHostInstallProgressMethodNotAllowedCode is the HTTP code returned for type V2UpdateHostInstallProgressMethodNotAllowed
 const V2UpdateHostInstallProgressMethodNotAllowedCode int = 405
 
-/*V2UpdateHostInstallProgressMethodNotAllowed Method Not Allowed.
+/*
+V2UpdateHostInstallProgressMethodNotAllowed Method Not Allowed.
 
 swagger:response v2UpdateHostInstallProgressMethodNotAllowed
 */
@@ -216,7 +221,8 @@ func (o *V2UpdateHostInstallProgressMethodNotAllowed) WriteResponse(rw http.Resp
 // V2UpdateHostInstallProgressInternalServerErrorCode is the HTTP code returned for type V2UpdateHostInstallProgressInternalServerError
 const V2UpdateHostInstallProgressInternalServerErrorCode int = 500
 
-/*V2UpdateHostInstallProgressInternalServerError Error.
+/*
+V2UpdateHostInstallProgressInternalServerError Error.
 
 swagger:response v2UpdateHostInstallProgressInternalServerError
 */
@@ -260,7 +266,8 @@ func (o *V2UpdateHostInstallProgressInternalServerError) WriteResponse(rw http.R
 // V2UpdateHostInstallProgressServiceUnavailableCode is the HTTP code returned for type V2UpdateHostInstallProgressServiceUnavailable
 const V2UpdateHostInstallProgressServiceUnavailableCode int = 503
 
-/*V2UpdateHostInstallProgressServiceUnavailable Unavailable.
+/*
+V2UpdateHostInstallProgressServiceUnavailable Unavailable.
 
 swagger:response v2UpdateHostInstallProgressServiceUnavailable
 */

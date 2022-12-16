@@ -16,7 +16,8 @@ import (
 // V2GetClusterDefaultConfigOKCode is the HTTP code returned for type V2GetClusterDefaultConfigOK
 const V2GetClusterDefaultConfigOKCode int = 200
 
-/*V2GetClusterDefaultConfigOK Success.
+/*
+V2GetClusterDefaultConfigOK Success.
 
 swagger:response v2GetClusterDefaultConfigOK
 */
@@ -60,7 +61,8 @@ func (o *V2GetClusterDefaultConfigOK) WriteResponse(rw http.ResponseWriter, prod
 // V2GetClusterDefaultConfigUnauthorizedCode is the HTTP code returned for type V2GetClusterDefaultConfigUnauthorized
 const V2GetClusterDefaultConfigUnauthorizedCode int = 401
 
-/*V2GetClusterDefaultConfigUnauthorized Unauthorized.
+/*
+V2GetClusterDefaultConfigUnauthorized Unauthorized.
 
 swagger:response v2GetClusterDefaultConfigUnauthorized
 */
@@ -104,7 +106,8 @@ func (o *V2GetClusterDefaultConfigUnauthorized) WriteResponse(rw http.ResponseWr
 // V2GetClusterDefaultConfigForbiddenCode is the HTTP code returned for type V2GetClusterDefaultConfigForbidden
 const V2GetClusterDefaultConfigForbiddenCode int = 403
 
-/*V2GetClusterDefaultConfigForbidden Forbidden.
+/*
+V2GetClusterDefaultConfigForbidden Forbidden.
 
 swagger:response v2GetClusterDefaultConfigForbidden
 */
@@ -148,7 +151,8 @@ func (o *V2GetClusterDefaultConfigForbidden) WriteResponse(rw http.ResponseWrite
 // V2GetClusterDefaultConfigInternalServerErrorCode is the HTTP code returned for type V2GetClusterDefaultConfigInternalServerError
 const V2GetClusterDefaultConfigInternalServerErrorCode int = 500
 
-/*V2GetClusterDefaultConfigInternalServerError Error.
+/*
+V2GetClusterDefaultConfigInternalServerError Error.
 
 swagger:response v2GetClusterDefaultConfigInternalServerError
 */

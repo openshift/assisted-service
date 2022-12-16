@@ -29,10 +29,10 @@ func NewV2ListSupportedOperators(ctx *middleware.Context, handler V2ListSupporte
 	return &V2ListSupportedOperators{Context: ctx, Handler: handler}
 }
 
-/* V2ListSupportedOperators swagger:route GET /v2/supported-operators operators v2ListSupportedOperators
+/*
+	V2ListSupportedOperators swagger:route GET /v2/supported-operators operators v2ListSupportedOperators
 
 Retrieves the list of supported operators.
-
 */
 type V2ListSupportedOperators struct {
 	Context *middleware.Context

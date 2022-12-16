@@ -16,7 +16,8 @@ import (
 // V2DeleteClusterManifestOKCode is the HTTP code returned for type V2DeleteClusterManifestOK
 const V2DeleteClusterManifestOKCode int = 200
 
-/*V2DeleteClusterManifestOK Success.
+/*
+V2DeleteClusterManifestOK Success.
 
 swagger:response v2DeleteClusterManifestOK
 */
@@ -40,7 +41,8 @@ func (o *V2DeleteClusterManifestOK) WriteResponse(rw http.ResponseWriter, produc
 // V2DeleteClusterManifestUnauthorizedCode is the HTTP code returned for type V2DeleteClusterManifestUnauthorized
 const V2DeleteClusterManifestUnauthorizedCode int = 401
 
-/*V2DeleteClusterManifestUnauthorized Unauthorized.
+/*
+V2DeleteClusterManifestUnauthorized Unauthorized.
 
 swagger:response v2DeleteClusterManifestUnauthorized
 */
@@ -84,7 +86,8 @@ func (o *V2DeleteClusterManifestUnauthorized) WriteResponse(rw http.ResponseWrit
 // V2DeleteClusterManifestForbiddenCode is the HTTP code returned for type V2DeleteClusterManifestForbidden
 const V2DeleteClusterManifestForbiddenCode int = 403
 
-/*V2DeleteClusterManifestForbidden Forbidden.
+/*
+V2DeleteClusterManifestForbidden Forbidden.
 
 swagger:response v2DeleteClusterManifestForbidden
 */
@@ -128,7 +131,8 @@ func (o *V2DeleteClusterManifestForbidden) WriteResponse(rw http.ResponseWriter,
 // V2DeleteClusterManifestNotFoundCode is the HTTP code returned for type V2DeleteClusterManifestNotFound
 const V2DeleteClusterManifestNotFoundCode int = 404
 
-/*V2DeleteClusterManifestNotFound Error.
+/*
+V2DeleteClusterManifestNotFound Error.
 
 swagger:response v2DeleteClusterManifestNotFound
 */
@@ -172,7 +176,8 @@ func (o *V2DeleteClusterManifestNotFound) WriteResponse(rw http.ResponseWriter, 
 // V2DeleteClusterManifestMethodNotAllowedCode is the HTTP code returned for type V2DeleteClusterManifestMethodNotAllowed
 const V2DeleteClusterManifestMethodNotAllowedCode int = 405
 
-/*V2DeleteClusterManifestMethodNotAllowed Method Not Allowed.
+/*
+V2DeleteClusterManifestMethodNotAllowed Method Not Allowed.
 
 swagger:response v2DeleteClusterManifestMethodNotAllowed
 */
@@ -216,7 +221,8 @@ func (o *V2DeleteClusterManifestMethodNotAllowed) WriteResponse(rw http.Response
 // V2DeleteClusterManifestConflictCode is the HTTP code returned for type V2DeleteClusterManifestConflict
 const V2DeleteClusterManifestConflictCode int = 409
 
-/*V2DeleteClusterManifestConflict Error.
+/*
+V2DeleteClusterManifestConflict Error.
 
 swagger:response v2DeleteClusterManifestConflict
 */
@@ -260,7 +266,8 @@ func (o *V2DeleteClusterManifestConflict) WriteResponse(rw http.ResponseWriter, 
 // V2DeleteClusterManifestInternalServerErrorCode is the HTTP code returned for type V2DeleteClusterManifestInternalServerError
 const V2DeleteClusterManifestInternalServerErrorCode int = 500
 
-/*V2DeleteClusterManifestInternalServerError Error.
+/*
+V2DeleteClusterManifestInternalServerError Error.
 
 swagger:response v2DeleteClusterManifestInternalServerError
 */

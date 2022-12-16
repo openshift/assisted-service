@@ -16,7 +16,8 @@ import (
 // V2InstallHostAcceptedCode is the HTTP code returned for type V2InstallHostAccepted
 const V2InstallHostAcceptedCode int = 202
 
-/*V2InstallHostAccepted Success.
+/*
+V2InstallHostAccepted Success.
 
 swagger:response v2InstallHostAccepted
 */
@@ -60,7 +61,8 @@ func (o *V2InstallHostAccepted) WriteResponse(rw http.ResponseWriter, producer r
 // V2InstallHostUnauthorizedCode is the HTTP code returned for type V2InstallHostUnauthorized
 const V2InstallHostUnauthorizedCode int = 401
 
-/*V2InstallHostUnauthorized Unauthorized.
+/*
+V2InstallHostUnauthorized Unauthorized.
 
 swagger:response v2InstallHostUnauthorized
 */
@@ -104,7 +106,8 @@ func (o *V2InstallHostUnauthorized) WriteResponse(rw http.ResponseWriter, produc
 // V2InstallHostForbiddenCode is the HTTP code returned for type V2InstallHostForbidden
 const V2InstallHostForbiddenCode int = 403
 
-/*V2InstallHostForbidden Forbidden.
+/*
+V2InstallHostForbidden Forbidden.
 
 swagger:response v2InstallHostForbidden
 */
@@ -148,7 +151,8 @@ func (o *V2InstallHostForbidden) WriteResponse(rw http.ResponseWriter, producer 
 // V2InstallHostNotFoundCode is the HTTP code returned for type V2InstallHostNotFound
 const V2InstallHostNotFoundCode int = 404
 
-/*V2InstallHostNotFound Error.
+/*
+V2InstallHostNotFound Error.
 
 swagger:response v2InstallHostNotFound
 */
@@ -192,7 +196,8 @@ func (o *V2InstallHostNotFound) WriteResponse(rw http.ResponseWriter, producer r
 // V2InstallHostConflictCode is the HTTP code returned for type V2InstallHostConflict
 const V2InstallHostConflictCode int = 409
 
-/*V2InstallHostConflict Error.
+/*
+V2InstallHostConflict Error.
 
 swagger:response v2InstallHostConflict
 */
@@ -236,7 +241,8 @@ func (o *V2InstallHostConflict) WriteResponse(rw http.ResponseWriter, producer r
 // V2InstallHostInternalServerErrorCode is the HTTP code returned for type V2InstallHostInternalServerError
 const V2InstallHostInternalServerErrorCode int = 500
 
-/*V2InstallHostInternalServerError Error.
+/*
+V2InstallHostInternalServerError Error.
 
 swagger:response v2InstallHostInternalServerError
 */

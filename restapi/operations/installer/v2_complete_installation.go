@@ -29,10 +29,10 @@ func NewV2CompleteInstallation(ctx *middleware.Context, handler V2CompleteInstal
 	return &V2CompleteInstallation{Context: ctx, Handler: handler}
 }
 
-/* V2CompleteInstallation swagger:route POST /v2/clusters/{cluster_id}/actions/complete-installation installer v2CompleteInstallation
+/*
+	V2CompleteInstallation swagger:route POST /v2/clusters/{cluster_id}/actions/complete-installation installer v2CompleteInstallation
 
 Agent API to mark a finalizing installation as complete and progress to 100%.
-
 */
 type V2CompleteInstallation struct {
 	Context *middleware.Context

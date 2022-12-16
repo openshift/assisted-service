@@ -16,7 +16,8 @@ import (
 // V2GetNextStepsOKCode is the HTTP code returned for type V2GetNextStepsOK
 const V2GetNextStepsOKCode int = 200
 
-/*V2GetNextStepsOK Success.
+/*
+V2GetNextStepsOK Success.
 
 swagger:response v2GetNextStepsOK
 */
@@ -60,7 +61,8 @@ func (o *V2GetNextStepsOK) WriteResponse(rw http.ResponseWriter, producer runtim
 // V2GetNextStepsUnauthorizedCode is the HTTP code returned for type V2GetNextStepsUnauthorized
 const V2GetNextStepsUnauthorizedCode int = 401
 
-/*V2GetNextStepsUnauthorized Unauthorized.
+/*
+V2GetNextStepsUnauthorized Unauthorized.
 
 swagger:response v2GetNextStepsUnauthorized
 */
@@ -104,7 +106,8 @@ func (o *V2GetNextStepsUnauthorized) WriteResponse(rw http.ResponseWriter, produ
 // V2GetNextStepsForbiddenCode is the HTTP code returned for type V2GetNextStepsForbidden
 const V2GetNextStepsForbiddenCode int = 403
 
-/*V2GetNextStepsForbidden Forbidden.
+/*
+V2GetNextStepsForbidden Forbidden.
 
 swagger:response v2GetNextStepsForbidden
 */
@@ -148,7 +151,8 @@ func (o *V2GetNextStepsForbidden) WriteResponse(rw http.ResponseWriter, producer
 // V2GetNextStepsNotFoundCode is the HTTP code returned for type V2GetNextStepsNotFound
 const V2GetNextStepsNotFoundCode int = 404
 
-/*V2GetNextStepsNotFound Error.
+/*
+V2GetNextStepsNotFound Error.
 
 swagger:response v2GetNextStepsNotFound
 */
@@ -192,7 +196,8 @@ func (o *V2GetNextStepsNotFound) WriteResponse(rw http.ResponseWriter, producer 
 // V2GetNextStepsMethodNotAllowedCode is the HTTP code returned for type V2GetNextStepsMethodNotAllowed
 const V2GetNextStepsMethodNotAllowedCode int = 405
 
-/*V2GetNextStepsMethodNotAllowed Method Not Allowed.
+/*
+V2GetNextStepsMethodNotAllowed Method Not Allowed.
 
 swagger:response v2GetNextStepsMethodNotAllowed
 */
@@ -236,7 +241,8 @@ func (o *V2GetNextStepsMethodNotAllowed) WriteResponse(rw http.ResponseWriter, p
 // V2GetNextStepsInternalServerErrorCode is the HTTP code returned for type V2GetNextStepsInternalServerError
 const V2GetNextStepsInternalServerErrorCode int = 500
 
-/*V2GetNextStepsInternalServerError Error.
+/*
+V2GetNextStepsInternalServerError Error.
 
 swagger:response v2GetNextStepsInternalServerError
 */
@@ -280,7 +286,8 @@ func (o *V2GetNextStepsInternalServerError) WriteResponse(rw http.ResponseWriter
 // V2GetNextStepsNotImplementedCode is the HTTP code returned for type V2GetNextStepsNotImplemented
 const V2GetNextStepsNotImplementedCode int = 501
 
-/*V2GetNextStepsNotImplemented Not implemented.
+/*
+V2GetNextStepsNotImplemented Not implemented.
 
 swagger:response v2GetNextStepsNotImplemented
 */
@@ -324,7 +331,8 @@ func (o *V2GetNextStepsNotImplemented) WriteResponse(rw http.ResponseWriter, pro
 // V2GetNextStepsServiceUnavailableCode is the HTTP code returned for type V2GetNextStepsServiceUnavailable
 const V2GetNextStepsServiceUnavailableCode int = 503
 
-/*V2GetNextStepsServiceUnavailable Unavailable.
+/*
+V2GetNextStepsServiceUnavailable Unavailable.
 
 swagger:response v2GetNextStepsServiceUnavailable
 */

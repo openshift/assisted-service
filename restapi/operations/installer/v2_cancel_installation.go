@@ -29,10 +29,10 @@ func NewV2CancelInstallation(ctx *middleware.Context, handler V2CancelInstallati
 	return &V2CancelInstallation{Context: ctx, Handler: handler}
 }
 
-/* V2CancelInstallation swagger:route POST /v2/clusters/{cluster_id}/actions/cancel installer v2CancelInstallation
+/*
+	V2CancelInstallation swagger:route POST /v2/clusters/{cluster_id}/actions/cancel installer v2CancelInstallation
 
 Cancels an ongoing installation.
-
 */
 type V2CancelInstallation struct {
 	Context *middleware.Context

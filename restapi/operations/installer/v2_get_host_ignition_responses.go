@@ -16,7 +16,8 @@ import (
 // V2GetHostIgnitionOKCode is the HTTP code returned for type V2GetHostIgnitionOK
 const V2GetHostIgnitionOKCode int = 200
 
-/*V2GetHostIgnitionOK Success.
+/*
+V2GetHostIgnitionOK Success.
 
 swagger:response v2GetHostIgnitionOK
 */
@@ -60,7 +61,8 @@ func (o *V2GetHostIgnitionOK) WriteResponse(rw http.ResponseWriter, producer run
 // V2GetHostIgnitionUnauthorizedCode is the HTTP code returned for type V2GetHostIgnitionUnauthorized
 const V2GetHostIgnitionUnauthorizedCode int = 401
 
-/*V2GetHostIgnitionUnauthorized Unauthorized.
+/*
+V2GetHostIgnitionUnauthorized Unauthorized.
 
 swagger:response v2GetHostIgnitionUnauthorized
 */
@@ -104,7 +106,8 @@ func (o *V2GetHostIgnitionUnauthorized) WriteResponse(rw http.ResponseWriter, pr
 // V2GetHostIgnitionForbiddenCode is the HTTP code returned for type V2GetHostIgnitionForbidden
 const V2GetHostIgnitionForbiddenCode int = 403
 
-/*V2GetHostIgnitionForbidden Forbidden.
+/*
+V2GetHostIgnitionForbidden Forbidden.
 
 swagger:response v2GetHostIgnitionForbidden
 */
@@ -148,7 +151,8 @@ func (o *V2GetHostIgnitionForbidden) WriteResponse(rw http.ResponseWriter, produ
 // V2GetHostIgnitionNotFoundCode is the HTTP code returned for type V2GetHostIgnitionNotFound
 const V2GetHostIgnitionNotFoundCode int = 404
 
-/*V2GetHostIgnitionNotFound Error.
+/*
+V2GetHostIgnitionNotFound Error.
 
 swagger:response v2GetHostIgnitionNotFound
 */
@@ -192,7 +196,8 @@ func (o *V2GetHostIgnitionNotFound) WriteResponse(rw http.ResponseWriter, produc
 // V2GetHostIgnitionMethodNotAllowedCode is the HTTP code returned for type V2GetHostIgnitionMethodNotAllowed
 const V2GetHostIgnitionMethodNotAllowedCode int = 405
 
-/*V2GetHostIgnitionMethodNotAllowed Method Not Allowed.
+/*
+V2GetHostIgnitionMethodNotAllowed Method Not Allowed.
 
 swagger:response v2GetHostIgnitionMethodNotAllowed
 */
@@ -236,7 +241,8 @@ func (o *V2GetHostIgnitionMethodNotAllowed) WriteResponse(rw http.ResponseWriter
 // V2GetHostIgnitionInternalServerErrorCode is the HTTP code returned for type V2GetHostIgnitionInternalServerError
 const V2GetHostIgnitionInternalServerErrorCode int = 500
 
-/*V2GetHostIgnitionInternalServerError Error.
+/*
+V2GetHostIgnitionInternalServerError Error.
 
 swagger:response v2GetHostIgnitionInternalServerError
 */
@@ -280,7 +286,8 @@ func (o *V2GetHostIgnitionInternalServerError) WriteResponse(rw http.ResponseWri
 // V2GetHostIgnitionNotImplementedCode is the HTTP code returned for type V2GetHostIgnitionNotImplemented
 const V2GetHostIgnitionNotImplementedCode int = 501
 
-/*V2GetHostIgnitionNotImplemented Not implemented.
+/*
+V2GetHostIgnitionNotImplemented Not implemented.
 
 swagger:response v2GetHostIgnitionNotImplemented
 */
@@ -324,7 +331,8 @@ func (o *V2GetHostIgnitionNotImplemented) WriteResponse(rw http.ResponseWriter, 
 // V2GetHostIgnitionServiceUnavailableCode is the HTTP code returned for type V2GetHostIgnitionServiceUnavailable
 const V2GetHostIgnitionServiceUnavailableCode int = 503
 
-/*V2GetHostIgnitionServiceUnavailable Unavailable.
+/*
+V2GetHostIgnitionServiceUnavailable Unavailable.
 
 swagger:response v2GetHostIgnitionServiceUnavailable
 */

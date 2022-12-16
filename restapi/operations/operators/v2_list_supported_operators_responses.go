@@ -16,7 +16,8 @@ import (
 // V2ListSupportedOperatorsOKCode is the HTTP code returned for type V2ListSupportedOperatorsOK
 const V2ListSupportedOperatorsOKCode int = 200
 
-/*V2ListSupportedOperatorsOK Success.
+/*
+V2ListSupportedOperatorsOK Success.
 
 swagger:response v2ListSupportedOperatorsOK
 */
@@ -63,7 +64,8 @@ func (o *V2ListSupportedOperatorsOK) WriteResponse(rw http.ResponseWriter, produ
 // V2ListSupportedOperatorsUnauthorizedCode is the HTTP code returned for type V2ListSupportedOperatorsUnauthorized
 const V2ListSupportedOperatorsUnauthorizedCode int = 401
 
-/*V2ListSupportedOperatorsUnauthorized Unauthorized.
+/*
+V2ListSupportedOperatorsUnauthorized Unauthorized.
 
 swagger:response v2ListSupportedOperatorsUnauthorized
 */
@@ -107,7 +109,8 @@ func (o *V2ListSupportedOperatorsUnauthorized) WriteResponse(rw http.ResponseWri
 // V2ListSupportedOperatorsForbiddenCode is the HTTP code returned for type V2ListSupportedOperatorsForbidden
 const V2ListSupportedOperatorsForbiddenCode int = 403
 
-/*V2ListSupportedOperatorsForbidden Forbidden.
+/*
+V2ListSupportedOperatorsForbidden Forbidden.
 
 swagger:response v2ListSupportedOperatorsForbidden
 */
@@ -151,7 +154,8 @@ func (o *V2ListSupportedOperatorsForbidden) WriteResponse(rw http.ResponseWriter
 // V2ListSupportedOperatorsInternalServerErrorCode is the HTTP code returned for type V2ListSupportedOperatorsInternalServerError
 const V2ListSupportedOperatorsInternalServerErrorCode int = 500
 
-/*V2ListSupportedOperatorsInternalServerError Error.
+/*
+V2ListSupportedOperatorsInternalServerError Error.
 
 swagger:response v2ListSupportedOperatorsInternalServerError
 */

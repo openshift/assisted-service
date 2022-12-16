@@ -16,7 +16,8 @@ import (
 // V2PostStepReplyNoContentCode is the HTTP code returned for type V2PostStepReplyNoContent
 const V2PostStepReplyNoContentCode int = 204
 
-/*V2PostStepReplyNoContent Success.
+/*
+V2PostStepReplyNoContent Success.
 
 swagger:response v2PostStepReplyNoContent
 */
@@ -40,7 +41,8 @@ func (o *V2PostStepReplyNoContent) WriteResponse(rw http.ResponseWriter, produce
 // V2PostStepReplyBadRequestCode is the HTTP code returned for type V2PostStepReplyBadRequest
 const V2PostStepReplyBadRequestCode int = 400
 
-/*V2PostStepReplyBadRequest Error.
+/*
+V2PostStepReplyBadRequest Error.
 
 swagger:response v2PostStepReplyBadRequest
 */
@@ -84,7 +86,8 @@ func (o *V2PostStepReplyBadRequest) WriteResponse(rw http.ResponseWriter, produc
 // V2PostStepReplyUnauthorizedCode is the HTTP code returned for type V2PostStepReplyUnauthorized
 const V2PostStepReplyUnauthorizedCode int = 401
 
-/*V2PostStepReplyUnauthorized Unauthorized.
+/*
+V2PostStepReplyUnauthorized Unauthorized.
 
 swagger:response v2PostStepReplyUnauthorized
 */
@@ -128,7 +131,8 @@ func (o *V2PostStepReplyUnauthorized) WriteResponse(rw http.ResponseWriter, prod
 // V2PostStepReplyForbiddenCode is the HTTP code returned for type V2PostStepReplyForbidden
 const V2PostStepReplyForbiddenCode int = 403
 
-/*V2PostStepReplyForbidden Forbidden.
+/*
+V2PostStepReplyForbidden Forbidden.
 
 swagger:response v2PostStepReplyForbidden
 */
@@ -172,7 +176,8 @@ func (o *V2PostStepReplyForbidden) WriteResponse(rw http.ResponseWriter, produce
 // V2PostStepReplyNotFoundCode is the HTTP code returned for type V2PostStepReplyNotFound
 const V2PostStepReplyNotFoundCode int = 404
 
-/*V2PostStepReplyNotFound Error.
+/*
+V2PostStepReplyNotFound Error.
 
 swagger:response v2PostStepReplyNotFound
 */
@@ -216,7 +221,8 @@ func (o *V2PostStepReplyNotFound) WriteResponse(rw http.ResponseWriter, producer
 // V2PostStepReplyMethodNotAllowedCode is the HTTP code returned for type V2PostStepReplyMethodNotAllowed
 const V2PostStepReplyMethodNotAllowedCode int = 405
 
-/*V2PostStepReplyMethodNotAllowed Method Not Allowed.
+/*
+V2PostStepReplyMethodNotAllowed Method Not Allowed.
 
 swagger:response v2PostStepReplyMethodNotAllowed
 */
@@ -260,7 +266,8 @@ func (o *V2PostStepReplyMethodNotAllowed) WriteResponse(rw http.ResponseWriter, 
 // V2PostStepReplyInternalServerErrorCode is the HTTP code returned for type V2PostStepReplyInternalServerError
 const V2PostStepReplyInternalServerErrorCode int = 500
 
-/*V2PostStepReplyInternalServerError Error.
+/*
+V2PostStepReplyInternalServerError Error.
 
 swagger:response v2PostStepReplyInternalServerError
 */
@@ -304,7 +311,8 @@ func (o *V2PostStepReplyInternalServerError) WriteResponse(rw http.ResponseWrite
 // V2PostStepReplyNotImplementedCode is the HTTP code returned for type V2PostStepReplyNotImplemented
 const V2PostStepReplyNotImplementedCode int = 501
 
-/*V2PostStepReplyNotImplemented Not implemented.
+/*
+V2PostStepReplyNotImplemented Not implemented.
 
 swagger:response v2PostStepReplyNotImplemented
 */
@@ -348,7 +356,8 @@ func (o *V2PostStepReplyNotImplemented) WriteResponse(rw http.ResponseWriter, pr
 // V2PostStepReplyServiceUnavailableCode is the HTTP code returned for type V2PostStepReplyServiceUnavailable
 const V2PostStepReplyServiceUnavailableCode int = 503
 
-/*V2PostStepReplyServiceUnavailable Unavailable.
+/*
+V2PostStepReplyServiceUnavailable Unavailable.
 
 swagger:response v2PostStepReplyServiceUnavailable
 */

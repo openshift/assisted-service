@@ -16,7 +16,8 @@ import (
 // V2ListFeatureSupportLevelsOKCode is the HTTP code returned for type V2ListFeatureSupportLevelsOK
 const V2ListFeatureSupportLevelsOKCode int = 200
 
-/*V2ListFeatureSupportLevelsOK Success.
+/*
+V2ListFeatureSupportLevelsOK Success.
 
 swagger:response v2ListFeatureSupportLevelsOK
 */
@@ -63,7 +64,8 @@ func (o *V2ListFeatureSupportLevelsOK) WriteResponse(rw http.ResponseWriter, pro
 // V2ListFeatureSupportLevelsUnauthorizedCode is the HTTP code returned for type V2ListFeatureSupportLevelsUnauthorized
 const V2ListFeatureSupportLevelsUnauthorizedCode int = 401
 
-/*V2ListFeatureSupportLevelsUnauthorized Unauthorized.
+/*
+V2ListFeatureSupportLevelsUnauthorized Unauthorized.
 
 swagger:response v2ListFeatureSupportLevelsUnauthorized
 */
@@ -107,7 +109,8 @@ func (o *V2ListFeatureSupportLevelsUnauthorized) WriteResponse(rw http.ResponseW
 // V2ListFeatureSupportLevelsForbiddenCode is the HTTP code returned for type V2ListFeatureSupportLevelsForbidden
 const V2ListFeatureSupportLevelsForbiddenCode int = 403
 
-/*V2ListFeatureSupportLevelsForbidden Forbidden.
+/*
+V2ListFeatureSupportLevelsForbidden Forbidden.
 
 swagger:response v2ListFeatureSupportLevelsForbidden
 */
@@ -151,7 +154,8 @@ func (o *V2ListFeatureSupportLevelsForbidden) WriteResponse(rw http.ResponseWrit
 // V2ListFeatureSupportLevelsServiceUnavailableCode is the HTTP code returned for type V2ListFeatureSupportLevelsServiceUnavailable
 const V2ListFeatureSupportLevelsServiceUnavailableCode int = 503
 
-/*V2ListFeatureSupportLevelsServiceUnavailable Unavailable.
+/*
+V2ListFeatureSupportLevelsServiceUnavailable Unavailable.
 
 swagger:response v2ListFeatureSupportLevelsServiceUnavailable
 */

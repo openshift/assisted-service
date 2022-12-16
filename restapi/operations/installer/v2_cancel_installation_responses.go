@@ -16,7 +16,8 @@ import (
 // V2CancelInstallationAcceptedCode is the HTTP code returned for type V2CancelInstallationAccepted
 const V2CancelInstallationAcceptedCode int = 202
 
-/*V2CancelInstallationAccepted Success.
+/*
+V2CancelInstallationAccepted Success.
 
 swagger:response v2CancelInstallationAccepted
 */
@@ -60,7 +61,8 @@ func (o *V2CancelInstallationAccepted) WriteResponse(rw http.ResponseWriter, pro
 // V2CancelInstallationUnauthorizedCode is the HTTP code returned for type V2CancelInstallationUnauthorized
 const V2CancelInstallationUnauthorizedCode int = 401
 
-/*V2CancelInstallationUnauthorized Unauthorized.
+/*
+V2CancelInstallationUnauthorized Unauthorized.
 
 swagger:response v2CancelInstallationUnauthorized
 */
@@ -104,7 +106,8 @@ func (o *V2CancelInstallationUnauthorized) WriteResponse(rw http.ResponseWriter,
 // V2CancelInstallationForbiddenCode is the HTTP code returned for type V2CancelInstallationForbidden
 const V2CancelInstallationForbiddenCode int = 403
 
-/*V2CancelInstallationForbidden Forbidden.
+/*
+V2CancelInstallationForbidden Forbidden.
 
 swagger:response v2CancelInstallationForbidden
 */
@@ -148,7 +151,8 @@ func (o *V2CancelInstallationForbidden) WriteResponse(rw http.ResponseWriter, pr
 // V2CancelInstallationNotFoundCode is the HTTP code returned for type V2CancelInstallationNotFound
 const V2CancelInstallationNotFoundCode int = 404
 
-/*V2CancelInstallationNotFound Error.
+/*
+V2CancelInstallationNotFound Error.
 
 swagger:response v2CancelInstallationNotFound
 */
@@ -192,7 +196,8 @@ func (o *V2CancelInstallationNotFound) WriteResponse(rw http.ResponseWriter, pro
 // V2CancelInstallationMethodNotAllowedCode is the HTTP code returned for type V2CancelInstallationMethodNotAllowed
 const V2CancelInstallationMethodNotAllowedCode int = 405
 
-/*V2CancelInstallationMethodNotAllowed Method Not Allowed.
+/*
+V2CancelInstallationMethodNotAllowed Method Not Allowed.
 
 swagger:response v2CancelInstallationMethodNotAllowed
 */
@@ -236,7 +241,8 @@ func (o *V2CancelInstallationMethodNotAllowed) WriteResponse(rw http.ResponseWri
 // V2CancelInstallationConflictCode is the HTTP code returned for type V2CancelInstallationConflict
 const V2CancelInstallationConflictCode int = 409
 
-/*V2CancelInstallationConflict Error.
+/*
+V2CancelInstallationConflict Error.
 
 swagger:response v2CancelInstallationConflict
 */
@@ -280,7 +286,8 @@ func (o *V2CancelInstallationConflict) WriteResponse(rw http.ResponseWriter, pro
 // V2CancelInstallationInternalServerErrorCode is the HTTP code returned for type V2CancelInstallationInternalServerError
 const V2CancelInstallationInternalServerErrorCode int = 500
 
-/*V2CancelInstallationInternalServerError Error.
+/*
+V2CancelInstallationInternalServerError Error.
 
 swagger:response v2CancelInstallationInternalServerError
 */

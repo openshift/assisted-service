@@ -16,7 +16,8 @@ import (
 // V2GetPreflightRequirementsOKCode is the HTTP code returned for type V2GetPreflightRequirementsOK
 const V2GetPreflightRequirementsOKCode int = 200
 
-/*V2GetPreflightRequirementsOK Success.
+/*
+V2GetPreflightRequirementsOK Success.
 
 swagger:response v2GetPreflightRequirementsOK
 */
@@ -60,7 +61,8 @@ func (o *V2GetPreflightRequirementsOK) WriteResponse(rw http.ResponseWriter, pro
 // V2GetPreflightRequirementsUnauthorizedCode is the HTTP code returned for type V2GetPreflightRequirementsUnauthorized
 const V2GetPreflightRequirementsUnauthorizedCode int = 401
 
-/*V2GetPreflightRequirementsUnauthorized Unauthorized.
+/*
+V2GetPreflightRequirementsUnauthorized Unauthorized.
 
 swagger:response v2GetPreflightRequirementsUnauthorized
 */
@@ -104,7 +106,8 @@ func (o *V2GetPreflightRequirementsUnauthorized) WriteResponse(rw http.ResponseW
 // V2GetPreflightRequirementsForbiddenCode is the HTTP code returned for type V2GetPreflightRequirementsForbidden
 const V2GetPreflightRequirementsForbiddenCode int = 403
 
-/*V2GetPreflightRequirementsForbidden Forbidden.
+/*
+V2GetPreflightRequirementsForbidden Forbidden.
 
 swagger:response v2GetPreflightRequirementsForbidden
 */
@@ -148,7 +151,8 @@ func (o *V2GetPreflightRequirementsForbidden) WriteResponse(rw http.ResponseWrit
 // V2GetPreflightRequirementsNotFoundCode is the HTTP code returned for type V2GetPreflightRequirementsNotFound
 const V2GetPreflightRequirementsNotFoundCode int = 404
 
-/*V2GetPreflightRequirementsNotFound Error.
+/*
+V2GetPreflightRequirementsNotFound Error.
 
 swagger:response v2GetPreflightRequirementsNotFound
 */
@@ -192,7 +196,8 @@ func (o *V2GetPreflightRequirementsNotFound) WriteResponse(rw http.ResponseWrite
 // V2GetPreflightRequirementsMethodNotAllowedCode is the HTTP code returned for type V2GetPreflightRequirementsMethodNotAllowed
 const V2GetPreflightRequirementsMethodNotAllowedCode int = 405
 
-/*V2GetPreflightRequirementsMethodNotAllowed Method Not Allowed.
+/*
+V2GetPreflightRequirementsMethodNotAllowed Method Not Allowed.
 
 swagger:response v2GetPreflightRequirementsMethodNotAllowed
 */
@@ -236,7 +241,8 @@ func (o *V2GetPreflightRequirementsMethodNotAllowed) WriteResponse(rw http.Respo
 // V2GetPreflightRequirementsInternalServerErrorCode is the HTTP code returned for type V2GetPreflightRequirementsInternalServerError
 const V2GetPreflightRequirementsInternalServerErrorCode int = 500
 
-/*V2GetPreflightRequirementsInternalServerError Error.
+/*
+V2GetPreflightRequirementsInternalServerError Error.
 
 swagger:response v2GetPreflightRequirementsInternalServerError
 */

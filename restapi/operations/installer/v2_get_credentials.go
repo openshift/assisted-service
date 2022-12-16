@@ -29,10 +29,10 @@ func NewV2GetCredentials(ctx *middleware.Context, handler V2GetCredentialsHandle
 	return &V2GetCredentials{Context: ctx, Handler: handler}
 }
 
-/* V2GetCredentials swagger:route GET /v2/clusters/{cluster_id}/credentials installer v2GetCredentials
+/*
+	V2GetCredentials swagger:route GET /v2/clusters/{cluster_id}/credentials installer v2GetCredentials
 
 Get the cluster admin credentials.
-
 */
 type V2GetCredentials struct {
 	Context *middleware.Context

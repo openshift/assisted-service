@@ -16,7 +16,8 @@ import (
 // V2GetPresignedForClusterFilesOKCode is the HTTP code returned for type V2GetPresignedForClusterFilesOK
 const V2GetPresignedForClusterFilesOKCode int = 200
 
-/*V2GetPresignedForClusterFilesOK Success.
+/*
+V2GetPresignedForClusterFilesOK Success.
 
 swagger:response v2GetPresignedForClusterFilesOK
 */
@@ -60,7 +61,8 @@ func (o *V2GetPresignedForClusterFilesOK) WriteResponse(rw http.ResponseWriter, 
 // V2GetPresignedForClusterFilesBadRequestCode is the HTTP code returned for type V2GetPresignedForClusterFilesBadRequest
 const V2GetPresignedForClusterFilesBadRequestCode int = 400
 
-/*V2GetPresignedForClusterFilesBadRequest Error.
+/*
+V2GetPresignedForClusterFilesBadRequest Error.
 
 swagger:response v2GetPresignedForClusterFilesBadRequest
 */
@@ -104,7 +106,8 @@ func (o *V2GetPresignedForClusterFilesBadRequest) WriteResponse(rw http.Response
 // V2GetPresignedForClusterFilesUnauthorizedCode is the HTTP code returned for type V2GetPresignedForClusterFilesUnauthorized
 const V2GetPresignedForClusterFilesUnauthorizedCode int = 401
 
-/*V2GetPresignedForClusterFilesUnauthorized Unauthorized.
+/*
+V2GetPresignedForClusterFilesUnauthorized Unauthorized.
 
 swagger:response v2GetPresignedForClusterFilesUnauthorized
 */
@@ -148,7 +151,8 @@ func (o *V2GetPresignedForClusterFilesUnauthorized) WriteResponse(rw http.Respon
 // V2GetPresignedForClusterFilesForbiddenCode is the HTTP code returned for type V2GetPresignedForClusterFilesForbidden
 const V2GetPresignedForClusterFilesForbiddenCode int = 403
 
-/*V2GetPresignedForClusterFilesForbidden Forbidden.
+/*
+V2GetPresignedForClusterFilesForbidden Forbidden.
 
 swagger:response v2GetPresignedForClusterFilesForbidden
 */
@@ -192,7 +196,8 @@ func (o *V2GetPresignedForClusterFilesForbidden) WriteResponse(rw http.ResponseW
 // V2GetPresignedForClusterFilesNotFoundCode is the HTTP code returned for type V2GetPresignedForClusterFilesNotFound
 const V2GetPresignedForClusterFilesNotFoundCode int = 404
 
-/*V2GetPresignedForClusterFilesNotFound Error.
+/*
+V2GetPresignedForClusterFilesNotFound Error.
 
 swagger:response v2GetPresignedForClusterFilesNotFound
 */
@@ -236,7 +241,8 @@ func (o *V2GetPresignedForClusterFilesNotFound) WriteResponse(rw http.ResponseWr
 // V2GetPresignedForClusterFilesMethodNotAllowedCode is the HTTP code returned for type V2GetPresignedForClusterFilesMethodNotAllowed
 const V2GetPresignedForClusterFilesMethodNotAllowedCode int = 405
 
-/*V2GetPresignedForClusterFilesMethodNotAllowed Method Not Allowed.
+/*
+V2GetPresignedForClusterFilesMethodNotAllowed Method Not Allowed.
 
 swagger:response v2GetPresignedForClusterFilesMethodNotAllowed
 */
@@ -280,7 +286,8 @@ func (o *V2GetPresignedForClusterFilesMethodNotAllowed) WriteResponse(rw http.Re
 // V2GetPresignedForClusterFilesConflictCode is the HTTP code returned for type V2GetPresignedForClusterFilesConflict
 const V2GetPresignedForClusterFilesConflictCode int = 409
 
-/*V2GetPresignedForClusterFilesConflict Error.
+/*
+V2GetPresignedForClusterFilesConflict Error.
 
 swagger:response v2GetPresignedForClusterFilesConflict
 */
@@ -324,7 +331,8 @@ func (o *V2GetPresignedForClusterFilesConflict) WriteResponse(rw http.ResponseWr
 // V2GetPresignedForClusterFilesInternalServerErrorCode is the HTTP code returned for type V2GetPresignedForClusterFilesInternalServerError
 const V2GetPresignedForClusterFilesInternalServerErrorCode int = 500
 
-/*V2GetPresignedForClusterFilesInternalServerError Error.
+/*
+V2GetPresignedForClusterFilesInternalServerError Error.
 
 swagger:response v2GetPresignedForClusterFilesInternalServerError
 */

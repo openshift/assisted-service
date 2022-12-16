@@ -16,7 +16,8 @@ import (
 // GetInfraEnvDownloadURLOKCode is the HTTP code returned for type GetInfraEnvDownloadURLOK
 const GetInfraEnvDownloadURLOKCode int = 200
 
-/*GetInfraEnvDownloadURLOK Success.
+/*
+GetInfraEnvDownloadURLOK Success.
 
 swagger:response getInfraEnvDownloadUrlOK
 */
@@ -60,7 +61,8 @@ func (o *GetInfraEnvDownloadURLOK) WriteResponse(rw http.ResponseWriter, produce
 // GetInfraEnvDownloadURLBadRequestCode is the HTTP code returned for type GetInfraEnvDownloadURLBadRequest
 const GetInfraEnvDownloadURLBadRequestCode int = 400
 
-/*GetInfraEnvDownloadURLBadRequest Bad Request.
+/*
+GetInfraEnvDownloadURLBadRequest Bad Request.
 
 swagger:response getInfraEnvDownloadUrlBadRequest
 */
@@ -104,7 +106,8 @@ func (o *GetInfraEnvDownloadURLBadRequest) WriteResponse(rw http.ResponseWriter,
 // GetInfraEnvDownloadURLUnauthorizedCode is the HTTP code returned for type GetInfraEnvDownloadURLUnauthorized
 const GetInfraEnvDownloadURLUnauthorizedCode int = 401
 
-/*GetInfraEnvDownloadURLUnauthorized Unauthorized.
+/*
+GetInfraEnvDownloadURLUnauthorized Unauthorized.
 
 swagger:response getInfraEnvDownloadUrlUnauthorized
 */
@@ -148,7 +151,8 @@ func (o *GetInfraEnvDownloadURLUnauthorized) WriteResponse(rw http.ResponseWrite
 // GetInfraEnvDownloadURLForbiddenCode is the HTTP code returned for type GetInfraEnvDownloadURLForbidden
 const GetInfraEnvDownloadURLForbiddenCode int = 403
 
-/*GetInfraEnvDownloadURLForbidden Forbidden.
+/*
+GetInfraEnvDownloadURLForbidden Forbidden.
 
 swagger:response getInfraEnvDownloadUrlForbidden
 */
@@ -192,7 +196,8 @@ func (o *GetInfraEnvDownloadURLForbidden) WriteResponse(rw http.ResponseWriter, 
 // GetInfraEnvDownloadURLNotFoundCode is the HTTP code returned for type GetInfraEnvDownloadURLNotFound
 const GetInfraEnvDownloadURLNotFoundCode int = 404
 
-/*GetInfraEnvDownloadURLNotFound Error.
+/*
+GetInfraEnvDownloadURLNotFound Error.
 
 swagger:response getInfraEnvDownloadUrlNotFound
 */
@@ -236,7 +241,8 @@ func (o *GetInfraEnvDownloadURLNotFound) WriteResponse(rw http.ResponseWriter, p
 // GetInfraEnvDownloadURLMethodNotAllowedCode is the HTTP code returned for type GetInfraEnvDownloadURLMethodNotAllowed
 const GetInfraEnvDownloadURLMethodNotAllowedCode int = 405
 
-/*GetInfraEnvDownloadURLMethodNotAllowed Method Not Allowed.
+/*
+GetInfraEnvDownloadURLMethodNotAllowed Method Not Allowed.
 
 swagger:response getInfraEnvDownloadUrlMethodNotAllowed
 */
@@ -280,7 +286,8 @@ func (o *GetInfraEnvDownloadURLMethodNotAllowed) WriteResponse(rw http.ResponseW
 // GetInfraEnvDownloadURLInternalServerErrorCode is the HTTP code returned for type GetInfraEnvDownloadURLInternalServerError
 const GetInfraEnvDownloadURLInternalServerErrorCode int = 500
 
-/*GetInfraEnvDownloadURLInternalServerError Error.
+/*
+GetInfraEnvDownloadURLInternalServerError Error.
 
 swagger:response getInfraEnvDownloadUrlInternalServerError
 */
@@ -324,7 +331,8 @@ func (o *GetInfraEnvDownloadURLInternalServerError) WriteResponse(rw http.Respon
 // GetInfraEnvDownloadURLNotImplementedCode is the HTTP code returned for type GetInfraEnvDownloadURLNotImplemented
 const GetInfraEnvDownloadURLNotImplementedCode int = 501
 
-/*GetInfraEnvDownloadURLNotImplemented Not implemented.
+/*
+GetInfraEnvDownloadURLNotImplemented Not implemented.
 
 swagger:response getInfraEnvDownloadUrlNotImplemented
 */
@@ -368,7 +376,8 @@ func (o *GetInfraEnvDownloadURLNotImplemented) WriteResponse(rw http.ResponseWri
 // GetInfraEnvDownloadURLServiceUnavailableCode is the HTTP code returned for type GetInfraEnvDownloadURLServiceUnavailable
 const GetInfraEnvDownloadURLServiceUnavailableCode int = 503
 
-/*GetInfraEnvDownloadURLServiceUnavailable Unavailable.
+/*
+GetInfraEnvDownloadURLServiceUnavailable Unavailable.
 
 swagger:response getInfraEnvDownloadUrlServiceUnavailable
 */

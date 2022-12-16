@@ -29,10 +29,10 @@ func NewV2ListClusterManifests(ctx *middleware.Context, handler V2ListClusterMan
 	return &V2ListClusterManifests{Context: ctx, Handler: handler}
 }
 
-/* V2ListClusterManifests swagger:route GET /v2/clusters/{cluster_id}/manifests manifests v2ListClusterManifests
+/*
+	V2ListClusterManifests swagger:route GET /v2/clusters/{cluster_id}/manifests manifests v2ListClusterManifests
 
 Lists manifests for customizing cluster installation.
-
 */
 type V2ListClusterManifests struct {
 	Context *middleware.Context

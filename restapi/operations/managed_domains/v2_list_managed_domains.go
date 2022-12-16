@@ -29,10 +29,10 @@ func NewV2ListManagedDomains(ctx *middleware.Context, handler V2ListManagedDomai
 	return &V2ListManagedDomains{Context: ctx, Handler: handler}
 }
 
-/* V2ListManagedDomains swagger:route GET /v2/domains managed_domains v2ListManagedDomains
+/*
+	V2ListManagedDomains swagger:route GET /v2/domains managed_domains v2ListManagedDomains
 
 List of managed DNS domains.
-
 */
 type V2ListManagedDomains struct {
 	Context *middleware.Context

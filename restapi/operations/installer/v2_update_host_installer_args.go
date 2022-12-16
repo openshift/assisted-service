@@ -29,10 +29,10 @@ func NewV2UpdateHostInstallerArgs(ctx *middleware.Context, handler V2UpdateHostI
 	return &V2UpdateHostInstallerArgs{Context: ctx, Handler: handler}
 }
 
-/* V2UpdateHostInstallerArgs swagger:route PATCH /v2/infra-envs/{infra_env_id}/hosts/{host_id}/installer-args installer v2UpdateHostInstallerArgs
+/*
+	V2UpdateHostInstallerArgs swagger:route PATCH /v2/infra-envs/{infra_env_id}/hosts/{host_id}/installer-args installer v2UpdateHostInstallerArgs
 
 Updates a host's installer arguments.
-
 */
 type V2UpdateHostInstallerArgs struct {
 	Context *middleware.Context

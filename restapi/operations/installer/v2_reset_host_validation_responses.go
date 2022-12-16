@@ -16,7 +16,8 @@ import (
 // V2ResetHostValidationOKCode is the HTTP code returned for type V2ResetHostValidationOK
 const V2ResetHostValidationOKCode int = 200
 
-/*V2ResetHostValidationOK Success.
+/*
+V2ResetHostValidationOK Success.
 
 swagger:response v2ResetHostValidationOK
 */
@@ -60,7 +61,8 @@ func (o *V2ResetHostValidationOK) WriteResponse(rw http.ResponseWriter, producer
 // V2ResetHostValidationBadRequestCode is the HTTP code returned for type V2ResetHostValidationBadRequest
 const V2ResetHostValidationBadRequestCode int = 400
 
-/*V2ResetHostValidationBadRequest Bad Request
+/*
+V2ResetHostValidationBadRequest Bad Request
 
 swagger:response v2ResetHostValidationBadRequest
 */
@@ -104,7 +106,8 @@ func (o *V2ResetHostValidationBadRequest) WriteResponse(rw http.ResponseWriter, 
 // V2ResetHostValidationUnauthorizedCode is the HTTP code returned for type V2ResetHostValidationUnauthorized
 const V2ResetHostValidationUnauthorizedCode int = 401
 
-/*V2ResetHostValidationUnauthorized Unauthorized.
+/*
+V2ResetHostValidationUnauthorized Unauthorized.
 
 swagger:response v2ResetHostValidationUnauthorized
 */
@@ -148,7 +151,8 @@ func (o *V2ResetHostValidationUnauthorized) WriteResponse(rw http.ResponseWriter
 // V2ResetHostValidationForbiddenCode is the HTTP code returned for type V2ResetHostValidationForbidden
 const V2ResetHostValidationForbiddenCode int = 403
 
-/*V2ResetHostValidationForbidden Forbidden.
+/*
+V2ResetHostValidationForbidden Forbidden.
 
 swagger:response v2ResetHostValidationForbidden
 */
@@ -192,7 +196,8 @@ func (o *V2ResetHostValidationForbidden) WriteResponse(rw http.ResponseWriter, p
 // V2ResetHostValidationNotFoundCode is the HTTP code returned for type V2ResetHostValidationNotFound
 const V2ResetHostValidationNotFoundCode int = 404
 
-/*V2ResetHostValidationNotFound Error.
+/*
+V2ResetHostValidationNotFound Error.
 
 swagger:response v2ResetHostValidationNotFound
 */
@@ -236,7 +241,8 @@ func (o *V2ResetHostValidationNotFound) WriteResponse(rw http.ResponseWriter, pr
 // V2ResetHostValidationConflictCode is the HTTP code returned for type V2ResetHostValidationConflict
 const V2ResetHostValidationConflictCode int = 409
 
-/*V2ResetHostValidationConflict Error.
+/*
+V2ResetHostValidationConflict Error.
 
 swagger:response v2ResetHostValidationConflict
 */
@@ -280,7 +286,8 @@ func (o *V2ResetHostValidationConflict) WriteResponse(rw http.ResponseWriter, pr
 // V2ResetHostValidationInternalServerErrorCode is the HTTP code returned for type V2ResetHostValidationInternalServerError
 const V2ResetHostValidationInternalServerErrorCode int = 500
 
-/*V2ResetHostValidationInternalServerError Error.
+/*
+V2ResetHostValidationInternalServerError Error.
 
 swagger:response v2ResetHostValidationInternalServerError
 */

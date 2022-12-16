@@ -29,10 +29,10 @@ func NewV2UpdateCluster(ctx *middleware.Context, handler V2UpdateClusterHandler)
 	return &V2UpdateCluster{Context: ctx, Handler: handler}
 }
 
-/* V2UpdateCluster swagger:route PATCH /v2/clusters/{cluster_id} installer v2UpdateCluster
+/*
+	V2UpdateCluster swagger:route PATCH /v2/clusters/{cluster_id} installer v2UpdateCluster
 
 Updates an OpenShift cluster definition.
-
 */
 type V2UpdateCluster struct {
 	Context *middleware.Context

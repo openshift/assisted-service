@@ -16,7 +16,8 @@ import (
 // V2GetCredentialsOKCode is the HTTP code returned for type V2GetCredentialsOK
 const V2GetCredentialsOKCode int = 200
 
-/*V2GetCredentialsOK Success.
+/*
+V2GetCredentialsOK Success.
 
 swagger:response v2GetCredentialsOK
 */
@@ -60,7 +61,8 @@ func (o *V2GetCredentialsOK) WriteResponse(rw http.ResponseWriter, producer runt
 // V2GetCredentialsUnauthorizedCode is the HTTP code returned for type V2GetCredentialsUnauthorized
 const V2GetCredentialsUnauthorizedCode int = 401
 
-/*V2GetCredentialsUnauthorized Unauthorized.
+/*
+V2GetCredentialsUnauthorized Unauthorized.
 
 swagger:response v2GetCredentialsUnauthorized
 */
@@ -104,7 +106,8 @@ func (o *V2GetCredentialsUnauthorized) WriteResponse(rw http.ResponseWriter, pro
 // V2GetCredentialsForbiddenCode is the HTTP code returned for type V2GetCredentialsForbidden
 const V2GetCredentialsForbiddenCode int = 403
 
-/*V2GetCredentialsForbidden Forbidden.
+/*
+V2GetCredentialsForbidden Forbidden.
 
 swagger:response v2GetCredentialsForbidden
 */
@@ -148,7 +151,8 @@ func (o *V2GetCredentialsForbidden) WriteResponse(rw http.ResponseWriter, produc
 // V2GetCredentialsNotFoundCode is the HTTP code returned for type V2GetCredentialsNotFound
 const V2GetCredentialsNotFoundCode int = 404
 
-/*V2GetCredentialsNotFound Error.
+/*
+V2GetCredentialsNotFound Error.
 
 swagger:response v2GetCredentialsNotFound
 */
@@ -192,7 +196,8 @@ func (o *V2GetCredentialsNotFound) WriteResponse(rw http.ResponseWriter, produce
 // V2GetCredentialsMethodNotAllowedCode is the HTTP code returned for type V2GetCredentialsMethodNotAllowed
 const V2GetCredentialsMethodNotAllowedCode int = 405
 
-/*V2GetCredentialsMethodNotAllowed Method Not Allowed.
+/*
+V2GetCredentialsMethodNotAllowed Method Not Allowed.
 
 swagger:response v2GetCredentialsMethodNotAllowed
 */
@@ -236,7 +241,8 @@ func (o *V2GetCredentialsMethodNotAllowed) WriteResponse(rw http.ResponseWriter,
 // V2GetCredentialsConflictCode is the HTTP code returned for type V2GetCredentialsConflict
 const V2GetCredentialsConflictCode int = 409
 
-/*V2GetCredentialsConflict Error.
+/*
+V2GetCredentialsConflict Error.
 
 swagger:response v2GetCredentialsConflict
 */
@@ -280,7 +286,8 @@ func (o *V2GetCredentialsConflict) WriteResponse(rw http.ResponseWriter, produce
 // V2GetCredentialsInternalServerErrorCode is the HTTP code returned for type V2GetCredentialsInternalServerError
 const V2GetCredentialsInternalServerErrorCode int = 500
 
-/*V2GetCredentialsInternalServerError Error.
+/*
+V2GetCredentialsInternalServerError Error.
 
 swagger:response v2GetCredentialsInternalServerError
 */

@@ -52,10 +52,12 @@ func NewTransformClusterToAddingHostsParamsWithHTTPClient(client *http.Client) *
 	}
 }
 
-/* TransformClusterToAddingHostsParams contains all the parameters to send to the API endpoint
-   for the transform cluster to adding hosts operation.
+/*
+TransformClusterToAddingHostsParams contains all the parameters to send to the API endpoint
 
-   Typically these are written to a http.Request.
+	for the transform cluster to adding hosts operation.
+
+	Typically these are written to a http.Request.
 */
 type TransformClusterToAddingHostsParams struct {
 

@@ -20,8 +20,12 @@ import (
 type DriveType string
 
 func NewDriveType(value DriveType) *DriveType {
-	v := value
-	return &v
+	return &value
+}
+
+// Pointer returns a pointer to a freshly-allocated DriveType.
+func (m DriveType) Pointer() *DriveType {
+	return &m
 }
 
 const (

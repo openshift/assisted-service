@@ -29,10 +29,10 @@ func NewV2DownloadClusterManifest(ctx *middleware.Context, handler V2DownloadClu
 	return &V2DownloadClusterManifest{Context: ctx, Handler: handler}
 }
 
-/* V2DownloadClusterManifest swagger:route GET /v2/clusters/{cluster_id}/manifests/files manifests v2DownloadClusterManifest
+/*
+	V2DownloadClusterManifest swagger:route GET /v2/clusters/{cluster_id}/manifests/files manifests v2DownloadClusterManifest
 
 Downloads cluster manifest.
-
 */
 type V2DownloadClusterManifest struct {
 	Context *middleware.Context

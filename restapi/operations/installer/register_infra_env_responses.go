@@ -16,7 +16,8 @@ import (
 // RegisterInfraEnvCreatedCode is the HTTP code returned for type RegisterInfraEnvCreated
 const RegisterInfraEnvCreatedCode int = 201
 
-/*RegisterInfraEnvCreated Success.
+/*
+RegisterInfraEnvCreated Success.
 
 swagger:response registerInfraEnvCreated
 */
@@ -60,7 +61,8 @@ func (o *RegisterInfraEnvCreated) WriteResponse(rw http.ResponseWriter, producer
 // RegisterInfraEnvBadRequestCode is the HTTP code returned for type RegisterInfraEnvBadRequest
 const RegisterInfraEnvBadRequestCode int = 400
 
-/*RegisterInfraEnvBadRequest Error.
+/*
+RegisterInfraEnvBadRequest Error.
 
 swagger:response registerInfraEnvBadRequest
 */
@@ -104,7 +106,8 @@ func (o *RegisterInfraEnvBadRequest) WriteResponse(rw http.ResponseWriter, produ
 // RegisterInfraEnvUnauthorizedCode is the HTTP code returned for type RegisterInfraEnvUnauthorized
 const RegisterInfraEnvUnauthorizedCode int = 401
 
-/*RegisterInfraEnvUnauthorized Unauthorized.
+/*
+RegisterInfraEnvUnauthorized Unauthorized.
 
 swagger:response registerInfraEnvUnauthorized
 */
@@ -148,7 +151,8 @@ func (o *RegisterInfraEnvUnauthorized) WriteResponse(rw http.ResponseWriter, pro
 // RegisterInfraEnvForbiddenCode is the HTTP code returned for type RegisterInfraEnvForbidden
 const RegisterInfraEnvForbiddenCode int = 403
 
-/*RegisterInfraEnvForbidden Forbidden.
+/*
+RegisterInfraEnvForbidden Forbidden.
 
 swagger:response registerInfraEnvForbidden
 */
@@ -192,7 +196,8 @@ func (o *RegisterInfraEnvForbidden) WriteResponse(rw http.ResponseWriter, produc
 // RegisterInfraEnvNotFoundCode is the HTTP code returned for type RegisterInfraEnvNotFound
 const RegisterInfraEnvNotFoundCode int = 404
 
-/*RegisterInfraEnvNotFound Error.
+/*
+RegisterInfraEnvNotFound Error.
 
 swagger:response registerInfraEnvNotFound
 */
@@ -236,7 +241,8 @@ func (o *RegisterInfraEnvNotFound) WriteResponse(rw http.ResponseWriter, produce
 // RegisterInfraEnvMethodNotAllowedCode is the HTTP code returned for type RegisterInfraEnvMethodNotAllowed
 const RegisterInfraEnvMethodNotAllowedCode int = 405
 
-/*RegisterInfraEnvMethodNotAllowed Method Not Allowed.
+/*
+RegisterInfraEnvMethodNotAllowed Method Not Allowed.
 
 swagger:response registerInfraEnvMethodNotAllowed
 */
@@ -280,7 +286,8 @@ func (o *RegisterInfraEnvMethodNotAllowed) WriteResponse(rw http.ResponseWriter,
 // RegisterInfraEnvConflictCode is the HTTP code returned for type RegisterInfraEnvConflict
 const RegisterInfraEnvConflictCode int = 409
 
-/*RegisterInfraEnvConflict Error.
+/*
+RegisterInfraEnvConflict Error.
 
 swagger:response registerInfraEnvConflict
 */
@@ -324,7 +331,8 @@ func (o *RegisterInfraEnvConflict) WriteResponse(rw http.ResponseWriter, produce
 // RegisterInfraEnvInternalServerErrorCode is the HTTP code returned for type RegisterInfraEnvInternalServerError
 const RegisterInfraEnvInternalServerErrorCode int = 500
 
-/*RegisterInfraEnvInternalServerError Error.
+/*
+RegisterInfraEnvInternalServerError Error.
 
 swagger:response registerInfraEnvInternalServerError
 */
@@ -368,7 +376,8 @@ func (o *RegisterInfraEnvInternalServerError) WriteResponse(rw http.ResponseWrit
 // RegisterInfraEnvNotImplementedCode is the HTTP code returned for type RegisterInfraEnvNotImplemented
 const RegisterInfraEnvNotImplementedCode int = 501
 
-/*RegisterInfraEnvNotImplemented Not implemented.
+/*
+RegisterInfraEnvNotImplemented Not implemented.
 
 swagger:response registerInfraEnvNotImplemented
 */

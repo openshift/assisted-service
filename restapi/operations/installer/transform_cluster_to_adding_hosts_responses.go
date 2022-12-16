@@ -16,7 +16,8 @@ import (
 // TransformClusterToAddingHostsAcceptedCode is the HTTP code returned for type TransformClusterToAddingHostsAccepted
 const TransformClusterToAddingHostsAcceptedCode int = 202
 
-/*TransformClusterToAddingHostsAccepted Success.
+/*
+TransformClusterToAddingHostsAccepted Success.
 
 swagger:response transformClusterToAddingHostsAccepted
 */
@@ -60,7 +61,8 @@ func (o *TransformClusterToAddingHostsAccepted) WriteResponse(rw http.ResponseWr
 // TransformClusterToAddingHostsUnauthorizedCode is the HTTP code returned for type TransformClusterToAddingHostsUnauthorized
 const TransformClusterToAddingHostsUnauthorizedCode int = 401
 
-/*TransformClusterToAddingHostsUnauthorized Unauthorized.
+/*
+TransformClusterToAddingHostsUnauthorized Unauthorized.
 
 swagger:response transformClusterToAddingHostsUnauthorized
 */
@@ -104,7 +106,8 @@ func (o *TransformClusterToAddingHostsUnauthorized) WriteResponse(rw http.Respon
 // TransformClusterToAddingHostsForbiddenCode is the HTTP code returned for type TransformClusterToAddingHostsForbidden
 const TransformClusterToAddingHostsForbiddenCode int = 403
 
-/*TransformClusterToAddingHostsForbidden Forbidden.
+/*
+TransformClusterToAddingHostsForbidden Forbidden.
 
 swagger:response transformClusterToAddingHostsForbidden
 */
@@ -148,7 +151,8 @@ func (o *TransformClusterToAddingHostsForbidden) WriteResponse(rw http.ResponseW
 // TransformClusterToAddingHostsNotFoundCode is the HTTP code returned for type TransformClusterToAddingHostsNotFound
 const TransformClusterToAddingHostsNotFoundCode int = 404
 
-/*TransformClusterToAddingHostsNotFound Error.
+/*
+TransformClusterToAddingHostsNotFound Error.
 
 swagger:response transformClusterToAddingHostsNotFound
 */
@@ -192,7 +196,8 @@ func (o *TransformClusterToAddingHostsNotFound) WriteResponse(rw http.ResponseWr
 // TransformClusterToAddingHostsMethodNotAllowedCode is the HTTP code returned for type TransformClusterToAddingHostsMethodNotAllowed
 const TransformClusterToAddingHostsMethodNotAllowedCode int = 405
 
-/*TransformClusterToAddingHostsMethodNotAllowed Method Not Allowed.
+/*
+TransformClusterToAddingHostsMethodNotAllowed Method Not Allowed.
 
 swagger:response transformClusterToAddingHostsMethodNotAllowed
 */
@@ -236,7 +241,8 @@ func (o *TransformClusterToAddingHostsMethodNotAllowed) WriteResponse(rw http.Re
 // TransformClusterToAddingHostsConflictCode is the HTTP code returned for type TransformClusterToAddingHostsConflict
 const TransformClusterToAddingHostsConflictCode int = 409
 
-/*TransformClusterToAddingHostsConflict Error.
+/*
+TransformClusterToAddingHostsConflict Error.
 
 swagger:response transformClusterToAddingHostsConflict
 */
@@ -280,7 +286,8 @@ func (o *TransformClusterToAddingHostsConflict) WriteResponse(rw http.ResponseWr
 // TransformClusterToAddingHostsInternalServerErrorCode is the HTTP code returned for type TransformClusterToAddingHostsInternalServerError
 const TransformClusterToAddingHostsInternalServerErrorCode int = 500
 
-/*TransformClusterToAddingHostsInternalServerError Error.
+/*
+TransformClusterToAddingHostsInternalServerError Error.
 
 swagger:response transformClusterToAddingHostsInternalServerError
 */

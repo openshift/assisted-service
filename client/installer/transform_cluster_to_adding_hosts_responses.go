@@ -75,7 +75,8 @@ func NewTransformClusterToAddingHostsAccepted() *TransformClusterToAddingHostsAc
 	return &TransformClusterToAddingHostsAccepted{}
 }
 
-/* TransformClusterToAddingHostsAccepted describes a response with status code 202, with default header values.
+/*
+TransformClusterToAddingHostsAccepted describes a response with status code 202, with default header values.
 
 Success.
 */
@@ -83,9 +84,39 @@ type TransformClusterToAddingHostsAccepted struct {
 	Payload *models.Cluster
 }
 
+// IsSuccess returns true when this transform cluster to adding hosts accepted response has a 2xx status code
+func (o *TransformClusterToAddingHostsAccepted) IsSuccess() bool {
+	return true
+}
+
+// IsRedirect returns true when this transform cluster to adding hosts accepted response has a 3xx status code
+func (o *TransformClusterToAddingHostsAccepted) IsRedirect() bool {
+	return false
+}
+
+// IsClientError returns true when this transform cluster to adding hosts accepted response has a 4xx status code
+func (o *TransformClusterToAddingHostsAccepted) IsClientError() bool {
+	return false
+}
+
+// IsServerError returns true when this transform cluster to adding hosts accepted response has a 5xx status code
+func (o *TransformClusterToAddingHostsAccepted) IsServerError() bool {
+	return false
+}
+
+// IsCode returns true when this transform cluster to adding hosts accepted response a status code equal to that given
+func (o *TransformClusterToAddingHostsAccepted) IsCode(code int) bool {
+	return code == 202
+}
+
 func (o *TransformClusterToAddingHostsAccepted) Error() string {
 	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/actions/allow-add-hosts][%d] transformClusterToAddingHostsAccepted  %+v", 202, o.Payload)
 }
+
+func (o *TransformClusterToAddingHostsAccepted) String() string {
+	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/actions/allow-add-hosts][%d] transformClusterToAddingHostsAccepted  %+v", 202, o.Payload)
+}
+
 func (o *TransformClusterToAddingHostsAccepted) GetPayload() *models.Cluster {
 	return o.Payload
 }
@@ -107,7 +138,8 @@ func NewTransformClusterToAddingHostsUnauthorized() *TransformClusterToAddingHos
 	return &TransformClusterToAddingHostsUnauthorized{}
 }
 
-/* TransformClusterToAddingHostsUnauthorized describes a response with status code 401, with default header values.
+/*
+TransformClusterToAddingHostsUnauthorized describes a response with status code 401, with default header values.
 
 Unauthorized.
 */
@@ -115,9 +147,39 @@ type TransformClusterToAddingHostsUnauthorized struct {
 	Payload *models.InfraError
 }
 
+// IsSuccess returns true when this transform cluster to adding hosts unauthorized response has a 2xx status code
+func (o *TransformClusterToAddingHostsUnauthorized) IsSuccess() bool {
+	return false
+}
+
+// IsRedirect returns true when this transform cluster to adding hosts unauthorized response has a 3xx status code
+func (o *TransformClusterToAddingHostsUnauthorized) IsRedirect() bool {
+	return false
+}
+
+// IsClientError returns true when this transform cluster to adding hosts unauthorized response has a 4xx status code
+func (o *TransformClusterToAddingHostsUnauthorized) IsClientError() bool {
+	return true
+}
+
+// IsServerError returns true when this transform cluster to adding hosts unauthorized response has a 5xx status code
+func (o *TransformClusterToAddingHostsUnauthorized) IsServerError() bool {
+	return false
+}
+
+// IsCode returns true when this transform cluster to adding hosts unauthorized response a status code equal to that given
+func (o *TransformClusterToAddingHostsUnauthorized) IsCode(code int) bool {
+	return code == 401
+}
+
 func (o *TransformClusterToAddingHostsUnauthorized) Error() string {
 	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/actions/allow-add-hosts][%d] transformClusterToAddingHostsUnauthorized  %+v", 401, o.Payload)
 }
+
+func (o *TransformClusterToAddingHostsUnauthorized) String() string {
+	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/actions/allow-add-hosts][%d] transformClusterToAddingHostsUnauthorized  %+v", 401, o.Payload)
+}
+
 func (o *TransformClusterToAddingHostsUnauthorized) GetPayload() *models.InfraError {
 	return o.Payload
 }
@@ -139,7 +201,8 @@ func NewTransformClusterToAddingHostsForbidden() *TransformClusterToAddingHostsF
 	return &TransformClusterToAddingHostsForbidden{}
 }
 
-/* TransformClusterToAddingHostsForbidden describes a response with status code 403, with default header values.
+/*
+TransformClusterToAddingHostsForbidden describes a response with status code 403, with default header values.
 
 Forbidden.
 */
@@ -147,9 +210,39 @@ type TransformClusterToAddingHostsForbidden struct {
 	Payload *models.InfraError
 }
 
+// IsSuccess returns true when this transform cluster to adding hosts forbidden response has a 2xx status code
+func (o *TransformClusterToAddingHostsForbidden) IsSuccess() bool {
+	return false
+}
+
+// IsRedirect returns true when this transform cluster to adding hosts forbidden response has a 3xx status code
+func (o *TransformClusterToAddingHostsForbidden) IsRedirect() bool {
+	return false
+}
+
+// IsClientError returns true when this transform cluster to adding hosts forbidden response has a 4xx status code
+func (o *TransformClusterToAddingHostsForbidden) IsClientError() bool {
+	return true
+}
+
+// IsServerError returns true when this transform cluster to adding hosts forbidden response has a 5xx status code
+func (o *TransformClusterToAddingHostsForbidden) IsServerError() bool {
+	return false
+}
+
+// IsCode returns true when this transform cluster to adding hosts forbidden response a status code equal to that given
+func (o *TransformClusterToAddingHostsForbidden) IsCode(code int) bool {
+	return code == 403
+}
+
 func (o *TransformClusterToAddingHostsForbidden) Error() string {
 	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/actions/allow-add-hosts][%d] transformClusterToAddingHostsForbidden  %+v", 403, o.Payload)
 }
+
+func (o *TransformClusterToAddingHostsForbidden) String() string {
+	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/actions/allow-add-hosts][%d] transformClusterToAddingHostsForbidden  %+v", 403, o.Payload)
+}
+
 func (o *TransformClusterToAddingHostsForbidden) GetPayload() *models.InfraError {
 	return o.Payload
 }
@@ -171,7 +264,8 @@ func NewTransformClusterToAddingHostsNotFound() *TransformClusterToAddingHostsNo
 	return &TransformClusterToAddingHostsNotFound{}
 }
 
-/* TransformClusterToAddingHostsNotFound describes a response with status code 404, with default header values.
+/*
+TransformClusterToAddingHostsNotFound describes a response with status code 404, with default header values.
 
 Error.
 */
@@ -179,9 +273,39 @@ type TransformClusterToAddingHostsNotFound struct {
 	Payload *models.Error
 }
 
+// IsSuccess returns true when this transform cluster to adding hosts not found response has a 2xx status code
+func (o *TransformClusterToAddingHostsNotFound) IsSuccess() bool {
+	return false
+}
+
+// IsRedirect returns true when this transform cluster to adding hosts not found response has a 3xx status code
+func (o *TransformClusterToAddingHostsNotFound) IsRedirect() bool {
+	return false
+}
+
+// IsClientError returns true when this transform cluster to adding hosts not found response has a 4xx status code
+func (o *TransformClusterToAddingHostsNotFound) IsClientError() bool {
+	return true
+}
+
+// IsServerError returns true when this transform cluster to adding hosts not found response has a 5xx status code
+func (o *TransformClusterToAddingHostsNotFound) IsServerError() bool {
+	return false
+}
+
+// IsCode returns true when this transform cluster to adding hosts not found response a status code equal to that given
+func (o *TransformClusterToAddingHostsNotFound) IsCode(code int) bool {
+	return code == 404
+}
+
 func (o *TransformClusterToAddingHostsNotFound) Error() string {
 	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/actions/allow-add-hosts][%d] transformClusterToAddingHostsNotFound  %+v", 404, o.Payload)
 }
+
+func (o *TransformClusterToAddingHostsNotFound) String() string {
+	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/actions/allow-add-hosts][%d] transformClusterToAddingHostsNotFound  %+v", 404, o.Payload)
+}
+
 func (o *TransformClusterToAddingHostsNotFound) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -203,7 +327,8 @@ func NewTransformClusterToAddingHostsMethodNotAllowed() *TransformClusterToAddin
 	return &TransformClusterToAddingHostsMethodNotAllowed{}
 }
 
-/* TransformClusterToAddingHostsMethodNotAllowed describes a response with status code 405, with default header values.
+/*
+TransformClusterToAddingHostsMethodNotAllowed describes a response with status code 405, with default header values.
 
 Method Not Allowed.
 */
@@ -211,9 +336,39 @@ type TransformClusterToAddingHostsMethodNotAllowed struct {
 	Payload *models.Error
 }
 
+// IsSuccess returns true when this transform cluster to adding hosts method not allowed response has a 2xx status code
+func (o *TransformClusterToAddingHostsMethodNotAllowed) IsSuccess() bool {
+	return false
+}
+
+// IsRedirect returns true when this transform cluster to adding hosts method not allowed response has a 3xx status code
+func (o *TransformClusterToAddingHostsMethodNotAllowed) IsRedirect() bool {
+	return false
+}
+
+// IsClientError returns true when this transform cluster to adding hosts method not allowed response has a 4xx status code
+func (o *TransformClusterToAddingHostsMethodNotAllowed) IsClientError() bool {
+	return true
+}
+
+// IsServerError returns true when this transform cluster to adding hosts method not allowed response has a 5xx status code
+func (o *TransformClusterToAddingHostsMethodNotAllowed) IsServerError() bool {
+	return false
+}
+
+// IsCode returns true when this transform cluster to adding hosts method not allowed response a status code equal to that given
+func (o *TransformClusterToAddingHostsMethodNotAllowed) IsCode(code int) bool {
+	return code == 405
+}
+
 func (o *TransformClusterToAddingHostsMethodNotAllowed) Error() string {
 	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/actions/allow-add-hosts][%d] transformClusterToAddingHostsMethodNotAllowed  %+v", 405, o.Payload)
 }
+
+func (o *TransformClusterToAddingHostsMethodNotAllowed) String() string {
+	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/actions/allow-add-hosts][%d] transformClusterToAddingHostsMethodNotAllowed  %+v", 405, o.Payload)
+}
+
 func (o *TransformClusterToAddingHostsMethodNotAllowed) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -235,7 +390,8 @@ func NewTransformClusterToAddingHostsConflict() *TransformClusterToAddingHostsCo
 	return &TransformClusterToAddingHostsConflict{}
 }
 
-/* TransformClusterToAddingHostsConflict describes a response with status code 409, with default header values.
+/*
+TransformClusterToAddingHostsConflict describes a response with status code 409, with default header values.
 
 Error.
 */
@@ -243,9 +399,39 @@ type TransformClusterToAddingHostsConflict struct {
 	Payload *models.Error
 }
 
+// IsSuccess returns true when this transform cluster to adding hosts conflict response has a 2xx status code
+func (o *TransformClusterToAddingHostsConflict) IsSuccess() bool {
+	return false
+}
+
+// IsRedirect returns true when this transform cluster to adding hosts conflict response has a 3xx status code
+func (o *TransformClusterToAddingHostsConflict) IsRedirect() bool {
+	return false
+}
+
+// IsClientError returns true when this transform cluster to adding hosts conflict response has a 4xx status code
+func (o *TransformClusterToAddingHostsConflict) IsClientError() bool {
+	return true
+}
+
+// IsServerError returns true when this transform cluster to adding hosts conflict response has a 5xx status code
+func (o *TransformClusterToAddingHostsConflict) IsServerError() bool {
+	return false
+}
+
+// IsCode returns true when this transform cluster to adding hosts conflict response a status code equal to that given
+func (o *TransformClusterToAddingHostsConflict) IsCode(code int) bool {
+	return code == 409
+}
+
 func (o *TransformClusterToAddingHostsConflict) Error() string {
 	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/actions/allow-add-hosts][%d] transformClusterToAddingHostsConflict  %+v", 409, o.Payload)
 }
+
+func (o *TransformClusterToAddingHostsConflict) String() string {
+	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/actions/allow-add-hosts][%d] transformClusterToAddingHostsConflict  %+v", 409, o.Payload)
+}
+
 func (o *TransformClusterToAddingHostsConflict) GetPayload() *models.Error {
 	return o.Payload
 }
@@ -267,7 +453,8 @@ func NewTransformClusterToAddingHostsInternalServerError() *TransformClusterToAd
 	return &TransformClusterToAddingHostsInternalServerError{}
 }
 
-/* TransformClusterToAddingHostsInternalServerError describes a response with status code 500, with default header values.
+/*
+TransformClusterToAddingHostsInternalServerError describes a response with status code 500, with default header values.
 
 Error.
 */
@@ -275,9 +462,39 @@ type TransformClusterToAddingHostsInternalServerError struct {
 	Payload *models.Error
 }
 
+// IsSuccess returns true when this transform cluster to adding hosts internal server error response has a 2xx status code
+func (o *TransformClusterToAddingHostsInternalServerError) IsSuccess() bool {
+	return false
+}
+
+// IsRedirect returns true when this transform cluster to adding hosts internal server error response has a 3xx status code
+func (o *TransformClusterToAddingHostsInternalServerError) IsRedirect() bool {
+	return false
+}
+
+// IsClientError returns true when this transform cluster to adding hosts internal server error response has a 4xx status code
+func (o *TransformClusterToAddingHostsInternalServerError) IsClientError() bool {
+	return false
+}
+
+// IsServerError returns true when this transform cluster to adding hosts internal server error response has a 5xx status code
+func (o *TransformClusterToAddingHostsInternalServerError) IsServerError() bool {
+	return true
+}
+
+// IsCode returns true when this transform cluster to adding hosts internal server error response a status code equal to that given
+func (o *TransformClusterToAddingHostsInternalServerError) IsCode(code int) bool {
+	return code == 500
+}
+
 func (o *TransformClusterToAddingHostsInternalServerError) Error() string {
 	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/actions/allow-add-hosts][%d] transformClusterToAddingHostsInternalServerError  %+v", 500, o.Payload)
 }
+
+func (o *TransformClusterToAddingHostsInternalServerError) String() string {
+	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/actions/allow-add-hosts][%d] transformClusterToAddingHostsInternalServerError  %+v", 500, o.Payload)
+}
+
 func (o *TransformClusterToAddingHostsInternalServerError) GetPayload() *models.Error {
 	return o.Payload
 }

@@ -29,10 +29,10 @@ func NewV2ReportMonitoredOperatorStatus(ctx *middleware.Context, handler V2Repor
 	return &V2ReportMonitoredOperatorStatus{Context: ctx, Handler: handler}
 }
 
-/* V2ReportMonitoredOperatorStatus swagger:route PUT /v2/clusters/{cluster_id}/monitored-operators operators installer v2ReportMonitoredOperatorStatus
+/*
+	V2ReportMonitoredOperatorStatus swagger:route PUT /v2/clusters/{cluster_id}/monitored-operators operators installer v2ReportMonitoredOperatorStatus
 
 Controller API to report of monitored operators.
-
 */
 type V2ReportMonitoredOperatorStatus struct {
 	Context *middleware.Context

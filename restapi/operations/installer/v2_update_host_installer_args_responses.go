@@ -16,7 +16,8 @@ import (
 // V2UpdateHostInstallerArgsCreatedCode is the HTTP code returned for type V2UpdateHostInstallerArgsCreated
 const V2UpdateHostInstallerArgsCreatedCode int = 201
 
-/*V2UpdateHostInstallerArgsCreated Success.
+/*
+V2UpdateHostInstallerArgsCreated Success.
 
 swagger:response v2UpdateHostInstallerArgsCreated
 */
@@ -60,7 +61,8 @@ func (o *V2UpdateHostInstallerArgsCreated) WriteResponse(rw http.ResponseWriter,
 // V2UpdateHostInstallerArgsBadRequestCode is the HTTP code returned for type V2UpdateHostInstallerArgsBadRequest
 const V2UpdateHostInstallerArgsBadRequestCode int = 400
 
-/*V2UpdateHostInstallerArgsBadRequest Error.
+/*
+V2UpdateHostInstallerArgsBadRequest Error.
 
 swagger:response v2UpdateHostInstallerArgsBadRequest
 */
@@ -104,7 +106,8 @@ func (o *V2UpdateHostInstallerArgsBadRequest) WriteResponse(rw http.ResponseWrit
 // V2UpdateHostInstallerArgsUnauthorizedCode is the HTTP code returned for type V2UpdateHostInstallerArgsUnauthorized
 const V2UpdateHostInstallerArgsUnauthorizedCode int = 401
 
-/*V2UpdateHostInstallerArgsUnauthorized Unauthorized.
+/*
+V2UpdateHostInstallerArgsUnauthorized Unauthorized.
 
 swagger:response v2UpdateHostInstallerArgsUnauthorized
 */
@@ -148,7 +151,8 @@ func (o *V2UpdateHostInstallerArgsUnauthorized) WriteResponse(rw http.ResponseWr
 // V2UpdateHostInstallerArgsForbiddenCode is the HTTP code returned for type V2UpdateHostInstallerArgsForbidden
 const V2UpdateHostInstallerArgsForbiddenCode int = 403
 
-/*V2UpdateHostInstallerArgsForbidden Forbidden.
+/*
+V2UpdateHostInstallerArgsForbidden Forbidden.
 
 swagger:response v2UpdateHostInstallerArgsForbidden
 */
@@ -192,7 +196,8 @@ func (o *V2UpdateHostInstallerArgsForbidden) WriteResponse(rw http.ResponseWrite
 // V2UpdateHostInstallerArgsNotFoundCode is the HTTP code returned for type V2UpdateHostInstallerArgsNotFound
 const V2UpdateHostInstallerArgsNotFoundCode int = 404
 
-/*V2UpdateHostInstallerArgsNotFound Error.
+/*
+V2UpdateHostInstallerArgsNotFound Error.
 
 swagger:response v2UpdateHostInstallerArgsNotFound
 */
@@ -236,7 +241,8 @@ func (o *V2UpdateHostInstallerArgsNotFound) WriteResponse(rw http.ResponseWriter
 // V2UpdateHostInstallerArgsMethodNotAllowedCode is the HTTP code returned for type V2UpdateHostInstallerArgsMethodNotAllowed
 const V2UpdateHostInstallerArgsMethodNotAllowedCode int = 405
 
-/*V2UpdateHostInstallerArgsMethodNotAllowed Method Not Allowed.
+/*
+V2UpdateHostInstallerArgsMethodNotAllowed Method Not Allowed.
 
 swagger:response v2UpdateHostInstallerArgsMethodNotAllowed
 */
@@ -280,7 +286,8 @@ func (o *V2UpdateHostInstallerArgsMethodNotAllowed) WriteResponse(rw http.Respon
 // V2UpdateHostInstallerArgsConflictCode is the HTTP code returned for type V2UpdateHostInstallerArgsConflict
 const V2UpdateHostInstallerArgsConflictCode int = 409
 
-/*V2UpdateHostInstallerArgsConflict Error.
+/*
+V2UpdateHostInstallerArgsConflict Error.
 
 swagger:response v2UpdateHostInstallerArgsConflict
 */
@@ -324,7 +331,8 @@ func (o *V2UpdateHostInstallerArgsConflict) WriteResponse(rw http.ResponseWriter
 // V2UpdateHostInstallerArgsInternalServerErrorCode is the HTTP code returned for type V2UpdateHostInstallerArgsInternalServerError
 const V2UpdateHostInstallerArgsInternalServerErrorCode int = 500
 
-/*V2UpdateHostInstallerArgsInternalServerError Error.
+/*
+V2UpdateHostInstallerArgsInternalServerError Error.
 
 swagger:response v2UpdateHostInstallerArgsInternalServerError
 */
@@ -368,7 +376,8 @@ func (o *V2UpdateHostInstallerArgsInternalServerError) WriteResponse(rw http.Res
 // V2UpdateHostInstallerArgsNotImplementedCode is the HTTP code returned for type V2UpdateHostInstallerArgsNotImplemented
 const V2UpdateHostInstallerArgsNotImplementedCode int = 501
 
-/*V2UpdateHostInstallerArgsNotImplemented Not implemented.
+/*
+V2UpdateHostInstallerArgsNotImplemented Not implemented.
 
 swagger:response v2UpdateHostInstallerArgsNotImplemented
 */

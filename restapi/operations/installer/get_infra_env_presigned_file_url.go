@@ -29,10 +29,10 @@ func NewGetInfraEnvPresignedFileURL(ctx *middleware.Context, handler GetInfraEnv
 	return &GetInfraEnvPresignedFileURL{Context: ctx, Handler: handler}
 }
 
-/* GetInfraEnvPresignedFileURL swagger:route GET /v2/infra-envs/{infra_env_id}/downloads/files-presigned installer getInfraEnvPresignedFileUrl
+/*
+	GetInfraEnvPresignedFileURL swagger:route GET /v2/infra-envs/{infra_env_id}/downloads/files-presigned installer getInfraEnvPresignedFileUrl
 
 Creates a new pre-signed download URL for the infra-env.
-
 */
 type GetInfraEnvPresignedFileURL struct {
 	Context *middleware.Context

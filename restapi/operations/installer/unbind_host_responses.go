@@ -16,7 +16,8 @@ import (
 // UnbindHostOKCode is the HTTP code returned for type UnbindHostOK
 const UnbindHostOKCode int = 200
 
-/*UnbindHostOK Success.
+/*
+UnbindHostOK Success.
 
 swagger:response unbindHostOK
 */
@@ -60,7 +61,8 @@ func (o *UnbindHostOK) WriteResponse(rw http.ResponseWriter, producer runtime.Pr
 // UnbindHostBadRequestCode is the HTTP code returned for type UnbindHostBadRequest
 const UnbindHostBadRequestCode int = 400
 
-/*UnbindHostBadRequest Error.
+/*
+UnbindHostBadRequest Error.
 
 swagger:response unbindHostBadRequest
 */
@@ -104,7 +106,8 @@ func (o *UnbindHostBadRequest) WriteResponse(rw http.ResponseWriter, producer ru
 // UnbindHostUnauthorizedCode is the HTTP code returned for type UnbindHostUnauthorized
 const UnbindHostUnauthorizedCode int = 401
 
-/*UnbindHostUnauthorized Unauthorized.
+/*
+UnbindHostUnauthorized Unauthorized.
 
 swagger:response unbindHostUnauthorized
 */
@@ -148,7 +151,8 @@ func (o *UnbindHostUnauthorized) WriteResponse(rw http.ResponseWriter, producer 
 // UnbindHostForbiddenCode is the HTTP code returned for type UnbindHostForbidden
 const UnbindHostForbiddenCode int = 403
 
-/*UnbindHostForbidden Forbidden.
+/*
+UnbindHostForbidden Forbidden.
 
 swagger:response unbindHostForbidden
 */
@@ -192,7 +196,8 @@ func (o *UnbindHostForbidden) WriteResponse(rw http.ResponseWriter, producer run
 // UnbindHostNotFoundCode is the HTTP code returned for type UnbindHostNotFound
 const UnbindHostNotFoundCode int = 404
 
-/*UnbindHostNotFound Error.
+/*
+UnbindHostNotFound Error.
 
 swagger:response unbindHostNotFound
 */
@@ -236,7 +241,8 @@ func (o *UnbindHostNotFound) WriteResponse(rw http.ResponseWriter, producer runt
 // UnbindHostMethodNotAllowedCode is the HTTP code returned for type UnbindHostMethodNotAllowed
 const UnbindHostMethodNotAllowedCode int = 405
 
-/*UnbindHostMethodNotAllowed Method Not Allowed.
+/*
+UnbindHostMethodNotAllowed Method Not Allowed.
 
 swagger:response unbindHostMethodNotAllowed
 */
@@ -280,7 +286,8 @@ func (o *UnbindHostMethodNotAllowed) WriteResponse(rw http.ResponseWriter, produ
 // UnbindHostConflictCode is the HTTP code returned for type UnbindHostConflict
 const UnbindHostConflictCode int = 409
 
-/*UnbindHostConflict Conflict.
+/*
+UnbindHostConflict Conflict.
 
 swagger:response unbindHostConflict
 */
@@ -324,7 +331,8 @@ func (o *UnbindHostConflict) WriteResponse(rw http.ResponseWriter, producer runt
 // UnbindHostInternalServerErrorCode is the HTTP code returned for type UnbindHostInternalServerError
 const UnbindHostInternalServerErrorCode int = 500
 
-/*UnbindHostInternalServerError Error.
+/*
+UnbindHostInternalServerError Error.
 
 swagger:response unbindHostInternalServerError
 */
@@ -368,7 +376,8 @@ func (o *UnbindHostInternalServerError) WriteResponse(rw http.ResponseWriter, pr
 // UnbindHostNotImplementedCode is the HTTP code returned for type UnbindHostNotImplemented
 const UnbindHostNotImplementedCode int = 501
 
-/*UnbindHostNotImplemented Not implemented.
+/*
+UnbindHostNotImplemented Not implemented.
 
 swagger:response unbindHostNotImplemented
 */
@@ -412,7 +421,8 @@ func (o *UnbindHostNotImplemented) WriteResponse(rw http.ResponseWriter, produce
 // UnbindHostServiceUnavailableCode is the HTTP code returned for type UnbindHostServiceUnavailable
 const UnbindHostServiceUnavailableCode int = 503
 
-/*UnbindHostServiceUnavailable Unavailable.
+/*
+UnbindHostServiceUnavailable Unavailable.
 
 swagger:response unbindHostServiceUnavailable
 */

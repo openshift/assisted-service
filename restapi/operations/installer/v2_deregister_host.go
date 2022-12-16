@@ -29,10 +29,10 @@ func NewV2DeregisterHost(ctx *middleware.Context, handler V2DeregisterHostHandle
 	return &V2DeregisterHost{Context: ctx, Handler: handler}
 }
 
-/* V2DeregisterHost swagger:route DELETE /v2/infra-envs/{infra_env_id}/hosts/{host_id} installer v2DeregisterHost
+/*
+	V2DeregisterHost swagger:route DELETE /v2/infra-envs/{infra_env_id}/hosts/{host_id} installer v2DeregisterHost
 
 Deregisters an OpenShift host.
-
 */
 type V2DeregisterHost struct {
 	Context *middleware.Context

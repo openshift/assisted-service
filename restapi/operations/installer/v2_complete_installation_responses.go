@@ -16,7 +16,8 @@ import (
 // V2CompleteInstallationAcceptedCode is the HTTP code returned for type V2CompleteInstallationAccepted
 const V2CompleteInstallationAcceptedCode int = 202
 
-/*V2CompleteInstallationAccepted Success.
+/*
+V2CompleteInstallationAccepted Success.
 
 swagger:response v2CompleteInstallationAccepted
 */
@@ -60,7 +61,8 @@ func (o *V2CompleteInstallationAccepted) WriteResponse(rw http.ResponseWriter, p
 // V2CompleteInstallationUnauthorizedCode is the HTTP code returned for type V2CompleteInstallationUnauthorized
 const V2CompleteInstallationUnauthorizedCode int = 401
 
-/*V2CompleteInstallationUnauthorized Unauthorized.
+/*
+V2CompleteInstallationUnauthorized Unauthorized.
 
 swagger:response v2CompleteInstallationUnauthorized
 */
@@ -104,7 +106,8 @@ func (o *V2CompleteInstallationUnauthorized) WriteResponse(rw http.ResponseWrite
 // V2CompleteInstallationForbiddenCode is the HTTP code returned for type V2CompleteInstallationForbidden
 const V2CompleteInstallationForbiddenCode int = 403
 
-/*V2CompleteInstallationForbidden Forbidden.
+/*
+V2CompleteInstallationForbidden Forbidden.
 
 swagger:response v2CompleteInstallationForbidden
 */
@@ -148,7 +151,8 @@ func (o *V2CompleteInstallationForbidden) WriteResponse(rw http.ResponseWriter, 
 // V2CompleteInstallationNotFoundCode is the HTTP code returned for type V2CompleteInstallationNotFound
 const V2CompleteInstallationNotFoundCode int = 404
 
-/*V2CompleteInstallationNotFound Error.
+/*
+V2CompleteInstallationNotFound Error.
 
 swagger:response v2CompleteInstallationNotFound
 */
@@ -192,7 +196,8 @@ func (o *V2CompleteInstallationNotFound) WriteResponse(rw http.ResponseWriter, p
 // V2CompleteInstallationMethodNotAllowedCode is the HTTP code returned for type V2CompleteInstallationMethodNotAllowed
 const V2CompleteInstallationMethodNotAllowedCode int = 405
 
-/*V2CompleteInstallationMethodNotAllowed Method Not Allowed.
+/*
+V2CompleteInstallationMethodNotAllowed Method Not Allowed.
 
 swagger:response v2CompleteInstallationMethodNotAllowed
 */
@@ -236,7 +241,8 @@ func (o *V2CompleteInstallationMethodNotAllowed) WriteResponse(rw http.ResponseW
 // V2CompleteInstallationConflictCode is the HTTP code returned for type V2CompleteInstallationConflict
 const V2CompleteInstallationConflictCode int = 409
 
-/*V2CompleteInstallationConflict Error.
+/*
+V2CompleteInstallationConflict Error.
 
 swagger:response v2CompleteInstallationConflict
 */
@@ -280,7 +286,8 @@ func (o *V2CompleteInstallationConflict) WriteResponse(rw http.ResponseWriter, p
 // V2CompleteInstallationInternalServerErrorCode is the HTTP code returned for type V2CompleteInstallationInternalServerError
 const V2CompleteInstallationInternalServerErrorCode int = 500
 
-/*V2CompleteInstallationInternalServerError Error.
+/*
+V2CompleteInstallationInternalServerError Error.
 
 swagger:response v2CompleteInstallationInternalServerError
 */
@@ -324,7 +331,8 @@ func (o *V2CompleteInstallationInternalServerError) WriteResponse(rw http.Respon
 // V2CompleteInstallationServiceUnavailableCode is the HTTP code returned for type V2CompleteInstallationServiceUnavailable
 const V2CompleteInstallationServiceUnavailableCode int = 503
 
-/*V2CompleteInstallationServiceUnavailable Unavailable.
+/*
+V2CompleteInstallationServiceUnavailable Unavailable.
 
 swagger:response v2CompleteInstallationServiceUnavailable
 */

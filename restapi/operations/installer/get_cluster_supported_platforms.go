@@ -29,10 +29,10 @@ func NewGetClusterSupportedPlatforms(ctx *middleware.Context, handler GetCluster
 	return &GetClusterSupportedPlatforms{Context: ctx, Handler: handler}
 }
 
-/* GetClusterSupportedPlatforms swagger:route GET /v2/clusters/{cluster_id}/supported-platforms installer getClusterSupportedPlatforms
+/*
+	GetClusterSupportedPlatforms swagger:route GET /v2/clusters/{cluster_id}/supported-platforms installer getClusterSupportedPlatforms
 
 A list of platforms that this cluster can support in its current configuration.
-
 */
 type GetClusterSupportedPlatforms struct {
 	Context *middleware.Context

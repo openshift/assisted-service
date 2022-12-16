@@ -29,10 +29,10 @@ func NewV2ListOfClusterOperators(ctx *middleware.Context, handler V2ListOfCluste
 	return &V2ListOfClusterOperators{Context: ctx, Handler: handler}
 }
 
-/* V2ListOfClusterOperators swagger:route GET /v2/clusters/{cluster_id}/monitored-operators operators installer v2ListOfClusterOperators
+/*
+	V2ListOfClusterOperators swagger:route GET /v2/clusters/{cluster_id}/monitored-operators operators installer v2ListOfClusterOperators
 
 Lists operators to be monitored for a cluster.
-
 */
 type V2ListOfClusterOperators struct {
 	Context *middleware.Context

@@ -16,7 +16,8 @@ import (
 // V2ListSupportedOpenshiftVersionsOKCode is the HTTP code returned for type V2ListSupportedOpenshiftVersionsOK
 const V2ListSupportedOpenshiftVersionsOKCode int = 200
 
-/*V2ListSupportedOpenshiftVersionsOK Success.
+/*
+V2ListSupportedOpenshiftVersionsOK Success.
 
 swagger:response v2ListSupportedOpenshiftVersionsOK
 */
@@ -63,7 +64,8 @@ func (o *V2ListSupportedOpenshiftVersionsOK) WriteResponse(rw http.ResponseWrite
 // V2ListSupportedOpenshiftVersionsBadRequestCode is the HTTP code returned for type V2ListSupportedOpenshiftVersionsBadRequest
 const V2ListSupportedOpenshiftVersionsBadRequestCode int = 400
 
-/*V2ListSupportedOpenshiftVersionsBadRequest Bad Request
+/*
+V2ListSupportedOpenshiftVersionsBadRequest Bad Request
 
 swagger:response v2ListSupportedOpenshiftVersionsBadRequest
 */
@@ -107,7 +109,8 @@ func (o *V2ListSupportedOpenshiftVersionsBadRequest) WriteResponse(rw http.Respo
 // V2ListSupportedOpenshiftVersionsInternalServerErrorCode is the HTTP code returned for type V2ListSupportedOpenshiftVersionsInternalServerError
 const V2ListSupportedOpenshiftVersionsInternalServerErrorCode int = 500
 
-/*V2ListSupportedOpenshiftVersionsInternalServerError Error.
+/*
+V2ListSupportedOpenshiftVersionsInternalServerError Error.
 
 swagger:response v2ListSupportedOpenshiftVersionsInternalServerError
 */
@@ -151,7 +154,8 @@ func (o *V2ListSupportedOpenshiftVersionsInternalServerError) WriteResponse(rw h
 // V2ListSupportedOpenshiftVersionsServiceUnavailableCode is the HTTP code returned for type V2ListSupportedOpenshiftVersionsServiceUnavailable
 const V2ListSupportedOpenshiftVersionsServiceUnavailableCode int = 503
 
-/*V2ListSupportedOpenshiftVersionsServiceUnavailable Unavailable.
+/*
+V2ListSupportedOpenshiftVersionsServiceUnavailable Unavailable.
 
 swagger:response v2ListSupportedOpenshiftVersionsServiceUnavailable
 */

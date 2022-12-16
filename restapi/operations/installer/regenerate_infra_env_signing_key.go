@@ -29,10 +29,10 @@ func NewRegenerateInfraEnvSigningKey(ctx *middleware.Context, handler Regenerate
 	return &RegenerateInfraEnvSigningKey{Context: ctx, Handler: handler}
 }
 
-/* RegenerateInfraEnvSigningKey swagger:route POST /v2/infra-envs/{infra_env_id}/regenerate-signing-key installer regenerateInfraEnvSigningKey
+/*
+	RegenerateInfraEnvSigningKey swagger:route POST /v2/infra-envs/{infra_env_id}/regenerate-signing-key installer regenerateInfraEnvSigningKey
 
 Regenerate InfraEnv token signing key.
-
 */
 type RegenerateInfraEnvSigningKey struct {
 	Context *middleware.Context

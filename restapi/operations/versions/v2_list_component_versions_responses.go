@@ -16,7 +16,8 @@ import (
 // V2ListComponentVersionsOKCode is the HTTP code returned for type V2ListComponentVersionsOK
 const V2ListComponentVersionsOKCode int = 200
 
-/*V2ListComponentVersionsOK Success.
+/*
+V2ListComponentVersionsOK Success.
 
 swagger:response v2ListComponentVersionsOK
 */

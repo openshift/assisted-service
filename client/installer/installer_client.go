@@ -261,7 +261,6 @@ func (a *Client) DeregisterInfraEnv(ctx context.Context, params *DeregisterInfra
 
 /*
 DownloadMinimalInitrd Get the initial ramdisk for minimal ISO based installations.
-
 */
 func (a *Client) DownloadMinimalInitrd(ctx context.Context, params *DownloadMinimalInitrdParams, writer io.Writer) (*DownloadMinimalInitrdOK, *DownloadMinimalInitrdNoContent, error) {
 

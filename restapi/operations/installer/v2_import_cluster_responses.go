@@ -16,7 +16,8 @@ import (
 // V2ImportClusterCreatedCode is the HTTP code returned for type V2ImportClusterCreated
 const V2ImportClusterCreatedCode int = 201
 
-/*V2ImportClusterCreated Success.
+/*
+V2ImportClusterCreated Success.
 
 swagger:response v2ImportClusterCreated
 */
@@ -60,7 +61,8 @@ func (o *V2ImportClusterCreated) WriteResponse(rw http.ResponseWriter, producer 
 // V2ImportClusterBadRequestCode is the HTTP code returned for type V2ImportClusterBadRequest
 const V2ImportClusterBadRequestCode int = 400
 
-/*V2ImportClusterBadRequest Error.
+/*
+V2ImportClusterBadRequest Error.
 
 swagger:response v2ImportClusterBadRequest
 */
@@ -104,7 +106,8 @@ func (o *V2ImportClusterBadRequest) WriteResponse(rw http.ResponseWriter, produc
 // V2ImportClusterUnauthorizedCode is the HTTP code returned for type V2ImportClusterUnauthorized
 const V2ImportClusterUnauthorizedCode int = 401
 
-/*V2ImportClusterUnauthorized Unauthorized.
+/*
+V2ImportClusterUnauthorized Unauthorized.
 
 swagger:response v2ImportClusterUnauthorized
 */
@@ -148,7 +151,8 @@ func (o *V2ImportClusterUnauthorized) WriteResponse(rw http.ResponseWriter, prod
 // V2ImportClusterForbiddenCode is the HTTP code returned for type V2ImportClusterForbidden
 const V2ImportClusterForbiddenCode int = 403
 
-/*V2ImportClusterForbidden Forbidden.
+/*
+V2ImportClusterForbidden Forbidden.
 
 swagger:response v2ImportClusterForbidden
 */
@@ -192,7 +196,8 @@ func (o *V2ImportClusterForbidden) WriteResponse(rw http.ResponseWriter, produce
 // V2ImportClusterInternalServerErrorCode is the HTTP code returned for type V2ImportClusterInternalServerError
 const V2ImportClusterInternalServerErrorCode int = 500
 
-/*V2ImportClusterInternalServerError Error.
+/*
+V2ImportClusterInternalServerError Error.
 
 swagger:response v2ImportClusterInternalServerError
 */

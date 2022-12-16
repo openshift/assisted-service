@@ -29,10 +29,10 @@ func NewV2UploadClusterIngressCert(ctx *middleware.Context, handler V2UploadClus
 	return &V2UploadClusterIngressCert{Context: ctx, Handler: handler}
 }
 
-/* V2UploadClusterIngressCert swagger:route POST /v2/clusters/{cluster_id}/uploads/ingress-cert installer v2UploadClusterIngressCert
+/*
+	V2UploadClusterIngressCert swagger:route POST /v2/clusters/{cluster_id}/uploads/ingress-cert installer v2UploadClusterIngressCert
 
 Transfer the ingress certificate for the cluster.
-
 */
 type V2UploadClusterIngressCert struct {
 	Context *middleware.Context

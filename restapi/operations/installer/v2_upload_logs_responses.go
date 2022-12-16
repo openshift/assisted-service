@@ -16,7 +16,8 @@ import (
 // V2UploadLogsNoContentCode is the HTTP code returned for type V2UploadLogsNoContent
 const V2UploadLogsNoContentCode int = 204
 
-/*V2UploadLogsNoContent Success.
+/*
+V2UploadLogsNoContent Success.
 
 swagger:response v2UploadLogsNoContent
 */
@@ -40,7 +41,8 @@ func (o *V2UploadLogsNoContent) WriteResponse(rw http.ResponseWriter, producer r
 // V2UploadLogsUnauthorizedCode is the HTTP code returned for type V2UploadLogsUnauthorized
 const V2UploadLogsUnauthorizedCode int = 401
 
-/*V2UploadLogsUnauthorized Unauthorized.
+/*
+V2UploadLogsUnauthorized Unauthorized.
 
 swagger:response v2UploadLogsUnauthorized
 */
@@ -84,7 +86,8 @@ func (o *V2UploadLogsUnauthorized) WriteResponse(rw http.ResponseWriter, produce
 // V2UploadLogsForbiddenCode is the HTTP code returned for type V2UploadLogsForbidden
 const V2UploadLogsForbiddenCode int = 403
 
-/*V2UploadLogsForbidden Forbidden.
+/*
+V2UploadLogsForbidden Forbidden.
 
 swagger:response v2UploadLogsForbidden
 */
@@ -128,7 +131,8 @@ func (o *V2UploadLogsForbidden) WriteResponse(rw http.ResponseWriter, producer r
 // V2UploadLogsNotFoundCode is the HTTP code returned for type V2UploadLogsNotFound
 const V2UploadLogsNotFoundCode int = 404
 
-/*V2UploadLogsNotFound Error.
+/*
+V2UploadLogsNotFound Error.
 
 swagger:response v2UploadLogsNotFound
 */
@@ -172,7 +176,8 @@ func (o *V2UploadLogsNotFound) WriteResponse(rw http.ResponseWriter, producer ru
 // V2UploadLogsMethodNotAllowedCode is the HTTP code returned for type V2UploadLogsMethodNotAllowed
 const V2UploadLogsMethodNotAllowedCode int = 405
 
-/*V2UploadLogsMethodNotAllowed Method Not Allowed.
+/*
+V2UploadLogsMethodNotAllowed Method Not Allowed.
 
 swagger:response v2UploadLogsMethodNotAllowed
 */
@@ -216,7 +221,8 @@ func (o *V2UploadLogsMethodNotAllowed) WriteResponse(rw http.ResponseWriter, pro
 // V2UploadLogsConflictCode is the HTTP code returned for type V2UploadLogsConflict
 const V2UploadLogsConflictCode int = 409
 
-/*V2UploadLogsConflict Error.
+/*
+V2UploadLogsConflict Error.
 
 swagger:response v2UploadLogsConflict
 */
@@ -260,7 +266,8 @@ func (o *V2UploadLogsConflict) WriteResponse(rw http.ResponseWriter, producer ru
 // V2UploadLogsInternalServerErrorCode is the HTTP code returned for type V2UploadLogsInternalServerError
 const V2UploadLogsInternalServerErrorCode int = 500
 
-/*V2UploadLogsInternalServerError Error.
+/*
+V2UploadLogsInternalServerError Error.
 
 swagger:response v2UploadLogsInternalServerError
 */
@@ -304,7 +311,8 @@ func (o *V2UploadLogsInternalServerError) WriteResponse(rw http.ResponseWriter, 
 // V2UploadLogsServiceUnavailableCode is the HTTP code returned for type V2UploadLogsServiceUnavailable
 const V2UploadLogsServiceUnavailableCode int = 503
 
-/*V2UploadLogsServiceUnavailable Unavailable.
+/*
+V2UploadLogsServiceUnavailable Unavailable.
 
 swagger:response v2UploadLogsServiceUnavailable
 */

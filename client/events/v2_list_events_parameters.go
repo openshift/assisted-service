@@ -53,10 +53,12 @@ func NewV2ListEventsParamsWithHTTPClient(client *http.Client) *V2ListEventsParam
 	}
 }
 
-/* V2ListEventsParams contains all the parameters to send to the API endpoint
-   for the v2 list events operation.
+/*
+V2ListEventsParams contains all the parameters to send to the API endpoint
 
-   Typically these are written to a http.Request.
+	for the v2 list events operation.
+
+	Typically these are written to a http.Request.
 */
 type V2ListEventsParams struct {
 

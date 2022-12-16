@@ -17,7 +17,8 @@ import (
 // V2DownloadClusterCredentialsOKCode is the HTTP code returned for type V2DownloadClusterCredentialsOK
 const V2DownloadClusterCredentialsOKCode int = 200
 
-/*V2DownloadClusterCredentialsOK Success.
+/*
+V2DownloadClusterCredentialsOK Success.
 
 swagger:response v2DownloadClusterCredentialsOK
 */
@@ -59,7 +60,8 @@ func (o *V2DownloadClusterCredentialsOK) WriteResponse(rw http.ResponseWriter, p
 // V2DownloadClusterCredentialsUnauthorizedCode is the HTTP code returned for type V2DownloadClusterCredentialsUnauthorized
 const V2DownloadClusterCredentialsUnauthorizedCode int = 401
 
-/*V2DownloadClusterCredentialsUnauthorized Unauthorized.
+/*
+V2DownloadClusterCredentialsUnauthorized Unauthorized.
 
 swagger:response v2DownloadClusterCredentialsUnauthorized
 */
@@ -103,7 +105,8 @@ func (o *V2DownloadClusterCredentialsUnauthorized) WriteResponse(rw http.Respons
 // V2DownloadClusterCredentialsForbiddenCode is the HTTP code returned for type V2DownloadClusterCredentialsForbidden
 const V2DownloadClusterCredentialsForbiddenCode int = 403
 
-/*V2DownloadClusterCredentialsForbidden Forbidden.
+/*
+V2DownloadClusterCredentialsForbidden Forbidden.
 
 swagger:response v2DownloadClusterCredentialsForbidden
 */
@@ -147,7 +150,8 @@ func (o *V2DownloadClusterCredentialsForbidden) WriteResponse(rw http.ResponseWr
 // V2DownloadClusterCredentialsNotFoundCode is the HTTP code returned for type V2DownloadClusterCredentialsNotFound
 const V2DownloadClusterCredentialsNotFoundCode int = 404
 
-/*V2DownloadClusterCredentialsNotFound Error.
+/*
+V2DownloadClusterCredentialsNotFound Error.
 
 swagger:response v2DownloadClusterCredentialsNotFound
 */
@@ -191,7 +195,8 @@ func (o *V2DownloadClusterCredentialsNotFound) WriteResponse(rw http.ResponseWri
 // V2DownloadClusterCredentialsMethodNotAllowedCode is the HTTP code returned for type V2DownloadClusterCredentialsMethodNotAllowed
 const V2DownloadClusterCredentialsMethodNotAllowedCode int = 405
 
-/*V2DownloadClusterCredentialsMethodNotAllowed Method Not Allowed.
+/*
+V2DownloadClusterCredentialsMethodNotAllowed Method Not Allowed.
 
 swagger:response v2DownloadClusterCredentialsMethodNotAllowed
 */
@@ -235,7 +240,8 @@ func (o *V2DownloadClusterCredentialsMethodNotAllowed) WriteResponse(rw http.Res
 // V2DownloadClusterCredentialsConflictCode is the HTTP code returned for type V2DownloadClusterCredentialsConflict
 const V2DownloadClusterCredentialsConflictCode int = 409
 
-/*V2DownloadClusterCredentialsConflict Error.
+/*
+V2DownloadClusterCredentialsConflict Error.
 
 swagger:response v2DownloadClusterCredentialsConflict
 */
@@ -279,7 +285,8 @@ func (o *V2DownloadClusterCredentialsConflict) WriteResponse(rw http.ResponseWri
 // V2DownloadClusterCredentialsInternalServerErrorCode is the HTTP code returned for type V2DownloadClusterCredentialsInternalServerError
 const V2DownloadClusterCredentialsInternalServerErrorCode int = 500
 
-/*V2DownloadClusterCredentialsInternalServerError Error.
+/*
+V2DownloadClusterCredentialsInternalServerError Error.
 
 swagger:response v2DownloadClusterCredentialsInternalServerError
 */
@@ -323,7 +330,8 @@ func (o *V2DownloadClusterCredentialsInternalServerError) WriteResponse(rw http.
 // V2DownloadClusterCredentialsServiceUnavailableCode is the HTTP code returned for type V2DownloadClusterCredentialsServiceUnavailable
 const V2DownloadClusterCredentialsServiceUnavailableCode int = 503
 
-/*V2DownloadClusterCredentialsServiceUnavailable Unavailable.
+/*
+V2DownloadClusterCredentialsServiceUnavailable Unavailable.
 
 swagger:response v2DownloadClusterCredentialsServiceUnavailable
 */

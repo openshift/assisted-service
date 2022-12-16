@@ -29,10 +29,10 @@ func NewV2DownloadInfraEnvFiles(ctx *middleware.Context, handler V2DownloadInfra
 	return &V2DownloadInfraEnvFiles{Context: ctx, Handler: handler}
 }
 
-/* V2DownloadInfraEnvFiles swagger:route GET /v2/infra-envs/{infra_env_id}/downloads/files installer v2DownloadInfraEnvFiles
+/*
+	V2DownloadInfraEnvFiles swagger:route GET /v2/infra-envs/{infra_env_id}/downloads/files installer v2DownloadInfraEnvFiles
 
 Downloads the customized ignition file for this host
-
 */
 type V2DownloadInfraEnvFiles struct {
 	Context *middleware.Context

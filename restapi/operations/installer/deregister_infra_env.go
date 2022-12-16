@@ -29,10 +29,10 @@ func NewDeregisterInfraEnv(ctx *middleware.Context, handler DeregisterInfraEnvHa
 	return &DeregisterInfraEnv{Context: ctx, Handler: handler}
 }
 
-/* DeregisterInfraEnv swagger:route DELETE /v2/infra-envs/{infra_env_id} installer deregisterInfraEnv
+/*
+	DeregisterInfraEnv swagger:route DELETE /v2/infra-envs/{infra_env_id} installer deregisterInfraEnv
 
 Deletes an infra-env.
-
 */
 type DeregisterInfraEnv struct {
 	Context *middleware.Context

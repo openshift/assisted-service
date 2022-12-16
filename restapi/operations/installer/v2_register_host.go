@@ -29,10 +29,10 @@ func NewV2RegisterHost(ctx *middleware.Context, handler V2RegisterHostHandler) *
 	return &V2RegisterHost{Context: ctx, Handler: handler}
 }
 
-/* V2RegisterHost swagger:route POST /v2/infra-envs/{infra_env_id}/hosts installer v2RegisterHost
+/*
+	V2RegisterHost swagger:route POST /v2/infra-envs/{infra_env_id}/hosts installer v2RegisterHost
 
 Registers a new OpenShift agent.
-
 */
 type V2RegisterHost struct {
 	Context *middleware.Context

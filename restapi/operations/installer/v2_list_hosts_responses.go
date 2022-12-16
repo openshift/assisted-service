@@ -16,7 +16,8 @@ import (
 // V2ListHostsOKCode is the HTTP code returned for type V2ListHostsOK
 const V2ListHostsOKCode int = 200
 
-/*V2ListHostsOK Success.
+/*
+V2ListHostsOK Success.
 
 swagger:response v2ListHostsOK
 */
@@ -63,7 +64,8 @@ func (o *V2ListHostsOK) WriteResponse(rw http.ResponseWriter, producer runtime.P
 // V2ListHostsUnauthorizedCode is the HTTP code returned for type V2ListHostsUnauthorized
 const V2ListHostsUnauthorizedCode int = 401
 
-/*V2ListHostsUnauthorized Unauthorized.
+/*
+V2ListHostsUnauthorized Unauthorized.
 
 swagger:response v2ListHostsUnauthorized
 */
@@ -107,7 +109,8 @@ func (o *V2ListHostsUnauthorized) WriteResponse(rw http.ResponseWriter, producer
 // V2ListHostsForbiddenCode is the HTTP code returned for type V2ListHostsForbidden
 const V2ListHostsForbiddenCode int = 403
 
-/*V2ListHostsForbidden Forbidden.
+/*
+V2ListHostsForbidden Forbidden.
 
 swagger:response v2ListHostsForbidden
 */
@@ -151,7 +154,8 @@ func (o *V2ListHostsForbidden) WriteResponse(rw http.ResponseWriter, producer ru
 // V2ListHostsMethodNotAllowedCode is the HTTP code returned for type V2ListHostsMethodNotAllowed
 const V2ListHostsMethodNotAllowedCode int = 405
 
-/*V2ListHostsMethodNotAllowed Method Not Allowed.
+/*
+V2ListHostsMethodNotAllowed Method Not Allowed.
 
 swagger:response v2ListHostsMethodNotAllowed
 */
@@ -195,7 +199,8 @@ func (o *V2ListHostsMethodNotAllowed) WriteResponse(rw http.ResponseWriter, prod
 // V2ListHostsInternalServerErrorCode is the HTTP code returned for type V2ListHostsInternalServerError
 const V2ListHostsInternalServerErrorCode int = 500
 
-/*V2ListHostsInternalServerError Error.
+/*
+V2ListHostsInternalServerError Error.
 
 swagger:response v2ListHostsInternalServerError
 */
@@ -239,7 +244,8 @@ func (o *V2ListHostsInternalServerError) WriteResponse(rw http.ResponseWriter, p
 // V2ListHostsNotImplementedCode is the HTTP code returned for type V2ListHostsNotImplemented
 const V2ListHostsNotImplementedCode int = 501
 
-/*V2ListHostsNotImplemented Not implemented.
+/*
+V2ListHostsNotImplemented Not implemented.
 
 swagger:response v2ListHostsNotImplemented
 */
@@ -283,7 +289,8 @@ func (o *V2ListHostsNotImplemented) WriteResponse(rw http.ResponseWriter, produc
 // V2ListHostsServiceUnavailableCode is the HTTP code returned for type V2ListHostsServiceUnavailable
 const V2ListHostsServiceUnavailableCode int = 503
 
-/*V2ListHostsServiceUnavailable Unavailable.
+/*
+V2ListHostsServiceUnavailable Unavailable.
 
 swagger:response v2ListHostsServiceUnavailable
 */

@@ -29,10 +29,10 @@ func NewV2DownloadHostIgnition(ctx *middleware.Context, handler V2DownloadHostIg
 	return &V2DownloadHostIgnition{Context: ctx, Handler: handler}
 }
 
-/* V2DownloadHostIgnition swagger:route GET /v2/infra-env/{infra_env_id}/hosts/{host_id}/downloads/ignition installer v2DownloadHostIgnition
+/*
+	V2DownloadHostIgnition swagger:route GET /v2/infra-env/{infra_env_id}/hosts/{host_id}/downloads/ignition installer v2DownloadHostIgnition
 
 Downloads the customized ignition file for this bound host, produces octet stream. For unbound host - error is returned
-
 */
 type V2DownloadHostIgnition struct {
 	Context *middleware.Context
