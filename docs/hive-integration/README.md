@@ -202,8 +202,8 @@ The converged flow is disalbed by default, you can enable the converged flow by 
 
 ### Ironic Agent Image
 
-If the InfraEnv is configured with a cluster reference the agent image used during discovery will be the one from the cluster's release image.
-If the InfraEnv does not reference a cluster (late binding) a default ironic agent image will be used.
+The ironic agent image will be determined based on the hub release image set in the ClusterVersion resource.
+If the hub cluster architecture does not match that of the InfraEnv or if the release image cannot be retrieved for some reason a default ironic agent image will be used.
 The defaults are:
 - x86_64: `quay.io/openshift-release-dev/ocp-v4.0-art-dev@sha256:d3f1d4d3cd5fbcf1b9249dd71d01be4b901d337fdc5f8f66569eb71df4d9d446`
 - arm64: `quay.io/openshift-release-dev/ocp-v4.0-art-dev@sha256:cb0edf19fffc17f542a7efae76939b1e9757dc75782d4727fb0aa77ed5809b43`
@@ -215,7 +215,12 @@ The environment var for the ironicAgent image to be used on arm64 CPU architectu
 `IRONIC_AGENT_IMAGE_ARM`
 
 **NOTE**
-Ensure the correct images are mirrored if installing in a disconnected environment
+Ensure the correct images are mirrored if installing in a disconnected environment.
+Specifically the ironic agent image from the hub cluster release needs to be accessible in the spoke installation environment.
+This can be found using the following command:
+```
+oc adm release info --image-for=ironic-agent <hub-release-image>
+```
 
 [ZTP converged flow](ZTP_converged_flow.png)
 
