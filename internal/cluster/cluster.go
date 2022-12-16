@@ -404,7 +404,7 @@ func (m *Manager) tryAssignMachineCidrDHCPMode(cluster *common.Cluster) error {
 		 * Auto assign machine network CIDR is relevant if there is only single host network.  Otherwise the user
 		 * has to select the machine network CIDR
 		 */
-		return UpdateMachineCidr(m.db, cluster, networks[0])
+		return UpdateMachineCidr(m.db, cluster, []string{networks[0]})
 	}
 	return nil
 }
@@ -419,7 +419,7 @@ func (m *Manager) tryAssignMachineCidrNonDHCPMode(cluster *common.Cluster) error
 		return nil
 	}
 
-	return UpdateMachineCidr(m.db, cluster, machineCidr)
+	return UpdateMachineCidr(m.db, cluster, []string{machineCidr})
 }
 
 func (m *Manager) tryAssignMachineCidrSNO(cluster *common.Cluster) error {
@@ -448,7 +448,7 @@ func (m *Manager) tryAssignMachineCidrSNO(cluster *common.Cluster) error {
 			}
 			pendingCidrs = append(pendingCidrs, familyCidrs[0])
 		}
-		return updateMachineNetworks(m.db, cluster, pendingCidrs)
+		return UpdateMachineCidr(m.db, cluster, pendingCidrs)
 	}
 	return nil
 }
