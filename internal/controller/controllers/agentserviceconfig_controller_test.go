@@ -1687,7 +1687,7 @@ var _ = Describe("newAssistedCM", func() {
 		[[registry]]
 			prefix = ""
 			location = "quay.io/edge-infrastructure"
-			mirror-by-digest-only = false
+			mirror-by-digest-only = true
 	
 		[[registry.mirror]]
 			location = "mirror1.registry.corp.com:5000/edge-infrastructure"`
