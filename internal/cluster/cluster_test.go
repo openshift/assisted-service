@@ -858,10 +858,10 @@ var _ = Describe("Auto assign machine CIDR", func() {
 	tests := []struct {
 		name                    string
 		srcState                string
-		machineNetworkCIDR      string
 		expectedMachineCIDR     string
 		expectedMachineNetworks []string
 		apiVip                  string
+		apiVips                 []*models.APIVip
 		hosts                   []*models.Host
 		eventCallExpected       bool
 		userActionResetExpected bool
@@ -870,6 +870,7 @@ var _ = Describe("Auto assign machine CIDR", func() {
 		sno                     bool
 		clusterNetworks         []*models.ClusterNetwork
 		serviceNetworks         []*models.ServiceNetwork
+		machineNetworks         []*models.MachineNetwork
 	}{
 		{
 			name:        "No hosts",
@@ -956,7 +957,7 @@ var _ = Describe("Auto assign machine CIDR", func() {
 			},
 			userActionResetExpected: true,
 			eventCallExpected:       true,
-			machineNetworkCIDR:      "192.168.0.0/16",
+			machineNetworks:         []*models.MachineNetwork{{Cidr: models.Subnet("192.168.0.0/16")}},
 			expectedMachineCIDR:     "192.168.0.0/16",
 			dhcpEnabled:             true,
 		},
@@ -982,6 +983,7 @@ var _ = Describe("Auto assign machine CIDR", func() {
 			srcState:    models.ClusterStatusPendingForInput,
 			dhcpEnabled: false,
 			apiVip:      "1.2.3.8",
+			apiVips:     []*models.APIVip{{IP: models.IP("1.2.3.8")}},
 		},
 		{
 			name:     "One discovering host - dhcp disabled",
@@ -993,6 +995,7 @@ var _ = Describe("Auto assign machine CIDR", func() {
 			},
 			dhcpEnabled: false,
 			apiVip:      "1.2.3.8",
+			apiVips:     []*models.APIVip{{IP: models.IP("1.2.3.8")}},
 		},
 		{
 			name:     "One insufficient host, one network - dhcp disabled",
@@ -1008,6 +1011,7 @@ var _ = Describe("Auto assign machine CIDR", func() {
 			expectedMachineCIDR:     "1.2.3.0/24",
 			dhcpEnabled:             false,
 			apiVip:                  "1.2.3.8",
+			apiVips:                 []*models.APIVip{{IP: models.IP("1.2.3.8")}},
 		},
 		{
 			name:     "Host with two networks - dhcp disabled",
@@ -1020,6 +1024,7 @@ var _ = Describe("Auto assign machine CIDR", func() {
 			},
 			dhcpEnabled:         false,
 			apiVip:              "1.2.3.8",
+			apiVips:             []*models.APIVip{{IP: models.IP("1.2.3.8")}},
 			expectedMachineCIDR: "1.2.3.0/24",
 		},
 		{
@@ -1040,6 +1045,7 @@ var _ = Describe("Auto assign machine CIDR", func() {
 			dhcpEnabled:             false,
 			expectedMachineCIDR:     "1.2.3.0/24",
 			apiVip:                  "1.2.3.8",
+			apiVips:                 []*models.APIVip{{IP: models.IP("1.2.3.8")}},
 		},
 		{
 			name:     "Two hosts, one networks - dhcp disabled, user managed networking",
@@ -1058,6 +1064,7 @@ var _ = Describe("Auto assign machine CIDR", func() {
 			eventCallExpected:       true,
 			dhcpEnabled:             false,
 			apiVip:                  "1.2.3.8",
+			apiVips:                 []*models.APIVip{{IP: models.IP("1.2.3.8")}},
 			userManagedNetworking:   true,
 		},
 		{
@@ -1078,6 +1085,7 @@ var _ = Describe("Auto assign machine CIDR", func() {
 			expectedMachineCIDR:     "1.2.3.0/24",
 			dhcpEnabled:             false,
 			apiVip:                  "1.2.3.8",
+			apiVips:                 []*models.APIVip{{IP: models.IP("1.2.3.8")}},
 		},
 		{
 			name:     "Two hosts, two networks - dhcp disabled",
@@ -1095,6 +1103,7 @@ var _ = Describe("Auto assign machine CIDR", func() {
 			dhcpEnabled:         false,
 			expectedMachineCIDR: "1.2.3.0/24",
 			apiVip:              "1.2.3.8",
+			apiVips:             []*models.APIVip{{IP: models.IP("1.2.3.8")}},
 		},
 		{
 			name:     "One insufficient host, one network, different machine cidr already set - dhcp disabled",
@@ -1107,10 +1116,11 @@ var _ = Describe("Auto assign machine CIDR", func() {
 			},
 			userActionResetExpected: true,
 			eventCallExpected:       true,
-			machineNetworkCIDR:      "192.168.0.0/16",
+			machineNetworks:         []*models.MachineNetwork{{Cidr: models.Subnet("192.168.0.0/16")}},
 			expectedMachineCIDR:     "1.2.3.0/24",
 			dhcpEnabled:             false,
 			apiVip:                  "1.2.3.8",
+			apiVips:                 []*models.APIVip{{IP: models.IP("1.2.3.8")}},
 		},
 		{
 			name:     "One insufficient host, one network, same machine cidr already set - dhcp disabled",
@@ -1123,19 +1133,21 @@ var _ = Describe("Auto assign machine CIDR", func() {
 			},
 			userActionResetExpected: true,
 			eventCallExpected:       true,
-			machineNetworkCIDR:      "1.2.3.0/24",
+			machineNetworks:         []*models.MachineNetwork{{Cidr: models.Subnet("1.2.3.0/24")}},
 			expectedMachineCIDR:     "1.2.3.0/24",
 			dhcpEnabled:             false,
 			apiVip:                  "1.2.3.8",
+			apiVips:                 []*models.APIVip{{IP: models.IP("1.2.3.8")}},
 		},
 		{
 			name:                    "No hosts, machine cidr already set - dhcp disabled",
 			srcState:                models.ClusterStatusPendingForInput,
 			userActionResetExpected: true,
 			eventCallExpected:       true,
-			machineNetworkCIDR:      "192.168.0.0/16",
+			machineNetworks:         []*models.MachineNetwork{{Cidr: models.Subnet("192.168.0.0/16")}},
 			dhcpEnabled:             false,
 			apiVip:                  "1.2.3.8",
+			apiVips:                 []*models.APIVip{{IP: models.IP("1.2.3.8")}},
 		},
 		{
 			name:     "One insufficient host, no networks, machine cidr already set - dhcp disabled",
@@ -1147,9 +1159,10 @@ var _ = Describe("Auto assign machine CIDR", func() {
 			},
 			userActionResetExpected: true,
 			eventCallExpected:       true,
-			machineNetworkCIDR:      "192.168.0.0/16",
+			machineNetworks:         []*models.MachineNetwork{{Cidr: models.Subnet("192.168.0.0/16")}},
 			dhcpEnabled:             false,
 			apiVip:                  "1.2.3.8",
+			apiVips:                 []*models.APIVip{{IP: models.IP("1.2.3.8")}},
 		},
 		{
 			name:     "One insufficient host, one network, machine cidr already set, no vips - dhcp disabled",
@@ -1162,7 +1175,7 @@ var _ = Describe("Auto assign machine CIDR", func() {
 			},
 			userActionResetExpected: true,
 			eventCallExpected:       true,
-			machineNetworkCIDR:      "192.168.0.0/16",
+			machineNetworks:         []*models.MachineNetwork{{Cidr: models.Subnet("192.168.0.0/16")}},
 			dhcpEnabled:             false,
 		},
 		{
@@ -1214,6 +1227,43 @@ var _ = Describe("Auto assign machine CIDR", func() {
 			expectedMachineCIDR: "1.2.3.0/24",
 			expectedMachineNetworks: []string{
 				"1.2.3.0/24",
+				"1001:db8::/120",
+			},
+			dhcpEnabled: false,
+		},
+		{
+			name:     "Pending multi-node dual-stack with dual-stack VIPs - autocalculation of machine networks",
+			srcState: models.ClusterStatusPendingForInput,
+			hosts: []*models.Host{
+				{
+					Status:    swag.String(models.HostStatusInsufficient),
+					Inventory: common.GenerateTestDefaultInventory(),
+				},
+				{
+					Status:    swag.String(models.HostStatusInsufficient),
+					Inventory: common.GenerateTestDefaultInventory(),
+				},
+			},
+			clusterNetworks:     common.TestDualStackNetworking.ClusterNetworks,
+			serviceNetworks:     common.TestDualStackNetworking.ServiceNetworks,
+			expectedMachineCIDR: "1.2.3.0/24",
+			expectedMachineNetworks: []string{
+				"1.2.3.0/24",
+				"1001:db8::/120",
+			},
+			apiVip:      "1.2.3.8",
+			apiVips:     []*models.APIVip{{IP: models.IP("1.2.3.8")}, {IP: models.IP("1001:db8::8")}},
+			dhcpEnabled: false,
+		},
+		{
+			name:                "No hosts, dual-stack - don't remove machine networks",
+			srcState:            models.ClusterStatusPendingForInput,
+			clusterNetworks:     common.TestIPv6Networking.ClusterNetworks,
+			serviceNetworks:     common.TestIPv6Networking.ServiceNetworks,
+			machineNetworks:     []*models.MachineNetwork{{Cidr: models.Subnet("192.168.0.0/16")}, {Cidr: models.Subnet("1001:db8::/120")}},
+			expectedMachineCIDR: "192.168.0.0/16",
+			expectedMachineNetworks: []string{
+				"192.168.0.0/16",
 				"1001:db8::/120",
 			},
 			dhcpEnabled: false,
@@ -1275,9 +1325,10 @@ var _ = Describe("Auto assign machine CIDR", func() {
 				BaseDNSDomain:         "test.com",
 				PullSecretSet:         true,
 				APIVip:                t.apiVip,
+				APIVips:               t.apiVips,
 				ClusterNetworks:       common.TestIPv4Networking.ClusterNetworks,
 				ServiceNetworks:       common.TestIPv4Networking.ServiceNetworks,
-				MachineNetworks:       network.CreateMachineNetworksArray(t.machineNetworkCIDR),
+				MachineNetworks:       t.machineNetworks,
 				VipDhcpAllocation:     swag.Bool(t.dhcpEnabled),
 				UserManagedNetworking: swag.Bool(t.userManagedNetworking),
 			}}
