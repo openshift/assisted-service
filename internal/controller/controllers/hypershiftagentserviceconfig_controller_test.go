@@ -46,7 +46,6 @@ var _ = Describe("HypershiftAgentServiceConfig reconcile", func() {
 		mockSpokeClient         *spoke_k8s_client.MockSpokeK8sClient
 		mockSpokeClientCache    *MockSpokeClientCache
 		fakeSpokeClient         client.WithWatch
-		asc                     ASC
 	)
 
 	const (
@@ -101,13 +100,13 @@ var _ = Describe("HypershiftAgentServiceConfig reconcile", func() {
 		c := fakeclient.NewClientBuilder().WithScheme(schemes).WithRuntimeObjects(initObjs...).Build()
 		return &HypershiftAgentServiceConfigReconciler{
 			AgentServiceConfigReconcileContext: AgentServiceConfigReconcileContext{
-				Client: c,
 				Scheme: schemes,
 				Log:    logrus.New(),
 				// TODO(djzager): If we need to verify emitted events
 				// https://github.com/kubernetes/kubernetes/blob/ea0764452222146c47ec826977f49d7001b0ea8c/pkg/controller/statefulset/stateful_pod_control_test.go#L474
 				Recorder: record.NewFakeRecorder(10),
 			},
+			Client:       c,
 			SpokeClients: mockSpokeClientCache,
 		}
 	}
@@ -300,7 +299,6 @@ var _ = Describe("HypershiftAgentServiceConfig reconcile", func() {
 		secret.Data = map[string][]byte{
 			"invalid": []byte(BASIC_KUBECONFIG),
 		}
-		asc.initHASC(hr, hsc)
 		Expect(hr.Client.Create(ctx, secret)).To(Succeed())
 		Expect(hr.Client.Update(ctx, hsc)).To(Succeed())
 		mockSpokeClient.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
@@ -534,8 +532,6 @@ var _ = Describe("HypershiftAgentServiceConfig reconcile", func() {
 	})
 
 	Context("parsing rbac", func() {
-		var asc ASC
-
 		validateObjectMeta := func(obj client.Object, name, namespace string) {
 			Expect(obj.GetName()).To(Equal(name))
 			Expect(obj.GetNamespace()).To(Equal(namespace))
@@ -569,8 +565,16 @@ var _ = Describe("HypershiftAgentServiceConfig reconcile", func() {
 			Expect(cr.RoleRef.Name).NotTo(BeEmpty())
 		}
 
+		var (
+			ascProperties map[string]interface{}
+		)
+
+		BeforeEach(func() {
+			ascProperties = make(map[string]interface{})
+		})
+
 		It("successfully for leader election role", func() {
-			asc.initHASC(hr, hsc)
+			asc := initHASC(hr, hsc, hr.Client, ascProperties)
 			obj, mutateFn, err := newAssistedServiceRole(ctx, hr.Log, asc)
 			Expect(err).To(BeNil())
 			validateObjectMeta(obj, "assisted-service", testNamespace)
@@ -578,7 +582,7 @@ var _ = Describe("HypershiftAgentServiceConfig reconcile", func() {
 			validateRoleUpdate(mutateFn, obj.(*rbacv1.Role)) //test mutate
 		})
 		It("successfully for leader election role binding", func() {
-			asc.initHASC(hr, hsc)
+			asc := initHASC(hr, hsc, hr.Client, ascProperties)
 			obj, mutateFn, err := newAssistedServiceRoleBinding(ctx, hr.Log, asc)
 			Expect(err).To(BeNil())
 			validateObjectMeta(obj, "assisted-service", testNamespace)
@@ -586,7 +590,7 @@ var _ = Describe("HypershiftAgentServiceConfig reconcile", func() {
 			validateSubjectUpdate(mutateFn, obj.(*rbacv1.RoleBinding)) //test mutate
 		})
 		It("successfully for service cluster role", func() {
-			asc.initHASC(hr, hsc)
+			asc := initHASC(hr, hsc, hr.Client, ascProperties)
 			obj, mutateFn, err := newAssistedServiceClusterRole(ctx, hr.Log, asc)
 			Expect(err).To(BeNil())
 			validateObjectMeta(obj, "assisted-service-manager-role", "")
@@ -594,7 +598,7 @@ var _ = Describe("HypershiftAgentServiceConfig reconcile", func() {
 			validateClusterRoleUpdate(mutateFn, obj.(*rbacv1.ClusterRole)) //test mutate
 		})
 		It("successfully for service cluster role binding", func() {
-			asc.initHASC(hr, hsc)
+			asc := initHASC(hr, hsc, hr.Client, ascProperties)
 			obj, mutateFn, err := newAssistedServiceClusterRoleBinding(ctx, hr.Log, asc)
 			Expect(err).To(BeNil())
 			validateObjectMeta(obj, "assisted-service-manager-rolebinding", "")
