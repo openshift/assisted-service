@@ -150,7 +150,6 @@ func (m *Manager) clusterHostMonitoring() int64 {
 		for _, c := range clusters {
 			inventoryCache := make(InventoryCache)
 			sortedHosts, canRefreshRoles := SortHosts(c.Hosts)
-			c.Cluster.OpenshiftVersion = "4.12.0-0.0"
 
 			for _, host := range sortedHosts {
 				if !m.leaderElector.IsLeader() {
