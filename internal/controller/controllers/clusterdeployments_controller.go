@@ -908,7 +908,7 @@ func (r *ClusterDeploymentsReconciler) updateIfNeeded(ctx context.Context,
 
 	shouldUpdateNetworkParams, err := r.updateNetworkParams(clusterDeployment, clusterInstall, cluster, params)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to update network params")
+		return cluster, errors.Wrap(err, "failed to update network params")
 	}
 	update = swag.BoolValue(shouldUpdateNetworkParams) || update
 	// Trim key before comapring as done in RegisterClusterInternal
