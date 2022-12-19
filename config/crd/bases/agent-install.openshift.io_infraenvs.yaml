@@ -97,6 +97,12 @@ spec:
                 - DiscoveryImageAlways
                 - BootOrderControl
                 type: string
+              ironicAgentImageOverride:
+                description: IronicAgentImageOverride is the pull spec for the ironic
+                  agent image to use when discovering hosts. Only applies when provisioning
+                  using a BareMetalHost. If unspecified, the ironic agent image from
+                  the hub cluster release is used.
+                type: string
               kernelArguments:
                 description: KernelArguments is the additional kernel arguments to
                   be passed during boot time of the discovery image. Applicable for

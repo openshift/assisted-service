@@ -103,6 +103,12 @@ type InfraEnvSpec struct {
 	// Applicable for both iPXE, and ISO streaming from Image Service.
 	// +optional
 	KernelArguments []KernelArgument `json:"kernelArguments,omitempty"`
+
+	// IronicAgentImageOverride is the pull spec for the ironic agent image to use when discovering hosts.
+	// Only applies when provisioning using a BareMetalHost.
+	// If unspecified, the ironic agent image from the hub cluster release is used.
+	// +optional
+	IronicAgentImageOverride string `json:"ironicAgentImageOverride,omitempty"`
 }
 
 type KernelArgument struct {
