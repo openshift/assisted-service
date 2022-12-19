@@ -12,6 +12,7 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
 	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 	gomega_format "github.com/onsi/gomega/format"
 	"github.com/openshift/assisted-service/internal/common"
@@ -1423,6 +1424,32 @@ var _ = Describe("Validations test", func() {
 					"compatible version. This might take a few minutes",
 			))
 		})
+
+		DescribeTable(
+			"Is skipped if host is in installation stage",
+			func(stage models.HostStage) {
+				host.DiscoveryAgentVersion = "quay.io/edge-infrastructure/assisted-installer-agent:new"
+				host.Progress.CurrentStage = stage
+				mockAndRefreshStatus(&host)
+				host = hostutil.GetHostFromDB(*host.ID, host.InfraEnvID, db).Host
+				status, message, ok := getValidationResult(host.ValidationsInfo, CompatibleAgent)
+				Expect(ok).To(BeFalse())
+				Expect(status).To(BeEmpty())
+				Expect(message).To(BeEmpty())
+			},
+			Entry("Configuring", models.HostStageConfiguring),
+			Entry("Done", models.HostStageDone),
+			Entry("Failed", models.HostStageFailed),
+			Entry("Installing", models.HostStageInstalling),
+			Entry("Joined", models.HostStageJoined),
+			Entry("Rebooting", models.HostStageRebooting),
+			Entry("Starting installation", models.HostStageStartingInstallation),
+			Entry("Waiting for bootkube", models.HostStageWaitingForBootkube),
+			Entry("Waiting for control plane", models.HostStageWaitingForControlPlane),
+			Entry("Waiting for controller", models.HostStageWaitingForController),
+			Entry("Waiting for ignition", models.HostStageWaitingForIgnition),
+			Entry("Writing image to disk", models.HostStageWritingImageToDisk),
+		)
 	})
 
 	Context("No skip installation disk validation", func() {

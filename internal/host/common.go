@@ -74,6 +74,21 @@ var manualRebootStages = []models.HostStage{
 	models.HostStageDone,
 }
 
+var allStages = []models.HostStage{
+	models.HostStageConfiguring,
+	models.HostStageDone,
+	models.HostStageFailed,
+	models.HostStageInstalling,
+	models.HostStageJoined,
+	models.HostStageRebooting,
+	models.HostStageStartingInstallation,
+	models.HostStageWaitingForBootkube,
+	models.HostStageWaitingForControlPlane,
+	models.HostStageWaitingForController,
+	models.HostStageWaitingForIgnition,
+	models.HostStageWritingImageToDisk,
+}
+
 var hostStatusesBeforeInstallation = [...]string{
 	models.HostStatusDiscovering, models.HostStatusKnown, models.HostStatusDisconnected,
 	models.HostStatusInsufficient, models.HostStatusPendingForInput,
