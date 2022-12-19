@@ -104,12 +104,21 @@ func (h *apiHandler) V2ListSupportedOpenshiftVersions(ctx context.Context, param
 				continue
 			}
 
+			// In order to handle multi-arch release images correctly in the UI, we need to tune
+			// their DisplayName to contain an appropriate suffix. If the suffix comes from the
+			// JSON definition we do nothing, but in case it's missing there (because CVO is not
+			// reporting it), we add it ourselves.
+			displayName := *releaseImage.Version
+			if len(supportedArchs) > 1 && !strings.HasSuffix(displayName, "-multi") {
+				displayName = displayName + "-multi"
+			}
+
 			openshiftVersion, exists := openshiftVersions[key]
 			if !exists {
 				openshiftVersion = models.OpenshiftVersion{
 					CPUArchitectures: []string{arch},
 					Default:          releaseImage.Default,
-					DisplayName:      releaseImage.Version,
+					DisplayName:      swag.String(displayName),
 					SupportLevel:     getSupportLevel(*releaseImage),
 				}
 				openshiftVersions[key] = openshiftVersion
