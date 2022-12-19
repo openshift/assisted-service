@@ -67,15 +67,17 @@ type PreprovisioningImageControllerConfig struct {
 // PreprovisioningImage reconciles a AgentClusterInstall object
 type PreprovisioningImageReconciler struct {
 	client.Client
-	Log                logrus.FieldLogger
-	Installer          bminventory.InstallerInternals
-	CRDEventsHandler   CRDEventsHandler
-	VersionsHandler    versions.Handler
-	OcRelease          oc.Release
-	ReleaseImageMirror string
-	IronicServiceURL   string
-	IronicInspectorURL string
-	Config             PreprovisioningImageControllerConfig
+	Log                     logrus.FieldLogger
+	Installer               bminventory.InstallerInternals
+	CRDEventsHandler        CRDEventsHandler
+	VersionsHandler         versions.Handler
+	OcRelease               oc.Release
+	ReleaseImageMirror      string
+	IronicServiceURL        string
+	IronicInspectorURL      string
+	Config                  PreprovisioningImageControllerConfig
+	hubIronicAgentImage     string
+	hubReleaseArchitectures []string
 }
 
 // +kubebuilder:rbac:groups=metal3.io,resources=preprovisioningimages,verbs=get;list;watch;create;update;patch;delete
@@ -420,21 +422,32 @@ func (r *PreprovisioningImageReconciler) AddIronicAgentToInfraEnv(ctx context.Co
 }
 
 func (r *PreprovisioningImageReconciler) getIronicAgentImageByRelease(ctx context.Context, log logrus.FieldLogger, infraEnv *common.InfraEnv) (string, error) {
-	cv := &configv1.ClusterVersion{}
-	if err := r.Get(ctx, types.NamespacedName{Name: "version"}, cv); err != nil {
-		return "", err
-	}
-
-	architectures, err := r.OcRelease.GetReleaseArchitecture(log, cv.Status.Desired.Image, r.ReleaseImageMirror, infraEnv.PullSecret)
-	if err != nil {
-		return "", err
+	image := r.hubIronicAgentImage
+	architectures := r.hubReleaseArchitectures
+	if image == "" {
+		cv := &configv1.ClusterVersion{}
+		if err := r.Get(ctx, types.NamespacedName{Name: "version"}, cv); err != nil {
+			return "", err
+		}
+		var err error
+		architectures, err = r.OcRelease.GetReleaseArchitecture(log, cv.Status.Desired.Image, r.ReleaseImageMirror, infraEnv.PullSecret)
+		if err != nil {
+			return "", err
+		}
+		image, err = r.OcRelease.GetIronicAgentImage(log, cv.Status.Desired.Image, r.ReleaseImageMirror, infraEnv.PullSecret)
+		if err != nil {
+			return "", err
+		}
+		r.hubIronicAgentImage = image
+		r.hubReleaseArchitectures = architectures
+		log.Infof("Caching hub ironic agent image %s for architectures %v", image, architectures)
 	}
 
 	if !funk.Contains(architectures, infraEnv.CPUArchitecture) {
 		return "", fmt.Errorf("release image architectures %v do not match infraEnv architecture %s", architectures, infraEnv.CPUArchitecture)
 	}
 
-	return r.OcRelease.GetIronicAgentImage(log, cv.Status.Desired.Image, r.ReleaseImageMirror, infraEnv.PullSecret)
+	return image, nil
 }
 
 func IronicAgentEnabled(log logrus.FieldLogger, infraEnv *aiv1beta1.InfraEnv) bool {
