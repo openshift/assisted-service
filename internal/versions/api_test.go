@@ -148,7 +148,7 @@ var _ = Describe("ListSupportedOpenshiftVersions", func() {
 				// image that matches, we are okay. This is to allow setups where release
 				// image supports more architectures than we have available RHCOS images.
 				Expect(len(version.CPUArchitectures)).ShouldNot(Equal(0))
-				Expect(*releaseImage.Version).Should(ContainSubstring(*version.DisplayName))
+				Expect(*version.DisplayName).Should(ContainSubstring(*releaseImage.Version))
 				Expect(version.SupportLevel).Should(Equal(getSupportLevel(*releaseImage)))
 			}
 		}
@@ -228,7 +228,7 @@ var _ = Describe("ListSupportedOpenshiftVersions", func() {
 				OpenshiftVersion: swag.String("4.11.1"),
 				URL:              swag.String("release_4.11.1"),
 				Default:          true,
-				Version:          swag.String("4.11.1-chocobomb-for-test"),
+				Version:          swag.String("4.11.1-chocobomb-for-test-multi"),
 			},
 		}
 		osImages := readDefaultOsImages()
@@ -243,7 +243,7 @@ var _ = Describe("ListSupportedOpenshiftVersions", func() {
 		version := val.Payload["4.11.1"]
 		Expect(version.CPUArchitectures).Should(ContainElement(common.X86CPUArchitecture))
 		Expect(version.CPUArchitectures).ShouldNot(ContainElement(common.PowerCPUArchitecture))
-		Expect(version.DisplayName).Should(Equal(swag.String("4.11.1-chocobomb-for-test")))
+		Expect(version.DisplayName).Should(Equal(swag.String("4.11.1-chocobomb-for-test-multi")))
 		Expect(version.Default).Should(Equal(true))
 	})
 
@@ -289,6 +289,37 @@ var _ = Describe("ListSupportedOpenshiftVersions", func() {
 		Expect(version.CPUArchitectures).Should(ContainElement(common.X86CPUArchitecture))
 		Expect(len(version.CPUArchitectures)).Should(Equal(2))
 		Expect(version.DisplayName).Should(Equal(swag.String("4.11.1-chocobomb-for-test")))
+		Expect(version.Default).Should(Equal(true))
+	})
+
+	It("append multi suffix for multi-arch image automatically", func() {
+		releaseImages := models.ReleaseImages{
+			// This image definition does not contain "-multi" suffix anywhere because CVO for it
+			// does not return it. Nevertheless in the UI we want to display it, so we test for
+			// autoappend.
+			&models.ReleaseImage{
+				CPUArchitecture:  swag.String(common.MultiCPUArchitecture),
+				CPUArchitectures: []string{common.X86CPUArchitecture, common.ARM64CPUArchitecture},
+				OpenshiftVersion: swag.String("4.12.1"),
+				URL:              swag.String("release_4.12.1"),
+				Default:          true,
+				Version:          swag.String("4.12.1-chocobomb-for-test"),
+			},
+		}
+		osImages := readDefaultOsImages()
+		versionsHandler, err := NewHandler(logger, mockRelease, osImages, releaseImages, nil, "", nil)
+		Expect(err).ToNot(HaveOccurred())
+		h := NewAPIHandler(logger, versions, authzHandler, versionsHandler, osImages)
+
+		reply := h.V2ListSupportedOpenshiftVersions(context.Background(), operations.V2ListSupportedOpenshiftVersionsParams{})
+		Expect(reply).Should(BeAssignableToTypeOf(operations.NewV2ListSupportedOpenshiftVersionsOK()))
+		val, _ := reply.(*operations.V2ListSupportedOpenshiftVersionsOK)
+
+		version := val.Payload["4.12.1"]
+		Expect(version.CPUArchitectures).Should(ContainElement(common.ARM64CPUArchitecture))
+		Expect(version.CPUArchitectures).Should(ContainElement(common.X86CPUArchitecture))
+		Expect(len(version.CPUArchitectures)).Should(Equal(2))
+		Expect(version.DisplayName).Should(Equal(swag.String("4.12.1-chocobomb-for-test-multi")))
 		Expect(version.Default).Should(Equal(true))
 	})
 })
