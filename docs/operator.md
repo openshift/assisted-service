@@ -249,7 +249,13 @@ A ConfigMap can be used to configure assisted service to create installations us
 - *ca-bundle.crt* - This key contains the contents of the certificate for accessing the mirror registry, if necessary. It may be a certificate bundle and is defined as a single string.
 - *registries.conf* - This key contains the contents of the registries.conf file that configures mappings to the mirror registry.
 
-The mirror registry configuration changes the discovery image's ignition config, with *ca-bundle.crt* written out to */etc/pki/ca-trust/source/anchors/domain.crt* and with *registries.conf* written out to */etc/containers/registries.conf*. The configuration also changes the *install-config.yaml* file used to install a new cluster, with the contents of *ca-bundle.crt* added to *additionalTrustBundle* and with the registries defined *registries.conf* added to *imageContentSources* as mirrors.
+The mirror registry configuration changes the discovery image's ignition config, with *ca-bundle.crt* written out to */etc/pki/ca-trust/source/anchors/domain.crt* and with *registries.conf* written out to */etc/containers/registries.conf*. 
+
+The configuration also changes the *install-config.yaml* file used to install a new cluster, with the contents of *ca-bundle.crt* added to *additionalTrustBundle* and with the registries defined *registries.conf* added to *imageContentSources* as mirrors.
+The assisted service pod also converts the registries.conf into an imageContentSourcesPolicy file, and use it with the --icsp flag in a few oc adm commands run against the release image (executed from within the assisted service pod itself).
+
+The ca-bundle.crt and registries.conf keys can be added individually or together.
+
 
 1. To configure the mirror registry, first create and upload the ConfigMap containing the *ca-bundle.crt* and *registries.conf* keys.
 
@@ -274,7 +280,7 @@ data:
     [[registry]]
        prefix = ""
        location = "quay.io/edge-infrastructure"
-       mirror-by-digest-only = false
+       mirror-by-digest-only = true
 
        [[registry.mirror]]
        location = "mirror1.registry.corp.com:5000/edge-infrastructure"
@@ -287,8 +293,6 @@ The ConfigMap should be installed in the same namespace as the infrastructure-op
 
 Registries listed in the `unqualified-search-registries` will be automatically added to an authentication ignore list (`PUBLIC_CONTAINER_REGISTRIES` environment variable) and will not be required by `assisted-service` when it is validating the pull secret.
 
-Registries defined in the *registries.conf* file should use "mirror-by-digest-only = false" mode.
-
 Registries defined in the *registries.conf* must be scoped by repository and not by registry. In the above example, *quay.io/edge-infrastructure* and *mirror1.registry.corp.com:5000/edge-infrastructure* are both scoped by the *edge-infrastructure* repository and this is a valid configuration. In the example below, removing the repository *edge-infrastructure* from location is an invalid configuration and will not pass openshift-installer validation:
 
 ``` 
@@ -296,7 +300,7 @@ Registries defined in the *registries.conf* must be scoped by repository and not
     [[registry]]
        prefix = ""
        location = "quay.io"
-       mirror-by-digest-only = false
+       mirror-by-digest-only = true
 
        [[registry.mirror]]
        location = "mirror1.registry.corp.com:5000"

@@ -21,7 +21,7 @@ var (
 
 [[registry]]
 location = "location1"
-mirror-by-digest-only = false
+mirror-by-digest-only = true
 prefix = "prefix1"
 
 [[registry.mirror]]
@@ -29,7 +29,7 @@ location = "mirror_location1"
 
 [[registry]]
 location = "location2"
-mirror-by-digest-only = false
+mirror-by-digest-only = true
 prefix = "prefix1"
 
 [[registry.mirror]]
@@ -37,7 +37,7 @@ location = "mirror_location2"
 
 [[registry]]
 location = "location3"
-mirror-by-digest-only = false
+mirror-by-digest-only = true
 prefix = "prefix1"
 
 [[registry.mirror]]

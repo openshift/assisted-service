@@ -242,7 +242,7 @@ function registry_config() {
     [[registry]]
       location = "%s"
       insecure = false
-      mirror-by-digest-only = false
+      mirror-by-digest-only = true
 
       [[registry.mirror]]
         location = "%s"
