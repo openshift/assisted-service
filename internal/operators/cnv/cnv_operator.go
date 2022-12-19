@@ -58,6 +58,11 @@ func (o *operator) GetName() string {
 
 // GetDependencies provides a list of dependencies of the Operator
 func (o *operator) GetDependencies(cluster *common.Cluster) ([]string, error) {
+	lsoOperator := []string{lso.Operator.Name}
+	if !common.IsSingleNodeCluster(cluster) || cluster.OpenshiftVersion == "" {
+		return lsoOperator, nil
+	}
+
 	ocpVersion, err := version.NewVersion(cluster.OpenshiftVersion)
 	if err != nil {
 		return []string{}, err
@@ -67,11 +72,12 @@ func (o *operator) GetDependencies(cluster *common.Cluster) ([]string, error) {
 	if err != nil {
 		return []string{}, err
 	}
-	if common.IsSingleNodeCluster(cluster) && ocpVersion.GreaterThanOrEqual(minOCPVersionForLVM) {
+
+	if ocpVersion.GreaterThanOrEqual(minOCPVersionForLVM) {
 		return []string{lvm.Operator.Name}, nil
 	}
 
-	return []string{lso.Operator.Name}, nil
+	return lsoOperator, nil
 }
 
 // GetClusterValidationID returns cluster validation ID for the Operator
