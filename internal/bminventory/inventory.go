@@ -603,7 +603,8 @@ func (b *bareMetalInventory) RegisterClusterInternal(
 	}
 	setPullSecret(&cluster, ps)
 
-	if err = validations.ValidateClusterNameFormat(swag.StringValue(params.NewClusterParams.Name)); err != nil {
+	if err = validations.ValidateClusterNameFormat(swag.StringValue(params.NewClusterParams.Name),
+		getPlatformType(params.NewClusterParams.Platform)); err != nil {
 		return nil, common.NewApiError(http.StatusBadRequest, err)
 	}
 
@@ -868,7 +869,7 @@ func (b *bareMetalInventory) V2ImportClusterInternal(ctx context.Context, kubeKe
 		KubeKeyNamespace: kubeKey.Namespace,
 	}
 
-	err := validations.ValidateClusterNameFormat(clusterName)
+	err := validations.ValidateClusterNameFormat(clusterName, getPlatformType(newCluster.Platform))
 	if err != nil {
 		return nil, common.NewApiError(http.StatusBadRequest, err)
 	}
@@ -1777,7 +1778,11 @@ func (b *bareMetalInventory) validateAndUpdateClusterParams(ctx context.Context,
 	}
 
 	if swag.StringValue(params.ClusterUpdateParams.Name) != "" {
-		if err := validations.ValidateClusterNameFormat(*params.ClusterUpdateParams.Name); err != nil {
+		platform := getPlatformType(params.ClusterUpdateParams.Platform)
+		if platform == "" {
+			platform = getPlatformType(cluster.Platform)
+		}
+		if err := validations.ValidateClusterNameFormat(*params.ClusterUpdateParams.Name, platform); err != nil {
 			return installer.V2UpdateClusterParams{}, err
 		}
 	}
