@@ -4,6 +4,7 @@ import (
 	context "context"
 	"fmt"
 	"runtime/debug"
+	"strings"
 
 	"github.com/go-openapi/swag"
 	"github.com/hashicorp/go-version"
@@ -172,7 +173,11 @@ func (h *handler) getReleaseImageFromCache(openshiftVersion, cpuArchitecture str
 			return nil, err
 		}
 		releaseImage = funk.Find(releaseImages, func(releaseImage *models.ReleaseImage) bool {
-			return *releaseImage.OpenshiftVersion == versionKey
+			// Starting from OCP 4.12 multi-arch release images do not have "-multi" suffix
+			// reported by the CVO, but we still offer the sufix internally to allow for explicit
+			// selection or single- or multi-arch payload.
+			version := strings.TrimSuffix(*releaseImage.OpenshiftVersion, "-multi")
+			return version == versionKey
 		})
 	}
 
