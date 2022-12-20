@@ -73,6 +73,7 @@ type PreprovisioningImageReconciler struct {
 	OcRelease          oc.Release
 	ReleaseImageMirror string
 	IronicServiceURL   string
+	IronicInspectorURL string
 	Config             PreprovisioningImageControllerConfig
 }
 
@@ -395,7 +396,7 @@ func (r *PreprovisioningImageReconciler) AddIronicAgentToInfraEnv(ctx context.Co
 		log.Infof("Setting default ironic agent image (%s) for infraEnv %s", ironicAgentImage, infraEnv.Name)
 	}
 
-	conf, err := ignition.GenerateIronicConfig(r.IronicServiceURL, *infraEnvInternal, ironicAgentImage)
+	conf, err := ignition.GenerateIronicConfig(r.IronicServiceURL, r.IronicInspectorURL, *infraEnvInternal, ironicAgentImage)
 	if err != nil {
 		log.WithError(err).Error("failed to generate Ironic ignition config")
 		return ctrl.Result{}, err

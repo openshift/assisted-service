@@ -33,6 +33,7 @@ func NewBMOUtils(client client.Reader, osClient *osclientset.Clientset, kubeClie
 }
 
 // +kubebuilder:rbac:groups=config.openshift.io,resources=clusteroperators,verbs=get;list;watch
+// +kubebuilder:rbac:groups=config.openshift.io,resources=infrastructures,verbs=get;list;watch
 // +kubebuilder:rbac:groups=metal3.io,resources=provisionings,verbs=get
 
 // ConvergedFlowAvailable checks the baremetal operator version and returns true if it's equal or higher than the minimal version for converged flow
@@ -60,20 +61,22 @@ func (r *BMOUtils) ConvergedFlowAvailable() bool {
 	return available
 }
 
-func (r *BMOUtils) GetIronicServiceURL() (string, error) {
+func (r *BMOUtils) GetIronicServiceURLS() (string, string, error) {
 	provisioningInfo, err := r.readProvisioningCR()
 	if err != nil {
 		r.log.WithError(err).Error("unable to get provisioning CR")
-		return "", err
+		return "", "", err
 	}
-	ironicIP, _, err := provisioning.GetIronicIP(r.kubeClient, provisioningInfo.Namespace, &provisioningInfo.Spec, r.osClient)
+	ironicIP, inspectorIP, err := provisioning.GetIronicIP(r.kubeClient, provisioningInfo.Namespace, &provisioningInfo.Spec, r.osClient)
 	if err != nil || ironicIP == "" {
 		r.log.WithError(err).Error("unable to determine Ironic's IP")
-		return "", err
+		return "", "", err
 	}
 	ironicURL := getUrlFromIP(ironicIP)
 	r.log.Infof("Ironic URL is: %s", ironicURL)
-	return ironicURL, nil
+	inspectorURL := getUrlFromIP(inspectorIP)
+	r.log.Infof("Inspector URL is: %s", inspectorURL)
+	return ironicURL, inspectorURL, nil
 }
 
 func (r *BMOUtils) readProvisioningCR() (*metal3iov1alpha1.Provisioning, error) {

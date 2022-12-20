@@ -20,40 +20,45 @@ const (
 )
 
 type ignitionBuilder struct {
-	nmStateData           []byte
-	registriesConf        []byte
-	ironicBaseURL         string
-	ironicAgentImage      string
-	ironicAgentPullSecret string
-	ironicRAMDiskSSHKey   string
-	networkKeyFiles       []byte
-	ipOptions             string
-	httpProxy             string
-	httpsProxy            string
-	noProxy               string
-	hostname              string
+	nmStateData            []byte
+	registriesConf         []byte
+	ironicBaseURL          string
+	ironicInspectorBaseURL string
+	ironicAgentImage       string
+	ironicAgentPullSecret  string
+	ironicRAMDiskSSHKey    string
+	networkKeyFiles        []byte
+	ipOptions              string
+	httpProxy              string
+	httpsProxy             string
+	noProxy                string
+	hostname               string
 }
 
-func New(nmStateData, registriesConf []byte, ironicBaseURL, ironicAgentImage, ironicAgentPullSecret, ironicRAMDiskSSHKey, ipOptions string, httpProxy, httpsProxy, noProxy string, hostname string) (*ignitionBuilder, error) {
+func New(nmStateData, registriesConf []byte, ironicBaseURL, ironicInspectorBaseURL, ironicAgentImage, ironicAgentPullSecret, ironicRAMDiskSSHKey, ipOptions string, httpProxy, httpsProxy, noProxy string, hostname string) (*ignitionBuilder, error) {
 	if ironicBaseURL == "" {
 		return nil, errors.New("ironicBaseURL is required")
+	}
+	if ironicInspectorBaseURL == "" {
+		ironicInspectorBaseURL = ironicBaseURL
 	}
 	if ironicAgentImage == "" {
 		return nil, errors.New("ironicAgentImage is required")
 	}
 
 	return &ignitionBuilder{
-		nmStateData:           nmStateData,
-		registriesConf:        registriesConf,
-		ironicBaseURL:         ironicBaseURL,
-		ironicAgentImage:      ironicAgentImage,
-		ironicAgentPullSecret: ironicAgentPullSecret,
-		ironicRAMDiskSSHKey:   ironicRAMDiskSSHKey,
-		ipOptions:             ipOptions,
-		httpProxy:             httpProxy,
-		httpsProxy:            httpsProxy,
-		noProxy:               noProxy,
-		hostname:              hostname,
+		nmStateData:            nmStateData,
+		registriesConf:         registriesConf,
+		ironicBaseURL:          ironicBaseURL,
+		ironicInspectorBaseURL: ironicInspectorBaseURL,
+		ironicAgentImage:       ironicAgentImage,
+		ironicAgentPullSecret:  ironicAgentPullSecret,
+		ironicRAMDiskSSHKey:    ironicRAMDiskSSHKey,
+		ipOptions:              ipOptions,
+		httpProxy:              httpProxy,
+		httpsProxy:             httpsProxy,
+		noProxy:                noProxy,
+		hostname:               hostname,
 	}, nil
 }
 
