@@ -117,17 +117,26 @@ parameters:
 - name: ENABLE_ORG_BASED_FEATURE_GATES
   value: "false"
   required: false
+- name: WORK_DIR
+  value: "/data/"
+  required: false
 - name: MEMORY_LIMIT
   value: "2.55G"
   required: false
 - name: CPU_LIMIT
   value: "500m"
   required: false
+- name: EPHEMERAL_STORAGE_LIMIT
+  value: "6G"
+  required: false
 - name: MEMORY_REQUEST
   value: "1.7G"
   required: false
 - name: CPU_REQUEST
   value: "300m"
+  required: false
+- name: EPHEMERAL_STORAGE_REQUEST
+  value: "5G"
   required: false
 - name: ISO_IMAGE_TYPE
   value: "minimal-iso"
@@ -216,9 +225,11 @@ objects:
               limits:
                 cpu: ${CPU_LIMIT}
                 memory: ${MEMORY_LIMIT}
+                ephemeral-storage: ${EPHEMERAL_STORAGE_LIMIT}
               requests:
                 cpu: ${CPU_REQUEST}
                 memory: ${MEMORY_REQUEST}
+                ephemeral-storage: ${EPHEMERAL_STORAGE_REQUEST}
             ports:
               - name: assisted-svc
                 containerPort: 8090
@@ -381,11 +392,17 @@ objects:
                 value: ${ISO_IMAGE_TYPE}
               - name: ENABLE_UPGRADE_AGENT
                 value: ${ENABLE_UPGRADE_AGENT}
+              - name: WORK_DIR
+                value: ${WORK_DIR}
             volumeMounts:
               - name: route53-creds
                 mountPath: "/etc/.aws"
                 readOnly: true
+              - name: workdir-volume
+                mountPath: ${WORK_DIR}
         volumes:
+          - name: workdir-volume
+            emptyDir: {}
           - name: route53-creds
             secret:
               secretName: route53-creds
