@@ -1,84 +1,175 @@
-# Import Installed Cluster
+# Import an existing OCP cluster to add additional nodes
 
-It is possible to import an existing installed OpenShift in order to be able to add more workers to it. (Day 2 operation)
+It is possible to import an existing OCP cluster so that additional nodes may be added.
 
-## CRDs
+### Import the cluster and prepare it for the addition of further nodes:
 
-Here are the needed CRDs to import an existing cluster:
+#### 1: Create a namespace to which the imported cluster will belong.
 
-### InfraEnv
-
-* [InfraEnv](crds/infraEnv.yaml) or
-* [InfraEnv Late Binding](crds/infraEnvLateBinding.yaml)
-
-### NMState Config
-
-Optional network configuration.
-* [NMState Config](crds/nmstate.yaml)
-
-### Pull Secret
-
-* [PullSecret Secret](crds/pullsecret.yaml)
-
-### Cluster Image Set
-
-* [ClusterImageSet](crds/clusterImageSet.yaml)
-
-### AgentClusterInstall
-
-Configure the number of control planes in the `provisionRequirements` field to be greater than `1`. This is needed because adding additional nodes to a Single Node OpenShift is not currently supported.
-
-* [AgentClusterInstall](crds/agentClusterInstall.yaml)
-
-### ClusterDeployment
-
-The differences from the Day 1 ClusterDeployment [example](crds/clusterDeployment.yaml) are the `installed` field that is set to `true` and the `clusterMetadata` section as described below:
-
-- The `adminKubeconfigSecretRef` is a reference to a secret containing the `kubeconfig`. Here is how to create it (replace `/path/to/kubeconfig` to the location of the kubeconfig file):
-
-```bash
-kubectl -n spoke-cluster create secret generic test-cluster-admin-kubeconfig --from-file=kubeconfig=/path/to/kubeconfig
+```
+cat << EOF | oc apply -f -
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: spoke-cluster
+EOF
 ```
 
-- The `adminPasswordSecretRef` is a reference to a secret containing the admin user name and password. Here is how to create it (replace `supersecretname` and `supersecretpassword` to the actual credentials):
+#### 2: It is important to ensure that a ClusterImageSet matching the imported cluster is present.
 
-```bash
-kubectl -n spoke-cluster create secret generic test-cluster-admin-password --from-literal=username=supersecretname --from-literal=password=supersecretpassword
+Ensure that the infrastructure owner has made this available.
+
+```
+cat << EOF | oc apply -f -
+apiVersion: hive.openshift.io/v1
+kind: ClusterImageSet
+metadata:
+  name: openshift-v4.11.18
+spec:
+  releaseImage: quay.io/openshift-release-dev/ocp-release@sha256:22e149142517dfccb47be828f012659b1ccf71d26620e6f62468c264a7ce7863
+EOF
 ```
 
-- The `infraID` is obtained from `oc get infrastructure cluster -o json | jq .status.infrastructureName`
+#### 3: Set up a pull secret, use a valid openshift pull secret.
 
-- The `clusterID` is obtained from `oc get clusterversion version -o json | jq .spec.clusterID`
+```
+cat << EOF | oc apply -f -
+apiVersion: v1
+kind: Secret
+type: kubernetes.io/dockerconfigjson
+metadata:
+  name: pull-secret
+  namespace: spoke-cluster
+stringData:
+  .dockerconfigjson: 'YOUR_PULL_SECRET_JSON_GOES_HERE'
+EOF
+```
 
-Example:
+#### 4: Copy the kubeconfig from the OCP cluster into the hub.
 
-```yaml
+To obtain the KubeConfig from the OCP cluster, _make sure that KUBECONFIG is set to the cluster being imported_ and then use:
+```
+oc get secret -n openshift-kube-apiserver node-kubeconfigs -ojson | jq '.data["lb-ext.kubeconfig"]' --raw-output | base64 -d > /tmp/kubeconfig.some-other-cluster
+```
+
+Then _make sure that KUBECONFIG is set to the hub_ and use:
+```
+oc -n spoke-cluster create secret generic some-other-cluster-admin-kubeconfig --from-file=/tmp/kubeconfig.some-other-cluster
+```
+
+#### 5: Create an AgentClusterInstall and a ClusterDeployment, these should reference each other.
+
+* Note that in the ClusterDeployment that it is very important to set `installed` to `true` so that the cluster will automatically be imported as a Day 2 cluster.
+* Additionally, it is important to ensure that the `kubeconfig` created in the previous step is referenced here in `adminKubeconfigSecretRef`.
+* Adding `adminKubeconfigSecretRef` requires the `clusterMetaData` stanza which requires definition of `clusterID` and `infraID`, for day2 purposes these may be empty strings.
+* `spec.baseDomain` should match the domain being used for the cluster.
+
+```
+cat << EOF | oc apply -f -
+apiVersion: extensions.hive.openshift.io/v1beta1
+kind: AgentClusterInstall
+metadata:
+  name: some-other-cluster-install
+  namespace: spoke-cluster
+spec:
+  networking:
+    userManagedNetworking: true
+  clusterDeploymentRef:
+    name: some-other-cluster
+  imageSetRef:
+    name: openshift-v4.11.18
+  provisionRequirements:
+    controlPlaneAgents: 1
+  sshPublicKey: "ssh-rsa ..." # This field is optional but if you want to be able to log into nodes for troubleshooting purposes then this is handy.
+EOF
+
+cat << EOF | oc apply -f -
 apiVersion: hive.openshift.io/v1
 kind: ClusterDeployment
 metadata:
-  name: test-cluster
+  name: some-other-cluster
   namespace: spoke-cluster
 spec:
-  baseDomain: hive.example.com
+  baseDomain: redhat.com
+  installed: true
+  clusterMetadata:
+      adminKubeconfigSecretRef:
+        name: some-other-cluster-admin-kubeconfig
+      clusterID: ""
+      infraID: ""
   clusterInstallRef:
     group: extensions.hive.openshift.io
     kind: AgentClusterInstall
-    name: test-agent-cluster-install
+    name: some-other-cluster-install
     version: v1beta1
-  clusterMetadata:
-    adminKubeconfigSecretRef:
-      name: test-cluster-admin-kubeconfig
-    adminPasswordSecretRef:
-      name: test-cluster-admin-password
-    clusterID: e4affb96-7382-406f-80d6-af01ea9a2c0d
-    infraID: da41b06f-5b27-416b-a06c-90f83d316516
-  clusterName: test-cluster
-  installed: true
+  clusterName: some-other-cluster
   platform:
     agentBareMetal:
-      agentSelector:
-        matchLabels:
-          bla: aaa
   pullSecretRef:
     name: pull-secret
+EOF
+
 ```
+
+#### 6: Add an infraenv.
+
+If using late binding, there is no need to add a clusterRef at this stage, otherwise it should be added here.
+
+```
+cat << EOF | oc apply -f -
+apiVersion: agent-install.openshift.io/v1beta1
+kind: InfraEnv
+metadata:
+  name: some-other-infraenv
+  namespace: spoke-cluster
+spec:
+  clusterRef:
+    name: some-other-cluster
+    namespace: spoke-cluster
+  pullSecretRef:
+    name: pull-secret
+  sshAuthorizedKey: "..." # Optional but it can be handy to be able to log into nodes to troubleshoot.
+EOF
+```
+
+#### 7: If all done correctly, an ISO download URL should quickly become available, dowload the ISO using this.
+
+```
+oc get infraenv -n spoke-cluster some-other-infraenv -ojson | jq ".status.isoDownloadURL" --raw-output | xargs curl -k -o /storage0/isos/some-other.iso
+```
+
+### Adding a Day 2 worker to the cluster:
+
+#### 1: Boot the machine that will be used as a worker from the ISO.
+
+Ensure that the node being used for this meets the requirements for an Openshift worker node.
+
+#### 2: Wait for an agent to register.
+
+```
+watch -n 5 "oc get agent -n spoke-cluster"
+```
+
+If agent registration is succesful, after a short time, you should see an agent listed, this agent will need to be approved for installation.
+This can take a few minutes to show up.
+
+If for any reason this step does not work, try logging into the booted node to see if the nature of the problem may be determined.
+
+_(use ctrl-c to exit the watch command once the node shows up)_
+
+#### 3: Make sure any pending unbound agents are associated with the cluster. (this step is only required for late binding)
+
+```
+oc get agent -n spoke-cluster -ojson | jq -r '.items[] | select(.spec.approved==false) |select(.spec.clusterDeploymentName==null) | .metadata.name'| xargs oc -n spoke-cluster patch -p '{"spec":{"clusterDeploymentName":{"name":"some-other-cluster","namespace":"spoke-cluster"}}}' --type merge agent
+```
+
+#### 4: Approve any pending agents for installation.
+
+```
+oc get agent -n spoke-cluster -ojson | jq -r '.items[] | select(.spec.approved==false) | .metadata.name'| xargs oc -n spoke-cluster patch -p '{"spec":{"approved":true}}' --type merge agent
+```
+
+#### 4 Await the installation of the worker. 
+
+On completion of node installation, the worker node should contact the spoke cluster with a Certificate Signing Request to begin the joining process. The CSRs should be automatically signed after a short while.
+
