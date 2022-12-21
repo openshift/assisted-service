@@ -59,10 +59,13 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/pointer"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 )
@@ -1407,11 +1410,72 @@ func (r *ClusterDeploymentsReconciler) SetupWithManager(mgr ctrl.Manager) error 
 		}
 	}
 
+	mapAgentToClusterDeployment := func(a client.Object) []reconcile.Request {
+		log := logutil.FromContext(context.Background(), r.Log).WithFields(
+			logrus.Fields{
+				"agent":           a.GetName(),
+				"agent_namespace": a.GetNamespace(),
+			})
+		agent, ok := a.(*aiv1beta1.Agent)
+		if !ok {
+			log.Errorf("%v was not an Agent", a) // shouldn't be possible
+			return []reconcile.Request{}
+		}
+		if agent.Spec.ClusterDeploymentName != nil {
+			log.Debugf("Map Agent : %s %s CD ref name %s ns %s", agent.Namespace, agent.Name, agent.Spec.ClusterDeploymentName.Name, agent.Spec.ClusterDeploymentName.Namespace)
+			return []reconcile.Request{
+				{
+					NamespacedName: types.NamespacedName{
+						Namespace: agent.Spec.ClusterDeploymentName.Namespace,
+						Name:      agent.Spec.ClusterDeploymentName.Name,
+					},
+				},
+			}
+		} else {
+			return []reconcile.Request{}
+		}
+	}
+
+	agentSpecStatusChangedPredicate := builder.WithPredicates(predicate.Funcs{
+		UpdateFunc: func(updateEvent event.UpdateEvent) bool {
+			oldAgent, ok := updateEvent.ObjectOld.(*aiv1beta1.Agent)
+			if !ok {
+				return false
+			}
+
+			newAgent, ok := updateEvent.ObjectNew.(*aiv1beta1.Agent)
+			if !ok {
+				return false
+			}
+
+			// For updates of Agent we will compare the SyncStatus before and after update and
+			// proceed to reconciliation only if the status changed
+			var oldSyncStatus corev1.ConditionStatus
+			var newSyncStatus corev1.ConditionStatus
+
+			for _, condition := range oldAgent.Status.Conditions {
+				if condition.Reason == string(aiv1beta1.SpecSyncedCondition) {
+					oldSyncStatus = condition.Status
+				}
+			}
+			for _, condition := range newAgent.Status.Conditions {
+				if condition.Reason == string(aiv1beta1.SpecSyncedCondition) {
+					newSyncStatus = condition.Status
+				}
+			}
+
+			return oldSyncStatus != newSyncStatus
+		},
+	})
+
 	clusterDeploymentUpdates := r.CRDEventsHandler.GetClusterDeploymentUpdates()
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&hivev1.ClusterDeployment{}).
 		Watches(&source.Kind{Type: &corev1.Secret{}}, handler.EnqueueRequestsFromMapFunc(mapSecretToClusterDeployment)).
 		Watches(&source.Kind{Type: &hiveext.AgentClusterInstall{}}, handler.EnqueueRequestsFromMapFunc(mapClusterInstallToClusterDeployment)).
+		Watches(&source.Kind{Type: &aiv1beta1.Agent{}},
+			handler.EnqueueRequestsFromMapFunc(mapAgentToClusterDeployment),
+			agentSpecStatusChangedPredicate).
 		Watches(&source.Channel{Source: clusterDeploymentUpdates}, &handler.EnqueueRequestForObject{}).
 		Complete(r)
 }
