@@ -28,6 +28,7 @@ import (
 	"github.com/openshift/assisted-service/internal/metrics"
 	"github.com/openshift/assisted-service/internal/network"
 	"github.com/openshift/assisted-service/internal/operators"
+	"github.com/openshift/assisted-service/internal/uploader"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/auth"
 	"github.com/openshift/assisted-service/pkg/commonutils"
@@ -164,10 +165,11 @@ type Manager struct {
 	dnsApi                dns.DNSApi
 	monitorQueryGenerator *common.MonitorClusterQueryGenerator
 	authHandler           auth.Authenticator
+	uploadClient          uploader.Client
 }
 
 func NewManager(cfg Config, log logrus.FieldLogger, db *gorm.DB, stream stream.EventStreamWriter, eventsHandler eventsapi.Handler,
-	hostAPI host.API, metricApi metrics.API, manifestsGeneratorAPI network.ManifestsGeneratorAPI,
+	uploadClient uploader.Client, hostAPI host.API, metricApi metrics.API, manifestsGeneratorAPI network.ManifestsGeneratorAPI,
 	leaderElector leader.Leader, operatorsApi operators.API, ocmClient *ocm.Client, objectHandler s3wrapper.API,
 	dnsApi dns.DNSApi, authHandler auth.Authenticator) *Manager {
 	th := &transitionHandler{
@@ -198,6 +200,7 @@ func NewManager(cfg Config, log logrus.FieldLogger, db *gorm.DB, stream stream.E
 		objectHandler:         objectHandler,
 		dnsApi:                dnsApi,
 		authHandler:           authHandler,
+		uploadClient:          uploadClient,
 	}
 }
 
@@ -919,6 +922,50 @@ func (m *Manager) PrepareForInstallation(ctx context.Context, c *common.Cluster,
 		},
 	)
 	return err
+}
+
+func (m *Manager) UploadEvents() {
+	if !m.leaderElector.IsLeader() {
+		m.log.Infof("Not a leader, exiting upload")
+		return
+	}
+
+	if !m.uploadClient.IsEnabled() {
+		m.log.Infof("Event uploading is not enabled")
+		return
+	}
+	var (
+		requestID = requestid.NewID()
+		ctx       = requestid.ToContext(context.Background(), requestID)
+		log       = requestid.RequestIDLogger(m.log, requestID)
+		err       error
+	)
+
+	clustersToUpload, err := common.GetClustersFromDBWhere(m.db, common.SkipEagerLoading, common.SkipDeletedRecords,
+		"uploaded = ? AND (status in (?) OR (status = ? AND install_completed_at > ?))",
+		false, []string{models.ClusterStatusInstalled, models.ClusterStatusCancelled, models.ClusterStatusError},
+		models.ClusterStatusAddingHosts, strfmt.NewDateTime())
+	if err != nil {
+		log.WithError(err).Warnf("failed getting clusters for uploading events")
+		return
+	}
+	clustersUploaded := 0
+	for _, cluster := range clustersToUpload {
+		if !m.leaderElector.IsLeader() {
+			log.Info("not a leader, exiting event uploader")
+			return
+		}
+		if uploadErr := m.uploadClient.UploadEvents(ctx, cluster, m.eventsHandler); uploadErr != nil {
+			log.WithError(uploadErr).Warnf("failed uploading events for cluster %s", cluster.ID)
+			continue
+		}
+		log.Infof("successfully uploaded events for cluster %s", *cluster.ID)
+		if err = m.db.Model(&common.Cluster{}).Where("id = ?", cluster.ID.String()).Update("uploaded", true).Error; err != nil {
+			log.WithError(err).Warnf("couldn't update uploaded field for cluster %s in db", cluster.ID.String())
+		}
+		clustersUploaded++
+	}
+	log.Debugf("Uploaded events for %d clusters", clustersUploaded)
 }
 
 func (m *Manager) HandlePreInstallError(ctx context.Context, c *common.Cluster, installErr error) {

@@ -1118,6 +1118,9 @@ func newAssistedCM(ctx context.Context, log logrus.FieldLogger, asc ASC) (client
 			"JWKS_URL":                    "https://api.openshift.com/.well-known/jwks.json",
 			"PUBLIC_CONTAINER_REGISTRIES": unauthenticatedRegistries(ctx, asc),
 			"HW_VALIDATOR_REQUIREMENTS":   defaultControllerHardwareRequirements,
+			// The user may opt-out by using the telemetry opt-out method (removing cloud.openshift.com from their OCM pull secret)
+			"ENABLE_DATA_COLLECTION": "True",
+			"DATA_UPLOAD_ENDPOINT":   "https://console.redhat.com/api/ingress/v1/upload",
 
 			"NAMESPACE":       asc.namespace,
 			"INSTALL_INVOKER": "assisted-installer-operator",

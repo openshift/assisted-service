@@ -66,6 +66,8 @@ type Cluster struct {
 
 	IgnoredClusterValidations string `gorm:"type:text"`
 	IgnoredHostValidations    string `gorm:"type:text"`
+	// Indicates if the cluster's event data has been uploaded
+	Uploaded bool `json:"uploaded"`
 }
 
 type Event struct {
