@@ -3,7 +3,7 @@ title: short-image-urls
 authors:
   - "@mhrivnak"
 creation-date: 2022-11-30
-last-updated: 2022-11-30
+last-updated: 2022-12-22
 ---
 
 # Short image URLs
@@ -81,6 +81,32 @@ That should change to:
 ```
 http://api.openshift.com/api/assisted-images/images/881dd303-940e-4c1a-a844-dc3c64da0e95/4.11/x86_64/full.iso
 ```
+
+#### Token Parsing
+
+Unfortunately the JWT payload uses different keys to identify the InfraEnv
+depending on whether the service is deployed as part of OCM
+(console.redhat.com) or locally using "local auth".
+
+Tokens served by OCM have a JWT payload with two fields:
+
+```
+{
+  "exp": 1671661677,                             # expiration in seconds since epoch
+  "sub": "e1bfd718-7ce4-4338-a123-07e68214734a"  # infraenv ID
+}
+```
+
+Tokens served when using local auth have a JWT payload with one self-evident field:
+
+```
+{
+  "infra_env_id": "5b6e5a9e-9fe2-45a0-a95f-976ee62169aa"
+}
+```
+
+The image service will need to parse the payload and look for the value under
+both keys.
 
 #### Compatibility
 
