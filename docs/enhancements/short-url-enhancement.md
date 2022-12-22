@@ -79,7 +79,7 @@ http://api.openshift.com/api/assisted-images/images/881dd303-940e-4c1a-a844-dc3c
 That should change to:
 
 ```
-http://api.openshift.com/api/assisted-images/images/881dd303-940e-4c1a-a844-dc3c64da0e95/4.11/x86_64/full.iso
+http://api.openshift.com/api/assisted-images/byid/881dd303-940e-4c1a-a844-dc3c64da0e95/4.11/x86_64/full.iso
 ```
 
 #### Token Parsing
