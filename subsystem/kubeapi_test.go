@@ -4942,6 +4942,18 @@ var _ = Describe("PreprovisioningImage reconcile flow", func() {
 			}, "30s", "10s").Should(Equal(true))
 			infraEnv := getInfraEnvFromDBByKubeKey(ctx, db, infraEnvKey, waitForReconcileTimeout)
 			Expect(infraEnv.InternalIgnitionConfigOverride).Should(ContainSubstring("ironic-agent.service"))
+
+			By("updates the ignition when an ironic agent override image is specified")
+			overrideImage := "example.com/ironic/agent:latest"
+			Expect(infraEnv.InternalIgnitionConfigOverride).ShouldNot(ContainSubstring(overrideImage))
+			Eventually(func() error {
+				infraEnv := getInfraEnvCRD(ctx, kubeClient, infraNsName)
+				infraEnv.ObjectMeta.Annotations["infraenv.agent-install.openshift.io/ironic-agent-image-override"] = overrideImage
+				return kubeClient.Update(ctx, infraEnv)
+			}, "30s", "5s").Should(Succeed())
+			Eventually(func() string {
+				return getInfraEnvFromDBByKubeKey(ctx, db, infraEnvKey, waitForReconcileTimeout).InternalIgnitionConfigOverride
+			}, "30s", "5s").Should(ContainSubstring(overrideImage))
 		})
 		It("should get ImageUrl from the infraEnv", func() {
 			ppi = getPPICRD(ctx, kubeClient, ppiNsName)

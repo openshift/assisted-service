@@ -506,6 +506,26 @@ var _ = Describe("PreprovisioningImage reconcile", func() {
 			Expect(res).To(Equal(ctrl.Result{}))
 		})
 
+		It("uses the override ironic image when supplied", func() {
+			overrideAgentImage := "ironic-agent-override:latest"
+			setAnnotation(&infraEnv.ObjectMeta, ironicAgentImageOverrideAnnotation, overrideAgentImage)
+			Expect(c.Create(ctx, infraEnv)).To(BeNil())
+			backendInfraEnv.CPUArchitecture = "x86_64"
+			backendInfraEnv.PullSecret = "mypullsecret"
+			mockInstallerInternal.EXPECT().GetInfraEnvByKubeKey(gomock.Any()).Return(backendInfraEnv, nil)
+
+			mockInstallerInternal.EXPECT().UpdateInfraEnvInternal(gomock.Any(), gomock.Any(), gomock.Any()).
+				Do(func(ctx context.Context, params installer.UpdateInfraEnvParams, internalIgnitionConfig *string) {
+					Expect(params.InfraEnvID).To(Equal(*backendInfraEnv.ID))
+					Expect(internalIgnitionConfig).Should(HaveValue(ContainSubstring(overrideAgentImage)))
+				})
+			mockCRDEventsHandler.EXPECT().NotifyInfraEnvUpdates(infraEnv.Name, infraEnv.Namespace).Times(1)
+
+			res, err := pr.Reconcile(ctx, newPreprovisioningImageRequest(ppi))
+			Expect(err).To(BeNil())
+			Expect(res).To(Equal(ctrl.Result{}))
+		})
+
 		It("sets a failure condition when the infraEnv arch doesn't match the preprovisioningimage", func() {
 			infraEnv.Spec.CpuArchitecture = "aarch64"
 			Expect(c.Create(ctx, infraEnv)).To(BeNil())
