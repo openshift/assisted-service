@@ -15,6 +15,7 @@ import (
 	aiv1beta1 "github.com/openshift/assisted-service/api/v1beta1"
 	"github.com/openshift/assisted-service/internal/bminventory"
 	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/internal/ignition"
 	"github.com/openshift/assisted-service/internal/oc"
 	"github.com/openshift/assisted-service/internal/versions"
 	"github.com/openshift/assisted-service/models"
@@ -85,6 +86,7 @@ var _ = Describe("PreprovisioningImage reconcile", func() {
 		infraEnv              *aiv1beta1.InfraEnv
 		ppi                   *metal3_v1alpha1.PreprovisioningImage
 		hubReleaseImage       = "quay.io/openshift-release-dev/ocp-release@sha256:5fdcafc349e184af11f71fe78c0c87531b9df123c664ff1ac82711dc15fa1532"
+		defaultIronicImage    = "ironic-agent-image:latest"
 		clusterVersion        *configv1.ClusterVersion
 	)
 
@@ -110,7 +112,7 @@ var _ = Describe("PreprovisioningImage reconcile", func() {
 			VersionsHandler:  mockVersionHandler,
 			OcRelease:        mockOcRelease,
 			IronicServiceURL: "ironic.url",
-			Config:           PreprovisioningImageControllerConfig{BaremetalIronicAgentImage: "ironic-agent-image:latest"},
+			Config:           PreprovisioningImageControllerConfig{BaremetalIronicAgentImage: defaultIronicImage},
 		}
 		clusterVersion = &configv1.ClusterVersion{
 			ObjectMeta: metav1.ObjectMeta{Name: "version"},
@@ -145,6 +147,14 @@ var _ = Describe("PreprovisioningImage reconcile", func() {
 		AfterEach(func() {
 			mockCtrl.Finish()
 		})
+
+		setInfraEnvIronicConfig := func() {
+			conf, err := ignition.GenerateIronicConfig(pr.IronicServiceURL, pr.IronicInspectorURL, *backendInfraEnv, defaultIronicImage)
+			Expect(err).NotTo(HaveOccurred())
+			backendInfraEnv.InternalIgnitionConfigOverride = string(conf)
+			mockInstallerInternal.EXPECT().GetInfraEnvByKubeKey(gomock.Any()).Return(backendInfraEnv, nil)
+		}
+
 		It("Adds the default ironic Ignition to the infraEnv when no clusterID is set", func() {
 			Expect(c.Create(ctx, infraEnv)).To(BeNil())
 			backendInfraEnv.ClusterID = ""
@@ -153,9 +163,10 @@ var _ = Describe("PreprovisioningImage reconcile", func() {
 				Do(func(ctx context.Context, params installer.UpdateInfraEnvParams, internalIgnitionConfig *string) {
 					Expect(params.InfraEnvID).To(Equal(*backendInfraEnv.ID))
 					Expect(params.InfraEnvUpdateParams.IgnitionConfigOverride).To(Equal(""))
-					Expect(*internalIgnitionConfig).Should(ContainSubstring("ironic"))
+					Expect(*internalIgnitionConfig).Should(ContainSubstring(defaultIronicImage))
 				}).Return(
 				&common.InfraEnv{InfraEnv: models.InfraEnv{ClusterID: clusterID, ID: &infraEnvID, DownloadURL: downloadURL, CPUArchitecture: infraEnvArch}, GeneratedAt: strfmt.DateTime(time.Now())}, nil).Times(1)
+
 			mockCRDEventsHandler.EXPECT().NotifyInfraEnvUpdates(infraEnv.Name, infraEnv.Namespace).Times(1)
 			res, err := pr.Reconcile(ctx, newPreprovisioningImageRequest(ppi))
 			Expect(err).To(BeNil())
@@ -176,10 +187,9 @@ var _ = Describe("PreprovisioningImage reconcile", func() {
 				Reason:  "some reason",
 				Message: "Some message",
 			}}
-			infraEnv.ObjectMeta.Annotations = make(map[string]string)
-			infraEnv.ObjectMeta.Annotations[EnableIronicAgentAnnotation] = "true"
 			Expect(c.Create(ctx, infraEnv)).To(BeNil())
-			Expect(infraEnv.ObjectMeta.Annotations[EnableIronicAgentAnnotation]).To(Equal("true"))
+			setInfraEnvIronicConfig()
+
 			res, err := pr.Reconcile(ctx, newPreprovisioningImageRequest(ppi))
 			Expect(err).To(BeNil())
 			Expect(res.Requeue).To(Equal(true))
@@ -205,10 +215,8 @@ var _ = Describe("PreprovisioningImage reconcile", func() {
 				Reason:  "some reason",
 				Message: "Some message",
 			}}
-			infraEnv.ObjectMeta.Annotations = make(map[string]string)
-			infraEnv.ObjectMeta.Annotations[EnableIronicAgentAnnotation] = "true"
 			Expect(c.Create(ctx, infraEnv)).To(BeNil())
-			Expect(infraEnv.ObjectMeta.Annotations[EnableIronicAgentAnnotation]).To(Equal("true"))
+			setInfraEnvIronicConfig()
 
 			res, err := pr.Reconcile(ctx, newPreprovisioningImageRequest(ppi))
 			Expect(err).To(BeNil())
@@ -232,9 +240,8 @@ var _ = Describe("PreprovisioningImage reconcile", func() {
 				Reason:  "some reason",
 				Message: "Some message",
 			}}
-			infraEnv.ObjectMeta.Annotations = make(map[string]string)
-			infraEnv.ObjectMeta.Annotations[EnableIronicAgentAnnotation] = "true"
 			Expect(c.Create(ctx, infraEnv)).To(BeNil())
+			setInfraEnvIronicConfig()
 
 			res, err := pr.Reconcile(ctx, newPreprovisioningImageRequest(ppi))
 			Expect(err).To(BeNil())
@@ -260,13 +267,12 @@ var _ = Describe("PreprovisioningImage reconcile", func() {
 				Reason:  "some reason",
 				Message: "Some message",
 			}}
-			infraEnv.ObjectMeta.Annotations = make(map[string]string)
-			infraEnv.ObjectMeta.Annotations[EnableIronicAgentAnnotation] = "true"
 			infraEnv.Spec.KernelArguments = []aiv1beta1.KernelArgument{
 				{Operation: models.KernelArgumentOperationAppend, Value: "arg=thing"},
 				{Operation: models.KernelArgumentOperationAppend, Value: "other.arg"},
 			}
 			Expect(c.Create(ctx, infraEnv)).To(BeNil())
+			setInfraEnvIronicConfig()
 
 			res, err := pr.Reconcile(ctx, newPreprovisioningImageRequest(ppi))
 			Expect(err).To(BeNil())
@@ -290,12 +296,10 @@ var _ = Describe("PreprovisioningImage reconcile", func() {
 				Reason:  "some reason",
 				Message: "Some message",
 			}}
-			infraEnv.ObjectMeta.Annotations = make(map[string]string)
-			infraEnv.ObjectMeta.Annotations[EnableIronicAgentAnnotation] = "true"
 			Expect(c.Create(ctx, infraEnv)).To(BeNil())
-			Expect(infraEnv.ObjectMeta.Annotations[EnableIronicAgentAnnotation]).To(Equal("true"))
 			SetImageUrl(ppi, *infraEnv)
 			Expect(c.Update(ctx, ppi)).To(BeNil())
+			setInfraEnvIronicConfig()
 
 			res, err := pr.Reconcile(ctx, newPreprovisioningImageRequest(ppi))
 			Expect(err).To(BeNil())
@@ -404,6 +408,26 @@ var _ = Describe("PreprovisioningImage reconcile", func() {
 			Expect(res).To(Equal(ctrl.Result{}))
 		})
 
+		It("uses the override ironic image when supplied", func() {
+			overrideAgentImage := "ironic-agent-override:latest"
+			infraEnv.Spec.IronicAgentImageOverride = overrideAgentImage
+			Expect(c.Create(ctx, infraEnv)).To(BeNil())
+			backendInfraEnv.CPUArchitecture = "x86_64"
+			backendInfraEnv.PullSecret = "mypullsecret"
+			mockInstallerInternal.EXPECT().GetInfraEnvByKubeKey(gomock.Any()).Return(backendInfraEnv, nil)
+
+			mockInstallerInternal.EXPECT().UpdateInfraEnvInternal(gomock.Any(), gomock.Any(), gomock.Any()).
+				Do(func(ctx context.Context, params installer.UpdateInfraEnvParams, internalIgnitionConfig *string) {
+					Expect(params.InfraEnvID).To(Equal(*backendInfraEnv.ID))
+					Expect(internalIgnitionConfig).Should(HaveValue(ContainSubstring(overrideAgentImage)))
+				})
+			mockCRDEventsHandler.EXPECT().NotifyInfraEnvUpdates(infraEnv.Name, infraEnv.Namespace).Times(1)
+
+			res, err := pr.Reconcile(ctx, newPreprovisioningImageRequest(ppi))
+			Expect(err).To(BeNil())
+			Expect(res).To(Equal(ctrl.Result{}))
+		})
+
 		It("sets a failure condition when the infraEnv arch doesn't match the preprovisioningimage", func() {
 			infraEnv.Spec.CpuArchitecture = "aarch64"
 			Expect(c.Create(ctx, infraEnv)).To(BeNil())
@@ -429,8 +453,9 @@ var _ = Describe("PreprovisioningImage reconcile", func() {
 
 		It("doesn't fail when the infraEnv image has not been created yet", func() {
 			infraEnv.Status = aiv1beta1.InfraEnvStatus{}
-			infraEnv.ObjectMeta.Annotations = map[string]string{EnableIronicAgentAnnotation: "true"}
 			Expect(c.Create(ctx, infraEnv)).To(BeNil())
+			setInfraEnvIronicConfig()
+
 			res, err := pr.Reconcile(ctx, newPreprovisioningImageRequest(ppi))
 			Expect(err).To(BeNil())
 			Expect(res).To(Equal(ctrl.Result{}))

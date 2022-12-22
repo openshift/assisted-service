@@ -19,7 +19,6 @@ package controllers
 import (
 	"context"
 	"fmt"
-	"strconv"
 	"strings"
 	"time"
 
@@ -138,8 +137,9 @@ func (r *PreprovisioningImageReconciler) Reconcile(origCtx context.Context, req 
 		return ctrl.Result{}, err
 	}
 
-	if !IronicAgentEnabled(log, infraEnv) {
-		return r.AddIronicAgentToInfraEnv(ctx, log, infraEnv)
+	infraEnvUpdated, err := r.AddIronicAgentToInfraEnv(ctx, log, infraEnv)
+	if infraEnvUpdated || err != nil {
+		return ctrl.Result{}, err
 	}
 
 	if infraEnv.Status.CreatedTime == nil {
@@ -371,8 +371,9 @@ func (r *PreprovisioningImageReconciler) mapInfraEnvPPI() func(a client.Object) 
 	return mapInfraEnvPPI
 }
 
-func (r *PreprovisioningImageReconciler) AddIronicAgentToInfraEnv(ctx context.Context, log logrus.FieldLogger, infraEnv *aiv1beta1.InfraEnv) (ctrl.Result, error) {
-	// Retrieve infraenv from the database
+// AddIronicAgentToInfraEnv updates the infra-env in the database with the ironic agent ignition config if required
+// returns true when the infra-env was updated, false otherwise
+func (r *PreprovisioningImageReconciler) AddIronicAgentToInfraEnv(ctx context.Context, log logrus.FieldLogger, infraEnv *aiv1beta1.InfraEnv) (bool, error) {
 	key := types.NamespacedName{
 		Name:      infraEnv.Name,
 		Namespace: infraEnv.Namespace,
@@ -380,11 +381,16 @@ func (r *PreprovisioningImageReconciler) AddIronicAgentToInfraEnv(ctx context.Co
 	infraEnvInternal, err := r.Installer.GetInfraEnvByKubeKey(key)
 	if err != nil {
 		log.WithError(err).Error("failed to get corresponding infraEnv")
-		return ctrl.Result{}, err
+		return false, err
 	}
-	ironicAgentImage, err := r.getIronicAgentImageByRelease(ctx, log, infraEnvInternal)
-	if err != nil {
-		log.WithError(err).Warningf("Failed to get ironic agent image by release for infraEnv: %s", infraEnv.Name)
+	ironicAgentImage := infraEnv.Spec.IronicAgentImageOverride
+	if ironicAgentImage == "" {
+		ironicAgentImage, err = r.getIronicAgentImageByRelease(ctx, log, infraEnvInternal)
+		if err != nil {
+			log.WithError(err).Warningf("Failed to get ironic agent image by release for infraEnv: %s", infraEnv.Name)
+		}
+	} else {
+		log.Infof("Using override ironic agent image (%s) for infraEnv %s", ironicAgentImage, infraEnv.Name)
 	}
 
 	// if ironicAgentImage can't be found by version use the default
@@ -400,25 +406,30 @@ func (r *PreprovisioningImageReconciler) AddIronicAgentToInfraEnv(ctx context.Co
 	conf, err := ignition.GenerateIronicConfig(r.IronicServiceURL, r.IronicInspectorURL, *infraEnvInternal, ironicAgentImage)
 	if err != nil {
 		log.WithError(err).Error("failed to generate Ironic ignition config")
-		return ctrl.Result{}, err
+		return false, err
 	}
 
-	_, err = r.Installer.UpdateInfraEnvInternal(ctx, installer.UpdateInfraEnvParams{InfraEnvID: *infraEnvInternal.ID, InfraEnvUpdateParams: &models.InfraEnvUpdateParams{}}, swag.String(string(conf)))
-	if err != nil {
-		return ctrl.Result{}, err
+	updated := false
+	if string(conf) != infraEnvInternal.InternalIgnitionConfigOverride {
+		_, err = r.Installer.UpdateInfraEnvInternal(ctx, installer.UpdateInfraEnvParams{InfraEnvID: *infraEnvInternal.ID, InfraEnvUpdateParams: &models.InfraEnvUpdateParams{}}, swag.String(string(conf)))
+		if err != nil {
+			return false, err
+		}
+		updated = true
+		r.CRDEventsHandler.NotifyInfraEnvUpdates(infraEnv.Name, infraEnv.Namespace)
 	}
-	if infraEnv.ObjectMeta.Annotations == nil {
-		infraEnv.ObjectMeta.Annotations = make(map[string]string)
+	if _, haveAnnotation := infraEnv.ObjectMeta.Annotations[EnableIronicAgentAnnotation]; !haveAnnotation {
+		if infraEnv.ObjectMeta.Annotations == nil {
+			infraEnv.ObjectMeta.Annotations = make(map[string]string)
+		}
+		infraEnv.Annotations[EnableIronicAgentAnnotation] = "true"
+		if err := r.Client.Update(ctx, infraEnv); err != nil {
+			// Just warn here if the update fails as this annotation is just informational
+			log.WithError(err).Warnf("failed to set %s annotation on infraEnv %s", EnableIronicAgentAnnotation, infraEnv.Name)
+		}
 	}
 
-	infraEnv.Annotations[EnableIronicAgentAnnotation] = "true"
-	err = r.Client.Update(ctx, infraEnv)
-	if err != nil {
-		return ctrl.Result{}, err
-	}
-	// TODO: if the annotation is enough to trigger the infraEnv reconciliation remove the notification
-	r.CRDEventsHandler.NotifyInfraEnvUpdates(infraEnv.Name, infraEnv.Namespace)
-	return ctrl.Result{}, err
+	return updated, nil
 }
 
 func (r *PreprovisioningImageReconciler) getIronicAgentImageByRelease(ctx context.Context, log logrus.FieldLogger, infraEnv *common.InfraEnv) (string, error) {
@@ -448,17 +459,4 @@ func (r *PreprovisioningImageReconciler) getIronicAgentImageByRelease(ctx contex
 	}
 
 	return image, nil
-}
-
-func IronicAgentEnabled(log logrus.FieldLogger, infraEnv *aiv1beta1.InfraEnv) bool {
-	value, ok := infraEnv.GetAnnotations()[EnableIronicAgentAnnotation]
-	if !ok {
-		return false
-	}
-	log.Debugf("InfraEnv annotation %s value %s", EnableIronicAgentAnnotation, value)
-	enabled, err := strconv.ParseBool(value)
-	if err != nil {
-		log.WithError(err).Errorf("failed to parse %s to bool value", value)
-	}
-	return enabled
 }
