@@ -335,6 +335,21 @@ var _ = Describe("HypershiftAgentServiceConfig reconcile", func() {
 		Expect(err).To(BeNil())
 	})
 
+	It("fails due to missing konnectivity deployment", func() {
+		mockSpokeClientCache.EXPECT().Get(gomock.Any()).Return(mockSpokeClient, nil)
+		mockSpokeClient.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+		mockSpokeClient.EXPECT().Update(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+		mockSpokeClient.EXPECT().List(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+
+		Expect(hr.Client.Delete(ctx, konnectivity)).To(Succeed())
+		_, err := hr.Reconcile(ctx, newHypershiftAgentServiceConfigRequest(hsc))
+		Expect(err).ToNot(BeNil())
+		Expect(err.Error()).To(ContainSubstring(
+			fmt.Sprintf("Failed to retrieve konnectivity-agent Deployment from namespace %s",
+				testNamespace)))
+		assertReconcileCompletedCondition(corev1.ConditionFalse, aiv1beta1.ReasonKonnectivityAgentFailure)
+	})
+
 	It("successfully creates CRD on spoke cluster", func() {
 		notFoundError := k8serrors.NewNotFound(schema.GroupResource{Group: "v1", Resource: "CustomResourceDefinition"}, testCRDName)
 		mockSpokeClient.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any()).Return(notFoundError).AnyTimes()

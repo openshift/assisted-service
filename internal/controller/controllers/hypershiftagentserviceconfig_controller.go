@@ -777,8 +777,10 @@ func newHypershiftWebHookAPIService(ctx context.Context, log logrus.FieldLogger,
 func newKonnectivityAgentDeployment(ctx context.Context, log logrus.FieldLogger, asc ASC) (client.Object, controllerutil.MutateFn, error) {
 	//read the existing konnectivity deployment
 	ka := &appsv1.Deployment{}
-	if err := asc.Client.Get(ctx, types.NamespacedName{Name: "konnectivity-agent", Namespace: asc.namespace}, ka); err != nil {
-		log.WithError(err).Errorf("Failed retrieving konnectivity-agend Deployment from namespace %s", asc.namespace)
+	if e := asc.Client.Get(ctx, types.NamespacedName{Name: "konnectivity-agent", Namespace: asc.namespace}, ka); e != nil {
+		err := pkgerror.Wrap(e, fmt.Sprintf("Failed to retrieve konnectivity-agent Deployment from namespace %s", asc.namespace))
+		log.WithError(err)
+		return nil, nil, err
 	}
 	ka.ObjectMeta = metav1.ObjectMeta{
 		Name:      "konnectivity-agent-assisted-service",
