@@ -146,7 +146,7 @@ var _ = Describe("ACI web validate", func() {
 			expectedAllowed: false,
 		},
 		{
-			name: "Test AgentClusterInstall.Spec is immutable (updates not allowed) Install finished",
+			name: "Test AgentClusterInstall.Spec updates allowed on Install finished",
 			newSpec: hiveext.AgentClusterInstallSpec{
 				SSHPublicKey: "somekey",
 			},
@@ -160,10 +160,10 @@ var _ = Describe("ACI web validate", func() {
 				SSHPublicKey: "someotherkey",
 			},
 			operation:       admissionv1.Update,
-			expectedAllowed: false,
+			expectedAllowed: true,
 		},
 		{
-			name: "Test AgentClusterInstall.Spec is immutable (updates not allowed) Install failed",
+			name: "Test AgentClusterInstall.Spec updates allowed after Install failed",
 			newSpec: hiveext.AgentClusterInstallSpec{
 				SSHPublicKey: "somekey",
 			},
@@ -177,7 +177,7 @@ var _ = Describe("ACI web validate", func() {
 				SSHPublicKey: "someotherkey",
 			},
 			operation:       admissionv1.Update,
-			expectedAllowed: false,
+			expectedAllowed: true,
 		},
 		{
 			name: "Test AgentClusterInstall.Spec.ClusterMetadata is mutable (updates are allowed) Install started",
