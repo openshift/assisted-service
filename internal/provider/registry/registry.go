@@ -8,6 +8,7 @@ import (
 	"github.com/openshift/assisted-service/internal/installcfg"
 	"github.com/openshift/assisted-service/internal/provider"
 	"github.com/openshift/assisted-service/internal/provider/baremetal"
+	"github.com/openshift/assisted-service/internal/provider/none"
 	"github.com/openshift/assisted-service/internal/provider/ovirt"
 	"github.com/openshift/assisted-service/internal/provider/vsphere"
 	"github.com/openshift/assisted-service/internal/usage"
@@ -91,7 +92,7 @@ func (r *registry) SetPlatformUsages(
 	p models.PlatformType, usages map[string]models.Usage, usageApi usage.API) error {
 	currentProvider, err := r.Get(string(p))
 	if err != nil {
-		return fmt.Errorf("error adding platform to install config, platform provider wasn't set: %w", err)
+		return fmt.Errorf("error adding platform %s to install config, platform provider wasn't set: %w", p, err)
 	}
 	return currentProvider.SetPlatformUsages(usages, usageApi)
 }
@@ -162,5 +163,6 @@ func InitProviderRegistry(log logrus.FieldLogger) ProviderRegistry {
 	providerRegistry.Register(ovirt.NewOvirtProvider(log, nil))
 	providerRegistry.Register(vsphere.NewVsphereProvider(log))
 	providerRegistry.Register(baremetal.NewBaremetalProvider(log))
+	providerRegistry.Register(none.NewNoneProvider(log))
 	return providerRegistry
 }

@@ -3,8 +3,10 @@ package provider
 import (
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/installcfg"
+	"github.com/openshift/assisted-service/internal/network"
 	"github.com/openshift/assisted-service/internal/usage"
 	"github.com/openshift/assisted-service/models"
+	"github.com/sirupsen/logrus"
 )
 
 const (
@@ -31,4 +33,19 @@ type Provider interface {
 	PreCreateManifestsHook(cluster *common.Cluster, envVars *[]string, workDir string) error
 	// PostCreateManifestsHook allows the provider to perform additional tasks required after the cluster manifests are created
 	PostCreateManifestsHook(cluster *common.Cluster, envVars *[]string, workDir string) error
+}
+
+func GetMachineNetworkForUserManagedNetworking(log logrus.FieldLogger, cluster *common.Cluster) []installcfg.MachineNetwork {
+	bootstrapCidr := network.GetPrimaryMachineCidrForUserManagedNetwork(cluster, log)
+	if bootstrapCidr != "" {
+		log.Infof("Selected bootstrap machine network CIDR %s for cluster %s", bootstrapCidr, cluster.ID.String())
+		var machineNetwork []installcfg.MachineNetwork
+		cluster.MachineNetworks = network.GetMachineNetworksFromBoostrapHost(cluster, log)
+		for _, net := range cluster.MachineNetworks {
+			machineNetwork = append(machineNetwork, installcfg.MachineNetwork{Cidr: string(net.Cidr)})
+		}
+		return machineNetwork
+	}
+
+	return nil
 }

@@ -118,6 +118,7 @@ var (
 	imageServicePath    = "/api/image-services"
 	imageServiceHost    = "image-service.example.com:8080"
 	imageServiceBaseURL = fmt.Sprintf("https://%s%s", imageServiceHost, imageServicePath)
+	fakePullSecret      = `{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"` // #nosec
 )
 
 func toMac(macStr string) *strfmt.MAC {
@@ -204,10 +205,11 @@ func getDefaultClusterCreateParams() *models.ClusterCreateParams {
 	return &models.ClusterCreateParams{
 		Name:             swag.String("some-cluster-name"),
 		OpenshiftVersion: swag.String(common.TestDefaultConfig.OpenShiftVersion),
-		PullSecret:       swag.String("{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"),
+		PullSecret:       swag.String(fakePullSecret),
 		Platform: &models.Platform{
 			Type: common.PlatformTypePtr(models.PlatformTypeBaremetal),
 		},
+		HighAvailabilityMode: swag.String(models.ClusterHighAvailabilityModeFull),
 	}
 }
 
@@ -2289,8 +2291,12 @@ var _ = Describe("cluster", func() {
 		})
 	})
 	Context("Create non HA cluster", func() {
+		var clusterParams *models.ClusterCreateParams
+
 		BeforeEach(func() {
 			mockDurationsSuccess()
+			clusterParams = getDefaultClusterCreateParams()
+			clusterParams.Platform = &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeNone)}
 		})
 		It("happy flow", func() {
 			bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog().WithField("pkg", "cluster-monitor"),
@@ -2299,7 +2305,6 @@ var _ = Describe("cluster", func() {
 			mockClusterRegisterSuccess(true)
 			noneHaMode := models.ClusterHighAvailabilityModeNone
 			MinimalOpenShiftVersionForNoneHA := "4.8.0-fc.0"
-			clusterParams := getDefaultClusterCreateParams()
 			clusterParams.OpenshiftVersion = swag.String(MinimalOpenShiftVersionForNoneHA)
 			clusterParams.HighAvailabilityMode = &noneHaMode
 			reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
@@ -2320,7 +2325,6 @@ var _ = Describe("cluster", func() {
 				db, mockEvents, nil, nil, nil, nil, nil, nil, nil, nil, nil)
 			noneHaMode := models.ClusterHighAvailabilityModeNone
 			insufficientOpenShiftVersionForNoneHA := "4.7"
-			clusterParams := getDefaultClusterCreateParams()
 			clusterParams.OpenshiftVersion = swag.String(insufficientOpenShiftVersionForNoneHA)
 			clusterParams.HighAvailabilityMode = &noneHaMode
 			reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
@@ -2337,7 +2341,6 @@ var _ = Describe("cluster", func() {
 				db, mockEvents, nil, nil, nil, nil, nil, nil, nil, nil, nil)
 			noneHaMode := models.ClusterHighAvailabilityModeNone
 			insufficientOpenShiftVersionForNoneHA := "4.7.0-fc.1"
-			clusterParams := getDefaultClusterCreateParams()
 			clusterParams.OpenshiftVersion = swag.String(insufficientOpenShiftVersionForNoneHA)
 			clusterParams.HighAvailabilityMode = &noneHaMode
 			reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
@@ -2352,7 +2355,6 @@ var _ = Describe("cluster", func() {
 			mockClusterRegisterSuccess(true)
 			noneHaMode := models.ClusterHighAvailabilityModeNone
 			openShiftVersionForNoneHA := "4.8.0"
-			clusterParams := getDefaultClusterCreateParams()
 			clusterParams.OpenshiftVersion = swag.String(openShiftVersionForNoneHA)
 			clusterParams.HighAvailabilityMode = &noneHaMode
 			reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
@@ -2371,7 +2373,6 @@ var _ = Describe("cluster", func() {
 			mockClusterRegisterSuccess(true)
 			noneHaMode := models.ClusterHighAvailabilityModeNone
 			openShiftVersionForNoneHA := "4.8.0-fc.2"
-			clusterParams := getDefaultClusterCreateParams()
 			clusterParams.OpenshiftVersion = swag.String(openShiftVersionForNoneHA)
 			clusterParams.HighAvailabilityMode = &noneHaMode
 			reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
@@ -2393,7 +2394,6 @@ var _ = Describe("cluster", func() {
 				db, mockEvents, nil, nil, nil, nil, nil, nil, nil, nil, nil)
 			noneHaMode := models.ClusterHighAvailabilityModeNone
 			openShiftVersionForNoneHA := "4.8.0-fc.2"
-			clusterParams := getDefaultClusterCreateParams()
 			clusterParams.OpenshiftVersion = swag.String(openShiftVersionForNoneHA)
 			clusterParams.HighAvailabilityMode = &noneHaMode
 			clusterParams.UserManagedNetworking = swag.Bool(false)
@@ -2411,7 +2411,6 @@ var _ = Describe("cluster", func() {
 				db, mockEvents, nil, nil, nil, nil, nil, nil, nil, nil, nil)
 			noneHaMode := models.ClusterHighAvailabilityModeNone
 			openShiftVersionForNoneHA := "4.8.0-fc.2"
-			clusterParams := getDefaultClusterCreateParams()
 			clusterParams.OpenshiftVersion = swag.String(openShiftVersionForNoneHA)
 			clusterParams.HighAvailabilityMode = &noneHaMode
 			clusterParams.VipDhcpAllocation = swag.Bool(true)
@@ -2430,6 +2429,7 @@ var _ = Describe("cluster", func() {
 		noneHaMode := models.ClusterHighAvailabilityModeNone
 		openShiftVersionForNoneHA := "4.8.0-0.ci.test-2021-05-20-000749-ci-op-7xrzwgwy-latest"
 		clusterParams := getDefaultClusterCreateParams()
+		clusterParams.Platform = &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeNone)}
 		clusterParams.OpenshiftVersion = swag.String(openShiftVersionForNoneHA)
 		clusterParams.HighAvailabilityMode = &noneHaMode
 		reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
@@ -3124,7 +3124,12 @@ var _ = Describe("cluster", func() {
 				clusterID = strfmt.UUID(uuid.New().String())
 				infraEnvID = strfmt.UUID(uuid.New().String())
 				err := db.Create(&common.Cluster{Cluster: models.Cluster{
-					ID: &clusterID,
+					ID:                    &clusterID,
+					OpenshiftVersion:      common.TestDefaultConfig.OpenShiftVersion,
+					Platform:              &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeBaremetal)},
+					UserManagedNetworking: swag.Bool(false),
+					CPUArchitecture:       common.X86CPUArchitecture,
+					HighAvailabilityMode:  swag.String(models.ClusterCreateParamsHighAvailabilityModeFull),
 				}}).Error
 				Expect(err).ShouldNot(HaveOccurred())
 				addHost(masterHostId1, models.HostRoleMaster, "known", models.HostKindHost, infraEnvID, clusterID, getInventoryStr("hostname0", "bootMode", "1.2.3.4/24", "10.11.50.90/16"), db)
@@ -3144,7 +3149,9 @@ var _ = Describe("cluster", func() {
 				BeforeEach(func() {
 					Expect(db.Model(&common.Cluster{}).Where("id = ?", clusterID).Updates(map[string]interface{}{
 						"user_managed_networking": true,
+						"platform_type":           models.PlatformTypeNone,
 						"high_availability_mode":  models.ClusterHighAvailabilityModeNone,
+						"cpu_architecture":        common.X86CPUArchitecture,
 					}).Error).ShouldNot(HaveOccurred())
 				})
 
@@ -3156,7 +3163,7 @@ var _ = Describe("cluster", func() {
 						},
 					})
 
-					verifyApiErrorString(reply, http.StatusBadRequest, "disabling UserManagedNetworking is not allowed in single node mode")
+					verifyApiErrorString(reply, http.StatusBadRequest, "disabling User Managed Networking or setting platform different than none platform is not allowed in single node Openshift")
 				})
 
 				It("Set Machine CIDR", func() {
@@ -3216,6 +3223,7 @@ var _ = Describe("cluster", func() {
 			Context("UserManagedNetworking", func() {
 				It("success", func() {
 					mockSuccess(1)
+					mockProviderRegistry.EXPECT().SetPlatformUsages(models.PlatformTypeNone, gomock.Any(), mockUsage)
 					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 						ClusterID: clusterID,
 						ClusterUpdateParams: &models.V2ClusterUpdateParams{
@@ -3229,7 +3237,7 @@ var _ = Describe("cluster", func() {
 
 				It("Unset non relevant parameters", func() {
 					mockSuccess(1)
-
+					mockProviderRegistry.EXPECT().SetPlatformUsages(models.PlatformTypeNone, gomock.Any(), mockUsage)
 					Expect(db.Model(&common.Cluster{}).Where("id = ?", clusterID).Updates(map[string]interface{}{
 						"api_vip":     common.TestIPv4Networking.APIVip,
 						"ingress_vip": common.TestIPv4Networking.IngressVip,
@@ -3266,6 +3274,7 @@ var _ = Describe("cluster", func() {
 				})
 
 				It("Fail with Machine CIDR", func() {
+					mockProviderRegistry.EXPECT().SetPlatformUsages(models.PlatformTypeNone, gomock.Any(), mockUsage)
 					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 						ClusterID: clusterID,
 						ClusterUpdateParams: &models.V2ClusterUpdateParams{
@@ -3282,6 +3291,8 @@ var _ = Describe("cluster", func() {
 						ID:                    &clusterID,
 						CPUArchitecture:       common.ARM64CPUArchitecture,
 						UserManagedNetworking: swag.Bool(true),
+						Platform:              &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeNone)},
+						HighAvailabilityMode:  swag.String(models.ClusterHighAvailabilityModeFull),
 						OpenshiftVersion:      "4.10",
 					}}).Error
 					Expect(err).ShouldNot(HaveOccurred())
@@ -3293,7 +3304,7 @@ var _ = Describe("cluster", func() {
 						},
 					})
 
-					verifyApiErrorString(reply, http.StatusBadRequest, "disabling User Managed Networking is not allowed for clusters with non-x86_64 CPU architecture")
+					verifyApiErrorString(reply, http.StatusBadRequest, "disabling User Managed Networking or setting Bare-Metal platform is not allowed for clusters with non-x86_64 CPU architecture")
 				})
 			})
 
@@ -4823,11 +4834,7 @@ var _ = Describe("[V2ClusterUpdate] cluster", func() {
 			mockClusterRegisterSuccess(true)
 
 			reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
-				NewClusterParams: &models.ClusterCreateParams{
-					Name:             swag.String("some-cluster-name"),
-					OpenshiftVersion: swag.String(common.TestDefaultConfig.OpenShiftVersion),
-					PullSecret:       swag.String(`{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"`),
-				},
+				NewClusterParams: getDefaultClusterCreateParams(),
 			})
 			Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2RegisterClusterCreated()))
 			actual := reply.(*installer.V2RegisterClusterCreated)
@@ -5210,7 +5217,8 @@ var _ = Describe("[V2ClusterUpdate] cluster", func() {
 			BeforeEach(func() {
 				clusterID = strfmt.UUID(uuid.New().String())
 				err := db.Create(&common.Cluster{Cluster: models.Cluster{
-					ID: &clusterID,
+					ID:       &clusterID,
+					Platform: &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeBaremetal)},
 				}}).Error
 				Expect(err).ShouldNot(HaveOccurred())
 				addHost(masterHostId1, models.HostRoleMaster, "known", models.HostKindHost, clusterID, getInventoryStr("hostname0", "bootMode", "1.2.3.4/24", "10.11.50.90/16"), db)
@@ -5227,7 +5235,9 @@ var _ = Describe("[V2ClusterUpdate] cluster", func() {
 			JustBeforeEach(func() {
 				Expect(db.Model(&common.Cluster{}).Where("id = ?", clusterID).Updates(map[string]interface{}{
 					"user_managed_networking": true,
+					"platform_type":           models.PlatformTypeNone,
 					"high_availability_mode":  models.ClusterHighAvailabilityModeNone,
+					"cpu_architecture":        common.X86CPUArchitecture,
 				}).Error).ShouldNot(HaveOccurred())
 			})
 
@@ -5239,7 +5249,7 @@ var _ = Describe("[V2ClusterUpdate] cluster", func() {
 					},
 				})
 
-				verifyApiErrorString(reply, http.StatusBadRequest, "disabling UserManagedNetworking is not allowed in single node mode")
+				verifyApiErrorString(reply, http.StatusBadRequest, "disabling User Managed Networking or setting platform different than none platform is not allowed in single node Openshift")
 			})
 
 			It("Set Machine CIDR", func() {
@@ -5300,7 +5310,12 @@ var _ = Describe("[V2ClusterUpdate] cluster", func() {
 			BeforeEach(func() {
 				clusterID = strfmt.UUID(uuid.New().String())
 				err := db.Create(&common.Cluster{Cluster: models.Cluster{
-					ID: &clusterID,
+					ID:                    &clusterID,
+					OpenshiftVersion:      common.TestDefaultConfig.OpenShiftVersion,
+					Platform:              &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeBaremetal)},
+					UserManagedNetworking: swag.Bool(false),
+					CPUArchitecture:       common.X86CPUArchitecture,
+					HighAvailabilityMode:  swag.String(models.ClusterCreateParamsHighAvailabilityModeFull),
 				}}).Error
 				Expect(err).ShouldNot(HaveOccurred())
 				addHost(masterHostId1, models.HostRoleMaster, "known", models.HostKindHost, clusterID, getInventoryStr("hostname0", "bootMode", "1.2.3.4/24", "10.11.50.90/16"), db)
@@ -5323,6 +5338,7 @@ var _ = Describe("[V2ClusterUpdate] cluster", func() {
 				It("success", func() {
 					mockSuccess(1)
 					mockClusterUpdatability(1)
+					mockProviderRegistry.EXPECT().SetPlatformUsages(models.PlatformTypeNone, gomock.Any(), mockUsage)
 					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 						ClusterID: clusterID,
 						ClusterUpdateParams: &models.V2ClusterUpdateParams{
@@ -5337,6 +5353,7 @@ var _ = Describe("[V2ClusterUpdate] cluster", func() {
 				It("Unset non relevant parameters", func() {
 					mockSuccess(1)
 					mockClusterUpdatability(1)
+					mockProviderRegistry.EXPECT().SetPlatformUsages(models.PlatformTypeNone, gomock.Any(), mockUsage)
 
 					Expect(db.Model(&common.Cluster{}).Where("id = ?", clusterID).Updates(map[string]interface{}{
 						"api_vip":     common.TestIPv4Networking.APIVip,
@@ -5410,6 +5427,7 @@ var _ = Describe("[V2ClusterUpdate] cluster", func() {
 
 				It("Fail with Machine CIDR", func() {
 					mockClusterUpdatability(1)
+					mockProviderRegistry.EXPECT().SetPlatformUsages(models.PlatformTypeNone, gomock.Any(), mockUsage)
 					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 						ClusterID: clusterID,
 						ClusterUpdateParams: &models.V2ClusterUpdateParams{
@@ -5427,6 +5445,8 @@ var _ = Describe("[V2ClusterUpdate] cluster", func() {
 						ID:                    &clusterID,
 						CPUArchitecture:       common.ARM64CPUArchitecture,
 						UserManagedNetworking: swag.Bool(true),
+						Platform:              &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeNone)},
+						HighAvailabilityMode:  swag.String(models.ClusterHighAvailabilityModeFull),
 						OpenshiftVersion:      "4.10",
 					}}).Error
 					Expect(err).ShouldNot(HaveOccurred())
@@ -5438,18 +5458,21 @@ var _ = Describe("[V2ClusterUpdate] cluster", func() {
 						},
 					})
 
-					verifyApiErrorString(reply, http.StatusBadRequest, "disabling User Managed Networking is not allowed for clusters with non-x86_64 CPU architecture")
+					verifyApiErrorString(reply, http.StatusBadRequest, "disabling User Managed Networking or setting Bare-Metal platform is not allowed for clusters with non-x86_64 CPU architecture")
 				})
 
 				It("Success with non-x86_64 CPU architecture in case override is supported - 4.11", func() {
 					mockClusterUpdateSuccess(1, 0)
 					mockClusterUpdatability(1)
+					mockProviderRegistry.EXPECT().SetPlatformUsages(models.PlatformTypeBaremetal, gomock.Any(), mockUsage)
 					clusterID = strfmt.UUID(uuid.New().String())
 					err := db.Create(&common.Cluster{Cluster: models.Cluster{
 						ID:                    &clusterID,
 						CPUArchitecture:       common.ARM64CPUArchitecture,
 						OpenshiftVersion:      "4.11",
 						UserManagedNetworking: swag.Bool(true),
+						Platform:              &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeNone)},
+						HighAvailabilityMode:  swag.String(models.ClusterHighAvailabilityModeFull),
 					}}).Error
 					Expect(err).ShouldNot(HaveOccurred())
 					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
@@ -10573,6 +10596,7 @@ var _ = Describe("TestRegisterCluster", func() {
 		mockAMSSubscription(ctx)
 		clusterParams := getDefaultClusterCreateParams()
 		clusterParams.UserManagedNetworking = swag.Bool(true)
+		clusterParams.Platform = &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeNone)}
 		clusterParams.VipDhcpAllocation = swag.Bool(false)
 		reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 			NewClusterParams: clusterParams,
@@ -10589,6 +10613,7 @@ var _ = Describe("TestRegisterCluster", func() {
 			eventstest.WithSeverityMatcher(models.EventSeverityError))).Times(1)
 
 		clusterParams := getDefaultClusterCreateParams()
+		clusterParams.Platform = &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeNone)}
 		clusterParams.UserManagedNetworking = swag.Bool(true)
 		clusterParams.VipDhcpAllocation = swag.Bool(true)
 		reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
@@ -10645,6 +10670,8 @@ var _ = Describe("TestRegisterCluster", func() {
 						EnableOn: swag.String(models.DiskEncryptionEnableOnAll),
 						Mode:     swag.String(models.DiskEncryptionModeTang),
 					},
+					OpenshiftVersion:     swag.String("4.12.0"),
+					HighAvailabilityMode: swag.String(models.ClusterHighAvailabilityModeFull),
 				},
 			})
 			verifyApiErrorString(reply, http.StatusBadRequest, "Setting Tang mode but tang_servers isn't set")
@@ -10663,6 +10690,8 @@ var _ = Describe("TestRegisterCluster", func() {
 							Mode:        swag.String(models.DiskEncryptionModeTang),
 							TangServers: `[{"URL":"","Thumbprint":""}]`,
 						},
+						OpenshiftVersion:     swag.String("4.12.0"),
+						HighAvailabilityMode: swag.String(models.ClusterHighAvailabilityModeFull),
 					},
 				})
 				verifyApiErrorString(reply, http.StatusBadRequest, "empty url")
@@ -10676,6 +10705,8 @@ var _ = Describe("TestRegisterCluster", func() {
 							Mode:        swag.String(models.DiskEncryptionModeTang),
 							TangServers: `[{"URL":"invalidUrl","Thumbprint":""}]`,
 						},
+						OpenshiftVersion:     swag.String("4.12.0"),
+						HighAvailabilityMode: swag.String(models.ClusterHighAvailabilityModeFull),
 					},
 				})
 				verifyApiErrorString(reply, http.StatusBadRequest, "invalid URI for reques")
@@ -10694,6 +10725,8 @@ var _ = Describe("TestRegisterCluster", func() {
 						Mode:        swag.String(models.DiskEncryptionModeTang),
 						TangServers: `[{"URL":"http://tang.example.com:7500","Thumbprint":""}]`,
 					},
+					OpenshiftVersion:     swag.String("4.12.0"),
+					HighAvailabilityMode: swag.String(models.ClusterHighAvailabilityModeFull),
 				},
 			})
 			verifyApiErrorString(reply, http.StatusBadRequest, "Tang thumbprint isn't set")
@@ -10709,6 +10742,8 @@ var _ = Describe("TestRegisterCluster", func() {
 						EnableOn: swag.String(models.DiskEncryptionEnableOnNone),
 						Mode:     swag.String(models.DiskEncryptionModeTpmv2),
 					},
+					OpenshiftVersion:     swag.String("4.12.0"),
+					HighAvailabilityMode: swag.String(models.ClusterHighAvailabilityModeFull),
 				},
 			})
 			Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2RegisterClusterCreated()))
@@ -10723,6 +10758,8 @@ var _ = Describe("TestRegisterCluster", func() {
 					DiskEncryption: &models.DiskEncryption{
 						Mode: swag.String(models.DiskEncryptionModeTpmv2),
 					},
+					OpenshiftVersion:     swag.String("4.12.0"),
+					HighAvailabilityMode: swag.String(models.ClusterHighAvailabilityModeFull),
 				},
 			})
 			Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2RegisterClusterCreated()))
@@ -10740,6 +10777,8 @@ var _ = Describe("TestRegisterCluster", func() {
 						EnableOn: swag.String(models.DiskEncryptionEnableOnAll),
 						Mode:     swag.String(models.DiskEncryptionModeTpmv2),
 					},
+					OpenshiftVersion:     swag.String("4.12.0"),
+					HighAvailabilityMode: swag.String(models.ClusterHighAvailabilityModeFull),
 				},
 			})
 			Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2RegisterClusterCreated()))
@@ -10757,6 +10796,8 @@ var _ = Describe("TestRegisterCluster", func() {
 					DiskEncryption: &models.DiskEncryption{
 						EnableOn: swag.String(models.DiskEncryptionEnableOnAll),
 					},
+					OpenshiftVersion:     swag.String("4.12.0"),
+					HighAvailabilityMode: swag.String(models.ClusterHighAvailabilityModeFull),
 				},
 			})
 			Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2RegisterClusterCreated()))
@@ -10774,6 +10815,8 @@ var _ = Describe("TestRegisterCluster", func() {
 					DiskEncryption: &models.DiskEncryption{
 						EnableOn: swag.String(models.DiskEncryptionEnableOnNone),
 					},
+					OpenshiftVersion:     swag.String("4.12.0"),
+					HighAvailabilityMode: swag.String(models.ClusterHighAvailabilityModeFull),
 				},
 			})
 			Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2RegisterClusterCreated()))
@@ -10795,7 +10838,7 @@ var _ = Describe("TestRegisterCluster", func() {
 				mockAMSSubscription(ctx)
 
 				reply := diskEncryptionBm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
-					NewClusterParams: &models.ClusterCreateParams{},
+					NewClusterParams: getDefaultClusterCreateParams(),
 				})
 				Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2RegisterClusterCreated()))
 				c = reply.(*installer.V2RegisterClusterCreated).Payload
@@ -10883,15 +10926,16 @@ var _ = Describe("TestRegisterCluster", func() {
 				apiVip := "1.2.3.5"
 				ingressVip := "1.2.3.6"
 
+				clusterCreateParams := getDefaultClusterCreateParams()
+				clusterCreateParams.APIVip = apiVip
+				clusterCreateParams.IngressVip = ingressVip
+				clusterCreateParams.ClusterNetworks = common.TestDualStackNetworking.ClusterNetworks
+				clusterCreateParams.MachineNetworks = common.TestDualStackNetworking.MachineNetworks
+				clusterCreateParams.ServiceNetworks = common.TestDualStackNetworking.ServiceNetworks
+				clusterCreateParams.VipDhcpAllocation = swag.Bool(false)
+
 				reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
-					NewClusterParams: &models.ClusterCreateParams{
-						APIVip:            apiVip,
-						IngressVip:        ingressVip,
-						ClusterNetworks:   common.TestDualStackNetworking.ClusterNetworks,
-						MachineNetworks:   common.TestDualStackNetworking.MachineNetworks,
-						ServiceNetworks:   common.TestDualStackNetworking.ServiceNetworks,
-						VipDhcpAllocation: swag.Bool(false),
-					},
+					NewClusterParams: clusterCreateParams,
 				})
 				Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2RegisterClusterCreated()))
 				actual := reply.(*installer.V2RegisterClusterCreated).Payload
@@ -10909,15 +10953,16 @@ var _ = Describe("TestRegisterCluster", func() {
 				apiVip := "1.2.3.5"
 				ingressVip := "1.2.3.6"
 
+				clusterCreateParams := getDefaultClusterCreateParams()
+				clusterCreateParams.APIVip = apiVip
+				clusterCreateParams.IngressVip = ingressVip
+				clusterCreateParams.ClusterNetworks = common.TestIPv4Networking.ClusterNetworks
+				clusterCreateParams.MachineNetworks = common.TestIPv4Networking.MachineNetworks
+				clusterCreateParams.ServiceNetworks = common.TestIPv4Networking.ServiceNetworks
+				clusterCreateParams.VipDhcpAllocation = swag.Bool(false)
+
 				reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
-					NewClusterParams: &models.ClusterCreateParams{
-						APIVip:            apiVip,
-						IngressVip:        ingressVip,
-						ClusterNetworks:   common.TestIPv4Networking.ClusterNetworks,
-						MachineNetworks:   common.TestIPv4Networking.MachineNetworks,
-						ServiceNetworks:   common.TestIPv4Networking.ServiceNetworks,
-						VipDhcpAllocation: swag.Bool(false),
-					},
+					NewClusterParams: clusterCreateParams,
 				})
 				Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2RegisterClusterCreated()))
 				actual := reply.(*installer.V2RegisterClusterCreated).Payload
@@ -11134,12 +11179,13 @@ var _ = Describe("TestRegisterCluster", func() {
 				mockClusterRegisterSuccess(true)
 				mockAMSSubscription(ctx)
 
+				params := getDefaultClusterCreateParams()
+				params.DiskEncryption = &models.DiskEncryption{
+					EnableOn: swag.String(models.DiskEncryptionEnableOnNone),
+				}
+
 				reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
-					NewClusterParams: &models.ClusterCreateParams{
-						DiskEncryption: &models.DiskEncryption{
-							EnableOn: swag.String(models.DiskEncryptionEnableOnNone),
-						},
-					},
+					NewClusterParams: params,
 				})
 				Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2RegisterClusterCreated()))
 				actual := reply.(*installer.V2RegisterClusterCreated)
@@ -11387,13 +11433,11 @@ var _ = Describe("TestRegisterCluster", func() {
 		mockClusterRegisterSuccess(true)
 		mockAMSSubscription(ctx)
 
+		params := getDefaultClusterCreateParams()
+		params.CPUArchitecture = common.TestDefaultConfig.CPUArchitecture
+
 		reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
-			NewClusterParams: &models.ClusterCreateParams{
-				Name:             swag.String("some-cluster-name"),
-				OpenshiftVersion: swag.String(common.TestDefaultConfig.OpenShiftVersion),
-				CPUArchitecture:  common.TestDefaultConfig.CPUArchitecture,
-				PullSecret:       swag.String("{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"),
-			},
+			NewClusterParams: params,
 		})
 		Expect(reflect.TypeOf(reply)).Should(Equal(reflect.TypeOf(installer.NewV2RegisterClusterCreated())))
 		actual := reply.(*installer.V2RegisterClusterCreated)
@@ -11406,15 +11450,14 @@ var _ = Describe("TestRegisterCluster", func() {
 		mockVersions.EXPECT().GetCPUArchitectures(gomock.Any()).Return(
 			[]string{common.TestDefaultConfig.OpenShiftVersion, common.ARM64CPUArchitecture}).Times(1)
 
+		params := getDefaultClusterCreateParams()
+		params.CPUArchitecture = common.ARM64CPUArchitecture
+		params.Platform = &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeNone)}
+		params.UserManagedNetworking = swag.Bool(true)
+		params.VipDhcpAllocation = swag.Bool(false)
+
 		reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
-			NewClusterParams: &models.ClusterCreateParams{
-				Name:                  swag.String("some-cluster-name"),
-				OpenshiftVersion:      swag.String(common.TestDefaultConfig.OpenShiftVersion),
-				CPUArchitecture:       common.ARM64CPUArchitecture,
-				UserManagedNetworking: swag.Bool(true),
-				VipDhcpAllocation:     swag.Bool(false),
-				PullSecret:            swag.String("{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"),
-			},
+			NewClusterParams: params,
 		})
 		Expect(reflect.TypeOf(reply)).Should(Equal(reflect.TypeOf(installer.NewV2RegisterClusterCreated())))
 		actual := reply.(*installer.V2RegisterClusterCreated)
@@ -11427,14 +11470,10 @@ var _ = Describe("TestRegisterCluster", func() {
 			eventstest.WithMessageContainsMatcher(fmt.Sprintf("Non x86_64 CPU architectures for version %s "+
 				"are supported only with User Managed Networking", common.TestDefaultConfig.OpenShiftVersion)),
 			eventstest.WithSeverityMatcher(models.EventSeverityError))).Times(1)
+		params := getDefaultClusterCreateParams()
+		params.CPUArchitecture = common.ARM64CPUArchitecture
 		reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
-			NewClusterParams: &models.ClusterCreateParams{
-				Name:                  swag.String("some-cluster-name"),
-				OpenshiftVersion:      swag.String(common.TestDefaultConfig.OpenShiftVersion),
-				CPUArchitecture:       common.ARM64CPUArchitecture,
-				UserManagedNetworking: swag.Bool(false),
-				PullSecret:            swag.String("{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"),
-			},
+			NewClusterParams: params,
 		})
 		Expect(reply).Should(BeAssignableToTypeOf(common.NewApiError(http.StatusBadRequest, errors.Errorf("error"))))
 	})
@@ -11444,11 +11483,7 @@ var _ = Describe("TestRegisterCluster", func() {
 		mockAMSSubscription(ctx)
 
 		reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
-			NewClusterParams: &models.ClusterCreateParams{
-				Name:             swag.String("some-cluster-name"),
-				OpenshiftVersion: swag.String(common.TestDefaultConfig.OpenShiftVersion),
-				PullSecret:       swag.String("{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"),
-			},
+			NewClusterParams: getDefaultClusterCreateParams(),
 		})
 		Expect(reflect.TypeOf(reply)).Should(Equal(reflect.TypeOf(installer.NewV2RegisterClusterCreated())))
 		actual := reply.(*installer.V2RegisterClusterCreated)
@@ -11460,13 +11495,10 @@ var _ = Describe("TestRegisterCluster", func() {
 			mockClusterRegisterSuccess(true)
 			mockAMSSubscription(ctx)
 
+			params := getDefaultClusterCreateParams()
+			params.Tags = swag.String("tag1,tag2")
 			reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
-				NewClusterParams: &models.ClusterCreateParams{
-					Name:             swag.String("some-cluster-name"),
-					OpenshiftVersion: swag.String(common.TestDefaultConfig.OpenShiftVersion),
-					PullSecret:       swag.String("{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"),
-					Tags:             swag.String("tag1,tag2"),
-				},
+				NewClusterParams: params,
 			})
 			Expect(reflect.TypeOf(reply)).Should(Equal(reflect.TypeOf(installer.NewV2RegisterClusterCreated())))
 			actual := reply.(*installer.V2RegisterClusterCreated)
@@ -11502,15 +11534,14 @@ var _ = Describe("TestRegisterCluster", func() {
 		registerCluster := func() *models.Cluster {
 			mockClusterRegisterSuccess(true)
 			mockAMSSubscription(ctx)
+
+			params := getDefaultClusterCreateParams()
+			params.ClusterNetworks = clusterNetworks
+			params.ServiceNetworks = serviceNetworks
+			params.MachineNetworks = machineNetworks
+
 			reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
-				NewClusterParams: &models.ClusterCreateParams{
-					Name:             swag.String("some-cluster-name"),
-					PullSecret:       swag.String(`{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"`),
-					OpenshiftVersion: swag.String(common.TestDefaultConfig.OpenShiftVersion),
-					ClusterNetworks:  clusterNetworks,
-					ServiceNetworks:  serviceNetworks,
-					MachineNetworks:  machineNetworks,
-				},
+				NewClusterParams: params,
 			})
 			Expect(reflect.TypeOf(reply)).Should(Equal(reflect.TypeOf(installer.NewV2RegisterClusterCreated())))
 			return reply.(*installer.V2RegisterClusterCreated).Payload
@@ -11525,11 +11556,7 @@ var _ = Describe("TestRegisterCluster", func() {
 			mockClusterRegisterSuccess(true)
 			mockAMSSubscription(ctx)
 			reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
-				NewClusterParams: &models.ClusterCreateParams{
-					Name:             swag.String("some-cluster-name"),
-					PullSecret:       swag.String(`{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"`),
-					OpenshiftVersion: swag.String(common.TestDefaultConfig.OpenShiftVersion),
-				},
+				NewClusterParams: getDefaultClusterCreateParams(),
 			})
 			Expect(reflect.TypeOf(reply)).Should(Equal(reflect.TypeOf(installer.NewV2RegisterClusterCreated())))
 			actual := reply.(*installer.V2RegisterClusterCreated)

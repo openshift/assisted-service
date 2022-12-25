@@ -147,16 +147,16 @@ var _ = Describe("Test GetSupportedProvidersByHosts", func() {
 		hosts = append(hosts, createHost(false, models.HostStatusKnown, bmInventory))
 		platforms, err := providerRegistry.GetSupportedProvidersByHosts(hosts)
 		Expect(err).To(BeNil())
-		Expect(len(platforms)).Should(Equal(1))
-		Expect(platforms[0]).Should(Equal(models.PlatformTypeBaremetal))
+		Expect(len(platforms)).Should(Equal(2))
+		Expect(platforms).Should(ContainElement(models.PlatformTypeBaremetal))
 	})
 	It("single vsphere host", func() {
 		hosts := make([]*models.Host, 0)
 		hosts = append(hosts, createHost(true, models.HostStatusKnown, vsphereInventory))
 		platforms, err := providerRegistry.GetSupportedProvidersByHosts(hosts)
 		Expect(err).To(BeNil())
-		Expect(len(platforms)).Should(Equal(2))
-		supportedPlatforms := []models.PlatformType{models.PlatformTypeBaremetal, models.PlatformTypeVsphere}
+		Expect(len(platforms)).Should(Equal(3))
+		supportedPlatforms := []models.PlatformType{models.PlatformTypeNone, models.PlatformTypeBaremetal, models.PlatformTypeVsphere}
 		Expect(platforms).Should(ContainElements(supportedPlatforms))
 	})
 	It("5 vsphere hosts - 3 masters, 2 workers", func() {
@@ -168,8 +168,8 @@ var _ = Describe("Test GetSupportedProvidersByHosts", func() {
 		hosts = append(hosts, createHost(false, models.HostStatusKnown, vsphereInventory))
 		platforms, err := providerRegistry.GetSupportedProvidersByHosts(hosts)
 		Expect(err).To(BeNil())
-		Expect(len(platforms)).Should(Equal(2))
-		supportedPlatforms := []models.PlatformType{models.PlatformTypeBaremetal, models.PlatformTypeVsphere}
+		Expect(len(platforms)).Should(Equal(3))
+		supportedPlatforms := []models.PlatformType{models.PlatformTypeNone, models.PlatformTypeBaremetal, models.PlatformTypeVsphere}
 		Expect(platforms).Should(ContainElements(supportedPlatforms))
 	})
 	It("2 vsphere hosts 1 generic host", func() {
@@ -179,8 +179,8 @@ var _ = Describe("Test GetSupportedProvidersByHosts", func() {
 		hosts = append(hosts, createHost(true, models.HostStatusKnown, vsphereInventory))
 		platforms, err := providerRegistry.GetSupportedProvidersByHosts(hosts)
 		Expect(err).To(BeNil())
-		Expect(len(platforms)).Should(Equal(1))
-		Expect(platforms[0]).Should(Equal(models.PlatformTypeBaremetal))
+		Expect(len(platforms)).Should(Equal(2))
+		Expect(platforms).Should(ContainElement(models.PlatformTypeBaremetal))
 	})
 	It("3 vsphere masters 2 generic workers", func() {
 		hosts := make([]*models.Host, 0)
@@ -191,16 +191,16 @@ var _ = Describe("Test GetSupportedProvidersByHosts", func() {
 		hosts = append(hosts, createHost(false, models.HostStatusKnown, bmInventory))
 		platforms, err := providerRegistry.GetSupportedProvidersByHosts(hosts)
 		Expect(err).To(BeNil())
-		Expect(len(platforms)).Should(Equal(1))
-		Expect(platforms[0]).Should(Equal(models.PlatformTypeBaremetal))
+		Expect(len(platforms)).Should(Equal(2))
+		Expect(platforms).Should(ContainElement(models.PlatformTypeBaremetal))
 	})
 	It("single ovirt host", func() {
 		hosts := make([]*models.Host, 0)
 		hosts = append(hosts, createHost(true, models.HostStatusKnown, ovirtInventory))
 		platforms, err := providerRegistry.GetSupportedProvidersByHosts(hosts)
 		Expect(err).To(BeNil())
-		Expect(len(platforms)).Should(Equal(2))
-		supportedPlatforms := []models.PlatformType{models.PlatformTypeBaremetal, models.PlatformTypeOvirt}
+		Expect(len(platforms)).Should(Equal(3))
+		supportedPlatforms := []models.PlatformType{models.PlatformTypeNone, models.PlatformTypeBaremetal, models.PlatformTypeOvirt}
 		Expect(platforms).Should(ContainElements(supportedPlatforms))
 	})
 	It("5 ovirt hosts - 3 masters, 2 workers", func() {
@@ -212,8 +212,8 @@ var _ = Describe("Test GetSupportedProvidersByHosts", func() {
 		hosts = append(hosts, createHost(false, models.HostStatusKnown, ovirtInventory))
 		platforms, err := providerRegistry.GetSupportedProvidersByHosts(hosts)
 		Expect(err).To(BeNil())
-		Expect(len(platforms)).Should(Equal(2))
-		supportedPlatforms := []models.PlatformType{models.PlatformTypeBaremetal, models.PlatformTypeOvirt}
+		Expect(len(platforms)).Should(Equal(3))
+		supportedPlatforms := []models.PlatformType{models.PlatformTypeNone, models.PlatformTypeBaremetal, models.PlatformTypeOvirt}
 		Expect(platforms).Should(ContainElements(supportedPlatforms))
 	})
 	It("2 ovirt hosts 1 generic host", func() {
@@ -223,8 +223,9 @@ var _ = Describe("Test GetSupportedProvidersByHosts", func() {
 		hosts = append(hosts, createHost(true, models.HostStatusKnown, ovirtInventory))
 		platforms, err := providerRegistry.GetSupportedProvidersByHosts(hosts)
 		Expect(err).To(BeNil())
-		Expect(len(platforms)).Should(Equal(1))
-		Expect(platforms[0]).Should(Equal(models.PlatformTypeBaremetal))
+		Expect(len(platforms)).Should(Equal(2))
+		supportedPlatforms := []models.PlatformType{models.PlatformTypeNone, models.PlatformTypeBaremetal}
+		Expect(platforms).Should(ContainElements(supportedPlatforms))
 	})
 	It("3 ovirt masters 2 generic workers", func() {
 		hosts := make([]*models.Host, 0)
@@ -235,8 +236,8 @@ var _ = Describe("Test GetSupportedProvidersByHosts", func() {
 		hosts = append(hosts, createHost(false, models.HostStatusKnown, bmInventory))
 		platforms, err := providerRegistry.GetSupportedProvidersByHosts(hosts)
 		Expect(err).To(BeNil())
-		Expect(len(platforms)).Should(Equal(1))
-		Expect(platforms[0]).Should(Equal(models.PlatformTypeBaremetal))
+		Expect(len(platforms)).Should(Equal(2))
+		Expect(platforms).Should(ContainElement(models.PlatformTypeBaremetal))
 	})
 	It("host with an invalid inventory", func() {
 		hosts := make([]*models.Host, 0)

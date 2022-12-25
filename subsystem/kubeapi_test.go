@@ -3174,7 +3174,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		}, "30s", "1s").Should(Equal(aciSNOSpec.IngressVIP))
 
 		By("verify platform type status")
-		checkPlatformStatus(ctx, installkey, "", hiveext.BareMetalPlatformType, swag.Bool(true))
+		checkPlatformStatus(ctx, installkey, "", hiveext.NonePlatformType, swag.Bool(true))
 
 		By("Verify Agent labels")
 		labels[v1beta1.InfraEnvNameLabel] = infraNsName.Name

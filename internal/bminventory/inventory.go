@@ -46,6 +46,7 @@ import (
 	"github.com/openshift/assisted-service/internal/metrics"
 	"github.com/openshift/assisted-service/internal/network"
 	"github.com/openshift/assisted-service/internal/operators"
+	"github.com/openshift/assisted-service/internal/provider"
 	"github.com/openshift/assisted-service/internal/provider/registry"
 	"github.com/openshift/assisted-service/internal/usage"
 	"github.com/openshift/assisted-service/internal/versions"
@@ -289,7 +290,9 @@ func (b *bareMetalInventory) updatePullSecret(pullSecret string, log logrus.Fiel
 	return pullSecret, nil
 }
 
-func (b *bareMetalInventory) setDefaultRegisterClusterParams(_ context.Context, params installer.V2RegisterClusterParams) installer.V2RegisterClusterParams {
+func (b *bareMetalInventory) setDefaultRegisterClusterParams(ctx context.Context, params installer.V2RegisterClusterParams) (installer.V2RegisterClusterParams, error) {
+	log := logutil.FromContext(ctx, b.log)
+
 	if params.NewClusterParams.ClusterNetworks == nil {
 		params.NewClusterParams.ClusterNetworks = []*models.ClusterNetwork{
 			{Cidr: models.Subnet(b.Config.DefaultClusterNetworkCidr), HostPrefix: b.Config.DefaultClusterNetworkHostPrefix},
@@ -307,20 +310,27 @@ func (b *bareMetalInventory) setDefaultRegisterClusterParams(_ context.Context, 
 	if params.NewClusterParams.VipDhcpAllocation == nil {
 		params.NewClusterParams.VipDhcpAllocation = swag.Bool(false)
 	}
-	if params.NewClusterParams.UserManagedNetworking == nil {
-		params.NewClusterParams.UserManagedNetworking = swag.Bool(false)
-	}
+
 	if params.NewClusterParams.Hyperthreading == nil {
 		params.NewClusterParams.Hyperthreading = swag.String(models.ClusterHyperthreadingAll)
 	}
 	if params.NewClusterParams.SchedulableMasters == nil {
 		params.NewClusterParams.SchedulableMasters = swag.Bool(false)
 	}
-	if params.NewClusterParams.Platform == nil {
-		params.NewClusterParams.Platform = &models.Platform{
-			Type: common.PlatformTypePtr(models.PlatformTypeBaremetal),
-		}
+	if params.NewClusterParams.HighAvailabilityMode == nil {
+		params.NewClusterParams.HighAvailabilityMode = swag.String(models.ClusterHighAvailabilityModeFull)
 	}
+	log.Infof("Verifying cluster platform and user-managed-networking, got platform=%v and userManagedNetworking=%+v", provider.PlatformString(params.NewClusterParams.Platform), params.NewClusterParams.UserManagedNetworking)
+	platform, userManagedNetworking, err := provider.GetActualCreateClusterPlatformParams(params.NewClusterParams.Platform, params.NewClusterParams.UserManagedNetworking, params.NewClusterParams.HighAvailabilityMode)
+	if err != nil {
+		log.Error(err)
+		return params, err
+	}
+
+	params.NewClusterParams.Platform = platform
+	params.NewClusterParams.UserManagedNetworking = userManagedNetworking
+	log.Infof("Cluster high-availability-mode is set to %v, setting platform type to %v and user-managed-networking to %v", params.NewClusterParams.HighAvailabilityMode, platform, userManagedNetworking)
+
 	if params.NewClusterParams.AdditionalNtpSource == nil {
 		params.NewClusterParams.AdditionalNtpSource = &b.Config.DefaultNTPSource
 	}
@@ -331,7 +341,7 @@ func (b *bareMetalInventory) setDefaultRegisterClusterParams(_ context.Context, 
 		}
 	}
 
-	return params
+	return params, nil
 }
 
 func (b *bareMetalInventory) validateRegisterClusterInternalParams(params *installer.V2RegisterClusterParams, log logrus.FieldLogger) error {
@@ -423,7 +433,10 @@ func (b *bareMetalInventory) RegisterClusterInternal(
 		return nil, err
 	}
 
-	params = b.setDefaultRegisterClusterParams(ctx, params)
+	params, err = b.setDefaultRegisterClusterParams(ctx, params)
+	if err != nil {
+		return nil, err
+	}
 
 	cpuArchitecture, err := b.getNewClusterCPUArchitecture(params.NewClusterParams)
 	if err != nil {
@@ -1715,6 +1728,18 @@ func (b *bareMetalInventory) v2UpdateClusterInternal(ctx context.Context, params
 		return nil, common.NewApiError(http.StatusConflict, err)
 	}
 
+	log.Infof("Current cluster platform is set to %v and user-managed-networking is set to %v", cluster.Platform, cluster.UserManagedNetworking)
+	log.Infof("Verifying cluster platform and user-managed-networking, got platform=%v and userManagedNetworking=%v", params.ClusterUpdateParams.Platform, params.ClusterUpdateParams.UserManagedNetworking)
+	platform, userManagedNetworking, err := provider.GetActualUpdateClusterPlatformParams(params.ClusterUpdateParams.Platform, params.ClusterUpdateParams.UserManagedNetworking, cluster)
+	if err != nil {
+		log.Error(err)
+		return nil, err
+	}
+
+	params.ClusterUpdateParams.Platform = platform
+	params.ClusterUpdateParams.UserManagedNetworking = userManagedNetworking
+	log.Infof("Platform verification completed, setting platform type to %v and user-managed-networking to %v", platform, userManagedNetworking)
+
 	if err = b.v2NoneHaModeClusterUpdateValidations(cluster, params); err != nil {
 		log.WithError(err).Warnf("Unsupported update params in none ha mode")
 		return nil, common.NewApiError(http.StatusBadRequest, err)
@@ -2354,7 +2379,7 @@ func (b *bareMetalInventory) setDefaultUsage(cluster *models.Cluster) error {
 	//write all the usages to the cluster object
 	err := b.providerRegistry.SetPlatformUsages(common.PlatformTypeValue(cluster.Platform.Type), usages, b.usageApi)
 	if err != nil {
-		return fmt.Errorf("failed setting platform usages, error is: %w", err)
+		return fmt.Errorf("failed setting platform %s usages, error is: %w", common.PlatformTypeValue(cluster.Platform.Type), err)
 	}
 	featusage, _ := json.Marshal(usages)
 	cluster.FeatureUsage = string(featusage)
