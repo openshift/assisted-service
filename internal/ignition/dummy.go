@@ -31,12 +31,6 @@ func NewDummyGenerator(workDir string, cluster *common.Cluster, s3Client s3wrapp
 
 // Generate creates the expected ignition and related files but with nonsense content
 func (g *dummyGenerator) Generate(_ context.Context, installConfig []byte, platformType models.PlatformType) error {
-	installConfigPath := filepath.Join(g.workDir, "install-config.yaml")
-	err := os.WriteFile(installConfigPath, installConfig, 0600)
-	if err != nil {
-		return err
-	}
-
 	toUpload := fileNames[:]
 	for _, host := range g.cluster.Hosts {
 		toUpload = append(toUpload, hostutil.IgnitionFileName(host))
@@ -54,6 +48,8 @@ func (g *dummyGenerator) Generate(_ context.Context, installConfig []byte, platf
 			data = kubeconfig
 		} else if fileName == "bootstrap.ign" {
 			data = bootstrapIgnition
+		} else if fileName == "install-config.yaml" {
+			data = string(installConfig)
 		}
 		_, err = f.WriteString(data)
 		if err != nil {

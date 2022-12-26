@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"net"
 	"os"
 	"os/exec"
@@ -38,6 +39,7 @@ import (
 	"github.com/openshift/assisted-service/pkg/auth"
 	"github.com/openshift/assisted-service/pkg/conversions"
 	"golang.org/x/sync/errgroup"
+	"gopkg.in/yaml.v2"
 	"k8s.io/utils/pointer"
 )
 
@@ -5156,5 +5158,154 @@ var _ = Describe("disk encryption", func() {
 			h = getHostV2(*infraEnvID, *h.ID)
 			Expect(*h.StatusInfo).Should(ContainSubstring("Could not validate that all Tang servers are reachable and working"))
 		})
+	})
+})
+
+var _ = Describe("Verify install-config manifest", func() {
+	var (
+		ctx         = context.Background()
+		cluster     *models.Cluster
+		clusterID   strfmt.UUID
+		infraEnvID  *strfmt.UUID
+		clusterCIDR = "10.128.0.0/14"
+		serviceCIDR = "172.30.0.0/16"
+		machineCIDR = "1.2.3.0/24"
+	)
+
+	getInstallConfigFromFile := func() map[string]interface{} {
+		file, err := os.CreateTemp("", "tmp")
+		Expect(err).NotTo(HaveOccurred())
+		defer os.Remove(file.Name())
+
+		By("Download install-config.yaml")
+		_, err = userBMClient.Installer.V2DownloadClusterFiles(ctx,
+			&installer.V2DownloadClusterFilesParams{
+				ClusterID: clusterID,
+				FileName:  "install-config.yaml",
+			}, file)
+		Expect(err).NotTo(HaveOccurred())
+
+		// Read install-config.yaml
+		content, err := ioutil.ReadFile(file.Name())
+		Expect(err).NotTo(HaveOccurred())
+
+		installConfig := make(map[string]interface{})
+		err = yaml.Unmarshal(content, installConfig)
+		Expect(err).NotTo(HaveOccurred())
+
+		return installConfig
+	}
+
+	getInstallConfigFromDB := func() map[string]interface{} {
+		response, err := userBMClient.Installer.V2GetClusterInstallConfig(ctx,
+			&installer.V2GetClusterInstallConfigParams{ClusterID: clusterID})
+		Expect(err).NotTo(HaveOccurred())
+
+		installConfig := make(map[string]interface{})
+		err = yaml.Unmarshal([]byte(response.Payload), installConfig)
+		Expect(err).NotTo(HaveOccurred())
+
+		return installConfig
+	}
+
+	validateInstallConfig := func(installConfig map[string]interface{}, networksIncluded bool) {
+		By("Validate 'baseDomain'")
+		baseDomain, ok := installConfig["baseDomain"].(string)
+		Expect(ok).To(Equal(true))
+		Expect(baseDomain).To(Equal(cluster.BaseDNSDomain))
+
+		By("Validate 'metadata'")
+		metadata, ok := installConfig["metadata"].(map[interface{}]interface{})
+		Expect(ok).To(Equal(true))
+		name, ok := metadata["name"].(string)
+		Expect(ok).To(Equal(true))
+		Expect(name).To(Equal(cluster.Name))
+
+		By("Validate 'platform'")
+		platform, ok := installConfig["platform"].(map[interface{}]interface{})
+		Expect(ok).To(Equal(true))
+		_, ok = platform["baremetal"].(map[interface{}]interface{})
+		Expect(ok).To(Equal(true))
+
+		By("Validate 'pullSecret'")
+		ps, ok := installConfig["pullSecret"].(string)
+		Expect(ok).To(Equal(true))
+		Expect(ps).To(Equal(pullSecret))
+
+		By("Validate 'sshKey'")
+		sshKey, ok := installConfig["sshKey"].(string)
+		Expect(ok).To(Equal(true))
+		Expect(sshKey).To(Equal(sshPublicKey))
+
+		By("Validate 'networking'")
+		networking, ok := installConfig["networking"].(map[interface{}]interface{})
+		Expect(ok).To(Equal(true))
+
+		// Networks are not included when fetching using V2GetClusterInstallConfig
+		// (the cluster is fetched without eager loading)
+		if networksIncluded {
+			// Validate 'clusterNetwork'
+			clusterNetwork, ok := networking["clusterNetwork"].([]interface{})
+			Expect(ok).To(Equal(true))
+			cidrEntry, ok := clusterNetwork[0].(map[interface{}]interface{})
+			Expect(ok).To(Equal(true))
+			cidr, ok := cidrEntry["cidr"].(string)
+			Expect(ok).To(Equal(true))
+			Expect(cidr).To(Equal(clusterCIDR))
+			// Validate 'machineNetwork'
+			machineNetwork, ok := networking["machineNetwork"].([]interface{})
+			Expect(ok).To(Equal(true))
+			cidrEntry, ok = machineNetwork[0].(map[interface{}]interface{})
+			Expect(ok).To(Equal(true))
+			cidr, ok = cidrEntry["cidr"].(string)
+			Expect(ok).To(Equal(true))
+			Expect(cidr).To(Equal(machineCIDR))
+			// Validate 'serviceNetwork'
+			serviceNetwork, ok := networking["serviceNetwork"].([]interface{})
+			Expect(ok).To(Equal(true))
+			cidr, ok = serviceNetwork[0].(string)
+			Expect(ok).To(Equal(true))
+			Expect(cidr).To(Equal(serviceCIDR))
+		}
+	}
+
+	BeforeEach(func() {
+		registerClusterReply, err := userBMClient.Installer.V2RegisterCluster(ctx, &installer.V2RegisterClusterParams{
+			NewClusterParams: &models.ClusterCreateParams{
+				BaseDNSDomain:    "example.com",
+				ClusterNetworks:  []*models.ClusterNetwork{{Cidr: models.Subnet(clusterCIDR), HostPrefix: 23}},
+				ServiceNetworks:  []*models.ServiceNetwork{{Cidr: models.Subnet(serviceCIDR)}},
+				Name:             swag.String("test-cluster"),
+				OpenshiftVersion: swag.String(openshiftVersion),
+				PullSecret:       swag.String(pullSecret),
+				SSHPublicKey:     sshPublicKey,
+			},
+		})
+		Expect(err).NotTo(HaveOccurred())
+		cluster = registerClusterReply.GetPayload()
+		clusterID = *cluster.ID
+
+		// Register InfraEnv and Hosts
+		infraEnvID = registerInfraEnv(cluster.ID, models.ImageTypeMinimalIso).ID
+		registerHostsAndSetRoles(clusterID, *infraEnvID, 5, cluster.Name, cluster.BaseDNSDomain)
+
+		// Installing cluster till finalize
+		setClusterAsFinalizing(ctx, clusterID)
+
+		// Completing cluster installation
+		completeInstallationAndVerify(ctx, agentBMClient, clusterID, true)
+	})
+
+	AfterEach(func() {
+		deregisterResources()
+		clearDB()
+	})
+
+	It("Validate install-config.yaml content retrieved from V2DownloadClusterFiles", func() {
+		validateInstallConfig(getInstallConfigFromFile(), true)
+	})
+
+	It("Validate install-config.yaml content retrieved from V2GetClusterInstallConfig", func() {
+		validateInstallConfig(getInstallConfigFromDB(), false)
 	})
 })
