@@ -268,13 +268,19 @@ func (a *AgentClusterInstallValidatingAdmissionHook) validateUpdate(admissionSpe
 	}
 }
 
+// MGMT-12794 This function returns true if the installation is in progress.
+// If the cluster installation has finished (successfully or with errors) or
+// did not start yet, it returns false.
+// This logic allows editing the ACI in day-2 scenarios.
+// Changes to the ACI at a post-install time have no impact on the flow but
+// serve some CI/CD gitops flows.
 func installAlreadyStarted(conditions []hivev1.ClusterInstallCondition) bool {
 	cond := FindStatusCondition(conditions, hiveext.ClusterCompletedCondition)
 	if cond == nil {
 		return false
 	}
 	switch cond.Reason {
-	case hiveext.ClusterInstallationFailedReason, hiveext.ClusterInstalledReason, hiveext.ClusterInstallationInProgressReason, hiveext.ClusterAlreadyInstallingReason:
+	case hiveext.ClusterInstallationInProgressReason, hiveext.ClusterAlreadyInstallingReason:
 		return true
 	default:
 		return false
