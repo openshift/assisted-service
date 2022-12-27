@@ -25,6 +25,9 @@ type APIVip struct {
 
 	// The IP address.
 	IP IP `json:"ip,omitempty" gorm:"primaryKey"`
+
+	// API VIP verification result.
+	Verification *VipVerification `json:"verification,omitempty"`
 }
 
 // Validate validates this api vip
@@ -36,6 +39,10 @@ func (m *APIVip) Validate(formats strfmt.Registry) error {
 	}
 
 	if err := m.validateIP(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateVerification(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -74,11 +81,34 @@ func (m *APIVip) validateIP(formats strfmt.Registry) error {
 	return nil
 }
 
+func (m *APIVip) validateVerification(formats strfmt.Registry) error {
+	if swag.IsZero(m.Verification) { // not required
+		return nil
+	}
+
+	if m.Verification != nil {
+		if err := m.Verification.Validate(formats); err != nil {
+			if ve, ok := err.(*errors.Validation); ok {
+				return ve.ValidateName("verification")
+			} else if ce, ok := err.(*errors.CompositeError); ok {
+				return ce.ValidateName("verification")
+			}
+			return err
+		}
+	}
+
+	return nil
+}
+
 // ContextValidate validate this api vip based on the context it is used
 func (m *APIVip) ContextValidate(ctx context.Context, formats strfmt.Registry) error {
 	var res []error
 
 	if err := m.contextValidateIP(ctx, formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.contextValidateVerification(ctx, formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -97,6 +127,22 @@ func (m *APIVip) contextValidateIP(ctx context.Context, formats strfmt.Registry)
 			return ce.ValidateName("ip")
 		}
 		return err
+	}
+
+	return nil
+}
+
+func (m *APIVip) contextValidateVerification(ctx context.Context, formats strfmt.Registry) error {
+
+	if m.Verification != nil {
+		if err := m.Verification.ContextValidate(ctx, formats); err != nil {
+			if ve, ok := err.(*errors.Validation); ok {
+				return ve.ValidateName("verification")
+			} else if ce, ok := err.(*errors.CompositeError); ok {
+				return ce.ValidateName("verification")
+			}
+			return err
+		}
 	}
 
 	return nil
