@@ -600,7 +600,9 @@ func (v *validator) belongsToMachineCidr(c *validationContext) (ValidationStatus
 		return ValidationSuccessSuppressOutput, ""
 	}
 
-	if swag.BoolValue(c.cluster.UserManagedNetworking) && !common.IsSingleNodeCluster(c.cluster) && !c.host.Bootstrap {
+	// In case cluster is multi node UMN no need to validate non bootstrap nodes at all
+	// In boostrap case if machine cidr was not set by user no need to validate either as it machine cidr will be set from one of it networks
+	if swag.BoolValue(c.cluster.UserManagedNetworking) && !common.IsSingleNodeCluster(c.cluster) && (!c.host.Bootstrap || !network.IsMachineCidrAvailable(c.cluster)) {
 		return ValidationSuccess, "No machine network CIDR validation needed: User Managed Networking"
 	}
 
