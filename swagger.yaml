@@ -4180,6 +4180,7 @@ definitions:
       - upgrade-agent
       - download-boot-artifacts
       - reboot-for-reclaim
+      - verify-vips
 
   step:
     type: object
@@ -6158,6 +6159,44 @@ definitions:
     enum: ['success', 'failure']
     description: Agent upgrade result.
 
+  vip_type:
+    type: string
+    description: The vip type.
+    enum: ['api', 'ingress']
+
+  verify_vip:
+    type: object
+    description: Request to verify single vip.
+    properties:
+      vip:
+        $ref: '#/definitions/ip'
+      vip_type:
+        $ref: '#/definitions/vip_type'
+
+  verified_vip:
+    type: object
+    description: Single VIP verification result.
+    properties:
+      vip:
+        $ref: '#/definitions/ip'
+      vip_type:
+        $ref: '#/definitions/vip_type'
+      verification:
+        $ref: '#/definitions/vip_verification'
+
+  verify_vips_request:
+    type: array
+    description: list of vips to be verified.
+    items:
+      $ref: '#/definitions/verify_vip'
+
+  verify_vips_response:
+    type: array
+    description: list of verified vips.
+    items:
+      $ref: '#/definitions/verified_vip'
+
+
   source_state:
     type: string
     enum:
@@ -6657,6 +6696,12 @@ definitions:
     x-go-custom-tag: gorm:"primaryKey"
     pattern: '^(?:(?:(?:[0-9]{1,3}\.){3}[0-9]{1,3}\/(?:(?:[0-9])|(?:[1-2][0-9])|(?:3[0-2])))|(?:(?:[0-9a-fA-F]*:[0-9a-fA-F]*){2,})/(?:(?:[0-9])|(?:[1-9][0-9])|(?:1[0-1][0-9])|(?:12[0-8])))$'
 
+  vip_verification:
+    type: string
+    enum: ['unverified', 'failed', 'succeeded']
+    description: vip verification result.
+    default: 'unverified'
+
   cluster_network:
     type: object
     description: A network from which Pod IPs are allocated. This block must not overlap with existing physical networks. These IP addresses are used for the Pod network, and if you need to access the Pods from an external network, configure load balancers and routers to manage the traffic.
@@ -6713,6 +6758,9 @@ definitions:
       ip:
         $ref: '#/definitions/ip'
         description: The IP address.
+      verification:
+        $ref: '#/definitions/vip_verification'
+        description: API VIP verification result.
 
   ingress_vip:
     type: object
@@ -6726,6 +6774,9 @@ definitions:
       ip:
         $ref: '#/definitions/ip'
         description: The IP address.
+      verification:
+        $ref: '#/definitions/vip_verification'
+        description: Ingress VIP verification result.
 
   bind-host-params:
     required:
