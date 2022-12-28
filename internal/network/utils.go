@@ -1,6 +1,7 @@
 package network
 
 import (
+	"fmt"
 	"net"
 	"net/http"
 	"sort"
@@ -13,6 +14,20 @@ import (
 	"github.com/thoas/go-funk"
 	"gorm.io/gorm"
 )
+
+func IsDefaultRoute(r *models.Route) (bool, error) {
+	gw := net.ParseIP(r.Gateway)
+	if gw == nil {
+		return false, nil //gateway is empty for non default routes
+	}
+
+	dst := net.ParseIP(r.Destination)
+	if dst == nil {
+		return false, fmt.Errorf("unable to parse destination IP: %s", r.Destination)
+	}
+
+	return dst.IsUnspecified() && !gw.IsUnspecified(), nil
+}
 
 // Obtains the IP addresses used by a host
 func GetInventoryIPAddresses(inventory *models.Inventory) ([]string, []string) {

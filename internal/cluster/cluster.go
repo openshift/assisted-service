@@ -466,10 +466,24 @@ func (m *Manager) tryAssignMachineCidrSNO(cluster *common.Cluster) error {
 		}
 		for _, family := range clusterFamilies {
 			familyCidrs := cidrsByFamily[family]
-			if len(familyCidrs) != 1 {
+			switch len(familyCidrs) {
+			case 0:
 				return nil
+			case 1:
+				pendingCidrs = append(pendingCidrs, familyCidrs[0])
+			default:
+				// multiple cidrs are available: select the one that matches
+				// the best defaul route
+				defaultCidrByFamily, err := network.GetDefaultRouteNetworkByFamily(cluster.Hosts[0], cidrsByFamily, m.log)
+				if err != nil {
+					return err
+				}
+				if defaultCidr, ok := defaultCidrByFamily[family]; ok {
+					pendingCidrs = append(pendingCidrs, defaultCidr)
+				} else {
+					return fmt.Errorf("missing default cidr for %s", family.String())
+				}
 			}
-			pendingCidrs = append(pendingCidrs, familyCidrs[0])
 		}
 		return UpdateMachineCidr(m.db, cluster, pendingCidrs)
 	}

@@ -1278,10 +1278,12 @@ var _ = Describe("Auto assign machine CIDR", func() {
 					Inventory: common.GenerateTest2IPv4AddressesInventory(),
 				},
 			},
-			sno:                     true,
-			expectedMachineCIDR:     "",
-			expectedMachineNetworks: []string{},
-			dhcpEnabled:             false,
+			sno:                 true,
+			expectedMachineCIDR: "1.2.3.0/24",
+			expectedMachineNetworks: []string{
+				"1.2.3.0/24",
+			},
+			dhcpEnabled: false,
 		},
 		{
 			name:     "Pending SNO IPv6",

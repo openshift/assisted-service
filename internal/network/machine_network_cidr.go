@@ -3,6 +3,7 @@ package network
 import (
 	"encoding/json"
 	"fmt"
+	"math"
 	"net"
 	"strings"
 
@@ -415,6 +416,63 @@ func GetInventoryNetworksByFamily(hosts []*models.Host, log logrus.FieldLogger) 
 		ret[family] = append(ret[family], n)
 	}
 	return ret, nil
+}
+
+func GetDefaultRouteNetworkByFamily(h *models.Host, networks map[AddressFamily][]string, log logrus.FieldLogger) (map[AddressFamily]string, error) {
+	var err error
+	ret := make(map[AddressFamily]string)
+
+	//start with dummy route
+	defaultRoutev4 := &models.Route{Metric: math.MaxInt32}
+	defaultRoutev6 := &models.Route{Metric: math.MaxInt32}
+
+	if h.Inventory != "" {
+		var inventory models.Inventory
+		err = json.Unmarshal([]byte(h.Inventory), &inventory)
+		if err != nil {
+			log.WithError(err).Warnf("Unmarshal inventory %s", h.Inventory)
+			return ret, err
+		}
+		//find the minimal default route
+		var isDefault, found bool
+		for _, route := range inventory.Routes {
+			if isDefault, err = IsDefaultRoute(route); err != nil {
+				log.WithError(err).Errorf("fail to find default route")
+				return ret, err
+			}
+			if isDefault {
+				if IsIPv4Addr(route.Gateway) && route.Metric < defaultRoutev4.Metric {
+					defaultRoutev4 = route
+					found = true
+				} else if IsIPv6Addr(route.Gateway) && route.Metric < defaultRoutev6.Metric {
+					defaultRoutev6 = route
+					found = true
+				}
+			}
+		}
+
+		if !found {
+			return ret, fmt.Errorf("could not find default route")
+		}
+
+		//if the default route gateway is located in one of the cidrs
+		//in the inventory networks then return this network (per family)
+		for _, cidr := range networks[IPv4] {
+			if ipInCidr(defaultRoutev4.Gateway, cidr) {
+				ret[IPv4] = cidr
+				break
+			}
+		}
+		for _, cidr := range networks[IPv6] {
+			if ipInCidr(defaultRoutev6.Gateway, cidr) {
+				ret[IPv6] = cidr
+				break
+			}
+		}
+		log.Infof("available default route CIDRs: %+v", ret)
+		return ret, nil
+	}
+	return ret, fmt.Errorf("can not find cidr by route: no inventory for host %s", h.ID.String())
 }
 
 func IsHostInPrimaryMachineNetCidr(log logrus.FieldLogger, cluster *common.Cluster, host *models.Host) bool {

@@ -1156,17 +1156,12 @@ func (v *validator) validateDefaultRoute(routes []*models.Route) bool {
 		if len(r.Destination) == 0 || len(r.Gateway) == 0 {
 			continue
 		}
-		dst := net.ParseIP(r.Destination)
-		if dst == nil {
-			v.log.Errorf("unable to parse destination IP: %s", r.Destination)
+		isDefault, err := network.IsDefaultRoute(r)
+		if err != nil {
+			v.log.Error(err)
 			continue
 		}
-		gw := net.ParseIP(r.Gateway)
-		if gw == nil {
-			v.log.Errorf("unable to parse gateway IP: %s", r.Gateway)
-			continue
-		}
-		if dst.IsUnspecified() && !gw.IsUnspecified() {
+		if isDefault {
 			return true
 		}
 	}

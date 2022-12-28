@@ -272,7 +272,7 @@ func UpdateMachineCidr(db *gorm.DB, cluster *common.Cluster, machineCidr []strin
 		previousSecondaryMachineCidr = network.GetMachineCidrById(cluster, 1)
 	}
 
-	if machineCidr[0] != previousPrimaryMachineCidr || (len(machineCidr) > 1 && machineCidr[1] != previousSecondaryMachineCidr) {
+	if (len(machineCidr) > 0 && machineCidr[0] != previousPrimaryMachineCidr) || (len(machineCidr) > 1 && machineCidr[1] != previousSecondaryMachineCidr) {
 		err := db.Transaction(func(tx *gorm.DB) error {
 			if err := db.Where("cluster_id = ?", *cluster.ID).Delete(&models.MachineNetwork{}).Error; err != nil {
 				err = errors.Wrapf(err, "failed to delete machine networks of cluster %s", *cluster.ID)
