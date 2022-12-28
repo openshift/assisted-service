@@ -20,6 +20,7 @@ import (
 	"github.com/go-openapi/swag"
 	"github.com/google/uuid"
 	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/client"
 	"github.com/openshift/assisted-service/client/installer"
@@ -4596,6 +4597,7 @@ func registerHostsAndSetRoles(clusterID, infraenvID strfmt.UUID, numHosts int, c
 	}
 	for _, host := range hosts {
 		generateDomainResolution(ctx, host, clusterName, baseDNSDomain)
+		generateCommonDomainReply(ctx, host, clusterName, baseDNSDomain)
 	}
 	generateFullMeshConnectivity(ctx, ips[0], hosts...)
 	cluster := getCluster(clusterID)
@@ -4603,30 +4605,32 @@ func registerHostsAndSetRoles(clusterID, infraenvID strfmt.UUID, numHosts int, c
 		generateTangPostStepReply(ctx, true, hosts...)
 	}
 
-	apiVip := ""
-	ingressVip := ""
-	_, err := userBMClient.Installer.V2UpdateCluster(ctx, &installer.V2UpdateClusterParams{
-		ClusterUpdateParams: &models.V2ClusterUpdateParams{
-			VipDhcpAllocation: swag.Bool(false),
-			APIVip:            &apiVip,
-			IngressVip:        &ingressVip,
-		},
-		ClusterID: clusterID,
-	})
-	Expect(err).NotTo(HaveOccurred())
-	apiVip = "1.2.3.8"
-	ingressVip = "1.2.3.9"
-	_, err = userBMClient.Installer.V2UpdateCluster(ctx, &installer.V2UpdateClusterParams{
-		ClusterUpdateParams: &models.V2ClusterUpdateParams{
-			APIVip:      &apiVip,
-			IngressVip:  &ingressVip,
-			APIVips:     []*models.APIVip{{IP: models.IP(apiVip), ClusterID: clusterID}},
-			IngressVips: []*models.IngressVip{{IP: models.IP(ingressVip), ClusterID: clusterID}},
-		},
-		ClusterID: clusterID,
-	})
+	if !swag.BoolValue(cluster.UserManagedNetworking) {
+		apiVip := ""
+		ingressVip := ""
+		_, err := userBMClient.Installer.V2UpdateCluster(ctx, &installer.V2UpdateClusterParams{
+			ClusterUpdateParams: &models.V2ClusterUpdateParams{
+				VipDhcpAllocation: swag.Bool(false),
+				APIVip:            &apiVip,
+				IngressVip:        &ingressVip,
+			},
+			ClusterID: clusterID,
+		})
+		Expect(err).NotTo(HaveOccurred())
+		apiVip = "1.2.3.8"
+		ingressVip = "1.2.3.9"
+		_, err = userBMClient.Installer.V2UpdateCluster(ctx, &installer.V2UpdateClusterParams{
+			ClusterUpdateParams: &models.V2ClusterUpdateParams{
+				APIVip:      &apiVip,
+				IngressVip:  &ingressVip,
+				APIVips:     []*models.APIVip{{IP: models.IP(apiVip), ClusterID: clusterID}},
+				IngressVips: []*models.IngressVip{{IP: models.IP(ingressVip), ClusterID: clusterID}},
+			},
+			ClusterID: clusterID,
+		})
 
-	Expect(err).NotTo(HaveOccurred())
+		Expect(err).NotTo(HaveOccurred())
+	}
 
 	waitForHostState(ctx, models.HostStatusKnown, defaultWaitForHostStateTimeout, hosts...)
 	waitForClusterState(ctx, clusterID, models.ClusterStatusReady, 60*time.Second, clusterReadyStateInfo)
@@ -5208,7 +5212,7 @@ var _ = Describe("Verify install-config manifest", func() {
 		return installConfig
 	}
 
-	validateInstallConfig := func(installConfig map[string]interface{}) {
+	validateInstallConfig := func(installConfig map[string]interface{}, platformType models.PlatformType) {
 		By("Validate 'baseDomain'")
 		baseDomain, ok := installConfig["baseDomain"].(string)
 		Expect(ok).To(Equal(true))
@@ -5224,7 +5228,7 @@ var _ = Describe("Verify install-config manifest", func() {
 		By("Validate 'platform'")
 		platform, ok := installConfig["platform"].(map[interface{}]interface{})
 		Expect(ok).To(Equal(true))
-		_, ok = platform["baremetal"].(map[interface{}]interface{})
+		_, ok = platform[string(platformType)].(map[interface{}]interface{})
 		Expect(ok).To(Equal(true))
 
 		By("Validate 'pullSecret'")
@@ -5263,9 +5267,16 @@ var _ = Describe("Verify install-config manifest", func() {
 		cidr, ok = serviceNetwork[0].(string)
 		Expect(ok).To(Equal(true))
 		Expect(cidr).To(Equal(serviceCIDR))
+
+		if cluster.InstallConfigOverrides != "" {
+			// Ensure config override (with 'fips' for example)
+			fips, ok := installConfig["fips"].(bool)
+			Expect(ok).To(Equal(true))
+			Expect(fips).To(Equal(true))
+		}
 	}
 
-	BeforeEach(func() {
+	installCluster := func(platformType models.PlatformType, overrideInstallConfig bool) {
 		registerClusterReply, err := userBMClient.Installer.V2RegisterCluster(ctx, &installer.V2RegisterClusterParams{
 			NewClusterParams: &models.ClusterCreateParams{
 				BaseDNSDomain:    "example.com",
@@ -5275,11 +5286,23 @@ var _ = Describe("Verify install-config manifest", func() {
 				OpenshiftVersion: swag.String(openshiftVersion),
 				PullSecret:       swag.String(pullSecret),
 				SSHPublicKey:     sshPublicKey,
+				NetworkType:      swag.String(models.ClusterCreateParamsNetworkTypeOpenShiftSDN),
+				Platform:         &models.Platform{Type: common.PlatformTypePtr(platformType)},
 			},
 		})
 		Expect(err).NotTo(HaveOccurred())
 		cluster = registerClusterReply.GetPayload()
 		clusterID = *cluster.ID
+
+		// Update install config if needed
+		if overrideInstallConfig {
+			params := installer.V2UpdateClusterInstallConfigParams{
+				ClusterID:           clusterID,
+				InstallConfigParams: `{"fips": true}`,
+			}
+			_, err = userBMClient.Installer.V2UpdateClusterInstallConfig(ctx, &params)
+			Expect(err).To(BeNil())
+		}
 
 		// Register InfraEnv and Hosts
 		infraEnvID = registerInfraEnv(cluster.ID, models.ImageTypeMinimalIso).ID
@@ -5290,18 +5313,27 @@ var _ = Describe("Verify install-config manifest", func() {
 
 		// Completing cluster installation
 		completeInstallationAndVerify(ctx, agentBMClient, clusterID, true)
-	})
+	}
 
 	AfterEach(func() {
 		deregisterResources()
 		clearDB()
 	})
 
-	It("Validate install-config.yaml content retrieved from V2DownloadClusterFiles", func() {
-		validateInstallConfig(getInstallConfigFromFile())
-	})
-
-	It("Validate install-config.yaml content retrieved from V2GetClusterInstallConfig", func() {
-		validateInstallConfig(getInstallConfigFromDB())
-	})
+	DescribeTable("Validate install-config content", func(
+		operationName string,
+		getInstallConfigFunc func() map[string]interface{},
+		platformType models.PlatformType,
+		overrideInstallConfig bool,
+	) {
+		installCluster(platformType, overrideInstallConfig)
+		validateInstallConfig(getInstallConfigFunc(), platformType)
+	},
+		Entry("Operation: V2DownloadClusterFiles, Platfrom type: baremetal", "V2DownloadClusterFiles", getInstallConfigFromDB, models.PlatformTypeBaremetal, false),
+		Entry("Operation: V2DownloadClusterFiles, Platfrom type: none", "V2DownloadClusterFiles", getInstallConfigFromDB, models.PlatformTypeNone, false),
+		Entry("Operation: V2DownloadClusterFiles, Override config: true", "V2DownloadClusterFiles", getInstallConfigFromDB, models.PlatformTypeBaremetal, true),
+		Entry("Operation: V2GetClusterInstallConfig, Platfrom type: baremetal", "V2GetClusterInstallConfig", getInstallConfigFromFile, models.PlatformTypeBaremetal, false),
+		Entry("Operation: V2GetClusterInstallConfig, Platfrom type: none", "V2GetClusterInstallConfig", getInstallConfigFromFile, models.PlatformTypeNone, false),
+		Entry("Operation: V2GetClusterInstallConfig, Override config: true", "V2GetClusterInstallConfig", getInstallConfigFromFile, models.PlatformTypeBaremetal, true),
+	)
 })
