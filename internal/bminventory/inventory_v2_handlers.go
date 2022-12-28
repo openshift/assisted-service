@@ -93,7 +93,7 @@ func (b *bareMetalInventory) V2DeregisterCluster(ctx context.Context, params ins
 }
 
 func (b *bareMetalInventory) V2GetClusterInstallConfig(ctx context.Context, params installer.V2GetClusterInstallConfigParams) middleware.Responder {
-	cluster, err := b.getCluster(ctx, params.ClusterID.String())
+	cluster, err := b.getCluster(ctx, params.ClusterID.String(), common.UseEagerLoading)
 	if err != nil {
 		return common.GenerateErrorResponder(fmt.Errorf("Failed to get cluster %s: %w", params.ClusterID, err))
 	}

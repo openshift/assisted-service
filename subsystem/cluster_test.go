@@ -5208,7 +5208,7 @@ var _ = Describe("Verify install-config manifest", func() {
 		return installConfig
 	}
 
-	validateInstallConfig := func(installConfig map[string]interface{}, networksIncluded bool) {
+	validateInstallConfig := func(installConfig map[string]interface{}) {
 		By("Validate 'baseDomain'")
 		baseDomain, ok := installConfig["baseDomain"].(string)
 		Expect(ok).To(Equal(true))
@@ -5241,32 +5241,28 @@ var _ = Describe("Verify install-config manifest", func() {
 		networking, ok := installConfig["networking"].(map[interface{}]interface{})
 		Expect(ok).To(Equal(true))
 
-		// Networks are not included when fetching using V2GetClusterInstallConfig
-		// (the cluster is fetched without eager loading)
-		if networksIncluded {
-			// Validate 'clusterNetwork'
-			clusterNetwork, ok := networking["clusterNetwork"].([]interface{})
-			Expect(ok).To(Equal(true))
-			cidrEntry, ok := clusterNetwork[0].(map[interface{}]interface{})
-			Expect(ok).To(Equal(true))
-			cidr, ok := cidrEntry["cidr"].(string)
-			Expect(ok).To(Equal(true))
-			Expect(cidr).To(Equal(clusterCIDR))
-			// Validate 'machineNetwork'
-			machineNetwork, ok := networking["machineNetwork"].([]interface{})
-			Expect(ok).To(Equal(true))
-			cidrEntry, ok = machineNetwork[0].(map[interface{}]interface{})
-			Expect(ok).To(Equal(true))
-			cidr, ok = cidrEntry["cidr"].(string)
-			Expect(ok).To(Equal(true))
-			Expect(cidr).To(Equal(machineCIDR))
-			// Validate 'serviceNetwork'
-			serviceNetwork, ok := networking["serviceNetwork"].([]interface{})
-			Expect(ok).To(Equal(true))
-			cidr, ok = serviceNetwork[0].(string)
-			Expect(ok).To(Equal(true))
-			Expect(cidr).To(Equal(serviceCIDR))
-		}
+		// Validate 'clusterNetwork'
+		clusterNetwork, ok := networking["clusterNetwork"].([]interface{})
+		Expect(ok).To(Equal(true))
+		cidrEntry, ok := clusterNetwork[0].(map[interface{}]interface{})
+		Expect(ok).To(Equal(true))
+		cidr, ok := cidrEntry["cidr"].(string)
+		Expect(ok).To(Equal(true))
+		Expect(cidr).To(Equal(clusterCIDR))
+		// Validate 'machineNetwork'
+		machineNetwork, ok := networking["machineNetwork"].([]interface{})
+		Expect(ok).To(Equal(true))
+		cidrEntry, ok = machineNetwork[0].(map[interface{}]interface{})
+		Expect(ok).To(Equal(true))
+		cidr, ok = cidrEntry["cidr"].(string)
+		Expect(ok).To(Equal(true))
+		Expect(cidr).To(Equal(machineCIDR))
+		// Validate 'serviceNetwork'
+		serviceNetwork, ok := networking["serviceNetwork"].([]interface{})
+		Expect(ok).To(Equal(true))
+		cidr, ok = serviceNetwork[0].(string)
+		Expect(ok).To(Equal(true))
+		Expect(cidr).To(Equal(serviceCIDR))
 	}
 
 	BeforeEach(func() {
@@ -5302,10 +5298,10 @@ var _ = Describe("Verify install-config manifest", func() {
 	})
 
 	It("Validate install-config.yaml content retrieved from V2DownloadClusterFiles", func() {
-		validateInstallConfig(getInstallConfigFromFile(), true)
+		validateInstallConfig(getInstallConfigFromFile())
 	})
 
 	It("Validate install-config.yaml content retrieved from V2GetClusterInstallConfig", func() {
-		validateInstallConfig(getInstallConfigFromDB(), false)
+		validateInstallConfig(getInstallConfigFromDB())
 	})
 })
