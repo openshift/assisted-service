@@ -24,6 +24,15 @@ var _ = Describe("ModifyEventsID", func() {
 		events      []*common.Event
 	)
 
+	eventIsInList := func(eventId uint, events []*common.Event) bool {
+		for _, event := range events {
+			if event.ID == eventId {
+				return true
+			}
+		}
+		return false
+	}
+
 	validateEvents := func() {
 		validationDB, err := common.OpenTestDBConn(dbName)
 		Expect(err).ShouldNot(HaveOccurred())
@@ -31,8 +40,8 @@ var _ = Describe("ModifyEventsID", func() {
 		var eventsAfterMigrate []*common.Event
 		Expect(validationDB.Find(&eventsAfterMigrate).Error).ToNot(HaveOccurred())
 		Expect(eventsAfterMigrate).To(HaveLen(2))
-		Expect(events[0].ID).To(Equal(eventsAfterMigrate[0].ID))
-		Expect(events[1].ID).To(Equal(eventsAfterMigrate[1].ID))
+		Expect(eventIsInList(events[0].ID, eventsAfterMigrate)).To(BeTrue())
+		Expect(eventIsInList(events[1].ID, eventsAfterMigrate)).To(BeTrue())
 	}
 
 	BeforeEach(func() {

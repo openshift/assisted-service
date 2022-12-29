@@ -1545,7 +1545,8 @@ var _ = Describe("CancelInstallation", func() {
 			events, err := eventsHandler.V2GetEvents(ctx, c.ID, nil, nil)
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(len(events)).ShouldNot(Equal(0))
-			cancelEvent := events[len(events)-1]
+			cancelEvent := eventstest.FindEventByName(events, eventgen.ClusterInstallationCanceledEventName)
+			Expect(cancelEvent).NotTo(BeNil())
 			Expect(*cancelEvent.Severity).Should(Equal(models.EventSeverityInfo))
 			Expect(*cancelEvent.Message).Should(Equal("Canceled cluster installation"))
 		})
@@ -1557,7 +1558,8 @@ var _ = Describe("CancelInstallation", func() {
 			events, err := eventsHandler.V2GetEvents(ctx, c.ID, nil, nil)
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(len(events)).ShouldNot(Equal(0))
-			cancelEvent := events[len(events)-1]
+			cancelEvent := eventstest.FindEventByName(events, eventgen.ClusterInstallationCanceledEventName)
+			Expect(cancelEvent).NotTo(BeNil())
 			Expect(*cancelEvent.Severity).Should(Equal(models.EventSeverityInfo))
 			Expect(*cancelEvent.Message).Should(Equal("Canceled cluster installation"))
 		})
@@ -1575,7 +1577,8 @@ var _ = Describe("CancelInstallation", func() {
 			events, err := eventsHandler.V2GetEvents(ctx, c.ID, nil, nil)
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(len(events)).ShouldNot(Equal(0))
-			cancelEvent := events[len(events)-1]
+			cancelEvent := eventstest.FindEventByName(events, eventgen.CancelInstallationFailedEventName)
+			Expect(cancelEvent).NotTo(BeNil())
 			Expect(*cancelEvent.Severity).Should(Equal(models.EventSeverityError))
 		})
 	})
@@ -1620,7 +1623,8 @@ var _ = Describe("ResetCluster", func() {
 		events, err := eventsHandler.V2GetEvents(ctx, c.ID, nil, nil)
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(len(events)).ShouldNot(Equal(0))
-		resetEvent := events[len(events)-1]
+		resetEvent := eventstest.FindEventByName(events, eventgen.ClusterInstallationResetEventName)
+		Expect(resetEvent).NotTo(BeNil())
 		Expect(*resetEvent.Severity).Should(Equal(models.EventSeverityInfo))
 		Expect(*resetEvent.Message).Should(Equal("Reset cluster installation"))
 
@@ -1640,7 +1644,8 @@ var _ = Describe("ResetCluster", func() {
 		events, err := eventsHandler.V2GetEvents(ctx, c.ID, nil, nil)
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(len(events)).ShouldNot(Equal(0))
-		resetEvent := events[len(events)-1]
+		resetEvent := eventstest.FindEventByName(events, eventgen.ResetInstallationFailedEventName)
+		Expect(resetEvent).NotTo(BeNil())
 		Expect(*resetEvent.Severity).Should(Equal(models.EventSeverityError))
 	})
 })
@@ -2836,24 +2841,26 @@ var _ = Describe("Deregister inactive clusters", func() {
 	})
 
 	It("Deregister inactive cluster limited", func() {
-		inactiveCluster1 := registerCluster()
-		inactiveCluster2 := registerCluster()
-		inactiveCluster3 := registerCluster()
-		inactiveCluster4 := registerCluster()
-		inactiveCluster5 := registerCluster()
-		inactiveCluster6 := registerCluster()
+		var (
+			clustersBeforeDeregisterInactive []*common.Cluster
+			clustersAfterDeregisterInactive  []*common.Cluster
+		)
 
-		lastActive := strfmt.DateTime(time.Now())
+		for i := 0; i < 6; i++ {
+			registerCluster()
+		}
 
-		Expect(state.DeregisterInactiveCluster(ctx, 3, lastActive)).ShouldNot(HaveOccurred())
+		lastActivePlus5sec := strfmt.DateTime(time.Now().Add(5 * time.Second))
 
-		Expect(wasDeregisterd(db, *inactiveCluster1.ID)).To(BeTrue())
-		Expect(wasDeregisterd(db, *inactiveCluster2.ID)).To(BeTrue())
+		err := db.Find(&clustersBeforeDeregisterInactive).Error
+		Expect(err).ToNot(HaveOccurred())
+		Expect(clustersBeforeDeregisterInactive).To(HaveLen(7))
 
-		Expect(wasDeregisterd(db, *inactiveCluster3.ID)).To(BeFalse())
-		Expect(wasDeregisterd(db, *inactiveCluster4.ID)).To(BeFalse())
-		Expect(wasDeregisterd(db, *inactiveCluster5.ID)).To(BeFalse())
-		Expect(wasDeregisterd(db, *inactiveCluster6.ID)).To(BeFalse())
+		Expect(state.DeregisterInactiveCluster(ctx, 3, lastActivePlus5sec)).ShouldNot(HaveOccurred())
+
+		err = db.Find(&clustersAfterDeregisterInactive).Error
+		Expect(err).ToNot(HaveOccurred())
+		Expect(clustersAfterDeregisterInactive).To(HaveLen(4))
 	})
 })
 

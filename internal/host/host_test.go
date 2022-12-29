@@ -757,7 +757,8 @@ var _ = Describe("cancel installation", func() {
 			events, err := eventsHandler.V2GetEvents(ctx, h.ClusterID, h.ID, nil)
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(len(events)).ShouldNot(Equal(0))
-			cancelEvent := events[len(events)-1]
+			cancelEvent := eventstest.FindEventByName(events, eventgen.HostInstallationCancelledEventName)
+			Expect(cancelEvent).NotTo(BeNil())
 			Expect(*cancelEvent.Severity).Should(Equal(models.EventSeverityInfo))
 			eventMessage := fmt.Sprintf("Installation cancelled for host %s", hostutil.GetHostnameForMsg(&h))
 			Expect(*cancelEvent.Message).Should(Equal(eventMessage))
@@ -776,7 +777,8 @@ var _ = Describe("cancel installation", func() {
 			events, err := eventsHandler.V2GetEvents(ctx, h.ClusterID, h.ID, nil)
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(len(events)).ShouldNot(Equal(0))
-			cancelEvent := events[len(events)-1]
+			cancelEvent := eventstest.FindEventByName(events, eventgen.HostInstallationCancelledEventName)
+			Expect(cancelEvent).NotTo(BeNil())
 			Expect(*cancelEvent.Severity).Should(Equal(models.EventSeverityInfo))
 			eventMessage := fmt.Sprintf("Installation cancelled for host %s", hostutil.GetHostnameForMsg(&h))
 			Expect(*cancelEvent.Message).Should(Equal(eventMessage))
@@ -849,7 +851,8 @@ var _ = Describe("reset host", func() {
 			events, err := eventsHandler.V2GetEvents(ctx, h.ClusterID, h.ID, nil)
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(len(events)).ShouldNot(Equal(0))
-			resetEvent := events[len(events)-1]
+			resetEvent := eventstest.FindEventByName(events, eventgen.HostInstallationResetEventName)
+			Expect(resetEvent).NotTo(BeNil())
 			Expect(*resetEvent.Severity).Should(Equal(models.EventSeverityInfo))
 			eventMessage := fmt.Sprintf("Installation reset for host %s", hostutil.GetHostnameForMsg(&h))
 			Expect(*resetEvent.Message).Should(Equal(eventMessage))
@@ -887,7 +890,8 @@ var _ = Describe("reset host", func() {
 			events, err := eventsHandler.V2GetEvents(ctx, &clusterId, h.ID, nil)
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(len(events)).ShouldNot(Equal(0))
-			resetEvent := events[len(events)-1]
+			resetEvent := eventstest.FindEventByName(events, eventgen.UserRequiredCompleteInstallationResetEventName)
+			Expect(resetEvent).NotTo(BeNil())
 			Expect(*resetEvent.Severity).Should(Equal(models.EventSeverityInfo))
 			eventMessage := fmt.Sprintf("User action is required in order to complete installation reset for host %s", hostutil.GetHostnameForMsg(&h))
 			Expect(*resetEvent.Message).Should(Equal(eventMessage))
@@ -913,7 +917,8 @@ var _ = Describe("reset host", func() {
 			events, err := eventsHandler.V2GetEvents(ctx, h.ClusterID, h.ID, nil)
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(len(events)).ShouldNot(Equal(0))
-			resetEvent := events[len(events)-1]
+			resetEvent := eventstest.FindEventByName(events, eventgen.UserRequiredCompleteInstallationResetEventName)
+			Expect(resetEvent).NotTo(BeNil())
 			Expect(*resetEvent.Severity).Should(Equal(models.EventSeverityInfo))
 			eventMessage := fmt.Sprintf("User action is required in order to complete installation reset for host %s", hostutil.GetHostnameForMsg(&h))
 			Expect(*resetEvent.Message).Should(Equal(eventMessage))

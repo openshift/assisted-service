@@ -19,6 +19,15 @@ var _ = Describe("Migrate hosts pkey", func() {
 		hosts  []*common.Host
 	)
 
+	hostIsInList := func(hostId *strfmt.UUID, hosts []*common.Host) bool {
+		for _, host := range hosts {
+			if host.ID.String() == hostId.String() {
+				return true
+			}
+		}
+		return false
+	}
+
 	validateHosts := func() {
 		validationDB, err := common.OpenTestDBConn(dbName)
 		Expect(err).ShouldNot(HaveOccurred())
@@ -26,8 +35,8 @@ var _ = Describe("Migrate hosts pkey", func() {
 		var hostsAfterMigrate []*common.Host
 		Expect(validationDB.Find(&hostsAfterMigrate).Error).ToNot(HaveOccurred())
 		Expect(hostsAfterMigrate).To(HaveLen(2))
-		Expect(hosts[0].ID).To(Equal(hostsAfterMigrate[0].ID))
-		Expect(hosts[1].ID).To(Equal(hostsAfterMigrate[1].ID))
+		Expect(hostIsInList(hosts[0].ID, hostsAfterMigrate)).To(BeTrue())
+		Expect(hostIsInList(hosts[1].ID, hostsAfterMigrate)).To(BeTrue())
 	}
 
 	BeforeEach(func() {
