@@ -203,7 +203,7 @@ var _ = Describe("ACI web validate", func() {
 			expectedAllowed: false,
 		},
 		{
-			name: "Test AgentClusterInstall.Spec update allowed for provision fields when Install finished",
+			name: "Test AgentClusterInstall.Spec update allowed for provision fields when Install failed",
 			newSpec: hiveext.AgentClusterInstallSpec{
 				ProvisionRequirements: hiveext.ProvisionRequirements{
 					ControlPlaneAgents: 3,
