@@ -259,38 +259,38 @@ func MapHostsByStatus(c *common.Cluster) map[string][]*models.Host {
 	return mapHostsByStatus(c, "")
 }
 
-func UpdateMachineCidr(db *gorm.DB, cluster *common.Cluster, machineCidr []string) error {
-	if len(machineCidr) > 2 {
+func UpdateMachineNetwork(db *gorm.DB, cluster *common.Cluster, machineNetwork []string) error {
+	if len(machineNetwork) > 2 {
 		return common.NewApiError(http.StatusInternalServerError,
-			errors.Errorf("for cluster %s received request to update %d machine networks", cluster.ID, len(machineCidr)))
+			errors.Errorf("for cluster %s received request to update %d machine networks", cluster.ID, len(machineNetwork)))
 	}
 
-	previousPrimaryMachineCidr := ""
-	previousSecondaryMachineCidr := ""
+	previousPrimaryMachineNetwork := ""
+	previousSecondaryMachineNetwork := ""
 	if network.IsMachineCidrAvailable(cluster) {
-		previousPrimaryMachineCidr = network.GetMachineCidrById(cluster, 0)
-		previousSecondaryMachineCidr = network.GetMachineCidrById(cluster, 1)
+		previousPrimaryMachineNetwork = network.GetMachineCidrById(cluster, 0)
+		previousSecondaryMachineNetwork = network.GetMachineCidrById(cluster, 1)
 	}
 
-	if (len(machineCidr) > 0 && machineCidr[0] != previousPrimaryMachineCidr) || (len(machineCidr) > 1 && machineCidr[1] != previousSecondaryMachineCidr) {
+	if (len(machineNetwork) > 0 && machineNetwork[0] != previousPrimaryMachineNetwork) || (len(machineNetwork) > 1 && machineNetwork[1] != previousSecondaryMachineNetwork) {
 		err := db.Transaction(func(tx *gorm.DB) error {
-			if err := db.Where("cluster_id = ?", *cluster.ID).Delete(&models.MachineNetwork{}).Error; err != nil {
+			if err := tx.Where("cluster_id = ?", *cluster.ID).Delete(&models.MachineNetwork{}).Error; err != nil {
 				err = errors.Wrapf(err, "failed to delete machine networks of cluster %s", *cluster.ID)
 				return common.NewApiError(http.StatusInternalServerError, err)
 			}
-			for _, cidr := range machineCidr {
+			for _, cidr := range machineNetwork {
 				if cidr != "" {
 					machineNetwork := &models.MachineNetwork{
 						ClusterID: *cluster.ID,
 						Cidr:      models.Subnet(cidr),
 					}
-					if err := db.Save(machineNetwork).Error; err != nil {
+					if err := tx.Save(machineNetwork).Error; err != nil {
 						err = errors.Wrapf(err, "failed to update cluster machineNetwork %s of cluster %s", cidr, *cluster.ID)
 						return common.NewApiError(http.StatusInternalServerError, err)
 					}
 				}
 			}
-			if err := db.Model(&common.Cluster{}).Where("id = ?", cluster.ID.String()).Updates(map[string]interface{}{
+			if err := tx.Model(&common.Cluster{}).Where("id = ?", cluster.ID.String()).Updates(map[string]interface{}{
 				"machine_network_cidr_updated_at": time.Now()}).Error; err != nil {
 				err = errors.Wrapf(err, "failed to update machine networks timestamp in cluster %s", *cluster.ID)
 				return common.NewApiError(http.StatusInternalServerError, err)

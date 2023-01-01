@@ -405,17 +405,17 @@ func (m *Manager) tryAssignMachineCidrDHCPMode(cluster *common.Cluster) error {
 		 * Auto assign machine network CIDR is relevant if there is only single host network.  Otherwise the user
 		 * has to select the machine network CIDR
 		 */
-		return UpdateMachineCidr(m.db, cluster, []string{networks[0]})
+		return UpdateMachineNetwork(m.db, cluster, []string{networks[0]})
 	}
 	return nil
 }
 
 func (m *Manager) tryAssignMachineCidrNonDHCPMode(cluster *common.Cluster) error {
-	primaryMachineCidr, err := network.CalculateMachineNetworkCIDR(
+	primaryMachineNetwork, err := network.CalculateMachineNetworkCIDR(
 		network.GetApiVipById(cluster, 0), network.GetIngressVipById(cluster, 0), cluster.Hosts, false)
 	if err != nil {
 		return err
-	} else if primaryMachineCidr == "" && network.CheckIfClusterIsDualStack(cluster) {
+	} else if primaryMachineNetwork == "" && network.CheckIfClusterIsDualStack(cluster) {
 		// This function is running inside the monitoring loop, therefore it only relates to
 		// cases when we autocalculate Machine Networks. In case we run it against a cluster with
 		// no hosts, it will remove currently configured entries (provided e.g. in the creation
@@ -424,7 +424,7 @@ func (m *Manager) tryAssignMachineCidrNonDHCPMode(cluster *common.Cluster) error
 		return nil
 	}
 
-	secondaryMachineCidr, err := network.CalculateMachineNetworkCIDR(
+	secondaryMachineNetwork, err := network.CalculateMachineNetworkCIDR(
 		network.GetApiVipById(cluster, 1), network.GetIngressVipById(cluster, 1), cluster.Hosts, false)
 	if err != nil {
 		return err
@@ -436,13 +436,13 @@ func (m *Manager) tryAssignMachineCidrNonDHCPMode(cluster *common.Cluster) error
 	// following happens
 	//   * autocalculated 1st machine network is the same as currently configured, and
 	//   * autocalculated 2nd machine network is empty or the same as currently configured
-	if primaryMachineCidr == network.GetMachineCidrById(cluster, 0) &&
-		(secondaryMachineCidr == "" || secondaryMachineCidr == network.GetMachineCidrById(cluster, 1)) {
+	if primaryMachineNetwork == network.GetMachineCidrById(cluster, 0) &&
+		(secondaryMachineNetwork == "" || secondaryMachineNetwork == network.GetMachineCidrById(cluster, 1)) {
 
 		return nil
 	}
 
-	return UpdateMachineCidr(m.db, cluster, []string{primaryMachineCidr, secondaryMachineCidr})
+	return UpdateMachineNetwork(m.db, cluster, []string{primaryMachineNetwork, secondaryMachineNetwork})
 }
 
 func (m *Manager) tryAssignMachineCidrSNO(cluster *common.Cluster) error {
@@ -485,7 +485,7 @@ func (m *Manager) tryAssignMachineCidrSNO(cluster *common.Cluster) error {
 				}
 			}
 		}
-		return UpdateMachineCidr(m.db, cluster, pendingCidrs)
+		return UpdateMachineNetwork(m.db, cluster, pendingCidrs)
 	}
 	return nil
 }
