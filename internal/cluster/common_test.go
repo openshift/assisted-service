@@ -259,7 +259,7 @@ var _ = Describe("host count with 2 cluster", func() {
 
 })
 
-var _ = Describe("UpdateMachineCidr", func() {
+var _ = Describe("UpdateMachineNetwork", func() {
 	var (
 		db *gorm.DB
 	)
@@ -357,7 +357,7 @@ var _ = Describe("UpdateMachineCidr", func() {
 			cluster, err := common.GetClusterFromDB(common.LoadTableFromDB(db, common.MachineNetworksTable), id, common.SkipEagerLoading)
 			Expect(err).ShouldNot(HaveOccurred())
 
-			Expect(UpdateMachineCidr(db, cluster, []string{test.newMachineCidr})).ShouldNot(HaveOccurred())
+			Expect(UpdateMachineNetwork(db, cluster, []string{test.newMachineCidr})).ShouldNot(HaveOccurred())
 
 			var clusterFromDb *common.Cluster
 			clusterFromDb, err = common.GetClusterFromDB(common.LoadTableFromDB(db, common.MachineNetworksTable), id, common.SkipEagerLoading)
