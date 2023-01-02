@@ -6043,7 +6043,7 @@ var _ = Describe("[V2ClusterUpdate] cluster", func() {
 								Platform: &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeNutanix)},
 							},
 						})
-						verifyApiErrorString(reply, http.StatusBadRequest, "Single node cluster is not supported alongside nutanix platform")
+						verifyApiErrorString(reply, http.StatusBadRequest, "disabling User Managed Networking or setting platform different than none platform is not allowed in single node Openshift")
 					})
 				})
 
@@ -11450,6 +11450,21 @@ var _ = Describe("TestRegisterCluster", func() {
 
 				params := getClusterCreateParams(nil)
 				params.Platform = &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeBaremetal)}
+				params.UserManagedNetworking = swag.Bool(true)
+				reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
+					NewClusterParams: params,
+				})
+				verifyApiError(reply, http.StatusBadRequest)
+			})
+
+			It("Nutanix platform and UserManagedNetworking=true - failed", func() {
+				mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
+					eventstest.WithNameMatcher(eventgen.ClusterRegistrationFailedEventName),
+					eventstest.WithMessageContainsMatcher("Failed to register cluster. Error: Can't set nutanix platform with user-managed-networking enabled"),
+					eventstest.WithSeverityMatcher(models.EventSeverityError))).Times(1)
+
+				params := getClusterCreateParams(nil)
+				params.Platform = &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeNutanix)}
 				params.UserManagedNetworking = swag.Bool(true)
 				reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 					NewClusterParams: params,
