@@ -70,6 +70,17 @@ func (b *bareMetalInventory) V2DeregisterCluster(ctx context.Context, params ins
 		return common.NewApiError(http.StatusNotFound, err)
 	}
 
+	if swag.StringValue(cluster.Status) == models.ClusterStatusInstalling {
+		return common.NewApiError(
+			http.StatusConflict,
+			fmt.Errorf(
+				"cluster %s can not be removed while being installed, wait for "+
+					"the installation to timeout or reset the installation",
+				cluster.ID,
+			),
+		)
+	}
+
 	if b.ocmClient != nil {
 		if err = b.integrateWithAMSClusterDeregistration(ctx, cluster); err != nil {
 			log.WithError(err).Errorf("Cluster %s failed to integrate with AMS on cluster deregistration", params.ClusterID)
