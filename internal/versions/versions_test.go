@@ -75,6 +75,24 @@ var defaultOsImages = models.OsImages{
 }
 
 var defaultReleaseImages = models.ReleaseImages{
+	// Two images below represent a scenario when the same OpenShift Version (as reported by the
+	// CVO) is provided by more than a single release image. This is a scenario when for the same
+	// OCP version we have single-arch and multi-arch image. This happens because starting from
+	// OCP 4.12 CSV returns the same value no matter the architecture-ness of the release image.
+	&models.ReleaseImage{
+		CPUArchitecture:  swag.String(common.X86CPUArchitecture),
+		CPUArchitectures: []string{common.X86CPUArchitecture},
+		OpenshiftVersion: swag.String("4.12"),
+		URL:              swag.String("release_4.12.999-multi"),
+		Version:          swag.String("4.12.999-rc.4"),
+	},
+	&models.ReleaseImage{
+		CPUArchitecture:  swag.String(common.MultiCPUArchitecture),
+		CPUArchitectures: []string{common.X86CPUArchitecture, common.ARM64CPUArchitecture, common.PowerCPUArchitecture},
+		OpenshiftVersion: swag.String("4.12-multi"),
+		URL:              swag.String("release_4.12.999-x86_64"),
+		Version:          swag.String("4.12.999-rc.4"),
+	},
 	&models.ReleaseImage{
 		// This image uses a syntax with missing "cpu_architectures". It is crafted
 		// in order to make sure the change in MGMT-11494 is backwards-compatible.
@@ -236,6 +254,20 @@ var _ = Describe("GetReleaseImage", func() {
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(*releaseImage.OpenshiftVersion).Should(Equal("4.11.1"))
 		Expect(*releaseImage.Version).Should(Equal("4.11.1-multi"))
+	})
+
+	It("gets successfuly multi-arch image for multiple images with the same version", func() {
+		releaseImage, err := h.GetReleaseImage(ctx, "4.12.999-rc.4", common.MultiCPUArchitecture, pullSecret)
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(*releaseImage.OpenshiftVersion).Should(Equal("4.12-multi"))
+		Expect(*releaseImage.Version).Should(Equal("4.12.999-rc.4"))
+	})
+
+	It("gets successfuly single-arch image for multiple images with the same version", func() {
+		releaseImage, err := h.GetReleaseImage(ctx, "4.12.999-rc.4", common.X86CPUArchitecture, pullSecret)
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(*releaseImage.OpenshiftVersion).Should(Equal("4.12"))
+		Expect(*releaseImage.Version).Should(Equal("4.12.999-rc.4"))
 	})
 
 	Context("with a kube client", func() {
