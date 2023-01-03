@@ -406,7 +406,7 @@ func (r *BMACReconciler) reconcileAgentSpec(log logrus.FieldLogger, bmh *bmh_v1a
 	// to "overwrite" this value everytime as the default
 	// is ""
 	installationDiskID := r.findInstallationDiskID(agent.Status.Inventory.Disks, bmh.Spec.RootDeviceHints)
-	if agent.Spec.InstallationDiskID != installationDiskID {
+	if installationDiskID != "" && bmh.Spec.RootDeviceHints != nil && agent.Spec.InstallationDiskID != installationDiskID {
 		agent.Spec.InstallationDiskID = installationDiskID
 		dirty = true
 	}
