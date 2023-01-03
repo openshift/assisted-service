@@ -13,6 +13,7 @@ import (
 	. "github.com/onsi/gomega"
 	hiveext "github.com/openshift/assisted-service/api/hiveextension/v1beta1"
 	"github.com/openshift/assisted-service/api/v1beta1"
+	"github.com/openshift/assisted-service/internal/bminventory"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/models"
 	conditionsv1 "github.com/openshift/custom-resource-status/conditions/v1"
@@ -34,20 +35,24 @@ var BASIC_CERT = `test`
 
 var _ = Describe("bmac reconcile", func() {
 	var (
-		c        client.Client
-		bmhr     *BMACReconciler
-		ctx      = context.Background()
-		mockCtrl *gomock.Controller
+		c                     client.Client
+		bmhr                  *BMACReconciler
+		ctx                   = context.Background()
+		mockCtrl              *gomock.Controller
+		mockInstallerInternal *bminventory.MockInstallerInternals
 	)
 
 	BeforeEach(func() {
 		schemes := GetKubeClientSchemes()
 		c = fakeclient.NewClientBuilder().WithScheme(schemes).Build()
 		mockCtrl = gomock.NewController(GinkgoT())
+		mockInstallerInternal = bminventory.NewMockInstallerInternals(mockCtrl)
+		mockInstallerInternal.EXPECT().GetHostByKubeKey(gomock.Any()).Return(&common.Host{Host: models.Host{}}, nil).AnyTimes()
 		bmhr = &BMACReconciler{
 			Client:               c,
 			APIReader:            c,
 			Scheme:               scheme.Scheme,
+			Installer:            mockInstallerInternal,
 			Log:                  common.GetTestLog(),
 			spokeClient:          fakeclient.NewClientBuilder().WithScheme(schemes).Build(),
 			ConvergedFlowEnabled: false,
@@ -1279,20 +1284,24 @@ var _ = Describe("bmac reconcile", func() {
 
 var _ = Describe("bmac reconcile - converged flow enabled", func() {
 	var (
-		c        client.Client
-		bmhr     *BMACReconciler
-		ctx      = context.Background()
-		mockCtrl *gomock.Controller
+		c                     client.Client
+		bmhr                  *BMACReconciler
+		ctx                   = context.Background()
+		mockCtrl              *gomock.Controller
+		mockInstallerInternal *bminventory.MockInstallerInternals
 	)
 
 	BeforeEach(func() {
 		schemes := GetKubeClientSchemes()
 		c = fakeclient.NewClientBuilder().WithScheme(schemes).Build()
 		mockCtrl = gomock.NewController(GinkgoT())
+		mockInstallerInternal = bminventory.NewMockInstallerInternals(mockCtrl)
+		mockInstallerInternal.EXPECT().GetHostByKubeKey(gomock.Any()).Return(&common.Host{Host: models.Host{}}, nil).AnyTimes()
 		bmhr = &BMACReconciler{
 			Client:               c,
 			APIReader:            c,
 			Scheme:               scheme.Scheme,
+			Installer:            mockInstallerInternal,
 			Log:                  common.GetTestLog(),
 			spokeClient:          fakeclient.NewClientBuilder().WithScheme(schemes).Build(),
 			ConvergedFlowEnabled: true,

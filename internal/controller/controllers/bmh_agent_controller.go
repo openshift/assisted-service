@@ -29,6 +29,7 @@ import (
 
 	bmh_v1alpha1 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
 	aiv1beta1 "github.com/openshift/assisted-service/api/v1beta1"
+	"github.com/openshift/assisted-service/internal/bminventory"
 	"github.com/openshift/assisted-service/internal/host/hostutil"
 	"github.com/openshift/assisted-service/internal/ignition"
 	"github.com/openshift/assisted-service/internal/spoke_k8s_client"
@@ -59,6 +60,7 @@ type BMACReconciler struct {
 	APIReader             client.Reader
 	Log                   logrus.FieldLogger
 	Scheme                *runtime.Scheme
+	Installer             bminventory.InstallerInternals
 	SpokeK8sClientFactory spoke_k8s_client.SpokeK8sClientFactory
 	spokeClient           client.Client
 	ConvergedFlowEnabled  bool
@@ -402,14 +404,30 @@ func (r *BMACReconciler) reconcileAgentSpec(log logrus.FieldLogger, bmh *bmh_v1a
 	}
 
 	// findInstallationDiskID will return an empty string
-	// if no disk is found from the list. Should be find
+	// if no disk is found from the list. Should be fine
 	// to "overwrite" this value everytime as the default
 	// is ""
 	installationDiskID := r.findInstallationDiskID(agent.Status.Inventory.Disks, bmh.Spec.RootDeviceHints)
-	if agent.Spec.InstallationDiskID != installationDiskID {
+	if installationDiskID != "" && agent.Spec.InstallationDiskID != installationDiskID {
 		agent.Spec.InstallationDiskID = installationDiskID
 		dirty = true
+	} else if installationDiskID == "" {
+		// If calculated installation disk ID is empty (e.g. because hints are not used),
+		// we want to sync ID coming from the backend itself with the Agent's
+		h, err := r.Installer.GetHostByKubeKey(types.NamespacedName{
+			Namespace: agent.Namespace,
+			Name:      agent.Name,
+		})
+		if err != nil {
+			log.WithError(err).Errorf("failed to retrieve Host %s from backend", agent.Name)
+			return reconcileError{err: err}
+		}
+		if agent.Spec.InstallationDiskID != h.InstallationDiskID {
+			agent.Spec.InstallationDiskID = h.InstallationDiskID
+			dirty = true
+		}
 	}
+
 	log.Debugf("Agent spec reconcile finished:  %v", agent)
 
 	return reconcileComplete{dirty: dirty}
