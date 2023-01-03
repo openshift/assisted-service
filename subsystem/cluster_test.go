@@ -1770,7 +1770,7 @@ var _ = Describe("cluster install", func() {
 					HostID: strToUUID(uuid.New().String()),
 				},
 			})
-			Expect(err).To(BeAssignableToTypeOf(installer.NewV2RegisterHostBadRequest()))
+			Expect(err).To(BeAssignableToTypeOf(installer.NewV2RegisterHostConflict()))
 		})
 
 		It("register host while cluster in error state", func() {
@@ -1784,7 +1784,7 @@ var _ = Describe("cluster install", func() {
 					HostID: strToUUID(uuid.New().String()),
 				},
 			})
-			Expect(err).To(BeAssignableToTypeOf(installer.NewV2RegisterHostBadRequest()))
+			Expect(err).To(BeAssignableToTypeOf(installer.NewV2RegisterHostConflict()))
 		})
 
 		It("fail installation if there is only a single worker that manages to install", func() {
