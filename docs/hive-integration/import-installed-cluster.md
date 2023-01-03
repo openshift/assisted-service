@@ -169,7 +169,7 @@ oc get agent -n spoke-cluster -ojson | jq -r '.items[] | select(.spec.approved==
 oc get agent -n spoke-cluster -ojson | jq -r '.items[] | select(.spec.approved==false) | .metadata.name'| xargs oc -n spoke-cluster patch -p '{"spec":{"approved":true}}' --type merge agent
 ```
 
-#### 4 Await the installation of the worker. 
+#### 5 Await the installation of the worker. 
 
 On completion of node installation, the worker node should contact the spoke cluster with a Certificate Signing Request to begin the joining process. The CSRs should be automatically signed after a short while.
 
