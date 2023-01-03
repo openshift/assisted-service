@@ -485,7 +485,7 @@ var _ = Describe("RegisterHost", func() {
 		By("verifying returned response")
 		apiErr, ok := reply.(*common.ApiErrorResponse)
 		Expect(ok).Should(BeTrue())
-		Expect(apiErr.StatusCode()).Should(Equal(int32(http.StatusBadRequest)))
+		Expect(apiErr.StatusCode()).Should(Equal(int32(http.StatusConflict)))
 		Expect(apiErr.Error()).Should(Equal(err.Error()))
 	})
 
