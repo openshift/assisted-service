@@ -183,7 +183,14 @@ func (a *AgentClusterInstallValidatingAdmissionHook) validateUpdate(admissionSpe
 	}
 
 	if installAlreadyStarted(newObject.Status.Conditions) {
-		hasChangedImmutableField, unsupportedDiff := hasChangedImmutableField(&oldObject.Spec, &newObject.Spec)
+		ignoreChanges := mutableFields
+		// MGMT-12794 This function returns true if the ProvisionRequirements field
+		// has changed after installation completion. A change to this section has no effect
+		// at this stage, but it is needed to serve some CI/CD gitops flows.
+		if installCompleted(newObject.Status.Conditions) {
+			ignoreChanges = append(ignoreChanges, "ProvisionRequirements")
+		}
+		hasChangedImmutableField, unsupportedDiff := hasChangedImmutableField(&oldObject.Spec, &newObject.Spec, ignoreChanges)
 		if hasChangedImmutableField {
 			message := fmt.Sprintf("Attempted to change AgentClusterInstall.Spec which is immutable after install started, except for %s fields. Unsupported change: \n%s", strings.Join(mutableFields, ","), unsupportedDiff)
 			contextLogger.Infof("Failed validation: %v", message)
@@ -218,6 +225,14 @@ func installAlreadyStarted(conditions []hivev1.ClusterInstallCondition) bool {
 	}
 }
 
+func installCompleted(conditions []hivev1.ClusterInstallCondition) bool {
+	cond := FindStatusCondition(conditions, hiveext.ClusterCompletedCondition)
+	if cond == nil {
+		return false
+	}
+	return cond.Reason == hiveext.ClusterInstalledReason || cond.Reason == hiveext.ClusterInstallationFailedReason
+}
+
 // FindStatusCondition finds the conditionType in conditions.
 func FindStatusCondition(conditions []hivev1.ClusterInstallCondition, conditionType string) *hivev1.ClusterInstallCondition {
 	for i := range conditions {
@@ -230,7 +245,7 @@ func FindStatusCondition(conditions []hivev1.ClusterInstallCondition, conditionT
 
 // hasChangedImmutableField determines if a AgentClusterInstall.spec immutable field was changed.
 // it returns the diff string that shows the changes that are not supported
-func hasChangedImmutableField(oldObject, cd *hiveext.AgentClusterInstallSpec) (bool, string) {
+func hasChangedImmutableField(oldObject, cd *hiveext.AgentClusterInstallSpec, mutableFields []string) (bool, string) {
 	r := &diffReporter{}
 	opts := cmp.Options{
 		cmpopts.EquateEmpty(),
