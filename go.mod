@@ -63,6 +63,7 @@ require (
 	github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring v0.57.0
 	github.com/prometheus/client_golang v1.12.2
 	github.com/rs/cors v1.8.2
+	github.com/segmentio/kafka-go v0.4.38
 	github.com/sirupsen/logrus v1.9.0
 	github.com/slok/go-http-metrics v0.10.0
 	github.com/stretchr/testify v1.8.1
@@ -160,6 +161,7 @@ require (
 	github.com/joeshaw/multierror v0.0.0-20140124173710-69b34d4ec901 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
+	github.com/klauspost/compress v1.15.9 // indirect
 	github.com/kr/pretty v0.3.0 // indirect
 	github.com/lib/pq v1.10.6 // indirect
 	github.com/mailru/easyjson v0.7.7 // indirect
@@ -180,6 +182,7 @@ require (
 	github.com/openshift/cluster-api-provider-gcp v0.0.1-0.20201002065957-9854f7420570 // indirect
 	github.com/openshift/library-go v0.0.0-20220525163858-e52677de4d64 // indirect
 	github.com/pierrec/lz4 v2.3.0+incompatible // indirect
+	github.com/pierrec/lz4/v4 v4.1.15 // indirect
 	github.com/pkg/xattr v0.4.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/prometheus/client_model v0.2.0 // indirect
