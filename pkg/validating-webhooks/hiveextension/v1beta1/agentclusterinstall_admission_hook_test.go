@@ -162,6 +162,29 @@ var _ = Describe("ACI web validate", func() {
 			expectedAllowed: false,
 		},
 		{
+			name: "Test AgentClusterInstall.Spec update allowed for provision fields when Install finished",
+			newSpec: hiveext.AgentClusterInstallSpec{
+				ProvisionRequirements: hiveext.ProvisionRequirements{
+					ControlPlaneAgents: 3,
+					WorkerAgents:       3,
+				},
+			},
+			conditions: []hivev1.ClusterInstallCondition{
+				{
+					Type:   hiveext.ClusterCompletedCondition,
+					Reason: hiveext.ClusterInstalledReason,
+				},
+			},
+			oldSpec: hiveext.AgentClusterInstallSpec{
+				ProvisionRequirements: hiveext.ProvisionRequirements{
+					ControlPlaneAgents: 3,
+					WorkerAgents:       0,
+				},
+			},
+			operation:       admissionv1.Update,
+			expectedAllowed: true,
+		},
+		{
 			name: "Test AgentClusterInstall.Spec is immutable (updates not allowed) Install failed",
 			newSpec: hiveext.AgentClusterInstallSpec{
 				SSHPublicKey: "somekey",
@@ -177,6 +200,29 @@ var _ = Describe("ACI web validate", func() {
 			},
 			operation:       admissionv1.Update,
 			expectedAllowed: false,
+		},
+		{
+			name: "Test AgentClusterInstall.Spec update allowed for provision fields when Install failed",
+			newSpec: hiveext.AgentClusterInstallSpec{
+				ProvisionRequirements: hiveext.ProvisionRequirements{
+					ControlPlaneAgents: 3,
+					WorkerAgents:       3,
+				},
+			},
+			conditions: []hivev1.ClusterInstallCondition{
+				{
+					Type:   hiveext.ClusterCompletedCondition,
+					Reason: hiveext.ClusterInstallationFailedReason,
+				},
+			},
+			oldSpec: hiveext.AgentClusterInstallSpec{
+				ProvisionRequirements: hiveext.ProvisionRequirements{
+					ControlPlaneAgents: 3,
+					WorkerAgents:       0,
+				},
+			},
+			operation:       admissionv1.Update,
+			expectedAllowed: true,
 		},
 		{
 			name: "Test AgentClusterInstall.Spec.ClusterMetadata is mutable (updates are allowed) Install started",
