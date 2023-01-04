@@ -1781,6 +1781,9 @@ func (v *validator) noIPCollisionsInNetwork(c *validationContext) (ValidationSta
 	if c.cluster == nil {
 		return ValidationSuccess, "Cluster has not yet been defined, skipping validation."
 	}
+	if c.inventory == nil {
+		return ValidationSuccess, "Host inventory has not yet been defined, skipping validation."
+	}
 	if common.IsDay2Cluster(c.cluster) {
 		return ValidationSuccess, fmt.Sprintf("Skipping validation for day 2 host %s", c.host.ID)
 	}
