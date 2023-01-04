@@ -1643,6 +1643,12 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			Expect(err).To(BeNil())
 			return h.InstallationDiskID
 		}, "2m", "10s").Should(Equal(sdb.ID))
+		Eventually(func() string {
+			return getAgentCRD(ctx, kubeClient, key).Status.InstallationDiskID
+		}, "2m", "10s").Should(Equal(sdb.ID))
+		Eventually(func() string {
+			return getAgentCRD(ctx, kubeClient, key).Spec.InstallationDiskID
+		}, "2m", "10s").Should(Equal(sdb.ID))
 		Eventually(func() bool {
 			return conditionsv1.IsStatusConditionTrue(getAgentCRD(ctx, kubeClient, key).Status.Conditions, v1beta1.SpecSyncedCondition)
 		}, "2m", "10s").Should(Equal(true))

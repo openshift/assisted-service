@@ -236,6 +236,10 @@ type AgentStatus struct {
 	// ValidationsInfo is a JSON-formatted string containing the validation results for each validation id grouped by category (network, hosts-data, etc.)
 	// +optional
 	ValidationsInfo common.ValidationsStatus `json:"validationsInfo,omitempty"`
+
+	// InstallationDiskID is the disk that will be used for the installation.
+	// +optional
+	InstallationDiskID string `json:"installation_disk_id,omitempty"`
 }
 
 type DebugInfo struct {
