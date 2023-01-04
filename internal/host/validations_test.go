@@ -1827,6 +1827,11 @@ var _ = Describe("Validations test", func() {
 			Expect(db.Save(&host).Error).ShouldNot(HaveOccurred())
 		}
 
+		mockEmptyInventory := func() {
+			host.Inventory = ""
+			Expect(db.Save(&host).Error).ShouldNot(HaveOccurred())
+		}
+
 		BeforeEach(func() {
 			cluster = hostutil.GenerateTestCluster(clusterID)
 			Expect(db.Create(&cluster).Error).ToNot(HaveOccurred())
@@ -1844,6 +1849,21 @@ var _ = Describe("Validations test", func() {
 			status, message, ok := getValidationResult(host.ValidationsInfo, NoIPCollisionsInNetwork)
 			Expect(status).To(Equal(ValidationError))
 			Expect(message).To(Equal(fmt.Sprintf("inventory of host %s contains bad CIDR: invalid CIDR address: %s", hostId, badCIDR)))
+			Expect(ok).To(BeTrue())
+		})
+
+		It("Should skip validation if the host inventory is not yet available", func() {
+			mockHost()
+			mockEmptyInventory()
+			clusterKind := models.ClusterKindAddHostsCluster
+			cluster.Kind = &clusterKind
+			err := db.Save(&cluster).Error
+			Expect(err).ToNot(HaveOccurred())
+			mockAndRefreshStatusWithoutEvents(&host)
+			host = hostutil.GetHostFromDB(*host.ID, host.InfraEnvID, db).Host
+			status, message, ok := getValidationResult(host.ValidationsInfo, NoIPCollisionsInNetwork)
+			Expect(status).To(Equal(ValidationSuccess))
+			Expect(message).To(Equal("Host inventory has not yet been defined, skipping validation."))
 			Expect(ok).To(BeTrue())
 		})
 
