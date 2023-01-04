@@ -5118,6 +5118,12 @@ definitions:
         type: boolean
       error_info:
         type: string
+      data:
+        type: object
+        description: additional data from the cluster 
+        additionalProperties:
+          type: object
+
 
   host-progress:
     type: object

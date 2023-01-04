@@ -6190,6 +6190,13 @@ func init() {
         "is_success"
       ],
       "properties": {
+        "data": {
+          "description": "additional data from the cluster",
+          "type": "object",
+          "additionalProperties": {
+            "type": "object"
+          }
+        },
         "error_info": {
           "type": "string"
         },
@@ -15960,6 +15967,13 @@ func init() {
         "is_success"
       ],
       "properties": {
+        "data": {
+          "description": "additional data from the cluster",
+          "type": "object",
+          "additionalProperties": {
+            "type": "object"
+          }
+        },
         "error_info": {
           "type": "string"
         },
