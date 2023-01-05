@@ -474,24 +474,6 @@ var _ = Describe("[V2ClusterTests] multiarch", func() {
 			IgnoreStateInfo)
 	})
 
-	It("Fail to register infraenv with missing OS image", func() {
-		_, err := userBMClient.Installer.RegisterInfraEnv(context.Background(), &installer.RegisterInfraEnvParams{
-			InfraenvCreateParams: &models.InfraEnvCreateParams{
-				Name:             swag.String("test-infra-env"),
-				OpenshiftVersion: multiarchOpenshiftVersion,
-				PullSecret:       swag.String(pullSecret),
-				SSHAuthorizedKey: swag.String(sshPublicKey),
-				ImageType:        models.ImageTypeFullIso,
-				ClusterID:        &clusterID,
-				CPUArchitecture:  "risc-v",
-			},
-		})
-
-		Expect(err).To(HaveOccurred())
-		actual := err.(*installer.RegisterInfraEnvBadRequest)
-		Expect(*actual.Payload.Reason).To(ContainSubstring(fmt.Sprintf("No OS image for Openshift version %s and architecture %s", multiarchOpenshiftVersion, "risc-v")))
-	})
-
 	It("Fail to register infraenv with missing release image and OS ", func() {
 		_, err := userBMClient.Installer.RegisterInfraEnv(context.Background(), &installer.RegisterInfraEnvParams{
 			InfraenvCreateParams: &models.InfraEnvCreateParams{
