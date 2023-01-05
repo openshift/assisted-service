@@ -3,5 +3,7 @@ FROM base
 COPY --from=quay.io/openshift/origin-cli:latest /usr/bin/oc /usr/bin/kubectl /usr/bin/
 COPY --from=k8s.gcr.io/kustomize/kustomize:v4.3.0 /app/kustomize /usr/bin/
 
+RUN dnf install -y openssl
+
 RUN make build-openshift-ci-test-bin
 RUN go mod vendor

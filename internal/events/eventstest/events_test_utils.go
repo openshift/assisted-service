@@ -7,6 +7,7 @@ import (
 	"runtime"
 	"strings"
 
+	"github.com/openshift/assisted-service/internal/common"
 	eventsapi "github.com/openshift/assisted-service/internal/events/api"
 	"github.com/thoas/go-funk"
 )
@@ -182,4 +183,13 @@ func (e *EventMatcher) Matches(input interface{}) bool {
 
 func (e *EventMatcher) String() string {
 	return e.message
+}
+
+func FindEventByName(events []*common.Event, eventName string) *common.Event {
+	for _, event := range events {
+		if event.Name == eventName {
+			return event
+		}
+	}
+	return nil
 }

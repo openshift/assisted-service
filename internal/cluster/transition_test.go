@@ -284,11 +284,21 @@ var _ = Describe("Transition tests", func() {
 			},
 		}
 
+		findEventByMessage := func(events []*common.Event, eventMessage string) *common.Event {
+			for _, event := range events {
+				if swag.StringValue(event.Message) == eventMessage {
+					return event
+				}
+			}
+			return nil
+		}
+
 		checkCompleteInstallationUpdate := func(eventSeverity string, eventMessage string) {
 			events, err := eventsHandler.V2GetEvents(ctx, &clusterId, nil, nil)
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(len(events)).ShouldNot(Equal(0))
-			resetEvent := events[len(events)-1]
+			resetEvent := findEventByMessage(events, eventMessage)
+			Expect(resetEvent).ToNot(BeNil())
 			Expect(*resetEvent.Severity).Should(Equal(eventSeverity))
 
 			if eventMessage != "" {
