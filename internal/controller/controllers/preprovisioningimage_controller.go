@@ -26,6 +26,7 @@ import (
 	"github.com/go-openapi/swag"
 	"github.com/iancoleman/strcase"
 	metal3_v1alpha1 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
+	configv1 "github.com/openshift/api/config/v1"
 	aiv1beta1 "github.com/openshift/assisted-service/api/v1beta1"
 	"github.com/openshift/assisted-service/internal/bminventory"
 	"github.com/openshift/assisted-service/internal/common"
@@ -66,21 +67,24 @@ type PreprovisioningImageControllerConfig struct {
 // PreprovisioningImage reconciles a AgentClusterInstall object
 type PreprovisioningImageReconciler struct {
 	client.Client
-	Log                logrus.FieldLogger
-	Installer          bminventory.InstallerInternals
-	CRDEventsHandler   CRDEventsHandler
-	VersionsHandler    versions.Handler
-	OcRelease          oc.Release
-	ReleaseImageMirror string
-	IronicServiceURL   string
-	IronicInspectorURL string
-	Config             PreprovisioningImageControllerConfig
+	Log                     logrus.FieldLogger
+	Installer               bminventory.InstallerInternals
+	CRDEventsHandler        CRDEventsHandler
+	VersionsHandler         versions.Handler
+	OcRelease               oc.Release
+	ReleaseImageMirror      string
+	IronicServiceURL        string
+	IronicInspectorURL      string
+	Config                  PreprovisioningImageControllerConfig
+	hubIronicAgentImage     string
+	hubReleaseArchitectures []string
 }
 
 // +kubebuilder:rbac:groups=metal3.io,resources=preprovisioningimages,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=metal3.io,resources=preprovisioningimages/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=agent-install.openshift.io,resources=infraenvs,verbs=get;list;watch
 // +kubebuilder:rbac:groups=agent-install.openshift.io,resources=infraenvs/status,verbs=get
+// +kubebuilder:rbac:groups=config.openshift.io,resources=clusterversions,verbs=get;list;watch
 
 func (r *PreprovisioningImageReconciler) Reconcile(origCtx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	ctx := addRequestIdIfNeeded(origCtx)
@@ -378,12 +382,9 @@ func (r *PreprovisioningImageReconciler) AddIronicAgentToInfraEnv(ctx context.Co
 		log.WithError(err).Error("failed to get corresponding infraEnv")
 		return ctrl.Result{}, err
 	}
-	var ironicAgentImage string
-	if infraEnvInternal.ClusterID != "" {
-		ironicAgentImage, err = r.getIronicAgentImageByRelease(ctx, log, *infraEnvInternal)
-		if err != nil {
-			log.WithError(err).Warningf("Failed to get ironic agent image by release for infraEnv: %s", infraEnv.Name)
-		}
+	ironicAgentImage, err := r.getIronicAgentImageByRelease(ctx, log, infraEnvInternal)
+	if err != nil {
+		log.WithError(err).Warningf("Failed to get ironic agent image by release for infraEnv: %s", infraEnv.Name)
 	}
 
 	// if ironicAgentImage can't be found by version use the default
@@ -420,26 +421,33 @@ func (r *PreprovisioningImageReconciler) AddIronicAgentToInfraEnv(ctx context.Co
 	return ctrl.Result{}, err
 }
 
-func (r *PreprovisioningImageReconciler) getIronicAgentImageByRelease(ctx context.Context, log logrus.FieldLogger, infraEnv common.InfraEnv) (string, error) {
-	cluster, err := r.Installer.GetClusterInternal(ctx, installer.V2GetClusterParams{ClusterID: infraEnv.ClusterID})
-	if err != nil {
-		return "", err
+func (r *PreprovisioningImageReconciler) getIronicAgentImageByRelease(ctx context.Context, log logrus.FieldLogger, infraEnv *common.InfraEnv) (string, error) {
+	image := r.hubIronicAgentImage
+	architectures := r.hubReleaseArchitectures
+	if image == "" {
+		cv := &configv1.ClusterVersion{}
+		if err := r.Get(ctx, types.NamespacedName{Name: "version"}, cv); err != nil {
+			return "", err
+		}
+		var err error
+		architectures, err = r.OcRelease.GetReleaseArchitecture(log, cv.Status.Desired.Image, r.ReleaseImageMirror, infraEnv.PullSecret)
+		if err != nil {
+			return "", err
+		}
+		image, err = r.OcRelease.GetIronicAgentImage(log, cv.Status.Desired.Image, r.ReleaseImageMirror, infraEnv.PullSecret)
+		if err != nil {
+			return "", err
+		}
+		r.hubIronicAgentImage = image
+		r.hubReleaseArchitectures = architectures
+		log.Infof("Caching hub ironic agent image %s for architectures %v", image, architectures)
 	}
 
-	supportConvergedFlow, _ := common.VersionGreaterOrEqual(cluster.OpenshiftVersion, MinimalVersionForConvergedFlow)
-	if !supportConvergedFlow {
-		return "", fmt.Errorf("Openshift version (%s) is lower than the minimal version for the converged flow (%s)", cluster.OpenshiftVersion, MinimalVersionForConvergedFlow)
+	if !funk.Contains(architectures, infraEnv.CPUArchitecture) {
+		return "", fmt.Errorf("release image architectures %v do not match infraEnv architecture %s", architectures, infraEnv.CPUArchitecture)
 	}
 
-	releaseImage, err := r.VersionsHandler.GetReleaseImage(ctx, cluster.OpenshiftVersion, infraEnv.CPUArchitecture, infraEnv.PullSecret)
-	if err != nil {
-		return "", err
-	}
-	ironicAgentImage, err := r.OcRelease.GetIronicAgentImage(log, *releaseImage.URL, r.ReleaseImageMirror, infraEnv.PullSecret)
-	if err != nil {
-		return "", err
-	}
-	return ironicAgentImage, nil
+	return image, nil
 }
 
 func IronicAgentEnabled(log logrus.FieldLogger, infraEnv *aiv1beta1.InfraEnv) bool {

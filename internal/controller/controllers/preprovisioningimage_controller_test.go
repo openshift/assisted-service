@@ -11,6 +11,7 @@ import (
 	metal3_v1alpha1 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	configv1 "github.com/openshift/api/config/v1"
 	aiv1beta1 "github.com/openshift/assisted-service/api/v1beta1"
 	"github.com/openshift/assisted-service/internal/bminventory"
 	"github.com/openshift/assisted-service/internal/common"
@@ -23,8 +24,8 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	fakeclient "sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -56,10 +57,6 @@ func newPreprovisioningImage(name, namespace string, labelKey string, labelValue
 
 func newInfraEnv(name, namespace string, spec aiv1beta1.InfraEnvSpec) *aiv1beta1.InfraEnv {
 	return &aiv1beta1.InfraEnv{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "InfraEnv",
-			APIVersion: fmt.Sprintf("%s/%s", aiv1beta1.GroupVersion.Group, aiv1beta1.GroupVersion.Version),
-		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: namespace,
@@ -87,10 +84,16 @@ var _ = Describe("PreprovisioningImage reconcile", func() {
 		infraEnvArch          = "x86_64"
 		infraEnv              *aiv1beta1.InfraEnv
 		ppi                   *metal3_v1alpha1.PreprovisioningImage
+		hubReleaseImage       = "quay.io/openshift-release-dev/ocp-release@sha256:5fdcafc349e184af11f71fe78c0c87531b9df123c664ff1ac82711dc15fa1532"
+		clusterVersion        *configv1.ClusterVersion
 	)
 
 	BeforeEach(func() {
-		c = fakeclient.NewClientBuilder().WithScheme(scheme.Scheme).Build()
+		schemes := runtime.NewScheme()
+		Expect(configv1.AddToScheme(schemes)).To(Succeed())
+		Expect(metal3_v1alpha1.AddToScheme(schemes)).To(Succeed())
+		Expect(aiv1beta1.AddToScheme(schemes)).To(Succeed())
+		c = fakeclient.NewClientBuilder().WithScheme(schemes).Build()
 		mockCtrl = gomock.NewController(GinkgoT())
 		mockInstallerInternal = bminventory.NewMockInstallerInternals(mockCtrl)
 		mockCRDEventsHandler = NewMockCRDEventsHandler(mockCtrl)
@@ -108,6 +111,13 @@ var _ = Describe("PreprovisioningImage reconcile", func() {
 			OcRelease:        mockOcRelease,
 			IronicServiceURL: "ironic.url",
 			Config:           PreprovisioningImageControllerConfig{BaremetalIronicAgentImage: "ironic-agent-image:latest"},
+		}
+		clusterVersion = &configv1.ClusterVersion{
+			ObjectMeta: metav1.ObjectMeta{Name: "version"},
+			Spec:       configv1.ClusterVersionSpec{ClusterID: configv1.ClusterID(uuid.New().String())},
+			Status: configv1.ClusterVersionStatus{
+				Desired: configv1.Release{Image: hubReleaseImage, Version: "4.12.0-rc.3"},
+			},
 		}
 	})
 
@@ -297,18 +307,16 @@ var _ = Describe("PreprovisioningImage reconcile", func() {
 			Expect(c.Get(ctx, key, ppi)).To(BeNil())
 			validateStatus(infraEnv.Status.ISODownloadURL, conditionsv1.FindStatusCondition(infraEnv.Status.Conditions, aiv1beta1.ImageCreatedCondition), ppi)
 		})
-		It("Add the ironic Ignition to the infraEnv using the ironic agent image from the release", func() {
+		It("Add the ironic Ignition to the infraEnv using the ironic agent image from the hub release", func() {
+			Expect(c.Create(ctx, clusterVersion)).To(Succeed())
 			Expect(c.Create(ctx, infraEnv)).To(BeNil())
-			openshiftRelaseImage := "release-image:4.12.0"
 			ironicAgentImage := "ironic-image:4.12.0"
-			backendInfraEnv.OpenshiftVersion = "4.12.0-test.release"
 			backendInfraEnv.CPUArchitecture = "x86_64"
 			backendInfraEnv.PullSecret = "mypullsecret"
-			backendCluster := common.Cluster{Cluster: models.Cluster{ID: &clusterID, OpenshiftVersion: "4.12"}}
-			mockInstallerInternal.EXPECT().GetClusterInternal(gomock.Any(), installer.V2GetClusterParams{ClusterID: clusterID}).Return(&backendCluster, nil)
 			mockInstallerInternal.EXPECT().GetInfraEnvByKubeKey(gomock.Any()).Return(backendInfraEnv, nil)
-			mockVersionHandler.EXPECT().GetReleaseImage(gomock.Any(), backendCluster.OpenshiftVersion, backendInfraEnv.CPUArchitecture, backendInfraEnv.PullSecret).Return(&models.ReleaseImage{URL: &openshiftRelaseImage}, nil)
-			mockOcRelease.EXPECT().GetIronicAgentImage(gomock.Any(), openshiftRelaseImage, "", backendInfraEnv.PullSecret).Return(ironicAgentImage, nil)
+
+			mockOcRelease.EXPECT().GetReleaseArchitecture(gomock.Any(), hubReleaseImage, "", backendInfraEnv.PullSecret).Return([]string{"x86_64"}, nil)
+			mockOcRelease.EXPECT().GetIronicAgentImage(gomock.Any(), hubReleaseImage, "", backendInfraEnv.PullSecret).Return(ironicAgentImage, nil)
 			mockInstallerInternal.EXPECT().UpdateInfraEnvInternal(gomock.Any(), gomock.Any(), gomock.Any()).
 				Do(func(ctx context.Context, params installer.UpdateInfraEnvParams, internalIgnitionConfig *string) {
 					Expect(params.InfraEnvID).To(Equal(*backendInfraEnv.ID))
@@ -329,13 +337,15 @@ var _ = Describe("PreprovisioningImage reconcile", func() {
 			Expect(c.Get(ctx, key, infraEnv)).To(BeNil())
 			Expect(infraEnv.ObjectMeta.Annotations[EnableIronicAgentAnnotation]).To(Equal("true"))
 		})
-		It("uses the default ironic agent image when the cluster openshift version is too low", func() {
+		It("uses the default ironic agent image when the infraenv arch isn't supported by the hub release image", func() {
+			Expect(c.Create(ctx, clusterVersion)).To(Succeed())
 			Expect(c.Create(ctx, infraEnv)).To(BeNil())
-			backendInfraEnv.OpenshiftVersion = "4.10.0-test.release"
 			backendInfraEnv.CPUArchitecture = "x86_64"
-			backendCluster := common.Cluster{Cluster: models.Cluster{ID: &clusterID, OpenshiftVersion: "4.10"}}
-			mockInstallerInternal.EXPECT().GetClusterInternal(gomock.Any(), installer.V2GetClusterParams{ClusterID: clusterID}).Return(&backendCluster, nil)
+			backendInfraEnv.PullSecret = "mypullsecret"
 			mockInstallerInternal.EXPECT().GetInfraEnvByKubeKey(gomock.Any()).Return(backendInfraEnv, nil)
+
+			mockOcRelease.EXPECT().GetReleaseArchitecture(gomock.Any(), hubReleaseImage, "", backendInfraEnv.PullSecret).Return([]string{"arm64"}, nil)
+			mockOcRelease.EXPECT().GetIronicAgentImage(gomock.Any(), hubReleaseImage, "", backendInfraEnv.PullSecret).Return("ironic-image:4.12.0", nil)
 			mockInstallerInternal.EXPECT().UpdateInfraEnvInternal(gomock.Any(), gomock.Any(), gomock.Any()).
 				Do(func(ctx context.Context, params installer.UpdateInfraEnvParams, internalIgnitionConfig *string) {
 					Expect(params.InfraEnvID).To(Equal(*backendInfraEnv.ID))
@@ -355,6 +365,43 @@ var _ = Describe("PreprovisioningImage reconcile", func() {
 			}
 			Expect(c.Get(ctx, key, infraEnv)).To(BeNil())
 			Expect(infraEnv.ObjectMeta.Annotations[EnableIronicAgentAnnotation]).To(Equal("true"))
+		})
+
+		It("caches the hub cluster image and architecture", func() {
+			Expect(c.Create(ctx, clusterVersion)).To(Succeed())
+			Expect(c.Create(ctx, infraEnv)).To(BeNil())
+			ironicAgentImage := "ironic-image:4.12.0"
+			backendInfraEnv.PullSecret = "mypullsecret"
+			backendInfraEnv.CPUArchitecture = "x86_64"
+			mockInstallerInternal.EXPECT().GetInfraEnvByKubeKey(gomock.Any()).Return(backendInfraEnv, nil).AnyTimes()
+
+			// These should only be called once if the cache is working
+			mockOcRelease.EXPECT().GetReleaseArchitecture(gomock.Any(), hubReleaseImage, "", backendInfraEnv.PullSecret).Return([]string{"x86_64"}, nil).Times(1)
+			mockOcRelease.EXPECT().GetIronicAgentImage(gomock.Any(), hubReleaseImage, "", backendInfraEnv.PullSecret).Return(ironicAgentImage, nil).Times(1)
+
+			mockInstallerInternal.EXPECT().UpdateInfraEnvInternal(gomock.Any(), gomock.Any(), gomock.Any()).
+				Do(func(ctx context.Context, params installer.UpdateInfraEnvParams, internalIgnitionConfig *string) {
+					Expect(params.InfraEnvID).To(Equal(*backendInfraEnv.ID))
+					Expect(*internalIgnitionConfig).Should(ContainSubstring(ironicAgentImage))
+				}).Return(
+				&common.InfraEnv{InfraEnv: models.InfraEnv{ClusterID: clusterID, ID: &infraEnvID, DownloadURL: downloadURL, CPUArchitecture: infraEnvArch}, GeneratedAt: strfmt.DateTime(time.Now())}, nil).Times(2)
+			mockCRDEventsHandler.EXPECT().NotifyInfraEnvUpdates(infraEnv.Name, infraEnv.Namespace).Times(2)
+
+			res, err := pr.Reconcile(ctx, newPreprovisioningImageRequest(ppi))
+			Expect(err).To(BeNil())
+			Expect(res).To(Equal(ctrl.Result{}))
+
+			key := types.NamespacedName{
+				Namespace: testNamespace,
+				Name:      "testInfraEnv",
+			}
+			Expect(c.Get(ctx, key, infraEnv)).To(BeNil())
+			delete(infraEnv.Annotations, EnableIronicAgentAnnotation)
+			Expect(c.Update(ctx, infraEnv)).To(BeNil())
+
+			res, err = pr.Reconcile(ctx, newPreprovisioningImageRequest(ppi))
+			Expect(err).To(BeNil())
+			Expect(res).To(Equal(ctrl.Result{}))
 		})
 
 		It("sets a failure condition when the infraEnv arch doesn't match the preprovisioningimage", func() {
