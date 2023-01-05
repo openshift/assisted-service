@@ -838,6 +838,11 @@ func ValidateDualStackNetworks(clusterParams interface{}, alreadyDualStack bool)
 				return err
 			}
 		}
+	} else {
+		if len(machineNetworks) > 1 {
+			err := errors.Errorf("Single-stack cluster cannot contain multiple Machine Networks")
+			return err
+		}
 	}
 	return nil
 }
