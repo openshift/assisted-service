@@ -489,7 +489,7 @@ var _ = Describe("[V2ClusterTests] multiarch", func() {
 
 		Expect(err).To(HaveOccurred())
 		actual := err.(*installer.RegisterInfraEnvBadRequest)
-		Expect(*actual.Payload.Reason).To(ContainSubstring(fmt.Sprintf("No OS image for Openshift version %s and architecture %s", multiarchOpenshiftVersion, common.PowerCPUArchitecture)))
+		Expect(*actual.Payload.Reason).To(ContainSubstring(fmt.Sprintf("No OS image for Openshift version %s and architecture %s", multiarchOpenshiftVersion, "risc-v")))
 	})
 
 	It("Fail to register infraenv with missing release image and OS ", func() {
