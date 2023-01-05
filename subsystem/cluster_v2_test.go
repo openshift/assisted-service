@@ -483,7 +483,7 @@ var _ = Describe("[V2ClusterTests] multiarch", func() {
 				SSHAuthorizedKey: swag.String(sshPublicKey),
 				ImageType:        models.ImageTypeFullIso,
 				ClusterID:        &clusterID,
-				CPUArchitecture:  common.PowerCPUArchitecture,
+				CPUArchitecture:  "risc-v",
 			},
 		})
 
