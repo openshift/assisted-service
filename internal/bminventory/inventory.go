@@ -4994,7 +4994,7 @@ func (b *bareMetalInventory) V2RegisterHost(ctx context.Context, params installe
 					params.NewHostParams.HostID, params.InfraEnvID.String(), err.Error())
 				eventgen.SendHostRegistrationFailedEvent(ctx, b.eventsHandler, *params.NewHostParams.HostID, params.InfraEnvID, cluster.ID, err.Error())
 
-				return common.NewApiError(http.StatusBadRequest, err)
+				return common.NewApiError(http.StatusConflict, err)
 			}
 		}
 
