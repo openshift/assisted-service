@@ -356,15 +356,12 @@ func (r *PreprovisioningImageReconciler) mapInfraEnvPPI() func(a client.Object) 
 		reconcileRequests := []reconcile.Request{}
 
 		for i := range images {
-			// Don't queue if the Image URL and InfraEnv's URL is the same.
-			if images[i].Status.ImageUrl != infraEnv.Status.ISODownloadURL {
-				reconcileRequests = append(reconcileRequests, reconcile.Request{
-					NamespacedName: types.NamespacedName{
-						Namespace: images[i].Namespace,
-						Name:      images[i].Name,
-					},
-				})
-			}
+			reconcileRequests = append(reconcileRequests, reconcile.Request{
+				NamespacedName: types.NamespacedName{
+					Namespace: images[i].Namespace,
+					Name:      images[i].Name,
+				},
+			})
 		}
 		return reconcileRequests
 	}

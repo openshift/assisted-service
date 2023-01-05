@@ -590,17 +590,6 @@ var _ = Describe("PreprovisioningImage reconcile", func() {
 
 			Expect(len(requests)).To(Equal(0))
 		})
-		It("Single PreprovisioningImage for infraEnv - nothing ot update", func() {
-			infraEnv.Status.ISODownloadURL = downloadURL
-			Expect(c.Create(ctx, infraEnv)).To(BeNil())
-			ppi.Status.ImageUrl = downloadURL
-			Expect(c.Create(ctx, ppi)).To(BeNil())
-
-			requests := pr.mapInfraEnvPPI()(infraEnv)
-
-			Expect(len(requests)).To(Equal(0))
-		})
-
 	})
 
 })
