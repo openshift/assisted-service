@@ -1552,17 +1552,6 @@ var _ = Describe("[kube-api]cluster installation", func() {
 
 		checkInfraEnvCondition(ctx, infraEnvFake, v1beta1.ImageCreatedCondition,
 			"does not have a matching OpenShift release image")
-
-		By("fail to deploy infraenv with PowerPC architecture")
-		infraEnvSpec.CpuArchitecture = common.PowerCPUArchitecture
-		infraEnvPPC := types.NamespacedName{
-			Name:      "infraenv" + randomNameSuffix(),
-			Namespace: Options.Namespace,
-		}
-		deployInfraEnvCRD(ctx, kubeClient, infraEnvPPC.Name, infraEnvSpec)
-
-		checkInfraEnvCondition(ctx, infraEnvPPC, v1beta1.ImageCreatedCondition,
-			"Failed to create image: No OS image for Openshift version")
 	})
 
 	It("deploy CD with ACI and agents - wait for ready, delete ACI only and verify agents deletion", func() {
