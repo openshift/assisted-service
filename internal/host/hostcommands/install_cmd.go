@@ -307,14 +307,14 @@ func appendDHCPArgs(cluster *common.Cluster, host *models.Host, inventory *model
 	machineNetworkCIDR := network.GetPrimaryMachineCidrForUserManagedNetwork(cluster, log)
 	if machineNetworkCIDR != "" {
 		ipv6 := network.IsIPv6CIDR(machineNetworkCIDR)
-		log.Debugf("Machine network CIDR: %s. IPv6: %t", machineNetworkCIDR, ipv6)
 
-		_, network, err := net.ParseCIDR(machineNetworkCIDR)
+		log.Debugf("Machine network CIDR: %s. IPv6: %t", machineNetworkCIDR, ipv6)
+		_, ipNet, err := net.ParseCIDR(machineNetworkCIDR)
 		if err != nil {
 			return installerArgs, err
 		}
 		for _, nic := range inventory.Interfaces {
-			dhcpArgs, err := getDHCPArgPerNIC(network, nic, ipv6, host.ID, log)
+			dhcpArgs, err := getDHCPArgPerNIC(ipNet, nic, ipv6, network.CheckIfClusterIsDualStack(cluster), host.ID, log)
 			if err != nil {
 				return installerArgs, err
 			}
@@ -334,7 +334,7 @@ func appendDHCPArgs(cluster *common.Cluster, host *models.Host, inventory *model
 	return installerArgs, nil
 }
 
-func getDHCPArgPerNIC(network *net.IPNet, nic *models.Interface, ipv6 bool, hostID *strfmt.UUID, log logrus.FieldLogger) ([]string, error) {
+func getDHCPArgPerNIC(network *net.IPNet, nic *models.Interface, ipv6 bool, dualStack bool, hostID *strfmt.UUID, log logrus.FieldLogger) ([]string, error) {
 	args := make([]string, 0)
 	var addresses []string
 	var dhcp string
@@ -350,6 +350,9 @@ func getDHCPArgPerNIC(network *net.IPNet, nic *models.Interface, ipv6 bool, host
 		return nil, err
 	}
 	if found {
+		if dualStack {
+			dhcp = "dhcp,dhcp6"
+		}
 		log.Debugf("Host %s: Added kernel argument ip=%s:%s", hostID, nic.Name, dhcp)
 		return append(args, "--append-karg", fmt.Sprintf("ip=%s:%s", nic.Name, dhcp)), nil
 	}
