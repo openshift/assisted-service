@@ -2702,7 +2702,6 @@ var _ = Describe("[kube-api]cluster installation", func() {
 	})
 
 	It("deploy clusterDeployment and infraEnv and with an invalid NMState config YAML", func() {
-		Skip("temporarily disabled until an investigation on why it is failing in CI")
 		var (
 			NMStateLabelName  = "someName"
 			NMStateLabelValue = "someValue"
@@ -2727,7 +2726,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			Name:      infraNsName.Name,
 		}
 		// InfraEnv Reconcile takes longer, since it needs to generate the image.
-		checkInfraEnvCondition(ctx, infraEnvKubeName, v1beta1.ImageCreatedCondition, "nmstate generated an empty NetworkManager config file content")
+		checkInfraEnvCondition(ctx, infraEnvKubeName, v1beta1.ImageCreatedCondition, "Unsupported keys found")
 	})
 
 	It("Unbind", func() {
