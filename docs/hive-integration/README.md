@@ -55,7 +55,7 @@ More details on conditions is available [here](kube-api-conditions.md)
 #### Debug Information
 
 The `DebugInfo` field under `Status` provides additional information for debugging installation process:
-- `EventsURL` specifies an HTTP/S URL that contains events occured during cluster installation process
+- `EventsURL` specifies an HTTP/S URL that contains events occurred during cluster installation process
 
 
 
@@ -198,7 +198,7 @@ It will continue to:
 The assisted agent will not reboot the machine at the end of the installation, instead it will stop
 the assisted agent service and let the ironic agent to manage the machine power state
 
-The converged flow is disalbed by default, you can enable the converged flow by setting the `ALLOW_CONVERGED_FLOW` env to true [here](../operator.md##specifying-environmental-variables-via-configmap)
+The converged flow is disabled by default, you can enable the converged flow by setting the `ALLOW_CONVERGED_FLOW` env to true [here](../operator.md##specifying-environmental-variables-via-configmap)
 
 ### Ironic Agent Image
 
@@ -213,6 +213,9 @@ The environment var for the ironicAgent image to be used on X86_64 CPU architect
 `IRONIC_AGENT_IMAGE`
 The environment var for the ironicAgent image to be used on arm64 CPU architecture:
 `IRONIC_AGENT_IMAGE_ARM`
+
+The ironic agent image can also be overridden using the InfraEnv spec field `ironicAgentImageOverride`
+If this field is set this image will be used instead of the hub or default image.
 
 **NOTE**
 Ensure the correct images are mirrored if installing in a disconnected environment.
