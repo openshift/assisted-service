@@ -942,6 +942,23 @@ var _ = Describe("construct host install arguments", func() {
 		Expect(err).NotTo(HaveOccurred())
 		Expect(args).To(Equal(`["--append-karg","rd.break=cmdline","--append-karg","ip=eth1:dhcp6"]`))
 	})
+	It("existing args updated with ip=<nic>:dhcp,dhcp6 dual stuck", func() {
+		cluster.MachineNetworks = []*models.MachineNetwork{{Cidr: "192.186.10.0/24"}, {Cidr: "2001:db8::/120"}}
+		host.InstallerArgs = `["--append-karg","rd.break=cmdline"]`
+		host.Inventory = `{
+			"interfaces":[
+				{
+					"name": "eth1",
+					"ipv4_addresses":["192.186.10.10/24"],
+					"ipv6_addresses":["2001:db8::b/120"]
+				}
+			]
+		}`
+		inventory, _ := common.UnmarshalInventory(host.Inventory)
+		args, err := constructHostInstallerArgs(cluster, host, inventory, infraEnv, log)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(args).To(Equal(`["--append-karg","rd.break=cmdline","--append-karg","ip=eth1:dhcp,dhcp6"]`))
+	})
 	It("existing args updated with ip=<nic>:dhcp when machine CIDR is IPv4", func() {
 		cluster.MachineNetworks = []*models.MachineNetwork{{Cidr: "192.186.10.0/24"}}
 		host.InstallerArgs = `["--append-karg","rd.break=cmdline"]`
