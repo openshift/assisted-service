@@ -30,6 +30,42 @@ file=openshift/99-openshift-machineconfig-master-kargs.yaml
 curl --header "Authorization: Bearer $TOKEN" "http://$ASSISTED_SERVICE_IP:$ASSISTED_SERVICE_PORT/api/assisted-install/v2/clusters/$CLUSTER_ID/manifests/files?file_name=$file"
 ```
 
+### Manifests use cases
+
+#### Configure storage on nodes using MachineConfig manifests
+
+Changes to operating systems on OCP nodes can be done by creating what are referred to as MachineConfig objects that are managed by the Machine Config Operator (MCO).
+
+The [MachineConfig specification](https://github.com/openshift/machine-config-operator/blob/master/docs/MachineConfiguration.md) includes an [ignition config](https://github.com/coreos/ignition/blob/main/docs/configuration-v3_2.md) for configuring the machines at first boot.
+This config object can be used to do things like modify files, systemd services, and other operating system features running on on OCP machines.
+
+Specifically, the ignition config can be used to configure storage on the nodes (see ignition [Config Spec](https://coreos.github.io/ignition/configuration-v3_2/) for full details).
+The following MachineSet manifest example demonstrates how to add a partition to `sda` device on master nodes. I.e. apply the manifest before installation to have a partition named `recovery` of size 16 GiB on the master nodes.
+
+```yaml
+apiVersion: machineconfiguration.openshift.io/v1
+kind: MachineConfig
+metadata:
+  labels:
+    machineconfiguration.openshift.io/role: master
+  name: 10_masters_storage_config
+spec:
+  config:
+    ignition:
+      version: 3.2.0
+    storage:
+      disks:
+        - device: /dev/sda
+          partitions:
+            - label: recovery
+              startMiB: 32768
+              sizeMiB: 16384
+      filesystems:
+        - device: /dev/disk/by-partlabel/recovery
+          label: recovery
+          format: xfs
+```
+
 ## Discovery Ignition
 
 The discovery ignition is used to make changes to the CoreOS live iso image which runs before we actually write anything to the target disk.
