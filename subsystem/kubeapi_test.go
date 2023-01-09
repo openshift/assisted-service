@@ -3462,7 +3462,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		stages := []models.HostStage{
 			models.HostStageStartingInstallation, models.HostStageInstalling,
 			models.HostStageWaitingForBootkube, models.HostStageWritingImageToDisk,
-			models.HostStageRebooting, models.HostStageDone,
+			models.HostStageRebooting, models.HostStageJoined, models.HostStageDone,
 		}
 		updateHostProgressWithInfo(*host.ID, *infraEnv.ID, installProgress, installInfo)
 
