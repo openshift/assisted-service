@@ -4141,6 +4141,44 @@ var _ = Describe("cluster", func() {
 				})
 			})
 		})
+
+		Context("Platform", func() {
+			Context("Single node cluster", func() {
+				BeforeEach(func() {
+					clusterID = strfmt.UUID(uuid.New().String())
+					err := db.Create(&common.Cluster{Cluster: models.Cluster{
+						ID:                    &clusterID,
+						HighAvailabilityMode:  swag.String(models.ClusterHighAvailabilityModeNone),
+						UserManagedNetworking: swag.Bool(true),
+						Platform: &models.Platform{
+							Type: common.PlatformTypePtr(models.PlatformTypeNone),
+						},
+					}}).Error
+					Expect(err).ShouldNot(HaveOccurred())
+					mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(1)
+				})
+
+				It("Update to vsphere platform while single node cluster - failure", func() {
+					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
+						ClusterID: clusterID,
+						ClusterUpdateParams: &models.V2ClusterUpdateParams{
+							Platform: &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeVsphere)},
+						},
+					})
+					verifyApiErrorString(reply, http.StatusBadRequest, "Single node cluster is not supported alongside vsphere platform")
+				})
+
+				It("Update to baremetal platform while single node cluster - failure", func() {
+					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
+						ClusterID: clusterID,
+						ClusterUpdateParams: &models.V2ClusterUpdateParams{
+							Platform: &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeBaremetal)},
+						},
+					})
+					verifyApiErrorString(reply, http.StatusBadRequest, "disabling User Managed Networking or setting platform different than none platform is not allowed in single node Openshift")
+				})
+			})
+		})
 	})
 
 	Context("OpenshiftVersion does not support wildcard", func() {
@@ -10655,6 +10693,33 @@ var _ = Describe("TestRegisterCluster", func() {
 			NewClusterParams: clusterParams,
 		})
 		verifyApiError(reply, http.StatusBadRequest)
+	})
+
+	Context("Platform", func() {
+		getClusterCreateParams := func(highAvailabilityMode *string) *models.ClusterCreateParams {
+			return &models.ClusterCreateParams{
+				Name:                 swag.String("some-cluster-name"),
+				OpenshiftVersion:     swag.String(common.TestDefaultConfig.OpenShiftVersion),
+				PullSecret:           swag.String("{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"),
+				HighAvailabilityMode: highAvailabilityMode,
+			}
+		}
+		Context("HighAvailabilityMode = None", func() {
+			It("Fail to set vsphere platform when HighAvailabilityMode is None", func() {
+				mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
+					eventstest.WithNameMatcher(eventgen.ClusterRegistrationFailedEventName),
+					eventstest.WithMessageContainsMatcher("Failed to register cluster. Error: Single node cluster is not supported alongside vsphere platform"),
+					eventstest.WithSeverityMatcher(models.EventSeverityError))).Times(1)
+
+				params := getClusterCreateParams(swag.String(models.ClusterCreateParamsHighAvailabilityModeNone))
+				params.OpenshiftVersion = swag.String("4.9")
+				params.Platform = &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeVsphere)}
+				reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
+					NewClusterParams: params,
+				})
+				verifyApiError(reply, http.StatusBadRequest)
+			})
+		})
 	})
 
 	Context("Disk encryption", func() {

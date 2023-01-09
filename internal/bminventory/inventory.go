@@ -389,6 +389,12 @@ func (b *bareMetalInventory) validateRegisterClusterInternalParams(params *insta
 		}
 	}
 
+	if params.NewClusterParams.Platform != nil {
+		if err := validations.ValidateHighAvailabilityModeWithPlatform(params.NewClusterParams.HighAvailabilityMode, params.NewClusterParams.Platform); err != nil {
+			return common.NewApiError(http.StatusBadRequest, err)
+		}
+	}
+
 	return nil
 }
 
@@ -1750,6 +1756,10 @@ func (b *bareMetalInventory) v2UpdateClusterInternal(ctx context.Context, params
 	}
 
 	if err = validations.ValidateDiskEncryptionParams(params.ClusterUpdateParams.DiskEncryption, b.DiskEncryptionSupport); err != nil {
+		return nil, common.NewApiError(http.StatusBadRequest, err)
+	}
+
+	if err = validations.ValidateHighAvailabilityModeWithPlatform(cluster.HighAvailabilityMode, platform); err != nil {
 		return nil, common.NewApiError(http.StatusBadRequest, err)
 	}
 
