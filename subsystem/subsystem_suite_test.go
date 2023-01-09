@@ -158,12 +158,14 @@ func init() {
 		}
 	}
 
-	// Test on first openshift version. We can't test on latest because quay.io/openshift-release-dev/ocp-release-nightly
-	// is not public, so we would have to add PULL_SECRET env var as mandatory to access the quay.
+	// Use the default openshift version
 	if reply, err := userBMClient.Versions.V2ListSupportedOpenshiftVersions(context.Background(),
 		&versions.V2ListSupportedOpenshiftVersionsParams{}); err == nil {
-		for openshiftVersion = range reply.GetPayload() {
-			break
+		for openshiftVersionString, openshiftVersionStruct := range reply.GetPayload() {
+			if openshiftVersionStruct.Default {
+				openshiftVersion = openshiftVersionString
+				break
+			}
 		}
 	}
 }
