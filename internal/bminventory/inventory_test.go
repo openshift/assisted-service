@@ -3813,6 +3813,10 @@ var _ = Describe("cluster", func() {
 				mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(times)
 			}
 
+			mockClusterUpdatabilityAnyTimes := func() {
+				mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).AnyTimes()
+			}
+
 			Context("Single node", func() {
 				BeforeEach(func() {
 					mockClusterUpdatability(1)
@@ -4730,9 +4734,9 @@ var _ = Describe("cluster", func() {
 
 			Context("Networks", func() {
 				var (
-					clusterNetworks = []*models.ClusterNetwork{{Cidr: "1.1.0.0/24", HostPrefix: 24}, {Cidr: "2.2.0.0/24", HostPrefix: 24}}
-					serviceNetworks = []*models.ServiceNetwork{{Cidr: "3.3.0.0/24"}, {Cidr: "4.4.0.0/24"}}
-					machineNetworks = []*models.MachineNetwork{{Cidr: "5.5.0.0/24"}, {Cidr: "6.6.0.0/24"}}
+					clusterNetworks = common.TestIPv4Networking.ClusterNetworks
+					serviceNetworks = common.TestIPv4Networking.ServiceNetworks
+					machineNetworks = common.TestIPv4Networking.MachineNetworks
 				)
 
 				setNetworksClusterID := func(clusterID strfmt.UUID,
@@ -4760,7 +4764,7 @@ var _ = Describe("cluster", func() {
 
 				BeforeEach(func() {
 					setNetworksClusterID(clusterID, clusterNetworks, serviceNetworks, machineNetworks)
-					mockClusterUpdatability(1)
+					mockClusterUpdatabilityAnyTimes()
 				})
 
 				It("No new networks data", func() {
@@ -4921,16 +4925,22 @@ var _ = Describe("cluster", func() {
 					verifyApiErrorString(reply, http.StatusBadRequest, "Machine network CIDR '': Failed to parse CIDR '': invalid CIDR address: ")
 				})
 
-				It("Override networks - additional subnet", func() {
-					clusterNetworks = []*models.ClusterNetwork{{Cidr: "11.11.0.0/21", HostPrefix: 24}, {Cidr: "12.12.0.0/21", HostPrefix: 24}}
-					serviceNetworks = []*models.ServiceNetwork{{Cidr: "13.13.0.0/21"}, {Cidr: "14.14.0.0/21"}}
-					machineNetworks = []*models.MachineNetwork{{Cidr: "15.15.0.0/21"}, {Cidr: "16.16.0.0/21"}}
+				It("Multiple machine networks illegal for single-stack", func() {
+					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
+						ClusterID: clusterID,
+						ClusterUpdateParams: &models.V2ClusterUpdateParams{
+							MachineNetworks: []*models.MachineNetwork{{Cidr: "15.15.0.0/21"}, {Cidr: "16.16.0.0/21"}},
+						},
+					})
+					verifyApiErrorString(reply, http.StatusBadRequest, "Single-stack cluster cannot contain multiple Machine Networks")
+				})
 
+				It("Override networks - additional cluster subnet", func() {
 					mockSuccess(1)
 					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 						ClusterID: clusterID,
 						ClusterUpdateParams: &models.V2ClusterUpdateParams{
-							ClusterNetworks:   clusterNetworks,
+							ClusterNetworks:   []*models.ClusterNetwork{{Cidr: "11.11.0.0/21", HostPrefix: 24}, {Cidr: "12.12.0.0/21", HostPrefix: 24}},
 							ServiceNetworks:   serviceNetworks,
 							MachineNetworks:   machineNetworks,
 							VipDhcpAllocation: swag.Bool(true),
@@ -4939,20 +4949,19 @@ var _ = Describe("cluster", func() {
 					Expect(reply).To(BeAssignableToTypeOf(installer.NewV2UpdateClusterCreated()))
 					actual := reply.(*installer.V2UpdateClusterCreated)
 
-					validateNetworkConfiguration(actual.Payload, &clusterNetworks, &serviceNetworks, &machineNetworks)
+					validateNetworkConfiguration(actual.Payload,
+						&[]*models.ClusterNetwork{{Cidr: "11.11.0.0/21", HostPrefix: 24}, {Cidr: "12.12.0.0/21", HostPrefix: 24}},
+						&serviceNetworks,
+						&machineNetworks)
 					validateHostsRequestedHostname(actual.Payload)
 				})
 
-				It("Override networks - 2 additional subnets", func() {
-					clusterNetworks = []*models.ClusterNetwork{{Cidr: "10.10.0.0/21", HostPrefix: 24}, {Cidr: "11.11.0.0/21", HostPrefix: 24}, {Cidr: "12.12.0.0/21", HostPrefix: 24}}
-					serviceNetworks = []*models.ServiceNetwork{{Cidr: "13.13.0.0/21"}, {Cidr: "14.14.0.0/21"}}
-					machineNetworks = []*models.MachineNetwork{{Cidr: "15.15.0.0/21"}, {Cidr: "16.16.0.0/21"}}
-
+				It("Override networks - 2 additional cluster subnets", func() {
 					mockSuccess(1)
 					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 						ClusterID: clusterID,
 						ClusterUpdateParams: &models.V2ClusterUpdateParams{
-							ClusterNetworks:   clusterNetworks,
+							ClusterNetworks:   []*models.ClusterNetwork{{Cidr: "10.10.0.0/21", HostPrefix: 24}, {Cidr: "11.11.0.0/21", HostPrefix: 24}, {Cidr: "12.12.0.0/21", HostPrefix: 24}},
 							ServiceNetworks:   serviceNetworks,
 							MachineNetworks:   machineNetworks,
 							VipDhcpAllocation: swag.Bool(true),
@@ -4961,7 +4970,10 @@ var _ = Describe("cluster", func() {
 					Expect(reply).To(BeAssignableToTypeOf(installer.NewV2UpdateClusterCreated()))
 					actual := reply.(*installer.V2UpdateClusterCreated)
 
-					validateNetworkConfiguration(actual.Payload, &clusterNetworks, &serviceNetworks, &machineNetworks)
+					validateNetworkConfiguration(actual.Payload,
+						&[]*models.ClusterNetwork{{Cidr: "10.10.0.0/21", HostPrefix: 24}, {Cidr: "11.11.0.0/21", HostPrefix: 24}, {Cidr: "12.12.0.0/21", HostPrefix: 24}},
+						&serviceNetworks,
+						&machineNetworks)
 					validateHostsRequestedHostname(actual.Payload)
 				})
 
@@ -12829,9 +12841,9 @@ var _ = Describe("TestRegisterCluster", func() {
 
 	Context("Networking", func() {
 		var (
-			clusterNetworks = []*models.ClusterNetwork{{Cidr: "1.1.1.0/24", HostPrefix: 24}, {Cidr: "2.2.2.0/24", HostPrefix: 24}}
-			serviceNetworks = []*models.ServiceNetwork{{Cidr: "3.3.3.0/24"}, {Cidr: "4.4.4.0/24"}}
-			machineNetworks = []*models.MachineNetwork{{Cidr: "5.5.5.0/24"}, {Cidr: "6.6.6.0/24"}, {Cidr: "7.7.7.0/24"}}
+			clusterNetworks = common.TestIPv4Networking.ClusterNetworks
+			serviceNetworks = common.TestIPv4Networking.ServiceNetworks
+			machineNetworks = common.TestIPv4Networking.MachineNetworks
 		)
 
 		registerCluster := func() *models.Cluster {
