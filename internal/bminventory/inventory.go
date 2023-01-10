@@ -128,6 +128,7 @@ type Config struct {
 const minimalOpenShiftVersionForSingleNode = "4.8.0-0.0"
 const minimalOpenShiftVersionForDefaultNetworkTypeOVNKubernetes = "4.12.0-0.0"
 const minimalOpenShiftVersionForConsoleCapability = "4.12.0-0.0"
+const minimalOpenShiftVersionForNutanix = "4.11.0-0.0"
 
 type Interactivity bool
 
@@ -405,6 +406,12 @@ func (b *bareMetalInventory) validateRegisterClusterInternalParams(params *insta
 
 		err = validateAndUpdateSingleNodeParams(params.NewClusterParams, log)
 		if err != nil {
+			return common.NewApiError(http.StatusBadRequest, err)
+		}
+	}
+
+	if getPlatformType(params.NewClusterParams.Platform) == string(models.PlatformTypeNutanix) {
+		if err = verifyMinimalOpenShiftVersionForNutanix(swag.StringValue(params.NewClusterParams.OpenshiftVersion)); err != nil {
 			return common.NewApiError(http.StatusBadRequest, err)
 		}
 	}
@@ -726,6 +733,21 @@ func verifyMinimalOpenShiftVersionForSingleNode(requestedOpenshiftVersion string
 	}
 	if ocpVersion.LessThan(minimalVersionForSno) {
 		return errors.Errorf("Invalid OCP version (%s) for Single node, Single node OpenShift is supported for version 4.8 and above", requestedOpenshiftVersion)
+	}
+	return nil
+}
+
+func verifyMinimalOpenShiftVersionForNutanix(requestedOpenshiftVersion string) error {
+	ocpVersion, err := version.NewVersion(requestedOpenshiftVersion)
+	if err != nil {
+		return errors.Errorf("Failed to parse OCP version %s", requestedOpenshiftVersion)
+	}
+	minimalVersionForSno, err := version.NewVersion(minimalOpenShiftVersionForNutanix)
+	if err != nil {
+		return errors.Errorf("Failed to parse minimal OCP version %s", minimalOpenShiftVersionForSingleNode)
+	}
+	if ocpVersion.LessThan(minimalVersionForSno) {
+		return errors.Errorf("Invalid OCP version (%s) for Nutanix, Nutanix integration is supported for version 4.11 and above", requestedOpenshiftVersion)
 	}
 	return nil
 }

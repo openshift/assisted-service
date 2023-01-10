@@ -11706,7 +11706,7 @@ var _ = Describe("TestRegisterCluster", func() {
 					eventstest.WithSeverityMatcher(models.EventSeverityError))).Times(1)
 
 				params := getClusterCreateParams(swag.String(models.ClusterCreateParamsHighAvailabilityModeNone))
-				params.OpenshiftVersion = swag.String("4.9")
+				params.OpenshiftVersion = swag.String("4.11")
 				params.Platform = &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeNutanix)}
 				reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 					NewClusterParams: params,
@@ -15334,9 +15334,6 @@ var _ = Describe("Platform tests", func() {
 		registerParams = &installer.V2RegisterClusterParams{
 			NewClusterParams: clusterParams,
 		}
-
-		mockClusterRegisterSuccess(true)
-		mockUsageReports()
 		mockOperators.EXPECT().ValidateCluster(ctx, gomock.Any()).AnyTimes()
 	})
 
@@ -15346,6 +15343,11 @@ var _ = Describe("Platform tests", func() {
 	})
 
 	Context("Register cluster", func() {
+
+		BeforeEach(func() {
+			mockClusterRegisterSuccess(true)
+			mockUsageReports()
+		})
 
 		It("default platform", func() {
 			reply := bm.V2RegisterCluster(ctx, *registerParams)
@@ -15380,12 +15382,32 @@ var _ = Describe("Platform tests", func() {
 			registerParams.NewClusterParams.Platform = &models.Platform{
 				Type: common.PlatformTypePtr(models.PlatformTypeNutanix),
 			}
+			MinimalOpenShiftVersionForNutanix := "4.11.0"
+			registerParams.NewClusterParams.OpenshiftVersion = swag.String(MinimalOpenShiftVersionForNutanix)
 
 			reply := bm.V2RegisterCluster(ctx, *registerParams)
 			Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2RegisterClusterCreated()))
 			cluster := reply.(*installer.V2RegisterClusterCreated).Payload
 			Expect(cluster.Platform).ShouldNot(BeNil())
 			Expect(common.PlatformTypeValue(cluster.Platform.Type)).Should(BeEquivalentTo(models.PlatformTypeNutanix))
+		})
+	})
+
+	Context("Failed to register cluster", func() {
+
+		It("nutanix platform - fail on old version", func() {
+			registerParams.NewClusterParams.Platform = &models.Platform{
+				Type: common.PlatformTypePtr(models.PlatformTypeNutanix),
+			}
+			invalidOpenShiftVersionForNutanix := "4.10.0"
+			registerParams.NewClusterParams.OpenshiftVersion = swag.String(invalidOpenShiftVersionForNutanix)
+			mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
+				eventstest.WithNameMatcher(eventgen.ClusterRegistrationFailedEventName),
+				eventstest.WithMessageContainsMatcher("Invalid OCP version (4.10.0) for Nutanix, Nutanix integration is supported for version 4.11 and above"),
+				eventstest.WithSeverityMatcher(models.EventSeverityError))).Times(1)
+
+			reply := bm.V2RegisterCluster(ctx, *registerParams)
+			verifyApiError(reply, http.StatusBadRequest)
 		})
 	})
 })
