@@ -356,12 +356,13 @@ var _ = Describe("agent reconcile", func() {
 		}
 		afterUpdateHost := &common.Host{
 			Host: models.Host{
-				ID:         &hostId,
-				ClusterID:  &sId,
-				Inventory:  common.GenerateTestDefaultInventory(),
-				Status:     swag.String(models.HostStatusKnown),
-				StatusInfo: swag.String("I am known"),
-				InfraEnvID: infraEnvId,
+				ID:                 &hostId,
+				ClusterID:          &sId,
+				Inventory:          common.GenerateTestDefaultInventory(),
+				Status:             swag.String(models.HostStatusKnown),
+				StatusInfo:         swag.String("I am known"),
+				InfraEnvID:         infraEnvId,
+				InstallationDiskID: newInstallDiskPath,
 			},
 		}
 		backEndCluster = &common.Cluster{Cluster: models.Cluster{
@@ -384,8 +385,6 @@ var _ = Describe("agent reconcile", func() {
 		mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil).Times(2)
 		mockInstallerInternal.EXPECT().V2UpdateHostInternal(gomock.Any(), gomock.Any(), bminventory.NonInteractive).
 			Do(func(ctx context.Context, param installer.V2UpdateHostParams, interactive bminventory.Interactivity) {
-				Expect(param.HostUpdateParams.DisksSelectedConfig[0].ID).To(Equal(&newInstallDiskPath))
-				Expect(param.HostUpdateParams.DisksSelectedConfig[0].Role).To(Equal(models.DiskRoleInstall))
 				Expect(swag.StringValue(param.HostUpdateParams.HostName)).To(Equal(newHostName))
 				Expect(param.HostID).To(Equal(hostId))
 				Expect(param.InfraEnvID).To(Equal(infraEnvId))
@@ -433,6 +432,8 @@ var _ = Describe("agent reconcile", func() {
 			Expect(agent.Status.DebugInfo.State).To(Equal(models.HostStatusKnown))
 			Expect(agent.Status.DebugInfo.StateInfo).To(Equal("I am known"))
 			Expect(agent.GetLabels()[BaseLabelPrefix+"clusterdeployment-namespace"]).To(Equal("test-namespace"))
+			Expect(agent.Status.InstallationDiskID).To(Equal(newInstallDiskPath))
+			Expect(agent.Spec.InstallationDiskID).To(Equal(newInstallDiskPath))
 		}
 	})
 

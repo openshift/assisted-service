@@ -166,6 +166,10 @@ spec:
                       the Agent
                     type: string
                 type: object
+              installation_disk_id:
+                description: InstallationDiskID is the disk that will be used for
+                  the installation.
+                type: string
               inventory:
                 properties:
                   bmcAddress:
