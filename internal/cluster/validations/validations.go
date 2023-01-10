@@ -523,3 +523,13 @@ func ValidateDiskEncryptionParams(diskEncryptionParams *models.DiskEncryption, D
 	}
 	return nil
 }
+
+func ValidateHighAvailabilityModeWithPlatform(highAvailabilityMode *string, platform *models.Platform) error {
+	if swag.StringValue(highAvailabilityMode) == models.ClusterHighAvailabilityModeNone {
+		if platform != nil && platform.Type != nil && *platform.Type != models.PlatformTypeNone {
+			return errors.Errorf("Single node cluster is not supported alongside %s platform", *platform.Type)
+		}
+	}
+
+	return nil
+}
