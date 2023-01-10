@@ -608,6 +608,51 @@ var _ = Describe("bmac reconcile", func() {
 				Expect(updatedAgent.Spec.InstallationDiskID).To(Equal("1"))
 			})
 
+			It("should not touch InstallationDiskID if the RootDeviceHints were not provided", func() {
+				updatedHost := &bmh_v1alpha1.BareMetalHost{}
+				err := c.Get(ctx, types.NamespacedName{Name: host.Name, Namespace: testNamespace}, updatedHost)
+				Expect(err).To(BeNil())
+				updatedHost.Spec.RootDeviceHints = nil
+				Expect(c.Update(ctx, updatedHost)).To(BeNil())
+
+				updatedAgent := &v1beta1.Agent{}
+				err = c.Get(ctx, types.NamespacedName{Name: agent.Name, Namespace: agent.Namespace}, updatedAgent)
+				Expect(err).To(BeNil())
+				updatedAgent.Spec.InstallationDiskID = "/dev/chocobomb"
+				Expect(c.Update(ctx, updatedAgent)).To(BeNil())
+
+				result, err := bmhr.Reconcile(ctx, newBMHRequest(host))
+				Expect(err).To(BeNil())
+				Expect(result).To(Equal(ctrl.Result{}))
+
+				err = c.Get(ctx, types.NamespacedName{Name: agent.Name, Namespace: agent.Namespace}, updatedAgent)
+				Expect(err).To(BeNil())
+				Expect(updatedAgent.Spec.InstallationDiskID).To(Equal("/dev/chocobomb"))
+			})
+
+			It("should set the InstallationDiskID if both diskID and the RootDeviceHints were provided", func() {
+				updatedHost := &bmh_v1alpha1.BareMetalHost{}
+				err := c.Get(ctx, types.NamespacedName{Name: host.Name, Namespace: testNamespace}, updatedHost)
+				Expect(err).To(BeNil())
+				updatedHost.Spec.RootDeviceHints.DeviceName = "/dev/sda"
+				updatedHost.Spec.RootDeviceHints.MinSizeGigabytes = 110
+				Expect(c.Update(ctx, updatedHost)).To(BeNil())
+
+				updatedAgent := &v1beta1.Agent{}
+				err = c.Get(ctx, types.NamespacedName{Name: agent.Name, Namespace: agent.Namespace}, updatedAgent)
+				Expect(err).To(BeNil())
+				updatedAgent.Spec.InstallationDiskID = "/dev/chocobomb"
+				Expect(c.Update(ctx, updatedAgent)).To(BeNil())
+
+				result, err := bmhr.Reconcile(ctx, newBMHRequest(host))
+				Expect(err).To(BeNil())
+				Expect(result).To(Equal(ctrl.Result{}))
+
+				err = c.Get(ctx, types.NamespacedName{Name: agent.Name, Namespace: agent.Namespace}, updatedAgent)
+				Expect(err).To(BeNil())
+				Expect(updatedAgent.Spec.InstallationDiskID).To(Equal("1"))
+			})
+
 			It("Should update agent only once", func() {
 				mockClient := NewMockK8sClient(mockCtrl)
 				bmhr.Client = mockClient
