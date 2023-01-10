@@ -110,11 +110,15 @@ func SortHosts(hosts []*models.Host) ([]*models.Host, bool) {
 }
 
 func (m *Manager) resetRoleAssignmentIfNotAllRolesAreSet() {
+	inactiveStatus := []string{models.HostStatusDisconnected, models.HostStatusDisabled}
 	if m.leaderElector.IsLeader() {
 		clusetersWithMissingRoleAssignmentQuery := m.db.Distinct("cluster_id").
 			Where("role = ? and (suggested_role = ? or suggested_role = '' or suggested_role is null)", models.HostRoleAutoAssign, models.HostRoleAutoAssign).
-			Where("cluster_id != '' and cluster_id is not null").
-			Where("deleted_at is null").Table("hosts")
+			Where("status NOT IN (?)", inactiveStatus).
+			Where("kind != ?", models.HostKindAddToExistingClusterHost).
+			Where("deleted_at is null").
+			Where("EXISTS (select 1 from clusters where clusters.id = cluster_id and clusters.deleted_at is null)").
+			Table("hosts")
 		count, reset_err := common.ResetAutoAssignRoles(m.db, clusetersWithMissingRoleAssignmentQuery)
 		if reset_err != nil {
 			m.log.WithError(reset_err).Errorf("fail to reset auto-assign role in monitor")
