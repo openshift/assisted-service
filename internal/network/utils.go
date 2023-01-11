@@ -319,6 +319,10 @@ func GetIPv6Networks(inventory *models.Inventory) (ret []CidrInfo, err error) {
 }
 
 func areListsEquivalent(len1, len2 int, areItemsEquivalent func(int, int) bool) bool {
+	// Be aware! This function does not care about order of items on the list. For the sake of
+	// comparison done here, [1, 2] and [2, 1] are equal. If order of entries is important, please
+	// use another function.
+
 	if len1 != len2 {
 		return false
 	}
@@ -350,6 +354,14 @@ func AreServiceNetworksIdentical(n1, n2 []*models.ServiceNetwork) bool {
 
 func AreClusterNetworksIdentical(n1, n2 []*models.ClusterNetwork) bool {
 	return areListsEquivalent(len(n1), len(n2), func(i, j int) bool { return n1[i].Cidr == n2[j].Cidr && n1[i].HostPrefix == n2[j].HostPrefix })
+}
+
+func AreApiVipsIdentical(n1, n2 []*models.APIVip) bool {
+	return areListsEquivalent(len(n1), len(n2), func(i, j int) bool { return n1[i].IP == n2[j].IP })
+}
+
+func AreIngressVipsIdentical(n1, n2 []*models.IngressVip) bool {
+	return areListsEquivalent(len(n1), len(n2), func(i, j int) bool { return n1[i].IP == n2[j].IP })
 }
 
 func UpdateVipsTables(db *gorm.DB, cluster *common.Cluster, apiVipUpdated bool, ingressVipUpdated bool) error {
