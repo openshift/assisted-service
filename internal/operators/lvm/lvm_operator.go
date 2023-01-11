@@ -71,7 +71,7 @@ func (o *operator) GetHostValidationID() string {
 // ValidateCluster always return "valid" result
 func (o *operator) ValidateCluster(_ context.Context, cluster *common.Cluster) (api.ValidationResult, error) {
 	if !common.IsSingleNodeCluster(cluster) {
-		message := "ODF LVM operator is only supported for Single Node Openshift"
+		message := "ODF LVM storage is only supported for Single Node Openshift"
 		return api.ValidationResult{Status: api.Failure, ValidationId: o.GetClusterValidationID(), Reasons: []string{message}}, nil
 	}
 
@@ -87,7 +87,7 @@ func (o *operator) ValidateCluster(_ context.Context, cluster *common.Cluster) (
 		return api.ValidationResult{Status: api.Failure, ValidationId: o.GetHostValidationID(), Reasons: []string{err.Error()}}, nil
 	}
 	if ocpVersion.LessThan(minOpenshiftVersionForLvm) {
-		message := fmt.Sprintf("ODF LVM operator is only supported for openshift versions %s and above", o.config.LvmMinOpenshiftVersion)
+		message := fmt.Sprintf("ODF LVM storage is only supported for openshift versions %s and above", o.config.LvmMinOpenshiftVersion)
 		return api.ValidationResult{Status: api.Failure, ValidationId: o.GetClusterValidationID(), Reasons: []string{message}}, nil
 	}
 
