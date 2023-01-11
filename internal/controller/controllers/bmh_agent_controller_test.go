@@ -1039,6 +1039,26 @@ var _ = Describe("bmac reconcile", func() {
 				Expect(err).To(BeNil())
 				Expect(result).To(Equal(ctrl.Result{}))
 			})
+
+			It("should fall back to Hypershift root CA storage - .crt name", func() {
+				_, err := bmhr.Reconcile(ctx, newBMHRequest(host))
+				Expect(err).NotTo(HaveOccurred())
+				_, err = bmhr.Reconcile(ctx, newBMHRequest(host))
+				Expect(err).To(HaveOccurred())
+				configMap := &corev1.ConfigMap{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "kube-root-ca.crt",
+						Namespace: "openshift-config",
+					},
+					Data: map[string]string{
+						"ca.crt": BASIC_CERT,
+					},
+				}
+				Expect(bmhr.spokeClient.Create(ctx, configMap)).ShouldNot(HaveOccurred())
+				result, err := bmhr.Reconcile(ctx, newBMHRequest(host))
+				Expect(err).To(BeNil())
+				Expect(result).To(Equal(ctrl.Result{}))
+			})
 		})
 	})
 
