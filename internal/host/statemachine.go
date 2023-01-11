@@ -614,26 +614,12 @@ func NewHostStateMachine(sm stateswitch.StateMachine, th TransitionHandler) stat
 	sm.AddTransitionRule(stateswitch.TransitionRule{
 		TransitionType: TransitionTypeRefresh,
 		SourceStates: []stateswitch.State{
-			stateswitch.State(models.HostStatusInstalling),
-		},
-		Condition:        stateswitch.Not(If(IsConnected)),
-		DestinationState: stateswitch.State(models.HostStatusError),
-		PostTransition:   th.PostRefreshHost(statusInfoConnectionTimedOut),
-		Documentation: stateswitch.TransitionRuleDoc{
-			Name:        "Move installing host to error when connection times out",
-			Description: "TODO: Document this transition rule.",
-		},
-	})
-
-	sm.AddTransitionRule(stateswitch.TransitionRule{
-		TransitionType: TransitionTypeRefresh,
-		SourceStates: []stateswitch.State{
 			stateswitch.State(models.HostStatusPreparingForInstallation),
 			stateswitch.State(models.HostStatusPreparingSuccessful),
 		},
 		Condition:        stateswitch.Not(If(IsConnected)),
 		DestinationState: stateswitch.State(models.HostStatusDisconnected),
-		PostTransition:   th.PostRefreshHost(statusInfoConnectionTimedOut),
+		PostTransition:   th.PostRefreshHost(statusInfoConnectionTimedOutPreparing),
 		Documentation: stateswitch.TransitionRuleDoc{
 			Name:        "Move preparing host to disconnected when connection times out",
 			Description: "TODO: Document this transition rule.",
@@ -646,9 +632,9 @@ func NewHostStateMachine(sm stateswitch.StateMachine, th TransitionHandler) stat
 			stateswitch.State(models.HostStatusInstalling),
 			stateswitch.State(models.HostStatusInstallingInProgress),
 		},
-		Condition:        th.HostNotResponsiveWhileInstallation,
+		Condition:        stateswitch.Not(If(IsConnected)),
 		DestinationState: stateswitch.State(models.HostStatusError),
-		PostTransition:   th.PostRefreshHost(statusInfoConnectionTimedOut),
+		PostTransition:   th.PostRefreshHost(statusInfoConnectionTimedOutInstalling),
 		Documentation: stateswitch.TransitionRuleDoc{
 			Name:        "Move installing host to error when connection times out",
 			Description: "TODO: Document this transition rule.",

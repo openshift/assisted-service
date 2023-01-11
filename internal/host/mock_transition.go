@@ -79,21 +79,6 @@ func (mr *MockTransitionHandlerMockRecorder) HasStatusTimedOut(timeout interface
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "HasStatusTimedOut", reflect.TypeOf((*MockTransitionHandler)(nil).HasStatusTimedOut), timeout)
 }
 
-// HostNotResponsiveWhileInstallation mocks base method.
-func (m *MockTransitionHandler) HostNotResponsiveWhileInstallation(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) (bool, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "HostNotResponsiveWhileInstallation", sw, args)
-	ret0, _ := ret[0].(bool)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// HostNotResponsiveWhileInstallation indicates an expected call of HostNotResponsiveWhileInstallation.
-func (mr *MockTransitionHandlerMockRecorder) HostNotResponsiveWhileInstallation(sw, args interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "HostNotResponsiveWhileInstallation", reflect.TypeOf((*MockTransitionHandler)(nil).HostNotResponsiveWhileInstallation), sw, args)
-}
-
 // HostNotResponsiveWhilePreparingInstallation mocks base method.
 func (m *MockTransitionHandler) HostNotResponsiveWhilePreparingInstallation(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) (bool, error) {
 	m.ctrl.T.Helper()

@@ -1318,6 +1318,108 @@ var _ = Describe("Refresh Host", func() {
 		common.DeleteTestDB(db, dbName)
 	})
 
+	Context("connection timeout", func() {
+
+		BeforeEach(func() {
+			mockDefaultClusterHostRequirements(mockHwValidator)
+		})
+
+		mockDisconnectedHost := func(hostStatus string, hostStage *models.HostStage) strfmt.DateTime {
+			passedTime := 90 * time.Minute
+			hostCheckInAt := strfmt.DateTime(time.Now().Add(-MaxHostDisconnectionTime - passedTime))
+			host = hostutil.GenerateTestHost(hostId, infraEnvId, clusterId, hostStatus)
+			host.CheckedInAt = hostCheckInAt
+			updatedAt := strfmt.DateTime(time.Now())
+			host.StatusUpdatedAt = updatedAt
+			if hostStage != nil {
+				host.Progress = &models.HostProgressInfo{
+					StageUpdatedAt: updatedAt,
+					CurrentStage:   *hostStage,
+				}
+			}
+			Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
+			return updatedAt
+		}
+
+		mockInstallationTimedOutHost := func(hostStatus string, hostStage *models.HostStage) strfmt.DateTime {
+			passedTime := 90 * time.Minute
+			hostCheckInAt := strfmt.DateTime(time.Now().Add(-passedTime))
+			host = hostutil.GenerateTestHost(hostId, infraEnvId, clusterId, hostStatus)
+			host.Inventory = hostutil.GenerateMasterInventory()
+			host.Role = models.HostRoleMaster
+			host.CheckedInAt = hostCheckInAt
+			updatedAt := strfmt.DateTime(time.Now().Add(-passedTime))
+			host.StatusUpdatedAt = updatedAt
+			if hostStage != nil {
+				host.Progress = &models.HostProgressInfo{
+					StageUpdatedAt: updatedAt,
+					CurrentStage:   *hostStage,
+				}
+			}
+			Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
+			return updatedAt
+		}
+		registerCluster := func(id strfmt.UUID, clusterStatus string) {
+			cluster = hostutil.GenerateTestCluster(id)
+			cluster.Status = swag.String(clusterStatus)
+			Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
+		}
+
+		expectErrorEvent := func(expectedHostStatus string) {
+			mockEvents.EXPECT().SendHostEvent(gomock.Any(), eventstest.NewEventMatcher(
+				eventstest.WithNameMatcher(eventgen.HostStatusUpdatedEventName),
+				eventstest.WithHostIdMatcher(host.ID.String()),
+				eventstest.WithInfraEnvIdMatcher(host.InfraEnvID.String()),
+				eventstest.WithClusterIdMatcher(host.ClusterID.String()),
+				eventstest.WithSeverityMatcher(hostutil.GetEventSeverityFromHostStatus(expectedHostStatus))))
+		}
+
+		refreshStatusExpectError := func(expectedHostStatus string, expectedStatusInfo string) {
+			expectErrorEvent(expectedHostStatus)
+			err := hapi.RefreshStatus(ctx, &host, db)
+			Expect(err).ShouldNot(HaveOccurred())
+			var resultHost models.Host
+			Expect(db.Take(&resultHost, "id = ? and cluster_id = ?", hostId.String(), clusterId.String()).Error).ToNot(HaveOccurred())
+			Expect(swag.StringValue(resultHost.Status)).Should(Equal(expectedHostStatus))
+			Expect(swag.StringValue(resultHost.StatusInfo) == "")
+		}
+
+		refreshStatusExpectNoError := func(expectedHostStatus string) {
+			err := hapi.RefreshStatus(ctx, &host, db)
+			Expect(err).ShouldNot(HaveOccurred())
+			var resultHost models.Host
+			Expect(db.Take(&resultHost, "id = ? and cluster_id = ?", hostId.String(), clusterId.String()).Error).ToNot(HaveOccurred())
+			Expect(swag.StringValue(resultHost.Status)).Should(Equal(expectedHostStatus))
+		}
+
+		It("host status should be disconnected disconnected out during preparation phase", func() {
+			mockDisconnectedHost(models.HostStatusPreparingForInstallation, nil)
+			registerCluster(clusterId, models.ClusterStatusPreparingForInstallation)
+			refreshStatusExpectError(models.HostStatusDisconnected, statusInfoConnectionTimedOutPreparing)
+		})
+
+		It("host status should be error if disconnected during install phase and stage is pre reboot", func() {
+			stage := models.HostStageInstalling
+			mockDisconnectedHost(models.HostStatusInstalling, &stage)
+			registerCluster(clusterId, models.ClusterStatusInstalling)
+			refreshStatusExpectError(models.HostStatusError, statusInfoConnectionTimedOutInstalling)
+		})
+
+		It("host status should be unaffected if disconnected during install phase and stage is post reboot", func() {
+			stage := models.HostStageConfiguring
+			mockDisconnectedHost(models.HostStatusInstalling, &stage)
+			registerCluster(clusterId, models.ClusterStatusInstalling)
+			refreshStatusExpectNoError(models.HostStatusInstalling)
+		})
+
+		It("host status should be error if timed out during install phase and stage is pre reboot", func() {
+			stage := models.HostStageInstalling
+			mockInstallationTimedOutHost(models.HostStatusInstalling, &stage)
+			registerCluster(clusterId, models.ClusterStatusInstalling)
+			refreshStatusExpectError(models.HostStatusError, statusInfoInstallationInProgressTimedOut)
+		})
+	})
+
 	Context("host installation timeout - cluster is pending user action", func() {
 
 		BeforeEach(func() {
@@ -1540,7 +1642,7 @@ var _ = Describe("Refresh Host", func() {
 				Expect(db.Take(&resultHost, "id = ? and cluster_id = ?", hostId.String(), clusterId.String()).Error).ToNot(HaveOccurred())
 
 				Expect(swag.StringValue(resultHost.Status)).To(Equal(models.HostStatusError))
-				info := statusInfoConnectionTimedOut
+				info := statusInfoConnectionTimedOutInstalling
 				Expect(swag.StringValue(resultHost.StatusInfo)).To(MatchRegexp(info))
 			})
 		}
@@ -1631,7 +1733,7 @@ var _ = Describe("Refresh Host", func() {
 			var resultHost models.Host
 			Expect(db.Take(&resultHost, "id = ? and cluster_id = ?", hostId.String(), clusterId.String()).Error).ToNot(HaveOccurred())
 			Expect(swag.StringValue(resultHost.Status)).To(Equal(models.HostStatusDisconnected))
-			info := statusInfoConnectionTimedOut
+			info := statusInfoConnectionTimedOutPreparing
 			Expect(swag.StringValue(resultHost.StatusInfo)).To(MatchRegexp(info))
 		})
 		It("host disconnected - bootstrap disconnection timeout is longer than regular host", func() {
@@ -1689,7 +1791,7 @@ var _ = Describe("Refresh Host", func() {
 			var resultHost models.Host
 			Expect(db.Take(&resultHost, "id = ? and cluster_id = ?", hostId.String(), clusterId.String()).Error).ToNot(HaveOccurred())
 			Expect(swag.StringValue(resultHost.Status)).To(Equal(models.HostStatusDisconnected))
-			info := statusInfoConnectionTimedOut
+			info := statusInfoConnectionTimedOutPreparing
 			Expect(swag.StringValue(resultHost.StatusInfo)).To(MatchRegexp(info))
 		})
 	})
