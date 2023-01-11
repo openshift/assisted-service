@@ -863,7 +863,7 @@ func (r *ClusterDeploymentsReconciler) updateNetworkParams(clusterDeployment *hi
 			apiVipsEntriesToArray(clusterInstall.Spec.APIVIPs))
 
 		if clusterInstall.Spec.APIVIP != cluster.APIVip ||
-			!reflect.DeepEqual(desiredApiVips, cluster.APIVips) {
+			!network.AreApiVipsIdentical(desiredApiVips, cluster.APIVips) {
 
 			params.APIVip = swag.String(clusterInstall.Spec.APIVIP)
 			params.APIVips = desiredApiVips
@@ -875,7 +875,7 @@ func (r *ClusterDeploymentsReconciler) updateNetworkParams(clusterDeployment *hi
 			ingressVipsEntriesToArray(clusterInstall.Spec.IngressVIPs))
 
 		if clusterInstall.Spec.IngressVIP != cluster.IngressVip ||
-			!reflect.DeepEqual(desiredIngressVips, cluster.IngressVips) {
+			!network.AreIngressVipsIdentical(desiredIngressVips, cluster.IngressVips) {
 
 			params.IngressVip = swag.String(clusterInstall.Spec.IngressVIP)
 			params.IngressVips = desiredIngressVips
