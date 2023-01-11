@@ -692,6 +692,246 @@ var _ = Describe("ArClusterNetworksIdentical", func() {
 	}
 })
 
+var _ = Describe("AreApiVipsIdentical", func() {
+	tests := []struct {
+		name           string
+		n1, n2         []*models.APIVip
+		expectedResult bool
+	}{
+		{
+			name:           "Both nil",
+			expectedResult: true,
+		},
+		{
+			name:           "One nil, one empty",
+			n1:             []*models.APIVip{},
+			expectedResult: true,
+		},
+		{
+			name:           "Both empty",
+			n1:             []*models.APIVip{},
+			n2:             []*models.APIVip{},
+			expectedResult: true,
+		},
+		{
+			name: "Identical, ignore cluster id",
+			n1: []*models.APIVip{
+				{
+					IP:        "1.2.3.0",
+					ClusterID: "id",
+				},
+				{
+					IP: "5.6.7.0",
+				},
+			},
+			n2: []*models.APIVip{
+				{
+					IP: "1.2.3.0",
+				},
+				{
+					IP: "5.6.7.0",
+				},
+			},
+			expectedResult: true,
+		},
+		{
+			// In this comparison we don't care about the order of entries, we only care that a set
+			// built from all the items is equal. If a consumer cares about of order of entries,
+			// another comparison function should be used.
+			name: "Identical in different order, ignore cluster id",
+			n1: []*models.APIVip{
+				{
+					IP:        "1.2.3.0",
+					ClusterID: "id",
+				},
+				{
+					IP: "5.6.7.0",
+				},
+			},
+			n2: []*models.APIVip{
+				{
+					IP: "5.6.7.0",
+				},
+				{
+					IP: "1.2.3.0",
+				},
+			},
+			expectedResult: true,
+		},
+		{
+			name: "Different length",
+			n1: []*models.APIVip{
+				{
+					IP:        "1.2.3.0",
+					ClusterID: "id",
+				},
+				{
+					IP: "5.6.7.0",
+				},
+			},
+			n2: []*models.APIVip{
+				{
+					IP: "5.6.7.0",
+				},
+				{
+					IP: "1.2.3.0",
+				},
+				{
+					IP: "2.2.3.0",
+				},
+			},
+			expectedResult: false,
+		},
+		{
+			name: "Different contents",
+			n1: []*models.APIVip{
+				{
+					IP:        "1.2.3.0",
+					ClusterID: "id",
+				},
+				{
+					IP: "5.6.7.0",
+				},
+			},
+			n2: []*models.APIVip{
+				{
+					IP: "5.6.7.0",
+				},
+				{
+					IP: "2.2.3.0",
+				},
+			},
+			expectedResult: false,
+		},
+	}
+	for i := range tests {
+		t := tests[i]
+		It(t.name, func() {
+			Expect(AreApiVipsIdentical(t.n1, t.n2)).To(Equal(t.expectedResult))
+		})
+	}
+})
+
+var _ = Describe("AreIngressVipsIdentical", func() {
+	tests := []struct {
+		name           string
+		n1, n2         []*models.IngressVip
+		expectedResult bool
+	}{
+		{
+			name:           "Both nil",
+			expectedResult: true,
+		},
+		{
+			name:           "One nil, one empty",
+			n1:             []*models.IngressVip{},
+			expectedResult: true,
+		},
+		{
+			name:           "Both empty",
+			n1:             []*models.IngressVip{},
+			n2:             []*models.IngressVip{},
+			expectedResult: true,
+		},
+		{
+			name: "Identical, ignore cluster id",
+			n1: []*models.IngressVip{
+				{
+					IP:        "1.2.3.0",
+					ClusterID: "id",
+				},
+				{
+					IP: "5.6.7.0",
+				},
+			},
+			n2: []*models.IngressVip{
+				{
+					IP: "1.2.3.0",
+				},
+				{
+					IP: "5.6.7.0",
+				},
+			},
+			expectedResult: true,
+		},
+		{
+			// In this comparison we don't care about the order of entries, we only care that a set
+			// built from all the items is equal. If a consumer cares about of order of entries,
+			// another comparison function should be used.
+			name: "Identical in different order, ignore cluster id",
+			n1: []*models.IngressVip{
+				{
+					IP:        "1.2.3.0",
+					ClusterID: "id",
+				},
+				{
+					IP: "5.6.7.0",
+				},
+			},
+			n2: []*models.IngressVip{
+				{
+					IP: "5.6.7.0",
+				},
+				{
+					IP: "1.2.3.0",
+				},
+			},
+			expectedResult: true,
+		},
+		{
+			name: "Different length",
+			n1: []*models.IngressVip{
+				{
+					IP:        "1.2.3.0",
+					ClusterID: "id",
+				},
+				{
+					IP: "5.6.7.0",
+				},
+			},
+			n2: []*models.IngressVip{
+				{
+					IP: "5.6.7.0",
+				},
+				{
+					IP: "1.2.3.0",
+				},
+				{
+					IP: "2.2.3.0",
+				},
+			},
+			expectedResult: false,
+		},
+		{
+			name: "Different contents",
+			n1: []*models.IngressVip{
+				{
+					IP:        "1.2.3.0",
+					ClusterID: "id",
+				},
+				{
+					IP: "5.6.7.0",
+				},
+			},
+			n2: []*models.IngressVip{
+				{
+					IP: "5.6.7.0",
+				},
+				{
+					IP: "2.2.3.0",
+				},
+			},
+			expectedResult: false,
+		},
+	}
+	for i := range tests {
+		t := tests[i]
+		It(t.name, func() {
+			Expect(AreIngressVipsIdentical(t.n1, t.n2)).To(Equal(t.expectedResult))
+		})
+	}
+})
+
 var _ = Describe("GetVips", func() {
 	var cluster *common.Cluster
 	var ApiVips []string
