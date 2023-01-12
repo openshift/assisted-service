@@ -3567,7 +3567,7 @@ func (b *bareMetalInventory) getLogFileForDownload(ctx context.Context, clusterI
 		return "", "", err
 	}
 	switch logsType {
-	case string(models.LogsTypeHost):
+	case string(models.LogsTypeHost), string(models.LogsTypeNodeBoot):
 		if hostId == nil {
 			return "", "", common.NewApiError(http.StatusBadRequest, errors.Errorf("Host ID must be provided for downloading host logs"))
 		}
@@ -3580,17 +3580,21 @@ func (b *bareMetalInventory) getLogFileForDownload(ctx context.Context, clusterI
 		if time.Time(hostObject.LogsCollectedAt).Equal(time.Time{}) {
 			return "", "", common.NewApiError(http.StatusConflict, errors.Errorf("Logs for host %s were not found", hostId))
 		}
-		fileName = b.getLogsFullName(clusterId.String(), hostObject.ID.String())
+		fileName = b.getLogsFullName(logsType, clusterId.String(), hostObject.ID.String())
 		role := string(hostObject.Role)
 		if hostObject.Bootstrap {
 			role = string(models.HostRoleBootstrap)
 		}
-		downloadFileName = fmt.Sprintf("%s_%s_%s.tar.gz", sanitize.Name(c.Name), role, sanitize.Name(hostutil.GetHostnameForMsg(&hostObject.Host)))
+		name := sanitize.Name(hostutil.GetHostnameForMsg(&hostObject.Host))
+		if logsType == string(models.LogsTypeNodeBoot) {
+			name = fmt.Sprintf("boot_%s", name)
+		}
+		downloadFileName = fmt.Sprintf("%s_%s_%s.tar.gz", sanitize.Name(c.Name), role, name)
 	case string(models.LogsTypeController):
 		if time.Time(c.Cluster.ControllerLogsCollectedAt).Equal(time.Time{}) {
 			return "", "", common.NewApiError(http.StatusConflict, errors.Errorf("Controller Logs for cluster %s were not found", clusterId))
 		}
-		fileName = b.getLogsFullName(clusterId.String(), logsType)
+		fileName = b.getLogsFullName(logsType, clusterId.String(), logsType)
 		downloadFileName = fmt.Sprintf("%s_%s_%s.tar.gz", sanitize.Name(c.Name), c.ID, logsType)
 	default:
 		fileName, err = b.prepareClusterLogs(ctx, c)
@@ -3937,7 +3941,7 @@ func (b *bareMetalInventory) validateDNSDomain(cluster common.Cluster, params in
 	return nil
 }
 
-func (b *bareMetalInventory) uploadHostLogs(ctx context.Context, host *common.Host, upFile io.ReadCloser) error {
+func (b *bareMetalInventory) uploadHostLogs(ctx context.Context, host *common.Host, logsType string, upFile io.ReadCloser) error {
 	log := logutil.FromContext(ctx, b.log)
 
 	var logPrefix string
@@ -3946,7 +3950,7 @@ func (b *bareMetalInventory) uploadHostLogs(ctx context.Context, host *common.Ho
 	} else {
 		logPrefix = host.InfraEnvID.String()
 	}
-	fileName := b.getLogsFullName(logPrefix, host.ID.String())
+	fileName := b.getLogsFullName(logsType, logPrefix, host.ID.String())
 
 	log.Debugf("Start upload log file %s to bucket %s", fileName, b.S3Bucket)
 	err := b.objectHandler.UploadStream(ctx, upFile, fileName)
@@ -3959,6 +3963,9 @@ func (b *bareMetalInventory) uploadHostLogs(ctx context.Context, host *common.Ho
 	if err != nil {
 		log.WithError(err).Errorf("Failed update host %s logs_collected_at flag", host.ID.String())
 		return common.NewApiError(http.StatusInternalServerError, err)
+	}
+	if logsType == string(models.LogsTypeNodeBoot) {
+		return nil
 	}
 	err = b.hostApi.UpdateLogsProgress(ctx, &host.Host, string(models.LogsStateCollecting))
 	if err != nil {
@@ -3976,8 +3983,12 @@ func (b *bareMetalInventory) prepareClusterLogs(ctx context.Context, cluster *co
 	return fileName, nil
 }
 
-func (b *bareMetalInventory) getLogsFullName(clusterId string, logId string) string {
-	return fmt.Sprintf("%s/logs/%s/logs.tar.gz", clusterId, logId)
+func (b *bareMetalInventory) getLogsFullName(logType string, clusterId string, logId string) string {
+	filename := "logs.tar.gz"
+	if logType == string(models.LogsTypeNodeBoot) {
+		filename = fmt.Sprintf("boot_%s", filename)
+	}
+	return fmt.Sprintf("%s/logs/%s/%s", clusterId, logId, filename)
 }
 
 func (b *bareMetalInventory) getHost(ctx context.Context, clusterId string, hostId string) (*common.Host, error) {

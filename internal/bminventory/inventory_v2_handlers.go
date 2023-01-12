@@ -426,9 +426,10 @@ func (b *bareMetalInventory) v2uploadLogs(ctx context.Context, params installer.
 		}
 	}()
 
-	if params.LogsType == string(models.LogsTypeHost) {
+	if params.LogsType == string(models.LogsTypeHost) || params.LogsType == string(models.LogsTypeNodeBoot) {
 		if params.InfraEnvID == nil || params.HostID == nil {
-			return common.NewApiError(http.StatusInternalServerError, errors.New("infra_env_id and host_id are required for upload host logs"))
+			return common.NewApiError(http.StatusInternalServerError,
+				errors.Errorf("infra_env_id and host_id are required for upload %s logs", params.LogsType))
 		}
 
 		dbHost, err := common.GetHostFromDB(b.db, params.InfraEnvID.String(), params.HostID.String())
@@ -436,13 +437,18 @@ func (b *bareMetalInventory) v2uploadLogs(ctx context.Context, params installer.
 			return err
 		}
 
-		err = b.uploadHostLogs(ctx, dbHost, params.Upfile)
+		err = b.uploadHostLogs(ctx, dbHost, params.LogsType, params.Upfile)
 		if err != nil {
 			return err
 		}
 
-		eventgen.SendHostLogsUploadedEvent(ctx, b.eventsHandler, *params.HostID, dbHost.InfraEnvID, common.StrFmtUUIDPtr(params.ClusterID),
-			hostutil.GetHostnameForMsg(&dbHost.Host))
+		if params.LogsType == string(models.LogsTypeHost) {
+			eventgen.SendHostLogsUploadedEvent(ctx, b.eventsHandler, *params.HostID, dbHost.InfraEnvID, common.StrFmtUUIDPtr(params.ClusterID),
+				hostutil.GetHostnameForMsg(&dbHost.Host))
+		} else {
+			eventgen.SendHostBootLogsUploadedEvent(ctx, b.eventsHandler, *params.HostID, dbHost.InfraEnvID, common.StrFmtUUIDPtr(params.ClusterID),
+				hostutil.GetHostnameForMsg(&dbHost.Host))
+		}
 		return nil
 	}
 
@@ -450,7 +456,7 @@ func (b *bareMetalInventory) v2uploadLogs(ctx context.Context, params installer.
 	if err != nil {
 		return err
 	}
-	fileName := b.getLogsFullName(params.ClusterID.String(), params.LogsType)
+	fileName := b.getLogsFullName(params.LogsType, params.ClusterID.String(), params.LogsType)
 	log.Debugf("Start upload log file %s to bucket %s", fileName, b.S3Bucket)
 	err = b.objectHandler.UploadStream(ctx, params.Upfile, fileName)
 	if err != nil {

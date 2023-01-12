@@ -173,7 +173,7 @@ func (o *V2DownloadClusterLogsParams) bindLogsType(rawData []string, hasKey bool
 // validateLogsType carries on validations for parameter LogsType
 func (o *V2DownloadClusterLogsParams) validateLogsType(formats strfmt.Registry) error {
 
-	if err := validate.EnumCase("logs_type", "query", *o.LogsType, []interface{}{"host", "controller", "all"}, true); err != nil {
+	if err := validate.EnumCase("logs_type", "query", *o.LogsType, []interface{}{"host", "controller", "node-boot", "all"}, true); err != nil {
 		return err
 	}
 
