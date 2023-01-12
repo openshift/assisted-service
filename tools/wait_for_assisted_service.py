@@ -10,6 +10,7 @@ from urllib.parse import urlunsplit, urlsplit
 from retry import retry
 
 TIMEOUT = 60 * 30
+IMAGE_SERVICE_TIMEOUT = 60 * 40
 REQUEST_TIMEOUT = 2
 SLEEP = 10
 
@@ -67,7 +68,7 @@ def main():
             domain=deploy_options.domain,
             namespace=deploy_options.namespace,
             disable_tls=deploy_options.disable_tls),
-        timeout_seconds=TIMEOUT,
+        timeout_seconds=IMAGE_SERVICE_TIMEOUT,
         expected_exceptions=(requests.exceptions.ConnectionError, requests.exceptions.ReadTimeout),
         sleep_seconds=SLEEP, waiting_for="assisted-image-service to be healthy")
 
