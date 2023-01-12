@@ -5560,6 +5560,11 @@ func (b *bareMetalInventory) V2UpdateHostIgnitionInternal(ctx context.Context, p
 			log.WithError(err).Errorf("Failed to parse host ignition config patch %s", params.HostIgnitionParams)
 			return nil, common.NewApiError(http.StatusBadRequest, err)
 		}
+
+		if err = validations.ValidateIgnitionImageSize(params.HostIgnitionParams.Config); err != nil {
+			log.WithError(err).Error("Invalid ignition image size")
+			return nil, common.NewApiError(http.StatusBadRequest, err)
+		}
 	} else {
 		log.Infof("Removing custom ignition override from host %s in infra-env %s", params.HostID, params.InfraEnvID)
 	}
