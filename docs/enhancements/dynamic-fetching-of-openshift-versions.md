@@ -23,28 +23,27 @@ versions. It can be separated to the following cases:
   discovery images that are appropriate for the release.
 * Updating beta releases like EC/FC/RC by following candidate channels like
   ``candidate-4.12``.
-* Updating to the first official stable version when it's GA (Globally
-  Available). For example, updating to 4.12.0 once it's published and available
-  for customers to use.
+* Updating to the first official stable version when it's GA (General
+  Availability). For example, updating to 4.12.0 once it's published and available
+  for users to use.
 * Updating stable releases following stable channels like ``stable-4.12``.
 
 All those actions consist of either manual updates by developers or automatic
 tools like https://gitlab.cee.redhat.com/assisted-installer-ops/assisted-installer-cicd.
 Either manual or automatic, we usually override releases with the new ones (e.g.
-replacing 4.12.0 with 4.12.1) to make sure we don't grow too much our configuration
-files. As per special requests (usually made by customers), we append additional
-versions. For example, see:
-https://gitlab.cee.redhat.com/service/app-interface/-/blob/3fb1ac40a81c7de9bdf1ae6262798fee9336debf/data/services/assisted-installer/cicd/target/production/assisted-service.yaml
+replacing 4.12.0 with 4.12.1) to prevent our configuration files from becoming too
+large. We retain specific versions as per requests, usually made by
+customers/partners.
 
 The idea of this enhancement is configuring the assisted-service to the OpenShift
 channels it needs to follow (e.g. ``candidate-4.12``, ``stable-4.11``), and let
-it periodically fetch versions to provide them to customers.
+it periodically fetch versions to provide them to users.
 
 ## Motivation
 
 It becomes a pretty tedious process to handle each version separately. Some
 use-cases we tend to have:
-* A certain customer use a specific version x.y.z for certification, and we replace
+* A certain user uses a specific version x.y.z for certification, and we replace
   this version with a newer one x.y.z+w (w>=1). In this case we'll append again the
   x.y.z version to the configuration.
 * As described above, we do version updates either automatically or manually.
@@ -111,10 +110,9 @@ in the form of ``https://api.openshift.com/api/upgrades_info/v1/graph?channel=<c
 For example:
 ```
 $ curl -s 'https://api.openshift.com/api/upgrades_info/v1/graph?channel=stable-4.11&arch=amd64' \
-    | jq -r '.nodes[] | select(.version | startswith("4.11")) | .version'
-4.11.9
-4.11.4
-4.11.8
+    | jq -r '.nodes[] | select(.version | startswith("4.11")) | .version + " => " + .payload'
+4.11.9 => quay.io/openshift-release-dev/ocp-release@sha256:94b611f00f51c9acc44ca3f4634e46bd79d7d28b46047c7e3389d250698f0c99
+4.11.4 => quay.io/openshift-release-dev/ocp-release@sha256:e04ee7eea9e6a6764df218bcce3ee64e1816445158a0763954b599e0fc96580b
 ...
 ```
 
@@ -125,7 +123,7 @@ database.
 
 To help fetching only certain versions via auto-completion like U/X, we should
 provide a parameter ``version_pattern`` for the ``/v2/openshift-versions``
-endpoint. For example:
+endpoint, along with a ``only_latest`` parameter. For example:
 ```
 /v2/openshift-versions:
    get:
@@ -136,7 +134,26 @@ endpoint. For example:
           description: Version pattern for the returned releases. E.g. '4.12'.
           type: string
           required: false
+        - in: query
+          name: only_latest
+          description: It true, returns only the latest version for each minor.
+          type: boolean
+          allowEmptyValue: true
+          default: false
 ```
+
+In addition, we should expose a new API to show the current configuration
+of dynamic releases for debugging and transparency purposes.
+
+We will still need to handle each new minor version (x.y) by:
+* adding RHCOS images for the new version for each supported CPU architecture.
+* adding x.y to the new ``DYNAMIC_OPENSHIFT_RELEASES_CONFIG`` configuration.
+* setting the relevant feature-levels in feature-support-levels list.
+
+This way the assisted-service can support each x.y.z version by fetching a
+matching x.y RHCOS version from the assisted-image-service. The
+assisted-image-service stays up and ready to serve all supported RHCOS images
+and the amount of images is only the bare minimum.
 
 ### User Stories
 
@@ -197,11 +214,10 @@ DYNAMIC_OPENSHIFT_RELEASES_CONFIG='[
 ]'
 ```
 
-### Implementation Details/Notes/Constraints [optional]
-
-Mostly conveyed in ``Risks and Mitigations``.
-
 ### Risks and Mitigations
+
+We assume here that each x.y RHCOS version is backwards and forwards compatible
+with all x.y.z OpenShift versions.
 
 We have recently seen occasions where the disk space is being exhausted due to
 the assisted-service caching a lot of different openshift installer binaries.
@@ -222,11 +238,7 @@ As opposed to that, when a minor release gets EOL (end-of-life) and we remove it
 from the configuration, the service should remove all the stale versions from
 the database.
 
-## Design Details [optional]
-
-If an enhancement is complex enough, design details should be included. When not
-included, reviewers reserve the right to ask for this section to be filled in to
-enable more thoughtful discussion about the enhancement and it's impact.
+## Design Details
 
 ### Open Questions
 
@@ -236,8 +248,8 @@ enable more thoughtful discussion about the enhancement and it's impact.
   doesn't consume too much of it, it might be better.
 * When implementing the binaries LRU cache, should we prioritize the latest
   versions of each y-release? We expect those to be the most common ones, but
-  maybe it's better to let the LRU mechanism determine what's the common versions
-  by itself?
+  maybe it's better to let the LRU mechanism determine what are the common
+  versions by itself?
 * How should we limit database entries? In case of a bug in the code that writes
   way too much version entries, can we make sure to mitigate the issue on our
   side? (without interrupting app-sre for their help on manual database
@@ -266,8 +278,10 @@ versions is where they'll have to change the UI automation.
 
 * It means QE no longer verify that each OpenShift version is installable via
   assisted-installer.
-* We lose a bit of control over which versions we introduce. It means if
-  some existing version has a bug, we don't have a way to exclude it.
+* Current proposition doesn't include a mechanism for excluding specific
+  versions that are dynamically fetched, in case of critical bugs in them.
+  Since it's a low-risk (and low-impact) we can extend it in the future.
+
 
 ## Alternatives
 
