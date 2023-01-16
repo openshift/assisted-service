@@ -32,8 +32,11 @@ First we must prepare the minikube cluster -
 # Clean remains of any networks created by minikube
 podman network rm minikube || true
 
-# Start minikube with registry addon
-minikube start --driver=podman --addons registry --addons dashboard --force
+# Start minikube
+minikube start --driver=podman --addons dashboard --force
+
+# enable the registry addon using quay.io images (to overcome docker-hub's rate-limiter)
+minikube addons enable registry --images="Registry=quay.io/libpod/registry:2.8"
 
 # Make the registry addon accessible locally:
 nohup kubectl port-forward svc/registry 5000:80 -n kube-system &>/dev/null &
@@ -52,7 +55,7 @@ done
 nohup minikube tunnel &>/dev/null &
 ```
 
-Now that the cluster is prepared, we can deploy the service - 
+Now that the cluster is prepared, we can deploy the service -
 
 To deploy the service in REST-API mode, run:
 
