@@ -81,7 +81,7 @@ metadata:
   namespace: "{{.OPERATOR_NAMESPACE}}"
 spec:
   installPlanApproval: Automatic
-  name: odf-lvm-operator
+  name: lvms-operator
   source: redhat-operators
   sourceNamespace: openshift-marketplace`
 
