@@ -25,7 +25,7 @@ var Operator = models.MonitoredOperator{
 	Name:             "lvm",
 	OperatorType:     models.OperatorTypeOlm,
 	Namespace:        "openshift-storage",
-	SubscriptionName: "odf-lvm-operator",
+	SubscriptionName: "lvms-operator",
 	TimeoutSeconds:   30 * 60,
 }
 
