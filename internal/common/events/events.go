@@ -1833,6 +1833,79 @@ func (e *ExpiredImageDeletedEvent) FormatMessage() string {
 }
 
 //
+// Event cluster_operator_report
+//
+type ClusterOperatorReportEvent struct {
+    eventName string
+    ClusterId strfmt.UUID
+    Report string
+}
+
+var ClusterOperatorReportEventName string = "cluster_operator_report"
+
+func NewClusterOperatorReportEvent(
+    clusterId strfmt.UUID,
+    report string,
+) *ClusterOperatorReportEvent {
+    return &ClusterOperatorReportEvent{
+        eventName: ClusterOperatorReportEventName,
+        ClusterId: clusterId,
+        Report: report,
+    }
+}
+
+func SendClusterOperatorReportEvent(
+    ctx context.Context,
+    eventsHandler eventsapi.Sender,
+    clusterId strfmt.UUID,
+    report string,) {
+    ev := NewClusterOperatorReportEvent(
+        clusterId,
+        report,
+    )
+    eventsHandler.SendClusterEvent(ctx, ev)
+}
+
+func SendClusterOperatorReportEventAtTime(
+    ctx context.Context,
+    eventsHandler eventsapi.Sender,
+    clusterId strfmt.UUID,
+    report string,
+    eventTime time.Time) {
+    ev := NewClusterOperatorReportEvent(
+        clusterId,
+        report,
+    )
+    eventsHandler.SendClusterEventAtTime(ctx, ev, eventTime)
+}
+
+func (e *ClusterOperatorReportEvent) GetName() string {
+    return e.eventName
+}
+
+func (e *ClusterOperatorReportEvent) GetSeverity() string {
+    return "info"
+}
+func (e *ClusterOperatorReportEvent) GetClusterId() strfmt.UUID {
+    return e.ClusterId
+}
+
+
+
+func (e *ClusterOperatorReportEvent) format(message *string) string {
+    r := strings.NewReplacer(
+        "{cluster_id}", fmt.Sprint(e.ClusterId),
+        "{report}", fmt.Sprint(e.Report),
+    )
+    return r.Replace(*message)
+}
+
+func (e *ClusterOperatorReportEvent) FormatMessage() string {
+    s := "The following operators are experiencing issues: {report}"
+    return e.format(&s)
+}
+
+//
 // Event cluster_operator_status
 //
 type ClusterOperatorStatusEvent struct {

@@ -28,8 +28,11 @@ import (
 	logutil "github.com/openshift/assisted-service/pkg/log"
 	"github.com/openshift/assisted-service/restapi/operations/installer"
 	"github.com/pkg/errors"
+	"github.com/thoas/go-funk"
 	"gorm.io/gorm"
 )
+
+const clusterOperatorReportKey string = "CLUSTER_OPERATORS_REPORT"
 
 func (b *bareMetalInventory) V2UpdateHost(ctx context.Context, params installer.V2UpdateHostParams) middleware.Responder {
 	host, err := b.V2UpdateHostInternal(ctx, params, Interactive)
@@ -301,8 +304,10 @@ func (b *bareMetalInventory) V2CompleteInstallation(ctx context.Context, params 
 	// This function can be removed once the controller will stop sending this request
 	// The service is already capable of completing the installation on its own
 
-	log := logutil.FromContext(ctx, b.log)
+	// MGMT-10785 when removing this function per the comment above do transfer the
+	// cluster operator report to another place or a new endpint
 
+	log := logutil.FromContext(ctx, b.log)
 	log.Infof("complete cluster %s installation", params.ClusterID)
 
 	var cluster *common.Cluster
@@ -311,7 +316,36 @@ func (b *bareMetalInventory) V2CompleteInstallation(ctx context.Context, params 
 		return common.GenerateErrorResponder(err)
 	}
 
-	if !*params.CompletionParams.IsSuccess {
+	parse := func(data interface{}) ([]models.OperatorMonitorReport, error) {
+		raw, err := json.Marshal(data)
+		if err != nil {
+			return nil, err
+		}
+		var result []models.OperatorMonitorReport
+		if err := json.Unmarshal(raw, &result); err != nil {
+			return nil, err
+		}
+		return result, nil
+	}
+
+	if !swag.BoolValue(params.CompletionParams.IsSuccess) {
+		// Check if there is a report on failing operators, and compose a report event.
+		// The event simply shows a list of failed operators' names.
+		if data, ok := params.CompletionParams.Data[clusterOperatorReportKey]; ok {
+			if ops, err := parse(data); err == nil {
+				//filter only the names of failed operators
+				failedOps := funk.Filter(ops, func(op models.OperatorMonitorReport) bool {
+					return op.Status == models.OperatorStatusFailed
+				}).([]models.OperatorMonitorReport)
+				names := funk.Map(failedOps, func(op models.OperatorMonitorReport) string {
+					return op.Name
+				}).([]string)
+				eventgen.SendClusterOperatorReportEvent(ctx, b.eventsHandler, params.ClusterID, fmt.Sprint(strings.Join(names, ", ")))
+			} else {
+				log.Errorf("Bad format of cluster operator report %s", err.Error())
+			}
+		}
+
 		if _, err := b.clusterApi.CompleteInstallation(ctx, b.db, cluster, false, params.CompletionParams.ErrorInfo); err != nil {
 			log.WithError(err).Errorf("Failed to set complete cluster state on %s ", params.ClusterID.String())
 			return common.GenerateErrorResponder(err)

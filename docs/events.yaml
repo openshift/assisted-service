@@ -197,6 +197,14 @@ x-events:
   properties:
     cluster_id:  UUID
 
+- name: cluster_operator_report
+  message: "The following operators are experiencing issues: {report}"
+  event_type: cluster
+  severity: "info"
+  properties:
+    cluster_id: UUID
+    report: string
+
 - name: cluster_operator_status
   message: "Operator {operator_name} status: {status} message: {status_info}"
   event_type: cluster

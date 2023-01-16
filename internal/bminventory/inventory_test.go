@@ -5560,6 +5560,47 @@ var _ = Describe("cluster", func() {
 
 				verifyApiError(reply, http.StatusInternalServerError)
 			})
+			It("complete with failing operator report", func() {
+				success := false
+				mockClusterApi.EXPECT().CompleteInstallation(ctx, gomock.Any(), gomock.Any(), success, errorInfo).Return(nil, nil).Times(1)
+				mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
+					eventstest.WithNameMatcher(eventgen.ClusterOperatorReportEventName),
+					eventstest.WithMessageContainsMatcher("authentication, csi-snapshot-controller"))).Times(1)
+				listOfOperaotrs := []models.OperatorMonitorReport{
+					{
+						Name:       "authentication",
+						Status:     models.OperatorStatusFailed,
+						StatusInfo: "APIServicesAvailable: PreconditionNotReady",
+					},
+					{
+						Name:       "csi-snapshot-controller",
+						Status:     models.OperatorStatusFailed,
+						StatusInfo: "SISnapshotController_Deploying::CSISnapshotWebhookController_Deploying",
+					},
+					{
+						Name:       "other",
+						Status:     models.OperatorStatusProgressing,
+						StatusInfo: "",
+					},
+					{
+						Name:       "etcd",
+						Status:     models.OperatorStatusAvailable,
+						StatusInfo: "success",
+					},
+				}
+				reply := bm.V2CompleteInstallation(ctx, installer.V2CompleteInstallationParams{
+					ClusterID: clusterID,
+					CompletionParams: &models.CompletionParams{
+						ErrorInfo: errorInfo,
+						IsSuccess: &success,
+						Data:      map[string]interface{}{clusterOperatorReportKey: listOfOperaotrs},
+					},
+				})
+				Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2CompleteInstallationAccepted()))
+			})
+			It("complete with bad format operator report", func() {
+
+			})
 		})
 
 		AfterEach(func() {
