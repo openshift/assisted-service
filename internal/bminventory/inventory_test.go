@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"compress/gzip"
 	"context"
+	"crypto/rand"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -13950,6 +13952,24 @@ var _ = Describe("V2UpdateHostIgnition", func() {
 		mockUsage.EXPECT().Save(gomock.Any(), gomock.Any(), gomock.Any()).Times(1)
 		mockUsage.EXPECT().Remove(gomock.Any(), gomock.Any()).Times(1)
 		bm.V2UpdateHostIgnition(ctx, params)
+	})
+
+	It("returns bad request when provided config is too large (>256 KiB)", func() {
+		// Create a large content for the ignition config
+		contentBytes := make([]byte, validations.IgnitionImageSizePadding)
+		_, err := rand.Read(contentBytes)
+		Expect(err).ToNot(HaveOccurred())
+		content := base64.StdEncoding.EncodeToString(contentBytes)
+		override := fmt.Sprintf(`{"ignition": {"version": "3.1.0"}, "storage": {"files": [{"path": "/tmp/example", "contents": {"source": "data:text/plain;base64,%s"}}]}}`, content)
+		params := installer.V2UpdateHostIgnitionParams{
+			InfraEnvID:         infraEnvID,
+			HostID:             hostID,
+			HostIgnitionParams: &models.HostIgnitionParams{Config: override},
+		}
+		response := bm.V2UpdateHostIgnition(ctx, params)
+		verifyApiError(response, http.StatusBadRequest)
+		err = response.(*common.ApiErrorResponse)
+		Expect(err.Error()).To(ContainSubstring("over the maximum allowable size"))
 	})
 })
 

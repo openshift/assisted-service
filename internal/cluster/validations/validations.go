@@ -17,6 +17,7 @@ import (
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 	"github.com/hashicorp/go-multierror"
+	"github.com/openshift/assisted-image-service/pkg/isoeditor"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/featuresupport"
 	"github.com/openshift/assisted-service/internal/network"
@@ -43,6 +44,10 @@ const (
 	dockerHubLegacyAuth             = "https://index.docker.io/v1/"
 	stageRegistry                   = "registry.stage.redhat.io"
 	ignoreListSeparator             = ","
+
+	// Size of the file used to embed an ignition config archive within an RHCOS ISO: 256 KiB
+	// See: https://github.com/coreos/coreos-assembler/blob/d2c968a1f3c75713a4e1449e3da657c5d5a5d7e7/src/cmd-buildextend-live#L113-L114
+	IgnitionImageSizePadding = 256 * 1024
 )
 
 var regexpSshPublicKey *regexp.Regexp
@@ -53,6 +58,7 @@ func init() {
 
 // PullSecretValidator is used run validations on a provided pull secret
 // it verifies the format of the pull secrete and access to required image registries
+//
 //go:generate mockgen -source=validations.go -package=validations -destination=mock_validations.go
 type PullSecretValidator interface {
 	ValidatePullSecret(secret string, username string) error
@@ -333,8 +339,8 @@ func getRegistriesWithAuth(ignoreList string, ignoreSeparator string, images ...
 	return &registries, nil
 }
 
-//ValidateVipDHCPAllocationWithIPv6 returns an error in case of VIP DHCP allocation
-//being used with IPv6 machine network
+// ValidateVipDHCPAllocationWithIPv6 returns an error in case of VIP DHCP allocation
+// being used with IPv6 machine network
 func ValidateVipDHCPAllocationWithIPv6(vipDhcpAllocation bool, machineNetworkCIDR string) error {
 	if !vipDhcpAllocation {
 		return nil
@@ -847,8 +853,8 @@ func ValidateDualStackNetworks(clusterParams interface{}, alreadyDualStack bool)
 	return nil
 }
 
-//ValidateIPAddressFamily returns an error if the argument contains only IPv6 networks and IPv6
-//support is turned off. Dual-stack setup is supported even if IPv6 support is turned off.
+// ValidateIPAddressFamily returns an error if the argument contains only IPv6 networks and IPv6
+// support is turned off. Dual-stack setup is supported even if IPv6 support is turned off.
 func ValidateIPAddressFamily(ipV6Supported bool, elements ...*string) error {
 	if ipV6Supported {
 		return nil
@@ -901,6 +907,26 @@ func ValidateHighAvailabilityModeWithPlatform(highAvailabilityMode *string, plat
 		if platform != nil && platform.Type != nil && *platform.Type != models.PlatformTypeNone {
 			return errors.Errorf("Single node cluster is not supported alongside %s platform", *platform.Type)
 		}
+	}
+
+	return nil
+}
+
+func ValidateIgnitionImageSize(config string) error {
+	var err error
+	var data *bytes.Reader
+
+	// Ensure that the ignition archive isn't larger than 256KiB
+	configBytes := []byte(config)
+	content := isoeditor.IgnitionContent{Config: configBytes}
+	data, err = content.Archive()
+	if err != nil {
+		return errors.Wrap(err, "Failed to create ignition archive")
+	}
+	ignitionImageSize := data.Len()
+	if ignitionImageSize > IgnitionImageSizePadding {
+		return errors.New(fmt.Sprintf("The ignition archive size (%d KiB) is over the maximum allowable size (%d KiB)",
+			ignitionImageSize/1024, IgnitionImageSizePadding/1024))
 	}
 
 	return nil
