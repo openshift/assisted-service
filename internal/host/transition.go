@@ -136,7 +136,7 @@ func (th *transitionHandler) PostRegisterDuringInstallation(sw stateswitch.State
 	}
 
 	return th.updateTransitionHost(params.ctx, logutil.FromContext(params.ctx, th.log), params.db, sHost,
-		"The host unexpectedly restarted during the installation")
+		"Unable to reach the host. There might be network issues or it was restarted.\n Make sure the host is connected to the service and try to start the installation again.")
 }
 
 func (th *transitionHandler) PostRegisterAfterInstallation(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) error {
