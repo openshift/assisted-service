@@ -525,26 +525,7 @@ func (m *ManifestsGenerator) AddNodeIpHint(ctx context.Context, log logrus.Field
 		return fmt.Errorf("node-ip-hint allowed only if machine network was configured")
 	}
 
-	bootstrap := common.GetBootstrapHost(cluster)
-	inventory, err := common.UnmarshalInventory(bootstrap.Inventory)
-	if err != nil {
-		log.WithError(err).Errorf("Failed to unmarshal bootstrap inventory")
-		return err
-	}
-
-	hostNetworks, err := getHostNetworks(inventory, func(i *models.Interface) []string { return append(i.IPV4Addresses, i.IPV6Addresses...) })
-	if err != nil {
-		log.WithError(err).Errorf("Failed to get host networks")
-		return err
-	}
-	// if we have only one network there
-	// is not need to set those manifests
-	if len(hostNetworks) < 2 {
-		log.Debugf("SNO cluster has only one network, no need to add ip hint manifests")
-		return nil
-	}
 	log.Infof("Adding node add ip hint manifests")
-
 	for _, role := range []models.HostRole{models.HostRoleMaster, models.HostRoleWorker} {
 		filename := fmt.Sprintf("node-ip-hint-%s.yaml", role)
 		content, err := createNodeIpHintContent(log, cluster, string(role))

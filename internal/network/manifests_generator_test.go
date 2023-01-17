@@ -667,25 +667,9 @@ var _ = Describe("node ip hint", func() {
 			Expect(manifestsGeneratorApi.AddNodeIpHint(ctx, log, cluster)).Should(HaveOccurred())
 		})
 
-		It("CreateClusterManifest failed to get host network", func() {
-			cluster := clusterCreate("bad_cidr")
-			cluster.Hosts[0].Inventory = createInventory(&models.Interface{
-				IPV4Addresses: append([]string{}, "bad one"),
-				Name:          "test1"})
-			Expect(manifestsGeneratorApi.AddNodeIpHint(ctx, log, cluster)).Should(HaveOccurred())
-		})
-
 		It("Non sno cluster should do nothing", func() {
 			cluster := clusterCreate("3.3.3.0/24")
 			cluster.HighAvailabilityMode = swag.String(models.ClusterHighAvailabilityModeFull)
-			Expect(manifestsGeneratorApi.AddNodeIpHint(ctx, log, cluster)).ShouldNot(HaveOccurred())
-		})
-
-		It("No need to create manifest if bootstrap has only one network", func() {
-			cluster := clusterCreate("3.3.3.0/24")
-			cluster.Hosts[0].Inventory = createInventory(&models.Interface{
-				IPV4Addresses: append([]string{}, "3.3.3.3/24"),
-				Name:          "test1"})
 			Expect(manifestsGeneratorApi.AddNodeIpHint(ctx, log, cluster)).ShouldNot(HaveOccurred())
 		})
 
