@@ -42,6 +42,7 @@ const (
 	FamilyIPv4 int32 = 4
 	FamilyIPv6 int32 = 6
 
+	AMD64CPUArchitecture   = "amd64"
 	X86CPUArchitecture     = "x86_64"
 	DefaultCPUArchitecture = X86CPUArchitecture
 	ARM64CPUArchitecture   = "arm64"
@@ -91,6 +92,17 @@ const NMDebugModeConf = `
 [logging]
 domains=ALL:DEBUG
 `
+
+func NormalizeCPUArchitecture(arch string) string {
+	switch arch {
+	case AMD64CPUArchitecture:
+		return X86CPUArchitecture
+	case AARCH64CPUArchitecture:
+		return ARM64CPUArchitecture
+	default:
+		return arch
+	}
+}
 
 func AllStrings(vs []string, f func(string) bool) bool {
 	for _, v := range vs {

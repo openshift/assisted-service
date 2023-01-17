@@ -474,7 +474,7 @@ var _ = Describe("[V2ClusterTests] multiarch", func() {
 			IgnoreStateInfo)
 	})
 
-	It("Fail to register infraenv with missing release image and OS ", func() {
+	It("Fail to register an infraenv with a non-supported CPUArchitecture ", func() {
 		_, err := userBMClient.Installer.RegisterInfraEnv(context.Background(), &installer.RegisterInfraEnvParams{
 			InfraenvCreateParams: &models.InfraEnvCreateParams{
 				Name:             swag.String("test-infra-env"),
@@ -488,7 +488,5 @@ var _ = Describe("[V2ClusterTests] multiarch", func() {
 		})
 
 		Expect(err).To(HaveOccurred())
-		actual := err.(*installer.RegisterInfraEnvBadRequest)
-		Expect(*actual.Payload.Reason).To(ContainSubstring("does not have a matching OpenShift release image"))
 	})
 })

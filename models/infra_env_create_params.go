@@ -7,6 +7,7 @@ package models
 
 import (
 	"context"
+	"encoding/json"
 	"strconv"
 
 	"github.com/go-openapi/errors"
@@ -34,6 +35,7 @@ type InfraEnvCreateParams struct {
 	ClusterID *strfmt.UUID `json:"cluster_id,omitempty"`
 
 	// The CPU architecture of the image (x86_64/arm64/etc).
+	// Enum: [x86_64 aarch64 arm64 ppc64le s390x multi]
 	CPUArchitecture string `json:"cpu_architecture,omitempty"`
 
 	// JSON formatted string containing the user overrides for the initial ignition config.
@@ -74,6 +76,10 @@ func (m *InfraEnvCreateParams) Validate(formats strfmt.Registry) error {
 		res = append(res, err)
 	}
 
+	if err := m.validateCPUArchitecture(formats); err != nil {
+		res = append(res, err)
+	}
+
 	if err := m.validateImageType(formats); err != nil {
 		res = append(res, err)
 	}
@@ -110,6 +116,60 @@ func (m *InfraEnvCreateParams) validateClusterID(formats strfmt.Registry) error 
 	}
 
 	if err := validate.FormatOf("cluster_id", "body", "uuid", m.ClusterID.String(), formats); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+var infraEnvCreateParamsTypeCPUArchitecturePropEnum []interface{}
+
+func init() {
+	var res []string
+	if err := json.Unmarshal([]byte(`["x86_64","aarch64","arm64","ppc64le","s390x","multi"]`), &res); err != nil {
+		panic(err)
+	}
+	for _, v := range res {
+		infraEnvCreateParamsTypeCPUArchitecturePropEnum = append(infraEnvCreateParamsTypeCPUArchitecturePropEnum, v)
+	}
+}
+
+const (
+
+	// InfraEnvCreateParamsCPUArchitectureX8664 captures enum value "x86_64"
+	InfraEnvCreateParamsCPUArchitectureX8664 string = "x86_64"
+
+	// InfraEnvCreateParamsCPUArchitectureAarch64 captures enum value "aarch64"
+	InfraEnvCreateParamsCPUArchitectureAarch64 string = "aarch64"
+
+	// InfraEnvCreateParamsCPUArchitectureArm64 captures enum value "arm64"
+	InfraEnvCreateParamsCPUArchitectureArm64 string = "arm64"
+
+	// InfraEnvCreateParamsCPUArchitecturePpc64le captures enum value "ppc64le"
+	InfraEnvCreateParamsCPUArchitecturePpc64le string = "ppc64le"
+
+	// InfraEnvCreateParamsCPUArchitectureS390x captures enum value "s390x"
+	InfraEnvCreateParamsCPUArchitectureS390x string = "s390x"
+
+	// InfraEnvCreateParamsCPUArchitectureMulti captures enum value "multi"
+	InfraEnvCreateParamsCPUArchitectureMulti string = "multi"
+)
+
+// prop value enum
+func (m *InfraEnvCreateParams) validateCPUArchitectureEnum(path, location string, value string) error {
+	if err := validate.EnumCase(path, location, value, infraEnvCreateParamsTypeCPUArchitecturePropEnum, true); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (m *InfraEnvCreateParams) validateCPUArchitecture(formats strfmt.Registry) error {
+	if swag.IsZero(m.CPUArchitecture) { // not required
+		return nil
+	}
+
+	// value enum
+	if err := m.validateCPUArchitectureEnum("cpu_architecture", "body", m.CPUArchitecture); err != nil {
 		return err
 	}
 

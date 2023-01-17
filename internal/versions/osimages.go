@@ -57,6 +57,11 @@ func (images osImageList) validate() error {
 			if swag.StringValue(osImage.Version) == "" {
 				return errors.Errorf(fmt.Sprintf(missingValueTemplate, "version", key))
 			}
+			// Normalize osImage.CPUArchitecture
+			// TODO: remove this block when AI starts using aarch64 instead of arm64
+			if architecture == common.AARCH64CPUArchitecture {
+				*osImage.CPUArchitecture = common.NormalizeCPUArchitecture(*osImage.CPUArchitecture)
+			}
 		}
 	}
 

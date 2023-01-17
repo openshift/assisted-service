@@ -47,6 +47,7 @@ type ClusterCreateParams struct {
 	ClusterNetworks []*ClusterNetwork `json:"cluster_networks"`
 
 	// The CPU architecture of the image (x86_64/arm64/etc).
+	// Enum: [x86_64 aarch64 arm64 ppc64le s390x multi]
 	CPUArchitecture string `json:"cpu_architecture,omitempty"`
 
 	// Installation disks encryption mode and host roles to be applied.
@@ -159,6 +160,10 @@ func (m *ClusterCreateParams) Validate(formats strfmt.Registry) error {
 	}
 
 	if err := m.validateClusterNetworks(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateCPUArchitecture(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -315,6 +320,60 @@ func (m *ClusterCreateParams) validateClusterNetworks(formats strfmt.Registry) e
 			}
 		}
 
+	}
+
+	return nil
+}
+
+var clusterCreateParamsTypeCPUArchitecturePropEnum []interface{}
+
+func init() {
+	var res []string
+	if err := json.Unmarshal([]byte(`["x86_64","aarch64","arm64","ppc64le","s390x","multi"]`), &res); err != nil {
+		panic(err)
+	}
+	for _, v := range res {
+		clusterCreateParamsTypeCPUArchitecturePropEnum = append(clusterCreateParamsTypeCPUArchitecturePropEnum, v)
+	}
+}
+
+const (
+
+	// ClusterCreateParamsCPUArchitectureX8664 captures enum value "x86_64"
+	ClusterCreateParamsCPUArchitectureX8664 string = "x86_64"
+
+	// ClusterCreateParamsCPUArchitectureAarch64 captures enum value "aarch64"
+	ClusterCreateParamsCPUArchitectureAarch64 string = "aarch64"
+
+	// ClusterCreateParamsCPUArchitectureArm64 captures enum value "arm64"
+	ClusterCreateParamsCPUArchitectureArm64 string = "arm64"
+
+	// ClusterCreateParamsCPUArchitecturePpc64le captures enum value "ppc64le"
+	ClusterCreateParamsCPUArchitecturePpc64le string = "ppc64le"
+
+	// ClusterCreateParamsCPUArchitectureS390x captures enum value "s390x"
+	ClusterCreateParamsCPUArchitectureS390x string = "s390x"
+
+	// ClusterCreateParamsCPUArchitectureMulti captures enum value "multi"
+	ClusterCreateParamsCPUArchitectureMulti string = "multi"
+)
+
+// prop value enum
+func (m *ClusterCreateParams) validateCPUArchitectureEnum(path, location string, value string) error {
+	if err := validate.EnumCase(path, location, value, clusterCreateParamsTypeCPUArchitecturePropEnum, true); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (m *ClusterCreateParams) validateCPUArchitecture(formats strfmt.Registry) error {
+	if swag.IsZero(m.CPUArchitecture) { // not required
+		return nil
+	}
+
+	// value enum
+	if err := m.validateCPUArchitectureEnum("cpu_architecture", "body", m.CPUArchitecture); err != nil {
+		return err
 	}
 
 	return nil

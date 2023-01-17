@@ -305,6 +305,15 @@ func (h *handler) validateVersions() error {
 		if swag.StringValue(release.Version) == "" {
 			return errors.Errorf(fmt.Sprintf(missingValueTemplate, "version"))
 		}
+		// Normalize release.CPUArchitecture and release.CPUArchitectures
+		// TODO: remove this block when AI starts using aarch64 instead of arm64
+		if swag.StringValue(release.CPUArchitecture) == common.MultiCPUArchitecture || swag.StringValue(release.CPUArchitecture) == common.AARCH64CPUArchitecture {
+			*release.CPUArchitecture = common.NormalizeCPUArchitecture(*release.CPUArchitecture)
+			for i := 0; i < len(release.CPUArchitectures); i++ {
+				release.CPUArchitectures[i] = common.NormalizeCPUArchitecture(release.CPUArchitectures[i])
+			}
+
+		}
 	}
 
 	return nil

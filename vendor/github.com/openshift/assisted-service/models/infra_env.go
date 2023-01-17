@@ -35,6 +35,7 @@ type InfraEnv struct {
 	ClusterID strfmt.UUID `json:"cluster_id,omitempty" gorm:"index"`
 
 	// The CPU architecture of the image (x86_64/arm64/etc).
+	// Enum: [x86_64 aarch64 arm64 ppc64le s390x multi]
 	CPUArchitecture string `json:"cpu_architecture,omitempty"`
 
 	// created at
@@ -122,6 +123,10 @@ func (m *InfraEnv) Validate(formats strfmt.Registry) error {
 		res = append(res, err)
 	}
 
+	if err := m.validateCPUArchitecture(formats); err != nil {
+		res = append(res, err)
+	}
+
 	if err := m.validateCreatedAt(formats); err != nil {
 		res = append(res, err)
 	}
@@ -174,6 +179,60 @@ func (m *InfraEnv) validateClusterID(formats strfmt.Registry) error {
 	}
 
 	if err := validate.FormatOf("cluster_id", "body", "uuid", m.ClusterID.String(), formats); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+var infraEnvTypeCPUArchitecturePropEnum []interface{}
+
+func init() {
+	var res []string
+	if err := json.Unmarshal([]byte(`["x86_64","aarch64","arm64","ppc64le","s390x","multi"]`), &res); err != nil {
+		panic(err)
+	}
+	for _, v := range res {
+		infraEnvTypeCPUArchitecturePropEnum = append(infraEnvTypeCPUArchitecturePropEnum, v)
+	}
+}
+
+const (
+
+	// InfraEnvCPUArchitectureX8664 captures enum value "x86_64"
+	InfraEnvCPUArchitectureX8664 string = "x86_64"
+
+	// InfraEnvCPUArchitectureAarch64 captures enum value "aarch64"
+	InfraEnvCPUArchitectureAarch64 string = "aarch64"
+
+	// InfraEnvCPUArchitectureArm64 captures enum value "arm64"
+	InfraEnvCPUArchitectureArm64 string = "arm64"
+
+	// InfraEnvCPUArchitecturePpc64le captures enum value "ppc64le"
+	InfraEnvCPUArchitecturePpc64le string = "ppc64le"
+
+	// InfraEnvCPUArchitectureS390x captures enum value "s390x"
+	InfraEnvCPUArchitectureS390x string = "s390x"
+
+	// InfraEnvCPUArchitectureMulti captures enum value "multi"
+	InfraEnvCPUArchitectureMulti string = "multi"
+)
+
+// prop value enum
+func (m *InfraEnv) validateCPUArchitectureEnum(path, location string, value string) error {
+	if err := validate.EnumCase(path, location, value, infraEnvTypeCPUArchitecturePropEnum, true); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (m *InfraEnv) validateCPUArchitecture(formats strfmt.Registry) error {
+	if swag.IsZero(m.CPUArchitecture) { // not required
+		return nil
+	}
+
+	// value enum
+	if err := m.validateCPUArchitectureEnum("cpu_architecture", "body", m.CPUArchitecture); err != nil {
 		return err
 	}
 
