@@ -185,7 +185,7 @@ func (r *PreprovisioningImageReconciler) Reconcile(origCtx context.Context, req 
 }
 
 func initrdExtraKernelParams(infraEnv aiv1beta1.InfraEnv) string {
-	params := []string{fmt.Sprintf("coreos.live.rootfs_url=%s", infraEnv.Status.BootArtifacts.RootfsURL)}
+	params := []string{fmt.Sprintf("coreos.live.rootfs_url=%s rd.bootif=0", infraEnv.Status.BootArtifacts.RootfsURL)}
 	for _, arg := range infraEnv.Spec.KernelArguments {
 		if arg.Operation == models.KernelArgumentOperationAppend {
 			params = append(params, arg.Value)
