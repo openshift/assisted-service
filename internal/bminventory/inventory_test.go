@@ -11742,6 +11742,54 @@ var _ = Describe("TestRegisterCluster", func() {
 				verifyApiError(reply, http.StatusBadRequest)
 			})
 
+			It("Nutanix platform and arm64 - failed", func() {
+				mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
+					eventstest.WithNameMatcher(eventgen.ClusterRegistrationFailedEventName),
+					eventstest.WithMessageContainsMatcher("only x86-64 CPU architecture is supported on Nutanix clusters"),
+					eventstest.WithSeverityMatcher(models.EventSeverityError))).Times(1)
+
+				params := getClusterCreateParams(nil)
+				params.Platform = &models.Platform{
+					Type: common.PlatformTypePtr(models.PlatformTypeNutanix),
+				}
+				params.OpenshiftVersion = swag.String(minimalOpenShiftVersionForNutanix)
+				params.CPUArchitecture = common.ARM64CPUArchitecture
+				reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
+					NewClusterParams: params,
+				})
+				verifyApiError(reply, http.StatusBadRequest)
+			})
+
+			It("arm64 cluster update to Nutanix platform - failed", func() {
+				mockClusterRegisterSuccess(true)
+				mockAMSSubscription(ctx)
+
+				mockOSImages.EXPECT().GetCPUArchitectures(gomock.Any()).Return(
+					[]string{minimalOpenShiftVersionForNutanix, common.ARM64CPUArchitecture}).Times(1)
+
+				params := getClusterCreateParams(swag.String(models.ClusterCreateParamsHighAvailabilityModeFull))
+				params.Platform = &models.Platform{
+					Type: common.PlatformTypePtr(models.PlatformTypeNone),
+				}
+				params.OpenshiftVersion = swag.String(minimalOpenShiftVersionForNutanix)
+				params.CPUArchitecture = common.ARM64CPUArchitecture
+				reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
+					NewClusterParams: params,
+				})
+				Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2RegisterClusterCreated()))
+				c := reply.(*installer.V2RegisterClusterCreated).Payload
+
+				reply2 := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
+					ClusterID: *c.ID,
+					ClusterUpdateParams: &models.V2ClusterUpdateParams{
+						Platform: &models.Platform{
+							Type: common.PlatformTypePtr(models.PlatformTypeNutanix),
+						},
+					},
+				})
+				verifyApiErrorString(reply2, http.StatusBadRequest, "only x86-64 CPU architecture is supported on Nutanix clusters")
+			})
+
 			It("None platform type", func() {
 				mockClusterRegisterSuccess(true)
 				mockAMSSubscription(ctx)
@@ -15648,6 +15696,7 @@ var _ = Describe("Platform tests", func() {
 			}
 			MinimalOpenShiftVersionForNutanix := "4.11.0"
 			registerParams.NewClusterParams.OpenshiftVersion = swag.String(MinimalOpenShiftVersionForNutanix)
+			registerParams.NewClusterParams.CPUArchitecture = common.X86CPUArchitecture
 
 			reply := bm.V2RegisterCluster(ctx, *registerParams)
 			Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2RegisterClusterCreated()))
