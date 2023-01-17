@@ -36,6 +36,7 @@ import (
 	"github.com/openshift/assisted-service/pkg/ocm"
 	"github.com/openshift/assisted-service/pkg/requestid"
 	"github.com/openshift/assisted-service/pkg/s3wrapper"
+	"github.com/openshift/assisted-service/pkg/stream"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
@@ -145,6 +146,7 @@ type Manager struct {
 	Config
 	log                   logrus.FieldLogger
 	db                    *gorm.DB
+	stream                stream.EventStreamWriter
 	registrationAPI       RegistrationAPI
 	installationAPI       InstallationAPI
 	eventsHandler         eventsapi.Handler
@@ -162,13 +164,14 @@ type Manager struct {
 	authHandler           auth.Authenticator
 }
 
-func NewManager(cfg Config, log logrus.FieldLogger, db *gorm.DB, eventsHandler eventsapi.Handler,
+func NewManager(cfg Config, log logrus.FieldLogger, db *gorm.DB, stream stream.EventStreamWriter, eventsHandler eventsapi.Handler,
 	hostAPI host.API, metricApi metrics.API, manifestsGeneratorAPI network.ManifestsGeneratorAPI,
 	leaderElector leader.Leader, operatorsApi operators.API, ocmClient *ocm.Client, objectHandler s3wrapper.API,
 	dnsApi dns.DNSApi, authHandler auth.Authenticator) *Manager {
 	th := &transitionHandler{
 		log:                 log,
 		db:                  db,
+		stream:              stream,
 		prepareConfig:       cfg.PrepareConfig,
 		installationTimeout: cfg.InstallationTimeout,
 		finalizingTimeout:   cfg.FinalizingTimeout,
@@ -178,6 +181,7 @@ func NewManager(cfg Config, log logrus.FieldLogger, db *gorm.DB, eventsHandler e
 		Config:                cfg,
 		log:                   log,
 		db:                    db,
+		stream:                stream,
 		registrationAPI:       NewRegistrar(log, db),
 		installationAPI:       NewInstaller(log, db, eventsHandler),
 		eventsHandler:         eventsHandler,
@@ -315,7 +319,7 @@ func (m *Manager) updateValidationsInDB(ctx context.Context, db *gorm.DB, c *com
 	if err != nil {
 		return nil, err
 	}
-	return UpdateCluster(logutil.FromContext(ctx, m.log), db, *c.ID, *c.Status, "validations_info", string(b))
+	return UpdateCluster(ctx, logutil.FromContext(ctx, m.log), db, m.stream, *c.ID, *c.Status, "validations_info", string(b))
 }
 
 func (m *Manager) RefreshStatus(ctx context.Context, c *common.Cluster, db *gorm.DB) (*common.Cluster, error) {
@@ -1447,8 +1451,8 @@ func (m *Manager) CompleteInstallation(ctx context.Context, db *gorm.DB,
 	}
 
 	extra = append(extra, "progress_finalizing_stage_percentage", 100, "progress_total_percentage", 100)
-	clusterAfterUpdate, err := updateClusterStatus(ctx, log, db, *cluster.ID, models.ClusterStatusFinalizing,
-		destStatus, reason, m.eventsHandler, extra...)
+	clusterAfterUpdate, err := updateClusterStatus(ctx, log, db, m.stream, *cluster.ID,
+		models.ClusterStatusFinalizing, destStatus, reason, m.eventsHandler, extra...)
 	if err != nil {
 		err = errors.Wrapf(err, "Failed to update cluster %s completion in db", *cluster.ID)
 		log.Error(err)

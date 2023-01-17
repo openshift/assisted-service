@@ -17,6 +17,7 @@ import (
 	"github.com/openshift/assisted-service/internal/host/hostutil"
 	"github.com/openshift/assisted-service/models"
 	logutil "github.com/openshift/assisted-service/pkg/log"
+	"github.com/openshift/assisted-service/pkg/stream"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
@@ -26,6 +27,7 @@ import (
 type transitionHandler struct {
 	db            *gorm.DB
 	log           logrus.FieldLogger
+	stream        stream.EventStreamWriter
 	config        *Config
 	eventsHandler eventsapi.Handler
 }

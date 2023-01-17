@@ -30,7 +30,7 @@ var _ = Describe("installer", func() {
 	)
 
 	BeforeEach(func() {
-		eventsHandler = events.New(db, nil, logrus.New())
+		eventsHandler = events.New(db, nil, nil, logrus.New())
 		db, dbName = common.PrepareTestDB()
 		installerManager = NewInstaller(common.GetTestLog(), db, eventsHandler)
 

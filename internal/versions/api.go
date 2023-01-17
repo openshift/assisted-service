@@ -44,16 +44,24 @@ func NewAPIHandler(log logrus.FieldLogger, versions Versions, authzHandler auth.
 }
 
 func (h *apiHandler) V2ListComponentVersions(ctx context.Context, params operations.V2ListComponentVersionsParams) middleware.Responder {
-	return operations.NewV2ListComponentVersionsOK().WithPayload(
-		&models.ListVersions{
-			Versions: models.Versions{
-				"assisted-installer-service":    h.versions.SelfVersion,
-				"discovery-agent":               h.versions.AgentDockerImg,
-				"assisted-installer":            h.versions.InstallerImage,
-				"assisted-installer-controller": h.versions.ControllerImage,
-			},
-			ReleaseTag: h.versions.ReleaseTag,
-		})
+	return operations.NewV2ListComponentVersionsOK().
+		WithPayload(GetListVersionsFromVersions(h.versions))
+}
+
+func GetListVersionsFromVersions(v Versions) *models.ListVersions {
+	return &models.ListVersions{
+		Versions:   GetModelVersions(v),
+		ReleaseTag: v.ReleaseTag,
+	}
+}
+
+func GetModelVersions(v Versions) models.Versions {
+	return models.Versions{
+		"assisted-installer-service":    v.SelfVersion,
+		"discovery-agent":               v.AgentDockerImg,
+		"assisted-installer":            v.InstallerImage,
+		"assisted-installer-controller": v.ControllerImage,
+	}
 }
 
 func (h *apiHandler) V2ListSupportedOpenshiftVersions(ctx context.Context, params operations.V2ListSupportedOpenshiftVersionsParams) middleware.Responder {

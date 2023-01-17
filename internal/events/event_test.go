@@ -40,7 +40,7 @@ var _ = Describe("Events library", func() {
 	)
 	BeforeEach(func() {
 		db, dbName = common.PrepareTestDB()
-		theEvents = New(db, nil, logrus.WithField("pkg", "events"))
+		theEvents = New(db, nil, nil, logrus.WithField("pkg", "events"))
 		c1 := common.Cluster{Cluster: models.Cluster{ID: &cluster1, OpenshiftClusterID: strfmt.UUID(uuid.New().String()), UserName: "user1", OrgID: "org1"}}
 		Expect(db.Create(&c1).Error).ShouldNot(HaveOccurred())
 		c2 := common.Cluster{Cluster: models.Cluster{ID: &cluster2, OpenshiftClusterID: strfmt.UUID(uuid.New().String()), UserName: "user2", OrgID: "org1"}}

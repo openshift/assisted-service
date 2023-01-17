@@ -52,6 +52,13 @@ def load_deployment_options(parser=None):
     )
 
     parser.add_argument(
+        '--enable-event-stream',
+        help='Assisted service support to stream events to kafka',
+        type=bool,
+        default=False
+    )
+
+    parser.add_argument(
         "--storage",
         help='Assisted service storage',
         type=str,

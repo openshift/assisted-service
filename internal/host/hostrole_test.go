@@ -69,7 +69,7 @@ var _ = Describe("Suggested-Role on Refresh", func() {
 		initHwValidator()
 		pr := registry.NewMockProviderRegistry(ctrl)
 		pr.EXPECT().IsHostSupported(gomock.Any(), gomock.Any()).Return(true, nil).AnyTimes()
-		hapi = NewManager(common.GetTestLog(), db, mockEvents, mockHwValidator, nil, validatorCfg, nil, defaultConfig, nil, operatorsManager, pr, false, nil)
+		hapi = NewManager(common.GetTestLog(), db, nil, mockEvents, mockHwValidator, nil, validatorCfg, nil, defaultConfig, nil, operatorsManager, pr, false, nil)
 	})
 
 	tests := []struct {

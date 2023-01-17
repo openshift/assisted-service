@@ -22,6 +22,7 @@ import (
 	logutil "github.com/openshift/assisted-service/pkg/log"
 	"github.com/openshift/assisted-service/pkg/ocm"
 	"github.com/openshift/assisted-service/pkg/s3wrapper"
+	"github.com/openshift/assisted-service/pkg/stream"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
@@ -37,6 +38,7 @@ var resetFields = append(append(resetProgressFields, resetLogsField...), "opensh
 type transitionHandler struct {
 	log                 logrus.FieldLogger
 	db                  *gorm.DB
+	stream              stream.EventStreamWriter
 	prepareConfig       PrepareConfig
 	installationTimeout time.Duration
 	finalizingTimeout   time.Duration
@@ -304,7 +306,7 @@ func (th *transitionHandler) PostHandlePreInstallationError(sw stateswitch.State
 
 func (th *transitionHandler) updateTransitionCluster(ctx context.Context, log logrus.FieldLogger, db *gorm.DB, state *stateCluster,
 	statusInfo string, extra ...interface{}) error {
-	if cluster, err := updateClusterStatus(ctx, log, db, *state.cluster.ID, state.srcState,
+	if cluster, err := updateClusterStatus(ctx, log, db, th.stream, *state.cluster.ID, state.srcState,
 		swag.StringValue(state.cluster.Status), statusInfo, th.eventsHandler, extra...); err != nil {
 		return err
 	} else {
@@ -433,7 +435,7 @@ func (th *transitionHandler) PostUpdateFinalizingAMSConsoleUrl(sw stateswitch.St
 		updatedCluster *common.Cluster
 		err            error
 	)
-	if updatedCluster, err = UpdateCluster(log, th.db, *sCluster.cluster.ID, sCluster.srcState, isAmsSubscriptionConsoleUrlSetField, true); err != nil {
+	if updatedCluster, err = UpdateCluster(params.ctx, log, th.db, th.stream, *sCluster.cluster.ID, sCluster.srcState, isAmsSubscriptionConsoleUrlSetField, true); err != nil {
 		log.WithError(err).Errorf("Failed to update %s in cluster DB", isAmsSubscriptionConsoleUrlSetField)
 		return err
 	}
@@ -524,7 +526,7 @@ func (th *transitionHandler) PostPreparingTimedOut(sw stateswitch.StateSwitch, a
 
 	reason := statusInfoPreparingForInstallationTimeout
 	if sCluster.srcState != swag.StringValue(sCluster.cluster.Status) || reason != swag.StringValue(sCluster.cluster.StatusInfo) {
-		updatedCluster, err = updateClusterStatus(params.ctx, logutil.FromContext(params.ctx, th.log), params.db, *sCluster.cluster.ID, sCluster.srcState, *sCluster.cluster.Status,
+		updatedCluster, err = updateClusterStatus(params.ctx, logutil.FromContext(params.ctx, th.log), params.db, th.stream, *sCluster.cluster.ID, sCluster.srcState, *sCluster.cluster.Status,
 			reason, params.eventHandler)
 	}
 
@@ -569,7 +571,7 @@ func (th *transitionHandler) PostRefreshCluster(reason string) stateswitch.PostT
 			if err != nil {
 				return err
 			}
-			updatedCluster, err = updateClusterStatus(params.ctx, log, params.db, *sCluster.cluster.ID, sCluster.srcState, *sCluster.cluster.Status,
+			updatedCluster, err = updateClusterStatus(params.ctx, log, params.db, th.stream, *sCluster.cluster.ID, sCluster.srcState, *sCluster.cluster.Status,
 				reason, params.eventHandler, extra...)
 			if err != nil {
 				return err
