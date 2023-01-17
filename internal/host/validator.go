@@ -301,14 +301,13 @@ func (v *validator) isConnected(c *validationContext) (ValidationStatus, string)
 		maxHostDisconnectionTime = v.hwValidatorCfg.MaxHostDisconnectionTime + 2*time.Minute
 
 	}
-	status := boolValue(c.host.CheckedInAt.String() == "" || time.Since(time.Time(c.host.CheckedInAt)) <= maxHostDisconnectionTime)
-	switch status {
-	case ValidationSuccess:
+	rebootIndex := IndexOfStage(models.HostStageRebooting, BootstrapStages[:])
+	hostIsPreReboot := c.host.Progress.CurrentStage == "" || funk.Contains(BootstrapStages[0:rebootIndex], c.host.Progress.CurrentStage)
+	status := boolValue(!hostIsPreReboot || c.host.CheckedInAt.String() == "" || time.Since(time.Time(c.host.CheckedInAt)) <= maxHostDisconnectionTime)
+	if status == ValidationSuccess {
 		return status, "Host is connected"
-	case ValidationFailure:
+	} else {
 		return status, "Host is disconnected"
-	default:
-		return status, fmt.Sprintf("Unexpected status %s", status)
 	}
 }
 

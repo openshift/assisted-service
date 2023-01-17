@@ -35,7 +35,6 @@ type TransitionHandler interface {
 	HasClusterError(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) (bool, error)
 	HasInstallationInProgressTimedOut(sw stateswitch.StateSwitch, _ stateswitch.TransitionArgs) (bool, error)
 	HasStatusTimedOut(timeout time.Duration) stateswitch.Condition
-	HostNotResponsiveWhileInstallation(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) (bool, error)
 	HostNotResponsiveWhilePreparingInstallation(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) (bool, error)
 	IsDay2Host(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) (bool, error)
 	IsHostInDone(sw stateswitch.StateSwitch, _ stateswitch.TransitionArgs) (bool, error)
@@ -698,21 +697,6 @@ func (th *transitionHandler) HostNotResponsiveWhilePreparingInstallation(sw stat
 		return false, errors.New("HostNotResponsiveWhilePreparingInstallation incompatible type of StateSwitch")
 	}
 	return !th.hostIsResponsive(sHost.host), nil
-}
-
-func (th *transitionHandler) HostNotResponsiveWhileInstallation(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) (bool, error) {
-	sHost, ok := sw.(*stateHost)
-	if !ok {
-		return false, errors.New("HostNotResponsiveWhileInstallation incompatible type of StateSwitch")
-	}
-	//bootstrap stages are super set of all other nodes stages, so the following stipulation covers
-	//all nodes. connectivity should be checked up until (but not including) rebooting stage
-	rebootIndex := IndexOfStage(models.HostStageRebooting, BootstrapStages[:])
-	if funk.Contains(BootstrapStages[0:rebootIndex], sHost.host.Progress.CurrentStage) {
-		return !th.hostIsResponsive(sHost.host), nil
-	}
-	//check is not relevan before installation start and after rebooting
-	return false, nil
 }
 
 func getFailedValidations(params *TransitionArgsRefreshHost) []string {

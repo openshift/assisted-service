@@ -277,7 +277,7 @@ var _ = Describe("Host tests", func() {
 		time.Sleep(time.Second * 3)
 		host = getHostV2(*infraEnvID, *host.ID)
 		Expect(swag.StringValue(host.Status)).Should(Equal("error"))
-		Expect(swag.StringValue(host.StatusInfo)).Should(Equal("Host failed to install due to timeout while connecting to host"))
+		Expect(swag.StringValue(host.StatusInfo)).Should(Equal("Host failed to install due to timeout while connecting to host during the installation phase."))
 	})
 
 	It("host installation progress", func() {
