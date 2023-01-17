@@ -77,31 +77,6 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 )
 
-var NonIgnorableHostValidations []string = []string{"connected", "has-inventory", "machine-cidr-defined", "hostname-unique", "hostname-valid"}
-var NonIgnorableClusterValidations []string = []string{"api-vips-defined", "ingress-vips-defined", "all-hosts-are-ready-to-install", "sufficient-masters-count", "pull-secret-set", "cluster-preparation-succeeded"}
-
-var MayIgnoreValidation = func(validationID string, nonIgnorables []string) bool {
-	if validationID == "all" {
-		return true
-	}
-	return !swag.ContainsStrings(nonIgnorables, validationID)
-}
-
-var MayIgnoreValidations = func(validationIDs []string, nonIgnorables []string) (bool, string) {
-	result := true
-	cantBeIgnored := []string{}
-	for _, validation := range validationIDs {
-		if validation == "all" {
-			return true, ""
-		}
-		if !MayIgnoreValidation(validation, nonIgnorables) {
-			cantBeIgnored = append(cantBeIgnored, validation)
-			result = false
-		}
-	}
-	return result, strings.Join(cantBeIgnored, ",")
-}
-
 const DefaultUser = "kubeadmin"
 
 const WindowBetweenRequestsInSeconds = 10 * time.Second
@@ -1245,10 +1220,17 @@ func (b *bareMetalInventory) InstallClusterInternal(ctx context.Context, params 
 				autoAssigned = autoAssigned || updated
 			}
 		}
+		hasIgnoredValidations := common.IgnoredValidationsAreSet(cluster)
+		if hasIgnoredValidations {
+			eventgen.SendValidationsIgnoredEvent(ctx, b.eventsHandler, *cluster.ID)
+		}
 		//usage for auto role selection is measured only for day1 clusters with more than
 		//3 hosts (which would automatically be assigned as masters if the hw is sufficient)
 		if usages, u_err := usage.Unmarshal(cluster.Cluster.FeatureUsage); u_err == nil {
 			report := cluster.Cluster.TotalHostCount > common.MinMasterHostsNeededForInstallation && autoAssigned
+			if hasIgnoredValidations {
+				b.setUsage(true, usage.ValidationsIgnored, nil, usages)
+			}
 			b.setUsage(report, usage.AutoAssignRoleUsage, nil, usages)
 			b.usageApi.Save(tx, *cluster.ID, usages)
 		}
@@ -1476,7 +1458,6 @@ func (b *bareMetalInventory) V2InstallHost(ctx context.Context, params installer
 		log.Errorf("Failed to move host %s to installing", h.RequestedHostname)
 		return common.GenerateErrorResponder(err)
 	}
-
 	return installer.NewV2InstallHostAccepted().WithPayload(h)
 }
 

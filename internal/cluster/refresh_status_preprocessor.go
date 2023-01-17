@@ -2,14 +2,17 @@ package cluster
 
 import (
 	"context"
+	"fmt"
 	"sort"
 	"strings"
 
 	"github.com/go-openapi/swag"
+	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/host"
 	"github.com/openshift/assisted-service/internal/operators"
 	"github.com/openshift/assisted-service/internal/operators/api"
 	"github.com/openshift/assisted-service/models"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
 )
@@ -53,6 +56,15 @@ func (r *refreshPreprocessor) preprocess(ctx context.Context, c *clusterPreproce
 	checkValidationsInStatuses := []string{
 		models.ClusterStatusInsufficient, models.ClusterStatusReady, models.ClusterStatusPendingForInput, models.ClusterStatusPreparingForInstallation,
 	}
+	var ignoredValidations []string
+	var err error
+	if c.cluster != nil {
+		ignoredValidations, err = common.DeserializeJSONList(c.cluster.IgnoredClusterValidations)
+		if err != nil {
+			return nil, nil, errors.Wrap(err, fmt.Sprintf("Unable to deserialize ignored cluster validations for cluster %s", string(*c.cluster.ID)))
+		}
+	}
+
 	//if the cluster is not on discovery stages - skip the validations check
 	if !funk.ContainsString(checkValidationsInStatuses, swag.StringValue(c.cluster.Status)) {
 		return stateMachineInput, validationsOutput, nil
@@ -60,9 +72,10 @@ func (r *refreshPreprocessor) preprocess(ctx context.Context, c *clusterPreproce
 	for _, v := range r.validations {
 		st, message := v.condition(c)
 		stateMachineInput[v.id.String()] = st == ValidationSuccess
-		category, err := v.id.Category()
+		var category string
+		category, err = v.id.Category()
 		if err != nil {
-			logrus.WithError(err).Warn("id.category()")
+			r.log.WithError(err).Warn("id.category()")
 			return nil, nil, err
 		}
 		validationsOutput[category] = append(validationsOutput[category], ValidationResult{
@@ -79,9 +92,10 @@ func (r *refreshPreprocessor) preprocess(ctx context.Context, c *clusterPreproce
 	for _, result := range results {
 		stateMachineInput[result.ValidationId] = result.Status == api.Success
 		id := ValidationID(result.ValidationId)
+
 		category, err := id.Category()
 		if err != nil {
-			logrus.WithError(err).Warn("id.category()")
+			r.log.WithError(err).Warn("id.category()")
 			return nil, nil, err
 		}
 
@@ -98,6 +112,14 @@ func (r *refreshPreprocessor) preprocess(ctx context.Context, c *clusterPreproce
 	}
 	for _, validationResults := range validationsOutput {
 		sortByValidationResultID(validationResults)
+	}
+	for _, currentResult := range validationsOutput {
+		for _, v := range currentResult {
+			if common.ShouldIgnoreValidation(ignoredValidations, string(v.ID), common.NonIgnorableClusterValidations) {
+				// Set the condition to true to force the validation to pass.
+				stateMachineInput[string(v.ID)] = true
+			}
+		}
 	}
 	return stateMachineInput, validationsOutput, nil
 }

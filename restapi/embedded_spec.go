@@ -5671,6 +5671,16 @@ func init() {
           "description": "Explicit ignition endpoint overrides the default ignition endpoint.",
           "$ref": "#/definitions/ignition-endpoint"
         },
+        "ignored_cluster_validations": {
+          "description": "Json formatted string containing a list of cluster validations to be ignored. May also contain a list with a single string \"all\" to ignore all cluster validations. Some validations cannot be ignored.",
+          "type": "string",
+          "x-go-custom-tag": "gorm:\"type:text\""
+        },
+        "ignored_host_validations": {
+          "description": "Json formatted string containing a list of host validations to be ignored. May also contain a list with a single string \"all\" to ignore all host validations. Some validations cannot be ignored.",
+          "type": "string",
+          "x-go-custom-tag": "gorm:\"type:text\""
+        },
         "image_info": {
           "$ref": "#/definitions/image_info"
         },
@@ -15616,6 +15626,16 @@ func init() {
         "ignition_endpoint": {
           "description": "Explicit ignition endpoint overrides the default ignition endpoint.",
           "$ref": "#/definitions/ignition-endpoint"
+        },
+        "ignored_cluster_validations": {
+          "description": "Json formatted string containing a list of cluster validations to be ignored. May also contain a list with a single string \"all\" to ignore all cluster validations. Some validations cannot be ignored.",
+          "type": "string",
+          "x-go-custom-tag": "gorm:\"type:text\""
+        },
+        "ignored_host_validations": {
+          "description": "Json formatted string containing a list of host validations to be ignored. May also contain a list with a single string \"all\" to ignore all host validations. Some validations cannot be ignored.",
+          "type": "string",
+          "x-go-custom-tag": "gorm:\"type:text\""
         },
         "image_info": {
           "$ref": "#/definitions/image_info"

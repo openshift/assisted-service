@@ -2,6 +2,7 @@ package common
 
 import (
 	"crypto/x509"
+	"encoding/json"
 	"encoding/pem"
 	"errors"
 	"fmt"
@@ -92,6 +93,33 @@ const NMDebugModeConf = `
 [logging]
 domains=ALL:DEBUG
 `
+
+func GetIgnoredValidations(validationsJSON string, clusterID string) ([]string, bool) {
+	ignoredValidations := []string{}
+	if validationsJSON != "" {
+		var err error
+		ignoredValidations, err = DeserializeJSONList(validationsJSON)
+		if err != nil {
+			return nil, false
+		}
+	}
+	return ignoredValidations, true
+}
+
+func IgnoredValidationsAreSet(cluster *Cluster) bool {
+	return cluster.IgnoredClusterValidations != "" || cluster.IgnoredHostValidations != ""
+}
+
+func DeserializeJSONList(jsonString string) ([]string, error) {
+	var list []string
+	if jsonString != "" {
+		err := json.Unmarshal([]byte(jsonString), &list)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return list, nil
+}
 
 func NormalizeCPUArchitecture(arch string) string {
 	switch arch {
