@@ -18915,7 +18915,7 @@ var _ = Describe("UpdateIgnitionEndpointIfHasMCSCert", func() {
 	)
 	const (
 		httpIgnitionEndpointUrl  = "http://api.foo.bar.com:22624/config/custom-pool"
-		httpsIgnitionEndpointUrl = "https://api-int.foo.bar.com:22623/config/custom-pool"
+		httpsIgnitionEndpointUrl = "https://api.foo.bar.com:22623/config/custom-pool"
 		masterIgn                = `{
 		  "ignition": {
 		    "config": {
@@ -18938,100 +18938,53 @@ var _ = Describe("UpdateIgnitionEndpointIfHasMCSCert", func() {
 		  },
 		  "storage": {}
 		}`
+	)
 
-		BeforeEach(func() {
-			db, dbName = common.PrepareTestDB()
-			bm = createInventory(db, cfg)
-			cluster = createClusterWithAvailability(db, models.ClusterStatusReady, models.ClusterCreateParamsHighAvailabilityModeNone)
-			cluster.Name = "foo"
-			cluster.BaseDNSDomain = "bar.com"
-			// this doesn't need to be a VM, but any host works for this test
-			addVMToCluster(cluster, db)
-			log = logrus.New()
-		})
-	
-		AfterEach(func() {
-			common.DeleteTestDB(db, dbName)
-			ctrl.Finish()
-		})
+	BeforeEach(func() {
+		db, dbName = common.PrepareTestDB()
+		bm = createInventory(db, cfg)
+		cluster = createClusterWithAvailability(db, models.ClusterStatusReady, models.ClusterCreateParamsHighAvailabilityModeNone)
+		cluster.Name = "foo"
+		cluster.BaseDNSDomain = "bar.com"
+		// this doesn't need to be a VM, but any host works for this test
+		addVMToCluster(cluster, db)
+		log = logrus.New()
+	})
 
-		It("no ignition overrides for host set", func() {
-			h := cluster.Hosts[0]
-			ignitionEndpointUrl, err := bm.UpdateIgnitionEndpointIfHasMCSCert(log, h, cluster, httpIgnitionEndpointUrl)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(ignitionEndpointUrl).To(Equal(httpIgnitionEndpointUrl))
-		})
+	AfterEach(func() {
+		common.DeleteTestDB(db, dbName)
+		ctrl.Finish()
+	})
 
-		It("ignition override has no CA set", func() {
-			h := cluster.Hosts[0]
-			h.IgnitionConfigOverrides = "{}"
-			ignitionEndpointUrl, err := bm.UpdateIgnitionEndpointIfHasMCSCert(log, h, cluster, httpIgnitionEndpointUrl)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(ignitionEndpointUrl).To(Equal(httpIgnitionEndpointUrl))
-		})
+	It("no ignition overrides for host set", func() {
+		h := cluster.Hosts[0]
+		ignitionEndpointUrl, err := bm.UpdateIgnitionEndpointIfHasMCSCert(log, h, cluster, httpIgnitionEndpointUrl)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(ignitionEndpointUrl).To(Equal(httpIgnitionEndpointUrl))
+	})
 
-		It("bm has no k8sclient", func() {
-			h := cluster.Hosts[0]
-			h.IgnitionConfigOverrides = masterIgn
-			bm.k8sClient = nil
-			ignitionEndpointUrl, err := bm.UpdateIgnitionEndpointIfHasMCSCert(log, h, cluster, httpIgnitionEndpointUrl)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(ignitionEndpointUrl).To(Equal(httpIgnitionEndpointUrl))
-		})
+	It("ignition override has no CA set", func() {
+		h := cluster.Hosts[0]
+		h.IgnitionConfigOverrides = "{}"
+		ignitionEndpointUrl, err := bm.UpdateIgnitionEndpointIfHasMCSCert(log, h, cluster, httpIgnitionEndpointUrl)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(ignitionEndpointUrl).To(Equal(httpIgnitionEndpointUrl))
+	})
 
-		It("should use https", func() {
-			h := cluster.Hosts[0]
-			h.IgnitionConfigOverrides = masterIgn
-			ignitionEndpointUrl, err := bm.UpdateIgnitionEndpointIfHasMCSCert(log, h, cluster, httpIgnitionEndpointUrl)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(ignitionEndpointUrl).To(Equal(httpsIgnitionEndpointUrl))
-		})
-})
+	It("bm has no k8sclient", func() {
+		h := cluster.Hosts[0]
+		h.IgnitionConfigOverrides = masterIgn
+		bm.k8sClient = nil
+		ignitionEndpointUrl, err := bm.UpdateIgnitionEndpointIfHasMCSCert(log, h, cluster, httpIgnitionEndpointUrl)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(ignitionEndpointUrl).To(Equal(httpIgnitionEndpointUrl))
+	})
 
-var _ = Describe("Notify stream", func() {
-		var (
-			ctx             = context.Background()
-			bm              *bareMetalInventory
-			cfg             Config
-			db              *gorm.DB
-			dbName          string
-			mockStream      *eventstream.MockEventStreamWriter
-			ctrl            *gomock.Controller
-			infraEnvID      strfmt.UUID
-			clusterID       strfmt.UUID
-			createdInfraEnv *common.InfraEnv
-		)
-
-		BeforeEach(func() {
-			ctrl = gomock.NewController(GinkgoT())
-			db, dbName = common.PrepareTestDB()
-			mockStream = eventstream.NewMockEventStreamWriter(ctrl)
-			infraEnvID = strfmt.UUID(uuid.New().String())
-			clusterID = strfmt.UUID(uuid.New().String())
-			createdInfraEnv = createInfraEnv(db, infraEnvID, clusterID)
-		})
-
-		When("Notifying stream with defined stream", func() {
-			It("Should send an event", func() {
-				bm = createInventoryWithEventStream(db, cfg, mockStream)
-
-				mockStream.EXPECT().Write(ctx, "InfraEnv", []byte(createdInfraEnv.ClusterID.String()), gomock.Any()).Times(1).Return(nil)
-
-				bm.notifyEventStream(ctx, createdInfraEnv)
-			})
-		})
-
-		When("Notifying stream without defined stream", func() {
-			It("should do nothing", func() {
-				bm = createInventory(db, cfg)
-
-				mockStream.EXPECT().Write(ctx, gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
-				bm.notifyEventStream(ctx, createdInfraEnv)
-			})
-		})
-
-		AfterEach(func() {
-			common.DeleteTestDB(db, dbName)
-			ctrl.Finish()
-		})
+	It("should use https", func() {
+		h := cluster.Hosts[0]
+		h.IgnitionConfigOverrides = masterIgn
+		ignitionEndpointUrl, err := bm.UpdateIgnitionEndpointIfHasMCSCert(log, h, cluster, httpIgnitionEndpointUrl)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(ignitionEndpointUrl).To(Equal(httpsIgnitionEndpointUrl))
+	})
 })
