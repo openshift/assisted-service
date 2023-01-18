@@ -16588,7 +16588,7 @@ var _ = Describe("UpdateIgnitionEndpointIfHasMCSCert", func() {
 	)
 	const (
 		httpIgnitionEndpointUrl  = "http://api.foo.bar.com:22624/config/custom-pool"
-		httpsIgnitionEndpointUrl = "https://api-int.foo.bar.com:22623/config/custom-pool"
+		httpsIgnitionEndpointUrl = "https://api.foo.bar.com:22623/config/custom-pool"
 		masterIgn                = `{
 		  "ignition": {
 		    "config": {
