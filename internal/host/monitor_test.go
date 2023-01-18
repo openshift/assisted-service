@@ -205,6 +205,64 @@ var _ = Describe("TestHostMonitoring - with cluster", func() {
 		ctrl.Finish()
 	})
 
+	Context("auto-assign reset", func() {
+		addHost := func(clusterID strfmt.UUID, role models.HostRole, status, kind string) {
+			host = hostutil.GenerateTestHost(strfmt.UUID(uuid.New().String()), infraEnvID, clusterID, status)
+			host.Inventory = ""
+			host.Role = models.HostRoleAutoAssign
+			host.SuggestedRole = role
+			Expect(state.RegisterHost(ctx, &host, db)).ShouldNot(HaveOccurred())
+			host.CheckedInAt = strfmt.DateTime(time.Now().Add(-4 * time.Minute))
+			host.Status = swag.String(status)
+			host.Kind = swag.String(kind)
+			db.Save(&host)
+		}
+		registerClusterWithAutoAssignHostInStatus := func(status, kind string) {
+			clusterID = strfmt.UUID(uuid.New().String())
+			cluster := hostutil.GenerateTestCluster(clusterID)
+			Expect(db.Save(&cluster).Error).ToNot(HaveOccurred())
+			addHost(clusterID, models.HostRoleAutoAssign, status, kind)
+			addHost(clusterID, models.HostRoleWorker, models.HostStatusKnown, kind)
+		}
+
+		It("do not reset with status disconnected", func() {
+			var count int64
+			registerClusterWithAutoAssignHostInStatus(models.HostStatusDisconnected, models.HostKindHost)
+			mockMetricApi.EXPECT().MonitoredHostsCount(int64(2)).Times(1)
+			state.HostMonitoring()
+			Expect(db.Model(&models.Host{}).Where("suggested_role = ?", models.HostRoleAutoAssign).Count(&count).Error).
+				ShouldNot(HaveOccurred())
+			Expect(count).Should(Equal(int64(1)))
+		})
+
+		It("do not reset when host is orphan", func() {
+			var count int64
+			//define 2 hosts with cluster id in the clusters table
+			registerClusterWithAutoAssignHostInStatus(models.HostStatusKnown, models.HostKindHost)
+			//define 2 orphan hosts
+			otherClusterId := strfmt.UUID(uuid.New().String())
+			addHost(otherClusterId, models.HostRoleAutoAssign, models.HostStatusKnown, models.HostKindHost)
+			addHost(otherClusterId, models.HostRoleWorker, models.HostStatusKnown, models.HostKindHost)
+			mockMetricApi.EXPECT().MonitoredHostsCount(int64(2)).Times(1)
+			state.HostMonitoring()
+			Expect(db.Model(&models.Host{}).Where("suggested_role = ?", models.HostRoleAutoAssign).Count(&count).Error).
+				ShouldNot(HaveOccurred())
+			//expect 3 hosts with suggested = auto-assign: 2 original ones and one resetted host
+			//where the cluster is in the clusters table
+			Expect(count).Should(Equal(int64(3)))
+		})
+
+		It("do not reset with day2 host", func() {
+			var count int64
+			registerClusterWithAutoAssignHostInStatus(models.HostStatusKnown, models.HostKindAddToExistingClusterHost)
+			mockMetricApi.EXPECT().MonitoredHostsCount(int64(2)).Times(1)
+			state.HostMonitoring()
+			Expect(db.Model(&models.Host{}).Where("suggested_role = ?", models.HostRoleAutoAssign).Count(&count).Error).
+				ShouldNot(HaveOccurred())
+			Expect(count).Should(Equal(int64(1)))
+		})
+	})
+
 	Context("validate monitor in batches", func() {
 		registerAndValidateDisconnected := func(nHosts int) {
 			for i := 0; i < nHosts; i++ {
