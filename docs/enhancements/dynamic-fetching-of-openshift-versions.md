@@ -105,7 +105,7 @@ DYNAMIC_OPENSHIFT_RELEASES_CONFIG='{
 }'
 ```
 
-The assisted-service periodically polls versions from the ``upgrades_info`` API
+The assisted-service periodically polls versions from the upgrade-channels API
 in the form of ``https://api.openshift.com/api/upgrades_info/v1/graph?channel=<channel>&arch=<arch>``.
 For example:
 ```
@@ -116,10 +116,10 @@ $ curl -s 'https://api.openshift.com/api/upgrades_info/v1/graph?channel=stable-4
 ...
 ```
 
-It then adds any new version found by this process in the database. When a
-consumer of the API requests the available versions via ``/v2/openshift-versions``
-(either it's the UI or a direct REST request) versions are read from the
-database.
+When an API consumer (either it's the UI or a direct HTTP consumer) requests
+for the available versions via ``/v2/openshift-versions``, versions will be read
+from the upgrades-channels API if it weren't queried for a configurable amount
+of time (for example, an hour).
 
 To help fetching only certain versions via auto-completion like U/X, we should
 provide a parameter ``version_pattern`` for the ``/v2/openshift-versions``
@@ -231,29 +231,24 @@ We should make sure we don't consume too much memory when fetching releases.
 It's especially critical when the user queries for the different versions, but
 might happen in other cases too.
 
-We need to think of the retention policy of versions. We don't expect to have
-versions removed from the upgrade-channels API, but just in case we should only
-add versions and not mirror exactly the given result of those API responses.
-As opposed to that, when a minor release gets EOL (end-of-life) and we remove it
-from the configuration, the service should remove all the stale versions from
-the database.
+With the suggested solution we don't have a way to retain versions that were
+removed from the upgrade-channels API. While it's not probable we should keep
+that in mind.
 
 ## Design Details
 
 ### Open Questions
 
-* Is the database usage a real necessity? The idea is having the periodic thread
-  updating the database, and then the HTTP server is able to filter versions from
-  the database at its leisure. If there's a good way to do it in-memory and it
-  doesn't consume too much of it, it might be better.
 * When implementing the binaries LRU cache, should we prioritize the latest
   versions of each y-release? We expect those to be the most common ones, but
   maybe it's better to let the LRU mechanism determine what are the common
   versions by itself?
-* How should we limit database entries? In case of a bug in the code that writes
-  way too much version entries, can we make sure to mitigate the issue on our
-  side? (without interrupting app-sre for their help on manual database
-  intervention)
+* How should we limit the amount of versions handled? In case of an enormous
+  amount of version entries returned from the API, can we make sure to mitigate
+  the issue on our side?
+* Should we find a way to retain versions if they get out of the
+  upgrade-channels API, and if so how. DB can be a solution but so some cache
+  implementations.
 
 ### UI Impact
 
