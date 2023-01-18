@@ -40,6 +40,11 @@ RUN dnf install -y 'dnf-command(config-manager)' && \
         openssl postgresql nmstate-devel sqlite gcc genisoimage git docker-ce-cli libvirt-client libvirt-devel java && \
     dnf clean all
 
+# Git checks if the user that owns the files on the filesystem match the
+# current user.  We need to disable this check because tests in Prow are
+# running with a random user.
+RUN git config --system --add safe.directory '*'
+
 WORKDIR /home/assisted-service
 RUN mkdir build $TOOLS --mode g+xw
 COPY ./hack/setup_env.sh ./dev-requirements.txt ./
