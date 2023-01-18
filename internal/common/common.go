@@ -233,7 +233,8 @@ func getUnifiedNTPSources(db *gorm.DB, clusterID strfmt.UUID) (string, error) {
 	}
 	combinedSources := make(map[string]bool)
 	for _, singleSource := range sources {
-		if singleSource != "" {
+		if singleSource != ""
+		{
 			for _, s := range strings.Split(singleSource, ",") {
 				combinedSources[s] = true
 			}
