@@ -173,6 +173,9 @@ parameters:
 - name: ENABLE_EVENT_STREAMING
   required: false
   value: "true"
+- name: ENABLE_REJECT_UNKNOWN_FIELDS
+  required: false
+  value: "true"
 apiVersion: v1
 kind: Template
 metadata:
@@ -422,6 +425,8 @@ objects:
                 value: ${ENABLE_UPGRADE_AGENT}
               - name: WORK_DIR
                 value: ${WORK_DIR}
+              - name: ENABLE_REJECT_UNKNOWN_FIELDS
+                value: ${ENABLE_REJECT_UNKNOWN_FIELDS}
             volumeMounts:
               - name: route53-creds
                 mountPath: "/etc/.aws"
