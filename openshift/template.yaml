@@ -164,6 +164,15 @@ parameters:
   value: 512Mi
 - name: SVC_TARGET_PORT
   value: "8900"
+- name: KAFKA_CREDENTIALS_SECRET_NAME
+  required: false
+  value: assisted-installer-event-stream
+- name: KAFKA_EVENT_STREAM_TOPIC
+  required: false
+  value: events-stream
+- name: ENABLE_EVENT_STREAMING
+  required: false
+  value: "true"
 apiVersion: v1
 kind: Template
 metadata:
@@ -306,6 +315,25 @@ objects:
                   secretKeyRef:
                     key: ocm-service.clientSecret
                     name: assisted-installer-sso
+              - name: KAFKA_BOOTSTRAP_SERVER
+                valueFrom:
+                  secretKeyRef:
+                    key: bootstrap_server_host
+                    name: ${KAFKA_CREDENTIALS_SECRET_NAME}
+              - name: KAFKA_CLIENT_ID
+                valueFrom:
+                  secretKeyRef:
+                    key: client_id
+                    name: ${KAFKA_CREDENTIALS_SECRET_NAME}
+              - name: KAFKA_CLIENT_SECRET
+                valueFrom:
+                  secretKeyRef:
+                    key: client_secret
+                    name: ${KAFKA_CREDENTIALS_SECRET_NAME}
+              - name: ENABLE_EVENT_STREAMING
+                value: ${ENABLE_EVENT_STREAMING}
+              - name: KAFKA_EVENT_STREAM_TOPIC
+                value: ${KAFKA_EVENT_STREAM_TOPIC}
               - name: NAMESPACE
                 valueFrom:
                   fieldRef:

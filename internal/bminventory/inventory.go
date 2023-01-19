@@ -59,6 +59,7 @@ import (
 	"github.com/openshift/assisted-service/pkg/ocm"
 	"github.com/openshift/assisted-service/pkg/s3wrapper"
 	"github.com/openshift/assisted-service/pkg/staticnetworkconfig"
+	"github.com/openshift/assisted-service/pkg/stream"
 	"github.com/openshift/assisted-service/pkg/transaction"
 	pkgvalidations "github.com/openshift/assisted-service/pkg/validations"
 	"github.com/openshift/assisted-service/restapi/operations/installer"
@@ -187,6 +188,7 @@ type CRDUtils interface {
 type bareMetalInventory struct {
 	Config
 	db                   *gorm.DB
+	stream               stream.EventStreamWriter
 	log                  logrus.FieldLogger
 	hostApi              host.API
 	clusterApi           clusterPkg.API
@@ -218,6 +220,7 @@ type bareMetalInventory struct {
 
 func NewBareMetalInventory(
 	db *gorm.DB,
+	stream stream.EventStreamWriter,
 	log logrus.FieldLogger,
 	hostApi host.API,
 	clusterApi clusterPkg.API,
@@ -249,6 +252,7 @@ func NewBareMetalInventory(
 ) *bareMetalInventory {
 	return &bareMetalInventory{
 		db:                   db,
+		stream:               stream,
 		log:                  log,
 		Config:               cfg,
 		hostApi:              hostApi,
@@ -4753,6 +4757,8 @@ func (b *bareMetalInventory) UpdateInfraEnvInternal(ctx context.Context, params 
 		return nil, err
 	}
 
+	b.notifyEventStream(ctx, infraEnv)
+
 	var cluster *common.Cluster
 	clusterId := infraEnv.ClusterID
 	if clusterId != "" {
@@ -6241,4 +6247,26 @@ func (b *bareMetalInventory) updateMonitoredOperators(tx *gorm.DB, cluster *comm
 		err = tx.Delete(&consoleOperator).Error
 	}
 	return err
+}
+
+func (b *bareMetalInventory) notifyEventStream(ctx context.Context, infraEnv *common.InfraEnv) {
+	if b.stream == nil || infraEnv == nil {
+		return
+	}
+	fullInfraEnv, err := common.GetInfraEnvFromDB(b.db, *infraEnv.ID)
+	if err != nil {
+		b.log.WithError(err).WithFields(logrus.Fields{
+			"infra_env_id": infraEnv.ID,
+			"cluster_id":   infraEnv.ClusterID,
+		}).Warn("infraenv could not be retrieved from DB")
+		return
+	}
+	key := infraEnv.ClusterID.String()
+	err = b.stream.Write(ctx, "InfraEnv", []byte(key), fullInfraEnv)
+	if err != nil {
+		b.log.WithError(err).WithFields(logrus.Fields{
+			"infra_env_id": infraEnv.ID,
+			"cluster_id":   infraEnv.ClusterID,
+		}).Warn("failed to stream event for infraenv")
+	}
 }

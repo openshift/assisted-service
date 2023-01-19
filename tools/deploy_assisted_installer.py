@@ -84,6 +84,9 @@ def main():
                 port = {"containerPort": int(port_option[0])}
                 data["spec"]["template"]["spec"]["containers"][0]["ports"].append(port)
 
+        if deploy_options.enable_event_stream:
+            data["spec"]["template"]["spec"]["containers"][0]["env"].append({'name': 'ENABLE_EVENT_STREAMING', 'value': 'true'})
+
     with open(DST_FILE, "w+") as dst:
         yaml.dump(data, dst, default_flow_style=False)
 

@@ -31,3 +31,66 @@ Examples:
 1. When a cluster or host resource changes status.
 1. When a previously-failing validation passes.
 1. When a cluster or host resource progresses to a new installation stage.
+
+## Event streaming
+
+Events are streamed to an event stream, along with some resources state and metadata.
+
+```json
+{
+  "name": "MyEventName",
+  "payload": {
+     "message": "my message",
+     "foo": "bar"
+  },
+  "metadata": {
+    "versions": {
+      "assisted-installer": "quay.io/edge-infrastructure/assisted-installer:latest",
+      "assisted-installer-controller": "quay.io/edge-infrastructure/assisted-installer-controller:latest",
+      "assisted-installer-service": "Unknown",
+      "discovery-agent": "quay.io/edge-infrastructure/assisted-installer-agent:latest"
+    }
+  }
+}
+```
+
+We will also stream ClusterState Host and InfraEnv changes.
+
+### Event stream
+
+The event stream is implemented in Kafka (RHOSAK Kafka instance for integration/stage and production).
+Locally, a single-node instance of kafka is used.
+
+#### Local development
+
+To deploy kafka we need to have the following env var enabled:
+```
+export ENABLE_EVENT_STREAMING=true
+```
+
+Then run:
+```
+skipper make deploy-all
+```
+
+This will deploy kafka and the assisted service with the right env vars.
+
+#### Read event stream
+
+To read events from the event stream, we can run the following:
+
+```bash
+oc exec -it ai-kafka-0 -- kafka-console-consumer.sh \
+    --bootstrap-server localhost:9092 \
+    --topic events-stream \
+    --from-beginning
+```
+
+#### Impact on reliability of the service
+
+There are a few possible scenarios:
+* feature flag is turned off: streaming events it's just silently ignored (debug message at the start will explicitly say that event stream is not configured)
+* feature flag is turned on, and event stream is working: all messages are delivered
+* feature flag is turned on, and event stream is badly configured (i.e. invalid parameters): application will not start
+* feature flag is turned on, and event stream is configured with a bad url: app will start but will fail every single event stream, generating a warning log line. This is because the client uses lazy connection and automatically retries to estabilish it (it helps when the URL does work but we have unreliable connection)
+* feature flag is turned on, event stream is partially working: some events stream will fail with a warning log line

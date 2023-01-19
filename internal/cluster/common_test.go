@@ -1,15 +1,19 @@
 package cluster
 
 import (
+	"context"
+	"errors"
 	"time"
 
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
+	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/models"
+	"github.com/openshift/assisted-service/pkg/stream"
 	"gorm.io/gorm"
 )
 
@@ -18,6 +22,7 @@ var newStatusInfo = "newStatusInfo"
 
 var _ = Describe("update_cluster_state", func() {
 	var (
+		ctx             = context.Background()
 		db              *gorm.DB
 		cluster         *common.Cluster
 		lastUpdatedTime strfmt.DateTime
@@ -41,7 +46,7 @@ var _ = Describe("update_cluster_state", func() {
 
 	Describe("UpdateCluster", func() {
 		It("change_status", func() {
-			cluster, err = UpdateCluster(common.GetTestLog(), db, *cluster.ID, *cluster.Status, "status", newStatus, "status_info", newStatusInfo)
+			cluster, err = UpdateCluster(ctx, common.GetTestLog(), db, nil, *cluster.ID, *cluster.Status, "status", newStatus, "status_info", newStatusInfo)
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(swag.StringValue(cluster.Status)).Should(Equal(newStatus))
 			Expect(*cluster.StatusInfo).Should(Equal(newStatusInfo))
@@ -49,14 +54,14 @@ var _ = Describe("update_cluster_state", func() {
 
 		Describe("negative", func() {
 			It("invalid_extras_amount", func() {
-				_, err = UpdateCluster(common.GetTestLog(), db, *cluster.ID, *cluster.Status, "1")
+				_, err = UpdateCluster(ctx, common.GetTestLog(), db, nil, *cluster.ID, *cluster.Status, "1")
 				Expect(err).Should(HaveOccurred())
-				_, err = UpdateCluster(common.GetTestLog(), db, *cluster.ID, *cluster.Status, "1", "2", "3")
+				_, err = UpdateCluster(ctx, common.GetTestLog(), db, nil, *cluster.ID, *cluster.Status, "1", "2", "3")
 				Expect(err).Should(HaveOccurred())
 			})
 
 			It("no_matching_rows", func() {
-				_, err = UpdateCluster(common.GetTestLog(), db, *cluster.ID, "otherStatus", "status", newStatus)
+				_, err = UpdateCluster(ctx, common.GetTestLog(), db, nil, *cluster.ID, "otherStatus", "status", newStatus)
 				Expect(err).Should(HaveOccurred())
 			})
 
@@ -70,7 +75,7 @@ var _ = Describe("update_cluster_state", func() {
 
 		It("db_failure", func() {
 			common.CloseDB(db)
-			_, err = UpdateCluster(common.GetTestLog(), db, *cluster.ID, *cluster.Status, "status", newStatus)
+			_, err = UpdateCluster(ctx, common.GetTestLog(), db, nil, *cluster.ID, *cluster.Status, "status", newStatus)
 			Expect(err).Should(HaveOccurred())
 		})
 	})
@@ -378,4 +383,82 @@ var _ = Describe("UpdateMachineNetwork", func() {
 			}
 		})
 	}
+})
+
+var _ = Describe("UpdateCluster and notify event stream", func() {
+	var (
+		ctx        = context.Background()
+		dbName     string
+		db         *gorm.DB
+		cluster    *common.Cluster
+		mockStream *stream.MockEventStreamWriter
+	)
+
+	BeforeEach(func() {
+		ctrl := gomock.NewController(GinkgoT())
+
+		db, dbName = common.PrepareTestDB()
+		mockStream = stream.NewMockEventStreamWriter(ctrl)
+		id := strfmt.UUID(uuid.New().String())
+		cluster = &common.Cluster{Cluster: models.Cluster{
+			ID:         &id,
+			Status:     &common.TestDefaultConfig.Status,
+			StatusInfo: &common.TestDefaultConfig.StatusInfo,
+		}}
+		Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
+	})
+
+	When("notifying with an empty stream", func() {
+		It("should not send an event", func() {
+			mockStream.EXPECT().Write(ctx, "ClusterState", []byte((*cluster).ID.String()), cluster).Times(0)
+			notifyEventStream(ctx, nil, cluster, common.GetTestLog())
+		})
+	})
+
+	When("notifying with a stream", func() {
+		It("should send an event", func() {
+			mockStream.EXPECT().Write(ctx, "ClusterState", []byte((*cluster).ID.String()), cluster).Times(1).Return(nil)
+			notifyEventStream(ctx, mockStream, cluster, common.GetTestLog())
+		})
+	})
+
+	When("cluster is successfully updated", func() {
+		It("stream an event", func() {
+			mockStream.EXPECT().Write(ctx, "ClusterState", []byte((*cluster).ID.String()), gomock.Any()).Times(1).Return(nil)
+			var err error
+			cluster, err = UpdateCluster(ctx, common.GetTestLog(), db, mockStream, *cluster.ID, *cluster.Status, "status", newStatus, "status_info", newStatusInfo)
+			Expect(err).ShouldNot(HaveOccurred())
+			Expect(swag.StringValue(cluster.Status)).Should(Equal(newStatus))
+			Expect(*cluster.StatusInfo).Should(Equal(newStatusInfo))
+		})
+	})
+
+	When("stream fails", func() {
+		It("successfully updates cluster anyway", func() {
+			mockStream.EXPECT().Write(ctx, "ClusterState", []byte((*cluster).ID.String()), gomock.Any()).Times(1).Return(errors.New("Stream failed"))
+			_, err := UpdateCluster(ctx, common.GetTestLog(), db, mockStream, *cluster.ID, *cluster.Status, "status", newStatus, "status_info", newStatusInfo)
+			Expect(err).ShouldNot(HaveOccurred())
+		})
+	})
+
+	When("Wrong input is provided", func() {
+		It("fails to update", func() {
+			mockStream.EXPECT().Write(ctx, "ClusterState", []byte(cluster.ID.String()), gomock.Any()).Times(0)
+			_, err := UpdateCluster(ctx, common.GetTestLog(), db, mockStream, *cluster.ID, *cluster.Status, "status", newStatus, "status_info", newStatusInfo, "this should fail")
+			Expect(err).To(HaveOccurred())
+		})
+	})
+
+	When("DB failure fails update", func() {
+		It("does not stream events", func() {
+			common.CloseDB(db)
+			mockStream.EXPECT().Write(ctx, gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
+			_, err := UpdateCluster(ctx, common.GetTestLog(), db, mockStream, *cluster.ID, *cluster.Status, "status", newStatus, "status_info", newStatusInfo, "this should fail")
+			Expect(err).To(HaveOccurred())
+		})
+	})
+
+	AfterEach(func() {
+		common.DeleteTestDB(db, dbName)
+	})
 })

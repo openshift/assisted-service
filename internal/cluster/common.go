@@ -13,6 +13,7 @@ import (
 	eventsapi "github.com/openshift/assisted-service/internal/events/api"
 	"github.com/openshift/assisted-service/internal/network"
 	"github.com/openshift/assisted-service/models"
+	"github.com/openshift/assisted-service/pkg/stream"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
@@ -43,8 +44,8 @@ const (
 	statusInfoClusterFailedToPrepare          = "Cluster failed to prepare for installation"
 )
 
-func updateClusterStatus(ctx context.Context, log logrus.FieldLogger, db *gorm.DB, clusterId strfmt.UUID, srcStatus string,
-	newStatus string, statusInfo string, events eventsapi.Handler, extra ...interface{}) (*common.Cluster, error) {
+func updateClusterStatus(ctx context.Context, log logrus.FieldLogger, db *gorm.DB, stream stream.EventStreamWriter, clusterId strfmt.UUID,
+	srcStatus string, newStatus string, statusInfo string, events eventsapi.Handler, extra ...interface{}) (*common.Cluster, error) {
 	var cluster *common.Cluster
 	var err error
 	extra = append(append(make([]interface{}, 0), "status", newStatus, "status_info", statusInfo), extra...)
@@ -63,7 +64,7 @@ func updateClusterStatus(ctx context.Context, log logrus.FieldLogger, db *gorm.D
 		extra = append(extra, "trigger_monitor_timestamp", time.Now())
 	}
 
-	if cluster, err = UpdateCluster(log, db, clusterId, srcStatus, extra...); err != nil ||
+	if cluster, err = UpdateCluster(ctx, log, db, stream, clusterId, srcStatus, extra...); err != nil ||
 		swag.StringValue(cluster.Status) != newStatus {
 		return nil, errors.Wrapf(err, "failed to update cluster %s state from %s to %s",
 			clusterId, srcStatus, newStatus)
@@ -122,7 +123,7 @@ func clusterExistsInDB(db *gorm.DB, clusterId strfmt.UUID, where map[string]inte
 	return db.Select("id").Take(&cluster, where).Error == nil
 }
 
-func UpdateCluster(log logrus.FieldLogger, db *gorm.DB, clusterId strfmt.UUID, srcStatus string, extra ...interface{}) (*common.Cluster, error) {
+func UpdateCluster(ctx context.Context, log logrus.FieldLogger, db *gorm.DB, eventStream stream.EventStreamWriter, clusterId strfmt.UUID, srcStatus string, extra ...interface{}) (*common.Cluster, error) {
 	updates := make(map[string]interface{})
 	updateChangesVips := false
 
@@ -188,7 +189,9 @@ func UpdateCluster(log logrus.FieldLogger, db *gorm.DB, clusterId strfmt.UUID, s
 		}
 	}
 
-	return common.GetClusterFromDB(db, clusterId, common.UseEagerLoading)
+	cluster, err := common.GetClusterFromDB(db, clusterId, common.UseEagerLoading)
+	notifyEventStream(ctx, eventStream, cluster, log)
+	return cluster, err
 }
 
 func getKnownMastersNodesIds(c *common.Cluster, db *gorm.DB) ([]*strfmt.UUID, error) {
@@ -300,4 +303,20 @@ func UpdateMachineNetwork(db *gorm.DB, cluster *common.Cluster, machineNetwork [
 		return err
 	}
 	return nil
+}
+
+func notifyEventStream(ctx context.Context, stream stream.EventStreamWriter, cluster *common.Cluster, log logrus.FieldLogger) {
+	if stream == nil || cluster == nil {
+		return
+	}
+	key := ""
+	if cluster.ID != nil {
+		key = cluster.ID.String()
+	}
+	err := stream.Write(ctx, "ClusterState", []byte(key), cluster)
+	if err != nil {
+		log.WithError(err).WithFields(logrus.Fields{
+			"cluster_id": cluster.ID,
+		}).Warn("failed to stream event for cluster")
+	}
 }

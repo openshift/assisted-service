@@ -111,7 +111,7 @@ var _ = Describe("Ocs Operator use-cases", func() {
 		operatorsManager := operators.NewManager(common.GetTestLog(), nil, operators.Options{}, nil, nil)
 		var cfg clust.Config
 		Expect(envconfig.Process(common.EnvConfigPrefix, &cfg)).ShouldNot(HaveOccurred())
-		clusterApi = clust.NewManager(cfg, common.GetTestLog().WithField("pkg", "cluster-monitor"), db,
+		clusterApi = clust.NewManager(cfg, common.GetTestLog().WithField("pkg", "cluster-monitor"), db, nil,
 			mockEvents, mockHostAPI, mockMetric, nil, nil, operatorsManager, nil, nil, nil, nil)
 
 		hid1 = strfmt.UUID("054e0100-f50e-4be7-874d-73861179e40d")

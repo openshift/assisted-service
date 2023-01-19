@@ -35,7 +35,7 @@ var _ = Describe("Controller events wrapper", func() {
 	BeforeEach(func() {
 		db, dbName = common.PrepareTestDB()
 		mockCtrl = gomock.NewController(GinkgoT())
-		theEvents = events.New(db, nil, logrus.WithField("pkg", "events"))
+		theEvents = events.New(db, nil, nil, logrus.WithField("pkg", "events"))
 		mockCRDEventsHandler = NewMockCRDEventsHandler(mockCtrl)
 		cEventsWrapper = NewControllerEventsWrapper(mockCRDEventsHandler, theEvents, db, logrus.New())
 		// create simple cluster

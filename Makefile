@@ -41,6 +41,12 @@ PSQL_IMAGE := $(or ${PSQL_IMAGE},quay.io/centos7/postgresql-12-centos7:latest)
 BUNDLE_IMAGE := $(or ${BUNDLE_IMAGE},${ASSISTED_ORG}/assisted-service-operator-bundle:${ASSISTED_TAG})
 INDEX_IMAGE := $(or ${INDEX_IMAGE},${ASSISTED_ORG}/assisted-service-index:${ASSISTED_TAG})
 
+ifdef ENABLE_EVENT_STREAMING
+	EVENT_STREAMING_OPTIONS= --enable-event-stream=true
+else
+	EVENT_STREAMING_OPTIONS= --enable-event-stream=false
+endif
+
 ifdef DEBUG_SERVICE
 	DEBUG_ARGS=-gcflags "all=-N -l"
 	DEBUG_PORT_OPTIONS= --port ${DEBUG_SERVICE_PORT} debug-port
@@ -267,7 +273,7 @@ endef
 _verify_cluster:
 	python3 ./tools/wait_for_cluster_info.py --namespace "$(NAMESPACE)"
 
-deploy-all: $(BUILD_FOLDER) _verify_cluster deploy-namespace deploy-postgres deploy-s3 deploy-ocm-secret deploy-route53 deploy-image-service deploy-service
+deploy-all: $(BUILD_FOLDER) _verify_cluster deploy-namespace deploy-postgres deploy-kafka deploy-s3 deploy-ocm-secret deploy-route53 deploy-image-service deploy-service
 	echo "Deployment done"
 
 deploy-ui: deploy-namespace
@@ -330,7 +336,7 @@ deploy-converged-flow-requirements:
 deploy-service: deploy-service-requirements
 	python3 ./tools/deploy_assisted_installer.py $(DEPLOY_TAG_OPTION) --namespace "$(NAMESPACE)" \
 		$(TEST_FLAGS) --target "$(TARGET)" --replicas-count $(REPLICAS_COUNT) \
-		--apply-manifest $(APPLY_MANIFEST) $(DEBUG_PORT_OPTIONS) $(IMAGE_PULL_POLICY)
+		--apply-manifest $(APPLY_MANIFEST) $(EVENT_STREAMING_OPTIONS) $(DEBUG_PORT_OPTIONS) $(IMAGE_PULL_POLICY)
 	$(MAKE) wait-for-service
 
 wait-for-service:
@@ -344,6 +350,12 @@ deploy-role: deploy-namespace generate-manifests
 deploy-postgres: deploy-namespace
 	python3 ./tools/deploy_postgres.py --namespace "$(NAMESPACE)" --target "$(TARGET)" \
 		--apply-manifest $(APPLY_MANIFEST) --persistent-storage $(PERSISTENT_STORAGE)
+
+deploy-kafka: deploy-namespace
+ifdef ENABLE_EVENT_STREAMING
+	python3 ./tools/deploy_kafka.py --namespace "$(NAMESPACE)" --target "$(TARGET)" \
+		--apply-manifest $(APPLY_MANIFEST)
+endif
 
 deploy-service-on-ocp-cluster:
 	export TARGET=ocp && export PERSISTENT_STORAGE=False && $(MAKE) deploy-postgres deploy-ocm-secret deploy-s3-secret deploy-service

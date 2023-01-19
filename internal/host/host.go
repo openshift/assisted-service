@@ -27,6 +27,7 @@ import (
 	"github.com/openshift/assisted-service/pkg/leader"
 	logutil "github.com/openshift/assisted-service/pkg/log"
 	"github.com/openshift/assisted-service/pkg/s3wrapper"
+	"github.com/openshift/assisted-service/pkg/stream"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
@@ -125,6 +126,7 @@ type API interface {
 type Manager struct {
 	log                           logrus.FieldLogger
 	db                            *gorm.DB
+	stream                        stream.EventStreamWriter
 	instructionApi                hostcommands.InstructionApi
 	hwValidator                   hardware.Validator
 	eventsHandler                 eventsapi.Handler
@@ -139,10 +141,11 @@ type Manager struct {
 	objectHandler                 s3wrapper.API
 }
 
-func NewManager(log logrus.FieldLogger, db *gorm.DB, eventsHandler eventsapi.Handler, hwValidator hardware.Validator, instructionApi hostcommands.InstructionApi,
+func NewManager(log logrus.FieldLogger, db *gorm.DB, eventStream stream.EventStreamWriter, eventsHandler eventsapi.Handler, hwValidator hardware.Validator, instructionApi hostcommands.InstructionApi,
 	hwValidatorCfg *hardware.ValidatorCfg, metricApi metrics.API, config *Config, leaderElector leader.ElectorInterface, operatorsApi operators.API, providerRegistry registry.ProviderRegistry, kubeApiEnabled bool, objectHandler s3wrapper.API) *Manager {
 	th := &transitionHandler{
 		db:            db,
+		stream:        eventStream,
 		log:           log,
 		config:        config,
 		eventsHandler: eventsHandler,
@@ -152,6 +155,7 @@ func NewManager(log logrus.FieldLogger, db *gorm.DB, eventsHandler eventsapi.Han
 	return &Manager{
 		log:            log,
 		db:             db,
+		stream:         eventStream,
 		instructionApi: instructionApi,
 		hwValidator:    hwValidator,
 		eventsHandler:  eventsHandler,
@@ -192,7 +196,12 @@ func (m *Manager) RegisterHost(ctx context.Context, h *models.Host, db *gorm.DB)
 		// If the host already exists in the DB, we update its registration timestamp to track
 		// the subsequent registration events. This can happen if the host rebooted or the agent has
 		// been restarted.
-		if err := db.Model(&common.Host{}).Where("id = ? and infra_env_id = ?", host.ID, host.InfraEnvID).Update("registered_at", strfmt.DateTime(time.Now())).Error; err != nil {
+		h := models.Host{
+			ID:         host.ID,
+			InfraEnvID: host.InfraEnvID,
+		}
+		updates := map[string]interface{}{"registered_at": strfmt.DateTime(time.Now())}
+		if err := m.updateHostAndNotify(ctx, db, &h, updates).Error; err != nil {
 			return errors.Wrapf(
 				err,
 				"error while updating registration timestamp of host %s in infra env %s",
@@ -394,18 +403,21 @@ func (m *Manager) updateInventory(ctx context.Context, cluster *common.Cluster, 
 	// If there is substantial change in the inventory that might cause the state machine to move to a new status
 	// or one of the validations to change, then the updated_at field has to be modified.  Otherwise, we just
 	// perform update with touching the updated_at field
-	return db.Model(h).Updates(map[string]interface{}{
+	updates := map[string]interface{}{
 		"inventory":              inventoryStr,
 		"installation_disk_path": installationDiskPath,
 		"installation_disk_id":   installationDiskID,
 		"disks_to_be_formatted":  disksToBeFormatted,
-	}).Error
+	}
+	return m.updateHostAndNotify(ctx, db, h, updates).Error
 }
 
-func (m *Manager) UpdateMediaConnected(_ context.Context, h *models.Host) error {
-	return m.db.Model(h).Updates(map[string]interface{}{
+func (m *Manager) UpdateMediaConnected(ctx context.Context, h *models.Host) error {
+	updates := map[string]interface{}{
 		"media_status": models.HostMediaStatusConnected,
-	}).Error
+	}
+
+	return m.updateHostAndNotify(ctx, m.db, h, updates).Error
 }
 
 func (m *Manager) refreshRoleInternal(ctx context.Context, h *models.Host, db *gorm.DB, forceRefresh bool) error {
@@ -536,6 +548,43 @@ func (m *Manager) IndexOfStage(element models.HostStage, data []models.HostStage
 	return IndexOfStage(element, data)
 }
 
+func (m *Manager) updateHost(ctx context.Context, db *gorm.DB, h *models.Host, updates interface{}) *gorm.DB {
+	return db.Model(h).Updates(updates)
+}
+
+func (m *Manager) updateHostAndNotify(ctx context.Context, db *gorm.DB, h *models.Host, updates interface{}) *gorm.DB {
+	response := m.updateHost(ctx, db, h, updates)
+	if response.Error != nil {
+		return response
+	}
+	host, err := common.GetHostFromDBbyHostId(db, *(h.ID))
+	if err != nil {
+		m.log.WithError(err).WithFields(logrus.Fields{
+			"host_id": h.ID.String(),
+		}).Warn("Updated host that could not be retrieved from database")
+		return response
+	}
+	m.notifyEventStream(ctx, host)
+	return response
+}
+
+func (m *Manager) notifyEventStream(ctx context.Context, host *common.Host) {
+	if m.stream == nil || host == nil {
+		return
+	}
+	key := ""
+	if host.ClusterID != nil {
+		key = host.ClusterID.String()
+	}
+	err := m.stream.Write(ctx, "HostState", []byte(key), host)
+	if err != nil {
+		m.log.WithError(err).WithFields(logrus.Fields{
+			"host_id":    host.ID,
+			"cluster_id": host.ClusterID,
+		}).Warn("failed to stream event for host")
+	}
+}
+
 func (m *Manager) UpdateInstallProgress(ctx context.Context, h *models.Host, progress *models.HostProgress) error {
 	previousProgress := h.Progress
 
@@ -548,7 +597,7 @@ func (m *Manager) UpdateInstallProgress(ctx context.Context, h *models.Host, pro
 			"progress_progress_info":    progress.ProgressInfo,
 			"progress_stage_updated_at": strfmt.DateTime(time.Now()),
 		}
-		return m.db.Model(h).UpdateColumns(updates).Error
+		return m.updateHostAndNotify(ctx, m.db, h, updates).Error
 	}
 
 	validStatuses := []string{
@@ -635,7 +684,10 @@ func (m *Manager) UpdateInstallProgress(ctx context.Context, h *models.Host, pro
 
 func (m *Manager) SetBootstrap(ctx context.Context, h *models.Host, isbootstrap bool, db *gorm.DB) error {
 	if h.Bootstrap != isbootstrap {
-		err := db.Model(h).Update("bootstrap", isbootstrap).Error
+		updates := map[string]interface{}{
+			"bootstrap": isbootstrap,
+		}
+		err := m.updateHostAndNotify(ctx, db, h, updates).Error
 		if err != nil {
 			return errors.Wrapf(err, "failed to set bootstrap to host %s", h.ID.String())
 		}
@@ -650,7 +702,10 @@ func (m *Manager) UpdateLogsProgress(ctx context.Context, h *models.Host, progre
 }
 
 func (m *Manager) SetUploadLogsAt(ctx context.Context, h *models.Host, db *gorm.DB) error {
-	err := db.Model(h).Update("logs_collected_at", strfmt.DateTime(time.Now())).Error
+	updates := map[string]interface{}{
+		"logs_collected_at": strfmt.DateTime(time.Now()),
+	}
+	err := m.updateHost(ctx, db, h, updates).Error
 	if err != nil {
 		return errors.Wrapf(err, "failed to set logs_collected_at to host %s", h.ID.String())
 	}
@@ -659,8 +714,10 @@ func (m *Manager) SetUploadLogsAt(ctx context.Context, h *models.Host, db *gorm.
 
 func (m *Manager) UpdateConnectivityReport(ctx context.Context, h *models.Host, connectivityReport string) error {
 	if h.Connectivity != connectivityReport {
+		updates := map[string]interface{}{"connectivity": connectivityReport}
+
 		// Only if the connectivity between the hosts changed change the updated_at field
-		if err := m.db.Model(h).Update("connectivity", connectivityReport).Error; err != nil {
+		if err := m.updateHost(ctx, m.db, h, updates).Error; err != nil {
 			return errors.Wrapf(err, "failed to set connectivity to host %s", h.ID.String())
 		}
 	}
@@ -669,7 +726,9 @@ func (m *Manager) UpdateConnectivityReport(ctx context.Context, h *models.Host, 
 
 func (m *Manager) UpdateApiVipConnectivityReport(ctx context.Context, h *models.Host, apiVipConnectivityReport string) error {
 	if h.APIVipConnectivity != apiVipConnectivityReport {
-		if err := m.db.Model(h).Update("api_vip_connectivity", apiVipConnectivityReport).Error; err != nil {
+		updates := map[string]interface{}{"api_vip_connectivity": apiVipConnectivityReport}
+
+		if err := m.updateHost(ctx, m.db, h, updates).Error; err != nil {
 			return errors.Wrapf(err, "failed to set api_vip_connectivity to host %s", h.ID.String())
 		}
 	}
@@ -678,7 +737,9 @@ func (m *Manager) UpdateApiVipConnectivityReport(ctx context.Context, h *models.
 
 func (m *Manager) UpdateTangConnectivityReport(ctx context.Context, h *models.Host, tangConnectivityReport string) error {
 	if h.TangConnectivity != tangConnectivityReport {
-		if err := m.db.Model(h).Update("tang_connectivity", tangConnectivityReport).Error; err != nil {
+		updates := map[string]interface{}{"tang_connectivity": tangConnectivityReport}
+
+		if err := m.updateHost(ctx, m.db, h, updates).Error; err != nil {
 			return errors.Wrapf(err, "failed to set tang_connectivity to host %s", h.ID.String())
 		}
 	}
@@ -709,8 +770,9 @@ func (m *Manager) UpdateMachineConfigPoolName(ctx context.Context, db *gorm.DB, 
 	if db != nil {
 		cdb = db
 	}
+	updates := map[string]interface{}{"machine_config_pool_name": machineConfigPoolName, "trigger_monitor_timestamp": time.Now()}
 
-	return cdb.Model(common.Host{Host: *h}).Updates(map[string]interface{}{"machine_config_pool_name": machineConfigPoolName, "trigger_monitor_timestamp": time.Now()}).Error
+	return m.updateHostAndNotify(ctx, cdb, h, updates).Error
 }
 
 func (m *Manager) UpdateIgnitionEndpointToken(ctx context.Context, db *gorm.DB, h *models.Host, token string) error {
@@ -730,11 +792,12 @@ func (m *Manager) UpdateIgnitionEndpointToken(ctx context.Context, db *gorm.DB, 
 	if token == "" {
 		tokenSet = false
 	}
-
-	return cdb.Model(common.Host{Host: *h}).Updates(map[string]interface{}{
+	updates := map[string]interface{}{
 		"ignition_endpoint_token":     token,
 		"ignition_endpoint_token_set": tokenSet,
-		"trigger_monitor_timestamp":   time.Now()}).Error
+		"trigger_monitor_timestamp":   time.Now(),
+	}
+	return m.updateHost(ctx, cdb, h, updates).Error
 }
 
 func (m *Manager) UpdateNodeLabels(ctx context.Context, h *models.Host, nodeLabelsStr string, db *gorm.DB) error {
@@ -750,7 +813,8 @@ func (m *Manager) UpdateNodeLabels(ctx context.Context, h *models.Host, nodeLabe
 	if db != nil {
 		cdb = db
 	}
-	return cdb.Model(common.Host{Host: *h}).Updates(map[string]interface{}{"node_labels": nodeLabelsStr, "trigger_monitor_timestamp": time.Now()}).Error
+	updates := map[string]interface{}{"node_labels": nodeLabelsStr, "trigger_monitor_timestamp": time.Now()}
+	return m.updateHostAndNotify(ctx, cdb, h, updates).Error
 }
 
 func (m *Manager) UpdateNodeSkipDiskFormatting(ctx context.Context, h *models.Host, skipDiskFormatting string, db *gorm.DB) error {
@@ -766,7 +830,9 @@ func (m *Manager) UpdateNodeSkipDiskFormatting(ctx context.Context, h *models.Ho
 	if db != nil {
 		cdb = db
 	}
-	return cdb.Model(common.Host{Host: *h}).Updates(map[string]interface{}{"skip_formatting_disks": h.SkipFormattingDisks, "trigger_monitor_timestamp": time.Now()}).Error
+	updates := map[string]interface{}{"skip_formatting_disks": h.SkipFormattingDisks, "trigger_monitor_timestamp": time.Now()}
+
+	return m.updateHost(ctx, cdb, h, updates).Error
 }
 
 func (m *Manager) UpdateNTP(ctx context.Context, h *models.Host, ntpSources []*models.NtpSource, db *gorm.DB) error {
@@ -776,7 +842,11 @@ func (m *Manager) UpdateNTP(ctx context.Context, h *models.Host, ntpSources []*m
 	}
 
 	m.log.Infof("Updating ntp source of host %s to %s", h.ID, string(bytes))
-	return db.Model(h).Update("ntp_sources", string(bytes)).Error
+
+	updates := map[string]interface{}{"ntp_sources": string(bytes)}
+
+	return m.updateHost(ctx, db, h, updates).Error
+
 }
 
 func (m *Manager) UpdateDomainNameResolution(ctx context.Context, h *models.Host, domainResolutionResponse models.DomainResolutionResponse, db *gorm.DB) error {
@@ -792,7 +862,8 @@ func (m *Manager) UpdateDomainNameResolution(ctx context.Context, h *models.Host
 			"domain_name_resolutions":   string(response),
 			"trigger_monitor_timestamp": time.Now(),
 		}
-		if err := db.Model(h).Updates(updates).Error; err != nil {
+
+		if err := m.updateHostAndNotify(ctx, db, h, updates).Error; err != nil {
 			return errors.Wrapf(err, "failed to update api_domain_name_resolution to host %s", h.ID.String())
 		}
 	}
@@ -829,7 +900,10 @@ func (m *Manager) UpdateImageStatus(ctx context.Context, h *models.Host, newImag
 		return errors.Wrapf(err, "Failed to marshal image statuses for host %s", h.ID.String())
 	}
 
-	return db.Model(h).Update("images_status", marshalledStatuses).Error
+	updates := map[string]interface{}{
+		"images_status": marshalledStatuses,
+	}
+	return m.updateHostAndNotify(ctx, db, h, updates).Error
 }
 
 func (m *Manager) UpdateHostname(ctx context.Context, h *models.Host, hostname string, db *gorm.DB) error {
@@ -845,7 +919,9 @@ func (m *Manager) UpdateHostname(ctx context.Context, h *models.Host, hostname s
 	if db != nil {
 		cdb = db
 	}
-	return cdb.Model(common.Host{Host: *h}).Updates(map[string]interface{}{"requested_hostname": hostname, "trigger_monitor_timestamp": time.Now()}).Error
+	updates := map[string]interface{}{"requested_hostname": hostname, "trigger_monitor_timestamp": time.Now()}
+
+	return m.updateHostAndNotify(ctx, cdb, h, updates).Error
 }
 
 func (m *Manager) UpdateInstallationDisk(ctx context.Context, db *gorm.DB, h *models.Host, installationDiskPath string) error {
@@ -874,15 +950,22 @@ func (m *Manager) UpdateInstallationDisk(ctx context.Context, db *gorm.DB, h *mo
 	if db != nil {
 		cdb = db
 	}
-	return cdb.Model(common.Host{Host: *h}).Updates(map[string]interface{}{
+	updates := map[string]interface{}{
 		"installation_disk_path":    h.InstallationDiskPath,
 		"installation_disk_id":      h.InstallationDiskID,
 		"trigger_monitor_timestamp": time.Now(),
-	}).Error
+	}
+
+	return m.updateHostAndNotify(ctx, cdb, h, updates).Error
 }
 
 func (m *Manager) UpdateKubeKeyNS(ctx context.Context, hostID, namespace string) error {
-	return m.db.Model(&common.Host{}).Where("id = ?", hostID).Update("kube_key_namespace", namespace).Error
+	id := strfmt.UUID(hostID)
+	h := &models.Host{
+		ID: &id,
+	}
+	updates := map[string]interface{}{"kube_key_namespace": namespace}
+	return m.updateHostAndNotify(ctx, m.db, h, updates).Error
 }
 
 func (m *Manager) CancelInstallation(ctx context.Context, h *models.Host, reason string, db *gorm.DB) *common.ApiErrorResponse {
@@ -1241,7 +1324,7 @@ func (m *Manager) SetDiskSpeed(ctx context.Context, h *models.Host, path string,
 	return nil
 }
 
-func (m *Manager) resetDiskSpeedValidation(host *models.Host, log logrus.FieldLogger, db *gorm.DB) error {
+func (m *Manager) resetDiskSpeedValidation(ctx context.Context, host *models.Host, log logrus.FieldLogger, db *gorm.DB) error {
 	bootDevice, err := hardware.GetBootDevice(m.hwValidator, host)
 	if err != nil {
 		return common.NewApiError(http.StatusInternalServerError, errors.New("Get boot device"))
@@ -1251,14 +1334,15 @@ func (m *Manager) resetDiskSpeedValidation(host *models.Host, log logrus.FieldLo
 	if err != nil {
 		return common.NewApiError(http.StatusInternalServerError, errors.New("Reset disk speed"))
 	}
-	return db.Model(&models.Host{}).Where("cluster_id = ? and id = ?", host.ClusterID.String(), host.ID.String()).Updates(&updatedHost).Error
+
+	return m.updateHostAndNotify(ctx, db, &models.Host{ID: host.ID, ClusterID: host.ClusterID}, &updatedHost).Error
 }
 
-func (m *Manager) resetContainerImagesValidation(host *models.Host, db *gorm.DB) error {
-	return db.Model(&models.Host{}).Where("cluster_id = ? and id = ?", host.ClusterID.String(), host.ID.String()).Updates(
-		map[string]interface{}{
-			"images_status": "",
-		}).Error
+func (m *Manager) resetContainerImagesValidation(ctx context.Context, host *models.Host, db *gorm.DB) error {
+	updates := map[string]interface{}{
+		"images_status": "",
+	}
+	return m.updateHost(ctx, db, &models.Host{ID: host.ID, ClusterID: host.ClusterID}, updates).Error
 }
 
 func (m *Manager) ResetHostValidation(ctx context.Context, hostID, infraEnvID strfmt.UUID, validationID string, db *gorm.DB) error {
@@ -1285,9 +1369,9 @@ func (m *Manager) ResetHostValidation(ctx context.Context, hostID, infraEnvID st
 	host := &h.Host
 	switch validationID {
 	case string(models.HostValidationIDSufficientInstallationDiskSpeed):
-		return m.resetDiskSpeedValidation(host, log, db)
+		return m.resetDiskSpeedValidation(ctx, host, log, db)
 	case string(models.HostValidationIDContainerImagesAvailable):
-		return m.resetContainerImagesValidation(host, db)
+		return m.resetContainerImagesValidation(ctx, host, db)
 	default:
 		return common.NewApiError(http.StatusBadRequest, errors.Errorf("Validation \"%s\" cannot be reset or does not exist", validationID))
 	}

@@ -4328,7 +4328,7 @@ spec:
 		msg := "Cluster is deregistered"
 		Consistently(func() []*common.Event {
 			cluster = getClusterFromDB(ctx, kubeClient, db, clusterKey, 1)
-			eventsHandler := events.New(db, nil, logrus.New())
+			eventsHandler := events.New(db, nil, nil, logrus.New())
 			events, err := eventsHandler.V2GetEvents(ctx, cluster.ID, nil, nil)
 			Expect(err).NotTo(HaveOccurred())
 			return events
