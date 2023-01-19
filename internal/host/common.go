@@ -64,7 +64,7 @@ var WorkerStages = [...]models.HostStage{
 var SnoStages = [...]models.HostStage{
 	models.HostStageStartingInstallation, models.HostStageInstalling,
 	models.HostStageWaitingForBootkube, models.HostStageWritingImageToDisk,
-	models.HostStageRebooting, models.HostStageDone,
+	models.HostStageRebooting, models.HostStageJoined, models.HostStageDone,
 }
 
 var manualRebootStages = []models.HostStage{
