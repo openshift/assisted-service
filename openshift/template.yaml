@@ -164,6 +164,9 @@ parameters:
   value: 512Mi
 - name: SVC_TARGET_PORT
   value: "8900"
+- name: ENABLE_REJECT_UNKNOWN_FIELDS
+  required: false
+  value: "true"
 apiVersion: v1
 kind: Template
 metadata:
@@ -394,6 +397,8 @@ objects:
                 value: ${ENABLE_UPGRADE_AGENT}
               - name: WORK_DIR
                 value: ${WORK_DIR}
+              - name: ENABLE_REJECT_UNKNOWN_FIELDS
+                value: ${ENABLE_REJECT_UNKNOWN_FIELDS}
             volumeMounts:
               - name: route53-creds
                 mountPath: "/etc/.aws"
