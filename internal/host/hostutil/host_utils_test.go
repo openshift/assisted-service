@@ -160,6 +160,18 @@ var _ = Describe("Ignition endpoint URL generation", func() {
 			Expect(url).Should(Equal("http://test.com:22624/config/worker"))
 			Expect(err).ShouldNot(HaveOccurred())
 		})
+		It("for host with IPv4 API endpoint", func() {
+			Expect(db.Model(&cluster).Update("api_vip_dns_name", "10.0.0.1").Error).ShouldNot(HaveOccurred())
+			url, err := GetIgnitionEndpoint(&cluster, &host)
+			Expect(url).Should(Equal("http://10.0.0.1:22624/config/worker"))
+			Expect(err).ShouldNot(HaveOccurred())
+		})
+		It("for host with IPv6 API endpoint", func() {
+			Expect(db.Model(&cluster).Update("api_vip_dns_name", "fe80::1").Error).ShouldNot(HaveOccurred())
+			url, err := GetIgnitionEndpoint(&cluster, &host)
+			Expect(url).Should(Equal("http://[fe80::1]:22624/config/worker"))
+			Expect(err).ShouldNot(HaveOccurred())
+		})
 	})
 })
 
