@@ -17,8 +17,8 @@ configure each of those versions.
 Currently, we have defined processes to support the growing list of OpenShift
 versions. It can be separated to the following cases:
 * Adding a newly released minor version of OpenShift when it's first introduced
-  as part of an EC (Engineering Candidate), FC (Feature Complete) or RC (Release
-  Complete) versions. For example, OpenShift 4.12 had its first appearance as
+  as part of an EC (Engineering Candidate), FC (Feature Candidate) or RC (Release
+  Candidate) versions. For example, OpenShift 4.12 had its first appearance as
   version ``4.12.0-ec.0``. With the new version we usually also add live-iso
   discovery images that are appropriate for the release.
 * Updating beta releases like EC/FC/RC by following candidate channels like
@@ -73,11 +73,10 @@ use-cases we tend to have:
 ## Proposal
 
 The assisted-service will make use of a new configuration variable called
-``DYNAMIC_OPENSHIFT_RELEASES_CONFIG``, which outlines the supported matrix. For
-example:
+``RELEASE_SOURCES``, which outlines the supported matrix. For example:
 
 ```
-DYNAMIC_OPENSHIFT_RELEASES_CONFIG='{
+RELEASE_SOURCES='{
    "4.11": {
       "upgrade_channels": [
          {
@@ -147,7 +146,7 @@ of dynamic releases for debugging and transparency purposes.
 
 We will still need to handle each new minor version (x.y) by:
 * adding RHCOS images for the new version for each supported CPU architecture.
-* adding x.y to the new ``DYNAMIC_OPENSHIFT_RELEASES_CONFIG`` configuration.
+* adding x.y to the new ``RELEASE_SOURCES`` configuration.
 * setting the relevant feature-levels in feature-support-levels list.
 
 This way the assisted-service can support each x.y.z version by fetching a
@@ -188,7 +187,7 @@ RELEASE_IMAGES='[
   }
 ]'
 
-DYNAMIC_OPENSHIFT_RELEASES_CONFIG='[
+RELEASE_SOURCES='[
   {
     "openshift_version": "4.11",
     "upgrade_channels": [
