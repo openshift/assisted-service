@@ -350,6 +350,7 @@ func GetIgnitionEndpoint(cluster *common.Cluster, host *models.Host) (string, er
 		"http://%s/config/%s",
 		net.JoinHostPort(common.GetAPIHostname(cluster), fmt.Sprint(constants.InsecureMCSPort)),
 		poolName)
+
 	if cluster.IgnitionEndpoint != nil && cluster.IgnitionEndpoint.URL != nil {
 		url, err := url.Parse(*cluster.IgnitionEndpoint.URL)
 		if err != nil {

@@ -125,3 +125,11 @@ func MergeIgnitionConfig(base []byte, overrides []byte) (string, error) {
 
 	return string(res), nil
 }
+
+func HasCACertInIgnition(contents string) bool {
+	config, err := ParseToLatest([]byte(contents))
+	if err != nil {
+		return false
+	}
+	return len(config.Ignition.Security.TLS.CertificateAuthorities) > 0
+}
