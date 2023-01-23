@@ -4,11 +4,16 @@ import (
 	"context"
 	"crypto/tls"
 	"encoding/json"
+	"time"
 
 	"github.com/kelseyhightower/envconfig"
 	kafka "github.com/segmentio/kafka-go"
 	"github.com/segmentio/kafka-go/compress"
 	"github.com/segmentio/kafka-go/sasl/plain"
+)
+
+const (
+	WriteTimeout time.Duration = 5 * time.Second
 )
 
 //go:generate mockgen -source=event_stream.go -package=stream -destination=mock_event_stream.go
@@ -44,10 +49,12 @@ type KafkaWriter struct {
 func newProducer(config *KafkaConfig) KafkaProducer {
 
 	writer := &kafka.Writer{
-		Addr:        kafka.TCP(config.BootstrapServer),
-		Topic:       config.Topic,
-		Balancer:    &kafka.ReferenceHash{},
-		Compression: compress.Gzip,
+		Addr:         kafka.TCP(config.BootstrapServer),
+		Topic:        config.Topic,
+		Balancer:     &kafka.ReferenceHash{},
+		Compression:  compress.Gzip,
+		Async:        true,
+		WriteTimeout: WriteTimeout,
 	}
 	if config.ClientID != "" && config.ClientSecret != "" {
 		mechanism := &plain.Mechanism{
@@ -100,6 +107,6 @@ func (w *KafkaWriter) Write(ctx context.Context, eventName string, key []byte, p
 		Key:   key,
 		Value: value,
 	}
-
+	// If Async is true, this will always return nil
 	return w.kafkaProducer.WriteMessages(ctx, msg)
 }
