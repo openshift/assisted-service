@@ -51,3 +51,7 @@ func StrFmtUUIDPtr(u strfmt.UUID) *strfmt.UUID {
 	}
 	return &u
 }
+
+func VipVerificationPtr(v models.VipVerification) *models.VipVerification {
+	return &v
+}

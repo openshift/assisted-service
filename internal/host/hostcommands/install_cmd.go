@@ -252,10 +252,10 @@ func (i *installCmd) getDisksToFormat(ctx context.Context, host *models.Host, in
 }
 
 /*
-	This function combines existing InstallerArgs ( set by user for his own reasons ) with the
-	--copy-network argument needed by the static ips configuration. In case user has also
-	set --copy-network, function will set only one such argument. It also append an arg that
-	controls DHCP depending on the IP stack being used.
+This function combines existing InstallerArgs ( set by user for his own reasons ) with the
+--copy-network argument needed by the static ips configuration. In case user has also
+set --copy-network, function will set only one such argument. It also append an arg that
+controls DHCP depending on the IP stack being used.
 */
 func constructHostInstallerArgs(cluster *common.Cluster, host *models.Host, inventory *models.Inventory, infraEnv *common.InfraEnv, log logrus.FieldLogger) (string, error) {
 
