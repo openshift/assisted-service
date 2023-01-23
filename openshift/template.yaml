@@ -521,7 +521,9 @@ objects:
                     domains: ["*"]
                     routes:
                     - match: { prefix: "/" }
-                      route: { cluster: assisted_service }
+                      route:
+                        cluster: assisted_service
+                        timeout: 180s
                 http_filters:
                 - name: envoy.filters.http.router
                   typed_config:
