@@ -2,6 +2,7 @@ package subsystem
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"os"
 
@@ -10,6 +11,7 @@ import (
 	"github.com/google/uuid"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/openshift/assisted-service/client"
 	"github.com/openshift/assisted-service/client/installer"
 	"github.com/openshift/assisted-service/internal/cluster"
 	"github.com/openshift/assisted-service/internal/common"
@@ -33,6 +35,9 @@ var _ = Describe("test authorization", func() {
 	var capabilityReviewMultiarchNotallowedUserStubID string
 	var capabilityReviewMultiarchAllowedUserStubID string
 
+	var capabilityReviewIgnoreValidationsNotallowedUserStubID string
+	var capabilityReviewIgnoreValidationsAllowedUserStubID string
+
 	BeforeSuite(func() {
 		var err error
 		if Options.AuthType != auth.TypeRHSSO {
@@ -55,6 +60,12 @@ var _ = Describe("test authorization", func() {
 		Expect(err).ShouldNot(HaveOccurred())
 
 		capabilityReviewMultiarchAllowedUserStubID, err = wiremock.createStubMultiarchCapabilityReview(fakePayloadUsername2, OrgId2, true)
+		Expect(err).ShouldNot(HaveOccurred())
+
+		capabilityReviewIgnoreValidationsNotallowedUserStubID, err = wiremock.createStubIgnoreValidationsCapabilityReview(fakePayloadUsername, OrgId1, false)
+		Expect(err).ShouldNot(HaveOccurred())
+
+		capabilityReviewIgnoreValidationsAllowedUserStubID, err = wiremock.createStubIgnoreValidationsCapabilityReview(fakePayloadUsername2, OrgId2, true)
 		Expect(err).ShouldNot(HaveOccurred())
 	})
 
@@ -80,6 +91,12 @@ var _ = Describe("test authorization", func() {
 
 		err = wiremock.DeleteStub(capabilityReviewMultiarchAllowedUserStubID)
 		Expect(err).ShouldNot(HaveOccurred())
+
+		err = wiremock.DeleteStub(capabilityReviewIgnoreValidationsNotallowedUserStubID)
+		Expect(err).ShouldNot(HaveOccurred())
+
+		err = wiremock.DeleteStub(capabilityReviewIgnoreValidationsAllowedUserStubID)
+		Expect(err).ShouldNot(HaveOccurred())
 	})
 
 	BeforeEach(func() {
@@ -94,6 +111,13 @@ var _ = Describe("test authorization", func() {
 		Expect(err).ShouldNot(HaveOccurred())
 		userClusterID3, err = registerCluster(ctx, editclusterUserBMClient, "user3-cluster", fmt.Sprintf(psTemplate, FakePS3))
 		Expect(err).ShouldNot(HaveOccurred())
+	})
+
+	Context("Ignoring validations", func() {
+		It("can't ignore validations if not permitted to do so", func() {
+			_, err := unallowedUserBMClient.Installer.V2SetIgnoredValidations(ctx, &installer.V2SetIgnoredValidationsParams{})
+			Expect(err).Should(HaveOccurred())
+		})
 	})
 
 	Context("unallowed user", func() {
@@ -242,11 +266,99 @@ var _ = Describe("test authorization", func() {
 	})
 
 	Context("organization based functionality", func() {
+
+		var (
+			cluster models.Cluster
+		)
+
+		marshalError := func(err error) string {
+			d, _ := json.Marshal(err)
+			return string(d)
+		}
+
+		createCluster := func(c *client.AssistedInstall, pullSecret string) {
+			clusterCreated, err := c.Installer.V2RegisterCluster(ctx, &installer.V2RegisterClusterParams{
+				NewClusterParams: &models.ClusterCreateParams{
+					CPUArchitecture:  common.X86CPUArchitecture,
+					Name:             swag.String("test-ignore-validations"),
+					OpenshiftVersion: swag.String(openshiftVersion),
+					PullSecret:       swag.String(fmt.Sprintf(psTemplate, pullSecret)),
+				},
+			})
+			Expect(err).ShouldNot(HaveOccurred())
+			cluster = *clusterCreated.Payload
+		}
+
 		BeforeEach(func() {
 			if !Options.FeatureGate {
 				Skip("organization based functionality access is disabled")
 			}
 		})
+
+		It("try to fetch ignored validations when not allowed", func() {
+			createCluster(userBMClient, FakePS)
+			_, err := userBMClient.Installer.V2GetIgnoredValidations(ctx, &installer.V2GetIgnoredValidationsParams{
+				ClusterID: *cluster.ID,
+			})
+			Expect(err).Should(HaveOccurred())
+			Expect(marshalError(err)).To(ContainSubstring("the capability to ignore validations is not available"))
+		})
+
+		It("attempt to ignore validations when allowed to ignore validations and request is valid", func() {
+			createCluster(user2BMClient, FakePS2)
+			_, err := user2BMClient.Installer.V2SetIgnoredValidations(ctx, &installer.V2SetIgnoredValidationsParams{
+				ClusterID: *cluster.ID,
+				IgnoredValidations: &models.IgnoredValidations{
+					ClusterValidationIds: "[\"dns-domain-defined\"]",
+					HostValidationIds:    "[\"has-cpu-cores-for-role\",\"has-memory-for-role\"]",
+				},
+			})
+			Expect(err).ShouldNot(HaveOccurred())
+			ignoredValidations, err := user2BMClient.Installer.V2GetIgnoredValidations(ctx, &installer.V2GetIgnoredValidationsParams{
+				ClusterID: *cluster.ID,
+			})
+			Expect(err).ShouldNot(HaveOccurred())
+			Expect(ignoredValidations.Payload.ClusterValidationIds).To(Equal("[\"dns-domain-defined\"]"))
+			Expect(ignoredValidations.Payload.HostValidationIds).To(Equal("[\"has-cpu-cores-for-role\",\"has-memory-for-role\"]"))
+		})
+
+		It("attempt to ignore validations when not allowed to ignore validations", func() {
+			createCluster(userBMClient, FakePS)
+			_, err := userBMClient.Installer.V2SetIgnoredValidations(ctx, &installer.V2SetIgnoredValidationsParams{
+				ClusterID: *cluster.ID,
+				IgnoredValidations: &models.IgnoredValidations{
+					ClusterValidationIds: "",
+					HostValidationIds:    "",
+				},
+			})
+			Expect(err).Should(HaveOccurred())
+			Expect(marshalError(err)).To(ContainSubstring("the capability to ignore validations is not available"))
+			c, err := common.GetClusterFromDB(db, *cluster.ID, common.SkipEagerLoading)
+			Expect(err).ShouldNot(HaveOccurred())
+			Expect(c.IgnoredClusterValidations).To(Equal(""))
+			Expect(c.IgnoredHostValidations).To(Equal(""))
+		})
+
+		It("Attempt to ignore a host validation that is not ignorable", func() {
+			createCluster(user2BMClient, FakePS2)
+			_, err := user2BMClient.Installer.V2SetIgnoredValidations(ctx, &installer.V2SetIgnoredValidationsParams{
+				ClusterID: *cluster.ID,
+				IgnoredValidations: &models.IgnoredValidations{
+					ClusterValidationIds: "[\"api-vips-defined\",\"ingress-vips-defined\"]",
+					HostValidationIds:    "[\"connected\",\"has-inventory\"]",
+				},
+			})
+			Expect(err).Should(HaveOccurred())
+			Expect(marshalError(err)).To(ContainSubstring("unable to ignore the following host validations (connected,has-inventory)"))
+			Expect(marshalError(err)).To(ContainSubstring("unable to ignore the following cluster validations (api-vips-defined,ingress-vips-defined)"))
+			ignoredValidations, err := user2BMClient.Installer.V2GetIgnoredValidations(ctx, &installer.V2GetIgnoredValidationsParams{
+				ClusterID: *cluster.ID,
+			})
+			Expect(err).ShouldNot(HaveOccurred())
+			Expect(ignoredValidations.Payload.ClusterValidationIds).To(Equal(""))
+			Expect(ignoredValidations.Payload.HostValidationIds).To(Equal(""))
+		})
+
 		It("allowed to register a multiarch cluster", func() {
 			request, err := user2BMClient.Installer.V2RegisterCluster(ctx, &installer.V2RegisterClusterParams{
 				NewClusterParams: &models.ClusterCreateParams{

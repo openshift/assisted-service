@@ -303,3 +303,11 @@ func (f fakeManagedDomainsAPI) V2ListManagedDomains(
 	_ managed_domains_api.V2ListManagedDomainsParams) middleware.Responder {
 	return managed_domains_api.NewV2ListManagedDomainsOK()
 }
+
+func (f fakeInventory) V2SetIgnoredValidations(ctx context.Context, params installer.V2SetIgnoredValidationsParams) middleware.Responder {
+	return installer.NewV2SetIgnoredValidationsCreated()
+}
+
+func (f fakeInventory) V2GetIgnoredValidations(ctx context.Context, params installer.V2GetIgnoredValidationsParams) middleware.Responder {
+	return installer.NewV2GetIgnoredValidationsOK()
+}
