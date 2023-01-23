@@ -2062,13 +2062,13 @@ func (b *bareMetalInventory) updateNonDhcpNetworkParams(updates map[string]inter
 				return common.NewApiError(http.StatusBadRequest, err)
 			}
 
-			if err = network.VerifyVips(cluster.Hosts, primaryMachineNetworkCidr, network.GetApiVipById(&targetConfiguration, 0), network.GetIngressVipById(&targetConfiguration, 0), false, log); err != nil {
+			if err = network.VerifyVips(cluster.Hosts, primaryMachineNetworkCidr, network.GetApiVipById(&targetConfiguration, 0), network.GetIngressVipById(&targetConfiguration, 0), log); err != nil {
 				log.WithError(err).Warnf("Verify VIPs")
 				return common.NewApiError(http.StatusBadRequest, err)
 			}
 
 			if len(targetConfiguration.IngressVips) == 2 && len(targetConfiguration.APIVips) == 2 { // in case there's a second set of VIPs
-				if err = network.VerifyVips(cluster.Hosts, secondaryMachineNetworkCidr, network.GetApiVipById(&targetConfiguration, 1), network.GetIngressVipById(&targetConfiguration, 1), false, log); err != nil {
+				if err = network.VerifyVips(cluster.Hosts, secondaryMachineNetworkCidr, network.GetApiVipById(&targetConfiguration, 1), network.GetIngressVipById(&targetConfiguration, 1), log); err != nil {
 					log.WithError(err).Warnf("Verify VIPs")
 					return common.NewApiError(http.StatusBadRequest, err)
 				}
@@ -2088,7 +2088,7 @@ func (b *bareMetalInventory) updateNonDhcpNetworkParams(updates map[string]inter
 				// the assignment below.
 				params.ClusterUpdateParams.MachineNetworks = []*models.MachineNetwork{{Cidr: models.Subnet(primaryMachineNetworkCidr)}}
 			}
-			if err = network.VerifyVips(cluster.Hosts, primaryMachineNetworkCidr, network.GetApiVipById(&targetConfiguration, 0), network.GetIngressVipById(&targetConfiguration, 0), false, log); err != nil {
+			if err = network.VerifyVips(cluster.Hosts, primaryMachineNetworkCidr, network.GetApiVipById(&targetConfiguration, 0), network.GetIngressVipById(&targetConfiguration, 0), log); err != nil {
 				log.WithError(err).Warnf("Verify VIPs")
 				return common.NewApiError(http.StatusBadRequest, err)
 			}

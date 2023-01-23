@@ -84,26 +84,42 @@ func ipInCidr(ipStr, cidrStr string) bool {
 	return ipnet.Contains(ip)
 }
 
-func VerifyVip(hosts []*models.Host, machineNetworkCidr string, vip string, vipName string, mustExist bool, log logrus.FieldLogger) error {
-	if !mustExist && vip == "" {
-		return nil
+func VerifyVipFree(hosts []*models.Host, vip string, machineNetworkCidr string, verification *models.VipVerification, log logrus.FieldLogger) models.VipVerification {
+	if verification != nil {
+		switch *verification {
+		case models.VipVerificationSucceeded, models.VipVerificationFailed:
+			return *verification
+		default:
+			// For all other cases (unverified / empty), fallback to checking if ip is in free list
+			break
+		}
 	}
+	return IpInFreeList(hosts, vip, machineNetworkCidr, log)
+}
+
+func VerifyVip(hosts []*models.Host, machineNetworkCidr string, vip string, vipName string, verification *models.VipVerification, log logrus.FieldLogger) (models.VipVerification, error) {
 	if machineNetworkCidr == "" {
-		return errors.Errorf("%s <%s> cannot be set if Machine Network CIDR is empty", vipName, vip)
+		return models.VipVerificationUnverified, errors.Errorf("%s <%s> cannot be set if Machine Network CIDR is empty", vipName, vip)
 	}
 	if !ipInCidr(vip, machineNetworkCidr) {
-		return errors.Errorf("%s <%s> does not belong to machine-network-cidr <%s>", vipName, vip, machineNetworkCidr)
+		return models.VipVerificationFailed, errors.Errorf("%s <%s> does not belong to machine-network-cidr <%s>", vipName, vip, machineNetworkCidr)
 	}
-	if !IpInFreeList(hosts, vip, machineNetworkCidr, log) {
-		msg := fmt.Sprintf("%s <%s> is already in use in cidr %s", vipName, vip, machineNetworkCidr)
+	var msg string
+	ret := VerifyVipFree(hosts, vip, machineNetworkCidr, verification, log)
+	switch ret {
+	case models.VipVerificationSucceeded:
+		return ret, nil
+	case models.VipVerificationFailed:
+		msg = fmt.Sprintf("%s <%s> is already in use in cidr %s", vipName, vip, machineNetworkCidr)
 		//In that particular case verify that the machine network range is big enough
 		//to accommodates hosts and vips
 		if !isMachineNetworkCidrBigEnough(hosts, machineNetworkCidr, log) {
 			msg = fmt.Sprintf("%s. The machine network range is too small for the cluster. Please redefine the network.", msg)
 		}
-		return errors.New(msg)
+	case models.VipVerificationUnverified:
+		msg = fmt.Sprintf("%s <%s> are not verified yet.", vipName, vip)
 	}
-	return nil
+	return ret, errors.New(msg)
 }
 
 func ValidateNoVIPAddressesDuplicates(apiVips []*models.APIVip, ingressVips []*models.IngressVip) error {
@@ -153,13 +169,17 @@ func ValidateNoVIPAddressesDuplicates(apiVips []*models.APIVip, ingressVips []*m
 	return nil
 }
 
-func VerifyVips(hosts []*models.Host, machineNetworkCidr string, apiVip string, ingressVip string, mustExist bool, log logrus.FieldLogger) error {
-	err := VerifyVip(hosts, machineNetworkCidr, apiVip, "api-vip", mustExist, log)
-	if err == nil {
-		err = VerifyVip(hosts, machineNetworkCidr, ingressVip, "ingress-vip", mustExist, log)
+// This function is called from places which assume it is OK for a VIP to be unverified.
+// The assumption is that VIPs are eventually verified by cluster validation
+// (i.e api-vips-valid, ingress-vips-valid)
+func VerifyVips(hosts []*models.Host, machineNetworkCidr string, apiVip string, ingressVip string, log logrus.FieldLogger) error {
+	verification, err := VerifyVip(hosts, machineNetworkCidr, apiVip, "api-vip", nil, log)
+	// Error is ignored if the verification didn't fail
+	if verification != models.VipVerificationFailed {
+		verification, err = VerifyVip(hosts, machineNetworkCidr, ingressVip, "ingress-vip", nil, log)
 	}
-	if err == nil {
-		err = ValidateNoVIPAddressesDuplicates([]*models.APIVip{{IP: models.IP(apiVip)}}, []*models.IngressVip{{IP: models.IP(ingressVip)}})
+	if verification != models.VipVerificationFailed {
+		return ValidateNoVIPAddressesDuplicates([]*models.APIVip{{IP: models.IP(apiVip)}}, []*models.IngressVip{{IP: models.IP(ingressVip)}})
 	}
 	return err
 }
@@ -569,13 +589,17 @@ func MakeFreeAddressesSet(hosts []*models.Host, network string, prefix *string, 
 }
 
 // This is best effort validation.  Therefore, validation will be done only if there are IPs in free list
-func IpInFreeList(hosts []*models.Host, vipIPStr, network string, log logrus.FieldLogger) bool {
-	isFree := true
+func IpInFreeList(hosts []*models.Host, vipIPStr, network string, log logrus.FieldLogger) models.VipVerification {
 	freeSet := MakeFreeAddressesSet(hosts, network, nil, log)
 	if len(freeSet) > 0 {
-		_, isFree = freeSet[strfmt.IPv4(vipIPStr)]
+		_, isFree := freeSet[strfmt.IPv4(vipIPStr)]
+		if isFree {
+			return models.VipVerificationSucceeded
+		}
+		return models.VipVerificationFailed
 	}
-	return isFree
+	// If there is no free list for the network, the VIP is unverified, assuming that free list did not arrive yet.
+	return models.VipVerificationUnverified
 }
 
 func CreateIpWithCidr(ip, cidr string) (string, error) {
