@@ -3361,6 +3361,8 @@ func handleReplyByType(params installer.V2PostStepReplyParams, b *bareMetalInven
 		err = b.processUpgradeAgentResponse(ctx, &host, stepReply)
 	case models.StepTypeDownloadBootArtifacts:
 		err = b.hostApi.HandleReclaimBootArtifactDownload(ctx, &host)
+	case models.StepTypeVerifyVips:
+		err = b.HandleVerifyVipsResponse(ctx, &host, stepReply)
 	}
 	return err
 }
@@ -3421,6 +3423,8 @@ func filterReplyByType(params installer.V2PostStepReplyParams) (string, error) {
 		stepReply, err = filterReply(&models.DomainResolutionResponse{}, params.Reply.Output)
 	case models.StepTypeUpgradeAgent:
 		stepReply, err = filterReply(&models.UpgradeAgentResponse{}, params.Reply.Output)
+	case models.StepTypeVerifyVips:
+		stepReply, err = filterReply(&models.VerifyVipsResponse{}, params.Reply.Output)
 	}
 
 	return stepReply, err
@@ -6253,4 +6257,11 @@ func (b *bareMetalInventory) notifyEventStream(ctx context.Context, infraEnv *mo
 			"cluster_id":   infraEnv.ClusterID,
 		}).Warn("failed to stream event for infraenv")
 	}
+}
+
+func (b *bareMetalInventory) HandleVerifyVipsResponse(ctx context.Context, host *models.Host, stepReply string) error {
+	if host.ClusterID == nil || *host.ClusterID == "" {
+		return errors.Errorf("host %s infra-env %s: empty cluster id", host.ID.String(), host.InfraEnvID.String())
+	}
+	return b.clusterApi.HandleVerifyVipsResponse(ctx, *host.ClusterID, stepReply)
 }

@@ -816,6 +816,70 @@ var _ = Describe("v2PostStepReply", func() {
 		})
 	})
 
+	Context("verify vips", func() {
+		var (
+			hostId    strfmt.UUID
+			clusterId strfmt.UUID
+		)
+		verifiedVips := models.VerifyVipsResponse{
+			{
+				Verification: common.VipVerificationPtr(models.VipVerificationSucceeded),
+				Vip:          "1.2.3.4",
+				VipType:      models.VipTypeAPI,
+			},
+			{
+				Verification: common.VipVerificationPtr(models.VipVerificationSucceeded),
+				Vip:          "1001:db8::100",
+				VipType:      models.VipTypeAPI,
+			},
+			{
+				Verification: common.VipVerificationPtr(models.VipVerificationFailed),
+				Vip:          "1.2.3.5",
+				VipType:      models.VipTypeIngress,
+			},
+		}
+		BeforeEach(func() {
+			ctx = context.Background()
+			clusterId = strfmt.UUID(uuid.New().String())
+			hostId = strfmt.UUID(uuid.New().String())
+			host := models.Host{
+				ID:         &hostId,
+				InfraEnvID: clusterId,
+				ClusterID:  &clusterId,
+				Status:     swag.String(models.HostStatusInsufficient),
+			}
+			Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
+		})
+		var makeStepReply = func(clusterID, hostID strfmt.UUID, response models.VerifyVipsResponse) installer.V2PostStepReplyParams {
+			b, _ := json.Marshal(&response)
+			return installer.V2PostStepReplyParams{
+				InfraEnvID: clusterID,
+				HostID:     hostID,
+				Reply: &models.StepReply{
+					Output:   string(b),
+					StepType: models.StepTypeVerifyVips,
+				},
+			}
+		}
+
+		marshal := func(response models.VerifyVipsResponse) string {
+			b, err := json.Marshal(&response)
+			Expect(err).ToNot(HaveOccurred())
+			return string(b)
+		}
+
+		It("happy flow", func() {
+			mockClusterApi.EXPECT().HandleVerifyVipsResponse(ctx, clusterId, marshal(verifiedVips)).Return(nil)
+			reply := bm.V2PostStepReply(ctx, makeStepReply(clusterId, hostId, verifiedVips))
+			Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2PostStepReplyNoContent()))
+		})
+		It("error occurred", func() {
+			mockClusterApi.EXPECT().HandleVerifyVipsResponse(ctx, clusterId, marshal(verifiedVips)).Return(errors.New("blah"))
+			reply := bm.V2PostStepReply(ctx, makeStepReply(clusterId, hostId, verifiedVips))
+			Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2PostStepReplyInternalServerError()))
+		})
+	})
+
 	Context("Dhcp allocation", func() {
 		var (
 			clusterId, hostId *strfmt.UUID

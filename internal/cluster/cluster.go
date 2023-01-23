@@ -124,6 +124,7 @@ type API interface {
 	DeregisterInactiveCluster(ctx context.Context, maxDeregisterPerInterval int, inactiveSince strfmt.DateTime) error
 	TransformClusterToDay2(ctx context.Context, cluster *common.Cluster, db *gorm.DB) error
 	RefreshSchedulableMastersForcedTrue(ctx context.Context, clusterID strfmt.UUID) error
+	HandleVerifyVipsResponse(ctx context.Context, clusterID strfmt.UUID, stepReply string) error
 }
 
 type LogTimeoutConfig struct {
@@ -1535,4 +1536,59 @@ func (m *Manager) updateSchedulableMastersForcedTrue(ctx context.Context, cluste
 	}
 
 	return nil
+}
+
+func (m *Manager) HandleVerifyVipsResponse(ctx context.Context, clusterID strfmt.UUID, stepReply string) error {
+	log := logutil.FromContext(ctx, m.log)
+	return m.db.Transaction(func(tx *gorm.DB) error {
+		cluster, err := common.GetClusterFromDBWithVips(tx, clusterID)
+		if err != nil {
+			log.WithError(err).Errorf("HandleVerifyVipsResponse: getting cluster %s", clusterID.String())
+			return err
+		}
+		var response models.VerifyVipsResponse
+		if err = json.Unmarshal([]byte(stepReply), &response); err != nil {
+			log.WithError(err).Error("HandleVerifyVipsResponse: unmarshal")
+		}
+		updated := false
+		for _, v := range response {
+			vipResponse := v
+			if vipResponse.Verification == nil {
+				continue
+			}
+			switch vipResponse.VipType {
+			case models.VipTypeAPI:
+				apiVip, _ := funk.Find(cluster.APIVips, func(apiVip *models.APIVip) bool { return apiVip.IP == vipResponse.Vip }).(*models.APIVip)
+				if apiVip != nil {
+					if apiVip.Verification == nil || *apiVip.Verification != *vipResponse.Verification {
+						apiVip.Verification = vipResponse.Verification
+						if err = tx.Save(apiVip).Error; err != nil {
+							log.WithError(err).Errorf("saving verification for api vip %s of cluster %s", apiVip.IP, clusterID.String())
+							return err
+						}
+						updated = true
+					}
+				}
+			case models.VipTypeIngress:
+				ingressVip, _ := funk.Find(cluster.IngressVips, func(ingressVip *models.IngressVip) bool { return ingressVip.IP == vipResponse.Vip }).(*models.IngressVip)
+				if ingressVip != nil {
+					if ingressVip.Verification == nil || *ingressVip.Verification != *vipResponse.Verification {
+						ingressVip.Verification = vipResponse.Verification
+						if err = tx.Save(ingressVip).Error; err != nil {
+							log.WithError(err).Errorf("saving verification for ingress vip %s of cluster %s", ingressVip.IP, clusterID.String())
+							return err
+						}
+						updated = true
+					}
+				}
+			}
+		}
+		if updated {
+			if err = tx.Model(&common.Cluster{}).Where("id = ?", clusterID.String()).Update("trigger_monitor_timestamp", time.Now()).Error; err != nil {
+				log.WithError(err).Errorf("update cluster %s", clusterID.String())
+				return err
+			}
+		}
+		return nil
+	})
 }
