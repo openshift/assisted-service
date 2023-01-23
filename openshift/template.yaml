@@ -162,6 +162,8 @@ parameters:
   value: 10m
 - name: ENVOY_MEMORY_LIMIT
   value: 512Mi
+- name: ENVOY_TIMEOUT
+  value: "15s"
 - name: SVC_TARGET_PORT
   value: "8900"
 - name: KAFKA_CREDENTIALS_SECRET_NAME
@@ -521,7 +523,9 @@ objects:
                     domains: ["*"]
                     routes:
                     - match: { prefix: "/" }
-                      route: { cluster: assisted_service }
+                      route:
+                        cluster: assisted_service
+                        timeout: ${ENVOY_TIMEOUT}
                 http_filters:
                 - name: envoy.filters.http.router
                   typed_config:
