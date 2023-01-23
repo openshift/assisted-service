@@ -57,6 +57,7 @@ use-cases we tend to have:
   based on provided configuration.
 * We keep ourselves the option to specifically configure certain versions as we can
   nowadays. This is to make sure we can handle edge-cases and be flexible if needed.
+  More about it will be mentioned in the "Risks and Mitigations" section.
 * UI needs to be adjusted to handle this growing list of versions (at the time being,
   a total of ~140 versions).
 
@@ -229,25 +230,27 @@ sure we evict the old entries when we reach a certain capacity.
 We should make sure we don't consume too much memory when fetching releases.
 It's especially critical when the user queries for the different versions, but
 might happen in other cases too.
+In case too much versions are getting fetched from the upgrade-channels API,
+we should consider limiting the amount of versions used. For example, we can
+decide to take only the latest 20 versions of a specified source.
 
-With the suggested solution we don't have a way to retain versions that were
-removed from the upgrade-channels API. While it's not probable we should keep
-that in mind.
+Several cases can require a specific list of images to be configurable out of
+existing channels (i.e. the same mechanism we have now with ``RELEASE_IMAGES``).
+To name a few:
+* There's an image that doesn't exist yet in any upgrade-channel. For example,
+  EC images for 4.12 were not initially existing in any channel. Another
+  example is images that were removed from a channel but we still need to
+  retain because of business requirements.
+* We are only interested in one or few images from a channel and wouldn't
+  want to add the whole channel. This can apply most for beta versions.
+* The upgrade-channels has an outage. In this case the images on
+  ``RELEASE_IMAGES`` can act as fallback images that are always available.
 
 ## Design Details
 
 ### Open Questions
 
-* When implementing the binaries LRU cache, should we prioritize the latest
-  versions of each y-release? We expect those to be the most common ones, but
-  maybe it's better to let the LRU mechanism determine what are the common
-  versions by itself?
-* How should we limit the amount of versions handled? In case of an enormous
-  amount of version entries returned from the API, can we make sure to mitigate
-  the issue on our side?
-* Should we find a way to retain versions if they get out of the
-  upgrade-channels API, and if so how. DB can be a solution but so some cache
-  implementations.
+None.
 
 ### UI Impact
 
@@ -275,7 +278,6 @@ versions is where they'll have to change the UI automation.
 * Current proposition doesn't include a mechanism for excluding specific
   versions that are dynamically fetched, in case of critical bugs in them.
   Since it's a low-risk (and low-impact) we can extend it in the future.
-
 
 ## Alternatives
 
