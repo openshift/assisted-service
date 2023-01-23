@@ -131,7 +131,6 @@ func (mgr *Manager) GenerateManifests(ctx context.Context, cluster *common.Clust
 		operator := mgr.olmOperators[clusterOperator.Name]
 		if operator != nil {
 			openshiftManifests, manifest, err := operator.GenerateManifests(cluster)
-			mgr.log.Infof("THIS IS CUSTOM BUILD OF SUBHAM %s", string(manifest))
 			if err != nil {
 				mgr.log.Error(fmt.Sprintf("Cannot generate %s manifests due to ", clusterOperator.Name), err)
 				return err
