@@ -611,8 +611,13 @@ func (b *bareMetalInventory) V2SetIgnoredValidations(ctx context.Context, params
 	problems := []string{}
 	cluster.IgnoredClusterValidations = params.IgnoredValidations.ClusterValidationIds
 	cluster.IgnoredHostValidations = params.IgnoredValidations.HostValidationIds
+<<<<<<< HEAD
 	problems = b.validateIgnoredValidations(problems, cluster.IgnoredClusterValidations, common.NonIgnorableClusterValidations, "cluster")
 	problems = b.validateIgnoredValidations(problems, cluster.IgnoredHostValidations, common.NonIgnorableHostValidations, "host")
+=======
+	problems = b.validateIgnoredValidations(problems, cluster.IgnoredClusterValidations, NonIgnorableClusterValidations, "cluster")
+	problems = b.validateIgnoredValidations(problems, cluster.IgnoredHostValidations, NonIgnorableHostValidations, "host")
+>>>>>>> e5d544994 (MGMT-13203: Create REST points for validation ignore feature.)
 	if len(problems) > 0 {
 		return b.setIgnoredValidationsBadRequest("cannot proceed due to the following errors: " + strings.Join(problems, "\n"))
 	}

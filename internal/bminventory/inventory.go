@@ -77,6 +77,31 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 )
 
+var NonIgnorableHostValidations []string = []string{"connected", "has-inventory", "machine-cidr-defined", "hostname-unique", "hostname-valid"}
+var NonIgnorableClusterValidations []string = []string{"api-vips-defined", "ingress-vips-defined", "all-hosts-are-ready-to-install", "sufficient-masters-count", "pull-secret-set", "cluster-preparation-succeeded"}
+
+var MayIgnoreValidation = func(validationID string, nonIgnorables []string) bool {
+	if validationID == "all" {
+		return true
+	}
+	return !swag.ContainsStrings(nonIgnorables, validationID)
+}
+
+var MayIgnoreValidations = func(validationIDs []string, nonIgnorables []string) (bool, string) {
+	result := true
+	cantBeIgnored := []string{}
+	for _, validation := range validationIDs {
+		if validation == "all" {
+			return true, ""
+		}
+		if !MayIgnoreValidation(validation, nonIgnorables) {
+			cantBeIgnored = append(cantBeIgnored, validation)
+			result = false
+		}
+	}
+	return result, strings.Join(cantBeIgnored, ",")
+}
+
 const DefaultUser = "kubeadmin"
 
 const WindowBetweenRequestsInSeconds = 10 * time.Second
