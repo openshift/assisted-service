@@ -3869,3 +3869,98 @@ var _ = Describe("detectAndStoreCollidingIPsForCluster(cluster *common.Cluster, 
 		Expect(expectedCollision[1]).To(BeEquivalentTo("de:ad:be:ef:00:00"))
 	})
 })
+
+var _ = Describe("UploadEvents", func() {
+	var (
+		capi               *Manager
+		db                 *gorm.DB
+		dbName             string
+		ctrl               *gomock.Controller
+		mockEventsUploader *uploader.MockClient
+		mockEventsHandler  *eventsapi.MockHandler
+	)
+	createCluster := func(status string, uploaded bool) common.Cluster {
+		clusterID := strfmt.UUID(uuid.New().String())
+		cluster := common.Cluster{
+			Cluster: models.Cluster{
+				ID:     &clusterID,
+				Status: &status,
+			},
+			Uploaded: uploaded,
+		}
+		Expect(db.Create(&cluster).Error).ToNot(HaveOccurred())
+		return cluster
+	}
+
+	BeforeEach(func() {
+		ctrl = gomock.NewController(GinkgoT())
+		mockEventsHandler = eventsapi.NewMockHandler(ctrl)
+		mockEventsUploader = uploader.NewMockClient(ctrl)
+		db, dbName = common.PrepareTestDB()
+		dummy := &leader.DummyElector{}
+		mockOperators := operators.NewMockAPI(ctrl)
+		capi = NewManager(getDefaultConfig(), common.GetTestLog(), db, nil, mockEventsHandler, mockEventsUploader, nil, nil, nil, dummy, mockOperators, nil, nil, nil, nil)
+		mockEventsUploader.EXPECT().IsEnabled().Return(true).AnyTimes()
+	})
+
+	AfterEach(func() {
+		ctrl.Finish()
+		common.DeleteTestDB(db, dbName)
+	})
+
+	It("uploads events when cluster is installed", func() {
+		cluster := createCluster(models.ClusterStatusInstalled, false)
+		mockEventsUploader.EXPECT().UploadEvents(gomock.Any(), gomock.Any(), mockEventsHandler).Return(nil).Times(1)
+		capi.UploadEvents()
+		clusterAfterUpload, err := common.GetClusterFromDB(db, *cluster.ID, common.SkipEagerLoading)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(clusterAfterUpload).NotTo(BeNil())
+		Expect(clusterAfterUpload.Uploaded).To(BeTrue())
+	})
+	It("uploads events only for clusters that have finished installation", func() {
+		cluster1 := createCluster(models.ClusterStatusInsufficient, false)
+		cluster2 := createCluster(models.ClusterStatusInstalled, false)
+		mockEventsUploader.EXPECT().UploadEvents(gomock.Any(), gomock.Any(), mockEventsHandler).Return(nil).Times(1)
+		capi.UploadEvents()
+		notUploadedCluster, err := common.GetClusterFromDB(db, *cluster1.ID, common.SkipEagerLoading)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(notUploadedCluster).NotTo(BeNil())
+		Expect(notUploadedCluster.Uploaded).To(BeFalse())
+		uploadedCluster, err := common.GetClusterFromDB(db, *cluster2.ID, common.SkipEagerLoading)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(uploadedCluster).NotTo(BeNil())
+		Expect(uploadedCluster.Uploaded).To(BeTrue())
+	})
+	It("doesn't upload events when there are no clusters", func() {
+		mockEventsUploader.EXPECT().UploadEvents(gomock.Any(), gomock.Any(), mockEventsHandler).Return(nil).Times(0)
+		capi.UploadEvents()
+	})
+	It("doesn't upload events when there are no clusters that have finished installation", func() {
+		cluster1 := createCluster(models.ClusterStatusInsufficient, false)
+		cluster2 := createCluster(models.ClusterStatusFinalizing, false)
+		mockEventsUploader.EXPECT().UploadEvents(gomock.Any(), gomock.Any(), mockEventsHandler).Return(nil).Times(0)
+		capi.UploadEvents()
+		notUploadedCluster1, err := common.GetClusterFromDB(db, *cluster1.ID, common.SkipEagerLoading)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(notUploadedCluster1).NotTo(BeNil())
+		Expect(notUploadedCluster1.Uploaded).To(BeFalse())
+		notUploadedCluster2, err := common.GetClusterFromDB(db, *cluster2.ID, common.SkipEagerLoading)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(notUploadedCluster2).NotTo(BeNil())
+		Expect(notUploadedCluster2.Uploaded).To(BeFalse())
+	})
+	It("doesn't upload events when clusters that have finished installing have already been uploaded", func() {
+		cluster1 := createCluster(models.ClusterStatusInstalled, true)
+		cluster2 := createCluster(models.ClusterStatusCancelled, true)
+		mockEventsUploader.EXPECT().UploadEvents(gomock.Any(), gomock.Any(), mockEventsHandler).Return(nil).Times(0)
+		capi.UploadEvents()
+		notUploadedCluster1, err := common.GetClusterFromDB(db, *cluster1.ID, common.SkipEagerLoading)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(notUploadedCluster1).NotTo(BeNil())
+		Expect(notUploadedCluster1.Uploaded).To(BeTrue())
+		notUploadedCluster2, err := common.GetClusterFromDB(db, *cluster2.ID, common.SkipEagerLoading)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(notUploadedCluster2).NotTo(BeNil())
+		Expect(notUploadedCluster2.Uploaded).To(BeTrue())
+	})
+})
