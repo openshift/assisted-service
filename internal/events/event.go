@@ -109,7 +109,7 @@ func (e *Events) notifyEventStream(ctx context.Context, event *common.Event) {
 		if event.ClusterID != nil {
 			key = event.ClusterID.String()
 		}
-		err := e.stream.Write(ctx, "InfraEnv", []byte(key), event)
+		err := e.stream.Write(ctx, "Event", []byte(key), event)
 		if err != nil {
 			e.log.WithError(err).WithFields(logrus.Fields{
 				"cluster_id": event.ClusterID,
