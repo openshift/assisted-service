@@ -4380,6 +4380,12 @@ func (b *bareMetalInventory) RegisterInfraEnvInternal(
 		kernelArguments = swag.String(string(b))
 	}
 
+	if params.InfraenvCreateParams.IgnitionConfigOverride != "" {
+		if err = validations.ValidateIgnitionImageSize(params.InfraenvCreateParams.IgnitionConfigOverride); err != nil {
+			return nil, common.NewApiError(http.StatusBadRequest, err)
+		}
+	}
+
 	infraEnv := common.InfraEnv{
 		Generated: false,
 		InfraEnv: models.InfraEnv{
@@ -4793,6 +4799,10 @@ func (b *bareMetalInventory) updateInfraEnvData(ctx context.Context, infraEnv *c
 	}
 
 	if params.InfraEnvUpdateParams.IgnitionConfigOverride != "" && params.InfraEnvUpdateParams.IgnitionConfigOverride != infraEnv.IgnitionConfigOverride {
+		if err := validations.ValidateIgnitionImageSize(params.InfraEnvUpdateParams.IgnitionConfigOverride); err != nil {
+			return common.NewApiError(http.StatusBadRequest, err)
+		}
+
 		updates["ignition_config_override"] = params.InfraEnvUpdateParams.IgnitionConfigOverride
 		// Set the feature usage for ignition config overrides since it changed
 		if err := b.setIgnitionConfigOverrideUsage(infraEnv.ClusterID, params.InfraEnvUpdateParams.IgnitionConfigOverride, "infra-env", db); err != nil {
@@ -5535,11 +5545,6 @@ func (b *bareMetalInventory) V2UpdateHostIgnitionInternal(ctx context.Context, p
 		_, err = ignition.ParseToLatest([]byte(params.HostIgnitionParams.Config))
 		if err != nil {
 			log.WithError(err).Errorf("Failed to parse host ignition config patch %s", params.HostIgnitionParams)
-			return nil, common.NewApiError(http.StatusBadRequest, err)
-		}
-
-		if err = validations.ValidateIgnitionImageSize(params.HostIgnitionParams.Config); err != nil {
-			log.WithError(err).Error("Invalid ignition image size")
 			return nil, common.NewApiError(http.StatusBadRequest, err)
 		}
 	} else {
