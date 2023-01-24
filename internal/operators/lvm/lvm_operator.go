@@ -22,11 +22,10 @@ type operator struct {
 }
 
 var Operator = models.MonitoredOperator{
-	Name:             "lvm",
-	OperatorType:     models.OperatorTypeOlm,
-	Namespace:        "openshift-storage",
-	SubscriptionName: "lvms-operator",
-	TimeoutSeconds:   30 * 60,
+	Name:           "lvm",
+	OperatorType:   models.OperatorTypeOlm,
+	Namespace:      "openshift-storage",
+	TimeoutSeconds: 30 * 60,
 }
 
 // NewLvmOperator creates new LvmOperator
@@ -121,8 +120,8 @@ func (o *operator) ValidateHost(ctx context.Context, cluster *common.Cluster, ho
 }
 
 // GenerateManifests generates manifests for the operator
-func (o *operator) GenerateManifests(_ *common.Cluster) (map[string][]byte, []byte, error) {
-	return Manifests()
+func (o *operator) GenerateManifests(cluster *common.Cluster) (map[string][]byte, []byte, error) {
+	return Manifests(cluster)
 }
 
 // GetProperties provides description of operator properties: none required

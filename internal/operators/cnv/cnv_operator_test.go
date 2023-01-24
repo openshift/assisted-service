@@ -39,7 +39,7 @@ var _ = Describe("CNV operator", func() {
 		It("request for lvmo", func() {
 			haMode := models.ClusterHighAvailabilityModeNone
 			cluster := common.Cluster{
-				Cluster: models.Cluster{HighAvailabilityMode: &haMode, OpenshiftVersion: lvm.LvmMinOpenshiftVersion},
+				Cluster: models.Cluster{HighAvailabilityMode: &haMode, OpenshiftVersion: lvm.LvmsMinOpenshiftVersion},
 			}
 
 			requirements, err := operator.GetDependencies(&cluster)
@@ -68,7 +68,7 @@ var _ = Describe("CNV operator", func() {
 		BeforeEach(func() {
 			mode := models.ClusterHighAvailabilityModeFull
 			cluster = common.Cluster{
-				Cluster: models.Cluster{HighAvailabilityMode: &mode, OpenshiftVersion: lvm.LvmMinOpenshiftVersion},
+				Cluster: models.Cluster{HighAvailabilityMode: &mode, OpenshiftVersion: lvm.LvmsMinOpenshiftVersion},
 			}
 		})
 
@@ -234,7 +234,7 @@ var _ = Describe("CNV operator", func() {
 			host := models.Host{Role: models.HostRoleMaster}
 			haMode := models.ClusterHighAvailabilityModeNone
 			cluster = common.Cluster{
-				Cluster: models.Cluster{HighAvailabilityMode: &haMode, OpenshiftVersion: lvm.LvmMinOpenshiftVersion},
+				Cluster: models.Cluster{HighAvailabilityMode: &haMode, OpenshiftVersion: lvm.LvmsMinOpenshiftVersion},
 			}
 
 			requirements, err := operator.GetHostRequirements(context.TODO(), &cluster, &host)
