@@ -1324,6 +1324,12 @@ var _ = Describe("Refresh Host", func() {
 			mockDefaultClusterHostRequirements(mockHwValidator)
 		})
 
+		mockMediaDisconnect := func(hostStatus string, hostStage *models.HostStage) {
+			host = hostutil.GenerateTestHost(hostId, infraEnvId, clusterId, hostStatus)
+			host.MediaStatus = swag.String(models.HostMediaStatusDisconnected)
+			Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
+		}
+
 		mockDisconnectedHost := func(hostStatus string, hostStage *models.HostStage) strfmt.DateTime {
 			passedTime := 90 * time.Minute
 			hostCheckInAt := strfmt.DateTime(time.Now().Add(-MaxHostDisconnectionTime - passedTime))
@@ -1417,6 +1423,18 @@ var _ = Describe("Refresh Host", func() {
 			mockInstallationTimedOutHost(models.HostStatusInstalling, &stage)
 			registerCluster(clusterId, models.ClusterStatusInstalling)
 			refreshStatusExpectError(models.HostStatusError, statusInfoInstallationInProgressTimedOut)
+		})
+
+		It("host status should remain disconnected if media is disconnected", func() {
+			mockMediaDisconnect(models.HostStatusDisconnected, nil)
+			registerCluster(clusterId, models.ClusterStatusInsufficient)
+			refreshStatusExpectNoError(models.HostStatusDisconnected)
+		})
+
+		It("host status should be disconnected if media is disconnected while host is preparing for installation", func() {
+			mockMediaDisconnect(models.HostStatusPreparingForInstallation, nil)
+			registerCluster(clusterId, models.ClusterStatusPreparingForInstallation)
+			refreshStatusExpectError(models.HostStatusDisconnected, statusInfoConnectionTimedOutPreparing)
 		})
 	})
 

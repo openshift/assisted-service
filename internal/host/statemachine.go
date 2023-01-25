@@ -533,12 +533,13 @@ func NewHostStateMachine(sm stateswitch.StateMachine, th TransitionHandler) stat
 			stateswitch.State(models.HostStatusDisconnected),
 			stateswitch.State(models.HostStatusPreparingFailed),
 		},
-		Condition:        stateswitch.Not(If(IsConnected)),
+		Condition: stateswitch.Or(stateswitch.Not(If(IsConnected)),
+			stateswitch.Not(If(IsMediaConnected))),
 		DestinationState: stateswitch.State(models.HostStatusDisconnected),
 		PostTransition:   th.PostRefreshHost(statusInfoDisconnected),
 		Documentation: stateswitch.TransitionRuleDoc{
 			Name:        "Move host to disconnected when connected times out",
-			Description: "TODO: Document this transition rule.",
+			Description: "This transition occurs when no requests are detected from the agent or when the discovery media gets disconnected during pre-installation phases",
 		},
 	})
 
@@ -617,12 +618,13 @@ func NewHostStateMachine(sm stateswitch.StateMachine, th TransitionHandler) stat
 			stateswitch.State(models.HostStatusPreparingForInstallation),
 			stateswitch.State(models.HostStatusPreparingSuccessful),
 		},
-		Condition:        stateswitch.Not(If(IsConnected)),
+		Condition: stateswitch.Or(stateswitch.Not(If(IsConnected)),
+			stateswitch.Not(If(IsMediaConnected))),
 		DestinationState: stateswitch.State(models.HostStatusDisconnected),
 		PostTransition:   th.PostRefreshHost(statusInfoConnectionTimedOutPreparing),
 		Documentation: stateswitch.TransitionRuleDoc{
 			Name:        "Move preparing host to disconnected when connection times out",
-			Description: "TODO: Document this transition rule.",
+			Description: "This transition occurs when no requests are detected from the agent or when the discovery media gets disconnected during prepare for installation phases",
 		},
 	})
 
