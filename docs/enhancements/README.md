@@ -24,7 +24,7 @@ openshift/enhancements instead:
 * requires changes to OpenShift
 * requires changes and/or consensus with other components related to
   OpenShift
-* substanitally impacts the requirements for and/or experience of installing and
+* substantially impacts the requirements for and/or experience of installing and
   provisioning OpenShift
 * would benefit from approval by OpenShift architects
 
