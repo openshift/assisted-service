@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
@@ -350,6 +351,23 @@ var _ = Describe("dnsmasq manifest", func() {
 			err := manifestsGenerator.AddDnsmasqForSingleNode(context.TODO(), logrus.New(), cluster)
 			Expect(err).To(Not(HaveOccurred()))
 		})
+		It("inject DNSMasq SNO manifest with 4.13", func() {
+			cluster := createCluster("", "1001:db8::/120",
+				createInventory(addIPv6Addresses(createInterface(), "1001:db8::1/120")))
+			cluster.OpenshiftVersion = "4.13.0-ec2"
+			cluster.Hosts[0].Bootstrap = true
+			cluster.Cluster.BaseDNSDomain = "test.com"
+			cluster.Cluster.Name = "test"
+			clusterId := strfmt.UUID(uuid.New().String())
+			cluster.ID = &clusterId
+
+			log := logrus.New()
+			content, err := createDnsmasqForSingleNode(log, cluster)
+			Expect(err).To(Not(HaveOccurred()))
+			additionalDNSMasqParams := base64.StdEncoding.EncodeToString([]byte(dnsmasqConfigFor_413))
+			Expect(strings.Contains(string(content), additionalDNSMasqParams)).To(Equal(true))
+		})
+
 	})
 
 })
