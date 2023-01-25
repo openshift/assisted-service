@@ -70,11 +70,6 @@ func (o *operator) GetHostValidationID() string {
 
 // ValidateCluster always return "valid" result
 func (o *operator) ValidateCluster(_ context.Context, cluster *common.Cluster) (api.ValidationResult, error) {
-	if !common.IsSingleNodeCluster(cluster) {
-		message := "ODF LVM storage is only supported for Single Node Openshift"
-		return api.ValidationResult{Status: api.Failure, ValidationId: o.GetClusterValidationID(), Reasons: []string{message}}, nil
-	}
-
 	var ocpVersion, minOpenshiftVersionForLvm *version.Version
 	var err error
 
