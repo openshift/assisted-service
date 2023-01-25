@@ -7147,6 +7147,31 @@ var _ = Describe("infraEnvs", func() {
 				},
 			})
 		})
+
+		It("returns a bad request when provided config is too large (>256 KiB)", func() {
+			// Create a large content for the ignition config
+			contentBytes := make([]byte, validations.IgnitionImageSizePadding)
+			_, err := rand.Read(contentBytes)
+			Expect(err).ToNot(HaveOccurred())
+			content := base64.StdEncoding.EncodeToString(contentBytes)
+			override := fmt.Sprintf(`{"ignition": {"version": "3.1.0"}, "storage": {"files": [{"path": "/tmp/example", "contents": {"source": "data:text/plain;base64,%s"}}]}}`, content)
+
+			mockOSImages.EXPECT().GetOsImageOrLatest(gomock.Any(), gomock.Any()).Return(common.TestDefaultConfig.OsImage, nil).Times(1)
+			mockStaticNetworkConfig.EXPECT().FormatStaticNetworkConfigForDB(gomock.Any()).Return("", nil).Times(1)
+			mockEvents.EXPECT().SendInfraEnvEvent(ctx, eventstest.NewEventMatcher(
+				eventstest.WithNameMatcher(eventgen.InfraEnvRegistrationFailedEventName))).Times(1)
+
+			reply := bm.RegisterInfraEnv(ctx, installer.RegisterInfraEnvParams{
+				InfraenvCreateParams: &models.InfraEnvCreateParams{
+					Name:                   swag.String("some-infra-env-name"),
+					PullSecret:             swag.String(fakePullSecret),
+					IgnitionConfigOverride: override,
+				},
+			})
+			Expect(reply).To(BeAssignableToTypeOf(common.NewApiError(http.StatusBadRequest, errors.Errorf(""))))
+			err = reply.(*common.ApiErrorResponse)
+			Expect(err.Error()).To(ContainSubstring("over the maximum allowable size"))
+		})
 	})
 
 	Context("Create InfraEnv - with rhsso auth", func() {
@@ -10905,6 +10930,23 @@ var _ = Describe("UpdateInfraEnv - Ignition", func() {
 
 		bm.UpdateInfraEnv(ctx, params)
 	})
+
+	It("returns a bad request when provided config is too large (>256 KiB)", func() {
+		// Create a large content for the ignition config
+		contentBytes := make([]byte, validations.IgnitionImageSizePadding)
+		_, err := rand.Read(contentBytes)
+		Expect(err).ToNot(HaveOccurred())
+		content := base64.StdEncoding.EncodeToString(contentBytes)
+		override := fmt.Sprintf(`{"ignition": {"version": "3.1.0"}, "storage": {"files": [{"path": "/tmp/example", "contents": {"source": "data:text/plain;base64,%s"}}]}}`, content)
+		params := installer.UpdateInfraEnvParams{
+			InfraEnvID:           *infraEnv.ID,
+			InfraEnvUpdateParams: &models.InfraEnvUpdateParams{IgnitionConfigOverride: override},
+		}
+		response := bm.UpdateInfraEnv(ctx, params)
+		Expect(response).To(BeAssignableToTypeOf(common.NewApiError(http.StatusBadRequest, errors.Errorf(""))))
+		err = response.(*common.ApiErrorResponse)
+		Expect(err.Error()).To(ContainSubstring("over the maximum allowable size"))
+	})
 })
 
 var _ = Describe("GetSupportedPlatformsFromInventory", func() {
@@ -13953,24 +13995,6 @@ var _ = Describe("V2UpdateHostIgnition", func() {
 		mockUsage.EXPECT().Save(gomock.Any(), gomock.Any(), gomock.Any()).Times(1)
 		mockUsage.EXPECT().Remove(gomock.Any(), gomock.Any()).Times(1)
 		bm.V2UpdateHostIgnition(ctx, params)
-	})
-
-	It("returns bad request when provided config is too large (>256 KiB)", func() {
-		// Create a large content for the ignition config
-		contentBytes := make([]byte, validations.IgnitionImageSizePadding)
-		_, err := rand.Read(contentBytes)
-		Expect(err).ToNot(HaveOccurred())
-		content := base64.StdEncoding.EncodeToString(contentBytes)
-		override := fmt.Sprintf(`{"ignition": {"version": "3.1.0"}, "storage": {"files": [{"path": "/tmp/example", "contents": {"source": "data:text/plain;base64,%s"}}]}}`, content)
-		params := installer.V2UpdateHostIgnitionParams{
-			InfraEnvID:         infraEnvID,
-			HostID:             hostID,
-			HostIgnitionParams: &models.HostIgnitionParams{Config: override},
-		}
-		response := bm.V2UpdateHostIgnition(ctx, params)
-		verifyApiError(response, http.StatusBadRequest)
-		err = response.(*common.ApiErrorResponse)
-		Expect(err.Error()).To(ContainSubstring("over the maximum allowable size"))
 	})
 })
 
