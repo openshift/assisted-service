@@ -48,7 +48,7 @@ var _ = Describe("Progress bar test", func() {
 		mockOperatorApi = operators.NewMockAPI(ctrl)
 		mockDnsApi = dns.NewMockDNSApi(ctrl)
 		clusterApi = NewManager(getDefaultConfig(), common.GetTestLog().WithField("pkg", "cluster-monitor"), db, nil,
-			mockEvents, mockHostAPI, mockMetric, nil, nil, mockOperatorApi, nil, nil, mockDnsApi, nil)
+			mockEvents, nil, mockHostAPI, mockMetric, nil, nil, mockOperatorApi, nil, nil, mockDnsApi, nil)
 	})
 
 	AfterEach(func() {
