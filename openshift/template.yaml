@@ -505,6 +505,7 @@ objects:
                         bytes_rx: "%BYTES_RECEIVED%"
                         bytes_tx: "%BYTES_SENT%"
                         duration: "%DURATION%"
+                        method: "%REQ(:METHOD)%"
                         path: "%REQ(X-ENVOY-ORIGINAL-PATH?:PATH)%"
                         protocol: "%PROTOCOL%"
                         response_code: "%RESPONSE_CODE%"
