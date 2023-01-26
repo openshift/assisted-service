@@ -138,7 +138,18 @@ oc scale nodepool/$ASSISTED_CLUSTER_NAME -n $SPOKE_NAMESPACE --replicas=${SPOKE_
 
 # Wait for node to appear in the CAPI-deployed cluster
 oc extract -n $SPOKE_NAMESPACE secret/$ASSISTED_CLUSTER_NAME-admin-kubeconfig --to=- > /tmp/$ASSISTED_CLUSTER_NAME-kubeconfig
+export HUB_KUBECONFIG=${KUBECONFIG}
 export KUBECONFIG=/tmp/$ASSISTED_CLUSTER_NAME-kubeconfig
 
 wait_for_object_amount node ${SPOKE_CONTROLPLANE_AGENTS} 10
 echo "Worker nodes have been detected successfuly in the created cluster!"
+
+
+echo "verify the BMH on the HUB cluster is detached"
+export KUBECONFIG=${HUB_KUBECONFIG}
+if [ $(oc get baremetalhost -n ${SPOKE_NAMESPACE} -o json | jq -c '.items[].metadata.annotations."baremetalhost.metal3.io/detached"| select("assisted-service-controller")' | wc -l) -ne ${SPOKE_CONTROLPLANE_AGENTS} ]; then
+  echo "The amount of detached BMHs on the HUB cluster doesn't match the amount of expected installed nodes in the spoke: ${SPOKE_CONTROLPLANE_AGENTS}"
+  echo "HUB cluster BMHs: "
+  oc get baremetalhost -n "${SPOKE_NAMESPACE}"
+  return 1
+fi
