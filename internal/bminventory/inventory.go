@@ -4747,8 +4747,9 @@ func (b *bareMetalInventory) UpdateInfraEnvInternal(ctx context.Context, params 
 		log.WithError(err).Errorf("failed to get infraEnv %s after update", params.InfraEnvID)
 		return nil, err
 	}
-
-	b.notifyEventStream(ctx, infraEnv)
+	if infraEnv != nil {
+		b.notifyEventStream(ctx, &infraEnv.InfraEnv)
+	}
 
 	var cluster *common.Cluster
 	clusterId := infraEnv.ClusterID
@@ -6239,20 +6240,12 @@ func (b *bareMetalInventory) updateMonitoredOperators(tx *gorm.DB, cluster *comm
 	return err
 }
 
-func (b *bareMetalInventory) notifyEventStream(ctx context.Context, infraEnv *common.InfraEnv) {
+func (b *bareMetalInventory) notifyEventStream(ctx context.Context, infraEnv *models.InfraEnv) {
 	if b.stream == nil || infraEnv == nil {
 		return
 	}
-	fullInfraEnv, err := common.GetInfraEnvFromDB(b.db, *infraEnv.ID)
-	if err != nil {
-		b.log.WithError(err).WithFields(logrus.Fields{
-			"infra_env_id": infraEnv.ID,
-			"cluster_id":   infraEnv.ClusterID,
-		}).Warn("infraenv could not be retrieved from DB")
-		return
-	}
 	key := infraEnv.ClusterID.String()
-	err = b.stream.Write(ctx, "InfraEnv", []byte(key), fullInfraEnv)
+	err := b.stream.Write(ctx, "InfraEnv", []byte(key), infraEnv)
 	if err != nil {
 		b.log.WithError(err).WithFields(logrus.Fields{
 			"infra_env_id": infraEnv.ID,
