@@ -1107,7 +1107,7 @@ func newAssistedCM(ctx context.Context, log logrus.FieldLogger, asc ASC) (client
 			"ISO_CACHE_DIR":          "/data/cache",
 
 			// from configmap
-			"AUTH_TYPE":                   "local",
+			"AUTH_TYPE":                   "none",
 			"BASE_DNS_DOMAINS":            "",
 			"CHECK_CLUSTER_VERSION":       "True",
 			"CREATE_S3_BUCKET":            "False",
