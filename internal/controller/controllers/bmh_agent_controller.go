@@ -86,6 +86,11 @@ const (
 
 var (
 	InfraEnvImageCooldownPeriod = 60 * time.Second
+	// Possible names Hypershift might give the root-CA, we look for any of them
+	kubeRootCAHypershiftNames = []string{
+		"kube-root-ca",
+		"kube-root-ca.crt",
+	}
 )
 
 const certificateAuthoritiesIgnitionOverride = `{
@@ -1216,11 +1221,18 @@ func (r *BMACReconciler) createIgnitionWithMCSCert(ctx context.Context, log logr
 	if err := spokeClient.Get(ctx, key, configMap); err != nil {
 		if k8serrors.IsNotFound(err) {
 			// Hypershift stores root ca in a different configmap and different namespace
-			key = types.NamespacedName{
-				Namespace: "openshift-config",
-				Name:      "kube-root-ca",
+			found := false
+			for _, keyName := range kubeRootCAHypershiftNames {
+				key = types.NamespacedName{
+					Namespace: "openshift-config",
+					Name:      keyName,
+				}
+				if err = spokeClient.Get(ctx, key, configMap); err == nil {
+					found = true
+					break
+				}
 			}
-			if err := spokeClient.Get(ctx, key, configMap); err != nil {
+			if !found {
 				if k8serrors.IsNotFound(err) {
 					return encodedMCSCrt, ignitionWithMCSCert, err
 				}
