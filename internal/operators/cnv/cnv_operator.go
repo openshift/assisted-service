@@ -68,12 +68,12 @@ func (o *operator) GetDependencies(cluster *common.Cluster) ([]string, error) {
 		return []string{}, err
 	}
 
-	minOCPVersionForLVM, err := version.NewVersion(lvm.LvmMinOpenshiftVersion)
+	minOCPVersionForLVMS, err := version.NewVersion(lvm.LvmsMinOpenshiftVersion)
 	if err != nil {
 		return []string{}, err
 	}
 
-	if ocpVersion.GreaterThanOrEqual(minOCPVersionForLVM) {
+	if ocpVersion.GreaterThanOrEqual(minOCPVersionForLVMS) {
 		return []string{lvm.Operator.Name}, nil
 	}
 
