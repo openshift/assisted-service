@@ -365,8 +365,6 @@ func AreIngressVipsIdentical(n1, n2 []*models.IngressVip) bool {
 }
 
 func UpdateVipsTables(db *gorm.DB, cluster *common.Cluster, apiVipUpdated bool, ingressVipUpdated bool) error {
-	var err error
-
 	if cluster == nil {
 		return nil
 	}
@@ -375,30 +373,40 @@ func UpdateVipsTables(db *gorm.DB, cluster *common.Cluster, apiVipUpdated bool, 
 	}
 
 	if apiVipUpdated {
-		if err = db.Where("cluster_id = ?", *cluster.ID).Delete(&models.APIVip{}).Error; err != nil {
-			err = errors.Wrapf(err, "failed to delete api vips of cluster %s", *cluster.ID)
-			return common.NewApiError(http.StatusInternalServerError, err)
-		}
-		for _, apiVip := range cluster.APIVips {
-			apiVip.ClusterID = *cluster.ID
-			if err = db.Save(apiVip).Error; err != nil {
-				err = errors.Wrapf(err, "failed to update cluster apiVip %v of cluster %s", *apiVip, *cluster.ID)
+		if err := db.Transaction(func(tx *gorm.DB) error {
+			if err := db.Where("cluster_id = ?", *cluster.ID).Delete(&models.APIVip{}).Error; err != nil {
+				err = errors.Wrapf(err, "failed to delete api vips of cluster %s", *cluster.ID)
 				return common.NewApiError(http.StatusInternalServerError, err)
 			}
+			for _, apiVip := range cluster.APIVips {
+				apiVip.ClusterID = *cluster.ID
+				if err := db.Save(apiVip).Error; err != nil {
+					err = errors.Wrapf(err, "failed to update cluster apiVip %v of cluster %s", *apiVip, *cluster.ID)
+					return common.NewApiError(http.StatusInternalServerError, err)
+				}
+			}
+			return nil
+		}); err != nil {
+			return err
 		}
 	}
 
 	if ingressVipUpdated {
-		if err = db.Where("cluster_id = ?", *cluster.ID).Delete(&models.IngressVip{}).Error; err != nil {
-			err = errors.Wrapf(err, "failed to delete ingress vips of cluster %s", *cluster.ID)
-			return common.NewApiError(http.StatusInternalServerError, err)
-		}
-		for _, ingressVip := range cluster.IngressVips {
-			ingressVip.ClusterID = *cluster.ID
-			if err = db.Save(ingressVip).Error; err != nil {
-				err = errors.Wrapf(err, "failed to update cluster ingressVip %v of cluster %s", *ingressVip, *cluster.ID)
+		if err := db.Transaction(func(tx *gorm.DB) error {
+			if err := db.Where("cluster_id = ?", *cluster.ID).Delete(&models.IngressVip{}).Error; err != nil {
+				err = errors.Wrapf(err, "failed to delete ingress vips of cluster %s", *cluster.ID)
 				return common.NewApiError(http.StatusInternalServerError, err)
 			}
+			for _, ingressVip := range cluster.IngressVips {
+				ingressVip.ClusterID = *cluster.ID
+				if err := db.Save(ingressVip).Error; err != nil {
+					err = errors.Wrapf(err, "failed to update cluster ingressVip %v of cluster %s", *ingressVip, *cluster.ID)
+					return common.NewApiError(http.StatusInternalServerError, err)
+				}
+			}
+			return nil
+		}); err != nil {
+			return err
 		}
 	}
 
