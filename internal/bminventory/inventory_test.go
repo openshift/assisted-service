@@ -2014,11 +2014,10 @@ var _ = Describe("cluster", func() {
 			mockLVMGetOperatorByName := func(operatorName string) {
 				mockOperatorManager.EXPECT().GetOperatorByName(operatorName).Return(
 					&models.MonitoredOperator{
-						Name:             "lvm",
-						OperatorType:     models.OperatorTypeOlm,
-						Namespace:        "openshift-storage",
-						SubscriptionName: "lvms-operator",
-						TimeoutSeconds:   30 * 60,
+						Name:           "lvm",
+						OperatorType:   models.OperatorTypeOlm,
+						Namespace:      "openshift-storage",
+						TimeoutSeconds: 30 * 60,
 					}, nil).Times(1)
 			}
 

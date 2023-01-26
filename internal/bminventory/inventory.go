@@ -44,6 +44,7 @@ import (
 	"github.com/openshift/assisted-service/internal/metrics"
 	"github.com/openshift/assisted-service/internal/network"
 	"github.com/openshift/assisted-service/internal/operators"
+	"github.com/openshift/assisted-service/internal/operators/lvm"
 	"github.com/openshift/assisted-service/internal/provider"
 	"github.com/openshift/assisted-service/internal/provider/registry"
 	"github.com/openshift/assisted-service/internal/usage"
@@ -2785,6 +2786,19 @@ func (b *bareMetalInventory) getOLMOperators(cluster *common.Cluster, newOperato
 		if err != nil {
 			return nil, common.NewApiError(http.StatusBadRequest, err)
 		}
+
+		// TODO - Need to find a better way for creating LVMO/LVMS operator on different openshift-version
+		if operator.Name == "lvm" {
+			lvmsMetMinOpenshiftVersion, err := common.VersionGreaterOrEqual(cluster.OpenshiftVersion, lvm.LvmsMinOpenshiftVersion)
+			if err != nil {
+				operator.SubscriptionName = lvm.LvmsSubscriptionName
+			} else if lvmsMetMinOpenshiftVersion {
+				operator.SubscriptionName = lvm.LvmsSubscriptionName
+			} else {
+				operator.SubscriptionName = lvm.LvmoSubscriptionName
+			}
+		}
+
 		operator.Properties = newOperator.Properties
 
 		monitoredOperators = append(monitoredOperators, operator)
