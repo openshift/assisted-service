@@ -33,6 +33,7 @@ COPY --from=golang /usr/local/go /usr/local/go
 COPY --from=quay.io/openshift/origin-cli:latest /usr/bin/oc /usr/bin
 COPY --from=quay.io/operator-framework/upstream-opm-builder:v1.16.1 /bin/opm /bin
 COPY --from=k8s.gcr.io/kustomize/kustomize:v4.3.0 /app/kustomize /usr/bin/
+COPY --from=quay.io/coreos/shellcheck-alpine:v0.5.0 /bin/shellcheck /usr/bin/shellcheck
 
 RUN dnf install -y 'dnf-command(config-manager)' && \
     dnf config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo && \
