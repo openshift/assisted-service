@@ -67,6 +67,34 @@ var _ = Describe("bmac reconcile", func() {
 		Expect(result).To(Equal(ctrl.Result{}))
 	})
 
+	It("adds a finalizer to the BMH when it has the management annotation", func() {
+		host := newBMH("bmh-reconcile", &bmh_v1alpha1.BareMetalHostSpec{})
+		host.ObjectMeta.SetAnnotations(map[string]string{BMH_DELETE_ANNOTATION: "true"})
+		Expect(c.Create(ctx, host)).To(BeNil())
+
+		bmhr.ConvergedFlowEnabled = true
+		result, err := bmhr.Reconcile(ctx, newBMHRequest(host))
+		Expect(err).To(BeNil())
+		Expect(result).To(Equal(ctrl.Result{}))
+
+		key := types.NamespacedName{Name: host.Name, Namespace: host.Namespace}
+		Expect(c.Get(ctx, key, host)).To(Succeed())
+		Expect(host.GetFinalizers()).To(ContainElement(BMH_FINALIZER_NAME))
+	})
+
+	It("doesn't add a finalizer to the BMH when it does not have the management annotation", func() {
+		host := newBMH("bmh-reconcile", &bmh_v1alpha1.BareMetalHostSpec{})
+		Expect(c.Create(ctx, host)).To(BeNil())
+
+		result, err := bmhr.Reconcile(ctx, newBMHRequest(host))
+		Expect(err).To(BeNil())
+		Expect(result).To(Equal(ctrl.Result{}))
+
+		key := types.NamespacedName{Name: host.Name, Namespace: host.Namespace}
+		Expect(c.Get(ctx, key, host)).To(Succeed())
+		Expect(host.GetFinalizers()).ToNot(ContainElement(BMH_FINALIZER_NAME))
+	})
+
 	Describe("queue bmh request for agent", func() {
 		var host *bmh_v1alpha1.BareMetalHost
 		var agent *v1beta1.Agent
@@ -1606,6 +1634,104 @@ var _ = Describe("bmac reconcile - converged flow enabled", func() {
 			Expect(updatedHost.Spec.CustomDeploy.Method).ToNot(Equal(ASSISTED_DEPLOY_METHOD))
 			// check that the host isn't detached
 			Expect(updatedHost.ObjectMeta.Annotations).To(BeNil())
+		})
+	})
+})
+
+var _ = Describe("handleBMHFinalizer", func() {
+	var (
+		bmhr       *BMACReconciler
+		ctx        = context.Background()
+		mockCtrl   *gomock.Controller
+		mockClient *MockK8sClient
+		bmh        *bmh_v1alpha1.BareMetalHost
+	)
+
+	BeforeEach(func() {
+		schemes := GetKubeClientSchemes()
+		mockCtrl = gomock.NewController(GinkgoT())
+		mockClient = NewMockK8sClient(mockCtrl)
+		bmhr = &BMACReconciler{
+			Client:               mockClient,
+			APIReader:            mockClient,
+			Scheme:               scheme.Scheme,
+			Log:                  common.GetTestLog(),
+			spokeClient:          fakeclient.NewClientBuilder().WithScheme(schemes).Build(),
+			ConvergedFlowEnabled: false,
+		}
+		bmh = newBMH("testBMH", &bmh_v1alpha1.BareMetalHostSpec{})
+	})
+
+	AfterEach(func() {
+		mockCtrl.Finish()
+	})
+
+	It("adds the finalizer to the BMH when it doesn't exist", func() {
+		mockClient.EXPECT().Update(ctx, gomock.AssignableToTypeOf(&bmh_v1alpha1.BareMetalHost{})).DoAndReturn(
+			func(_ context.Context, updatedBMH *bmh_v1alpha1.BareMetalHost, _ ...client.UpdateOption) error {
+				Expect(updatedBMH.GetFinalizers()).To(ContainElement(BMH_FINALIZER_NAME))
+				return nil
+			},
+		)
+		_, err := bmhr.handleBMHFinalizer(ctx, bmhr.Log, bmh, nil).Result()
+		Expect(err).NotTo(HaveOccurred())
+	})
+
+	It("doesn't update the BMH when the finalizer already exists", func() {
+		bmh.ObjectMeta.Finalizers = []string{BMH_FINALIZER_NAME}
+		_, err := bmhr.handleBMHFinalizer(ctx, bmhr.Log, bmh, nil).Result()
+		Expect(err).NotTo(HaveOccurred())
+	})
+
+	It("fails when adding the finalizer fails", func() {
+		mockClient.EXPECT().Update(ctx, gomock.AssignableToTypeOf(&bmh_v1alpha1.BareMetalHost{})).Return(fmt.Errorf("update failed"))
+		_, err := bmhr.handleBMHFinalizer(ctx, bmhr.Log, bmh, nil).Result()
+		Expect(err).To(HaveOccurred())
+	})
+
+	Context("BMH is being deleted", func() {
+		BeforeEach(func() {
+			now := metav1.Now()
+			bmh.ObjectMeta.Finalizers = []string{BMH_FINALIZER_NAME}
+			bmh.DeletionTimestamp = &now
+		})
+
+		It("removes the finalizer when the BMH is being deleted", func() {
+			mockClient.EXPECT().Update(ctx, gomock.AssignableToTypeOf(&bmh_v1alpha1.BareMetalHost{})).DoAndReturn(
+				func(_ context.Context, updatedBMH *bmh_v1alpha1.BareMetalHost, _ ...client.UpdateOption) error {
+					Expect(updatedBMH.GetFinalizers()).NotTo(ContainElement(BMH_FINALIZER_NAME))
+					return nil
+				},
+			)
+			_, err := bmhr.handleBMHFinalizer(ctx, bmhr.Log, bmh, nil).Result()
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		It("fails when removing the finalizer fails", func() {
+			mockClient.EXPECT().Update(ctx, gomock.AssignableToTypeOf(&bmh_v1alpha1.BareMetalHost{})).Return(fmt.Errorf("update failed"))
+			_, err := bmhr.handleBMHFinalizer(ctx, bmhr.Log, bmh, nil).Result()
+			Expect(err).To(HaveOccurred())
+		})
+
+		It("deletes a matching agent when the BMH is being deleted", func() {
+			agent := newAgent("test-agent", testNamespace, v1beta1.AgentSpec{})
+			mockClient.EXPECT().Delete(ctx, gomock.AssignableToTypeOf(&v1beta1.Agent{})).Return(nil)
+
+			mockClient.EXPECT().Update(ctx, gomock.AssignableToTypeOf(&bmh_v1alpha1.BareMetalHost{})).DoAndReturn(
+				func(_ context.Context, updatedBMH *bmh_v1alpha1.BareMetalHost, _ ...client.UpdateOption) error {
+					Expect(updatedBMH.GetFinalizers()).NotTo(ContainElement(BMH_FINALIZER_NAME))
+					return nil
+				},
+			)
+			_, err := bmhr.handleBMHFinalizer(ctx, bmhr.Log, bmh, agent).Result()
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		It("fails when deleting the agent fails", func() {
+			agent := newAgent("test-agent", testNamespace, v1beta1.AgentSpec{})
+			mockClient.EXPECT().Delete(ctx, gomock.AssignableToTypeOf(&v1beta1.Agent{})).Return(fmt.Errorf("agent delete failed"))
+			_, err := bmhr.handleBMHFinalizer(ctx, bmhr.Log, bmh, agent).Result()
+			Expect(err).To(HaveOccurred())
 		})
 	})
 })

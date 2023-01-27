@@ -79,6 +79,8 @@ const (
 	BMH_INSPECT_ANNOTATION              = "inspect.metal3.io"
 	BMH_HARDWARE_DETAILS_ANNOTATION     = "inspect.metal3.io/hardwaredetails"
 	BMH_AGENT_IGNITION_CONFIG_OVERRIDES = "bmac.agent-install.openshift.io/ignition-config-overrides"
+	BMH_FINALIZER_NAME                  = "bmac.agent-install.openshift.io/deprovision"
+	BMH_DELETE_ANNOTATION               = "bmac.agent-install.openshift.io/remove-agent-and-node-on-delete"
 	MACHINE_ROLE                        = "machine.openshift.io/cluster-api-machine-role"
 	MACHINE_TYPE                        = "machine.openshift.io/cluster-api-machine-type"
 	MCS_CERT_NAME                       = "ca.crt"
@@ -214,6 +216,15 @@ func (r *BMACReconciler) Reconcile(origCtx context.Context, req ctrl.Request) (c
 
 	agent := r.findAgent(ctx, bmh)
 
+	// Finalizer is only needed if the user has indicated that they want our controller to remove the agent and node when the BMH is removed
+	if _, has_annotation := bmh.GetAnnotations()[BMH_DELETE_ANNOTATION]; has_annotation && r.ConvergedFlowEnabled {
+		// don't care about .Dirty here as handleBMHFinalizer calls the required updates
+		result := r.handleBMHFinalizer(ctx, log, bmh, agent)
+		if result.Stop(ctx) {
+			return result.Result()
+		}
+	}
+
 	if agent != nil {
 		result := r.reconcileUnboundAgent(log, bmh, agent)
 		if result.Dirty() {
@@ -333,6 +344,39 @@ func (r *BMACReconciler) Reconcile(origCtx context.Context, req ctrl.Request) (c
 	}
 
 	return result.Result()
+}
+
+// handleBMHFinalizer adds a finalizer to the BMH if it isn't being deleted and the finalizer isn't already present
+// If the BMH is being deleted, the associated agent (if any) is deleted before the BMH is allowed to be removed
+func (r *BMACReconciler) handleBMHFinalizer(ctx context.Context, log logrus.FieldLogger, bmh *bmh_v1alpha1.BareMetalHost, agent *aiv1beta1.Agent) reconcileResult {
+	bmhHasFinalizer := funk.ContainsString(bmh.GetFinalizers(), BMH_FINALIZER_NAME)
+	if bmh.ObjectMeta.DeletionTimestamp.IsZero() {
+		if !bmhHasFinalizer {
+			controllerutil.AddFinalizer(bmh, BMH_FINALIZER_NAME)
+			if err := r.Update(ctx, bmh); err != nil {
+				log.WithError(err).Errorf("Failed to update BMH with finalizer %s", BMH_FINALIZER_NAME)
+				return reconcileError{err: err}
+			}
+		}
+		return reconcileComplete{}
+	}
+
+	if bmhHasFinalizer {
+		// agent could be nil here if it wasn't created yet, or if we deleted it, then failed to remove the finalizer for some reason
+		if agent != nil {
+			if err := r.Delete(ctx, agent); err != nil {
+				log.WithError(err).Errorf("Failed to delete agent %s/%s as a part of BMH removal", agent.Namespace, agent.Name)
+				return reconcileError{err: err}
+			}
+		}
+
+		controllerutil.RemoveFinalizer(bmh, BMH_FINALIZER_NAME)
+		if err := r.Update(ctx, bmh); err != nil {
+			log.WithError(err).Errorf("Failed to remove BMH finalizer %s", BMH_FINALIZER_NAME)
+			return reconcileError{err: err}
+		}
+	}
+	return reconcileComplete{stop: true}
 }
 
 // This reconcile step takes care of copying data from the BMH into the Agent.
