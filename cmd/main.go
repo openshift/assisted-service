@@ -860,7 +860,7 @@ func createVersionHandlers(log logrus.FieldLogger, ctrlMgr manager.Manager, rele
 func getKafkaWriter(log *logrus.Logger) (*stream.KafkaWriter, error) {
 
 	metadata := map[string]interface{}{
-		"versions": Options.Versions,
+		"versions": versions.GetModelVersions(Options.Versions),
 	}
 	return stream.NewKafkaWriterWithMetadata(metadata)
 }

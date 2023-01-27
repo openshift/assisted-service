@@ -190,7 +190,9 @@ func UpdateCluster(ctx context.Context, log logrus.FieldLogger, db *gorm.DB, eve
 	}
 
 	cluster, err := common.GetClusterFromDB(db, clusterId, common.UseEagerLoading)
-	notifyEventStream(ctx, eventStream, cluster, log)
+	if cluster != nil {
+		notifyEventStream(ctx, eventStream, &cluster.Cluster, log)
+	}
 	return cluster, err
 }
 
@@ -305,7 +307,7 @@ func UpdateMachineNetwork(db *gorm.DB, cluster *common.Cluster, machineNetwork [
 	return nil
 }
 
-func notifyEventStream(ctx context.Context, stream stream.EventStreamWriter, cluster *common.Cluster, log logrus.FieldLogger) {
+func notifyEventStream(ctx context.Context, stream stream.EventStreamWriter, cluster *models.Cluster, log logrus.FieldLogger) {
 	if stream == nil || cluster == nil {
 		return
 	}

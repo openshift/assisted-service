@@ -4768,7 +4768,7 @@ var _ = Describe("Notifying events", func() {
 			host, err := common.GetHostFromDBbyHostId(db, hostID)
 			Expect(err).To(BeNil())
 			mockStream.EXPECT().Write(ctx, "HostState", []byte(clusterID), gomock.Any()).Times(0)
-			manager.notifyEventStream(ctx, host)
+			manager.notifyEventStream(ctx, &host.Host)
 		})
 	})
 
@@ -4776,8 +4776,8 @@ var _ = Describe("Notifying events", func() {
 		It("sends events with created cluster payload", func() {
 			host, err := common.GetHostFromDBbyHostId(db, hostID)
 			Expect(err).To(BeNil())
-			mockStream.EXPECT().Write(ctx, "HostState", []byte(clusterID), host).Times(1).Return(nil)
-			manager.notifyEventStream(ctx, host)
+			mockStream.EXPECT().Write(ctx, "HostState", []byte(clusterID), &host.Host).Times(1).Return(nil)
+			manager.notifyEventStream(ctx, &host.Host)
 		})
 	})
 

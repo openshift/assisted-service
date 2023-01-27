@@ -564,11 +564,13 @@ func (m *Manager) updateHostAndNotify(ctx context.Context, db *gorm.DB, h *model
 		}).Warn("Updated host that could not be retrieved from database")
 		return response
 	}
-	m.notifyEventStream(ctx, host)
+	if host != nil {
+		m.notifyEventStream(ctx, &host.Host)
+	}
 	return response
 }
 
-func (m *Manager) notifyEventStream(ctx context.Context, host *common.Host) {
+func (m *Manager) notifyEventStream(ctx context.Context, host *models.Host) {
 	if m.stream == nil || host == nil {
 		return
 	}

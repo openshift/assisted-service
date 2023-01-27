@@ -85,7 +85,7 @@ func (e *Events) v2SaveEvent(ctx context.Context, clusterID *strfmt.UUID, hostID
 			tx.Rollback()
 		} else {
 			tx.Commit()
-			e.notifyEventStream(ctx, &event)
+			e.notifyEventStream(ctx, &event.Event)
 		}
 	}()
 
@@ -103,7 +103,7 @@ func (e *Events) v2SaveEvent(ctx context.Context, clusterID *strfmt.UUID, hostID
 	dberr = tx.Create(&event).Error
 }
 
-func (e *Events) notifyEventStream(ctx context.Context, event *common.Event) {
+func (e *Events) notifyEventStream(ctx context.Context, event *models.Event) {
 	if e.stream != nil && event != nil {
 		key := ""
 		if event.ClusterID != nil {

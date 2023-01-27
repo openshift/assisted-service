@@ -410,15 +410,15 @@ var _ = Describe("UpdateCluster and notify event stream", func() {
 
 	When("notifying with an empty stream", func() {
 		It("should not send an event", func() {
-			mockStream.EXPECT().Write(ctx, "ClusterState", []byte((*cluster).ID.String()), cluster).Times(0)
-			notifyEventStream(ctx, nil, cluster, common.GetTestLog())
+			mockStream.EXPECT().Write(ctx, "ClusterState", []byte((*cluster).ID.String()), &cluster.Cluster).Times(0)
+			notifyEventStream(ctx, nil, &cluster.Cluster, common.GetTestLog())
 		})
 	})
 
 	When("notifying with a stream", func() {
 		It("should send an event", func() {
-			mockStream.EXPECT().Write(ctx, "ClusterState", []byte((*cluster).ID.String()), cluster).Times(1).Return(nil)
-			notifyEventStream(ctx, mockStream, cluster, common.GetTestLog())
+			mockStream.EXPECT().Write(ctx, "ClusterState", []byte((*cluster).ID.String()), &cluster.Cluster).Times(1).Return(nil)
+			notifyEventStream(ctx, mockStream, &cluster.Cluster, common.GetTestLog())
 		})
 	})
 
