@@ -16,8 +16,6 @@ export ASSISTED_PULLSECRET_JSON="${ASSISTED_PULLSECRET_JSON:-${PULL_SECRET_FILE}
 export ASSISTED_PRIVATEKEY_NAME="${ASSISTED_PRIVATEKEY_NAME:-assisted-ssh-private-key}"
 export EXTRA_BAREMETALHOSTS_FILE="${EXTRA_BAREMETALHOSTS_FILE:-/home/test/dev-scripts/ocp/ostest/extra_baremetalhosts.json}"
 export SPOKE_CONTROLPLANE_AGENTS="${SPOKE_CONTROLPLANE_AGENTS:-1}"
-export SPOKE_API_VIP="${SPOKE_API_VIP:-}"
-export SPOKE_INGRESS_VIP="${SPOKE_INGRESS_VIP:-}"
 export ASSISTED_STOP_AFTER_AGENT_DISCOVERY="${ASSISTED_STOP_AFTER_AGENT_DISCOVERY:-false}"
 export ASSISTED_UPGRADE_OPERATOR="${ASSISTED_UPGRADE_OPERATOR:-false}"
 export SPAWN_NONE_PLATFORM_LOAD_BALANCER="${SPAWN_NONE_PLATFORM_LOAD_BALANCER:-false}"
@@ -56,12 +54,6 @@ elif [[ "${IP_STACK}" == "v4v6" ]]; then
     export CLUSTER_HOST_PREFIX_ADDITIONAL="${CLUSTER_HOST_PREFIX_V6}"
     export EXTERNAL_SUBNET_ADDITIONAL="${EXTERNAL_SUBNET_V6}"
     export SERVICE_SUBNET_ADDITIONAL="${SERVICE_SUBNET_V6}"
-fi
-
-#  If spoke is a multi cluster then we need to pick IPs for API and Ingress
-if [ ${SPOKE_CONTROLPLANE_AGENTS} -ne 1 ] && [ "${USER_MANAGED_NETWORKING}" != "true" ] ; then
-    export SPOKE_API_VIP=${SPOKE_API_VIP:-$(nth_ip $EXTERNAL_SUBNET 85)}
-    export SPOKE_INGRESS_VIP=${SPOKE_INGRESS_VIP:-$(nth_ip $EXTERNAL_SUBNET 87)}
 fi
 
 if [ "${DISCONNECTED}" = "true" ]; then
@@ -146,7 +138,18 @@ oc scale nodepool/$ASSISTED_CLUSTER_NAME -n $SPOKE_NAMESPACE --replicas=${SPOKE_
 
 # Wait for node to appear in the CAPI-deployed cluster
 oc extract -n $SPOKE_NAMESPACE secret/$ASSISTED_CLUSTER_NAME-admin-kubeconfig --to=- > /tmp/$ASSISTED_CLUSTER_NAME-kubeconfig
+export HUB_KUBECONFIG=${KUBECONFIG}
 export KUBECONFIG=/tmp/$ASSISTED_CLUSTER_NAME-kubeconfig
 
 wait_for_object_amount node ${SPOKE_CONTROLPLANE_AGENTS} 10
 echo "Worker nodes have been detected successfuly in the created cluster!"
+
+
+echo "verify the BMH on the HUB cluster is detached"
+export KUBECONFIG=${HUB_KUBECONFIG}
+if [ $(oc get baremetalhost -n ${SPOKE_NAMESPACE} -o json | jq -c '.items[].metadata.annotations."baremetalhost.metal3.io/detached"| select("assisted-service-controller")' | wc -l) -ne ${SPOKE_CONTROLPLANE_AGENTS} ]; then
+  echo "The amount of detached BMHs on the HUB cluster doesn't match the amount of expected installed nodes in the spoke: ${SPOKE_CONTROLPLANE_AGENTS}"
+  echo "HUB cluster BMHs: "
+  oc get baremetalhost -n "${SPOKE_NAMESPACE}"
+  return 1
+fi
