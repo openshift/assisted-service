@@ -6,7 +6,11 @@ import (
 
 const (
 	// LvmMinOpenshiftVersion is the minimum OCP version in which lvmo is supported
-	LvmMinOpenshiftVersion string = "4.12.0-0.0"
+	LvmoMinOpenshiftVersion string = "4.11.0"
+	LvmsMinOpenshiftVersion string = "4.12.0"
+
+	LvmoSubscriptionName string = "odf-lvm-operator"
+	LvmsSubscriptionName string = "lvms-operator"
 )
 
 type Config struct {

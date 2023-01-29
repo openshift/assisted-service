@@ -25,7 +25,7 @@ var Operator = models.MonitoredOperator{
 	Name:             "lvm",
 	OperatorType:     models.OperatorTypeOlm,
 	Namespace:        "openshift-storage",
-	SubscriptionName: "odf-lvm-operator",
+	SubscriptionName: "",
 	TimeoutSeconds:   30 * 60,
 }
 
@@ -121,8 +121,8 @@ func (o *operator) ValidateHost(ctx context.Context, cluster *common.Cluster, ho
 }
 
 // GenerateManifests generates manifests for the operator
-func (o *operator) GenerateManifests(_ *common.Cluster) (map[string][]byte, []byte, error) {
-	return Manifests()
+func (o *operator) GenerateManifests(cluster *common.Cluster) (map[string][]byte, []byte, error) {
+	return Manifests(cluster)
 }
 
 // GetProperties provides description of operator properties: none required
