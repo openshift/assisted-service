@@ -105,7 +105,7 @@ var _ = Describe("Lvm Operator", func() {
 			),
 			table.Entry("High Availability Mode None and Openshift version less than minimal",
 				&common.Cluster{Cluster: models.Cluster{HighAvailabilityMode: &noneHaMode, Hosts: []*models.Host{hostWithSufficientResources}, OpenshiftVersion: "4.10.0"}},
-				api.ValidationResult{Status: api.Failure, ValidationId: operator.GetHostValidationID(), Reasons: []string{"ODF LVM storage is only supported for openshift versions 4.12.0-0.0 and above"}},
+				api.ValidationResult{Status: api.Failure, ValidationId: operator.GetHostValidationID(), Reasons: []string{"ODF LVM storage is only supported for openshift versions 4.11.0 and above"}},
 			),
 			table.Entry("High Availability Mode None and Openshift version more than minimal",
 				&common.Cluster{Cluster: models.Cluster{HighAvailabilityMode: &noneHaMode, Hosts: []*models.Host{hostWithSufficientResources}, OpenshiftVersion: operator.config.LvmMinOpenshiftVersion}},

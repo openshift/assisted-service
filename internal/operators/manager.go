@@ -404,7 +404,7 @@ func (mgr *Manager) GetSupportedOperatorsByType(operatorType models.OperatorType
 
 func EnsureLVMAndCNVDoNotClash(openshiftVersion string, operators []*models.MonitoredOperator) error {
 
-	minOCPVersionForLVM, err := version.NewVersion(lvm.LvmMinOpenshiftVersion)
+	minOCPVersionForLVMS, err := version.NewVersion(lvm.LvmsMinOpenshiftVersion)
 	if err != nil {
 		return err
 	}
@@ -414,8 +414,8 @@ func EnsureLVMAndCNVDoNotClash(openshiftVersion string, operators []*models.Moni
 		return err
 	}
 
-	// Openshift version greater or Equal to 4.12.0 support cnv and lvm
-	if ocpVersion.GreaterThanOrEqual(minOCPVersionForLVM) {
+	// Openshift version greater or Equal to 4.12.0 support cnv and lvms
+	if ocpVersion.GreaterThanOrEqual(minOCPVersionForLVMS) {
 		return nil
 	}
 

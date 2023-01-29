@@ -178,7 +178,7 @@ var _ = Describe("Operators manager", func() {
 				{Name: "lso"},
 				{Name: "odf"},
 			}
-			err := operators.EnsureLVMAndCNVDoNotClash("4.12.0-ec.3", monitoredOperators)
+			err := operators.EnsureLVMAndCNVDoNotClash("4.12.0", monitoredOperators)
 			Expect(err).To(BeNil())
 		})
 		It("lvm operator enabled without cnv before 4.12", func() {
