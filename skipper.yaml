@@ -26,7 +26,7 @@ volumes:
   - /var/lib/libvirt/:/var/lib/libvirt/
   - /etc/pki/tls/certs/ca-bundle.crt:/etc/pki/tls/certs/ca-bundle.crt
 
-  - $(podman info --format "{{.Host.RemoteSocket.Path}}" || echo "$XDG_RUNTIME_DIR/podman/podman.sock"):/run/podman/podman.sock
+  - $(podman info --format "{{.Host.RemoteSocket.Path}}" 2> /dev/null || echo "$XDG_RUNTIME_DIR/podman/podman.sock"):/run/podman/podman.sock
 env_file:
   - skipper.env
 env:
