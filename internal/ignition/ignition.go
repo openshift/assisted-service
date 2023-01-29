@@ -25,6 +25,7 @@ import (
 	config_latest_trans "github.com/coreos/ignition/v2/config/v3_2/translate"
 	config_latest_types "github.com/coreos/ignition/v2/config/v3_2/types"
 	"github.com/coreos/vcontext/report"
+	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 	bmh_v1alpha1 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
 	operatorv1alpha1 "github.com/openshift/api/operator/v1alpha1"
@@ -1286,55 +1287,168 @@ func getBootReporterFileContent() (string, error) {
 	return base64.StdEncoding.EncodeToString(data), nil
 }
 
+func (g *installerGenerator) getManifestContent(ctx context.Context, manifest string) (string, error) {
+	respBody, _, err := g.s3Client.Download(ctx, manifest)
+	if err != nil {
+		return "", err
+	}
+	content, err := io.ReadAll(respBody)
+	if err != nil {
+		return "", err
+	}
+	return string(content), nil
+}
+
+func machineConfilePoolExists(manifestFname, content, poolName string) (bool, error) {
+	var (
+		manifest struct {
+			Kind     string
+			Metadata *struct {
+				Name string
+			}
+		}
+		err error
+	)
+	ext := filepath.Ext(manifestFname)
+	switch ext {
+	case ".yml", ".yaml":
+		err = yaml.Unmarshal([]byte(content), &manifest)
+	case ".json":
+		err = json.Unmarshal([]byte(content), &manifest)
+	default:
+		return false, nil
+	}
+	if err != nil {
+		return false, err
+	}
+	return manifest.Kind == "MachineConfigPool" && manifest.Metadata != nil && manifest.Metadata.Name == poolName, nil
+}
+
+func (g *installerGenerator) clusterHasMCP(poolName string, clusterId *strfmt.UUID) (bool, error) {
+	var err error
+	ctx := context.Background()
+	manifestList, err := manifests.GetClusterManifests(ctx, clusterId, g.s3Client)
+	if err != nil {
+		return false, err
+	}
+	for _, manifest := range manifestList {
+		content, err := g.getManifestContent(ctx, manifest)
+		if err != nil {
+			return false, err
+		}
+		exists, err := machineConfilePoolExists(manifest, content, poolName)
+		if err != nil {
+			return false, err
+		}
+		if exists {
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
+func (g *installerGenerator) updatePointerIgnitionMCP(poolName string, ignitionStr string) (string, error) {
+	config, err := ParseToLatest([]byte(ignitionStr))
+	if err != nil {
+		return "", err
+	}
+	for i := range config.Ignition.Config.Merge {
+		r := &config.Ignition.Config.Merge[i]
+		if r.Source != nil {
+			r.Source = swag.String(strings.Replace(swag.StringValue(r.Source), "config/worker", "config/"+poolName, 1))
+		}
+	}
+	b, err := json.Marshal(config)
+	if err != nil {
+		return "", err
+	}
+	return string(b), nil
+}
+
+func (g *installerGenerator) modifyPointerIgnitionMCP(poolName string, ignitionStr string, clusterId *strfmt.UUID) (string, error) {
+	var (
+		mcpExists bool
+		err       error
+		ret       string
+	)
+	mcpExists, err = g.clusterHasMCP(poolName, clusterId)
+	if err != nil {
+		g.log.WithError(err).Errorf("failed to find if machine config pool %s exists", poolName)
+		return "", err
+	}
+	if mcpExists {
+		ret, err = g.updatePointerIgnitionMCP(poolName, ignitionStr)
+		if err != nil {
+			g.log.WithError(err).Errorf("failed to update pointer ignition for pool %s", poolName)
+			return "", err
+		}
+		return ret, nil
+	}
+	return "", errors.Errorf("machine config pool %s was not found", poolName)
+}
+
+func (g *installerGenerator) writeSingleHostFile(host *models.Host, baseFile string, workDir, serviceBaseURL, bootReporter string, authType auth.AuthType) error {
+	config, err := parseIgnitionFile(filepath.Join(workDir, baseFile))
+	if err != nil {
+		return err
+	}
+	pullSecretToken, err := clusterPkg.AgentToken(g.cluster, authType)
+	if err != nil {
+		return err
+	}
+	contents := fmt.Sprintf(assistedBootReporterunitTemplate, strings.TrimSpace(serviceBaseURL), pullSecretToken, host.ClusterID, host.ID, 5, 60)
+	setUnitInIgnition(config, contents, "assisted-boot-reporter.service", true)
+
+	hostname, err := hostutil.GetCurrentHostName(host)
+	if err != nil {
+		return errors.Wrapf(err, "failed to get hostname for host %s", host.ID)
+	}
+
+	setFileInIgnition(config, "/etc/hostname", fmt.Sprintf("data:,%s", hostname), false, 420, true)
+
+	setFileInIgnition(config, "/usr/local/bin/assisted-boot-reporter.sh", fmt.Sprintf("data:text/plain;charset=utf-8;base64,%s", bootReporter), false, 0700, true)
+
+	configBytes, err := json.Marshal(config)
+	if err != nil {
+		return err
+	}
+
+	if host.IgnitionConfigOverrides != "" {
+		merged, mergeErr := MergeIgnitionConfig(configBytes, []byte(host.IgnitionConfigOverrides))
+		if mergeErr != nil {
+			return errors.Wrapf(mergeErr, "failed to apply ignition config overrides for host %s", host.ID)
+		}
+		configBytes = []byte(merged)
+	}
+
+	if host.Role == models.HostRoleWorker && host.MachineConfigPoolName != "" {
+		var override string
+		override, err = g.modifyPointerIgnitionMCP(host.MachineConfigPoolName, string(configBytes), host.ClusterID)
+		if err != nil {
+			return errors.Wrapf(err, "failed to set machine config pool %s to pointer ignition for host %s",
+				host.MachineConfigPoolName, host.ID.String())
+		}
+		configBytes = []byte(override)
+	}
+
+	err = os.WriteFile(filepath.Join(workDir, hostutil.IgnitionFileName(host)), configBytes, 0600)
+	if err != nil {
+		return errors.Wrapf(err, "failed to write ignition for host %s", host.ID)
+	}
+
+	return nil
+}
+
 func (g *installerGenerator) writeHostFiles(hosts []*models.Host, baseFile string, workDir string, serviceBaseURL string, authType auth.AuthType) error {
 	errGroup := new(errgroup.Group)
 	bootReporter, err := getBootReporterFileContent()
 	if err != nil {
 		return errors.Wrap(err, "failed to read the contents of assisted-boot-reporter.sh")
 	}
-
 	for i := range hosts {
 		host := hosts[i]
 		errGroup.Go(func() error {
-			config, err := parseIgnitionFile(filepath.Join(workDir, baseFile))
-			if err != nil {
-				return err
-			}
-			pullSecretToken, err := clusterPkg.AgentToken(g.cluster, authType)
-			if err != nil {
-				return err
-			}
-			contents := fmt.Sprintf(assistedBootReporterunitTemplate, strings.TrimSpace(serviceBaseURL), pullSecretToken, host.ClusterID, host.ID, 5, 60)
-			setUnitInIgnition(config, contents, "assisted-boot-reporter.service", true)
-
-			hostname, err := hostutil.GetCurrentHostName(host)
-			if err != nil {
-				return errors.Wrapf(err, "failed to get hostname for host %s", host.ID)
-			}
-
-			setFileInIgnition(config, "/etc/hostname", fmt.Sprintf("data:,%s", hostname), false, 420, true)
-
-			setFileInIgnition(config, "/usr/local/bin/assisted-boot-reporter.sh", fmt.Sprintf("data:text/plain;charset=utf-8;base64,%s", bootReporter), false, 0700, true)
-
-			configBytes, err := json.Marshal(config)
-			if err != nil {
-				return err
-			}
-
-			if host.IgnitionConfigOverrides != "" {
-				merged, mergeErr := MergeIgnitionConfig(configBytes, []byte(host.IgnitionConfigOverrides))
-				if mergeErr != nil {
-					return errors.Wrapf(mergeErr, "failed to apply ignition config overrides for host %s", host.ID)
-				}
-				configBytes = []byte(merged)
-			}
-
-			err = os.WriteFile(filepath.Join(workDir, hostutil.IgnitionFileName(host)), configBytes, 0600)
-			if err != nil {
-				return errors.Wrapf(err, "failed to write ignition for host %s", host.ID)
-			}
-
-			return nil
+			return g.writeSingleHostFile(host, baseFile, workDir, serviceBaseURL, bootReporter, authType)
 		})
 	}
 
