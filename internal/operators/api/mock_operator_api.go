@@ -81,6 +81,20 @@ func (mr *MockOperatorMockRecorder) GetDependencies(arg0 interface{}) *gomock.Ca
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetDependencies", reflect.TypeOf((*MockOperator)(nil).GetDependencies), arg0)
 }
 
+// GetFullName mocks base method.
+func (m *MockOperator) GetFullName() string {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetFullName")
+	ret0, _ := ret[0].(string)
+	return ret0
+}
+
+// GetFullName indicates an expected call of GetFullName.
+func (mr *MockOperatorMockRecorder) GetFullName() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetFullName", reflect.TypeOf((*MockOperator)(nil).GetFullName))
+}
+
 // GetHostRequirements mocks base method.
 func (m *MockOperator) GetHostRequirements(arg0 context.Context, arg1 *common.Cluster, arg2 *models.Host) (*models.ClusterHostRequirementsDetails, error) {
 	m.ctrl.T.Helper()
@@ -165,6 +179,20 @@ func (m *MockOperator) GetProperties() models.OperatorProperties {
 func (mr *MockOperatorMockRecorder) GetProperties() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetProperties", reflect.TypeOf((*MockOperator)(nil).GetProperties))
+}
+
+// GetSupportedArchitectures mocks base method.
+func (m *MockOperator) GetSupportedArchitectures() []string {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetSupportedArchitectures")
+	ret0, _ := ret[0].([]string)
+	return ret0
+}
+
+// GetSupportedArchitectures indicates an expected call of GetSupportedArchitectures.
+func (mr *MockOperatorMockRecorder) GetSupportedArchitectures() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSupportedArchitectures", reflect.TypeOf((*MockOperator)(nil).GetSupportedArchitectures))
 }
 
 // ValidateCluster mocks base method.

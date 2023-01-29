@@ -53,6 +53,10 @@ func (o *operator) GetName() string {
 	return Operator.Name
 }
 
+func (o *operator) GetFullName() string {
+	return "Logical Volume Management"
+}
+
 // GetDependencies provides a list of dependencies of the Operator
 func (o *operator) GetDependencies(cluster *common.Cluster) ([]string, error) {
 	return make([]string, 0), nil
@@ -71,7 +75,7 @@ func (o *operator) GetHostValidationID() string {
 // ValidateCluster always return "valid" result
 func (o *operator) ValidateCluster(_ context.Context, cluster *common.Cluster) (api.ValidationResult, error) {
 	if !common.IsSingleNodeCluster(cluster) {
-		message := "ODF LVM storage is only supported for Single Node Openshift"
+		message := "Logical Volume Manager is only supported for Single Node Openshift"
 		return api.ValidationResult{Status: api.Failure, ValidationId: o.GetClusterValidationID(), Reasons: []string{message}}, nil
 	}
 
@@ -87,7 +91,7 @@ func (o *operator) ValidateCluster(_ context.Context, cluster *common.Cluster) (
 		return api.ValidationResult{Status: api.Failure, ValidationId: o.GetHostValidationID(), Reasons: []string{err.Error()}}, nil
 	}
 	if ocpVersion.LessThan(minOpenshiftVersionForLvm) {
-		message := fmt.Sprintf("ODF LVM storage is only supported for openshift versions %s and above", o.config.LvmMinOpenshiftVersion)
+		message := fmt.Sprintf("Logical Volume Manager is only supported for openshift versions %s and above", o.config.LvmMinOpenshiftVersion)
 		return api.ValidationResult{Status: api.Failure, ValidationId: o.GetClusterValidationID(), Reasons: []string{message}}, nil
 	}
 
@@ -113,7 +117,7 @@ func (o *operator) ValidateHost(ctx context.Context, cluster *common.Cluster, ho
 		return api.ValidationResult{Status: api.Failure, ValidationId: o.GetHostValidationID(), Reasons: []string{err.Error()}}, nil
 	}
 	if diskCount == 0 {
-		message := "ODF LVM requires at least one non-installation HDD/SSD disk on the host"
+		message := "Logical Volume Manager requires at least one non-installation HDD/SSD disk on the host"
 		return api.ValidationResult{Status: api.Failure, ValidationId: o.GetHostValidationID(), Reasons: []string{message}}, nil
 	}
 
@@ -170,4 +174,8 @@ func (o *operator) GetPreflightRequirements(context context.Context, cluster *co
 			},
 		},
 	}, nil
+}
+
+func (o *operator) GetSupportedArchitectures() []string {
+	return []string{common.X86CPUArchitecture, common.ARM64CPUArchitecture}
 }

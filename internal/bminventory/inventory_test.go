@@ -2602,6 +2602,7 @@ var _ = Describe("cluster", func() {
 					clusterParams.OlmOperators = []*models.OperatorCreateParams{
 						{Name: newOperatorName, Properties: newProperties},
 					}
+					mockOperatorManager.EXPECT().EnsureOperatorPrerequisite(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 					reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 						NewClusterParams: clusterParams,
 					})
@@ -2634,6 +2635,8 @@ var _ = Describe("cluster", func() {
 					clusterParams.OlmOperators = []*models.OperatorCreateParams{
 						{Name: newOperatorName},
 					}
+
+					mockOperatorManager.EXPECT().EnsureOperatorPrerequisite(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 					reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 						NewClusterParams: clusterParams,
 					})
@@ -2704,6 +2707,8 @@ var _ = Describe("cluster", func() {
 						{Name: "lvm"},
 						{Name: "cnv"},
 					}
+					mockOperatorManager.EXPECT().EnsureOperatorPrerequisite(gomock.Any(), gomock.Any(), gomock.Any()).Return(
+						errors.New("Currently, you can not install OpenShift Data Foundation Logical Volume Manager operator at the same time as Virtualization operator"))
 					reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 						NewClusterParams: clusterParams,
 					})
@@ -2725,6 +2730,7 @@ var _ = Describe("cluster", func() {
 						{Name: "cnv"},
 						{Name: "lvm"},
 					}
+					mockOperatorManager.EXPECT().EnsureOperatorPrerequisite(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 					reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 						NewClusterParams: clusterParams,
 					})
@@ -2750,6 +2756,7 @@ var _ = Describe("cluster", func() {
 					clusterParams.OlmOperators = []*models.OperatorCreateParams{
 						{Name: "cnv"},
 					}
+					mockOperatorManager.EXPECT().EnsureOperatorPrerequisite(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 					reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 						NewClusterParams: clusterParams,
 					})
@@ -2781,6 +2788,7 @@ var _ = Describe("cluster", func() {
 					}
 					clusterParams.OpenshiftVersion = swag.String("4.12")
 
+					mockOperatorManager.EXPECT().EnsureOperatorPrerequisite(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 					reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 						NewClusterParams: clusterParams,
 					})
@@ -2921,6 +2929,10 @@ var _ = Describe("cluster", func() {
 								}).Times(1)
 						}
 
+						if test.updateOperators != nil {
+							mockOperatorManager.EXPECT().EnsureOperatorPrerequisite(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
+						}
+
 						reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 							ClusterID: clusterID,
 							ClusterUpdateParams: &models.V2ClusterUpdateParams{
@@ -2965,6 +2977,7 @@ var _ = Describe("cluster", func() {
 							return append(operators, testOLMOperators[0]), nil
 						}).Times(1)
 
+					mockOperatorManager.EXPECT().EnsureOperatorPrerequisite(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 						ClusterID: clusterID,
 						ClusterUpdateParams: &models.V2ClusterUpdateParams{
@@ -3003,6 +3016,8 @@ var _ = Describe("cluster", func() {
 							return append(operators, testOLMOperators[0]), nil
 						}).Times(1)
 
+					mockOperatorManager.EXPECT().EnsureOperatorPrerequisite(gomock.Any(), gomock.Any(), gomock.Any()).Return(
+						errors.New("Currently, you can not install OpenShift Data Foundation Logical Volume Manager operator at the same time as Virtualization operator"))
 					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 						ClusterID: clusterID,
 						ClusterUpdateParams: &models.V2ClusterUpdateParams{
@@ -3504,6 +3519,7 @@ var _ = Describe("cluster", func() {
 						return append(operators, testOLMOperators[0]), nil
 					}).Times(1)
 
+				mockOperatorManager.EXPECT().EnsureOperatorPrerequisite(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 				reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 					ClusterID: clusterID,
 					ClusterUpdateParams: &models.V2ClusterUpdateParams{

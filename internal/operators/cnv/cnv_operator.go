@@ -56,6 +56,10 @@ func (o *operator) GetName() string {
 	return Operator.Name
 }
 
+func (o *operator) GetFullName() string {
+	return "OpenShift Virtualization"
+}
+
 // GetDependencies provides a list of dependencies of the Operator
 func (o *operator) GetDependencies(cluster *common.Cluster) ([]string, error) {
 	lsoOperator := []string{lso.Operator.Name}
@@ -97,10 +101,9 @@ func (o *operator) ValidateCluster(_ context.Context, cluster *common.Cluster) (
 }
 
 func (o *operator) validateRequirements(cluster *models.Cluster) (api.ValidationStatus, string) {
-	if cluster.CPUArchitecture != common.DefaultCPUArchitecture {
+	if !api.IsArchitectureSupported(cluster.CPUArchitecture, o) {
 		return api.Failure, fmt.Sprintf(
-			"OpenShift Virtualization is supported only for %s CPU architecture.",
-			common.DefaultCPUArchitecture)
+			"%s is supported only for %s CPU architecture.", o.GetFullName(), common.DefaultCPUArchitecture)
 	}
 	return api.Success, ""
 }
@@ -328,4 +331,8 @@ func validDiscoverableSNODisk(disks []*models.Disk, installationDiskID string, d
 		}
 	}
 	return fmt.Errorf("OpenShift Virtualization on SNO requires an additional disk with %d GB (%d Gi) in order to provide persistent storage for VMs, using hostpath-provisioner", thresholdGB, diskThresholdGi)
+}
+
+func (o *operator) GetSupportedArchitectures() []string {
+	return []string{common.X86CPUArchitecture}
 }

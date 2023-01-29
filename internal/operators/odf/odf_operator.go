@@ -68,6 +68,10 @@ func (o *operator) GetName() string {
 	return Operator.Name
 }
 
+func (o *operator) GetFullName() string {
+	return "OpenShift Data Foundation"
+}
+
 // GetDependencies provides a list of dependencies of the Operator
 func (o *operator) GetDependencies(cluster *common.Cluster) ([]string, error) {
 	return []string{lso.Operator.Name}, nil
@@ -244,4 +248,8 @@ func (o *operator) GetPreflightRequirements(context context.Context, cluster *co
 			},
 		},
 	}, nil
+}
+
+func (o *operator) GetSupportedArchitectures() []string {
+	return []string{common.X86CPUArchitecture}
 }
