@@ -586,7 +586,7 @@ func (b *bareMetalInventory) RegisterClusterInternal(
 
 	if params.NewClusterParams.OlmOperators != nil {
 		var newOLMOperators []*models.MonitoredOperator
-		newOLMOperators, err = b.getOLMOperators(&cluster, params.NewClusterParams.OlmOperators)
+		newOLMOperators, err = b.getOLMOperators(&cluster, params.NewClusterParams.OlmOperators, log)
 		if err != nil {
 			return nil, err
 		}
@@ -2723,7 +2723,7 @@ func (b *bareMetalInventory) updateOperatorsData(ctx context.Context, cluster *c
 		return nil
 	}
 
-	updateOLMOperators, err := b.getOLMOperators(cluster, params.ClusterUpdateParams.OlmOperators)
+	updateOLMOperators, err := b.getOLMOperators(cluster, params.ClusterUpdateParams.OlmOperators, log)
 	if err != nil {
 		return err
 	}
@@ -2777,7 +2777,7 @@ func (b *bareMetalInventory) updateOperatorsData(ctx context.Context, cluster *c
 	return nil
 }
 
-func (b *bareMetalInventory) getOLMOperators(cluster *common.Cluster, newOperators []*models.OperatorCreateParams) ([]*models.MonitoredOperator, error) {
+func (b *bareMetalInventory) getOLMOperators(cluster *common.Cluster, newOperators []*models.OperatorCreateParams, log logrus.FieldLogger) ([]*models.MonitoredOperator, error) {
 	monitoredOperators := make([]*models.MonitoredOperator, 0)
 
 	for _, newOperator := range newOperators {
@@ -2793,10 +2793,13 @@ func (b *bareMetalInventory) getOLMOperators(cluster *common.Cluster, newOperato
 		if operator.Name == "lvm" {
 			lvmsMetMinOpenshiftVersion, err := common.VersionGreaterOrEqual(cluster.OpenshiftVersion, lvm.LvmsMinOpenshiftVersion)
 			if err != nil {
+				log.Warnf("Error parsing cluster.OpenshiftVersion: %s, setting subscription name to %s", err.Error(), lvm.LvmsSubscriptionName)
 				operator.SubscriptionName = lvm.LvmsSubscriptionName
 			} else if lvmsMetMinOpenshiftVersion {
+				log.Infof("LVMS minimum requirement met (OpenshiftVersion=%s), setting subscription name to %s ", cluster.OpenshiftVersion, lvm.LvmsSubscriptionName)
 				operator.SubscriptionName = lvm.LvmsSubscriptionName
 			} else {
+				log.Infof("LVMS minimum requirement didn't met (OpenshiftVersion=%s), setting subscription name to %s ", cluster.OpenshiftVersion, lvm.LvmoSubscriptionName)
 				operator.SubscriptionName = lvm.LvmoSubscriptionName
 			}
 		}
