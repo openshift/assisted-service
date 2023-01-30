@@ -3,11 +3,14 @@ package lvm
 import (
 	"bytes"
 	"text/template"
+
+	"github.com/hashicorp/go-version"
+	"github.com/openshift/assisted-service/internal/common"
 )
 
 // Manifests returns manifests needed to deploy LVM
-func Manifests() (map[string][]byte, []byte, error) {
-	lvmSubscription, err := getSubscription()
+func Manifests(cluster *common.Cluster) (map[string][]byte, []byte, error) {
+	lvmSubscription, err := getSubscription(cluster)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -32,11 +35,33 @@ func Manifests() (map[string][]byte, []byte, error) {
 	return openshiftManifests, lvmcluster, nil
 }
 
-func getSubscription() ([]byte, error) {
-	data := map[string]string{
-		"OPERATOR_NAMESPACE":         Operator.Namespace,
-		"OPERATOR_SUBSCRIPTION_NAME": Operator.SubscriptionName,
+func getSubscription(cluster *common.Cluster) ([]byte, error) {
+
+	ocpVersion, err := version.NewVersion(cluster.OpenshiftVersion)
+	if err != nil {
+		return []byte{}, err
 	}
+
+	minOCPVersionForLVMS, err := version.NewVersion(LvmsMinOpenshiftVersion)
+	if err != nil {
+		return []byte{}, err
+	}
+
+	if ocpVersion.LessThan(minOCPVersionForLVMS) {
+		data := map[string]string{
+			"OPERATOR_NAMESPACE":              Operator.Namespace,
+			"OPERATOR_SUBSCRIPTION_NAME":      LvmoSubscriptionName,
+			"OPERATOR_SUBSCRIPTION_SPEC_NAME": LvmoSubscriptionName,
+		}
+		return executeTemplate(data, "LvmSubscription", LvmSubscription)
+	}
+
+	data := map[string]string{
+		"OPERATOR_NAMESPACE":              Operator.Namespace,
+		"OPERATOR_SUBSCRIPTION_NAME":      LvmsSubscriptionName,
+		"OPERATOR_SUBSCRIPTION_SPEC_NAME": LvmsSubscriptionName,
+	}
+
 	return executeTemplate(data, "LvmSubscription", LvmSubscription)
 }
 
@@ -81,7 +106,7 @@ metadata:
   namespace: "{{.OPERATOR_NAMESPACE}}"
 spec:
   installPlanApproval: Automatic
-  name: lvms-operator
+  name: "{{.OPERATOR_SUBSCRIPTION_SPEC_NAME}}"
   source: redhat-operators
   sourceNamespace: openshift-marketplace`
 
