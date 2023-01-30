@@ -36,6 +36,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/vincent-petithory/dataurl"
 	"gopkg.in/yaml.v2"
+	"gorm.io/gorm"
 )
 
 var (
@@ -59,6 +60,7 @@ var _ = BeforeEach(func() {
 	// create simple cluster
 	clusterID := strfmt.UUID(uuid.New().String())
 	cluster = &common.Cluster{
+		PullSecret: "{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}",
 		Cluster: models.Cluster{
 			ID: &clusterID,
 		},
@@ -108,6 +110,8 @@ var _ = Describe("Bootstrap Ignition Update", func() {
 	var (
 		err          error
 		examplePath  string
+		db           *gorm.DB
+		dbName       string
 		bmh          *bmh_v1alpha1.BareMetalHost
 		config       *config_32_types.Config
 		mockS3Client *s3wrapper.MockAPI
@@ -127,7 +131,8 @@ var _ = Describe("Bootstrap Ignition Update", func() {
 				Role:              models.HostRoleMaster,
 			},
 		}
-		g := NewGenerator(workDir, installerCacheDir, cluster, "", "", "", "", mockS3Client, log,
+		db, dbName = common.PrepareTestDB()
+		g := NewGenerator("", workDir, installerCacheDir, cluster, "", "", "", "", mockS3Client, log,
 			mockOperatorManager, mockProviderRegistry, "", "").(*installerGenerator)
 
 		err = g.updateBootstrap(context.Background(), examplePath)
@@ -155,6 +160,10 @@ var _ = Describe("Bootstrap Ignition Update", func() {
 		}
 		bmh, _ = fileToBMH(file)
 		Expect(foundNMConfig).To(BeTrue(), "file /etc/NetworkManager/conf.d/99-kni.conf not present in bootstrap.ign")
+	})
+
+	AfterEach(func() {
+		common.DeleteTestDB(db, dbName)
 	})
 
 	Context("Identify host role", func() {
@@ -253,6 +262,8 @@ SV4bRR9i0uf+xQ/oYRvugQ25Q7EahO5hJIWRf4aULbk36Zpw3++v2KFnF26zqwB6
 		masterPath string
 		workerPath string
 		caCertPath string
+		dbName     string
+		db         *gorm.DB
 	)
 
 	BeforeEach(func() {
@@ -266,11 +277,16 @@ SV4bRR9i0uf+xQ/oYRvugQ25Q7EahO5hJIWRf4aULbk36Zpw3++v2KFnF26zqwB6
 		caCertPath = filepath.Join(workDir, "service-ca-cert.crt")
 		err = os.WriteFile(caCertPath, []byte(caCert), 0600)
 		Expect(err).NotTo(HaveOccurred())
+		db, dbName = common.PrepareTestDB()
+	})
+
+	AfterEach(func() {
+		common.DeleteTestDB(db, dbName)
 	})
 
 	Describe("update ignitions", func() {
 		It("with ca cert file", func() {
-			g := NewGenerator(workDir, installerCacheDir, cluster, "", "", caCertPath, "", nil, log,
+			g := NewGenerator("", workDir, installerCacheDir, cluster, "", "", caCertPath, "", nil, log,
 				mockOperatorManager, mockProviderRegistry, "", "").(*installerGenerator)
 
 			err := g.updateIgnitions()
@@ -293,7 +309,7 @@ SV4bRR9i0uf+xQ/oYRvugQ25Q7EahO5hJIWRf4aULbk36Zpw3++v2KFnF26zqwB6
 			Expect(file.Path).To(Equal(common.HostCACertPath))
 		})
 		It("with no ca cert file", func() {
-			g := NewGenerator(workDir, installerCacheDir, cluster, "", "", "", "", nil, log,
+			g := NewGenerator("", workDir, installerCacheDir, cluster, "", "", "", "", nil, log,
 				mockOperatorManager, mockProviderRegistry, "", "").(*installerGenerator)
 
 			err := g.updateIgnitions()
@@ -312,7 +328,7 @@ SV4bRR9i0uf+xQ/oYRvugQ25Q7EahO5hJIWRf4aULbk36Zpw3++v2KFnF26zqwB6
 			Expect(workerConfig.Storage.Files).To(HaveLen(0))
 		})
 		It("with service ips", func() {
-			g := NewGenerator(workDir, installerCacheDir, cluster, "", "", "", "", nil, log,
+			g := NewGenerator("", workDir, installerCacheDir, cluster, "", "", "", "", nil, log,
 				mockOperatorManager, mockProviderRegistry, "", "").(*installerGenerator)
 
 			err := g.UpdateEtcHosts("10.10.10.1,10.10.10.2")
@@ -335,7 +351,7 @@ SV4bRR9i0uf+xQ/oYRvugQ25Q7EahO5hJIWRf4aULbk36Zpw3++v2KFnF26zqwB6
 			Expect(file.Path).To(Equal("/etc/hosts"))
 		})
 		It("with no service ips", func() {
-			g := NewGenerator(workDir, installerCacheDir, cluster, "", "", "", "", nil, log,
+			g := NewGenerator("", workDir, installerCacheDir, cluster, "", "", "", "", nil, log,
 				mockOperatorManager, mockProviderRegistry, "", "").(*installerGenerator)
 
 			err := g.UpdateEtcHosts("")
@@ -365,7 +381,7 @@ SV4bRR9i0uf+xQ/oYRvugQ25Q7EahO5hJIWRf4aULbk36Zpw3++v2KFnF26zqwB6
 		})
 		Context("DHCP generation", func() {
 			It("Definitions only", func() {
-				g := NewGenerator(workDir, installerCacheDir, cluster, "", "", "", "", nil, log,
+				g := NewGenerator("", workDir, installerCacheDir, cluster, "", "", "", "", nil, log,
 					mockOperatorManager, mockProviderRegistry, "", "").(*installerGenerator)
 
 				g.encodedDhcpFileContents = "data:,abc"
@@ -384,7 +400,7 @@ SV4bRR9i0uf+xQ/oYRvugQ25Q7EahO5hJIWRf4aULbk36Zpw3++v2KFnF26zqwB6
 			})
 		})
 		It("Definitions+leases", func() {
-			g := NewGenerator(workDir, installerCacheDir, cluster, "", "", "", "", nil, log,
+			g := NewGenerator("", workDir, installerCacheDir, cluster, "", "", "", "", nil, log,
 				mockOperatorManager, mockProviderRegistry, "", "").(*installerGenerator)
 
 			g.encodedDhcpFileContents = "data:,abc"
@@ -471,6 +487,11 @@ var _ = Describe("createHostIgnitions", func() {
 		  }
 		}`
 
+	var (
+		dbName string
+		db     *gorm.DB
+	)
+
 	BeforeEach(func() {
 		masterPath := filepath.Join(workDir, "master.ign")
 		err := os.WriteFile(masterPath, []byte(masterIgn), 0600)
@@ -479,10 +500,16 @@ var _ = Describe("createHostIgnitions", func() {
 		workerPath := filepath.Join(workDir, "worker.ign")
 		err = os.WriteFile(workerPath, []byte(workerIgn), 0600)
 		Expect(err).NotTo(HaveOccurred())
+		db, dbName = common.PrepareTestDB()
+
+	})
+
+	AfterEach(func() {
+		common.DeleteTestDB(db, dbName)
 	})
 
 	Context("with multiple hosts with a hostname", func() {
-		It("adds the hostname file", func() {
+		It("adds the hostname and boot-reporter files", func() {
 			cluster.Hosts = []*models.Host{
 				{
 					RequestedHostname: "master0.example.com",
@@ -508,10 +535,10 @@ var _ = Describe("createHostIgnitions", func() {
 				host.ID = &id
 			}
 
-			g := NewGenerator(workDir, installerCacheDir, cluster, "", "", "", "", nil, log,
+			g := NewGenerator("", workDir, installerCacheDir, cluster, "", "", "", "", nil, log,
 				mockOperatorManager, mockProviderRegistry, "", "").(*installerGenerator)
 
-			err := g.createHostIgnitions()
+			err := g.createHostIgnitions("http://www.example.com:6008", auth.TypeRHSSO)
 			Expect(err).NotTo(HaveOccurred())
 
 			for _, host := range cluster.Hosts {
@@ -541,6 +568,23 @@ var _ = Describe("createHostIgnitions", func() {
 				Expect(*f.FileEmbedded1.Contents.Source).To(Equal(fmt.Sprintf("data:,%s", host.RequestedHostname)))
 				Expect(*f.FileEmbedded1.Mode).To(Equal(420))
 				Expect(*f.Node.Overwrite).To(Equal(true))
+
+				By("Validating the boot-reporter file was added")
+				var bootReporterFile *config_32_types.File
+				base64Content, _ := getBootReporterFileContent()
+
+				for fileidx, file := range config.Storage.Files {
+					if file.Node.Path == "/usr/local/bin/assisted-boot-reporter.sh" {
+						bootReporterFile = &config.Storage.Files[fileidx]
+						break
+					}
+				}
+				Expect(bootReporterFile).NotTo(BeNil())
+				Expect(*bootReporterFile.Node.User.Name).To(Equal("root"))
+				Expect(*bootReporterFile.FileEmbedded1.Contents.Source).To(Equal(fmt.Sprintf("data:text/plain;charset=utf-8;base64,%s", base64Content)))
+				Expect(*bootReporterFile.FileEmbedded1.Mode).To(Equal(0700))
+				Expect(*bootReporterFile.Node.Overwrite).To(Equal(true))
+
 			}
 		})
 	})
@@ -554,10 +598,10 @@ var _ = Describe("createHostIgnitions", func() {
 			IgnitionConfigOverrides: `{"ignition": {"version": "3.2.0"}, "storage": {"files": [{"path": "/tmp/example", "contents": {"source": "data:text/plain;base64,aGVscGltdHJhcHBlZGluYXN3YWdnZXJzcGVj"}}]}}`,
 		}}
 
-		g := NewGenerator(workDir, installerCacheDir, cluster, "", "", "", "", nil, log,
+		g := NewGenerator("", workDir, installerCacheDir, cluster, "", "", "", "", nil, log,
 			mockOperatorManager, mockProviderRegistry, "", "").(*installerGenerator)
 
-		err := g.createHostIgnitions()
+		err := g.createHostIgnitions("http://www.example.com:6008", auth.TypeNone)
 		Expect(err).NotTo(HaveOccurred())
 
 		ignBytes, err := os.ReadFile(filepath.Join(workDir, fmt.Sprintf("%s-%s.ign", models.HostRoleMaster, hostID)))
@@ -1592,7 +1636,11 @@ var _ = Describe("FormatSecondDayWorkerIgnitionFile", func() {
 })
 
 var _ = Describe("Import Cluster TLS Certs for ephemeral installer", func() {
-	var certDir string
+	var (
+		certDir string
+		dbName  string
+		db      *gorm.DB
+	)
 
 	certFiles := []string{"test-cert.crt", "test-cert.key"}
 
@@ -1605,10 +1653,16 @@ var _ = Describe("Import Cluster TLS Certs for ephemeral installer", func() {
 			err = os.WriteFile(filepath.Join(certDir, cf), []byte(cf), 0600)
 			Expect(err).NotTo(HaveOccurred())
 		}
+		Expect(err).NotTo(HaveOccurred())
+		db, dbName = common.PrepareTestDB()
+	})
+
+	AfterEach(func() {
+		common.DeleteTestDB(db, dbName)
 	})
 
 	It("copies the tls cert files", func() {
-		g := NewGenerator(workDir, installerCacheDir, cluster, "", "", "", "", nil, log,
+		g := NewGenerator("", workDir, installerCacheDir, cluster, "", "", "", "", nil, log,
 			mockOperatorManager, mockProviderRegistry, "", certDir).(*installerGenerator)
 
 		err := g.importClusterTLSCerts(context.Background())
