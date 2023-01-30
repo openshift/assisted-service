@@ -1047,6 +1047,29 @@ var _ = Describe("Validations test", func() {
 			Expect(validationMessage).Should(ContainSubstring("Could not validate that all Tang servers are reachable and working"))
 		})
 
+		It("tang mode - validation pending", func() {
+			c := hostutil.GenerateTestCluster(clusterID)
+			c.DiskEncryption = &models.DiskEncryption{
+				EnableOn:    swag.String(models.DiskEncryptionEnableOnMasters),
+				Mode:        swag.String(models.DiskEncryptionModeTang),
+				TangServers: `[{"URL":"http://tang.example.com:7500","Thumbprint":"PLjNyRdGw03zlRoGjQYMahSZGu9"}]`,
+			}
+			Expect(db.Create(&c).Error).ToNot(HaveOccurred())
+
+			h := hostutil.GenerateTestHostByKind(hostID, infraEnvID, &clusterID, models.HostStatusDiscovering, models.HostKindHost, models.HostRoleMaster)
+			h.TangConnectivity = ""
+			h.Inventory = common.GenerateTestInventory()
+			Expect(db.Create(&h).Error).ShouldNot(HaveOccurred())
+
+			mockAndRefreshStatus(&h)
+
+			h = hostutil.GetHostFromDB(*h.ID, h.InfraEnvID, db).Host
+			validationStatus, validationMessage, found := getValidationResult(h.ValidationsInfo, diskEncryptionID)
+			Expect(found).To(BeTrue())
+			Expect(validationStatus).To(Equal(ValidationPending))
+			Expect(validationMessage).To(Equal("Disk encryption check was not performed yet"))
+		})
+
 		It("TPM is disabled in host's BIOS", func() {
 
 			c := hostutil.GenerateTestCluster(clusterID)
