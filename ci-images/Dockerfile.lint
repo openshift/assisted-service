@@ -1,5 +1,6 @@
 FROM base
 
 COPY --from=quay.io/app-sre/golangci-lint:v1.46.0 /usr/bin/golangci-lint /usr/bin/golangci-lint
+COPY --from=quay.io/coreos/shellcheck-alpine:v0.5.0 /bin/shellcheck /usr/bin/shellcheck
 
 RUN dnf install -y diffutils

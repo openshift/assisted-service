@@ -187,6 +187,7 @@ endif
 
 lint:
 	golangci-lint run -v
+	shellcheck internal/ignition/boot-reporter/assisted-boot-reporter.sh 
 
 $(BUILD_FOLDER):
 	mkdir -p $(BUILD_FOLDER)
