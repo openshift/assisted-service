@@ -490,6 +490,8 @@ func (v *validator) diskEncryptionRequirementsSatisfied(c *validationContext) (V
 		}
 		return status, fmt.Sprintf("The host's TPM version is not supported, expected-version: %s, actual-version: %s",
 			models.InventoryTpmVersionNr20, c.inventory.TpmVersion)
+	case ValidationPending:
+		return status, "Disk encryption check was not performed yet"
 	default:
 		return status, fmt.Sprintf("Unexpected status %s", status)
 	}
