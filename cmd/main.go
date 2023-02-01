@@ -314,10 +314,9 @@ func main() {
 	operatorsManager := operators.NewManager(log, manifestsApi, Options.OperatorsConfig, objectHandler, extracterHandler)
 	hwValidator := hardware.NewValidator(log.WithField("pkg", "validators"), Options.HWValidatorConfig, operatorsManager)
 	connectivityValidator := connectivity.NewValidator(log.WithField("pkg", "validators"))
-	Options.InstructionConfig.DisabledSteps = disableFreeAddressesIfNeeded(Options.EnableKubeAPI, Options.InstructionConfig.DisabledSteps)
 	Options.InstructionConfig.HostFSMountDir = hostFSMountDir
 	instructionApi := hostcommands.NewInstructionManager(log.WithField("pkg", "instructions"), db, hwValidator,
-		releaseHandler, Options.InstructionConfig, connectivityValidator, eventsHandler, versionHandler, osImages)
+		releaseHandler, Options.InstructionConfig, connectivityValidator, eventsHandler, versionHandler, osImages, Options.EnableKubeAPI)
 
 	images := []string{
 		Options.ReleaseImageMirror,
@@ -826,14 +825,6 @@ func createControllerManager() (manager.Manager, error) {
 		})
 	}
 	return nil, nil
-}
-
-func disableFreeAddressesIfNeeded(enableKubeAPI bool, disabledSteps []models.StepType) []models.StepType {
-	if enableKubeAPI {
-		// If this step was already disabled via environment, it wont matter once parsed.
-		return append(disabledSteps, models.StepTypeFreeNetworkAddresses)
-	}
-	return disabledSteps
 }
 
 func createVersionHandlers(log logrus.FieldLogger, ctrlMgr manager.Manager, releaseHandler oc.Release, osImages versions.OSImages, releaseImagesArray models.ReleaseImages, authzHandler auth.Authorizer) (versions.Handler, restapi.VersionsAPI, error) {

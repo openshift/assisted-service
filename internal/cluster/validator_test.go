@@ -2,6 +2,7 @@ package cluster
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
@@ -11,6 +12,7 @@ import (
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/models"
 	"github.com/sirupsen/logrus"
+	"github.com/thoas/go-funk"
 )
 
 var _ = Describe("isNetworksSameAddressFamilies", func() {
@@ -256,6 +258,171 @@ var _ = Describe("isNetworksSameAddressFamilies", func() {
 		Expect(status).Should(Equal(ValidationSuccess))
 		Expect(message).Should(Equal("Same address families for all networks."))
 	})
+})
+
+var _ = Describe("areVipsValid", func() {
+
+	var (
+		validator         clusterValidator
+		preprocessContext *clusterPreprocessContext
+		clusterID         strfmt.UUID
+		hosts             []*models.Host
+	)
+
+	newId := func() strfmt.UUID {
+		return strfmt.UUID(uuid.New().String())
+	}
+	newIdPtr := func() *strfmt.UUID {
+		ret := newId()
+		return &ret
+	}
+
+	BeforeEach(func() {
+		validator = clusterValidator{logrus.New(), nil}
+		preprocessContext = &clusterPreprocessContext{}
+		clusterID = strfmt.UUID(uuid.New().String())
+		hosts = []*models.Host{
+			{
+				ClusterID:  &clusterID,
+				InfraEnvID: clusterID,
+				ID:         newIdPtr(),
+				Inventory:  common.GenerateTestDefaultInventory(),
+			},
+			{
+				ClusterID:  &clusterID,
+				InfraEnvID: clusterID,
+				ID:         newIdPtr(),
+				Inventory:  common.GenerateTestDefaultInventory(),
+			},
+			{
+				ClusterID:  &clusterID,
+				InfraEnvID: clusterID,
+				ID:         newIdPtr(),
+				Inventory:  common.GenerateTestDefaultInventory(),
+			},
+		}
+	})
+
+	clearApiVipsVerfication := func(vips []*models.APIVip) []*models.APIVip {
+		return funk.Map(vips, func(v *models.APIVip) *models.APIVip {
+			return &models.APIVip{
+				ClusterID: v.ClusterID,
+				IP:        v.IP,
+			}
+		}).([]*models.APIVip)
+	}
+
+	clearIngressVIpsVerification := func(vips []*models.IngressVip) []*models.IngressVip {
+		return funk.Map(vips, func(v *models.IngressVip) *models.IngressVip {
+			return &models.IngressVip{
+				ClusterID: v.ClusterID,
+				IP:        v.IP,
+			}
+		}).([]*models.IngressVip)
+	}
+
+	type loopContext struct {
+		name     string
+		function validationConditon
+	}
+	apiContext := loopContext{name: "API", function: validator.areApiVipsValid}
+	ingressContext := loopContext{name: "Ingress", function: validator.areIngressVipsValid}
+	for _, lc := range []loopContext{apiContext, ingressContext} {
+		lcontext := lc
+		Context(fmt.Sprintf("%s vips validation", lcontext.name), func() {
+			It("Vips undefined", func() {
+				preprocessContext.cluster = &common.Cluster{Cluster: models.Cluster{
+					ID: &clusterID,
+				}}
+
+				status, message := lcontext.function(preprocessContext)
+				Expect(status).Should(Equal(ValidationPending))
+				Expect(message).Should(Equal(fmt.Sprintf("%s virtual IPs are undefined.", lcontext.name)))
+			})
+			It("vips defined - no hosts", func() {
+				preprocessContext.cluster = &common.Cluster{Cluster: models.Cluster{
+					ID:          &clusterID,
+					APIVips:     clearApiVipsVerfication(common.TestDualStackNetworking.APIVips),
+					IngressVips: clearIngressVIpsVerification(common.TestDualStackNetworking.IngressVips),
+				}}
+
+				status, message := lcontext.function(preprocessContext)
+				Expect(status).Should(Equal(ValidationPending))
+				Expect(message).Should(Equal("Hosts have not been discovered yet"))
+			})
+			It("vips defined - with hosts", func() {
+				preprocessContext.cluster = &common.Cluster{Cluster: models.Cluster{
+					ID:              &clusterID,
+					MachineNetworks: common.TestDualStackNetworking.MachineNetworks,
+					APIVips:         clearApiVipsVerfication(common.TestDualStackNetworking.APIVips),
+					IngressVips:     clearIngressVIpsVerification(common.TestDualStackNetworking.IngressVips),
+					Hosts:           hosts,
+				}}
+				preprocessContext.hasHostsWithInventories = true
+
+				status, message := lcontext.function(preprocessContext)
+				Expect(status).Should(Equal(ValidationFailure))
+				Expect(message).Should(MatchRegexp(fmt.Sprintf("%s vips <1.2.3.[56]> are not verified yet", strings.ToLower(lcontext.name))))
+			})
+			It("ipv4 vips verified", func() {
+				preprocessContext.cluster = &common.Cluster{Cluster: models.Cluster{
+					ID:              &clusterID,
+					MachineNetworks: common.TestDualStackNetworking.MachineNetworks,
+					APIVips:         append(common.TestIPv4Networking.APIVips, clearApiVipsVerfication(common.TestIPv6Networking.APIVips)...),
+					IngressVips:     append(common.TestIPv4Networking.IngressVips, clearIngressVIpsVerification(common.TestIPv6Networking.IngressVips)...),
+					Hosts:           hosts,
+				}}
+				preprocessContext.hasHostsWithInventories = true
+
+				status, message := lcontext.function(preprocessContext)
+				Expect(status).Should(Equal(ValidationFailure))
+				Expect(message).Should(MatchRegexp(fmt.Sprintf("%s vips <1001:db8::6[45]> are not verified yet", strings.ToLower(lcontext.name))))
+			})
+			It("ipv4 vips verified", func() {
+				preprocessContext.cluster = &common.Cluster{Cluster: models.Cluster{
+					ID:              &clusterID,
+					MachineNetworks: common.TestDualStackNetworking.MachineNetworks,
+					APIVips:         append(common.TestIPv4Networking.APIVips, clearApiVipsVerfication(common.TestIPv6Networking.APIVips)...),
+					IngressVips:     append(common.TestIPv4Networking.IngressVips, clearIngressVIpsVerification(common.TestIPv6Networking.IngressVips)...),
+					Hosts:           hosts,
+				}}
+				preprocessContext.hasHostsWithInventories = true
+
+				status, message := lcontext.function(preprocessContext)
+				Expect(status).Should(Equal(ValidationFailure))
+				Expect(message).Should(MatchRegexp(fmt.Sprintf("%s vips <1001:db8::6[45]> are not verified yet", strings.ToLower(lcontext.name))))
+			})
+			It("all successful", func() {
+				preprocessContext.cluster = &common.Cluster{Cluster: models.Cluster{
+					ID:              &clusterID,
+					MachineNetworks: common.TestDualStackNetworking.MachineNetworks,
+					APIVips:         append(common.TestIPv4Networking.APIVips, common.TestIPv6Networking.APIVips...),
+					IngressVips:     append(common.TestIPv4Networking.IngressVips, common.TestIPv6Networking.IngressVips...),
+					Hosts:           hosts,
+				}}
+				preprocessContext.hasHostsWithInventories = true
+
+				status, message := lcontext.function(preprocessContext)
+				Expect(status).Should(Equal(ValidationSuccess))
+				Expect(message).Should(MatchRegexp(fmt.Sprintf("%s vips 1.2.3.[56], 1001:db8::6[45] belongs to the Machine CIDR and is not in use", strings.ToLower(lcontext.name))))
+			})
+			It("ipv4 verification failed", func() {
+				preprocessContext.cluster = &common.Cluster{Cluster: models.Cluster{
+					ID:              &clusterID,
+					MachineNetworks: common.TestDualStackNetworking.MachineNetworks,
+					APIVips:         append(clearApiVipsVerfication(common.TestIPv4Networking.APIVips), common.TestIPv6Networking.APIVips...),
+					IngressVips:     append(clearIngressVIpsVerification(common.TestIPv4Networking.IngressVips), common.TestIPv6Networking.IngressVips...),
+					Hosts:           hosts,
+				}}
+				preprocessContext.hasHostsWithInventories = true
+				preprocessContext.cluster.APIVips[0].Verification = common.VipVerificationPtr(models.VipVerificationFailed)
+				preprocessContext.cluster.IngressVips[0].Verification = common.VipVerificationPtr(models.VipVerificationFailed)
+				status, message := lcontext.function(preprocessContext)
+				Expect(status).Should(Equal(ValidationFailure))
+				Expect(message).Should(MatchRegexp(fmt.Sprintf("%s vips <1.2.3.[56]> is already in use in cidr 1.2.3.0/24", strings.ToLower(lcontext.name))))
+			})
+		})
+	}
 })
 
 var _ = Describe("Network type matches high availability mode", func() {

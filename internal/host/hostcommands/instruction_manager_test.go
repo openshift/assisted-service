@@ -58,7 +58,7 @@ var _ = Describe("instruction_manager", func() {
 		hwValidator = hardware.NewMockValidator(ctrl)
 		mockRelease = oc.NewMockRelease(ctrl)
 		cnValidator = connectivity.NewMockValidator(ctrl)
-		instMng = NewInstructionManager(common.GetTestLog(), db, hwValidator, mockRelease, instructionConfig, cnValidator, mockEvents, mockVersions, mockOSImages)
+		instMng = NewInstructionManager(common.GetTestLog(), db, hwValidator, mockRelease, instructionConfig, cnValidator, mockEvents, mockVersions, mockOSImages, false)
 		hostId = strfmt.UUID(uuid.New().String())
 		clusterId = strfmt.UUID(uuid.New().String())
 		infraEnvId = strfmt.UUID(uuid.New().String())
@@ -113,6 +113,14 @@ var _ = Describe("instruction_manager", func() {
 					models.StepTypeDomainResolution,
 				})
 			})
+			It("known with vip", func() {
+				Expect(db.Save(&models.APIVip{IP: "1.2.3.4", ClusterID: clusterId}).Error).ToNot(HaveOccurred())
+				checkStep(models.HostStatusKnown, []models.StepType{
+					models.StepTypeConnectivityCheck, models.StepTypeFreeNetworkAddresses,
+					models.StepTypeInventory, models.StepTypeNtpSynchronizer,
+					models.StepTypeDomainResolution, models.StepTypeVerifyVips,
+				})
+			})
 			It("disconnected", func() {
 				checkStep(models.HostStatusDisconnected, []models.StepType{
 					models.StepTypeInventory,
@@ -125,11 +133,27 @@ var _ = Describe("instruction_manager", func() {
 					models.StepTypeDomainResolution,
 				})
 			})
+			It("insufficient with vip", func() {
+				Expect(db.Save(&models.APIVip{IP: "1.2.3.4", ClusterID: clusterId}).Error).ToNot(HaveOccurred())
+				checkStep(models.HostStatusInsufficient, []models.StepType{
+					models.StepTypeInventory, models.StepTypeConnectivityCheck,
+					models.StepTypeFreeNetworkAddresses, models.StepTypeNtpSynchronizer,
+					models.StepTypeDomainResolution, models.StepTypeVerifyVips,
+				})
+			})
 			It("pending-for-input", func() {
 				checkStep(models.HostStatusPendingForInput, []models.StepType{
 					models.StepTypeInventory, models.StepTypeConnectivityCheck,
 					models.StepTypeFreeNetworkAddresses, models.StepTypeNtpSynchronizer,
 					models.StepTypeDomainResolution,
+				})
+			})
+			It("pending-for-input with vip", func() {
+				Expect(db.Save(&models.APIVip{IP: "1.2.3.4", ClusterID: clusterId}).Error).ToNot(HaveOccurred())
+				checkStep(models.HostStatusPendingForInput, []models.StepType{
+					models.StepTypeInventory, models.StepTypeConnectivityCheck,
+					models.StepTypeFreeNetworkAddresses, models.StepTypeNtpSynchronizer,
+					models.StepTypeDomainResolution, models.StepTypeVerifyVips,
 				})
 			})
 			It("error", func() {
@@ -307,7 +331,7 @@ var _ = Describe("instruction_manager", func() {
 	Context("Disable Steps verification", func() {
 		createInstMngWithDisabledSteps := func(steps []models.StepType) *InstructionManager {
 			instructionConfig.DisabledSteps = steps
-			return NewInstructionManager(common.GetTestLog(), db, hwValidator, mockRelease, instructionConfig, cnValidator, mockEvents, mockVersions, mockOSImages)
+			return NewInstructionManager(common.GetTestLog(), db, hwValidator, mockRelease, instructionConfig, cnValidator, mockEvents, mockVersions, mockOSImages, false)
 		}
 		Context("disabledStepsMap in InstructionManager", func() {
 			It("Should except empty DISABLED_STEPS", func() {
@@ -423,7 +447,7 @@ var _ = Describe("agent_upgrade", func() {
 		cnValidator = connectivity.NewMockValidator(ctrl)
 		instructionConfig = InstructionConfig{AgentImage: "quay.io/my/image:v1.2.3"}
 		instructionConfig.EnableUpgradeAgent = true
-		instMng = NewInstructionManager(common.GetTestLog(), db, hwValidator, mockRelease, instructionConfig, cnValidator, mockEvents, mockVersions, mockOSImages)
+		instMng = NewInstructionManager(common.GetTestLog(), db, hwValidator, mockRelease, instructionConfig, cnValidator, mockEvents, mockVersions, mockOSImages, false)
 		hostId = strfmt.UUID(uuid.New().String())
 		clusterId = strfmt.UUID(uuid.New().String())
 		infraEnvId = strfmt.UUID(uuid.New().String())

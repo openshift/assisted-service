@@ -374,6 +374,37 @@ func generateApiVipPostStepReply(ctx context.Context, h *models.Host, success bo
 	Expect(err).ShouldNot(HaveOccurred())
 }
 
+func generateVerifyVipsPostStepReply(ctx context.Context, h *models.Host, apiVips []string, ingressVips []string, verification models.VipVerification) {
+	response := models.VerifyVipsResponse{}
+	for _, vip := range apiVips {
+		response = append(response, &models.VerifiedVip{
+			Verification: common.VipVerificationPtr(verification),
+			Vip:          models.IP(vip),
+			VipType:      models.VipTypeAPI,
+		})
+	}
+	for _, vip := range ingressVips {
+		response = append(response, &models.VerifiedVip{
+			Verification: common.VipVerificationPtr(verification),
+			Vip:          models.IP(vip),
+			VipType:      models.VipTypeIngress,
+		})
+	}
+	bytes, jsonErr := json.Marshal(&response)
+	Expect(jsonErr).NotTo(HaveOccurred())
+	_, err := agentBMClient.Installer.V2PostStepReply(ctx, &installer.V2PostStepReplyParams{
+		InfraEnvID: h.InfraEnvID,
+		HostID:     *h.ID,
+		Reply: &models.StepReply{
+			ExitCode: 0,
+			StepType: models.StepTypeVerifyVips,
+			Output:   string(bytes),
+			StepID:   string(models.StepTypeVerifyVips),
+		},
+	})
+	Expect(err).ShouldNot(HaveOccurred())
+}
+
 func getTangResponse(url string) models.TangServerResponse {
 	return models.TangServerResponse{
 		TangURL: url,

@@ -2062,13 +2062,13 @@ func (b *bareMetalInventory) updateNonDhcpNetworkParams(updates map[string]inter
 				return common.NewApiError(http.StatusBadRequest, err)
 			}
 
-			if err = network.VerifyVips(cluster.Hosts, primaryMachineNetworkCidr, network.GetApiVipById(&targetConfiguration, 0), network.GetIngressVipById(&targetConfiguration, 0), false, log); err != nil {
+			if err = network.VerifyVips(cluster.Hosts, primaryMachineNetworkCidr, network.GetApiVipById(&targetConfiguration, 0), network.GetIngressVipById(&targetConfiguration, 0), log); err != nil {
 				log.WithError(err).Warnf("Verify VIPs")
 				return common.NewApiError(http.StatusBadRequest, err)
 			}
 
 			if len(targetConfiguration.IngressVips) == 2 && len(targetConfiguration.APIVips) == 2 { // in case there's a second set of VIPs
-				if err = network.VerifyVips(cluster.Hosts, secondaryMachineNetworkCidr, network.GetApiVipById(&targetConfiguration, 1), network.GetIngressVipById(&targetConfiguration, 1), false, log); err != nil {
+				if err = network.VerifyVips(cluster.Hosts, secondaryMachineNetworkCidr, network.GetApiVipById(&targetConfiguration, 1), network.GetIngressVipById(&targetConfiguration, 1), log); err != nil {
 					log.WithError(err).Warnf("Verify VIPs")
 					return common.NewApiError(http.StatusBadRequest, err)
 				}
@@ -2088,7 +2088,7 @@ func (b *bareMetalInventory) updateNonDhcpNetworkParams(updates map[string]inter
 				// the assignment below.
 				params.ClusterUpdateParams.MachineNetworks = []*models.MachineNetwork{{Cidr: models.Subnet(primaryMachineNetworkCidr)}}
 			}
-			if err = network.VerifyVips(cluster.Hosts, primaryMachineNetworkCidr, network.GetApiVipById(&targetConfiguration, 0), network.GetIngressVipById(&targetConfiguration, 0), false, log); err != nil {
+			if err = network.VerifyVips(cluster.Hosts, primaryMachineNetworkCidr, network.GetApiVipById(&targetConfiguration, 0), network.GetIngressVipById(&targetConfiguration, 0), log); err != nil {
 				log.WithError(err).Warnf("Verify VIPs")
 				return common.NewApiError(http.StatusBadRequest, err)
 			}
@@ -3364,6 +3364,8 @@ func handleReplyByType(params installer.V2PostStepReplyParams, b *bareMetalInven
 		err = b.processUpgradeAgentResponse(ctx, &host, stepReply)
 	case models.StepTypeDownloadBootArtifacts:
 		err = b.hostApi.HandleReclaimBootArtifactDownload(ctx, &host)
+	case models.StepTypeVerifyVips:
+		err = b.HandleVerifyVipsResponse(ctx, &host, stepReply)
 	}
 	return err
 }
@@ -3424,6 +3426,8 @@ func filterReplyByType(params installer.V2PostStepReplyParams) (string, error) {
 		stepReply, err = filterReply(&models.DomainResolutionResponse{}, params.Reply.Output)
 	case models.StepTypeUpgradeAgent:
 		stepReply, err = filterReply(&models.UpgradeAgentResponse{}, params.Reply.Output)
+	case models.StepTypeVerifyVips:
+		stepReply, err = filterReply(&models.VerifyVipsResponse{}, params.Reply.Output)
 	}
 
 	return stepReply, err
@@ -6256,4 +6260,11 @@ func (b *bareMetalInventory) notifyEventStream(ctx context.Context, infraEnv *mo
 			"cluster_id":   infraEnv.ClusterID,
 		}).Warn("failed to stream event for infraenv")
 	}
+}
+
+func (b *bareMetalInventory) HandleVerifyVipsResponse(ctx context.Context, host *models.Host, stepReply string) error {
+	if host.ClusterID == nil || *host.ClusterID == "" {
+		return errors.Errorf("host %s infra-env %s: empty cluster id", host.ID.String(), host.InfraEnvID.String())
+	}
+	return b.clusterApi.HandleVerifyVipsResponse(ctx, *host.ClusterID, stepReply)
 }

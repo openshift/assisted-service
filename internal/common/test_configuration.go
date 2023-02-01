@@ -205,9 +205,9 @@ var TestIPv4Networking = TestNetworking{
 	ServiceNetworks: []*models.ServiceNetwork{{Cidr: "1.2.5.0/24"}},
 	MachineNetworks: []*models.MachineNetwork{{Cidr: "1.2.3.0/24"}},
 	APIVip:          "1.2.3.5",
-	APIVips:         []*models.APIVip{{IP: "1.2.3.5"}},
+	APIVips:         []*models.APIVip{{IP: "1.2.3.5", Verification: VipVerificationPtr(models.VipVerificationSucceeded)}},
 	IngressVip:      "1.2.3.6",
-	IngressVips:     []*models.IngressVip{{IP: "1.2.3.6"}},
+	IngressVips:     []*models.IngressVip{{IP: "1.2.3.6", Verification: VipVerificationPtr(models.VipVerificationSucceeded)}},
 }
 
 // TestIPv6Networking The values of TestIPv6Networking and TestEquivalentIPv6Networking are not equal, but are equivalent
@@ -218,9 +218,9 @@ var TestIPv6Networking = TestNetworking{
 	ServiceNetworks: []*models.ServiceNetwork{{Cidr: "1002:db8::/119"}},
 	MachineNetworks: []*models.MachineNetwork{{Cidr: "1001:db8::/120"}},
 	APIVip:          "1001:db8::64",
-	APIVips:         []*models.APIVip{{IP: "1001:db8::64"}},
+	APIVips:         []*models.APIVip{{IP: "1001:db8::64", Verification: VipVerificationPtr(models.VipVerificationSucceeded)}},
 	IngressVip:      "1001:db8::65",
-	IngressVips:     []*models.IngressVip{{IP: "1001:db8::65"}},
+	IngressVips:     []*models.IngressVip{{IP: "1001:db8::65", Verification: VipVerificationPtr(models.VipVerificationSucceeded)}},
 }
 
 var TestEquivalentIPv6Networking = TestNetworking{

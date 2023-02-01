@@ -132,6 +132,9 @@ func registerHostsAndSetRolesV6(clusterID, infraEnvID strfmt.UUID, numHosts int)
 		ClusterID: clusterID,
 	})
 	Expect(err).NotTo(HaveOccurred())
+	if len(hosts) > 0 {
+		generateVerifyVipsPostStepReply(ctx, hosts[0], []string{apiVip}, []string{ingressVip}, models.VipVerificationSucceeded)
+	}
 	waitForClusterState(ctx, clusterID, models.ClusterStatusReady, 60*time.Second, clusterReadyStateInfo)
 
 	return hosts

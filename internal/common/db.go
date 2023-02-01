@@ -205,6 +205,12 @@ func GetClusterFromDBWithHosts(db *gorm.DB, clusterId strfmt.UUID) (*Cluster, er
 	return GetClusterFromDB(db, clusterId, SkipEagerLoading)
 }
 
+func GetClusterFromDBWithVips(db *gorm.DB, clusterId strfmt.UUID) (*Cluster, error) {
+	db = LoadTableFromDB(db, APIVIPsTable)
+	db = LoadTableFromDB(db, IngressVIPsTable)
+	return GetClusterFromDB(db, clusterId, SkipEagerLoading)
+}
+
 func prepareClusterDB(db *gorm.DB, eagerLoading EagerLoadingState, includeDeleted DeleteRecordsState, conditions ...interface{}) *gorm.DB {
 	if includeDeleted {
 		db = db.Unscoped()

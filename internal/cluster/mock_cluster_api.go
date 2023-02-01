@@ -400,6 +400,20 @@ func (mr *MockAPIMockRecorder) HandlePreInstallSuccess(ctx, c interface{}) *gomo
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "HandlePreInstallSuccess", reflect.TypeOf((*MockAPI)(nil).HandlePreInstallSuccess), ctx, c)
 }
 
+// HandleVerifyVipsResponse mocks base method.
+func (m *MockAPI) HandleVerifyVipsResponse(ctx context.Context, clusterID strfmt.UUID, stepReply string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "HandleVerifyVipsResponse", ctx, clusterID, stepReply)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// HandleVerifyVipsResponse indicates an expected call of HandleVerifyVipsResponse.
+func (mr *MockAPIMockRecorder) HandleVerifyVipsResponse(ctx, clusterID, stepReply interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "HandleVerifyVipsResponse", reflect.TypeOf((*MockAPI)(nil).HandleVerifyVipsResponse), ctx, clusterID, stepReply)
+}
+
 // IsOperatorAvailable mocks base method.
 func (m *MockAPI) IsOperatorAvailable(c *common.Cluster, operatorName string) bool {
 	m.ctrl.T.Helper()

@@ -2143,10 +2143,10 @@ var _ = Describe("Refresh Cluster - Advanced networking validations", func() {
 				validationsChecker: makeJsonChecker(map[ValidationID]validationCheckResult{
 					IsMachineCidrDefined:                {status: ValidationSuccess, messagePattern: "Machine Network CIDR is defined"},
 					IsMachineCidrEqualsToCalculatedCidr: {status: ValidationSuccess, messagePattern: "Cluster Machine CIDR is equivalent to the calculated CIDR"},
-					AreApiVipsDefined:                   {status: ValidationSuccess, messagePattern: "API virtual IPs are defined"},
-					AreApiVipsValid:                     {status: ValidationSuccess, messagePattern: "belongs to the Machine CIDR and is not in use."},
-					AreIngressVipsDefined:               {status: ValidationSuccess, messagePattern: "Ingress virtual IPs are defined"},
-					AreIngressVipsValid:                 {status: ValidationSuccess, messagePattern: "belongs to the Machine CIDR and is not in use."},
+					AreApiVipsDefined:                   {status: ValidationSuccess, messagePattern: "API virtual IPs are not required: SNO"},
+					AreApiVipsValid:                     {status: ValidationSuccess, messagePattern: "API virtual IPs are not required: SNO"},
+					AreIngressVipsDefined:               {status: ValidationSuccess, messagePattern: "Ingress virtual IPs are not required: SNO"},
+					AreIngressVipsValid:                 {status: ValidationSuccess, messagePattern: "Ingress virtual IPs are not required: SNO"},
 					AllHostsAreReadyToInstall:           {status: ValidationSuccess, messagePattern: "All hosts in the cluster are ready to install"},
 					SufficientMastersCount:              {status: ValidationSuccess, messagePattern: "The cluster has the exact amount of dedicated control plane nodes."},
 					isClusterCidrDefined:                {status: ValidationSuccess, messagePattern: "Cluster Network CIDR is defined"},
@@ -2443,10 +2443,10 @@ var _ = Describe("Refresh Cluster - Advanced networking validations", func() {
 				validationsChecker: makeJsonChecker(map[ValidationID]validationCheckResult{
 					IsMachineCidrDefined:                {status: ValidationSuccess, messagePattern: "Machine Network CIDR is defined"},
 					IsMachineCidrEqualsToCalculatedCidr: {status: ValidationSuccess, messagePattern: "Cluster Machine CIDR is equivalent to the calculated CIDR"},
-					AreApiVipsDefined:                   {status: ValidationSuccess, messagePattern: "API virtual IPs are defined"},
-					AreApiVipsValid:                     {status: ValidationSuccess, messagePattern: "belongs to the Machine CIDR and is not in use."},
-					AreIngressVipsDefined:               {status: ValidationSuccess, messagePattern: "Ingress virtual IPs are defined"},
-					AreIngressVipsValid:                 {status: ValidationSuccess, messagePattern: "belongs to the Machine CIDR and is not in use."},
+					AreApiVipsDefined:                   {status: ValidationSuccess, messagePattern: "API virtual IPs are not required: SNO"},
+					AreApiVipsValid:                     {status: ValidationSuccess, messagePattern: "API virtual IPs are not required: SNO"},
+					AreIngressVipsDefined:               {status: ValidationSuccess, messagePattern: "Ingress virtual IPs are not required: SNO"},
+					AreIngressVipsValid:                 {status: ValidationSuccess, messagePattern: "Ingress virtual IPs are not required: SNO"},
 					AllHostsAreReadyToInstall:           {status: ValidationSuccess, messagePattern: "All hosts in the cluster are ready to install"},
 					SufficientMastersCount:              {status: ValidationSuccess, messagePattern: "The cluster has the exact amount of dedicated control plane nodes."},
 					isClusterCidrDefined:                {status: ValidationSuccess, messagePattern: "Cluster Network CIDR is defined"},
@@ -3048,6 +3048,24 @@ var _ = Describe("Refresh Cluster - With DHCP", func() {
 		common.DeleteTestDB(db, dbName)
 	})
 
+	clearApiVipsVerfication := func(vips []*models.APIVip) []*models.APIVip {
+		return funk.Map(vips, func(v *models.APIVip) *models.APIVip {
+			return &models.APIVip{
+				ClusterID: v.ClusterID,
+				IP:        v.IP,
+			}
+		}).([]*models.APIVip)
+	}
+
+	clearIngressVIpsVerification := func(vips []*models.IngressVip) []*models.IngressVip {
+		return funk.Map(vips, func(v *models.IngressVip) *models.IngressVip {
+			return &models.IngressVip{
+				ClusterID: v.ClusterID,
+				IP:        v.IP,
+			}
+		}).([]*models.IngressVip)
+	}
+
 	Context("All transitions", func() {
 		var srcState string
 		tests := []struct {
@@ -3240,9 +3258,9 @@ var _ = Describe("Refresh Cluster - With DHCP", func() {
 				dstState:        models.ClusterStatusInsufficient,
 				machineNetworks: common.TestIPv4Networking.MachineNetworks,
 				apiVip:          common.TestIPv4Networking.APIVip,
-				apiVips:         common.TestIPv4Networking.APIVips,
+				apiVips:         clearApiVipsVerfication(common.TestIPv4Networking.APIVips),
 				ingressVip:      common.TestIPv4Networking.IngressVip,
-				ingressVips:     common.TestIPv4Networking.IngressVips,
+				ingressVips:     clearIngressVIpsVerification(common.TestIPv4Networking.IngressVips),
 				dnsDomain:       "test.com",
 				pullSecretSet:   true,
 				hosts: []models.Host{
@@ -4565,7 +4583,7 @@ var _ = Describe("Single node", func() {
 			errorExpected           bool
 		}{
 			{
-				name:          "non ha mode, too much nodes",
+				name:          "non ha mode, too many nodes",
 				srcState:      models.ClusterStatusReady,
 				dstState:      models.ClusterStatusInsufficient,
 				pullSecretSet: true,
@@ -4577,10 +4595,10 @@ var _ = Describe("Single node", func() {
 				validationsChecker: makeJsonChecker(map[ValidationID]validationCheckResult{
 					IsMachineCidrDefined:                {status: ValidationSuccess, messagePattern: "The Machine Network CIDR is defined"},
 					IsMachineCidrEqualsToCalculatedCidr: {status: ValidationSuccess, messagePattern: "The Cluster Machine CIDR is equivalent to the calculated CIDR"},
-					AreApiVipsDefined:                   {status: ValidationSuccess, messagePattern: "API virtual IPs are defined"},
-					AreApiVipsValid:                     {status: ValidationSuccess, messagePattern: "belongs to the Machine CIDR and is not in use."},
-					AreIngressVipsDefined:               {status: ValidationSuccess, messagePattern: "Ingress virtual IPs are defined"},
-					AreIngressVipsValid:                 {status: ValidationSuccess, messagePattern: "belongs to the Machine CIDR and is not in use."},
+					AreApiVipsDefined:                   {status: ValidationSuccess, messagePattern: "API virtual IPs are not required: SNO"},
+					AreApiVipsValid:                     {status: ValidationSuccess, messagePattern: "API virtual IPs are not required: SNO"},
+					AreIngressVipsDefined:               {status: ValidationSuccess, messagePattern: "Ingress virtual IPs are not required: SNO"},
+					AreIngressVipsValid:                 {status: ValidationSuccess, messagePattern: "Ingress virtual IPs are not required: SNO"},
 					AllHostsAreReadyToInstall:           {status: ValidationSuccess, messagePattern: "All hosts in the cluster are ready to install"},
 					IsDNSDomainDefined:                  {status: ValidationSuccess, messagePattern: "The base domain is defined"},
 					IsPullSecretSet:                     {status: ValidationSuccess, messagePattern: "The pull secret is set"},
@@ -4601,10 +4619,10 @@ var _ = Describe("Single node", func() {
 				validationsChecker: makeJsonChecker(map[ValidationID]validationCheckResult{
 					IsMachineCidrDefined:                {status: ValidationSuccess, messagePattern: "The Machine Network CIDR is defined"},
 					IsMachineCidrEqualsToCalculatedCidr: {status: ValidationSuccess, messagePattern: "The Cluster Machine CIDR is equivalent to the calculated CIDR"},
-					AreApiVipsDefined:                   {status: ValidationSuccess, messagePattern: "API virtual IPs are defined"},
-					AreApiVipsValid:                     {status: ValidationSuccess, messagePattern: "belongs to the Machine CIDR and is not in use."},
-					AreIngressVipsDefined:               {status: ValidationSuccess, messagePattern: "Ingress virtual IPs are defined"},
-					AreIngressVipsValid:                 {status: ValidationSuccess, messagePattern: "belongs to the Machine CIDR and is not in use."},
+					AreApiVipsDefined:                   {status: ValidationSuccess, messagePattern: "API virtual IPs are not required: SNO"},
+					AreApiVipsValid:                     {status: ValidationSuccess, messagePattern: "API virtual IPs are not required: SNO"},
+					AreIngressVipsDefined:               {status: ValidationSuccess, messagePattern: "Ingress virtual IPs are not required: SNO"},
+					AreIngressVipsValid:                 {status: ValidationSuccess, messagePattern: "Ingress virtual IPs are not required: SNO"},
 					AllHostsAreReadyToInstall:           {status: ValidationSuccess, messagePattern: "All hosts in the cluster are ready to install"},
 					IsDNSDomainDefined:                  {status: ValidationSuccess, messagePattern: "The base domain is defined"},
 					IsPullSecretSet:                     {status: ValidationSuccess, messagePattern: "The pull secret is set"},
@@ -4627,10 +4645,10 @@ var _ = Describe("Single node", func() {
 				validationsChecker: makeJsonChecker(map[ValidationID]validationCheckResult{
 					IsMachineCidrDefined:                {status: ValidationSuccess, messagePattern: "The Machine Network CIDR is defined"},
 					IsMachineCidrEqualsToCalculatedCidr: {status: ValidationSuccess, messagePattern: "The Cluster Machine CIDR is equivalent to the calculated CIDR"},
-					AreApiVipsDefined:                   {status: ValidationSuccess, messagePattern: "API virtual IPs are defined"},
-					AreApiVipsValid:                     {status: ValidationSuccess, messagePattern: "belongs to the Machine CIDR and is not in use."},
-					AreIngressVipsDefined:               {status: ValidationSuccess, messagePattern: "Ingress virtual IPs are defined"},
-					AreIngressVipsValid:                 {status: ValidationSuccess, messagePattern: "belongs to the Machine CIDR and is not in use."},
+					AreApiVipsDefined:                   {status: ValidationSuccess, messagePattern: "API virtual IPs are not required: SNO"},
+					AreApiVipsValid:                     {status: ValidationSuccess, messagePattern: "API virtual IPs are not required: SNO"},
+					AreIngressVipsDefined:               {status: ValidationSuccess, messagePattern: "Ingress virtual IPs are not required: SNO"},
+					AreIngressVipsValid:                 {status: ValidationSuccess, messagePattern: "Ingress virtual IPs are not required: SNO"},
 					AllHostsAreReadyToInstall:           {status: ValidationSuccess, messagePattern: "All hosts in the cluster are ready to install"},
 					IsDNSDomainDefined:                  {status: ValidationSuccess, messagePattern: "The base domain is defined"},
 					IsPullSecretSet:                     {status: ValidationSuccess, messagePattern: "The pull secret is set"},
@@ -4651,10 +4669,10 @@ var _ = Describe("Single node", func() {
 				validationsChecker: makeJsonChecker(map[ValidationID]validationCheckResult{
 					IsMachineCidrDefined:                {status: ValidationSuccess, messagePattern: "The Machine Network CIDR is defined"},
 					IsMachineCidrEqualsToCalculatedCidr: {status: ValidationSuccess, messagePattern: "The Cluster Machine CIDR is equivalent to the calculated CIDR"},
-					AreApiVipsDefined:                   {status: ValidationSuccess, messagePattern: "API virtual IPs are defined"},
-					AreApiVipsValid:                     {status: ValidationSuccess, messagePattern: "belongs to the Machine CIDR and is not in use."},
-					AreIngressVipsDefined:               {status: ValidationSuccess, messagePattern: "Ingress virtual IPs are defined"},
-					AreIngressVipsValid:                 {status: ValidationSuccess, messagePattern: "belongs to the Machine CIDR and is not in use."},
+					AreApiVipsDefined:                   {status: ValidationSuccess, messagePattern: "API virtual IPs are not required: SNO"},
+					AreApiVipsValid:                     {status: ValidationSuccess, messagePattern: "API virtual IPs are not required: SNO"},
+					AreIngressVipsDefined:               {status: ValidationSuccess, messagePattern: "Ingress virtual IPs are not required: SNO"},
+					AreIngressVipsValid:                 {status: ValidationSuccess, messagePattern: "Ingress virtual IPs are not required: SNO"},
 					AllHostsAreReadyToInstall:           {status: ValidationSuccess, messagePattern: "All hosts in the cluster are ready to install"},
 					IsDNSDomainDefined:                  {status: ValidationSuccess, messagePattern: "The base domain is defined"},
 					IsPullSecretSet:                     {status: ValidationSuccess, messagePattern: "The pull secret is set"},
@@ -4675,10 +4693,10 @@ var _ = Describe("Single node", func() {
 				validationsChecker: makeJsonChecker(map[ValidationID]validationCheckResult{
 					IsMachineCidrDefined:                {status: ValidationSuccess, messagePattern: "The Machine Network CIDR is defined"},
 					IsMachineCidrEqualsToCalculatedCidr: {status: ValidationSuccess, messagePattern: "The Cluster Machine CIDR is equivalent to the calculated CIDR"},
-					AreApiVipsDefined:                   {status: ValidationSuccess, messagePattern: "API virtual IPs are defined"},
-					AreApiVipsValid:                     {status: ValidationSuccess, messagePattern: "belongs to the Machine CIDR and is not in use."},
-					AreIngressVipsDefined:               {status: ValidationSuccess, messagePattern: "Ingress virtual IPs are defined"},
-					AreIngressVipsValid:                 {status: ValidationSuccess, messagePattern: "belongs to the Machine CIDR and is not in use."},
+					AreApiVipsDefined:                   {status: ValidationSuccess, messagePattern: "API virtual IPs are not required: SNO"},
+					AreApiVipsValid:                     {status: ValidationSuccess, messagePattern: "API virtual IPs are not required: SNO"},
+					AreIngressVipsDefined:               {status: ValidationSuccess, messagePattern: "Ingress virtual IPs are not required: SNO"},
+					AreIngressVipsValid:                 {status: ValidationSuccess, messagePattern: "Ingress virtual IPs are not required: SNO"},
 					AllHostsAreReadyToInstall:           {status: ValidationSuccess, messagePattern: "All hosts in the cluster are ready to install"},
 					IsDNSDomainDefined:                  {status: ValidationSuccess, messagePattern: "The base domain is defined"},
 					IsPullSecretSet:                     {status: ValidationSuccess, messagePattern: "The pull secret is set"},
@@ -4699,10 +4717,10 @@ var _ = Describe("Single node", func() {
 				validationsChecker: makeJsonChecker(map[ValidationID]validationCheckResult{
 					IsMachineCidrDefined:                {status: ValidationSuccess, messagePattern: "The Machine Network CIDR is defined"},
 					IsMachineCidrEqualsToCalculatedCidr: {status: ValidationSuccess, messagePattern: "The Cluster Machine CIDR is equivalent to the calculated CIDR"},
-					AreApiVipsDefined:                   {status: ValidationSuccess, messagePattern: "API virtual IPs are defined"},
-					AreApiVipsValid:                     {status: ValidationSuccess, messagePattern: "belongs to the Machine CIDR and is not in use."},
-					AreIngressVipsDefined:               {status: ValidationSuccess, messagePattern: "Ingress virtual IPs are defined"},
-					AreIngressVipsValid:                 {status: ValidationSuccess, messagePattern: "belongs to the Machine CIDR and is not in use."},
+					AreApiVipsDefined:                   {status: ValidationSuccess, messagePattern: "API virtual IPs are not required: SNO"},
+					AreApiVipsValid:                     {status: ValidationSuccess, messagePattern: "API virtual IPs are not required: SNO"},
+					AreIngressVipsDefined:               {status: ValidationSuccess, messagePattern: "Ingress virtual IPs are not required: SNO"},
+					AreIngressVipsValid:                 {status: ValidationSuccess, messagePattern: "Ingress virtual IPs are not required: SNO"},
 					AllHostsAreReadyToInstall:           {status: ValidationSuccess, messagePattern: "All hosts in the cluster are ready to install"},
 					IsDNSDomainDefined:                  {status: ValidationSuccess, messagePattern: "The base domain is defined"},
 					IsPullSecretSet:                     {status: ValidationSuccess, messagePattern: "The pull secret is set"},
@@ -4723,10 +4741,10 @@ var _ = Describe("Single node", func() {
 				validationsChecker: makeJsonChecker(map[ValidationID]validationCheckResult{
 					IsMachineCidrDefined:                {status: ValidationSuccess, messagePattern: "The Machine Network CIDR is defined"},
 					IsMachineCidrEqualsToCalculatedCidr: {status: ValidationSuccess, messagePattern: "The Cluster Machine CIDR is equivalent to the calculated CIDR"},
-					AreApiVipsDefined:                   {status: ValidationSuccess, messagePattern: "API virtual IPs are defined"},
-					AreApiVipsValid:                     {status: ValidationSuccess, messagePattern: "belongs to the Machine CIDR and is not in use."},
-					AreIngressVipsDefined:               {status: ValidationSuccess, messagePattern: "Ingress virtual IPs are defined"},
-					AreIngressVipsValid:                 {status: ValidationSuccess, messagePattern: "belongs to the Machine CIDR and is not in use."},
+					AreApiVipsDefined:                   {status: ValidationSuccess, messagePattern: "API virtual IPs are not required: SNO"},
+					AreApiVipsValid:                     {status: ValidationSuccess, messagePattern: "API virtual IPs are not required: SNO"},
+					AreIngressVipsDefined:               {status: ValidationSuccess, messagePattern: "Ingress virtual IPs are not required: SNO"},
+					AreIngressVipsValid:                 {status: ValidationSuccess, messagePattern: "Ingress virtual IPs are not required: SNO"},
 					AllHostsAreReadyToInstall:           {status: ValidationSuccess, messagePattern: "All hosts in the cluster are ready to install"},
 					IsDNSDomainDefined:                  {status: ValidationSuccess, messagePattern: "The base domain is defined"},
 					IsPullSecretSet:                     {status: ValidationSuccess, messagePattern: "The pull secret is set"},

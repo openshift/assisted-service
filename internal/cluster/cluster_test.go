@@ -2194,6 +2194,7 @@ var _ = Describe("Majority groups", func() {
 		id = strfmt.UUID(uuid.New().String())
 		apiVip := "1.2.3.5"
 		ingressVip := "1.2.3.6"
+		verificationSuccess := models.VipVerificationSucceeded
 		cluster = common.Cluster{Cluster: models.Cluster{
 			ID:              &id,
 			Status:          swag.String(models.ClusterStatusReady),
@@ -2202,8 +2203,8 @@ var _ = Describe("Majority groups", func() {
 			MachineNetworks: common.TestIPv4Networking.MachineNetworks,
 			APIVip:          apiVip,
 			IngressVip:      ingressVip,
-			APIVips:         []*models.APIVip{{IP: models.IP(apiVip), ClusterID: id}},
-			IngressVips:     []*models.IngressVip{{IP: models.IP(ingressVip), ClusterID: id}},
+			APIVips:         []*models.APIVip{{IP: models.IP(apiVip), ClusterID: id, Verification: &verificationSuccess}},
+			IngressVips:     []*models.IngressVip{{IP: models.IP(ingressVip), ClusterID: id, Verification: &verificationSuccess}},
 			BaseDNSDomain:   "test.com",
 			PullSecretSet:   true,
 			NetworkType:     swag.String(models.ClusterNetworkTypeOVNKubernetes),
@@ -2286,6 +2287,204 @@ var _ = Describe("Majority groups", func() {
 	})
 })
 
+var _ = Describe("validate vips response", func() {
+	var (
+		ctx                                            = context.Background()
+		clusterApi                                     *Manager
+		db                                             *gorm.DB
+		id                                             strfmt.UUID
+		cluster                                        common.Cluster
+		dbName                                         string
+		ctrl                                           *gomock.Controller
+		mockEvents                                     *eventsapi.MockHandler
+		apiV4Vip, apiV6Vip, ingressV4Vip, ingressV6Vip string
+	)
+
+	BeforeEach(func() {
+		db, dbName = common.PrepareTestDB()
+		ctrl = gomock.NewController(GinkgoT())
+		mockEvents = eventsapi.NewMockHandler(ctrl)
+		dummy := &leader.DummyElector{}
+		mockOperators := operators.NewMockAPI(ctrl)
+		clusterApi = NewManager(getDefaultConfig(), common.GetTestLog().WithField("pkg", "cluster-monitor"), db, nil,
+			mockEvents, nil, nil, nil, dummy, mockOperators, nil, nil, nil, nil)
+		id = strfmt.UUID(uuid.New().String())
+		apiV4Vip = "1.2.3.5"
+		ingressV4Vip = "1.2.3.6"
+		apiV6Vip = "1001:db8::100"
+		ingressV6Vip = "1001:db8::101"
+	})
+
+	createPayload := func(response models.VerifyVipsResponse) string {
+		b, err := json.Marshal(&response)
+		Expect(err)
+		return string(b)
+	}
+
+	AfterEach(func() {
+		ctrl.Finish()
+		common.DeleteTestDB(db, dbName)
+	})
+	createClusterAndHosts := func(apivVips, ingressVips []string) {
+		cluster = common.Cluster{Cluster: models.Cluster{
+			ID:              &id,
+			Status:          swag.String(models.ClusterStatusReady),
+			ClusterNetworks: common.TestIPv4Networking.ClusterNetworks,
+			ServiceNetworks: common.TestIPv4Networking.ServiceNetworks,
+			MachineNetworks: common.TestIPv4Networking.MachineNetworks,
+			APIVips:         funk.Map(apivVips, func(apiVip string) *models.APIVip { return &models.APIVip{IP: models.IP(apiVip), ClusterID: id} }).([]*models.APIVip),
+			IngressVips: funk.Map(ingressVips,
+				func(ingressVip string) *models.IngressVip {
+					return &models.IngressVip{IP: models.IP(ingressVip), ClusterID: id}
+				}).([]*models.IngressVip),
+			BaseDNSDomain: "test.com",
+			PullSecretSet: true,
+			NetworkType:   swag.String(models.ClusterNetworkTypeOVNKubernetes),
+		}}
+		Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
+	}
+	expect := func(response models.VerifyVipsResponse, updateExpected bool, timestamp time.Time) {
+		cls, err := common.GetClusterFromDB(db, id, common.UseEagerLoading)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(response).To(HaveLen(len(cls.APIVips) + len(cls.IngressVips)))
+		Expect(funk.Map(funk.Filter(response, func(r *models.VerifiedVip) bool { return r.VipType == models.VipTypeAPI }),
+			func(v *models.VerifiedVip) *models.APIVip {
+				return &models.APIVip{IP: v.Vip, ClusterID: id, Verification: v.Verification}
+			})).To(ConsistOf(cls.APIVips))
+		Expect(funk.Map(funk.Filter(response, func(r *models.VerifiedVip) bool { return r.VipType == models.VipTypeIngress }),
+			func(v *models.VerifiedVip) *models.IngressVip {
+				return &models.IngressVip{IP: v.Vip, ClusterID: id, Verification: v.Verification}
+			})).To(ConsistOf(cls.IngressVips))
+		if updateExpected {
+			Expect(cls.TriggerMonitorTimestamp.After(timestamp)).To(BeTrue())
+		}
+	}
+	It("happy flow", func() {
+		createClusterAndHosts([]string{apiV4Vip, apiV6Vip}, []string{ingressV4Vip, ingressV6Vip})
+		response := models.VerifyVipsResponse{
+			{
+				Verification: common.VipVerificationPtr(models.VipVerificationSucceeded),
+				Vip:          models.IP(apiV4Vip),
+				VipType:      models.VipTypeAPI,
+			},
+			{
+				Verification: common.VipVerificationPtr(models.VipVerificationSucceeded),
+				Vip:          models.IP(apiV6Vip),
+				VipType:      models.VipTypeAPI,
+			},
+			{
+				Verification: common.VipVerificationPtr(models.VipVerificationSucceeded),
+				Vip:          models.IP(ingressV4Vip),
+				VipType:      models.VipTypeIngress,
+			},
+			{
+				Verification: common.VipVerificationPtr(models.VipVerificationSucceeded),
+				Vip:          models.IP(ingressV6Vip),
+				VipType:      models.VipTypeIngress,
+			},
+		}
+		payload := createPayload(response)
+		timestamp := time.Now()
+		err := clusterApi.HandleVerifyVipsResponse(ctx, id, payload)
+		Expect(err).ToNot(HaveOccurred())
+		expect(response, true, timestamp)
+	})
+	It("no vips exist", func() {
+		createClusterAndHosts([]string{}, []string{})
+		response := models.VerifyVipsResponse{
+			{
+				Verification: common.VipVerificationPtr(models.VipVerificationSucceeded),
+				Vip:          models.IP(apiV4Vip),
+				VipType:      models.VipTypeAPI,
+			},
+			{
+				Verification: common.VipVerificationPtr(models.VipVerificationSucceeded),
+				Vip:          models.IP(apiV6Vip),
+				VipType:      models.VipTypeAPI,
+			},
+			{
+				Verification: common.VipVerificationPtr(models.VipVerificationSucceeded),
+				Vip:          models.IP(ingressV4Vip),
+				VipType:      models.VipTypeIngress,
+			},
+			{
+				Verification: common.VipVerificationPtr(models.VipVerificationSucceeded),
+				Vip:          models.IP(ingressV6Vip),
+				VipType:      models.VipTypeIngress,
+			},
+		}
+		payload := createPayload(response)
+		timestamp := time.Now()
+		err := clusterApi.HandleVerifyVipsResponse(ctx, id, payload)
+		Expect(err).ToNot(HaveOccurred())
+		expect(models.VerifyVipsResponse{}, false, timestamp)
+	})
+	It("already verified", func() {
+		createClusterAndHosts([]string{apiV4Vip, apiV6Vip}, []string{ingressV4Vip, ingressV6Vip})
+		Expect(db.Model(&models.APIVip{}).Where("cluster_id = ?", id.String()).Update("verification", models.VipVerificationSucceeded).Error).ToNot(HaveOccurred())
+		Expect(db.Model(&models.IngressVip{}).Where("cluster_id = ?", id.String()).Update("verification", models.VipVerificationSucceeded).Error).ToNot(HaveOccurred())
+		response := models.VerifyVipsResponse{
+			{
+				Verification: common.VipVerificationPtr(models.VipVerificationSucceeded),
+				Vip:          models.IP(apiV4Vip),
+				VipType:      models.VipTypeAPI,
+			},
+			{
+				Verification: common.VipVerificationPtr(models.VipVerificationSucceeded),
+				Vip:          models.IP(apiV6Vip),
+				VipType:      models.VipTypeAPI,
+			},
+			{
+				Verification: common.VipVerificationPtr(models.VipVerificationSucceeded),
+				Vip:          models.IP(ingressV4Vip),
+				VipType:      models.VipTypeIngress,
+			},
+			{
+				Verification: common.VipVerificationPtr(models.VipVerificationSucceeded),
+				Vip:          models.IP(ingressV6Vip),
+				VipType:      models.VipTypeIngress,
+			},
+		}
+		payload := createPayload(response)
+		timestamp := time.Now()
+		err := clusterApi.HandleVerifyVipsResponse(ctx, id, payload)
+		Expect(err).ToNot(HaveOccurred())
+		expect(response, false, timestamp)
+	})
+	It(" move 1 to failed", func() {
+		createClusterAndHosts([]string{apiV4Vip, apiV6Vip}, []string{ingressV4Vip, ingressV6Vip})
+		Expect(db.Model(&models.APIVip{}).Where("cluster_id = ?", id.String()).Update("verification", models.VipVerificationSucceeded).Error).ToNot(HaveOccurred())
+		Expect(db.Model(&models.IngressVip{}).Where("cluster_id = ?", id.String()).Update("verification", models.VipVerificationSucceeded).Error).ToNot(HaveOccurred())
+		response := models.VerifyVipsResponse{
+			{
+				Verification: common.VipVerificationPtr(models.VipVerificationSucceeded),
+				Vip:          models.IP(apiV4Vip),
+				VipType:      models.VipTypeAPI,
+			},
+			{
+				Verification: common.VipVerificationPtr(models.VipVerificationSucceeded),
+				Vip:          models.IP(apiV6Vip),
+				VipType:      models.VipTypeAPI,
+			},
+			{
+				Verification: common.VipVerificationPtr(models.VipVerificationFailed),
+				Vip:          models.IP(ingressV4Vip),
+				VipType:      models.VipTypeIngress,
+			},
+			{
+				Verification: common.VipVerificationPtr(models.VipVerificationSucceeded),
+				Vip:          models.IP(ingressV6Vip),
+				VipType:      models.VipTypeIngress,
+			},
+		}
+		payload := createPayload(response)
+		timestamp := time.Now()
+		err := clusterApi.HandleVerifyVipsResponse(ctx, id, payload)
+		Expect(err).ToNot(HaveOccurred())
+		expect(response, true, timestamp)
+	})
+})
+
 var _ = Describe("ready_state", func() {
 	var (
 		ctx        = context.Background()
@@ -2317,8 +2516,8 @@ var _ = Describe("ready_state", func() {
 			MachineNetworks: common.TestIPv4Networking.MachineNetworks,
 			APIVip:          apiVip,
 			IngressVip:      ingressVip,
-			APIVips:         []*models.APIVip{{IP: models.IP(apiVip), ClusterID: id}},
-			IngressVips:     []*models.IngressVip{{IP: models.IP(ingressVip), ClusterID: id}},
+			APIVips:         []*models.APIVip{{IP: models.IP(apiVip), ClusterID: id, Verification: common.VipVerificationPtr(models.VipVerificationSucceeded)}},
+			IngressVips:     []*models.IngressVip{{IP: models.IP(ingressVip), ClusterID: id, Verification: common.VipVerificationPtr(models.VipVerificationSucceeded)}},
 			BaseDNSDomain:   "test.com",
 			PullSecretSet:   true,
 			NetworkType:     swag.String(models.ClusterNetworkTypeOVNKubernetes),

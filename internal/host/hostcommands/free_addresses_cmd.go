@@ -5,74 +5,75 @@ import (
 	"encoding/json"
 	"net"
 
+	"github.com/openshift/assisted-service/internal/network"
 	"github.com/openshift/assisted-service/models"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
+const (
+	MaxSmallV4PrefixSize = 10
+)
+
 type freeAddressesCmd struct {
 	baseCmd
-	freeAddressesImage string
+	kubeApiEnabled bool
 }
 
-func newFreeAddressesCmd(log logrus.FieldLogger, freeAddressesImage string) CommandGetter {
-	return &freeAddressesCmd{
-		baseCmd:            baseCmd{log: log},
-		freeAddressesImage: freeAddressesImage,
+func getAllSmallV4Cidrs(host *models.Host, log logrus.FieldLogger) ([]string, error) {
+	networksByFamily, err := network.GetInventoryNetworksByFamily([]*models.Host{host}, log)
+	if err != nil {
+		return nil, err
 	}
-}
-
-func hasIPv6Addresses(inventory *models.Inventory) bool {
-	for _, intf := range inventory.Interfaces {
-		if len(intf.IPV6Addresses) > 0 {
-			return true
+	var ret []string
+	for _, cidr := range networksByFamily[network.IPv4] {
+		_, ipnet, err := net.ParseCIDR(cidr)
+		if err != nil {
+			return nil, errors.Wrapf(err, "failed parsing %s", cidr)
+		}
+		ones, bits := ipnet.Mask.Size()
+		if ones >= bits-MaxSmallV4PrefixSize {
+			ret = append(ret, cidr)
 		}
 	}
-	return false
+	return ret, nil
+}
+
+func getFreeAddressesNetworks(host *models.Host, log logrus.FieldLogger) ([]string, error) {
+	cidrs, err := getAllSmallV4Cidrs(host, log)
+	if err != nil {
+		return nil, err
+	}
+	return cidrs, nil
+}
+
+func newFreeAddressesCmd(log logrus.FieldLogger, kubeApiEnabled bool) CommandGetter {
+	return &freeAddressesCmd{
+		baseCmd:        baseCmd{log: log},
+		kubeApiEnabled: kubeApiEnabled,
+	}
 }
 
 func (f *freeAddressesCmd) prepareParam(host *models.Host) (string, error) {
+	if f.kubeApiEnabled {
+		return "", nil
+	}
 	var inventory models.Inventory
 	err := json.Unmarshal([]byte(host.Inventory), &inventory)
 	if err != nil {
 		f.log.WithError(err).Warn("Inventory parse")
 		return "", err
 	}
-
-	cidrDedupSet := make(map[string]struct{})
-	ipv4InterfaceSkipped := false
-	for _, intf := range inventory.Interfaces {
-		for _, ipv4 := range intf.IPV4Addresses {
-			var cidr *net.IPNet
-			_, cidr, err = net.ParseCIDR(ipv4)
-
-			ones, bits := cidr.Mask.Size()
-
-			// Ignore subnets with size 8192 or more
-			if bits-ones > 12 {
-				f.log.Warnf("Skipping address scan for IPv4 CIDR %s for host %s because it contains more than 4096 addresses",
-					cidr.String(), host.ID.String())
-				ipv4InterfaceSkipped = true
-				continue
-			}
-
-			if err != nil {
-				f.log.WithError(err).Warn("Cidr parse")
-				return "", err
-			}
-			cidrDedupSet[cidr.String()] = struct{}{}
-		}
-	}
-	if len(cidrDedupSet) == 0 {
-		if hasIPv6Addresses(&inventory) || ipv4InterfaceSkipped {
-			return "", nil
-		}
-		err = errors.Errorf("No networks found for host %s", host.ID.String())
-		f.log.WithError(err).Warn("Missing networks")
+	networks, err := getFreeAddressesNetworks(host, f.log)
+	if err != nil {
+		f.log.WithError(err).Errorf("find if validate with free addresses")
 		return "", err
 	}
+	if len(networks) == 0 {
+		return "", nil
+	}
 	request := models.FreeAddressesRequest{}
-	for cidr := range cidrDedupSet {
+	for _, cidr := range networks {
 		request = append(request, cidr)
 	}
 	b, err := json.Marshal(&request)
@@ -95,7 +96,5 @@ func (f *freeAddressesCmd) GetSteps(ctx context.Context, host *models.Host) ([]*
 			param,
 		},
 	}
-
 	return []*models.Step{step}, nil
-
 }

@@ -911,6 +911,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			hosts = append(hosts, host)
 		}
 		generateFullMeshConnectivity(ctx, ips[0], hosts...)
+		generateVerifyVipsPostStepReply(ctx, hosts[0], []string{aciV6Spec.APIVIP}, []string{aciV6Spec.IngressVIP}, models.VipVerificationSucceeded)
 		for _, h := range hosts {
 			generateDomainResolution(ctx, h, clusterDeploymentSpec.ClusterName, "hive.example.com")
 		}
