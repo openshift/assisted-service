@@ -144,7 +144,6 @@ export KUBECONFIG=/tmp/$ASSISTED_CLUSTER_NAME-kubeconfig
 wait_for_object_amount node ${SPOKE_CONTROLPLANE_AGENTS} 10
 echo "Worker nodes have been detected successfuly in the created cluster!"
 
-
 echo "verify the BMH on the HUB cluster is detached"
 export KUBECONFIG=${HUB_KUBECONFIG}
 if [ $(oc get baremetalhost -n ${SPOKE_NAMESPACE} -o json | jq -c '.items[].metadata.annotations."baremetalhost.metal3.io/detached"| select("assisted-service-controller")' | wc -l) -ne ${SPOKE_CONTROLPLANE_AGENTS} ]; then
@@ -153,3 +152,7 @@ if [ $(oc get baremetalhost -n ${SPOKE_NAMESPACE} -o json | jq -c '.items[].meta
   oc get baremetalhost -n "${SPOKE_NAMESPACE}"
   return 1
 fi
+
+echo "Destroy the hosted cluster"
+hypershift destroy cluster agent --name $ASSISTED_CLUSTER_NAME --namespace $SPOKE_NAMESPACE --cluster-grace-period 60m
+echo "Successfully destroyed the hosted cluster"
