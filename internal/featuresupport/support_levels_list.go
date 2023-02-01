@@ -325,6 +325,55 @@ var SupportLevelsList = models.FeatureSupportLevels{
 			// Unsupported features
 		},
 	},
+	&models.FeatureSupportLevel{
+		OpenshiftVersion: "4.13",
+		Features: []*models.FeatureSupportLevelFeaturesItems0{
+			// Supported
+			{
+				FeatureID:    swag.String(models.FeatureSupportLevelFeaturesItems0FeatureIDSNO),
+				SupportLevel: swag.String(models.FeatureSupportLevelFeaturesItems0SupportLevelSupported),
+			},
+			{
+				FeatureID:    swag.String(models.FeatureSupportLevelFeaturesItems0FeatureIDARM64ARCHITECTURE),
+				SupportLevel: swag.String(models.FeatureSupportLevelFeaturesItems0SupportLevelSupported),
+			},
+			{
+				FeatureID:    swag.String(models.FeatureSupportLevelFeaturesItems0FeatureIDARM64ARCHITECTUREWITHCLUSTERMANAGEDNETWORKING),
+				SupportLevel: swag.String(models.FeatureSupportLevelFeaturesItems0SupportLevelSupported),
+			},
+			{
+				FeatureID:    swag.String(models.FeatureSupportLevelFeaturesItems0FeatureIDSINGLENODEEXPANSION),
+				SupportLevel: swag.String(models.FeatureSupportLevelFeaturesItems0SupportLevelSupported),
+			},
+			{
+				FeatureID:    swag.String(models.FeatureSupportLevelFeaturesItems0FeatureIDLVM),
+				SupportLevel: swag.String(models.FeatureSupportLevelFeaturesItems0SupportLevelSupported),
+			},
+			{
+				FeatureID:    swag.String(models.FeatureSupportLevelFeaturesItems0FeatureIDDUALSTACKNETWORKING),
+				SupportLevel: swag.String(models.FeatureSupportLevelFeaturesItems0SupportLevelSupported),
+			},
+			{
+				FeatureID:    swag.String(models.FeatureSupportLevelFeaturesItems0FeatureIDNUTANIXINTEGRATION),
+				SupportLevel: swag.String(models.FeatureSupportLevelFeaturesItems0SupportLevelSupported),
+			},
+			{
+				FeatureID:    swag.String(models.FeatureSupportLevelFeaturesItems0FeatureIDDUALSTACKVIPS),
+				SupportLevel: swag.String(models.FeatureSupportLevelFeaturesItems0SupportLevelSupported),
+			},
+			// Tech-Preview features
+			{
+				FeatureID:    swag.String(models.FeatureSupportLevelFeaturesItems0FeatureIDMULTIARCHRELEASEIMAGE),
+				SupportLevel: swag.String(models.FeatureSupportLevelFeaturesItems0SupportLevelTechPreview),
+			},
+			// Dev-Preview features
+			{
+				FeatureID:    swag.String(models.FeatureSupportLevelFeaturesItems0FeatureIDVIPAUTOALLOC),
+				SupportLevel: swag.String(models.FeatureSupportLevelFeaturesItems0SupportLevelDevPreview),
+			},
+			// Unsupported features
+		},
+	},
 }
 
 // default is supported
