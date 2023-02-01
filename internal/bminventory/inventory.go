@@ -591,7 +591,7 @@ func (b *bareMetalInventory) RegisterClusterInternal(
 			return nil, err
 		}
 
-		err = operators.EnsureLVMAndCNVDoNotClash(&cluster, *releaseImage.Version, newOLMOperators)
+		err = b.operatorManagerApi.EnsureOperatorPrerequisite(&cluster, *releaseImage.Version, newOLMOperators)
 		if err != nil {
 			log.Error(err)
 			return nil, common.NewApiError(http.StatusBadRequest, err)
@@ -2728,7 +2728,7 @@ func (b *bareMetalInventory) updateOperatorsData(ctx context.Context, cluster *c
 		return err
 	}
 
-	err = operators.EnsureLVMAndCNVDoNotClash(cluster, cluster.OpenshiftVersion, updateOLMOperators)
+	err = b.operatorManagerApi.EnsureOperatorPrerequisite(cluster, cluster.OpenshiftVersion, updateOLMOperators)
 	if err != nil {
 		log.Error(err)
 		return common.NewApiError(http.StatusBadRequest, err)
