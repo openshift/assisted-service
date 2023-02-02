@@ -78,6 +78,7 @@ type PullSecretCreds struct {
 	Password string
 	Registry string
 	AuthRaw  string
+	Email    string
 }
 
 // PullSecretError distinguishes secret validation errors produced by this package from other types of errors
@@ -125,11 +126,19 @@ func ParsePullSecret(secret string) (map[string]PullSecretCreds, error) {
 		if len(res) != 2 {
 			return nil, &PullSecretError{Msg: fmt.Sprintf("invalid pull secret: 'auth' for %s is not in 'user:password' format", d)}
 		}
+
+		var email string
+		_, emailExists := a["email"]
+		if emailExists {
+			email = a["email"].(string)
+		}
+
 		result[d] = PullSecretCreds{
 			Password: string(res[1]),
 			Username: string(res[0]),
 			AuthRaw:  a["auth"].(string),
 			Registry: d,
+			Email:    email,
 		}
 
 	}
