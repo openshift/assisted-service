@@ -186,6 +186,27 @@ var _ = Describe("ACI web validate", func() {
 			expectedAllowed: true,
 		},
 		{
+			name: "Test AgentClusterInstall.Spec update allowed for ignition endpoint field when Install finished",
+			newSpec: hiveext.AgentClusterInstallSpec{
+				IgnitionEndpoint: &hiveext.IgnitionEndpoint{
+					Url: "http://endpoint-2",
+				},
+			},
+			conditions: []hivev1.ClusterInstallCondition{
+				{
+					Type:   hiveext.ClusterCompletedCondition,
+					Reason: hiveext.ClusterInstalledReason,
+				},
+			},
+			oldSpec: hiveext.AgentClusterInstallSpec{
+				IgnitionEndpoint: &hiveext.IgnitionEndpoint{
+					Url: "http://endpoint-1",
+				},
+			},
+			operation:       admissionv1.Update,
+			expectedAllowed: true,
+		},
+		{
 			name: "Test AgentClusterInstall.Spec is immutable (updates not allowed) Install failed",
 			newSpec: hiveext.AgentClusterInstallSpec{
 				SSHPublicKey: "somekey",
