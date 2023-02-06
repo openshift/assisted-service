@@ -11,6 +11,7 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"runtime"
 	"runtime/debug"
 	"strings"
 	"time"
@@ -4320,6 +4321,8 @@ func (b *bareMetalInventory) RegisterInfraEnvInternal(
 	}
 	url := installer.GetInfraEnvURL{InfraEnvID: id}
 
+	params.InfraenvCreateParams.CPUArchitecture = common.NormalizeCPUArchitecture(params.InfraenvCreateParams.CPUArchitecture)
+
 	log = log.WithField(ctxparams.ClusterId, id)
 	log.Infof("Register infraenv: %s with id %s", swag.StringValue(params.InfraenvCreateParams.Name), id)
 
@@ -6164,7 +6167,7 @@ func (b *bareMetalInventory) GetKnownApprovedHosts(clusterId strfmt.UUID) ([]*co
 // will automatically use the image matching the Hub's architecture.
 func isBaremetalBinaryFromAnotherReleaseImageRequired(cpuArchitecture, version string, platform *models.PlatformType) bool {
 	return cpuArchitecture != common.MultiCPUArchitecture &&
-		cpuArchitecture != common.DefaultCPUArchitecture &&
+		cpuArchitecture != common.NormalizeCPUArchitecture(runtime.GOARCH) &&
 		common.PlatformTypeValue(platform) == models.PlatformTypeBaremetal &&
 		featuresupport.IsFeatureSupported(version,
 			models.FeatureSupportLevelFeaturesItems0FeatureIDARM64ARCHITECTUREWITHCLUSTERMANAGEDNETWORKING)

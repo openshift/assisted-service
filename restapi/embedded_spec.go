@@ -5452,6 +5452,14 @@ func init() {
           "description": "The CPU architecture of the image (x86_64/arm64/etc).",
           "type": "string",
           "default": "x86_64",
+          "enum": [
+            "x86_64",
+            "aarch64",
+            "arm64",
+            "ppc64le",
+            "s390x",
+            "multi"
+          ],
           "x-nullable": false
         },
         "created_at": {
@@ -5844,6 +5852,14 @@ func init() {
           "description": "The CPU architecture of the image (x86_64/arm64/etc).",
           "type": "string",
           "default": "x86_64",
+          "enum": [
+            "x86_64",
+            "aarch64",
+            "arm64",
+            "ppc64le",
+            "s390x",
+            "multi"
+          ],
           "x-nullable": false
         },
         "disk_encryption": {
@@ -7758,6 +7774,14 @@ func init() {
           "description": "The CPU architecture of the image (x86_64/arm64/etc).",
           "type": "string",
           "default": "x86_64",
+          "enum": [
+            "x86_64",
+            "aarch64",
+            "arm64",
+            "ppc64le",
+            "s390x",
+            "multi"
+          ],
           "x-nullable": false
         },
         "created_at": {
@@ -7895,6 +7919,14 @@ func init() {
           "description": "The CPU architecture of the image (x86_64/arm64/etc).",
           "type": "string",
           "default": "x86_64",
+          "enum": [
+            "x86_64",
+            "aarch64",
+            "arm64",
+            "ppc64le",
+            "s390x",
+            "multi"
+          ],
           "x-nullable": false
         },
         "ignition_config_override": {
@@ -8840,6 +8872,13 @@ func init() {
           "description": "The CPU architecture of the image (x86_64/arm64/etc).",
           "type": "string",
           "default": "x86_64",
+          "enum": [
+            "x86_64",
+            "aarch64",
+            "arm64",
+            "ppc64le",
+            "s390x"
+          ],
           "x-go-custom-tag": "gorm:\"default:'x86_64'\""
         },
         "openshift_version": {
@@ -8966,6 +9005,14 @@ func init() {
           "description": "(DEPRECATED) The CPU architecture of the image (x86_64/arm64/etc).",
           "type": "string",
           "default": "x86_64",
+          "enum": [
+            "x86_64",
+            "aarch64",
+            "arm64",
+            "ppc64le",
+            "s390x",
+            "multi"
+          ],
           "x-go-custom-tag": "gorm:\"default:'x86_64'\""
         },
         "cpu_architectures": {
@@ -15233,6 +15280,14 @@ func init() {
           "description": "The CPU architecture of the image (x86_64/arm64/etc).",
           "type": "string",
           "default": "x86_64",
+          "enum": [
+            "x86_64",
+            "aarch64",
+            "arm64",
+            "ppc64le",
+            "s390x",
+            "multi"
+          ],
           "x-nullable": false
         },
         "created_at": {
@@ -15625,6 +15680,14 @@ func init() {
           "description": "The CPU architecture of the image (x86_64/arm64/etc).",
           "type": "string",
           "default": "x86_64",
+          "enum": [
+            "x86_64",
+            "aarch64",
+            "arm64",
+            "ppc64le",
+            "s390x",
+            "multi"
+          ],
           "x-nullable": false
         },
         "disk_encryption": {
@@ -17458,6 +17521,14 @@ func init() {
           "description": "The CPU architecture of the image (x86_64/arm64/etc).",
           "type": "string",
           "default": "x86_64",
+          "enum": [
+            "x86_64",
+            "aarch64",
+            "arm64",
+            "ppc64le",
+            "s390x",
+            "multi"
+          ],
           "x-nullable": false
         },
         "created_at": {
@@ -17596,6 +17667,14 @@ func init() {
           "description": "The CPU architecture of the image (x86_64/arm64/etc).",
           "type": "string",
           "default": "x86_64",
+          "enum": [
+            "x86_64",
+            "aarch64",
+            "arm64",
+            "ppc64le",
+            "s390x",
+            "multi"
+          ],
           "x-nullable": false
         },
         "ignition_config_override": {
@@ -18530,6 +18609,13 @@ func init() {
           "description": "The CPU architecture of the image (x86_64/arm64/etc).",
           "type": "string",
           "default": "x86_64",
+          "enum": [
+            "x86_64",
+            "aarch64",
+            "arm64",
+            "ppc64le",
+            "s390x"
+          ],
           "x-go-custom-tag": "gorm:\"default:'x86_64'\""
         },
         "openshift_version": {
@@ -18656,6 +18742,14 @@ func init() {
           "description": "(DEPRECATED) The CPU architecture of the image (x86_64/arm64/etc).",
           "type": "string",
           "default": "x86_64",
+          "enum": [
+            "x86_64",
+            "aarch64",
+            "arm64",
+            "ppc64le",
+            "s390x",
+            "multi"
+          ],
           "x-go-custom-tag": "gorm:\"default:'x86_64'\""
         },
         "cpu_architectures": {
