@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"text/template"
 
-	"github.com/hashicorp/go-version"
 	"github.com/openshift/assisted-service/internal/common"
 )
 
@@ -35,34 +34,34 @@ func Manifests(cluster *common.Cluster) (map[string][]byte, []byte, error) {
 	return openshiftManifests, lvmcluster, nil
 }
 
-func getSubscription(cluster *common.Cluster) ([]byte, error) {
-
-	ocpVersion, err := version.NewVersion(cluster.OpenshiftVersion)
+func getSubscriptionInfo(openshiftVersion string) (map[string]string, error) {
+	isGreaterOrEqual, err := common.BaseVersionGreaterOrEqual(openshiftVersion, LvmsMinOpenshiftVersion)
 	if err != nil {
-		return []byte{}, err
+		return map[string]string{}, err
 	}
 
-	minOCPVersionForLVMS, err := version.NewVersion(LvmsMinOpenshiftVersion)
-	if err != nil {
-		return []byte{}, err
-	}
-
-	if ocpVersion.LessThan(minOCPVersionForLVMS) {
-		data := map[string]string{
+	if !isGreaterOrEqual {
+		return map[string]string{
 			"OPERATOR_NAMESPACE":              Operator.Namespace,
 			"OPERATOR_SUBSCRIPTION_NAME":      LvmoSubscriptionName,
 			"OPERATOR_SUBSCRIPTION_SPEC_NAME": LvmoSubscriptionName,
-		}
-		return executeTemplate(data, "LvmSubscription", LvmSubscription)
+		}, nil
 	}
 
-	data := map[string]string{
+	return map[string]string{
 		"OPERATOR_NAMESPACE":              Operator.Namespace,
 		"OPERATOR_SUBSCRIPTION_NAME":      LvmsSubscriptionName,
 		"OPERATOR_SUBSCRIPTION_SPEC_NAME": LvmsSubscriptionName,
+	}, nil
+}
+
+func getSubscription(cluster *common.Cluster) ([]byte, error) {
+	subscriptionInfo, err := getSubscriptionInfo(cluster.OpenshiftVersion)
+	if err != nil {
+		return []byte{}, err
 	}
 
-	return executeTemplate(data, "LvmSubscription", LvmSubscription)
+	return executeTemplate(subscriptionInfo, "LvmSubscription", LvmSubscription)
 }
 
 func getNamespace() ([]byte, error) {

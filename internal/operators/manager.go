@@ -10,7 +10,6 @@ import (
 	"strings"
 
 	"github.com/go-openapi/swag"
-	"github.com/hashicorp/go-version"
 	"github.com/openshift/assisted-service/internal/common"
 	manifestsapi "github.com/openshift/assisted-service/internal/manifests/api"
 	"github.com/openshift/assisted-service/internal/operators/api"
@@ -331,11 +330,13 @@ func (mgr *Manager) getDependencies(cluster *common.Cluster, operators []*models
 		if op.OperatorType != models.OperatorTypeOlm {
 			continue
 		}
+		mgr.log.Infof("Attempting to resolve %s operator dependencies", op.Name)
 		deps, err := mgr.olmOperators[op.Name].GetDependencies(cluster)
 		if err != nil {
 			return map[string]bool{}, err
 		}
 		visited[op.Name] = true
+		mgr.log.Infof("Dependencies found for %s operator: %+v ", op.Name, deps)
 		for _, dep := range deps {
 			fifo.PushBack(dep)
 		}
@@ -430,25 +431,15 @@ func (mgr *Manager) EnsureOperatorArchCapability(cluster *common.Cluster, operat
 }
 
 func EnsureLVMAndCNVDoNotClash(cluster *common.Cluster, openshiftVersion string, operators []*models.MonitoredOperator) error {
-	minOCPVersionForLVMS, err := version.NewVersion(lvm.LvmsMinOpenshiftVersion)
-	if err != nil {
-		return err
-	}
-
-	ocpVersion, err := version.NewVersion(openshiftVersion)
-	if err != nil {
-		return err
-	}
-
 	// Openshift version greater or Equal to 4.12.0 support cnv and lvms
-	if ocpVersion.GreaterThanOrEqual(minOCPVersionForLVMS) {
+	if isGreaterOrEqual, _ := common.BaseVersionGreaterOrEqual(lvm.LvmsMinOpenshiftVersion, openshiftVersion); !isGreaterOrEqual {
 		return nil
 	}
 
 	cnvEnabled := false
 	lvmEnabled := false
 
-	operatorsCanCoexist, err := common.VersionGreaterOrEqual(openshiftVersion, minimalOpenShiftVersionForLVMAndCNV)
+	operatorsCanCoexist, err := common.BaseVersionGreaterOrEqual(openshiftVersion, minimalOpenShiftVersionForLVMAndCNV)
 	if err != nil {
 		return err
 	}
