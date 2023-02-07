@@ -6204,6 +6204,7 @@ var allValidationIDs []validationID = []validationID{
 	AreOdfRequirementsSatisfied,
 	AreCnvRequirementsSatisfied,
 	AreLvmRequirementsSatisfied,
+	AreMetalLBRequirementsSatisfied,
 	SufficientOrUnknownInstallationDiskSpeed,
 	HasSufficientNetworkLatencyRequirementForRole,
 	HasSufficientPacketLossRequirementForRole,
