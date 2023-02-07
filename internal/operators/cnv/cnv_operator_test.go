@@ -367,6 +367,14 @@ var _ = Describe("CNV operator", func() {
 			Expect(validation.Reasons).To(ContainElements(
 				"OpenShift Virtualization is supported only for x86_64 CPU architecture."))
 		})
+		It("multi-arch is supported for CNV operator", func() {
+			cluster := common.Cluster{}
+
+			cluster.CPUArchitecture = common.MultiCPUArchitecture
+			validation, err := operator.ValidateCluster(context.TODO(), &cluster)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(validation.Status).To(Equal(api.Success))
+		})
 	})
 })
 

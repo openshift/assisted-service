@@ -7,9 +7,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"path"
+	"strings"
 
 	"github.com/go-openapi/swag"
-	"github.com/hashicorp/go-version"
 	"github.com/openshift/assisted-service/internal/common"
 	manifestsapi "github.com/openshift/assisted-service/internal/manifests/api"
 	"github.com/openshift/assisted-service/internal/operators/api"
@@ -72,6 +72,8 @@ type API interface {
 	GetRequirementsBreakdownForHostInCluster(ctx context.Context, cluster *common.Cluster, host *models.Host) ([]*models.OperatorHostRequirements, error)
 	// GetPreflightRequirementsBreakdownForCluster provides host requirements breakdown for each supported OLM operator
 	GetPreflightRequirementsBreakdownForCluster(ctx context.Context, cluster *common.Cluster) ([]*models.OperatorHardwareRequirements, error)
+	// EnsureOperatorPrerequisite Ensure that for the given operators has the base prerequisite for installation
+	EnsureOperatorPrerequisite(cluster *common.Cluster, openshiftVersion string, operators []*models.MonitoredOperator) error
 }
 
 // GetPreflightRequirementsBreakdownForCluster provides host requirements breakdown for each supported OLM operator
@@ -131,7 +133,6 @@ func (mgr *Manager) GenerateManifests(ctx context.Context, cluster *common.Clust
 		operator := mgr.olmOperators[clusterOperator.Name]
 		if operator != nil {
 			openshiftManifests, manifest, err := operator.GenerateManifests(cluster)
-			mgr.log.Infof("THIS IS CUSTOM BUILD OF SUBHAM %s", string(manifest))
 			if err != nil {
 				mgr.log.Error(fmt.Sprintf("Cannot generate %s manifests due to ", clusterOperator.Name), err)
 				return err
@@ -329,11 +330,13 @@ func (mgr *Manager) getDependencies(cluster *common.Cluster, operators []*models
 		if op.OperatorType != models.OperatorTypeOlm {
 			continue
 		}
+		mgr.log.Infof("Attempting to resolve %s operator dependencies", op.Name)
 		deps, err := mgr.olmOperators[op.Name].GetDependencies(cluster)
 		if err != nil {
 			return map[string]bool{}, err
 		}
 		visited[op.Name] = true
+		mgr.log.Infof("Dependencies found for %s operator: %+v ", op.Name, deps)
 		for _, dep := range deps {
 			fifo.PushBack(dep)
 		}
@@ -402,27 +405,41 @@ func (mgr *Manager) GetSupportedOperatorsByType(operatorType models.OperatorType
 	return operators
 }
 
-func EnsureLVMAndCNVDoNotClash(openshiftVersion string, operators []*models.MonitoredOperator) error {
+func (mgr *Manager) EnsureOperatorArchCapability(cluster *common.Cluster, operators []*models.MonitoredOperator) error {
+	var monitoredOperators []string
+	var failedOperators []string
 
-	minOCPVersionForLVMS, err := version.NewVersion(lvm.LvmsMinOpenshiftVersion)
-	if err != nil {
-		return err
+	for _, monitoredOperator := range operators {
+		monitoredOperators = append(monitoredOperators, monitoredOperator.Name)
 	}
 
-	ocpVersion, err := version.NewVersion(openshiftVersion)
-	if err != nil {
-		return err
+	for operatorName, operator := range mgr.olmOperators {
+		if !funk.ContainsString(monitoredOperators, operatorName) {
+			continue
+		}
+
+		if !api.IsArchitectureSupported(cluster.CPUArchitecture, operator) {
+			failedOperators = append(failedOperators, operator.GetFullName())
+		}
 	}
 
+	if failedOperators != nil {
+		return errors.New(fmt.Sprintf("%s is not available when %s CPU architecture is selected", strings.Join(failedOperators, ", "), cluster.CPUArchitecture))
+	}
+
+	return nil
+}
+
+func EnsureLVMAndCNVDoNotClash(cluster *common.Cluster, openshiftVersion string, operators []*models.MonitoredOperator) error {
 	// Openshift version greater or Equal to 4.12.0 support cnv and lvms
-	if ocpVersion.GreaterThanOrEqual(minOCPVersionForLVMS) {
+	if isGreaterOrEqual, _ := common.BaseVersionGreaterOrEqual(lvm.LvmsMinOpenshiftVersion, openshiftVersion); !isGreaterOrEqual {
 		return nil
 	}
 
 	cnvEnabled := false
 	lvmEnabled := false
 
-	operatorsCanCoexist, err := common.VersionGreaterOrEqual(openshiftVersion, minimalOpenShiftVersionForLVMAndCNV)
+	operatorsCanCoexist, err := common.BaseVersionGreaterOrEqual(openshiftVersion, minimalOpenShiftVersionForLVMAndCNV)
 	if err != nil {
 		return err
 	}
@@ -439,8 +456,27 @@ func EnsureLVMAndCNVDoNotClash(openshiftVersion string, operators []*models.Moni
 			cnvEnabled = true
 		}
 	}
+
 	if lvmEnabled && cnvEnabled {
 		return errors.Errorf("Currently, you can not install OpenShift Data Foundation Logical Volume Manager operator at the same time as Virtualization operator.")
 	}
+
+	if lvmEnabled && !common.IsSingleNodeCluster(cluster) {
+		return errors.Errorf("OpenShift Data Foundation Logical Volume Manager operator is only supported for Single Node Openshift")
+	}
+	return nil
+}
+
+func (mgr *Manager) EnsureOperatorPrerequisite(cluster *common.Cluster, openshiftVersion string, operators []*models.MonitoredOperator) error {
+	err := EnsureLVMAndCNVDoNotClash(cluster, openshiftVersion, operators)
+	if err != nil {
+		return err
+	}
+
+	err = mgr.EnsureOperatorArchCapability(cluster, operators)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }

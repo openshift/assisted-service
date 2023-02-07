@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/hashicorp/go-version"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/hardware/virt"
 	"github.com/openshift/assisted-service/internal/oc"
@@ -56,6 +55,10 @@ func (o *operator) GetName() string {
 	return Operator.Name
 }
 
+func (o *operator) GetFullName() string {
+	return "OpenShift Virtualization"
+}
+
 // GetDependencies provides a list of dependencies of the Operator
 func (o *operator) GetDependencies(cluster *common.Cluster) ([]string, error) {
 	lsoOperator := []string{lso.Operator.Name}
@@ -63,17 +66,7 @@ func (o *operator) GetDependencies(cluster *common.Cluster) ([]string, error) {
 		return lsoOperator, nil
 	}
 
-	ocpVersion, err := version.NewVersion(cluster.OpenshiftVersion)
-	if err != nil {
-		return []string{}, err
-	}
-
-	minOCPVersionForLVMS, err := version.NewVersion(lvm.LvmsMinOpenshiftVersion)
-	if err != nil {
-		return []string{}, err
-	}
-
-	if ocpVersion.GreaterThanOrEqual(minOCPVersionForLVMS) {
+	if isGreaterOrEqual, _ := common.BaseVersionGreaterOrEqual(cluster.OpenshiftVersion, lvm.LvmsMinOpenshiftVersion); isGreaterOrEqual {
 		return []string{lvm.Operator.Name}, nil
 	}
 
@@ -97,10 +90,9 @@ func (o *operator) ValidateCluster(_ context.Context, cluster *common.Cluster) (
 }
 
 func (o *operator) validateRequirements(cluster *models.Cluster) (api.ValidationStatus, string) {
-	if cluster.CPUArchitecture != common.DefaultCPUArchitecture {
+	if !api.IsArchitectureSupported(cluster.CPUArchitecture, o) {
 		return api.Failure, fmt.Sprintf(
-			"OpenShift Virtualization is supported only for %s CPU architecture.",
-			common.DefaultCPUArchitecture)
+			"%s is supported only for %s CPU architecture.", o.GetFullName(), common.DefaultCPUArchitecture)
 	}
 	return api.Success, ""
 }
@@ -328,4 +320,8 @@ func validDiscoverableSNODisk(disks []*models.Disk, installationDiskID string, d
 		}
 	}
 	return fmt.Errorf("OpenShift Virtualization on SNO requires an additional disk with %d GB (%d Gi) in order to provide persistent storage for VMs, using hostpath-provisioner", thresholdGB, diskThresholdGi)
+}
+
+func (o *operator) GetSupportedArchitectures() []string {
+	return []string{common.X86CPUArchitecture}
 }
