@@ -370,7 +370,7 @@ func getDefaultNetworkType(params installer.V2RegisterClusterParams) (*string, e
 		return params.NewClusterParams.NetworkType, nil
 	}
 
-	isOpenShiftVersionRecentEnough, err := common.VersionGreaterOrEqual(swag.StringValue(params.NewClusterParams.OpenshiftVersion), minimalOpenShiftVersionForDefaultNetworkTypeOVNKubernetes)
+	isOpenShiftVersionRecentEnough, err := common.BaseVersionGreaterOrEqual(swag.StringValue(params.NewClusterParams.OpenshiftVersion), minimalOpenShiftVersionForDefaultNetworkTypeOVNKubernetes)
 	if err != nil {
 		return nil, err
 	}
@@ -2799,7 +2799,7 @@ func (b *bareMetalInventory) getOLMOperators(cluster *common.Cluster, newOperato
 	for _, monitoredOperator := range operatorDependencies {
 		// TODO - Need to find a better way for creating LVMO/LVMS operator on different openshift-version
 		if monitoredOperator.Name == "lvm" {
-			lvmsMetMinOpenshiftVersion, err := common.VersionGreaterOrEqual(cluster.OpenshiftVersion, lvm.LvmsMinOpenshiftVersion)
+			lvmsMetMinOpenshiftVersion, err := common.BaseVersionGreaterOrEqual(cluster.OpenshiftVersion, lvm.LvmsMinOpenshiftVersion)
 			if err != nil {
 				log.Warnf("Error parsing cluster.OpenshiftVersion: %s, setting subscription name to %s", err.Error(), lvm.LvmsSubscriptionName)
 				monitoredOperator.SubscriptionName = lvm.LvmsSubscriptionName
@@ -6168,7 +6168,7 @@ func (b *bareMetalInventory) updateMonitoredOperators(tx *gorm.DB, cluster *comm
 		"cluster_version": cluster.OpenshiftVersion,
 		"minimal_version": minimalOpenShiftVersionForConsoleCapability,
 	}
-	consoleCapabilitySupported, err := common.VersionGreaterOrEqual(
+	consoleCapabilitySupported, err := common.BaseVersionGreaterOrEqual(
 		cluster.OpenshiftVersion,
 		minimalOpenShiftVersionForConsoleCapability,
 	)

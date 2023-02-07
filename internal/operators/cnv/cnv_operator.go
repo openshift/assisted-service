@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/hashicorp/go-version"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/hardware/virt"
 	"github.com/openshift/assisted-service/internal/oc"
@@ -63,17 +62,7 @@ func (o *operator) GetDependencies(cluster *common.Cluster) ([]string, error) {
 		return lsoOperator, nil
 	}
 
-	ocpVersion, err := version.NewVersion(cluster.OpenshiftVersion)
-	if err != nil {
-		return []string{}, err
-	}
-
-	minOCPVersionForLVMS, err := version.NewVersion(lvm.LvmsMinOpenshiftVersion)
-	if err != nil {
-		return []string{}, err
-	}
-
-	if ocpVersion.GreaterThanOrEqual(minOCPVersionForLVMS) {
+	if isGreaterOrEqual, _ := common.BaseVersionGreaterOrEqual(cluster.OpenshiftVersion, lvm.LvmsMinOpenshiftVersion); isGreaterOrEqual {
 		return []string{lvm.Operator.Name}, nil
 	}
 
