@@ -194,6 +194,100 @@ var _ = Describe("Operators endpoint tests", func() {
 		})
 	})
 
+	Context("OLM operators", func() {
+		ctx := context.Background()
+		registerNewCluster := func(openshiftVersion string, highAvailabilityMode string, operators []*models.OperatorCreateParams) *installer.V2RegisterClusterCreated {
+			var err error
+			var cluster *installer.V2RegisterClusterCreated
+
+			cluster, err = userBMClient.Installer.V2RegisterCluster(ctx, &installer.V2RegisterClusterParams{
+				NewClusterParams: &models.ClusterCreateParams{
+					Name:                 swag.String("test-cluster"),
+					OpenshiftVersion:     swag.String(openshiftVersion),
+					HighAvailabilityMode: swag.String(highAvailabilityMode),
+					PullSecret:           swag.String(pullSecret),
+					OlmOperators:         operators,
+				},
+			})
+
+			Expect(err).NotTo(HaveOccurred())
+			Expect(swag.StringValue(cluster.GetPayload().Status)).Should(Equal("insufficient"))
+			Expect(swag.StringValue(cluster.GetPayload().StatusInfo)).Should(Equal(clusterInsufficientStateInfo))
+			Expect(cluster.GetPayload().StatusUpdatedAt).ShouldNot(Equal(strfmt.DateTime(time.Time{})))
+			return cluster
+		}
+
+		It("should lvm installed as cnv dependency", func() {
+			cluster := registerNewCluster(
+				"4.12.0",
+				models.ClusterHighAvailabilityModeNone,
+				[]*models.OperatorCreateParams{{Name: cnv.Operator.Name}},
+			)
+			ops, err := agentBMClient.Operators.V2ListOfClusterOperators(ctx, opclient.NewV2ListOfClusterOperatorsParams().WithClusterID(*cluster.Payload.ID))
+
+			Expect(err).ToNot(HaveOccurred())
+			Expect(len(ops.GetPayload())).To(BeNumerically(">=", 3))
+
+			var operatorNames []string
+			for _, op := range ops.GetPayload() {
+				operatorNames = append(operatorNames, op.Name)
+			}
+
+			// Builtin
+			for _, builtinOperator := range operators.NewManager(log, nil, operators.Options{}, nil, nil).GetSupportedOperatorsByType(models.OperatorTypeBuiltin) {
+				Expect(operatorNames).To(ContainElements(builtinOperator.Name))
+			}
+
+			// OLM
+			Expect(operatorNames).To(ContainElements(
+				cnv.Operator.Name,
+				lvm.Operator.Name,
+			))
+		})
+
+		It("should lvm have right subscription name on 4.12", func() {
+			cluster := registerNewCluster(
+				"4.12.0",
+				models.ClusterHighAvailabilityModeNone,
+				[]*models.OperatorCreateParams{{Name: cnv.Operator.Name}},
+			)
+			ops, err := agentBMClient.Operators.V2ListOfClusterOperators(ctx, opclient.NewV2ListOfClusterOperatorsParams().WithClusterID(*cluster.Payload.ID))
+
+			Expect(err).ToNot(HaveOccurred())
+
+			var operatorSubscriptionName string
+			for _, op := range ops.GetPayload() {
+				if op.Name == "lvm" {
+					operatorSubscriptionName = op.SubscriptionName
+					break
+				}
+			}
+
+			Expect(operatorSubscriptionName).To(Equal(lvm.LvmsSubscriptionName))
+		})
+
+		It("should lvm have right subscription name on 4.11", func() {
+			cluster := registerNewCluster(
+				"4.11.0",
+				models.ClusterHighAvailabilityModeNone,
+				[]*models.OperatorCreateParams{{Name: lvm.Operator.Name}},
+			)
+			ops, err := agentBMClient.Operators.V2ListOfClusterOperators(ctx, opclient.NewV2ListOfClusterOperatorsParams().WithClusterID(*cluster.Payload.ID))
+
+			Expect(err).ToNot(HaveOccurred())
+
+			var operatorSubscriptionName string
+			for _, op := range ops.GetPayload() {
+				if op.Name == "lvm" {
+					operatorSubscriptionName = op.SubscriptionName
+					break
+				}
+			}
+
+			Expect(operatorSubscriptionName).To(Equal(lvm.LvmoSubscriptionName))
+		})
+	})
+
 	Context("Monitored operators", func() {
 		var cluster *installer.V2RegisterClusterCreated
 		ctx := context.Background()
