@@ -247,6 +247,46 @@ var _ = Describe("compare OCP 4.10 versions", func() {
 		is410Version, _ := VersionGreaterOrEqual("4.10.0-0.nightly-2022-01-23-013716", "4.10.0-0.alpha")
 		Expect(is410Version).Should(BeTrue())
 	})
+	It("pre release - rc", func() {
+		isGreater, _ := VersionGreaterOrEqual("4.12.0-rc.4", "4.12.0")
+		Expect(isGreater).Should(BeFalse())
+	})
+	It("compare pre releases", func() {
+		isGreater, _ := VersionGreaterOrEqual("4.12.0-ec.1", "4.12.0-rc.4")
+		Expect(isGreater).Should(BeFalse())
+	})
+	It("pre release", func() {
+		isGreater, _ := VersionGreaterOrEqual("4.12.0-ec.1", "4.12.0-0.0")
+		Expect(isGreater).Should(BeTrue())
+	})
+	It("pre release - ec", func() {
+		isGreater, _ := VersionGreaterOrEqual("4.12.0-ec.1", "4.12.0")
+		Expect(isGreater).Should(BeFalse())
+	})
+	It("nightly smaller base release", func() {
+		isGreater, _ := VersionGreaterOrEqual("4.12.0-0.nightly-2022-01-23-013716", "4.12.0")
+		Expect(isGreater).Should(BeFalse())
+	})
+	It("nightly equals base release", func() {
+		isGreater, _ := BaseVersionGreaterOrEqual("4.12.0-0.nightly-2022-01-23-013716", "4.12.0")
+		Expect(isGreater).Should(BeTrue())
+	})
+	It("nightly greater base release", func() {
+		isGreater, _ := BaseVersionGreaterOrEqual("4.12.1-0.nightly-2022-01-23-013716", "4.12.0")
+		Expect(isGreater).Should(BeTrue())
+	})
+	It("pre release base version", func() {
+		isGreater, _ := BaseVersionGreaterOrEqual("4.12.0-ec.1", "4.12.0")
+		Expect(isGreater).Should(BeTrue())
+	})
+	It("empty base version", func() {
+		_, err := BaseVersionGreaterOrEqual("", "4.12.0")
+		Expect(err).Should(Not(BeNil()))
+	})
+	It("empty versions", func() {
+		_, err := BaseVersionGreaterOrEqual("", "")
+		Expect(err).Should(Not(BeNil()))
+	})
 })
 
 var _ = Describe("Test AreMastersSchedulable", func() {
