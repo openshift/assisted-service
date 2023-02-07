@@ -6,6 +6,7 @@ package events
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/go-openapi/errors"
@@ -41,14 +42,42 @@ type V2ListEventsParams struct {
 	  In: query
 	*/
 	ClusterID *strfmt.UUID
-	/*A host in the specified cluster to return events for.
+	/*Cluster level events flag.
+	  In: query
+	*/
+	ClusterLevel *bool
+	/*Deleted hosts flag.
+	  In: query
+	*/
+	DeletedHosts *bool
+	/*A host in the specified cluster to return events for (DEPRECATED. Use `host_ids` instead).
 	  In: query
 	*/
 	HostID *strfmt.UUID
+	/*Hosts in the specified cluster to return events for.
+	  In: query
+	*/
+	HostIds []strfmt.UUID
 	/*The infra-env to return events for.
 	  In: query
 	*/
 	InfraEnvID *strfmt.UUID
+	/*The maximum number of records to retrieve.
+	  In: query
+	*/
+	Limit *int64
+	/*Retrieved events message pattern.
+	  In: query
+	*/
+	Message *string
+	/*Number of records to skip before starting to return the records.
+	  In: query
+	*/
+	Offset *int64
+	/*Retrieved events severities.
+	  In: query
+	*/
+	Severities []string
 }
 
 // BindRequest both binds and validates a request, it assumes that complex things implement a Validatable(strfmt.Registry) error interface
@@ -72,13 +101,48 @@ func (o *V2ListEventsParams) BindRequest(r *http.Request, route *middleware.Matc
 		res = append(res, err)
 	}
 
+	qClusterLevel, qhkClusterLevel, _ := qs.GetOK("cluster_level")
+	if err := o.bindClusterLevel(qClusterLevel, qhkClusterLevel, route.Formats); err != nil {
+		res = append(res, err)
+	}
+
+	qDeletedHosts, qhkDeletedHosts, _ := qs.GetOK("deleted_hosts")
+	if err := o.bindDeletedHosts(qDeletedHosts, qhkDeletedHosts, route.Formats); err != nil {
+		res = append(res, err)
+	}
+
 	qHostID, qhkHostID, _ := qs.GetOK("host_id")
 	if err := o.bindHostID(qHostID, qhkHostID, route.Formats); err != nil {
 		res = append(res, err)
 	}
 
+	qHostIds, qhkHostIds, _ := qs.GetOK("host_ids")
+	if err := o.bindHostIds(qHostIds, qhkHostIds, route.Formats); err != nil {
+		res = append(res, err)
+	}
+
 	qInfraEnvID, qhkInfraEnvID, _ := qs.GetOK("infra_env_id")
 	if err := o.bindInfraEnvID(qInfraEnvID, qhkInfraEnvID, route.Formats); err != nil {
+		res = append(res, err)
+	}
+
+	qLimit, qhkLimit, _ := qs.GetOK("limit")
+	if err := o.bindLimit(qLimit, qhkLimit, route.Formats); err != nil {
+		res = append(res, err)
+	}
+
+	qMessage, qhkMessage, _ := qs.GetOK("message")
+	if err := o.bindMessage(qMessage, qhkMessage, route.Formats); err != nil {
+		res = append(res, err)
+	}
+
+	qOffset, qhkOffset, _ := qs.GetOK("offset")
+	if err := o.bindOffset(qOffset, qhkOffset, route.Formats); err != nil {
+		res = append(res, err)
+	}
+
+	qSeverities, qhkSeverities, _ := qs.GetOK("severities")
+	if err := o.bindSeverities(qSeverities, qhkSeverities, route.Formats); err != nil {
 		res = append(res, err)
 	}
 	if len(res) > 0 {
@@ -151,6 +215,52 @@ func (o *V2ListEventsParams) validateClusterID(formats strfmt.Registry) error {
 	return nil
 }
 
+// bindClusterLevel binds and validates parameter ClusterLevel from query.
+func (o *V2ListEventsParams) bindClusterLevel(rawData []string, hasKey bool, formats strfmt.Registry) error {
+	var raw string
+	if len(rawData) > 0 {
+		raw = rawData[len(rawData)-1]
+	}
+
+	// Required: false
+	// AllowEmptyValue: false
+
+	if raw == "" { // empty values pass all other validations
+		return nil
+	}
+
+	value, err := swag.ConvertBool(raw)
+	if err != nil {
+		return errors.InvalidType("cluster_level", "query", "bool", raw)
+	}
+	o.ClusterLevel = &value
+
+	return nil
+}
+
+// bindDeletedHosts binds and validates parameter DeletedHosts from query.
+func (o *V2ListEventsParams) bindDeletedHosts(rawData []string, hasKey bool, formats strfmt.Registry) error {
+	var raw string
+	if len(rawData) > 0 {
+		raw = rawData[len(rawData)-1]
+	}
+
+	// Required: false
+	// AllowEmptyValue: false
+
+	if raw == "" { // empty values pass all other validations
+		return nil
+	}
+
+	value, err := swag.ConvertBool(raw)
+	if err != nil {
+		return errors.InvalidType("deleted_hosts", "query", "bool", raw)
+	}
+	o.DeletedHosts = &value
+
+	return nil
+}
+
 // bindHostID binds and validates parameter HostID from query.
 func (o *V2ListEventsParams) bindHostID(rawData []string, hasKey bool, formats strfmt.Registry) error {
 	var raw string
@@ -188,6 +298,41 @@ func (o *V2ListEventsParams) validateHostID(formats strfmt.Registry) error {
 	return nil
 }
 
+// bindHostIds binds and validates array parameter HostIds from query.
+//
+// Arrays are parsed according to CollectionFormat: "" (defaults to "csv" when empty).
+func (o *V2ListEventsParams) bindHostIds(rawData []string, hasKey bool, formats strfmt.Registry) error {
+	var qvHostIds string
+	if len(rawData) > 0 {
+		qvHostIds = rawData[len(rawData)-1]
+	}
+
+	// CollectionFormat:
+	hostIdsIC := swag.SplitByFormat(qvHostIds, "")
+	if len(hostIdsIC) == 0 {
+		return nil
+	}
+
+	var hostIdsIR []strfmt.UUID
+	for i, hostIdsIV := range hostIdsIC {
+		// items.Format: "uuid"
+		value, err := formats.Parse("uuid", hostIdsIV)
+		if err != nil {
+			return errors.InvalidType(fmt.Sprintf("%s.%v", "host_ids", i), "query", "strfmt.UUID", value)
+		}
+		hostIdsI := *(value.(*strfmt.UUID))
+
+		if err := validate.FormatOf(fmt.Sprintf("%s.%v", "host_ids", i), "query", "uuid", hostIdsI.String(), formats); err != nil {
+			return err
+		}
+		hostIdsIR = append(hostIdsIR, hostIdsI)
+	}
+
+	o.HostIds = hostIdsIR
+
+	return nil
+}
+
 // bindInfraEnvID binds and validates parameter InfraEnvID from query.
 func (o *V2ListEventsParams) bindInfraEnvID(rawData []string, hasKey bool, formats strfmt.Registry) error {
 	var raw string
@@ -222,5 +367,100 @@ func (o *V2ListEventsParams) validateInfraEnvID(formats strfmt.Registry) error {
 	if err := validate.FormatOf("infra_env_id", "query", "uuid", o.InfraEnvID.String(), formats); err != nil {
 		return err
 	}
+	return nil
+}
+
+// bindLimit binds and validates parameter Limit from query.
+func (o *V2ListEventsParams) bindLimit(rawData []string, hasKey bool, formats strfmt.Registry) error {
+	var raw string
+	if len(rawData) > 0 {
+		raw = rawData[len(rawData)-1]
+	}
+
+	// Required: false
+	// AllowEmptyValue: false
+
+	if raw == "" { // empty values pass all other validations
+		return nil
+	}
+
+	value, err := swag.ConvertInt64(raw)
+	if err != nil {
+		return errors.InvalidType("limit", "query", "int64", raw)
+	}
+	o.Limit = &value
+
+	return nil
+}
+
+// bindMessage binds and validates parameter Message from query.
+func (o *V2ListEventsParams) bindMessage(rawData []string, hasKey bool, formats strfmt.Registry) error {
+	var raw string
+	if len(rawData) > 0 {
+		raw = rawData[len(rawData)-1]
+	}
+
+	// Required: false
+	// AllowEmptyValue: false
+
+	if raw == "" { // empty values pass all other validations
+		return nil
+	}
+	o.Message = &raw
+
+	return nil
+}
+
+// bindOffset binds and validates parameter Offset from query.
+func (o *V2ListEventsParams) bindOffset(rawData []string, hasKey bool, formats strfmt.Registry) error {
+	var raw string
+	if len(rawData) > 0 {
+		raw = rawData[len(rawData)-1]
+	}
+
+	// Required: false
+	// AllowEmptyValue: false
+
+	if raw == "" { // empty values pass all other validations
+		return nil
+	}
+
+	value, err := swag.ConvertInt64(raw)
+	if err != nil {
+		return errors.InvalidType("offset", "query", "int64", raw)
+	}
+	o.Offset = &value
+
+	return nil
+}
+
+// bindSeverities binds and validates array parameter Severities from query.
+//
+// Arrays are parsed according to CollectionFormat: "" (defaults to "csv" when empty).
+func (o *V2ListEventsParams) bindSeverities(rawData []string, hasKey bool, formats strfmt.Registry) error {
+	var qvSeverities string
+	if len(rawData) > 0 {
+		qvSeverities = rawData[len(rawData)-1]
+	}
+
+	// CollectionFormat:
+	severitiesIC := swag.SplitByFormat(qvSeverities, "")
+	if len(severitiesIC) == 0 {
+		return nil
+	}
+
+	var severitiesIR []string
+	for i, severitiesIV := range severitiesIC {
+		severitiesI := severitiesIV
+
+		if err := validate.EnumCase(fmt.Sprintf("%s.%v", "severities", i), "query", severitiesI, []interface{}{"info", "warning", "error", "critical"}, true); err != nil {
+			return err
+		}
+
+		severitiesIR = append(severitiesIR, severitiesI)
+	}
+
+	o.Severities = severitiesIR
+
 	return nil
 }

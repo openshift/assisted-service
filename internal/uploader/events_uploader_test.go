@@ -178,7 +178,7 @@ var _ = Describe("prepareFiles", func() {
 
 	It("successfully prepares all files", func() {
 		mockEvents.EXPECT().V2GetEvents(
-			ctx, &clusterID, nil, nil, models.EventCategoryMetrics, models.EventCategoryUser).Return([]*common.Event{}, nil).Times(1)
+			ctx, common.GetDefaultV2GetEventsParams(&clusterID, nil, nil, models.EventCategoryMetrics, models.EventCategoryUser)).Return(&common.V2GetEventsResponse{}, nil).Times(1)
 
 		cluster := createTestObjects(db, &clusterID, &hostID, &infraEnvID)
 		pullSecret := validations.PullSecretCreds{AuthRaw: token, Email: fmt.Sprintf("testemail@%s", emailDomain), Username: username}
@@ -224,7 +224,7 @@ var _ = Describe("prepareFiles", func() {
 	})
 	It("prepares only the cluster, host, and event data when missing infraEnv ID", func() {
 		mockEvents.EXPECT().V2GetEvents(
-			ctx, &clusterID, nil, nil, models.EventCategoryMetrics, models.EventCategoryUser).Return([]*common.Event{}, nil).Times(1)
+			ctx, common.GetDefaultV2GetEventsParams(&clusterID, nil, nil, models.EventCategoryMetrics, models.EventCategoryUser)).Return(&common.V2GetEventsResponse{}, nil).Times(1)
 
 		cluster := createTestObjects(db, &clusterID, &hostID, nil)
 		pullSecret := validations.PullSecretCreds{AuthRaw: token, Email: fmt.Sprintf("testemail@%s", emailDomain), Username: username}
@@ -245,7 +245,7 @@ var _ = Describe("prepareFiles", func() {
 		checkEventsFile(testFiles["events"], []string{}, 0)
 	})
 	It("fails to prepare files when there is no data", func() {
-		mockEvents.EXPECT().V2GetEvents(ctx, nil, nil, nil, models.EventCategoryMetrics, models.EventCategoryUser).Return(
+		mockEvents.EXPECT().V2GetEvents(ctx, common.GetDefaultV2GetEventsParams(nil, nil, nil, models.EventCategoryMetrics, models.EventCategoryUser)).Return(
 			nil, errors.New("no events found")).Times(1)
 		pullSecret := validations.PullSecretCreds{AuthRaw: token, Email: fmt.Sprintf("testemail@%s", emailDomain)}
 		buf, err := prepareFiles(ctx, db, &common.Cluster{}, mockEvents, &pullSecret)
@@ -341,10 +341,14 @@ var _ = Describe("UploadEvents", func() {
 			ClusterID: &clusterID,
 			Name:      models.ClusterStatusAddingHosts,
 		}
+
 		createOCMPullSecret(*mockK8sClient, true)
-		mockEvents.EXPECT().V2GetEvents(
-			ctx, &clusterID, nil, nil, models.EventCategoryMetrics, models.EventCategoryUser).Return(
-			[]*common.Event{{Event: event}}, nil).Times(1)
+		mockEvents.EXPECT().V2GetEvents(ctx, common.GetDefaultV2GetEventsParams(&clusterID, nil, nil, models.EventCategoryMetrics, models.EventCategoryUser)).
+			Return(&common.V2GetEventsResponse{
+				Events: []*common.Event{{Event: event}},
+			}, nil).
+			Times(1)
+
 		testFiles := map[string]*testFile{
 			"cluster":  {expected: true},
 			"hosts":    {expected: true},
@@ -360,15 +364,18 @@ var _ = Describe("UploadEvents", func() {
 	})
 	It("fails to upload event data when there's no data", func() {
 		createOCMPullSecret(*mockK8sClient, true)
-		mockEvents.EXPECT().V2GetEvents(ctx, nil, nil, nil, models.EventCategoryMetrics, models.EventCategoryUser).Return(
-			nil, errors.New("no events found")).Times(1)
+		mockEvents.EXPECT().V2GetEvents(ctx, common.GetDefaultV2GetEventsParams(nil, nil, nil, models.EventCategoryMetrics, models.EventCategoryUser)).
+			Return(
+				nil, errors.New("no events found")).
+			Times(1)
 		err := uploader.UploadEvents(ctx, &common.Cluster{PullSecret: ""}, mockEvents)
 		Expect(err).To(HaveOccurred())
 	})
 	It("fails to uploads event data when headers can't be set", func() {
 		createOCMPullSecret(*mockK8sClient, false)
 		mockEvents.EXPECT().V2GetEvents(
-			ctx, &clusterID, nil, nil, models.EventCategoryMetrics, models.EventCategoryUser).Return([]*common.Event{}, nil).Times(1)
+			ctx, common.GetDefaultV2GetEventsParams(&clusterID, nil, nil, models.EventCategoryMetrics, models.EventCategoryUser)).
+			Return(&common.V2GetEventsResponse{}, nil).Times(1)
 
 		cluster := createTestObjects(db, &clusterID, &hostID, &infraEnvID)
 		err := uploader.UploadEvents(ctx, cluster, mockEvents)

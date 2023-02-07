@@ -174,13 +174,13 @@ func eventsFile(ctx context.Context, clusterID *strfmt.UUID, eventsHandler event
 	if eventsHandler == nil {
 		return errors.Errorf("failed to get events for cluster %s, events handler is nil", clusterID)
 	}
-	dbEvents, err := eventsHandler.V2GetEvents(ctx, clusterID, nil, nil, models.EventCategoryMetrics, models.EventCategoryUser)
+	response, err := eventsHandler.V2GetEvents(ctx, common.GetDefaultV2GetEventsParams(clusterID, nil, nil, models.EventCategoryMetrics, models.EventCategoryUser))
 	if err != nil {
 		return errors.Wrapf(err, "failed to find events for cluster %s", clusterID)
 	}
 
 	var events []*models.Event
-	for _, dbEvent := range dbEvents {
+	for _, dbEvent := range response.GetEvents() {
 		events = append(events, &dbEvent.Event)
 	}
 

@@ -1425,7 +1425,7 @@ func listEvents(ctx context.Context, cli *client.AssistedInstall) error {
 		ctx,
 		&events.V2ListEventsParams{
 			ClusterID: &clusterId,
-			HostID:    &hostId,
+			HostIds:   []strfmt.UUID{hostId},
 		})
 	return err
 }

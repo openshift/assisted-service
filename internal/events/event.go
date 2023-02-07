@@ -2,12 +2,14 @@ package events
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
 
 	"github.com/go-openapi/strfmt"
+	"github.com/go-openapi/swag"
 	"github.com/openshift/assisted-service/internal/common"
 	commonevents "github.com/openshift/assisted-service/internal/common/events"
 	eventsapi "github.com/openshift/assisted-service/internal/events/api"
@@ -23,6 +25,8 @@ import (
 var DefaultEventCategories = []string{
 	models.EventCategoryUser,
 }
+
+var defaultEventLimit int64 = 5000
 
 type Events struct {
 	db     *gorm.DB
@@ -233,23 +237,104 @@ func (e *Events) V2AddMetricsEvent(ctx context.Context, clusterID *strfmt.UUID, 
 	e.v2SaveEvent(ctx, clusterID, hostID, infraEnvID, name, models.EventCategoryMetrics, severity, msg, eventTime, requestID, props...)
 }
 
-func (e Events) queryEvents(ctx context.Context, selectedCategories []string, clusterID *strfmt.UUID, hostID *strfmt.UUID, infraEnvID *strfmt.UUID) ([]*common.Event, error) {
+func filterEvents(db *gorm.DB, clusterID *strfmt.UUID, hostIds []strfmt.UUID, infraEnvID *strfmt.UUID, severity []string, message *string, deletedHosts, clusterLevel *bool) *gorm.DB {
+	if clusterID != nil {
+		db = db.Where("events.cluster_id = ?", clusterID.String())
 
-	WithIDs := func(db *gorm.DB) *gorm.DB {
-		if clusterID != nil {
-			db = db.Where("cluster_id = ?", clusterID.String())
+		// filter by event severity
+		if severity != nil {
+			db = db.Where("events.severity IN (?)", severity)
 		}
-		if infraEnvID != nil {
-			db = db.Where("infra_env_id = ?", infraEnvID.String())
+
+		// filter by event message
+		if message != nil {
+			db = db.Where("events.message LIKE ?", fmt.Sprintf("%%%s%%", *message))
 		}
-		if hostID != nil {
-			db = db.Where("host_id = ?", hostID.String())
+
+		// cluster level and specific hosts events
+		if swag.BoolValue(clusterLevel) && !swag.BoolValue(deletedHosts) {
+			db = db.Where("events.host_id IS NULL")
 		}
+
+		// deleted hosts and specific hosts events
+		if !swag.BoolValue(clusterLevel) && swag.BoolValue(deletedHosts) {
+			db = db.Where("hosts.deleted_at IS NOT NULL")
+		}
+
+		// deleted hosts, cluster level and specific hosts events
+		if swag.BoolValue(clusterLevel) && swag.BoolValue(deletedHosts) {
+			db = db.Where("hosts.deleted_at IS NOT NULL").
+				Or("events.host_id IS NULL")
+		}
+
+		// In case none of the latter occurred and we are going to hit the next condition,
+		// the query should be prefixed with 'Where' before 'Or'
+		if !swag.BoolValue(clusterLevel) && !swag.BoolValue(deletedHosts) && hostIds != nil {
+			db = db.Where("FALSE")
+		}
+
+		if hostIds != nil {
+			db = db.Or("events.host_id IN (?)", hostsUUIDsToStrings(hostIds))
+		}
+
 		return db
 	}
 
+	if hostIds != nil {
+		return db.Where("events.host_id IN (?)", hostsUUIDsToStrings(hostIds))
+	}
+
+	if infraEnvID != nil {
+		return db.Where("events.infra_env_id = ?", infraEnvID.String())
+	}
+
+	return db
+}
+
+func hostsUUIDsToStrings(hostIDs []strfmt.UUID) []string {
+	result := []string{}
+	for _, hostID := range hostIDs {
+		result = append(result, hostID.String())
+	}
+	return result
+}
+
+func countEventsBySeverity(db *gorm.DB, clusterID *strfmt.UUID) (*common.EventSeverityCount, error) {
+	var (
+		total    int
+		severity string
+		rows     *sql.Rows
+		err      error
+	)
+
+	if clusterID == nil {
+		return &common.EventSeverityCount{}, nil
+	}
+
+	rows, err = db.Table("events").Where("events.cluster_id = ?", clusterID.String()).Select("COUNT(events.severity), events.severity").Group("events.severity").Rows()
+	if err != nil {
+		return nil, err
+	}
+
+	eventSeverityCount := common.EventSeverityCount{}
+	defer rows.Close()
+	for rows.Next() {
+		err = rows.Scan(&total, &severity)
+		if err != nil {
+			return nil, err
+		}
+		eventSeverityCount[severity] = int64(total)
+	}
+	err = rows.Err()
+	if err != nil {
+		return nil, err
+	}
+	return &eventSeverityCount, nil
+}
+
+func (e Events) prepareEventsTable(ctx context.Context, tx *gorm.DB, clusterID *strfmt.UUID, hostIds []strfmt.UUID, infraEnvID *strfmt.UUID, severity []string, message *string, deletedHosts *bool) *gorm.DB {
 	allEvents := func() bool {
-		return clusterID == nil && infraEnvID == nil && hostID == nil
+		return clusterID == nil && infraEnvID == nil && hostIds == nil
 	}
 
 	clusterBoundEvents := func() bool {
@@ -261,64 +346,123 @@ func (e Events) queryEvents(ctx context.Context, selectedCategories []string, cl
 	}
 
 	hostOnlyEvents := func() bool {
-		return clusterID == nil && infraEnvID == nil && hostID != nil
+		return clusterID == nil && infraEnvID == nil && hostIds != nil
 	}
-
-	//prepare the common parts of the query
-	db := e.db.Order("event_time").Where("category IN (?)", selectedCategories)
-	if e.authz != nil {
-		db = e.authz.OwnedBy(ctx, db)
-	}
-
-	var result *gorm.DB
 
 	//retrieveing all events can be done only by admins. This is done to restrict data
 	//intensive queries by common users
 	if allEvents() && e.authz.IsAdmin(ctx) {
-		result = db
+		return tx
 	}
 
 	//for bound events that are searched with cluster id (whether on clusters, bound infra-env ,
 	//host bound to a cluster or registered to a bound infra-env) check the access permission
 	//relative to the cluster ownership
 	if clusterBoundEvents() {
-		result = db.Model(&common.Cluster{}).Select("events.*, clusters.user_name, clusters.org_id").
-			Joins("INNER JOIN \"events\" ON events.cluster_id = clusters.id")
+		tx = tx.Model(&common.Cluster{}).
+			Select("events.*, clusters.user_name, clusters.org_id").
+			Joins("INNER JOIN events ON clusters.id = events.cluster_id")
+
+		// if deleted hosts flag is true, we need to add 'deleted_at' to know whether events are related to a deleted host
+		if swag.BoolValue(deletedHosts) {
+			tx = tx.Select("events.*, clusters.user_name, clusters.org_id, hosts.deleted_at").
+				Joins("LEFT JOIN hosts ON events.host_id = hosts.id")
+		}
+		return tx
 	}
 
 	//for unbound events that are searched with infra-env id (whether events on hosts or the
 	//infra-env level itself) check the access permission relative to the infra-env ownership
 	if nonBoundEvents() {
-		result = db.Model(&common.InfraEnv{}).Select("events.*, infra_envs.user_name, infra_envs.org_id").
-			Joins("INNER JOIN events ON events.infra_env_id = infra_envs.id")
+		return tx.Model(&common.InfraEnv{}).
+			Select("events.*, infra_envs.user_name, infra_envs.org_id").
+			Joins("INNER JOIN events ON infra_envs.id = events.infra_env_id")
 	}
 
 	//for query made on the host only check the permission relative to it's infra-env. since
 	//host table does not contain an org_id we can not perform a join on that table and has to go
 	//through the infra-env table which is good because authorization is done on the infra-level
 	if hostOnlyEvents() {
-		result = db.Model(&common.Host{}).Select("events.*, infra_envs.user_name, infra_envs.org_id").
+		return tx.Model(&common.Host{}).Select("events.*, infra_envs.user_name, infra_envs.org_id").
 			Joins("INNER JOIN infra_envs ON hosts.infra_env_id = infra_envs.id").Joins("INNER JOIN events ON events.host_id = hosts.id")
 	}
 
-	if result == nil { //non supported option
-		return make([]*common.Event, 0), nil
-	}
-
-	var events []*common.Event
-	return events, WithIDs(result).Find(&events).Error
+	//non supported option
+	return nil
 }
 
-func (e Events) V2GetEvents(ctx context.Context, clusterID *strfmt.UUID, hostID *strfmt.UUID, infraEnvID *strfmt.UUID, categories ...string) ([]*common.Event, error) {
+func preparePaginationParams(limit, offset *int64) (*int64, *int64) {
+	if limit == nil {
+		// If limit is not provided, we set it a default (currently 5000).
+		limit = swag.Int64(defaultEventLimit)
+	} else if *limit < -1 {
+		// If limit not valid (smaller than -1), we set it -1 (no limit).
+		limit = common.UnlimitedEvents
+	}
+
+	// if offset not specified or is negative, we return the first page.
+	if offset == nil || *offset < 0 {
+		offset = common.NoOffsetEvents
+	}
+
+	return limit, offset
+}
+
+func (e Events) queryEvents(ctx context.Context, selectedCategories []string, clusterID *strfmt.UUID, hostIds []strfmt.UUID, infraEnvID *strfmt.UUID, limit, offset *int64, severity []string, message *string, deletedHosts, clusterLevel *bool) ([]*common.Event, *common.EventSeverityCount, error) {
+
+	tx := e.db.Where("category IN (?)", selectedCategories)
+
+	eventSeverityCount, err := countEventsBySeverity(tx.Session(&gorm.Session{}), clusterID)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	events := []*common.Event{}
+
+	tx = tx.Order("event_time")
+
+	// add authorization check to query
+	if e.authz != nil {
+		tx = e.authz.OwnedBy(ctx, tx)
+	}
+
+	tx = e.prepareEventsTable(ctx, tx, clusterID, hostIds, infraEnvID, severity, message, deletedHosts)
+	if tx == nil {
+		return make([]*common.Event, 0), &common.EventSeverityCount{}, nil
+	}
+
+	tx = filterEvents(tx, clusterID, hostIds, infraEnvID, severity, message, deletedHosts, clusterLevel)
+
+	limit, offset = preparePaginationParams(limit, offset)
+	if *limit == 0 {
+		return make([]*common.Event, 0), eventSeverityCount, nil
+	}
+
+	err = tx.Offset(int(*offset)).Limit(int(*limit)).Find(&events).Error
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return events, eventSeverityCount, nil
+}
+
+func (e Events) V2GetEvents(ctx context.Context, params *common.V2GetEventsParams) (*common.V2GetEventsResponse, error) {
 	//initialize the selectedCategories either from the filter, if exists, or from the default values
 	selectedCategories := make([]string, 0)
-	if len(categories) > 0 {
-		selectedCategories = categories[:]
+	if len(params.Categories) > 0 {
+		selectedCategories = params.Categories[:]
 	} else {
 		selectedCategories = append(selectedCategories, DefaultEventCategories...)
 	}
 
-	return e.queryEvents(ctx, selectedCategories, clusterID, hostID, infraEnvID)
+	events, eventSeverityCount, err := e.queryEvents(ctx, selectedCategories, params.ClusterID, params.HostIds, params.InfraEnvID, params.Limit, params.Offset, params.Severities, params.Message, params.DeletedHosts, params.ClusterLevel)
+	if err != nil {
+		return nil, err
+	}
+	return &common.V2GetEventsResponse{
+		Events:             events,
+		EventSeverityCount: eventSeverityCount,
+	}, nil
 }
 
 func toProps(attrs ...interface{}) (result string, err error) {

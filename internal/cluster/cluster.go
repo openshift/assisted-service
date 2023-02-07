@@ -1084,10 +1084,11 @@ func (m *Manager) createClusterDataFiles(ctx context.Context, c *common.Cluster,
 	// we don't want to stop on error
 	_ = m.uploadDataAsFile(ctx, log, cluster, fileName, objectHandler)
 
-	events, err := m.eventsHandler.V2GetEvents(ctx, c.ID, nil, nil)
+	response, err := m.eventsHandler.V2GetEvents(ctx, common.GetDefaultV2GetEventsParams(c.ID, nil, nil))
 	if err != nil {
 		log.WithError(err).Warn("Failed to get events")
 	} else {
+		events := response.GetEvents()
 		fileName := fmt.Sprintf("%s/logs/cluster/events.json", c.ID)
 		_ = m.uploadDataAsFile(ctx, log, events, fileName, objectHandler)
 	}

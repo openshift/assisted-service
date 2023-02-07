@@ -16,10 +16,17 @@ import (
 
 // V2ListEventsURL generates an URL for the v2 list events operation
 type V2ListEventsURL struct {
-	Categories []string
-	ClusterID  *strfmt.UUID
-	HostID     *strfmt.UUID
-	InfraEnvID *strfmt.UUID
+	Categories   []string
+	ClusterID    *strfmt.UUID
+	ClusterLevel *bool
+	DeletedHosts *bool
+	HostID       *strfmt.UUID
+	HostIds      []strfmt.UUID
+	InfraEnvID   *strfmt.UUID
+	Limit        *int64
+	Message      *string
+	Offset       *int64
+	Severities   []string
 
 	_basePath string
 	// avoid unkeyed usage
@@ -80,6 +87,22 @@ func (o *V2ListEventsURL) Build() (*url.URL, error) {
 		qs.Set("cluster_id", clusterIDQ)
 	}
 
+	var clusterLevelQ string
+	if o.ClusterLevel != nil {
+		clusterLevelQ = swag.FormatBool(*o.ClusterLevel)
+	}
+	if clusterLevelQ != "" {
+		qs.Set("cluster_level", clusterLevelQ)
+	}
+
+	var deletedHostsQ string
+	if o.DeletedHosts != nil {
+		deletedHostsQ = swag.FormatBool(*o.DeletedHosts)
+	}
+	if deletedHostsQ != "" {
+		qs.Set("deleted_hosts", deletedHostsQ)
+	}
+
 	var hostIDQ string
 	if o.HostID != nil {
 		hostIDQ = o.HostID.String()
@@ -88,12 +111,70 @@ func (o *V2ListEventsURL) Build() (*url.URL, error) {
 		qs.Set("host_id", hostIDQ)
 	}
 
+	var hostIdsIR []string
+	for _, hostIdsI := range o.HostIds {
+		hostIdsIS := hostIdsI.String()
+		if hostIdsIS != "" {
+			hostIdsIR = append(hostIdsIR, hostIdsIS)
+		}
+	}
+
+	hostIds := swag.JoinByFormat(hostIdsIR, "")
+
+	if len(hostIds) > 0 {
+		qsv := hostIds[0]
+		if qsv != "" {
+			qs.Set("host_ids", qsv)
+		}
+	}
+
 	var infraEnvIDQ string
 	if o.InfraEnvID != nil {
 		infraEnvIDQ = o.InfraEnvID.String()
 	}
 	if infraEnvIDQ != "" {
 		qs.Set("infra_env_id", infraEnvIDQ)
+	}
+
+	var limitQ string
+	if o.Limit != nil {
+		limitQ = swag.FormatInt64(*o.Limit)
+	}
+	if limitQ != "" {
+		qs.Set("limit", limitQ)
+	}
+
+	var messageQ string
+	if o.Message != nil {
+		messageQ = *o.Message
+	}
+	if messageQ != "" {
+		qs.Set("message", messageQ)
+	}
+
+	var offsetQ string
+	if o.Offset != nil {
+		offsetQ = swag.FormatInt64(*o.Offset)
+	}
+	if offsetQ != "" {
+		qs.Set("offset", offsetQ)
+	}
+
+	var severitiesIR []string
+	for _, severitiesI := range o.Severities {
+		severitiesIS := severitiesI
+		if severitiesIS != "" {
+			severitiesIR = append(severitiesIR, severitiesIS)
+		}
+	}
+
+	severities := swag.JoinByFormat(severitiesIR, "")
+
+	if len(severities) > 0 {
+		qsv := severities[0]
+		if qsv != "" {
+			qs.Set("severities", qsv)
+		}
 	}
 
 	_result.RawQuery = qs.Encode()
