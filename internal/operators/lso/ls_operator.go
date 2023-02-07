@@ -30,6 +30,10 @@ func (l *lsOperator) GetName() string {
 	return Operator.Name
 }
 
+func (l *lsOperator) GetFullName() string {
+	return "Local Storage Operator"
+}
+
 // GetDependencies provides a list of dependencies of the Operator
 func (l *lsOperator) GetDependencies(cluster *common.Cluster) ([]string, error) {
 	return make([]string, 0), nil
@@ -94,4 +98,8 @@ func (l *lsOperator) GetPreflightRequirements(context context.Context, cluster *
 			},
 		},
 	}, nil
+}
+
+func (l *lsOperator) GetSupportedArchitectures() []string {
+	return []string{common.X86CPUArchitecture}
 }

@@ -169,7 +169,7 @@ var _ = Describe("Operators manager", func() {
 				{Name: "odf"},
 				{Name: "cnv"},
 			}
-			err := operators.EnsureLVMAndCNVDoNotClash("4.11.0", monitoredOperators)
+			err := operators.EnsureLVMAndCNVDoNotClash(cluster, "4.11.0", monitoredOperators)
 			Expect(err).To(Not(BeNil()))
 		})
 		It("no error when both cnv and lvm operator enabled after 4.12", func() {
@@ -178,7 +178,7 @@ var _ = Describe("Operators manager", func() {
 				{Name: "lso"},
 				{Name: "odf"},
 			}
-			err := operators.EnsureLVMAndCNVDoNotClash("4.12.0", monitoredOperators)
+			err := operators.EnsureLVMAndCNVDoNotClash(cluster, "4.12.0", monitoredOperators)
 			Expect(err).To(BeNil())
 		})
 		It("lvm operator enabled without cnv before 4.12", func() {
@@ -187,8 +187,8 @@ var _ = Describe("Operators manager", func() {
 				{Name: "lso"},
 				{Name: "odf"},
 			}
-			err := operators.EnsureLVMAndCNVDoNotClash("4.11.0", monitoredOperators)
-			Expect(err).To(BeNil())
+			err := operators.EnsureLVMAndCNVDoNotClash(cluster, "4.11.0", monitoredOperators)
+			Expect(err).To(Not(BeNil()))
 		})
 		It("cnv operator enabled without lvm before 4.12", func() {
 			monitoredOperators := []*models.MonitoredOperator{
@@ -196,9 +196,76 @@ var _ = Describe("Operators manager", func() {
 				{Name: "lso"},
 				{Name: "odf"},
 			}
-			err := operators.EnsureLVMAndCNVDoNotClash("4.11.0", monitoredOperators)
+			err := operators.EnsureLVMAndCNVDoNotClash(cluster, "4.11.0", monitoredOperators)
 			Expect(err).To(BeNil())
 		})
+	})
+
+	Context("EnsureOperatorArchCapability", func() {
+		It("no error on LVM with ARM architecture", func() {
+			monitoredOperators := []*models.MonitoredOperator{{Name: "lvm"}}
+			cluster.CPUArchitecture = common.ARM64CPUArchitecture
+			err := manager.EnsureOperatorArchCapability(cluster, monitoredOperators)
+			Expect(err).To(BeNil())
+		})
+		It("no error on all operators with x86 architecture", func() {
+			monitoredOperators := []*models.MonitoredOperator{
+				{Name: "lvm"},
+				{Name: "lso"},
+				{Name: "odf"},
+				{Name: "cnv"},
+			}
+			cluster.CPUArchitecture = common.X86CPUArchitecture
+			err := manager.EnsureOperatorArchCapability(cluster, monitoredOperators)
+			Expect(err).To(BeNil())
+		})
+		It("error on LVM with LSO architecture", func() {
+			monitoredOperators := []*models.MonitoredOperator{{Name: "lso"}}
+			cluster.CPUArchitecture = common.ARM64CPUArchitecture
+			err := manager.EnsureOperatorArchCapability(cluster, monitoredOperators)
+			Expect(err).To(Not(BeNil()))
+		})
+		It("error on LVM with ODF architecture", func() {
+			monitoredOperators := []*models.MonitoredOperator{{Name: "odf"}}
+			cluster.CPUArchitecture = common.ARM64CPUArchitecture
+			err := manager.EnsureOperatorArchCapability(cluster, monitoredOperators)
+			Expect(err).To(Not(BeNil()))
+		})
+		It("error on LVM with CNV architecture", func() {
+			monitoredOperators := []*models.MonitoredOperator{{Name: "cnv"}}
+			cluster.CPUArchitecture = common.ARM64CPUArchitecture
+			err := manager.EnsureOperatorArchCapability(cluster, monitoredOperators)
+			Expect(err).To(Not(BeNil()))
+		})
+		It("no on operators supports both ARM and x86 while cluster supports multi cpu architecture", func() {
+			monitoredOperators := []*models.MonitoredOperator{
+				{Name: "lvm"},
+				{Name: "lso"},
+				{Name: "odf"},
+				{Name: "cnv"},
+			}
+			cluster.CPUArchitecture = common.MultiCPUArchitecture
+			err := manager.EnsureOperatorArchCapability(cluster, monitoredOperators)
+
+			Expect(err).To(BeNil())
+		})
+		It("error on operators supports both ARM and x86 while ARM architecture", func() {
+			monitoredOperators := []*models.MonitoredOperator{
+				{Name: "lvm"},
+				{Name: "lso"},
+				{Name: "odf"},
+				{Name: "cnv"},
+			}
+			cluster.CPUArchitecture = common.ARM64CPUArchitecture
+			err := manager.EnsureOperatorArchCapability(cluster, monitoredOperators)
+
+			Expect(err).To(Not(BeNil()))
+			ExpectWithOffset(1, err.Error()).To(ContainSubstring("Local Storage Operator"))
+			ExpectWithOffset(1, err.Error()).To(ContainSubstring("OpenShift Data Foundation"))
+			ExpectWithOffset(1, err.Error()).To(ContainSubstring("OpenShift Virtualization"))
+			ExpectWithOffset(1, err.Error()).To(Not(ContainSubstring("Logical Volume Management")))
+		})
+
 	})
 
 	Context("ValidateCluster", func() {
