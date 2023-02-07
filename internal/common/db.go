@@ -63,6 +63,9 @@ type Cluster struct {
 
 	// StaticNetworkConfigured indicates if static network configuration was set for the ISO used by clusters' nodes
 	StaticNetworkConfigured bool `json:"static_network_configured"`
+
+	IgnoredClusterValidations string `gorm:"type:text"`
+	IgnoredHostValidations    string `gorm:"type:text"`
 }
 
 type Event struct {

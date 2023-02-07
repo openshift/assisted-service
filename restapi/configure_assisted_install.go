@@ -142,6 +142,9 @@ type InstallerAPI interface {
 	/* V2GetHostIgnition Fetch the ignition file for this host as a string. In case of unbound host produces an error */
 	V2GetHostIgnition(ctx context.Context, params installer.V2GetHostIgnitionParams) middleware.Responder
 
+	/* V2GetIgnoredValidations Fetch the validations which are to be ignored for this cluster. */
+	V2GetIgnoredValidations(ctx context.Context, params installer.V2GetIgnoredValidationsParams) middleware.Responder
+
 	/* V2GetNextSteps Retrieves the next operations that the host agent needs to perform. */
 	V2GetNextSteps(ctx context.Context, params installer.V2GetNextStepsParams) middleware.Responder
 
@@ -183,6 +186,9 @@ type InstallerAPI interface {
 
 	/* V2ResetHostValidation Reset failed host validation. */
 	V2ResetHostValidation(ctx context.Context, params installer.V2ResetHostValidationParams) middleware.Responder
+
+	/* V2SetIgnoredValidations Register the validations which are to be ignored for this cluster. */
+	V2SetIgnoredValidations(ctx context.Context, params installer.V2SetIgnoredValidationsParams) middleware.Responder
 
 	/* V2UpdateClusterInstallConfig Override values in the install config. */
 	V2UpdateClusterInstallConfig(ctx context.Context, params installer.V2UpdateClusterInstallConfigParams) middleware.Responder
@@ -594,6 +600,11 @@ func HandlerAPI(c Config) (http.Handler, *operations.AssistedInstallAPI, error) 
 		ctx = storeAuth(ctx, principal)
 		return c.InstallerAPI.V2GetHostIgnition(ctx, params)
 	})
+	api.InstallerV2GetIgnoredValidationsHandler = installer.V2GetIgnoredValidationsHandlerFunc(func(params installer.V2GetIgnoredValidationsParams, principal interface{}) middleware.Responder {
+		ctx := params.HTTPRequest.Context()
+		ctx = storeAuth(ctx, principal)
+		return c.InstallerAPI.V2GetIgnoredValidations(ctx, params)
+	})
 	api.InstallerV2GetNextStepsHandler = installer.V2GetNextStepsHandlerFunc(func(params installer.V2GetNextStepsParams, principal interface{}) middleware.Responder {
 		ctx := params.HTTPRequest.Context()
 		ctx = storeAuth(ctx, principal)
@@ -683,6 +694,11 @@ func HandlerAPI(c Config) (http.Handler, *operations.AssistedInstallAPI, error) 
 		ctx := params.HTTPRequest.Context()
 		ctx = storeAuth(ctx, principal)
 		return c.InstallerAPI.V2ResetHostValidation(ctx, params)
+	})
+	api.InstallerV2SetIgnoredValidationsHandler = installer.V2SetIgnoredValidationsHandlerFunc(func(params installer.V2SetIgnoredValidationsParams, principal interface{}) middleware.Responder {
+		ctx := params.HTTPRequest.Context()
+		ctx = storeAuth(ctx, principal)
+		return c.InstallerAPI.V2SetIgnoredValidations(ctx, params)
 	})
 	api.InstallerV2UpdateClusterInstallConfigHandler = installer.V2UpdateClusterInstallConfigHandlerFunc(func(params installer.V2UpdateClusterInstallConfigParams, principal interface{}) middleware.Responder {
 		ctx := params.HTTPRequest.Context()

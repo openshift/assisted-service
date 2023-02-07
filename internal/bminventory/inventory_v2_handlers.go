@@ -26,6 +26,7 @@ import (
 	"github.com/openshift/assisted-service/pkg/auth"
 	"github.com/openshift/assisted-service/pkg/filemiddleware"
 	logutil "github.com/openshift/assisted-service/pkg/log"
+	"github.com/openshift/assisted-service/pkg/ocm"
 	"github.com/openshift/assisted-service/restapi/operations/installer"
 	"github.com/pkg/errors"
 	"github.com/thoas/go-funk"
@@ -541,6 +542,90 @@ func (b *bareMetalInventory) V2ImportCluster(ctx context.Context, params install
 		return common.GenerateErrorResponder(err)
 	}
 	return installer.NewV2ImportClusterCreated().WithPayload(&cluster.Cluster)
+}
+
+func (b *bareMetalInventory) allowedToIgnoreValidations(ctx context.Context) bool {
+	log := logutil.FromContext(ctx, b.log)
+	allowedToIgnoreValidations, err := b.authzHandler.HasOrgBasedCapability(ctx, ocm.IgnoreValidationsCapabilityName)
+	if err != nil {
+		log.WithError(err).Errorf("error getting user %s capability", ocm.IgnoreValidationsCapabilityName)
+	}
+	if err != nil || !allowedToIgnoreValidations {
+		return false
+	}
+	return true
+}
+
+func (b *bareMetalInventory) setIgnoredValidationsBadRequest(message string) *installer.V2SetIgnoredValidationsBadRequest {
+	return installer.NewV2SetIgnoredValidationsBadRequest().WithPayload(common.GenerateError(http.StatusBadRequest, errors.New(message)))
+}
+
+func (b *bareMetalInventory) getIgnoredValidationsBadRequest(message string) *installer.V2GetIgnoredValidationsBadRequest {
+	return installer.NewV2GetIgnoredValidationsBadRequest().WithPayload(common.GenerateError(http.StatusBadRequest, errors.New(message)))
+}
+
+func (b *bareMetalInventory) validateIgnoredValidations(problems []string, ignoredValidationsJSON string, nonIgnorableValidations []string, validationType string) []string {
+	if len(ignoredValidationsJSON) == 0 {
+		return problems
+	}
+	var ignoredValidationsArr []string
+	err := json.Unmarshal([]byte(ignoredValidationsJSON), &ignoredValidationsArr)
+	if err != nil {
+		problems = append(problems, fmt.Sprintf("error during unmarshal of json for ignored %s validations", validationType))
+	} else {
+		mayIgnoreValidations, cantBeIgnored := common.MayIgnoreValidations(ignoredValidationsArr, nonIgnorableValidations)
+		if !mayIgnoreValidations {
+			problems = append(problems, fmt.Sprintf("unable to ignore the following %s validations (%s)", validationType, strings.Join(cantBeIgnored, ",")))
+		}
+	}
+	return problems
+}
+
+func (b *bareMetalInventory) V2GetIgnoredValidations(ctx context.Context, params installer.V2GetIgnoredValidationsParams) middleware.Responder {
+	if !b.allowedToIgnoreValidations(ctx) {
+
+		return b.getIgnoredValidationsBadRequest("the capability to ignore validations is not available")
+	}
+	cluster, err := common.GetClusterFromDB(b.db, params.ClusterID, common.SkipEagerLoading)
+	if err != nil {
+		return common.NewApiError(http.StatusNotFound, err)
+	}
+	ignoredValidations := models.IgnoredValidations{
+		ClusterValidationIds: cluster.IgnoredClusterValidations,
+		HostValidationIds:    cluster.IgnoredHostValidations,
+	}
+	return installer.NewV2GetIgnoredValidationsOK().WithPayload(&ignoredValidations)
+}
+
+func (b *bareMetalInventory) V2SetIgnoredValidations(ctx context.Context, params installer.V2SetIgnoredValidationsParams) middleware.Responder {
+	// Restrict access to users who are permitted to ignore validations.
+	if !b.allowedToIgnoreValidations(ctx) {
+		return b.setIgnoredValidationsBadRequest("the capability to ignore validations is not available")
+	}
+	cluster, err := b.getCluster(ctx, params.ClusterID.String())
+	if err != nil {
+		err = errors.Wrapf(err, "failed to fetch cluster %s to apply ignored validations", *cluster.ID)
+		return installer.NewV2SetIgnoredValidationsInternalServerError().WithPayload(common.GenerateError(http.StatusInternalServerError, err))
+	}
+
+	problems := []string{}
+	cluster.IgnoredClusterValidations = params.IgnoredValidations.ClusterValidationIds
+	cluster.IgnoredHostValidations = params.IgnoredValidations.HostValidationIds
+	problems = b.validateIgnoredValidations(problems, cluster.IgnoredClusterValidations, common.NonIgnorableClusterValidations, "cluster")
+	problems = b.validateIgnoredValidations(problems, cluster.IgnoredHostValidations, common.NonIgnorableHostValidations, "host")
+	if len(problems) > 0 {
+		return b.setIgnoredValidationsBadRequest("cannot proceed due to the following errors: " + strings.Join(problems, "\n"))
+	}
+
+	if err = b.db.Save(cluster).Error; err != nil {
+		err = errors.Wrapf(err, "failed to apply ignored validations to cluster %s", *cluster.ID)
+		return installer.NewV2SetIgnoredValidationsInternalServerError().WithPayload(common.GenerateError(http.StatusInternalServerError, err))
+	}
+	ignoredValidations := models.IgnoredValidations{
+		ClusterValidationIds: cluster.IgnoredClusterValidations,
+		HostValidationIds:    cluster.IgnoredHostValidations,
+	}
+	return installer.NewV2SetIgnoredValidationsCreated().WithPayload(&ignoredValidations)
 }
 
 func (b *bareMetalInventory) RegenerateInfraEnvSigningKey(ctx context.Context, params installer.RegenerateInfraEnvSigningKeyParams) middleware.Responder {

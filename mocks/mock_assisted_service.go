@@ -456,6 +456,20 @@ func (mr *MockInstallerAPIMockRecorder) V2GetHostIgnition(arg0, arg1 interface{}
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "V2GetHostIgnition", reflect.TypeOf((*MockInstallerAPI)(nil).V2GetHostIgnition), arg0, arg1)
 }
 
+// V2GetIgnoredValidations mocks base method.
+func (m *MockInstallerAPI) V2GetIgnoredValidations(arg0 context.Context, arg1 installer.V2GetIgnoredValidationsParams) middleware.Responder {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "V2GetIgnoredValidations", arg0, arg1)
+	ret0, _ := ret[0].(middleware.Responder)
+	return ret0
+}
+
+// V2GetIgnoredValidations indicates an expected call of V2GetIgnoredValidations.
+func (mr *MockInstallerAPIMockRecorder) V2GetIgnoredValidations(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "V2GetIgnoredValidations", reflect.TypeOf((*MockInstallerAPI)(nil).V2GetIgnoredValidations), arg0, arg1)
+}
+
 // V2GetNextSteps mocks base method.
 func (m *MockInstallerAPI) V2GetNextSteps(arg0 context.Context, arg1 installer.V2GetNextStepsParams) middleware.Responder {
 	m.ctrl.T.Helper()
@@ -678,6 +692,20 @@ func (m *MockInstallerAPI) V2ResetHostValidation(arg0 context.Context, arg1 inst
 func (mr *MockInstallerAPIMockRecorder) V2ResetHostValidation(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "V2ResetHostValidation", reflect.TypeOf((*MockInstallerAPI)(nil).V2ResetHostValidation), arg0, arg1)
+}
+
+// V2SetIgnoredValidations mocks base method.
+func (m *MockInstallerAPI) V2SetIgnoredValidations(arg0 context.Context, arg1 installer.V2SetIgnoredValidationsParams) middleware.Responder {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "V2SetIgnoredValidations", arg0, arg1)
+	ret0, _ := ret[0].(middleware.Responder)
+	return ret0
+}
+
+// V2SetIgnoredValidations indicates an expected call of V2SetIgnoredValidations.
+func (mr *MockInstallerAPIMockRecorder) V2SetIgnoredValidations(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "V2SetIgnoredValidations", reflect.TypeOf((*MockInstallerAPI)(nil).V2SetIgnoredValidations), arg0, arg1)
 }
 
 // V2UpdateCluster mocks base method.

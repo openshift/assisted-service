@@ -3498,7 +3498,88 @@ paths:
           schema:
             $ref: '#/definitions/error'
 
+  /v2/clusters/{cluster_id}/ignored-validations:
+    get:
+      tags:
+        - installer
+      description: Fetch the validations which are to be ignored for this cluster.
+      operationId: v2GetIgnoredValidations
+      parameters:
+        - in: path
+          name: cluster_id
+          description: The cluster whose failing validations should be ignored according to this list.
+          type: string
+          format: uuid
+          required: true
+      responses:
+        "200":
+          description: Success.
+          schema:
+            $ref: '#/definitions/ignored-validations'
+        "400":
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+        "404":
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+    put:
+      tags:
+        - installer
+      description: Register the validations which are to be ignored for this cluster.
+      operationId: v2SetIgnoredValidations
+      parameters:
+        - in: path
+          name: cluster_id
+          description: The cluster whose failing validations should be ignored according to this list.
+          type: string
+          format: uuid
+          required: true
+        - in: body
+          name: ignored_validations
+          description: The validations to be ignored.
+          required: true
+          schema:
+            $ref: '#/definitions/ignored-validations'
+      responses:
+        "201":
+          description: Success.
+          schema:
+            $ref: '#/definitions/ignored-validations' 
+        "400":
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+        "404":
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+        "401":
+          description: Unauthorized.
+          schema:
+            $ref: '#/definitions/infra_error'
+        "403":
+          description: Forbidden.
+          schema:
+            $ref: '#/definitions/infra_error'
+        "500":
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+
 definitions:
+  ignored-validations:
+    type: object
+    properties:
+      cluster-validation-ids:
+        type: string
+        format: string
+        description: JSON-formatted list of cluster validation IDs that will be ignored for all hosts that belong to this cluster. It may also contain a list with a single string "all" to ignore all cluster validations. Some validations cannot be ignored.
+      host-validation-ids:
+        type: string
+        format: string
+        description: JSON-formatted list of host validation IDs that will be ignored for all hosts that belong to this cluster. It may also contain a list with a single string "all" to ignore all host validations. Some validations cannot be ignored.
   monitored-operator:
     type: object
     properties:
