@@ -485,6 +485,88 @@ var _ = Describe("agent reconcile", func() {
 		Expect(c.Get(ctx, key, agent)).To(BeNil())
 	})
 
+	Context("node labels", func() {
+		var (
+			hostId, infraEnvId strfmt.UUID
+			commonHost         *common.Host
+			host               *v1beta1.Agent
+			clusterDeployment  *hivev1.ClusterDeployment
+		)
+		BeforeEach(func() {
+			hostId = strfmt.UUID(uuid.New().String())
+			infraEnvId = strfmt.UUID(uuid.New().String())
+			commonHost = &common.Host{
+				Host: models.Host{
+					ID:         &hostId,
+					ClusterID:  &sId,
+					Inventory:  common.GenerateTestDefaultInventory(),
+					Status:     swag.String(models.HostStatusKnown),
+					StatusInfo: swag.String("Some status info"),
+					InfraEnvID: infraEnvId,
+				},
+			}
+			backEndCluster = &common.Cluster{Cluster: models.Cluster{
+				ID: &sId,
+				Hosts: []*models.Host{
+					&commonHost.Host,
+				}}}
+
+			host = newAgent("host", testNamespace, v1beta1.AgentSpec{ClusterDeploymentName: &v1beta1.ClusterReference{Name: "clusterDeployment", Namespace: testNamespace}})
+			host.Spec.NodeLabels = map[string]string{
+				"first-label":  "",
+				"second-label": "second-value",
+			}
+			clusterDeployment = newClusterDeployment("clusterDeployment", testNamespace, getDefaultClusterDeploymentSpec("clusterDeployment-test", "test-cluster-aci", "pull-secret"))
+			Expect(c.Create(ctx, clusterDeployment)).To(BeNil())
+
+			mockInstallerInternal.EXPECT().GetHostByKubeKey(gomock.Any()).Return(commonHost, nil).AnyTimes()
+			mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil).Times(1)
+
+		})
+		marshalLabels := func(m map[string]string) string {
+			b, err := json.Marshal(&m)
+			Expect(err).ToNot(HaveOccurred())
+			return string(b)
+		}
+		It("pass node labels to inventory", func() {
+			mockInstallerInternal.EXPECT().V2UpdateHostInternal(gomock.Any(), gomock.Any(), bminventory.NonInteractive).Do(
+				func(ctx context.Context, param installer.V2UpdateHostParams, interactive bminventory.Interactivity) {
+					Expect(param.HostUpdateParams.NodeLabels).To(HaveLen(2))
+					Expect(param.HostUpdateParams.NodeLabels).To(ConsistOf(
+						&models.NodeLabelParams{
+							Key:   swag.String("first-label"),
+							Value: swag.String(""),
+						},
+						&models.NodeLabelParams{
+							Key:   swag.String("second-label"),
+							Value: swag.String("second-value"),
+						}))
+				}).Return(commonHost, nil).Times(1)
+			allowGetInfraEnvInternal(mockInstallerInternal, infraEnvId, "infraEnvName")
+			Expect(c.Create(ctx, host)).To(BeNil())
+			result, err := hr.Reconcile(ctx, newHostRequest(host))
+			Expect(err).To(BeNil())
+			Expect(result).To(Equal(ctrl.Result{}))
+		})
+		It("do not pass node labels to inventory if already present", func() {
+			commonHost.NodeLabels = marshalLabels(map[string]string{
+				"first-label":  "",
+				"second-label": "second-value",
+			})
+			backEndCluster = &common.Cluster{Cluster: models.Cluster{
+				ID: &sId,
+				Hosts: []*models.Host{
+					&commonHost.Host,
+				}}}
+
+			allowGetInfraEnvInternal(mockInstallerInternal, infraEnvId, "infraEnvName")
+			Expect(c.Create(ctx, host)).To(BeNil())
+			result, err := hr.Reconcile(ctx, newHostRequest(host))
+			Expect(err).To(BeNil())
+			Expect(result).To(Equal(ctrl.Result{}))
+		})
+	})
+
 	It("Agent update empty disk path", func() {
 		newInstallDiskPath := ""
 		hostId := strfmt.UUID(uuid.New().String())

@@ -1250,6 +1250,32 @@ func (r *AgentReconciler) updateHostIgnition(ctx context.Context, log logrus.Fie
 	return err
 }
 
+func (r *AgentReconciler) updateNodeLabels(log logrus.FieldLogger, host *common.Host, agent *aiv1beta1.Agent, params *installer.V2UpdateHostParams) (bool, error) {
+	var err error
+	hostNodeLabels := make(map[string]string)
+	if host.NodeLabels != "" {
+		if err = json.Unmarshal([]byte(host.NodeLabels), &hostNodeLabels); err != nil {
+			log.WithError(err).Errorf("failed to unmarshal node labels for host %s infra-env %s", host.ID.String(), host.InfraEnvID.String())
+			return false, err
+		}
+	}
+	nodeLabels := agent.Spec.NodeLabels
+	if nodeLabels == nil {
+		nodeLabels = make(map[string]string)
+	}
+	if !reflect.DeepEqual(nodeLabels, hostNodeLabels) {
+		params.HostUpdateParams.NodeLabels = make([]*models.NodeLabelParams, 0)
+		funk.ForEach(nodeLabels, func(key, value string) {
+			params.HostUpdateParams.NodeLabels = append(params.HostUpdateParams.NodeLabels, &models.NodeLabelParams{
+				Key:   swag.String(key),
+				Value: swag.String(value),
+			})
+		})
+		return true, nil
+	}
+	return false, nil
+}
+
 func (r *AgentReconciler) updateIfNeeded(ctx context.Context, log logrus.FieldLogger, agent *aiv1beta1.Agent, internalHost *common.Host) (*common.Host, error) {
 	spec := agent.Spec
 	var err error
@@ -1279,6 +1305,14 @@ func (r *AgentReconciler) updateIfNeeded(ctx context.Context, log logrus.FieldLo
 		InfraEnvID:       internalHost.InfraEnvID,
 		HostUpdateParams: &models.HostUpdateParams{},
 	}
+
+	nodesUpdated, err := r.updateNodeLabels(log, internalHost, agent, params)
+	if err != nil {
+		return internalHost, err
+	}
+
+	hostUpdate = hostUpdate || nodesUpdated
+
 	if spec.Hostname != "" && spec.Hostname != internalHost.RequestedHostname {
 		hostUpdate = true
 		params.HostUpdateParams.HostName = &spec.Hostname

@@ -1265,6 +1265,72 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		}, "30s", "1s").Should(BeTrue())
 	})
 
+	It("deploy CD with ACI and agents with node labels", func() {
+		deployClusterDeploymentCRD(ctx, kubeClient, clusterDeploymentSpec)
+		deployInfraEnvCRD(ctx, kubeClient, infraNsName.Name, infraEnvSpec)
+
+		deployAgentClusterInstallCRD(ctx, kubeClient, aciSNOSpec, clusterDeploymentSpec.ClusterInstallRef.Name)
+		infraEnvKey := types.NamespacedName{
+			Namespace: Options.Namespace,
+			Name:      infraNsName.Name,
+		}
+		infraEnv := getInfraEnvFromDBByKubeKey(ctx, db, infraEnvKey, waitForReconcileTimeout)
+		configureLocalAgentClient(infraEnv.ID.String())
+		host := registerNode(ctx, *infraEnv.ID, "hostname1", defaultCIDRv4)
+
+		hostkey := types.NamespacedName{
+			Namespace: Options.Namespace,
+			Name:      host.ID.String(),
+		}
+
+		goodLabels := map[string]string{
+			"first-label":      "first-value",
+			"second-label":     "second-value",
+			"label-with/slash": "blah",
+		}
+		Eventually(func() error {
+			agent := getAgentCRD(ctx, kubeClient, hostkey)
+			agent.Spec.NodeLabels = goodLabels
+			return kubeClient.Update(ctx, agent)
+		}, "30s", "1s").ShouldNot(HaveOccurred())
+		By("Verify node labels in DB")
+		Eventually(func(g Gomega) {
+			agent := getAgentCRD(ctx, kubeClient, hostkey)
+			g.Expect(agent.Spec.NodeLabels).To(Equal(goodLabels))
+			g.Expect(funk.Find(agent.Status.Conditions, func(c conditionsv1.Condition) bool {
+				return c.Type == v1beta1.SpecSyncedCondition && c.Status == corev1.ConditionTrue
+			})).ToNot(BeNil())
+			dbHost := GetHostByKubeKey(ctx, db, hostkey, waitForReconcileTimeout)
+			var m map[string]string
+			g.Expect(json.Unmarshal([]byte(dbHost.NodeLabels), &m)).ToNot(HaveOccurred())
+			g.Expect(m).To(Equal(agent.Spec.NodeLabels))
+		}, "30s", "1s").Should(Succeed())
+		By("Try adding bad label")
+		badLabels := map[string]string{
+			"first-label":            "first-value",
+			"second-label":           "second-value",
+			"label-with/slash":       "blah",
+			"label/with/two-slashes": "",
+		}
+		Eventually(func() error {
+			agent := getAgentCRD(ctx, kubeClient, hostkey)
+			agent.Spec.NodeLabels = badLabels
+			return kubeClient.Update(ctx, agent)
+		}, "30s", "1s").ShouldNot(HaveOccurred())
+		Eventually(func(g Gomega) {
+			agent := getAgentCRD(ctx, kubeClient, hostkey)
+			g.Expect(agent.Spec.NodeLabels).To(Equal(badLabels))
+			g.Expect(funk.Find(agent.Status.Conditions, func(c conditionsv1.Condition) bool {
+				return c.Type == v1beta1.SpecSyncedCondition && c.Status == corev1.ConditionFalse
+			})).ToNot(BeNil())
+			dbHost := GetHostByKubeKey(ctx, db, hostkey, waitForReconcileTimeout)
+			g.Expect(dbHost.NodeLabels).ToNot(BeEmpty())
+			var m map[string]string
+			g.Expect(json.Unmarshal([]byte(dbHost.NodeLabels), &m)).ToNot(HaveOccurred())
+			g.Expect(m).To(Equal(goodLabels))
+		}, "30s", "1s").Should(Succeed())
+	})
+
 	It("verify InfraEnv ISODownloadURL and image CreatedTime are not changing - update Annotations", func() {
 		deployClusterDeploymentCRD(ctx, kubeClient, clusterDeploymentSpec)
 		deployAgentClusterInstallCRD(ctx, kubeClient, aciSpec, clusterDeploymentSpec.ClusterInstallRef.Name)
@@ -1723,6 +1789,64 @@ var _ = Describe("[kube-api]cluster installation", func() {
 
 			return len(h.IgnitionConfigOverrides)
 		}, "2m", "10s").Should(Equal(0))
+	})
+
+	It("deploy clusterDeployment with agent,bmh and node labels", func() {
+		deployClusterDeploymentCRD(ctx, kubeClient, clusterDeploymentSpec)
+		deployInfraEnvCRD(ctx, kubeClient, infraNsName.Name, infraEnvSpec)
+		deployAgentClusterInstallCRD(ctx, kubeClient, aciSpec, clusterDeploymentSpec.ClusterInstallRef.Name)
+		infraEnvKey := types.NamespacedName{
+			Namespace: Options.Namespace,
+			Name:      infraNsName.Name,
+		}
+		infraEnv := getInfraEnvFromDBByKubeKey(ctx, db, infraEnvKey, waitForReconcileTimeout)
+		configureLocalAgentClient(infraEnv.ID.String())
+		host := registerNode(ctx, *infraEnv.ID, "hostname1", defaultCIDRv4)
+		key := types.NamespacedName{
+			Namespace: Options.Namespace,
+			Name:      host.ID.String(),
+		}
+
+		bmhSpec := metal3_v1alpha1.BareMetalHostSpec{BootMACAddress: getAgentMac(ctx, kubeClient, key)}
+		deployBMHCRD(ctx, kubeClient, host.ID.String(), &bmhSpec)
+
+		Eventually(func() error {
+			bmh := getBmhCRD(ctx, kubeClient, key)
+			bmh.SetAnnotations(map[string]string{controllers.NODE_LABEL_PREFIX + "my-label": "blah"})
+			bmh.SetLabels(map[string]string{controllers.BMH_INFRA_ENV_LABEL: infraNsName.Name})
+			return kubeClient.Update(ctx, bmh)
+		}, "30s", "10s").Should(BeNil())
+
+		Eventually(func() bool {
+			h, err := common.GetHostFromDB(db, infraEnv.ID.String(), host.ID.String())
+			Expect(err).To(BeNil())
+			if h.NodeLabels == "" {
+				return false
+			}
+			var m map[string]string
+			Expect(json.Unmarshal([]byte(h.NodeLabels), &m)).ToNot(HaveOccurred())
+			Expect(m).To(HaveLen(1))
+			Expect(m["my-label"]).To(Equal("blah"))
+			return true
+		}, "2m", "10s").Should(Equal(true))
+
+		By("Clean node labels")
+		Eventually(func() error {
+			bmh := getBmhCRD(ctx, kubeClient, key)
+			bmh.SetAnnotations(make(map[string]string))
+			return kubeClient.Update(ctx, bmh)
+		}, "30s", "10s").Should(BeNil())
+
+		Eventually(func() bool {
+			h, err := common.GetHostFromDB(db, infraEnv.ID.String(), host.ID.String())
+			Expect(err).To(BeNil())
+			if h.NodeLabels == "" {
+				return true
+			}
+			var m map[string]string
+			Expect(json.Unmarshal([]byte(h.NodeLabels), &m)).ToNot(HaveOccurred())
+			return len(m) == 0
+		}, "2m", "10s").Should(Equal(true))
 	})
 
 	It("deploy clusterDeployment with agent and invalid ignition config", func() {

@@ -472,6 +472,10 @@ var _ = Describe("bmac reconcile", func() {
 			annotations[BMH_AGENT_MACHINE_CONFIG_POOL] = "number-8"
 			annotations[BMH_AGENT_INSTALLER_ARGS] = `["--args", "aaaa"]`
 			annotations[BMH_AGENT_IGNITION_CONFIG_OVERRIDES] = "agent-ignition"
+
+			// Add node labels annotations
+			annotations[NODE_LABEL_PREFIX+"first-label"] = ""
+			annotations[NODE_LABEL_PREFIX+"second-label"] = "second-label"
 			host.ObjectMeta.SetAnnotations(annotations)
 
 			labels := make(map[string]string)
@@ -554,6 +558,71 @@ var _ = Describe("bmac reconcile", func() {
 				Expect(updatedAgent.Spec.MachineConfigPool).To(Equal("number-8"))
 				Expect(updatedAgent.Spec.InstallerArgs).To(Equal(`["--args", "aaaa"]`))
 				Expect(updatedAgent.Spec.IgnitionConfigOverrides).To(Equal("agent-ignition"))
+			})
+
+			Context("should set the agent spec node labels based on the corresponding BMH annotations", func() {
+				It("set initial node labels", func() {
+					result, err := bmhr.Reconcile(ctx, newBMHRequest(host))
+					Expect(err).To(BeNil())
+					Expect(result).To(Equal(ctrl.Result{}))
+
+					updatedAgent := &v1beta1.Agent{}
+					err = c.Get(ctx, types.NamespacedName{Name: agent.Name, Namespace: agent.Namespace}, updatedAgent)
+					Expect(err).To(BeNil())
+					Expect(updatedAgent.Spec.NodeLabels).To(Equal(map[string]string{
+						"first-label":  "",
+						"second-label": "second-label",
+					}))
+				})
+				It("modify node labels", func() {
+					h2 := bmh_v1alpha1.BareMetalHost{}
+					Expect(c.Get(ctx, types.NamespacedName{Name: host.Name, Namespace: host.Namespace}, &h2)).ToNot(HaveOccurred())
+					annotations := h2.ObjectMeta.GetAnnotations()
+					annotations[NODE_LABEL_PREFIX+"third-label"] = "blah"
+					annotations[NODE_LABEL_PREFIX+"forth-label"] = "forth"
+					delete(annotations, NODE_LABEL_PREFIX+"second-label")
+					h2.ObjectMeta.SetAnnotations(annotations)
+					Expect(c.Update(ctx, &h2)).ToNot(HaveOccurred())
+					updatedAgent := &v1beta1.Agent{}
+					Expect(c.Get(ctx, types.NamespacedName{Name: agent.Name, Namespace: agent.Namespace}, updatedAgent)).ToNot(HaveOccurred())
+					updatedAgent.Spec.NodeLabels = map[string]string{
+						"first-label":  "",
+						"second-label": "second-label",
+					}
+					Expect(c.Update(ctx, updatedAgent)).ToNot(HaveOccurred())
+					result, err := bmhr.Reconcile(ctx, newBMHRequest(&h2))
+					Expect(err).To(BeNil())
+					Expect(result).To(Equal(ctrl.Result{}))
+					err = c.Get(ctx, types.NamespacedName{Name: agent.Name, Namespace: agent.Namespace}, updatedAgent)
+					Expect(err).To(BeNil())
+					Expect(updatedAgent.Spec.NodeLabels).To(Equal(map[string]string{
+						"first-label": "",
+						"third-label": "blah",
+						"forth-label": "forth",
+					}))
+				})
+				It("clear node labels", func() {
+					updatedAgent := &v1beta1.Agent{}
+					Expect(c.Get(ctx, types.NamespacedName{Name: agent.Name, Namespace: agent.Namespace}, updatedAgent)).ToNot(HaveOccurred())
+					updatedAgent.Spec.NodeLabels = map[string]string{
+						"first-label":  "",
+						"second-label": "second-label",
+					}
+					Expect(c.Update(ctx, updatedAgent)).ToNot(HaveOccurred())
+					h2 := bmh_v1alpha1.BareMetalHost{}
+					Expect(c.Get(ctx, types.NamespacedName{Name: host.Name, Namespace: host.Namespace}, &h2)).ToNot(HaveOccurred())
+					annotations := h2.ObjectMeta.GetAnnotations()
+					delete(annotations, NODE_LABEL_PREFIX+"first-label")
+					delete(annotations, NODE_LABEL_PREFIX+"second-label")
+					h2.ObjectMeta.SetAnnotations(annotations)
+					Expect(c.Update(ctx, &h2)).ToNot(HaveOccurred())
+					result, err := bmhr.Reconcile(ctx, newBMHRequest(&h2))
+					Expect(err).To(BeNil())
+					Expect(result).To(Equal(ctrl.Result{}))
+					err = c.Get(ctx, types.NamespacedName{Name: agent.Name, Namespace: agent.Namespace}, updatedAgent)
+					Expect(err).To(BeNil())
+					Expect(updatedAgent.Spec.NodeLabels).To(BeEmpty())
+				})
 			})
 
 			It("should set invalid InstallationDiskID if RootDeviceHints device name doesn't match", func() {
