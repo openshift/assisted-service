@@ -26,6 +26,20 @@ To get started with this template:
 The `Metadata` section above is intended to support the creation of tooling
 around the enhancement process.
 
+Make sure that the enhancement covers all scenarios that are relevant:
+- REST API and Kubernetes API
+- Late-binding and bind-on-discovery
+- SNO, multinode, compact, and 3+1 clusters
+- Day1 (cluster installation) and day2 (adding hosts to an installed cluster)
+- Day2 both for installed clusters and imported clusters
+- Observability: feature usage, events, status info, etc.
+- Network configuration: static networking vs DHCP, IPv4/v6/dual-stack
+- Supported platforms (e.g., baremetal, none, vsphere, nutanix)
+- Supported CPU architectures
+- Feature support based on OCP version
+- OLM operators
+- Agent upgrade
+
 ## Summary
 
 The `Summary` section is incredibly important for producing high quality
