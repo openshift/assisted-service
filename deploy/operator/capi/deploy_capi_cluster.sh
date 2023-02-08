@@ -128,15 +128,15 @@ else
   export PROVIDER_FLAG_FOR_CREATE_COMMAND=" --annotations hypershift.openshift.io/capi-provider-agent-image=$PROVIDER_IMAGE"
 fi
 
-# Since the default registry.ci.openshift.org/hypershift/cluster-api:v1.0.0 image no longer exists, we get the CAPI image from the release
-CLUSTER_API_IMAGE=oc adm release info --image-for=cluster-capi-controllers ${ASSISTED_OPENSHIFT_INSTALL_RELEASE_IMAGE:-${RELEASE_IMAGE}}
+# Since the default registry.ci.openshift.org/hypershift/cluster-api:v1.0.0 image no longer exists, we use this hardcoded image instead
+CLUSTER_API_IMAGE="quay.io/openshift-release-dev/ocp-v4.0-art-dev@sha256:5cbebdd15b363b4d582e82a46a890fa43086176038e76467743aabb15289a8b2"
 
 echo "Creating HostedCluster"
 hypershift create cluster agent --name $ASSISTED_CLUSTER_NAME --base-domain redhat.example --pull-secret /root/pull-secret.json \
  --ssh-key /root/.ssh/id_rsa.pub --agent-namespace $SPOKE_NAMESPACE --namespace $SPOKE_NAMESPACE \
  --control-plane-operator-image $HYPERSHIFT_IMAGE \
  --release-image ${ASSISTED_OPENSHIFT_INSTALL_RELEASE_IMAGE:-${RELEASE_IMAGE}} \
-  --annotations hypershift.openshift.io/capi-manager-image=$CLUSTER_API_IMAGE" \
+  --annotations hypershift.openshift.io/capi-manager-image=${CLUSTER_API_IMAGE} \
   $PROVIDER_FLAG_FOR_CREATE_COMMAND
 
 # Wait for a running hypershift cluster with no worker nodes
