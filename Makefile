@@ -187,7 +187,7 @@ endif
 
 lint:
 	golangci-lint run -v
-	shellcheck internal/ignition/boot-reporter/assisted-boot-reporter.sh 
+	shellcheck internal/ignition/boot-reporter/assisted-boot-reporter.sh docs/change-iso-password.sh 
 
 $(BUILD_FOLDER):
 	mkdir -p $(BUILD_FOLDER)
