@@ -109,6 +109,7 @@ type API interface {
 	HandlePreInstallSuccess(ctx context.Context, c *common.Cluster)
 	SetVipsData(ctx context.Context, c *common.Cluster, apiVip, ingressVip, apiVipLease, ingressVipLease string, db *gorm.DB) error
 	IsReadyForInstallation(c *common.Cluster) (bool, string)
+	PrepareHostLogFile(ctx context.Context, c *common.Cluster, host *models.Host, objectHandler s3wrapper.API) (string, error)
 	PrepareClusterLogFile(ctx context.Context, c *common.Cluster, objectHandler s3wrapper.API) (string, error)
 	SetUploadControllerLogsAt(ctx context.Context, c *common.Cluster, db *gorm.DB) error
 	SetConnectivityMajorityGroupsForCluster(clusterID strfmt.UUID, db *gorm.DB) error
@@ -1031,55 +1032,122 @@ func (m *Manager) createClusterDataFiles(ctx context.Context, c *common.Cluster,
 		_ = m.uploadDataAsFile(ctx, log, events, fileName, objectHandler)
 	}
 }
-
-func (m *Manager) PrepareClusterLogFile(ctx context.Context, c *common.Cluster, objectHandler s3wrapper.API) (string, error) {
+func (m *Manager) PrepareHostLogFile(ctx context.Context, c *common.Cluster, host *models.Host, objectHandler s3wrapper.API) (string, error) {
+	var (
+		fileName        string
+		tarredFilename  string
+		tarredFilenames []string
+	)
 	log := logutil.FromContext(ctx, m.log)
-	fileName := fmt.Sprintf("%s/logs/cluster_logs.tar", c.ID)
-	m.createClusterDataFiles(ctx, c, objectHandler)
-	files, err := objectHandler.ListObjectsByPrefix(ctx, fmt.Sprintf("%s/logs/", c.ID))
+
+	files, err := objectHandler.ListObjectsByPrefix(ctx, fmt.Sprintf("%s/logs/%s", c.ID, host.ID))
 	if err != nil {
 		return "", common.NewApiError(http.StatusNotFound, err)
 	}
-	files = funk.Filter(files, func(x string) bool {
-		return x != fileName
-	}).([]string)
 
-	var tarredFilenames []string
-	var tarredFilename string
+	role := string(host.Role)
+	if host.Bootstrap {
+		role = string(models.HostRoleBootstrap)
+	}
+
+	fileName = fmt.Sprintf("%s_%s_%s.tar", sanitize.Name(c.Name), role, sanitize.Name(hostutil.GetHostnameForMsg(host)))
+	files = funk.Filter(files, func(x string) bool { return x != fileName }).([]string)
+
 	for _, file := range files {
-		fileNameSplit := strings.Split(file, "/")
-		tarredFilename = file
-		if len(fileNameSplit) > 1 {
-			if _, err = uuid.Parse(fileNameSplit[len(fileNameSplit)-2]); err == nil {
-				hostId := fileNameSplit[len(fileNameSplit)-2]
-				for _, hostObject := range c.Hosts {
-					if hostObject.ID.String() != hostId {
-						continue
-					}
-					role := string(hostObject.Role)
-					if hostObject.Bootstrap {
-						role = string(models.HostRoleBootstrap)
-					}
-					name := sanitize.Name(hostutil.GetHostnameForMsg(hostObject))
-					if strings.Contains(file, "boot_") {
-						name = fmt.Sprintf("boot_%s", name)
-					}
-					tarredFilename = fmt.Sprintf("%s_%s_%s.tar.gz", sanitize.Name(c.Name), role, name)
-				}
-			} else {
-				tarredFilename = fmt.Sprintf("%s_%s", fileNameSplit[len(fileNameSplit)-2], fileNameSplit[len(fileNameSplit)-1])
-			}
+		name := sanitize.Name(hostutil.GetHostnameForMsg(host))
+
+		if strings.Contains(file, "boot_") {
+			name = fmt.Sprintf("boot_%s", name)
 		}
+		tarredFilename = fmt.Sprintf("%s_%s_%s.tar.gz", sanitize.Name(c.Name), role, name)
 		tarredFilenames = append(tarredFilenames, tarredFilename)
 	}
 
 	if len(files) < 1 {
 		return "", common.NewApiError(http.StatusNotFound,
-			errors.Errorf("No log files were found"))
+			errors.Errorf("Logs for host %s were not found", host.ID))
 	}
 
 	log.Debugf("List of files to include into %s is %s", fileName, files)
 	err = s3wrapper.TarAwsFiles(ctx, fileName, files, tarredFilenames, objectHandler, log)
+	if err != nil {
+		log.WithError(err).Errorf("failed to download file %s", fileName)
+		return "", common.NewApiError(http.StatusInternalServerError, err)
+	}
+	return fileName, nil
+}
+
+func getHostIdFromPath(fileNameSplit []string) *strfmt.UUID {
+	hostId, err := uuid.Parse(fileNameSplit[len(fileNameSplit)-2])
+	if err == nil {
+		id := strfmt.UUID(hostId.String())
+		return &id
+	}
+	return nil
+}
+
+func (m *Manager) PrepareClusterLogFile(ctx context.Context, c *common.Cluster, objectHandler s3wrapper.API) (string, error) {
+	type clusterHost struct {
+		Host       *models.Host
+		Proccessed bool
+	}
+	var (
+		tarredFilenames []string
+		allFiles        []string
+		selectedFiles   []string
+		tarredFilename  string
+		fileName        string
+		err             error
+	)
+
+	log := logutil.FromContext(ctx, m.log)
+	fileName = fmt.Sprintf("%s/logs/cluster_logs.tar", c.ID)
+	m.createClusterDataFiles(ctx, c, objectHandler)
+	allFiles, err = objectHandler.ListObjectsByPrefix(ctx, fmt.Sprintf("%s/logs/", c.ID))
+	if err != nil {
+		return "", common.NewApiError(http.StatusNotFound, err)
+	}
+	allFiles = funk.Filter(allFiles, func(x string) bool {
+		return x != fileName
+	}).([]string)
+
+	hosts := make(map[strfmt.UUID]clusterHost)
+	for _, hostObject := range c.Hosts {
+		hosts[*hostObject.ID] = clusterHost{Host: hostObject, Proccessed: false}
+	}
+
+	for _, file := range allFiles {
+		fileNameSplit := strings.Split(file, "/")
+		if len(fileNameSplit) < 2 {
+			selectedFiles = append(selectedFiles, file)
+			tarredFilenames = append(tarredFilenames, file)
+			continue
+		}
+		hostId := getHostIdFromPath(fileNameSplit)
+		if hostId == nil {
+			tarredFilename = fmt.Sprintf("%s_%s", fileNameSplit[len(fileNameSplit)-2], fileNameSplit[len(fileNameSplit)-1])
+		} else {
+			cHost := hosts[*hostId]
+			if cHost.Host == nil || cHost.Proccessed {
+				continue
+			}
+			if tarredFilename, err = m.PrepareHostLogFile(ctx, c, cHost.Host, objectHandler); err != nil {
+				return "", err
+			}
+			file = tarredFilename
+			cHost.Proccessed = true
+		}
+		selectedFiles = append(selectedFiles, file)
+		tarredFilenames = append(tarredFilenames, tarredFilename)
+	}
+
+	if len(selectedFiles) < 1 {
+		return "", common.NewApiError(http.StatusNotFound,
+			errors.Errorf("No log files were found"))
+	}
+
+	log.Debugf("List of files to include into %s is %s", fileName, selectedFiles)
+	err = s3wrapper.TarAwsFiles(ctx, fileName, selectedFiles, tarredFilenames, objectHandler, log)
 	if err != nil {
 		log.WithError(err).Errorf("failed to download file %s", fileName)
 		return "", common.NewApiError(http.StatusInternalServerError, err)

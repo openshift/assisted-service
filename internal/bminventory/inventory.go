@@ -3565,18 +3565,18 @@ func (b *bareMetalInventory) DownloadMinimalInitrd(ctx context.Context, params i
 func (b *bareMetalInventory) getLogFileForDownload(ctx context.Context, clusterId *strfmt.UUID, hostId *strfmt.UUID, logsType string) (string, string, error) {
 	var fileName string
 	var downloadFileName string
+	var hostObject *common.Host
+
 	c, err := b.getCluster(ctx, clusterId.String(), common.UseEagerLoading, common.IncludeDeletedRecords)
 	if err != nil {
 		return "", "", err
 	}
 	b.log.Debugf("log type to download: %s", logsType)
 	switch logsType {
-	case string(models.LogsTypeHost), string(models.LogsTypeNodeBoot):
+	case string(models.LogsTypeHost):
 		if hostId == nil {
 			return "", "", common.NewApiError(http.StatusBadRequest, errors.Errorf("Host ID must be provided for downloading host logs"))
 		}
-
-		var hostObject *common.Host
 		hostObject, err = common.GetClusterHostFromDB(b.db, clusterId.String(), hostId.String())
 		if err != nil {
 			return "", "", err
@@ -3584,16 +3584,16 @@ func (b *bareMetalInventory) getLogFileForDownload(ctx context.Context, clusterI
 		if time.Time(hostObject.LogsCollectedAt).Equal(time.Time{}) {
 			return "", "", common.NewApiError(http.StatusConflict, errors.Errorf("Logs for host %s were not found", hostId))
 		}
-		fileName = b.getLogsFullName(logsType, clusterId.String(), hostObject.ID.String())
 		role := string(hostObject.Role)
 		if hostObject.Bootstrap {
 			role = string(models.HostRoleBootstrap)
 		}
 		name := sanitize.Name(hostutil.GetHostnameForMsg(&hostObject.Host))
-		if logsType == string(models.LogsTypeNodeBoot) {
-			name = fmt.Sprintf("boot_%s", name)
-		}
 		downloadFileName = fmt.Sprintf("%s_%s_%s.tar.gz", sanitize.Name(c.Name), role, name)
+		fileName, err = b.preparHostLogs(ctx, c, &hostObject.Host)
+		if err != nil {
+			return "", "", err
+		}
 	case string(models.LogsTypeController):
 		if time.Time(c.Cluster.ControllerLogsCollectedAt).Equal(time.Time{}) {
 			return "", "", common.NewApiError(http.StatusConflict, errors.Errorf("Controller Logs for cluster %s were not found", clusterId))
@@ -3968,9 +3968,7 @@ func (b *bareMetalInventory) uploadHostLogs(ctx context.Context, host *common.Ho
 		log.WithError(err).Errorf("Failed update host %s logs_collected_at flag", host.ID.String())
 		return common.NewApiError(http.StatusInternalServerError, err)
 	}
-	if logsType == string(models.LogsTypeNodeBoot) {
-		return nil
-	}
+
 	err = b.hostApi.UpdateLogsProgress(ctx, &host.Host, string(models.LogsStateCollecting))
 	if err != nil {
 		log.WithError(err).Errorf("Failed update host %s log progress %s", host.ID.String(), string(models.LogsStateCollecting))
@@ -3981,6 +3979,14 @@ func (b *bareMetalInventory) uploadHostLogs(ctx context.Context, host *common.Ho
 
 func (b *bareMetalInventory) prepareClusterLogs(ctx context.Context, cluster *common.Cluster) (string, error) {
 	fileName, err := b.clusterApi.PrepareClusterLogFile(ctx, cluster, b.objectHandler)
+	if err != nil {
+		return "", err
+	}
+	return fileName, nil
+}
+
+func (b *bareMetalInventory) preparHostLogs(ctx context.Context, cluster *common.Cluster, host *models.Host) (string, error) {
+	fileName, err := b.clusterApi.PrepareHostLogFile(ctx, cluster, host, b.objectHandler)
 	if err != nil {
 		return "", err
 	}

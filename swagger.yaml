@@ -3103,7 +3103,7 @@ paths:
           name: logs_type
           description: The type of logs to be downloaded.
           type: string
-          enum: ['host', 'controller', 'node-boot', 'all']
+          enum: ['host', 'controller', 'all']
           required: false
         - in: query
           name: host_id
