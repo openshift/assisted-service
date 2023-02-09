@@ -236,7 +236,7 @@ var _ = Describe("PreprovisioningImage reconcile", func() {
 			Expect(c.Get(ctx, key, ppi)).To(BeNil())
 			validateStatus(initrdURL, conditionsv1.FindStatusCondition(infraEnv.Status.Conditions, aiv1beta1.ImageCreatedCondition), ppi)
 			Expect(ppi.Status.KernelUrl).To(Equal(kernelURL))
-			Expect(ppi.Status.ExtraKernelParams).To(Equal(fmt.Sprintf("coreos.live.rootfs_url=%s", rootfsURL)))
+			Expect(ppi.Status.ExtraKernelParams).To(Equal(fmt.Sprintf("coreos.live.rootfs_url=%s rd.bootif=0", rootfsURL)))
 		})
 
 		It("sets the extra kernel params on the PPI based on the infraenv when the PPI doesn't accept ISO format", func() {
@@ -268,7 +268,7 @@ var _ = Describe("PreprovisioningImage reconcile", func() {
 			Expect(c.Get(ctx, key, ppi)).To(BeNil())
 			validateStatus(initrdURL, conditionsv1.FindStatusCondition(infraEnv.Status.Conditions, aiv1beta1.ImageCreatedCondition), ppi)
 			Expect(ppi.Status.KernelUrl).To(Equal(kernelURL))
-			Expect(ppi.Status.ExtraKernelParams).To(Equal(fmt.Sprintf("coreos.live.rootfs_url=%s arg=thing other.arg", rootfsURL)))
+			Expect(ppi.Status.ExtraKernelParams).To(Equal(fmt.Sprintf("coreos.live.rootfs_url=%s rd.bootif=0 arg=thing other.arg", rootfsURL)))
 		})
 
 		It("PreprovisioningImage ImageUrl is up to date", func() {
