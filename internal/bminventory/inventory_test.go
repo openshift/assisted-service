@@ -14950,7 +14950,8 @@ var _ = Describe("V2UpdateHostInstallerArgs - with rhsso auth", func() {
 		bm.authzHandler = auth.NewAuthzHandler(cfg, mockOcmClient, common.GetTestLog().WithField("pkg", "auth"), db)
 		payload = &ocm.AuthPayload{Role: ocm.UserRole}
 
-		err := db.Create(&common.Cluster{Cluster: models.Cluster{ID: &clusterID, UserName: userName1}}).Error
+		clusterKind := models.ClusterKindCluster
+		err := db.Create(&common.Cluster{Cluster: models.Cluster{ID: &clusterID, UserName: userName1, Kind: &clusterKind}}).Error
 		Expect(err).ShouldNot(HaveOccurred())
 
 		// add a host

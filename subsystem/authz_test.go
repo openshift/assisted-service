@@ -160,6 +160,40 @@ var _ = Describe("test authorization", func() {
 				ClusterUpdateParams: &models.V2ClusterUpdateParams{Name: swag.String("update-test")}})
 			Expect(err).ShouldNot(HaveOccurred())
 		})
+
+		It("can update day2 cluster", func() {
+			// Install day1 cluster
+			clusterId, err := registerCluster(ctx, userBMClient, "test-cluster", pullSecret)
+			Expect(err).ToNot(HaveOccurred())
+			infraEnvID := registerInfraEnv(&clusterId, models.ImageTypeMinimalIso).ID
+			registerHostsAndSetRoles(clusterId, *infraEnvID, minHosts, "test-cluster", "example.com")
+			setClusterAsFinalizing(ctx, clusterId)
+			completeInstallationAndVerify(ctx, agentBMClient, clusterId, true)
+
+			// Get day1 cluster
+			c, err := common.GetClusterFromDB(db, clusterId, common.SkipEagerLoading)
+			Expect(err).ShouldNot(HaveOccurred())
+
+			// Create day2 cluster
+			res, err := userBMClient.Installer.V2ImportCluster(ctx, &installer.V2ImportClusterParams{
+				NewImportClusterParams: &models.ImportClusterParams{
+					Name:               swag.String("test-cluster"),
+					APIVipDnsname:      swag.String("api.test-cluster.example.com"),
+					OpenshiftVersion:   openshiftVersion,
+					OpenshiftClusterID: &c.OpenshiftClusterID,
+				}})
+			Expect(err).ShouldNot(HaveOccurred())
+
+			// Update day2 cluster by an editor user
+			day2ClusterId := *res.GetPayload().ID
+			_, err = editclusterUserBMClient.Installer.V2UpdateCluster(ctx, &installer.V2UpdateClusterParams{
+				ClusterID: day2ClusterId,
+				ClusterUpdateParams: &models.V2ClusterUpdateParams{
+					APIVipDNSName: swag.String("some-dns-name"),
+				},
+			})
+			Expect(err).ShouldNot(HaveOccurred())
+		})
 	})
 
 	Context("regular user", func() {

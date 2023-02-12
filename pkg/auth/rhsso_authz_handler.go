@@ -132,10 +132,21 @@ func (a *AuthzHandler) hasSubscriptionAccess(clusterId string, action string, pa
 
 	if a.isTenancyEnabled() {
 		var cluster common.Cluster
-		err = a.db.Select("ams_subscription_id").First(&cluster, "id = ?", clusterId).Error
+		err = a.db.Select("ams_subscription_id", "openshift_cluster_id", "kind").
+			First(&cluster, "id = ?", clusterId).Error
 		if err != nil {
 			return handleOwnershipQueryError(err)
 		}
+
+		// Handle day2 cluster access by finding the 'ams_subscription_id' of the day1 cluster.
+		if *cluster.Kind == models.ClusterKindAddHostsCluster {
+			err = a.db.Select("ams_subscription_id").
+				First(&cluster, "openshift_cluster_id = ? and kind = ?", cluster.OpenshiftClusterID, models.ClusterKindCluster).Error
+			if err != nil {
+				return handleOwnershipQueryError(err)
+			}
+		}
+
 		isAllowed, err = a.hasClusterEditRole(payload, action, cluster.AmsSubscriptionID.String())
 		return isAllowed, err
 	}

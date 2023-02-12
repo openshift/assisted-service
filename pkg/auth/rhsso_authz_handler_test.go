@@ -294,13 +294,13 @@ var _ = Describe("OwnedBy", func() {
 
 var _ = Describe("HasAccessTo", func() {
 	var (
-		ctx                    context.Context
-		db                     *gorm.DB
-		dbName                 string
-		ctrl                   *gomock.Controller
-		mockOcmAuthorization   *ocm.MockOCMAuthorization
-		authzHandler           *AuthzHandler
-		id1, id2, subscription strfmt.UUID
+		ctx                                             context.Context
+		db                                              *gorm.DB
+		dbName                                          string
+		ctrl                                            *gomock.Controller
+		mockOcmAuthorization                            *ocm.MockOCMAuthorization
+		authzHandler                                    *AuthzHandler
+		id1, id2, id3, subscription, openshiftClusterID strfmt.UUID
 	)
 
 	AfterEach(func() {
@@ -312,20 +312,26 @@ var _ = Describe("HasAccessTo", func() {
 
 		id1 = strfmt.UUID(uuid.New().String())
 		id2 = strfmt.UUID(uuid.New().String())
+		id3 = strfmt.UUID(uuid.New().String())
 		subscription = strfmt.UUID(uuid.New().String())
+		openshiftClusterID = strfmt.UUID(uuid.New().String())
 
 		//prepare test data
 		db.Model(&common.Cluster{}).Create([]map[string]interface{}{
 			//Organization 1
-			{"ID": id1, "Name": "A", "UserName": "user1", "OrgID": "org1", "AmsSubscriptionID": subscription},
+			{"ID": id1, "Name": "A", "UserName": "user1", "OrgID": "org1", "AmsSubscriptionID": subscription, "Kind": models.ClusterKindCluster, "OpenshiftClusterID": &openshiftClusterID},
 			//Organization 2
-			{"ID": id2, "Name": "B", "UserName": "user1", "OrgID": "org2", "AmsSubscriptionID": "other"},
+			{"ID": id2, "Name": "B", "UserName": "user1", "OrgID": "org2", "AmsSubscriptionID": "other", "Kind": models.ClusterKindCluster},
+			//Day2 Cluster
+			{"ID": id3, "Name": "C", "UserName": "user1", "OrgID": "org1", "kind": models.ClusterKindAddHostsCluster, "OpenshiftClusterID": &openshiftClusterID},
 		})
 		db.Model(&common.InfraEnv{}).Create([]map[string]interface{}{
 			//bound infraEnv
 			{"ID": id1, "Name": "A", "UserName": "user1", "OrgID": "org1", "ClusterID": id1},
 			//Unbound InfraEnv
 			{"ID": id2, "Name": "B", "UserName": "user1", "OrgID": "org1"},
+			//day2 cluster bound infraEnv
+			{"ID": id3, "Name": "C", "UserName": "user1", "OrgID": "org1", "ClusterID": id3},
 		})
 		db.Model(&common.Host{}).Create([]map[string]interface{}{
 			//no user with bound infraenv (not an actual case.
@@ -379,6 +385,19 @@ var _ = Describe("HasAccessTo", func() {
 				gomock.Any(), "user2", gomock.Any(), subscription.String(), gomock.Any()).
 				Return(true, nil).Times(2)
 			cluster, _ := common.GetClusterFromDB(db, id1, common.SkipEagerLoading)
+			Expect(authzHandler.HasAccessTo(ctx, cluster, ReadAction)).To(BeTrue())
+			Expect(authzHandler.HasAccessTo(ctx, cluster, UpdateAction)).To(BeTrue())
+			Expect(authzHandler.HasAccessTo(ctx, cluster, DeleteAction)).To(BeTrue())
+		})
+
+		It("ClusterEditorRole can read and write a day2 cluster", func() {
+			payload := &ocm.AuthPayload{Username: "user2", Organization: "org1"}
+			ctx = context.WithValue(ctx, restapi.AuthKey, payload)
+
+			mockOcmAuthorization.EXPECT().AccessReview(
+				gomock.Any(), "user2", gomock.Any(), subscription.String(), gomock.Any()).
+				Return(true, nil).Times(2)
+			cluster, _ := common.GetClusterFromDB(db, id3, common.SkipEagerLoading)
 			Expect(authzHandler.HasAccessTo(ctx, cluster, ReadAction)).To(BeTrue())
 			Expect(authzHandler.HasAccessTo(ctx, cluster, UpdateAction)).To(BeTrue())
 			Expect(authzHandler.HasAccessTo(ctx, cluster, DeleteAction)).To(BeTrue())
@@ -462,6 +481,20 @@ var _ = Describe("HasAccessTo", func() {
 			Expect(authzHandler.HasAccessTo(ctx, infraEnv, ReadAction)).To(BeTrue()) //user2 has access rights because of the org
 			Expect(authzHandler.HasAccessTo(ctx, infraEnv, UpdateAction)).To(BeFalse())
 			Expect(authzHandler.HasAccessTo(ctx, infraEnv, DeleteAction)).To(BeFalse())
+		})
+
+		It("ClusterEditorRole can read and write an infra-env bound to day2 cluster", func() {
+			By("bound infra-env rules according to cluster")
+			payload := &ocm.AuthPayload{Username: "user2", Organization: "org1"}
+			ctx = context.WithValue(ctx, restapi.AuthKey, payload)
+
+			mockOcmAuthorization.EXPECT().AccessReview(
+				gomock.Any(), "user2", gomock.Any(), subscription.String(), gomock.Any()).
+				Return(true, nil).Times(2)
+			infraEnv, _ := common.GetInfraEnvFromDB(db, id3)
+			Expect(authzHandler.HasAccessTo(ctx, infraEnv, ReadAction)).To(BeTrue())
+			Expect(authzHandler.HasAccessTo(ctx, infraEnv, UpdateAction)).To(BeTrue())
+			Expect(authzHandler.HasAccessTo(ctx, infraEnv, DeleteAction)).To(BeTrue())
 		})
 
 		It("others can read but not write", func() {
