@@ -390,7 +390,7 @@ deploy-test: _verify_cluster generate-keys update-local-image
 	-$(KUBECTL) delete deployments.apps assisted-service &> /dev/null
 	export SERVICE=${LOCAL_SERVICE_IMAGE} && export TEST_FLAGS=--subsystem-test && \
 	export AUTH_TYPE="rhsso" && export DUMMY_IGNITION="True" && \
-	export IPV6_SUPPORT="True" && ENABLE_ORG_BASED_FEATURE_GATES="True" && \
+	export IPV6_SUPPORT="True" && ENABLE_ORG_TENANCY="True" && ENABLE_ORG_BASED_FEATURE_GATES="True" && \
 	$(MAKE) deploy-wiremock deploy-all
 
 # An alias for the deploy-test target
