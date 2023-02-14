@@ -25,6 +25,7 @@ export ADD_NONE_PLATFORM_LIBVIRT_DNS="${ADD_NONE_PLATFORM_LIBVIRT_DNS:-false}"
 export LIBVIRT_NONE_PLATFORM_NETWORK="${LIBVIRT_NONE_PLATFORM_NETWORK:-ostestbm}"
 export LOAD_BALANCER_IP="${LOAD_BALANCER_IP:-192.168.111.1}"
 export HYPERSHIFT_IMAGE="${HYPERSHIFT_IMAGE:-quay.io/hypershift/hypershift-operator:latest}"
+export HYPERSHIFT_OPERATOR_IMAGE="${HYPERSHIFT_OPERATOR_IMAGE:-quay.io/hypershift/hypershift-operator:latest}"
 export PROVIDER_IMAGE="${PROVIDER_IMAGE:-}"
 
 if [[ ${SPOKE_CONTROLPLANE_AGENTS} -eq 1 ]]; then
@@ -112,11 +113,11 @@ oc patch storageclass assisted-service -p '{"metadata": {"annotations":{"storage
 
 ### Hypershift CLI needs access to the kubeconfig, pull-secret and public SSH key
 function hypershift() {
-  podman run -it --net host --rm --entrypoint /usr/bin/hypershift -v $KUBECONFIG:/root/.kube/config -v $ASSISTED_PULLSECRET_JSON:/root/pull-secret.json -v /root/.ssh/id_rsa.pub:/root/.ssh/id_rsa.pub $HYPERSHIFT_IMAGE "$@"
+  podman run -it --net host --rm --entrypoint /usr/bin/hypershift -v $KUBECONFIG:/root/.kube/config -v $ASSISTED_PULLSECRET_JSON:/root/pull-secret.json -v /root/.ssh/id_rsa.pub:/root/.ssh/id_rsa.pub $HYPERSHIFT_OPERATOR_IMAGE "$@"
 }
 
 echo "Installing HyperShift using upstream image"
-hypershift install --hypershift-image $HYPERSHIFT_IMAGE --namespace hypershift
+hypershift install --hypershift-image $HYPERSHIFT_OPERATOR_IMAGE --namespace hypershift
 wait_for_pods "hypershift"
 
 if [ -z "$PROVIDER_IMAGE" ]
