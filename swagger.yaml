@@ -3592,6 +3592,9 @@ definitions:
         type: string
         description: Unique name of the operator.
         x-go-custom-tag: gorm:"primaryKey"
+      version:
+        type: string
+        description: Operator version
       namespace:
         type: string
         description: Namespace where to deploy an operator. Only some operators require a namespace.
@@ -3624,6 +3627,9 @@ definitions:
       name:
         type: string
         description: Unique name of the operator.
+      version:
+        type: string
+        description: operator version.
       status:
         $ref: '#/definitions/operator-status'
       status_info:
