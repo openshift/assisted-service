@@ -53,7 +53,7 @@ func (h *Handler) V2ReportMonitoredOperatorStatus(ctx context.Context, params re
 		}
 	}()
 
-	if err := h.UpdateMonitoredOperatorStatus(ctx, params.ClusterID, params.ReportParams.Name, params.ReportParams.Status, params.ReportParams.StatusInfo, tx); err != nil {
+	if err := h.UpdateMonitoredOperatorStatus(ctx, params.ClusterID, params.ReportParams.Name, params.ReportParams.Version, params.ReportParams.Status, params.ReportParams.StatusInfo, tx); err != nil {
 		return common.GenerateErrorResponder(err)
 	}
 
@@ -111,7 +111,7 @@ func (h *Handler) FindMonitoredOperator(ctx context.Context, clusterID strfmt.UU
 
 // UpdateMonitoredOperatorStatus updates status and status info of a monitored operator for a cluster
 func (h *Handler) UpdateMonitoredOperatorStatus(ctx context.Context, clusterID strfmt.UUID, monitoredOperatorName string,
-	status models.OperatorStatus, statusInfo string, db *gorm.DB) error {
+	monitoredOperatorVersion string, status models.OperatorStatus, statusInfo string, db *gorm.DB) error {
 
 	log := logutil.FromContext(ctx, h.log)
 
@@ -122,6 +122,7 @@ func (h *Handler) UpdateMonitoredOperatorStatus(ctx context.Context, clusterID s
 
 	operator.Status = status
 	operator.StatusInfo = statusInfo
+	operator.Version = monitoredOperatorVersion
 	operator.StatusUpdatedAt = strfmt.DateTime(time.Now())
 
 	if err = db.Save(operator).Error; err != nil {
