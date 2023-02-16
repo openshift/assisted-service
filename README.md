@@ -1,4 +1,4 @@
-# assisted-service
+# assisted-service 
 
 [![Swagger API](https://raw.githubusercontent.com/swagger-api/swagger-ui/master/src/img/logo_small.png)](https://petstore.swagger.io/?url=https://raw.githubusercontent.com/openshift/assisted-service/master/swagger.yaml)
 
