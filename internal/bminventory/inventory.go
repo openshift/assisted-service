@@ -1515,17 +1515,23 @@ func (b *bareMetalInventory) GetClusterSupportedPlatformsInternal(
 	ctx context.Context, params installer.GetClusterSupportedPlatformsParams) (*[]models.PlatformType, error) {
 	cluster, err := b.GetClusterInternal(ctx, installer.V2GetClusterParams{ClusterID: params.ClusterID})
 	if err != nil {
-		return nil, fmt.Errorf("error getting cluster, error: %w", err)
+		err2 := fmt.Errorf("error getting cluster, error: %w", err)
+		b.log.Error(err2.Error())
+		return nil, err2
 	}
 	// no hosts or SNO
 	if len(cluster.Hosts) == 0 || common.IsSingleNodeCluster(cluster) {
+		b.log.Infof("GetSupportedPlatforms - No hosts or cluster is SNO, setting supported-platform to [%s]", models.PlatformTypeNone)
 		return &[]models.PlatformType{models.PlatformTypeNone}, nil
 	}
 	hostSupportedPlatforms, err := b.providerRegistry.GetSupportedProvidersByHosts(cluster.Hosts)
 	if err != nil {
-		return nil, fmt.Errorf(
-			"error while checking supported platforms, error: %w", err)
+		err2 := fmt.Errorf("error while checking supported platforms, error: %w", err)
+		b.log.Error(err2.Error())
+		return nil, err2
 	}
+
+	b.log.Infof("Found %d supported-platforms for cluster %s", len(hostSupportedPlatforms), cluster.ID)
 	return &hostSupportedPlatforms, nil
 }
 
