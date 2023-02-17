@@ -163,7 +163,7 @@ func (o *operator) GetPreflightRequirements(context context.Context, cluster *co
 			Master: &models.HostTypeHardwareRequirements{
 				Quantitative: &models.ClusterHostRequirementsDetails{
 					CPUCores: o.config.LvmCPUPerHost,
-					RAMMib:   o.config.LvmMemoryPerHostMiB,
+					RAMMib:   o.getLvmMemoryPerHostMib(context, cluster),
 				},
 				Qualitative: []string{
 					"At least 1 non-installation disk with no partitions or filesystems",
@@ -178,4 +178,18 @@ func (o *operator) GetPreflightRequirements(context context.Context, cluster *co
 
 func (o *operator) GetSupportedArchitectures() []string {
 	return []string{common.X86CPUArchitecture, common.ARM64CPUArchitecture}
+}
+
+func (o *operator) getLvmMemoryPerHostMib(ctx context.Context, cluster *common.Cluster) int64 {
+	log := logutil.FromContext(ctx, o.log)
+	greaterOrEqual, err := common.BaseVersionGreaterOrEqual(cluster.OpenshiftVersion, LvmsMinOpenshiftVersionForNewResourceRequirements)
+	if err != nil {
+		log.Warnf("Error parsing cluster.OpenshiftVersion: %s, setting lvms memory requirement to %d", err.Error(), o.config.LvmMemoryPerHostMiB)
+		return o.config.LvmMemoryPerHostMiB
+	}
+	if !greaterOrEqual {
+		return LvmsMemoryRequirementBefore4_13
+	}
+
+	return o.config.LvmMemoryPerHostMiB
 }
