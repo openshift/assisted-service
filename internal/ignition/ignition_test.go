@@ -432,7 +432,7 @@ SV4bRR9i0uf+xQ/oYRvugQ25Q7EahO5hJIWRf4aULbk36Zpw3++v2KFnF26zqwB6
 
 // TODO(deprecate-ignition-3.1.0)
 var _ = Describe("createHostIgnitions", func() {
-	const masterIgn = `{
+	const testMasterIgn = `{
 		  "ignition": {
 		    "config": {
 		      "merge": [
@@ -465,7 +465,7 @@ var _ = Describe("createHostIgnitions", func() {
 		    ]
 		  }
 		}`
-	const workerIgn = `{
+	const testWorkerIgn = `{
 		  "ignition": {
 		    "config": {
 		      "merge": [
@@ -488,24 +488,27 @@ var _ = Describe("createHostIgnitions", func() {
 		}`
 
 	var (
-		dbName string
-		db     *gorm.DB
+		dbName       string
+		db           *gorm.DB
+		mockS3Client *s3wrapper.MockAPI
 	)
 
 	BeforeEach(func() {
 		masterPath := filepath.Join(workDir, "master.ign")
-		err := os.WriteFile(masterPath, []byte(masterIgn), 0600)
+		err := os.WriteFile(masterPath, []byte(testMasterIgn), 0600)
 		Expect(err).NotTo(HaveOccurred())
 
 		workerPath := filepath.Join(workDir, "worker.ign")
-		err = os.WriteFile(workerPath, []byte(workerIgn), 0600)
+		err = os.WriteFile(workerPath, []byte(testWorkerIgn), 0600)
 		Expect(err).NotTo(HaveOccurred())
 		db, dbName = common.PrepareTestDB()
-
+		ctrl = gomock.NewController(GinkgoT())
+		mockS3Client = s3wrapper.NewMockAPI(ctrl)
 	})
 
 	AfterEach(func() {
 		common.DeleteTestDB(db, dbName)
+		ctrl.Finish()
 	})
 
 	Context("with multiple hosts with a hostname", func() {
@@ -623,6 +626,88 @@ var _ = Describe("createHostIgnitions", func() {
 		Expect(hostnameFile).NotTo(BeNil())
 
 		Expect(*exampleFile.FileEmbedded1.Contents.Source).To(Equal("data:text/plain;base64,aGVscGltdHJhcHBlZGluYXN3YWdnZXJzcGVj"))
+	})
+	Context("machine config pool", func() {
+		const (
+			mcp = `apiVersion: machineconfiguration.openshift.io/v1
+kind: MachineConfigPool
+metadata:
+  name: infra
+spec:
+  machineConfigSelector:
+    matchExpressions:
+      - {key: machineconfiguration.openshift.io/role, operator: In, values: [worker,infra]}
+  maxUnavailable: null
+  nodeSelector:
+    matchLabels:
+      node-role.kubernetes.io/infra: ""
+  paused: false`
+
+			mc = `apiVersion: machineconfiguration.openshift.io/v1
+kind: MachineConfig
+metadata:
+  labels:
+    machineconfiguration.openshift.io/role: infra
+  name: 50-infra
+spec:
+  config:
+    ignition:
+      version: 2.2.0
+    storage:
+      files:
+      - contents:
+          source: data:,test
+        filesystem: root
+        mode: 0644
+        path: /etc/testinfra`
+		)
+
+		It("applies machine config pool correctly", func() {
+			hostID := strfmt.UUID(uuid.New().String())
+			clusterID := strfmt.UUID(uuid.New().String())
+			cluster.Hosts = []*models.Host{{
+				ID:                    &hostID,
+				ClusterID:             &clusterID,
+				RequestedHostname:     "worker0.example.com",
+				Role:                  models.HostRoleWorker,
+				MachineConfigPoolName: "infra",
+			}}
+
+			g := NewGenerator("", workDir, installerCacheDir, cluster, "", "", "", "", mockS3Client, log,
+				mockOperatorManager, mockProviderRegistry, "", "").(*installerGenerator)
+			mockS3Client.EXPECT().ListObjectsByPrefix(gomock.Any(), gomock.Any()).Return([]string{"mcp.yaml"}, nil)
+			mockS3Client.EXPECT().ListObjectsByPrefix(gomock.Any(), gomock.Any()).Return(nil, nil)
+			mockS3Client.EXPECT().Download(gomock.Any(), gomock.Any()).Return(io.NopCloser(strings.NewReader(mcp)), int64(0), nil)
+			err := g.writeSingleHostFile(cluster.Hosts[0], workerIgn, g.workDir, "http://www.example.com:6008", "", auth.TypeNone)
+			Expect(err).NotTo(HaveOccurred())
+
+			ignBytes, err := os.ReadFile(filepath.Join(workDir, fmt.Sprintf("%s-%s.ign", models.HostRoleWorker, hostID)))
+			Expect(err).NotTo(HaveOccurred())
+			config, _, err := config_32.Parse(ignBytes)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(config.Ignition.Config.Merge).To(HaveLen(1))
+			Expect(swag.StringValue(config.Ignition.Config.Merge[0].Source)).To(HaveSuffix("config/infra"))
+		})
+
+		It("mcp not found", func() {
+			hostID := strfmt.UUID(uuid.New().String())
+			clusterID := strfmt.UUID(uuid.New().String())
+			cluster.Hosts = []*models.Host{{
+				ID:                    &hostID,
+				ClusterID:             &clusterID,
+				RequestedHostname:     "worker0.example.com",
+				Role:                  models.HostRoleWorker,
+				MachineConfigPoolName: "infra",
+			}}
+
+			g := NewGenerator("", workDir, installerCacheDir, cluster, "", "", "", "", mockS3Client, log,
+				mockOperatorManager, mockProviderRegistry, "", "").(*installerGenerator)
+			mockS3Client.EXPECT().ListObjectsByPrefix(gomock.Any(), gomock.Any()).Return([]string{"mcp.yaml"}, nil)
+			mockS3Client.EXPECT().ListObjectsByPrefix(gomock.Any(), gomock.Any()).Return(nil, nil)
+			mockS3Client.EXPECT().Download(gomock.Any(), gomock.Any()).Return(io.NopCloser(strings.NewReader(mc)), int64(0), nil)
+			err := g.writeSingleHostFile(cluster.Hosts[0], workerIgn, g.workDir, "http://www.example.com:6008", "", auth.TypeNone)
+			Expect(err).To(HaveOccurred())
+		})
 	})
 })
 
