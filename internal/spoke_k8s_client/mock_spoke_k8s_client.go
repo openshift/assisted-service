@@ -224,6 +224,34 @@ func (mr *MockSpokeK8sClientMockRecorder) Patch(arg0, arg1, arg2 interface{}, ar
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Patch", reflect.TypeOf((*MockSpokeK8sClient)(nil).Patch), varargs...)
 }
 
+// PatchMachineConfigPoolPaused mocks base method.
+func (m *MockSpokeK8sClient) PatchMachineConfigPoolPaused(arg0 bool, arg1 string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "PatchMachineConfigPoolPaused", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// PatchMachineConfigPoolPaused indicates an expected call of PatchMachineConfigPoolPaused.
+func (mr *MockSpokeK8sClientMockRecorder) PatchMachineConfigPoolPaused(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PatchMachineConfigPoolPaused", reflect.TypeOf((*MockSpokeK8sClient)(nil).PatchMachineConfigPoolPaused), arg0, arg1)
+}
+
+// PatchNodeLabels mocks base method.
+func (m *MockSpokeK8sClient) PatchNodeLabels(arg0, arg1 string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "PatchNodeLabels", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// PatchNodeLabels indicates an expected call of PatchNodeLabels.
+func (mr *MockSpokeK8sClientMockRecorder) PatchNodeLabels(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PatchNodeLabels", reflect.TypeOf((*MockSpokeK8sClient)(nil).PatchNodeLabels), arg0, arg1)
+}
+
 // RESTMapper mocks base method.
 func (m *MockSpokeK8sClient) RESTMapper() meta.RESTMapper {
 	m.ctrl.T.Helper()

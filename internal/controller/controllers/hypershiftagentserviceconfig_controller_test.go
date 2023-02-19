@@ -646,3 +646,11 @@ func (c fakeSpokeK8sClient) ApproveCsr(csr *certificatesv1.CertificateSigningReq
 func (c fakeSpokeK8sClient) GetNode(name string) (*corev1.Node, error) {
 	return nil, nil
 }
+
+func (c fakeSpokeK8sClient) PatchNodeLabels(name, labels string) error {
+	return nil
+}
+
+func (c fakeSpokeK8sClient) PatchMachineConfigPoolPaused(pause bool, mcpName string) error {
+	return nil
+}

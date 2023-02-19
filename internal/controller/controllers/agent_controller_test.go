@@ -565,6 +565,163 @@ var _ = Describe("agent reconcile", func() {
 			Expect(err).To(BeNil())
 			Expect(result).To(Equal(ctrl.Result{}))
 		})
+		Context("Day2 node labels", func() {
+
+			BeforeEach(func() {
+				labels := host.GetLabels()
+				if labels == nil {
+					labels = make(map[string]string)
+				}
+				labels[AGENT_BMH_LABEL] = "my-bmh"
+				host.SetLabels(labels)
+				bmh := newBMH("my-bmh", &bmh_v1alpha1.BareMetalHostSpec{})
+				Expect(c.Create(ctx, bmh)).ToNot(HaveOccurred())
+				aci := newAgentClusterInstall("test-cluster-aci", testNamespace, getDefaultAgentClusterInstallSpec("clusterDeployment-test"), clusterDeployment)
+				Expect(c.Create(ctx, aci)).To(BeNil())
+			})
+			createKubeconfigSecret := func(clusterDeploymentName string) {
+				secretName := fmt.Sprintf(adminKubeConfigStringTemplate, clusterDeploymentName)
+				adminKubeconfigSecret := &corev1.Secret{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      secretName,
+						Namespace: testNamespace,
+					},
+					Data: map[string][]byte{
+						"kubeconfig": []byte("somekubeconfig"),
+					},
+				}
+				Expect(c.Create(ctx, adminKubeconfigSecret)).To(Succeed())
+			}
+
+			It("day2 - no node found", func() {
+				commonHost.NodeLabels = marshalLabels(map[string]string{
+					"first-label":  "",
+					"second-label": "second-value",
+				})
+				commonHost.Kind = swag.String(models.HostKindAddToExistingClusterHost)
+				commonHost.Progress = &models.HostProgressInfo{
+					CurrentStage: models.HostStageConfiguring,
+				}
+				backEndCluster = &common.Cluster{Cluster: models.Cluster{
+					ID:     &sId,
+					Status: swag.String(models.ClusterStatusAddingHosts),
+					Hosts: []*models.Host{
+						&commonHost.Host,
+					}}}
+				allowGetInfraEnvInternal(mockInstallerInternal, infraEnvId, "infraEnvName")
+				Expect(c.Create(ctx, host)).To(BeNil())
+				createKubeconfigSecret(clusterDeployment.Name)
+				mockClient := spoke_k8s_client.NewMockSpokeK8sClient(mockCtrl)
+				mockClientFactory.EXPECT().CreateFromSecret(gomock.Any()).Return(mockClient, nil).AnyTimes()
+				mockClient.EXPECT().GetNode(gomock.Any()).Return(nil, k8serrors.NewNotFound(schema.GroupResource{Group: "v1", Resource: "Node"}, commonHost.RequestedHostname)).Times(1)
+
+				result, err := hr.Reconcile(ctx, newHostRequest(host))
+				Expect(err).To(BeNil())
+				Expect(result).To(Equal(ctrl.Result{}))
+			})
+			It("day2 - node not ready", func() {
+				commonHost.NodeLabels = marshalLabels(map[string]string{
+					"first-label":  "",
+					"second-label": "second-value",
+				})
+				commonHost.Kind = swag.String(models.HostKindAddToExistingClusterHost)
+				commonHost.Progress = &models.HostProgressInfo{
+					CurrentStage: models.HostStageConfiguring,
+				}
+				backEndCluster = &common.Cluster{Cluster: models.Cluster{
+					ID:     &sId,
+					Status: swag.String(models.ClusterStatusAddingHosts),
+					Hosts: []*models.Host{
+						&commonHost.Host,
+					}}}
+				allowGetInfraEnvInternal(mockInstallerInternal, infraEnvId, "infraEnvName")
+				host.Status.DebugInfo.State = models.HostStatusInstallingInProgress
+				host.Status.Progress = v1beta1.HostProgressInfo{
+					CurrentStage: models.HostStageConfiguring,
+				}
+				Expect(c.Create(ctx, host)).To(BeNil())
+				createKubeconfigSecret(clusterDeployment.Name)
+				mockClient := spoke_k8s_client.NewMockSpokeK8sClient(mockCtrl)
+				mockClientFactory.EXPECT().CreateFromSecret(gomock.Any()).Return(mockClient, nil).AnyTimes()
+				node := &corev1.Node{
+					TypeMeta: metav1.TypeMeta{},
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "my-name",
+						Namespace: testNamespace,
+					},
+					Status: corev1.NodeStatus{
+						Capacity:    nil,
+						Allocatable: nil,
+						Phase:       "",
+						Conditions: []corev1.NodeCondition{
+							{
+								Type:   corev1.NodeReady,
+								Status: corev1.ConditionFalse,
+							},
+						},
+					},
+				}
+				mockClient.EXPECT().GetNode(gomock.Any()).Return(node, nil).AnyTimes()
+				mockInstallerInternal.EXPECT().V2UpdateHostInstallProgressInternal(gomock.Any(), gomock.Any()).Return(nil).Times(1)
+				result, err := hr.Reconcile(ctx, newHostRequest(host))
+				Expect(err).To(BeNil())
+				Expect(result).To(Equal(ctrl.Result{}))
+			})
+			It("day2 - node ready", func() {
+				commonHost.NodeLabels = marshalLabels(map[string]string{
+					"first-label":  "",
+					"second-label": "second-value",
+				})
+				commonHost.Kind = swag.String(models.HostKindAddToExistingClusterHost)
+				commonHost.Progress = &models.HostProgressInfo{
+					CurrentStage: models.HostStageJoined,
+				}
+				backEndCluster = &common.Cluster{Cluster: models.Cluster{
+					ID:     &sId,
+					Status: swag.String(models.ClusterStatusAddingHosts),
+					Hosts: []*models.Host{
+						&commonHost.Host,
+					}}}
+				allowGetInfraEnvInternal(mockInstallerInternal, infraEnvId, "infraEnvName")
+				host.Status.DebugInfo.State = models.HostStatusInstallingInProgress
+				host.Status.Progress = v1beta1.HostProgressInfo{
+					CurrentStage: models.HostStageJoined,
+				}
+				Expect(c.Create(ctx, host)).To(BeNil())
+				createKubeconfigSecret(clusterDeployment.Name)
+				mockClient := spoke_k8s_client.NewMockSpokeK8sClient(mockCtrl)
+				mockClientFactory.EXPECT().CreateFromSecret(gomock.Any()).Return(mockClient, nil).AnyTimes()
+				node := &corev1.Node{
+					TypeMeta: metav1.TypeMeta{},
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "my-name",
+						Namespace: testNamespace,
+					},
+					Status: corev1.NodeStatus{
+						Capacity:    nil,
+						Allocatable: nil,
+						Phase:       "",
+						Conditions: []corev1.NodeCondition{
+							{
+								Type:   corev1.NodeReady,
+								Status: corev1.ConditionTrue,
+							},
+						},
+					},
+				}
+				mockClient.EXPECT().GetNode(gomock.Any()).Return(node, nil).AnyTimes()
+				mockInstallerInternal.EXPECT().V2UpdateHostInstallProgressInternal(gomock.Any(), gomock.Any()).Return(nil).Times(1)
+				mockClient.EXPECT().PatchNodeLabels(gomock.Any(), gomock.Any()).DoAndReturn(func(name, labels string) error {
+					var nodeLabels map[string]string
+					Expect(json.Unmarshal([]byte(labels), &nodeLabels)).ToNot(HaveOccurred())
+					Expect(nodeLabels).To(Equal(host.Spec.NodeLabels))
+					return nil
+				}).Times(1)
+				result, err := hr.Reconcile(ctx, newHostRequest(host))
+				Expect(err).To(BeNil())
+				Expect(result).To(Equal(ctrl.Result{}))
+			})
+		})
 	})
 
 	It("Agent update empty disk path", func() {
@@ -2125,7 +2282,7 @@ VU1eS0RiS/Lz6HwRs2mATNY5FrpZOgdM3cI=
 			expectedStage:       models.HostStageRebooting,
 			clusterInstall:      newAciWithUserManagedNetworkingNoSNO("test-cluster-aci", testNamespace),
 			updateProgressStage: false,
-			getNodeCount:        2,
+			getNodeCount:        1,
 		},
 		{
 			name:         "Do not auto approve CSR for Not ready matching node and UserManagedNetworking is false and BMH exists - should update stage to joined",
@@ -2223,7 +2380,7 @@ VU1eS0RiS/Lz6HwRs2mATNY5FrpZOgdM3cI=
 			expectedStage:       models.HostStageDone,
 			clusterInstall:      newAciNoUserManagedNetworkingWithSNO("test-cluster-aci", testNamespace),
 			updateProgressStage: true,
-			getNodeCount:        2,
+			getNodeCount:        1,
 			bmhExists:           false,
 		},
 		{
@@ -2292,7 +2449,7 @@ VU1eS0RiS/Lz6HwRs2mATNY5FrpZOgdM3cI=
 			expectedStage:       models.HostStageJoined,
 			clusterInstall:      newAciWithUserManagedNetworkingNoSNO("test-cluster-aci", testNamespace),
 			updateProgressStage: true,
-			getNodeCount:        2,
+			getNodeCount:        1,
 		},
 		{
 			name:         "Auto approve CSR for Not ready matching node and UserManagedNetworking is true and BMH exists",
@@ -2326,7 +2483,7 @@ VU1eS0RiS/Lz6HwRs2mATNY5FrpZOgdM3cI=
 			expectedStage:       models.HostStageJoined,
 			clusterInstall:      newAciWithUserManagedNetworkingNoSNO("test-cluster-aci", testNamespace),
 			updateProgressStage: true,
-			getNodeCount:        2,
+			getNodeCount:        1,
 			bmhExists:           true,
 		},
 		{
@@ -2361,7 +2518,7 @@ VU1eS0RiS/Lz6HwRs2mATNY5FrpZOgdM3cI=
 			expectedStage:       models.HostStageJoined,
 			clusterInstall:      newAciNoUserManagedNetworkingWithSNO("test-cluster-aci", testNamespace),
 			updateProgressStage: true,
-			getNodeCount:        2,
+			getNodeCount:        1,
 		},
 		{
 			name:                "Get node error",
@@ -2370,7 +2527,7 @@ VU1eS0RiS/Lz6HwRs2mATNY5FrpZOgdM3cI=
 			approveExpected:     false,
 			nodeError:           errors.New("Stam"),
 			expectedError:       errors.New("Stam"),
-			expectedResult:      ctrl.Result{},
+			expectedResult:      ctrl.Result{RequeueAfter: defaultRequeueAfterOnError},
 			expectedStatus:      "",
 			expectedStage:       "",
 			clusterInstall:      newAciWithUserManagedNetworkingNoSNO("test-cluster-aci", testNamespace),
@@ -2391,7 +2548,7 @@ VU1eS0RiS/Lz6HwRs2mATNY5FrpZOgdM3cI=
 			expectedStage:       models.HostStageRebooting,
 			clusterInstall:      newAciWithUserManagedNetworkingNoSNO("test-cluster-aci", testNamespace),
 			updateProgressStage: false,
-			getNodeCount:        2,
+			getNodeCount:        1,
 		},
 		{
 			name:         "Not done Server CSR",
@@ -2420,7 +2577,7 @@ VU1eS0RiS/Lz6HwRs2mATNY5FrpZOgdM3cI=
 			expectedStage:       models.HostStageJoined,
 			clusterInstall:      newAciWithUserManagedNetworkingNoSNO("test-cluster-aci", testNamespace),
 			updateProgressStage: true,
-			getNodeCount:        2},
+			getNodeCount:        1},
 		{
 			name:         "Done Server CSR",
 			createClient: true,
@@ -2451,7 +2608,7 @@ VU1eS0RiS/Lz6HwRs2mATNY5FrpZOgdM3cI=
 			expectedStage:       models.HostStageDone,
 			clusterInstall:      newAciWithUserManagedNetworkingNoSNO("test-cluster-aci", testNamespace),
 			updateProgressStage: true,
-			getNodeCount:        2,
+			getNodeCount:        1,
 		},
 		{
 			name:            "Not approved client CSR",
@@ -2467,7 +2624,7 @@ VU1eS0RiS/Lz6HwRs2mATNY5FrpZOgdM3cI=
 			expectedStage:       models.HostStageRebooting,
 			clusterInstall:      newAciWithUserManagedNetworkingNoSNO("test-cluster-aci", testNamespace),
 			updateProgressStage: false,
-			getNodeCount:        2,
+			getNodeCount:        1,
 		},
 		{
 			name:            "Approved client CSR",
@@ -2483,7 +2640,7 @@ VU1eS0RiS/Lz6HwRs2mATNY5FrpZOgdM3cI=
 			expectedStage:       models.HostStageRebooting,
 			clusterInstall:      newAciWithUserManagedNetworkingNoSNO("test-cluster-aci", testNamespace),
 			updateProgressStage: false,
-			getNodeCount:        2,
+			getNodeCount:        1,
 		},
 		{
 			name:         "Approved Server CSR",
@@ -2512,7 +2669,7 @@ VU1eS0RiS/Lz6HwRs2mATNY5FrpZOgdM3cI=
 			expectedStage:       models.HostStageJoined,
 			clusterInstall:      newAciWithUserManagedNetworkingNoSNO("test-cluster-aci", testNamespace),
 			updateProgressStage: true,
-			getNodeCount:        2,
+			getNodeCount:        1,
 		},
 		{
 			name:                "Already done",

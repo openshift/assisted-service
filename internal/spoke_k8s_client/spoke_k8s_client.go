@@ -17,6 +17,7 @@ import (
 	metal3iov1alpha1 "github.com/openshift/cluster-baremetal-operator/api/v1alpha1"
 	hivev1 "github.com/openshift/hive/apis/hive/v1"
 	machinev1beta1 "github.com/openshift/machine-api-operator/pkg/apis/machine/v1beta1"
+	mcfgv1 "github.com/openshift/machine-config-operator/pkg/apis/machineconfiguration.openshift.io/v1"
 	"github.com/pkg/errors"
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	"github.com/sirupsen/logrus"
@@ -26,6 +27,7 @@ import (
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/scheme"
@@ -53,6 +55,8 @@ type SpokeK8sClient interface {
 	CreateSubjectAccessReview(subjectAccessReview *authorizationv1.SelfSubjectAccessReview) (*authorizationv1.SelfSubjectAccessReview, error)
 	IsActionPermitted(verb string, resource string) (bool, error)
 	GetNode(name string) (*corev1.Node, error)
+	PatchNodeLabels(nodeName string, nodeLabels string) error
+	PatchMachineConfigPoolPaused(pause bool, mcpName string) error
 }
 
 type spokeK8sClient struct {
@@ -203,6 +207,26 @@ func (c *spokeK8sClient) GetNode(name string) (*corev1.Node, error) {
 	return node, err
 }
 
+func (c *spokeK8sClient) PatchNodeLabels(nodeName string, nodeLabels string) error {
+	data := []byte(`{"metadata": {"labels": ` + nodeLabels + `}}`)
+	_, err := c.nodesClient.Patch(context.Background(), nodeName, types.MergePatchType, data, metav1.PatchOptions{})
+	return err
+}
+
+func (c *spokeK8sClient) PatchMachineConfigPoolPaused(pause bool, mcpName string) error {
+	mcp := &mcfgv1.MachineConfigPool{}
+	err := c.Get(context.TODO(), types.NamespacedName{Name: mcpName}, mcp)
+	if err != nil {
+		return err
+	}
+	if mcp.Spec.Paused == pause {
+		return nil
+	}
+	pausePatch := []byte(fmt.Sprintf("{\"spec\":{\"paused\":%t}}", pause))
+	c.log.Infof("Setting pause MCP %s to %t", mcpName, pause)
+	return c.Patch(context.TODO(), mcp, client.RawPatch(types.MergePatchType, pausePatch))
+}
+
 func GetKubeClientSchemes() *runtime.Scheme {
 	var schemes = runtime.NewScheme()
 	utilruntime.Must(scheme.AddToScheme(schemes))
@@ -219,5 +243,6 @@ func GetKubeClientSchemes() *runtime.Scheme {
 	utilruntime.Must(metal3iov1alpha1.AddToScheme(schemes))
 	utilruntime.Must(authzv1.AddToScheme(schemes))
 	utilruntime.Must(apiextensionsv1.AddToScheme(schemes))
+	utilruntime.Must(mcfgv1.AddToScheme(schemes))
 	return schemes
 }

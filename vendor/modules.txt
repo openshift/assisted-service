@@ -729,6 +729,9 @@ github.com/openshift/library-go/pkg/operator/v1helpers
 github.com/openshift/machine-api-operator/pkg/apis/machine
 github.com/openshift/machine-api-operator/pkg/apis/machine/v1beta1
 github.com/openshift/machine-api-operator/pkg/apis/vsphereprovider/v1beta1
+# github.com/openshift/machine-config-operator v0.0.1-0.20201023110058-6c8bd9b2915c
+## explicit; go 1.13
+github.com/openshift/machine-config-operator/pkg/apis/machineconfiguration.openshift.io/v1
 # github.com/ory/dockertest/v3 v3.9.1
 ## explicit; go 1.17
 github.com/ory/dockertest/v3

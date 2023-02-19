@@ -27,6 +27,7 @@ import (
 	"github.com/openshift/assisted-service/internal/host"
 	manifestsapi "github.com/openshift/assisted-service/internal/manifests/api"
 	"github.com/openshift/assisted-service/internal/operators"
+	"github.com/openshift/assisted-service/internal/spoke_k8s_client"
 	"github.com/openshift/assisted-service/internal/versions"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/restapi/operations/installer"
@@ -3118,6 +3119,190 @@ var _ = Describe("cluster reconcile", func() {
 
 			aci = getTestClusterInstall()
 			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterSpecSyncedCondition).Reason).To(Equal(hiveext.ClusterBackendErrorReason))
+		})
+	})
+	Context("pause day2 worker MCP", func() {
+		var (
+			clusterDeployment *hivev1.ClusterDeployment
+			aci               *hiveext.AgentClusterInstall
+			cluster           *common.Cluster
+			mockClientFactory *spoke_k8s_client.MockSpokeK8sClientFactory
+		)
+		createKubeconfigSecret := func() {
+			secretName := fmt.Sprintf(adminKubeConfigStringTemplate, clusterDeployment.Name)
+			adminKubeconfigSecret := &corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      secretName,
+					Namespace: testNamespace,
+				},
+				Data: map[string][]byte{
+					"kubeconfig": []byte("somekubeconfig"),
+				},
+			}
+			Expect(c.Create(ctx, adminKubeconfigSecret)).To(Succeed())
+		}
+
+		BeforeEach(func() {
+			pullSecret := getDefaultTestPullSecret("pull-secret", testNamespace)
+			Expect(c.Create(ctx, pullSecret)).To(BeNil())
+			imageSet := getDefaultTestImageSet(imageSetName, releaseImageUrl)
+			Expect(c.Create(ctx, imageSet)).To(BeNil())
+			clusterDeployment = newClusterDeployment(clusterName, testNamespace, defaultClusterSpec)
+			clusterDeployment.Spec.Installed = true
+			Expect(c.Create(ctx, clusterDeployment)).To(BeNil())
+			aci = newAgentClusterInstall(agentClusterInstallName, testNamespace, defaultAgentClusterInstallSpec, clusterDeployment)
+			Expect(c.Create(ctx, aci)).ShouldNot(HaveOccurred())
+			id := strfmt.UUID(uuid.NewString())
+			cluster = &common.Cluster{
+				Cluster: models.Cluster{
+					ID:     &id,
+					Kind:   swag.String(models.ClusterKindAddHostsCluster),
+					Status: swag.String(models.ClusterStatusAddingHosts),
+				},
+			}
+			mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(cluster, nil)
+			mockInstallerInternal.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any()).Return(nil).Times(1)
+			mockInstallerInternal.EXPECT().UpdateClusterNonInteractive(gomock.Any(), gomock.Any()).Return(cluster, nil)
+			mockInstallerInternal.EXPECT().HostWithCollectedLogsExists(gomock.Any()).Return(false, nil)
+			mockClientFactory = spoke_k8s_client.NewMockSpokeK8sClientFactory(mockCtrl)
+			cr.SpokeK8sClientFactory = mockClientFactory
+		})
+		It("no hosts", func() {
+			mockInstallerInternal.EXPECT().GetKnownApprovedHosts(gomock.Any()).Return(nil, nil)
+			request := newClusterDeploymentRequest(clusterDeployment)
+			result, err := cr.Reconcile(ctx, request)
+			Expect(err).To(BeNil())
+			Expect(result).To(Equal(ctrl.Result{}))
+		})
+		It("single host - no labels", func() {
+			mockInstallerInternal.EXPECT().GetKnownApprovedHosts(gomock.Any()).Return(nil, nil)
+			agent := newAgent("agent", testNamespace, aiv1beta1.AgentSpec{
+				Approved: true,
+				ClusterDeploymentName: &aiv1beta1.ClusterReference{
+					Namespace: testNamespace,
+					Name:      clusterDeployment.Name,
+				},
+				MachineConfigPool: "infra",
+			})
+			agent.Status.DebugInfo.State = models.HostStatusInstallingInProgress
+			agent.Status.Progress.CurrentStage = models.HostStageConfiguring
+			agent.SetLabels(map[string]string{
+				AgentLabelClusterDeploymentNamespace: testNamespace,
+			})
+			Expect(c.Create(ctx, agent)).ToNot(HaveOccurred())
+			request := newClusterDeploymentRequest(clusterDeployment)
+			result, err := cr.Reconcile(ctx, request)
+			Expect(err).To(BeNil())
+			Expect(result).To(Equal(ctrl.Result{}))
+		})
+		It("single host - no MCP", func() {
+			mockInstallerInternal.EXPECT().GetKnownApprovedHosts(gomock.Any()).Return(nil, nil)
+			agent := newAgent("agent", testNamespace, aiv1beta1.AgentSpec{
+				Approved: true,
+				ClusterDeploymentName: &aiv1beta1.ClusterReference{
+					Namespace: testNamespace,
+					Name:      clusterDeployment.Name,
+				},
+				NodeLabels: map[string]string{
+					"my-label-key": "my-label-value",
+				},
+			})
+			agent.Status.DebugInfo.State = models.HostStatusInstallingInProgress
+			agent.Status.Progress.CurrentStage = models.HostStageConfiguring
+			agent.SetLabels(map[string]string{
+				AgentLabelClusterDeploymentNamespace: testNamespace,
+			})
+			Expect(c.Create(ctx, agent)).ToNot(HaveOccurred())
+			request := newClusterDeploymentRequest(clusterDeployment)
+			result, err := cr.Reconcile(ctx, request)
+			Expect(err).To(BeNil())
+			Expect(result).To(Equal(ctrl.Result{}))
+		})
+		It("single host - pause MCP", func() {
+			mockInstallerInternal.EXPECT().GetKnownApprovedHosts(gomock.Any()).Return(nil, nil)
+			agent := newAgent("agent", testNamespace, aiv1beta1.AgentSpec{
+				Approved: true,
+				ClusterDeploymentName: &aiv1beta1.ClusterReference{
+					Namespace: testNamespace,
+					Name:      clusterDeployment.Name,
+				},
+				NodeLabels: map[string]string{
+					"my-label-key": "my-label-value",
+				},
+				MachineConfigPool: "infra",
+			})
+			agent.Status.DebugInfo.State = models.HostStatusInstallingInProgress
+			agent.Status.Progress.CurrentStage = models.HostStageConfiguring
+			agent.SetLabels(map[string]string{
+				AgentLabelClusterDeploymentNamespace: testNamespace,
+			})
+			Expect(c.Create(ctx, agent)).ToNot(HaveOccurred())
+			request := newClusterDeploymentRequest(clusterDeployment)
+			createKubeconfigSecret()
+			mockClient := spoke_k8s_client.NewMockSpokeK8sClient(mockCtrl)
+			mockClientFactory.EXPECT().CreateFromSecret(gomock.Any()).Return(mockClient, nil).AnyTimes()
+			mockClient.EXPECT().PatchMachineConfigPoolPaused(true, "worker").Return(nil)
+			result, err := cr.Reconcile(ctx, request)
+			Expect(err).To(BeNil())
+			Expect(result).To(Equal(ctrl.Result{}))
+		})
+		It("single host - unpause MCP", func() {
+			mockInstallerInternal.EXPECT().GetKnownApprovedHosts(gomock.Any()).Return(nil, nil)
+			agent := newAgent("agent", testNamespace, aiv1beta1.AgentSpec{
+				Approved: true,
+				ClusterDeploymentName: &aiv1beta1.ClusterReference{
+					Namespace: testNamespace,
+					Name:      clusterDeployment.Name,
+				},
+				NodeLabels: map[string]string{
+					"my-label-key": "my-label-value",
+				},
+				MachineConfigPool: "infra",
+			})
+			agent.Status.DebugInfo.State = models.HostStatusInstallingInProgress
+			agent.Status.Progress.CurrentStage = models.HostStageDone
+			agent.SetLabels(map[string]string{
+				AgentLabelClusterDeploymentNamespace: testNamespace,
+			})
+			Expect(c.Create(ctx, agent)).ToNot(HaveOccurred())
+			request := newClusterDeploymentRequest(clusterDeployment)
+			createKubeconfigSecret()
+			mockClient := spoke_k8s_client.NewMockSpokeK8sClient(mockCtrl)
+			mockClientFactory.EXPECT().CreateFromSecret(gomock.Any()).Return(mockClient, nil).AnyTimes()
+			mockClient.EXPECT().PatchMachineConfigPoolPaused(false, "worker").Return(nil)
+			result, err := cr.Reconcile(ctx, request)
+			Expect(err).To(BeNil())
+			Expect(result).To(Equal(ctrl.Result{}))
+		})
+		It("2 hosts - pause MCP", func() {
+			mockInstallerInternal.EXPECT().GetKnownApprovedHosts(gomock.Any()).Return(nil, nil)
+			for i, stage := range []models.HostStage{models.HostStageJoined, models.HostStageDone} {
+				agent := newAgent(fmt.Sprintf("agent-%d", i), testNamespace, aiv1beta1.AgentSpec{
+					Approved: true,
+					ClusterDeploymentName: &aiv1beta1.ClusterReference{
+						Namespace: testNamespace,
+						Name:      clusterDeployment.Name,
+					},
+					NodeLabels: map[string]string{
+						"my-label-key": "my-label-value",
+					},
+					MachineConfigPool: "infra",
+				})
+				agent.Status.DebugInfo.State = models.HostStatusInstallingInProgress
+				agent.Status.Progress.CurrentStage = stage
+				agent.SetLabels(map[string]string{
+					AgentLabelClusterDeploymentNamespace: testNamespace,
+				})
+				Expect(c.Create(ctx, agent)).ToNot(HaveOccurred())
+			}
+			request := newClusterDeploymentRequest(clusterDeployment)
+			createKubeconfigSecret()
+			mockClient := spoke_k8s_client.NewMockSpokeK8sClient(mockCtrl)
+			mockClientFactory.EXPECT().CreateFromSecret(gomock.Any()).Return(mockClient, nil).AnyTimes()
+			mockClient.EXPECT().PatchMachineConfigPoolPaused(true, "worker").Return(nil)
+			result, err := cr.Reconcile(ctx, request)
+			Expect(err).To(BeNil())
+			Expect(result).To(Equal(ctrl.Result{}))
 		})
 	})
 })

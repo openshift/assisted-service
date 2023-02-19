@@ -44,6 +44,7 @@ import (
 	manifestsapi "github.com/openshift/assisted-service/internal/manifests/api"
 	"github.com/openshift/assisted-service/internal/network"
 	"github.com/openshift/assisted-service/internal/operators"
+	"github.com/openshift/assisted-service/internal/spoke_k8s_client"
 	"github.com/openshift/assisted-service/internal/versions"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/auth"
@@ -98,8 +99,9 @@ type ClusterDeploymentsReconciler struct {
 	Manifests        manifestsapi.ClusterManifestsInternals
 	ServiceBaseURL   string
 	PullSecretHandler
-	AuthType        auth.AuthType
-	VersionsHandler versions.Handler
+	AuthType              auth.AuthType
+	VersionsHandler       versions.Handler
+	SpokeK8sClientFactory spoke_k8s_client.SpokeK8sClientFactory
 }
 
 const minimalOpenShiftVersionForDefaultNetworkTypeOVNKubernetes = "4.12.0-0.0"
@@ -394,6 +396,60 @@ func (r *ClusterDeploymentsReconciler) installDay1(ctx context.Context, log logr
 	return r.updateStatus(ctx, log, clusterInstall, cluster, nil)
 }
 
+func (r *ClusterDeploymentsReconciler) spokeKubeClient(ctx context.Context, clusterDeployment *hivev1.ClusterDeployment) (spoke_k8s_client.SpokeK8sClient, error) {
+	adminKubeConfigSecretName := getClusterDeploymentAdminKubeConfigSecretName(clusterDeployment)
+
+	namespacedName := types.NamespacedName{
+		Namespace: clusterDeployment.Namespace,
+		Name:      adminKubeConfigSecretName,
+	}
+
+	secret, err := getSecret(ctx, r.Client, r.APIReader, namespacedName)
+	if err != nil {
+		r.Log.WithError(err).Errorf("failed to get kubeconfig secret %s", namespacedName)
+		return nil, err
+	}
+	if err = ensureSecretIsLabelled(ctx, r.Client, secret, namespacedName); err != nil {
+		r.Log.WithError(err).Errorf("failed to label kubeconfig secret %s", namespacedName)
+		return nil, err
+	}
+	return r.SpokeK8sClientFactory.CreateFromSecret(secret)
+}
+
+func (r *ClusterDeploymentsReconciler) updateWorkerMcpPaused(ctx context.Context, log logrus.FieldLogger, clusterInstall *hiveext.AgentClusterInstall, clusterDeployment *hivev1.ClusterDeployment) error {
+	agents, err := findAgentsByAgentClusterInstall(r.Client, ctx, log, clusterInstall)
+	if err != nil {
+		log.WithError(err).Errorf("failed to find agents for cluster install %s/%s", clusterInstall.Namespace, clusterInstall.Name)
+		return err
+	}
+	var paused, shouldUpdate bool
+	funk.ForEach(agents, func(agent *aiv1beta1.Agent) {
+		// State is checked to be not equal to "installed" to verify that day1 installed nodes are not taken into account
+		if !funk.IsEmpty(agent.Spec.NodeLabels) && agent.Spec.MachineConfigPool != "" && agent.Status.DebugInfo.State != models.HostStatusInstalled {
+			shouldUpdate = true
+
+			// MCP should be paused when there is at least 1 installing day2 node.  Otherwise, it should be unpaused
+			if agent.Status.Progress.CurrentStage != models.HostStageDone &&
+				funk.ContainsString([]string{models.HostStatusInstalling, models.HostStatusInstallingInProgress}, agent.Status.DebugInfo.State) {
+				paused = true
+			}
+		}
+	})
+	if shouldUpdate {
+		spokeClient, err := r.spokeKubeClient(ctx, clusterDeployment)
+		if err != nil {
+			log.WithError(err).Errorf("failed to create spoke client for cluster deployment %s/%s", clusterDeployment.Namespace, clusterDeployment.Name)
+			return err
+		}
+		err = spokeClient.PatchMachineConfigPoolPaused(paused, "worker")
+		if err != nil {
+			log.WithError(err).Errorf("failed to patch worker machine config pool for cluster deployment %s/%s", clusterDeployment.Namespace, clusterDeployment.Name)
+			return err
+		}
+	}
+	return nil
+}
+
 func (r *ClusterDeploymentsReconciler) installDay2Hosts(ctx context.Context, log logrus.FieldLogger, clusterDeployment *hivev1.ClusterDeployment, clusterInstall *hiveext.AgentClusterInstall, cluster *common.Cluster) (ctrl.Result, error) {
 	hosts, err := r.Installer.GetKnownApprovedHosts(*cluster.ID)
 	if err != nil {
@@ -407,7 +463,8 @@ func (r *ClusterDeploymentsReconciler) installDay2Hosts(ctx context.Context, log
 			return r.updateStatus(ctx, log, clusterInstall, cluster, err)
 		}
 	}
-	return r.updateStatus(ctx, log, clusterInstall, cluster, nil)
+	err = r.updateWorkerMcpPaused(ctx, log, clusterInstall, clusterDeployment)
+	return r.updateStatus(ctx, log, clusterInstall, cluster, err)
 }
 
 func (r *ClusterDeploymentsReconciler) createNoIngressKubeConfig(ctx context.Context, log logrus.FieldLogger, cluster *hivev1.ClusterDeployment, c *common.Cluster, clusterInstall *hiveext.AgentClusterInstall) error {
