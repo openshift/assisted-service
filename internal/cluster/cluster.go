@@ -868,6 +868,9 @@ func (m *Manager) UpdateFinalizingProgress(ctx context.Context, db *gorm.DB, clu
 		"progress_finalizing_stage_percentage": finalizingStagePercentage,
 		"progress_total_percentage":            totalPercentage,
 	}
+	if finalizingStagePercentage == 100 {
+		updates["trigger_monitor_timestamp"] = time.Now()
+	}
 
 	return db.Model(&common.Cluster{}).Where("id = ?", cluster.ID.String()).UpdateColumns(updates).Error
 }

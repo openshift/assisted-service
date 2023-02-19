@@ -274,6 +274,15 @@ func (b *bareMetalInventory) V2UploadClusterIngressCert(ctx context.Context, par
 		return installer.NewV2UploadClusterIngressCertCreated()
 	}
 
+	// update trigger_monitor_timestamp in order to run cluster monitor for this cluster as fast as possible
+	updates := map[string]interface{}{
+		"trigger_monitor_timestamp": time.Now(),
+	}
+	err = b.db.Model(&common.Cluster{}).Where("id = ?", cluster.ID.String()).UpdateColumns(updates).Error
+	if err != nil {
+		return common.NewApiError(http.StatusInternalServerError, err)
+	}
+
 	noingress := fmt.Sprintf("%s/%s-noingress", cluster.ID, constants.Kubeconfig)
 	resp, _, err := b.objectHandler.Download(ctx, noingress)
 	if err != nil {
