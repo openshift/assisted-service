@@ -110,6 +110,12 @@ spec:
                 type: string
               machineConfigPool:
                 type: string
+              nodeLabels:
+                additionalProperties:
+                  type: string
+                description: NodeLabels are the labels to be applied on the node associated
+                  with this agent
+                type: object
               role:
                 description: "HostRole host role \n swagger:model host-role"
                 type: string

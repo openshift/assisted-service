@@ -22,6 +22,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"reflect"
 	"sort"
 	"strings"
 	"text/template"
@@ -40,6 +41,7 @@ import (
 	machinev1beta1 "github.com/openshift/machine-api-operator/pkg/apis/machine/v1beta1"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+	"github.com/thoas/go-funk"
 	corev1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -82,6 +84,7 @@ const (
 	MCS_CERT_NAME                       = "ca.crt"
 	OPENSHIFT_MACHINE_API_NAMESPACE     = "openshift-machine-api"
 	ASSISTED_DEPLOY_METHOD              = "start_assisted_install"
+	NODE_LABEL_PREFIX                   = "bmac.agent-install.openshift.io.node-label."
 )
 
 var (
@@ -415,9 +418,32 @@ func (r *BMACReconciler) reconcileAgentSpec(log logrus.FieldLogger, bmh *bmh_v1a
 		agent.Spec.InstallationDiskID = installationDiskID
 		dirty = true
 	}
+
+	if r.reconcileNodeLabels(bmh, agent) {
+		dirty = true
+	}
+
 	log.Debugf("Agent spec reconcile finished:  %v", agent)
 
 	return reconcileComplete{dirty: dirty}
+}
+
+func (r *BMACReconciler) reconcileNodeLabels(bmh *bmh_v1alpha1.BareMetalHost, agent *aiv1beta1.Agent) bool {
+	nodeLabels := make(map[string]string)
+	funk.ForEach(bmh.ObjectMeta.GetAnnotations(), func(key, value string) {
+		if strings.HasPrefix(key, NODE_LABEL_PREFIX) {
+			nodeLabels[key[len(NODE_LABEL_PREFIX):]] = value
+		}
+	})
+	agentNodeLabels := agent.Spec.NodeLabels
+	if agentNodeLabels == nil {
+		agentNodeLabels = make(map[string]string)
+	}
+	if !reflect.DeepEqual(nodeLabels, agentNodeLabels) {
+		agent.Spec.NodeLabels = nodeLabels
+		return true
+	}
+	return false
 }
 
 // The detached annotation is added if the BMH provisioning state is provisioned
