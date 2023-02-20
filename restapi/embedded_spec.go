@@ -1772,7 +1772,6 @@ func init() {
             "enum": [
               "host",
               "controller",
-              "node-boot",
               "all"
             ],
             "type": "string",
@@ -11553,7 +11552,6 @@ func init() {
             "enum": [
               "host",
               "controller",
-              "node-boot",
               "all"
             ],
             "type": "string",

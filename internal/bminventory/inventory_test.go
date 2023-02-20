@@ -9617,19 +9617,6 @@ var _ = Describe("Upload and Download logs test", func() {
 		verifyApiError(bm.V2UploadLogs(ctx, params), http.StatusNotFound)
 	})
 
-	It("Upload boot logs host not exits", func() {
-		hostId := strToUUID(uuid.New().String())
-		params := installer.V2UploadLogsParams{
-			ClusterID:   clusterID,
-			HostID:      hostId,
-			LogsType:    string(models.LogsTypeNodeBoot),
-			InfraEnvID:  &clusterID,
-			Upfile:      kubeconfigFile,
-			HTTPRequest: request,
-		}
-		verifyApiError(bm.V2UploadLogs(ctx, params), http.StatusNotFound)
-	})
-
 	It("Upload host logs to S3 - upload fails", func() {
 		newHostID := strfmt.UUID(uuid.New().String())
 		host := addHost(newHostID, models.HostRoleMaster, "known", models.HostKindHost, clusterID, clusterID, "{}", db)
@@ -9643,23 +9630,6 @@ var _ = Describe("Upload and Download logs test", func() {
 		}
 
 		fileName := bm.getLogsFullName(string(models.LogsTypeHost), clusterID.String(), host.ID.String())
-		mockS3Client.EXPECT().UploadStream(gomock.Any(), gomock.Any(), fileName).Return(errors.Errorf("Dummy")).Times(1)
-		verifyApiError(bm.V2UploadLogs(ctx, params), http.StatusInternalServerError)
-	})
-
-	It("Upload host boot logs to S3 - upload fails", func() {
-		newHostID := strfmt.UUID(uuid.New().String())
-		host := addHost(newHostID, models.HostRoleMaster, "known", models.HostKindHost, clusterID, clusterID, "{}", db)
-		params := installer.V2UploadLogsParams{
-			ClusterID:   clusterID,
-			HostID:      host.ID,
-			LogsType:    string(models.LogsTypeNodeBoot),
-			InfraEnvID:  &clusterID,
-			Upfile:      kubeconfigFile,
-			HTTPRequest: request,
-		}
-
-		fileName := bm.getLogsFullName(string(models.LogsTypeNodeBoot), clusterID.String(), host.ID.String())
 		mockS3Client.EXPECT().UploadStream(gomock.Any(), gomock.Any(), fileName).Return(errors.Errorf("Dummy")).Times(1)
 		verifyApiError(bm.V2UploadLogs(ctx, params), http.StatusInternalServerError)
 	})
@@ -9684,29 +9654,6 @@ var _ = Describe("Upload and Download logs test", func() {
 		mockS3Client.EXPECT().UploadStream(gomock.Any(), gomock.Any(), fileName).Return(nil).Times(1)
 		mockHostApi.EXPECT().SetUploadLogsAt(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 		mockHostApi.EXPECT().UpdateLogsProgress(gomock.Any(), gomock.Any(), string(models.LogsStateCollecting)).Return(nil).Times(1)
-		reply := bm.V2UploadLogs(ctx, params)
-		Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2UploadLogsNoContent()))
-	})
-
-	It("Upload Hosts boot logs Happy flow", func() {
-
-		newHostID := strfmt.UUID(uuid.New().String())
-		host := addHost(newHostID, models.HostRoleMaster, "known", models.HostKindHost, clusterID, clusterID, "{}", db)
-		params := installer.V2UploadLogsParams{
-			ClusterID:   clusterID,
-			HostID:      host.ID,
-			LogsType:    string(models.LogsTypeNodeBoot),
-			InfraEnvID:  &clusterID,
-			Upfile:      kubeconfigFile,
-			HTTPRequest: request,
-		}
-		fileName := bm.getLogsFullName(string(models.LogsTypeNodeBoot), clusterID.String(), host.ID.String())
-		mockEvents.EXPECT().SendHostEvent(gomock.Any(), eventstest.NewEventMatcher(
-			eventstest.WithNameMatcher(eventgen.HostBootLogsUploadedEventName),
-			eventstest.WithClusterIdMatcher(clusterID.String()),
-			eventstest.WithHostIdMatcher(host.ID.String()))).Times(1)
-		mockS3Client.EXPECT().UploadStream(gomock.Any(), gomock.Any(), fileName).Return(nil).Times(1)
-		mockHostApi.EXPECT().SetUploadLogsAt(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 		reply := bm.V2UploadLogs(ctx, params)
 		Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2UploadLogsNoContent()))
 	})
@@ -9775,17 +9722,6 @@ var _ = Describe("Upload and Download logs test", func() {
 		verifyApiError(bm.V2DownloadClusterLogs(ctx, params), http.StatusConflict)
 	})
 
-	It("Download S3 host boot logs where not uploaded yet", func() {
-		logsType := string(models.LogsTypeNodeBoot)
-		params := installer.V2DownloadClusterLogsParams{
-			ClusterID:   clusterID,
-			HostID:      &hostID,
-			LogsType:    &logsType,
-			HTTPRequest: request,
-		}
-		verifyApiError(bm.V2DownloadClusterLogs(ctx, params), http.StatusConflict)
-	})
-
 	It("Download S3 host logs where not uploaded yet", func() {
 		logsType := string(models.LogsTypeHost)
 		params := installer.V2DownloadClusterLogsParams{
@@ -9795,21 +9731,6 @@ var _ = Describe("Upload and Download logs test", func() {
 			HTTPRequest: request,
 		}
 		verifyApiError(bm.V2DownloadClusterLogs(ctx, params), http.StatusConflict)
-	})
-
-	It("Download S3 host boot logs - object not found", func() {
-		logsType := string(models.LogsTypeNodeBoot)
-		params := installer.V2DownloadClusterLogsParams{
-			ClusterID:   clusterID,
-			HostID:      &hostID,
-			LogsType:    &logsType,
-			HTTPRequest: request,
-		}
-		host1.LogsCollectedAt = strfmt.DateTime(time.Now())
-		db.Save(&host1)
-		fileName := bm.getLogsFullName(logsType, clusterID.String(), hostID.String())
-		mockS3Client.EXPECT().Download(ctx, fileName).Return(nil, int64(0), common.NotFound(fileName))
-		verifyApiError(bm.V2DownloadClusterLogs(ctx, params), http.StatusNotFound)
 	})
 
 	It("Download S3 host logs - object not found", func() {
@@ -9824,22 +9745,8 @@ var _ = Describe("Upload and Download logs test", func() {
 		db.Save(&host1)
 		fileName := bm.getLogsFullName(logsType, clusterID.String(), hostID.String())
 		mockS3Client.EXPECT().Download(ctx, fileName).Return(nil, int64(0), common.NotFound(fileName))
+		mockClusterApi.EXPECT().PrepareHostLogFile(ctx, gomock.Any(), gomock.Any(), gomock.Any()).Return(fileName, nil).Times(1)
 		verifyApiError(bm.V2DownloadClusterLogs(ctx, params), http.StatusNotFound)
-	})
-
-	It("Download S3 host boot logs - object failed", func() {
-		logsType := string(models.LogsTypeNodeBoot)
-		params := installer.V2DownloadClusterLogsParams{
-			ClusterID:   clusterID,
-			HostID:      &hostID,
-			LogsType:    &logsType,
-			HTTPRequest: request,
-		}
-		host1.LogsCollectedAt = strfmt.DateTime(time.Now())
-		db.Save(&host1)
-		fileName := bm.getLogsFullName(logsType, clusterID.String(), hostID.String())
-		mockS3Client.EXPECT().Download(ctx, fileName).Return(nil, int64(0), errors.Errorf("dummy"))
-		verifyApiError(bm.V2DownloadClusterLogs(ctx, params), http.StatusInternalServerError)
 	})
 
 	It("Download S3 host logs -object failed", func() {
@@ -9853,6 +9760,7 @@ var _ = Describe("Upload and Download logs test", func() {
 		host1.LogsCollectedAt = strfmt.DateTime(time.Now())
 		db.Save(&host1)
 		fileName := bm.getLogsFullName(logsType, clusterID.String(), hostID.String())
+		mockClusterApi.EXPECT().PrepareHostLogFile(ctx, gomock.Any(), gomock.Any(), gomock.Any()).Return(fileName, nil).Times(1)
 		mockS3Client.EXPECT().Download(ctx, fileName).Return(nil, int64(0), errors.Errorf("dummy"))
 		verifyApiError(bm.V2DownloadClusterLogs(ctx, params), http.StatusInternalServerError)
 	})
@@ -9872,30 +9780,10 @@ var _ = Describe("Upload and Download logs test", func() {
 		host.LogsCollectedAt = strfmt.DateTime(time.Now())
 		db.Save(&host)
 		r := io.NopCloser(bytes.NewReader([]byte("test")))
+		mockClusterApi.EXPECT().PrepareHostLogFile(ctx, gomock.Any(), gomock.Any(), gomock.Any()).Return(fileName, nil).Times(1)
 		mockS3Client.EXPECT().Download(ctx, fileName).Return(r, int64(4), nil)
 		generateReply := bm.V2DownloadClusterLogs(ctx, params)
 		downloadFileName := fmt.Sprintf("mycluster_bootstrap_%s.tar.gz", newHostID.String())
-		Expect(generateReply).Should(Equal(filemiddleware.NewResponder(installer.NewV2DownloadClusterLogsOK().WithPayload(r), downloadFileName, 4, nil)))
-	})
-
-	It("Download Hosts boot logs happy flow", func() {
-		newHostID := strfmt.UUID(uuid.New().String())
-		host := addHost(newHostID, models.HostRoleMaster, "known", models.HostKindHost, clusterID, clusterID, "{}", db)
-		logsType := string(models.LogsTypeNodeBoot)
-		params := installer.V2DownloadClusterLogsParams{
-			ClusterID:   clusterID,
-			HostID:      host.ID,
-			LogsType:    &logsType,
-			HTTPRequest: request,
-		}
-		host.Bootstrap = true
-		fileName := bm.getLogsFullName(logsType, clusterID.String(), host.ID.String())
-		host.LogsCollectedAt = strfmt.DateTime(time.Now())
-		db.Save(&host)
-		r := io.NopCloser(bytes.NewReader([]byte("test")))
-		mockS3Client.EXPECT().Download(ctx, fileName).Return(r, int64(4), nil)
-		generateReply := bm.V2DownloadClusterLogs(ctx, params)
-		downloadFileName := fmt.Sprintf("mycluster_bootstrap_boot_%s.tar.gz", newHostID.String())
 		Expect(generateReply).Should(Equal(filemiddleware.NewResponder(installer.NewV2DownloadClusterLogsOK().WithPayload(r), downloadFileName, 4, nil)))
 	})
 
@@ -9927,19 +9815,6 @@ var _ = Describe("Upload and Download logs test", func() {
 		verifyApiError(generateReply, http.StatusNotFound)
 	})
 
-	It("Host boot logs presigned host not found", func() {
-		logsType := string(models.LogsTypeNodeBoot)
-		hostID := strfmt.UUID(uuid.New().String())
-		mockS3Client.EXPECT().IsAwsS3().Return(true)
-		generateReply := bm.V2GetPresignedForClusterFiles(ctx, installer.V2GetPresignedForClusterFilesParams{
-			ClusterID: clusterID,
-			FileName:  "logs",
-			HostID:    &hostID,
-			LogsType:  &logsType,
-		})
-		verifyApiError(generateReply, http.StatusNotFound)
-	})
-
 	It("Host logs presigned no logs found", func() {
 		hostID := strfmt.UUID(uuid.New().String())
 		_ = addHost(hostID, models.HostRoleMaster, "known", models.HostKindHost, clusterID, clusterID, "{}", db)
@@ -9953,25 +9828,12 @@ var _ = Describe("Upload and Download logs test", func() {
 		verifyApiError(generateReply, http.StatusConflict)
 	})
 
-	It("Host boot logs presigned no logs found", func() {
-		logsType := string(models.LogsTypeNodeBoot)
-		hostID := strfmt.UUID(uuid.New().String())
-		_ = addHost(hostID, models.HostRoleMaster, "known", models.HostKindHost, clusterID, clusterID, "{}", db)
-		mockS3Client.EXPECT().IsAwsS3().Return(true)
-		generateReply := bm.V2GetPresignedForClusterFiles(ctx, installer.V2GetPresignedForClusterFilesParams{
-			ClusterID: clusterID,
-			FileName:  "logs",
-			HostID:    &hostID,
-			LogsType:  &logsType,
-		})
-		verifyApiError(generateReply, http.StatusConflict)
-	})
-
 	It("Host logs presigned s3 error", func() {
 		hostID := strfmt.UUID(uuid.New().String())
 		host1 = addHost(hostID, models.HostRoleMaster, "known", models.HostKindHost, clusterID, clusterID, "{}", db)
 		mockS3Client.EXPECT().IsAwsS3().Return(true)
 		fileName := bm.getLogsFullName(string(models.LogsTypeHost), clusterID.String(), hostID.String())
+		mockClusterApi.EXPECT().PrepareHostLogFile(ctx, gomock.Any(), gomock.Any(), gomock.Any()).Return(fileName, nil).Times(1)
 		host1.LogsCollectedAt = strfmt.DateTime(time.Now())
 		db.Save(&host1)
 		mockS3Client.EXPECT().GeneratePresignedDownloadURL(ctx, fileName, fmt.Sprintf("mycluster_master_%s.tar.gz", hostID.String()), gomock.Any()).Return("",
@@ -9985,30 +9847,12 @@ var _ = Describe("Upload and Download logs test", func() {
 		verifyApiError(generateReply, http.StatusInternalServerError)
 	})
 
-	It("Host boot logs presigned s3 error", func() {
-		logsType := string(models.LogsTypeNodeBoot)
-		hostID := strfmt.UUID(uuid.New().String())
-		host1 = addHost(hostID, models.HostRoleMaster, "known", models.HostKindHost, clusterID, clusterID, "{}", db)
-		mockS3Client.EXPECT().IsAwsS3().Return(true)
-		fileName := bm.getLogsFullName(string(models.LogsTypeNodeBoot), clusterID.String(), hostID.String())
-		host1.LogsCollectedAt = strfmt.DateTime(time.Now())
-		db.Save(&host1)
-		mockS3Client.EXPECT().GeneratePresignedDownloadURL(ctx, fileName, fmt.Sprintf("mycluster_master_boot_%s.tar.gz", hostID.String()), gomock.Any()).Return("",
-			errors.Errorf("Dummy"))
-		generateReply := bm.V2GetPresignedForClusterFiles(ctx, installer.V2GetPresignedForClusterFilesParams{
-			ClusterID: clusterID,
-			FileName:  "logs",
-			HostID:    &hostID,
-			LogsType:  &logsType,
-		})
-		verifyApiError(generateReply, http.StatusInternalServerError)
-	})
-
 	It("host logs presigned happy flow", func() {
 		hostID := strfmt.UUID(uuid.New().String())
 		host1 = addHost(hostID, models.HostRoleMaster, "known", models.HostKindHost, clusterID, clusterID, "{}", db)
 		mockS3Client.EXPECT().IsAwsS3().Return(true)
 		fileName := bm.getLogsFullName(string(models.LogsTypeHost), clusterID.String(), hostID.String())
+		mockClusterApi.EXPECT().PrepareHostLogFile(ctx, gomock.Any(), gomock.Any(), gomock.Any()).Return(fileName, nil).Times(1)
 		host1.LogsCollectedAt = strfmt.DateTime(time.Now())
 		db.Save(&host1)
 		mockS3Client.EXPECT().GeneratePresignedDownloadURL(ctx, fileName, fmt.Sprintf("mycluster_master_%s.tar.gz", hostID.String()), gomock.Any()).Return("url", nil)
@@ -10023,31 +9867,12 @@ var _ = Describe("Upload and Download logs test", func() {
 		Expect(*replyPayload.URL).Should(Equal("url"))
 	})
 
-	It("host boot logs presigned happy flow", func() {
-		logsType := string(models.LogsTypeNodeBoot)
-		hostID := strfmt.UUID(uuid.New().String())
-		host1 = addHost(hostID, models.HostRoleMaster, "known", models.HostKindHost, clusterID, clusterID, "{}", db)
-		mockS3Client.EXPECT().IsAwsS3().Return(true)
-		fileName := bm.getLogsFullName(string(models.LogsTypeNodeBoot), clusterID.String(), hostID.String())
-		host1.LogsCollectedAt = strfmt.DateTime(time.Now())
-		db.Save(&host1)
-		mockS3Client.EXPECT().GeneratePresignedDownloadURL(ctx, fileName, fmt.Sprintf("mycluster_master_boot_%s.tar.gz", hostID.String()), gomock.Any()).Return("url", nil)
-		generateReply := bm.V2GetPresignedForClusterFiles(ctx, installer.V2GetPresignedForClusterFilesParams{
-			ClusterID: clusterID,
-			FileName:  "logs",
-			HostID:    &hostID,
-			LogsType:  &logsType,
-		})
-		Expect(generateReply).Should(BeAssignableToTypeOf(&installer.V2GetPresignedForClusterFilesOK{}))
-		replyPayload := generateReply.(*installer.V2GetPresignedForClusterFilesOK).Payload
-		Expect(*replyPayload.URL).Should(Equal("url"))
-	})
-
 	It("host logs presigned happy flow without log type", func() {
 		hostID := strfmt.UUID(uuid.New().String())
 		host1 = addHost(hostID, models.HostRoleMaster, "known", models.HostKindHost, clusterID, clusterID, "{}", db)
 		mockS3Client.EXPECT().IsAwsS3().Return(true)
 		fileName := bm.getLogsFullName(string(models.LogsTypeHost), clusterID.String(), hostID.String())
+		mockClusterApi.EXPECT().PrepareHostLogFile(ctx, gomock.Any(), gomock.Any(), gomock.Any()).Return(fileName, nil).Times(1)
 		host1.LogsCollectedAt = strfmt.DateTime(time.Now())
 		db.Save(&host1)
 		mockS3Client.EXPECT().GeneratePresignedDownloadURL(ctx, fileName, fmt.Sprintf("mycluster_master_%s.tar.gz", hostID.String()), gomock.Any()).Return("url", nil)

@@ -2278,33 +2278,6 @@ var _ = Describe("cluster install", func() {
 				Expect(s.Size()).ShouldNot(Equal(0))
 			}
 
-			By("Test happy flow node logs file")
-			{
-				kubeconfigFile, err := os.Open("test_kubeconfig")
-				Expect(err).NotTo(HaveOccurred())
-				logsType := string(models.LogsTypeNodeBoot)
-				hosts, _ := register3nodes(ctx, clusterID, *infraEnvID, defaultCIDRv4)
-				_, err = agentBMClient.Installer.V2UploadLogs(ctx, &installer.V2UploadLogsParams{
-					ClusterID:  clusterID,
-					HostID:     hosts[0].ID,
-					InfraEnvID: infraEnvID,
-					LogsType:   logsType,
-					Upfile:     kubeconfigFile})
-				Expect(err).NotTo(HaveOccurred())
-
-				file, err := os.CreateTemp("", "tmp")
-				Expect(err).NotTo(HaveOccurred())
-				_, err = userBMClient.Installer.V2DownloadClusterLogs(ctx, &installer.V2DownloadClusterLogsParams{
-					ClusterID: clusterID,
-					HostID:    hosts[0].ID,
-					LogsType:  &logsType,
-				}, file)
-				Expect(err).NotTo(HaveOccurred())
-				s, err := file.Stat()
-				Expect(err).NotTo(HaveOccurred())
-				Expect(s.Size()).ShouldNot(Equal(0))
-			}
-
 			By("Test happy flow large file")
 			{
 				filePath := "../build/test_logs.txt"

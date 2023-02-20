@@ -11,6 +11,7 @@ import (
 	strfmt "github.com/go-openapi/strfmt"
 	gomock "github.com/golang/mock/gomock"
 	common "github.com/openshift/assisted-service/internal/common"
+	models "github.com/openshift/assisted-service/models"
 	s3wrapper "github.com/openshift/assisted-service/pkg/s3wrapper"
 	gorm "gorm.io/gorm"
 	types "k8s.io/apimachinery/pkg/types"
@@ -484,6 +485,21 @@ func (m *MockAPI) PrepareForInstallation(ctx context.Context, c *common.Cluster,
 func (mr *MockAPIMockRecorder) PrepareForInstallation(ctx, c, db interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PrepareForInstallation", reflect.TypeOf((*MockAPI)(nil).PrepareForInstallation), ctx, c, db)
+}
+
+// PrepareHostLogFile mocks base method.
+func (m *MockAPI) PrepareHostLogFile(ctx context.Context, c *common.Cluster, host *models.Host, objectHandler s3wrapper.API) (string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "PrepareHostLogFile", ctx, c, host, objectHandler)
+	ret0, _ := ret[0].(string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// PrepareHostLogFile indicates an expected call of PrepareHostLogFile.
+func (mr *MockAPIMockRecorder) PrepareHostLogFile(ctx, c, host, objectHandler interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PrepareHostLogFile", reflect.TypeOf((*MockAPI)(nil).PrepareHostLogFile), ctx, c, host, objectHandler)
 }
 
 // RefreshSchedulableMastersForcedTrue mocks base method.
