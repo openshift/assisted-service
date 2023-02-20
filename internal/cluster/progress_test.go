@@ -315,6 +315,35 @@ var _ = Describe("Progress bar test", func() {
 			expectProgressToBe(&c, 0, 0, 75)
 		})
 	})
+	It("UpdateFinalizingProgress test - 100%", func() {
+		clusterId := strfmt.UUID(uuid.New().String())
+		c := common.Cluster{
+			Cluster: models.Cluster{
+				ID: &clusterId,
+				MonitoredOperators: []*models.MonitoredOperator{
+					{
+						Name:         operators.OperatorConsole.Name,
+						OperatorType: models.OperatorTypeBuiltin,
+						Status:       models.OperatorStatusAvailable,
+					},
+					{
+						Name:         operators.OperatorCVO.Name,
+						OperatorType: models.OperatorTypeBuiltin,
+						Status:       models.OperatorStatusAvailable,
+					},
+				},
+			},
+		}
+		Expect(db.Create(&c).Error).ShouldNot(HaveOccurred())
+		err := clusterApi.UpdateFinalizingProgress(ctx, db, clusterId)
+		Expect(err).NotTo(HaveOccurred())
+
+		c = getClusterFromDB(clusterId, db)
+		expectProgressToBe(&c, 0, 0, 100)
+		// validate triggeredMonitored was updated
+		Expect(c.TriggerMonitorTimestamp.IsZero()).To(Equal(false))
+
+	})
 
 	Context("update progress on transition", func() {
 

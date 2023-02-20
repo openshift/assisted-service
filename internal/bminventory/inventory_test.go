@@ -9207,6 +9207,7 @@ var _ = Describe("V2UploadClusterIngressCert test", func() {
 		status := models.ClusterStatusInstalled
 		c.Status = &status
 		db.Save(&c)
+
 		data, err := os.Open("../../subsystem/test_kubeconfig")
 		Expect(err).ShouldNot(HaveOccurred())
 		kubeConfigAsBytes, err := io.ReadAll(data)
@@ -9217,11 +9218,21 @@ var _ = Describe("V2UploadClusterIngressCert test", func() {
 		objectExists()
 		mockS3Client.EXPECT().Download(ctx, kubeconfigNoingress).Return(kubeconfigFile, int64(0), nil).Times(1)
 		mockS3Client.EXPECT().Upload(ctx, merged, kubeconfigObject).Return(nil)
+
+		// validate triggeredMonitored timestamp is zero
+		Expect(c.TriggerMonitorTimestamp.IsZero()).To(Equal(true))
+
 		generateReply := bm.V2UploadClusterIngressCert(ctx, installer.V2UploadClusterIngressCertParams{
 			ClusterID:         clusterID,
 			IngressCertParams: ingressCa,
 		})
 		Expect(generateReply).Should(Equal(installer.NewV2UploadClusterIngressCertCreated()))
+
+		// validate triggeredMonitored was updated
+		updated, err := common.GetClusterFromDB(db, clusterID, common.UseEagerLoading)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(updated.TriggerMonitorTimestamp.IsZero()).To(Equal(false))
+
 	})
 })
 var _ = Describe("List clusters", func() {
