@@ -37,6 +37,7 @@ import (
 	"github.com/openshift/assisted-service/internal/host/hostutil"
 	"github.com/openshift/assisted-service/internal/ignition"
 	"github.com/openshift/assisted-service/internal/infraenv"
+	installcfgdata "github.com/openshift/assisted-service/internal/installcfg"
 	installcfg "github.com/openshift/assisted-service/internal/installcfg/builder"
 	"github.com/openshift/assisted-service/internal/isoeditor"
 	"github.com/openshift/assisted-service/internal/manifests"
@@ -64,6 +65,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
+	"gopkg.in/yaml.v2"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/validation"
@@ -125,6 +127,7 @@ type Config struct {
 
 const minimalOpenShiftVersionForSingleNode = "4.8.0-0.0"
 const minimalOpenShiftVersionForDefaultNetworkTypeOVNKubernetes = "4.12.0-0.0"
+const minimalOpenShiftVersionForConsoleCapability = "4.12.0-0.0"
 
 type Interactivity bool
 
@@ -1541,11 +1544,19 @@ func (b *bareMetalInventory) UpdateClusterInstallConfigInternal(ctx context.Cont
 		log.WithError(err).Errorf("failed to set install config overrides feature usage for cluster %s", params.ClusterID)
 	}
 
+	cluster.InstallConfigOverrides = params.InstallConfigParams
 	err = tx.Model(&common.Cluster{}).Where(query, params.ClusterID).Update("install_config_overrides", params.InstallConfigParams).Error
 	if err != nil {
 		log.WithError(err).Errorf("failed to update install config overrides")
 		return nil, common.NewApiError(http.StatusInternalServerError, err)
 	}
+
+	err = b.updateMonitoredOperators(tx, cluster)
+	if err != nil {
+		log.WithError(err).Error("failed to update monitored operators")
+		return nil, common.NewApiError(http.StatusInternalServerError, err)
+	}
+
 	err = tx.Commit().Error
 	if err != nil {
 		log.Error(err)
@@ -1554,6 +1565,7 @@ func (b *bareMetalInventory) UpdateClusterInstallConfigInternal(ctx context.Cont
 	txSuccess = true
 	eventgen.SendInstallConfigAppliedEvent(ctx, b.eventsHandler, params.ClusterID)
 	log.Infof("Custom install config was applied to cluster %s", params.ClusterID)
+
 	return cluster, nil
 }
 
@@ -6086,4 +6098,89 @@ func isBaremetalBinaryFromAnotherReleaseImageRequired(cpuArchitecture, version s
 		common.PlatformTypeValue(platform) == models.PlatformTypeBaremetal &&
 		featuresupport.IsFeatureSupported(version,
 			models.FeatureSupportLevelFeaturesItems0FeatureIDARM64ARCHITECTUREWITHCLUSTERMANAGEDNETWORKING)
+}
+
+// updateMonitoredOperators checks the content of the installer configuration and updates the list
+// of monitored operators accordingly. For example, if the installer configuration uses the
+// capabilities mechanism to disable the console then the console operator is removed from the list
+// of monitored operators.
+func (b *bareMetalInventory) updateMonitoredOperators(tx *gorm.DB, cluster *common.Cluster) error {
+	// Get the complete installer configuration, including the overrides:
+	installConfigData, err := b.installConfigBuilder.GetInstallConfig(cluster, nil, "")
+	if err != nil {
+		return err
+	}
+	var installConfig installcfgdata.InstallerConfigBaremetal
+	err = yaml.Unmarshal(installConfigData, &installConfig)
+	if err != nil {
+		return err
+	}
+
+	// Since version 4.12 it is possible to disable the console via the capabilities section of
+	// the installer configuration. The way to do it is to set the base capability set to `None`
+	// and then explicitly list all the enabled capabilities.
+	consoleEnabled := true
+	logFields := logrus.Fields{
+		"cluster_id":      cluster.ID,
+		"cluster_version": cluster.OpenshiftVersion,
+		"minimal_version": minimalOpenShiftVersionForConsoleCapability,
+	}
+	consoleCapabilitySupported, err := common.VersionGreaterOrEqual(
+		cluster.OpenshiftVersion,
+		minimalOpenShiftVersionForConsoleCapability,
+	)
+	if err != nil {
+		return err
+	}
+	if consoleCapabilitySupported {
+		capabilities := installConfig.Capabilities
+		if capabilities != nil {
+			logFields["baseline_capability_set"] = capabilities.BaselineCapabilitySet
+			logFields["additional_enabled_capabilities"] = capabilities.AdditionalEnabledCapabilities
+			if capabilities.BaselineCapabilitySet == "None" {
+				consoleEnabled = false
+				for _, capability := range capabilities.AdditionalEnabledCapabilities {
+					if capability == "Console" {
+						consoleEnabled = true
+						break
+					}
+				}
+			}
+		}
+		if consoleEnabled {
+			b.log.WithFields(logFields).Info(
+				"Console is enabled because the cluster version supports the " +
+					"capability and it has been explicitly enabled by " +
+					"the user",
+			)
+		} else {
+			b.log.WithFields(logFields).Info(
+				"Console is disabled because the cluster version supports the " +
+					"capability and it hasn't been explicitly enabled by " +
+					"the user",
+			)
+		}
+	} else {
+		consoleEnabled = true
+		b.log.WithFields(logFields).Info(
+			"Console is enabled because the cluster version doesn't support " +
+				"the capability",
+		)
+	}
+
+	// Add or remove the console operator to the list of monitored operators:
+	consoleOperator := operators.OperatorConsole
+	consoleOperator.ClusterID = *cluster.ID
+	if consoleEnabled {
+		b.log.WithFields(logFields).Info(
+			"Adding the console to the set of monitored operators",
+		)
+		err = tx.FirstOrCreate(&consoleOperator).Error
+	} else {
+		b.log.WithFields(logFields).Info(
+			"Removing the console from the set of monitored operators",
+		)
+		err = tx.Delete(&consoleOperator).Error
+	}
+	return err
 }
