@@ -15,6 +15,16 @@ func IsAgentCompatible(expectedImage, agentImage string) bool {
 var NonIgnorableHostValidations []string = []string{"connected", "has-inventory", "machine-cidr-defined", "hostname-unique", "hostname-valid"}
 var NonIgnorableClusterValidations []string = []string{"api-vips-defined", "ingress-vips-defined", "all-hosts-are-ready-to-install", "sufficient-masters-count", "pull-secret-set", "cluster-preparation-succeeded"}
 
+func ShouldIgnoreValidation(ignoredValidations []string, validationId string, nonIgnoribles []string) bool {
+	if !MayIgnoreValidation(validationId, nonIgnoribles) {
+		return false
+	}
+	if swag.ContainsStrings(ignoredValidations, "all") {
+		return true
+	}
+	return swag.ContainsStrings(ignoredValidations, validationId)
+}
+
 func MayIgnoreValidation(validationID string, nonIgnorables []string) bool {
 	if validationID == "all" {
 		return true

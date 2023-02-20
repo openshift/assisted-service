@@ -7,6 +7,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/hardware"
 	"github.com/openshift/assisted-service/internal/operators"
 	"github.com/openshift/assisted-service/internal/operators/api"
@@ -62,10 +63,23 @@ const validationDisabledByConfiguration = "Validation disabled by configuration"
 func (r *refreshPreprocessor) preprocess(ctx context.Context, c *validationContext) (map[string]bool, ValidationsStatus, error) {
 	conditions := make(map[string]bool)
 	validationsOutput := make(ValidationsStatus)
+	var err error
+	var ignoredValidations []string
+	if c.cluster != nil {
+		ignoredValidations, err = common.DeserializeJSONList(c.cluster.IgnoredHostValidations)
+		if err != nil {
+			return nil, nil, errors.Wrap(err, fmt.Sprintf("Unable to deserialize ignored host validations for cluster %s", string(*c.cluster.ID)))
+		}
+	}
 	for _, v := range r.validations {
 
+		category, err := v.id.category()
+		if err != nil {
+			r.log.WithError(err).Warn("id.category()")
+			return nil, nil, err
+		}
 		if err := ctx.Err(); err != nil {
-			logrus.WithError(err).Warn("context error")
+			r.log.WithError(err).Warn("context error")
 			return nil, nil, fmt.Errorf("context error: %w", err)
 		}
 
@@ -87,11 +101,6 @@ func (r *refreshPreprocessor) preprocess(ctx context.Context, c *validationConte
 		// skip the validations per states
 		if funk.Contains(v.skippedStates, c.host.Progress.CurrentStage) {
 			continue
-		}
-		category, err := v.id.category()
-		if err != nil {
-			logrus.WithError(err).Warn("id.category()")
-			return nil, nil, err
 		}
 		validationsOutput[category] = append(validationsOutput[category], ValidationResult{
 			ID:      v.id,
@@ -115,7 +124,7 @@ func (r *refreshPreprocessor) preprocess(ctx context.Context, c *validationConte
 			conditions[id.String()] = result.Status == api.Success
 			category, err := id.category()
 			if err != nil {
-				logrus.WithError(err).Warn("id.category()")
+				r.log.WithError(err).Warn("id.category()")
 				return nil, nil, err
 			}
 
@@ -129,7 +138,14 @@ func (r *refreshPreprocessor) preprocess(ctx context.Context, c *validationConte
 			sortByValidationResultID(validationsOutput[category])
 		}
 	}
-
+	for _, currentResult := range validationsOutput {
+		for _, v := range currentResult {
+			if common.ShouldIgnoreValidation(ignoredValidations, string(v.ID), common.NonIgnorableHostValidations) {
+				// Set the condition to true to force the validation to pass.
+				conditions[string(v.ID)] = true
+			}
+		}
+	}
 	return conditions, validationsOutput, nil
 }
 

@@ -4945,6 +4945,14 @@ definitions:
         type: string
         description: Json formatted string containing ip collisions detected in the cluster.
         x-go-custom-tag: gorm:"type:text"
+      ignored_host_validations:
+        type: string
+        description: Json formatted string containing a list of host validations to be ignored. May also contain a list with a single string "all" to ignore all host validations. Some validations cannot be ignored.
+        x-go-custom-tag: gorm:"type:text"
+      ignored_cluster_validations:
+        type: string
+        description: Json formatted string containing a list of cluster validations to be ignored. May also contain a list with a single string "all" to ignore all cluster validations. Some validations cannot be ignored.
+        x-go-custom-tag: gorm:"type:text"
       deleted_at:
         description: swagger:ignore
         x-go-custom-tag: gorm:"type:timestamp with time zone;index"

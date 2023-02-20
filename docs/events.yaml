@@ -682,3 +682,10 @@ x-events:
     infra_env_id: UUID
     cluster_id: UUID_PTR
     agent_image: string
+
+- name: validations_ignored
+  message: "Cluster {cluster_id}: ignored some or all validations at the discretion of the user"
+  event_type: cluster
+  severity: info
+  properties:
+    cluster_id: UUID

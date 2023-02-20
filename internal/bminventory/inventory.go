@@ -1220,10 +1220,17 @@ func (b *bareMetalInventory) InstallClusterInternal(ctx context.Context, params 
 				autoAssigned = autoAssigned || updated
 			}
 		}
+		hasIgnoredValidations := common.IgnoredValidationsAreSet(cluster)
+		if hasIgnoredValidations {
+			eventgen.SendValidationsIgnoredEvent(ctx, b.eventsHandler, *cluster.ID)
+		}
 		//usage for auto role selection is measured only for day1 clusters with more than
 		//3 hosts (which would automatically be assigned as masters if the hw is sufficient)
 		if usages, u_err := usage.Unmarshal(cluster.Cluster.FeatureUsage); u_err == nil {
 			report := cluster.Cluster.TotalHostCount > common.MinMasterHostsNeededForInstallation && autoAssigned
+			if hasIgnoredValidations {
+				b.setUsage(true, usage.ValidationsIgnored, nil, usages)
+			}
 			b.setUsage(report, usage.AutoAssignRoleUsage, nil, usages)
 			b.usageApi.Save(tx, *cluster.ID, usages)
 		}
@@ -1451,7 +1458,6 @@ func (b *bareMetalInventory) V2InstallHost(ctx context.Context, params installer
 		log.Errorf("Failed to move host %s to installing", h.RequestedHostname)
 		return common.GenerateErrorResponder(err)
 	}
-
 	return installer.NewV2InstallHostAccepted().WithPayload(h)
 }
 

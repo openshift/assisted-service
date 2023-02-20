@@ -5212,17 +5212,10 @@ var _ = Describe("cluster", func() {
 			}
 		}
 
-		BeforeEach(func() {
-			DoneChannel = make(chan int)
+		createCluster := func(cluster *common.Cluster) {
 			clusterID = strfmt.UUID(uuid.New().String())
 			infraEnvID = strfmt.UUID(uuid.New().String())
-			err := db.Create(&common.Cluster{Cluster: models.Cluster{
-				ID:               &clusterID,
-				APIVip:           "10.11.12.13",
-				IngressVip:       "10.11.20.50",
-				OpenshiftVersion: common.TestDefaultConfig.OpenShiftVersion,
-				Status:           swag.String(models.ClusterStatusReady),
-			}}).Error
+			err := db.Create(cluster).Error
 			Expect(err).ShouldNot(HaveOccurred())
 
 			createInfraEnv(db, infraEnvID, clusterID)
@@ -5249,9 +5242,32 @@ var _ = Describe("cluster", func() {
 					"systemd":{}
 			}`))
 			mockS3Client.EXPECT().Download(gomock.Any(), gomock.Any()).Return(ignitionReader, int64(0), nil).MinTimes(0)
+		}
+
+		defaultCluster := &common.Cluster{Cluster: models.Cluster{
+			ID:               &clusterID,
+			APIVip:           "10.11.12.13",
+			IngressVip:       "10.11.20.50",
+			OpenshiftVersion: common.TestDefaultConfig.OpenShiftVersion,
+			Status:           swag.String(models.ClusterStatusReady),
+		}}
+
+		clusterWithIgnoredValidations := &common.Cluster{Cluster: models.Cluster{
+			ID:               &clusterID,
+			APIVip:           "10.11.12.13",
+			IngressVip:       "10.11.20.50",
+			OpenshiftVersion: common.TestDefaultConfig.OpenShiftVersion,
+			Status:           swag.String(models.ClusterStatusReady),
+		},
+			IgnoredClusterValidations: "[\"no-cidrs-overlapping\"]",
+			IgnoredHostValidations:    "[\"has-memory-for-role\"]"}
+
+		BeforeEach(func() {
+			DoneChannel = make(chan int)
 		})
 
 		It("success", func() {
+			createCluster(defaultCluster)
 			mockDetectAndStoreCollidingIPsForCluster(mockClusterApi, 1)
 			mockAutoAssignSuccess(3)
 			mockClusterRefreshStatusSuccess()
@@ -5273,6 +5289,43 @@ var _ = Describe("cluster", func() {
 				eventstest.WithClusterIdMatcher(clusterID.String()),
 				eventstest.WithSeverityMatcher(models.EventSeverityInfo))).MinTimes(0)
 
+			reply := bm.V2InstallCluster(ctx, installer.V2InstallClusterParams{
+				ClusterID: clusterID,
+			})
+
+			Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2InstallClusterAccepted()))
+			waitForDoneChannel()
+
+			count := db.Model(&models.Cluster{}).Where("openshift_cluster_id <> ''").First(&models.Cluster{}).RowsAffected
+			Expect(count).To(Equal(int64(1)))
+		})
+
+		It("Should send event in case of ignored validations", func() {
+			createCluster(clusterWithIgnoredValidations)
+			mockDetectAndStoreCollidingIPsForCluster(mockClusterApi, 1)
+			mockAutoAssignSuccess(3)
+			mockClusterRefreshStatusSuccess()
+			mockClusterIsReadyForInstallationSuccess()
+			mockGenerateAdditionalManifestsSuccess()
+			mockGetInstallConfigSuccess(mockInstallConfigBuilder)
+			mockGenerateInstallConfigSuccess(mockGenerator, mockVersions)
+			mockClusterPrepareForInstallationSuccess(mockClusterApi)
+			mockHostPrepareForRefresh(mockHostApi)
+			mockHandlePreInstallationSuccess(mockClusterApi, DoneChannel)
+			setDefaultGetMasterNodesIds(mockClusterApi)
+			setDefaultHostSetBootstrap(mockClusterApi)
+			setIsReadyForInstallationTrue(mockClusterApi)
+			mockClusterRefreshStatus(mockClusterApi)
+			mockClusterDeleteLogsSuccess(mockClusterApi)
+			mockSetConnectivityMajorityGroupsForCluster(mockClusterApi)
+			mockEvents.EXPECT().SendInfraEnvEvent(gomock.Any(), eventstest.NewEventMatcher(
+				eventstest.WithNameMatcher(eventgen.IgnitionConfigImageGeneratedEventName),
+				eventstest.WithClusterIdMatcher(clusterID.String()),
+				eventstest.WithSeverityMatcher(models.EventSeverityInfo))).MinTimes(0)
+			mockEvents.EXPECT().SendClusterEvent(ctx, eventstest.NewEventMatcher(
+				eventstest.WithNameMatcher(eventgen.ValidationsIgnoredEventName),
+				eventstest.WithClusterIdMatcher(clusterID.String()),
+				eventstest.WithSeverityMatcher(models.EventSeverityInfo))).MinTimes(0)
 			reply := bm.V2InstallCluster(ctx, installer.V2InstallClusterParams{
 				ClusterID: clusterID,
 			})
@@ -5404,6 +5457,7 @@ var _ = Describe("cluster", func() {
 		})
 
 		It("failed to auto-assign role", func() {
+			createCluster(defaultCluster)
 			mockAutoAssignFailed()
 			reply := bm.V2InstallCluster(ctx, installer.V2InstallClusterParams{
 				ClusterID: clusterID,
@@ -5412,6 +5466,7 @@ var _ = Describe("cluster", func() {
 		})
 
 		It("failed to prepare cluster", func() {
+			createCluster(defaultCluster)
 			mockDetectAndStoreCollidingIPsForCluster(mockClusterApi, 1)
 			mockAutoAssignSuccess(3)
 			mockClusterRefreshStatusSuccess()
@@ -5432,6 +5487,7 @@ var _ = Describe("cluster", func() {
 		})
 
 		It("cluster is not ready to install", func() {
+			createCluster(defaultCluster)
 			mockDetectAndStoreCollidingIPsForCluster(mockClusterApi, 1)
 			mockAutoAssignSuccess(3)
 			mockClusterRefreshStatusSuccess()
@@ -5448,6 +5504,7 @@ var _ = Describe("cluster", func() {
 		})
 
 		It("cluster is not ready to install - not auto assigned", func() {
+			createCluster(defaultCluster)
 			mockFalseAutoAssignSuccess(3)
 			setIsReadyForInstallationFalse(mockClusterApi)
 
@@ -5459,6 +5516,7 @@ var _ = Describe("cluster", func() {
 		})
 
 		It("list of masters for setting bootstrap return empty list", func() {
+			createCluster(defaultCluster)
 			mockDetectAndStoreCollidingIPsForCluster(mockClusterApi, 1)
 			mockAutoAssignSuccess(3)
 			mockClusterRefreshStatusSuccess()
@@ -5477,6 +5535,7 @@ var _ = Describe("cluster", func() {
 		})
 
 		It("GetMasterNodesIds fails in the go routine", func() {
+			createCluster(defaultCluster)
 			mockDetectAndStoreCollidingIPsForCluster(mockClusterApi, 1)
 			mockAutoAssignSuccess(3)
 			mockClusterRefreshStatusSuccess()
@@ -5494,6 +5553,7 @@ var _ = Describe("cluster", func() {
 		})
 
 		It("GetMasterNodesIds returns empty list", func() {
+			createCluster(defaultCluster)
 			mockDetectAndStoreCollidingIPsForCluster(mockClusterApi, 1)
 			mockAutoAssignSuccess(3)
 			mockClusterRefreshStatusSuccess()
@@ -5512,6 +5572,7 @@ var _ = Describe("cluster", func() {
 		})
 
 		It("failed to delete logs", func() {
+			createCluster(defaultCluster)
 			mockDetectAndStoreCollidingIPsForCluster(mockClusterApi, 1)
 			mockAutoAssignSuccess(3)
 			mockClusterRefreshStatusSuccess()
@@ -5547,6 +5608,7 @@ var _ = Describe("cluster", func() {
 
 		Context("CancelInstallation", func() {
 			BeforeEach(func() {
+				createCluster(defaultCluster)
 				mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 			})
 			It("cancel installation success", func() {
@@ -5579,6 +5641,7 @@ var _ = Describe("cluster", func() {
 
 		Context("reset cluster", func() {
 			BeforeEach(func() {
+				createCluster(defaultCluster)
 				mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 			})
 			It("reset installation success", func() {
@@ -5609,6 +5672,9 @@ var _ = Describe("cluster", func() {
 		})
 
 		Context("complete installation", func() {
+			BeforeEach(func() {
+				createCluster(defaultCluster)
+			})
 			errorInfo := "dummy"
 			It("complete success", func() {
 				success := true

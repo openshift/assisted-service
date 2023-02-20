@@ -6414,3 +6414,68 @@ func (e *UpgradeAgentFailedEvent) FormatMessage() string {
     return e.format(&s)
 }
 
+//
+// Event validations_ignored
+//
+type ValidationsIgnoredEvent struct {
+    eventName string
+    ClusterId strfmt.UUID
+}
+
+var ValidationsIgnoredEventName string = "validations_ignored"
+
+func NewValidationsIgnoredEvent(
+    clusterId strfmt.UUID,
+) *ValidationsIgnoredEvent {
+    return &ValidationsIgnoredEvent{
+        eventName: ValidationsIgnoredEventName,
+        ClusterId: clusterId,
+    }
+}
+
+func SendValidationsIgnoredEvent(
+    ctx context.Context,
+    eventsHandler eventsapi.Sender,
+    clusterId strfmt.UUID,) {
+    ev := NewValidationsIgnoredEvent(
+        clusterId,
+    )
+    eventsHandler.SendClusterEvent(ctx, ev)
+}
+
+func SendValidationsIgnoredEventAtTime(
+    ctx context.Context,
+    eventsHandler eventsapi.Sender,
+    clusterId strfmt.UUID,
+    eventTime time.Time) {
+    ev := NewValidationsIgnoredEvent(
+        clusterId,
+    )
+    eventsHandler.SendClusterEventAtTime(ctx, ev, eventTime)
+}
+
+func (e *ValidationsIgnoredEvent) GetName() string {
+    return e.eventName
+}
+
+func (e *ValidationsIgnoredEvent) GetSeverity() string {
+    return "info"
+}
+func (e *ValidationsIgnoredEvent) GetClusterId() strfmt.UUID {
+    return e.ClusterId
+}
+
+
+
+func (e *ValidationsIgnoredEvent) format(message *string) string {
+    r := strings.NewReplacer(
+        "{cluster_id}", fmt.Sprint(e.ClusterId),
+    )
+    return r.Replace(*message)
+}
+
+func (e *ValidationsIgnoredEvent) FormatMessage() string {
+    s := "Cluster {cluster_id}: ignored some or all validations at the discretion of the user"
+    return e.format(&s)
+}
+

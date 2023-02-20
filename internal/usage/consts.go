@@ -57,4 +57,6 @@ const (
 	DualStackVipsUsage string = "Dual-stack VIPs"
 	// Usage of User Managed Networking With Multi Node
 	UserManagedNetworkingWithMultiNode string = "User Managed Networking With Multi Node"
+	// Usage of Validation Ignore
+	ValidationsIgnored string = "Validations have been ignored for this cluster"
 )
