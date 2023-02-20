@@ -1622,8 +1622,11 @@ func (v *validator) isDNSWildcardNotConfigured(c *validationContext) (Validation
 }
 
 func areNetworksOverlapping(c *validationContext) (ValidationStatus, error) {
-	if c.inventory == nil || c.cluster == nil {
-		return ValidationPending, nil
+	if c.inventory == nil {
+		return ValidationPending, errors.New("inventory not yet received")
+	}
+	if c.cluster == nil {
+		return ValidationPending, errors.New("host is not bound to a cluster")
 	}
 	families, err := network.GetClusterAddressFamilies(c.cluster)
 	if err != nil {
@@ -1663,14 +1666,14 @@ func areNetworksOverlapping(c *validationContext) (ValidationStatus, error) {
 
 func (v *validator) nonOverlappingSubnets(c *validationContext) (ValidationStatus, string) {
 	status, err := areNetworksOverlapping(c)
-	if err != nil {
+	if err != nil && status != ValidationPending {
 		v.log.WithError(err).Errorf("Failed to check if CIDRs are overlapping for host %s infra-env %s", c.host.ID.String(), c.host.InfraEnvID.String())
 	}
 	switch status {
 	case ValidationSuccess:
 		return status, "Host subnets are not overlapping"
 	case ValidationPending:
-		return status, "Missing inventory, or missing cluster"
+		return status, err.Error()
 	case ValidationFailure:
 		_, err := areNetworksOverlapping(c)
 		return status, fmt.Sprintf("Address networks are overlapping: %s", err.Error())

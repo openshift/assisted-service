@@ -1958,4 +1958,25 @@ var _ = Describe("Validations test", func() {
 			Expect(ok).To(BeTrue())
 		})
 	})
+
+	Context("Validator", func() {
+
+		hostValidator := validator{}
+
+		It("should return appropriate message for pending non-overlapping-subnets with inventory not received", func() {
+			status, message := hostValidator.nonOverlappingSubnets(&validationContext{
+				inventory: nil,
+			})
+			Expect(status).To(Equal(ValidationPending))
+			Expect(message).To(Equal("inventory not yet received"))
+		})
+
+		It("Should return an appropriate message for pending non-overlapping-subnets with cluster unbound", func() {
+			status, message := hostValidator.nonOverlappingSubnets(&validationContext{
+				inventory: &models.Inventory{},
+			})
+			Expect(status).To(Equal(ValidationPending))
+			Expect(message).To(Equal("host is not bound to a cluster"))
+		})
+	})
 })
