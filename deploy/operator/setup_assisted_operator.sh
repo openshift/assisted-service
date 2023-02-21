@@ -253,8 +253,8 @@ function deploy_mirror_config_map() {
   # The mirror should point all the release images and not just the OpenShift release image itself.
   # An arbitrary image (cli) is chosen to retreive its pull spec, in order to mirror its repository.
   cli_image=$(podman run --quiet --rm --net=none "${ASSISTED_OPENSHIFT_INSTALL_RELEASE_IMAGE}" image cli)
-  # Ensure the repo for the ironic agent image is also mirrored
-  ironic_agent_image=$(oc adm release info --image-for=ironic-agent "${ASSISTED_OPENSHIFT_INSTALL_RELEASE_IMAGE}")
+  # Ensure the repo for the ironic agent image from the hub release is also mirrored
+  ironic_agent_image=$(oc adm release info --image-for=ironic-agent "${OPENSHIFT_RELEASE_IMAGE}")
 
   assisted_index_image=$(get_image_without_registry $(get_image_repository_only ${INDEX_IMAGE}))
 
