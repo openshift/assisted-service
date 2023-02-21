@@ -912,16 +912,6 @@ func (r *BMACReconciler) reconcileSpokeBMH(ctx context.Context, log logrus.Field
 		Namespace: OPENSHIFT_MACHINE_API_NAMESPACE,
 	}
 
-	key = types.NamespacedName{
-		Namespace: bmh.Namespace,
-		Name:      bmh.Spec.BMC.CredentialsName,
-	}
-	_, err = r.ensureSpokeBMHSecret(ctx, log, spokeClient, key)
-	if err != nil {
-		log.WithError(err).Errorf("failed to create or update spoke BareMetalHost Secret")
-		return reconcileError{err}
-	}
-
 	_, err = r.ensureSpokeBMH(ctx, log, spokeClient, bmh, machineNSName, agent)
 	if err != nil {
 		log.WithError(err).Errorf("failed to create or update spoke BareMetalHost")
@@ -1282,25 +1272,6 @@ func (r *BMACReconciler) createIgnitionWithMCSCert(ctx context.Context, log logr
 
 }
 
-func (r *BMACReconciler) ensureSpokeBMHSecret(ctx context.Context, log logrus.FieldLogger, spokeClient client.Client, key types.NamespacedName) (*corev1.Secret, error) {
-	secret, err := getSecret(ctx, r.Client, r.APIReader, key)
-	if err != nil {
-		log.WithError(err).Errorf("failed to get secret resource %s/%s", key.Namespace, key.Name)
-		return secret, err
-	}
-	if err := ensureSecretIsLabelled(ctx, r.Client, secret, key); err != nil {
-		log.WithError(err).Errorf("failed to label secret resource %s/%s", key.Namespace, key.Name)
-		return secret, err
-	}
-	secretSpoke, mutateFn := r.newSpokeBMHSecret(secret)
-	if result, err := controllerutil.CreateOrUpdate(ctx, spokeClient, secretSpoke, mutateFn); err != nil {
-		return nil, err
-	} else if result != controllerutil.OperationResultNone {
-		log.Info("Spoke BareMetalHost Secret created")
-	}
-	return secretSpoke, nil
-}
-
 func (r *BMACReconciler) newSpokeBMH(log logrus.FieldLogger, bmh *bmh_v1alpha1.BareMetalHost, machineName types.NamespacedName, agent *aiv1beta1.Agent) (*bmh_v1alpha1.BareMetalHost, controllerutil.MutateFn) {
 	bmhSpoke := &bmh_v1alpha1.BareMetalHost{
 		ObjectMeta: metav1.ObjectMeta{
@@ -1310,9 +1281,9 @@ func (r *BMACReconciler) newSpokeBMH(log logrus.FieldLogger, bmh *bmh_v1alpha1.B
 	}
 	mutateFn := func() error {
 		bmhSpoke.Spec = bmh.Spec
-		// The host is created by the baremetal operator on hub cluster. So BMH on the spoke cluster needs
-		// to be set to externally provisioned
-		bmhSpoke.Spec.ExternallyProvisioned = true
+		// remove the credentials from the spoke's Spec so
+		// that BMO will set the status to unmanaged
+		bmhSpoke.Spec.BMC = bmh_v1alpha1.BMCDetails{}
 		bmhSpoke.Spec.Image = bmh.Spec.Image
 		bmhSpoke.Spec.ConsumerRef = &corev1.ObjectReference{
 			APIVersion: machinev1beta1.SchemeGroupVersion.String(),
@@ -1337,24 +1308,6 @@ func (r *BMACReconciler) newSpokeBMH(log logrus.FieldLogger, bmh *bmh_v1alpha1.B
 	}
 
 	return bmhSpoke, mutateFn
-}
-
-func (r *BMACReconciler) newSpokeBMHSecret(secret *corev1.Secret) (*corev1.Secret, controllerutil.MutateFn) {
-	secretSpoke := &corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      secret.Name,
-			Namespace: OPENSHIFT_MACHINE_API_NAMESPACE,
-			Labels: map[string]string{
-				BackupLabel: BackupLabelValue,
-			},
-		},
-	}
-	mutateFn := func() error {
-		secretSpoke.Data = secret.Data
-		return nil
-	}
-
-	return secretSpoke, mutateFn
 }
 
 func (r *BMACReconciler) newSpokeMachine(bmh *bmh_v1alpha1.BareMetalHost, clusterDeployment *hivev1.ClusterDeployment, machineName types.NamespacedName, checksum string, URL string) (*machinev1beta1.Machine, controllerutil.MutateFn) {

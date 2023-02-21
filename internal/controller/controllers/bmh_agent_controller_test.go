@@ -1068,13 +1068,6 @@ var _ = Describe("bmac reconcile", func() {
 				Expect(spokeMachine.ObjectMeta.Labels).To(HaveKey(MACHINE_ROLE))
 				Expect(spokeMachine.ObjectMeta.Labels).To(HaveKey(MACHINE_TYPE))
 				Expect(string(spokeMachine.Spec.ProviderSpec.Value.Raw)).To(ContainSubstring(imageURL))
-
-				spokeSecret := &corev1.Secret{}
-				err = spokeClient.Get(ctx, types.NamespacedName{Name: adminKubeconfigSecret.Name, Namespace: OPENSHIFT_MACHINE_API_NAMESPACE}, spokeSecret)
-				Expect(err).To(BeNil())
-				Expect(spokeSecret.Data).To(Equal(adminKubeconfigSecret.Data))
-				Expect(spokeSecret.Labels).To(HaveKeyWithValue(BackupLabel, BackupLabelValue))
-
 			})
 			It("should not set spoke BMH - None platform", func() {
 				clusterInstall.Spec.Networking.UserManagedNetworking = swag.Bool(true)
