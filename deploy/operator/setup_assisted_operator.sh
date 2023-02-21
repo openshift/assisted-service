@@ -43,6 +43,13 @@ cat <<EOF
 EOF
     fi
 
+    if [ -n "${IMAGE_SERVICE_IMAGE:-}" ]; then
+cat <<EOF
+    - name: IMAGE_SERVICE_IMAGE
+      value: '${IMAGE_SERVICE_IMAGE}'
+EOF
+    fi
+
     if [ -n "${INSTALLER_IMAGE:-}" ]; then
 cat <<EOF
     - name: INSTALLER_IMAGE
