@@ -368,7 +368,7 @@ const (
 )
 
 // PlatformType is a specific supported infrastructure provider.
-// +kubebuilder:validation:Enum="";BareMetal;None;VSphere
+// +kubebuilder:validation:Enum="";BareMetal;None;VSphere;Nutanix
 type PlatformType string
 
 const (
@@ -380,6 +380,9 @@ const (
 
 	// VSpherePlatformType represents VMWare vSphere infrastructure.
 	VSpherePlatformType PlatformType = "VSphere"
+
+	// NutanixPlatformType represents Nutanix infrastructure.
+	NutanixPlatformType PlatformType = "Nutanix"
 )
 
 // AgentMachinePool is a pool of machines to be installed.
