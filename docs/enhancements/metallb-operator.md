@@ -30,7 +30,7 @@ Assisted Installer so that it can create clusters that can be relocated.
 
 ### Goals
 
-- To add a MetalLB operator to Assiste Installer
+- To add a MetalLB operator to Assisted Installer
 - To add the required configurations for this operator to be able to not just install the cluser but
   also have it properly configured and ready for relocation.
 
@@ -38,12 +38,17 @@ Assisted Installer so that it can create clusters that can be relocated.
 ### Non-Goals
 
 - Change the way network configuration is managed today
-
+- Exposing these capabilities to the SaaS (for now)
 
 ## Premises
 
-An Edgecluster must be connected to 2 networks. We will refer to these networks as Insternal network
-and External network.
+This enhancement focuses on two parts:
+
+1. Adding the MetalLB operator and allow to configure it through the HTTP API
+2. Exposing the MetalLB operator through KubeAPI
+
+An Edgecluster must be connected to 2 networks after it is relocated. We will
+refer to these networks as Internal network and External network.
 
 The **Internal network** is the network used to deploy the cluster on. In other words, this is the
 network you will see in the *INTERNAL-IP* of a node when running `oc get nodes -owide`. This network
@@ -70,6 +75,17 @@ spec:
   addresses:
     # We will be discussing this further down in the enhancement
     - $METALLB_IP/32
+---
+---
+apiVersion: metallb.io/v1beta1
+kind: L2Advertisement
+metadata:
+  name: metallb-api-ingress
+  namespace: metallb
+spec:
+  ipAddressPools:
+    - metallb-ingress-ip
+    - metallb-api-vip
 ---
 apiVersion: v1
 kind: Service
@@ -100,7 +116,6 @@ Installer needs to be able to answer the following questions:
 - Which is the *internal network*?
 - What is the IP on the **external network** to use for the API VIP?
 - What is the IP on the **external network** to use for the Ingress?
-- What routes (if any) should be used for the **external** API and Ingress endpoints?
 
 ### Identifying Internal Network
 
@@ -113,25 +128,18 @@ Regardless, no changes should be required in assisted installer to identify the 
 
 ### Identifying External Network
 
-This enhancement proposes requesting the user for the following information in order to prepare the
+This enhancement proposes requesting the user for the followin information in order to prepare the
 cluster for relocation:
 
 - External API VIP: This is an IP on the **external** network
 - External Ingress IP: This is an IP on the **external** network
-- External base domain: A domain to use for the **external** traffic (optional).
+
+The above are optional parameters. If provided, Assisted Service will configure
+the AddressPools for both IPs, the Services, and the L2Advertisement.
 
 Unlike for the **internal** network, this enhancement proposes to always infer the subnet of the
 external network from the External API VIP and the External Ingress IP provided by the user. There
 are utilities in Assisted Installer to do this already.
-
-Some requirements:
-
-- The **external** API VIP and Ingress IP must be on the same subnet.
-- The host must be connected to this network and the network must be routable
-- These 2 IPs must be optional. The IPAddressPool and Service won't be configured if this information is not provided
-- Either both are IPs are provided or none.
-- The *internal* network must be configured as a static network to prevent the MachineNetwork to
-change and, therefore, the IP of each of the nodes.
 
 ### User Stories
 
@@ -177,12 +185,20 @@ to be familiar with the 2 networks that are needed.
 
 ## Design Details [optional]
 
+There will be pre-flight validations for the following:
+
+- The **external** API VIP and Ingress IP must be on the same subnet.
+- The host must be connected to this network and the network must be routable
+- These 2 IPs must be optional. The IPAddressPool and Service won't be configured if this information is not provided
+- Either both are IPs are provided or none.
+- The *internal* network must be configured as a static network to prevent the MachineNetwork to
+change and, therefore, the IP of each of the nodes.
+
 ### Open Questions
 
 ### UI Impact
 
-It will be required to adapt the UI to interact with this feature. No breaking changes will be
-introduced by this enhancement.
+SaaS UI won't be modified for the time being. Exposing this feature to SaaS custoemers will be done in future epics.
 
 ### Test Plan
 
