@@ -260,6 +260,8 @@ function deploy_mirror_config_map() {
   # The mirror should point all the release images and not just the OpenShift release image itself.
   # An arbitrary image (cli) is chosen to retreive its pull spec, in order to mirror its repository.
   cli_image=$(podman run --quiet --rm --net=none "${ASSISTED_OPENSHIFT_INSTALL_RELEASE_IMAGE}" image cli)
+  # Ensure the repo for the ironic agent image from the hub release is also mirrored
+  ironic_agent_image=$(oc adm release info --image-for=ironic-agent "${OPENSHIFT_RELEASE_IMAGE}")
 
   assisted_index_image=$(get_image_without_registry $(get_image_repository_only ${INDEX_IMAGE}))
 
@@ -277,6 +279,7 @@ data:
 
     $(registry_config "$(get_image_without_tag ${ASSISTED_OPENSHIFT_INSTALL_RELEASE_IMAGE})" "${LOCAL_REGISTRY}/$(get_image_repository_only ${ASSISTED_OPENSHIFT_INSTALL_RELEASE_IMAGE})")
     $(registry_config "$(get_image_without_tag ${cli_image})" "${LOCAL_REGISTRY}/$(get_image_repository_only ${ASSISTED_OPENSHIFT_INSTALL_RELEASE_IMAGE})")
+    $(registry_config "$(get_image_without_tag ${ironic_agent_image})" "${LOCAL_REGISTRY}/$(get_image_repository_only ${ASSISTED_OPENSHIFT_INSTALL_RELEASE_IMAGE})")
     $(for row in $(kubectl get imagecontentsourcepolicy -o json |
         jq -rc ".items[] | select(.metadata.name | test(\"${assisted_index_image}\")).spec.repositoryDigestMirrors[] | [.mirrors[0], .source]"); do
       row=$(echo ${row} | tr -d '[]"');
