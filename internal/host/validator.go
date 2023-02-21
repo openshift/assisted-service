@@ -843,10 +843,10 @@ func (v *validator) isTimeSyncedBetweenHostAndService(c *validationContext) (Val
 	diff := time.Now().UTC().Sub(time.Unix(c.host.Timestamp, 0).UTC())
 	if diff > maxServiceAheadOfHostTimeDiff {
 		return ValidationFailure, fmt.Sprintf("Host clock is not synchronized, service time is ahead of host's at least for %.1f minutes, "+
-			"please configure an NTP server via DHCP or set clock manually. Service time: %s", maxServiceAheadOfHostTimeDiff.Minutes(), time.Now().UTC())
+			"please configure an NTP server via DHCP. Service time: %s", maxServiceAheadOfHostTimeDiff.Minutes(), time.Now().UTC())
 	} else if diff < -maxHostAheadOfServiceTimeDiff {
 		return ValidationFailure, fmt.Sprintf("Host clock is not synchronized, host time is ahead of service at least for %.1f minutes, "+
-			"please configure an NTP server via DHCP or set clock manually. Service time: %s", maxHostAheadOfServiceTimeDiff.Minutes(), time.Now().UTC())
+			"please configure an NTP server via DHCP. Service time: %s", maxHostAheadOfServiceTimeDiff.Minutes(), time.Now().UTC())
 	}
 
 	return ValidationSuccess, "Host clock is synchronized with service"
