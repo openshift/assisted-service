@@ -96,6 +96,7 @@ type API interface {
 	SetUploadLogsAt(ctx context.Context, h *models.Host, db *gorm.DB) error
 	UpdateLogsProgress(ctx context.Context, h *models.Host, progress string) error
 	PermanentHostsDeletion(olderThan strfmt.DateTime) error
+	DeleteOrphanHosts(ctx context.Context) error
 	ReportValidationFailedMetrics(ctx context.Context, h *models.Host, ocpVersion, emailDomain string) error
 
 	UpdateRole(ctx context.Context, h *models.Host, role models.HostRole, db *gorm.DB) error
@@ -1377,6 +1378,19 @@ func (m *Manager) ResetHostValidation(ctx context.Context, hostID, infraEnvID st
 	default:
 		return common.NewApiError(http.StatusBadRequest, errors.Errorf("Validation \"%s\" cannot be reset or does not exist", validationID))
 	}
+}
+
+func (m Manager) DeleteOrphanHosts(ctx context.Context) error {
+	db := m.db.Unscoped()
+	reply := db.Where("NOT EXISTS (SELECT 1 FROM infra_envs WHERE infra_envs.id = infra_env_id)").
+		Delete(&models.Host{})
+	if reply.Error != nil {
+		return reply.Error
+	}
+	if reply.RowsAffected > 0 {
+		m.log.Warnf("Deleted %d orphan hosts from db", reply.RowsAffected)
+	}
+	return nil
 }
 
 func (m Manager) PermanentHostsDeletion(olderThan strfmt.DateTime) error {
