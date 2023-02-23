@@ -814,7 +814,7 @@ var _ = Describe("construct host install arguments", func() {
 		Expect(err).NotTo(HaveOccurred())
 		Expect(args).To(Equal(""))
 	})
-	It("ip=<nic>:dhcp and copy-network added with static config", func() {
+	It("ip=<nic>:dhcp not added and copy-network added with static config", func() {
 		cluster.MachineNetworks = []*models.MachineNetwork{{Cidr: "192.186.10.0/24"}}
 		infraEnv.StaticNetworkConfig = "something"
 		cluster.ImageInfo.StaticNetworkConfig = "something"
@@ -829,9 +829,9 @@ var _ = Describe("construct host install arguments", func() {
 		inventory, _ := common.UnmarshalInventory(host.Inventory)
 		args, err := constructHostInstallerArgs(cluster, host, inventory, infraEnv, log)
 		Expect(err).NotTo(HaveOccurred())
-		Expect(args).To(Equal(`["--append-karg","ip=eth1:dhcp","--copy-network"]`))
+		Expect(args).To(Equal(`["--copy-network"]`))
 	})
-	It("ip=<nic>:dhcp added with static config and copy-network set by the user", func() {
+	It("ip=<nic>:dhcp not added with static config and copy-network set by the user", func() {
 		host.InstallerArgs = `["--copy-network"]`
 		cluster.MachineNetworks = []*models.MachineNetwork{{Cidr: "192.186.10.0/24"}}
 		infraEnv.StaticNetworkConfig = "something"
@@ -847,7 +847,7 @@ var _ = Describe("construct host install arguments", func() {
 		inventory, _ := common.UnmarshalInventory(host.Inventory)
 		args, err := constructHostInstallerArgs(cluster, host, inventory, infraEnv, log)
 		Expect(err).NotTo(HaveOccurred())
-		Expect(args).To(Equal(`["--copy-network","--append-karg","ip=eth0:dhcp"]`))
+		Expect(args).To(Equal(`["--copy-network"]`))
 	})
 	It("ip=<nic>:dhcp added when copy-network set by the user without static config", func() {
 		host.InstallerArgs = `["--copy-network"]`
