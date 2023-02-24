@@ -122,7 +122,9 @@
         "support_level": "beta",
         "cpu_architectures": [
             "x86_64",
-            "arm64"
+            "arm64",
+            "ppc64le",
+            "s390x"
         ],
         "url": "quay.io/openshift-release-dev/ocp-release:4.13.0-ec.2-multi",
         "version": "4.13.0-ec.2"
