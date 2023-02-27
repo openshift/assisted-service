@@ -336,6 +336,7 @@ spec:
                 - BareMetal
                 - None
                 - VSphere
+                - Nutanix
                 type: string
               provisionRequirements:
                 description: ProvisionRequirements defines configuration for when
@@ -492,6 +493,7 @@ spec:
                 - BareMetal
                 - None
                 - VSphere
+                - Nutanix
                 type: string
               progress:
                 description: Progress shows the installation progress of the cluster

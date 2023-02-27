@@ -1042,6 +1042,84 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		}, "2m", "2s").Should(Equal(0))
 	})
 
+	It("deploy nutanix platform", func() {
+		aciSpec.PlatformType = hiveext.NutanixPlatformType
+		imageSetRef4_11 := &hivev1.ClusterImageSetReference{
+			Name: "openshift-v4.11.0",
+		}
+		aciSpec.ImageSetRef = imageSetRef4_11
+		deployClusterImageSetCRD(ctx, kubeClient, aciSpec.ImageSetRef)
+		deployClusterDeploymentCRD(ctx, kubeClient, clusterDeploymentSpec)
+		deployInfraEnvCRD(ctx, kubeClient, infraNsName.Name, infraEnvSpec)
+
+		deployAgentClusterInstallCRD(ctx, kubeClient, aciSpec, clusterDeploymentSpec.ClusterInstallRef.Name)
+		clusterKey := types.NamespacedName{
+			Namespace: Options.Namespace,
+			Name:      clusterDeploymentSpec.ClusterName,
+		}
+		infraEnvKey := types.NamespacedName{
+			Namespace: Options.Namespace,
+			Name:      infraNsName.Name,
+		}
+		infraEnv := getInfraEnvFromDBByKubeKey(ctx, db, infraEnvKey, waitForReconcileTimeout)
+		configureLocalAgentClient(infraEnv.ID.String())
+		hosts := make([]*models.Host, 0)
+		ips := hostutil.GenerateIPv4Addresses(3, defaultCIDRv4)
+		for i := 0; i < 3; i++ {
+			hostname := fmt.Sprintf("h%d", i)
+			host := registerNodeWithInventory(ctx, *infraEnv.ID, hostname, ips[i], getDefaultNutanixInventory(ips[i]))
+			hosts = append(hosts, host)
+		}
+		for _, host := range hosts {
+			checkAgentCondition(ctx, host.ID.String(), v1beta1.ValidatedCondition, v1beta1.ValidationsFailingReason)
+			hostkey := types.NamespacedName{
+				Namespace: Options.Namespace,
+				Name:      host.ID.String(),
+			}
+			agent := getAgentCRD(ctx, kubeClient, hostkey)
+			Expect(agent.Status.ValidationsInfo).ToNot(BeNil())
+		}
+		generateFullMeshConnectivity(ctx, ips[0], hosts...)
+		for _, h := range hosts {
+			generateDomainResolution(ctx, h, clusterDeploymentSpec.ClusterName, "hive.example.com")
+		}
+
+		By("Approve Agents")
+		for _, host := range hosts {
+			hostkey := types.NamespacedName{
+				Namespace: Options.Namespace,
+				Name:      host.ID.String(),
+			}
+			Eventually(func() error {
+				agent := getAgentCRD(ctx, kubeClient, hostkey)
+				agent.Spec.Approved = true
+				return kubeClient.Update(ctx, agent)
+			}, "30s", "10s").Should(BeNil())
+		}
+		installkey := types.NamespacedName{
+			Namespace: Options.Namespace,
+			Name:      clusterDeploymentSpec.ClusterInstallRef.Name,
+		}
+		By("verify nutanix platform type status and spec")
+		checkPlatformStatus(ctx, installkey, hiveext.NutanixPlatformType, hiveext.NutanixPlatformType, swag.Bool(false))
+
+		By("Verify ClusterDeployment ReadyForInstallation")
+		checkAgentClusterInstallCondition(ctx, installkey, hiveext.ClusterRequirementsMetCondition, hiveext.ClusterAlreadyInstallingReason)
+		By("Delete ClusterDeployment")
+		err := kubeClient.Delete(ctx, getClusterDeploymentCRD(ctx, kubeClient, clusterKey))
+		Expect(err).To(BeNil())
+		By("Verify AgentClusterInstall was deleted")
+		Eventually(func() bool {
+			aci := &hiveext.AgentClusterInstall{}
+			err := kubeClient.Get(ctx, installkey, aci)
+			return apierrors.IsNotFound(err)
+		}, "30s", "10s").Should(Equal(true))
+		By("Verify ClusterDeployment Agents were deleted")
+		Eventually(func() int {
+			return len(getClusterDeploymentAgents(ctx, kubeClient, clusterKey).Items)
+		}, "2m", "2s").Should(Equal(0))
+	})
+
 	It("deploy vsphere platform", func() {
 		clusterDeploymentSpec.Platform = hivev1.Platform{VSphere: &vspherev1.Platform{}}
 		aciSpec.PlatformType = hiveext.VSpherePlatformType
