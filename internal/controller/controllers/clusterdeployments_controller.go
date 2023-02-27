@@ -645,6 +645,10 @@ func getPlatform(openshiftPlatformType hiveext.PlatformType) *models.Platform {
 		return &models.Platform{
 			Type: common.PlatformTypePtr(models.PlatformTypeBaremetal),
 		}
+	case hiveext.NutanixPlatformType:
+		return &models.Platform{
+			Type: common.PlatformTypePtr(models.PlatformTypeNutanix),
+		}
 	default:
 		return nil
 	}
@@ -662,6 +666,8 @@ func getPlatformType(platform *models.Platform) hiveext.PlatformType {
 		return hiveext.NonePlatformType
 	case models.PlatformTypeVsphere:
 		return hiveext.VSpherePlatformType
+	case models.PlatformTypeNutanix:
+		return hiveext.NutanixPlatformType
 	default:
 		return ""
 	}

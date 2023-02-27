@@ -3,6 +3,7 @@
 The Assisted Installer currently supports the following OpenShift platforms:
 - BareMetal
 - VSphere
+- Nutanix
 - None
 
 Select the platform in the AgentClusterInstall CR, via `spec.platformType`.
