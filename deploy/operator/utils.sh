@@ -134,9 +134,11 @@ function wait_for_boolean_field() {
 }
 
 function get_image_without_tag() {
-    # given "<registry>/<repository>/<project>:<tag>"
-    # return "<registry>/<repository>/<project>"
-    echo "${1}" | cut -d':' -f1 | cut -d'@' -f1
+    # given "<registry>/<repository>/<project>:<tag>" or
+    #       "<registry>/<repository>/<project>@sha256:<sha>" or
+    #       "<registry>:<port>/<repository>/<project>:<tag>"
+    # return "<registry>:<port>/<repository>/<project>"
+    echo "${1%:*}" | cut -d@ -f1
 }
 
 function get_image_namespace() {
