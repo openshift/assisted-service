@@ -82,7 +82,7 @@ spec:
     version: 412.86.202212081411-0
   - cpuArchitecture: x86_64
     openshiftVersion: '4.13'
-    url: https://mirror.openshift.com/pub/openshift-v4/x86_64/dependencies/rhcos/pre-release/latest-4.13/rhcos-4.13.0-ec.3-x86_64-live.x86_64.iso","version":"413.86.202302162343-0
+    url: https://mirror.openshift.com/pub/openshift-v4/x86_64/dependencies/rhcos/pre-release/latest-4.13/rhcos-4.13.0-ec.3-x86_64-live.x86_64.iso
     version: 413.86.202302162343-0
   - cpuArchitecture: arm64
     openshiftVersion: '4.13'
