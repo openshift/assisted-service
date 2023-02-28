@@ -88,7 +88,7 @@ func (g garbageCollector) PermanentlyDeleteUnregisteredClustersAndHosts() {
 	}
 }
 
-func (g garbageCollector) DeleteOrphanInfraEnvs() {
+func (g garbageCollector) DeleteOrphans() {
 	if !g.leaderElector.IsLeader() {
 		return
 	}
@@ -96,8 +96,13 @@ func (g garbageCollector) DeleteOrphanInfraEnvs() {
 	g.log.Debugf(
 		"Permanently deleting all infraenv that were not updated before %s",
 		olderThan)
-	if err := g.infraEnvApi.DeleteOrphanInfraEnvs(context.Background(), g.MaxGCInfraEnvsPerInterval, olderThan); err != nil {
-		g.log.WithError(err).Errorf("Failed deleting infraenvs")
-		return
+	ctx := context.Background()
+	if err := g.infraEnvApi.DeleteOrphanInfraEnvs(ctx, g.MaxGCInfraEnvsPerInterval, olderThan); err != nil {
+		g.log.WithError(err).Errorf("Failed to delete orphan infraenvs")
+	}
+
+	g.log.Debug("Permanently deleting all orphan hosts (hosts with no valid infraenv)")
+	if err := g.hostApi.DeleteOrphanHosts(ctx); err != nil {
+		g.log.WithError(err).Errorf("Failed to delete orphan hosts")
 	}
 }

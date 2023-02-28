@@ -83,6 +83,20 @@ func (mr *MockAPIMockRecorder) CancelInstallation(arg0, arg1, arg2, arg3 interfa
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CancelInstallation", reflect.TypeOf((*MockAPI)(nil).CancelInstallation), arg0, arg1, arg2, arg3)
 }
 
+// DeleteOrphanHosts mocks base method.
+func (m *MockAPI) DeleteOrphanHosts(arg0 context.Context) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteOrphanHosts", arg0)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DeleteOrphanHosts indicates an expected call of DeleteOrphanHosts.
+func (mr *MockAPIMockRecorder) DeleteOrphanHosts(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteOrphanHosts", reflect.TypeOf((*MockAPI)(nil).DeleteOrphanHosts), arg0)
+}
+
 // GetHostByKubeKey mocks base method.
 func (m *MockAPI) GetHostByKubeKey(arg0 types.NamespacedName) (*common.Host, error) {
 	m.ctrl.T.Helper()

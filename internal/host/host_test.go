@@ -4732,6 +4732,76 @@ var _ = Describe("Rebooting day2", func() {
 
 })
 
+var _ = Describe("Garbage Collection", func() {
+	var (
+		ctx     = context.Background()
+		manager *Manager
+		db      *gorm.DB
+		dbName  string
+		ctrl    *gomock.Controller
+
+		hostID1    strfmt.UUID
+		hostID2    strfmt.UUID
+		hostID3    strfmt.UUID
+		infraEnvID strfmt.UUID
+		clusterID  strfmt.UUID
+	)
+
+	BeforeEach(func() {
+		db, dbName = common.PrepareTestDB()
+
+		ctrl = gomock.NewController(GinkgoT())
+		manager = NewManager(common.GetTestLog(), db, nil, nil, nil, nil, nil, nil, defaultConfig, nil, nil, nil, false, nil)
+
+		hostID1 = strfmt.UUID(uuid.New().String())
+		hostID2 = strfmt.UUID(uuid.New().String())
+		hostID3 = strfmt.UUID(uuid.New().String())
+		infraEnvID = strfmt.UUID(uuid.New().String())
+		clusterID = strfmt.UUID(uuid.New().String())
+
+		hosts := []models.Host{
+			//non orphan host
+			{
+				ID:         &hostID1,
+				InfraEnvID: infraEnvID,
+				ClusterID:  &clusterID,
+			},
+			//orphan host
+			{
+				ID:         &hostID2,
+				InfraEnvID: hostID2,
+				ClusterID:  nil,
+			},
+			//unbound host
+			{
+				ID:         &hostID3,
+				InfraEnvID: infraEnvID,
+				ClusterID:  nil,
+			},
+		}
+		db.Create(hostutil.GenerateTestInfraEnv(infraEnvID))
+		db.Create(&hosts)
+	})
+
+	AfterEach(func() {
+		ctrl.Finish()
+		common.DeleteTestDB(db, dbName)
+	})
+
+	It("delete orphan hosts", func() {
+		err := manager.DeleteOrphanHosts(ctx)
+		Expect(err).To(BeNil())
+
+		ids := make([]string, 0)
+		reply := db.Model(&common.Host{}).Pluck("id", &ids)
+		Expect(reply.Error).To(BeNil())
+
+		Expect(funk.ContainsString(ids, hostID2.String())).To(BeFalse())
+		Expect(funk.ContainsString(ids, hostID3.String())).To(BeTrue())
+		Expect(funk.ContainsString(ids, hostID1.String())).To(BeTrue())
+	})
+})
+
 var _ = Describe("Notifying events", func() {
 	var (
 		ctx        = context.Background()
