@@ -59,6 +59,10 @@ control which disks are being created, use:
 ```
 DISKS=$(echo sd{b..d}) ./deploy.sh
 ```
+By default, the disks images are created under ```/tmp```. If you like to create them elsewhere set:
+```
+export DISKS_IMAGE_DIR=<path to a directory with enough free storage>
+```
 
 If you want to skip LSO installation (in case LSO is already installed), use:
 Some other configurations are also available:
