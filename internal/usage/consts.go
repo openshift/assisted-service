@@ -35,6 +35,10 @@ const (
 	ClusterManagedNetworkWithVMs string = "Cluster managed networking with VMs"
 	// ARM64 Architecture usage
 	CPUArchitectureARM64 string = "arm64 architecture"
+	// ppc64le Architecture usage
+	CPUArchitecturePpc64le string = "ppc64le architecture"
+	// s390x Architecture usage
+	CPUArchitectureS390x string = "s390x architecture"
 	// The install config overrides specified by for the cluster
 	InstallConfigOverrides string = "Install Config Overrides"
 	// SNO expansion with workers

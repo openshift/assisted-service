@@ -3733,6 +3733,8 @@ definitions:
               - 'CLUSTER_MANAGED_NETWORKING_WITH_VMS'
               - 'ARM64_ARCHITECTURE'
               - 'ARM64_ARCHITECTURE_WITH_CLUSTER_MANAGED_NETWORKING'
+              - 'PPC64LE_ARCHITECTURE'
+              - 'S390X_ARCHITECTURE'
               - 'SINGLE_NODE_EXPANSION'
               - 'LVM'
               - 'DUAL_STACK_NETWORKING'

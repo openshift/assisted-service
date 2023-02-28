@@ -50,6 +50,7 @@ const (
 	// rchos is sending aarch64 and not arm as arm64 arch
 	AARCH64CPUArchitecture = "aarch64"
 	PowerCPUArchitecture   = "ppc64le"
+	S390xCPUArchitecture   = "s390x"
 	MultiCPUArchitecture   = "multi"
 )
 
