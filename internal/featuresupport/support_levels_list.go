@@ -36,6 +36,14 @@ var SupportLevelsList = models.FeatureSupportLevels{
 				SupportLevel: swag.String(models.FeatureSupportLevelFeaturesItems0SupportLevelUnsupported),
 			},
 			{
+				FeatureID:    swag.String(models.FeatureSupportLevelFeaturesItems0FeatureIDPPC64LEARCHITECTURE),
+				SupportLevel: swag.String(models.FeatureSupportLevelFeaturesItems0SupportLevelUnsupported),
+			},
+			{
+				FeatureID:    swag.String(models.FeatureSupportLevelFeaturesItems0FeatureIDS390XARCHITECTURE),
+				SupportLevel: swag.String(models.FeatureSupportLevelFeaturesItems0SupportLevelUnsupported),
+			},
+			{
 				FeatureID:    swag.String(models.FeatureSupportLevelFeaturesItems0FeatureIDSINGLENODEEXPANSION),
 				SupportLevel: swag.String(models.FeatureSupportLevelFeaturesItems0SupportLevelUnsupported),
 			},
@@ -81,6 +89,14 @@ var SupportLevelsList = models.FeatureSupportLevels{
 				FeatureID:    swag.String(models.FeatureSupportLevelFeaturesItems0FeatureIDDUALSTACKVIPS),
 				SupportLevel: swag.String(models.FeatureSupportLevelFeaturesItems0SupportLevelUnsupported),
 			},
+			{
+				FeatureID:    swag.String(models.FeatureSupportLevelFeaturesItems0FeatureIDPPC64LEARCHITECTURE),
+				SupportLevel: swag.String(models.FeatureSupportLevelFeaturesItems0SupportLevelUnsupported),
+			},
+			{
+				FeatureID:    swag.String(models.FeatureSupportLevelFeaturesItems0FeatureIDS390XARCHITECTURE),
+				SupportLevel: swag.String(models.FeatureSupportLevelFeaturesItems0SupportLevelUnsupported),
+			},
 		},
 	},
 	&models.FeatureSupportLevel{
@@ -107,6 +123,14 @@ var SupportLevelsList = models.FeatureSupportLevels{
 			},
 			{
 				FeatureID:    swag.String(models.FeatureSupportLevelFeaturesItems0FeatureIDARM64ARCHITECTUREWITHCLUSTERMANAGEDNETWORKING),
+				SupportLevel: swag.String(models.FeatureSupportLevelFeaturesItems0SupportLevelUnsupported),
+			},
+			{
+				FeatureID:    swag.String(models.FeatureSupportLevelFeaturesItems0FeatureIDPPC64LEARCHITECTURE),
+				SupportLevel: swag.String(models.FeatureSupportLevelFeaturesItems0SupportLevelUnsupported),
+			},
+			{
+				FeatureID:    swag.String(models.FeatureSupportLevelFeaturesItems0FeatureIDS390XARCHITECTURE),
 				SupportLevel: swag.String(models.FeatureSupportLevelFeaturesItems0SupportLevelUnsupported),
 			},
 			{
@@ -155,6 +179,14 @@ var SupportLevelsList = models.FeatureSupportLevels{
 			},
 			{
 				FeatureID:    swag.String(models.FeatureSupportLevelFeaturesItems0FeatureIDARM64ARCHITECTUREWITHCLUSTERMANAGEDNETWORKING),
+				SupportLevel: swag.String(models.FeatureSupportLevelFeaturesItems0SupportLevelUnsupported),
+			},
+			{
+				FeatureID:    swag.String(models.FeatureSupportLevelFeaturesItems0FeatureIDPPC64LEARCHITECTURE),
+				SupportLevel: swag.String(models.FeatureSupportLevelFeaturesItems0SupportLevelUnsupported),
+			},
+			{
+				FeatureID:    swag.String(models.FeatureSupportLevelFeaturesItems0FeatureIDS390XARCHITECTURE),
 				SupportLevel: swag.String(models.FeatureSupportLevelFeaturesItems0SupportLevelUnsupported),
 			},
 			{
@@ -225,6 +257,14 @@ var SupportLevelsList = models.FeatureSupportLevels{
 				FeatureID:    swag.String(models.FeatureSupportLevelFeaturesItems0FeatureIDDUALSTACKVIPS),
 				SupportLevel: swag.String(models.FeatureSupportLevelFeaturesItems0SupportLevelUnsupported),
 			},
+			{
+				FeatureID:    swag.String(models.FeatureSupportLevelFeaturesItems0FeatureIDPPC64LEARCHITECTURE),
+				SupportLevel: swag.String(models.FeatureSupportLevelFeaturesItems0SupportLevelUnsupported),
+			},
+			{
+				FeatureID:    swag.String(models.FeatureSupportLevelFeaturesItems0FeatureIDS390XARCHITECTURE),
+				SupportLevel: swag.String(models.FeatureSupportLevelFeaturesItems0SupportLevelUnsupported),
+			},
 		},
 	},
 	&models.FeatureSupportLevel{
@@ -272,6 +312,14 @@ var SupportLevelsList = models.FeatureSupportLevels{
 			// Unsupported features
 			{
 				FeatureID:    swag.String(models.FeatureSupportLevelFeaturesItems0FeatureIDDUALSTACKVIPS),
+				SupportLevel: swag.String(models.FeatureSupportLevelFeaturesItems0SupportLevelUnsupported),
+			},
+			{
+				FeatureID:    swag.String(models.FeatureSupportLevelFeaturesItems0FeatureIDPPC64LEARCHITECTURE),
+				SupportLevel: swag.String(models.FeatureSupportLevelFeaturesItems0SupportLevelUnsupported),
+			},
+			{
+				FeatureID:    swag.String(models.FeatureSupportLevelFeaturesItems0FeatureIDS390XARCHITECTURE),
 				SupportLevel: swag.String(models.FeatureSupportLevelFeaturesItems0SupportLevelUnsupported),
 			},
 		},
@@ -323,6 +371,14 @@ var SupportLevelsList = models.FeatureSupportLevels{
 				SupportLevel: swag.String(models.FeatureSupportLevelFeaturesItems0SupportLevelDevPreview),
 			},
 			// Unsupported features
+			{
+				FeatureID:    swag.String(models.FeatureSupportLevelFeaturesItems0FeatureIDPPC64LEARCHITECTURE),
+				SupportLevel: swag.String(models.FeatureSupportLevelFeaturesItems0SupportLevelUnsupported),
+			},
+			{
+				FeatureID:    swag.String(models.FeatureSupportLevelFeaturesItems0FeatureIDS390XARCHITECTURE),
+				SupportLevel: swag.String(models.FeatureSupportLevelFeaturesItems0SupportLevelUnsupported),
+			},
 		},
 	},
 	&models.FeatureSupportLevel{
@@ -359,6 +415,14 @@ var SupportLevelsList = models.FeatureSupportLevels{
 			},
 			{
 				FeatureID:    swag.String(models.FeatureSupportLevelFeaturesItems0FeatureIDDUALSTACKVIPS),
+				SupportLevel: swag.String(models.FeatureSupportLevelFeaturesItems0SupportLevelSupported),
+			},
+			{
+				FeatureID:    swag.String(models.FeatureSupportLevelFeaturesItems0FeatureIDPPC64LEARCHITECTURE),
+				SupportLevel: swag.String(models.FeatureSupportLevelFeaturesItems0SupportLevelSupported),
+			},
+			{
+				FeatureID:    swag.String(models.FeatureSupportLevelFeaturesItems0FeatureIDS390XARCHITECTURE),
 				SupportLevel: swag.String(models.FeatureSupportLevelFeaturesItems0SupportLevelSupported),
 			},
 			// Tech-Preview features
