@@ -430,12 +430,13 @@ func main() {
 		}
 
 		//In operator-deployment, InfraEnv CR is responsible for managing the lifetime of the InfraEnv resource.
+		// same applies for hosts
 		if !Options.EnableKubeAPI {
 			deletionInfraEnvWorker := thread.New(
-				log.WithField("garbagecollector", "InfraEnv Deletion Worker"),
-				"InfraEnv Deletion Worker",
+				log.WithField("garbagecollector", "Orphan Deletion Worker"),
+				"Orphan Deletion Worker",
 				Options.InfraEnvDeletionWorkerInterval,
-				gc.DeleteOrphanInfraEnvs)
+				gc.DeleteOrphans)
 
 			deletionInfraEnvWorker.Start()
 			defer deletionInfraEnvWorker.Stop()
