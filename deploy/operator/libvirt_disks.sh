@@ -15,12 +15,13 @@ fi
 
 function create() {
     export SIZE=${SIZE:-50G}
+    export DISKS_IMAGE_DIR=${DISKS_IMAGE_DIR:-/tmp}
 
     echo "Creating libvirt disks and attaching them..."
     for node in ${NODES}; do
         possible_targets=(sd{b..z})
         for disk in ${DISKS}; do
-            img_path="/tmp/${node}-${disk}.img"
+            img_path="${DISKS_IMAGE_DIR}/${node}-${disk}.img"
             if [ ! -f "${img_path}" ]; then
                 qemu-img create -f raw "${img_path}" "${SIZE}"
             else
