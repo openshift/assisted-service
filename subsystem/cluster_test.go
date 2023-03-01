@@ -3643,10 +3643,6 @@ var _ = Describe("Preflight Cluster Requirements", func() {
 			CPUCores: 6,
 			RAMMib:   conversions.GibToMib(19),
 		}
-		masterLVMRequirements = models.ClusterHostRequirementsDetails{
-			CPUCores: 1,
-			RAMMib:   1200,
-		}
 	)
 
 	BeforeEach(func() {
@@ -3687,12 +3683,80 @@ var _ = Describe("Preflight Cluster Requirements", func() {
 				Expect(*op.Requirements.Master.Quantitative).To(BeEquivalentTo(masterCNVRequirements))
 				Expect(*op.Requirements.Worker.Quantitative).To(BeEquivalentTo(workerCNVRequirements))
 			case lvm.Operator.Name:
-				Expect(*op.Requirements.Master.Quantitative).To(BeEquivalentTo(masterLVMRequirements))
-				Expect(*op.Requirements.Worker.Quantitative).To(BeEquivalentTo(models.ClusterHostRequirementsDetails{}))
+				continue // lvm operator is tested separately
 			default:
 				Fail("Unexpected operator")
 			}
 		}
+	})
+})
+
+var _ = Describe("Preflight Cluster Requirements for lvms", func() {
+	var (
+		ctx                             = context.Background()
+		masterLVMRequirementsBefore4_13 = models.ClusterHostRequirementsDetails{
+			CPUCores: 1,
+			RAMMib:   1200,
+		}
+		masterLVMRequirements = models.ClusterHostRequirementsDetails{
+			CPUCores: 1,
+			RAMMib:   400,
+		}
+	)
+	It("should be reported for 4.12 cluster", func() {
+		var cluster, err = userBMClient.Installer.V2RegisterCluster(ctx, &installer.V2RegisterClusterParams{
+			NewClusterParams: &models.ClusterCreateParams{
+				Name:              swag.String("test-cluster"),
+				OpenshiftVersion:  swag.String("4.12.0"),
+				PullSecret:        swag.String(pullSecret),
+				BaseDNSDomain:     "example.com",
+				VipDhcpAllocation: swag.Bool(true),
+			},
+		})
+		Expect(err).ToNot(HaveOccurred())
+		clusterID := *cluster.GetPayload().ID
+		params := installer.V2GetPreflightRequirementsParams{ClusterID: clusterID}
+
+		response, err := userBMClient.Installer.V2GetPreflightRequirements(ctx, &params)
+		Expect(err).ToNot(HaveOccurred())
+		requirements := response.GetPayload()
+		for _, op := range requirements.Operators {
+			switch op.OperatorName {
+			case lvm.Operator.Name:
+				Expect(*op.Requirements.Master.Quantitative).To(BeEquivalentTo(masterLVMRequirementsBefore4_13))
+				Expect(*op.Requirements.Worker.Quantitative).To(BeEquivalentTo(models.ClusterHostRequirementsDetails{}))
+			}
+		}
+		_, err = userBMClient.Installer.V2DeregisterCluster(ctx, &installer.V2DeregisterClusterParams{ClusterID: clusterID})
+		Expect(err).NotTo(HaveOccurred())
+	})
+
+	It("should be reported for 4.13 cluster", func() {
+		var cluster, err = userBMClient.Installer.V2RegisterCluster(ctx, &installer.V2RegisterClusterParams{
+			NewClusterParams: &models.ClusterCreateParams{
+				Name:              swag.String("test-cluster"),
+				OpenshiftVersion:  swag.String("4.13.0"),
+				PullSecret:        swag.String(pullSecret),
+				BaseDNSDomain:     "example.com",
+				VipDhcpAllocation: swag.Bool(true),
+			},
+		})
+		Expect(err).ToNot(HaveOccurred())
+		clusterID := *cluster.GetPayload().ID
+		params := installer.V2GetPreflightRequirementsParams{ClusterID: clusterID}
+
+		response, err := userBMClient.Installer.V2GetPreflightRequirements(ctx, &params)
+		Expect(err).ToNot(HaveOccurred())
+		requirements := response.GetPayload()
+		for _, op := range requirements.Operators {
+			switch op.OperatorName {
+			case lvm.Operator.Name:
+				Expect(*op.Requirements.Master.Quantitative).To(BeEquivalentTo(masterLVMRequirements))
+				Expect(*op.Requirements.Worker.Quantitative).To(BeEquivalentTo(models.ClusterHostRequirementsDetails{}))
+			}
+		}
+		_, err = userBMClient.Installer.V2DeregisterCluster(ctx, &installer.V2DeregisterClusterParams{ClusterID: clusterID})
+		Expect(err).NotTo(HaveOccurred())
 	})
 })
 

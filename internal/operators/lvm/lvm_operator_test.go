@@ -60,10 +60,15 @@ var _ = Describe("Lvm Operator", func() {
 			res, _ := operator.GetHostRequirements(ctx, cluster, host)
 			Expect(res).Should(Equal(expectedResult))
 		},
-			table.Entry("host",
-				&common.Cluster{Cluster: models.Cluster{Hosts: []*models.Host{hostWithSufficientResources}}},
+			table.Entry("version is 4.13",
+				&common.Cluster{Cluster: models.Cluster{OpenshiftVersion: "4.13.0", Hosts: []*models.Host{hostWithSufficientResources}}},
 				hostWithSufficientResources,
-				&models.ClusterHostRequirementsDetails{CPUCores: operator.config.LvmCPUPerHost, RAMMib: operator.config.LvmMemoryPerHostMiB},
+				&models.ClusterHostRequirementsDetails{CPUCores: operator.config.LvmCPUPerHost, RAMMib: LvmsMemoryRequirement},
+			),
+			table.Entry("version is 4.12",
+				&common.Cluster{Cluster: models.Cluster{OpenshiftVersion: "4.12.0", Hosts: []*models.Host{hostWithSufficientResources}}},
+				hostWithSufficientResources,
+				&models.ClusterHostRequirementsDetails{CPUCores: operator.config.LvmCPUPerHost, RAMMib: LvmsMemoryRequirementBefore4_13},
 			),
 		)
 	})
