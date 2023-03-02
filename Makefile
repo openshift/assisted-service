@@ -494,6 +494,9 @@ ifeq ($(CI), true)
 	./hack/publish-codecov.sh
 endif
 
+display-coverage:
+	./hack/display_cover_profile.sh
+
 run-db-container:
 	$(CONTAINER_COMMAND) ps -q --filter "name=postgres" | xargs -r $(CONTAINER_COMMAND) kill && sleep 3
 	$(CONTAINER_COMMAND) run -d  --rm --tmpfs /var/lib/pgsql/data --name postgres -e POSTGRESQL_ADMIN_PASSWORD=admin -e POSTGRESQL_MAX_CONNECTIONS=10000 -p 127.0.0.1:5432:5432 \
