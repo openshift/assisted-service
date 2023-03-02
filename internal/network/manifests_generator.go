@@ -114,12 +114,7 @@ spec:
     ignition:
       version: 3.1.0
     storage:
-      files:{{if .DNSMASQ_CONFIG_FILE}}
-        - contents:
-            source: data:text/plain;charset=utf-8;base64,{{.DNSMASQ_CONFIG_FILE}}
-          mode: 420
-          path: /etc/dnsmasq.conf
-          overwrite: true{{end}}
+      files:
         - contents:
             source: data:text/plain;charset=utf-8;base64,{{.DNSMASQ_CONTENT}}
           mode: 420
@@ -150,16 +145,6 @@ spec:
 
             [Install]
             WantedBy=multi-user.target
-`
-
-// Setting this content ignores the default configuration
-// that sets local_interfaces=lo and bind_addresses that appeared as default values in dnsmasq 2.85
-// that is part of 4.13 rhel9. We remove them as we can't bind interfaces cause of cni
-// and use local doesn't allow to listen on all addresses
-const dnsmasqConfigFor_413 = `
-user=dnsmasq
-group=dnsmasq
-conf-dir=/etc/dnsmasq.d,.rpmnew,.rpmsave,.rpmorig
 `
 
 const schedulableMastersManifestPatch = `---
@@ -413,12 +398,6 @@ func createDnsmasqForSingleNode(log logrus.FieldLogger, cluster *common.Cluster)
 		"DNSMASQ_CONTENT":       dnsmasqContent,
 		"FORCE_DNS_SCRIPT":      forceDnsDispatcherScriptContent,
 		"UNMANAGED_RESOLV_CONF": base64.StdEncoding.EncodeToString([]byte(unmanagedResolvConf)),
-	}
-
-	// Default is less than 4.13, no need to check error, if version not set no need to add additional params
-	rhel9Version, _ := common.VersionGreaterOrEqual(cluster.OpenshiftVersion, "4.13.0-0.0")
-	if rhel9Version {
-		manifestParams["DNSMASQ_CONFIG_FILE"] = base64.StdEncoding.EncodeToString([]byte(dnsmasqConfigFor_413))
 	}
 
 	content, err = fillTemplate(manifestParams, dnsMachineConfigManifest, log)
