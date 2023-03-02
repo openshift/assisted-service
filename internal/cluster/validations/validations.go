@@ -931,3 +931,13 @@ func ValidateIgnitionImageSize(config string) error {
 
 	return nil
 }
+
+func ValidateArchitectureWithPlatform(architecture *string, platform *models.Platform) error {
+	if platform != nil && platform.Type != nil && *platform.Type == models.PlatformTypeNutanix {
+		if swag.StringValue(architecture) != common.X86CPUArchitecture {
+			return errors.New("only x86-64 CPU architecture is supported on Nutanix clusters")
+		}
+	}
+
+	return nil
+}

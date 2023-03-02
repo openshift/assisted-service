@@ -445,6 +445,9 @@ func (b *bareMetalInventory) validateRegisterClusterInternalParams(params *insta
 		if err := validations.ValidateHighAvailabilityModeWithPlatform(params.NewClusterParams.HighAvailabilityMode, params.NewClusterParams.Platform); err != nil {
 			return common.NewApiError(http.StatusBadRequest, err)
 		}
+		if err := validations.ValidateArchitectureWithPlatform(&params.NewClusterParams.CPUArchitecture, params.NewClusterParams.Platform); err != nil {
+			return common.NewApiError(http.StatusBadRequest, err)
+		}
 	}
 
 	return nil
@@ -1915,6 +1918,10 @@ func (b *bareMetalInventory) v2UpdateClusterInternal(ctx context.Context, params
 	}
 
 	if err = validations.ValidateHighAvailabilityModeWithPlatform(cluster.HighAvailabilityMode, platform); err != nil {
+		return nil, common.NewApiError(http.StatusBadRequest, err)
+	}
+
+	if err = validations.ValidateArchitectureWithPlatform(&cluster.CPUArchitecture, platform); err != nil {
 		return nil, common.NewApiError(http.StatusBadRequest, err)
 	}
 
