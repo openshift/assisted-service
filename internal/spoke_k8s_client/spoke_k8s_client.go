@@ -57,6 +57,7 @@ type SpokeK8sClient interface {
 	GetNode(name string) (*corev1.Node, error)
 	PatchNodeLabels(nodeName string, nodeLabels string) error
 	PatchMachineConfigPoolPaused(pause bool, mcpName string) error
+	DeleteNode(ctx context.Context, name string) error
 }
 
 type spokeK8sClient struct {
@@ -225,6 +226,10 @@ func (c *spokeK8sClient) PatchMachineConfigPoolPaused(pause bool, mcpName string
 	pausePatch := []byte(fmt.Sprintf("{\"spec\":{\"paused\":%t}}", pause))
 	c.log.Infof("Setting pause MCP %s to %t", mcpName, pause)
 	return c.Patch(context.TODO(), mcp, client.RawPatch(types.MergePatchType, pausePatch))
+}
+
+func (c *spokeK8sClient) DeleteNode(ctx context.Context, name string) error {
+	return c.nodesClient.Delete(ctx, name, metav1.DeleteOptions{})
 }
 
 func GetKubeClientSchemes() *runtime.Scheme {

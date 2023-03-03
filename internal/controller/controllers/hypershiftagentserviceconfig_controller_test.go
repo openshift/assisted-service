@@ -654,3 +654,7 @@ func (c fakeSpokeK8sClient) PatchNodeLabels(name, labels string) error {
 func (c fakeSpokeK8sClient) PatchMachineConfigPoolPaused(pause bool, mcpName string) error {
 	return nil
 }
+
+func (c fakeSpokeK8sClient) DeleteNode(ctx context.Context, name string) error {
+	return nil
+}
