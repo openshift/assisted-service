@@ -23,11 +23,11 @@ import (
 	"github.com/openshift/assisted-service/internal/metrics"
 	"github.com/openshift/assisted-service/internal/operators"
 	"github.com/openshift/assisted-service/internal/provider/registry"
+	"github.com/openshift/assisted-service/internal/stream"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/leader"
 	logutil "github.com/openshift/assisted-service/pkg/log"
 	"github.com/openshift/assisted-service/pkg/s3wrapper"
-	"github.com/openshift/assisted-service/pkg/stream"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
@@ -127,7 +127,7 @@ type API interface {
 type Manager struct {
 	log                           logrus.FieldLogger
 	db                            *gorm.DB
-	stream                        stream.EventStreamWriter
+	stream                        stream.Notifier
 	instructionApi                hostcommands.InstructionApi
 	hwValidator                   hardware.Validator
 	eventsHandler                 eventsapi.Handler
@@ -142,11 +142,10 @@ type Manager struct {
 	objectHandler                 s3wrapper.API
 }
 
-func NewManager(log logrus.FieldLogger, db *gorm.DB, eventStream stream.EventStreamWriter, eventsHandler eventsapi.Handler, hwValidator hardware.Validator, instructionApi hostcommands.InstructionApi,
+func NewManager(log logrus.FieldLogger, db *gorm.DB, notificationStream stream.Notifier, eventsHandler eventsapi.Handler, hwValidator hardware.Validator, instructionApi hostcommands.InstructionApi,
 	hwValidatorCfg *hardware.ValidatorCfg, metricApi metrics.API, config *Config, leaderElector leader.ElectorInterface, operatorsApi operators.API, providerRegistry registry.ProviderRegistry, kubeApiEnabled bool, objectHandler s3wrapper.API) *Manager {
 	th := &transitionHandler{
 		db:            db,
-		stream:        eventStream,
 		log:           log,
 		config:        config,
 		eventsHandler: eventsHandler,
@@ -156,7 +155,7 @@ func NewManager(log logrus.FieldLogger, db *gorm.DB, eventStream stream.EventStr
 	return &Manager{
 		log:            log,
 		db:             db,
-		stream:         eventStream,
+		stream:         notificationStream,
 		instructionApi: instructionApi,
 		hwValidator:    hwValidator,
 		eventsHandler:  eventsHandler,
@@ -566,26 +565,12 @@ func (m *Manager) updateHostAndNotify(ctx context.Context, db *gorm.DB, h *model
 		return response
 	}
 	if host != nil {
-		m.notifyEventStream(ctx, &host.Host)
+		err = m.stream.Notify(ctx, host)
+		if err != nil {
+			m.log.WithError(err).Warning("failed to notify host update event")
+		}
 	}
 	return response
-}
-
-func (m *Manager) notifyEventStream(ctx context.Context, host *models.Host) {
-	if m.stream == nil || host == nil {
-		return
-	}
-	key := ""
-	if host.ClusterID != nil {
-		key = host.ClusterID.String()
-	}
-	err := m.stream.Write(ctx, "HostState", []byte(key), host)
-	if err != nil {
-		m.log.WithError(err).WithFields(logrus.Fields{
-			"host_id":    host.ID,
-			"cluster_id": host.ClusterID,
-		}).Warn("failed to stream event for host")
-	}
 }
 
 func (m *Manager) UpdateInstallProgress(ctx context.Context, h *models.Host, progress *models.HostProgress) error {

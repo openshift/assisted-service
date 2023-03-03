@@ -8,6 +8,7 @@ import (
 
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
+	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
@@ -15,6 +16,7 @@ import (
 	"github.com/onsi/gomega/types"
 	"github.com/openshift/assisted-service/internal/common"
 	eventgen "github.com/openshift/assisted-service/internal/common/events"
+	commontesting "github.com/openshift/assisted-service/internal/common/testing"
 	eventsapi "github.com/openshift/assisted-service/internal/events/api"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/auth"
@@ -28,6 +30,7 @@ import (
 
 var _ = Describe("Events library", func() {
 	var (
+		ctrl      *gomock.Controller
 		db        *gorm.DB
 		theEvents eventsapi.Handler
 		dbName    string
@@ -40,7 +43,8 @@ var _ = Describe("Events library", func() {
 	)
 	BeforeEach(func() {
 		db, dbName = common.PrepareTestDB()
-		theEvents = New(db, nil, nil, logrus.WithField("pkg", "events"))
+		ctrl = gomock.NewController(GinkgoT())
+		theEvents = New(db, nil, commontesting.GetDummyNotificationStream(ctrl), logrus.WithField("pkg", "events"))
 		c1 := common.Cluster{Cluster: models.Cluster{ID: &cluster1, OpenshiftClusterID: strfmt.UUID(uuid.New().String()), UserName: "user1", OrgID: "org1"}}
 		Expect(db.Create(&c1).Error).ShouldNot(HaveOccurred())
 		c2 := common.Cluster{Cluster: models.Cluster{ID: &cluster2, OpenshiftClusterID: strfmt.UUID(uuid.New().String()), UserName: "user2", OrgID: "org1"}}
