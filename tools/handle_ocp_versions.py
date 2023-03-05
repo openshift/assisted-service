@@ -46,7 +46,7 @@ def verify_release_version(ocp_version: str, release_image: str, release_version
     """
 
     oc_version = get_oc_version(release_image)
-    assert oc_version == release_version, (f"{release_image} full version is {oc_version} not {release_version}")
+    assert release_version.startswith(oc_version), f"{oc_version} is not a prefix of {release_version}"
 
     # Valid delimiters for versions are "." as well as "-". This is in order to cover extraction
     # for all the following combinations

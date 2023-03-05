@@ -94,7 +94,7 @@
             "s390x"
         ],
         "url": "quay.io/openshift-release-dev/ocp-release:4.12.0-multi",
-        "version": "4.12.0"
+        "version": "4.12.0-multi"
     },
     {
         "openshift_version": "4.13",
@@ -127,6 +127,6 @@
             "s390x"
         ],
         "url": "quay.io/openshift-release-dev/ocp-release:4.13.0-ec.3-multi",
-        "version": "4.13.0-ec.3"
+        "version": "4.13.0-ec.3-multi"
     }
 ]
