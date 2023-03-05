@@ -156,10 +156,13 @@ func (c *S3Client) uploadStream(ctx context.Context, reader io.Reader, objectNam
 		return err
 	}
 
+	cacheControl := "no-cache"
+
 	_, err := uploader.Upload(&s3manager.UploadInput{
-		Bucket: aws.String(bucket),
-		Key:    aws.String(objectName),
-		Body:   reader,
+		Bucket:       aws.String(bucket),
+		Key:          aws.String(objectName),
+		Body:         reader,
+		CacheControl: &cacheControl,
 	})
 	if err != nil {
 		err = errors.Wrapf(err, "Unable to upload %s to bucket %s", objectName, bucket)

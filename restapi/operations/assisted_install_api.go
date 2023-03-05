@@ -150,6 +150,9 @@ func NewAssistedInstallAPI(spec *loads.Document) *AssistedInstallAPI {
 		InstallerV2UpdateClusterHandler: installer.V2UpdateClusterHandlerFunc(func(params installer.V2UpdateClusterParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation installer.V2UpdateCluster has not yet been implemented")
 		}),
+		ManifestsV2UpdateClusterManifestHandler: manifests.V2UpdateClusterManifestHandlerFunc(func(params manifests.V2UpdateClusterManifestParams, principal interface{}) middleware.Responder {
+			return middleware.NotImplemented("operation manifests.V2UpdateClusterManifest has not yet been implemented")
+		}),
 		InstallerV2UploadLogsHandler: installer.V2UploadLogsHandlerFunc(func(params installer.V2UploadLogsParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation installer.V2UploadLogs has not yet been implemented")
 		}),
@@ -421,6 +424,8 @@ type AssistedInstallAPI struct {
 	OperatorsV2ListSupportedOperatorsHandler operators.V2ListSupportedOperatorsHandler
 	// InstallerV2UpdateClusterHandler sets the operation handler for the v2 update cluster operation
 	InstallerV2UpdateClusterHandler installer.V2UpdateClusterHandler
+	// ManifestsV2UpdateClusterManifestHandler sets the operation handler for the v2 update cluster manifest operation
+	ManifestsV2UpdateClusterManifestHandler manifests.V2UpdateClusterManifestHandler
 	// InstallerV2UploadLogsHandler sets the operation handler for the v2 upload logs operation
 	InstallerV2UploadLogsHandler installer.V2UploadLogsHandler
 	// InstallerV2CompleteInstallationHandler sets the operation handler for the v2 complete installation operation
@@ -696,6 +701,9 @@ func (o *AssistedInstallAPI) Validate() error {
 	}
 	if o.InstallerV2UpdateClusterHandler == nil {
 		unregistered = append(unregistered, "installer.V2UpdateClusterHandler")
+	}
+	if o.ManifestsV2UpdateClusterManifestHandler == nil {
+		unregistered = append(unregistered, "manifests.V2UpdateClusterManifestHandler")
 	}
 	if o.InstallerV2UploadLogsHandler == nil {
 		unregistered = append(unregistered, "installer.V2UploadLogsHandler")
@@ -1063,6 +1071,10 @@ func (o *AssistedInstallAPI) initHandlerCache() {
 		o.handlers["PATCH"] = make(map[string]http.Handler)
 	}
 	o.handlers["PATCH"]["/v2/clusters/{cluster_id}"] = installer.NewV2UpdateCluster(o.context, o.InstallerV2UpdateClusterHandler)
+	if o.handlers["PATCH"] == nil {
+		o.handlers["PATCH"] = make(map[string]http.Handler)
+	}
+	o.handlers["PATCH"]["/v2/clusters/{cluster_id}/manifests"] = manifests.NewV2UpdateClusterManifest(o.context, o.ManifestsV2UpdateClusterManifestHandler)
 	if o.handlers["POST"] == nil {
 		o.handlers["POST"] = make(map[string]http.Handler)
 	}

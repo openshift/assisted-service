@@ -2930,6 +2930,60 @@ paths:
           schema:
             $ref: '#/definitions/error'
 
+    patch:
+      tags:
+        - manifests
+      security:
+        - userAuth: []
+      description: Updates a manifest for customizing cluster installation.
+      operationId: V2UpdateClusterManifest
+      parameters:
+        - in: path
+          name: cluster_id
+          description: The cluster for which a new manifest should be updated.
+          type: string
+          format: uuid
+          required: true
+        - in: body
+          name: UpdateManifestParams
+          description: The manifest to be updated.
+          required: true
+          schema:
+            $ref: '#/definitions/update-manifest-params'
+      responses:
+        "200":
+          description: Success.
+          schema:
+            $ref: '#/definitions/manifest'
+        "400":
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+        "401":
+          description: Unauthorized.
+          schema:
+            $ref: '#/definitions/infra_error'
+        "403":
+          description: Forbidden.
+          schema:
+            $ref: '#/definitions/infra_error'
+        "404":
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+        "405":
+          description: Method Not Allowed.
+          schema:
+            $ref: '#/definitions/error'
+        "409":
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+        "500":
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+
     delete:
       tags:
         - manifests
@@ -6548,6 +6602,39 @@ definitions:
     required:
       - file_name
       - content
+
+  update-manifest-params:
+    type: object
+    properties:
+      folder:
+        description: The folder for the manifest to modify.
+        type: string
+        enum: [manifests,openshift]
+        default: manifests
+        x-nullable: false
+      file_name:
+        description: The file name for the manifest to modify.
+        type: string
+        pattern: '^[^/]*\.(yaml|yml|json)$'
+        x-nullable: false
+      updated_folder:
+        description: The new folder for the manifest. Manifests can be placed in 'manifests' or 'openshift' directories.
+        type: string
+        enum: [manifests,openshift]
+        default: manifests
+        x-nullable: true
+      updated_file_name:
+        description: The new file name for the manifest.
+        type: string
+        pattern: '^[^/]*\.(yaml|yml|json)$'
+        x-nullable: true
+      updated_content:
+        description: The new base64 encoded manifest content.
+        type: string
+        x-nullable: true
+    required:
+      - folder
+      - file_name
 
   host-ignition-params:
     properties:
