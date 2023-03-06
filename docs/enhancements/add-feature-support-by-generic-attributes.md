@@ -1,10 +1,12 @@
 ---
 title: Add supported-features endpoint
 authors:
-- "@eliorerz"
-  creation-date: 2023-02-23
-  last-updated: 2023-03-05
+  - "@eliorerz"
+creation-date: 2023-02-23
+last-updated: 2023-03-06
 ---
+
+
 
 # Add supported-features endpoint
 
