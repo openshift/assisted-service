@@ -50,6 +50,7 @@ import (
 	"github.com/openshift/assisted-service/internal/provider/registry"
 	"github.com/openshift/assisted-service/internal/spec"
 	"github.com/openshift/assisted-service/internal/spoke_k8s_client"
+	"github.com/openshift/assisted-service/internal/uploader"
 	"github.com/openshift/assisted-service/internal/usage"
 	"github.com/openshift/assisted-service/internal/versions"
 	"github.com/openshift/assisted-service/models"
@@ -116,6 +117,7 @@ var Options struct {
 	OperatorsConfig                      operators.Options
 	GCConfig                             garbagecollector.Config
 	ClusterStateMonitorInterval          time.Duration `envconfig:"CLUSTER_MONITOR_INTERVAL" default:"10s"`
+	ClusterEventsUploaderInterval        time.Duration `envconfig:"CLUSTER_EVENTS_UPLOADER_INTERVAL" default:"15m"`
 	S3Config                             s3wrapper.Config
 	HostStateMonitorInterval             time.Duration `envconfig:"HOST_MONITOR_INTERVAL" default:"8s"`
 	Versions                             versions.Versions
@@ -134,6 +136,7 @@ var Options struct {
 	LeaderConfig                         leader.Config
 	ValidationsConfig                    validations.Config
 	ManifestsGeneratorConfig             network.Config
+	UploaderConfig                       uploader.Config
 	EnableKubeAPI                        bool `envconfig:"ENABLE_KUBE_API" default:"false"`
 	InfraEnvConfig                       controllers.InfraEnvConfig
 	CheckClusterVersion                  bool          `envconfig:"CHECK_CLUSTER_VERSION" default:"false"`
@@ -372,13 +375,21 @@ func main() {
 
 	failOnError(autoMigrationWithLeader(autoMigrationLeader, db, log), "Failed auto migration process")
 
+	Options.UploaderConfig.AssistedServiceVersion = versions.GetRevision()
+	uploadClient := uploader.NewClient(&Options.UploaderConfig, db, log, ocpClient)
+
 	hostApi := host.NewManager(log.WithField("pkg", "host-state"), db, eventStreamWriter, eventsHandler, hwValidator,
 		instructionApi, &Options.HWValidatorConfig, metricsManager, &Options.HostConfig, lead, operatorsManager, providerRegistry, Options.EnableKubeAPI, objectHandler)
 	dnsApi := dns.NewDNSHandler(Options.BMConfig.BaseDNSDomains, log)
 	manifestsGenerator := network.NewManifestsGenerator(manifestsApi, Options.ManifestsGeneratorConfig)
 	clusterApi := cluster.NewManager(Options.ClusterConfig, log.WithField("pkg", "cluster-state"), db,
-		eventStreamWriter, eventsHandler, hostApi, metricsManager, manifestsGenerator, lead, operatorsManager, ocmClient, objectHandler, dnsApi, authHandler)
+		eventStreamWriter, eventsHandler, uploadClient, hostApi, metricsManager, manifestsGenerator, lead, operatorsManager, ocmClient, objectHandler, dnsApi, authHandler)
 	infraEnvApi := infraenv.NewManager(log.WithField("pkg", "host-state"), db, objectHandler)
+
+	clusterEventsUploader := thread.New(
+		log.WithField("pkg", "cluster-events-uploader"), "Cluster Events Uploader", Options.ClusterEventsUploaderInterval, clusterApi.UploadEvents)
+	clusterEventsUploader.Start()
+	defer clusterEventsUploader.Stop()
 
 	clusterStateMonitor := thread.New(
 		log.WithField("pkg", "cluster-monitor"), "Cluster State Monitor", Options.ClusterStateMonitorInterval, clusterApi.ClusterMonitoring)
