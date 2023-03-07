@@ -98,6 +98,7 @@ type API interface {
 	// Refresh state in case of hosts update
 	RefreshStatus(ctx context.Context, c *common.Cluster, db *gorm.DB) (*common.Cluster, error)
 	ClusterMonitoring()
+	IsOperatorMonitored(c *common.Cluster, operatorName string) bool
 	IsOperatorAvailable(c *common.Cluster, operatorName string) bool
 	UploadIngressCert(c *common.Cluster) (err error)
 	VerifyClusterUpdatability(c *common.Cluster) (err error)
@@ -675,6 +676,15 @@ func CanDownloadKubeconfig(c *common.Cluster) (err error) {
 	}
 
 	return err
+}
+
+func (m *Manager) IsOperatorMonitored(c *common.Cluster, operatorName string) bool {
+	for _, o := range c.MonitoredOperators {
+		if o.Name == operatorName {
+			return true
+		}
+	}
+	return false
 }
 
 func (m *Manager) IsOperatorAvailable(c *common.Cluster, operatorName string) bool {
