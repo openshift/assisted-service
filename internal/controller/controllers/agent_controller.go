@@ -111,11 +111,12 @@ func (r *AgentReconciler) Reconcile(origCtx context.Context, req ctrl.Request) (
 
 	agent := &aiv1beta1.Agent{}
 
-	err := r.Get(ctx, req.NamespacedName, agent)
-	if err != nil {
+	if err := r.Get(ctx, req.NamespacedName, agent); err != nil {
 		log.WithError(err).Errorf("Failed to get resource %s", req.NamespacedName)
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
+	log = log.WithFields(logrus.Fields{"hostname": getAgentHostname(agent)})
+
 	origAgent := agent.DeepCopy()
 	if agent.ObjectMeta.Labels == nil {
 		agent.ObjectMeta.Labels = make(map[string]string)
@@ -125,7 +126,7 @@ func (r *AgentReconciler) Reconcile(origCtx context.Context, req ctrl.Request) (
 		// Register a finalizer if it is absent.
 		if !funk.ContainsString(agent.GetFinalizers(), AgentFinalizerName) {
 			controllerutil.AddFinalizer(agent, AgentFinalizerName)
-			if err = r.Update(ctx, agent); err != nil {
+			if err := r.Update(ctx, agent); err != nil {
 				log.WithError(err).Errorf("failed to add finalizer %s to resource %s %s", AgentFinalizerName, agent.Name, agent.Namespace)
 			}
 			// After update there should not be any more changes on the object
@@ -134,15 +135,36 @@ func (r *AgentReconciler) Reconcile(origCtx context.Context, req ctrl.Request) (
 		}
 	} else { // agent is being deleted
 		if funk.ContainsString(agent.GetFinalizers(), AgentFinalizerName) {
+			if _, has_annotation := agent.GetAnnotations()[BMH_FINALIZER_NAME]; has_annotation {
+				// wait for BMH to be deleted
+				if foundBMH, err := r.bmhExists(ctx, agent); err != nil || foundBMH {
+					if err != nil {
+						log.WithError(err).Warnf("failed to determine if BMH exists for agent")
+					}
+					log.Info("waiting for BMH to be deleted")
+					return ctrl.Result{RequeueAfter: defaultRequeueAfterOnError}, err
+				}
+				// delete spoke node
+				spokeClient, err := r.spokeKubeClient(ctx, agent.Spec.ClusterDeploymentName)
+				if err != nil {
+					log.WithError(err).Error("failed to create spoke client, node will not be removed")
+				} else {
+					nodeName := getAgentHostname(agent)
+					if err := spokeClient.DeleteNode(ctx, nodeName); err != nil {
+						log.WithError(err).Errorf("failed to delete spoke node %s", nodeName)
+					} else {
+						log.Infof("spoke node %s deleted", nodeName)
+					}
+				}
+			}
 			// deletion finalizer found, deregister the backend host and delete the agent
-			reply, cleanUpErr := r.deregisterHostIfNeeded(ctx, log, req.NamespacedName)
-			if cleanUpErr != nil {
-				log.WithError(cleanUpErr).Errorf("failed to run pre-deletion cleanup for finalizer %s on resource %s %s", AgentFinalizerName, agent.Name, agent.Namespace)
+			if reply, err := r.deregisterHostIfNeeded(ctx, log, req.NamespacedName); err != nil {
+				log.WithError(err).Errorf("failed to run pre-deletion cleanup for finalizer %s on resource %s %s", AgentFinalizerName, agent.Name, agent.Namespace)
 				return reply, err
 			}
 			// remove our finalizer from the list and update it.
 			controllerutil.RemoveFinalizer(agent, AgentFinalizerName)
-			if err = r.Update(ctx, agent); err != nil {
+			if err := r.Update(ctx, agent); err != nil {
 				log.WithError(err).Errorf("failed to remove finalizer %s from resource %s %s", AgentFinalizerName, agent.Name, agent.Namespace)
 				return ctrl.Result{Requeue: true}, err
 			}
