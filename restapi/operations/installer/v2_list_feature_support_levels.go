@@ -32,7 +32,7 @@ func NewV2ListFeatureSupportLevels(ctx *middleware.Context, handler V2ListFeatur
 /*
 	V2ListFeatureSupportLevels swagger:route GET /v2/feature-support-levels installer v2ListFeatureSupportLevels
 
-Retrieves the support levels for features for each OpenShift version.
+(DEPRECATED) Retrieves the support levels for features for each OpenShift version.
 */
 type V2ListFeatureSupportLevels struct {
 	Context *middleware.Context

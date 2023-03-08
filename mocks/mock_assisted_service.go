@@ -134,6 +134,34 @@ func (mr *MockInstallerAPIMockRecorder) GetInfraEnvPresignedFileURL(arg0, arg1 i
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetInfraEnvPresignedFileURL", reflect.TypeOf((*MockInstallerAPI)(nil).GetInfraEnvPresignedFileURL), arg0, arg1)
 }
 
+// GetSupportedArchitectures mocks base method.
+func (m *MockInstallerAPI) GetSupportedArchitectures(arg0 context.Context, arg1 installer.GetSupportedArchitecturesParams) middleware.Responder {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetSupportedArchitectures", arg0, arg1)
+	ret0, _ := ret[0].(middleware.Responder)
+	return ret0
+}
+
+// GetSupportedArchitectures indicates an expected call of GetSupportedArchitectures.
+func (mr *MockInstallerAPIMockRecorder) GetSupportedArchitectures(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSupportedArchitectures", reflect.TypeOf((*MockInstallerAPI)(nil).GetSupportedArchitectures), arg0, arg1)
+}
+
+// GetSupportedFeatures mocks base method.
+func (m *MockInstallerAPI) GetSupportedFeatures(arg0 context.Context, arg1 installer.GetSupportedFeaturesParams) middleware.Responder {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetSupportedFeatures", arg0, arg1)
+	ret0, _ := ret[0].(middleware.Responder)
+	return ret0
+}
+
+// GetSupportedFeatures indicates an expected call of GetSupportedFeatures.
+func (mr *MockInstallerAPIMockRecorder) GetSupportedFeatures(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSupportedFeatures", reflect.TypeOf((*MockInstallerAPI)(nil).GetSupportedFeatures), arg0, arg1)
+}
+
 // ListClusterHosts mocks base method.
 func (m *MockInstallerAPI) ListClusterHosts(arg0 context.Context, arg1 installer.ListClusterHostsParams) middleware.Responder {
 	m.ctrl.T.Helper()

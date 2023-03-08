@@ -61,6 +61,12 @@ type InstallerAPI interface {
 	/* GetInfraEnvPresignedFileURL Creates a new pre-signed download URL for the infra-env. */
 	GetInfraEnvPresignedFileURL(ctx context.Context, params installer.GetInfraEnvPresignedFileURLParams) middleware.Responder
 
+	/* GetSupportedArchitectures Retrieves the architecture support-levels for each OpenShift version. */
+	GetSupportedArchitectures(ctx context.Context, params installer.GetSupportedArchitecturesParams) middleware.Responder
+
+	/* GetSupportedFeatures Retrieves the features support levels for each OpenShift version. */
+	GetSupportedFeatures(ctx context.Context, params installer.GetSupportedFeaturesParams) middleware.Responder
+
 	/* ListClusterHosts Get a list of cluster hosts according to supplied filters. */
 	ListClusterHosts(ctx context.Context, params installer.ListClusterHostsParams) middleware.Responder
 
@@ -151,7 +157,7 @@ type InstallerAPI interface {
 	/* V2GetPreflightRequirements Get preflight requirements for a cluster. */
 	V2GetPreflightRequirements(ctx context.Context, params installer.V2GetPreflightRequirementsParams) middleware.Responder
 
-	/* V2ImportCluster Import an AI cluster using minimal data assosiated with existing OCP cluster, in order to allow adding day2 hosts to that cluster */
+	/* V2ImportCluster Import an AI cluster using minimal data associated with existing OCP cluster, in order to allow adding day2 hosts to that cluster */
 	V2ImportCluster(ctx context.Context, params installer.V2ImportClusterParams) middleware.Responder
 
 	/* V2InstallCluster Installs the OpenShift cluster. */
@@ -163,7 +169,7 @@ type InstallerAPI interface {
 	/* V2ListClusters Retrieves the list of OpenShift clusters. */
 	V2ListClusters(ctx context.Context, params installer.V2ListClustersParams) middleware.Responder
 
-	/* V2ListFeatureSupportLevels Retrieves the support levels for features for each OpenShift version. */
+	/* V2ListFeatureSupportLevels (DEPRECATED) Retrieves the support levels for features for each OpenShift version. */
 	V2ListFeatureSupportLevels(ctx context.Context, params installer.V2ListFeatureSupportLevelsParams) middleware.Responder
 
 	/* V2ListHosts Retrieves the list of OpenShift hosts that belong the infra-env. */
@@ -424,6 +430,16 @@ func HandlerAPI(c Config) (http.Handler, *operations.AssistedInstallAPI, error) 
 		ctx := params.HTTPRequest.Context()
 		ctx = storeAuth(ctx, principal)
 		return c.InstallerAPI.GetInfraEnvPresignedFileURL(ctx, params)
+	})
+	api.InstallerGetSupportedArchitecturesHandler = installer.GetSupportedArchitecturesHandlerFunc(func(params installer.GetSupportedArchitecturesParams, principal interface{}) middleware.Responder {
+		ctx := params.HTTPRequest.Context()
+		ctx = storeAuth(ctx, principal)
+		return c.InstallerAPI.GetSupportedArchitectures(ctx, params)
+	})
+	api.InstallerGetSupportedFeaturesHandler = installer.GetSupportedFeaturesHandlerFunc(func(params installer.GetSupportedFeaturesParams, principal interface{}) middleware.Responder {
+		ctx := params.HTTPRequest.Context()
+		ctx = storeAuth(ctx, principal)
+		return c.InstallerAPI.GetSupportedFeatures(ctx, params)
 	})
 	api.InstallerListClusterHostsHandler = installer.ListClusterHostsHandlerFunc(func(params installer.ListClusterHostsParams, principal interface{}) middleware.Responder {
 		ctx := params.HTTPRequest.Context()

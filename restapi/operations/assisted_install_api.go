@@ -72,6 +72,12 @@ func NewAssistedInstallAPI(spec *loads.Document) *AssistedInstallAPI {
 		InstallerGetInfraEnvPresignedFileURLHandler: installer.GetInfraEnvPresignedFileURLHandlerFunc(func(params installer.GetInfraEnvPresignedFileURLParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation installer.GetInfraEnvPresignedFileURL has not yet been implemented")
 		}),
+		InstallerGetSupportedArchitecturesHandler: installer.GetSupportedArchitecturesHandlerFunc(func(params installer.GetSupportedArchitecturesParams, principal interface{}) middleware.Responder {
+			return middleware.NotImplemented("operation installer.GetSupportedArchitectures has not yet been implemented")
+		}),
+		InstallerGetSupportedFeaturesHandler: installer.GetSupportedFeaturesHandlerFunc(func(params installer.GetSupportedFeaturesParams, principal interface{}) middleware.Responder {
+			return middleware.NotImplemented("operation installer.GetSupportedFeatures has not yet been implemented")
+		}),
 		InstallerListClusterHostsHandler: installer.ListClusterHostsHandlerFunc(func(params installer.ListClusterHostsParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation installer.ListClusterHosts has not yet been implemented")
 		}),
@@ -363,6 +369,10 @@ type AssistedInstallAPI struct {
 	InstallerGetInfraEnvDownloadURLHandler installer.GetInfraEnvDownloadURLHandler
 	// InstallerGetInfraEnvPresignedFileURLHandler sets the operation handler for the get infra env presigned file URL operation
 	InstallerGetInfraEnvPresignedFileURLHandler installer.GetInfraEnvPresignedFileURLHandler
+	// InstallerGetSupportedArchitecturesHandler sets the operation handler for the get supported architectures operation
+	InstallerGetSupportedArchitecturesHandler installer.GetSupportedArchitecturesHandler
+	// InstallerGetSupportedFeaturesHandler sets the operation handler for the get supported features operation
+	InstallerGetSupportedFeaturesHandler installer.GetSupportedFeaturesHandler
 	// InstallerListClusterHostsHandler sets the operation handler for the list cluster hosts operation
 	InstallerListClusterHostsHandler installer.ListClusterHostsHandler
 	// InstallerListInfraEnvsHandler sets the operation handler for the list infra envs operation
@@ -608,6 +618,12 @@ func (o *AssistedInstallAPI) Validate() error {
 	}
 	if o.InstallerGetInfraEnvPresignedFileURLHandler == nil {
 		unregistered = append(unregistered, "installer.GetInfraEnvPresignedFileURLHandler")
+	}
+	if o.InstallerGetSupportedArchitecturesHandler == nil {
+		unregistered = append(unregistered, "installer.GetSupportedArchitecturesHandler")
+	}
+	if o.InstallerGetSupportedFeaturesHandler == nil {
+		unregistered = append(unregistered, "installer.GetSupportedFeaturesHandler")
 	}
 	if o.InstallerListClusterHostsHandler == nil {
 		unregistered = append(unregistered, "installer.ListClusterHostsHandler")
@@ -943,6 +959,14 @@ func (o *AssistedInstallAPI) initHandlerCache() {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
 	o.handlers["GET"]["/v2/infra-envs/{infra_env_id}/downloads/files-presigned"] = installer.NewGetInfraEnvPresignedFileURL(o.context, o.InstallerGetInfraEnvPresignedFileURLHandler)
+	if o.handlers["GET"] == nil {
+		o.handlers["GET"] = make(map[string]http.Handler)
+	}
+	o.handlers["GET"]["/v2/support-levels/architectures"] = installer.NewGetSupportedArchitectures(o.context, o.InstallerGetSupportedArchitecturesHandler)
+	if o.handlers["GET"] == nil {
+		o.handlers["GET"] = make(map[string]http.Handler)
+	}
+	o.handlers["GET"]["/v2/support-levels/features"] = installer.NewGetSupportedFeatures(o.context, o.InstallerGetSupportedFeaturesHandler)
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
