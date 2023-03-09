@@ -220,7 +220,7 @@ build-minimal: $(BUILD_FOLDER)
 	$(MAKE) -j build-assisted-service build-assisted-service-operator
 
 update-minimal:
-	$(CONTAINER_COMMAND) build $(CONTAINER_BUILD_PARAMS) -f Dockerfile.assisted-service . -t $(SERVICE)
+	$(CONTAINER_COMMAND) build $(CONTAINER_BUILD_PARAMS) -f Dockerfile.assisted-service.ocp . -t $(SERVICE)
 
 update-debug-minimal:
 	export DEBUG_SERVICE=True && $(MAKE) build-minimal
