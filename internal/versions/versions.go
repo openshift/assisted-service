@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"runtime/debug"
 	"strings"
+	"sync"
 
 	"github.com/go-openapi/swag"
 	"github.com/hashicorp/go-version"
@@ -15,6 +16,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
+	"golang.org/x/sync/semaphore"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -40,6 +42,7 @@ func NewHandler(log logrus.FieldLogger, releaseHandler oc.Release, releaseImages
 		releaseImageMirror: releaseImageMirror,
 		log:                log,
 		kubeClient:         kubeClient,
+		sem:                semaphore.NewWeighted(30),
 	}
 
 	if err := h.validateVersions(); err != nil {
@@ -52,6 +55,8 @@ func NewHandler(log logrus.FieldLogger, releaseHandler oc.Release, releaseImages
 type handler struct {
 	mustGatherVersions MustGatherVersions
 	releaseImages      models.ReleaseImages
+	imagesLock         sync.Mutex
+	sem                *semaphore.Weighted
 	releaseHandler     oc.Release
 	releaseImageMirror string
 	log                logrus.FieldLogger
@@ -109,25 +114,41 @@ func (h *handler) GetReleaseImage(ctx context.Context, openshiftVersion, cpuArch
 		return image, err
 	}
 
+	// The image doesn't exist in the cache.
+	// Fetch all the cluster image sets, cache them, then search the cache again
+
 	clusterImageSets := &hivev1.ClusterImageSetList{}
 	if err := h.kubeClient.List(ctx, clusterImageSets); err != nil {
 		return nil, err
 	}
+	var wg sync.WaitGroup
 	for _, clusterImageSet := range clusterImageSets.Items {
-		existsInCache := false
-		for _, releaseImage := range h.releaseImages {
-			if releaseImage.URL != nil && *releaseImage.URL == clusterImageSet.Spec.ReleaseImage {
-				existsInCache = true
-				break
-			}
+		if err := h.sem.Acquire(ctx, 1); err != nil {
+			// don't fail the entire function if this iteration fails to acquire the semaphore
+			continue
 		}
-		if !existsInCache {
-			_, err := h.addReleaseImage(clusterImageSet.Spec.ReleaseImage, pullSecret)
-			if err != nil {
-				h.log.WithError(err).Warnf("Failed to add release image %s", clusterImageSet.Spec.ReleaseImage)
+		wg.Add(1)
+		go func(clusterImageSet hivev1.ClusterImageSet) {
+			defer func() {
+				wg.Done()
+				h.sem.Release(1)
+			}()
+			existsInCache := false
+			for _, releaseImage := range h.releaseImages {
+				if releaseImage.URL != nil && *releaseImage.URL == clusterImageSet.Spec.ReleaseImage {
+					existsInCache = true
+					break
+				}
 			}
-		}
+			if !existsInCache {
+				_, err := h.addReleaseImage(clusterImageSet.Spec.ReleaseImage, pullSecret)
+				if err != nil {
+					h.log.WithError(err).Warnf("Failed to add release image %s", clusterImageSet.Spec.ReleaseImage)
+				}
+			}
+		}(clusterImageSet)
 	}
+	wg.Wait()
 
 	return h.getReleaseImageFromCache(openshiftVersion, cpuArchitecture)
 }
@@ -243,6 +264,10 @@ func (h *handler) addReleaseImage(releaseImageUrl, pullSecret string) (*models.R
 	} else {
 		cpuArchitecture = common.MultiCPUArchitecture
 	}
+
+	// lock for the rest of this function so we can call it concurrently
+	h.imagesLock.Lock()
+	defer h.imagesLock.Unlock()
 
 	// Fetch ReleaseImage if exists (not using GetReleaseImage as we search for the x.y.z image only)
 	releaseImage := funk.Find(h.releaseImages, func(releaseImage *models.ReleaseImage) bool {
