@@ -32,7 +32,7 @@ func NewV2ImportCluster(ctx *middleware.Context, handler V2ImportClusterHandler)
 /*
 	V2ImportCluster swagger:route POST /v2/clusters/import installer v2ImportCluster
 
-Import an AI cluster using minimal data assosiated with existing OCP cluster, in order to allow adding day2 hosts to that cluster
+Import an AI cluster using minimal data associated with existing OCP cluster, in order to allow adding day2 hosts to that cluster
 */
 type V2ImportCluster struct {
 	Context *middleware.Context

@@ -238,7 +238,7 @@ func init() {
     },
     "/v2/clusters/import": {
       "post": {
-        "description": "Import an AI cluster using minimal data assosiated with existing OCP cluster, in order to allow adding day2 hosts to that cluster",
+        "description": "Import an AI cluster using minimal data associated with existing OCP cluster, in order to allow adding day2 hosts to that cluster",
         "tags": [
           "installer"
         ],
@@ -2862,11 +2862,12 @@ func init() {
             ]
           }
         ],
-        "description": "Retrieves the support levels for features for each OpenShift version.",
+        "description": "(DEPRECATED) Retrieves the support levels for features for each OpenShift version.",
         "tags": [
           "installer"
         ],
         "operationId": "v2ListFeatureSupportLevels",
+        "deprecated": true,
         "responses": {
           "200": {
             "description": "Success.",
@@ -5283,6 +5284,163 @@ func init() {
         }
       }
     },
+    "/v2/support-levels/architectures": {
+      "get": {
+        "security": [
+          {
+            "userAuth": [
+              "admin",
+              "read-only-admin",
+              "user"
+            ]
+          }
+        ],
+        "description": "Retrieves the architecture support-levels for each OpenShift version.",
+        "tags": [
+          "installer"
+        ],
+        "operationId": "GetSupportedArchitectures",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "Version of the OpenShift cluster.",
+            "name": "openshift_version",
+            "in": "query",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "architectures": {
+                  "description": "Keys will be one of architecture-support-level-id enum.",
+                  "$ref": "#/definitions/support-levels"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "404": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "503": {
+            "description": "Unavailable.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
+    "/v2/support-levels/features": {
+      "get": {
+        "security": [
+          {
+            "userAuth": [
+              "admin",
+              "read-only-admin",
+              "user"
+            ]
+          }
+        ],
+        "description": "Retrieves the features support levels for each OpenShift version.",
+        "tags": [
+          "installer"
+        ],
+        "operationId": "GetSupportedFeatures",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "Version of the OpenShift cluster.",
+            "name": "openshift_version",
+            "in": "query",
+            "required": true
+          },
+          {
+            "enum": [
+              "x86_64",
+              "aarch64",
+              "arm64",
+              "ppc64le",
+              "s390x",
+              "multi"
+            ],
+            "type": "string",
+            "default": "x86_64",
+            "description": "The CPU architecture of the image (x86_64/arm64/etc).",
+            "name": "cpu_architecture",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "features": {
+                  "description": "Keys will be one of features-support-level-id enum.",
+                  "$ref": "#/definitions/support-levels"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "404": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "503": {
+            "description": "Unavailable.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
     "/v2/supported-operators": {
       "get": {
         "description": "Retrieves the list of supported operators.",
@@ -5449,6 +5607,16 @@ func init() {
           "type": "string"
         }
       }
+    },
+    "architecture-support-level-id": {
+      "type": "string",
+      "enum": [
+        "X86_64_ARCHITECTURE",
+        "ARM64_ARCHITECTURE",
+        "PPC64LE_ARCHITECTURE",
+        "S390X_ARCHITECTURE",
+        "MULTIARCH_RELEASE_IMAGE"
+      ]
     },
     "bind-host-params": {
       "required": [
@@ -7032,6 +7200,7 @@ func init() {
       }
     },
     "feature-support-level": {
+      "description": "(DEPRECATED) List of features attached to openshift version",
       "type": "object",
       "properties": {
         "features": {
@@ -7044,7 +7213,7 @@ func init() {
             ],
             "properties": {
               "feature_id": {
-                "description": "The ID of the feature",
+                "description": "(DEPRECATED) The ID of the feature",
                 "type": "string",
                 "enum": [
                   "ADDITIONAL_NTP_SOURCE",
@@ -7076,13 +7245,7 @@ func init() {
                 ]
               },
               "support_level": {
-                "type": "string",
-                "enum": [
-                  "supported",
-                  "unsupported",
-                  "tech-preview",
-                  "dev-preview"
-                ]
+                "$ref": "#/definitions/support-level"
               }
             }
           }
@@ -7093,7 +7256,35 @@ func init() {
         }
       }
     },
+    "feature-support-level-id": {
+      "type": "string",
+      "enum": [
+        "ADDITIONAL_NTP_SOURCE",
+        "REQUESTED_HOSTNAME",
+        "PROXY",
+        "SNO",
+        "DAY2_HOSTS",
+        "VIP_AUTO_ALLOC",
+        "DISK_SELECTION",
+        "OVN_NETWORK_TYPE",
+        "SDN_NETWORK_TYPE",
+        "PLATFORM_SELECTION",
+        "SCHEDULABLE_MASTERS",
+        "AUTO_ASSIGN_ROLE",
+        "CUSTOM_MANIFEST",
+        "DISK_ENCRYPTION",
+        "CLUSTER_MANAGED_NETWORKING_WITH_VMS",
+        "SINGLE_NODE_EXPANSION",
+        "LVM",
+        "DUAL_STACK_NETWORKING",
+        "NUTANIX_INTEGRATION",
+        "DUAL_STACK_VIPS",
+        "USER_MANAGED_NETWORKING_WITH_MULTI_NODE",
+        "CLUSTER_MANAGED_NETWORKING"
+      ]
+    },
     "feature-support-levels": {
+      "description": "(DEPRECATED) List of objects that containing a list of feature-support level and attached to openshift-version",
       "type": "array",
       "items": {
         "$ref": "#/definitions/feature-support-level"
@@ -9341,6 +9532,22 @@ func init() {
       "pattern": "^(?:(?:(?:[0-9]{1,3}\\.){3}[0-9]{1,3}\\/(?:(?:[0-9])|(?:[1-2][0-9])|(?:3[0-2])))|(?:(?:[0-9a-fA-F]*:[0-9a-fA-F]*){2,})/(?:(?:[0-9])|(?:[1-9][0-9])|(?:1[0-1][0-9])|(?:12[0-8])))$",
       "x-go-custom-tag": "gorm:\"primaryKey\""
     },
+    "support-level": {
+      "type": "string",
+      "enum": [
+        "supported",
+        "unsupported",
+        "tech-preview",
+        "dev-preview"
+      ]
+    },
+    "support-levels": {
+      "description": "Map of feature ID or CPU architecture alongside their support level",
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/definitions/support-level"
+      }
+    },
     "system_vendor": {
       "type": "object",
       "properties": {
@@ -10030,7 +10237,7 @@ func init() {
     },
     "/v2/clusters/import": {
       "post": {
-        "description": "Import an AI cluster using minimal data assosiated with existing OCP cluster, in order to allow adding day2 hosts to that cluster",
+        "description": "Import an AI cluster using minimal data associated with existing OCP cluster, in order to allow adding day2 hosts to that cluster",
         "tags": [
           "installer"
         ],
@@ -12654,11 +12861,12 @@ func init() {
             ]
           }
         ],
-        "description": "Retrieves the support levels for features for each OpenShift version.",
+        "description": "(DEPRECATED) Retrieves the support levels for features for each OpenShift version.",
         "tags": [
           "installer"
         ],
         "operationId": "v2ListFeatureSupportLevels",
+        "deprecated": true,
         "responses": {
           "200": {
             "description": "Success.",
@@ -15075,6 +15283,163 @@ func init() {
         }
       }
     },
+    "/v2/support-levels/architectures": {
+      "get": {
+        "security": [
+          {
+            "userAuth": [
+              "admin",
+              "read-only-admin",
+              "user"
+            ]
+          }
+        ],
+        "description": "Retrieves the architecture support-levels for each OpenShift version.",
+        "tags": [
+          "installer"
+        ],
+        "operationId": "GetSupportedArchitectures",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "Version of the OpenShift cluster.",
+            "name": "openshift_version",
+            "in": "query",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "architectures": {
+                  "description": "Keys will be one of architecture-support-level-id enum.",
+                  "$ref": "#/definitions/support-levels"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "404": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "503": {
+            "description": "Unavailable.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
+    "/v2/support-levels/features": {
+      "get": {
+        "security": [
+          {
+            "userAuth": [
+              "admin",
+              "read-only-admin",
+              "user"
+            ]
+          }
+        ],
+        "description": "Retrieves the features support levels for each OpenShift version.",
+        "tags": [
+          "installer"
+        ],
+        "operationId": "GetSupportedFeatures",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "Version of the OpenShift cluster.",
+            "name": "openshift_version",
+            "in": "query",
+            "required": true
+          },
+          {
+            "enum": [
+              "x86_64",
+              "aarch64",
+              "arm64",
+              "ppc64le",
+              "s390x",
+              "multi"
+            ],
+            "type": "string",
+            "default": "x86_64",
+            "description": "The CPU architecture of the image (x86_64/arm64/etc).",
+            "name": "cpu_architecture",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "features": {
+                  "description": "Keys will be one of features-support-level-id enum.",
+                  "$ref": "#/definitions/support-levels"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "404": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "503": {
+            "description": "Unavailable.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
     "/v2/supported-operators": {
       "get": {
         "description": "Retrieves the list of supported operators.",
@@ -15242,7 +15607,7 @@ func init() {
       ],
       "properties": {
         "feature_id": {
-          "description": "The ID of the feature",
+          "description": "(DEPRECATED) The ID of the feature",
           "type": "string",
           "enum": [
             "ADDITIONAL_NTP_SOURCE",
@@ -15274,13 +15639,7 @@ func init() {
           ]
         },
         "support_level": {
-          "type": "string",
-          "enum": [
-            "supported",
-            "unsupported",
-            "tech-preview",
-            "dev-preview"
-          ]
+          "$ref": "#/definitions/support-level"
         }
       }
     },
@@ -15416,6 +15775,16 @@ func init() {
           "type": "string"
         }
       }
+    },
+    "architecture-support-level-id": {
+      "type": "string",
+      "enum": [
+        "X86_64_ARCHITECTURE",
+        "ARM64_ARCHITECTURE",
+        "PPC64LE_ARCHITECTURE",
+        "S390X_ARCHITECTURE",
+        "MULTIARCH_RELEASE_IMAGE"
+      ]
     },
     "bind-host-params": {
       "required": [
@@ -16962,6 +17331,7 @@ func init() {
       }
     },
     "feature-support-level": {
+      "description": "(DEPRECATED) List of features attached to openshift version",
       "type": "object",
       "properties": {
         "features": {
@@ -16976,7 +17346,35 @@ func init() {
         }
       }
     },
+    "feature-support-level-id": {
+      "type": "string",
+      "enum": [
+        "ADDITIONAL_NTP_SOURCE",
+        "REQUESTED_HOSTNAME",
+        "PROXY",
+        "SNO",
+        "DAY2_HOSTS",
+        "VIP_AUTO_ALLOC",
+        "DISK_SELECTION",
+        "OVN_NETWORK_TYPE",
+        "SDN_NETWORK_TYPE",
+        "PLATFORM_SELECTION",
+        "SCHEDULABLE_MASTERS",
+        "AUTO_ASSIGN_ROLE",
+        "CUSTOM_MANIFEST",
+        "DISK_ENCRYPTION",
+        "CLUSTER_MANAGED_NETWORKING_WITH_VMS",
+        "SINGLE_NODE_EXPANSION",
+        "LVM",
+        "DUAL_STACK_NETWORKING",
+        "NUTANIX_INTEGRATION",
+        "DUAL_STACK_VIPS",
+        "USER_MANAGED_NETWORKING_WITH_MULTI_NODE",
+        "CLUSTER_MANAGED_NETWORKING"
+      ]
+    },
     "feature-support-levels": {
+      "description": "(DEPRECATED) List of objects that containing a list of feature-support level and attached to openshift-version",
       "type": "array",
       "items": {
         "$ref": "#/definitions/feature-support-level"
@@ -19214,6 +19612,22 @@ func init() {
       "type": "string",
       "pattern": "^(?:(?:(?:[0-9]{1,3}\\.){3}[0-9]{1,3}\\/(?:(?:[0-9])|(?:[1-2][0-9])|(?:3[0-2])))|(?:(?:[0-9a-fA-F]*:[0-9a-fA-F]*){2,})/(?:(?:[0-9])|(?:[1-9][0-9])|(?:1[0-1][0-9])|(?:12[0-8])))$",
       "x-go-custom-tag": "gorm:\"primaryKey\""
+    },
+    "support-level": {
+      "type": "string",
+      "enum": [
+        "supported",
+        "unsupported",
+        "tech-preview",
+        "dev-preview"
+      ]
+    },
+    "support-levels": {
+      "description": "Map of feature ID or CPU architecture alongside their support level",
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/definitions/support-level"
+      }
     },
     "system_vendor": {
       "type": "object",

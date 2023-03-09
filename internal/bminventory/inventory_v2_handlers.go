@@ -51,6 +51,24 @@ func (b *bareMetalInventory) V2RegisterCluster(ctx context.Context, params insta
 	return installer.NewV2RegisterClusterCreated().WithPayload(&c.Cluster)
 }
 
+func (b *bareMetalInventory) GetSupportedFeatures(ctx context.Context, params installer.GetSupportedFeaturesParams) middleware.Responder {
+	supportLevelList, err := b.GetFeatureSupportLevelListInternal(ctx, params)
+	if err != nil {
+		return common.GenerateErrorResponder(err)
+	}
+
+	return installer.NewGetSupportedFeaturesOK().WithPayload(&installer.GetSupportedFeaturesOKBody{Features: supportLevelList})
+}
+
+func (b *bareMetalInventory) GetSupportedArchitectures(ctx context.Context, params installer.GetSupportedArchitecturesParams) middleware.Responder {
+	supportLevelList, err := b.GetArchitecturesSupportLevelListInternal(ctx, params)
+	if err != nil {
+		return common.GenerateErrorResponder(err)
+	}
+
+	return installer.NewGetSupportedArchitecturesOK().WithPayload(&installer.GetSupportedArchitecturesOKBody{Architectures: supportLevelList})
+}
+
 func (b *bareMetalInventory) V2ListClusters(ctx context.Context, params installer.V2ListClustersParams) middleware.Responder {
 	clusters, err := b.listClustersInternal(ctx, params)
 	if err != nil {

@@ -182,7 +182,7 @@ func (o *operator) GetSupportedArchitectures() []string {
 
 func (o *operator) getLvmMemoryPerHostMib(ctx context.Context, cluster *common.Cluster) int64 {
 	log := logutil.FromContext(ctx, o.log)
-	greaterOrEqual, err := common.BaseVersionGreaterOrEqual(cluster.OpenshiftVersion, LvmsMinOpenshiftVersionForNewResourceRequirements)
+	greaterOrEqual, err := common.BaseVersionGreaterOrEqual(LvmsMinOpenshiftVersionForNewResourceRequirements, cluster.OpenshiftVersion)
 	if err != nil {
 		log.Warnf("Error parsing cluster.OpenshiftVersion: %s, setting lvms memory requirement to %d", err.Error(), o.config.LvmMemoryPerHostMiB)
 		return o.config.LvmMemoryPerHostMiB

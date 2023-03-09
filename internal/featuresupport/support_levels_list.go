@@ -1,16 +1,12 @@
 package featuresupport
 
 import (
-	"fmt"
-
 	"github.com/go-openapi/swag"
-	"github.com/hashicorp/go-version"
-	"github.com/openshift/assisted-service/internal/usage"
 	"github.com/openshift/assisted-service/models"
 )
 
-func usageNameToID(key string) string {
-	return usage.UsageNameToID(key)
+func getFeatureSupportLevelPtr(supportLevel models.SupportLevel) *models.SupportLevel {
+	return &supportLevel
 }
 
 var SupportLevelsList = models.FeatureSupportLevels{
@@ -20,52 +16,52 @@ var SupportLevelsList = models.FeatureSupportLevels{
 			// Dev-Preview features
 			{
 				FeatureID:    swag.String(models.FeatureSupportLevelFeaturesItems0FeatureIDVIPAUTOALLOC),
-				SupportLevel: swag.String(models.FeatureSupportLevelFeaturesItems0SupportLevelDevPreview),
+				SupportLevel: getFeatureSupportLevelPtr(models.SupportLevelDevPreview),
 			},
 			// Unsupported features
 			{
 				FeatureID:    swag.String(models.FeatureSupportLevelFeaturesItems0FeatureIDSNO),
-				SupportLevel: swag.String(models.FeatureSupportLevelFeaturesItems0SupportLevelUnsupported),
+				SupportLevel: getFeatureSupportLevelPtr(models.SupportLevelUnsupported),
 			},
 			{
 				FeatureID:    swag.String(models.FeatureSupportLevelFeaturesItems0FeatureIDARM64ARCHITECTURE),
-				SupportLevel: swag.String(models.FeatureSupportLevelFeaturesItems0SupportLevelUnsupported),
+				SupportLevel: getFeatureSupportLevelPtr(models.SupportLevelUnsupported),
 			},
 			{
 				FeatureID:    swag.String(models.FeatureSupportLevelFeaturesItems0FeatureIDARM64ARCHITECTUREWITHCLUSTERMANAGEDNETWORKING),
-				SupportLevel: swag.String(models.FeatureSupportLevelFeaturesItems0SupportLevelUnsupported),
+				SupportLevel: getFeatureSupportLevelPtr(models.SupportLevelUnsupported),
 			},
 			{
 				FeatureID:    swag.String(models.FeatureSupportLevelFeaturesItems0FeatureIDPPC64LEARCHITECTURE),
-				SupportLevel: swag.String(models.FeatureSupportLevelFeaturesItems0SupportLevelUnsupported),
+				SupportLevel: getFeatureSupportLevelPtr(models.SupportLevelUnsupported),
 			},
 			{
 				FeatureID:    swag.String(models.FeatureSupportLevelFeaturesItems0FeatureIDS390XARCHITECTURE),
-				SupportLevel: swag.String(models.FeatureSupportLevelFeaturesItems0SupportLevelUnsupported),
+				SupportLevel: getFeatureSupportLevelPtr(models.SupportLevelUnsupported),
 			},
 			{
 				FeatureID:    swag.String(models.FeatureSupportLevelFeaturesItems0FeatureIDSINGLENODEEXPANSION),
-				SupportLevel: swag.String(models.FeatureSupportLevelFeaturesItems0SupportLevelUnsupported),
+				SupportLevel: getFeatureSupportLevelPtr(models.SupportLevelUnsupported),
 			},
 			{
 				FeatureID:    swag.String(models.FeatureSupportLevelFeaturesItems0FeatureIDLVM),
-				SupportLevel: swag.String(models.FeatureSupportLevelFeaturesItems0SupportLevelUnsupported),
+				SupportLevel: getFeatureSupportLevelPtr(models.SupportLevelUnsupported),
 			},
 			{
 				FeatureID:    swag.String(models.FeatureSupportLevelFeaturesItems0FeatureIDDUALSTACKNETWORKING),
-				SupportLevel: swag.String(models.FeatureSupportLevelFeaturesItems0SupportLevelUnsupported),
+				SupportLevel: getFeatureSupportLevelPtr(models.SupportLevelUnsupported),
 			},
 			{
 				FeatureID:    swag.String(models.FeatureSupportLevelFeaturesItems0FeatureIDMULTIARCHRELEASEIMAGE),
-				SupportLevel: swag.String(models.FeatureSupportLevelFeaturesItems0SupportLevelUnsupported),
+				SupportLevel: getFeatureSupportLevelPtr(models.SupportLevelUnsupported),
 			},
 			{
 				FeatureID:    swag.String(models.FeatureSupportLevelFeaturesItems0FeatureIDNUTANIXINTEGRATION),
-				SupportLevel: swag.String(models.FeatureSupportLevelFeaturesItems0SupportLevelUnsupported),
+				SupportLevel: getFeatureSupportLevelPtr(models.SupportLevelUnsupported),
 			},
 			{
 				FeatureID:    swag.String(models.FeatureSupportLevelFeaturesItems0FeatureIDDUALSTACKVIPS),
-				SupportLevel: swag.String(models.FeatureSupportLevelFeaturesItems0SupportLevelUnsupported),
+				SupportLevel: getFeatureSupportLevelPtr(models.SupportLevelUnsupported),
 			},
 		},
 	},
@@ -75,27 +71,27 @@ var SupportLevelsList = models.FeatureSupportLevels{
 			// Unsupported features
 			{
 				FeatureID:    swag.String(models.FeatureSupportLevelFeaturesItems0FeatureIDDUALSTACKNETWORKING),
-				SupportLevel: swag.String(models.FeatureSupportLevelFeaturesItems0SupportLevelUnsupported),
+				SupportLevel: getFeatureSupportLevelPtr(models.SupportLevelUnsupported),
 			},
 			{
 				FeatureID:    swag.String(models.FeatureSupportLevelFeaturesItems0FeatureIDMULTIARCHRELEASEIMAGE),
-				SupportLevel: swag.String(models.FeatureSupportLevelFeaturesItems0SupportLevelUnsupported),
+				SupportLevel: getFeatureSupportLevelPtr(models.SupportLevelUnsupported),
 			},
 			{
 				FeatureID:    swag.String(models.FeatureSupportLevelFeaturesItems0FeatureIDNUTANIXINTEGRATION),
-				SupportLevel: swag.String(models.FeatureSupportLevelFeaturesItems0SupportLevelUnsupported),
+				SupportLevel: getFeatureSupportLevelPtr(models.SupportLevelUnsupported),
 			},
 			{
 				FeatureID:    swag.String(models.FeatureSupportLevelFeaturesItems0FeatureIDDUALSTACKVIPS),
-				SupportLevel: swag.String(models.FeatureSupportLevelFeaturesItems0SupportLevelUnsupported),
+				SupportLevel: getFeatureSupportLevelPtr(models.SupportLevelUnsupported),
 			},
 			{
 				FeatureID:    swag.String(models.FeatureSupportLevelFeaturesItems0FeatureIDPPC64LEARCHITECTURE),
-				SupportLevel: swag.String(models.FeatureSupportLevelFeaturesItems0SupportLevelUnsupported),
+				SupportLevel: getFeatureSupportLevelPtr(models.SupportLevelUnsupported),
 			},
 			{
 				FeatureID:    swag.String(models.FeatureSupportLevelFeaturesItems0FeatureIDS390XARCHITECTURE),
-				SupportLevel: swag.String(models.FeatureSupportLevelFeaturesItems0SupportLevelUnsupported),
+				SupportLevel: getFeatureSupportLevelPtr(models.SupportLevelUnsupported),
 			},
 		},
 	},
@@ -105,53 +101,53 @@ var SupportLevelsList = models.FeatureSupportLevels{
 			// Supported
 			{
 				FeatureID:    swag.String(models.FeatureSupportLevelFeaturesItems0FeatureIDDUALSTACKNETWORKING),
-				SupportLevel: swag.String(models.FeatureSupportLevelFeaturesItems0SupportLevelSupported),
+				SupportLevel: getFeatureSupportLevelPtr(models.SupportLevelSupported),
 			},
 			// Dev-Preview features
 			{
 				FeatureID:    swag.String(models.FeatureSupportLevelFeaturesItems0FeatureIDVIPAUTOALLOC),
-				SupportLevel: swag.String(models.FeatureSupportLevelFeaturesItems0SupportLevelDevPreview),
+				SupportLevel: getFeatureSupportLevelPtr(models.SupportLevelDevPreview),
 			},
 			{
 				FeatureID:    swag.String(models.FeatureSupportLevelFeaturesItems0FeatureIDSNO),
-				SupportLevel: swag.String(models.FeatureSupportLevelFeaturesItems0SupportLevelDevPreview),
+				SupportLevel: getFeatureSupportLevelPtr(models.SupportLevelDevPreview),
 			},
 			// Unsupported features
 			{
 				FeatureID:    swag.String(models.FeatureSupportLevelFeaturesItems0FeatureIDARM64ARCHITECTURE),
-				SupportLevel: swag.String(models.FeatureSupportLevelFeaturesItems0SupportLevelUnsupported),
+				SupportLevel: getFeatureSupportLevelPtr(models.SupportLevelUnsupported),
 			},
 			{
 				FeatureID:    swag.String(models.FeatureSupportLevelFeaturesItems0FeatureIDARM64ARCHITECTUREWITHCLUSTERMANAGEDNETWORKING),
-				SupportLevel: swag.String(models.FeatureSupportLevelFeaturesItems0SupportLevelUnsupported),
+				SupportLevel: getFeatureSupportLevelPtr(models.SupportLevelUnsupported),
 			},
 			{
 				FeatureID:    swag.String(models.FeatureSupportLevelFeaturesItems0FeatureIDPPC64LEARCHITECTURE),
-				SupportLevel: swag.String(models.FeatureSupportLevelFeaturesItems0SupportLevelUnsupported),
+				SupportLevel: getFeatureSupportLevelPtr(models.SupportLevelUnsupported),
 			},
 			{
 				FeatureID:    swag.String(models.FeatureSupportLevelFeaturesItems0FeatureIDS390XARCHITECTURE),
-				SupportLevel: swag.String(models.FeatureSupportLevelFeaturesItems0SupportLevelUnsupported),
+				SupportLevel: getFeatureSupportLevelPtr(models.SupportLevelUnsupported),
 			},
 			{
 				FeatureID:    swag.String(models.FeatureSupportLevelFeaturesItems0FeatureIDSINGLENODEEXPANSION),
-				SupportLevel: swag.String(models.FeatureSupportLevelFeaturesItems0SupportLevelUnsupported),
+				SupportLevel: getFeatureSupportLevelPtr(models.SupportLevelUnsupported),
 			},
 			{
 				FeatureID:    swag.String(models.FeatureSupportLevelFeaturesItems0FeatureIDLVM),
-				SupportLevel: swag.String(models.FeatureSupportLevelFeaturesItems0SupportLevelUnsupported),
+				SupportLevel: getFeatureSupportLevelPtr(models.SupportLevelUnsupported),
 			},
 			{
 				FeatureID:    swag.String(models.FeatureSupportLevelFeaturesItems0FeatureIDMULTIARCHRELEASEIMAGE),
-				SupportLevel: swag.String(models.FeatureSupportLevelFeaturesItems0SupportLevelUnsupported),
+				SupportLevel: getFeatureSupportLevelPtr(models.SupportLevelUnsupported),
 			},
 			{
 				FeatureID:    swag.String(models.FeatureSupportLevelFeaturesItems0FeatureIDNUTANIXINTEGRATION),
-				SupportLevel: swag.String(models.FeatureSupportLevelFeaturesItems0SupportLevelUnsupported),
+				SupportLevel: getFeatureSupportLevelPtr(models.SupportLevelUnsupported),
 			},
 			{
 				FeatureID:    swag.String(models.FeatureSupportLevelFeaturesItems0FeatureIDDUALSTACKVIPS),
-				SupportLevel: swag.String(models.FeatureSupportLevelFeaturesItems0SupportLevelUnsupported),
+				SupportLevel: getFeatureSupportLevelPtr(models.SupportLevelUnsupported),
 			},
 		},
 	},
@@ -161,53 +157,53 @@ var SupportLevelsList = models.FeatureSupportLevels{
 			// Supported
 			{
 				FeatureID:    swag.String(models.FeatureSupportLevelFeaturesItems0FeatureIDSNO),
-				SupportLevel: swag.String(models.FeatureSupportLevelFeaturesItems0SupportLevelSupported),
+				SupportLevel: getFeatureSupportLevelPtr(models.SupportLevelSupported),
 			},
 			{
 				FeatureID:    swag.String(models.FeatureSupportLevelFeaturesItems0FeatureIDDUALSTACKNETWORKING),
-				SupportLevel: swag.String(models.FeatureSupportLevelFeaturesItems0SupportLevelSupported),
+				SupportLevel: getFeatureSupportLevelPtr(models.SupportLevelSupported),
 			},
 			// Dev-Preview features
 			{
 				FeatureID:    swag.String(models.FeatureSupportLevelFeaturesItems0FeatureIDVIPAUTOALLOC),
-				SupportLevel: swag.String(models.FeatureSupportLevelFeaturesItems0SupportLevelDevPreview),
+				SupportLevel: getFeatureSupportLevelPtr(models.SupportLevelDevPreview),
 			},
 			// Unsupported features
 			{
 				FeatureID:    swag.String(models.FeatureSupportLevelFeaturesItems0FeatureIDARM64ARCHITECTURE),
-				SupportLevel: swag.String(models.FeatureSupportLevelFeaturesItems0SupportLevelUnsupported),
+				SupportLevel: getFeatureSupportLevelPtr(models.SupportLevelUnsupported),
 			},
 			{
 				FeatureID:    swag.String(models.FeatureSupportLevelFeaturesItems0FeatureIDARM64ARCHITECTUREWITHCLUSTERMANAGEDNETWORKING),
-				SupportLevel: swag.String(models.FeatureSupportLevelFeaturesItems0SupportLevelUnsupported),
+				SupportLevel: getFeatureSupportLevelPtr(models.SupportLevelUnsupported),
 			},
 			{
 				FeatureID:    swag.String(models.FeatureSupportLevelFeaturesItems0FeatureIDPPC64LEARCHITECTURE),
-				SupportLevel: swag.String(models.FeatureSupportLevelFeaturesItems0SupportLevelUnsupported),
+				SupportLevel: getFeatureSupportLevelPtr(models.SupportLevelUnsupported),
 			},
 			{
 				FeatureID:    swag.String(models.FeatureSupportLevelFeaturesItems0FeatureIDS390XARCHITECTURE),
-				SupportLevel: swag.String(models.FeatureSupportLevelFeaturesItems0SupportLevelUnsupported),
+				SupportLevel: getFeatureSupportLevelPtr(models.SupportLevelUnsupported),
 			},
 			{
 				FeatureID:    swag.String(models.FeatureSupportLevelFeaturesItems0FeatureIDSINGLENODEEXPANSION),
-				SupportLevel: swag.String(models.FeatureSupportLevelFeaturesItems0SupportLevelUnsupported),
+				SupportLevel: getFeatureSupportLevelPtr(models.SupportLevelUnsupported),
 			},
 			{
 				FeatureID:    swag.String(models.FeatureSupportLevelFeaturesItems0FeatureIDLVM),
-				SupportLevel: swag.String(models.FeatureSupportLevelFeaturesItems0SupportLevelUnsupported),
+				SupportLevel: getFeatureSupportLevelPtr(models.SupportLevelUnsupported),
 			},
 			{
 				FeatureID:    swag.String(models.FeatureSupportLevelFeaturesItems0FeatureIDMULTIARCHRELEASEIMAGE),
-				SupportLevel: swag.String(models.FeatureSupportLevelFeaturesItems0SupportLevelUnsupported),
+				SupportLevel: getFeatureSupportLevelPtr(models.SupportLevelUnsupported),
 			},
 			{
 				FeatureID:    swag.String(models.FeatureSupportLevelFeaturesItems0FeatureIDNUTANIXINTEGRATION),
-				SupportLevel: swag.String(models.FeatureSupportLevelFeaturesItems0SupportLevelUnsupported),
+				SupportLevel: getFeatureSupportLevelPtr(models.SupportLevelUnsupported),
 			},
 			{
 				FeatureID:    swag.String(models.FeatureSupportLevelFeaturesItems0FeatureIDDUALSTACKVIPS),
-				SupportLevel: swag.String(models.FeatureSupportLevelFeaturesItems0SupportLevelUnsupported),
+				SupportLevel: getFeatureSupportLevelPtr(models.SupportLevelUnsupported),
 			},
 		},
 	},
@@ -217,53 +213,53 @@ var SupportLevelsList = models.FeatureSupportLevels{
 			// Supported
 			{
 				FeatureID:    swag.String(models.FeatureSupportLevelFeaturesItems0FeatureIDSNO),
-				SupportLevel: swag.String(models.FeatureSupportLevelFeaturesItems0SupportLevelSupported),
+				SupportLevel: getFeatureSupportLevelPtr(models.SupportLevelSupported),
 			},
 			{
 				FeatureID:    swag.String(models.FeatureSupportLevelFeaturesItems0FeatureIDARM64ARCHITECTURE),
-				SupportLevel: swag.String(models.FeatureSupportLevelFeaturesItems0SupportLevelSupported),
+				SupportLevel: getFeatureSupportLevelPtr(models.SupportLevelSupported),
 			},
 			{
 				FeatureID:    swag.String(models.FeatureSupportLevelFeaturesItems0FeatureIDDUALSTACKNETWORKING),
-				SupportLevel: swag.String(models.FeatureSupportLevelFeaturesItems0SupportLevelSupported),
+				SupportLevel: getFeatureSupportLevelPtr(models.SupportLevelSupported),
 			},
 			// Dev-Preview features
 			{
 				FeatureID:    swag.String(models.FeatureSupportLevelFeaturesItems0FeatureIDVIPAUTOALLOC),
-				SupportLevel: swag.String(models.FeatureSupportLevelFeaturesItems0SupportLevelDevPreview),
+				SupportLevel: getFeatureSupportLevelPtr(models.SupportLevelDevPreview),
 			},
 			// Unsupported features
 			{
 				FeatureID:    swag.String(models.FeatureSupportLevelFeaturesItems0FeatureIDARM64ARCHITECTUREWITHCLUSTERMANAGEDNETWORKING),
-				SupportLevel: swag.String(models.FeatureSupportLevelFeaturesItems0SupportLevelUnsupported),
+				SupportLevel: getFeatureSupportLevelPtr(models.SupportLevelUnsupported),
 			},
 			{
 				FeatureID:    swag.String(models.FeatureSupportLevelFeaturesItems0FeatureIDSINGLENODEEXPANSION),
-				SupportLevel: swag.String(models.FeatureSupportLevelFeaturesItems0SupportLevelUnsupported),
+				SupportLevel: getFeatureSupportLevelPtr(models.SupportLevelUnsupported),
 			},
 			{
 				FeatureID:    swag.String(models.FeatureSupportLevelFeaturesItems0FeatureIDLVM),
-				SupportLevel: swag.String(models.FeatureSupportLevelFeaturesItems0SupportLevelUnsupported),
+				SupportLevel: getFeatureSupportLevelPtr(models.SupportLevelUnsupported),
 			},
 			{
 				FeatureID:    swag.String(models.FeatureSupportLevelFeaturesItems0FeatureIDMULTIARCHRELEASEIMAGE),
-				SupportLevel: swag.String(models.FeatureSupportLevelFeaturesItems0SupportLevelUnsupported),
+				SupportLevel: getFeatureSupportLevelPtr(models.SupportLevelUnsupported),
 			},
 			{
 				FeatureID:    swag.String(models.FeatureSupportLevelFeaturesItems0FeatureIDNUTANIXINTEGRATION),
-				SupportLevel: swag.String(models.FeatureSupportLevelFeaturesItems0SupportLevelUnsupported),
+				SupportLevel: getFeatureSupportLevelPtr(models.SupportLevelUnsupported),
 			},
 			{
 				FeatureID:    swag.String(models.FeatureSupportLevelFeaturesItems0FeatureIDDUALSTACKVIPS),
-				SupportLevel: swag.String(models.FeatureSupportLevelFeaturesItems0SupportLevelUnsupported),
+				SupportLevel: getFeatureSupportLevelPtr(models.SupportLevelUnsupported),
 			},
 			{
 				FeatureID:    swag.String(models.FeatureSupportLevelFeaturesItems0FeatureIDPPC64LEARCHITECTURE),
-				SupportLevel: swag.String(models.FeatureSupportLevelFeaturesItems0SupportLevelUnsupported),
+				SupportLevel: getFeatureSupportLevelPtr(models.SupportLevelUnsupported),
 			},
 			{
 				FeatureID:    swag.String(models.FeatureSupportLevelFeaturesItems0FeatureIDS390XARCHITECTURE),
-				SupportLevel: swag.String(models.FeatureSupportLevelFeaturesItems0SupportLevelUnsupported),
+				SupportLevel: getFeatureSupportLevelPtr(models.SupportLevelUnsupported),
 			},
 		},
 	},
@@ -273,54 +269,54 @@ var SupportLevelsList = models.FeatureSupportLevels{
 			// Supported
 			{
 				FeatureID:    swag.String(models.FeatureSupportLevelFeaturesItems0FeatureIDSNO),
-				SupportLevel: swag.String(models.FeatureSupportLevelFeaturesItems0SupportLevelSupported),
+				SupportLevel: getFeatureSupportLevelPtr(models.SupportLevelSupported),
 			},
 			{
 				FeatureID:    swag.String(models.FeatureSupportLevelFeaturesItems0FeatureIDARM64ARCHITECTURE),
-				SupportLevel: swag.String(models.FeatureSupportLevelFeaturesItems0SupportLevelSupported),
+				SupportLevel: getFeatureSupportLevelPtr(models.SupportLevelSupported),
 			},
 			{
 				FeatureID:    swag.String(models.FeatureSupportLevelFeaturesItems0FeatureIDARM64ARCHITECTUREWITHCLUSTERMANAGEDNETWORKING),
-				SupportLevel: swag.String(models.FeatureSupportLevelFeaturesItems0SupportLevelSupported),
+				SupportLevel: getFeatureSupportLevelPtr(models.SupportLevelSupported),
 			},
 			{
 				FeatureID:    swag.String(models.FeatureSupportLevelFeaturesItems0FeatureIDSINGLENODEEXPANSION),
-				SupportLevel: swag.String(models.FeatureSupportLevelFeaturesItems0SupportLevelSupported),
+				SupportLevel: getFeatureSupportLevelPtr(models.SupportLevelSupported),
 			},
 			{
 				FeatureID:    swag.String(models.FeatureSupportLevelFeaturesItems0FeatureIDDUALSTACKNETWORKING),
-				SupportLevel: swag.String(models.FeatureSupportLevelFeaturesItems0SupportLevelSupported),
+				SupportLevel: getFeatureSupportLevelPtr(models.SupportLevelSupported),
 			},
 			// Tech-Preview features
 			{
 				FeatureID:    swag.String(models.FeatureSupportLevelFeaturesItems0FeatureIDMULTIARCHRELEASEIMAGE),
-				SupportLevel: swag.String(models.FeatureSupportLevelFeaturesItems0SupportLevelTechPreview),
+				SupportLevel: getFeatureSupportLevelPtr(models.SupportLevelTechPreview),
 			},
 			// Dev-Preview features
 			{
 				FeatureID:    swag.String(models.FeatureSupportLevelFeaturesItems0FeatureIDVIPAUTOALLOC),
-				SupportLevel: swag.String(models.FeatureSupportLevelFeaturesItems0SupportLevelDevPreview),
+				SupportLevel: getFeatureSupportLevelPtr(models.SupportLevelDevPreview),
 			},
 			{
 				FeatureID:    swag.String(models.FeatureSupportLevelFeaturesItems0FeatureIDLVM),
-				SupportLevel: swag.String(models.FeatureSupportLevelFeaturesItems0SupportLevelDevPreview),
+				SupportLevel: getFeatureSupportLevelPtr(models.SupportLevelDevPreview),
 			},
 			{
 				FeatureID:    swag.String(models.FeatureSupportLevelFeaturesItems0FeatureIDNUTANIXINTEGRATION),
-				SupportLevel: swag.String(models.FeatureSupportLevelFeaturesItems0SupportLevelDevPreview),
+				SupportLevel: getFeatureSupportLevelPtr(models.SupportLevelDevPreview),
 			},
 			// Unsupported features
 			{
 				FeatureID:    swag.String(models.FeatureSupportLevelFeaturesItems0FeatureIDDUALSTACKVIPS),
-				SupportLevel: swag.String(models.FeatureSupportLevelFeaturesItems0SupportLevelUnsupported),
+				SupportLevel: getFeatureSupportLevelPtr(models.SupportLevelUnsupported),
 			},
 			{
 				FeatureID:    swag.String(models.FeatureSupportLevelFeaturesItems0FeatureIDPPC64LEARCHITECTURE),
-				SupportLevel: swag.String(models.FeatureSupportLevelFeaturesItems0SupportLevelUnsupported),
+				SupportLevel: getFeatureSupportLevelPtr(models.SupportLevelUnsupported),
 			},
 			{
 				FeatureID:    swag.String(models.FeatureSupportLevelFeaturesItems0FeatureIDS390XARCHITECTURE),
-				SupportLevel: swag.String(models.FeatureSupportLevelFeaturesItems0SupportLevelUnsupported),
+				SupportLevel: getFeatureSupportLevelPtr(models.SupportLevelUnsupported),
 			},
 		},
 	},
@@ -330,54 +326,54 @@ var SupportLevelsList = models.FeatureSupportLevels{
 			// Supported
 			{
 				FeatureID:    swag.String(models.FeatureSupportLevelFeaturesItems0FeatureIDSNO),
-				SupportLevel: swag.String(models.FeatureSupportLevelFeaturesItems0SupportLevelSupported),
+				SupportLevel: getFeatureSupportLevelPtr(models.SupportLevelSupported),
 			},
 			{
 				FeatureID:    swag.String(models.FeatureSupportLevelFeaturesItems0FeatureIDARM64ARCHITECTURE),
-				SupportLevel: swag.String(models.FeatureSupportLevelFeaturesItems0SupportLevelSupported),
+				SupportLevel: getFeatureSupportLevelPtr(models.SupportLevelSupported),
 			},
 			{
 				FeatureID:    swag.String(models.FeatureSupportLevelFeaturesItems0FeatureIDARM64ARCHITECTUREWITHCLUSTERMANAGEDNETWORKING),
-				SupportLevel: swag.String(models.FeatureSupportLevelFeaturesItems0SupportLevelSupported),
+				SupportLevel: getFeatureSupportLevelPtr(models.SupportLevelSupported),
 			},
 			{
 				FeatureID:    swag.String(models.FeatureSupportLevelFeaturesItems0FeatureIDSINGLENODEEXPANSION),
-				SupportLevel: swag.String(models.FeatureSupportLevelFeaturesItems0SupportLevelSupported),
+				SupportLevel: getFeatureSupportLevelPtr(models.SupportLevelSupported),
 			},
 			{
 				FeatureID:    swag.String(models.FeatureSupportLevelFeaturesItems0FeatureIDLVM),
-				SupportLevel: swag.String(models.FeatureSupportLevelFeaturesItems0SupportLevelSupported),
+				SupportLevel: getFeatureSupportLevelPtr(models.SupportLevelSupported),
 			},
 			{
 				FeatureID:    swag.String(models.FeatureSupportLevelFeaturesItems0FeatureIDDUALSTACKNETWORKING),
-				SupportLevel: swag.String(models.FeatureSupportLevelFeaturesItems0SupportLevelSupported),
+				SupportLevel: getFeatureSupportLevelPtr(models.SupportLevelSupported),
 			},
 			{
 				FeatureID:    swag.String(models.FeatureSupportLevelFeaturesItems0FeatureIDNUTANIXINTEGRATION),
-				SupportLevel: swag.String(models.FeatureSupportLevelFeaturesItems0SupportLevelSupported),
+				SupportLevel: getFeatureSupportLevelPtr(models.SupportLevelSupported),
 			},
 			{
 				FeatureID:    swag.String(models.FeatureSupportLevelFeaturesItems0FeatureIDDUALSTACKVIPS),
-				SupportLevel: swag.String(models.FeatureSupportLevelFeaturesItems0SupportLevelSupported),
+				SupportLevel: getFeatureSupportLevelPtr(models.SupportLevelSupported),
 			},
 			// Tech-Preview features
 			{
 				FeatureID:    swag.String(models.FeatureSupportLevelFeaturesItems0FeatureIDMULTIARCHRELEASEIMAGE),
-				SupportLevel: swag.String(models.FeatureSupportLevelFeaturesItems0SupportLevelTechPreview),
+				SupportLevel: getFeatureSupportLevelPtr(models.SupportLevelTechPreview),
 			},
 			// Dev-Preview features
 			{
 				FeatureID:    swag.String(models.FeatureSupportLevelFeaturesItems0FeatureIDVIPAUTOALLOC),
-				SupportLevel: swag.String(models.FeatureSupportLevelFeaturesItems0SupportLevelDevPreview),
+				SupportLevel: getFeatureSupportLevelPtr(models.SupportLevelDevPreview),
 			},
 			// Unsupported features
 			{
 				FeatureID:    swag.String(models.FeatureSupportLevelFeaturesItems0FeatureIDPPC64LEARCHITECTURE),
-				SupportLevel: swag.String(models.FeatureSupportLevelFeaturesItems0SupportLevelUnsupported),
+				SupportLevel: getFeatureSupportLevelPtr(models.SupportLevelUnsupported),
 			},
 			{
 				FeatureID:    swag.String(models.FeatureSupportLevelFeaturesItems0FeatureIDS390XARCHITECTURE),
-				SupportLevel: swag.String(models.FeatureSupportLevelFeaturesItems0SupportLevelUnsupported),
+				SupportLevel: getFeatureSupportLevelPtr(models.SupportLevelUnsupported),
 			},
 		},
 	},
@@ -387,88 +383,55 @@ var SupportLevelsList = models.FeatureSupportLevels{
 			// Supported
 			{
 				FeatureID:    swag.String(models.FeatureSupportLevelFeaturesItems0FeatureIDSNO),
-				SupportLevel: swag.String(models.FeatureSupportLevelFeaturesItems0SupportLevelSupported),
+				SupportLevel: getFeatureSupportLevelPtr(models.SupportLevelSupported),
 			},
 			{
 				FeatureID:    swag.String(models.FeatureSupportLevelFeaturesItems0FeatureIDARM64ARCHITECTURE),
-				SupportLevel: swag.String(models.FeatureSupportLevelFeaturesItems0SupportLevelSupported),
+				SupportLevel: getFeatureSupportLevelPtr(models.SupportLevelSupported),
 			},
 			{
 				FeatureID:    swag.String(models.FeatureSupportLevelFeaturesItems0FeatureIDARM64ARCHITECTUREWITHCLUSTERMANAGEDNETWORKING),
-				SupportLevel: swag.String(models.FeatureSupportLevelFeaturesItems0SupportLevelSupported),
+				SupportLevel: getFeatureSupportLevelPtr(models.SupportLevelSupported),
 			},
 			{
 				FeatureID:    swag.String(models.FeatureSupportLevelFeaturesItems0FeatureIDSINGLENODEEXPANSION),
-				SupportLevel: swag.String(models.FeatureSupportLevelFeaturesItems0SupportLevelSupported),
+				SupportLevel: getFeatureSupportLevelPtr(models.SupportLevelSupported),
 			},
 			{
 				FeatureID:    swag.String(models.FeatureSupportLevelFeaturesItems0FeatureIDLVM),
-				SupportLevel: swag.String(models.FeatureSupportLevelFeaturesItems0SupportLevelSupported),
+				SupportLevel: getFeatureSupportLevelPtr(models.SupportLevelSupported),
 			},
 			{
 				FeatureID:    swag.String(models.FeatureSupportLevelFeaturesItems0FeatureIDDUALSTACKNETWORKING),
-				SupportLevel: swag.String(models.FeatureSupportLevelFeaturesItems0SupportLevelSupported),
+				SupportLevel: getFeatureSupportLevelPtr(models.SupportLevelSupported),
 			},
 			{
 				FeatureID:    swag.String(models.FeatureSupportLevelFeaturesItems0FeatureIDNUTANIXINTEGRATION),
-				SupportLevel: swag.String(models.FeatureSupportLevelFeaturesItems0SupportLevelSupported),
+				SupportLevel: getFeatureSupportLevelPtr(models.SupportLevelSupported),
 			},
 			{
 				FeatureID:    swag.String(models.FeatureSupportLevelFeaturesItems0FeatureIDDUALSTACKVIPS),
-				SupportLevel: swag.String(models.FeatureSupportLevelFeaturesItems0SupportLevelSupported),
+				SupportLevel: getFeatureSupportLevelPtr(models.SupportLevelSupported),
 			},
 			{
 				FeatureID:    swag.String(models.FeatureSupportLevelFeaturesItems0FeatureIDPPC64LEARCHITECTURE),
-				SupportLevel: swag.String(models.FeatureSupportLevelFeaturesItems0SupportLevelSupported),
+				SupportLevel: getFeatureSupportLevelPtr(models.SupportLevelSupported),
 			},
 			{
 				FeatureID:    swag.String(models.FeatureSupportLevelFeaturesItems0FeatureIDS390XARCHITECTURE),
-				SupportLevel: swag.String(models.FeatureSupportLevelFeaturesItems0SupportLevelSupported),
+				SupportLevel: getFeatureSupportLevelPtr(models.SupportLevelSupported),
 			},
 			// Tech-Preview features
 			{
 				FeatureID:    swag.String(models.FeatureSupportLevelFeaturesItems0FeatureIDMULTIARCHRELEASEIMAGE),
-				SupportLevel: swag.String(models.FeatureSupportLevelFeaturesItems0SupportLevelTechPreview),
+				SupportLevel: getFeatureSupportLevelPtr(models.SupportLevelTechPreview),
 			},
 			// Dev-Preview features
 			{
 				FeatureID:    swag.String(models.FeatureSupportLevelFeaturesItems0FeatureIDVIPAUTOALLOC),
-				SupportLevel: swag.String(models.FeatureSupportLevelFeaturesItems0SupportLevelDevPreview),
+				SupportLevel: getFeatureSupportLevelPtr(models.SupportLevelDevPreview),
 			},
 			// Unsupported features
 		},
 	},
-}
-
-// default is supported
-func GetFeatureSupportLevel(openshiftVersion string, featureId string) string {
-	openshiftVersion, err := getVersionKey(openshiftVersion)
-	if err != nil {
-		return models.FeatureSupportLevelFeaturesItems0SupportLevelSupported
-	}
-	for _, supportLevel := range SupportLevelsList {
-		if supportLevel.OpenshiftVersion == openshiftVersion {
-			for _, feature := range supportLevel.Features {
-				if usageNameToID(featureId) == *feature.FeatureID {
-					return *feature.SupportLevel
-				}
-			}
-			break
-		}
-	}
-	return models.FeatureSupportLevelFeaturesItems0SupportLevelSupported
-}
-
-func IsFeatureSupported(openshiftVersion string, featureId string) bool {
-	return GetFeatureSupportLevel(openshiftVersion, featureId) == models.FeatureSupportLevelFeaturesItems0SupportLevelSupported
-}
-
-func getVersionKey(openshiftVersion string) (string, error) {
-	v, err := version.NewVersion(openshiftVersion)
-	if err != nil {
-		return openshiftVersion, err
-	}
-
-	// put string in x.y format
-	return fmt.Sprintf("%d.%d", v.Segments()[0], v.Segments()[1]), nil
 }

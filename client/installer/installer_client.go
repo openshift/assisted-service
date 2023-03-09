@@ -41,6 +41,12 @@ type API interface {
 	   GetInfraEnvPresignedFileURL Creates a new pre-signed download URL for the infra-env.*/
 	GetInfraEnvPresignedFileURL(ctx context.Context, params *GetInfraEnvPresignedFileURLParams) (*GetInfraEnvPresignedFileURLOK, error)
 	/*
+	   GetSupportedArchitectures Retrieves the architecture support-levels for each OpenShift version.*/
+	GetSupportedArchitectures(ctx context.Context, params *GetSupportedArchitecturesParams) (*GetSupportedArchitecturesOK, error)
+	/*
+	   GetSupportedFeatures Retrieves the features support levels for each OpenShift version.*/
+	GetSupportedFeatures(ctx context.Context, params *GetSupportedFeaturesParams) (*GetSupportedFeaturesOK, error)
+	/*
 	   ListClusterHosts Get a list of cluster hosts according to supplied filters.*/
 	ListClusterHosts(ctx context.Context, params *ListClusterHostsParams) (*ListClusterHostsOK, error)
 	/*
@@ -131,7 +137,7 @@ type API interface {
 	   V2GetPreflightRequirements Get preflight requirements for a cluster.*/
 	V2GetPreflightRequirements(ctx context.Context, params *V2GetPreflightRequirementsParams) (*V2GetPreflightRequirementsOK, error)
 	/*
-	   V2ImportCluster Import an AI cluster using minimal data assosiated with existing OCP cluster, in order to allow adding day2 hosts to that cluster*/
+	   V2ImportCluster Import an AI cluster using minimal data associated with existing OCP cluster, in order to allow adding day2 hosts to that cluster*/
 	V2ImportCluster(ctx context.Context, params *V2ImportClusterParams) (*V2ImportClusterCreated, error)
 	/*
 	   V2InstallCluster Installs the OpenShift cluster.*/
@@ -143,7 +149,7 @@ type API interface {
 	   V2ListClusters Retrieves the list of OpenShift clusters.*/
 	V2ListClusters(ctx context.Context, params *V2ListClustersParams) (*V2ListClustersOK, error)
 	/*
-	   V2ListFeatureSupportLevels Retrieves the support levels for features for each OpenShift version.*/
+	   V2ListFeatureSupportLevels (DEPRECATED) Retrieves the support levels for features for each OpenShift version.*/
 	V2ListFeatureSupportLevels(ctx context.Context, params *V2ListFeatureSupportLevelsParams) (*V2ListFeatureSupportLevelsOK, error)
 	/*
 	   V2ListHosts Retrieves the list of OpenShift hosts that belong the infra-env.*/
@@ -393,6 +399,56 @@ func (a *Client) GetInfraEnvPresignedFileURL(ctx context.Context, params *GetInf
 		return nil, err
 	}
 	return result.(*GetInfraEnvPresignedFileURLOK), nil
+
+}
+
+/*
+GetSupportedArchitectures Retrieves the architecture support-levels for each OpenShift version.
+*/
+func (a *Client) GetSupportedArchitectures(ctx context.Context, params *GetSupportedArchitecturesParams) (*GetSupportedArchitecturesOK, error) {
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "GetSupportedArchitectures",
+		Method:             "GET",
+		PathPattern:        "/v2/support-levels/architectures",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http", "https"},
+		Params:             params,
+		Reader:             &GetSupportedArchitecturesReader{formats: a.formats},
+		AuthInfo:           a.authInfo,
+		Context:            ctx,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*GetSupportedArchitecturesOK), nil
+
+}
+
+/*
+GetSupportedFeatures Retrieves the features support levels for each OpenShift version.
+*/
+func (a *Client) GetSupportedFeatures(ctx context.Context, params *GetSupportedFeaturesParams) (*GetSupportedFeaturesOK, error) {
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "GetSupportedFeatures",
+		Method:             "GET",
+		PathPattern:        "/v2/support-levels/features",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http", "https"},
+		Params:             params,
+		Reader:             &GetSupportedFeaturesReader{formats: a.formats},
+		AuthInfo:           a.authInfo,
+		Context:            ctx,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*GetSupportedFeaturesOK), nil
 
 }
 
@@ -1147,7 +1203,7 @@ func (a *Client) V2GetPreflightRequirements(ctx context.Context, params *V2GetPr
 }
 
 /*
-V2ImportCluster Import an AI cluster using minimal data assosiated with existing OCP cluster, in order to allow adding day2 hosts to that cluster
+V2ImportCluster Import an AI cluster using minimal data associated with existing OCP cluster, in order to allow adding day2 hosts to that cluster
 */
 func (a *Client) V2ImportCluster(ctx context.Context, params *V2ImportClusterParams) (*V2ImportClusterCreated, error) {
 
@@ -1247,7 +1303,7 @@ func (a *Client) V2ListClusters(ctx context.Context, params *V2ListClustersParam
 }
 
 /*
-V2ListFeatureSupportLevels Retrieves the support levels for features for each OpenShift version.
+V2ListFeatureSupportLevels (DEPRECATED) Retrieves the support levels for features for each OpenShift version.
 */
 func (a *Client) V2ListFeatureSupportLevels(ctx context.Context, params *V2ListFeatureSupportLevelsParams) (*V2ListFeatureSupportLevelsOK, error) {
 

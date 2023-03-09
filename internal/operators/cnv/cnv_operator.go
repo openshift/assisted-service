@@ -66,7 +66,7 @@ func (o *operator) GetDependencies(cluster *common.Cluster) ([]string, error) {
 		return lsoOperator, nil
 	}
 
-	if isGreaterOrEqual, _ := common.BaseVersionGreaterOrEqual(cluster.OpenshiftVersion, lvm.LvmsMinOpenshiftVersion); isGreaterOrEqual {
+	if isGreaterOrEqual, _ := common.BaseVersionGreaterOrEqual(lvm.LvmsMinOpenshiftVersion, cluster.OpenshiftVersion); isGreaterOrEqual {
 		return []string{lvm.Operator.Name}, nil
 	}
 
