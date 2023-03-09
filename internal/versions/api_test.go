@@ -108,7 +108,7 @@ var _ = Describe("ListSupportedOpenshiftVersions", func() {
 		err = json.Unmarshal(bytes, releaseImages)
 		Expect(err).ShouldNot(HaveOccurred())
 
-		versionsHandler, err := NewHandler(logger, mockRelease, osImages, *releaseImages, nil, "", nil)
+		versionsHandler, err := NewHandler(logger, mockRelease, *releaseImages, nil, "", nil)
 		Expect(err).ShouldNot(HaveOccurred())
 		return versionsHandler
 	}
@@ -182,7 +182,7 @@ var _ = Describe("ListSupportedOpenshiftVersions", func() {
 
 	It("missing release images", func() {
 		osImages := readDefaultOsImages()
-		versionsHandler, err := NewHandler(logger, mockRelease, osImages, models.ReleaseImages{}, nil, "", nil)
+		versionsHandler, err := NewHandler(logger, mockRelease, models.ReleaseImages{}, nil, "", nil)
 		Expect(err).ToNot(HaveOccurred())
 		h := NewAPIHandler(logger, versions, authzHandler, versionsHandler, osImages)
 		reply := h.V2ListSupportedOpenshiftVersions(context.Background(), operations.V2ListSupportedOpenshiftVersionsParams{})
@@ -206,7 +206,7 @@ var _ = Describe("ListSupportedOpenshiftVersions", func() {
 		}
 
 		osImages := readDefaultOsImages()
-		versionsHandler, err := NewHandler(logger, mockRelease, osImages, releaseImages, nil, "", nil)
+		versionsHandler, err := NewHandler(logger, mockRelease, releaseImages, nil, "", nil)
 		Expect(err).ToNot(HaveOccurred())
 		h := NewAPIHandler(logger, versions, authzHandler, versionsHandler, osImages)
 
@@ -232,7 +232,7 @@ var _ = Describe("ListSupportedOpenshiftVersions", func() {
 			},
 		}
 		osImages := readDefaultOsImages()
-		versionsHandler, err := NewHandler(logger, mockRelease, osImages, releaseImages, nil, "", nil)
+		versionsHandler, err := NewHandler(logger, mockRelease, releaseImages, nil, "", nil)
 		Expect(err).ToNot(HaveOccurred())
 		h := NewAPIHandler(logger, versions, authzHandler, versionsHandler, osImages)
 
@@ -276,7 +276,7 @@ var _ = Describe("ListSupportedOpenshiftVersions", func() {
 			},
 		}
 		osImages := readDefaultOsImages()
-		versionsHandler, err := NewHandler(logger, mockRelease, osImages, releaseImages, nil, "", nil)
+		versionsHandler, err := NewHandler(logger, mockRelease, releaseImages, nil, "", nil)
 		Expect(err).ToNot(HaveOccurred())
 		h := NewAPIHandler(logger, versions, authzHandler, versionsHandler, osImages)
 
@@ -307,7 +307,7 @@ var _ = Describe("ListSupportedOpenshiftVersions", func() {
 			},
 		}
 		osImages := readDefaultOsImages()
-		versionsHandler, err := NewHandler(logger, mockRelease, osImages, releaseImages, nil, "", nil)
+		versionsHandler, err := NewHandler(logger, mockRelease, releaseImages, nil, "", nil)
 		Expect(err).ToNot(HaveOccurred())
 		h := NewAPIHandler(logger, versions, authzHandler, versionsHandler, osImages)
 
@@ -362,7 +362,7 @@ var _ = Describe("Test list versions with capability restrictions", func() {
 
 		osImages, err := NewOSImages(defaultOsImages)
 		Expect(err).ShouldNot(HaveOccurred())
-		versionsHandler, err := NewHandler(common.GetTestLog(), nil, osImages, defaultReleaseImages, nil, "", nil)
+		versionsHandler, err := NewHandler(common.GetTestLog(), nil, defaultReleaseImages, nil, "", nil)
 		Expect(err).ShouldNot(HaveOccurred())
 
 		return NewAPIHandler(common.GetTestLog(), Versions{}, authzHandler, versionsHandler, osImages)

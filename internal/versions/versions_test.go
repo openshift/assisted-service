@@ -169,7 +169,7 @@ var _ = Describe("GetReleaseImage", func() {
 		Expect(err).ShouldNot(HaveOccurred())
 		ctrl = gomock.NewController(GinkgoT())
 		mockRelease = oc.NewMockRelease(ctrl)
-		h, err = NewHandler(common.GetTestLog(), mockRelease, osImages, defaultReleaseImages, nil, "", nil)
+		h, err = NewHandler(common.GetTestLog(), mockRelease, defaultReleaseImages, nil, "", nil)
 		Expect(err).ShouldNot(HaveOccurred())
 	})
 
@@ -358,9 +358,8 @@ var _ = Describe("ValidateReleaseImageForRHCOS", func() {
 				Version:          swag.String("4.12"),
 			},
 		}
-		osImages, err := NewOSImages(defaultOsImages)
-		Expect(err).ShouldNot(HaveOccurred())
-		h, err = NewHandler(common.GetTestLog(), nil, osImages, releaseImages, nil, "", nil)
+		var err error
+		h, err = NewHandler(common.GetTestLog(), nil, releaseImages, nil, "", nil)
 		Expect(err).ShouldNot(HaveOccurred())
 	})
 
@@ -390,16 +389,8 @@ var _ = Describe("ValidateReleaseImageForRHCOS", func() {
 })
 
 var _ = Describe("GetDefaultReleaseImage", func() {
-	var osImages OSImages
-
-	BeforeEach(func() {
-		var err error
-		osImages, err = NewOSImages(defaultOsImages)
-		Expect(err).ShouldNot(HaveOccurred())
-	})
-
 	It("Default release image exists", func() {
-		h, err := NewHandler(common.GetTestLog(), nil, osImages, defaultReleaseImages, nil, "", nil)
+		h, err := NewHandler(common.GetTestLog(), nil, defaultReleaseImages, nil, "", nil)
 		Expect(err).ShouldNot(HaveOccurred())
 
 		releaseImage, err := h.GetDefaultReleaseImage(common.TestDefaultConfig.CPUArchitecture)
@@ -410,7 +401,7 @@ var _ = Describe("GetDefaultReleaseImage", func() {
 	})
 
 	It("Missing default release image", func() {
-		h, err := NewHandler(common.GetTestLog(), nil, osImages, models.ReleaseImages{}, nil, "", nil)
+		h, err := NewHandler(common.GetTestLog(), nil, models.ReleaseImages{}, nil, "", nil)
 		Expect(err).ShouldNot(HaveOccurred())
 
 		_, err = h.GetDefaultReleaseImage(common.TestDefaultConfig.CPUArchitecture)
@@ -441,7 +432,7 @@ var _ = Describe("GetMustGatherImages", func() {
 		var err error
 		ctrl = gomock.NewController(GinkgoT())
 		mockRelease = oc.NewMockRelease(ctrl)
-		h, err = NewHandler(common.GetTestLog(), mockRelease, nil, defaultReleaseImages, mustgatherImages, mirror, nil)
+		h, err = NewHandler(common.GetTestLog(), mockRelease, defaultReleaseImages, mustgatherImages, mirror, nil)
 		Expect(err).ShouldNot(HaveOccurred())
 	})
 
@@ -504,9 +495,8 @@ var _ = Describe("GetReleaseImageByURL", func() {
 		ctrl = gomock.NewController(GinkgoT())
 		mockRelease = oc.NewMockRelease(ctrl)
 
-		osImages, err := NewOSImages(defaultOsImages)
-		Expect(err).ShouldNot(HaveOccurred())
-		h, err = NewHandler(common.GetTestLog(), mockRelease, osImages, defaultReleaseImages, nil, "", nil)
+		var err error
+		h, err = NewHandler(common.GetTestLog(), mockRelease, defaultReleaseImages, nil, "", nil)
 		Expect(err).ShouldNot(HaveOccurred())
 	})
 
@@ -647,7 +637,7 @@ var _ = Describe("GetReleaseImageByURL", func() {
 
 var _ = Describe("NewHandler", func() {
 	validateNewHandler := func(releaseImages models.ReleaseImages) error {
-		_, err := NewHandler(common.GetTestLog(), nil, nil, releaseImages, nil, "", nil)
+		_, err := NewHandler(common.GetTestLog(), nil, releaseImages, nil, "", nil)
 		return err
 	}
 

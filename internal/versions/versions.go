@@ -30,12 +30,11 @@ type Handler interface {
 	ValidateReleaseImageForRHCOS(rhcosVersion, cpuArch string) error
 }
 
-func NewHandler(log logrus.FieldLogger, releaseHandler oc.Release, osImages OSImages, releaseImages models.ReleaseImages,
+func NewHandler(log logrus.FieldLogger, releaseHandler oc.Release, releaseImages models.ReleaseImages,
 	mustGatherVersions MustGatherVersions, releaseImageMirror string, kubeClient client.Client) (*handler, error) {
 
 	h := &handler{
 		mustGatherVersions: mustGatherVersions,
-		osImages:           osImages,
 		releaseImages:      releaseImages,
 		releaseHandler:     releaseHandler,
 		releaseImageMirror: releaseImageMirror,
@@ -52,7 +51,6 @@ func NewHandler(log logrus.FieldLogger, releaseHandler oc.Release, osImages OSIm
 
 type handler struct {
 	mustGatherVersions MustGatherVersions
-	osImages           OSImages
 	releaseImages      models.ReleaseImages
 	releaseHandler     oc.Release
 	releaseImageMirror string
