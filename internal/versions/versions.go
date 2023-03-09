@@ -242,13 +242,6 @@ func (h *handler) addReleaseImage(releaseImageUrl, pullSecret string) (*models.R
 	var cpuArchitecture string
 	if len(cpuArchitectures) == 1 {
 		cpuArchitecture = cpuArchitectures[0]
-
-		// Ensure a relevant OsImage exists. For multiarch we disabling the code below because we don't know yet
-		// what is going to be the architecture of InfraEnv and Agent.
-		osImage, err := h.osImages.GetOsImage(ocpReleaseVersion, cpuArchitecture)
-		if err != nil || osImage.URL == nil {
-			return nil, errors.Errorf("No OS images are available for version %s and architecture %s", ocpReleaseVersion, cpuArchitecture)
-		}
 	} else {
 		cpuArchitecture = common.MultiCPUArchitecture
 	}

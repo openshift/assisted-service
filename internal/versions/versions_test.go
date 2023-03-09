@@ -2,7 +2,6 @@ package versions
 
 import (
 	context "context"
-	"fmt"
 	"testing"
 
 	"github.com/go-openapi/swag"
@@ -551,7 +550,7 @@ var _ = Describe("GetReleaseImageByURL", func() {
 			Expect(releaseImage.Version).Should(Equal(releaseImageFromCache.(*models.ReleaseImage).Version))
 		})
 
-		It("fails when missing OS image", func() {
+		It("succeeds for missing OS image", func() {
 			ocpVersion := "4.7"
 			mockRelease.EXPECT().GetOpenshiftVersion(
 				gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(ocpVersion, nil).AnyTimes()
@@ -559,8 +558,7 @@ var _ = Describe("GetReleaseImageByURL", func() {
 				gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return([]string{cpuArchitecture}, nil).AnyTimes()
 
 			_, err := h.GetReleaseImageByURL(ctx, "invalidRelease", pullSecret)
-			Expect(err).Should(HaveOccurred())
-			Expect(err.Error()).Should(Equal(fmt.Sprintf("No OS images are available for version %s and architecture %s", ocpVersion, cpuArchitecture)))
+			Expect(err).ShouldNot(HaveOccurred())
 		})
 	})
 
