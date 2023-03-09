@@ -35,7 +35,7 @@ func Manifests(cluster *common.Cluster) (map[string][]byte, []byte, error) {
 }
 
 func getSubscriptionInfo(openshiftVersion string) (map[string]string, error) {
-	isGreaterOrEqual, err := common.BaseVersionGreaterOrEqual(openshiftVersion, LvmsMinOpenshiftVersion)
+	isGreaterOrEqual, err := common.BaseVersionGreaterOrEqual(LvmsMinOpenshiftVersion, openshiftVersion)
 	if err != nil {
 		return map[string]string{}, err
 	}

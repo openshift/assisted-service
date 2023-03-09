@@ -250,6 +250,14 @@ func (f fakeInventory) V2ListFeatureSupportLevels(ctx context.Context, params in
 	return installer.NewV2ListFeatureSupportLevelsOK()
 }
 
+func (f fakeInventory) GetSupportedFeatures(ctx context.Context, params installer.GetSupportedFeaturesParams) middleware.Responder {
+	return installer.NewGetSupportedFeaturesOK()
+}
+
+func (f fakeInventory) GetSupportedArchitectures(ctx context.Context, params installer.GetSupportedArchitecturesParams) middleware.Responder {
+	return installer.NewGetSupportedArchitecturesOK()
+}
+
 func (b fakeInventory) RegenerateInfraEnvSigningKey(ctx context.Context, params installer.RegenerateInfraEnvSigningKeyParams) middleware.Responder {
 	return installer.NewRegenerateInfraEnvSigningKeyNoContent()
 }

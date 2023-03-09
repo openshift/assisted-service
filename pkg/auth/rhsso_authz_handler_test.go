@@ -1004,6 +1004,16 @@ var _ = Describe("authz", func() {
 			allowedRoles: []ocm.RoleType{ocm.AdminRole, ocm.UserRole, ocm.ReadOnlyAdminRole},
 			apiCall:      v2ListFeatureSupportLevels,
 		},
+		{
+			name:         "List support features",
+			allowedRoles: []ocm.RoleType{ocm.AdminRole, ocm.UserRole, ocm.ReadOnlyAdminRole},
+			apiCall:      GetSupportedFeatures,
+		},
+		{
+			name:         "List support architectures",
+			allowedRoles: []ocm.RoleType{ocm.AdminRole, ocm.UserRole, ocm.ReadOnlyAdminRole},
+			apiCall:      GetSupportedArchitectures,
+		},
 	}
 
 	for _, tt := range tests {
@@ -1488,6 +1498,17 @@ func updateDiscoveryIgnition(ctx context.Context, cli *client.AssistedInstall) e
 
 func v2ListFeatureSupportLevels(ctx context.Context, cli *client.AssistedInstall) error {
 	_, err := cli.Installer.V2ListFeatureSupportLevels(ctx, &installer.V2ListFeatureSupportLevelsParams{})
+	return err
+}
+
+func GetSupportedFeatures(ctx context.Context, cli *client.AssistedInstall) error {
+	featureParams := &installer.GetSupportedFeaturesParams{OpenshiftVersion: common.TestDefaultConfig.OpenShiftVersion}
+	_, err := cli.Installer.GetSupportedFeatures(ctx, featureParams)
+	return err
+}
+
+func GetSupportedArchitectures(ctx context.Context, cli *client.AssistedInstall) error {
+	_, err := cli.Installer.GetSupportedArchitectures(ctx, &installer.GetSupportedArchitecturesParams{OpenshiftVersion: common.TestDefaultConfig.OpenShiftVersion})
 	return err
 }
 

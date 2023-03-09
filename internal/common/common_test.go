@@ -268,19 +268,19 @@ var _ = Describe("compare OCP 4.10 versions", func() {
 		Expect(isGreater).Should(BeFalse())
 	})
 	It("nightly equals base release", func() {
-		isGreater, _ := BaseVersionGreaterOrEqual("4.12.0-0.nightly-2022-01-23-013716", "4.12.0")
+		isGreater, _ := BaseVersionGreaterOrEqual("4.12.0", "4.12.0-0.nightly-2022-01-23-013716")
 		Expect(isGreater).Should(BeTrue())
 	})
 	It("nightly greater base release", func() {
-		isGreater, _ := BaseVersionGreaterOrEqual("4.12.1-0.nightly-2022-01-23-013716", "4.12.0")
+		isGreater, _ := BaseVersionGreaterOrEqual("4.12.0", "4.12.1-0.nightly-2022-01-23-013716")
 		Expect(isGreater).Should(BeTrue())
 	})
 	It("pre release base version", func() {
-		isGreater, _ := BaseVersionGreaterOrEqual("4.12.0-ec.1", "4.12.0")
+		isGreater, _ := BaseVersionGreaterOrEqual("4.12.0", "4.12.0-ec.1")
 		Expect(isGreater).Should(BeTrue())
 	})
 	It("empty base version", func() {
-		_, err := BaseVersionGreaterOrEqual("", "4.12.0")
+		_, err := BaseVersionGreaterOrEqual("4.12.0", "")
 		Expect(err).Should(Not(BeNil()))
 	})
 	It("empty versions", func() {

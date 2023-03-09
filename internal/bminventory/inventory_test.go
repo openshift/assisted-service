@@ -5934,6 +5934,7 @@ var _ = Describe("[V2ClusterUpdate] cluster", func() {
 						ID:                    &clusterID,
 						HighAvailabilityMode:  swag.String(models.ClusterHighAvailabilityModeFull),
 						UserManagedNetworking: swag.Bool(false),
+						OpenshiftVersion:      "4.12",
 						Platform: &models.Platform{
 							Type: common.PlatformTypePtr(models.PlatformTypeBaremetal),
 						},

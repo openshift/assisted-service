@@ -376,7 +376,7 @@ func getDefaultNetworkType(params installer.V2RegisterClusterParams) (*string, e
 		return params.NewClusterParams.NetworkType, nil
 	}
 
-	isOpenShiftVersionRecentEnough, err := common.BaseVersionGreaterOrEqual(swag.StringValue(params.NewClusterParams.OpenshiftVersion), minimalOpenShiftVersionForDefaultNetworkTypeOVNKubernetes)
+	isOpenShiftVersionRecentEnough, err := common.BaseVersionGreaterOrEqual(minimalOpenShiftVersionForDefaultNetworkTypeOVNKubernetes, swag.StringValue(params.NewClusterParams.OpenshiftVersion))
 	if err != nil {
 		return nil, err
 	}
@@ -798,9 +798,7 @@ func (b *bareMetalInventory) getNewClusterCPUArchitecture(newClusterParams *mode
 		return common.DefaultCPUArchitecture, nil
 	}
 
-	if !swag.BoolValue(newClusterParams.UserManagedNetworking) && !featuresupport.IsFeatureSupported(swag.StringValue(newClusterParams.OpenshiftVersion),
-		models.FeatureSupportLevelFeaturesItems0FeatureIDARM64ARCHITECTUREWITHCLUSTERMANAGEDNETWORKING) {
-
+	if !swag.BoolValue(newClusterParams.UserManagedNetworking) && !featuresupport.IsFeatureSupported(models.FeatureSupportLevelIDCLUSTERMANAGEDNETWORKING, *newClusterParams.OpenshiftVersion, swag.String(models.ClusterCPUArchitectureArm64)) {
 		return "", errors.Errorf("Non x86_64 CPU architectures for version %s are supported only with User Managed Networking", swag.StringValue(newClusterParams.OpenshiftVersion))
 	}
 
@@ -1550,6 +1548,14 @@ func (b *bareMetalInventory) GetClusterSupportedPlatforms(ctx context.Context, p
 		return common.GenerateErrorResponder(err)
 	}
 	return installer.NewGetClusterSupportedPlatformsOK().WithPayload(*supportedPlatforms)
+}
+
+func (bm *bareMetalInventory) GetFeatureSupportLevelListInternal(_ context.Context, params installer.GetSupportedFeaturesParams) (models.SupportLevels, error) {
+	return featuresupport.GetFeatureSupportList(params.OpenshiftVersion, params.CPUArchitecture), nil
+}
+
+func (bm *bareMetalInventory) GetArchitecturesSupportLevelListInternal(_ context.Context, params installer.GetSupportedArchitecturesParams) (models.SupportLevels, error) {
+	return featuresupport.GetCpuArchitectureSupportList(params.OpenshiftVersion), nil
 }
 
 func (b *bareMetalInventory) UpdateClusterInstallConfigInternal(ctx context.Context, params installer.V2UpdateClusterInstallConfigParams) (*common.Cluster, error) {
@@ -2474,7 +2480,7 @@ func (b *bareMetalInventory) updateNetworkParams(params installer.V2UpdateCluste
 	if params.ClusterUpdateParams.UserManagedNetworking != nil && swag.BoolValue(params.ClusterUpdateParams.UserManagedNetworking) != userManagedNetworking {
 		if !swag.BoolValue(params.ClusterUpdateParams.UserManagedNetworking) &&
 			(cluster.CPUArchitecture != common.DefaultCPUArchitecture &&
-				!featuresupport.IsFeatureSupported(cluster.OpenshiftVersion, models.FeatureSupportLevelFeaturesItems0FeatureIDARM64ARCHITECTUREWITHCLUSTERMANAGEDNETWORKING)) {
+				!featuresupport.IsFeatureSupported(models.FeatureSupportLevelIDCLUSTERMANAGEDNETWORKING, cluster.OpenshiftVersion, swag.String(cluster.CPUArchitecture))) {
 			err = errors.Errorf("disabling User Managed Networking is not allowed for clusters with non-x86_64 CPU architecture")
 			return common.NewApiError(http.StatusBadRequest, err)
 		}
@@ -2827,7 +2833,7 @@ func (b *bareMetalInventory) getOLMOperators(cluster *common.Cluster, newOperato
 	for _, monitoredOperator := range operatorDependencies {
 		// TODO - Need to find a better way for creating LVMO/LVMS operator on different openshift-version
 		if monitoredOperator.Name == "lvm" {
-			lvmsMetMinOpenshiftVersion, err := common.BaseVersionGreaterOrEqual(cluster.OpenshiftVersion, lvm.LvmsMinOpenshiftVersion)
+			lvmsMetMinOpenshiftVersion, err := common.BaseVersionGreaterOrEqual(lvm.LvmsMinOpenshiftVersion, cluster.OpenshiftVersion)
 			if err != nil {
 				log.Warnf("Error parsing cluster.OpenshiftVersion: %s, setting subscription name to %s", err.Error(), lvm.LvmsSubscriptionName)
 				monitoredOperator.SubscriptionName = lvm.LvmsSubscriptionName
@@ -6200,8 +6206,7 @@ func isBaremetalBinaryFromAnotherReleaseImageRequired(cpuArchitecture, version s
 	return cpuArchitecture != common.MultiCPUArchitecture &&
 		cpuArchitecture != common.NormalizeCPUArchitecture(runtime.GOARCH) &&
 		common.PlatformTypeValue(platform) == models.PlatformTypeBaremetal &&
-		featuresupport.IsFeatureSupported(version,
-			models.FeatureSupportLevelFeaturesItems0FeatureIDARM64ARCHITECTUREWITHCLUSTERMANAGEDNETWORKING)
+		featuresupport.IsFeatureSupported(models.FeatureSupportLevelIDCLUSTERMANAGEDNETWORKING, version, swag.String(models.ClusterCPUArchitectureArm64))
 }
 
 // updateMonitoredOperators checks the content of the installer configuration and updates the list
@@ -6229,10 +6234,7 @@ func (b *bareMetalInventory) updateMonitoredOperators(tx *gorm.DB, cluster *comm
 		"cluster_version": cluster.OpenshiftVersion,
 		"minimal_version": minimalOpenShiftVersionForConsoleCapability,
 	}
-	consoleCapabilitySupported, err := common.BaseVersionGreaterOrEqual(
-		cluster.OpenshiftVersion,
-		minimalOpenShiftVersionForConsoleCapability,
-	)
+	consoleCapabilitySupported, err := common.BaseVersionGreaterOrEqual(minimalOpenShiftVersionForConsoleCapability, cluster.OpenshiftVersion)
 	if err != nil {
 		return err
 	}

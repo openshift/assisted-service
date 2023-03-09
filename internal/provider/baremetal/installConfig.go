@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"sort"
 
+	"github.com/go-openapi/swag"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/featuresupport"
 	"github.com/openshift/assisted-service/internal/host/hostutil"
@@ -89,7 +90,7 @@ func (p baremetalProvider) AddPlatformToInstallConfig(
 	}
 	p.Log.Infof("setting Baremetal.ProvisioningNetwork to %s", provNetwork)
 
-	if featuresupport.IsFeatureSupported(cluster.OpenshiftVersion, models.FeatureSupportLevelFeaturesItems0FeatureIDDUALSTACKVIPS) {
+	if featuresupport.IsFeatureSupported(models.FeatureSupportLevelIDDUALSTACKVIPS, cluster.OpenshiftVersion, swag.String(cluster.CPUArchitecture)) {
 		cfg.Platform = installcfg.Platform{
 			Baremetal: &installcfg.BareMetalInstallConfigPlatform{
 				ProvisioningNetwork: provNetwork,
