@@ -48,6 +48,7 @@ import (
 	"github.com/openshift/assisted-service/internal/operators/lvm"
 	"github.com/openshift/assisted-service/internal/provider"
 	"github.com/openshift/assisted-service/internal/provider/registry"
+	"github.com/openshift/assisted-service/internal/stream"
 	"github.com/openshift/assisted-service/internal/usage"
 	"github.com/openshift/assisted-service/internal/versions"
 	"github.com/openshift/assisted-service/models"
@@ -61,7 +62,6 @@ import (
 	"github.com/openshift/assisted-service/pkg/ocm"
 	"github.com/openshift/assisted-service/pkg/s3wrapper"
 	"github.com/openshift/assisted-service/pkg/staticnetworkconfig"
-	"github.com/openshift/assisted-service/pkg/stream"
 	"github.com/openshift/assisted-service/pkg/transaction"
 	pkgvalidations "github.com/openshift/assisted-service/pkg/validations"
 	"github.com/openshift/assisted-service/restapi/operations/installer"
@@ -190,7 +190,7 @@ type CRDUtils interface {
 type bareMetalInventory struct {
 	Config
 	db                   *gorm.DB
-	stream               stream.EventStreamWriter
+	stream               stream.Notifier
 	log                  logrus.FieldLogger
 	hostApi              host.API
 	clusterApi           clusterPkg.API
@@ -222,7 +222,7 @@ type bareMetalInventory struct {
 
 func NewBareMetalInventory(
 	db *gorm.DB,
-	stream stream.EventStreamWriter,
+	stream stream.Notifier,
 	log logrus.FieldLogger,
 	hostApi host.API,
 	clusterApi clusterPkg.API,
@@ -453,6 +453,25 @@ func (b *bareMetalInventory) validateRegisterClusterInternalParams(params *insta
 	return nil
 }
 
+func (b *bareMetalInventory) getOLMMonitoredOperators(log *logrus.Entry, cluster *common.Cluster, params installer.V2RegisterClusterParams, releaseImageVersion string) ([]*models.MonitoredOperator, error) {
+	if params.NewClusterParams.OlmOperators != nil {
+		var newOLMOperators []*models.MonitoredOperator
+		newOLMOperators, err := b.getOLMOperators(cluster, params.NewClusterParams.OlmOperators, log)
+		if err != nil {
+			return nil, err
+		}
+
+		err = b.operatorManagerApi.EnsureOperatorPrerequisite(cluster, releaseImageVersion, newOLMOperators)
+		if err != nil {
+			log.Error(err)
+			return nil, common.NewApiError(http.StatusBadRequest, err)
+		}
+
+		return newOLMOperators, nil
+	}
+	return nil, nil
+}
+
 func (b *bareMetalInventory) RegisterClusterInternal(
 	ctx context.Context,
 	kubeKey *types.NamespacedName,
@@ -464,9 +483,16 @@ func (b *bareMetalInventory) RegisterClusterInternal(
 	log := logutil.FromContext(ctx, b.log).WithField(ctxparams.ClusterId, id)
 	log.Infof("Register cluster: %s with id %s and params %+v", swag.StringValue(params.NewClusterParams.Name), id, params.NewClusterParams)
 	success := false
+	cluster := &common.Cluster{}
 	var err error
 	defer func() {
 		if success {
+			if err == nil && cluster != nil {
+				err = b.stream.Notify(ctx, cluster)
+				if err != nil {
+					log.WithError(err).Warning("failed to notify cluster registration event")
+				}
+			}
 			msg := fmt.Sprintf("Successfully registered cluster %s with id %s",
 				swag.StringValue(params.NewClusterParams.Name), id)
 			log.Info(msg)
@@ -545,7 +571,7 @@ func (b *bareMetalInventory) RegisterClusterInternal(
 
 	monitoredOperators := b.operatorManagerApi.GetSupportedOperatorsByType(models.OperatorTypeBuiltin)
 
-	cluster := common.Cluster{
+	cluster = &common.Cluster{
 		Cluster: models.Cluster{
 			ID:                           &id,
 			Href:                         swag.String(url.String()),
@@ -588,23 +614,11 @@ func (b *bareMetalInventory) RegisterClusterInternal(
 		MachineNetworkCidrUpdatedAt: time.Now(),
 	}
 
-	if params.NewClusterParams.OlmOperators != nil {
-		var newOLMOperators []*models.MonitoredOperator
-		newOLMOperators, err = b.getOLMOperators(&cluster, params.NewClusterParams.OlmOperators, log)
-		if err != nil {
-			return nil, err
-		}
-
-		err = b.operatorManagerApi.EnsureOperatorPrerequisite(&cluster, *releaseImage.Version, newOLMOperators)
-		if err != nil {
-			log.Error(err)
-			return nil, common.NewApiError(http.StatusBadRequest, err)
-		}
-
-		monitoredOperators = append(monitoredOperators, newOLMOperators...)
+	newOLMOperators, err := b.getOLMMonitoredOperators(log, cluster, params, *releaseImage.Version)
+	if err != nil {
+		return nil, err
 	}
-
-	cluster.MonitoredOperators = monitoredOperators
+	cluster.MonitoredOperators = append(monitoredOperators, newOLMOperators...)
 
 	pullSecret := swag.StringValue(params.NewClusterParams.PullSecret)
 	err = b.ValidatePullSecret(pullSecret, ocm.UserNameFromContext(ctx))
@@ -617,18 +631,18 @@ func (b *bareMetalInventory) RegisterClusterInternal(
 		return nil, common.NewApiError(http.StatusBadRequest,
 			errors.New("Failed to update Pull-secret with additional credentials"))
 	}
-	setPullSecret(&cluster, ps)
+	setPullSecret(cluster, ps)
 
 	if err = validations.ValidateClusterNameFormat(swag.StringValue(params.NewClusterParams.Name),
 		getPlatformType(params.NewClusterParams.Platform)); err != nil {
 		return nil, common.NewApiError(http.StatusBadRequest, err)
 	}
 
-	if err = b.validateDNSName(cluster); err != nil {
+	if err = b.validateDNSName(*cluster); err != nil {
 		return nil, common.NewApiError(http.StatusBadRequest, err)
 	}
 
-	if err = updateSSHPublicKey(&cluster); err != nil {
+	if err = updateSSHPublicKey(cluster); err != nil {
 		return nil, common.NewApiError(http.StatusBadRequest, err)
 	}
 
@@ -638,13 +652,13 @@ func (b *bareMetalInventory) RegisterClusterInternal(
 		return nil, common.NewApiError(http.StatusBadRequest, err)
 	}
 
-	err = b.clusterApi.RegisterCluster(ctx, &cluster)
+	err = b.clusterApi.RegisterCluster(ctx, cluster)
 	if err != nil {
 		return nil, common.NewApiError(http.StatusInternalServerError, err)
 	}
 
 	if b.ocmClient != nil {
-		if err = b.integrateWithAMSClusterRegistration(ctx, &cluster); err != nil {
+		if err = b.integrateWithAMSClusterRegistration(ctx, cluster); err != nil {
 			err = errors.Wrapf(err, "cluster %s failed to integrate with AMS on cluster registration", id)
 			return nil, common.NewApiError(http.StatusInternalServerError, err)
 		}
@@ -652,7 +666,8 @@ func (b *bareMetalInventory) RegisterClusterInternal(
 
 	success = true
 	b.metricApi.ClusterRegistered()
-	return b.GetClusterInternal(ctx, installer.V2GetClusterParams{ClusterID: *cluster.ID})
+	cluster, err = b.GetClusterInternal(ctx, installer.V2GetClusterParams{ClusterID: *cluster.ID})
+	return cluster, err
 }
 
 func setDiskEncryptionWithDefaultValues(c *models.Cluster, config *models.DiskEncryption) {
@@ -1620,6 +1635,12 @@ func (b *bareMetalInventory) UpdateClusterInstallConfigInternal(ctx context.Cont
 		return nil, common.NewApiError(http.StatusInternalServerError, err)
 	}
 	txSuccess = true
+	if err == nil {
+		err = b.stream.Notify(ctx, cluster)
+		if err != nil {
+			log.WithError(err).Warning("failed to notify cluster update event")
+		}
+	}
 	eventgen.SendInstallConfigAppliedEvent(ctx, b.eventsHandler, params.ClusterID)
 	log.Infof("Custom install config was applied to cluster %s", params.ClusterID)
 
@@ -4803,7 +4824,10 @@ func (b *bareMetalInventory) UpdateInfraEnvInternal(ctx context.Context, params 
 		return nil, err
 	}
 	if infraEnv != nil {
-		b.notifyEventStream(ctx, &infraEnv.InfraEnv)
+		err = b.stream.Notify(ctx, infraEnv)
+		if err != nil {
+			log.WithError(err).Warning("failed to notify infraenv update event")
+		}
 	}
 
 	var cluster *common.Cluster
@@ -5140,14 +5164,14 @@ func (b *bareMetalInventory) V2RegisterHost(ctx context.Context, params installe
 		NextStepRunnerCommand: nextStepRunnerCommand,
 	}
 
-	if err := tx.Commit().Error; err != nil {
+	if err = tx.Commit().Error; err != nil {
 		log.Error(err)
 		return installer.NewV2RegisterHostInternalServerError().
 			WithPayload(common.GenerateError(http.StatusInternalServerError, err))
 	}
 
 	// Create AgentCR if needed, after commit in DB as KubeKey will be updated.
-	if err := b.crdUtils.CreateAgentCR(ctx, log, params.NewHostParams.HostID.String(), infraEnv, cluster); err != nil {
+	if err = b.crdUtils.CreateAgentCR(ctx, log, params.NewHostParams.HostID.String(), infraEnv, cluster); err != nil {
 		log.WithError(err).Errorf("Fail to create Agent CR, deleting host. Namespace: %s, InfraEnv: %s, HostID: %s", infraEnv.KubeKeyNamespace, swag.StringValue(infraEnv.Name), params.NewHostParams.HostID.String())
 		if err2 := b.hostApi.UnRegisterHost(ctx, host); err2 != nil {
 			return installer.NewV2RegisterHostInternalServerError().
@@ -5158,7 +5182,7 @@ func (b *bareMetalInventory) V2RegisterHost(ctx context.Context, params installe
 	}
 
 	if host.ClusterID != nil {
-		if err := b.clusterApi.RefreshSchedulableMastersForcedTrue(ctx, *host.ClusterID); err != nil {
+		if err = b.clusterApi.RefreshSchedulableMastersForcedTrue(ctx, *host.ClusterID); err != nil {
 			log.WithError(err).Errorf("Failed to refresh SchedulableMastersForcedTrue while registering host <%s> to cluster <%s>", host.ID, host.ClusterID)
 			return installer.NewV2RegisterHostInternalServerError().
 				WithPayload(common.GenerateError(http.StatusInternalServerError, err))
@@ -5166,6 +5190,13 @@ func (b *bareMetalInventory) V2RegisterHost(ctx context.Context, params installe
 	}
 
 	txSuccess = true
+	notifiableHost := &common.Host{
+		Host: *host,
+	}
+	err = b.stream.Notify(ctx, notifiableHost)
+	if err != nil {
+		log.WithError(err).Warning("failed to notify host registration event")
+	}
 
 	return installer.NewV2RegisterHostCreated().WithPayload(&hostRegistration)
 }
@@ -6289,20 +6320,6 @@ func (b *bareMetalInventory) updateMonitoredOperators(tx *gorm.DB, cluster *comm
 		err = tx.Delete(&consoleOperator).Error
 	}
 	return err
-}
-
-func (b *bareMetalInventory) notifyEventStream(ctx context.Context, infraEnv *models.InfraEnv) {
-	if b.stream == nil || infraEnv == nil {
-		return
-	}
-	key := infraEnv.ClusterID.String()
-	err := b.stream.Write(ctx, "InfraEnv", []byte(key), infraEnv)
-	if err != nil {
-		b.log.WithError(err).WithFields(logrus.Fields{
-			"infra_env_id": infraEnv.ID,
-			"cluster_id":   infraEnv.ClusterID,
-		}).Warn("failed to stream event for infraenv")
-	}
 }
 
 func (b *bareMetalInventory) HandleVerifyVipsResponse(ctx context.Context, host *models.Host, stepReply string) error {

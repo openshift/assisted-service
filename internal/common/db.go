@@ -20,7 +20,20 @@ const (
 	ProgressWeightPreparingForInstallationStage float64 = 0.1
 	ProgressWeightInstallingStage               float64 = 0.7
 	ProgressWeightFinalizingStage               float64 = 0.15
+
+	NotificationTypeCluster  = "ClusterState"
+	NotificationTypeEvent    = "Event"
+	NotificationTypeHost     = "HostState"
+	NotificationTypeInfraEnv = "InfraEnv"
 )
+
+type Notifiable interface {
+	GetClusterID() *strfmt.UUID
+	GetInfraEnvID() *strfmt.UUID
+	GetHostID() *strfmt.UUID
+	NotificationType() string
+	Payload() any
+}
 
 type Cluster struct {
 	models.Cluster
@@ -70,9 +83,45 @@ type Cluster struct {
 	Uploaded bool `json:"uploaded"`
 }
 
+func (c *Cluster) GetClusterID() *strfmt.UUID {
+	return c.Cluster.ID
+}
+func (c *Cluster) GetInfraEnvID() *strfmt.UUID {
+	return nil
+}
+func (c *Cluster) GetHostID() *strfmt.UUID {
+	return nil
+}
+
+func (c *Cluster) NotificationType() string {
+	return NotificationTypeCluster
+}
+
+func (c *Cluster) Payload() any {
+	return &c.Cluster
+}
+
 type Event struct {
 	gorm.Model
 	models.Event
+}
+
+func (e *Event) GetClusterID() *strfmt.UUID {
+	return e.ClusterID
+}
+func (e *Event) GetInfraEnvID() *strfmt.UUID {
+	return e.InfraEnvID
+}
+func (e *Event) GetHostID() *strfmt.UUID {
+	return e.HostID
+}
+
+func (e *Event) NotificationType() string {
+	return NotificationTypeEvent
+}
+
+func (e *Event) Payload() any {
+	return &e.Event
 }
 
 type Host struct {
@@ -87,6 +136,24 @@ type Host struct {
 
 	// A string which will be used as Authorization Bearer token to fetch the ignition from ignition_endpoint_url.
 	IgnitionEndpointToken string `json:"ignition_endpoint_token" gorm:"type:TEXT"`
+}
+
+func (h *Host) GetClusterID() *strfmt.UUID {
+	return h.ClusterID
+}
+func (h *Host) GetInfraEnvID() *strfmt.UUID {
+	return &h.InfraEnvID
+}
+func (h *Host) GetHostID() *strfmt.UUID {
+	return h.ID
+}
+
+func (h *Host) NotificationType() string {
+	return NotificationTypeHost
+}
+
+func (h *Host) Payload() any {
+	return &h.Host
 }
 
 type InfraEnv struct {
@@ -121,6 +188,24 @@ type InfraEnv struct {
 	// Json formatted string containing internal overrides for the default ignition config.
 	// This is used for adding ironic ignition config to the assisted ignition config
 	InternalIgnitionConfigOverride string `json:"internal_ignition_config_override,omitempty"`
+}
+
+func (i *InfraEnv) GetClusterID() *strfmt.UUID {
+	return &i.ClusterID
+}
+func (i *InfraEnv) GetInfraEnvID() *strfmt.UUID {
+	return i.ID
+}
+func (i *InfraEnv) GetHostID() *strfmt.UUID {
+	return nil
+}
+
+func (i *InfraEnv) NotificationType() string {
+	return NotificationTypeInfraEnv
+}
+
+func (i *InfraEnv) Payload() any {
+	return &i.InfraEnv
 }
 
 type EagerLoadingState bool

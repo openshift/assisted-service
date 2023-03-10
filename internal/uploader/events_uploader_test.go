@@ -23,6 +23,7 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/cluster/validations"
 	"github.com/openshift/assisted-service/internal/common"
+	commontesting "github.com/openshift/assisted-service/internal/common/testing"
 	"github.com/openshift/assisted-service/internal/events"
 	eventsapi "github.com/openshift/assisted-service/internal/events/api"
 	"github.com/openshift/assisted-service/internal/events/eventstest"
@@ -199,7 +200,7 @@ var _ = Describe("prepareFiles", func() {
 	})
 	It("prepares only the event data for the current cluster", func() {
 		clusterID2 := strfmt.UUID(uuid.New().String())
-		eventsHandler := events.New(db, nil, nil, common.GetTestLog())
+		eventsHandler := events.New(db, nil, commontesting.GetDummyNotificationStream(ctrl), common.GetTestLog())
 		eventsHandler.V2AddEvent(ctx, &clusterID, &hostID, &infraEnvID, models.ClusterStatusAddingHosts, models.EventSeverityInfo, "adding hosts", time.Now())
 		eventsHandler.V2AddEvent(ctx, &clusterID2, &hostID, &infraEnvID, models.ClusterStatusError, models.EventSeverityInfo, "fake event", time.Now())
 		cluster := createTestObjects(db, &clusterID, &hostID, &infraEnvID)

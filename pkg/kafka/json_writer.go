@@ -1,4 +1,4 @@
-package stream
+package kafka
 
 import (
 	"context"
@@ -16,37 +16,26 @@ const (
 	WriteTimeout time.Duration = 5 * time.Second
 )
 
-//go:generate mockgen -source=event_stream.go -package=stream -destination=mock_event_stream.go
+//go:generate mockgen -source=json_writer.go -package=kafka -destination=mock_json_writer.go
 
-type KafkaProducer interface {
+// mocking kafka-go producer for testing
+type Producer interface {
 	WriteMessages(ctx context.Context, msgs ...kafka.Message) error
 	Close() error
 }
 
-type EventEnvelope struct {
-	Name     string      `json:"name"`
-	Payload  interface{} `json:"payload"`
-	Metadata interface{} `json:"metadata"`
-}
-
-type EventStreamWriter interface {
-	Write(ctx context.Context, eventName string, key []byte, payload interface{}) error
-	Close()
-}
-
-type KafkaConfig struct {
+type Config struct {
 	BootstrapServer string `envconfig:"KAFKA_BOOTSTRAP_SERVER" required:"true"`
 	ClientID        string `envconfig:"KAFKA_CLIENT_ID" default:""`
 	ClientSecret    string `envconfig:"KAFKA_CLIENT_SECRET" default:""`
 	Topic           string `envconfig:"KAFKA_EVENT_STREAM_TOPIC" required:"true"`
 }
 
-type KafkaWriter struct {
-	metadata      interface{}
-	kafkaProducer KafkaProducer
+type JSONWriter struct {
+	producer Producer
 }
 
-func newProducer(config *KafkaConfig) KafkaProducer {
+func newProducer(config *Config) Producer {
 
 	writer := &kafka.Writer{
 		Addr:         kafka.TCP(config.BootstrapServer),
@@ -70,43 +59,32 @@ func newProducer(config *KafkaConfig) KafkaProducer {
 	return writer
 }
 
-func NewKafkaWriterWithMetadata(metadata interface{}) (*KafkaWriter, error) {
-	writer, err := NewKafkaWriter()
-	writer.metadata = metadata
-	return writer, err
-}
-
-func NewKafkaWriter() (*KafkaWriter, error) {
-	config := &KafkaConfig{}
+func NewWriter() (*JSONWriter, error) {
+	config := &Config{}
 	err := envconfig.Process("", config)
 	if err != nil {
 		return nil, err
 	}
 
 	p := newProducer(config)
-	return &KafkaWriter{
-		kafkaProducer: p,
+	return &JSONWriter{
+		producer: p,
 	}, nil
 }
 
-func (w *KafkaWriter) Close() {
-	w.kafkaProducer.Close()
+func (w *JSONWriter) Close() {
+	w.producer.Close()
 }
 
-func (w *KafkaWriter) Write(ctx context.Context, eventName string, key []byte, payload interface{}) error {
-	envelope := &EventEnvelope{
-		Name:     eventName,
-		Payload:  payload,
-		Metadata: w.metadata,
-	}
-	value, err := json.Marshal(envelope)
+func (w *JSONWriter) Write(ctx context.Context, key []byte, value interface{}) error {
+	encodedValue, err := json.Marshal(value)
 	if err != nil {
 		return err
 	}
 	msg := kafka.Message{
 		Key:   key,
-		Value: value,
+		Value: encodedValue,
 	}
 	// If Async is true, this will always return nil
-	return w.kafkaProducer.WriteMessages(ctx, msg)
+	return w.producer.WriteMessages(ctx, msg)
 }

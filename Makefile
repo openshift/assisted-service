@@ -44,7 +44,7 @@ INDEX_IMAGE := $(or ${INDEX_IMAGE},${ASSISTED_ORG}/assisted-service-index:${ASSI
 ifdef ENABLE_EVENT_STREAMING
 	EVENT_STREAMING_OPTIONS= --enable-event-stream=true
 else
-	EVENT_STREAMING_OPTIONS= --enable-event-stream=false
+	EVENT_STREAMING_OPTIONS=
 endif
 
 ifdef DEBUG_SERVICE

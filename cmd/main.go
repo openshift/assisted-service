@@ -50,6 +50,7 @@ import (
 	"github.com/openshift/assisted-service/internal/provider/registry"
 	"github.com/openshift/assisted-service/internal/spec"
 	"github.com/openshift/assisted-service/internal/spoke_k8s_client"
+	"github.com/openshift/assisted-service/internal/stream"
 	"github.com/openshift/assisted-service/internal/uploader"
 	"github.com/openshift/assisted-service/internal/usage"
 	"github.com/openshift/assisted-service/internal/versions"
@@ -68,7 +69,6 @@ import (
 	"github.com/openshift/assisted-service/pkg/requestid"
 	"github.com/openshift/assisted-service/pkg/s3wrapper"
 	"github.com/openshift/assisted-service/pkg/staticnetworkconfig"
-	"github.com/openshift/assisted-service/pkg/stream"
 	"github.com/openshift/assisted-service/pkg/thread"
 	"github.com/openshift/assisted-service/restapi"
 	osclientset "github.com/openshift/client-go/config/clientset/versioned"
@@ -153,7 +153,7 @@ var Options struct {
 	ConnMaxLifetime                      time.Duration `envconfig:"DB_CONNECTIONS_MAX_LIFETIME" default:"30m"`
 	FileSystemUsageThreshold             int           `envconfig:"FILESYSTEM_USAGE_THRESHOLD" default:"80"`
 	EnableElasticAPM                     bool          `envconfig:"ENABLE_ELASTIC_APM" default:"false"`
-	EnableEventStreaming                 bool          `envconfig:"ENABLE_EVENT_STREAMING" default:"false"`
+	EnableNotificationStreaming          bool          `envconfig:"ENABLE_EVENT_STREAMING" default:"false"`
 	WorkDir                              string        `envconfig:"WORK_DIR" default:"/data/"`
 	LivenessValidationTimeout            time.Duration `envconfig:"LIVENESS_VALIDATION_TIMEOUT" default:"5m"`
 	ApproveCsrsRequeueDuration           time.Duration `envconfig:"APPROVE_CSRS_REQUEUE_DURATION" default:"1m"`
@@ -267,11 +267,11 @@ func main() {
 	failOnError(err, "failed to create authenticator")
 	authzHandler := auth.NewAuthzHandler(&Options.Auth, ocmClient, log.WithField("pkg", "authz"), db)
 
-	eventStreamWriter := getEventStreamWriterIfEnabled(log)
-	defer closeEventStreamWriterIfEnabled(eventStreamWriter)
+	notificationStream := getNotificationStream(log)
+	defer notificationStream.Close()
 
 	crdEventsHandler := createCRDEventsHandler()
-	eventsHandler := createEventsHandler(crdEventsHandler, db, authzHandler, eventStreamWriter, log)
+	eventsHandler := createEventsHandler(crdEventsHandler, db, authzHandler, notificationStream, log)
 
 	prometheusRegistry := prometheus.DefaultRegisterer
 	metricsManager := metrics.NewMetricsManager(prometheusRegistry, eventsHandler)
@@ -378,12 +378,12 @@ func main() {
 	Options.UploaderConfig.AssistedServiceVersion = versions.GetRevision()
 	uploadClient := uploader.NewClient(&Options.UploaderConfig, db, log, ocpClient)
 
-	hostApi := host.NewManager(log.WithField("pkg", "host-state"), db, eventStreamWriter, eventsHandler, hwValidator,
+	hostApi := host.NewManager(log.WithField("pkg", "host-state"), db, notificationStream, eventsHandler, hwValidator,
 		instructionApi, &Options.HWValidatorConfig, metricsManager, &Options.HostConfig, lead, operatorsManager, providerRegistry, Options.EnableKubeAPI, objectHandler)
 	dnsApi := dns.NewDNSHandler(Options.BMConfig.BaseDNSDomains, log)
 	manifestsGenerator := network.NewManifestsGenerator(manifestsApi, Options.ManifestsGeneratorConfig)
 	clusterApi := cluster.NewManager(Options.ClusterConfig, log.WithField("pkg", "cluster-state"), db,
-		eventStreamWriter, eventsHandler, uploadClient, hostApi, metricsManager, manifestsGenerator, lead, operatorsManager, ocmClient, objectHandler, dnsApi, authHandler)
+		notificationStream, eventsHandler, uploadClient, hostApi, metricsManager, manifestsGenerator, lead, operatorsManager, ocmClient, objectHandler, dnsApi, authHandler)
 	infraEnvApi := infraenv.NewManager(log.WithField("pkg", "host-state"), db, objectHandler)
 
 	clusterEventsUploader := thread.New(
@@ -458,7 +458,7 @@ func main() {
 	serverInfo := servers.New(Options.HTTPListenPort, swag.StringValue(port), Options.HTTPSKeyFile, Options.HTTPSCertFile)
 	generateInsecureIPXEURLs := serverInfo.HTTP != nil
 
-	bm := bminventory.NewBareMetalInventory(db, eventStreamWriter, log.WithField("pkg", "Inventory"), hostApi, clusterApi, infraEnvApi, Options.BMConfig,
+	bm := bminventory.NewBareMetalInventory(db, notificationStream, log.WithField("pkg", "Inventory"), hostApi, clusterApi, infraEnvApi, Options.BMConfig,
 		generator, eventsHandler, objectHandler, metricsManager, usageManager, operatorsManager, authHandler, authzHandler, ocpClient, ocmClient,
 		lead, pullSecretValidator, versionHandler, osImages, crdUtils, ignitionBuilder, hwValidator, dnsApi, installConfigBuilder, staticNetworkConfig,
 		Options.GCConfig, providerRegistry, generateInsecureIPXEURLs)
@@ -791,8 +791,8 @@ func autoMigrationWithLeader(migrationLeader leader.ElectorInterface, db *gorm.D
 	})
 }
 
-func createEventsHandler(crdEventsHandler controllers.CRDEventsHandler, db *gorm.DB, authzHandler auth.Authorizer, streamWriter stream.EventStreamWriter, log logrus.FieldLogger) eventsapi.Handler {
-	eventsHandler := events.New(db, authzHandler, streamWriter, log.WithField("pkg", "events"))
+func createEventsHandler(crdEventsHandler controllers.CRDEventsHandler, db *gorm.DB, authzHandler auth.Authorizer, notificationStream stream.Notifier, log logrus.FieldLogger) eventsapi.Handler {
+	eventsHandler := events.New(db, authzHandler, notificationStream, log.WithField("pkg", "events"))
 
 	if crdEventsHandler != nil {
 		return controllers.NewControllerEventsWrapper(crdEventsHandler, eventsHandler, db, log)
@@ -860,28 +860,13 @@ func createVersionHandlers(log logrus.FieldLogger, ctrlMgr manager.Manager, rele
 	return versionsHandler, versionsAPIHandler, nil
 }
 
-func getKafkaWriter(log *logrus.Logger) (*stream.KafkaWriter, error) {
-
+func getNotificationStream(log *logrus.Logger) *stream.NotificationStream {
 	metadata := map[string]interface{}{
 		"versions": versions.GetModelVersions(Options.Versions),
 	}
-	return stream.NewKafkaWriterWithMetadata(metadata)
-}
-
-func getEventStreamWriterIfEnabled(log *logrus.Logger) stream.EventStreamWriter {
-	var eventStreamWriter stream.EventStreamWriter
-	if !Options.EnableEventStreaming {
-		return nil
-	}
-	eventStreamWriter, err := getKafkaWriter(log)
+	writer, err := stream.NewWriter(log, Options.EnableNotificationStreaming)
 	if err != nil {
-		log.WithError(err).Fatalf("kafka writer failed to initialize")
+		log.WithError(err).Fatal("kafka writer failed to initialize")
 	}
-	return eventStreamWriter
-}
-
-func closeEventStreamWriterIfEnabled(eventStreamWriter stream.EventStreamWriter) {
-	if eventStreamWriter != nil {
-		eventStreamWriter.Close()
-	}
+	return stream.NewNotificationStream(writer, log, metadata)
 }

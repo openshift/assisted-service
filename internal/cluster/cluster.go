@@ -28,6 +28,7 @@ import (
 	"github.com/openshift/assisted-service/internal/metrics"
 	"github.com/openshift/assisted-service/internal/network"
 	"github.com/openshift/assisted-service/internal/operators"
+	"github.com/openshift/assisted-service/internal/stream"
 	"github.com/openshift/assisted-service/internal/uploader"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/auth"
@@ -37,7 +38,6 @@ import (
 	"github.com/openshift/assisted-service/pkg/ocm"
 	"github.com/openshift/assisted-service/pkg/requestid"
 	"github.com/openshift/assisted-service/pkg/s3wrapper"
-	"github.com/openshift/assisted-service/pkg/stream"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
@@ -149,7 +149,7 @@ type Manager struct {
 	Config
 	log                   logrus.FieldLogger
 	db                    *gorm.DB
-	stream                stream.EventStreamWriter
+	stream                stream.Notifier
 	registrationAPI       RegistrationAPI
 	installationAPI       InstallationAPI
 	eventsHandler         eventsapi.Handler
@@ -168,7 +168,7 @@ type Manager struct {
 	uploadClient          uploader.Client
 }
 
-func NewManager(cfg Config, log logrus.FieldLogger, db *gorm.DB, stream stream.EventStreamWriter, eventsHandler eventsapi.Handler,
+func NewManager(cfg Config, log logrus.FieldLogger, db *gorm.DB, stream stream.Notifier, eventsHandler eventsapi.Handler,
 	uploadClient uploader.Client, hostAPI host.API, metricApi metrics.API, manifestsGeneratorAPI network.ManifestsGeneratorAPI,
 	leaderElector leader.Leader, operatorsApi operators.API, ocmClient *ocm.Client, objectHandler s3wrapper.API,
 	dnsApi dns.DNSApi, authHandler auth.Authenticator) *Manager {

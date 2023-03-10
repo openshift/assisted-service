@@ -13,6 +13,7 @@ import (
 	"github.com/onsi/gomega/types"
 	"github.com/openshift/assisted-service/internal/common"
 	eventgen "github.com/openshift/assisted-service/internal/common/events"
+	commontesting "github.com/openshift/assisted-service/internal/common/testing"
 	"github.com/openshift/assisted-service/internal/events"
 	eventsapi "github.com/openshift/assisted-service/internal/events/api"
 	"github.com/openshift/assisted-service/models"
@@ -35,7 +36,7 @@ var _ = Describe("Controller events wrapper", func() {
 	BeforeEach(func() {
 		db, dbName = common.PrepareTestDB()
 		mockCtrl = gomock.NewController(GinkgoT())
-		theEvents = events.New(db, nil, nil, logrus.WithField("pkg", "events"))
+		theEvents = events.New(db, nil, commontesting.GetDummyNotificationStream(mockCtrl), logrus.WithField("pkg", "events"))
 		mockCRDEventsHandler = NewMockCRDEventsHandler(mockCtrl)
 		cEventsWrapper = NewControllerEventsWrapper(mockCRDEventsHandler, theEvents, db, logrus.New())
 		// create simple cluster

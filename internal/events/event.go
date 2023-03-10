@@ -11,11 +11,11 @@ import (
 	"github.com/openshift/assisted-service/internal/common"
 	commonevents "github.com/openshift/assisted-service/internal/common/events"
 	eventsapi "github.com/openshift/assisted-service/internal/events/api"
+	"github.com/openshift/assisted-service/internal/stream"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/auth"
 	logutil "github.com/openshift/assisted-service/pkg/log"
 	"github.com/openshift/assisted-service/pkg/requestid"
-	"github.com/openshift/assisted-service/pkg/stream"
 	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
 )
@@ -28,10 +28,10 @@ type Events struct {
 	db     *gorm.DB
 	log    logrus.FieldLogger
 	authz  auth.Authorizer
-	stream stream.EventStreamWriter
+	stream stream.Notifier
 }
 
-func New(db *gorm.DB, authz auth.Authorizer, stream stream.EventStreamWriter, log logrus.FieldLogger) eventsapi.Handler {
+func New(db *gorm.DB, authz auth.Authorizer, stream stream.Notifier, log logrus.FieldLogger) eventsapi.Handler {
 	return &Events{
 		db:     db,
 		log:    log,
@@ -85,7 +85,10 @@ func (e *Events) v2SaveEvent(ctx context.Context, clusterID *strfmt.UUID, hostID
 			tx.Rollback()
 		} else {
 			tx.Commit()
-			e.notifyEventStream(ctx, &event.Event)
+			err = e.stream.Notify(ctx, &event)
+			if err != nil {
+				log.WithError(err).Warning("failed to notify event")
+			}
 		}
 	}()
 
@@ -101,21 +104,6 @@ func (e *Events) v2SaveEvent(ctx context.Context, clusterID *strfmt.UUID, hostID
 
 	// Create the new event:
 	dberr = tx.Create(&event).Error
-}
-
-func (e *Events) notifyEventStream(ctx context.Context, event *models.Event) {
-	if e.stream != nil && event != nil {
-		key := ""
-		if event.ClusterID != nil {
-			key = event.ClusterID.String()
-		}
-		err := e.stream.Write(ctx, "Event", []byte(key), event)
-		if err != nil {
-			e.log.WithError(err).WithFields(logrus.Fields{
-				"cluster_id": event.ClusterID,
-			}).Warn("failed to stream event for event")
-		}
-	}
 }
 
 // exceedsLimit checks if there are already events that are too close to the given one. It returns
