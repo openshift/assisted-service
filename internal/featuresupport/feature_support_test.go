@@ -155,6 +155,29 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 		})
 	})
 
+	Context("GetSupportList", func() {
+		It("GetFeatureSupportList 4.12", func() {
+			list := GetFeatureSupportList("4.12", nil)
+			Expect(len(list)).To(Equal(22))
+		})
+
+		It("GetFeatureSupportList 4.13", func() {
+			list := GetFeatureSupportList("4.13", nil)
+			Expect(len(list)).To(Equal(22))
+		})
+
+		It("GetCpuArchitectureSupportList 4.12", func() {
+			list := GetCpuArchitectureSupportList("4.12")
+			Expect(len(list)).To(Equal(5))
+		})
+
+		It("GetCpuArchitectureSupportList 4.13", func() {
+			list := GetCpuArchitectureSupportList("4.13")
+			Expect(len(list)).To(Equal(5))
+		})
+
+	})
+
 })
 
 func TestOperators(t *testing.T) {
