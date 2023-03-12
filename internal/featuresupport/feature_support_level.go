@@ -45,10 +45,8 @@ func getFeatureSupportList(features map[models.FeatureSupportLevelID]SupportLeve
 	featureSupportList := models.SupportLevels{}
 
 	for _, feature := range features {
-		if reflect.TypeOf(feature).Name() == "SupportLevelFeature" {
-			featureID := feature.GetId()
-			featureSupportList[string(featureID)] = feature.GetSupportLevel(filters)
-		}
+		featureID := feature.GetId()
+		featureSupportList[string(featureID)] = feature.GetSupportLevel(filters)
 	}
 	return featureSupportList
 }
@@ -69,7 +67,7 @@ func GetFeatureSupportList(openshiftVersion string, cpuArchitecture *string) mod
 		CPUArchitecture:  cpuArchitecture,
 	}
 
-	if swag.StringValue(filters.CPUArchitecture) == "" {
+	if cpuArchitecture == nil {
 		filters.CPUArchitecture = swag.String(common.DefaultCPUArchitecture)
 	}
 
