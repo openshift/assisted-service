@@ -18,7 +18,6 @@ var featuresList = map[models.FeatureSupportLevelID]SupportLevelFeature{
 	models.FeatureSupportLevelIDDISKSELECTION:                      &DiscSelectionFeature{},
 	models.FeatureSupportLevelIDOVNNETWORKTYPE:                     &OvnNetworkTypeFeature{},
 	models.FeatureSupportLevelIDSDNNETWORKTYPE:                     &SdnNetworkTypeFeature{},
-	models.FeatureSupportLevelIDPLATFORMSELECTION:                  &PlatformSelectionFeature{},
 	models.FeatureSupportLevelIDSCHEDULABLEMASTERS:                 &SchedulableMastersFeature{},
 	models.FeatureSupportLevelIDAUTOASSIGNROLE:                     &AutoAssignRoleFeature{},
 	models.FeatureSupportLevelIDCUSTOMMANIFEST:                     &CustomManifestFeature{},
@@ -39,6 +38,14 @@ var cpuFeaturesList = map[models.ArchitectureSupportLevelID]SupportLevelArchitec
 	models.ArchitectureSupportLevelIDS390XARCHITECTURE:     &S390xArchitectureFeature{},
 	models.ArchitectureSupportLevelIDPPC64LEARCHITECTURE:   &PPC64LEArchitectureFeature{},
 	models.ArchitectureSupportLevelIDMULTIARCHRELEASEIMAGE: &MultiArchReleaseImageFeature{},
+}
+
+var cpuArchitectureFeatureIdMap = map[string]models.ArchitectureSupportLevelID{
+	models.ClusterCPUArchitectureX8664:   models.ArchitectureSupportLevelIDX8664ARCHITECTURE,
+	models.ClusterCPUArchitectureArm64:   models.ArchitectureSupportLevelIDARM64ARCHITECTURE,
+	models.ClusterCPUArchitectureS390x:   models.ArchitectureSupportLevelIDS390XARCHITECTURE,
+	models.ClusterCPUArchitecturePpc64le: models.ArchitectureSupportLevelIDPPC64LEARCHITECTURE,
+	models.ClusterCPUArchitectureMulti:   models.ArchitectureSupportLevelIDMULTIARCHRELEASEIMAGE,
 }
 
 func getFeatureSupportList(features map[models.FeatureSupportLevelID]SupportLevelFeature, filters SupportLevelFilters) models.SupportLevels {
@@ -70,8 +77,26 @@ func GetFeatureSupportList(openshiftVersion string, cpuArchitecture *string) mod
 	if cpuArchitecture == nil {
 		filters.CPUArchitecture = swag.String(common.DefaultCPUArchitecture)
 	}
+	featuresSupportList := overrideInvalidRequest(featuresList, *filters.CPUArchitecture, openshiftVersion)
+	if featuresSupportList == nil {
+		return getFeatureSupportList(featuresList, filters)
+	}
 
-	return getFeatureSupportList(featuresList, filters)
+	return featuresSupportList
+}
+
+// Handle cases where a CPU architecture is not supported at for a given openshift version, in that case
+// return a list of unsupported features
+func overrideInvalidRequest(features map[models.FeatureSupportLevelID]SupportLevelFeature, cpuArchitecture, openshiftVersion string) models.SupportLevels {
+	supportLevels := models.SupportLevels{}
+	cpuArchID := cpuArchitectureFeatureIdMap[cpuArchitecture]
+	if !isArchitectureSupported(cpuArchID, openshiftVersion) {
+		for _, feature := range features {
+			supportLevels[string(feature.GetId())] = models.SupportLevelUnsupported
+		}
+		return supportLevels
+	}
+	return nil
 }
 
 func GetCpuArchitectureSupportList(openshiftVersion string) models.SupportLevels {

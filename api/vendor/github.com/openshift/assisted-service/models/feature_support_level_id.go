@@ -57,9 +57,6 @@ const (
 	// FeatureSupportLevelIDSDNNETWORKTYPE captures enum value "SDN_NETWORK_TYPE"
 	FeatureSupportLevelIDSDNNETWORKTYPE FeatureSupportLevelID = "SDN_NETWORK_TYPE"
 
-	// FeatureSupportLevelIDPLATFORMSELECTION captures enum value "PLATFORM_SELECTION"
-	FeatureSupportLevelIDPLATFORMSELECTION FeatureSupportLevelID = "PLATFORM_SELECTION"
-
 	// FeatureSupportLevelIDSCHEDULABLEMASTERS captures enum value "SCHEDULABLE_MASTERS"
 	FeatureSupportLevelIDSCHEDULABLEMASTERS FeatureSupportLevelID = "SCHEDULABLE_MASTERS"
 
@@ -81,11 +78,20 @@ const (
 	// FeatureSupportLevelIDLVM captures enum value "LVM"
 	FeatureSupportLevelIDLVM FeatureSupportLevelID = "LVM"
 
+	// FeatureSupportLevelIDODF captures enum value "ODF"
+	FeatureSupportLevelIDODF FeatureSupportLevelID = "ODF"
+
+	// FeatureSupportLevelIDCNV captures enum value "CNV"
+	FeatureSupportLevelIDCNV FeatureSupportLevelID = "CNV"
+
 	// FeatureSupportLevelIDDUALSTACKNETWORKING captures enum value "DUAL_STACK_NETWORKING"
 	FeatureSupportLevelIDDUALSTACKNETWORKING FeatureSupportLevelID = "DUAL_STACK_NETWORKING"
 
 	// FeatureSupportLevelIDNUTANIXINTEGRATION captures enum value "NUTANIX_INTEGRATION"
 	FeatureSupportLevelIDNUTANIXINTEGRATION FeatureSupportLevelID = "NUTANIX_INTEGRATION"
+
+	// FeatureSupportLevelIDVSPHEREINTEGRATION captures enum value "VSPHERE_INTEGRATION"
+	FeatureSupportLevelIDVSPHEREINTEGRATION FeatureSupportLevelID = "VSPHERE_INTEGRATION"
 
 	// FeatureSupportLevelIDDUALSTACKVIPS captures enum value "DUAL_STACK_VIPS"
 	FeatureSupportLevelIDDUALSTACKVIPS FeatureSupportLevelID = "DUAL_STACK_VIPS"
@@ -102,7 +108,7 @@ var featureSupportLevelIdEnum []interface{}
 
 func init() {
 	var res []FeatureSupportLevelID
-	if err := json.Unmarshal([]byte(`["ADDITIONAL_NTP_SOURCE","REQUESTED_HOSTNAME","PROXY","SNO","DAY2_HOSTS","VIP_AUTO_ALLOC","DISK_SELECTION","OVN_NETWORK_TYPE","SDN_NETWORK_TYPE","PLATFORM_SELECTION","SCHEDULABLE_MASTERS","AUTO_ASSIGN_ROLE","CUSTOM_MANIFEST","DISK_ENCRYPTION","CLUSTER_MANAGED_NETWORKING_WITH_VMS","SINGLE_NODE_EXPANSION","LVM","DUAL_STACK_NETWORKING","NUTANIX_INTEGRATION","DUAL_STACK_VIPS","USER_MANAGED_NETWORKING_WITH_MULTI_NODE","CLUSTER_MANAGED_NETWORKING"]`), &res); err != nil {
+	if err := json.Unmarshal([]byte(`["ADDITIONAL_NTP_SOURCE","REQUESTED_HOSTNAME","PROXY","SNO","DAY2_HOSTS","VIP_AUTO_ALLOC","DISK_SELECTION","OVN_NETWORK_TYPE","SDN_NETWORK_TYPE","SCHEDULABLE_MASTERS","AUTO_ASSIGN_ROLE","CUSTOM_MANIFEST","DISK_ENCRYPTION","CLUSTER_MANAGED_NETWORKING_WITH_VMS","SINGLE_NODE_EXPANSION","LVM","ODF","CNV","DUAL_STACK_NETWORKING","NUTANIX_INTEGRATION","VSPHERE_INTEGRATION","DUAL_STACK_VIPS","USER_MANAGED_NETWORKING_WITH_MULTI_NODE","CLUSTER_MANAGED_NETWORKING"]`), &res); err != nil {
 		panic(err)
 	}
 	for _, v := range res {

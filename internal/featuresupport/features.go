@@ -122,17 +122,6 @@ func (feature *SdnNetworkTypeFeature) GetSupportLevel(_ SupportLevelFilters) mod
 	return models.SupportLevelSupported
 }
 
-// PlatformSelectionFeature
-type PlatformSelectionFeature struct{}
-
-func (feature *PlatformSelectionFeature) GetId() models.FeatureSupportLevelID {
-	return models.FeatureSupportLevelIDPLATFORMSELECTION
-}
-
-func (feature *PlatformSelectionFeature) GetSupportLevel(_ SupportLevelFilters) models.SupportLevel {
-	return models.SupportLevelSupported
-}
-
 // SchedulableMastersFeature
 type SchedulableMastersFeature struct{}
 
@@ -196,6 +185,10 @@ func (feature *ClusterManagedNetworkingFeature) GetId() models.FeatureSupportLev
 }
 
 func (feature *ClusterManagedNetworkingFeature) GetSupportLevel(filters SupportLevelFilters) models.SupportLevel {
+	if swag.StringValue(filters.CPUArchitecture) == models.ClusterCPUArchitectureS390x || swag.StringValue(filters.CPUArchitecture) == models.ClusterCPUArchitecturePpc64le {
+		return models.SupportLevelUnsupported
+	}
+
 	if swag.StringValue(filters.CPUArchitecture) == models.ClusterCPUArchitectureArm64 {
 		isNotSupported, err := common.BaseVersionLessThan("4.11", filters.OpenshiftVersion)
 		if isNotSupported || err != nil {
@@ -230,6 +223,10 @@ func (feature *LvmFeature) GetId() models.FeatureSupportLevelID {
 }
 
 func (feature *LvmFeature) GetSupportLevel(filters SupportLevelFilters) models.SupportLevel {
+	if swag.StringValue(filters.CPUArchitecture) == models.ClusterCPUArchitectureS390x || swag.StringValue(filters.CPUArchitecture) == models.ClusterCPUArchitecturePpc64le {
+		return models.SupportLevelUnsupported
+	}
+
 	if isNotSupported, err := common.BaseVersionLessThan("4.11", filters.OpenshiftVersion); isNotSupported || err != nil {
 		return models.SupportLevelUnsupported
 	}
@@ -264,12 +261,32 @@ func (feature *NutanixIntegrationFeature) GetId() models.FeatureSupportLevelID {
 }
 
 func (feature *NutanixIntegrationFeature) GetSupportLevel(filters SupportLevelFilters) models.SupportLevel {
+	if swag.StringValue(filters.CPUArchitecture) == models.ClusterCPUArchitectureS390x ||
+		swag.StringValue(filters.CPUArchitecture) == models.ClusterCPUArchitecturePpc64le ||
+		swag.StringValue(filters.CPUArchitecture) == models.ClusterCPUArchitectureArm64 {
+		return models.SupportLevelUnsupported
+	}
+
 	if isNotSupported, err := common.BaseVersionLessThan("4.11", filters.OpenshiftVersion); isNotSupported || err != nil {
 		return models.SupportLevelUnsupported
 	}
 
 	if isEqual, _ := common.BaseVersionEqual("4.11", filters.OpenshiftVersion); isEqual {
 		return models.SupportLevelDevPreview
+	}
+	return models.SupportLevelSupported
+}
+
+// VsphereIntegrationFeature
+type VsphereIntegrationFeature struct{}
+
+func (feature *VsphereIntegrationFeature) GetId() models.FeatureSupportLevelID {
+	return models.FeatureSupportLevelIDVSPHEREINTEGRATION
+}
+
+func (feature *VsphereIntegrationFeature) GetSupportLevel(filters SupportLevelFilters) models.SupportLevel {
+	if swag.StringValue(filters.CPUArchitecture) == models.ClusterCPUArchitectureS390x || swag.StringValue(filters.CPUArchitecture) == models.ClusterCPUArchitecturePpc64le {
+		return models.SupportLevelUnsupported
 	}
 	return models.SupportLevelSupported
 }
@@ -298,4 +315,34 @@ func (feature *UserManagedNetworkingWithMultiNodeFeature) GetId() models.Feature
 
 func (feature *UserManagedNetworkingWithMultiNodeFeature) GetSupportLevel(filters SupportLevelFilters) models.SupportLevel {
 	return models.SupportLevelSupported
+}
+
+// OdfFeature
+type OdfFeature struct{}
+
+func (feature *OdfFeature) GetId() models.FeatureSupportLevelID {
+	return models.FeatureSupportLevelIDODF
+}
+
+func (feature *OdfFeature) GetSupportLevel(filters SupportLevelFilters) models.SupportLevel {
+	if swag.StringValue(filters.CPUArchitecture) == models.ClusterCPUArchitectureArm64 {
+		return models.SupportLevelUnsupported
+	}
+
+	return models.SupportLevelSupported
+}
+
+// CnvFeature
+type Cnv struct{}
+
+func (feature *Cnv) GetId() models.FeatureSupportLevelID {
+	return models.FeatureSupportLevelIDCNV
+}
+
+func (feature *Cnv) GetSupportLevel(filters SupportLevelFilters) models.SupportLevel {
+	if swag.StringValue(filters.CPUArchitecture) == models.ClusterCPUArchitectureX8664 {
+		return models.SupportLevelSupported
+	}
+
+	return models.SupportLevelUnsupported
 }

@@ -28,7 +28,6 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 		models.FeatureSupportLevelIDDISKSELECTION,
 		models.FeatureSupportLevelIDOVNNETWORKTYPE,
 		models.FeatureSupportLevelIDSDNNETWORKTYPE,
-		models.FeatureSupportLevelIDPLATFORMSELECTION,
 		models.FeatureSupportLevelIDSCHEDULABLEMASTERS,
 		models.FeatureSupportLevelIDAUTOASSIGNROLE,
 		models.FeatureSupportLevelIDCUSTOMMANIFEST,
@@ -158,12 +157,12 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 	Context("GetSupportList", func() {
 		It("GetFeatureSupportList 4.12", func() {
 			list := GetFeatureSupportList("4.12", nil)
-			Expect(len(list)).To(Equal(22))
+			Expect(len(list)).To(Equal(21))
 		})
 
 		It("GetFeatureSupportList 4.13", func() {
 			list := GetFeatureSupportList("4.13", nil)
-			Expect(len(list)).To(Equal(22))
+			Expect(len(list)).To(Equal(21))
 		})
 
 		It("GetCpuArchitectureSupportList 4.12", func() {
@@ -176,6 +175,18 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 			Expect(len(list)).To(Equal(5))
 		})
 
+		It("GetFeatureSupportList 4.12 with not supported architecture", func() {
+			featuresList := GetFeatureSupportList("4.12", swag.String(models.ClusterCPUArchitecturePpc64le))
+
+			for _, supportLevel := range featuresList {
+				Expect(supportLevel).To(Equal(models.SupportLevelUnsupported))
+			}
+		})
+
+		It("GetFeatureSupportList 4.13 with supported architecture", func() {
+			featuresList := GetFeatureSupportList("4.13", swag.String(models.ClusterCPUArchitecturePpc64le))
+			Expect(featuresList[string(models.FeatureSupportLevelIDADDITIONALNTPSOURCE)]).To(Equal(models.SupportLevelSupported))
+		})
 	})
 
 })
