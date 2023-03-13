@@ -20,6 +20,7 @@ import (
 	"github.com/google/uuid"
 	bmh_v1alpha1 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
 	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/host/hostutil"
@@ -61,6 +62,9 @@ var _ = BeforeEach(func() {
 	cluster = &common.Cluster{
 		Cluster: models.Cluster{
 			ID: &clusterID,
+			MachineNetworks: []*models.MachineNetwork{{
+				Cidr: "192.168.126.11/24",
+			}},
 		},
 	}
 	cluster.ImageInfo = &models.ImageInfo{}
@@ -2080,4 +2084,80 @@ var _ = Describe("OKD overrides", func() {
 		text, err := builder.FormatDiscoveryIgnitionFile(context.Background(), &infraEnv, defaultCfg, false, auth.TypeRHSSO, string(models.ImageTypeMinimalIso))
 		checkOKDFiles(text, err, true)
 	})
+})
+
+var _ = Describe("Bare metal host generation", func() {
+	DescribeTable(
+		"Selects IP addresse within cluster machine network",
+		func(firstAddress, secondAddress string) {
+			// Create the generator:
+			generator := NewGenerator(
+				workDir,
+				installerCacheDir,
+				cluster,
+				"",
+				"",
+				"",
+				"",
+				nil,
+				log,
+				mockOperatorManager,
+				mockProviderRegistry,
+				"",
+				"",
+			).(*installerGenerator)
+
+			// The default host inventory used by these tests has two NICs, each with
+			// one IP address, but for this test we need one NIC with two IP addresses,
+			// so we need to update the inventory accordingly.
+			var inventoryObject models.Inventory
+			err := json.Unmarshal([]byte(hostInventory), &inventoryObject)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(inventoryObject.Interfaces).ToNot(BeEmpty())
+			interfaceObject := inventoryObject.Interfaces[0]
+			interfaceObject.IPV4Addresses = []string{
+				firstAddress,
+				secondAddress,
+			}
+			inventoryObject.Interfaces = []*models.Interface{
+				interfaceObject,
+			}
+			inventoryJSON, err := json.Marshal(inventoryObject)
+			Expect(err).ToNot(HaveOccurred())
+			host := &models.Host{
+				Inventory: string(inventoryJSON),
+			}
+
+			// Generate the bare metal hosts:
+			inputObject := &bmh_v1alpha1.BareMetalHost{}
+			outputFile := &config_32_types.File{}
+			err = generator.modifyBMHFile(outputFile, inputObject, host)
+			Expect(err).ToNot(HaveOccurred())
+			outputObject, err := fileToBMH(outputFile)
+			Expect(err).ToNot(HaveOccurred())
+
+			// Extract the content of the status annotation:
+			Expect(outputObject.Annotations).To(HaveKey(bmh_v1alpha1.StatusAnnotation))
+			statusAnnotation := outputObject.Annotations[bmh_v1alpha1.StatusAnnotation]
+			var outputStatus bmh_v1alpha1.BareMetalHostStatus
+			err = json.Unmarshal([]byte(statusAnnotation), &outputStatus)
+			Expect(err).ToNot(HaveOccurred())
+
+			// Check that the IP address of the bare metal host is within the machine
+			// network of the cluster:
+			Expect(outputStatus.HardwareDetails).ToNot(BeNil())
+			Expect(outputStatus.HardwareDetails.NIC).To(HaveLen(1))
+			Expect(outputStatus.HardwareDetails.NIC[0].IP).To(Equal("192.168.126.11"))
+		},
+		Entry(
+			"Lucky order in inventory",
+			"192.168.126.11/24",
+			"192.168.140.133/24",
+		),
+		Entry(
+			"Unlucky oder in inventory",
+			"192.168.140.133/24",
+			"192.168.126.11/24",
+		),
+	)
 })
