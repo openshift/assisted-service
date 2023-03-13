@@ -949,9 +949,9 @@ func (g *installerGenerator) modifyBMHFile(file *config_latest_types.File, bmh *
 		}
 		switch {
 		case len(iface.IPV4Addresses) > 0:
-			hw.NIC[i].IP = g.getInterfaceIP(iface.IPV4Addresses[0])
+			hw.NIC[i].IP = g.selectInterfaceIPInsideMachineCIDR(iface.IPV4Addresses)
 		case len(iface.IPV6Addresses) > 0:
-			hw.NIC[i].IP = g.getInterfaceIP(iface.IPV6Addresses[0])
+			hw.NIC[i].IP = g.selectInterfaceIPInsideMachineCIDR(iface.IPV6Addresses)
 		}
 	}
 	for i, disk := range inventory.Disks {
@@ -1193,13 +1193,55 @@ func parseIgnitionFile(path string) (*config_latest_types.Config, error) {
 	return ParseToLatest(configBytes)
 }
 
-func (g *installerGenerator) getInterfaceIP(cidr string) string {
-	ip, _, err := net.ParseCIDR(cidr)
-	if err != nil {
-		g.log.Warnf("Failed to parse cidr %s for filling BMH CR", cidr)
-		return ""
+func (g *installerGenerator) selectInterfaceIPInsideMachineCIDR(interfaceCIDRs []string) string {
+	machineCIDRs := make([]string, len(g.cluster.MachineNetworks))
+	for i, machineNetwork := range g.cluster.MachineNetworks {
+		machineCIDRs[i] = string(machineNetwork.Cidr)
 	}
-	return ip.String()
+	log := g.log.WithFields(logrus.Fields{
+		"interface_cidrs": interfaceCIDRs,
+		"machine_cidrs":   machineCIDRs,
+	})
+	for _, interfaceCIDR := range interfaceCIDRs {
+		interfaceIP, _, err := net.ParseCIDR(interfaceCIDR)
+		if err != nil {
+			log.WithError(err).WithFields(logrus.Fields{
+				"interface_cidr": interfaceCIDR,
+			}).Error("Failed to parse interface CIDR")
+			continue
+		}
+		for _, machineCIDR := range machineCIDRs {
+			_, machineNetwork, err := net.ParseCIDR(machineCIDR)
+			if err != nil {
+				log.WithError(err).Error("Failed to parse machine CIDR")
+				continue
+			}
+			if machineNetwork.Contains(interfaceIP) {
+				log.WithFields(logrus.Fields{
+					"machine_cidr": machineCIDR,
+					"interface_ip": interfaceIP,
+				}).Info("Selected interface IP")
+				return interfaceIP.String()
+			}
+		}
+	}
+	if len(interfaceCIDRs) > 0 {
+		firstCIDR := interfaceCIDRs[0]
+		firstIP, _, err := net.ParseCIDR(interfaceCIDRs[0])
+		if err != nil {
+			log.WithError(err).WithFields(logrus.Fields{
+				"first_cidr": firstCIDR,
+			}).Error("Failed to parse first interface CIDR")
+			return ""
+		}
+		log.WithFields(logrus.Fields{
+			"first_cidr": firstCIDR,
+			"first_ip":   firstIP,
+		}).Warn("Failed to find an interface IP within the machine CIDR, will use the first IP")
+		return firstIP.String()
+	}
+	log.Warn("There are no interface IP addresses")
+	return ""
 }
 
 // writeIgnitionFile writes an ignition config to a given path on disk
