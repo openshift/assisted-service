@@ -1776,7 +1776,7 @@ func (ib *ignitionBuilder) FormatDiscoveryIgnitionFile(ctx context.Context, infr
 		if err != nil {
 			return "", err
 		}
-		ib.log.Infof("Applying internal ignition override %s for infra env %s, resulting ignition: %s", infraEnv.InternalIgnitionConfigOverride, infraEnv.ID, res)
+		ib.log.Infof("Applying internal ignition override %s for infra env %s", infraEnv.InternalIgnitionConfigOverride, infraEnv.ID)
 	}
 
 	if infraEnv.IgnitionConfigOverride != "" {
