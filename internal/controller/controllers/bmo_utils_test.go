@@ -97,6 +97,30 @@ var _ = Describe("BMOUtils", func() {
 			Expect(serviceURL).Should(Equal("https://" + ironicIP))
 			Expect(inspectorURL).Should(Equal("https://" + ironicIP))
 		})
+		It("failed to determine inspector URL", func() {
+			bmoUtils := BMOUtils{
+				c:              c,
+				log:            log,
+				kubeAPIEnabled: true,
+			}
+			provisioningInfo := &metal3iov1alpha1.Provisioning{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: metal3iov1alpha1.ProvisioningSingletonName,
+				},
+				Spec: metal3iov1alpha1.ProvisioningSpec{
+					ProvisioningNetwork:            metal3iov1alpha1.ProvisioningNetworkManaged,
+					VirtualMediaViaExternalNetwork: false,
+					ProvisioningIP:                 "",
+				},
+			}
+			Expect(c.Create(context.Background(), provisioningInfo)).To(BeNil())
+			serviceURL, inspectorURL, err := bmoUtils.GetIronicServiceURLS()
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("unable to determine inspector IP, check if metal3 pod is running"))
+			Expect(serviceURL).Should(Equal(""))
+			Expect(inspectorURL).Should(Equal(""))
+		})
+
 	})
 })
 
