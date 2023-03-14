@@ -68,8 +68,18 @@ func (r *BMOUtils) GetIronicServiceURLS() (string, string, error) {
 		return "", "", err
 	}
 	ironicIP, inspectorIP, err := provisioning.GetIronicIP(r.kubeClient, provisioningInfo.Namespace, &provisioningInfo.Spec, r.osClient)
-	if err != nil || ironicIP == "" {
+	if err != nil {
 		r.log.WithError(err).Error("unable to determine Ironic's IP")
+		return "", "", err
+	}
+	if inspectorIP == "" {
+		err = errors.New("unable to determine inspector IP, check if metal3 pod is running")
+		r.log.WithError(err)
+		return "", "", err
+	}
+	if ironicIP == "" {
+		err = errors.New("unable to determine Ironic's IP")
+		r.log.WithError(err)
 		return "", "", err
 	}
 	ironicURL := getUrlFromIP(ironicIP)
