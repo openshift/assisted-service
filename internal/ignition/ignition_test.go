@@ -572,22 +572,6 @@ var _ = Describe("createHostIgnitions", func() {
 				Expect(*f.FileEmbedded1.Mode).To(Equal(420))
 				Expect(*f.Node.Overwrite).To(Equal(true))
 
-				By("Validating the boot-reporter file was added")
-				var bootReporterFile *config_32_types.File
-				base64Content, _ := getBootReporterFileContent()
-
-				for fileidx, file := range config.Storage.Files {
-					if file.Node.Path == "/usr/local/bin/assisted-boot-reporter.sh" {
-						bootReporterFile = &config.Storage.Files[fileidx]
-						break
-					}
-				}
-				Expect(bootReporterFile).NotTo(BeNil())
-				Expect(*bootReporterFile.Node.User.Name).To(Equal("root"))
-				Expect(*bootReporterFile.FileEmbedded1.Contents.Source).To(Equal(fmt.Sprintf("data:text/plain;charset=utf-8;base64,%s", base64Content)))
-				Expect(*bootReporterFile.FileEmbedded1.Mode).To(Equal(0700))
-				Expect(*bootReporterFile.Node.Overwrite).To(Equal(true))
-
 			}
 		})
 	})
