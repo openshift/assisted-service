@@ -19,7 +19,7 @@ import (
 )
 
 // The implementation should change so the tests validate basic happy flow
-var _ = Describe("BMOUtils", func() {
+var _ = Describe("bmoUtils", func() {
 	var (
 		c        client.Client
 		mockCtrl *gomock.Controller
@@ -40,7 +40,7 @@ var _ = Describe("BMOUtils", func() {
 	Context("ConvergedFlowAvailable", func() {
 		DescribeTable("returns true with",
 			func(version string) {
-				bmoUtils := BMOUtils{
+				bmoUtils := &bmoUtils{
 					c:              c,
 					log:            log,
 					kubeAPIEnabled: true,
@@ -55,7 +55,7 @@ var _ = Describe("BMOUtils", func() {
 			Entry("version 4.12.0-0.nightly-2022-10-25-210451", "4.12.0-0.nightly-2022-10-25-210451"),
 		)
 		It("returns false when version is lower than minimal version", func() {
-			bmoUtils := BMOUtils{
+			bmoUtils := &bmoUtils{
 				c:              c,
 				log:            log,
 				kubeAPIEnabled: true,
@@ -65,7 +65,7 @@ var _ = Describe("BMOUtils", func() {
 			Expect(bmoUtils.ConvergedFlowAvailable()).Should(Equal(false))
 		})
 		It("returns false when it fails to find cluster version", func() {
-			bmoUtils := BMOUtils{
+			bmoUtils := &bmoUtils{
 				c:              c,
 				log:            log,
 				kubeAPIEnabled: true,
@@ -75,7 +75,7 @@ var _ = Describe("BMOUtils", func() {
 	})
 	Context("Get GetIronicServiceURL", func() {
 		It("success", func() {
-			bmoUtils := BMOUtils{
+			bmoUtils := &bmoUtils{
 				c:              c,
 				log:            log,
 				kubeAPIEnabled: true,
@@ -98,7 +98,7 @@ var _ = Describe("BMOUtils", func() {
 			Expect(inspectorURL).Should(Equal("https://" + ironicIP))
 		})
 		It("failed to determine inspector URL", func() {
-			bmoUtils := BMOUtils{
+			bmoUtils := &bmoUtils{
 				c:              c,
 				log:            log,
 				kubeAPIEnabled: true,
