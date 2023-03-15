@@ -38,17 +38,17 @@ func (m *MockGenerator) EXPECT() *MockGeneratorMockRecorder {
 }
 
 // Generate mocks base method.
-func (m *MockGenerator) Generate(ctx context.Context, installConfig []byte, platformType models.PlatformType, authType auth.AuthType) error {
+func (m *MockGenerator) Generate(ctx context.Context, installConfig []byte, platformType models.PlatformType) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Generate", ctx, installConfig, platformType, authType)
+	ret := m.ctrl.Call(m, "Generate", ctx, installConfig, platformType)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // Generate indicates an expected call of Generate.
-func (mr *MockGeneratorMockRecorder) Generate(ctx, installConfig, platformType, authType interface{}) *gomock.Call {
+func (mr *MockGeneratorMockRecorder) Generate(ctx, installConfig, platformType interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Generate", reflect.TypeOf((*MockGenerator)(nil).Generate), ctx, installConfig, platformType, authType)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Generate", reflect.TypeOf((*MockGenerator)(nil).Generate), ctx, installConfig, platformType)
 }
 
 // UpdateEtcHosts mocks base method.

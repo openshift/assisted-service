@@ -1060,11 +1060,7 @@ func (m *Manager) PrepareClusterLogFile(ctx context.Context, c *common.Cluster, 
 					if hostObject.Bootstrap {
 						role = string(models.HostRoleBootstrap)
 					}
-					name := sanitize.Name(hostutil.GetHostnameForMsg(hostObject))
-					if strings.Contains(file, "boot_") {
-						name = fmt.Sprintf("boot_%s", name)
-					}
-					tarredFilename = fmt.Sprintf("%s_%s_%s.tar.gz", sanitize.Name(c.Name), role, name)
+					tarredFilename = fmt.Sprintf("%s_%s_%s.tar.gz", sanitize.Name(c.Name), role, sanitize.Name(hostutil.GetHostnameForMsg(hostObject)))
 				}
 			} else {
 				tarredFilename = fmt.Sprintf("%s_%s", fileNameSplit[len(fileNameSplit)-2], fileNameSplit[len(fileNameSplit)-1])

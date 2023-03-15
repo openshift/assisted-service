@@ -3,7 +3,6 @@ package ignition
 import (
 	"bytes"
 	"context"
-	"embed"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -57,9 +56,6 @@ import (
 	"k8s.io/client-go/kubernetes/scheme"
 	k8syaml "sigs.k8s.io/yaml"
 )
-
-//go:embed boot-reporter
-var reporter embed.FS
 
 const (
 	masterIgn = "master.ign"
@@ -195,29 +191,6 @@ const highlyAvailableInfrastructureTopologyPatch = `---
 
 const tempNMConnectionsDir = "/etc/assisted/network"
 
-const bootReporterPath = "boot-reporter/assisted-boot-reporter.sh"
-
-var assistedBootReporterunitTemplate = `[Unit]
-Description=Collect and upload host boot logs to assisted-service
-Wants=network-online.target
-After=network-online.target
-DefaultDependencies=no
-[Service]
-Environment=ASSISTED_SERVICE_URL=%s
-Environment=PULL_SECRET_TOKEN=%s
-Environment=CLUSTER_ID=%s
-Environment=HOST_ID=%s
-Environment=LOG_SEND_FREQUENCY_IN_MINUTES=%d
-Environment=SERVICE_TIMEOUT_MINUTES=%d
-User=root
-Type=oneshot
-ExecStart=/bin/bash /usr/local/bin/assisted-boot-reporter.sh
-PrivateTmp=true
-RemainAfterExit=no
-[Install]
-WantedBy=multi-user.target
-`
-
 var fileNames = [...]string{
 	"bootstrap.ign",
 	masterIgn,
@@ -230,7 +203,7 @@ var fileNames = [...]string{
 
 // Generator can generate ignition files and upload them to an S3-like service
 type Generator interface {
-	Generate(ctx context.Context, installConfig []byte, platformType models.PlatformType, authType auth.AuthType) error
+	Generate(ctx context.Context, installConfig []byte, platformType models.PlatformType) error
 	UploadToS3(ctx context.Context) error
 	UpdateEtcHosts(string) error
 }
@@ -245,7 +218,6 @@ type IgnitionBuilder interface {
 
 type installerGenerator struct {
 	log                           logrus.FieldLogger
-	serviceBaseURL                string
 	workDir                       string
 	cluster                       *common.Cluster
 	releaseImage                  string
@@ -304,13 +276,12 @@ func NewBuilder(log logrus.FieldLogger, staticNetworkConfig staticnetworkconfig.
 }
 
 // NewGenerator returns a generator that can generate ignition files
-func NewGenerator(serviceBaseURL string, workDir string, installerDir string, cluster *common.Cluster, releaseImage string, releaseImageMirror string,
-	serviceCACert string, installInvoker string, s3Client s3wrapper.API, log logrus.FieldLogger, operatorsApi operators.API,
+func NewGenerator(workDir string, installerDir string, cluster *common.Cluster, releaseImage string, releaseImageMirror string,
+	serviceCACert, installInvoker string, s3Client s3wrapper.API, log logrus.FieldLogger, operatorsApi operators.API,
 	providerRegistry registry.ProviderRegistry, installerReleaseImageOverride, clusterTLSCertOverrideDir string) Generator {
 	return &installerGenerator{
 		cluster:                       cluster,
 		log:                           log,
-		serviceBaseURL:                serviceBaseURL,
 		releaseImage:                  releaseImage,
 		releaseImageMirror:            releaseImageMirror,
 		workDir:                       workDir,
@@ -333,7 +304,7 @@ func (g *installerGenerator) UploadToS3(ctx context.Context) error {
 }
 
 // Generate generates ignition files and applies modifications.
-func (g *installerGenerator) Generate(ctx context.Context, installConfig []byte, platformType models.PlatformType, authType auth.AuthType) error {
+func (g *installerGenerator) Generate(ctx context.Context, installConfig []byte, platformType models.PlatformType) error {
 	var icspFile string
 	var err error
 	log := logutil.FromContext(ctx, g.log)
@@ -469,7 +440,7 @@ func (g *installerGenerator) Generate(ctx context.Context, installConfig []byte,
 		return err
 	}
 
-	err = g.createHostIgnitions(g.serviceBaseURL, authType)
+	err = g.createHostIgnitions()
 	if err != nil {
 		log.Error(err)
 		return err
@@ -1278,34 +1249,15 @@ func setCACertInIgnition(role models.HostRole, path string, workDir string, caCe
 	return nil
 }
 
-func getBootReporterFileContent() (string, error) {
-	data, err := reporter.ReadFile(bootReporterPath)
-	if err != nil {
-		return "", err
-	}
-	return base64.StdEncoding.EncodeToString(data), nil
-}
-
-func (g *installerGenerator) writeHostFiles(hosts []*models.Host, baseFile string, workDir string, serviceBaseURL string, authType auth.AuthType) error {
-	errGroup := new(errgroup.Group)
-	bootReporter, err := getBootReporterFileContent()
-	if err != nil {
-		return errors.Wrap(err, "failed to read the contents of assisted-boot-reporter.sh")
-	}
-
+func writeHostFiles(hosts []*models.Host, baseFile string, workDir string) error {
+	g := new(errgroup.Group)
 	for i := range hosts {
 		host := hosts[i]
-		errGroup.Go(func() error {
+		g.Go(func() error {
 			config, err := parseIgnitionFile(filepath.Join(workDir, baseFile))
 			if err != nil {
 				return err
 			}
-			pullSecretToken, err := clusterPkg.AgentToken(g.cluster, authType)
-			if err != nil {
-				return err
-			}
-			contents := fmt.Sprintf(assistedBootReporterunitTemplate, strings.TrimSpace(serviceBaseURL), pullSecretToken, host.ClusterID, host.ID, 5, 60)
-			setUnitInIgnition(config, contents, "assisted-boot-reporter.service", true)
 
 			hostname, err := hostutil.GetCurrentHostName(host)
 			if err != nil {
@@ -1313,8 +1265,6 @@ func (g *installerGenerator) writeHostFiles(hosts []*models.Host, baseFile strin
 			}
 
 			setFileInIgnition(config, "/etc/hostname", fmt.Sprintf("data:,%s", hostname), false, 420, true)
-
-			setFileInIgnition(config, "/usr/local/bin/assisted-boot-reporter.sh", fmt.Sprintf("data:text/plain;charset=utf-8;base64,%s", bootReporter), false, 0700, true)
 
 			configBytes, err := json.Marshal(config)
 			if err != nil {
@@ -1338,19 +1288,19 @@ func (g *installerGenerator) writeHostFiles(hosts []*models.Host, baseFile strin
 		})
 	}
 
-	return errGroup.Wait()
+	return g.Wait()
 }
 
 // createHostIgnitions builds an ignition file for each host in the cluster based on the generated <role>.ign file
-func (g *installerGenerator) createHostIgnitions(serviceBaseURL string, authType auth.AuthType) error {
+func (g *installerGenerator) createHostIgnitions() error {
 	masters, workers := sortHosts(g.cluster.Hosts)
 
-	err := g.writeHostFiles(masters, masterIgn, g.workDir, serviceBaseURL, authType)
+	err := writeHostFiles(masters, masterIgn, g.workDir)
 	if err != nil {
 		return errors.Wrapf(err, "error writing master host ignition files")
 	}
 
-	err = g.writeHostFiles(workers, workerIgn, g.workDir, serviceBaseURL, authType)
+	err = writeHostFiles(workers, workerIgn, g.workDir)
 	if err != nil {
 		return errors.Wrapf(err, "error writing worker host ignition files")
 	}

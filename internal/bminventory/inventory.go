@@ -3570,7 +3570,6 @@ func (b *bareMetalInventory) getLogFileForDownload(ctx context.Context, clusterI
 	if err != nil {
 		return "", "", err
 	}
-	b.log.Debugf("log type to download: %s", logsType)
 	switch logsType {
 	case string(models.LogsTypeHost), string(models.LogsTypeNodeBoot):
 		if hostId == nil {
