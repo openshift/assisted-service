@@ -850,7 +850,7 @@ func createVersionHandlers(log logrus.FieldLogger, ctrlMgr manager.Manager, rele
 			return nil, nil, errors.Wrapf(err, "Failed to parse feature must-gather images JSON %s", Options.MustGatherImages)
 		}
 	}
-	versionsHandler, err := versions.NewHandler(log.WithField("pkg", "versions"), releaseHandler, osImages,
+	versionsHandler, err := versions.NewHandler(log.WithField("pkg", "versions"), releaseHandler,
 		releaseImagesArray, mustGatherVersionsMap, Options.ReleaseImageMirror, versionsClient)
 	if err != nil {
 		return nil, nil, err

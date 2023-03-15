@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"runtime/debug"
 	"strings"
+	"sync"
 
 	"github.com/go-openapi/swag"
 	"github.com/hashicorp/go-version"
@@ -15,6 +16,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
+	"golang.org/x/sync/semaphore"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -30,17 +32,17 @@ type Handler interface {
 	ValidateReleaseImageForRHCOS(rhcosVersion, cpuArch string) error
 }
 
-func NewHandler(log logrus.FieldLogger, releaseHandler oc.Release, osImages OSImages, releaseImages models.ReleaseImages,
+func NewHandler(log logrus.FieldLogger, releaseHandler oc.Release, releaseImages models.ReleaseImages,
 	mustGatherVersions MustGatherVersions, releaseImageMirror string, kubeClient client.Client) (*handler, error) {
 
 	h := &handler{
 		mustGatherVersions: mustGatherVersions,
-		osImages:           osImages,
 		releaseImages:      releaseImages,
 		releaseHandler:     releaseHandler,
 		releaseImageMirror: releaseImageMirror,
 		log:                log,
 		kubeClient:         kubeClient,
+		sem:                semaphore.NewWeighted(30),
 	}
 
 	if err := h.validateVersions(); err != nil {
@@ -52,8 +54,9 @@ func NewHandler(log logrus.FieldLogger, releaseHandler oc.Release, osImages OSIm
 
 type handler struct {
 	mustGatherVersions MustGatherVersions
-	osImages           OSImages
 	releaseImages      models.ReleaseImages
+	imagesLock         sync.Mutex
+	sem                *semaphore.Weighted
 	releaseHandler     oc.Release
 	releaseImageMirror string
 	log                logrus.FieldLogger
@@ -111,25 +114,41 @@ func (h *handler) GetReleaseImage(ctx context.Context, openshiftVersion, cpuArch
 		return image, err
 	}
 
+	// The image doesn't exist in the cache.
+	// Fetch all the cluster image sets, cache them, then search the cache again
+
 	clusterImageSets := &hivev1.ClusterImageSetList{}
 	if err := h.kubeClient.List(ctx, clusterImageSets); err != nil {
 		return nil, err
 	}
+	var wg sync.WaitGroup
 	for _, clusterImageSet := range clusterImageSets.Items {
-		existsInCache := false
-		for _, releaseImage := range h.releaseImages {
-			if releaseImage.URL != nil && *releaseImage.URL == clusterImageSet.Spec.ReleaseImage {
-				existsInCache = true
-				break
-			}
+		if err := h.sem.Acquire(ctx, 1); err != nil {
+			// don't fail the entire function if this iteration fails to acquire the semaphore
+			continue
 		}
-		if !existsInCache {
-			_, err := h.addReleaseImage(clusterImageSet.Spec.ReleaseImage, pullSecret)
-			if err != nil {
-				h.log.WithError(err).Warnf("Failed to add release image %s", clusterImageSet.Spec.ReleaseImage)
+		wg.Add(1)
+		go func(clusterImageSet hivev1.ClusterImageSet) {
+			defer func() {
+				wg.Done()
+				h.sem.Release(1)
+			}()
+			existsInCache := false
+			for _, releaseImage := range h.releaseImages {
+				if releaseImage.URL != nil && *releaseImage.URL == clusterImageSet.Spec.ReleaseImage {
+					existsInCache = true
+					break
+				}
 			}
-		}
+			if !existsInCache {
+				_, err := h.addReleaseImage(clusterImageSet.Spec.ReleaseImage, pullSecret)
+				if err != nil {
+					h.log.WithError(err).Warnf("Failed to add release image %s", clusterImageSet.Spec.ReleaseImage)
+				}
+			}
+		}(clusterImageSet)
 	}
+	wg.Wait()
 
 	return h.getReleaseImageFromCache(openshiftVersion, cpuArchitecture)
 }
@@ -242,16 +261,13 @@ func (h *handler) addReleaseImage(releaseImageUrl, pullSecret string) (*models.R
 	var cpuArchitecture string
 	if len(cpuArchitectures) == 1 {
 		cpuArchitecture = cpuArchitectures[0]
-
-		// Ensure a relevant OsImage exists. For multiarch we disabling the code below because we don't know yet
-		// what is going to be the architecture of InfraEnv and Agent.
-		osImage, err := h.osImages.GetOsImage(ocpReleaseVersion, cpuArchitecture)
-		if err != nil || osImage.URL == nil {
-			return nil, errors.Errorf("No OS images are available for version %s and architecture %s", ocpReleaseVersion, cpuArchitecture)
-		}
 	} else {
 		cpuArchitecture = common.MultiCPUArchitecture
 	}
+
+	// lock for the rest of this function so we can call it concurrently
+	h.imagesLock.Lock()
+	defer h.imagesLock.Unlock()
 
 	// Fetch ReleaseImage if exists (not using GetReleaseImage as we search for the x.y.z image only)
 	releaseImage := funk.Find(h.releaseImages, func(releaseImage *models.ReleaseImage) bool {

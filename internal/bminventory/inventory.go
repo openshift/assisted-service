@@ -472,6 +472,32 @@ func (b *bareMetalInventory) getOLMMonitoredOperators(log *logrus.Entry, cluster
 	return nil, nil
 }
 
+func (b *bareMetalInventory) getNewClusterReleaseImage(ctx context.Context, params *models.ClusterCreateParams, arch string) (*models.ReleaseImage, error) {
+	releaseImage, err := b.versionsHandler.GetReleaseImage(ctx, swag.StringValue(params.OpenshiftVersion),
+		arch, swag.StringValue(params.PullSecret))
+	if err != nil {
+		return nil, errors.Wrapf(err, "Openshift version %s for CPU architecture %s is not supported",
+			swag.StringValue(params.OpenshiftVersion), arch)
+	}
+	if models.OpenshiftVersionSupportLevelMaintenance == releaseImage.SupportLevel {
+		return nil, errors.Errorf("Openshift version %s support level is: %s, and can't be used for creating a new cluster",
+			swag.StringValue(params.OpenshiftVersion), releaseImage.SupportLevel)
+	}
+	// Ensure a relevant OsImage exists. For multiarch we disabling the code below because we don't know yet
+	// what is going to be the architecture of InfraEnv and Agent.
+	if len(releaseImage.CPUArchitectures) == 1 {
+		releaseVersion := *releaseImage.OpenshiftVersion
+		releaseArch := releaseImage.CPUArchitectures[0]
+		var osImage *models.OsImage
+		osImage, err = b.osImages.GetOsImage(releaseVersion, releaseArch)
+		if err != nil || osImage.URL == nil {
+			return nil, errors.Errorf("No OS images are available for version %s and architecture %s", releaseVersion, releaseArch)
+		}
+	}
+
+	return releaseImage, nil
+}
+
 func (b *bareMetalInventory) RegisterClusterInternal(
 	ctx context.Context,
 	kubeKey *types.NamespacedName,
@@ -532,18 +558,11 @@ func (b *bareMetalInventory) RegisterClusterInternal(
 		return nil, common.NewApiError(http.StatusBadRequest, err)
 	}
 
-	releaseImage, err := b.versionsHandler.GetReleaseImage(ctx, swag.StringValue(params.NewClusterParams.OpenshiftVersion),
-		cpuArchitecture, swag.StringValue(params.NewClusterParams.PullSecret))
+	releaseImage, err := b.getNewClusterReleaseImage(ctx, params.NewClusterParams, cpuArchitecture)
 	if err != nil {
-		err = errors.Wrapf(err, "Openshift version %s for CPU architecture %s is not supported",
-			swag.StringValue(params.NewClusterParams.OpenshiftVersion), cpuArchitecture)
 		return nil, common.NewApiError(http.StatusBadRequest, err)
 	}
-	if models.OpenshiftVersionSupportLevelMaintenance == releaseImage.SupportLevel {
-		return nil, common.NewApiError(http.StatusBadRequest, errors.Errorf(
-			"Openshift version %s support level is: %s, and can't be used for creating a new cluster",
-			swag.StringValue(params.NewClusterParams.OpenshiftVersion), releaseImage.SupportLevel))
-	}
+
 	log.Infof("selected cluster release image: arch=%s, openshiftVersion=%s, url=%s",
 		swag.StringValue(releaseImage.CPUArchitecture),
 		swag.StringValue(releaseImage.OpenshiftVersion),
