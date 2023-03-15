@@ -470,7 +470,7 @@ func (b *bareMetalInventory) v2uploadLogs(ctx context.Context, params installer.
 		}
 	}()
 
-	if params.LogsType == string(models.LogsTypeHost) || params.LogsType == string(models.LogsTypeNodeBoot) {
+	if params.LogsType == string(models.LogsTypeHost) {
 		if common.StrFmtUUIDPtr(params.ClusterID) == nil || params.HostID == nil {
 			return common.NewApiError(http.StatusInternalServerError,
 				errors.Errorf("cluster_id and host_id are required for upload %s logs", params.LogsType))
