@@ -523,6 +523,16 @@ objects:
                   - name: local_service
                     domains: ["*"]
                     routes:
+                    - match:
+                        prefix: "/"
+                        query_parameters:
+                        - name: "logs_type"
+                          string_match:
+                            exact: "node-boot"
+                      direct_response:
+                        status: 400
+                        body:
+                          inline_string: "bad request"
                     - match: { prefix: "/" }
                       route:
                         cluster: assisted_service
