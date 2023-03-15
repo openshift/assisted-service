@@ -18,37 +18,25 @@ package handler
 
 import (
 	"bytes"
-	"compress/gzip"
 	"crypto/sha512"
 	"encoding/json"
 	"fmt"
-	"mime"
 	"net/http"
 	"strconv"
 	"sync"
 	"time"
 
 	"github.com/NYTimes/gziphandler"
-	"github.com/emicklei/go-restful"
+	"github.com/emicklei/go-restful/v3"
 	"github.com/golang/protobuf/proto"
 	openapi_v2 "github.com/google/gnostic/openapiv2"
 	"github.com/munnerz/goautoneg"
-	"gopkg.in/yaml.v2"
 	klog "k8s.io/klog/v2"
 	"k8s.io/kube-openapi/pkg/builder"
 	"k8s.io/kube-openapi/pkg/common"
 	"k8s.io/kube-openapi/pkg/common/restfuladapter"
 	"k8s.io/kube-openapi/pkg/internal/handler"
 	"k8s.io/kube-openapi/pkg/validation/spec"
-)
-
-const (
-	jsonExt = ".json"
-
-	mimeJson = "application/json"
-	// TODO(mehdy): change @68f4ded to a version tag when gnostic add version tags.
-	mimePb   = "application/com.github.googleapis.gnostic.OpenAPIv2@68f4ded+protobuf"
-	mimePbGz = "application/x-gzip"
 )
 
 func computeETag(data []byte) string {
@@ -69,12 +57,6 @@ type OpenAPIService struct {
 	jsonCache  handler.HandlerCache
 	protoCache handler.HandlerCache
 	etagCache  handler.HandlerCache
-}
-
-func init() {
-	mime.AddExtensionType(".json", mimeJson)
-	mime.AddExtensionType(".pb-v1", mimePb)
-	mime.AddExtensionType(".gz", mimePbGz)
 }
 
 // NewOpenAPIService builds an OpenAPIService starting with the given spec.
@@ -139,62 +121,12 @@ func (o *OpenAPIService) UpdateSpec(openapiSpec *spec.Swagger) (err error) {
 	return nil
 }
 
-func jsonToYAML(j map[string]interface{}) yaml.MapSlice {
-	if j == nil {
-		return nil
-	}
-	ret := make(yaml.MapSlice, 0, len(j))
-	for k, v := range j {
-		ret = append(ret, yaml.MapItem{k, jsonToYAMLValue(v)})
-	}
-	return ret
-}
-
-func jsonToYAMLValue(j interface{}) interface{} {
-	switch j := j.(type) {
-	case map[string]interface{}:
-		return jsonToYAML(j)
-	case []interface{}:
-		ret := make([]interface{}, len(j))
-		for i := range j {
-			ret[i] = jsonToYAMLValue(j[i])
-		}
-		return ret
-	case float64:
-		// replicate the logic in https://github.com/go-yaml/yaml/blob/51d6538a90f86fe93ac480b35f37b2be17fef232/resolve.go#L151
-		if i64 := int64(j); j == float64(i64) {
-			if i := int(i64); i64 == int64(i) {
-				return i
-			}
-			return i64
-		}
-		if ui64 := uint64(j); j == float64(ui64) {
-			return ui64
-		}
-		return j
-	case int64:
-		if i := int(j); j == int64(i) {
-			return i
-		}
-		return j
-	}
-	return j
-}
-
 func ToProtoBinary(json []byte) ([]byte, error) {
 	document, err := openapi_v2.ParseDocument(json)
 	if err != nil {
 		return nil, err
 	}
 	return proto.Marshal(document)
-}
-
-func toGzip(data []byte) []byte {
-	var buf bytes.Buffer
-	zw := gzip.NewWriter(&buf)
-	zw.Write(data)
-	zw.Close()
-	return buf.Bytes()
 }
 
 // RegisterOpenAPIVersionedService registers a handler to provide access to provided swagger spec.
