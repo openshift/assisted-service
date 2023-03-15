@@ -3167,7 +3167,7 @@ paths:
           name: logs_type
           description: The type of log file to be uploaded.
           type: string
-          enum: ['host', 'controller', 'node-boot']
+          enum: ['host', 'controller']
           required: true
         - in: query
           name: infra_env_id
@@ -6490,7 +6490,6 @@ definitions:
     type: string
     enum:
       - 'host'
-      - 'node-boot'
       - 'controller'
       - 'all'
       - ''

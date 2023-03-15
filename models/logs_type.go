@@ -33,9 +33,6 @@ const (
 	// LogsTypeHost captures enum value "host"
 	LogsTypeHost LogsType = "host"
 
-	// LogsTypeNodeBoot captures enum value "node-boot"
-	LogsTypeNodeBoot LogsType = "node-boot"
-
 	// LogsTypeController captures enum value "controller"
 	LogsTypeController LogsType = "controller"
 
@@ -51,7 +48,7 @@ var logsTypeEnum []interface{}
 
 func init() {
 	var res []LogsType
-	if err := json.Unmarshal([]byte(`["host","node-boot","controller","all",""]`), &res); err != nil {
+	if err := json.Unmarshal([]byte(`["host","controller","all",""]`), &res); err != nil {
 		panic(err)
 	}
 	for _, v := range res {

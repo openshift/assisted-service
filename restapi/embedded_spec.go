@@ -1866,8 +1866,7 @@ func init() {
           {
             "enum": [
               "host",
-              "controller",
-              "node-boot"
+              "controller"
             ],
             "type": "string",
             "description": "The type of log file to be uploaded.",
@@ -8794,7 +8793,6 @@ func init() {
       "type": "string",
       "enum": [
         "host",
-        "node-boot",
         "controller",
         "all",
         ""
@@ -11867,8 +11865,7 @@ func init() {
           {
             "enum": [
               "host",
-              "controller",
-              "node-boot"
+              "controller"
             ],
             "type": "string",
             "description": "The type of log file to be uploaded.",
@@ -18888,7 +18885,6 @@ func init() {
       "type": "string",
       "enum": [
         "host",
-        "node-boot",
         "controller",
         "all",
         ""
