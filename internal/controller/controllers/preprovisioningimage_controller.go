@@ -137,7 +137,14 @@ func (r *PreprovisioningImageReconciler) Reconcile(origCtx context.Context, req 
 	}
 
 	infraEnvUpdated, err := r.AddIronicAgentToInfraEnv(ctx, log, infraEnv)
-	if infraEnvUpdated || err != nil {
+	if infraEnvUpdated {
+		return ctrl.Result{}, nil
+	}
+	if err != nil {
+		setIronicAgentIgnitionFailureCondition(image, err)
+		if updErr := r.Status().Update(ctx, image); updErr != nil {
+			log.WithError(err).Error("failed to update status")
+		}
 		return ctrl.Result{}, err
 	}
 
@@ -267,6 +274,17 @@ func setUnsupportedFormatCondition(image *metal3_v1alpha1.PreprovisioningImage) 
 func setMismatchedArchCondition(image *metal3_v1alpha1.PreprovisioningImage, infraArch string) {
 	message := fmt.Sprintf("PreprovisioningImage CPU architecture (%s) does not match InfraEnv CPU architecture (%s)", image.Spec.Architecture, infraArch)
 	reason := imageConditionReason(archMismatchReason)
+	setImageCondition(image.GetGeneration(), &image.Status,
+		metal3_v1alpha1.ConditionImageReady, metav1.ConditionFalse,
+		reason, message)
+	setImageCondition(image.GetGeneration(), &image.Status,
+		metal3_v1alpha1.ConditionImageError, metav1.ConditionTrue,
+		reason, message)
+}
+
+func setIronicAgentIgnitionFailureCondition(image *metal3_v1alpha1.PreprovisioningImage, err error) {
+	message := fmt.Sprintf("Could not add ironic agent to image: %s", err.Error())
+	reason := imageConditionReason("IronicAgentIgnitionUpdateFailure")
 	setImageCondition(image.GetGeneration(), &image.Status,
 		metal3_v1alpha1.ConditionImageReady, metav1.ConditionFalse,
 		reason, message)

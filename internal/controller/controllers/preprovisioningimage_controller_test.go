@@ -419,20 +419,7 @@ var _ = Describe("PreprovisioningImage reconcile", func() {
 			res, err := pr.Reconcile(ctx, newPreprovisioningImageRequest(ppi))
 			Expect(err).To(BeNil())
 			Expect(res).To(Equal(ctrl.Result{}))
-
-			key := types.NamespacedName{
-				Namespace: testNamespace,
-				Name:      "testPPI",
-			}
-			Expect(c.Get(ctx, key, ppi)).To(BeNil())
-			readyCondition := meta.FindStatusCondition(ppi.Status.Conditions, string(metal3_v1alpha1.ConditionImageReady))
-			Expect(readyCondition.Status).To(Equal(metav1.ConditionFalse))
-			Expect(readyCondition.Message).To(ContainSubstring("does not match InfraEnv CPU architecture"))
-			Expect(readyCondition.Reason).To(Equal(archMismatchReason))
-			errorCondition := meta.FindStatusCondition(ppi.Status.Conditions, string(metal3_v1alpha1.ConditionImageError))
-			Expect(errorCondition.Status).To(Equal(metav1.ConditionTrue))
-			Expect(errorCondition.Message).To(ContainSubstring("does not match InfraEnv CPU architecture"))
-			Expect(errorCondition.Reason).To(Equal(archMismatchReason))
+			checkImageConditionFailed(c, ppi, archMismatchReason, "does not match InfraEnv CPU architecture")
 		})
 
 		It("doesn't fail when the infraEnv image has not been created yet", func() {
@@ -464,20 +451,7 @@ var _ = Describe("PreprovisioningImage reconcile", func() {
 		res, err := pr.Reconcile(ctx, newPreprovisioningImageRequest(ppi))
 		Expect(err).To(BeNil())
 		Expect(res).To(Equal(ctrl.Result{}))
-		key := types.NamespacedName{
-			Namespace: ppi.Namespace,
-			Name:      ppi.Name,
-		}
-		Expect(c.Get(ctx, key, ppi)).To(BeNil())
-		Expect(ppi.Status.ImageUrl).To(Equal(""))
-		readyCondition := meta.FindStatusCondition(ppi.Status.Conditions, string(metal3_v1alpha1.ConditionImageReady))
-		Expect(readyCondition.Status).To(Equal(metav1.ConditionFalse))
-		errorCondition := meta.FindStatusCondition(ppi.Status.Conditions, string(metal3_v1alpha1.ConditionImageError))
-		Expect(errorCondition.Status).To(Equal(metav1.ConditionTrue))
-		for _, condition := range []metav1.Condition{*readyCondition, *errorCondition} {
-			Expect(condition.Message).To(Equal("Unsupported image format"))
-			Expect(condition.Reason).To(Equal("UnsupportedImageFormat"))
-		}
+		checkImageConditionFailed(c, ppi, "UnsupportedImageFormat", "Unsupported image format")
 	})
 	It("internalInfraEnv not found", func() {
 		ppi = newPreprovisioningImage("testPPI", testNamespace, InfraEnvLabel, "testInfraEnv")
@@ -490,7 +464,9 @@ var _ = Describe("PreprovisioningImage reconcile", func() {
 		Expect(err).To(HaveOccurred())
 		Expect(err.Error()).To(Equal("Failed to get internal infra env"))
 		Expect(res).To(Equal(ctrl.Result{}))
+		checkImageConditionFailed(c, ppi, "IronicAgentIgnitionUpdateFailure", "Could not add ironic agent to image:")
 	})
+
 	It("returns an error when the ironic urls can't be found", func() {
 		ppi = newPreprovisioningImage("testPPI", testNamespace, InfraEnvLabel, "testInfraEnv")
 		Expect(c.Create(ctx, ppi)).To(BeNil())
@@ -508,6 +484,7 @@ var _ = Describe("PreprovisioningImage reconcile", func() {
 		Expect(err).To(HaveOccurred())
 		Expect(err.Error()).To(Equal("failed to get urls"))
 		Expect(res).To(Equal(ctrl.Result{}))
+		checkImageConditionFailed(c, ppi, "IronicAgentIgnitionUpdateFailure", "Could not add ironic agent to image:")
 	})
 	It("Failed to UpdateInfraEnvInternal", func() {
 		ppi = newPreprovisioningImage("testPPI", testNamespace, InfraEnvLabel, "testInfraEnv")
@@ -523,6 +500,7 @@ var _ = Describe("PreprovisioningImage reconcile", func() {
 		Expect(err).To(HaveOccurred())
 		Expect(err.Error()).To(Equal("Failed to update infraEnvInternal"))
 		Expect(res).To(Equal(ctrl.Result{}))
+		checkImageConditionFailed(c, ppi, "IronicAgentIgnitionUpdateFailure", "Could not add ironic agent to image:")
 	})
 	Context("map InfraEnv to PPI", func() {
 		BeforeEach(func() {
@@ -575,6 +553,20 @@ var _ = Describe("PreprovisioningImage reconcile", func() {
 	})
 
 })
+
+func checkImageConditionFailed(c client.Client, ppi *metal3_v1alpha1.PreprovisioningImage, reason string, messageSubstring string) {
+	ppiKey := types.NamespacedName{Namespace: ppi.Namespace, Name: ppi.Name}
+	Expect(c.Get(context.TODO(), ppiKey, ppi)).To(Succeed())
+	fmt.Printf("%+v\n", ppi.Status.Conditions)
+	readyCondition := meta.FindStatusCondition(ppi.Status.Conditions, string(metal3_v1alpha1.ConditionImageReady))
+	Expect(readyCondition.Status).To(Equal(metav1.ConditionFalse))
+	errorCondition := meta.FindStatusCondition(ppi.Status.Conditions, string(metal3_v1alpha1.ConditionImageError))
+	Expect(errorCondition.Status).To(Equal(metav1.ConditionTrue))
+	for _, condition := range []metav1.Condition{*readyCondition, *errorCondition} {
+		Expect(condition.Message).To(ContainSubstring(messageSubstring))
+		Expect(condition.Reason).To(Equal(reason))
+	}
+}
 
 func SetImageUrl(ppi *metal3_v1alpha1.PreprovisioningImage, infraEnv aiv1beta1.InfraEnv) {
 	ppi.Status.ImageUrl = infraEnv.Status.ISODownloadURL
