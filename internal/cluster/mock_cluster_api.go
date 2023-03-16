@@ -429,6 +429,20 @@ func (mr *MockAPIMockRecorder) IsOperatorAvailable(c, operatorName interface{}) 
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsOperatorAvailable", reflect.TypeOf((*MockAPI)(nil).IsOperatorAvailable), c, operatorName)
 }
 
+// IsOperatorMonitored mocks base method.
+func (m *MockAPI) IsOperatorMonitored(c *common.Cluster, operatorName string) bool {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "IsOperatorMonitored", c, operatorName)
+	ret0, _ := ret[0].(bool)
+	return ret0
+}
+
+// IsOperatorMonitored indicates an expected call of IsOperatorMonitored.
+func (mr *MockAPIMockRecorder) IsOperatorMonitored(c, operatorName interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsOperatorMonitored", reflect.TypeOf((*MockAPI)(nil).IsOperatorMonitored), c, operatorName)
+}
+
 // IsReadyForInstallation mocks base method.
 func (m *MockAPI) IsReadyForInstallation(c *common.Cluster) (bool, string) {
 	m.ctrl.T.Helper()
