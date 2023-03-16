@@ -3632,10 +3632,14 @@ func (b *bareMetalInventory) GetCredentialsInternal(ctx context.Context, params 
 		log.WithError(err).Errorf("failed to find cluster %s", params.ClusterID)
 		return nil, err
 	}
-	if !b.clusterApi.IsOperatorAvailable(&cluster, operators.OperatorConsole.Name) {
-		err := errors.New("console-url isn't available yet, it will be once console operator is ready as part of cluster finalizing stage")
-		log.WithError(err)
-		return nil, common.NewApiError(http.StatusConflict, err)
+	var consoleURL string
+	if b.clusterApi.IsOperatorMonitored(&cluster, operators.OperatorConsole.Name) {
+		if !b.clusterApi.IsOperatorAvailable(&cluster, operators.OperatorConsole.Name) {
+			err := errors.New("console-url isn't available yet, it will be once console operator is ready as part of cluster finalizing stage")
+			log.WithError(err)
+			return nil, common.NewApiError(http.StatusConflict, err)
+		}
+		consoleURL = common.GetConsoleUrl(cluster.Name, cluster.BaseDNSDomain)
 	}
 	objectName := fmt.Sprintf("%s/%s", params.ClusterID, "kubeadmin-password")
 	r, _, err := b.objectHandler.Download(ctx, objectName)
@@ -3652,7 +3656,7 @@ func (b *bareMetalInventory) GetCredentialsInternal(ctx context.Context, params 
 	return &models.Credentials{
 		Username:   DefaultUser,
 		Password:   string(password),
-		ConsoleURL: common.GetConsoleUrl(cluster.Name, cluster.BaseDNSDomain),
+		ConsoleURL: consoleURL,
 	}, nil
 }
 
