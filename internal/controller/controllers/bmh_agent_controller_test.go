@@ -338,7 +338,7 @@ var _ = Describe("bmac reconcile", func() {
 				host.Spec.AutomatedCleaningMode = bmh_v1alpha1.CleaningModeDisabled
 				host.Status.Provisioning.State = bmh_v1alpha1.StateRegistering
 
-				result := bmhr.reconcileBMH(ctx, bmhr.Log, host)
+				result := bmhr.reconcileBMH(ctx, bmhr.Log, host, nil)
 				Expect(result).To(Equal(reconcileComplete{dirty: true, stop: true}))
 				Expect(host.ObjectMeta.Annotations).To(HaveKey(BMH_INSPECT_ANNOTATION))
 				Expect(host.ObjectMeta.Annotations[BMH_INSPECT_ANNOTATION]).To(Equal("disabled"))
@@ -348,14 +348,14 @@ var _ = Describe("bmac reconcile", func() {
 				host.Spec.AutomatedCleaningMode = bmh_v1alpha1.CleaningModeMetadata
 				host.Status.Provisioning.State = bmh_v1alpha1.StateProvisioned
 
-				result = bmhr.reconcileBMH(ctx, bmhr.Log, host)
+				result = bmhr.reconcileBMH(ctx, bmhr.Log, host, nil)
 				Expect(result).To(Equal(reconcileComplete{dirty: true, stop: true}))
 				Expect(host.ObjectMeta.Annotations).To(HaveKey(BMH_INSPECT_ANNOTATION))
 				Expect(host.ObjectMeta.Annotations[BMH_INSPECT_ANNOTATION]).To(Equal("disabled"))
 				Expect(host.Spec.AutomatedCleaningMode).To(Equal(bmh_v1alpha1.CleaningModeDisabled))
 
 				// This should not return a dirty result because label is already set
-				result = bmhr.reconcileBMH(ctx, bmhr.Log, host)
+				result = bmhr.reconcileBMH(ctx, bmhr.Log, host, nil)
 				Expect(result).To(Equal(reconcileComplete{dirty: false, stop: true}))
 				Expect(host.ObjectMeta.Annotations).To(HaveKey(BMH_INSPECT_ANNOTATION))
 				Expect(host.ObjectMeta.Annotations[BMH_INSPECT_ANNOTATION]).To(Equal("disabled"))
@@ -386,7 +386,7 @@ var _ = Describe("bmac reconcile", func() {
 			})
 			It("should not reconcile BMH if the updated image has not been around longer than the grace period", func() {
 				// Reconcile with the original ISO
-				_ = bmhr.reconcileBMH(ctx, bmhr.Log, host)
+				_ = bmhr.reconcileBMH(ctx, bmhr.Log, host, nil)
 
 				// Generate a new ISO with the current timestamp
 				infraEnv.Status = v1beta1.InfraEnvStatus{
@@ -397,7 +397,7 @@ var _ = Describe("bmac reconcile", func() {
 
 				// Should not reconcile because ISO is too recent.
 				// We expect the old URL to be still attached to the BMH.
-				result := bmhr.reconcileBMH(ctx, bmhr.Log, host)
+				result := bmhr.reconcileBMH(ctx, bmhr.Log, host, nil)
 				Expect(result).To(BeAssignableToTypeOf(reconcileRequeue{}))
 				Expect(host.Spec.Image.URL).To(Equal(isoImageURL))
 			})
@@ -410,7 +410,7 @@ var _ = Describe("bmac reconcile", func() {
 				Expect(c.Update(ctx, infraEnv)).To(BeNil())
 
 				// There was no previous ISO attached, so the BMH should not have any URL.
-				result := bmhr.reconcileBMH(ctx, bmhr.Log, host)
+				result := bmhr.reconcileBMH(ctx, bmhr.Log, host, nil)
 				Expect(result).To(BeAssignableToTypeOf(reconcileRequeue{}))
 				Expect(host.Spec.Image).To(BeNil())
 			})
@@ -423,7 +423,7 @@ var _ = Describe("bmac reconcile", func() {
 
 				// The ISO is old enough to pass through the filter, thus we expect the new
 				// URL to be attached to the BMH.
-				result := bmhr.reconcileBMH(ctx, bmhr.Log, host)
+				result := bmhr.reconcileBMH(ctx, bmhr.Log, host, nil)
 				Expect(result).To(Equal(reconcileComplete{dirty: true, stop: true}))
 				Expect(host.Spec.Image.URL).To(Equal(isoImageURL + ".new"))
 			})
@@ -1528,37 +1528,97 @@ var _ = Describe("bmac reconcile - converged flow enabled", func() {
 			// check that the host isn't detached
 			Expect(updatedHost.ObjectMeta.Annotations).To(BeNil())
 		})
-		It("should set detached annotation on the BMH", func() {
-			agentSpec := v1beta1.AgentSpec{
-				Approved: true,
-			}
-			agent := newAgent("bmac-agent", testNamespace, agentSpec)
-			macStr := "12-34-56-78-9A-BC"
-			agent.Status.Inventory = v1beta1.HostInventory{
-				Interfaces: []v1beta1.HostInterface{
-					{
-						MacAddress: macStr,
+		Context("with a provisioned agent", func() {
+			BeforeEach(func() {
+				agentSpec := v1beta1.AgentSpec{
+					Approved: true,
+				}
+				agent := newAgent("bmac-agent", testNamespace, agentSpec)
+				macStr := "12-34-56-78-9A-BC"
+				agent.Status.Inventory = v1beta1.HostInventory{
+					Interfaces: []v1beta1.HostInterface{
+						{
+							MacAddress: macStr,
+						},
 					},
-				},
-			}
-			Expect(c.Create(ctx, agent)).To(BeNil())
+				}
+				Expect(c.Create(ctx, agent)).To(BeNil())
 
-			host.Spec.BootMACAddress = macStr
-			host.Spec.AutomatedCleaningMode = bmh_v1alpha1.CleaningModeDisabled
-			host.Spec.CustomDeploy = &bmh_v1alpha1.CustomDeploy{Method: ASSISTED_DEPLOY_METHOD}
-			host.Status.Provisioning.State = bmh_v1alpha1.StateProvisioned
-			Expect(c.Update(ctx, host)).To(BeNil())
+				host.Spec.BootMACAddress = macStr
+				host.Spec.AutomatedCleaningMode = bmh_v1alpha1.CleaningModeDisabled
+				host.Spec.CustomDeploy = &bmh_v1alpha1.CustomDeploy{Method: ASSISTED_DEPLOY_METHOD}
+				host.Status.Provisioning.State = bmh_v1alpha1.StateProvisioned
+			})
+			It("should set detached annotation on the BMH", func() {
+				Expect(c.Update(ctx, host)).To(BeNil())
 
-			result, err := bmhr.Reconcile(ctx, newBMHRequest(host))
-			Expect(err).To(BeNil())
-			Expect(result).To(Equal(ctrl.Result{}))
+				result, err := bmhr.Reconcile(ctx, newBMHRequest(host))
+				Expect(err).To(BeNil())
+				Expect(result).To(Equal(ctrl.Result{}))
 
-			updatedHost := &bmh_v1alpha1.BareMetalHost{}
-			err = c.Get(ctx, types.NamespacedName{Name: "bmh-reconcile", Namespace: testNamespace}, updatedHost)
-			Expect(err).To(BeNil())
-			Expect(updatedHost.ObjectMeta.Annotations).To(HaveKey(BMH_DETACHED_ANNOTATION))
-			Expect(updatedHost.ObjectMeta.Annotations[BMH_DETACHED_ANNOTATION]).To(Equal("assisted-service-controller"))
+				updatedHost := &bmh_v1alpha1.BareMetalHost{}
+				err = c.Get(ctx, types.NamespacedName{Name: "bmh-reconcile", Namespace: testNamespace}, updatedHost)
+				Expect(err).To(BeNil())
+				Expect(updatedHost.ObjectMeta.Annotations).To(HaveKey(BMH_DETACHED_ANNOTATION))
+
+				Expect(updatedHost.ObjectMeta.Annotations[BMH_DETACHED_ANNOTATION]).To(Equal("assisted-service-controller"))
+			})
+			It("sets the detached annotation metadata with the BMH delete annotation", func() {
+				host.Annotations = map[string]string{BMH_DELETE_ANNOTATION: "true"}
+				Expect(c.Update(ctx, host)).To(Succeed())
+
+				result, err := bmhr.Reconcile(ctx, newBMHRequest(host))
+				Expect(err).To(BeNil())
+				Expect(result).To(Equal(ctrl.Result{}))
+
+				updatedHost := &bmh_v1alpha1.BareMetalHost{}
+				Expect(c.Get(ctx, types.NamespacedName{Name: "bmh-reconcile", Namespace: testNamespace}, updatedHost)).To(Succeed())
+				Expect(updatedHost.ObjectMeta.Annotations).To(HaveKey(BMH_DETACHED_ANNOTATION))
+
+				args := &bmh_v1alpha1.DetachedAnnotationArguments{}
+				Expect(json.Unmarshal([]byte(updatedHost.ObjectMeta.Annotations[BMH_DETACHED_ANNOTATION]), &args)).To(Succeed())
+				Expect(string(args.DeleteAction)).To(Equal(bmh_v1alpha1.DetachedDeleteActionDelay))
+			})
+			It("removes the metadata when the delete annotation is removed", func() {
+				args := &bmh_v1alpha1.DetachedAnnotationArguments{
+					DeleteAction: bmh_v1alpha1.DetachedDeleteActionDelay,
+				}
+				data, err := json.Marshal(args)
+				Expect(err).To(BeNil())
+				host.Annotations = map[string]string{BMH_DETACHED_ANNOTATION: string(data)}
+				Expect(c.Update(ctx, host)).To(Succeed())
+
+				result, err := bmhr.Reconcile(ctx, newBMHRequest(host))
+				Expect(err).To(BeNil())
+				Expect(result).To(Equal(ctrl.Result{}))
+
+				updatedHost := &bmh_v1alpha1.BareMetalHost{}
+				Expect(c.Get(ctx, types.NamespacedName{Name: "bmh-reconcile", Namespace: testNamespace}, updatedHost)).To(Succeed())
+				Expect(updatedHost.ObjectMeta.Annotations).To(HaveKey(BMH_DETACHED_ANNOTATION))
+
+				Expect(updatedHost.ObjectMeta.Annotations[BMH_DETACHED_ANNOTATION]).To(Equal("assisted-service-controller"))
+			})
+			It("adds the metadata when detached annotation is already present and the delete annotation is also present", func() {
+				host.Annotations = map[string]string{
+					BMH_DELETE_ANNOTATION:   "true",
+					BMH_DETACHED_ANNOTATION: "assisted-service-controller",
+				}
+				Expect(c.Update(ctx, host)).To(Succeed())
+
+				result, err := bmhr.Reconcile(ctx, newBMHRequest(host))
+				Expect(err).To(BeNil())
+				Expect(result).To(Equal(ctrl.Result{}))
+
+				updatedHost := &bmh_v1alpha1.BareMetalHost{}
+				Expect(c.Get(ctx, types.NamespacedName{Name: "bmh-reconcile", Namespace: testNamespace}, updatedHost)).To(Succeed())
+				Expect(updatedHost.ObjectMeta.Annotations).To(HaveKey(BMH_DETACHED_ANNOTATION))
+
+				args := &bmh_v1alpha1.DetachedAnnotationArguments{}
+				Expect(json.Unmarshal([]byte(updatedHost.ObjectMeta.Annotations[BMH_DETACHED_ANNOTATION]), &args)).To(Succeed())
+				Expect(string(args.DeleteAction)).To(Equal(bmh_v1alpha1.DetachedDeleteActionDelay))
+			})
 		})
+
 		It("should not set detached annotation on the BMH, BMH is still preparing", func() {
 			agentSpec := v1beta1.AgentSpec{
 				Approved: true,

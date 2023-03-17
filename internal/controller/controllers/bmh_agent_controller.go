@@ -249,7 +249,7 @@ func (r *BMACReconciler) Reconcile(origCtx context.Context, req ctrl.Request) (c
 		}
 	}
 
-	result = r.reconcileBMH(ctx, log, bmh)
+	result = r.reconcileBMH(ctx, log, bmh, agent)
 	if res := r.handleReconcileResult(ctx, log, result, bmh); res != nil {
 		return res.Result()
 	}
@@ -473,57 +473,60 @@ func (r *BMACReconciler) reconcileNodeLabels(bmh *bmh_v1alpha1.BareMetalHost, ag
 
 // The detached annotation is added if the BMH provisioning state is provisioned
 func (r *BMACReconciler) addBMHDetachedAnnotationIfBmhIsProvisioned(log logrus.FieldLogger, bmh *bmh_v1alpha1.BareMetalHost, agent *aiv1beta1.Agent) reconcileResult {
-
-	shouldSkip := shouldSkipDetach(log, bmh, agent)
-	if shouldSkip {
-		return reconcileComplete{}
-	}
-
 	if r.ConvergedFlowEnabled && bmh.Status.Provisioning.State != bmh_v1alpha1.StateProvisioned {
 		log.Debugf("Skipping adding detached annotation. BMH provisioning state is: %s should be: %s", bmh.Status.Provisioning.State, bmh_v1alpha1.StateProvisioned)
 		return reconcileComplete{}
 
 	}
-	return detachBMH(log, bmh, agent)
+	return r.ensureBMHDetached(log, bmh, agent)
 }
 
-func detachBMH(log logrus.FieldLogger, bmh *bmh_v1alpha1.BareMetalHost, agent *aiv1beta1.Agent) reconcileResult {
+func (r *BMACReconciler) detachedValue(bmh *bmh_v1alpha1.BareMetalHost) (string, error) {
+	detachValue := []byte("assisted-service-controller")
+	if _, has_annotation := bmh.GetAnnotations()[BMH_DELETE_ANNOTATION]; has_annotation && r.ConvergedFlowEnabled {
+		arg := bmh_v1alpha1.DetachedAnnotationArguments{DeleteAction: bmh_v1alpha1.DetachedDeleteActionDelay}
+		var err error
+		detachValue, err = json.Marshal(arg)
+		if err != nil {
+			return "", err
+		}
+	}
+	return string(detachValue), nil
+}
+
+func (r *BMACReconciler) ensureBMHDetached(log logrus.FieldLogger, bmh *bmh_v1alpha1.BareMetalHost, agent *aiv1beta1.Agent) reconcileResult {
 	if bmh.ObjectMeta.Annotations == nil {
 		bmh.ObjectMeta.Annotations = make(map[string]string)
 	}
-	bmh.ObjectMeta.Annotations[BMH_DETACHED_ANNOTATION] = "assisted-service-controller"
+
+	// it's possible this BMH doesn't have a matching agent when this is called in some cases
+	if agent != nil {
+		//check if we are in unbinding-pending-user-action status. If yes, we should not
+		//re-apply the detached label because ironic need to restart the host
+		boundCondition := conditionsv1.FindStatusCondition(agent.Status.Conditions, aiv1beta1.BoundCondition)
+		if boundCondition != nil && boundCondition.Reason == aiv1beta1.UnbindingPendingUserActionReason {
+			log.Debugf("Skipping adding detached annotation. pending unbound condition \n %v", agent)
+			return reconcileComplete{}
+		}
+	}
+
+	desiredValue, err := r.detachedValue(bmh)
+	if err != nil {
+		return reconcileError{err: err}
+	}
+	currentValue, haveAnnotation := bmh.ObjectMeta.Annotations[BMH_DETACHED_ANNOTATION]
+	if haveAnnotation && currentValue == desiredValue {
+		return reconcileComplete{}
+	}
+
+	bmh.ObjectMeta.Annotations[BMH_DETACHED_ANNOTATION] = desiredValue
 	log.Info("Added detached annotation to BMH")
-
 	return reconcileComplete{dirty: true, stop: true}
-}
-
-func shouldSkipDetach(log logrus.FieldLogger, bmh *bmh_v1alpha1.BareMetalHost, agent *aiv1beta1.Agent) bool {
-	bmhAnnotations := bmh.ObjectMeta.GetAnnotations()
-	// Annotation already exists
-	if _, ok := bmhAnnotations[BMH_DETACHED_ANNOTATION]; ok {
-		log.Debugf("Skipping adding detached annotation. annotation already exists \n %v", agent)
-		return true
-	}
-
-	//check if we are in unbinding-pending-user-action status. If yes, we should not
-	//re-apply the detached label because ironic need to restart the host
-	boundCondition := conditionsv1.FindStatusCondition(agent.Status.Conditions, aiv1beta1.BoundCondition)
-	if boundCondition != nil && boundCondition.Reason == aiv1beta1.UnbindingPendingUserActionReason {
-		log.Debugf("Skipping adding detached annotation. pending unbound condition \n %v", agent)
-		return true
-	}
-	return false
 }
 
 // The detached annotation is added if the installation of the agent associated with
 // the host has started.
 func (r *BMACReconciler) addBMHDetachedAnnotationIfAgentHasStartedInstallation(log logrus.FieldLogger, bmh *bmh_v1alpha1.BareMetalHost, agent *aiv1beta1.Agent) reconcileResult {
-
-	shouldSkip := shouldSkipDetach(log, bmh, agent)
-	if shouldSkip {
-		return reconcileComplete{}
-	}
-
 	c := conditionsv1.FindStatusCondition(agent.Status.Conditions, aiv1beta1.InstalledCondition)
 	if c == nil {
 		log.Debugf("Skipping adding detached annotation. missing install condition \n %v", agent)
@@ -539,7 +542,7 @@ func (r *BMACReconciler) addBMHDetachedAnnotationIfAgentHasStartedInstallation(l
 		return reconcileComplete{}
 	}
 
-	return detachBMH(log, bmh, agent)
+	return r.ensureBMHDetached(log, bmh, agent)
 }
 
 // Reconcile BMH's HardwareDetails using the agent's inventory
@@ -764,7 +767,7 @@ func (r *BMACReconciler) findInfraEnvForBMH(ctx context.Context, log logrus.Fiel
 // The above changes will be done only if the ISODownloadURL value has already
 // been set in the `InfraEnv` resource and the Image.URL value has not been
 // set in the `BareMetalHost`
-func (r *BMACReconciler) reconcileBMH(ctx context.Context, log logrus.FieldLogger, bmh *bmh_v1alpha1.BareMetalHost) reconcileResult {
+func (r *BMACReconciler) reconcileBMH(ctx context.Context, log logrus.FieldLogger, bmh *bmh_v1alpha1.BareMetalHost, agent *aiv1beta1.Agent) reconcileResult {
 	log.Debugf("Started BMH reconcile")
 	log.Debugf("BMH value %v", bmh)
 
@@ -776,8 +779,14 @@ func (r *BMACReconciler) reconcileBMH(ctx context.Context, log logrus.FieldLogge
 	// to bring this BMH back into the pool of reconciled BMH resources.
 	bmhAnnotations := bmh.ObjectMeta.GetAnnotations()
 	if _, ok := bmhAnnotations[BMH_DETACHED_ANNOTATION]; ok {
+		result := r.ensureBMHDetached(log, bmh, agent)
+		if !result.Stop(ctx) {
+			// only create a new result here if ensureBMHDetected had no changes and no errors
+			// this ensures that the reconcile call will still exit
+			result = reconcileComplete{stop: true}
+		}
 		log.Debugf("Stopped BMH reconcile because it has been detached")
-		return reconcileComplete{stop: true}
+		return result
 	}
 
 	infraEnv, err := r.findInfraEnvForBMH(ctx, log, bmh)
@@ -941,15 +950,7 @@ func (r *BMACReconciler) reconcileSpokeBMH(ctx context.Context, log logrus.Field
 		return reconcileError{err}
 	}
 
-	// Add detached annotation to hub BMH so that Ironic stops managing the host from
-	// the hub cluster. After spoke BMH is created, the host will be managed by the spoke
-	// cluster.
-	bmhAnnotations := bmh.ObjectMeta.GetAnnotations()
-	if _, ok := bmhAnnotations[BMH_DETACHED_ANNOTATION]; !ok {
-		detachBMH(log, bmh, agent)
-		return reconcileComplete{dirty: true, stop: true}
-	}
-	return reconcileComplete{}
+	return r.ensureBMHDetached(log, bmh, agent)
 }
 
 // Finds the installation disk based on the RootDeviceHints
