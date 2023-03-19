@@ -242,6 +242,9 @@ type ManifestsAPI interface {
 	/* V2ListClusterManifests Lists manifests for customizing cluster installation. */
 	V2ListClusterManifests(ctx context.Context, params manifests.V2ListClusterManifestsParams) middleware.Responder
 
+	/* V2UpdateClusterManifest Updates a manifest for customizing cluster installation. */
+	V2UpdateClusterManifest(ctx context.Context, params manifests.V2UpdateClusterManifestParams) middleware.Responder
+
 	/* V2DownloadClusterManifest Downloads cluster manifest. */
 	V2DownloadClusterManifest(ctx context.Context, params manifests.V2DownloadClusterManifestParams) middleware.Responder
 }
@@ -560,6 +563,11 @@ func HandlerAPI(c Config) (http.Handler, *operations.AssistedInstallAPI, error) 
 		ctx := params.HTTPRequest.Context()
 		ctx = storeAuth(ctx, principal)
 		return c.InstallerAPI.V2UpdateCluster(ctx, params)
+	})
+	api.ManifestsV2UpdateClusterManifestHandler = manifests.V2UpdateClusterManifestHandlerFunc(func(params manifests.V2UpdateClusterManifestParams, principal interface{}) middleware.Responder {
+		ctx := params.HTTPRequest.Context()
+		ctx = storeAuth(ctx, principal)
+		return c.ManifestsAPI.V2UpdateClusterManifest(ctx, params)
 	})
 	api.InstallerV2UploadLogsHandler = installer.V2UploadLogsHandlerFunc(func(params installer.V2UploadLogsParams, principal interface{}) middleware.Responder {
 		ctx := params.HTTPRequest.Context()

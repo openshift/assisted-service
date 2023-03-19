@@ -2242,6 +2242,87 @@ func init() {
             }
           }
         }
+      },
+      "patch": {
+        "security": [
+          {
+            "userAuth": []
+          }
+        ],
+        "description": "Updates a manifest for customizing cluster installation.",
+        "tags": [
+          "manifests"
+        ],
+        "operationId": "V2UpdateClusterManifest",
+        "parameters": [
+          {
+            "type": "string",
+            "format": "uuid",
+            "description": "The cluster for which a new manifest should be updated.",
+            "name": "cluster_id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "description": "The manifest to be updated.",
+            "name": "UpdateManifestParams",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/update-manifest-params"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "schema": {
+              "$ref": "#/definitions/manifest"
+            }
+          },
+          "400": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "404": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "409": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "500": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
       }
     },
     "/v2/clusters/{cluster_id}/manifests/files": {
@@ -9621,6 +9702,52 @@ func init() {
         }
       }
     },
+    "update-manifest-params": {
+      "type": "object",
+      "required": [
+        "folder",
+        "file_name"
+      ],
+      "properties": {
+        "file_name": {
+          "description": "The file name for the manifest to modify.",
+          "type": "string",
+          "pattern": "^[^/]*\\.(yaml|yml|json)$",
+          "x-nullable": false
+        },
+        "folder": {
+          "description": "The folder for the manifest to modify.",
+          "type": "string",
+          "default": "manifests",
+          "enum": [
+            "manifests",
+            "openshift"
+          ],
+          "x-nullable": false
+        },
+        "updated_content": {
+          "description": "The new base64 encoded manifest content.",
+          "type": "string",
+          "x-nullable": true
+        },
+        "updated_file_name": {
+          "description": "The new file name for the manifest.",
+          "type": "string",
+          "pattern": "^[^/]*\\.(yaml|yml|json)$",
+          "x-nullable": true
+        },
+        "updated_folder": {
+          "description": "The new folder for the manifest. Manifests can be placed in 'manifests' or 'openshift' directories.",
+          "type": "string",
+          "default": "manifests",
+          "enum": [
+            "manifests",
+            "openshift"
+          ],
+          "x-nullable": true
+        }
+      }
+    },
     "upgrade_agent_request": {
       "type": "object",
       "properties": {
@@ -12205,6 +12332,87 @@ func init() {
         "responses": {
           "200": {
             "description": "Success."
+          },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "404": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "409": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "500": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      },
+      "patch": {
+        "security": [
+          {
+            "userAuth": []
+          }
+        ],
+        "description": "Updates a manifest for customizing cluster installation.",
+        "tags": [
+          "manifests"
+        ],
+        "operationId": "V2UpdateClusterManifest",
+        "parameters": [
+          {
+            "type": "string",
+            "format": "uuid",
+            "description": "The cluster for which a new manifest should be updated.",
+            "name": "cluster_id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "description": "The manifest to be updated.",
+            "name": "UpdateManifestParams",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/update-manifest-params"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "schema": {
+              "$ref": "#/definitions/manifest"
+            }
+          },
+          "400": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
           },
           "401": {
             "description": "Unauthorized.",
@@ -19675,6 +19883,52 @@ func init() {
           "items": {
             "$ref": "#/definitions/TangConnectivityResponseTangServerResponseItems0"
           }
+        }
+      }
+    },
+    "update-manifest-params": {
+      "type": "object",
+      "required": [
+        "folder",
+        "file_name"
+      ],
+      "properties": {
+        "file_name": {
+          "description": "The file name for the manifest to modify.",
+          "type": "string",
+          "pattern": "^[^/]*\\.(yaml|yml|json)$",
+          "x-nullable": false
+        },
+        "folder": {
+          "description": "The folder for the manifest to modify.",
+          "type": "string",
+          "default": "manifests",
+          "enum": [
+            "manifests",
+            "openshift"
+          ],
+          "x-nullable": false
+        },
+        "updated_content": {
+          "description": "The new base64 encoded manifest content.",
+          "type": "string",
+          "x-nullable": true
+        },
+        "updated_file_name": {
+          "description": "The new file name for the manifest.",
+          "type": "string",
+          "pattern": "^[^/]*\\.(yaml|yml|json)$",
+          "x-nullable": true
+        },
+        "updated_folder": {
+          "description": "The new folder for the manifest. Manifests can be placed in 'manifests' or 'openshift' directories.",
+          "type": "string",
+          "default": "manifests",
+          "enum": [
+            "manifests",
+            "openshift"
+          ],
+          "x-nullable": true
         }
       }
     },

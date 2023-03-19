@@ -136,3 +136,17 @@ func (mr *MockManifestsAPIMockRecorder) V2ListClusterManifests(arg0, arg1 interf
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "V2ListClusterManifests", reflect.TypeOf((*MockManifestsAPI)(nil).V2ListClusterManifests), arg0, arg1)
 }
+
+// V2UpdateClusterManifest mocks base method.
+func (m *MockManifestsAPI) V2UpdateClusterManifest(arg0 context.Context, arg1 manifests.V2UpdateClusterManifestParams) middleware.Responder {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "V2UpdateClusterManifest", arg0, arg1)
+	ret0, _ := ret[0].(middleware.Responder)
+	return ret0
+}
+
+// V2UpdateClusterManifest indicates an expected call of V2UpdateClusterManifest.
+func (mr *MockManifestsAPIMockRecorder) V2UpdateClusterManifest(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "V2UpdateClusterManifest", reflect.TypeOf((*MockManifestsAPI)(nil).V2UpdateClusterManifest), arg0, arg1)
+}

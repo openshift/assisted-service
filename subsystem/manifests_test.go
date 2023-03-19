@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/base64"
+	"fmt"
 	"html/template"
 
 	"github.com/go-openapi/strfmt"
@@ -32,13 +33,29 @@ metadata:
 spec:
   kernelArguments:
     - 'loglevel=7'`
-		base64Content = base64.StdEncoding.EncodeToString([]byte(content))
-		manifestFile  models.Manifest
+		updateContent = `apiVersion: machineconfiguration.openshift.io/v2
+kind: SomeObject
+metadata:
+  labels:
+    machineconfiguration.openshift.io/role: worker
+  name: 99-openshift-machineconfig-master-kargs
+spec:
+  kernelArguments:
+    - 'loglevel=7'`
+		base64Content       = base64.StdEncoding.EncodeToString([]byte(content))
+		base64UpdateContent = base64.StdEncoding.EncodeToString([]byte(updateContent))
+		manifestFile        models.Manifest
+		renamedManifestFile models.Manifest
 	)
 
 	BeforeEach(func() {
 		manifestFile = models.Manifest{
 			FileName: "99-openshift-machineconfig-master-kargs.yaml",
+			Folder:   "openshift",
+		}
+
+		renamedManifestFile = models.Manifest{
+			FileName: "99-openshift-machineconfig-master-renamed-kargs.yaml",
 			Folder:   "openshift",
 		}
 
@@ -85,6 +102,7 @@ spec:
 			response, err := userBMClient.Manifests.V2ListClusterManifests(ctx, &manifests.V2ListClusterManifestsParams{
 				ClusterID: *cluster.ID,
 			})
+
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(response.Payload).Should(HaveLen(originalFilesAmount + 1))
 
@@ -111,16 +129,76 @@ spec:
 			Expect(buffer.String()).Should(Equal(content))
 		})
 
-		By("delete", func() {
-			_, err := userBMClient.Manifests.V2DeleteClusterManifest(ctx, &manifests.V2DeleteClusterManifestParams{
+		By("update only content without rename", func() {
+			_, err := userBMClient.Manifests.V2UpdateClusterManifest(ctx, &manifests.V2UpdateClusterManifestParams{
+				ClusterID: *cluster.ID,
+				UpdateManifestParams: &models.UpdateManifestParams{
+					UpdatedContent: &base64UpdateContent,
+					FileName:       manifestFile.FileName,
+					Folder:         manifestFile.Folder,
+				},
+			})
+			Expect(err).ShouldNot(HaveOccurred())
+		})
+
+		By("List files after update", func() {
+			response, err := userBMClient.Manifests.V2ListClusterManifests(ctx, &manifests.V2ListClusterManifestsParams{
+				ClusterID: *cluster.ID,
+			})
+
+			Expect(err).ShouldNot(HaveOccurred())
+			Expect(response.Payload).Should(HaveLen(originalFilesAmount + 1))
+
+			var found bool = false
+			for _, manifest := range response.Payload {
+				if *manifest == manifestFile {
+					found = true
+					break
+				}
+			}
+
+			Expect(found).Should(BeTrue())
+		})
+
+		By("download after update", func() {
+			buffer := new(bytes.Buffer)
+
+			_, err := userBMClient.Manifests.V2DownloadClusterManifest(ctx, &manifests.V2DownloadClusterManifestParams{
 				ClusterID: *cluster.ID,
 				FileName:  manifestFile.FileName,
 				Folder:    &manifestFile.Folder,
+			}, buffer)
+			Expect(err).ShouldNot(HaveOccurred())
+			Expect(buffer.String()).Should(Equal(updateContent))
+		})
+
+		By("rename manifest", func() {
+			response, err := userBMClient.Manifests.V2UpdateClusterManifest(ctx, &manifests.V2UpdateClusterManifestParams{
+				ClusterID: *cluster.ID,
+				UpdateManifestParams: &models.UpdateManifestParams{
+					FileName:        manifestFile.FileName,
+					Folder:          manifestFile.Folder,
+					UpdatedFileName: &renamedManifestFile.FileName,
+					UpdatedFolder:   &renamedManifestFile.Folder,
+				},
+			})
+			Expect(err).ShouldNot(HaveOccurred())
+			Expect(*response.Payload).Should(Equal(renamedManifestFile))
+			verifyUsage(true, *cluster.ID)
+		})
+
+		By("delete", func() {
+			fmt.Print("\nDelete\n")
+			_, err := userBMClient.Manifests.V2DeleteClusterManifest(ctx, &manifests.V2DeleteClusterManifestParams{
+				ClusterID: *cluster.ID,
+				FileName:  renamedManifestFile.FileName,
+				Folder:    &renamedManifestFile.Folder,
 			})
 			Expect(err).ShouldNot(HaveOccurred())
 		})
 
 		By("List files after delete", func() {
+			fmt.Print("\nList files after delete\n")
 			response, err := userBMClient.Manifests.V2ListClusterManifests(ctx, &manifests.V2ListClusterManifestsParams{
 				ClusterID: *cluster.ID,
 			})
@@ -129,7 +207,7 @@ spec:
 
 			var found bool = false
 			for _, manifest := range response.Payload {
-				if *manifest == manifestFile {
+				if *manifest == manifestFile || *manifest == renamedManifestFile {
 					found = true
 					break
 				}
@@ -152,6 +230,18 @@ spec:
 				},
 			})
 			Expect(err).To(BeAssignableToTypeOf(manifests.NewV2CreateClusterManifestNotFound()))
+		})
+
+		It("update manifest returns not found", func() {
+			_, err := userBMClient.Manifests.V2UpdateClusterManifest(ctx, &manifests.V2UpdateClusterManifestParams{
+				ClusterID: non_exiting_id,
+				UpdateManifestParams: &models.UpdateManifestParams{
+					UpdatedContent: &base64Content,
+					FileName:       manifestFile.FileName,
+					Folder:         manifestFile.Folder,
+				},
+			})
+			Expect(err).To(BeAssignableToTypeOf(manifests.NewV2UpdateClusterManifestNotFound()))
 		})
 
 		It("list manifests returns not found", func() {

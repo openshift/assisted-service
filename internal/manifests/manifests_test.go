@@ -5,7 +5,10 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
+	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/go-openapi/strfmt"
@@ -62,10 +65,12 @@ var _ = Describe("ClusterManifestTests", func() {
 		ctrl          *gomock.Controller
 		mockS3Client  *s3wrapper.MockAPI
 		dbName        string
-		fileName      = "99-openshift-machineconfig-master-kargs.yaml"
+		fileNameYaml  = "99-openshift-machineconfig-master-kargs.yaml"
+		fileNameJson  = "99-openshift-machineconfig-master-kargs.json"
 		validFolder   = "openshift"
 		defaultFolder = "manifests"
-		content       = encodeToBase64(contentAsYAML)
+		contentYaml   = encodeToBase64(contentAsYAML)
+		contentJson   = encodeToBase64(contentAsJSON)
 		mockUsageAPI  *usage.MockAPI
 	)
 
@@ -123,6 +128,10 @@ var _ = Describe("ClusterManifestTests", func() {
 		mockS3Client.EXPECT().Upload(ctx, gomock.Any(), gomock.Any()).Return(nil).Times(times)
 	}
 
+	mockDownloadFailure := func() {
+		mockS3Client.EXPECT().Download(gomock.Any(), gomock.Any()).Return(nil, int64(0), errors.New("Simulated download failure")).MinTimes(0)
+	}
+
 	mockListByPrefix := func(clusterID *strfmt.UUID, files []string) {
 		prefix := fmt.Sprintf("%s/manifests", *clusterID)
 		mockS3Client.EXPECT().ListObjectsByPrefix(ctx, prefix).Return(files, nil).Times(1)
@@ -136,14 +145,14 @@ var _ = Describe("ClusterManifestTests", func() {
 			response := manifestsAPI.V2CreateClusterManifest(ctx, operations.V2CreateClusterManifestParams{
 				ClusterID: *clusterID,
 				CreateManifestParams: &models.CreateManifestParams{
-					Content:  &content,
-					FileName: &fileName,
+					Content:  &contentYaml,
+					FileName: &fileNameYaml,
 				},
 			})
 			Expect(response).Should(BeAssignableToTypeOf(operations.NewV2CreateClusterManifestCreated()))
 			responsePayload := response.(*operations.V2CreateClusterManifestCreated)
 			Expect(responsePayload.Payload).ShouldNot(BeNil())
-			Expect(responsePayload.Payload.FileName).To(Equal(fileName))
+			Expect(responsePayload.Payload.FileName).To(Equal(fileNameYaml))
 			Expect(responsePayload.Payload.Folder).To(Equal(defaultFolder))
 		})
 
@@ -154,15 +163,15 @@ var _ = Describe("ClusterManifestTests", func() {
 			response := manifestsAPI.V2CreateClusterManifest(ctx, operations.V2CreateClusterManifestParams{
 				ClusterID: *clusterID,
 				CreateManifestParams: &models.CreateManifestParams{
-					Content:  &content,
-					FileName: &fileName,
+					Content:  &contentYaml,
+					FileName: &fileNameYaml,
 					Folder:   &validFolder,
 				},
 			})
 			Expect(response).Should(BeAssignableToTypeOf(operations.NewV2CreateClusterManifestCreated()))
 			responsePayload := response.(*operations.V2CreateClusterManifestCreated)
 			Expect(responsePayload.Payload).ShouldNot(BeNil())
-			Expect(responsePayload.Payload.FileName).To(Equal(fileName))
+			Expect(responsePayload.Payload.FileName).To(Equal(fileNameYaml))
 			Expect(responsePayload.Payload.Folder).To(Equal(validFolder))
 		})
 
@@ -173,28 +182,28 @@ var _ = Describe("ClusterManifestTests", func() {
 			response := manifestsAPI.V2CreateClusterManifest(ctx, operations.V2CreateClusterManifestParams{
 				ClusterID: *clusterID,
 				CreateManifestParams: &models.CreateManifestParams{
-					Content:  &content,
-					FileName: &fileName,
+					Content:  &contentYaml,
+					FileName: &fileNameYaml,
 				},
 			})
 			Expect(response).Should(BeAssignableToTypeOf(operations.NewV2CreateClusterManifestCreated()))
 			responsePayload := response.(*operations.V2CreateClusterManifestCreated)
 			Expect(responsePayload.Payload).ShouldNot(BeNil())
-			Expect(responsePayload.Payload.FileName).To(Equal(fileName))
+			Expect(responsePayload.Payload.FileName).To(Equal(fileNameYaml))
 			Expect(responsePayload.Payload.Folder).To(Equal(defaultFolder))
 
 			expectUsageCalls()
 			response = manifestsAPI.V2CreateClusterManifest(ctx, operations.V2CreateClusterManifestParams{
 				ClusterID: *clusterID,
 				CreateManifestParams: &models.CreateManifestParams{
-					Content:  &content,
-					FileName: &fileName,
+					Content:  &contentYaml,
+					FileName: &fileNameYaml,
 				},
 			})
 			Expect(response).Should(BeAssignableToTypeOf(operations.NewV2CreateClusterManifestCreated()))
 			responsePayload = response.(*operations.V2CreateClusterManifestCreated)
 			Expect(responsePayload.Payload).ShouldNot(BeNil())
-			Expect(responsePayload.Payload.FileName).To(Equal(fileName))
+			Expect(responsePayload.Payload.FileName).To(Equal(fileNameYaml))
 			Expect(responsePayload.Payload.Folder).To(Equal(defaultFolder))
 		})
 
@@ -202,8 +211,8 @@ var _ = Describe("ClusterManifestTests", func() {
 			response := manifestsAPI.V2CreateClusterManifest(ctx, operations.V2CreateClusterManifestParams{
 				ClusterID: strfmt.UUID(uuid.New().String()),
 				CreateManifestParams: &models.CreateManifestParams{
-					Content:  &content,
-					FileName: &fileName,
+					Content:  &contentYaml,
+					FileName: &fileNameYaml,
 				},
 			})
 
@@ -219,7 +228,7 @@ var _ = Describe("ClusterManifestTests", func() {
 				ClusterID: *clusterID,
 				CreateManifestParams: &models.CreateManifestParams{
 					Content:  &invalidContent,
-					FileName: &fileName,
+					FileName: &fileNameYaml,
 				},
 			})
 			Expect(response).Should(BeAssignableToTypeOf(common.NewApiError(http.StatusBadRequest, errors.New(""))))
@@ -251,14 +260,14 @@ var _ = Describe("ClusterManifestTests", func() {
 
 			It("accepts manifest with .yml extension", func() {
 				clusterID := registerCluster().ID
-				fileName := "99-openshift-machineconfig-master-kargs.yml"
+				fileName := "99-openshift-machineconfig-master-kargs.yaml"
 				mockUpload(1)
 				expectUsageCalls()
 				response := manifestsAPI.V2CreateClusterManifest(ctx, operations.V2CreateClusterManifestParams{
 					ClusterID: *clusterID,
 					CreateManifestParams: &models.CreateManifestParams{
-						Content:  &content,
-						FileName: &fileName,
+						Content:  &contentYaml,
+						FileName: &fileNameYaml,
 					},
 				})
 				Expect(response).Should(BeAssignableToTypeOf(operations.NewV2CreateClusterManifestCreated()))
@@ -343,7 +352,7 @@ spec:
 				Expect(response).Should(BeAssignableToTypeOf(common.NewApiError(http.StatusBadRequest, errors.New(""))))
 				err := response.(*common.ApiErrorResponse)
 				Expect(err.StatusCode()).To(Equal(int32(http.StatusBadRequest)))
-				Expect(err.Error()).To(ContainSubstring("Manifest content has an illegal JSON format"))
+				Expect(err.Error()).To(ContainSubstring("Manifest content of file manifests/99-test.json for cluster ID " + clusterID.String() + " has an illegal JSON format"))
 			})
 
 			It("fails for manifest with invalid yaml format", func() {
@@ -360,7 +369,7 @@ spec:
 				Expect(response).Should(BeAssignableToTypeOf(common.NewApiError(http.StatusBadRequest, errors.New(""))))
 				err := response.(*common.ApiErrorResponse)
 				Expect(err.StatusCode()).To(Equal(int32(http.StatusBadRequest)))
-				Expect(err.Error()).To(ContainSubstring("Manifest content has an invalid YAML format"))
+				Expect(err.Error()).To(ContainSubstring("Manifest content of file manifests/99-test.yml for cluster ID " + clusterID.String() + " has an invalid YAML format"))
 			})
 
 			It("fails for manifest with unsupported extension", func() {
@@ -369,14 +378,14 @@ spec:
 				response := manifestsAPI.V2CreateClusterManifest(ctx, operations.V2CreateClusterManifestParams{
 					ClusterID: *clusterID,
 					CreateManifestParams: &models.CreateManifestParams{
-						Content:  &content,
+						Content:  &contentYaml,
 						FileName: &fileName,
 					},
 				})
 				Expect(response).Should(BeAssignableToTypeOf(common.NewApiError(http.StatusBadRequest, errors.New(""))))
 				err := response.(*common.ApiErrorResponse)
 				Expect(err.StatusCode()).To(Equal(int32(http.StatusBadRequest)))
-				Expect(err.Error()).To(ContainSubstring("Unsupported manifest extension"))
+				Expect(err.Error()).To(ContainSubstring("Manifest filename of file manifests/99-test.txt for cluster ID " + clusterID.String() + " is invalid. Only json, yaml and yml extensions are supported"))
 			})
 
 			It("fails for filename that contains folder in the name", func() {
@@ -385,14 +394,14 @@ spec:
 				response := manifestsAPI.V2CreateClusterManifest(ctx, operations.V2CreateClusterManifestParams{
 					ClusterID: *clusterID,
 					CreateManifestParams: &models.CreateManifestParams{
-						Content:  &content,
+						Content:  &contentYaml,
 						FileName: &fileNameWithFolder,
 					},
 				})
 				Expect(response).Should(BeAssignableToTypeOf(common.NewApiError(http.StatusBadRequest, errors.New(""))))
 				err := response.(*common.ApiErrorResponse)
 				Expect(err.StatusCode()).To(Equal(int32(http.StatusBadRequest)))
-				Expect(err.Error()).To(ContainSubstring("should not include a directory in its name"))
+				Expect(err.Error()).To(ContainSubstring("Cluster manifest openshift/99-test.yaml for cluster " + clusterID.String() + " should not include a directory in its name."))
 			})
 		})
 	})
@@ -421,7 +430,7 @@ spec:
 
 			for _, file := range manifests {
 				files = append(files, getObjectName(clusterID, file.Folder, file.FileName))
-				addManifestToCluster(clusterID, content, file.FileName, file.Folder)
+				addManifestToCluster(clusterID, contentYaml, file.FileName, file.Folder)
 			}
 
 			mockListByPrefix(clusterID, files)
@@ -468,7 +477,7 @@ spec:
 			mockUpload(1)
 			mockObjectExists(true)
 			mockS3Client.EXPECT().DeleteObject(ctx, getObjectName(clusterID, defaultFolder, "file-1.yaml")).Return(true, nil)
-			addManifestToCluster(clusterID, content, "file-1.yaml", defaultFolder)
+			addManifestToCluster(clusterID, contentYaml, "file-1.yaml", defaultFolder)
 
 			response := manifestsAPI.V2DeleteClusterManifest(ctx, operations.V2DeleteClusterManifestParams{
 				ClusterID: *clusterID,
@@ -482,7 +491,7 @@ spec:
 			mockUpload(1)
 			mockObjectExists(true)
 			mockS3Client.EXPECT().DeleteObject(ctx, getObjectName(clusterID, validFolder, "file-1.yaml")).Return(true, nil)
-			addManifestToCluster(clusterID, content, "file-1.yaml", validFolder)
+			addManifestToCluster(clusterID, contentYaml, "file-1.yaml", validFolder)
 
 			response := manifestsAPI.V2DeleteClusterManifest(ctx, operations.V2DeleteClusterManifestParams{
 				ClusterID: *clusterID,
@@ -539,7 +548,7 @@ spec:
 			mockUpload(1)
 			mockObjectExists(true)
 			mockS3Client.EXPECT().Download(ctx, gomock.Any()).Return(VoidReadCloser{}, int64(0), nil)
-			addManifestToCluster(clusterID, content, "file-1.yaml", defaultFolder)
+			addManifestToCluster(clusterID, contentYaml, "file-1.yaml", defaultFolder)
 
 			response := manifestsAPI.V2DownloadClusterManifest(ctx, operations.V2DownloadClusterManifestParams{
 				ClusterID: *clusterID,
@@ -567,6 +576,151 @@ spec:
 			Expect(response).Should(BeAssignableToTypeOf(common.NewApiError(http.StatusNotFound, errors.New(""))))
 			err := response.(*common.ApiErrorResponse)
 			Expect(err.StatusCode()).To(Equal(int32(http.StatusNotFound)))
+		})
+	})
+
+	Context("UpdateClusterManifest", func() {
+		It("moves existing file from one path to another", func() {
+			clusterID := registerCluster().ID
+			destFolder := "manifests"
+			destFileName := "destFileName"
+			reader := io.NopCloser(strings.NewReader(contentAsYAML))
+			mockS3Client.EXPECT().Download(ctx, getObjectName(clusterID, defaultFolder, fileNameYaml)).Return(reader, int64(0), nil).Times(1)
+			mockS3Client.EXPECT().Upload(ctx, []byte(contentAsYAML), getObjectName(clusterID, destFolder, destFileName)).Return(nil).Times(1)
+			mockS3Client.EXPECT().DoesObjectExist(ctx, getObjectName(clusterID, defaultFolder, fileNameYaml)).Return(true, nil).Times(1)
+			mockS3Client.EXPECT().DeleteObject(ctx, getObjectName(clusterID, defaultFolder, fileNameYaml)).Return(true, nil)
+			response := manifestsAPI.V2UpdateClusterManifest(ctx, operations.V2UpdateClusterManifestParams{
+				ClusterID: *clusterID,
+				UpdateManifestParams: &models.UpdateManifestParams{
+					FileName:        fileNameYaml,
+					Folder:          defaultFolder,
+					UpdatedFolder:   &destFolder,
+					UpdatedFileName: &destFileName,
+				},
+			})
+			Expect(response).Should(BeAssignableToTypeOf(operations.NewV2UpdateClusterManifestOK()))
+			responsePayload := response.(*operations.V2UpdateClusterManifestOK)
+			Expect(responsePayload.Payload).ShouldNot(BeNil())
+			Expect(responsePayload.Payload.FileName).To(Equal(destFileName))
+			Expect(responsePayload.Payload.Folder).To(Equal(destFolder))
+		})
+
+		It("emits error when download failure encountered during file move", func() {
+			clusterID := registerCluster().ID
+			destFolder := "manifests"
+			destFileName := "destFileName"
+			mockDownloadFailure()
+			response := manifestsAPI.V2UpdateClusterManifest(ctx, operations.V2UpdateClusterManifestParams{
+				ClusterID: *clusterID,
+				UpdateManifestParams: &models.UpdateManifestParams{
+					FileName:        fileNameYaml,
+					Folder:          defaultFolder,
+					UpdatedFolder:   &destFolder,
+					UpdatedFileName: &destFileName,
+				},
+			})
+			err := response.(*common.ApiErrorResponse)
+			expectedErrorMessage := fmt.Sprintf("Failed to fetch content from %s for cluster %s: Simulated download failure", filepath.Join(defaultFolder, fileNameYaml), clusterID)
+			Expect(err.StatusCode()).To(Equal(int32(http.StatusInternalServerError)))
+			Expect(err.Error()).To(Equal(expectedErrorMessage))
+		})
+
+		It("updates existing file with new content if content is correct for yaml", func() {
+			clusterID := registerCluster().ID
+			mockUpload(1)
+			response := manifestsAPI.V2UpdateClusterManifest(ctx, operations.V2UpdateClusterManifestParams{
+				ClusterID: *clusterID,
+				UpdateManifestParams: &models.UpdateManifestParams{
+					UpdatedContent: &contentYaml,
+					FileName:       fileNameYaml,
+					Folder:         defaultFolder,
+				},
+			})
+			Expect(response).Should(BeAssignableToTypeOf(operations.NewV2UpdateClusterManifestOK()))
+			responsePayload := response.(*operations.V2UpdateClusterManifestOK)
+			Expect(responsePayload.Payload).ShouldNot(BeNil())
+			Expect(responsePayload.Payload.FileName).To(Equal(fileNameYaml))
+			Expect(responsePayload.Payload.Folder).To(Equal(defaultFolder))
+		})
+
+		It("updates existing file with new content if content is correct for json", func() {
+			clusterID := registerCluster().ID
+			mockUpload(1)
+			response := manifestsAPI.V2UpdateClusterManifest(ctx, operations.V2UpdateClusterManifestParams{
+				ClusterID: *clusterID,
+				UpdateManifestParams: &models.UpdateManifestParams{
+					UpdatedContent: &contentJson,
+					FileName:       fileNameJson,
+					Folder:         defaultFolder,
+				},
+			})
+			Expect(response).Should(BeAssignableToTypeOf(operations.NewV2UpdateClusterManifestOK()))
+			responsePayload := response.(*operations.V2UpdateClusterManifestOK)
+			Expect(responsePayload.Payload).ShouldNot(BeNil())
+			Expect(responsePayload.Payload.FileName).To(Equal(fileNameJson))
+			Expect(responsePayload.Payload.Folder).To(Equal(defaultFolder))
+		})
+
+		It("returns an error if content is incorrect for json", func() {
+			clusterID := registerCluster().ID
+			response := manifestsAPI.V2UpdateClusterManifest(ctx, operations.V2UpdateClusterManifestParams{
+				ClusterID: *clusterID,
+				UpdateManifestParams: &models.UpdateManifestParams{
+					UpdatedContent: &contentYaml,
+					FileName:       fileNameJson,
+					Folder:         defaultFolder,
+				},
+			})
+			err := response.(*common.ApiErrorResponse)
+			expectedError := fmt.Sprintf("Manifest content of file %s for cluster ID %s has an illegal JSON format", fileNameJson, clusterID)
+			Expect(err.StatusCode()).To(Equal(int32(http.StatusBadRequest)))
+			Expect(err.Error()).To(Equal(expectedError))
+		})
+
+		It("Should use the source file name when the updated file name is omitted ", func() {
+			clusterID := registerCluster().ID
+			destFolder := "openshift"
+			reader := io.NopCloser(strings.NewReader(contentAsYAML))
+			mockS3Client.EXPECT().Download(ctx, getObjectName(clusterID, defaultFolder, fileNameYaml)).Return(reader, int64(0), nil).Times(1)
+			mockS3Client.EXPECT().Upload(ctx, []byte(contentAsYAML), getObjectName(clusterID, destFolder, fileNameYaml)).Return(nil).Times(1)
+			mockS3Client.EXPECT().DoesObjectExist(ctx, getObjectName(clusterID, defaultFolder, fileNameYaml)).Return(true, nil).Times(1)
+			mockS3Client.EXPECT().DeleteObject(ctx, getObjectName(clusterID, defaultFolder, fileNameYaml)).Return(true, nil)
+			response := manifestsAPI.V2UpdateClusterManifest(ctx, operations.V2UpdateClusterManifestParams{
+				ClusterID: *clusterID,
+				UpdateManifestParams: &models.UpdateManifestParams{
+					FileName:      fileNameYaml,
+					Folder:        defaultFolder,
+					UpdatedFolder: &destFolder,
+				},
+			})
+			Expect(response).Should(BeAssignableToTypeOf(operations.NewV2UpdateClusterManifestOK()))
+			responsePayload := response.(*operations.V2UpdateClusterManifestOK)
+			Expect(responsePayload.Payload).ShouldNot(BeNil())
+			Expect(responsePayload.Payload.FileName).To(Equal(fileNameYaml))
+			Expect(responsePayload.Payload.Folder).To(Equal(destFolder))
+		})
+
+		It("Should use the source folder when updated folder is omitted", func() {
+			clusterID := registerCluster().ID
+			destFileName := "destFileName.yaml"
+			reader := io.NopCloser(strings.NewReader(contentAsYAML))
+			mockS3Client.EXPECT().Download(ctx, getObjectName(clusterID, defaultFolder, fileNameYaml)).Return(reader, int64(0), nil).Times(1)
+			mockS3Client.EXPECT().Upload(ctx, []byte(contentAsYAML), getObjectName(clusterID, defaultFolder, destFileName)).Return(nil).Times(1)
+			mockS3Client.EXPECT().DoesObjectExist(ctx, getObjectName(clusterID, defaultFolder, fileNameYaml)).Return(true, nil).Times(1)
+			mockS3Client.EXPECT().DeleteObject(ctx, getObjectName(clusterID, defaultFolder, fileNameYaml)).Return(true, nil)
+			response := manifestsAPI.V2UpdateClusterManifest(ctx, operations.V2UpdateClusterManifestParams{
+				ClusterID: *clusterID,
+				UpdateManifestParams: &models.UpdateManifestParams{
+					FileName:        fileNameYaml,
+					Folder:          defaultFolder,
+					UpdatedFileName: &destFileName,
+				},
+			})
+			Expect(response).Should(BeAssignableToTypeOf(operations.NewV2UpdateClusterManifestOK()))
+			responsePayload := response.(*operations.V2UpdateClusterManifestOK)
+			Expect(responsePayload.Payload).ShouldNot(BeNil())
+			Expect(responsePayload.Payload.FileName).To(Equal(destFileName))
+			Expect(responsePayload.Payload.Folder).To(Equal(defaultFolder))
 		})
 	})
 })
