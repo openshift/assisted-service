@@ -18,7 +18,7 @@ ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 # https://issues.redhat.com/browse/MGMT-12697
 COPY --from=quay.io/goswagger/swagger:sha-5d0a00d /usr/bin/swagger /usr/bin/goswagger
 
-COPY --from=k8s.gcr.io/kustomize/kustomize:v4.3.0 /app/kustomize /usr/bin/
+COPY --from=registry.k8s.io/kustomize/kustomize:v4.3.0 /app/kustomize /usr/bin/
 
 RUN cd / && /assisted-service/hack/setup_env.sh spectral && \
     /assisted-service/hack/setup_env.sh jq && \
