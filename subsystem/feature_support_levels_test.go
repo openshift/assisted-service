@@ -8,6 +8,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/client/installer"
+	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/featuresupport"
 	"github.com/openshift/assisted-service/models"
 )
@@ -60,7 +61,7 @@ var _ = Describe("Feature support levels API", func() {
 					Expect(err).ShouldNot(HaveOccurred())
 
 					for featureID, supportLevel := range response.Payload.Features {
-						filters := featuresupport.SupportLevelFilters{OpenshiftVersion: version}
+						filters := featuresupport.SupportLevelFilters{OpenshiftVersion: version, CPUArchitecture: swag.String(common.DefaultCPUArchitecture)}
 						featureSupportLevel := featuresupport.GetSupportLevel(models.FeatureSupportLevelID(featureID), filters)
 						Expect(featureSupportLevel).To(BeEquivalentTo(supportLevel))
 					}

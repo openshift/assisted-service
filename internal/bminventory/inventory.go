@@ -620,6 +620,10 @@ func (b *bareMetalInventory) RegisterClusterInternal(
 	}
 	cluster.MonitoredOperators = append(monitoredOperators, newOLMOperators...)
 
+	if err = featuresupport.ValidateIncompatibleFeatures(*cluster, nil); err != nil {
+		return nil, common.NewApiError(http.StatusBadRequest, err)
+	}
+
 	pullSecret := swag.StringValue(params.NewClusterParams.PullSecret)
 	err = b.ValidatePullSecret(pullSecret, ocm.UserNameFromContext(ctx))
 	if err != nil {
@@ -1949,6 +1953,10 @@ func (b *bareMetalInventory) v2UpdateClusterInternal(ctx context.Context, params
 	}
 
 	if err = validations.ValidateArchitectureWithPlatform(&cluster.CPUArchitecture, platform); err != nil {
+		return nil, common.NewApiError(http.StatusBadRequest, err)
+	}
+
+	if err = featuresupport.ValidateIncompatibleFeatures(*cluster, params.ClusterUpdateParams); err != nil {
 		return nil, common.NewApiError(http.StatusBadRequest, err)
 	}
 

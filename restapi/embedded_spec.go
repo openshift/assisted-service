@@ -7259,30 +7259,18 @@ func init() {
     "feature-support-level-id": {
       "type": "string",
       "enum": [
-        "ADDITIONAL_NTP_SOURCE",
-        "REQUESTED_HOSTNAME",
-        "PROXY",
         "SNO",
-        "DAY2_HOSTS",
         "VIP_AUTO_ALLOC",
-        "DISK_SELECTION",
-        "OVN_NETWORK_TYPE",
-        "SDN_NETWORK_TYPE",
-        "SCHEDULABLE_MASTERS",
-        "AUTO_ASSIGN_ROLE",
         "CUSTOM_MANIFEST",
-        "DISK_ENCRYPTION",
-        "CLUSTER_MANAGED_NETWORKING_WITH_VMS",
         "SINGLE_NODE_EXPANSION",
         "LVM",
         "ODF",
         "CNV",
-        "DUAL_STACK_NETWORKING",
         "NUTANIX_INTEGRATION",
         "VSPHERE_INTEGRATION",
         "DUAL_STACK_VIPS",
-        "USER_MANAGED_NETWORKING_WITH_MULTI_NODE",
-        "CLUSTER_MANAGED_NETWORKING"
+        "CLUSTER_MANAGED_NETWORKING",
+        "USER_MANAGED_NETWORKING"
       ]
     },
     "feature-support-levels": {
@@ -17351,30 +17339,18 @@ func init() {
     "feature-support-level-id": {
       "type": "string",
       "enum": [
-        "ADDITIONAL_NTP_SOURCE",
-        "REQUESTED_HOSTNAME",
-        "PROXY",
         "SNO",
-        "DAY2_HOSTS",
         "VIP_AUTO_ALLOC",
-        "DISK_SELECTION",
-        "OVN_NETWORK_TYPE",
-        "SDN_NETWORK_TYPE",
-        "SCHEDULABLE_MASTERS",
-        "AUTO_ASSIGN_ROLE",
         "CUSTOM_MANIFEST",
-        "DISK_ENCRYPTION",
-        "CLUSTER_MANAGED_NETWORKING_WITH_VMS",
         "SINGLE_NODE_EXPANSION",
         "LVM",
         "ODF",
         "CNV",
-        "DUAL_STACK_NETWORKING",
         "NUTANIX_INTEGRATION",
         "VSPHERE_INTEGRATION",
         "DUAL_STACK_VIPS",
-        "USER_MANAGED_NETWORKING_WITH_MULTI_NODE",
-        "CLUSTER_MANAGED_NETWORKING"
+        "CLUSTER_MANAGED_NETWORKING",
+        "USER_MANAGED_NETWORKING"
       ]
     },
     "feature-support-levels": {

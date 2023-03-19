@@ -30,47 +30,14 @@ func (m FeatureSupportLevelID) Pointer() *FeatureSupportLevelID {
 
 const (
 
-	// FeatureSupportLevelIDADDITIONALNTPSOURCE captures enum value "ADDITIONAL_NTP_SOURCE"
-	FeatureSupportLevelIDADDITIONALNTPSOURCE FeatureSupportLevelID = "ADDITIONAL_NTP_SOURCE"
-
-	// FeatureSupportLevelIDREQUESTEDHOSTNAME captures enum value "REQUESTED_HOSTNAME"
-	FeatureSupportLevelIDREQUESTEDHOSTNAME FeatureSupportLevelID = "REQUESTED_HOSTNAME"
-
-	// FeatureSupportLevelIDPROXY captures enum value "PROXY"
-	FeatureSupportLevelIDPROXY FeatureSupportLevelID = "PROXY"
-
 	// FeatureSupportLevelIDSNO captures enum value "SNO"
 	FeatureSupportLevelIDSNO FeatureSupportLevelID = "SNO"
-
-	// FeatureSupportLevelIDDAY2HOSTS captures enum value "DAY2_HOSTS"
-	FeatureSupportLevelIDDAY2HOSTS FeatureSupportLevelID = "DAY2_HOSTS"
 
 	// FeatureSupportLevelIDVIPAUTOALLOC captures enum value "VIP_AUTO_ALLOC"
 	FeatureSupportLevelIDVIPAUTOALLOC FeatureSupportLevelID = "VIP_AUTO_ALLOC"
 
-	// FeatureSupportLevelIDDISKSELECTION captures enum value "DISK_SELECTION"
-	FeatureSupportLevelIDDISKSELECTION FeatureSupportLevelID = "DISK_SELECTION"
-
-	// FeatureSupportLevelIDOVNNETWORKTYPE captures enum value "OVN_NETWORK_TYPE"
-	FeatureSupportLevelIDOVNNETWORKTYPE FeatureSupportLevelID = "OVN_NETWORK_TYPE"
-
-	// FeatureSupportLevelIDSDNNETWORKTYPE captures enum value "SDN_NETWORK_TYPE"
-	FeatureSupportLevelIDSDNNETWORKTYPE FeatureSupportLevelID = "SDN_NETWORK_TYPE"
-
-	// FeatureSupportLevelIDSCHEDULABLEMASTERS captures enum value "SCHEDULABLE_MASTERS"
-	FeatureSupportLevelIDSCHEDULABLEMASTERS FeatureSupportLevelID = "SCHEDULABLE_MASTERS"
-
-	// FeatureSupportLevelIDAUTOASSIGNROLE captures enum value "AUTO_ASSIGN_ROLE"
-	FeatureSupportLevelIDAUTOASSIGNROLE FeatureSupportLevelID = "AUTO_ASSIGN_ROLE"
-
 	// FeatureSupportLevelIDCUSTOMMANIFEST captures enum value "CUSTOM_MANIFEST"
 	FeatureSupportLevelIDCUSTOMMANIFEST FeatureSupportLevelID = "CUSTOM_MANIFEST"
-
-	// FeatureSupportLevelIDDISKENCRYPTION captures enum value "DISK_ENCRYPTION"
-	FeatureSupportLevelIDDISKENCRYPTION FeatureSupportLevelID = "DISK_ENCRYPTION"
-
-	// FeatureSupportLevelIDCLUSTERMANAGEDNETWORKINGWITHVMS captures enum value "CLUSTER_MANAGED_NETWORKING_WITH_VMS"
-	FeatureSupportLevelIDCLUSTERMANAGEDNETWORKINGWITHVMS FeatureSupportLevelID = "CLUSTER_MANAGED_NETWORKING_WITH_VMS"
 
 	// FeatureSupportLevelIDSINGLENODEEXPANSION captures enum value "SINGLE_NODE_EXPANSION"
 	FeatureSupportLevelIDSINGLENODEEXPANSION FeatureSupportLevelID = "SINGLE_NODE_EXPANSION"
@@ -84,9 +51,6 @@ const (
 	// FeatureSupportLevelIDCNV captures enum value "CNV"
 	FeatureSupportLevelIDCNV FeatureSupportLevelID = "CNV"
 
-	// FeatureSupportLevelIDDUALSTACKNETWORKING captures enum value "DUAL_STACK_NETWORKING"
-	FeatureSupportLevelIDDUALSTACKNETWORKING FeatureSupportLevelID = "DUAL_STACK_NETWORKING"
-
 	// FeatureSupportLevelIDNUTANIXINTEGRATION captures enum value "NUTANIX_INTEGRATION"
 	FeatureSupportLevelIDNUTANIXINTEGRATION FeatureSupportLevelID = "NUTANIX_INTEGRATION"
 
@@ -96,11 +60,11 @@ const (
 	// FeatureSupportLevelIDDUALSTACKVIPS captures enum value "DUAL_STACK_VIPS"
 	FeatureSupportLevelIDDUALSTACKVIPS FeatureSupportLevelID = "DUAL_STACK_VIPS"
 
-	// FeatureSupportLevelIDUSERMANAGEDNETWORKINGWITHMULTINODE captures enum value "USER_MANAGED_NETWORKING_WITH_MULTI_NODE"
-	FeatureSupportLevelIDUSERMANAGEDNETWORKINGWITHMULTINODE FeatureSupportLevelID = "USER_MANAGED_NETWORKING_WITH_MULTI_NODE"
-
 	// FeatureSupportLevelIDCLUSTERMANAGEDNETWORKING captures enum value "CLUSTER_MANAGED_NETWORKING"
 	FeatureSupportLevelIDCLUSTERMANAGEDNETWORKING FeatureSupportLevelID = "CLUSTER_MANAGED_NETWORKING"
+
+	// FeatureSupportLevelIDUSERMANAGEDNETWORKING captures enum value "USER_MANAGED_NETWORKING"
+	FeatureSupportLevelIDUSERMANAGEDNETWORKING FeatureSupportLevelID = "USER_MANAGED_NETWORKING"
 )
 
 // for schema
@@ -108,7 +72,7 @@ var featureSupportLevelIdEnum []interface{}
 
 func init() {
 	var res []FeatureSupportLevelID
-	if err := json.Unmarshal([]byte(`["ADDITIONAL_NTP_SOURCE","REQUESTED_HOSTNAME","PROXY","SNO","DAY2_HOSTS","VIP_AUTO_ALLOC","DISK_SELECTION","OVN_NETWORK_TYPE","SDN_NETWORK_TYPE","SCHEDULABLE_MASTERS","AUTO_ASSIGN_ROLE","CUSTOM_MANIFEST","DISK_ENCRYPTION","CLUSTER_MANAGED_NETWORKING_WITH_VMS","SINGLE_NODE_EXPANSION","LVM","ODF","CNV","DUAL_STACK_NETWORKING","NUTANIX_INTEGRATION","VSPHERE_INTEGRATION","DUAL_STACK_VIPS","USER_MANAGED_NETWORKING_WITH_MULTI_NODE","CLUSTER_MANAGED_NETWORKING"]`), &res); err != nil {
+	if err := json.Unmarshal([]byte(`["SNO","VIP_AUTO_ALLOC","CUSTOM_MANIFEST","SINGLE_NODE_EXPANSION","LVM","ODF","CNV","NUTANIX_INTEGRATION","VSPHERE_INTEGRATION","DUAL_STACK_VIPS","CLUSTER_MANAGED_NETWORKING","USER_MANAGED_NETWORKING"]`), &res); err != nil {
 		panic(err)
 	}
 	for _, v := range res {

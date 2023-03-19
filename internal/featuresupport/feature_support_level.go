@@ -1,51 +1,28 @@
 package featuresupport
 
 import (
+	"fmt"
 	"reflect"
 
 	"github.com/go-openapi/swag"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/models"
+	"github.com/thoas/go-funk"
 )
 
 var featuresList = map[models.FeatureSupportLevelID]SupportLevelFeature{
-	models.FeatureSupportLevelIDADDITIONALNTPSOURCE:                &AdditionalNtpSourceFeature{},
-	models.FeatureSupportLevelIDREQUESTEDHOSTNAME:                  &RequestedHostnameFeature{},
-	models.FeatureSupportLevelIDPROXY:                              &ProxyFeature{},
-	models.FeatureSupportLevelIDSNO:                                &SnoFeature{},
-	models.FeatureSupportLevelIDDAY2HOSTS:                          &Day2HostsFeature{},
-	models.FeatureSupportLevelIDVIPAUTOALLOC:                       &VipAutoAllocFeature{},
-	models.FeatureSupportLevelIDDISKSELECTION:                      &DiscSelectionFeature{},
-	models.FeatureSupportLevelIDOVNNETWORKTYPE:                     &OvnNetworkTypeFeature{},
-	models.FeatureSupportLevelIDSDNNETWORKTYPE:                     &SdnNetworkTypeFeature{},
-	models.FeatureSupportLevelIDSCHEDULABLEMASTERS:                 &SchedulableMastersFeature{},
-	models.FeatureSupportLevelIDAUTOASSIGNROLE:                     &AutoAssignRoleFeature{},
-	models.FeatureSupportLevelIDCUSTOMMANIFEST:                     &CustomManifestFeature{},
-	models.FeatureSupportLevelIDDISKENCRYPTION:                     &DiskEncryptionFeature{},
-	models.FeatureSupportLevelIDCLUSTERMANAGEDNETWORKINGWITHVMS:    &ClusterManagedNetworkingWithVmsFeature{},
-	models.FeatureSupportLevelIDCLUSTERMANAGEDNETWORKING:           &ClusterManagedNetworkingFeature{},
-	models.FeatureSupportLevelIDSINGLENODEEXPANSION:                &SingleNodeExpansionFeature{},
-	models.FeatureSupportLevelIDLVM:                                &LvmFeature{},
-	models.FeatureSupportLevelIDDUALSTACKNETWORKING:                &DualStackNetworkingFeature{},
-	models.FeatureSupportLevelIDNUTANIXINTEGRATION:                 &NutanixIntegrationFeature{},
-	models.FeatureSupportLevelIDDUALSTACKVIPS:                      &DualStackVipsFeature{},
-	models.FeatureSupportLevelIDUSERMANAGEDNETWORKINGWITHMULTINODE: &UserManagedNetworkingWithMultiNodeFeature{},
-}
-
-var cpuFeaturesList = map[models.ArchitectureSupportLevelID]SupportLevelArchitecture{
-	models.ArchitectureSupportLevelIDX8664ARCHITECTURE:     &X8664ArchitectureFeature{},
-	models.ArchitectureSupportLevelIDARM64ARCHITECTURE:     &Arm64ArchitectureFeature{},
-	models.ArchitectureSupportLevelIDS390XARCHITECTURE:     &S390xArchitectureFeature{},
-	models.ArchitectureSupportLevelIDPPC64LEARCHITECTURE:   &PPC64LEArchitectureFeature{},
-	models.ArchitectureSupportLevelIDMULTIARCHRELEASEIMAGE: &MultiArchReleaseImageFeature{},
-}
-
-var cpuArchitectureFeatureIdMap = map[string]models.ArchitectureSupportLevelID{
-	models.ClusterCPUArchitectureX8664:   models.ArchitectureSupportLevelIDX8664ARCHITECTURE,
-	models.ClusterCPUArchitectureArm64:   models.ArchitectureSupportLevelIDARM64ARCHITECTURE,
-	models.ClusterCPUArchitectureS390x:   models.ArchitectureSupportLevelIDS390XARCHITECTURE,
-	models.ClusterCPUArchitecturePpc64le: models.ArchitectureSupportLevelIDPPC64LEARCHITECTURE,
-	models.ClusterCPUArchitectureMulti:   models.ArchitectureSupportLevelIDMULTIARCHRELEASEIMAGE,
+	models.FeatureSupportLevelIDSNO:                      &SnoFeature{},
+	models.FeatureSupportLevelIDVIPAUTOALLOC:             &VipAutoAllocFeature{},
+	models.FeatureSupportLevelIDCUSTOMMANIFEST:           &CustomManifestFeature{},
+	models.FeatureSupportLevelIDCLUSTERMANAGEDNETWORKING: &ClusterManagedNetworkingFeature{},
+	models.FeatureSupportLevelIDUSERMANAGEDNETWORKING:    &UserManagedNetworkingFeature{},
+	models.FeatureSupportLevelIDSINGLENODEEXPANSION:      &SingleNodeExpansionFeature{},
+	models.FeatureSupportLevelIDDUALSTACKVIPS:            &DualStackVipsFeature{},
+	models.FeatureSupportLevelIDLVM:                      &LvmFeature{},
+	models.FeatureSupportLevelIDNUTANIXINTEGRATION:       &NutanixIntegrationFeature{},
+	models.FeatureSupportLevelIDVSPHEREINTEGRATION:       &VsphereIntegrationFeature{},
+	models.FeatureSupportLevelIDCNV:                      &CnvFeature{},
+	models.FeatureSupportLevelIDODF:                      &OdfFeature{},
 }
 
 func getFeatureSupportList(features map[models.FeatureSupportLevelID]SupportLevelFeature, filters SupportLevelFilters) models.SupportLevels {
@@ -53,21 +30,17 @@ func getFeatureSupportList(features map[models.FeatureSupportLevelID]SupportLeve
 
 	for _, feature := range features {
 		featureID := feature.GetId()
-		featureSupportList[string(featureID)] = feature.GetSupportLevel(filters)
+
+		if !isFeatureCompatibleWithArchitecture(feature, filters.OpenshiftVersion, swag.StringValue(filters.CPUArchitecture)) {
+			featureSupportList[string(featureID)] = models.SupportLevelUnsupported
+		} else {
+			featureSupportList[string(featureID)] = feature.GetSupportLevel(filters)
+		}
 	}
 	return featureSupportList
 }
 
-func getArchitectureSupportList(features map[models.ArchitectureSupportLevelID]SupportLevelArchitecture, openshiftVersion string) models.SupportLevels {
-	featureSupportList := models.SupportLevels{}
-
-	for _, feature := range features {
-		featureID := feature.GetId()
-		featureSupportList[string(featureID)] = feature.GetSupportLevel(openshiftVersion)
-	}
-	return featureSupportList
-}
-
+// GetFeatureSupportList Get features support level list, cpuArchitecture is optional and the default value is x86
 func GetFeatureSupportList(openshiftVersion string, cpuArchitecture *string) models.SupportLevels {
 	filters := SupportLevelFilters{
 		OpenshiftVersion: openshiftVersion,
@@ -85,24 +58,6 @@ func GetFeatureSupportList(openshiftVersion string, cpuArchitecture *string) mod
 	return featuresSupportList
 }
 
-// Handle cases where a CPU architecture is not supported at for a given openshift version, in that case
-// return a list of unsupported features
-func overrideInvalidRequest(features map[models.FeatureSupportLevelID]SupportLevelFeature, cpuArchitecture, openshiftVersion string) models.SupportLevels {
-	supportLevels := models.SupportLevels{}
-	cpuArchID := cpuArchitectureFeatureIdMap[cpuArchitecture]
-	if !isArchitectureSupported(cpuArchID, openshiftVersion) {
-		for _, feature := range features {
-			supportLevels[string(feature.GetId())] = models.SupportLevelUnsupported
-		}
-		return supportLevels
-	}
-	return nil
-}
-
-func GetCpuArchitectureSupportList(openshiftVersion string) models.SupportLevels {
-	return getArchitectureSupportList(cpuFeaturesList, openshiftVersion)
-}
-
 func GetSupportLevel[T models.FeatureSupportLevelID | models.ArchitectureSupportLevelID](featureId T, filters interface{}) models.SupportLevel {
 	if reflect.TypeOf(featureId).Name() == "FeatureSupportLevelID" {
 		return featuresList[models.FeatureSupportLevelID(featureId)].GetSupportLevel(filters.(SupportLevelFilters))
@@ -110,15 +65,67 @@ func GetSupportLevel[T models.FeatureSupportLevelID | models.ArchitectureSupport
 	return cpuFeaturesList[models.ArchitectureSupportLevelID(featureId)].GetSupportLevel(filters.(string))
 }
 
+// IsFeatureSupported Get the support level of a given feature, cpuArchitecture is optional
+//with default value of x86_64
 func IsFeatureSupported(featureId models.FeatureSupportLevelID, openshiftVersion string, cpuArchitecture *string) bool {
 	filters := SupportLevelFilters{
 		OpenshiftVersion: openshiftVersion,
 		CPUArchitecture:  cpuArchitecture,
 	}
 
-	return GetSupportLevel(featureId, filters) == models.SupportLevelSupported
+	if cpuArchitecture == nil {
+		filters.CPUArchitecture = swag.String(common.DefaultCPUArchitecture)
+	}
+
+	return GetSupportLevel(featureId, filters) != models.SupportLevelUnsupported
 }
 
-func isArchitectureSupported(featureId models.ArchitectureSupportLevelID, openshiftVersion string) bool {
-	return GetSupportLevel(featureId, openshiftVersion) == models.SupportLevelSupported
+func isFeatureCompatible(feature SupportLevelFeature, features ...SupportLevelFeature) *SupportLevelFeature {
+	incompatibilities := feature.GetIncompatibleFeatures()
+	if incompatibilities != nil {
+		for _, f := range features {
+			if funk.Contains(*incompatibilities, f.GetId()) {
+				return &f
+			}
+		}
+	}
+
+	return nil
+}
+
+func ValidateIncompatibleFeatures(cluster common.Cluster, updateParams *models.V2ClusterUpdateParams) error {
+	var activatedFeatures []SupportLevelFeature
+
+	if cluster.CPUArchitecture == "" || cluster.OpenshiftVersion == "" {
+		return nil
+	}
+
+	for _, feature := range featuresList {
+		if feature.getFeatureActiveLevel(cluster, updateParams) == activeLevelActive {
+			activatedFeatures = append(activatedFeatures, feature)
+		}
+	}
+
+	if isSupported := isArchitectureSupported(cpuArchitectureFeatureIdMap[cluster.CPUArchitecture], cluster.OpenshiftVersion); !isSupported {
+		return fmt.Errorf("cannot use %s architecture because it's not compatible on version %s of OpenShift", cluster.CPUArchitecture, cluster.OpenshiftVersion)
+	}
+
+	if err := isFeaturesCompatibleWIthArchitecture(cluster.OpenshiftVersion, cluster.CPUArchitecture, activatedFeatures); err != nil {
+		return err
+	}
+	if err := isFeaturesCompatibleWIthFeatures(activatedFeatures); err != nil {
+		return err
+	}
+	return nil
+}
+
+// isFeaturesCompatibleWIthArchitecture Determine if feature is compatible with other activated features
+func isFeaturesCompatibleWIthFeatures(activatedFeatures []SupportLevelFeature) error {
+	for _, feature := range activatedFeatures {
+		if incompatibleFeature := isFeatureCompatible(feature, activatedFeatures...); incompatibleFeature != nil {
+			return fmt.Errorf("cannot use %s because it's not compatible with %s", feature.GetName(), (*incompatibleFeature).GetName())
+		}
+	}
+
+	return nil
 }
