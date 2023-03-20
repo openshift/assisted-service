@@ -178,6 +178,9 @@ parameters:
 - name: ENABLE_REJECT_UNKNOWN_FIELDS
   required: false
   value: "true"
+- name: ENABLE_DATA_COLLECTION
+  value: "true"
+  required: false
 apiVersion: v1
 kind: Template
 metadata:
