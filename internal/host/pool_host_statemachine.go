@@ -108,7 +108,7 @@ func NewPoolHostStateMachine(sm stateswitch.StateMachine, th TransitionHandler) 
 	})
 
 	var hasMinRequiredHardware = stateswitch.And(If(HasMinValidDisks), If(HasMinCPUCores), If(HasMinMemory))
-	sufficientToBeBound := stateswitch.And(hasMinRequiredHardware, If(IsHostnameValid), If(IsNTPSynced))
+	sufficientToBeBound := stateswitch.And(hasMinRequiredHardware, If(IsHostnameValid))
 
 	sm.AddTransitionRule(stateswitch.TransitionRule{
 		TransitionType: TransitionTypeRefresh,

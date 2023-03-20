@@ -1344,11 +1344,11 @@ var _ = Describe("Validations test", func() {
 			Expect(db.Model(cluster).Updates(updates).Error).ShouldNot(HaveOccurred())
 		}
 
-		It("Baremetal platform with no disk UUID", func() {
+		It("Baremetal platform with no disk UUID is suppressed", func() {
 			mockAndRefreshStatus(&host)
 			host = hostutil.GetHostFromDB(*host.ID, host.InfraEnvID, db).Host
 			status, _, _ := getValidationResult(host.ValidationsInfo, hostUUIDValidation)
-			Expect(status).To(BeEquivalentTo(ValidationSuccess))
+			Expect(status).To(BeEmpty())
 		})
 
 		It("Vsphere platform with disk UUID", func() {
@@ -1968,15 +1968,15 @@ var _ = Describe("Validations test", func() {
 				inventory: nil,
 			})
 			Expect(status).To(Equal(ValidationPending))
-			Expect(message).To(Equal("inventory not yet received"))
+			Expect(message).To(Equal("Missing inventory"))
 		})
 
-		It("Should return an appropriate message for pending non-overlapping-subnets with cluster unbound", func() {
+		It("Should return an appropriate message for suppressed non-overlapping-subnets with cluster unbound", func() {
 			status, message := hostValidator.nonOverlappingSubnets(&validationContext{
 				inventory: &models.Inventory{},
 			})
-			Expect(status).To(Equal(ValidationPending))
-			Expect(message).To(Equal("host is not bound to a cluster"))
+			Expect(status).To(Equal(ValidationSuccessSuppressOutput))
+			Expect(message).To(Equal(""))
 		})
 	})
 })

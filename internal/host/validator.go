@@ -1623,10 +1623,10 @@ func (v *validator) isDNSWildcardNotConfigured(c *validationContext) (Validation
 
 func areNetworksOverlapping(c *validationContext) (ValidationStatus, error) {
 	if c.inventory == nil {
-		return ValidationPending, errors.New("inventory not yet received")
+		return ValidationPending, errors.New("Missing inventory")
 	}
 	if c.cluster == nil {
-		return ValidationPending, errors.New("host is not bound to a cluster")
+		return ValidationSuccessSuppressOutput, errors.New("host is not bound to a cluster")
 	}
 	families, err := network.GetClusterAddressFamilies(c.cluster)
 	if err != nil {
@@ -1666,19 +1666,19 @@ func areNetworksOverlapping(c *validationContext) (ValidationStatus, error) {
 
 func (v *validator) nonOverlappingSubnets(c *validationContext) (ValidationStatus, string) {
 	status, err := areNetworksOverlapping(c)
-	if err != nil && status != ValidationPending {
+	if err != nil && !funk.Contains([]ValidationStatus{ValidationPending, ValidationSuccess, ValidationSuccessSuppressOutput}, status) {
 		v.log.WithError(err).Errorf("Failed to check if CIDRs are overlapping for host %s infra-env %s", c.host.ID.String(), c.host.InfraEnvID.String())
 	}
 	switch status {
+	case ValidationSuccessSuppressOutput:
+		return status, ""
 	case ValidationSuccess:
 		return status, "Host subnets are not overlapping"
 	case ValidationPending:
 		return status, err.Error()
 	case ValidationFailure:
-		_, err := areNetworksOverlapping(c)
 		return status, fmt.Sprintf("Address networks are overlapping: %s", err.Error())
 	case ValidationError:
-		_, err := areNetworksOverlapping(c)
 		return status, fmt.Sprintf("Unexpected error: %s", err.Error())
 	default:
 		return status, fmt.Sprintf("Unexpected status %s", status)
@@ -1686,17 +1686,20 @@ func (v *validator) nonOverlappingSubnets(c *validationContext) (ValidationStatu
 }
 
 func (v *validator) isVSphereDiskUUIDEnabled(c *validationContext) (ValidationStatus, string) {
-	if c.inventory == nil {
-		return ValidationPending, "Validation pending - no inventory"
-	}
 	if c.cluster == nil {
-		return ValidationPending, "Validation pending - no cluster"
+		return ValidationSuccessSuppressOutput, "no cluster"
 	}
+
 	if c.cluster.Platform == nil || c.cluster.Platform.Type == nil || *c.cluster.Platform.Type != models.PlatformTypeVsphere {
-		return ValidationSuccess, "VSphere disk.EnableUUID is enabled for this virtual machine"
+		return ValidationSuccessSuppressOutput, ""
 	}
+
+	if c.inventory == nil {
+		return ValidationPending, "no inventory"
+	}
+
 	if c.inventory.Disks == nil {
-		return ValidationPending, "Validation pending - no disks"
+		return ValidationPending, "no disks"
 	}
 	for _, disk := range c.inventory.Disks {
 		// vSphere only adds a UUID to disks which can potentially be used for storage,
