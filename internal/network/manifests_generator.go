@@ -88,7 +88,7 @@ const unmanagedResolvConf = `
 rc-manager=unmanaged
 `
 
-const forceDnsDispatcherScript = `
+const forceDnsDispatcherScript = `#!/bin/bash
 export IP="{{.HOST_IP}}"
 export BASE_RESOLV_CONF=/run/NetworkManager/resolv.conf
 if [ "$2" = "dhcp4-change" ] || [ "$2" = "dhcp6-change" ] || [ "$2" = "up" ] || [ "$2" = "connectivity-change" ]; then
