@@ -944,6 +944,8 @@ func (m *Manager) UploadEvents() {
 		m.log.Infof("Event uploading is not enabled")
 		return
 	}
+
+	m.log.Info("Event upload is enabled. Running event upload")
 	var (
 		requestID = requestid.NewID()
 		ctx       = requestid.ToContext(context.Background(), requestID)
