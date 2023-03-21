@@ -74,11 +74,11 @@ type DeltaFIFOOptions struct {
 // the Pop() method.
 //
 // DeltaFIFO solves this use case:
-//  * You want to process every object change (delta) at most once.
-//  * When you process an object, you want to see everything
-//    that's happened to it since you last processed it.
-//  * You want to process the deletion of some of the objects.
-//  * You might want to periodically reprocess objects.
+//   - You want to process every object change (delta) at most once.
+//   - When you process an object, you want to see everything
+//     that's happened to it since you last processed it.
+//   - You want to process the deletion of some of the objects.
+//   - You might want to periodically reprocess objects.
 //
 // DeltaFIFO's Pop(), Get(), and GetByKey() methods return
 // interface{} to satisfy the Store/Queue interfaces, but they
@@ -179,21 +179,21 @@ type Deltas []Delta
 // "known" keys when Pop() is called. Have to think about how that
 // affects error retrying.
 //
-//       NOTE: It is possible to misuse this and cause a race when using an
-//       external known object source.
-//       Whether there is a potential race depends on how the consumer
-//       modifies knownObjects. In Pop(), process function is called under
-//       lock, so it is safe to update data structures in it that need to be
-//       in sync with the queue (e.g. knownObjects).
+//	NOTE: It is possible to misuse this and cause a race when using an
+//	external known object source.
+//	Whether there is a potential race depends on how the consumer
+//	modifies knownObjects. In Pop(), process function is called under
+//	lock, so it is safe to update data structures in it that need to be
+//	in sync with the queue (e.g. knownObjects).
 //
-//       Example:
-//       In case of sharedIndexInformer being a consumer
-//       (https://github.com/kubernetes/kubernetes/blob/0cdd940f/staging/src/k8s.io/client-go/tools/cache/shared_informer.go#L192),
-//       there is no race as knownObjects (s.indexer) is modified safely
-//       under DeltaFIFO's lock. The only exceptions are GetStore() and
-//       GetIndexer() methods, which expose ways to modify the underlying
-//       storage. Currently these two methods are used for creating Lister
-//       and internal tests.
+//	Example:
+//	In case of sharedIndexInformer being a consumer
+//	(https://github.com/kubernetes/kubernetes/blob/0cdd940f/staging/src/k8s.io/client-go/tools/cache/shared_informer.go#L192),
+//	there is no race as knownObjects (s.indexer) is modified safely
+//	under DeltaFIFO's lock. The only exceptions are GetStore() and
+//	GetIndexer() methods, which expose ways to modify the underlying
+//	storage. Currently these two methods are used for creating Lister
+//	and internal tests.
 //
 // Also see the comment on DeltaFIFO.
 //
@@ -271,6 +271,10 @@ func (f *DeltaFIFO) KeyOf(obj interface{}) (string, error) {
 func (f *DeltaFIFO) HasSynced() bool {
 	f.lock.Lock()
 	defer f.lock.Unlock()
+	return f.hasSynced_locked()
+}
+
+func (f *DeltaFIFO) hasSynced_locked() bool {
 	return f.populated && f.initialPopulationCount == 0
 }
 
@@ -526,6 +530,7 @@ func (f *DeltaFIFO) Pop(process PopProcessFunc) (interface{}, error) {
 
 			f.cond.Wait()
 		}
+		isInInitialList := !f.hasSynced_locked()
 		id := f.queue[0]
 		f.queue = f.queue[1:]
 		depth := len(f.queue)
@@ -551,7 +556,7 @@ func (f *DeltaFIFO) Pop(process PopProcessFunc) (interface{}, error) {
 				utiltrace.Field{Key: "Reason", Value: "slow event handlers blocking the queue"})
 			defer trace.LogIfLong(100 * time.Millisecond)
 		}
-		err := process(item)
+		err := process(item, isInInitialList)
 		if e, ok := err.(ErrRequeue); ok {
 			f.addIfNotPresent(id, item)
 			err = e.Err
@@ -566,12 +571,11 @@ func (f *DeltaFIFO) Pop(process PopProcessFunc) (interface{}, error) {
 // using the Sync or Replace DeltaType and then (2) it does some deletions.
 // In particular: for every pre-existing key K that is not the key of
 // an object in `list` there is the effect of
-// `Delete(DeletedFinalStateUnknown{K, O})` where O is current object
-// of K.  If `f.knownObjects == nil` then the pre-existing keys are
-// those in `f.items` and the current object of K is the `.Newest()`
-// of the Deltas associated with K.  Otherwise the pre-existing keys
-// are those listed by `f.knownObjects` and the current object of K is
-// what `f.knownObjects.GetByKey(K)` returns.
+// `Delete(DeletedFinalStateUnknown{K, O})` where O is the latest known
+// object of K. The pre-existing keys are those in the union set of the keys in
+// `f.items` and `f.knownObjects` (if not nil). The last known object for key K is
+// the one present in the last delta in `f.items`. If there is no delta for K
+// in `f.items`, it is the object in `f.knownObjects`
 func (f *DeltaFIFO) Replace(list []interface{}, _ string) error {
 	f.lock.Lock()
 	defer f.lock.Unlock()
@@ -595,55 +599,53 @@ func (f *DeltaFIFO) Replace(list []interface{}, _ string) error {
 		}
 	}
 
-	if f.knownObjects == nil {
-		// Do deletion detection against our own list.
-		queuedDeletions := 0
-		for k, oldItem := range f.items {
+	// Do deletion detection against objects in the queue
+	queuedDeletions := 0
+	for k, oldItem := range f.items {
+		if keys.Has(k) {
+			continue
+		}
+		// Delete pre-existing items not in the new list.
+		// This could happen if watch deletion event was missed while
+		// disconnected from apiserver.
+		var deletedObj interface{}
+		if n := oldItem.Newest(); n != nil {
+			deletedObj = n.Object
+
+			// if the previous object is a DeletedFinalStateUnknown, we have to extract the actual Object
+			if d, ok := deletedObj.(DeletedFinalStateUnknown); ok {
+				deletedObj = d.Obj
+			}
+		}
+		queuedDeletions++
+		if err := f.queueActionLocked(Deleted, DeletedFinalStateUnknown{k, deletedObj}); err != nil {
+			return err
+		}
+	}
+
+	if f.knownObjects != nil {
+		// Detect deletions for objects not present in the queue, but present in KnownObjects
+		knownKeys := f.knownObjects.ListKeys()
+		for _, k := range knownKeys {
 			if keys.Has(k) {
 				continue
 			}
-			// Delete pre-existing items not in the new list.
-			// This could happen if watch deletion event was missed while
-			// disconnected from apiserver.
-			var deletedObj interface{}
-			if n := oldItem.Newest(); n != nil {
-				deletedObj = n.Object
+			if len(f.items[k]) > 0 {
+				continue
+			}
+
+			deletedObj, exists, err := f.knownObjects.GetByKey(k)
+			if err != nil {
+				deletedObj = nil
+				klog.Errorf("Unexpected error %v during lookup of key %v, placing DeleteFinalStateUnknown marker without object", err, k)
+			} else if !exists {
+				deletedObj = nil
+				klog.Infof("Key %v does not exist in known objects store, placing DeleteFinalStateUnknown marker without object", k)
 			}
 			queuedDeletions++
 			if err := f.queueActionLocked(Deleted, DeletedFinalStateUnknown{k, deletedObj}); err != nil {
 				return err
 			}
-		}
-
-		if !f.populated {
-			f.populated = true
-			// While there shouldn't be any queued deletions in the initial
-			// population of the queue, it's better to be on the safe side.
-			f.initialPopulationCount = keys.Len() + queuedDeletions
-		}
-
-		return nil
-	}
-
-	// Detect deletions not already in the queue.
-	knownKeys := f.knownObjects.ListKeys()
-	queuedDeletions := 0
-	for _, k := range knownKeys {
-		if keys.Has(k) {
-			continue
-		}
-
-		deletedObj, exists, err := f.knownObjects.GetByKey(k)
-		if err != nil {
-			deletedObj = nil
-			klog.Errorf("Unexpected error %v during lookup of key %v, placing DeleteFinalStateUnknown marker without object", err, k)
-		} else if !exists {
-			deletedObj = nil
-			klog.Infof("Key %v does not exist in known objects store, placing DeleteFinalStateUnknown marker without object", k)
-		}
-		queuedDeletions++
-		if err := f.queueActionLocked(Deleted, DeletedFinalStateUnknown{k, deletedObj}); err != nil {
-			return err
 		}
 	}
 
