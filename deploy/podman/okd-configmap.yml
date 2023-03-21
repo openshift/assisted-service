@@ -28,5 +28,5 @@ data:
   SERVICE_BASE_URL: http://127.0.0.1:8090
   STORAGE: filesystem
   OS_IMAGES: '[{"openshift_version":"4.12","cpu_architecture":"x86_64","url":"https://builds.coreos.fedoraproject.org/prod/streams/stable/builds/37.20221225.3.0/x86_64/fedora-coreos-37.20221225.3.0-live.x86_64.iso","version":"37.20221225.3.0"}]'
-  RELEASE_IMAGES: '[{"openshift_version":"4.12","cpu_architecture":"x86_64","cpu_architectures":["x86_64"],"url":"quay.io/openshift/okd:4.12.0-0.okd-2023-01-21-055900","version":"4.12.0-0.okd-2023-01-21-055900","default":true}]'
+  RELEASE_IMAGES: '[{"openshift_version":"4.12","cpu_architecture":"x86_64","cpu_architectures":["x86_64"],"url":"quay.io/openshift/okd:4.12.0-0.okd-2023-03-18-084815","version":"4.12.0-0.okd-2023-03-18-084815","default":true}]'
   ENABLE_UPGRADE_AGENT: "false"
