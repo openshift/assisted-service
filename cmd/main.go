@@ -563,19 +563,20 @@ func main() {
 			cluster_client := ctrlMgr.GetClient()
 			cluster_reader := ctrlMgr.GetAPIReader()
 			failOnError((&controllers.ClusterDeploymentsReconciler{
-				Client:            cluster_client,
-				APIReader:         cluster_reader,
-				Log:               log,
-				Scheme:            ctrlMgr.GetScheme(),
-				Installer:         bm,
-				ClusterApi:        clusterApi,
-				HostApi:           hostApi,
-				CRDEventsHandler:  crdEventsHandler,
-				Manifests:         manifestsApi,
-				ServiceBaseURL:    Options.BMConfig.ServiceBaseURL,
-				PullSecretHandler: controllers.NewPullSecretHandler(cluster_client, cluster_reader, bm),
-				AuthType:          Options.Auth.AuthType,
-				VersionsHandler:   versionHandler,
+				Client:                cluster_client,
+				APIReader:             cluster_reader,
+				Log:                   log,
+				Scheme:                ctrlMgr.GetScheme(),
+				Installer:             bm,
+				ClusterApi:            clusterApi,
+				HostApi:               hostApi,
+				CRDEventsHandler:      crdEventsHandler,
+				Manifests:             manifestsApi,
+				ServiceBaseURL:        Options.BMConfig.ServiceBaseURL,
+				PullSecretHandler:     controllers.NewPullSecretHandler(cluster_client, cluster_reader, bm),
+				AuthType:              Options.Auth.AuthType,
+				VersionsHandler:       versionHandler,
+				SpokeK8sClientFactory: spoke_k8s_client.NewSpokeK8sClientFactory(log),
 			}).SetupWithManager(ctrlMgr), "unable to create controller ClusterDeployment")
 
 			failOnError((&controllers.AgentReconciler{
