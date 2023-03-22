@@ -185,6 +185,21 @@ func (r reconcileError) Stop(ctx context.Context) bool {
 	return true
 }
 
+func (r *BMACReconciler) handleReconcileResult(ctx context.Context, log logrus.FieldLogger, result reconcileResult, obj client.Object) reconcileResult {
+	if result.Dirty() {
+		log.Debugf("Updating dirty object %v", obj)
+		err := r.Client.Update(ctx, obj)
+		if err != nil {
+			return reconcileError{err}
+		}
+	}
+	if result.Stop(ctx) {
+		log.Debugf("Stopping reconcile")
+		return result
+	}
+	return nil
+}
+
 // +kubebuilder:rbac:groups=metal3.io,resources=baremetalhosts,verbs=get;list;watch;update;patch
 
 func (r *BMACReconciler) Reconcile(origCtx context.Context, req ctrl.Request) (ctrl.Result, error) {
@@ -233,33 +248,14 @@ func (r *BMACReconciler) Reconcile(origCtx context.Context, req ctrl.Request) (c
 
 	if agent != nil {
 		result := r.reconcileUnboundAgent(log, bmh, agent)
-		if result.Dirty() {
-			err := r.Client.Update(ctx, bmh)
-			if err != nil {
-				log.WithError(err).Errorf("Error adding reset annotation on BMH for unbound agent")
-				return reconcileError{err}.Result()
-			}
-		}
-
-		if result.Stop(ctx) {
-			return result.Result()
+		if res := r.handleReconcileResult(ctx, log, result, bmh); res != nil {
+			return res.Result()
 		}
 	}
 
 	result := r.reconcileBMH(ctx, log, bmh)
-
-	if result.Dirty() {
-		log.Debugf("Updating dirty BMH %v", bmh)
-		err := r.Client.Update(ctx, bmh)
-		if err != nil {
-			log.WithError(err).Errorf("Error updating after BMH reconcile")
-			return reconcileError{err}.Result()
-		}
-	}
-
-	if result.Stop(ctx) {
-		log.Debugf("Stopping BMAC reconcile after reconcileBMH")
-		return result.Result()
+	if res := r.handleReconcileResult(ctx, log, result, bmh); res != nil {
+		return res.Result()
 	}
 
 	// handle multiple agents matching the
@@ -274,50 +270,21 @@ func (r *BMACReconciler) Reconcile(origCtx context.Context, req ctrl.Request) (c
 	// reconcileAgentInventory, every time. The logic to decide whether there's
 	// any action to take is implemented in each function respectively.
 	result = r.reconcileAgentSpec(log, bmh, agent)
-	if result.Dirty() {
-		err := r.Client.Update(ctx, agent)
-		if err != nil {
-			log.WithError(err).Errorf("Error updating agent")
-			return reconcileError{err}.Result()
-		}
-	} else {
-		log.Debugf("Agent update skipped")
-	}
-
-	if result.Stop(ctx) {
-		log.Debugf("Stopping BMAC reconcile after reconcileAgentSpec")
-		return result.Result()
+	if res := r.handleReconcileResult(ctx, log, result, agent); res != nil {
+		return res.Result()
 	}
 
 	// In the converged flow ironic will reconcile the BMH_HARDWARE_DETAILS_ANNOTATION
 	if !r.ConvergedFlowEnabled {
 		result = r.reconcileAgentInventory(log, bmh, agent)
-		if result.Dirty() {
-			err := r.Client.Update(ctx, bmh)
-			if err != nil {
-				log.WithError(err).Errorf("Error updating hardwaredetails")
-				return reconcileError{err}.Result()
-			}
-		}
-
-		if result.Stop(ctx) {
-			log.Debugf("Stopping BMAC reconcile after reconcileAgentInventory")
-			return result.Result()
+		if res := r.handleReconcileResult(ctx, log, result, bmh); res != nil {
+			return res.Result()
 		}
 	}
 
 	result = r.ensureMCSCert(ctx, log, bmh, agent)
-	if result.Dirty() {
-		err := r.Client.Update(ctx, bmh)
-		if err != nil {
-			log.WithError(err).Errorf("Error adding MCS cert of spoke cluster into BMH")
-			return reconcileError{err}.Result()
-		}
-	}
-
-	if result.Stop(ctx) {
-		log.Debugf("Stopping BMAC reconcile after ensureMCSCert")
-		return result.Result()
+	if res := r.handleReconcileResult(ctx, log, result, bmh); res != nil {
+		return res.Result()
 	}
 
 	if r.ConvergedFlowEnabled {
@@ -327,17 +294,8 @@ func (r *BMACReconciler) Reconcile(origCtx context.Context, req ctrl.Request) (c
 		// Adding the detached annotation to the BMH stops Ironic from managing it.
 		result = r.addBMHDetachedAnnotationIfAgentHasStartedInstallation(log, bmh, agent)
 	}
-	if result.Dirty() {
-		err := r.Client.Update(ctx, bmh)
-		if err != nil {
-			log.WithError(err).Errorf("Error updating BMH detached annotation")
-			return reconcileError{err}.Result()
-		}
-	}
-
-	if result.Stop(ctx) {
-		log.Debugf("Stopping BMAC reconcile after add detached annotation")
-		return result.Result()
+	if res := r.handleReconcileResult(ctx, log, result, bmh); res != nil {
+		return res.Result()
 	}
 
 	result = r.reconcileSpokeBMH(ctx, log, bmh, agent)
