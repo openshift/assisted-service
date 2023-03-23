@@ -432,6 +432,8 @@ objects:
                 value: ${WORK_DIR}
               - name: ENABLE_REJECT_UNKNOWN_FIELDS
                 value: ${ENABLE_REJECT_UNKNOWN_FIELDS}
+              - name: ENABLE_DATA_COLLECTION
+                value: ${ENABLE_DATA_COLLECTION}
             volumeMounts:
               - name: route53-creds
                 mountPath: "/etc/.aws"
