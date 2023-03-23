@@ -185,6 +185,21 @@ func (r reconcileError) Stop(ctx context.Context) bool {
 	return true
 }
 
+func (r *BMACReconciler) handleReconcileResult(ctx context.Context, log logrus.FieldLogger, result reconcileResult, obj client.Object) reconcileResult {
+	if result.Dirty() {
+		log.Debugf("Updating dirty object %v", obj)
+		err := r.Client.Update(ctx, obj)
+		if err != nil {
+			return reconcileError{err}
+		}
+	}
+	if result.Stop(ctx) {
+		log.Debugf("Stopping reconcile")
+		return result
+	}
+	return nil
+}
+
 // +kubebuilder:rbac:groups=metal3.io,resources=baremetalhosts,verbs=get;list;watch;update;patch
 
 func (r *BMACReconciler) Reconcile(origCtx context.Context, req ctrl.Request) (ctrl.Result, error) {
@@ -215,6 +230,12 @@ func (r *BMACReconciler) Reconcile(origCtx context.Context, req ctrl.Request) (c
 	// is in a Deprovisioning state?
 
 	agent := r.findAgent(ctx, bmh)
+	if agent != nil {
+		log = log.WithFields(logrus.Fields{
+			"agent":           agent.Name,
+			"agent_namespace": agent.Namespace,
+		})
+	}
 
 	// Finalizer is only needed if the user has indicated that they want our controller to remove the agent and node when the BMH is removed
 	if _, has_annotation := bmh.GetAnnotations()[BMH_DELETE_ANNOTATION]; has_annotation && r.ConvergedFlowEnabled {
@@ -227,33 +248,14 @@ func (r *BMACReconciler) Reconcile(origCtx context.Context, req ctrl.Request) (c
 
 	if agent != nil {
 		result := r.reconcileUnboundAgent(log, bmh, agent)
-		if result.Dirty() {
-			err := r.Client.Update(ctx, bmh)
-			if err != nil {
-				log.WithError(err).Errorf("Error adding reset annotation on BMH for unbound agent")
-				return reconcileError{err}.Result()
-			}
-		}
-
-		if result.Stop(ctx) {
-			return result.Result()
+		if res := r.handleReconcileResult(ctx, log, result, bmh); res != nil {
+			return res.Result()
 		}
 	}
 
 	result := r.reconcileBMH(ctx, log, bmh)
-
-	if result.Dirty() {
-		log.Debugf("Updating dirty BMH %v", bmh)
-		err := r.Client.Update(ctx, bmh)
-		if err != nil {
-			log.WithError(err).Errorf("Error updating after BMH reconcile")
-			return reconcileError{err}.Result()
-		}
-	}
-
-	if result.Stop(ctx) {
-		log.Debugf("Stopping BMAC reconcile after reconcileBMH")
-		return result.Result()
+	if res := r.handleReconcileResult(ctx, log, result, bmh); res != nil {
+		return res.Result()
 	}
 
 	// handle multiple agents matching the
@@ -268,50 +270,21 @@ func (r *BMACReconciler) Reconcile(origCtx context.Context, req ctrl.Request) (c
 	// reconcileAgentInventory, every time. The logic to decide whether there's
 	// any action to take is implemented in each function respectively.
 	result = r.reconcileAgentSpec(log, bmh, agent)
-	if result.Dirty() {
-		err := r.Client.Update(ctx, agent)
-		if err != nil {
-			log.WithError(err).Errorf("Error updating agent")
-			return reconcileError{err}.Result()
-		}
-	} else {
-		log.Debugf("Agent %s/%s: update skipped", agent.Namespace, agent.Name)
-	}
-
-	if result.Stop(ctx) {
-		log.Debugf("Stopping BMAC reconcile after reconcileAgentSpec")
-		return result.Result()
+	if res := r.handleReconcileResult(ctx, log, result, agent); res != nil {
+		return res.Result()
 	}
 
 	// In the converged flow ironic will reconcile the BMH_HARDWARE_DETAILS_ANNOTATION
 	if !r.ConvergedFlowEnabled {
 		result = r.reconcileAgentInventory(log, bmh, agent)
-		if result.Dirty() {
-			err := r.Client.Update(ctx, bmh)
-			if err != nil {
-				log.WithError(err).Errorf("Error updating hardwaredetails")
-				return reconcileError{err}.Result()
-			}
-		}
-
-		if result.Stop(ctx) {
-			log.Debugf("Stopping BMAC reconcile after reconcileAgentInventory")
-			return result.Result()
+		if res := r.handleReconcileResult(ctx, log, result, bmh); res != nil {
+			return res.Result()
 		}
 	}
 
 	result = r.ensureMCSCert(ctx, log, bmh, agent)
-	if result.Dirty() {
-		err := r.Client.Update(ctx, bmh)
-		if err != nil {
-			log.WithError(err).Errorf("Error adding MCS cert of spoke cluster into BMH")
-			return reconcileError{err}.Result()
-		}
-	}
-
-	if result.Stop(ctx) {
-		log.Debugf("Stopping BMAC reconcile after ensureMCSCert")
-		return result.Result()
+	if res := r.handleReconcileResult(ctx, log, result, bmh); res != nil {
+		return res.Result()
 	}
 
 	if r.ConvergedFlowEnabled {
@@ -321,17 +294,8 @@ func (r *BMACReconciler) Reconcile(origCtx context.Context, req ctrl.Request) (c
 		// Adding the detached annotation to the BMH stops Ironic from managing it.
 		result = r.addBMHDetachedAnnotationIfAgentHasStartedInstallation(log, bmh, agent)
 	}
-	if result.Dirty() {
-		err := r.Client.Update(ctx, bmh)
-		if err != nil {
-			log.WithError(err).Errorf("Error updating BMH detached annotation")
-			return reconcileError{err}.Result()
-		}
-	}
-
-	if result.Stop(ctx) {
-		log.Debugf("Stopping BMAC reconcile after add detached annotation")
-		return result.Result()
+	if res := r.handleReconcileResult(ctx, log, result, bmh); res != nil {
+		return res.Result()
 	}
 
 	result = r.reconcileSpokeBMH(ctx, log, bmh, agent)
@@ -365,7 +329,7 @@ func (r *BMACReconciler) handleBMHFinalizer(ctx context.Context, log logrus.Fiel
 		// agent could be nil here if it wasn't created yet, or if we deleted it, then failed to remove the finalizer for some reason
 		if agent != nil {
 			if err := r.Delete(ctx, agent); err != nil {
-				log.WithError(err).Errorf("Failed to delete agent %s/%s as a part of BMH removal", agent.Namespace, agent.Name)
+				log.WithError(err).Errorf("Failed to delete agent as a part of BMH removal")
 				return reconcileError{err: err}
 			}
 		}
@@ -396,7 +360,7 @@ func (r *BMACReconciler) handleBMHFinalizer(ctx context.Context, log logrus.Fiel
 // the BMH should happen in this reconcile step.
 func (r *BMACReconciler) reconcileAgentSpec(log logrus.FieldLogger, bmh *bmh_v1alpha1.BareMetalHost, agent *aiv1beta1.Agent) reconcileResult {
 
-	log.Debugf("Started Agent Spec reconcile for agent %s/%s and bmh %s/%s", agent.Namespace, agent.Name, bmh.Namespace, bmh.Name)
+	log.Debugf("Setting agent spec according to BMH")
 
 	// Do all the copying from the BMH annotations to the agent.
 
@@ -511,7 +475,7 @@ func detachBMH(log logrus.FieldLogger, bmh *bmh_v1alpha1.BareMetalHost, agent *a
 		bmh.ObjectMeta.Annotations = make(map[string]string)
 	}
 	bmh.ObjectMeta.Annotations[BMH_DETACHED_ANNOTATION] = "assisted-service-controller"
-	log.Infof("Added detached annotation to agent \n %v", agent)
+	log.Info("Added detached annotation to BMH")
 
 	return reconcileComplete{dirty: true, stop: true}
 }
@@ -574,7 +538,7 @@ func (r *BMACReconciler) addBMHDetachedAnnotationIfAgentHasStartedInstallation(l
 // BMAC and the BMH reconcile as the former will update the hardwaredetails annotation
 // while the latter will continue to update the status.
 func (r *BMACReconciler) reconcileAgentInventory(log logrus.FieldLogger, bmh *bmh_v1alpha1.BareMetalHost, agent *aiv1beta1.Agent) reconcileResult {
-	log.Debugf("Started Agent Inventory reconcile for agent %s/%s and bmh %s/%s", agent.Namespace, agent.Name, bmh.Namespace, bmh.Name)
+	log.Debugf("Started agent inventory reconcile")
 
 	// This check should be updated. We should check the agent's conditions instead
 	if len(agent.Status.Inventory.Interfaces) == 0 {
@@ -679,7 +643,7 @@ func (r *BMACReconciler) reconcileAgentInventory(log logrus.FieldLogger, bmh *bm
 // By re-attaching the BMH and clearing the Image field on it, BMAC will clear
 // the Image data to force the boot from ISO
 func (r *BMACReconciler) reconcileUnboundAgent(log logrus.FieldLogger, bmh *bmh_v1alpha1.BareMetalHost, agent *aiv1beta1.Agent) reconcileResult {
-	log.Debugf("Started Unbound Agent reconcile for agent %s/%s and bmh %s/%s", agent.Namespace, agent.Name, bmh.Namespace, bmh.Name)
+	log.Debugf("Started unbound agent reconcile")
 
 	// proceed with the reconcile only when the agent ask for user action following unbinding
 	// and the detached annotation is in place (which means that we have not dealt with this case before)
@@ -698,7 +662,7 @@ func (r *BMACReconciler) reconcileUnboundAgent(log logrus.FieldLogger, bmh *bmh_
 	delete(bmh.ObjectMeta.Annotations, BMH_HARDWARE_DETAILS_ANNOTATION)
 	bmh.Spec.Image = nil
 
-	log.Infof("Unbound Agent reconciled to BMH \n %v \n %v", agent, bmh)
+	log.Infof("Unbound agent reconciled to BMH")
 	return reconcileComplete{dirty: true, stop: true}
 }
 
@@ -788,7 +752,7 @@ func (r *BMACReconciler) findInfraEnvForBMH(ctx context.Context, log logrus.Fiel
 // been set in the `InfraEnv` resource and the Image.URL value has not been
 // set in the `BareMetalHost`
 func (r *BMACReconciler) reconcileBMH(ctx context.Context, log logrus.FieldLogger, bmh *bmh_v1alpha1.BareMetalHost) reconcileResult {
-	log.Debugf("Started BMH reconcile for %s/%s", bmh.Namespace, bmh.Name)
+	log.Debugf("Started BMH reconcile")
 	log.Debugf("BMH value %v", bmh)
 
 	// A detached BMH is considered to be unmanaged by the hub
@@ -799,7 +763,7 @@ func (r *BMACReconciler) reconcileBMH(ctx context.Context, log logrus.FieldLogge
 	// to bring this BMH back into the pool of reconciled BMH resources.
 	bmhAnnotations := bmh.ObjectMeta.GetAnnotations()
 	if _, ok := bmhAnnotations[BMH_DETACHED_ANNOTATION]; ok {
-		log.Debugf("Stopped BMH reconcile for %s/%s because it has been detached", bmh.Namespace, bmh.Name)
+		log.Debugf("Stopped BMH reconcile because it has been detached")
 		return reconcileComplete{stop: true}
 	}
 
@@ -872,7 +836,7 @@ func (r *BMACReconciler) reconcileBMH(ctx context.Context, log logrus.FieldLogge
 		return reconcileComplete{stop: true, dirty: true}
 	}
 
-	r.Log.Debugf("Setting attributes in BMH")
+	log.Debugf("Setting attributes in BMH")
 	// We'll just overwrite this at this point
 	// since the nullness and emptyness checks
 	// are done at the beginning of this function.
@@ -882,7 +846,7 @@ func (r *BMACReconciler) reconcileBMH(ctx context.Context, log logrus.FieldLogge
 	bmh.Spec.Image.URL = infraEnv.Status.ISODownloadURL
 	bmh.Spec.Image.DiskFormat = &liveIso
 
-	r.Log.Infof("Image URL has been set in the BareMetalHost  %s/%s", bmh.Namespace, bmh.Name)
+	log.Infof("Image URL has been set in the BMH")
 	return reconcileComplete{dirty: true, stop: true}
 }
 
@@ -941,7 +905,7 @@ func (r *BMACReconciler) reconcileSpokeBMH(ctx context.Context, log logrus.Field
 		return reconcileError{err}
 	}
 
-	checksum, url, err, stopReconcileLoop := r.getChecksumAndURL(ctx, log, spokeClient)
+	checksum, url, err, stopReconcileLoop := r.getChecksumAndURL(ctx, spokeClient)
 	if err != nil {
 		log.WithError(err).Errorf("failed to get checksum and url value from master spoke machine")
 		if stopReconcileLoop {
@@ -1164,7 +1128,7 @@ func (r *BMACReconciler) ensureSpokeBMH(ctx context.Context, log logrus.FieldLog
 }
 
 // get spokeMachineMaster and retrieve checksum , url to set into spokeMachineWorker
-func (r *BMACReconciler) getChecksumAndURL(ctx context.Context, log logrus.FieldLogger, spokeClient client.Client) (string, string, error, bool) {
+func (r *BMACReconciler) getChecksumAndURL(ctx context.Context, spokeClient client.Client) (string, string, error, bool) {
 	var checksum, url string
 	machineList := &machinev1beta1.MachineList{}
 	err := spokeClient.List(ctx, machineList, client.MatchingLabels{MACHINE_TYPE: string(models.HostRoleMaster)})
@@ -1236,7 +1200,7 @@ func (r *BMACReconciler) ensureMCSCert(ctx context.Context, log logrus.FieldLogg
 		return reconcileError{err}
 	}
 
-	MCSCert, ignitionWithMCSCert, err := r.createIgnitionWithMCSCert(ctx, log, spokeClient)
+	MCSCert, ignitionWithMCSCert, err := r.createIgnitionWithMCSCert(ctx, spokeClient)
 	if err != nil {
 		log.WithError(err).Errorf("failed to create ignition with mcs cert")
 		return reconcileError{err}
@@ -1271,7 +1235,7 @@ func (r *BMACReconciler) ensureMCSCert(ctx context.Context, log logrus.FieldLogg
 	return reconcileComplete{dirty: true, stop: true}
 }
 
-func (r *BMACReconciler) createIgnitionWithMCSCert(ctx context.Context, log logrus.FieldLogger, spokeClient client.Client) (string, string, error) {
+func (r *BMACReconciler) createIgnitionWithMCSCert(ctx context.Context, spokeClient client.Client) (string, string, error) {
 	configMap := &corev1.ConfigMap{}
 	var encodedMCSCrt, ignitionWithMCSCert string
 	key := types.NamespacedName{
@@ -1543,7 +1507,7 @@ func (r *BMACReconciler) formatMCSCertificateIgnition(mcsCert string) (string, e
 func (r *BMACReconciler) validateWorkerForDay2(log logrus.FieldLogger, agent *aiv1beta1.Agent) bool {
 	// Only worker role is supported for day2 operation
 	if agent.Status.Role != models.HostRoleWorker || agent.Spec.ClusterDeploymentName == nil {
-		log.Debugf("Skipping spoke BareMetalHost reconcile for  agent %s/%s, role %s and clusterDeployment %s.", agent.Namespace, agent.Name, agent.Status.Role, agent.Spec.ClusterDeploymentName)
+		log.Debugf("Skipping spoke BareMetalHost reconcile for agent, role %s and clusterDeployment %s.", agent.Status.Role, agent.Spec.ClusterDeploymentName)
 		return false
 	}
 	return true
@@ -1551,7 +1515,7 @@ func (r *BMACReconciler) validateWorkerForDay2(log logrus.FieldLogger, agent *ai
 
 func (r *BMACReconciler) getClusterDeploymentAndCheckIfInstalled(ctx context.Context, log logrus.FieldLogger, agent *aiv1beta1.Agent) (*hivev1.ClusterDeployment, bool, error) {
 	if agent.Spec.ClusterDeploymentName == nil {
-		log.Debugf("Agent %s/%s is not bind yet", agent.Namespace, agent.Name)
+		log.Debugf("Agent is not bound yet")
 		return nil, false, nil
 	}
 
@@ -1569,7 +1533,7 @@ func (r *BMACReconciler) getClusterDeploymentAndCheckIfInstalled(ctx context.Con
 
 	// If the cluster is not installed yet, we can't get kubeconfig for the cluster yet.
 	if !clusterDeployment.Spec.Installed {
-		log.Debugf("ClusterDeployment %s/%s for agent %s/%s is not installed yet", clusterDeployment.Namespace, clusterDeployment.Name, agent.Namespace, agent.Name)
+		log.Debugf("ClusterDeployment %s/%s for agent is not installed yet", clusterDeployment.Namespace, clusterDeployment.Name)
 		// If cluster is not Installed, wait until a reconcile is trigged by a ClusterDeployment watch event instead
 		return clusterDeployment, false, err
 	}
