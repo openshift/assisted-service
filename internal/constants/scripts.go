@@ -160,6 +160,7 @@ function copy_nmconnection_files_to_nm_config_dir() {
   done
 
   cp ${host_dir}/*.nmconnection ${ETC_NETWORK_MANAGER}/
+  type nmcli > /dev/null 2>&1 && nmcli connection reload
 }
 
 map_host_macs_to_interfaces
