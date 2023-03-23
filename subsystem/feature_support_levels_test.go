@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -32,6 +33,110 @@ var _ = Describe("Feature support levels API", func() {
 	})
 
 	Context("Support Level", func() {
+		registerNewCluster := func(version, cpuArchitecture, highAvailabilityMode string, userManagedNetworking bool) (*installer.V2RegisterClusterCreated, error) {
+			cluster, errRegisterCluster := user2BMClient.Installer.V2RegisterCluster(ctx, &installer.V2RegisterClusterParams{
+				NewClusterParams: &models.ClusterCreateParams{
+					Name:                  swag.String("test-cluster"),
+					OpenshiftVersion:      swag.String(version),
+					PullSecret:            swag.String(fmt.Sprintf(psTemplate, FakePS2)),
+					BaseDNSDomain:         "example.com",
+					CPUArchitecture:       cpuArchitecture,
+					HighAvailabilityMode:  swag.String(highAvailabilityMode),
+					UserManagedNetworking: &userManagedNetworking,
+				},
+			})
+
+			if errRegisterCluster != nil {
+				return nil, errRegisterCluster
+			}
+
+			return cluster, nil
+		}
+
+		registerNewInfraEnv := func(id *strfmt.UUID, version, cpuArchitecture string) (*installer.RegisterInfraEnvCreated, error) {
+			infraEnv, errRegisterInfraEnv := user2BMClient.Installer.RegisterInfraEnv(context.Background(), &installer.RegisterInfraEnvParams{
+				InfraenvCreateParams: &models.InfraEnvCreateParams{
+					Name:             swag.String("test-infra-env"),
+					OpenshiftVersion: version,
+					PullSecret:       swag.String(fmt.Sprintf(psTemplate, FakePS2)),
+					SSHAuthorizedKey: swag.String(sshPublicKey),
+					ImageType:        models.ImageTypeFullIso,
+					ClusterID:        id,
+					CPUArchitecture:  cpuArchitecture,
+				},
+			})
+
+			return infraEnv, errRegisterInfraEnv
+		}
+
+		Context("Update cluster", func() {
+			It("Update umn true won't fail on 4.13 with s390x without infra-env", func() {
+				cluster, err := registerNewCluster("4.13", "s390x", models.ClusterHighAvailabilityModeFull, true)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(cluster.Payload.CPUArchitecture).To(Equal("multi"))
+
+				_, err = user2BMClient.Installer.V2UpdateCluster(ctx, &installer.V2UpdateClusterParams{
+					ClusterUpdateParams: &models.V2ClusterUpdateParams{
+						UserManagedNetworking: swag.Bool(false),
+					},
+					ClusterID: *cluster.Payload.ID,
+				})
+				Expect(err).NotTo(HaveOccurred())
+			})
+
+			It("Update umn true fail on 4.13 with s390x with infra-env", func() {
+				expectedError := "cannot use Cluster Managed Networking because it's not compatible with the s390x architecture on version 4.13"
+				cluster, err := registerNewCluster("4.13", "s390x", models.ClusterHighAvailabilityModeFull, true)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(cluster.Payload.CPUArchitecture).To(Equal("multi"))
+
+				infraEnv, err := registerNewInfraEnv(cluster.Payload.ID, "4.13", "s390x")
+				Expect(err).NotTo(HaveOccurred())
+				Expect(infraEnv.Payload.CPUArchitecture).To(Equal("s390x"))
+
+				_, err = user2BMClient.Installer.V2UpdateCluster(ctx, &installer.V2UpdateClusterParams{
+					ClusterUpdateParams: &models.V2ClusterUpdateParams{
+						UserManagedNetworking: swag.Bool(false),
+					},
+					ClusterID: *cluster.Payload.ID,
+				})
+				Expect(err).To(HaveOccurred())
+				err2 := err.(*installer.V2UpdateClusterBadRequest)
+				ExpectWithOffset(1, *err2.Payload.Reason).To(ContainSubstring(expectedError))
+			})
+			It("Update cluster fail on 4.12 with s390x", func() {
+				expectedError := "cannot use s390x architecture because it's not compatible on version 4.12"
+				_, err := registerNewCluster("4.12", "s390x", models.ClusterHighAvailabilityModeFull, true)
+				Expect(err).To(HaveOccurred())
+				err2 := err.(*installer.V2RegisterClusterBadRequest)
+				ExpectWithOffset(1, *err2.Payload.Reason).To(ContainSubstring(expectedError))
+			})
+		})
+
+		Context("Register cluster", func() {
+			It("Register cluster won't fail on 4.13 with s390x", func() {
+				cluster, err := registerNewCluster("4.13", "s390x", models.ClusterHighAvailabilityModeFull, true)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(cluster.Payload.CPUArchitecture).To(Equal("multi"))
+			})
+
+			It("SNO with s390x 4.12 fails on architecture- failure", func() {
+				expectedError := "cannot use s390x architecture because it's not compatible on version 4.12"
+				_, err := registerNewCluster("4.12", "s390x", models.ClusterHighAvailabilityModeNone, true)
+				Expect(err).To(HaveOccurred())
+				err2 := err.(*installer.V2RegisterClusterBadRequest)
+				ExpectWithOffset(1, *err2.Payload.Reason).To(ContainSubstring(expectedError))
+			})
+
+			It("SNO with s390x fails on SNO isn't compatible with architecture - failure", func() {
+				expectedError := "cannot use Single Node OpenShift because it's not compatible with the s390x architecture on version 4.13"
+				_, err := registerNewCluster("4.13", "s390x", models.ClusterHighAvailabilityModeNone, true)
+				Expect(err).To(HaveOccurred())
+				err2 := err.(*installer.V2RegisterClusterBadRequest)
+				ExpectWithOffset(1, *err2.Payload.Reason).To(ContainSubstring(expectedError))
+			})
+		}) // Register cluster
+
 		Context("Supported features", func() {
 			availableVersions := []string{"4.8", "4.9", "4.10", "4.11", "4.12", "4.13"}
 

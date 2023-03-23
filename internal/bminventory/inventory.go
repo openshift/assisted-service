@@ -639,7 +639,7 @@ func (b *bareMetalInventory) RegisterClusterInternal(
 	}
 	cluster.MonitoredOperators = append(monitoredOperators, newOLMOperators...)
 
-	if err = featuresupport.ValidateIncompatibleFeatures(*cluster, nil); err != nil {
+	if err = featuresupport.ValidateIncompatibleFeatures(params.NewClusterParams.CPUArchitecture, *cluster, nil); err != nil {
 		return nil, common.NewApiError(http.StatusBadRequest, err)
 	}
 
@@ -1891,6 +1891,94 @@ func getPlatformType(platform *models.Platform) string {
 	return ""
 }
 
+func (b *bareMetalInventory) listClusterArchitectures(ctx context.Context, cluster *common.Cluster) ([]string, error) {
+	var cpuArchitectures []string
+	infraEnvs, err := b.ListInfraEnvsInternal(ctx, cluster.ID, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, infraEnv := range infraEnvs {
+		if !funk.Contains(cpuArchitectures, infraEnv.CPUArchitecture) {
+			cpuArchitectures = append(cpuArchitectures, infraEnv.CPUArchitecture)
+		}
+	}
+
+	return cpuArchitectures, nil
+}
+
+func (b *bareMetalInventory) validateUpdateCluster(
+	ctx context.Context,
+	log logrus.FieldLogger,
+	cluster *common.Cluster,
+	params installer.V2UpdateClusterParams,
+) (installer.V2UpdateClusterParams, error) {
+	var err error
+	if params, err = b.validateAndUpdateClusterParams(ctx, cluster, &params); err != nil {
+		return params, common.NewApiError(http.StatusBadRequest, err)
+	}
+	alreadyDualStack := network.CheckIfClusterIsDualStack(cluster)
+	if err = validations.ValidateDualStackNetworks(params.ClusterUpdateParams, alreadyDualStack); err != nil {
+		return params, common.NewApiError(http.StatusBadRequest, err)
+	}
+
+	if err = validateProxySettings(params.ClusterUpdateParams.HTTPProxy, params.ClusterUpdateParams.HTTPSProxy,
+		params.ClusterUpdateParams.NoProxy, &cluster.OpenshiftVersion); err != nil {
+		log.WithError(err).Errorf("Failed to validate Proxy settings")
+		return params, common.NewApiError(http.StatusBadRequest, err)
+	}
+
+	if err = b.clusterApi.VerifyClusterUpdatability(cluster); err != nil {
+		log.WithError(err).Errorf("cluster %s can't be updated in current state", params.ClusterID)
+		return params, common.NewApiError(http.StatusConflict, err)
+	}
+
+	log.Infof("Current cluster platform is set to %s and user-managed-networking is set to %t", getPlatformType(cluster.Platform), swag.BoolValue(cluster.UserManagedNetworking))
+	log.Infof("Verifying cluster platform and user-managed-networking, got platform=%s and userManagedNetworking=%t", getPlatformType(params.ClusterUpdateParams.Platform), swag.BoolValue(params.ClusterUpdateParams.UserManagedNetworking))
+	platform, userManagedNetworking, err := provider.GetActualUpdateClusterPlatformParams(params.ClusterUpdateParams.Platform, params.ClusterUpdateParams.UserManagedNetworking, cluster)
+	if err != nil {
+		log.Error(err)
+		return params, err
+	}
+
+	params.ClusterUpdateParams.Platform = platform
+	params.ClusterUpdateParams.UserManagedNetworking = userManagedNetworking
+	log.Infof("Platform verification completed, setting platform type to %s and user-managed-networking to %t", getPlatformType(platform), swag.BoolValue(userManagedNetworking))
+
+	if err = b.v2NoneHaModeClusterUpdateValidations(cluster, params); err != nil {
+		log.WithError(err).Warnf("Unsupported update params in none ha mode")
+		return params, common.NewApiError(http.StatusBadRequest, err)
+	}
+
+	if err = b.validateDNSDomain(*cluster, params, log); err != nil {
+		return params, err
+	}
+
+	if err = validations.ValidateDiskEncryptionParams(params.ClusterUpdateParams.DiskEncryption, b.DiskEncryptionSupport); err != nil {
+		return params, common.NewApiError(http.StatusBadRequest, err)
+	}
+
+	if err = validations.ValidateHighAvailabilityModeWithPlatform(cluster.HighAvailabilityMode, platform); err != nil {
+		return params, common.NewApiError(http.StatusBadRequest, err)
+	}
+
+	if err = validations.ValidateArchitectureWithPlatform(&cluster.CPUArchitecture, platform); err != nil {
+		return params, common.NewApiError(http.StatusBadRequest, err)
+	}
+
+	cpuArchitectures, err := b.listClusterArchitectures(ctx, cluster)
+	if err != nil {
+		return params, err
+	}
+	for _, cpuArchitecture := range cpuArchitectures {
+		if err = featuresupport.ValidateIncompatibleFeatures(cpuArchitecture, *cluster, params.ClusterUpdateParams); err != nil {
+			return params, common.NewApiError(http.StatusBadRequest, err)
+		}
+	}
+
+	return params, nil
+}
+
 func (b *bareMetalInventory) v2UpdateClusterInternal(ctx context.Context, params installer.V2UpdateClusterParams, interactivity Interactivity) (*common.Cluster, error) {
 	log := logutil.FromContext(ctx, b.log)
 	var cluster *common.Cluster
@@ -1923,60 +2011,9 @@ func (b *bareMetalInventory) v2UpdateClusterInternal(ctx context.Context, params
 		return nil, common.NewApiError(http.StatusNotFound, err)
 	}
 
-	if params, err = b.validateAndUpdateClusterParams(ctx, cluster, &params); err != nil {
-		return nil, common.NewApiError(http.StatusBadRequest, err)
-	}
-	alreadyDualStack := network.CheckIfClusterIsDualStack(cluster)
-	if err = validations.ValidateDualStackNetworks(params.ClusterUpdateParams, alreadyDualStack); err != nil {
-		return nil, common.NewApiError(http.StatusBadRequest, err)
-	}
-
-	if err = validateProxySettings(params.ClusterUpdateParams.HTTPProxy, params.ClusterUpdateParams.HTTPSProxy,
-		params.ClusterUpdateParams.NoProxy, &cluster.OpenshiftVersion); err != nil {
-		log.WithError(err).Errorf("Failed to validate Proxy settings")
-		return nil, common.NewApiError(http.StatusBadRequest, err)
-	}
-
-	if err = b.clusterApi.VerifyClusterUpdatability(cluster); err != nil {
-		log.WithError(err).Errorf("cluster %s can't be updated in current state", params.ClusterID)
-		return nil, common.NewApiError(http.StatusConflict, err)
-	}
-
-	log.Infof("Current cluster platform is set to %s and user-managed-networking is set to %t", getPlatformType(cluster.Platform), swag.BoolValue(cluster.UserManagedNetworking))
-	log.Infof("Verifying cluster platform and user-managed-networking, got platform=%s and userManagedNetworking=%t", getPlatformType(params.ClusterUpdateParams.Platform), swag.BoolValue(params.ClusterUpdateParams.UserManagedNetworking))
-	platform, userManagedNetworking, err := provider.GetActualUpdateClusterPlatformParams(params.ClusterUpdateParams.Platform, params.ClusterUpdateParams.UserManagedNetworking, cluster)
+	params, err = b.validateUpdateCluster(ctx, log, cluster, params)
 	if err != nil {
-		log.Error(err)
 		return nil, err
-	}
-
-	params.ClusterUpdateParams.Platform = platform
-	params.ClusterUpdateParams.UserManagedNetworking = userManagedNetworking
-	log.Infof("Platform verification completed, setting platform type to %s and user-managed-networking to %t", getPlatformType(platform), swag.BoolValue(userManagedNetworking))
-
-	if err = b.v2NoneHaModeClusterUpdateValidations(cluster, params); err != nil {
-		log.WithError(err).Warnf("Unsupported update params in none ha mode")
-		return nil, common.NewApiError(http.StatusBadRequest, err)
-	}
-
-	if err = b.validateDNSDomain(*cluster, params, log); err != nil {
-		return nil, err
-	}
-
-	if err = validations.ValidateDiskEncryptionParams(params.ClusterUpdateParams.DiskEncryption, b.DiskEncryptionSupport); err != nil {
-		return nil, common.NewApiError(http.StatusBadRequest, err)
-	}
-
-	if err = validations.ValidateHighAvailabilityModeWithPlatform(cluster.HighAvailabilityMode, platform); err != nil {
-		return nil, common.NewApiError(http.StatusBadRequest, err)
-	}
-
-	if err = validations.ValidateArchitectureWithPlatform(&cluster.CPUArchitecture, platform); err != nil {
-		return nil, common.NewApiError(http.StatusBadRequest, err)
-	}
-
-	if err = featuresupport.ValidateIncompatibleFeatures(*cluster, params.ClusterUpdateParams); err != nil {
-		return nil, common.NewApiError(http.StatusBadRequest, err)
 	}
 
 	usages, err := usage.Unmarshal(cluster.Cluster.FeatureUsage)
@@ -4359,28 +4396,36 @@ func (b *bareMetalInventory) GetInfraEnvInternal(ctx context.Context, params ins
 	return infraEnv, nil
 }
 
-func (b *bareMetalInventory) ListInfraEnvs(ctx context.Context, params installer.ListInfraEnvsParams) middleware.Responder {
+func (b *bareMetalInventory) ListInfraEnvsInternal(ctx context.Context, clusterId *strfmt.UUID, owner *string) ([]*models.InfraEnv, error) {
 	log := logutil.FromContext(ctx, b.log)
 	db := b.db
 	var dbInfraEnvs []*common.InfraEnv
 	var infraEnvs []*models.InfraEnv
 
-	db = b.authzHandler.OwnedByUser(ctx, db, swag.StringValue(params.Owner))
+	db = b.authzHandler.OwnedByUser(ctx, db, swag.StringValue(owner))
 
-	if params.ClusterID != nil {
-		db = db.Where("cluster_id = ?", params.ClusterID)
+	if clusterId != nil {
+		db = db.Where("cluster_id = ?", clusterId)
 	}
 
 	dbInfraEnvs, err := common.GetInfraEnvsFromDBWhere(db)
 	if err != nil {
 		log.WithError(err).Error("Failed to list infraEnvs in db")
-		return common.NewApiError(http.StatusInternalServerError, err)
+		return nil, err
 	}
 
 	for _, i := range dbInfraEnvs {
 		infraEnvs = append(infraEnvs, &i.InfraEnv)
 	}
-	return installer.NewListInfraEnvsOK().WithPayload(infraEnvs)
+	return infraEnvs, nil
+}
+
+func (b *bareMetalInventory) ListInfraEnvs(ctx context.Context, params installer.ListInfraEnvsParams) middleware.Responder {
+	if infraEnvs, err := b.ListInfraEnvsInternal(ctx, params.ClusterID, params.Owner); err != nil {
+		return common.NewApiError(http.StatusInternalServerError, err)
+	} else {
+		return installer.NewListInfraEnvsOK().WithPayload(infraEnvs)
+	}
 }
 
 func (b *bareMetalInventory) RegisterInfraEnv(ctx context.Context, params installer.RegisterInfraEnvParams) middleware.Responder {
@@ -4389,6 +4434,37 @@ func (b *bareMetalInventory) RegisterInfraEnv(ctx context.Context, params instal
 		return common.GenerateErrorResponder(err)
 	}
 	return installer.NewRegisterInfraEnvCreated().WithPayload(&i.InfraEnv)
+}
+
+func (b *bareMetalInventory) handlerCluserInfoOnRegisterInfraEnv(
+	log logrus.FieldLogger,
+	tx *gorm.DB,
+	clusterId *strfmt.UUID,
+	infraEnv *common.InfraEnv,
+	cluster *common.Cluster,
+	params *models.InfraEnvCreateParams,
+) error {
+	if clusterId != nil {
+		infraEnv.ClusterID = *clusterId
+		if err := featuresupport.ValidateIncompatibleFeatures(params.CPUArchitecture, *cluster, nil); err != nil {
+			return common.NewApiError(http.StatusBadRequest, err)
+		}
+
+		// Set the feature usage for ignition config overrides since cluster id exists
+		if err := b.setIgnitionConfigOverrideUsage(infraEnv.ClusterID, params.IgnitionConfigOverride, "infra-env", tx); err != nil {
+			// Failure to set the feature usage isn't a failure to create the infraenv so we only print the error instead of returning it
+			log.WithError(err).Warnf("failed to set ignition config override usage for cluster %s", infraEnv.ClusterID)
+		}
+
+		if err := b.setStaticNetworkUsage(tx, *clusterId, infraEnv.StaticNetworkConfig); err != nil {
+			log.WithError(err).Warnf("failed to set static network usage for cluster %s", clusterId)
+		}
+
+		if err := b.setDiscoveryKernelArgumentsUsage(tx, *clusterId, params.KernelArguments); err != nil {
+			log.WithError(err).Warnf("failed to set discovery kernel arguments usage for cluster %s", clusterId)
+		}
+	}
+	return nil
 }
 
 func (b *bareMetalInventory) RegisterInfraEnvInternal(
@@ -4528,22 +4604,10 @@ func (b *bareMetalInventory) RegisterInfraEnvInternal(
 		ImageTokenKey:    imageTokenKey,
 	}
 
-	if clusterId != nil {
-		infraEnv.ClusterID = *clusterId
-		// Set the feature usage for ignition config overrides since cluster id exists
-		if err = b.setIgnitionConfigOverrideUsage(infraEnv.ClusterID, params.InfraenvCreateParams.IgnitionConfigOverride, "infra-env", tx); err != nil {
-			// Failure to set the feature usage isn't a failure to create the infraenv so we only print the error instead of returning it
-			log.WithError(err).Warnf("failed to set ignition config override usage for cluster %s", infraEnv.ClusterID)
-		}
-
-		if err = b.setStaticNetworkUsage(tx, infraEnv.ClusterID, infraEnv.StaticNetworkConfig); err != nil {
-			log.WithError(err).Warnf("failed to set static network usage for cluster %s", infraEnv.ClusterID)
-		}
-
-		if err = b.setDiscoveryKernelArgumentsUsage(tx, infraEnv.ClusterID, params.InfraenvCreateParams.KernelArguments); err != nil {
-			log.WithError(err).Warnf("failed to set discovery kernel arguments usage for cluster %s", infraEnv.ClusterID)
-		}
+	if err = b.handlerCluserInfoOnRegisterInfraEnv(log, tx, clusterId, &infraEnv, cluster, params.InfraenvCreateParams); err != nil {
+		return nil, err
 	}
+
 	if params.InfraenvCreateParams.Proxy != nil {
 		proxy := models.Proxy{
 			HTTPProxy:  params.InfraenvCreateParams.Proxy.HTTPProxy,
