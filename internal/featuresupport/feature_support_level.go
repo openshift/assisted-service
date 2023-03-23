@@ -93,10 +93,10 @@ func isFeatureCompatible(feature SupportLevelFeature, features ...SupportLevelFe
 	return nil
 }
 
-func ValidateIncompatibleFeatures(cluster common.Cluster, updateParams *models.V2ClusterUpdateParams) error {
+func ValidateIncompatibleFeatures(cpuArchitecture string, cluster common.Cluster, updateParams *models.V2ClusterUpdateParams) error {
 	var activatedFeatures []SupportLevelFeature
 
-	if cluster.CPUArchitecture == "" || cluster.OpenshiftVersion == "" {
+	if cpuArchitecture == "" || cluster.OpenshiftVersion == "" {
 		return nil
 	}
 
@@ -106,11 +106,11 @@ func ValidateIncompatibleFeatures(cluster common.Cluster, updateParams *models.V
 		}
 	}
 
-	if isSupported := isArchitectureSupported(cpuArchitectureFeatureIdMap[cluster.CPUArchitecture], cluster.OpenshiftVersion); !isSupported {
-		return fmt.Errorf("cannot use %s architecture because it's not compatible on version %s of OpenShift", cluster.CPUArchitecture, cluster.OpenshiftVersion)
+	if isSupported := isArchitectureSupported(cpuArchitectureFeatureIdMap[cpuArchitecture], cluster.OpenshiftVersion); !isSupported {
+		return fmt.Errorf("cannot use %s architecture because it's not compatible on version %s of OpenShift", cpuArchitecture, cluster.OpenshiftVersion)
 	}
 
-	if err := isFeaturesCompatibleWIthArchitecture(cluster.OpenshiftVersion, cluster.CPUArchitecture, activatedFeatures); err != nil {
+	if err := isFeaturesCompatibleWIthArchitecture(cluster.OpenshiftVersion, cpuArchitecture, activatedFeatures); err != nil {
 		return err
 	}
 	if err := isFeaturesCompatibleWIthFeatures(activatedFeatures); err != nil {

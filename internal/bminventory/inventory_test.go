@@ -6634,7 +6634,7 @@ var _ = Describe("[V2ClusterUpdate] cluster", func() {
 		Context("Feature compatibility", func() {
 			Context("OCP Version 4.13", func() {
 
-				createClusterForFeatureSupport := func(clusterId strfmt.UUID, cpuArchitecture, openshiftVersion string, platformType models.PlatformType, umn bool, highAvailabilityMode string) {
+				createClusterWithInfraEnv := func(clusterId strfmt.UUID, cpuArchitecture, openshiftVersion string, platformType models.PlatformType, umn bool, highAvailabilityMode string) {
 					err := db.Create(&common.Cluster{Cluster: models.Cluster{
 						ID:                    &clusterId,
 						HighAvailabilityMode:  swag.String(highAvailabilityMode),
@@ -6647,11 +6647,21 @@ var _ = Describe("[V2ClusterUpdate] cluster", func() {
 					}}).Error
 					Expect(err).ShouldNot(HaveOccurred())
 					mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(1)
+
+					infraEnvID := strfmt.UUID(uuid.New().String())
+					infraEnv := &common.InfraEnv{
+						InfraEnv: models.InfraEnv{
+							ID:              &infraEnvID,
+							ClusterID:       clusterID,
+							CPUArchitecture: cpuArchitecture,
+						},
+					}
+					Expect(db.Create(infraEnv).Error).ToNot(HaveOccurred())
 				}
 
 				It("s390x with SNO - incompatible", func() {
 					clusterID = strfmt.UUID(uuid.New().String())
-					createClusterForFeatureSupport(clusterID, models.ClusterCPUArchitectureS390x, "4.13", models.PlatformTypeNone, true, models.ClusterHighAvailabilityModeNone)
+					createClusterWithInfraEnv(clusterID, models.ClusterCPUArchitectureS390x, "4.13", models.PlatformTypeNone, true, models.ClusterHighAvailabilityModeNone)
 
 					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 						ClusterID: clusterID,
@@ -6664,7 +6674,7 @@ var _ = Describe("[V2ClusterUpdate] cluster", func() {
 
 				It("ppc64le with SNO - incompatible", func() {
 					clusterID = strfmt.UUID(uuid.New().String())
-					createClusterForFeatureSupport(clusterID, models.ClusterCPUArchitecturePpc64le, "4.13", models.PlatformTypeNone, true, models.ClusterHighAvailabilityModeNone)
+					createClusterWithInfraEnv(clusterID, models.ClusterCPUArchitecturePpc64le, "4.13", models.PlatformTypeNone, true, models.ClusterHighAvailabilityModeNone)
 
 					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 						ClusterID: clusterID,
@@ -6677,7 +6687,7 @@ var _ = Describe("[V2ClusterUpdate] cluster", func() {
 
 				It("update ClusterManagedNetworking with ppc64le - incompatible", func() {
 					clusterID = strfmt.UUID(uuid.New().String())
-					createClusterForFeatureSupport(clusterID, models.ClusterCPUArchitecturePpc64le, "4.13", models.PlatformTypeBaremetal, false, models.ClusterHighAvailabilityModeFull)
+					createClusterWithInfraEnv(clusterID, models.ClusterCPUArchitecturePpc64le, "4.13", models.PlatformTypeBaremetal, false, models.ClusterHighAvailabilityModeFull)
 
 					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 						ClusterID: clusterID,
@@ -6690,7 +6700,7 @@ var _ = Describe("[V2ClusterUpdate] cluster", func() {
 
 				It("update ClusterManagedNetworking with arm64 - compatible", func() {
 					clusterID = strfmt.UUID(uuid.New().String())
-					createClusterForFeatureSupport(clusterID, models.ClusterCPUArchitectureArm64, "4.13", models.PlatformTypeBaremetal, false, models.ClusterHighAvailabilityModeFull)
+					createClusterWithInfraEnv(clusterID, models.ClusterCPUArchitectureArm64, "4.13", models.PlatformTypeBaremetal, false, models.ClusterHighAvailabilityModeFull)
 					mockSuccess()
 
 					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
@@ -6707,7 +6717,7 @@ var _ = Describe("[V2ClusterUpdate] cluster", func() {
 
 				It("update CNV operators with ppc64le - incompatible", func() {
 					clusterID = strfmt.UUID(uuid.New().String())
-					createClusterForFeatureSupport(clusterID, models.ClusterCPUArchitecturePpc64le, "4.13", models.PlatformTypeNone, true, models.ClusterHighAvailabilityModeFull)
+					createClusterWithInfraEnv(clusterID, models.ClusterCPUArchitecturePpc64le, "4.13", models.PlatformTypeNone, true, models.ClusterHighAvailabilityModeFull)
 
 					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 						ClusterID: clusterID,
@@ -7205,6 +7215,7 @@ var _ = Describe("infraEnvs", func() {
 				ID:               &clusterID,
 				OpenshiftVersion: MinimalOpenShiftVersionForNoneHA,
 				CPUArchitecture:  "x86_64",
+				Platform:         &models.Platform{Type: models.NewPlatformType(models.PlatformTypeBaremetal)},
 			}}
 			err := db.Create(&cluster).Error
 			Expect(err).ShouldNot(HaveOccurred())
@@ -7257,6 +7268,7 @@ var _ = Describe("infraEnvs", func() {
 				ID:               &clusterID,
 				OpenshiftVersion: MinimalOpenShiftVersionForNoneHA,
 				CPUArchitecture:  "x86_64",
+				Platform:         &models.Platform{Type: models.NewPlatformType(models.PlatformTypeBaremetal)},
 			}}
 			err := db.Create(&cluster).Error
 			Expect(err).ShouldNot(HaveOccurred())
@@ -7285,6 +7297,7 @@ var _ = Describe("infraEnvs", func() {
 				ID:               &clusterID,
 				OpenshiftVersion: MinimalOpenShiftVersionForNoneHA,
 				CPUArchitecture:  "x86_64",
+				Platform:         &models.Platform{Type: models.NewPlatformType(models.PlatformTypeBaremetal)},
 			}}
 			err := db.Create(&cluster).Error
 			Expect(err).ShouldNot(HaveOccurred())
@@ -7338,6 +7351,7 @@ var _ = Describe("infraEnvs", func() {
 				ID:               &clusterID,
 				OpenshiftVersion: MinimalOpenShiftVersionForNoneHA,
 				CPUArchitecture:  "x86_64",
+				Platform:         &models.Platform{Type: models.NewPlatformType(models.PlatformTypeBaremetal)},
 			}}
 			err := db.Create(&cluster).Error
 			Expect(err).ShouldNot(HaveOccurred())
@@ -7366,6 +7380,7 @@ var _ = Describe("infraEnvs", func() {
 				ID:               &clusterID,
 				OpenshiftVersion: MinimalOpenShiftVersionForNoneHA,
 				CPUArchitecture:  common.MultiCPUArchitecture,
+				Platform:         &models.Platform{Type: models.NewPlatformType(models.PlatformTypeBaremetal)},
 			}}
 			err := db.Create(&cluster).Error
 			Expect(err).ShouldNot(HaveOccurred())
@@ -12297,9 +12312,7 @@ var _ = Describe("TestRegisterCluster", func() {
 			params.OpenshiftVersion = swag.String("4.13")
 			params.CPUArchitecture = models.ClusterCPUArchitectureS390x
 			params.Platform = &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeNone)}
-
-			mockOSImages.EXPECT().GetCPUArchitectures(gomock.Any()).Return(
-				[]string{common.TestDefaultConfig.OpenShiftVersion, common.S390xCPUArchitecture}).Times(1)
+			mockOSImages.EXPECT().GetCPUArchitectures(gomock.Any()).Return([]string{common.X86CPUArchitecture, common.S390xCPUArchitecture}).Times(1)
 
 			releaseImage := &models.ReleaseImage{
 				CPUArchitecture:  &params.CPUArchitecture,
@@ -12326,8 +12339,7 @@ var _ = Describe("TestRegisterCluster", func() {
 				eventstest.WithMessageContainsMatcher("Failed to register cluster. Error: cannot use s390x architecture because it's not compatible on version 4.12.0 of OpenShift"),
 				eventstest.WithSeverityMatcher(models.EventSeverityError))).Times(1)
 
-			mockOSImages.EXPECT().GetCPUArchitectures(gomock.Any()).Return(
-				[]string{common.TestDefaultConfig.OpenShiftVersion, common.S390xCPUArchitecture}).Times(1)
+			mockOSImages.EXPECT().GetCPUArchitectures(gomock.Any()).Return([]string{common.X86CPUArchitecture, common.S390xCPUArchitecture}).Times(1)
 
 			params := getDefaultClusterCreateParams()
 			params.Platform = &models.Platform{
@@ -12357,8 +12369,7 @@ var _ = Describe("TestRegisterCluster", func() {
 				eventstest.WithMessageContainsMatcher("Failed to register cluster. Error: cannot use ppc64le architecture because it's not compatible on version 4.12.0 of OpenShift"),
 				eventstest.WithSeverityMatcher(models.EventSeverityError))).Times(1)
 
-			mockOSImages.EXPECT().GetCPUArchitectures(gomock.Any()).Return(
-				[]string{common.TestDefaultConfig.OpenShiftVersion, common.PowerCPUArchitecture}).Times(1)
+			mockOSImages.EXPECT().GetCPUArchitectures(gomock.Any()).Return([]string{common.X86CPUArchitecture, common.PowerCPUArchitecture}).Times(1)
 
 			params := getDefaultClusterCreateParams()
 			params.Platform = &models.Platform{
@@ -12388,8 +12399,7 @@ var _ = Describe("TestRegisterCluster", func() {
 				eventstest.WithMessageContainsMatcher("Failed to register cluster. Error: cannot use Single Node OpenShift because it's not compatible with the s390x architecture on version 4.13.0 of OpenShift"),
 				eventstest.WithSeverityMatcher(models.EventSeverityError))).Times(1)
 
-			mockOSImages.EXPECT().GetCPUArchitectures(gomock.Any()).Return(
-				[]string{common.TestDefaultConfig.OpenShiftVersion, common.S390xCPUArchitecture}).Times(1)
+			mockOSImages.EXPECT().GetCPUArchitectures(gomock.Any()).Return([]string{common.X86CPUArchitecture, common.S390xCPUArchitecture}).Times(1)
 
 			params := getDefaultClusterCreateParams()
 			params.Platform = &models.Platform{
@@ -12400,9 +12410,9 @@ var _ = Describe("TestRegisterCluster", func() {
 			params.HighAvailabilityMode = swag.String(models.ClusterHighAvailabilityModeNone)
 
 			releaseImage := &models.ReleaseImage{
-				CPUArchitecture:  &params.CPUArchitecture,
+				CPUArchitectures: []string{models.ClusterCPUArchitectureX8664, params.CPUArchitecture},
 				OpenshiftVersion: params.OpenshiftVersion,
-				URL:              swag.String("quay.io/openshift-release-dev/ocp-release:4.13-x86_64"),
+				URL:              swag.String("quay.io/openshift-release-dev/ocp-release:4.13-multi"),
 				Version:          swag.String("4.13.0"),
 				SupportLevel:     models.OpenshiftVersionSupportLevelProduction,
 			}
@@ -12421,8 +12431,7 @@ var _ = Describe("TestRegisterCluster", func() {
 				eventstest.WithMessageContainsMatcher("Failed to register cluster. Error: cannot use Cluster Managed Networking because it's not compatible with the ppc64le architecture on version 4.13.0 of OpenShift"),
 				eventstest.WithSeverityMatcher(models.EventSeverityError))).Times(1)
 
-			mockOSImages.EXPECT().GetCPUArchitectures(gomock.Any()).Return(
-				[]string{common.TestDefaultConfig.OpenShiftVersion, models.ClusterCPUArchitecturePpc64le}).Times(1)
+			mockOSImages.EXPECT().GetCPUArchitectures(gomock.Any()).Return([]string{common.X86CPUArchitecture, common.PowerCPUArchitecture}).Times(1)
 
 			params := getDefaultClusterCreateParams()
 			params.OpenshiftVersion = swag.String("4.13")
@@ -12453,8 +12462,8 @@ var _ = Describe("TestRegisterCluster", func() {
 				DoAndReturn(func(commonCluster *common.Cluster, operators []*models.MonitoredOperator) ([]*models.MonitoredOperator, error) {
 					return operators, nil
 				}).Times(1)
-			mockOSImages.EXPECT().GetCPUArchitectures(gomock.Any()).Return(
-				[]string{common.TestDefaultConfig.OpenShiftVersion, common.S390xCPUArchitecture}).Times(1)
+
+			mockOSImages.EXPECT().GetCPUArchitectures(gomock.Any()).Return([]string{common.X86CPUArchitecture, common.S390xCPUArchitecture}).Times(1)
 			mockOperatorManager.EXPECT().EnsureOperatorPrerequisite(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 
 			params := getDefaultClusterCreateParams()
@@ -12503,8 +12512,8 @@ var _ = Describe("TestRegisterCluster", func() {
 				DoAndReturn(func(commonCluster *common.Cluster, operators []*models.MonitoredOperator) ([]*models.MonitoredOperator, error) {
 					return operators, nil
 				}).Times(1)
-			mockOSImages.EXPECT().GetCPUArchitectures(gomock.Any()).Return(
-				[]string{common.TestDefaultConfig.OpenShiftVersion, common.S390xCPUArchitecture}).Times(1)
+			mockOSImages.EXPECT().GetCPUArchitectures(gomock.Any()).Return([]string{common.X86CPUArchitecture, common.S390xCPUArchitecture}).Times(1)
+
 			mockOperatorManager.EXPECT().EnsureOperatorPrerequisite(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 
 			params := getDefaultClusterCreateParams()
@@ -15770,6 +15779,7 @@ var _ = Describe("IPv6 support disabled", func() {
 				ID:               &clusterID,
 				OpenshiftVersion: common.TestDefaultConfig.OpenShiftVersion,
 				Status:           swag.String(models.ClusterStatusReady),
+				CPUArchitecture:  models.ClusterCPUArchitectureX8664,
 			}}).Error
 			Expect(err).ShouldNot(HaveOccurred())
 
@@ -15952,6 +15962,7 @@ var _ = Describe("Dual-stack cluster", func() {
 				ID:               &clusterID,
 				OpenshiftVersion: common.TestDefaultConfig.OpenShiftVersion,
 				Status:           swag.String(models.ClusterStatusReady),
+				CPUArchitecture:  models.ClusterCPUArchitectureX8664,
 			}}).Error
 			Expect(err).ShouldNot(HaveOccurred())
 
