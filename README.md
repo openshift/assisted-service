@@ -224,12 +224,6 @@ In this scenario the service and associated components are deployed onto your lo
 
 See the [README](./deploy/podman/) for details.
 
-#### Using assisted-service Live-ISO
-The assisted-service live ISO is a RHCOS live ISO that is customized with an ignition config file.
-The live ISO boots up and deploys the assisted-service using containers on host.
-
-[Using assisted-service Live-ISO](docs/installer-live-iso.md)
-
 ### Storage
 
 assisted-service maintains a cache of openshift-baremetal-install binaries at
