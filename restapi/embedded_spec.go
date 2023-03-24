@@ -9394,11 +9394,31 @@ func init() {
         "type"
       ],
       "properties": {
+        "external": {
+          "$ref": "#/definitions/platform_external"
+        },
         "type": {
           "$ref": "#/definitions/platform_type"
         }
       },
       "x-go-custom-tag": "gorm:\"embedded;embeddedPrefix:platform_\""
+    },
+    "platform_external": {
+      "description": "The configuration for the external platform type.",
+      "type": "object",
+      "properties": {
+        "platform_name": {
+          "description": "Holds the infrastructure provider name.",
+          "type": "string",
+          "default": "Unknown",
+          "enum": [
+            "Unknown",
+            "oci"
+          ],
+          "x-nullable": true
+        }
+      },
+      "x-go-custom-tag": "gorm:\"embedded;embeddedPrefix:platform_external_\""
     },
     "platform_type": {
       "type": "string",
@@ -9406,7 +9426,8 @@ func init() {
         "baremetal",
         "nutanix",
         "vsphere",
-        "none"
+        "none",
+        "external"
       ]
     },
     "preflight-hardware-requirements": {
@@ -19684,11 +19705,31 @@ func init() {
         "type"
       ],
       "properties": {
+        "external": {
+          "$ref": "#/definitions/platform_external"
+        },
         "type": {
           "$ref": "#/definitions/platform_type"
         }
       },
       "x-go-custom-tag": "gorm:\"embedded;embeddedPrefix:platform_\""
+    },
+    "platform_external": {
+      "description": "The configuration for the external platform type.",
+      "type": "object",
+      "properties": {
+        "platform_name": {
+          "description": "Holds the infrastructure provider name.",
+          "type": "string",
+          "default": "Unknown",
+          "enum": [
+            "Unknown",
+            "oci"
+          ],
+          "x-nullable": true
+        }
+      },
+      "x-go-custom-tag": "gorm:\"embedded;embeddedPrefix:platform_external_\""
     },
     "platform_type": {
       "type": "string",
@@ -19696,7 +19737,8 @@ func init() {
         "baremetal",
         "nutanix",
         "vsphere",
-        "none"
+        "none",
+        "external"
       ]
     },
     "preflight-hardware-requirements": {

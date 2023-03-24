@@ -8,6 +8,7 @@ import (
 	"github.com/openshift/assisted-service/internal/installcfg"
 	"github.com/openshift/assisted-service/internal/provider"
 	"github.com/openshift/assisted-service/internal/provider/baremetal"
+	"github.com/openshift/assisted-service/internal/provider/external"
 	"github.com/openshift/assisted-service/internal/provider/none"
 	"github.com/openshift/assisted-service/internal/provider/nutanix"
 	"github.com/openshift/assisted-service/internal/provider/vsphere"
@@ -165,5 +166,6 @@ func InitProviderRegistry(log logrus.FieldLogger) ProviderRegistry {
 	providerRegistry.Register(baremetal.NewBaremetalProvider(log))
 	providerRegistry.Register(none.NewNoneProvider(log))
 	providerRegistry.Register(nutanix.NewNutanixProvider(log))
+	providerRegistry.Register(external.NewExternalProvider(log))
 	return providerRegistry
 }

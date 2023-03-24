@@ -85,16 +85,16 @@ var _ = Describe("Test GetSupportedProvidersByHosts", func() {
 		hosts = append(hosts, createHost(false, models.HostStatusKnown, bmInventory))
 		platforms, err := providerRegistry.GetSupportedProvidersByHosts(hosts)
 		Expect(err).To(BeNil())
-		Expect(len(platforms)).Should(Equal(2))
-		Expect(platforms).Should(ContainElements(models.PlatformTypeBaremetal, models.PlatformTypeNone))
+		Expect(len(platforms)).Should(Equal(3))
+		Expect(platforms).Should(ContainElements(models.PlatformTypeBaremetal, models.PlatformTypeNone, models.PlatformTypeExternal))
 	})
 	It("single vsphere host", func() {
 		hosts := make([]*models.Host, 0)
 		hosts = append(hosts, createHost(true, models.HostStatusKnown, vsphereInventory))
 		platforms, err := providerRegistry.GetSupportedProvidersByHosts(hosts)
 		Expect(err).To(BeNil())
-		Expect(len(platforms)).Should(Equal(3))
-		supportedPlatforms := []models.PlatformType{models.PlatformTypeBaremetal, models.PlatformTypeVsphere, models.PlatformTypeNone}
+		Expect(len(platforms)).Should(Equal(4))
+		supportedPlatforms := []models.PlatformType{models.PlatformTypeBaremetal, models.PlatformTypeVsphere, models.PlatformTypeNone, models.PlatformTypeExternal}
 		Expect(platforms).Should(ContainElements(supportedPlatforms))
 	})
 	It("5 vsphere hosts - 3 masters, 2 workers", func() {
@@ -106,8 +106,8 @@ var _ = Describe("Test GetSupportedProvidersByHosts", func() {
 		hosts = append(hosts, createHost(false, models.HostStatusKnown, vsphereInventory))
 		platforms, err := providerRegistry.GetSupportedProvidersByHosts(hosts)
 		Expect(err).To(BeNil())
-		Expect(len(platforms)).Should(Equal(3))
-		supportedPlatforms := []models.PlatformType{models.PlatformTypeBaremetal, models.PlatformTypeVsphere, models.PlatformTypeNone}
+		Expect(len(platforms)).Should(Equal(4))
+		supportedPlatforms := []models.PlatformType{models.PlatformTypeBaremetal, models.PlatformTypeVsphere, models.PlatformTypeNone, models.PlatformTypeExternal}
 		Expect(platforms).Should(ContainElements(supportedPlatforms))
 	})
 	It("2 vsphere hosts 1 generic host", func() {
@@ -117,8 +117,8 @@ var _ = Describe("Test GetSupportedProvidersByHosts", func() {
 		hosts = append(hosts, createHost(true, models.HostStatusKnown, vsphereInventory))
 		platforms, err := providerRegistry.GetSupportedProvidersByHosts(hosts)
 		Expect(err).To(BeNil())
-		Expect(len(platforms)).Should(Equal(2))
-		Expect(platforms).Should(ContainElements(models.PlatformTypeBaremetal, models.PlatformTypeNone))
+		Expect(len(platforms)).Should(Equal(3))
+		Expect(platforms).Should(ContainElements(models.PlatformTypeBaremetal, models.PlatformTypeNone, models.PlatformTypeExternal))
 	})
 	It("3 vsphere masters 2 generic workers", func() {
 		hosts := make([]*models.Host, 0)
@@ -129,8 +129,8 @@ var _ = Describe("Test GetSupportedProvidersByHosts", func() {
 		hosts = append(hosts, createHost(false, models.HostStatusKnown, bmInventory))
 		platforms, err := providerRegistry.GetSupportedProvidersByHosts(hosts)
 		Expect(err).To(BeNil())
-		Expect(len(platforms)).Should(Equal(2))
-		Expect(platforms).Should(ContainElements(models.PlatformTypeBaremetal, models.PlatformTypeNone))
+		Expect(len(platforms)).Should(Equal(3))
+		Expect(platforms).Should(ContainElements(models.PlatformTypeBaremetal, models.PlatformTypeNone, models.PlatformTypeExternal))
 	})
 	It("host with an invalid inventory", func() {
 		hosts := make([]*models.Host, 0)
@@ -394,6 +394,22 @@ var _ = Describe("Test AddPlatformToInstallConfig", func() {
 			Expect(string(installConfigByte)).To(Equal(expectedNutanixInstallConfig411))
 		})
 	})
+
+	Context("external", func() {
+		It("should set platform to none", func() {
+			cfg := getInstallerConfigBaremetal()
+			hosts := make([]*models.Host, 0)
+			hosts = append(hosts, createHost(true, models.HostStatusKnown, getBaremetalInventoryStr("hostname0", "bootMode", true, false)))
+			hosts = append(hosts, createHost(true, models.HostStatusKnown, getBaremetalInventoryStr("hostname1", "bootMode", true, false)))
+			hosts = append(hosts, createHost(true, models.HostStatusKnown, getBaremetalInventoryStr("hostname2", "bootMode", true, false)))
+			hosts = append(hosts, createHost(false, models.HostStatusKnown, getBaremetalInventoryStr("hostname3", "bootMode", true, false)))
+			hosts = append(hosts, createHost(false, models.HostStatusKnown, getBaremetalInventoryStr("hostname4", "bootMode", true, false)))
+			cluster := createClusterFromHosts(hosts)
+			err := providerRegistry.AddPlatformToInstallConfig(models.PlatformTypeNone, &cfg, &cluster)
+			Expect(err).To(BeNil())
+			Expect(cfg.Platform.None).ToNot(BeNil())
+		})
+	})
 })
 
 var _ = Describe("Test SetPlatformUsages", func() {
@@ -423,6 +439,13 @@ var _ = Describe("Test SetPlatformUsages", func() {
 		It("success", func() {
 			usageApi.EXPECT().Add(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
 			err := providerRegistry.SetPlatformUsages(models.PlatformTypeVsphere, nil, usageApi)
+			Expect(err).To(BeNil())
+		})
+	})
+	Context("external", func() {
+		It("success", func() {
+			usageApi.EXPECT().Add(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+			err := providerRegistry.SetPlatformUsages(models.PlatformTypeExternal, nil, usageApi)
 			Expect(err).To(BeNil())
 		})
 	})
@@ -519,9 +542,11 @@ func createVspherePlatformParams() *models.Platform {
 }
 
 func createClusterFromHosts(hosts []*models.Host) common.Cluster {
+	clusterID := strfmt.UUID(uuid.New().String())
 	return common.Cluster{
 		Cluster: models.Cluster{
 			Name:             "cluster",
+			ID:               &clusterID,
 			APIVip:           "192.168.10.10",
 			APIVips:          []*models.APIVip{{IP: "192.168.10.10"}},
 			Hosts:            hosts,

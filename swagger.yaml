@@ -2474,7 +2474,7 @@ paths:
     post:
       tags:
         - installer
-      description: Deprecated, maintained for legacy purposes. Does the same thing as allow-add-hosts. Use allow-add-hosts instead. 
+      description: Deprecated, maintained for legacy purposes. Does the same thing as allow-add-hosts. Use allow-add-hosts instead.
       deprecated: true
       operationId: TransformClusterToDay2
       parameters:
@@ -3764,7 +3764,7 @@ paths:
         "201":
           description: Success.
           schema:
-            $ref: '#/definitions/ignored-validations' 
+            $ref: '#/definitions/ignored-validations'
         "400":
           description: Error.
           schema:
@@ -5321,6 +5321,21 @@ definitions:
     properties:
       type:
         $ref: '#/definitions/platform_type'
+      external:
+        $ref: '#/definitions/platform_external'
+
+  platform_external:
+    type: object
+    x-go-custom-tag: gorm:"embedded;embeddedPrefix:platform_external_"
+    description: The configuration for the external platform type.
+    properties:
+      platform_name:
+        type: string
+        x-nullable: true
+        enum: ['Unknown', 'oci']
+        default: 'Unknown'
+        description: |-
+          Holds the infrastructure provider name.
 
   image_info:
     type: object
@@ -5477,7 +5492,7 @@ definitions:
         type: string
       data:
         type: object
-        description: additional data from the cluster 
+        description: additional data from the cluster
         additionalProperties:
           type: object
 
@@ -6121,6 +6136,7 @@ definitions:
       - nutanix
       - vsphere
       - none
+      - external
 
   memory_method:
     type: string

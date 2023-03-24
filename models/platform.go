@@ -19,6 +19,9 @@ import (
 // swagger:model platform
 type Platform struct {
 
+	// external
+	External *PlatformExternal `json:"external,omitempty" gorm:"embedded;embeddedPrefix:platform_external_"`
+
 	// type
 	// Required: true
 	Type *PlatformType `json:"type"`
@@ -28,6 +31,10 @@ type Platform struct {
 func (m *Platform) Validate(formats strfmt.Registry) error {
 	var res []error
 
+	if err := m.validateExternal(formats); err != nil {
+		res = append(res, err)
+	}
+
 	if err := m.validateType(formats); err != nil {
 		res = append(res, err)
 	}
@@ -35,6 +42,25 @@ func (m *Platform) Validate(formats strfmt.Registry) error {
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}
+	return nil
+}
+
+func (m *Platform) validateExternal(formats strfmt.Registry) error {
+	if swag.IsZero(m.External) { // not required
+		return nil
+	}
+
+	if m.External != nil {
+		if err := m.External.Validate(formats); err != nil {
+			if ve, ok := err.(*errors.Validation); ok {
+				return ve.ValidateName("external")
+			} else if ce, ok := err.(*errors.CompositeError); ok {
+				return ce.ValidateName("external")
+			}
+			return err
+		}
+	}
+
 	return nil
 }
 
@@ -66,6 +92,10 @@ func (m *Platform) validateType(formats strfmt.Registry) error {
 func (m *Platform) ContextValidate(ctx context.Context, formats strfmt.Registry) error {
 	var res []error
 
+	if err := m.contextValidateExternal(ctx, formats); err != nil {
+		res = append(res, err)
+	}
+
 	if err := m.contextValidateType(ctx, formats); err != nil {
 		res = append(res, err)
 	}
@@ -73,6 +103,22 @@ func (m *Platform) ContextValidate(ctx context.Context, formats strfmt.Registry)
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}
+	return nil
+}
+
+func (m *Platform) contextValidateExternal(ctx context.Context, formats strfmt.Registry) error {
+
+	if m.External != nil {
+		if err := m.External.ContextValidate(ctx, formats); err != nil {
+			if ve, ok := err.(*errors.Validation); ok {
+				return ve.ValidateName("external")
+			} else if ce, ok := err.(*errors.CompositeError); ok {
+				return ce.ValidateName("external")
+			}
+			return err
+		}
+	}
+
 	return nil
 }
 

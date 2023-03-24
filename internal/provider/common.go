@@ -18,6 +18,10 @@ func isPlatformNone(platform *models.Platform) bool {
 	return platform != nil && *platform.Type == models.PlatformTypeNone
 }
 
+func isPlatformExternal(platform *models.Platform) bool {
+	return platform != nil && *platform.Type == models.PlatformTypeExternal
+}
+
 func isUMNAllowedForPlatform(platform *models.Platform) bool {
 	if platform == nil {
 		return true
@@ -30,8 +34,16 @@ func isUMNAllowedForPlatform(platform *models.Platform) bool {
 	return true
 }
 
-func isClusterPlatformNone(cluster *common.Cluster) bool {
-	return cluster != nil && isPlatformNone(cluster.Platform)
+func isUMNMandatoryForPlatform(platform *models.Platform) bool {
+	if platform == nil {
+		return true
+	}
+
+	switch *platform.Type {
+	case models.PlatformTypeNone, models.PlatformTypeExternal:
+		return true
+	}
+	return false
 }
 
 func isClusterPlatformBM(cluster *common.Cluster) bool {
@@ -42,13 +54,17 @@ func isUMNAllowedForCluster(cluster *common.Cluster) bool {
 	return cluster != nil && isUMNAllowedForPlatform(cluster.Platform)
 }
 
+func isUMNMandatoryForCluster(cluster *common.Cluster) bool {
+	return cluster != nil && isUMNMandatoryForPlatform(cluster.Platform)
+}
+
 func checkPlatformWrongParamsInput(platform *models.Platform, userManagedNetworking *bool, cluster *common.Cluster) error {
 	if platform != nil && userManagedNetworking != nil {
 		userManagedNetworkingStatus := "enabled"
 		if !*userManagedNetworking {
 			userManagedNetworkingStatus = "disabled"
 		}
-		if (!*userManagedNetworking && isPlatformNone(platform)) || (*userManagedNetworking && !isUMNAllowedForPlatform(platform)) {
+		if (!*userManagedNetworking && isUMNMandatoryForPlatform(platform)) || (*userManagedNetworking && !isUMNAllowedForPlatform(platform)) {
 			return common.NewApiError(http.StatusBadRequest, errors.Errorf("Can't set %s platform with user-managed-networking %s", *platform.Type, userManagedNetworkingStatus))
 		}
 	}
@@ -56,12 +72,12 @@ func checkPlatformWrongParamsInput(platform *models.Platform, userManagedNetwork
 	// If current cluster platform is different than baremetal/none, and we want to set the cluster platform to one
 	// of those platforms, that might cause the cluster to be in wrong state (baremetal + umn enabled, none + umn disabled)
 	// In those cases return bad request
-	if cluster != nil && isUMNAllowedForCluster(cluster) && !isClusterPlatformNone(cluster) {
+	if cluster != nil && isUMNAllowedForCluster(cluster) && !isUMNMandatoryForCluster(cluster) {
 		if platform != nil && !isUMNAllowedForPlatform(platform) && swag.BoolValue(cluster.UserManagedNetworking) {
 			return common.NewApiError(http.StatusBadRequest, errors.Errorf("Can't set %s platform with user-managed-networking enabled", *platform.Type))
 		}
 
-		if platform != nil && isPlatformNone(platform) && !swag.BoolValue(cluster.UserManagedNetworking) {
+		if platform != nil && isUMNMandatoryForPlatform(platform) && !swag.BoolValue(cluster.UserManagedNetworking) {
 			return common.NewApiError(http.StatusBadRequest, errors.Errorf("Can't set %s platform with user-managed-networking disabled", *platform.Type))
 		}
 	}
@@ -70,11 +86,11 @@ func checkPlatformWrongParamsInput(platform *models.Platform, userManagedNetwork
 }
 
 func doesPlatformAllowUMNOrNone(platform *models.Platform, cluster *common.Cluster) bool {
-	if platform != nil && isUMNAllowedForPlatform(platform) && !isPlatformNone(platform) {
+	if platform != nil && isUMNAllowedForPlatform(platform) && !isUMNMandatoryForPlatform(platform) {
 		return true
 	}
 
-	if platform == nil && isUMNAllowedForCluster(cluster) && !isClusterPlatformNone(cluster) {
+	if platform == nil && isUMNAllowedForCluster(cluster) && !isUMNMandatoryForCluster(cluster) {
 		return true
 	}
 
@@ -103,15 +119,15 @@ func GetActualUpdateClusterPlatformParams(platform *models.Platform, userManaged
 		if (platform != nil && isPlatformNone(platform)) || (swag.BoolValue(userManagedNetworking) && platform == nil) {
 			return &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeNone)}, swag.Bool(true), nil
 		}
-	} else if isClusterPlatformNone(cluster) {
-		if (userManagedNetworking == nil || *userManagedNetworking) && (platform == nil || isPlatformNone(platform)) {
-			// Platform is already none, nothing to do
+	} else if isUMNMandatoryForCluster(cluster) {
+		if (userManagedNetworking == nil || *userManagedNetworking) && isUMNMandatoryForPlatform(platform) {
+			// userManagedNetworking is already set to true, nothing to do
 			return nil, nil, nil
 		}
 
 		if *cluster.HighAvailabilityMode == models.ClusterHighAvailabilityModeNone {
-			if !swag.BoolValue(userManagedNetworking) || (platform != nil && !isPlatformNone(platform)) {
-				return nil, nil, common.NewApiError(http.StatusBadRequest, errors.New("disabling User Managed Networking or setting platform different than none platform is not allowed in single node Openshift"))
+			if !swag.BoolValue(userManagedNetworking) || (platform != nil && !isUMNMandatoryForPlatform(platform)) {
+				return nil, nil, common.NewApiError(http.StatusBadRequest, errors.New("disabling User Managed Networking or setting platform different than none or external platforms is not allowed in single node Openshift"))
 			}
 		}
 
@@ -148,7 +164,7 @@ func GetActualCreateClusterPlatformParams(platform *models.Platform, userManaged
 		return &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeNone)}, swag.Bool(true), nil
 	}
 
-	if platform != nil && !isPlatformBM(platform) && !isPlatformNone(platform) {
+	if platform != nil && !isPlatformBM(platform) && !isUMNMandatoryForPlatform(platform) {
 		return platform, userManagedNetworking, nil
 	}
 
@@ -157,8 +173,13 @@ func GetActualCreateClusterPlatformParams(platform *models.Platform, userManaged
 			return &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeBaremetal)}, swag.Bool(false), nil
 		}
 
-		if swag.BoolValue(userManagedNetworking) || isPlatformNone(platform) {
-			return &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeNone)}, swag.Bool(true), nil
+		if swag.BoolValue(userManagedNetworking) || platform == nil || isUMNMandatoryForPlatform(platform) {
+			if platform == nil {
+				// default to None platform
+				return &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeNone)}, swag.Bool(true), nil
+			} else {
+				return platform, swag.Bool(true), nil
+			}
 		}
 	} else { // *highAvailabilityMode == models.ClusterHighAvailabilityModeNone
 		if isPlatformBM(platform) {
@@ -167,6 +188,10 @@ func GetActualCreateClusterPlatformParams(platform *models.Platform, userManaged
 
 		if userManagedNetworking != nil && !*userManagedNetworking {
 			return nil, nil, common.NewApiError(http.StatusBadRequest, errors.New("Can't disable user-managed-networking on single node OpenShift"))
+		}
+
+		if isPlatformNone(platform) || isPlatformExternal(platform) {
+			return platform, swag.Bool(true), nil
 		}
 
 		return &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeNone)}, swag.Bool(true), nil

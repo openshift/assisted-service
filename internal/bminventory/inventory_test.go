@@ -4052,7 +4052,7 @@ var _ = Describe("cluster", func() {
 						},
 					})
 
-					verifyApiErrorString(reply, http.StatusBadRequest, "disabling User Managed Networking or setting platform different than none platform is not allowed in single node Openshift")
+					verifyApiErrorString(reply, http.StatusBadRequest, "disabling User Managed Networking or setting platform different than none or external platforms is not allowed in single node Openshift")
 				})
 
 				It("Set Machine CIDR", func() {
@@ -6096,7 +6096,7 @@ var _ = Describe("[V2ClusterUpdate] cluster", func() {
 					},
 				})
 
-				verifyApiErrorString(reply, http.StatusBadRequest, "disabling User Managed Networking or setting platform different than none platform is not allowed in single node Openshift")
+				verifyApiErrorString(reply, http.StatusBadRequest, "disabling User Managed Networking or setting platform different than none or external platforms is not allowed in single node Openshift")
 			})
 
 			It("Set Machine CIDR", func() {
@@ -6465,7 +6465,7 @@ var _ = Describe("[V2ClusterUpdate] cluster", func() {
 								Platform: &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeBaremetal)},
 							},
 						})
-						verifyApiErrorString(reply, http.StatusBadRequest, "disabling User Managed Networking or setting platform different than none platform is not allowed in single node Openshift")
+						verifyApiErrorString(reply, http.StatusBadRequest, "disabling User Managed Networking or setting platform different than none or external platforms is not allowed in single node Openshift")
 					})
 
 					It("Update to nutanix platform while single node cluster - failure", func() {
@@ -6475,7 +6475,7 @@ var _ = Describe("[V2ClusterUpdate] cluster", func() {
 								Platform: &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeNutanix)},
 							},
 						})
-						verifyApiErrorString(reply, http.StatusBadRequest, "disabling User Managed Networking or setting platform different than none platform is not allowed in single node Openshift")
+						verifyApiErrorString(reply, http.StatusBadRequest, "disabling User Managed Networking or setting platform different than none or external platforms is not allowed in single node Openshift")
 					})
 				})
 
