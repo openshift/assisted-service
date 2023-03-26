@@ -297,23 +297,18 @@ func (mr *MockHandlerMockRecorder) V2AddMetricsEvent(ctx, clusterID, hostID, inf
 }
 
 // V2GetEvents mocks base method.
-func (m *MockHandler) V2GetEvents(ctx context.Context, clusterID, hostID, infraEnvID *strfmt.UUID, categories ...string) ([]*common.Event, error) {
+func (m *MockHandler) V2GetEvents(ctx context.Context, params *common.V2GetEventsParams) (*common.V2GetEventsResponse, error) {
 	m.ctrl.T.Helper()
-	varargs := []interface{}{ctx, clusterID, hostID, infraEnvID}
-	for _, a := range categories {
-		varargs = append(varargs, a)
-	}
-	ret := m.ctrl.Call(m, "V2GetEvents", varargs...)
-	ret0, _ := ret[0].([]*common.Event)
+	ret := m.ctrl.Call(m, "V2GetEvents", ctx, params)
+	ret0, _ := ret[0].(*common.V2GetEventsResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // V2GetEvents indicates an expected call of V2GetEvents.
-func (mr *MockHandlerMockRecorder) V2GetEvents(ctx, clusterID, hostID, infraEnvID interface{}, categories ...interface{}) *gomock.Call {
+func (mr *MockHandlerMockRecorder) V2GetEvents(ctx, params interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	varargs := append([]interface{}{ctx, clusterID, hostID, infraEnvID}, categories...)
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "V2GetEvents", reflect.TypeOf((*MockHandler)(nil).V2GetEvents), varargs...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "V2GetEvents", reflect.TypeOf((*MockHandler)(nil).V2GetEvents), ctx, params)
 }
 
 // MockBaseEvent is a mock of BaseEvent interface.

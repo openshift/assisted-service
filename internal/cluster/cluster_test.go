@@ -1550,21 +1550,24 @@ var _ = Describe("CancelInstallation", func() {
 			Expect(db.Create(&c).Error).ShouldNot(HaveOccurred())
 			mockMetric.EXPECT().ClusterInstallationFinished(gomock.Any(), models.ClusterStatusCancelled, models.ClusterStatusInstalling, c.OpenshiftVersion, *c.ID, c.EmailDomain, c.InstallStartedAt)
 			Expect(state.CancelInstallation(ctx, &c, "some reason", db)).ShouldNot(HaveOccurred())
-			events, err := eventsHandler.V2GetEvents(ctx, c.ID, nil, nil)
+			response, err := eventsHandler.V2GetEvents(ctx, common.GetDefaultV2GetEventsParams(c.ID, nil, nil))
 			Expect(err).ShouldNot(HaveOccurred())
+			events := response.GetEvents()
 			Expect(len(events)).ShouldNot(Equal(0))
 			cancelEvent := eventstest.FindEventByName(events, eventgen.ClusterInstallationCanceledEventName)
 			Expect(cancelEvent).NotTo(BeNil())
 			Expect(*cancelEvent.Severity).Should(Equal(models.EventSeverityInfo))
 			Expect(*cancelEvent.Message).Should(Equal("Canceled cluster installation"))
 		})
+
 		It("cancel_failed_installation", func() {
 			c.Status = swag.String(models.ClusterStatusError)
 			c.InstallStartedAt = strfmt.DateTime(time.Now().Add(-time.Minute))
 			Expect(db.Create(&c).Error).ShouldNot(HaveOccurred())
 			Expect(state.CancelInstallation(ctx, &c, "some reason", db)).ShouldNot(HaveOccurred())
-			events, err := eventsHandler.V2GetEvents(ctx, c.ID, nil, nil)
+			response, err := eventsHandler.V2GetEvents(ctx, common.GetDefaultV2GetEventsParams(c.ID, nil, nil))
 			Expect(err).ShouldNot(HaveOccurred())
+			events := response.GetEvents()
 			Expect(len(events)).ShouldNot(Equal(0))
 			cancelEvent := eventstest.FindEventByName(events, eventgen.ClusterInstallationCanceledEventName)
 			Expect(cancelEvent).NotTo(BeNil())
@@ -1582,8 +1585,9 @@ var _ = Describe("CancelInstallation", func() {
 		It("nothing_to_cancel", func() {
 			Expect(db.Create(&c).Error).ShouldNot(HaveOccurred())
 			Expect(state.CancelInstallation(ctx, &c, "some reason", db)).Should(HaveOccurred())
-			events, err := eventsHandler.V2GetEvents(ctx, c.ID, nil, nil)
+			response, err := eventsHandler.V2GetEvents(ctx, common.GetDefaultV2GetEventsParams(c.ID, nil, nil))
 			Expect(err).ShouldNot(HaveOccurred())
+			events := response.GetEvents()
 			Expect(len(events)).ShouldNot(Equal(0))
 			cancelEvent := eventstest.FindEventByName(events, eventgen.CancelInstallationFailedEventName)
 			Expect(cancelEvent).NotTo(BeNil())
@@ -1628,8 +1632,9 @@ var _ = Describe("ResetCluster", func() {
 		Expect(state.ResetCluster(ctx, &c, "some reason", db)).ShouldNot(HaveOccurred())
 		db.First(&c, "id = ?", c.ID)
 		Expect(swag.StringValue(c.Status)).Should(Equal(models.ClusterStatusInsufficient))
-		events, err := eventsHandler.V2GetEvents(ctx, c.ID, nil, nil)
+		response, err := eventsHandler.V2GetEvents(ctx, common.GetDefaultV2GetEventsParams(c.ID, nil, nil))
 		Expect(err).ShouldNot(HaveOccurred())
+		events := response.GetEvents()
 		Expect(len(events)).ShouldNot(Equal(0))
 		resetEvent := eventstest.FindEventByName(events, eventgen.ClusterInstallationResetEventName)
 		Expect(resetEvent).NotTo(BeNil())
@@ -1649,8 +1654,9 @@ var _ = Describe("ResetCluster", func() {
 		Expect(db.Create(&c).Error).ShouldNot(HaveOccurred())
 		reply := state.ResetCluster(ctx, &c, "some reason", db)
 		Expect(int(reply.StatusCode())).Should(Equal(http.StatusConflict))
-		events, err := eventsHandler.V2GetEvents(ctx, c.ID, nil, nil)
+		response, err := eventsHandler.V2GetEvents(ctx, common.GetDefaultV2GetEventsParams(c.ID, nil, nil))
 		Expect(err).ShouldNot(HaveOccurred())
+		events := response.GetEvents()
 		Expect(len(events)).ShouldNot(Equal(0))
 		resetEvent := eventstest.FindEventByName(events, eventgen.ResetInstallationFailedEventName)
 		Expect(resetEvent).NotTo(BeNil())
@@ -2736,7 +2742,7 @@ var _ = Describe("Cluster tarred files", func() {
 				Name: "test",
 			},
 		}}
-		mockEvents.EXPECT().V2GetEvents(gomock.Any(), cl.ID, nil, nil).Return(events, nil).Times(1)
+		mockEvents.EXPECT().V2GetEvents(gomock.Any(), common.GetDefaultV2GetEventsParams(cl.ID, nil, nil)).Return(&common.V2GetEventsResponse{Events: events}, nil).Times(1)
 		eventsData, _ := json.MarshalIndent(events, "", " ")
 		mockS3Client.EXPECT().Upload(ctx, eventsData, eventsFilename).Return(nil).Times(1)
 	}
@@ -2777,7 +2783,7 @@ var _ = Describe("Cluster tarred files", func() {
 
 	It("list events failed - but PrepareClusterLogFile should continue to download", func() {
 		mockS3Client.EXPECT().Upload(ctx, gomock.Any(), clusterObjectFilename).Return(nil).Times(1)
-		mockEvents.EXPECT().V2GetEvents(gomock.Any(), gomock.Any(), nil, nil).Return(nil, fmt.Errorf("dummy")).Times(1)
+		mockEvents.EXPECT().V2GetEvents(gomock.Any(), gomock.Any()).Return(nil, fmt.Errorf("dummy")).Times(1)
 		mockS3Client.EXPECT().ListObjectsByPrefix(ctx, prefix).Return(files, nil).Times(1)
 		mockS3Client.EXPECT().Download(ctx, files[0]).Return(nil, int64(0), errors.Errorf("Dummy")).Times(1)
 		mockS3Client.EXPECT().UploadStream(ctx, gomock.Any(), gomock.Any()).Return(nil).Times(1)
@@ -2787,7 +2793,7 @@ var _ = Describe("Cluster tarred files", func() {
 
 	It("upload events failed - but PrepareClusterLogFile should continue to download", func() {
 		mockS3Client.EXPECT().Upload(ctx, gomock.Any(), clusterObjectFilename).Return(nil).Times(1)
-		mockEvents.EXPECT().V2GetEvents(gomock.Any(), cl.ID, nil, nil).Return([]*common.Event{}, nil).Times(1)
+		mockEvents.EXPECT().V2GetEvents(gomock.Any(), common.GetDefaultV2GetEventsParams(cl.ID, nil, nil)).Return(&common.V2GetEventsResponse{}, nil).Times(1)
 		mockS3Client.EXPECT().Upload(ctx, gomock.Any(), gomock.Any()).Return(fmt.Errorf("dummy")).Times(1)
 
 		mockS3Client.EXPECT().ListObjectsByPrefix(ctx, prefix).Return(files, nil).Times(1)
@@ -2799,7 +2805,7 @@ var _ = Describe("Cluster tarred files", func() {
 
 	It("upload cluster data failed - but PrepareClusterLogFile should continue to download", func() {
 		mockS3Client.EXPECT().Upload(ctx, gomock.Any(), gomock.Any()).Return(fmt.Errorf("dummy")).Times(1)
-		mockEvents.EXPECT().V2GetEvents(gomock.Any(), cl.ID, nil, nil).Return([]*common.Event{}, nil).Times(1)
+		mockEvents.EXPECT().V2GetEvents(gomock.Any(), common.GetDefaultV2GetEventsParams(cl.ID, nil, nil)).Return(&common.V2GetEventsResponse{}, nil).Times(1)
 		mockS3Client.EXPECT().Upload(ctx, gomock.Any(), gomock.Any()).Return(nil).Times(1)
 
 		mockS3Client.EXPECT().ListObjectsByPrefix(ctx, prefix).Return(files, nil).Times(1)
@@ -3110,8 +3116,9 @@ var _ = Describe("Permanently delete clusters", func() {
 	verifyClusterSubComponentsDeletion := func(clusterID strfmt.UUID, isDeleted bool) {
 		ExpectWithOffset(1, db.Unscoped().Where("id = ?", clusterID).Find(&common.Cluster{}).RowsAffected == 0).Should(Equal(isDeleted))
 
-		clusterEvents, err := eventsHandler.V2GetEvents(ctx, &clusterID, nil, nil)
+		response, err := eventsHandler.V2GetEvents(ctx, common.GetDefaultV2GetEventsParams(&clusterID, nil, nil))
 		Expect(err).NotTo(HaveOccurred())
+		clusterEvents := response.GetEvents()
 		Expect(len(clusterEvents) == 0).Should(Equal(isDeleted))
 
 		var operators []*models.MonitoredOperator

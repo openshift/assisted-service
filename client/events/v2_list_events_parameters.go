@@ -76,13 +76,31 @@ type V2ListEventsParams struct {
 	*/
 	ClusterID *strfmt.UUID
 
+	/* ClusterLevel.
+
+	   Cluster level events flag.
+	*/
+	ClusterLevel *bool
+
+	/* DeletedHosts.
+
+	   Deleted hosts flag.
+	*/
+	DeletedHosts *bool
+
 	/* HostID.
 
-	   A host in the specified cluster to return events for.
+	   A host in the specified cluster to return events for (DEPRECATED. Use `host_ids` instead).
 
 	   Format: uuid
 	*/
 	HostID *strfmt.UUID
+
+	/* HostIds.
+
+	   Hosts in the specified cluster to return events for.
+	*/
+	HostIds []strfmt.UUID
 
 	/* InfraEnvID.
 
@@ -91,6 +109,30 @@ type V2ListEventsParams struct {
 	   Format: uuid
 	*/
 	InfraEnvID *strfmt.UUID
+
+	/* Limit.
+
+	   The maximum number of records to retrieve.
+	*/
+	Limit *int64
+
+	/* Message.
+
+	   Retrieved events message pattern.
+	*/
+	Message *string
+
+	/* Offset.
+
+	   Number of records to skip before starting to return the records.
+	*/
+	Offset *int64
+
+	/* Severities.
+
+	   Retrieved events severities.
+	*/
+	Severities []string
 
 	timeout    time.Duration
 	Context    context.Context
@@ -167,6 +209,28 @@ func (o *V2ListEventsParams) SetClusterID(clusterID *strfmt.UUID) {
 	o.ClusterID = clusterID
 }
 
+// WithClusterLevel adds the clusterLevel to the v2 list events params
+func (o *V2ListEventsParams) WithClusterLevel(clusterLevel *bool) *V2ListEventsParams {
+	o.SetClusterLevel(clusterLevel)
+	return o
+}
+
+// SetClusterLevel adds the clusterLevel to the v2 list events params
+func (o *V2ListEventsParams) SetClusterLevel(clusterLevel *bool) {
+	o.ClusterLevel = clusterLevel
+}
+
+// WithDeletedHosts adds the deletedHosts to the v2 list events params
+func (o *V2ListEventsParams) WithDeletedHosts(deletedHosts *bool) *V2ListEventsParams {
+	o.SetDeletedHosts(deletedHosts)
+	return o
+}
+
+// SetDeletedHosts adds the deletedHosts to the v2 list events params
+func (o *V2ListEventsParams) SetDeletedHosts(deletedHosts *bool) {
+	o.DeletedHosts = deletedHosts
+}
+
 // WithHostID adds the hostID to the v2 list events params
 func (o *V2ListEventsParams) WithHostID(hostID *strfmt.UUID) *V2ListEventsParams {
 	o.SetHostID(hostID)
@@ -178,6 +242,17 @@ func (o *V2ListEventsParams) SetHostID(hostID *strfmt.UUID) {
 	o.HostID = hostID
 }
 
+// WithHostIds adds the hostIds to the v2 list events params
+func (o *V2ListEventsParams) WithHostIds(hostIds []strfmt.UUID) *V2ListEventsParams {
+	o.SetHostIds(hostIds)
+	return o
+}
+
+// SetHostIds adds the hostIds to the v2 list events params
+func (o *V2ListEventsParams) SetHostIds(hostIds []strfmt.UUID) {
+	o.HostIds = hostIds
+}
+
 // WithInfraEnvID adds the infraEnvID to the v2 list events params
 func (o *V2ListEventsParams) WithInfraEnvID(infraEnvID *strfmt.UUID) *V2ListEventsParams {
 	o.SetInfraEnvID(infraEnvID)
@@ -187,6 +262,50 @@ func (o *V2ListEventsParams) WithInfraEnvID(infraEnvID *strfmt.UUID) *V2ListEven
 // SetInfraEnvID adds the infraEnvId to the v2 list events params
 func (o *V2ListEventsParams) SetInfraEnvID(infraEnvID *strfmt.UUID) {
 	o.InfraEnvID = infraEnvID
+}
+
+// WithLimit adds the limit to the v2 list events params
+func (o *V2ListEventsParams) WithLimit(limit *int64) *V2ListEventsParams {
+	o.SetLimit(limit)
+	return o
+}
+
+// SetLimit adds the limit to the v2 list events params
+func (o *V2ListEventsParams) SetLimit(limit *int64) {
+	o.Limit = limit
+}
+
+// WithMessage adds the message to the v2 list events params
+func (o *V2ListEventsParams) WithMessage(message *string) *V2ListEventsParams {
+	o.SetMessage(message)
+	return o
+}
+
+// SetMessage adds the message to the v2 list events params
+func (o *V2ListEventsParams) SetMessage(message *string) {
+	o.Message = message
+}
+
+// WithOffset adds the offset to the v2 list events params
+func (o *V2ListEventsParams) WithOffset(offset *int64) *V2ListEventsParams {
+	o.SetOffset(offset)
+	return o
+}
+
+// SetOffset adds the offset to the v2 list events params
+func (o *V2ListEventsParams) SetOffset(offset *int64) {
+	o.Offset = offset
+}
+
+// WithSeverities adds the severities to the v2 list events params
+func (o *V2ListEventsParams) WithSeverities(severities []string) *V2ListEventsParams {
+	o.SetSeverities(severities)
+	return o
+}
+
+// SetSeverities adds the severities to the v2 list events params
+func (o *V2ListEventsParams) SetSeverities(severities []string) {
+	o.Severities = severities
 }
 
 // WriteToRequest writes these params to a swagger request
@@ -225,6 +344,40 @@ func (o *V2ListEventsParams) WriteToRequest(r runtime.ClientRequest, reg strfmt.
 		}
 	}
 
+	if o.ClusterLevel != nil {
+
+		// query param cluster_level
+		var qrClusterLevel bool
+
+		if o.ClusterLevel != nil {
+			qrClusterLevel = *o.ClusterLevel
+		}
+		qClusterLevel := swag.FormatBool(qrClusterLevel)
+		if qClusterLevel != "" {
+
+			if err := r.SetQueryParam("cluster_level", qClusterLevel); err != nil {
+				return err
+			}
+		}
+	}
+
+	if o.DeletedHosts != nil {
+
+		// query param deleted_hosts
+		var qrDeletedHosts bool
+
+		if o.DeletedHosts != nil {
+			qrDeletedHosts = *o.DeletedHosts
+		}
+		qDeletedHosts := swag.FormatBool(qrDeletedHosts)
+		if qDeletedHosts != "" {
+
+			if err := r.SetQueryParam("deleted_hosts", qDeletedHosts); err != nil {
+				return err
+			}
+		}
+	}
+
 	if o.HostID != nil {
 
 		// query param host_id
@@ -242,6 +395,17 @@ func (o *V2ListEventsParams) WriteToRequest(r runtime.ClientRequest, reg strfmt.
 		}
 	}
 
+	if o.HostIds != nil {
+
+		// binding items for host_ids
+		joinedHostIds := o.bindParamHostIds(reg)
+
+		// query array param host_ids
+		if err := r.SetQueryParam("host_ids", joinedHostIds...); err != nil {
+			return err
+		}
+	}
+
 	if o.InfraEnvID != nil {
 
 		// query param infra_env_id
@@ -256,6 +420,68 @@ func (o *V2ListEventsParams) WriteToRequest(r runtime.ClientRequest, reg strfmt.
 			if err := r.SetQueryParam("infra_env_id", qInfraEnvID); err != nil {
 				return err
 			}
+		}
+	}
+
+	if o.Limit != nil {
+
+		// query param limit
+		var qrLimit int64
+
+		if o.Limit != nil {
+			qrLimit = *o.Limit
+		}
+		qLimit := swag.FormatInt64(qrLimit)
+		if qLimit != "" {
+
+			if err := r.SetQueryParam("limit", qLimit); err != nil {
+				return err
+			}
+		}
+	}
+
+	if o.Message != nil {
+
+		// query param message
+		var qrMessage string
+
+		if o.Message != nil {
+			qrMessage = *o.Message
+		}
+		qMessage := qrMessage
+		if qMessage != "" {
+
+			if err := r.SetQueryParam("message", qMessage); err != nil {
+				return err
+			}
+		}
+	}
+
+	if o.Offset != nil {
+
+		// query param offset
+		var qrOffset int64
+
+		if o.Offset != nil {
+			qrOffset = *o.Offset
+		}
+		qOffset := swag.FormatInt64(qrOffset)
+		if qOffset != "" {
+
+			if err := r.SetQueryParam("offset", qOffset); err != nil {
+				return err
+			}
+		}
+	}
+
+	if o.Severities != nil {
+
+		// binding items for severities
+		joinedSeverities := o.bindParamSeverities(reg)
+
+		// query array param severities
+		if err := r.SetQueryParam("severities", joinedSeverities...); err != nil {
+			return err
 		}
 	}
 
@@ -280,4 +506,38 @@ func (o *V2ListEventsParams) bindParamCategories(formats strfmt.Registry) []stri
 	categoriesIS := swag.JoinByFormat(categoriesIC, "")
 
 	return categoriesIS
+}
+
+// bindParamV2ListEvents binds the parameter host_ids
+func (o *V2ListEventsParams) bindParamHostIds(formats strfmt.Registry) []string {
+	hostIdsIR := o.HostIds
+
+	var hostIdsIC []string
+	for _, hostIdsIIR := range hostIdsIR { // explode []strfmt.UUID
+
+		hostIdsIIV := hostIdsIIR.String() // strfmt.UUID as string
+		hostIdsIC = append(hostIdsIC, hostIdsIIV)
+	}
+
+	// items.CollectionFormat: ""
+	hostIdsIS := swag.JoinByFormat(hostIdsIC, "")
+
+	return hostIdsIS
+}
+
+// bindParamV2ListEvents binds the parameter severities
+func (o *V2ListEventsParams) bindParamSeverities(formats strfmt.Registry) []string {
+	severitiesIR := o.Severities
+
+	var severitiesIC []string
+	for _, severitiesIIR := range severitiesIR { // explode []string
+
+		severitiesIIV := severitiesIIR // string as string
+		severitiesIC = append(severitiesIC, severitiesIIV)
+	}
+
+	// items.CollectionFormat: ""
+	severitiesIS := swag.JoinByFormat(severitiesIC, "")
+
+	return severitiesIS
 }

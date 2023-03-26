@@ -70,6 +70,10 @@ func SetupCORSMiddleware(handler http.Handler, domains []string) http.Handler {
 		AllowedHeaders: []string{
 			"Authorization",
 			"Content-Type",
+			"Severity-Count-Info",
+			"Severity-Count-Warning",
+			"Severity-Count-Error",
+			"Severity-Count-Critical",
 		},
 		MaxAge: int((10 * time.Minute).Seconds()),
 	})

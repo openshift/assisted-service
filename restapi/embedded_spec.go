@@ -2870,8 +2870,18 @@ func init() {
           {
             "type": "string",
             "format": "uuid",
-            "description": "A host in the specified cluster to return events for.",
+            "description": "A host in the specified cluster to return events for (DEPRECATED. Use ` + "`" + `host_ids` + "`" + ` instead).",
             "name": "host_id",
+            "in": "query"
+          },
+          {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Hosts in the specified cluster to return events for.",
+            "name": "host_ids",
             "in": "query"
           },
           {
@@ -2879,6 +2889,51 @@ func init() {
             "format": "uuid",
             "description": "The infra-env to return events for.",
             "name": "infra_env_id",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "The maximum number of records to retrieve.",
+            "name": "limit",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "Number of records to skip before starting to return the records.",
+            "name": "offset",
+            "in": "query"
+          },
+          {
+            "type": "array",
+            "items": {
+              "enum": [
+                "info",
+                "warning",
+                "error",
+                "critical"
+              ],
+              "type": "string"
+            },
+            "description": "Retrieved events severities.",
+            "name": "severities",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "Retrieved events message pattern.",
+            "name": "message",
+            "in": "query"
+          },
+          {
+            "type": "boolean",
+            "description": "Deleted hosts flag.",
+            "name": "deleted_hosts",
+            "in": "query"
+          },
+          {
+            "type": "boolean",
+            "description": "Cluster level events flag.",
+            "name": "cluster_level",
             "in": "query"
           },
           {
@@ -2896,6 +2951,24 @@ func init() {
             "description": "Success.",
             "schema": {
               "$ref": "#/definitions/event-list"
+            },
+            "headers": {
+              "Severity-Count-Critical": {
+                "type": "integer",
+                "description": "Count of events with severity 'critical'."
+              },
+              "Severity-Count-Error": {
+                "type": "integer",
+                "description": "Count of events with severity 'error'."
+              },
+              "Severity-Count-Info": {
+                "type": "integer",
+                "description": "Count of events with severity 'info'."
+              },
+              "Severity-Count-Warning": {
+                "type": "integer",
+                "description": "Count of events with severity 'warning'."
+              }
             }
           },
           "401": {
@@ -12984,8 +13057,18 @@ func init() {
           {
             "type": "string",
             "format": "uuid",
-            "description": "A host in the specified cluster to return events for.",
+            "description": "A host in the specified cluster to return events for (DEPRECATED. Use ` + "`" + `host_ids` + "`" + ` instead).",
             "name": "host_id",
+            "in": "query"
+          },
+          {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Hosts in the specified cluster to return events for.",
+            "name": "host_ids",
             "in": "query"
           },
           {
@@ -12993,6 +13076,51 @@ func init() {
             "format": "uuid",
             "description": "The infra-env to return events for.",
             "name": "infra_env_id",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "The maximum number of records to retrieve.",
+            "name": "limit",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "Number of records to skip before starting to return the records.",
+            "name": "offset",
+            "in": "query"
+          },
+          {
+            "type": "array",
+            "items": {
+              "enum": [
+                "info",
+                "warning",
+                "error",
+                "critical"
+              ],
+              "type": "string"
+            },
+            "description": "Retrieved events severities.",
+            "name": "severities",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "Retrieved events message pattern.",
+            "name": "message",
+            "in": "query"
+          },
+          {
+            "type": "boolean",
+            "description": "Deleted hosts flag.",
+            "name": "deleted_hosts",
+            "in": "query"
+          },
+          {
+            "type": "boolean",
+            "description": "Cluster level events flag.",
+            "name": "cluster_level",
             "in": "query"
           },
           {
@@ -13010,6 +13138,28 @@ func init() {
             "description": "Success.",
             "schema": {
               "$ref": "#/definitions/event-list"
+            },
+            "headers": {
+              "Severity-Count-Critical": {
+                "minimum": 0,
+                "type": "integer",
+                "description": "Count of events with severity 'critical'."
+              },
+              "Severity-Count-Error": {
+                "minimum": 0,
+                "type": "integer",
+                "description": "Count of events with severity 'error'."
+              },
+              "Severity-Count-Info": {
+                "minimum": 0,
+                "type": "integer",
+                "description": "Count of events with severity 'info'."
+              },
+              "Severity-Count-Warning": {
+                "minimum": 0,
+                "type": "integer",
+                "description": "Count of events with severity 'warning'."
+              }
             }
           },
           "401": {

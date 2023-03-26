@@ -9,8 +9,10 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/go-openapi/errors"
 	"github.com/go-openapi/runtime"
 	"github.com/go-openapi/strfmt"
+	"github.com/go-openapi/swag"
 
 	"github.com/openshift/assisted-service/models"
 )
@@ -75,6 +77,23 @@ V2ListEventsOK describes a response with status code 200, with default header va
 Success.
 */
 type V2ListEventsOK struct {
+
+	/* Count of events with severity 'critical'.
+	 */
+	SeverityCountCritical int64
+
+	/* Count of events with severity 'error'.
+	 */
+	SeverityCountError int64
+
+	/* Count of events with severity 'info'.
+	 */
+	SeverityCountInfo int64
+
+	/* Count of events with severity 'warning'.
+	 */
+	SeverityCountWarning int64
+
 	Payload models.EventList
 }
 
@@ -116,6 +135,50 @@ func (o *V2ListEventsOK) GetPayload() models.EventList {
 }
 
 func (o *V2ListEventsOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	// hydrates response header Severity-Count-Critical
+	hdrSeverityCountCritical := response.GetHeader("Severity-Count-Critical")
+
+	if hdrSeverityCountCritical != "" {
+		valseverityCountCritical, err := swag.ConvertInt64(hdrSeverityCountCritical)
+		if err != nil {
+			return errors.InvalidType("Severity-Count-Critical", "header", "int64", hdrSeverityCountCritical)
+		}
+		o.SeverityCountCritical = valseverityCountCritical
+	}
+
+	// hydrates response header Severity-Count-Error
+	hdrSeverityCountError := response.GetHeader("Severity-Count-Error")
+
+	if hdrSeverityCountError != "" {
+		valseverityCountError, err := swag.ConvertInt64(hdrSeverityCountError)
+		if err != nil {
+			return errors.InvalidType("Severity-Count-Error", "header", "int64", hdrSeverityCountError)
+		}
+		o.SeverityCountError = valseverityCountError
+	}
+
+	// hydrates response header Severity-Count-Info
+	hdrSeverityCountInfo := response.GetHeader("Severity-Count-Info")
+
+	if hdrSeverityCountInfo != "" {
+		valseverityCountInfo, err := swag.ConvertInt64(hdrSeverityCountInfo)
+		if err != nil {
+			return errors.InvalidType("Severity-Count-Info", "header", "int64", hdrSeverityCountInfo)
+		}
+		o.SeverityCountInfo = valseverityCountInfo
+	}
+
+	// hydrates response header Severity-Count-Warning
+	hdrSeverityCountWarning := response.GetHeader("Severity-Count-Warning")
+
+	if hdrSeverityCountWarning != "" {
+		valseverityCountWarning, err := swag.ConvertInt64(hdrSeverityCountWarning)
+		if err != nil {
+			return errors.InvalidType("Severity-Count-Warning", "header", "int64", hdrSeverityCountWarning)
+		}
+		o.SeverityCountWarning = valseverityCountWarning
+	}
 
 	// response payload
 	if err := consumer.Consume(response.Body(), &o.Payload); err != nil && err != io.EOF {

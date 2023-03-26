@@ -54,6 +54,11 @@ const (
 	MultiCPUArchitecture   = "multi"
 )
 
+var (
+	UnlimitedEvents *int64 = swag.Int64(-1)
+	NoOffsetEvents  *int64 = swag.Int64(0)
+)
+
 // Configuration to be injected by discovery ignition.  It will cause IPv6 DHCP client identifier to be the same
 // after reboot.  This will cause the DHCP server to provide the same IP address after reboot.
 const Ipv6DuidDiscoveryConf = `
@@ -474,4 +479,79 @@ func ApplyYamlPatch(src []byte, ops []byte) ([]byte, error) {
 	}
 
 	return patched, nil
+}
+
+/*Count of events of each severity*/
+type EventSeverityCount map[string]int64
+
+type V2GetEventsParams struct {
+	/*A comma-separated list of event categories.
+	  In: query
+	*/
+	Categories []string
+	/*The cluster to return events for.
+	  In: query
+	*/
+	ClusterID *strfmt.UUID
+	/*Cluster level events flag.
+	  In: query
+	*/
+	ClusterLevel *bool
+	/*Deleted hosts flag.
+	  In: query
+	*/
+	DeletedHosts *bool
+	/*Hosts in the specified cluster to return events for.
+	  In: query
+	*/
+	HostIds []strfmt.UUID
+	/*The infra-env to return events for.
+	  In: query
+	*/
+	InfraEnvID *strfmt.UUID
+	/*The maximum number of records to retrieve.
+	  In: query
+	*/
+	Limit *int64
+	/*Retrieved events message pattern.
+	  In: query
+	*/
+	Message *string
+	/*Number of records to skip before starting to return the records.
+	  In: query
+	*/
+	Offset *int64
+	/*Retrieved events severities.
+	  In: query
+	*/
+	Severities []string
+}
+
+type V2GetEventsResponse struct {
+	/*Retrieved events*/
+	Events             []*Event
+	EventSeverityCount *EventSeverityCount
+}
+
+func (r V2GetEventsResponse) GetEvents() []*Event {
+	return r.Events
+}
+
+func (r V2GetEventsResponse) GetEventSeverityCount() *EventSeverityCount {
+	return r.EventSeverityCount
+}
+
+func GetDefaultV2GetEventsParams(clusterID *strfmt.UUID, hostIds []strfmt.UUID, infraEnvID *strfmt.UUID, categories ...string) *V2GetEventsParams {
+	selectedCategories := make([]string, 0)
+	if len(categories) > 0 {
+		selectedCategories = categories[:]
+	}
+	return &V2GetEventsParams{
+		ClusterID:  clusterID,
+		HostIds:    hostIds,
+		InfraEnvID: infraEnvID,
+		Limit:      UnlimitedEvents,
+		Offset:     NoOffsetEvents,
+		Categories: selectedCategories,
+	}
 }

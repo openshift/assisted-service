@@ -9,6 +9,7 @@ import (
 	"net/http"
 
 	"github.com/go-openapi/runtime"
+	"github.com/go-openapi/swag"
 
 	"github.com/openshift/assisted-service/models"
 )
@@ -22,6 +23,26 @@ V2ListEventsOK Success.
 swagger:response v2ListEventsOK
 */
 type V2ListEventsOK struct {
+	/*Count of events with severity 'critical'.
+
+	  Minimum: 0
+	*/
+	SeverityCountCritical int64 `json:"Severity-Count-Critical"`
+	/*Count of events with severity 'error'.
+
+	  Minimum: 0
+	*/
+	SeverityCountError int64 `json:"Severity-Count-Error"`
+	/*Count of events with severity 'info'.
+
+	  Minimum: 0
+	*/
+	SeverityCountInfo int64 `json:"Severity-Count-Info"`
+	/*Count of events with severity 'warning'.
+
+	  Minimum: 0
+	*/
+	SeverityCountWarning int64 `json:"Severity-Count-Warning"`
 
 	/*
 	  In: Body
@@ -33,6 +54,50 @@ type V2ListEventsOK struct {
 func NewV2ListEventsOK() *V2ListEventsOK {
 
 	return &V2ListEventsOK{}
+}
+
+// WithSeverityCountCritical adds the severityCountCritical to the v2 list events o k response
+func (o *V2ListEventsOK) WithSeverityCountCritical(severityCountCritical int64) *V2ListEventsOK {
+	o.SeverityCountCritical = severityCountCritical
+	return o
+}
+
+// SetSeverityCountCritical sets the severityCountCritical to the v2 list events o k response
+func (o *V2ListEventsOK) SetSeverityCountCritical(severityCountCritical int64) {
+	o.SeverityCountCritical = severityCountCritical
+}
+
+// WithSeverityCountError adds the severityCountError to the v2 list events o k response
+func (o *V2ListEventsOK) WithSeverityCountError(severityCountError int64) *V2ListEventsOK {
+	o.SeverityCountError = severityCountError
+	return o
+}
+
+// SetSeverityCountError sets the severityCountError to the v2 list events o k response
+func (o *V2ListEventsOK) SetSeverityCountError(severityCountError int64) {
+	o.SeverityCountError = severityCountError
+}
+
+// WithSeverityCountInfo adds the severityCountInfo to the v2 list events o k response
+func (o *V2ListEventsOK) WithSeverityCountInfo(severityCountInfo int64) *V2ListEventsOK {
+	o.SeverityCountInfo = severityCountInfo
+	return o
+}
+
+// SetSeverityCountInfo sets the severityCountInfo to the v2 list events o k response
+func (o *V2ListEventsOK) SetSeverityCountInfo(severityCountInfo int64) {
+	o.SeverityCountInfo = severityCountInfo
+}
+
+// WithSeverityCountWarning adds the severityCountWarning to the v2 list events o k response
+func (o *V2ListEventsOK) WithSeverityCountWarning(severityCountWarning int64) *V2ListEventsOK {
+	o.SeverityCountWarning = severityCountWarning
+	return o
+}
+
+// SetSeverityCountWarning sets the severityCountWarning to the v2 list events o k response
+func (o *V2ListEventsOK) SetSeverityCountWarning(severityCountWarning int64) {
+	o.SeverityCountWarning = severityCountWarning
 }
 
 // WithPayload adds the payload to the v2 list events o k response
@@ -48,6 +113,34 @@ func (o *V2ListEventsOK) SetPayload(payload models.EventList) {
 
 // WriteResponse to the client
 func (o *V2ListEventsOK) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	// response header Severity-Count-Critical
+
+	severityCountCritical := swag.FormatInt64(o.SeverityCountCritical)
+	if severityCountCritical != "" {
+		rw.Header().Set("Severity-Count-Critical", severityCountCritical)
+	}
+
+	// response header Severity-Count-Error
+
+	severityCountError := swag.FormatInt64(o.SeverityCountError)
+	if severityCountError != "" {
+		rw.Header().Set("Severity-Count-Error", severityCountError)
+	}
+
+	// response header Severity-Count-Info
+
+	severityCountInfo := swag.FormatInt64(o.SeverityCountInfo)
+	if severityCountInfo != "" {
+		rw.Header().Set("Severity-Count-Info", severityCountInfo)
+	}
+
+	// response header Severity-Count-Warning
+
+	severityCountWarning := swag.FormatInt64(o.SeverityCountWarning)
+	if severityCountWarning != "" {
+		rw.Header().Set("Severity-Count-Warning", severityCountWarning)
+	}
 
 	rw.WriteHeader(200)
 	payload := o.Payload

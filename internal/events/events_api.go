@@ -32,8 +32,25 @@ func NewApi(handler eventsapi.Handler, log logrus.FieldLogger) *Api {
 
 func (a *Api) V2ListEvents(ctx context.Context, params events.V2ListEventsParams) middleware.Responder {
 	log := logutil.FromContext(ctx, a.log)
+	V2getEventsParams := common.V2GetEventsParams{
+		ClusterID:    params.ClusterID,
+		HostIds:      params.HostIds,
+		InfraEnvID:   params.InfraEnvID,
+		Limit:        params.Limit,
+		Offset:       params.Offset,
+		Severities:   params.Severities,
+		Message:      params.Message,
+		DeletedHosts: params.DeletedHosts,
+		ClusterLevel: params.ClusterLevel,
+		Categories:   params.Categories,
+	}
 
-	evs, err := a.handler.V2GetEvents(ctx, params.ClusterID, params.HostID, params.InfraEnvID, params.Categories...)
+	// DEPRECATED
+	if params.HostID != nil {
+		V2getEventsParams.HostIds = append(V2getEventsParams.HostIds, *params.HostID)
+	}
+
+	response, err := a.handler.V2GetEvents(ctx, &V2getEventsParams)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return common.NewApiError(http.StatusNotFound, err)
@@ -41,6 +58,10 @@ func (a *Api) V2ListEvents(ctx context.Context, params events.V2ListEventsParams
 		log.WithError(err).Errorf("failed to get events")
 		return common.NewApiError(http.StatusInternalServerError, err)
 	}
+
+	evs := response.GetEvents()
+	eventSeverityCount := response.GetEventSeverityCount()
+
 	ret := make(models.EventList, len(evs))
 	for i, ev := range evs {
 		ret[i] = &models.Event{
@@ -54,5 +75,11 @@ func (a *Api) V2ListEvents(ctx context.Context, params events.V2ListEventsParams
 			Props:      ev.Props,
 		}
 	}
-	return events.NewV2ListEventsOK().WithPayload(ret)
+
+	return events.NewV2ListEventsOK().
+		WithSeverityCountInfo((*eventSeverityCount)[models.EventSeverityInfo]).
+		WithSeverityCountWarning((*eventSeverityCount)[models.EventSeverityWarning]).
+		WithSeverityCountError((*eventSeverityCount)[models.EventSeverityError]).
+		WithSeverityCountCritical((*eventSeverityCount)[models.EventSeverityCritical]).
+		WithPayload(ret)
 }

@@ -37,7 +37,7 @@ type Sender interface {
 //go:generate mockgen -source=event.go -package=api -destination=mock_event.go
 type Handler interface {
 	Sender
-	V2GetEvents(ctx context.Context, clusterID *strfmt.UUID, hostID *strfmt.UUID, infraEnvID *strfmt.UUID, categories ...string) ([]*common.Event, error)
+	V2GetEvents(ctx context.Context, params *common.V2GetEventsParams) (*common.V2GetEventsResponse, error)
 }
 
 var DefaultEventCategories = []string{

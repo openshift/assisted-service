@@ -3445,18 +3445,59 @@ paths:
           description: The cluster to return events for.
           type: string
           format: uuid
-          required: False
+          required: false
         - in: query
           name: host_id
-          description: A host in the specified cluster to return events for.
+          description: A host in the specified cluster to return events for (DEPRECATED. Use `host_ids` instead).
           type: string
           format: uuid
+          required: false
+        - in: query
+          name: host_ids
+          description: Hosts in the specified cluster to return events for.
+          type: array
+          items:
+            type: string
+            format: uuid
           required: false
         - in: query
           name: infra_env_id
           description: The infra-env to return events for.
           type: string
           format: uuid
+          required: false
+        - in: query
+          name: limit
+          description: The maximum number of records to retrieve.
+          type: integer
+          required: false
+        - in: query
+          name: offset
+          description: Number of records to skip before starting to return the records.
+          type: integer
+          required: false
+        - in: query
+          name: severities
+          description: Retrieved events severities.
+          type: array
+          items:
+            type: string
+            enum: [info, warning, error, critical]
+          required: false
+        - in: query
+          name: message
+          description: Retrieved events message pattern.
+          type: string
+          required: false
+        - in: query
+          name: deleted_hosts
+          description: Deleted hosts flag.
+          type: boolean
+          required: false
+        - in: query
+          name: cluster_level
+          description: Cluster level events flag.
+          type: boolean
           required: false
         - in: query
           name: categories
@@ -3468,6 +3509,23 @@ paths:
       responses:
         "200":
           description: Success.
+          headers:
+            Severity-Count-Info:
+              type: integer
+              description: "Count of events with severity 'info'."
+              minimum: 0
+            Severity-Count-Warning:
+              type: integer
+              description: "Count of events with severity 'warning'."
+              minimum: 0
+            Severity-Count-Error:
+              type: integer
+              description: "Count of events with severity 'error'."
+              minimum: 0
+            Severity-Count-Critical:
+              type: integer
+              description: Count of events with severity 'critical'.
+              minimum: 0
           schema:
             $ref: '#/definitions/event-list'
         "401":

@@ -57,8 +57,11 @@ func (c *controllerEventsWrapper) V2AddMetricsEvent(ctx context.Context, cluster
 	// Disable metrics event for the controller since the current operator installations do not work with ELK
 }
 
-func (c *controllerEventsWrapper) V2GetEvents(ctx context.Context, clusterID *strfmt.UUID, hostID *strfmt.UUID, infraEnvID *strfmt.UUID, categories ...string) ([]*common.Event, error) {
-	return c.events.V2GetEvents(ctx, clusterID, hostID, infraEnvID, categories...)
+func (c *controllerEventsWrapper) V2GetEvents(ctx context.Context, params *common.V2GetEventsParams) (*common.V2GetEventsResponse, error) {
+	return c.events.V2GetEvents(
+		ctx,
+		params,
+	)
 }
 
 func (c *controllerEventsWrapper) SendClusterEvent(ctx context.Context, event eventsapi.ClusterEvent) {

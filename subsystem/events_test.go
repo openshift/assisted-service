@@ -30,7 +30,7 @@ var _ = Describe("Events tests", func() {
 
 		evs, err := userBMClient.Events.V2ListEvents(context.TODO(), &events.V2ListEventsParams{
 			ClusterID:  &clusterId,
-			HostID:     nil,
+			HostIds:    nil,
 			InfraEnvID: nil,
 			Categories: []string{models.EventCategoryUser},
 		})
