@@ -13,6 +13,8 @@
     - day2: "true"
     - day2_masters: "{{ lookup('env', 'DAY2_MASTERS') }}"
     - baremetalhosts_ignition_override: "{{ lookup('env', 'BAREMETALHOSTS_IGNITION_OVERRIDE', default='') }}"
+    - machine_config_pools: "{{ lookup('env', 'MACHINE_CONFIG_POOLS') }}"
+    - node_labels: "{{ lookup('env', 'NODE_LABELS') }}"
 
   tasks:
   - name: optional-latebinding

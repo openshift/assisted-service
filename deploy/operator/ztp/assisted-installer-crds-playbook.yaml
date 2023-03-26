@@ -6,6 +6,7 @@
   vars:
     - spoke_namespace: "{{ lookup('env', 'SPOKE_NAMESPACE') }}"
     - spoke_controlplane_agents: "{{ lookup('env', 'SPOKE_CONTROLPLANE_AGENTS') }}"
+    - spoke_worker_agents: "{{ lookup('env', 'SPOKE_WORKER_AGENTS', default='0') }}"
     - spoke_api_vip: "{{ lookup('env', 'SPOKE_API_VIP') }}"
     - spoke_ingress_vip: "{{ lookup('env', 'SPOKE_INGRESS_VIP') }}"
     - cluster_name: "{{ lookup('env', 'ASSISTED_CLUSTER_NAME') }}"
@@ -31,6 +32,9 @@
     - user_managed_networking: "{{ lookup('env', 'USER_MANAGED_NETWORKING') }}"
     - day2: "false"
     - baremetalhosts_ignition_override: "{{ lookup('env', 'BAREMETALHOSTS_IGNITION_OVERRIDE', default='') }}"
+    - machine_config_pools: "{{ lookup('env', 'MACHINE_CONFIG_POOLS') }}"
+    - node_labels: "{{ lookup('env', 'NODE_LABELS') }}"
+    - manifests: "{{ lookup('env', 'MANIFESTS') }}"
 
   tasks:
   - name: create directory for generated CRDs

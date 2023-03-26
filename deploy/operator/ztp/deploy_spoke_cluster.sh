@@ -65,6 +65,17 @@ if [ "${DISCONNECTED}" = "true" ]; then
     ASSISTED_OPENSHIFT_INSTALL_RELEASE_IMAGE="${LOCAL_REGISTRY}/$(get_image_without_registry ${ASSISTED_OPENSHIFT_INSTALL_RELEASE_IMAGE})"
 fi
 
+if [ -n "${MANIFEST_FILES+x}" ] ; then
+  MANIFESTS=$(elements=$(echo "${MANIFEST_FILES}" |\
+      jq -r  'to_entries|to_entries|.[]| (length|tostring) + " " + (.key|tostring) + " " + .value.key + " " + .value.value' |\
+      while read len index name path ; do \
+        content=$(awk '{print "      " $0}' $path | jq -Rsa .) && echo "{\"${name}\":$content}" || exit 1  ;\
+        [[ $(( $index + 1 )) == $len ]] || echo , ;\
+      done) && \
+      echo '[' "$elements" ']' | jq -c add) || exit 1
+  export MANIFESTS
+fi
+
 # TODO: make SSH public key configurable
 
 set -o nounset
