@@ -328,6 +328,7 @@ var _ = Describe("UploadEvents", func() {
 		}
 		uploader = &eventsUploader{
 			db:     db,
+			log:    common.GetTestLog(),
 			client: mockK8sClient,
 			Config: *cfg,
 		}

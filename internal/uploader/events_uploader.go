@@ -54,7 +54,7 @@ func (e *eventsUploader) UploadEvents(ctx context.Context, cluster *common.Clust
 	if err := e.setHeaders(req, cluster.ID, pullSecret.AuthRaw, contentType); err != nil {
 		return errors.Wrapf(err, "failed setting header for endpoint %s", e.DataUploadEndpoint)
 	}
-	return sendRequest(req)
+	return e.sendRequest(req)
 }
 
 func (e *eventsUploader) IsEnabled() bool {
@@ -99,7 +99,7 @@ func prepareBody(buffer *bytes.Buffer) (*bytes.Buffer, string, error) {
 	return &formBuffer, w.FormDataContentType(), nil
 }
 
-func sendRequest(req *http.Request) error {
+func (e *eventsUploader) sendRequest(req *http.Request) error {
 	transport := &http.Transport{
 		TLSClientConfig:     &tls.Config{},
 		TLSHandshakeTimeout: 10 * time.Second,
@@ -111,12 +111,9 @@ func sendRequest(req *http.Request) error {
 	if err != nil {
 		return errors.Wrapf(err, "failed to send request to %s", req.URL)
 	}
-	if res != nil {
-		log.Debugf("Response from %s: %v", req.URL, res.Status)
-		// Successful http response code from the ingress server is in the 200s
-		if res.StatusCode >= 200 && res.StatusCode <= 299 {
-			log.Debugf("Red Hat Insights Request ID: %+v", res.Header.Get("X-Rh-Insights-Request-Id"))
-		}
+	// Successful http response code from the ingress server is in the 200s
+	if res.StatusCode >= 200 && res.StatusCode <= 299 {
+		e.log.Debugf("Successful response received from %s. Red Hat Insights Request ID: %+v", req.URL, res.Header.Get("X-Rh-Insights-Request-Id"))
 	}
 	return nil
 }
@@ -129,28 +126,20 @@ func prepareFiles(ctx context.Context, db *gorm.DB, cluster *common.Cluster, eve
 
 	// errors creating files below will be ignored since failing to create one of the files
 	// doesn't mean the rest of the function should fail
-	if err := clusterFile(tw, cluster, pullSecret); err != nil {
-		log.WithError(err).Warnf("failed finding cluster events with cluster ID %s", cluster.ID)
-	} else {
+	if err := clusterFile(tw, cluster, pullSecret); err == nil {
 		filesCreated++
 	}
 
 	infraEnvID, err := hostsFile(db, tw, cluster)
-	if err != nil {
-		log.WithError(err).Warnf("failed finding host(s) events associated with cluster ID %s", cluster.ID)
-	} else {
+	if err == nil {
 		filesCreated++
 	}
 
-	if err := infraEnvFile(db, tw, infraEnvID, cluster.ID); err != nil {
-		log.WithError(err).Warnf("failed finding infra-env events with ID %s", infraEnvID)
-	} else {
+	if err := infraEnvFile(db, tw, infraEnvID, cluster.ID); err == nil {
 		filesCreated++
 	}
 
-	if err := eventsFile(ctx, cluster.ID, eventsHandler, tw); err != nil {
-		log.WithError(err).Warnf("failed finding events associated with cluster ID %s", cluster.ID)
-	} else {
+	if err := eventsFile(ctx, cluster.ID, eventsHandler, tw); err == nil {
 		filesCreated++
 	}
 
