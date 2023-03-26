@@ -134,9 +134,18 @@ func GetActualUpdateClusterPlatformParams(platform *models.Platform, userManaged
 	return platform, userManagedNetworking, nil
 }
 
-func GetActualCreateClusterPlatformParams(platform *models.Platform, userManagedNetworking *bool, highAvailabilityMode *string) (*models.Platform, *bool, error) {
+func GetActualCreateClusterPlatformParams(platform *models.Platform, userManagedNetworking *bool, highAvailabilityMode *string, cpuArchitecture string) (*models.Platform, *bool, error) {
 	if err := checkPlatformWrongParamsInput(platform, userManagedNetworking, nil); err != nil {
 		return nil, nil, err
+	}
+
+	if cpuArchitecture == models.ClusterCPUArchitectureS390x || cpuArchitecture == models.ClusterCPUArchitecturePpc64le {
+		if userManagedNetworking != nil && !*userManagedNetworking {
+			return nil, nil, common.NewApiError(http.StatusBadRequest, errors.Errorf("Can't disable User Managed Networking on %s architecture", cpuArchitecture))
+		} else if platform != nil && !isPlatformNone(platform) {
+			return nil, nil, common.NewApiError(http.StatusBadRequest, errors.Errorf("Can't set %s platform on %s architecture", *platform.Type, cpuArchitecture))
+		}
+		return &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeNone)}, swag.Bool(true), nil
 	}
 
 	if platform != nil && !isPlatformBM(platform) && !isPlatformNone(platform) {

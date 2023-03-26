@@ -12333,10 +12333,10 @@ var _ = Describe("TestRegisterCluster", func() {
 			Expect(actual.CPUArchitecture).To(Equal(models.ClusterCPUArchitectureS390x))
 		})
 
-		It("s390x on OCP version lower than 4.13", func() {
+		It("s390x on OCP version lower than 4.12", func() {
 			mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
 				eventstest.WithNameMatcher(eventgen.ClusterRegistrationFailedEventName),
-				eventstest.WithMessageContainsMatcher("Failed to register cluster. Error: cannot use s390x architecture because it's not compatible on version 4.12.0 of OpenShift"),
+				eventstest.WithMessageContainsMatcher("Failed to register cluster. Error: cannot use s390x architecture because it's not compatible on version 4.11.0 of OpenShift"),
 				eventstest.WithSeverityMatcher(models.EventSeverityError))).Times(1)
 
 			mockOSImages.EXPECT().GetCPUArchitectures(gomock.Any()).Return([]string{common.X86CPUArchitecture, common.S390xCPUArchitecture}).Times(1)
@@ -12345,14 +12345,14 @@ var _ = Describe("TestRegisterCluster", func() {
 			params.Platform = &models.Platform{
 				Type: common.PlatformTypePtr(models.PlatformTypeNone),
 			}
-			params.OpenshiftVersion = swag.String("4.12")
+			params.OpenshiftVersion = swag.String("4.11")
 			params.CPUArchitecture = models.ClusterCPUArchitectureS390x
 
 			releaseImage := &models.ReleaseImage{
 				CPUArchitecture:  &params.CPUArchitecture,
 				OpenshiftVersion: params.OpenshiftVersion,
 				URL:              swag.String("quay.io/openshift-release-dev/ocp-release:4.12-x86_64"),
-				Version:          swag.String("4.12.0"),
+				Version:          swag.String("4.11.0"),
 				SupportLevel:     models.OpenshiftVersionSupportLevelProduction,
 			}
 
@@ -12363,10 +12363,10 @@ var _ = Describe("TestRegisterCluster", func() {
 			})
 			verifyApiError(reply, http.StatusBadRequest)
 		})
-		It("ppc64le on OCP version lower than 4.13", func() {
+		It("ppc64le on OCP version lower than 4.12", func() {
 			mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
 				eventstest.WithNameMatcher(eventgen.ClusterRegistrationFailedEventName),
-				eventstest.WithMessageContainsMatcher("Failed to register cluster. Error: cannot use ppc64le architecture because it's not compatible on version 4.12.0 of OpenShift"),
+				eventstest.WithMessageContainsMatcher("Failed to register cluster. Error: cannot use ppc64le architecture because it's not compatible on version 4.11.0 of OpenShift"),
 				eventstest.WithSeverityMatcher(models.EventSeverityError))).Times(1)
 
 			mockOSImages.EXPECT().GetCPUArchitectures(gomock.Any()).Return([]string{common.X86CPUArchitecture, common.PowerCPUArchitecture}).Times(1)
@@ -12375,14 +12375,14 @@ var _ = Describe("TestRegisterCluster", func() {
 			params.Platform = &models.Platform{
 				Type: common.PlatformTypePtr(models.PlatformTypeNone),
 			}
-			params.OpenshiftVersion = swag.String("4.12")
+			params.OpenshiftVersion = swag.String("4.11")
 			params.CPUArchitecture = models.ClusterCPUArchitecturePpc64le
 
 			releaseImage := &models.ReleaseImage{
 				CPUArchitecture:  &params.CPUArchitecture,
 				OpenshiftVersion: params.OpenshiftVersion,
 				URL:              swag.String("quay.io/openshift-release-dev/ocp-release:4.12-x86_64"),
-				Version:          swag.String("4.12.0"),
+				Version:          swag.String("4.11.0"),
 				SupportLevel:     models.OpenshiftVersionSupportLevelProduction,
 			}
 
@@ -12428,31 +12428,37 @@ var _ = Describe("TestRegisterCluster", func() {
 
 			mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
 				eventstest.WithNameMatcher(eventgen.ClusterRegistrationFailedEventName),
-				eventstest.WithMessageContainsMatcher("Failed to register cluster. Error: cannot use Cluster Managed Networking because it's not compatible with the ppc64le architecture on version 4.13.0 of OpenShift"),
+				eventstest.WithMessageContainsMatcher("Failed to register cluster. Error: Can't disable User Managed Networking on ppc64le architecture"),
 				eventstest.WithSeverityMatcher(models.EventSeverityError))).Times(1)
-
-			mockOSImages.EXPECT().GetCPUArchitectures(gomock.Any()).Return([]string{common.X86CPUArchitecture, common.PowerCPUArchitecture}).Times(1)
 
 			params := getDefaultClusterCreateParams()
 			params.OpenshiftVersion = swag.String("4.13")
 			params.CPUArchitecture = models.ClusterCPUArchitecturePpc64le
+			params.Platform = nil
+			params.UserManagedNetworking = swag.Bool(false)
 
-			releaseImage := &models.ReleaseImage{
-				CPUArchitecture:  &params.CPUArchitecture,
-				OpenshiftVersion: params.OpenshiftVersion,
-				URL:              swag.String("quay.io/openshift-release-dev/ocp-release:4.13-x86_64"),
-				Version:          swag.String("4.13.0"),
-				SupportLevel:     models.OpenshiftVersionSupportLevelProduction,
-			}
-
-			mockOperatorManager.EXPECT().GetSupportedOperatorsByType(models.OperatorTypeBuiltin).Return([]*models.MonitoredOperator{}).Times(1)
-			mockVersions.EXPECT().GetReleaseImage(ctx, *params.OpenshiftVersion, params.CPUArchitecture, *params.PullSecret).Return(releaseImage, nil).Times(1)
 			reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 				NewClusterParams: params,
 			})
 			verifyApiError(reply, http.StatusBadRequest)
 		})
+		It("Baremetal platform isn't compatible with ppc64le", func() {
 
+			mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
+				eventstest.WithNameMatcher(eventgen.ClusterRegistrationFailedEventName),
+				eventstest.WithMessageContainsMatcher("Failed to register cluster. Error: Can't set baremetal platform on ppc64le architecture"),
+				eventstest.WithSeverityMatcher(models.EventSeverityError))).Times(1)
+
+			params := getDefaultClusterCreateParams()
+			params.OpenshiftVersion = swag.String("4.13")
+			params.CPUArchitecture = models.ClusterCPUArchitecturePpc64le
+			params.Platform = &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeBaremetal)}
+
+			reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
+				NewClusterParams: params,
+			})
+			verifyApiError(reply, http.StatusBadRequest)
+		})
 		It("CNV isn't compatible with s390x", func() {
 			mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
 				eventstest.WithNameMatcher(eventgen.ClusterRegistrationFailedEventName),

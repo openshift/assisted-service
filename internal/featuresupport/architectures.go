@@ -45,9 +45,12 @@ func (feature *S390xArchitectureFeature) GetId() models.ArchitectureSupportLevel
 }
 
 func (feature *S390xArchitectureFeature) GetSupportLevel(openshiftVersion string) models.SupportLevel {
-	isNotSupported, err := common.BaseVersionLessThan("4.13", openshiftVersion)
+	isNotSupported, err := common.BaseVersionLessThan("4.12", openshiftVersion)
 	if isNotSupported || err != nil {
 		return models.SupportLevelUnsupported
+	}
+	if isEqual, _ := common.BaseVersionEqual("4.12", openshiftVersion); isEqual {
+		return models.SupportLevelTechPreview
 	}
 
 	return models.SupportLevelSupported
@@ -61,9 +64,12 @@ func (feature *PPC64LEArchitectureFeature) GetId() models.ArchitectureSupportLev
 }
 
 func (feature *PPC64LEArchitectureFeature) GetSupportLevel(openshiftVersion string) models.SupportLevel {
-	isNotSupported, err := common.BaseVersionLessThan("4.13", openshiftVersion)
+	isNotSupported, err := common.BaseVersionLessThan("4.12", openshiftVersion)
 	if isNotSupported || err != nil {
 		return models.SupportLevelUnsupported
+	}
+	if isEqual, _ := common.BaseVersionEqual("4.12", openshiftVersion); isEqual {
+		return models.SupportLevelTechPreview
 	}
 
 	return models.SupportLevelSupported
