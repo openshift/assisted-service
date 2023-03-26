@@ -4052,6 +4052,84 @@ var _ = Describe("cluster", func() {
 			})
 
 			Context("UserManagedNetworking", func() {
+
+				It("Fail to set cluster VIPs when UserManagedNetworking true was set", func() {
+					mockClusterUpdatability(3)
+					mockDetectAndStoreCollidingIPsForCluster(mockClusterApi, 2)
+					mockHostApi.EXPECT().RefreshInventory(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+					mockHostApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+					mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+					mockClusterApi.EXPECT().SetConnectivityMajorityGroupsForCluster(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+					mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).AnyTimes()
+					mockProviderRegistry.EXPECT().SetPlatformUsages(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+
+					By("Set User Managed Networking: false")
+					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
+						ClusterID: clusterID,
+						ClusterUpdateParams: &models.V2ClusterUpdateParams{
+							UserManagedNetworking: swag.Bool(false),
+						},
+					})
+					Expect(reply).To(BeAssignableToTypeOf(installer.NewV2UpdateClusterCreated()))
+
+					By("Fail to set UserManagedNetworking true")
+					reply = bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
+						ClusterID: clusterID,
+						ClusterUpdateParams: &models.V2ClusterUpdateParams{
+							UserManagedNetworking: swag.Bool(true),
+						},
+					})
+					Expect(reply).To(BeAssignableToTypeOf(installer.NewV2UpdateClusterCreated()))
+
+					By("Set API VIP and Ingress VIP")
+					reply = bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
+						ClusterID: clusterID,
+						ClusterUpdateParams: &models.V2ClusterUpdateParams{
+							APIVip:     swag.String("10.11.12.15"),
+							IngressVip: swag.String("10.11.12.16"),
+						},
+					})
+					verifyApiErrorString(reply, http.StatusBadRequest, "API VIP cannot be set with User Managed Networking")
+				})
+
+				It("Fail to set UserManagedNetworking true when cluster VIPs were set", func() {
+					mockClusterUpdatability(2)
+					mockDetectAndStoreCollidingIPsForCluster(mockClusterApi, 2)
+					mockHostApi.EXPECT().RefreshInventory(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+					mockHostApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+					mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+					mockClusterApi.EXPECT().SetConnectivityMajorityGroupsForCluster(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+					mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).AnyTimes()
+
+					By("Set User Managed Networking: false")
+					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
+						ClusterID: clusterID,
+						ClusterUpdateParams: &models.V2ClusterUpdateParams{
+							UserManagedNetworking: swag.Bool(false),
+						},
+					})
+					Expect(reply).To(BeAssignableToTypeOf(installer.NewV2UpdateClusterCreated()))
+
+					By("Set API VIP and Ingress VIP")
+					reply = bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
+						ClusterID: clusterID,
+						ClusterUpdateParams: &models.V2ClusterUpdateParams{
+							APIVip:     swag.String("10.11.12.15"),
+							IngressVip: swag.String("10.11.12.16"),
+						},
+					})
+					Expect(reply).To(BeAssignableToTypeOf(installer.NewV2UpdateClusterCreated()))
+
+					By("Fail to set UserManagedNetworking true")
+					reply = bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
+						ClusterID: clusterID,
+						ClusterUpdateParams: &models.V2ClusterUpdateParams{
+							UserManagedNetworking: swag.Bool(true),
+						},
+					})
+					verifyApiErrorString(reply, http.StatusBadRequest, "User Managed Networking cannot be set with API VIP")
+				})
+
 				It("success", func() {
 					mockClusterUpdatability(1)
 					mockSuccess(1)
@@ -4074,10 +4152,6 @@ var _ = Describe("cluster", func() {
 					mockSuccess(1)
 					mockProviderRegistry.EXPECT().SetPlatformUsages(models.PlatformTypeNone, gomock.Any(), mockUsage)
 
-					Expect(db.Model(&common.Cluster{}).Where("id = ?", clusterID).Updates(map[string]interface{}{
-						"api_vip":     common.TestIPv4Networking.APIVip,
-						"ingress_vip": common.TestIPv4Networking.IngressVip,
-					}).Error).ShouldNot(HaveOccurred())
 					Expect(db.Save(
 						&models.MachineNetwork{Cidr: common.TestIPv4Networking.MachineNetworks[0].Cidr, ClusterID: clusterID}).Error).ShouldNot(HaveOccurred())
 
@@ -4105,7 +4179,7 @@ var _ = Describe("cluster", func() {
 						},
 					})
 
-					verifyApiErrorString(reply, http.StatusBadRequest, "VIP DHCP Allocation cannot be enabled with User Managed Networking")
+					verifyApiErrorString(reply, http.StatusBadRequest, "VIP DHCP Allocation cannot be set with User Managed Networking")
 				})
 
 				It("Fail with DHCP when UserManagedNetworking was set", func() {
@@ -4119,7 +4193,7 @@ var _ = Describe("cluster", func() {
 						},
 					})
 
-					verifyApiErrorString(reply, http.StatusBadRequest, "VIP DHCP Allocation cannot be enabled with User Managed Networking")
+					verifyApiErrorString(reply, http.StatusBadRequest, "VIP DHCP Allocation cannot be set with User Managed Networking")
 				})
 
 				It("Fail with Ingress VIP", func() {
@@ -12619,7 +12693,7 @@ var _ = Describe("TestRegisterCluster", func() {
 	It("Fail UserManagedNetworking with VIP DHCP", func() {
 		mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
 			eventstest.WithNameMatcher(eventgen.ClusterRegistrationFailedEventName),
-			eventstest.WithMessageContainsMatcher("Failed to register cluster. Error: VIP DHCP Allocation cannot be enabled with User Managed Networking"),
+			eventstest.WithMessageContainsMatcher("Failed to register cluster. Error: VIP DHCP Allocation cannot be set with User Managed Networking"),
 			eventstest.WithSeverityMatcher(models.EventSeverityError))).Times(1)
 
 		clusterParams := getDefaultClusterCreateParams()
