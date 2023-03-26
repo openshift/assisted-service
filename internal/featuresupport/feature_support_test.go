@@ -54,7 +54,7 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 		Expect(isArchitectureSupported(feature, "4.30")).To(Equal(true))
 	})
 
-	It("Test s390x is not supported under 4.13", func() {
+	It("Test s390x is not supported under 4.12", func() {
 		feature := models.ArchitectureSupportLevelIDS390XARCHITECTURE
 		Expect(isArchitectureSupported(feature, "4.6")).To(Equal(false))
 		Expect(isArchitectureSupported(feature, "4.7")).To(Equal(false))
@@ -62,7 +62,7 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 		Expect(isArchitectureSupported(feature, "4.9")).To(Equal(false))
 		Expect(isArchitectureSupported(feature, "4.10")).To(Equal(false))
 		Expect(isArchitectureSupported(feature, "4.11")).To(Equal(false))
-		Expect(isArchitectureSupported(feature, "4.12")).To(Equal(false))
+		Expect(isArchitectureSupported(feature, "4.12")).To(Equal(true))
 		Expect(isArchitectureSupported(feature, "4.13")).To(Equal(true))
 
 		// Check for feature release
@@ -70,7 +70,7 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 
 	})
 
-	It("Test PPC64LE is not supported under 4.13", func() {
+	It("Test PPC64LE is not supported under 4.12", func() {
 		feature := models.ArchitectureSupportLevelIDPPC64LEARCHITECTURE
 		Expect(isArchitectureSupported(feature, "4.6")).To(Equal(false))
 		Expect(isArchitectureSupported(feature, "4.7")).To(Equal(false))
@@ -78,7 +78,7 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 		Expect(isArchitectureSupported(feature, "4.9")).To(Equal(false))
 		Expect(isArchitectureSupported(feature, "4.10")).To(Equal(false))
 		Expect(isArchitectureSupported(feature, "4.11")).To(Equal(false))
-		Expect(isArchitectureSupported(feature, "4.12")).To(Equal(false))
+		Expect(isArchitectureSupported(feature, "4.12")).To(Equal(true))
 		Expect(isArchitectureSupported(feature, "4.13")).To(Equal(true))
 
 		// Check for feature release
@@ -162,8 +162,8 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 			Expect(len(list)).To(Equal(5))
 		})
 
-		It("GetFeatureSupportList 4.12 with not supported architecture", func() {
-			featuresList := GetFeatureSupportList("4.12", swag.String(models.ClusterCPUArchitecturePpc64le))
+		It("GetFeatureSupportList 4.11 with not supported architecture", func() {
+			featuresList := GetFeatureSupportList("4.11", swag.String(models.ClusterCPUArchitecturePpc64le))
 
 			for _, supportLevel := range featuresList {
 				Expect(supportLevel).To(Equal(models.SupportLevelUnsupported))

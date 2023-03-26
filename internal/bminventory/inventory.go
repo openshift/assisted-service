@@ -341,7 +341,7 @@ func (b *bareMetalInventory) setDefaultRegisterClusterParams(ctx context.Context
 	}
 
 	log.Infof("Verifying cluster platform and user-managed-networking, got platform=%s and userManagedNetworking=%t", getPlatformType(params.NewClusterParams.Platform), swag.BoolValue(params.NewClusterParams.UserManagedNetworking))
-	platform, userManagedNetworking, err := provider.GetActualCreateClusterPlatformParams(params.NewClusterParams.Platform, params.NewClusterParams.UserManagedNetworking, params.NewClusterParams.HighAvailabilityMode)
+	platform, userManagedNetworking, err := provider.GetActualCreateClusterPlatformParams(params.NewClusterParams.Platform, params.NewClusterParams.UserManagedNetworking, params.NewClusterParams.HighAvailabilityMode, params.NewClusterParams.CPUArchitecture)
 	if err != nil {
 		log.Error(err)
 		return params, err
