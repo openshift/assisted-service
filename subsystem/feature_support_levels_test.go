@@ -33,7 +33,7 @@ var _ = Describe("Feature support levels API", func() {
 	})
 
 	Context("Support Level", func() {
-		registerNewCluster := func(version, cpuArchitecture, highAvailabilityMode string, userManagedNetworking bool) (*installer.V2RegisterClusterCreated, error) {
+		registerNewCluster := func(version, cpuArchitecture, highAvailabilityMode string, userManagedNetworking *bool) (*installer.V2RegisterClusterCreated, error) {
 			cluster, errRegisterCluster := user2BMClient.Installer.V2RegisterCluster(ctx, &installer.V2RegisterClusterParams{
 				NewClusterParams: &models.ClusterCreateParams{
 					Name:                  swag.String("test-cluster"),
@@ -42,7 +42,7 @@ var _ = Describe("Feature support levels API", func() {
 					BaseDNSDomain:         "example.com",
 					CPUArchitecture:       cpuArchitecture,
 					HighAvailabilityMode:  swag.String(highAvailabilityMode),
-					UserManagedNetworking: &userManagedNetworking,
+					UserManagedNetworking: userManagedNetworking,
 				},
 			})
 
@@ -71,7 +71,7 @@ var _ = Describe("Feature support levels API", func() {
 
 		Context("Update cluster", func() {
 			It("Update umn true won't fail on 4.13 with s390x without infra-env", func() {
-				cluster, err := registerNewCluster("4.13", "s390x", models.ClusterHighAvailabilityModeFull, true)
+				cluster, err := registerNewCluster("4.13", "s390x", models.ClusterHighAvailabilityModeFull, swag.Bool(true))
 				Expect(err).NotTo(HaveOccurred())
 				Expect(cluster.Payload.CPUArchitecture).To(Equal("multi"))
 
@@ -86,7 +86,7 @@ var _ = Describe("Feature support levels API", func() {
 
 			It("Update umn true fail on 4.13 with s390x with infra-env", func() {
 				expectedError := "cannot use Cluster Managed Networking because it's not compatible with the s390x architecture on version 4.13"
-				cluster, err := registerNewCluster("4.13", "s390x", models.ClusterHighAvailabilityModeFull, true)
+				cluster, err := registerNewCluster("4.13", "s390x", models.ClusterHighAvailabilityModeFull, swag.Bool(true))
 				Expect(err).NotTo(HaveOccurred())
 				Expect(cluster.Payload.CPUArchitecture).To(Equal("multi"))
 
@@ -104,33 +104,31 @@ var _ = Describe("Feature support levels API", func() {
 				err2 := err.(*installer.V2UpdateClusterBadRequest)
 				ExpectWithOffset(1, *err2.Payload.Reason).To(ContainSubstring(expectedError))
 			})
-			It("Update cluster fail on 4.12 with s390x", func() {
-				expectedError := "cannot use s390x architecture because it's not compatible on version 4.12"
-				_, err := registerNewCluster("4.12", "s390x", models.ClusterHighAvailabilityModeFull, true)
-				Expect(err).To(HaveOccurred())
-				err2 := err.(*installer.V2RegisterClusterBadRequest)
-				ExpectWithOffset(1, *err2.Payload.Reason).To(ContainSubstring(expectedError))
-			})
 		})
 
 		Context("Register cluster", func() {
 			It("Register cluster won't fail on 4.13 with s390x", func() {
-				cluster, err := registerNewCluster("4.13", "s390x", models.ClusterHighAvailabilityModeFull, true)
+				cluster, err := registerNewCluster("4.13", "s390x", models.ClusterHighAvailabilityModeFull, swag.Bool(true))
 				Expect(err).NotTo(HaveOccurred())
 				Expect(cluster.Payload.CPUArchitecture).To(Equal("multi"))
 			})
 
-			It("SNO with s390x 4.12 fails on architecture- failure", func() {
-				expectedError := "cannot use s390x architecture because it's not compatible on version 4.12"
-				_, err := registerNewCluster("4.12", "s390x", models.ClusterHighAvailabilityModeNone, true)
+			It("Register cluster won't fail on 4.13 with s390x without UMN", func() {
+				cluster, err := registerNewCluster("4.13", "s390x", models.ClusterHighAvailabilityModeFull, nil)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(cluster.Payload.CPUArchitecture).To(Equal("multi"))
+			})
+
+			It("SNO with s390x 4.10 fails on architecture- failure", func() {
+				expectedError := "Requested CPU architecture s390x is not available"
+				_, err := registerNewCluster("4.10", "s390x", models.ClusterHighAvailabilityModeNone, swag.Bool(true))
 				Expect(err).To(HaveOccurred())
 				err2 := err.(*installer.V2RegisterClusterBadRequest)
 				ExpectWithOffset(1, *err2.Payload.Reason).To(ContainSubstring(expectedError))
 			})
-
 			It("SNO with s390x fails on SNO isn't compatible with architecture - failure", func() {
 				expectedError := "cannot use Single Node OpenShift because it's not compatible with the s390x architecture on version 4.13"
-				_, err := registerNewCluster("4.13", "s390x", models.ClusterHighAvailabilityModeNone, true)
+				_, err := registerNewCluster("4.13", "s390x", models.ClusterHighAvailabilityModeNone, swag.Bool(true))
 				Expect(err).To(HaveOccurred())
 				err2 := err.(*installer.V2RegisterClusterBadRequest)
 				ExpectWithOffset(1, *err2.Payload.Reason).To(ContainSubstring(expectedError))
@@ -204,8 +202,8 @@ var _ = Describe("Feature support levels API", func() {
 
 				Expect(architecturesSupportLevel[string(models.ArchitectureSupportLevelIDX8664ARCHITECTURE)]).To(BeEquivalentTo(models.SupportLevelSupported))
 				Expect(architecturesSupportLevel[string(models.ArchitectureSupportLevelIDARM64ARCHITECTURE)]).To(BeEquivalentTo(models.SupportLevelSupported))
-				Expect(architecturesSupportLevel[string(models.ArchitectureSupportLevelIDS390XARCHITECTURE)]).To(BeEquivalentTo(models.SupportLevelUnsupported))
-				Expect(architecturesSupportLevel[string(models.ArchitectureSupportLevelIDPPC64LEARCHITECTURE)]).To(BeEquivalentTo(models.SupportLevelUnsupported))
+				Expect(architecturesSupportLevel[string(models.ArchitectureSupportLevelIDS390XARCHITECTURE)]).To(BeEquivalentTo(models.SupportLevelTechPreview))
+				Expect(architecturesSupportLevel[string(models.ArchitectureSupportLevelIDPPC64LEARCHITECTURE)]).To(BeEquivalentTo(models.SupportLevelTechPreview))
 				Expect(architecturesSupportLevel[string(models.ArchitectureSupportLevelIDMULTIARCHRELEASEIMAGE)]).To(BeEquivalentTo(models.SupportLevelTechPreview))
 			})
 
