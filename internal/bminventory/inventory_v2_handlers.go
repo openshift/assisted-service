@@ -634,7 +634,10 @@ func (b *bareMetalInventory) V2SetIgnoredValidations(ctx context.Context, params
 		err = errors.Wrapf(err, "failed to fetch cluster %s to apply ignored validations", *cluster.ID)
 		return installer.NewV2SetIgnoredValidationsInternalServerError().WithPayload(common.GenerateError(http.StatusInternalServerError, err))
 	}
-
+	err = b.clusterApi.VerifyClusterUpdatability(cluster)
+	if err != nil {
+		return b.setIgnoredValidationsBadRequest(err.Error())
+	}
 	problems := []string{}
 	cluster.IgnoredClusterValidations = params.IgnoredValidations.ClusterValidationIds
 	cluster.IgnoredHostValidations = params.IgnoredValidations.HostValidationIds
