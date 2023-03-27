@@ -863,7 +863,7 @@ func createVersionHandlers(log logrus.FieldLogger, ctrlMgr manager.Manager, rele
 
 func getNotificationStream(log *logrus.Logger) *stream.NotificationStream {
 	metadata := map[string]interface{}{
-		"versions": versions.GetModelVersions(Options.Versions),
+		"versions": versions.GetListVersionsFromVersions(Options.Versions),
 	}
 	writer, err := stream.NewWriter(log, Options.EnableNotificationStreaming)
 	if err != nil {
