@@ -4436,6 +4436,33 @@ func (b *bareMetalInventory) RegisterInfraEnv(ctx context.Context, params instal
 	return installer.NewRegisterInfraEnvCreated().WithPayload(&i.InfraEnv)
 }
 
+// Sets the feature usage for multi CPU Architecture(arm, power, z) for a cluster
+func (b *bareMetalInventory) setMultiCPUArchitectureUsage(db *gorm.DB, clusterId strfmt.UUID, cpuArchitecture string) error {
+	var err error
+
+	cluster, err := common.GetClusterFromDBForUpdate(db, clusterId, common.SkipEagerLoading)
+	if err != nil {
+		return err
+	}
+
+	usages, err := usage.Unmarshal(cluster.Cluster.FeatureUsage)
+	if err != nil {
+		return err
+	}
+
+	switch cpuArchitecture {
+	case common.ARM64CPUArchitecture:
+		b.setUsage(true, usage.CPUArchitectureARM64, nil, usages)
+	case common.PowerCPUArchitecture:
+		b.setUsage(true, usage.CPUArchitecturePpc64le, nil, usages)
+	case common.S390xCPUArchitecture:
+		b.setUsage(true, usage.CPUArchitectureS390x, nil, usages)
+	}
+	b.usageApi.Save(db, *cluster.ID, usages)
+
+	return nil
+}
+
 func (b *bareMetalInventory) handlerCluserInfoOnRegisterInfraEnv(
 	log logrus.FieldLogger,
 	tx *gorm.DB,
@@ -4462,6 +4489,9 @@ func (b *bareMetalInventory) handlerCluserInfoOnRegisterInfraEnv(
 
 		if err := b.setDiscoveryKernelArgumentsUsage(tx, *clusterId, params.KernelArguments); err != nil {
 			log.WithError(err).Warnf("failed to set discovery kernel arguments usage for cluster %s", clusterId)
+		}
+		if err := b.setMultiCPUArchitectureUsage(tx, infraEnv.ClusterID, infraEnv.CPUArchitecture); err != nil {
+			log.WithError(err).Warnf("failed to set cpu architecture usage for multi architecture for cluster %s", infraEnv.ClusterID)
 		}
 	}
 	return nil
