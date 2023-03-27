@@ -279,7 +279,6 @@ func EnsureImageCache(info *ProvisioningInfo) (updated bool, err error) {
 // Provide the current state of metal3 image-cache daemonset
 func GetImageCacheState(client appsclientv1.DaemonSetsGetter, targetNamespace string, config *metal3iov1alpha1.Provisioning) (appsv1.DaemonSetConditionType, error) {
 	if config.Spec.ProvisioningOSDownloadURL == "" {
-		// TODO(dtantsur): do we need to check it's really deleted?
 		return DaemonSetDisabled, nil
 	}
 

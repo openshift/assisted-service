@@ -141,6 +141,12 @@ type ProvisioningSpec struct {
 	// the external network that would be used for provisioning services.
 	ProvisioningNetwork ProvisioningNetwork `json:"provisioningNetwork,omitempty"`
 
+	// ProvisioningDNS allows sending the DNS information via DHCP on the
+	// provisionig network. It is off by default since the Provisioning
+	// service itself (Ironic) does not require DNS, but it may be useful
+	// for layered products (e.g. ZTP).
+	ProvisioningDNS bool `json:"provisioningDNS,omitempty"`
+
 	// WatchAllNamespaces provides a way to explicitly allow use of this
 	// Provisioning configuration across all Namespaces. It is an
 	// optional configuration which defaults to false and in that state

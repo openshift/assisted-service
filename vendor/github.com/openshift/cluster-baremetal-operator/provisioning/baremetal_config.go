@@ -41,11 +41,13 @@ var (
 	ironicInspectorEndpoint        = "IRONIC_INSPECTOR_ENDPOINT"
 	httpPort                       = "HTTP_PORT"
 	vmediaHttpsPort                = "VMEDIA_TLS_PORT"
+	dnsIP                          = "DNS_IP"
 	dhcpRange                      = "DHCP_RANGE"
 	machineImageUrl                = "RHCOS_IMAGE_URL"
 	ipOptions                      = "IP_OPTIONS"
 	bootIsoSource                  = "IRONIC_BOOT_ISO_SOURCE"
 	useUnixSocket                  = "unix"
+	useProvisioningDNS             = "provisioning"
 )
 
 func getDHCPRange(config *metal3iov1alpha1.ProvisioningSpec) *string {
