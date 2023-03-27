@@ -10,6 +10,7 @@ import (
 	"io/ioutil"
 	"mime/multipart"
 	"net/http"
+	"net/http/httptest"
 	"net/url"
 	"os"
 	"reflect"
@@ -22,6 +23,7 @@ import (
 
 	"github.com/cavaliercoder/go-cpio"
 	ign_3_1 "github.com/coreos/ignition/v2/config/v3_1"
+	"github.com/go-openapi/runtime"
 	"github.com/go-openapi/runtime/middleware"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
@@ -13889,7 +13891,9 @@ var _ = Describe("GetCredentials", func() {
 		clusterID := strfmt.UUID(uuid.New().String())
 		c = common.Cluster{
 			Cluster: models.Cluster{
-				ID: &clusterID,
+				ID:            &clusterID,
+				Name:          "my-cluster",
+				BaseDNSDomain: "my-domain",
 			},
 		}
 		Expect(db.Create(&c).Error).ShouldNot(HaveOccurred())
@@ -13901,7 +13905,7 @@ var _ = Describe("GetCredentials", func() {
 	})
 
 	It("Console operator available", func() {
-
+		mockClusterApi.EXPECT().IsOperatorMonitored(gomock.Any(), operators.OperatorConsole.Name).Return(true)
 		mockClusterApi.EXPECT().IsOperatorAvailable(gomock.Any(), operators.OperatorConsole.Name).Return(true)
 		objectName := fmt.Sprintf("%s/%s", *c.ID, "kubeadmin-password")
 		mockS3Client.EXPECT().Download(ctx, objectName).Return(ioutil.NopCloser(strings.NewReader("my_password")), int64(0), nil)
@@ -13911,11 +13915,43 @@ var _ = Describe("GetCredentials", func() {
 	})
 
 	It("Console operator not available", func() {
-
+		mockClusterApi.EXPECT().IsOperatorMonitored(gomock.Any(), operators.OperatorConsole.Name).Return(true)
 		mockClusterApi.EXPECT().IsOperatorAvailable(gomock.Any(), operators.OperatorConsole.Name).Return(false)
 
 		reply := bm.V2GetCredentials(ctx, installer.V2GetCredentialsParams{ClusterID: *c.ID})
 		verifyApiError(reply, http.StatusConflict)
+	})
+
+	It("Returns credentials and no console URL if the console capability is disabled", func() {
+		mockClusterApi.EXPECT().IsOperatorMonitored(gomock.Any(), operators.OperatorConsole.Name).Return(false)
+		objectName := fmt.Sprintf("%s/%s", *c.ID, "kubeadmin-password")
+		mockS3Client.EXPECT().Download(ctx, objectName).Return(io.NopCloser(strings.NewReader("my_password")), int64(0), nil)
+
+		reply := bm.V2GetCredentials(ctx, installer.V2GetCredentialsParams{ClusterID: *c.ID})
+		recorder := httptest.NewRecorder()
+		reply.WriteResponse(recorder, runtime.JSONProducer())
+		Expect(recorder.Code).To(Equal(http.StatusOK))
+		Expect(recorder.Body).To(MatchJSON(`{
+			"password": "my_password",
+			"username": "kubeadmin"
+		}`))
+	})
+
+	It("Returns credentials and console URL if the console capability is enabled", func() {
+		mockClusterApi.EXPECT().IsOperatorMonitored(gomock.Any(), operators.OperatorConsole.Name).Return(true)
+		mockClusterApi.EXPECT().IsOperatorAvailable(gomock.Any(), operators.OperatorConsole.Name).Return(true)
+		objectName := fmt.Sprintf("%s/%s", *c.ID, "kubeadmin-password")
+		mockS3Client.EXPECT().Download(ctx, objectName).Return(io.NopCloser(strings.NewReader("my_password")), int64(0), nil)
+
+		reply := bm.V2GetCredentials(ctx, installer.V2GetCredentialsParams{ClusterID: *c.ID})
+		recorder := httptest.NewRecorder()
+		reply.WriteResponse(recorder, runtime.JSONProducer())
+		Expect(recorder.Code).To(Equal(http.StatusOK))
+		Expect(recorder.Body).To(MatchJSON(`{
+			"password": "my_password",
+			"username": "kubeadmin",
+			"console_url": "https://console-openshift-console.apps.my-cluster.my-domain"
+		}`))
 	})
 })
 
