@@ -234,6 +234,7 @@ type installerGenerator struct {
 	providerRegistry              registry.ProviderRegistry
 	installerReleaseImageOverride string
 	clusterTLSCertOverrideDir     string
+	installerCache                *installercache.ReleaseCache
 }
 
 // IgnitionConfig contains the attributes required to build the discovery ignition file
@@ -280,7 +281,7 @@ func NewBuilder(log logrus.FieldLogger, staticNetworkConfig staticnetworkconfig.
 // NewGenerator returns a generator that can generate ignition files
 func NewGenerator(serviceBaseURL string, workDir string, installerDir string, cluster *common.Cluster, releaseImage string, releaseImageMirror string,
 	serviceCACert string, installInvoker string, s3Client s3wrapper.API, log logrus.FieldLogger, operatorsApi operators.API,
-	providerRegistry registry.ProviderRegistry, installerReleaseImageOverride, clusterTLSCertOverrideDir string) Generator {
+	providerRegistry registry.ProviderRegistry, installerReleaseImageOverride, clusterTLSCertOverrideDir string, cacheSize int) Generator {
 	return &installerGenerator{
 		cluster:                       cluster,
 		log:                           log,
@@ -297,6 +298,7 @@ func NewGenerator(serviceBaseURL string, workDir string, installerDir string, cl
 		providerRegistry:              providerRegistry,
 		installerReleaseImageOverride: installerReleaseImageOverride,
 		clusterTLSCertOverrideDir:     clusterTLSCertOverrideDir,
+		installerCache:                installercache.New(cacheSize, log),
 	}
 }
 
@@ -331,11 +333,6 @@ func (g *installerGenerator) Generate(ctx context.Context, installConfig []byte,
 	}
 	defer removeIcspFile(icspFile)
 
-	installerPath, err := installercache.Get(g.installerReleaseImageOverride, g.releaseImageMirror, g.installerDir,
-		g.cluster.PullSecret, platformType, icspFile, log)
-	if err != nil {
-		return errors.Wrap(err, "failed to get installer path")
-	}
 	installConfigPath := filepath.Join(g.workDir, "install-config.yaml")
 
 	g.enableMetal3Provisioning, err = common.VersionGreaterOrEqual(g.cluster.Cluster.OpenshiftVersion, "4.7")
@@ -387,6 +384,14 @@ func (g *installerGenerator) Generate(ctx context.Context, installConfig []byte,
 		log.WithError(err).Error("Failed to import cluster TLS certs")
 		return err
 	}
+
+	r, err := g.installerCache.Get(g.installerReleaseImageOverride, g.releaseImageMirror, g.installerDir,
+		g.cluster.PullSecret, platformType, icspFile)
+	defer r.Unlock()
+	if err != nil {
+		return errors.Wrap(err, "failed to get installer path")
+	}
+	installerPath := r.Path
 
 	err = g.runCreateCommand(ctx, installerPath, "manifests", envVars)
 	if err != nil {

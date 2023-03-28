@@ -144,6 +144,9 @@ parameters:
 - name: ENABLE_UPGRADE_AGENT
   value: "false"
   required: false
+- name: INSTALLER_CACHE_SIZE
+  value: "5"
+  required: "false"
 - name: READINESS_PROBE_INITIAL_DELAY_SECONDS
   value: "15"
   required: false
@@ -434,6 +437,8 @@ objects:
                 value: ${ENABLE_REJECT_UNKNOWN_FIELDS}
               - name: ENABLE_DATA_COLLECTION
                 value: ${ENABLE_DATA_COLLECTION}
+              - name: INSTALLER_CACHE_SIZE
+                value: ${INSTALLER_CACHE_SIZE}
             volumeMounts:
               - name: route53-creds
                 mountPath: "/etc/.aws"
