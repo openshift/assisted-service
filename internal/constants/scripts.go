@@ -180,7 +180,7 @@ function copy_nmconnection_files_to_nm_config_dir() {
   done
 
   cp ${host_dir}/*.nmconnection ${ETC_NETWORK_MANAGER}/
-  nmcli connection reload
+  type nmcli > /dev/null 2>&1 && nmcli connection reload
   echo "Info: Copied all nmconnection files from $host_dir to $ETC_NETWORK_MANAGER"
 }
 
