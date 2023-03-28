@@ -4450,14 +4450,7 @@ func (b *bareMetalInventory) setMultiCPUArchitectureUsage(db *gorm.DB, clusterId
 		return err
 	}
 
-	switch cpuArchitecture {
-	case common.ARM64CPUArchitecture:
-		b.setUsage(true, usage.CPUArchitectureARM64, nil, usages)
-	case common.PowerCPUArchitecture:
-		b.setUsage(true, usage.CPUArchitecturePpc64le, nil, usages)
-	case common.S390xCPUArchitecture:
-		b.setUsage(true, usage.CPUArchitectureS390x, nil, usages)
-	}
+	b.updateClusterCPUFeatureUsage(cluster, usages)
 	b.usageApi.Save(db, *cluster.ID, usages)
 
 	return nil
