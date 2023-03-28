@@ -15,7 +15,7 @@ import (
 	metal3iov1alpha1 "github.com/openshift/cluster-baremetal-operator/api/v1alpha1"
 )
 
-func getPodHostIP(podClient coreclientv1.PodsGetter, targetNamespace string) (string, error) {
+func getPod(podClient coreclientv1.PodsGetter, targetNamespace string) (corev1.Pod, error) {
 	labelSelector := &metav1.LabelSelector{
 		MatchLabels: map[string]string{
 			"k8s-app":    metal3AppName,
@@ -24,7 +24,7 @@ func getPodHostIP(podClient coreclientv1.PodsGetter, targetNamespace string) (st
 
 	selector, err := metav1.LabelSelectorAsSelector(labelSelector)
 	if err != nil {
-		return "", err
+		return corev1.Pod{}, err
 	}
 
 	listOptions := metav1.ListOptions{
@@ -33,7 +33,7 @@ func getPodHostIP(podClient coreclientv1.PodsGetter, targetNamespace string) (st
 
 	podList, err := podClient.Pods(targetNamespace).List(context.Background(), listOptions)
 	if err != nil {
-		return "", err
+		return corev1.Pod{}, err
 	}
 
 	// On fail-over, two copies of the pod will be present: the old
@@ -45,18 +45,23 @@ func getPodHostIP(podClient coreclientv1.PodsGetter, targetNamespace string) (st
 		}
 	}
 
-	var hostIP string
-	switch len(pods) {
-	case 0:
-		// Ironic IP not available yet, just return an empty string
-	case 1:
-		hostIP = pods[0].Status.HostIP
-	default:
-		// We expect only one pod with the above LabelSelector
-		err = fmt.Errorf("there should be only one running pod listed for the given label")
+	if len(pods) == 0 {
+		return corev1.Pod{}, nil
 	}
 
-	return hostIP, err
+	if len(pods) > 1 {
+		return corev1.Pod{}, fmt.Errorf("there should be only one running pod listed for the given label")
+	}
+
+	return pods[0], nil
+}
+
+func getPodHostIP(podClient coreclientv1.PodsGetter, targetNamespace string) (string, error) {
+	pod, err := getPod(podClient, targetNamespace)
+	if err != nil {
+		return "", err
+	}
+	return pod.Status.HostIP, nil
 }
 
 func getServerInternalIP(osclient osclientset.Interface) (string, error) {
@@ -74,6 +79,10 @@ func getServerInternalIP(osclient osclientset.Interface) (string, error) {
 	case osconfigv1.VSpherePlatformType:
 		return infra.Status.PlatformStatus.VSphere.APIServerInternalIP, nil
 	case osconfigv1.AWSPlatformType:
+		return "", nil
+	case osconfigv1.AzurePlatformType:
+		return "", nil
+	case osconfigv1.GCPPlatformType:
 		return "", nil
 	case osconfigv1.NonePlatformType:
 		return "", nil
@@ -105,6 +114,28 @@ func GetIronicIP(client kubernetes.Interface, targetNamespace string, config *me
 	}
 
 	return
+}
+
+func GetPodIP(podClient coreclientv1.PodsGetter, targetNamespace string, networkType NetworkStackType) (string, error) {
+	pod, err := getPod(podClient, targetNamespace)
+	if err != nil {
+		return "", err
+	}
+
+	for _, podIP := range pod.Status.PodIPs {
+		if networkType == NetworkStackDual {
+			return podIP.IP, nil
+		}
+		ip := net.ParseIP(podIP.IP)
+		if networkType == NetworkStackV6 && ip.To4() == nil {
+			return podIP.IP, nil
+		}
+		if networkType == NetworkStackV4 && ip.To4() != nil {
+			return podIP.IP, nil
+		}
+	}
+
+	return "", fmt.Errorf("Pod doesn't have an IP address of the requested type")
 }
 
 func IpOptionForProvisioning(config *metal3iov1alpha1.ProvisioningSpec, networkStack NetworkStackType) string {
