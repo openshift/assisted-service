@@ -240,6 +240,20 @@ func (mr *MockTransitionHandlerMockRecorder) PostHostMediaDisconnected(sw, args 
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PostHostMediaDisconnected", reflect.TypeOf((*MockTransitionHandler)(nil).PostHostMediaDisconnected), sw, args)
 }
 
+// PostHostProgress mocks base method.
+func (m *MockTransitionHandler) PostHostProgress(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "PostHostProgress", sw, args)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// PostHostProgress indicates an expected call of PostHostProgress.
+func (mr *MockTransitionHandlerMockRecorder) PostHostProgress(sw, args interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PostHostProgress", reflect.TypeOf((*MockTransitionHandler)(nil).PostHostProgress), sw, args)
+}
+
 // PostInstallHost mocks base method.
 func (m *MockTransitionHandler) PostInstallHost(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) error {
 	m.ctrl.T.Helper()

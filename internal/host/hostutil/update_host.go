@@ -16,20 +16,6 @@ import (
 	"gorm.io/gorm"
 )
 
-func UpdateHostProgress(ctx context.Context, log logrus.FieldLogger, db *gorm.DB, eventsHandler eventsapi.Handler, infraEnvId strfmt.UUID, hostId strfmt.UUID,
-	srcStatus string, newStatus string, statusInfo string,
-	srcStage models.HostStage, newStage models.HostStage, progressInfo string, extra ...interface{}) (*common.Host, error) {
-
-	extra = append(append(make([]interface{}, 0), "progress_current_stage", newStage, "progress_progress_info", progressInfo,
-		"progress_stage_updated_at", strfmt.DateTime(time.Now())), extra...)
-
-	if newStage != srcStage {
-		extra = append(extra, "progress_stage_started_at", strfmt.DateTime(time.Now()))
-	}
-
-	return UpdateHostStatus(ctx, log, db, eventsHandler, infraEnvId, hostId, srcStatus, newStatus, statusInfo, extra...)
-}
-
 func UpdateLogsProgress(_ context.Context, log logrus.FieldLogger, db *gorm.DB, _ eventsapi.Handler, infraEnvId strfmt.UUID, hostId strfmt.UUID, srcStatus string, progress string, extra ...interface{}) (*common.Host, error) {
 	var host *common.Host
 	var err error

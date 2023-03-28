@@ -15,6 +15,7 @@ const (
 	TransitionTypeInstallHost                = "InstallHost"
 	TransitionTypeResettingPendingUserAction = "ResettingPendingUserAction"
 	TransitionTypeRefresh                    = "RefreshHost"
+	TransitionTypeHostProgress               = "HostProgressChanged"
 	TransitionTypeMediaDisconnect            = "MediaDisconnect"
 	TransitionTypeBindHost                   = "BindHost"
 	TransitionTypeUnbindHost                 = "UnbindHost"
@@ -41,6 +42,86 @@ func NewHostStateMachine(sm stateswitch.StateMachine, th TransitionHandler) stat
 			Description: "When new host is first registered. This transition is not executed on unbound hosts because <unknown, TODO>",
 		},
 	})
+
+	sm.AddTransitionRule(stateswitch.TransitionRule{
+		TransitionType: TransitionTypeHostProgress,
+		Condition:      stateswitch.And(th.IsHostInReboot, th.IsDay2Host),
+		SourceStates: []stateswitch.State{
+			stateswitch.State(models.HostStatusInstallingInProgress),
+			stateswitch.State(models.HostStatusInstalling),
+		},
+		DestinationState: stateswitch.State(models.HostStatusInstallingInProgress),
+		PostTransition:   th.PostHostProgress,
+		Documentation: stateswitch.TransitionRuleDoc{
+			Name:        "host progress installing-in-progress on rebooting in kube-api mode",
+			Description: "This state is called only from kube-api controllers. ",
+		},
+	})
+
+	sm.AddTransitionRule(stateswitch.TransitionRule{
+		TransitionType: TransitionTypeHostProgress,
+		Condition:      stateswitch.And(th.IsHostInDone, th.IsDay2Host),
+		SourceStates: []stateswitch.State{
+			stateswitch.State(models.HostStatusInstallingInProgress),
+			stateswitch.State(models.HostStatusInstalling),
+		},
+		DestinationState: stateswitch.State(models.HostStatusAddedToExistingCluster),
+		PostTransition:   th.PostHostProgress,
+		Documentation: stateswitch.TransitionRuleDoc{
+			Name:        "host progress changed to added-to-existing-cluster for day2 host",
+			Description: "Change day2 host state to HostStatusAddedToExistingCluster when it reached stage Done. (i.e. the end of SAAS flow for day2 installation)",
+		},
+	})
+
+	sm.AddTransitionRule(stateswitch.TransitionRule{
+		TransitionType: TransitionTypeHostProgress,
+		Condition:      th.IsHostInDone,
+		SourceStates: []stateswitch.State{
+			stateswitch.State(models.HostStatusInstallingInProgress),
+			stateswitch.State(models.HostStatusInstalling),
+		},
+		DestinationState: stateswitch.State(models.HostStatusInstalled),
+		PostTransition:   th.PostHostProgress,
+		Documentation: stateswitch.TransitionRuleDoc{
+			Name:        "host progress changed to installed",
+			Description: "Change host state to installed when it reached stage Done",
+		},
+	})
+
+	//Note: Keep this transition last in respect
+	//to other TransitionTypeHostProgress rules
+	sm.AddTransitionRule(stateswitch.TransitionRule{
+		TransitionType: TransitionTypeHostProgress,
+		SourceStates: []stateswitch.State{
+			stateswitch.State(models.HostStatusInstallingInProgress),
+			stateswitch.State(models.HostStatusInstalling),
+			stateswitch.State(models.HostStatusInstallingPendingUserAction),
+		},
+		DestinationState: stateswitch.State(models.HostStatusInstallingInProgress),
+		PostTransition:   th.PostHostProgress,
+		Documentation: stateswitch.TransitionRuleDoc{
+			Name:        "default host progress changed",
+			Description: "Keep host state in installingInProgress during installation",
+		},
+	})
+
+	//this is a noop operation where all other conditions
+	//are not met.
+	for _, state := range []stateswitch.State{
+		stateswitch.State(models.HostStatusInstalled),
+		stateswitch.State(models.HostStatusInstallingPendingUserAction),
+		stateswitch.State(models.HostStatusResettingPendingUserAction),
+	} {
+		sm.AddTransitionRule(stateswitch.TransitionRule{
+			TransitionType:   TransitionTypeHostProgress,
+			SourceStates:     []stateswitch.State{state},
+			DestinationState: state,
+			Documentation: stateswitch.TransitionRuleDoc{
+				Name:        fmt.Sprintf("Host progress change during %s state when host is not in state Done (or Rebooting in day2) should stay in %s state", state, state),
+				Description: "Fallback transition for host progress change",
+			},
+		})
+	}
 
 	sm.AddTransitionRule(stateswitch.TransitionRule{
 		TransitionType: TransitionTypeRegisterHost,
