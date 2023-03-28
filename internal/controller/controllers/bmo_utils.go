@@ -19,7 +19,13 @@ import (
 
 const MinimalVersionForConvergedFlow = "4.12.0-0.alpha"
 
-type BMOUtils struct {
+//go:generate mockgen --build_flags=--mod=mod -package=controllers -destination=mock_bmo_utils.go . BMOUtils
+type BMOUtils interface {
+	ConvergedFlowAvailable() bool
+	GetIronicServiceURLS() (string, string, error)
+}
+
+type bmoUtils struct {
 	// The methods of this receiver get called once before the cache is initialized hence we check the API directly
 	c              client.Reader
 	osClient       *osclientset.Clientset
@@ -28,8 +34,8 @@ type BMOUtils struct {
 	kubeAPIEnabled bool
 }
 
-func NewBMOUtils(client client.Reader, osClient *osclientset.Clientset, kubeClient *kubernetes.Clientset, log logrus.FieldLogger, kubeAPIEnabled bool) *BMOUtils {
-	return &BMOUtils{client, osClient, kubeClient, log, kubeAPIEnabled}
+func NewBMOUtils(client client.Reader, osClient *osclientset.Clientset, kubeClient *kubernetes.Clientset, log logrus.FieldLogger, kubeAPIEnabled bool) BMOUtils {
+	return &bmoUtils{client, osClient, kubeClient, log, kubeAPIEnabled}
 }
 
 // +kubebuilder:rbac:groups=config.openshift.io,resources=clusteroperators,verbs=get;list;watch
@@ -37,7 +43,7 @@ func NewBMOUtils(client client.Reader, osClient *osclientset.Clientset, kubeClie
 // +kubebuilder:rbac:groups=metal3.io,resources=provisionings,verbs=get
 
 // ConvergedFlowAvailable checks the baremetal operator version and returns true if it's equal or higher than the minimal version for converged flow
-func (r *BMOUtils) ConvergedFlowAvailable() bool {
+func (r *bmoUtils) ConvergedFlowAvailable() bool {
 	key := types.NamespacedName{
 		Name: "baremetal",
 	}
@@ -61,7 +67,7 @@ func (r *BMOUtils) ConvergedFlowAvailable() bool {
 	return available
 }
 
-func (r *BMOUtils) GetIronicServiceURLS() (string, string, error) {
+func (r *bmoUtils) GetIronicServiceURLS() (string, string, error) {
 	provisioningInfo, err := r.readProvisioningCR()
 	if err != nil {
 		r.log.WithError(err).Error("unable to get provisioning CR")
@@ -89,7 +95,7 @@ func (r *BMOUtils) GetIronicServiceURLS() (string, string, error) {
 	return ironicURL, inspectorURL, nil
 }
 
-func (r *BMOUtils) readProvisioningCR() (*metal3iov1alpha1.Provisioning, error) {
+func (r *bmoUtils) readProvisioningCR() (*metal3iov1alpha1.Provisioning, error) {
 	// Fetch the Provisioning instance
 	instance := &metal3iov1alpha1.Provisioning{}
 	namespacedName := types.NamespacedName{Name: metal3iov1alpha1.ProvisioningSingletonName, Namespace: ""}
