@@ -9,6 +9,7 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/models"
+	"github.com/sirupsen/logrus"
 )
 
 var _ = Describe("V2ListFeatureSupportLevels API", func() {
@@ -182,12 +183,14 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 	})
 
 	Context("ValidateIncompatibleFeatures", func() {
+		log := logrus.New()
+
 		It("No feature is activated", func() {
 			cluster := common.Cluster{Cluster: models.Cluster{
 				OpenshiftVersion: "4.6",
 				CPUArchitecture:  models.ClusterCPUArchitectureX8664,
 			}}
-			Expect(ValidateIncompatibleFeatures(models.ClusterCPUArchitectureX8664, cluster, nil)).To(BeNil())
+			Expect(ValidateIncompatibleFeatures(log, models.ClusterCPUArchitectureX8664, cluster, nil)).To(BeNil())
 		})
 		It("Single compatible feature is activated", func() {
 			cluster := common.Cluster{Cluster: models.Cluster{
@@ -197,7 +200,7 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 				UserManagedNetworking: swag.Bool(true),
 				Platform:              &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeBaremetal)},
 			}}
-			Expect(ValidateIncompatibleFeatures(models.ClusterCPUArchitectureX8664, cluster, nil)).To(BeNil())
+			Expect(ValidateIncompatibleFeatures(log, models.ClusterCPUArchitectureX8664, cluster, nil)).To(BeNil())
 		})
 		It("SNO feature is activated with incompatible architecture ppc64le", func() {
 			expectedError := "cannot use Single Node OpenShift because it's not compatible with the ppc64le architecture on version 4.13 of OpenShift"
@@ -208,7 +211,7 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 				UserManagedNetworking: swag.Bool(true),
 				Platform:              &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeBaremetal)},
 			}}
-			Expect(ValidateIncompatibleFeatures(models.ClusterCPUArchitecturePpc64le, cluster, nil).Error()).To(Equal(expectedError))
+			Expect(ValidateIncompatibleFeatures(log, models.ClusterCPUArchitecturePpc64le, cluster, nil).Error()).To(Equal(expectedError))
 		})
 		It("SNO feature is activated with incompatible architecture s390x", func() {
 			expectedError := "cannot use Single Node OpenShift because it's not compatible with the s390x architecture on version 4.13 of OpenShift"
@@ -219,7 +222,7 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 				UserManagedNetworking: swag.Bool(true),
 				Platform:              &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeBaremetal)},
 			}}
-			Expect(ValidateIncompatibleFeatures(models.ClusterCPUArchitectureS390x, cluster, nil).Error()).To(Equal(expectedError))
+			Expect(ValidateIncompatibleFeatures(log, models.ClusterCPUArchitectureS390x, cluster, nil).Error()).To(Equal(expectedError))
 		})
 		It("Nutanix feature is activated with incompatible architecture", func() {
 			expectedError := "cannot use arm64 architecture because it's not compatible on version 4.8 of OpenShift"
@@ -230,7 +233,7 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 				UserManagedNetworking: swag.Bool(true),
 				Platform:              &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeNutanix)},
 			}}
-			Expect(ValidateIncompatibleFeatures(models.ClusterCPUArchitectureArm64, cluster, nil).Error()).To(Equal(expectedError))
+			Expect(ValidateIncompatibleFeatures(log, models.ClusterCPUArchitectureArm64, cluster, nil).Error()).To(Equal(expectedError))
 		})
 		It("ClusterManagedNetworking feature is activated with compatible architecture on 4.11", func() {
 			cluster := common.Cluster{Cluster: models.Cluster{
@@ -240,7 +243,7 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 				Platform:              &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeBaremetal)},
 				UserManagedNetworking: swag.Bool(false),
 			}}
-			Expect(ValidateIncompatibleFeatures(models.ClusterCPUArchitectureArm64, cluster, nil)).To(BeNil())
+			Expect(ValidateIncompatibleFeatures(log, models.ClusterCPUArchitectureArm64, cluster, nil)).To(BeNil())
 		})
 	})
 
@@ -350,7 +353,6 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 					models.FeatureSupportLevelIDCUSTOMMANIFEST,
 					models.FeatureSupportLevelIDDUALSTACKVIPS,
 					models.FeatureSupportLevelIDSINGLENODEEXPANSION,
-					models.FeatureSupportLevelIDLVM,
 					models.FeatureSupportLevelIDCNV,
 				}
 				for _, featureId := range features {

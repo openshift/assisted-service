@@ -639,7 +639,8 @@ func (b *bareMetalInventory) RegisterClusterInternal(
 	}
 	cluster.MonitoredOperators = append(monitoredOperators, newOLMOperators...)
 
-	if err = featuresupport.ValidateIncompatibleFeatures(params.NewClusterParams.CPUArchitecture, *cluster, nil); err != nil {
+	if err = featuresupport.ValidateIncompatibleFeatures(log, params.NewClusterParams.CPUArchitecture, *cluster, nil); err != nil {
+		b.log.Error(err)
 		return nil, common.NewApiError(http.StatusBadRequest, err)
 	}
 
@@ -1971,7 +1972,8 @@ func (b *bareMetalInventory) validateUpdateCluster(
 		return params, err
 	}
 	for _, cpuArchitecture := range cpuArchitectures {
-		if err = featuresupport.ValidateIncompatibleFeatures(cpuArchitecture, *cluster, params.ClusterUpdateParams); err != nil {
+		if err = featuresupport.ValidateIncompatibleFeatures(log, cpuArchitecture, *cluster, params.ClusterUpdateParams); err != nil {
+			b.log.Error(err)
 			return params, common.NewApiError(http.StatusBadRequest, err)
 		}
 	}
@@ -4456,7 +4458,7 @@ func (b *bareMetalInventory) setMultiCPUArchitectureUsage(db *gorm.DB, clusterId
 	return nil
 }
 
-func (b *bareMetalInventory) handlerCluserInfoOnRegisterInfraEnv(
+func (b *bareMetalInventory) handlerClusterInfoOnRegisterInfraEnv(
 	log logrus.FieldLogger,
 	tx *gorm.DB,
 	clusterId *strfmt.UUID,
@@ -4464,9 +4466,11 @@ func (b *bareMetalInventory) handlerCluserInfoOnRegisterInfraEnv(
 	cluster *common.Cluster,
 	params *models.InfraEnvCreateParams,
 ) error {
+	log.Infof("Handling cluster %s information on RegisterInfraEnv", clusterId)
 	if clusterId != nil {
 		infraEnv.ClusterID = *clusterId
-		if err := featuresupport.ValidateIncompatibleFeatures(params.CPUArchitecture, *cluster, nil); err != nil {
+		if err := featuresupport.ValidateIncompatibleFeatures(log, infraEnv.CPUArchitecture, *cluster, nil); err != nil {
+			b.log.Error(err)
 			return common.NewApiError(http.StatusBadRequest, err)
 		}
 
@@ -4539,7 +4543,7 @@ func (b *bareMetalInventory) RegisterInfraEnvInternal(
 	var cluster *common.Cluster
 	clusterId := params.InfraenvCreateParams.ClusterID
 	if clusterId != nil {
-		cluster, err = common.GetClusterFromDB(b.db, *clusterId, common.SkipEagerLoading)
+		cluster, err = b.GetClusterInternal(ctx, installer.V2GetClusterParams{ClusterID: *clusterId})
 		if err != nil {
 			if errors.Is(err, gorm.ErrRecordNotFound) {
 				err = errors.Errorf("Cluster ID %s does not exist", clusterId.String())
@@ -4627,7 +4631,7 @@ func (b *bareMetalInventory) RegisterInfraEnvInternal(
 		ImageTokenKey:    imageTokenKey,
 	}
 
-	if err = b.handlerCluserInfoOnRegisterInfraEnv(log, tx, clusterId, &infraEnv, cluster, params.InfraenvCreateParams); err != nil {
+	if err = b.handlerClusterInfoOnRegisterInfraEnv(log, tx, clusterId, &infraEnv, cluster, params.InfraenvCreateParams); err != nil {
 		return nil, err
 	}
 
