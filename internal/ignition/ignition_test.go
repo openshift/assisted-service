@@ -1529,6 +1529,106 @@ var _ = Describe("IgnitionBuilder", func() {
 			Expect(count).Should(Equal(2))
 		})
 	})
+
+	It("Generates permissive `policy.json` by default", func() {
+		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(true).AnyTimes()
+		mockMirrorRegistriesConfigBuilder.EXPECT().GetMirrorCA().Return([]byte("my-ca"), nil).AnyTimes()
+		mockMirrorRegistriesConfigBuilder.EXPECT().GetMirrorRegistries().Return([]byte("my-mirror"), nil).AnyTimes()
+		mockVersionHandler.EXPECT().GetReleaseImage(
+			gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(),
+		).Return(nil, errors.New("my-error")).AnyTimes()
+		text, err := builder.FormatDiscoveryIgnitionFile(
+			context.Background(),
+			&infraEnv,
+			IgnitionConfig{},
+			false,
+			auth.TypeRHSSO,
+			"",
+		)
+		Expect(err).Should(BeNil())
+		config, report, err := config_32.ParseCompatibleVersion([]byte(text))
+		Expect(err).ToNot(HaveOccurred())
+		Expect(report.Entries).To(BeEmpty())
+		var policyFile *config_32_types.File
+		for i, file := range config.Storage.Files {
+			if file.Path == "/etc/containers/policy.json" {
+				policyFile = &config.Storage.Files[i]
+				break
+			}
+		}
+		Expect(policyFile).ToNot(BeNil())
+		Expect(policyFile.Mode).ToNot(BeNil())
+		Expect(*policyFile.Mode).To(Equal(0644))
+		Expect(policyFile.Contents.Source).ToNot(BeNil())
+		policyData, err := dataurl.DecodeString(*policyFile.Contents.Source)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(policyData.Data).To(MatchJSON(`{
+			"default": [
+				{
+					"type": "insecureAcceptAnything"
+				}
+			],
+			"transports": {
+				"docker-daemon": {
+					"": [
+						{
+							"type": "insecureAcceptAnything"
+						}
+					]
+				}
+			}
+		}`))
+	})
+
+	It("Honors overriden `policy.json`", func() {
+		infraEnv.IgnitionConfigOverride = `{
+			"ignition": {
+				"version":"3.2.0"
+			},
+			"storage": {
+				"files": [
+					{
+						"path":"/etc/containers/policy.json",
+						"mode":420,
+						"overwrite":true,
+						"contents": {
+							"source": "data:text/plain;charset=utf-8;base64,bXktcG9saWN5"
+						}
+					}
+				]
+			}
+		}`
+		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(true).AnyTimes()
+		mockMirrorRegistriesConfigBuilder.EXPECT().GetMirrorCA().Return([]byte("my-ca"), nil).AnyTimes()
+		mockMirrorRegistriesConfigBuilder.EXPECT().GetMirrorRegistries().Return([]byte("my-mirror"), nil).AnyTimes()
+		mockVersionHandler.EXPECT().GetReleaseImage(
+			gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(),
+		).Return(nil, errors.New("my-error")).AnyTimes()
+		text, err := builder.FormatDiscoveryIgnitionFile(
+			context.Background(),
+			&infraEnv,
+			IgnitionConfig{},
+			false,
+			auth.TypeRHSSO,
+			"",
+		)
+		Expect(err).Should(BeNil())
+		config, report, err := config_32.ParseCompatibleVersion([]byte(text))
+		Expect(err).ToNot(HaveOccurred())
+		Expect(report.Entries).To(BeEmpty())
+		var policyFile *config_32_types.File
+		for i, file := range config.Storage.Files {
+			if file.Path == "/etc/containers/policy.json" {
+				policyFile = &config.Storage.Files[i]
+				break
+			}
+		}
+		Expect(policyFile).ToNot(BeNil())
+		Expect(policyFile.Contents.Source).ToNot(BeNil())
+		policyData, err := dataurl.DecodeString(*policyFile.Contents.Source)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(string(policyData.Data)).To(Equal("my-policy"))
+	})
 })
 
 var _ = Describe("Ignition SSH key building", func() {

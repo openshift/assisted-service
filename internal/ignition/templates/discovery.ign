@@ -191,6 +191,18 @@
         "name": "root"
       },
       "contents": { "source": "data:text/plain;base64,{{.OKDHoldAgent}}" }
-    }{{end}}]
+    }{{end}},
+    {
+      "path": "/etc/containers/policy.json",
+      "mode": 420,
+      "overwrite": true,
+      "user": {
+        "name": "root"
+      },
+      "contents": {
+        "source": "data:text/plain;base64,{{ executeTemplate "policy.json" . | toBase64 }}"
+      }
+    }
+    ]
   }
 }
