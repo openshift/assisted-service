@@ -104,6 +104,29 @@ var _ = Describe("Feature support levels API", func() {
 				err2 := err.(*installer.V2UpdateClusterBadRequest)
 				ExpectWithOffset(1, *err2.Payload.Reason).To(ContainSubstring(expectedError))
 			})
+
+			It("Create infra-env after updating OLM operators on s390x architecture ", func() {
+				expectedError := "cannot use OpenShift Virtualization because it's not compatible with the s390x architecture on version 4.13"
+				cluster, err := registerNewCluster("4.13", "s390x", models.ClusterHighAvailabilityModeFull, swag.Bool(true))
+				Expect(err).NotTo(HaveOccurred())
+				Expect(cluster.Payload.CPUArchitecture).To(Equal("multi"))
+
+				_, err = user2BMClient.Installer.V2UpdateCluster(ctx, &installer.V2UpdateClusterParams{
+					ClusterUpdateParams: &models.V2ClusterUpdateParams{
+						OlmOperators: []*models.OperatorCreateParams{
+							{Name: "odf"},
+							{Name: "cnv"},
+							{Name: "lso"},
+						},
+					},
+					ClusterID: *cluster.Payload.ID,
+				})
+				Expect(err).ToNot(HaveOccurred())
+
+				_, err = registerNewInfraEnv(cluster.Payload.ID, "4.13", "s390x")
+				err2 := err.(*installer.RegisterInfraEnvBadRequest)
+				ExpectWithOffset(1, *err2.Payload.Reason).To(ContainSubstring(expectedError))
+			})
 		})
 
 		Context("Register cluster", func() {

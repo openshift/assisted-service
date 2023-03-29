@@ -84,6 +84,7 @@ func (feature *SnoFeature) GetIncompatibleFeatures() *[]models.FeatureSupportLev
 		models.FeatureSupportLevelIDNUTANIXINTEGRATION,
 		models.FeatureSupportLevelIDVSPHEREINTEGRATION,
 		models.FeatureSupportLevelIDCLUSTERMANAGEDNETWORKING,
+		models.FeatureSupportLevelIDVIPAUTOALLOC,
 	}
 }
 
@@ -315,7 +316,10 @@ func (feature *SingleNodeExpansionFeature) GetIncompatibleFeatures() *[]models.F
 }
 
 func (feature *SingleNodeExpansionFeature) GetIncompatibleArchitectures(_ string) *[]models.ArchitectureSupportLevelID {
-	return nil
+	return &[]models.ArchitectureSupportLevelID{
+		models.ArchitectureSupportLevelIDS390XARCHITECTURE,
+		models.ArchitectureSupportLevelIDPPC64LEARCHITECTURE,
+	}
 }
 
 // LvmFeature
@@ -353,7 +357,13 @@ func (feature *LvmFeature) getFeatureActiveLevel(cluster common.Cluster, updateP
 }
 
 func (feature *LvmFeature) GetIncompatibleFeatures() *[]models.FeatureSupportLevelID {
-	return nil
+	return &[]models.FeatureSupportLevelID{
+		models.FeatureSupportLevelIDVIPAUTOALLOC,
+		models.FeatureSupportLevelIDCLUSTERMANAGEDNETWORKING,
+		models.FeatureSupportLevelIDNUTANIXINTEGRATION,
+		models.FeatureSupportLevelIDVSPHEREINTEGRATION,
+		models.FeatureSupportLevelIDODF,
+	}
 }
 
 func (feature *LvmFeature) GetIncompatibleArchitectures(_ string) *[]models.ArchitectureSupportLevelID {
@@ -404,6 +414,7 @@ func (feature *NutanixIntegrationFeature) GetIncompatibleFeatures() *[]models.Fe
 	return &[]models.FeatureSupportLevelID{
 		models.FeatureSupportLevelIDSNO,
 		models.FeatureSupportLevelIDUSERMANAGEDNETWORKING,
+		models.FeatureSupportLevelIDLVM,
 	}
 }
 
@@ -445,6 +456,7 @@ func (feature *VsphereIntegrationFeature) getFeatureActiveLevel(cluster common.C
 func (feature *VsphereIntegrationFeature) GetIncompatibleFeatures() *[]models.FeatureSupportLevelID {
 	return &[]models.FeatureSupportLevelID{
 		models.FeatureSupportLevelIDSNO,
+		models.FeatureSupportLevelIDLVM,
 	}
 }
 
@@ -483,6 +495,7 @@ func (feature *OdfFeature) GetIncompatibleArchitectures(_ string) *[]models.Arch
 func (feature *OdfFeature) GetIncompatibleFeatures() *[]models.FeatureSupportLevelID {
 	return &[]models.FeatureSupportLevelID{
 		models.FeatureSupportLevelIDSNO,
+		models.FeatureSupportLevelIDLVM,
 	}
 }
 

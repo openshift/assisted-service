@@ -7,6 +7,7 @@ import (
 	"github.com/go-openapi/swag"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/models"
+	"github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
 )
 
@@ -93,16 +94,18 @@ func isFeatureCompatible(feature SupportLevelFeature, features ...SupportLevelFe
 	return nil
 }
 
-func ValidateIncompatibleFeatures(cpuArchitecture string, cluster common.Cluster, updateParams *models.V2ClusterUpdateParams) error {
+func ValidateIncompatibleFeatures(log logrus.FieldLogger, cpuArchitecture string, cluster common.Cluster, updateParams *models.V2ClusterUpdateParams) error {
 	var activatedFeatures []SupportLevelFeature
 
 	if cpuArchitecture == "" || cluster.OpenshiftVersion == "" {
+		log.Warnf("Cannot validate incompatible features, CpuArchitecture='%s', OpenshiftVersion='%s'", cpuArchitecture, cluster.OpenshiftVersion)
 		return nil
 	}
 
 	for _, feature := range featuresList {
 		if feature.getFeatureActiveLevel(cluster, updateParams) == activeLevelActive {
 			activatedFeatures = append(activatedFeatures, feature)
+			log.Debugf("%s feature is activated", feature.GetName())
 		}
 	}
 

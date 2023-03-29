@@ -6634,7 +6634,7 @@ var _ = Describe("[V2ClusterUpdate] cluster", func() {
 		Context("Feature compatibility", func() {
 			Context("OCP Version 4.13", func() {
 
-				createClusterWithInfraEnv := func(clusterId strfmt.UUID, cpuArchitecture, openshiftVersion string, platformType models.PlatformType, umn bool, highAvailabilityMode string) {
+				createCluster := func(clusterId strfmt.UUID, cpuArchitecture, openshiftVersion string, platformType models.PlatformType, umn bool, highAvailabilityMode string) {
 					err := db.Create(&common.Cluster{Cluster: models.Cluster{
 						ID:                    &clusterId,
 						HighAvailabilityMode:  swag.String(highAvailabilityMode),
@@ -6647,7 +6647,9 @@ var _ = Describe("[V2ClusterUpdate] cluster", func() {
 					}}).Error
 					Expect(err).ShouldNot(HaveOccurred())
 					mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(1)
+				}
 
+				createInfraEnv := func(clusterId strfmt.UUID, cpuArchitecture string) {
 					infraEnvID := strfmt.UUID(uuid.New().String())
 					infraEnv := &common.InfraEnv{
 						InfraEnv: models.InfraEnv{
@@ -6657,6 +6659,11 @@ var _ = Describe("[V2ClusterUpdate] cluster", func() {
 						},
 					}
 					Expect(db.Create(infraEnv).Error).ToNot(HaveOccurred())
+				}
+
+				createClusterWithInfraEnv := func(clusterId strfmt.UUID, cpuArchitecture, openshiftVersion string, platformType models.PlatformType, umn bool, highAvailabilityMode string) {
+					createCluster(clusterID, cpuArchitecture, openshiftVersion, platformType, umn, highAvailabilityMode)
+					createInfraEnv(clusterID, cpuArchitecture)
 				}
 
 				It("s390x with SNO - incompatible", func() {
