@@ -7861,6 +7861,34 @@ var _ = Describe("infraEnvs", func() {
 				Expect(err).ToNot(HaveOccurred())
 				Expect(common.ImageTypeValue(i.Type)).To(Equal(models.ImageTypeFullIso))
 			})
+
+			It("Update Image type to minimal-iso on an unsupported architecture should not be permitted", func() {
+				mockOSImages.EXPECT().GetOsImageOrLatest(gomock.Any(), gomock.Any()).Return(common.TestDefaultConfig.OsImage, nil).AnyTimes()
+				mockOSImages.EXPECT().GetOsImage(gomock.Any(), gomock.Any()).Return(common.TestDefaultConfig.OsImage, nil).AnyTimes()
+				mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(discovery_ignition_3_1, nil).AnyTimes()
+				mockEvents.EXPECT().SendInfraEnvEvent(gomock.Any(), eventstest.NewEventMatcher(eventstest.WithNameMatcher(eventgen.ImageInfoUpdatedEventName))).AnyTimes()
+				type Test struct {
+					architecture    string
+					expectedType    interface{}
+				}
+				for _, t := range []Test{
+					{architecture: common.S390xCPUArchitecture, expectedType: &common.ApiErrorResponse{}},
+					{architecture: common.PowerCPUArchitecture, expectedType: installer.NewUpdateInfraEnvCreated()},
+					{architecture: common.X86CPUArchitecture, expectedType: installer.NewUpdateInfraEnvCreated()},
+				} {
+					
+					err := db.Model(&common.InfraEnv{}).Where("id = ?", i.ID).Update("cpu_architecture", t.architecture).Error
+					Expect(err).ToNot(HaveOccurred())
+					reply := bm.UpdateInfraEnv(ctx, installer.UpdateInfraEnvParams{
+						InfraEnvID: *i.ID,
+						InfraEnvUpdateParams: &models.InfraEnvUpdateParams{
+							ImageType: models.ImageTypeMinimalIso,
+						},
+					})
+					Expect(reply).To(BeAssignableToTypeOf(t.expectedType))
+				}
+			})
+
 			It("Update additional trust bundle", func() {
 				var err error
 				mockInfraEnvUpdateSuccess()

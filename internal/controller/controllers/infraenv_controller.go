@@ -185,6 +185,11 @@ func (r *InfraEnvReconciler) updateInfraEnv(ctx context.Context, log logrus.Fiel
 
 	updateParams.InfraEnvUpdateParams.ImageType = r.Config.ImageType
 
+	if infraEnv.Spec.CpuArchitecture == models.ClusterCPUArchitectureS390x && updateParams.InfraEnvUpdateParams.ImageType == models.ImageTypeMinimalIso {
+		log.Warnf("[updateInfraEnv] Infra env type forced to full ISO for infra env with ID %s as S390x architecture does not support minimal ISO", updateParams.InfraEnvID)
+		updateParams.InfraEnvUpdateParams.ImageType = models.ImageTypeFullIso
+	}
+
 	existingKargs, err := kubeKernelArgs(internalInfraEnv)
 	if err != nil {
 		return nil, err
@@ -437,6 +442,11 @@ func (r *InfraEnvReconciler) createInfraEnv(ctx context.Context, log logrus.Fiel
 	}
 
 	createParams := CreateInfraEnvParams(infraEnv, r.Config.ImageType, pullSecret, clusterID, openshiftVersion)
+
+	if createParams.InfraenvCreateParams.ImageType == models.ImageTypeMinimalIso && createParams.InfraenvCreateParams.CPUArchitecture == common.S390xCPUArchitecture {
+		log.Warnf("[createInfraEnv] Infra env type forced to full ISO for infra env with name %s as S390x architecture does not support minimal ISO", *createParams.InfraenvCreateParams.Name)
+		createParams.InfraenvCreateParams.ImageType = models.ImageTypeFullIso
+	}
 
 	staticNetworkConfig, err := r.processNMStateConfig(ctx, log, infraEnv)
 	if err != nil {

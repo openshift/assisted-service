@@ -4898,6 +4898,13 @@ func (b *bareMetalInventory) UpdateInfraEnvInternal(ctx context.Context, params 
 		return nil, common.NewApiError(http.StatusNotFound, err)
 	}
 
+	if params.InfraEnvUpdateParams.ImageType == models.ImageTypeMinimalIso && infraEnv.CPUArchitecture == common.S390xCPUArchitecture {
+			msg := fmt.Sprintf("architecture %s does not support minimal ISO ", infraEnv.CPUArchitecture)
+			err := errors.New(msg)
+			log.Error(msg)
+			return nil, common.NewApiError(http.StatusBadRequest, err)
+	}
+
 	if params.InfraEnvUpdateParams.Proxy != nil {
 		if err = validateProxySettings(params.InfraEnvUpdateParams.Proxy.HTTPProxy,
 			params.InfraEnvUpdateParams.Proxy.HTTPSProxy,
