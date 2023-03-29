@@ -141,6 +141,25 @@ Unlike for the **internal** network, this enhancement proposes to always infer t
 external network from the External API VIP and the External Ingress IP provided by the user. There
 are utilities in Assisted Installer to do this already.
 
+### KubeAPI Changes
+
+This enhancement proposes adding the following field to the AgentClusterInstall CRD:
+
+```yaml
+relocationConfig:
+  apiVIP: # /32 IP to use for the API VIP
+  ingressIP: # /32 IP to use for the external ingress
+  baseDomain: # Secondary domain to configure
+```
+
+Setting this key in the ACI will result in Assisted Installer doing the following:
+
+1. It will install the MetalLB operator in the cluster
+2. It will configure the IPAddressPool for MetalLB
+3. It will configure the L2Advertisement for MetalLB
+4. It will configure the Service for MetalLB
+
+
 ### User Stories
 
 #### Story 1
