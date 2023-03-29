@@ -3604,3 +3604,189 @@ var _ = Describe("spokeKubeClient", func() {
 	})
 
 })
+
+var _ = Describe("handleAgentFinalizer", func() {
+	var (
+		r                     *AgentReconciler
+		ctx                   = context.Background()
+		mockCtrl              *gomock.Controller
+		mockClient            *MockK8sClient
+		mockInstallerInternal *bminventory.MockInstallerInternals
+		mockClientFactory     *spoke_k8s_client.MockSpokeK8sClientFactory
+		agent                 *v1beta1.Agent
+	)
+
+	BeforeEach(func() {
+		mockCtrl = gomock.NewController(GinkgoT())
+		mockClient = NewMockK8sClient(mockCtrl)
+		mockInstallerInternal = bminventory.NewMockInstallerInternals(mockCtrl)
+		mockClientFactory = spoke_k8s_client.NewMockSpokeK8sClientFactory(mockCtrl)
+
+		r = &AgentReconciler{
+			Client:                mockClient,
+			APIReader:             mockClient,
+			Scheme:                scheme.Scheme,
+			Log:                   common.GetTestLog(),
+			Installer:             mockInstallerInternal,
+			SpokeK8sClientFactory: mockClientFactory,
+		}
+		agent = &v1beta1.Agent{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "host",
+				Namespace: testNamespace,
+			},
+			Spec: v1beta1.AgentSpec{
+				Hostname: "host.example.com",
+				ClusterDeploymentName: &v1beta1.ClusterReference{
+					Name:      "cluster",
+					Namespace: testNamespace,
+				},
+			},
+		}
+	})
+
+	AfterEach(func() {
+		mockCtrl.Finish()
+	})
+
+	It("adds the finalizer if it doesn't exist", func() {
+		mockClient.EXPECT().Update(ctx, gomock.AssignableToTypeOf(&v1beta1.Agent{})).DoAndReturn(
+			func(_ context.Context, updatedAgent *v1beta1.Agent, _ ...client.UpdateOption) error {
+				Expect(updatedAgent.GetFinalizers()).To(ContainElement(AgentFinalizerName))
+				return nil
+			},
+		)
+
+		res, err := r.handleAgentFinalizer(ctx, common.GetTestLog(), agent)
+		Expect(err).To(BeNil())
+		Expect(res).NotTo(BeNil())
+		Expect(res.Requeue).To(BeTrue())
+	})
+
+	It("returns nil when the finalizer already exists", func() {
+		agent.ObjectMeta.Finalizers = []string{AgentFinalizerName}
+		res, err := r.handleAgentFinalizer(ctx, common.GetTestLog(), agent)
+		Expect(res).To(BeNil())
+		Expect(err).To(BeNil())
+	})
+
+	Context("agent is being deleted", func() {
+		BeforeEach(func() {
+			now := metav1.Now()
+			agent.ObjectMeta.DeletionTimestamp = &now
+			agent.ObjectMeta.Finalizers = []string{AgentFinalizerName}
+		})
+
+		It("returns an empty result if the finalizer is not set", func() {
+			agent.ObjectMeta.Finalizers = nil
+			res, err := r.handleAgentFinalizer(ctx, common.GetTestLog(), agent)
+			Expect(err).To(BeNil())
+			Expect(res).NotTo(BeNil())
+		})
+
+		It("deregisters the host and removes the finalizer", func() {
+			hostID := strfmt.UUID(uuid.New().String())
+			infraEnvID := strfmt.UUID(uuid.New().String())
+			host := &common.Host{
+				Host: models.Host{
+					ID:         &hostID,
+					InfraEnvID: infraEnvID,
+				},
+			}
+			key := types.NamespacedName{Namespace: agent.Namespace, Name: agent.Name}
+			mockInstallerInternal.EXPECT().GetHostByKubeKey(key).Return(host, nil)
+			params := installer.V2DeregisterHostParams{InfraEnvID: infraEnvID, HostID: hostID}
+			mockInstallerInternal.EXPECT().V2DeregisterHostInternal(ctx, params, bminventory.NonInteractive).Return(nil)
+			mockClient.EXPECT().Update(ctx, gomock.AssignableToTypeOf(&v1beta1.Agent{})).DoAndReturn(
+				func(_ context.Context, updatedAgent *v1beta1.Agent, _ ...client.UpdateOption) error {
+					Expect(updatedAgent.GetFinalizers()).NotTo(ContainElement(AgentFinalizerName))
+					return nil
+				},
+			)
+			res, err := r.handleAgentFinalizer(ctx, common.GetTestLog(), agent)
+			Expect(err).To(BeNil())
+			Expect(res).NotTo(BeNil())
+		})
+
+		Context("with the BMH annotation", func() {
+			bmhName := "mybmh"
+			BeforeEach(func() {
+				agent.ObjectMeta.Annotations = map[string]string{BMH_FINALIZER_NAME: "true"}
+				agent.ObjectMeta.Labels = map[string]string{AGENT_BMH_LABEL: bmhName}
+			})
+
+			It("requeues if the BMH still exists", func() {
+				bmhKey := types.NamespacedName{Name: bmhName, Namespace: agent.Namespace}
+				mockClient.EXPECT().Get(ctx, bmhKey, gomock.AssignableToTypeOf(&bmh_v1alpha1.BareMetalHost{})).Return(nil)
+				res, err := r.handleAgentFinalizer(ctx, common.GetTestLog(), agent)
+				Expect(err).To(BeNil())
+				Expect(res).NotTo(BeNil())
+				Expect(res.RequeueAfter).To(Equal(defaultRequeueAfterOnError))
+			})
+
+			It("removes the spoke node if the BMH does not exist", func() {
+				// mock deleted BMH
+				notFoundError := k8serrors.NewNotFound(schema.GroupResource{Group: "v1alpha1", Resource: "BareMetalHost"}, bmhName)
+				bmhKey := types.NamespacedName{Name: bmhName, Namespace: agent.Namespace}
+				mockClient.EXPECT().Get(ctx, bmhKey, gomock.AssignableToTypeOf(&bmh_v1alpha1.BareMetalHost{})).Return(notFoundError)
+
+				// mock clusterdeployment
+				cdKey := types.NamespacedName{Name: agent.Spec.ClusterDeploymentName.Name, Namespace: testNamespace}
+				mockClient.EXPECT().Get(ctx, cdKey, gomock.AssignableToTypeOf(&hivev1.ClusterDeployment{})).DoAndReturn(
+					func(_ context.Context, key client.ObjectKey, cd *hivev1.ClusterDeployment, _ ...client.GetOption) error {
+						cd.Spec.ClusterMetadata = &hivev1.ClusterMetadata{
+							AdminKubeconfigSecretRef: corev1.LocalObjectReference{Name: "clusterKubeConfig"},
+						}
+						return nil
+					},
+				)
+
+				// mock secret
+				secretKey := types.NamespacedName{Name: "clusterKubeConfig", Namespace: testNamespace}
+				mockClient.EXPECT().Get(ctx, secretKey, gomock.AssignableToTypeOf(&corev1.Secret{})).DoAndReturn(
+					func(_ context.Context, key client.ObjectKey, secret *corev1.Secret, _ ...client.GetOption) error {
+						secret.ObjectMeta.Labels = map[string]string{
+							BackupLabel:        "true",
+							WatchResourceLabel: "true",
+						}
+						secret.Data = map[string][]byte{"kubeconfig": []byte("definitely_a_kubeconfig")}
+						return nil
+					},
+				)
+
+				// mock client and spoke node deletion
+				mockSpokeClient := spoke_k8s_client.NewMockSpokeK8sClient(mockCtrl)
+				mockClientFactory.EXPECT().CreateFromSecret(gomock.AssignableToTypeOf(&corev1.Secret{})).DoAndReturn(
+					func(secret *corev1.Secret) (spoke_k8s_client.SpokeK8sClient, error) {
+						Expect(secret.Data["kubeconfig"]).To(Equal([]byte("definitely_a_kubeconfig")))
+						return mockSpokeClient, nil
+					},
+				)
+				mockSpokeClient.EXPECT().DeleteNode(ctx, "host.example.com").Return(nil)
+
+				// deregisters host and removes finalizer
+				hostID := strfmt.UUID(uuid.New().String())
+				infraEnvID := strfmt.UUID(uuid.New().String())
+				host := &common.Host{
+					Host: models.Host{
+						ID:         &hostID,
+						InfraEnvID: infraEnvID,
+					},
+				}
+				key := types.NamespacedName{Namespace: agent.Namespace, Name: agent.Name}
+				mockInstallerInternal.EXPECT().GetHostByKubeKey(key).Return(host, nil)
+				params := installer.V2DeregisterHostParams{InfraEnvID: infraEnvID, HostID: hostID}
+				mockInstallerInternal.EXPECT().V2DeregisterHostInternal(ctx, params, bminventory.NonInteractive).Return(nil)
+				mockClient.EXPECT().Update(ctx, gomock.AssignableToTypeOf(&v1beta1.Agent{})).DoAndReturn(
+					func(_ context.Context, updatedAgent *v1beta1.Agent, _ ...client.UpdateOption) error {
+						Expect(updatedAgent.GetFinalizers()).NotTo(ContainElement(AgentFinalizerName))
+						return nil
+					},
+				)
+				res, err := r.handleAgentFinalizer(ctx, common.GetTestLog(), agent)
+				Expect(err).To(BeNil())
+				Expect(res).NotTo(BeNil())
+			})
+		})
+	})
+})
