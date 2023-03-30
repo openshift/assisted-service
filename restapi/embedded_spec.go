@@ -8242,8 +8242,7 @@ func init() {
             "aarch64",
             "arm64",
             "ppc64le",
-            "s390x",
-            "multi"
+            "s390x"
           ],
           "x-nullable": false
         },
@@ -8387,8 +8386,7 @@ func init() {
             "aarch64",
             "arm64",
             "ppc64le",
-            "s390x",
-            "multi"
+            "s390x"
           ],
           "x-nullable": false
         },
@@ -18525,8 +18523,7 @@ func init() {
             "aarch64",
             "arm64",
             "ppc64le",
-            "s390x",
-            "multi"
+            "s390x"
           ],
           "x-nullable": false
         },
@@ -18671,8 +18668,7 @@ func init() {
             "aarch64",
             "arm64",
             "ppc64le",
-            "s390x",
-            "multi"
+            "s390x"
           ],
           "x-nullable": false
         },

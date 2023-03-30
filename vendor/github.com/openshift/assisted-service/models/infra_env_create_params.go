@@ -35,7 +35,7 @@ type InfraEnvCreateParams struct {
 	ClusterID *strfmt.UUID `json:"cluster_id,omitempty"`
 
 	// The CPU architecture of the image (x86_64/arm64/etc).
-	// Enum: [x86_64 aarch64 arm64 ppc64le s390x multi]
+	// Enum: [x86_64 aarch64 arm64 ppc64le s390x]
 	CPUArchitecture string `json:"cpu_architecture,omitempty"`
 
 	// JSON formatted string containing the user overrides for the initial ignition config.
@@ -126,7 +126,7 @@ var infraEnvCreateParamsTypeCPUArchitecturePropEnum []interface{}
 
 func init() {
 	var res []string
-	if err := json.Unmarshal([]byte(`["x86_64","aarch64","arm64","ppc64le","s390x","multi"]`), &res); err != nil {
+	if err := json.Unmarshal([]byte(`["x86_64","aarch64","arm64","ppc64le","s390x"]`), &res); err != nil {
 		panic(err)
 	}
 	for _, v := range res {
@@ -150,9 +150,6 @@ const (
 
 	// InfraEnvCreateParamsCPUArchitectureS390x captures enum value "s390x"
 	InfraEnvCreateParamsCPUArchitectureS390x string = "s390x"
-
-	// InfraEnvCreateParamsCPUArchitectureMulti captures enum value "multi"
-	InfraEnvCreateParamsCPUArchitectureMulti string = "multi"
 )
 
 // prop value enum

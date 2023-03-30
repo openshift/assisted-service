@@ -6950,7 +6950,7 @@ definitions:
         x-nullable: false
         default: 'x86_64'
          # TODO: remove arm64 when AI moves to using aarch64
-        enum: ['x86_64', 'aarch64', 'arm64','ppc64le','s390x','multi']
+        enum: ['x86_64', 'aarch64', 'arm64','ppc64le','s390x']
         description: The CPU architecture of the image (x86_64/arm64/etc).
       kernel_arguments:
         type: string
@@ -7036,7 +7036,7 @@ definitions:
         x-nullable: false
         default: 'x86_64'
          # TODO: remove arm64 when AI moves to using aarch64
-        enum: ['x86_64', 'aarch64', 'arm64','ppc64le','s390x','multi']
+        enum: ['x86_64', 'aarch64', 'arm64','ppc64le','s390x']
         description: The CPU architecture of the image (x86_64/arm64/etc).
       kernel_arguments:
         $ref: '#/definitions/kernel_arguments'
