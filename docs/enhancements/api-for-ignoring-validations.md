@@ -39,8 +39,8 @@ Will return the ignored host and cluster validations as a pair of JSON string ar
 
 ```
 {
-  "ignored_host_validations": "[\"has-memory-for-role\", \"has-cpu-cores-for-role\"]"
-  "ignored_cluster_validations": "[\"network-type-valid\", \"ingress-vips-valid\", \"ingress-vips-defined\"]"
+  "host-validation-ids": "[\"has-memory-for-role\", \"has-cpu-cores-for-role\"]"
+  "cluster-validation-ids": "[\"network-type-valid\", \"ingress-vips-valid\", \"ingress-vips-defined\"]"
 }
 ```
 
@@ -50,8 +50,8 @@ Will accept the ignored host and cluster validations as a pair of JSON string ar
 
 ```
 {
-  "ignored_host_validations": "[\"has-memory-for-role\", \"has-cpu-cores-for-role\"]"
-  "ignored_cluster_validations": "[\"network-type-valid\", \"ingress-vips-valid\", \"ingress-vips-defined\"]"
+  "host-validation-ids": "[\"has-memory-for-role\", \"has-cpu-cores-for-role\"]"
+  "cluster-validation-ids": "[\"network-type-valid\", \"ingress-vips-valid\", \"ingress-vips-defined\"]"
 }
 ```
 
@@ -59,8 +59,8 @@ It is possible for to set in this way
 
 ```
 {
-  "ignored_host_validations": "[\"all\"]"
-  "ignored_cluster_validations": "[\"all\"]"
+  "host-validation-ids": "[\"all\"]"
+  "cluster-validation-ids": "[\"all\"]"
 }
 ```
 
