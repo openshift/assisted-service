@@ -2,6 +2,7 @@ package vsphere
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/go-openapi/swag"
 	"github.com/openshift/assisted-service/internal/common"
@@ -12,15 +13,43 @@ import (
 	"github.com/openshift/assisted-service/models"
 )
 
-func setPlatformValues(platform *installcfg.VsphereInstallConfigPlatform) {
+func setPlatformValues(openshiftVersion string, platform *installcfg.VsphereInstallConfigPlatform) {
 	// Add placeholders to make it easier to replace in day2
-	platform.Cluster = PhCluster
-	platform.VCenter = PhVcenter
-	platform.Network = PhNetwork
-	platform.DefaultDatastore = PhDefaultDatastore
-	platform.Username = PhUsername
-	platform.Password = PhPassword
-	platform.Datacenter = PhDatacenter
+	if isLessThan, err := common.BaseVersionLessThan("4.13", openshiftVersion); isLessThan || err != nil {
+		platform.DeprecatedCluster = PhCluster
+		platform.DeprecatedVCenter = PhVcenter
+		platform.DeprecatedNetwork = PhNetwork
+		platform.DeprecatedDefaultDatastore = PhDefaultDatastore
+		platform.DeprecatedUsername = PhUsername
+		platform.DeprecatedPassword = PhPassword
+		platform.DeprecatedDatacenter = PhDatacenter
+		return
+	}
+
+	platform.VCenters = []installcfg.VsphereVCenter{
+		{
+			Datacenters: []string{PhDatacenter},
+			Password:    PhPassword,
+			Server:      PhVcenter,
+			Username:    PhUsername,
+		},
+	}
+
+	platform.FailureDomains = []installcfg.VsphereFailureDomain{
+		{
+			Name:   "assisted-generated-failure-domain",
+			Region: "assisted-generated-region",
+			Server: PhVcenter,
+			Topology: installcfg.VsphereFailureDomainTopology{
+				ComputeCluster: fmt.Sprintf("/%s/host/%s", PhDatacenter, PhCluster),
+				Datacenter:     PhDatacenter,
+				Datastore:      fmt.Sprintf("/%s/datastore/%s", PhDatacenter, PhDefaultDatastore),
+				Folder:         fmt.Sprintf("/%s/vm/%s", PhDatacenter, PhFolder),
+				Networks:       []string{PhNetwork},
+			},
+			Zone: "assisted-generated-zone",
+		},
+	}
 }
 
 func (p vsphereProvider) AddPlatformToInstallConfig(cfg *installcfg.InstallerConfigBaremetal, cluster *common.Cluster) error {
@@ -49,7 +78,7 @@ func (p vsphereProvider) AddPlatformToInstallConfig(cfg *installcfg.InstallerCon
 		}
 	}
 
-	setPlatformValues(vsPlatform)
+	setPlatformValues(cluster.OpenshiftVersion, vsPlatform)
 	cfg.Platform = installcfg.Platform{
 		Vsphere: vsPlatform,
 	}
