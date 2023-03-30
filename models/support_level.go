@@ -41,6 +41,9 @@ const (
 
 	// SupportLevelDevPreview captures enum value "dev-preview"
 	SupportLevelDevPreview SupportLevel = "dev-preview"
+
+	// SupportLevelUnavailable captures enum value "unavailable"
+	SupportLevelUnavailable SupportLevel = "unavailable"
 )
 
 // for schema
@@ -48,7 +51,7 @@ var supportLevelEnum []interface{}
 
 func init() {
 	var res []SupportLevel
-	if err := json.Unmarshal([]byte(`["supported","unsupported","tech-preview","dev-preview"]`), &res); err != nil {
+	if err := json.Unmarshal([]byte(`["supported","unsupported","tech-preview","dev-preview","unavailable"]`), &res); err != nil {
 		panic(err)
 	}
 	for _, v := range res {

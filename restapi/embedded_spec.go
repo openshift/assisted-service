@@ -9680,7 +9680,8 @@ func init() {
         "supported",
         "unsupported",
         "tech-preview",
-        "dev-preview"
+        "dev-preview",
+        "unavailable"
       ]
     },
     "support-levels": {
@@ -19953,7 +19954,8 @@ func init() {
         "supported",
         "unsupported",
         "tech-preview",
-        "dev-preview"
+        "dev-preview",
+        "unavailable"
       ]
     },
     "support-levels": {

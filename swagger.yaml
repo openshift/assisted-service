@@ -3963,7 +3963,7 @@ definitions:
 
   support-level:
     type: string
-    enum: [ supported, unsupported, tech-preview, dev-preview ]
+    enum: [ supported, unsupported, tech-preview, dev-preview, unavailable ]
 
   feature-support-level-id:
     type: string

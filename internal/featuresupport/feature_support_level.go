@@ -30,12 +30,12 @@ func getFeatureSupportList(features map[models.FeatureSupportLevelID]SupportLeve
 	featureSupportList := models.SupportLevels{}
 
 	for _, feature := range features {
-		featureID := feature.GetId()
+		featureID := feature.getId()
 
 		if !isFeatureCompatibleWithArchitecture(feature, filters.OpenshiftVersion, swag.StringValue(filters.CPUArchitecture)) {
-			featureSupportList[string(featureID)] = models.SupportLevelUnsupported
+			featureSupportList[string(featureID)] = models.SupportLevelUnavailable
 		} else {
-			featureSupportList[string(featureID)] = feature.GetSupportLevel(filters)
+			featureSupportList[string(featureID)] = feature.getSupportLevel(filters)
 		}
 	}
 	return featureSupportList
@@ -61,14 +61,14 @@ func GetFeatureSupportList(openshiftVersion string, cpuArchitecture *string) mod
 
 func GetSupportLevel[T models.FeatureSupportLevelID | models.ArchitectureSupportLevelID](featureId T, filters interface{}) models.SupportLevel {
 	if reflect.TypeOf(featureId).Name() == "FeatureSupportLevelID" {
-		return featuresList[models.FeatureSupportLevelID(featureId)].GetSupportLevel(filters.(SupportLevelFilters))
+		return featuresList[models.FeatureSupportLevelID(featureId)].getSupportLevel(filters.(SupportLevelFilters))
 	}
 	return cpuFeaturesList[models.ArchitectureSupportLevelID(featureId)].GetSupportLevel(filters.(string))
 }
 
-// IsFeatureSupported Get the support level of a given feature, cpuArchitecture is optional
+// IsFeatureAvailable Get the support level of a given feature, cpuArchitecture is optional
 //with default value of x86_64
-func IsFeatureSupported(featureId models.FeatureSupportLevelID, openshiftVersion string, cpuArchitecture *string) bool {
+func IsFeatureAvailable(featureId models.FeatureSupportLevelID, openshiftVersion string, cpuArchitecture *string) bool {
 	filters := SupportLevelFilters{
 		OpenshiftVersion: openshiftVersion,
 		CPUArchitecture:  cpuArchitecture,
@@ -78,14 +78,14 @@ func IsFeatureSupported(featureId models.FeatureSupportLevelID, openshiftVersion
 		filters.CPUArchitecture = swag.String(common.DefaultCPUArchitecture)
 	}
 
-	return GetSupportLevel(featureId, filters) != models.SupportLevelUnsupported
+	return GetSupportLevel(featureId, filters) != models.SupportLevelUnavailable
 }
 
 func isFeatureCompatible(feature SupportLevelFeature, features ...SupportLevelFeature) *SupportLevelFeature {
-	incompatibilities := feature.GetIncompatibleFeatures()
+	incompatibilities := feature.getIncompatibleFeatures()
 	if incompatibilities != nil {
 		for _, f := range features {
-			if funk.Contains(*incompatibilities, f.GetId()) {
+			if funk.Contains(*incompatibilities, f.getId()) {
 				return &f
 			}
 		}
@@ -105,7 +105,7 @@ func ValidateIncompatibleFeatures(log logrus.FieldLogger, cpuArchitecture string
 	for _, feature := range featuresList {
 		if feature.getFeatureActiveLevel(cluster, updateParams) == activeLevelActive {
 			activatedFeatures = append(activatedFeatures, feature)
-			log.Debugf("%s feature is activated", feature.GetName())
+			log.Debugf("%s feature is activated", feature.getName())
 		}
 	}
 
@@ -113,22 +113,33 @@ func ValidateIncompatibleFeatures(log logrus.FieldLogger, cpuArchitecture string
 		return fmt.Errorf("cannot use %s architecture because it's not compatible on version %s of OpenShift", cpuArchitecture, cluster.OpenshiftVersion)
 	}
 
-	if err := isFeaturesCompatibleWIthArchitecture(cluster.OpenshiftVersion, cpuArchitecture, activatedFeatures); err != nil {
+	if err := isFeaturesCompatibleWithArchitecture(cluster.OpenshiftVersion, cpuArchitecture, activatedFeatures); err != nil {
 		return err
 	}
-	if err := isFeaturesCompatibleWIthFeatures(activatedFeatures); err != nil {
+	if err := isFeaturesCompatibleWithFeatures(activatedFeatures); err != nil {
 		return err
 	}
 	return nil
 }
 
-// isFeaturesCompatibleWIthArchitecture Determine if feature is compatible with other activated features
-func isFeaturesCompatibleWIthFeatures(activatedFeatures []SupportLevelFeature) error {
+// isFeaturesCompatibleWithArchitecture Determine if feature is compatible with other activated features
+func isFeaturesCompatibleWithFeatures(activatedFeatures []SupportLevelFeature) error {
 	for _, feature := range activatedFeatures {
 		if incompatibleFeature := isFeatureCompatible(feature, activatedFeatures...); incompatibleFeature != nil {
-			return fmt.Errorf("cannot use %s because it's not compatible with %s", feature.GetName(), (*incompatibleFeature).GetName())
+			return fmt.Errorf("cannot use %s because it's not compatible with %s", feature.getName(), (*incompatibleFeature).getName())
 		}
 	}
 
+	return nil
+}
+
+// isFeaturesCompatibleWithArchitecture Determine if feature is compatible with CPU architecture in a given openshift-version
+func isFeaturesCompatibleWithArchitecture(openshiftVersion, cpuArchitecture string, activatedFeatures []SupportLevelFeature) error {
+	for _, feature := range activatedFeatures {
+		if !isFeatureCompatibleWithArchitecture(feature, openshiftVersion, cpuArchitecture) {
+			return fmt.Errorf("cannot use %s because it's not compatible with the %s architecture "+
+				"on version %s of OpenShift", feature.getName(), cpuArchitecture, openshiftVersion)
+		}
+	}
 	return nil
 }

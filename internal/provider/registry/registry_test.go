@@ -528,6 +528,7 @@ func createClusterFromHosts(hosts []*models.Host) common.Cluster {
 			IngressVip:       "192.168.10.11",
 			IngressVips:      []*models.IngressVip{{IP: "192.168.10.11"}},
 			OpenshiftVersion: "4.7",
+			CPUArchitecture:  models.ClusterCPUArchitectureX8664,
 			MachineNetworks:  []*models.MachineNetwork{{Cidr: "10.35.20.0/24"}},
 		},
 	}

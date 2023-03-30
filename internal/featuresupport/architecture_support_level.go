@@ -1,10 +1,7 @@
 package featuresupport
 
 import (
-	"fmt"
-
 	"github.com/openshift/assisted-service/models"
-	"github.com/thoas/go-funk"
 )
 
 var cpuFeaturesList = map[models.ArchitectureSupportLevelID]SupportLevelArchitecture{
@@ -21,15 +18,6 @@ var cpuArchitectureFeatureIdMap = map[string]models.ArchitectureSupportLevelID{
 	models.ClusterCPUArchitectureS390x:   models.ArchitectureSupportLevelIDS390XARCHITECTURE,
 	models.ClusterCPUArchitecturePpc64le: models.ArchitectureSupportLevelIDPPC64LEARCHITECTURE,
 	models.ClusterCPUArchitectureMulti:   models.ArchitectureSupportLevelIDMULTIARCHRELEASEIMAGE,
-}
-
-func isFeatureCompatibleWithArchitecture(feature SupportLevelFeature, openshiftVersion, cpuArchitecture string) bool {
-	architectureID := cpuArchitectureFeatureIdMap[cpuArchitecture]
-	incompatibilitiesArchitectures := feature.GetIncompatibleArchitectures(openshiftVersion)
-	if incompatibilitiesArchitectures != nil && funk.Contains(*incompatibilitiesArchitectures, architectureID) {
-		return false
-	}
-	return true
 }
 
 func getArchitectureSupportList(features map[models.ArchitectureSupportLevelID]SupportLevelArchitecture, openshiftVersion string) models.SupportLevels {
@@ -49,7 +37,7 @@ func overrideInvalidRequest(features map[models.FeatureSupportLevelID]SupportLev
 	cpuArchID := cpuArchitectureFeatureIdMap[cpuArchitecture]
 	if !isArchitectureSupported(cpuArchID, openshiftVersion) {
 		for _, feature := range features {
-			supportLevels[string(feature.GetId())] = models.SupportLevelUnsupported
+			supportLevels[string(feature.getId())] = models.SupportLevelUnavailable
 		}
 		return supportLevels
 	}
@@ -61,16 +49,6 @@ func GetCpuArchitectureSupportList(openshiftVersion string) models.SupportLevels
 }
 
 func isArchitectureSupported(featureId models.ArchitectureSupportLevelID, openshiftVersion string) bool {
-	return GetSupportLevel(featureId, openshiftVersion) != models.SupportLevelUnsupported
-}
-
-// isFeaturesCompatibleWIthArchitecture Determine if feature is compatible with CPU architecture in a given openshift-version
-func isFeaturesCompatibleWIthArchitecture(openshiftVersion, cpuArchitecture string, activatedFeatures []SupportLevelFeature) error {
-	for _, feature := range activatedFeatures {
-		if !isFeatureCompatibleWithArchitecture(feature, openshiftVersion, cpuArchitecture) {
-			return fmt.Errorf("cannot use %s because it's not compatible with the %s architecture "+
-				"on version %s of OpenShift", feature.GetName(), cpuArchitecture, openshiftVersion)
-		}
-	}
-	return nil
+	supportLevel := GetSupportLevel(featureId, openshiftVersion)
+	return supportLevel != models.SupportLevelUnsupported && supportLevel != models.SupportLevelUnavailable
 }
