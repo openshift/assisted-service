@@ -172,7 +172,7 @@ You can use the Assisted Installer web UI to set up the initial cluster settings
 The [aicli](https://github.com/karmab/aicli) tool is a tool that can be used to deploy OpenShift clusters using the Assisted Installer service from the command line. This is a community supported tool, and is NOT a part of the OpenShift project. See the [How to use](https://github.com/karmab/aicli/blob/main/doc/index.md#how-to-use) section of the aicli tool on how to create a cluster using this tool. You will need to add the following additional sections in the parameters file in order to point to the mirror registry:
 
 ```
-disconnected_url: <server name or IP address for assisted installer host>:8443
+disconnected_url: <container image registry server:port>
 installconfig:
     additionalTrustBundle: |
       -----BEGIN CERTIFICATE-----
