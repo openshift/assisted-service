@@ -2,6 +2,7 @@ package registry
 
 import (
 	"encoding/json"
+	"fmt"
 	"testing"
 
 	"github.com/go-openapi/strfmt"
@@ -280,7 +281,8 @@ var _ = Describe("Test AddPlatformToInstallConfig", func() {
 				Expect(cfg.Platform.Vsphere.DeprecatedIngressVIP).To(Equal(""))
 				Expect(len(cfg.Platform.Vsphere.IngressVIPs)).To(Equal(len(cluster.Cluster.IngressVips)))
 				Expect(cfg.Platform.Vsphere.IngressVIPs[0]).To(Equal(string(cluster.Cluster.IngressVips[0].IP)))
-				Expect(cfg.Platform.Vsphere.VCenter).To(Equal(vsphere.PhVcenter))
+				Expect(cfg.Platform.Vsphere.DeprecatedVCenter).To(Equal(vsphere.PhVcenter))
+				Expect(cfg.Platform.Vsphere.VCenters).To(BeNil())
 			})
 			It("without cluster params openshift version 4.11", func() {
 				cfg := getInstallerConfigBaremetal()
@@ -299,7 +301,59 @@ var _ = Describe("Test AddPlatformToInstallConfig", func() {
 				Expect(cfg.Platform.Vsphere).ToNot(BeNil())
 				Expect(cfg.Platform.Vsphere.DeprecatedAPIVIP).To(Equal(cluster.Cluster.APIVip))
 				Expect(cfg.Platform.Vsphere.DeprecatedIngressVIP).To(Equal(cluster.Cluster.IngressVip))
-				Expect(cfg.Platform.Vsphere.VCenter).To(Equal(vsphere.PhVcenter))
+				Expect(cfg.Platform.Vsphere.DeprecatedVCenter).To(Equal(vsphere.PhVcenter))
+				Expect(cfg.Platform.Vsphere.VCenters).To(BeNil())
+			})
+			It("vsphere default values before openshift version 4.13", func() {
+				cfg := getInstallerConfigBaremetal()
+				cluster := createClusterFromHosts([]*models.Host{})
+				cluster.Cluster.OpenshiftVersion = "4.11"
+				cluster.Platform = createVspherePlatformParams()
+				err := providerRegistry.AddPlatformToInstallConfig(models.PlatformTypeVsphere, &cfg, &cluster)
+				Expect(err).To(BeNil())
+				Expect(cfg.Platform.Vsphere).ToNot(BeNil())
+				Expect(cfg.Platform.Vsphere.DeprecatedAPIVIP).To(Equal(cluster.Cluster.APIVip))
+				Expect(cfg.Platform.Vsphere.DeprecatedIngressVIP).To(Equal(cluster.Cluster.IngressVip))
+				Expect(cfg.Platform.Vsphere.DeprecatedVCenter).To(Equal(vsphere.PhVcenter))
+				Expect(cfg.Platform.Vsphere.DeprecatedCluster).To(Equal(vsphere.PhCluster))
+				Expect(cfg.Platform.Vsphere.DeprecatedNetwork).To(Equal(vsphere.PhNetwork))
+				Expect(cfg.Platform.Vsphere.DeprecatedUsername).To(Equal(vsphere.PhUsername))
+				Expect(string(cfg.Platform.Vsphere.DeprecatedPassword)).To(Equal(vsphere.PhPassword))
+				Expect(cfg.Platform.Vsphere.DeprecatedDefaultDatastore).To(Equal(vsphere.PhDefaultDatastore))
+				Expect(cfg.Platform.Vsphere.DeprecatedDatacenter).To(Equal(vsphere.PhDatacenter))
+				Expect(cfg.Platform.Vsphere.VCenters).To(BeNil())
+				Expect(cfg.Platform.Vsphere.FailureDomains).To(BeNil())
+			})
+			It("vsphere default values after openshift version 4.13", func() {
+				cfg := getInstallerConfigBaremetal()
+				cluster := createClusterFromHosts([]*models.Host{})
+				cluster.Cluster.OpenshiftVersion = "4.13"
+				cluster.Platform = createVspherePlatformParams()
+				err := providerRegistry.AddPlatformToInstallConfig(models.PlatformTypeVsphere, &cfg, &cluster)
+				Expect(err).To(BeNil())
+				Expect(cfg.Platform.Vsphere).ToNot(BeNil())
+				Expect(cfg.Platform.Vsphere.APIVIPs).To(Not(BeNil()))
+				Expect(cfg.Platform.Vsphere.IngressVIPs).To(Not(BeNil()))
+				Expect(cfg.Platform.Vsphere.DeprecatedIngressVIP).To(Equal(""))
+				Expect(cfg.Platform.Vsphere.DeprecatedVCenter).To(Equal(""))
+				Expect(cfg.Platform.Vsphere.DeprecatedCluster).To(Equal(""))
+				Expect(cfg.Platform.Vsphere.DeprecatedNetwork).To(Equal(""))
+				Expect(cfg.Platform.Vsphere.DeprecatedUsername).To(Equal(""))
+				Expect(string(cfg.Platform.Vsphere.DeprecatedPassword)).To(Equal(""))
+				Expect(cfg.Platform.Vsphere.DeprecatedDefaultDatastore).To(Equal(""))
+				Expect(cfg.Platform.Vsphere.DeprecatedDatacenter).To(Equal(""))
+
+				Expect(cfg.Platform.Vsphere.VCenters[0].Server).To(Equal(vsphere.PhVcenter))
+				Expect(cfg.Platform.Vsphere.VCenters[0].Datacenters[0]).To(Equal(vsphere.PhDatacenter))
+				Expect(cfg.Platform.Vsphere.VCenters[0].Username).To(Equal(vsphere.PhUsername))
+				Expect(string(cfg.Platform.Vsphere.VCenters[0].Password)).To(Equal(vsphere.PhPassword))
+
+				Expect(cfg.Platform.Vsphere.FailureDomains[0].Topology.ComputeCluster).To(Equal(fmt.Sprintf("/%s/host/%s", vsphere.PhDatacenter, vsphere.PhCluster)))
+				Expect(cfg.Platform.Vsphere.FailureDomains[0].Topology.Datacenter).To(Equal(vsphere.PhDatacenter))
+				Expect(cfg.Platform.Vsphere.FailureDomains[0].Topology.Datastore).To(Equal(fmt.Sprintf("/%s/datastore/%s", vsphere.PhDatacenter, vsphere.PhDefaultDatastore)))
+				Expect(cfg.Platform.Vsphere.FailureDomains[0].Topology.Folder).To(Equal(fmt.Sprintf("/%s/vm/%s", vsphere.PhDatacenter, vsphere.PhFolder)))
+				Expect(cfg.Platform.Vsphere.FailureDomains[0].Topology.Networks[0]).To(Equal(vsphere.PhNetwork))
+				Expect(cfg.Platform.Vsphere.FailureDomains[0].Server).To(Equal(vsphere.PhVcenter))
 			})
 		})
 	})

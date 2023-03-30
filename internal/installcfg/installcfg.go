@@ -29,19 +29,67 @@ type BareMetalInstallConfigPlatform struct {
 	ClusterOSImage       string   `json:"clusterOSImage,omitempty"`
 }
 
+type VsphereFailureDomainTopology struct {
+	ComputeCluster string   `yaml:"computeCluster"`
+	Datacenter     string   `yaml:"datacenter"`
+	Datastore      string   `yaml:"datastore"`
+	Folder         string   `yaml:"folder,omitempty"`
+	Networks       []string `yaml:"networks,omitempty"`
+	ResourcePool   string   `yaml:"resourcePool,omitempty"`
+}
+
+// VsphereFailureDomain holds the region and zone failure domain and the vCenter topology of that failure domain.
+type VsphereFailureDomain struct {
+	// Name defines the name of the VsphereFailureDomain. This name is arbitrary but will be used in VSpherePlatformDeploymentZone for association
+	Name string `yaml:"name"`
+
+	// Region defines a FailureDomainCoordinate which includes the name of the vCenter tag, the failure domain type and the name of the vCenter tag category.
+	Region string `yaml:"region"`
+
+	// Server is the fully-qualified domain name or the IP address of the vCenter server.
+	Server string `yaml:"server"`
+
+	// Topology describes a given failure domain using vSphere constructs
+	Topology VsphereFailureDomainTopology `yaml:"topology"`
+
+	// Zone defines a VSpherePlatformFailureDomain which includes the name of the vCenter tag, the failure domain type and the name of the vCenter tag category.
+	Zone string `yaml:"zone"`
+}
+
+// VsphereVCenter stores the vCenter connection fields https://github.com/kubernetes/cloud-provider-vsphere/blob/master/pkg/common/config/types_yaml.go
+type VsphereVCenter struct {
+	// Datacenter in which VMs are located.
+	Datacenters []string `yaml:"datacenters"`
+
+	// Password is the password for the user to use
+	Password strfmt.Password `yaml:"password"`
+
+	// Port is the TCP port that will be used to communicate to the vCenter endpoint. This is typically unchanged
+	// from the default of HTTPS TCP/443.
+	Port int32 `yaml:"port,omitempty"`
+
+	// Server is the fully-qualified domain name or the IP address of the vCenter server
+	Server string `yaml:"server"`
+
+	// Username is the username that will be used to connect to vCenter
+	Username string `yaml:"user"`
+}
+
 type VsphereInstallConfigPlatform struct {
-	VCenter              string          `yaml:"vCenter"`
-	Username             string          `yaml:"username"`
-	Password             strfmt.Password `yaml:"password"`
-	Datacenter           string          `yaml:"datacenter"`
-	DefaultDatastore     string          `yaml:"defaultDatastore"`
-	Folder               string          `yaml:"folder,omitempty"`
-	Network              string          `yaml:"network"`
-	Cluster              string          `yaml:"cluster"`
-	APIVIPs              []string        `yaml:"apiVIPs,omitempty"`
-	DeprecatedAPIVIP     string          `yaml:"apiVIP,omitempty"`
-	IngressVIPs          []string        `yaml:"ingressVIPs,omitempty"`
-	DeprecatedIngressVIP string          `yaml:"ingressVIP,omitempty"`
+	DeprecatedVCenter          string                 `yaml:"vCenter,omitempty"`
+	DeprecatedUsername         string                 `yaml:"username,omitempty"`
+	DeprecatedPassword         strfmt.Password        `yaml:"password,omitempty"`
+	DeprecatedDatacenter       string                 `yaml:"datacenter,omitempty"`
+	DeprecatedDefaultDatastore string                 `yaml:"defaultDatastore,omitempty"`
+	DeprecatedFolder           string                 `yaml:"folder,omitempty"`
+	DeprecatedNetwork          string                 `yaml:"network,omitempty"`
+	DeprecatedCluster          string                 `yaml:"cluster,omitempty"`
+	DeprecatedAPIVIP           string                 `yaml:"apiVIP,omitempty"`
+	DeprecatedIngressVIP       string                 `yaml:"ingressVIP,omitempty"`
+	IngressVIPs                []string               `yaml:"ingressVIPs,omitempty"`
+	APIVIPs                    []string               `yaml:"apiVIPs,omitempty"`
+	FailureDomains             []VsphereFailureDomain `yaml:"failureDomains,omitempty"`
+	VCenters                   []VsphereVCenter       `yaml:"vcenters,omitempty"`
 }
 
 type NutanixInstallConfigPlatform struct {
