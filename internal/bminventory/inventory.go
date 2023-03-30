@@ -837,7 +837,7 @@ func (b *bareMetalInventory) getNewClusterCPUArchitecture(newClusterParams *mode
 		return common.DefaultCPUArchitecture, nil
 	}
 
-	if !swag.BoolValue(newClusterParams.UserManagedNetworking) && !featuresupport.IsFeatureSupported(models.FeatureSupportLevelIDCLUSTERMANAGEDNETWORKING, *newClusterParams.OpenshiftVersion, swag.String(models.ClusterCPUArchitectureArm64)) {
+	if !swag.BoolValue(newClusterParams.UserManagedNetworking) && !featuresupport.IsFeatureAvailable(models.FeatureSupportLevelIDCLUSTERMANAGEDNETWORKING, *newClusterParams.OpenshiftVersion, swag.String(models.ClusterCPUArchitectureArm64)) {
 		return "", errors.Errorf("Non x86_64 CPU architectures for version %s are supported only with User Managed Networking", swag.StringValue(newClusterParams.OpenshiftVersion))
 	}
 
@@ -2567,7 +2567,7 @@ func (b *bareMetalInventory) updateNetworkParams(params installer.V2UpdateCluste
 	if params.ClusterUpdateParams.UserManagedNetworking != nil && swag.BoolValue(params.ClusterUpdateParams.UserManagedNetworking) != userManagedNetworking {
 		if !swag.BoolValue(params.ClusterUpdateParams.UserManagedNetworking) &&
 			(cluster.CPUArchitecture != common.DefaultCPUArchitecture &&
-				!featuresupport.IsFeatureSupported(models.FeatureSupportLevelIDCLUSTERMANAGEDNETWORKING, cluster.OpenshiftVersion, swag.String(cluster.CPUArchitecture))) {
+				!featuresupport.IsFeatureAvailable(models.FeatureSupportLevelIDCLUSTERMANAGEDNETWORKING, cluster.OpenshiftVersion, swag.String(cluster.CPUArchitecture))) {
 			err = errors.Errorf("disabling User Managed Networking is not allowed for clusters with non-x86_64 CPU architecture")
 			return common.NewApiError(http.StatusBadRequest, err)
 		}
@@ -6356,7 +6356,7 @@ func isBaremetalBinaryFromAnotherReleaseImageRequired(cpuArchitecture, version s
 	return cpuArchitecture != common.MultiCPUArchitecture &&
 		cpuArchitecture != common.NormalizeCPUArchitecture(runtime.GOARCH) &&
 		common.PlatformTypeValue(platform) == models.PlatformTypeBaremetal &&
-		featuresupport.IsFeatureSupported(models.FeatureSupportLevelIDCLUSTERMANAGEDNETWORKING, version, swag.String(models.ClusterCPUArchitectureArm64))
+		featuresupport.IsFeatureAvailable(models.FeatureSupportLevelIDCLUSTERMANAGEDNETWORKING, version, swag.String(models.ClusterCPUArchitectureArm64))
 }
 
 // updateMonitoredOperators checks the content of the installer configuration and updates the list

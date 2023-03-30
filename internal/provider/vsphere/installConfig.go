@@ -35,7 +35,7 @@ func (p vsphereProvider) AddPlatformToInstallConfig(cfg *installcfg.InstallerCon
 			return errors.New("invalid cluster parameters, IngressVip must be provided")
 		}
 
-		if featuresupport.IsFeatureSupported(models.FeatureSupportLevelIDDUALSTACKVIPS, cluster.OpenshiftVersion, swag.String(cluster.CPUArchitecture)) {
+		if featuresupport.IsFeatureAvailable(models.FeatureSupportLevelIDDUALSTACKVIPS, cluster.OpenshiftVersion, swag.String(cluster.CPUArchitecture)) {
 			vsPlatform.APIVIPs = network.GetApiVips(cluster)
 			vsPlatform.IngressVIPs = network.GetIngressVips(cluster)
 		} else {

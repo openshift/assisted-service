@@ -20,7 +20,7 @@ func (feature *Arm64ArchitectureFeature) GetId() models.ArchitectureSupportLevel
 func (feature *Arm64ArchitectureFeature) GetSupportLevel(openshiftVersion string) models.SupportLevel {
 	isNotSupported, err := common.BaseVersionLessThan("4.10", openshiftVersion)
 	if isNotSupported || err != nil {
-		return models.SupportLevelUnsupported
+		return models.SupportLevelUnavailable
 	}
 
 	return models.SupportLevelSupported
@@ -45,9 +45,8 @@ func (feature *S390xArchitectureFeature) GetId() models.ArchitectureSupportLevel
 }
 
 func (feature *S390xArchitectureFeature) GetSupportLevel(openshiftVersion string) models.SupportLevel {
-	isNotSupported, err := common.BaseVersionLessThan("4.12", openshiftVersion)
-	if isNotSupported || err != nil {
-		return models.SupportLevelUnsupported
+	if isNotAvailable, err := common.BaseVersionLessThan("4.12", openshiftVersion); isNotAvailable || err != nil {
+		return models.SupportLevelUnavailable
 	}
 	if isEqual, _ := common.BaseVersionEqual("4.12", openshiftVersion); isEqual {
 		return models.SupportLevelTechPreview
@@ -64,9 +63,8 @@ func (feature *PPC64LEArchitectureFeature) GetId() models.ArchitectureSupportLev
 }
 
 func (feature *PPC64LEArchitectureFeature) GetSupportLevel(openshiftVersion string) models.SupportLevel {
-	isNotSupported, err := common.BaseVersionLessThan("4.12", openshiftVersion)
-	if isNotSupported || err != nil {
-		return models.SupportLevelUnsupported
+	if isNotAvailable, err := common.BaseVersionLessThan("4.12", openshiftVersion); isNotAvailable || err != nil {
+		return models.SupportLevelUnavailable
 	}
 	if isEqual, _ := common.BaseVersionEqual("4.12", openshiftVersion); isEqual {
 		return models.SupportLevelTechPreview
@@ -84,7 +82,7 @@ func (feature *MultiArchReleaseImageFeature) GetId() models.ArchitectureSupportL
 
 func (feature *MultiArchReleaseImageFeature) GetSupportLevel(openshiftVersion string) models.SupportLevel {
 	if isNotSupported, err := common.BaseVersionLessThan("4.11", openshiftVersion); isNotSupported || err != nil {
-		return models.SupportLevelUnsupported
+		return models.SupportLevelUnavailable
 	}
 
 	return models.SupportLevelTechPreview

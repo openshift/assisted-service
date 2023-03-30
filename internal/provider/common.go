@@ -118,7 +118,7 @@ func GetActualUpdateClusterPlatformParams(platform *models.Platform, userManaged
 		if !swag.BoolValue(userManagedNetworking) {
 			if platform == nil || isPlatformBM(platform) {
 				if cluster.CPUArchitecture != common.X86CPUArchitecture &&
-					!featuresupport.IsFeatureSupported(models.FeatureSupportLevelIDCLUSTERMANAGEDNETWORKING, cluster.OpenshiftVersion, swag.String(cluster.CPUArchitecture)) {
+					!featuresupport.IsFeatureAvailable(models.FeatureSupportLevelIDCLUSTERMANAGEDNETWORKING, cluster.OpenshiftVersion, swag.String(cluster.CPUArchitecture)) {
 					return nil, nil, common.NewApiError(http.StatusBadRequest, errors.New("disabling User Managed Networking or setting Bare-Metal platform is not allowed for clusters with non-x86_64 CPU architecture"))
 				}
 

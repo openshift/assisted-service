@@ -92,22 +92,22 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 			feature := f
 			It(fmt.Sprintf("%s test", feature), func() {
 				arch := "DoesNotMatter"
-				Expect(IsFeatureSupported(feature, "4.6", swag.String(arch))).To(Equal(false))
-				Expect(IsFeatureSupported(feature, "4.7", swag.String(arch))).To(Equal(false))
-				Expect(IsFeatureSupported(feature, "4.8", swag.String(arch))).To(Equal(false))
-				Expect(IsFeatureSupported(feature, "4.9", swag.String(arch))).To(Equal(false))
-				Expect(IsFeatureSupported(feature, "4.11", swag.String(arch))).To(Equal(true))
+				Expect(IsFeatureAvailable(feature, "4.6", swag.String(arch))).To(Equal(false))
+				Expect(IsFeatureAvailable(feature, "4.7", swag.String(arch))).To(Equal(false))
+				Expect(IsFeatureAvailable(feature, "4.8", swag.String(arch))).To(Equal(false))
+				Expect(IsFeatureAvailable(feature, "4.9", swag.String(arch))).To(Equal(false))
+				Expect(IsFeatureAvailable(feature, "4.11", swag.String(arch))).To(Equal(true))
 
 				featureSupportParams := SupportLevelFilters{OpenshiftVersion: "4.11", CPUArchitecture: swag.String(arch)}
 				Expect(GetSupportLevel(feature, featureSupportParams)).To(Equal(models.SupportLevelDevPreview))
 				featureSupportParams = SupportLevelFilters{OpenshiftVersion: "4.11.20", CPUArchitecture: swag.String(arch)}
 				Expect(GetSupportLevel(feature, featureSupportParams)).To(Equal(models.SupportLevelDevPreview))
 
-				Expect(IsFeatureSupported(feature, "4.12", swag.String(arch))).To(Equal(true))
-				Expect(IsFeatureSupported(feature, "4.13", swag.String(arch))).To(Equal(true))
+				Expect(IsFeatureAvailable(feature, "4.12", swag.String(arch))).To(Equal(true))
+				Expect(IsFeatureAvailable(feature, "4.13", swag.String(arch))).To(Equal(true))
 
 				// Check for feature release
-				Expect(IsFeatureSupported(feature, "4.30", swag.String(arch))).To(Equal(true))
+				Expect(IsFeatureAvailable(feature, "4.30", swag.String(arch))).To(Equal(true))
 			})
 		}
 	})
@@ -122,7 +122,7 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 				if key == string(models.ArchitectureSupportLevelIDX8664ARCHITECTURE) {
 					Expect(value).To(Equal(models.SupportLevelSupported))
 				} else {
-					Expect(value).To(Equal(models.SupportLevelUnsupported))
+					Expect(value).To(Equal(models.SupportLevelUnavailable))
 				}
 			}
 		})
@@ -167,13 +167,13 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 			featuresList := GetFeatureSupportList("4.11", swag.String(models.ClusterCPUArchitecturePpc64le))
 
 			for _, supportLevel := range featuresList {
-				Expect(supportLevel).To(Equal(models.SupportLevelUnsupported))
+				Expect(supportLevel).To(Equal(models.SupportLevelUnavailable))
 			}
 		})
 
 		It("GetFeatureSupportList 4.13 with unsupported architecture", func() {
 			featuresList := GetFeatureSupportList("4.13", swag.String(models.ClusterCPUArchitecturePpc64le))
-			Expect(featuresList[string(models.FeatureSupportLevelIDSNO)]).To(Equal(models.SupportLevelUnsupported))
+			Expect(featuresList[string(models.FeatureSupportLevelIDSNO)]).To(Equal(models.SupportLevelUnavailable))
 		})
 
 		It("GetFeatureSupportList 4.13 with unsupported architecture", func() {
@@ -346,7 +346,19 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 			})
 		})
 
-		Context("GetIncompatibleFeatures", func() {
+		Context("GetSupportLevel", func() {
+			It("featuressupport.GetSupportLevel equal to Feature.getSupportLevel", func() {
+				featureA := ClusterManagedNetworkingFeature{}
+				openshiftVersion := "4.13"
+				cpuArchitecture := models.ClusterCPUArchitectureS390x
+				filters := SupportLevelFilters{OpenshiftVersion: openshiftVersion, CPUArchitecture: &cpuArchitecture}
+				supportLevel := featureA.getSupportLevel(filters)
+				equalSupportLevel := GetSupportLevel(featureA.getId(), filters)
+				Expect(supportLevel).To(Equal(equalSupportLevel))
+			})
+		})
+
+		Context("getIncompatibleFeatures", func() {
 			It("Features without any restrictions", func() {
 				features := []models.FeatureSupportLevelID{
 					models.FeatureSupportLevelIDVIPAUTOALLOC,
@@ -356,7 +368,7 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 					models.FeatureSupportLevelIDCNV,
 				}
 				for _, featureId := range features {
-					Expect(featuresList[featureId].GetIncompatibleFeatures()).To(BeNil())
+					Expect(featuresList[featureId].getIncompatibleFeatures()).To(BeNil())
 				}
 			})
 
@@ -367,8 +379,8 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 				isUmnIncompatibleWithNutanix := isFeatureCompatible(umnFeature, nutanixFeature)
 				isNutanixIncompatibleWithUmn := isFeatureCompatible(nutanixFeature, umnFeature)
 
-				Expect((*isUmnIncompatibleWithNutanix).GetId()).To(Equal(nutanixFeature.GetId()))
-				Expect((*isNutanixIncompatibleWithUmn).GetId()).To(Equal(umnFeature.GetId()))
+				Expect((*isUmnIncompatibleWithNutanix).getId()).To(Equal(nutanixFeature.getId()))
+				Expect((*isNutanixIncompatibleWithUmn).getId()).To(Equal(umnFeature.getId()))
 			})
 
 			It("Features with restrictions - Sno", func() {
@@ -385,12 +397,12 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 				isVsphereIncompatibleWithSno := isFeatureCompatible(vsphereFeature, snoFeature)
 				isCmnIncompatibleWithSno := isFeatureCompatible(cmnFeature, snoFeature)
 
-				Expect((*isSnoIncompatibleWithNutanix).GetId()).To(Equal(nutanixFeature.GetId()))
-				Expect((*isSnoIncompatibleWithVsphere).GetId()).To(Equal(vsphereFeature.GetId()))
-				Expect((*isSnoIncompatibleWithCmn).GetId()).To(Equal(cmnFeature.GetId()))
-				Expect((*isNutanixIncompatibleWithSno).GetId()).To(Equal(snoFeature.GetId()))
-				Expect((*isVsphereIncompatibleWithSno).GetId()).To(Equal(snoFeature.GetId()))
-				Expect((*isCmnIncompatibleWithSno).GetId()).To(Equal(snoFeature.GetId()))
+				Expect((*isSnoIncompatibleWithNutanix).getId()).To(Equal(nutanixFeature.getId()))
+				Expect((*isSnoIncompatibleWithVsphere).getId()).To(Equal(vsphereFeature.getId()))
+				Expect((*isSnoIncompatibleWithCmn).getId()).To(Equal(cmnFeature.getId()))
+				Expect((*isNutanixIncompatibleWithSno).getId()).To(Equal(snoFeature.getId()))
+				Expect((*isVsphereIncompatibleWithSno).getId()).To(Equal(snoFeature.getId()))
+				Expect((*isCmnIncompatibleWithSno).getId()).To(Equal(snoFeature.getId()))
 			})
 		})
 	})
