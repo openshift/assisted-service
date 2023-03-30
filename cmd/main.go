@@ -601,6 +601,7 @@ func main() {
 				Scheme:                ctrlMgr.GetScheme(),
 				SpokeK8sClientFactory: spoke_k8s_client.NewSpokeK8sClientFactory(log),
 				ConvergedFlowEnabled:  useConvergedFlow,
+				Drainer:               &controllers.KubectlDrainer{},
 			}).SetupWithManager(ctrlMgr), "unable to create controller BMH")
 
 			failOnError((&controllers.AgentClusterInstallReconciler{

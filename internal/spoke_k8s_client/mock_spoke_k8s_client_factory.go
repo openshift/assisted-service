@@ -12,6 +12,7 @@ import (
 	gomock "github.com/golang/mock/gomock"
 	s3wrapper "github.com/openshift/assisted-service/pkg/s3wrapper"
 	v1 "k8s.io/api/core/v1"
+	kubernetes "k8s.io/client-go/kubernetes"
 )
 
 // MockSpokeK8sClientFactory is a mock of SpokeK8sClientFactory interface.
@@ -35,6 +36,22 @@ func NewMockSpokeK8sClientFactory(ctrl *gomock.Controller) *MockSpokeK8sClientFa
 // EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockSpokeK8sClientFactory) EXPECT() *MockSpokeK8sClientFactoryMockRecorder {
 	return m.recorder
+}
+
+// ClientAndSetFromSecret mocks base method.
+func (m *MockSpokeK8sClientFactory) ClientAndSetFromSecret(arg0 *v1.Secret) (SpokeK8sClient, *kubernetes.Clientset, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ClientAndSetFromSecret", arg0)
+	ret0, _ := ret[0].(SpokeK8sClient)
+	ret1, _ := ret[1].(*kubernetes.Clientset)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
+}
+
+// ClientAndSetFromSecret indicates an expected call of ClientAndSetFromSecret.
+func (mr *MockSpokeK8sClientFactoryMockRecorder) ClientAndSetFromSecret(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ClientAndSetFromSecret", reflect.TypeOf((*MockSpokeK8sClientFactory)(nil).ClientAndSetFromSecret), arg0)
 }
 
 // CreateFromRawKubeconfig mocks base method.

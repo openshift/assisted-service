@@ -47,6 +47,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/kubectl/pkg/drain"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -64,6 +65,7 @@ type BMACReconciler struct {
 	SpokeK8sClientFactory spoke_k8s_client.SpokeK8sClientFactory
 	spokeClient           client.Client
 	ConvergedFlowEnabled  bool
+	Drainer               Drainer
 }
 
 const (
@@ -87,6 +89,14 @@ const (
 	OPENSHIFT_MACHINE_API_NAMESPACE     = "openshift-machine-api"
 	ASSISTED_DEPLOY_METHOD              = "start_assisted_install"
 	NODE_LABEL_PREFIX                   = "bmac.agent-install.openshift.io.node-label."
+
+	BMH_NODE_DRAIN_START_ANNOTATION   = "bmac.agent-install.openshift.io/drain-started-at"
+	BMH_NODE_DRAIN_TIMEOUT_ANNOTATION = "bmac.agent-install.openshift.io/drain-timeout" // in time.Duration format
+	BMH_NODE_DRAIN_STATUS_ANNOTATION  = "bmac.agent-install.openshift.io/drain-status"
+
+	drainStatusSuccess    = "drain succeeded"
+	drainStatusInProgress = "draining in progress"
+	drainStatusTimeout    = "drain timed out"
 )
 
 var (
@@ -309,7 +319,7 @@ func (r *BMACReconciler) Reconcile(origCtx context.Context, req ctrl.Request) (c
 }
 
 // handleBMHFinalizer adds a finalizer to the BMH if it isn't being deleted and the finalizer isn't already present
-// If the BMH is being deleted, the associated agent (if any) is annotated and deleted before the BMH is allowed to be removed
+// If the BMH is being deleted, the associated node is drained and the agent (if any) is annotated and deleted before the BMH is allowed to be removed
 // Finalizer handling is only run if the user has annotated the BMH and converged flow is enabled
 func (r *BMACReconciler) handleBMHFinalizer(ctx context.Context, log logrus.FieldLogger, bmh *bmh_v1alpha1.BareMetalHost, agent *aiv1beta1.Agent) reconcileResult {
 	if _, has_annotation := bmh.GetAnnotations()[BMH_DELETE_ANNOTATION]; !has_annotation || !r.ConvergedFlowEnabled {
@@ -338,7 +348,12 @@ func (r *BMACReconciler) handleBMHFinalizer(ctx context.Context, log logrus.Fiel
 		return reconcileComplete{stop: true, dirty: true}
 	}
 
-	if dirty := r.configureBMHForCleaning(ctx, log, bmh); dirty {
+	dirty, res := r.handleDrain(ctx, log, agent, bmh)
+	if res.Stop(ctx) {
+		return res
+	}
+
+	if updated := r.configureBMHForCleaning(ctx, log, bmh); updated {
 		return reconcileComplete{stop: true, dirty: true}
 	}
 
@@ -347,13 +362,13 @@ func (r *BMACReconciler) handleBMHFinalizer(ctx context.Context, log logrus.Fiel
 		setAnnotation(&agent.ObjectMeta, BMH_FINALIZER_NAME, "true")
 		if err := r.Update(ctx, agent); err != nil {
 			log.WithError(err).Errorf("failed to set %s annotation on agent", BMH_FINALIZER_NAME)
-			return reconcileError{err: err}
+			return reconcileError{err: err, dirty: dirty}
 		}
 	}
 
 	if err := r.Delete(ctx, agent); err != nil {
 		log.WithError(err).Errorf("Failed to delete agent as a part of BMH removal")
-		return reconcileError{err: err}
+		return reconcileError{err: err, dirty: dirty}
 	}
 
 	log.Infof("Removing BMH finalizer %s", BMH_FINALIZER_NAME)
@@ -1552,4 +1567,151 @@ func (r *BMACReconciler) configureBMHForCleaning(ctx context.Context, log logrus
 		dirty = true
 	}
 	return
+}
+
+func (r *BMACReconciler) handleDrain(ctx context.Context, log logrus.FieldLogger, agent *aiv1beta1.Agent, bmh *bmh_v1alpha1.BareMetalHost) (bool, reconcileResult) {
+	drainTimedOut, err := nodeDrainTimedout(bmh)
+	if err != nil {
+		message := fmt.Sprintf("failed to check node drain timeout: %s", err.Error())
+		log.Error(message)
+		setAnnotation(&bmh.ObjectMeta, BMH_NODE_DRAIN_STATUS_ANNOTATION, message)
+		return true, reconcileComplete{stop: true, dirty: true}
+	}
+
+	currentDrainStatus := bmh.GetAnnotations()[BMH_NODE_DRAIN_STATUS_ANNOTATION]
+	if currentDrainStatus == drainStatusSuccess || currentDrainStatus == drainStatusTimeout {
+		return false, reconcileComplete{}
+	}
+
+	if drainTimedOut {
+		log.Warn("Timed out waiting to drain node, continuing with deprovisioning")
+		setAnnotation(&bmh.ObjectMeta, BMH_NODE_DRAIN_STATUS_ANNOTATION, drainStatusTimeout)
+		return true, reconcileComplete{}
+	}
+
+	// have not alredy succeeded or timed out, run drain
+
+	dirty := false
+	if _, present := bmh.GetAnnotations()[BMH_NODE_DRAIN_START_ANNOTATION]; !present {
+		setAnnotation(&bmh.ObjectMeta, BMH_NODE_DRAIN_START_ANNOTATION, time.Now().UTC().Truncate(time.Second).Format(time.RFC3339))
+		dirty = true
+	}
+
+	requeue, err := r.drainAgentNode(ctx, log, agent)
+	if err != nil {
+		errString := fmt.Sprintf("failed to drain node: %s", err.Error())
+		if currentDrainStatus != errString {
+			setAnnotation(&bmh.ObjectMeta, BMH_NODE_DRAIN_STATUS_ANNOTATION, errString)
+			dirty = true
+		}
+		return dirty, reconcileError{err: err, dirty: dirty}
+	}
+	if requeue {
+		if currentDrainStatus != drainStatusInProgress {
+			setAnnotation(&bmh.ObjectMeta, BMH_NODE_DRAIN_STATUS_ANNOTATION, drainStatusInProgress)
+			dirty = true
+		}
+		return dirty, reconcileRequeue{requeueAfter: 20 * time.Second, dirty: dirty}
+	}
+
+	setAnnotation(&bmh.ObjectMeta, BMH_NODE_DRAIN_STATUS_ANNOTATION, drainStatusSuccess)
+	return true, reconcileComplete{}
+}
+
+// nodeDrainTimedout returns true if the node drain should be skipped due to timout, false if draining should be run
+func nodeDrainTimedout(bmh *bmh_v1alpha1.BareMetalHost) (bool, error) {
+	annotations := bmh.GetAnnotations()
+	timeoutValue, timeoutExists := annotations[BMH_NODE_DRAIN_TIMEOUT_ANNOTATION]
+	startValue, startExists := annotations[BMH_NODE_DRAIN_START_ANNOTATION]
+
+	if !startExists || !timeoutExists {
+		return false, nil
+	}
+
+	drainTimeout, err := time.ParseDuration(timeoutValue)
+	if err != nil {
+		return false, err
+	}
+	firstTimeDrain, err := time.Parse(time.RFC3339, startValue)
+	if err != nil {
+		return false, err
+	}
+	now := time.Now().UTC()
+	diff := now.Sub(firstTimeDrain)
+	return diff.Seconds() >= drainTimeout.Seconds(), nil
+}
+
+func nodeUnreachable(node *corev1.Node) bool {
+	if node == nil {
+		return false
+	}
+	for _, c := range node.Status.Conditions {
+		if c.Type == corev1.NodeReady {
+			return c.Status == corev1.ConditionUnknown
+		}
+	}
+	return false
+}
+
+// Mostly taken from https://github.com/kubernetes-sigs/cluster-api/blob/539760a/internal/controllers/machine/machine_controller.go#L586
+func (r *BMACReconciler) drainAgentNode(ctx context.Context, log logrus.FieldLogger, agent *aiv1beta1.Agent) (bool, error) {
+	log = log.WithFields(logrus.Fields{
+		"spoke_cluster_name":      agent.Spec.ClusterDeploymentName.Name,
+		"spoke_cluster_namespace": agent.Spec.ClusterDeploymentName.Namespace,
+	})
+	log.Info("Draining agent node...")
+	// get spoke connection
+	spokeSecret, err := spokeKubeconfigSecret(ctx, log, r.Client, r.APIReader, agent.Spec.ClusterDeploymentName)
+	if err != nil {
+		log.WithError(err).Error("failed to get spoke kubeconfig secret")
+		return false, err
+	}
+
+	client, clientset, err := r.SpokeK8sClientFactory.ClientAndSetFromSecret(spokeSecret)
+	if err != nil {
+		log.WithError(err).Error("failed to create spoke client")
+		return false, err
+	}
+
+	nodeName := getAgentHostname(agent)
+	node, err := client.GetNode(ctx, nodeName)
+	if err != nil {
+		log.WithError(err).Errorf("failed to get node %s", nodeName)
+		return false, err
+	}
+
+	out := new(bytes.Buffer)
+	drainHelper := &drain.Helper{
+		Client:              clientset,
+		Ctx:                 ctx,
+		Force:               true,
+		IgnoreAllDaemonSets: true,
+		DeleteEmptyDirData:  true,
+		GracePeriodSeconds:  -1,
+		Timeout:             20 * time.Second,
+		OnPodDeletedOrEvicted: func(pod *corev1.Pod, usingEviction bool) {
+			verbStr := "Deleted"
+			if usingEviction {
+				verbStr = "Evicted"
+			}
+			log.Infof("%s Pod %s/%s from Node %s", verbStr, pod.Namespace, pod.Name, nodeName)
+		},
+		Out:    out,
+		ErrOut: out,
+	}
+	if nodeUnreachable(node) {
+		// When the node is unreachable and some pods are not evicted for as long as this timeout, we ignore them.
+		drainHelper.SkipWaitForDeleteTimeoutSeconds = 60 * 5 // 5 minutes
+	}
+	if err := r.Drainer.RunCordonOrUncordon(drainHelper, node, true); err != nil {
+		log.WithError(err).Errorf("failed to cordon node %s: output: %s", nodeName, out)
+		return false, errors.Wrapf(err, "failed to cordon node %s", nodeName)
+	}
+	if err := r.Drainer.RunNodeDrain(drainHelper, nodeName); err != nil {
+		log.WithError(err).Warnf("failed to drain node %s within timeout", nodeName)
+		log.Debugf("node %s drain output: %s", nodeName, out)
+		return true, nil
+	}
+
+	return false, nil
 }
