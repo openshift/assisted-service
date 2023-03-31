@@ -600,10 +600,7 @@ func newAgentService(ctx context.Context, log logrus.FieldLogger, asc ASC) (clie
 			return err
 		}
 		addAppLabel(serviceName, &svc.ObjectMeta)
-		if svc.ObjectMeta.Annotations == nil {
-			svc.ObjectMeta.Annotations = make(map[string]string)
-		}
-		svc.ObjectMeta.Annotations[servingCertAnnotation] = serviceName
+		setAnnotation(&svc.ObjectMeta, servingCertAnnotation, serviceName)
 		if len(svc.Spec.Ports) != 2 {
 			svc.Spec.Ports = []corev1.ServicePort{}
 			svc.Spec.Ports = append(svc.Spec.Ports, corev1.ServicePort{}, corev1.ServicePort{})
@@ -637,10 +634,7 @@ func newImageServiceService(ctx context.Context, log logrus.FieldLogger, asc ASC
 			return err
 		}
 		addAppLabel(serviceName, &svc.ObjectMeta)
-		if svc.ObjectMeta.Annotations == nil {
-			svc.ObjectMeta.Annotations = make(map[string]string)
-		}
-		svc.ObjectMeta.Annotations[servingCertAnnotation] = imageServiceName
+		setAnnotation(&svc.ObjectMeta, servingCertAnnotation, imageServiceName)
 		if len(svc.Spec.Ports) != 2 {
 			svc.Spec.Ports = []corev1.ServicePort{}
 			svc.Spec.Ports = append(svc.Spec.Ports, corev1.ServicePort{}, corev1.ServicePort{})
@@ -1003,10 +997,7 @@ func newImageServiceConfigMap(ctx context.Context, log logrus.FieldLogger, asc A
 			return err
 		}
 
-		if cm.ObjectMeta.Annotations == nil {
-			cm.ObjectMeta.Annotations = make(map[string]string)
-		}
-		cm.ObjectMeta.Annotations[injectCABundleAnnotation] = "true"
+		setAnnotation(&cm.ObjectMeta, injectCABundleAnnotation, "true")
 		return nil
 	}
 
@@ -1730,12 +1721,10 @@ func newAssistedServiceDeployment(ctx context.Context, log logrus.FieldLogger, a
 		deployment.Spec.Strategy = deploymentStrategy
 
 		// Handle our hashed configMap(s)
-		if deployment.Spec.Template.Annotations == nil {
-			deployment.Spec.Template.Annotations = make(map[string]string)
-		}
-		deployment.Spec.Template.Annotations[assistedConfigHashAnnotation] = assistedConfigHash
-		deployment.Spec.Template.Annotations[mirrorConfigHashAnnotation] = mirrorConfigHash
-		deployment.Spec.Template.Annotations[userConfigHashAnnotation] = userConfigHash
+		meta := &deployment.Spec.Template.ObjectMeta
+		setAnnotation(meta, assistedConfigHashAnnotation, assistedConfigHash)
+		setAnnotation(meta, mirrorConfigHashAnnotation, mirrorConfigHash)
+		setAnnotation(meta, userConfigHashAnnotation, userConfigHash)
 
 		deployment.Spec.Template.Spec.Containers = []corev1.Container{serviceContainer, postgresContainer}
 		deployment.Spec.Template.Spec.Volumes = volumes
@@ -2228,10 +2217,7 @@ func newWebHookService(ctx context.Context, log logrus.FieldLogger, asc ASC) (cl
 			return err
 		}
 		addAppLabel(webhookServiceName, &svc.ObjectMeta)
-		if svc.ObjectMeta.Annotations == nil {
-			svc.ObjectMeta.Annotations = make(map[string]string)
-		}
-		svc.ObjectMeta.Annotations[servingCertAnnotation] = webhookServiceName
+		setAnnotation(&svc.ObjectMeta, servingCertAnnotation, webhookServiceName)
 		if len(svc.Spec.Ports) == 0 {
 			svc.Spec.Ports = append(svc.Spec.Ports, corev1.ServicePort{})
 		}
@@ -2270,10 +2256,7 @@ func newWebHookAPIService(ctx context.Context, log logrus.FieldLogger, asc ASC) 
 			return err
 		}
 
-		if as.ObjectMeta.Annotations == nil {
-			as.ObjectMeta.Annotations = make(map[string]string)
-		}
-		as.ObjectMeta.Annotations["service.beta.openshift.io/inject-cabundle"] = "true"
+		setAnnotation(&as.ObjectMeta, "service.beta.openshift.io/inject-cabundle", "true")
 		baseApiServiceSpec(as, asc.namespace)
 		return nil
 	}

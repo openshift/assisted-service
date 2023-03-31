@@ -117,9 +117,6 @@ func (r *AgentReconciler) Reconcile(origCtx context.Context, req ctrl.Request) (
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 	origAgent := agent.DeepCopy()
-	if agent.ObjectMeta.Annotations == nil {
-		agent.ObjectMeta.Annotations = make(map[string]string)
-	}
 	if agent.ObjectMeta.Labels == nil {
 		agent.ObjectMeta.Labels = make(map[string]string)
 	}
@@ -1206,10 +1203,6 @@ func (r *AgentReconciler) updateAndReplaceAgent(ctx context.Context, agent *aiv1
 
 func setAgentAnnotation(log logrus.FieldLogger, agent *aiv1beta1.Agent, key string, value string) bool {
 	annotations := agent.GetAnnotations()
-	if annotations == nil {
-		annotations = make(map[string]string)
-	}
-
 	// If we already have an annotation with the same value no change is needed.
 	if val, ok := annotations[key]; ok {
 		if val == value {
@@ -1218,8 +1211,7 @@ func setAgentAnnotation(log logrus.FieldLogger, agent *aiv1beta1.Agent, key stri
 	}
 
 	log.Infof("Setting annotation %s=%s on agent %s/%s", key, value, agent.Namespace, agent.Name)
-	annotations[key] = value
-	agent.SetAnnotations(annotations)
+	setAnnotation(&agent.ObjectMeta, key, value)
 	return true
 }
 

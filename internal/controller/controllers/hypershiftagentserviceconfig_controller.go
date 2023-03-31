@@ -675,10 +675,7 @@ func newHeadlessWebHookService(ctx context.Context, log logrus.FieldLogger, asc 
 
 	mutateFn := func() error {
 		addAppLabel(webhookServiceName, &svc.ObjectMeta)
-		if svc.ObjectMeta.Annotations == nil {
-			svc.ObjectMeta.Annotations = make(map[string]string)
-		}
-		svc.ObjectMeta.Annotations[servingCertAnnotation] = webhookServiceName
+		setAnnotation(&svc.ObjectMeta, servingCertAnnotation, webhookServiceName)
 		if len(svc.Spec.Ports) == 0 {
 			svc.Spec.Ports = append(svc.Spec.Ports, corev1.ServicePort{})
 		}
