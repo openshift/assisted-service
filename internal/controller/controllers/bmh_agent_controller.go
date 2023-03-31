@@ -239,10 +239,9 @@ func (r *BMACReconciler) Reconcile(origCtx context.Context, req ctrl.Request) (c
 
 	// Finalizer is only needed if the user has indicated that they want our controller to remove the agent and node when the BMH is removed
 	if _, has_annotation := bmh.GetAnnotations()[BMH_DELETE_ANNOTATION]; has_annotation && r.ConvergedFlowEnabled {
-		// don't care about .Dirty here as handleBMHFinalizer calls the required updates
 		result := r.handleBMHFinalizer(ctx, log, bmh, agent)
-		if result.Stop(ctx) {
-			return result.Result()
+		if res := r.handleReconcileResult(ctx, log, result, bmh); res != nil {
+			return res.Result()
 		}
 	}
 
@@ -317,30 +316,26 @@ func (r *BMACReconciler) handleBMHFinalizer(ctx context.Context, log logrus.Fiel
 	if bmh.ObjectMeta.DeletionTimestamp.IsZero() {
 		if !bmhHasFinalizer {
 			controllerutil.AddFinalizer(bmh, BMH_FINALIZER_NAME)
-			if err := r.Update(ctx, bmh); err != nil {
-				log.WithError(err).Errorf("Failed to update BMH with finalizer %s", BMH_FINALIZER_NAME)
-				return reconcileError{err: err}
-			}
+			return reconcileComplete{dirty: true}
 		}
 		return reconcileComplete{}
 	}
 
-	if bmhHasFinalizer {
-		// agent could be nil here if it wasn't created yet, or if we deleted it, then failed to remove the finalizer for some reason
-		if agent != nil {
-			if err := r.Delete(ctx, agent); err != nil {
-				log.WithError(err).Errorf("Failed to delete agent as a part of BMH removal")
-				return reconcileError{err: err}
-			}
-		}
+	// BMH is being deleted and finalizer is gone, just return
+	if !bmhHasFinalizer {
+		return reconcileComplete{stop: true}
+	}
 
-		controllerutil.RemoveFinalizer(bmh, BMH_FINALIZER_NAME)
-		if err := r.Update(ctx, bmh); err != nil {
-			log.WithError(err).Errorf("Failed to remove BMH finalizer %s", BMH_FINALIZER_NAME)
+	// agent could be nil here if it wasn't created yet, or if we deleted it, then failed to remove the finalizer for some reason
+	if agent != nil {
+		if err := r.Delete(ctx, agent); err != nil {
+			log.WithError(err).Errorf("Failed to delete agent as a part of BMH removal")
 			return reconcileError{err: err}
 		}
 	}
-	return reconcileComplete{stop: true}
+
+	controllerutil.RemoveFinalizer(bmh, BMH_FINALIZER_NAME)
+	return reconcileComplete{stop: true, dirty: true}
 }
 
 // This reconcile step takes care of copying data from the BMH into the Agent.
