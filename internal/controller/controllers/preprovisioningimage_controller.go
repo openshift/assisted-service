@@ -435,11 +435,7 @@ func (r *PreprovisioningImageReconciler) AddIronicAgentToInfraEnv(ctx context.Co
 		r.CRDEventsHandler.NotifyInfraEnvUpdates(infraEnv.Name, infraEnv.Namespace)
 	}
 	if _, haveAnnotation := infraEnv.ObjectMeta.Annotations[EnableIronicAgentAnnotation]; !haveAnnotation {
-		if infraEnv.ObjectMeta.Annotations == nil {
-			infraEnv.ObjectMeta.Annotations = make(map[string]string)
-		}
-
-		infraEnv.Annotations[EnableIronicAgentAnnotation] = "true"
+		setAnnotation(&infraEnv.ObjectMeta, EnableIronicAgentAnnotation, "true")
 		if err := r.Client.Update(ctx, infraEnv); err != nil {
 			// Just warn here if the update fails as this annotation is just informational
 			log.WithError(err).Warnf("failed to set %s annotation on infraEnv %s", EnableIronicAgentAnnotation, infraEnv.Name)

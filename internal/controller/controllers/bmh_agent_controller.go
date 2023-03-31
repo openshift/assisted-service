@@ -628,11 +628,7 @@ func (r *BMACReconciler) reconcileAgentInventory(log logrus.FieldLogger, bmh *bm
 		return reconcileError{err}
 	}
 
-	if bmh.ObjectMeta.Annotations == nil {
-		bmh.ObjectMeta.Annotations = make(map[string]string)
-	}
-
-	bmh.ObjectMeta.Annotations[BMH_HARDWARE_DETAILS_ANNOTATION] = string(bytes)
+	setAnnotation(&bmh.ObjectMeta, BMH_HARDWARE_DETAILS_ANNOTATION, string(bytes))
 	log.Debugf("Agent Inventory reconciled to BMH \n %v \n %v", agent, bmh)
 	return reconcileComplete{dirty: true, stop: true}
 
@@ -807,11 +803,7 @@ func (r *BMACReconciler) reconcileBMH(ctx context.Context, log logrus.FieldLogge
 		//
 		// Ideally, the user would do this while creating the BMH
 		// we are just taking extra care that this is the case.
-		if bmh.ObjectMeta.Annotations == nil {
-			bmh.ObjectMeta.Annotations = make(map[string]string)
-		}
-
-		bmh.ObjectMeta.Annotations[BMH_INSPECT_ANNOTATION] = "disabled"
+		setAnnotation(&bmh.ObjectMeta, BMH_INSPECT_ANNOTATION, "disabled")
 		dirty = true
 	}
 
@@ -1205,9 +1197,6 @@ func (r *BMACReconciler) ensureMCSCert(ctx context.Context, log logrus.FieldLogg
 		log.WithError(err).Errorf("failed to create ignition with mcs cert")
 		return reconcileError{err}
 	}
-	if bmh.ObjectMeta.Annotations == nil {
-		bmh.ObjectMeta.Annotations = make(map[string]string)
-	}
 	bmhAnnotations := bmh.ObjectMeta.GetAnnotations()
 	userIgnition, ok := bmhAnnotations[BMH_AGENT_IGNITION_CONFIG_OVERRIDES]
 
@@ -1225,11 +1214,10 @@ func (r *BMACReconciler) ensureMCSCert(ctx context.Context, log logrus.FieldLogg
 			log.WithError(err).Errorf("Error while merging the ignitions")
 			return reconcileError{err}
 		}
-		bmh.ObjectMeta.Annotations[BMH_AGENT_IGNITION_CONFIG_OVERRIDES] = res
-
+		setAnnotation(&bmh.ObjectMeta, BMH_AGENT_IGNITION_CONFIG_OVERRIDES, res)
 	} else {
 		log.Debug("User has not set ignition via annotation so we set the annotation with ignition containing MCS cert from spoke cluster")
-		bmh.ObjectMeta.Annotations[BMH_AGENT_IGNITION_CONFIG_OVERRIDES] = ignitionWithMCSCert
+		setAnnotation(&bmh.ObjectMeta, BMH_AGENT_IGNITION_CONFIG_OVERRIDES, ignitionWithMCSCert)
 	}
 	log.Info("MCS certificate injected")
 	return reconcileComplete{dirty: true, stop: true}
@@ -1299,12 +1287,6 @@ func (r *BMACReconciler) newSpokeBMH(log logrus.FieldLogger, bmh *bmh_v1alpha1.B
 			Name:       machineName.Name,
 			Namespace:  machineName.Namespace,
 		}
-		// copy annotations. hardwaredetails annotations is needed for automatic csr approval
-		// We don't copy all annotations because there are some annotations that should not be
-		// carried over from the hub BMH. The detached annotation is an example.
-		if bmhSpoke.ObjectMeta.Annotations == nil {
-			bmhSpoke.ObjectMeta.Annotations = make(map[string]string)
-		}
 
 		// HardwareDetails annotation needs a special case. The annotation gets removed once it's consumed by the baremetal operator
 		// and data is copied to the bmh status. So we are reconciling the annotation from the agent status inventory.
@@ -1326,10 +1308,8 @@ func (r *BMACReconciler) newSpokeMachine(bmh *bmh_v1alpha1.BareMetalHost, cluste
 		},
 	}
 	mutateFn := func() error {
-		if machine.ObjectMeta.Annotations == nil {
-			machine.ObjectMeta.Annotations = make(map[string]string)
-		}
-		machine.ObjectMeta.Annotations[BMH_ANNOTATION] = fmt.Sprintf("%s/%s", OPENSHIFT_MACHINE_API_NAMESPACE, bmh.Name)
+		setAnnotation(&machine.ObjectMeta, BMH_ANNOTATION, fmt.Sprintf("%s/%s", OPENSHIFT_MACHINE_API_NAMESPACE, bmh.Name))
+
 		providerSpecValueFormat := `{
 						"apiVersion": "{{.BMH_API_VERSION}}",
 						"kind": "BareMetalMachineProviderSpec",

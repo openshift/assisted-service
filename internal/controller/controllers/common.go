@@ -383,3 +383,10 @@ func isAgentInNonePlatformCluster(ctx context.Context, client client.Client, age
 	isNone, _, err = isNonePlatformCluster(ctx, client, &cd)
 	return
 }
+
+func setAnnotation(meta *metav1.ObjectMeta, key string, value string) {
+	if meta.Annotations == nil {
+		meta.Annotations = make(map[string]string)
+	}
+	meta.Annotations[key] = value
+}
