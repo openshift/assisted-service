@@ -142,17 +142,22 @@ func (mr *MockSpokeK8sClientMockRecorder) DeleteNode(arg0, arg1 interface{}) *go
 }
 
 // Get mocks base method.
-func (m *MockSpokeK8sClient) Get(arg0 context.Context, arg1 types.NamespacedName, arg2 client.Object) error {
+func (m *MockSpokeK8sClient) Get(arg0 context.Context, arg1 types.NamespacedName, arg2 client.Object, arg3 ...client.GetOption) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Get", arg0, arg1, arg2)
+	varargs := []interface{}{arg0, arg1, arg2}
+	for _, a := range arg3 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "Get", varargs...)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // Get indicates an expected call of Get.
-func (mr *MockSpokeK8sClientMockRecorder) Get(arg0, arg1, arg2 interface{}) *gomock.Call {
+func (mr *MockSpokeK8sClientMockRecorder) Get(arg0, arg1, arg2 interface{}, arg3 ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Get", reflect.TypeOf((*MockSpokeK8sClient)(nil).Get), arg0, arg1, arg2)
+	varargs := append([]interface{}{arg0, arg1, arg2}, arg3...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Get", reflect.TypeOf((*MockSpokeK8sClient)(nil).Get), varargs...)
 }
 
 // GetNode mocks base method.
