@@ -392,13 +392,13 @@ var _ = Describe("agent reconcile", func() {
 			}).Return(afterUpdateHost, nil).Times(2)
 		Expect(c.Create(ctx, host)).To(BeNil())
 		mockClient.EXPECT().Get(gomock.Any(), gomock.AssignableToTypeOf(types.NamespacedName{}), gomock.AssignableToTypeOf(&v1beta1.Agent{})).DoAndReturn(
-			func(ctx context.Context, name types.NamespacedName, agent *v1beta1.Agent) error {
-				return c.Get(ctx, name, agent)
+			func(ctx context.Context, name types.NamespacedName, agent *v1beta1.Agent, opts ...client.GetOption) error {
+				return c.Get(ctx, name, agent, opts...)
 			},
 		).Times(3)
 		mockClient.EXPECT().Get(gomock.Any(), gomock.AssignableToTypeOf(types.NamespacedName{}), gomock.AssignableToTypeOf(&hivev1.ClusterDeployment{})).DoAndReturn(
-			func(ctx context.Context, name types.NamespacedName, cd *hivev1.ClusterDeployment) error {
-				return c.Get(ctx, name, cd)
+			func(ctx context.Context, name types.NamespacedName, cd *hivev1.ClusterDeployment, opts ...client.GetOption) error {
+				return c.Get(ctx, name, cd, opts...)
 			},
 		).Times(2)
 		mockClient.EXPECT().Update(gomock.Any(), gomock.AssignableToTypeOf(&v1beta1.Agent{})).DoAndReturn(

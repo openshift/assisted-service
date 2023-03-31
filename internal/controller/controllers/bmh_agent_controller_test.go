@@ -754,14 +754,14 @@ var _ = Describe("bmac reconcile", func() {
 				mockClient := NewMockK8sClient(mockCtrl)
 				bmhr.Client = mockClient
 				mockClient.EXPECT().Get(gomock.Any(), gomock.AssignableToTypeOf(types.NamespacedName{}), gomock.AssignableToTypeOf(&v1beta1.InfraEnv{})).DoAndReturn(
-					func(ctx context.Context, name types.NamespacedName, infraEnv *v1beta1.InfraEnv) error {
-						return c.Get(ctx, name, infraEnv)
+					func(ctx context.Context, name types.NamespacedName, infraEnv *v1beta1.InfraEnv, opts ...client.GetOption) error {
+						return c.Get(ctx, name, infraEnv, opts...)
 					},
 				).Times(2)
 
 				mockClient.EXPECT().Get(gomock.Any(), gomock.AssignableToTypeOf(types.NamespacedName{}), gomock.AssignableToTypeOf(&bmh_v1alpha1.BareMetalHost{})).DoAndReturn(
-					func(ctx context.Context, name types.NamespacedName, bmh *bmh_v1alpha1.BareMetalHost) error {
-						return c.Get(ctx, name, bmh)
+					func(ctx context.Context, name types.NamespacedName, bmh *bmh_v1alpha1.BareMetalHost, opts ...client.GetOption) error {
+						return c.Get(ctx, name, bmh, opts...)
 					},
 				).Times(2)
 
