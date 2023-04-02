@@ -280,7 +280,7 @@ func UpdateMachineNetwork(db *gorm.DB, cluster *common.Cluster, machineNetwork [
 	}
 
 	if (len(machineNetwork) > 0 && machineNetwork[0] != previousPrimaryMachineNetwork) || (len(machineNetwork) > 1 && machineNetwork[1] != previousSecondaryMachineNetwork) {
-		err := db.Transaction(func(tx *gorm.DB) error {
+		if err := db.Transaction(func(tx *gorm.DB) error {
 			if err := tx.Where("cluster_id = ?", *cluster.ID).Delete(&models.MachineNetwork{}).Error; err != nil {
 				err = errors.Wrapf(err, "failed to delete machine networks of cluster %s", *cluster.ID)
 				return common.NewApiError(http.StatusInternalServerError, err)
@@ -303,8 +303,9 @@ func UpdateMachineNetwork(db *gorm.DB, cluster *common.Cluster, machineNetwork [
 				return common.NewApiError(http.StatusInternalServerError, err)
 			}
 			return nil
-		})
-		return err
+		}); err != nil {
+			return err
+		}
 	}
 	return nil
 }
