@@ -125,6 +125,7 @@ var DomainAPI = "api.test-cluster.example.com"
 var DomainAPIInternal = "api-int.test-cluster.example.com"
 var DomainApps = fmt.Sprintf("%s.apps.test-cluster.example.com", constants.AppsSubDomainNameHostDNSValidation)
 var WildcardDomain = fmt.Sprintf("%s.test-cluster.example.com", constants.DNSWildcardFalseDomainName)
+var ReleaseDomain = "quay.io"
 
 var DomainResolutions = []*models.DomainResolutionResponseDomain{
 	{
@@ -141,6 +142,11 @@ var DomainResolutions = []*models.DomainResolutionResponseDomain{
 		DomainName:    &DomainApps,
 		IPV4Addresses: []strfmt.IPv4{"7.8.9.10/24"},
 		IPV6Addresses: []strfmt.IPv6{"1003:db8::40/120"},
+	},
+	{
+		DomainName:    &ReleaseDomain,
+		IPV4Addresses: []strfmt.IPv4{"7.8.9.11/24"},
+		IPV6Addresses: []strfmt.IPv6{"1003:db8::41/120"},
 	},
 	{
 		DomainName:    &WildcardDomain,
@@ -167,6 +173,11 @@ var DomainResolutionNoAPI = []*models.DomainResolutionResponseDomain{
 		DomainName:    &WildcardDomain,
 		IPV4Addresses: []strfmt.IPv4{},
 		IPV6Addresses: []strfmt.IPv6{},
+	},
+	{
+		DomainName:    &ReleaseDomain,
+		IPV4Addresses: []strfmt.IPv4{"7.8.9.11/24"},
+		IPV6Addresses: []strfmt.IPv6{"1003:db8::41/120"},
 	},
 }
 

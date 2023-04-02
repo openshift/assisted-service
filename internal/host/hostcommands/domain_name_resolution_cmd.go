@@ -4,9 +4,12 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net"
 
+	"github.com/go-openapi/swag"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/constants"
+	"github.com/openshift/assisted-service/internal/versions"
 	"github.com/openshift/assisted-service/models"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -16,13 +19,15 @@ import (
 type domainNameResolutionCmd struct {
 	baseCmd
 	domainNameResolutionImage string
+	versionHandler            versions.Handler
 	db                        *gorm.DB
 }
 
-func NewDomainNameResolutionCmd(log logrus.FieldLogger, domainNameResolutionImage string, db *gorm.DB) *domainNameResolutionCmd {
+func NewDomainNameResolutionCmd(log logrus.FieldLogger, domainNameResolutionImage string, versionHandler versions.Handler, db *gorm.DB) *domainNameResolutionCmd {
 	return &domainNameResolutionCmd{
 		baseCmd:                   baseCmd{log: log},
 		domainNameResolutionImage: domainNameResolutionImage,
+		versionHandler:            versionHandler,
 		db:                        db,
 	}
 }
@@ -61,6 +66,17 @@ func (f *domainNameResolutionCmd) prepareParam(host *models.Host, cluster *commo
 
 	var domains []*models.DomainResolutionRequestDomain
 	domains = append(domains, &apiDomain, &apiInternalDomain, &appsDomain, &wildcardDomain)
+
+	releaseHost, err := versions.GetReleaseImageHost(cluster, f.versionHandler)
+	if err != nil {
+		return "", err
+	}
+	if net.ParseIP(releaseHost) == nil {
+		releaseDomain := models.DomainResolutionRequestDomain{
+			DomainName: swag.String(releaseHost),
+		}
+		domains = append(domains, &releaseDomain)
+	}
 
 	request := models.DomainResolutionRequest{
 		Domains: domains,

@@ -90,7 +90,7 @@ func NewInstructionManager(log logrus.FieldLogger, db *gorm.DB, hwValidator hard
 	ntpSynchronizerCmd := NewNtpSyncCmd(log, instructionConfig.AgentImage, db)
 	diskPerfCheckCmd := NewDiskPerfCheckCmd(log, instructionConfig.AgentImage, hwValidator, instructionConfig.DiskCheckTimeout.Seconds())
 	imageAvailabilityCmd := NewImageAvailabilityCmd(log, db, ocRelease, versionHandler, instructionConfig, instructionConfig.ImageAvailabilityTimeout.Seconds())
-	domainNameResolutionCmd := NewDomainNameResolutionCmd(log, instructionConfig.AgentImage, db)
+	domainNameResolutionCmd := NewDomainNameResolutionCmd(log, instructionConfig.AgentImage, versionHandler, db)
 	noopCmd := NewNoopCmd()
 	upgradeAgentCmd := NewUpgradeAgentCmd(instructionConfig.AgentImage)
 	downloadBootArtifactsCmd := NewDownloadBootArtifactsCmd(log, instructionConfig.ImageServiceBaseURL, instructionConfig.AuthType, osImages, db, instructionConfig.ImageExpirationTime, instructionConfig.HostFSMountDir)

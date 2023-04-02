@@ -550,9 +550,11 @@ func checkStepsByState(state string, host *models.Host, db *gorm.DB, mockEvents 
 		}, nil).Times(1)
 	}
 
-	if funk.Contains(expectedStepTypes, models.StepTypeContainerImageAvailability) {
+	if !funk.IsEmpty(funk.Join(expectedStepTypes, []models.StepType{models.StepTypeContainerImageAvailability, models.StepTypeDomainResolution}, funk.InnerJoin)) {
 		mockVersions.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(common.TestDefaultConfig.ReleaseImage, nil).Times(1)
-		mockVersions.EXPECT().GetMustGatherImages(gomock.Any(), gomock.Any(), gomock.Any()).Return(defaultMustGatherVersion, nil).Times(1)
+		if funk.Contains(expectedStepTypes, models.StepTypeContainerImageAvailability) {
+			mockVersions.EXPECT().GetMustGatherImages(gomock.Any(), gomock.Any(), gomock.Any()).Return(defaultMustGatherVersion, nil).Times(1)
+		}
 	}
 	stepsReply, stepsErr := instMng.GetNextSteps(ctx, &h.Host)
 	ExpectWithOffset(1, stepsReply.Instructions).To(HaveLen(len(expectedStepTypes)))

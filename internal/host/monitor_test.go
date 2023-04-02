@@ -21,6 +21,7 @@ import (
 	"github.com/openshift/assisted-service/internal/operators"
 	"github.com/openshift/assisted-service/internal/operators/api"
 	"github.com/openshift/assisted-service/internal/provider/registry"
+	"github.com/openshift/assisted-service/internal/versions"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/leader"
 	"gorm.io/gorm"
@@ -63,8 +64,11 @@ var _ = Describe("monitor_disconnection", func() {
 		mockOperators := operators.NewMockAPI(ctrl)
 		pr := registry.NewMockProviderRegistry(ctrl)
 		pr.EXPECT().IsHostSupported(gomock.Any(), gomock.Any()).Return(true, nil).AnyTimes()
+		mockVersions := versions.NewMockHandler(ctrl)
+		mockVersions.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+			Return(&models.ReleaseImage{URL: swag.String("quay.io/openshift/some-image::latest")}, nil).AnyTimes()
 		state = NewManager(common.GetTestLog(), db, nil, mockEvents, mockHwValidator, nil, createValidatorCfg(),
-			mockMetricApi, defaultConfig, dummy, mockOperators, pr, false, nil)
+			mockMetricApi, defaultConfig, dummy, mockOperators, pr, false, nil, mockVersions)
 		clusterID := strfmt.UUID(uuid.New().String())
 		infraEnvID := strfmt.UUID(uuid.New().String())
 		host = hostutil.GenerateTestHost(strfmt.UUID(uuid.New().String()), infraEnvID, clusterID, models.HostStatusDiscovering)
@@ -159,6 +163,7 @@ var _ = Describe("TestHostMonitoring - with cluster", func() {
 		clusterID     = strfmt.UUID(uuid.New().String())
 		infraEnvID    = strfmt.UUID(uuid.New().String())
 		mockMetricApi *metrics.MockAPI
+		mockVersions  *versions.MockHandler
 	)
 
 	BeforeEach(func() {
@@ -188,8 +193,11 @@ var _ = Describe("TestHostMonitoring - with cluster", func() {
 		mockOperators := operators.NewMockAPI(ctrl)
 		pr := registry.NewMockProviderRegistry(ctrl)
 		pr.EXPECT().IsHostSupported(gomock.Any(), gomock.Any()).Return(true, nil).AnyTimes()
+		mockVersions = versions.NewMockHandler(ctrl)
+		mockVersions.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+			Return(&models.ReleaseImage{URL: swag.String("quay.io/openshift/some-image::latest")}, nil).AnyTimes()
 		state = NewManager(common.GetTestLog(), db, nil, mockEvents, mockHwValidator, nil, createValidatorCfg(),
-			mockMetricApi, &cfg, &leader.DummyElector{}, mockOperators, pr, false, nil)
+			mockMetricApi, &cfg, &leader.DummyElector{}, mockOperators, pr, false, nil, mockVersions)
 
 		mockMetricApi.EXPECT().Duration("HostMonitoring", gomock.Any()).Times(1)
 		mockOperators.EXPECT().ValidateHost(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes().Return([]api.ValidationResult{
@@ -313,6 +321,7 @@ var _ = Describe("HostMonitoring - with infra-env", func() {
 		dbName        string
 		infraEnvID    = strfmt.UUID(uuid.New().String())
 		mockMetricApi *metrics.MockAPI
+		mockVersions  *versions.MockHandler
 	)
 
 	BeforeEach(func() {
@@ -339,8 +348,11 @@ var _ = Describe("HostMonitoring - with infra-env", func() {
 		}, nil)
 		mockHwValidator.EXPECT().GetHostValidDisks(gomock.Any()).Return(nil, nil).AnyTimes()
 		mockOperators := operators.NewMockAPI(ctrl)
+		mockVersions = versions.NewMockHandler(ctrl)
+		mockVersions.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+			Return(&models.ReleaseImage{URL: swag.String("quay.io/openshift/some-image::latest")}, nil).AnyTimes()
 		state = NewManager(common.GetTestLog(), db, nil, mockEvents, mockHwValidator, nil, createValidatorCfg(),
-			mockMetricApi, &cfg, &leader.DummyElector{}, mockOperators, nil, false, nil)
+			mockMetricApi, &cfg, &leader.DummyElector{}, mockOperators, nil, false, nil, mockVersions)
 
 		mockMetricApi.EXPECT().Duration("HostMonitoring", gomock.Any()).Times(1)
 		mockOperators.EXPECT().ValidateHost(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes().Return([]api.ValidationResult{
