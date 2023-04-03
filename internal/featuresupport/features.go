@@ -21,7 +21,7 @@ type SupportLevelFeature interface {
 	getSupportLevel(filters SupportLevelFilters) models.SupportLevel
 	getIncompatibleFeatures() *[]models.FeatureSupportLevelID
 	getIncompatibleArchitectures(openshiftVersion string) *[]models.ArchitectureSupportLevelID
-	getFeatureActiveLevel(cluster common.Cluster, updateParams *models.V2ClusterUpdateParams) featureActiveLevel
+	getFeatureActiveLevel(cluster common.Cluster, infraEnv *models.InfraEnv, clusterUpdateParams *models.V2ClusterUpdateParams, infraenvUpdateParams *models.InfraEnvUpdateParams) featureActiveLevel
 }
 
 type SupportLevelFilters struct {
@@ -107,7 +107,7 @@ func (feature *SnoFeature) getIncompatibleArchitectures(_ string) *[]models.Arch
 	}
 }
 
-func (feature *SnoFeature) getFeatureActiveLevel(cluster common.Cluster, _ *models.V2ClusterUpdateParams) featureActiveLevel {
+func (feature *SnoFeature) getFeatureActiveLevel(cluster common.Cluster, infraEnv *models.InfraEnv, _ *models.V2ClusterUpdateParams, _ *models.InfraEnvUpdateParams) featureActiveLevel {
 	if swag.StringValue(cluster.HighAvailabilityMode) == models.ClusterHighAvailabilityModeNone {
 		return activeLevelActive
 	}
@@ -137,10 +137,10 @@ func (feature *VipAutoAllocFeature) getIncompatibleArchitectures(_ string) *[]mo
 	return nil
 }
 
-func (feature *VipAutoAllocFeature) getFeatureActiveLevel(cluster common.Cluster, updateParams *models.V2ClusterUpdateParams) featureActiveLevel {
-	if (swag.BoolValue(cluster.VipDhcpAllocation) && updateParams == nil) ||
-		(swag.BoolValue(cluster.VipDhcpAllocation) && updateParams != nil && (updateParams.VipDhcpAllocation == nil || *updateParams.VipDhcpAllocation)) ||
-		(!swag.BoolValue(cluster.VipDhcpAllocation) && updateParams != nil && updateParams.VipDhcpAllocation != nil && *updateParams.VipDhcpAllocation) {
+func (feature *VipAutoAllocFeature) getFeatureActiveLevel(cluster common.Cluster, infraEnv *models.InfraEnv, clusterUpdateParams *models.V2ClusterUpdateParams, infraenvUpdateParams *models.InfraEnvUpdateParams) featureActiveLevel {
+	if (swag.BoolValue(cluster.VipDhcpAllocation) && clusterUpdateParams == nil) ||
+		(swag.BoolValue(cluster.VipDhcpAllocation) && clusterUpdateParams != nil && (clusterUpdateParams.VipDhcpAllocation == nil || *clusterUpdateParams.VipDhcpAllocation)) ||
+		(!swag.BoolValue(cluster.VipDhcpAllocation) && clusterUpdateParams != nil && clusterUpdateParams.VipDhcpAllocation != nil && *clusterUpdateParams.VipDhcpAllocation) {
 		return activeLevelActive
 	}
 	return activeLevelNotActive
@@ -169,7 +169,7 @@ func (feature *CustomManifestFeature) getIncompatibleArchitectures(_ string) *[]
 	return nil
 }
 
-func (feature *CustomManifestFeature) getFeatureActiveLevel(_ common.Cluster, _ *models.V2ClusterUpdateParams) featureActiveLevel {
+func (feature *CustomManifestFeature) getFeatureActiveLevel(_ common.Cluster, _ *models.InfraEnv, _ *models.V2ClusterUpdateParams, _ *models.InfraEnvUpdateParams) featureActiveLevel {
 	return activeLeveNotRelevant
 }
 
@@ -198,10 +198,10 @@ func (feature *ClusterManagedNetworkingFeature) getSupportLevel(filters SupportL
 	return models.SupportLevelSupported
 }
 
-func (feature *ClusterManagedNetworkingFeature) getFeatureActiveLevel(cluster common.Cluster, updateParams *models.V2ClusterUpdateParams) featureActiveLevel {
-	if (!swag.BoolValue(cluster.UserManagedNetworking) && updateParams == nil) ||
-		(!swag.BoolValue(cluster.UserManagedNetworking) && updateParams != nil && !swag.BoolValue(updateParams.UserManagedNetworking)) ||
-		(swag.BoolValue(cluster.UserManagedNetworking) && updateParams != nil && updateParams.UserManagedNetworking != nil && !*updateParams.UserManagedNetworking) {
+func (feature *ClusterManagedNetworkingFeature) getFeatureActiveLevel(cluster common.Cluster, infraEnv *models.InfraEnv, clusterUpdateParams *models.V2ClusterUpdateParams, infraenvUpdateParams *models.InfraEnvUpdateParams) featureActiveLevel {
+	if (!swag.BoolValue(cluster.UserManagedNetworking) && clusterUpdateParams == nil) ||
+		(!swag.BoolValue(cluster.UserManagedNetworking) && clusterUpdateParams != nil && !swag.BoolValue(clusterUpdateParams.UserManagedNetworking)) ||
+		(swag.BoolValue(cluster.UserManagedNetworking) && clusterUpdateParams != nil && clusterUpdateParams.UserManagedNetworking != nil && !*clusterUpdateParams.UserManagedNetworking) {
 		return activeLevelActive
 	}
 	return activeLevelNotActive
@@ -210,7 +210,6 @@ func (feature *ClusterManagedNetworkingFeature) getFeatureActiveLevel(cluster co
 func (feature *ClusterManagedNetworkingFeature) getIncompatibleArchitectures(openshiftVersion string) *[]models.ArchitectureSupportLevelID {
 	incompatibilities := []models.ArchitectureSupportLevelID{
 		models.ArchitectureSupportLevelIDS390XARCHITECTURE,
-		models.ArchitectureSupportLevelIDPPC64LEARCHITECTURE,
 	}
 
 	if isGreater, _ := common.BaseVersionGreaterOrEqual("4.11", openshiftVersion); isGreater {
@@ -249,10 +248,10 @@ func (feature *DualStackVipsFeature) getSupportLevel(filters SupportLevelFilters
 	return models.SupportLevelSupported
 }
 
-func (feature *DualStackVipsFeature) getFeatureActiveLevel(cluster common.Cluster, updateParams *models.V2ClusterUpdateParams) featureActiveLevel {
-	if (cluster.APIVips != nil && len(cluster.APIVips) > 1 && updateParams == nil) ||
-		(cluster.APIVips != nil && len(cluster.APIVips) > 1 && updateParams != nil && (updateParams.APIVips == nil || len(updateParams.APIVips) > 1)) ||
-		(cluster.APIVips != nil && len(cluster.APIVips) <= 1 && updateParams != nil && updateParams.APIVips != nil && len(updateParams.APIVips) > 1) {
+func (feature *DualStackVipsFeature) getFeatureActiveLevel(cluster common.Cluster, infraEnv *models.InfraEnv, clusterUpdateParams *models.V2ClusterUpdateParams, infraenvUpdateParams *models.InfraEnvUpdateParams) featureActiveLevel {
+	if (cluster.APIVips != nil && len(cluster.APIVips) > 1 && clusterUpdateParams == nil) ||
+		(cluster.APIVips != nil && len(cluster.APIVips) > 1 && clusterUpdateParams != nil && (clusterUpdateParams.APIVips == nil || len(clusterUpdateParams.APIVips) > 1)) ||
+		(cluster.APIVips != nil && len(cluster.APIVips) <= 1 && clusterUpdateParams != nil && clusterUpdateParams.APIVips != nil && len(clusterUpdateParams.APIVips) > 1) {
 		return activeLevelActive
 	}
 	return activeLevelNotActive
@@ -292,10 +291,10 @@ func (feature *UserManagedNetworkingFeature) getIncompatibleArchitectures(_ stri
 	return nil
 }
 
-func (feature *UserManagedNetworkingFeature) getFeatureActiveLevel(cluster common.Cluster, updateParams *models.V2ClusterUpdateParams) featureActiveLevel {
-	if (swag.BoolValue(cluster.UserManagedNetworking) && updateParams == nil) ||
-		(swag.BoolValue(cluster.UserManagedNetworking) && updateParams != nil && (updateParams.UserManagedNetworking == nil || *updateParams.UserManagedNetworking)) ||
-		(!swag.BoolValue(cluster.UserManagedNetworking) && updateParams != nil && updateParams.UserManagedNetworking != nil && *updateParams.UserManagedNetworking) {
+func (feature *UserManagedNetworkingFeature) getFeatureActiveLevel(cluster common.Cluster, infraEnv *models.InfraEnv, clusterUpdateParams *models.V2ClusterUpdateParams, infraenvUpdateParams *models.InfraEnvUpdateParams) featureActiveLevel {
+	if (swag.BoolValue(cluster.UserManagedNetworking) && clusterUpdateParams == nil) ||
+		(swag.BoolValue(cluster.UserManagedNetworking) && clusterUpdateParams != nil && (clusterUpdateParams.UserManagedNetworking == nil || *clusterUpdateParams.UserManagedNetworking)) ||
+		(!swag.BoolValue(cluster.UserManagedNetworking) && clusterUpdateParams != nil && clusterUpdateParams.UserManagedNetworking != nil && *clusterUpdateParams.UserManagedNetworking) {
 		return activeLevelActive
 	}
 	return activeLevelNotActive
@@ -321,7 +320,7 @@ func (feature *SingleNodeExpansionFeature) getSupportLevel(filters SupportLevelF
 	return models.SupportLevelSupported
 }
 
-func (feature *SingleNodeExpansionFeature) getFeatureActiveLevel(_ common.Cluster, _ *models.V2ClusterUpdateParams) featureActiveLevel {
+func (feature *SingleNodeExpansionFeature) getFeatureActiveLevel(_ common.Cluster, _ *models.InfraEnv, _ *models.V2ClusterUpdateParams, _ *models.InfraEnvUpdateParams) featureActiveLevel {
 	return activeLeveNotRelevant
 }
 
@@ -363,8 +362,8 @@ func (feature *LvmFeature) getSupportLevel(filters SupportLevelFilters) models.S
 	return models.SupportLevelSupported
 }
 
-func (feature *LvmFeature) getFeatureActiveLevel(cluster common.Cluster, updateParams *models.V2ClusterUpdateParams) featureActiveLevel {
-	if isOperatorActivated("lvm", cluster, updateParams) {
+func (feature *LvmFeature) getFeatureActiveLevel(cluster common.Cluster, infraEnv *models.InfraEnv, clusterUpdateParams *models.V2ClusterUpdateParams, infraenvUpdateParams *models.InfraEnvUpdateParams) featureActiveLevel {
+	if isOperatorActivated("lvm", cluster, clusterUpdateParams) {
 		return activeLevelActive
 	}
 	return activeLevelNotActive
@@ -413,10 +412,10 @@ func (feature *NutanixIntegrationFeature) getSupportLevel(filters SupportLevelFi
 	return models.SupportLevelSupported
 }
 
-func (feature *NutanixIntegrationFeature) getFeatureActiveLevel(cluster common.Cluster, updateParams *models.V2ClusterUpdateParams) featureActiveLevel {
-	if (cluster.Platform != nil && *cluster.Platform.Type == models.PlatformTypeNutanix && updateParams == nil) ||
-		(cluster.Platform != nil && *cluster.Platform.Type == models.PlatformTypeNutanix && updateParams != nil && (updateParams.Platform == nil || *updateParams.Platform.Type == models.PlatformTypeNutanix)) ||
-		((cluster.Platform != nil && *cluster.Platform.Type != models.PlatformTypeNutanix) && updateParams != nil && (updateParams.Platform != nil && *updateParams.Platform.Type == models.PlatformTypeNutanix)) {
+func (feature *NutanixIntegrationFeature) getFeatureActiveLevel(cluster common.Cluster, infraEnv *models.InfraEnv, clusterUpdateParams *models.V2ClusterUpdateParams, infraenvUpdateParams *models.InfraEnvUpdateParams) featureActiveLevel {
+	if (cluster.Platform != nil && *cluster.Platform.Type == models.PlatformTypeNutanix && clusterUpdateParams == nil) ||
+		(cluster.Platform != nil && *cluster.Platform.Type == models.PlatformTypeNutanix && clusterUpdateParams != nil && (clusterUpdateParams.Platform == nil || *clusterUpdateParams.Platform.Type == models.PlatformTypeNutanix)) ||
+		((cluster.Platform != nil && *cluster.Platform.Type != models.PlatformTypeNutanix) && clusterUpdateParams != nil && (clusterUpdateParams.Platform != nil && *clusterUpdateParams.Platform.Type == models.PlatformTypeNutanix)) {
 		return activeLevelActive
 	}
 	return activeLevelNotActive
@@ -457,10 +456,10 @@ func (feature *VsphereIntegrationFeature) getSupportLevel(filters SupportLevelFi
 	return models.SupportLevelSupported
 }
 
-func (feature *VsphereIntegrationFeature) getFeatureActiveLevel(cluster common.Cluster, updateParams *models.V2ClusterUpdateParams) featureActiveLevel {
-	if (cluster.Platform != nil && *cluster.Platform.Type == models.PlatformTypeVsphere && updateParams == nil) ||
-		(cluster.Platform != nil && *cluster.Platform.Type == models.PlatformTypeVsphere && updateParams != nil && (updateParams.Platform == nil || *updateParams.Platform.Type == models.PlatformTypeVsphere)) ||
-		(cluster.Platform != nil && *cluster.Platform.Type != models.PlatformTypeVsphere && updateParams != nil && (updateParams.Platform != nil && *updateParams.Platform.Type == models.PlatformTypeVsphere)) {
+func (feature *VsphereIntegrationFeature) getFeatureActiveLevel(cluster common.Cluster, infraEnv *models.InfraEnv, clusterUpdateParams *models.V2ClusterUpdateParams, infraenvUpdateParams *models.InfraEnvUpdateParams) featureActiveLevel {
+	if (cluster.Platform != nil && *cluster.Platform.Type == models.PlatformTypeVsphere && clusterUpdateParams == nil) ||
+		(cluster.Platform != nil && *cluster.Platform.Type == models.PlatformTypeVsphere && clusterUpdateParams != nil && (clusterUpdateParams.Platform == nil || *clusterUpdateParams.Platform.Type == models.PlatformTypeVsphere)) ||
+		(cluster.Platform != nil && *cluster.Platform.Type != models.PlatformTypeVsphere && clusterUpdateParams != nil && (clusterUpdateParams.Platform != nil && *clusterUpdateParams.Platform.Type == models.PlatformTypeVsphere)) {
 		return activeLevelActive
 	}
 	return activeLevelNotActive
@@ -512,8 +511,8 @@ func (feature *OdfFeature) getIncompatibleFeatures() *[]models.FeatureSupportLev
 	}
 }
 
-func (feature *OdfFeature) getFeatureActiveLevel(cluster common.Cluster, updateParams *models.V2ClusterUpdateParams) featureActiveLevel {
-	if isOperatorActivated("odf", cluster, updateParams) || isOperatorActivated("ocs", cluster, updateParams) {
+func (feature *OdfFeature) getFeatureActiveLevel(cluster common.Cluster, infraEnv *models.InfraEnv, clusterUpdateParams *models.V2ClusterUpdateParams, infraenvUpdateParams *models.InfraEnvUpdateParams) featureActiveLevel {
+	if isOperatorActivated("odf", cluster, clusterUpdateParams) || isOperatorActivated("ocs", cluster, clusterUpdateParams) {
 		return activeLevelActive
 	}
 	return activeLevelNotActive
@@ -550,9 +549,60 @@ func (feature *CnvFeature) getIncompatibleArchitectures(_ string) *[]models.Arch
 	}
 }
 
-func (feature *CnvFeature) getFeatureActiveLevel(cluster common.Cluster, updateParams *models.V2ClusterUpdateParams) featureActiveLevel {
-	if isOperatorActivated("cnv", cluster, updateParams) {
+func (feature *CnvFeature) getFeatureActiveLevel(cluster common.Cluster, infraEnv *models.InfraEnv, clusterUpdateParams *models.V2ClusterUpdateParams, infraenvUpdateParams *models.InfraEnvUpdateParams) featureActiveLevel {
+	if isOperatorActivated("cnv", cluster, clusterUpdateParams) {
 		return activeLevelActive
+	}
+	return activeLevelNotActive
+}
+
+// MinimalIso
+type MinimalIso struct{}
+
+func (feature *MinimalIso) getId() models.FeatureSupportLevelID {
+	return models.FeatureSupportLevelIDMINIMALISO
+}
+
+func (feature *MinimalIso) getName() string {
+	return "Minimal ISO"
+}
+
+func (feature *MinimalIso) getSupportLevel(filters SupportLevelFilters) models.SupportLevel {
+	if !isFeatureCompatibleWithArchitecture(feature, filters.OpenshiftVersion, swag.StringValue(filters.CPUArchitecture)) {
+		return models.SupportLevelUnavailable
+	}
+
+	return models.SupportLevelSupported
+}
+
+func (feature *MinimalIso) getIncompatibleFeatures() *[]models.FeatureSupportLevelID {
+	return nil
+}
+
+func (feature *MinimalIso) getIncompatibleArchitectures(_ string) *[]models.ArchitectureSupportLevelID {
+	return &[]models.ArchitectureSupportLevelID{
+		models.ArchitectureSupportLevelIDS390XARCHITECTURE,
+	}
+}
+
+func (feature *MinimalIso) getFeatureActiveLevel(cluster common.Cluster, infraEnv *models.InfraEnv, clusterUpdateParams *models.V2ClusterUpdateParams, infraenvUpdateParams *models.InfraEnvUpdateParams) featureActiveLevel {
+	if infraEnv == nil || infraEnv.Type == nil {
+		return activeLevelNotActive
+	}
+
+	if infraenvUpdateParams != nil {
+		if string(infraenvUpdateParams.ImageType) == string(models.ImageTypeMinimalIso) {
+			return activeLevelActive
+		} else if string(infraenvUpdateParams.ImageType) == string(models.ImageTypeFullIso) {
+			return activeLevelNotActive
+		}
+	}
+
+	if string(*infraEnv.Type) == string(models.ImageTypeMinimalIso) {
+		return activeLevelActive
+	}
+	if string(*infraEnv.Type) == string(models.ImageTypeFullIso) {
+		return activeLevelNotActive
 	}
 	return activeLevelNotActive
 }

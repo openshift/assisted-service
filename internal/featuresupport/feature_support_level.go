@@ -24,6 +24,7 @@ var featuresList = map[models.FeatureSupportLevelID]SupportLevelFeature{
 	models.FeatureSupportLevelIDVSPHEREINTEGRATION:       &VsphereIntegrationFeature{},
 	models.FeatureSupportLevelIDCNV:                      &CnvFeature{},
 	models.FeatureSupportLevelIDODF:                      &OdfFeature{},
+	models.FeatureSupportLevelIDMINIMALISO:               &MinimalIso{},
 }
 
 func getFeatureSupportList(features map[models.FeatureSupportLevelID]SupportLevelFeature, filters SupportLevelFilters) models.SupportLevels {
@@ -94,16 +95,29 @@ func isFeatureCompatible(feature SupportLevelFeature, features ...SupportLevelFe
 	return nil
 }
 
-func ValidateIncompatibleFeatures(log logrus.FieldLogger, cpuArchitecture string, cluster common.Cluster, updateParams *models.V2ClusterUpdateParams) error {
+func ValidateIncompatibleFeatures(log logrus.FieldLogger, cpuArchitecture string, cluster common.Cluster, infraEnv *models.InfraEnv, updateParams interface{}) error {
 	var activatedFeatures []SupportLevelFeature
+	var clusterUpdateParams *models.V2ClusterUpdateParams
+	var infraenvUpdateParams *models.InfraEnvUpdateParams
 
 	if cpuArchitecture == "" || cluster.OpenshiftVersion == "" {
 		log.Warnf("Cannot validate incompatible features, CpuArchitecture='%s', OpenshiftVersion='%s'", cpuArchitecture, cluster.OpenshiftVersion)
 		return nil
 	}
 
+	if updateParams != nil {
+		t := reflect.Indirect(reflect.ValueOf(updateParams))
+		if t.Type().Name() == "V2ClusterUpdateParams" {
+			clusterUpdateParams = updateParams.(*models.V2ClusterUpdateParams)
+		} else if t.Type().Name() == "InfraEnvUpdateParams" {
+			infraenvUpdateParams = updateParams.(*models.InfraEnvUpdateParams)
+		} else {
+			panic("updateParams must be one of type *models.V2ClusterUpdateParams or *models.InfraEnvUpdateParams")
+		}
+	}
+
 	for _, feature := range featuresList {
-		if feature.getFeatureActiveLevel(cluster, updateParams) == activeLevelActive {
+		if feature.getFeatureActiveLevel(cluster, infraEnv, clusterUpdateParams, infraenvUpdateParams) == activeLevelActive {
 			activatedFeatures = append(activatedFeatures, feature)
 			log.Debugf("%s feature is activated", feature.getName())
 		}
