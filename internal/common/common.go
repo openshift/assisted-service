@@ -100,6 +100,9 @@ const NMDebugModeConf = `
 domains=ALL:DEBUG
 `
 
+const ValidationTypeHost = "host"
+const ValidationTypeCluster = "cluster"
+
 func GetIgnoredValidations(validationsJSON string, clusterID string) ([]string, bool) {
 	ignoredValidations := []string{}
 	if validationsJSON != "" {

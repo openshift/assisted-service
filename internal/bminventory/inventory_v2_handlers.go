@@ -600,6 +600,21 @@ func (b *bareMetalInventory) validateIgnoredValidations(problems []string, ignor
 	if err != nil {
 		problems = append(problems, fmt.Sprintf("error during unmarshal of json for ignored %s validations", validationType))
 	} else {
+		for _, v := range ignoredValidationsArr {
+			var err error
+			if validationType == common.ValidationTypeCluster {
+				validation := models.NewClusterValidationID(models.ClusterValidationID(v))
+				err = validation.Validate(nil)
+			} else if validationType == common.ValidationTypeHost {
+				validation := models.NewHostValidationID(models.HostValidationID(v))
+				err = validation.Validate(nil)
+			} else {
+				problems = append(problems, fmt.Sprintf("Unable to validate %s the type %s is invalid", v, validationType))
+			}
+			if err != nil {
+				problems = append(problems, fmt.Sprintf("Validation ID '%s' is not a known %s validation", v, validationType))
+			}
+		}
 		mayIgnoreValidations, cantBeIgnored := common.MayIgnoreValidations(ignoredValidationsArr, nonIgnorableValidations)
 		if !mayIgnoreValidations {
 			problems = append(problems, fmt.Sprintf("unable to ignore the following %s validations (%s)", validationType, strings.Join(cantBeIgnored, ",")))
@@ -641,8 +656,9 @@ func (b *bareMetalInventory) V2SetIgnoredValidations(ctx context.Context, params
 	problems := []string{}
 	cluster.IgnoredClusterValidations = params.IgnoredValidations.ClusterValidationIds
 	cluster.IgnoredHostValidations = params.IgnoredValidations.HostValidationIds
-	problems = b.validateIgnoredValidations(problems, cluster.IgnoredClusterValidations, common.NonIgnorableClusterValidations, "cluster")
-	problems = b.validateIgnoredValidations(problems, cluster.IgnoredHostValidations, common.NonIgnorableHostValidations, "host")
+
+	problems = b.validateIgnoredValidations(problems, cluster.IgnoredClusterValidations, common.NonIgnorableClusterValidations, common.ValidationTypeCluster)
+	problems = b.validateIgnoredValidations(problems, cluster.IgnoredHostValidations, common.NonIgnorableHostValidations, common.ValidationTypeHost)
 	if len(problems) > 0 {
 		return b.setIgnoredValidationsBadRequest("cannot proceed due to the following errors: " + strings.Join(problems, "\n"))
 	}

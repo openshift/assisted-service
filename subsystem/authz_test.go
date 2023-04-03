@@ -356,6 +356,24 @@ var _ = Describe("test authorization", func() {
 			Expect(ignoredValidations.Payload.HostValidationIds).To(Equal("[\"has-cpu-cores-for-role\",\"has-memory-for-role\"]"))
 		})
 
+		It("attempt to ignore validations with ID's that do not exist", func() {
+			createCluster(user2BMClient, FakePS2)
+			_, err := user2BMClient.Installer.V2SetIgnoredValidations(ctx, &installer.V2SetIgnoredValidationsParams{
+				ClusterID: *cluster.ID,
+				IgnoredValidations: &models.IgnoredValidations{
+					ClusterValidationIds: "[\"dns-domain-defined\", \"does-not-exist\"]",
+					HostValidationIds:    "[\"has-cpu-cores-for-role\", \"also-does-not-exist\",\"has-memory-for-role\"]",
+				},
+			})
+			Expect(err).Should(HaveOccurred())
+			Expect(marshalError(err)).To(ContainSubstring("Validation ID 'does-not-exist' is not a known cluster validation"))
+			Expect(marshalError(err)).To(ContainSubstring("Validation ID 'also-does-not-exist' is not a known host validation"))
+			c, err := common.GetClusterFromDB(db, *cluster.ID, common.SkipEagerLoading)
+			Expect(err).ShouldNot(HaveOccurred())
+			Expect(c.IgnoredClusterValidations).To(Equal(""))
+			Expect(c.IgnoredHostValidations).To(Equal(""))
+		})
+
 		It("attempt to ignore validations when not allowed to ignore validations", func() {
 			createCluster(userBMClient, FakePS)
 			_, err := userBMClient.Installer.V2SetIgnoredValidations(ctx, &installer.V2SetIgnoredValidationsParams{
