@@ -200,6 +200,27 @@ var (
 	serviceBaseURL      = "https://assisted.example.com:6008"
 )
 
+type clusterIdMatcher struct {
+	Cluster *common.Cluster
+}
+
+func createClusterIdMatcher(cluster *common.Cluster) gomock.Matcher {
+	return clusterIdMatcher{Cluster: cluster}
+}
+
+func (e clusterIdMatcher) Matches(x interface{}) bool {
+	cluster, ok := x.(*common.Cluster)
+	if !ok {
+		return false
+	}
+	equal := e.Cluster.ID.String() == cluster.ID.String()
+	return equal
+}
+
+func (e clusterIdMatcher) String() string {
+	return fmt.Sprintf("Cluster with ID %s", e.Cluster.ID)
+}
+
 func toMac(macStr string) *strfmt.MAC {
 	mac := strfmt.MAC(macStr)
 	return &mac
@@ -5332,7 +5353,7 @@ var _ = Describe("cluster", func() {
 			APIVip:           "10.11.12.13",
 			IngressVip:       "10.11.20.50",
 			OpenshiftVersion: common.TestDefaultConfig.OpenShiftVersion,
-			Status:           swag.String(models.ClusterStatusReady),
+			Status:           swag.String(models.ClusterStatusInstalling),
 		},
 			IgnoredClusterValidations: "[\"no-cidrs-overlapping\"]",
 			IgnoredHostValidations:    "[\"has-memory-for-role\"]"}
@@ -5376,40 +5397,57 @@ var _ = Describe("cluster", func() {
 		})
 
 		It("Should send event in case of ignored validations", func() {
-			createCluster(clusterWithIgnoredValidations)
-			mockDetectAndStoreCollidingIPsForCluster(mockClusterApi, 1)
-			mockAutoAssignSuccess(3)
-			mockClusterRefreshStatusSuccess()
-			mockClusterIsReadyForInstallationSuccess()
-			mockGenerateAdditionalManifestsSuccess()
-			mockGetInstallConfigSuccess(mockInstallConfigBuilder)
-			mockGenerateInstallConfigSuccess(mockGenerator, mockVersions)
-			mockClusterPrepareForInstallationSuccess(mockClusterApi)
-			mockHostPrepareForRefresh(mockHostApi)
-			mockHandlePreInstallationSuccess(mockClusterApi, DoneChannel)
-			setDefaultGetMasterNodesIds(mockClusterApi)
-			setDefaultHostSetBootstrap(mockClusterApi)
-			setIsReadyForInstallationTrue(mockClusterApi)
-			mockClusterRefreshStatus(mockClusterApi)
-			mockClusterDeleteLogsSuccess(mockClusterApi)
-			mockSetConnectivityMajorityGroupsForCluster(mockClusterApi)
-			mockEvents.EXPECT().SendInfraEnvEvent(gomock.Any(), eventstest.NewEventMatcher(
-				eventstest.WithNameMatcher(eventgen.IgnitionConfigImageGeneratedEventName),
-				eventstest.WithClusterIdMatcher(clusterID.String()),
-				eventstest.WithSeverityMatcher(models.EventSeverityInfo))).MinTimes(0)
-			mockEvents.EXPECT().SendClusterEvent(ctx, eventstest.NewEventMatcher(
-				eventstest.WithNameMatcher(eventgen.ValidationsIgnoredEventName),
-				eventstest.WithClusterIdMatcher(clusterID.String()),
-				eventstest.WithSeverityMatcher(models.EventSeverityInfo))).MinTimes(0)
-			reply := bm.V2InstallCluster(ctx, installer.V2InstallClusterParams{
-				ClusterID: clusterID,
+			By("Start installation with ignored validations and expect events", func() {
+				createCluster(clusterWithIgnoredValidations)
+				mockDetectAndStoreCollidingIPsForCluster(mockClusterApi, 1)
+				mockAutoAssignSuccess(3)
+				mockClusterRefreshStatusSuccess()
+				mockClusterIsReadyForInstallationSuccess()
+				mockGenerateAdditionalManifestsSuccess()
+				mockGetInstallConfigSuccess(mockInstallConfigBuilder)
+				mockGenerateInstallConfigSuccess(mockGenerator, mockVersions)
+				mockClusterPrepareForInstallationSuccess(mockClusterApi)
+				mockHostPrepareForRefresh(mockHostApi)
+				mockHandlePreInstallationSuccess(mockClusterApi, DoneChannel)
+				setDefaultGetMasterNodesIds(mockClusterApi)
+				setDefaultHostSetBootstrap(mockClusterApi)
+				setIsReadyForInstallationTrue(mockClusterApi)
+				mockClusterRefreshStatus(mockClusterApi)
+				mockClusterDeleteLogsSuccess(mockClusterApi)
+				mockSetConnectivityMajorityGroupsForCluster(mockClusterApi)
+				mockEvents.EXPECT().SendInfraEnvEvent(gomock.Any(), eventstest.NewEventMatcher(
+					eventstest.WithNameMatcher(eventgen.IgnitionConfigImageGeneratedEventName),
+					eventstest.WithClusterIdMatcher(clusterID.String()),
+					eventstest.WithSeverityMatcher(models.EventSeverityInfo))).MinTimes(0)
+				mockEvents.EXPECT().SendClusterEvent(ctx, eventstest.NewEventMatcher(
+					eventstest.WithNameMatcher(eventgen.ValidationsIgnoredEventName),
+					eventstest.WithClusterIdMatcher(clusterID.String()),
+					eventstest.WithSeverityMatcher(models.EventSeverityInfo))).MinTimes(0)
+				reply := bm.V2InstallCluster(ctx, installer.V2InstallClusterParams{
+					ClusterID: clusterID,
+				})
+
+				Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2InstallClusterAccepted()))
+				waitForDoneChannel()
+
+				count := db.Model(&models.Cluster{}).Where("openshift_cluster_id <> ''").First(&models.Cluster{}).RowsAffected
+				Expect(count).To(Equal(int64(1)))
 			})
 
-			Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2InstallClusterAccepted()))
-			waitForDoneChannel()
-
-			count := db.Model(&models.Cluster{}).Where("openshift_cluster_id <> ''").First(&models.Cluster{}).RowsAffected
-			Expect(count).To(Equal(int64(1)))
+			By("Should not be able to modify ignored validations once installation has started", func() {
+				err := db.Model(&models.Cluster{ID: &clusterID}).UpdateColumn("status", "preparing-for-installation").Error
+				Expect(err).ToNot(HaveOccurred())
+				mockClusterApi.EXPECT().VerifyClusterUpdatability(createClusterIdMatcher(clusterWithIgnoredValidations)).Return(errors.Errorf("wrong state")).Times(1)
+				reply := bm.V2SetIgnoredValidations(ctx, installer.V2SetIgnoredValidationsParams{
+					ClusterID: clusterID,
+					IgnoredValidations: &models.IgnoredValidations{
+						ClusterValidationIds: "[\"dns-domain-defined\"]",
+						HostValidationIds:    "[\"has-cpu-cores-for-role\",\"has-memory-for-role\"]",
+					},
+				})
+				reason := reply.(*installer.V2SetIgnoredValidationsBadRequest).Payload.Reason
+				Expect(*reason).To(ContainSubstring("wrong state"))
+			})
 		})
 
 		It("success arm64 baremetal platform with 4.11 where it is supported", func() {
