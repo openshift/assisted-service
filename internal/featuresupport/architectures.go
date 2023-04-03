@@ -6,18 +6,18 @@ import (
 )
 
 type SupportLevelArchitecture interface {
-	GetId() models.ArchitectureSupportLevelID
-	GetSupportLevel(openshiftVersion string) models.SupportLevel
+	getId() models.ArchitectureSupportLevelID
+	getSupportLevel(openshiftVersion string) models.SupportLevel
 }
 
 // Arm64ArchitectureFeature
 type Arm64ArchitectureFeature struct{}
 
-func (feature *Arm64ArchitectureFeature) GetId() models.ArchitectureSupportLevelID {
+func (feature *Arm64ArchitectureFeature) getId() models.ArchitectureSupportLevelID {
 	return models.ArchitectureSupportLevelIDARM64ARCHITECTURE
 }
 
-func (feature *Arm64ArchitectureFeature) GetSupportLevel(openshiftVersion string) models.SupportLevel {
+func (feature *Arm64ArchitectureFeature) getSupportLevel(openshiftVersion string) models.SupportLevel {
 	isNotSupported, err := common.BaseVersionLessThan("4.10", openshiftVersion)
 	if isNotSupported || err != nil {
 		return models.SupportLevelUnavailable
@@ -29,22 +29,22 @@ func (feature *Arm64ArchitectureFeature) GetSupportLevel(openshiftVersion string
 // X8664ArchitectureFeature
 type X8664ArchitectureFeature struct{}
 
-func (feature *X8664ArchitectureFeature) GetId() models.ArchitectureSupportLevelID {
+func (feature *X8664ArchitectureFeature) getId() models.ArchitectureSupportLevelID {
 	return models.ArchitectureSupportLevelIDX8664ARCHITECTURE
 }
 
-func (feature *X8664ArchitectureFeature) GetSupportLevel(_ string) models.SupportLevel {
+func (feature *X8664ArchitectureFeature) getSupportLevel(_ string) models.SupportLevel {
 	return models.SupportLevelSupported
 }
 
 // S390xArchitectureFeature
 type S390xArchitectureFeature struct{}
 
-func (feature *S390xArchitectureFeature) GetId() models.ArchitectureSupportLevelID {
+func (feature *S390xArchitectureFeature) getId() models.ArchitectureSupportLevelID {
 	return models.ArchitectureSupportLevelIDS390XARCHITECTURE
 }
 
-func (feature *S390xArchitectureFeature) GetSupportLevel(openshiftVersion string) models.SupportLevel {
+func (feature *S390xArchitectureFeature) getSupportLevel(openshiftVersion string) models.SupportLevel {
 	if isNotAvailable, err := common.BaseVersionLessThan("4.12", openshiftVersion); isNotAvailable || err != nil {
 		return models.SupportLevelUnavailable
 	}
@@ -58,11 +58,11 @@ func (feature *S390xArchitectureFeature) GetSupportLevel(openshiftVersion string
 // PPC64LEArchitectureFeature
 type PPC64LEArchitectureFeature struct{}
 
-func (feature *PPC64LEArchitectureFeature) GetId() models.ArchitectureSupportLevelID {
+func (feature *PPC64LEArchitectureFeature) getId() models.ArchitectureSupportLevelID {
 	return models.ArchitectureSupportLevelIDPPC64LEARCHITECTURE
 }
 
-func (feature *PPC64LEArchitectureFeature) GetSupportLevel(openshiftVersion string) models.SupportLevel {
+func (feature *PPC64LEArchitectureFeature) getSupportLevel(openshiftVersion string) models.SupportLevel {
 	if isNotAvailable, err := common.BaseVersionLessThan("4.12", openshiftVersion); isNotAvailable || err != nil {
 		return models.SupportLevelUnavailable
 	}
@@ -76,11 +76,11 @@ func (feature *PPC64LEArchitectureFeature) GetSupportLevel(openshiftVersion stri
 // MultiArchReleaseImageFeature
 type MultiArchReleaseImageFeature struct{}
 
-func (feature *MultiArchReleaseImageFeature) GetId() models.ArchitectureSupportLevelID {
+func (feature *MultiArchReleaseImageFeature) getId() models.ArchitectureSupportLevelID {
 	return models.ArchitectureSupportLevelIDMULTIARCHRELEASEIMAGE
 }
 
-func (feature *MultiArchReleaseImageFeature) GetSupportLevel(openshiftVersion string) models.SupportLevel {
+func (feature *MultiArchReleaseImageFeature) getSupportLevel(openshiftVersion string) models.SupportLevel {
 	if isNotSupported, err := common.BaseVersionLessThan("4.11", openshiftVersion); isNotSupported || err != nil {
 		return models.SupportLevelUnavailable
 	}

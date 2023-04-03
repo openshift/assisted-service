@@ -639,7 +639,7 @@ func (b *bareMetalInventory) RegisterClusterInternal(
 	}
 	cluster.MonitoredOperators = append(monitoredOperators, newOLMOperators...)
 
-	if err = featuresupport.ValidateIncompatibleFeatures(log, params.NewClusterParams.CPUArchitecture, *cluster, nil, nil); err != nil {
+	if err = featuresupport.ValidateIncompatibleFeatures(log, params.NewClusterParams.CPUArchitecture, cluster, nil, nil); err != nil {
 		b.log.Error(err)
 		return nil, common.NewApiError(http.StatusBadRequest, err)
 	}
@@ -1966,7 +1966,7 @@ func (b *bareMetalInventory) validateUpdateClusterIncompatibleFeatures(ctx conte
 	}
 
 	for _, infraEnv := range infraEnvs {
-		if err = featuresupport.ValidateIncompatibleFeatures(b.log, infraEnv.CPUArchitecture, *cluster, infraEnv, params.ClusterUpdateParams); err != nil {
+		if err = featuresupport.ValidateIncompatibleFeatures(b.log, infraEnv.CPUArchitecture, cluster, infraEnv, params.ClusterUpdateParams); err != nil {
 			b.log.Error(err)
 			return params, common.NewApiError(http.StatusBadRequest, err)
 		}
@@ -4462,7 +4462,7 @@ func (b *bareMetalInventory) handlerClusterInfoOnRegisterInfraEnv(
 	log.Infof("Handling cluster %s information on RegisterInfraEnv", clusterId)
 	if clusterId != nil {
 		infraEnv.ClusterID = *clusterId
-		if err := featuresupport.ValidateIncompatibleFeatures(log, infraEnv.CPUArchitecture, *cluster, &infraEnv.InfraEnv, nil); err != nil {
+		if err := featuresupport.ValidateIncompatibleFeatures(log, infraEnv.CPUArchitecture, cluster, &infraEnv.InfraEnv, nil); err != nil {
 			b.log.Error(err)
 			return common.NewApiError(http.StatusBadRequest, err)
 		}
@@ -4936,11 +4936,9 @@ func (b *bareMetalInventory) UpdateInfraEnvInternal(ctx context.Context, params 
 	if err = validateArchitectureAndVersion(b.versionsHandler, cluster, infraEnv.CPUArchitecture, infraEnv.OpenshiftVersion); err != nil {
 		return nil, err
 	}
-	if cluster != nil {
-		if err = featuresupport.ValidateIncompatibleFeatures(log, infraEnv.CPUArchitecture, *cluster, &infraEnv.InfraEnv, nil); err != nil {
-			b.log.Error(err)
-			return nil, common.NewApiError(http.StatusBadRequest, err)
-		}
+	if err = featuresupport.ValidateIncompatibleFeatures(log, infraEnv.CPUArchitecture, cluster, &infraEnv.InfraEnv, params.InfraEnvUpdateParams); err != nil {
+		b.log.Error(err)
+		return nil, common.NewApiError(http.StatusBadRequest, err)
 	}
 
 	err = b.updateInfraEnvData(ctx, infraEnv, params, internalIgnitionConfig, tx, log)

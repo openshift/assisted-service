@@ -317,6 +317,7 @@ func getDefaultClusterCreateParams() *models.ClusterCreateParams {
 		Platform: &models.Platform{
 			Type: common.PlatformTypePtr(models.PlatformTypeBaremetal),
 		},
+		CPUArchitecture:      models.ClusterCPUArchitectureX8664,
 		HighAvailabilityMode: swag.String(models.ClusterHighAvailabilityModeFull),
 	}
 }
@@ -354,6 +355,11 @@ func createClusterWithAvailability(db *gorm.DB, status string, highAvailabilityM
 			ID:                   &clusterID,
 			Status:               swag.String(status),
 			HighAvailabilityMode: &highAvailabilityMode,
+			OpenshiftVersion:     common.TestDefaultConfig.OpenShiftVersion,
+			CPUArchitecture:      common.DefaultCPUArchitecture,
+			Platform: &models.Platform{
+				Type: common.PlatformTypePtr(models.PlatformTypeBaremetal),
+			},
 		},
 	}
 	Expect(db.Create(c).Error).ToNot(HaveOccurred())

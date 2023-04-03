@@ -190,7 +190,7 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 				OpenshiftVersion: "4.6",
 				CPUArchitecture:  models.ClusterCPUArchitectureX8664,
 			}}
-			Expect(ValidateIncompatibleFeatures(log, models.ClusterCPUArchitectureX8664, cluster, nil, nil)).To(BeNil())
+			Expect(ValidateIncompatibleFeatures(log, models.ClusterCPUArchitectureX8664, &cluster, nil, nil)).To(BeNil())
 		})
 		It("Single compatible feature is activated", func() {
 			cluster := common.Cluster{Cluster: models.Cluster{
@@ -200,7 +200,7 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 				UserManagedNetworking: swag.Bool(true),
 				Platform:              &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeBaremetal)},
 			}}
-			Expect(ValidateIncompatibleFeatures(log, models.ClusterCPUArchitectureX8664, cluster, nil, nil)).To(BeNil())
+			Expect(ValidateIncompatibleFeatures(log, models.ClusterCPUArchitectureX8664, &cluster, nil, nil)).To(BeNil())
 		})
 		It("Update s390x cluster", func() {
 			cluster := common.Cluster{Cluster: models.Cluster{
@@ -211,7 +211,7 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 				Platform:              &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeBaremetal)},
 			}}
 			params := models.V2ClusterUpdateParams{UserManagedNetworking: swag.Bool(false)}
-			Expect(ValidateIncompatibleFeatures(log, models.ClusterCPUArchitectureS390x, cluster, nil, &params)).To(Not(BeNil()))
+			Expect(ValidateIncompatibleFeatures(log, models.ClusterCPUArchitectureS390x, &cluster, nil, &params)).To(Not(BeNil()))
 		})
 		It("Update s390x cluster", func() {
 			cluster := common.Cluster{Cluster: models.Cluster{
@@ -222,10 +222,10 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 				Platform:              &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeBaremetal)},
 			}}
 			infraEnv := models.InfraEnv{Type: common.ImageTypePtr(models.ImageTypeFullIso)}
-			Expect(ValidateIncompatibleFeatures(log, models.ClusterCPUArchitectureS390x, cluster, &infraEnv, nil)).To(BeNil())
+			Expect(ValidateIncompatibleFeatures(log, models.ClusterCPUArchitectureS390x, &cluster, &infraEnv, nil)).To(BeNil())
 
 			params := models.InfraEnvUpdateParams{ImageType: models.ImageTypeMinimalIso}
-			err := ValidateIncompatibleFeatures(log, models.ClusterCPUArchitectureS390x, cluster, &infraEnv, &params)
+			err := ValidateIncompatibleFeatures(log, models.ClusterCPUArchitectureS390x, &cluster, &infraEnv, &params)
 			Expect(err).To(Not(BeNil()))
 			Expect(err.Error()).To(ContainSubstring("cannot use Minimal ISO because it's not compatible with the s390x architecture on version 4.13 of OpenShift"))
 		})
@@ -238,7 +238,7 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 				UserManagedNetworking: swag.Bool(true),
 				Platform:              &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeBaremetal)},
 			}}
-			Expect(ValidateIncompatibleFeatures(log, models.ClusterCPUArchitecturePpc64le, cluster, nil, nil).Error()).To(Equal(expectedError))
+			Expect(ValidateIncompatibleFeatures(log, models.ClusterCPUArchitecturePpc64le, &cluster, nil, nil).Error()).To(Equal(expectedError))
 		})
 		It("SNO feature is activated with incompatible architecture s390x", func() {
 			expectedError := "cannot use Single Node OpenShift because it's not compatible with the s390x architecture on version 4.13 of OpenShift"
@@ -249,7 +249,7 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 				UserManagedNetworking: swag.Bool(true),
 				Platform:              &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeBaremetal)},
 			}}
-			Expect(ValidateIncompatibleFeatures(log, models.ClusterCPUArchitectureS390x, cluster, nil, nil).Error()).To(Equal(expectedError))
+			Expect(ValidateIncompatibleFeatures(log, models.ClusterCPUArchitectureS390x, &cluster, nil, nil).Error()).To(Equal(expectedError))
 		})
 		It("Nutanix feature is activated with incompatible architecture", func() {
 			expectedError := "cannot use arm64 architecture because it's not compatible on version 4.8 of OpenShift"
@@ -260,7 +260,7 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 				UserManagedNetworking: swag.Bool(true),
 				Platform:              &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeNutanix)},
 			}}
-			Expect(ValidateIncompatibleFeatures(log, models.ClusterCPUArchitectureArm64, cluster, nil, nil).Error()).To(Equal(expectedError))
+			Expect(ValidateIncompatibleFeatures(log, models.ClusterCPUArchitectureArm64, &cluster, nil, nil).Error()).To(Equal(expectedError))
 		})
 		It("ClusterManagedNetworking feature is activated with compatible architecture on 4.11", func() {
 			cluster := common.Cluster{Cluster: models.Cluster{
@@ -270,7 +270,7 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 				Platform:              &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeBaremetal)},
 				UserManagedNetworking: swag.Bool(false),
 			}}
-			Expect(ValidateIncompatibleFeatures(log, models.ClusterCPUArchitectureArm64, cluster, nil, nil)).To(BeNil())
+			Expect(ValidateIncompatibleFeatures(log, models.ClusterCPUArchitectureArm64, &cluster, nil, nil)).To(BeNil())
 		})
 		It("Ppc64le with CMN and minimal iso - success", func() {
 			cluster := common.Cluster{Cluster: models.Cluster{
@@ -279,9 +279,9 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 			}}
 			infraEnv := models.InfraEnv{CPUArchitecture: models.ClusterCPUArchitecturePpc64le, Type: common.ImageTypePtr(models.ImageTypeMinimalIso)}
 
-			err := ValidateIncompatibleFeatures(log, models.ClusterCPUArchitecturePpc64le, cluster, nil, nil)
+			err := ValidateIncompatibleFeatures(log, models.ClusterCPUArchitecturePpc64le, &cluster, nil, nil)
 			Expect(err).To(BeNil())
-			err = ValidateIncompatibleFeatures(log, models.ClusterCPUArchitecturePpc64le, cluster, &infraEnv, nil)
+			err = ValidateIncompatibleFeatures(log, models.ClusterCPUArchitecturePpc64le, &cluster, &infraEnv, nil)
 			Expect(err).To(BeNil())
 		})
 		It("s390x with CMN and minimal iso - fail", func() {
@@ -291,10 +291,10 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 			}}
 			infraEnv := models.InfraEnv{CPUArchitecture: models.ClusterCPUArchitectureS390x, Type: common.ImageTypePtr(models.ImageTypeMinimalIso)}
 
-			err := ValidateIncompatibleFeatures(log, models.ClusterCPUArchitectureS390x, cluster, nil, nil)
+			err := ValidateIncompatibleFeatures(log, models.ClusterCPUArchitectureS390x, &cluster, nil, nil)
 			Expect(err).To(Not(BeNil()))
 			cluster.UserManagedNetworking = swag.Bool(true)
-			err = ValidateIncompatibleFeatures(log, models.ClusterCPUArchitectureS390x, cluster, &infraEnv, nil)
+			err = ValidateIncompatibleFeatures(log, models.ClusterCPUArchitectureS390x, &cluster, &infraEnv, nil)
 			Expect(err).To(Not(BeNil()))
 		})
 	})
@@ -328,7 +328,7 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 				}
 
 				for _, feature := range activatedFeatures {
-					Expect(feature.getFeatureActiveLevel(cluster, nil, nil, nil)).To(Equal(activeLevelActive))
+					Expect(feature.getFeatureActiveLevel(&cluster, nil, nil, nil)).To(Equal(activeLevelActive))
 				}
 			})
 
@@ -366,12 +366,12 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 				}
 
 				for _, feature := range activatedFeatures {
-					Expect(feature.getFeatureActiveLevel(cluster, nil, nil, nil)).To(Equal(activeLevelActive))
-					Expect(feature.getFeatureActiveLevel(cluster, nil, &params, nil)).To(Equal(activeLevelNotActive))
+					Expect(feature.getFeatureActiveLevel(&cluster, nil, nil, nil)).To(Equal(activeLevelActive))
+					Expect(feature.getFeatureActiveLevel(&cluster, nil, &params, nil)).To(Equal(activeLevelNotActive))
 				}
-				Expect((&SnoFeature{}).getFeatureActiveLevel(cluster, nil, &params, nil)).To(Equal(activeLevelActive))
-				Expect((&LvmFeature{}).getFeatureActiveLevel(cluster, nil, &params, nil)).To(Equal(activeLevelActive))
-				Expect((&ClusterManagedNetworkingFeature{}).getFeatureActiveLevel(cluster, nil, &params, nil)).To(Equal(activeLevelActive))
+				Expect((&SnoFeature{}).getFeatureActiveLevel(&cluster, nil, &params, nil)).To(Equal(activeLevelActive))
+				Expect((&LvmFeature{}).getFeatureActiveLevel(&cluster, nil, &params, nil)).To(Equal(activeLevelActive))
+				Expect((&ClusterManagedNetworkingFeature{}).getFeatureActiveLevel(&cluster, nil, &params, nil)).To(Equal(activeLevelActive))
 			})
 			It("ppc supporting minimal-iso", func() {
 				cpuArchitecture := models.ClusterCPUArchitecturePpc64le
@@ -380,7 +380,7 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 					CPUArchitecture:  cpuArchitecture,
 				}}
 				infraEnv := models.InfraEnv{Type: common.ImageTypePtr(models.ImageTypeMinimalIso)}
-				Expect((&MinimalIso{}).getFeatureActiveLevel(cluster, &infraEnv, nil, nil)).To(Equal(activeLevelActive))
+				Expect((&MinimalIso{}).getFeatureActiveLevel(&cluster, &infraEnv, nil, nil)).To(Equal(activeLevelActive))
 
 				filters := SupportLevelFilters{OpenshiftVersion: "4.12", CPUArchitecture: &cpuArchitecture}
 				Expect((&MinimalIso{}).getSupportLevel(filters)).To(Equal(models.SupportLevelSupported))
@@ -392,9 +392,19 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 					CPUArchitecture:  cpuArchitecture,
 				}}
 				infraEnv := models.InfraEnv{Type: common.ImageTypePtr(models.ImageTypeMinimalIso)}
-				Expect((&MinimalIso{}).getFeatureActiveLevel(cluster, &infraEnv, nil, nil)).To(Equal(activeLevelActive))
+				Expect((&MinimalIso{}).getFeatureActiveLevel(&cluster, &infraEnv, nil, nil)).To(Equal(activeLevelActive))
 
 				filters := SupportLevelFilters{OpenshiftVersion: "4.12", CPUArchitecture: &cpuArchitecture}
+				Expect((&MinimalIso{}).getSupportLevel(filters)).To(Equal(models.SupportLevelUnavailable))
+			})
+
+			It("s390x not supporting minimal-iso without cluster", func() {
+				cpuArchitecture := models.ClusterCPUArchitectureS390x
+
+				infraEnv := models.InfraEnv{Type: common.ImageTypePtr(models.ImageTypeMinimalIso)}
+				Expect((&MinimalIso{}).getFeatureActiveLevel(nil, &infraEnv, nil, nil)).To(Equal(activeLevelActive))
+
+				filters := SupportLevelFilters{OpenshiftVersion: "", CPUArchitecture: &cpuArchitecture}
 				Expect((&MinimalIso{}).getSupportLevel(filters)).To(Equal(models.SupportLevelUnavailable))
 			})
 
@@ -418,13 +428,13 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 					OlmOperators: []*models.OperatorCreateParams{},
 				}
 
-				Expect((&CnvFeature{}).getFeatureActiveLevel(cluster, nil, nil, nil)).To(Equal(activeLevelActive))
-				Expect((&CnvFeature{}).getFeatureActiveLevel(cluster, nil, &params, nil)).To(Equal(activeLevelNotActive))
+				Expect((&CnvFeature{}).getFeatureActiveLevel(&cluster, nil, nil, nil)).To(Equal(activeLevelActive))
+				Expect((&CnvFeature{}).getFeatureActiveLevel(&cluster, nil, &params, nil)).To(Equal(activeLevelNotActive))
 			})
 		})
 
-		Context("GetSupportLevel", func() {
-			It("featuressupport.GetSupportLevel equal to Feature.getSupportLevel", func() {
+		Context("getSupportLevel", func() {
+			It("featuressupport.getSupportLevel equal to Feature.getSupportLevel", func() {
 				featureA := ClusterManagedNetworkingFeature{}
 				openshiftVersion := "4.13"
 				cpuArchitecture := models.ClusterCPUArchitectureS390x

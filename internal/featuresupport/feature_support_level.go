@@ -2,12 +2,10 @@ package featuresupport
 
 import (
 	"fmt"
-	"reflect"
 
 	"github.com/go-openapi/swag"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/models"
-	"github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
 )
 
@@ -60,13 +58,6 @@ func GetFeatureSupportList(openshiftVersion string, cpuArchitecture *string) mod
 	return featuresSupportList
 }
 
-func GetSupportLevel[T models.FeatureSupportLevelID | models.ArchitectureSupportLevelID](featureId T, filters interface{}) models.SupportLevel {
-	if reflect.TypeOf(featureId).Name() == "FeatureSupportLevelID" {
-		return featuresList[models.FeatureSupportLevelID(featureId)].getSupportLevel(filters.(SupportLevelFilters))
-	}
-	return cpuFeaturesList[models.ArchitectureSupportLevelID(featureId)].GetSupportLevel(filters.(string))
-}
-
 // IsFeatureAvailable Get the support level of a given feature, cpuArchitecture is optional
 //with default value of x86_64
 func IsFeatureAvailable(featureId models.FeatureSupportLevelID, openshiftVersion string, cpuArchitecture *string) bool {
@@ -95,48 +86,7 @@ func isFeatureCompatible(feature SupportLevelFeature, features ...SupportLevelFe
 	return nil
 }
 
-func ValidateIncompatibleFeatures(log logrus.FieldLogger, cpuArchitecture string, cluster common.Cluster, infraEnv *models.InfraEnv, updateParams interface{}) error {
-	var activatedFeatures []SupportLevelFeature
-	var clusterUpdateParams *models.V2ClusterUpdateParams
-	var infraenvUpdateParams *models.InfraEnvUpdateParams
-
-	if cpuArchitecture == "" || cluster.OpenshiftVersion == "" {
-		log.Warnf("Cannot validate incompatible features, CpuArchitecture='%s', OpenshiftVersion='%s'", cpuArchitecture, cluster.OpenshiftVersion)
-		return nil
-	}
-
-	if updateParams != nil {
-		t := reflect.Indirect(reflect.ValueOf(updateParams))
-		if t.Type().Name() == "V2ClusterUpdateParams" {
-			clusterUpdateParams = updateParams.(*models.V2ClusterUpdateParams)
-		} else if t.Type().Name() == "InfraEnvUpdateParams" {
-			infraenvUpdateParams = updateParams.(*models.InfraEnvUpdateParams)
-		} else {
-			panic("updateParams must be one of type *models.V2ClusterUpdateParams or *models.InfraEnvUpdateParams")
-		}
-	}
-
-	for _, feature := range featuresList {
-		if feature.getFeatureActiveLevel(cluster, infraEnv, clusterUpdateParams, infraenvUpdateParams) == activeLevelActive {
-			activatedFeatures = append(activatedFeatures, feature)
-			log.Debugf("%s feature is activated", feature.getName())
-		}
-	}
-
-	if isSupported := isArchitectureSupported(cpuArchitectureFeatureIdMap[cpuArchitecture], cluster.OpenshiftVersion); !isSupported {
-		return fmt.Errorf("cannot use %s architecture because it's not compatible on version %s of OpenShift", cpuArchitecture, cluster.OpenshiftVersion)
-	}
-
-	if err := isFeaturesCompatibleWithArchitecture(cluster.OpenshiftVersion, cpuArchitecture, activatedFeatures); err != nil {
-		return err
-	}
-	if err := isFeaturesCompatibleWithFeatures(activatedFeatures); err != nil {
-		return err
-	}
-	return nil
-}
-
-// isFeaturesCompatibleWithArchitecture Determine if feature is compatible with other activated features
+// isFeaturesCompatibleWithFeatures Determine if feature is compatible with other activated features
 func isFeaturesCompatibleWithFeatures(activatedFeatures []SupportLevelFeature) error {
 	for _, feature := range activatedFeatures {
 		if incompatibleFeature := isFeatureCompatible(feature, activatedFeatures...); incompatibleFeature != nil {

@@ -127,6 +127,54 @@ var _ = Describe("Feature support levels API", func() {
 				err2 := err.(*installer.RegisterInfraEnvBadRequest)
 				ExpectWithOffset(1, *err2.Payload.Reason).To(ContainSubstring(expectedError))
 			})
+			Context("UpdateInfraEnv", func() {
+				It("Update ppc64le infra env minimal iso without cluster", func() {
+					infraEnv, err := registerNewInfraEnv(nil, "4.12", models.ClusterCPUArchitecturePpc64le)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(common.ImageTypeValue(infraEnv.Payload.Type)).ToNot(Equal(models.ImageTypeMinimalIso))
+
+					updatedInfraEnv, err := user2BMClient.Installer.UpdateInfraEnv(ctx, &installer.UpdateInfraEnvParams{
+						InfraEnvID: *infraEnv.Payload.ID,
+						InfraEnvUpdateParams: &models.InfraEnvUpdateParams{
+							ImageType: models.ImageTypeMinimalIso,
+						}})
+					Expect(err).ToNot(HaveOccurred())
+					Expect(common.ImageTypeValue(updatedInfraEnv.Payload.Type)).To(Equal(models.ImageTypeMinimalIso))
+				})
+				It("Update ppc64le infra env minimal iso with cluster", func() {
+					cluster, err := registerNewCluster("4.12", models.ClusterCPUArchitecturePpc64le, models.ClusterHighAvailabilityModeFull, swag.Bool(true))
+					Expect(err).NotTo(HaveOccurred())
+
+					infraEnv, err := registerNewInfraEnv(cluster.Payload.ID, "4.12", models.ClusterCPUArchitecturePpc64le)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(common.ImageTypeValue(infraEnv.Payload.Type)).ToNot(Equal(models.ImageTypeMinimalIso))
+
+					updatedInfraEnv, err := user2BMClient.Installer.UpdateInfraEnv(ctx, &installer.UpdateInfraEnvParams{
+						InfraEnvID: *infraEnv.Payload.ID,
+						InfraEnvUpdateParams: &models.InfraEnvUpdateParams{
+							ImageType: models.ImageTypeMinimalIso,
+						}})
+					Expect(err).ToNot(HaveOccurred())
+					Expect(common.ImageTypeValue(updatedInfraEnv.Payload.Type)).To(Equal(models.ImageTypeMinimalIso))
+				})
+				It("Update s390x infra env minimal iso with cluster - fail", func() {
+					cluster, err := registerNewCluster("4.12", "s390x", models.ClusterHighAvailabilityModeFull, swag.Bool(true))
+					Expect(err).NotTo(HaveOccurred())
+
+					infraEnv, err := registerNewInfraEnv(cluster.Payload.ID, "4.12", models.ClusterCPUArchitectureS390x)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(common.ImageTypeValue(infraEnv.Payload.Type)).ToNot(Equal(models.ImageTypeMinimalIso))
+
+					_, err = user2BMClient.Installer.UpdateInfraEnv(ctx, &installer.UpdateInfraEnvParams{
+						InfraEnvID: *infraEnv.Payload.ID,
+						InfraEnvUpdateParams: &models.InfraEnvUpdateParams{
+							ImageType: models.ImageTypeMinimalIso,
+						}})
+					Expect(err).To(HaveOccurred())
+					err2 := err.(*installer.UpdateInfraEnvBadRequest)
+					ExpectWithOffset(1, *err2.Payload.Reason).To(ContainSubstring("cannot use Minimal ISO because it's not compatible with the s390x architecture on version 4.12"))
+				})
+			})
 		})
 
 		Context("Register cluster", func() {

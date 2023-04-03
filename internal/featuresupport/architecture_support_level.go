@@ -24,8 +24,8 @@ func getArchitectureSupportList(features map[models.ArchitectureSupportLevelID]S
 	featureSupportList := models.SupportLevels{}
 
 	for _, feature := range features {
-		featureID := feature.GetId()
-		featureSupportList[string(featureID)] = feature.GetSupportLevel(openshiftVersion)
+		featureID := feature.getId()
+		featureSupportList[string(featureID)] = feature.getSupportLevel(openshiftVersion)
 	}
 	return featureSupportList
 }
