@@ -43,7 +43,7 @@ require (
 	github.com/moby/moby v20.10.21+incompatible
 	github.com/nmstate/nmstate/rust/src/go/nmstate v0.0.0-20220811151154-801022633c42
 	github.com/onsi/ginkgo v1.16.5
-	github.com/onsi/gomega v1.20.1
+	github.com/onsi/gomega v1.23.0
 	github.com/openshift-online/ocm-sdk-go v0.1.205
 	github.com/openshift/api v0.0.0-20220824124051-d72820206113
 	github.com/openshift/assisted-image-service v0.0.0-20220506122314-2f689a1084b8
@@ -80,13 +80,13 @@ require (
 	gopkg.in/yaml.v2 v2.4.0
 	gorm.io/driver/postgres v1.3.5
 	gorm.io/gorm v1.24.5
-	k8s.io/api v0.25.4
+	k8s.io/api v0.26.3
 	k8s.io/apiextensions-apiserver v0.25.0
-	k8s.io/apimachinery v0.25.4
+	k8s.io/apimachinery v0.26.3
 	k8s.io/client-go v0.25.4
-	k8s.io/klog/v2 v2.70.1
+	k8s.io/klog/v2 v2.80.1
 	k8s.io/kube-aggregator v0.24.2
-	k8s.io/utils v0.0.0-20220728103510-ee6ede2d64ed
+	k8s.io/utils v0.0.0-20221107191617-1a15be271d1d
 	sigs.k8s.io/controller-runtime v0.13.1
 	sigs.k8s.io/yaml v1.3.0
 )
@@ -242,7 +242,7 @@ require (
 	howett.net/plist v0.0.0-20181124034731-591f970eefbb // indirect
 	k8s.io/apiserver v0.25.4 // indirect
 	k8s.io/component-base v0.25.4 // indirect
-	k8s.io/kube-openapi v0.0.0-20220803162953-67bda5d908f1 // indirect
+	k8s.io/kube-openapi v0.0.0-20221012153701-172d655c2280 // indirect
 	sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.0.33 // indirect
 	sigs.k8s.io/cluster-api-provider-aws v0.0.0-00010101000000-000000000000 // indirect
 	sigs.k8s.io/cluster-api-provider-azure v0.0.0-00010101000000-000000000000 // indirect
