@@ -38,6 +38,7 @@ func (a *Api) V2ListEvents(ctx context.Context, params events.V2ListEventsParams
 		InfraEnvID:   params.InfraEnvID,
 		Limit:        params.Limit,
 		Offset:       params.Offset,
+		Order:        params.Order,
 		Severities:   params.Severities,
 		Message:      params.Message,
 		DeletedHosts: params.DeletedHosts,

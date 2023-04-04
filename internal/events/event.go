@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -20,6 +21,7 @@ import (
 	"github.com/openshift/assisted-service/pkg/requestid"
 	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 var DefaultEventCategories = []string{
@@ -311,7 +313,7 @@ func countEventsBySeverity(db *gorm.DB, clusterID *strfmt.UUID) (*common.EventSe
 		return &common.EventSeverityCount{}, nil
 	}
 
-	rows, err = db.Table("events").Where("events.cluster_id = ?", clusterID.String()).Select("COUNT(events.severity), events.severity").Group("events.severity").Rows()
+	rows, err = db.Where("events.cluster_id = ?", clusterID.String()).Select("COUNT(events.severity), events.severity").Group("events.severity").Rows()
 	if err != nil {
 		return nil, err
 	}
@@ -408,37 +410,55 @@ func preparePaginationParams(limit, offset *int64) (*int64, *int64) {
 	return limit, offset
 }
 
-func (e Events) queryEvents(ctx context.Context, selectedCategories []string, clusterID *strfmt.UUID, hostIds []strfmt.UUID, infraEnvID *strfmt.UUID, limit, offset *int64, severity []string, message *string, deletedHosts, clusterLevel *bool) ([]*common.Event, *common.EventSeverityCount, error) {
-
-	tx := e.db.Where("category IN (?)", selectedCategories)
-
-	eventSeverityCount, err := countEventsBySeverity(tx.Session(&gorm.Session{}), clusterID)
-	if err != nil {
-		return nil, nil, err
+func isDescending(order *string) (*bool, error) {
+	if order == nil || *order == "ascending" {
+		return swag.Bool(false), nil
 	}
+	if *order == "descending" {
+		return swag.Bool(true), nil
+	}
+	return nil, errors.New("incompatible order parameter")
+}
+
+func (e Events) queryEvents(ctx context.Context, params *common.V2GetEventsParams) ([]*common.Event, *common.EventSeverityCount, error) {
+
+	tx := e.db.Where("category IN (?)", params.Categories)
 
 	events := []*common.Event{}
-
-	tx = tx.Order("event_time")
 
 	// add authorization check to query
 	if e.authz != nil {
 		tx = e.authz.OwnedBy(ctx, tx)
 	}
 
-	tx = e.prepareEventsTable(ctx, tx, clusterID, hostIds, infraEnvID, severity, message, deletedHosts)
+	tx = e.prepareEventsTable(ctx, tx, params.ClusterID, params.HostIds, params.InfraEnvID, params.Severities, params.Message, params.DeletedHosts)
 	if tx == nil {
 		return make([]*common.Event, 0), &common.EventSeverityCount{}, nil
 	}
 
-	tx = filterEvents(tx, clusterID, hostIds, infraEnvID, severity, message, deletedHosts, clusterLevel)
+	tx = filterEvents(tx, params.ClusterID, params.HostIds, params.InfraEnvID, params.Severities, params.Message, params.DeletedHosts, params.ClusterLevel)
 
-	limit, offset = preparePaginationParams(limit, offset)
-	if *limit == 0 {
+	eventSeverityCount, err := countEventsBySeverity(tx.Session(&gorm.Session{}), params.ClusterID)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	isDescending, err := isDescending(params.Order)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	tx.Order(clause.OrderByColumn{
+		Column: clause.Column{Name: "event_time"},
+		Desc:   *isDescending,
+	})
+
+	params.Limit, params.Offset = preparePaginationParams(params.Limit, params.Offset)
+	if *params.Limit == 0 {
 		return make([]*common.Event, 0), eventSeverityCount, nil
 	}
 
-	err = tx.Offset(int(*offset)).Limit(int(*limit)).Find(&events).Error
+	err = tx.Offset(int(*params.Offset)).Limit(int(*params.Limit)).Find(&events).Error
 	if err != nil {
 		return nil, nil, err
 	}
@@ -448,14 +468,10 @@ func (e Events) queryEvents(ctx context.Context, selectedCategories []string, cl
 
 func (e Events) V2GetEvents(ctx context.Context, params *common.V2GetEventsParams) (*common.V2GetEventsResponse, error) {
 	//initialize the selectedCategories either from the filter, if exists, or from the default values
-	selectedCategories := make([]string, 0)
-	if len(params.Categories) > 0 {
-		selectedCategories = params.Categories[:]
-	} else {
-		selectedCategories = append(selectedCategories, DefaultEventCategories...)
+	if len(params.Categories) == 0 {
+		params.Categories = append(params.Categories, DefaultEventCategories...)
 	}
-
-	events, eventSeverityCount, err := e.queryEvents(ctx, selectedCategories, params.ClusterID, params.HostIds, params.InfraEnvID, params.Limit, params.Offset, params.Severities, params.Message, params.DeletedHosts, params.ClusterLevel)
+	events, eventSeverityCount, err := e.queryEvents(ctx, params)
 	if err != nil {
 		return nil, err
 	}

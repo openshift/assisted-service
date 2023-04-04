@@ -26,6 +26,7 @@ type V2ListEventsURL struct {
 	Limit        *int64
 	Message      *string
 	Offset       *int64
+	Order        *string
 	Severities   []string
 
 	_basePath string
@@ -158,6 +159,14 @@ func (o *V2ListEventsURL) Build() (*url.URL, error) {
 	}
 	if offsetQ != "" {
 		qs.Set("offset", offsetQ)
+	}
+
+	var orderQ string
+	if o.Order != nil {
+		orderQ = *o.Order
+	}
+	if orderQ != "" {
+		qs.Set("order", orderQ)
 	}
 
 	var severitiesIR []string

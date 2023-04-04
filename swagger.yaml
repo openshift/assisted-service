@@ -3477,6 +3477,12 @@ paths:
           type: integer
           required: false
         - in: query
+          name: order
+          description: Order by event_time of events retrieved.
+          type: string
+          enum: [ascending, descending]
+          default: ascending
+        - in: query
           name: severities
           description: Retrieved events severities.
           type: array
