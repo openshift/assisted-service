@@ -338,6 +338,7 @@ func getDefaultClusterCreateParams() *models.ClusterCreateParams {
 		Platform: &models.Platform{
 			Type: common.PlatformTypePtr(models.PlatformTypeBaremetal),
 		},
+		CPUArchitecture:      models.ClusterCPUArchitectureX8664,
 		HighAvailabilityMode: swag.String(models.ClusterHighAvailabilityModeFull),
 	}
 }
@@ -375,6 +376,11 @@ func createClusterWithAvailability(db *gorm.DB, status string, highAvailabilityM
 			ID:                   &clusterID,
 			Status:               swag.String(status),
 			HighAvailabilityMode: &highAvailabilityMode,
+			OpenshiftVersion:     common.TestDefaultConfig.OpenShiftVersion,
+			CPUArchitecture:      common.DefaultCPUArchitecture,
+			Platform: &models.Platform{
+				Type: common.PlatformTypePtr(models.PlatformTypeBaremetal),
+			},
 		},
 	}
 	Expect(db.Create(c).Error).ToNot(HaveOccurred())
@@ -6730,9 +6736,9 @@ var _ = Describe("[V2ClusterUpdate] cluster", func() {
 					verifyApiErrorString(reply, http.StatusBadRequest, "cannot use Single Node OpenShift because it's not compatible with the ppc64le architecture on version 4.13 of OpenShift")
 				})
 
-				It("update ClusterManagedNetworking with ppc64le - incompatible", func() {
+				It("update ClusterManagedNetworking with s390x - incompatible", func() {
 					clusterID = strfmt.UUID(uuid.New().String())
-					createClusterWithInfraEnv(clusterID, models.ClusterCPUArchitecturePpc64le, "4.13", models.PlatformTypeBaremetal, false, models.ClusterHighAvailabilityModeFull)
+					createClusterWithInfraEnv(clusterID, models.ClusterCPUArchitectureS390x, "4.13", models.PlatformTypeBaremetal, false, models.ClusterHighAvailabilityModeFull)
 
 					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 						ClusterID: clusterID,
@@ -6740,7 +6746,7 @@ var _ = Describe("[V2ClusterUpdate] cluster", func() {
 							NetworkType: swag.String(models.ClusterNetworkTypeOVNKubernetes),
 						},
 					})
-					verifyApiErrorString(reply, http.StatusBadRequest, "cannot use Cluster Managed Networking because it's not compatible with the ppc64le architecture on version 4.13 of OpenShift")
+					verifyApiErrorString(reply, http.StatusBadRequest, "cannot use Cluster Managed Networking because it's not compatible with the s390x architecture on version 4.13 of OpenShift")
 				})
 
 				It("update ClusterManagedNetworking with arm64 - compatible", func() {
@@ -12469,16 +12475,16 @@ var _ = Describe("TestRegisterCluster", func() {
 			})
 			verifyApiError(reply, http.StatusBadRequest)
 		})
-		It("ClusterManagedNetworking isn't compatible with ppc64le", func() {
+		It("ClusterManagedNetworking isn't compatible with s390x", func() {
 
 			mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
 				eventstest.WithNameMatcher(eventgen.ClusterRegistrationFailedEventName),
-				eventstest.WithMessageContainsMatcher("Failed to register cluster. Error: Can't disable User Managed Networking on ppc64le architecture"),
+				eventstest.WithMessageContainsMatcher("Failed to register cluster. Error: Can't disable User Managed Networking on s390x architecture"),
 				eventstest.WithSeverityMatcher(models.EventSeverityError))).Times(1)
 
 			params := getDefaultClusterCreateParams()
 			params.OpenshiftVersion = swag.String("4.13")
-			params.CPUArchitecture = models.ClusterCPUArchitecturePpc64le
+			params.CPUArchitecture = models.ClusterCPUArchitectureS390x
 			params.Platform = nil
 			params.UserManagedNetworking = swag.Bool(false)
 
@@ -12487,16 +12493,16 @@ var _ = Describe("TestRegisterCluster", func() {
 			})
 			verifyApiError(reply, http.StatusBadRequest)
 		})
-		It("Baremetal platform isn't compatible with ppc64le", func() {
+		It("Baremetal platform isn't compatible with s390x", func() {
 
 			mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
 				eventstest.WithNameMatcher(eventgen.ClusterRegistrationFailedEventName),
-				eventstest.WithMessageContainsMatcher("Failed to register cluster. Error: Can't set baremetal platform on ppc64le architecture"),
+				eventstest.WithMessageContainsMatcher("Failed to register cluster. Error: Can't set baremetal platform on s390x architecture"),
 				eventstest.WithSeverityMatcher(models.EventSeverityError))).Times(1)
 
 			params := getDefaultClusterCreateParams()
 			params.OpenshiftVersion = swag.String("4.13")
-			params.CPUArchitecture = models.ClusterCPUArchitecturePpc64le
+			params.CPUArchitecture = models.ClusterCPUArchitectureS390x
 			params.Platform = &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeBaremetal)}
 
 			reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{

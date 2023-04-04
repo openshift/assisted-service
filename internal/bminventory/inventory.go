@@ -639,7 +639,7 @@ func (b *bareMetalInventory) RegisterClusterInternal(
 	}
 	cluster.MonitoredOperators = append(monitoredOperators, newOLMOperators...)
 
-	if err = featuresupport.ValidateIncompatibleFeatures(log, params.NewClusterParams.CPUArchitecture, *cluster, nil); err != nil {
+	if err = featuresupport.ValidateIncompatibleFeatures(log, params.NewClusterParams.CPUArchitecture, cluster, nil, nil); err != nil {
 		b.log.Error(err)
 		return nil, common.NewApiError(http.StatusBadRequest, err)
 	}
@@ -1892,22 +1892,6 @@ func getPlatformType(platform *models.Platform) string {
 	return ""
 }
 
-func (b *bareMetalInventory) listClusterArchitectures(ctx context.Context, cluster *common.Cluster) ([]string, error) {
-	var cpuArchitectures []string
-	infraEnvs, err := b.ListInfraEnvsInternal(ctx, cluster.ID, nil)
-	if err != nil {
-		return nil, err
-	}
-
-	for _, infraEnv := range infraEnvs {
-		if !funk.Contains(cpuArchitectures, infraEnv.CPUArchitecture) {
-			cpuArchitectures = append(cpuArchitectures, infraEnv.CPUArchitecture)
-		}
-	}
-
-	return cpuArchitectures, nil
-}
-
 func (b *bareMetalInventory) validateUpdateCluster(
 	ctx context.Context,
 	log logrus.FieldLogger,
@@ -1967,17 +1951,26 @@ func (b *bareMetalInventory) validateUpdateCluster(
 		return params, common.NewApiError(http.StatusBadRequest, err)
 	}
 
-	cpuArchitectures, err := b.listClusterArchitectures(ctx, cluster)
+	params, err = b.validateUpdateClusterIncompatibleFeatures(ctx, cluster, params)
 	if err != nil {
 		return params, err
 	}
-	for _, cpuArchitecture := range cpuArchitectures {
-		if err = featuresupport.ValidateIncompatibleFeatures(log, cpuArchitecture, *cluster, params.ClusterUpdateParams); err != nil {
+
+	return params, nil
+}
+
+func (b *bareMetalInventory) validateUpdateClusterIncompatibleFeatures(ctx context.Context, cluster *common.Cluster, params installer.V2UpdateClusterParams) (installer.V2UpdateClusterParams, error) {
+	infraEnvs, err := b.ListInfraEnvsInternal(ctx, cluster.ID, nil)
+	if err != nil {
+		return params, err
+	}
+
+	for _, infraEnv := range infraEnvs {
+		if err = featuresupport.ValidateIncompatibleFeatures(b.log, infraEnv.CPUArchitecture, cluster, infraEnv, params.ClusterUpdateParams); err != nil {
 			b.log.Error(err)
 			return params, common.NewApiError(http.StatusBadRequest, err)
 		}
 	}
-
 	return params, nil
 }
 
@@ -4469,7 +4462,7 @@ func (b *bareMetalInventory) handlerClusterInfoOnRegisterInfraEnv(
 	log.Infof("Handling cluster %s information on RegisterInfraEnv", clusterId)
 	if clusterId != nil {
 		infraEnv.ClusterID = *clusterId
-		if err := featuresupport.ValidateIncompatibleFeatures(log, infraEnv.CPUArchitecture, *cluster, nil); err != nil {
+		if err := featuresupport.ValidateIncompatibleFeatures(log, infraEnv.CPUArchitecture, cluster, &infraEnv.InfraEnv, nil); err != nil {
 			b.log.Error(err)
 			return common.NewApiError(http.StatusBadRequest, err)
 		}
@@ -4929,6 +4922,25 @@ func (b *bareMetalInventory) UpdateInfraEnvInternal(ctx context.Context, params 
 		return nil, common.NewApiError(http.StatusBadRequest, err)
 	}
 
+	var cluster *common.Cluster
+	clusterId := infraEnv.ClusterID
+	if clusterId != "" {
+		cluster, err = b.GetClusterInternal(ctx, installer.V2GetClusterParams{ClusterID: clusterId})
+		if err != nil {
+			// We don't want to fail here if cluster is not found. It's not responsability of this place
+			// to verify that, so if there is a real issue with non-existing cluster it will be detected
+			// and raised by someone else.
+			cluster = nil
+		}
+	}
+	if err = validateArchitectureAndVersion(b.versionsHandler, cluster, infraEnv.CPUArchitecture, infraEnv.OpenshiftVersion); err != nil {
+		return nil, err
+	}
+	if err = featuresupport.ValidateIncompatibleFeatures(log, infraEnv.CPUArchitecture, cluster, &infraEnv.InfraEnv, params.InfraEnvUpdateParams); err != nil {
+		b.log.Error(err)
+		return nil, common.NewApiError(http.StatusBadRequest, err)
+	}
+
 	err = b.updateInfraEnvData(ctx, infraEnv, params, internalIgnitionConfig, tx, log)
 	if err != nil {
 		log.WithError(err).Error("updateInfraEnvData")
@@ -4947,21 +4959,6 @@ func (b *bareMetalInventory) UpdateInfraEnvInternal(ctx context.Context, params 
 		if err != nil {
 			log.WithError(err).Warning("failed to notify infraenv update event")
 		}
-	}
-
-	var cluster *common.Cluster
-	clusterId := infraEnv.ClusterID
-	if clusterId != "" {
-		cluster, err = common.GetClusterFromDB(b.db, clusterId, common.SkipEagerLoading)
-		if err != nil {
-			// We don't want to fail here if cluster is not found. It's not responsability of this place
-			// to verify that, so if there is a real issue with non-existing cluster it will be detected
-			// and raised by someone else.
-			cluster = nil
-		}
-	}
-	if err = validateArchitectureAndVersion(b.versionsHandler, cluster, infraEnv.CPUArchitecture, infraEnv.OpenshiftVersion); err != nil {
-		return nil, err
 	}
 
 	if err = b.GenerateInfraEnvISOInternal(ctx, infraEnv); err != nil {

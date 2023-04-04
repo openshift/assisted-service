@@ -7423,7 +7423,8 @@ func init() {
         "VSPHERE_INTEGRATION",
         "DUAL_STACK_VIPS",
         "CLUSTER_MANAGED_NETWORKING",
-        "USER_MANAGED_NETWORKING"
+        "USER_MANAGED_NETWORKING",
+        "MINIMAL_ISO"
       ]
     },
     "feature-support-levels": {
@@ -17706,7 +17707,8 @@ func init() {
         "VSPHERE_INTEGRATION",
         "DUAL_STACK_VIPS",
         "CLUSTER_MANAGED_NETWORKING",
-        "USER_MANAGED_NETWORKING"
+        "USER_MANAGED_NETWORKING",
+        "MINIMAL_ISO"
       ]
     },
     "feature-support-levels": {
