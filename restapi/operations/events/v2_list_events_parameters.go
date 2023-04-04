@@ -18,11 +18,18 @@ import (
 )
 
 // NewV2ListEventsParams creates a new V2ListEventsParams object
-//
-// There are no default values defined in the spec.
+// with the default values initialized.
 func NewV2ListEventsParams() V2ListEventsParams {
 
-	return V2ListEventsParams{}
+	var (
+		// initialize parameters with default values
+
+		orderDefault = string("ascending")
+	)
+
+	return V2ListEventsParams{
+		Order: &orderDefault,
+	}
 }
 
 // V2ListEventsParams contains all the bound params for the v2 list events operation
@@ -74,6 +81,11 @@ type V2ListEventsParams struct {
 	  In: query
 	*/
 	Offset *int64
+	/*Order by event_time of events retrieved.
+	  In: query
+	  Default: "ascending"
+	*/
+	Order *string
 	/*Retrieved events severities.
 	  In: query
 	*/
@@ -138,6 +150,11 @@ func (o *V2ListEventsParams) BindRequest(r *http.Request, route *middleware.Matc
 
 	qOffset, qhkOffset, _ := qs.GetOK("offset")
 	if err := o.bindOffset(qOffset, qhkOffset, route.Formats); err != nil {
+		res = append(res, err)
+	}
+
+	qOrder, qhkOrder, _ := qs.GetOK("order")
+	if err := o.bindOrder(qOrder, qhkOrder, route.Formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -430,6 +447,39 @@ func (o *V2ListEventsParams) bindOffset(rawData []string, hasKey bool, formats s
 		return errors.InvalidType("offset", "query", "int64", raw)
 	}
 	o.Offset = &value
+
+	return nil
+}
+
+// bindOrder binds and validates parameter Order from query.
+func (o *V2ListEventsParams) bindOrder(rawData []string, hasKey bool, formats strfmt.Registry) error {
+	var raw string
+	if len(rawData) > 0 {
+		raw = rawData[len(rawData)-1]
+	}
+
+	// Required: false
+	// AllowEmptyValue: false
+
+	if raw == "" { // empty values pass all other validations
+		// Default values have been previously initialized by NewV2ListEventsParams()
+		return nil
+	}
+	o.Order = &raw
+
+	if err := o.validateOrder(formats); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// validateOrder carries on validations for parameter Order
+func (o *V2ListEventsParams) validateOrder(formats strfmt.Registry) error {
+
+	if err := validate.EnumCase("order", "query", *o.Order, []interface{}{"ascending", "descending"}, true); err != nil {
+		return err
+	}
 
 	return nil
 }

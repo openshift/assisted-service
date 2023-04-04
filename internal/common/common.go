@@ -488,44 +488,52 @@ func ApplyYamlPatch(src []byte, ops []byte) ([]byte, error) {
 type EventSeverityCount map[string]int64
 
 type V2GetEventsParams struct {
-	/*A comma-separated list of event categories.
-	  In: query
+	/*
+	   A comma-separated list of event categories.
 	*/
 	Categories []string
-	/*The cluster to return events for.
-	  In: query
+	/*
+	   The cluster to return events for.
+	   Format: uuid
 	*/
 	ClusterID *strfmt.UUID
-	/*Cluster level events flag.
-	  In: query
+	/*
+	   Cluster level events flag.
 	*/
 	ClusterLevel *bool
-	/*Deleted hosts flag.
-	  In: query
+	/*
+	   Deleted hosts flag.
 	*/
 	DeletedHosts *bool
-	/*Hosts in the specified cluster to return events for.
-	  In: query
+	/*
+	   Hosts in the specified cluster to return events for.
 	*/
 	HostIds []strfmt.UUID
-	/*The infra-env to return events for.
-	  In: query
+	/*
+	   The infra-env to return events for.
+	   Format: uuid
 	*/
 	InfraEnvID *strfmt.UUID
-	/*The maximum number of records to retrieve.
-	  In: query
+	/*
+	   The maximum number of records to retrieve.
 	*/
 	Limit *int64
-	/*Retrieved events message pattern.
-	  In: query
+	/*
+	   Retrieved events message pattern.
 	*/
 	Message *string
-	/*Number of records to skip before starting to return the records.
-	  In: query
+	/*
+	   Number of records to skip before starting to return the records.
 	*/
 	Offset *int64
-	/*Retrieved events severities.
-	  In: query
+
+	/*
+	   Order by event_time of events retrieved.
+	   Default: "ascending"
+	*/
+	Order *string
+	/*
+	   Retrieved events severities.
 	*/
 	Severities []string
 }

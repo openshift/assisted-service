@@ -2904,6 +2904,17 @@ func init() {
             "in": "query"
           },
           {
+            "enum": [
+              "ascending",
+              "descending"
+            ],
+            "type": "string",
+            "default": "ascending",
+            "description": "Order by event_time of events retrieved.",
+            "name": "order",
+            "in": "query"
+          },
+          {
             "type": "array",
             "items": {
               "enum": [
@@ -13088,6 +13099,17 @@ func init() {
             "type": "integer",
             "description": "Number of records to skip before starting to return the records.",
             "name": "offset",
+            "in": "query"
+          },
+          {
+            "enum": [
+              "ascending",
+              "descending"
+            ],
+            "type": "string",
+            "default": "ascending",
+            "description": "Order by event_time of events retrieved.",
+            "name": "order",
             "in": "query"
           },
           {
