@@ -35,7 +35,7 @@ type InfraEnv struct {
 	ClusterID strfmt.UUID `json:"cluster_id,omitempty" gorm:"index"`
 
 	// The CPU architecture of the image (x86_64/arm64/etc).
-	// Enum: [x86_64 aarch64 arm64 ppc64le s390x multi]
+	// Enum: [x86_64 aarch64 arm64 ppc64le s390x]
 	CPUArchitecture string `json:"cpu_architecture,omitempty"`
 
 	// created at
@@ -189,7 +189,7 @@ var infraEnvTypeCPUArchitecturePropEnum []interface{}
 
 func init() {
 	var res []string
-	if err := json.Unmarshal([]byte(`["x86_64","aarch64","arm64","ppc64le","s390x","multi"]`), &res); err != nil {
+	if err := json.Unmarshal([]byte(`["x86_64","aarch64","arm64","ppc64le","s390x"]`), &res); err != nil {
 		panic(err)
 	}
 	for _, v := range res {
@@ -213,9 +213,6 @@ const (
 
 	// InfraEnvCPUArchitectureS390x captures enum value "s390x"
 	InfraEnvCPUArchitectureS390x string = "s390x"
-
-	// InfraEnvCPUArchitectureMulti captures enum value "multi"
-	InfraEnvCPUArchitectureMulti string = "multi"
 )
 
 // prop value enum
