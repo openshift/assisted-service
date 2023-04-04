@@ -948,6 +948,7 @@ func (r *ClusterDeploymentsReconciler) updateNetworkParams(clusterDeployment *hi
 
 	if userManagedNetwork := isUserManagedNetwork(clusterInstall); userManagedNetwork != swag.BoolValue(cluster.UserManagedNetworking) {
 		params.UserManagedNetworking = swag.Bool(userManagedNetwork)
+		update = true
 	}
 	return swag.Bool(update), nil
 }

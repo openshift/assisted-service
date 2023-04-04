@@ -1553,6 +1553,8 @@ var _ = Describe("cluster reconcile", func() {
 					Status:           swag.String(models.ClusterStatusAddingHosts),
 					APIVip:           backEndCluster.APIVip,
 					APIVips:          []*models.APIVip{{ClusterID: *backEndCluster.ID, IP: models.IP(backEndCluster.APIVip)}},
+					IngressVip:       backEndCluster.IngressVip,
+					IngressVips:      []*models.IngressVip{{ClusterID: *backEndCluster.ID, IP: models.IP(backEndCluster.IngressVip)}},
 					BaseDNSDomain:    backEndCluster.BaseDNSDomain,
 					Kind:             swag.String(models.ClusterKindAddHostsCluster),
 					APIVipDNSName:    swag.String(fmt.Sprintf("api.%s.%s", backEndCluster.Name, backEndCluster.BaseDNSDomain)),
@@ -1560,11 +1562,13 @@ var _ = Describe("cluster reconcile", func() {
 				PullSecret: testPullSecretVal,
 			}
 			mockInstallerInternal.EXPECT().TransformClusterToDay2Internal(gomock.Any(), gomock.Any()).Times(1).Return(day2backEndCluster, nil)
+			cluster = newClusterDeployment("test-cluster-sno", testNamespace, defaultClusterSpec)
+			cluster.Spec.BaseDomain = "hive.example.com"
+			Expect(c.Create(ctx, cluster)).ShouldNot(HaveOccurred())
+			aci = newAgentClusterInstall("test-cluster-aci-sno", testNamespace, defaultAgentClusterInstallSpec, cluster)
 			aci.Spec.ProvisionRequirements.WorkerAgents = 0
 			aci.Spec.ProvisionRequirements.ControlPlaneAgents = 1
-			cluster.Spec.BaseDomain = "hive.example.com"
-			Expect(c.Update(ctx, cluster)).Should(BeNil())
-			Expect(c.Update(ctx, aci)).Should(BeNil())
+			Expect(c.Create(ctx, aci)).ShouldNot(HaveOccurred())
 			request := newClusterDeploymentRequest(cluster)
 			result, err := cr.Reconcile(ctx, request)
 			Expect(err).To(BeNil())

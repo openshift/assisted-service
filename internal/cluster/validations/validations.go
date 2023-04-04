@@ -505,6 +505,16 @@ func ValidateClusterUpdateVIPAddresses(ipV6Supported bool, cluster *common.Clust
 
 	targetConfiguration.UserManagedNetworking = swag.Bool(false)
 	if params.UserManagedNetworking != nil {
+		if swag.BoolValue(params.UserManagedNetworking) {
+			err = ValidateVIPsWereNotSetUserManagedNetworking(cluster.APIVip, cluster.IngressVip,
+				cluster.APIVips, cluster.IngressVips, swag.BoolValue(cluster.VipDhcpAllocation))
+			if err != nil {
+				// reformat error to match order of actions
+				errParts := strings.Split(err.Error(), " cannot be set with ")
+				err = errors.Errorf("%s cannot be set with %s", errParts[1], errParts[0])
+				return common.NewApiError(http.StatusBadRequest, err)
+			}
+		}
 		targetConfiguration.UserManagedNetworking = params.UserManagedNetworking
 	}
 	targetConfiguration.VipDhcpAllocation = swag.Bool(false)
@@ -752,14 +762,14 @@ func validateVIPAddresses(ipV6Supported bool, targetConfiguration common.Cluster
 
 func ValidateVIPsWereNotSetUserManagedNetworking(apiVip string, ingressVip string, apiVips []*models.APIVip, ingressVips []*models.IngressVip, vipDhcpAllocation bool) error {
 	if vipDhcpAllocation {
-		err := errors.Errorf("VIP DHCP Allocation cannot be enabled with User Managed Networking")
+		err := errors.Errorf("VIP DHCP Allocation cannot be set with User Managed Networking")
 		return err
 	}
 	if apiVip != "" {
 		err := errors.New("API VIP cannot be set with User Managed Networking")
 		return err
 	}
-	if apiVips != nil {
+	if len(apiVips) > 0 {
 		err := errors.New("API VIPs cannot be set with User Managed Networking")
 		return err
 	}
@@ -767,7 +777,7 @@ func ValidateVIPsWereNotSetUserManagedNetworking(apiVip string, ingressVip strin
 		err := errors.New("Ingress VIP cannot be set with User Managed Networking")
 		return err
 	}
-	if ingressVips != nil {
+	if len(ingressVips) > 0 {
 		err := errors.New("Ingress VIPs cannot be set with User Managed Networking")
 		return err
 	}

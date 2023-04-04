@@ -4611,6 +4611,50 @@ spec:
 		checkAgentClusterInstallCondition(ctx, installkey, hiveext.ClusterFailedCondition, hiveext.ClusterNotFailedReason)
 	})
 
+	It("Fail Create ACI with UserManagedNetworking true and cluster VIPs", func() {
+		deployClusterDeploymentCRD(ctx, kubeClient, clusterDeploymentSpec)
+		aciSpec = getDefaultAgentClusterInstallSpec(clusterDeploymentSpec.ClusterName)
+		aciSpec.Networking.UserManagedNetworking = swag.Bool(true)
+		deployAgentClusterInstallCRD(ctx, kubeClient, aciSpec, clusterDeploymentSpec.ClusterInstallRef.Name)
+
+		installkey := types.NamespacedName{
+			Namespace: Options.Namespace,
+			Name:      clusterDeploymentSpec.ClusterInstallRef.Name,
+		}
+		Eventually(func() bool {
+			aci := getAgentClusterInstallCRD(ctx, kubeClient, installkey)
+			return aci.ObjectMeta.OwnerReferences != nil
+		}, "30s", "10s").Should(Equal(true))
+
+		checkAgentClusterInstallCondition(ctx, installkey, hiveext.ClusterSpecSyncedCondition, hiveext.ClusterInputErrorReason)
+		condition := controllers.FindStatusCondition(getAgentClusterInstallCRD(ctx, kubeClient, installkey).Status.Conditions,
+			hiveext.ClusterSpecSyncedCondition)
+		Expect(condition.Message).To(ContainSubstring("API VIP cannot be set with User Managed Networking"))
+	})
+
+	It("Fail Update ACI with UserManagedNetworking true when VIPs were already set", func() {
+		deployClusterDeploymentCRD(ctx, kubeClient, clusterDeploymentSpec)
+		aciSpec = getDefaultAgentClusterInstallSpec(clusterDeploymentSpec.ClusterName)
+		aciSpec.Networking.UserManagedNetworking = swag.Bool(false)
+		deployAgentClusterInstallCRD(ctx, kubeClient, aciSpec, clusterDeploymentSpec.ClusterInstallRef.Name)
+
+		installkey := types.NamespacedName{
+			Namespace: Options.Namespace,
+			Name:      clusterDeploymentSpec.ClusterInstallRef.Name,
+		}
+		Eventually(func() bool {
+			aci := getAgentClusterInstallCRD(ctx, kubeClient, installkey)
+			return aci.ObjectMeta.OwnerReferences != nil
+		}, "30s", "10s").Should(Equal(true))
+
+		aci := getAgentClusterInstallCRD(ctx, kubeClient, installkey)
+		aci.Spec.Networking.UserManagedNetworking = swag.Bool(true)
+		updateAgentClusterInstallCRD(ctx, kubeClient, installkey, &aci.Spec)
+		checkAgentClusterInstallCondition(ctx, installkey, hiveext.ClusterSpecSyncedCondition, hiveext.ClusterInputErrorReason)
+		condition := controllers.FindStatusCondition(getAgentClusterInstallCRD(ctx, kubeClient, installkey).Status.Conditions,
+			hiveext.ClusterSpecSyncedCondition)
+		Expect(condition.Message).To(ContainSubstring("User Managed Networking cannot be set with API VIP"))
+	})
 })
 
 var _ = Describe("bmac reconcile flow", func() {
