@@ -148,6 +148,7 @@ func (r reconcileComplete) Stop(ctx context.Context) bool {
 
 type reconcileRequeue struct {
 	requeueAfter time.Duration
+	dirty        bool
 }
 
 func (r reconcileRequeue) Result() (result reconcile.Result, err error) {
@@ -159,7 +160,7 @@ func (r reconcileRequeue) Result() (result reconcile.Result, err error) {
 }
 
 func (r reconcileRequeue) Dirty() bool {
-	return false
+	return r.dirty
 }
 
 func (r reconcileRequeue) Stop(ctx context.Context) bool {
@@ -169,7 +170,8 @@ func (r reconcileRequeue) Stop(ctx context.Context) bool {
 // reconcileError is a result indicating that an error occurred while attempting
 // to advance the current reconcile, and that reconciliation should be retried.
 type reconcileError struct {
-	err error
+	err   error
+	dirty bool
 }
 
 func (r reconcileError) Result() (result reconcile.Result, err error) {
@@ -178,7 +180,7 @@ func (r reconcileError) Result() (result reconcile.Result, err error) {
 }
 
 func (r reconcileError) Dirty() bool {
-	return false
+	return r.dirty
 }
 
 func (r reconcileError) Stop(ctx context.Context) bool {
@@ -190,7 +192,7 @@ func (r *BMACReconciler) handleReconcileResult(ctx context.Context, log logrus.F
 		log.Debugf("Updating dirty object %v", obj)
 		err := r.Client.Update(ctx, obj)
 		if err != nil {
-			return reconcileError{err}
+			return reconcileError{err: err}
 		}
 	}
 	if result.Stop(ctx) {
@@ -219,7 +221,7 @@ func (r *BMACReconciler) Reconcile(origCtx context.Context, req ctrl.Request) (c
 
 	if err := r.Get(ctx, req.NamespacedName, bmh); err != nil {
 		if !k8serrors.IsNotFound(err) {
-			return reconcileError{err}.Result()
+			return reconcileError{err: err}.Result()
 		}
 		return reconcileComplete{}.Result()
 	}
@@ -299,7 +301,7 @@ func (r *BMACReconciler) Reconcile(origCtx context.Context, req ctrl.Request) (c
 		err := r.Client.Update(ctx, bmh)
 		if err != nil {
 			log.WithError(err).Errorf("Error adding BMH detached annotation after creating spoke BMH")
-			return reconcileError{err}.Result()
+			return reconcileError{err: err}.Result()
 		}
 	}
 
@@ -645,7 +647,7 @@ func (r *BMACReconciler) reconcileAgentInventory(log logrus.FieldLogger, bmh *bm
 
 	bytes, err := json.Marshal(hardwareDetails)
 	if err != nil {
-		return reconcileError{err}
+		return reconcileError{err: err}
 	}
 
 	setAnnotation(&bmh.ObjectMeta, BMH_HARDWARE_DETAILS_ANNOTATION, string(bytes))
@@ -792,7 +794,7 @@ func (r *BMACReconciler) reconcileBMH(ctx context.Context, log logrus.FieldLogge
 	infraEnv, err := r.findInfraEnvForBMH(ctx, log, bmh)
 
 	if err != nil {
-		return reconcileError{err}
+		return reconcileError{err: err}
 	}
 
 	// Stop `Reconcile` if BMH does not have an InfraEnv.
@@ -884,7 +886,7 @@ func (r *BMACReconciler) reconcileSpokeBMH(ctx context.Context, log logrus.Field
 	}
 	cd, installed, err := r.getClusterDeploymentAndCheckIfInstalled(ctx, log, agent)
 	if err != nil {
-		return reconcileError{err}
+		return reconcileError{err: err}
 	}
 	if !installed {
 		return reconcileComplete{}
@@ -900,7 +902,7 @@ func (r *BMACReconciler) reconcileSpokeBMH(ctx context.Context, log logrus.Field
 		// In case ACI reference doesn't exist or ACI not found do not reconcile again since such a change in these will trigger BMH reconciliation
 		// In all other cases propagate the error
 		if propagateError {
-			return reconcileError{err}
+			return reconcileError{err: err}
 		}
 		return reconcileComplete{}
 	}
@@ -911,16 +913,16 @@ func (r *BMACReconciler) reconcileSpokeBMH(ctx context.Context, log logrus.Field
 
 	secret, err := getSecret(ctx, r.Client, r.APIReader, key)
 	if err != nil {
-		return reconcileError{err}
+		return reconcileError{err: err}
 	}
 	if err = ensureSecretIsLabelled(ctx, r.Client, secret, key); err != nil {
-		return reconcileError{err}
+		return reconcileError{err: err}
 	}
 
 	spokeClient, err := r.getSpokeClient(secret)
 	if err != nil {
 		log.WithError(err).Errorf("failed to create spoke kubeclient")
-		return reconcileError{err}
+		return reconcileError{err: err}
 	}
 
 	checksum, url, err, stopReconcileLoop := r.getChecksumAndURL(ctx, spokeClient)
@@ -930,7 +932,7 @@ func (r *BMACReconciler) reconcileSpokeBMH(ctx context.Context, log logrus.Field
 			log.Info("Stopping reconcileSpokeBMH")
 			return reconcileComplete{dirty: false, stop: stopReconcileLoop}
 		}
-		return reconcileError{err}
+		return reconcileError{err: err}
 	}
 
 	machineNSName := types.NamespacedName{
@@ -941,13 +943,13 @@ func (r *BMACReconciler) reconcileSpokeBMH(ctx context.Context, log logrus.Field
 	_, err = r.ensureSpokeBMH(ctx, log, spokeClient, bmh, machineNSName, agent)
 	if err != nil {
 		log.WithError(err).Errorf("failed to create or update spoke BareMetalHost")
-		return reconcileError{err}
+		return reconcileError{err: err}
 	}
 
 	_, err = r.ensureSpokeMachine(ctx, log, spokeClient, bmh, cd, machineNSName, checksum, url)
 	if err != nil {
 		log.WithError(err).Errorf("failed to create or update spoke Machine")
-		return reconcileError{err}
+		return reconcileError{err: err}
 	}
 
 	return r.ensureBMHDetached(log, bmh, agent)
@@ -1184,7 +1186,7 @@ func (r *BMACReconciler) ensureMCSCert(ctx context.Context, log logrus.FieldLogg
 	}
 	cd, installed, err := r.getClusterDeploymentAndCheckIfInstalled(ctx, log, agent)
 	if err != nil {
-		return reconcileError{err}
+		return reconcileError{err: err}
 	}
 	if !installed {
 		return reconcileComplete{}
@@ -1198,22 +1200,22 @@ func (r *BMACReconciler) ensureMCSCert(ctx context.Context, log logrus.FieldLogg
 	secret, err := getSecret(ctx, r.Client, r.APIReader, key)
 	if err != nil {
 		log.WithError(err).Errorf("failed to get secret %s", key)
-		return reconcileError{err}
+		return reconcileError{err: err}
 	}
 	if err = ensureSecretIsLabelled(ctx, r.Client, secret, key); err != nil {
-		return reconcileError{err}
+		return reconcileError{err: err}
 	}
 
 	spokeClient, err := r.getSpokeClient(secret)
 	if err != nil {
 		log.WithError(err).Errorf("failed to create spoke kubeclient")
-		return reconcileError{err}
+		return reconcileError{err: err}
 	}
 
 	MCSCert, ignitionWithMCSCert, err := r.createIgnitionWithMCSCert(ctx, spokeClient)
 	if err != nil {
 		log.WithError(err).Errorf("failed to create ignition with mcs cert")
-		return reconcileError{err}
+		return reconcileError{err: err}
 	}
 	bmhAnnotations := bmh.ObjectMeta.GetAnnotations()
 	userIgnition, ok := bmhAnnotations[BMH_AGENT_IGNITION_CONFIG_OVERRIDES]
@@ -1230,7 +1232,7 @@ func (r *BMACReconciler) ensureMCSCert(ctx context.Context, log logrus.FieldLogg
 		res, err := ignition.MergeIgnitionConfig([]byte(ignitionWithMCSCert), []byte(userIgnition))
 		if err != nil {
 			log.WithError(err).Errorf("Error while merging the ignitions")
-			return reconcileError{err}
+			return reconcileError{err: err}
 		}
 		setAnnotation(&bmh.ObjectMeta, BMH_AGENT_IGNITION_CONFIG_OVERRIDES, res)
 	} else {
