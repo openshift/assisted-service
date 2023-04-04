@@ -2020,12 +2020,13 @@ var _ = Describe("cluster", func() {
 
 		It("update_cluster_while_installing", func() {
 			clusterID = strfmt.UUID(uuid.New().String())
-			err := db.Create(&common.Cluster{Cluster: models.Cluster{
+			cluster := &common.Cluster{Cluster: models.Cluster{
 				ID: &clusterID,
-			}}).Error
+			}}
+			err := db.Create(cluster).Error
 			Expect(err).ShouldNot(HaveOccurred())
 
-			mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(errors.Errorf("wrong state")).Times(1)
+			mockClusterApi.EXPECT().VerifyClusterUpdatability(createClusterIdMatcher(cluster)).Return(errors.Errorf("wrong state")).Times(1)
 
 			apiVip := "8.8.8.8"
 			ingressVip := "1.1.1.1"
@@ -2061,16 +2062,17 @@ var _ = Describe("cluster", func() {
 				pullSecret := "{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}" // #nosec
 				pullSecretWithNewline := pullSecret + " \n"
 				clusterID = strfmt.UUID(uuid.New().String())
-				err := db.Create(&common.Cluster{Cluster: models.Cluster{
+				cluster := &common.Cluster{Cluster: models.Cluster{
 					ID: &clusterID,
 					Platform: &models.Platform{
 						Type: common.PlatformTypePtr(models.PlatformTypeBaremetal),
 					},
 					OpenshiftVersion: "4.12",
 					CPUArchitecture:  common.DefaultCPUArchitecture,
-				}}).Error
+				}}
+				err := db.Create(cluster).Error
 				Expect(err).ShouldNot(HaveOccurred())
-				mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(1)
+				mockClusterApi.EXPECT().VerifyClusterUpdatability(createClusterIdMatcher(cluster)).Return(nil).Times(1)
 				mockSuccess()
 				reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 					ClusterID: clusterID,
@@ -3033,8 +3035,7 @@ var _ = Describe("cluster", func() {
 						for _, operator := range test.expectedOperators {
 							operator.ClusterID = clusterID
 						}
-
-						err := db.Create(&common.Cluster{Cluster: models.Cluster{
+						cluster := &common.Cluster{Cluster: models.Cluster{
 							ID:                 &clusterID,
 							MonitoredOperators: test.originalOperators,
 							OpenshiftVersion:   common.TestDefaultConfig.OpenShiftVersion,
@@ -3042,11 +3043,12 @@ var _ = Describe("cluster", func() {
 								Type: common.PlatformTypePtr(models.PlatformTypeBaremetal),
 							},
 							CPUArchitecture: common.DefaultCPUArchitecture,
-						}}).Error
+						}}
+						err := db.Create(cluster).Error
 						Expect(err).ShouldNot(HaveOccurred())
 
 						// Update
-						mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(1)
+						mockClusterApi.EXPECT().VerifyClusterUpdatability(createClusterIdMatcher(cluster)).Return(nil).Times(1)
 						mockSuccess()
 
 						for _, updateOperator := range test.updateOperators {
@@ -3089,7 +3091,7 @@ var _ = Describe("cluster", func() {
 							Properties:     "",
 						},
 					}
-					err := db.Create(&common.Cluster{Cluster: models.Cluster{
+					cluster := &common.Cluster{Cluster: models.Cluster{
 						ID:                    &clusterID,
 						MonitoredOperators:    originalOperators,
 						OpenshiftVersion:      "4.12",
@@ -3097,11 +3099,12 @@ var _ = Describe("cluster", func() {
 						UserManagedNetworking: swag.Bool(true),
 						Platform:              &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeNone)},
 						CPUArchitecture:       common.DefaultCPUArchitecture,
-					}}).Error
+					}}
+					err := db.Create(cluster).Error
 					Expect(err).ShouldNot(HaveOccurred())
 
 					// Update
-					mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(1)
+					mockClusterApi.EXPECT().VerifyClusterUpdatability(createClusterIdMatcher(cluster)).Return(nil).Times(1)
 					mockSuccess()
 					mockLVMGetOperatorByName("lvm")
 					mockOperatorManager.EXPECT().ResolveDependencies(gomock.Any(), gomock.Any()).
@@ -3132,7 +3135,7 @@ var _ = Describe("cluster", func() {
 							Properties:     "",
 						},
 					}
-					err := db.Create(&common.Cluster{Cluster: models.Cluster{
+					cluster := &common.Cluster{Cluster: models.Cluster{
 						ID:                 &clusterID,
 						MonitoredOperators: originalOperators,
 						OpenshiftVersion:   common.TestDefaultConfig.OpenShiftVersion,
@@ -3140,11 +3143,12 @@ var _ = Describe("cluster", func() {
 							Type: common.PlatformTypePtr(models.PlatformTypeBaremetal),
 						},
 						CPUArchitecture: common.DefaultCPUArchitecture,
-					}}).Error
+					}}
+					err := db.Create(cluster).Error
 					Expect(err).ShouldNot(HaveOccurred())
 
 					// Update
-					mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(1)
+					mockClusterApi.EXPECT().VerifyClusterUpdatability(createClusterIdMatcher(cluster)).Return(nil).Times(1)
 					mockCNVGetOperatorByName("cnv")
 					mockLVMGetOperatorByName("lvm")
 					mockOperatorManager.EXPECT().ResolveDependencies(gomock.Any(), gomock.Any()).
@@ -3169,6 +3173,8 @@ var _ = Describe("cluster", func() {
 
 			Context("UpdateCluster - Multiple-VIPs Support ", func() {
 
+				var cluster *common.Cluster
+
 				BeforeEach(func() {
 					Expect(envconfig.Process("test", &cfg)).ShouldNot(HaveOccurred())
 					db, dbName = common.PrepareTestDB()
@@ -3179,14 +3185,15 @@ var _ = Describe("cluster", func() {
 					clusterID = strfmt.UUID(uuid.New().String())
 					infraEnvID = strfmt.UUID(uuid.New().String())
 
-					err := db.Create(&common.Cluster{Cluster: models.Cluster{
+					cluster = &common.Cluster{Cluster: models.Cluster{
 						ID:                    &clusterID,
 						OpenshiftVersion:      "4.12.0",
 						Platform:              &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeBaremetal)},
 						UserManagedNetworking: swag.Bool(false),
 						CPUArchitecture:       common.X86CPUArchitecture,
 						MachineNetworks:       []*models.MachineNetwork{{Cidr: "1.3.4.0/24"}},
-					}}).Error
+					}}
+					err := db.Create(cluster).Error
 					Expect(err).ShouldNot(HaveOccurred())
 					addHost(masterHostId1, models.HostRoleMaster, "known", models.HostKindHost, infraEnvID, clusterID, getInventoryStr("hostname0", "bootMode", "1.2.3.4/24", "10.11.50.90/16"), db)
 					addHost(masterHostId2, models.HostRoleMaster, "known", models.HostKindHost, infraEnvID, clusterID, getInventoryStr("hostname1", "bootMode", "1.2.3.5/24", "10.11.50.80/16"), db)
@@ -3202,7 +3209,7 @@ var _ = Describe("cluster", func() {
 
 					It("API VIP and Ingress VIP populated in APIVips and ingressVips", func() {
 						mockDetectAndStoreCollidingIPsForCluster(mockClusterApi, 1)
-						mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(1)
+						mockClusterApi.EXPECT().VerifyClusterUpdatability(createClusterIdMatcher(cluster)).Return(nil).Times(1)
 						mockClusterApi.EXPECT().SetConnectivityMajorityGroupsForCluster(gomock.Any(), gomock.Any()).Return(nil).Times(1)
 						mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
 						mockHostApi.EXPECT().RefreshInventory(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(3)
@@ -3219,7 +3226,7 @@ var _ = Describe("cluster", func() {
 							},
 						})
 						Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2UpdateClusterCreated()))
-						cluster := &common.Cluster{Cluster: *reply.(*installer.V2UpdateClusterCreated).Payload}
+						cluster = &common.Cluster{Cluster: *reply.(*installer.V2UpdateClusterCreated).Payload}
 						Expect(cluster.APIVip).To(Equal(apiVip))
 						Expect(network.GetApiVipById(cluster, 0)).To(Equal(apiVip))
 						Expect(cluster.IngressVip).To(Equal(ingressVip))
@@ -3228,7 +3235,7 @@ var _ = Describe("cluster", func() {
 
 					It("API VIP match APIVips first element", func() {
 						mockDetectAndStoreCollidingIPsForCluster(mockClusterApi, 1)
-						mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(1)
+						mockClusterApi.EXPECT().VerifyClusterUpdatability(createClusterIdMatcher(cluster)).Return(nil).Times(1)
 						mockClusterApi.EXPECT().SetConnectivityMajorityGroupsForCluster(gomock.Any(), gomock.Any()).Return(nil).Times(1)
 						mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
 						mockHostApi.EXPECT().RefreshInventory(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(3)
@@ -3250,7 +3257,7 @@ var _ = Describe("cluster", func() {
 							},
 						})
 						Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2UpdateClusterCreated()))
-						cluster := &common.Cluster{Cluster: *reply.(*installer.V2UpdateClusterCreated).Payload}
+						cluster = &common.Cluster{Cluster: *reply.(*installer.V2UpdateClusterCreated).Payload}
 						Expect(cluster.APIVip).To(Equal(apiVip))
 						Expect(cluster.APIVips).To(Equal(apiVips))
 						Expect(cluster.IngressVip).To(Equal(ingressVip))
@@ -3259,7 +3266,7 @@ var _ = Describe("cluster", func() {
 
 					It("Ingress VIP match ingressVips first element", func() {
 						mockDetectAndStoreCollidingIPsForCluster(mockClusterApi, 1)
-						mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(1)
+						mockClusterApi.EXPECT().VerifyClusterUpdatability(createClusterIdMatcher(cluster)).Return(nil).Times(1)
 						mockClusterApi.EXPECT().SetConnectivityMajorityGroupsForCluster(gomock.Any(), gomock.Any()).Return(nil).Times(1)
 						mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
 						mockHostApi.EXPECT().RefreshInventory(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(3)
@@ -3395,7 +3402,7 @@ var _ = Describe("cluster", func() {
 
 				It("Two APIVips and Two ingressVips - IPv4 first and IPv6 second - positive", func() {
 					mockDetectAndStoreCollidingIPsForCluster(mockClusterApi, 1)
-					mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(1)
+					mockClusterApi.EXPECT().VerifyClusterUpdatability(createClusterIdMatcher(cluster)).Return(nil).Times(1)
 					mockClusterApi.EXPECT().SetConnectivityMajorityGroupsForCluster(gomock.Any(), gomock.Any()).Return(nil).Times(1)
 					mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
 					mockHostApi.EXPECT().RefreshInventory(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(3)
@@ -3637,18 +3644,19 @@ var _ = Describe("cluster", func() {
 
 			It("Resolve OLM dependencies", func() {
 				clusterID = strfmt.UUID(uuid.New().String())
-				err := db.Create(&common.Cluster{Cluster: models.Cluster{
+				cluster := &common.Cluster{Cluster: models.Cluster{
 					ID:               &clusterID,
 					OpenshiftVersion: common.TestDefaultConfig.OpenShiftVersion,
 					Platform: &models.Platform{
 						Type: common.PlatformTypePtr(models.PlatformTypeBaremetal),
 					},
 					CPUArchitecture: common.DefaultCPUArchitecture,
-				}}).Error
+				}}
+				err := db.Create(cluster).Error
 				Expect(err).ShouldNot(HaveOccurred())
 
 				// Update
-				mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(1)
+				mockClusterApi.EXPECT().VerifyClusterUpdatability(createClusterIdMatcher(cluster)).Return(nil).Times(1)
 				mockSuccess()
 
 				newOperatorName := testOLMOperators[1].Name
@@ -3700,19 +3708,20 @@ var _ = Describe("cluster", func() {
 
 			It("OLM invalid name", func() {
 				clusterID = strfmt.UUID(uuid.New().String())
-				err := db.Create(&common.Cluster{Cluster: models.Cluster{
+				cluster := &common.Cluster{Cluster: models.Cluster{
 					ID:               &clusterID,
 					OpenshiftVersion: common.TestDefaultConfig.OpenShiftVersion,
 					Platform: &models.Platform{
 						Type: common.PlatformTypePtr(models.PlatformTypeBaremetal),
 					},
 					CPUArchitecture: common.DefaultCPUArchitecture,
-				}}).Error
+				}}
+				err := db.Create(cluster).Error
 				Expect(err).ShouldNot(HaveOccurred())
 
 				newOperatorName := "invalid-name"
 
-				mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(1)
+				mockClusterApi.EXPECT().VerifyClusterUpdatability(createClusterIdMatcher(cluster)).Return(nil).Times(1)
 				mockOperatorManager.EXPECT().GetOperatorByName(newOperatorName).Return(nil, errors.Errorf("error")).Times(1)
 				reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 					ClusterID: clusterID,
@@ -3728,14 +3737,15 @@ var _ = Describe("cluster", func() {
 
 		It("ssh key with newline", func() {
 			clusterID = strfmt.UUID(uuid.New().String())
-			err := db.Create(&common.Cluster{Cluster: models.Cluster{
+			cluster := &common.Cluster{Cluster: models.Cluster{
 				ID:               &clusterID,
 				OpenshiftVersion: "4.12",
 				CPUArchitecture:  common.DefaultCPUArchitecture,
 				Platform: &models.Platform{
 					Type: common.PlatformTypePtr(models.PlatformTypeBaremetal),
 				},
-			}}).Error
+			}}
+			err := db.Create(cluster).Error
 			Expect(err).ShouldNot(HaveOccurred())
 			sshKey := "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQDi8KHZYGyPQjECHwytquI3rmpgoUn6M+lkeOD2nEKvYElLE5mPIeqF0izJIl56u" +
 				"ar2wda+3z107M9QkatE+dP4S9/Ltrlm+/ktAf4O6UoxNLUzv/TGHasb9g3Xkt8JTkohVzVK36622Sd8kLzEc61v1AonLWIADtpwq6/GvH" +
@@ -3745,7 +3755,7 @@ var _ = Describe("cluster", func() {
 				"IfNyDiU2JR50r1jCxj5H76QxIuM= root@ocp-edge34.lab.eng.tlv2.redhat.com"
 			sshKeyWithNewLine := sshKey + " \n"
 
-			mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(1)
+			mockClusterApi.EXPECT().VerifyClusterUpdatability(createClusterIdMatcher(cluster)).Return(nil).Times(1)
 			mockSuccess()
 			reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 				ClusterID: clusterID,
@@ -3754,7 +3764,6 @@ var _ = Describe("cluster", func() {
 				},
 			})
 			Expect(reply).To(BeAssignableToTypeOf(installer.NewV2UpdateClusterCreated()))
-			var cluster common.Cluster
 			err = db.First(&cluster, "id = ?", clusterID).Error
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(cluster.SSHPublicKey).Should(Equal(sshKey))
@@ -3773,16 +3782,17 @@ var _ = Describe("cluster", func() {
 
 		It("Update SchedulableMasters", func() {
 			clusterID = strfmt.UUID(uuid.New().String())
-			err := db.Create(&common.Cluster{Cluster: models.Cluster{
+			cluster := &common.Cluster{Cluster: models.Cluster{
 				ID:               &clusterID,
 				OpenshiftVersion: "4.12",
 				CPUArchitecture:  common.DefaultCPUArchitecture,
 				Platform: &models.Platform{
 					Type: common.PlatformTypePtr(models.PlatformTypeBaremetal),
 				},
-			}}).Error
+			}}
+			err := db.Create(cluster).Error
 			Expect(err).ShouldNot(HaveOccurred())
-			mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(1)
+			mockClusterApi.EXPECT().VerifyClusterUpdatability(createClusterIdMatcher(cluster)).Return(nil).Times(1)
 			mockSuccess()
 			reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 				ClusterID: clusterID,
@@ -3799,7 +3809,7 @@ var _ = Describe("cluster", func() {
 
 			BeforeEach(func() {
 				clusterID = strfmt.UUID(uuid.New().String())
-				err := db.Create(&common.Cluster{
+				cluster := &common.Cluster{
 					Cluster: models.Cluster{
 						ID:               &clusterID,
 						OpenshiftVersion: "4.8.0-fc.4",
@@ -3810,9 +3820,10 @@ var _ = Describe("cluster", func() {
 							Type: common.PlatformTypePtr(models.PlatformTypeBaremetal),
 						},
 						CPUArchitecture: common.DefaultCPUArchitecture,
-					}}).Error
+					}}
+				err := db.Create(cluster).Error
 				Expect(err).ShouldNot(HaveOccurred())
-				mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(1)
+				mockClusterApi.EXPECT().VerifyClusterUpdatability(createClusterIdMatcher(cluster)).Return(nil).Times(1)
 				mockClusterUpdateSuccess(1, 0)
 			})
 
@@ -3857,7 +3868,7 @@ var _ = Describe("cluster", func() {
 		Context("Day2 api vip dnsname/ip", func() {
 			BeforeEach(func() {
 				clusterID = strfmt.UUID(uuid.New().String())
-				err := db.Create(&common.Cluster{Cluster: models.Cluster{
+				cluster := &common.Cluster{Cluster: models.Cluster{
 					ID:   &clusterID,
 					Kind: swag.String(models.ClusterKindAddHostsCluster),
 					Platform: &models.Platform{
@@ -3865,9 +3876,10 @@ var _ = Describe("cluster", func() {
 					},
 					OpenshiftVersion: "4.12",
 					CPUArchitecture:  common.DefaultCPUArchitecture,
-				}}).Error
+				}}
+				err := db.Create(cluster).Error
 				Expect(err).ShouldNot(HaveOccurred())
-				mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(1)
+				mockClusterApi.EXPECT().VerifyClusterUpdatability(createClusterIdMatcher(cluster)).Return(nil).Times(1)
 			})
 			It("update api vip dnsname success", func() {
 				mockSuccess()
@@ -3932,16 +3944,17 @@ var _ = Describe("cluster", func() {
 		Context("Update Cluster Tags", func() {
 			BeforeEach(func() {
 				clusterID = strfmt.UUID(uuid.New().String())
-				err := db.Create(&common.Cluster{Cluster: models.Cluster{
+				cluster := &common.Cluster{Cluster: models.Cluster{
 					ID:   &clusterID,
 					Kind: swag.String(models.ClusterKindAddHostsCluster),
 					Platform: &models.Platform{
 						Type: common.PlatformTypePtr(models.PlatformTypeBaremetal),
 					},
 					CPUArchitecture: common.DefaultCPUArchitecture,
-				}}).Error
+				}}
+				err := db.Create(cluster).Error
 				Expect(err).ShouldNot(HaveOccurred())
-				mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(1)
+				mockClusterApi.EXPECT().VerifyClusterUpdatability(createClusterIdMatcher(cluster)).Return(nil).Times(1)
 			})
 
 			It("Update tags success", func() {
@@ -3970,17 +3983,19 @@ var _ = Describe("cluster", func() {
 		})
 
 		Context("Update Network", func() {
+			var cluster *common.Cluster
 			BeforeEach(func() {
 				clusterID = strfmt.UUID(uuid.New().String())
 				infraEnvID = strfmt.UUID(uuid.New().String())
-				err := db.Create(&common.Cluster{Cluster: models.Cluster{
+				cluster = &common.Cluster{Cluster: models.Cluster{
 					ID:                    &clusterID,
 					OpenshiftVersion:      common.TestDefaultConfig.OpenShiftVersion,
 					Platform:              &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeBaremetal)},
 					UserManagedNetworking: swag.Bool(false),
 					CPUArchitecture:       common.X86CPUArchitecture,
 					HighAvailabilityMode:  swag.String(models.ClusterCreateParamsHighAvailabilityModeFull),
-				}}).Error
+				}}
+				err := db.Create(cluster).Error
 				Expect(err).ShouldNot(HaveOccurred())
 				addHost(masterHostId1, models.HostRoleMaster, "known", models.HostKindHost, infraEnvID, clusterID, getInventoryStr("hostname0", "bootMode", "1.2.3.4/24", "10.11.50.90/16"), db)
 				addHost(masterHostId2, models.HostRoleMaster, "known", models.HostKindHost, infraEnvID, clusterID, getInventoryStr("hostname1", "bootMode", "1.2.3.5/24", "10.11.50.80/16"), db)
@@ -3995,11 +4010,11 @@ var _ = Describe("cluster", func() {
 			}
 
 			mockClusterUpdatability := func(times int) {
-				mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(times)
+				mockClusterApi.EXPECT().VerifyClusterUpdatability(createClusterIdMatcher(cluster)).Return(nil).Times(times)
 			}
 
 			mockClusterUpdatabilityAnyTimes := func() {
-				mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).AnyTimes()
+				mockClusterApi.EXPECT().VerifyClusterUpdatability(createClusterIdMatcher(cluster)).Return(nil).AnyTimes()
 			}
 
 			Context("Single node", func() {
@@ -6028,18 +6043,20 @@ var _ = Describe("[V2ClusterUpdate] cluster", func() {
 		})
 
 		Context("Single node", func() {
+			var cluster *common.Cluster
 			BeforeEach(func() {
 				clusterID = strfmt.UUID(uuid.New().String())
-				err := db.Create(&common.Cluster{Cluster: models.Cluster{
+				cluster = &common.Cluster{Cluster: models.Cluster{
 					ID:       &clusterID,
 					Platform: &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeBaremetal)},
-				}}).Error
+				}}
+				err := db.Create(cluster).Error
 				Expect(err).ShouldNot(HaveOccurred())
 				addHost(masterHostId1, models.HostRoleMaster, "known", models.HostKindHost, clusterID, getInventoryStr("hostname0", "bootMode", "1.2.3.4/24", "10.11.50.90/16"), db)
 				err = db.Model(&models.Host{ID: &masterHostId3, ClusterID: &clusterID}).UpdateColumn("free_addresses",
 					makeFreeNetworksAddressesStr(makeFreeAddresses("10.11.0.0/16", "10.11.12.15", "10.11.12.16"))).Error
 				Expect(err).ToNot(HaveOccurred())
-				mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(1)
+				mockClusterApi.EXPECT().VerifyClusterUpdatability(createClusterIdMatcher(cluster)).Return(nil).Times(1)
 			})
 
 			mockSuccess := func(times int) {
@@ -6121,9 +6138,10 @@ var _ = Describe("[V2ClusterUpdate] cluster", func() {
 		})
 		Context("Platform", func() {
 			Context("Update Platform while Cluster platform is baremetal", func() {
+				var cluster *common.Cluster
 				BeforeEach(func() {
 					clusterID = strfmt.UUID(uuid.New().String())
-					err := db.Create(&common.Cluster{Cluster: models.Cluster{
+					cluster = &common.Cluster{Cluster: models.Cluster{
 						ID:                    &clusterID,
 						HighAvailabilityMode:  swag.String(models.ClusterHighAvailabilityModeFull),
 						UserManagedNetworking: swag.Bool(false),
@@ -6132,9 +6150,10 @@ var _ = Describe("[V2ClusterUpdate] cluster", func() {
 						Platform: &models.Platform{
 							Type: common.PlatformTypePtr(models.PlatformTypeBaremetal),
 						},
-					}}).Error
+					}}
+					err := db.Create(cluster).Error
 					Expect(err).ShouldNot(HaveOccurred())
-					mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(1)
+					mockClusterApi.EXPECT().VerifyClusterUpdatability(createClusterIdMatcher(cluster)).Return(nil).Times(1)
 				})
 
 				It("Update UMN=false - success", func() {
@@ -6262,7 +6281,7 @@ var _ = Describe("[V2ClusterUpdate] cluster", func() {
 					actual := reply.(*installer.V2UpdateClusterCreated).Payload
 					Expect(*actual.Platform.Type).To(Equal(models.PlatformTypeVsphere))
 
-					mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(1)
+					mockClusterApi.EXPECT().VerifyClusterUpdatability(createClusterIdMatcher(cluster)).Return(nil).Times(1)
 
 					reply2 := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 						ClusterID: clusterID,
@@ -6293,7 +6312,7 @@ var _ = Describe("[V2ClusterUpdate] cluster", func() {
 					actual := reply.(*installer.V2UpdateClusterCreated).Payload
 					Expect(*actual.Platform.Type).To(Equal(models.PlatformTypeNone))
 
-					mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(1)
+					mockClusterApi.EXPECT().VerifyClusterUpdatability(createClusterIdMatcher(cluster)).Return(nil).Times(1)
 					mockProviderRegistry.EXPECT().SetPlatformUsages(models.PlatformTypeVsphere, gomock.Any(), mockUsage)
 
 					reply2 := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
@@ -6327,7 +6346,7 @@ var _ = Describe("[V2ClusterUpdate] cluster", func() {
 					actual := reply.(*installer.V2UpdateClusterCreated).Payload
 					Expect(*actual.Platform.Type).To(Equal(models.PlatformTypeVsphere))
 
-					mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(1)
+					mockClusterApi.EXPECT().VerifyClusterUpdatability(createClusterIdMatcher(cluster)).Return(nil).Times(1)
 					mockProviderRegistry.EXPECT().SetPlatformUsages(models.PlatformTypeNone, gomock.Any(), mockUsage)
 
 					reply2 := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
@@ -6357,7 +6376,7 @@ var _ = Describe("[V2ClusterUpdate] cluster", func() {
 					actual := reply.(*installer.V2UpdateClusterCreated).Payload
 					Expect(*actual.Platform.Type).To(Equal(models.PlatformTypeVsphere))
 
-					mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(1)
+					mockClusterApi.EXPECT().VerifyClusterUpdatability(createClusterIdMatcher(cluster)).Return(nil).Times(1)
 					mockProviderRegistry.EXPECT().SetPlatformUsages(models.PlatformTypeBaremetal, gomock.Any(), mockUsage)
 
 					reply2 := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
@@ -6388,7 +6407,7 @@ var _ = Describe("[V2ClusterUpdate] cluster", func() {
 					actual := reply.(*installer.V2UpdateClusterCreated).Payload
 					Expect(*actual.Platform.Type).To(Equal(models.PlatformTypeVsphere))
 
-					mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(1)
+					mockClusterApi.EXPECT().VerifyClusterUpdatability(createClusterIdMatcher(cluster)).Return(nil).Times(1)
 					reply2 := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 						ClusterID: clusterID,
 						ClusterUpdateParams: &models.V2ClusterUpdateParams{
@@ -6459,7 +6478,7 @@ var _ = Describe("[V2ClusterUpdate] cluster", func() {
 					actual := reply.(*installer.V2UpdateClusterCreated).Payload
 					Expect(*actual.Platform.Type).To(Equal(models.PlatformTypeVsphere))
 
-					mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(1)
+					mockClusterApi.EXPECT().VerifyClusterUpdatability(createClusterIdMatcher(cluster)).Return(nil).Times(1)
 					reply2 := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 						ClusterID: clusterID,
 						ClusterUpdateParams: &models.V2ClusterUpdateParams{
@@ -6483,7 +6502,7 @@ var _ = Describe("[V2ClusterUpdate] cluster", func() {
 					actual := reply.(*installer.V2UpdateClusterCreated).Payload
 					Expect(*actual.Platform.Type).To(Equal(models.PlatformTypeNone))
 
-					mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(1)
+					mockClusterApi.EXPECT().VerifyClusterUpdatability(createClusterIdMatcher(cluster)).Return(nil).Times(1)
 					mockProviderRegistry.EXPECT().SetPlatformUsages(models.PlatformTypeVsphere, gomock.Any(), mockUsage)
 
 					reply2 := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
@@ -6615,9 +6634,10 @@ var _ = Describe("[V2ClusterUpdate] cluster", func() {
 			})
 
 			Context("Update Platform while Cluster platform is none", func() {
+				var cluster *common.Cluster
 				BeforeEach(func() {
 					clusterID = strfmt.UUID(uuid.New().String())
-					err := db.Create(&common.Cluster{Cluster: models.Cluster{
+					cluster = &common.Cluster{Cluster: models.Cluster{
 						ID:                    &clusterID,
 						HighAvailabilityMode:  swag.String(models.ClusterHighAvailabilityModeFull),
 						UserManagedNetworking: swag.Bool(true),
@@ -6625,9 +6645,10 @@ var _ = Describe("[V2ClusterUpdate] cluster", func() {
 							Type: common.PlatformTypePtr(models.PlatformTypeNone),
 						},
 						CPUArchitecture: common.X86CPUArchitecture,
-					}}).Error
+					}}
+					err := db.Create(cluster).Error
 					Expect(err).ShouldNot(HaveOccurred())
-					mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(1)
+					mockClusterApi.EXPECT().VerifyClusterUpdatability(createClusterIdMatcher(cluster)).Return(nil).Times(1)
 				})
 
 				It("Update UMN=true - success", func() {
@@ -6753,7 +6774,7 @@ var _ = Describe("[V2ClusterUpdate] cluster", func() {
 			Context("OCP Version 4.13", func() {
 
 				createCluster := func(clusterId strfmt.UUID, cpuArchitecture, openshiftVersion string, platformType models.PlatformType, umn bool, highAvailabilityMode string) {
-					err := db.Create(&common.Cluster{Cluster: models.Cluster{
+					cluster := &common.Cluster{Cluster: models.Cluster{
 						ID:                    &clusterId,
 						HighAvailabilityMode:  swag.String(highAvailabilityMode),
 						UserManagedNetworking: swag.Bool(umn),
@@ -6762,9 +6783,10 @@ var _ = Describe("[V2ClusterUpdate] cluster", func() {
 							Type: common.PlatformTypePtr(platformType),
 						},
 						CPUArchitecture: cpuArchitecture,
-					}}).Error
+					}}
+					err := db.Create(cluster).Error
 					Expect(err).ShouldNot(HaveOccurred())
-					mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(1)
+					mockClusterApi.EXPECT().VerifyClusterUpdatability(createClusterIdMatcher(cluster)).Return(nil).Times(1)
 				}
 
 				createInfraEnv := func(clusterId strfmt.UUID, cpuArchitecture string) {
@@ -13243,17 +13265,18 @@ var _ = Describe("TestRegisterCluster", func() {
 
 		Context("V2 Update cluster", func() {
 			var clusterID strfmt.UUID
-
+			var cluster *common.Cluster
 			BeforeEach(func() {
 				clusterID = strfmt.UUID(uuid.New().String())
-				err := db.Create(&common.Cluster{Cluster: models.Cluster{
+				cluster = &common.Cluster{Cluster: models.Cluster{
 					ID:                    &clusterID,
 					Kind:                  swag.String(models.ClusterKindAddHostsCluster),
 					Status:                swag.String(models.ClusterStatusInsufficient),
 					Platform:              &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeBaremetal)},
 					UserManagedNetworking: swag.Bool(false),
 					CPUArchitecture:       models.ClusterCPUArchitectureX8664,
-				}}).Error
+				}}
+				err := db.Create(cluster).Error
 				Expect(err).ShouldNot(HaveOccurred())
 				bm = createInventory(db, cfg)
 			})
@@ -13262,7 +13285,7 @@ var _ = Describe("TestRegisterCluster", func() {
 				mockSetConnectivityMajorityGroupsForCluster(mockClusterApi)
 				mockUsageReports()
 				mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
-				mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(1)
+				mockClusterApi.EXPECT().VerifyClusterUpdatability(createClusterIdMatcher(cluster)).Return(nil).Times(1)
 				mockDetectAndStoreCollidingIPsForCluster(mockClusterApi, 1)
 				apiVip := "1.2.3.5"
 				ingressVip := "1.2.3.6"
@@ -13388,9 +13411,11 @@ var _ = Describe("TestRegisterCluster", func() {
 				mockClusterUpdateSuccess(1, 0)
 			}
 
+			var cluster *common.Cluster
+
 			BeforeEach(func() {
 				clusterID = strfmt.UUID(uuid.New().String())
-				err := db.Create(&common.Cluster{Cluster: models.Cluster{
+				cluster = &common.Cluster{Cluster: models.Cluster{
 					ID:     &clusterID,
 					Kind:   swag.String(models.ClusterKindAddHostsCluster),
 					Status: swag.String(models.ClusterStatusInsufficient),
@@ -13398,13 +13423,14 @@ var _ = Describe("TestRegisterCluster", func() {
 						Type: common.PlatformTypePtr(models.PlatformTypeBaremetal),
 					},
 					CPUArchitecture: common.DefaultCPUArchitecture,
-				}}).Error
+				}}
+				err := db.Create(cluster).Error
 				Expect(err).ShouldNot(HaveOccurred())
 				bm = createInventory(db, cfg)
 			})
 
 			It("Update cluster disk encryption configuration enable on all", func() {
-				mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(1)
+				mockClusterApi.EXPECT().VerifyClusterUpdatability(createClusterIdMatcher(cluster)).Return(nil).Times(1)
 				reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 					ClusterID: clusterID,
 					ClusterUpdateParams: &models.V2ClusterUpdateParams{
@@ -13418,7 +13444,7 @@ var _ = Describe("TestRegisterCluster", func() {
 			})
 
 			It("Update cluster disk encryption configuration enable on masters", func() {
-				mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(1)
+				mockClusterApi.EXPECT().VerifyClusterUpdatability(createClusterIdMatcher(cluster)).Return(nil).Times(1)
 				reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 					ClusterID: clusterID,
 					ClusterUpdateParams: &models.V2ClusterUpdateParams{
@@ -13432,7 +13458,7 @@ var _ = Describe("TestRegisterCluster", func() {
 			})
 
 			It("Update cluster disk encryption configuration enable on workers", func() {
-				mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(1)
+				mockClusterApi.EXPECT().VerifyClusterUpdatability(createClusterIdMatcher(cluster)).Return(nil).Times(1)
 				reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 					ClusterID: clusterID,
 					ClusterUpdateParams: &models.V2ClusterUpdateParams{
@@ -13446,7 +13472,7 @@ var _ = Describe("TestRegisterCluster", func() {
 			})
 
 			It("Update cluster disk encryption configuration enable on none", func() {
-				mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(1)
+				mockClusterApi.EXPECT().VerifyClusterUpdatability(createClusterIdMatcher(cluster)).Return(nil).Times(1)
 				mockSuccess()
 				mockUsageReports()
 				reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
