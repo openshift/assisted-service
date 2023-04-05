@@ -3,22 +3,17 @@ package spoke_k8s_client
 import (
 	"context"
 	"fmt"
-	"io"
 
-	"github.com/go-openapi/strfmt"
 	bmh_v1alpha1 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
 	authzv1 "github.com/openshift/api/authorization/v1"
 	configv1 "github.com/openshift/api/config/v1"
 	routev1 "github.com/openshift/api/route/v1"
 	hiveext "github.com/openshift/assisted-service/api/hiveextension/v1beta1"
 	aiv1beta1 "github.com/openshift/assisted-service/api/v1beta1"
-	"github.com/openshift/assisted-service/internal/constants"
-	"github.com/openshift/assisted-service/pkg/s3wrapper"
 	metal3iov1alpha1 "github.com/openshift/cluster-baremetal-operator/api/v1alpha1"
 	hivev1 "github.com/openshift/hive/apis/hive/v1"
 	machinev1beta1 "github.com/openshift/machine-api-operator/pkg/apis/machine/v1beta1"
 	mcfgv1 "github.com/openshift/machine-config-operator/pkg/apis/machineconfiguration.openshift.io/v1"
-	"github.com/pkg/errors"
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	"github.com/sirupsen/logrus"
 	certificatesv1 "k8s.io/api/certificates/v1"
@@ -28,23 +23,13 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
-	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/scheme"
 	authorizationv1interfaces "k8s.io/client-go/kubernetes/typed/authorization/v1"
 	cerv1 "k8s.io/client-go/kubernetes/typed/certificates/v1"
 	typedcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
-	"k8s.io/client-go/rest"
-	"k8s.io/client-go/tools/clientcmd"
 	apiregv1 "k8s.io/kube-aggregator/pkg/apis/apiregistration/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
-
-//go:generate mockgen --build_flags=--mod=mod -package=spoke_k8s_client -destination=mock_spoke_k8s_client_factory.go . SpokeK8sClientFactory
-type SpokeK8sClientFactory interface {
-	CreateFromSecret(secret *corev1.Secret) (SpokeK8sClient, error)
-	CreateFromRawKubeconfig(kubeconfig []byte) (SpokeK8sClient, error)
-	CreateFromStorageKubeconfig(ctx context.Context, clusterId *strfmt.UUID, objectHandler s3wrapper.API) (SpokeK8sClient, error)
-}
 
 //go:generate mockgen --build_flags=--mod=mod -package=spoke_k8s_client -destination=mock_spoke_k8s_client.go . SpokeK8sClient
 type SpokeK8sClient interface {
@@ -63,97 +48,6 @@ type spokeK8sClient struct {
 	sarClient   authorizationv1interfaces.SelfSubjectAccessReviewInterface
 	nodesClient typedcorev1.NodeInterface
 	log         logrus.FieldLogger
-}
-
-type spokeK8sClientFactory struct {
-	log logrus.FieldLogger
-}
-
-func NewSpokeK8sClientFactory(log logrus.FieldLogger) SpokeK8sClientFactory {
-	return &spokeK8sClientFactory{
-		log: log,
-	}
-}
-
-func (cf *spokeK8sClientFactory) CreateFromSecret(secret *corev1.Secret) (SpokeK8sClient, error) {
-	clientConfig, err := cf.getRestConfigFromSecret(secret)
-	if err != nil {
-		cf.log.WithError(err).Warnf("Getting client from kubeconfig cluster")
-		return nil, err
-	}
-	return cf.createFromClientConfig(clientConfig)
-}
-
-func (cf *spokeK8sClientFactory) CreateFromRawKubeconfig(kubeconfig []byte) (SpokeK8sClient, error) {
-	clientConfig, err := cf.getRestConfigFromKubeConfig(kubeconfig)
-	if err != nil {
-		cf.log.WithError(err).Warnf("Getting client from kubeconfig cluster")
-		return nil, err
-	}
-	return cf.createFromClientConfig(clientConfig)
-}
-
-func (cf *spokeK8sClientFactory) CreateFromStorageKubeconfig(ctx context.Context, clusterId *strfmt.UUID, objectHandler s3wrapper.API) (SpokeK8sClient, error) {
-	kubeConfigReader, contentLength, err := objectHandler.Download(ctx, fmt.Sprintf("%s/%s", clusterId, constants.Kubeconfig))
-	if err != nil {
-		return nil, fmt.Errorf("could not load kubeconfig from internal storage with cluster id %s and filename %s: %w", clusterId, constants.Kubeconfig, err)
-	}
-
-	kubeconfig := make([]byte, contentLength)
-	bytesRead, err := io.ReadAtLeast(kubeConfigReader, kubeconfig, int(contentLength))
-	if err != nil {
-		return nil, fmt.Errorf("could not read spoke cluster kubeconfig from internal storage with cluster id %s and filename %s: %w", clusterId, constants.Kubeconfig, err)
-	}
-	if bytesRead > int(contentLength) {
-		return nil, fmt.Errorf("too many bytes read when reading spoke cluster kubeconfig from internal storage with cluster id %s and filename %s", clusterId, constants.Kubeconfig)
-	}
-	return cf.CreateFromRawKubeconfig(kubeconfig)
-}
-
-func (cf *spokeK8sClientFactory) getRestConfigFromSecret(secret *corev1.Secret) (*rest.Config, error) {
-	if secret.Data == nil {
-		return nil, errors.Errorf("Secret %s/%s  does not contain any data", secret.Namespace, secret.Name)
-	}
-	kubeconfigData, ok := secret.Data["kubeconfig"]
-	if !ok || len(kubeconfigData) == 0 {
-		return nil, errors.Errorf("Secret data for %s/%s  does not contain kubeconfig", secret.Namespace, secret.Name)
-	}
-	return cf.getRestConfigFromKubeConfig(kubeconfigData)
-}
-
-func (cf *spokeK8sClientFactory) getRestConfigFromKubeConfig(kubeconfig []byte) (*rest.Config, error) {
-	clientConfig, err := clientcmd.NewClientConfigFromBytes(kubeconfig)
-	if err != nil {
-		return nil, errors.Wrapf(err, "failed to get clientconfig from kubeconfig data in secret")
-	}
-	restConfig, err := clientConfig.ClientConfig()
-	if err != nil {
-		return nil, errors.Wrapf(err, "failed to get restconfig for kube client")
-	}
-
-	return restConfig, nil
-}
-
-func (cf *spokeK8sClientFactory) createFromClientConfig(clientConfig *rest.Config) (SpokeK8sClient, error) {
-	config, err := kubernetes.NewForConfig(clientConfig)
-	if err != nil {
-		cf.log.WithError(err).Warnf("Getting kuberenetes config for cluster")
-		return nil, err
-	}
-	schemes := GetKubeClientSchemes()
-	targetClient, err := client.New(clientConfig, client.Options{Scheme: schemes})
-	if err != nil {
-		cf.log.WithError(err).Warnf("failed to get spoke kube client")
-		return nil, err
-	}
-	data := spokeK8sClient{
-		Client:      targetClient,
-		csrClient:   config.CertificatesV1().CertificateSigningRequests(),
-		sarClient:   config.AuthorizationV1().SelfSubjectAccessReviews(),
-		nodesClient: config.CoreV1().Nodes(),
-		log:         cf.log,
-	}
-	return &data, nil
 }
 
 func (c *spokeK8sClient) ListCsrs(ctx context.Context) (*certificatesv1.CertificateSigningRequestList, error) {
