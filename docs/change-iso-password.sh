@@ -15,7 +15,7 @@ fi
 DISCOVERY_ISO_HOST_PATH="$1"
 DISCOVERY_ISO_HOST_DIR=$(dirname "$DISCOVERY_ISO_HOST_PATH")
 function COREOS_INSTALLER() {
-	podman run -v "$DISCOVERY_ISO_HOST_DIR":/data --rm quay.io/coreos/coreos-installer:release "$@"
+	podman run -v "$DISCOVERY_ISO_HOST_DIR":/data:Z --rm quay.io/coreos/coreos-installer:release "$@"
 }
 
 ISO_NAME=$(basename "$DISCOVERY_ISO_HOST_PATH" .iso)
