@@ -25,7 +25,9 @@ package constants
 //    matching host's mac addresses with those in mac_interface.ini.
 // 2. Replace logical interface name in nmconnection files with the interface name as set on the host
 // 3. Rename nmconnection files to start with the interface name (instead of the logical interface name)
-// 4. Copy the nmconnection files to /NetworkManager/system-connections/
+// 4. Copy the nmconnection files to the target directory. That will be
+//    '/etc/NetworkManager/system-connections' when the script is part of the full ISO and
+//    '/etc/coreos-firstboot-network' when the script is part of the minimal ISO.
 const PreNetworkConfigScript = `#!/bin/bash
 
 # The directory that contains nmconnection files of all nodes
@@ -52,7 +54,7 @@ declare -A logical_nic_mac_map
 
 # Find destination directory based on ISO mode
 if [[ -f /etc/initrd-release ]]; then
-  ETC_NETWORK_MANAGER="/run/NetworkManager/system-connections"
+  ETC_NETWORK_MANAGER="/etc/coreos-firstboot-network"
 else
   ETC_NETWORK_MANAGER="/etc/NetworkManager/system-connections"
 fi
@@ -174,8 +176,8 @@ function copy_nmconnection_files_to_nm_config_dir() {
     fi
   done
 
+  mkdir -p "${ETC_NETWORK_MANAGER}"
   cp ${host_dir}/*.nmconnection ${ETC_NETWORK_MANAGER}/
-  type nmcli > /dev/null 2>&1 && nmcli connection reload
   echo "Info: Copied all nmconnection files from $host_dir to $ETC_NETWORK_MANAGER"
 }
 
@@ -186,8 +188,12 @@ find_host_directory_by_mac_address
 // Make sure we do not run any of the following functions if there was no matching config.
 if [ "$host_dir" ]
   then
-    # remove default connection file create by NM(nm-initrd-generator). This is a WA until
-    # NM is back to supporting priority between nmconnections
+    # Remove default connection file create by NM(nm-initrd-generator). This is a WA until
+    # NM is back to supporting priority between nmconnections.
+    #
+    # Note that when this is intended mostly for the full ISO scenario. In the minimal ISO scenario
+    # this script runs before the 'coreos-coreos-copy-firstboot-network' service, and that script
+    # already removes the connection files, but it doesn't hurt to do it again.
     rm -f ${ETC_NETWORK_MANAGER}/*
     echo "Removing default connection files in '$ETC_NETWORK_MANAGER'"
     set_logical_nic_mac_mapping
@@ -195,4 +201,23 @@ if [ "$host_dir" ]
     copy_nmconnection_files_to_nm_config_dir
 fi
 echo "PreNetworkConfig End"
+`
+
+const MinimalISONetworkConfigService = `
+[Unit]
+Description=Assisted static network config
+DefaultDependencies=no
+
+# We need to run after the kernel and udev have detected all the network interface devices,
+# otherwise the mechanism that we use to find the MAC addresses will not work and the configuration
+# will not be applied.
+After=systemd-udev-settle.service
+
+# We need to run before the service that installs the network connection files that we generate.
+Before=coreos-copy-firstboot-network.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/local/bin/pre-network-manager-config.sh
 `

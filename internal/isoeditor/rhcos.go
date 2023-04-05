@@ -43,10 +43,21 @@ func RamdiskImageArchive(netFiles []staticnetworkconfig.StaticNetworkConfigData,
 				return nil, err
 			}
 		}
-		scriptPath := "/usr/lib/dracut/hooks/initqueue/settled/90-assisted-pre-static-network-config.sh"
-		scriptContent := constants.PreNetworkConfigScript
 
+		scriptPath := "/usr/local/bin/pre-network-manager-config.sh"
+		scriptContent := constants.PreNetworkConfigScript
 		if err := addFileToArchive(w, scriptPath, scriptContent, 0o755); err != nil {
+			return nil, err
+		}
+
+		servicePath := "/etc/systemd/system/pre-network-manager-config.service"
+		serviceContent := constants.MinimalISONetworkConfigService
+		if err := addFileToArchive(w, servicePath, serviceContent, 0o644); err != nil {
+			return nil, err
+		}
+
+		serviceLink := "/etc/systemd/system/initrd.target.wants/pre-network-manager-config.service"
+		if err := addFileToArchive(w, serviceLink, servicePath, cpio.ModeSymlink|0o777); err != nil {
 			return nil, err
 		}
 	}
@@ -123,6 +134,5 @@ func addFileToArchive(w *cpio.Writer, path string, content string, mode cpio.Fil
 	if _, err := w.Write([]byte(content)); err != nil {
 		return err
 	}
-
 	return nil
 }
