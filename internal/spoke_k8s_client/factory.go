@@ -12,7 +12,6 @@ import (
 	"github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	client "sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -34,22 +33,48 @@ func NewSpokeK8sClientFactory(log logrus.FieldLogger) SpokeK8sClientFactory {
 	}
 }
 
-func (cf *spokeK8sClientFactory) CreateFromSecret(secret *corev1.Secret) (SpokeK8sClient, error) {
-	clientConfig, err := cf.getRestConfigFromSecret(secret)
+func (cf *spokeK8sClientFactory) CreateFromRawKubeconfig(kubeconfig []byte) (SpokeK8sClient, error) {
+	clientConfig, err := clientcmd.NewClientConfigFromBytes(kubeconfig)
 	if err != nil {
-		cf.log.WithError(err).Warnf("Getting client from kubeconfig cluster")
+		return nil, errors.Wrapf(err, "failed to get clientconfig from kubeconfig data")
+	}
+
+	restConfig, err := clientConfig.ClientConfig()
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to get restconfig for kube client")
+	}
+
+	config, err := kubernetes.NewForConfig(restConfig)
+	if err != nil {
+		cf.log.WithError(err).Warnf("Getting kuberenetes config for cluster")
 		return nil, err
 	}
-	return cf.createFromClientConfig(clientConfig)
+
+	schemes := GetKubeClientSchemes()
+	targetClient, err := client.New(restConfig, client.Options{Scheme: schemes})
+	if err != nil {
+		cf.log.WithError(err).Warnf("failed to get spoke kube client")
+		return nil, err
+	}
+
+	return &spokeK8sClient{
+		Client:      targetClient,
+		csrClient:   config.CertificatesV1().CertificateSigningRequests(),
+		sarClient:   config.AuthorizationV1().SelfSubjectAccessReviews(),
+		nodesClient: config.CoreV1().Nodes(),
+		log:         cf.log,
+	}, nil
 }
 
-func (cf *spokeK8sClientFactory) CreateFromRawKubeconfig(kubeconfig []byte) (SpokeK8sClient, error) {
-	clientConfig, err := cf.getRestConfigFromKubeConfig(kubeconfig)
-	if err != nil {
-		cf.log.WithError(err).Warnf("Getting client from kubeconfig cluster")
-		return nil, err
+func (cf *spokeK8sClientFactory) CreateFromSecret(secret *corev1.Secret) (SpokeK8sClient, error) {
+	if secret.Data == nil {
+		return nil, errors.Errorf("Secret %s/%s  does not contain any data", secret.Namespace, secret.Name)
 	}
-	return cf.createFromClientConfig(clientConfig)
+	kubeconfigData, ok := secret.Data["kubeconfig"]
+	if !ok || len(kubeconfigData) == 0 {
+		return nil, errors.Errorf("Secret data for %s/%s  does not contain kubeconfig", secret.Namespace, secret.Name)
+	}
+	return cf.CreateFromRawKubeconfig(kubeconfigData)
 }
 
 func (cf *spokeK8sClientFactory) CreateFromStorageKubeconfig(ctx context.Context, clusterId *strfmt.UUID, objectHandler s3wrapper.API) (SpokeK8sClient, error) {
@@ -67,50 +92,4 @@ func (cf *spokeK8sClientFactory) CreateFromStorageKubeconfig(ctx context.Context
 		return nil, fmt.Errorf("too many bytes read when reading spoke cluster kubeconfig from internal storage with cluster id %s and filename %s", clusterId, constants.Kubeconfig)
 	}
 	return cf.CreateFromRawKubeconfig(kubeconfig)
-}
-
-func (cf *spokeK8sClientFactory) getRestConfigFromSecret(secret *corev1.Secret) (*rest.Config, error) {
-	if secret.Data == nil {
-		return nil, errors.Errorf("Secret %s/%s  does not contain any data", secret.Namespace, secret.Name)
-	}
-	kubeconfigData, ok := secret.Data["kubeconfig"]
-	if !ok || len(kubeconfigData) == 0 {
-		return nil, errors.Errorf("Secret data for %s/%s  does not contain kubeconfig", secret.Namespace, secret.Name)
-	}
-	return cf.getRestConfigFromKubeConfig(kubeconfigData)
-}
-
-func (cf *spokeK8sClientFactory) getRestConfigFromKubeConfig(kubeconfig []byte) (*rest.Config, error) {
-	clientConfig, err := clientcmd.NewClientConfigFromBytes(kubeconfig)
-	if err != nil {
-		return nil, errors.Wrapf(err, "failed to get clientconfig from kubeconfig data in secret")
-	}
-	restConfig, err := clientConfig.ClientConfig()
-	if err != nil {
-		return nil, errors.Wrapf(err, "failed to get restconfig for kube client")
-	}
-
-	return restConfig, nil
-}
-
-func (cf *spokeK8sClientFactory) createFromClientConfig(clientConfig *rest.Config) (SpokeK8sClient, error) {
-	config, err := kubernetes.NewForConfig(clientConfig)
-	if err != nil {
-		cf.log.WithError(err).Warnf("Getting kuberenetes config for cluster")
-		return nil, err
-	}
-	schemes := GetKubeClientSchemes()
-	targetClient, err := client.New(clientConfig, client.Options{Scheme: schemes})
-	if err != nil {
-		cf.log.WithError(err).Warnf("failed to get spoke kube client")
-		return nil, err
-	}
-	data := spokeK8sClient{
-		Client:      targetClient,
-		csrClient:   config.CertificatesV1().CertificateSigningRequests(),
-		sarClient:   config.AuthorizationV1().SelfSubjectAccessReviews(),
-		nodesClient: config.CoreV1().Nodes(),
-		log:         cf.log,
-	}
-	return &data, nil
 }
