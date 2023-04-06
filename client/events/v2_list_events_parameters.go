@@ -128,6 +128,14 @@ type V2ListEventsParams struct {
 	*/
 	Offset *int64
 
+	/* Order.
+
+	   Order by event_time of events retrieved.
+
+	   Default: "ascending"
+	*/
+	Order *string
+
 	/* Severities.
 
 	   Retrieved events severities.
@@ -151,7 +159,18 @@ func (o *V2ListEventsParams) WithDefaults() *V2ListEventsParams {
 //
 // All values with no default are reset to their zero value.
 func (o *V2ListEventsParams) SetDefaults() {
-	// no default values defined for this parameter
+	var (
+		orderDefault = string("ascending")
+	)
+
+	val := V2ListEventsParams{
+		Order: &orderDefault,
+	}
+
+	val.timeout = o.timeout
+	val.Context = o.Context
+	val.HTTPClient = o.HTTPClient
+	*o = val
 }
 
 // WithTimeout adds the timeout to the v2 list events params
@@ -295,6 +314,17 @@ func (o *V2ListEventsParams) WithOffset(offset *int64) *V2ListEventsParams {
 // SetOffset adds the offset to the v2 list events params
 func (o *V2ListEventsParams) SetOffset(offset *int64) {
 	o.Offset = offset
+}
+
+// WithOrder adds the order to the v2 list events params
+func (o *V2ListEventsParams) WithOrder(order *string) *V2ListEventsParams {
+	o.SetOrder(order)
+	return o
+}
+
+// SetOrder adds the order to the v2 list events params
+func (o *V2ListEventsParams) SetOrder(order *string) {
+	o.Order = order
 }
 
 // WithSeverities adds the severities to the v2 list events params
@@ -469,6 +499,23 @@ func (o *V2ListEventsParams) WriteToRequest(r runtime.ClientRequest, reg strfmt.
 		if qOffset != "" {
 
 			if err := r.SetQueryParam("offset", qOffset); err != nil {
+				return err
+			}
+		}
+	}
+
+	if o.Order != nil {
+
+		// query param order
+		var qrOrder string
+
+		if o.Order != nil {
+			qrOrder = *o.Order
+		}
+		qOrder := qrOrder
+		if qOrder != "" {
+
+			if err := r.SetQueryParam("order", qOrder); err != nil {
 				return err
 			}
 		}
