@@ -628,12 +628,8 @@ func (m *Manager) UpdateInstallProgress(ctx context.Context, h *models.Host, pro
 	var err error
 	switch progress.CurrentStage {
 	case models.HostStageDone:
-		newStatus := models.HostStatusInstalled
-		if swag.StringValue(h.Kind) == models.HostKindAddToExistingClusterHost {
-			newStatus = models.HostStatusAddedToExistingCluster
-		}
-		_, err = hostutil.UpdateHostProgress(ctx, logutil.FromContext(ctx, m.log), m.db, m.eventsHandler, h.InfraEnvID, *h.ID,
-			swag.StringValue(h.Status), newStatus, statusInfo,
+		err = m.UpdateHostProgress(ctx, logutil.FromContext(ctx, m.log), m.db, m.eventsHandler, h.InfraEnvID, *h.ID,
+			swag.StringValue(h.Status),
 			previousProgress.CurrentStage, progress.CurrentStage, progress.ProgressInfo, extra...)
 	case models.HostStageFailed:
 		// Keeps the last progress
@@ -646,28 +642,48 @@ func (m *Manager) UpdateInstallProgress(ctx context.Context, h *models.Host, pro
 			swag.StringValue(h.Status), models.HostStatusError, statusInfo)
 	case models.HostStageRebooting:
 		if swag.StringValue(h.Kind) == models.HostKindAddToExistingClusterHost {
-			infoMessage := statusInfoRebootingDay2
 			stage := models.HostStageDone
-			newStatus := models.HostStatusAddedToExistingCluster
 			if m.kubeApiEnabled {
 				// in case kubeApiEnabled the agent controller will keep updating the host stage until the installation is complete
-				infoMessage = statusInfo
 				stage = models.HostStageRebooting
-				newStatus = swag.StringValue(h.Status)
 			}
-			_, err = hostutil.UpdateHostProgress(ctx, logutil.FromContext(ctx, m.log), m.db, m.eventsHandler, h.InfraEnvID, *h.ID,
-				swag.StringValue(h.Status), newStatus, infoMessage,
+			err = m.UpdateHostProgress(ctx, logutil.FromContext(ctx, m.log), m.db, m.eventsHandler, h.InfraEnvID, *h.ID,
+				swag.StringValue(h.Status),
 				h.Progress.CurrentStage, stage, progress.ProgressInfo, extra...)
 			break
 		}
 		fallthrough
 	default:
-		_, err = hostutil.UpdateHostProgress(ctx, logutil.FromContext(ctx, m.log), m.db, m.eventsHandler, h.InfraEnvID, *h.ID,
-			swag.StringValue(h.Status), models.HostStatusInstallingInProgress, statusInfo,
+		err = m.UpdateHostProgress(ctx, logutil.FromContext(ctx, m.log), m.db, m.eventsHandler, h.InfraEnvID, *h.ID,
+			swag.StringValue(h.Status),
 			previousProgress.CurrentStage, progress.CurrentStage, progress.ProgressInfo, extra...)
 	}
 	m.reportInstallationMetrics(ctx, h, previousProgress, progress.CurrentStage)
 	return err
+}
+
+func (m *Manager) UpdateHostProgress(ctx context.Context, log logrus.FieldLogger, db *gorm.DB, eventsHandler eventsapi.Handler, infraEnvId strfmt.UUID, hostId strfmt.UUID,
+	srcStatus string, srcStage models.HostStage, newStage models.HostStage, progressInfo string, extra ...interface{}) error {
+
+	extra = append(append(make([]interface{}, 0), "progress_current_stage", newStage, "progress_progress_info", progressInfo,
+		"progress_stage_updated_at", strfmt.DateTime(time.Now())), extra...)
+
+	if newStage != srcStage {
+		extra = append(extra, "progress_stage_started_at", strfmt.DateTime(time.Now()))
+	}
+
+	var host *common.Host
+	var err error
+	if host, err = hostutil.UpdateHost(log, db, infraEnvId, hostId, srcStatus, extra...); err != nil {
+		return errors.Wrapf(err, "failed to update host %s from cluster %s stage from %s to %s",
+			hostId, infraEnvId, srcStage, newStage)
+	}
+
+	return m.sm.Run(TransitionTypeHostProgress, newStateHost(&host.Host), &TransitionArgsProgressHost{
+		ctx:     ctx,
+		db:      m.db,
+		managed: !m.kubeApiEnabled,
+	})
 }
 
 func (m *Manager) SetBootstrap(ctx context.Context, h *models.Host, isbootstrap bool, db *gorm.DB) error {

@@ -4703,7 +4703,7 @@ var _ = Describe("Rebooting day2", func() {
 		ctrl = gomock.NewController(GinkgoT())
 		mockEventsAPI = eventsapi.NewMockHandler(ctrl)
 		api = NewManager(common.GetTestLog(), db, testing.GetDummyNotificationStream(ctrl), mockEventsAPI, nil, nil, nil, nil, defaultConfig, nil, nil, nil, false, nil)
-		host = hostutil.GenerateTestHost(strfmt.UUID(uuid.New().String()), strfmt.UUID(uuid.New().String()), strfmt.UUID(uuid.New().String()), models.HostStatusInstalling)
+		host = hostutil.GenerateTestHost(strfmt.UUID(uuid.New().String()), strfmt.UUID(uuid.New().String()), strfmt.UUID(uuid.New().String()), models.HostStatusInstallingInProgress)
 		hostKindDay2 := models.HostKindAddToExistingClusterHost
 		host.Kind = &hostKindDay2
 		host.Role = models.HostRoleMaster
@@ -4738,7 +4738,7 @@ var _ = Describe("Rebooting day2", func() {
 		verifyHost := hostutil.GetHostFromDB(*host.ID, host.InfraEnvID, db)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(*verifyHost.StatusInfo).Should(BeEquivalentTo("Rebooting"))
-		Expect(*verifyHost.Status).Should(BeEquivalentTo(models.HostStatusInstalling))
+		Expect(*verifyHost.Status).Should(BeEquivalentTo(models.HostStatusInstallingInProgress))
 	})
 
 	It("day-2 host with stage Done should move to HostStatusAddedToExistingCluster", func() {
@@ -4756,6 +4756,116 @@ var _ = Describe("Rebooting day2", func() {
 		Expect(*verifyHost.Status).Should(BeEquivalentTo(models.HostStatusAddedToExistingCluster))
 	})
 
+})
+
+var _ = Describe("UpdateHostProgress", func() {
+	var (
+		ctx        = context.Background()
+		manager    *Manager
+		db         *gorm.DB
+		dbName     string
+		ctrl       *gomock.Controller
+		mockEvents *eventsapi.MockHandler
+
+		hostID     strfmt.UUID
+		infraEnvID strfmt.UUID
+		clusterID  strfmt.UUID
+
+		host            models.Host
+		returnedHost    *common.Host
+		lastUpdatedTime strfmt.DateTime
+		err             error
+	)
+
+	BeforeEach(func() {
+		db, dbName = common.PrepareTestDB()
+
+		ctrl = gomock.NewController(GinkgoT())
+		mockEvents = eventsapi.NewMockHandler(ctrl)
+		manager = NewManager(common.GetTestLog(), db, nil, mockEvents, nil, nil, nil, nil, defaultConfig, nil, nil, nil, false, nil)
+
+		hostID = strfmt.UUID(uuid.New().String())
+		infraEnvID = strfmt.UUID(uuid.New().String())
+		clusterID = strfmt.UUID(uuid.New().String())
+		host = hostutil.GenerateTestHost(hostID, infraEnvID, clusterID, models.HostStatusInstallingInProgress)
+		host.StatusInfo = swag.String(models.HostStatusInstallingInProgress)
+		Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
+		lastUpdatedTime = host.StatusUpdatedAt
+	})
+
+	AfterEach(func() {
+		common.DeleteTestDB(db, dbName)
+	})
+
+	Describe("status installing in progress", func() {
+		It("new_stage", func() {
+			err = manager.UpdateHostProgress(ctx, common.GetTestLog(), db, mockEvents, host.InfraEnvID, *host.ID, *host.Status,
+				host.Progress.CurrentStage, common.TestDefaultConfig.HostProgressStage, host.Progress.ProgressInfo)
+			Expect(err).ShouldNot(HaveOccurred())
+
+			returnedHost = hostutil.GetHostFromDB(hostID, infraEnvID, db)
+			Expect(returnedHost.Progress.CurrentStage).Should(Equal(common.TestDefaultConfig.HostProgressStage))
+			Expect(returnedHost.Progress.ProgressInfo).Should(Equal(host.Progress.ProgressInfo))
+			Expect(returnedHost.Progress.StageUpdatedAt.String()).ShouldNot(Equal(lastUpdatedTime.String()))
+			Expect(returnedHost.Progress.StageStartedAt.String()).ShouldNot(Equal(lastUpdatedTime.String()))
+		})
+
+		It("same_stage", func() {
+			// Still updates because stage_updated_at is being updated
+			err = manager.UpdateHostProgress(ctx, common.GetTestLog(), db, mockEvents, host.InfraEnvID, *host.ID, *host.Status,
+				host.Progress.CurrentStage, host.Progress.CurrentStage, host.Progress.ProgressInfo)
+			Expect(err).ShouldNot(HaveOccurred())
+
+			returnedHost = hostutil.GetHostFromDB(hostID, infraEnvID, db)
+			Expect(returnedHost.Progress.CurrentStage).Should(Equal(models.HostStage("")))
+			Expect(returnedHost.Progress.ProgressInfo).Should(Equal(""))
+			Expect(returnedHost.Progress.StageUpdatedAt.String()).ShouldNot(Equal(lastUpdatedTime.String()))
+			Expect(returnedHost.Progress.StageStartedAt.String()).Should(Equal(lastUpdatedTime.String()))
+		})
+
+		AfterEach(func() {
+			By("status info is the same as the stage", func() {
+				Expect(*returnedHost.Status).Should(Equal(models.HostStatusInstallingInProgress))
+				Expect(*returnedHost.StatusInfo).Should(Equal(string(returnedHost.Progress.CurrentStage)))
+				Expect(returnedHost.StatusUpdatedAt.String()).Should(Equal(lastUpdatedTime.String()))
+			})
+		})
+	})
+
+	It("new_status_new_stage", func() {
+		mockEvents.EXPECT().SendHostEvent(gomock.Any(), eventstest.NewEventMatcher(
+			eventstest.WithNameMatcher(eventgen.HostStatusUpdatedEventName),
+			eventstest.WithHostIdMatcher(host.ID.String()),
+			eventstest.WithInfraEnvIdMatcher(host.InfraEnvID.String()),
+			eventstest.WithClusterIdMatcher(host.ClusterID.String())))
+		err = manager.UpdateHostProgress(ctx, common.GetTestLog(), db, mockEvents, host.InfraEnvID, *host.ID, *host.Status,
+			host.Progress.CurrentStage, models.HostStageDone, "")
+		Expect(err).ShouldNot(HaveOccurred())
+
+		returnedHost = hostutil.GetHostFromDB(hostID, infraEnvID, db)
+		Expect(returnedHost.Progress.CurrentStage).Should(Equal(models.HostStageDone))
+		Expect(returnedHost.Progress.ProgressInfo).Should(Equal(""))
+		Expect(returnedHost.Progress.StageUpdatedAt.String()).ShouldNot(Equal(lastUpdatedTime.String()))
+		Expect(returnedHost.Progress.StageStartedAt.String()).ShouldNot(Equal(lastUpdatedTime.String()))
+
+		By("New status", func() {
+			Expect(*returnedHost.Status).Should(Equal(models.HostStatusInstalled))
+			Expect(*returnedHost.StatusInfo).Should(Equal(string(models.HostStageDone)))
+			Expect(returnedHost.StatusUpdatedAt.String()).ShouldNot(Equal(lastUpdatedTime.String()))
+		})
+	})
+
+	It("update_info", func() {
+		for _, i := range []int{5, 10, 15} {
+			err = manager.UpdateHostProgress(ctx, common.GetTestLog(), db, mockEvents, host.InfraEnvID, *host.ID, *host.Status,
+				host.Progress.CurrentStage, host.Progress.CurrentStage, fmt.Sprintf("%d%%", i))
+			Expect(err).ShouldNot(HaveOccurred())
+
+			returnedHost = hostutil.GetHostFromDB(hostID, infraEnvID, db)
+			Expect(returnedHost.Progress.ProgressInfo).Should(Equal(fmt.Sprintf("%d%%", i)))
+			Expect(returnedHost.Progress.StageStartedAt.String()).Should(Equal(lastUpdatedTime.String()))
+		}
+	})
 })
 
 var _ = Describe("Garbage Collection", func() {

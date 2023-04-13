@@ -42,6 +42,7 @@ type TransitionHandler interface {
 	IsLogCollectionTimedOut(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) (bool, error)
 	IsUnboundHost(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) (bool, error)
 	IsValidRoleForInstallation(sw stateswitch.StateSwitch, _ stateswitch.TransitionArgs) (bool, error)
+	PostHostProgress(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) error
 	PostBindHost(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) error
 	PostCancelInstallation(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) error
 	PostHostInstallationFailed(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) error
@@ -106,8 +107,8 @@ func (th *transitionHandler) PostRegisterHost(sw stateswitch.StateSwitch, args s
 		extra = append(extra, resetLogsField...)
 		extra = append(extra, resetProgressFields...)
 		var dbHost *common.Host
-		if dbHost, err = hostutil.UpdateHostProgress(params.ctx, log, params.db, th.eventsHandler, hostParam.InfraEnvID, *hostParam.ID, sHost.srcState,
-			swag.StringValue(hostParam.Status), statusInfoDiscovering, hostParam.Progress.CurrentStage, "", "", extra...); err != nil {
+		if dbHost, err = hostutil.UpdateHostStatus(params.ctx, log, params.db, th.eventsHandler, hostParam.InfraEnvID, *hostParam.ID, sHost.srcState,
+			swag.StringValue(hostParam.Status), statusInfoDiscovering, extra...); err != nil {
 			return err
 		} else {
 			sHost.host = &dbHost.Host
@@ -270,6 +271,34 @@ func (th *transitionHandler) PostHostMediaDisconnected(sw stateswitch.StateSwitc
 	// Update media_status to disconnection, change status and trigger change status event if necessary.
 	return th.updateTransitionHost(params.ctx, logutil.FromContext(params.ctx, th.log), th.db, sHost, reason,
 		"media_status", models.HostMediaStatusDisconnected)
+}
+
+//////////////////////////////////////////////////////////////////////////
+// Progress
+//////////////////////////////////////////////////////////////////////////
+type TransitionArgsProgressHost struct {
+	ctx     context.Context
+	db      *gorm.DB
+	managed bool
+}
+
+func (th *transitionHandler) PostHostProgress(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) error {
+	sHost, ok := sw.(*stateHost)
+	if !ok {
+		return errors.New("PostHostProgressChanged incompatible type of StateSwitch")
+	}
+	params, ok := args.(*TransitionArgsProgressHost)
+	if !ok {
+		return errors.New("PostHostProgressChanged invalid argument")
+	}
+
+	//set the statusInfo according to the host's stage
+	statusInfo := string(sHost.host.Progress.CurrentStage)
+	if (statusInfo == string(models.HostStageDone)) && hostutil.IsDay2Host(sHost.host) && params.managed {
+		statusInfo = statusInfoRebootingDay2
+	}
+
+	return th.updateTransitionHost(params.ctx, logutil.FromContext(params.ctx, th.log), th.db, sHost, statusInfo)
 }
 
 ////////////////////////////////////////////////////////////////////////////
