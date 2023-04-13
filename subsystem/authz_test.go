@@ -361,13 +361,15 @@ var _ = Describe("test authorization", func() {
 			_, err := user2BMClient.Installer.V2SetIgnoredValidations(ctx, &installer.V2SetIgnoredValidationsParams{
 				ClusterID: *cluster.ID,
 				IgnoredValidations: &models.IgnoredValidations{
-					ClusterValidationIds: "[\"dns-domain-defined\", \"does-not-exist\"]",
-					HostValidationIds:    "[\"has-cpu-cores-for-role\", \"also-does-not-exist\",\"has-memory-for-role\"]",
+					ClusterValidationIds: "[\"all\", \"dns-domain-defined\", \"does-not-exist\"]",
+					HostValidationIds:    "[\"all\", \"has-cpu-cores-for-role\", \"also-does-not-exist\",\"has-memory-for-role\"]",
 				},
 			})
 			Expect(err).Should(HaveOccurred())
 			Expect(marshalError(err)).To(ContainSubstring("Validation ID 'does-not-exist' is not a known cluster validation"))
 			Expect(marshalError(err)).To(ContainSubstring("Validation ID 'also-does-not-exist' is not a known host validation"))
+			Expect(marshalError(err)).ToNot(ContainSubstring("Validation ID 'all' is not a known host validation"))
+			Expect(marshalError(err)).ToNot(ContainSubstring("Validation ID 'all' is not a known cluster validation"))
 			c, err := common.GetClusterFromDB(db, *cluster.ID, common.SkipEagerLoading)
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(c.IgnoredClusterValidations).To(Equal(""))
