@@ -601,6 +601,10 @@ func (b *bareMetalInventory) validateIgnoredValidations(problems []string, ignor
 		problems = append(problems, fmt.Sprintf("error during unmarshal of json for ignored %s validations", validationType))
 	} else {
 		for _, v := range ignoredValidationsArr {
+			// Don't check to see if "all" is a valid host or cluster validation, because it isn't, but it's allowed!
+			if strings.ToLower(v) == "all" {
+				continue
+			}
 			var err error
 			if validationType == common.ValidationTypeCluster {
 				validation := models.NewClusterValidationID(models.ClusterValidationID(v))
