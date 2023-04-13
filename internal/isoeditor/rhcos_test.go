@@ -45,7 +45,7 @@ var _ = Describe("RamdiskImageArchive", func() {
 		gzipReader, err := gzip.NewReader(bytes.NewReader(archive))
 		Expect(err).ToNot(HaveOccurred())
 
-		var scriptContent, rootfsServiceConfigContent string
+		var scriptContent, serviceContent, serviceLink, rootfsServiceConfigContent string
 		r := cpio.NewReader(gzipReader)
 		for {
 			hdr, err := r.Next()
@@ -62,10 +62,17 @@ var _ = Describe("RamdiskImageArchive", func() {
 				configBytes, err := io.ReadAll(r)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(string(configBytes)).To(Equal("2.nmconnection contents"))
-			case "/usr/lib/dracut/hooks/initqueue/settled/90-assisted-pre-static-network-config.sh":
+			case "/usr/local/bin/pre-network-manager-config.sh":
 				scriptBytes, err := io.ReadAll(r)
 				Expect(err).ToNot(HaveOccurred())
 				scriptContent = string(scriptBytes)
+			case "/etc/systemd/system/pre-network-manager-config.service":
+				serviceBytes, err := io.ReadAll(r)
+				Expect(err).ToNot(HaveOccurred())
+				serviceContent = string(serviceBytes)
+			case "/etc/systemd/system/initrd.target.wants/pre-network-manager-config.service":
+				Expect(hdr.Mode & cpio.ModeSymlink).ToNot(BeZero())
+				serviceLink = hdr.Linkname
 			case "/etc/systemd/system/coreos-livepxe-rootfs.service.d/10-proxy.conf":
 				rootfsServiceConfigBytes, err := io.ReadAll(r)
 				Expect(err).ToNot(HaveOccurred())
@@ -74,6 +81,8 @@ var _ = Describe("RamdiskImageArchive", func() {
 		}
 
 		Expect(scriptContent).To(Equal(constants.PreNetworkConfigScript))
+		Expect(serviceContent).To(Equal(constants.MinimalISONetworkConfigService))
+		Expect(serviceLink).To(Equal("/etc/systemd/system/pre-network-manager-config.service"))
 
 		rootfsServiceConfig := fmt.Sprintf("[Service]\n"+
 			"Environment=http_proxy=%s\nEnvironment=https_proxy=%s\nEnvironment=no_proxy=%s\n"+
