@@ -42,6 +42,7 @@ import (
 	"github.com/openshift/assisted-service/internal/versions"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/auth"
+	"github.com/openshift/assisted-service/pkg/executer"
 	logutil "github.com/openshift/assisted-service/pkg/log"
 	"github.com/openshift/assisted-service/pkg/mirrorregistries"
 	"github.com/openshift/assisted-service/pkg/s3wrapper"
@@ -234,6 +235,7 @@ type installerGenerator struct {
 	providerRegistry              registry.ProviderRegistry
 	installerReleaseImageOverride string
 	clusterTLSCertOverrideDir     string
+	installerCache                *installercache.Installers
 }
 
 // IgnitionConfig contains the attributes required to build the discovery ignition file
@@ -280,7 +282,7 @@ func NewBuilder(log logrus.FieldLogger, staticNetworkConfig staticnetworkconfig.
 // NewGenerator returns a generator that can generate ignition files
 func NewGenerator(serviceBaseURL string, workDir string, installerDir string, cluster *common.Cluster, releaseImage string, releaseImageMirror string,
 	serviceCACert string, installInvoker string, s3Client s3wrapper.API, log logrus.FieldLogger, operatorsApi operators.API,
-	providerRegistry registry.ProviderRegistry, installerReleaseImageOverride, clusterTLSCertOverrideDir string) Generator {
+	providerRegistry registry.ProviderRegistry, installerReleaseImageOverride, clusterTLSCertOverrideDir string, storageCapacityLimit int64) Generator {
 	return &installerGenerator{
 		cluster:                       cluster,
 		log:                           log,
@@ -297,6 +299,7 @@ func NewGenerator(serviceBaseURL string, workDir string, installerDir string, cl
 		providerRegistry:              providerRegistry,
 		installerReleaseImageOverride: installerReleaseImageOverride,
 		clusterTLSCertOverrideDir:     clusterTLSCertOverrideDir,
+		installerCache:                installercache.New(installerDir, storageCapacityLimit, log),
 	}
 }
 
@@ -331,11 +334,19 @@ func (g *installerGenerator) Generate(ctx context.Context, installConfig []byte,
 	}
 	defer removeIcspFile(icspFile)
 
-	installerPath, err := installercache.Get(g.installerReleaseImageOverride, g.releaseImageMirror, g.installerDir,
-		g.cluster.PullSecret, platformType, icspFile, log)
+	mirrorRegistriesBuilder := mirrorregistries.New()
+	ocRelease := oc.NewRelease(&executer.CommonExecuter{}, oc.Config{
+		MaxTries: oc.DefaultTries, RetryDelay: oc.DefaltRetryDelay}, mirrorRegistriesBuilder)
+
+	release, err := g.installerCache.Get(g.installerReleaseImageOverride, g.releaseImageMirror,
+		g.cluster.PullSecret, ocRelease, platformType, icspFile)
 	if err != nil {
 		return errors.Wrap(err, "failed to get installer path")
 	}
+	//cleanup resources at the end
+	defer release.Release()
+
+	installerPath := release.Path
 	installConfigPath := filepath.Join(g.workDir, "install-config.yaml")
 
 	g.enableMetal3Provisioning, err = common.VersionGreaterOrEqual(g.cluster.Cluster.OpenshiftVersion, "4.7")

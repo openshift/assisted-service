@@ -27,12 +27,13 @@ type ISOInstallConfigGenerator interface {
 }
 
 type Config struct {
-	ServiceCACertPath  string `envconfig:"SERVICE_CA_CERT_PATH" default:""`
-	ServiceIPs         string `envconfig:"SERVICE_IPS" default:""`
-	ReleaseImageMirror string
-	DummyIgnition      bool   `envconfig:"DUMMY_IGNITION"`
-	InstallInvoker     string `envconfig:"INSTALL_INVOKER" default:"assisted-installer"`
-	ServiceBaseURL     string `envconfig:"SERVICE_BASE_URL"`
+	ServiceCACertPath      string `envconfig:"SERVICE_CA_CERT_PATH" default:""`
+	ServiceIPs             string `envconfig:"SERVICE_IPS" default:""`
+	ReleaseImageMirror     string
+	DummyIgnition          bool   `envconfig:"DUMMY_IGNITION"`
+	InstallInvoker         string `envconfig:"INSTALL_INVOKER" default:"assisted-installer"`
+	ServiceBaseURL         string `envconfig:"SERVICE_BASE_URL"`
+	InstallerCacheCapacity int64  `envconfig:"INSTALLER_CACHE_CAPACITY"`
 }
 
 type installGenerator struct {
@@ -101,7 +102,7 @@ func (k *installGenerator) GenerateInstallConfig(ctx context.Context, cluster co
 		generator = ignition.NewDummyGenerator(k.ServiceBaseURL, clusterWorkDir, &cluster, k.s3Client, log)
 	} else {
 		generator = ignition.NewGenerator(k.ServiceBaseURL, clusterWorkDir, installerCacheDir, &cluster, releaseImage, k.Config.ReleaseImageMirror,
-			k.Config.ServiceCACertPath, k.Config.InstallInvoker, k.s3Client, log, k.operatorsApi, k.providerRegistry, installerReleaseImageOverride, k.clusterTLSCertOverrideDir)
+			k.Config.ServiceCACertPath, k.Config.InstallInvoker, k.s3Client, log, k.operatorsApi, k.providerRegistry, installerReleaseImageOverride, k.clusterTLSCertOverrideDir, k.InstallerCacheCapacity)
 	}
 	err = generator.Generate(ctx, cfg, k.getClusterPlatformType(cluster), k.authHandler.AuthType())
 	if err != nil {
