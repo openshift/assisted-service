@@ -192,6 +192,16 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 			}}
 			Expect(ValidateIncompatibleFeatures(log, models.ClusterCPUArchitectureX8664, &cluster, nil, nil)).To(BeNil())
 		})
+
+		It("No OCP version with CPU architecture that depends on OCP version", func() {
+			cluster := common.Cluster{Cluster: models.Cluster{
+				CPUArchitecture:       models.ClusterCPUArchitectureArm64,
+				HighAvailabilityMode:  swag.String(models.ClusterHighAvailabilityModeNone),
+				UserManagedNetworking: swag.Bool(true),
+				Platform:              &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeBaremetal)},
+			}}
+			Expect(ValidateIncompatibleFeatures(log, models.ClusterCPUArchitectureArm64, &cluster, nil, nil)).To(BeNil())
+		})
 		It("Single compatible feature is activated", func() {
 			cluster := common.Cluster{Cluster: models.Cluster{
 				OpenshiftVersion:      "4.8",
