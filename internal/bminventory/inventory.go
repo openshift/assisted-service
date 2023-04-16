@@ -2038,7 +2038,7 @@ func (b *bareMetalInventory) v2UpdateClusterInternal(ctx context.Context, params
 
 	b.updateClusterNetworkVMUsage(cluster, params.ClusterUpdateParams, usages, log)
 
-	b.updateClusterCPUFeatureUsage(cluster, usages)
+	b.updateClusterCPUFeatureUsage(cluster.CPUArchitecture, usages)
 
 	b.usageApi.Save(tx, params.ClusterID, usages)
 
@@ -2819,14 +2819,23 @@ func (b *bareMetalInventory) updateClusterNetworkVMUsage(cluster *common.Cluster
 	b.setUsage(usageEnable, usage.ClusterManagedNetworkWithVMs, &data, usages)
 }
 
-func (b *bareMetalInventory) updateClusterCPUFeatureUsage(cluster *common.Cluster, usages map[string]models.Usage) {
-	switch cluster.CPUArchitecture {
-	case common.ARM64CPUArchitecture:
+func (b *bareMetalInventory) updateClusterCPUFeatureUsage(cpuArchitecture string, usages map[string]models.Usage) {
+	if cpuArchitecture == models.ClusterCPUArchitectureArm64 {
 		b.setUsage(true, usage.CPUArchitectureARM64, nil, usages)
-	case common.PowerCPUArchitecture:
-		b.setUsage(true, usage.CPUArchitecturePpc64le, nil, usages)
-	case common.S390xCPUArchitecture:
+		b.setUsage(false, usage.CPUArchitectureS390x, nil, usages)
+		b.setUsage(false, usage.CPUArchitecturePpc64le, nil, usages)
+	} else if cpuArchitecture == models.ClusterCPUArchitectureS390x {
 		b.setUsage(true, usage.CPUArchitectureS390x, nil, usages)
+		b.setUsage(false, usage.CPUArchitectureARM64, nil, usages)
+		b.setUsage(false, usage.CPUArchitecturePpc64le, nil, usages)
+	} else if cpuArchitecture == models.ClusterCPUArchitecturePpc64le {
+		b.setUsage(true, usage.CPUArchitecturePpc64le, nil, usages)
+		b.setUsage(false, usage.CPUArchitectureARM64, nil, usages)
+		b.setUsage(false, usage.CPUArchitectureS390x, nil, usages)
+	} else {
+		b.setUsage(false, usage.CPUArchitectureARM64, nil, usages)
+		b.setUsage(false, usage.CPUArchitectureS390x, nil, usages)
+		b.setUsage(false, usage.CPUArchitecturePpc64le, nil, usages)
 	}
 }
 
@@ -4445,7 +4454,7 @@ func (b *bareMetalInventory) setMultiCPUArchitectureUsage(db *gorm.DB, clusterId
 		return err
 	}
 
-	b.updateClusterCPUFeatureUsage(cluster, usages)
+	b.updateClusterCPUFeatureUsage(cpuArchitecture, usages)
 	b.usageApi.Save(db, *cluster.ID, usages)
 
 	return nil
