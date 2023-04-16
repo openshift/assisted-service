@@ -16583,14 +16583,18 @@ var _ = Describe("Update cluster - feature usage flags", func() {
 		It("Add feature usage of ARM64 when cluster arch match", func() {
 			mockUsage.EXPECT().Add(usages, usage.CPUArchitectureARM64, nil).Times(1)
 			mockUsage.EXPECT().Remove(usages, usage.CPUArchitectureARM64).Times(0)
+			mockUsage.EXPECT().Remove(usages, usage.CPUArchitectureS390x).Times(1)
+			mockUsage.EXPECT().Remove(usages, usage.CPUArchitecturePpc64le).Times(1)
 			cluster.CPUArchitecture = "arm64"
-			bm.updateClusterCPUFeatureUsage(cluster, usages)
+			bm.updateClusterCPUFeatureUsage(cluster.CPUArchitecture, usages)
 		})
 
 		It("Remove feature usage of ARM64 when cluster arch match", func() {
 			mockUsage.EXPECT().Add(usages, usage.CPUArchitectureARM64, nil).Times(0)
 			mockUsage.EXPECT().Remove(usages, usage.CPUArchitectureARM64).Times(1)
-			bm.updateClusterCPUFeatureUsage(cluster, usages)
+			mockUsage.EXPECT().Remove(usages, usage.CPUArchitectureS390x).Times(1)
+			mockUsage.EXPECT().Remove(usages, usage.CPUArchitecturePpc64le).Times(1)
+			bm.updateClusterCPUFeatureUsage(cluster.CPUArchitecture, usages)
 		})
 	})
 
