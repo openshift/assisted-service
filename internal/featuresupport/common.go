@@ -24,18 +24,17 @@ func ValidateIncompatibleFeatures(log logrus.FieldLogger, cpuArchitecture string
 	}
 
 	activatedFeatures := getActivatedFeatures(log, cluster, infraEnv, updateParams)
-	if cpuArchitecture != "" {
-		if openshiftVersion != nil {
-			if isSupported := isArchitectureSupported(cpuArchitectureFeatureIdMap[cpuArchitecture], swag.StringValue(openshiftVersion)); !isSupported {
-				return fmt.Errorf("cannot use %s architecture because it's not compatible on version %s of OpenShift", cpuArchitecture, cluster.OpenshiftVersion)
-			}
+	if cpuArchitecture != "" && swag.StringValue(openshiftVersion) != "" {
+		if isSupported := isArchitectureSupported(cpuArchitectureFeatureIdMap[cpuArchitecture], swag.StringValue(openshiftVersion)); !isSupported {
+			return fmt.Errorf("cannot use %s architecture because it's not compatible on version %s of OpenShift", cpuArchitecture, cluster.OpenshiftVersion)
 		}
 
 		if err := isFeaturesCompatibleWithArchitecture(swag.StringValue(openshiftVersion), cpuArchitecture, activatedFeatures); err != nil {
 			return err
 		}
+
 	} else {
-		log.Warn("Cannot validate incompatible CPU architecture due to empty value")
+		log.Warn("Cannot validate incompatible CPU architecture due to empty CPU architecture or empty OpenshiftVersion")
 	}
 
 	if err := isFeaturesCompatibleWithFeatures(activatedFeatures); err != nil {
