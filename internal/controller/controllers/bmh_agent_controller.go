@@ -50,11 +50,16 @@ import (
 	"k8s.io/kubectl/pkg/drain"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 )
+
+type BMACConfig struct {
+	MaxConcurrentReconciles int `envconfig:"BMAC_MAX_CONCURRENT_RECONCILES" default:"1"`
+}
 
 // BMACReconciler reconciles a Agent object
 type BMACReconciler struct {
@@ -66,6 +71,7 @@ type BMACReconciler struct {
 	spokeClient           client.Client
 	ConvergedFlowEnabled  bool
 	Drainer               Drainer
+	Config                *BMACConfig
 }
 
 const (
@@ -1497,6 +1503,7 @@ func (r *BMACReconciler) SetupWithManager(mgr ctrl.Manager) error {
 
 	return ctrl.NewControllerManagedBy(mgr).
 		Named("baremetal-agent-controller").
+		WithOptions(controller.Options{MaxConcurrentReconciles: r.Config.MaxConcurrentReconciles}).
 		For(&bmh_v1alpha1.BareMetalHost{}).
 		Watches(&source.Kind{Type: &aiv1beta1.Agent{}}, handler.EnqueueRequestsFromMapFunc(mapAgentToBMH)).
 		Watches(&source.Kind{Type: &aiv1beta1.InfraEnv{}}, handler.EnqueueRequestsFromMapFunc(mapInfraEnvToBMH)).
