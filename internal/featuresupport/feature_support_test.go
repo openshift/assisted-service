@@ -192,6 +192,16 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 			}}
 			Expect(ValidateIncompatibleFeatures(log, models.ClusterCPUArchitectureX8664, &cluster, nil, nil)).To(BeNil())
 		})
+
+		It("No OCP version with CPU architecture that depends on OCP version", func() {
+			cluster := common.Cluster{Cluster: models.Cluster{
+				CPUArchitecture:       models.ClusterCPUArchitectureArm64,
+				HighAvailabilityMode:  swag.String(models.ClusterHighAvailabilityModeNone),
+				UserManagedNetworking: swag.Bool(true),
+				Platform:              &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeBaremetal)},
+			}}
+			Expect(ValidateIncompatibleFeatures(log, models.ClusterCPUArchitectureArm64, &cluster, nil, nil)).To(BeNil())
+		})
 		It("Single compatible feature is activated", func() {
 			cluster := common.Cluster{Cluster: models.Cluster{
 				OpenshiftVersion:      "4.8",
@@ -272,15 +282,16 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 			}}
 			Expect(ValidateIncompatibleFeatures(log, models.ClusterCPUArchitectureArm64, &cluster, nil, nil)).To(BeNil())
 		})
-		It("Ppc64le with CMN and minimal iso - success", func() {
+		It("Ppc64le with CMN - fail", func() {
 			cluster := common.Cluster{Cluster: models.Cluster{
 				OpenshiftVersion: "4.12",
 				CPUArchitecture:  models.ClusterCPUArchitecturePpc64le,
 			}}
-			infraEnv := models.InfraEnv{CPUArchitecture: models.ClusterCPUArchitecturePpc64le, Type: common.ImageTypePtr(models.ImageTypeMinimalIso)}
+			infraEnv := models.InfraEnv{CPUArchitecture: models.ClusterCPUArchitecturePpc64le, Type: common.ImageTypePtr(models.ImageTypeFullIso)}
 
 			err := ValidateIncompatibleFeatures(log, models.ClusterCPUArchitecturePpc64le, &cluster, nil, nil)
-			Expect(err).To(BeNil())
+			Expect(err).To(Not(BeNil()))
+			cluster.UserManagedNetworking = swag.Bool(true)
 			err = ValidateIncompatibleFeatures(log, models.ClusterCPUArchitecturePpc64le, &cluster, &infraEnv, nil)
 			Expect(err).To(BeNil())
 		})

@@ -220,6 +220,7 @@ func (feature *ClusterManagedNetworkingFeature) getFeatureActiveLevel(cluster *c
 func (feature *ClusterManagedNetworkingFeature) getIncompatibleArchitectures(openshiftVersion *string) *[]models.ArchitectureSupportLevelID {
 	incompatibilities := []models.ArchitectureSupportLevelID{
 		models.ArchitectureSupportLevelIDS390XARCHITECTURE,
+		models.ArchitectureSupportLevelIDPPC64LEARCHITECTURE,
 	}
 
 	if openshiftVersion != nil {
