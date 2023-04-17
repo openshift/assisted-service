@@ -3,6 +3,7 @@ package versions
 import (
 	context "context"
 	"fmt"
+	"regexp"
 	"runtime/debug"
 	"strings"
 	"sync"
@@ -349,4 +350,30 @@ func GetRevision() string {
 		}
 	}
 	return "<unknown>"
+}
+
+func extractHost(destination string) string {
+	patterns := []string{
+		"^\\[([^\\]]+)\\]:\\d+$",
+		"^([^:]+[.][^:]+):\\d+$",
+	}
+	for _, p := range patterns {
+		r := regexp.MustCompile(p)
+		if matches := r.FindStringSubmatch(destination); len(matches) == 2 {
+			return matches[1]
+		}
+	}
+	return destination
+}
+
+func GetReleaseImageHost(cluster *common.Cluster, versionHandler Handler) (string, error) {
+	releaseImage, err := versionHandler.GetReleaseImage(context.Background(), cluster.OpenshiftVersion, cluster.CPUArchitecture, cluster.PullSecret)
+	if err != nil {
+		return "", err
+	}
+	splits := strings.Split(swag.StringValue(releaseImage.URL), "/")
+	if len(splits) < 2 {
+		return "", errors.Errorf("failed to get release image domain from %s", swag.StringValue(releaseImage.URL))
+	}
+	return extractHost(splits[0]), nil
 }

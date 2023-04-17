@@ -844,6 +844,7 @@ func NewHostStateMachine(sm stateswitch.StateMachine, th TransitionHandler) stat
 		If(NoSkipInstallationDisk),
 		If(NoSkipMissingDisk),
 		If(NoIPCollisionsInNetwork),
+		If(IsReleaseDomainNameResolvedCorrectly),
 	)
 
 	sm.AddTransitionRule(stateswitch.TransitionRule{

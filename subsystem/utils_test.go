@@ -507,7 +507,13 @@ func generateEssentialHostStepsWithInventory(ctx context.Context, h *models.Host
 }
 
 func generateDomainResolution(ctx context.Context, h *models.Host, name string, baseDomain string) {
-	generateDomainNameResolutionReply(ctx, h, *common.CreateWildcardDomainNameResolutionReply(name, baseDomain))
+	reply := common.CreateWildcardDomainNameResolutionReply(name, baseDomain)
+	reply.Resolutions = append(reply.Resolutions, &models.DomainResolutionResponseDomain{
+		DomainName:    swag.String("quay.io"),
+		IPV4Addresses: []strfmt.IPv4{"7.8.9.11/24"},
+		IPV6Addresses: []strfmt.IPv6{"1003:db8::11/120"},
+	})
+	generateDomainNameResolutionReply(ctx, h, *reply)
 }
 
 func generateCommonDomainReply(ctx context.Context, h *models.Host, clusterName, baseDomain string) {
@@ -529,6 +535,11 @@ func generateCommonDomainReply(ctx context.Context, h *models.Host, clusterName,
 			DomainName:    fqdn(constants.AppsSubDomainNameHostDNSValidation+".apps", clusterName, baseDomain),
 			IPV4Addresses: []strfmt.IPv4{"7.8.9.10/24"},
 			IPV6Addresses: []strfmt.IPv6{"1003:db8::10/120"},
+		},
+		{
+			DomainName:    swag.String("quay.io"),
+			IPV4Addresses: []strfmt.IPv4{"7.8.9.11/24"},
+			IPV6Addresses: []strfmt.IPv6{"1003:db8::11/120"},
 		},
 		{
 			DomainName:    fqdn(constants.DNSWildcardFalseDomainName, clusterName, baseDomain),

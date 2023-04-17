@@ -24,6 +24,7 @@ import (
 	"github.com/openshift/assisted-service/internal/operators"
 	"github.com/openshift/assisted-service/internal/provider/registry"
 	"github.com/openshift/assisted-service/internal/stream"
+	"github.com/openshift/assisted-service/internal/versions"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/leader"
 	logutil "github.com/openshift/assisted-service/pkg/log"
@@ -140,10 +141,12 @@ type Manager struct {
 	monitorInfraEnvQueryGenerator *common.MonitorInfraEnvQueryGenerator
 	kubeApiEnabled                bool
 	objectHandler                 s3wrapper.API
+	versionHandler                versions.Handler
 }
 
 func NewManager(log logrus.FieldLogger, db *gorm.DB, notificationStream stream.Notifier, eventsHandler eventsapi.Handler, hwValidator hardware.Validator, instructionApi hostcommands.InstructionApi,
-	hwValidatorCfg *hardware.ValidatorCfg, metricApi metrics.API, config *Config, leaderElector leader.ElectorInterface, operatorsApi operators.API, providerRegistry registry.ProviderRegistry, kubeApiEnabled bool, objectHandler s3wrapper.API) *Manager {
+	hwValidatorCfg *hardware.ValidatorCfg, metricApi metrics.API, config *Config, leaderElector leader.ElectorInterface, operatorsApi operators.API, providerRegistry registry.ProviderRegistry, kubeApiEnabled bool, objectHandler s3wrapper.API,
+	versionHandler versions.Handler) *Manager {
 	th := &transitionHandler{
 		db:            db,
 		log:           log,
@@ -160,12 +163,13 @@ func NewManager(log logrus.FieldLogger, db *gorm.DB, notificationStream stream.N
 		hwValidator:    hwValidator,
 		eventsHandler:  eventsHandler,
 		sm:             sm,
-		rp:             newRefreshPreprocessor(log, hwValidatorCfg, hwValidator, operatorsApi, config.DisabledHostvalidations, providerRegistry),
+		rp:             newRefreshPreprocessor(log, hwValidatorCfg, hwValidator, operatorsApi, config.DisabledHostvalidations, providerRegistry, versionHandler),
 		metricApi:      metricApi,
 		Config:         *config,
 		leaderElector:  leaderElector,
 		kubeApiEnabled: kubeApiEnabled,
 		objectHandler:  objectHandler,
+		versionHandler: versionHandler,
 	}
 }
 

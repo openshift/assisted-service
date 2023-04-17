@@ -40,6 +40,7 @@ const (
 	IsAPIDomainNameResolvedCorrectly               = validationID(models.HostValidationIDAPIDomainNameResolvedCorrectly)
 	IsAPIInternalDomainNameResolvedCorrectly       = validationID(models.HostValidationIDAPIIntDomainNameResolvedCorrectly)
 	IsAppsDomainNameResolvedCorrectly              = validationID(models.HostValidationIDAppsDomainNameResolvedCorrectly)
+	IsReleaseDomainNameResolvedCorrectly           = validationID(models.HostValidationIDReleaseDomainNameResolvedCorrectly)
 	CompatibleWithClusterPlatform                  = validationID(models.HostValidationIDCompatibleWithClusterPlatform)
 	IsDNSWildcardNotConfigured                     = validationID(models.HostValidationIDDNSWildcardNotConfigured)
 	DiskEncryptionRequirementsSatisfied            = validationID(models.HostValidationIDDiskEncryptionRequirementsSatisfied)
@@ -71,6 +72,7 @@ func (v validationID) category() (string, error) {
 		IsAppsDomainNameResolvedCorrectly,
 		IsDNSWildcardNotConfigured,
 		NonOverlappingSubnets,
+		IsReleaseDomainNameResolvedCorrectly,
 		NoIPCollisionsInNetwork:
 		return "network", nil
 	case HasInventory,

@@ -22,6 +22,7 @@ import (
 	"github.com/openshift/assisted-service/internal/network"
 	"github.com/openshift/assisted-service/internal/operators"
 	"github.com/openshift/assisted-service/internal/provider/registry"
+	"github.com/openshift/assisted-service/internal/versions"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/conversions"
 	"github.com/openshift/assisted-service/pkg/s3wrapper"
@@ -278,6 +279,7 @@ type validator struct {
 	hwValidator      hardware.Validator
 	operatorsAPI     operators.API
 	providerRegistry registry.ProviderRegistry
+	versionHandler   versions.Handler
 }
 
 func (v *validator) isMediaConnected(c *validationContext) (ValidationStatus, string) {
@@ -1326,7 +1328,7 @@ func (v *validator) importedClusterHasManagedNetworking(cluster *common.Cluster)
 // If our SNO dnsmaq hack is enabled (ENABLE_SINGLE_NODE_DNSMASQ), then day-1
 // SNO clusters are an exception to the rule above. Our dnsmasq hack is enabled
 // for OCP and disabled for OKD.
-func (v *validator) shouldValidateDNSResolution(cluster *common.Cluster) (bool, ValidationStatus) {
+func (v *validator) shouldValidateDNSResolution(cluster *common.Cluster, domainName, target string) (bool, ValidationStatus, string) {
 	var hasManagedNetworking bool
 	if !common.IsImportedCluster(cluster) {
 		hasManagedNetworking = !swag.BoolValue(cluster.UserManagedNetworking)
@@ -1344,7 +1346,7 @@ func (v *validator) shouldValidateDNSResolution(cluster *common.Cluster) (bool, 
 			// Wait until one of the day-2 hosts gets an API connectivity
 			// response so we can determine whether the cluster has managed
 			// networking or not
-			return false, ValidationPending
+			return false, ValidationPending, fmt.Sprintf("DNS validation for the %s domain cannot be completed at the moment. This could be due to other validations", domainName)
 		}
 
 		// Check if the files within the ignition indicate the cluster has managed networking
@@ -1355,27 +1357,27 @@ func (v *validator) shouldValidateDNSResolution(cluster *common.Cluster) (bool, 
 		// Clusters with managed networking never need DNS validations as they
 		// automatically take care of the required DNS configuration within the
 		// host
-		return false, ValidationSuccess
+		return false, ValidationSuccess, fmt.Sprintf("Domain name resolution for the %s domain was successful or not required", domainName)
 	}
 
 	if common.IsDay2Cluster(cluster) {
 		// All day 2 clusters that don't have managed networking, regardless of
 		// SNO or not, need DNS validations, as day-2 workers cannot benefit
-		// for the SNO dnsmasq hack that is levereged by the day-1 cluster.
+		// for the SNO dnsmasq hack that is leveraged by the day-1 cluster.
 	} else {
 		// This is a day-1, user-managed-networking cluster
 		networkCfg, err := network.NewConfig()
 		if err != nil {
 			// This should never happen, so the values chosen here are arbitrary
 			// and have no effect on anything
-			return false, ValidationSuccess
+			return false, ValidationSuccess, fmt.Sprintf("Domain name resolution for the %s domain was successful or not required", domainName)
 		}
 
 		if common.IsSingleNodeCluster(cluster) && networkCfg.EnableSingleNodeDnsmasq {
 			// day-1 SNO clusters don't need to perform DNS validation when our
 			// dnsmasq hack is enabled, as it takes care of having the required DNS
 			// entries automatically configured within the host
-			return false, ValidationSuccess
+			return false, ValidationSuccess, fmt.Sprintf("Domain name resolution for the %s domain was successful or not required", domainName)
 		}
 	}
 
@@ -1388,9 +1390,9 @@ func (v *validator) shouldValidateDNSResolution(cluster *common.Cluster) (bool, 
 		// clusters where the user specified an IP address as the API hostname
 		// rather than a DNS domain, so a base domain for the cluster cannot
 		// not be derived, but it's a check/error we perform for all cluster types.
-		return false, ValidationError
+		return false, ValidationError, fmt.Sprintf("DNS validation for the %s domain cannot be completed because the cluster does not have base_dns_domain set. Please update the cluster with the correct base_dns_domain", target)
 	}
-	return true, ""
+	return true, "", ""
 }
 
 // canDetermineImportedClusterManagedNetworking checks if at-least one of the
@@ -1419,56 +1421,55 @@ func (v *validator) canDetermineImportedClusterManagedNetworking(cluster *common
 }
 
 func domainNameToResolve(c *validationContext, name string) string {
+	if c.infraEnv != nil {
+		return ""
+	}
 	return fmt.Sprintf("%s.%s.%s", name, c.cluster.Name, c.cluster.BaseDNSDomain)
 }
 
-func (v *validator) isAPIDomainNameResolvedCorrectly(c *validationContext) (ValidationStatus, string) {
-	target := "API load balancer"
+func printableDomain(c *validationContext, domainName, target string) string {
+	if c.infraEnv != nil {
+		return ""
+	}
+	if c.cluster.BaseDNSDomain == "" {
+		return target
+	}
+	return domainName
+}
+
+func (v *validator) isDomainNameResolvedCorrectly(c *validationContext, domainName, printableDomain, target string) (ValidationStatus, string) {
 	if c.infraEnv != nil {
 		return ValidationSuccessSuppressOutput, ""
 	}
 
-	apiDomainName := domainNameToResolve(c, constants.APIClusterSubdomain)
-	shouldValidate, status := v.shouldValidateDNSResolution(c.cluster)
+	shouldValidate, status, printStr := v.shouldValidateDNSResolution(c.cluster, printableDomain, target)
 	if shouldValidate {
-		status = checkDomainNameResolution(c, apiDomainName)
+		status, printStr = checkDomainNameResolution(c, domainName, printableDomain, target)
 	}
 
-	return status, printIsDomainNameResolvedCorrectly(c, status, apiDomainName, target)
+	return status, printStr
+}
+
+func (v *validator) isClusterNonWilcardDomainResolvedCorrectly(c *validationContext, subdomain, target string) (ValidationStatus, string) {
+	domainName := domainNameToResolve(c, subdomain)
+	printableDomain := printableDomain(c, domainName, target)
+	return v.isDomainNameResolvedCorrectly(c, domainName, printableDomain, target)
+}
+
+func (v *validator) isAPIDomainNameResolvedCorrectly(c *validationContext) (ValidationStatus, string) {
+	return v.isClusterNonWilcardDomainResolvedCorrectly(c, constants.APIClusterSubdomain, "API load balancer")
 }
 
 func (v *validator) isAPIInternalDomainNameResolvedCorrectly(c *validationContext) (ValidationStatus, string) {
-	target := "internal API load balancer"
-	if c.infraEnv != nil {
-		return ValidationSuccessSuppressOutput, ""
-	}
-
-	apiInternalDomainName := domainNameToResolve(c, constants.InternalAPIClusterSubdomain)
-	shouldValidate, status := v.shouldValidateDNSResolution(c.cluster)
-	if shouldValidate {
-		status = checkDomainNameResolution(c, apiInternalDomainName)
-	}
-
-	return status, printIsDomainNameResolvedCorrectly(c, status, apiInternalDomainName, target)
+	return v.isClusterNonWilcardDomainResolvedCorrectly(c, constants.InternalAPIClusterSubdomain, "internal API load balancer")
 }
 
 func (v *validator) isAppsDomainNameResolvedCorrectly(c *validationContext) (ValidationStatus, string) {
-	if c.infraEnv != nil {
-		return ValidationSuccessSuppressOutput, ""
-	}
+	target := "application ingress"
+	domainName := domainNameToResolve(c, fmt.Sprintf("%s.apps", constants.AppsSubDomainNameHostDNSValidation))
+	printableDomain := printableDomain(c, domainNameToResolve(c, "*.apps"), target)
 
-	shouldValidate, status := v.shouldValidateDNSResolution(c.cluster)
-	if shouldValidate {
-		appsDomainName := fmt.Sprintf("%s.apps.%s.%s", constants.AppsSubDomainNameHostDNSValidation, c.cluster.Name, c.cluster.BaseDNSDomain)
-		status = checkDomainNameResolution(c, appsDomainName)
-	}
-
-	return status, v.printIsAppsDomainNameResolvedCorrectly(c, status)
-}
-
-func (v *validator) printIsAppsDomainNameResolvedCorrectly(c *validationContext, status ValidationStatus) string {
-	appsDomainName := domainNameToResolve(c, "*.apps")
-	return printIsDomainNameResolvedCorrectly(c, status, appsDomainName, "application ingress")
+	return v.isDomainNameResolvedCorrectly(c, domainName, printableDomain, target)
 }
 
 func getFirstMatchingResolution(c *validationContext, domainName string) (*models.DomainResolutionResponseDomain, error) {
@@ -1504,73 +1505,36 @@ func domainResolvesToInventoryIP(domain *models.DomainResolutionResponseDomain, 
 	return "", false
 }
 
-func checkDomainNameResolution(c *validationContext, domainName string) ValidationStatus {
+func checkDomainNameResolution(c *validationContext, domainName, printableDomain, target string) (ValidationStatus, string) {
 	domain, err := getFirstMatchingResolution(c, domainName)
 	if err != nil {
-		return ValidationError
+		return ValidationError, "Error while evaluating DNS resolution on this host"
 	}
 	if domain != nil {
-		_, domainResolved := domainResolvesToInventoryIP(domain, c.inventory)
-		return boolValue(!domainResolved)
-	}
-	return ValidationFailure
-}
-
-func printIsDomainNameResolvedCorrectlySuccess(c *validationContext, status ValidationStatus, domainName string, destination string) string {
-	domain := domainName
-	if c.cluster.BaseDNSDomain == "" {
-		domain = destination
-	}
-
-	return fmt.Sprintf("Domain name resolution for the %s domain was successful or not required", domain)
-}
-
-func printIsDomainNameResolvedCorrectlyFailure(c *validationContext, status ValidationStatus, domainName string, destination string) string {
-	domainResolution, err := getFirstMatchingResolution(c, domainName)
-	if err != nil {
-		return fmt.Sprintf("There was a problem while attempting to resolve the domain name %s. Error: %s", domainName, err)
-	}
-
-	if domainResolution != nil {
-		ip, resolved := domainResolvesToInventoryIP(domainResolution, c.inventory)
-		if resolved {
-			return fmt.Sprintf("Domain %s must not point at %s as it is the API address of this host. This domain must instead point at the IP address of a load balancer when using user managed networking in a multi control-plane node cluster", domainName, ip)
+		ip, domainResolved := domainResolvesToInventoryIP(domain, c.inventory)
+		if domainResolved {
+			return ValidationFailure, fmt.Sprintf("Domain %s must not point at %s as it is the API address of this host. This domain must instead point at the IP address of a load balancer when using user managed networking in a multi control-plane node cluster", printableDomain, ip)
 		}
+		return ValidationSuccess, fmt.Sprintf("Domain name resolution for the %s domain was successful or not required", printableDomain)
 	}
-
-	return fmt.Sprintf("Couldn't resolve domain name %s on the host. To continue installation, create the necessary DNS entries to resolve this domain name to your cluster's %s IP address", domainName, destination)
+	return ValidationFailure, fmt.Sprintf("Couldn't resolve domain name %s on the host. To continue installation, create the necessary DNS entries to resolve this domain name to your cluster's %s IP address", printableDomain, target)
 }
 
-func printIsDomainNameResolvedCorrectlyError(c *validationContext, status ValidationStatus, domainName string, destination string) string {
-	if c.cluster.BaseDNSDomain == "" {
-		return fmt.Sprintf("DNS validation for the %s domain cannot be completed because the cluster does not have base_dns_domain set. Please update the cluster with the correct base_dns_domain", destination)
+func (v *validator) isReleaseDomainResolvedCorrectly(c *validationContext) (ValidationStatus, string) {
+	if c.cluster == nil {
+		return ValidationSuccess, "host is unbound"
 	}
-
-	return "Error while evaluating DNS resolution on this host"
-}
-
-func printIsDomainNameResolvedCorrectlyPending(c *validationContext, status ValidationStatus, domainName string, destination string) string {
-	domain := domainName
-	if c.cluster.BaseDNSDomain == "" {
-		domain = destination
+	if common.IsDay2Cluster(c.cluster) && swag.StringValue(c.host.Kind) == models.HostKindAddToExistingClusterHost {
+		return ValidationSuccess, "host belongs to day2 cluster"
 	}
-
-	return fmt.Sprintf("DNS validation for the %s domain cannot be completed at the moment. This could be due to other validations", domain)
-}
-
-func printIsDomainNameResolvedCorrectly(c *validationContext, status ValidationStatus, domainName string, destination string) string {
-	switch status {
-	case ValidationPending:
-		return printIsDomainNameResolvedCorrectlyPending(c, status, domainName, destination)
-	case ValidationSuccess:
-		return printIsDomainNameResolvedCorrectlySuccess(c, status, domainName, destination)
-	case ValidationFailure:
-		return printIsDomainNameResolvedCorrectlyFailure(c, status, domainName, destination)
-	case ValidationError:
-		return printIsDomainNameResolvedCorrectlyError(c, status, domainName, destination)
-	default:
-		return "Unexpected status"
+	releaseImageHost, err := versions.GetReleaseImageHost(c.cluster, v.versionHandler)
+	if err != nil {
+		return ValidationError, fmt.Sprintf("failed to get release domain for cluster %s", c.cluster.ID.String())
 	}
+	if net.ParseIP(releaseImageHost) != nil {
+		return ValidationSuccess, fmt.Sprintf("Release host %s is an IP address", releaseImageHost)
+	}
+	return checkDomainNameResolution(c, releaseImageHost, releaseImageHost, "release image host")
 }
 
 func (v *validator) isDNSWildcardNotConfigured(c *validationContext) (ValidationStatus, string) {

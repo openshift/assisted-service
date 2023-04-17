@@ -25,8 +25,10 @@ import (
 	"github.com/openshift/assisted-service/internal/operators"
 	"github.com/openshift/assisted-service/internal/operators/api"
 	"github.com/openshift/assisted-service/internal/provider/registry"
+	"github.com/openshift/assisted-service/internal/versions"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/conversions"
+	"github.com/pkg/errors"
 	"github.com/vincent-petithory/dataurl"
 	"gorm.io/gorm"
 )
@@ -50,6 +52,7 @@ var _ = Describe("Validations test", func() {
 		mockHwValidator *hardware.MockValidator
 		mockMetric      *metrics.MockAPI
 		mockOperators   *operators.MockAPI
+		mockVersions    *versions.MockHandler
 		m               *Manager
 
 		clusterID, hostID, infraEnvID strfmt.UUID
@@ -64,7 +67,8 @@ var _ = Describe("Validations test", func() {
 		mockOperators = operators.NewMockAPI(ctrl)
 		pr := registry.NewMockProviderRegistry(ctrl)
 		pr.EXPECT().IsHostSupported(gomock.Any(), gomock.Any()).Return(true, nil).AnyTimes()
-		m = NewManager(common.GetTestLog(), db, nil, mockEvents, mockHwValidator, nil, createValidatorCfg(), mockMetric, defaultConfig, nil, mockOperators, pr, false, nil)
+		mockVersions = versions.NewMockHandler(ctrl)
+		m = NewManager(common.GetTestLog(), db, nil, mockEvents, mockHwValidator, nil, createValidatorCfg(), mockMetric, defaultConfig, nil, mockOperators, pr, false, nil, mockVersions)
 
 		clusterID = strfmt.UUID(uuid.New().String())
 		hostID = strfmt.UUID(uuid.New().String())
@@ -240,6 +244,10 @@ var _ = Describe("Validations test", func() {
 	}
 
 	Context("Ignition downloadable validation", func() {
+		BeforeEach(func() {
+			mockVersions.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+				Return(&models.ReleaseImage{URL: swag.String("quay.io/openshift/some-image::latest")}, nil).AnyTimes()
+		})
 		ignitionDownloadableID := validationID(models.HostValidationIDIgnitionDownloadable)
 		It("day 1 host with infraenv - successful validation", func() {
 			c := hostutil.GenerateTestCluster(clusterID)
@@ -416,6 +424,11 @@ var _ = Describe("Validations test", func() {
 			}
 		}
 
+		BeforeEach(func() {
+			mockVersions.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+				Return(&models.ReleaseImage{URL: swag.String("quay.io/openshift/some-image::latest")}, nil).AnyTimes()
+		})
+
 		Describe("Wildcard connectivity check is performed", func() {
 			successMessage := "DNS wildcard check was successful"
 			successMessageDay2 := "DNS wildcard check is not required for day2"
@@ -557,6 +570,8 @@ var _ = Describe("Validations test", func() {
 
 					testHost := createTestHost()
 
+					mockVersions.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+						Return(&models.ReleaseImage{URL: swag.String("quay.io/openshift/some-image::latest")}, nil).AnyTimes()
 					// Process validations
 					mockAndRefreshStatus(testHost)
 
@@ -884,6 +899,8 @@ var _ = Describe("Validations test", func() {
 						Expect(db.Create(host).Error).ShouldNot(HaveOccurred())
 
 						// Process validations
+						mockVersions.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+							Return(&models.ReleaseImage{URL: swag.String("quay.io/openshift/some-image::latest")}, nil).AnyTimes()
 						mockAndRefreshStatus(host)
 
 						// Get processed host from database
@@ -900,8 +917,123 @@ var _ = Describe("Validations test", func() {
 			}
 		}
 	})
+	Describe("Release image validation", func() {
+		tests := []*struct {
+			name                string
+			testHostResolvedDNS bool
+			expectedStatus      ValidationStatus
+			expectedMessage     string
+			releaseImageErrored bool
+			releaseImage        string
+			isDay2              bool
+		}{
+			{
+				name:                "successful resolution",
+				testHostResolvedDNS: true,
+				expectedStatus:      ValidationSuccess,
+				releaseImage:        "quay.io/openshift/some-image:latest",
+				expectedMessage:     "Domain name resolution for the quay.io domain was successful or not required",
+			},
+			{
+				name:                "successful resolution with port",
+				testHostResolvedDNS: true,
+				expectedStatus:      ValidationSuccess,
+				releaseImage:        "quay.io:5000/openshift/some-image:latest",
+				expectedMessage:     "Domain name resolution for the quay.io domain was successful or not required",
+			},
+			{
+				name:                "failed resolution",
+				testHostResolvedDNS: false,
+				releaseImage:        "quay.io/openshift/some-image:latest",
+				expectedStatus:      ValidationFailure,
+				expectedMessage:     "Couldn't resolve domain name quay.io on the host. To continue installation, create the necessary DNS entries to resolve this domain name to your cluster's release image host IP address",
+			},
+			{
+				name:                "IP and not domain",
+				testHostResolvedDNS: false,
+				releaseImage:        "1.2.3.4/openshift/some-image:latest",
+				expectedStatus:      ValidationSuccess,
+				expectedMessage:     "Release host 1.2.3.4 is an IP address",
+			},
+			{
+				name:                "error getting release image",
+				testHostResolvedDNS: true,
+				releaseImageErrored: true,
+				expectedStatus:      ValidationError,
+				expectedMessage:     fmt.Sprintf("failed to get release domain for cluster %s", clusterID.String()),
+			},
+			{
+				name:            "successful day2 host",
+				expectedStatus:  ValidationSuccess,
+				isDay2:          true,
+				expectedMessage: "host belongs to day2 cluster",
+			},
+		}
+		for i := range tests {
+			t := tests[i]
+			It(t.name, func() {
+				resolutions := common.TestDomainNameResolutionsSuccess
+				if !t.testHostResolvedDNS {
+					resolutions = common.TestDomainResolutionsAllEmpty
+				}
+				// Create test cluster
+				createTestCluster := func() {
+					var testCluster *common.Cluster
+					if t.isDay2 {
+						testCluster = generateDay2Cluster()
+					} else {
+						day1Cluster := hostutil.GenerateTestCluster(clusterID)
+						testCluster = &day1Cluster
+					}
+					Expect(db.Create(&testCluster).Error).ShouldNot(HaveOccurred())
+				}
 
+				createTestCluster()
+				var host *models.Host
+				if !t.isDay2 {
+					day1Host := hostutil.GenerateTestHost(hostID, infraEnvID, clusterID, models.HostStatusDiscovering)
+					host = &day1Host
+				} else {
+					host = getDay2Host()
+				}
+				setHostDomainResolutions(host, resolutions)
+				Expect(db.Create(host).Error).ShouldNot(HaveOccurred())
+				if !t.isDay2 {
+					if t.releaseImageErrored == false {
+						mockVersions.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+							Return(&models.ReleaseImage{URL: swag.String(t.releaseImage)}, nil).Times(1)
+					} else {
+						mockVersions.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+							Return(&models.ReleaseImage{}, errors.New("blah")).Times(1)
+					}
+				}
+
+				// Process validations
+				mockAndRefreshStatus(host)
+
+				// Get processed host from database
+				hostFromDatabase := hostutil.GetHostFromDB(*host.ID, host.InfraEnvID, db).Host
+
+				// Verify host validations
+				validationStatus, validationMessage, found := getValidationResult(hostFromDatabase.ValidationsInfo, IsReleaseDomainNameResolvedCorrectly)
+				Expect(found).To(BeTrue())
+				Expect(validationStatus).To(Equal(t.expectedStatus),
+					fmt.Sprintf("Validation status was not as expected, message: %s", validationMessage))
+				var expectedMessage string
+				if t.releaseImageErrored {
+					expectedMessage = fmt.Sprintf("failed to get release domain for cluster %s", clusterID.String())
+				} else {
+					expectedMessage = t.expectedMessage
+				}
+				Expect(validationMessage).To(Equal(expectedMessage))
+			})
+		}
+	})
 	Context("Disk encryption validation", func() {
+		BeforeEach(func() {
+			mockVersions.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+				Return(&models.ReleaseImage{URL: swag.String("quay.io/openshift/some-image::latest")}, nil).AnyTimes()
+		})
 		diskEncryptionID := validationID(models.HostValidationIDDiskEncryptionRequirementsSatisfied)
 		It("disk-encryption not set", func() {
 
@@ -1320,6 +1452,8 @@ var _ = Describe("Validations test", func() {
 			host.Inventory = hostutil.GenerateMasterInventory()
 			Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
 			host = hostutil.GetHostFromDB(*host.ID, host.InfraEnvID, db).Host
+			mockVersions.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+				Return(&models.ReleaseImage{URL: swag.String("quay.io/openshift/some-image::latest")}, nil).AnyTimes()
 		})
 
 		updateHostInventory := func(updateFunc func(*models.Inventory)) {
@@ -1424,6 +1558,8 @@ var _ = Describe("Validations test", func() {
 			host.Inventory = hostutil.GenerateMasterInventory()
 			Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
 			host = hostutil.GetHostFromDB(*host.ID, host.InfraEnvID, db).Host
+			mockVersions.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+				Return(&models.ReleaseImage{URL: swag.String("quay.io/openshift/some-image::latest")}, nil).AnyTimes()
 		})
 
 		It("Passes if the agent and the service use the same image", func() {
@@ -1497,6 +1633,8 @@ var _ = Describe("Validations test", func() {
 			host.Inventory = hostutil.GenerateMasterInventory()
 			Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
 			host = hostutil.GetHostFromDB(*host.ID, host.InfraEnvID, db).Host
+			mockVersions.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+				Return(&models.ReleaseImage{URL: swag.String("quay.io/openshift/some-image::latest")}, nil).AnyTimes()
 		})
 
 		for _, test := range []struct {
@@ -1606,6 +1744,8 @@ var _ = Describe("Validations test", func() {
 			host.Inventory = hostutil.GenerateMasterInventory()
 			Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
 			host = hostutil.GetHostFromDB(*host.ID, host.InfraEnvID, db).Host
+			mockVersions.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+				Return(&models.ReleaseImage{URL: swag.String("quay.io/openshift/some-image::latest")}, nil).AnyTimes()
 		})
 
 		for _, test := range []struct {
@@ -1766,6 +1906,8 @@ var _ = Describe("Validations test", func() {
 			host = hostutil.GenerateTestHostByKind(hostId, infraEnvId, &clusterID, models.HostStatusDiscovering, models.HostKindHost, models.HostRoleMaster)
 			Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
 			host = hostutil.GetHostFromDB(*host.ID, host.InfraEnvID, db).Host
+			mockVersions.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+				Return(&models.ReleaseImage{URL: swag.String("quay.io/openshift/some-image::latest")}, nil).AnyTimes()
 		})
 		It("Should be a pending validation if the inventory is nil", func() {
 			var inventoryBytes = []byte("")
@@ -1791,6 +1933,8 @@ var _ = Describe("Validations test", func() {
 			host = hostutil.GenerateTestHostByKind(hostId, infraEnvId, &clusterID, models.HostStatusDiscovering, models.HostKindHost, models.HostRoleMaster)
 			Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
 			host = hostutil.GetHostFromDB(*host.ID, host.InfraEnvID, db).Host
+			mockVersions.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+				Return(&models.ReleaseImage{URL: swag.String("quay.io/openshift/some-image::latest")}, nil).AnyTimes()
 		})
 		It("Should be a pending validation if the inventory is nil", func() {
 			var inventoryBytes = []byte("")
@@ -1858,6 +2002,8 @@ var _ = Describe("Validations test", func() {
 		BeforeEach(func() {
 			cluster = hostutil.GenerateTestCluster(clusterID)
 			Expect(db.Create(&cluster).Error).ToNot(HaveOccurred())
+			mockVersions.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+				Return(&models.ReleaseImage{URL: swag.String("quay.io/openshift/some-image::latest")}, nil).AnyTimes()
 		})
 
 		It("if there is a bad CIDR in the inventory, the IP check should exit with an error", func() {

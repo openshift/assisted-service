@@ -14,6 +14,7 @@ import (
 	"github.com/openshift/assisted-service/internal/host/hostutil"
 	"github.com/openshift/assisted-service/internal/operators"
 	"github.com/openshift/assisted-service/internal/provider/registry"
+	"github.com/openshift/assisted-service/internal/versions"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/s3wrapper"
 	"github.com/sirupsen/logrus"
@@ -30,6 +31,7 @@ var _ = Describe("Cluster Refresh Status Preprocessor", func() {
 		mockOperatorManager   *operators.MockAPI
 		mockProviderRegistry  *registry.MockProviderRegistry
 		mockS3WrapperAPI      *s3wrapper.MockAPI
+		mockVersions          *versions.MockHandler
 		db                    *gorm.DB
 		dbName                string
 		cluster               *common.Cluster
@@ -62,6 +64,7 @@ var _ = Describe("Cluster Refresh Status Preprocessor", func() {
 		mockOperatorManager.EXPECT().ValidateHost(gomock.Any(), gomock.Any(), gomock.Any())
 		mockProviderRegistry = registry.NewMockProviderRegistry(ctrl)
 		mockS3WrapperAPI = s3wrapper.NewMockAPI(ctrl)
+		mockVersions = versions.NewMockHandler(ctrl)
 		mockOperatorManager.EXPECT().ValidateCluster(ctx, gomock.Any())
 		db, dbName = common.PrepareTestDB()
 		validatorConfig := &hardware.ValidatorCfg{}
@@ -73,6 +76,7 @@ var _ = Describe("Cluster Refresh Status Preprocessor", func() {
 			mockOperatorManager,
 			disabledHostValidations,
 			mockProviderRegistry,
+			mockVersions,
 		)
 	})
 
