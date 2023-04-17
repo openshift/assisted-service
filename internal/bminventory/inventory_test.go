@@ -12572,7 +12572,6 @@ var _ = Describe("TestRegisterCluster", func() {
 			verifyApiError(reply, http.StatusBadRequest)
 		})
 		It("ClusterManagedNetworking isn't compatible with s390x", func() {
-
 			mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
 				eventstest.WithNameMatcher(eventgen.ClusterRegistrationFailedEventName),
 				eventstest.WithMessageContainsMatcher("Failed to register cluster. Error: Can't disable User Managed Networking on s390x architecture"),
@@ -12583,6 +12582,33 @@ var _ = Describe("TestRegisterCluster", func() {
 			params.CPUArchitecture = models.ClusterCPUArchitectureS390x
 			params.Platform = nil
 			params.UserManagedNetworking = swag.Bool(false)
+
+			reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
+				NewClusterParams: params,
+			})
+			verifyApiError(reply, http.StatusBadRequest)
+		})
+		It("ClusterManagedNetworking isn't compatible with arm64", func() {
+			mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
+				eventstest.WithNameMatcher(eventgen.ClusterRegistrationFailedEventName),
+				eventstest.WithMessageContainsMatcher("Failed to register cluster. Error: cannot use Cluster Managed Networking because it's not compatible with the arm64 architecture on version 4.10"),
+				eventstest.WithSeverityMatcher(models.EventSeverityError))).Times(1)
+			mockOSImages.EXPECT().GetCPUArchitectures(gomock.Any()).Return([]string{common.ARM64CPUArchitecture}).Times(1)
+			params := getDefaultClusterCreateParams()
+			params.OpenshiftVersion = swag.String("4.10")
+			params.CPUArchitecture = models.ClusterCPUArchitectureArm64
+			params.Platform = nil
+			params.UserManagedNetworking = swag.Bool(false)
+			releaseImage := &models.ReleaseImage{
+				CPUArchitecture:  &params.CPUArchitecture,
+				OpenshiftVersion: params.OpenshiftVersion,
+				URL:              swag.String("quay.io/openshift-release-dev/ocp-release:4.10-x86_64"),
+				Version:          swag.String("4.10.0"),
+				SupportLevel:     models.OpenshiftVersionSupportLevelProduction,
+			}
+
+			mockOperatorManager.EXPECT().GetSupportedOperatorsByType(models.OperatorTypeBuiltin).Return([]*models.MonitoredOperator{}).Times(1)
+			mockVersions.EXPECT().GetReleaseImage(ctx, *params.OpenshiftVersion, params.CPUArchitecture, *params.PullSecret).Return(releaseImage, nil).Times(1)
 
 			reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 				NewClusterParams: params,
@@ -13686,21 +13712,6 @@ var _ = Describe("TestRegisterCluster", func() {
 		Expect(reflect.TypeOf(reply)).Should(Equal(reflect.TypeOf(installer.NewV2RegisterClusterCreated())))
 		actual := reply.(*installer.V2RegisterClusterCreated)
 		Expect(actual.Payload.CPUArchitecture).To(Equal(common.MultiCPUArchitecture))
-	})
-
-	It("Register cluster with arm64 CPU architecture - without UserManagedNetworking", func() {
-		mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
-			eventstest.WithNameMatcher(eventgen.ClusterRegistrationFailedEventName),
-			eventstest.WithMessageContainsMatcher(fmt.Sprintf("Non x86_64 CPU architectures for version %s "+
-				"are supported only with User Managed Networking", common.TestDefaultConfig.OpenShiftVersion)),
-			eventstest.WithSeverityMatcher(models.EventSeverityError))).Times(1)
-
-		params := getDefaultClusterCreateParams()
-		params.CPUArchitecture = common.ARM64CPUArchitecture
-		reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
-			NewClusterParams: params,
-		})
-		Expect(reply).Should(BeAssignableToTypeOf(common.NewApiError(http.StatusBadRequest, errors.Errorf("error"))))
 	})
 
 	It("Register cluster without specified CPU architecture", func() {
