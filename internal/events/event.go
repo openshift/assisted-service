@@ -239,58 +239,61 @@ func (e *Events) V2AddMetricsEvent(ctx context.Context, clusterID *strfmt.UUID, 
 	e.v2SaveEvent(ctx, clusterID, hostID, infraEnvID, name, models.EventCategoryMetrics, severity, msg, eventTime, requestID, props...)
 }
 
-func filterEvents(db *gorm.DB, clusterID *strfmt.UUID, hostIds []strfmt.UUID, infraEnvID *strfmt.UUID, severity []string, message *string, deletedHosts, clusterLevel *bool) *gorm.DB {
+// If specific hosts, deleted hosts or cluster level events were specified,
+// we want to filter the rest of the events
+func buildDisjunctiveQuery(tx *gorm.DB, hostIds []strfmt.UUID, deletedHosts, clusterLevel *bool) *gorm.DB {
+	// if none of above selected, we don't filter
+	if !swag.BoolValue(deletedHosts) && !swag.BoolValue(clusterLevel) && hostIds == nil {
+		return tx.Where("TRUE")
+	}
+
+	// techical 'Where' before 'ORs'
+	tx = tx.Where("FALSE")
+
+	if swag.BoolValue(deletedHosts) {
+		tx.Or("hosts.deleted_at IS NOT NULL")
+	}
+
+	if swag.BoolValue(clusterLevel) {
+		tx = tx.Or("events.host_id IS NULL")
+	}
+
+	if hostIds != nil {
+		tx = tx.Or("events.host_id IN (?)", hostsUUIDsToStrings(hostIds))
+	}
+
+	return tx
+}
+
+func filterEvents(tx *gorm.DB, clusterID *strfmt.UUID, hostIds []strfmt.UUID, infraEnvID *strfmt.UUID, severities []string, message *string, deletedHosts, clusterLevel *bool, cleanQuery *gorm.DB) *gorm.DB {
 	if clusterID != nil {
-		db = db.Where("events.cluster_id = ?", clusterID.String())
+
+		tx = tx.Where("events.cluster_id = ?", clusterID.String())
 
 		// filter by event severity
-		if severity != nil {
-			db = db.Where("events.severity IN (?)", severity)
+		if severities != nil {
+			tx = tx.Where("events.severity IN (?)", severities)
 		}
 
 		// filter by event message
 		if message != nil {
-			db = db.Where("events.message LIKE ?", fmt.Sprintf("%%%s%%", *message))
+			tx = tx.Where("events.message LIKE ?", fmt.Sprintf("%%%s%%", *message))
 		}
 
-		// cluster level and specific hosts events
-		if swag.BoolValue(clusterLevel) && !swag.BoolValue(deletedHosts) {
-			db = db.Where("events.host_id IS NULL")
-		}
+		tx = tx.Where(buildDisjunctiveQuery(cleanQuery, hostIds, deletedHosts, clusterLevel))
 
-		// deleted hosts and specific hosts events
-		if !swag.BoolValue(clusterLevel) && swag.BoolValue(deletedHosts) {
-			db = db.Where("hosts.deleted_at IS NOT NULL")
-		}
-
-		// deleted hosts, cluster level and specific hosts events
-		if swag.BoolValue(clusterLevel) && swag.BoolValue(deletedHosts) {
-			db = db.Where("hosts.deleted_at IS NOT NULL").
-				Or("events.host_id IS NULL")
-		}
-
-		// In case none of the latter occurred and we are going to hit the next condition,
-		// the query should be prefixed with 'Where' before 'Or'
-		if !swag.BoolValue(clusterLevel) && !swag.BoolValue(deletedHosts) && hostIds != nil {
-			db = db.Where("FALSE")
-		}
-
-		if hostIds != nil {
-			db = db.Or("events.host_id IN (?)", hostsUUIDsToStrings(hostIds))
-		}
-
-		return db
+		return tx
 	}
 
 	if hostIds != nil {
-		return db.Where("events.host_id IN (?)", hostsUUIDsToStrings(hostIds))
+		return tx.Where("events.host_id IN (?)", hostsUUIDsToStrings(hostIds))
 	}
 
 	if infraEnvID != nil {
-		return db.Where("events.infra_env_id = ?", infraEnvID.String())
+		return tx.Where("events.infra_env_id = ?", infraEnvID.String())
 	}
 
-	return db
+	return tx
 }
 
 func hostsUUIDsToStrings(hostIDs []strfmt.UUID) []string {
@@ -422,6 +425,7 @@ func isDescending(order *string) (*bool, error) {
 
 func (e Events) queryEvents(ctx context.Context, params *common.V2GetEventsParams) ([]*common.Event, *common.EventSeverityCount, error) {
 
+	cleanQuery := e.db.Session(&gorm.Session{})
 	tx := e.db.Where("category IN (?)", params.Categories)
 
 	events := []*common.Event{}
@@ -436,7 +440,7 @@ func (e Events) queryEvents(ctx context.Context, params *common.V2GetEventsParam
 		return make([]*common.Event, 0), &common.EventSeverityCount{}, nil
 	}
 
-	tx = filterEvents(tx, params.ClusterID, params.HostIds, params.InfraEnvID, params.Severities, params.Message, params.DeletedHosts, params.ClusterLevel)
+	tx = filterEvents(tx, params.ClusterID, params.HostIds, params.InfraEnvID, params.Severities, params.Message, params.DeletedHosts, params.ClusterLevel, cleanQuery)
 
 	eventSeverityCount, err := countEventsBySeverity(tx.Session(&gorm.Session{}), params.ClusterID)
 	if err != nil {
