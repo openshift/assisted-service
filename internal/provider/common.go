@@ -139,7 +139,7 @@ func GetActualCreateClusterPlatformParams(platform *models.Platform, userManaged
 		return nil, nil, err
 	}
 
-	if cpuArchitecture == models.ClusterCPUArchitectureS390x {
+	if cpuArchitecture == models.ClusterCPUArchitectureS390x || cpuArchitecture == models.ClusterCPUArchitecturePpc64le {
 		if userManagedNetworking != nil && !*userManagedNetworking {
 			return nil, nil, common.NewApiError(http.StatusBadRequest, errors.Errorf("Can't disable User Managed Networking on %s architecture", cpuArchitecture))
 		} else if platform != nil && !isPlatformNone(platform) {
