@@ -774,8 +774,29 @@ var _ = Describe("Events library", func() {
 
 		BeforeEach(func() {
 			ctx = context.Background()
+			deletedHostID1 := strfmt.UUID("1e45d128-4a69-4e71-9b50-b7e289a09d9a")
+			deletedHost1 := &common.Host{
+				Host: models.Host{
+					ID:         &deletedHostID1,
+					ClusterID:  &cluster1,
+					InfraEnvID: infraEnv1,
+					DeletedAt:  gorm.DeletedAt{Time: time.Now(), Valid: true},
+				},
+			}
+			db.Create(&deletedHost1)
+			deletedHostID2 := strfmt.UUID("2a635bca-29ac-34bc-12ad-ac38475abc12")
+			deletedHost2 := &common.Host{
+				Host: models.Host{
+					ID:         &deletedHostID2,
+					ClusterID:  &cluster1,
+					InfraEnvID: infraEnv1,
+					DeletedAt:  gorm.DeletedAt{Time: time.Now(), Valid: true},
+				},
+			}
+			db.Create(&deletedHost2)
 
 			// hosts events
+
 			theEvents.V2AddEvent(
 				ctx,
 				&cluster1,
@@ -792,7 +813,7 @@ var _ = Describe("Events library", func() {
 				&host,
 				&infraEnv1,
 				eventgen.ClusterInstallationFailedEventName,
-				models.EventSeverityInfo,
+				models.EventSeverityWarning,
 				"Installtion failed",
 				time.Date(2023, 2, 21, 30, 0, 0, 0, time.UTC),
 			)
@@ -802,7 +823,7 @@ var _ = Describe("Events library", func() {
 				&host2,
 				&infraEnv1,
 				eventgen.ClusterInstallationCanceledEventName,
-				models.EventSeverityWarning,
+				models.EventSeverityError,
 				"Installation canceled",
 				time.Date(2023, 2, 21, 40, 0, 0, 0, time.UTC),
 			)
@@ -812,7 +833,7 @@ var _ = Describe("Events library", func() {
 				&host2,
 				&infraEnv1,
 				eventgen.ClusterInstallationCanceledEventName,
-				models.EventSeverityError,
+				models.EventSeverityCritical,
 				"Upgrade failed",
 				time.Date(2023, 2, 21, 50, 0, 0, 0, time.UTC),
 			)
@@ -835,27 +856,76 @@ var _ = Describe("Events library", func() {
 				nil,
 				nil,
 				eventgen.ClusterInstallationCompletedEventName,
-				models.EventSeverityInfo,
+				models.EventSeverityWarning,
 				"Cluster installation completed",
 				time.Date(2023, 2, 22, 10, 0, 0, 0, time.UTC),
+			)
+			theEvents.V2AddEvent(
+				ctx,
+				&cluster1,
+				nil,
+				nil,
+				eventgen.ClusterInstallationCompletedEventName,
+				models.EventSeverityError,
+				"Cluster installation not completed",
+				time.Date(2023, 2, 22, 10, 0, 0, 0, time.UTC),
+			)
+
+			// deleted hosts events
+
+			theEvents.V2AddEvent(
+				ctx,
+				&cluster1,
+				deletedHost1.ID,
+				&infraEnv1,
+				eventgen.HostCancelInstallationFailedEventName,
+				models.EventSeverityInfo,
+				"Host cancel installation failed",
+				time.Date(2023, 2, 21, 30, 0, 0, 0, time.UTC),
+			)
+
+			theEvents.V2AddEvent(
+				ctx,
+				&cluster1,
+				deletedHost2.ID,
+				&infraEnv1,
+				eventgen.HostCancelInstallationFailedEventName,
+				models.EventSeverityWarning,
+				"Host disconnected",
+				time.Date(2023, 2, 21, 30, 0, 0, 0, time.UTC),
+			)
+
+			// different cluster events
+
+			theEvents.V2AddEvent(
+				ctx,
+				&cluster2,
+				nil,
+				nil,
+				eventgen.ClusterInstallationCompletedEventName,
+				models.EventSeverityCritical,
+				"Cluster is not ready for installation",
+				time.Date(2023, 2, 22, 20, 0, 0, 0, time.UTC),
 			)
 		})
 
 		It("Get correct count", func() {
 			response, err := theEvents.V2GetEvents(
 				ctx,
-				common.GetDefaultV2GetEventsParams(&cluster1, []strfmt.UUID{host}, &infraEnv1),
+				common.GetDefaultV2GetEventsParams(&cluster1, nil, nil),
 			)
 			Expect(err).ToNot(HaveOccurred())
 
+			events := response.GetEvents()
 			eventSeverityCount := response.GetEventSeverityCount()
-			Expect(int((*eventSeverityCount)[models.EventSeverityInfo])).To(Equal(2))
-			Expect(int((*eventSeverityCount)[models.EventSeverityWarning])).To(Equal(0))
-			Expect(int((*eventSeverityCount)[models.EventSeverityError])).To(Equal(0))
-			Expect(int((*eventSeverityCount)[models.EventSeverityCritical])).To(Equal(0))
+			Expect(int((*eventSeverityCount)[models.EventSeverityInfo])).To(Equal(3))
+			Expect(int((*eventSeverityCount)[models.EventSeverityWarning])).To(Equal(3))
+			Expect(int((*eventSeverityCount)[models.EventSeverityError])).To(Equal(2))
+			Expect(int((*eventSeverityCount)[models.EventSeverityCritical])).To(Equal(1))
+			Expect(events).To(HaveLen(9))
 		})
 
-		It("Filter by severity", func() {
+		It("Filter by severities", func() {
 			response, err := theEvents.V2GetEvents(
 				ctx,
 				&common.V2GetEventsParams{
@@ -867,11 +937,11 @@ var _ = Describe("Events library", func() {
 
 			events := response.GetEvents()
 			eventSeverityCount := response.GetEventSeverityCount()
-			Expect(int((*eventSeverityCount)[models.EventSeverityInfo])).To(Equal(4))
+			Expect(int((*eventSeverityCount)[models.EventSeverityInfo])).To(Equal(3))
 			Expect(int((*eventSeverityCount)[models.EventSeverityWarning])).To(Equal(0))
 			Expect(int((*eventSeverityCount)[models.EventSeverityError])).To(Equal(0))
 			Expect(int((*eventSeverityCount)[models.EventSeverityCritical])).To(Equal(0))
-			Expect(events).To(HaveLen(4))
+			Expect(events).To(HaveLen(3))
 		})
 
 		It("Filter by exact message", func() {
@@ -886,8 +956,8 @@ var _ = Describe("Events library", func() {
 
 			events := response.GetEvents()
 			eventSeverityCount := response.GetEventSeverityCount()
-			Expect(int((*eventSeverityCount)[models.EventSeverityInfo])).To(Equal(1))
-			Expect(int((*eventSeverityCount)[models.EventSeverityWarning])).To(Equal(0))
+			Expect(int((*eventSeverityCount)[models.EventSeverityInfo])).To(Equal(0))
+			Expect(int((*eventSeverityCount)[models.EventSeverityWarning])).To(Equal(1))
 			Expect(int((*eventSeverityCount)[models.EventSeverityError])).To(Equal(0))
 			Expect(int((*eventSeverityCount)[models.EventSeverityCritical])).To(Equal(0))
 			Expect(events).To(HaveLen(1))
@@ -906,15 +976,15 @@ var _ = Describe("Events library", func() {
 			events := response.GetEvents()
 			eventSeverityCount := response.GetEventSeverityCount()
 			Expect(int((*eventSeverityCount)[models.EventSeverityInfo])).To(Equal(1))
-			Expect(int((*eventSeverityCount)[models.EventSeverityWarning])).To(Equal(0))
-			Expect(int((*eventSeverityCount)[models.EventSeverityError])).To(Equal(1))
-			Expect(int((*eventSeverityCount)[models.EventSeverityCritical])).To(Equal(0))
-			Expect(events).To(HaveLen(2))
+			Expect(int((*eventSeverityCount)[models.EventSeverityWarning])).To(Equal(1))
+			Expect(int((*eventSeverityCount)[models.EventSeverityError])).To(Equal(0))
+			Expect(int((*eventSeverityCount)[models.EventSeverityCritical])).To(Equal(1))
+			Expect(events).To(HaveLen(3))
 		})
 
-		It("Filter by message and severity", func() {
+		It("Filter by message and severities", func() {
 
-			response, err := theEvents.V2GetEvents(
+			responseNoMatch, err := theEvents.V2GetEvents(
 				ctx,
 				&common.V2GetEventsParams{
 					ClusterID:  &cluster1,
@@ -924,11 +994,29 @@ var _ = Describe("Events library", func() {
 			)
 			Expect(err).ToNot(HaveOccurred())
 
-			events := response.GetEvents()
-			eventSeverityCount := response.GetEventSeverityCount()
+			events := responseNoMatch.GetEvents()
+			eventSeverityCount := responseNoMatch.GetEventSeverityCount()
 			Expect(int((*eventSeverityCount)[models.EventSeverityInfo])).To(Equal(0))
-			Expect(int((*eventSeverityCount)[models.EventSeverityWarning])).To(Equal(1))
+			Expect(int((*eventSeverityCount)[models.EventSeverityWarning])).To(Equal(0))
 			Expect(int((*eventSeverityCount)[models.EventSeverityError])).To(Equal(0))
+			Expect(int((*eventSeverityCount)[models.EventSeverityCritical])).To(Equal(0))
+			Expect(events).To(HaveLen(0))
+
+			responseMatch, err := theEvents.V2GetEvents(
+				ctx,
+				&common.V2GetEventsParams{
+					ClusterID:  &cluster1,
+					Severities: []string{models.EventSeverityError},
+					Message:    swag.String("Installation canceled"),
+				},
+			)
+			Expect(err).ToNot(HaveOccurred())
+
+			events = responseMatch.GetEvents()
+			eventSeverityCount = responseMatch.GetEventSeverityCount()
+			Expect(int((*eventSeverityCount)[models.EventSeverityInfo])).To(Equal(0))
+			Expect(int((*eventSeverityCount)[models.EventSeverityWarning])).To(Equal(0))
+			Expect(int((*eventSeverityCount)[models.EventSeverityError])).To(Equal(1))
 			Expect(int((*eventSeverityCount)[models.EventSeverityCritical])).To(Equal(0))
 			Expect(events).To(HaveLen(1))
 		})
@@ -946,202 +1034,61 @@ var _ = Describe("Events library", func() {
 
 			events := response.GetEvents()
 			eventSeverityCount := response.GetEventSeverityCount()
-			Expect(int((*eventSeverityCount)[models.EventSeverityInfo])).To(Equal(2))
-			Expect(int((*eventSeverityCount)[models.EventSeverityWarning])).To(Equal(0))
+			Expect(int((*eventSeverityCount)[models.EventSeverityInfo])).To(Equal(1))
+			Expect(int((*eventSeverityCount)[models.EventSeverityWarning])).To(Equal(1))
+			Expect(int((*eventSeverityCount)[models.EventSeverityError])).To(Equal(1))
+			Expect(int((*eventSeverityCount)[models.EventSeverityCritical])).To(Equal(0))
+			Expect(events).To(HaveLen(3))
+		})
+
+		It("Filter by deleted hosts", func() {
+			response, err := theEvents.V2GetEvents(
+				ctx,
+				&common.V2GetEventsParams{
+					ClusterID:    &cluster1,
+					DeletedHosts: swag.Bool(true),
+				},
+			)
+			Expect(err).ToNot(HaveOccurred())
+
+			events := response.GetEvents()
+			eventSeverityCount := response.GetEventSeverityCount()
+			Expect(err).ToNot(HaveOccurred())
+			Expect(int((*eventSeverityCount)[models.EventSeverityInfo])).To(Equal(1))
+			Expect(int((*eventSeverityCount)[models.EventSeverityWarning])).To(Equal(1))
 			Expect(int((*eventSeverityCount)[models.EventSeverityError])).To(Equal(0))
 			Expect(int((*eventSeverityCount)[models.EventSeverityCritical])).To(Equal(0))
 			Expect(events).To(HaveLen(2))
 		})
 
-		It("Filter by deleted hosts", func() {
-			testDeletedHostID := strfmt.UUID("1e45d128-4a69-4e71-9b50-b7e289a09d9a")
-			testDeletedHost := &common.Host{
-				Host: models.Host{
-					ID:         &testDeletedHostID,
-					ClusterID:  &cluster1,
-					InfraEnvID: infraEnv1,
-					DeletedAt:  gorm.DeletedAt{Time: time.Now(), Valid: true},
-				},
-			}
-			Expect(db.Create(&testDeletedHost).Error).ShouldNot(HaveOccurred())
-			theEvents.V2AddEvent(
-				ctx,
-				&cluster1,
-				testDeletedHost.ID,
-				&infraEnv1,
-				eventgen.HostCancelInstallationFailedEventName,
-				models.EventSeverityInfo,
-				"Host cancel installation failed",
-				time.Date(2023, 2, 21, 30, 0, 0, 0, time.UTC),
-			)
+		It("Filter by hosts only", func() {
+			response, err := theEvents.V2GetEvents(ctx, common.GetDefaultV2GetEventsParams(&cluster1, []strfmt.UUID{host}, nil))
+			Expect(err).ToNot(HaveOccurred())
+
+			events := response.GetEvents()
+			eventSeverityCount := response.GetEventSeverityCount()
+			Expect(int((*eventSeverityCount)[models.EventSeverityInfo])).To(Equal(1))
+			Expect(int((*eventSeverityCount)[models.EventSeverityWarning])).To(Equal(1))
+			Expect(int((*eventSeverityCount)[models.EventSeverityError])).To(Equal(0))
+			Expect(int((*eventSeverityCount)[models.EventSeverityCritical])).To(Equal(0))
+			Expect(events).To(HaveLen(2))
+		})
+
+		It("Filter by cluster level and deleted hosts events flags", func() {
 			response, err := theEvents.V2GetEvents(
 				ctx,
 				&common.V2GetEventsParams{
 					ClusterID:    &cluster1,
 					DeletedHosts: swag.Bool(true),
-				},
-			)
-			Expect(err).ToNot(HaveOccurred())
-
-			events := response.GetEvents()
-			eventSeverityCount := response.GetEventSeverityCount()
-			Expect(err).ToNot(HaveOccurred())
-			Expect(int((*eventSeverityCount)[models.EventSeverityInfo])).To(Equal(1))
-			Expect(int((*eventSeverityCount)[models.EventSeverityWarning])).To(Equal(0))
-			Expect(int((*eventSeverityCount)[models.EventSeverityError])).To(Equal(0))
-			Expect(int((*eventSeverityCount)[models.EventSeverityCritical])).To(Equal(0))
-			Expect(events).To(HaveLen(1))
-		})
-
-		It("Filter by message, severity and cluster level events flag", func() {
-			response, err := theEvents.V2GetEvents(
-				ctx,
-				&common.V2GetEventsParams{
-					ClusterID:    &cluster1,
-					Severities:   []string{models.EventSeverityInfo},
-					Message:      swag.String("completed"),
 					ClusterLevel: swag.Bool(true),
 				},
 			)
-			Expect(err).ToNot(HaveOccurred())
-
-			events := response.GetEvents()
-			eventSeverityCount := response.GetEventSeverityCount()
-			Expect(int((*eventSeverityCount)[models.EventSeverityInfo])).To(Equal(1))
-			Expect(int((*eventSeverityCount)[models.EventSeverityWarning])).To(Equal(0))
-			Expect(int((*eventSeverityCount)[models.EventSeverityError])).To(Equal(0))
-			Expect(int((*eventSeverityCount)[models.EventSeverityCritical])).To(Equal(0))
-			Expect(events).To(HaveLen(1))
-		})
-
-		It("Filter by message, severity and deleted hosts events flag", func() {
-			testDeletedHost := &common.Host{
-				Host: models.Host{
-					ID:         &host,
-					ClusterID:  &cluster1,
-					InfraEnvID: infraEnv1,
-					DeletedAt:  gorm.DeletedAt{Time: time.Now(), Valid: true},
-				},
-			}
-			Expect(db.Create(&testDeletedHost).Error).ShouldNot(HaveOccurred())
-			theEvents.V2AddEvent(
-				ctx,
-				&cluster1,
-				testDeletedHost.ID,
-				&infraEnv1,
-				eventgen.HostCancelInstallationFailedEventName,
-				models.EventSeverityInfo,
-				"Host cancel installation failed",
-				time.Date(2023, 2, 21, 30, 0, 0, 0, time.UTC),
-			)
-			response, err := theEvents.V2GetEvents(
-				ctx,
-				&common.V2GetEventsParams{
-					ClusterID:    &cluster1,
-					Severities:   []string{models.EventSeverityInfo},
-					Message:      swag.String("completed"),
-					DeletedHosts: swag.Bool(true),
-				},
-			)
-			Expect(err).ToNot(HaveOccurred())
-
-			events := response.GetEvents()
-			eventSeverityCount := response.GetEventSeverityCount()
-			Expect(int((*eventSeverityCount)[models.EventSeverityInfo])).To(Equal(1))
-			Expect(int((*eventSeverityCount)[models.EventSeverityWarning])).To(Equal(0))
-			Expect(int((*eventSeverityCount)[models.EventSeverityError])).To(Equal(0))
-			Expect(int((*eventSeverityCount)[models.EventSeverityCritical])).To(Equal(0))
-			Expect(events).To(HaveLen(1))
-		})
-
-		It("Filter by hosts only", func() {
-			response, err := theEvents.V2GetEvents(ctx, common.GetDefaultV2GetEventsParams(&cluster1, []strfmt.UUID{host, host2}, nil))
 			Expect(err).ToNot(HaveOccurred())
 
 			events := response.GetEvents()
 			eventSeverityCount := response.GetEventSeverityCount()
 			Expect(int((*eventSeverityCount)[models.EventSeverityInfo])).To(Equal(2))
-			Expect(int((*eventSeverityCount)[models.EventSeverityWarning])).To(Equal(1))
-			Expect(int((*eventSeverityCount)[models.EventSeverityError])).To(Equal(1))
-			Expect(int((*eventSeverityCount)[models.EventSeverityCritical])).To(Equal(0))
-			Expect(events).To(HaveLen(4))
-		})
-
-		It("Filter by cluster level and deleted hosts events flags", func() {
-			testDeletedHostID := strfmt.UUID("1e45d128-4a69-4e71-9b50-b7e289a09d9a")
-			testDeletedHost := &common.Host{
-				Host: models.Host{
-					ID:         &testDeletedHostID,
-					ClusterID:  &cluster1,
-					InfraEnvID: infraEnv1,
-					DeletedAt:  gorm.DeletedAt{Time: time.Now(), Valid: true},
-				},
-			}
-			Expect(db.Create(&testDeletedHost).Error).ShouldNot(HaveOccurred())
-			theEvents.V2AddEvent(
-				ctx,
-				&cluster1,
-				testDeletedHost.ID,
-				&infraEnv1,
-				eventgen.HostCancelInstallationFailedEventName,
-				models.EventSeverityInfo,
-				"Host cancel installation failed",
-				time.Date(2023, 2, 21, 30, 0, 0, 0, time.UTC),
-			)
-			response, err := theEvents.V2GetEvents(
-				ctx,
-				&common.V2GetEventsParams{
-					ClusterID:    &cluster1,
-					DeletedHosts: swag.Bool(true),
-					ClusterLevel: swag.Bool(true),
-				},
-			)
-			Expect(err).ToNot(HaveOccurred())
-
-			events := response.GetEvents()
-			eventSeverityCount := response.GetEventSeverityCount()
-			Expect(int((*eventSeverityCount)[models.EventSeverityInfo])).To(Equal(3))
-			Expect(int((*eventSeverityCount)[models.EventSeverityWarning])).To(Equal(0))
-			Expect(int((*eventSeverityCount)[models.EventSeverityError])).To(Equal(0))
-			Expect(int((*eventSeverityCount)[models.EventSeverityCritical])).To(Equal(0))
-			Expect(events).To(HaveLen(3))
-		})
-
-		It("Filter by deleted hosts events flag and specific hosts", func() {
-			testDeletedHostID := strfmt.UUID("1e45d128-4a69-4e71-9b50-b7e289a09d9a")
-			testDeletedHost := &common.Host{
-				Host: models.Host{
-					ID:         &testDeletedHostID,
-					ClusterID:  &cluster1,
-					InfraEnvID: infraEnv1,
-					DeletedAt:  gorm.DeletedAt{Time: time.Now(), Valid: true},
-				},
-			}
-			theEvents.V2AddEvent(
-				ctx,
-				&cluster1,
-				testDeletedHost.ID,
-				&infraEnv1,
-				eventgen.HostCancelInstallationFailedEventName,
-				models.EventSeverityInfo,
-				"Host cancel installation failed",
-				time.Date(2023, 2, 21, 30, 0, 0, 0, time.UTC),
-			)
-			Expect(db.Create(&testDeletedHost).Error).ShouldNot(HaveOccurred())
-			response, err := theEvents.V2GetEvents(
-				ctx,
-				&common.V2GetEventsParams{
-					ClusterID:    &cluster1,
-					HostIds:      []strfmt.UUID{host, host2},
-					DeletedHosts: swag.Bool(true),
-				},
-			)
-			Expect(err).ToNot(HaveOccurred())
-
-			events := response.GetEvents()
-			eventSeverityCount := response.GetEventSeverityCount()
-			Expect(int((*eventSeverityCount)[models.EventSeverityInfo])).To(Equal(3))
-			Expect(int((*eventSeverityCount)[models.EventSeverityWarning])).To(Equal(1))
+			Expect(int((*eventSeverityCount)[models.EventSeverityWarning])).To(Equal(2))
 			Expect(int((*eventSeverityCount)[models.EventSeverityError])).To(Equal(1))
 			Expect(int((*eventSeverityCount)[models.EventSeverityCritical])).To(Equal(0))
 			Expect(events).To(HaveLen(5))
@@ -1160,11 +1107,365 @@ var _ = Describe("Events library", func() {
 
 			events := response.GetEvents()
 			eventSeverityCount := response.GetEventSeverityCount()
-			Expect(int((*eventSeverityCount)[models.EventSeverityInfo])).To(Equal(4))
+			Expect(int((*eventSeverityCount)[models.EventSeverityInfo])).To(Equal(2))
+			Expect(int((*eventSeverityCount)[models.EventSeverityWarning])).To(Equal(2))
+			Expect(int((*eventSeverityCount)[models.EventSeverityError])).To(Equal(1))
+			Expect(int((*eventSeverityCount)[models.EventSeverityCritical])).To(Equal(0))
+			Expect(events).To(HaveLen(5))
+		})
+
+		It("Filter by deleted hosts events flag and specific hosts", func() {
+			response, err := theEvents.V2GetEvents(
+				ctx,
+				&common.V2GetEventsParams{
+					ClusterID:    &cluster1,
+					HostIds:      []strfmt.UUID{host2},
+					DeletedHosts: swag.Bool(true),
+				},
+			)
+			Expect(err).ToNot(HaveOccurred())
+
+			events := response.GetEvents()
+			eventSeverityCount := response.GetEventSeverityCount()
+			Expect(int((*eventSeverityCount)[models.EventSeverityInfo])).To(Equal(1))
+			Expect(int((*eventSeverityCount)[models.EventSeverityWarning])).To(Equal(1))
+			Expect(int((*eventSeverityCount)[models.EventSeverityError])).To(Equal(1))
+			Expect(int((*eventSeverityCount)[models.EventSeverityCritical])).To(Equal(1))
+			Expect(events).To(HaveLen(4))
+		})
+
+		It("Filter by deleted hosts, cluster level events flag and specific hosts", func() {
+			response, err := theEvents.V2GetEvents(
+				ctx,
+				&common.V2GetEventsParams{
+					ClusterID:    &cluster1,
+					HostIds:      []strfmt.UUID{host},
+					ClusterLevel: swag.Bool(true),
+					DeletedHosts: swag.Bool(true),
+				},
+			)
+			Expect(err).ToNot(HaveOccurred())
+
+			events := response.GetEvents()
+			eventSeverityCount := response.GetEventSeverityCount()
+			Expect(int((*eventSeverityCount)[models.EventSeverityInfo])).To(Equal(3))
+			Expect(int((*eventSeverityCount)[models.EventSeverityWarning])).To(Equal(3))
+			Expect(int((*eventSeverityCount)[models.EventSeverityError])).To(Equal(1))
+			Expect(int((*eventSeverityCount)[models.EventSeverityCritical])).To(Equal(0))
+			Expect(events).To(HaveLen(7))
+		})
+
+		It("Filter by cluster level events flag and severities", func() {
+			response, err := theEvents.V2GetEvents(
+				ctx,
+				&common.V2GetEventsParams{
+					ClusterID:    &cluster1,
+					Severities:   []string{models.EventSeverityInfo},
+					ClusterLevel: swag.Bool(true),
+				},
+			)
+			Expect(err).ToNot(HaveOccurred())
+
+			events := response.GetEvents()
+			eventSeverityCount := response.GetEventSeverityCount()
+			Expect(int((*eventSeverityCount)[models.EventSeverityInfo])).To(Equal(1))
 			Expect(int((*eventSeverityCount)[models.EventSeverityWarning])).To(Equal(0))
 			Expect(int((*eventSeverityCount)[models.EventSeverityError])).To(Equal(0))
 			Expect(int((*eventSeverityCount)[models.EventSeverityCritical])).To(Equal(0))
-			Expect(events).To(HaveLen(4))
+			Expect(events).To(HaveLen(1))
+		})
+
+		It("Filter by deleted hosts events flag and severities", func() {
+			response, err := theEvents.V2GetEvents(
+				ctx,
+				&common.V2GetEventsParams{
+					ClusterID:    &cluster1,
+					Severities:   []string{models.EventSeverityInfo},
+					DeletedHosts: swag.Bool(true),
+				},
+			)
+			Expect(err).ToNot(HaveOccurred())
+
+			events := response.GetEvents()
+			eventSeverityCount := response.GetEventSeverityCount()
+			Expect(int((*eventSeverityCount)[models.EventSeverityInfo])).To(Equal(1))
+			Expect(int((*eventSeverityCount)[models.EventSeverityWarning])).To(Equal(0))
+			Expect(int((*eventSeverityCount)[models.EventSeverityError])).To(Equal(0))
+			Expect(int((*eventSeverityCount)[models.EventSeverityCritical])).To(Equal(0))
+			Expect(events).To(HaveLen(1))
+		})
+
+		It("Filter by specific hosts and severities", func() {
+			response, err := theEvents.V2GetEvents(
+				ctx,
+				&common.V2GetEventsParams{
+					ClusterID:  &cluster1,
+					HostIds:    []strfmt.UUID{host2},
+					Severities: []string{models.EventSeverityError},
+				},
+			)
+			Expect(err).ToNot(HaveOccurred())
+
+			events := response.GetEvents()
+			eventSeverityCount := response.GetEventSeverityCount()
+			Expect(int((*eventSeverityCount)[models.EventSeverityInfo])).To(Equal(0))
+			Expect(int((*eventSeverityCount)[models.EventSeverityWarning])).To(Equal(0))
+			Expect(int((*eventSeverityCount)[models.EventSeverityError])).To(Equal(1))
+			Expect(int((*eventSeverityCount)[models.EventSeverityCritical])).To(Equal(0))
+			Expect(events).To(HaveLen(1))
+		})
+
+		It("Filter by specific hosts, severities and messages", func() {
+			response, err := theEvents.V2GetEvents(
+				ctx,
+				&common.V2GetEventsParams{
+					ClusterID:  &cluster1,
+					HostIds:    []strfmt.UUID{host2},
+					Severities: []string{models.EventSeverityWarning},
+					Message:    swag.String("Upgrade failed"),
+				},
+			)
+			Expect(err).ToNot(HaveOccurred())
+
+			events := response.GetEvents()
+			eventSeverityCount := response.GetEventSeverityCount()
+			Expect(int((*eventSeverityCount)[models.EventSeverityInfo])).To(Equal(0))
+			Expect(int((*eventSeverityCount)[models.EventSeverityWarning])).To(Equal(0))
+			Expect(int((*eventSeverityCount)[models.EventSeverityError])).To(Equal(0))
+			Expect(int((*eventSeverityCount)[models.EventSeverityCritical])).To(Equal(0))
+			Expect(events).To(HaveLen(0))
+		})
+
+		It("Filter by cluster level events, specific hosts events and severities", func() {
+			response, err := theEvents.V2GetEvents(
+				ctx,
+				&common.V2GetEventsParams{
+					ClusterID:    &cluster1,
+					HostIds:      []strfmt.UUID{host2},
+					Severities:   []string{models.EventSeverityError},
+					ClusterLevel: swag.Bool(true),
+				},
+			)
+			Expect(err).ToNot(HaveOccurred())
+
+			events := response.GetEvents()
+			eventSeverityCount := response.GetEventSeverityCount()
+			Expect(int((*eventSeverityCount)[models.EventSeverityInfo])).To(Equal(0))
+			Expect(int((*eventSeverityCount)[models.EventSeverityWarning])).To(Equal(0))
+			Expect(int((*eventSeverityCount)[models.EventSeverityError])).To(Equal(2))
+			Expect(int((*eventSeverityCount)[models.EventSeverityCritical])).To(Equal(0))
+			Expect(events).To(HaveLen(2))
+		})
+
+		It("Filter by cluster level events, deleted hosts events and severities", func() {
+			response, err := theEvents.V2GetEvents(
+				ctx,
+				&common.V2GetEventsParams{
+					ClusterID:    &cluster1,
+					Severities:   []string{models.EventSeverityInfo},
+					ClusterLevel: swag.Bool(true),
+					DeletedHosts: swag.Bool(true),
+				},
+			)
+			Expect(err).ToNot(HaveOccurred())
+
+			events := response.GetEvents()
+			eventSeverityCount := response.GetEventSeverityCount()
+			Expect(int((*eventSeverityCount)[models.EventSeverityInfo])).To(Equal(2))
+			Expect(int((*eventSeverityCount)[models.EventSeverityWarning])).To(Equal(0))
+			Expect(int((*eventSeverityCount)[models.EventSeverityError])).To(Equal(0))
+			Expect(int((*eventSeverityCount)[models.EventSeverityCritical])).To(Equal(0))
+			Expect(events).To(HaveLen(2))
+		})
+
+		It("Filter by specific hosts events, deleted hosts events and severities", func() {
+			response, err := theEvents.V2GetEvents(
+				ctx,
+				&common.V2GetEventsParams{
+					ClusterID:    &cluster1,
+					Severities:   []string{models.EventSeverityInfo},
+					HostIds:      []strfmt.UUID{host},
+					DeletedHosts: swag.Bool(true),
+				},
+			)
+			Expect(err).ToNot(HaveOccurred())
+
+			events := response.GetEvents()
+			eventSeverityCount := response.GetEventSeverityCount()
+			Expect(int((*eventSeverityCount)[models.EventSeverityInfo])).To(Equal(2))
+			Expect(int((*eventSeverityCount)[models.EventSeverityWarning])).To(Equal(0))
+			Expect(int((*eventSeverityCount)[models.EventSeverityError])).To(Equal(0))
+			Expect(int((*eventSeverityCount)[models.EventSeverityCritical])).To(Equal(0))
+			Expect(events).To(HaveLen(2))
+		})
+
+		It("Filter by cluster level events, deleted hosts, specific hosts events and severities", func() {
+			response, err := theEvents.V2GetEvents(
+				ctx,
+				&common.V2GetEventsParams{
+					ClusterID:    &cluster1,
+					HostIds:      []strfmt.UUID{host},
+					Severities:   []string{models.EventSeverityInfo},
+					DeletedHosts: swag.Bool(true),
+					ClusterLevel: swag.Bool(true),
+				},
+			)
+			Expect(err).ToNot(HaveOccurred())
+
+			events := response.GetEvents()
+			eventSeverityCount := response.GetEventSeverityCount()
+			Expect(int((*eventSeverityCount)[models.EventSeverityInfo])).To(Equal(3))
+			Expect(int((*eventSeverityCount)[models.EventSeverityWarning])).To(Equal(0))
+			Expect(int((*eventSeverityCount)[models.EventSeverityError])).To(Equal(0))
+			Expect(int((*eventSeverityCount)[models.EventSeverityCritical])).To(Equal(0))
+			Expect(events).To(HaveLen(3))
+		})
+
+		// ----
+
+		It("Filter by cluster level events flag and message", func() {
+			response, err := theEvents.V2GetEvents(
+				ctx,
+				&common.V2GetEventsParams{
+					ClusterID:    &cluster1,
+					Message:      swag.String("Cluster installation completed"),
+					ClusterLevel: swag.Bool(true),
+				},
+			)
+			Expect(err).ToNot(HaveOccurred())
+
+			events := response.GetEvents()
+			eventSeverityCount := response.GetEventSeverityCount()
+			Expect(int((*eventSeverityCount)[models.EventSeverityInfo])).To(Equal(0))
+			Expect(int((*eventSeverityCount)[models.EventSeverityWarning])).To(Equal(1))
+			Expect(int((*eventSeverityCount)[models.EventSeverityError])).To(Equal(0))
+			Expect(int((*eventSeverityCount)[models.EventSeverityCritical])).To(Equal(0))
+			Expect(events).To(HaveLen(1))
+		})
+
+		It("Filter by deleted hosts events flag and message", func() {
+			response, err := theEvents.V2GetEvents(
+				ctx,
+				&common.V2GetEventsParams{
+					ClusterID:    &cluster1,
+					Message:      swag.String("Host disconnected"),
+					DeletedHosts: swag.Bool(true),
+				},
+			)
+			Expect(err).ToNot(HaveOccurred())
+
+			events := response.GetEvents()
+			eventSeverityCount := response.GetEventSeverityCount()
+			Expect(int((*eventSeverityCount)[models.EventSeverityInfo])).To(Equal(0))
+			Expect(int((*eventSeverityCount)[models.EventSeverityWarning])).To(Equal(1))
+			Expect(int((*eventSeverityCount)[models.EventSeverityError])).To(Equal(0))
+			Expect(int((*eventSeverityCount)[models.EventSeverityCritical])).To(Equal(0))
+			Expect(events).To(HaveLen(1))
+		})
+
+		It("Filter by specific hosts and message", func() {
+			response, err := theEvents.V2GetEvents(
+				ctx,
+				&common.V2GetEventsParams{
+					ClusterID: &cluster1,
+					HostIds:   []strfmt.UUID{host2},
+					Message:   swag.String("Installation canceled"),
+				},
+			)
+			Expect(err).ToNot(HaveOccurred())
+
+			events := response.GetEvents()
+			eventSeverityCount := response.GetEventSeverityCount()
+			Expect(int((*eventSeverityCount)[models.EventSeverityInfo])).To(Equal(0))
+			Expect(int((*eventSeverityCount)[models.EventSeverityWarning])).To(Equal(0))
+			Expect(int((*eventSeverityCount)[models.EventSeverityError])).To(Equal(1))
+			Expect(int((*eventSeverityCount)[models.EventSeverityCritical])).To(Equal(0))
+			Expect(events).To(HaveLen(1))
+		})
+
+		It("Filter by cluster level events, specific hosts events and message", func() {
+			response, err := theEvents.V2GetEvents(
+				ctx,
+				&common.V2GetEventsParams{
+					ClusterID:    &cluster1,
+					HostIds:      []strfmt.UUID{host2},
+					Message:      swag.String("Installation canceled"),
+					ClusterLevel: swag.Bool(true),
+				},
+			)
+			Expect(err).ToNot(HaveOccurred())
+
+			events := response.GetEvents()
+			eventSeverityCount := response.GetEventSeverityCount()
+			Expect(int((*eventSeverityCount)[models.EventSeverityInfo])).To(Equal(0))
+			Expect(int((*eventSeverityCount)[models.EventSeverityWarning])).To(Equal(0))
+			Expect(int((*eventSeverityCount)[models.EventSeverityError])).To(Equal(1))
+			Expect(int((*eventSeverityCount)[models.EventSeverityCritical])).To(Equal(0))
+			Expect(events).To(HaveLen(1))
+		})
+
+		It("Filter by cluster level events, deleted hosts events and message", func() {
+			response, err := theEvents.V2GetEvents(
+				ctx,
+				&common.V2GetEventsParams{
+					ClusterID:    &cluster1,
+					Message:      swag.String("Cluster installation prepare"),
+					ClusterLevel: swag.Bool(true),
+					DeletedHosts: swag.Bool(true),
+				},
+			)
+			Expect(err).ToNot(HaveOccurred())
+
+			events := response.GetEvents()
+			eventSeverityCount := response.GetEventSeverityCount()
+			Expect(int((*eventSeverityCount)[models.EventSeverityInfo])).To(Equal(1))
+			Expect(int((*eventSeverityCount)[models.EventSeverityWarning])).To(Equal(0))
+			Expect(int((*eventSeverityCount)[models.EventSeverityError])).To(Equal(0))
+			Expect(int((*eventSeverityCount)[models.EventSeverityCritical])).To(Equal(0))
+			Expect(events).To(HaveLen(1))
+		})
+
+		It("Filter by specific hosts events, deleted hosts events and message", func() {
+			response, err := theEvents.V2GetEvents(
+				ctx,
+				&common.V2GetEventsParams{
+					ClusterID:    &cluster1,
+					Message:      swag.String("Installation canceled"),
+					HostIds:      []strfmt.UUID{host2},
+					DeletedHosts: swag.Bool(true),
+				},
+			)
+			Expect(err).ToNot(HaveOccurred())
+
+			events := response.GetEvents()
+			eventSeverityCount := response.GetEventSeverityCount()
+			Expect(int((*eventSeverityCount)[models.EventSeverityInfo])).To(Equal(0))
+			Expect(int((*eventSeverityCount)[models.EventSeverityWarning])).To(Equal(0))
+			Expect(int((*eventSeverityCount)[models.EventSeverityError])).To(Equal(1))
+			Expect(int((*eventSeverityCount)[models.EventSeverityCritical])).To(Equal(0))
+			Expect(events).To(HaveLen(1))
+		})
+
+		It("Filter by cluster level events, deleted hosts, specific hosts events and message", func() {
+			response, err := theEvents.V2GetEvents(
+				ctx,
+				&common.V2GetEventsParams{
+					ClusterID:    &cluster1,
+					HostIds:      []strfmt.UUID{host2},
+					Message:      swag.String("Installation canceled"),
+					DeletedHosts: swag.Bool(true),
+					ClusterLevel: swag.Bool(true),
+				},
+			)
+			Expect(err).ToNot(HaveOccurred())
+
+			events := response.GetEvents()
+			eventSeverityCount := response.GetEventSeverityCount()
+			Expect(int((*eventSeverityCount)[models.EventSeverityInfo])).To(Equal(0))
+			Expect(int((*eventSeverityCount)[models.EventSeverityWarning])).To(Equal(0))
+			Expect(int((*eventSeverityCount)[models.EventSeverityError])).To(Equal(1))
+			Expect(int((*eventSeverityCount)[models.EventSeverityCritical])).To(Equal(0))
+			Expect(events).To(HaveLen(1))
 		})
 	})
 
