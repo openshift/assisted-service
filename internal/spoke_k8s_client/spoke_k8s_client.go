@@ -21,7 +21,6 @@ import (
 	"github.com/pkg/errors"
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	"github.com/sirupsen/logrus"
-	authorizationv1 "k8s.io/api/authorization/v1"
 	certificatesv1 "k8s.io/api/certificates/v1"
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
@@ -52,8 +51,6 @@ type SpokeK8sClient interface {
 	client.Client
 	ListCsrs() (*certificatesv1.CertificateSigningRequestList, error)
 	ApproveCsr(csr *certificatesv1.CertificateSigningRequest) error
-	CreateSubjectAccessReview(subjectAccessReview *authorizationv1.SelfSubjectAccessReview) (*authorizationv1.SelfSubjectAccessReview, error)
-	IsActionPermitted(verb string, resource string) (bool, error)
 	GetNode(name string) (*corev1.Node, error)
 	PatchNodeLabels(nodeName string, nodeLabels string) error
 	PatchMachineConfigPoolPaused(pause bool, mcpName string) error
@@ -157,31 +154,6 @@ func (cf *spokeK8sClientFactory) createFromClientConfig(clientConfig *rest.Confi
 		log:         cf.log,
 	}
 	return &data, nil
-}
-
-// Create a subject access review and get a response in order to determine capabilities.
-func (c *spokeK8sClient) CreateSubjectAccessReview(subjectAccessReview *authorizationv1.SelfSubjectAccessReview) (*authorizationv1.SelfSubjectAccessReview, error) {
-	return c.sarClient.Create(context.TODO(), subjectAccessReview, metav1.CreateOptions{})
-}
-
-func (c *spokeK8sClient) IsActionPermitted(verb string, resource string) (bool, error) {
-	sar := authorizationv1.SelfSubjectAccessReview{
-		Spec: authorizationv1.SelfSubjectAccessReviewSpec{
-			ResourceAttributes: &authorizationv1.ResourceAttributes{
-				Verb:     verb,
-				Resource: resource,
-			},
-		},
-	}
-	sarResponse, err := c.CreateSubjectAccessReview(&sar)
-	if err != nil {
-		return false, fmt.Errorf("could not create subject access review to detemine %s %s permissions %w", verb, resource, err)
-	}
-
-	if sarResponse.Status.Allowed {
-		return true, nil
-	}
-	return false, nil
 }
 
 func (c *spokeK8sClient) ListCsrs() (*certificatesv1.CertificateSigningRequestList, error) {

@@ -16,7 +16,6 @@ import (
 	"github.com/thoas/go-funk"
 	admregv1 "k8s.io/api/admissionregistration/v1"
 	appsv1 "k8s.io/api/apps/v1"
-	authorizationv1 "k8s.io/api/authorization/v1"
 	certificatesv1 "k8s.io/api/certificates/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -625,14 +624,6 @@ var _ = Describe("HypershiftAgentServiceConfig reconcile", func() {
 
 type fakeSpokeK8sClient struct {
 	client.Client
-}
-
-func (c fakeSpokeK8sClient) CreateSubjectAccessReview(subjectAccessReview *authorizationv1.SelfSubjectAccessReview) (*authorizationv1.SelfSubjectAccessReview, error) {
-	return nil, nil
-}
-
-func (c fakeSpokeK8sClient) IsActionPermitted(verb string, resource string) (bool, error) {
-	return true, nil
 }
 
 func (c fakeSpokeK8sClient) ListCsrs() (*certificatesv1.CertificateSigningRequestList, error) {
