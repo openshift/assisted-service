@@ -47,16 +47,11 @@ func (cmd *imageAvailabilityCmd) getImages(ctx context.Context, cluster *common.
 	}
 	images = append(images, mcoImage)
 
-	mustGatherImages, err := cmd.versionsHandler.GetMustGatherImages(cluster.OpenshiftVersion, cluster.CPUArchitecture, cluster.PullSecret)
+	mustGatherImage, err := cmd.ocRelease.GetMustGatherImage(cmd.log, *releaseImage.URL, cmd.instructionConfig.ReleaseImageMirror, cluster.PullSecret)
 	if err != nil {
 		return images, err
 	}
-	for key, img := range mustGatherImages {
-		//At the moment, verify only the ocp image
-		if "ocp" == key {
-			images = append(images, img)
-		}
-	}
+	images = append(images, mustGatherImage)
 
 	return images, nil
 }
