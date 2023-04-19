@@ -181,6 +181,9 @@ parameters:
 - name: ENABLE_DATA_COLLECTION
   value: "false"
   required: false
+- name: INSTALLER_CACHE_CAPACITY
+  value: "6442450944"
+  required: false
 apiVersion: v1
 kind: Template
 metadata:
@@ -434,6 +437,8 @@ objects:
                 value: ${ENABLE_REJECT_UNKNOWN_FIELDS}
               - name: ENABLE_DATA_COLLECTION
                 value: ${ENABLE_DATA_COLLECTION}
+              - name: INSTALLER_CACHE_CAPACITY
+                value: ${INSTALLER_CACHE_CAPACITY}
             volumeMounts:
               - name: route53-creds
                 mountPath: "/etc/.aws"

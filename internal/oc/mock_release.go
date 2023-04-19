@@ -154,3 +154,19 @@ func (mr *MockReleaseMockRecorder) GetReleaseArchitecture(log, releaseImage, rel
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetReleaseArchitecture", reflect.TypeOf((*MockRelease)(nil).GetReleaseArchitecture), log, releaseImage, releaseImageMirror, pullSecret)
 }
+
+// GetReleaseBinaryPath mocks base method.
+func (m *MockRelease) GetReleaseBinaryPath(releaseImage, cacheDir string, platformType models.PlatformType) (string, string, string) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetReleaseBinaryPath", releaseImage, cacheDir, platformType)
+	ret0, _ := ret[0].(string)
+	ret1, _ := ret[1].(string)
+	ret2, _ := ret[2].(string)
+	return ret0, ret1, ret2
+}
+
+// GetReleaseBinaryPath indicates an expected call of GetReleaseBinaryPath.
+func (mr *MockReleaseMockRecorder) GetReleaseBinaryPath(releaseImage, cacheDir, platformType interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetReleaseBinaryPath", reflect.TypeOf((*MockRelease)(nil).GetReleaseBinaryPath), releaseImage, cacheDir, platformType)
+}

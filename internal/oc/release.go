@@ -47,6 +47,7 @@ type Release interface {
 	GetOpenshiftVersion(log logrus.FieldLogger, releaseImage string, releaseImageMirror string, pullSecret string) (string, error)
 	GetMajorMinorVersion(log logrus.FieldLogger, releaseImage string, releaseImageMirror string, pullSecret string) (string, error)
 	GetReleaseArchitecture(log logrus.FieldLogger, releaseImage string, releaseImageMirror string, pullSecret string) ([]string, error)
+	GetReleaseBinaryPath(releaseImage string, cacheDir string, platformType models.PlatformType) (workdir string, binary string, path string)
 	Extract(log logrus.FieldLogger, releaseImage string, releaseImageMirror string, cacheDir string, pullSecret string, platformType models.PlatformType, icspFile string) (string, error)
 }
 
@@ -336,19 +337,24 @@ func (r *release) Extract(log logrus.FieldLogger, releaseImage string, releaseIm
 	return path, err
 }
 
-// extractFromRelease returns the path to an openshift-baremetal-install binary extracted from
-// the referenced release image.
-func (r *release) extractFromRelease(log logrus.FieldLogger, releaseImage, cacheDir, pullSecret string, insecure bool, platformType models.PlatformType, icspFile string) (string, error) {
+func (r *release) GetReleaseBinaryPath(releaseImage string, cacheDir string, platformType models.PlatformType) (workdir string, binary string, path string) {
 	// Using platform type as an indication for which openshift install binary to use
 	// (e.g. as non-x86_64 clusters should use the openshift-install binary).
-	var binary string
 	if platformType == models.PlatformTypeNone {
 		binary = "openshift-install"
 	} else {
 		binary = "openshift-baremetal-install"
 	}
 
-	workdir := filepath.Join(cacheDir, releaseImage)
+	workdir = filepath.Join(cacheDir, releaseImage)
+	path = filepath.Join(workdir, binary)
+	return
+}
+
+// extractFromRelease returns the path to an openshift-baremetal-install binary extracted from
+// the referenced release image.
+func (r *release) extractFromRelease(log logrus.FieldLogger, releaseImage, cacheDir, pullSecret string, insecure bool, platformType models.PlatformType, icspFile string) (string, error) {
+	workdir, binary, path := r.GetReleaseBinaryPath(releaseImage, cacheDir, platformType)
 	log.Infof("extracting %s binary to %s", binary, workdir)
 	err := os.MkdirAll(workdir, 0755)
 	if err != nil {
@@ -366,8 +372,7 @@ func (r *release) extractFromRelease(log logrus.FieldLogger, releaseImage, cache
 	if err != nil {
 		return "", err
 	}
-	// set path
-	path := filepath.Join(workdir, binary)
+
 	log.Infof("Successfully extracted %s binary from the release to: %s", binary, path)
 	return path, nil
 }
