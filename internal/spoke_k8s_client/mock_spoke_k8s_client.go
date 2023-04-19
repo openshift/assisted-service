@@ -9,9 +9,8 @@ import (
 	reflect "reflect"
 
 	gomock "github.com/golang/mock/gomock"
-	v1 "k8s.io/api/authorization/v1"
-	v10 "k8s.io/api/certificates/v1"
-	v11 "k8s.io/api/core/v1"
+	v1 "k8s.io/api/certificates/v1"
+	v10 "k8s.io/api/core/v1"
 	meta "k8s.io/apimachinery/pkg/api/meta"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	types "k8s.io/apimachinery/pkg/types"
@@ -42,17 +41,17 @@ func (m *MockSpokeK8sClient) EXPECT() *MockSpokeK8sClientMockRecorder {
 }
 
 // ApproveCsr mocks base method.
-func (m *MockSpokeK8sClient) ApproveCsr(arg0 *v10.CertificateSigningRequest) error {
+func (m *MockSpokeK8sClient) ApproveCsr(arg0 context.Context, arg1 *v1.CertificateSigningRequest) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ApproveCsr", arg0)
+	ret := m.ctrl.Call(m, "ApproveCsr", arg0, arg1)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // ApproveCsr indicates an expected call of ApproveCsr.
-func (mr *MockSpokeK8sClientMockRecorder) ApproveCsr(arg0 interface{}) *gomock.Call {
+func (mr *MockSpokeK8sClientMockRecorder) ApproveCsr(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ApproveCsr", reflect.TypeOf((*MockSpokeK8sClient)(nil).ApproveCsr), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ApproveCsr", reflect.TypeOf((*MockSpokeK8sClient)(nil).ApproveCsr), arg0, arg1)
 }
 
 // Create mocks base method.
@@ -72,21 +71,6 @@ func (mr *MockSpokeK8sClientMockRecorder) Create(arg0, arg1 interface{}, arg2 ..
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{arg0, arg1}, arg2...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Create", reflect.TypeOf((*MockSpokeK8sClient)(nil).Create), varargs...)
-}
-
-// CreateSubjectAccessReview mocks base method.
-func (m *MockSpokeK8sClient) CreateSubjectAccessReview(arg0 *v1.SelfSubjectAccessReview) (*v1.SelfSubjectAccessReview, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CreateSubjectAccessReview", arg0)
-	ret0, _ := ret[0].(*v1.SelfSubjectAccessReview)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// CreateSubjectAccessReview indicates an expected call of CreateSubjectAccessReview.
-func (mr *MockSpokeK8sClientMockRecorder) CreateSubjectAccessReview(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateSubjectAccessReview", reflect.TypeOf((*MockSpokeK8sClient)(nil).CreateSubjectAccessReview), arg0)
 }
 
 // Delete mocks base method.
@@ -161,33 +145,18 @@ func (mr *MockSpokeK8sClientMockRecorder) Get(arg0, arg1, arg2 interface{}, arg3
 }
 
 // GetNode mocks base method.
-func (m *MockSpokeK8sClient) GetNode(arg0 string) (*v11.Node, error) {
+func (m *MockSpokeK8sClient) GetNode(arg0 context.Context, arg1 string) (*v10.Node, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetNode", arg0)
-	ret0, _ := ret[0].(*v11.Node)
+	ret := m.ctrl.Call(m, "GetNode", arg0, arg1)
+	ret0, _ := ret[0].(*v10.Node)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetNode indicates an expected call of GetNode.
-func (mr *MockSpokeK8sClientMockRecorder) GetNode(arg0 interface{}) *gomock.Call {
+func (mr *MockSpokeK8sClientMockRecorder) GetNode(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetNode", reflect.TypeOf((*MockSpokeK8sClient)(nil).GetNode), arg0)
-}
-
-// IsActionPermitted mocks base method.
-func (m *MockSpokeK8sClient) IsActionPermitted(arg0, arg1 string) (bool, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "IsActionPermitted", arg0, arg1)
-	ret0, _ := ret[0].(bool)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// IsActionPermitted indicates an expected call of IsActionPermitted.
-func (mr *MockSpokeK8sClientMockRecorder) IsActionPermitted(arg0, arg1 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsActionPermitted", reflect.TypeOf((*MockSpokeK8sClient)(nil).IsActionPermitted), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetNode", reflect.TypeOf((*MockSpokeK8sClient)(nil).GetNode), arg0, arg1)
 }
 
 // List mocks base method.
@@ -210,18 +179,18 @@ func (mr *MockSpokeK8sClientMockRecorder) List(arg0, arg1 interface{}, arg2 ...i
 }
 
 // ListCsrs mocks base method.
-func (m *MockSpokeK8sClient) ListCsrs() (*v10.CertificateSigningRequestList, error) {
+func (m *MockSpokeK8sClient) ListCsrs(arg0 context.Context) (*v1.CertificateSigningRequestList, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ListCsrs")
-	ret0, _ := ret[0].(*v10.CertificateSigningRequestList)
+	ret := m.ctrl.Call(m, "ListCsrs", arg0)
+	ret0, _ := ret[0].(*v1.CertificateSigningRequestList)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // ListCsrs indicates an expected call of ListCsrs.
-func (mr *MockSpokeK8sClientMockRecorder) ListCsrs() *gomock.Call {
+func (mr *MockSpokeK8sClientMockRecorder) ListCsrs(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListCsrs", reflect.TypeOf((*MockSpokeK8sClient)(nil).ListCsrs))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListCsrs", reflect.TypeOf((*MockSpokeK8sClient)(nil).ListCsrs), arg0)
 }
 
 // Patch mocks base method.
@@ -244,31 +213,31 @@ func (mr *MockSpokeK8sClientMockRecorder) Patch(arg0, arg1, arg2 interface{}, ar
 }
 
 // PatchMachineConfigPoolPaused mocks base method.
-func (m *MockSpokeK8sClient) PatchMachineConfigPoolPaused(arg0 bool, arg1 string) error {
+func (m *MockSpokeK8sClient) PatchMachineConfigPoolPaused(arg0 context.Context, arg1 bool, arg2 string) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "PatchMachineConfigPoolPaused", arg0, arg1)
+	ret := m.ctrl.Call(m, "PatchMachineConfigPoolPaused", arg0, arg1, arg2)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // PatchMachineConfigPoolPaused indicates an expected call of PatchMachineConfigPoolPaused.
-func (mr *MockSpokeK8sClientMockRecorder) PatchMachineConfigPoolPaused(arg0, arg1 interface{}) *gomock.Call {
+func (mr *MockSpokeK8sClientMockRecorder) PatchMachineConfigPoolPaused(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PatchMachineConfigPoolPaused", reflect.TypeOf((*MockSpokeK8sClient)(nil).PatchMachineConfigPoolPaused), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PatchMachineConfigPoolPaused", reflect.TypeOf((*MockSpokeK8sClient)(nil).PatchMachineConfigPoolPaused), arg0, arg1, arg2)
 }
 
 // PatchNodeLabels mocks base method.
-func (m *MockSpokeK8sClient) PatchNodeLabels(arg0, arg1 string) error {
+func (m *MockSpokeK8sClient) PatchNodeLabels(arg0 context.Context, arg1, arg2 string) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "PatchNodeLabels", arg0, arg1)
+	ret := m.ctrl.Call(m, "PatchNodeLabels", arg0, arg1, arg2)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // PatchNodeLabels indicates an expected call of PatchNodeLabels.
-func (mr *MockSpokeK8sClientMockRecorder) PatchNodeLabels(arg0, arg1 interface{}) *gomock.Call {
+func (mr *MockSpokeK8sClientMockRecorder) PatchNodeLabels(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PatchNodeLabels", reflect.TypeOf((*MockSpokeK8sClient)(nil).PatchNodeLabels), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PatchNodeLabels", reflect.TypeOf((*MockSpokeK8sClient)(nil).PatchNodeLabels), arg0, arg1, arg2)
 }
 
 // RESTMapper mocks base method.

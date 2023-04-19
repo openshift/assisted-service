@@ -441,7 +441,7 @@ func (r *ClusterDeploymentsReconciler) updateWorkerMcpPaused(ctx context.Context
 			log.WithError(err).Errorf("failed to create spoke client for cluster deployment %s/%s", clusterDeployment.Namespace, clusterDeployment.Name)
 			return err
 		}
-		err = spokeClient.PatchMachineConfigPoolPaused(paused, "worker")
+		err = spokeClient.PatchMachineConfigPoolPaused(ctx, paused, "worker")
 		if err != nil {
 			log.WithError(err).Errorf("failed to patch worker machine config pool for cluster deployment %s/%s", clusterDeployment.Namespace, clusterDeployment.Name)
 			return err

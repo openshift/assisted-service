@@ -21,7 +21,6 @@ import (
 	"github.com/pkg/errors"
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	"github.com/sirupsen/logrus"
-	authorizationv1 "k8s.io/api/authorization/v1"
 	certificatesv1 "k8s.io/api/certificates/v1"
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
@@ -50,13 +49,11 @@ type SpokeK8sClientFactory interface {
 //go:generate mockgen --build_flags=--mod=mod -package=spoke_k8s_client -destination=mock_spoke_k8s_client.go . SpokeK8sClient
 type SpokeK8sClient interface {
 	client.Client
-	ListCsrs() (*certificatesv1.CertificateSigningRequestList, error)
-	ApproveCsr(csr *certificatesv1.CertificateSigningRequest) error
-	CreateSubjectAccessReview(subjectAccessReview *authorizationv1.SelfSubjectAccessReview) (*authorizationv1.SelfSubjectAccessReview, error)
-	IsActionPermitted(verb string, resource string) (bool, error)
-	GetNode(name string) (*corev1.Node, error)
-	PatchNodeLabels(nodeName string, nodeLabels string) error
-	PatchMachineConfigPoolPaused(pause bool, mcpName string) error
+	ListCsrs(ctx context.Context) (*certificatesv1.CertificateSigningRequestList, error)
+	ApproveCsr(ctx context.Context, csr *certificatesv1.CertificateSigningRequest) error
+	GetNode(ctx context.Context, name string) (*corev1.Node, error)
+	PatchNodeLabels(ctx context.Context, nodeName string, nodeLabels string) error
+	PatchMachineConfigPoolPaused(ctx context.Context, pause bool, mcpName string) error
 	DeleteNode(ctx context.Context, name string) error
 }
 
@@ -159,36 +156,11 @@ func (cf *spokeK8sClientFactory) createFromClientConfig(clientConfig *rest.Confi
 	return &data, nil
 }
 
-// Create a subject access review and get a response in order to determine capabilities.
-func (c *spokeK8sClient) CreateSubjectAccessReview(subjectAccessReview *authorizationv1.SelfSubjectAccessReview) (*authorizationv1.SelfSubjectAccessReview, error) {
-	return c.sarClient.Create(context.TODO(), subjectAccessReview, metav1.CreateOptions{})
+func (c *spokeK8sClient) ListCsrs(ctx context.Context) (*certificatesv1.CertificateSigningRequestList, error) {
+	return c.csrClient.List(ctx, metav1.ListOptions{})
 }
 
-func (c *spokeK8sClient) IsActionPermitted(verb string, resource string) (bool, error) {
-	sar := authorizationv1.SelfSubjectAccessReview{
-		Spec: authorizationv1.SelfSubjectAccessReviewSpec{
-			ResourceAttributes: &authorizationv1.ResourceAttributes{
-				Verb:     verb,
-				Resource: resource,
-			},
-		},
-	}
-	sarResponse, err := c.CreateSubjectAccessReview(&sar)
-	if err != nil {
-		return false, fmt.Errorf("could not create subject access review to detemine %s %s permissions %w", verb, resource, err)
-	}
-
-	if sarResponse.Status.Allowed {
-		return true, nil
-	}
-	return false, nil
-}
-
-func (c *spokeK8sClient) ListCsrs() (*certificatesv1.CertificateSigningRequestList, error) {
-	return c.csrClient.List(context.TODO(), metav1.ListOptions{})
-}
-
-func (c *spokeK8sClient) ApproveCsr(csr *certificatesv1.CertificateSigningRequest) error {
+func (c *spokeK8sClient) ApproveCsr(ctx context.Context, csr *certificatesv1.CertificateSigningRequest) error {
 	csr.Status.Conditions = append(csr.Status.Conditions, certificatesv1.CertificateSigningRequestCondition{
 		Type:           certificatesv1.CertificateApproved,
 		Reason:         "NodeCSRApprove",
@@ -196,27 +168,27 @@ func (c *spokeK8sClient) ApproveCsr(csr *certificatesv1.CertificateSigningReques
 		Status:         corev1.ConditionTrue,
 		LastUpdateTime: metav1.Now(),
 	})
-	_, err := c.csrClient.UpdateApproval(context.TODO(), csr.Name, csr, metav1.UpdateOptions{})
+	_, err := c.csrClient.UpdateApproval(ctx, csr.Name, csr, metav1.UpdateOptions{})
 	return err
 }
 
-func (c *spokeK8sClient) GetNode(name string) (*corev1.Node, error) {
-	node, err := c.nodesClient.Get(context.TODO(), name, metav1.GetOptions{})
+func (c *spokeK8sClient) GetNode(ctx context.Context, name string) (*corev1.Node, error) {
+	node, err := c.nodesClient.Get(ctx, name, metav1.GetOptions{})
 	if err != nil {
 		node = nil
 	}
 	return node, err
 }
 
-func (c *spokeK8sClient) PatchNodeLabels(nodeName string, nodeLabels string) error {
+func (c *spokeK8sClient) PatchNodeLabels(ctx context.Context, nodeName string, nodeLabels string) error {
 	data := []byte(`{"metadata": {"labels": ` + nodeLabels + `}}`)
-	_, err := c.nodesClient.Patch(context.Background(), nodeName, types.MergePatchType, data, metav1.PatchOptions{})
+	_, err := c.nodesClient.Patch(ctx, nodeName, types.MergePatchType, data, metav1.PatchOptions{})
 	return err
 }
 
-func (c *spokeK8sClient) PatchMachineConfigPoolPaused(pause bool, mcpName string) error {
+func (c *spokeK8sClient) PatchMachineConfigPoolPaused(ctx context.Context, pause bool, mcpName string) error {
 	mcp := &mcfgv1.MachineConfigPool{}
-	err := c.Get(context.TODO(), types.NamespacedName{Name: mcpName}, mcp)
+	err := c.Get(ctx, types.NamespacedName{Name: mcpName}, mcp)
 	if err != nil {
 		return err
 	}
@@ -225,7 +197,7 @@ func (c *spokeK8sClient) PatchMachineConfigPoolPaused(pause bool, mcpName string
 	}
 	pausePatch := []byte(fmt.Sprintf("{\"spec\":{\"paused\":%t}}", pause))
 	c.log.Infof("Setting pause MCP %s to %t", mcpName, pause)
-	return c.Patch(context.TODO(), mcp, client.RawPatch(types.MergePatchType, pausePatch))
+	return c.Patch(ctx, mcp, client.RawPatch(types.MergePatchType, pausePatch))
 }
 
 func (c *spokeK8sClient) DeleteNode(ctx context.Context, name string) error {

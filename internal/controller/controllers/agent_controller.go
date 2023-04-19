@@ -278,8 +278,8 @@ func (r *AgentReconciler) shouldApproveCSR(csr *certificatesv1.CertificateSignin
 	return validateNodeCsr(agent, csr, x509CSR)
 }
 
-func (r *AgentReconciler) approveAIHostsCSRs(clients spoke_k8s_client.SpokeK8sClient, agent *aiv1beta1.Agent, validateNodeCsr nodeCsrValidator) {
-	csrList, err := clients.ListCsrs()
+func (r *AgentReconciler) approveAIHostsCSRs(ctx context.Context, clients spoke_k8s_client.SpokeK8sClient, agent *aiv1beta1.Agent, validateNodeCsr nodeCsrValidator) {
+	csrList, err := clients.ListCsrs(ctx)
 	if err != nil {
 		r.Log.WithError(err).Errorf("Failed to get CSRs for agent %s/%s", agent.Namespace, agent.Name)
 		return
@@ -295,7 +295,7 @@ func (r *AgentReconciler) approveAIHostsCSRs(clients spoke_k8s_client.SpokeK8sCl
 				}
 				continue
 			}
-			if err = clients.ApproveCsr(csr); err != nil {
+			if err = clients.ApproveCsr(ctx, csr); err != nil {
 				r.Log.WithError(err).Errorf("Failed to approve CSR %s for agent %s/%s", csr.Name, agent.Namespace, agent.Name)
 				continue
 			}
@@ -346,14 +346,7 @@ func (r *AgentReconciler) tryApproveDay2CSRs(ctx context.Context, agent *aiv1bet
 	}
 
 	// Even if node is already ready, we try approving last time
-	r.approveAIHostsCSRs(client, agent, validateNodeCsr)
-}
-
-func (r *AgentReconciler) getNode(agent *aiv1beta1.Agent, client spoke_k8s_client.SpokeK8sClient) (*corev1.Node, error) {
-	hostname := getAgentHostname(agent)
-
-	// TODO: Node name might be FQDN and not just host name if cluster is IPv6
-	return client.GetNode(hostname)
+	r.approveAIHostsCSRs(ctx, client, agent, validateNodeCsr)
 }
 
 func (r *AgentReconciler) bmhExists(ctx context.Context, agent *aiv1beta1.Agent) (bool, error) {
@@ -556,7 +549,7 @@ func (r *AgentReconciler) applyDay2NodeLabels(ctx context.Context, log logrus.Fi
 		if err != nil {
 			return err
 		}
-		return client.PatchNodeLabels(node.Name, marshalledLabels)
+		return client.PatchNodeLabels(ctx, node.Name, marshalledLabels)
 	}
 	return nil
 }
@@ -608,7 +601,9 @@ func (r *AgentReconciler) updateStatus(ctx context.Context, log logrus.FieldLogg
 					log.WithError(err).Errorf("Failed to determine if agent %s/%s is rebooting and belongs to none platform cluster or has an associated BMH", agent.Namespace, agent.Name)
 					return ctrl.Result{RequeueAfter: defaultRequeueAfterOnError}, nil
 				}
-				node, err = r.getNode(agent, spokeClient)
+
+				// TODO: Node name might be FQDN and not just host name if cluster is IPv6
+				node, err = spokeClient.GetNode(ctx, getAgentHostname(agent))
 				if err != nil {
 					if !k8serrors.IsNotFound(err) {
 						r.Log.WithError(err).Errorf("agent %s/%s: failed to get node", agent.Namespace, agent.Name)

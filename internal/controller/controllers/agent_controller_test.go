@@ -613,7 +613,7 @@ var _ = Describe("agent reconcile", func() {
 				createKubeconfigSecret(clusterDeployment.Name)
 				mockClient := spoke_k8s_client.NewMockSpokeK8sClient(mockCtrl)
 				mockClientFactory.EXPECT().CreateFromSecret(gomock.Any()).Return(mockClient, nil).AnyTimes()
-				mockClient.EXPECT().GetNode(gomock.Any()).Return(nil, k8serrors.NewNotFound(schema.GroupResource{Group: "v1", Resource: "Node"}, commonHost.RequestedHostname)).Times(1)
+				mockClient.EXPECT().GetNode(gomock.Any(), gomock.Any()).Return(nil, k8serrors.NewNotFound(schema.GroupResource{Group: "v1", Resource: "Node"}, commonHost.RequestedHostname)).Times(1)
 
 				result, err := hr.Reconcile(ctx, newHostRequest(host))
 				Expect(err).To(BeNil())
@@ -661,7 +661,7 @@ var _ = Describe("agent reconcile", func() {
 						},
 					},
 				}
-				mockClient.EXPECT().GetNode(gomock.Any()).Return(node, nil).AnyTimes()
+				mockClient.EXPECT().GetNode(gomock.Any(), gomock.Any()).Return(node, nil).AnyTimes()
 				mockInstallerInternal.EXPECT().V2UpdateHostInstallProgressInternal(gomock.Any(), gomock.Any()).Return(nil).Times(1)
 				result, err := hr.Reconcile(ctx, newHostRequest(host))
 				Expect(err).To(BeNil())
@@ -709,9 +709,9 @@ var _ = Describe("agent reconcile", func() {
 						},
 					},
 				}
-				mockClient.EXPECT().GetNode(gomock.Any()).Return(node, nil).AnyTimes()
+				mockClient.EXPECT().GetNode(gomock.Any(), gomock.Any()).Return(node, nil).AnyTimes()
 				mockInstallerInternal.EXPECT().V2UpdateHostInstallProgressInternal(gomock.Any(), gomock.Any()).Return(nil).Times(1)
-				mockClient.EXPECT().PatchNodeLabels(gomock.Any(), gomock.Any()).DoAndReturn(func(name, labels string) error {
+				mockClient.EXPECT().PatchNodeLabels(gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(func(ctx context.Context, name, labels string) error {
 					var nodeLabels map[string]string
 					Expect(json.Unmarshal([]byte(labels), &nodeLabels)).ToNot(HaveOccurred())
 					Expect(nodeLabels).To(Equal(host.Spec.NodeLabels))
@@ -2730,12 +2730,12 @@ VU1eS0RiS/Lz6HwRs2mATNY5FrpZOgdM3cI=
 			if t.createClient {
 				mockClient := spoke_k8s_client.NewMockSpokeK8sClient(mockCtrl)
 				mockClientFactory.EXPECT().CreateFromSecret(gomock.Any()).Return(mockClient, nil)
-				mockClient.EXPECT().GetNode(gomock.Any()).Return(t.node, t.nodeError).Times(t.getNodeCount)
+				mockClient.EXPECT().GetNode(gomock.Any(), gomock.Any()).Return(t.node, t.nodeError).Times(t.getNodeCount)
 				if t.csrs != nil {
-					mockClient.EXPECT().ListCsrs().Return(t.csrs, nil)
+					mockClient.EXPECT().ListCsrs(gomock.Any()).Return(t.csrs, nil)
 				}
 				if t.approveExpected {
-					mockClient.EXPECT().ApproveCsr(gomock.Any()).Return(nil)
+					mockClient.EXPECT().ApproveCsr(gomock.Any(), gomock.Any()).Return(nil)
 				}
 			}
 			hostRequest = newHostRequest(host)
