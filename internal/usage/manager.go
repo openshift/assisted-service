@@ -1,11 +1,13 @@
 package usage
 
 import (
+	"context"
 	"encoding/json"
 	"strings"
 
 	"github.com/go-openapi/strfmt"
 	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/internal/stream"
 	"github.com/openshift/assisted-service/models"
 	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
@@ -23,12 +25,14 @@ type API interface {
 }
 
 type UsageManager struct {
-	log logrus.FieldLogger
+	log    logrus.FieldLogger
+	stream stream.Notifier
 }
 
-func NewManager(log logrus.FieldLogger) *UsageManager {
+func NewManager(log logrus.FieldLogger, stream stream.Notifier) *UsageManager {
 	return &UsageManager{
-		log: log,
+		log:    log,
+		stream: stream,
 	}
 }
 
@@ -53,9 +57,21 @@ func (m *UsageManager) Save(db *gorm.DB, clusterId strfmt.UUID, usages FeatureUs
 	b, err := json.Marshal(usages)
 	if err == nil {
 		err = db.Model(&common.Cluster{}).Where("id = ?", clusterId).Update("feature_usage", string(b)).Error
-	}
-	if err != nil {
-		m.log.WithError(err).Errorf("Failed to update usages %v", usages)
+		if err != nil {
+			m.log.WithError(err).Errorf("Failed to update usages %v", usages)
+			return
+		}
+
+		var cluster *common.Cluster
+		cluster, err = common.GetClusterFromDB(db, clusterId, common.UseEagerLoading)
+		if err != nil {
+			m.log.WithError(err).Warning("error retrieving updated cluster for notification")
+		}
+
+		err = m.stream.Notify(context.Background(), cluster)
+		if err != nil {
+			m.log.WithError(err).Warning("failed to notify cluster event (feature usage)")
+		}
 	}
 }
 
