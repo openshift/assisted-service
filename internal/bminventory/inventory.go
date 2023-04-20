@@ -2061,6 +2061,13 @@ func (b *bareMetalInventory) v2UpdateClusterInternal(ctx context.Context, params
 		return nil, err
 	}
 
+	if cluster != nil {
+		err = b.stream.Notify(ctx, cluster)
+		if err != nil {
+			log.WithError(err).Warning("failed to notify cluster update event")
+		}
+	}
+
 	cluster.HostNetworks = b.calculateHostNetworks(log, cluster)
 	for _, host := range cluster.Hosts {
 		b.customizeHost(&cluster.Cluster, host)
@@ -4497,6 +4504,7 @@ func (b *bareMetalInventory) RegisterInfraEnvInternal(
 	kubeKey *types.NamespacedName,
 	params installer.RegisterInfraEnvParams) (*common.InfraEnv, error) {
 
+	var infraEnv common.InfraEnv
 	var id strfmt.UUID
 	log := logutil.FromContext(ctx, b.log)
 
@@ -4518,6 +4526,11 @@ func (b *bareMetalInventory) RegisterInfraEnvInternal(
 	var err error
 	defer func() {
 		if success {
+			err = b.stream.Notify(ctx, &infraEnv)
+			if err != nil {
+				log.WithError(err).Warning("failed to notify infraenv registration event")
+			}
+
 			msg := fmt.Sprintf("Successfully registered InfraEnv %s with id %s",
 				swag.StringValue(params.InfraenvCreateParams.Name), id)
 			log.Info(msg)
@@ -4605,7 +4618,7 @@ func (b *bareMetalInventory) RegisterInfraEnvInternal(
 		}
 	}
 
-	infraEnv := common.InfraEnv{
+	infraEnv = common.InfraEnv{
 		Generated: false,
 		InfraEnv: models.InfraEnv{
 			ID:                     &id,

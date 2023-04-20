@@ -260,15 +260,15 @@ func main() {
 	ctrlMgr, err := createControllerManager()
 	failOnError(err, "failed to create controller manager")
 
-	usageManager := usage.NewManager(log)
+	notificationStream := getNotificationStream(log)
+	defer notificationStream.Close()
+
+	usageManager := usage.NewManager(log, notificationStream)
 	ocmClient := getOCMClient(log)
 
 	authHandler, err := auth.NewAuthenticator(&Options.Auth, ocmClient, log.WithField("pkg", "auth"), db)
 	failOnError(err, "failed to create authenticator")
 	authzHandler := auth.NewAuthzHandler(&Options.Auth, ocmClient, log.WithField("pkg", "authz"), db)
-
-	notificationStream := getNotificationStream(log)
-	defer notificationStream.Close()
 
 	crdEventsHandler := createCRDEventsHandler()
 	eventsHandler := createEventsHandler(crdEventsHandler, db, authzHandler, notificationStream, log)
