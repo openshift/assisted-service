@@ -124,7 +124,7 @@ func (o *operator) ValidateHost(_ context.Context, cluster *common.Cluster, host
 	if mode == compactMode {
 		if host.Role == models.HostRoleMaster || host.Role == models.HostRoleAutoAssign {
 			if diskCount == 0 {
-				return api.ValidationResult{Status: api.Failure, ValidationId: o.GetHostValidationID(), Reasons: []string{"Insufficient disks, ODF requires at least one non-bootable disk on each host in compact mode."}}, nil
+				return api.ValidationResult{Status: api.Failure, ValidationId: o.GetHostValidationID(), Reasons: []string{"Insufficient disks, ODF requires at least one non-installation disk on each host in compact mode."}}, nil
 			}
 			return api.ValidationResult{Status: api.Success, ValidationId: o.GetHostValidationID(), Reasons: []string{}}, nil
 		}
