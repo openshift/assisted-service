@@ -100,7 +100,7 @@ func (i *Installers) Get(releaseID, releaseIDMirror, pullSecret string, ocReleas
 	return &Release{link}, nil
 }
 
-//	Walk through the cacheDir and list the files recursively.
+// Walk through the cacheDir and list the files recursively.
 // If the total volume of the files reaches the capacity, delete
 // the oldest ones.
 //
