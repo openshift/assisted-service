@@ -67,15 +67,19 @@ func (f *domainNameResolutionCmd) prepareParam(host *models.Host, cluster *commo
 	var domains []*models.DomainResolutionRequestDomain
 	domains = append(domains, &apiDomain, &apiInternalDomain, &appsDomain, &wildcardDomain)
 
-	releaseHost, err := versions.GetReleaseImageHost(cluster, f.versionHandler)
-	if err != nil {
-		return "", err
-	}
-	if net.ParseIP(releaseHost) == nil {
-		releaseDomain := models.DomainResolutionRequestDomain{
-			DomainName: swag.String(releaseHost),
+	if swag.StringValue(cluster.Kind) != models.ClusterKindAddHostsCluster {
+		releaseHost, err := versions.GetReleaseImageHost(cluster, f.versionHandler)
+
+		if err != nil {
+			return "", err
 		}
-		domains = append(domains, &releaseDomain)
+
+		if net.ParseIP(releaseHost) == nil {
+			releaseDomain := models.DomainResolutionRequestDomain{
+				DomainName: swag.String(releaseHost),
+			}
+			domains = append(domains, &releaseDomain)
+		}
 	}
 
 	request := models.DomainResolutionRequest{
