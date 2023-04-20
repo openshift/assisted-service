@@ -367,126 +367,204 @@ var _ = Describe("[V2ClusterTests]", func() {
 })
 
 var _ = Describe("[V2ClusterTests] multiarch", func() {
-	ctx := context.Background()
-	var tmpBMClient *client.AssistedInstall
-	var tmpAgentBMClient *client.AssistedInstall
-	var tmpPullSecret string
-	var clusterID strfmt.UUID
-	var X86infraEnvID strfmt.UUID
-	var ARMinfraEnvID strfmt.UUID
-	var ips []string
-	var h1, h2, h3 *models.Host
+	Context("ARM", func() {
+		ctx := context.Background()
 
-	BeforeEach(func() {
-		// (MGMT-11859) "user2" has permissions to use multiarch, "user" does not
-		tmpBMClient = userBMClient
-		userBMClient = user2BMClient
-		tmpAgentBMClient = agentBMClient
-		agentBMClient = agent2BMClient
-		tmpPullSecret = pullSecret
-		pullSecret = fmt.Sprintf(psTemplate, FakePS2)
+		var tmpBMClient *client.AssistedInstall
+		var tmpAgentBMClient *client.AssistedInstall
+		var tmpPullSecret string
+		var clusterID strfmt.UUID
+		var X86infraEnvID strfmt.UUID
+		var ARMinfraEnvID strfmt.UUID
+		var ips []string
+		var h1, h2, h3 *models.Host
 
-		clusterReq, err := userBMClient.Installer.V2RegisterCluster(ctx, &installer.V2RegisterClusterParams{
-			NewClusterParams: &models.ClusterCreateParams{
-				Name:             swag.String("test-cluster"),
-				OpenshiftVersion: swag.String(multiarchOpenshiftVersion),
-				PullSecret:       swag.String(pullSecret),
-				BaseDNSDomain:    "example.com",
-				// If for the same version there is both single-arch and multi-arch release image, the logic
-				// implemented in https://github.com/openshift/assisted-service/pull/4314 will not kick in.
-				// For this reason in subsystem tests for 4.11 we are explicitly setting CPU architecture
-				// so that we use multi-arch. Once we don't carry single-arch release images anymore, this
-				// will not be needed.
-				CPUArchitecture: common.MultiCPUArchitecture,
-			},
+		BeforeEach(func() {
+			// (MGMT-11859) "user2" has permissions to use multiarch, "user" does not
+			tmpBMClient = userBMClient
+			userBMClient = user2BMClient
+			tmpAgentBMClient = agentBMClient
+			agentBMClient = agent2BMClient
+			tmpPullSecret = pullSecret
+			pullSecret = fmt.Sprintf(psTemplate, FakePS2)
+
+			clusterReq, err := userBMClient.Installer.V2RegisterCluster(ctx, &installer.V2RegisterClusterParams{
+				NewClusterParams: &models.ClusterCreateParams{
+					Name:             swag.String("test-cluster"),
+					OpenshiftVersion: swag.String(multiarchOpenshiftVersion),
+					PullSecret:       swag.String(pullSecret),
+					BaseDNSDomain:    "example.com",
+					// If for the same version there is both single-arch and multi-arch release image, the logic
+					// implemented in https://github.com/openshift/assisted-service/pull/4314 will not kick in.
+					// For this reason in subsystem tests for 4.11 we are explicitly setting CPU architecture
+					// so that we use multi-arch. Once we don't carry single-arch release images anymore, this
+					// will not be needed.
+					CPUArchitecture: common.MultiCPUArchitecture,
+				},
+			})
+
+			Expect(err).NotTo(HaveOccurred())
+			clusterID = *clusterReq.GetPayload().ID
+			clusterArch := clusterReq.GetPayload().CPUArchitecture
+			Expect(clusterArch).To(Equal(common.MultiCPUArchitecture))
+
+			// standalone x86 infraEnv
+			infraEnv := registerInfraEnv(nil, models.ImageTypeFullIso)
+			X86infraEnvID = *infraEnv.ID
+
+			// bound arm64 infraEnv
+			infraEnv = registerInfraEnvSpecificVersionAndArch(&clusterID, models.ImageTypeFullIso, common.ARM64CPUArchitecture, "")
+			ARMinfraEnvID = *infraEnv.ID
+
+			By("register h2 h3 to cluster via the bound arm64 infraenv")
+			ips = hostutil.GenerateIPv4Addresses(3, defaultCIDRv4)
+			h2 = registerNode(ctx, ARMinfraEnvID, "h2", ips[1])
+			h3 = registerNode(ctx, ARMinfraEnvID, "h3", ips[2])
+			v2UpdateVipParams(ctx, clusterID)
+			waitForClusterState(ctx, clusterID, models.ClusterStatusInsufficient, defaultWaitForClusterStateTimeout,
+				IgnoreStateInfo)
 		})
 
-		Expect(err).NotTo(HaveOccurred())
-		clusterID = *clusterReq.GetPayload().ID
-		clusterArch := clusterReq.GetPayload().CPUArchitecture
-		Expect(clusterArch).To(Equal(common.MultiCPUArchitecture))
-
-		// standalone x86 infraEnv
-		infraEnv := registerInfraEnv(nil, models.ImageTypeFullIso)
-		X86infraEnvID = *infraEnv.ID
-
-		// bound arm64 infraEnv
-		infraEnv = registerInfraEnvSpecificVersionAndArch(&clusterID, models.ImageTypeFullIso, common.ARM64CPUArchitecture, "")
-		ARMinfraEnvID = *infraEnv.ID
-
-		By("register h2 h3 to cluster via the bound arm64 infraenv")
-		ips = hostutil.GenerateIPv4Addresses(3, defaultCIDRv4)
-		h2 = registerNode(ctx, ARMinfraEnvID, "h2", ips[1])
-		h3 = registerNode(ctx, ARMinfraEnvID, "h3", ips[2])
-		v2UpdateVipParams(ctx, clusterID)
-		waitForClusterState(ctx, clusterID, models.ClusterStatusInsufficient, defaultWaitForClusterStateTimeout,
-			IgnoreStateInfo)
-	})
-
-	AfterEach(func() {
-		// (MGMT-11859) Reverting the switch from "user" to "user2" that is needed only to test
-		//              access to multiarch release images in environments with org-based control
-		userBMClient = tmpBMClient
-		pullSecret = tmpPullSecret
-		agentBMClient = tmpAgentBMClient
-	})
-
-	It("Bind single host to x86 unbound infraenv", func() {
-		By("register h1 with the unbound infraenv")
-		h1 = &registerHost(X86infraEnvID).Host
-		host := getHostV2(X86infraEnvID, *h1.ID)
-		Expect(host.ClusterID).To(BeNil())
-
-		generateHWPostStepReply(ctx, h1, getDefaultInventory(ips[0]), "h1")
-		waitForHostStateV2(ctx, models.HostStatusKnownUnbound, defaultWaitForHostStateTimeout, h1)
-
-		By("bind h1 to cluster")
-		bindHost(X86infraEnvID, *h1.ID, clusterID)
-		waitForHostStateV2(ctx, models.HostStatusBinding, defaultWaitForHostStateTimeout, h1)
-
-		By("register h1 again and define the connectivity to the other hosts")
-		h1 = &registerHostByUUID(h1.InfraEnvID, *h1.ID).Host
-
-		generateEssentialHostSteps(ctx, h1, "h1", ips[0])
-		generateFullMeshConnectivity(ctx, ips[0], h1, h2, h3)
-		waitForHostStateV2(ctx, models.HostStatusKnown, defaultWaitForHostStateTimeout, h1)
-
-		By("cluster is ready")
-		generateEssentialPrepareForInstallationSteps(ctx, h1)
-		waitForClusterState(ctx, clusterID, models.ClusterStatusReady, defaultWaitForClusterStateTimeout,
-			IgnoreStateInfo)
-	})
-
-	It("Bind single host to arm64 bound infraenv", func() {
-		By("register h1 with the bound infraenv")
-		h1 = &registerHost(ARMinfraEnvID).Host
-		host := getHostV2(ARMinfraEnvID, *h1.ID)
-		Expect(host.ClusterID).NotTo(BeNil())
-
-		generateHWPostStepReply(ctx, h1, getDefaultInventory(ips[0]), "h1")
-		generateEssentialHostSteps(ctx, h1, "h1", ips[0])
-		generateFullMeshConnectivity(ctx, ips[0], h1, h2, h3)
-		waitForHostStateV2(ctx, models.HostStatusKnown, defaultWaitForHostStateTimeout, h1)
-
-		By("cluster is ready")
-		generateEssentialPrepareForInstallationSteps(ctx, h1)
-		waitForClusterState(ctx, clusterID, models.ClusterStatusReady, defaultWaitForClusterStateTimeout,
-			IgnoreStateInfo)
-	})
-
-	It("Fail to register an infraenv with a non-supported CPUArchitecture ", func() {
-		_, err := userBMClient.Installer.RegisterInfraEnv(context.Background(), &installer.RegisterInfraEnvParams{
-			InfraenvCreateParams: &models.InfraEnvCreateParams{
-				Name:             swag.String("test-infra-env"),
-				OpenshiftVersion: multiarchOpenshiftVersion,
-				PullSecret:       swag.String(pullSecret),
-				SSHAuthorizedKey: swag.String(sshPublicKey),
-				ImageType:        models.ImageTypeFullIso,
-				ClusterID:        &clusterID,
-				CPUArchitecture:  "fake-chocobomb-architecture",
-			},
+		AfterEach(func() {
+			// (MGMT-11859) Reverting the switch from "user" to "user2" that is needed only to test
+			//              access to multiarch release images in environments with org-based control
+			userBMClient = tmpBMClient
+			pullSecret = tmpPullSecret
+			agentBMClient = tmpAgentBMClient
 		})
 
-		Expect(err).To(HaveOccurred())
+		It("Bind single host to x86 unbound infraenv", func() {
+			By("register h1 with the unbound infraenv")
+			h1 = &registerHost(X86infraEnvID).Host
+			host := getHostV2(X86infraEnvID, *h1.ID)
+			Expect(host.ClusterID).To(BeNil())
+
+			generateHWPostStepReply(ctx, h1, getDefaultInventory(ips[0]), "h1")
+			waitForHostStateV2(ctx, models.HostStatusKnownUnbound, defaultWaitForHostStateTimeout, h1)
+
+			By("bind h1 to cluster")
+			bindHost(X86infraEnvID, *h1.ID, clusterID)
+			waitForHostStateV2(ctx, models.HostStatusBinding, defaultWaitForHostStateTimeout, h1)
+
+			By("register h1 again and define the connectivity to the other hosts")
+			h1 = &registerHostByUUID(h1.InfraEnvID, *h1.ID).Host
+
+			generateEssentialHostSteps(ctx, h1, "h1", ips[0])
+			generateFullMeshConnectivity(ctx, ips[0], h1, h2, h3)
+			waitForHostStateV2(ctx, models.HostStatusKnown, defaultWaitForHostStateTimeout, h1)
+
+			By("cluster is ready")
+			generateEssentialPrepareForInstallationSteps(ctx, h1)
+			waitForClusterState(ctx, clusterID, models.ClusterStatusReady, defaultWaitForClusterStateTimeout,
+				IgnoreStateInfo)
+		})
+
+		It("Bind single host to arm64 bound infraenv", func() {
+			By("register h1 with the bound infraenv")
+			h1 = &registerHost(ARMinfraEnvID).Host
+			host := getHostV2(ARMinfraEnvID, *h1.ID)
+			Expect(host.ClusterID).NotTo(BeNil())
+
+			generateHWPostStepReply(ctx, h1, getDefaultInventory(ips[0]), "h1")
+			generateEssentialHostSteps(ctx, h1, "h1", ips[0])
+			generateFullMeshConnectivity(ctx, ips[0], h1, h2, h3)
+			waitForHostStateV2(ctx, models.HostStatusKnown, defaultWaitForHostStateTimeout, h1)
+
+			By("cluster is ready")
+			generateEssentialPrepareForInstallationSteps(ctx, h1)
+			waitForClusterState(ctx, clusterID, models.ClusterStatusReady, defaultWaitForClusterStateTimeout,
+				IgnoreStateInfo)
+		})
+
+		It("Fail to register an infraenv with a non-supported CPUArchitecture ", func() {
+			_, err := userBMClient.Installer.RegisterInfraEnv(context.Background(), &installer.RegisterInfraEnvParams{
+				InfraenvCreateParams: &models.InfraEnvCreateParams{
+					Name:             swag.String("test-infra-env"),
+					OpenshiftVersion: multiarchOpenshiftVersion,
+					PullSecret:       swag.String(pullSecret),
+					SSHAuthorizedKey: swag.String(sshPublicKey),
+					ImageType:        models.ImageTypeFullIso,
+					ClusterID:        &clusterID,
+					CPUArchitecture:  "fake-chocobomb-architecture",
+				},
+			})
+
+			Expect(err).To(HaveOccurred())
+		})
+
 	})
+
+	Context("s390x", func() {
+		ctx := context.Background()
+
+		var tmpBMClient *client.AssistedInstall
+		var tmpAgentBMClient *client.AssistedInstall
+		var tmpPullSecret string
+		var clusterID strfmt.UUID
+
+		registerClusterForMultiArch := func(cpuArchitecture string) *models.Cluster {
+			clusterReq, err := user2BMClient.Installer.V2RegisterCluster(ctx, &installer.V2RegisterClusterParams{
+				NewClusterParams: &models.ClusterCreateParams{
+					Name:                  swag.String("test-cluster"),
+					OpenshiftVersion:      swag.String("4.12"),
+					PullSecret:            swag.String(fmt.Sprintf(psTemplate, FakePS2)),
+					BaseDNSDomain:         "example.com",
+					UserManagedNetworking: swag.Bool(true),
+					CPUArchitecture:       cpuArchitecture,
+				},
+			})
+			Expect(err).NotTo(HaveOccurred())
+			Expect(clusterReq.Payload.CPUArchitecture).To(Equal(common.MultiCPUArchitecture))
+
+			return clusterReq.Payload
+		}
+		BeforeEach(func() {
+			// (MGMT-11859) "user2" has permissions to use multiarch, "user" does not
+			tmpBMClient = userBMClient
+			userBMClient = user2BMClient
+			tmpAgentBMClient = agentBMClient
+			agentBMClient = agent2BMClient
+			tmpPullSecret = pullSecret
+			pullSecret = fmt.Sprintf(psTemplate, FakePS2)
+
+		})
+
+		AfterEach(func() {
+			// (MGMT-11859) Reverting the switch from "user" to "user2" that is needed only to test
+			//              access to multiarch release images in environments with org-based control
+			userBMClient = tmpBMClient
+			pullSecret = tmpPullSecret
+			agentBMClient = tmpAgentBMClient
+		})
+
+		It("Default image type on s390x", func() {
+			cluster := registerClusterForMultiArch(models.ClusterCPUArchitectureS390x)
+			infraEnv := registerInfraEnvSpecificVersionAndArch(cluster.ID, "", common.S390xCPUArchitecture, "")
+			Expect(*infraEnv.Type).To(Equal(models.ImageTypeFullIso))
+
+			_, err := userBMClient.Installer.RegisterInfraEnv(context.Background(), &installer.RegisterInfraEnvParams{
+				InfraenvCreateParams: &models.InfraEnvCreateParams{
+					Name:             swag.String("test-infra-env"),
+					OpenshiftVersion: "4.12",
+					PullSecret:       swag.String(pullSecret),
+					SSHAuthorizedKey: swag.String(sshPublicKey),
+					ImageType:        models.ImageTypeMinimalIso,
+					ClusterID:        &clusterID,
+					CPUArchitecture:  common.S390xCPUArchitecture,
+				},
+			})
+
+			Expect(err).To(HaveOccurred())
+		})
+		It("Default image type on ppc64le", func() {
+			cluster := registerClusterForMultiArch(models.ClusterCPUArchitecturePpc64le)
+			infraEnv := registerInfraEnvSpecificVersionAndArch(cluster.ID, "", common.PowerCPUArchitecture, "")
+			Expect(*infraEnv.Type).To(Equal(models.ImageTypeFullIso))
+
+			infraEnv = registerInfraEnvSpecificVersionAndArch(cluster.ID, models.ImageTypeMinimalIso, common.PowerCPUArchitecture, "")
+			Expect(*infraEnv.Type).To(Equal(models.ImageTypeMinimalIso))
+		})
+
+	})
+
 })
