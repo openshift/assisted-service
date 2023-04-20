@@ -71,7 +71,11 @@ func (i *Installers) Get(releaseID, releaseIDMirror, pullSecret string, ocReleas
 	var workdir, binary, path string
 	var err error
 
-	workdir, binary, path = ocRelease.GetReleaseBinaryPath(releaseID, i.cacheDir, platformType)
+	releaseImageLocation := releaseID
+	if releaseIDMirror != "" {
+		releaseImageLocation = releaseIDMirror
+	}
+	workdir, binary, path = ocRelease.GetReleaseBinaryPath(releaseImageLocation, i.cacheDir, platformType)
 	if _, err = os.Stat(path); os.IsNotExist(err) {
 		//evict older files if necessary
 		i.evict()
