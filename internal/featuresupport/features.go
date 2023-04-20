@@ -842,3 +842,48 @@ func (feature *ExternalPlatformOci) getFeatureActiveLevel(cluster *common.Cluste
 
 	return activeLevelNotActive
 }
+
+// MceFeature
+type MceFeature struct{}
+
+func (feature *MceFeature) New() SupportLevelFeature {
+	return &MceFeature{}
+}
+
+func (feature *MceFeature) getId() models.FeatureSupportLevelID {
+	return models.FeatureSupportLevelIDMCE
+}
+
+func (feature *MceFeature) getName() string {
+	return "multicluster engine"
+}
+
+func (feature *MceFeature) getSupportLevel(filters SupportLevelFilters) models.SupportLevel {
+	if !isFeatureCompatibleWithArchitecture(feature, filters.OpenshiftVersion, swag.StringValue(filters.CPUArchitecture)) {
+		return models.SupportLevelUnavailable
+	}
+
+	isNotSupported, err := common.BaseVersionLessThan("4.10", filters.OpenshiftVersion)
+	if isNotSupported || err != nil {
+		return models.SupportLevelUnavailable
+	}
+
+	return models.SupportLevelSupported
+}
+
+func (feature *MceFeature) getIncompatibleFeatures() *[]models.FeatureSupportLevelID {
+	return &[]models.FeatureSupportLevelID{
+		models.FeatureSupportLevelIDNUTANIXINTEGRATION,
+	}
+}
+
+func (feature *MceFeature) getIncompatibleArchitectures(_ *string) *[]models.ArchitectureSupportLevelID {
+	return nil
+}
+
+func (feature *MceFeature) getFeatureActiveLevel(cluster *common.Cluster, _ *models.InfraEnv, clusterUpdateParams *models.V2ClusterUpdateParams, _ *models.InfraEnvUpdateParams) featureActiveLevel {
+	if isOperatorActivated("mce", cluster, clusterUpdateParams) {
+		return activeLevelActive
+	}
+	return activeLevelNotActive
+}

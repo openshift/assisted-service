@@ -6569,6 +6569,7 @@ func init() {
         "odf-requirements-satisfied",
         "cnv-requirements-satisfied",
         "lvm-requirements-satisfied",
+        "mce-requirements-satisfied",
         "network-type-valid"
       ]
     },
@@ -7435,6 +7436,7 @@ func init() {
         "ODF",
         "LSO",
         "CNV",
+        "MCE",
         "NUTANIX_INTEGRATION",
         "VSPHERE_INTEGRATION",
         "DUAL_STACK_VIPS",
@@ -8017,6 +8019,7 @@ func init() {
         "ocs-requirements-satisfied",
         "odf-requirements-satisfied",
         "lvm-requirements-satisfied",
+        "mce-requirements-satisfied",
         "sufficient-installation-disk-speed",
         "cnv-requirements-satisfied",
         "sufficient-network-latency-requirement-for-role",
@@ -16957,6 +16960,7 @@ func init() {
         "odf-requirements-satisfied",
         "cnv-requirements-satisfied",
         "lvm-requirements-satisfied",
+        "mce-requirements-satisfied",
         "network-type-valid"
       ]
     },
@@ -17745,6 +17749,7 @@ func init() {
         "ODF",
         "LSO",
         "CNV",
+        "MCE",
         "NUTANIX_INTEGRATION",
         "VSPHERE_INTEGRATION",
         "DUAL_STACK_VIPS",
@@ -18327,6 +18332,7 @@ func init() {
         "ocs-requirements-satisfied",
         "odf-requirements-satisfied",
         "lvm-requirements-satisfied",
+        "mce-requirements-satisfied",
         "sufficient-installation-disk-speed",
         "cnv-requirements-satisfied",
         "sufficient-network-latency-requirement-for-role",

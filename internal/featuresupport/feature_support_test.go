@@ -133,7 +133,27 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 			featureSupportParams.CPUArchitecture = swag.String(models.ClusterCPUArchitectureArm64)
 			Expect(GetSupportLevel(feature, featureSupportParams)).To(Equal(models.SupportLevelUnavailable))
 		})
+	})
 
+	Context("Test MCE not supported under 4.10", func() {
+		feature := models.FeatureSupportLevelIDMCE
+		It(fmt.Sprintf("%s test", feature), func() {
+			arch := "DoesNotMatter"
+			Expect(IsFeatureAvailable(feature, "4.9", swag.String(arch))).To(Equal(false))
+			Expect(IsFeatureAvailable(feature, "4.10", swag.String(arch))).To(Equal(true))
+			Expect(IsFeatureAvailable(feature, "4.11", swag.String(arch))).To(Equal(true))
+
+			featureSupportParams := SupportLevelFilters{OpenshiftVersion: "4.9", CPUArchitecture: swag.String(arch)}
+			Expect(GetSupportLevel(feature, featureSupportParams)).To(Equal(models.SupportLevelUnavailable))
+			featureSupportParams = SupportLevelFilters{OpenshiftVersion: "4.11.20", CPUArchitecture: swag.String(arch)}
+			Expect(GetSupportLevel(feature, featureSupportParams)).To(Equal(models.SupportLevelSupported))
+
+			Expect(IsFeatureAvailable(feature, "4.12", swag.String(arch))).To(Equal(true))
+			Expect(IsFeatureAvailable(feature, "4.13", swag.String(arch))).To(Equal(true))
+
+			// Check for feature release
+			Expect(IsFeatureAvailable(feature, "4.30", swag.String(arch))).To(Equal(true))
+		})
 	})
 
 	Context("GetCpuArchitectureSupportList", func() {
@@ -169,12 +189,12 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 	Context("GetSupportList", func() {
 		It("GetFeatureSupportList 4.12", func() {
 			list := GetFeatureSupportList("4.12", nil)
-			Expect(len(list)).To(Equal(16))
+			Expect(len(list)).To(Equal(17))
 		})
 
 		It("GetFeatureSupportList 4.13", func() {
 			list := GetFeatureSupportList("4.13", nil)
-			Expect(len(list)).To(Equal(16))
+			Expect(len(list)).To(Equal(17))
 		})
 
 		It("GetCpuArchitectureSupportList 4.12", func() {

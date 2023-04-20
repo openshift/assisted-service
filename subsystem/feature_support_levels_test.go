@@ -116,6 +116,7 @@ var _ = Describe("Feature support levels API", func() {
 						OlmOperators: []*models.OperatorCreateParams{
 							{Name: "odf"},
 							{Name: "cnv"},
+							{Name: "mce"},
 						},
 					},
 					ClusterID: *cluster.Payload.ID,
