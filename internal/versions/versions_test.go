@@ -2,6 +2,7 @@ package versions
 
 import (
 	context "context"
+	"fmt"
 	"testing"
 
 	"github.com/go-openapi/swag"
@@ -82,14 +83,14 @@ var defaultReleaseImages = models.ReleaseImages{
 		CPUArchitecture:  swag.String(common.X86CPUArchitecture),
 		CPUArchitectures: []string{common.X86CPUArchitecture},
 		OpenshiftVersion: swag.String("4.12"),
-		URL:              swag.String("release_4.12.999-multi"),
+		URL:              swag.String("release_4.12.999-x86_64"),
 		Version:          swag.String("4.12.999-rc.4"),
 	},
 	&models.ReleaseImage{
 		CPUArchitecture:  swag.String(common.MultiCPUArchitecture),
 		CPUArchitectures: []string{common.X86CPUArchitecture, common.ARM64CPUArchitecture, common.PowerCPUArchitecture},
 		OpenshiftVersion: swag.String("4.12-multi"),
-		URL:              swag.String("release_4.12.999-x86_64"),
+		URL:              swag.String("release_4.12.999-multi"),
 		Version:          swag.String("4.12.999-rc.4"),
 	},
 	&models.ReleaseImage{
@@ -419,8 +420,9 @@ var _ = Describe("GetMustGatherImages", func() {
 		pullSecret       = "test_pull_secret"
 		ocpVersion       = "4.8.0-fc.1"
 		mirror           = "release-mirror"
+		imagesKey        = fmt.Sprintf("4.8-%s", cpuArchitecture)
 		mustgatherImages = MustGatherVersions{
-			"4.8": MustGatherVersion{
+			imagesKey: MustGatherVersion{
 				"cnv": "registry.redhat.io/container-native-virtualization/cnv-must-gather-rhel8:v2.6.5",
 				"odf": "registry.redhat.io/ocs4/odf-must-gather-rhel8",
 				"lso": "registry.redhat.io/openshift4/ose-local-storage-mustgather-rhel8",
@@ -451,7 +453,7 @@ var _ = Describe("GetMustGatherImages", func() {
 		Expect(err).ShouldNot(HaveOccurred())
 
 		verifyOcpVersion(images, 4)
-		Expect(images["lso"]).To(Equal(mustgatherImages["4.8"]["lso"]))
+		Expect(images["lso"]).To(Equal(mustgatherImages[imagesKey]["lso"]))
 	})
 
 	It("unsupported_key", func() {
@@ -468,6 +470,19 @@ var _ = Describe("GetMustGatherImages", func() {
 		images, err = h.GetMustGatherImages(ocpVersion, cpuArchitecture, pullSecret)
 		Expect(err).ShouldNot(HaveOccurred())
 		verifyOcpVersion(images, 4)
+	})
+
+	It("properly handles separate images for multiple architectures of the same version", func() {
+		mockRelease.EXPECT().GetMustGatherImage(gomock.Any(), "release_4.12.999-multi", mirror, pullSecret).Return("must-gather-multi", nil).AnyTimes()
+		mockRelease.EXPECT().GetMustGatherImage(gomock.Any(), "release_4.12.999-x86_64", mirror, pullSecret).Return("must-gather-x86", nil).AnyTimes()
+
+		images, err := h.GetMustGatherImages("4.12", common.MultiCPUArchitecture, pullSecret)
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(images["ocp"]).To(Equal("must-gather-multi"))
+
+		images, err = h.GetMustGatherImages("4.12", common.X86CPUArchitecture, pullSecret)
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(images["ocp"]).To(Equal("must-gather-x86"))
 	})
 
 	It("missing release image", func() {

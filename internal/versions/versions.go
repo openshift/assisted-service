@@ -65,20 +65,22 @@ type handler struct {
 }
 
 func (h *handler) GetMustGatherImages(openshiftVersion, cpuArchitecture, pullSecret string) (MustGatherVersion, error) {
-	versionKey, err := toMajorMinor(openshiftVersion)
+	majMinorVersion, err := toMajorMinor(openshiftVersion)
 	if err != nil {
 		return nil, err
 	}
+	cacheKey := fmt.Sprintf("%s-%s", majMinorVersion, cpuArchitecture)
+
 	if h.mustGatherVersions == nil {
 		h.mustGatherVersions = make(MustGatherVersions)
 	}
-	if h.mustGatherVersions[versionKey] == nil {
-		h.mustGatherVersions[versionKey] = make(MustGatherVersion)
+	if h.mustGatherVersions[cacheKey] == nil {
+		h.mustGatherVersions[cacheKey] = make(MustGatherVersion)
 	}
 
 	//check if ocp must-gather image is already in the cache
-	if h.mustGatherVersions[versionKey]["ocp"] != "" {
-		versions := h.mustGatherVersions[versionKey]
+	if h.mustGatherVersions[cacheKey]["ocp"] != "" {
+		versions := h.mustGatherVersions[cacheKey]
 		return versions, nil
 	}
 	//if not, fetch it from the release image and add it to the cache
@@ -90,9 +92,9 @@ func (h *handler) GetMustGatherImages(openshiftVersion, cpuArchitecture, pullSec
 	if err != nil {
 		return nil, err
 	}
-	h.mustGatherVersions[versionKey]["ocp"] = ocpMustGatherImage
+	h.mustGatherVersions[cacheKey]["ocp"] = ocpMustGatherImage
 
-	versions := h.mustGatherVersions[versionKey]
+	versions := h.mustGatherVersions[cacheKey]
 	return versions, nil
 }
 
