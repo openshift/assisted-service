@@ -7963,6 +7963,81 @@ var _ = Describe("infraEnvs", func() {
 				Expect(err).ToNot(HaveOccurred())
 				Expect(common.ImageTypeValue(i.Type)).To(Equal(models.ImageTypeFullIso))
 			})
+			It("Update Image type on s390x architecture", func() {
+				var err error
+				mockOSImages.EXPECT().GetOsImageOrLatest(gomock.Any(), gomock.Any()).Return(common.TestDefaultConfig.OsImage, nil).AnyTimes()
+				mockOSImages.EXPECT().GetOsImage(gomock.Any(), gomock.Any()).Return(common.TestDefaultConfig.OsImage, nil).AnyTimes()
+				mockEvents.EXPECT().SendInfraEnvEvent(gomock.Any(), eventstest.NewEventMatcher(
+					eventstest.WithNameMatcher(eventgen.ImageInfoUpdatedEventName))).AnyTimes()
+
+				err = db.Model(&common.InfraEnv{}).Where("id = ?", i.ID).Update("cpu_architecture", models.ClusterCPUArchitectureS390x).Error
+				Expect(err).ToNot(HaveOccurred())
+				reply := bm.UpdateInfraEnv(ctx, installer.UpdateInfraEnvParams{
+					InfraEnvID: *i.ID,
+					InfraEnvUpdateParams: &models.InfraEnvUpdateParams{
+						ImageType: "",
+					},
+				})
+				Expect(reply).To(BeAssignableToTypeOf(installer.NewUpdateInfraEnvCreated()))
+				i, err = bm.GetInfraEnvInternal(ctx, installer.GetInfraEnvParams{InfraEnvID: *i.ID})
+				Expect(err).ToNot(HaveOccurred())
+				Expect(common.ImageTypeValue(i.Type)).To(Equal(models.ImageTypeFullIso))
+			})
+			It("Update Image type on s390x architecture to full - fail", func() {
+				var err error
+				mockOSImages.EXPECT().GetOsImageOrLatest(gomock.Any(), gomock.Any()).Return(common.TestDefaultConfig.OsImage, nil).AnyTimes()
+				mockOSImages.EXPECT().GetOsImage(gomock.Any(), gomock.Any()).Return(common.TestDefaultConfig.OsImage, nil).AnyTimes()
+				mockEvents.EXPECT().SendInfraEnvEvent(gomock.Any(), eventstest.NewEventMatcher(
+					eventstest.WithNameMatcher(eventgen.ImageInfoUpdatedEventName))).AnyTimes()
+
+				err = db.Model(&common.InfraEnv{}).Where("id = ?", i.ID).Update("cpu_architecture", models.ClusterCPUArchitectureS390x).Error
+				Expect(err).ToNot(HaveOccurred())
+
+				clusterID := strfmt.UUID(uuid.New().String())
+				c := &common.Cluster{
+					Cluster: models.Cluster{
+						ID:                   &clusterID,
+						HighAvailabilityMode: swag.String(models.ClusterCreateParamsHighAvailabilityModeFull),
+						OpenshiftVersion:     "4.12",
+						CPUArchitecture:      models.ClusterCPUArchitectureS390x,
+						Platform: &models.Platform{
+							Type: common.PlatformTypePtr(models.PlatformTypeNone),
+						},
+						UserManagedNetworking: swag.Bool(true),
+					},
+				}
+				Expect(db.Create(c).Error).ToNot(HaveOccurred())
+
+				err = db.Model(&common.InfraEnv{}).Where("id = ?", i.ID).Update("cluster_id", clusterID).Error
+				Expect(err).ToNot(HaveOccurred())
+				reply := bm.UpdateInfraEnv(ctx, installer.UpdateInfraEnvParams{
+					InfraEnvID: *i.ID,
+					InfraEnvUpdateParams: &models.InfraEnvUpdateParams{
+						ImageType: models.ImageTypeMinimalIso,
+					},
+				})
+				Expect(reply.(*common.ApiErrorResponse).StatusCode()).To(Equal(int32(http.StatusBadRequest)))
+				Expect(reply.(*common.ApiErrorResponse).Error()).To(Equal("cannot use Minimal ISO because it's not compatible with the s390x architecture on version 4.12 of OpenShift"))
+			})
+			It("Update Image type on ppc64le architecture", func() {
+				var err error
+				mockInfraEnvUpdateSuccess()
+
+				err = db.Model(&common.InfraEnv{}).Where("id = ?", i.ID).Update("type", models.ImageTypeMinimalIso).Error
+				Expect(err).ToNot(HaveOccurred())
+				err = db.Model(&common.InfraEnv{}).Where("id = ?", i.ID).Update("cpu_architecture", models.ClusterCPUArchitecturePpc64le).Error
+				Expect(err).ToNot(HaveOccurred())
+				reply := bm.UpdateInfraEnv(ctx, installer.UpdateInfraEnvParams{
+					InfraEnvID: *i.ID,
+					InfraEnvUpdateParams: &models.InfraEnvUpdateParams{
+						ImageType: "",
+					},
+				})
+				Expect(reply).To(BeAssignableToTypeOf(installer.NewUpdateInfraEnvCreated()))
+				i, err = bm.GetInfraEnvInternal(ctx, installer.GetInfraEnvParams{InfraEnvID: *i.ID})
+				Expect(err).ToNot(HaveOccurred())
+				Expect(common.ImageTypeValue(i.Type)).To(Equal(models.ImageTypeMinimalIso))
+			})
 			It("Update additional trust bundle", func() {
 				var err error
 				mockInfraEnvUpdateSuccess()

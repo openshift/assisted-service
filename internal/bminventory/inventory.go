@@ -4499,6 +4499,22 @@ func (b *bareMetalInventory) handlerClusterInfoOnRegisterInfraEnv(
 	return nil
 }
 
+func (b *bareMetalInventory) getActualImageType(cpuArchitecture string, imageType models.ImageType) models.ImageType {
+	if imageType == "" {
+		return ""
+	}
+
+	// Check if image type is not set or it is set to Full iso
+	// In case that image type is set to minimal ISO, do not do anything and let the feature-support validation
+	// to fail the Z + MinimalISO combination if it is not valid case
+	if cpuArchitecture == models.ClusterCPUArchitectureS390x && imageType != models.ImageTypeMinimalIso {
+		b.log.Infof("Found Z architecture, updating ISO image type to %s", models.ImageTypeFullIso)
+		return models.ImageTypeFullIso
+	}
+
+	return imageType
+}
+
 func (b *bareMetalInventory) RegisterInfraEnvInternal(
 	ctx context.Context,
 	kubeKey *types.NamespacedName,
@@ -4618,6 +4634,7 @@ func (b *bareMetalInventory) RegisterInfraEnvInternal(
 		}
 	}
 
+	imageType := b.getActualImageType(params.InfraenvCreateParams.CPUArchitecture, params.InfraenvCreateParams.ImageType)
 	infraEnv = common.InfraEnv{
 		Generated: false,
 		InfraEnv: models.InfraEnv{
@@ -4631,7 +4648,7 @@ func (b *bareMetalInventory) RegisterInfraEnvInternal(
 			OpenshiftVersion:       *osImage.OpenshiftVersion,
 			IgnitionConfigOverride: params.InfraenvCreateParams.IgnitionConfigOverride,
 			StaticNetworkConfig:    staticNetworkConfig,
-			Type:                   common.ImageTypePtr(params.InfraenvCreateParams.ImageType),
+			Type:                   common.ImageTypePtr(imageType),
 			AdditionalNtpSources:   swag.StringValue(params.InfraenvCreateParams.AdditionalNtpSources),
 			SSHAuthorizedKey:       swag.StringValue(params.InfraenvCreateParams.SSHAuthorizedKey),
 			CPUArchitecture:        params.InfraenvCreateParams.CPUArchitecture,
