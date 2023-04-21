@@ -4,10 +4,12 @@ import (
 	"testing"
 
 	"github.com/go-openapi/strfmt"
+	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/common"
+	commontesting "github.com/openshift/assisted-service/internal/common/testing"
 	"github.com/openshift/assisted-service/models"
 	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
@@ -26,11 +28,13 @@ var _ = Describe("Feature Usage", func() {
 		dbName    string
 		manager   *UsageManager
 		clusterID strfmt.UUID
+		ctrl      *gomock.Controller
 	)
 
 	var _ = BeforeSuite(func() {
+		ctrl = gomock.NewController(GinkgoT())
 		db, dbName = common.PrepareTestDB()
-		manager = NewManager(logrus.WithField("pkg", "usage"))
+		manager = NewManager(logrus.WithField("pkg", "usage"), commontesting.GetDummyNotificationStream(ctrl))
 		clusterID = strfmt.UUID(uuid.New().String())
 		cluster := common.Cluster{Cluster: models.Cluster{
 			ID: &clusterID,
