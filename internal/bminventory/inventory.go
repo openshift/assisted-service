@@ -422,7 +422,7 @@ func (b *bareMetalInventory) validateRegisterClusterInternalParams(params *insta
 		}
 	}
 
-	if err = b.validateIgnitionEndpointURL(params.NewClusterParams.IgnitionEndpoint, log); err != nil {
+	if err = b.validateIgnitionEndpoint(params.NewClusterParams.IgnitionEndpoint, log); err != nil {
 		return err
 	}
 
@@ -1862,7 +1862,7 @@ func (b *bareMetalInventory) validateAndUpdateClusterParams(ctx context.Context,
 		*params.ClusterUpdateParams.SSHPublicKey = sshPublicKey
 	}
 
-	if err := b.validateIgnitionEndpointURL(params.ClusterUpdateParams.IgnitionEndpoint, log); err != nil {
+	if err := b.validateIgnitionEndpoint(params.ClusterUpdateParams.IgnitionEndpoint, log); err != nil {
 		return installer.V2UpdateClusterParams{}, err
 	}
 
@@ -4031,12 +4031,20 @@ func (b *bareMetalInventory) deleteDNSRecordSets(ctx context.Context, cluster co
 	return b.dnsApi.DeleteDNSRecordSets(ctx, &cluster)
 }
 
-func (b *bareMetalInventory) validateIgnitionEndpointURL(ignitionEndpoint *models.IgnitionEndpoint, log logrus.FieldLogger) error {
+func (b *bareMetalInventory) validateIgnitionEndpoint(ignitionEndpoint *models.IgnitionEndpoint, log logrus.FieldLogger) error {
 	if ignitionEndpoint == nil || ignitionEndpoint.URL == nil {
 		return nil
 	}
 	if err := pkgvalidations.ValidateHTTPFormat(*ignitionEndpoint.URL); err != nil {
 		log.WithError(err).Errorf("Invalid Ignition endpoint URL: %s", *ignitionEndpoint.URL)
+		return common.NewApiError(http.StatusBadRequest, err)
+	}
+
+	if ignitionEndpoint.CaCertificate == nil {
+		return nil
+	}
+	if err := pkgvalidations.ValidateCaCertificate(*ignitionEndpoint.CaCertificate); err != nil {
+		log.WithError(err).Errorf("Invalid Ignition endpoint CA certificate: %s", *ignitionEndpoint.CaCertificate)
 		return common.NewApiError(http.StatusBadRequest, err)
 	}
 	return nil

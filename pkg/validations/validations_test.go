@@ -1,8 +1,18 @@
 package validations
 
 import (
+	"bytes"
+	"crypto/rand"
+	"crypto/rsa"
+	"crypto/x509"
+	"crypto/x509/pkix"
+	"encoding/base64"
+	"encoding/pem"
 	"fmt"
+	"math/big"
+	"net"
 	"testing"
+	"time"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -413,6 +423,69 @@ var _ = Describe("ValidateTags", func() {
 		})
 	}
 })
+
+var _ = Describe("ValidateCaCertificate", func() {
+	It("Valid certificate", func() {
+		// Encode and validate certificate
+		cert, err := GenerateTestCertificate()
+		Expect(err).ToNot(HaveOccurred())
+		encodedCert := base64.StdEncoding.EncodeToString([]byte(cert))
+		err = ValidateCaCertificate(encodedCert)
+		Expect(err).ToNot(HaveOccurred())
+	})
+
+	It("Invalid certificate", func() {
+		encodedCert := base64.StdEncoding.EncodeToString([]byte("invalid"))
+		err := ValidateCaCertificate(encodedCert)
+		Expect(err).To(HaveOccurred())
+		Expect(err.Error()).To(ContainSubstring("unable to parse certificate"))
+	})
+
+	It("Invalid certificate encoding", func() {
+		err := ValidateCaCertificate("invalid")
+		Expect(err).To(HaveOccurred())
+		Expect(err.Error()).To(ContainSubstring("failed to decode certificate"))
+	})
+})
+
+func GenerateTestCertificate() (string, error) {
+	// Generate a test certificate
+	cert := &x509.Certificate{
+		SerialNumber: big.NewInt(2019),
+		Subject: pkix.Name{
+			Organization:  []string{"Company, INC."},
+			Country:       []string{"US"},
+			Province:      []string{""},
+			Locality:      []string{"San Francisco"},
+			StreetAddress: []string{"Golden Gate Bridge"},
+			PostalCode:    []string{"94016"},
+		},
+		IPAddresses:  []net.IP{net.IPv4(127, 0, 0, 1), net.IPv6loopback},
+		NotBefore:    time.Now(),
+		NotAfter:     time.Now().AddDate(10, 0, 0),
+		SubjectKeyId: []byte{1, 2, 3, 4, 6},
+		ExtKeyUsage:  []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth, x509.ExtKeyUsageServerAuth},
+		KeyUsage:     x509.KeyUsageDigitalSignature,
+	}
+	certPrivKey, err := rsa.GenerateKey(rand.Reader, 4096)
+	if err != nil {
+		return "", err
+	}
+	certBytes, err := x509.CreateCertificate(rand.Reader, cert, cert, &certPrivKey.PublicKey, certPrivKey)
+	if err != nil {
+		return "", err
+	}
+	certPEM := new(bytes.Buffer)
+	if err := pem.Encode(certPEM, &pem.Block{
+		Type:  "CERTIFICATE",
+		Bytes: certBytes,
+	}); err != nil {
+		return "", err
+	}
+
+	// Encode certificate
+	return certPEM.String(), nil
+}
 
 func TestCluster(t *testing.T) {
 	RegisterFailHandler(Fail)
