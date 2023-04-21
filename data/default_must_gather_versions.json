@@ -1,16 +1,20 @@
 {
-	"4.8": {
+	"4.8-x86_64": {
 		"cnv": "registry.redhat.io/container-native-virtualization/cnv-must-gather-rhel8:v2.6.5",
 		"ocs": "registry.redhat.io/ocs4/ocs-must-gather-rhel8:v4.8",
 		"lso": "registry.redhat.io/openshift4/ose-local-storage-mustgather-rhel8:v4.8"
 	},
-	"4.9": {
+	"4.9-x86_64": {
 		"cnv": "registry.redhat.io/container-native-virtualization/cnv-must-gather-rhel8:v4.9.3",
 		"ocs": "registry.redhat.io/odf4/ocs-must-gather-rhel8:v4.9",
 		"lso": "registry.redhat.io/openshift4/ose-local-storage-mustgather-rhel8:v4.9"
 	},
-	"4.10": {
+	"4.10-x86_64": {
 		"cnv": "registry.redhat.io/container-native-virtualization/cnv-must-gather-rhel8:v4.10.0",
+		"ocs": "registry.redhat.io/odf4/ocs-must-gather-rhel8:v4.10",
+		"lso": "registry.redhat.io/openshift4/ose-local-storage-mustgather-rhel8:v4.10"
+	},
+	"4.10-arm64": {
 		"ocs": "registry.redhat.io/odf4/ocs-must-gather-rhel8:v4.10",
 		"lso": "registry.redhat.io/openshift4/ose-local-storage-mustgather-rhel8:v4.10"
 	}
