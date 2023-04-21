@@ -43,6 +43,7 @@ import (
 	"github.com/openshift/assisted-service/restapi/operations/installer"
 	conditionsv1 "github.com/openshift/custom-resource-status/conditions/v1"
 	hivev1 "github.com/openshift/hive/apis/hive/v1"
+	machinev1beta1 "github.com/openshift/machine-api-operator/pkg/apis/machine/v1beta1"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
@@ -124,6 +125,17 @@ func (r *AgentReconciler) Reconcile(origCtx context.Context, req ctrl.Request) (
 
 	res, err := r.handleAgentFinalizer(ctx, log, agent)
 	if res != nil {
+		if err != nil {
+			conditionsv1.SetStatusConditionNoHeartbeat(&agent.Status.Conditions, conditionsv1.Condition{
+				Type:    aiv1beta1.CleanupCondition,
+				Status:  corev1.ConditionFalse,
+				Reason:  aiv1beta1.CleanupFailedReason,
+				Message: err.Error(),
+			})
+			if updateErr := r.Status().Update(ctx, agent); updateErr != nil {
+				log.WithError(updateErr).Error("failed to update agent status")
+			}
+		}
 		return *res, err
 	}
 
@@ -211,6 +223,166 @@ func (r *AgentReconciler) Reconcile(origCtx context.Context, req ctrl.Request) (
 	return r.updateStatus(ctx, log, agent, origAgent, &h.Host, h.ClusterID, nil, false)
 }
 
+func splitNamespacedName(nsName string) (string, string, error) {
+	parts := strings.Split(nsName, "/")
+	if len(parts) != 2 {
+		return "", "", fmt.Errorf("unable to parse namespaced name %s", nsName)
+	}
+	return parts[0], parts[1], nil
+}
+
+func deleteBMHForMachine(ctx context.Context, spokeClient client.Client, machine *machinev1beta1.Machine) error {
+	bmhNSName, haveBMH := machine.GetAnnotations()["metal3.io/BareMetalHost"]
+	if !haveBMH {
+		return nil
+	}
+
+	bmhNamespace, bmhName, err := splitNamespacedName(bmhNSName)
+	if err != nil {
+		return errors.Wrap(err, "failed to parse BMH name")
+	}
+
+	bmh := &bmh_v1alpha1.BareMetalHost{}
+	bmhKey := client.ObjectKey{Namespace: bmhNamespace, Name: bmhName}
+	if err = spokeClient.Get(ctx, bmhKey, bmh); err != nil {
+		return errors.Wrapf(err, "failed to get BMH %s", bmhNSName)
+	}
+
+	// TODO: remove this once OCPBUGS-7581 is fixed
+	patch := client.MergeFrom(bmh.DeepCopy())
+	bmh.ObjectMeta.Finalizers = nil
+	if err = spokeClient.Patch(ctx, bmh, patch); err != nil {
+		return errors.Wrapf(err, "failed to remove BMH %s finalizers", bmhNSName)
+	}
+
+	if err = spokeClient.Delete(ctx, bmh); err != nil {
+		return errors.Wrapf(err, "failed to delete BMH %s", bmhNSName)
+	}
+
+	return nil
+}
+
+// removeSpokeResources removes all relevant resources from the agent's spoke cluster
+// This includes all or some of the node, machine, BMH, and scaling the machineset depending on what is present
+func (r *AgentReconciler) removeSpokeResources(ctx context.Context, log logrus.FieldLogger, agent *aiv1beta1.Agent) error {
+	spokeClient, err := r.spokeKubeClient(ctx, agent.Spec.ClusterDeploymentName)
+	if err != nil {
+		log.WithError(err).Error("failed to create spoke client")
+		return err
+	}
+
+	nodeName := getAgentHostname(agent)
+	log = log.WithField("node", nodeName)
+
+	nodeKey := client.ObjectKey{Name: nodeName}
+	node := &corev1.Node{}
+	if err = spokeClient.Get(ctx, nodeKey, node); err != nil {
+		if k8serrors.IsNotFound(err) {
+			log.Warn("node not found")
+			return nil
+		}
+		log.WithError(err).Error("failed to get node from spoke cluster")
+		return err
+	}
+
+	deleteNode := func() error {
+		nodeErr := client.IgnoreNotFound(spokeClient.Delete(ctx, node))
+		if nodeErr != nil {
+			log.WithError(nodeErr).Error("failed to delete node")
+			return nodeErr
+		}
+		log.Info("spoke node deleted")
+		return nil
+	}
+
+	machineNSName, haveMachine := node.GetAnnotations()["machine.openshift.io/machine"]
+	if !haveMachine {
+		return deleteNode()
+	}
+
+	machineNamespace, machineName, err := splitNamespacedName(machineNSName)
+	if err != nil {
+		log.WithError(err).Error("failed to parse machine name from node annotation")
+		return deleteNode()
+	}
+
+	log = log.WithFields(logrus.Fields{
+		"machine":           machineName,
+		"machine_namespace": machineNamespace,
+	})
+
+	machine := &machinev1beta1.Machine{}
+	machineKey := client.ObjectKey{Namespace: machineNamespace, Name: machineName}
+	if err = spokeClient.Get(ctx, machineKey, machine); err != nil {
+		if k8serrors.IsNotFound(err) {
+			log.Warn("machine not found")
+			return deleteNode()
+		}
+		log.WithError(err).Error("failed to get machine")
+		return err
+	}
+
+	deleteMachine := func(deleteBMH bool) error {
+		if deleteBMH {
+			if bmhErr := deleteBMHForMachine(ctx, spokeClient, machine); client.IgnoreNotFound(bmhErr) != nil {
+				return bmhErr
+			}
+		}
+
+		if machineErr := spokeClient.Delete(ctx, machine); machineErr != nil {
+			log.WithError(machineErr).Error("failed to delete machine")
+			return machineErr
+		}
+		log.Infof("spoke machine deleted")
+		return nil
+	}
+
+	log.Infof("Annotating machine for deletion")
+	patch := client.MergeFrom(machine.DeepCopy())
+	// mark this particular machine for deletion if/when the set is scaled down
+	setAnnotation(&machine.ObjectMeta, "machine.openshift.io/delete-machine", "true")
+	// don't try to drain the node since it has already been done or timed out
+	setAnnotation(&machine.ObjectMeta, "machine.openshift.io/exclude-node-draining", "true")
+	if err = spokeClient.Patch(ctx, machine, patch); err != nil {
+		log.WithError(err).Error("failed to annotate machine for deletion")
+		return err
+	}
+
+	machineSetName, haveMachineSet := machine.GetLabels()["machine.openshift.io/cluster-api-machineset"]
+	if !haveMachineSet {
+		log.Info("no machineset label found")
+		return deleteMachine(true)
+	}
+	log = log.WithField("machine_set", machineSetName)
+
+	machineSet := &machinev1beta1.MachineSet{}
+	machineSetKey := client.ObjectKey{Namespace: machineNamespace, Name: machineSetName}
+	if err = spokeClient.Get(ctx, machineSetKey, machineSet); err != nil {
+		if k8serrors.IsNotFound(err) {
+			log.Warn("machine set not found")
+			return deleteMachine(true)
+		}
+		log.WithError(err).Error("failed to get machine set")
+		return err
+	}
+
+	patch = client.MergeFrom(machineSet.DeepCopy())
+	setAnnotation(&machineSet.ObjectMeta, "metal3.io/autoscale-to-hosts", "true")
+	if err = spokeClient.Patch(ctx, machineSet, patch); err != nil {
+		log.WithError(err).Error("failed to set machine set to autoscale")
+		return err
+	}
+
+	// Deleting the BMH while the machine set is configured for autoscaling will scale down the set
+	// This will delete the machine which was previously annotated which will remove the node
+	if err = deleteBMHForMachine(ctx, spokeClient, machine); client.IgnoreNotFound(err) != nil {
+		log.WithError(err).Error("failed to delete BMH")
+		return err
+	}
+
+	return nil
+}
+
 func (r *AgentReconciler) handleAgentFinalizer(ctx context.Context, log logrus.FieldLogger, agent *aiv1beta1.Agent) (*ctrl.Result, error) {
 	if agent.ObjectMeta.DeletionTimestamp.IsZero() { // agent not being deleted
 		// Register a finalizer if it is absent.
@@ -225,7 +397,7 @@ func (r *AgentReconciler) handleAgentFinalizer(ctx context.Context, log logrus.F
 		}
 	} else { // agent is being deleted
 		if funk.ContainsString(agent.GetFinalizers(), AgentFinalizerName) {
-			if _, has_annotation := agent.GetAnnotations()[BMH_FINALIZER_NAME]; has_annotation {
+			if _, has_annotation := agent.GetAnnotations()[BMH_FINALIZER_NAME]; has_annotation && agent.Spec.ClusterDeploymentName != nil {
 				// wait for BMH to be deleted
 				if foundBMH, err := r.bmhExists(ctx, agent); err != nil || foundBMH {
 					if err != nil {
@@ -234,16 +406,16 @@ func (r *AgentReconciler) handleAgentFinalizer(ctx context.Context, log logrus.F
 					log.Info("waiting for BMH to be deleted")
 					return &ctrl.Result{RequeueAfter: defaultRequeueAfterOnError}, err
 				}
-				// delete spoke node
-				spokeClient, err := r.spokeKubeClient(ctx, agent.Spec.ClusterDeploymentName)
+
+				// only remove the spoke resources if the entire cluster isn't being deleted
+				clusterExists, err := r.clusterExists(ctx, agent)
 				if err != nil {
-					log.WithError(err).Error("failed to create spoke client, node will not be removed")
-				} else {
-					nodeName := getAgentHostname(agent)
-					if err := spokeClient.DeleteNode(ctx, nodeName); err != nil {
-						log.WithError(err).Errorf("failed to delete spoke node %s", nodeName)
-					} else {
-						log.Infof("spoke node %s deleted", nodeName)
+					log.WithError(err).Errorf("failed to check cluster deployment presence")
+					return &ctrl.Result{}, err
+				}
+				if clusterExists {
+					if err := r.removeSpokeResources(ctx, log, agent); err != nil {
+						return &ctrl.Result{}, errors.Wrap(err, "failed to clean spoke cluster resources")
 					}
 				}
 			}
@@ -364,6 +536,23 @@ func (r *AgentReconciler) bmhExists(ctx context.Context, agent *aiv1beta1.Agent)
 	}
 
 	return true, nil
+}
+
+func (r *AgentReconciler) clusterExists(ctx context.Context, agent *aiv1beta1.Agent) (bool, error) {
+	if agent.Spec.ClusterDeploymentName == nil {
+		return false, nil
+	}
+
+	cdKey := types.NamespacedName{
+		Name:      agent.Spec.ClusterDeploymentName.Name,
+		Namespace: agent.Spec.ClusterDeploymentName.Namespace,
+	}
+	cd := &hivev1.ClusterDeployment{}
+	if err := r.Client.Get(ctx, cdKey, cd); err != nil {
+		return false, client.IgnoreNotFound(err)
+	}
+
+	return cd.DeletionTimestamp.IsZero(), nil
 }
 
 func (r *AgentReconciler) shouldReclaimOnUnbind(ctx context.Context, agent *aiv1beta1.Agent, clusterRef *aiv1beta1.ClusterReference) bool {
