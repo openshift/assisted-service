@@ -10,19 +10,19 @@ import (
 )
 
 var featuresList = map[models.FeatureSupportLevelID]SupportLevelFeature{
-	models.FeatureSupportLevelIDSNO:                      &SnoFeature{},
-	models.FeatureSupportLevelIDVIPAUTOALLOC:             &VipAutoAllocFeature{},
-	models.FeatureSupportLevelIDCUSTOMMANIFEST:           &CustomManifestFeature{},
-	models.FeatureSupportLevelIDCLUSTERMANAGEDNETWORKING: &ClusterManagedNetworkingFeature{},
-	models.FeatureSupportLevelIDUSERMANAGEDNETWORKING:    &UserManagedNetworkingFeature{},
-	models.FeatureSupportLevelIDSINGLENODEEXPANSION:      &SingleNodeExpansionFeature{},
-	models.FeatureSupportLevelIDDUALSTACKVIPS:            &DualStackVipsFeature{},
-	models.FeatureSupportLevelIDLVM:                      &LvmFeature{},
-	models.FeatureSupportLevelIDNUTANIXINTEGRATION:       &NutanixIntegrationFeature{},
-	models.FeatureSupportLevelIDVSPHEREINTEGRATION:       &VsphereIntegrationFeature{},
-	models.FeatureSupportLevelIDCNV:                      &CnvFeature{},
-	models.FeatureSupportLevelIDODF:                      &OdfFeature{},
-	models.FeatureSupportLevelIDMINIMALISO:               &MinimalIso{},
+	models.FeatureSupportLevelIDSNO:                      (&SnoFeature{}).New(),
+	models.FeatureSupportLevelIDVIPAUTOALLOC:             (&VipAutoAllocFeature{}).New(),
+	models.FeatureSupportLevelIDCUSTOMMANIFEST:           (&CustomManifestFeature{}).New(),
+	models.FeatureSupportLevelIDCLUSTERMANAGEDNETWORKING: (&ClusterManagedNetworkingFeature{}).New(),
+	models.FeatureSupportLevelIDUSERMANAGEDNETWORKING:    (&UserManagedNetworkingFeature{}).New(),
+	models.FeatureSupportLevelIDSINGLENODEEXPANSION:      (&SingleNodeExpansionFeature{}).New(),
+	models.FeatureSupportLevelIDDUALSTACKVIPS:            (&DualStackVipsFeature{}).New(),
+	models.FeatureSupportLevelIDLVM:                      (&LvmFeature{}).New(),
+	models.FeatureSupportLevelIDNUTANIXINTEGRATION:       (&NutanixIntegrationFeature{}).New(),
+	models.FeatureSupportLevelIDVSPHEREINTEGRATION:       (&VsphereIntegrationFeature{}).New(),
+	models.FeatureSupportLevelIDCNV:                      (&CnvFeature{}).New(),
+	models.FeatureSupportLevelIDODF:                      (&OdfFeature{}).New(),
+	models.FeatureSupportLevelIDMINIMALISO:               (&MinimalIso{}).New(),
 }
 
 func getFeatureSupportList(features map[models.FeatureSupportLevelID]SupportLevelFeature, filters SupportLevelFilters) models.SupportLevels {
