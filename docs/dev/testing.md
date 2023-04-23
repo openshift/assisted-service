@@ -41,7 +41,7 @@ It would allow easier integration with other tools, less dependency of the CI in
 
     The periodic job needs to run on a frequent basis (e.g. daily) and have a `reporter_config` configured, in order to be notified on Slack whenever there's a breakage.
 
-* In case the new job affects multiple repositories - every repository should have the same presubmit job so it could be tested for every component change.
+* In case the new job affects multiple repositories - every repository should have the same presubmit job, so it could be tested for every component change.
 For example, you can see that the `e2e-metal-assisted-olm` job is defined on several different repositories in this [link](https://steps.ci.openshift.org/search?job=e2e-metal-assisted-olm).
 
 [An example of a PR adding a new job](https://github.com/openshift/release/pull/21604)
@@ -76,7 +76,7 @@ The retest job is defined under [infra-periodics.yaml](https://github.com/opensh
 
 Depends on the job.
 
-* Single-stage tests (e.g. lint, unit tests) run inside of a scheduled container. [Read more](https://docs.ci.openshift.org/docs/architecture/ci-operator/#declaring-tests)
+* Single-stage tests (e.g. lint, unit tests) run inside a scheduled container. [Read more](https://docs.ci.openshift.org/docs/architecture/ci-operator/#declaring-tests)
 * Jobs that require a cluster (e.g. subsystem) run on a claimed OCP cluster from an hibernated pool of clusters.
 [Read more](https://docs.ci.openshift.org/docs/architecture/ci-operator/#testing-with-a-cluster-from-a-cluster-pool)
 * Baremetal jobs (i.e. e2e) run on a provisioned baremetal machine by [Equnix](https://www.equinix.nl/).
