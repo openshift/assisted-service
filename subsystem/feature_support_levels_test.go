@@ -197,9 +197,16 @@ var _ = Describe("Feature support levels API", func() {
 				err2 := err.(*installer.V2RegisterClusterBadRequest)
 				ExpectWithOffset(1, *err2.Payload.Reason).To(ContainSubstring(expectedError))
 			})
-			It("SNO with s390x fails on SNO isn't compatible with architecture - failure", func() {
-				expectedError := "cannot use Single Node OpenShift because it's not compatible with the s390x architecture on version 4.13"
-				_, err := registerNewCluster("4.13", "s390x", models.ClusterHighAvailabilityModeNone, swag.Bool(true))
+			It("SNO with s390x fails on SNO isn't compatible with architecture success on 4.13", func() {
+				cluster, err := registerNewCluster("4.13", "s390x", models.ClusterHighAvailabilityModeNone, nil)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(cluster.Payload.CPUArchitecture).To(Equal("multi"))
+				Expect(swag.StringValue(cluster.Payload.HighAvailabilityMode)).To(Equal(models.ClusterHighAvailabilityModeNone))
+
+			})
+			It("SNO with s390x fails on SNO isn't compatible with architecture on 4.12 - failure", func() {
+				expectedError := "cannot use Single Node OpenShift because it's not compatible with the s390x architecture on version 4.12"
+				_, err := registerNewCluster("4.12", "s390x", models.ClusterHighAvailabilityModeNone, swag.Bool(true))
 				Expect(err).To(HaveOccurred())
 				err2 := err.(*installer.V2RegisterClusterBadRequest)
 				ExpectWithOffset(1, *err2.Payload.Reason).To(ContainSubstring(expectedError))

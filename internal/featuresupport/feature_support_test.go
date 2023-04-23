@@ -172,8 +172,11 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 		})
 
 		It("GetFeatureSupportList 4.13 with unsupported architecture", func() {
-			featuresList := GetFeatureSupportList("4.13", swag.String(models.ClusterCPUArchitecturePpc64le))
+			featuresList := GetFeatureSupportList("4.12", swag.String(models.ClusterCPUArchitecturePpc64le))
 			Expect(featuresList[string(models.FeatureSupportLevelIDSNO)]).To(Equal(models.SupportLevelUnavailable))
+
+			featuresList = GetFeatureSupportList("4.13", swag.String(models.ClusterCPUArchitecturePpc64le))
+			Expect(featuresList[string(models.FeatureSupportLevelIDSNO)]).To(Equal(models.SupportLevelDevPreview))
 		})
 
 		It("GetFeatureSupportList 4.13 with unsupported architecture", func() {
@@ -239,10 +242,10 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 			Expect(err).To(Not(BeNil()))
 			Expect(err.Error()).To(ContainSubstring("cannot use Minimal ISO because it's not compatible with the s390x architecture on version 4.13 of OpenShift"))
 		})
-		It("SNO feature is activated with incompatible architecture ppc64le", func() {
-			expectedError := "cannot use Single Node OpenShift because it's not compatible with the ppc64le architecture on version 4.13 of OpenShift"
+		It("SNO feature is activated with incompatible architecture ppc64le on 4.12", func() {
+			expectedError := "cannot use Single Node OpenShift because it's not compatible with the ppc64le architecture on version 4.12 of OpenShift"
 			cluster := common.Cluster{Cluster: models.Cluster{
-				OpenshiftVersion:      "4.13",
+				OpenshiftVersion:      "4.12",
 				CPUArchitecture:       models.ClusterCPUArchitecturePpc64le,
 				HighAvailabilityMode:  swag.String(models.ClusterHighAvailabilityModeNone),
 				UserManagedNetworking: swag.Bool(true),
@@ -250,8 +253,28 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 			}}
 			Expect(ValidateIncompatibleFeatures(log, models.ClusterCPUArchitecturePpc64le, &cluster, nil, nil).Error()).To(Equal(expectedError))
 		})
-		It("SNO feature is activated with incompatible architecture s390x", func() {
-			expectedError := "cannot use Single Node OpenShift because it's not compatible with the s390x architecture on version 4.13 of OpenShift"
+		It("SNO feature is compatible on ppc64le architecture at 4.13", func() {
+			cluster := common.Cluster{Cluster: models.Cluster{
+				OpenshiftVersion:      "4.13",
+				CPUArchitecture:       models.ClusterCPUArchitecturePpc64le,
+				HighAvailabilityMode:  swag.String(models.ClusterHighAvailabilityModeNone),
+				UserManagedNetworking: swag.Bool(true),
+				Platform:              &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeBaremetal)},
+			}}
+			Expect(ValidateIncompatibleFeatures(log, models.ClusterCPUArchitecturePpc64le, &cluster, nil, nil)).To(BeNil())
+		})
+		It("SNO feature is activated with incompatible architecture s390x on 4.12", func() {
+			expectedError := "cannot use Single Node OpenShift because it's not compatible with the s390x architecture on version 4.12 of OpenShift"
+			cluster := common.Cluster{Cluster: models.Cluster{
+				OpenshiftVersion:      "4.12",
+				CPUArchitecture:       models.ClusterCPUArchitectureS390x,
+				HighAvailabilityMode:  swag.String(models.ClusterHighAvailabilityModeNone),
+				UserManagedNetworking: swag.Bool(true),
+				Platform:              &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeBaremetal)},
+			}}
+			Expect(ValidateIncompatibleFeatures(log, models.ClusterCPUArchitectureS390x, &cluster, nil, nil).Error()).To(Equal(expectedError))
+		})
+		It("SNO feature is activated with compatible architecture s390x on 4.13", func() {
 			cluster := common.Cluster{Cluster: models.Cluster{
 				OpenshiftVersion:      "4.13",
 				CPUArchitecture:       models.ClusterCPUArchitectureS390x,
@@ -259,7 +282,7 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 				UserManagedNetworking: swag.Bool(true),
 				Platform:              &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeBaremetal)},
 			}}
-			Expect(ValidateIncompatibleFeatures(log, models.ClusterCPUArchitectureS390x, &cluster, nil, nil).Error()).To(Equal(expectedError))
+			Expect(ValidateIncompatibleFeatures(log, models.ClusterCPUArchitectureS390x, &cluster, nil, nil)).To(BeNil())
 		})
 		It("Nutanix feature is activated with incompatible architecture", func() {
 			expectedError := "cannot use arm64 architecture because it's not compatible on version 4.8 of OpenShift"
