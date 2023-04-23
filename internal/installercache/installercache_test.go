@@ -115,6 +115,46 @@ var _ = Describe("installer cache", func() {
 		Expect(os.IsNotExist(err)).To(BeFalse())
 
 	})
+
+	It("extracts from the mirror", func() {
+		releaseID := "4.10-orig"
+		releaseMirrorID := "4.10-mirror"
+		workdir := filepath.Join(cacheDir, "quay.io", "release-dev")
+		fname := filepath.Join(workdir, releaseID)
+
+		mockRelease.EXPECT().GetReleaseBinaryPath(
+			releaseMirrorID, gomock.Any(), gomock.Any()).
+			Return(workdir, releaseID, fname)
+		mockRelease.EXPECT().Extract(gomock.Any(), releaseID,
+			gomock.Any(), cacheDir, gomock.Any(),
+			gomock.Any(), gomock.Any()).
+			DoAndReturn(func(log logrus.FieldLogger, releaseImage string, releaseImageMirror string, cacheDir string, pullSecret string, platformType models.PlatformType, icspFile string) (string, error) {
+				err := os.WriteFile(fname, []byte("abcde"), 0600)
+				return "", err
+			})
+		_, err := manager.Get(releaseID, releaseMirrorID, "pull-secret", mockRelease, models.PlatformTypeBaremetal, "icsp")
+		Expect(err).ShouldNot(HaveOccurred())
+	})
+
+	It("extracts without a mirror", func() {
+		releaseID := "4.10-orig"
+		releaseMirrorID := ""
+		workdir := filepath.Join(cacheDir, "quay.io", "release-dev")
+		fname := filepath.Join(workdir, releaseID)
+
+		mockRelease.EXPECT().GetReleaseBinaryPath(
+			releaseID, gomock.Any(), gomock.Any()).
+			Return(workdir, releaseID, fname)
+		mockRelease.EXPECT().Extract(gomock.Any(), releaseID,
+			gomock.Any(), cacheDir, gomock.Any(),
+			gomock.Any(), gomock.Any()).
+			DoAndReturn(func(log logrus.FieldLogger, releaseImage string, releaseImageMirror string, cacheDir string, pullSecret string, platformType models.PlatformType, icspFile string) (string, error) {
+				err := os.WriteFile(fname, []byte("abcde"), 0600)
+				return "", err
+			})
+		_, err := manager.Get(releaseID, releaseMirrorID, "pull-secret", mockRelease, models.PlatformTypeBaremetal, "icsp")
+		Expect(err).ShouldNot(HaveOccurred())
+	})
 })
 
 func TestInstallerCache(t *testing.T) {
