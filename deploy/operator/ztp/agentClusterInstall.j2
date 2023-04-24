@@ -39,4 +39,25 @@ spec:
 {% endif %}
   provisionRequirements:
     controlPlaneAgents: {{ spoke_controlplane_agents }}
+{% if spoke_worker_agents is defined and spoke_worker_agents|int > 0 %}
+    workerAgents: {{ spoke_worker_agents }}
+{% endif %}
   sshPublicKey: '{{ ssh_public_key }}'
+{% if manifests is defined and manifests %}
+  manifestsConfigMapRefs:
+    - name: '{{ agent_cluster_install_name }}'
+{% endif %}
+
+{% if manifests is defined and manifests %}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: '{{ agent_cluster_install_name }}'
+  namespace: '{{ spoke_namespace }}'
+data:
+{% for key, value in manifests.items() %}
+  {{ key }}: |
+{{ value }}
+{% endfor %}
+{% endif %}

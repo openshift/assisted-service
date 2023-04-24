@@ -105,7 +105,19 @@ export ASSISTED_AGENT_CLUSTER_INSTALL_NAME=assisted-agent-cluster-install
 export ASSISTED_INFRAENV_NAME=assisted-infra-env
 export ASSISTED_PULLSECRET_NAME=assisted-pull-secret
 export ASSISTED_PRIVATEKEY_NAME=assisted-ssh-private-key
-export SPOKE_CONTROLPLANE_AGENTS=1  # currently only single-node is supported
+export SPOKE_CONTROLPLANE_AGENTS=1  # either 1 (single-node) or 3 is supported
+export SPOKE_WORKER_AGENTS=0 # Number of worker nodes
+
+# JSON encoded dictionary of machine config pool per host.  Example: '{"ostest-extraworker-5":"infra","ostest-extraworker-3":"storage"}'
+export MACHINE_CONFIG_POOLS=<machine-config-pools>
+
+# JSON encoded dictionary of node-labels per host. Example: '{"ostest-extraworker-3":{"node-role.kubernetes.io/infra":""}, "ostest-extraworker-5":{"node-role.kubernetes.io/infra":""}}'
+export NODE_LABELS=<node-labels>
+
+# JSON encoded dictionary of manifests to be applied on day1 cluster.
+# Every value in this dictionary points to a file which contains the manifest content. 
+# Example: '{"mc.json":"/workerdir/mc.json", "mcp.yaml", "/workerdir/mcp.yaml"}'
+export MANIFEST_FILES=<manifest_files>  
 ```
 
 ## Running None Platform ZTP Flow (Testing only)
