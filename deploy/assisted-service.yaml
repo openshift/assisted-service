@@ -35,6 +35,7 @@ spec:
             httpGet:
               path: /ready
               port: 8090
+            initialDelaySeconds: 30
           envFrom:
             - configMapRef:
                 name: assisted-service-config
