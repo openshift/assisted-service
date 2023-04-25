@@ -63,6 +63,7 @@ const (
 	ironicPrivatePortEnvVar          = "IRONIC_PRIVATE_PORT"
 	inspectorPrivatePortEnvVar       = "IRONIC_INSPECTOR_PRIVATE_PORT"
 	ironicListenPortEnvVar           = "IRONIC_LISTEN_PORT"
+	inspectorListenPortEnvVar        = "IRONIC_INSPECTOR_LISTEN_PORT"
 	cboOwnedAnnotation               = "baremetal.openshift.io/owned"
 	cboLabelName                     = "baremetal.openshift.io/cluster-baremetal-operator"
 	externalTrustBundleConfigMapName = "cbo-trusted-ca"
@@ -574,11 +575,13 @@ func createContainerMetal3Httpd(images *Images, config *metal3iov1alpha1.Provisi
 	httpsPort, _ := strconv.Atoi(baremetalVmediaHttpsPort) // #nosec
 
 	ironicPort := baremetalIronicPort
+	inspectorPort := baremetalIronicInspectorPort
 	// In the proxy mode, the ironic API is served on the private port,
 	// while ironic-proxy, running as a DeamonSet on all nodes, serves on
-	// 6385 and proxies the traffic.
+	// 6385 and proxies the traffic (same for inspector).
 	if UseIronicProxy(config) {
 		ironicPort = ironicPrivatePort
+		inspectorPort = inspectorPrivatePort
 	}
 
 	volumes := []corev1.VolumeMount{
@@ -597,8 +600,8 @@ func createContainerMetal3Httpd(images *Images, config *metal3iov1alpha1.Provisi
 		},
 		{
 			Name:          "inspector",
-			ContainerPort: 5050,
-			HostPort:      5050,
+			ContainerPort: int32(inspectorPort),
+			HostPort:      int32(inspectorPort),
 		},
 		{
 			Name:          httpPortName,
@@ -653,6 +656,10 @@ func createContainerMetal3Httpd(images *Images, config *metal3iov1alpha1.Provisi
 			{
 				Name:  ironicListenPortEnvVar,
 				Value: fmt.Sprint(ironicPort),
+			},
+			{
+				Name:  inspectorListenPortEnvVar,
+				Value: fmt.Sprint(inspectorPort),
 			},
 		},
 		Ports: ports,
@@ -883,7 +890,7 @@ func injectProxyAndCA(containers []corev1.Container, proxy *configv1.Proxy) []co
 	var injectedContainers []corev1.Container
 
 	for _, container := range containers {
-		container.Env = envWithProxy(proxy, container.Env)
+		container.Env = envWithProxy(proxy, container.Env, "")
 		container.VolumeMounts = mountsWithTrustedCA(container.VolumeMounts)
 		injectedContainers = append(injectedContainers, container)
 	}
@@ -891,7 +898,7 @@ func injectProxyAndCA(containers []corev1.Container, proxy *configv1.Proxy) []co
 	return injectedContainers
 }
 
-func envWithProxy(proxy *configv1.Proxy, envVars []corev1.EnvVar) []corev1.EnvVar {
+func envWithProxy(proxy *configv1.Proxy, envVars []corev1.EnvVar, noproxy string) []corev1.EnvVar {
 	if proxy == nil {
 		return envVars
 	}
@@ -908,10 +915,10 @@ func envWithProxy(proxy *configv1.Proxy, envVars []corev1.EnvVar) []corev1.EnvVa
 			Value: proxy.Status.HTTPSProxy,
 		})
 	}
-	if proxy.Status.NoProxy != "" {
+	if proxy.Status.NoProxy != "" || noproxy != "" {
 		envVars = append(envVars, corev1.EnvVar{
 			Name:  "NO_PROXY",
-			Value: proxy.Status.NoProxy,
+			Value: proxy.Status.NoProxy + "," + noproxy,
 		})
 	}
 
