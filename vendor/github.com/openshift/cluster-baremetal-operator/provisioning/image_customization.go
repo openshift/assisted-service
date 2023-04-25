@@ -84,7 +84,7 @@ func getUrlFromIP(ipAddr string) string {
 }
 
 func createImageCustomizationContainer(images *Images, info *ProvisioningInfo, ironicIP, inspectorIP string) corev1.Container {
-	envVars := envWithProxy(info.Proxy, []corev1.EnvVar{})
+	envVars := envWithProxy(info.Proxy, []corev1.EnvVar{}, ironicIP+","+inspectorIP)
 
 	container := corev1.Container{
 		Name:  "machine-image-customization-controller",

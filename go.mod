@@ -45,12 +45,12 @@ require (
 	github.com/onsi/ginkgo v1.16.5
 	github.com/onsi/gomega v1.20.1
 	github.com/openshift-online/ocm-sdk-go v0.1.205
-	github.com/openshift/api v0.0.0-20220824124051-d72820206113
+	github.com/openshift/api v0.0.0-20220831183848-09c070622e2c
 	github.com/openshift/assisted-image-service v0.0.0-20220506122314-2f689a1084b8
 	github.com/openshift/assisted-service/api v0.0.0
 	github.com/openshift/assisted-service/models v0.0.0
 	github.com/openshift/client-go v0.0.0-20220525160904-9e1acff93e4a
-	github.com/openshift/cluster-baremetal-operator v0.0.0-20230215012619-53d370a7c26b
+	github.com/openshift/cluster-baremetal-operator v0.0.0-20230414174413-b80af66d9fcc
 	github.com/openshift/custom-resource-status v1.1.2
 	github.com/openshift/generic-admission-server v1.14.1-0.20221208154047-0cd6b8367d91
 	github.com/openshift/hive/apis v0.0.0-20220222213051-def9088fdb5a

@@ -686,7 +686,7 @@ github.com/openshift/client-go/config/clientset/versioned/typed/config/v1
 # github.com/openshift/cluster-api-provider-gcp v0.0.1-0.20201002065957-9854f7420570
 ## explicit; go 1.13
 github.com/openshift/cluster-api-provider-gcp/pkg/apis/gcpprovider/v1beta1
-# github.com/openshift/cluster-baremetal-operator v0.0.0-20230215012619-53d370a7c26b
+# github.com/openshift/cluster-baremetal-operator v0.0.0-20230425113947-8016e2c1bade
 ## explicit; go 1.19
 github.com/openshift/cluster-baremetal-operator/api/v1alpha1
 github.com/openshift/cluster-baremetal-operator/provisioning

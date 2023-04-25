@@ -1429,8 +1429,8 @@ github.com/openshift/api v0.0.0-20200827090112-c05698d102cf/go.mod h1:M3xexPhgM8
 github.com/openshift/api v0.0.0-20200829102639-8a3a835f1acf/go.mod h1:M3xexPhgM8DISzzRpuFUy+jfPjQPIcs9yqEYj17mXV8=
 github.com/openshift/api v0.0.0-20200901182017-7ac89ba6b971/go.mod h1:M3xexPhgM8DISzzRpuFUy+jfPjQPIcs9yqEYj17mXV8=
 github.com/openshift/api v0.0.0-20220525145417-ee5b62754c68/go.mod h1:LEnw1IVscIxyDnltE3Wi7bQb/QzIM8BfPNKoGA1Qlxw=
-github.com/openshift/api v0.0.0-20220824124051-d72820206113 h1:BQiCqyjVx9/s1ycbjcsMUJCIKp+2IVpzi2ZGVfMxB/M=
-github.com/openshift/api v0.0.0-20220824124051-d72820206113/go.mod h1:LEnw1IVscIxyDnltE3Wi7bQb/QzIM8BfPNKoGA1Qlxw=
+github.com/openshift/api v0.0.0-20220831183848-09c070622e2c h1:7Ar64e7somcImBRqyOLJINqirHeNwB9QdBR2AUNrnPw=
+github.com/openshift/api v0.0.0-20220831183848-09c070622e2c/go.mod h1:9JWn+H7X8wEPPc9D63krigXl8r3F1Mt6/lC98brUyhQ=
 github.com/openshift/assisted-image-service v0.0.0-20220506122314-2f689a1084b8 h1:oZ3VAWiM8tPRBM+vYI4GBmlrqyoqizcgZ7pBy5EX2K8=
 github.com/openshift/assisted-image-service v0.0.0-20220506122314-2f689a1084b8/go.mod h1:bH4+AsmPy8mQQvtgedBm2Crs93TDWeXEMlIPrlEMpjA=
 github.com/openshift/baremetal-operator/apis v0.0.0-20230331001040-c7cddc04b0f9 h1:7LHxH1w4lZhyC6vw7VXHc+CW2qp7NF6EMKBgYO/GPsc=
@@ -1454,8 +1454,8 @@ github.com/openshift/cluster-api-provider-gcp v0.0.1-0.20200713133651-5c8a640669
 github.com/openshift/cluster-api-provider-gcp v0.0.1-0.20200901173901-9056dbc8c9b9/go.mod h1:rcwAydGZX+z4l91wtOdbq+fqDwuo6iu0YuFik3UUc+8=
 github.com/openshift/cluster-api-provider-gcp v0.0.1-0.20201002065957-9854f7420570 h1:Bmi2b7YADMXpNQ6EPV4rQqoVRSjj3dzDU3dSAEKXut0=
 github.com/openshift/cluster-api-provider-gcp v0.0.1-0.20201002065957-9854f7420570/go.mod h1:7NRECVE26rvP1/fs1CbhfY5gsgnnFQNhb9txTFzWmUw=
-github.com/openshift/cluster-baremetal-operator v0.0.0-20230215012619-53d370a7c26b h1:9YOskWkk0IbC9FdvtMgfqqDROkBnAZ2j5d2NTvu0/Ro=
-github.com/openshift/cluster-baremetal-operator v0.0.0-20230215012619-53d370a7c26b/go.mod h1:/AXE2QW7zcf/RS+V/OM6AqmpLixwAgyy3Zui13pnqb4=
+github.com/openshift/cluster-baremetal-operator v0.0.0-20230414174413-b80af66d9fcc h1:Cgfwyr1jCDDLLARPQ3xSumQvTBmJHSSYcnF+YtPu+n0=
+github.com/openshift/cluster-baremetal-operator v0.0.0-20230414174413-b80af66d9fcc/go.mod h1:NsHXPghG/nhl2U/gpwJfQmSaihBTOIAskULg50lKZgc=
 github.com/openshift/custom-resource-status v1.1.2 h1:C3DL44LEbvlbItfd8mT5jWrqPfHnSOQoQf/sypqA6A4=
 github.com/openshift/custom-resource-status v1.1.2/go.mod h1:DB/Mf2oTeiAmVVX1gN+NEqweonAPY0TKUwADizj8+ZA=
 github.com/openshift/generic-admission-server v1.14.1-0.20221208154047-0cd6b8367d91 h1:k0jTzdCoQZSkh1oWL9/OdaL7W8Gy7eMRkOBL9GTdMyE=
