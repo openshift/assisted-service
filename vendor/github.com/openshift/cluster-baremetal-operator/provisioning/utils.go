@@ -93,11 +93,12 @@ func getServerInternalIP(osclient osclientset.Interface) (string, error) {
 }
 
 func GetIronicIP(client kubernetes.Interface, targetNamespace string, config *metal3iov1alpha1.ProvisioningSpec, osclient osclientset.Interface) (ironicIP string, inspectorIP string, err error) {
-	// Inspector does not support proxy
+	var podIP string
+
 	if config.ProvisioningNetwork != metal3iov1alpha1.ProvisioningNetworkDisabled && !config.VirtualMediaViaExternalNetwork {
-		inspectorIP = config.ProvisioningIP
+		podIP = config.ProvisioningIP
 	} else {
-		inspectorIP, err = getPodHostIP(client.CoreV1(), targetNamespace)
+		podIP, err = getPodHostIP(client.CoreV1(), targetNamespace)
 		if err != nil {
 			return
 		}
@@ -105,15 +106,16 @@ func GetIronicIP(client kubernetes.Interface, targetNamespace string, config *me
 
 	if UseIronicProxy(config) {
 		ironicIP, err = getServerInternalIP(osclient)
-		// NOTE(janders) if ironicIP is an empty string (e.g. for NonePlatformType) fall back to Pod IP (which is what Inspector uses)
+		// NOTE(janders) if ironicIP is an empty string (e.g. for NonePlatformType) fall back to Pod IP
 		if ironicIP == "" {
-			ironicIP = inspectorIP
+			ironicIP = podIP
 		}
 	} else {
-		ironicIP = inspectorIP
+		ironicIP = podIP
 	}
 
-	return
+	inspectorIP = ironicIP // keep returning separate variables for future enhancements
+	return ironicIP, inspectorIP, err
 }
 
 func GetPodIP(podClient coreclientv1.PodsGetter, targetNamespace string, networkType NetworkStackType) (string, error) {
