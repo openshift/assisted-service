@@ -6806,9 +6806,10 @@ var _ = Describe("[V2ClusterUpdate] cluster", func() {
 					createInfraEnv(clusterID, cpuArchitecture)
 				}
 
-				It("s390x with SNO - incompatible", func() {
+				It("s390x with SNO - compatible on 4.13", func() {
 					clusterID = strfmt.UUID(uuid.New().String())
 					createClusterWithInfraEnv(clusterID, models.ClusterCPUArchitectureS390x, "4.13", models.PlatformTypeNone, true, models.ClusterHighAvailabilityModeNone)
+					mockSuccess()
 
 					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 						ClusterID: clusterID,
@@ -6816,12 +6817,15 @@ var _ = Describe("[V2ClusterUpdate] cluster", func() {
 							NetworkType: swag.String(models.ClusterNetworkTypeOVNKubernetes),
 						},
 					})
-					verifyApiErrorString(reply, http.StatusBadRequest, "cannot use Single Node OpenShift because it's not compatible with the s390x architecture on version 4.13 of OpenShift")
+
+					Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2UpdateClusterCreated()))
+					actual := reply.(*installer.V2UpdateClusterCreated).Payload
+					Expect(swag.StringValue(actual.HighAvailabilityMode)).To(Equal(models.ClusterHighAvailabilityModeNone))
 				})
 
-				It("ppc64le with SNO - incompatible", func() {
+				It("s390x with SNO - incompatible on 4.12", func() {
 					clusterID = strfmt.UUID(uuid.New().String())
-					createClusterWithInfraEnv(clusterID, models.ClusterCPUArchitecturePpc64le, "4.13", models.PlatformTypeNone, true, models.ClusterHighAvailabilityModeNone)
+					createClusterWithInfraEnv(clusterID, models.ClusterCPUArchitectureS390x, "4.12", models.PlatformTypeNone, true, models.ClusterHighAvailabilityModeNone)
 
 					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 						ClusterID: clusterID,
@@ -6829,7 +6833,37 @@ var _ = Describe("[V2ClusterUpdate] cluster", func() {
 							NetworkType: swag.String(models.ClusterNetworkTypeOVNKubernetes),
 						},
 					})
-					verifyApiErrorString(reply, http.StatusBadRequest, "cannot use Single Node OpenShift because it's not compatible with the ppc64le architecture on version 4.13 of OpenShift")
+					verifyApiErrorString(reply, http.StatusBadRequest, "cannot use Single Node OpenShift because it's not compatible with the s390x architecture on version 4.12 of OpenShift")
+				})
+
+				It("ppc64le with SNO - compatible on 4.13", func() {
+					clusterID = strfmt.UUID(uuid.New().String())
+					createClusterWithInfraEnv(clusterID, models.ClusterCPUArchitecturePpc64le, "4.13", models.PlatformTypeNone, true, models.ClusterHighAvailabilityModeNone)
+					mockSuccess()
+
+					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
+						ClusterID: clusterID,
+						ClusterUpdateParams: &models.V2ClusterUpdateParams{
+							NetworkType: swag.String(models.ClusterNetworkTypeOVNKubernetes),
+						},
+					})
+
+					Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2UpdateClusterCreated()))
+					actual := reply.(*installer.V2UpdateClusterCreated).Payload
+					Expect(swag.StringValue(actual.HighAvailabilityMode)).To(Equal(models.ClusterHighAvailabilityModeNone))
+				})
+
+				It("ppc64le with SNO - incompatible on 4.12", func() {
+					clusterID = strfmt.UUID(uuid.New().String())
+					createClusterWithInfraEnv(clusterID, models.ClusterCPUArchitecturePpc64le, "4.12", models.PlatformTypeNone, true, models.ClusterHighAvailabilityModeNone)
+
+					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
+						ClusterID: clusterID,
+						ClusterUpdateParams: &models.V2ClusterUpdateParams{
+							NetworkType: swag.String(models.ClusterNetworkTypeOVNKubernetes),
+						},
+					})
+					verifyApiErrorString(reply, http.StatusBadRequest, "cannot use Single Node OpenShift because it's not compatible with the ppc64le architecture on version 4.12 of OpenShift")
 				})
 
 				It("update ClusterManagedNetworking with s390x - incompatible", func() {
@@ -12615,10 +12649,10 @@ var _ = Describe("TestRegisterCluster", func() {
 			})
 			verifyApiError(reply, http.StatusBadRequest)
 		})
-		It("Sno isn't compatible with s390x", func() {
+		It("Sno isn't compatible with s390x on 4.12", func() {
 			mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
 				eventstest.WithNameMatcher(eventgen.ClusterRegistrationFailedEventName),
-				eventstest.WithMessageContainsMatcher("Failed to register cluster. Error: cannot use Single Node OpenShift because it's not compatible with the s390x architecture on version 4.13.0 of OpenShift"),
+				eventstest.WithMessageContainsMatcher("Failed to register cluster. Error: cannot use Single Node OpenShift because it's not compatible with the s390x architecture on version 4.12.0 of OpenShift"),
 				eventstest.WithSeverityMatcher(models.EventSeverityError))).Times(1)
 
 			mockOSImages.EXPECT().GetCPUArchitectures(gomock.Any()).Return([]string{common.X86CPUArchitecture, common.S390xCPUArchitecture}).Times(1)
@@ -12627,7 +12661,7 @@ var _ = Describe("TestRegisterCluster", func() {
 			params.Platform = &models.Platform{
 				Type: common.PlatformTypePtr(models.PlatformTypeNone),
 			}
-			params.OpenshiftVersion = swag.String("4.13")
+			params.OpenshiftVersion = swag.String("4.12")
 			params.CPUArchitecture = models.ClusterCPUArchitectureS390x
 			params.HighAvailabilityMode = swag.String(models.ClusterHighAvailabilityModeNone)
 
@@ -12635,7 +12669,7 @@ var _ = Describe("TestRegisterCluster", func() {
 				CPUArchitectures: []string{models.ClusterCPUArchitectureX8664, params.CPUArchitecture},
 				OpenshiftVersion: params.OpenshiftVersion,
 				URL:              swag.String("quay.io/openshift-release-dev/ocp-release:4.13-multi"),
-				Version:          swag.String("4.13.0"),
+				Version:          swag.String("4.12.0"),
 				SupportLevel:     models.OpenshiftVersionSupportLevelProduction,
 			}
 
@@ -12646,6 +12680,43 @@ var _ = Describe("TestRegisterCluster", func() {
 			})
 			verifyApiError(reply, http.StatusBadRequest)
 		})
+
+		It("Sno is compatible with s390x on 4.13", func() {
+			mockSecretValidator.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any()).Return(nil).Times(1)
+			mockOperatorManager.EXPECT().GetSupportedOperatorsByType(models.OperatorTypeBuiltin).Return([]*models.MonitoredOperator{&common.TestDefaultConfig.MonitoredOperator}).Times(1)
+			mockProviderRegistry.EXPECT().SetPlatformUsages(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
+			mockMetric.EXPECT().ClusterRegistered().Times(1)
+			mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
+				eventstest.WithNameMatcher(eventgen.ClusterRegistrationSucceededEventName))).Times(1)
+			mockAMSSubscription(ctx)
+			params := getDefaultClusterCreateParams()
+
+			params.OpenshiftVersion = swag.String("4.13")
+			params.CPUArchitecture = models.ClusterCPUArchitectureS390x
+			params.HighAvailabilityMode = swag.String(models.ClusterHighAvailabilityModeNone)
+			params.Platform = nil
+
+			mockOSImages.EXPECT().GetCPUArchitectures(gomock.Any()).Return([]string{common.X86CPUArchitecture, common.S390xCPUArchitecture}).Times(1)
+
+			releaseImage := &models.ReleaseImage{
+				CPUArchitecture:  &params.CPUArchitecture,
+				OpenshiftVersion: params.OpenshiftVersion,
+				URL:              swag.String("quay.io/openshift-release-dev/ocp-release:4.13-s390x"),
+				Version:          swag.String("4.13.0"),
+				SupportLevel:     models.OpenshiftVersionSupportLevelProduction,
+			}
+
+			mockVersions.EXPECT().GetReleaseImage(ctx, *params.OpenshiftVersion, params.CPUArchitecture, *params.PullSecret).Return(releaseImage, nil).Times(1)
+
+			reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
+				NewClusterParams: params,
+			})
+			Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2RegisterClusterCreated()))
+			actual := reply.(*installer.V2RegisterClusterCreated).Payload
+			Expect(swag.StringValue(actual.HighAvailabilityMode)).To(Equal(models.ClusterHighAvailabilityModeNone))
+			Expect(actual.CPUArchitecture).To(Equal(models.ClusterCPUArchitectureS390x))
+		})
+
 		It("ClusterManagedNetworking isn't compatible with s390x", func() {
 			mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
 				eventstest.WithNameMatcher(eventgen.ClusterRegistrationFailedEventName),
