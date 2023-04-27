@@ -125,3 +125,7 @@ Unit tests as required.
 
 * We will have to be careful when examining bug reports and triage tickets to ensure we are aware of when this feature has been used.
 * Might allow some customers to ignore things they shouldn't ignore.
+
+### Known issues
+* If the user provides disks of less than the required size then even though the validation has been bypassed, this will not work
+  - This is because the installation disk for the node cannot be chosen, minimum disk size is used as part of the definition of "eligible" disks and the installation disk has to be eligible. Since eligibility checks are not a "validation", skipping validations will not alleviate this issue
