@@ -7,7 +7,6 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes"
 	coreclientv1 "k8s.io/client-go/kubernetes/typed/core/v1"
 
 	osconfigv1 "github.com/openshift/api/config/v1"
@@ -64,58 +63,62 @@ func getPodHostIP(podClient coreclientv1.PodsGetter, targetNamespace string) (st
 	return pod.Status.HostIP, nil
 }
 
-func getServerInternalIP(osclient osclientset.Interface) (string, error) {
+func getServerInternalIPs(osclient osclientset.Interface) ([]string, error) {
 	infra, err := osclient.ConfigV1().Infrastructures().Get(context.Background(), "cluster", metav1.GetOptions{})
 	if err != nil {
 		err = fmt.Errorf("Cannot get the 'cluster' object from infrastructure API: %w", err)
-		return "", err
+		return nil, err
 	}
-	// FIXME(dtantsur): handle the new APIServerInternalIPs field and the dualstack case.
 	switch infra.Status.PlatformStatus.Type {
 	case osconfigv1.BareMetalPlatformType:
-		return infra.Status.PlatformStatus.BareMetal.APIServerInternalIP, nil
+		return infra.Status.PlatformStatus.BareMetal.APIServerInternalIPs, nil
 	case osconfigv1.OpenStackPlatformType:
-		return infra.Status.PlatformStatus.OpenStack.APIServerInternalIP, nil
+		return infra.Status.PlatformStatus.OpenStack.APIServerInternalIPs, nil
 	case osconfigv1.VSpherePlatformType:
-		return infra.Status.PlatformStatus.VSphere.APIServerInternalIP, nil
+		return infra.Status.PlatformStatus.VSphere.APIServerInternalIPs, nil
 	case osconfigv1.AWSPlatformType:
-		return "", nil
+		return nil, nil
 	case osconfigv1.AzurePlatformType:
-		return "", nil
+		return nil, nil
 	case osconfigv1.GCPPlatformType:
-		return "", nil
+		return nil, nil
 	case osconfigv1.NonePlatformType:
-		return "", nil
+		return nil, nil
 	default:
 		err = fmt.Errorf("Cannot detect server API VIP: Attribute not supported on platform: %v", infra.Status.PlatformStatus.Type)
-		return "", err
+		return nil, err
 	}
 }
 
-func GetIronicIP(client kubernetes.Interface, targetNamespace string, config *metal3iov1alpha1.ProvisioningSpec, osclient osclientset.Interface) (ironicIP string, inspectorIP string, err error) {
+func GetIronicIPs(info ProvisioningInfo) (ironicIPs []string, inspectorIPs []string, err error) {
 	var podIP string
+	config := info.ProvConfig.Spec
 
 	if config.ProvisioningNetwork != metal3iov1alpha1.ProvisioningNetworkDisabled && !config.VirtualMediaViaExternalNetwork {
 		podIP = config.ProvisioningIP
 	} else {
-		podIP, err = getPodHostIP(client.CoreV1(), targetNamespace)
+		podIP, err = getPodHostIP(info.Client.CoreV1(), info.Namespace)
 		if err != nil {
 			return
 		}
 	}
 
-	if UseIronicProxy(config) {
-		ironicIP, err = getServerInternalIP(osclient)
-		// NOTE(janders) if ironicIP is an empty string (e.g. for NonePlatformType) fall back to Pod IP
-		if ironicIP == "" {
-			ironicIP = podIP
+	if UseIronicProxy(&config) {
+		ironicIPs, err = getServerInternalIPs(info.OSClient)
+		if err != nil {
+			err = fmt.Errorf("error fetching internalIPs: %w", err)
+			return
+		}
+
+		if ironicIPs == nil {
+			ironicIPs = []string{podIP}
 		}
 	} else {
-		ironicIP = podIP
+		ironicIPs = []string{podIP}
 	}
 
-	inspectorIP = ironicIP // keep returning separate variables for future enhancements
-	return ironicIP, inspectorIP, err
+	inspectorIPs = ironicIPs // keep returning separate variables for future enhancements
+	return ironicIPs, inspectorIPs, err
 }
 
 func GetPodIP(podClient coreclientv1.PodsGetter, targetNamespace string, networkType NetworkStackType) (string, error) {

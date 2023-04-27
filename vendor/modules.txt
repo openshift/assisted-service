@@ -635,8 +635,8 @@ github.com/openshift-online/ocm-sdk-go/metrics
 github.com/openshift-online/ocm-sdk-go/retry
 github.com/openshift-online/ocm-sdk-go/servicelogs
 github.com/openshift-online/ocm-sdk-go/servicelogs/v1
-# github.com/openshift/api v0.0.0-20220824124051-d72820206113
-## explicit; go 1.16
+# github.com/openshift/api v0.0.0-20220831183848-09c070622e2c
+## explicit; go 1.18
 github.com/openshift/api
 github.com/openshift/api/apiserver
 github.com/openshift/api/apiserver/v1
@@ -662,6 +662,8 @@ github.com/openshift/api/kubecontrolplane
 github.com/openshift/api/kubecontrolplane/v1
 github.com/openshift/api/legacyconfig/v1
 github.com/openshift/api/machine
+github.com/openshift/api/machine/v1
+github.com/openshift/api/machine/v1alpha1
 github.com/openshift/api/machine/v1beta1
 github.com/openshift/api/monitoring
 github.com/openshift/api/monitoring/v1alpha1
@@ -720,7 +722,7 @@ github.com/openshift/client-go/config/clientset/versioned/typed/config/v1
 # github.com/openshift/cluster-api-provider-gcp v0.0.1-0.20201002065957-9854f7420570
 ## explicit; go 1.13
 github.com/openshift/cluster-api-provider-gcp/pkg/apis/gcpprovider/v1beta1
-# github.com/openshift/cluster-baremetal-operator v0.0.0-20230425113947-8016e2c1bade
+# github.com/openshift/cluster-baremetal-operator v0.0.0-20230414174413-b80af66d9fcc
 ## explicit; go 1.19
 github.com/openshift/cluster-baremetal-operator/api/v1alpha1
 github.com/openshift/cluster-baremetal-operator/provisioning
