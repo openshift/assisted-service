@@ -22,7 +22,7 @@ const MinimalVersionForConvergedFlow = "4.12.0-0.alpha"
 //go:generate mockgen --build_flags=--mod=mod -package=controllers -destination=mock_bmo_utils.go . BMOUtils
 type BMOUtils interface {
 	ConvergedFlowAvailable() bool
-	GetIronicServiceURLS() (string, string, error)
+	GetIronicIPs() ([]string, []string, error)
 }
 
 type bmoUtils struct {
@@ -67,32 +67,28 @@ func (r *bmoUtils) ConvergedFlowAvailable() bool {
 	return available
 }
 
-func (r *bmoUtils) GetIronicServiceURLS() (string, string, error) {
+func (r *bmoUtils) GetIronicIPs() ([]string, []string, error) {
 	provisioningInfo, err := r.getProvisioningInfo()
 	if err != nil {
 		r.log.WithError(err).Error("unable to get provisioning CR")
-		return "", "", err
+		return nil, nil, err
 	}
 	ironicIPs, inspectorIPs, err := provisioning.GetIronicIPs(*provisioningInfo)
 	if err != nil {
 		r.log.WithError(err).Error("unable to determine Ironic's IP")
-		return "", "", err
+		return nil, nil, err
 	}
 	if len(inspectorIPs) == 0 || inspectorIPs[0] == "" {
 		err = errors.New("unable to determine inspector IP, check if metal3 pod is running")
 		r.log.WithError(err)
-		return "", "", err
+		return nil, nil, err
 	}
 	if len(ironicIPs) == 0 || ironicIPs[0] == "" {
 		err = errors.New("unable to determine Ironic's IP")
 		r.log.WithError(err)
-		return "", "", err
+		return nil, nil, err
 	}
-	ironicURL := getUrlFromIP(ironicIPs[0])
-	r.log.Infof("Ironic URL is: %s", ironicURL)
-	inspectorURL := getUrlFromIP(inspectorIPs[0])
-	r.log.Infof("Inspector URL is: %s", inspectorURL)
-	return ironicURL, inspectorURL, nil
+	return ironicIPs, inspectorIPs, nil
 }
 
 func (r *bmoUtils) getProvisioningInfo() (*provisioning.ProvisioningInfo, error) {
