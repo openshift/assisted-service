@@ -304,30 +304,9 @@ func (r *AgentReconciler) approveAIHostsCSRs(ctx context.Context, clients spoke_
 }
 
 func (r *AgentReconciler) spokeKubeClient(ctx context.Context, clusterRef *aiv1beta1.ClusterReference) (spoke_k8s_client.SpokeK8sClient, error) {
-	clusterDeployment := &hivev1.ClusterDeployment{}
-	cdKey := types.NamespacedName{
-		Namespace: clusterRef.Namespace,
-		Name:      clusterRef.Name,
-	}
-	err := r.Get(ctx, cdKey, clusterDeployment)
+	secret, err := spokeKubeconfigSecret(ctx, r.Log, r.Client, r.APIReader, clusterRef)
 	if err != nil {
-		// set this so it can be used by the following call
-		clusterDeployment.Name = cdKey.Name
-	}
-	adminKubeConfigSecretName := getClusterDeploymentAdminKubeConfigSecretName(clusterDeployment)
-
-	namespacedName := types.NamespacedName{
-		Namespace: clusterRef.Namespace,
-		Name:      adminKubeConfigSecretName,
-	}
-
-	secret, err := getSecret(ctx, r.Client, r.APIReader, namespacedName)
-	if err != nil {
-		r.Log.WithError(err).Errorf("failed to get kubeconfig secret %s", namespacedName)
-		return nil, err
-	}
-	if err = ensureSecretIsLabelled(ctx, r.Client, secret, namespacedName); err != nil {
-		r.Log.WithError(err).Errorf("failed to label kubeconfig secret %s", namespacedName)
+		r.Log.WithError(err).Errorf("failed to get spoke secret for cluster %s/%s", clusterRef.Namespace, clusterRef.Name)
 		return nil, err
 	}
 	return r.SpokeK8sClientFactory.CreateFromSecret(secret)

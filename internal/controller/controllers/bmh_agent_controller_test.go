@@ -14,6 +14,7 @@ import (
 	hiveext "github.com/openshift/assisted-service/api/hiveextension/v1beta1"
 	"github.com/openshift/assisted-service/api/v1beta1"
 	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/internal/spoke_k8s_client"
 	"github.com/openshift/assisted-service/models"
 	conditionsv1 "github.com/openshift/custom-resource-status/conditions/v1"
 	hivev1 "github.com/openshift/hive/apis/hive/v1"
@@ -23,7 +24,9 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/kubectl/pkg/drain"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	fakeclient "sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -1700,24 +1703,28 @@ var _ = Describe("bmac reconcile - converged flow enabled", func() {
 
 var _ = Describe("handleBMHFinalizer", func() {
 	var (
-		bmhr       *BMACReconciler
-		ctx        = context.Background()
-		mockCtrl   *gomock.Controller
-		mockClient *MockK8sClient
-		bmh        *bmh_v1alpha1.BareMetalHost
+		bmhr              *BMACReconciler
+		ctx               = context.Background()
+		mockCtrl          *gomock.Controller
+		mockClient        *MockK8sClient
+		mockDrainer       *MockDrainer
+		mockClientFactory *spoke_k8s_client.MockSpokeK8sClientFactory
+		bmh               *bmh_v1alpha1.BareMetalHost
 	)
 
 	BeforeEach(func() {
-		schemes := GetKubeClientSchemes()
 		mockCtrl = gomock.NewController(GinkgoT())
 		mockClient = NewMockK8sClient(mockCtrl)
+		mockDrainer = NewMockDrainer(mockCtrl)
+		mockClientFactory = spoke_k8s_client.NewMockSpokeK8sClientFactory(mockCtrl)
 		bmhr = &BMACReconciler{
-			Client:               mockClient,
-			APIReader:            mockClient,
-			Scheme:               scheme.Scheme,
-			Log:                  common.GetTestLog(),
-			spokeClient:          fakeclient.NewClientBuilder().WithScheme(schemes).Build(),
-			ConvergedFlowEnabled: true,
+			Client:                mockClient,
+			APIReader:             mockClient,
+			Scheme:                scheme.Scheme,
+			Log:                   common.GetTestLog(),
+			ConvergedFlowEnabled:  true,
+			Drainer:               mockDrainer,
+			SpokeK8sClientFactory: mockClientFactory,
 		}
 		bmh = newBMH("testBMH", &bmh_v1alpha1.BareMetalHostSpec{})
 		bmh.Annotations = map[string]string{BMH_DELETE_ANNOTATION: "true"}
@@ -1777,55 +1784,181 @@ var _ = Describe("handleBMHFinalizer", func() {
 		})
 
 		Context("with a matching agent", func() {
-			var agent *v1beta1.Agent
+			var (
+				agent           *v1beta1.Agent
+				mockSpokeClient *spoke_k8s_client.MockSpokeK8sClient
+			)
+
 			BeforeEach(func() {
-				agent = newAgent("test-agent", testNamespace, v1beta1.AgentSpec{})
+				agentSpec := v1beta1.AgentSpec{
+					ClusterDeploymentName: &v1beta1.ClusterReference{Name: "test-cluster", Namespace: testNamespace},
+					Hostname:              "agent.example.com",
+				}
+				agent = newAgent("test-agent", testNamespace, agentSpec)
+				mockSpokeClient = spoke_k8s_client.NewMockSpokeK8sClient(mockCtrl)
 			})
 
-			It("sets the BMH to clean and deprovisions", func() {
-				setAnnotation(&bmh.ObjectMeta, BMH_DETACHED_ANNOTATION, "assisted-service-controller")
-				bmh.Spec.AutomatedCleaningMode = bmh_v1alpha1.CleaningModeDisabled
-				bmh.Spec.CustomDeploy = &bmh_v1alpha1.CustomDeploy{Method: ASSISTED_DEPLOY_METHOD}
+			setupSpokeClient := func() {
+				// mock clusterdeployment
+				cdKey := types.NamespacedName{Name: agent.Spec.ClusterDeploymentName.Name, Namespace: testNamespace}
+				mockClient.EXPECT().Get(ctx, cdKey, gomock.AssignableToTypeOf(&hivev1.ClusterDeployment{})).DoAndReturn(
+					func(_ context.Context, key client.ObjectKey, cd *hivev1.ClusterDeployment, _ ...client.GetOption) error {
+						cd.Spec.ClusterMetadata = &hivev1.ClusterMetadata{
+							AdminKubeconfigSecretRef: corev1.LocalObjectReference{Name: "clusterKubeConfig"},
+						}
+						return nil
+					},
+				)
+
+				// mock secret
+				secretKey := types.NamespacedName{Name: "clusterKubeConfig", Namespace: testNamespace}
+				mockClient.EXPECT().Get(ctx, secretKey, gomock.AssignableToTypeOf(&corev1.Secret{})).DoAndReturn(
+					func(_ context.Context, key client.ObjectKey, secret *corev1.Secret, _ ...client.GetOption) error {
+						secret.ObjectMeta.Labels = map[string]string{
+							BackupLabel:        "true",
+							WatchResourceLabel: "true",
+						}
+						secret.Data = map[string][]byte{"kubeconfig": []byte("definitely_a_kubeconfig")}
+						return nil
+					},
+				)
+
+				// mock client and clientset
+				clientset := &kubernetes.Clientset{}
+				mockClientFactory.EXPECT().ClientAndSetFromSecret(gomock.AssignableToTypeOf(&corev1.Secret{})).DoAndReturn(
+					func(secret *corev1.Secret) (spoke_k8s_client.SpokeK8sClient, *kubernetes.Clientset, error) {
+						Expect(secret.Data["kubeconfig"]).To(Equal([]byte("definitely_a_kubeconfig")))
+						return mockSpokeClient, clientset, nil
+					},
+				)
+			}
+
+			validateStartAnnotation := func(annotations map[string]string) {
+				startString, ok := annotations[BMH_NODE_DRAIN_START_ANNOTATION]
+				Expect(ok).To(BeTrue())
+				_, err := time.Parse(time.RFC3339, startString)
+				Expect(err).NotTo(HaveOccurred())
+			}
+
+			It("drains the node", func() {
+				setupSpokeClient()
+				node := &corev1.Node{
+					ObjectMeta: metav1.ObjectMeta{Name: agent.Spec.Hostname},
+				}
+				mockSpokeClient.EXPECT().GetNode(gomock.Any(), agent.Spec.Hostname).Return(node, nil)
+
+				mockDrainer.EXPECT().RunCordonOrUncordon(gomock.AssignableToTypeOf(&drain.Helper{}), node, true).Return(nil)
+				mockDrainer.EXPECT().RunNodeDrain(gomock.AssignableToTypeOf(&drain.Helper{}), agent.Spec.Hostname).Return(nil)
 
 				res := bmhr.handleBMHFinalizer(ctx, bmhr.Log, bmh, agent)
 				Expect(res.Dirty()).To(BeTrue())
-				Expect(bmh.GetAnnotations()).NotTo(HaveKey(BMH_DETACHED_ANNOTATION))
-				Expect(bmh.Spec.AutomatedCleaningMode).To(Equal(bmh_v1alpha1.CleaningModeMetadata))
-				_, err := res.Result()
+				innerResult, err := res.Result()
+				Expect(innerResult.Requeue).To(BeFalse())
 				Expect(err).NotTo(HaveOccurred())
+
+				Expect(bmh.GetAnnotations()).To(HaveKeyWithValue(BMH_NODE_DRAIN_STATUS_ANNOTATION, drainStatusSuccess))
+				validateStartAnnotation(bmh.GetAnnotations())
 			})
 
-			Context("after the BMH is set for cleaning", func() {
+			It("requeues if the drain fails", func() {
+				setupSpokeClient()
+				node := &corev1.Node{
+					ObjectMeta: metav1.ObjectMeta{Name: agent.Spec.Hostname},
+				}
+				mockSpokeClient.EXPECT().GetNode(gomock.Any(), agent.Spec.Hostname).Return(node, nil)
+
+				mockDrainer.EXPECT().RunCordonOrUncordon(gomock.AssignableToTypeOf(&drain.Helper{}), node, true).Return(nil)
+				mockDrainer.EXPECT().RunNodeDrain(gomock.AssignableToTypeOf(&drain.Helper{}), agent.Spec.Hostname).Return(fmt.Errorf("drain failed"))
+
+				res := bmhr.handleBMHFinalizer(ctx, bmhr.Log, bmh, agent)
+				Expect(res.Dirty()).To(BeTrue())
+				innerResult, err := res.Result()
+				Expect(innerResult.Requeue).To(BeTrue())
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(bmh.GetAnnotations()).To(HaveKeyWithValue(BMH_NODE_DRAIN_STATUS_ANNOTATION, drainStatusInProgress))
+				validateStartAnnotation(bmh.GetAnnotations())
+			})
+
+			It("sets an error if the node can't be found", func() {
+				setupSpokeClient()
+				mockSpokeClient.EXPECT().GetNode(gomock.Any(), agent.Spec.Hostname).Return(nil, fmt.Errorf("failed to find node"))
+
+				res := bmhr.handleBMHFinalizer(ctx, bmhr.Log, bmh, agent)
+				Expect(res.Dirty()).To(BeTrue())
+				innerResult, err := res.Result()
+				Expect(innerResult.Requeue).To(BeFalse())
+				Expect(err).To(HaveOccurred())
+
+				annotations := bmh.GetAnnotations()
+				Expect(annotations).To(HaveKeyWithValue(BMH_NODE_DRAIN_STATUS_ANNOTATION, HavePrefix("failed to drain node")))
+				validateStartAnnotation(bmh.GetAnnotations())
+			})
+
+			It("doesn't run drain if the operation times out", func() {
+				setAnnotation(&bmh.ObjectMeta, BMH_NODE_DRAIN_TIMEOUT_ANNOTATION, "1m")
+				startTimestamp := time.Now().UTC().Add(-time.Minute * 2).Truncate(time.Second).Format(time.RFC3339)
+				setAnnotation(&bmh.ObjectMeta, BMH_NODE_DRAIN_START_ANNOTATION, startTimestamp)
+
+				res := bmhr.handleBMHFinalizer(ctx, bmhr.Log, bmh, agent)
+				Expect(res.Dirty()).To(BeTrue())
+				innerResult, err := res.Result()
+				Expect(innerResult.Requeue).To(BeFalse())
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(bmh.GetAnnotations()).To(HaveKeyWithValue(BMH_NODE_DRAIN_STATUS_ANNOTATION, drainStatusTimeout))
+			})
+
+			Context("draining has succeeded", func() {
 				BeforeEach(func() {
-					bmh.Spec.AutomatedCleaningMode = bmh_v1alpha1.CleaningModeMetadata
+					setAnnotation(&bmh.ObjectMeta, BMH_NODE_DRAIN_STATUS_ANNOTATION, drainStatusSuccess)
 				})
 
-				It("annotates and deletes the agent", func() {
-					mockClient.EXPECT().Update(ctx, gomock.AssignableToTypeOf(&v1beta1.Agent{})).DoAndReturn(
-						func(_ context.Context, updatedAgent *v1beta1.Agent, _ ...client.UpdateOption) error {
-							Expect(updatedAgent.GetAnnotations()).To(HaveKey(BMH_FINALIZER_NAME))
-							return nil
-						},
-					)
-					mockClient.EXPECT().Delete(ctx, gomock.AssignableToTypeOf(&v1beta1.Agent{})).Return(nil)
+				It("sets the BMH to clean and deprovisions", func() {
+					setAnnotation(&bmh.ObjectMeta, BMH_DETACHED_ANNOTATION, "assisted-service-controller")
+					bmh.Spec.AutomatedCleaningMode = bmh_v1alpha1.CleaningModeDisabled
+					bmh.Spec.CustomDeploy = &bmh_v1alpha1.CustomDeploy{Method: ASSISTED_DEPLOY_METHOD}
 
 					res := bmhr.handleBMHFinalizer(ctx, bmhr.Log, bmh, agent)
-					Expect(bmh.GetFinalizers()).NotTo(ContainElement(BMH_FINALIZER_NAME))
+					Expect(res.Dirty()).To(BeTrue())
+					Expect(bmh.GetAnnotations()).NotTo(HaveKey(BMH_DETACHED_ANNOTATION))
+					Expect(bmh.Spec.AutomatedCleaningMode).To(Equal(bmh_v1alpha1.CleaningModeMetadata))
 					_, err := res.Result()
 					Expect(err).NotTo(HaveOccurred())
 				})
 
-				It("fails when annotating the agent fails", func() {
-					mockClient.EXPECT().Update(ctx, gomock.AssignableToTypeOf(&v1beta1.Agent{})).Return(fmt.Errorf("failed to update agent"))
-					_, err := bmhr.handleBMHFinalizer(ctx, bmhr.Log, bmh, agent).Result()
-					Expect(err).To(HaveOccurred())
-				})
+				Context("after the BMH is set for cleaning", func() {
+					BeforeEach(func() {
+						bmh.Spec.AutomatedCleaningMode = bmh_v1alpha1.CleaningModeMetadata
+					})
 
-				It("fails when deleting the agent fails", func() {
-					mockClient.EXPECT().Delete(ctx, gomock.AssignableToTypeOf(&v1beta1.Agent{})).Return(fmt.Errorf("agent delete failed"))
-					setAnnotation(&agent.ObjectMeta, BMH_FINALIZER_NAME, "true")
-					_, err := bmhr.handleBMHFinalizer(ctx, bmhr.Log, bmh, agent).Result()
-					Expect(err).To(HaveOccurred())
+					It("annotates and deletes the agent", func() {
+						mockClient.EXPECT().Update(ctx, gomock.AssignableToTypeOf(&v1beta1.Agent{})).DoAndReturn(
+							func(_ context.Context, updatedAgent *v1beta1.Agent, _ ...client.UpdateOption) error {
+								Expect(updatedAgent.GetAnnotations()).To(HaveKey(BMH_FINALIZER_NAME))
+								return nil
+							},
+						)
+						mockClient.EXPECT().Delete(ctx, gomock.AssignableToTypeOf(&v1beta1.Agent{})).Return(nil)
+
+						res := bmhr.handleBMHFinalizer(ctx, bmhr.Log, bmh, agent)
+						Expect(bmh.GetFinalizers()).NotTo(ContainElement(BMH_FINALIZER_NAME))
+						_, err := res.Result()
+						Expect(err).NotTo(HaveOccurred())
+					})
+
+					It("fails when annotating the agent fails", func() {
+						mockClient.EXPECT().Update(ctx, gomock.AssignableToTypeOf(&v1beta1.Agent{})).Return(fmt.Errorf("failed to update agent"))
+						_, err := bmhr.handleBMHFinalizer(ctx, bmhr.Log, bmh, agent).Result()
+						Expect(err).To(HaveOccurred())
+					})
+
+					It("fails when deleting the agent fails", func() {
+						mockClient.EXPECT().Delete(ctx, gomock.AssignableToTypeOf(&v1beta1.Agent{})).Return(fmt.Errorf("agent delete failed"))
+						setAnnotation(&agent.ObjectMeta, BMH_FINALIZER_NAME, "true")
+						_, err := bmhr.handleBMHFinalizer(ctx, bmhr.Log, bmh, agent).Result()
+						Expect(err).To(HaveOccurred())
+					})
 				})
 			})
 		})
