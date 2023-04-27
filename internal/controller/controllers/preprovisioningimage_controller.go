@@ -30,6 +30,7 @@ import (
 	"github.com/openshift/assisted-service/internal/bminventory"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/ignition"
+	"github.com/openshift/assisted-service/internal/network"
 	"github.com/openshift/assisted-service/internal/oc"
 	"github.com/openshift/assisted-service/internal/versions"
 	"github.com/openshift/assisted-service/models"
@@ -413,11 +414,13 @@ func (r *PreprovisioningImageReconciler) AddIronicAgentToInfraEnv(ctx context.Co
 		log.Infof("Setting default ironic agent image (%s) for infraEnv %s", ironicAgentImage, infraEnv.Name)
 	}
 
-	ironicServiceURL, inspectorURL, err := r.BMOUtils.GetIronicServiceURLS()
+	ironicServiceURL, inspectorURL, err := r.getIronicServiceURLs(ctx, infraEnvInternal)
 	if err != nil {
 		log.WithError(err).Error("failed to get IronicServiceURLs")
 		return false, err
 	}
+	r.Log.Infof("Ironic URL is: %s", ironicServiceURL)
+	r.Log.Infof("Inspector URL is: %s", inspectorURL)
 
 	conf, err := ignition.GenerateIronicConfig(ironicServiceURL, inspectorURL, *infraEnvInternal, ironicAgentImage)
 	if err != nil {
@@ -443,6 +446,41 @@ func (r *PreprovisioningImageReconciler) AddIronicAgentToInfraEnv(ctx context.Co
 	}
 
 	return updated, nil
+}
+
+func (r *PreprovisioningImageReconciler) getIPFamilyForInfraEnv(ctx context.Context, infraEnv *common.InfraEnv) (v4 bool, v6 bool, err error) {
+	if infraEnv.ClusterID == "" {
+		return false, false, fmt.Errorf("cannot find address family for non-bound infraEnv")
+	}
+	cluster, err := r.Installer.GetClusterInternal(ctx, installer.V2GetClusterParams{ClusterID: infraEnv.ClusterID})
+	if err != nil {
+		return false, false, err
+	}
+	return network.GetAddressFamilies(cluster.MachineNetworks)
+}
+
+func (r *PreprovisioningImageReconciler) getIronicServiceURLs(ctx context.Context, infraEnv *common.InfraEnv) (string, string, error) {
+	ironicIPs, inspectorIPs, err := r.BMOUtils.GetIronicIPs()
+	if err != nil {
+		return "", "", err
+	}
+
+	// default to the first IP returned
+	// v4 for dualstack hub or whatever family the single stack is
+	ironicURL := getUrlFromIP(ironicIPs[0])
+	inspectorURL := getUrlFromIP(inspectorIPs[0])
+
+	if len(ironicIPs) > 1 {
+		v4, v6, err := r.getIPFamilyForInfraEnv(ctx, infraEnv)
+		if err != nil {
+			r.Log.WithError(err).Warnf("failed to determine IP family for infraEnv %s", infraEnv.ID)
+		} else if !v4 && v6 {
+			// spoke is single stack v6 so take v6 hub address
+			ironicURL = getUrlFromIP(ironicIPs[1])
+			inspectorURL = getUrlFromIP(inspectorIPs[1])
+		}
+	}
+	return ironicURL, inspectorURL, nil
 }
 
 func (r *PreprovisioningImageReconciler) getIronicAgentImageByRelease(ctx context.Context, log logrus.FieldLogger, infraEnv *common.InfraEnv) (string, error) {
