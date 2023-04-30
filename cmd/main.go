@@ -160,6 +160,7 @@ var Options struct {
 	HTTPListenPort                       string        `envconfig:"HTTP_LISTEN_PORT" default:""`
 	AllowConvergedFlow                   bool          `envconfig:"ALLOW_CONVERGED_FLOW" default:"true"`
 	PreprovisioningImageControllerConfig controllers.PreprovisioningImageControllerConfig
+	BMACConfig                           controllers.BMACConfig
 
 	// Directory containing pre-generated TLS certs/keys for the ephemeral installer
 	ClusterTLSCertOverrideDir string `envconfig:"EPHEMERAL_INSTALLER_CLUSTER_TLS_CERTS_OVERRIDE_DIR" default:""`
@@ -601,6 +602,8 @@ func main() {
 				Scheme:                ctrlMgr.GetScheme(),
 				SpokeK8sClientFactory: spoke_k8s_client.NewSpokeK8sClientFactory(log),
 				ConvergedFlowEnabled:  useConvergedFlow,
+				Drainer:               &controllers.KubectlDrainer{},
+				Config:                &Options.BMACConfig,
 			}).SetupWithManager(ctrlMgr), "unable to create controller BMH")
 
 			failOnError((&controllers.AgentClusterInstallReconciler{

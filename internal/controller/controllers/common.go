@@ -390,3 +390,34 @@ func setAnnotation(meta *metav1.ObjectMeta, key string, value string) {
 	}
 	meta.Annotations[key] = value
 }
+
+func spokeKubeconfigSecret(ctx context.Context, log logrus.FieldLogger, c client.Client, r client.Reader, clusterRef *aiv1beta1.ClusterReference) (*corev1.Secret, error) {
+	clusterDeployment := &hivev1.ClusterDeployment{}
+	cdKey := types.NamespacedName{
+		Namespace: clusterRef.Namespace,
+		Name:      clusterRef.Name,
+	}
+	err := r.Get(ctx, cdKey, clusterDeployment)
+	if err != nil {
+		// set this so it can be used by the following call
+		clusterDeployment.Name = cdKey.Name
+	}
+	adminKubeConfigSecretName := getClusterDeploymentAdminKubeConfigSecretName(clusterDeployment)
+
+	namespacedName := types.NamespacedName{
+		Namespace: clusterRef.Namespace,
+		Name:      adminKubeConfigSecretName,
+	}
+
+	secret, err := getSecret(ctx, c, r, namespacedName)
+	if err != nil {
+		log.WithError(err).Errorf("failed to get kubeconfig secret %s", namespacedName)
+		return nil, err
+	}
+	if err = ensureSecretIsLabelled(ctx, c, secret, namespacedName); err != nil {
+		log.WithError(err).Errorf("failed to label kubeconfig secret %s", namespacedName)
+		return nil, err
+	}
+
+	return secret, nil
+}
