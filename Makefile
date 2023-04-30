@@ -152,8 +152,13 @@ OS_IMAGES := $(or ${OS_IMAGES},${DEFAULT_OS_IMAGES})
 
 # Support given Release/OS images.
 ifdef OPENSHIFT_VERSION
-	RELEASE_IMAGES := $(shell (echo '$(RELEASE_IMAGES)' | jq -c --arg v $(OPENSHIFT_VERSION) 'map(select(.openshift_version==$$v))'))
-	OS_IMAGES := $(shell (echo '$(OS_IMAGES)' | jq -c --arg v $(OPENSHIFT_VERSION) 'map(select(.openshift_version==$$v))'))
+	ifeq ($(OPENSHIFT_VERSION), all)
+		RELEASE_IMAGES := ${DEFAULT_RELEASE_IMAGES}
+		OS_IMAGES := ${DEFAULT_OS_IMAGES}
+	else
+		RELEASE_IMAGES := $(shell (echo '$(RELEASE_IMAGES)' | jq -c --arg v $(OPENSHIFT_VERSION) 'map(select(.openshift_version==$$v))'))
+		OS_IMAGES := $(shell (echo '$(OS_IMAGES)' | jq -c --arg v $(OPENSHIFT_VERSION) 'map(select(.openshift_version==$$v))'))
+	endif
 endif
 
 ifeq ($(VERBOSE), true)
