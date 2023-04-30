@@ -52,6 +52,13 @@ Transition rules are the rules that define the required source states and condit
 * [Cancel while preparing](#cancel-while-preparing)
 * [Cancel while known](#cancel-while-known)
 * [Installation failed while host is installing](#installation-failed-while-host-is-installing)
+* [host progress installing-in-progress on rebooting in kube-api mode](#host-progress-installing-in-progress-on-rebooting-in-kube-api-mode)
+* [host progress changed to added-to-existing-cluster for day2 host](#host-progress-changed-to-added-to-existing-cluster-for-day2-host)
+* [host progress changed to installed](#host-progress-changed-to-installed)
+* [default host progress changed](#default-host-progress-changed)
+* [Host progress change during installed state when host is not in state Done (or Rebooting in day2) should stay in installed state](#host-progress-change-during-installed-state-when-host-is-not-in-state-done-or-rebooting-in-day2-should-stay-in-installed-state)
+* [Host progress change during installing-pending-user-action state when host is not in state Done (or Rebooting in day2) should stay in installing-pending-user-action state](#host-progress-change-during-installing-pending-user-action-state-when-host-is-not-in-state-done-or-rebooting-in-day2-should-stay-in-installing-pending-user-action-state)
+* [Host progress change during resetting-pending-user-action state when host is not in state Done (or Rebooting in day2) should stay in resetting-pending-user-action state](#host-progress-change-during-resetting-pending-user-action-state-when-host-is-not-in-state-done-or-rebooting-in-day2-should-stay-in-resetting-pending-user-action-state)
 * [Install known host](#install-known-host)
 * [Move to disconnected when virtual media disconnects pre-installation](#move-to-disconnected-when-virtual-media-disconnects-pre-installation)
 * [Move to error when virtual media disconnects post-installation](#move-to-error-when-virtual-media-disconnects-post-installation)
@@ -74,7 +81,6 @@ Transition rules are the rules that define the required source states and condit
 * [Move host to disconnected when connected times out](#move-host-to-disconnected-when-connected-times-out)
 * [Move host to error when cluster is in error](#move-host-to-error-when-cluster-is-in-error)
 * [Move host to error when installation times out](#move-host-to-error-when-installation-times-out)
-* [Move installing host to error when connection times out](#move-installing-host-to-error-when-connection-times-out)
 * [Move preparing host to disconnected when connection times out](#move-preparing-host-to-disconnected-when-connection-times-out)
 * [Move installing host to error when connection times out](#move-installing-host-to-error-when-connection-times-out)
 * [Ignore timeout if host is in particular installation in progress stages](#ignore-timeout-if-host-is-in-particular-installation-in-progress-stages)
@@ -106,6 +112,7 @@ Transition rules are the rules that define the required source states and condit
 * [Wrong boot order detection](#wrong-boot-order-detection)
 * [Register during installation](#register-during-installation)
 * [Register during error](#register-during-error)
+* [Register post-installation](#register-post-installation)
 * [Reset pending user action all states](#reset-pending-user-action-all-states)
 * [Unbind pre-installation](#unbind-pre-installation)
 * [Unbind during or after installation](#unbind-during-or-after-installation)
@@ -122,6 +129,7 @@ This is the final, successful state day-2 hosts reach when the Assisted Installe
 * [Unbind Host](#unbind-host)
 
 #### Transition types where this is the destination state
+* [null](#null)
 * [Refresh](#refresh)
 
 #### Transition rules where this is the source state
@@ -137,6 +145,7 @@ This is the final, successful state day-2 hosts reach when the Assisted Installe
 ![destination_added-to-existing-cluster](./media/destination_added-to-existing-cluster.svg)
 
 * [Day 2 hosts should stay in added state](#day-2-hosts-should-stay-in-added-state)
+* [host progress changed to added-to-existing-cluster for day2 host](#host-progress-changed-to-added-to-existing-cluster-for-day2-host)
 
 ### Binding
 TODO: Describe this state
@@ -340,28 +349,37 @@ Hosts reach this state after they have been successfully installed. This state d
 
 #### Transition types where this is the source state
 * [Cancel Installation](#cancel-installation)
+* [null](#null)
 * [Reclaim Host](#reclaim-host)
 * [Refresh](#refresh)
+* [Register Host](#register-host)
 * [Resetting, Pending User Action](#resetting-pending-user-action)
 * [Unbind Host](#unbind-host)
 
 #### Transition types where this is the destination state
+* [null](#null)
 * [Refresh](#refresh)
+* [Register Host](#register-host)
 
 #### Transition rules where this is the source state
 ![source_installed](./media/source_installed.svg)
 
+* [Host progress change during installed state when host is not in state Done (or Rebooting in day2) should stay in installed state](#host-progress-change-during-installed-state-when-host-is-not-in-state-done-or-rebooting-in-day2-should-stay-in-installed-state)
 * [Installation canceled while host is installing](#installation-canceled-while-host-is-installing)
 * [Move host to error when cluster is in error](#move-host-to-error-when-cluster-is-in-error)
 * [Reclaim successful host](#reclaim-successful-host)
 * [Refresh during installed state without cluster error should stay in installed state](#refresh-during-installed-state-without-cluster-error-should-stay-in-installed-state)
+* [Register post-installation](#register-post-installation)
 * [Reset pending user action all states](#reset-pending-user-action-all-states)
 * [Unbind during or after installation](#unbind-during-or-after-installation)
 
 #### Transition rules where this is the destination state
 ![destination_installed](./media/destination_installed.svg)
 
+* [Host progress change during installed state when host is not in state Done (or Rebooting in day2) should stay in installed state](#host-progress-change-during-installed-state-when-host-is-not-in-state-done-or-rebooting-in-day2-should-stay-in-installed-state)
 * [Refresh during installed state without cluster error should stay in installed state](#refresh-during-installed-state-without-cluster-error-should-stay-in-installed-state)
+* [Register post-installation](#register-post-installation)
+* [host progress changed to installed](#host-progress-changed-to-installed)
 
 ### Installing
 The host installation has just begun. Hosts usually quickly move from this state to the 'Installing in Progress' state once they begin executing the install step
@@ -369,6 +387,7 @@ The host installation has just begun. Hosts usually quickly move from this state
 #### Transition types where this is the source state
 * [Cancel Installation](#cancel-installation)
 * [Installation Failed](#installation-failed)
+* [null](#null)
 * [Media Disconnect](#media-disconnect)
 * [Refresh](#refresh)
 * [Register Host](#register-host)
@@ -390,6 +409,10 @@ The host installation has just begun. Hosts usually quickly move from this state
 * [Refresh during installing state without cluster error should stay in installing state](#refresh-during-installing-state-without-cluster-error-should-stay-in-installing-state)
 * [Register during installation](#register-during-installation)
 * [Reset pending user action all states](#reset-pending-user-action-all-states)
+* [default host progress changed](#default-host-progress-changed)
+* [host progress changed to added-to-existing-cluster for day2 host](#host-progress-changed-to-added-to-existing-cluster-for-day2-host)
+* [host progress changed to installed](#host-progress-changed-to-installed)
+* [host progress installing-in-progress on rebooting in kube-api mode](#host-progress-installing-in-progress-on-rebooting-in-kube-api-mode)
 
 #### Transition rules where this is the destination state
 ![destination_installing](./media/destination_installing.svg)
@@ -404,12 +427,14 @@ Hosts stay in this state for a long time while they're being installed. The actu
 #### Transition types where this is the source state
 * [Cancel Installation](#cancel-installation)
 * [Installation Failed](#installation-failed)
+* [null](#null)
 * [Media Disconnect](#media-disconnect)
 * [Refresh](#refresh)
 * [Register Host](#register-host)
 * [Resetting, Pending User Action](#resetting-pending-user-action)
 
 #### Transition types where this is the destination state
+* [null](#null)
 * [Refresh](#refresh)
 
 #### Transition rules where this is the source state
@@ -427,38 +452,49 @@ Hosts stay in this state for a long time while they're being installed. The actu
 * [Reset pending user action all states](#reset-pending-user-action-all-states)
 * [Tell user about boot order wen reboot takes too long](#tell-user-about-boot-order-wen-reboot-takes-too-long)
 * [Wrong boot order detection](#wrong-boot-order-detection)
+* [default host progress changed](#default-host-progress-changed)
+* [host progress changed to added-to-existing-cluster for day2 host](#host-progress-changed-to-added-to-existing-cluster-for-day2-host)
+* [host progress changed to installed](#host-progress-changed-to-installed)
+* [host progress installing-in-progress on rebooting in kube-api mode](#host-progress-installing-in-progress-on-rebooting-in-kube-api-mode)
 
 #### Transition rules where this is the destination state
 ![destination_installing-in-progress](./media/destination_installing-in-progress.svg)
 
 * [Ignore timeout if host is in particular installation in progress stages](#ignore-timeout-if-host-is-in-particular-installation-in-progress-stages)
 * [Refresh during installing-in-progress state without cluster error should stay in installing-in-progress state](#refresh-during-installing-in-progress-state-without-cluster-error-should-stay-in-installing-in-progress-state)
+* [default host progress changed](#default-host-progress-changed)
+* [host progress installing-in-progress on rebooting in kube-api mode](#host-progress-installing-in-progress-on-rebooting-in-kube-api-mode)
 
 ### Installing, Pending User Action
 Hosts in this state are waiting for the user to perform some action before the installation can continue. For example, when the host boots into the discovery ISO after it has been rebooted by the Assisted Installer - the user must manually reboot the host into the installation disk
 
 #### Transition types where this is the source state
 * [Cancel Installation](#cancel-installation)
+* [null](#null)
 * [Refresh](#refresh)
 * [Register Host](#register-host)
 * [Resetting, Pending User Action](#resetting-pending-user-action)
 
 #### Transition types where this is the destination state
+* [null](#null)
 * [Refresh](#refresh)
 * [Register Host](#register-host)
 
 #### Transition rules where this is the source state
 ![source_installing-pending-user-action](./media/source_installing-pending-user-action.svg)
 
+* [Host progress change during installing-pending-user-action state when host is not in state Done (or Rebooting in day2) should stay in installing-pending-user-action state](#host-progress-change-during-installing-pending-user-action-state-when-host-is-not-in-state-done-or-rebooting-in-day2-should-stay-in-installing-pending-user-action-state)
 * [Installation canceled while host is installing](#installation-canceled-while-host-is-installing)
 * [Move host to error when cluster is in error](#move-host-to-error-when-cluster-is-in-error)
 * [Refresh during installing-pending-user-action state without cluster error should stay in installing-pending-user-action state](#refresh-during-installing-pending-user-action-state-without-cluster-error-should-stay-in-installing-pending-user-action-state)
 * [Reset pending user action all states](#reset-pending-user-action-all-states)
 * [Wrong boot order detection](#wrong-boot-order-detection)
+* [default host progress changed](#default-host-progress-changed)
 
 #### Transition rules where this is the destination state
 ![destination_installing-pending-user-action](./media/destination_installing-pending-user-action.svg)
 
+* [Host progress change during installing-pending-user-action state when host is not in state Done (or Rebooting in day2) should stay in installing-pending-user-action state](#host-progress-change-during-installing-pending-user-action-state-when-host-is-not-in-state-done-or-rebooting-in-day2-should-stay-in-installing-pending-user-action-state)
 * [Refresh during installing-pending-user-action state without cluster error should stay in installing-pending-user-action state](#refresh-during-installing-pending-user-action-state-without-cluster-error-should-stay-in-installing-pending-user-action-state)
 * [Tell user about boot order wen reboot takes too long](#tell-user-about-boot-order-wen-reboot-takes-too-long)
 * [Wrong boot order detection](#wrong-boot-order-detection)
@@ -549,6 +585,7 @@ Similar to the 'Insufficient' state, except for validations which the user can r
 * [Media Disconnect](#media-disconnect)
 * [Reclaim Host](#reclaim-host)
 * [Refresh](#refresh)
+* [Register Host](#register-host)
 * [Resetting, Pending User Action](#resetting-pending-user-action)
 * [Unbind Host](#unbind-host)
 
@@ -563,6 +600,7 @@ Similar to the 'Insufficient' state, except for validations which the user can r
 * [Host ready](#host-ready)
 * [Move host to disconnected when connected times out](#move-host-to-disconnected-when-connected-times-out)
 * [Move to disconnected when virtual media disconnects pre-installation](#move-to-disconnected-when-virtual-media-disconnects-pre-installation)
+* [Re-registration](#re-registration)
 * [Reclaim pre-installation](#reclaim-pre-installation)
 * [Reset pending user action all states](#reset-pending-user-action-all-states)
 * [Unbind pre-installation](#unbind-pre-installation)
@@ -741,17 +779,20 @@ Hosts reach this state when the user triggers a reset of the cluster installatio
 This is the true resetting state when ENABLE_AUTO_RESET is set to false (which it always is). In this state we wait for and tell the user to reboot the host into the live ISO in order to proceed
 
 #### Transition types where this is the source state
+* [null](#null)
 * [Refresh](#refresh)
 * [Register Host](#register-host)
 * [Resetting, Pending User Action](#resetting-pending-user-action)
 
 #### Transition types where this is the destination state
+* [null](#null)
 * [Refresh](#refresh)
 * [Resetting, Pending User Action](#resetting-pending-user-action)
 
 #### Transition rules where this is the source state
 ![source_resetting-pending-user-action](./media/source_resetting-pending-user-action.svg)
 
+* [Host progress change during resetting-pending-user-action state when host is not in state Done (or Rebooting in day2) should stay in resetting-pending-user-action state](#host-progress-change-during-resetting-pending-user-action-state-when-host-is-not-in-state-done-or-rebooting-in-day2-should-stay-in-resetting-pending-user-action-state)
 * [Move host to error when cluster is in error](#move-host-to-error-when-cluster-is-in-error)
 * [Re-registration](#re-registration)
 * [Refresh during resetting-pending-user-action state without cluster error should stay in resetting-pending-user-action state](#refresh-during-resetting-pending-user-action-state-without-cluster-error-should-stay-in-resetting-pending-user-action-state)
@@ -760,6 +801,7 @@ This is the true resetting state when ENABLE_AUTO_RESET is set to false (which i
 #### Transition rules where this is the destination state
 ![destination_resetting-pending-user-action](./media/destination_resetting-pending-user-action.svg)
 
+* [Host progress change during resetting-pending-user-action state when host is not in state Done (or Rebooting in day2) should stay in resetting-pending-user-action state](#host-progress-change-during-resetting-pending-user-action-state-when-host-is-not-in-state-done-or-rebooting-in-day2-should-stay-in-resetting-pending-user-action-state)
 * [Refresh during resetting-pending-user-action state without cluster error should stay in resetting-pending-user-action state](#refresh-during-resetting-pending-user-action-state-without-cluster-error-should-stay-in-resetting-pending-user-action-state)
 * [Reset pending user action all states](#reset-pending-user-action-all-states)
 
@@ -1035,11 +1077,13 @@ Triggered when a host boots the discovery ISO and calls the Register API
 * [Discovering](#discovering)
 * [Error](#error)
 * [Initial](#initial)
+* [Installed](#installed)
 * [Installing](#installing)
 * [Installing in Progress](#installing-in-progress)
 * [Installing, Pending User Action](#installing-pending-user-action)
 * [Insufficient](#insufficient)
 * [Known](#known)
+* [Pending for Input](#pending-for-input)
 * [Preparing for Installation](#preparing-for-installation)
 * [Preparing Successful](#preparing-successful)
 * [Resetting](#resetting)
@@ -1048,6 +1092,7 @@ Triggered when a host boots the discovery ISO and calls the Register API
 #### Destination states where this transition type applies
 * [Discovering](#discovering)
 * [Error](#error)
+* [Installed](#installed)
 * [Installing, Pending User Action](#installing-pending-user-action)
 * [Resetting](#resetting)
 #### Transition rules using this transition type
@@ -1059,6 +1104,7 @@ Triggered when a host boots the discovery ISO and calls the Register API
 * [Register during error](#register-during-error)
 * [Register during installation](#register-during-installation)
 * [Register non-rebooting host in resetting](#register-non-rebooting-host-in-resetting)
+* [Register post-installation](#register-post-installation)
 * [Wrong boot order detection](#wrong-boot-order-detection)
 ### Resetting, Pending User Action
 TODO: Document this transition type
@@ -1153,6 +1199,74 @@ When the installation fails while a host is installing, the host should be moved
 
 #### Destination state
 [Error](#error)
+
+### host progress installing-in-progress on rebooting in kube-api mode
+This state is called only from kube-api controllers. 
+
+#### Source states
+* [Installing in Progress](#installing-in-progress)
+* [Installing](#installing)
+
+#### Destination state
+[Installing in Progress](#installing-in-progress)
+
+### host progress changed to added-to-existing-cluster for day2 host
+Change day2 host state to HostStatusAddedToExistingCluster when it reached stage Done. (i.e. the end of SAAS flow for day2 installation)
+
+#### Source states
+* [Installing in Progress](#installing-in-progress)
+* [Installing](#installing)
+
+#### Destination state
+[Added to Existing Cluster](#added-to-existing-cluster)
+
+### host progress changed to installed
+Change host state to installed when it reached stage Done
+
+#### Source states
+* [Installing in Progress](#installing-in-progress)
+* [Installing](#installing)
+
+#### Destination state
+[Installed](#installed)
+
+### default host progress changed
+Keep host state in installingInProgress during installation
+
+#### Source states
+* [Installing in Progress](#installing-in-progress)
+* [Installing](#installing)
+* [Installing, Pending User Action](#installing-pending-user-action)
+
+#### Destination state
+[Installing in Progress](#installing-in-progress)
+
+### Host progress change during installed state when host is not in state Done (or Rebooting in day2) should stay in installed state
+Fallback transition for host progress change
+
+#### Source states
+* [Installed](#installed)
+
+#### Destination state
+[Installed](#installed)
+
+### Host progress change during installing-pending-user-action state when host is not in state Done (or Rebooting in day2) should stay in installing-pending-user-action state
+Fallback transition for host progress change
+
+#### Source states
+* [Installing, Pending User Action](#installing-pending-user-action)
+
+#### Destination state
+[Installing, Pending User Action](#installing-pending-user-action)
+
+### Host progress change during resetting-pending-user-action state when host is not in state Done (or Rebooting in day2) should stay in resetting-pending-user-action state
+Fallback transition for host progress change
+
+#### Source states
+* [Resetting, Pending User Action](#resetting-pending-user-action)
+
+#### Destination state
+[Resetting, Pending User Action](#resetting-pending-user-action)
 
 ### Install known host
 TODO: Document this transition rule
@@ -1346,7 +1460,7 @@ TODO: Document this transition rule. Why is ClusterInstalling relevant here?
 [Known](#known)
 
 ### Move host to disconnected when connected times out
-TODO: Document this transition rule.
+This transition occurs when no requests are detected from the agent or when the discovery media gets disconnected during pre-installation phases
 
 #### Source states
 * [Discovering](#discovering)
@@ -1381,17 +1495,8 @@ TODO: Document this transition rule.
 #### Destination state
 [Error](#error)
 
-### Move installing host to error when connection times out
-TODO: Document this transition rule.
-
-#### Source states
-* [Installing](#installing)
-
-#### Destination state
-[Error](#error)
-
 ### Move preparing host to disconnected when connection times out
-TODO: Document this transition rule.
+This transition occurs when no requests are detected from the agent or when the discovery media gets disconnected during prepare for installation phases
 
 #### Source states
 * [Preparing for Installation](#preparing-for-installation)
@@ -1644,6 +1749,7 @@ When the host attempts to register while it's in one of the non-installation sta
 * [Preparing for Installation](#preparing-for-installation)
 * [Preparing Successful](#preparing-successful)
 * [Binding](#binding)
+* [Pending for Input](#pending-for-input)
 
 #### Destination state
 [Discovering](#discovering)
@@ -1695,6 +1801,15 @@ Host in error should be able to register without changes. If the registration re
 
 #### Destination state
 [Error](#error)
+
+### Register post-installation
+A host may boot from the installation ISO after the cluster has been installed. In that case we want to ask the host to go away, as otherwise it will flood the log and the events
+
+#### Source states
+* [Installed](#installed)
+
+#### Destination state
+[Installed](#installed)
 
 ### Reset pending user action all states
 TODO: Document this transition rule
