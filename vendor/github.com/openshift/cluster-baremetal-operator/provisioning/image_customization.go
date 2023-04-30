@@ -83,8 +83,8 @@ func getUrlFromIP(ipAddr string) string {
 	}
 }
 
-func createImageCustomizationContainer(images *Images, info *ProvisioningInfo, ironicIP, inspectorIP string) corev1.Container {
-	envVars := envWithProxy(info.Proxy, []corev1.EnvVar{})
+func createImageCustomizationContainer(images *Images, info *ProvisioningInfo, ironicIPs []string, inspectorIPs []string) corev1.Container {
+	envVars := envWithProxy(info.Proxy, []corev1.EnvVar{}, ironicIPs[0]+","+inspectorIPs[0])
 
 	container := corev1.Container{
 		Name:  "machine-image-customization-controller",
@@ -115,11 +115,11 @@ func createImageCustomizationContainer(images *Images, info *ProvisioningInfo, i
 			},
 			corev1.EnvVar{
 				Name:  ironicBaseUrl,
-				Value: getUrlFromIP(ironicIP),
+				Value: getUrlFromIP(ironicIPs[0]),
 			},
 			corev1.EnvVar{
 				Name:  ironicInspectorBaseUrl,
-				Value: getUrlFromIP(inspectorIP),
+				Value: getUrlFromIP(inspectorIPs[0]),
 			},
 			corev1.EnvVar{
 				Name:  ironicAgentImage,
@@ -151,9 +151,9 @@ func createImageCustomizationContainer(images *Images, info *ProvisioningInfo, i
 	return container
 }
 
-func newImageCustomizationPodTemplateSpec(info *ProvisioningInfo, labels *map[string]string, ironicIP, inspectorIP string) *corev1.PodTemplateSpec {
+func newImageCustomizationPodTemplateSpec(info *ProvisioningInfo, labels *map[string]string, ironicIPs []string, inspectorIPs []string) *corev1.PodTemplateSpec {
 	containers := []corev1.Container{
-		createImageCustomizationContainer(info.Images, info, ironicIP, inspectorIP),
+		createImageCustomizationContainer(info.Images, info, ironicIPs, inspectorIPs),
 	}
 
 	// Extract the pre-provisioning images from a container in the payload
@@ -209,7 +209,7 @@ func newImageCustomizationPodTemplateSpec(info *ProvisioningInfo, labels *map[st
 	}
 }
 
-func newImageCustomizationDeployment(info *ProvisioningInfo, ironicIP, inspectorIP string) *appsv1.Deployment {
+func newImageCustomizationDeployment(info *ProvisioningInfo, ironicIPs []string, inspectorIPs []string) *appsv1.Deployment {
 	selector := &metav1.LabelSelector{
 		MatchLabels: map[string]string{
 			"k8s-app":    metal3AppName,
@@ -220,7 +220,7 @@ func newImageCustomizationDeployment(info *ProvisioningInfo, ironicIP, inspector
 		"k8s-app":    metal3AppName,
 		cboLabelName: imageCustomizationService,
 	}
-	template := newImageCustomizationPodTemplateSpec(info, &podSpecLabels, ironicIP, inspectorIP)
+	template := newImageCustomizationPodTemplateSpec(info, &podSpecLabels, ironicIPs, inspectorIPs)
 	return &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:        imageCustomizationDeploymentName,
@@ -240,12 +240,12 @@ func newImageCustomizationDeployment(info *ProvisioningInfo, ironicIP, inspector
 }
 
 func EnsureImageCustomizationDeployment(info *ProvisioningInfo) (updated bool, err error) {
-	ironicIP, inspectorIP, err := GetIronicIP(info.Client, info.Namespace, &info.ProvConfig.Spec, info.OSClient)
+	ironicIPs, inspectorIPs, err := GetIronicIPs(*info)
 	if err != nil {
 		return false, fmt.Errorf("unable to determine Ironic's IP to pass to the machine-image-customization-controller: %w", err)
 	}
 
-	imageCustomizationDeployment := newImageCustomizationDeployment(info, ironicIP, inspectorIP)
+	imageCustomizationDeployment := newImageCustomizationDeployment(info, ironicIPs, inspectorIPs)
 	expectedGeneration := resourcemerge.ExpectedDeploymentGeneration(imageCustomizationDeployment, info.ProvConfig.Status.Generations)
 	err = controllerutil.SetControllerReference(info.ProvConfig, imageCustomizationDeployment, info.Scheme)
 	if err != nil {

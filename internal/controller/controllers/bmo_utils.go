@@ -22,7 +22,7 @@ const MinimalVersionForConvergedFlow = "4.12.0-0.alpha"
 //go:generate mockgen --build_flags=--mod=mod -package=controllers -destination=mock_bmo_utils.go . BMOUtils
 type BMOUtils interface {
 	ConvergedFlowAvailable() bool
-	GetIronicServiceURLS() (string, string, error)
+	GetIronicIPs() ([]string, []string, error)
 }
 
 type bmoUtils struct {
@@ -67,42 +67,43 @@ func (r *bmoUtils) ConvergedFlowAvailable() bool {
 	return available
 }
 
-func (r *bmoUtils) GetIronicServiceURLS() (string, string, error) {
-	provisioningInfo, err := r.readProvisioningCR()
+func (r *bmoUtils) GetIronicIPs() ([]string, []string, error) {
+	provisioningInfo, err := r.getProvisioningInfo()
 	if err != nil {
 		r.log.WithError(err).Error("unable to get provisioning CR")
-		return "", "", err
+		return nil, nil, err
 	}
-	ironicIP, inspectorIP, err := provisioning.GetIronicIP(r.kubeClient, provisioningInfo.Namespace, &provisioningInfo.Spec, r.osClient)
+	ironicIPs, inspectorIPs, err := provisioning.GetIronicIPs(*provisioningInfo)
 	if err != nil {
 		r.log.WithError(err).Error("unable to determine Ironic's IP")
-		return "", "", err
+		return nil, nil, err
 	}
-	if inspectorIP == "" {
+	if len(inspectorIPs) == 0 || inspectorIPs[0] == "" {
 		err = errors.New("unable to determine inspector IP, check if metal3 pod is running")
 		r.log.WithError(err)
-		return "", "", err
+		return nil, nil, err
 	}
-	if ironicIP == "" {
+	if len(ironicIPs) == 0 || ironicIPs[0] == "" {
 		err = errors.New("unable to determine Ironic's IP")
 		r.log.WithError(err)
-		return "", "", err
+		return nil, nil, err
 	}
-	ironicURL := getUrlFromIP(ironicIP)
-	r.log.Infof("Ironic URL is: %s", ironicURL)
-	inspectorURL := getUrlFromIP(inspectorIP)
-	r.log.Infof("Inspector URL is: %s", inspectorURL)
-	return ironicURL, inspectorURL, nil
+	return ironicIPs, inspectorIPs, nil
 }
 
-func (r *bmoUtils) readProvisioningCR() (*metal3iov1alpha1.Provisioning, error) {
+func (r *bmoUtils) getProvisioningInfo() (*provisioning.ProvisioningInfo, error) {
 	// Fetch the Provisioning instance
 	instance := &metal3iov1alpha1.Provisioning{}
 	namespacedName := types.NamespacedName{Name: metal3iov1alpha1.ProvisioningSingletonName, Namespace: ""}
 	if err := r.c.Get(context.TODO(), namespacedName, instance); err != nil {
 		return nil, errors.Wrap(err, "unable to read Provisioning CR")
 	}
-	return instance, nil
+	return &provisioning.ProvisioningInfo{
+		Client:     r.kubeClient,
+		ProvConfig: instance,
+		Namespace:  instance.Namespace,
+		OSClient:   r.osClient,
+	}, nil
 }
 
 func getUrlFromIP(ipAddr string) string {
