@@ -4,7 +4,7 @@ import utils
 import deployment_options
 import socket
 
-UI_REPOSITORY = "https://github.com/openshift-assisted/assisted-ui"
+UI_REPOSITORY = "https://github.com/openshift-assisted/assisted-installer-ui"
 
 log = utils.get_logger('deploy_ui')
 
@@ -34,7 +34,7 @@ def main():
     else:
         cmd += f" && git reset --hard {tag}"
 
-    cmd += f" && deploy/deploy_config.sh -t {clone_directory}/deploy/ui-deployment-template.yaml " \
+    cmd += f" && apps/assisted-ui/deploy/deploy_config.sh -t {clone_directory}/apps/assisted-ui/deploy/ui-deployment-template.yaml " \
            f"-i {image_fqdn} -n {deploy_options.namespace} > {dst_file}"
 
     log.debug(f"Executing: {cmd}")
