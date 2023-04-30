@@ -135,15 +135,6 @@
       "source_states": [
         "installing-pending-user-action"
       ],
-      "destination_state": "installing-pending-user-action",
-      "name": "TODO: Name this transition",
-      "description": "TODO: Document this transition"
-    },
-    {
-      "transition_type": "RefreshStatus",
-      "source_states": [
-        "installing-pending-user-action"
-      ],
       "destination_state": "error",
       "name": "Timed out while waiting for user",
       "description": "User was asked to take action and did not do so in time, give up and display appropriate error"
@@ -156,6 +147,15 @@
       "destination_state": "error",
       "name": "Timed out while finalizing",
       "description": "Cluster finalization took too long, display appropriate error"
+    },
+    {
+      "transition_type": "RefreshStatus",
+      "source_states": [
+        "installing-pending-user-action"
+      ],
+      "destination_state": "installing-pending-user-action",
+      "name": "TODO: Name this transition",
+      "description": "TODO: Document this transition"
     },
     {
       "transition_type": "RefreshStatus",

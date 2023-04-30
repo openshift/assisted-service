@@ -41,9 +41,9 @@ Transition rules are the rules that define the required source states and condit
 * [Refresh preparing cluster - insufficient](#refresh-preparing-cluster---insufficient)
 * [Refresh preparing cluster - failed](#refresh-preparing-cluster---failed)
 * [TODO: Name this transition](#todo-name-this-transition)
-* [TODO: Name this transition](#todo-name-this-transition)
 * [Timed out while waiting for user](#timed-out-while-waiting-for-user)
 * [Timed out while finalizing](#timed-out-while-finalizing)
+* [TODO: Name this transition](#todo-name-this-transition)
 * [TODO: Name this transition](#todo-name-this-transition)
 * [TODO: Name this transition](#todo-name-this-transition)
 * [TODO: Name this transition](#todo-name-this-transition)
@@ -598,15 +598,6 @@ TODO: Document this transition
 #### Destination state
 [Error](#error)
 
-### TODO: Name this transition
-TODO: Document this transition
-
-#### Source states
-* [Installing, Pending User Action](#installing-pending-user-action)
-
-#### Destination state
-[Installing, Pending User Action](#installing-pending-user-action)
-
 ### Timed out while waiting for user
 User was asked to take action and did not do so in time, give up and display appropriate error
 
@@ -624,6 +615,15 @@ Cluster finalization took too long, display appropriate error
 
 #### Destination state
 [Error](#error)
+
+### TODO: Name this transition
+TODO: Document this transition
+
+#### Source states
+* [Installing, Pending User Action](#installing-pending-user-action)
+
+#### Destination state
+[Installing, Pending User Action](#installing-pending-user-action)
 
 ### TODO: Name this transition
 TODO: Document this transition

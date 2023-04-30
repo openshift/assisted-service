@@ -43,6 +43,74 @@
       "description": "When the installation fails while a host is installing, the host should be moved to the error state because it is no longer actually installing"
     },
     {
+      "transition_type": "HostProgressChanged",
+      "source_states": [
+        "installing-in-progress",
+        "installing"
+      ],
+      "destination_state": "installing-in-progress",
+      "name": "host progress installing-in-progress on rebooting in kube-api mode",
+      "description": "This state is called only from kube-api controllers. "
+    },
+    {
+      "transition_type": "HostProgressChanged",
+      "source_states": [
+        "installing-in-progress",
+        "installing"
+      ],
+      "destination_state": "added-to-existing-cluster",
+      "name": "host progress changed to added-to-existing-cluster for day2 host",
+      "description": "Change day2 host state to HostStatusAddedToExistingCluster when it reached stage Done. (i.e. the end of SAAS flow for day2 installation)"
+    },
+    {
+      "transition_type": "HostProgressChanged",
+      "source_states": [
+        "installing-in-progress",
+        "installing"
+      ],
+      "destination_state": "installed",
+      "name": "host progress changed to installed",
+      "description": "Change host state to installed when it reached stage Done"
+    },
+    {
+      "transition_type": "HostProgressChanged",
+      "source_states": [
+        "installing-in-progress",
+        "installing",
+        "installing-pending-user-action"
+      ],
+      "destination_state": "installing-in-progress",
+      "name": "default host progress changed",
+      "description": "Keep host state in installingInProgress during installation"
+    },
+    {
+      "transition_type": "HostProgressChanged",
+      "source_states": [
+        "installed"
+      ],
+      "destination_state": "installed",
+      "name": "Host progress change during installed state when host is not in state Done (or Rebooting in day2) should stay in installed state",
+      "description": "Fallback transition for host progress change"
+    },
+    {
+      "transition_type": "HostProgressChanged",
+      "source_states": [
+        "installing-pending-user-action"
+      ],
+      "destination_state": "installing-pending-user-action",
+      "name": "Host progress change during installing-pending-user-action state when host is not in state Done (or Rebooting in day2) should stay in installing-pending-user-action state",
+      "description": "Fallback transition for host progress change"
+    },
+    {
+      "transition_type": "HostProgressChanged",
+      "source_states": [
+        "resetting-pending-user-action"
+      ],
+      "destination_state": "resetting-pending-user-action",
+      "name": "Host progress change during resetting-pending-user-action state when host is not in state Done (or Rebooting in day2) should stay in resetting-pending-user-action state",
+      "description": "Fallback transition for host progress change"
+    },
+    {
       "transition_type": "InstallHost",
       "source_states": [
         "known"
@@ -245,7 +313,7 @@
       ],
       "destination_state": "disconnected",
       "name": "Move host to disconnected when connected times out",
-      "description": "TODO: Document this transition rule."
+      "description": "This transition occurs when no requests are detected from the agent or when the discovery media gets disconnected during pre-installation phases"
     },
     {
       "transition_type": "RefreshHost",
@@ -272,21 +340,12 @@
     {
       "transition_type": "RefreshHost",
       "source_states": [
-        "installing"
-      ],
-      "destination_state": "error",
-      "name": "Move installing host to error when connection times out",
-      "description": "TODO: Document this transition rule."
-    },
-    {
-      "transition_type": "RefreshHost",
-      "source_states": [
         "preparing-for-installation",
         "preparing-successful"
       ],
       "destination_state": "disconnected",
       "name": "Move preparing host to disconnected when connection times out",
-      "description": "TODO: Document this transition rule."
+      "description": "This transition occurs when no requests are detected from the agent or when the discovery media gets disconnected during prepare for installation phases"
     },
     {
       "transition_type": "RefreshHost",
@@ -530,7 +589,8 @@
         "resetting-pending-user-action",
         "preparing-for-installation",
         "preparing-successful",
-        "binding"
+        "binding",
+        "pending-for-input"
       ],
       "destination_state": "discovering",
       "name": "Re-registration",
@@ -583,6 +643,15 @@
       "destination_state": "error",
       "name": "Register during error",
       "description": "Host in error should be able to register without changes. If the registration return conflict or error then we have infinite number of events. If the registration is blocked (403) it will break auto-reset feature. It can happen that user rebooted the host manually after installation failure without changes in the cluster. So the best option is just accept the registration without changes in the DB"
+    },
+    {
+      "transition_type": "RegisterHost",
+      "source_states": [
+        "installed"
+      ],
+      "destination_state": "installed",
+      "name": "Register post-installation",
+      "description": "A host may boot from the installation ISO after the cluster has been installed. In that case we want to ask the host to go away, as otherwise it will flood the log and the events"
     },
     {
       "transition_type": "ResettingPendingUserAction",
