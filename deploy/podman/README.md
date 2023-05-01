@@ -28,10 +28,10 @@ the assisted-service API that agents will connect to.
 
 ## Requirements for an HTTPS based deployment
 
-* Assisted UI supports HTTPS starting from UI version [v2.10.0](https://github.com/openshift-assisted/assisted-ui/releases/tag/v2.10.0)
+* Assisted UI supports HTTPS starting from UI version [v2.10.0](https://github.com/openshift-assisted/assisted-installer-ui/releases/tag/v2.10.0)
 
 * These instructions will secure the following communication paths:
-    1. assisted-ui :left_right_arrow: assisted-service
+    1. assisted-installer-ui :left_right_arrow: assisted-service
     2. User API queries :left_right_arrow: assisted-service
     3. assisted-image-service :left_right_arrow: assisted-service
     4. discovery agents :left_right_arrow: assisted-service
