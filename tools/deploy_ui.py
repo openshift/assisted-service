@@ -34,7 +34,7 @@ def main():
     else:
         cmd += f" && git reset --hard {tag}"
 
-    cmd += f" && apps/assisted-ui/deploy/deploy_config.sh -t {clone_directory}/apps/assisted-ui/deploy/ui-deployment-template.yaml " \
+    cmd += f" && apps/assisted-ui/deploy/deploy_config.sh -t {clone_directory}/apps/assisted-ui/deploy/deployment-template.yaml " \
            f"-i {image_fqdn} -n {deploy_options.namespace} > {dst_file}"
 
     log.debug(f"Executing: {cmd}")
