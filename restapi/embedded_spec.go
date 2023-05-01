@@ -2964,6 +2964,10 @@ func init() {
               "$ref": "#/definitions/event-list"
             },
             "headers": {
+              "Event-Count": {
+                "type": "integer",
+                "description": "Count of events retrieved."
+              },
               "Severity-Count-Critical": {
                 "type": "integer",
                 "description": "Count of events with severity 'critical'."
@@ -13163,6 +13167,11 @@ func init() {
               "$ref": "#/definitions/event-list"
             },
             "headers": {
+              "Event-Count": {
+                "minimum": 0,
+                "type": "integer",
+                "description": "Count of events retrieved."
+              },
               "Severity-Count-Critical": {
                 "minimum": 0,
                 "type": "integer",

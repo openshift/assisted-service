@@ -78,6 +78,10 @@ Success.
 */
 type V2ListEventsOK struct {
 
+	/* Count of events retrieved.
+	 */
+	EventCount int64
+
 	/* Count of events with severity 'critical'.
 	 */
 	SeverityCountCritical int64
@@ -135,6 +139,17 @@ func (o *V2ListEventsOK) GetPayload() models.EventList {
 }
 
 func (o *V2ListEventsOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	// hydrates response header Event-Count
+	hdrEventCount := response.GetHeader("Event-Count")
+
+	if hdrEventCount != "" {
+		valeventCount, err := swag.ConvertInt64(hdrEventCount)
+		if err != nil {
+			return errors.InvalidType("Event-Count", "header", "int64", hdrEventCount)
+		}
+		o.EventCount = valeventCount
+	}
 
 	// hydrates response header Severity-Count-Critical
 	hdrSeverityCountCritical := response.GetHeader("Severity-Count-Critical")

@@ -3532,6 +3532,10 @@ paths:
               type: integer
               description: Count of events with severity 'critical'.
               minimum: 0
+            Event-Count:
+              type: integer
+              description: Count of events retrieved.
+              minimum: 0
           schema:
             $ref: '#/definitions/event-list'
         "401":

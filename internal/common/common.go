@@ -542,6 +542,7 @@ type V2GetEventsResponse struct {
 	/*Retrieved events*/
 	Events             []*Event
 	EventSeverityCount *EventSeverityCount
+	EventCount         *int64
 }
 
 func (r V2GetEventsResponse) GetEvents() []*Event {
@@ -550,6 +551,10 @@ func (r V2GetEventsResponse) GetEvents() []*Event {
 
 func (r V2GetEventsResponse) GetEventSeverityCount() *EventSeverityCount {
 	return r.EventSeverityCount
+}
+
+func (r V2GetEventsResponse) GetEventCount() *int64 {
+	return r.EventCount
 }
 
 func GetDefaultV2GetEventsParams(clusterID *strfmt.UUID, hostIds []strfmt.UUID, infraEnvID *strfmt.UUID, categories ...string) *V2GetEventsParams {
