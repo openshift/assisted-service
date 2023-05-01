@@ -15,7 +15,7 @@ This document is a step-by-step guide that demonstrates how to deploy a cluster 
 
 * The steps listed below are merely a baseline; your use case may differ, and therefore, adjustments might be required.
 
-* If you are not using assisted-service [via UI](https://github.com/openshift-assisted/assisted-ui-lib), you may want to use a client.
+* If you are not using assisted-service [via UI](https://github.com/openshift-assisted/assisted-installer-ui), you may want to use a client.
     * A generated [Go based client](../../client)
     * To generate a client in other languages:
         * Copy [swagger.yaml](../../swagger.yaml) to [Swagger Editor](https://editor.swagger.io/).

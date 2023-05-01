@@ -87,7 +87,7 @@ Extend Usages API to include:
 * Post-install configuration reference (KB, documentation link etc.)
 
 
-#### Changes to the assisted-ui project:
+#### Changes to the assisted-installer-ui project:
 
 ##### Step 1: Rework UI using API from previous step
 
