@@ -16,11 +16,19 @@ const (
 )
 
 type SupportLevelFeature interface {
+	// New - Initialize new SupportLevelFeature structure while setting its default attributes
+	New() SupportLevelFeature
+	// getId - Get SupportLevelFeature unique ID
 	getId() models.FeatureSupportLevelID
+	// getName - Get SupportLevelFeature user friendly name
 	getName() string
+	// getSupportLevel - Get feature support-level value, filtered by given filters (e.g. OpenshiftVersion, CpuArchitecture)
 	getSupportLevel(filters SupportLevelFilters) models.SupportLevel
+	// getIncompatibleFeatures - Get a list of features that cannot exist alongside this feature
 	getIncompatibleFeatures() *[]models.FeatureSupportLevelID
+	// getIncompatibleArchitectures - Get a list of architectures which the given feature will not work on
 	getIncompatibleArchitectures(openshiftVersion *string) *[]models.ArchitectureSupportLevelID
+	// getFeatureActiveLevel - Get the feature status, if it's active, not-active or not relevant (in cases where there is no meaning for that feature to be active)
 	getFeatureActiveLevel(cluster *common.Cluster, infraEnv *models.InfraEnv, clusterUpdateParams *models.V2ClusterUpdateParams, infraenvUpdateParams *models.InfraEnvUpdateParams) featureActiveLevel
 }
 
@@ -71,6 +79,10 @@ func isOperatorActivated(operator string, cluster *common.Cluster, updateParams 
 // SnoFeature
 type SnoFeature struct{}
 
+func (feature *SnoFeature) New() SupportLevelFeature {
+	return &SnoFeature{}
+}
+
 func (feature *SnoFeature) getId() models.FeatureSupportLevelID {
 	return models.FeatureSupportLevelIDSNO
 }
@@ -90,6 +102,12 @@ func (feature *SnoFeature) getSupportLevel(filters SupportLevelFilters) models.S
 		return models.SupportLevelDevPreview
 	}
 
+	if swag.StringValue(filters.CPUArchitecture) == models.ClusterCPUArchitectureS390x || swag.StringValue(filters.CPUArchitecture) == models.ClusterCPUArchitecturePpc64le {
+		if isEqual, _ := common.BaseVersionEqual("4.13", filters.OpenshiftVersion); isEqual {
+			return models.SupportLevelDevPreview
+		}
+	}
+
 	return models.SupportLevelSupported
 }
 
@@ -103,7 +121,12 @@ func (feature *SnoFeature) getIncompatibleFeatures() *[]models.FeatureSupportLev
 	}
 }
 
-func (feature *SnoFeature) getIncompatibleArchitectures(_ *string) *[]models.ArchitectureSupportLevelID {
+func (feature *SnoFeature) getIncompatibleArchitectures(openshiftVersion *string) *[]models.ArchitectureSupportLevelID {
+	if isGreater, _ := common.BaseVersionGreaterOrEqual("4.13", *openshiftVersion); isGreater {
+		return nil
+	}
+
+	// Not supported when OCP version is less than 4.13
 	return &[]models.ArchitectureSupportLevelID{
 		models.ArchitectureSupportLevelIDS390XARCHITECTURE,
 		models.ArchitectureSupportLevelIDPPC64LEARCHITECTURE,
@@ -119,6 +142,10 @@ func (feature *SnoFeature) getFeatureActiveLevel(cluster *common.Cluster, _ *mod
 
 // VipAutoAllocFeature
 type VipAutoAllocFeature struct{}
+
+func (feature *VipAutoAllocFeature) New() SupportLevelFeature {
+	return &VipAutoAllocFeature{}
+}
 
 func (feature *VipAutoAllocFeature) getId() models.FeatureSupportLevelID {
 	return models.FeatureSupportLevelIDVIPAUTOALLOC
@@ -156,6 +183,10 @@ func (feature *VipAutoAllocFeature) getFeatureActiveLevel(cluster *common.Cluste
 // CustomManifestFeature
 type CustomManifestFeature struct{}
 
+func (feature *CustomManifestFeature) New() SupportLevelFeature {
+	return &CustomManifestFeature{}
+}
+
 func (feature *CustomManifestFeature) getId() models.FeatureSupportLevelID {
 	return models.FeatureSupportLevelIDCUSTOMMANIFEST
 }
@@ -181,7 +212,15 @@ func (feature *CustomManifestFeature) getFeatureActiveLevel(_ *common.Cluster, _
 }
 
 // ClusterManagedNetworkingFeature
-type ClusterManagedNetworkingFeature struct{}
+type ClusterManagedNetworkingFeature struct {
+	umnFeature UserManagedNetworkingFeature
+}
+
+func (feature *ClusterManagedNetworkingFeature) New() SupportLevelFeature {
+	return &ClusterManagedNetworkingFeature{
+		UserManagedNetworkingFeature{},
+	}
+}
 
 func (feature *ClusterManagedNetworkingFeature) getId() models.FeatureSupportLevelID {
 	return models.FeatureSupportLevelIDCLUSTERMANAGEDNETWORKING
@@ -209,9 +248,8 @@ func (feature *ClusterManagedNetworkingFeature) getFeatureActiveLevel(cluster *c
 	if cluster == nil {
 		return activeLevelNotActive
 	}
-	if (!swag.BoolValue(cluster.UserManagedNetworking) && clusterUpdateParams == nil) ||
-		(!swag.BoolValue(cluster.UserManagedNetworking) && clusterUpdateParams != nil && !swag.BoolValue(clusterUpdateParams.UserManagedNetworking)) ||
-		(swag.BoolValue(cluster.UserManagedNetworking) && clusterUpdateParams != nil && clusterUpdateParams.UserManagedNetworking != nil && !*clusterUpdateParams.UserManagedNetworking) {
+
+	if !feature.umnFeature.isFeatureActive(cluster, clusterUpdateParams) {
 		return activeLevelActive
 	}
 	return activeLevelNotActive
@@ -242,6 +280,10 @@ func (feature *ClusterManagedNetworkingFeature) getIncompatibleFeatures() *[]mod
 
 // DualStackVipsFeature
 type DualStackVipsFeature struct{}
+
+func (feature *DualStackVipsFeature) New() SupportLevelFeature {
+	return &DualStackVipsFeature{}
+}
 
 func (feature *DualStackVipsFeature) getId() models.FeatureSupportLevelID {
 	return models.FeatureSupportLevelIDDUALSTACKVIPS
@@ -285,6 +327,10 @@ func (feature *DualStackVipsFeature) getIncompatibleArchitectures(_ *string) *[]
 // UserManagedNetworkingFeature
 type UserManagedNetworkingFeature struct{}
 
+func (feature *UserManagedNetworkingFeature) New() SupportLevelFeature {
+	return &UserManagedNetworkingFeature{}
+}
+
 func (feature *UserManagedNetworkingFeature) getId() models.FeatureSupportLevelID {
 	return models.FeatureSupportLevelIDUSERMANAGEDNETWORKING
 }
@@ -308,21 +354,40 @@ func (feature *UserManagedNetworkingFeature) getIncompatibleArchitectures(_ *str
 	return nil
 }
 
+func (feature *UserManagedNetworkingFeature) isFeatureActive(cluster *common.Cluster, clusterUpdateParams *models.V2ClusterUpdateParams) bool {
+	// Check if User Managed Networking is active for a given cluster when passing update params:
+	// 1. If the cluster UMN is enabled and the update params are empty
+	// 2. If the cluster UMN is enabled and enabled in the update params or not set at all
+	// 3. If the cluster UMN is disabled and enabled in the update params
+	if (swag.BoolValue(cluster.UserManagedNetworking) && clusterUpdateParams == nil) ||
+		(swag.BoolValue(cluster.UserManagedNetworking) && clusterUpdateParams != nil && (clusterUpdateParams.UserManagedNetworking == nil || *clusterUpdateParams.UserManagedNetworking)) ||
+		(!swag.BoolValue(cluster.UserManagedNetworking) && clusterUpdateParams != nil && clusterUpdateParams.UserManagedNetworking != nil && *clusterUpdateParams.UserManagedNetworking) {
+		return true
+	}
+	return false
+}
+
 func (feature *UserManagedNetworkingFeature) getFeatureActiveLevel(cluster *common.Cluster, _ *models.InfraEnv, clusterUpdateParams *models.V2ClusterUpdateParams, _ *models.InfraEnvUpdateParams) featureActiveLevel {
 	if cluster == nil {
 		return activeLevelNotActive
 	}
 
-	if (swag.BoolValue(cluster.UserManagedNetworking) && clusterUpdateParams == nil) ||
-		(swag.BoolValue(cluster.UserManagedNetworking) && clusterUpdateParams != nil && (clusterUpdateParams.UserManagedNetworking == nil || *clusterUpdateParams.UserManagedNetworking)) ||
-		(!swag.BoolValue(cluster.UserManagedNetworking) && clusterUpdateParams != nil && clusterUpdateParams.UserManagedNetworking != nil && *clusterUpdateParams.UserManagedNetworking) {
+	if feature.isFeatureActive(cluster, clusterUpdateParams) {
 		return activeLevelActive
 	}
 	return activeLevelNotActive
 }
 
 // SingleNodeExpansionFeature
-type SingleNodeExpansionFeature struct{}
+type SingleNodeExpansionFeature struct {
+	snoFeature SnoFeature
+}
+
+func (feature *SingleNodeExpansionFeature) New() SupportLevelFeature {
+	return &SingleNodeExpansionFeature{
+		SnoFeature{},
+	}
+}
 
 func (feature *SingleNodeExpansionFeature) getId() models.FeatureSupportLevelID {
 	return models.FeatureSupportLevelIDSINGLENODEEXPANSION
@@ -338,7 +403,7 @@ func (feature *SingleNodeExpansionFeature) getSupportLevel(filters SupportLevelF
 		return models.SupportLevelUnavailable
 	}
 
-	return models.SupportLevelSupported
+	return feature.snoFeature.getSupportLevel(filters)
 }
 
 func (feature *SingleNodeExpansionFeature) getFeatureActiveLevel(_ *common.Cluster, _ *models.InfraEnv, _ *models.V2ClusterUpdateParams, _ *models.InfraEnvUpdateParams) featureActiveLevel {
@@ -349,15 +414,16 @@ func (feature *SingleNodeExpansionFeature) getIncompatibleFeatures() *[]models.F
 	return nil
 }
 
-func (feature *SingleNodeExpansionFeature) getIncompatibleArchitectures(_ *string) *[]models.ArchitectureSupportLevelID {
-	return &[]models.ArchitectureSupportLevelID{
-		models.ArchitectureSupportLevelIDS390XARCHITECTURE,
-		models.ArchitectureSupportLevelIDPPC64LEARCHITECTURE,
-	}
+func (feature *SingleNodeExpansionFeature) getIncompatibleArchitectures(openshiftVersion *string) *[]models.ArchitectureSupportLevelID {
+	return feature.snoFeature.getIncompatibleArchitectures(openshiftVersion)
 }
 
 // LvmFeature
 type LvmFeature struct{}
+
+func (feature *LvmFeature) New() SupportLevelFeature {
+	return &LvmFeature{}
+}
 
 func (feature *LvmFeature) getId() models.FeatureSupportLevelID {
 	return models.FeatureSupportLevelIDLVM
@@ -409,6 +475,10 @@ func (feature *LvmFeature) getIncompatibleArchitectures(_ *string) *[]models.Arc
 
 // NutanixIntegrationFeature
 type NutanixIntegrationFeature struct{}
+
+func (feature *NutanixIntegrationFeature) New() SupportLevelFeature {
+	return &NutanixIntegrationFeature{}
+}
 
 func (feature *NutanixIntegrationFeature) getId() models.FeatureSupportLevelID {
 	return models.FeatureSupportLevelIDNUTANIXINTEGRATION
@@ -465,6 +535,10 @@ func (feature *NutanixIntegrationFeature) getIncompatibleArchitectures(_ *string
 // VsphereIntegrationFeature
 type VsphereIntegrationFeature struct{}
 
+func (feature *VsphereIntegrationFeature) New() SupportLevelFeature {
+	return &VsphereIntegrationFeature{}
+}
+
 func (feature *VsphereIntegrationFeature) getId() models.FeatureSupportLevelID {
 	return models.FeatureSupportLevelIDVSPHEREINTEGRATION
 }
@@ -511,6 +585,10 @@ func (feature *VsphereIntegrationFeature) getIncompatibleArchitectures(_ *string
 // OdfFeature
 type OdfFeature struct{}
 
+func (feature *OdfFeature) New() SupportLevelFeature {
+	return &OdfFeature{}
+}
+
 func (feature *OdfFeature) getId() models.FeatureSupportLevelID {
 	return models.FeatureSupportLevelIDODF
 }
@@ -550,6 +628,10 @@ func (feature *OdfFeature) getFeatureActiveLevel(cluster *common.Cluster, _ *mod
 // CnvFeature
 type CnvFeature struct{}
 
+func (feature *CnvFeature) New() SupportLevelFeature {
+	return &CnvFeature{}
+}
+
 func (feature *CnvFeature) getId() models.FeatureSupportLevelID {
 	return models.FeatureSupportLevelIDCNV
 }
@@ -587,6 +669,10 @@ func (feature *CnvFeature) getFeatureActiveLevel(cluster *common.Cluster, _ *mod
 
 // MinimalIso
 type MinimalIso struct{}
+
+func (feature *MinimalIso) New() SupportLevelFeature {
+	return &MinimalIso{}
+}
 
 func (feature *MinimalIso) getId() models.FeatureSupportLevelID {
 	return models.FeatureSupportLevelIDMINIMALISO
