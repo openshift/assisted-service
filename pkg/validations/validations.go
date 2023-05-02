@@ -1,6 +1,8 @@
 package validations
 
 import (
+	"crypto/x509"
+	"encoding/base64"
 	"fmt"
 	"net"
 	"net/http"
@@ -172,4 +174,19 @@ func ValidateTags(tags string) error {
 func IsValidTag(tag string) bool {
 	tagRegex := `^\w+( \w+)*$` // word characters and whitespace
 	return regexp.MustCompile(tagRegex).MatchString(tag)
+}
+
+// ValidateCaCertificate ensures the specified base64 CA certificate
+// is valid by trying to decode and parse it.
+func ValidateCaCertificate(certificate string) error {
+	decodedCaCert, err := base64.StdEncoding.DecodeString(certificate)
+	if err != nil {
+		return errors.Wrap(err, "failed to decode certificate")
+	}
+	caCertPool := x509.NewCertPool()
+	if ok := caCertPool.AppendCertsFromPEM(decodedCaCert); !ok {
+		return errors.Errorf("unable to parse certificate")
+	}
+
+	return nil
 }
