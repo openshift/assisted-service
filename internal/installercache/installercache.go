@@ -71,7 +71,11 @@ func (i *Installers) Get(releaseID, releaseIDMirror, pullSecret string, ocReleas
 	var workdir, binary, path string
 	var err error
 
-	workdir, binary, path = ocRelease.GetReleaseBinaryPath(releaseID, i.cacheDir, platformType)
+	releaseImageLocation := releaseID
+	if releaseIDMirror != "" {
+		releaseImageLocation = releaseIDMirror
+	}
+	workdir, binary, path = ocRelease.GetReleaseBinaryPath(releaseImageLocation, i.cacheDir, platformType)
 	if _, err = os.Stat(path); os.IsNotExist(err) {
 		//evict older files if necessary
 		i.evict()
@@ -100,7 +104,7 @@ func (i *Installers) Get(releaseID, releaseIDMirror, pullSecret string, ocReleas
 	return &Release{link}, nil
 }
 
-//	Walk through the cacheDir and list the files recursively.
+// Walk through the cacheDir and list the files recursively.
 // If the total volume of the files reaches the capacity, delete
 // the oldest ones.
 //
