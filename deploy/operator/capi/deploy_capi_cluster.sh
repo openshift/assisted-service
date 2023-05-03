@@ -121,7 +121,7 @@ else
   export PROVIDER_FLAG_FOR_CREATE_COMMAND=" --annotations hypershift.openshift.io/capi-provider-agent-image=$PROVIDER_IMAGE"
 fi
 
-if [ -z "CONTROL_PLANE_OPERATOR_IMAGE" ]
+if [ -z "$CONTROL_PLANE_OPERATOR_IMAGE" ]
 then
   echo "CONTROL_PLANE_OPERATOR_IMAGE override not set"
   export CONTROL_PLANE_OPERATOR_FLAG_FOR_CREATE_COMMAND=""
