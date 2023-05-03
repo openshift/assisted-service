@@ -74,6 +74,14 @@ func SetupCORSMiddleware(handler http.Handler, domains []string) http.Handler {
 			"Severity-Count-Warning",
 			"Severity-Count-Error",
 			"Severity-Count-Critical",
+			"Event-Count",
+		},
+		ExposedHeaders: []string{
+			"Severity-Count-Info",
+			"Severity-Count-Warning",
+			"Severity-Count-Error",
+			"Severity-Count-Critical",
+			"Event-Count",
 		},
 		MaxAge: int((10 * time.Minute).Seconds()),
 	})
