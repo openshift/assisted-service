@@ -54,8 +54,6 @@ import (
 
 type imageConditionReason string
 
-const archMismatchReason = "InfraEnvArchMismatch"
-
 type PreprovisioningImageControllerConfig struct {
 	// The default ironic agent image was obtained by running "oc adm release info --image-for=ironic-agent  quay.io/openshift-release-dev/ocp-release:4.11.0-fc.0-x86_64"
 	BaremetalIronicAgentImage string `envconfig:"IRONIC_AGENT_IMAGE" default:"quay.io/openshift-release-dev/ocp-v4.0-art-dev@sha256:d3f1d4d3cd5fbcf1b9249dd71d01be4b901d337fdc5f8f66569eb71df4d9d446"`
@@ -125,16 +123,6 @@ func (r *PreprovisioningImageReconciler) Reconcile(origCtx context.Context, req 
 	if infraEnv == nil {
 		log.Info("failed to find infraEnv for image")
 		return ctrl.Result{}, nil
-	}
-
-	if infraEnv.Spec.CpuArchitecture != image.Spec.Architecture {
-		log.Infof("Image arch %s does not match infraEnv arch %s", image.Spec.Architecture, infraEnv.Spec.CpuArchitecture)
-		setMismatchedArchCondition(image, infraEnv.Spec.CpuArchitecture)
-		err = r.Status().Update(ctx, image)
-		if err != nil {
-			log.WithError(err).Error("failed to update status")
-		}
-		return ctrl.Result{}, err
 	}
 
 	infraEnvUpdated, err := r.AddIronicAgentToInfraEnv(ctx, log, infraEnv)
@@ -264,17 +252,6 @@ func setCoolDownCondition(image *metal3_v1alpha1.PreprovisioningImage) {
 func setUnsupportedFormatCondition(image *metal3_v1alpha1.PreprovisioningImage) {
 	message := "Unsupported image format"
 	reason := imageConditionReason(strcase.ToCamel(message))
-	setImageCondition(image.GetGeneration(), &image.Status,
-		metal3_v1alpha1.ConditionImageReady, metav1.ConditionFalse,
-		reason, message)
-	setImageCondition(image.GetGeneration(), &image.Status,
-		metal3_v1alpha1.ConditionImageError, metav1.ConditionTrue,
-		reason, message)
-}
-
-func setMismatchedArchCondition(image *metal3_v1alpha1.PreprovisioningImage, infraArch string) {
-	message := fmt.Sprintf("PreprovisioningImage CPU architecture (%s) does not match InfraEnv CPU architecture (%s)", image.Spec.Architecture, infraArch)
-	reason := imageConditionReason(archMismatchReason)
 	setImageCondition(image.GetGeneration(), &image.Status,
 		metal3_v1alpha1.ConditionImageReady, metav1.ConditionFalse,
 		reason, message)

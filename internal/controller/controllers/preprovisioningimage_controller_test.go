@@ -448,16 +448,6 @@ var _ = Describe("PreprovisioningImage reconcile", func() {
 			Expect(res).To(Equal(ctrl.Result{}))
 		})
 
-		It("sets a failure condition when the infraEnv arch doesn't match the preprovisioningimage", func() {
-			infraEnv.Spec.CpuArchitecture = "aarch64"
-			Expect(c.Create(ctx, infraEnv)).To(BeNil())
-
-			res, err := pr.Reconcile(ctx, newPreprovisioningImageRequest(ppi))
-			Expect(err).To(BeNil())
-			Expect(res).To(Equal(ctrl.Result{}))
-			checkImageConditionFailed(c, ppi, archMismatchReason, "does not match InfraEnv CPU architecture")
-		})
-
 		It("doesn't fail when the infraEnv image has not been created yet", func() {
 			infraEnv.Status = aiv1beta1.InfraEnvStatus{}
 			Expect(c.Create(ctx, infraEnv)).To(BeNil())
