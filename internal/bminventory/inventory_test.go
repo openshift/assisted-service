@@ -508,6 +508,22 @@ var _ = Describe("RegisterHost", func() {
 		Expect(apiErr.StatusCode()).Should(Equal(int32(http.StatusNotFound)))
 	})
 
+	It("register host with non-existing cluster", func() {
+		clusterID := strfmt.UUID(uuid.New().String())
+		infraEnv := createInfraEnv(db, clusterID, clusterID)
+
+		reply := bm.V2RegisterHost(ctx, installer.V2RegisterHostParams{
+			InfraEnvID: *infraEnv.ID,
+			NewHostParams: &models.HostCreateParams{
+				DiscoveryAgentVersion: "v1",
+				HostID:                &hostID,
+			},
+		})
+		apiErr, ok := reply.(*common.ApiErrorResponse)
+		Expect(ok).Should(BeTrue())
+		Expect(apiErr.StatusCode()).Should(Equal(int32(http.StatusNotFound)))
+	})
+
 	It("register host to a cluster while installation is in progress", func() {
 		By("creating the cluster")
 		cluster := createCluster(db, models.ClusterStatusInstalling)

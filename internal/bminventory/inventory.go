@@ -5227,7 +5227,7 @@ func (b *bareMetalInventory) V2RegisterHost(ctx context.Context, params installe
 	cluster, err = b.getBoundClusterForUpdate(tx, infraEnv, params.InfraEnvID, *params.NewHostParams.HostID)
 	if err != nil {
 		log.WithError(err).Errorf("Bound Cluster get")
-		return common.NewApiError(http.StatusInternalServerError, err)
+		return common.GenerateErrorResponder(err)
 	}
 
 	_, err = common.GetHostFromDB(transaction.AddForUpdateQueryOption(tx), params.InfraEnvID.String(), params.NewHostParams.HostID.String())
