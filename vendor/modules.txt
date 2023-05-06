@@ -532,7 +532,7 @@ github.com/mitchellh/go-wordwrap
 # github.com/mitchellh/mapstructure v1.5.0
 ## explicit; go 1.14
 github.com/mitchellh/mapstructure
-# github.com/moby/moby v20.10.21+incompatible
+# github.com/moby/moby v20.10.24+incompatible
 ## explicit
 github.com/moby/moby/pkg/ioutils
 # github.com/moby/spdystream v0.2.0
