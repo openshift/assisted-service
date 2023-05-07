@@ -23,6 +23,11 @@ V2ListEventsOK Success.
 swagger:response v2ListEventsOK
 */
 type V2ListEventsOK struct {
+	/*Count of events retrieved.
+
+	  Minimum: 0
+	*/
+	EventCount int64 `json:"Event-Count"`
 	/*Count of events with severity 'critical'.
 
 	  Minimum: 0
@@ -54,6 +59,17 @@ type V2ListEventsOK struct {
 func NewV2ListEventsOK() *V2ListEventsOK {
 
 	return &V2ListEventsOK{}
+}
+
+// WithEventCount adds the eventCount to the v2 list events o k response
+func (o *V2ListEventsOK) WithEventCount(eventCount int64) *V2ListEventsOK {
+	o.EventCount = eventCount
+	return o
+}
+
+// SetEventCount sets the eventCount to the v2 list events o k response
+func (o *V2ListEventsOK) SetEventCount(eventCount int64) {
+	o.EventCount = eventCount
 }
 
 // WithSeverityCountCritical adds the severityCountCritical to the v2 list events o k response
@@ -113,6 +129,13 @@ func (o *V2ListEventsOK) SetPayload(payload models.EventList) {
 
 // WriteResponse to the client
 func (o *V2ListEventsOK) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	// response header Event-Count
+
+	eventCount := swag.FormatInt64(o.EventCount)
+	if eventCount != "" {
+		rw.Header().Set("Event-Count", eventCount)
+	}
 
 	// response header Severity-Count-Critical
 

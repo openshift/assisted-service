@@ -270,11 +270,6 @@ func filterEvents(tx *gorm.DB, clusterID *strfmt.UUID, hostIds []strfmt.UUID, in
 
 		tx = tx.Where("events.cluster_id = ?", clusterID.String())
 
-		// filter by event severity
-		if severities != nil {
-			tx = tx.Where("events.severity IN (?)", severities)
-		}
-
 		// filter by event message
 		if message != nil {
 			tx = tx.Where("events.message LIKE ?", fmt.Sprintf("%%%s%%", *message))
@@ -423,7 +418,7 @@ func isDescending(order *string) (*bool, error) {
 	return nil, errors.New("incompatible order parameter")
 }
 
-func (e Events) queryEvents(ctx context.Context, params *common.V2GetEventsParams) ([]*common.Event, *common.EventSeverityCount, error) {
+func (e Events) queryEvents(ctx context.Context, params *common.V2GetEventsParams) ([]*common.Event, *common.EventSeverityCount, *int64, error) {
 
 	cleanQuery := e.db.Session(&gorm.Session{})
 	tx := e.db.Where("category IN (?)", params.Categories)
@@ -437,19 +432,30 @@ func (e Events) queryEvents(ctx context.Context, params *common.V2GetEventsParam
 
 	tx = e.prepareEventsTable(ctx, tx, params.ClusterID, params.HostIds, params.InfraEnvID, params.Severities, params.Message, params.DeletedHosts)
 	if tx == nil {
-		return make([]*common.Event, 0), &common.EventSeverityCount{}, nil
+		return make([]*common.Event, 0), &common.EventSeverityCount{}, swag.Int64(0), nil
 	}
 
 	tx = filterEvents(tx, params.ClusterID, params.HostIds, params.InfraEnvID, params.Severities, params.Message, params.DeletedHosts, params.ClusterLevel, cleanQuery)
 
 	eventSeverityCount, err := countEventsBySeverity(tx.Session(&gorm.Session{}), params.ClusterID)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
+
+	/*
+		we filter the severity after we count event severities as we want to count event severities
+		with respect to to all filtering params but severities across all all possible pages
+	*/
+	if params.Severities != nil {
+		tx = tx.Where("events.severity IN (?)", params.Severities)
+	}
+
+	var eventCount int64
+	tx.Session(&gorm.Session{}).Count(&eventCount)
 
 	isDescending, err := isDescending(params.Order)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	tx.Order(clause.OrderByColumn{
@@ -459,15 +465,15 @@ func (e Events) queryEvents(ctx context.Context, params *common.V2GetEventsParam
 
 	params.Limit, params.Offset = preparePaginationParams(params.Limit, params.Offset)
 	if *params.Limit == 0 {
-		return make([]*common.Event, 0), eventSeverityCount, nil
+		return make([]*common.Event, 0), eventSeverityCount, &eventCount, nil
 	}
 
 	err = tx.Offset(int(*params.Offset)).Limit(int(*params.Limit)).Find(&events).Error
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
-	return events, eventSeverityCount, nil
+	return events, eventSeverityCount, &eventCount, nil
 }
 
 func (e Events) V2GetEvents(ctx context.Context, params *common.V2GetEventsParams) (*common.V2GetEventsResponse, error) {
@@ -475,13 +481,14 @@ func (e Events) V2GetEvents(ctx context.Context, params *common.V2GetEventsParam
 	if len(params.Categories) == 0 {
 		params.Categories = append(params.Categories, DefaultEventCategories...)
 	}
-	events, eventSeverityCount, err := e.queryEvents(ctx, params)
+	events, eventSeverityCount, eventCount, err := e.queryEvents(ctx, params)
 	if err != nil {
 		return nil, err
 	}
 	return &common.V2GetEventsResponse{
 		Events:             events,
 		EventSeverityCount: eventSeverityCount,
+		EventCount:         eventCount,
 	}, nil
 }
 

@@ -54,7 +54,7 @@ var _ = Describe("Events library", func() {
 		i2 := common.InfraEnv{InfraEnv: models.InfraEnv{ID: &infraEnv2, UserName: "user2", OrgID: "org1"}}
 		Expect(db.Create(&i2).Error).ShouldNot(HaveOccurred())
 	})
-	numOfEvents := func(clusterID *strfmt.UUID, HostIds []strfmt.UUID, infraEnvID *strfmt.UUID) int {
+	numOfEventsRetrieved := func(clusterID *strfmt.UUID, HostIds []strfmt.UUID, infraEnvID *strfmt.UUID) int {
 		response, err := theEvents.V2GetEvents(context.TODO(), common.GetDefaultV2GetEventsParams(clusterID, HostIds, infraEnvID))
 		Expect(err).Should(BeNil())
 		return len(response.GetEvents())
@@ -62,11 +62,11 @@ var _ = Describe("Events library", func() {
 
 	Context("Initially", func() {
 		It("No events for cluster1 ", func() {
-			nEvents := numOfEvents(&cluster1, nil, nil)
+			nEvents := numOfEventsRetrieved(&cluster1, nil, nil)
 			Expect(nEvents).Should(Equal(0))
 		})
 		It("No events for cluster2 ", func() {
-			nEvents := numOfEvents(&cluster2, nil, nil)
+			nEvents := numOfEventsRetrieved(&cluster2, nil, nil)
 			Expect(nEvents).Should(Equal(0))
 		})
 
@@ -76,8 +76,8 @@ var _ = Describe("Events library", func() {
 		It("Adding a cluster event", func() {
 			theEvents.V2AddEvent(context.TODO(), &cluster1, nil, nil,
 				eventgen.ClusterRegistrationSucceededEventName, models.EventSeverityInfo, "the event1", time.Now())
-			Expect(numOfEvents(&cluster1, nil, nil)).Should(Equal(1))
-			Expect(numOfEvents(&cluster2, nil, nil)).Should(Equal(0))
+			Expect(numOfEventsRetrieved(&cluster1, nil, nil)).Should(Equal(1))
+			Expect(numOfEventsRetrieved(&cluster2, nil, nil)).Should(Equal(0))
 
 			response, err := theEvents.V2GetEvents(context.TODO(), common.GetDefaultV2GetEventsParams(&cluster1, nil, nil))
 			evs := response.GetEvents()
@@ -87,8 +87,8 @@ var _ = Describe("Events library", func() {
 
 			theEvents.V2AddEvent(context.TODO(), &cluster2, nil, nil,
 				eventgen.ClusterRegistrationSucceededEventName, models.EventSeverityInfo, "event2", time.Now())
-			Expect(numOfEvents(&cluster1, nil, nil)).Should(Equal(1))
-			Expect(numOfEvents(&cluster2, nil, nil)).Should(Equal(1))
+			Expect(numOfEventsRetrieved(&cluster1, nil, nil)).Should(Equal(1))
+			Expect(numOfEventsRetrieved(&cluster2, nil, nil)).Should(Equal(1))
 		})
 
 		It("Adding a host event ", func() {
@@ -102,19 +102,19 @@ var _ = Describe("Events library", func() {
 			Expect(db.Create(&test_host).Error).ShouldNot(HaveOccurred())
 			theEvents.V2AddEvent(context.TODO(), &cluster1, nil, nil,
 				eventgen.HostRegistrationSucceededEventName, models.EventSeverityInfo, "event1", time.Now())
-			Expect(numOfEvents(&cluster1, nil, nil)).Should(Equal(1))
-			Expect(numOfEvents(&cluster1, []strfmt.UUID{host}, nil)).Should(Equal(0))
+			Expect(numOfEventsRetrieved(&cluster1, nil, nil)).Should(Equal(1))
+			Expect(numOfEventsRetrieved(&cluster1, []strfmt.UUID{host}, nil)).Should(Equal(0))
 
 			theEvents.V2AddEvent(context.TODO(), &cluster1, &host, nil, eventgen.HostRegistrationSucceededEventName, models.EventSeverityInfo, "event2", time.Now())
-			Expect(numOfEvents(&cluster1, nil, nil)).Should(Equal(2))
-			Expect(numOfEvents(&cluster1, []strfmt.UUID{host}, nil)).Should(Equal(1))
+			Expect(numOfEventsRetrieved(&cluster1, nil, nil)).Should(Equal(2))
+			Expect(numOfEventsRetrieved(&cluster1, []strfmt.UUID{host}, nil)).Should(Equal(1))
 		})
 
 		It("Adding same event multiple times", func() {
 			t1 := time.Now().Add(-1 * time.Second) // 1 second ago
 			theEvents.V2AddEvent(context.TODO(), &cluster1, nil, nil,
 				eventgen.ClusterRegistrationSucceededEventName, models.EventSeverityInfo, "event1", t1)
-			Expect(numOfEvents(&cluster1, nil, nil)).Should(Equal(1))
+			Expect(numOfEventsRetrieved(&cluster1, nil, nil)).Should(Equal(1))
 			response, err := theEvents.V2GetEvents(context.TODO(), common.GetDefaultV2GetEventsParams(&cluster1, nil, nil))
 			evs := response.GetEvents()
 			Expect(err).Should(BeNil())
@@ -125,7 +125,7 @@ var _ = Describe("Events library", func() {
 			t2 := time.Now()
 			theEvents.V2AddEvent(context.TODO(), &cluster1, nil, nil,
 				eventgen.ClusterRegistrationSucceededEventName, models.EventSeverityInfo, "event1", t2)
-			Expect(numOfEvents(&cluster1, nil, nil)).Should(Equal(2))
+			Expect(numOfEventsRetrieved(&cluster1, nil, nil)).Should(Equal(2))
 
 			response, err = theEvents.V2GetEvents(context.TODO(), common.GetDefaultV2GetEventsParams(&cluster1, nil, nil))
 			Expect(err).Should(BeNil())
@@ -134,7 +134,7 @@ var _ = Describe("Events library", func() {
 			Expect(evs[0]).Should(WithTime(t1))
 			Expect(evs[0]).Should(WithSeverity(swag.String(models.EventSeverityInfo)))
 
-			Expect(numOfEvents(&cluster2, nil, nil)).Should(Equal(0))
+			Expect(numOfEventsRetrieved(&cluster2, nil, nil)).Should(Equal(0))
 		})
 	})
 
@@ -152,7 +152,7 @@ var _ = Describe("Events library", func() {
 			}
 			Expect(db.Create(&test_host).Error).ShouldNot(HaveOccurred())
 			theEvents.V2AddEvent(ctx, &cluster1, &host, nil, eventgen.HostRegistrationSucceededEventName, models.EventSeverityInfo, "event1", time.Now())
-			Expect(numOfEvents(&cluster1, []strfmt.UUID{host}, nil)).Should(Equal(1))
+			Expect(numOfEventsRetrieved(&cluster1, []strfmt.UUID{host}, nil)).Should(Equal(1))
 
 			response, err := theEvents.V2GetEvents(context.TODO(), common.GetDefaultV2GetEventsParams(&cluster1, nil, nil))
 			Expect(err).Should(BeNil())
@@ -579,7 +579,6 @@ var _ = Describe("Events library", func() {
 
 			events := response.GetEvents()
 			Expect(events).To(HaveLen(3))
-			Expect(numOfEvents(&cluster1, []strfmt.UUID{host}, &infraEnv1)).To(Equal(3))
 			Expect(*events[0].Message).To(Equal("Installation completed"))
 		})
 
@@ -601,7 +600,7 @@ var _ = Describe("Events library", func() {
 			events := response.GetEvents()
 			Expect(events).To(HaveLen(1))
 			Expect(events[0].Name).To(Equal(eventgen.ClusterInstallationFailedEventName))
-			Expect(numOfEvents(&cluster1, []strfmt.UUID{host}, &infraEnv1)).To(Equal(3))
+			Expect(numOfEventsRetrieved(&cluster1, []strfmt.UUID{host}, &infraEnv1)).To(Equal(3))
 		})
 
 		// Page size is larger than number of events left - should return all events left
@@ -623,7 +622,7 @@ var _ = Describe("Events library", func() {
 			Expect(events).To(HaveLen(2))
 			Expect(events[0].Name).To(Equal(eventgen.ClusterInstallationFailedEventName))
 			Expect(events[1].Name).To(Equal(eventgen.ClusterInstallationCanceledEventName))
-			Expect(numOfEvents(&cluster1, []strfmt.UUID{host}, &infraEnv1)).To(Equal(3))
+			Expect(numOfEventsRetrieved(&cluster1, []strfmt.UUID{host}, &infraEnv1)).To(Equal(3))
 		})
 
 		// Limit is negative - should be set to default (currently 5000)
@@ -643,7 +642,7 @@ var _ = Describe("Events library", func() {
 
 			events := response.GetEvents()
 			Expect(events).To(HaveLen(3))
-			Expect(numOfEvents(&cluster1, []strfmt.UUID{host}, &infraEnv1)).To(Equal(3))
+			Expect(numOfEventsRetrieved(&cluster1, []strfmt.UUID{host}, &infraEnv1)).To(Equal(3))
 		})
 
 		// Offset is negative - Should start from first page
@@ -663,7 +662,7 @@ var _ = Describe("Events library", func() {
 
 			events := response.GetEvents()
 			Expect(events).To(HaveLen(2))
-			Expect(numOfEvents(&cluster1, []strfmt.UUID{host}, &infraEnv1)).To(Equal(3))
+			Expect(numOfEventsRetrieved(&cluster1, []strfmt.UUID{host}, &infraEnv1)).To(Equal(3))
 		})
 
 		// Offset is larger than number of records - should return empty list of events
@@ -683,7 +682,7 @@ var _ = Describe("Events library", func() {
 
 			events := response.GetEvents()
 			Expect(events).To(HaveLen(0))
-			Expect(numOfEvents(&cluster1, []strfmt.UUID{host}, &infraEnv1)).To(Equal(3))
+			Expect(numOfEventsRetrieved(&cluster1, []strfmt.UUID{host}, &infraEnv1)).To(Equal(3))
 		})
 
 		// No limit - should be set to default (currently 5000)
@@ -703,7 +702,7 @@ var _ = Describe("Events library", func() {
 
 			events := response.GetEvents()
 			Expect(events).To(HaveLen(2))
-			Expect(numOfEvents(&cluster1, []strfmt.UUID{host}, &infraEnv1)).To(Equal(3))
+			Expect(numOfEventsRetrieved(&cluster1, []strfmt.UUID{host}, &infraEnv1)).To(Equal(3))
 		})
 
 		// limit is 0 - should return empty list
@@ -723,7 +722,7 @@ var _ = Describe("Events library", func() {
 
 			events := response.GetEvents()
 			Expect(events).To(HaveLen(0))
-			Expect(numOfEvents(&cluster1, []strfmt.UUID{host}, &infraEnv1)).To(Equal(3))
+			Expect(numOfEventsRetrieved(&cluster1, []strfmt.UUID{host}, &infraEnv1)).To(Equal(3))
 		})
 
 		// No offset - should be set to 0
@@ -743,7 +742,7 @@ var _ = Describe("Events library", func() {
 
 			events := response.GetEvents()
 			Expect(events).To(HaveLen(1))
-			Expect(numOfEvents(&cluster1, []strfmt.UUID{host}, &infraEnv1)).To(Equal(3))
+			Expect(numOfEventsRetrieved(&cluster1, []strfmt.UUID{host}, &infraEnv1)).To(Equal(3))
 		})
 
 		It("descending order", func() {
@@ -761,7 +760,7 @@ var _ = Describe("Events library", func() {
 
 			events := response.GetEvents()
 			Expect(events).To(HaveLen(3))
-			Expect(numOfEvents(&cluster1, []strfmt.UUID{host}, &infraEnv1)).To(Equal(3))
+			Expect(numOfEventsRetrieved(&cluster1, []strfmt.UUID{host}, &infraEnv1)).To(Equal(3))
 			Expect(*events[0].Message).To(Equal("Installation canceled"))
 			Expect(*events[1].Message).To(Equal("Installation failed"))
 			Expect(*events[2].Message).To(Equal("Installation completed"))
@@ -814,7 +813,7 @@ var _ = Describe("Events library", func() {
 				&infraEnv1,
 				eventgen.ClusterInstallationFailedEventName,
 				models.EventSeverityWarning,
-				"Installtion failed",
+				"Installation failed",
 				time.Date(2023, 2, 21, 30, 0, 0, 0, time.UTC),
 			)
 			theEvents.V2AddEvent(
@@ -909,20 +908,49 @@ var _ = Describe("Events library", func() {
 			)
 		})
 
-		It("Get correct count", func() {
+		It("Get correct counts without filtering non severities", func() {
 			response, err := theEvents.V2GetEvents(
 				ctx,
-				common.GetDefaultV2GetEventsParams(&cluster1, nil, nil),
+				&common.V2GetEventsParams{
+					ClusterID:  &cluster1,
+					Severities: []string{models.EventSeverityWarning},
+					Limit:      swag.Int64(2),
+				},
 			)
 			Expect(err).ToNot(HaveOccurred())
 
 			events := response.GetEvents()
 			eventSeverityCount := response.GetEventSeverityCount()
+			eventCount := response.GetEventCount()
+			Expect(*eventCount).To(Equal(int64(3)))
 			Expect(int((*eventSeverityCount)[models.EventSeverityInfo])).To(Equal(3))
 			Expect(int((*eventSeverityCount)[models.EventSeverityWarning])).To(Equal(3))
 			Expect(int((*eventSeverityCount)[models.EventSeverityError])).To(Equal(2))
 			Expect(int((*eventSeverityCount)[models.EventSeverityCritical])).To(Equal(1))
-			Expect(events).To(HaveLen(9))
+			Expect(events).To(HaveLen(2))
+		})
+
+		It("Get correct counts with filtering non severities", func() {
+			response, err := theEvents.V2GetEvents(
+				ctx,
+				&common.V2GetEventsParams{
+					ClusterID:  &cluster1,
+					Severities: []string{models.EventSeverityInfo},
+					Message:    swag.String("installation"),
+					Limit:      swag.Int64(1),
+				},
+			)
+			Expect(err).ToNot(HaveOccurred())
+
+			events := response.GetEvents()
+			eventSeverityCount := response.GetEventSeverityCount()
+			eventCount := response.GetEventCount()
+			Expect(*eventCount).To(Equal(int64(2)))
+			Expect(int((*eventSeverityCount)[models.EventSeverityInfo])).To(Equal(2))
+			Expect(int((*eventSeverityCount)[models.EventSeverityWarning])).To(Equal(1))
+			Expect(int((*eventSeverityCount)[models.EventSeverityError])).To(Equal(1))
+			Expect(int((*eventSeverityCount)[models.EventSeverityCritical])).To(Equal(0))
+			Expect(events).To(HaveLen(1))
 		})
 
 		It("Filter by severities", func() {
@@ -937,10 +965,12 @@ var _ = Describe("Events library", func() {
 
 			events := response.GetEvents()
 			eventSeverityCount := response.GetEventSeverityCount()
+			eventCount := response.GetEventCount()
+			Expect(*eventCount).To(Equal(int64(3)))
 			Expect(int((*eventSeverityCount)[models.EventSeverityInfo])).To(Equal(3))
-			Expect(int((*eventSeverityCount)[models.EventSeverityWarning])).To(Equal(0))
-			Expect(int((*eventSeverityCount)[models.EventSeverityError])).To(Equal(0))
-			Expect(int((*eventSeverityCount)[models.EventSeverityCritical])).To(Equal(0))
+			Expect(int((*eventSeverityCount)[models.EventSeverityWarning])).To(Equal(3))
+			Expect(int((*eventSeverityCount)[models.EventSeverityError])).To(Equal(2))
+			Expect(int((*eventSeverityCount)[models.EventSeverityCritical])).To(Equal(1))
 			Expect(events).To(HaveLen(3))
 		})
 
@@ -949,13 +979,15 @@ var _ = Describe("Events library", func() {
 				ctx,
 				&common.V2GetEventsParams{
 					ClusterID: &cluster1,
-					Message:   swag.String("Installtion failed"),
+					Message:   swag.String("Installation failed"),
 				},
 			)
 			Expect(err).ToNot(HaveOccurred())
 
 			events := response.GetEvents()
 			eventSeverityCount := response.GetEventSeverityCount()
+			eventCount := response.GetEventCount()
+			Expect(*eventCount).To(Equal(int64(1)))
 			Expect(int((*eventSeverityCount)[models.EventSeverityInfo])).To(Equal(0))
 			Expect(int((*eventSeverityCount)[models.EventSeverityWarning])).To(Equal(1))
 			Expect(int((*eventSeverityCount)[models.EventSeverityError])).To(Equal(0))
@@ -975,6 +1007,8 @@ var _ = Describe("Events library", func() {
 
 			events := response.GetEvents()
 			eventSeverityCount := response.GetEventSeverityCount()
+			eventCount := response.GetEventCount()
+			Expect(*eventCount).To(Equal(int64(3)))
 			Expect(int((*eventSeverityCount)[models.EventSeverityInfo])).To(Equal(1))
 			Expect(int((*eventSeverityCount)[models.EventSeverityWarning])).To(Equal(1))
 			Expect(int((*eventSeverityCount)[models.EventSeverityError])).To(Equal(0))
@@ -996,9 +1030,11 @@ var _ = Describe("Events library", func() {
 
 			events := responseNoMatch.GetEvents()
 			eventSeverityCount := responseNoMatch.GetEventSeverityCount()
+			eventCount := responseNoMatch.GetEventCount()
+			Expect(*eventCount).To(Equal(int64(0)))
 			Expect(int((*eventSeverityCount)[models.EventSeverityInfo])).To(Equal(0))
 			Expect(int((*eventSeverityCount)[models.EventSeverityWarning])).To(Equal(0))
-			Expect(int((*eventSeverityCount)[models.EventSeverityError])).To(Equal(0))
+			Expect(int((*eventSeverityCount)[models.EventSeverityError])).To(Equal(1))
 			Expect(int((*eventSeverityCount)[models.EventSeverityCritical])).To(Equal(0))
 			Expect(events).To(HaveLen(0))
 
@@ -1014,6 +1050,8 @@ var _ = Describe("Events library", func() {
 
 			events = responseMatch.GetEvents()
 			eventSeverityCount = responseMatch.GetEventSeverityCount()
+			eventCount = responseMatch.GetEventCount()
+			Expect(*eventCount).To(Equal(int64(1)))
 			Expect(int((*eventSeverityCount)[models.EventSeverityInfo])).To(Equal(0))
 			Expect(int((*eventSeverityCount)[models.EventSeverityWarning])).To(Equal(0))
 			Expect(int((*eventSeverityCount)[models.EventSeverityError])).To(Equal(1))
@@ -1034,6 +1072,8 @@ var _ = Describe("Events library", func() {
 
 			events := response.GetEvents()
 			eventSeverityCount := response.GetEventSeverityCount()
+			eventCount := response.GetEventCount()
+			Expect(*eventCount).To(Equal(int64(3)))
 			Expect(int((*eventSeverityCount)[models.EventSeverityInfo])).To(Equal(1))
 			Expect(int((*eventSeverityCount)[models.EventSeverityWarning])).To(Equal(1))
 			Expect(int((*eventSeverityCount)[models.EventSeverityError])).To(Equal(1))
@@ -1053,7 +1093,8 @@ var _ = Describe("Events library", func() {
 
 			events := response.GetEvents()
 			eventSeverityCount := response.GetEventSeverityCount()
-			Expect(err).ToNot(HaveOccurred())
+			eventCount := response.GetEventCount()
+			Expect(*eventCount).To(Equal(int64(2)))
 			Expect(int((*eventSeverityCount)[models.EventSeverityInfo])).To(Equal(1))
 			Expect(int((*eventSeverityCount)[models.EventSeverityWarning])).To(Equal(1))
 			Expect(int((*eventSeverityCount)[models.EventSeverityError])).To(Equal(0))
@@ -1067,6 +1108,8 @@ var _ = Describe("Events library", func() {
 
 			events := response.GetEvents()
 			eventSeverityCount := response.GetEventSeverityCount()
+			eventCount := response.GetEventCount()
+			Expect(*eventCount).To(Equal(int64(2)))
 			Expect(int((*eventSeverityCount)[models.EventSeverityInfo])).To(Equal(1))
 			Expect(int((*eventSeverityCount)[models.EventSeverityWarning])).To(Equal(1))
 			Expect(int((*eventSeverityCount)[models.EventSeverityError])).To(Equal(0))
@@ -1087,6 +1130,8 @@ var _ = Describe("Events library", func() {
 
 			events := response.GetEvents()
 			eventSeverityCount := response.GetEventSeverityCount()
+			eventCount := response.GetEventCount()
+			Expect(*eventCount).To(Equal(int64(5)))
 			Expect(int((*eventSeverityCount)[models.EventSeverityInfo])).To(Equal(2))
 			Expect(int((*eventSeverityCount)[models.EventSeverityWarning])).To(Equal(2))
 			Expect(int((*eventSeverityCount)[models.EventSeverityError])).To(Equal(1))
@@ -1107,6 +1152,8 @@ var _ = Describe("Events library", func() {
 
 			events := response.GetEvents()
 			eventSeverityCount := response.GetEventSeverityCount()
+			eventCount := response.GetEventCount()
+			Expect(*eventCount).To(Equal(int64(5)))
 			Expect(int((*eventSeverityCount)[models.EventSeverityInfo])).To(Equal(2))
 			Expect(int((*eventSeverityCount)[models.EventSeverityWarning])).To(Equal(2))
 			Expect(int((*eventSeverityCount)[models.EventSeverityError])).To(Equal(1))
@@ -1127,6 +1174,8 @@ var _ = Describe("Events library", func() {
 
 			events := response.GetEvents()
 			eventSeverityCount := response.GetEventSeverityCount()
+			eventCount := response.GetEventCount()
+			Expect(*eventCount).To(Equal(int64(4)))
 			Expect(int((*eventSeverityCount)[models.EventSeverityInfo])).To(Equal(1))
 			Expect(int((*eventSeverityCount)[models.EventSeverityWarning])).To(Equal(1))
 			Expect(int((*eventSeverityCount)[models.EventSeverityError])).To(Equal(1))
@@ -1148,6 +1197,8 @@ var _ = Describe("Events library", func() {
 
 			events := response.GetEvents()
 			eventSeverityCount := response.GetEventSeverityCount()
+			eventCount := response.GetEventCount()
+			Expect(*eventCount).To(Equal(int64(7)))
 			Expect(int((*eventSeverityCount)[models.EventSeverityInfo])).To(Equal(3))
 			Expect(int((*eventSeverityCount)[models.EventSeverityWarning])).To(Equal(3))
 			Expect(int((*eventSeverityCount)[models.EventSeverityError])).To(Equal(1))
@@ -1168,9 +1219,11 @@ var _ = Describe("Events library", func() {
 
 			events := response.GetEvents()
 			eventSeverityCount := response.GetEventSeverityCount()
+			eventCount := response.GetEventCount()
+			Expect(*eventCount).To(Equal(int64(1)))
 			Expect(int((*eventSeverityCount)[models.EventSeverityInfo])).To(Equal(1))
-			Expect(int((*eventSeverityCount)[models.EventSeverityWarning])).To(Equal(0))
-			Expect(int((*eventSeverityCount)[models.EventSeverityError])).To(Equal(0))
+			Expect(int((*eventSeverityCount)[models.EventSeverityWarning])).To(Equal(1))
+			Expect(int((*eventSeverityCount)[models.EventSeverityError])).To(Equal(1))
 			Expect(int((*eventSeverityCount)[models.EventSeverityCritical])).To(Equal(0))
 			Expect(events).To(HaveLen(1))
 		})
@@ -1188,8 +1241,10 @@ var _ = Describe("Events library", func() {
 
 			events := response.GetEvents()
 			eventSeverityCount := response.GetEventSeverityCount()
+			eventCount := response.GetEventCount()
+			Expect(*eventCount).To(Equal(int64(1)))
 			Expect(int((*eventSeverityCount)[models.EventSeverityInfo])).To(Equal(1))
-			Expect(int((*eventSeverityCount)[models.EventSeverityWarning])).To(Equal(0))
+			Expect(int((*eventSeverityCount)[models.EventSeverityWarning])).To(Equal(1))
 			Expect(int((*eventSeverityCount)[models.EventSeverityError])).To(Equal(0))
 			Expect(int((*eventSeverityCount)[models.EventSeverityCritical])).To(Equal(0))
 			Expect(events).To(HaveLen(1))
@@ -1208,10 +1263,12 @@ var _ = Describe("Events library", func() {
 
 			events := response.GetEvents()
 			eventSeverityCount := response.GetEventSeverityCount()
+			eventCount := response.GetEventCount()
+			Expect(*eventCount).To(Equal(int64(1)))
 			Expect(int((*eventSeverityCount)[models.EventSeverityInfo])).To(Equal(0))
 			Expect(int((*eventSeverityCount)[models.EventSeverityWarning])).To(Equal(0))
 			Expect(int((*eventSeverityCount)[models.EventSeverityError])).To(Equal(1))
-			Expect(int((*eventSeverityCount)[models.EventSeverityCritical])).To(Equal(0))
+			Expect(int((*eventSeverityCount)[models.EventSeverityCritical])).To(Equal(1))
 			Expect(events).To(HaveLen(1))
 		})
 
@@ -1229,10 +1286,12 @@ var _ = Describe("Events library", func() {
 
 			events := response.GetEvents()
 			eventSeverityCount := response.GetEventSeverityCount()
+			eventCount := response.GetEventCount()
+			Expect(*eventCount).To(Equal(int64(0)))
 			Expect(int((*eventSeverityCount)[models.EventSeverityInfo])).To(Equal(0))
 			Expect(int((*eventSeverityCount)[models.EventSeverityWarning])).To(Equal(0))
 			Expect(int((*eventSeverityCount)[models.EventSeverityError])).To(Equal(0))
-			Expect(int((*eventSeverityCount)[models.EventSeverityCritical])).To(Equal(0))
+			Expect(int((*eventSeverityCount)[models.EventSeverityCritical])).To(Equal(1))
 			Expect(events).To(HaveLen(0))
 		})
 
@@ -1250,10 +1309,12 @@ var _ = Describe("Events library", func() {
 
 			events := response.GetEvents()
 			eventSeverityCount := response.GetEventSeverityCount()
-			Expect(int((*eventSeverityCount)[models.EventSeverityInfo])).To(Equal(0))
-			Expect(int((*eventSeverityCount)[models.EventSeverityWarning])).To(Equal(0))
+			eventCount := response.GetEventCount()
+			Expect(*eventCount).To(Equal(int64(2)))
+			Expect(int((*eventSeverityCount)[models.EventSeverityInfo])).To(Equal(1))
+			Expect(int((*eventSeverityCount)[models.EventSeverityWarning])).To(Equal(1))
 			Expect(int((*eventSeverityCount)[models.EventSeverityError])).To(Equal(2))
-			Expect(int((*eventSeverityCount)[models.EventSeverityCritical])).To(Equal(0))
+			Expect(int((*eventSeverityCount)[models.EventSeverityCritical])).To(Equal(1))
 			Expect(events).To(HaveLen(2))
 		})
 
@@ -1271,9 +1332,11 @@ var _ = Describe("Events library", func() {
 
 			events := response.GetEvents()
 			eventSeverityCount := response.GetEventSeverityCount()
+			eventCount := response.GetEventCount()
+			Expect(*eventCount).To(Equal(int64(2)))
 			Expect(int((*eventSeverityCount)[models.EventSeverityInfo])).To(Equal(2))
-			Expect(int((*eventSeverityCount)[models.EventSeverityWarning])).To(Equal(0))
-			Expect(int((*eventSeverityCount)[models.EventSeverityError])).To(Equal(0))
+			Expect(int((*eventSeverityCount)[models.EventSeverityWarning])).To(Equal(2))
+			Expect(int((*eventSeverityCount)[models.EventSeverityError])).To(Equal(1))
 			Expect(int((*eventSeverityCount)[models.EventSeverityCritical])).To(Equal(0))
 			Expect(events).To(HaveLen(2))
 		})
@@ -1292,8 +1355,10 @@ var _ = Describe("Events library", func() {
 
 			events := response.GetEvents()
 			eventSeverityCount := response.GetEventSeverityCount()
+			eventCount := response.GetEventCount()
+			Expect(*eventCount).To(Equal(int64(2)))
 			Expect(int((*eventSeverityCount)[models.EventSeverityInfo])).To(Equal(2))
-			Expect(int((*eventSeverityCount)[models.EventSeverityWarning])).To(Equal(0))
+			Expect(int((*eventSeverityCount)[models.EventSeverityWarning])).To(Equal(2))
 			Expect(int((*eventSeverityCount)[models.EventSeverityError])).To(Equal(0))
 			Expect(int((*eventSeverityCount)[models.EventSeverityCritical])).To(Equal(0))
 			Expect(events).To(HaveLen(2))
@@ -1314,14 +1379,14 @@ var _ = Describe("Events library", func() {
 
 			events := response.GetEvents()
 			eventSeverityCount := response.GetEventSeverityCount()
+			eventCount := response.GetEventCount()
+			Expect(*eventCount).To(Equal(int64(3)))
 			Expect(int((*eventSeverityCount)[models.EventSeverityInfo])).To(Equal(3))
-			Expect(int((*eventSeverityCount)[models.EventSeverityWarning])).To(Equal(0))
-			Expect(int((*eventSeverityCount)[models.EventSeverityError])).To(Equal(0))
+			Expect(int((*eventSeverityCount)[models.EventSeverityWarning])).To(Equal(3))
+			Expect(int((*eventSeverityCount)[models.EventSeverityError])).To(Equal(1))
 			Expect(int((*eventSeverityCount)[models.EventSeverityCritical])).To(Equal(0))
 			Expect(events).To(HaveLen(3))
 		})
-
-		// ----
 
 		It("Filter by cluster level events flag and message", func() {
 			response, err := theEvents.V2GetEvents(
@@ -1336,6 +1401,8 @@ var _ = Describe("Events library", func() {
 
 			events := response.GetEvents()
 			eventSeverityCount := response.GetEventSeverityCount()
+			eventCount := response.GetEventCount()
+			Expect(*eventCount).To(Equal(int64(1)))
 			Expect(int((*eventSeverityCount)[models.EventSeverityInfo])).To(Equal(0))
 			Expect(int((*eventSeverityCount)[models.EventSeverityWarning])).To(Equal(1))
 			Expect(int((*eventSeverityCount)[models.EventSeverityError])).To(Equal(0))
@@ -1356,6 +1423,8 @@ var _ = Describe("Events library", func() {
 
 			events := response.GetEvents()
 			eventSeverityCount := response.GetEventSeverityCount()
+			eventCount := response.GetEventCount()
+			Expect(*eventCount).To(Equal(int64(1)))
 			Expect(int((*eventSeverityCount)[models.EventSeverityInfo])).To(Equal(0))
 			Expect(int((*eventSeverityCount)[models.EventSeverityWarning])).To(Equal(1))
 			Expect(int((*eventSeverityCount)[models.EventSeverityError])).To(Equal(0))
@@ -1376,6 +1445,8 @@ var _ = Describe("Events library", func() {
 
 			events := response.GetEvents()
 			eventSeverityCount := response.GetEventSeverityCount()
+			eventCount := response.GetEventCount()
+			Expect(*eventCount).To(Equal(int64(1)))
 			Expect(int((*eventSeverityCount)[models.EventSeverityInfo])).To(Equal(0))
 			Expect(int((*eventSeverityCount)[models.EventSeverityWarning])).To(Equal(0))
 			Expect(int((*eventSeverityCount)[models.EventSeverityError])).To(Equal(1))
@@ -1397,6 +1468,8 @@ var _ = Describe("Events library", func() {
 
 			events := response.GetEvents()
 			eventSeverityCount := response.GetEventSeverityCount()
+			eventCount := response.GetEventCount()
+			Expect(*eventCount).To(Equal(int64(1)))
 			Expect(int((*eventSeverityCount)[models.EventSeverityInfo])).To(Equal(0))
 			Expect(int((*eventSeverityCount)[models.EventSeverityWarning])).To(Equal(0))
 			Expect(int((*eventSeverityCount)[models.EventSeverityError])).To(Equal(1))
@@ -1418,6 +1491,8 @@ var _ = Describe("Events library", func() {
 
 			events := response.GetEvents()
 			eventSeverityCount := response.GetEventSeverityCount()
+			eventCount := response.GetEventCount()
+			Expect(*eventCount).To(Equal(int64(1)))
 			Expect(int((*eventSeverityCount)[models.EventSeverityInfo])).To(Equal(1))
 			Expect(int((*eventSeverityCount)[models.EventSeverityWarning])).To(Equal(0))
 			Expect(int((*eventSeverityCount)[models.EventSeverityError])).To(Equal(0))
@@ -1439,6 +1514,8 @@ var _ = Describe("Events library", func() {
 
 			events := response.GetEvents()
 			eventSeverityCount := response.GetEventSeverityCount()
+			eventCount := response.GetEventCount()
+			Expect(*eventCount).To(Equal(int64(1)))
 			Expect(int((*eventSeverityCount)[models.EventSeverityInfo])).To(Equal(0))
 			Expect(int((*eventSeverityCount)[models.EventSeverityWarning])).To(Equal(0))
 			Expect(int((*eventSeverityCount)[models.EventSeverityError])).To(Equal(1))
@@ -1461,6 +1538,8 @@ var _ = Describe("Events library", func() {
 
 			events := response.GetEvents()
 			eventSeverityCount := response.GetEventSeverityCount()
+			eventCount := response.GetEventCount()
+			Expect(*eventCount).To(Equal(int64(1)))
 			Expect(int((*eventSeverityCount)[models.EventSeverityInfo])).To(Equal(0))
 			Expect(int((*eventSeverityCount)[models.EventSeverityWarning])).To(Equal(0))
 			Expect(int((*eventSeverityCount)[models.EventSeverityError])).To(Equal(1))

@@ -62,6 +62,7 @@ func (a *Api) V2ListEvents(ctx context.Context, params events.V2ListEventsParams
 
 	evs := response.GetEvents()
 	eventSeverityCount := response.GetEventSeverityCount()
+	eventCount := response.GetEventCount()
 
 	ret := make(models.EventList, len(evs))
 	for i, ev := range evs {
@@ -82,5 +83,6 @@ func (a *Api) V2ListEvents(ctx context.Context, params events.V2ListEventsParams
 		WithSeverityCountWarning((*eventSeverityCount)[models.EventSeverityWarning]).
 		WithSeverityCountError((*eventSeverityCount)[models.EventSeverityError]).
 		WithSeverityCountCritical((*eventSeverityCount)[models.EventSeverityCritical]).
+		WithEventCount(*eventCount).
 		WithPayload(ret)
 }
