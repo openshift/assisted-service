@@ -89,6 +89,9 @@ const (
 	UnbindingMsg                     string                     = "The agent is currently unbinding from a cluster deployment"
 	UnbindingPendingUserActionReason string                     = "UnbindingPendingUserAction"
 	UnbindingPendingUserActionMsg    string                     = "The agent is currently unbinding; Pending host reboot from infraenv image"
+
+	CleanupCondition    conditionsv1.ConditionType = "Cleanup"
+	CleanupFailedReason string                     = "CleanupFailed"
 )
 
 type HostMemory struct {
