@@ -8,7 +8,7 @@ These instructions detail how to deploy the assisted installer service in a disc
 * A container registry to mirror an OpenShift release
 * A web server to hold the Red Hat CoreOS (RHCOS) boot ISO
 
-Make sure you have [podman](https://podman.io) version 3.3+ installed. If you must use an older version of podman, reference the [previous documentation and procedure](https://github.com/openshift/assisted-service/tree/v2.0.11#deploy-without-a-kubernetes-cluster) to avoid a [podman bug](https://github.com/containers/podman/issues/9609).
+Make sure you have [podman](https://podman.io) version 4.2+ installed. If you must use an older version of podman, reference the [previous documentation and procedure](https://github.com/openshift/assisted-service/tree/v2.0.11#deploy-without-a-kubernetes-cluster) to avoid a [podman bug](https://github.com/containers/podman/issues/9609).
 
 If you do not have a web server to host the ISO and a container registry available you can co-locate all these services on the same host that you run the Assisted Installer from. This host will be referred to as the "assisted installer host" in the rest of the document.
 
