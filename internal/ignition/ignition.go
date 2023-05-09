@@ -956,7 +956,7 @@ func (g *installerGenerator) modifyBMHFile(file *config_latest_types.File, bmh *
 	}
 	for i, disk := range inventory.Disks {
 		hw.Storage[i] = bmh_v1alpha1.Storage{
-			Name:         disk.Name,
+			Name:         disk.Path,
 			Vendor:       disk.Vendor,
 			SizeBytes:    bmh_v1alpha1.Capacity(disk.SizeBytes),
 			Model:        disk.Model,
