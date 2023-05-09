@@ -272,7 +272,7 @@ func filterEvents(tx *gorm.DB, clusterID *strfmt.UUID, hostIds []strfmt.UUID, in
 
 		// filter by event message
 		if message != nil {
-			tx = tx.Where("events.message LIKE ?", fmt.Sprintf("%%%s%%", *message))
+			tx = tx.Where("LOWER(events.message) LIKE ?", fmt.Sprintf("%%%s%%", strings.ToLower(escapePlaceHolders(*message))))
 		}
 
 		tx = tx.Where(buildDisjunctiveQuery(cleanQuery, hostIds, deletedHosts, clusterLevel))
@@ -416,6 +416,12 @@ func isDescending(order *string) (*bool, error) {
 		return swag.Bool(true), nil
 	}
 	return nil, errors.New("incompatible order parameter")
+}
+
+func escapePlaceHolders(message string) string {
+	escapedPercent := strings.ReplaceAll(message, "%", "\\%")
+	return strings.ReplaceAll(escapedPercent, "_", "\\_")
+
 }
 
 func (e Events) queryEvents(ctx context.Context, params *common.V2GetEventsParams) ([]*common.Event, *common.EventSeverityCount, *int64, error) {
