@@ -945,10 +945,10 @@ var _ = Describe("Events library", func() {
 			events := response.GetEvents()
 			eventSeverityCount := response.GetEventSeverityCount()
 			eventCount := response.GetEventCount()
-			Expect(*eventCount).To(Equal(int64(2)))
-			Expect(int((*eventSeverityCount)[models.EventSeverityInfo])).To(Equal(2))
-			Expect(int((*eventSeverityCount)[models.EventSeverityWarning])).To(Equal(1))
-			Expect(int((*eventSeverityCount)[models.EventSeverityError])).To(Equal(1))
+			Expect(*eventCount).To(Equal(int64(3)))
+			Expect(int((*eventSeverityCount)[models.EventSeverityInfo])).To(Equal(3))
+			Expect(int((*eventSeverityCount)[models.EventSeverityWarning])).To(Equal(2))
+			Expect(int((*eventSeverityCount)[models.EventSeverityError])).To(Equal(2))
 			Expect(int((*eventSeverityCount)[models.EventSeverityCritical])).To(Equal(0))
 			Expect(events).To(HaveLen(1))
 		})
@@ -987,12 +987,12 @@ var _ = Describe("Events library", func() {
 			events := response.GetEvents()
 			eventSeverityCount := response.GetEventSeverityCount()
 			eventCount := response.GetEventCount()
-			Expect(*eventCount).To(Equal(int64(1)))
-			Expect(int((*eventSeverityCount)[models.EventSeverityInfo])).To(Equal(0))
+			Expect(*eventCount).To(Equal(int64(2)))
+			Expect(int((*eventSeverityCount)[models.EventSeverityInfo])).To(Equal(1))
 			Expect(int((*eventSeverityCount)[models.EventSeverityWarning])).To(Equal(1))
 			Expect(int((*eventSeverityCount)[models.EventSeverityError])).To(Equal(0))
 			Expect(int((*eventSeverityCount)[models.EventSeverityCritical])).To(Equal(0))
-			Expect(events).To(HaveLen(1))
+			Expect(events).To(HaveLen(2))
 		})
 
 		It("Filter by substring message", func() {
@@ -1546,6 +1546,183 @@ var _ = Describe("Events library", func() {
 			Expect(int((*eventSeverityCount)[models.EventSeverityCritical])).To(Equal(0))
 			Expect(events).To(HaveLen(1))
 		})
+
+		It("Filter by message with wildcards", func() {
+			theEvents.V2AddEvent(
+				ctx,
+				&cluster1,
+				nil,
+				nil,
+				eventgen.ClusterInstallationCompletedEventName,
+				models.EventSeverityInfo,
+				"Host: jg-test-16386-master-1, reached installation stage Writing image to disk: 24_ rest",
+				time.Date(2023, 2, 25, 40, 0, 0, 0, time.UTC),
+			)
+
+			theEvents.V2AddEvent(
+				ctx,
+				&cluster1,
+				nil,
+				nil,
+				eventgen.ClusterInstallationCompletedEventName,
+				models.EventSeverityInfo,
+				"Host: jg-test-16386-master-1, reached installation stage Writing image to disk: 24% rest",
+				time.Date(2023, 2, 25, 50, 0, 0, 0, time.UTC),
+			)
+
+			response, err := theEvents.V2GetEvents(
+				ctx,
+				&common.V2GetEventsParams{
+					ClusterID: &cluster1,
+					Message:   swag.String("%"),
+				},
+			)
+			Expect(err).ToNot(HaveOccurred())
+
+			events := response.GetEvents()
+			eventSeverityCount := response.GetEventSeverityCount()
+			eventCount := response.GetEventCount()
+			Expect(*eventCount).To(Equal(int64(1)))
+			Expect(int((*eventSeverityCount)[models.EventSeverityInfo])).To(Equal(1))
+			Expect(int((*eventSeverityCount)[models.EventSeverityWarning])).To(Equal(0))
+			Expect(int((*eventSeverityCount)[models.EventSeverityError])).To(Equal(0))
+			Expect(int((*eventSeverityCount)[models.EventSeverityCritical])).To(Equal(0))
+			Expect(events).To(HaveLen(1))
+
+			response, err = theEvents.V2GetEvents(
+				ctx,
+				&common.V2GetEventsParams{
+					ClusterID: &cluster1,
+					Message:   swag.String("24%"),
+				},
+			)
+			Expect(err).ToNot(HaveOccurred())
+
+			events = response.GetEvents()
+			eventSeverityCount = response.GetEventSeverityCount()
+			eventCount = response.GetEventCount()
+			Expect(*eventCount).To(Equal(int64(1)))
+			Expect(int((*eventSeverityCount)[models.EventSeverityInfo])).To(Equal(1))
+			Expect(int((*eventSeverityCount)[models.EventSeverityWarning])).To(Equal(0))
+			Expect(int((*eventSeverityCount)[models.EventSeverityError])).To(Equal(0))
+			Expect(int((*eventSeverityCount)[models.EventSeverityCritical])).To(Equal(0))
+			Expect(events).To(HaveLen(1))
+
+			response, err = theEvents.V2GetEvents(
+				ctx,
+				&common.V2GetEventsParams{
+					ClusterID: &cluster1,
+					Message:   swag.String("%%"),
+				},
+			)
+			Expect(err).ToNot(HaveOccurred())
+
+			events = response.GetEvents()
+			eventSeverityCount = response.GetEventSeverityCount()
+			eventCount = response.GetEventCount()
+			Expect(*eventCount).To(Equal(int64(0)))
+			Expect(int((*eventSeverityCount)[models.EventSeverityInfo])).To(Equal(0))
+			Expect(int((*eventSeverityCount)[models.EventSeverityWarning])).To(Equal(0))
+			Expect(int((*eventSeverityCount)[models.EventSeverityError])).To(Equal(0))
+			Expect(int((*eventSeverityCount)[models.EventSeverityCritical])).To(Equal(0))
+			Expect(events).To(HaveLen(0))
+
+			response, err = theEvents.V2GetEvents(
+				ctx,
+				&common.V2GetEventsParams{
+					ClusterID: &cluster1,
+					Message:   swag.String("\\%"),
+				},
+			)
+			Expect(err).ToNot(HaveOccurred())
+
+			events = response.GetEvents()
+			eventSeverityCount = response.GetEventSeverityCount()
+			eventCount = response.GetEventCount()
+			Expect(*eventCount).To(Equal(int64(0)))
+			Expect(int((*eventSeverityCount)[models.EventSeverityInfo])).To(Equal(0))
+			Expect(int((*eventSeverityCount)[models.EventSeverityWarning])).To(Equal(0))
+			Expect(int((*eventSeverityCount)[models.EventSeverityError])).To(Equal(0))
+			Expect(int((*eventSeverityCount)[models.EventSeverityCritical])).To(Equal(0))
+			Expect(events).To(HaveLen(0))
+
+			response, err = theEvents.V2GetEvents(
+				ctx,
+				&common.V2GetEventsParams{
+					ClusterID: &cluster1,
+					Message:   swag.String("_"),
+				},
+			)
+			Expect(err).ToNot(HaveOccurred())
+
+			events = response.GetEvents()
+			eventSeverityCount = response.GetEventSeverityCount()
+			eventCount = response.GetEventCount()
+			Expect(*eventCount).To(Equal(int64(1)))
+			Expect(int((*eventSeverityCount)[models.EventSeverityInfo])).To(Equal(1))
+			Expect(int((*eventSeverityCount)[models.EventSeverityWarning])).To(Equal(0))
+			Expect(int((*eventSeverityCount)[models.EventSeverityError])).To(Equal(0))
+			Expect(int((*eventSeverityCount)[models.EventSeverityCritical])).To(Equal(0))
+			Expect(events).To(HaveLen(1))
+
+			response, err = theEvents.V2GetEvents(
+				ctx,
+				&common.V2GetEventsParams{
+					ClusterID: &cluster1,
+					Message:   swag.String("24_"),
+				},
+			)
+			Expect(err).ToNot(HaveOccurred())
+
+			events = response.GetEvents()
+			eventSeverityCount = response.GetEventSeverityCount()
+			eventCount = response.GetEventCount()
+			Expect(*eventCount).To(Equal(int64(1)))
+			Expect(int((*eventSeverityCount)[models.EventSeverityInfo])).To(Equal(1))
+			Expect(int((*eventSeverityCount)[models.EventSeverityWarning])).To(Equal(0))
+			Expect(int((*eventSeverityCount)[models.EventSeverityError])).To(Equal(0))
+			Expect(int((*eventSeverityCount)[models.EventSeverityCritical])).To(Equal(0))
+			Expect(events).To(HaveLen(1))
+
+			response, err = theEvents.V2GetEvents(
+				ctx,
+				&common.V2GetEventsParams{
+					ClusterID: &cluster1,
+					Message:   swag.String("__"),
+				},
+			)
+			Expect(err).ToNot(HaveOccurred())
+
+			events = response.GetEvents()
+			eventSeverityCount = response.GetEventSeverityCount()
+			eventCount = response.GetEventCount()
+			Expect(*eventCount).To(Equal(int64(0)))
+			Expect(int((*eventSeverityCount)[models.EventSeverityInfo])).To(Equal(0))
+			Expect(int((*eventSeverityCount)[models.EventSeverityWarning])).To(Equal(0))
+			Expect(int((*eventSeverityCount)[models.EventSeverityError])).To(Equal(0))
+			Expect(int((*eventSeverityCount)[models.EventSeverityCritical])).To(Equal(0))
+			Expect(events).To(HaveLen(0))
+
+			response, err = theEvents.V2GetEvents(
+				ctx,
+				&common.V2GetEventsParams{
+					ClusterID: &cluster1,
+					Message:   swag.String("\\_"),
+				},
+			)
+			Expect(err).ToNot(HaveOccurred())
+
+			events = response.GetEvents()
+			eventSeverityCount = response.GetEventSeverityCount()
+			eventCount = response.GetEventCount()
+			Expect(*eventCount).To(Equal(int64(0)))
+			Expect(int((*eventSeverityCount)[models.EventSeverityInfo])).To(Equal(0))
+			Expect(int((*eventSeverityCount)[models.EventSeverityWarning])).To(Equal(0))
+			Expect(int((*eventSeverityCount)[models.EventSeverityError])).To(Equal(0))
+			Expect(int((*eventSeverityCount)[models.EventSeverityCritical])).To(Equal(0))
+			Expect(events).To(HaveLen(0))
+		})
+
 	})
 
 	AfterEach(func() {
