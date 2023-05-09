@@ -41,12 +41,17 @@ func newPreprovisioningImageRequest(image *metal3_v1alpha1.PreprovisioningImage)
 	return ctrl.Request{NamespacedName: namespacedName}
 }
 
-func newPreprovisioningImage(name, namespace string, labelKey string, labelValue string) *metal3_v1alpha1.PreprovisioningImage {
+func newPreprovisioningImage(name, namespace, labelKey, labelValue, bmhName string) *metal3_v1alpha1.PreprovisioningImage {
 	return &metal3_v1alpha1.PreprovisioningImage{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: namespace,
 			Labels:    AddLabel(nil, labelKey, labelValue),
+			OwnerReferences: []metav1.OwnerReference{{
+				APIVersion: "metal3.io/v1alpha1",
+				Kind:       "BareMetalHost",
+				Name:       bmhName,
+			}},
 		},
 		Spec: metal3_v1alpha1.PreprovisioningImageSpec{
 			AcceptFormats: []metal3_v1alpha1.ImageFormat{
@@ -88,6 +93,7 @@ var _ = Describe("PreprovisioningImage reconcile", func() {
 		infraEnvArch          = "x86_64"
 		infraEnv              *aiv1beta1.InfraEnv
 		ppi                   *metal3_v1alpha1.PreprovisioningImage
+		bmh                   *metal3_v1alpha1.BareMetalHost
 		hubReleaseImage       = "quay.io/openshift-release-dev/ocp-release@sha256:5fdcafc349e184af11f71fe78c0c87531b9df123c664ff1ac82711dc15fa1532"
 		clusterVersion        *configv1.ClusterVersion
 		defaultIronicImage    = "ironic-agent-image:latest"
@@ -117,6 +123,9 @@ var _ = Describe("PreprovisioningImage reconcile", func() {
 			},
 		}}
 		mockInstallerInternal.EXPECT().GetClusterInternal(gomock.Any(), installer.V2GetClusterParams{ClusterID: clusterID}).Return(backendCluster, nil).AnyTimes()
+
+		bmh = &metal3_v1alpha1.BareMetalHost{ObjectMeta: metav1.ObjectMeta{Name: "testBMH", Namespace: testNamespace}}
+		Expect(c.Create(ctx, bmh)).To(BeNil())
 		pr = &PreprovisioningImageReconciler{
 			Client:           c,
 			Log:              common.GetTestLog(),
@@ -154,7 +163,7 @@ var _ = Describe("PreprovisioningImage reconcile", func() {
 				Reason:  "some reason",
 				Message: "Some message",
 			}}
-			ppi = newPreprovisioningImage("testPPI", testNamespace, InfraEnvLabel, "testInfraEnv")
+			ppi = newPreprovisioningImage("testPPI", testNamespace, InfraEnvLabel, "testInfraEnv", bmh.Name)
 			Expect(c.Create(ctx, ppi)).To(BeNil())
 			mockBMOUtils.EXPECT().GetIronicIPs().AnyTimes().Return(ironicServiceIPs, ironicInspectorIPs, nil)
 		})
@@ -247,7 +256,7 @@ var _ = Describe("PreprovisioningImage reconcile", func() {
 			)
 		})
 
-		It("sets the image on the PPI to the ISO URL", func() {
+		It("sets the image on the PPI to the ISO URL and doesn't force a reboot", func() {
 			createdAt := metav1.Now().Add(-InfraEnvImageCooldownPeriod)
 			infraEnv.Status.CreatedTime = &metav1.Time{Time: createdAt}
 			infraEnv.Status.Conditions = []conditionsv1.Condition{{Type: aiv1beta1.ImageCreatedCondition,
@@ -267,6 +276,48 @@ var _ = Describe("PreprovisioningImage reconcile", func() {
 			}
 			Expect(c.Get(ctx, key, ppi)).To(BeNil())
 			validateStatus(infraEnv.Status.ISODownloadURL, conditionsv1.FindStatusCondition(infraEnv.Status.Conditions, aiv1beta1.ImageCreatedCondition), ppi)
+
+			bmhKey := types.NamespacedName{
+				Namespace: bmh.Namespace,
+				Name:      bmh.Name,
+			}
+			Expect(c.Get(ctx, bmhKey, bmh)).To(BeNil())
+			Expect(bmh.Annotations).ToNot(HaveKey("reboot.metal3.io"))
+		})
+
+		It("reboots the host when the image is updated", func() {
+			oldURL := "https://example.com/images/4b495e3f-6a3d-4742-aedd-7db57912c819?api_key=myotherkey&arch=x86_64&type=minimal-iso&version=4.13"
+			infraEnv.Status.ISODownloadURL = oldURL
+			infraEnv.Status.CreatedTime = &metav1.Time{Time: metav1.Now().Add(-InfraEnvImageCooldownPeriod)}
+			infraEnv.Status.Conditions = []conditionsv1.Condition{{Type: aiv1beta1.ImageCreatedCondition,
+				Status:  corev1.ConditionTrue,
+				Reason:  "some reason",
+				Message: "Some message",
+			}}
+			SetImageUrl(ppi, *infraEnv)
+			Expect(c.Update(ctx, ppi)).To(BeNil())
+
+			newURL := "https://example.com/images/4b495e3f-6a3d-4742-aedd-7db57912c819?api_key=mykey&arch=x86_64&type=minimal-iso&version=4.13"
+			infraEnv.Status.ISODownloadURL = newURL
+			Expect(c.Create(ctx, infraEnv)).To(BeNil())
+
+			setInfraEnvIronicConfig()
+
+			res, err := pr.Reconcile(ctx, newPreprovisioningImageRequest(ppi))
+			Expect(err).To(BeNil())
+			Expect(res).To(Equal(ctrl.Result{}))
+			key := types.NamespacedName{
+				Namespace: testNamespace,
+				Name:      "testPPI",
+			}
+			Expect(c.Get(ctx, key, ppi)).To(BeNil())
+			validateStatus(newURL, conditionsv1.FindStatusCondition(infraEnv.Status.Conditions, aiv1beta1.ImageCreatedCondition), ppi)
+			bmhKey := types.NamespacedName{
+				Namespace: bmh.Namespace,
+				Name:      bmh.Name,
+			}
+			Expect(c.Get(ctx, bmhKey, bmh)).To(BeNil())
+			Expect(bmh.Annotations).To(HaveKey("reboot.metal3.io"))
 		})
 
 		It("sets the image on the PPI to the initrd when the PPI doesn't accept ISO format", func() {
@@ -327,7 +378,7 @@ var _ = Describe("PreprovisioningImage reconcile", func() {
 			Expect(ppi.Status.ExtraKernelParams).To(Equal(fmt.Sprintf("coreos.live.rootfs_url=%s rd.bootif=0 arg=thing other.arg", rootfsURL)))
 		})
 
-		It("PreprovisioningImage ImageUrl is up to date", func() {
+		It("doesn't reboot the host when PreprovisioningImage ImageUrl is up to date", func() {
 			infraEnv.Status.ISODownloadURL = downloadURL
 			createdAt := metav1.Now().Add(-InfraEnvImageCooldownPeriod)
 			infraEnv.Status.CreatedTime = &metav1.Time{Time: createdAt}
@@ -350,7 +401,14 @@ var _ = Describe("PreprovisioningImage reconcile", func() {
 			}
 			Expect(c.Get(ctx, key, ppi)).To(BeNil())
 			validateStatus(infraEnv.Status.ISODownloadURL, conditionsv1.FindStatusCondition(infraEnv.Status.Conditions, aiv1beta1.ImageCreatedCondition), ppi)
+			bmhKey := types.NamespacedName{
+				Namespace: bmh.Namespace,
+				Name:      bmh.Name,
+			}
+			Expect(c.Get(ctx, bmhKey, bmh)).To(BeNil())
+			Expect(bmh.Annotations).NotTo(HaveKey("reboot.metal3.io"))
 		})
+
 		It("Add the ironic Ignition to the infraEnv using the ironic agent image from the hub release", func() {
 			Expect(c.Create(ctx, clusterVersion)).To(Succeed())
 			Expect(c.Create(ctx, infraEnv)).To(BeNil())
@@ -480,7 +538,7 @@ var _ = Describe("PreprovisioningImage reconcile", func() {
 		Expect(res).To(Equal(ctrl.Result{}))
 	})
 	It("PreprovisioningImage doesn't accept ISO format", func() {
-		ppi = newPreprovisioningImage("testPPI", testNamespace, InfraEnvLabel, "testInfraEnv")
+		ppi = newPreprovisioningImage("testPPI", testNamespace, InfraEnvLabel, "testInfraEnv", bmh.Name)
 		ppi.Spec.AcceptFormats = []metal3_v1alpha1.ImageFormat{"some random format"}
 		Expect(c.Create(ctx, ppi)).To(BeNil())
 
@@ -490,7 +548,7 @@ var _ = Describe("PreprovisioningImage reconcile", func() {
 		checkImageConditionFailed(c, ppi, "UnsupportedImageFormat", "Unsupported image format")
 	})
 	It("internalInfraEnv not found", func() {
-		ppi = newPreprovisioningImage("testPPI", testNamespace, InfraEnvLabel, "testInfraEnv")
+		ppi = newPreprovisioningImage("testPPI", testNamespace, InfraEnvLabel, "testInfraEnv", bmh.Name)
 		Expect(c.Create(ctx, ppi)).To(BeNil())
 		infraEnv = newInfraEnv("testInfraEnv", testNamespace, aiv1beta1.InfraEnvSpec{})
 		Expect(c.Create(ctx, infraEnv)).To(BeNil())
@@ -504,7 +562,7 @@ var _ = Describe("PreprovisioningImage reconcile", func() {
 	})
 
 	It("returns an error when the ironic urls can't be found", func() {
-		ppi = newPreprovisioningImage("testPPI", testNamespace, InfraEnvLabel, "testInfraEnv")
+		ppi = newPreprovisioningImage("testPPI", testNamespace, InfraEnvLabel, "testInfraEnv", bmh.Name)
 		Expect(c.Create(ctx, ppi)).To(BeNil())
 
 		infraEnv = newInfraEnv("testInfraEnv", testNamespace, aiv1beta1.InfraEnvSpec{})
@@ -523,7 +581,7 @@ var _ = Describe("PreprovisioningImage reconcile", func() {
 		checkImageConditionFailed(c, ppi, "IronicAgentIgnitionUpdateFailure", "Could not add ironic agent to image:")
 	})
 	It("Failed to UpdateInfraEnvInternal", func() {
-		ppi = newPreprovisioningImage("testPPI", testNamespace, InfraEnvLabel, "testInfraEnv")
+		ppi = newPreprovisioningImage("testPPI", testNamespace, InfraEnvLabel, "testInfraEnv", bmh.Name)
 		Expect(c.Create(ctx, ppi)).To(BeNil())
 		infraEnv = newInfraEnv("testInfraEnv", testNamespace, aiv1beta1.InfraEnvSpec{})
 		backendInfraEnv.ClusterID = ""
@@ -541,7 +599,7 @@ var _ = Describe("PreprovisioningImage reconcile", func() {
 	Context("map InfraEnv to PPI", func() {
 		BeforeEach(func() {
 			infraEnv = newInfraEnv("testInfraEnv", testNamespace, aiv1beta1.InfraEnvSpec{})
-			ppi = newPreprovisioningImage("testPPI", testNamespace, InfraEnvLabel, "testInfraEnv")
+			ppi = newPreprovisioningImage("testPPI", testNamespace, InfraEnvLabel, "testInfraEnv", bmh.Name)
 		})
 		AfterEach(func() {
 			mockCtrl.Finish()
@@ -559,7 +617,7 @@ var _ = Describe("PreprovisioningImage reconcile", func() {
 			infraEnv.Status.ISODownloadURL = downloadURL
 			Expect(c.Create(ctx, infraEnv)).To(BeNil())
 			Expect(c.Create(ctx, ppi)).To(BeNil())
-			ppi2 := newPreprovisioningImage("testPPI2", testNamespace, InfraEnvLabel, "testInfraEnv")
+			ppi2 := newPreprovisioningImage("testPPI2", testNamespace, InfraEnvLabel, "testInfraEnv", bmh.Name)
 			Expect(c.Create(ctx, ppi2)).To(BeNil())
 
 			requests := pr.mapInfraEnvPPI()(infraEnv)
@@ -570,7 +628,7 @@ var _ = Describe("PreprovisioningImage reconcile", func() {
 			infraEnv.Status.ISODownloadURL = downloadURL
 			Expect(c.Create(ctx, infraEnv)).To(BeNil())
 			Expect(c.Create(ctx, ppi)).To(BeNil())
-			ppi2 := newPreprovisioningImage("testPPI2", testNamespace, InfraEnvLabel, "someOtherInfraEnv")
+			ppi2 := newPreprovisioningImage("testPPI2", testNamespace, InfraEnvLabel, "someOtherInfraEnv", bmh.Name)
 			Expect(c.Create(ctx, ppi2)).To(BeNil())
 
 			requests := pr.mapInfraEnvPPI()(infraEnv)

@@ -178,6 +178,7 @@ func (r *PreprovisioningImageReconciler) Reconcile(origCtx context.Context, req 
 		log.Info("PreprovisioningImage and InfraEnv images are in sync. Nothing to update.")
 		return ctrl.Result{}, nil
 	}
+	imageUpdated := image.Status.ImageUrl != ""
 	err = r.setImage(image, *infraEnv)
 	if err != nil {
 		return ctrl.Result{}, err
@@ -188,6 +189,14 @@ func (r *PreprovisioningImageReconciler) Reconcile(origCtx context.Context, req 
 		return ctrl.Result{}, err
 	}
 	log.Info("PreprovisioningImage updated successfully")
+
+	if imageUpdated {
+		if err = r.setBMHRebootAnnotation(ctx, image); err != nil {
+			log.WithError(err).Error("failed to set BMH reboot annotation")
+			return ctrl.Result{}, err
+		}
+	}
+
 	return ctrl.Result{}, nil
 }
 
@@ -235,6 +244,7 @@ func (r *PreprovisioningImageReconciler) setImage(image *metal3_v1alpha1.Preprov
 	setImageCondition(generation, &image.Status,
 		metal3_v1alpha1.ConditionImageError, imageErrorStatus,
 		reason, message)
+
 	return nil
 }
 
@@ -510,4 +520,30 @@ func (r *PreprovisioningImageReconciler) getIronicAgentImageByRelease(ctx contex
 	}
 
 	return image, nil
+}
+
+func (r *PreprovisioningImageReconciler) setBMHRebootAnnotation(ctx context.Context, image *metal3_v1alpha1.PreprovisioningImage) error {
+	bmhKey := types.NamespacedName{Namespace: image.Namespace}
+	for _, owner := range image.GetOwnerReferences() {
+		if owner.Kind == "BareMetalHost" {
+			bmhKey.Name = owner.Name
+		}
+	}
+
+	if bmhKey.Name == "" {
+		return fmt.Errorf("failed to find BMH owner for preprovisioningimage")
+	}
+
+	bmh := &metal3_v1alpha1.BareMetalHost{}
+	if err := r.Get(ctx, bmhKey, bmh); err != nil {
+		return errors.Wrapf(err, "failed to get owning bmh %s", bmhKey)
+	}
+
+	patch := client.MergeFrom(bmh.DeepCopy())
+	setAnnotation(&bmh.ObjectMeta, "reboot.metal3.io", "{\"force\": true}")
+	if err := r.Patch(ctx, bmh, patch); err != nil {
+		return errors.Wrapf(err, "failed to add reboot annotation to BMH %s", bmhKey)
+	}
+
+	return nil
 }
