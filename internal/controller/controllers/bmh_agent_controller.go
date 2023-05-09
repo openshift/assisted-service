@@ -260,8 +260,8 @@ func (r *BMACReconciler) Reconcile(origCtx context.Context, req ctrl.Request) (c
 		return res.Result()
 	}
 
-	if agent != nil {
-		result = r.reconcileUnboundAgent(log, bmh, agent)
+	if agent != nil && agentIsUnbindingPendingUserAction(agent) {
+		result = reconcileUnboundAgent(log, bmh, r.ConvergedFlowEnabled)
 		if res := r.handleReconcileResult(ctx, log, result, bmh); res != nil {
 			return res.Result()
 		}
@@ -677,32 +677,66 @@ func (r *BMACReconciler) reconcileAgentInventory(log logrus.FieldLogger, bmh *bm
 
 }
 
+func agentIsUnbindingPendingUserAction(agent *aiv1beta1.Agent) bool {
+	boundCondition := conditionsv1.FindStatusCondition(agent.Status.Conditions, aiv1beta1.BoundCondition)
+	return boundCondition != nil && boundCondition.Reason == aiv1beta1.UnbindingPendingUserActionReason
+}
+
 // Ask BMH to reboot the host if the agent is unbound after installation
 //
 // By re-attaching the BMH and clearing the Image field on it, BMAC will clear
 // the Image data to force the boot from ISO
-func (r *BMACReconciler) reconcileUnboundAgent(log logrus.FieldLogger, bmh *bmh_v1alpha1.BareMetalHost, agent *aiv1beta1.Agent) reconcileResult {
+func reconcileUnboundAgent(log logrus.FieldLogger, bmh *bmh_v1alpha1.BareMetalHost, converged bool) reconcileResult {
 	log.Debugf("Started unbound agent reconcile")
 
-	// proceed with the reconcile only when the agent ask for user action following unbinding
-	// and the detached annotation is in place (which means that we have not dealt with this case before)
-	boundCondition := conditionsv1.FindStatusCondition(agent.Status.Conditions, aiv1beta1.BoundCondition)
-	_, isDetached := bmh.ObjectMeta.Annotations[BMH_DETACHED_ANNOTATION]
-	if boundCondition == nil || boundCondition.Reason != aiv1beta1.UnbindingPendingUserActionReason || !isDetached {
-		log.Debugf("Skipping Unbound Agent reconcile \n %v", agent)
-		return reconcileComplete{}
+	if !converged {
+		// proceed with BMH unbind only when the detached annotation is in place (which means that we have not dealt with this case before)
+		if _, isDetached := bmh.ObjectMeta.Annotations[BMH_DETACHED_ANNOTATION]; !isDetached {
+			log.Debugf("Skipping Unbound Agent reconcile for bmh %v", bmh)
+			return reconcileComplete{}
+		}
+
+		// re-attach the bmh and clear the ISO url to force ironic image refresh
+		// and re-conciliation of BMH and agent. Also, clear the hw details just
+		// in case. They will be regenerated in the reconciles following the agent's
+		// reboot
+		delete(bmh.ObjectMeta.Annotations, BMH_DETACHED_ANNOTATION)
+		delete(bmh.ObjectMeta.Annotations, BMH_HARDWARE_DETAILS_ANNOTATION)
+		bmh.Spec.Image = nil
+
+		log.Infof("Unbound agent reconciled to BMH")
+		return reconcileComplete{dirty: true, stop: true}
 	}
 
-	// re-attach the bmh and clear the ISO url to force ironic image refresh
-	// and re-conciliation of BMH and agent. Also, clear the hw details just
-	// in case. They will be regenerated in the reconciles following the agent's
-	// reboot
-	delete(bmh.ObjectMeta.Annotations, BMH_DETACHED_ANNOTATION)
-	delete(bmh.ObjectMeta.Annotations, BMH_HARDWARE_DETAILS_ANNOTATION)
-	bmh.Spec.Image = nil
+	// for converged flow we need to orchestrate deprovisioning the host
+	var dirty, stop bool
+	switch bmh.Status.Provisioning.State {
+	case bmh_v1alpha1.StateProvisioned:
+		// unset customDeploy to initiate deprovisioning
+		if bmh.Spec.CustomDeploy != nil {
+			log.Info("deprovisioning BMH")
+			bmh.Spec.CustomDeploy = nil
+			dirty = true
+		}
+		stop = true
+	case bmh_v1alpha1.StateDeprovisioning:
+		// wait for deprovision to finish before resetting customDeploy
+		stop = true
+	}
 
-	log.Infof("Unbound agent reconciled to BMH")
-	return reconcileComplete{dirty: true, stop: true}
+	// always want the host attached if it's still unbinding pending user action
+	if _, ok := bmh.GetAnnotations()[BMH_DETACHED_ANNOTATION]; ok {
+		log.Info("removing BMH detached annotation")
+		delete(bmh.Annotations, BMH_DETACHED_ANNOTATION)
+		dirty = true
+	}
+	if _, ok := bmh.GetAnnotations()[BMH_HARDWARE_DETAILS_ANNOTATION]; ok {
+		log.Info("removing BMH hardware details annotation")
+		delete(bmh.Annotations, BMH_HARDWARE_DETAILS_ANNOTATION)
+		dirty = true
+	}
+
+	return reconcileComplete{dirty: dirty, stop: stop}
 }
 
 // Utility to verify whether a BMH should be reconciled based on the InfraEnv
