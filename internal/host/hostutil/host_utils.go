@@ -207,7 +207,7 @@ func GetAcceptableDisksWithHints(disks []*models.Disk, hints *bmh_v1alpha1.RootD
 				continue
 			}
 
-			if hints.Vendor != "" && !strings.Contains(disk.Vendor, hints.Model) {
+			if hints.Vendor != "" && !strings.Contains(disk.Vendor, hints.Vendor) {
 				continue
 			}
 
