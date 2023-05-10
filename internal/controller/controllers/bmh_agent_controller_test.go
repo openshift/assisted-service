@@ -1532,11 +1532,13 @@ var _ = Describe("bmac reconcile - converged flow enabled", func() {
 			Expect(updatedHost.ObjectMeta.Annotations).To(BeNil())
 		})
 		Context("with a provisioned agent", func() {
+			var agent *v1beta1.Agent
+
 			BeforeEach(func() {
 				agentSpec := v1beta1.AgentSpec{
 					Approved: true,
 				}
-				agent := newAgent("bmac-agent", testNamespace, agentSpec)
+				agent = newAgent("bmac-agent", testNamespace, agentSpec)
 				macStr := "12-34-56-78-9A-BC"
 				agent.Status.Inventory = v1beta1.HostInventory{
 					Interfaces: []v1beta1.HostInterface{
@@ -1619,6 +1621,59 @@ var _ = Describe("bmac reconcile - converged flow enabled", func() {
 				args := &bmh_v1alpha1.DetachedAnnotationArguments{}
 				Expect(json.Unmarshal([]byte(updatedHost.ObjectMeta.Annotations[BMH_DETACHED_ANNOTATION]), &args)).To(Succeed())
 				Expect(string(args.DeleteAction)).To(Equal(bmh_v1alpha1.DetachedDeleteActionDelay))
+			})
+			Context("when the agent is unbinding-pending-user-action", func() {
+				BeforeEach(func() {
+					agent.Status.Conditions = []conditionsv1.Condition{
+						{
+							Type:   v1beta1.BoundCondition,
+							Status: corev1.ConditionTrue,
+							Reason: v1beta1.UnbindingPendingUserActionReason,
+						},
+					}
+					Expect(c.Update(ctx, agent)).To(BeNil())
+				})
+				It("clears customDeploy and unsets detached", func() {
+					host.Annotations = map[string]string{
+						BMH_DETACHED_ANNOTATION: "assisted-service-controller",
+					}
+					Expect(c.Update(ctx, host)).To(Succeed())
+
+					result, err := bmhr.Reconcile(ctx, newBMHRequest(host))
+					Expect(err).To(BeNil())
+					Expect(result).To(Equal(ctrl.Result{}))
+
+					updatedHost := &bmh_v1alpha1.BareMetalHost{}
+					Expect(c.Get(ctx, types.NamespacedName{Name: "bmh-reconcile", Namespace: testNamespace}, updatedHost)).To(BeNil())
+					Expect(updatedHost.ObjectMeta.Annotations).ToNot(HaveKey(BMH_DETACHED_ANNOTATION))
+					Expect(updatedHost.Spec.CustomDeploy).To(BeNil())
+				})
+				It("resets customDeploy when the BMH is available", func() {
+					host.Spec.CustomDeploy = nil
+					host.Status.Provisioning.State = bmh_v1alpha1.StateAvailable
+					Expect(c.Update(ctx, host)).To(Succeed())
+
+					result, err := bmhr.Reconcile(ctx, newBMHRequest(host))
+					Expect(err).To(BeNil())
+					Expect(result).To(Equal(ctrl.Result{}))
+
+					updatedHost := &bmh_v1alpha1.BareMetalHost{}
+					Expect(c.Get(ctx, types.NamespacedName{Name: "bmh-reconcile", Namespace: testNamespace}, updatedHost)).To(BeNil())
+					Expect(updatedHost.Spec.CustomDeploy).To(HaveValue(Equal(bmh_v1alpha1.CustomDeploy{Method: ASSISTED_DEPLOY_METHOD})))
+				})
+				It("doesn't reset customDeploy when the BMH is deprovisioning", func() {
+					host.Spec.CustomDeploy = nil
+					host.Status.Provisioning.State = bmh_v1alpha1.StateDeprovisioning
+					Expect(c.Update(ctx, host)).To(Succeed())
+
+					result, err := bmhr.Reconcile(ctx, newBMHRequest(host))
+					Expect(err).To(BeNil())
+					Expect(result).To(Equal(ctrl.Result{}))
+
+					updatedHost := &bmh_v1alpha1.BareMetalHost{}
+					Expect(c.Get(ctx, types.NamespacedName{Name: "bmh-reconcile", Namespace: testNamespace}, updatedHost)).To(BeNil())
+					Expect(updatedHost.Spec.CustomDeploy).To(BeNil())
+				})
 			})
 		})
 
