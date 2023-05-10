@@ -49,7 +49,7 @@ func ValidateDomainNameFormat(dnsDomainName string) (int32, error) {
 	if err != nil {
 		return http.StatusInternalServerError, errors.Wrapf(err, "Single DNS base domain validation for %s", dnsDomainName)
 	}
-	if matched {
+	if matched && len(dnsDomainName) > 1 {
 		return 0, nil
 	}
 	matched, err = regexp.MatchString(dnsNameRegex, dnsDomainName)
