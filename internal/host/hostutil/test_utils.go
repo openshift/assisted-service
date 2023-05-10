@@ -85,7 +85,8 @@ func GenerateTestHostAddedToCluster(hostID, infraEnvID, clusterID strfmt.UUID, s
 }
 
 func GenerateTestHostByKind(hostID, infraEnvID strfmt.UUID, clusterID *strfmt.UUID, state, kind string, role models.HostRole) models.Host {
-	now := strfmt.DateTime(time.Now())
+	aMinuteAgoTime := time.Now().Add(-time.Minute)
+	aMinuteAgo := strfmt.DateTime(aMinuteAgoTime)
 	return models.Host{
 		ID:              &hostID,
 		InfraEnvID:      infraEnvID,
@@ -95,22 +96,23 @@ func GenerateTestHostByKind(hostID, infraEnvID strfmt.UUID, clusterID *strfmt.UU
 		Role:            role,
 		SuggestedRole:   role,
 		Kind:            swag.String(kind),
-		CheckedInAt:     now,
-		RegisteredAt:    now,
-		StatusUpdatedAt: now,
+		CheckedInAt:     aMinuteAgo,
+		RegisteredAt:    aMinuteAgo,
+		StatusUpdatedAt: aMinuteAgo,
 		Progress: &models.HostProgressInfo{
-			StageStartedAt: now,
-			StageUpdatedAt: now,
+			StageStartedAt: aMinuteAgo,
+			StageUpdatedAt: aMinuteAgo,
 		},
 		APIVipConnectivity:    GenerateTestAPIConnectivityResponseSuccessString(""),
 		Connectivity:          GenerateTestConnectivityReport(),
 		DiscoveryAgentVersion: defaultAgentImage,
-		Timestamp:             time.Now().Unix(),
+		Timestamp:             aMinuteAgoTime.Unix(),
 	}
 }
 
 func GenerateTestHostWithInfraEnv(hostID, infraEnvID strfmt.UUID, state string, role models.HostRole) models.Host {
-	now := strfmt.DateTime(time.Now())
+	aMinuteAgoTime := time.Now().Add(-time.Minute)
+	aMinuteAgo := strfmt.DateTime(aMinuteAgoTime)
 	return models.Host{
 		ID:                    &hostID,
 		InfraEnvID:            infraEnvID,
@@ -118,18 +120,19 @@ func GenerateTestHostWithInfraEnv(hostID, infraEnvID strfmt.UUID, state string, 
 		Inventory:             common.GenerateTestDefaultInventory(),
 		Role:                  role,
 		Kind:                  swag.String(models.HostKindHost),
-		CheckedInAt:           now,
-		RegisteredAt:          now,
-		StatusUpdatedAt:       now,
+		CheckedInAt:           aMinuteAgo,
+		RegisteredAt:          aMinuteAgo,
+		StatusUpdatedAt:       aMinuteAgo,
 		APIVipConnectivity:    GenerateTestAPIConnectivityResponseSuccessString(""),
 		Connectivity:          GenerateTestConnectivityReport(),
 		DiscoveryAgentVersion: defaultAgentImage,
-		Timestamp:             time.Now().Unix(),
+		Timestamp:             aMinuteAgoTime.Unix(),
 	}
 }
 
 func GenerateTestHostWithNetworkAddress(hostID, infraEnvID, clusterID strfmt.UUID, role models.HostRole, status string, netAddr common.NetAddress) *models.Host {
-	now := strfmt.DateTime(time.Now())
+	aMinuteAgoTime := time.Now().Add(-time.Minute)
+	aMinuteAgo := strfmt.DateTime(aMinuteAgoTime)
 	h := models.Host{
 		ID:                &hostID,
 		RequestedHostname: netAddr.Hostname,
@@ -139,16 +142,16 @@ func GenerateTestHostWithNetworkAddress(hostID, infraEnvID, clusterID strfmt.UUI
 		Inventory:         common.GenerateTestInventoryWithNetwork(netAddr),
 		Role:              role,
 		Kind:              swag.String(models.HostKindHost),
-		CheckedInAt:       now,
-		RegisteredAt:      now,
-		StatusUpdatedAt:   now,
+		CheckedInAt:       aMinuteAgo,
+		RegisteredAt:      aMinuteAgo,
+		StatusUpdatedAt:   aMinuteAgo,
 		Progress: &models.HostProgressInfo{
-			StageStartedAt: now,
-			StageUpdatedAt: now,
+			StageStartedAt: aMinuteAgo,
+			StageUpdatedAt: aMinuteAgo,
 		},
 		APIVipConnectivity:    GenerateTestAPIConnectivityResponseSuccessString(""),
 		DiscoveryAgentVersion: defaultAgentImage,
-		Timestamp:             time.Now().Unix(),
+		Timestamp:             aMinuteAgoTime.Unix(),
 	}
 	return &h
 }
