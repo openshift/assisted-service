@@ -2,6 +2,8 @@ package hostcommands
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
 
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
@@ -10,6 +12,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/internal/constants"
 	"github.com/openshift/assisted-service/internal/host/hostutil"
 	"github.com/openshift/assisted-service/internal/versions"
 	"github.com/openshift/assisted-service/models"
@@ -54,6 +57,25 @@ var _ = Describe("domainNameResolution", func() {
 		Expect(stepReply).ToNot(BeNil())
 		Expect(stepReply[0].StepType).To(Equal(models.StepTypeDomainResolution))
 		Expect(stepErr).ShouldNot(HaveOccurred())
+		Expect(stepReply[0].Args).To(HaveLen(1))
+		var request models.DomainResolutionRequest
+		Expect(json.Unmarshal([]byte(stepReply[0].Args[0]), &request)).ToNot(HaveOccurred())
+		req := func(s string) *models.DomainResolutionRequestDomain {
+			return &models.DomainResolutionRequestDomain{
+				DomainName: swag.String(s),
+			}
+		}
+		clusterDomain := func(prefix string) string {
+			return fmt.Sprintf("%s.%s.%s", prefix, name, baseDNSDomain)
+		}
+		Expect(request.Domains).To(ContainElements(
+			req(clusterDomain("api")),
+			req(clusterDomain("api-int")),
+			req(clusterDomain(constants.AppsSubDomainNameHostDNSValidation+".apps")),
+			req(clusterDomain(constants.DNSWildcardFalseDomainName)),
+			req(clusterDomain(constants.DNSWildcardFalseDomainName)+"."),
+			req("quay.io"),
+		))
 	})
 
 	It("Missing cluster name", func() {

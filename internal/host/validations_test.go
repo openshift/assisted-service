@@ -433,6 +433,7 @@ var _ = Describe("Validations test", func() {
 			successMessage := "DNS wildcard check was successful"
 			successMessageDay2 := "DNS wildcard check is not required for day2"
 			failureMessage := "DNS wildcard configuration was detected for domain *.test-cluster.example.com - the installation will not be able to complete while this record exists. Please remove it to proceed. The domain resolves to addresses 7.8.9.10/24, 1003:db8::40/120"
+			subDomainFailureMessage := "Unexpected domain name resolution was detected for the relative domain name with the sub-domain *.test-cluster.example.com despite the fact that no resolution exists for a Fully Qualified Domain Name (FQDN) with same sub-domain. This is usually a sign of DHCP-provided domain-search configuration. The installation will not be able to complete with this configuration in place. Please remove it to proceed. The relative domain name resolves to addresses 7.8.9.10/24, 1003:db8::40/120"
 			errorMessage := "Error while parsing DNS resolution response"
 			pendingMessage := "DNS wildcard check cannot be performed yet because the host has not yet performed DNS resolution"
 
@@ -442,6 +443,7 @@ var _ = Describe("Validations test", func() {
 			var DNSResponseStateCorruptResponse DNSResponseState = "corrupt-response"
 			var DNSResponseStateDidntResolveIllegalWildcard DNSResponseState = "didnt-resolve-illegal-wildcard"
 			var DNSResponseStateResolvedIllegalWildcard DNSResponseState = "resolved-illegal-wildcard"
+			var DNSSubDomainResponseStateResolvedIllegalWildcard DNSResponseState = "sub-domain-resolved-illegal-wildcard"
 
 			for _, dnsWildcardTestCase := range []struct {
 				// Inputs
@@ -470,6 +472,12 @@ var _ = Describe("Validations test", func() {
 
 					expectedValidationStatus: ValidationFailure,
 					expectedMessage:          failureMessage,
+				},
+				{
+					testCaseName:             "day 1 cluster - sub domain resolved wildcard",
+					dnsResponse:              DNSSubDomainResponseStateResolvedIllegalWildcard,
+					expectedValidationStatus: ValidationFailure,
+					expectedMessage:          subDomainFailureMessage,
 				},
 				{
 					testCaseName: "day 1 cluster - no resolutions",
@@ -554,6 +562,8 @@ var _ = Describe("Validations test", func() {
 						setHostDomainResolutions(testHost, common.TestDomainNameResolutionsSuccess)
 					case DNSResponseStateResolvedIllegalWildcard:
 						setHostDomainResolutions(testHost, common.TestDomainNameResolutionsWildcardResolved)
+					case DNSSubDomainResponseStateResolvedIllegalWildcard:
+						setHostDomainResolutions(testHost, common.TestSubDomainNameResolutionsWildcardResolved)
 					case DNSResponseStateCorruptResponse:
 						setHostCorruptDomainResolutions(testHost)
 					case DNSResponseStateNoResponse:

@@ -49,7 +49,8 @@ func (f *domainNameResolutionCmd) prepareParam(host *models.Host, cluster *commo
 	apiDomainName := fmt.Sprintf("api.%s.%s", clusterName, baseDNSDomain)
 	apiInternalDomainName := fmt.Sprintf("api-int.%s.%s", clusterName, baseDNSDomain)
 	appsDomainName := fmt.Sprintf("%s.apps.%s.%s", constants.AppsSubDomainNameHostDNSValidation, clusterName, baseDNSDomain)
-	wildcardDomainName := fmt.Sprintf("%s.%s.%s", constants.DNSWildcardFalseDomainName, clusterName, baseDNSDomain)
+	wildcardDomainNameWithDot := fmt.Sprintf("%s.%s.%s.", constants.DNSWildcardFalseDomainName, clusterName, baseDNSDomain)
+	wildcardDomainNameNoDot := fmt.Sprintf("%s.%s.%s", constants.DNSWildcardFalseDomainName, clusterName, baseDNSDomain)
 
 	apiDomain := models.DomainResolutionRequestDomain{
 		DomainName: &apiDomainName,
@@ -60,12 +61,16 @@ func (f *domainNameResolutionCmd) prepareParam(host *models.Host, cluster *commo
 	appsDomain := models.DomainResolutionRequestDomain{
 		DomainName: &appsDomainName,
 	}
-	wildcardDomain := models.DomainResolutionRequestDomain{
-		DomainName: &wildcardDomainName,
+	wildcardDomainWithDot := models.DomainResolutionRequestDomain{
+		DomainName: &wildcardDomainNameWithDot,
+	}
+
+	wildcardDomainNoDot := models.DomainResolutionRequestDomain{
+		DomainName: &wildcardDomainNameNoDot,
 	}
 
 	var domains []*models.DomainResolutionRequestDomain
-	domains = append(domains, &apiDomain, &apiInternalDomain, &appsDomain, &wildcardDomain)
+	domains = append(domains, &apiDomain, &apiInternalDomain, &appsDomain, &wildcardDomainWithDot, &wildcardDomainNoDot)
 
 	if swag.StringValue(cluster.Kind) != models.ClusterKindAddHostsCluster {
 		releaseHost, err := versions.GetReleaseImageHost(cluster, f.versionHandler)

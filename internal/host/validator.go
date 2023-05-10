@@ -1427,6 +1427,14 @@ func domainNameToResolve(c *validationContext, name string) string {
 	return fmt.Sprintf("%s.%s.%s", name, c.cluster.Name, c.cluster.BaseDNSDomain)
 }
 
+func dottedDomainNameToResolve(c *validationContext, name string) string {
+	dn := domainNameToResolve(c, name)
+	if dn != "" {
+		return dn + "."
+	}
+	return dn
+}
+
 func printableDomain(c *validationContext, domainName, target string) string {
 	if c.infraEnv != nil {
 		return ""
@@ -1537,6 +1545,34 @@ func (v *validator) isReleaseDomainResolvedCorrectly(c *validationContext) (Vali
 	return checkDomainNameResolution(c, releaseImageHost, releaseImageHost, "release image host")
 }
 
+func checkUnexpectedDomain(c *validationContext, response *models.DomainResolutionResponse, domainName, messageFormat string) (ValidationStatus, string) {
+	domainResolution, _ := funk.Find(response.Resolutions,
+		func(d *models.DomainResolutionResponseDomain) bool {
+			return swag.StringValue(d.DomainName) == domainName
+		}).(*models.DomainResolutionResponseDomain)
+
+	if domainResolution == nil {
+		return ValidationError, "Internal error - DNS wildcard check cannot be performed because the DNS validation result doesn't contain the wildcard domain"
+	}
+
+	if len(domainResolution.IPV4Addresses) == 0 && len(domainResolution.IPV6Addresses) == 0 {
+		return ValidationSuccess, "DNS wildcard check was successful"
+	}
+
+	// Compile a list of IP addresses that the bad wildcard domain resolves to
+	// so they can be included in the message. This might help users understand
+	// where the bad wildcard record is coming from.
+	addressStrings := []string{}
+	for _, ipv4Address := range domainResolution.IPV4Addresses {
+		addressStrings = append(addressStrings, string(ipv4Address))
+	}
+	for _, ipv6Address := range domainResolution.IPV6Addresses {
+		addressStrings = append(addressStrings, string(ipv6Address))
+	}
+
+	return ValidationFailure, fmt.Sprintf(messageFormat, c.cluster.Name, c.cluster.BaseDNSDomain, strings.Join(addressStrings, ", "))
+}
+
 func (v *validator) isDNSWildcardNotConfigured(c *validationContext) (ValidationStatus, string) {
 	if c.infraEnv != nil {
 		return ValidationSuccessSuppressOutput, ""
@@ -1551,38 +1587,14 @@ func (v *validator) isDNSWildcardNotConfigured(c *validationContext) (Validation
 	if err := json.Unmarshal([]byte(c.host.DomainNameResolutions), &response); err != nil {
 		return ValidationError, "Error while parsing DNS resolution response"
 	}
-	dnsWildcardName := domainNameToResolve(c, constants.DNSWildcardFalseDomainName)
 
-	// Note that we're validating that the wildcard DNS *.<cluster_name>.<base_domain> is NOT configured, since this causes known problems for OpenShift
-	var wildcardDomainResolution *models.DomainResolutionResponseDomain
-	for _, domainResolution := range response.Resolutions {
-		if domainResolution.DomainName != nil && *domainResolution.DomainName == dnsWildcardName {
-			wildcardDomainResolution = domainResolution
-			break
-		}
+	status, message := checkUnexpectedDomain(c, response, dottedDomainNameToResolve(c, constants.DNSWildcardFalseDomainName),
+		"DNS wildcard configuration was detected for domain *.%s.%s - the installation will not be able to complete while this record exists. Please remove it to proceed. The domain resolves to addresses %s")
+	if status == ValidationSuccess {
+		status, message = checkUnexpectedDomain(c, response, domainNameToResolve(c, constants.DNSWildcardFalseDomainName),
+			"Unexpected domain name resolution was detected for the relative domain name with the sub-domain *.%s.%s despite the fact that no resolution exists for a Fully Qualified Domain Name (FQDN) with same sub-domain. This is usually a sign of DHCP-provided domain-search configuration. The installation will not be able to complete with this configuration in place. Please remove it to proceed. The relative domain name resolves to addresses %s")
 	}
-
-	if wildcardDomainResolution == nil {
-		return ValidationError, "Internal error - DNS wildcard check cannot be performed because the DNS validation result doesn't contain the wildcard domain"
-	}
-
-	if len(wildcardDomainResolution.IPV4Addresses) == 0 && len(wildcardDomainResolution.IPV6Addresses) == 0 {
-		return ValidationSuccess, "DNS wildcard check was successful"
-	}
-
-	// Compile a list of IP addresses that the bad wildcard domain resolves to
-	// so they can be included in the message. This might help users understand
-	// where the bad wildcard record is coming from.
-	addressStrings := []string{}
-	for _, ipv4Address := range wildcardDomainResolution.IPV4Addresses {
-		addressStrings = append(addressStrings, string(ipv4Address))
-	}
-	for _, ipv6Address := range wildcardDomainResolution.IPV6Addresses {
-		addressStrings = append(addressStrings, string(ipv6Address))
-	}
-
-	return ValidationFailure, fmt.Sprintf("DNS wildcard configuration was detected for domain *.%s.%s - the installation will not be able to complete while this record exists. Please remove it to proceed. The domain resolves to addresses %s",
-		c.cluster.Name, c.cluster.BaseDNSDomain, strings.Join(addressStrings, ", "))
+	return status, message
 }
 
 func areNetworksOverlapping(c *validationContext) (ValidationStatus, error) {
