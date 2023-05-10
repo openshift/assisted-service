@@ -190,7 +190,7 @@ var _ = Describe("dns name", func() {
 		},
 		{
 			domainName: "a",
-			valid:      true,
+			valid:      false,
 		},
 		{
 			domainName: "co",
@@ -215,6 +215,14 @@ var _ = Describe("dns name", func() {
 		{
 			domainName: "a-aa.com",
 			valid:      true,
+		},
+		{
+			domainName: "a.c",
+			valid:      false,
+		},
+		{
+			domainName: "aaa.c",
+			valid:      false,
 		},
 	}
 	for _, t := range tests {
