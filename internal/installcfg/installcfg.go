@@ -162,6 +162,13 @@ type Capabilities struct {
 	AdditionalEnabledCapabilities []ClusterVersionCapability  `yaml:"additionalEnabledCapabilities,omitempty"`
 }
 
+type CPUPartitioningMode string
+
+const (
+	CPUPartitioningNone     CPUPartitioningMode = "None"
+	CPUPartitioningAllNodes CPUPartitioningMode = "AllNodes"
+)
+
 type InstallerConfigBaremetal struct {
 	APIVersion string `yaml:"apiVersion"`
 	BaseDomain string `yaml:"baseDomain"`
@@ -188,6 +195,7 @@ type InstallerConfigBaremetal struct {
 	Platform              Platform             `yaml:"platform"`
 	BootstrapInPlace      BootstrapInPlace     `yaml:"bootstrapInPlace,omitempty"`
 	FIPS                  bool                 `yaml:"fips"`
+	CPUPartitioning       CPUPartitioningMode  `json:"cpuPartitioningMode,omitempty"`
 	PullSecret            string               `yaml:"pullSecret"`
 	SSHKey                string               `yaml:"sshKey"`
 	AdditionalTrustBundle string               `yaml:"additionalTrustBundle,omitempty"`
