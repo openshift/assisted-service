@@ -572,9 +572,13 @@ func (r *BMACReconciler) reconcileAgentInventory(log logrus.FieldLogger, bmh *bm
 
 	// Add storage
 	for _, d := range inventory.Disks {
+		device := d.Path
+		if d.ByPath != "" {
+			device = d.ByPath
+		}
 		// missing WWNVendorExtension, WWNWithExtension
 		disk := bmh_v1alpha1.Storage{
-			Name:         d.Path,
+			Name:         device,
 			HCTL:         d.Hctl,
 			Model:        d.Model,
 			SizeBytes:    bmh_v1alpha1.Capacity(d.SizeBytes),
