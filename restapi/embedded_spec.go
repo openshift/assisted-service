@@ -7160,7 +7160,7 @@ func init() {
               "domain_name": {
                 "description": "The domain name that should be resolved",
                 "type": "string",
-                "pattern": "^([a-zA-Z0-9]+(-[a-zA-Z0-9]+)*[.])+[a-zA-Z]{2,}$"
+                "pattern": "^([a-zA-Z0-9]+(-[a-zA-Z0-9]+)*[.])+[a-zA-Z]{2,}[.]?$"
               }
             },
             "x-go-name": "DomainResolutionRequestDomain"
@@ -15942,7 +15942,7 @@ func init() {
         "domain_name": {
           "description": "The domain name that should be resolved",
           "type": "string",
-          "pattern": "^([a-zA-Z0-9]+(-[a-zA-Z0-9]+)*[.])+[a-zA-Z]{2,}$"
+          "pattern": "^([a-zA-Z0-9]+(-[a-zA-Z0-9]+)*[.])+[a-zA-Z]{2,}[.]?$"
         }
       },
       "x-go-name": "DomainResolutionRequestDomain"

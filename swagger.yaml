@@ -6060,7 +6060,7 @@ definitions:
             - domain_name
           properties:
             domain_name:
-              pattern: '^([a-zA-Z0-9]+(-[a-zA-Z0-9]+)*[.])+[a-zA-Z]{2,}$'
+              pattern: '^([a-zA-Z0-9]+(-[a-zA-Z0-9]+)*[.])+[a-zA-Z]{2,}[.]?$'
               description: "The domain name that should be resolved"
               type: string
 
