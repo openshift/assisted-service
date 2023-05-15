@@ -436,6 +436,7 @@ var _ = Describe("bmac reconcile", func() {
 						ID:                      "1",
 						InstallationEligibility: v1beta1.HostInstallationEligibility{Eligible: true},
 						Path:                    "/dev/sda",
+						ByPath:                  "/dev/disk/by-path/pci-0000:03:00.0-scsi-0:2:0:0",
 						DriveType:               string(models.DriveTypeSSD),
 						Bootable:                true,
 						SizeBytes:               int64(120) * 1000 * 1000 * 1000,
@@ -444,6 +445,7 @@ var _ = Describe("bmac reconcile", func() {
 						ID:                      "2",
 						InstallationEligibility: v1beta1.HostInstallationEligibility{Eligible: true},
 						Path:                    "/dev/sdb",
+						ByPath:                  "/dev/disk/by-path/pci-0000:03:00.0-scsi-0:2:1:0",
 						DriveType:               string(models.DriveTypeSSD),
 						Bootable:                true,
 					},
@@ -677,6 +679,23 @@ var _ = Describe("bmac reconcile", func() {
 				Expect(updatedAgent.Spec.InstallationDiskID).To(Equal("1"))
 			})
 
+			It("should set the InstallationDiskID if the by-path RootDeviceHints were provided and match", func() {
+				updatedHost := &bmh_v1alpha1.BareMetalHost{}
+				err := c.Get(ctx, types.NamespacedName{Name: host.Name, Namespace: testNamespace}, updatedHost)
+				Expect(err).To(BeNil())
+				updatedHost.Spec.RootDeviceHints.DeviceName = "/dev/disk/by-path/pci-0000:03:00.0-scsi-0:2:0:0"
+				updatedHost.Spec.RootDeviceHints.MinSizeGigabytes = 110
+				Expect(c.Update(ctx, updatedHost)).To(BeNil())
+
+				result, err := bmhr.Reconcile(ctx, newBMHRequest(host))
+				Expect(err).To(BeNil())
+				Expect(result).To(Equal(ctrl.Result{}))
+
+				updatedAgent := &v1beta1.Agent{}
+				err = c.Get(ctx, types.NamespacedName{Name: agent.Name, Namespace: agent.Namespace}, updatedAgent)
+				Expect(err).To(BeNil())
+				Expect(updatedAgent.Spec.InstallationDiskID).To(Equal("1"))
+			})
 			It("should not touch InstallationDiskID if the RootDeviceHints were not provided", func() {
 				updatedHost := &bmh_v1alpha1.BareMetalHost{}
 				err := c.Get(ctx, types.NamespacedName{Name: host.Name, Namespace: testNamespace}, updatedHost)
