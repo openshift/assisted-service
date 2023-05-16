@@ -386,7 +386,6 @@ func handleIngressVipUpdateBackwardsCompatibility(cluster *common.Cluster, param
 	if cluster.IngressVip != "" {
 		// IngressVip was cleared and IngressVips were not provided, clear both fields.
 		if swag.StringValue(params.IngressVip) == "" && len(params.IngressVips) == 0 {
-			params.IngressVip = nil
 			params.IngressVips = nil
 		}
 		// IngressVip was changed (but not cleared), IngressVips will be forcefully set to the value of IngressVips as a one-element list.
@@ -404,7 +403,6 @@ func handleApiVipUpdateBackwardsCompatibility(cluster *common.Cluster, params *m
 	if cluster.APIVip != "" {
 		// APIVip was cleared and APIVips were not provided, clear both fields.
 		if swag.StringValue(params.APIVip) == "" && len(params.APIVips) == 0 {
-			params.APIVip = nil
 			params.APIVips = nil
 		}
 		// APIVip was changed (but not cleared), APIVips will be forcefully set to the value of APIVip as a one-element list.

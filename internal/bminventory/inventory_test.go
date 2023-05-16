@@ -3394,6 +3394,88 @@ var _ = Describe("cluster", func() {
 
 				})
 
+				It("Test VIP cleanup via singular APIVip and IngressVip", func() {
+					mockDetectAndStoreCollidingIPsForCluster(mockClusterApi, 2)
+					mockClusterApi.EXPECT().VerifyClusterUpdatability(createClusterIdMatcher(cluster)).Return(nil).Times(2)
+					mockClusterApi.EXPECT().SetConnectivityMajorityGroupsForCluster(gomock.Any(), gomock.Any()).Return(nil).Times(2)
+					mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).Times(2)
+					mockHostApi.EXPECT().RefreshInventory(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(6)
+					mockHostApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(6)
+					mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any()).Return(nil).Times(6)
+
+					apiVip := "1.2.3.100"
+					ingressVip := "1.2.3.101"
+					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
+						ClusterID: clusterID,
+						ClusterUpdateParams: &models.V2ClusterUpdateParams{
+							APIVip:     swag.String(apiVip),
+							IngressVip: swag.String(ingressVip),
+						},
+					})
+					Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2UpdateClusterCreated()))
+					cluster = &common.Cluster{Cluster: *reply.(*installer.V2UpdateClusterCreated).Payload}
+					Expect(cluster.APIVip).To(Equal(apiVip))
+					Expect(network.GetApiVipById(cluster, 0)).To(Equal(apiVip))
+					Expect(cluster.IngressVip).To(Equal(ingressVip))
+					Expect(network.GetIngressVipById(cluster, 0)).To(Equal(ingressVip))
+
+					reply = bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
+						ClusterID: clusterID,
+						ClusterUpdateParams: &models.V2ClusterUpdateParams{
+							APIVip:     swag.String(""),
+							IngressVip: swag.String(""),
+						},
+					})
+					Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2UpdateClusterCreated()))
+					cluster = &common.Cluster{Cluster: *reply.(*installer.V2UpdateClusterCreated).Payload}
+					Expect(cluster.APIVip).To(Equal(""))
+					Expect(len(cluster.APIVips)).To(BeZero())
+					Expect(cluster.IngressVip).To(Equal(""))
+					Expect(len(cluster.IngressVips)).To(BeZero())
+				})
+
+				It("Test VIP cleanup via both singular and plural VIP values", func() {
+					mockDetectAndStoreCollidingIPsForCluster(mockClusterApi, 2)
+					mockClusterApi.EXPECT().VerifyClusterUpdatability(createClusterIdMatcher(cluster)).Return(nil).Times(2)
+					mockClusterApi.EXPECT().SetConnectivityMajorityGroupsForCluster(gomock.Any(), gomock.Any()).Return(nil).Times(2)
+					mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).Times(2)
+					mockHostApi.EXPECT().RefreshInventory(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(6)
+					mockHostApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(6)
+					mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any()).Return(nil).Times(6)
+
+					apiVip := "1.2.3.100"
+					ingressVip := "1.2.3.101"
+					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
+						ClusterID: clusterID,
+						ClusterUpdateParams: &models.V2ClusterUpdateParams{
+							APIVip:     swag.String(apiVip),
+							IngressVip: swag.String(ingressVip),
+						},
+					})
+					Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2UpdateClusterCreated()))
+					cluster = &common.Cluster{Cluster: *reply.(*installer.V2UpdateClusterCreated).Payload}
+					Expect(cluster.APIVip).To(Equal(apiVip))
+					Expect(network.GetApiVipById(cluster, 0)).To(Equal(apiVip))
+					Expect(cluster.IngressVip).To(Equal(ingressVip))
+					Expect(network.GetIngressVipById(cluster, 0)).To(Equal(ingressVip))
+
+					reply = bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
+						ClusterID: clusterID,
+						ClusterUpdateParams: &models.V2ClusterUpdateParams{
+							APIVip:      swag.String(""),
+							IngressVip:  swag.String(""),
+							APIVips:     nil,
+							IngressVips: nil,
+						},
+					})
+					Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2UpdateClusterCreated()))
+					cluster = &common.Cluster{Cluster: *reply.(*installer.V2UpdateClusterCreated).Payload}
+					Expect(cluster.APIVip).To(Equal(""))
+					Expect(len(cluster.APIVips)).To(BeZero())
+					Expect(cluster.IngressVip).To(Equal(""))
+					Expect(len(cluster.IngressVips)).To(BeZero())
+				})
+
 				It("Two APIVips and Two ingressVips - both IPv4 - negative", func() {
 					apiVip := "1.2.3.100"
 					ingressVip := "1.2.3.101"

@@ -200,6 +200,13 @@ var _ = Describe("Operators endpoint tests", func() {
 		registerNewCluster := func(openshiftVersion string, highAvailabilityMode string, operators []*models.OperatorCreateParams, cpuArchitecture *string) *installer.V2RegisterClusterCreated {
 			var err error
 			var cluster *installer.V2RegisterClusterCreated
+			clusterCIDR := "10.128.0.0/14"
+			serviceCIDR := "172.30.0.0/16"
+
+			vipDhcpAllocation := swag.Bool(true)
+			if highAvailabilityMode == models.ClusterHighAvailabilityModeNone {
+				vipDhcpAllocation = swag.Bool(false)
+			}
 
 			cluster, err = user2BMClient.Installer.V2RegisterCluster(ctx, &installer.V2RegisterClusterParams{
 				NewClusterParams: &models.ClusterCreateParams{
@@ -209,6 +216,12 @@ var _ = Describe("Operators endpoint tests", func() {
 					PullSecret:           swag.String(fmt.Sprintf(psTemplate, FakePS2)),
 					CPUArchitecture:      swag.StringValue(cpuArchitecture),
 					OlmOperators:         operators,
+					BaseDNSDomain:        "example.com",
+					ClusterNetworks:      []*models.ClusterNetwork{{Cidr: models.Subnet(clusterCIDR), HostPrefix: 23}},
+					ServiceNetworks:      []*models.ServiceNetwork{{Cidr: models.Subnet(serviceCIDR)}},
+					SSHPublicKey:         sshPublicKey,
+					VipDhcpAllocation:    vipDhcpAllocation,
+					NetworkType:          swag.String(models.ClusterNetworkTypeOVNKubernetes),
 				},
 			})
 
