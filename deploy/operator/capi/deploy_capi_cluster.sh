@@ -135,8 +135,8 @@ hypershift create cluster agent --name $ASSISTED_CLUSTER_NAME --base-domain redh
  --release-image ${ASSISTED_OPENSHIFT_INSTALL_RELEASE_IMAGE:-${RELEASE_IMAGE}} \
   $PROVIDER_FLAG_FOR_CREATE_COMMAND
 
-# Wait for a running hypershift cluster with no worker nodes
-wait_for_pods "$SPOKE_NAMESPACE-$ASSISTED_CLUSTER_NAME"
+# Wait for a hypershift hostedcontrolplane to report ready status
+wait_for_boolean_field "hostedcontrolplane/${ASSISTED_CLUSTER_NAME}" status.ready "${SPOKE_NAMESPACE}-${ASSISTED_CLUSTER_NAME}"
 wait_for_condition "nodepool/$ASSISTED_CLUSTER_NAME" "Ready" "10m" "$SPOKE_NAMESPACE"
 wait_for_condition "hostedcluster/$ASSISTED_CLUSTER_NAME" "Available" "10m" "$SPOKE_NAMESPACE"
 
