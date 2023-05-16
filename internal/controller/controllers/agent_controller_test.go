@@ -3811,21 +3811,29 @@ var _ = Describe("handleAgentFinalizer", func() {
 		Expect(err).To(BeNil())
 	})
 
-	Context("agent is being deleted", func() {
-		BeforeEach(func() {
-			now := metav1.Now()
-			agent.ObjectMeta.DeletionTimestamp = &now
-			agent.ObjectMeta.Finalizers = []string{AgentFinalizerName}
-		})
+	It("returns an empty result if the finalizer is not set and the agent is being deleted", func() {
+		now := metav1.Now()
+		agent.ObjectMeta.DeletionTimestamp = &now
+		res, err := r.handleAgentFinalizer(ctx, common.GetTestLog(), agent)
+		Expect(err).To(BeNil())
+		Expect(res).NotTo(BeNil())
+	})
 
-		It("returns an empty result if the finalizer is not set", func() {
-			agent.ObjectMeta.Finalizers = nil
-			res, err := r.handleAgentFinalizer(ctx, common.GetTestLog(), agent)
-			Expect(err).To(BeNil())
-			Expect(res).NotTo(BeNil())
-		})
+	Context("agent is being deleted with the finalizer set", func() {
+		var (
+			fakeSpokeClient spoke_k8s_client.SpokeK8sClient
+		)
 
-		It("deregisters the host and removes the finalizer", func() {
+		expectAgentFinalizerRemoved := func() {
+			mockClient.EXPECT().Update(ctx, gomock.AssignableToTypeOf(&v1beta1.Agent{})).DoAndReturn(
+				func(_ context.Context, updatedAgent *v1beta1.Agent, _ ...client.UpdateOption) error {
+					Expect(updatedAgent.GetFinalizers()).NotTo(ContainElement(AgentFinalizerName))
+					return nil
+				},
+			)
+		}
+
+		expectHostRemoved := func() {
 			hostID := strfmt.UUID(uuid.New().String())
 			infraEnvID := strfmt.UUID(uuid.New().String())
 			host := &common.Host{
@@ -3838,264 +3846,227 @@ var _ = Describe("handleAgentFinalizer", func() {
 			mockInstallerInternal.EXPECT().GetHostByKubeKey(key).Return(host, nil)
 			params := installer.V2DeregisterHostParams{InfraEnvID: infraEnvID, HostID: hostID}
 			mockInstallerInternal.EXPECT().V2DeregisterHostInternal(ctx, params, bminventory.NonInteractive).Return(nil)
-			mockClient.EXPECT().Update(ctx, gomock.AssignableToTypeOf(&v1beta1.Agent{})).DoAndReturn(
-				func(_ context.Context, updatedAgent *v1beta1.Agent, _ ...client.UpdateOption) error {
-					Expect(updatedAgent.GetFinalizers()).NotTo(ContainElement(AgentFinalizerName))
+		}
+
+		mockSpokeClient := func() {
+			cdKey := types.NamespacedName{Name: agent.Spec.ClusterDeploymentName.Name, Namespace: testNamespace}
+			mockClient.EXPECT().Get(ctx, cdKey, gomock.AssignableToTypeOf(&hivev1.ClusterDeployment{})).DoAndReturn(
+				func(_ context.Context, key client.ObjectKey, cd *hivev1.ClusterDeployment, _ ...client.GetOption) error {
+					cd.Spec.ClusterMetadata = &hivev1.ClusterMetadata{
+						AdminKubeconfigSecretRef: corev1.LocalObjectReference{Name: "clusterKubeConfig"},
+					}
 					return nil
 				},
-			)
+			).AnyTimes()
+
+			secretKey := types.NamespacedName{Name: "clusterKubeConfig", Namespace: testNamespace}
+			mockClient.EXPECT().Get(ctx, secretKey, gomock.AssignableToTypeOf(&corev1.Secret{})).DoAndReturn(
+				func(_ context.Context, key client.ObjectKey, secret *corev1.Secret, _ ...client.GetOption) error {
+					secret.ObjectMeta.Labels = map[string]string{
+						BackupLabel:        "true",
+						WatchResourceLabel: "true",
+					}
+					secret.Data = map[string][]byte{"kubeconfig": []byte("definitely_a_kubeconfig")}
+					return nil
+				},
+			).AnyTimes()
+
+			mockClientFactory.EXPECT().CreateFromSecret(gomock.AssignableToTypeOf(&corev1.Secret{})).DoAndReturn(
+				func(secret *corev1.Secret) (spoke_k8s_client.SpokeK8sClient, error) {
+					Expect(secret.Data["kubeconfig"]).To(Equal([]byte("definitely_a_kubeconfig")))
+					return fakeSpokeClient, nil
+				},
+			).AnyTimes()
+		}
+
+		BeforeEach(func() {
+			now := metav1.Now()
+			agent.ObjectMeta.DeletionTimestamp = &now
+			agent.ObjectMeta.Finalizers = []string{AgentFinalizerName}
+			schemes := GetKubeClientSchemes()
+			fakeClient := fakeclient.NewClientBuilder().WithScheme(schemes).Build()
+			fakeSpokeClient = fakeSpokeK8sClient{Client: fakeClient}
+			mockSpokeClient()
+			expectHostRemoved()
+			expectAgentFinalizerRemoved()
+		})
+
+		It("doesn't fail when the agent is not bound", func() {
+			agent.Spec.ClusterDeploymentName = nil
+
 			res, err := r.handleAgentFinalizer(ctx, common.GetTestLog(), agent)
 			Expect(err).To(BeNil())
 			Expect(res).NotTo(BeNil())
 		})
 
-		Context("with the cleanup annotation", func() {
-			var (
-				fakeSpokeClient spoke_k8s_client.SpokeK8sClient
-			)
-			expectAgentFinalizerRemoved := func() {
-				mockClient.EXPECT().Update(ctx, gomock.AssignableToTypeOf(&v1beta1.Agent{})).DoAndReturn(
-					func(_ context.Context, updatedAgent *v1beta1.Agent, _ ...client.UpdateOption) error {
-						Expect(updatedAgent.GetFinalizers()).NotTo(ContainElement(AgentFinalizerName))
-						return nil
-					},
-				)
+		It("removes a node with no machine", func() {
+			node := &corev1.Node{ObjectMeta: metav1.ObjectMeta{Name: agentHostname}}
+			Expect(fakeSpokeClient.Create(ctx, node)).To(Succeed())
+
+			res, err := r.handleAgentFinalizer(ctx, common.GetTestLog(), agent)
+			Expect(err).To(BeNil())
+			Expect(res).NotTo(BeNil())
+
+			err = fakeSpokeClient.Get(ctx, client.ObjectKey{Name: agentHostname}, &corev1.Node{})
+			Expect(k8serrors.IsNotFound(err)).To(BeTrue())
+		})
+
+		It("removes a node with an invalid machine annotation", func() {
+			node := &corev1.Node{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:        agentHostname,
+					Annotations: map[string]string{"machine.openshift.io/machine": "namewithoutaslash"},
+				},
 			}
+			Expect(fakeSpokeClient.Create(ctx, node)).To(Succeed())
 
-			expectHostRemoved := func() {
-				hostID := strfmt.UUID(uuid.New().String())
-				infraEnvID := strfmt.UUID(uuid.New().String())
-				host := &common.Host{
-					Host: models.Host{
-						ID:         &hostID,
-						InfraEnvID: infraEnvID,
-					},
-				}
-				key := types.NamespacedName{Namespace: agent.Namespace, Name: agent.Name}
-				mockInstallerInternal.EXPECT().GetHostByKubeKey(key).Return(host, nil)
-				params := installer.V2DeregisterHostParams{InfraEnvID: infraEnvID, HostID: hostID}
-				mockInstallerInternal.EXPECT().V2DeregisterHostInternal(ctx, params, bminventory.NonInteractive).Return(nil)
+			res, err := r.handleAgentFinalizer(ctx, common.GetTestLog(), agent)
+			Expect(err).To(BeNil())
+			Expect(res).NotTo(BeNil())
+
+			err = fakeSpokeClient.Get(ctx, client.ObjectKey{Name: agentHostname}, &corev1.Node{})
+			Expect(k8serrors.IsNotFound(err)).To(BeTrue())
+		})
+
+		It("removes a node referencing a missing machine", func() {
+			node := &corev1.Node{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:        agentHostname,
+					Annotations: map[string]string{"machine.openshift.io/machine": "openshift-machine-api/machine0"},
+				},
 			}
+			Expect(fakeSpokeClient.Create(ctx, node)).To(Succeed())
 
-			mockSpokeClient := func() {
-				cdKey := types.NamespacedName{Name: agent.Spec.ClusterDeploymentName.Name, Namespace: testNamespace}
-				mockClient.EXPECT().Get(ctx, cdKey, gomock.AssignableToTypeOf(&hivev1.ClusterDeployment{})).DoAndReturn(
-					func(_ context.Context, key client.ObjectKey, cd *hivev1.ClusterDeployment, _ ...client.GetOption) error {
-						cd.Spec.ClusterMetadata = &hivev1.ClusterMetadata{
-							AdminKubeconfigSecretRef: corev1.LocalObjectReference{Name: "clusterKubeConfig"},
-						}
-						return nil
-					},
-				).AnyTimes()
+			res, err := r.handleAgentFinalizer(ctx, common.GetTestLog(), agent)
+			Expect(err).To(BeNil())
+			Expect(res).NotTo(BeNil())
 
-				secretKey := types.NamespacedName{Name: "clusterKubeConfig", Namespace: testNamespace}
-				mockClient.EXPECT().Get(ctx, secretKey, gomock.AssignableToTypeOf(&corev1.Secret{})).DoAndReturn(
-					func(_ context.Context, key client.ObjectKey, secret *corev1.Secret, _ ...client.GetOption) error {
-						secret.ObjectMeta.Labels = map[string]string{
-							BackupLabel:        "true",
-							WatchResourceLabel: "true",
-						}
-						secret.Data = map[string][]byte{"kubeconfig": []byte("definitely_a_kubeconfig")}
-						return nil
-					},
-				).AnyTimes()
+			err = fakeSpokeClient.Get(ctx, client.ObjectKey{Name: agentHostname}, &corev1.Node{})
+			Expect(k8serrors.IsNotFound(err)).To(BeTrue())
+		})
 
-				mockClientFactory.EXPECT().CreateFromSecret(gomock.AssignableToTypeOf(&corev1.Secret{})).DoAndReturn(
-					func(secret *corev1.Secret) (spoke_k8s_client.SpokeK8sClient, error) {
-						Expect(secret.Data["kubeconfig"]).To(Equal([]byte("definitely_a_kubeconfig")))
-						return fakeSpokeClient, nil
-					},
-				).AnyTimes()
+		It("removes a machine without a machineset label", func() {
+			machineNSName := client.ObjectKey{
+				Name:      "machine0",
+				Namespace: "openshift-machine-api",
 			}
+			node := &corev1.Node{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:        agentHostname,
+					Annotations: map[string]string{"machine.openshift.io/machine": machineNSName.String()},
+				},
+			}
+			Expect(fakeSpokeClient.Create(ctx, node)).To(Succeed())
 
-			BeforeEach(func() {
-				agent.ObjectMeta.Annotations = map[string]string{AgentSpokeCleanupAnnotation: "true"}
-
-				schemes := GetKubeClientSchemes()
-				fakeClient := fakeclient.NewClientBuilder().WithScheme(schemes).Build()
-				fakeSpokeClient = fakeSpokeK8sClient{Client: fakeClient}
-				mockSpokeClient()
-				expectHostRemoved()
-				expectAgentFinalizerRemoved()
-			})
-
-			It("doesn't fail when the agent is not bound", func() {
-				agent.Spec.ClusterDeploymentName = nil
-
-				res, err := r.handleAgentFinalizer(ctx, common.GetTestLog(), agent)
-				Expect(err).To(BeNil())
-				Expect(res).NotTo(BeNil())
-			})
-
-			It("removes a node with no machine", func() {
-				node := &corev1.Node{ObjectMeta: metav1.ObjectMeta{Name: agentHostname}}
-				Expect(fakeSpokeClient.Create(ctx, node)).To(Succeed())
-
-				res, err := r.handleAgentFinalizer(ctx, common.GetTestLog(), agent)
-				Expect(err).To(BeNil())
-				Expect(res).NotTo(BeNil())
-
-				err = fakeSpokeClient.Get(ctx, client.ObjectKey{Name: agentHostname}, &corev1.Node{})
-				Expect(k8serrors.IsNotFound(err)).To(BeTrue())
-			})
-
-			It("removes a node with an invalid machine annotation", func() {
-				node := &corev1.Node{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:        agentHostname,
-						Annotations: map[string]string{"machine.openshift.io/machine": "namewithoutaslash"},
-					},
-				}
-				Expect(fakeSpokeClient.Create(ctx, node)).To(Succeed())
-
-				res, err := r.handleAgentFinalizer(ctx, common.GetTestLog(), agent)
-				Expect(err).To(BeNil())
-				Expect(res).NotTo(BeNil())
-
-				err = fakeSpokeClient.Get(ctx, client.ObjectKey{Name: agentHostname}, &corev1.Node{})
-				Expect(k8serrors.IsNotFound(err)).To(BeTrue())
-			})
-
-			It("removes a node referencing a missing machine", func() {
-				node := &corev1.Node{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:        agentHostname,
-						Annotations: map[string]string{"machine.openshift.io/machine": "openshift-machine-api/machine0"},
-					},
-				}
-				Expect(fakeSpokeClient.Create(ctx, node)).To(Succeed())
-
-				res, err := r.handleAgentFinalizer(ctx, common.GetTestLog(), agent)
-				Expect(err).To(BeNil())
-				Expect(res).NotTo(BeNil())
-
-				err = fakeSpokeClient.Get(ctx, client.ObjectKey{Name: agentHostname}, &corev1.Node{})
-				Expect(k8serrors.IsNotFound(err)).To(BeTrue())
-			})
-
-			It("removes a machine without a machineset label", func() {
-				machineNSName := client.ObjectKey{
-					Name:      "machine0",
-					Namespace: "openshift-machine-api",
-				}
-				node := &corev1.Node{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:        agentHostname,
-						Annotations: map[string]string{"machine.openshift.io/machine": machineNSName.String()},
-					},
-				}
-				Expect(fakeSpokeClient.Create(ctx, node)).To(Succeed())
-
-				machine := &machinev1beta1.Machine{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      machineNSName.Name,
-						Namespace: machineNSName.Namespace,
-					},
-				}
-				Expect(fakeSpokeClient.Create(ctx, machine)).To(Succeed())
-
-				res, err := r.handleAgentFinalizer(ctx, common.GetTestLog(), agent)
-				Expect(err).To(BeNil())
-				Expect(res).NotTo(BeNil())
-
-				err = fakeSpokeClient.Get(ctx, machineNSName, &machinev1beta1.Machine{})
-				Expect(k8serrors.IsNotFound(err)).To(BeTrue())
-			})
-
-			It("removes a machine referencing a missing machineset", func() {
-				machineNSName := client.ObjectKey{
-					Name:      "machine0",
-					Namespace: "openshift-machine-api",
-				}
-				node := &corev1.Node{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:        agentHostname,
-						Annotations: map[string]string{"machine.openshift.io/machine": machineNSName.String()},
-					},
-				}
-				Expect(fakeSpokeClient.Create(ctx, node)).To(Succeed())
-
-				machine := &machinev1beta1.Machine{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      machineNSName.Name,
-						Namespace: machineNSName.Namespace,
-						Labels:    map[string]string{"machine.openshift.io/cluster-api-machineset": "machineset0"},
-					},
-				}
-				Expect(fakeSpokeClient.Create(ctx, machine)).To(Succeed())
-
-				res, err := r.handleAgentFinalizer(ctx, common.GetTestLog(), agent)
-				Expect(err).To(BeNil())
-				Expect(res).NotTo(BeNil())
-
-				err = fakeSpokeClient.Get(ctx, machineNSName, &machinev1beta1.Machine{})
-				Expect(k8serrors.IsNotFound(err)).To(BeTrue())
-			})
-
-			It("annotates a machine and machineset for autoscaling and removes the BMH", func() {
-				bmhNSName := client.ObjectKey{
-					Name:      "host0",
-					Namespace: "openshift-machine-api",
-				}
-				bmh := &bmh_v1alpha1.BareMetalHost{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      bmhNSName.Name,
-						Namespace: bmhNSName.Namespace,
-					},
-				}
-				Expect(fakeSpokeClient.Create(ctx, bmh)).To(Succeed())
-
-				machineNSName := client.ObjectKey{
-					Name:      "machine0",
-					Namespace: "openshift-machine-api",
-				}
-				node := &corev1.Node{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:        agentHostname,
-						Annotations: map[string]string{"machine.openshift.io/machine": machineNSName.String()},
-					},
-				}
-				Expect(fakeSpokeClient.Create(ctx, node)).To(Succeed())
-
-				machineSetNSName := client.ObjectKey{
-					Name:      "machineset0",
+			machine := &machinev1beta1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      machineNSName.Name,
 					Namespace: machineNSName.Namespace,
-				}
-				machine := &machinev1beta1.Machine{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:        machineNSName.Name,
-						Namespace:   machineNSName.Namespace,
-						Labels:      map[string]string{"machine.openshift.io/cluster-api-machineset": machineSetNSName.Name},
-						Annotations: map[string]string{"metal3.io/BareMetalHost": bmhNSName.String()},
-					},
-				}
-				Expect(fakeSpokeClient.Create(ctx, machine)).To(Succeed())
+				},
+			}
+			Expect(fakeSpokeClient.Create(ctx, machine)).To(Succeed())
 
-				machineSet := &machinev1beta1.MachineSet{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      machineSetNSName.Name,
-						Namespace: machineSetNSName.Namespace,
-					},
-					Spec: machinev1beta1.MachineSetSpec{
-						Selector: metav1.LabelSelector{MatchLabels: machine.Labels},
-					},
-				}
-				Expect(fakeSpokeClient.Create(ctx, machineSet)).To(Succeed())
+			res, err := r.handleAgentFinalizer(ctx, common.GetTestLog(), agent)
+			Expect(err).To(BeNil())
+			Expect(res).NotTo(BeNil())
 
-				res, err := r.handleAgentFinalizer(ctx, common.GetTestLog(), agent)
-				Expect(err).To(BeNil())
-				Expect(res).NotTo(BeNil())
+			err = fakeSpokeClient.Get(ctx, machineNSName, &machinev1beta1.Machine{})
+			Expect(k8serrors.IsNotFound(err)).To(BeTrue())
+		})
 
-				Expect(fakeSpokeClient.Get(ctx, machineNSName, machine)).To(Succeed())
-				Expect(fakeSpokeClient.Get(ctx, machineSetNSName, machineSet)).To(Succeed())
+		It("removes a machine referencing a missing machineset", func() {
+			machineNSName := client.ObjectKey{
+				Name:      "machine0",
+				Namespace: "openshift-machine-api",
+			}
+			node := &corev1.Node{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:        agentHostname,
+					Annotations: map[string]string{"machine.openshift.io/machine": machineNSName.String()},
+				},
+			}
+			Expect(fakeSpokeClient.Create(ctx, node)).To(Succeed())
 
-				Expect(machine.Annotations).To(HaveKey("machine.openshift.io/delete-machine"))
-				Expect(machine.Annotations).To(HaveKey("machine.openshift.io/exclude-node-draining"))
-				Expect(machineSet.Annotations).To(HaveKey("metal3.io/autoscale-to-hosts"))
+			machine := &machinev1beta1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      machineNSName.Name,
+					Namespace: machineNSName.Namespace,
+					Labels:    map[string]string{"machine.openshift.io/cluster-api-machineset": "machineset0"},
+				},
+			}
+			Expect(fakeSpokeClient.Create(ctx, machine)).To(Succeed())
 
-				err = fakeSpokeClient.Get(ctx, bmhNSName, &bmh_v1alpha1.BareMetalHost{})
-				Expect(k8serrors.IsNotFound(err)).To(BeTrue())
-			})
+			res, err := r.handleAgentFinalizer(ctx, common.GetTestLog(), agent)
+			Expect(err).To(BeNil())
+			Expect(res).NotTo(BeNil())
+
+			err = fakeSpokeClient.Get(ctx, machineNSName, &machinev1beta1.Machine{})
+			Expect(k8serrors.IsNotFound(err)).To(BeTrue())
+		})
+
+		It("annotates a machine and machineset for autoscaling and removes the BMH", func() {
+			bmhNSName := client.ObjectKey{
+				Name:      "host0",
+				Namespace: "openshift-machine-api",
+			}
+			bmh := &bmh_v1alpha1.BareMetalHost{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      bmhNSName.Name,
+					Namespace: bmhNSName.Namespace,
+				},
+			}
+			Expect(fakeSpokeClient.Create(ctx, bmh)).To(Succeed())
+
+			machineNSName := client.ObjectKey{
+				Name:      "machine0",
+				Namespace: "openshift-machine-api",
+			}
+			node := &corev1.Node{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:        agentHostname,
+					Annotations: map[string]string{"machine.openshift.io/machine": machineNSName.String()},
+				},
+			}
+			Expect(fakeSpokeClient.Create(ctx, node)).To(Succeed())
+
+			machineSetNSName := client.ObjectKey{
+				Name:      "machineset0",
+				Namespace: machineNSName.Namespace,
+			}
+			machine := &machinev1beta1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:        machineNSName.Name,
+					Namespace:   machineNSName.Namespace,
+					Labels:      map[string]string{"machine.openshift.io/cluster-api-machineset": machineSetNSName.Name},
+					Annotations: map[string]string{"metal3.io/BareMetalHost": bmhNSName.String()},
+				},
+			}
+			Expect(fakeSpokeClient.Create(ctx, machine)).To(Succeed())
+
+			machineSet := &machinev1beta1.MachineSet{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      machineSetNSName.Name,
+					Namespace: machineSetNSName.Namespace,
+				},
+				Spec: machinev1beta1.MachineSetSpec{
+					Selector: metav1.LabelSelector{MatchLabels: machine.Labels},
+				},
+			}
+			Expect(fakeSpokeClient.Create(ctx, machineSet)).To(Succeed())
+
+			res, err := r.handleAgentFinalizer(ctx, common.GetTestLog(), agent)
+			Expect(err).To(BeNil())
+			Expect(res).NotTo(BeNil())
+
+			Expect(fakeSpokeClient.Get(ctx, machineNSName, machine)).To(Succeed())
+			Expect(fakeSpokeClient.Get(ctx, machineSetNSName, machineSet)).To(Succeed())
+
+			Expect(machine.Annotations).To(HaveKey("machine.openshift.io/delete-machine"))
+			Expect(machine.Annotations).To(HaveKey("machine.openshift.io/exclude-node-draining"))
+			Expect(machineSet.Annotations).To(HaveKey("metal3.io/autoscale-to-hosts"))
+
+			err = fakeSpokeClient.Get(ctx, bmhNSName, &bmh_v1alpha1.BareMetalHost{})
+			Expect(k8serrors.IsNotFound(err)).To(BeTrue())
 		})
 	})
 })

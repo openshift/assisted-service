@@ -2592,13 +2592,7 @@ var _ = Describe("handleBMHFinalizer", func() {
 						BeforeEach(func() {
 							bmh.Status.Provisioning.State = bmh_v1alpha1.StateDeleting
 						})
-						It("annotates and deletes the agent", func() {
-							mockClient.EXPECT().Update(ctx, gomock.AssignableToTypeOf(&v1beta1.Agent{})).DoAndReturn(
-								func(_ context.Context, updatedAgent *v1beta1.Agent, _ ...client.UpdateOption) error {
-									Expect(updatedAgent.GetAnnotations()).To(HaveKey(AgentSpokeCleanupAnnotation))
-									return nil
-								},
-							)
+						It("deletes the agent", func() {
 							mockClient.EXPECT().Delete(ctx, gomock.AssignableToTypeOf(&v1beta1.Agent{})).Return(nil)
 
 							res := bmhr.handleBMHFinalizer(ctx, bmhr.Log, bmh, agent)
@@ -2607,19 +2601,7 @@ var _ = Describe("handleBMHFinalizer", func() {
 							Expect(err).NotTo(HaveOccurred())
 						})
 
-						It("fails when annotating the agent fails", func() {
-							mockClient.EXPECT().Update(ctx, gomock.AssignableToTypeOf(&v1beta1.Agent{})).Return(fmt.Errorf("failed to update agent"))
-							_, err := bmhr.handleBMHFinalizer(ctx, bmhr.Log, bmh, agent).Result()
-							Expect(err).To(HaveOccurred())
-						})
-
 						It("fails when deleting the agent fails", func() {
-							mockClient.EXPECT().Update(ctx, gomock.AssignableToTypeOf(&v1beta1.Agent{})).DoAndReturn(
-								func(_ context.Context, updatedAgent *v1beta1.Agent, _ ...client.UpdateOption) error {
-									Expect(updatedAgent.GetAnnotations()).To(HaveKey(AgentSpokeCleanupAnnotation))
-									return nil
-								},
-							)
 							mockClient.EXPECT().Delete(ctx, gomock.AssignableToTypeOf(&v1beta1.Agent{})).Return(fmt.Errorf("agent delete failed"))
 							setAnnotation(&agent.ObjectMeta, BMH_FINALIZER_NAME, "true")
 							_, err := bmhr.handleBMHFinalizer(ctx, bmhr.Log, bmh, agent).Result()

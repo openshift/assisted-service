@@ -64,7 +64,7 @@ import (
 
 const (
 	AgentFinalizerName                   = "agent." + aiv1beta1.Group + "/ai-deprovision"
-	AgentSpokeCleanupAnnotation          = "agent." + aiv1beta1.Group + "/clean-spoke-on-delete"
+	AgentSkipSpokeCleanupAnnotation      = "agent." + aiv1beta1.Group + "/skip-spoke-cleanup"
 	BaseLabelPrefix                      = aiv1beta1.Group + "/"
 	InventoryLabelPrefix                 = "inventory." + BaseLabelPrefix
 	AgentLabelHasNonrotationalDisk       = InventoryLabelPrefix + "storage-hasnonrotationaldisk"
@@ -399,7 +399,7 @@ func (r *AgentReconciler) handleAgentFinalizer(ctx context.Context, log logrus.F
 		}
 	} else { // agent is being deleted
 		if funk.ContainsString(agent.GetFinalizers(), AgentFinalizerName) {
-			if _, has_annotation := agent.GetAnnotations()[AgentSpokeCleanupAnnotation]; has_annotation && agent.Spec.ClusterDeploymentName != nil {
+			if _, skipCleanup := agent.GetAnnotations()[AgentSkipSpokeCleanupAnnotation]; !skipCleanup && agent.Spec.ClusterDeploymentName != nil {
 				// only remove the spoke resources if the entire cluster isn't being deleted
 				clusterExists, err := r.clusterExists(ctx, agent)
 				if err != nil {

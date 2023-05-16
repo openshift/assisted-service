@@ -377,15 +377,6 @@ func (r *BMACReconciler) handleBMHFinalizer(ctx context.Context, log logrus.Fiel
 			log.Info("Waiting for BMH to deprovision")
 			return reconcileRequeue{requeueAfter: defaultRequeueAfterOnError}
 		}
-
-		// annotate the agent to inform the agent controller to remove the spoke resources
-		if _, ok := agent.GetAnnotations()[AgentSpokeCleanupAnnotation]; !ok {
-			setAnnotation(&agent.ObjectMeta, AgentSpokeCleanupAnnotation, "true")
-			if err := r.Update(ctx, agent); err != nil {
-				log.WithError(err).Errorf("failed to set %s annotation on agent", AgentSpokeCleanupAnnotation)
-				return reconcileError{err: err, dirty: dirty}
-			}
-		}
 	}
 
 	if err := r.Delete(ctx, agent); err != nil {
