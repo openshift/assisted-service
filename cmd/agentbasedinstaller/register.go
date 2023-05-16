@@ -66,7 +66,14 @@ func RegisterCluster(ctx context.Context, log *log.Logger, bmInventory *client.A
 	clusterParams := controllers.CreateClusterParams(&cd, &aci, pullSecret, releaseImageVersion, releaseImageCPUArch, nil)
 
 	if aci.Spec.Networking.NetworkType != "" {
-		clusterParams.NetworkType = &aci.Spec.Networking.NetworkType
+		if aci.Spec.Networking.NetworkType == "OpenshiftSDN" || aci.Spec.Networking.NetworkType == "OVNKubernetes" {
+			clusterParams.NetworkType = &aci.Spec.Networking.NetworkType
+		} else {
+			networkType := "OVNKubernetes"
+			clusterParams.NetworkType = &networkType
+			networkAnnotation := fmt.Sprintf("{\"networking\":{\"networkType\":\"%s\"}}", aci.Spec.Networking.NetworkType)
+			aci.ObjectMeta.SetAnnotations(map[string]string{"InstallConfigOverrides": networkAnnotation})
+		}
 	}
 
 	clientClusterParams := &installer.V2RegisterClusterParams{
