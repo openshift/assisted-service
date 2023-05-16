@@ -166,6 +166,6 @@ func InitProviderRegistry(log logrus.FieldLogger) ProviderRegistry {
 	providerRegistry.Register(baremetal.NewBaremetalProvider(log))
 	providerRegistry.Register(none.NewNoneProvider(log))
 	providerRegistry.Register(nutanix.NewNutanixProvider(log))
-	providerRegistry.Register(external.NewExternalProvider(log))
+	providerRegistry.Register(external.NewExternalProvider(log, models.PlatformTypeOci))
 	return providerRegistry
 }

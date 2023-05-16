@@ -5321,21 +5321,11 @@ definitions:
     properties:
       type:
         $ref: '#/definitions/platform_type'
-      external:
-        $ref: '#/definitions/platform_external'
-
-  platform_external:
-    type: object
-    x-go-custom-tag: gorm:"embedded;embeddedPrefix:platform_external_"
-    description: The configuration for the external platform type.
-    properties:
-      platform_name:
-        type: string
+      is_external:
+        type: boolean
+        default: false
         x-nullable: true
-        enum: ['Unknown', 'oci']
-        default: 'Unknown'
-        description: |-
-          Holds the infrastructure provider name.
+        description: Indicates if the underlying platform type is external (read-only).
 
   image_info:
     type: object
@@ -6136,7 +6126,7 @@ definitions:
       - nutanix
       - vsphere
       - none
-      - external
+      - oci
 
   memory_method:
     type: string

@@ -19,7 +19,7 @@ func isPlatformNone(platform *models.Platform) bool {
 }
 
 func isPlatformExternal(platform *models.Platform) bool {
-	return platform != nil && *platform.Type == models.PlatformTypeExternal
+	return platform != nil && *platform.Type == models.PlatformTypeOci
 }
 
 func isUMNAllowedForPlatform(platform *models.Platform) bool {
@@ -39,10 +39,10 @@ func isUMNMandatoryForPlatform(platform *models.Platform) bool {
 		return true
 	}
 
-	switch *platform.Type {
-	case models.PlatformTypeNone, models.PlatformTypeExternal:
+	if *platform.Type == models.PlatformTypeNone || isPlatformExternal(platform) {
 		return true
 	}
+
 	return false
 }
 
@@ -97,6 +97,22 @@ func doesPlatformAllowUMNOrNone(platform *models.Platform, cluster *common.Clust
 	return false
 }
 
+func createPlatformFromType(platformType models.PlatformType) *models.Platform {
+	platform := &models.Platform{
+		Type: &platformType,
+	}
+	return updatePlatform(platform)
+}
+
+func updatePlatform(platform *models.Platform) *models.Platform {
+	if platform == nil {
+		return nil
+	}
+	platform.IsExternal = swag.Bool(isPlatformExternal(platform))
+
+	return platform
+}
+
 func GetActualUpdateClusterPlatformParams(platform *models.Platform, userManagedNetworking *bool, cluster *common.Cluster) (*models.Platform, *bool, error) {
 	if platform == nil && userManagedNetworking == nil {
 		return nil, nil, nil
@@ -107,7 +123,7 @@ func GetActualUpdateClusterPlatformParams(platform *models.Platform, userManaged
 	}
 
 	if doesPlatformAllowUMNOrNone(platform, cluster) {
-		return platform, userManagedNetworking, nil
+		return updatePlatform(platform), userManagedNetworking, nil
 	}
 
 	if isClusterPlatformBM(cluster) {
@@ -116,8 +132,12 @@ func GetActualUpdateClusterPlatformParams(platform *models.Platform, userManaged
 			return nil, nil, nil
 		}
 
-		if (platform != nil && isPlatformNone(platform)) || (swag.BoolValue(userManagedNetworking) && platform == nil) {
-			return &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeNone)}, swag.Bool(true), nil
+		if platform == nil && swag.BoolValue(userManagedNetworking) {
+			return createPlatformFromType(models.PlatformTypeNone), swag.Bool(true), nil
+		}
+
+		if platform != nil && isUMNMandatoryForPlatform(platform) {
+			return updatePlatform(platform), swag.Bool(true), nil
 		}
 	} else if isUMNMandatoryForCluster(cluster) {
 		if (userManagedNetworking == nil || *userManagedNetworking) && isUMNMandatoryForPlatform(platform) {
@@ -138,7 +158,7 @@ func GetActualUpdateClusterPlatformParams(platform *models.Platform, userManaged
 					return nil, nil, common.NewApiError(http.StatusBadRequest, errors.New("disabling User Managed Networking or setting Bare-Metal platform is not allowed for clusters with non-x86_64 CPU architecture"))
 				}
 
-				return &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeBaremetal)}, swag.Bool(false), nil
+				return createPlatformFromType(models.PlatformTypeBaremetal), swag.Bool(false), nil
 			}
 		}
 	} else if !isUMNAllowedForCluster(cluster) {
@@ -147,7 +167,7 @@ func GetActualUpdateClusterPlatformParams(platform *models.Platform, userManaged
 		}
 	}
 
-	return platform, userManagedNetworking, nil
+	return updatePlatform(platform), userManagedNetworking, nil
 }
 
 func GetActualCreateClusterPlatformParams(platform *models.Platform, userManagedNetworking *bool, highAvailabilityMode *string, cpuArchitecture string) (*models.Platform, *bool, error) {
@@ -161,24 +181,24 @@ func GetActualCreateClusterPlatformParams(platform *models.Platform, userManaged
 		} else if platform != nil && !isPlatformNone(platform) {
 			return nil, nil, common.NewApiError(http.StatusBadRequest, errors.Errorf("Can't set %s platform on %s architecture", *platform.Type, cpuArchitecture))
 		}
-		return &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeNone)}, swag.Bool(true), nil
+		return createPlatformFromType(models.PlatformTypeNone), swag.Bool(true), nil
 	}
 
 	if platform != nil && !isPlatformBM(platform) && !isUMNMandatoryForPlatform(platform) {
-		return platform, userManagedNetworking, nil
+		return updatePlatform(platform), userManagedNetworking, nil
 	}
 
 	if *highAvailabilityMode == models.ClusterHighAvailabilityModeFull {
 		if (platform == nil || isPlatformBM(platform)) && !swag.BoolValue(userManagedNetworking) {
-			return &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeBaremetal)}, swag.Bool(false), nil
+			return createPlatformFromType(models.PlatformTypeBaremetal), swag.Bool(false), nil
 		}
 
 		if swag.BoolValue(userManagedNetworking) || platform == nil || isUMNMandatoryForPlatform(platform) {
 			if platform == nil {
 				// default to None platform
-				return &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeNone)}, swag.Bool(true), nil
+				return createPlatformFromType(models.PlatformTypeNone), swag.Bool(true), nil
 			} else {
-				return platform, swag.Bool(true), nil
+				return updatePlatform(platform), swag.Bool(true), nil
 			}
 		}
 	} else { // *highAvailabilityMode == models.ClusterHighAvailabilityModeNone
@@ -191,10 +211,10 @@ func GetActualCreateClusterPlatformParams(platform *models.Platform, userManaged
 		}
 
 		if isPlatformNone(platform) || isPlatformExternal(platform) {
-			return platform, swag.Bool(true), nil
+			return updatePlatform(platform), swag.Bool(true), nil
 		}
 
-		return &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeNone)}, swag.Bool(true), nil
+		return createPlatformFromType(models.PlatformTypeNone), swag.Bool(true), nil
 	}
 
 	return nil, nil, common.NewApiError(http.StatusBadRequest, errors.Errorf("Got invalid platform (%s) and/or user-managed-networking (%v)", *platform.Type, userManagedNetworking))

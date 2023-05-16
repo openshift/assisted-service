@@ -30,7 +30,6 @@ const (
 		  cloudControllerManager:
 			state: External
 	`
-	defaultPlatformName = "Unknown"
 )
 
 func (p externalProvider) PreCreateManifestsHook(cluster *common.Cluster, envVars *[]string, workDir string) error {
@@ -40,10 +39,7 @@ func (p externalProvider) PreCreateManifestsHook(cluster *common.Cluster, envVar
 func (p externalProvider) PostCreateManifestsHook(cluster *common.Cluster, envVars *[]string, workDir string) error {
 	p.Log.Info("Patching infrastructure object")
 
-	platformName := defaultPlatformName
-	if cluster.Platform.External != nil && cluster.Platform.External.PlatformName != nil {
-		platformName = *cluster.Platform.External.PlatformName
-	}
+	platformName := string(p.platformType)
 	clusterInfraPatch := fmt.Sprintf(clusterInfraPatchTemplate, platformName)
 
 	clusterInfraPatchPath := filepath.Join(workDir, "manifests", "cluster-infrastructure-02-config.yml.patch_01_configure_external_platform")

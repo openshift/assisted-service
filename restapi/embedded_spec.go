@@ -9394,31 +9394,17 @@ func init() {
         "type"
       ],
       "properties": {
-        "external": {
-          "$ref": "#/definitions/platform_external"
+        "is_external": {
+          "description": "Indicates if the underlying platform type is external (read-only).",
+          "type": "boolean",
+          "default": false,
+          "x-nullable": true
         },
         "type": {
           "$ref": "#/definitions/platform_type"
         }
       },
       "x-go-custom-tag": "gorm:\"embedded;embeddedPrefix:platform_\""
-    },
-    "platform_external": {
-      "description": "The configuration for the external platform type.",
-      "type": "object",
-      "properties": {
-        "platform_name": {
-          "description": "Holds the infrastructure provider name.",
-          "type": "string",
-          "default": "Unknown",
-          "enum": [
-            "Unknown",
-            "oci"
-          ],
-          "x-nullable": true
-        }
-      },
-      "x-go-custom-tag": "gorm:\"embedded;embeddedPrefix:platform_external_\""
     },
     "platform_type": {
       "type": "string",
@@ -9427,7 +9413,7 @@ func init() {
         "nutanix",
         "vsphere",
         "none",
-        "external"
+        "oci"
       ]
     },
     "preflight-hardware-requirements": {
@@ -19705,31 +19691,17 @@ func init() {
         "type"
       ],
       "properties": {
-        "external": {
-          "$ref": "#/definitions/platform_external"
+        "is_external": {
+          "description": "Indicates if the underlying platform type is external (read-only).",
+          "type": "boolean",
+          "default": false,
+          "x-nullable": true
         },
         "type": {
           "$ref": "#/definitions/platform_type"
         }
       },
       "x-go-custom-tag": "gorm:\"embedded;embeddedPrefix:platform_\""
-    },
-    "platform_external": {
-      "description": "The configuration for the external platform type.",
-      "type": "object",
-      "properties": {
-        "platform_name": {
-          "description": "Holds the infrastructure provider name.",
-          "type": "string",
-          "default": "Unknown",
-          "enum": [
-            "Unknown",
-            "oci"
-          ],
-          "x-nullable": true
-        }
-      },
-      "x-go-custom-tag": "gorm:\"embedded;embeddedPrefix:platform_external_\""
     },
     "platform_type": {
       "type": "string",
@@ -19738,7 +19710,7 @@ func init() {
         "nutanix",
         "vsphere",
         "none",
-        "external"
+        "oci"
       ]
     },
     "preflight-hardware-requirements": {

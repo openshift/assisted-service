@@ -86,7 +86,7 @@ var _ = Describe("Test GetSupportedProvidersByHosts", func() {
 		platforms, err := providerRegistry.GetSupportedProvidersByHosts(hosts)
 		Expect(err).To(BeNil())
 		Expect(len(platforms)).Should(Equal(3))
-		Expect(platforms).Should(ContainElements(models.PlatformTypeBaremetal, models.PlatformTypeNone, models.PlatformTypeExternal))
+		Expect(platforms).Should(ContainElements(models.PlatformTypeBaremetal, models.PlatformTypeNone, models.PlatformTypeOci))
 	})
 	It("single vsphere host", func() {
 		hosts := make([]*models.Host, 0)
@@ -94,7 +94,7 @@ var _ = Describe("Test GetSupportedProvidersByHosts", func() {
 		platforms, err := providerRegistry.GetSupportedProvidersByHosts(hosts)
 		Expect(err).To(BeNil())
 		Expect(len(platforms)).Should(Equal(4))
-		supportedPlatforms := []models.PlatformType{models.PlatformTypeBaremetal, models.PlatformTypeVsphere, models.PlatformTypeNone, models.PlatformTypeExternal}
+		supportedPlatforms := []models.PlatformType{models.PlatformTypeBaremetal, models.PlatformTypeVsphere, models.PlatformTypeNone, models.PlatformTypeOci}
 		Expect(platforms).Should(ContainElements(supportedPlatforms))
 	})
 	It("5 vsphere hosts - 3 masters, 2 workers", func() {
@@ -107,7 +107,7 @@ var _ = Describe("Test GetSupportedProvidersByHosts", func() {
 		platforms, err := providerRegistry.GetSupportedProvidersByHosts(hosts)
 		Expect(err).To(BeNil())
 		Expect(len(platforms)).Should(Equal(4))
-		supportedPlatforms := []models.PlatformType{models.PlatformTypeBaremetal, models.PlatformTypeVsphere, models.PlatformTypeNone, models.PlatformTypeExternal}
+		supportedPlatforms := []models.PlatformType{models.PlatformTypeBaremetal, models.PlatformTypeVsphere, models.PlatformTypeNone, models.PlatformTypeOci}
 		Expect(platforms).Should(ContainElements(supportedPlatforms))
 	})
 	It("2 vsphere hosts 1 generic host", func() {
@@ -118,7 +118,7 @@ var _ = Describe("Test GetSupportedProvidersByHosts", func() {
 		platforms, err := providerRegistry.GetSupportedProvidersByHosts(hosts)
 		Expect(err).To(BeNil())
 		Expect(len(platforms)).Should(Equal(3))
-		Expect(platforms).Should(ContainElements(models.PlatformTypeBaremetal, models.PlatformTypeNone, models.PlatformTypeExternal))
+		Expect(platforms).Should(ContainElements(models.PlatformTypeBaremetal, models.PlatformTypeNone, models.PlatformTypeOci))
 	})
 	It("3 vsphere masters 2 generic workers", func() {
 		hosts := make([]*models.Host, 0)
@@ -130,7 +130,7 @@ var _ = Describe("Test GetSupportedProvidersByHosts", func() {
 		platforms, err := providerRegistry.GetSupportedProvidersByHosts(hosts)
 		Expect(err).To(BeNil())
 		Expect(len(platforms)).Should(Equal(3))
-		Expect(platforms).Should(ContainElements(models.PlatformTypeBaremetal, models.PlatformTypeNone, models.PlatformTypeExternal))
+		Expect(platforms).Should(ContainElements(models.PlatformTypeBaremetal, models.PlatformTypeNone, models.PlatformTypeOci))
 	})
 	It("host with an invalid inventory", func() {
 		hosts := make([]*models.Host, 0)
@@ -442,10 +442,10 @@ var _ = Describe("Test SetPlatformUsages", func() {
 			Expect(err).To(BeNil())
 		})
 	})
-	Context("external", func() {
+	Context("oci", func() {
 		It("success", func() {
 			usageApi.EXPECT().Add(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
-			err := providerRegistry.SetPlatformUsages(models.PlatformTypeExternal, nil, usageApi)
+			err := providerRegistry.SetPlatformUsages(models.PlatformTypeOci, nil, usageApi)
 			Expect(err).To(BeNil())
 		})
 	})

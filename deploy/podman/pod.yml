@@ -27,7 +27,7 @@ spec:
     envFrom:
     - configMapRef:
         name: config
-  - image: quay.io/edge-infrastructure/assisted-service:latest
+  - image: localhost/toto:titi
     name: service
     ports:
     - hostPort: 8090

@@ -2535,6 +2535,7 @@ func (b *bareMetalInventory) updateNetworkTables(db *gorm.DB, cluster *common.Cl
 func (b *bareMetalInventory) updatePlatformParams(params installer.V2UpdateClusterParams, updates map[string]interface{}, usages map[string]models.Usage) error {
 	if params.ClusterUpdateParams.Platform != nil && common.PlatformTypeValue(params.ClusterUpdateParams.Platform.Type) != "" {
 		updates["platform_type"] = params.ClusterUpdateParams.Platform.Type
+		updates["platform_is_external"] = swag.BoolValue(params.ClusterUpdateParams.Platform.IsExternal)
 
 		err := b.providerRegistry.SetPlatformUsages(
 			common.PlatformTypeValue(params.ClusterUpdateParams.Platform.Type), usages, b.usageApi)
