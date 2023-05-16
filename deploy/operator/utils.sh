@@ -133,6 +133,25 @@ function wait_for_boolean_field() {
     return 1
 }
 
+function wait_for_resource() {
+    object="$1"
+    namespace="$2"
+    interval="${4:-10}"
+    set +e
+    for i in {1..50}; do
+        date --rfc-3339=seconds
+        value=$(oc get -n ${namespace} ${object} --no-headers | wc -l)
+        if [ "${value}" -ne 0 ]; then
+            return 0
+        fi
+        sleep ${interval}
+    done
+    set -e
+
+    echo "The object ${object} under namespace ${namespace} not found!"
+    return 1
+}
+
 function get_image_without_tag() {
     # given "<registry>/<repository>/<project>:<tag>" or
     #       "<registry>/<repository>/<project>@sha256:<sha>" or
