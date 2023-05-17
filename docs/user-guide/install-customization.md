@@ -8,6 +8,8 @@ These will only take effect after the machine config operator is up and running 
 
 ### Create a cluster manifest
 
+Note: In environments where TLS is enabled (e.g. _api.openshift.com_), you will need to use the `https` scheme in URLs.
+
 ```sh
 # base64 encoding of the example from https://docs.openshift.com/container-platform/4.6/installing/install_config/installing-customizing.html
 content=YXBpVmVyc2lvbjogbWFjaGluZWNvbmZpZ3VyYXRpb24ub3BlbnNoaWZ0LmlvL3YxCmtpbmQ6IE1hY2hpbmVDb25maWcKbWV0YWRhdGE6CiAgbGFiZWxzOgogICAgbWFjaGluZWNvbmZpZ3VyYXRpb24ub3BlbnNoaWZ0LmlvL3JvbGU6IG1hc3RlcgogIG5hbWU6IDk5LW9wZW5zaGlmdC1tYWNoaW5lY29uZmlnLW1hc3Rlci1rYXJncwpzcGVjOgogIGtlcm5lbEFyZ3VtZW50czoKICAgIC0gJ2xvZ2xldmVsPTcnCg==
@@ -25,9 +27,10 @@ curl \
 ### View a manifest’s contents
 
 ```sh
-file=openshift/99-openshift-machineconfig-master-kargs.yaml
+file=99-openshift-machineconfig-master-kargs.yaml
+folder=openshift
 
-curl --header "Authorization: Bearer $TOKEN" "http://$ASSISTED_SERVICE_IP:$ASSISTED_SERVICE_PORT/api/assisted-install/v2/clusters/$CLUSTER_ID/manifests/files?file_name=$file"
+curl --header "Authorization: Bearer $TOKEN" "http://$ASSISTED_SERVICE_IP:$ASSISTED_SERVICE_PORT/api/assisted-install/v2/clusters/$CLUSTER_ID/manifests/files?file_name=$file&folder=$folder"
 ```
 
 ### Manifests use cases
@@ -48,7 +51,7 @@ kind: MachineConfig
 metadata:
   labels:
     machineconfiguration.openshift.io/role: master
-  name: 10_masters_storage_config
+  name: 10-masters-storage-config
 spec:
   config:
     ignition:
