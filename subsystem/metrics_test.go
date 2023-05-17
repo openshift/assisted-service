@@ -1008,9 +1008,10 @@ var _ = Describe("Metrics tests", func() {
 			assertClusterValidationEvent(ctx, clusterID, models.ClusterValidationIDSufficientMastersCount, true)
 
 			// check generated metrics
-			Expect(getValidationMetricCounter(string(models.ClusterValidationIDSufficientMastersCount), clusterValidationChangedMetric)).To(Equal(oldChangedMetricCounter + 1))
+			// Check for ranged increment +1 or +2. There can be a race between the cluster monitor and the api for deregister host
+			Expect(getValidationMetricCounter(string(models.ClusterValidationIDSufficientMastersCount), clusterValidationChangedMetric)).To(BeElementOf([]int{oldChangedMetricCounter + 1, oldChangedMetricCounter + 2}))
 			metricsDeregisterCluster(ctx, clusterID)
-			Expect(getValidationMetricCounter(string(models.ClusterValidationIDSufficientMastersCount), clusterValidationFailedMetric)).To(Equal(oldFailedMetricCounter + 1))
+			Expect(getValidationMetricCounter(string(models.ClusterValidationIDSufficientMastersCount), clusterValidationFailedMetric)).To(BeElementOf([]int{oldFailedMetricCounter + 1, oldFailedMetricCounter + 2}))
 		})
 
 		It("'sufficient-masters-count' got fixed", func() {
