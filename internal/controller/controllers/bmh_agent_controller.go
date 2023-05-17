@@ -354,21 +354,25 @@ func (r *BMACReconciler) handleBMHFinalizer(ctx context.Context, log logrus.Fiel
 		return reconcileComplete{stop: true, dirty: true}
 	}
 
-	dirty, res := r.handleDrain(ctx, log, agent, bmh)
-	if res.Stop(ctx) {
-		return res
-	}
+	dirty := false
+	if agent.Spec.ClusterDeploymentName != nil {
+		var res reconcileResult
+		dirty, res = r.handleDrain(ctx, log, agent, bmh)
+		if res.Stop(ctx) {
+			return res
+		}
 
-	if updated := r.configureBMHForCleaning(ctx, log, bmh); updated {
-		return reconcileComplete{stop: true, dirty: true}
-	}
+		if updated := r.configureBMHForCleaning(ctx, log, bmh); updated {
+			return reconcileComplete{stop: true, dirty: true}
+		}
 
-	// annotate the agent to inform the agent controller to remove the spoke node when the BMH finishes deprovisioning
-	if _, ok := agent.GetAnnotations()[BMH_FINALIZER_NAME]; !ok {
-		setAnnotation(&agent.ObjectMeta, BMH_FINALIZER_NAME, "true")
-		if err := r.Update(ctx, agent); err != nil {
-			log.WithError(err).Errorf("failed to set %s annotation on agent", BMH_FINALIZER_NAME)
-			return reconcileError{err: err, dirty: dirty}
+		// annotate the agent to inform the agent controller to remove the spoke node when the BMH finishes deprovisioning
+		if _, ok := agent.GetAnnotations()[BMH_FINALIZER_NAME]; !ok {
+			setAnnotation(&agent.ObjectMeta, BMH_FINALIZER_NAME, "true")
+			if err := r.Update(ctx, agent); err != nil {
+				log.WithError(err).Errorf("failed to set %s annotation on agent", BMH_FINALIZER_NAME)
+				return reconcileError{err: err, dirty: dirty}
+			}
 		}
 	}
 
