@@ -546,6 +546,11 @@ func generateCommonDomainReply(ctx context.Context, h *models.Host, clusterName,
 			IPV4Addresses: []strfmt.IPv4{},
 			IPV6Addresses: []strfmt.IPv6{},
 		},
+		{
+			DomainName:    fqdn(constants.DNSWildcardFalseDomainName, clusterName, baseDomain+"."),
+			IPV4Addresses: []strfmt.IPv4{},
+			IPV6Addresses: []strfmt.IPv6{},
+		},
 	}
 	var domainResolutionResponse = models.DomainResolutionResponse{
 		Resolutions: domainResolutions,
