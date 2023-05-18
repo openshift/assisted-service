@@ -1849,11 +1849,35 @@ var _ = Describe("handleBMHFinalizer", func() {
 			bmh.DeletionTimestamp = &now
 		})
 
-		It("removes the finalizer", func() {
+		It("removes the finalizer and detached", func() {
+			args := &bmh_v1alpha1.DetachedAnnotationArguments{
+				DeleteAction: bmh_v1alpha1.DetachedDeleteActionDelay,
+			}
+			data, err := json.Marshal(args)
+			Expect(err).To(BeNil())
+			setAnnotation(&bmh.ObjectMeta, BMH_DETACHED_ANNOTATION, string(data))
+
 			res := bmhr.handleBMHFinalizer(ctx, bmhr.Log, bmh, nil)
 			Expect(res.Dirty()).To(BeTrue())
 			Expect(bmh.GetFinalizers()).NotTo(ContainElement(BMH_FINALIZER_NAME))
-			_, err := res.Result()
+			Expect(bmh.GetAnnotations()).NotTo(HaveKey(BMH_DETACHED_ANNOTATION))
+			_, err = res.Result()
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		It("removes detached if the finalizer is already gone", func() {
+			args := &bmh_v1alpha1.DetachedAnnotationArguments{
+				DeleteAction: bmh_v1alpha1.DetachedDeleteActionDelay,
+			}
+			data, err := json.Marshal(args)
+			Expect(err).To(BeNil())
+			setAnnotation(&bmh.ObjectMeta, BMH_DETACHED_ANNOTATION, string(data))
+			bmh.ObjectMeta.Finalizers = nil
+
+			res := bmhr.handleBMHFinalizer(ctx, bmhr.Log, bmh, nil)
+			Expect(res.Dirty()).To(BeTrue())
+			Expect(bmh.GetAnnotations()).NotTo(HaveKey(BMH_DETACHED_ANNOTATION))
+			_, err = res.Result()
 			Expect(err).NotTo(HaveOccurred())
 		})
 
