@@ -472,6 +472,25 @@ func ValidateClusterCreateIPAddresses(ipV6Supported bool, clusterId strfmt.UUID,
 	return validateVIPAddresses(ipV6Supported, targetConfiguration)
 }
 
+func validateVIPsWithUMA(cluster *common.Cluster, vipDhcpAllocation bool) error {
+	var (
+		apiVip      string
+		ingressVip  string
+		apiVips     []*models.APIVip
+		ingressVips []*models.IngressVip
+	)
+
+	if !swag.BoolValue(cluster.VipDhcpAllocation) {
+		apiVip = cluster.APIVip
+		ingressVip = cluster.IngressVip
+		apiVips = cluster.APIVips
+		ingressVips = cluster.IngressVips
+	}
+	return ValidateVIPsWereNotSetUserManagedNetworking(
+		apiVip, ingressVip, apiVips, ingressVips, vipDhcpAllocation,
+	)
+}
+
 func ValidateClusterUpdateVIPAddresses(ipV6Supported bool, cluster *common.Cluster, params *models.V2ClusterUpdateParams) error {
 	var err error
 	targetConfiguration := common.Cluster{}
@@ -503,35 +522,32 @@ func ValidateClusterUpdateVIPAddresses(ipV6Supported bool, cluster *common.Clust
 		return common.NewApiError(http.StatusBadRequest, err)
 	}
 
-	targetConfiguration.UserManagedNetworking = swag.Bool(false)
-	if params.UserManagedNetworking != nil {
-		if swag.BoolValue(params.UserManagedNetworking) {
-			err = ValidateVIPsWereNotSetUserManagedNetworking(cluster.APIVip, cluster.IngressVip,
-				cluster.APIVips, cluster.IngressVips, swag.BoolValue(cluster.VipDhcpAllocation))
-			if err != nil {
-				// reformat error to match order of actions
-				errParts := strings.Split(err.Error(), " cannot be set with ")
-				err = errors.Errorf("%s cannot be set with %s", errParts[1], errParts[0])
-				return common.NewApiError(http.StatusBadRequest, err)
-			}
+	if swag.BoolValue(params.UserManagedNetworking) {
+		vipDhcpAllocation := swag.BoolValue(cluster.VipDhcpAllocation)
+		if params.VipDhcpAllocation != nil { // VipDhcpAllocation from update params should take precedence
+			vipDhcpAllocation = swag.BoolValue(params.VipDhcpAllocation)
 		}
-		targetConfiguration.UserManagedNetworking = params.UserManagedNetworking
-	}
-	targetConfiguration.VipDhcpAllocation = swag.Bool(false)
-	if params.VipDhcpAllocation != nil {
-		targetConfiguration.VipDhcpAllocation = params.VipDhcpAllocation
+
+		if err = validateVIPsWithUMA(cluster, vipDhcpAllocation); err != nil {
+			// reformat error to match order of actions
+			errParts := strings.Split(err.Error(), " cannot be set with ")
+			err = errors.Errorf("%s cannot be set with %s", errParts[1], errParts[0])
+			return common.NewApiError(http.StatusBadRequest, err)
+		}
+
+		if swag.BoolValue(cluster.VipDhcpAllocation) { // override VIPs that were allocated via DHCP
+			params.APIVip = swag.String("")
+			params.IngressVip = swag.String("")
+			params.APIVips = []*models.APIVip{}
+			params.IngressVips = []*models.IngressVip{}
+		}
 	}
 
 	targetConfiguration.ID = cluster.ID
-	if params.APIVip != nil {
-		targetConfiguration.APIVip = *params.APIVip
-	}
-
-	if params.IngressVip != nil {
-		targetConfiguration.IngressVip = *params.IngressVip
-	}
-
+	targetConfiguration.VipDhcpAllocation = params.VipDhcpAllocation
+	targetConfiguration.APIVip = swag.StringValue(params.APIVip)
 	targetConfiguration.APIVips = params.APIVips
+	targetConfiguration.IngressVip = swag.StringValue(params.IngressVip)
 	targetConfiguration.IngressVips = params.IngressVips
 	targetConfiguration.UserManagedNetworking = params.UserManagedNetworking
 	targetConfiguration.VipDhcpAllocation = params.VipDhcpAllocation

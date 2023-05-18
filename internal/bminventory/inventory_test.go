@@ -4188,6 +4188,113 @@ var _ = Describe("cluster", func() {
 					verifyApiErrorString(reply, http.StatusBadRequest, "User Managed Networking cannot be set with API VIP")
 				})
 
+				It("Update both UserManagedNetworking and VipDhcpAllocation at the same update", func() {
+					mockClusterUpdatability(4)
+					mockDetectAndStoreCollidingIPsForCluster(mockClusterApi, 4)
+					mockHostApi.EXPECT().RefreshInventory(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+					mockHostApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+					mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+					mockClusterApi.EXPECT().SetConnectivityMajorityGroupsForCluster(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+					mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).AnyTimes()
+					mockProviderRegistry.EXPECT().SetPlatformUsages(models.PlatformTypeNone, gomock.Any(), mockUsage)
+
+					By("Set User Managed Networking: false")
+					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
+						ClusterID: clusterID,
+						ClusterUpdateParams: &models.V2ClusterUpdateParams{
+							UserManagedNetworking: swag.Bool(false),
+						},
+					})
+					Expect(reply).To(BeAssignableToTypeOf(installer.NewV2UpdateClusterCreated()))
+
+					By("Set API VIP and Ingress VIP")
+					reply = bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
+						ClusterID: clusterID,
+						ClusterUpdateParams: &models.V2ClusterUpdateParams{
+							APIVip:     swag.String("10.11.12.15"),
+							IngressVip: swag.String("10.11.12.16"),
+						},
+					})
+					Expect(reply).To(BeAssignableToTypeOf(installer.NewV2UpdateClusterCreated()))
+
+					By("set UserManagedNetworking: false, and VipDhcpAllocation: true")
+					reply = bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
+						ClusterID: clusterID,
+						ClusterUpdateParams: &models.V2ClusterUpdateParams{
+							UserManagedNetworking: swag.Bool(false),
+							VipDhcpAllocation:     swag.Bool(true),
+						},
+					})
+					Expect(reply).To(BeAssignableToTypeOf(installer.NewV2UpdateClusterCreated()))
+
+					By("set UserManagedNetworking: true, and VipDhcpAllocation: false")
+					reply = bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
+						ClusterID: clusterID,
+						ClusterUpdateParams: &models.V2ClusterUpdateParams{
+							UserManagedNetworking: swag.Bool(true),
+							VipDhcpAllocation:     swag.Bool(false),
+						},
+					})
+					Expect(reply).To(BeAssignableToTypeOf(installer.NewV2UpdateClusterCreated()))
+				})
+
+				It("Test that DHCP VIPs were cleared when switching to UserManagedNetworking: true", func() {
+					mockClusterUpdatability(2)
+					mockDetectAndStoreCollidingIPsForCluster(mockClusterApi, 2)
+					mockHostApi.EXPECT().RefreshInventory(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+					mockHostApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+					mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+					mockClusterApi.EXPECT().SetConnectivityMajorityGroupsForCluster(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+					mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).AnyTimes()
+					mockProviderRegistry.EXPECT().SetPlatformUsages(models.PlatformTypeNone, gomock.Any(), mockUsage)
+
+					apiVip := "10.11.12.15"
+					ingressVip := "10.11.12.16"
+
+					By("Set User Managed Networking: false and VipDhcpAllocation: true")
+					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
+						ClusterID: clusterID,
+						ClusterUpdateParams: &models.V2ClusterUpdateParams{
+							UserManagedNetworking: swag.Bool(false),
+							VipDhcpAllocation:     swag.Bool(true),
+						},
+					})
+					Expect(reply).To(BeAssignableToTypeOf(installer.NewV2UpdateClusterCreated()))
+
+					By("Update VIPS in DB cluster to mimic DHCP allocation")
+					cluster, err := common.GetClusterFromDB(db, clusterID, common.SkipEagerLoading)
+					Expect(err).ToNot(HaveOccurred())
+					cluster.APIVip = apiVip
+					cluster.APIVips = []*models.APIVip{{IP: models.IP(apiVip)}}
+					cluster.IngressVip = ingressVip
+					cluster.IngressVips = []*models.IngressVip{{IP: models.IP(ingressVip)}}
+					db.Save(&cluster)
+
+					By("Verify VIPs updates")
+					replay := bm.V2GetCluster(ctx, installer.V2GetClusterParams{ClusterID: clusterID}).(*installer.V2GetClusterOK)
+					Expect(replay.Payload.APIVip).Should(Equal(apiVip))
+					Expect(len(replay.Payload.APIVips)).Should(Equal(1))
+					Expect(replay.Payload.IngressVip).Should(Equal(ingressVip))
+					Expect(len(replay.Payload.IngressVips)).Should(Equal(1))
+
+					By("Set User Managed Networking: true and VipDhcpAllocation: false")
+					reply = bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
+						ClusterID: clusterID,
+						ClusterUpdateParams: &models.V2ClusterUpdateParams{
+							UserManagedNetworking: swag.Bool(true),
+							VipDhcpAllocation:     swag.Bool(false),
+						},
+					})
+					Expect(reply).To(BeAssignableToTypeOf(installer.NewV2UpdateClusterCreated()))
+
+					By("Verify that DHCP VIPs were cleared")
+					replay = bm.V2GetCluster(ctx, installer.V2GetClusterParams{ClusterID: clusterID}).(*installer.V2GetClusterOK)
+					Expect(replay.Payload.APIVip).Should(Equal(""))
+					Expect(len(replay.Payload.APIVips)).Should(BeZero())
+					Expect(replay.Payload.IngressVip).Should(Equal(""))
+					Expect(len(replay.Payload.IngressVips)).Should(BeZero())
+				})
+
 				It("success", func() {
 					mockClusterUpdatability(1)
 					mockSuccess(1)
@@ -4237,7 +4344,7 @@ var _ = Describe("cluster", func() {
 						},
 					})
 
-					verifyApiErrorString(reply, http.StatusBadRequest, "VIP DHCP Allocation cannot be set with User Managed Networking")
+					verifyApiErrorString(reply, http.StatusBadRequest, "User Managed Networking cannot be set with VIP DHCP Allocation")
 				})
 
 				It("Fail with DHCP when UserManagedNetworking was set", func() {
