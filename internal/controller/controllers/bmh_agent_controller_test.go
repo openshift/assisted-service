@@ -1895,6 +1895,16 @@ var _ = Describe("handleBMHFinalizer", func() {
 				Expect(err).NotTo(HaveOccurred())
 			}
 
+			It("deletes an unbound agent and removes the finalizer", func() {
+				agent.Spec.ClusterDeploymentName = nil
+				mockClient.EXPECT().Delete(ctx, gomock.AssignableToTypeOf(&v1beta1.Agent{})).Return(nil)
+
+				res := bmhr.handleBMHFinalizer(ctx, bmhr.Log, bmh, agent)
+				Expect(bmh.GetFinalizers()).NotTo(ContainElement(BMH_FINALIZER_NAME))
+				_, err := res.Result()
+				Expect(err).NotTo(HaveOccurred())
+			})
+
 			It("drains the node", func() {
 				setupSpokeClient()
 				node := &corev1.Node{
