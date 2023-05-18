@@ -610,7 +610,7 @@ aEA8gNEmV+rb7h1v0r3EwDQYJKoZIhvcNAQELBQAwYTELMAkGA1UEBhMCaXMxCzAJBgNVBAgMAmRk
 		err = yaml.Unmarshal(data, &result)
 		Expect(err).ShouldNot(HaveOccurred())
 		// test that overrides worked
-		Expect(string(result.CPUPartitioning)).Should(Equal("AllNodes"))
+		Expect(string(result.CPUPartitioningMode)).Should(Equal("AllNodes"))
 	})
 
 	Context("networking", func() {
