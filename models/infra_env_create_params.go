@@ -28,6 +28,7 @@ type InfraEnvCreateParams struct {
 	// infra-env will trust the certificates in this bundle. Clusters formed
 	// from the hosts discovered by this infra-env will also trust the
 	// certificates in this bundle.
+	// Max Length: 65535
 	AdditionalTrustBundle string `json:"additional_trust_bundle,omitempty"`
 
 	// If set, all hosts that register will be associated with the specified cluster.
@@ -72,6 +73,10 @@ type InfraEnvCreateParams struct {
 func (m *InfraEnvCreateParams) Validate(formats strfmt.Registry) error {
 	var res []error
 
+	if err := m.validateAdditionalTrustBundle(formats); err != nil {
+		res = append(res, err)
+	}
+
 	if err := m.validateClusterID(formats); err != nil {
 		res = append(res, err)
 	}
@@ -107,6 +112,18 @@ func (m *InfraEnvCreateParams) Validate(formats strfmt.Registry) error {
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}
+	return nil
+}
+
+func (m *InfraEnvCreateParams) validateAdditionalTrustBundle(formats strfmt.Registry) error {
+	if swag.IsZero(m.AdditionalTrustBundle) { // not required
+		return nil
+	}
+
+	if err := validate.MaxLength("additional_trust_bundle", "body", m.AdditionalTrustBundle, 65535); err != nil {
+		return err
+	}
+
 	return nil
 }
 
