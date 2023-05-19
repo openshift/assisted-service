@@ -142,7 +142,11 @@ func GetActualUpdateClusterPlatformParams(platform *models.Platform, userManaged
 	} else if isUMNMandatoryForCluster(cluster) {
 		if (userManagedNetworking == nil || *userManagedNetworking) && isUMNMandatoryForPlatform(platform) {
 			// userManagedNetworking is already set to true, nothing to do
-			return nil, nil, nil
+			if platform == nil || *cluster.Platform.Type == *platform.Type {
+				return nil, nil, nil
+			} else {
+				return createPlatformFromType(*platform.Type), nil, nil
+			}
 		}
 
 		if *cluster.HighAvailabilityMode == models.ClusterHighAvailabilityModeNone {

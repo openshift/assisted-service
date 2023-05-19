@@ -9395,10 +9395,11 @@ func init() {
       ],
       "properties": {
         "is_external": {
-          "description": "Indicates if the underlying platform type is external (read-only).",
+          "description": "Indicates if the underlying platform type is external.",
           "type": "boolean",
           "default": false,
-          "x-nullable": true
+          "x-nullable": true,
+          "readOnly": true
         },
         "type": {
           "$ref": "#/definitions/platform_type"
@@ -19692,10 +19693,11 @@ func init() {
       ],
       "properties": {
         "is_external": {
-          "description": "Indicates if the underlying platform type is external (read-only).",
+          "description": "Indicates if the underlying platform type is external.",
           "type": "boolean",
           "default": false,
-          "x-nullable": true
+          "x-nullable": true,
+          "readOnly": true
         },
         "type": {
           "$ref": "#/definitions/platform_type"
