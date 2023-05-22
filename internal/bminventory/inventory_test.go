@@ -7806,6 +7806,16 @@ var _ = Describe("infraEnvs", func() {
 			err = reply.(*common.ApiErrorResponse)
 			Expect(err.Error()).To(ContainSubstring("over the maximum allowable size"))
 		})
+
+		It("Invalid additional trust bundle - too long", func() {
+			bytes := make([]byte, 65536)
+			longString := string(bytes)
+			params := &models.InfraEnvCreateParams{
+				AdditionalTrustBundle: longString,
+			}
+			err := params.Validate(nil)
+			Expect(err.Error()).To(ContainSubstring("should be at most 65535 chars long"))
+		})
 	})
 
 	Context("Create InfraEnv - with rhsso auth", func() {
@@ -8243,6 +8253,15 @@ var _ = Describe("infraEnvs", func() {
 				i, err = bm.GetInfraEnvInternal(ctx, installer.GetInfraEnvParams{InfraEnvID: *i.ID})
 				Expect(err).ToNot(HaveOccurred())
 				Expect(i.AdditionalTrustBundle).To(Equal(""))
+			})
+			It("Update additional trust bundle - too long", func() {
+				bytes := make([]byte, 65536)
+				longString := string(bytes)
+				params := &models.InfraEnvUpdateParams{
+					AdditionalTrustBundle: swag.String(longString),
+				}
+				err := params.Validate(nil)
+				Expect(err.Error()).To(ContainSubstring("should be at most 65535 chars long"))
 			})
 			It("updates proxy when http and https are the same", func() {
 				var err error

@@ -8386,6 +8386,7 @@ func init() {
         "additional_trust_bundle": {
           "description": "PEM-encoded X.509 certificate bundle. Hosts discovered by this\ninfra-env will trust the certificates in this bundle. Clusters formed\nfrom the hosts discovered by this infra-env will also trust the\ncertificates in this bundle.",
           "type": "string",
+          "maxLength": 65535,
           "x-nullable": false
         },
         "cluster_id": {
@@ -8462,6 +8463,7 @@ func init() {
         "additional_trust_bundle": {
           "description": "Allows users to change the additional_trust_bundle infra-env field",
           "type": "string",
+          "maxLength": 65535,
           "x-nullable": true
         },
         "ignition_config_override": {
@@ -18687,6 +18689,7 @@ func init() {
         "additional_trust_bundle": {
           "description": "PEM-encoded X.509 certificate bundle. Hosts discovered by this\ninfra-env will trust the certificates in this bundle. Clusters formed\nfrom the hosts discovered by this infra-env will also trust the\ncertificates in this bundle.",
           "type": "string",
+          "maxLength": 65535,
           "x-nullable": false
         },
         "cluster_id": {
@@ -18763,6 +18766,7 @@ func init() {
         "additional_trust_bundle": {
           "description": "Allows users to change the additional_trust_bundle infra-env field",
           "type": "string",
+          "maxLength": 65535,
           "x-nullable": true
         },
         "ignition_config_override": {

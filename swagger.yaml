@@ -7055,6 +7055,7 @@ definitions:
       additional_trust_bundle:
         type: string
         x-nullable: false
+        maxLength: 65535
         description: |-
           PEM-encoded X.509 certificate bundle. Hosts discovered by this
           infra-env will trust the certificates in this bundle. Clusters formed
@@ -7091,6 +7092,7 @@ definitions:
         type: string
         description: Allows users to change the additional_trust_bundle infra-env field
         x-nullable: true
+        maxLength: 65535
 
   ip:
     type: string
