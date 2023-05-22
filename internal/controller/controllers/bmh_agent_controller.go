@@ -341,15 +341,17 @@ func (r *BMACReconciler) handleBMHFinalizer(ctx context.Context, log logrus.Fiel
 		return reconcileComplete{}
 	}
 
-	// BMH is being deleted and finalizer is gone, just return
+	// BMH is being deleted and finalizer is gone, ensure detached is gone and return
 	if !bmhHasFinalizer {
-		return reconcileComplete{stop: true}
+		dirty := removeBMHDetachedAnnotation(log, bmh)
+		return reconcileComplete{stop: true, dirty: dirty}
 	}
 
 	log.Info("Handling BMH delete")
 	// agent could be nil here if it wasn't created yet, or if we deleted it, then failed to remove the finalizer for some reason
 	// if the agent is missing, just allow the BMH to be removed
 	if agent == nil {
+		removeBMHDetachedAnnotation(log, bmh)
 		controllerutil.RemoveFinalizer(bmh, BMH_FINALIZER_NAME)
 		return reconcileComplete{stop: true, dirty: true}
 	}
@@ -362,7 +364,7 @@ func (r *BMACReconciler) handleBMHFinalizer(ctx context.Context, log logrus.Fiel
 			return res
 		}
 
-		if updated := r.configureBMHForCleaning(ctx, log, bmh); updated {
+		if updated := configureBMHForCleaning(ctx, log, bmh); updated {
 			return reconcileComplete{stop: true, dirty: true}
 		}
 
@@ -1604,12 +1606,18 @@ func (r *BMACReconciler) getClusterDeploymentAndCheckIfInstalled(ctx context.Con
 	return clusterDeployment, true, err
 }
 
-func (r *BMACReconciler) configureBMHForCleaning(ctx context.Context, log logrus.FieldLogger, bmh *bmh_v1alpha1.BareMetalHost) (dirty bool) {
+func removeBMHDetachedAnnotation(log logrus.FieldLogger, bmh *bmh_v1alpha1.BareMetalHost) (dirty bool) {
 	if _, ok := bmh.GetAnnotations()[BMH_DETACHED_ANNOTATION]; ok {
 		log.Info("removing BMH detached annotation")
 		delete(bmh.Annotations, BMH_DETACHED_ANNOTATION)
 		dirty = true
 	}
+	return
+}
+
+func configureBMHForCleaning(ctx context.Context, log logrus.FieldLogger, bmh *bmh_v1alpha1.BareMetalHost) (dirty bool) {
+	dirty = removeBMHDetachedAnnotation(log, bmh)
+
 	if bmh.Spec.AutomatedCleaningMode != bmh_v1alpha1.CleaningModeMetadata {
 		log.Infof("setting BMH cleaning mode to %s", bmh_v1alpha1.CleaningModeMetadata)
 		bmh.Spec.AutomatedCleaningMode = bmh_v1alpha1.CleaningModeMetadata
