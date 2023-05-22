@@ -1,11 +1,5 @@
 [
     {
-        "openshift_version": "4.8",
-        "cpu_architecture": "x86_64",
-        "url": "https://mirror.openshift.com/pub/openshift-v4/x86_64/dependencies/rhcos/4.8/4.8.14/rhcos-4.8.14-x86_64-live.x86_64.iso",
-        "version": "48.84.202109241901-0"
-    },
-    {
         "openshift_version": "4.9",
         "cpu_architecture": "x86_64",
         "url": "https://mirror.openshift.com/pub/openshift-v4/x86_64/dependencies/rhcos/4.9/4.9.45/rhcos-4.9.45-x86_64-live.x86_64.iso",

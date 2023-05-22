@@ -8,7 +8,7 @@ spec:
   clusterDeploymentRef:
     name: test-cluster
   imageSetRef:
-    name: openshift-v4.8.0
+    name: openshift-v4.9.0
   ingressVIP: 1.2.3.9
   platformType: BareMetal
   networking:

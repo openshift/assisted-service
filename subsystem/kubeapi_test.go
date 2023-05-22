@@ -64,13 +64,11 @@ const (
 	clusterAgentClusterInstallNamePrefix = "test-agent-cluster-install"
 	doneStateInfo                        = "Done"
 	clusterInstallStateInfo              = "Cluster is installed"
-	clusterImageSetName                  = "openshift-v4.8.0"
+	clusterImageSetName                  = "openshift-v4.9.0"
 )
 
 var (
 	imageSetsData = map[string]string{
-		"openshift-v4.7.0":        "quay.io/openshift-release-dev/ocp-release:4.7.2-x86_64",
-		"openshift-v4.8.0":        "quay.io/openshift-release-dev/ocp-release:4.8.0-fc.0-x86_64",
 		"openshift-v4.9.0":        "quay.io/openshift-release-dev/ocp-release:4.9.11-x86_64",
 		"openshift-v4.10.0":       "quay.io/openshift-release-dev/ocp-release:4.10.6-x86_64",
 		"openshift-v4.10.0-arm":   "quay.io/openshift-release-dev/ocp-release:4.10.6-aarch64",
@@ -2741,19 +2739,6 @@ var _ = Describe("[kube-api]cluster installation", func() {
 				c.HTTPSProxy == httpsProxy &&
 				c.NoProxy == noProxy
 		}, "1m", "10s").Should(BeTrue())
-	})
-
-	It("fail to deploy clusterDeployment with NoProxy wildcard - OpenshiftVersion does not support NoProxy wildcard", func() {
-		deployClusterDeploymentCRD(ctx, kubeClient, clusterDeploymentSpec)
-		installkey := types.NamespacedName{
-			Namespace: Options.Namespace,
-			Name:      clusterDeploymentSpec.ClusterInstallRef.Name,
-		}
-
-		By("new deployment with NoProxy")
-		aciSpec.Proxy = &hiveext.Proxy{HTTPProxy: "", HTTPSProxy: "", NoProxy: "*"}
-		deployAgentClusterInstallCRD(ctx, kubeClient, aciSpec, clusterDeploymentSpec.ClusterInstallRef.Name)
-		checkAgentClusterInstallCondition(ctx, installkey, hiveext.ClusterSpecSyncedCondition, hiveext.ClusterInputErrorReason)
 	})
 
 	It("deploy clusterDeployment with NoProxy wildcard - OpenshiftVersion does support NoProxy wildcard", func() {

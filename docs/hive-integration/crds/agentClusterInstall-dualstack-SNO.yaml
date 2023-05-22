@@ -7,7 +7,7 @@ spec:
   clusterDeploymentRef:
     name: single-node
   imageSetRef:
-    name: openshift-v4.8.0
+    name: openshift-v4.9.0
   networking:
     clusterNetwork:
     - cidr: 10.128.0.0/14
