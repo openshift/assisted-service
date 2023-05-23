@@ -2573,6 +2573,35 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		checkInfraEnvCondition(ctx, infraEnvKubeName, v1beta1.ImageCreatedCondition, v1beta1.ImageStateFailedToCreate+": error parsing ignition: config is not valid")
 	})
 
+	It("deploy clusterDeployment with schedulable masters", func() {
+		deployClusterDeploymentCRD(ctx, kubeClient, clusterDeploymentSpec)
+		clusterKubeName := types.NamespacedName{
+			Namespace: Options.Namespace,
+			Name:      clusterDeploymentSpec.ClusterName,
+		}
+		installkey := types.NamespacedName{
+			Namespace: Options.Namespace,
+			Name:      clusterDeploymentSpec.ClusterInstallRef.Name,
+		}
+		verifySchedulableMastersSetup := func(mode bool) {
+			Eventually(func() bool {
+				c := getClusterFromDB(ctx, kubeClient, db, clusterKubeName, waitForReconcileTimeout)
+				return swag.BoolValue(c.SchedulableMasters)
+			}, "1m", "10s").Should(Equal(mode))
+		}
+		By("new deployment with schedulable masters enabled")
+		aciSpec.MastersSchedulable = true
+		deployAgentClusterInstallCRD(ctx, kubeClient, aciSpec, clusterDeploymentSpec.ClusterInstallRef.Name)
+		checkAgentClusterInstallCondition(ctx, installkey, hiveext.ClusterRequirementsMetCondition, hiveext.ClusterNotReadyReason)
+		verifySchedulableMastersSetup(true)
+
+		By("update deployment with schedulable masters disabled")
+		aciSpec.MastersSchedulable = false
+		updateAgentClusterInstallCRD(ctx, kubeClient, installkey, aciSpec)
+		checkAgentClusterInstallCondition(ctx, installkey, hiveext.ClusterRequirementsMetCondition, hiveext.ClusterNotReadyReason)
+		verifySchedulableMastersSetup(false)
+	})
+
 	It("deploy clusterDeployment with hyperthreading configuration", func() {
 		deployClusterDeploymentCRD(ctx, kubeClient, clusterDeploymentSpec)
 		clusterKubeName := types.NamespacedName{
