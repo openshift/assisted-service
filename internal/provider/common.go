@@ -164,7 +164,7 @@ func GetActualUpdateClusterPlatformParams(platform *models.Platform, userManaged
 
 		if *cluster.HighAvailabilityMode == models.ClusterHighAvailabilityModeNone {
 			if !swag.BoolValue(userManagedNetworking) || (platform != nil && !isUMNMandatoryForPlatform(platform)) {
-				return nil, nil, common.NewApiError(http.StatusBadRequest, errors.New("disabling User Managed Networking or setting platform different than none or external platforms is not allowed in single node Openshift"))
+				return nil, nil, common.NewApiError(http.StatusBadRequest, errors.New("disabling User Managed Networking or setting platform different than none or oci platforms is not allowed in single node Openshift"))
 			}
 		}
 
