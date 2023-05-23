@@ -130,6 +130,49 @@ func updatePlatformIsExternal(platform *models.Platform) *models.Platform {
 	return platform
 }
 
+func getUpdateParamsForPlatformBM(platform *models.Platform, userManagedNetworking *bool, cluster *common.Cluster) (*models.Platform, *bool, error) {
+	if !swag.BoolValue(userManagedNetworking) && (platform == nil || isPlatformBM(platform)) {
+		// Platform is already baremetal, nothing to do
+		return nil, nil, nil
+	}
+
+	if (platform != nil && isPlatformNone(platform)) || (swag.BoolValue(userManagedNetworking) && platform == nil) {
+		return createPlatformFromType(models.PlatformTypeNone), swag.Bool(true), nil
+	}
+
+	return updatePlatformIsExternal(platform), userManagedNetworking, nil
+}
+
+func getUpdateParamsForPlatformUMNMandatory(platform *models.Platform, userManagedNetworking *bool, cluster *common.Cluster) (*models.Platform, *bool, error) {
+	if (userManagedNetworking == nil || *userManagedNetworking) && isUMNMandatoryForPlatform(platform) {
+		// userManagedNetworking is already set to true, nothing to do
+		if platform == nil || *cluster.Platform.Type == *platform.Type {
+			return nil, nil, nil
+		} else {
+			return createPlatformFromType(*platform.Type), nil, nil
+		}
+	}
+
+	if *cluster.HighAvailabilityMode == models.ClusterHighAvailabilityModeNone {
+		if !swag.BoolValue(userManagedNetworking) || (platform != nil && !isUMNMandatoryForPlatform(platform)) {
+			return nil, nil, common.NewApiError(http.StatusBadRequest, errors.New("disabling User Managed Networking or setting platform different than none or oci platforms is not allowed in single node Openshift"))
+		}
+	}
+
+	if !swag.BoolValue(userManagedNetworking) {
+		if platform == nil || isPlatformBM(platform) {
+			if cluster.CPUArchitecture != common.X86CPUArchitecture &&
+				!featuresupport.IsFeatureAvailable(models.FeatureSupportLevelIDCLUSTERMANAGEDNETWORKING, cluster.OpenshiftVersion, swag.String(cluster.CPUArchitecture)) {
+				return nil, nil, common.NewApiError(http.StatusBadRequest, errors.New("disabling User Managed Networking or setting Bare-Metal platform is not allowed for clusters with non-x86_64 CPU architecture"))
+			}
+
+			return createPlatformFromType(models.PlatformTypeBaremetal), swag.Bool(false), nil
+		}
+	}
+
+	return updatePlatformIsExternal(platform), userManagedNetworking, nil
+}
+
 func GetActualUpdateClusterPlatformParams(platform *models.Platform, userManagedNetworking *bool, cluster *common.Cluster) (*models.Platform, *bool, error) {
 	if platform == nil && userManagedNetworking == nil {
 		return nil, nil, nil
@@ -144,44 +187,11 @@ func GetActualUpdateClusterPlatformParams(platform *models.Platform, userManaged
 	}
 
 	if isClusterPlatformBM(cluster) {
-		if !swag.BoolValue(userManagedNetworking) && (platform == nil || isPlatformBM(platform)) {
-			// Platform is already baremetal, nothing to do
-			return nil, nil, nil
-		}
-
-		if (platform != nil && isPlatformNone(platform)) || (swag.BoolValue(userManagedNetworking) && platform == nil) {
-			return createPlatformFromType(models.PlatformTypeNone), swag.Bool(true), nil
-		}
+		return getUpdateParamsForPlatformBM(platform, userManagedNetworking, cluster)
 	} else if isUMNMandatoryForCluster(cluster) {
-		if (userManagedNetworking == nil || *userManagedNetworking) && isUMNMandatoryForPlatform(platform) {
-			// userManagedNetworking is already set to true, nothing to do
-			if platform == nil || *cluster.Platform.Type == *platform.Type {
-				return nil, nil, nil
-			} else {
-				return createPlatformFromType(*platform.Type), nil, nil
-			}
-		}
-
-		if *cluster.HighAvailabilityMode == models.ClusterHighAvailabilityModeNone {
-			if !swag.BoolValue(userManagedNetworking) || (platform != nil && !isUMNMandatoryForPlatform(platform)) {
-				return nil, nil, common.NewApiError(http.StatusBadRequest, errors.New("disabling User Managed Networking or setting platform different than none or oci platforms is not allowed in single node Openshift"))
-			}
-		}
-
-		if !swag.BoolValue(userManagedNetworking) {
-			if platform == nil || isPlatformBM(platform) {
-				if cluster.CPUArchitecture != common.X86CPUArchitecture &&
-					!featuresupport.IsFeatureAvailable(models.FeatureSupportLevelIDCLUSTERMANAGEDNETWORKING, cluster.OpenshiftVersion, swag.String(cluster.CPUArchitecture)) {
-					return nil, nil, common.NewApiError(http.StatusBadRequest, errors.New("disabling User Managed Networking or setting Bare-Metal platform is not allowed for clusters with non-x86_64 CPU architecture"))
-				}
-
-				return createPlatformFromType(models.PlatformTypeBaremetal), swag.Bool(false), nil
-			}
-		}
-	} else if platform == nil && !isUMNAllowedForCluster(cluster) {
-		if swag.BoolValue(userManagedNetworking) {
-			return nil, nil, common.NewApiError(http.StatusBadRequest, errors.Errorf("User-managed-networking is not supported with platform %s", common.PlatformTypeValue(cluster.Platform.Type)))
-		}
+		return getUpdateParamsForPlatformUMNMandatory(platform, userManagedNetworking, cluster)
+	} else if platform == nil && !isUMNAllowedForCluster(cluster) && swag.BoolValue(userManagedNetworking) {
+		return nil, nil, common.NewApiError(http.StatusBadRequest, errors.Errorf("User-managed-networking is not supported with platform %s", common.PlatformTypeValue(cluster.Platform.Type)))
 	}
 
 	return updatePlatformIsExternal(platform), userManagedNetworking, nil
