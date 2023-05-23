@@ -63,6 +63,13 @@ func isUMNMandatoryForCluster(cluster *common.Cluster) bool {
 }
 
 func checkPlatformWrongParamsInput(platform *models.Platform, userManagedNetworking *bool, cluster *common.Cluster) error {
+	// check that user does not try to disable userManagedNetworking when cluster is SNO
+	// if cluster != nil && *cluster.HighAvailabilityMode == models.ClusterHighAvailabilityModeNone &&
+	// 	userManagedNetworking != nil && !swag.BoolValue(userManagedNetworking) {
+	// 	return common.NewApiError(http.StatusBadRequest, errors.New("disabling User Managed Networking is not allowed in single node Openshift"))
+	// }
+
+	// check if platform compatibility with UMN
 	if platform != nil && userManagedNetworking != nil {
 		userManagedNetworkingStatus := "enabled"
 		if !*userManagedNetworking {
@@ -76,7 +83,10 @@ func checkPlatformWrongParamsInput(platform *models.Platform, userManagedNetwork
 	// If current cluster platform is different than baremetal/none, and we want to set the cluster platform to one
 	// of those platforms, that might cause the cluster to be in wrong state (baremetal + umn enabled, none + umn disabled)
 	// In those cases return bad request
-	if userManagedNetworking == nil && cluster != nil && platform != nil &&
+	if userManagedNetworking == nil &&
+		cluster != nil &&
+		platform != nil &&
+		*cluster.HighAvailabilityMode == models.ClusterHighAvailabilityModeFull && // no need to check SNO, it will be validated later in the update/creation
 		(!(isClusterPlatformBM(cluster) && isPlatformNone(platform)) &&
 			!(isClusterPlatformNone(cluster) && isPlatformBM(platform))) {
 
@@ -168,7 +178,7 @@ func GetActualUpdateClusterPlatformParams(platform *models.Platform, userManaged
 				return createPlatformFromType(models.PlatformTypeBaremetal), swag.Bool(false), nil
 			}
 		}
-	} else if !isUMNAllowedForCluster(cluster) {
+	} else if platform == nil && !isUMNAllowedForCluster(cluster) {
 		if swag.BoolValue(userManagedNetworking) {
 			return nil, nil, common.NewApiError(http.StatusBadRequest, errors.Errorf("User-managed-networking is not supported with platform %s", common.PlatformTypeValue(cluster.Platform.Type)))
 		}
