@@ -6488,7 +6488,24 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 								Platform: &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeNutanix)},
 							},
 						})
-						verifyApiErrorString(reply, http.StatusBadRequest, "disabling User Managed Networking or setting platform different than none or external platforms is not allowed in single node Openshift")
+						verifyApiErrorString(reply, http.StatusBadRequest, "Can't set nutanix platform with user-managed-networking enabled")
+					})
+
+					It("Update to oci platform while single node cluster - success", func() {
+						mockSuccess()
+						mockProviderRegistry.EXPECT().SetPlatformUsages(models.PlatformTypeOci, gomock.Any(), mockUsage)
+
+						reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
+							ClusterID: clusterID,
+							ClusterUpdateParams: &models.V2ClusterUpdateParams{
+								Platform: &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeOci)},
+							},
+						})
+						Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2UpdateClusterCreated()))
+						actual := reply.(*installer.V2UpdateClusterCreated).Payload
+						Expect(swag.BoolValue(actual.UserManagedNetworking)).To(BeTrue())
+						Expect(*actual.Platform.Type).To(Equal(models.PlatformTypeOci))
+						Expect(swag.BoolValue(actual.Platform.IsExternal)).To(BeTrue())
 					})
 				})
 
@@ -6668,22 +6685,14 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 
 				})
 
-				It("Update platform=oci - success", func() {
-					mockSuccess()
-					mockProviderRegistry.EXPECT().SetPlatformUsages(models.PlatformTypeOci, gomock.Any(), mockUsage)
-
+				It("Update platform=oci - failure", func() {
 					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 						ClusterID: clusterID,
 						ClusterUpdateParams: &models.V2ClusterUpdateParams{
 							Platform: &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeOci)},
 						},
 					})
-					Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2UpdateClusterCreated()))
-					actual := reply.(*installer.V2UpdateClusterCreated).Payload
-					Expect(swag.BoolValue(actual.UserManagedNetworking)).To(Equal(true))
-					Expect(*actual.Platform.Type).To(Equal(models.PlatformTypeOci))
-					Expect(swag.BoolValue(actual.Platform.IsExternal)).To(BeTrue())
-
+					verifyApiErrorString(reply, http.StatusBadRequest, "Can't set oci platform with user-managed-networking disabled")
 				})
 
 				It("Update UMN=false and platform=oci results BadRequestError - failure", func() {
@@ -6978,21 +6987,14 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 					verifyApiErrorString(reply, http.StatusBadRequest, "Can't set oci platform with user-managed-networking disabled")
 				})
 
-				It("Update platform=baremetal - success", func() {
-					mockSuccess()
-					mockProviderRegistry.EXPECT().SetPlatformUsages(models.PlatformTypeBaremetal, gomock.Any(), mockUsage)
-
+				It("Update platform=baremetal - failure", func() {
 					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 						ClusterID: clusterID,
 						ClusterUpdateParams: &models.V2ClusterUpdateParams{
-							Platform: &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeBaremetal)},
-						},
+							Platform:              &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeBaremetal)},
+							UserManagedNetworking: swag.Bool(true)},
 					})
-					Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2UpdateClusterCreated()))
-					actual := reply.(*installer.V2UpdateClusterCreated).Payload
-					Expect(swag.BoolValue(actual.UserManagedNetworking)).To(Equal(false))
-					Expect(*actual.Platform.Type).To(Equal(models.PlatformTypeBaremetal))
-					Expect(swag.BoolValue(actual.Platform.IsExternal)).To(BeFalse())
+					verifyApiErrorString(reply, http.StatusBadRequest, "Can't set baremetal platform with user-managed-networking enabled")
 				})
 
 				It("Update UMN=true and platform=baremetal results BadRequestError - failure", func() {
@@ -7068,7 +7070,97 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 					Expect(*actual.Platform.Type).To(Equal(models.PlatformTypeNone))
 					Expect(swag.BoolValue(actual.Platform.IsExternal)).To(BeFalse())
 				})
+				Context("Single node cluster", func() {
+					BeforeEach(func() {
+						clusterID = strfmt.UUID(uuid.New().String())
+						err := db.Create(&common.Cluster{Cluster: models.Cluster{
+							ID:                    &clusterID,
+							HighAvailabilityMode:  swag.String(models.ClusterHighAvailabilityModeNone),
+							UserManagedNetworking: swag.Bool(true),
+							Platform: &models.Platform{
+								Type: common.PlatformTypePtr(models.PlatformTypeOci),
+							},
+						}}).Error
+						Expect(err).ShouldNot(HaveOccurred())
+					})
 
+					It("Update to vsphere platform while single node cluster - failure", func() {
+						reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
+							ClusterID: clusterID,
+							ClusterUpdateParams: &models.V2ClusterUpdateParams{
+								Platform: &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeVsphere)},
+							},
+						})
+						verifyApiErrorString(reply, http.StatusBadRequest, "Single node cluster is not supported alongside vsphere platform")
+					})
+
+					It("Update to baremetal platform while single node cluster - failure", func() {
+						reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
+							ClusterID: clusterID,
+							ClusterUpdateParams: &models.V2ClusterUpdateParams{
+								Platform: &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeBaremetal)},
+							},
+						})
+						verifyApiErrorString(reply, http.StatusBadRequest, "Can't set baremetal platform with user-managed-networking enabled")
+					})
+
+					It("Update to nutanix platform while single node cluster - failure", func() {
+						reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
+							ClusterID: clusterID,
+							ClusterUpdateParams: &models.V2ClusterUpdateParams{
+								Platform: &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeNutanix)},
+							},
+						})
+						verifyApiErrorString(reply, http.StatusBadRequest, "Can't set nutanix platform with user-managed-networking enabled")
+					})
+
+					It("Update to none platform while single node cluster - success", func() {
+						mockSuccess()
+						mockProviderRegistry.EXPECT().SetPlatformUsages(models.PlatformTypeNone, gomock.Any(), mockUsage)
+
+						reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
+							ClusterID: clusterID,
+							ClusterUpdateParams: &models.V2ClusterUpdateParams{
+								Platform: &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeNone)},
+							},
+						})
+						Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2UpdateClusterCreated()))
+						actual := reply.(*installer.V2UpdateClusterCreated).Payload
+						Expect(swag.BoolValue(actual.UserManagedNetworking)).To(BeTrue())
+						Expect(*actual.Platform.Type).To(Equal(models.PlatformTypeNone))
+						Expect(swag.BoolValue(actual.Platform.IsExternal)).To(BeFalse())
+					})
+				})
+			})
+
+			Context("Update Platform while Cluster platform is nutanix", func() {
+				var cluster *common.Cluster
+				BeforeEach(func() {
+					clusterID = strfmt.UUID(uuid.New().String())
+					cluster = &common.Cluster{Cluster: models.Cluster{
+						ID:                    &clusterID,
+						HighAvailabilityMode:  swag.String(models.ClusterHighAvailabilityModeFull),
+						UserManagedNetworking: swag.Bool(false),
+						Platform: &models.Platform{
+							Type:       common.PlatformTypePtr(models.PlatformTypeNutanix),
+							IsExternal: swag.Bool(true),
+						},
+						CPUArchitecture: common.X86CPUArchitecture,
+					}}
+					err := db.Create(cluster).Error
+					Expect(err).ShouldNot(HaveOccurred())
+					mockClusterApi.EXPECT().VerifyClusterUpdatability(createClusterIdMatcher(cluster)).Return(nil).Times(1)
+				})
+
+				It("Update to oci platform while single node cluster - failure", func() {
+					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
+						ClusterID: clusterID,
+						ClusterUpdateParams: &models.V2ClusterUpdateParams{
+							Platform: &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeOci)},
+						},
+					})
+					verifyApiErrorString(reply, http.StatusBadRequest, "Can't set oci platform with user-managed-networking disabled")
+				})
 			})
 		})
 
@@ -12526,6 +12618,7 @@ var _ = Describe("TestRegisterCluster", func() {
 						Platform: &models.Platform{
 							Type: common.PlatformTypePtr(models.PlatformTypeNutanix),
 						},
+						UserManagedNetworking: swag.Bool(false),
 					},
 				})
 				verifyApiErrorString(reply2, http.StatusBadRequest, "only x86-64 CPU architecture is supported on Nutanix clusters")
@@ -16849,6 +16942,21 @@ var _ = Describe("Platform tests", func() {
 			reply := bm.V2RegisterCluster(ctx, *registerParams)
 			verifyApiError(reply, http.StatusBadRequest)
 		})
+
+		It("OCI platform - fail if UMN is false", func() {
+			registerParams.NewClusterParams.Platform = &models.Platform{
+				Type: common.PlatformTypePtr(models.PlatformTypeOci),
+			}
+			registerParams.NewClusterParams.UserManagedNetworking = swag.Bool(false)
+			mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
+				eventstest.WithNameMatcher(eventgen.ClusterRegistrationFailedEventName),
+				eventstest.WithMessageContainsMatcher("Can't set oci platform with user-managed-networking disabled"),
+				eventstest.WithSeverityMatcher(models.EventSeverityError))).Times(1)
+
+			reply := bm.V2RegisterCluster(ctx, *registerParams)
+			verifyApiError(reply, http.StatusBadRequest)
+		})
+
 	})
 })
 
