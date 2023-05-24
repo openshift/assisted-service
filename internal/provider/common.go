@@ -63,12 +63,6 @@ func isUMNMandatoryForCluster(cluster *common.Cluster) bool {
 }
 
 func checkPlatformWrongParamsInput(platform *models.Platform, userManagedNetworking *bool, cluster *common.Cluster) error {
-	// check that user does not try to disable userManagedNetworking when cluster is SNO
-	// if cluster != nil && *cluster.HighAvailabilityMode == models.ClusterHighAvailabilityModeNone &&
-	// 	userManagedNetworking != nil && !swag.BoolValue(userManagedNetworking) {
-	// 	return common.NewApiError(http.StatusBadRequest, errors.New("disabling User Managed Networking is not allowed in single node Openshift"))
-	// }
-
 	// check if platform compatibility with UMN
 	if platform != nil && userManagedNetworking != nil {
 		userManagedNetworkingStatus := "enabled"
