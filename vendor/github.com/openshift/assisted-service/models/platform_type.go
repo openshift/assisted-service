@@ -41,6 +41,9 @@ const (
 
 	// PlatformTypeNone captures enum value "none"
 	PlatformTypeNone PlatformType = "none"
+
+	// PlatformTypeOci captures enum value "oci"
+	PlatformTypeOci PlatformType = "oci"
 )
 
 // for schema
@@ -48,7 +51,7 @@ var platformTypeEnum []interface{}
 
 func init() {
 	var res []PlatformType
-	if err := json.Unmarshal([]byte(`["baremetal","nutanix","vsphere","none"]`), &res); err != nil {
+	if err := json.Unmarshal([]byte(`["baremetal","nutanix","vsphere","none","oci"]`), &res); err != nil {
 		panic(err)
 	}
 	for _, v := range res {

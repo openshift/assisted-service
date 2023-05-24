@@ -9390,6 +9390,11 @@ func init() {
         "type"
       ],
       "properties": {
+        "is_external": {
+          "description": "Indicates if the underlying platform type is external.",
+          "type": "boolean",
+          "readOnly": true
+        },
         "type": {
           "$ref": "#/definitions/platform_type"
         }
@@ -9402,7 +9407,8 @@ func init() {
         "baremetal",
         "nutanix",
         "vsphere",
-        "none"
+        "none",
+        "oci"
       ]
     },
     "preflight-hardware-requirements": {
@@ -19675,6 +19681,11 @@ func init() {
         "type"
       ],
       "properties": {
+        "is_external": {
+          "description": "Indicates if the underlying platform type is external.",
+          "type": "boolean",
+          "readOnly": true
+        },
         "type": {
           "$ref": "#/definitions/platform_type"
         }
@@ -19687,7 +19698,8 @@ func init() {
         "baremetal",
         "nutanix",
         "vsphere",
-        "none"
+        "none",
+        "oci"
       ]
     },
     "preflight-hardware-requirements": {
