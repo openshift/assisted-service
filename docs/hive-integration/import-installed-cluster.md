@@ -54,7 +54,7 @@ oc get secret -n openshift-kube-apiserver node-kubeconfigs -ojson | jq '.data["l
 
 Then _make sure that KUBECONFIG is set to the hub_ and use:
 ```
-oc -n spoke-cluster create secret generic some-other-cluster-admin-kubeconfig --from-file=/tmp/kubeconfig.some-other-cluster
+oc -n spoke-cluster create secret generic some-other-cluster-admin-kubeconfig --from-file=kubeconfig=/tmp/kubeconfig.some-other-cluster
 ```
 
 #### 5: Create an AgentClusterInstall and a ClusterDeployment, these should reference each other.
