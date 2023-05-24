@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net"
+	"strings"
 	"text/template"
 
 	"github.com/go-openapi/swag"
@@ -19,6 +20,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
+	"gorm.io/gorm"
 )
 
 //go:generate mockgen -source=manifests_generator.go -package=network -destination=mock_manifests_generator.go
@@ -41,12 +43,14 @@ type Config struct {
 type ManifestsGenerator struct {
 	manifestsApi manifestsapi.ManifestsAPI
 	Config       Config
+	DB           *gorm.DB
 }
 
-func NewManifestsGenerator(manifestsApi manifestsapi.ManifestsAPI, config Config) *ManifestsGenerator {
+func NewManifestsGenerator(manifestsApi manifestsapi.ManifestsAPI, config Config, db *gorm.DB) *ManifestsGenerator {
 	return &ManifestsGenerator{
 		manifestsApi: manifestsApi,
 		Config:       config,
+		DB:           db,
 	}
 }
 
@@ -153,7 +157,7 @@ const schedulableMastersManifestPatch = `---
   value: true
 `
 
-func createChronyManifestContent(c *common.Cluster, role models.HostRole, log logrus.FieldLogger) ([]byte, error) {
+func (m *ManifestsGenerator) createChronyManifestContent(c *common.Cluster, role models.HostRole, log logrus.FieldLogger) ([]byte, error) {
 	sources := make([]string, 0)
 
 	for _, host := range c.Hosts {
@@ -169,6 +173,21 @@ func createChronyManifestContent(c *common.Cluster, role models.HostRole, log lo
 		for _, source := range ntpSources {
 			if !funk.Contains(sources, source.SourceName) {
 				sources = append(sources, source.SourceName)
+			}
+		}
+
+		// Avoiding a ZTP race that installation may start before getting ntp reply from the agent
+		rawSources, err := common.GetHostNTPSources(m.DB, host)
+		if err != nil {
+			return nil, err
+		}
+		additionalNTPSources := strings.Split(rawSources, ",")
+		for _, source := range additionalNTPSources {
+			if source == "" {
+				continue
+			}
+			if !funk.Contains(sources, source) {
+				sources = append(sources, source)
 			}
 		}
 	}
@@ -189,7 +208,7 @@ func createChronyManifestContent(c *common.Cluster, role models.HostRole, log lo
 
 func (m *ManifestsGenerator) AddChronyManifest(ctx context.Context, log logrus.FieldLogger, cluster *common.Cluster) error {
 	for _, role := range []models.HostRole{models.HostRoleMaster, models.HostRoleWorker} {
-		content, err := createChronyManifestContent(cluster, role, log)
+		content, err := m.createChronyManifestContent(cluster, role, log)
 
 		if err != nil {
 			return errors.Wrapf(err, "Failed to create chrony manifest content for role %s cluster id %s", role, *cluster.ID)
