@@ -5322,11 +5322,9 @@ definitions:
       type:
         $ref: '#/definitions/platform_type'
       is_external:
-        default: false
         description: Indicates if the underlying platform type is external.
         readOnly: true
         type: boolean
-        x-nullable: true
 
   image_info:
     type: object

@@ -9397,8 +9397,6 @@ func init() {
         "is_external": {
           "description": "Indicates if the underlying platform type is external.",
           "type": "boolean",
-          "default": false,
-          "x-nullable": true,
           "readOnly": true
         },
         "type": {
@@ -19695,8 +19693,6 @@ func init() {
         "is_external": {
           "description": "Indicates if the underlying platform type is external.",
           "type": "boolean",
-          "default": false,
-          "x-nullable": true,
           "readOnly": true
         },
         "type": {
