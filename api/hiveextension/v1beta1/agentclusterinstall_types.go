@@ -191,6 +191,10 @@ type AgentClusterInstallSpec struct {
 	// PlatformType is the name for the specific platform upon which to perform the installation.
 	// +optional
 	PlatformType PlatformType `json:"platformType,omitempty"`
+
+	// Set to true to allow control plane nodes to be schedulable
+	// +optional
+	MastersSchedulable bool `json:"mastersSchedulable,omitempty"`
 }
 
 // IgnitionEndpoint stores the data to of the custom ignition endpoint.

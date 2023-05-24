@@ -1036,6 +1036,11 @@ func (r *ClusterDeploymentsReconciler) updateIfNeeded(ctx context.Context,
 		params.NoProxy = swag.String("")
 	}
 
+	if clusterInstall.Spec.MastersSchedulable != swag.BoolValue(cluster.SchedulableMasters) {
+		params.SchedulableMasters = &clusterInstall.Spec.MastersSchedulable
+		update = true
+	}
+
 	if !update {
 		return cluster, nil
 	}
@@ -1249,6 +1254,7 @@ func CreateClusterParams(clusterDeployment *hivev1.ClusterDeployment, clusterIns
 		CPUArchitecture:       releaseImageCPUArch,
 		UserManagedNetworking: swag.Bool(isUserManagedNetwork(clusterInstall)),
 		Platform:              getPlatform(clusterInstall.Spec.PlatformType),
+		SchedulableMasters:    swag.Bool(clusterInstall.Spec.MastersSchedulable),
 	}
 
 	if len(clusterInstall.Spec.Networking.ClusterNetwork) > 0 {
