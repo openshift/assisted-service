@@ -27,12 +27,10 @@ import (
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 	bmh_v1alpha1 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
-	operatorv1alpha1 "github.com/openshift/api/operator/v1alpha1"
 	clusterPkg "github.com/openshift/assisted-service/internal/cluster"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/constants"
 	"github.com/openshift/assisted-service/internal/host/hostutil"
-	"github.com/openshift/assisted-service/internal/installcfg"
 	"github.com/openshift/assisted-service/internal/installercache"
 	"github.com/openshift/assisted-service/internal/manifests"
 	"github.com/openshift/assisted-service/internal/network"
@@ -56,7 +54,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	k8sjson "k8s.io/apimachinery/pkg/runtime/serializer/json"
 	"k8s.io/client-go/kubernetes/scheme"
-	k8syaml "sigs.k8s.io/yaml"
 )
 
 const (
@@ -311,7 +308,6 @@ func (g *installerGenerator) UploadToS3(ctx context.Context) error {
 
 // Generate generates ignition files and applies modifications.
 func (g *installerGenerator) Generate(ctx context.Context, installConfig []byte, platformType models.PlatformType, authType auth.AuthType) error {
-	var icspFile string
 	var err error
 	log := logutil.FromContext(ctx, g.log)
 
@@ -327,19 +323,12 @@ func (g *installerGenerator) Generate(ctx context.Context, installConfig []byte,
 		g.installerReleaseImageOverride = g.releaseImage
 	}
 
-	// If ImageContentSources are defined, store in a file for the 'oc' command
-	icspFile, err = getIcspFileFromInstallConfig(installConfig, log)
-	if err != nil {
-		return errors.Wrap(err, "failed to create file with ImageContentSources")
-	}
-	defer removeIcspFile(icspFile)
-
 	mirrorRegistriesBuilder := mirrorregistries.New()
 	ocRelease := oc.NewRelease(&executer.CommonExecuter{}, oc.Config{
 		MaxTries: oc.DefaultTries, RetryDelay: oc.DefaltRetryDelay}, mirrorRegistriesBuilder)
 
 	release, err := g.installerCache.Get(g.installerReleaseImageOverride, g.releaseImageMirror,
-		g.cluster.PullSecret, ocRelease, platformType, icspFile)
+		g.cluster.PullSecret, ocRelease, platformType)
 	if err != nil {
 		return errors.Wrap(err, "failed to get installer path")
 	}
@@ -1885,77 +1874,4 @@ func proxySettingsForIgnition(httpProxy, httpsProxy, noProxy string) (string, er
 		return "", err
 	}
 	return buf.String(), nil
-}
-
-func getIcspFileFromInstallConfig(cfg []byte, log logrus.FieldLogger) (string, error) {
-	contents, err := getIcsp(cfg)
-	if err != nil {
-		return "", err
-	}
-	if contents == nil {
-		log.Infof("No ImageContentSources in install-config to build ICSP file")
-		return "", nil
-	}
-
-	icspFile, err := os.CreateTemp("", "icsp-file")
-	if err != nil {
-		return "", err
-	}
-	log.Infof("Building ICSP file from install-config with contents %s", contents)
-	if _, err := icspFile.Write(contents); err != nil {
-		icspFile.Close()
-		os.Remove(icspFile.Name())
-		return "", err
-	}
-	icspFile.Close()
-
-	return icspFile.Name(), nil
-}
-
-func getIcsp(cfg []byte) ([]byte, error) {
-
-	var installCfg installcfg.InstallerConfigBaremetal
-	if err := yaml.Unmarshal(cfg, &installCfg); err != nil {
-		return nil, err
-	}
-
-	if len(installCfg.ImageContentSources) == 0 {
-		// No ImageContentSources were defined
-		return nil, nil
-	}
-
-	icsp := operatorv1alpha1.ImageContentSourcePolicy{
-		TypeMeta: metav1.TypeMeta{
-			APIVersion: operatorv1alpha1.SchemeGroupVersion.String(),
-			Kind:       "ImageContentSourcePolicy",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "image-policy",
-			// not namespaced
-		},
-	}
-
-	icsp.Spec.RepositoryDigestMirrors = make([]operatorv1alpha1.RepositoryDigestMirrors, len(installCfg.ImageContentSources))
-	for i, imageSource := range installCfg.ImageContentSources {
-		icsp.Spec.RepositoryDigestMirrors[i] = operatorv1alpha1.RepositoryDigestMirrors{Source: imageSource.Source, Mirrors: imageSource.Mirrors}
-
-	}
-
-	// Convert to json first so json tags are handled
-	jsonData, err := json.Marshal(&icsp)
-	if err != nil {
-		return nil, err
-	}
-	contents, err := k8syaml.JSONToYAML(jsonData)
-	if err != nil {
-		return nil, err
-	}
-
-	return contents, nil
-}
-
-func removeIcspFile(filename string) {
-	if filename != "" {
-		os.Remove(filename)
-	}
 }

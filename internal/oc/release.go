@@ -48,7 +48,7 @@ type Release interface {
 	GetMajorMinorVersion(log logrus.FieldLogger, releaseImage string, releaseImageMirror string, pullSecret string) (string, error)
 	GetReleaseArchitecture(log logrus.FieldLogger, releaseImage string, releaseImageMirror string, pullSecret string) ([]string, error)
 	GetReleaseBinaryPath(releaseImage string, cacheDir string, platformType models.PlatformType) (workdir string, binary string, path string)
-	Extract(log logrus.FieldLogger, releaseImage string, releaseImageMirror string, cacheDir string, pullSecret string, platformType models.PlatformType, icspFile string) (string, error)
+	Extract(log logrus.FieldLogger, releaseImage string, releaseImageMirror string, cacheDir string, pullSecret string, platformType models.PlatformType) (string, error)
 }
 
 type imageValue struct {
@@ -314,12 +314,19 @@ func (r *release) getOpenshiftVersionFromRelease(log logrus.FieldLogger, release
 
 // Extract openshift-baremetal-install binary from releaseImageMirror if provided.
 // Else extract from the source releaseImage
-func (r *release) Extract(log logrus.FieldLogger, releaseImage string, releaseImageMirror string, cacheDir string, pullSecret string, platformType models.PlatformType, icspFile string) (string, error) {
+func (r *release) Extract(log logrus.FieldLogger, releaseImage string, releaseImageMirror string, cacheDir string, pullSecret string, platformType models.PlatformType) (string, error) {
 	var path string
 	var err error
 	if releaseImage == "" && releaseImageMirror == "" {
 		return "", errors.New("no releaseImage or releaseImageMirror provided")
 	}
+
+	icspFile, err := r.getIcspFileFromRegistriesConfig(log)
+	if err != nil {
+		return "", errors.Wrap(err, "failed to create file ICSP file from registries config")
+	}
+	defer removeIcspFile(icspFile)
+
 	if releaseImageMirror != "" {
 		//TODO: Get mirror registry certificate from install-config
 		path, err = r.extractFromRelease(log, releaseImageMirror, cacheDir, pullSecret, true, platformType, icspFile)

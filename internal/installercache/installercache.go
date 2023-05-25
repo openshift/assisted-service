@@ -64,7 +64,7 @@ func New(cacheDir string, storageCapacity int64, log logrus.FieldLogger) *Instal
 // Get returns the path to an openshift-baremetal-install binary extracted from
 // the referenced release image. Tries the mirror release image first if it's set. It is safe for concurrent use. A cache of
 // binaries is maintained to reduce re-downloading of the same release.
-func (i *Installers) Get(releaseID, releaseIDMirror, pullSecret string, ocRelease oc.Release, platformType models.PlatformType, icspFile string) (*Release, error) {
+func (i *Installers) Get(releaseID, releaseIDMirror, pullSecret string, ocRelease oc.Release, platformType models.PlatformType) (*Release, error) {
 	i.Lock()
 	defer i.Unlock()
 
@@ -81,7 +81,7 @@ func (i *Installers) Get(releaseID, releaseIDMirror, pullSecret string, ocReleas
 		i.evict()
 
 		//extract the binary
-		_, err = ocRelease.Extract(i.log, releaseID, releaseIDMirror, i.cacheDir, pullSecret, platformType, icspFile)
+		_, err = ocRelease.Extract(i.log, releaseID, releaseIDMirror, i.cacheDir, pullSecret, platformType)
 		if err != nil {
 			return &Release{}, err
 		}

@@ -50,12 +50,12 @@ var _ = Describe("installer cache", func() {
 			Return(workdir, releaseID, fname)
 		mockRelease.EXPECT().Extract(gomock.Any(), releaseID,
 			gomock.Any(), cacheDir, gomock.Any(),
-			gomock.Any(), gomock.Any()).
-			DoAndReturn(func(log logrus.FieldLogger, releaseImage string, releaseImageMirror string, cacheDir string, pullSecret string, platformType models.PlatformType, icspFile string) (string, error) {
+			gomock.Any()).
+			DoAndReturn(func(log logrus.FieldLogger, releaseImage string, releaseImageMirror string, cacheDir string, pullSecret string, platformType models.PlatformType) (string, error) {
 				err := os.WriteFile(fname, []byte("abcde"), 0600)
 				return "", err
 			})
-		l, err := manager.Get(releaseID, "mirror", "pull-secret", mockRelease, models.PlatformTypeBaremetal, "icsp")
+		l, err := manager.Get(releaseID, "mirror", "pull-secret", mockRelease, models.PlatformTypeBaremetal)
 		Expect(err).ShouldNot(HaveOccurred())
 
 		time.Sleep(1 * time.Second)
@@ -127,12 +127,12 @@ var _ = Describe("installer cache", func() {
 			Return(workdir, releaseID, fname)
 		mockRelease.EXPECT().Extract(gomock.Any(), releaseID,
 			gomock.Any(), cacheDir, gomock.Any(),
-			gomock.Any(), gomock.Any()).
-			DoAndReturn(func(log logrus.FieldLogger, releaseImage string, releaseImageMirror string, cacheDir string, pullSecret string, platformType models.PlatformType, icspFile string) (string, error) {
+			gomock.Any()).
+			DoAndReturn(func(log logrus.FieldLogger, releaseImage string, releaseImageMirror string, cacheDir string, pullSecret string, platformType models.PlatformType) (string, error) {
 				err := os.WriteFile(fname, []byte("abcde"), 0600)
 				return "", err
 			})
-		_, err := manager.Get(releaseID, releaseMirrorID, "pull-secret", mockRelease, models.PlatformTypeBaremetal, "icsp")
+		_, err := manager.Get(releaseID, releaseMirrorID, "pull-secret", mockRelease, models.PlatformTypeBaremetal)
 		Expect(err).ShouldNot(HaveOccurred())
 	})
 
@@ -147,12 +147,12 @@ var _ = Describe("installer cache", func() {
 			Return(workdir, releaseID, fname)
 		mockRelease.EXPECT().Extract(gomock.Any(), releaseID,
 			gomock.Any(), cacheDir, gomock.Any(),
-			gomock.Any(), gomock.Any()).
-			DoAndReturn(func(log logrus.FieldLogger, releaseImage string, releaseImageMirror string, cacheDir string, pullSecret string, platformType models.PlatformType, icspFile string) (string, error) {
+			gomock.Any()).
+			DoAndReturn(func(log logrus.FieldLogger, releaseImage string, releaseImageMirror string, cacheDir string, pullSecret string, platformType models.PlatformType) (string, error) {
 				err := os.WriteFile(fname, []byte("abcde"), 0600)
 				return "", err
 			})
-		_, err := manager.Get(releaseID, releaseMirrorID, "pull-secret", mockRelease, models.PlatformTypeBaremetal, "icsp")
+		_, err := manager.Get(releaseID, releaseMirrorID, "pull-secret", mockRelease, models.PlatformTypeBaremetal)
 		Expect(err).ShouldNot(HaveOccurred())
 	})
 })

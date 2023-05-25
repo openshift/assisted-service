@@ -36,18 +36,18 @@ func (m *MockRelease) EXPECT() *MockReleaseMockRecorder {
 }
 
 // Extract mocks base method.
-func (m *MockRelease) Extract(log logrus.FieldLogger, releaseImage, releaseImageMirror, cacheDir, pullSecret string, platformType models.PlatformType, icspFile string) (string, error) {
+func (m *MockRelease) Extract(log logrus.FieldLogger, releaseImage, releaseImageMirror, cacheDir, pullSecret string, platformType models.PlatformType) (string, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Extract", log, releaseImage, releaseImageMirror, cacheDir, pullSecret, platformType, icspFile)
+	ret := m.ctrl.Call(m, "Extract", log, releaseImage, releaseImageMirror, cacheDir, pullSecret, platformType)
 	ret0, _ := ret[0].(string)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // Extract indicates an expected call of Extract.
-func (mr *MockReleaseMockRecorder) Extract(log, releaseImage, releaseImageMirror, cacheDir, pullSecret, platformType, icspFile interface{}) *gomock.Call {
+func (mr *MockReleaseMockRecorder) Extract(log, releaseImage, releaseImageMirror, cacheDir, pullSecret, platformType interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Extract", reflect.TypeOf((*MockRelease)(nil).Extract), log, releaseImage, releaseImageMirror, cacheDir, pullSecret, platformType, icspFile)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Extract", reflect.TypeOf((*MockRelease)(nil).Extract), log, releaseImage, releaseImageMirror, cacheDir, pullSecret, platformType)
 }
 
 // GetIronicAgentImage mocks base method.
