@@ -2,6 +2,7 @@ package validations
 
 import (
 	"bytes"
+	"context"
 	"crypto/x509"
 	"encoding/base64"
 	"encoding/json"
@@ -27,6 +28,7 @@ import (
 	"github.com/openshift/assisted-service/pkg/tang"
 	"github.com/openshift/assisted-service/pkg/validations"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
 	"golang.org/x/crypto/ssh"
 )
@@ -975,4 +977,31 @@ func ValidateArchitectureWithPlatform(architecture *string, platform *models.Pla
 	}
 
 	return nil
+}
+
+func ValidatePlatformCapability(platform *models.Platform, ctx context.Context, authzHandler auth.Authorizer, log logrus.FieldLogger) error {
+	if platform == nil {
+		return nil
+	}
+
+	var capabilityName *string
+	switch *platform.Type {
+	case models.PlatformTypeOci:
+		capabilityName = swag.String(ocm.PlatformOciCapabilityName)
+	}
+
+	if capabilityName == nil {
+		return nil
+	}
+
+	available, err := authzHandler.HasOrgBasedCapability(ctx, *capabilityName)
+	if err == nil && available {
+		return nil
+	}
+
+	if err != nil {
+		log.WithError(err).Errorf("error getting user %s capability", *capabilityName)
+	}
+
+	return common.NewApiError(http.StatusBadRequest, errors.Errorf("Platform %s is not available", *platform.Type))
 }
