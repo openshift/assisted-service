@@ -190,6 +190,15 @@ var _ = Describe("Ignition endpoint URL generation", func() {
 	})
 })
 
+var _ = Describe("Validations", func() {
+	Context("Role validity", func() {
+		It("Day2 host should accept AutoAssign role", func() {
+			isDay2Host := true
+			Expect(IsRoleValid(models.HostRoleAutoAssign, isDay2Host)).Should(BeTrue())
+		})
+	})
+})
+
 func TestHostUtil(t *testing.T) {
 	RegisterFailHandler(Fail)
 	common.InitializeDBTest()
