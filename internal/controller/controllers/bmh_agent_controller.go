@@ -857,6 +857,12 @@ func (r *BMACReconciler) reconcileSpokeBMH(ctx context.Context, log logrus.Field
 		return reconcileComplete{}
 	}
 
+	if !funk.ContainsString([]string{models.HostStatusInstalling, models.HostStatusInstallingInProgress}, agent.Status.DebugInfo.State) {
+		// If agent hasn't started installing, do not create the spoke BMH yet
+		log.Debugf("Agent has not started installing, not creating the spoke BMH for %s on cluster %s", bmh.Name, agent.Spec.ClusterDeploymentName.Name)
+		return reconcileComplete{stop: false}
+	}
+
 	secret, err := getSecret(ctx, r.Client, r.APIReader, key)
 	if err != nil {
 		return reconcileError{err}
