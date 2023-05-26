@@ -1068,7 +1068,7 @@ var _ = Describe("bmac reconcile", func() {
 		})
 
 		Context("when agent role worker and cluster deployment is set", func() {
-			It("should set spoke BMH", func() {
+			It("should set spoke BMH when agent is not installing", func() {
 				configMap := &corev1.ConfigMap{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "root-ca",
@@ -1079,6 +1079,45 @@ var _ = Describe("bmac reconcile", func() {
 					},
 				}
 				Expect(bmhr.spokeClient.Create(ctx, configMap)).ShouldNot(HaveOccurred())
+				for range [3]int{} {
+					result, err := bmhr.Reconcile(ctx, newBMHRequest(host))
+					Expect(err).To(BeNil())
+					Expect(result).To(Equal(ctrl.Result{}))
+				}
+
+				updatedHost := &bmh_v1alpha1.BareMetalHost{}
+				err := c.Get(ctx, types.NamespacedName{Name: host.Name, Namespace: testNamespace}, updatedHost)
+				Expect(err).To(BeNil())
+				Expect(updatedHost.ObjectMeta.Annotations).To(HaveKey(BMH_HARDWARE_DETAILS_ANNOTATION))
+				Expect(updatedHost.ObjectMeta.Annotations).NotTo(HaveKey(BMH_DETACHED_ANNOTATION))
+				Expect(updatedHost.ObjectMeta.Annotations).To(HaveKey(BMH_AGENT_IGNITION_CONFIG_OVERRIDES))
+				Expect(updatedHost.ObjectMeta.Annotations[BMH_AGENT_IGNITION_CONFIG_OVERRIDES]).NotTo(Equal(""))
+				Expect(updatedHost.ObjectMeta.Annotations[BMH_AGENT_IGNITION_CONFIG_OVERRIDES]).To(ContainSubstring("dGVzdA=="))
+
+				machineName := fmt.Sprintf("%s-%s", cluster.Name, host.Name)
+
+				spokeBMH := &bmh_v1alpha1.BareMetalHost{}
+				spokeClient := bmhr.spokeClient
+				err = spokeClient.Get(ctx, types.NamespacedName{Name: host.Name, Namespace: OPENSHIFT_MACHINE_API_NAMESPACE}, spokeBMH)
+				Expect(err).NotTo(BeNil())
+
+				spokeMachine := &machinev1beta1.Machine{}
+				err = spokeClient.Get(ctx, types.NamespacedName{Name: machineName, Namespace: OPENSHIFT_MACHINE_API_NAMESPACE}, spokeMachine)
+				Expect(err).NotTo(BeNil())
+			})
+			It("should not set spoke BMH when agent is installing", func() {
+				configMap := &corev1.ConfigMap{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "root-ca",
+						Namespace: "kube-system",
+					},
+					Data: map[string]string{
+						"ca.crt": BASIC_CERT,
+					},
+				}
+				Expect(bmhr.spokeClient.Create(ctx, configMap)).ShouldNot(HaveOccurred())
+				agent.Status.DebugInfo.State = models.HostStatusInstallingInProgress
+				Expect(c.Update(context.Background(), agent)).ShouldNot(HaveOccurred())
 				for range [3]int{} {
 					result, err := bmhr.Reconcile(ctx, newBMHRequest(host))
 					Expect(err).To(BeNil())
