@@ -11,6 +11,7 @@ import (
 
 	"github.com/go-openapi/swag"
 	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/internal/featuresupport"
 	manifestsapi "github.com/openshift/assisted-service/internal/manifests/api"
 	"github.com/openshift/assisted-service/internal/operators/api"
 	"github.com/openshift/assisted-service/internal/operators/lvm"
@@ -405,6 +406,11 @@ func (mgr *Manager) GetSupportedOperatorsByType(operatorType models.OperatorType
 	return operators
 }
 
+func isOperatorCompatibleWithArchitecture(cluster *common.Cluster, operator api.Operator) bool {
+	featureId := operator.GetFeatureSupportID()
+	return featuresupport.IsFeatureCompatibleWithArchitecture(featureId, cluster.OpenshiftVersion, cluster.CPUArchitecture)
+}
+
 func (mgr *Manager) EnsureOperatorArchCapability(cluster *common.Cluster, operators []*models.MonitoredOperator) error {
 	var monitoredOperators []string
 	var failedOperators []string
@@ -418,7 +424,7 @@ func (mgr *Manager) EnsureOperatorArchCapability(cluster *common.Cluster, operat
 			continue
 		}
 
-		if !api.IsArchitectureSupported(cluster.CPUArchitecture, operator) {
+		if !isOperatorCompatibleWithArchitecture(cluster, operator) {
 			failedOperators = append(failedOperators, operator.GetFullName())
 		}
 	}

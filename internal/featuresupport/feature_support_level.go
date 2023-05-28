@@ -21,6 +21,7 @@ var featuresList = map[models.FeatureSupportLevelID]SupportLevelFeature{
 	models.FeatureSupportLevelIDNUTANIXINTEGRATION:       (&NutanixIntegrationFeature{}).New(),
 	models.FeatureSupportLevelIDVSPHEREINTEGRATION:       (&VsphereIntegrationFeature{}).New(),
 	models.FeatureSupportLevelIDCNV:                      (&CnvFeature{}).New(),
+	models.FeatureSupportLevelIDLSO:                      (&LsoFeature{}).New(),
 	models.FeatureSupportLevelIDODF:                      (&OdfFeature{}).New(),
 	models.FeatureSupportLevelIDMINIMALISO:               (&MinimalIso{}).New(),
 }

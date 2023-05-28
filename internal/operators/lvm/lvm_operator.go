@@ -176,8 +176,8 @@ func (o *operator) GetPreflightRequirements(context context.Context, cluster *co
 	}, nil
 }
 
-func (o *operator) GetSupportedArchitectures() []string {
-	return []string{common.X86CPUArchitecture, common.ARM64CPUArchitecture}
+func (o *operator) GetFeatureSupportID() models.FeatureSupportLevelID {
+	return models.FeatureSupportLevelIDLVM
 }
 
 func (o *operator) getLvmMemoryPerHostMib(ctx context.Context, cluster *common.Cluster) int64 {

@@ -8,6 +8,7 @@ import (
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/models"
 	"github.com/sirupsen/logrus"
+	"github.com/thoas/go-funk"
 )
 
 func GetSupportLevel[T models.FeatureSupportLevelID | models.ArchitectureSupportLevelID](featureId T, filters interface{}) models.SupportLevel {
@@ -67,4 +68,17 @@ func getActivatedFeatures(log logrus.FieldLogger, cluster *common.Cluster, infra
 	}
 
 	return activatedFeatures
+}
+
+func IsFeatureCompatibleWithArchitecture(feature models.FeatureSupportLevelID, openshiftVersion, cpuArchitecture string) bool {
+	return isFeatureCompatibleWithArchitecture(featuresList[feature], openshiftVersion, cpuArchitecture)
+}
+
+func isFeatureCompatibleWithArchitecture(feature SupportLevelFeature, openshiftVersion, cpuArchitecture string) bool {
+	architectureID := cpuArchitectureFeatureIdMap[cpuArchitecture]
+	incompatibilitiesArchitectures := feature.getIncompatibleArchitectures(&openshiftVersion)
+	if incompatibilitiesArchitectures != nil && funk.Contains(*incompatibilitiesArchitectures, architectureID) {
+		return false
+	}
+	return true
 }
