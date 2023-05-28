@@ -1723,6 +1723,57 @@ var _ = Describe("Events library", func() {
 			Expect(events).To(HaveLen(0))
 		})
 
+		It("Filter by message with escape char ('\\')", func() {
+			theEvents.V2AddEvent(
+				ctx,
+				&cluster1,
+				nil,
+				nil,
+				eventgen.ClusterInstallationCompletedEventName,
+				models.EventSeverityInfo,
+				"Host: test-infra-cluster-bd49f89a-worker-1, reached installation stage Writing image to disk: 97%",
+				time.Date(2023, 2, 25, 50, 0, 0, 0, time.UTC),
+			)
+
+			response, err := theEvents.V2GetEvents(
+				ctx,
+				&common.V2GetEventsParams{
+					ClusterID: &cluster1,
+					Message:   swag.String("\\"),
+				},
+			)
+			Expect(err).ToNot(HaveOccurred())
+
+			events := response.GetEvents()
+			eventSeverityCount := response.GetEventSeverityCount()
+			eventCount := response.GetEventCount()
+			Expect(*eventCount).To(Equal(int64(0)))
+			Expect(int((*eventSeverityCount)[models.EventSeverityInfo])).To(Equal(0))
+			Expect(int((*eventSeverityCount)[models.EventSeverityWarning])).To(Equal(0))
+			Expect(int((*eventSeverityCount)[models.EventSeverityError])).To(Equal(0))
+			Expect(int((*eventSeverityCount)[models.EventSeverityCritical])).To(Equal(0))
+			Expect(events).To(HaveLen(0))
+
+			response, err = theEvents.V2GetEvents(
+				ctx,
+				&common.V2GetEventsParams{
+					ClusterID: &cluster1,
+					Message:   swag.String("%35C"),
+				},
+			)
+			Expect(err).ToNot(HaveOccurred())
+
+			events = response.GetEvents()
+			eventSeverityCount = response.GetEventSeverityCount()
+			eventCount = response.GetEventCount()
+			Expect(*eventCount).To(Equal(int64(0)))
+			Expect(int((*eventSeverityCount)[models.EventSeverityInfo])).To(Equal(0))
+			Expect(int((*eventSeverityCount)[models.EventSeverityWarning])).To(Equal(0))
+			Expect(int((*eventSeverityCount)[models.EventSeverityError])).To(Equal(0))
+			Expect(int((*eventSeverityCount)[models.EventSeverityCritical])).To(Equal(0))
+			Expect(events).To(HaveLen(0))
+		})
+
 	})
 
 	AfterEach(func() {
