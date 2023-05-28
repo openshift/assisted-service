@@ -7440,7 +7440,9 @@ func init() {
         "DUAL_STACK_VIPS",
         "CLUSTER_MANAGED_NETWORKING",
         "USER_MANAGED_NETWORKING",
-        "MINIMAL_ISO"
+        "MINIMAL_ISO",
+        "FULL_ISO",
+        "EXTERNAL_PLATFORM_OCI"
       ]
     },
     "feature-support-levels": {
@@ -17748,7 +17750,9 @@ func init() {
         "DUAL_STACK_VIPS",
         "CLUSTER_MANAGED_NETWORKING",
         "USER_MANAGED_NETWORKING",
-        "MINIMAL_ISO"
+        "MINIMAL_ISO",
+        "FULL_ISO",
+        "EXTERNAL_PLATFORM_OCI"
       ]
     },
     "feature-support-levels": {
