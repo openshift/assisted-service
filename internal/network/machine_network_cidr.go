@@ -7,6 +7,7 @@ import (
 	"net"
 	"strings"
 
+	"github.com/IBM/netaddr"
 	"github.com/go-openapi/strfmt"
 	"github.com/hashicorp/go-multierror"
 	"github.com/openshift/assisted-service/internal/common"
@@ -84,6 +85,23 @@ func ipInCidr(ipStr, cidrStr string) bool {
 	return ipnet.Contains(ip)
 }
 
+func ipIsBroadcast(ipStr, cidrStr string) bool {
+	// Broadcast addresses are only used for IPv4, so if this is not IPv4, don't do this check.
+	if !IsIPv4Addr(ipStr) {
+		return false
+	}
+	ip := net.ParseIP(ipStr)
+	if ip == nil {
+		return false
+	}
+	_, ipnet, err := net.ParseCIDR(cidrStr)
+	if err != nil {
+		return false
+	}
+	broadcastAddress := netaddr.BroadcastAddr(ipnet)
+	return ip.Equal(broadcastAddress)
+}
+
 func VerifyVipFree(hosts []*models.Host, vip string, machineNetworkCidr string, verification *models.VipVerification, log logrus.FieldLogger) models.VipVerification {
 	if verification != nil {
 		switch *verification {
@@ -103,6 +121,9 @@ func VerifyVip(hosts []*models.Host, machineNetworkCidr string, vip string, vipN
 	}
 	if !ipInCidr(vip, machineNetworkCidr) {
 		return models.VipVerificationFailed, errors.Errorf("%s <%s> does not belong to machine-network-cidr <%s>", vipName, vip, machineNetworkCidr)
+	}
+	if ipIsBroadcast(vip, machineNetworkCidr) {
+		return models.VipVerificationFailed, errors.Errorf("%s <%s> is the broadcast address of machine-network-cidr <%s>", vipName, vip, machineNetworkCidr)
 	}
 	var msg string
 	ret := VerifyVipFree(hosts, vip, machineNetworkCidr, verification, log)
