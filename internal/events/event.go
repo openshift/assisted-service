@@ -419,9 +419,10 @@ func isDescending(order *string) (*bool, error) {
 }
 
 func escapePlaceHolders(message string) string {
-	escapedPercent := strings.ReplaceAll(message, "%", "\\%")
-	return strings.ReplaceAll(escapedPercent, "_", "\\_")
-
+	message = strings.ReplaceAll(message, "\\", "\\\\")
+	message = strings.ReplaceAll(message, "_", "\\_")
+	message = strings.ReplaceAll(message, "%", "\\%")
+	return message
 }
 
 func (e Events) queryEvents(ctx context.Context, params *common.V2GetEventsParams) ([]*common.Event, *common.EventSeverityCount, *int64, error) {
