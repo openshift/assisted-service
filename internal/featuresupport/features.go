@@ -266,6 +266,7 @@ func (feature *ClusterManagedNetworkingFeature) getIncompatibleFeatures() *[]mod
 	return &[]models.FeatureSupportLevelID{
 		models.FeatureSupportLevelIDSNO,
 		models.FeatureSupportLevelIDUSERMANAGEDNETWORKING,
+		models.FeatureSupportLevelIDEXTERNALPLATFORMOCI,
 	}
 }
 
@@ -495,15 +496,10 @@ func (feature *NutanixIntegrationFeature) getSupportLevel(filters SupportLevelFi
 }
 
 func (feature *NutanixIntegrationFeature) getFeatureActiveLevel(cluster *common.Cluster, _ *models.InfraEnv, clusterUpdateParams *models.V2ClusterUpdateParams, _ *models.InfraEnvUpdateParams) featureActiveLevel {
-	if cluster == nil {
-		return activeLevelNotActive
-	}
-
-	if (cluster.Platform != nil && common.PlatformTypeValue(cluster.Platform.Type) == models.PlatformTypeNutanix && clusterUpdateParams == nil) ||
-		(cluster.Platform != nil && common.PlatformTypeValue(cluster.Platform.Type) == models.PlatformTypeNutanix && clusterUpdateParams != nil && (clusterUpdateParams.Platform == nil || common.PlatformTypeValue(clusterUpdateParams.Platform.Type) == models.PlatformTypeNutanix)) ||
-		((cluster.Platform != nil && common.PlatformTypeValue(cluster.Platform.Type) != models.PlatformTypeNutanix) && clusterUpdateParams != nil && (clusterUpdateParams.Platform != nil && common.PlatformTypeValue(clusterUpdateParams.Platform.Type) == models.PlatformTypeNutanix)) {
+	if isPlatformActive(cluster, clusterUpdateParams, models.PlatformTypeNutanix) {
 		return activeLevelActive
 	}
+
 	return activeLevelNotActive
 }
 
@@ -547,15 +543,10 @@ func (feature *VsphereIntegrationFeature) getSupportLevel(filters SupportLevelFi
 }
 
 func (feature *VsphereIntegrationFeature) getFeatureActiveLevel(cluster *common.Cluster, _ *models.InfraEnv, clusterUpdateParams *models.V2ClusterUpdateParams, _ *models.InfraEnvUpdateParams) featureActiveLevel {
-	if cluster == nil {
-		return activeLevelNotActive
-	}
-
-	if (cluster.Platform != nil && common.PlatformTypeValue(cluster.Platform.Type) == models.PlatformTypeVsphere && clusterUpdateParams == nil) ||
-		(cluster.Platform != nil && common.PlatformTypeValue(cluster.Platform.Type) == models.PlatformTypeVsphere && clusterUpdateParams != nil && (clusterUpdateParams.Platform == nil || common.PlatformTypeValue(clusterUpdateParams.Platform.Type) == models.PlatformTypeVsphere)) ||
-		(cluster.Platform != nil && common.PlatformTypeValue(cluster.Platform.Type) != models.PlatformTypeVsphere && clusterUpdateParams != nil && (clusterUpdateParams.Platform != nil && common.PlatformTypeValue(clusterUpdateParams.Platform.Type) == models.PlatformTypeVsphere)) {
+	if isPlatformActive(cluster, clusterUpdateParams, models.PlatformTypeVsphere) {
 		return activeLevelActive
 	}
+
 	return activeLevelNotActive
 }
 
@@ -752,5 +743,104 @@ func (feature *MinimalIso) getFeatureActiveLevel(_ *common.Cluster, infraEnv *mo
 	if string(*infraEnv.Type) == string(models.ImageTypeFullIso) {
 		return activeLevelNotActive
 	}
+	return activeLevelNotActive
+}
+
+// FullIso
+type FullIso struct{}
+
+func (feature *FullIso) New() SupportLevelFeature {
+	return &FullIso{}
+}
+
+func (feature *FullIso) getId() models.FeatureSupportLevelID {
+	return models.FeatureSupportLevelIDFULLISO
+}
+
+func (feature *FullIso) getName() string {
+	return "Full ISO"
+}
+
+func (feature *FullIso) getSupportLevel(_ SupportLevelFilters) models.SupportLevel {
+	return models.SupportLevelSupported
+}
+
+func (feature *FullIso) getIncompatibleFeatures() *[]models.FeatureSupportLevelID {
+	return &[]models.FeatureSupportLevelID{
+		models.FeatureSupportLevelIDEXTERNALPLATFORMOCI,
+	}
+}
+
+func (feature *FullIso) getIncompatibleArchitectures(_ *string) *[]models.ArchitectureSupportLevelID {
+	return nil
+}
+
+func (feature *FullIso) getFeatureActiveLevel(_ *common.Cluster, infraEnv *models.InfraEnv, _ *models.V2ClusterUpdateParams, infraenvUpdateParams *models.InfraEnvUpdateParams) featureActiveLevel {
+	if infraEnv == nil || infraEnv.Type == nil {
+		return activeLevelNotActive
+	}
+
+	if infraenvUpdateParams != nil {
+		if string(infraenvUpdateParams.ImageType) == string(models.ImageTypeFullIso) {
+			return activeLevelActive
+		} else if string(infraenvUpdateParams.ImageType) == string(models.ImageTypeMinimalIso) {
+			return activeLevelNotActive
+		}
+	}
+
+	if string(*infraEnv.Type) == string(models.ImageTypeFullIso) {
+		return activeLevelActive
+	}
+	if string(*infraEnv.Type) == string(models.ImageTypeMinimalIso) {
+		return activeLevelNotActive
+	}
+	return activeLevelNotActive
+}
+
+// ExternalPlatformOci
+type ExternalPlatformOci struct{}
+
+func (feature *ExternalPlatformOci) New() SupportLevelFeature {
+	return &ExternalPlatformOci{}
+}
+
+func (feature *ExternalPlatformOci) getId() models.FeatureSupportLevelID {
+	return models.FeatureSupportLevelIDEXTERNALPLATFORMOCI
+}
+
+func (feature *ExternalPlatformOci) getName() string {
+	return "Oracle Cloud Infrastructure external platform"
+}
+
+func (feature *ExternalPlatformOci) getSupportLevel(filters SupportLevelFilters) models.SupportLevel {
+	if !isFeatureCompatibleWithArchitecture(feature, filters.OpenshiftVersion, swag.StringValue(filters.CPUArchitecture)) {
+		return models.SupportLevelUnavailable
+	}
+
+	if isNotSupported, err := common.BaseVersionLessThan("4.14", filters.OpenshiftVersion); isNotSupported || err != nil {
+		return models.SupportLevelUnavailable
+	}
+
+	return models.SupportLevelSupported
+}
+
+func (feature *ExternalPlatformOci) getIncompatibleFeatures() *[]models.FeatureSupportLevelID {
+	return &[]models.FeatureSupportLevelID{
+		models.FeatureSupportLevelIDCLUSTERMANAGEDNETWORKING,
+		models.FeatureSupportLevelIDVIPAUTOALLOC,
+		models.FeatureSupportLevelIDDUALSTACKVIPS,
+		models.FeatureSupportLevelIDFULLISO,
+	}
+}
+
+func (feature *ExternalPlatformOci) getIncompatibleArchitectures(_ *string) *[]models.ArchitectureSupportLevelID {
+	return nil
+}
+
+func (feature *ExternalPlatformOci) getFeatureActiveLevel(cluster *common.Cluster, _ *models.InfraEnv, clusterUpdateParams *models.V2ClusterUpdateParams, _ *models.InfraEnvUpdateParams) featureActiveLevel {
+	if isPlatformActive(cluster, clusterUpdateParams, models.PlatformTypeOci) {
+		return activeLevelActive
+	}
+
 	return activeLevelNotActive
 }

@@ -6269,7 +6269,7 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 						HighAvailabilityMode:  swag.String(models.ClusterHighAvailabilityModeFull),
 						UserManagedNetworking: swag.Bool(false),
 						OpenshiftVersion:      "4.12",
-						CPUArchitecture:       models.ClusterCPUArchitectureMulti,
+						CPUArchitecture:       common.DefaultCPUArchitecture,
 						Platform: &models.Platform{
 							Type: common.PlatformTypePtr(models.PlatformTypeBaremetal),
 						},

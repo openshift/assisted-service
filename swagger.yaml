@@ -3992,6 +3992,8 @@ definitions:
       - 'CLUSTER_MANAGED_NETWORKING'
       - 'USER_MANAGED_NETWORKING'
       - 'MINIMAL_ISO'
+      - 'FULL_ISO'
+      - 'EXTERNAL_PLATFORM_OCI'
 
   architecture-support-level-id:
     type: string

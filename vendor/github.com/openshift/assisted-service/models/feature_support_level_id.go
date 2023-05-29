@@ -71,6 +71,12 @@ const (
 
 	// FeatureSupportLevelIDMINIMALISO captures enum value "MINIMAL_ISO"
 	FeatureSupportLevelIDMINIMALISO FeatureSupportLevelID = "MINIMAL_ISO"
+
+	// FeatureSupportLevelIDFULLISO captures enum value "FULL_ISO"
+	FeatureSupportLevelIDFULLISO FeatureSupportLevelID = "FULL_ISO"
+
+	// FeatureSupportLevelIDEXTERNALPLATFORMOCI captures enum value "EXTERNAL_PLATFORM_OCI"
+	FeatureSupportLevelIDEXTERNALPLATFORMOCI FeatureSupportLevelID = "EXTERNAL_PLATFORM_OCI"
 )
 
 // for schema
@@ -78,7 +84,7 @@ var featureSupportLevelIdEnum []interface{}
 
 func init() {
 	var res []FeatureSupportLevelID
-	if err := json.Unmarshal([]byte(`["SNO","VIP_AUTO_ALLOC","CUSTOM_MANIFEST","SINGLE_NODE_EXPANSION","LVM","ODF","LSO","CNV","NUTANIX_INTEGRATION","VSPHERE_INTEGRATION","DUAL_STACK_VIPS","CLUSTER_MANAGED_NETWORKING","USER_MANAGED_NETWORKING","MINIMAL_ISO"]`), &res); err != nil {
+	if err := json.Unmarshal([]byte(`["SNO","VIP_AUTO_ALLOC","CUSTOM_MANIFEST","SINGLE_NODE_EXPANSION","LVM","ODF","LSO","CNV","NUTANIX_INTEGRATION","VSPHERE_INTEGRATION","DUAL_STACK_VIPS","CLUSTER_MANAGED_NETWORKING","USER_MANAGED_NETWORKING","MINIMAL_ISO","FULL_ISO","EXTERNAL_PLATFORM_OCI"]`), &res); err != nil {
 		panic(err)
 	}
 	for _, v := range res {

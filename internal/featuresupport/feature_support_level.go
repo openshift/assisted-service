@@ -24,6 +24,8 @@ var featuresList = map[models.FeatureSupportLevelID]SupportLevelFeature{
 	models.FeatureSupportLevelIDLSO:                      (&LsoFeature{}).New(),
 	models.FeatureSupportLevelIDODF:                      (&OdfFeature{}).New(),
 	models.FeatureSupportLevelIDMINIMALISO:               (&MinimalIso{}).New(),
+	models.FeatureSupportLevelIDFULLISO:                  (&FullIso{}).New(),
+	models.FeatureSupportLevelIDEXTERNALPLATFORMOCI:      (&ExternalPlatformOci{}).New(),
 }
 
 func getFeatureSupportList(features map[models.FeatureSupportLevelID]SupportLevelFeature, filters SupportLevelFilters) models.SupportLevels {

@@ -145,12 +145,12 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 	Context("GetSupportList", func() {
 		It("GetFeatureSupportList 4.12", func() {
 			list := GetFeatureSupportList("4.12", nil)
-			Expect(len(list)).To(Equal(14))
+			Expect(len(list)).To(Equal(16))
 		})
 
 		It("GetFeatureSupportList 4.13", func() {
 			list := GetFeatureSupportList("4.13", nil)
-			Expect(len(list)).To(Equal(14))
+			Expect(len(list)).To(Equal(16))
 		})
 
 		It("GetCpuArchitectureSupportList 4.12", func() {
@@ -502,6 +502,28 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 
 				Expect((*isUmnIncompatibleWithNutanix).getId()).To(Equal(nutanixFeature.getId()))
 				Expect((*isNutanixIncompatibleWithUmn).getId()).To(Equal(umnFeature.getId()))
+			})
+
+			It("Features with restrictions - OCI and CMN", func() {
+				cmnFeature := featuresList[models.FeatureSupportLevelIDCLUSTERMANAGEDNETWORKING]
+				ociFeature := featuresList[models.FeatureSupportLevelIDEXTERNALPLATFORMOCI]
+
+				isCmnIncompatibleWithOci := isFeatureCompatible(cmnFeature, ociFeature)
+				isOciIncompatibleWithUmn := isFeatureCompatible(ociFeature, cmnFeature)
+
+				Expect((*isCmnIncompatibleWithOci).getId()).To(Equal(ociFeature.getId()))
+				Expect((*isOciIncompatibleWithUmn).getId()).To(Equal(cmnFeature.getId()))
+			})
+
+			It("Features with restrictions - OCI and Full ISO", func() {
+				fullIsoFeature := featuresList[models.FeatureSupportLevelIDFULLISO]
+				ociFeature := featuresList[models.FeatureSupportLevelIDEXTERNALPLATFORMOCI]
+
+				isFullIsoIncompatibleWithOci := isFeatureCompatible(fullIsoFeature, ociFeature)
+				isOciIncompatibleWithUmn := isFeatureCompatible(ociFeature, fullIsoFeature)
+
+				Expect((*isFullIsoIncompatibleWithOci).getId()).To(Equal(ociFeature.getId()))
+				Expect((*isOciIncompatibleWithUmn).getId()).To(Equal(fullIsoFeature.getId()))
 			})
 
 			It("Features with restrictions - Sno", func() {
