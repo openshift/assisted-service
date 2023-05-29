@@ -1139,7 +1139,7 @@ func (m *Manager) reportValidationStatusChanged(ctx context.Context, vc *validat
 		for _, v := range vRes {
 			if previousStatus, ok := m.getValidationStatus(currentValidationRes, vCategory, v.ID); ok {
 				if v.Status == ValidationFailure && previousStatus != ValidationFailure {
-					log.Errorf("Host %s: validation '%s' changed from %s to %s", hostutil.GetHostnameForMsg(h), v.ID, v.Status, previousStatus)
+					log.Errorf("Host %s: validation '%s' changed from %s to %s", hostutil.GetHostnameForMsg(h), v.ID, previousStatus, v.Status)
 					failureMessage := "failed"
 					if previousStatus == ValidationSuccess {
 						m.metricApi.HostValidationChanged(models.HostValidationID(v.ID))
