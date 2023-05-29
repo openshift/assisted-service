@@ -81,6 +81,20 @@ func (mr *MockOperatorMockRecorder) GetDependencies(arg0 interface{}) *gomock.Ca
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetDependencies", reflect.TypeOf((*MockOperator)(nil).GetDependencies), arg0)
 }
 
+// GetFeatureSupportID mocks base method.
+func (m *MockOperator) GetFeatureSupportID() models.FeatureSupportLevelID {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetFeatureSupportID")
+	ret0, _ := ret[0].(models.FeatureSupportLevelID)
+	return ret0
+}
+
+// GetFeatureSupportID indicates an expected call of GetFeatureSupportID.
+func (mr *MockOperatorMockRecorder) GetFeatureSupportID() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetFeatureSupportID", reflect.TypeOf((*MockOperator)(nil).GetFeatureSupportID))
+}
+
 // GetFullName mocks base method.
 func (m *MockOperator) GetFullName() string {
 	m.ctrl.T.Helper()
@@ -179,20 +193,6 @@ func (m *MockOperator) GetProperties() models.OperatorProperties {
 func (mr *MockOperatorMockRecorder) GetProperties() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetProperties", reflect.TypeOf((*MockOperator)(nil).GetProperties))
-}
-
-// GetSupportedArchitectures mocks base method.
-func (m *MockOperator) GetSupportedArchitectures() []string {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetSupportedArchitectures")
-	ret0, _ := ret[0].([]string)
-	return ret0
-}
-
-// GetSupportedArchitectures indicates an expected call of GetSupportedArchitectures.
-func (mr *MockOperatorMockRecorder) GetSupportedArchitectures() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSupportedArchitectures", reflect.TypeOf((*MockOperator)(nil).GetSupportedArchitectures))
 }
 
 // ValidateCluster mocks base method.

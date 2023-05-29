@@ -100,6 +100,6 @@ func (l *lsOperator) GetPreflightRequirements(context context.Context, cluster *
 	}, nil
 }
 
-func (l *lsOperator) GetSupportedArchitectures() []string {
-	return []string{common.X86CPUArchitecture}
+func (l *lsOperator) GetFeatureSupportID() models.FeatureSupportLevelID {
+	return models.FeatureSupportLevelIDLSO
 }

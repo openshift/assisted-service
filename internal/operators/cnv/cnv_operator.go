@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/internal/featuresupport"
 	"github.com/openshift/assisted-service/internal/hardware/virt"
 	"github.com/openshift/assisted-service/internal/oc"
 	"github.com/openshift/assisted-service/internal/operators/api"
@@ -90,7 +91,7 @@ func (o *operator) ValidateCluster(_ context.Context, cluster *common.Cluster) (
 }
 
 func (o *operator) validateRequirements(cluster *models.Cluster) (api.ValidationStatus, string) {
-	if !api.IsArchitectureSupported(cluster.CPUArchitecture, o) {
+	if !featuresupport.IsFeatureCompatibleWithArchitecture(models.FeatureSupportLevelIDCNV, cluster.OpenshiftVersion, cluster.CPUArchitecture) {
 		return api.Failure, fmt.Sprintf(
 			"%s is supported only for %s CPU architecture.", o.GetFullName(), common.DefaultCPUArchitecture)
 	}
@@ -322,6 +323,6 @@ func validDiscoverableSNODisk(disks []*models.Disk, installationDiskID string, d
 	return fmt.Errorf("OpenShift Virtualization on SNO requires an additional disk with %d GB (%d Gi) in order to provide persistent storage for VMs, using hostpath-provisioner", thresholdGB, diskThresholdGi)
 }
 
-func (o *operator) GetSupportedArchitectures() []string {
-	return []string{common.X86CPUArchitecture}
+func (o *operator) GetFeatureSupportID() models.FeatureSupportLevelID {
+	return models.FeatureSupportLevelIDCNV
 }
