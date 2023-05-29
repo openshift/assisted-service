@@ -6647,6 +6647,26 @@ var _ = Describe("[V2ClusterUpdate] cluster", func() {
 					Expect(*actual.Platform.Type).To(Equal(models.PlatformTypeNone))
 
 				})
+
+				It("Update platform=nutanix with multi cpu architecture - success", func() {
+					err := db.Model(&common.Cluster{}).Where("id = ?", clusterID).Update("cpu_architecture", models.ClusterCPUArchitectureMulti).Error
+					Expect(err).ShouldNot(HaveOccurred())
+					mockSuccess()
+					mockProviderRegistry.EXPECT().SetPlatformUsages(models.PlatformTypeNutanix, gomock.Any(), mockUsage)
+
+					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
+						ClusterID: clusterID,
+						ClusterUpdateParams: &models.V2ClusterUpdateParams{
+							Platform:              &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeNutanix)},
+							UserManagedNetworking: swag.Bool(false),
+						},
+					})
+					Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2UpdateClusterCreated()))
+					actual := reply.(*installer.V2UpdateClusterCreated).Payload
+					Expect(swag.BoolValue(actual.UserManagedNetworking)).To(BeFalse())
+					Expect(*actual.Platform.Type).To(Equal(models.PlatformTypeNutanix))
+				})
+
 			})
 
 			Context("Update Platform while Cluster platform is none", func() {
@@ -12201,8 +12221,19 @@ var _ = Describe("TestRegisterCluster", func() {
 			It("Nutanix platform and arm64 - failed", func() {
 				mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
 					eventstest.WithNameMatcher(eventgen.ClusterRegistrationFailedEventName),
-					eventstest.WithMessageContainsMatcher("only x86-64 CPU architecture is supported on Nutanix clusters"),
+					eventstest.WithMessageContainsMatcher("cannot use Nutanix Platform Integration because it's not compatible with the arm64 architecture on version 4.11"),
 					eventstest.WithSeverityMatcher(models.EventSeverityError))).Times(1)
+
+				mockOSImages.EXPECT().GetCPUArchitectures(gomock.Any()).Return(
+					[]string{minimalOpenShiftVersionForNutanix, common.ARM64CPUArchitecture}).Times(1)
+				mockVersions.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(&models.ReleaseImage{
+					CPUArchitecture:  swag.String(common.MultiCPUArchitecture),
+					CPUArchitectures: []string{common.X86CPUArchitecture, common.ARM64CPUArchitecture},
+					OpenshiftVersion: swag.String("4.11.1"),
+					URL:              swag.String("release_4.11.1"),
+					Version:          swag.String("4.11.1-multi"),
+				}, nil).Times(1)
+				mockOperatorManager.EXPECT().GetSupportedOperatorsByType(models.OperatorTypeBuiltin).Return([]*models.MonitoredOperator{&common.TestDefaultConfig.MonitoredOperator}).Times(1)
 
 				params := getClusterCreateParams(nil)
 				params.Platform = &models.Platform{
@@ -12234,6 +12265,14 @@ var _ = Describe("TestRegisterCluster", func() {
 				Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2RegisterClusterCreated()))
 				c := reply.(*installer.V2RegisterClusterCreated).Payload
 
+				infraEnvID := strfmt.UUID(uuid.New().String())
+				err := db.Create(&common.InfraEnv{InfraEnv: models.InfraEnv{
+					ID:              &infraEnvID,
+					ClusterID:       *c.ID,
+					CPUArchitecture: models.InfraEnvCPUArchitectureArm64,
+				}}).Error
+				Expect(err).ShouldNot(HaveOccurred())
+
 				reply2 := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 					ClusterID: *c.ID,
 					ClusterUpdateParams: &models.V2ClusterUpdateParams{
@@ -12242,7 +12281,7 @@ var _ = Describe("TestRegisterCluster", func() {
 						},
 					},
 				})
-				verifyApiErrorString(reply2, http.StatusBadRequest, "only x86-64 CPU architecture is supported on Nutanix clusters")
+				verifyApiErrorString(reply2, http.StatusBadRequest, "cannot use Nutanix Platform Integration because it's not compatible with the arm64 architecture on version 4.11 of OpenShift")
 			})
 
 			It("None platform type", func() {
