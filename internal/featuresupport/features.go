@@ -37,15 +37,6 @@ type SupportLevelFilters struct {
 	CPUArchitecture  *string
 }
 
-func isFeatureCompatibleWithArchitecture(feature SupportLevelFeature, openshiftVersion, cpuArchitecture string) bool {
-	architectureID := cpuArchitectureFeatureIdMap[cpuArchitecture]
-	incompatibilitiesArchitectures := feature.getIncompatibleArchitectures(&openshiftVersion)
-	if incompatibilitiesArchitectures != nil && funk.Contains(*incompatibilitiesArchitectures, architectureID) {
-		return false
-	}
-	return true
-}
-
 func getOperatorsList(cluster common.Cluster, updateParams *models.V2ClusterUpdateParams) (*[]string, *[]string) {
 	var clusterOperators []string
 	var updateParamsOperators []string
@@ -662,6 +653,48 @@ func (feature *CnvFeature) getIncompatibleArchitectures(_ *string) *[]models.Arc
 
 func (feature *CnvFeature) getFeatureActiveLevel(cluster *common.Cluster, _ *models.InfraEnv, clusterUpdateParams *models.V2ClusterUpdateParams, _ *models.InfraEnvUpdateParams) featureActiveLevel {
 	if isOperatorActivated("cnv", cluster, clusterUpdateParams) {
+		return activeLevelActive
+	}
+	return activeLevelNotActive
+}
+
+// LsoFeature
+type LsoFeature struct{}
+
+func (feature *LsoFeature) New() SupportLevelFeature {
+	return &LsoFeature{}
+}
+
+func (feature *LsoFeature) getId() models.FeatureSupportLevelID {
+	return models.FeatureSupportLevelIDLSO
+}
+
+func (feature *LsoFeature) getName() string {
+	return "Local Storage Operator"
+}
+
+func (feature *LsoFeature) getSupportLevel(filters SupportLevelFilters) models.SupportLevel {
+	if !isFeatureCompatibleWithArchitecture(feature, filters.OpenshiftVersion, swag.StringValue(filters.CPUArchitecture)) {
+		return models.SupportLevelUnavailable
+	}
+
+	return models.SupportLevelSupported
+}
+
+func (feature *LsoFeature) getIncompatibleFeatures() *[]models.FeatureSupportLevelID {
+	return nil
+}
+
+func (feature *LsoFeature) getIncompatibleArchitectures(_ *string) *[]models.ArchitectureSupportLevelID {
+	return &[]models.ArchitectureSupportLevelID{
+		models.ArchitectureSupportLevelIDS390XARCHITECTURE,
+		models.ArchitectureSupportLevelIDPPC64LEARCHITECTURE,
+		models.ArchitectureSupportLevelIDARM64ARCHITECTURE,
+	}
+}
+
+func (feature *LsoFeature) getFeatureActiveLevel(cluster *common.Cluster, _ *models.InfraEnv, clusterUpdateParams *models.V2ClusterUpdateParams, _ *models.InfraEnvUpdateParams) featureActiveLevel {
+	if isOperatorActivated("lso", cluster, clusterUpdateParams) {
 		return activeLevelActive
 	}
 	return activeLevelNotActive

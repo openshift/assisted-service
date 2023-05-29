@@ -48,6 +48,9 @@ const (
 	// FeatureSupportLevelIDODF captures enum value "ODF"
 	FeatureSupportLevelIDODF FeatureSupportLevelID = "ODF"
 
+	// FeatureSupportLevelIDLSO captures enum value "LSO"
+	FeatureSupportLevelIDLSO FeatureSupportLevelID = "LSO"
+
 	// FeatureSupportLevelIDCNV captures enum value "CNV"
 	FeatureSupportLevelIDCNV FeatureSupportLevelID = "CNV"
 
@@ -75,7 +78,7 @@ var featureSupportLevelIdEnum []interface{}
 
 func init() {
 	var res []FeatureSupportLevelID
-	if err := json.Unmarshal([]byte(`["SNO","VIP_AUTO_ALLOC","CUSTOM_MANIFEST","SINGLE_NODE_EXPANSION","LVM","ODF","CNV","NUTANIX_INTEGRATION","VSPHERE_INTEGRATION","DUAL_STACK_VIPS","CLUSTER_MANAGED_NETWORKING","USER_MANAGED_NETWORKING","MINIMAL_ISO"]`), &res); err != nil {
+	if err := json.Unmarshal([]byte(`["SNO","VIP_AUTO_ALLOC","CUSTOM_MANIFEST","SINGLE_NODE_EXPANSION","LVM","ODF","LSO","CNV","NUTANIX_INTEGRATION","VSPHERE_INTEGRATION","DUAL_STACK_VIPS","CLUSTER_MANAGED_NETWORKING","USER_MANAGED_NETWORKING","MINIMAL_ISO"]`), &res); err != nil {
 		panic(err)
 	}
 	for _, v := range res {

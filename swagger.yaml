@@ -3984,6 +3984,7 @@ definitions:
       - 'SINGLE_NODE_EXPANSION'
       - 'LVM'
       - 'ODF'
+      - 'LSO'
       - 'CNV'
       - 'NUTANIX_INTEGRATION'
       - 'VSPHERE_INTEGRATION'

@@ -52,20 +52,6 @@ type Operator interface {
 	GetMonitoredOperator() *models.MonitoredOperator
 	// GetPreflightRequirements returns operator hardware requirements that can be determined with cluster data only
 	GetPreflightRequirements(ctx context.Context, cluster *common.Cluster) (*models.OperatorHardwareRequirements, error)
-	// GetSupportedArchitectures returns a list of all operator supported platforms
-	GetSupportedArchitectures() []string
-}
-
-// IsArchitectureSupported returns true if the operator supports a given architecture
-func IsArchitectureSupported(arch string, operator Operator) bool {
-	if arch == common.MultiCPUArchitecture {
-		return true
-	}
-
-	for _, supportedArch := range operator.GetSupportedArchitectures() {
-		if supportedArch == arch {
-			return true
-		}
-	}
-	return false
+	// GetFeatureSupportID returns the operator unique feature-support ID
+	GetFeatureSupportID() models.FeatureSupportLevelID
 }
