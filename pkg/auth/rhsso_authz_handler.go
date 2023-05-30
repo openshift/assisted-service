@@ -186,6 +186,11 @@ func (a *AuthzHandler) HasOrgBasedCapability(ctx context.Context, capability str
 	isAllowed, err := a.client.Authorization.CapabilityReview(context.Background(), fmt.Sprint(username), capability, ocm.OrganizationCapabilityType)
 	a.log.Debugf("queried AMS API with CapabilityReview for username: %s about capability: %s, capability type: %s. Result: %t",
 		fmt.Sprint(username), capability, ocm.OrganizationCapabilityType, isAllowed)
+
+	if err != nil {
+		a.log.WithError(err).Errorf("error getting user %s capability", capability)
+	}
+
 	return isAllowed, err
 }
 
