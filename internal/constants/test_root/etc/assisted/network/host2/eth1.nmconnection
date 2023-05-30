@@ -1,0 +1,9 @@
+[connection]
+autoconnect=true
+autoconnect-slaves=-1
+id=eth1
+interface-name=eth1
+master=925b4a95-2de0-5b2d-bcf5-8b684a7e9cb4
+slave-type=bond
+type=802-3-ethernet
+uuid=0523c0a1-5f5e-5603-bcf2-68155d5d322e
