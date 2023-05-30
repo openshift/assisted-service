@@ -1149,6 +1149,7 @@ func (r *ClusterDeploymentsReconciler) syncManifests(ctx context.Context, log lo
 
 	// create/update all manifests provided by configmap data
 	for filename, manifest := range manifestsFromConfigMap {
+		isUserManifest := true
 		log.Infof("Creating cluster deployment %s manifest %s", cluster.KubeKeyName, filename)
 		_, err := r.Manifests.CreateClusterManifestInternal(ctx, operations.V2CreateClusterManifestParams{
 			ClusterID: *cluster.ID,
@@ -1156,7 +1157,8 @@ func (r *ClusterDeploymentsReconciler) syncManifests(ctx context.Context, log lo
 				Content:  swag.String(base64.StdEncoding.EncodeToString([]byte(manifest))),
 				FileName: swag.String(filename),
 				Folder:   swag.String(models.ManifestFolderOpenshift),
-			}})
+			}},
+			isUserManifest)
 		if err != nil {
 			log.WithError(err).Errorf("Failed to create cluster deployment %s manifest %s", cluster.KubeKeyName, filename)
 			return err

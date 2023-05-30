@@ -1415,7 +1415,7 @@ func (m *Manager) deleteClusterFiles(ctx context.Context, c *common.Cluster, obj
 	var failedToDelete []string
 	for _, file := range files {
 		//skip log and manifests deletion when deleting cluster files
-		if folder == "" && (strings.Contains(file, "logs") || strings.Contains(file, "manifests")) {
+		if folder == "" && (strings.Contains(file, "logs") || strings.Contains(file, constants.ManifestFolder) || strings.Contains(file, constants.ManifestMetadataFolder)) {
 			continue
 		}
 		log.Debugf("Deleting cluster %s S3 file: %s", c.ID.String(), file)
@@ -1435,7 +1435,11 @@ func (m *Manager) deleteClusterFiles(ctx context.Context, c *common.Cluster, obj
 }
 
 func (m *Manager) deleteClusterManifests(ctx context.Context, c *common.Cluster, objectHandler s3wrapper.API) error {
-	return m.deleteClusterFiles(ctx, c, objectHandler, "manifests")
+	return m.deleteClusterFiles(ctx, c, objectHandler, constants.ManifestFolder)
+}
+
+func (m *Manager) deleteClusterManifestAttributes(ctx context.Context, c *common.Cluster, objectHandler s3wrapper.API) error {
+	return m.deleteClusterFiles(ctx, c, objectHandler, constants.ManifestMetadataFolder)
 }
 
 func (m *Manager) DeleteClusterLogs(ctx context.Context, c *common.Cluster, objectHandler s3wrapper.API) error {
@@ -1486,6 +1490,10 @@ func (m Manager) PermanentClustersDeletion(ctx context.Context, olderThan strfmt
 		if err := m.deleteClusterManifests(ctx, c, objectHandler); err != nil {
 			deleteFromDB = false
 			m.log.WithError(err).Warnf("Failed deleting s3 manifests of cluster %s", c.ID.String())
+		}
+		if err := m.deleteClusterManifestAttributes(ctx, c, objectHandler); err != nil {
+			deleteFromDB = false
+			m.log.WithError(err).Warnf("Failed deleting s3 manifest-attributes of cluster %s", c.ID.String())
 		}
 		if _, err := objectHandler.DeleteObject(ctx, c.ID.String()); err != nil {
 			deleteFromDB = false

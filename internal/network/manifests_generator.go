@@ -331,6 +331,7 @@ func (m *ManifestsGenerator) AddDiskEncryptionManifest(ctx context.Context, log 
 
 func (m *ManifestsGenerator) createManifests(ctx context.Context, cluster *common.Cluster, filename string, content []byte) error {
 	// all relevant logs of creating manifest will be inside CreateClusterManifest
+	// Mark internally created manifests as "non custom", i.e. not uploaded by a user.
 	_, err := m.manifestsApi.CreateClusterManifestInternal(ctx, operations.V2CreateClusterManifestParams{
 		ClusterID: *cluster.ID,
 		CreateManifestParams: &models.CreateManifestParams{
@@ -338,7 +339,7 @@ func (m *ManifestsGenerator) createManifests(ctx context.Context, cluster *commo
 			FileName: &filename,
 			Folder:   swag.String(models.ManifestFolderOpenshift),
 		},
-	})
+	}, false)
 
 	if err != nil {
 		return errors.Wrapf(err, "Failed to create manifest %s", filename)

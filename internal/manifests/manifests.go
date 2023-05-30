@@ -16,6 +16,7 @@ import (
 	"github.com/go-openapi/swag"
 	"github.com/openshift/assisted-service/internal/cluster"
 	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/internal/constants"
 	manifestsapi "github.com/openshift/assisted-service/internal/manifests/api"
 	"github.com/openshift/assisted-service/internal/usage"
 	"github.com/openshift/assisted-service/models"
@@ -31,9 +32,6 @@ import (
 )
 
 var _ manifestsapi.ManifestsAPI = &Manifests{}
-
-// ManifestFolder represents the manifests folder on s3 per cluster
-const ManifestFolder = "manifests"
 
 // NewManifestsAPI returns manifests API
 func NewManifestsAPI(db *gorm.DB, log logrus.FieldLogger, objectHandler s3wrapper.API, usageAPI usage.API) *Manifests {
@@ -53,7 +51,7 @@ type Manifests struct {
 	usageAPI      usage.API
 }
 
-func (m *Manifests) CreateClusterManifestInternal(ctx context.Context, params operations.V2CreateClusterManifestParams) (*models.Manifest, error) {
+func (m *Manifests) CreateClusterManifestInternal(ctx context.Context, params operations.V2CreateClusterManifestParams, isCustomManifest bool) (*models.Manifest, error) {
 	log := logutil.FromContext(ctx, m.log)
 	log.Infof("Creating manifest in cluster %s", params.ClusterID.String())
 
@@ -90,9 +88,45 @@ func (m *Manifests) CreateClusterManifestInternal(ctx context.Context, params op
 		return nil, err
 	}
 
+	if isCustomManifest {
+		err = m.markUserSuppliedManifest(ctx, params.ClusterID, path)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	log.Infof("Done creating manifest %s for cluster %s", path, params.ClusterID.String())
 	manifest := models.Manifest{FileName: fileName, Folder: folder}
 	return &manifest, nil
+}
+
+func (m *Manifests) isUserManifest(ctx context.Context, clusterID strfmt.UUID, folder string, fileName string) (error, bool) {
+	path := filepath.Join(folder, fileName)
+	isCustomManifest, err := m.objectHandler.DoesObjectExist(ctx, GetManifestMetadataObjectName(clusterID, path, constants.ManifestSourceUserSupplied))
+	return err, isCustomManifest
+}
+
+func (m *Manifests) unmarkUserSuppliedManifest(ctx context.Context, clusterID strfmt.UUID, path string) error {
+	objectName := GetManifestMetadataObjectName(clusterID, path, constants.ManifestSourceUserSupplied)
+	exists := false
+	var err error
+	if exists, err = m.objectHandler.DoesObjectExist(ctx, objectName); err != nil {
+		return errors.Wrapf(err, "Failed to delete metadata object %s from storage for cluster %s", objectName, clusterID)
+	}
+	if exists {
+		if _, err = m.objectHandler.DeleteObject(ctx, objectName); err != nil {
+			return errors.Wrapf(err, "Failed to delete metadata object %s from storage for cluster %s", objectName, clusterID)
+		}
+	}
+	return nil
+}
+
+func (m *Manifests) markUserSuppliedManifest(ctx context.Context, clusterID strfmt.UUID, path string) error {
+	objectName := GetManifestMetadataObjectName(clusterID, path, constants.ManifestSourceUserSupplied)
+	if err := m.objectHandler.Upload(ctx, []byte{}, objectName); err != nil {
+		return err
+	}
+	return nil
 }
 
 func (m *Manifests) ListClusterManifestsInternal(ctx context.Context, params operations.V2ListClusterManifestsParams) (models.ListManifests, error) {
@@ -108,7 +142,7 @@ func (m *Manifests) ListClusterManifestsInternal(ctx context.Context, params ope
 		return nil, common.NewApiError(http.StatusNotFound, fmt.Errorf("Object Not Found"))
 	}
 
-	objectName := filepath.Join(params.ClusterID.String(), ManifestFolder)
+	objectName := filepath.Join(params.ClusterID.String(), constants.ManifestFolder)
 	files, err := m.objectHandler.ListObjectsByPrefix(ctx, objectName)
 	if err != nil {
 		return nil, common.NewApiError(http.StatusInternalServerError, err)
@@ -118,12 +152,19 @@ func (m *Manifests) ListClusterManifestsInternal(ctx context.Context, params ope
 	for _, file := range files {
 		parts := strings.Split(strings.Trim(file, string(filepath.Separator)), string(filepath.Separator))
 		if len(parts) > 2 {
-			manifests = append(manifests, &models.Manifest{FileName: filepath.Join(parts[3:]...), Folder: parts[2]})
+			fileName := filepath.Join(parts[3:]...)
+			folder := parts[2]
+			err, isUserManifest := m.isUserManifest(ctx, params.ClusterID, folder, fileName)
+			if err != nil {
+				return nil, common.NewApiError(http.StatusInternalServerError, errors.Wrapf(err, "Unable to determine the source of manifest for cluster %s at path %s/%s", params.ClusterID, folder, fileName))
+			}
+			if isUserManifest {
+				manifests = append(manifests, &models.Manifest{FileName: fileName, Folder: folder})
+			}
 		} else {
 			return nil, common.NewApiError(http.StatusInternalServerError, errors.Errorf("Cannot list file %s in cluster %s", file, params.ClusterID.String()))
 		}
 	}
-
 	return manifests, nil
 }
 
@@ -162,7 +203,6 @@ func (m *Manifests) UpdateClusterManifestInternal(ctx context.Context, params op
 	}
 	srcFolder, srcFileName, srcPath := m.getManifestPathsFromParameters(ctx, &params.UpdateManifestParams.Folder, &params.UpdateManifestParams.FileName)
 	destFolder, destFileName, destPath := m.getManifestPathsFromParameters(ctx, params.UpdateManifestParams.UpdatedFolder, params.UpdateManifestParams.UpdatedFileName)
-
 	cluster, err := common.GetClusterFromDB(m.db, params.ClusterID, common.SkipEagerLoading)
 	if err != nil {
 		err = fmt.Errorf("Object Not Found")
@@ -202,15 +242,22 @@ func (m *Manifests) UpdateClusterManifestInternal(ctx context.Context, params op
 		return nil, err
 	}
 
+	err, isCustomManifest := m.isUserManifest(ctx, params.ClusterID, srcFolder, srcFileName)
+	if err != nil {
+		return nil, err
+	}
+	if isCustomManifest {
+		err = m.markUserSuppliedManifest(ctx, params.ClusterID, destPath)
+		if err != nil {
+			return nil, err
+		}
+	}
 	if srcPath != destPath {
-		m.log.Infof("Removing old manifest %s for cluster %s as the new file is at %s", srcPath, params.ClusterID.String(), destPath)
 		err = m.deleteManifest(ctx, params.ClusterID, srcPath)
 		if err != nil {
 			return nil, err
 		}
 	}
-
-	m.log.Infof("Done creating manifest %s for cluster %s", destFileName, params.ClusterID.String())
 	manifest := models.Manifest{FileName: destFileName, Folder: destFolder}
 	return &manifest, nil
 }
@@ -222,7 +269,6 @@ func (m *Manifests) V2DownloadClusterManifest(ctx context.Context, params operat
 		params.Folder = &defaultFolder
 	}
 	_, fileName, path := m.getManifestPathsFromParameters(ctx, params.Folder, &params.FileName)
-	log.Infof("Downloading manifest %s from cluster %s", path, params.ClusterID)
 
 	// Verify that the manifests are created for a valid cluster
 	// to align kube-api and ocm behavior.
@@ -276,7 +322,12 @@ func (m *Manifests) setUsage(active bool, manifest *models.Manifest, clusterID s
 
 // GetManifestObjectName returns the manifest object name as stored in S3
 func GetManifestObjectName(clusterID strfmt.UUID, fileName string) string {
-	return filepath.Join(string(clusterID), ManifestFolder, fileName)
+	return filepath.Join(string(clusterID), constants.ManifestFolder, fileName)
+}
+
+// GetManifestObjectName returns the manifest object name as stored in S3
+func GetManifestMetadataObjectName(clusterID strfmt.UUID, fileName string, manifestSource string) string {
+	return filepath.Join(string(clusterID), constants.ManifestMetadataFolder, fileName, manifestSource)
 }
 
 // GetClusterManifests returns a list of cluster manifests
@@ -417,6 +468,10 @@ func (m *Manifests) deleteManifest(ctx context.Context, clusterID strfmt.UUID, p
 			ctx,
 			http.StatusInternalServerError,
 			errors.Wrapf(err, "Failed to delete object %s from storage for cluster %s", objectName, clusterID))
+	}
+	err = m.unmarkUserSuppliedManifest(ctx, clusterID, path)
+	if err != nil {
+		return err
 	}
 	return nil
 }

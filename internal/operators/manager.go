@@ -182,7 +182,7 @@ func (mgr *Manager) createManifests(ctx context.Context, cluster *common.Cluster
 			FileName: &filename,
 			Folder:   swag.String(folder),
 		},
-	})
+	}, false)
 
 	if err != nil {
 		return errors.Wrapf(err, "Failed to create manifest %s for cluster %s", filename, cluster.ID)

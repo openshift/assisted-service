@@ -147,11 +147,11 @@ var _ = Describe("chrony manifest", func() {
 		})
 
 		It("CreateClusterManifest success", func() {
-			manifestsApi.EXPECT().CreateClusterManifestInternal(gomock.Any(), gomock.Any()).Return(&models.Manifest{
+			manifestsApi.EXPECT().CreateClusterManifestInternal(gomock.Any(), gomock.Any(), false).Return(&models.Manifest{
 				FileName: "50-masters-chrony-configuration.yaml",
 				Folder:   models.ManifestFolderOpenshift,
 			}, nil).Times(1)
-			manifestsApi.EXPECT().CreateClusterManifestInternal(gomock.Any(), gomock.Any()).Return(&models.Manifest{
+			manifestsApi.EXPECT().CreateClusterManifestInternal(gomock.Any(), gomock.Any(), false).Return(&models.Manifest{
 				FileName: "50-workers-chrony-configuration.yaml",
 				Folder:   models.ManifestFolderOpenshift,
 			}, nil).Times(1)
@@ -161,7 +161,7 @@ var _ = Describe("chrony manifest", func() {
 
 		It("CreateClusterManifest failure", func() {
 			fileName := "50-masters-chrony-configuration.yaml"
-			manifestsApi.EXPECT().CreateClusterManifestInternal(gomock.Any(), gomock.Any()).Return(nil, errors.Errorf("Failed to create manifest %s", fileName)).Times(1)
+			manifestsApi.EXPECT().CreateClusterManifestInternal(gomock.Any(), gomock.Any(), false).Return(nil, errors.Errorf("Failed to create manifest %s", fileName)).Times(1)
 			Expect(ntpUtils.AddChronyManifest(ctx, log, &cluster)).Should(HaveOccurred())
 		})
 	})
@@ -321,7 +321,7 @@ var _ = Describe("dnsmasq manifest", func() {
 
 			ctrl := gomock.NewController(GinkgoT())
 			mockManifestsApi := manifestsapi.NewMockManifestsAPI(ctrl)
-			mockManifestsApi.EXPECT().CreateClusterManifestInternal(gomock.Any(), gomock.Any()).Return(&models.Manifest{
+			mockManifestsApi.EXPECT().CreateClusterManifestInternal(gomock.Any(), gomock.Any(), false).Return(&models.Manifest{
 				FileName: "dnsmasq-bootstrap-in-place.yaml",
 				Folder:   models.ManifestFolderOpenshift,
 			}, nil).Times(0)
@@ -341,7 +341,7 @@ var _ = Describe("dnsmasq manifest", func() {
 
 			ctrl := gomock.NewController(GinkgoT())
 			mockManifestsApi := manifestsapi.NewMockManifestsAPI(ctrl)
-			mockManifestsApi.EXPECT().CreateClusterManifestInternal(gomock.Any(), gomock.Any()).Return(&models.Manifest{
+			mockManifestsApi.EXPECT().CreateClusterManifestInternal(gomock.Any(), gomock.Any(), false).Return(&models.Manifest{
 				FileName: "dnsmasq-bootstrap-in-place.yaml",
 				Folder:   models.ManifestFolderOpenshift,
 			}, nil).Times(1)
@@ -416,7 +416,7 @@ var _ = Describe("telemeter manifest", func() {
 			fileName := "redirect-telemeter.yaml"
 			It("happy flow", func() {
 				if test.envName == "Stage env" || test.envName == "Integration env" {
-					mockManifestsApi.EXPECT().CreateClusterManifestInternal(ctx, gomock.Any()).Return(&models.Manifest{
+					mockManifestsApi.EXPECT().CreateClusterManifestInternal(ctx, gomock.Any(), false).Return(&models.Manifest{
 						FileName: fileName,
 						Folder:   models.ManifestFolderOpenshift,
 					},
@@ -430,7 +430,7 @@ var _ = Describe("telemeter manifest", func() {
 				if test.envName != "Stage env" && test.envName != "Integration env" {
 					Skip("We don't create any additional manifest in prod")
 				}
-				mockManifestsApi.EXPECT().CreateClusterManifestInternal(ctx, gomock.Any()).Return(nil, errors.Errorf("Failed to create manifest %s", fileName))
+				mockManifestsApi.EXPECT().CreateClusterManifestInternal(ctx, gomock.Any(), false).Return(nil, errors.Errorf("Failed to create manifest %s", fileName))
 				err := manifestsGeneratorApi.AddTelemeterManifest(ctx, log, &cluster)
 				Expect(err).Should(HaveOccurred())
 			})
@@ -476,7 +476,7 @@ var _ = Describe("schedulable masters manifest", func() {
 	Context("CreateClusterManifest success", func() {
 		fileName := "cluster-scheduler-02-config.yml.patch_ai_set_masters_schedulable"
 		It("CreateClusterManifest success", func() {
-			manifestsApi.EXPECT().CreateClusterManifestInternal(gomock.Any(), gomock.Any()).Return(&models.Manifest{
+			manifestsApi.EXPECT().CreateClusterManifestInternal(gomock.Any(), gomock.Any(), false).Return(&models.Manifest{
 				FileName: fileName,
 				Folder:   models.ManifestFolderOpenshift,
 			}, nil).Times(1)
@@ -484,7 +484,7 @@ var _ = Describe("schedulable masters manifest", func() {
 		})
 
 		It("CreateClusterManifest failure", func() {
-			manifestsApi.EXPECT().CreateClusterManifestInternal(gomock.Any(), gomock.Any()).Return(nil, errors.Errorf("Failed to create manifest %s", fileName)).Times(1)
+			manifestsApi.EXPECT().CreateClusterManifestInternal(gomock.Any(), gomock.Any(), false).Return(nil, errors.Errorf("Failed to create manifest %s", fileName)).Times(1)
 			Expect(manifestsGeneratorApi.AddSchedulableMastersManifest(ctx, log, &cluster)).Should(HaveOccurred())
 		})
 	})
@@ -596,7 +596,7 @@ var _ = Describe("disk encryption manifest", func() {
 		It(t.name, func() {
 			c.DiskEncryption = t.diskEncryption
 			Expect(db.Create(&c).Error).NotTo(HaveOccurred())
-			mockManifestsApi.EXPECT().CreateClusterManifestInternal(ctx, gomock.Any()).Times(t.numOfManifests)
+			mockManifestsApi.EXPECT().CreateClusterManifestInternal(ctx, gomock.Any(), false).Times(t.numOfManifests)
 			err := manifestsGeneratorApi.AddDiskEncryptionManifest(ctx, log, &c)
 			Expect(err).ToNot(HaveOccurred())
 		})
@@ -649,7 +649,7 @@ var _ = Describe("node ip hint", func() {
 		fileName := "node-ip-hint.yaml"
 		It("CreateClusterManifest success", func() {
 			cluster := clusterCreate("3.3.3.0/24")
-			manifestsApi.EXPECT().CreateClusterManifestInternal(gomock.Any(), gomock.Any()).Return(&models.Manifest{
+			manifestsApi.EXPECT().CreateClusterManifestInternal(gomock.Any(), gomock.Any(), false).Return(&models.Manifest{
 				FileName: fileName,
 				Folder:   models.ManifestFolderOpenshift,
 			}, nil).Times(2)
