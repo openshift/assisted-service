@@ -486,3 +486,71 @@ var _ = Describe("Network type matches high availability mode", func() {
 			})
 	}
 })
+
+var _ = Describe("Validator tests", func() {
+	var (
+		validator         clusterValidator
+		preprocessContext *clusterPreprocessContext
+		clusterID         strfmt.UUID
+	)
+
+	BeforeEach(func() {
+		validator = clusterValidator{logrus.New(), nil}
+		clusterID = strfmt.UUID(uuid.New().String())
+	})
+
+	It("Should fail validation of API VIP if the supplied address is broadcast address in machine network", func() {
+		preprocessContext = &clusterPreprocessContext{hasHostsWithInventories: true}
+		verification := models.VipVerificationSucceeded
+		// Try with an API VIP that is a broadcast address, this should fail validation.
+		preprocessContext.cluster = &common.Cluster{Cluster: models.Cluster{
+			ID:              &clusterID,
+			MachineNetworks: common.TestIPv4Networking.MachineNetworks,
+			APIVips: []*models.APIVip{
+				{ClusterID: clusterID, IP: "1.2.3.255", Verification: &verification},
+			},
+		}}
+		status, message := validator.areApiVipsValid(preprocessContext)
+		Expect(status).To(Equal(ValidationFailure))
+		Expect(message).To(Equal("api vips <1.2.3.255> is the broadcast address of machine-network-cidr <1.2.3.0/24>"))
+
+		// Now try with an API VIP that is not a broadcast address, this should pass validation.
+		preprocessContext.cluster = &common.Cluster{Cluster: models.Cluster{
+			ID:              &clusterID,
+			MachineNetworks: common.TestIPv4Networking.MachineNetworks,
+			APIVips: []*models.APIVip{
+				{ClusterID: clusterID, IP: "1.2.3.1", Verification: &verification},
+			},
+		}}
+		status, _ = validator.areApiVipsValid(preprocessContext)
+		Expect(status).To(Equal(ValidationSuccess))
+	})
+
+	It("Should fail validation of Ingress VIP if the supplied address is broadcast address in machine network", func() {
+		preprocessContext = &clusterPreprocessContext{hasHostsWithInventories: true}
+		verification := models.VipVerificationSucceeded
+		// Try with an Ingress VIP that is a broadcast address, this should fail validation.
+		preprocessContext.cluster = &common.Cluster{Cluster: models.Cluster{
+			ID:              &clusterID,
+			MachineNetworks: common.TestIPv4Networking.MachineNetworks,
+			IngressVips: []*models.IngressVip{
+				{ClusterID: clusterID, IP: "1.2.3.255", Verification: &verification},
+			},
+		}}
+		status, message := validator.areIngressVipsValid(preprocessContext)
+		Expect(status).To(Equal(ValidationFailure))
+		Expect(message).To(Equal("ingress vips <1.2.3.255> is the broadcast address of machine-network-cidr <1.2.3.0/24>"))
+
+		// Now try with an Ingress VIP that is not a broadcast address, this should pass validation.
+		preprocessContext.cluster = &common.Cluster{Cluster: models.Cluster{
+			ID:              &clusterID,
+			MachineNetworks: common.TestIPv4Networking.MachineNetworks,
+			IngressVips: []*models.IngressVip{
+				{ClusterID: clusterID, IP: "1.2.3.1", Verification: &verification},
+			},
+		}}
+		status, _ = validator.areIngressVipsValid(preprocessContext)
+		Expect(status).To(Equal(ValidationSuccess))
+	})
+
+})
