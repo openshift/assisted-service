@@ -678,8 +678,6 @@ func (feature *LsoFeature) getIncompatibleFeatures() *[]models.FeatureSupportLev
 
 func (feature *LsoFeature) getIncompatibleArchitectures(_ *string) *[]models.ArchitectureSupportLevelID {
 	return &[]models.ArchitectureSupportLevelID{
-		models.ArchitectureSupportLevelIDS390XARCHITECTURE,
-		models.ArchitectureSupportLevelIDPPC64LEARCHITECTURE,
 		models.ArchitectureSupportLevelIDARM64ARCHITECTURE,
 	}
 }
