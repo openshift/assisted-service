@@ -7776,6 +7776,81 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 					Expect(swag.BoolValue(actual.Platform.IsExternal)).To(BeFalse())
 				})
 			})
+			Context("Update from none platform to oci platform with RHSSO", func() {
+				var cluster *common.Cluster
+				var mockOcmAuthz *ocm.MockOCMAuthorization
+				var authCtx context.Context
+				var payload *ocm.AuthPayload
+				BeforeEach(func() {
+					clusterID = strfmt.UUID(uuid.New().String())
+					cluster = &common.Cluster{Cluster: models.Cluster{
+						ID:                    &clusterID,
+						HighAvailabilityMode:  swag.String(models.ClusterHighAvailabilityModeFull),
+						UserManagedNetworking: swag.Bool(true),
+						Platform: &models.Platform{
+							Type: common.PlatformTypePtr(models.PlatformTypeNone),
+						},
+						CPUArchitecture: common.X86CPUArchitecture,
+					}}
+					err := db.Create(cluster).Error
+					Expect(err).ShouldNot(HaveOccurred())
+
+					cfg := auth.GetConfigRHSSO()
+					cfg.EnableOrgBasedFeatureGates = true
+					mockOcmAuthz = ocm.NewMockOCMAuthorization(ctrl)
+					mockOcmClient := &ocm.Client{Cache: cache.New(10*time.Minute, 30*time.Minute), Authorization: mockOcmAuthz}
+					bm.authHandler = auth.NewRHSSOAuthenticator(cfg, mockOcmClient, common.GetTestLog().WithField("pkg", "auth"), db)
+					bm.authzHandler = auth.NewAuthzHandler(cfg, mockOcmClient, common.GetTestLog().WithField("pkg", "auth"), db)
+					payload = &ocm.AuthPayload{Role: ocm.UserRole}
+					payload.Username = "user1"
+					payload.Organization = "org1"
+					authCtx = context.WithValue(ctx, restapi.AuthKey, payload)
+
+				})
+
+				It("Update platform=oci - PlatformOci capability is set - success", func() {
+					mockSuccess()
+					mockProviderRegistry.EXPECT().SetPlatformUsages(models.PlatformTypeOci, gomock.Any(), mockUsage)
+					mockOcmAuthz.EXPECT().CapabilityReview(gomock.Any(), payload.Username, ocm.PlatformOciCapabilityName, ocm.OrganizationCapabilityType).Return(true, nil).Times(1)
+					mockClusterApi.EXPECT().VerifyClusterUpdatability(createClusterIdMatcher(cluster)).Return(nil).Times(1)
+
+					reply := bm.V2UpdateCluster(authCtx, installer.V2UpdateClusterParams{
+						ClusterID: clusterID,
+						ClusterUpdateParams: &models.V2ClusterUpdateParams{
+							Platform: &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeOci)},
+						},
+					})
+					Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2UpdateClusterCreated()))
+					actual := reply.(*installer.V2UpdateClusterCreated).Payload
+					Expect(swag.BoolValue(actual.UserManagedNetworking)).To(Equal(true))
+					Expect(*actual.Platform.Type).To(Equal(models.PlatformTypeOci))
+					Expect(swag.BoolValue(actual.Platform.IsExternal)).To(BeTrue())
+				})
+
+				It("Update platform=oci - PlatformOci capability is not set - failure", func() {
+					mockOcmAuthz.EXPECT().CapabilityReview(gomock.Any(), payload.Username, ocm.PlatformOciCapabilityName, ocm.OrganizationCapabilityType).Return(false, nil).Times(1)
+
+					reply := bm.V2UpdateCluster(authCtx, installer.V2UpdateClusterParams{
+						ClusterID: clusterID,
+						ClusterUpdateParams: &models.V2ClusterUpdateParams{
+							Platform: &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeOci)},
+						},
+					})
+					verifyApiErrorString(reply, http.StatusBadRequest, "Platform oci is not available")
+				})
+
+				It("Update platform=oci - CapabilityReview returns an error - failure", func() {
+					mockOcmAuthz.EXPECT().CapabilityReview(gomock.Any(), payload.Username, ocm.PlatformOciCapabilityName, ocm.OrganizationCapabilityType).Return(true, errors.Errorf("some error")).Times(1)
+
+					reply := bm.V2UpdateCluster(authCtx, installer.V2UpdateClusterParams{
+						ClusterID: clusterID,
+						ClusterUpdateParams: &models.V2ClusterUpdateParams{
+							Platform: &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeOci)},
+						},
+					})
+					verifyApiErrorString(reply, http.StatusBadRequest, "Platform oci is not available")
+				})
+			})
 		})
 
 		Context("Feature compatibility", func() {
@@ -17576,6 +17651,33 @@ var _ = Describe("Platform tests", func() {
 			Expect(swag.BoolValue(cluster.Platform.IsExternal)).Should(BeTrue())
 			Expect(swag.BoolValue(cluster.UserManagedNetworking)).Should(BeTrue())
 		})
+
+		It("OCI platform - RHSSO - PlatformOciCapability is set", func() {
+			cfg := auth.GetConfigRHSSO()
+			cfg.EnableOrgBasedFeatureGates = true
+			mockOcmAuthz := ocm.NewMockOCMAuthorization(ctrl)
+			mockOcmClient := &ocm.Client{Cache: cache.New(10*time.Minute, 30*time.Minute), Authorization: mockOcmAuthz}
+			bm.authHandler = auth.NewRHSSOAuthenticator(cfg, mockOcmClient, common.GetTestLog().WithField("pkg", "auth"), db)
+			bm.authzHandler = auth.NewAuthzHandler(cfg, mockOcmClient, common.GetTestLog().WithField("pkg", "auth"), db)
+			payload := &ocm.AuthPayload{Role: ocm.UserRole}
+			payload.Username = "user1"
+			payload.Organization = "org1"
+			authCtx := context.WithValue(ctx, restapi.AuthKey, payload)
+			mockOcmAuthz.EXPECT().CapabilityReview(gomock.Any(), payload.Username, ocm.PlatformOciCapabilityName, ocm.OrganizationCapabilityType).Return(true, nil).Times(1)
+
+			registerParams.NewClusterParams.Platform = &models.Platform{
+				Type: common.PlatformTypePtr(models.PlatformTypeOci),
+			}
+			reply := bm.V2RegisterCluster(authCtx, *registerParams)
+
+			Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2RegisterClusterCreated()))
+			cluster := reply.(*installer.V2RegisterClusterCreated).Payload
+			Expect(cluster.Platform).ShouldNot(BeNil())
+			Expect(common.PlatformTypeValue(cluster.Platform.Type)).Should(BeEquivalentTo(models.PlatformTypeOci))
+			Expect(swag.BoolValue(cluster.Platform.IsExternal)).Should(BeTrue())
+			Expect(swag.BoolValue(cluster.UserManagedNetworking)).Should(BeTrue())
+		})
+
 	})
 
 	Context("Failed to register cluster", func() {
@@ -17609,6 +17711,57 @@ var _ = Describe("Platform tests", func() {
 			verifyApiError(reply, http.StatusBadRequest)
 		})
 
+		It("OCI platform - RHSSO - PlatformOciCapability is not set", func() {
+			cfg := auth.GetConfigRHSSO()
+			cfg.EnableOrgBasedFeatureGates = true
+			mockOcmAuthz := ocm.NewMockOCMAuthorization(ctrl)
+			mockOcmClient := &ocm.Client{Cache: cache.New(10*time.Minute, 30*time.Minute), Authorization: mockOcmAuthz}
+			bm.authHandler = auth.NewRHSSOAuthenticator(cfg, mockOcmClient, common.GetTestLog().WithField("pkg", "auth"), db)
+			bm.authzHandler = auth.NewAuthzHandler(cfg, mockOcmClient, common.GetTestLog().WithField("pkg", "auth"), db)
+			payload := &ocm.AuthPayload{Role: ocm.UserRole}
+			payload.Username = "user1"
+			payload.Organization = "org1"
+			authCtx := context.WithValue(ctx, restapi.AuthKey, payload)
+			mockOcmAuthz.EXPECT().CapabilityReview(gomock.Any(), payload.Username, ocm.PlatformOciCapabilityName, ocm.OrganizationCapabilityType).Return(false, nil).Times(1)
+
+			registerParams.NewClusterParams.Platform = &models.Platform{
+				Type: common.PlatformTypePtr(models.PlatformTypeOci),
+			}
+
+			mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
+				eventstest.WithNameMatcher(eventgen.ClusterRegistrationFailedEventName),
+				eventstest.WithMessageContainsMatcher("Platform oci is not available"),
+				eventstest.WithSeverityMatcher(models.EventSeverityError))).Times(1)
+
+			reply := bm.V2RegisterCluster(authCtx, *registerParams)
+			verifyApiError(reply, http.StatusBadRequest)
+		})
+
+		It("OCI platform - RHSSO - CapabilityReview returns an error", func() {
+			cfg := auth.GetConfigRHSSO()
+			cfg.EnableOrgBasedFeatureGates = true
+			mockOcmAuthz := ocm.NewMockOCMAuthorization(ctrl)
+			mockOcmClient := &ocm.Client{Cache: cache.New(10*time.Minute, 30*time.Minute), Authorization: mockOcmAuthz}
+			bm.authHandler = auth.NewRHSSOAuthenticator(cfg, mockOcmClient, common.GetTestLog().WithField("pkg", "auth"), db)
+			bm.authzHandler = auth.NewAuthzHandler(cfg, mockOcmClient, common.GetTestLog().WithField("pkg", "auth"), db)
+			payload := &ocm.AuthPayload{Role: ocm.UserRole}
+			payload.Username = "user1"
+			payload.Organization = "org1"
+			authCtx := context.WithValue(ctx, restapi.AuthKey, payload)
+			mockOcmAuthz.EXPECT().CapabilityReview(gomock.Any(), payload.Username, ocm.PlatformOciCapabilityName, ocm.OrganizationCapabilityType).Return(true, errors.Errorf("some error")).Times(1)
+
+			registerParams.NewClusterParams.Platform = &models.Platform{
+				Type: common.PlatformTypePtr(models.PlatformTypeOci),
+			}
+
+			mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
+				eventstest.WithNameMatcher(eventgen.ClusterRegistrationFailedEventName),
+				eventstest.WithMessageContainsMatcher("Platform oci is not available"),
+				eventstest.WithSeverityMatcher(models.EventSeverityError))).Times(1)
+
+			reply := bm.V2RegisterCluster(authCtx, *registerParams)
+			verifyApiError(reply, http.StatusBadRequest)
+		})
 	})
 })
 

@@ -540,6 +540,9 @@ func (b *bareMetalInventory) RegisterClusterInternal(
 	if err = validations.ValidateDualStackNetworks(params.NewClusterParams, false); err != nil {
 		return nil, common.NewApiError(http.StatusBadRequest, err)
 	}
+	if err = validations.ValidatePlatformCapability(params.NewClusterParams.Platform, ctx, b.authzHandler); err != nil {
+		return nil, common.NewApiError(http.StatusBadRequest, err)
+	}
 
 	params, err = b.setDefaultRegisterClusterParams(ctx, params, id)
 	if err != nil {
@@ -572,9 +575,6 @@ func (b *bareMetalInventory) RegisterClusterInternal(
 		//              with multiarch in order to get access to that release payload.
 		var multiarchAllowed bool
 		multiarchAllowed, err = b.authzHandler.HasOrgBasedCapability(ctx, ocm.MultiarchCapabilityName)
-		if err != nil {
-			log.WithError(err).Errorf("error getting user %s capability", ocm.MultiarchCapabilityName)
-		}
 		if err != nil || !multiarchAllowed {
 			err = common.NewApiError(http.StatusBadRequest, errors.New("multiarch clusters are not available"))
 			return nil, err
@@ -1860,6 +1860,10 @@ func (b *bareMetalInventory) validateAndUpdateClusterParams(ctx context.Context,
 	}
 
 	if err := b.validateIgnitionEndpoint(params.ClusterUpdateParams.IgnitionEndpoint, log); err != nil {
+		return installer.V2UpdateClusterParams{}, err
+	}
+
+	if err := validations.ValidatePlatformCapability(params.ClusterUpdateParams.Platform, ctx, b.authzHandler); err != nil {
 		return installer.V2UpdateClusterParams{}, err
 	}
 

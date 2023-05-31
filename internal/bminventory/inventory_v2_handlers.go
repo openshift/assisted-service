@@ -572,15 +572,8 @@ func (b *bareMetalInventory) V2ImportCluster(ctx context.Context, params install
 }
 
 func (b *bareMetalInventory) allowedToIgnoreValidations(ctx context.Context) bool {
-	log := logutil.FromContext(ctx, b.log)
 	allowedToIgnoreValidations, err := b.authzHandler.HasOrgBasedCapability(ctx, ocm.IgnoreValidationsCapabilityName)
-	if err != nil {
-		log.WithError(err).Errorf("error getting user %s capability", ocm.IgnoreValidationsCapabilityName)
-	}
-	if err != nil || !allowedToIgnoreValidations {
-		return false
-	}
-	return true
+	return err == nil && allowedToIgnoreValidations
 }
 
 func (b *bareMetalInventory) setIgnoredValidationsBadRequest(message string) *installer.V2SetIgnoredValidationsBadRequest {

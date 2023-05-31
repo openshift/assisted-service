@@ -2,6 +2,7 @@ package validations
 
 import (
 	"bytes"
+	"context"
 	"crypto/x509"
 	"encoding/base64"
 	"encoding/json"
@@ -975,4 +976,27 @@ func ValidateArchitectureWithPlatform(architecture *string, platform *models.Pla
 	}
 
 	return nil
+}
+
+func ValidatePlatformCapability(platform *models.Platform, ctx context.Context, authzHandler auth.Authorizer) error {
+	if platform == nil {
+		return nil
+	}
+
+	var capabilityName *string
+	switch *platform.Type {
+	case models.PlatformTypeOci:
+		capabilityName = swag.String(ocm.PlatformOciCapabilityName)
+	}
+
+	if capabilityName == nil {
+		return nil
+	}
+
+	available, err := authzHandler.HasOrgBasedCapability(ctx, *capabilityName)
+	if err == nil && available {
+		return nil
+	}
+
+	return common.NewApiError(http.StatusBadRequest, errors.Errorf("Platform %s is not available", *platform.Type))
 }
