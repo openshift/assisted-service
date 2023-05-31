@@ -112,6 +112,30 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 		}
 	})
 
+	Context("Test LSO CPU compatibility", func() {
+		feature := models.FeatureSupportLevelIDLSO
+		It("LSO IsFeatureAvailable", func() {
+			Expect(IsFeatureAvailable(feature, "Does not matter", swag.String(models.ClusterCPUArchitecturePpc64le))).To(Equal(true))
+			Expect(IsFeatureAvailable(feature, "Does not matter", swag.String(models.ClusterCPUArchitectureX8664))).To(Equal(true))
+			Expect(IsFeatureAvailable(feature, "Does not matter", swag.String(models.ClusterCPUArchitectureS390x))).To(Equal(true))
+			Expect(IsFeatureAvailable(feature, "Does not matter", swag.String(models.ClusterCPUArchitectureArm64))).To(Equal(false))
+		})
+		It("LSO GetSupportLevel on architecture", func() {
+			featureSupportParams := SupportLevelFilters{OpenshiftVersion: "Any", CPUArchitecture: swag.String(models.ClusterCPUArchitectureX8664)}
+			Expect(GetSupportLevel(feature, featureSupportParams)).To(Equal(models.SupportLevelSupported))
+
+			featureSupportParams.CPUArchitecture = swag.String(models.ClusterCPUArchitectureS390x)
+			Expect(GetSupportLevel(feature, featureSupportParams)).To(Equal(models.SupportLevelSupported))
+
+			featureSupportParams.CPUArchitecture = swag.String(models.ClusterCPUArchitecturePpc64le)
+			Expect(GetSupportLevel(feature, featureSupportParams)).To(Equal(models.SupportLevelSupported))
+
+			featureSupportParams.CPUArchitecture = swag.String(models.ClusterCPUArchitectureArm64)
+			Expect(GetSupportLevel(feature, featureSupportParams)).To(Equal(models.SupportLevelUnavailable))
+		})
+
+	})
+
 	Context("GetCpuArchitectureSupportList", func() {
 		It("GetCpuArchitectureSupportList for openshift version 4.6", func() {
 			openshiftVersion := "4.6"
