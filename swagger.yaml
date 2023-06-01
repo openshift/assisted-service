@@ -5763,6 +5763,9 @@ definitions:
       - FC
       - LVM
       - RAID
+      - ECKD        # IBM
+      - ECKD (ESE)  # IBM
+      - FBA         # IBM
 
   io_perf:
     type: object

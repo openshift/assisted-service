@@ -35,9 +35,9 @@ type Validator interface {
 	GetHostInstallationPath(host *models.Host) string
 	GetClusterHostRequirements(ctx context.Context, cluster *common.Cluster, host *models.Host) (*models.ClusterHostRequirements, error)
 	GetInfraEnvHostRequirements(ctx context.Context, infraEnv *common.InfraEnv) (*models.ClusterHostRequirements, error)
-	DiskIsEligible(ctx context.Context, disk *models.Disk, infraEnv *common.InfraEnv, cluster *common.Cluster, host *models.Host, allDisks []*models.Disk) ([]string, error)
+	DiskIsEligible(ctx context.Context, disk *models.Disk, infraEnv *common.InfraEnv, cluster *common.Cluster, host *models.Host, hostArchitecture string, allDisks []*models.Disk) ([]string, error)
 	ListEligibleDisks(inventory *models.Inventory) []*models.Disk
-	IsValidStorageDeviceType(disk *models.Disk) bool
+	IsValidStorageDeviceType(disk *models.Disk, hostArchitecture string) bool
 	GetInstallationDiskSpeedThresholdMs(ctx context.Context, cluster *common.Cluster, host *models.Host) (int64, error)
 	// GetPreflightHardwareRequirements provides hardware (host) requirements that can be calculated only using cluster information.
 	// Returned information describe requirements coming from OCP and OLM operators.
@@ -104,7 +104,7 @@ func isNvme(name string) bool {
 // it against a list of predicates. Returns all the reasons the disk
 // was found to be not eligible, or an empty slice if it was found to
 // be eligible
-func (v *validator) DiskIsEligible(ctx context.Context, disk *models.Disk, infraEnv *common.InfraEnv, cluster *common.Cluster, host *models.Host, allDisks []*models.Disk) ([]string, error) {
+func (v *validator) DiskIsEligible(ctx context.Context, disk *models.Disk, infraEnv *common.InfraEnv, cluster *common.Cluster, host *models.Host, hostArchitecture string, allDisks []*models.Disk) ([]string, error) {
 	var requirements *models.ClusterHostRequirements
 	var err error
 	if cluster != nil {
@@ -126,9 +126,9 @@ func (v *validator) DiskIsEligible(ctx context.Context, disk *models.Disk, infra
 				humanize.Bytes(uint64(disk.SizeBytes)), humanize.Bytes(uint64(minSizeBytes))))
 	}
 
-	if !v.IsValidStorageDeviceType(disk) {
+	if !v.IsValidStorageDeviceType(disk, hostArchitecture) {
 		notEligibleReasons = append(notEligibleReasons,
-			fmt.Sprintf(wrongDriveTypeTemplate, disk.DriveType, strings.Join(v.getValidDeviceStorageTypes(), ", ")))
+			fmt.Sprintf(wrongDriveTypeTemplate, disk.DriveType, strings.Join(v.getValidDeviceStorageTypes(hostArchitecture), ", ")))
 	}
 
 	// We only allow multipath if all paths are FC
@@ -147,8 +147,8 @@ func (v *validator) DiskIsEligible(ctx context.Context, disk *models.Disk, infra
 	return notEligibleReasons, nil
 }
 
-func (v *validator) IsValidStorageDeviceType(disk *models.Disk) bool {
-	return funk.ContainsString(v.getValidDeviceStorageTypes(), string(disk.DriveType))
+func (v *validator) IsValidStorageDeviceType(disk *models.Disk, hostArchitecture string) bool {
+	return funk.ContainsString(v.getValidDeviceStorageTypes(hostArchitecture), string(disk.DriveType))
 }
 
 func (v *validator) purgeServiceReasons(reasons []string) []string {
@@ -411,8 +411,12 @@ func (v *validator) getOCPRequirementsForVersion(openshiftVersion string) (*mode
 	return v.VersionedRequirements.GetVersionedHostRequirements(openshiftVersion)
 }
 
-func (v *validator) getValidDeviceStorageTypes() []string {
-	return []string{string(models.DriveTypeHDD), string(models.DriveTypeSSD), string(models.DriveTypeMultipath)}
+func (v *validator) getValidDeviceStorageTypes(hostArchitecture string) []string {
+	validTypes := []string{string(models.DriveTypeHDD), string(models.DriveTypeSSD), string(models.DriveTypeMultipath)}
+	if hostArchitecture == models.ClusterCPUArchitectureS390x {
+		validTypes = append(validTypes, string(models.DriveTypeFC), string(models.DriveTypeECKDESE), string(models.DriveTypeECKD), string(models.DriveTypeFBA))
+	}
+	return validTypes
 }
 
 func compileDiskReasonTemplate(template string, wildcards ...interface{}) *regexp.Regexp {

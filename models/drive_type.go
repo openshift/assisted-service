@@ -62,6 +62,15 @@ const (
 
 	// DriveTypeRAID captures enum value "RAID"
 	DriveTypeRAID DriveType = "RAID"
+
+	// DriveTypeECKD captures enum value "ECKD"
+	DriveTypeECKD DriveType = "ECKD"
+
+	// DriveTypeECKDESE captures enum value "ECKD (ESE)"
+	DriveTypeECKDESE DriveType = "ECKD (ESE)"
+
+	// DriveTypeFBA captures enum value "FBA"
+	DriveTypeFBA DriveType = "FBA"
 )
 
 // for schema
@@ -69,7 +78,7 @@ var driveTypeEnum []interface{}
 
 func init() {
 	var res []DriveType
-	if err := json.Unmarshal([]byte(`["Unknown","HDD","FDD","ODD","SSD","virtual","Multipath","iSCSI","FC","LVM","RAID"]`), &res); err != nil {
+	if err := json.Unmarshal([]byte(`["Unknown","HDD","FDD","ODD","SSD","virtual","Multipath","iSCSI","FC","LVM","RAID","ECKD","ECKD (ESE)","FBA"]`), &res); err != nil {
 		panic(err)
 	}
 	for _, v := range res {
