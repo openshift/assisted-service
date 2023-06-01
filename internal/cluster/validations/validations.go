@@ -118,7 +118,13 @@ func ParsePullSecret(secret string) (map[string]PullSecretCreds, error) {
 			return nil, &PullSecretError{Msg: fmt.Sprintf("invalid pull secret: %q JSON-object requires either 'auth' or 'credsStore' field", d)}
 		}
 
-		data, err := base64.StdEncoding.DecodeString(a["auth"].(string))
+		var authRaw string
+		if auth, ok := a["auth"].(string); authPresent && !ok {
+			return nil, &PullSecretError{Msg: fmt.Sprintf("invalid pull secret: 'auth' field of %q is %v but should be a string", d, a["auth"])}
+		} else {
+			authRaw = auth
+		}
+		data, err := base64.StdEncoding.DecodeString(authRaw)
 		if err != nil {
 			return nil, &PullSecretError{Msg: fmt.Sprintf("invalid pull secret: 'auth' field of %q is not base64-encoded", d)}
 		}
@@ -129,15 +135,14 @@ func ParsePullSecret(secret string) (map[string]PullSecretCreds, error) {
 		}
 
 		var email string
-		_, emailExists := a["email"]
-		if emailExists {
-			email = a["email"].(string)
+		if emailString, ok := a["email"].(string); ok {
+			email = emailString
 		}
 
 		result[d] = PullSecretCreds{
 			Password: string(res[1]),
 			Username: string(res[0]),
-			AuthRaw:  a["auth"].(string),
+			AuthRaw:  authRaw,
 			Registry: d,
 			Email:    email,
 		}
