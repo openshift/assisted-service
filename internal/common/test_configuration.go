@@ -319,6 +319,9 @@ func IncrementCidrMask(subnet string) string {
 
 func GenerateTestDefaultInventory() string {
 	inventory := &models.Inventory{
+		CPU: &models.CPU{
+			Architecture: models.ClusterCPUArchitectureX8664,
+		},
 		Interfaces: []*models.Interface{
 			{
 				Name: "eth0",
@@ -363,6 +366,9 @@ func GenerateTestInventoryWithVirtualInterface(physicalInterfaces, virtualInterf
 	interfaces := generateInterfaces(physicalInterfaces, "physical")
 	interfaces = append(interfaces, generateInterfaces(virtualInterfaces, "device")...)
 	inventory := &models.Inventory{
+		CPU: &models.CPU{
+			Architecture: models.ClusterCPUArchitectureX8664,
+		},
 		Interfaces: interfaces,
 		Disks: []*models.Disk{
 			TestDefaultConfig.Disks,

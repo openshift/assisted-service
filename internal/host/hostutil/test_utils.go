@@ -271,7 +271,7 @@ func GenerateMasterInventoryWithHostnameDualStack(hostname string) string {
 
 func GenerateMasterInventoryWithHostnameAndCpuFlags(hostname string, cpuflags []string, systemPlatform string) string {
 	inventory := models.Inventory{
-		CPU: &models.CPU{Count: 8, Flags: cpuflags},
+		CPU: &models.CPU{Count: 8, Flags: cpuflags, Architecture: models.ClusterCPUArchitectureX8664},
 		Disks: []*models.Disk{
 			{
 				SizeBytes: 128849018880,

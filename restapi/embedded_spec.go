@@ -7250,7 +7250,10 @@ func init() {
         "iSCSI",
         "FC",
         "LVM",
-        "RAID"
+        "RAID",
+        "ECKD",
+        "ECKD (ESE)",
+        "FBA"
       ]
     },
     "error": {
@@ -17604,7 +17607,10 @@ func init() {
         "iSCSI",
         "FC",
         "LVM",
-        "RAID"
+        "RAID",
+        "ECKD",
+        "ECKD (ESE)",
+        "FBA"
       ]
     },
     "error": {

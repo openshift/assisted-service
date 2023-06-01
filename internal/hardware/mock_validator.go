@@ -37,18 +37,18 @@ func (m *MockValidator) EXPECT() *MockValidatorMockRecorder {
 }
 
 // DiskIsEligible mocks base method.
-func (m *MockValidator) DiskIsEligible(ctx context.Context, disk *models.Disk, infraEnv *common.InfraEnv, cluster *common.Cluster, host *models.Host, allDisks []*models.Disk) ([]string, error) {
+func (m *MockValidator) DiskIsEligible(ctx context.Context, disk *models.Disk, infraEnv *common.InfraEnv, cluster *common.Cluster, host *models.Host, hostArchitecture string, allDisks []*models.Disk) ([]string, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DiskIsEligible", ctx, disk, infraEnv, cluster, host, allDisks)
+	ret := m.ctrl.Call(m, "DiskIsEligible", ctx, disk, infraEnv, cluster, host, hostArchitecture, allDisks)
 	ret0, _ := ret[0].([]string)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // DiskIsEligible indicates an expected call of DiskIsEligible.
-func (mr *MockValidatorMockRecorder) DiskIsEligible(ctx, disk, infraEnv, cluster, host, allDisks interface{}) *gomock.Call {
+func (mr *MockValidatorMockRecorder) DiskIsEligible(ctx, disk, infraEnv, cluster, host, hostArchitecture, allDisks interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DiskIsEligible", reflect.TypeOf((*MockValidator)(nil).DiskIsEligible), ctx, disk, infraEnv, cluster, host, allDisks)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DiskIsEligible", reflect.TypeOf((*MockValidator)(nil).DiskIsEligible), ctx, disk, infraEnv, cluster, host, hostArchitecture, allDisks)
 }
 
 // GetClusterHostRequirements mocks base method.
@@ -156,17 +156,17 @@ func (mr *MockValidatorMockRecorder) GetPreflightInfraEnvHardwareRequirements(ct
 }
 
 // IsValidStorageDeviceType mocks base method.
-func (m *MockValidator) IsValidStorageDeviceType(disk *models.Disk) bool {
+func (m *MockValidator) IsValidStorageDeviceType(disk *models.Disk, hostArchitecture string) bool {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "IsValidStorageDeviceType", disk)
+	ret := m.ctrl.Call(m, "IsValidStorageDeviceType", disk, hostArchitecture)
 	ret0, _ := ret[0].(bool)
 	return ret0
 }
 
 // IsValidStorageDeviceType indicates an expected call of IsValidStorageDeviceType.
-func (mr *MockValidatorMockRecorder) IsValidStorageDeviceType(disk interface{}) *gomock.Call {
+func (mr *MockValidatorMockRecorder) IsValidStorageDeviceType(disk, hostArchitecture interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsValidStorageDeviceType", reflect.TypeOf((*MockValidator)(nil).IsValidStorageDeviceType), disk)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsValidStorageDeviceType", reflect.TypeOf((*MockValidator)(nil).IsValidStorageDeviceType), disk, hostArchitecture)
 }
 
 // ListEligibleDisks mocks base method.
