@@ -74,7 +74,7 @@ type API interface {
 	// GetPreflightRequirementsBreakdownForCluster provides host requirements breakdown for each supported OLM operator
 	GetPreflightRequirementsBreakdownForCluster(ctx context.Context, cluster *common.Cluster) ([]*models.OperatorHardwareRequirements, error)
 	// EnsureOperatorPrerequisite Ensure that for the given operators has the base prerequisite for installation
-	EnsureOperatorPrerequisite(cluster *common.Cluster, openshiftVersion string, operators []*models.MonitoredOperator) error
+	EnsureOperatorPrerequisite(cluster *common.Cluster, openshiftVersion string, cpuArchitecture string, operators []*models.MonitoredOperator) error
 }
 
 // GetPreflightRequirementsBreakdownForCluster provides host requirements breakdown for each supported OLM operator
@@ -406,12 +406,12 @@ func (mgr *Manager) GetSupportedOperatorsByType(operatorType models.OperatorType
 	return operators
 }
 
-func isOperatorCompatibleWithArchitecture(cluster *common.Cluster, operator api.Operator) bool {
+func isOperatorCompatibleWithArchitecture(cluster *common.Cluster, cpuArchitecture string, operator api.Operator) bool {
 	featureId := operator.GetFeatureSupportID()
-	return featuresupport.IsFeatureCompatibleWithArchitecture(featureId, cluster.OpenshiftVersion, cluster.CPUArchitecture)
+	return featuresupport.IsFeatureCompatibleWithArchitecture(featureId, cluster.OpenshiftVersion, cpuArchitecture)
 }
 
-func (mgr *Manager) EnsureOperatorArchCapability(cluster *common.Cluster, operators []*models.MonitoredOperator) error {
+func (mgr *Manager) EnsureOperatorArchCapability(cluster *common.Cluster, cpuArchitecture string, operators []*models.MonitoredOperator) error {
 	var monitoredOperators []string
 	var failedOperators []string
 
@@ -424,7 +424,7 @@ func (mgr *Manager) EnsureOperatorArchCapability(cluster *common.Cluster, operat
 			continue
 		}
 
-		if !isOperatorCompatibleWithArchitecture(cluster, operator) {
+		if !isOperatorCompatibleWithArchitecture(cluster, cpuArchitecture, operator) {
 			failedOperators = append(failedOperators, operator.GetFullName())
 		}
 	}
@@ -473,13 +473,13 @@ func EnsureLVMAndCNVDoNotClash(cluster *common.Cluster, openshiftVersion string,
 	return nil
 }
 
-func (mgr *Manager) EnsureOperatorPrerequisite(cluster *common.Cluster, openshiftVersion string, operators []*models.MonitoredOperator) error {
+func (mgr *Manager) EnsureOperatorPrerequisite(cluster *common.Cluster, openshiftVersion string, cpuArchitecture string, operators []*models.MonitoredOperator) error {
 	err := EnsureLVMAndCNVDoNotClash(cluster, openshiftVersion, operators)
 	if err != nil {
 		return err
 	}
 
-	err = mgr.EnsureOperatorArchCapability(cluster, operators)
+	err = mgr.EnsureOperatorArchCapability(cluster, cpuArchitecture, operators)
 	if err != nil {
 		return err
 	}

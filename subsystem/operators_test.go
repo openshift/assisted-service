@@ -196,16 +196,17 @@ var _ = Describe("Operators endpoint tests", func() {
 
 	Context("OLM operators", func() {
 		ctx := context.Background()
-		registerNewCluster := func(openshiftVersion string, highAvailabilityMode string, operators []*models.OperatorCreateParams) *installer.V2RegisterClusterCreated {
+		registerNewCluster := func(openshiftVersion string, highAvailabilityMode string, operators []*models.OperatorCreateParams, cpuArchitecture *string) *installer.V2RegisterClusterCreated {
 			var err error
 			var cluster *installer.V2RegisterClusterCreated
 
-			cluster, err = userBMClient.Installer.V2RegisterCluster(ctx, &installer.V2RegisterClusterParams{
+			cluster, err = user2BMClient.Installer.V2RegisterCluster(ctx, &installer.V2RegisterClusterParams{
 				NewClusterParams: &models.ClusterCreateParams{
 					Name:                 swag.String("test-cluster"),
 					OpenshiftVersion:     swag.String(openshiftVersion),
 					HighAvailabilityMode: swag.String(highAvailabilityMode),
-					PullSecret:           swag.String(pullSecret),
+					PullSecret:           swag.String(fmt.Sprintf(psTemplate, FakePS2)),
+					CPUArchitecture:      swag.StringValue(cpuArchitecture),
 					OlmOperators:         operators,
 				},
 			})
@@ -217,13 +218,126 @@ var _ = Describe("Operators endpoint tests", func() {
 			return cluster
 		}
 
+		It("LSO as ODF dependency on Z CPU architecture", func() {
+			// Register cluster with ppc64le CPU architecture
+			cluster := registerNewCluster(
+				"4.13.0",
+				models.ClusterHighAvailabilityModeFull,
+				nil,
+				swag.String(models.ClusterCPUArchitectureS390x),
+			)
+			Expect(cluster.Payload.CPUArchitecture).To(Equal(models.ClusterCPUArchitectureMulti))
+			Expect(len(cluster.Payload.MonitoredOperators)).To(Equal(1))
+
+			// Register infra-env with ppc64le CPU architecture
+			infraEnvParams := installer.RegisterInfraEnvParams{
+				InfraenvCreateParams: &models.InfraEnvCreateParams{
+					Name:             swag.String("infra-env-1"),
+					OpenshiftVersion: "4.13.0",
+					ClusterID:        cluster.Payload.ID,
+					PullSecret:       swag.String(fmt.Sprintf(psTemplate, FakePS2)),
+					SSHAuthorizedKey: swag.String(sshPublicKey),
+					CPUArchitecture:  models.ClusterCPUArchitectureS390x,
+				},
+			}
+			infraEnv, err := user2BMClient.Installer.RegisterInfraEnv(ctx, &infraEnvParams)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(infraEnv.Payload.CPUArchitecture).To(Equal(models.ClusterCPUArchitectureS390x))
+
+			ops, err := agent2BMClient.Operators.V2ListOfClusterOperators(ctx, opclient.NewV2ListOfClusterOperatorsParams().WithClusterID(*cluster.Payload.ID))
+			Expect(err).ToNot(HaveOccurred())
+			Expect(len(ops.GetPayload())).To(BeNumerically("==", 1))
+
+			// Update cluster with ODF operator
+			_, err = user2BMClient.Installer.V2UpdateCluster(context.TODO(), &installer.V2UpdateClusterParams{
+				ClusterUpdateParams: &models.V2ClusterUpdateParams{
+					OlmOperators: []*models.OperatorCreateParams{
+						{Name: odf.Operator.Name},
+					},
+				},
+				ClusterID: *cluster.Payload.ID,
+			})
+			Expect(err).ShouldNot(HaveOccurred())
+
+			ops, err = agent2BMClient.Operators.V2ListOfClusterOperators(ctx, opclient.NewV2ListOfClusterOperatorsParams().WithClusterID(*cluster.Payload.ID))
+			Expect(err).ToNot(HaveOccurred())
+			Expect(len(ops.GetPayload())).To(BeNumerically(">=", 3))
+
+			var operatorNames []string
+			for _, op := range ops.GetPayload() {
+				operatorNames = append(operatorNames, op.Name)
+			}
+
+			// Builtin
+			for _, builtinOperator := range operators.NewManager(log, nil, operators.Options{}, nil, nil).GetSupportedOperatorsByType(models.OperatorTypeBuiltin) {
+				Expect(operatorNames).To(ContainElements(builtinOperator.Name))
+			}
+
+			// OLM
+			Expect(operatorNames).To(ContainElements(
+				odf.Operator.Name,
+				lso.Operator.Name,
+			))
+
+			// Verify that the cluster is updatable
+			_, err = user2BMClient.Installer.V2UpdateCluster(context.TODO(), &installer.V2UpdateClusterParams{
+				ClusterUpdateParams: &models.V2ClusterUpdateParams{
+					Name: swag.String("new-cluster-name"),
+				},
+				ClusterID: *cluster.Payload.ID,
+			})
+			Expect(err).ToNot(HaveOccurred())
+		})
+
+		It("LSO as ODF dependency on ARM arch", func() {
+			cluster := registerNewCluster(
+				"4.13-multi",
+				models.ClusterHighAvailabilityModeFull,
+				nil,
+				swag.String(models.ClusterCPUArchitectureArm64),
+			)
+			Expect(cluster.Payload.CPUArchitecture).To(Equal(models.ClusterCPUArchitectureMulti))
+			Expect(len(cluster.Payload.MonitoredOperators)).To(Equal(1))
+
+			infraEnvParams := installer.RegisterInfraEnvParams{
+				InfraenvCreateParams: &models.InfraEnvCreateParams{
+					Name:             swag.String("infra-env-1"),
+					OpenshiftVersion: "4.13.0",
+					ClusterID:        cluster.Payload.ID,
+					PullSecret:       swag.String(fmt.Sprintf(psTemplate, FakePS2)),
+					SSHAuthorizedKey: swag.String(sshPublicKey),
+					CPUArchitecture:  models.ClusterCPUArchitectureArm64,
+				},
+			}
+			infraEnv, err := user2BMClient.Installer.RegisterInfraEnv(ctx, &infraEnvParams)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(infraEnv.Payload.CPUArchitecture).To(Equal(models.ClusterCPUArchitectureArm64))
+
+			ops, err := agent2BMClient.Operators.V2ListOfClusterOperators(ctx, opclient.NewV2ListOfClusterOperatorsParams().WithClusterID(*cluster.Payload.ID))
+			Expect(err).ToNot(HaveOccurred())
+			Expect(len(ops.GetPayload())).To(BeNumerically("==", 1))
+
+			// Update cluster with ODF operator
+			_, err = user2BMClient.Installer.V2UpdateCluster(context.TODO(), &installer.V2UpdateClusterParams{
+				ClusterUpdateParams: &models.V2ClusterUpdateParams{
+					OlmOperators: []*models.OperatorCreateParams{
+						{Name: lso.Operator.Name},
+					},
+				},
+				ClusterID: *cluster.Payload.ID,
+			})
+			reason := err.(*installer.V2UpdateClusterBadRequest).Payload.Reason
+			Expect(*reason).To(ContainSubstring("cannot use Local Storage Operator because it's not compatible with the arm64 architecture on version 4.13"))
+		})
+
 		It("should lvm installed as cnv dependency", func() {
 			cluster := registerNewCluster(
 				"4.12.0",
 				models.ClusterHighAvailabilityModeNone,
 				[]*models.OperatorCreateParams{{Name: cnv.Operator.Name}},
+				nil,
 			)
-			ops, err := agentBMClient.Operators.V2ListOfClusterOperators(ctx, opclient.NewV2ListOfClusterOperatorsParams().WithClusterID(*cluster.Payload.ID))
+			ops, err := agent2BMClient.Operators.V2ListOfClusterOperators(ctx, opclient.NewV2ListOfClusterOperatorsParams().WithClusterID(*cluster.Payload.ID))
 
 			Expect(err).ToNot(HaveOccurred())
 			Expect(len(ops.GetPayload())).To(BeNumerically(">=", 3))
@@ -250,8 +364,9 @@ var _ = Describe("Operators endpoint tests", func() {
 				"4.12.0",
 				models.ClusterHighAvailabilityModeNone,
 				[]*models.OperatorCreateParams{{Name: cnv.Operator.Name}},
+				nil,
 			)
-			ops, err := agentBMClient.Operators.V2ListOfClusterOperators(ctx, opclient.NewV2ListOfClusterOperatorsParams().WithClusterID(*cluster.Payload.ID))
+			ops, err := agent2BMClient.Operators.V2ListOfClusterOperators(ctx, opclient.NewV2ListOfClusterOperatorsParams().WithClusterID(*cluster.Payload.ID))
 
 			Expect(err).ToNot(HaveOccurred())
 
@@ -271,8 +386,9 @@ var _ = Describe("Operators endpoint tests", func() {
 				"4.11.0",
 				models.ClusterHighAvailabilityModeNone,
 				[]*models.OperatorCreateParams{{Name: lvm.Operator.Name}},
+				nil,
 			)
-			ops, err := agentBMClient.Operators.V2ListOfClusterOperators(ctx, opclient.NewV2ListOfClusterOperatorsParams().WithClusterID(*cluster.Payload.ID))
+			ops, err := agent2BMClient.Operators.V2ListOfClusterOperators(ctx, opclient.NewV2ListOfClusterOperatorsParams().WithClusterID(*cluster.Payload.ID))
 
 			Expect(err).ToNot(HaveOccurred())
 
