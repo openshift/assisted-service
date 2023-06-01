@@ -7447,7 +7447,8 @@ func init() {
         "USER_MANAGED_NETWORKING",
         "MINIMAL_ISO",
         "FULL_ISO",
-        "EXTERNAL_PLATFORM_OCI"
+        "EXTERNAL_PLATFORM_OCI",
+        "DUAL_STACK"
       ]
     },
     "feature-support-levels": {
@@ -17763,7 +17764,8 @@ func init() {
         "USER_MANAGED_NETWORKING",
         "MINIMAL_ISO",
         "FULL_ISO",
-        "EXTERNAL_PLATFORM_OCI"
+        "EXTERNAL_PLATFORM_OCI",
+        "DUAL_STACK"
       ]
     },
     "feature-support-levels": {

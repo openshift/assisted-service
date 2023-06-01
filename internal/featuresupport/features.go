@@ -3,6 +3,7 @@ package featuresupport
 import (
 	"github.com/go-openapi/swag"
 	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/internal/network"
 	"github.com/openshift/assisted-service/models"
 	"github.com/thoas/go-funk"
 )
@@ -25,7 +26,7 @@ type SupportLevelFeature interface {
 	// getSupportLevel - Get feature support-level value, filtered by given filters (e.g. OpenshiftVersion, CpuArchitecture)
 	getSupportLevel(filters SupportLevelFilters) models.SupportLevel
 	// getIncompatibleFeatures - Get a list of features that cannot exist alongside this feature
-	getIncompatibleFeatures() *[]models.FeatureSupportLevelID
+	getIncompatibleFeatures(openshiftVersion string) *[]models.FeatureSupportLevelID
 	// getIncompatibleArchitectures - Get a list of architectures which the given feature will not work on
 	getIncompatibleArchitectures(openshiftVersion *string) *[]models.ArchitectureSupportLevelID
 	// getFeatureActiveLevel - Get the feature status, if it's active, not-active or not relevant (in cases where there is no meaning for that feature to be active)
@@ -102,7 +103,7 @@ func (feature *SnoFeature) getSupportLevel(filters SupportLevelFilters) models.S
 	return models.SupportLevelSupported
 }
 
-func (feature *SnoFeature) getIncompatibleFeatures() *[]models.FeatureSupportLevelID {
+func (feature *SnoFeature) getIncompatibleFeatures(string) *[]models.FeatureSupportLevelID {
 	return &[]models.FeatureSupportLevelID{
 		models.FeatureSupportLevelIDODF,
 		models.FeatureSupportLevelIDNUTANIXINTEGRATION,
@@ -150,7 +151,7 @@ func (feature *VipAutoAllocFeature) getSupportLevel(_ SupportLevelFilters) model
 	return models.SupportLevelDevPreview
 }
 
-func (feature *VipAutoAllocFeature) getIncompatibleFeatures() *[]models.FeatureSupportLevelID {
+func (feature *VipAutoAllocFeature) getIncompatibleFeatures(string) *[]models.FeatureSupportLevelID {
 	return nil
 }
 
@@ -190,7 +191,7 @@ func (feature *CustomManifestFeature) getSupportLevel(_ SupportLevelFilters) mod
 	return models.SupportLevelSupported
 }
 
-func (feature *CustomManifestFeature) getIncompatibleFeatures() *[]models.FeatureSupportLevelID {
+func (feature *CustomManifestFeature) getIncompatibleFeatures(string) *[]models.FeatureSupportLevelID {
 	return nil
 }
 
@@ -262,12 +263,65 @@ func (feature *ClusterManagedNetworkingFeature) getIncompatibleArchitectures(ope
 	return &incompatibilities
 }
 
-func (feature *ClusterManagedNetworkingFeature) getIncompatibleFeatures() *[]models.FeatureSupportLevelID {
+func (feature *ClusterManagedNetworkingFeature) getIncompatibleFeatures(string) *[]models.FeatureSupportLevelID {
 	return &[]models.FeatureSupportLevelID{
 		models.FeatureSupportLevelIDSNO,
 		models.FeatureSupportLevelIDUSERMANAGEDNETWORKING,
 		models.FeatureSupportLevelIDEXTERNALPLATFORMOCI,
 	}
+}
+
+// DualStackFeature
+type DualStackFeature struct{}
+
+func (feature *DualStackFeature) New() SupportLevelFeature {
+	return &DualStackFeature{}
+}
+
+func (feature *DualStackFeature) getId() models.FeatureSupportLevelID {
+	return models.FeatureSupportLevelIDDUALSTACK
+}
+
+func (feature *DualStackFeature) getName() string {
+	return "Dual-Stack"
+}
+
+func (feature *DualStackFeature) getSupportLevel(filters SupportLevelFilters) models.SupportLevel {
+	if !isFeatureCompatibleWithArchitecture(feature, filters.OpenshiftVersion, swag.StringValue(filters.CPUArchitecture)) {
+		return models.SupportLevelUnavailable
+	}
+	if isNotSupported, err := common.BaseVersionLessThan("4.12", filters.OpenshiftVersion); isNotSupported || err != nil {
+		return models.SupportLevelUnavailable
+	}
+
+	return models.SupportLevelSupported
+}
+
+func (feature *DualStackFeature) getFeatureActiveLevel(cluster *common.Cluster, _ *models.InfraEnv, clusterUpdateParams *models.V2ClusterUpdateParams, _ *models.InfraEnvUpdateParams) featureActiveLevel {
+	if clusterUpdateParams != nil {
+		if network.CheckIfNetworksAreDualStack(clusterUpdateParams.MachineNetworks, clusterUpdateParams.ServiceNetworks, clusterUpdateParams.ClusterNetworks) {
+			return activeLevelActive
+		}
+	}
+
+	if network.CheckIfClusterIsDualStack(cluster) {
+		return activeLevelActive
+	}
+
+	return activeLevelNotActive
+}
+
+func (feature *DualStackFeature) getIncompatibleFeatures(openshiftVersion string) *[]models.FeatureSupportLevelID {
+	if isNotSupported, err := common.BaseVersionLessThan("4.13", openshiftVersion); isNotSupported || err != nil {
+		return &[]models.FeatureSupportLevelID{
+			models.FeatureSupportLevelIDVSPHEREINTEGRATION,
+		}
+	}
+	return nil
+}
+
+func (feature *DualStackFeature) getIncompatibleArchitectures(_ *string) *[]models.ArchitectureSupportLevelID {
+	return nil
 }
 
 // DualStackVipsFeature
@@ -308,7 +362,7 @@ func (feature *DualStackVipsFeature) getFeatureActiveLevel(cluster *common.Clust
 	return activeLevelNotActive
 }
 
-func (feature *DualStackVipsFeature) getIncompatibleFeatures() *[]models.FeatureSupportLevelID {
+func (feature *DualStackVipsFeature) getIncompatibleFeatures(string) *[]models.FeatureSupportLevelID {
 	return nil
 }
 
@@ -335,7 +389,7 @@ func (feature *UserManagedNetworkingFeature) getSupportLevel(_ SupportLevelFilte
 	return models.SupportLevelSupported
 }
 
-func (feature *UserManagedNetworkingFeature) getIncompatibleFeatures() *[]models.FeatureSupportLevelID {
+func (feature *UserManagedNetworkingFeature) getIncompatibleFeatures(string) *[]models.FeatureSupportLevelID {
 	return &[]models.FeatureSupportLevelID{
 		models.FeatureSupportLevelIDCLUSTERMANAGEDNETWORKING,
 		models.FeatureSupportLevelIDNUTANIXINTEGRATION,
@@ -402,7 +456,7 @@ func (feature *SingleNodeExpansionFeature) getFeatureActiveLevel(_ *common.Clust
 	return activeLeveNotRelevant
 }
 
-func (feature *SingleNodeExpansionFeature) getIncompatibleFeatures() *[]models.FeatureSupportLevelID {
+func (feature *SingleNodeExpansionFeature) getIncompatibleFeatures(string) *[]models.FeatureSupportLevelID {
 	return nil
 }
 
@@ -448,7 +502,7 @@ func (feature *LvmFeature) getFeatureActiveLevel(cluster *common.Cluster, _ *mod
 	return activeLevelNotActive
 }
 
-func (feature *LvmFeature) getIncompatibleFeatures() *[]models.FeatureSupportLevelID {
+func (feature *LvmFeature) getIncompatibleFeatures(string) *[]models.FeatureSupportLevelID {
 	return &[]models.FeatureSupportLevelID{
 		models.FeatureSupportLevelIDVIPAUTOALLOC,
 		models.FeatureSupportLevelIDCLUSTERMANAGEDNETWORKING,
@@ -503,7 +557,7 @@ func (feature *NutanixIntegrationFeature) getFeatureActiveLevel(cluster *common.
 	return activeLevelNotActive
 }
 
-func (feature *NutanixIntegrationFeature) getIncompatibleFeatures() *[]models.FeatureSupportLevelID {
+func (feature *NutanixIntegrationFeature) getIncompatibleFeatures(string) *[]models.FeatureSupportLevelID {
 	return &[]models.FeatureSupportLevelID{
 		models.FeatureSupportLevelIDSNO,
 		models.FeatureSupportLevelIDUSERMANAGEDNETWORKING,
@@ -550,11 +604,17 @@ func (feature *VsphereIntegrationFeature) getFeatureActiveLevel(cluster *common.
 	return activeLevelNotActive
 }
 
-func (feature *VsphereIntegrationFeature) getIncompatibleFeatures() *[]models.FeatureSupportLevelID {
-	return &[]models.FeatureSupportLevelID{
+func (feature *VsphereIntegrationFeature) getIncompatibleFeatures(openshiftVersion string) *[]models.FeatureSupportLevelID {
+	incompatibleFeatures := []models.FeatureSupportLevelID{
 		models.FeatureSupportLevelIDSNO,
 		models.FeatureSupportLevelIDLVM,
 	}
+
+	if isNotSupported, err := common.BaseVersionLessThan("4.13", openshiftVersion); isNotSupported || err != nil {
+		incompatibleFeatures = append(incompatibleFeatures, models.FeatureSupportLevelIDDUALSTACK)
+	}
+
+	return &incompatibleFeatures
 }
 
 func (feature *VsphereIntegrationFeature) getIncompatibleArchitectures(_ *string) *[]models.ArchitectureSupportLevelID {
@@ -593,7 +653,7 @@ func (feature *OdfFeature) getIncompatibleArchitectures(_ *string) *[]models.Arc
 	}
 }
 
-func (feature *OdfFeature) getIncompatibleFeatures() *[]models.FeatureSupportLevelID {
+func (feature *OdfFeature) getIncompatibleFeatures(string) *[]models.FeatureSupportLevelID {
 	return &[]models.FeatureSupportLevelID{
 		models.FeatureSupportLevelIDSNO,
 		models.FeatureSupportLevelIDLVM,
@@ -630,7 +690,7 @@ func (feature *CnvFeature) getSupportLevel(filters SupportLevelFilters) models.S
 	return models.SupportLevelSupported
 }
 
-func (feature *CnvFeature) getIncompatibleFeatures() *[]models.FeatureSupportLevelID {
+func (feature *CnvFeature) getIncompatibleFeatures(string) *[]models.FeatureSupportLevelID {
 	return nil
 }
 
@@ -672,7 +732,7 @@ func (feature *LsoFeature) getSupportLevel(filters SupportLevelFilters) models.S
 	return models.SupportLevelSupported
 }
 
-func (feature *LsoFeature) getIncompatibleFeatures() *[]models.FeatureSupportLevelID {
+func (feature *LsoFeature) getIncompatibleFeatures(string) *[]models.FeatureSupportLevelID {
 	return nil
 }
 
@@ -712,7 +772,7 @@ func (feature *MinimalIso) getSupportLevel(filters SupportLevelFilters) models.S
 	return models.SupportLevelSupported
 }
 
-func (feature *MinimalIso) getIncompatibleFeatures() *[]models.FeatureSupportLevelID {
+func (feature *MinimalIso) getIncompatibleFeatures(string) *[]models.FeatureSupportLevelID {
 	return nil
 }
 
@@ -763,7 +823,7 @@ func (feature *FullIso) getSupportLevel(_ SupportLevelFilters) models.SupportLev
 	return models.SupportLevelSupported
 }
 
-func (feature *FullIso) getIncompatibleFeatures() *[]models.FeatureSupportLevelID {
+func (feature *FullIso) getIncompatibleFeatures(string) *[]models.FeatureSupportLevelID {
 	return &[]models.FeatureSupportLevelID{
 		models.FeatureSupportLevelIDEXTERNALPLATFORMOCI,
 	}
@@ -822,7 +882,7 @@ func (feature *ExternalPlatformOci) getSupportLevel(filters SupportLevelFilters)
 	return models.SupportLevelSupported
 }
 
-func (feature *ExternalPlatformOci) getIncompatibleFeatures() *[]models.FeatureSupportLevelID {
+func (feature *ExternalPlatformOci) getIncompatibleFeatures(string) *[]models.FeatureSupportLevelID {
 	return &[]models.FeatureSupportLevelID{
 		models.FeatureSupportLevelIDCLUSTERMANAGEDNETWORKING,
 		models.FeatureSupportLevelIDVIPAUTOALLOC,
@@ -871,7 +931,7 @@ func (feature *MceFeature) getSupportLevel(filters SupportLevelFilters) models.S
 	return models.SupportLevelSupported
 }
 
-func (feature *MceFeature) getIncompatibleFeatures() *[]models.FeatureSupportLevelID {
+func (feature *MceFeature) getIncompatibleFeatures(string) *[]models.FeatureSupportLevelID {
 	return &[]models.FeatureSupportLevelID{
 		models.FeatureSupportLevelIDNUTANIXINTEGRATION,
 	}

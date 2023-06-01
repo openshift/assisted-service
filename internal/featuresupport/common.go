@@ -38,7 +38,7 @@ func ValidateIncompatibleFeatures(log logrus.FieldLogger, cpuArchitecture string
 		log.Warn("Cannot validate incompatible CPU architecture due to empty CPU architecture or empty OpenshiftVersion")
 	}
 
-	if err := isFeaturesCompatibleWithFeatures(activatedFeatures); err != nil {
+	if err := isFeaturesCompatibleWithFeatures(swag.StringValue(openshiftVersion), activatedFeatures); err != nil {
 		return err
 	}
 	return nil

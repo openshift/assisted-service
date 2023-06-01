@@ -27,6 +27,7 @@ var featuresList = map[models.FeatureSupportLevelID]SupportLevelFeature{
 	models.FeatureSupportLevelIDMINIMALISO:               (&MinimalIso{}).New(),
 	models.FeatureSupportLevelIDFULLISO:                  (&FullIso{}).New(),
 	models.FeatureSupportLevelIDEXTERNALPLATFORMOCI:      (&ExternalPlatformOci{}).New(),
+	models.FeatureSupportLevelIDDUALSTACK:                (&DualStackFeature{}).New(),
 }
 
 func getFeatureSupportList(features map[models.FeatureSupportLevelID]SupportLevelFeature, filters SupportLevelFilters) models.SupportLevels {
@@ -77,8 +78,8 @@ func IsFeatureAvailable(featureId models.FeatureSupportLevelID, openshiftVersion
 	return GetSupportLevel(featureId, filters) != models.SupportLevelUnavailable
 }
 
-func isFeatureCompatible(feature SupportLevelFeature, features ...SupportLevelFeature) *SupportLevelFeature {
-	incompatibilities := feature.getIncompatibleFeatures()
+func isFeatureCompatible(openshiftVersion string, feature SupportLevelFeature, features ...SupportLevelFeature) *SupportLevelFeature {
+	incompatibilities := feature.getIncompatibleFeatures(openshiftVersion)
 	if incompatibilities != nil {
 		for _, f := range features {
 			if funk.Contains(*incompatibilities, f.getId()) {
@@ -91,9 +92,9 @@ func isFeatureCompatible(feature SupportLevelFeature, features ...SupportLevelFe
 }
 
 // isFeaturesCompatibleWithFeatures Determine if feature is compatible with other activated features
-func isFeaturesCompatibleWithFeatures(activatedFeatures []SupportLevelFeature) error {
+func isFeaturesCompatibleWithFeatures(openshiftVersion string, activatedFeatures []SupportLevelFeature) error {
 	for _, feature := range activatedFeatures {
-		if incompatibleFeature := isFeatureCompatible(feature, activatedFeatures...); incompatibleFeature != nil {
+		if incompatibleFeature := isFeatureCompatible(openshiftVersion, feature, activatedFeatures...); incompatibleFeature != nil {
 			return fmt.Errorf("cannot use %s because it's not compatible with %s", feature.getName(), (*incompatibleFeature).getName())
 		}
 	}
