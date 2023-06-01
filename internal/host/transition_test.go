@@ -6263,6 +6263,7 @@ var allValidationIDs []validationID = []validationID{
 	AreOdfRequirementsSatisfied,
 	AreCnvRequirementsSatisfied,
 	AreLvmRequirementsSatisfied,
+	AreMceRequirementsSatisfied,
 	SufficientOrUnknownInstallationDiskSpeed,
 	HasSufficientNetworkLatencyRequirementForRole,
 	HasSufficientPacketLossRequirementForRole,
