@@ -141,8 +141,16 @@ func (o *operator) ValidateHost(_ context.Context, cluster *common.Cluster, host
 }
 
 // GenerateManifests generates manifests for the operator
+// We recalculate the resources for all nodes because the computation that takes place during
+// odf validations may be performed by a different replica
 func (o *operator) GenerateManifests(cluster *common.Cluster) (map[string][]byte, []byte, error) {
-	o.log.Info("No. of ODF eligible disks are ", o.config.ODFDisksAvailable)
+	odfClusterResources := odfClusterResourcesInfo{}
+	_, err := o.computeResourcesAllNodes(&cluster.Cluster, &odfClusterResources)
+	if err != nil {
+		return nil, nil, err
+	}
+	o.config.ODFDisksAvailable = odfClusterResources.numberOfDisks
+	o.log.Info("No. of ODF eligible disks in cluster ", cluster.ID, " are ", o.config.ODFDisksAvailable)
 	return Manifests(o.config, cluster.OpenshiftVersion)
 }
 
