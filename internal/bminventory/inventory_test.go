@@ -2744,7 +2744,7 @@ var _ = Describe("cluster", func() {
 					clusterParams.OlmOperators = []*models.OperatorCreateParams{
 						{Name: newOperatorName, Properties: newProperties},
 					}
-					mockOperatorManager.EXPECT().EnsureOperatorPrerequisite(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
+					mockOperatorManager.EXPECT().EnsureOperatorPrerequisite(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 					reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 						NewClusterParams: clusterParams,
 					})
@@ -2778,7 +2778,7 @@ var _ = Describe("cluster", func() {
 						{Name: newOperatorName},
 					}
 
-					mockOperatorManager.EXPECT().EnsureOperatorPrerequisite(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
+					mockOperatorManager.EXPECT().EnsureOperatorPrerequisite(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 					reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 						NewClusterParams: clusterParams,
 					})
@@ -2851,7 +2851,7 @@ var _ = Describe("cluster", func() {
 						{Name: "lvm"},
 						{Name: "cnv"},
 					}
-					mockOperatorManager.EXPECT().EnsureOperatorPrerequisite(gomock.Any(), gomock.Any(), gomock.Any()).Return(
+					mockOperatorManager.EXPECT().EnsureOperatorPrerequisite(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(
 						errors.New("Currently, you can not install OpenShift Data Foundation Logical Volume Manager operator at the same time as Virtualization operator"))
 					reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 						NewClusterParams: clusterParams,
@@ -2874,7 +2874,7 @@ var _ = Describe("cluster", func() {
 						{Name: "cnv"},
 						{Name: "lvm"},
 					}
-					mockOperatorManager.EXPECT().EnsureOperatorPrerequisite(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
+					mockOperatorManager.EXPECT().EnsureOperatorPrerequisite(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 					reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 						NewClusterParams: clusterParams,
 					})
@@ -2900,7 +2900,7 @@ var _ = Describe("cluster", func() {
 					clusterParams.OlmOperators = []*models.OperatorCreateParams{
 						{Name: "cnv"},
 					}
-					mockOperatorManager.EXPECT().EnsureOperatorPrerequisite(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
+					mockOperatorManager.EXPECT().EnsureOperatorPrerequisite(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 					reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 						NewClusterParams: clusterParams,
 					})
@@ -2932,7 +2932,7 @@ var _ = Describe("cluster", func() {
 					}
 					clusterParams.OpenshiftVersion = swag.String("4.12")
 
-					mockOperatorManager.EXPECT().EnsureOperatorPrerequisite(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
+					mockOperatorManager.EXPECT().EnsureOperatorPrerequisite(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 					reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 						NewClusterParams: clusterParams,
 					})
@@ -3078,7 +3078,7 @@ var _ = Describe("cluster", func() {
 						}
 
 						if test.updateOperators != nil {
-							mockOperatorManager.EXPECT().EnsureOperatorPrerequisite(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
+							mockOperatorManager.EXPECT().EnsureOperatorPrerequisite(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 						}
 
 						reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
@@ -3128,7 +3128,7 @@ var _ = Describe("cluster", func() {
 							return append(operators, testOLMOperators[0]), nil
 						}).Times(1)
 
-					mockOperatorManager.EXPECT().EnsureOperatorPrerequisite(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
+					mockOperatorManager.EXPECT().EnsureOperatorPrerequisite(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 						ClusterID: clusterID,
 						ClusterUpdateParams: &models.V2ClusterUpdateParams{
@@ -3172,7 +3172,7 @@ var _ = Describe("cluster", func() {
 							return append(operators, testOLMOperators[0]), nil
 						}).Times(1)
 
-					mockOperatorManager.EXPECT().EnsureOperatorPrerequisite(gomock.Any(), gomock.Any(), gomock.Any()).Return(
+					mockOperatorManager.EXPECT().EnsureOperatorPrerequisite(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(
 						errors.New("Currently, you can not install OpenShift Data Foundation Logical Volume Manager operator at the same time as Virtualization operator"))
 					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 						ClusterID: clusterID,
@@ -3683,7 +3683,7 @@ var _ = Describe("cluster", func() {
 						return append(operators, testOLMOperators[0]), nil
 					}).Times(1)
 
-				mockOperatorManager.EXPECT().EnsureOperatorPrerequisite(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
+				mockOperatorManager.EXPECT().EnsureOperatorPrerequisite(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 				reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 					ClusterID: clusterID,
 					ClusterUpdateParams: &models.V2ClusterUpdateParams{
@@ -13911,7 +13911,7 @@ var _ = Describe("TestRegisterCluster", func() {
 				}).Times(1)
 
 			mockOSImages.EXPECT().GetCPUArchitectures(gomock.Any()).Return([]string{common.X86CPUArchitecture, common.S390xCPUArchitecture}).Times(1)
-			mockOperatorManager.EXPECT().EnsureOperatorPrerequisite(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
+			mockOperatorManager.EXPECT().EnsureOperatorPrerequisite(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 
 			params := getDefaultClusterCreateParams()
 			params.Platform = &models.Platform{
@@ -13950,6 +13950,61 @@ var _ = Describe("TestRegisterCluster", func() {
 			verifyApiError(reply, http.StatusBadRequest)
 		})
 
+		It("s390x on 4.13 OCP version", func() {
+			mockSecretValidator.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any()).Return(nil).Times(1)
+			mockOperatorManager.EXPECT().GetSupportedOperatorsByType(models.OperatorTypeBuiltin).Return([]*models.MonitoredOperator{&common.TestDefaultConfig.MonitoredOperator}).Times(1)
+			mockProviderRegistry.EXPECT().SetPlatformUsages(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
+			mockMetric.EXPECT().ClusterRegistered().Times(1)
+			mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
+				eventstest.WithNameMatcher(eventgen.ClusterRegistrationSucceededEventName))).Times(1)
+			mockAMSSubscription(ctx)
+			params := getDefaultClusterCreateParams()
+
+			params.OpenshiftVersion = swag.String("4.13")
+			params.CPUArchitecture = models.ClusterCPUArchitectureS390x
+			params.Platform = &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeNone)}
+			mockOSImages.EXPECT().GetCPUArchitectures(gomock.Any()).Return([]string{common.X86CPUArchitecture, common.S390xCPUArchitecture}).Times(1)
+			mockOperatorManager.EXPECT().GetOperatorByName("odf").Return(
+				&models.MonitoredOperator{
+					Name:           "odf",
+					OperatorType:   models.OperatorTypeOlm,
+					Namespace:      "openshift-storage",
+					TimeoutSeconds: 30 * 60,
+				}, nil).Times(1)
+
+			params.OlmOperators = []*models.OperatorCreateParams{
+				{Name: "odf"},
+			}
+
+			releaseImage := &models.ReleaseImage{
+				CPUArchitecture:  &params.CPUArchitecture,
+				OpenshiftVersion: params.OpenshiftVersion,
+				URL:              swag.String("quay.io/openshift-release-dev/ocp-release:4.13-s390x"),
+				Version:          swag.String("4.13.0"),
+				SupportLevel:     models.OpenshiftVersionSupportLevelProduction,
+			}
+
+			mockVersions.EXPECT().GetReleaseImage(ctx, *params.OpenshiftVersion, params.CPUArchitecture, *params.PullSecret).Return(releaseImage, nil).Times(1)
+			mockOperatorManager.EXPECT().ResolveDependencies(gomock.Any(), gomock.Any()).
+				DoAndReturn(func(commonCluster *common.Cluster, operators []*models.MonitoredOperator) ([]*models.MonitoredOperator, error) {
+					return append(operators, &models.MonitoredOperator{
+						Name:           "lso",
+						OperatorType:   models.OperatorTypeOlm,
+						Namespace:      "openshift-storage",
+						TimeoutSeconds: 30 * 60,
+					}), nil
+				}).Times(1)
+			mockOperatorManager.EXPECT().EnsureOperatorPrerequisite(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
+
+			reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
+				NewClusterParams: params,
+			})
+			Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2RegisterClusterCreated()))
+			actual := reply.(*installer.V2RegisterClusterCreated).Payload
+			Expect(swag.BoolValue(actual.UserManagedNetworking)).To(Equal(true))
+			Expect(actual.CPUArchitecture).To(Equal(models.ClusterCPUArchitectureS390x))
+		})
+
 		It("LVM isn't compatible with s390x", func() {
 			mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
 				eventstest.WithNameMatcher(eventgen.ClusterRegistrationFailedEventName),
@@ -13961,7 +14016,7 @@ var _ = Describe("TestRegisterCluster", func() {
 				}).Times(1)
 			mockOSImages.EXPECT().GetCPUArchitectures(gomock.Any()).Return([]string{common.X86CPUArchitecture, common.S390xCPUArchitecture}).Times(1)
 
-			mockOperatorManager.EXPECT().EnsureOperatorPrerequisite(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
+			mockOperatorManager.EXPECT().EnsureOperatorPrerequisite(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 
 			params := getDefaultClusterCreateParams()
 			params.Platform = &models.Platform{

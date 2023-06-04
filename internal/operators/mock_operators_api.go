@@ -52,17 +52,17 @@ func (mr *MockAPIMockRecorder) AnyOLMOperatorEnabled(arg0 interface{}) *gomock.C
 }
 
 // EnsureOperatorPrerequisite mocks base method.
-func (m *MockAPI) EnsureOperatorPrerequisite(arg0 *common.Cluster, arg1 string, arg2 []*models.MonitoredOperator) error {
+func (m *MockAPI) EnsureOperatorPrerequisite(arg0 *common.Cluster, arg1, arg2 string, arg3 []*models.MonitoredOperator) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "EnsureOperatorPrerequisite", arg0, arg1, arg2)
+	ret := m.ctrl.Call(m, "EnsureOperatorPrerequisite", arg0, arg1, arg2, arg3)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // EnsureOperatorPrerequisite indicates an expected call of EnsureOperatorPrerequisite.
-func (mr *MockAPIMockRecorder) EnsureOperatorPrerequisite(arg0, arg1, arg2 interface{}) *gomock.Call {
+func (mr *MockAPIMockRecorder) EnsureOperatorPrerequisite(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "EnsureOperatorPrerequisite", reflect.TypeOf((*MockAPI)(nil).EnsureOperatorPrerequisite), arg0, arg1, arg2)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "EnsureOperatorPrerequisite", reflect.TypeOf((*MockAPI)(nil).EnsureOperatorPrerequisite), arg0, arg1, arg2, arg3)
 }
 
 // GenerateManifests mocks base method.

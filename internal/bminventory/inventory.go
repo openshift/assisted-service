@@ -458,7 +458,7 @@ func (b *bareMetalInventory) getOLMMonitoredOperators(log *logrus.Entry, cluster
 			return nil, err
 		}
 
-		err = b.operatorManagerApi.EnsureOperatorPrerequisite(cluster, releaseImageVersion, newOLMOperators)
+		err = b.operatorManagerApi.EnsureOperatorPrerequisite(cluster, releaseImageVersion, params.NewClusterParams.CPUArchitecture, newOLMOperators)
 		if err != nil {
 			log.Error(err)
 			return nil, common.NewApiError(http.StatusBadRequest, err)
@@ -2850,7 +2850,22 @@ func (b *bareMetalInventory) updateOperatorsData(ctx context.Context, cluster *c
 		return err
 	}
 
-	err = b.operatorManagerApi.EnsureOperatorPrerequisite(cluster, cluster.OpenshiftVersion, updateOLMOperators)
+	infraEnvs, err := b.ListInfraEnvsInternal(ctx, cluster.ID, nil)
+	if err != nil {
+		return err
+	}
+
+	// Validate with infra-envs CPU architecture
+	for _, infraEnv := range infraEnvs {
+		err = b.operatorManagerApi.EnsureOperatorPrerequisite(cluster, cluster.OpenshiftVersion, infraEnv.CPUArchitecture, updateOLMOperators)
+		if err != nil {
+			log.Error(err)
+			return common.NewApiError(http.StatusBadRequest, err)
+		}
+	}
+
+	// Validate with cluster CPU architecture
+	err = b.operatorManagerApi.EnsureOperatorPrerequisite(cluster, cluster.OpenshiftVersion, cluster.CPUArchitecture, updateOLMOperators)
 	if err != nil {
 		log.Error(err)
 		return common.NewApiError(http.StatusBadRequest, err)
