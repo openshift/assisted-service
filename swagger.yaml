@@ -3995,6 +3995,7 @@ definitions:
       - 'MINIMAL_ISO'
       - 'FULL_ISO'
       - 'EXTERNAL_PLATFORM_OCI'
+      - 'DUAL_STACK'
 
   architecture-support-level-id:
     type: string

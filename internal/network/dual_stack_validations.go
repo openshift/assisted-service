@@ -65,22 +65,25 @@ func VerifyClusterNetworksDualStack(networks []*models.ClusterNetwork, isDualSta
 // happens based on the following rule - if at least one of Machine, Service or Cluster Networks
 // is a list containing both IPv4 and IPv6 address, we mark the cluster as dual-stack.
 func CheckIfClusterIsDualStack(c *common.Cluster) bool {
+	if c == nil {
+		return false
+	}
+	return CheckIfNetworksAreDualStack(c.MachineNetworks, c.ServiceNetworks, c.ClusterNetworks)
+}
+
+func CheckIfNetworksAreDualStack(machineNetworks []*models.MachineNetwork, serviceNetworks []*models.ServiceNetwork, clusterNetworks []*models.ClusterNetwork) bool {
 	var err error
 	var ipv4, ipv6 bool
 	dualStack := false
 
-	if c == nil {
-		return false
-	}
-
-	ipv4, ipv6, err = GetAddressFamilies(c.MachineNetworks)
+	ipv4, ipv6, err = GetAddressFamilies(machineNetworks)
 	if err != nil {
 		return false
 	}
-	dualStack = dualStack || (ipv4 && ipv6)
+	dualStack = ipv4 && ipv6
 
 	if !dualStack {
-		ipv4, ipv6, err = GetAddressFamilies(c.ServiceNetworks)
+		ipv4, ipv6, err = GetAddressFamilies(serviceNetworks)
 		if err != nil {
 			return false
 		}
@@ -88,7 +91,7 @@ func CheckIfClusterIsDualStack(c *common.Cluster) bool {
 	}
 
 	if !dualStack {
-		ipv4, ipv6, err = GetAddressFamilies(c.ClusterNetworks)
+		ipv4, ipv6, err = GetAddressFamilies(clusterNetworks)
 		if err != nil {
 			return false
 		}

@@ -80,6 +80,9 @@ const (
 
 	// FeatureSupportLevelIDEXTERNALPLATFORMOCI captures enum value "EXTERNAL_PLATFORM_OCI"
 	FeatureSupportLevelIDEXTERNALPLATFORMOCI FeatureSupportLevelID = "EXTERNAL_PLATFORM_OCI"
+
+	// FeatureSupportLevelIDDUALSTACK captures enum value "DUAL_STACK"
+	FeatureSupportLevelIDDUALSTACK FeatureSupportLevelID = "DUAL_STACK"
 )
 
 // for schema
@@ -87,7 +90,7 @@ var featureSupportLevelIdEnum []interface{}
 
 func init() {
 	var res []FeatureSupportLevelID
-	if err := json.Unmarshal([]byte(`["SNO","VIP_AUTO_ALLOC","CUSTOM_MANIFEST","SINGLE_NODE_EXPANSION","LVM","ODF","LSO","CNV","MCE","NUTANIX_INTEGRATION","VSPHERE_INTEGRATION","DUAL_STACK_VIPS","CLUSTER_MANAGED_NETWORKING","USER_MANAGED_NETWORKING","MINIMAL_ISO","FULL_ISO","EXTERNAL_PLATFORM_OCI"]`), &res); err != nil {
+	if err := json.Unmarshal([]byte(`["SNO","VIP_AUTO_ALLOC","CUSTOM_MANIFEST","SINGLE_NODE_EXPANSION","LVM","ODF","LSO","CNV","MCE","NUTANIX_INTEGRATION","VSPHERE_INTEGRATION","DUAL_STACK_VIPS","CLUSTER_MANAGED_NETWORKING","USER_MANAGED_NETWORKING","MINIMAL_ISO","FULL_ISO","EXTERNAL_PLATFORM_OCI","DUAL_STACK"]`), &res); err != nil {
 		panic(err)
 	}
 	for _, v := range res {

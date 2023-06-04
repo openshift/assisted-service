@@ -176,6 +176,67 @@ func getValidWorkerHwInfoWithCIDR(cidr string) *models.Inventory {
 	}
 }
 
+var _ = Describe("Cluster with Platform", func() {
+	ctx := context.Background()
+
+	Context("vSphere", func() {
+		It("vSphere  cluster on OCP 4.12 - Success", func() {
+			cluster, err := userBMClient.Installer.V2RegisterCluster(ctx, &installer.V2RegisterClusterParams{
+				NewClusterParams: &models.ClusterCreateParams{
+					Name:                 swag.String("test-cluster"),
+					OpenshiftVersion:     swag.String("4.12.0-0.0"),
+					HighAvailabilityMode: swag.String(models.ClusterHighAvailabilityModeFull),
+					PullSecret:           swag.String(pullSecret),
+					Platform:             &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeVsphere)},
+				},
+			})
+			Expect(err).NotTo(HaveOccurred())
+			Expect(*cluster.GetPayload().Platform.Type).Should(Equal(models.PlatformTypeVsphere))
+		})
+
+		It("vSphere  cluster on OCP 4.12 with dual stack - Failure", func() {
+			_, err := userBMClient.Installer.V2RegisterCluster(ctx, &installer.V2RegisterClusterParams{
+				NewClusterParams: &models.ClusterCreateParams{
+					Name:                 swag.String("test-cluster"),
+					OpenshiftVersion:     swag.String("4.12.0-0.0"),
+					HighAvailabilityMode: swag.String(models.ClusterHighAvailabilityModeFull),
+					PullSecret:           swag.String(pullSecret),
+					Platform:             &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeVsphere)},
+					MachineNetworks:      common.TestDualStackNetworking.MachineNetworks,
+					ClusterNetworks:      common.TestDualStackNetworking.ClusterNetworks,
+					ServiceNetworks:      common.TestDualStackNetworking.ServiceNetworks,
+				},
+			})
+			Expect(err).Should(HaveOccurred())
+
+			// Message can be one of those two:
+			// cannot use Dual-Stack because it's not compatible with vSphere Platform Integration
+			// cannot use vSphere Platform Integration because it's not compatible with Dual-Stack
+			e := err.(*installer.V2RegisterClusterBadRequest)
+			Expect(*e.Payload.Reason).To(ContainSubstring("cannot use"))
+			Expect(*e.Payload.Reason).To(ContainSubstring("vSphere Platform Integration"))
+			Expect(*e.Payload.Reason).To(ContainSubstring("Dual-Stack"))
+		})
+
+		It("vSphere cluster on OCP 4.13 with dual stack - Succeess", func() {
+			_, err := userBMClient.Installer.V2RegisterCluster(ctx, &installer.V2RegisterClusterParams{
+				NewClusterParams: &models.ClusterCreateParams{
+					Name:                 swag.String("test-cluster"),
+					OpenshiftVersion:     swag.String("4.13.0-0.0"),
+					HighAvailabilityMode: swag.String(models.ClusterHighAvailabilityModeFull),
+					PullSecret:           swag.String(pullSecret),
+					Platform:             &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeVsphere)},
+					MachineNetworks:      common.TestDualStackNetworking.MachineNetworks,
+					ClusterNetworks:      common.TestDualStackNetworking.ClusterNetworks,
+					ServiceNetworks:      common.TestDualStackNetworking.ServiceNetworks,
+				},
+			})
+			Expect(err).ShouldNot(HaveOccurred())
+		})
+	})
+
+})
+
 var _ = Describe("Cluster", func() {
 	ctx := context.Background()
 	var cluster *installer.V2RegisterClusterCreated
