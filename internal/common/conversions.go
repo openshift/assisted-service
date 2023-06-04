@@ -1,9 +1,20 @@
 package common
 
 import (
+	"strings"
+
 	"github.com/go-openapi/strfmt"
+	"github.com/go-openapi/swag"
+	hiveext "github.com/openshift/assisted-service/api/hiveextension/v1beta1"
 	"github.com/openshift/assisted-service/models"
 )
+
+func PlatformTypeToPlatform(platformType hiveext.PlatformType) *models.Platform {
+	pType := strings.ToLower(string(platformType))
+	platform := &models.Platform{Type: PlatformTypePtr(models.PlatformType(pType))}
+	platform.IsExternal = swag.Bool(*platform.Type == models.PlatformTypeOci)
+	return platform
+}
 
 func PlatformTypePtr(p models.PlatformType) *models.PlatformType {
 	return &p

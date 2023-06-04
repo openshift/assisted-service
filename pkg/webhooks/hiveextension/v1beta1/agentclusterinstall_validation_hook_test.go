@@ -8,7 +8,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	hiveext "github.com/openshift/assisted-service/api/hiveextension/v1beta1"
-	apiserver "github.com/openshift/generic-admission-server/pkg/apiserver"
+	"github.com/openshift/generic-admission-server/pkg/apiserver"
 	hivev1 "github.com/openshift/hive/apis/hive/v1"
 	admissionv1 "k8s.io/api/admission/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -315,6 +315,298 @@ var _ = Describe("ACI web validate", func() {
 				ProvisionRequirements: hiveext.ProvisionRequirements{ControlPlaneAgents: 1},
 			},
 			operation:       admissionv1.Create,
+			expectedAllowed: true,
+		},
+		{
+			name: "ACI create with None platform and userManagedNetworking set to true is allowed",
+			newSpec: hiveext.AgentClusterInstallSpec{
+				Networking:   hiveext.Networking{UserManagedNetworking: swag.Bool(true)},
+				PlatformType: hiveext.NonePlatformType,
+			},
+			operation:       admissionv1.Create,
+			expectedAllowed: true,
+		},
+		{
+			name: "ACI create with None platform and userManagedNetworking set to false is not allowed",
+			newSpec: hiveext.AgentClusterInstallSpec{
+				Networking:   hiveext.Networking{UserManagedNetworking: swag.Bool(false)},
+				PlatformType: hiveext.NonePlatformType,
+			},
+			operation:       admissionv1.Create,
+			expectedAllowed: false,
+		},
+		{
+			name: "SNO ACI create with None platform and userManagedNetworking set to true is allowed",
+			newSpec: hiveext.AgentClusterInstallSpec{
+				Networking:   hiveext.Networking{UserManagedNetworking: swag.Bool(true)},
+				PlatformType: hiveext.NonePlatformType,
+				ProvisionRequirements: hiveext.ProvisionRequirements{
+					ControlPlaneAgents: 1,
+					WorkerAgents:       0,
+				},
+			},
+			operation:       admissionv1.Create,
+			expectedAllowed: true,
+		},
+		{
+			name: "Multi node ACI create with None platform and userManagedNetworking set to true is allowed",
+			newSpec: hiveext.AgentClusterInstallSpec{
+				Networking:   hiveext.Networking{UserManagedNetworking: swag.Bool(true)},
+				PlatformType: hiveext.NonePlatformType,
+				ProvisionRequirements: hiveext.ProvisionRequirements{
+					ControlPlaneAgents: 3,
+					WorkerAgents:       0,
+				},
+			},
+			operation:       admissionv1.Create,
+			expectedAllowed: true,
+		},
+		{
+			name: "SNO ACI create with None platform and userManagedNetworking set to false is not allowed",
+			newSpec: hiveext.AgentClusterInstallSpec{
+				Networking:   hiveext.Networking{UserManagedNetworking: swag.Bool(false)},
+				PlatformType: hiveext.NonePlatformType,
+				ProvisionRequirements: hiveext.ProvisionRequirements{
+					ControlPlaneAgents: 1,
+					WorkerAgents:       0,
+				},
+			},
+			operation:       admissionv1.Create,
+			expectedAllowed: false,
+		},
+		{
+			name: "Multi node ACI create with None platform and userManagedNetworking set to false is not allowed",
+			newSpec: hiveext.AgentClusterInstallSpec{
+				Networking:   hiveext.Networking{UserManagedNetworking: swag.Bool(false)},
+				PlatformType: hiveext.NonePlatformType,
+				ProvisionRequirements: hiveext.ProvisionRequirements{
+					ControlPlaneAgents: 3,
+					WorkerAgents:       0,
+				},
+			},
+			operation:       admissionv1.Create,
+			expectedAllowed: false,
+		},
+		{
+			name: "ACI create with BareMetal platform and userManagedNetworking set to false is allowed",
+			newSpec: hiveext.AgentClusterInstallSpec{
+				Networking:   hiveext.Networking{UserManagedNetworking: swag.Bool(false)},
+				PlatformType: hiveext.BareMetalPlatformType,
+			},
+			operation:       admissionv1.Create,
+			expectedAllowed: true,
+		},
+		{
+			name: "ACI create with BareMetal platform and userManagedNetworking set to true is not allowed",
+			newSpec: hiveext.AgentClusterInstallSpec{
+				Networking:   hiveext.Networking{UserManagedNetworking: swag.Bool(true)},
+				PlatformType: hiveext.BareMetalPlatformType,
+			},
+			operation:       admissionv1.Create,
+			expectedAllowed: false,
+		},
+		{
+			name: "SNO ACI create with BareMetal platform and userManagedNetworking set to false is not allowed",
+			newSpec: hiveext.AgentClusterInstallSpec{
+				Networking:   hiveext.Networking{UserManagedNetworking: swag.Bool(false)},
+				PlatformType: hiveext.BareMetalPlatformType,
+				ProvisionRequirements: hiveext.ProvisionRequirements{
+					ControlPlaneAgents: 1,
+					WorkerAgents:       0,
+				},
+			},
+			operation:       admissionv1.Create,
+			expectedAllowed: false,
+		},
+		{
+			name: "Multi node ACI create with BareMetal platform and userManagedNetworking set to false is allowed",
+			newSpec: hiveext.AgentClusterInstallSpec{
+				Networking:   hiveext.Networking{UserManagedNetworking: swag.Bool(false)},
+				PlatformType: hiveext.BareMetalPlatformType,
+				ProvisionRequirements: hiveext.ProvisionRequirements{
+					ControlPlaneAgents: 3,
+				},
+			},
+			operation:       admissionv1.Create,
+			expectedAllowed: true,
+		},
+		{
+			name: "Multi node ACI create with BareMetal platform and userManagedNetworking set to true is not allowed",
+			newSpec: hiveext.AgentClusterInstallSpec{
+				Networking:   hiveext.Networking{UserManagedNetworking: swag.Bool(true)},
+				PlatformType: hiveext.BareMetalPlatformType,
+				ProvisionRequirements: hiveext.ProvisionRequirements{
+					ControlPlaneAgents: 3,
+				},
+			},
+			operation:       admissionv1.Create,
+			expectedAllowed: false,
+		},
+		{
+			name: "Multi node ACI create with BareMetal platform and userManagedNetworking set to false is allowed",
+			newSpec: hiveext.AgentClusterInstallSpec{
+				Networking:   hiveext.Networking{UserManagedNetworking: swag.Bool(false)},
+				PlatformType: hiveext.BareMetalPlatformType,
+				ProvisionRequirements: hiveext.ProvisionRequirements{
+					ControlPlaneAgents: 3,
+				},
+			},
+			operation:       admissionv1.Create,
+			expectedAllowed: true,
+		},
+		{
+			name: "ACI create with VSpherePlatformType platform and userManagedNetworking set to false is allowed",
+			newSpec: hiveext.AgentClusterInstallSpec{
+				Networking:   hiveext.Networking{UserManagedNetworking: swag.Bool(false)},
+				PlatformType: hiveext.VSpherePlatformType,
+			},
+			operation:       admissionv1.Create,
+			expectedAllowed: true,
+		},
+		{
+			name: "ACI create with VSpherePlatformType platform and userManagedNetworking set to true is allowed",
+			newSpec: hiveext.AgentClusterInstallSpec{
+				Networking:   hiveext.Networking{UserManagedNetworking: swag.Bool(true)},
+				PlatformType: hiveext.VSpherePlatformType,
+			},
+			operation:       admissionv1.Create,
+			expectedAllowed: true,
+		},
+		{
+			name: "ACI create with NutanixPlatformType platform and userManagedNetworking set to false is allowed",
+			newSpec: hiveext.AgentClusterInstallSpec{
+				Networking:   hiveext.Networking{UserManagedNetworking: swag.Bool(false)},
+				PlatformType: hiveext.NutanixPlatformType,
+			},
+			operation:       admissionv1.Create,
+			expectedAllowed: true,
+		},
+		{
+			name: "ACI create with NutanixPlatformType platform and userManagedNetworking set to true not is allowed",
+			newSpec: hiveext.AgentClusterInstallSpec{
+				Networking:   hiveext.Networking{UserManagedNetworking: swag.Bool(true)},
+				PlatformType: hiveext.NutanixPlatformType,
+			},
+			operation:       admissionv1.Create,
+			expectedAllowed: false,
+		},
+		{
+			name: "ACI update None platform with userManagedNetworking set to false not is allowed",
+			newSpec: hiveext.AgentClusterInstallSpec{
+				Networking: hiveext.Networking{UserManagedNetworking: swag.Bool(false)},
+			},
+			oldSpec: hiveext.AgentClusterInstallSpec{
+				Networking:   hiveext.Networking{UserManagedNetworking: swag.Bool(true)},
+				PlatformType: hiveext.NonePlatformType,
+			},
+			operation:       admissionv1.Update,
+			expectedAllowed: false,
+		},
+		{
+			name: "ACI update None platform with platform BareMetalPlatformType and userManagedNetworking set to false is allowed",
+			newSpec: hiveext.AgentClusterInstallSpec{
+				Networking:   hiveext.Networking{UserManagedNetworking: swag.Bool(false)},
+				PlatformType: hiveext.BareMetalPlatformType,
+			},
+			oldSpec: hiveext.AgentClusterInstallSpec{
+				Networking:   hiveext.Networking{UserManagedNetworking: swag.Bool(true)},
+				PlatformType: hiveext.NonePlatformType,
+			},
+			operation:       admissionv1.Update,
+			expectedAllowed: true,
+		},
+		{
+			name: "ACI update None platform with platform BareMetalPlatformType and userManagedNetworking set to false is allowed",
+			newSpec: hiveext.AgentClusterInstallSpec{
+				Networking:   hiveext.Networking{UserManagedNetworking: swag.Bool(false)},
+				PlatformType: hiveext.BareMetalPlatformType,
+			},
+			oldSpec: hiveext.AgentClusterInstallSpec{
+				Networking:   hiveext.Networking{UserManagedNetworking: swag.Bool(true)},
+				PlatformType: hiveext.NonePlatformType,
+			},
+			operation:       admissionv1.Update,
+			expectedAllowed: true,
+		},
+		{
+			name: "ACI update BareMetalPlatformType platform with platform None is not allowed",
+			newSpec: hiveext.AgentClusterInstallSpec{
+				PlatformType: hiveext.NonePlatformType,
+			},
+			oldSpec: hiveext.AgentClusterInstallSpec{
+				Networking:   hiveext.Networking{UserManagedNetworking: swag.Bool(false)},
+				PlatformType: hiveext.BareMetalPlatformType,
+			},
+			operation:       admissionv1.Update,
+			expectedAllowed: false,
+		},
+		{
+			name: "ACI update BareMetalPlatformType platform with userManagedNetworking set to true is not allowed",
+			newSpec: hiveext.AgentClusterInstallSpec{
+				Networking: hiveext.Networking{UserManagedNetworking: swag.Bool(true)},
+			},
+			oldSpec: hiveext.AgentClusterInstallSpec{
+				Networking:   hiveext.Networking{UserManagedNetworking: swag.Bool(false)},
+				PlatformType: hiveext.BareMetalPlatformType,
+			},
+			operation:       admissionv1.Update,
+			expectedAllowed: false,
+		},
+		{
+			name: "Multi node ACI update BareMetalPlatformType platform to SNO is not allowed",
+			newSpec: hiveext.AgentClusterInstallSpec{
+				ProvisionRequirements: hiveext.ProvisionRequirements{
+					ControlPlaneAgents: 1,
+					WorkerAgents:       0,
+				},
+			},
+			oldSpec: hiveext.AgentClusterInstallSpec{
+				Networking:   hiveext.Networking{UserManagedNetworking: swag.Bool(false)},
+				PlatformType: hiveext.BareMetalPlatformType,
+				ProvisionRequirements: hiveext.ProvisionRequirements{
+					ControlPlaneAgents: 3,
+					WorkerAgents:       3,
+				},
+			},
+			operation:       admissionv1.Update,
+			expectedAllowed: false,
+		},
+		{
+			name: "Multi node ACI update None platform to SNO is allowed",
+			newSpec: hiveext.AgentClusterInstallSpec{
+				ProvisionRequirements: hiveext.ProvisionRequirements{
+					ControlPlaneAgents: 1,
+					WorkerAgents:       0,
+				},
+			},
+			oldSpec: hiveext.AgentClusterInstallSpec{
+				Networking:   hiveext.Networking{UserManagedNetworking: swag.Bool(true)},
+				PlatformType: hiveext.NonePlatformType,
+				ProvisionRequirements: hiveext.ProvisionRequirements{
+					ControlPlaneAgents: 3,
+					WorkerAgents:       3,
+				},
+			},
+			operation:       admissionv1.Update,
+			expectedAllowed: true,
+		},
+		{
+			name: "SNO ACI update None platform to Multi node is allowed",
+			newSpec: hiveext.AgentClusterInstallSpec{
+				ProvisionRequirements: hiveext.ProvisionRequirements{
+					ControlPlaneAgents: 3,
+					WorkerAgents:       3,
+				},
+			},
+			oldSpec: hiveext.AgentClusterInstallSpec{
+				Networking:   hiveext.Networking{UserManagedNetworking: swag.Bool(true)},
+				PlatformType: hiveext.NonePlatformType,
+				ProvisionRequirements: hiveext.ProvisionRequirements{
+					ControlPlaneAgents: 1,
+					WorkerAgents:       1,
+				},
+			},
+			operation:       admissionv1.Update,
 			expectedAllowed: true,
 		},
 	}
