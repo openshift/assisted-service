@@ -2,6 +2,7 @@ package installcfg
 
 import (
 	"github.com/go-openapi/strfmt"
+	configv1 "github.com/openshift/api/config/v1"
 	cluster_validations "github.com/openshift/assisted-service/internal/cluster/validations"
 )
 
@@ -201,6 +202,7 @@ type InstallerConfigBaremetal struct {
 	AdditionalTrustBundle string               `yaml:"additionalTrustBundle,omitempty"`
 	ImageContentSources   []ImageContentSource `yaml:"imageContentSources,omitempty"`
 	Capabilities          *Capabilities        `yaml:"capabilities,omitempty"`
+	FeatureSet            configv1.FeatureSet  `yaml:"featureSet,omitempty"`
 }
 
 func (c *InstallerConfigBaremetal) Validate() error {

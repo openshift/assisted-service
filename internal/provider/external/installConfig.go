@@ -2,6 +2,7 @@ package external
 
 import (
 	"github.com/go-openapi/swag"
+	configv1 "github.com/openshift/api/config/v1"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/host/hostutil"
 	"github.com/openshift/assisted-service/internal/installcfg"
@@ -14,6 +15,9 @@ func (p externalProvider) AddPlatformToInstallConfig(cfg *installcfg.InstallerCo
 	cfg.Platform = installcfg.Platform{
 		None: &installcfg.PlatformNone{},
 	}
+
+	// Enable feature set "TechPreviewNoUpgrade" in order to access External platform feature
+	cfg.FeatureSet = configv1.TechPreviewNoUpgrade
 
 	cfg.Networking.MachineNetwork = provider.GetMachineNetworkForUserManagedNetworking(p.Log, cluster)
 	if cluster.NetworkType != nil {
