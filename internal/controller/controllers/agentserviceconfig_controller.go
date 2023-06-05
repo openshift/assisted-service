@@ -656,35 +656,11 @@ func newImageServiceService(ctx context.Context, log logrus.FieldLogger, asc ASC
 }
 
 func newServiceMonitor(ctx context.Context, log logrus.FieldLogger, asc ASC) (client.Object, controllerutil.MutateFn, error) {
-	service := &corev1.Service{}
-	if err := asc.Client.Get(ctx, types.NamespacedName{Name: serviceName, Namespace: asc.namespace}, service); err != nil {
-		return nil, nil, err
-	}
-
-	endpoints := make([]monitoringv1.Endpoint, len(service.Spec.Ports))
-	for i := range service.Spec.Ports {
-		endpoints[i].Port = service.Spec.Ports[i].Name
-	}
-
-	labels := make(map[string]string)
-	for k, v := range service.ObjectMeta.Labels {
-		labels[k] = v
-	}
-
-	smSpec := monitoringv1.ServiceMonitorSpec{
-		Selector: metav1.LabelSelector{
-			MatchLabels: labels,
-		},
-		Endpoints: endpoints,
-	}
-
 	sm := &monitoringv1.ServiceMonitor{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      service.ObjectMeta.Name,
+			Name:      serviceName,
 			Namespace: asc.namespace,
-			Labels:    labels,
 		},
-		Spec: smSpec,
 	}
 
 	mutateFn := func() error {
@@ -692,8 +668,19 @@ func newServiceMonitor(ctx context.Context, log logrus.FieldLogger, asc ASC) (cl
 			return err
 		}
 
-		sm.Spec = smSpec
-		sm.ObjectMeta.Labels = labels
+		addAppLabel(serviceName, &sm.ObjectMeta)
+		sm.Spec.Endpoints = []monitoringv1.Endpoint{{
+			Port: serviceName,
+			TLSConfig: &monitoringv1.TLSConfig{
+				CAFile: "/etc/prometheus/configmaps/serving-certs-ca-bundle/service-ca.crt",
+				SafeTLSConfig: monitoringv1.SafeTLSConfig{
+					ServerName: fmt.Sprintf("%s.%s.svc", serviceName, asc.namespace),
+				},
+			},
+		}}
+		sm.Spec.Selector = metav1.LabelSelector{
+			MatchLabels: map[string]string{"app": serviceName},
+		}
 		return nil
 	}
 
