@@ -4649,12 +4649,6 @@ func (b *bareMetalInventory) RegisterInfraEnvInternal(
 		kernelArguments = swag.String(string(b))
 	}
 
-	if params.InfraenvCreateParams.IgnitionConfigOverride != "" {
-		if err = validations.ValidateIgnitionImageSize(params.InfraenvCreateParams.IgnitionConfigOverride); err != nil {
-			return nil, common.NewApiError(http.StatusBadRequest, err)
-		}
-	}
-
 	imageType := b.getActualImageType(params.InfraenvCreateParams.CPUArchitecture, params.InfraenvCreateParams.ImageType)
 	infraEnv = common.InfraEnv{
 		Generated: false,
@@ -4716,6 +4710,20 @@ func (b *bareMetalInventory) RegisterInfraEnvInternal(
 
 	if err = updateSSHAuthorizedKey(&infraEnv); err != nil {
 		return nil, common.NewApiError(http.StatusBadRequest, err)
+	}
+
+	if params.InfraenvCreateParams.IgnitionConfigOverride != "" {
+		var discoveryIgnition string
+		discoveryIgnition, err = b.IgnitionBuilder.FormatDiscoveryIgnitionFile(
+			ctx, &infraEnv, b.IgnitionConfig,
+			false, b.authHandler.AuthType(), string(params.InfraenvCreateParams.ImageType))
+		if err != nil {
+			log.WithError(err).Error("Failed to format discovery ignition config")
+			return nil, common.NewApiError(http.StatusInternalServerError, err)
+		}
+		if err = validations.ValidateIgnitionImageSize(discoveryIgnition); err != nil {
+			return nil, common.NewApiError(http.StatusBadRequest, err)
+		}
 	}
 
 	if err = tx.Create(&infraEnv).Error; err != nil {
@@ -5003,6 +5011,11 @@ func (b *bareMetalInventory) UpdateInfraEnvInternal(ctx context.Context, params 
 		return nil, err
 	}
 
+	// Validate discovery ignition after updating InfraEnv data
+	if err = b.validateDiscoveryIgnitionImageSize(ctx, infraEnv, params, tx, log); err != nil {
+		return nil, err
+	}
+
 	tx.Commit()
 	success = true
 
@@ -5022,6 +5035,27 @@ func (b *bareMetalInventory) UpdateInfraEnvInternal(ctx context.Context, params 
 	}
 
 	return b.GetInfraEnvInternal(ctx, installer.GetInfraEnvParams{InfraEnvID: *infraEnv.ID})
+}
+
+func (b *bareMetalInventory) validateDiscoveryIgnitionImageSize(ctx context.Context, infraEnv *common.InfraEnv, params installer.UpdateInfraEnvParams, db *gorm.DB, log logrus.FieldLogger) error {
+	if params.InfraEnvUpdateParams.IgnitionConfigOverride != "" && params.InfraEnvUpdateParams.IgnitionConfigOverride != infraEnv.IgnitionConfigOverride {
+		infraEnvAfterUpdate, err := common.GetInfraEnvFromDB(db, params.InfraEnvID)
+		if err != nil {
+			log.WithError(err).Errorf("Failed to get infraEnv: %s", params.InfraEnvID)
+			return err
+		}
+		discoveryIgnition, err := b.IgnitionBuilder.FormatDiscoveryIgnitionFile(
+			ctx, infraEnvAfterUpdate, b.IgnitionConfig,
+			false, b.authHandler.AuthType(), string(common.ImageTypeValue(infraEnvAfterUpdate.Type)))
+		if err != nil {
+			log.WithError(err).Error("Failed to format discovery ignition config")
+			return err
+		}
+		if err := validations.ValidateIgnitionImageSize(discoveryIgnition); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (b *bareMetalInventory) updateInfraEnvData(ctx context.Context, infraEnv *common.InfraEnv, params installer.UpdateInfraEnvParams, internalIgnitionConfig *string, db *gorm.DB, log logrus.FieldLogger) error {
@@ -5065,10 +5099,6 @@ func (b *bareMetalInventory) updateInfraEnvData(ctx context.Context, infraEnv *c
 	}
 
 	if params.InfraEnvUpdateParams.IgnitionConfigOverride != "" && params.InfraEnvUpdateParams.IgnitionConfigOverride != infraEnv.IgnitionConfigOverride {
-		if err := validations.ValidateIgnitionImageSize(params.InfraEnvUpdateParams.IgnitionConfigOverride); err != nil {
-			return common.NewApiError(http.StatusBadRequest, err)
-		}
-
 		updates["ignition_config_override"] = params.InfraEnvUpdateParams.IgnitionConfigOverride
 		// Set the feature usage for ignition config overrides since it changed
 		if err := b.setIgnitionConfigOverrideUsage(infraEnv.ClusterID, params.InfraEnvUpdateParams.IgnitionConfigOverride, "infra-env", db); err != nil {
