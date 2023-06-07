@@ -89,6 +89,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 )
 
@@ -534,6 +535,7 @@ func main() {
 
 	go func() {
 		if Options.EnableKubeAPI {
+			failOnError(doesBMHCRDExist(ctrlMgr), "BareMetalHost CRD does not exist in cluster")
 			clientConfig := ctrl.GetConfigOrDie()
 			osClient := osclientset.NewForConfigOrDie(clientConfig)
 			kubeClient := kubernetes.NewForConfigOrDie(clientConfig)
@@ -868,4 +870,15 @@ func getNotificationStream(log *logrus.Logger) *stream.NotificationStream {
 		log.WithError(err).Fatal("kafka writer failed to initialize")
 	}
 	return stream.NewNotificationStream(writer, log, metadata)
+}
+
+func doesBMHCRDExist(mgr manager.Manager) error {
+	gvk, err := apiutil.GVKForObject(&metal3_v1alpha1.BareMetalHost{}, mgr.GetScheme())
+	if err != nil {
+		return err
+	}
+	if _, err = mgr.GetRESTMapper().RESTMapping(gvk.GroupKind(), gvk.Version); err != nil {
+		return err
+	}
+	return nil
 }
