@@ -29,6 +29,7 @@ import (
 
 func TestValidator(t *testing.T) {
 	RegisterFailHandler(Fail)
+
 	common.InitializeDBTest()
 	defer common.TerminateDBTest()
 	RunSpecs(t, "manifests_test")
@@ -238,6 +239,16 @@ var _ = Describe("ClusterManifestTests", func() {
 		})
 
 		Context("File validation and format", func() {
+
+			generateLargeJSON := func(length int) string {
+				var largeElementBuilder strings.Builder
+				largeElementBuilder.Grow(length)
+				for i := 0; i <= length; i++ {
+					largeElementBuilder.WriteString("A")
+				}
+				return fmt.Sprintf("{\"data\":\"%s\"}", largeElementBuilder.String())
+			}
+
 			It("accepts manifest in json format and .json extension", func() {
 				clusterID := registerCluster().ID
 				jsonContent := encodeToBase64(contentAsJSON)
@@ -403,6 +414,43 @@ spec:
 				Expect(err.StatusCode()).To(Equal(int32(http.StatusBadRequest)))
 				Expect(err.Error()).To(ContainSubstring("Cluster manifest openshift/99-test.yaml for cluster " + clusterID.String() + " should not include a directory in its name."))
 			})
+
+			It("Creation fails for a manifest file that exceeds the maximum upload size", func() {
+				clusterID := registerCluster().ID
+				fileName := "99-test.json"
+				maxFileSizeBytes := 1024*1024 + 1
+				largeJSONContent := encodeToBase64(generateLargeJSON(maxFileSizeBytes))
+				response := manifestsAPI.V2CreateClusterManifest(ctx, operations.V2CreateClusterManifestParams{
+					ClusterID: *clusterID,
+					CreateManifestParams: &models.CreateManifestParams{
+						Content:  &largeJSONContent,
+						FileName: &fileName,
+					},
+				})
+				Expect(response).Should(BeAssignableToTypeOf(common.NewApiError(http.StatusBadRequest, errors.New(""))))
+				err := response.(*common.ApiErrorResponse)
+				Expect(err.StatusCode()).To(Equal(int32(http.StatusBadRequest)))
+				Expect(err.Error()).To(ContainSubstring("Manifest content of file manifests/99-test.json for cluster ID " + clusterID.String() + " exceeds the maximum file size of 1MiB"))
+			})
+
+			It("Update fails for a manifest file that exceeds the maximum upload size", func() {
+				clusterID := registerCluster().ID
+				maxFileSizeBytes := 1024*1024 + 1
+				largeJSONContent := encodeToBase64(generateLargeJSON(maxFileSizeBytes))
+				response := manifestsAPI.V2UpdateClusterManifest(ctx, operations.V2UpdateClusterManifestParams{
+					ClusterID: *clusterID,
+					UpdateManifestParams: &models.UpdateManifestParams{
+						UpdatedContent: &largeJSONContent,
+						FileName:       fileNameJson,
+						Folder:         defaultFolder,
+					},
+				})
+				Expect(response).Should(BeAssignableToTypeOf(common.NewApiError(http.StatusBadRequest, errors.New(""))))
+				err := response.(*common.ApiErrorResponse)
+				Expect(err.StatusCode()).To(Equal(int32(http.StatusBadRequest)))
+				Expect(err.Error()).To(ContainSubstring("Manifest content of file 99-openshift-machineconfig-master-kargs.json for cluster ID " + clusterID.String() + " exceeds the maximum file size of 1MiB"))
+			})
+
 		})
 	})
 
