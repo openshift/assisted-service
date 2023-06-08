@@ -15,6 +15,7 @@ import (
 	"github.com/openshift/assisted-service/internal/versions"
 	"github.com/openshift/assisted-service/models"
 	conditionsv1 "github.com/openshift/custom-resource-status/conditions/v1"
+	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	"github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
 	appsv1 "k8s.io/api/apps/v1"
@@ -1086,6 +1087,24 @@ var _ = Describe("ensurePostgresSecret", func() {
 			Expect(foundPass).ToNot(BeNil())
 			Expect(foundPass).To(HaveLen(databasePasswordLength))
 		})
+	})
+})
+
+var _ = Describe("newServiceMonitor", func() {
+	It("sets tls config correctly", func() {
+		ctx := context.Background()
+		asc := newASCDefault()
+		ascr := newTestReconciler(asc)
+		ascc := initASC(ascr, asc)
+
+		AssertReconcileSuccess(ctx, common.GetTestLog(), ascc, newServiceMonitor)
+
+		found := &monitoringv1.ServiceMonitor{}
+		Expect(ascr.Client.Get(ctx, types.NamespacedName{Name: serviceName, Namespace: testNamespace}, found)).To(Succeed())
+		Expect(len(found.Spec.Endpoints)).To(Equal(1))
+		endpoint := found.Spec.Endpoints[0]
+		Expect(endpoint.TLSConfig.CAFile).To(Equal("/etc/prometheus/configmaps/serving-certs-ca-bundle/service-ca.crt"))
+		Expect(endpoint.TLSConfig.ServerName).To(Equal("assisted-service.test-namespace.svc"))
 	})
 })
 
