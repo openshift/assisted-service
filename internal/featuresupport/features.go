@@ -290,9 +290,6 @@ func (feature *DualStackFeature) getSupportLevel(filters SupportLevelFilters) mo
 	if !isFeatureCompatibleWithArchitecture(feature, filters.OpenshiftVersion, swag.StringValue(filters.CPUArchitecture)) {
 		return models.SupportLevelUnavailable
 	}
-	if isNotSupported, err := common.BaseVersionLessThan("4.12", filters.OpenshiftVersion); isNotSupported || err != nil {
-		return models.SupportLevelUnavailable
-	}
 
 	return models.SupportLevelSupported
 }

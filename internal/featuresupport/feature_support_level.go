@@ -102,10 +102,11 @@ func isFeaturesCompatibleWithFeatures(openshiftVersion string, activatedFeatures
 	return nil
 }
 
-// isFeaturesCompatibleWithArchitecture Determine if feature is compatible with CPU architecture in a given openshift-version
-func isFeaturesCompatibleWithArchitecture(openshiftVersion, cpuArchitecture string, activatedFeatures []SupportLevelFeature) error {
+// isFeaturesCompatible Determine if feature is compatible with CPU architecture in a given openshift-version
+func isFeaturesCompatible(openshiftVersion, cpuArchitecture string, activatedFeatures []SupportLevelFeature) error {
 	for _, feature := range activatedFeatures {
-		if !isFeatureCompatibleWithArchitecture(feature, openshiftVersion, cpuArchitecture) {
+		if !isFeatureCompatibleWithArchitecture(feature, openshiftVersion, cpuArchitecture) ||
+			!IsFeatureAvailable(feature.getId(), openshiftVersion, swag.String(cpuArchitecture)) {
 			return fmt.Errorf("cannot use %s because it's not compatible with the %s architecture "+
 				"on version %s of OpenShift", feature.getName(), cpuArchitecture, openshiftVersion)
 		}

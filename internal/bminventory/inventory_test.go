@@ -52,7 +52,7 @@ import (
 	"github.com/openshift/assisted-service/internal/host/hostutil"
 	"github.com/openshift/assisted-service/internal/ignition"
 	"github.com/openshift/assisted-service/internal/infraenv"
-	installcfg "github.com/openshift/assisted-service/internal/installcfg"
+	"github.com/openshift/assisted-service/internal/installcfg"
 	installcfg_builder "github.com/openshift/assisted-service/internal/installcfg/builder"
 	"github.com/openshift/assisted-service/internal/metrics"
 	"github.com/openshift/assisted-service/internal/network"
@@ -1884,7 +1884,7 @@ var _ = Describe("cluster", func() {
 		It("happy flow", func() {
 			bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog().WithField("pkg", "cluster-monitor"),
 				db, mockStream, mockEvents, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil)
-			mockClusterRegisterSuccess(true)
+			mockClusterRegisterSuccessWithVersion(models.ClusterCPUArchitectureX8664, "4.8")
 
 			noneHaMode := models.ClusterHighAvailabilityModeNone
 			MinimalOpenShiftVersionForNoneHA := "4.8.0-fc.0"
@@ -1935,7 +1935,7 @@ var _ = Describe("cluster", func() {
 			bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog().WithField("pkg", "cluster-monitor"),
 				db, commontesting.GetDummyNotificationStream(ctrl), mockEvents, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil)
 
-			mockClusterRegisterSuccess(true)
+			mockClusterRegisterSuccessWithVersion(models.ClusterCPUArchitectureX8664, "4.8")
 			noneHaMode := models.ClusterHighAvailabilityModeNone
 			openShiftVersionForNoneHA := "4.8.0"
 			clusterParams.OpenshiftVersion = swag.String(openShiftVersionForNoneHA)
@@ -1953,7 +1953,7 @@ var _ = Describe("cluster", func() {
 			bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog().WithField("pkg", "cluster-monitor"),
 				db, commontesting.GetDummyNotificationStream(ctrl), mockEvents, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil)
 
-			mockClusterRegisterSuccess(true)
+			mockClusterRegisterSuccessWithVersion(models.ClusterCPUArchitectureX8664, "4.8")
 			noneHaMode := models.ClusterHighAvailabilityModeNone
 			openShiftVersionForNoneHA := "4.8.0-fc.2"
 			clusterParams.OpenshiftVersion = swag.String(openShiftVersionForNoneHA)
@@ -2008,7 +2008,7 @@ var _ = Describe("cluster", func() {
 		bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog().WithField("pkg", "cluster-monitor"),
 			db, commontesting.GetDummyNotificationStream(ctrl), mockEvents, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil)
 
-		mockClusterRegisterSuccess(true)
+		mockClusterRegisterSuccessWithVersion(models.ClusterCPUArchitectureX8664, "4.8")
 		noneHaMode := models.ClusterHighAvailabilityModeNone
 		openShiftVersionForNoneHA := "4.8.0-0.ci.test-2021-05-20-000749-ci-op-7xrzwgwy-latest"
 		clusterParams := getDefaultClusterCreateParams()
@@ -2915,7 +2915,7 @@ var _ = Describe("cluster", func() {
 				})
 
 				It("return LVM when LVM operator enabled", func() {
-					mockClusterRegisterSuccess(true)
+					mockClusterRegisterSuccessWithVersion(models.ClusterCPUArchitectureX8664, "4.12")
 					mockLVMGetOperatorByName("lvm")
 					mockOperatorManager.EXPECT().ResolveDependencies(gomock.Any(), gomock.Any()).
 						DoAndReturn(func(commonCluster *common.Cluster, operators []*models.MonitoredOperator) ([]*models.MonitoredOperator, error) {
@@ -3152,9 +3152,10 @@ var _ = Describe("cluster", func() {
 						},
 					}
 					cluster := &common.Cluster{Cluster: models.Cluster{
-						ID:                 &clusterID,
-						MonitoredOperators: originalOperators,
-						OpenshiftVersion:   common.TestDefaultConfig.OpenShiftVersion,
+						ID:                    &clusterID,
+						MonitoredOperators:    originalOperators,
+						OpenshiftVersion:      "4.11",
+						UserManagedNetworking: swag.Bool(true),
 						Platform: &models.Platform{
 							Type: common.PlatformTypePtr(models.PlatformTypeBaremetal),
 						},
@@ -4041,6 +4042,7 @@ var _ = Describe("cluster", func() {
 						"platform_type":           models.PlatformTypeNone,
 						"high_availability_mode":  models.ClusterHighAvailabilityModeNone,
 						"cpu_architecture":        common.X86CPUArchitecture,
+						"openshift_version":       "4.10",
 					}).Error).ShouldNot(HaveOccurred())
 				})
 
@@ -6268,7 +6270,7 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 						ID:                    &clusterID,
 						HighAvailabilityMode:  swag.String(models.ClusterHighAvailabilityModeFull),
 						UserManagedNetworking: swag.Bool(false),
-						OpenshiftVersion:      "4.12",
+						OpenshiftVersion:      "4.14",
 						CPUArchitecture:       common.DefaultCPUArchitecture,
 						Platform: &models.Platform{
 							Type: common.PlatformTypePtr(models.PlatformTypeBaremetal),
@@ -13146,8 +13148,7 @@ var _ = Describe("TestRegisterCluster", func() {
 		}
 
 		for _, t := range tests {
-
-			mockClusterRegisterSuccess(true)
+			mockClusterRegisterSuccessWithVersion(models.ClusterCPUArchitectureX8664, *t.OpenShiftVersion)
 			mockAMSSubscription(ctx)
 
 			NewClusterParams := getDefaultClusterCreateParams()
@@ -13172,6 +13173,7 @@ var _ = Describe("TestRegisterCluster", func() {
 				Name:                 swag.String("some-cluster-name"),
 				OpenshiftVersion:     swag.String(common.TestDefaultConfig.OpenShiftVersion),
 				PullSecret:           swag.String(fakePullSecret),
+				CPUArchitecture:      models.ClusterCPUArchitectureX8664,
 				HighAvailabilityMode: highAvailabilityMode,
 			}
 		}
@@ -13252,6 +13254,56 @@ var _ = Describe("TestRegisterCluster", func() {
 				actual := reply.(*installer.V2RegisterClusterCreated).Payload
 				Expect(swag.BoolValue(actual.UserManagedNetworking)).To(Equal(true))
 				Expect(*actual.Platform.Type).To(Equal(models.PlatformTypeVsphere))
+			})
+
+			It("oci platform and UserManagedNetworking=true on OCP 4.14 - success", func() {
+				mockClusterRegisterSuccessWithVersion(models.ClusterCPUArchitectureX8664, "4.14")
+				mockAMSSubscription(ctx)
+
+				params := getClusterCreateParams(nil)
+				params.Platform = &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeOci)}
+				params.UserManagedNetworking = swag.Bool(true)
+				params.OpenshiftVersion = swag.String("4.14")
+				reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
+					NewClusterParams: params,
+				})
+				Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2RegisterClusterCreated()))
+				actual := reply.(*installer.V2RegisterClusterCreated).Payload
+				Expect(swag.BoolValue(actual.UserManagedNetworking)).To(Equal(true))
+				Expect(*actual.Platform.Type).To(Equal(models.PlatformTypeOci))
+				Expect(*actual.Platform.IsExternal).To(Equal(true))
+				Expect(actual.OpenshiftVersion).To(Equal("4.14"))
+			})
+
+			It("oci platform and UserManagedNetworking=true on OCP 4.13 - failure", func() {
+				cpuArchitecture := common.X86CPUArchitecture
+				openshiftVersion := "4.13"
+				errorMsg := "cannot use Oracle Cloud Infrastructure external platform because it's not compatible with the x86_64 architecture on version 4.13.0 of OpenShift"
+
+				mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
+					eventstest.WithNameMatcher(eventgen.ClusterRegistrationFailedEventName),
+					eventstest.WithMessageContainsMatcher(errorMsg),
+					eventstest.WithSeverityMatcher(models.EventSeverityError))).Times(1)
+
+				mockVersions.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(&models.ReleaseImage{
+					CPUArchitecture:  swag.String(cpuArchitecture),
+					CPUArchitectures: []string{cpuArchitecture},
+					OpenshiftVersion: swag.String(openshiftVersion),
+					URL:              swag.String("release_4.13"),
+					Version:          swag.String("4.13.0"),
+				}, nil).Times(1)
+				mockOperatorManager.EXPECT().GetSupportedOperatorsByType(models.OperatorTypeBuiltin).Return([]*models.MonitoredOperator{&common.TestDefaultConfig.MonitoredOperator}).Times(1)
+				mockOSImages.EXPECT().GetOsImage(gomock.Any(), gomock.Any()).Return(common.TestDefaultConfig.OsImage, nil).Times(1)
+
+				params := getClusterCreateParams(nil)
+				params.Platform = &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeOci)}
+				params.UserManagedNetworking = swag.Bool(true)
+				params.OpenshiftVersion = swag.String("4.13")
+				reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
+					NewClusterParams: params,
+				})
+
+				verifyApiErrorString(reply, http.StatusBadRequest, errorMsg)
 			})
 
 			It("Baremetal platform and UserManagedNetworking=true - failed", func() {
@@ -13475,7 +13527,7 @@ var _ = Describe("TestRegisterCluster", func() {
 
 		Context("HighAvailabilityMode = None", func() {
 			It("None platform when HighAvailabilityMode is None", func() {
-				mockClusterRegisterSuccess(true)
+				mockClusterRegisterSuccessWithVersion(models.ClusterCPUArchitectureX8664, "4.9")
 				mockAMSSubscription(ctx)
 
 				params := getClusterCreateParams(swag.String(models.ClusterCreateParamsHighAvailabilityModeNone))
@@ -13505,7 +13557,7 @@ var _ = Describe("TestRegisterCluster", func() {
 			})
 
 			It("user-managed-networking true", func() {
-				mockClusterRegisterSuccess(true)
+				mockClusterRegisterSuccessWithVersion(models.ClusterCPUArchitectureX8664, "4.9")
 				mockAMSSubscription(ctx)
 
 				params := getClusterCreateParams(swag.String(models.ClusterCreateParamsHighAvailabilityModeNone))
@@ -13598,7 +13650,7 @@ var _ = Describe("TestRegisterCluster", func() {
 			})
 
 			It("Set none platform when HighAvailabilityMode is None", func() {
-				mockClusterRegisterSuccess(true)
+				mockClusterRegisterSuccessWithVersion(models.ClusterCPUArchitectureX8664, "4.9")
 				mockAMSSubscription(ctx)
 
 				params := getClusterCreateParams(swag.String(models.ClusterCreateParamsHighAvailabilityModeNone))
@@ -13614,7 +13666,7 @@ var _ = Describe("TestRegisterCluster", func() {
 			})
 
 			It("Set vsphere platform when HighAvailabilityMode is None", func() {
-				mockClusterRegisterSuccess(true)
+				mockClusterRegisterSuccessWithVersion(models.ClusterCPUArchitectureX8664, "4.9")
 				mockAMSSubscription(ctx)
 
 				params := getClusterCreateParams(swag.String(models.ClusterCreateParamsHighAvailabilityModeNone))
@@ -13647,7 +13699,7 @@ var _ = Describe("TestRegisterCluster", func() {
 			})
 
 			It("Set none platform and enable UserManagedNetworking when HighAvailabilityMode is None", func() {
-				mockClusterRegisterSuccess(true)
+				mockClusterRegisterSuccessWithVersion(models.ClusterCPUArchitectureX8664, "4.9")
 				mockAMSSubscription(ctx)
 
 				params := getClusterCreateParams(swag.String(models.ClusterCreateParamsHighAvailabilityModeNone))
@@ -17570,11 +17622,11 @@ var _ = Describe("Platform tests", func() {
 	Context("Register cluster", func() {
 
 		BeforeEach(func() {
-			mockClusterRegisterSuccess(true)
 			mockUsageReports()
 		})
 
 		It("default platform", func() {
+			mockClusterRegisterSuccessWithVersion(models.ClusterCPUArchitectureX8664, common.OpenShiftVersion)
 			reply := bm.V2RegisterCluster(ctx, *registerParams)
 			Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2RegisterClusterCreated()))
 			cluster := reply.(*installer.V2RegisterClusterCreated).Payload
@@ -17584,6 +17636,7 @@ var _ = Describe("Platform tests", func() {
 		})
 
 		It("vsphere platform", func() {
+			mockClusterRegisterSuccessWithVersion(models.ClusterCPUArchitectureX8664, common.OpenShiftVersion)
 			registerParams.NewClusterParams.Platform = &models.Platform{
 				Type: common.PlatformTypePtr(models.PlatformTypeVsphere),
 			}
@@ -17596,6 +17649,7 @@ var _ = Describe("Platform tests", func() {
 		})
 
 		It("vsphere platform with credentials", func() {
+			mockClusterRegisterSuccessWithVersion(models.ClusterCPUArchitectureX8664, common.OpenShiftVersion)
 			registerParams.NewClusterParams.Platform = getVSpherePlatform()
 			reply := bm.V2RegisterCluster(ctx, *registerParams)
 			Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2RegisterClusterCreated()))
@@ -17606,10 +17660,12 @@ var _ = Describe("Platform tests", func() {
 		})
 
 		It("nutanix platform", func() {
+			MinimalOpenShiftVersionForNutanix := "4.11.0"
+			mockClusterRegisterSuccessWithVersion(models.ClusterCPUArchitectureX8664, MinimalOpenShiftVersionForNutanix)
 			registerParams.NewClusterParams.Platform = &models.Platform{
 				Type: common.PlatformTypePtr(models.PlatformTypeNutanix),
 			}
-			MinimalOpenShiftVersionForNutanix := "4.11.0"
+
 			registerParams.NewClusterParams.OpenshiftVersion = swag.String(MinimalOpenShiftVersionForNutanix)
 			registerParams.NewClusterParams.CPUArchitecture = common.X86CPUArchitecture
 
@@ -17622,9 +17678,13 @@ var _ = Describe("Platform tests", func() {
 		})
 
 		It("OCI platform - HA", func() {
+			MinimalOpenShiftVersionForOci := "4.14.0"
+			mockClusterRegisterSuccessWithVersion(models.ClusterCPUArchitectureX8664, MinimalOpenShiftVersionForOci)
 			registerParams.NewClusterParams.Platform = &models.Platform{
 				Type: common.PlatformTypePtr(models.PlatformTypeOci),
 			}
+
+			registerParams.NewClusterParams.OpenshiftVersion = swag.String(MinimalOpenShiftVersionForOci)
 			reply := bm.V2RegisterCluster(ctx, *registerParams)
 			Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2RegisterClusterCreated()))
 			cluster := reply.(*installer.V2RegisterClusterCreated).Payload
@@ -17635,12 +17695,14 @@ var _ = Describe("Platform tests", func() {
 		})
 
 		It("OCI platform - SNO", func() {
+			MinimalOpenShiftVersionForOci := "4.14.0"
+			mockClusterRegisterSuccessWithVersion(models.ClusterCPUArchitectureX8664, MinimalOpenShiftVersionForOci)
+
 			registerParams.NewClusterParams.Platform = &models.Platform{
 				Type: common.PlatformTypePtr(models.PlatformTypeOci),
 			}
 
-			MinimalOpenShiftVersionForSNO := "4.8.0"
-			registerParams.NewClusterParams.OpenshiftVersion = swag.String(MinimalOpenShiftVersionForSNO)
+			registerParams.NewClusterParams.OpenshiftVersion = swag.String(MinimalOpenShiftVersionForOci)
 			registerParams.NewClusterParams.HighAvailabilityMode = swag.String(models.ClusterCreateParamsHighAvailabilityModeNone)
 
 			reply := bm.V2RegisterCluster(ctx, *registerParams)
@@ -17653,6 +17715,8 @@ var _ = Describe("Platform tests", func() {
 		})
 
 		It("OCI platform - RHSSO - PlatformOciCapability is set", func() {
+			mockClusterRegisterSuccessWithVersion(models.ClusterCPUArchitectureX8664, "4.14")
+
 			cfg := auth.GetConfigRHSSO()
 			cfg.EnableOrgBasedFeatureGates = true
 			mockOcmAuthz := ocm.NewMockOCMAuthorization(ctrl)
@@ -17665,6 +17729,7 @@ var _ = Describe("Platform tests", func() {
 			authCtx := context.WithValue(ctx, restapi.AuthKey, payload)
 			mockOcmAuthz.EXPECT().CapabilityReview(gomock.Any(), payload.Username, ocm.PlatformOciCapabilityName, ocm.OrganizationCapabilityType).Return(true, nil).Times(1)
 
+			registerParams.NewClusterParams.OpenshiftVersion = swag.String("4.14")
 			registerParams.NewClusterParams.Platform = &models.Platform{
 				Type: common.PlatformTypePtr(models.PlatformTypeOci),
 			}
