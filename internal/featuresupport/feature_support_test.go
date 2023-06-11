@@ -13,7 +13,7 @@ import (
 )
 
 var _ = Describe("V2ListFeatureSupportLevels API", func() {
-	availableVersions := []string{"4.6", "4.7", "4.8", "4.9", "4.10", "4.11", "4.12", "4.13"}
+	availableVersions := []string{"4.9", "4.10", "4.11", "4.12", "4.13"}
 	availableCpuArch := []string{
 		models.ClusterCPUArchitectureX8664,
 		models.ClusterCPUArchitectureArm64,

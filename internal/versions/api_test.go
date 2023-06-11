@@ -168,7 +168,7 @@ var _ = Describe("ListSupportedOpenshiftVersions", func() {
 		}
 
 		// Production release version
-		releaseImage.Version = swag.String("4.8.12")
+		releaseImage.Version = swag.String("4.9.0")
 		Expect(*getSupportLevel(releaseImage)).Should(Equal(models.OpenshiftVersionSupportLevelProduction))
 
 		// Beta release version
