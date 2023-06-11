@@ -12480,9 +12480,7 @@ var _ = Describe("UpdateInfraEnv - Ignition", func() {
 			InfraEnvUpdateParams: &models.InfraEnvUpdateParams{IgnitionConfigOverride: override},
 		}
 		response := bm.UpdateInfraEnv(ctx, params)
-		Expect(response).To(BeAssignableToTypeOf(common.NewApiError(http.StatusBadRequest, errors.Errorf(""))))
-		err = response.(*common.ApiErrorResponse)
-		Expect(err.Error()).To(ContainSubstring("over the maximum allowable size"))
+		verifyApiErrorString(response, http.StatusBadRequest, "over the maximum allowable size")
 	})
 })
 
