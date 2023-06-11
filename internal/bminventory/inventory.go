@@ -5013,7 +5013,7 @@ func (b *bareMetalInventory) UpdateInfraEnvInternal(ctx context.Context, params 
 
 	// Validate discovery ignition after updating InfraEnv data
 	if err = b.validateDiscoveryIgnitionImageSize(ctx, infraEnv, params, tx, log); err != nil {
-		return nil, err
+		return nil, common.NewApiError(http.StatusBadRequest, err)
 	}
 
 	tx.Commit()
