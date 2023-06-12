@@ -4021,9 +4021,6 @@ func (b *bareMetalInventory) preparHostLogs(ctx context.Context, cluster *common
 
 func (b *bareMetalInventory) getLogsFullName(logType string, clusterId string, logId string) string {
 	filename := "logs.tar.gz"
-	if logType == string(models.LogsTypeNodeBoot) {
-		filename = fmt.Sprintf("boot_%s", filename)
-	}
 	return fmt.Sprintf("%s/logs/%s/%s", clusterId, logId, filename)
 }
 
