@@ -26,24 +26,26 @@ import (
 
 type installCmd struct {
 	baseCmd
-	db                *gorm.DB
-	hwValidator       hardware.Validator
-	ocRelease         oc.Release
-	instructionConfig InstructionConfig
-	eventsHandler     eventsapi.Handler
-	versionsHandler   versions.Handler
+	db                  *gorm.DB
+	hwValidator         hardware.Validator
+	ocRelease           oc.Release
+	instructionConfig   InstructionConfig
+	eventsHandler       eventsapi.Handler
+	versionsHandler     versions.Handler
+	enableSkipMcoReboot bool
 }
 
 func NewInstallCmd(log logrus.FieldLogger, db *gorm.DB, hwValidator hardware.Validator, ocRelease oc.Release,
-	instructionConfig InstructionConfig, eventsHandler eventsapi.Handler, versionsHandler versions.Handler) *installCmd {
+	instructionConfig InstructionConfig, eventsHandler eventsapi.Handler, versionsHandler versions.Handler, enableSkipMcoReboot bool) *installCmd {
 	return &installCmd{
-		baseCmd:           baseCmd{log: log},
-		db:                db,
-		hwValidator:       hwValidator,
-		ocRelease:         ocRelease,
-		instructionConfig: instructionConfig,
-		eventsHandler:     eventsHandler,
-		versionsHandler:   versionsHandler,
+		baseCmd:             baseCmd{log: log},
+		db:                  db,
+		hwValidator:         hwValidator,
+		ocRelease:           ocRelease,
+		instructionConfig:   instructionConfig,
+		eventsHandler:       eventsHandler,
+		versionsHandler:     versionsHandler,
+		enableSkipMcoReboot: enableSkipMcoReboot,
 	}
 }
 
@@ -112,6 +114,7 @@ func (i *installCmd) getFullInstallerCommand(ctx context.Context, cluster *commo
 		CheckCvo:             swag.Bool(i.instructionConfig.CheckClusterVersion),
 		InstallerImage:       swag.String(i.instructionConfig.InstallerImage),
 		BootDevice:           swag.String(bootdevice),
+		EnableSkipMcoReboot:  i.enableSkipMcoReboot,
 	}
 
 	// those flags are not used on day2 installation

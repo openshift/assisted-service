@@ -6447,6 +6447,9 @@ definitions:
       skip_installation_disk_cleanup:
         type: boolean
         description: Skip formatting installation disk
+      enable_skip_mco_reboot:
+        type: boolean
+        description: If true, assisted service will attempt to skip MCO reboot
 
   ntp_synchronization_request:
     type: object
