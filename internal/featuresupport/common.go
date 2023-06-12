@@ -30,7 +30,7 @@ func ValidateIncompatibleFeatures(log logrus.FieldLogger, cpuArchitecture string
 			return fmt.Errorf("cannot use %s architecture because it's not compatible on version %s of OpenShift", cpuArchitecture, cluster.OpenshiftVersion)
 		}
 
-		if err := isFeaturesCompatibleWithArchitecture(swag.StringValue(openshiftVersion), cpuArchitecture, activatedFeatures); err != nil {
+		if err := isFeaturesCompatible(swag.StringValue(openshiftVersion), cpuArchitecture, activatedFeatures); err != nil {
 			return err
 		}
 

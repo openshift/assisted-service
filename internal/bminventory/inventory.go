@@ -1958,12 +1958,19 @@ func (b *bareMetalInventory) validateUpdateClusterIncompatibleFeatures(ctx conte
 		return params, err
 	}
 
+	// Validate with infra-envs architecture
 	for _, infraEnv := range infraEnvs {
 		if err = featuresupport.ValidateIncompatibleFeatures(b.log, infraEnv.CPUArchitecture, cluster, infraEnv, params.ClusterUpdateParams); err != nil {
 			b.log.Error(err)
 			return params, common.NewApiError(http.StatusBadRequest, err)
 		}
 	}
+	// Validate with cluster architecture - CPUArchitecture can be multi when multi cpu architecture is selected
+	if err = featuresupport.ValidateIncompatibleFeatures(b.log, cluster.CPUArchitecture, cluster, nil, params.ClusterUpdateParams); err != nil {
+		b.log.Error(err)
+		return params, common.NewApiError(http.StatusBadRequest, err)
+	}
+
 	return params, nil
 }
 
@@ -6015,7 +6022,7 @@ func (b *bareMetalInventory) V2UpdateHostInternal(ctx context.Context, params in
 	log := logutil.FromContext(ctx, b.log)
 	var c *models.Cluster
 	var cluster *common.Cluster
-	var usages usage.FeatureUsage = make(usage.FeatureUsage)
+	var usages = make(usage.FeatureUsage)
 	var clusterID strfmt.UUID
 	var err error
 
