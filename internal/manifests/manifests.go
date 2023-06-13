@@ -353,6 +353,14 @@ func (m *Manifests) validateAllowedToModifyManifests(ctx context.Context, cluste
 }
 
 func (m *Manifests) validateUserSuppliedManifest(ctx context.Context, clusterID strfmt.UUID, manifestContent []byte, fileName string) error {
+	// etcd resources in k8s are limited to 1.5 MiB as indicated here https://etcd.io/docs/v3.5/dev-guide/limit/#request-size-limit
+	// however, one the the resource types that can be created from a manifest is a ConfigMap
+	// which has a size limit of 1MiB as cited here https://kubernetes.io/docs/concepts/configuration/configmap
+	// so this limit has been chosen based on the lowest permitted resource size (the size of the ConfigMap)
+	maxFileSizeBytes := 1024 * 1024
+	if len(manifestContent) > maxFileSizeBytes {
+		return m.prepareAndLogError(ctx, http.StatusBadRequest, errors.Errorf("Manifest content of file %s for cluster ID %s exceeds the maximum file size of 1MiB", fileName, string(clusterID)))
+	}
 	extension := filepath.Ext(fileName)
 	if extension == ".yaml" || extension == ".yml" {
 		var s map[interface{}]interface{}
