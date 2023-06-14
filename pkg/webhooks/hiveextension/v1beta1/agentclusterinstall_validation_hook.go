@@ -5,9 +5,13 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/go-openapi/swag"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	hiveext "github.com/openshift/assisted-service/api/hiveextension/v1beta1"
+	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/internal/provider"
+	"github.com/openshift/assisted-service/models"
 	hivev1 "github.com/openshift/hive/apis/hive/v1"
 	log "github.com/sirupsen/logrus"
 	admissionv1 "k8s.io/api/admission/v1"
@@ -59,7 +63,7 @@ func (a *AgentClusterInstallValidatingAdmissionHook) ValidatingResource() (plura
 		"agentclusterinstallvalidator"
 }
 
-// Initialize is called by generic-admission-server on startup to setup any special initialization that your webhook needs.
+// Initialize is called by generic-admission-server on startup to set up any special initialization that your webhook needs.
 func (a *AgentClusterInstallValidatingAdmissionHook) Initialize(kubeClientConfig *rest.Config, stopCh <-chan struct{}) error {
 	log.WithFields(log.Fields{
 		"group":    agentClusterInstallAdmissionGroup,
@@ -175,6 +179,16 @@ func (a *AgentClusterInstallValidatingAdmissionHook) validateCreate(admissionSpe
 			},
 		}
 	}
+	if err := validateCreatePlatformAndUMN(newObject); err != nil {
+		contextLogger.Errorf("Failed validation: %s", err.Error())
+		return &admissionv1.AdmissionResponse{
+			Allowed: false,
+			Result: &metav1.Status{
+				Status: metav1.StatusFailure, Code: http.StatusConflict, Reason: metav1.StatusReasonConflict,
+				Message: err.Error(),
+			},
+		}
+	}
 
 	// If we get here, then all checks passed, so the object is valid.
 	contextLogger.Info("Successful validation")
@@ -241,6 +255,17 @@ func (a *AgentClusterInstallValidatingAdmissionHook) validateUpdate(admissionSpe
 			Result: &metav1.Status{
 				Status: metav1.StatusFailure, Code: http.StatusConflict, Reason: metav1.StatusReasonConflict,
 				Message: message,
+			},
+		}
+	}
+
+	if err := validateUpdatePlatformAndUMNUpdate(oldObject, newObject); err != nil {
+		contextLogger.Errorf("Failed validation: %s", err.Error())
+		return &admissionv1.AdmissionResponse{
+			Allowed: false,
+			Result: &metav1.Status{
+				Status: metav1.StatusFailure, Code: http.StatusConflict, Reason: metav1.StatusReasonConflict,
+				Message: err.Error(),
 			},
 		}
 	}
@@ -334,9 +359,62 @@ func isUserManagedNetworkingSetToFalseWithSNO(newObject *hiveext.AgentClusterIns
 		!*newObject.Spec.Networking.UserManagedNetworking
 }
 
+func validateCreatePlatformAndUMN(newObject *hiveext.AgentClusterInstall) error {
+	platform := common.PlatformTypeToPlatform(newObject.Spec.PlatformType)
+	_, _, err := provider.GetActualCreateClusterPlatformParams(
+		platform, newObject.Spec.Networking.UserManagedNetworking, getHighAvailabilityMode(newObject, nil), "")
+	return err
+}
+
+func validateUpdatePlatformAndUMNUpdate(oldObject, newObject *hiveext.AgentClusterInstall) error {
+	var (
+		platform              *models.Platform
+		userManagedNetworking *bool
+	)
+
+	if newObject.Spec.PlatformType != "" {
+		platform = common.PlatformTypeToPlatform(newObject.Spec.PlatformType)
+	} else {
+		platform = common.PlatformTypeToPlatform(oldObject.Spec.PlatformType)
+	}
+
+	if newObject.Spec.Networking.UserManagedNetworking != nil {
+		userManagedNetworking = newObject.Spec.Networking.UserManagedNetworking
+	} else {
+		userManagedNetworking = oldObject.Spec.Networking.UserManagedNetworking
+	}
+
+	_, _, err := provider.GetActualCreateClusterPlatformParams(
+		platform, userManagedNetworking, getHighAvailabilityMode(oldObject, newObject), "")
+	return err
+}
+
 func isSNO(newObject *hiveext.AgentClusterInstall) bool {
 	return newObject.Spec.ProvisionRequirements.ControlPlaneAgents == 1 &&
 		newObject.Spec.ProvisionRequirements.WorkerAgents == 0
+}
+
+func getHighAvailabilityMode(originalObject, updatesObject *hiveext.AgentClusterInstall) *string {
+	if originalObject == nil {
+		return swag.String("")
+	}
+
+	controlPlaneAgents := originalObject.Spec.ProvisionRequirements.ControlPlaneAgents
+	workerAgents := originalObject.Spec.ProvisionRequirements.WorkerAgents
+
+	if updatesObject != nil {
+		if controlPlaneAgents != updatesObject.Spec.ProvisionRequirements.ControlPlaneAgents {
+			controlPlaneAgents = updatesObject.Spec.ProvisionRequirements.ControlPlaneAgents
+		}
+		if workerAgents != updatesObject.Spec.ProvisionRequirements.WorkerAgents {
+			workerAgents = updatesObject.Spec.ProvisionRequirements.WorkerAgents
+		}
+	}
+
+	if controlPlaneAgents == 1 && workerAgents == 0 { // SNO
+		return swag.String(models.ClusterHighAvailabilityModeNone)
+	}
+	return swag.String(models.ClusterHighAvailabilityModeFull)
 }
 
 // diffReporter is a simple custom reporter that only records differences
