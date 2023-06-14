@@ -4,7 +4,10 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"github.com/go-openapi/swag"
 	hiveext "github.com/openshift/assisted-service/api/hiveextension/v1beta1"
+	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/internal/provider"
 	log "github.com/sirupsen/logrus"
 	admissionv1 "k8s.io/api/admission/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -43,7 +46,7 @@ func (a *AgentClusterInstallMutatingAdmissionHook) MutatingResource() (plural sc
 }
 
 // Initialize implements the AdmissionHook API. (see https://github.com/openshift/generic-admission-server)
-// This function is called by generic-admission-server on startup to setup any special initialization
+// This function is called by generic-admission-server on startup to set up any special initialization
 // that your webhook needs.
 func (a *AgentClusterInstallMutatingAdmissionHook) Initialize(kubeClientConfig *rest.Config, stopCh <-chan struct{}) error {
 	log.WithFields(log.Fields{
@@ -117,7 +120,9 @@ func (a *AgentClusterInstallMutatingAdmissionHook) SetDefaults(admissionSpec *ad
 	// true for SNO and false for multi-node
 	if !installAlreadyStarted(newObject.Status.Conditions) && newObject.DeletionTimestamp.IsZero() {
 		if newObject.Spec.Networking.UserManagedNetworking == nil {
-			patchList = append(patchList, patchUserManagedNetworking(newObject, contextLogger))
+			if plist := patchUserManagedNetworking(newObject, contextLogger); plist != nil {
+				patchList = append(patchList, plist)
+			}
 		}
 	}
 
@@ -135,7 +140,7 @@ func (a *AgentClusterInstallMutatingAdmissionHook) SetDefaults(admissionSpec *ad
 		}
 
 		contextLogger.Infof("Mutating object: %s", string(body))
-		var patchType admissionv1.PatchType = admissionv1.PatchTypeJSONPatch
+		var patchType = admissionv1.PatchTypeJSONPatch
 		return &admissionv1.AdmissionResponse{
 			Allowed:   true,
 			Patch:     body,
@@ -150,19 +155,33 @@ func (a *AgentClusterInstallMutatingAdmissionHook) SetDefaults(admissionSpec *ad
 	}
 }
 
-func patchUserManagedNetworking(newObject *hiveext.AgentClusterInstall, logger *log.Entry) map[string]interface{} {
-	var message string
-	var userManagedNetworking bool
+func isNonePlatformOrSNO(newObject *hiveext.AgentClusterInstall) bool {
+	return isSNO(newObject) && (newObject.Spec.PlatformType == "" || newObject.Spec.PlatformType == hiveext.NonePlatformType) ||
+		newObject.Spec.PlatformType == hiveext.NonePlatformType
+}
 
-	if isSNO(newObject) {
-		message = "setting UserManagedNetworking to true with SNO"
-		userManagedNetworking = true
-	} else {
-		message = "setting UserManagedNetworking to false"
-		userManagedNetworking = false
+func patchUserManagedNetworking(newObject *hiveext.AgentClusterInstall, logger *log.Entry) map[string]interface{} {
+	var (
+		platformUserManagedNetworking *bool
+		userManagedNetworking         = isNonePlatformOrSNO(newObject)
+		highAvailabilityMode          = getHighAvailabilityMode(newObject, nil)
+		err                           error
+	)
+
+	// userManagedNetworking gets patched in one of two cases:
+	// 1. Cluster topology is SNO.
+	// 2. Platform is specified.
+	if !isNonePlatformOrSNO(newObject) && newObject.Spec.PlatformType != "" {
+		platform := common.PlatformTypeToPlatform(newObject.Spec.PlatformType)
+		_, platformUserManagedNetworking, err = provider.GetClusterPlatformByHighAvailabilityMode(platform, nil, highAvailabilityMode)
+		if err != nil {
+			logger.Warnf("Cannot set UserManagedNetworking automatically due to: %s", err.Error())
+			return nil
+		}
+		userManagedNetworking = swag.BoolValue(platformUserManagedNetworking)
 	}
 
-	log.Info(message)
+	logger.Infof("setting UserManagedNetworking to %t", userManagedNetworking)
 	return map[string]interface{}{
 		"op":    "replace",
 		"path":  "/spec/networking/userManagedNetworking",
