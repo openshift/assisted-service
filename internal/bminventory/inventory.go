@@ -5365,9 +5365,6 @@ func (b *bareMetalInventory) V2RegisterHost(ctx context.Context, params installe
 
 	b.customizeHost(c, host)
 
-	eventgen.SendHostRegistrationSucceededEvent(ctx, b.eventsHandler, *params.NewHostParams.HostID,
-		params.InfraEnvID, host.ClusterID, hostutil.GetHostnameForMsg(host))
-
 	nextStepRunnerCommand, err := b.generateV2NextStepRunnerCommand(ctx, &params)
 	if err != nil {
 		log.WithError(err).Errorf("Fail to create nextStepRunnerCommand")

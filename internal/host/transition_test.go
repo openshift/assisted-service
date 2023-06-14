@@ -119,6 +119,11 @@ var _ = Describe("RegisterHost", func() {
 	})
 
 	It("register_new", func() {
+		mockEvents.EXPECT().SendHostEvent(gomock.Any(), eventstest.NewEventMatcher(
+			eventstest.WithNameMatcher(eventgen.HostRegistrationSucceededEventName),
+			eventstest.WithInfraEnvIdMatcher(infraEnvId.String()),
+			eventstest.WithClusterIdMatcher(clusterId.String()),
+			eventstest.WithSeverityMatcher(models.EventSeverityInfo)))
 		Expect(hapi.RegisterHost(ctx, &models.Host{ID: &hostId, ClusterID: &clusterId, InfraEnvID: infraEnvId, DiscoveryAgentVersion: "v1.0.1"}, db)).ShouldNot(HaveOccurred())
 		h := hostutil.GetHostFromDB(hostId, infraEnvId, db)
 		Expect(swag.StringValue(h.Status)).Should(Equal(models.HostStatusDiscovering))
@@ -516,79 +521,84 @@ var _ = Describe("RegisterHost", func() {
 		})
 
 		tests := []struct {
-			name        string
-			srcState    string
-			dstState    string
-			newHost     bool
-			eventRaised bool
+			name                  string
+			srcState              string
+			dstState              string
+			newHost               bool
+			expectHostUpdateEvent bool
 		}{
 			{
-				name:        "register new host to pool",
-				srcState:    "",
-				dstState:    models.HostStatusDiscoveringUnbound,
-				newHost:     true,
-				eventRaised: false,
+				name:                  "register new host to pool",
+				srcState:              "",
+				dstState:              models.HostStatusDiscoveringUnbound,
+				newHost:               true,
+				expectHostUpdateEvent: false,
 			},
 			{
-				name:        "dicovering-unbound to discovering-unbound",
-				srcState:    models.HostStatusDiscoveringUnbound,
-				dstState:    models.HostStatusDiscoveringUnbound,
-				newHost:     false,
-				eventRaised: false,
+				name:                  "dicovering-unbound to discovering-unbound",
+				srcState:              models.HostStatusDiscoveringUnbound,
+				dstState:              models.HostStatusDiscoveringUnbound,
+				newHost:               false,
+				expectHostUpdateEvent: false,
 			},
 			{
-				name:        "disconnected-unbound to discovering-unbound",
-				srcState:    models.HostStatusDisconnectedUnbound,
-				dstState:    models.HostStatusDiscoveringUnbound,
-				newHost:     false,
-				eventRaised: true,
+				name:                  "disconnected-unbound to discovering-unbound",
+				srcState:              models.HostStatusDisconnectedUnbound,
+				dstState:              models.HostStatusDiscoveringUnbound,
+				newHost:               false,
+				expectHostUpdateEvent: true,
 			},
 			{
-				name:        "insufficient-unbound to discovering-unbound",
-				srcState:    models.HostStatusInsufficientUnbound,
-				dstState:    models.HostStatusDiscoveringUnbound,
-				newHost:     false,
-				eventRaised: true,
+				name:                  "insufficient-unbound to discovering-unbound",
+				srcState:              models.HostStatusInsufficientUnbound,
+				dstState:              models.HostStatusDiscoveringUnbound,
+				newHost:               false,
+				expectHostUpdateEvent: true,
 			},
 			{
-				name:        "known-unbound to discovering-unbound",
-				srcState:    models.HostStatusKnownUnbound,
-				dstState:    models.HostStatusDiscoveringUnbound,
-				newHost:     false,
-				eventRaised: true,
+				name:                  "known-unbound to discovering-unbound",
+				srcState:              models.HostStatusKnownUnbound,
+				dstState:              models.HostStatusDiscoveringUnbound,
+				newHost:               false,
+				expectHostUpdateEvent: true,
 			},
 			{
-				name:        "unbinding to discovering-unbound",
-				srcState:    models.HostStatusUnbinding,
-				dstState:    models.HostStatusDiscoveringUnbound,
-				newHost:     false,
-				eventRaised: true,
+				name:                  "unbinding to discovering-unbound",
+				srcState:              models.HostStatusUnbinding,
+				dstState:              models.HostStatusDiscoveringUnbound,
+				newHost:               false,
+				expectHostUpdateEvent: true,
 			},
 			{
-				name:        "unbinding-pending-user-action to discovering-unbound",
-				srcState:    models.HostStatusUnbindingPendingUserAction,
-				dstState:    models.HostStatusDiscoveringUnbound,
-				newHost:     false,
-				eventRaised: true,
+				name:                  "unbinding-pending-user-action to discovering-unbound",
+				srcState:              models.HostStatusUnbindingPendingUserAction,
+				dstState:              models.HostStatusDiscoveringUnbound,
+				newHost:               false,
+				expectHostUpdateEvent: true,
 			},
 			{
-				name:        "reclaiming-rebooting to discovering-unbound",
-				srcState:    models.HostStatusReclaimingRebooting,
-				dstState:    models.HostStatusDiscoveringUnbound,
-				newHost:     false,
-				eventRaised: true,
+				name:                  "reclaiming-rebooting to discovering-unbound",
+				srcState:              models.HostStatusReclaimingRebooting,
+				dstState:              models.HostStatusDiscoveringUnbound,
+				newHost:               false,
+				expectHostUpdateEvent: true,
 			},
 		}
 		for i := range tests {
 			t := tests[i]
 
 			It(t.name, func() {
-				if !t.newHost {
+				if t.newHost {
+					mockEvents.EXPECT().SendHostEvent(gomock.Any(), eventstest.NewEventMatcher(
+						eventstest.WithNameMatcher(eventgen.HostRegistrationSucceededEventName),
+						eventstest.WithInfraEnvIdMatcher(infraEnvId.String()),
+						eventstest.WithSeverityMatcher(models.EventSeverityInfo)))
+				} else {
 					host = hostutil.GenerateTestHost(hostId, infraEnvId, clusterId, t.srcState)
 					host.ClusterID = nil
 					Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
 				}
-				if t.eventRaised {
+				if t.expectHostUpdateEvent {
 					mockEvents.EXPECT().SendHostEvent(gomock.Any(), eventstest.NewEventMatcher(
 						eventstest.WithNameMatcher(eventgen.HostStatusUpdatedEventName),
 						eventstest.WithHostIdMatcher(hostId.String()),

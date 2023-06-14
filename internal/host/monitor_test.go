@@ -75,6 +75,11 @@ var _ = Describe("monitor_disconnection", func() {
 		cluster := hostutil.GenerateTestCluster(clusterID)
 		Expect(db.Save(&cluster).Error).ToNot(HaveOccurred())
 		host.Inventory = workerInventory()
+		mockEvents.EXPECT().SendHostEvent(gomock.Any(), eventstest.NewEventMatcher(
+			eventstest.WithNameMatcher(eventgen.HostRegistrationSucceededEventName),
+			eventstest.WithInfraEnvIdMatcher(infraEnvID.String()),
+			eventstest.WithClusterIdMatcher(clusterID.String()),
+			eventstest.WithSeverityMatcher(models.EventSeverityInfo)))
 		err := state.RegisterHost(ctx, &host, db)
 		Expect(err).ShouldNot(HaveOccurred())
 		db.First(&host, "id = ? and cluster_id = ?", host.ID, host.ClusterID)

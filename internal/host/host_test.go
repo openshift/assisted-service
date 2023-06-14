@@ -987,6 +987,11 @@ var _ = Describe("register host", func() {
 		clusterId := strfmt.UUID(uuid.New().String())
 		infraEnvId := strfmt.UUID(uuid.New().String())
 		h = hostutil.GenerateTestHost(id, infraEnvId, clusterId, models.HostStatusDiscovering)
+		eventsHandler.EXPECT().SendHostEvent(gomock.Any(), eventstest.NewEventMatcher(
+			eventstest.WithNameMatcher(eventgen.HostRegistrationSucceededEventName),
+			eventstest.WithInfraEnvIdMatcher(h.InfraEnvID.String()),
+			eventstest.WithClusterIdMatcher(h.ClusterID.String()),
+			eventstest.WithSeverityMatcher(models.EventSeverityInfo))).AnyTimes()
 	})
 
 	AfterEach(func() {
@@ -3189,7 +3194,17 @@ var _ = Describe("Validation metrics and events", func() {
 		mockMetric = metrics.NewMockAPI(ctrl)
 		validatorCfg = createValidatorCfg()
 		m = NewManager(common.GetTestLog(), db, testing.GetDummyNotificationStream(ctrl), mockEvents, mockHwValidator, nil, validatorCfg, mockMetric, defaultConfig, nil, nil, nil, false, nil, nil)
-		h = registerTestHostWithValidations(strfmt.UUID(uuid.New().String()), strfmt.UUID(uuid.New().String()))
+
+		infraEnvId := strfmt.UUID(uuid.New().String())
+		clusterId := strfmt.UUID(uuid.New().String())
+
+		mockEvents.EXPECT().SendHostEvent(gomock.Any(), eventstest.NewEventMatcher(
+			eventstest.WithNameMatcher(eventgen.HostRegistrationSucceededEventName),
+			eventstest.WithInfraEnvIdMatcher(infraEnvId.String()),
+			eventstest.WithClusterIdMatcher(clusterId.String()),
+			eventstest.WithSeverityMatcher(models.EventSeverityInfo)))
+
+		h = registerTestHostWithValidations(infraEnvId, clusterId)
 	})
 
 	AfterEach(func() {
@@ -3306,7 +3321,17 @@ var _ = Describe("SetDiskSpeed", func() {
 		mockHwValidator = hardware.NewMockValidator(ctrl)
 		validatorCfg = createValidatorCfg()
 		m = NewManager(common.GetTestLog(), db, testing.GetDummyNotificationStream(ctrl), mockEvents, mockHwValidator, nil, validatorCfg, nil, defaultConfig, nil, nil, nil, false, nil, nil)
-		h = registerTestHost(strfmt.UUID(uuid.New().String()), strfmt.UUID(uuid.New().String()))
+
+		infraEnvId := strfmt.UUID(uuid.New().String())
+		clusterId := strfmt.UUID(uuid.New().String())
+
+		mockEvents.EXPECT().SendHostEvent(gomock.Any(), eventstest.NewEventMatcher(
+			eventstest.WithNameMatcher(eventgen.HostRegistrationSucceededEventName),
+			eventstest.WithInfraEnvIdMatcher(infraEnvId.String()),
+			eventstest.WithClusterIdMatcher(clusterId.String()),
+			eventstest.WithSeverityMatcher(models.EventSeverityInfo)))
+
+		h = registerTestHost(infraEnvId, clusterId)
 	})
 
 	AfterEach(func() {
@@ -3406,9 +3431,15 @@ var _ = Describe("ResetHostValidation", func() {
 		mockHwValidator = hardware.NewMockValidator(ctrl)
 		validatorCfg = createValidatorCfg()
 		mockMetric := metrics.NewMockAPI(ctrl)
+		infraEnvId := strfmt.UUID(uuid.New().String())
 		clusterId := strfmt.UUID(uuid.New().String())
 		m = NewManager(common.GetTestLog(), db, testing.GetDummyNotificationStream(ctrl), mockEvents, mockHwValidator, nil, validatorCfg, mockMetric, defaultConfig, nil, nil, nil, false, nil, nil)
-		h = registerTestHost(strfmt.UUID(uuid.New().String()), &clusterId)
+		mockEvents.EXPECT().SendHostEvent(gomock.Any(), eventstest.NewEventMatcher(
+			eventstest.WithNameMatcher(eventgen.HostRegistrationSucceededEventName),
+			eventstest.WithInfraEnvIdMatcher(infraEnvId.String()),
+			eventstest.WithClusterIdMatcher(clusterId.String()),
+			eventstest.WithSeverityMatcher(models.EventSeverityInfo)))
+		h = registerTestHost(infraEnvId, &clusterId)
 		mockHwValidator.EXPECT().GetHostInstallationPath(gomock.Any()).Return("/dev/sda").AnyTimes()
 		mockMetric.EXPECT().ImagePullStatus(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
 		mockEvents.EXPECT().SendHostEvent(gomock.Any(), eventstest.NewEventMatcher(
@@ -3482,7 +3513,12 @@ var _ = Describe("ResetHostValidation", func() {
 		Expect(apiErr.StatusCode()).To(BeNumerically("==", http.StatusNotFound))
 	})
 	It("Unassigned host", func() {
-		h = registerUnassignedTestHost(strfmt.UUID(uuid.New().String()))
+		infraEnvId := strfmt.UUID(uuid.New().String())
+		mockEvents.EXPECT().SendHostEvent(gomock.Any(), eventstest.NewEventMatcher(
+			eventstest.WithNameMatcher(eventgen.HostRegistrationSucceededEventName),
+			eventstest.WithInfraEnvIdMatcher(infraEnvId.String()),
+			eventstest.WithSeverityMatcher(models.EventSeverityInfo)))
+		h = registerUnassignedTestHost(infraEnvId)
 		err := m.ResetHostValidation(ctx, *h.ID, h.InfraEnvID, string(models.HostValidationIDContainerImagesAvailable), nil)
 		Expect(err).To(HaveOccurred())
 		apiErr, ok := err.(*common.ApiErrorResponse)
