@@ -1,6 +1,7 @@
 package common
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/go-openapi/strfmt"
@@ -65,4 +66,11 @@ func StrFmtUUIDPtr(u strfmt.UUID) *strfmt.UUID {
 
 func VipVerificationPtr(v models.VipVerification) *models.VipVerification {
 	return &v
+}
+
+func BoolPtrForLog(b *bool) string {
+	if b == nil {
+		return "nil"
+	}
+	return fmt.Sprintf("%t", *b)
 }

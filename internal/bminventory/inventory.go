@@ -340,7 +340,7 @@ func (b *bareMetalInventory) setDefaultRegisterClusterParams(ctx context.Context
 		params.NewClusterParams.HighAvailabilityMode = swag.String(models.ClusterHighAvailabilityModeFull)
 	}
 
-	log.Infof("Verifying cluster platform and user-managed-networking, got platform=%s and userManagedNetworking=%t", getPlatformType(params.NewClusterParams.Platform), swag.BoolValue(params.NewClusterParams.UserManagedNetworking))
+	log.Infof("Verifying cluster platform and user-managed-networking, got platform=%s and userManagedNetworking=%s", getPlatformType(params.NewClusterParams.Platform), common.BoolPtrForLog(params.NewClusterParams.UserManagedNetworking))
 	platform, userManagedNetworking, err := provider.GetActualCreateClusterPlatformParams(params.NewClusterParams.Platform, params.NewClusterParams.UserManagedNetworking, params.NewClusterParams.HighAvailabilityMode, params.NewClusterParams.CPUArchitecture)
 	if err != nil {
 		log.Error(err)
@@ -349,7 +349,7 @@ func (b *bareMetalInventory) setDefaultRegisterClusterParams(ctx context.Context
 
 	params.NewClusterParams.Platform = platform
 	params.NewClusterParams.UserManagedNetworking = userManagedNetworking
-	log.Infof("Cluster high-availability-mode is set to %s, setting platform type to %s and user-managed-networking to %t", swag.StringValue(params.NewClusterParams.HighAvailabilityMode), getPlatformType(platform), swag.BoolValue(userManagedNetworking))
+	log.Infof("Cluster high-availability-mode is set to %s, setting platform type to %s and user-managed-networking to %s", swag.StringValue(params.NewClusterParams.HighAvailabilityMode), getPlatformType(platform), common.BoolPtrForLog(userManagedNetworking))
 
 	if params.NewClusterParams.AdditionalNtpSource == nil {
 		params.NewClusterParams.AdditionalNtpSource = &b.Config.DefaultNTPSource
@@ -1915,17 +1915,11 @@ func (b *bareMetalInventory) validateUpdateCluster(
 		return params, common.NewApiError(http.StatusConflict, err)
 	}
 
-	log.Infof("Current cluster platform is set to %s and user-managed-networking is set to %t", getPlatformType(cluster.Platform), swag.BoolValue(cluster.UserManagedNetworking))
-	log.Infof("Verifying cluster platform and user-managed-networking, got platform=%s and userManagedNetworking=%t", getPlatformType(params.ClusterUpdateParams.Platform), swag.BoolValue(params.ClusterUpdateParams.UserManagedNetworking))
-	platform, userManagedNetworking, err := provider.GetActualUpdateClusterPlatformParams(params.ClusterUpdateParams.Platform, params.ClusterUpdateParams.UserManagedNetworking, cluster)
+	params, err = b.setUpdatedPlatformParams(log, cluster, params)
 	if err != nil {
 		log.Error(err)
 		return params, err
 	}
-
-	params.ClusterUpdateParams.Platform = platform
-	params.ClusterUpdateParams.UserManagedNetworking = userManagedNetworking
-	log.Infof("Platform verification completed, setting platform type to %s and user-managed-networking to %t", getPlatformType(platform), swag.BoolValue(userManagedNetworking))
 
 	if err = b.v2NoneHaModeClusterUpdateValidations(cluster, params); err != nil {
 		log.WithError(err).Warnf("Unsupported update params in none ha mode")
@@ -1940,13 +1934,34 @@ func (b *bareMetalInventory) validateUpdateCluster(
 		return params, common.NewApiError(http.StatusBadRequest, err)
 	}
 
-	if err = validations.ValidateHighAvailabilityModeWithPlatform(cluster.HighAvailabilityMode, platform); err != nil {
+	if err = validations.ValidateHighAvailabilityModeWithPlatform(cluster.HighAvailabilityMode, params.ClusterUpdateParams.Platform); err != nil {
 		return params, common.NewApiError(http.StatusBadRequest, err)
 	}
 
 	params, err = b.validateUpdateClusterIncompatibleFeatures(ctx, cluster, params)
 	if err != nil {
 		return params, err
+	}
+
+	return params, nil
+}
+
+func (b *bareMetalInventory) setUpdatedPlatformParams(log logrus.FieldLogger, cluster *common.Cluster, params installer.V2UpdateClusterParams) (installer.V2UpdateClusterParams, error) {
+	log.Infof("Current cluster platform is set to %s and user-managed-networking is set to %s", getPlatformType(cluster.Platform), common.BoolPtrForLog(cluster.UserManagedNetworking))
+	log.Infof("Verifying cluster platform and user-managed-networking, got platform=%s and userManagedNetworking=%s", getPlatformType(params.ClusterUpdateParams.Platform), common.BoolPtrForLog(params.ClusterUpdateParams.UserManagedNetworking))
+	platform, userManagedNetworking, err := provider.GetActualUpdateClusterPlatformParams(params.ClusterUpdateParams.Platform, params.ClusterUpdateParams.UserManagedNetworking, cluster)
+	if err != nil {
+		log.Error(err)
+		return params, err
+	}
+
+	params.ClusterUpdateParams.Platform = platform
+	params.ClusterUpdateParams.UserManagedNetworking = userManagedNetworking
+	if platform != nil {
+		log.Infof("Platform verification completed, setting platform type to %s", getPlatformType(platform))
+	}
+	if userManagedNetworking != nil {
+		log.Infof("User managed networking verification completed, setting user-managed-networking to %t", *userManagedNetworking)
 	}
 
 	return params, nil
