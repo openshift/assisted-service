@@ -33,12 +33,37 @@ var _ = Describe("chrony manifest", func() {
 		}
 	}
 
+	var (
+		ctx          = context.Background()
+		log          *logrus.Logger
+		ctrl         *gomock.Controller
+		manifestsApi *manifestsapi.MockManifestsAPI
+		ntpUtils     *ManifestsGenerator
+		db           *gorm.DB
+		dbName       string
+		clusterId    strfmt.UUID
+		cluster      common.Cluster
+	)
+
+	BeforeEach(func() {
+		log = logrus.New()
+		ctrl = gomock.NewController(GinkgoT())
+		manifestsApi = manifestsapi.NewMockManifestsAPI(ctrl)
+		db, dbName = common.PrepareTestDB()
+		ntpUtils = NewManifestsGenerator(manifestsApi, Config{}, db)
+	})
+
+	AfterEach(func() {
+		ctrl.Finish()
+		common.DeleteTestDB(db, dbName)
+	})
+
 	Context("Create NTP Manifest", func() {
 		It("no_ntp_sources", func() {
 			hosts := make([]*models.Host, 0)
 			hosts = append(hosts, &models.Host{})
 
-			response, err := createChronyManifestContent(&common.Cluster{Cluster: models.Cluster{
+			response, err := ntpUtils.createChronyManifestContent(&common.Cluster{Cluster: models.Cluster{
 				Hosts: hosts,
 			}}, models.HostRoleMaster, logrus.New())
 			Expect(err).ShouldNot(HaveOccurred())
@@ -53,12 +78,13 @@ var _ = Describe("chrony manifest", func() {
 				common.TestNTPSourceUnsynced,
 			}
 
-			clusterId := strfmt.UUID(uuid.New().String())
+			clusterId = strfmt.UUID(uuid.New().String())
+			Expect(db.Create(&common.Cluster{Cluster: models.Cluster{ID: &clusterId}}).Error).NotTo(HaveOccurred())
 			hosts := make([]*models.Host, 0)
 			hosts = append(hosts, createHost(clusterId, toMarshal))
 			hosts = append(hosts, createHost(clusterId, toMarshal))
 
-			response, err := createChronyManifestContent(&common.Cluster{Cluster: models.Cluster{
+			response, err := ntpUtils.createChronyManifestContent(&common.Cluster{Cluster: models.Cluster{
 				Hosts: hosts,
 			}}, models.HostRoleMaster, logrus.New())
 			Expect(err).ShouldNot(HaveOccurred())
@@ -74,7 +100,8 @@ var _ = Describe("chrony manifest", func() {
 				common.TestNTPSourceUnsynced,
 			}
 
-			clusterId := strfmt.UUID(uuid.New().String())
+			clusterId = strfmt.UUID(uuid.New().String())
+			Expect(db.Create(&common.Cluster{Cluster: models.Cluster{ID: &clusterId}}).Error).NotTo(HaveOccurred())
 			hosts := make([]*models.Host, 0)
 			hosts = append(hosts, createHost(clusterId, toMarshal))
 
@@ -88,7 +115,7 @@ var _ = Describe("chrony manifest", func() {
 			}
 			hosts = append(hosts, createHost(clusterId, sources))
 
-			response, err := createChronyManifestContent(&common.Cluster{Cluster: models.Cluster{
+			response, err := ntpUtils.createChronyManifestContent(&common.Cluster{Cluster: models.Cluster{
 				Hosts: hosts,
 			}}, models.HostRoleMaster, logrus.New())
 			Expect(err).ShouldNot(HaveOccurred())
@@ -104,24 +131,8 @@ var _ = Describe("chrony manifest", func() {
 	})
 
 	Context("Add NTP Manifest", func() {
-		var (
-			ctx          = context.Background()
-			log          *logrus.Logger
-			ctrl         *gomock.Controller
-			manifestsApi *manifestsapi.MockManifestsAPI
-			ntpUtils     ManifestsGeneratorAPI
-			db           *gorm.DB
-			dbName       string
-			clusterId    strfmt.UUID
-			cluster      common.Cluster
-		)
 
 		BeforeEach(func() {
-			log = logrus.New()
-			ctrl = gomock.NewController(GinkgoT())
-			manifestsApi = manifestsapi.NewMockManifestsAPI(ctrl)
-			ntpUtils = NewManifestsGenerator(manifestsApi, Config{})
-			db, dbName = common.PrepareTestDB()
 			clusterId = strfmt.UUID(uuid.New().String())
 
 			hosts := make([]*models.Host, 0)
@@ -139,11 +150,6 @@ var _ = Describe("chrony manifest", func() {
 			}
 			Expect(db.Create(&cluster).Error).NotTo(HaveOccurred())
 			manifestsApi.EXPECT().V2CreateClusterManifest(gomock.Any(), gomock.Any()).Times(0)
-		})
-
-		AfterEach(func() {
-			ctrl.Finish()
-			common.DeleteTestDB(db, dbName)
 		})
 
 		It("CreateClusterManifest success", func() {
@@ -168,6 +174,19 @@ var _ = Describe("chrony manifest", func() {
 })
 
 var _ = Describe("dnsmasq manifest", func() {
+
+	var (
+		db     *gorm.DB
+		dbName string
+	)
+
+	BeforeEach(func() {
+		db, dbName = common.PrepareTestDB()
+	})
+
+	AfterEach(func() {
+		common.DeleteTestDB(db, dbName)
+	})
 
 	Context("Create dnsmasq Manifest", func() {
 		It("Happy flow", func() {
@@ -326,7 +345,7 @@ var _ = Describe("dnsmasq manifest", func() {
 				Folder:   models.ManifestFolderOpenshift,
 			}, nil).Times(0)
 			manifestsGenerator := NewManifestsGenerator(mockManifestsApi,
-				Config{ServiceBaseURL: stageServiceBaseURL, EnableSingleNodeDnsmasq: false})
+				Config{ServiceBaseURL: stageServiceBaseURL, EnableSingleNodeDnsmasq: false}, db)
 			err := manifestsGenerator.AddDnsmasqForSingleNode(context.TODO(), logrus.New(), cluster)
 			Expect(err).To(Not(HaveOccurred()))
 		})
@@ -346,7 +365,7 @@ var _ = Describe("dnsmasq manifest", func() {
 				Folder:   models.ManifestFolderOpenshift,
 			}, nil).Times(1)
 			manifestsGenerator := NewManifestsGenerator(mockManifestsApi,
-				Config{ServiceBaseURL: stageServiceBaseURL, EnableSingleNodeDnsmasq: true})
+				Config{ServiceBaseURL: stageServiceBaseURL, EnableSingleNodeDnsmasq: true}, db)
 			err := manifestsGenerator.AddDnsmasqForSingleNode(context.TODO(), logrus.New(), cluster)
 			Expect(err).To(Not(HaveOccurred()))
 		})
@@ -410,7 +429,7 @@ var _ = Describe("telemeter manifest", func() {
 		Context(test.envName, func() {
 
 			BeforeEach(func() {
-				manifestsGeneratorApi = NewManifestsGenerator(mockManifestsApi, Config{ServiceBaseURL: test.serviceBaseURL})
+				manifestsGeneratorApi = NewManifestsGenerator(mockManifestsApi, Config{ServiceBaseURL: test.serviceBaseURL}, db)
 			})
 
 			fileName := "redirect-telemeter.yaml"
@@ -455,7 +474,7 @@ var _ = Describe("schedulable masters manifest", func() {
 		log = logrus.New()
 		ctrl = gomock.NewController(GinkgoT())
 		manifestsApi = manifestsapi.NewMockManifestsAPI(ctrl)
-		manifestsGeneratorApi = NewManifestsGenerator(manifestsApi, Config{})
+		manifestsGeneratorApi = NewManifestsGenerator(manifestsApi, Config{}, db)
 		db, dbName = common.PrepareTestDB()
 		clusterId = strfmt.UUID(uuid.New().String())
 
@@ -509,7 +528,7 @@ var _ = Describe("disk encryption manifest", func() {
 		log = logrus.New()
 		ctrl = gomock.NewController(GinkgoT())
 		mockManifestsApi = manifestsapi.NewMockManifestsAPI(ctrl)
-		manifestsGeneratorApi = NewManifestsGenerator(mockManifestsApi, Config{})
+		manifestsGeneratorApi = NewManifestsGenerator(mockManifestsApi, Config{}, db)
 		db, dbName = common.PrepareTestDB()
 		clusterId = strfmt.UUID(uuid.New().String())
 		c = common.Cluster{
@@ -636,7 +655,7 @@ var _ = Describe("node ip hint", func() {
 		log = logrus.New()
 		ctrl = gomock.NewController(GinkgoT())
 		manifestsApi = manifestsapi.NewMockManifestsAPI(ctrl)
-		manifestsGeneratorApi = NewManifestsGenerator(manifestsApi, Config{})
+		manifestsGeneratorApi = NewManifestsGenerator(manifestsApi, Config{}, db)
 		db, dbName = common.PrepareTestDB()
 	})
 
