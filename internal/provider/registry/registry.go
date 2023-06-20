@@ -103,7 +103,7 @@ func (r *registry) IsHostSupported(p models.PlatformType, host *models.Host) (bo
 	currentProvider, err := r.Get(string(p))
 	if err != nil {
 		return false, fmt.Errorf("error while checking if hosts are supported by platform %s, error %w",
-			currentProvider.Name(), err)
+			string(p), err)
 	}
 	return currentProvider.IsHostSupported(host)
 }
