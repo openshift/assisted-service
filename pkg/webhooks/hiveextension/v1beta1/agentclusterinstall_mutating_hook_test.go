@@ -62,6 +62,83 @@ var _ = Describe("ACI mutator hook", func() {
 			patched:         false,
 		},
 		{
+			name: "ACI create with userManagedNetworking not set with multi Node --> patch to false",
+			newSpec: hiveext.AgentClusterInstallSpec{
+				Networking:            hiveext.Networking{},
+				ProvisionRequirements: hiveext.ProvisionRequirements{ControlPlaneAgents: 3, WorkerAgents: 3},
+			},
+			operation:       admissionv1.Create,
+			expectedAllowed: true,
+			patched:         true,
+			patchedValue:    false,
+		},
+		{
+			name: "ACI create with userManagedNetworking not set with Nutanix platform --> no change",
+			newSpec: hiveext.AgentClusterInstallSpec{
+				Networking:   hiveext.Networking{},
+				PlatformType: hiveext.NutanixPlatformType,
+			},
+			operation:       admissionv1.Create,
+			expectedAllowed: true,
+			patched:         false,
+		},
+		{
+			name: "ACI create with userManagedNetworking not set with VSphere platform --> no change",
+			newSpec: hiveext.AgentClusterInstallSpec{
+				Networking:   hiveext.Networking{},
+				PlatformType: hiveext.VSpherePlatformType,
+			},
+			operation:       admissionv1.Create,
+			expectedAllowed: true,
+			patched:         false,
+		},
+		{
+			name: "ACI create with userManagedNetworking not set with None platform --> patch to true",
+			newSpec: hiveext.AgentClusterInstallSpec{
+				Networking:   hiveext.Networking{},
+				PlatformType: hiveext.NonePlatformType,
+			},
+			operation:       admissionv1.Create,
+			expectedAllowed: true,
+			patched:         true,
+			patchedValue:    true,
+		},
+		{
+			name: "ACI create with userManagedNetworking not set with None platform and multi node --> patch to true",
+			newSpec: hiveext.AgentClusterInstallSpec{
+				Networking:            hiveext.Networking{},
+				PlatformType:          hiveext.NonePlatformType,
+				ProvisionRequirements: hiveext.ProvisionRequirements{ControlPlaneAgents: 3, WorkerAgents: 3},
+			},
+			operation:       admissionv1.Create,
+			expectedAllowed: true,
+			patched:         true,
+			patchedValue:    true,
+		},
+		{
+			name: "ACI create with userManagedNetworking not set with None platform and SNO --> patch to true",
+			newSpec: hiveext.AgentClusterInstallSpec{
+				Networking:            hiveext.Networking{},
+				PlatformType:          hiveext.NonePlatformType,
+				ProvisionRequirements: hiveext.ProvisionRequirements{ControlPlaneAgents: 1},
+			},
+			operation:       admissionv1.Create,
+			expectedAllowed: true,
+			patched:         true,
+			patchedValue:    true,
+		},
+		{
+			name: "Invalid Config: ACI create with userManagedNetworking not set with BareMetal platform and SNO --> no change",
+			newSpec: hiveext.AgentClusterInstallSpec{
+				Networking:            hiveext.Networking{},
+				PlatformType:          hiveext.BareMetalPlatformType,
+				ProvisionRequirements: hiveext.ProvisionRequirements{ControlPlaneAgents: 1},
+			},
+			operation:       admissionv1.Create,
+			expectedAllowed: true,
+			patched:         false,
+		},
+		{
 			name: "ACI updated after install start --> no change",
 			oldSpec: hiveext.AgentClusterInstallSpec{
 				Networking:            hiveext.Networking{},
