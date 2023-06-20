@@ -142,6 +142,15 @@ var _ = Describe("Test GetSupportedProvidersByHosts", func() {
 	})
 })
 
+var _ = Describe("IsHostSupported", func() {
+	It("platform not found", func() {
+		providerRegistry = InitProviderRegistry(common.GetTestLog())
+		found, err := providerRegistry.IsHostSupported("none-existing-platform-type", &models.Host{})
+		Expect(err).NotTo(Succeed())
+		Expect(found).To(BeFalse())
+	})
+})
+
 var _ = Describe("Test AddPlatformToInstallConfig", func() {
 	BeforeEach(func() {
 		providerRegistry = InitProviderRegistry(common.GetTestLog())
