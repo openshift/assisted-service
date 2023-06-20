@@ -382,7 +382,7 @@ func main() {
 	hostApi := host.NewManager(log.WithField("pkg", "host-state"), db, notificationStream, eventsHandler, hwValidator,
 		instructionApi, &Options.HWValidatorConfig, metricsManager, &Options.HostConfig, lead, operatorsManager, providerRegistry, Options.EnableKubeAPI, objectHandler, versionHandler)
 	dnsApi := dns.NewDNSHandler(Options.BMConfig.BaseDNSDomains, log)
-	manifestsGenerator := network.NewManifestsGenerator(manifestsApi, Options.ManifestsGeneratorConfig)
+	manifestsGenerator := network.NewManifestsGenerator(manifestsApi, Options.ManifestsGeneratorConfig, db)
 	clusterApi := cluster.NewManager(Options.ClusterConfig, log.WithField("pkg", "cluster-state"), db,
 		notificationStream, eventsHandler, uploadClient, hostApi, metricsManager, manifestsGenerator, lead, operatorsManager, ocmClient, objectHandler, dnsApi, authHandler)
 	infraEnvApi := infraenv.NewManager(log.WithField("pkg", "host-state"), db, objectHandler)
