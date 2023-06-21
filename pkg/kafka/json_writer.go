@@ -4,15 +4,22 @@ import (
 	"context"
 	"crypto/tls"
 	"encoding/json"
+	"fmt"
+	"strings"
 	"time"
 
 	"github.com/kelseyhightower/envconfig"
 	kafka "github.com/segmentio/kafka-go"
 	"github.com/segmentio/kafka-go/compress"
+	"github.com/segmentio/kafka-go/sasl"
 	"github.com/segmentio/kafka-go/sasl/plain"
+	"github.com/segmentio/kafka-go/sasl/scram"
 )
 
 const (
+	saslPlain string = "PLAIN"
+	saslScram string = "SCRAM"
+
 	WriteTimeout time.Duration = 5 * time.Second
 )
 
@@ -25,6 +32,7 @@ type Producer interface {
 }
 
 type Config struct {
+	SaslMechanism   string `envconfig:"KAFKA_SASL_MECHANISM" default:"PLAIN"`
 	BootstrapServer string `envconfig:"KAFKA_BOOTSTRAP_SERVER" required:"true"`
 	ClientID        string `envconfig:"KAFKA_CLIENT_ID" default:""`
 	ClientSecret    string `envconfig:"KAFKA_CLIENT_SECRET" default:""`
@@ -35,28 +43,46 @@ type JSONWriter struct {
 	producer Producer
 }
 
-func newProducer(config *Config) Producer {
+func getMechanism(config *Config) (sasl.Mechanism, error) {
+	if config.ClientID == "" || config.ClientSecret == "" {
+		// no credentials set, possibly using unauthenticated connection
+		return nil, nil
+	}
+	if config.SaslMechanism == saslPlain {
+		return &plain.Mechanism{
+			Username: config.ClientID,
+			Password: config.ClientSecret,
+		}, nil
+	}
+	if config.SaslMechanism == saslScram {
+		return scram.Mechanism(scram.SHA512, config.ClientID, config.ClientSecret)
 
+	}
+	return nil, fmt.Errorf("sasl mechanism %s is not valid", config.SaslMechanism)
+}
+
+func newProducer(config *Config) (Producer, error) {
+	brokers := strings.Split(config.BootstrapServer, ",")
 	writer := &kafka.Writer{
-		Addr:         kafka.TCP(config.BootstrapServer),
+		Addr:         kafka.TCP(brokers...),
 		Topic:        config.Topic,
 		Balancer:     &kafka.ReferenceHash{},
 		Compression:  compress.Gzip,
 		Async:        true,
 		WriteTimeout: WriteTimeout,
 	}
-	if config.ClientID != "" && config.ClientSecret != "" {
-		mechanism := &plain.Mechanism{
-			Username: config.ClientID,
-			Password: config.ClientSecret,
-		}
+	mechanism, err := getMechanism(config)
+	if err != nil {
+		return nil, err
+	}
+	if mechanism != nil {
 		writer.Transport = &kafka.Transport{
 			SASL: mechanism,
 			// let config pick default root CA, but define it to force TLS
 			TLS: &tls.Config{},
 		}
 	}
-	return writer
+	return writer, nil
 }
 
 func NewWriter() (*JSONWriter, error) {
@@ -66,7 +92,10 @@ func NewWriter() (*JSONWriter, error) {
 		return nil, err
 	}
 
-	p := newProducer(config)
+	p, err := newProducer(config)
+	if err != nil {
+		return nil, err
+	}
 	return &JSONWriter{
 		producer: p,
 	}, nil

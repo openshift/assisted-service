@@ -166,6 +166,8 @@ parameters:
   value: "15s"
 - name: SVC_TARGET_PORT
   value: "8900"
+- name: KAFKA_SASL_MECHANISM
+  value: "PLAIN"
 - name: KAFKA_CREDENTIALS_SECRET_NAME
   required: false
   value: assisted-installer-event-stream
@@ -345,6 +347,8 @@ objects:
                 value: ${ENABLE_EVENT_STREAMING}
               - name: KAFKA_EVENT_STREAM_TOPIC
                 value: ${KAFKA_EVENT_STREAM_TOPIC}
+              - name: KAFKA_SASL_MECHANISM
+                value: ${KAFKA_SASL_MECHANISM}
               - name: NAMESPACE
                 valueFrom:
                   fieldRef:
