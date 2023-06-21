@@ -883,7 +883,10 @@ func (feature *ExternalPlatformOci) getIncompatibleFeatures(string) *[]models.Fe
 }
 
 func (feature *ExternalPlatformOci) getIncompatibleArchitectures(_ *string) *[]models.ArchitectureSupportLevelID {
-	return nil
+	return &[]models.ArchitectureSupportLevelID{
+		models.ArchitectureSupportLevelIDS390XARCHITECTURE,
+		models.ArchitectureSupportLevelIDPPC64LEARCHITECTURE,
+	}
 }
 
 func (feature *ExternalPlatformOci) getFeatureActiveLevel(cluster *common.Cluster, _ *models.InfraEnv, clusterUpdateParams *models.V2ClusterUpdateParams, _ *models.InfraEnvUpdateParams) featureActiveLevel {

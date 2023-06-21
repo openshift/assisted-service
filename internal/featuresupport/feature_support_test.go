@@ -375,6 +375,20 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 			err = ValidateIncompatibleFeatures(log, models.ClusterCPUArchitectureS390x, &cluster, &infraEnv, nil)
 			Expect(err).To(Not(BeNil()))
 		})
+		It("s390x with OCI - fail", func() {
+			cluster := common.Cluster{Cluster: models.Cluster{
+				OpenshiftVersion: "4.14",
+				CPUArchitecture:  models.ClusterCPUArchitectureS390x,
+				Platform: &models.Platform{
+					Type: common.PlatformTypePtr(models.PlatformTypeOci),
+				},
+				UserManagedNetworking: swag.Bool(true),
+			}}
+			infraEnv := models.InfraEnv{CPUArchitecture: models.ClusterCPUArchitectureS390x, Type: common.ImageTypePtr(models.ImageTypeFullIso)}
+
+			err := ValidateIncompatibleFeatures(log, models.ClusterCPUArchitectureS390x, &cluster, &infraEnv, nil)
+			Expect(err).To(Not(BeNil()))
+		})
 	})
 
 	Context("Incompatibilities", func() {
