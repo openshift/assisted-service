@@ -29,5 +29,5 @@ if [[ -z "${ARTIFACT_DIR:-}" ]] || [[ ! -d "${ARTIFACT_DIR}" ]] || [[ ! -w "${AR
         echo '${ARTIFACT_DIR} must be set for non-local jobs, and must point to a writable directory' >&2
         exit 1
 fi
-curl -sS https://codecov.io/bash -o "${ARTIFACT_DIR}/codecov.sh"
+curl --retry 5 --connect-timeout 30 -sS https://codecov.io/bash -o "${ARTIFACT_DIR}/codecov.sh"
 bash <(cat "${ARTIFACT_DIR}/codecov.sh") -Z -K -f "${COVER_PROFILE}" -r "${REPO_OWNER}/${REPO_NAME}" ${REF_FLAGS}
