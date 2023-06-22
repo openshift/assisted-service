@@ -33,7 +33,7 @@ case "${CLUSTER_CONTEXT}" in
       # TODO: This may cause problems when the latest minikube version doesn't match the one installed on the
       # mac host, but it's better than nothing for now
       echo "minikube is not mapped on skipper (probably a MACOS) - installing"
-      curl --retry 5 -LO https://storage.googleapis.com/minikube/releases/latest/minikube-latest.x86_64.rpm
+      curl --retry 5 --connect-timeout 30 -LO https://storage.googleapis.com/minikube/releases/latest/minikube-latest.x86_64.rpm
       rpm -ivh minikube-latest.x86_64.rpm
     fi
 
