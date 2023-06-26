@@ -3990,8 +3990,8 @@ definitions:
       - 'NUTANIX_INTEGRATION'
       - 'VSPHERE_INTEGRATION'
       - 'DUAL_STACK_VIPS'
-      - 'CLUSTER_MANAGED_NETWORKING'
-      - 'USER_MANAGED_NETWORKING'
+      - 'CLUSTER_MANAGED_NETWORKING' # DEPRECATED
+      - 'USER_MANAGED_NETWORKING' # DEPRECATED
       - 'MINIMAL_ISO'
       - 'FULL_ISO'
       - 'EXTERNAL_PLATFORM_OCI'
@@ -4689,7 +4689,7 @@ definitions:
         x-nullable: true
       user_managed_networking:
         type: boolean
-        description: Indicate if the networking is managed by the user.
+        description: (DEPRECATED) Indicate if the networking is managed by the user.
         x-nullable: true
         default: false
       additional_ntp_source:
@@ -4881,7 +4881,7 @@ definitions:
         x-nullable: true
       user_managed_networking:
         type: boolean
-        description: Indicate if the networking is managed by the user.
+        description: (DEPRECATED) Indicate if the networking is managed by the user.
         x-nullable: true
       additional_ntp_source:
         type: string
@@ -5229,7 +5229,7 @@ definitions:
       user_managed_networking:
         type: boolean
         x-nullable: true
-        description: Indicate if the networking is managed by the user.
+        description: (DEPRECATED) Indicate if the networking is managed by the user.
       additional_ntp_source:
         type: string
         description: A comma-separated list of NTP sources (name or IP) going to be added to all the hosts.
