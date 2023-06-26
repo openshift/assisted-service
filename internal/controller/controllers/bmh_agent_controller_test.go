@@ -347,22 +347,22 @@ var _ = Describe("bmac reconcile", func() {
 				Expect(host.ObjectMeta.Annotations[BMH_INSPECT_ANNOTATION]).To(Equal("disabled"))
 				Expect(host.Spec.AutomatedCleaningMode).To(Equal(bmh_v1alpha1.CleaningModeDisabled))
 
-				// Test that only cleaning != disabled will set both parameters
+				// Test that cleaning mode stays the same
 				host.Spec.AutomatedCleaningMode = bmh_v1alpha1.CleaningModeMetadata
 				host.Status.Provisioning.State = bmh_v1alpha1.StateProvisioned
 
 				result = bmhr.reconcileBMH(ctx, bmhr.Log, host, nil)
-				Expect(result).To(Equal(reconcileComplete{dirty: true, stop: true}))
+				Expect(result).To(Equal(reconcileComplete{dirty: false, stop: true}))
 				Expect(host.ObjectMeta.Annotations).To(HaveKey(BMH_INSPECT_ANNOTATION))
 				Expect(host.ObjectMeta.Annotations[BMH_INSPECT_ANNOTATION]).To(Equal("disabled"))
-				Expect(host.Spec.AutomatedCleaningMode).To(Equal(bmh_v1alpha1.CleaningModeDisabled))
+				Expect(host.Spec.AutomatedCleaningMode).To(Equal(bmh_v1alpha1.CleaningModeMetadata))
 
 				// This should not return a dirty result because label is already set
 				result = bmhr.reconcileBMH(ctx, bmhr.Log, host, nil)
 				Expect(result).To(Equal(reconcileComplete{dirty: false, stop: true}))
 				Expect(host.ObjectMeta.Annotations).To(HaveKey(BMH_INSPECT_ANNOTATION))
 				Expect(host.ObjectMeta.Annotations[BMH_INSPECT_ANNOTATION]).To(Equal("disabled"))
-				Expect(host.Spec.AutomatedCleaningMode).To(Equal(bmh_v1alpha1.CleaningModeDisabled))
+				Expect(host.Spec.AutomatedCleaningMode).To(Equal(bmh_v1alpha1.CleaningModeMetadata))
 			})
 
 			It("should set the ISODownloadURL in the BMH", func() {
@@ -376,7 +376,7 @@ var _ = Describe("bmac reconcile", func() {
 				Expect(updatedHost.Spec.Image.URL).To(Equal(isoImageURL))
 			})
 
-			It("should disable cleaning and set online true in the BMH", func() {
+			It("should not disable cleaning and set online true in the BMH", func() {
 				result, err := bmhr.Reconcile(ctx, newBMHRequest(host))
 				Expect(err).To(BeNil())
 				Expect(result).To(Equal(ctrl.Result{}))
@@ -385,7 +385,7 @@ var _ = Describe("bmac reconcile", func() {
 				err = c.Get(ctx, types.NamespacedName{Name: "bmh-reconcile", Namespace: testNamespace}, updatedHost)
 				Expect(err).To(BeNil())
 				Expect(updatedHost.Spec.Online).To(Equal(true))
-				Expect(updatedHost.Spec.AutomatedCleaningMode).To(Equal(bmh_v1alpha1.CleaningModeDisabled))
+				Expect(updatedHost.Spec.AutomatedCleaningMode).NotTo(Equal(bmh_v1alpha1.CleaningModeDisabled))
 			})
 			It("should not reconcile BMH if the updated image has not been around longer than the grace period", func() {
 				// Reconcile with the original ISO
@@ -1556,7 +1556,7 @@ var _ = Describe("bmac reconcile - converged flow enabled", func() {
 			Expect(updatedHost.ObjectMeta.Annotations).To(BeNil())
 		})
 
-		It("should disable cleaning in the BMH", func() {
+		It("should not disable cleaning in the BMH", func() {
 
 			host.Spec.AutomatedCleaningMode = bmh_v1alpha1.CleaningModeMetadata
 			Expect(c.Update(ctx, host)).To(BeNil())
@@ -1568,7 +1568,7 @@ var _ = Describe("bmac reconcile - converged flow enabled", func() {
 			updatedHost := &bmh_v1alpha1.BareMetalHost{}
 			err = c.Get(ctx, types.NamespacedName{Name: "bmh-reconcile", Namespace: testNamespace}, updatedHost)
 			Expect(err).To(BeNil())
-			Expect(updatedHost.Spec.AutomatedCleaningMode).To(Equal(bmh_v1alpha1.CleaningModeDisabled))
+			Expect(updatedHost.Spec.AutomatedCleaningMode).To(Equal(bmh_v1alpha1.CleaningModeMetadata))
 			// check that the host isn't detached
 			Expect(updatedHost.ObjectMeta.Annotations).To(BeNil())
 		})

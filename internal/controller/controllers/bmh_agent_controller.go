@@ -868,16 +868,11 @@ func (r *BMACReconciler) reconcileBMH(ctx context.Context, log logrus.FieldLogge
 	}
 
 	dirty := false
-	// in case of converged flow set the custom deploy and cleaning mode instead of the annotations
+	// in case of converged flow set the custom deploy instead of the annotations
 	if r.ConvergedFlowEnabled {
 		if bmh.Spec.CustomDeploy == nil || bmh.Spec.CustomDeploy.Method != ASSISTED_DEPLOY_METHOD {
 			log.Infof("Updating BMH CustomDeploy to %s", ASSISTED_DEPLOY_METHOD)
 			bmh.Spec.CustomDeploy = &bmh_v1alpha1.CustomDeploy{Method: ASSISTED_DEPLOY_METHOD}
-			dirty = true
-		}
-		if bmh.Spec.AutomatedCleaningMode != bmh_v1alpha1.CleaningModeDisabled {
-			log.Infof("Updating BMH AutomatedCleaningMode to %s", bmh_v1alpha1.CleaningModeDisabled)
-			bmh.Spec.AutomatedCleaningMode = bmh_v1alpha1.CleaningModeDisabled
 			dirty = true
 		}
 		return reconcileComplete{dirty: dirty, stop: false}
@@ -886,11 +881,8 @@ func (r *BMACReconciler) reconcileBMH(ctx context.Context, log logrus.FieldLogge
 	annotations := bmh.ObjectMeta.GetAnnotations()
 	// Set the following parameters regardless of the state
 	// of the InfraEnv and the BMH. There is no need for
-	// inspection and cleaning to happen out of assisted
-	// service's loop.
-	if _, ok := annotations[BMH_INSPECT_ANNOTATION]; !ok || bmh.Spec.AutomatedCleaningMode != bmh_v1alpha1.CleaningModeDisabled {
-		bmh.Spec.AutomatedCleaningMode = bmh_v1alpha1.CleaningModeDisabled
-
+	// inspection to happen out of assisted service's loop.
+	if _, ok := annotations[BMH_INSPECT_ANNOTATION]; !ok {
 		// Let's make sure inspection is disabled for BMH resources
 		// that are associated with an agent-based deployment.
 		//
