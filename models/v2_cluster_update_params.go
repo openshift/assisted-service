@@ -120,7 +120,7 @@ type V2ClusterUpdateParams struct {
 	// A comma-separated list of tags that are associated to the cluster.
 	Tags *string `json:"tags,omitempty"`
 
-	// Indicate if the networking is managed by the user.
+	// (DEPRECATED) Indicate if the networking is managed by the user.
 	UserManagedNetworking *bool `json:"user_managed_networking,omitempty"`
 
 	// Indicate if virtual IP DHCP allocation mode is enabled.

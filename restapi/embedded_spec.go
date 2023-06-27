@@ -6227,7 +6227,7 @@ func init() {
           }
         },
         "user_managed_networking": {
-          "description": "Indicate if the networking is managed by the user.",
+          "description": "(DEPRECATED) Indicate if the networking is managed by the user.",
           "type": "boolean",
           "x-nullable": true
         },
@@ -6440,7 +6440,7 @@ func init() {
           "x-nullable": true
         },
         "user_managed_networking": {
-          "description": "Indicate if the networking is managed by the user.",
+          "description": "(DEPRECATED) Indicate if the networking is managed by the user.",
           "type": "boolean",
           "default": false,
           "x-nullable": true
@@ -10066,7 +10066,7 @@ func init() {
           "x-nullable": true
         },
         "user_managed_networking": {
-          "description": "Indicate if the networking is managed by the user.",
+          "description": "(DEPRECATED) Indicate if the networking is managed by the user.",
           "type": "boolean",
           "x-nullable": true
         },
@@ -16622,7 +16622,7 @@ func init() {
           }
         },
         "user_managed_networking": {
-          "description": "Indicate if the networking is managed by the user.",
+          "description": "(DEPRECATED) Indicate if the networking is managed by the user.",
           "type": "boolean",
           "x-nullable": true
         },
@@ -16835,7 +16835,7 @@ func init() {
           "x-nullable": true
         },
         "user_managed_networking": {
-          "description": "Indicate if the networking is managed by the user.",
+          "description": "(DEPRECATED) Indicate if the networking is managed by the user.",
           "type": "boolean",
           "default": false,
           "x-nullable": true
@@ -20348,7 +20348,7 @@ func init() {
           "x-nullable": true
         },
         "user_managed_networking": {
-          "description": "Indicate if the networking is managed by the user.",
+          "description": "(DEPRECATED) Indicate if the networking is managed by the user.",
           "type": "boolean",
           "x-nullable": true
         },
