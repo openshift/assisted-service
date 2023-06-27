@@ -122,18 +122,18 @@ func validateNodeClientCSR(agent *aiv1beta1.Agent, csr *certificatesv1.Certifica
 			x509cr.DNSNames, x509cr.EmailAddresses, x509cr.IPAddresses)
 	}
 
-	// Check usages, we need only:
-	// - digital signature
-	// - key encipherment
-	// - client auth
-	kubeletClientUsages := []certificatesv1.KeyUsage{
+	kubeletClientUsagesLegacy := []certificatesv1.KeyUsage{
 		certificatesv1.UsageKeyEncipherment,
 		certificatesv1.UsageDigitalSignature,
 		certificatesv1.UsageClientAuth,
 	}
-	if !hasExactUsages(csr, kubeletClientUsages) {
-		return false, errors.Errorf("CSR %s agent %s/%s: No exact match between CSR %v and required %v usages", csr.Name, agent.Namespace, agent.Name,
-			csr.Spec.Usages, kubeletClientUsages)
+	kubeletClientUsages := []certificatesv1.KeyUsage{
+		certificatesv1.UsageDigitalSignature,
+		certificatesv1.UsageClientAuth,
+	}
+	if !hasExactUsages(csr, kubeletClientUsages) && !hasExactUsages(csr, kubeletClientUsagesLegacy) {
+		return false, errors.Errorf("CSR %s agent %s/%s: No exact match between CSR %v and required usages", csr.Name, agent.Namespace, agent.Name,
+			csr.Spec.Usages)
 	}
 
 	// CN must have prefix ""system:node:"
@@ -166,19 +166,19 @@ func validateNodeServerCSR(agent *aiv1beta1.Agent, node *corev1.Node, csr *certi
 			csr.Spec.Groups, "system:authenticated")
 	}
 
-	// Check usages, we need only:
-	// - digital signature
-	// - key encipherment
-	// - server auth
-	serverUsages := []certificatesv1.KeyUsage{
+	serverUsagesLegacy := []certificatesv1.KeyUsage{
 		certificatesv1.UsageDigitalSignature,
 		certificatesv1.UsageKeyEncipherment,
 		certificatesv1.UsageServerAuth,
 	}
+	serverUsages := []certificatesv1.KeyUsage{
+		certificatesv1.UsageDigitalSignature,
+		certificatesv1.UsageServerAuth,
+	}
 
-	if !hasExactUsages(csr, serverUsages) {
-		return false, errors.Errorf("CSR %s agent %s/%s: No exact match between CSR %v and required %v usages", csr.Name, agent.Namespace, agent.Name,
-			csr.Spec.Usages, serverUsages)
+	if !hasExactUsages(csr, serverUsages) && !hasExactUsages(csr, serverUsagesLegacy) {
+		return false, errors.Errorf("CSR %s agent %s/%s: No exact match between CSR %v and required usages", csr.Name, agent.Namespace, agent.Name,
+			csr.Spec.Usages)
 	}
 
 	// "system:nodes" must be one of the elements of Organization
