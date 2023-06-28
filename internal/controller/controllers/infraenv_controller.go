@@ -61,6 +61,7 @@ import (
 const defaultRequeueAfterPerRecoverableError = 2 * bminventory.WindowBetweenRequestsInSeconds
 const InfraEnvFinalizerName = "infraenv." + aiv1beta1.Group + "/ai-deprovision"
 const EnableIronicAgentAnnotation = "infraenv." + aiv1beta1.Group + "/enable-ironic-agent"
+const ironicAgentImageOverrideAnnotation = "infraenv." + aiv1beta1.Group + "/ironic-agent-image-override"
 
 type InfraEnvConfig struct {
 	ImageType models.ImageType `envconfig:"ISO_IMAGE_TYPE" default:"minimal-iso"`

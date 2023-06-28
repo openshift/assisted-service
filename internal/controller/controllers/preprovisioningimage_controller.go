@@ -409,9 +409,14 @@ func (r *PreprovisioningImageReconciler) AddIronicAgentToInfraEnv(ctx context.Co
 		log.WithError(err).Error("failed to get corresponding infraEnv")
 		return false, err
 	}
-	ironicAgentImage, err := r.getIronicAgentImageByRelease(ctx, log, infraEnvInternal)
-	if err != nil {
-		log.WithError(err).Warningf("Failed to get ironic agent image by release for infraEnv: %s", infraEnv.Name)
+	ironicAgentImage, ok := infraEnv.GetAnnotations()[ironicAgentImageOverrideAnnotation]
+	if !ok || ironicAgentImage == "" {
+		ironicAgentImage, err = r.getIronicAgentImageByRelease(ctx, log, infraEnvInternal)
+		if err != nil {
+			log.WithError(err).Warningf("Failed to get ironic agent image by release for infraEnv: %s", infraEnv.Name)
+		}
+	} else {
+		log.Infof("Using override ironic agent image (%s) for infraEnv %s", ironicAgentImage, infraEnv.Name)
 	}
 
 	// if ironicAgentImage can't be found by version use the default
