@@ -64,6 +64,10 @@ func (c *controllerEventsWrapper) V2GetEvents(ctx context.Context, params *commo
 	)
 }
 
+func (c *controllerEventsWrapper) DeleteOrphanedEvents(ctx context.Context, olderThan strfmt.DateTime) error {
+	return c.events.DeleteOrphanedEvents(ctx, olderThan)
+}
+
 func (c *controllerEventsWrapper) SendClusterEvent(ctx context.Context, event eventsapi.ClusterEvent) {
 	c.events.SendClusterEvent(ctx, event)
 

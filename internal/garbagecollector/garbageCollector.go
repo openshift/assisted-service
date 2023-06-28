@@ -6,6 +6,7 @@ import (
 
 	"github.com/go-openapi/strfmt"
 	clusterPkg "github.com/openshift/assisted-service/internal/cluster"
+	eventsapi "github.com/openshift/assisted-service/internal/events/api"
 	"github.com/openshift/assisted-service/internal/host"
 	"github.com/openshift/assisted-service/internal/infraenv"
 	"github.com/openshift/assisted-service/pkg/leader"
@@ -15,6 +16,7 @@ import (
 )
 
 type Config struct {
+	OrphanedEventsMaxAge        time.Duration `envconfig:"ORPHANED_EVENTS_MAX_AGE" default:"72h"`          // 3d
 	DeletedUnregisteredAfter    time.Duration `envconfig:"DELETED_UNREGISTERED_AFTER" default:"72h"`       // 3d
 	DeregisterInactiveAfter     time.Duration `envconfig:"DELETED_INACTIVE_AFTER" default:"480h"`          // 20d
 	InfraenvDeleteInactiveAfter time.Duration `envconfig:"INFRAENV_DELETED_INACTIVE_AFTER" default:"480h"` // 20d
@@ -29,6 +31,7 @@ func NewGarbageCollectors(
 	hostApi host.API,
 	clusterApi clusterPkg.API,
 	infraEnvApi infraenv.API,
+	eventsApi eventsapi.Handler,
 	objectHandler s3wrapper.API,
 	leaderElector leader.Leader,
 
@@ -40,6 +43,7 @@ func NewGarbageCollectors(
 		hostApi:       hostApi,
 		clusterApi:    clusterApi,
 		infraEnvApi:   infraEnvApi,
+		eventsApi:     eventsApi,
 		objectHandler: objectHandler,
 		leaderElector: leaderElector,
 	}
@@ -52,6 +56,7 @@ type garbageCollector struct {
 	hostApi       host.API
 	clusterApi    clusterPkg.API
 	infraEnvApi   infraenv.API
+	eventsApi     eventsapi.Handler
 	objectHandler s3wrapper.API
 	leaderElector leader.Leader
 }
@@ -104,5 +109,11 @@ func (g garbageCollector) DeleteOrphans() {
 	g.log.Debug("Permanently deleting all orphan hosts (hosts with no valid infraenv)")
 	if err := g.hostApi.DeleteOrphanHosts(ctx); err != nil {
 		g.log.WithError(err).Errorf("Failed to delete orphan hosts")
+	}
+
+	olderThan = strfmt.DateTime(time.Now().Add(-g.Config.OrphanedEventsMaxAge))
+	g.log.Debug("Permanently deleting all orphan events (events with no valid cluster_id)")
+	if err := g.eventsApi.DeleteOrphanedEvents(ctx, olderThan); err != nil {
+		g.log.WithError(err).Errorf("Failed to delete orphan events")
 	}
 }

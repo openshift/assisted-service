@@ -38,6 +38,7 @@ type Sender interface {
 type Handler interface {
 	Sender
 	V2GetEvents(ctx context.Context, params *common.V2GetEventsParams) (*common.V2GetEventsResponse, error)
+	DeleteOrphanedEvents(ctx context.Context, olderThan strfmt.DateTime) error
 }
 
 var DefaultEventCategories = []string{

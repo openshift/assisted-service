@@ -198,6 +198,9 @@ parameters:
 - name: INSTALLER_CACHE_CAPACITY
   value: "6442450944"
   required: false
+- name: ORPHANED_EVENTS_MAX_AGE
+  required: false
+  value: "72h"
 apiVersion: v1
 kind: Template
 metadata:
@@ -455,6 +458,8 @@ objects:
                 value: ${ENABLE_DATA_COLLECTION}
               - name: INSTALLER_CACHE_CAPACITY
                 value: ${INSTALLER_CACHE_CAPACITY}
+              - name: ORPHANED_EVENTS_MAX_AGE
+                value: ${ORPHANED_EVENTS_MAX_AGE}
             volumeMounts:
               - name: route53-creds
                 mountPath: "/etc/.aws"

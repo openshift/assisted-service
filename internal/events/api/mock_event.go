@@ -178,6 +178,20 @@ func (m *MockHandler) EXPECT() *MockHandlerMockRecorder {
 	return m.recorder
 }
 
+// DeleteOrphanedEvents mocks base method.
+func (m *MockHandler) DeleteOrphanedEvents(ctx context.Context, olderThan strfmt.DateTime) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteOrphanedEvents", ctx, olderThan)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DeleteOrphanedEvents indicates an expected call of DeleteOrphanedEvents.
+func (mr *MockHandlerMockRecorder) DeleteOrphanedEvents(ctx, olderThan interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteOrphanedEvents", reflect.TypeOf((*MockHandler)(nil).DeleteOrphanedEvents), ctx, olderThan)
+}
+
 // NotifyInternalEvent mocks base method.
 func (m *MockHandler) NotifyInternalEvent(ctx context.Context, clusterID, hostID, infraEnvID *strfmt.UUID, msg string) {
 	m.ctrl.T.Helper()

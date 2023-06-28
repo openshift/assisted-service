@@ -196,6 +196,12 @@ var eventLimits = map[string]time.Duration{
 	commonevents.UpgradeAgentStartedEventName:  time.Hour,
 }
 
+func (e *Events) DeleteOrphanedEvents(ctx context.Context, olderThan strfmt.DateTime) error {
+	db := e.db.Unscoped()
+	db.Where("cluster_id NOT IN (SELECT id FROM clusters)").Where("LENGTH(cluster_id) > 0").Where("event_time < ?", olderThan).Delete(&models.Event{})
+	return db.Error
+}
+
 func (e *Events) SendClusterEvent(ctx context.Context, event eventsapi.ClusterEvent) {
 	e.SendClusterEventAtTime(ctx, event, time.Now())
 }

@@ -136,6 +136,36 @@ var _ = Describe("Events library", func() {
 
 			Expect(numOfEventsRetrieved(&cluster2, nil, nil)).Should(Equal(0))
 		})
+		It("Deleting orphaned events", func() {
+
+			numRawEvents := func(clusterID *strfmt.UUID) int {
+				var count int64
+				db.Model(&models.Event{}).Where("cluster_id = ?", clusterID).Count(&count)
+				return int(count)
+			}
+			eventTime := time.Now().Add(-1 * time.Hour)
+			madeUpCluster := strfmt.UUID("66666666-7c44-4978-89f5-53d510b03a47")
+			theEvents.V2AddEvent(context.TODO(), &madeUpCluster, nil, nil,
+				eventgen.ClusterRegistrationFailedEventName, models.EventSeverityInfo, "event1", eventTime)
+			theEvents.V2AddEvent(context.TODO(), &cluster1, nil, nil,
+				eventgen.ClusterRegistrationSucceededEventName, models.EventSeverityInfo, "event1", eventTime)
+			Expect(numRawEvents(&madeUpCluster)).Should(Equal(1))
+			Expect(numRawEvents(&cluster1)).Should(Equal(1))
+
+			olderThan := strfmt.DateTime(time.Now().Add(-2 * time.Hour))
+			err := theEvents.DeleteOrphanedEvents(context.Background(), olderThan)
+			Expect(err).Should(BeNil())
+			Expect(numRawEvents(&madeUpCluster)).Should(Equal(1))
+			Expect(numRawEvents(&cluster1)).Should(Equal(1))
+
+			olderThan = strfmt.DateTime(time.Now().Add(-1 * time.Second))
+			err = theEvents.DeleteOrphanedEvents(context.Background(), olderThan)
+			Expect(err).Should(BeNil())
+			// Cluster 1 is in the cluster table, should not be deleted
+			Expect(numRawEvents(&cluster1)).Should(Equal(1))
+			// MadeUpCluster is not in the cluster table, should be deleted
+			Expect(numRawEvents(&madeUpCluster)).Should(Equal(0))
+		})
 	})
 
 	Context("events with request ID", func() {
