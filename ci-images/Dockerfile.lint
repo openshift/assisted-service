@@ -1,3 +1,5 @@
 FROM base
 
 COPY --from=quay.io/app-sre/golangci-lint:v1.46.0 /usr/bin/golangci-lint /usr/bin/golangci-lint
+
+RUN dnf install -y diffutils
