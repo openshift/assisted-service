@@ -40,6 +40,7 @@ import (
 	machinev1beta1 "github.com/openshift/machine-api-operator/pkg/apis/machine/v1beta1"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+	"github.com/thoas/go-funk"
 	corev1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -855,6 +856,12 @@ func (r *BMACReconciler) reconcileSpokeBMH(ctx context.Context, log logrus.Field
 	if isNonePlatform {
 		// If none platform do not attempt to create spoke BMH
 		return reconcileComplete{}
+	}
+
+	if !funk.ContainsString([]string{models.HostStatusInstalling, models.HostStatusInstallingInProgress}, agent.Status.DebugInfo.State) {
+		// If agent hasn't started installing, do not create the spoke BMH yet
+		log.Debugf("Agent has not started installing, not creating the spoke BMH for %s on cluster %s", bmh.Name, agent.Spec.ClusterDeploymentName.Name)
+		return reconcileComplete{stop: false}
 	}
 
 	secret, err := getSecret(ctx, r.Client, r.APIReader, key)
