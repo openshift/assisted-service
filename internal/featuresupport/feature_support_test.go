@@ -182,7 +182,6 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 					Expect(value).To(Equal(models.SupportLevelSupported))
 				}
 			}
-
 		})
 	})
 
@@ -526,14 +525,33 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 		Context("getIncompatibleFeatures", func() {
 			It("Features without any restrictions", func() {
 				features := []models.FeatureSupportLevelID{
-					models.FeatureSupportLevelIDVIPAUTOALLOC,
 					models.FeatureSupportLevelIDCUSTOMMANIFEST,
-					models.FeatureSupportLevelIDDUALSTACKVIPS,
 					models.FeatureSupportLevelIDSINGLENODEEXPANSION,
 					models.FeatureSupportLevelIDCNV,
 				}
 				for _, featureId := range features {
 					Expect(featuresList[featureId].getIncompatibleFeatures("")).To(BeNil())
+				}
+			})
+
+			It("incompatibleFeatures - all features - no openshift version", func() {
+				for featureId, feature := range featuresList {
+					featureId := featureId
+					feature := feature
+
+					incompatibleFeatures := feature.getIncompatibleFeatures("")
+					if incompatibleFeatures != nil {
+						for _, incompatibleFeatureId := range *incompatibleFeatures {
+							incompatibleFeature := featuresList[incompatibleFeatureId]
+							By(fmt.Sprintf("Feature  %s with incompatible feature %s", featureId, incompatibleFeatureId), func() {
+								incompatibleFeatures2 := incompatibleFeature.getIncompatibleFeatures("")
+								if incompatibleFeatures2 == nil {
+									incompatibleFeatures2 = &[]models.FeatureSupportLevelID{}
+								}
+								Expect(*incompatibleFeatures2).To(ContainElement(featureId))
+							})
+						}
+					}
 				}
 			})
 
@@ -550,61 +568,6 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 				isVsphereIncompatibleWithDualStack = isFeatureCompatible("4.13", vsphereFeature, dualStackFeature)
 				Expect(isDualStackIncompatibleWithVsphere).To(BeNil())
 				Expect(isVsphereIncompatibleWithDualStack).To(BeNil())
-			})
-
-			It("Features with restrictions - Nutanix and UserManagedNetworking", func() {
-				umnFeature := featuresList[models.FeatureSupportLevelIDUSERMANAGEDNETWORKING]
-				nutanixFeature := featuresList[models.FeatureSupportLevelIDNUTANIXINTEGRATION]
-
-				isUmnIncompatibleWithNutanix := isFeatureCompatible("", umnFeature, nutanixFeature)
-				isNutanixIncompatibleWithUmn := isFeatureCompatible("", nutanixFeature, umnFeature)
-
-				Expect((*isUmnIncompatibleWithNutanix).getId()).To(Equal(nutanixFeature.getId()))
-				Expect((*isNutanixIncompatibleWithUmn).getId()).To(Equal(umnFeature.getId()))
-			})
-
-			It("Features with restrictions - OCI and CMN", func() {
-				cmnFeature := featuresList[models.FeatureSupportLevelIDCLUSTERMANAGEDNETWORKING]
-				ociFeature := featuresList[models.FeatureSupportLevelIDEXTERNALPLATFORMOCI]
-
-				isCmnIncompatibleWithOci := isFeatureCompatible("", cmnFeature, ociFeature)
-				isOciIncompatibleWithUmn := isFeatureCompatible("", ociFeature, cmnFeature)
-
-				Expect((*isCmnIncompatibleWithOci).getId()).To(Equal(ociFeature.getId()))
-				Expect((*isOciIncompatibleWithUmn).getId()).To(Equal(cmnFeature.getId()))
-			})
-
-			It("Features with restrictions - OCI and Full ISO", func() {
-				fullIsoFeature := featuresList[models.FeatureSupportLevelIDFULLISO]
-				ociFeature := featuresList[models.FeatureSupportLevelIDEXTERNALPLATFORMOCI]
-
-				isFullIsoIncompatibleWithOci := isFeatureCompatible("", fullIsoFeature, ociFeature)
-				isOciIncompatibleWithUmn := isFeatureCompatible("", ociFeature, fullIsoFeature)
-
-				Expect((*isFullIsoIncompatibleWithOci).getId()).To(Equal(ociFeature.getId()))
-				Expect((*isOciIncompatibleWithUmn).getId()).To(Equal(fullIsoFeature.getId()))
-			})
-
-			It("Features with restrictions - Sno", func() {
-				snoFeature := featuresList[models.FeatureSupportLevelIDSNO]
-				nutanixFeature := featuresList[models.FeatureSupportLevelIDNUTANIXINTEGRATION]
-				vsphereFeature := featuresList[models.FeatureSupportLevelIDVSPHEREINTEGRATION]
-				cmnFeature := featuresList[models.FeatureSupportLevelIDCLUSTERMANAGEDNETWORKING]
-
-				isSnoIncompatibleWithNutanix := isFeatureCompatible("", snoFeature, nutanixFeature)
-				isSnoIncompatibleWithVsphere := isFeatureCompatible("", snoFeature, vsphereFeature)
-				isSnoIncompatibleWithCmn := isFeatureCompatible("", snoFeature, cmnFeature)
-
-				isNutanixIncompatibleWithSno := isFeatureCompatible("", nutanixFeature, snoFeature)
-				isVsphereIncompatibleWithSno := isFeatureCompatible("", vsphereFeature, snoFeature)
-				isCmnIncompatibleWithSno := isFeatureCompatible("", cmnFeature, snoFeature)
-
-				Expect((*isSnoIncompatibleWithNutanix).getId()).To(Equal(nutanixFeature.getId()))
-				Expect((*isSnoIncompatibleWithVsphere).getId()).To(Equal(vsphereFeature.getId()))
-				Expect((*isSnoIncompatibleWithCmn).getId()).To(Equal(cmnFeature.getId()))
-				Expect((*isNutanixIncompatibleWithSno).getId()).To(Equal(snoFeature.getId()))
-				Expect((*isVsphereIncompatibleWithSno).getId()).To(Equal(snoFeature.getId()))
-				Expect((*isCmnIncompatibleWithSno).getId()).To(Equal(snoFeature.getId()))
 			})
 		})
 	})

@@ -146,7 +146,11 @@ func (feature *VipAutoAllocFeature) getSupportLevel(_ SupportLevelFilters) model
 }
 
 func (feature *VipAutoAllocFeature) getIncompatibleFeatures(string) *[]models.FeatureSupportLevelID {
-	return nil
+	return &[]models.FeatureSupportLevelID{
+		models.FeatureSupportLevelIDSNO,
+		models.FeatureSupportLevelIDEXTERNALPLATFORMOCI,
+		models.FeatureSupportLevelIDLVM,
+	}
 }
 
 func (feature *VipAutoAllocFeature) getIncompatibleArchitectures(_ *string) *[]models.ArchitectureSupportLevelID {
@@ -262,6 +266,7 @@ func (feature *ClusterManagedNetworkingFeature) getIncompatibleFeatures(string) 
 		models.FeatureSupportLevelIDSNO,
 		models.FeatureSupportLevelIDUSERMANAGEDNETWORKING,
 		models.FeatureSupportLevelIDEXTERNALPLATFORMOCI,
+		models.FeatureSupportLevelIDLVM,
 	}
 }
 
@@ -354,7 +359,9 @@ func (feature *DualStackVipsFeature) getFeatureActiveLevel(cluster *common.Clust
 }
 
 func (feature *DualStackVipsFeature) getIncompatibleFeatures(string) *[]models.FeatureSupportLevelID {
-	return nil
+	return &[]models.FeatureSupportLevelID{
+		models.FeatureSupportLevelIDEXTERNALPLATFORMOCI,
+	}
 }
 
 func (feature *DualStackVipsFeature) getIncompatibleArchitectures(_ *string) *[]models.ArchitectureSupportLevelID {
@@ -553,6 +560,7 @@ func (feature *NutanixIntegrationFeature) getIncompatibleFeatures(string) *[]mod
 		models.FeatureSupportLevelIDSNO,
 		models.FeatureSupportLevelIDUSERMANAGEDNETWORKING,
 		models.FeatureSupportLevelIDLVM,
+		models.FeatureSupportLevelIDMCE,
 	}
 }
 
