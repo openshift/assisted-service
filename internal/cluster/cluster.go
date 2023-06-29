@@ -212,11 +212,10 @@ func (m *Manager) RegisterCluster(ctx context.Context, c *common.Cluster) error 
 func (m *Manager) RegisterAddHostsCluster(ctx context.Context, c *common.Cluster) error {
 	err := m.registrationAPI.RegisterAddHostsCluster(ctx, c)
 	if err != nil {
-		eventgen.SendClusterRegistrationFailedEvent(ctx, m.eventsHandler, *c.ID, err.Error(), models.ClusterKindAddHostsCluster)
-	} else {
-		eventgen.SendClusterRegistrationSucceededEvent(ctx, m.eventsHandler, *c.ID, models.ClusterKindAddHostsCluster)
+		return err
 	}
-	return err
+	eventgen.SendClusterRegistrationSucceededEvent(ctx, m.eventsHandler, *c.ID, models.ClusterKindAddHostsCluster)
+	return nil
 }
 
 func (m *Manager) RegisterAddHostsOCPCluster(c *common.Cluster, db *gorm.DB) error {
