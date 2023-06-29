@@ -143,6 +143,8 @@ spec:
         value: $(params.git-url)
       - name: revision
         value: $(params.revision)
+      - name: depth
+        value: "100"
       runAfter:
       - init
       taskRef:
