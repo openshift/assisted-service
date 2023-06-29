@@ -31,15 +31,6 @@ x-events:
     infra_env_id: UUID
     cluster_id: UUID_PTR
 
-- name: cluster_registration_failed
-  message: "Failed to register cluster. Error: {error}"
-  event_type: cluster
-  severity: "error"
-  properties:
-    cluster_id: UUID
-    error: string
-    cluster_kind: string
-
 - name: cluster_registration_succeeded
   message: "Successfully registered cluster"
   event_type: cluster
