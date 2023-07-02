@@ -1900,10 +1900,6 @@ var _ = Describe("cluster", func() {
 			Expect(actual.Payload.VipDhcpAllocation).To(Equal(swag.Bool(false)))
 		})
 		It("create non ha cluster fail, release version is lower than minimal", func() {
-			mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
-				eventstest.WithNameMatcher(eventgen.ClusterRegistrationFailedEventName),
-				eventstest.WithMessageContainsMatcher("Invalid OCP version (4.7) for Single node, Single node OpenShift is supported for version 4.8 and above"),
-				eventstest.WithSeverityMatcher(models.EventSeverityError))).Times(1)
 			bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog().WithField("pkg", "cluster-monitor"),
 				db, commontesting.GetDummyNotificationStream(ctrl), mockEvents, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil)
 			noneHaMode := models.ClusterHighAvailabilityModeNone
@@ -1916,10 +1912,6 @@ var _ = Describe("cluster", func() {
 			verifyApiError(reply, http.StatusBadRequest)
 		})
 		It("create non ha cluster fail, release version is pre-release and lower than minimal", func() {
-			mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
-				eventstest.WithNameMatcher(eventgen.ClusterRegistrationFailedEventName),
-				eventstest.WithMessageContainsMatcher("Invalid OCP version (4.7.0-fc.1) for Single node, Single node OpenShift is supported for version 4.8 and above"),
-				eventstest.WithSeverityMatcher(models.EventSeverityError))).Times(1)
 			bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog().WithField("pkg", "cluster-monitor"),
 				db, commontesting.GetDummyNotificationStream(ctrl), mockEvents, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil)
 			noneHaMode := models.ClusterHighAvailabilityModeNone
@@ -1969,10 +1961,6 @@ var _ = Describe("cluster", func() {
 		})
 		It("create non ha cluster fail, explicitly disabled UserManagedNetworking", func() {
 			errStr := "Can't set none platform with user-managed-networking disabled"
-			mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
-				eventstest.WithNameMatcher(eventgen.ClusterRegistrationFailedEventName),
-				eventstest.WithMessageContainsMatcher(errStr),
-				eventstest.WithSeverityMatcher(models.EventSeverityError))).Times(1)
 			bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog().WithField("pkg", "cluster-monitor"),
 				db, commontesting.GetDummyNotificationStream(ctrl), mockEvents, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil)
 			noneHaMode := models.ClusterHighAvailabilityModeNone
@@ -1986,10 +1974,6 @@ var _ = Describe("cluster", func() {
 			verifyApiErrorString(reply, http.StatusBadRequest, errStr)
 		})
 		It("create non ha cluster fail, explicitly enabled VipDhcpAllocation", func() {
-			mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
-				eventstest.WithNameMatcher(eventgen.ClusterRegistrationFailedEventName),
-				eventstest.WithMessageContainsMatcher("Failed to register cluster. Error: VIP DHCP Allocation cannot be enabled on single node OpenShift"),
-				eventstest.WithSeverityMatcher(models.EventSeverityError))).Times(1)
 			bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog().WithField("pkg", "cluster-monitor"),
 				db, commontesting.GetDummyNotificationStream(ctrl), mockEvents, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil)
 			noneHaMode := models.ClusterHighAvailabilityModeNone
@@ -2263,11 +2247,6 @@ var _ = Describe("cluster", func() {
 							ingressVip := "8.8.8.9"
 							err := "apiVIP must be the same as the first element of apiVIPs"
 
-							mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
-								eventstest.WithNameMatcher(eventgen.ClusterRegistrationFailedEventName),
-								eventstest.WithMessageContainsMatcher(err),
-								eventstest.WithSeverityMatcher(models.EventSeverityError))).Times(1)
-
 							reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 								NewClusterParams: &models.ClusterCreateParams{
 									Name:             swag.String("some-cluster-name"),
@@ -2287,11 +2266,6 @@ var _ = Describe("cluster", func() {
 							ingressVips := []*models.IngressVip{{IP: models.IP("8.8.8.7")}}
 							err := "ingressVIP must be the same as the first element of ingressVIPs"
 
-							mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
-								eventstest.WithNameMatcher(eventgen.ClusterRegistrationFailedEventName),
-								eventstest.WithMessageContainsMatcher(err),
-								eventstest.WithSeverityMatcher(models.EventSeverityError))).Times(1)
-
 							reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 								NewClusterParams: &models.ClusterCreateParams{
 									Name:             swag.String("some-cluster-name"),
@@ -2309,12 +2283,6 @@ var _ = Describe("cluster", func() {
 							apiVips := []*models.APIVip{{IP: models.IP("8.8.8.7")}}
 							ingressVip := "8.8.8.9"
 							err := "request must include apiVIP alongside apiVIPs"
-
-							mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
-								eventstest.WithNameMatcher(eventgen.ClusterRegistrationFailedEventName),
-								eventstest.WithMessageContainsMatcher(err),
-								eventstest.WithSeverityMatcher(models.EventSeverityError))).Times(1)
-
 							reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 								NewClusterParams: &models.ClusterCreateParams{
 									Name:             swag.String("some-cluster-name"),
@@ -2331,12 +2299,6 @@ var _ = Describe("cluster", func() {
 							apiVip := "8.8.8.9"
 							ingressVips := []*models.IngressVip{{IP: models.IP("8.8.8.7")}}
 							err := "request must include ingressVIP alongside ingressVIPs"
-
-							mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
-								eventstest.WithNameMatcher(eventgen.ClusterRegistrationFailedEventName),
-								eventstest.WithMessageContainsMatcher(err),
-								eventstest.WithSeverityMatcher(models.EventSeverityError))).Times(1)
-
 							reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 								NewClusterParams: &models.ClusterCreateParams{
 									Name:             swag.String("some-cluster-name"),
@@ -2357,12 +2319,6 @@ var _ = Describe("cluster", func() {
 						apiVips := []*models.APIVip{{IP: models.IP(apiVip)}, {IP: models.IP("8.8.8.8")}}
 						ingressVips := []*models.IngressVip{{IP: models.IP(ingressVip)}, {IP: models.IP("8.8.8.2")}}
 						err := "the second element of apiVIPs must be an IPv6 address. got: 8.8.8.8"
-
-						mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
-							eventstest.WithNameMatcher(eventgen.ClusterRegistrationFailedEventName),
-							eventstest.WithMessageContainsMatcher(err),
-							eventstest.WithSeverityMatcher(models.EventSeverityError))).Times(1)
-
 						reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 							NewClusterParams: &models.ClusterCreateParams{
 								Name:             swag.String("some-cluster-name"),
@@ -2410,12 +2366,6 @@ var _ = Describe("cluster", func() {
 						apiVips := []*models.APIVip{{IP: models.IP(apiVip)}, {IP: models.IP("8.8.8.7")}}
 						ingressVips := []*models.IngressVip{{IP: models.IP(ingressVip)}, {IP: models.IP("8.8.8.1")}}
 						err := "the first element of apiVIPs must be an IPv4 address. got: 2001:db8::1"
-
-						mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
-							eventstest.WithNameMatcher(eventgen.ClusterRegistrationFailedEventName),
-							eventstest.WithMessageContainsMatcher(err),
-							eventstest.WithSeverityMatcher(models.EventSeverityError))).Times(1)
-
 						reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 							NewClusterParams: &models.ClusterCreateParams{
 								Name:             swag.String("some-cluster-name"),
@@ -2436,12 +2386,6 @@ var _ = Describe("cluster", func() {
 						apiVips := []*models.APIVip{{IP: models.IP(apiVip)}, {IP: models.IP("2001:db8::3")}}
 						ingressVips := []*models.IngressVip{{IP: models.IP(ingressVip)}, {IP: models.IP("2001:db8::4")}}
 						err := "the first element of apiVIPs must be an IPv4 address. got: 2001:db8::1"
-
-						mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
-							eventstest.WithNameMatcher(eventgen.ClusterRegistrationFailedEventName),
-							eventstest.WithMessageContainsMatcher(err),
-							eventstest.WithSeverityMatcher(models.EventSeverityError))).Times(1)
-
 						reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 							NewClusterParams: &models.ClusterCreateParams{
 								Name:             swag.String("some-cluster-name"),
@@ -2463,11 +2407,6 @@ var _ = Describe("cluster", func() {
 						ingressVips := []*models.IngressVip{{IP: models.IP(ingressVip)}, {IP: models.IP("2001:db8::4")}, {IP: models.IP("8.8.8.4")}}
 						err := "apiVIPs supports 2 vips. got: 3"
 
-						mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
-							eventstest.WithNameMatcher(eventgen.ClusterRegistrationFailedEventName),
-							eventstest.WithMessageContainsMatcher(err),
-							eventstest.WithSeverityMatcher(models.EventSeverityError))).Times(1)
-
 						reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 							NewClusterParams: &models.ClusterCreateParams{
 								Name:             swag.String("some-cluster-name"),
@@ -2488,10 +2427,6 @@ var _ = Describe("cluster", func() {
 						apiVips := []*models.APIVip{{IP: models.IP(apiVip)}, {IP: models.IP("invalid apiVip 2")}}
 						ingressVips := []*models.IngressVip{{IP: models.IP(ingressVip)}, {IP: models.IP("invalid ingressVip 2")}}
 						multiErr := "4 errors occurred:\n\t* Could not parse VIP ip invalid apiVip\n\t* Could not parse VIP ip invalid apiVip 2\n\t* Could not parse VIP ip invalid ingressVip\n\t* Could not parse VIP ip invalid ingressVip 2"
-						mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
-							eventstest.WithNameMatcher(eventgen.ClusterRegistrationFailedEventName),
-							eventstest.WithMessageContainsMatcher(multiErr),
-							eventstest.WithSeverityMatcher(models.EventSeverityError))).Times(1)
 
 						reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 							NewClusterParams: &models.ClusterCreateParams{
@@ -2513,10 +2448,6 @@ var _ = Describe("cluster", func() {
 						apiVips := []*models.APIVip{{IP: models.IP(apiVip)}, {IP: models.IP("2001:db8::3")}}
 						ingressVips := []*models.IngressVip{{IP: models.IP(ingressVip)}, {IP: models.IP("2001:db8::4")}}
 						err := "1 error occurred:\n\t* Could not parse VIP ip invalid apiVip\n"
-						mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
-							eventstest.WithNameMatcher(eventgen.ClusterRegistrationFailedEventName),
-							eventstest.WithMessageContainsMatcher(err),
-							eventstest.WithSeverityMatcher(models.EventSeverityError))).Times(1)
 
 						reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 							NewClusterParams: &models.ClusterCreateParams{
@@ -2539,11 +2470,6 @@ var _ = Describe("cluster", func() {
 						ingressVips := []*models.IngressVip{{IP: models.IP(ingressVip)}}
 						err := "configuration must include the same number of apiVIPs (got 2) and ingressVIPs (got 1)"
 
-						mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
-							eventstest.WithNameMatcher(eventgen.ClusterRegistrationFailedEventName),
-							eventstest.WithMessageContainsMatcher(err),
-							eventstest.WithSeverityMatcher(models.EventSeverityError))).Times(1)
-
 						reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 							NewClusterParams: &models.ClusterCreateParams{
 								Name:             swag.String("some-cluster-name"),
@@ -2564,11 +2490,6 @@ var _ = Describe("cluster", func() {
 						apiVips := []*models.APIVip{{IP: models.IP(apiVip)}, {IP: models.IP(apiVip)}}
 						ingressVips := []*models.IngressVip{{IP: models.IP(ingressVip)}, {IP: models.IP("2001:db8::3")}}
 						err := "The IP address \"8.8.8.1\" appears multiple times in apiVIPs"
-
-						mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
-							eventstest.WithNameMatcher(eventgen.ClusterRegistrationFailedEventName),
-							eventstest.WithMessageContainsMatcher(err),
-							eventstest.WithSeverityMatcher(models.EventSeverityError))).Times(1)
 
 						reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 							NewClusterParams: &models.ClusterCreateParams{
@@ -2591,11 +2512,6 @@ var _ = Describe("cluster", func() {
 						ingressVips := []*models.IngressVip{{IP: models.IP(ingressVip)}, {IP: models.IP(ingressVip)}}
 						err := "The IP address \"8.8.8.2\" appears multiple times in ingressVIPs"
 
-						mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
-							eventstest.WithNameMatcher(eventgen.ClusterRegistrationFailedEventName),
-							eventstest.WithMessageContainsMatcher(err),
-							eventstest.WithSeverityMatcher(models.EventSeverityError))).Times(1)
-
 						reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 							NewClusterParams: &models.ClusterCreateParams{
 								Name:             swag.String("some-cluster-name"),
@@ -2615,11 +2531,6 @@ var _ = Describe("cluster", func() {
 						apiVips := []*models.APIVip{{IP: models.IP(apiVip)}, {IP: models.IP("2001:db8::3")}}
 						ingressVips := []*models.IngressVip{{IP: models.IP(apiVip)}, {IP: models.IP("2001:db8::4")}}
 						err := "The IP address \"8.8.8.1\" appears both in apiVIPs and ingressVIPs"
-
-						mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
-							eventstest.WithNameMatcher(eventgen.ClusterRegistrationFailedEventName),
-							eventstest.WithMessageContainsMatcher(err),
-							eventstest.WithSeverityMatcher(models.EventSeverityError))).Times(1)
 
 						reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 							NewClusterParams: &models.ClusterCreateParams{
@@ -2644,12 +2555,6 @@ var _ = Describe("cluster", func() {
 							apiVips := []*models.APIVip{{IP: models.IP(apiVip)}, {IP: models.IP("2001:db8::1")}}
 							ingressVips := []*models.IngressVip{{IP: models.IP(ingressVip)}, {IP: models.IP("2001:db8::2")}}
 							err := "dual-stack VIPs are not supported in OpenShift 4.11.0"
-
-							mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
-								eventstest.WithNameMatcher(eventgen.ClusterRegistrationFailedEventName),
-								eventstest.WithMessageContainsMatcher(err),
-								eventstest.WithSeverityMatcher(models.EventSeverityError))).Times(1)
-
 							reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 								NewClusterParams: &models.ClusterCreateParams{
 									Name:             swag.String("some-cluster-name"),
@@ -2670,12 +2575,6 @@ var _ = Describe("cluster", func() {
 							apiVips := []*models.APIVip{{IP: models.IP(apiVip)}, {IP: models.IP("2001:db8::1")}}
 							ingressVips := []*models.IngressVip{{IP: models.IP(ingressVip)}}
 							err := "dual-stack VIPs are not supported in OpenShift 4.11.0"
-
-							mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
-								eventstest.WithNameMatcher(eventgen.ClusterRegistrationFailedEventName),
-								eventstest.WithMessageContainsMatcher(err),
-								eventstest.WithSeverityMatcher(models.EventSeverityError))).Times(1)
-
 							reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 								NewClusterParams: &models.ClusterCreateParams{
 									Name:             swag.String("some-cluster-name"),
@@ -2696,12 +2595,6 @@ var _ = Describe("cluster", func() {
 							apiVips := []*models.APIVip{{IP: models.IP(apiVip)}}
 							ingressVips := []*models.IngressVip{{IP: models.IP(ingressVip)}, {IP: models.IP("2001:db8::2")}}
 							err := "dual-stack VIPs are not supported in OpenShift 4.11.0"
-
-							mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
-								eventstest.WithNameMatcher(eventgen.ClusterRegistrationFailedEventName),
-								eventstest.WithMessageContainsMatcher(err),
-								eventstest.WithSeverityMatcher(models.EventSeverityError))).Times(1)
-
 							reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 								NewClusterParams: &models.ClusterCreateParams{
 									Name:             swag.String("some-cluster-name"),
@@ -2813,10 +2706,6 @@ var _ = Describe("cluster", func() {
 
 				It("OLM invalid name", func() {
 					newOperatorName := "invalid-name"
-					mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
-						eventstest.WithNameMatcher(eventgen.ClusterRegistrationFailedEventName),
-						eventstest.WithMessageContainsMatcher("error"),
-						eventstest.WithSeverityMatcher(models.EventSeverityError))).Times(1)
 					mockVersions.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(common.TestDefaultConfig.ReleaseImage, nil).Times(1)
 					mockOSImages.EXPECT().GetOsImage(gomock.Any(), gomock.Any()).Return(common.TestDefaultConfig.OsImage, nil).Times(1)
 					mockOperatorManager.EXPECT().GetSupportedOperatorsByType(models.OperatorTypeBuiltin).Return([]*models.MonitoredOperator{&common.TestDefaultConfig.MonitoredOperator}).Times(1)
@@ -2840,9 +2729,6 @@ var _ = Describe("cluster", func() {
 						DoAndReturn(func(commonCluster *common.Cluster, operators []*models.MonitoredOperator) ([]*models.MonitoredOperator, error) {
 							return operators, nil
 						}).Times(1)
-					mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
-						eventstest.WithNameMatcher(eventgen.ClusterRegistrationFailedEventName),
-						eventstest.WithSeverityMatcher(models.EventSeverityError))).Times(1)
 					mockLVMGetOperatorByName("lvm")
 					mockCNVGetOperatorByName("cnv")
 
@@ -5552,11 +5438,6 @@ var _ = Describe("cluster", func() {
 	Context("OpenshiftVersion does not support wildcard", func() {
 
 		It("Fail to create Cluster with a wildcard noProxy", func() {
-			mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
-				eventstest.WithNameMatcher(eventgen.ClusterRegistrationFailedEventName),
-				eventstest.WithMessageContainsMatcher("Sorry, no-proxy value '*' is not supported in release: 4.8.0-fc.1"),
-				eventstest.WithSeverityMatcher(models.EventSeverityError))).Times(1)
-
 			reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 				NewClusterParams: &models.ClusterCreateParams{
 					Name:                 swag.String("some-cluster-name"),
@@ -13373,11 +13254,6 @@ var _ = Describe("TestRegisterCluster", func() {
 				openshiftVersion := "4.13"
 				errorMsg := "cannot use Oracle Cloud Infrastructure external platform because it's not compatible with the x86_64 architecture on version 4.13.0 of OpenShift"
 
-				mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
-					eventstest.WithNameMatcher(eventgen.ClusterRegistrationFailedEventName),
-					eventstest.WithMessageContainsMatcher(errorMsg),
-					eventstest.WithSeverityMatcher(models.EventSeverityError))).Times(1)
-
 				mockVersions.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(&models.ReleaseImage{
 					CPUArchitecture:  swag.String(cpuArchitecture),
 					CPUArchitectures: []string{cpuArchitecture},
@@ -13400,11 +13276,6 @@ var _ = Describe("TestRegisterCluster", func() {
 			})
 
 			It("Baremetal platform and UserManagedNetworking=true - failed", func() {
-				mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
-					eventstest.WithNameMatcher(eventgen.ClusterRegistrationFailedEventName),
-					eventstest.WithMessageContainsMatcher("Failed to register cluster. Error: Can't set baremetal platform with user-managed-networking enabled"),
-					eventstest.WithSeverityMatcher(models.EventSeverityError))).Times(1)
-
 				params := getClusterCreateParams(nil)
 				params.Platform = &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeBaremetal)}
 				params.UserManagedNetworking = swag.Bool(true)
@@ -13415,10 +13286,6 @@ var _ = Describe("TestRegisterCluster", func() {
 			})
 
 			It("Nutanix platform and UserManagedNetworking=true - failed", func() {
-				mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
-					eventstest.WithNameMatcher(eventgen.ClusterRegistrationFailedEventName),
-					eventstest.WithMessageContainsMatcher("Failed to register cluster. Error: Can't set nutanix platform with user-managed-networking enabled"),
-					eventstest.WithSeverityMatcher(models.EventSeverityError))).Times(1)
 
 				params := getClusterCreateParams(nil)
 				params.Platform = &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeNutanix)}
@@ -13430,11 +13297,6 @@ var _ = Describe("TestRegisterCluster", func() {
 			})
 
 			It("Nutanix platform and arm64 - failed", func() {
-				mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
-					eventstest.WithNameMatcher(eventgen.ClusterRegistrationFailedEventName),
-					eventstest.WithMessageContainsMatcher("cannot use Nutanix Platform Integration because it's not compatible with the arm64 architecture on version 4.11"),
-					eventstest.WithSeverityMatcher(models.EventSeverityError))).Times(1)
-
 				mockOSImages.EXPECT().GetCPUArchitectures(gomock.Any()).Return(
 					[]string{minimalOpenShiftVersionForNutanix, common.ARM64CPUArchitecture}).Times(1)
 				mockVersions.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(&models.ReleaseImage{
@@ -13512,10 +13374,6 @@ var _ = Describe("TestRegisterCluster", func() {
 			})
 
 			It("None platform and UserManagedNetworking=false - failed", func() {
-				mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
-					eventstest.WithNameMatcher(eventgen.ClusterRegistrationFailedEventName),
-					eventstest.WithMessageContainsMatcher("Failed to register cluster. Error: Can't set none platform with user-managed-networking disabled"),
-					eventstest.WithSeverityMatcher(models.EventSeverityError))).Times(1)
 
 				params := getClusterCreateParams(nil)
 				params.Platform = &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeNone)}
@@ -13635,11 +13493,6 @@ var _ = Describe("TestRegisterCluster", func() {
 			})
 
 			It("Fail to disable UserManagedNetworking when HighAvailabilityMode is None", func() {
-				mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
-					eventstest.WithNameMatcher(eventgen.ClusterRegistrationFailedEventName),
-					eventstest.WithMessageContainsMatcher("Can't disable user-managed-networking on single node OpenShift"),
-					eventstest.WithSeverityMatcher(models.EventSeverityError))).Times(1)
-
 				params := getClusterCreateParams(swag.String(models.ClusterCreateParamsHighAvailabilityModeNone))
 				params.OpenshiftVersion = swag.String("4.9")
 				params.UserManagedNetworking = swag.Bool(false)
@@ -13666,10 +13519,6 @@ var _ = Describe("TestRegisterCluster", func() {
 			})
 
 			It("Fail to set baremetal platform when HighAvailabilityMode is None", func() {
-				mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
-					eventstest.WithNameMatcher(eventgen.ClusterRegistrationFailedEventName),
-					eventstest.WithMessageContainsMatcher("Can't set baremetal platform on single node OpenShift"),
-					eventstest.WithSeverityMatcher(models.EventSeverityError))).Times(1)
 
 				params := getClusterCreateParams(swag.String(models.ClusterCreateParamsHighAvailabilityModeNone))
 				params.OpenshiftVersion = swag.String("4.9")
@@ -13681,11 +13530,6 @@ var _ = Describe("TestRegisterCluster", func() {
 			})
 
 			It("Fail to set baremetal platform when HighAvailabilityMode is None", func() {
-				mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
-					eventstest.WithNameMatcher(eventgen.ClusterRegistrationFailedEventName),
-					eventstest.WithMessageContainsMatcher("Failed to register cluster. Error: Can't set baremetal platform on single node OpenShift"),
-					eventstest.WithSeverityMatcher(models.EventSeverityError))).Times(1)
-
 				params := getClusterCreateParams(swag.String(models.ClusterCreateParamsHighAvailabilityModeNone))
 				params.OpenshiftVersion = swag.String("4.9")
 				params.UserManagedNetworking = swag.Bool(false)
@@ -13697,11 +13541,6 @@ var _ = Describe("TestRegisterCluster", func() {
 			})
 
 			It("Fail to set vsphere platform when HighAvailabilityMode is None", func() {
-				mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
-					eventstest.WithNameMatcher(eventgen.ClusterRegistrationFailedEventName),
-					eventstest.WithMessageContainsMatcher("Failed to register cluster. Error: Single node cluster is not supported alongside vsphere platform"),
-					eventstest.WithSeverityMatcher(models.EventSeverityError))).Times(1)
-
 				params := getClusterCreateParams(swag.String(models.ClusterCreateParamsHighAvailabilityModeNone))
 				params.OpenshiftVersion = swag.String("4.9")
 				params.Platform = &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeVsphere)}
@@ -13712,11 +13551,6 @@ var _ = Describe("TestRegisterCluster", func() {
 			})
 
 			It("Fail to set nutanix platform when HighAvailabilityMode is None", func() {
-				mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
-					eventstest.WithNameMatcher(eventgen.ClusterRegistrationFailedEventName),
-					eventstest.WithMessageContainsMatcher("Failed to register cluster. Error: Single node cluster is not supported alongside nutanix platform"),
-					eventstest.WithSeverityMatcher(models.EventSeverityError))).Times(1)
-
 				params := getClusterCreateParams(swag.String(models.ClusterCreateParamsHighAvailabilityModeNone))
 				params.OpenshiftVersion = swag.String("4.11")
 				params.Platform = &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeNutanix)}
@@ -13727,10 +13561,6 @@ var _ = Describe("TestRegisterCluster", func() {
 			})
 
 			It("Fail to set baremetal platform and enable UserManagedNetworking when HighAvailabilityMode is None", func() {
-				mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
-					eventstest.WithNameMatcher(eventgen.ClusterRegistrationFailedEventName),
-					eventstest.WithMessageContainsMatcher("Can't set baremetal platform with user-managed-networking enabled"),
-					eventstest.WithSeverityMatcher(models.EventSeverityError))).Times(1)
 
 				params := getClusterCreateParams(swag.String(models.ClusterCreateParamsHighAvailabilityModeNone))
 				params.OpenshiftVersion = swag.String("4.9")
@@ -13776,11 +13606,6 @@ var _ = Describe("TestRegisterCluster", func() {
 			})
 
 			It("Fail to set none platform and disable UserManagedNetworking when HighAvailabilityMode is None", func() {
-				mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
-					eventstest.WithNameMatcher(eventgen.ClusterRegistrationFailedEventName),
-					eventstest.WithMessageContainsMatcher("Failed to register cluster. Error: Can't set baremetal platform on single node OpenShift"),
-					eventstest.WithSeverityMatcher(models.EventSeverityError))).Times(1)
-
 				params := getClusterCreateParams(swag.String(models.ClusterCreateParamsHighAvailabilityModeNone))
 				params.OpenshiftVersion = swag.String("4.9")
 				params.UserManagedNetworking = swag.Bool(false)
@@ -13857,11 +13682,6 @@ var _ = Describe("TestRegisterCluster", func() {
 		})
 
 		It("s390x on OCP version lower than 4.12", func() {
-			mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
-				eventstest.WithNameMatcher(eventgen.ClusterRegistrationFailedEventName),
-				eventstest.WithMessageContainsMatcher("Failed to register cluster. Error: cannot use s390x architecture because it's not compatible on version 4.11.0 of OpenShift"),
-				eventstest.WithSeverityMatcher(models.EventSeverityError))).Times(1)
-
 			mockOSImages.EXPECT().GetCPUArchitectures(gomock.Any()).Return([]string{common.X86CPUArchitecture, common.S390xCPUArchitecture}).Times(1)
 
 			params := getDefaultClusterCreateParams()
@@ -13887,11 +13707,6 @@ var _ = Describe("TestRegisterCluster", func() {
 			verifyApiError(reply, http.StatusBadRequest)
 		})
 		It("ppc64le on OCP version lower than 4.12", func() {
-			mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
-				eventstest.WithNameMatcher(eventgen.ClusterRegistrationFailedEventName),
-				eventstest.WithMessageContainsMatcher("Failed to register cluster. Error: cannot use ppc64le architecture because it's not compatible on version 4.11.0 of OpenShift"),
-				eventstest.WithSeverityMatcher(models.EventSeverityError))).Times(1)
-
 			mockOSImages.EXPECT().GetCPUArchitectures(gomock.Any()).Return([]string{common.X86CPUArchitecture, common.PowerCPUArchitecture}).Times(1)
 
 			params := getDefaultClusterCreateParams()
@@ -13917,11 +13732,6 @@ var _ = Describe("TestRegisterCluster", func() {
 			verifyApiError(reply, http.StatusBadRequest)
 		})
 		It("Sno isn't compatible with s390x on 4.12", func() {
-			mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
-				eventstest.WithNameMatcher(eventgen.ClusterRegistrationFailedEventName),
-				eventstest.WithMessageContainsMatcher("Failed to register cluster. Error: cannot use Single Node OpenShift because it's not compatible with the s390x architecture on version 4.12.0 of OpenShift"),
-				eventstest.WithSeverityMatcher(models.EventSeverityError))).Times(1)
-
 			mockOSImages.EXPECT().GetCPUArchitectures(gomock.Any()).Return([]string{common.X86CPUArchitecture, common.S390xCPUArchitecture}).Times(1)
 
 			params := getDefaultClusterCreateParams()
@@ -13985,11 +13795,6 @@ var _ = Describe("TestRegisterCluster", func() {
 		})
 
 		It("ClusterManagedNetworking isn't compatible with s390x", func() {
-			mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
-				eventstest.WithNameMatcher(eventgen.ClusterRegistrationFailedEventName),
-				eventstest.WithMessageContainsMatcher("Failed to register cluster. Error: Can't disable User Managed Networking on s390x architecture"),
-				eventstest.WithSeverityMatcher(models.EventSeverityError))).Times(1)
-
 			params := getDefaultClusterCreateParams()
 			params.OpenshiftVersion = swag.String("4.13")
 			params.CPUArchitecture = models.ClusterCPUArchitectureS390x
@@ -14002,10 +13807,6 @@ var _ = Describe("TestRegisterCluster", func() {
 			verifyApiError(reply, http.StatusBadRequest)
 		})
 		It("ClusterManagedNetworking isn't compatible with arm64", func() {
-			mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
-				eventstest.WithNameMatcher(eventgen.ClusterRegistrationFailedEventName),
-				eventstest.WithMessageContainsMatcher("Failed to register cluster. Error: cannot use Cluster Managed Networking because it's not compatible with the arm64 architecture on version 4.10"),
-				eventstest.WithSeverityMatcher(models.EventSeverityError))).Times(1)
 			mockOSImages.EXPECT().GetCPUArchitectures(gomock.Any()).Return([]string{common.ARM64CPUArchitecture}).Times(1)
 			params := getDefaultClusterCreateParams()
 			params.OpenshiftVersion = swag.String("4.10")
@@ -14029,12 +13830,6 @@ var _ = Describe("TestRegisterCluster", func() {
 			verifyApiError(reply, http.StatusBadRequest)
 		})
 		It("Baremetal platform isn't compatible with s390x", func() {
-
-			mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
-				eventstest.WithNameMatcher(eventgen.ClusterRegistrationFailedEventName),
-				eventstest.WithMessageContainsMatcher("Failed to register cluster. Error: Can't set baremetal platform on s390x architecture"),
-				eventstest.WithSeverityMatcher(models.EventSeverityError))).Times(1)
-
 			params := getDefaultClusterCreateParams()
 			params.OpenshiftVersion = swag.String("4.13")
 			params.CPUArchitecture = models.ClusterCPUArchitectureS390x
@@ -14046,10 +13841,6 @@ var _ = Describe("TestRegisterCluster", func() {
 			verifyApiError(reply, http.StatusBadRequest)
 		})
 		It("CNV isn't compatible with s390x", func() {
-			mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
-				eventstest.WithNameMatcher(eventgen.ClusterRegistrationFailedEventName),
-				eventstest.WithMessageContainsMatcher("Failed to register cluster. Error: cannot use OpenShift Virtualization because it's not compatible with the s390x architecture on version 4.13.0 of OpenShift"),
-				eventstest.WithSeverityMatcher(models.EventSeverityError))).Times(1)
 			mockOperatorManager.EXPECT().ResolveDependencies(gomock.Any(), gomock.Any()).
 				DoAndReturn(func(commonCluster *common.Cluster, operators []*models.MonitoredOperator) ([]*models.MonitoredOperator, error) {
 					return operators, nil
@@ -14151,10 +13942,6 @@ var _ = Describe("TestRegisterCluster", func() {
 		})
 
 		It("LVM isn't compatible with s390x", func() {
-			mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
-				eventstest.WithNameMatcher(eventgen.ClusterRegistrationFailedEventName),
-				eventstest.WithMessageContainsMatcher("Failed to register cluster. Error: cannot use Logical Volume Management because it's not compatible with the s390x architecture on version 4.13.0 of OpenShift"),
-				eventstest.WithSeverityMatcher(models.EventSeverityError))).Times(1)
 			mockOperatorManager.EXPECT().ResolveDependencies(gomock.Any(), gomock.Any()).
 				DoAndReturn(func(commonCluster *common.Cluster, operators []*models.MonitoredOperator) ([]*models.MonitoredOperator, error) {
 					return operators, nil
@@ -14251,11 +14038,6 @@ var _ = Describe("TestRegisterCluster", func() {
 	})
 
 	It("Fail UserManagedNetworking with VIP DHCP", func() {
-		mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
-			eventstest.WithNameMatcher(eventgen.ClusterRegistrationFailedEventName),
-			eventstest.WithMessageContainsMatcher("Failed to register cluster. Error: VIP DHCP Allocation cannot be set with User Managed Networking"),
-			eventstest.WithSeverityMatcher(models.EventSeverityError))).Times(1)
-
 		clusterParams := getDefaultClusterCreateParams()
 		clusterParams.UserManagedNetworking = swag.Bool(true)
 		clusterParams.VipDhcpAllocation = swag.Bool(true)
@@ -14266,10 +14048,6 @@ var _ = Describe("TestRegisterCluster", func() {
 	})
 
 	It("Fail multi-node UserManagedNetworking with API Vip and Ingress Vip", func() {
-		mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
-			eventstest.WithNameMatcher(eventgen.ClusterRegistrationFailedEventName),
-			eventstest.WithMessageContainsMatcher("Failed to register cluster. Error: API VIP cannot be set with User Managed Networking"),
-			eventstest.WithSeverityMatcher(models.EventSeverityError))).Times(1)
 		clusterParams := getDefaultClusterCreateParams()
 		clusterParams.UserManagedNetworking = swag.Bool(true)
 		clusterParams.APIVip = "10.35.10.11"
@@ -14281,10 +14059,6 @@ var _ = Describe("TestRegisterCluster", func() {
 	})
 
 	It("Fail SNO (UserManagedNetworking) with API Vip and Ingress Vip", func() {
-		mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
-			eventstest.WithNameMatcher(eventgen.ClusterRegistrationFailedEventName),
-			eventstest.WithMessageContainsMatcher("Failed to register cluster. Error: API VIP cannot be set with User Managed Networking"),
-			eventstest.WithSeverityMatcher(models.EventSeverityError))).Times(1)
 		clusterParams := getDefaultClusterCreateParams()
 		clusterParams.UserManagedNetworking = swag.Bool(true)
 		clusterParams.APIVip = "10.35.10.11"
@@ -14301,9 +14075,6 @@ var _ = Describe("TestRegisterCluster", func() {
 	})
 
 	It("Fail openshift version support level is maintenance", func() {
-		mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
-			eventstest.WithNameMatcher(eventgen.ClusterRegistrationFailedEventName),
-			eventstest.WithSeverityMatcher(models.EventSeverityError))).Times(1)
 		clusterParams := getDefaultClusterCreateParams()
 		openShiftVersionWithMaintenanceSupportLevel := "4.7.0"
 		clusterParams.OpenshiftVersion = swag.String(openShiftVersionWithMaintenanceSupportLevel)
@@ -14324,10 +14095,6 @@ var _ = Describe("TestRegisterCluster", func() {
 	Context("Disk encryption", func() {
 
 		It("Using tang mode without tang_servers", func() {
-			mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
-				eventstest.WithNameMatcher(eventgen.ClusterRegistrationFailedEventName),
-				eventstest.WithMessageContainsMatcher("Setting Tang mode but tang_servers isn't set"),
-				eventstest.WithSeverityMatcher(models.EventSeverityError))).Times(1)
 			reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 				NewClusterParams: &models.ClusterCreateParams{
 					DiskEncryption: &models.DiskEncryption{
@@ -14342,10 +14109,6 @@ var _ = Describe("TestRegisterCluster", func() {
 		})
 
 		It("Invalid Tang server URL", func() {
-			mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
-				eventstest.WithNameMatcher(eventgen.ClusterRegistrationFailedEventName),
-				eventstest.WithMessageContainsMatcher("Tang URL isn't valid"),
-				eventstest.WithSeverityMatcher(models.EventSeverityError))).Times(2)
 			By("URL not set", func() {
 				reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 					NewClusterParams: &models.ClusterCreateParams{
@@ -14377,10 +14140,6 @@ var _ = Describe("TestRegisterCluster", func() {
 		})
 
 		It("Tang thumbprint not set", func() {
-			mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
-				eventstest.WithNameMatcher(eventgen.ClusterRegistrationFailedEventName),
-				eventstest.WithMessageContainsMatcher("Tang thumbprint isn't set"),
-				eventstest.WithSeverityMatcher(models.EventSeverityError))).Times(1)
 			reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 				NewClusterParams: &models.ClusterCreateParams{
 					DiskEncryption: &models.DiskEncryption{
@@ -14635,10 +14394,6 @@ var _ = Describe("TestRegisterCluster", func() {
 				Expect(actual.ServiceNetworks).To(Equal(common.TestIPv4Networking.ServiceNetworks))
 			})
 			It("Dual-stack with reused VIPs", func() {
-				mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
-					eventstest.WithNameMatcher(eventgen.ClusterRegistrationFailedEventName),
-					eventstest.WithSeverityMatcher(models.EventSeverityError))).Times(1)
-
 				apiVip := "1.2.3.5"
 				ingressVip := "1.2.3.5"
 
@@ -14655,10 +14410,6 @@ var _ = Describe("TestRegisterCluster", func() {
 				verifyApiErrorString(reply, http.StatusBadRequest, "The IP address \"1.2.3.5\" appears both in apiVIPs and ingressVIPs")
 			})
 			It("API VIP not in Machine Network", func() {
-				mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
-					eventstest.WithNameMatcher(eventgen.ClusterRegistrationFailedEventName),
-					eventstest.WithSeverityMatcher(models.EventSeverityError))).Times(1)
-
 				apiVip := "10.11.12.15"
 				ingressVip := "1.2.3.6"
 
@@ -14675,10 +14426,6 @@ var _ = Describe("TestRegisterCluster", func() {
 				verifyApiErrorString(reply, http.StatusBadRequest, "api-vip <10.11.12.15> does not belong to machine-network-cidr <1.2.3.0/24>")
 			})
 			It("Ingress VIP not in Machine Network", func() {
-				mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
-					eventstest.WithNameMatcher(eventgen.ClusterRegistrationFailedEventName),
-					eventstest.WithSeverityMatcher(models.EventSeverityError))).Times(1)
-
 				apiVip := "1.2.3.5"
 				ingressVip := "10.11.12.16"
 
@@ -14695,10 +14442,6 @@ var _ = Describe("TestRegisterCluster", func() {
 				verifyApiErrorString(reply, http.StatusBadRequest, "ingress-vip <10.11.12.16> does not belong to machine-network-cidr <1.2.3.0/24>")
 			})
 			It("API VIP and Ingress VIP with empty Machine Networks", func() {
-				mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
-					eventstest.WithNameMatcher(eventgen.ClusterRegistrationFailedEventName),
-					eventstest.WithSeverityMatcher(models.EventSeverityError))).Times(1)
-
 				apiVip := "10.11.12.15"
 				ingressVip := "10.11.12.16"
 
@@ -14715,10 +14458,6 @@ var _ = Describe("TestRegisterCluster", func() {
 			})
 
 			It("API VIP from IPv6 Machine Network", func() {
-				mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
-					eventstest.WithNameMatcher(eventgen.ClusterRegistrationFailedEventName),
-					eventstest.WithSeverityMatcher(models.EventSeverityError))).Times(1)
-
 				apiVip := "1001:db8::64"
 				ingressVip := "1.2.3.6"
 
@@ -14736,10 +14475,6 @@ var _ = Describe("TestRegisterCluster", func() {
 			})
 
 			It("Ingress VIP from IPv6 Machine Network", func() {
-				mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
-					eventstest.WithNameMatcher(eventgen.ClusterRegistrationFailedEventName),
-					eventstest.WithSeverityMatcher(models.EventSeverityError))).Times(1)
-
 				apiVip := "1.2.3.5"
 				ingressVip := "1001:db8::65"
 
@@ -14847,10 +14582,6 @@ var _ = Describe("TestRegisterCluster", func() {
 			})
 
 			It("Disk Encryption configuration enable on all", func() {
-				mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
-					eventstest.WithNameMatcher(eventgen.ClusterRegistrationFailedEventName),
-					eventstest.WithMessageContainsMatcher(errorMsg),
-					eventstest.WithSeverityMatcher(models.EventSeverityError))).Times(1)
 				reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 					NewClusterParams: &models.ClusterCreateParams{
 						DiskEncryption: &models.DiskEncryption{
@@ -14864,10 +14595,6 @@ var _ = Describe("TestRegisterCluster", func() {
 			})
 
 			It("Disk Encryption configuration enable on masters", func() {
-				mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
-					eventstest.WithNameMatcher(eventgen.ClusterRegistrationFailedEventName),
-					eventstest.WithMessageContainsMatcher(errorMsg),
-					eventstest.WithSeverityMatcher(models.EventSeverityError))).Times(1)
 				reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 					NewClusterParams: &models.ClusterCreateParams{
 						DiskEncryption: &models.DiskEncryption{
@@ -14880,10 +14607,6 @@ var _ = Describe("TestRegisterCluster", func() {
 			})
 
 			It("Disk Encryption configuration enable on workers", func() {
-				mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
-					eventstest.WithNameMatcher(eventgen.ClusterRegistrationFailedEventName),
-					eventstest.WithMessageContainsMatcher(errorMsg),
-					eventstest.WithSeverityMatcher(models.EventSeverityError))).Times(1)
 				reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 					NewClusterParams: &models.ClusterCreateParams{
 						DiskEncryption: &models.DiskEncryption{
@@ -15021,10 +14744,6 @@ var _ = Describe("TestRegisterCluster", func() {
 	})
 
 	It("cluster api failed to register", func() {
-		mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
-			eventstest.WithNameMatcher(eventgen.ClusterRegistrationFailedEventName),
-			eventstest.WithMessageContainsMatcher("error"),
-			eventstest.WithSeverityMatcher(models.EventSeverityError))).Times(1)
 		bm.clusterApi = mockClusterApi
 		mockClusterApi.EXPECT().RegisterCluster(ctx, gomock.Any()).Return(errors.Errorf("error")).Times(1)
 		mockClusterRegisterSteps()
@@ -15049,10 +14768,6 @@ var _ = Describe("TestRegisterCluster", func() {
 	})
 
 	It("cluster api failed to register with invalid pull secret", func() {
-		mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
-			eventstest.WithNameMatcher(eventgen.ClusterRegistrationFailedEventName),
-			eventstest.WithMessageContainsMatcher("pull secret for new cluster is invalid: Failed validating pull secret"),
-			eventstest.WithSeverityMatcher(models.EventSeverityError))).Times(1)
 		mockSecretValidator.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any()).
 			Return(errors.New("error")).Times(1)
 		mockOperatorManager.EXPECT().GetSupportedOperatorsByType(models.OperatorTypeBuiltin).Return([]*models.MonitoredOperator{}).Times(1)
@@ -15068,10 +14783,6 @@ var _ = Describe("TestRegisterCluster", func() {
 	})
 
 	It("openshift version not supported", func() {
-		mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
-			eventstest.WithNameMatcher(eventgen.ClusterRegistrationFailedEventName),
-			eventstest.WithMessageContainsMatcher("Openshift version 999 for CPU architecture x86_64 is not supported: OpenShift Version is not supported"),
-			eventstest.WithSeverityMatcher(models.EventSeverityError))).Times(1)
 		mockVersions.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, errors.Errorf("OpenShift Version is not supported")).Times(1)
 
 		clusterParams := getDefaultClusterCreateParams()
@@ -15210,11 +14921,6 @@ var _ = Describe("TestRegisterCluster", func() {
 		})
 
 		It("Register cluster with invalid tags", func() {
-			mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
-				eventstest.WithNameMatcher(eventgen.ClusterRegistrationFailedEventName),
-				eventstest.WithMessageContainsMatcher("Invalid format for Tags"),
-				eventstest.WithSeverityMatcher(models.EventSeverityError))).Times(1)
-
 			params := getDefaultClusterCreateParams()
 			params.Tags = swag.String("tag,,")
 			reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
@@ -15360,10 +15066,6 @@ var _ = Describe("TestRegisterCluster", func() {
 					URL:              swag.String("url-of-this-release"),
 					Version:          swag.String("doesnt-really-matter"),
 				}, nil).Times(1)
-				mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
-					eventstest.WithNameMatcher(eventgen.ClusterRegistrationFailedEventName),
-					eventstest.WithMessageContainsMatcher("multiarch clusters are not available"),
-					eventstest.WithSeverityMatcher(models.EventSeverityError))).Times(1)
 				mockOcmAuthz.EXPECT().CapabilityReview(gomock.Any(), userName1, ocm.MultiarchCapabilityName, ocm.OrganizationCapabilityType).Return(false, nil).Times(1)
 
 				reply := bm.V2RegisterCluster(authCtx, installer.V2RegisterClusterParams{
@@ -15455,10 +15157,6 @@ var _ = Describe("AMS subscriptions", func() {
 		})
 
 		It("register cluster - deregister if we failed to create AMS subscription", func() {
-			mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
-				eventstest.WithNameMatcher(eventgen.ClusterRegistrationFailedEventName),
-				eventstest.WithMessageContainsMatcher("failed to integrate with AMS on cluster registration"),
-				eventstest.WithSeverityMatcher(models.EventSeverityError))).Times(1)
 			bm.clusterApi = mockClusterApi
 			mockClusterApi.EXPECT().RegisterCluster(ctx, gomock.Any()).Return(nil)
 			mockClusterRegisterSteps()
@@ -15474,10 +15172,6 @@ var _ = Describe("AMS subscriptions", func() {
 		})
 
 		It("register cluster - delete AMS subscription if we failed to patch DB with ams_subscription_id", func() {
-			mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
-				eventstest.WithNameMatcher(eventgen.ClusterRegistrationFailedEventName),
-				eventstest.WithMessageContainsMatcher("failed to integrate with AMS on cluster registration"),
-				eventstest.WithSeverityMatcher(models.EventSeverityError))).Times(1)
 			bm.clusterApi = mockClusterApi
 			mockClusterApi.EXPECT().RegisterCluster(ctx, gomock.Any()).Return(nil)
 			mockClusterRegisterSteps()
@@ -17360,14 +17054,6 @@ var _ = Describe("IPv6 support disabled", func() {
 		})
 
 		Context("IPV6 cluster", func() {
-
-			BeforeEach(func() {
-				mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
-					eventstest.WithNameMatcher(eventgen.ClusterRegistrationFailedEventName),
-					eventstest.WithMessageContainsMatcher(errorMsg),
-					eventstest.WithSeverityMatcher(models.EventSeverityError))).Times(1)
-			})
-
 			It("IPv6 cluster network rejected", func() {
 				params.NewClusterParams.ClusterNetworks = []*models.ClusterNetwork{
 					{Cidr: "2001:db8::/64"},
@@ -17521,30 +17207,18 @@ var _ = Describe("Dual-stack cluster", func() {
 		Context("Cluster with wrong network order", func() {
 			It("v6-first in cluster networks rejected", func() {
 				errStr := "First cluster network has to be IPv4 subnet"
-				mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
-					eventstest.WithNameMatcher(eventgen.ClusterRegistrationFailedEventName),
-					eventstest.WithMessageContainsMatcher(errStr),
-					eventstest.WithSeverityMatcher(models.EventSeverityError))).Times(1)
 				params.NewClusterParams.ClusterNetworks = TestDualStackNetworkingWrongOrder.ClusterNetworks
 				reply := bm.V2RegisterCluster(ctx, params)
 				verifyApiErrorString(reply, http.StatusBadRequest, errStr)
 			})
 			It("v6-first in service networks rejected", func() {
 				errStr := "First service network has to be IPv4 subnet"
-				mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
-					eventstest.WithNameMatcher(eventgen.ClusterRegistrationFailedEventName),
-					eventstest.WithMessageContainsMatcher(errStr),
-					eventstest.WithSeverityMatcher(models.EventSeverityError))).Times(1)
 				params.NewClusterParams.ServiceNetworks = TestDualStackNetworkingWrongOrder.ServiceNetworks
 				reply := bm.V2RegisterCluster(ctx, params)
 				verifyApiErrorString(reply, http.StatusBadRequest, errStr)
 			})
 			It("v6-first in machine networks rejected", func() {
 				errStr := "First machine network has to be IPv4 subnet"
-				mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
-					eventstest.WithNameMatcher(eventgen.ClusterRegistrationFailedEventName),
-					eventstest.WithMessageContainsMatcher(errStr),
-					eventstest.WithSeverityMatcher(models.EventSeverityError))).Times(1)
 				params.NewClusterParams.MachineNetworks = TestDualStackNetworkingWrongOrder.MachineNetworks
 				reply := bm.V2RegisterCluster(ctx, params)
 				verifyApiErrorString(reply, http.StatusBadRequest, errStr)
@@ -17554,10 +17228,6 @@ var _ = Describe("Dual-stack cluster", func() {
 		Context("Cluster with single network when two required", func() {
 			It("Single service network", func() {
 				errStr := "Expected 2 service networks, found 1"
-				mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
-					eventstest.WithNameMatcher(eventgen.ClusterRegistrationFailedEventName),
-					eventstest.WithMessageContainsMatcher(errStr),
-					eventstest.WithSeverityMatcher(models.EventSeverityError))).Times(1)
 				params.NewClusterParams.ClusterNetworks = common.TestDualStackNetworking.ClusterNetworks
 				params.NewClusterParams.ServiceNetworks = common.TestIPv4Networking.ServiceNetworks
 				reply := bm.V2RegisterCluster(ctx, params)
@@ -17565,10 +17235,6 @@ var _ = Describe("Dual-stack cluster", func() {
 			})
 			It("Single cluster network", func() {
 				errStr := "Expected 2 cluster networks, found 1"
-				mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
-					eventstest.WithNameMatcher(eventgen.ClusterRegistrationFailedEventName),
-					eventstest.WithMessageContainsMatcher(errStr),
-					eventstest.WithSeverityMatcher(models.EventSeverityError))).Times(1)
 				params.NewClusterParams.ClusterNetworks = common.TestIPv4Networking.ClusterNetworks
 				params.NewClusterParams.ServiceNetworks = common.TestDualStackNetworking.ServiceNetworks
 				reply := bm.V2RegisterCluster(ctx, params)
@@ -17576,10 +17242,6 @@ var _ = Describe("Dual-stack cluster", func() {
 			})
 			It("Single machine network", func() {
 				errStr := "Expected 2 machine networks, found 1"
-				mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
-					eventstest.WithNameMatcher(eventgen.ClusterRegistrationFailedEventName),
-					eventstest.WithMessageContainsMatcher(errStr),
-					eventstest.WithSeverityMatcher(models.EventSeverityError))).Times(1)
 				params.NewClusterParams.ServiceNetworks = common.TestDualStackNetworking.ServiceNetworks
 				params.NewClusterParams.MachineNetworks = common.TestIPv4Networking.MachineNetworks
 				reply := bm.V2RegisterCluster(ctx, params)
@@ -17901,10 +17563,6 @@ var _ = Describe("Platform tests", func() {
 			}
 			invalidOpenShiftVersionForNutanix := "4.10.0"
 			registerParams.NewClusterParams.OpenshiftVersion = swag.String(invalidOpenShiftVersionForNutanix)
-			mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
-				eventstest.WithNameMatcher(eventgen.ClusterRegistrationFailedEventName),
-				eventstest.WithMessageContainsMatcher("Invalid OCP version (4.10.0) for Nutanix, Nutanix integration is supported for version 4.11 and above"),
-				eventstest.WithSeverityMatcher(models.EventSeverityError))).Times(1)
 
 			reply := bm.V2RegisterCluster(ctx, *registerParams)
 			verifyApiError(reply, http.StatusBadRequest)
@@ -17915,11 +17573,6 @@ var _ = Describe("Platform tests", func() {
 				Type: common.PlatformTypePtr(models.PlatformTypeOci),
 			}
 			registerParams.NewClusterParams.UserManagedNetworking = swag.Bool(false)
-			mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
-				eventstest.WithNameMatcher(eventgen.ClusterRegistrationFailedEventName),
-				eventstest.WithMessageContainsMatcher("Can't set oci platform with user-managed-networking disabled"),
-				eventstest.WithSeverityMatcher(models.EventSeverityError))).Times(1)
-
 			reply := bm.V2RegisterCluster(ctx, *registerParams)
 			verifyApiError(reply, http.StatusBadRequest)
 		})
@@ -17940,12 +17593,6 @@ var _ = Describe("Platform tests", func() {
 			registerParams.NewClusterParams.Platform = &models.Platform{
 				Type: common.PlatformTypePtr(models.PlatformTypeOci),
 			}
-
-			mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
-				eventstest.WithNameMatcher(eventgen.ClusterRegistrationFailedEventName),
-				eventstest.WithMessageContainsMatcher("Platform oci is not available"),
-				eventstest.WithSeverityMatcher(models.EventSeverityError))).Times(1)
-
 			reply := bm.V2RegisterCluster(authCtx, *registerParams)
 			verifyApiError(reply, http.StatusBadRequest)
 		})
@@ -17966,12 +17613,6 @@ var _ = Describe("Platform tests", func() {
 			registerParams.NewClusterParams.Platform = &models.Platform{
 				Type: common.PlatformTypePtr(models.PlatformTypeOci),
 			}
-
-			mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
-				eventstest.WithNameMatcher(eventgen.ClusterRegistrationFailedEventName),
-				eventstest.WithMessageContainsMatcher("Platform oci is not available"),
-				eventstest.WithSeverityMatcher(models.EventSeverityError))).Times(1)
-
 			reply := bm.V2RegisterCluster(authCtx, *registerParams)
 			verifyApiError(reply, http.StatusBadRequest)
 		})
