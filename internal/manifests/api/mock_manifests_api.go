@@ -38,18 +38,18 @@ func (m *MockManifestsAPI) EXPECT() *MockManifestsAPIMockRecorder {
 }
 
 // CreateClusterManifestInternal mocks base method.
-func (m *MockManifestsAPI) CreateClusterManifestInternal(arg0 context.Context, arg1 manifests.V2CreateClusterManifestParams) (*models.Manifest, error) {
+func (m *MockManifestsAPI) CreateClusterManifestInternal(arg0 context.Context, arg1 manifests.V2CreateClusterManifestParams, arg2 bool) (*models.Manifest, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CreateClusterManifestInternal", arg0, arg1)
+	ret := m.ctrl.Call(m, "CreateClusterManifestInternal", arg0, arg1, arg2)
 	ret0, _ := ret[0].(*models.Manifest)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // CreateClusterManifestInternal indicates an expected call of CreateClusterManifestInternal.
-func (mr *MockManifestsAPIMockRecorder) CreateClusterManifestInternal(arg0, arg1 interface{}) *gomock.Call {
+func (mr *MockManifestsAPIMockRecorder) CreateClusterManifestInternal(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateClusterManifestInternal", reflect.TypeOf((*MockManifestsAPI)(nil).CreateClusterManifestInternal), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateClusterManifestInternal", reflect.TypeOf((*MockManifestsAPI)(nil).CreateClusterManifestInternal), arg0, arg1, arg2)
 }
 
 // DeleteClusterManifestInternal mocks base method.

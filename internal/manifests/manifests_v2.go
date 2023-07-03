@@ -12,7 +12,7 @@ import (
 
 func (m *Manifests) V2CreateClusterManifest(ctx context.Context, params operations.V2CreateClusterManifestParams) middleware.Responder {
 	log := logutil.FromContext(ctx, m.log)
-	manifest, err := m.CreateClusterManifestInternal(ctx, params)
+	manifest, err := m.CreateClusterManifestInternal(ctx, params, true)
 	if err != nil {
 		return common.GenerateErrorResponder(err)
 	}

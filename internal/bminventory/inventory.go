@@ -3655,7 +3655,7 @@ func (b *bareMetalInventory) V2GetPresignedForClusterFiles(ctx context.Context, 
 	var err error
 	fullFileName := fmt.Sprintf("%s/%s", params.ClusterID.String(), params.FileName)
 	downloadFilename := params.FileName
-	if params.FileName == manifests.ManifestFolder {
+	if params.FileName == constants.ManifestFolder {
 		if params.AdditionalName != nil {
 			additionalName := *params.AdditionalName
 			fullFileName = manifests.GetManifestObjectName(params.ClusterID, additionalName)
@@ -3777,7 +3777,7 @@ func (b *bareMetalInventory) checkFileForDownload(ctx context.Context, clusterID
 	log := logutil.FromContext(ctx, b.log)
 	log.Infof("Checking cluster file for download: %s for cluster %s", fileName, clusterID)
 
-	if !funk.Contains(clusterPkg.S3FileNames, fileName) && fileName != manifests.ManifestFolder {
+	if !funk.Contains(clusterPkg.S3FileNames, fileName) && fileName != constants.ManifestFolder {
 		err := errors.Errorf("invalid cluster file %s", fileName)
 		log.WithError(err).Errorf("failed download file: %s from cluster: %s", fileName, clusterID)
 		return common.NewApiError(http.StatusBadRequest, err)
@@ -3791,7 +3791,7 @@ func (b *bareMetalInventory) checkFileForDownload(ctx context.Context, clusterID
 	switch fileName {
 	case constants.Kubeconfig:
 		err = clusterPkg.CanDownloadKubeconfig(cluster)
-	case manifests.ManifestFolder:
+	case constants.ManifestFolder:
 		// do nothing. manifests can be downloaded at any given cluster state
 	default:
 		err = clusterPkg.CanDownloadFiles(cluster)

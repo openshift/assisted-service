@@ -108,7 +108,7 @@ spec:
 
 			var found bool = false
 			for _, manifest := range response.Payload {
-				if *manifest == manifestFile {
+				if manifest.FileName == manifestFile.FileName && manifest.Folder == manifestFile.Folder {
 					found = true
 					break
 				}
@@ -151,7 +151,7 @@ spec:
 
 			var found bool = false
 			for _, manifest := range response.Payload {
-				if *manifest == manifestFile {
+				if manifest.FileName == manifestFile.FileName && manifest.Folder == manifestFile.Folder {
 					found = true
 					break
 				}
