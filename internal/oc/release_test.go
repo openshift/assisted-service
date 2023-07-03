@@ -29,7 +29,6 @@ var (
 	mcoImage               = "mco_image"
 	mustGatherImage        = "must_gather_image"
 	baremetalInstallBinary = "openshift-baremetal-install"
-	installBinary          = "openshift-install"
 )
 
 //go:embed test_skopeo_multiarch_image_output
@@ -421,18 +420,6 @@ var _ = Describe("oc", func() {
 			path, err := oc.Extract(log, releaseImage, "", cacheDir, pullSecret, models.PlatformTypeBaremetal)
 			Expect(path).To(Equal(""))
 			Expect(err).Should(HaveOccurred())
-		})
-
-		It("extract openshift-install from release image", func() {
-			command := fmt.Sprintf(templateExtract+" --registry-config=%s",
-				installBinary, filepath.Join(cacheDir, releaseImage), false, releaseImage, tempFilePath)
-			args := splitStringToInterfacesArray(command)
-			mockExecuter.EXPECT().Execute(args[0], args[1:]...).Return("", "", 0).Times(1)
-
-			path, err := oc.Extract(log, releaseImage, "", cacheDir, pullSecret, models.PlatformTypeNone)
-			filePath := filepath.Join(cacheDir+"/"+releaseImage, installBinary)
-			Expect(path).To(Equal(filePath))
-			Expect(err).ShouldNot(HaveOccurred())
 		})
 	})
 })

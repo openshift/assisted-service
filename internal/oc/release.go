@@ -345,15 +345,8 @@ func (r *release) Extract(log logrus.FieldLogger, releaseImage string, releaseIm
 }
 
 func (r *release) GetReleaseBinaryPath(releaseImage string, cacheDir string, platformType models.PlatformType) (workdir string, binary string, path string) {
-	// Using platform type as an indication for which openshift install binary to use
-	// (e.g. as non-x86_64 clusters should use the openshift-install binary).
-	if platformType == models.PlatformTypeNone {
-		binary = "openshift-install"
-	} else {
-		binary = "openshift-baremetal-install"
-	}
-
 	workdir = filepath.Join(cacheDir, releaseImage)
+	binary = "openshift-baremetal-install"
 	path = filepath.Join(workdir, binary)
 	return
 }
