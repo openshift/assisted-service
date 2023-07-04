@@ -122,7 +122,18 @@ func (th *transitionHandler) PostRegisterHost(sw stateswitch.StateSwitch, args s
 		TriggerMonitorTimestamp: time.Now(),
 	}
 	log.Infof("Register new host %s infra env %s", hostToCreate.ID.String(), hostToCreate.InfraEnvID)
-	return params.db.Create(hostToCreate).Error
+	err := params.db.Create(hostToCreate).Error
+	if err != nil {
+		return err
+	}
+	eventgen.SendHostRegistrationSucceededEvent(
+		params.ctx,
+		th.eventsHandler,
+		*hostToCreate.ID,
+		hostToCreate.InfraEnvID,
+		hostToCreate.ClusterID,
+		hostutil.GetHostnameForMsg(hostParam))
+	return nil
 }
 
 func (th *transitionHandler) PostRegisterDuringInstallation(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) error {

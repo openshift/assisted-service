@@ -585,10 +585,6 @@ var _ = Describe("RegisterHost", func() {
 					}).Times(1)
 				mockCRDUtils.EXPECT().CreateAgentCR(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 				mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any()).Return(nil).Times(1)
-				mockEvents.EXPECT().SendHostEvent(gomock.Any(), eventstest.NewEventMatcher(
-					eventstest.WithNameMatcher(eventgen.HostRegistrationSucceededEventName),
-					eventstest.WithHostIdMatcher(hostID.String()),
-					eventstest.WithSeverityMatcher(models.EventSeverityInfo))).Times(1)
 
 				bm.ServiceBaseURL = uuid.New().String()
 				bm.ServiceCACertPath = uuid.New().String()
@@ -614,6 +610,50 @@ var _ = Describe("RegisterHost", func() {
 				Expect(command.Args).ShouldNot(BeEmpty())
 			})
 		}
+
+		It("Should only emit HostRegistrationSucceededEventName when not in pre installation state", func() {
+			cluster := createClusterWithAvailability(db, models.ClusterStatusInstalling, models.ClusterHighAvailabilityModeFull)
+			infraEnv := createInfraEnv(db, *cluster.ID, *cluster.ID)
+
+			mockClusterApi.EXPECT().AcceptRegistration(gomock.Any()).Return(nil).Times(1)
+			mockClusterApi.EXPECT().RefreshSchedulableMastersForcedTrue(gomock.Any(), gomock.Any()).Return(nil).Times(1)
+			mockHostApi.EXPECT().RegisterHost(gomock.Any(), gomock.Any(), gomock.Any()).
+				DoAndReturn(func(ctx context.Context, h *models.Host, db *gorm.DB) error {
+					// validate that host is registered with auto-assign role
+					Expect(h.Role).Should(Equal(models.HostRoleAutoAssign))
+					Expect(h.InfraEnvID).Should(Equal(*infraEnv.ID))
+					return nil
+				}).Times(1)
+			mockCRDUtils.EXPECT().CreateAgentCR(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+			mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any()).Return(nil).Times(1)
+			mockEvents.EXPECT().SendHostEvent(gomock.Any(), eventstest.NewEventMatcher(
+				eventstest.WithNameMatcher(eventgen.HostRegistrationSucceededEventName),
+				eventstest.WithHostIdMatcher(hostID.String()),
+				eventstest.WithSeverityMatcher(models.EventSeverityInfo))).MaxTimes(0)
+
+			bm.ServiceBaseURL = uuid.New().String()
+			bm.ServiceCACertPath = uuid.New().String()
+			bm.AgentDockerImg = uuid.New().String()
+			bm.SkipCertVerification = true
+
+			reply := bm.V2RegisterHost(ctx, installer.V2RegisterHostParams{
+				InfraEnvID: *cluster.ID,
+				NewHostParams: &models.HostCreateParams{
+					DiscoveryAgentVersion: "v1",
+					HostID:                &hostID,
+				},
+			})
+			_, ok := reply.(*installer.V2RegisterHostCreated)
+			Expect(ok).Should(BeTrue())
+
+			By("register_returns_next_step_runner_command")
+			payload := reply.(*installer.V2RegisterHostCreated).Payload
+			Expect(payload).ShouldNot(BeNil())
+			command := payload.NextStepRunnerCommand
+			Expect(command).ShouldNot(BeNil())
+			Expect(command.Command).Should(BeEmpty())
+			Expect(command.Args).ShouldNot(BeEmpty())
+		})
 	})
 
 	It("add_crd_failure", func() {
@@ -632,10 +672,6 @@ var _ = Describe("RegisterHost", func() {
 			}).Times(1)
 		mockHostApi.EXPECT().UnRegisterHost(ctx, gomock.Any()).Return(nil).Times(1)
 		mockCRDUtils.EXPECT().CreateAgentCR(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(errors.New(expectedErrMsg)).Times(1)
-		mockEvents.EXPECT().SendHostEvent(gomock.Any(), eventstest.NewEventMatcher(
-			eventstest.WithNameMatcher(eventgen.HostRegistrationSucceededEventName),
-			eventstest.WithHostIdMatcher(hostID.String()),
-			eventstest.WithSeverityMatcher(models.EventSeverityInfo))).Times(1)
 		reply := bm.V2RegisterHost(ctx, installer.V2RegisterHostParams{
 			InfraEnvID: *cluster.ID,
 			NewHostParams: &models.HostCreateParams{
@@ -697,10 +733,6 @@ var _ = Describe("RegisterHost", func() {
 				Expect(swag.StringValue(h.Kind)).Should(Equal(models.HostKindAddToExistingClusterHost))
 				return nil
 			}).Times(1)
-		mockEvents.EXPECT().SendHostEvent(gomock.Any(), eventstest.NewEventMatcher(
-			eventstest.WithNameMatcher(eventgen.HostRegistrationSucceededEventName),
-			eventstest.WithHostIdMatcher(hostId.String()),
-			eventstest.WithInfraEnvIdMatcher(infraEnvId.String()))).Times(1)
 		mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any()).Return(nil).Times(1)
 		mockCRDUtils.EXPECT().CreateAgentCR(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 		mockClusterApi.EXPECT().RefreshSchedulableMastersForcedTrue(gomock.Any(), gomock.Any()).Return(nil).Times(1)
