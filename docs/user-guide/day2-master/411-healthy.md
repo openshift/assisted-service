@@ -83,6 +83,8 @@ spec:
     namespace: openshift-machine-api
 ```
 
+Apply those changes using `oc apply -f <filename>`
+
 ### Add Machine object
 
 In the CR below you need to use the BMH's name from above in the `.metadata.annotations`. The cluster name under `.metadata.labels` needs to be correct. You can get it by looking at the output of e.g. `oc get machine -A`. The `.metadata.name` does not have to be the same as the name of BMH above, but for simplicity you can use the same name.
@@ -122,12 +124,14 @@ spec:
         name: master-user-data-managed
 ```
 
+Apply those changes using `oc apply -f <filename>`
+
 ### Link BMH and Machine and Node using the magic script
 
 We need the Machine object to have the IP of the Node in its `.status` field. This is because of how etcd-operator accepts members of the cluster. In order to achieve that, a link between BareMetalHost, Machine and Node is needed. The script below takes care of it:
 
 ```
-# bash link-machine-and-node.sh custom-master3-2 extraworker-5
+# bash link-machine-and-node.sh custom-master3-chocobomb extraworker-5
 ```
 
 ## Confirm members of etcd
@@ -245,7 +249,7 @@ Confirm the Machine is unhealthy:
 ```
 [root@test1001 ~]# oc get machine -A
 NAMESPACE               NAME                               PHASE     TYPE   REGION   ZONE   AGE
-openshift-machine-api   custom-master3-2                   Running                          14h
+openshift-machine-api   custom-master3-chocobomb           Running                          14h
 openshift-machine-api   test-day2-1-6qv96-master-0         Failed                           20h
 openshift-machine-api   test-day2-1-6qv96-master-1         Running                          20h
 openshift-machine-api   test-day2-1-6qv96-master-2         Running                          20h
