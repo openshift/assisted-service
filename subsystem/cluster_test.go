@@ -2808,21 +2808,22 @@ var _ = Describe("cluster install", func() {
 				waitForHostState(ctx, models.HostStatusResettingPendingUserAction, defaultWaitForHostStateTimeout, c.Hosts...)
 			})
 
-			It("reset cluster doesn't delete manifests", func() {
+			It("reset cluster doesn't delete user generated manifests", func() {
 				content := `apiVersion: machineconfiguration.openshift.io/v1
 kind: MachineConfig
 metadata:
   labels:
     machineconfiguration.openshift.io/role: master
-  name: 99-openshift-machineconfig-master-kargs
+  name: 01-user-generated-manifest
 spec:
   kernelArguments:
   - 'loglevel=7'`
 				base64Content := base64.StdEncoding.EncodeToString([]byte(content))
 				manifest := models.Manifest{
-					FileName: "99-openshift-machineconfig-master-kargs.yaml",
+					FileName: "01-user-generated-manifest.yaml",
 					Folder:   "openshift",
 				}
+				// All manifests created via the API are considered to be "user generated"
 				response, err := userBMClient.Manifests.V2CreateClusterManifest(ctx, &manifests.V2CreateClusterManifestParams{
 					ClusterID: clusterID,
 					CreateManifestParams: &models.CreateManifestParams{

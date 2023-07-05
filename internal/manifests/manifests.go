@@ -100,7 +100,7 @@ func (m *Manifests) CreateClusterManifestInternal(ctx context.Context, params op
 	return &manifest, nil
 }
 
-func (m *Manifests) isUserManifest(ctx context.Context, clusterID strfmt.UUID, folder string, fileName string) (error, bool) {
+func (m *Manifests) IsUserManifest(ctx context.Context, clusterID strfmt.UUID, folder string, fileName string) (error, bool) {
 	path := filepath.Join(folder, fileName)
 	isCustomManifest, err := m.objectHandler.DoesObjectExist(ctx, GetManifestMetadataObjectName(clusterID, path, constants.ManifestSourceUserSupplied))
 	return err, isCustomManifest
@@ -154,7 +154,7 @@ func (m *Manifests) ListClusterManifestsInternal(ctx context.Context, params ope
 		if len(parts) > 2 {
 			fileName := filepath.Join(parts[3:]...)
 			folder := parts[2]
-			err, isUserManifest := m.isUserManifest(ctx, params.ClusterID, folder, fileName)
+			err, isUserManifest := m.IsUserManifest(ctx, params.ClusterID, folder, fileName)
 			if err != nil {
 				return nil, common.NewApiError(http.StatusInternalServerError, errors.Wrapf(err, "Unable to determine the source of manifest for cluster %s at path %s/%s", params.ClusterID, folder, fileName))
 			}
@@ -242,7 +242,7 @@ func (m *Manifests) UpdateClusterManifestInternal(ctx context.Context, params op
 		return nil, err
 	}
 
-	err, isCustomManifest := m.isUserManifest(ctx, params.ClusterID, srcFolder, srcFileName)
+	err, isCustomManifest := m.IsUserManifest(ctx, params.ClusterID, srcFolder, srcFileName)
 	if err != nil {
 		return nil, err
 	}

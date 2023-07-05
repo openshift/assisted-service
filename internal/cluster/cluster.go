@@ -25,6 +25,7 @@ import (
 	eventsapi "github.com/openshift/assisted-service/internal/events/api"
 	"github.com/openshift/assisted-service/internal/host"
 	"github.com/openshift/assisted-service/internal/host/hostutil"
+	manifestsapi "github.com/openshift/assisted-service/internal/manifests/api"
 	"github.com/openshift/assisted-service/internal/metrics"
 	"github.com/openshift/assisted-service/internal/network"
 	"github.com/openshift/assisted-service/internal/operators"
@@ -38,6 +39,7 @@ import (
 	"github.com/openshift/assisted-service/pkg/ocm"
 	"github.com/openshift/assisted-service/pkg/requestid"
 	"github.com/openshift/assisted-service/pkg/s3wrapper"
+	"github.com/openshift/assisted-service/restapi/operations/manifests"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
@@ -117,7 +119,7 @@ type API interface {
 	SetConnectivityMajorityGroupsForCluster(clusterID strfmt.UUID, db *gorm.DB) error
 	DetectAndStoreCollidingIPsForCluster(clusterID strfmt.UUID, db *gorm.DB) error
 	DeleteClusterLogs(ctx context.Context, c *common.Cluster, objectHandler s3wrapper.API) error
-	DeleteClusterFiles(ctx context.Context, c *common.Cluster, objectHandler s3wrapper.API) error
+	ResetClusterFiles(ctx context.Context, c *common.Cluster, objectHandler s3wrapper.API) error
 	UpdateLogsProgress(ctx context.Context, c *common.Cluster, progress string) error
 	GetClusterByKubeKey(key types.NamespacedName) (*common.Cluster, error)
 	UpdateAmsSubscriptionID(ctx context.Context, clusterID, amsSubscriptionID strfmt.UUID) *common.ApiErrorResponse
@@ -167,12 +169,13 @@ type Manager struct {
 	monitorQueryGenerator *common.MonitorClusterQueryGenerator
 	authHandler           auth.Authenticator
 	uploadClient          uploader.Client
+	manifestApi           manifestsapi.ManifestsAPI
 }
 
 func NewManager(cfg Config, log logrus.FieldLogger, db *gorm.DB, stream stream.Notifier, eventsHandler eventsapi.Handler,
 	uploadClient uploader.Client, hostAPI host.API, metricApi metrics.API, manifestsGeneratorAPI network.ManifestsGeneratorAPI,
 	leaderElector leader.Leader, operatorsApi operators.API, ocmClient *ocm.Client, objectHandler s3wrapper.API,
-	dnsApi dns.DNSApi, authHandler auth.Authenticator) *Manager {
+	dnsApi dns.DNSApi, authHandler auth.Authenticator, manifestApi manifestsapi.ManifestsAPI) *Manager {
 	th := &transitionHandler{
 		log:                 log,
 		db:                  db,
@@ -202,6 +205,7 @@ func NewManager(cfg Config, log logrus.FieldLogger, db *gorm.DB, stream stream.N
 		dnsApi:                dnsApi,
 		authHandler:           authHandler,
 		uploadClient:          uploadClient,
+		manifestApi:           manifestApi,
 	}
 }
 
@@ -1399,54 +1403,112 @@ func (m *Manager) SetConnectivityMajorityGroupsForCluster(clusterID strfmt.UUID,
 	return m.setConnectivityMajorityGroupsForClusterInternal(cluster, db)
 }
 
-func (m *Manager) deleteClusterFiles(ctx context.Context, c *common.Cluster, objectHandler s3wrapper.API, folder string) error {
-	log := logutil.FromContext(ctx, m.log)
+func (m *Manager) extractManifestFolderAndFilename(ctx context.Context, path string) (string, string, bool) {
+	parts := strings.Split(path, "/")
+	partsLength := len(parts)
+	if partsLength != 4 || parts[1] != "manifests" {
+		return "", "", false
+	}
+	folder := parts[2]
+	filename := parts[3]
+	return folder, filename, true
+}
+
+func (m *Manager) getClusterFilesForFolder(ctx context.Context, c *common.Cluster, objectHandler s3wrapper.API, folder string) ([]string, error) {
 	path := filepath.Join(string(*c.ID), folder) + "/"
 	files, err := objectHandler.ListObjectsByPrefix(ctx, path)
 	if err != nil {
 		msg := fmt.Sprintf("Failed to list files in %s", path)
 		m.log.WithError(err).Errorf(msg)
-		return common.NewApiError(
+		return nil, common.NewApiError(
 			http.StatusInternalServerError,
 			errors.Errorf(msg))
 	}
+	return files, err
+}
 
+func (m *Manager) ResetClusterFiles(ctx context.Context, c *common.Cluster, objectHandler s3wrapper.API) error {
+	log := logutil.FromContext(ctx, m.log)
+	files, err := m.getClusterFilesForFolder(ctx, c, objectHandler, "")
+	if err != nil {
+		return err
+	}
+	// ListClusterManifestsInternal only returns user generated manifests so we can use this to determine whether or not a manifest should be deleted on reset.
+	userManifests, err := m.manifestApi.ListClusterManifestsInternal(ctx, manifests.V2ListClusterManifestsParams{ClusterID: *c.Cluster.ID})
+	if err != nil {
+		return err
+	}
+	for _, file := range files {
+		// Path is in the form <cluster-id>/manifests/<folder-name>/<file-name>
+		currentFolder, currentFile, isManifest := m.extractManifestFolderAndFilename(ctx, file)
+		if isManifest {
+			isSystemGeneratedManifest := true
+			for _, manifest := range userManifests {
+				if manifest.Folder == currentFolder && manifest.FileName == currentFile {
+					isSystemGeneratedManifest = false
+					break
+				}
+			}
+			if isSystemGeneratedManifest {
+				log.Debugf("Deleting cluster %s S3 file: %s", c.ID.String(), file)
+				_, err := objectHandler.DeleteObject(ctx, file)
+				if err != nil {
+					return err
+				}
+			}
+		}
+	}
+	return nil
+}
+
+func (m *Manager) DeleteClusterLogs(ctx context.Context, c *common.Cluster, objectHandler s3wrapper.API) error {
+	return m.deleteClusterFilesInFolders(ctx, c, objectHandler, []string{"logs"})
+}
+
+func (m *Manager) deleteAllClusterFiles(ctx context.Context, c *common.Cluster, objectHandler s3wrapper.API) error {
+	folders := []string{"", "logs", constants.ManifestFolder, constants.ManifestMetadataFolder}
+	err := m.deleteClusterFilesInFolders(ctx, c, objectHandler, folders)
+	if err != nil {
+		return err
+	}
+	// After deleting all of the cluster files, delete the root cluster directory.
+	if _, err := objectHandler.DeleteObject(ctx, c.ID.String()); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (m *Manager) deleteClusterFilesInFolders(ctx context.Context, c *common.Cluster, objectHandler s3wrapper.API, folders []string) error {
+	for _, folder := range folders {
+		files, err := m.getClusterFilesForFolder(ctx, c, objectHandler, folder)
+		if err != nil {
+			return err
+		}
+		err = m.deleteSpecifiedClusterFiles(ctx, c, objectHandler, files)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (m *Manager) deleteSpecifiedClusterFiles(ctx context.Context, c *common.Cluster, objectHandler s3wrapper.API, files []string) error {
+	log := logutil.FromContext(ctx, m.log)
 	var failedToDelete []string
 	for _, file := range files {
-		//skip log and manifests deletion when deleting cluster files
-		if folder == "" && (strings.Contains(file, "logs") || strings.Contains(file, constants.ManifestFolder) || strings.Contains(file, constants.ManifestMetadataFolder)) {
-			continue
-		}
 		log.Debugf("Deleting cluster %s S3 file: %s", c.ID.String(), file)
-		_, err = objectHandler.DeleteObject(ctx, file)
+		_, err := objectHandler.DeleteObject(ctx, file)
 		if err != nil {
 			m.log.WithError(err).Errorf("failed deleting s3 file: %s", file)
 			failedToDelete = append(failedToDelete, file)
 		}
 	}
-
 	if len(failedToDelete) > 0 {
 		return common.NewApiError(
 			http.StatusInternalServerError,
 			errors.Errorf("failed to delete s3 files: %q", failedToDelete))
 	}
 	return nil
-}
-
-func (m *Manager) deleteClusterManifests(ctx context.Context, c *common.Cluster, objectHandler s3wrapper.API) error {
-	return m.deleteClusterFiles(ctx, c, objectHandler, constants.ManifestFolder)
-}
-
-func (m *Manager) deleteClusterManifestAttributes(ctx context.Context, c *common.Cluster, objectHandler s3wrapper.API) error {
-	return m.deleteClusterFiles(ctx, c, objectHandler, constants.ManifestMetadataFolder)
-}
-
-func (m *Manager) DeleteClusterLogs(ctx context.Context, c *common.Cluster, objectHandler s3wrapper.API) error {
-	return m.deleteClusterFiles(ctx, c, objectHandler, "logs")
-}
-
-func (m *Manager) DeleteClusterFiles(ctx context.Context, c *common.Cluster, objectHandler s3wrapper.API) error {
-	return m.deleteClusterFiles(ctx, c, objectHandler, "")
 }
 
 func (m Manager) DeregisterInactiveCluster(ctx context.Context, maxDeregisterPerInterval int, inactiveSince strfmt.DateTime) error {
@@ -1476,27 +1538,10 @@ func (m Manager) PermanentClustersDeletion(ctx context.Context, olderThan strfmt
 	for i := range clusters {
 		c := clusters[i]
 		m.log.Infof("Permanently deleting cluster %s that was de-registered before %s", c.ID.String(), olderThan)
-
 		deleteFromDB := true
-		if err := m.DeleteClusterFiles(ctx, c, objectHandler); err != nil {
+		if err := m.deleteAllClusterFiles(ctx, c, objectHandler); err != nil {
 			deleteFromDB = false
 			m.log.WithError(err).Warnf("Failed deleting s3 files of cluster %s", c.ID.String())
-		}
-		if err := m.DeleteClusterLogs(ctx, c, objectHandler); err != nil {
-			deleteFromDB = false
-			m.log.WithError(err).Warnf("Failed deleting s3 logs of cluster %s", c.ID.String())
-		}
-		if err := m.deleteClusterManifests(ctx, c, objectHandler); err != nil {
-			deleteFromDB = false
-			m.log.WithError(err).Warnf("Failed deleting s3 manifests of cluster %s", c.ID.String())
-		}
-		if err := m.deleteClusterManifestAttributes(ctx, c, objectHandler); err != nil {
-			deleteFromDB = false
-			m.log.WithError(err).Warnf("Failed deleting s3 manifest-attributes of cluster %s", c.ID.String())
-		}
-		if _, err := objectHandler.DeleteObject(ctx, c.ID.String()); err != nil {
-			deleteFromDB = false
-			m.log.WithError(err).Warnf("Failed deleting cluster directory %s", c.ID.String())
 		}
 		if !deleteFromDB {
 			continue
