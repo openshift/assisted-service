@@ -9407,7 +9407,7 @@ func init() {
       ],
       "properties": {
         "is_external": {
-          "description": "Indicates if the underlying platform type is external.",
+          "description": "Used by the service to indicate that the platform-specific components are not included in\nOpenShift and must be provided as manifests separately.",
           "type": "boolean",
           "readOnly": true
         },
@@ -19715,7 +19715,7 @@ func init() {
       ],
       "properties": {
         "is_external": {
-          "description": "Indicates if the underlying platform type is external.",
+          "description": "Used by the service to indicate that the platform-specific components are not included in\nOpenShift and must be provided as manifests separately.",
           "type": "boolean",
           "readOnly": true
         },
