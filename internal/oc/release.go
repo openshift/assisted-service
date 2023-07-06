@@ -13,7 +13,6 @@ import (
 	"github.com/hashicorp/go-version"
 	operatorv1alpha1 "github.com/openshift/api/operator/v1alpha1"
 	"github.com/openshift/assisted-service/internal/common"
-	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/executer"
 	"github.com/openshift/assisted-service/pkg/mirrorregistries"
 	"github.com/patrickmn/go-cache"
@@ -47,8 +46,8 @@ type Release interface {
 	GetOpenshiftVersion(log logrus.FieldLogger, releaseImage string, releaseImageMirror string, pullSecret string) (string, error)
 	GetMajorMinorVersion(log logrus.FieldLogger, releaseImage string, releaseImageMirror string, pullSecret string) (string, error)
 	GetReleaseArchitecture(log logrus.FieldLogger, releaseImage string, releaseImageMirror string, pullSecret string) ([]string, error)
-	GetReleaseBinaryPath(releaseImage string, cacheDir string, platformType models.PlatformType) (workdir string, binary string, path string)
-	Extract(log logrus.FieldLogger, releaseImage string, releaseImageMirror string, cacheDir string, pullSecret string, platformType models.PlatformType) (string, error)
+	GetReleaseBinaryPath(releaseImage string, cacheDir string) (workdir string, binary string, path string)
+	Extract(log logrus.FieldLogger, releaseImage string, releaseImageMirror string, cacheDir string, pullSecret string) (string, error)
 }
 
 type imageValue struct {
@@ -314,7 +313,7 @@ func (r *release) getOpenshiftVersionFromRelease(log logrus.FieldLogger, release
 
 // Extract openshift-baremetal-install binary from releaseImageMirror if provided.
 // Else extract from the source releaseImage
-func (r *release) Extract(log logrus.FieldLogger, releaseImage string, releaseImageMirror string, cacheDir string, pullSecret string, platformType models.PlatformType) (string, error) {
+func (r *release) Extract(log logrus.FieldLogger, releaseImage string, releaseImageMirror string, cacheDir string, pullSecret string) (string, error) {
 	var path string
 	var err error
 	if releaseImage == "" && releaseImageMirror == "" {
@@ -329,13 +328,13 @@ func (r *release) Extract(log logrus.FieldLogger, releaseImage string, releaseIm
 
 	if releaseImageMirror != "" {
 		//TODO: Get mirror registry certificate from install-config
-		path, err = r.extractFromRelease(log, releaseImageMirror, cacheDir, pullSecret, true, platformType, icspFile)
+		path, err = r.extractFromRelease(log, releaseImageMirror, cacheDir, pullSecret, true, icspFile)
 		if err != nil {
 			log.WithError(err).Errorf("failed to extract openshift-baremetal-install from mirror release image %s", releaseImageMirror)
 			return "", err
 		}
 	} else {
-		path, err = r.extractFromRelease(log, releaseImage, cacheDir, pullSecret, false, platformType, icspFile)
+		path, err = r.extractFromRelease(log, releaseImage, cacheDir, pullSecret, false, icspFile)
 		if err != nil {
 			log.WithError(err).Errorf("failed to extract openshift-baremetal-install from release image %s", releaseImage)
 			return "", err
@@ -344,7 +343,7 @@ func (r *release) Extract(log logrus.FieldLogger, releaseImage string, releaseIm
 	return path, err
 }
 
-func (r *release) GetReleaseBinaryPath(releaseImage string, cacheDir string, platformType models.PlatformType) (workdir string, binary string, path string) {
+func (r *release) GetReleaseBinaryPath(releaseImage string, cacheDir string) (workdir string, binary string, path string) {
 	workdir = filepath.Join(cacheDir, releaseImage)
 	binary = "openshift-baremetal-install"
 	path = filepath.Join(workdir, binary)
@@ -353,8 +352,8 @@ func (r *release) GetReleaseBinaryPath(releaseImage string, cacheDir string, pla
 
 // extractFromRelease returns the path to an openshift-baremetal-install binary extracted from
 // the referenced release image.
-func (r *release) extractFromRelease(log logrus.FieldLogger, releaseImage, cacheDir, pullSecret string, insecure bool, platformType models.PlatformType, icspFile string) (string, error) {
-	workdir, binary, path := r.GetReleaseBinaryPath(releaseImage, cacheDir, platformType)
+func (r *release) extractFromRelease(log logrus.FieldLogger, releaseImage, cacheDir, pullSecret string, insecure bool, icspFile string) (string, error) {
+	workdir, binary, path := r.GetReleaseBinaryPath(releaseImage, cacheDir)
 	log.Infof("extracting %s binary to %s", binary, workdir)
 	err := os.MkdirAll(workdir, 0755)
 	if err != nil {
