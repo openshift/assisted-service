@@ -5327,7 +5327,9 @@ definitions:
       type:
         $ref: '#/definitions/platform_type'
       is_external:
-        description: Indicates if the underlying platform type is external.
+        description: |-
+          Used by the service to indicate that the platform-specific components are not included in
+          OpenShift and must be provided as manifests separately.
         readOnly: true
         type: boolean
 
