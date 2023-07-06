@@ -254,6 +254,23 @@ var _ = Describe("ClusterManifestTests", func() {
 				return fmt.Sprintf("{\"data\":\"%s\"}", largeElementBuilder.String())
 			}
 
+			It("Does not accept a filename that contains spaces", func() {
+				clusterID := registerCluster().ID
+				content := "{}"
+				fileName := "dest FileName"
+				response := manifestsAPI.V2CreateClusterManifest(ctx, operations.V2CreateClusterManifestParams{
+					ClusterID: *clusterID,
+					CreateManifestParams: &models.CreateManifestParams{
+						Content:  &content,
+						FileName: &fileName,
+					},
+				})
+				err := response.(*common.ApiErrorResponse)
+				expectedErrorMessage := fmt.Sprintf("Cluster manifest %s for cluster %s should not include a space in its name.", fileName, clusterID)
+				Expect(err.StatusCode()).To(Equal(int32(http.StatusBadRequest)))
+				Expect(err.Error()).To(Equal(expectedErrorMessage))
+			})
+
 			It("accepts manifest in json format and .json extension", func() {
 				clusterID := registerCluster().ID
 				jsonContent := encodeToBase64(contentAsJSON)
@@ -637,6 +654,25 @@ spec:
 	})
 
 	Context("UpdateClusterManifest", func() {
+		It("Does not accept a filename that contains spaces", func() {
+			clusterID := registerCluster().ID
+			destFolder := "manifests"
+			destFileName := "dest FileName"
+			response := manifestsAPI.V2UpdateClusterManifest(ctx, operations.V2UpdateClusterManifestParams{
+				ClusterID: *clusterID,
+				UpdateManifestParams: &models.UpdateManifestParams{
+					FileName:        fileNameYaml,
+					Folder:          defaultFolder,
+					UpdatedFolder:   &destFolder,
+					UpdatedFileName: &destFileName,
+				},
+			})
+			err := response.(*common.ApiErrorResponse)
+			expectedErrorMessage := fmt.Sprintf("Cluster manifest %s for cluster %s should not include a space in its name.", destFileName, clusterID)
+			Expect(err.StatusCode()).To(Equal(int32(http.StatusBadRequest)))
+			Expect(err.Error()).To(Equal(expectedErrorMessage))
+		})
+
 		It("moves existing file from one path to another", func() {
 			clusterID := registerCluster().ID
 			destFolder := "manifests"

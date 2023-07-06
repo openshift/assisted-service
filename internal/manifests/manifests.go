@@ -376,6 +376,14 @@ func (m *Manifests) fetchManifestContent(ctx context.Context, clusterID strfmt.U
 
 func (m *Manifests) validateManifestFileNames(ctx context.Context, clusterID strfmt.UUID, fileNames []string) error {
 	for _, fileName := range fileNames {
+		if strings.Contains(fileName, " ") {
+			return m.prepareAndLogError(
+				ctx,
+				http.StatusBadRequest,
+				errors.Errorf("Cluster manifest %s for cluster %s should not include a space in its name.",
+					fileName,
+					clusterID))
+		}
 		if strings.ContainsRune(fileName, os.PathSeparator) {
 			return m.prepareAndLogError(
 				ctx,
