@@ -2339,12 +2339,19 @@ func (b *bareMetalInventory) updateClusterData(_ context.Context, cluster *commo
 	return nil
 }
 
-func wereClusterVipsUpdated(clusterVips []string, paramsVips []string) bool {
-	if len(clusterVips) != len(paramsVips) {
+func wereClusterVipsUpdated(clusterVip string, paramVip *string, clusterVips []string, paramVips []string) bool {
+	if paramVip != nil && clusterVip != swag.StringValue(paramVip) {
+		return true
+	}
+
+	if paramVips == nil {
+		return false
+	}
+	if len(clusterVips) != len(paramVips) {
 		return true
 	}
 	for i := range clusterVips {
-		if clusterVips[i] != paramsVips[i] {
+		if clusterVips[i] != paramVips[i] {
 			return true
 		}
 	}
@@ -2362,17 +2369,16 @@ func (b *bareMetalInventory) updateVips(db *gorm.DB, params installer.V2UpdateCl
 		},
 	}
 
-	if params.ClusterUpdateParams.APIVips != nil && len(params.ClusterUpdateParams.APIVips) > 0 {
-		if wereClusterVipsUpdated(network.GetApiVips(cluster), network.GetApiVips(&paramVips)) {
-			apiVipUpdated = true
-			cluster.APIVips = params.ClusterUpdateParams.APIVips
-		}
+	if wereClusterVipsUpdated(cluster.APIVip, params.ClusterUpdateParams.APIVip, network.GetApiVips(cluster), network.GetApiVips(&paramVips)) {
+		apiVipUpdated = true
+		cluster.APIVip = swag.StringValue(params.ClusterUpdateParams.APIVip)
+		cluster.APIVips = params.ClusterUpdateParams.APIVips
 	}
-	if params.ClusterUpdateParams.IngressVips != nil && len(params.ClusterUpdateParams.IngressVips) > 0 {
-		if wereClusterVipsUpdated(network.GetIngressVips(cluster), network.GetIngressVips(&paramVips)) {
-			ingressVipUpdated = true
-			cluster.IngressVips = params.ClusterUpdateParams.IngressVips
-		}
+
+	if wereClusterVipsUpdated(cluster.IngressVip, params.ClusterUpdateParams.IngressVip, network.GetIngressVips(cluster), network.GetIngressVips(&paramVips)) {
+		ingressVipUpdated = true
+		cluster.IngressVip = swag.StringValue(params.ClusterUpdateParams.IngressVip)
+		cluster.IngressVips = params.ClusterUpdateParams.IngressVips
 	}
 
 	if apiVipUpdated || ingressVipUpdated {
