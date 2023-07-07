@@ -14,7 +14,6 @@ import (
 	"github.com/go-openapi/runtime/middleware"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
-	"github.com/openshift/assisted-service/internal/cluster"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/constants"
 	manifestsapi "github.com/openshift/assisted-service/internal/manifests/api"
@@ -63,7 +62,7 @@ func (m *Manifests) CreateClusterManifestInternal(ctx context.Context, params op
 	// In OCM, this is validated at the authorization layer. In other
 	// authorization scheme, it does not and therefore should be checked
 	// at the application level.
-	if !cluster.ClusterExists(m.db, params.ClusterID) {
+	if _, err := common.GetClusterFromDB(m.db, params.ClusterID, false); err != nil {
 		return nil, common.NewApiError(http.StatusNotFound, fmt.Errorf("Object Not Found"))
 	}
 
@@ -138,7 +137,7 @@ func (m *Manifests) ListClusterManifestsInternal(ctx context.Context, params ope
 	// In OCM, this is validated at the authorization layer. In other
 	// authorization scheme, it does not and therefore should be checked
 	// at the application level.
-	if !cluster.ClusterExists(m.db, params.ClusterID) {
+	if _, err := common.GetClusterFromDB(m.db, params.ClusterID, false); err != nil {
 		return nil, common.NewApiError(http.StatusNotFound, fmt.Errorf("Object Not Found"))
 	}
 
@@ -275,8 +274,8 @@ func (m *Manifests) V2DownloadClusterManifest(ctx context.Context, params operat
 	// In OCM, this is validated at the authorization layer. In other
 	// authorization scheme, it does not and therefore should be checked
 	// at the application level.
-	if !cluster.ClusterExists(m.db, params.ClusterID) {
-		return common.NewApiError(http.StatusNotFound, fmt.Errorf("object Not Found"))
+	if _, err := common.GetClusterFromDB(m.db, params.ClusterID, false); err != nil {
+		return common.NewApiError(http.StatusNotFound, fmt.Errorf("Object Not Found"))
 	}
 
 	objectName := GetManifestObjectName(params.ClusterID, path)
