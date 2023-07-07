@@ -140,6 +140,7 @@ function gather_capi_data() {
     done
   done
 
+  oc get po -n hypershift -o yaml > "${capi_dir}/hypershift_pods.yaml"
   oc logs --tail=-1 deployment/operator -n hypershift > "${capi_dir}/hypershift.log"
 
   # Detect namespace where the capi-provider lives. The specific name depends whether deployed standalone or via
@@ -178,12 +179,36 @@ function gather_hypershift_data() {
   mkdir -p "${spoke_dir}"
 
   SPOKE_KUBECONFIG=/tmp/spoke-cluster-kubeconfig
-  if [ -f "$SPOKE_KUBECONFIG" ]; then
+  SPOKE_CLUSTER_NAME=$(oc get hostedcluster -n "${SPOKE_NAMESPACE}" -o custom-columns=:.metadata.name --no-headers)
+  oc extract -n "${SPOKE_NAMESPACE}" secret/"${SPOKE_CLUSTER_NAME}"-admin-kubeconfig --to=- > "${SPOKE_KUBECONFIG}"
+  if [ -s "${SPOKE_KUBECONFIG}" ]; then
     CRS=(agents infraenvs clusterdeployments agentclusterinstalls clusterimagesets)
     for cr in "${CRS[@]}"; do
-      oc --kubeconfig ${SPOKE_KUBECONFIG} get "${cr}" -n "${SPOKE_NAMESPACE}" -o yaml > "${spoke_dir}/oc_get_${cr}.yaml"
+      oc --kubeconfig "${SPOKE_KUBECONFIG}" get "${cr}" -n "${SPOKE_NAMESPACE}" -o yaml > "${spoke_dir}/oc_get_${cr}.yaml"
+    done
+
+    oc --kubeconfig "${SPOKE_KUBECONFIG}" get nodes -o yaml > "${spoke_dir}/oc_get_nodes.yaml"
+    mkdir -p "${spoke_dir}"/pods
+    oc --kubeconfig "${SPOKE_KUBECONFIG}" get po -A > "${spoke_dir}"/pods/oc_get_pods.log
+    oc --kubeconfig "${SPOKE_KUBECONFIG}" get po -A -o custom-columns=:metadata.namespace,:metadata.name --no-headers | while read po ; do
+      ns=${echo $po | awk '{print $1}'}
+      spoke_pod_name=${echo $po | awk '{print $2}'}
+      oc --kubeconfig "${SPOKE_KUBECONFIG}" get po -o yaml -n $ns $spoke_pod_name > "${spoke_dir}/pods/pod_${spoke_pod_name}.yaml"
+      oc --kubeconfig "${SPOKE_KUBECONFIG}" logs -n $ns $spoke_pod_name > "${spoke_dir}/pods/logs_${spoke_pod_name}.log"
     done
   fi
+  
+  oc get secret "${ASSISTED_PULLSECRET_NAME}" -ojson -n "${ASSISTED_NAMESPACE}" > /tmp/pull_secret.json
+  export ASSISTED_PULLSECRET_JSON="/tmp/pull_secret.json"
+  hypershift dump cluster --name "${SPOKE_CLUSTER_NAME}" --dump-guest-cluster=true --artifact-dir "${spoke_dir}/artifacts"
+}
+
+# Hypershift CLI needs access to the kubeconfig, pull-secret and public SSH key
+function hypershift() {
+  HYPERSHIFT_IMAGE="${HYPERSHIFT_IMAGE:-quay.io/hypershift/hypershift-operator:4.11}"
+  podman run -it --net host --rm --entrypoint /usr/bin/hypershift \
+    -v $KUBECONFIG:/root/.kube/config -v $ASSISTED_PULLSECRET_JSON:/root/pull-secret.json \
+    -v /root/.ssh/id_rsa.pub:/root/.ssh/id_rsa.pub $HYPERSHIFT_IMAGE "$@"
 }
 
 function gather_all() {
