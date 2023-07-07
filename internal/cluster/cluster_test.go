@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"path/filepath"
 	"sort"
 	"time"
 
@@ -20,6 +21,7 @@ import (
 	"github.com/openshift/assisted-service/internal/common"
 	eventgen "github.com/openshift/assisted-service/internal/common/events"
 	commontesting "github.com/openshift/assisted-service/internal/common/testing"
+	"github.com/openshift/assisted-service/internal/constants"
 	"github.com/openshift/assisted-service/internal/events"
 	eventsapi "github.com/openshift/assisted-service/internal/events/api"
 	"github.com/openshift/assisted-service/internal/events/eventstest"
@@ -35,7 +37,6 @@ import (
 	"github.com/openshift/assisted-service/pkg/auth"
 	"github.com/openshift/assisted-service/pkg/leader"
 	"github.com/openshift/assisted-service/pkg/s3wrapper"
-	"github.com/openshift/assisted-service/restapi/operations/manifests"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
@@ -3179,9 +3180,6 @@ var _ = Describe("Permanently delete clusters", func() {
 		Expect(db.First(&common.Cluster{}, "id = ?", c2.ID).RowsAffected).Should(Equal(int64(0)))
 		Expect(db.Unscoped().First(&common.Cluster{}, "id = ?", c2.ID).RowsAffected).Should(Equal(int64(1)))
 
-		// ListClusterManifestsInternal(ctx, manifests.V2ListClusterManifestsParams{ClusterID: *c.Cluster.ID})
-		manifestsAPI.EXPECT().ListClusterManifestsInternal(gomock.Any(), manifests.V2ListClusterManifestsParams{ClusterID: *c1.Cluster.ID}).AnyTimes()
-		manifestsAPI.EXPECT().ListClusterManifestsInternal(gomock.Any(), manifests.V2ListClusterManifestsParams{ClusterID: *c2.Cluster.ID}).AnyTimes()
 		mockS3Api.EXPECT().DeleteObject(gomock.Any(), c1.ID.String()).Return(false, nil).Times(1)
 		mockS3Api.EXPECT().DeleteObject(gomock.Any(), c2.ID.String()).Return(false, nil).Times(1)
 		mockS3Api.EXPECT().ListObjectsByPrefix(gomock.Any(), gomock.Any()).Return([]string{}, nil).AnyTimes()
@@ -3993,5 +3991,75 @@ var _ = Describe("UploadEvents", func() {
 		Expect(err).NotTo(HaveOccurred())
 		Expect(notUploadedCluster2).NotTo(BeNil())
 		Expect(notUploadedCluster2.Uploaded).To(BeTrue())
+	})
+})
+
+var _ = Describe("ResetClusterFiles", func() {
+	var (
+		ctx               = context.Background()
+		db                *gorm.DB
+		dbName            string
+		clusterID         strfmt.UUID
+		hostID            strfmt.UUID
+		capi              API
+		mockManifestsApi  *manifestsapi.MockManifestsAPI
+		mockObjectHandler *s3wrapper.MockAPI
+		ctrl              *gomock.Controller
+	)
+
+	createCluster := func() common.Cluster {
+		clusterID = strfmt.UUID(uuid.New().String())
+		cluster := common.Cluster{
+			Cluster: models.Cluster{
+				ID:     &clusterID,
+				Status: swag.String(models.ClusterStatusReady),
+			},
+		}
+		hostID = strfmt.UUID(uuid.New().String())
+		host := models.Host{
+			ID: &hostID,
+		}
+		cluster.Hosts = append(cluster.Hosts, &host)
+		Expect(db.Create(&cluster).Error).ToNot(HaveOccurred())
+		return cluster
+	}
+
+	BeforeEach(func() {
+		db, dbName = common.PrepareTestDB()
+		dummy := &leader.DummyElector{}
+		ctrl = gomock.NewController(GinkgoT())
+		mockOperators := operators.NewMockAPI(ctrl)
+		mockManifestsApi = manifestsapi.NewMockManifestsAPI(ctrl)
+		mockObjectHandler = s3wrapper.NewMockAPI(ctrl)
+		capi = NewManager(getDefaultConfig(), common.GetTestLog(), db, commontesting.GetDummyNotificationStream(ctrl), nil, nil, nil, nil, nil, dummy, mockOperators, nil, mockObjectHandler, nil, nil, mockManifestsApi)
+	})
+
+	AfterEach(func() {
+		common.DeleteTestDB(db, dbName)
+		ctrl.Finish()
+	})
+
+	It("Should clear only system generated manifests when performing a reset", func() {
+		cluster := createCluster()
+		clusterPath := filepath.Join(cluster.ID.String()) + "/"
+		userManifestPath := filepath.Join(cluster.ID.String(), constants.ManifestFolder, "openshift", "some-user-manifest.yaml")
+		systemGeneratedManifestPath := filepath.Join(cluster.ID.String(), constants.ManifestFolder, "manifests", "system-generated-manifest.yaml")
+		mockObjectHandler.EXPECT().ListObjectsByPrefix(ctx, clusterPath).Return([]string{userManifestPath, systemGeneratedManifestPath}, nil).Times(1)
+		mockManifestsApi.EXPECT().IsUserManifest(ctx, *cluster.ID, "openshift", "some-user-manifest.yaml").Return(true, nil).Times(1)
+		mockManifestsApi.EXPECT().IsUserManifest(ctx, *cluster.ID, "manifests", "system-generated-manifest.yaml").Return(false, nil).Times(1)
+		mockObjectHandler.EXPECT().DeleteObject(ctx, systemGeneratedManifestPath).Times(1)
+		mockObjectHandler.EXPECT().DeleteObject(ctx, userManifestPath).Times(0)
+		Expect(capi.ResetClusterFiles(ctx, &cluster, mockObjectHandler)).To(BeNil())
+	})
+
+	It("Should delete all non manifest files on cluster reset, with the exception of logs", func() {
+		cluster := createCluster()
+		clusterPath := filepath.Join(cluster.ID.String()) + "/"
+		logFilePath := filepath.Join(cluster.ID.String(), "logs", "somelog.txt")
+		fileToBeDeletedPath := filepath.Join(cluster.ID.String(), "something.ign")
+		mockObjectHandler.EXPECT().ListObjectsByPrefix(ctx, clusterPath).Return([]string{logFilePath, fileToBeDeletedPath}, nil).Times(1)
+		mockObjectHandler.EXPECT().DeleteObject(ctx, fileToBeDeletedPath).Times(1)
+		mockObjectHandler.EXPECT().DeleteObject(ctx, logFilePath).Times(0)
+		Expect(capi.ResetClusterFiles(ctx, &cluster, mockObjectHandler)).To(BeNil())
 	})
 })

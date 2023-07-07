@@ -68,11 +68,11 @@ func (mr *MockManifestsAPIMockRecorder) DeleteClusterManifestInternal(arg0, arg1
 }
 
 // IsUserManifest mocks base method.
-func (m *MockManifestsAPI) IsUserManifest(arg0 context.Context, arg1 strfmt.UUID, arg2, arg3 string) (error, bool) {
+func (m *MockManifestsAPI) IsUserManifest(arg0 context.Context, arg1 strfmt.UUID, arg2, arg3 string) (bool, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "IsUserManifest", arg0, arg1, arg2, arg3)
-	ret0, _ := ret[0].(error)
-	ret1, _ := ret[1].(bool)
+	ret0, _ := ret[0].(bool)
+	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
