@@ -6440,7 +6440,7 @@ func (b *bareMetalInventory) GetKnownApprovedHosts(clusterId strfmt.UUID) ([]*co
 	return b.hostApi.GetKnownApprovedHosts(clusterId)
 }
 
-// In case cpu architecture is not x86_64 and platform is baremetal, we should extract openshift-baremetal-installer
+// In case cpu architecture is not x86_64, we should extract openshift-baremetal-installer
 // from x86_64 release image as there is no x86_64 openshift-baremetal-installer executable in arm image.
 // This flow does not affect the multiarch release images and is meant purely for using arm64 release image with the x86 hub.
 // Implementation of handling the multiarch images is done directly in the `oc` binary and relies on the fact that `oc adm release extract`
@@ -6448,7 +6448,6 @@ func (b *bareMetalInventory) GetKnownApprovedHosts(clusterId strfmt.UUID) ([]*co
 func isBaremetalBinaryFromAnotherReleaseImageRequired(cpuArchitecture, version string, platform *models.PlatformType) bool {
 	return cpuArchitecture != common.MultiCPUArchitecture &&
 		cpuArchitecture != common.NormalizeCPUArchitecture(runtime.GOARCH) &&
-		common.PlatformTypeValue(platform) == models.PlatformTypeBaremetal &&
 		featuresupport.IsFeatureAvailable(models.FeatureSupportLevelIDCLUSTERMANAGEDNETWORKING, version, swag.String(models.ClusterCPUArchitectureArm64))
 }
 
