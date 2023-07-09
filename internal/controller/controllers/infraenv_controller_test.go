@@ -1026,6 +1026,107 @@ var _ = Describe("infraEnv reconcile", func() {
 		Expect(infraEnvImage.Finalizers).ToNot(BeNil())
 	})
 
+	It("InfraEnv is created when doesn't exist in DB - custom OSImageVersion, no cluster ref", func() {
+		key := types.NamespacedName{
+			Namespace: testNamespace,
+			Name:      "infraEnvImage",
+		}
+		osImageVersion := "4.13"
+		infraEnvImage := newInfraEnvImage(key.Name, testNamespace, aiv1beta1.InfraEnvSpec{
+			OSImageVersion: osImageVersion,
+			PullSecretRef:  &corev1.LocalObjectReference{Name: "pull-secret"},
+		})
+		Expect(c.Create(ctx, infraEnvImage)).To(BeNil())
+		mockInstallerInternal.EXPECT().GetInfraEnvByKubeKey(gomock.Any()).Return(nil, gorm.ErrRecordNotFound)
+		mockInstallerInternal.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any()).Return(nil).Times(1)
+		mockInstallerInternal.EXPECT().RegisterInfraEnvInternal(gomock.Any(), gomock.Any(), gomock.Any()).
+			Do(func(ctx context.Context, kubeKey *types.NamespacedName, params installer.RegisterInfraEnvParams) {
+				Expect(params.InfraenvCreateParams.OpenshiftVersion).To(Equal(osImageVersion))
+			}).Return(backendInfraEnv, nil)
+		mockOSImages.EXPECT().GetOsImage(gomock.Any(), gomock.Any()).Return(&models.OsImage{CPUArchitecture: swag.String(infraEnvArch), OpenshiftVersion: swag.String(osImageVersion)}, nil).AnyTimes()
+
+		result, err := ir.Reconcile(ctx, newInfraEnvRequest(infraEnvImage))
+		Expect(err).To(BeNil())
+		Expect(result).To(Equal(ctrl.Result{}))
+	})
+
+	It("failed to create InfraEnv - missing OSImageVersion from AgentServiceConfig", func() {
+		key := types.NamespacedName{
+			Namespace: testNamespace,
+			Name:      "infraEnvImage",
+		}
+		osImageVersion := "4.13"
+		infraEnvImage := newInfraEnvImage(key.Name, testNamespace, aiv1beta1.InfraEnvSpec{
+			OSImageVersion: osImageVersion,
+			PullSecretRef:  &corev1.LocalObjectReference{Name: "pull-secret"},
+		})
+		Expect(c.Create(ctx, infraEnvImage)).To(BeNil())
+		mockInstallerInternal.EXPECT().GetInfraEnvByKubeKey(gomock.Any()).Return(nil, gorm.ErrRecordNotFound)
+		mockOSImages.EXPECT().GetOsImage(gomock.Any(), gomock.Any()).Return(nil, gorm.ErrRecordNotFound).AnyTimes()
+
+		result, err := ir.Reconcile(ctx, newInfraEnvRequest(infraEnvImage))
+		Expect(err).To(BeNil())
+		Expect(result).To(Equal(ctrl.Result{}))
+
+		Expect(c.Get(ctx, key, infraEnvImage)).To(BeNil())
+		Expect(conditionsv1.FindStatusCondition(infraEnvImage.Status.Conditions, aiv1beta1.ImageCreatedCondition).Message).To(ContainSubstring(aiv1beta1.ImageStateFailedToCreate))
+		Expect(conditionsv1.FindStatusCondition(infraEnvImage.Status.Conditions, aiv1beta1.ImageCreatedCondition).Reason).To(Equal(aiv1beta1.ImageCreationErrorReason))
+		Expect(conditionsv1.FindStatusCondition(infraEnvImage.Status.Conditions, aiv1beta1.ImageCreatedCondition).Status).To(Equal(corev1.ConditionFalse))
+	})
+
+	It("InfraEnv is created when doesn't exist in DB - OSImageVersion not specified", func() {
+		key := types.NamespacedName{
+			Namespace: testNamespace,
+			Name:      "infraEnvImage",
+		}
+		infraEnvImage := newInfraEnvImage(key.Name, testNamespace, aiv1beta1.InfraEnvSpec{
+			PullSecretRef: &corev1.LocalObjectReference{Name: "pull-secret"},
+		})
+		Expect(c.Create(ctx, infraEnvImage)).To(BeNil())
+		mockInstallerInternal.EXPECT().GetInfraEnvByKubeKey(gomock.Any()).Return(nil, gorm.ErrRecordNotFound)
+		mockInstallerInternal.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any()).Return(nil).Times(1)
+		mockInstallerInternal.EXPECT().RegisterInfraEnvInternal(gomock.Any(), gomock.Any(), gomock.Any()).
+			Do(func(ctx context.Context, kubeKey *types.NamespacedName, params installer.RegisterInfraEnvParams) {
+				Expect(params.InfraenvCreateParams.OpenshiftVersion).To(Equal(""))
+			}).Return(backendInfraEnv, nil)
+
+		result, err := ir.Reconcile(ctx, newInfraEnvRequest(infraEnvImage))
+		Expect(err).To(BeNil())
+		Expect(result).To(Equal(ctrl.Result{}))
+	})
+
+	It("InfraEnv is created when doesn't exist in DB - ClusterRef is specified", func() {
+		sId = strfmt.UUID(uuid.New().String())
+		backEndCluster = &common.Cluster{Cluster: models.Cluster{
+			ID:               &sId,
+			OpenshiftVersion: ocpVersion,
+		}}
+		mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil)
+		clusterDeployment := newClusterDeployment("clusterDeployment", testNamespace, getDefaultClusterDeploymentSpec("clusterDeployment-test", "test-cluster-aci", "pull-secret"))
+		Expect(c.Create(ctx, clusterDeployment)).To(BeNil())
+
+		key := types.NamespacedName{
+			Namespace: testNamespace,
+			Name:      "infraEnvImage",
+		}
+		infraEnvImage := newInfraEnvImage(key.Name, testNamespace, aiv1beta1.InfraEnvSpec{
+			ClusterRef:    &aiv1beta1.ClusterReference{Name: "clusterDeployment", Namespace: testNamespace},
+			PullSecretRef: &corev1.LocalObjectReference{Name: "pull-secret"},
+		})
+		Expect(c.Create(ctx, infraEnvImage)).To(BeNil())
+
+		mockInstallerInternal.EXPECT().GetInfraEnvByKubeKey(gomock.Any()).Return(nil, gorm.ErrRecordNotFound)
+		mockInstallerInternal.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any()).Return(nil).Times(1)
+		mockInstallerInternal.EXPECT().RegisterInfraEnvInternal(gomock.Any(), gomock.Any(), gomock.Any()).
+			Do(func(ctx context.Context, kubeKey *types.NamespacedName, params installer.RegisterInfraEnvParams) {
+				Expect(params.InfraenvCreateParams.OpenshiftVersion).To(Equal(ocpVersion))
+			}).Return(backendInfraEnv, nil)
+
+		result, err := ir.Reconcile(ctx, newInfraEnvRequest(infraEnvImage))
+		Expect(err).To(BeNil())
+		Expect(result).To(Equal(ctrl.Result{}))
+	})
+
 	Context("with ipxe http route", func() {
 		BeforeEach(func() {
 			ir.InsecureIPXEURLs = false
