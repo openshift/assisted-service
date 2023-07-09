@@ -460,7 +460,14 @@ EOF
 ---
 **NOTE**
 
-We are always setting `automatedCleaningMode: disabled` even if the `BareMetalHost` manifest specifies another value (e.g. `automatedCleaningMode: metadata`). This may be changed in the future releases, but currently we do not support using Ironic to clean the node.
+Prior to ACM 2.9: BMAC sets the field `automatedCleaningMode` to `disabled` even if 
+the `BareMetalHost` manifest specifies another value (e.g. `automatedCleaningMode: metadata`).
+
+In ACM 2.9+: BMAC no longer sets `automatedCleaningMode` and will respect the value set
+in the `BareMetalHost` manifest when created.
+
+If the `automatedCleaningMode` field is not set when the `BareMetalHost` manifest is created, then the 
+BMO's webhook will automatically set the field to `metadata`.
 
 ---
 

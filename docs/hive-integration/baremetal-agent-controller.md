@@ -186,8 +186,8 @@ spec:
     credentialsName: bmc-secret
 ```
 
-Setting `automatedCleaningMode` field and the `inspect.metal3.io` is optional as BMAC will add
-them automatically. Without those the `BareMetalHost` will boot IPA and spend some time in the
+Setting `inspect.metal3.io` is optional since BMAC will add it automatically. 
+Without it, the `BareMetalHost` will boot IPA and spend additional time in the
 inspecting phase when the manifest is applied.
 
 Setting the `infraenvs.agent-install.openshift.io` is required and it must be set to the name of
@@ -200,7 +200,14 @@ used to tell the installer what disk to use as the installation disk. Refer to t
 ---
 **NOTE**
 
-BMAC is always setting `automatedCleaningMode: disabled` even if the `BareMetalHost` manifest specifies another value (e.g. `automatedCleaningMode: metadata`). This may be changed in the future releases, but currently we do not support using Ironic to clean the node.
+Prior to ACM 2.9: BMAC sets the field `automatedCleaningMode` to `disabled` even if 
+the `BareMetalHost` manifest specifies another value (e.g. `automatedCleaningMode: metadata`).
+
+In ACM 2.9+: BMAC no longer sets `automatedCleaningMode` and will respect the value set
+in the `BareMetalHost` manifest when created.
+
+If the `automatedCleaningMode` field is not set when the `BareMetalHost` manifest is created, then the 
+BMO's webhook will automatically set the field to `metadata`.
 
 ---
 **NOTE**
