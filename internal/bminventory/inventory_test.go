@@ -17283,11 +17283,14 @@ var _ = Describe("Dual-stack cluster", func() {
 	})
 
 	Context("Update cluster", func() {
-		var params installer.V2UpdateClusterParams
+		var (
+			params    installer.V2UpdateClusterParams
+			clusterID strfmt.UUID
+		)
 
 		BeforeEach(func() {
 			mockUsageReports()
-			clusterID := strfmt.UUID(uuid.New().String())
+			clusterID = strfmt.UUID(uuid.New().String())
 			err := db.Create(&common.Cluster{Cluster: models.Cluster{
 				ID:               &clusterID,
 				OpenshiftVersion: common.TestDefaultConfig.OpenShiftVersion,
@@ -17339,8 +17342,32 @@ var _ = Describe("Dual-stack cluster", func() {
 				verifyApiErrorString(reply, http.StatusBadRequest, "Expected 2 machine networks, found 1")
 			})
 		})
+		It("update dual machine networks", func() {
+			By("setup dual stack networking")
+			cluster := &common.Cluster{
+				Cluster: models.Cluster{
+					ID: &clusterID,
+				},
+			}
+			mockClusterApi.EXPECT().VerifyClusterUpdatability(createClusterIdMatcher(cluster)).Return(nil).Times(2)
+			params.ClusterUpdateParams.MachineNetworks = common.TestDualStackNetworking.MachineNetworks
+			params.ClusterUpdateParams.ServiceNetworks = common.TestDualStackNetworking.ServiceNetworks
+			params.ClusterUpdateParams.ClusterNetworks = common.TestDualStackNetworking.ClusterNetworks
+			cls, err := bm.UpdateClusterNonInteractive(ctx, params)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(cls.MachineNetworks).To(HaveLen(2))
+			for _, m := range common.TestDualStackNetworking.MachineNetworks {
+				Expect(cls.MachineNetworks).To(ContainElement(&models.MachineNetwork{ClusterID: clusterID, Cidr: m.Cidr}))
+			}
+			By("update machine networks")
+			params.ClusterUpdateParams.MachineNetworks = append([]*models.MachineNetwork{}, common.TestDualStackNetworking.MachineNetworks...)
+			params.ClusterUpdateParams.MachineNetworks[1] = &models.MachineNetwork{ClusterID: clusterID, Cidr: "3001:db8::/120"}
+			cls, err = bm.UpdateClusterNonInteractive(ctx, params)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(cls.MachineNetworks).To(HaveLen(2))
+			Expect(cls.MachineNetworks).To(ContainElement(&models.MachineNetwork{ClusterID: clusterID, Cidr: "3001:db8::/120"}))
+		})
 	})
-
 })
 
 var _ = Describe("GetCredentials", func() {
