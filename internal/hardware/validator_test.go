@@ -440,8 +440,6 @@ var _ = Describe("hardware_validator", func() {
 	})
 
 	It("validate_disk_list_return_order", func() {
-		nvmename := "nvme01fs"
-
 		eligible := models.DiskInstallationEligibility{
 			Eligible: true,
 		}
@@ -455,23 +453,31 @@ var _ = Describe("hardware_validator", func() {
 					NotEligibleReasons: []string{"Reason"},
 				},
 			},
-			{DriveType: models.DriveTypeSSD, Name: nvmename, SizeBytes: validDiskSize + 1, InstallationEligibility: eligible},
-			{DriveType: models.DriveTypeSSD, Name: "stam", SizeBytes: validDiskSize, InstallationEligibility: eligible},
-			{DriveType: models.DriveTypeHDD, Name: "sdb", SizeBytes: validDiskSize + 2, InstallationEligibility: eligible},
-			{DriveType: models.DriveTypeHDD, Name: "sda", SizeBytes: validDiskSize + 100, InstallationEligibility: eligible},
-			{DriveType: models.DriveTypeHDD, Name: "sdh", SizeBytes: validDiskSize + 1, InstallationEligibility: eligible},
+			{DriveType: models.DriveTypeSSD, Name: "nvme01fs1", SizeBytes: validDiskSize + 1, InstallationEligibility: eligible, Hctl: "N:0:1:1"},
+			{DriveType: models.DriveTypeSSD, Name: "nvme01fs2", SizeBytes: validDiskSize + 10, InstallationEligibility: eligible, Hctl: "N:0:1:2"},
+			{DriveType: models.DriveTypeSSD, Name: "nvme01fs3", SizeBytes: validDiskSize + 10, InstallationEligibility: eligible, Hctl: "N:0:1:3"},
+			{DriveType: models.DriveTypeSSD, Name: "sda", SizeBytes: validDiskSize + 10, InstallationEligibility: eligible, Hctl: "0:2:1:1"},
+			{DriveType: models.DriveTypeSSD, Name: "sdj", SizeBytes: validDiskSize + 10, InstallationEligibility: eligible, Hctl: "0:2:1:2"},
+			{DriveType: models.DriveTypeSSD, Name: "sdn", SizeBytes: validDiskSize + 1, InstallationEligibility: eligible, Hctl: "0:2:1:3"},
+			{DriveType: models.DriveTypeHDD, Name: "sdc", SizeBytes: validDiskSize + 10, InstallationEligibility: eligible, Hctl: "0:3:1:1"},
+			{DriveType: models.DriveTypeHDD, Name: "sdp", SizeBytes: validDiskSize + 1, InstallationEligibility: eligible, Hctl: "0:3:1:2"},
+			{DriveType: models.DriveTypeHDD, Name: "sdz", SizeBytes: validDiskSize + 10, InstallationEligibility: eligible, Hctl: "0:3:1:3"},
 		}
 		hw, err := json.Marshal(&inventory)
 		Expect(err).NotTo(HaveOccurred())
 		host1.Inventory = string(hw)
 		disks, err := hwvalidator.GetHostValidDisks(host1)
 		Expect(err).NotTo(HaveOccurred())
-		Expect(disks[0].Name).Should(Equal("sdh"))
-		Expect(len(disks)).Should(Equal(5))
-		Expect(isBlockDeviceNameInlist(disks, nvmename)).Should(BeTrue())
-		Expect(disks[3].DriveType).To(Equal(models.DriveTypeSSD))
-		Expect(disks[4].DriveType).To(Equal(models.DriveTypeSSD))
-		Expect(disks[4].Name).To(HavePrefix("nvme"))
+		Expect(len(disks)).Should(Equal(9))
+		Expect(disks[0].Name).Should(Equal("sdp"))
+		Expect(disks[1].Name).Should(Equal("sdc"))
+		Expect(disks[2].Name).Should(Equal("sdz"))
+		Expect(disks[3].Name).Should(Equal("sdn"))
+		Expect(disks[4].Name).Should(Equal("sda"))
+		Expect(disks[5].Name).Should(Equal("sdj"))
+		Expect(disks[6].Name).Should(Equal("nvme01fs1"))
+		Expect(disks[7].Name).Should(Equal("nvme01fs2"))
+		Expect(disks[8].Name).Should(Equal("nvme01fs3"))
 	})
 
 	It("validate_aws_disk_detected", func() {
@@ -1282,13 +1288,3 @@ var _ = Describe("Preflight host requirements", func() {
 		})
 	})
 })
-
-func isBlockDeviceNameInlist(disks []*models.Disk, name string) bool {
-	for _, disk := range disks {
-		// Valid disk: type=disk, not removable, not readonly and size bigger than minimum required
-		if disk.Name == name {
-			return true
-		}
-	}
-	return false
-}
