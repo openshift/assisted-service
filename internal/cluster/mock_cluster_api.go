@@ -263,20 +263,6 @@ func (mr *MockAPIMockRecorder) CompleteInstallation(ctx, db, cluster, successful
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CompleteInstallation", reflect.TypeOf((*MockAPI)(nil).CompleteInstallation), ctx, db, cluster, successfullyFinished, reason)
 }
 
-// DeleteClusterFiles mocks base method.
-func (m *MockAPI) DeleteClusterFiles(ctx context.Context, c *common.Cluster, objectHandler s3wrapper.API) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DeleteClusterFiles", ctx, c, objectHandler)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// DeleteClusterFiles indicates an expected call of DeleteClusterFiles.
-func (mr *MockAPIMockRecorder) DeleteClusterFiles(ctx, c, objectHandler interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteClusterFiles", reflect.TypeOf((*MockAPI)(nil).DeleteClusterFiles), ctx, c, objectHandler)
-}
-
 // DeleteClusterLogs mocks base method.
 func (m *MockAPI) DeleteClusterLogs(ctx context.Context, c *common.Cluster, objectHandler s3wrapper.API) error {
 	m.ctrl.T.Helper()
@@ -599,6 +585,20 @@ func (m *MockAPI) ResetCluster(ctx context.Context, c *common.Cluster, reason st
 func (mr *MockAPIMockRecorder) ResetCluster(ctx, c, reason, db interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ResetCluster", reflect.TypeOf((*MockAPI)(nil).ResetCluster), ctx, c, reason, db)
+}
+
+// ResetClusterFiles mocks base method.
+func (m *MockAPI) ResetClusterFiles(ctx context.Context, c *common.Cluster, objectHandler s3wrapper.API) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ResetClusterFiles", ctx, c, objectHandler)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// ResetClusterFiles indicates an expected call of ResetClusterFiles.
+func (mr *MockAPIMockRecorder) ResetClusterFiles(ctx, c, objectHandler interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ResetClusterFiles", reflect.TypeOf((*MockAPI)(nil).ResetClusterFiles), ctx, c, objectHandler)
 }
 
 // SetConnectivityMajorityGroupsForCluster mocks base method.

@@ -9,6 +9,7 @@ import (
 	reflect "reflect"
 
 	middleware "github.com/go-openapi/runtime/middleware"
+	strfmt "github.com/go-openapi/strfmt"
 	gomock "github.com/golang/mock/gomock"
 	models "github.com/openshift/assisted-service/models"
 	manifests "github.com/openshift/assisted-service/restapi/operations/manifests"
@@ -64,6 +65,21 @@ func (m *MockManifestsAPI) DeleteClusterManifestInternal(arg0 context.Context, a
 func (mr *MockManifestsAPIMockRecorder) DeleteClusterManifestInternal(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteClusterManifestInternal", reflect.TypeOf((*MockManifestsAPI)(nil).DeleteClusterManifestInternal), arg0, arg1)
+}
+
+// IsUserManifest mocks base method.
+func (m *MockManifestsAPI) IsUserManifest(arg0 context.Context, arg1 strfmt.UUID, arg2, arg3 string) (bool, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "IsUserManifest", arg0, arg1, arg2, arg3)
+	ret0, _ := ret[0].(bool)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// IsUserManifest indicates an expected call of IsUserManifest.
+func (mr *MockManifestsAPIMockRecorder) IsUserManifest(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsUserManifest", reflect.TypeOf((*MockManifestsAPI)(nil).IsUserManifest), arg0, arg1, arg2, arg3)
 }
 
 // ListClusterManifestsInternal mocks base method.

@@ -844,6 +844,73 @@ spec:
 			Expect(responsePayload.Payload.Folder).To(Equal(defaultFolder))
 		})
 	})
+
+	Describe("ParsePath", func() {
+		It("Should parse a full manifest path into folder and filename", func() {
+			folder, filename, err := manifests.ParsePath("2716d677-8052-463e-be12-d45e3aa05db0/manifests/openshift/file-1.yaml")
+			Expect(err).Should(BeNil())
+			Expect(folder).Should(Equal("openshift"))
+			Expect(filename).Should(Equal("file-1.yaml"))
+		})
+
+		It("Should return an error if supplied a non-manifest path", func() {
+			folder, filename, err := manifests.ParsePath("2716d677-8052-463e-be12-d45e3aa05db0/something.ign")
+			Expect(err.Error()).Should(Equal("Filepath 2716d677-8052-463e-be12-d45e3aa05db0/something.ign is not a manifest path"))
+			Expect(folder).Should(Equal(""))
+			Expect(filename).Should(Equal(""))
+		})
+	})
+
+	Describe("IsManifest", func() {
+		It("Should be able to determine if a given manifest path is a manifest path", func() {
+			Expect(manifests.IsManifest("2716d677-8052-463e-be12-d45e3aa05db0/manifests/openshift/file-1.yaml")).To(BeTrue())
+		})
+
+		It("Should be able to determine if a given manifest path is not a manifest path", func() {
+			Expect(manifests.IsManifest("2716d677-8052-463e-be12-d45e3aa05db0/something.ign")).To(BeFalse())
+		})
+	})
+
+	Describe("IsUserManifest", func() {
+		var (
+			manifestsAPI *manifests.Manifests
+			db           *gorm.DB
+			ctx          = context.Background()
+			ctrl         *gomock.Controller
+			mockS3Client *s3wrapper.MockAPI
+		)
+
+		BeforeEach(func() {
+			ctrl = gomock.NewController(GinkgoT())
+			mockS3Client = s3wrapper.NewMockAPI(ctrl)
+			mockUsageAPI = usage.NewMockAPI(ctrl)
+			manifestsAPI = manifests.NewManifestsAPI(db, common.GetTestLog(), mockS3Client, mockUsageAPI)
+		})
+
+		It("Should determine that a manifest is user generated if there is a metadata file for it", func() {
+			clusterId := strfmt.UUID(uuid.New().String())
+			mockS3Client.EXPECT().DoesObjectExist(
+				ctx,
+				filepath.Join(
+					clusterId.String(),
+					constants.ManifestMetadataFolder,
+					"openshift",
+					"user-defined-manifest.yaml", "user-supplied")).Return(true, nil).Times(1)
+			Expect(manifestsAPI.IsUserManifest(ctx, clusterId, "openshift", "user-defined-manifest.yaml")).To(BeTrue())
+		})
+
+		It("Should determine that a manifest is not user generated if there is no metadata file for it", func() {
+			clusterId := strfmt.UUID(uuid.New().String())
+			mockS3Client.EXPECT().DoesObjectExist(
+				ctx,
+				filepath.Join(
+					clusterId.String(),
+					constants.ManifestMetadataFolder,
+					"openshift",
+					"system-generated-manifest.yaml", "user-supplied")).Return(false, nil).Times(1)
+			Expect(manifestsAPI.IsUserManifest(ctx, clusterId, "openshift", "system-generated-manifest.yaml")).To(BeFalse())
+		})
+	})
 })
 
 type VoidReadCloser struct {

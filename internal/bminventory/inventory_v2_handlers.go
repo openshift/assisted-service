@@ -230,7 +230,7 @@ func (b *bareMetalInventory) V2ResetCluster(ctx context.Context, params installe
 		b.customizeHost(&cluster.Cluster, h)
 	}
 
-	if err := b.clusterApi.DeleteClusterFiles(ctx, cluster, b.objectHandler); err != nil {
+	if err := b.clusterApi.ResetClusterFiles(ctx, cluster, b.objectHandler); err != nil {
 		return common.NewApiError(http.StatusInternalServerError, err)
 	}
 	if err := b.deleteDNSRecordSets(ctx, *cluster); err != nil {

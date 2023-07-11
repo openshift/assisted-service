@@ -14,7 +14,6 @@ import (
 	"github.com/go-openapi/runtime/middleware"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
-	"github.com/openshift/assisted-service/internal/cluster"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/constants"
 	manifestsapi "github.com/openshift/assisted-service/internal/manifests/api"
@@ -63,7 +62,7 @@ func (m *Manifests) CreateClusterManifestInternal(ctx context.Context, params op
 	// In OCM, this is validated at the authorization layer. In other
 	// authorization scheme, it does not and therefore should be checked
 	// at the application level.
-	if !cluster.ClusterExists(m.db, params.ClusterID) {
+	if _, err := common.GetClusterFromDB(m.db, params.ClusterID, false); err != nil {
 		return nil, common.NewApiError(http.StatusNotFound, fmt.Errorf("Object Not Found"))
 	}
 
@@ -100,12 +99,6 @@ func (m *Manifests) CreateClusterManifestInternal(ctx context.Context, params op
 	return &manifest, nil
 }
 
-func (m *Manifests) isUserManifest(ctx context.Context, clusterID strfmt.UUID, folder string, fileName string) (error, bool) {
-	path := filepath.Join(folder, fileName)
-	isCustomManifest, err := m.objectHandler.DoesObjectExist(ctx, GetManifestMetadataObjectName(clusterID, path, constants.ManifestSourceUserSupplied))
-	return err, isCustomManifest
-}
-
 func (m *Manifests) unmarkUserSuppliedManifest(ctx context.Context, clusterID strfmt.UUID, path string) error {
 	objectName := GetManifestMetadataObjectName(clusterID, path, constants.ManifestSourceUserSupplied)
 	exists := false
@@ -129,6 +122,25 @@ func (m *Manifests) markUserSuppliedManifest(ctx context.Context, clusterID strf
 	return nil
 }
 
+func (m *Manifests) IsUserManifest(ctx context.Context, clusterID strfmt.UUID, folder string, fileName string) (bool, error) {
+	path := filepath.Join(folder, fileName)
+	isCustomManifest, err := m.objectHandler.DoesObjectExist(ctx, GetManifestMetadataObjectName(clusterID, path, constants.ManifestSourceUserSupplied))
+	return isCustomManifest, err
+}
+
+func IsManifest(file string) bool {
+	parts := strings.Split(strings.Trim(file, string(filepath.Separator)), string(filepath.Separator))
+	return len(parts) > 2 && parts[1] == models.ManifestFolderManifests
+}
+
+func ParsePath(file string) (folder string, filename string, err error) {
+	parts := strings.Split(strings.Trim(file, string(filepath.Separator)), string(filepath.Separator))
+	if !(len(parts) > 2 && parts[1] == "manifests") {
+		return "", "", errors.Errorf("Filepath %s is not a manifest path", file)
+	}
+	return parts[2], parts[3], nil
+}
+
 func (m *Manifests) ListClusterManifestsInternal(ctx context.Context, params operations.V2ListClusterManifestsParams) (models.ListManifests, error) {
 	log := logutil.FromContext(ctx, m.log)
 	log.Debugf("Listing manifests in cluster %s", params.ClusterID)
@@ -138,7 +150,7 @@ func (m *Manifests) ListClusterManifestsInternal(ctx context.Context, params ope
 	// In OCM, this is validated at the authorization layer. In other
 	// authorization scheme, it does not and therefore should be checked
 	// at the application level.
-	if !cluster.ClusterExists(m.db, params.ClusterID) {
+	if _, err := common.GetClusterFromDB(m.db, params.ClusterID, false); err != nil {
 		return nil, common.NewApiError(http.StatusNotFound, fmt.Errorf("Object Not Found"))
 	}
 
@@ -150,17 +162,16 @@ func (m *Manifests) ListClusterManifestsInternal(ctx context.Context, params ope
 
 	manifests := models.ListManifests{}
 	for _, file := range files {
-		parts := strings.Split(strings.Trim(file, string(filepath.Separator)), string(filepath.Separator))
-		if len(parts) > 2 {
-			fileName := filepath.Join(parts[3:]...)
-			folder := parts[2]
-			err, isUserManifest := m.isUserManifest(ctx, params.ClusterID, folder, fileName)
-			if err != nil {
-				return nil, common.NewApiError(http.StatusInternalServerError, errors.Wrapf(err, "Unable to determine the source of manifest for cluster %s at path %s/%s", params.ClusterID, folder, fileName))
-			}
-			if isUserManifest {
-				manifests = append(manifests, &models.Manifest{FileName: fileName, Folder: folder})
-			}
+		folder, filename, err := ParsePath(file)
+		if err != nil {
+			return nil, err
+		}
+		isUserManifest, err := m.IsUserManifest(ctx, params.ClusterID, folder, filename)
+		if err != nil {
+			return nil, err
+		}
+		if isUserManifest {
+			manifests = append(manifests, &models.Manifest{FileName: filename, Folder: folder})
 		} else {
 			return nil, common.NewApiError(http.StatusInternalServerError, errors.Errorf("Cannot list file %s in cluster %s", file, params.ClusterID.String()))
 		}
@@ -242,7 +253,7 @@ func (m *Manifests) UpdateClusterManifestInternal(ctx context.Context, params op
 		return nil, err
 	}
 
-	err, isCustomManifest := m.isUserManifest(ctx, params.ClusterID, srcFolder, srcFileName)
+	isCustomManifest, err := m.IsUserManifest(ctx, params.ClusterID, srcFolder, srcFileName)
 	if err != nil {
 		return nil, err
 	}
@@ -275,8 +286,8 @@ func (m *Manifests) V2DownloadClusterManifest(ctx context.Context, params operat
 	// In OCM, this is validated at the authorization layer. In other
 	// authorization scheme, it does not and therefore should be checked
 	// at the application level.
-	if !cluster.ClusterExists(m.db, params.ClusterID) {
-		return common.NewApiError(http.StatusNotFound, fmt.Errorf("object Not Found"))
+	if _, err := common.GetClusterFromDB(m.db, params.ClusterID, false); err != nil {
+		return common.NewApiError(http.StatusNotFound, fmt.Errorf("Object Not Found"))
 	}
 
 	objectName := GetManifestObjectName(params.ClusterID, path)
