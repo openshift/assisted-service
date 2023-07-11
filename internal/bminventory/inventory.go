@@ -2112,6 +2112,7 @@ func (b *bareMetalInventory) updateNonDhcpNetworkParams(updates map[string]inter
 	// We need to do it because updateNonDhcpNetworkParams is called before updateNetworks, so
 	// inside this function here cluster object has still values before applying requested changes.
 	targetConfiguration := common.Cluster{}
+	targetConfiguration.ID = cluster.ID
 	targetConfiguration.ClusterNetworks = cluster.ClusterNetworks
 	targetConfiguration.ServiceNetworks = cluster.ServiceNetworks
 	targetConfiguration.MachineNetworks = cluster.MachineNetworks
@@ -2171,7 +2172,6 @@ func (b *bareMetalInventory) updateNonDhcpNetworkParams(updates map[string]inter
 		// require that user explicitly provides all the Machine Networks.
 		if reqDualStack {
 			if params.ClusterUpdateParams.MachineNetworks != nil {
-				cluster.MachineNetworks = params.ClusterUpdateParams.MachineNetworks
 				primaryMachineNetworkCidr = string(params.ClusterUpdateParams.MachineNetworks[0].Cidr)
 			} else {
 				primaryMachineNetworkCidr = network.GetPrimaryMachineCidrForUserManagedNetwork(cluster, log)
@@ -2182,7 +2182,7 @@ func (b *bareMetalInventory) updateNonDhcpNetworkParams(updates map[string]inter
 				log.WithError(err).Warnf("Verify dual-stack machine networks")
 				return common.NewApiError(http.StatusBadRequest, err)
 			}
-			secondaryMachineNetworkCidr, err = network.GetSecondaryMachineCidr(cluster)
+			secondaryMachineNetworkCidr, err = network.GetSecondaryMachineCidr(&targetConfiguration)
 			if err != nil {
 				return common.NewApiError(http.StatusBadRequest, err)
 			}
