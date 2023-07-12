@@ -1528,6 +1528,11 @@ func checkDomainNameResolution(c *validationContext, domainName, printableDomain
 	return ValidationFailure, fmt.Sprintf("Couldn't resolve domain name %s on the host. To continue installation, create the necessary DNS entries to resolve this domain name to your cluster's %s IP address", printableDomain, target)
 }
 
+/*
+ * MGMT-15213: The release domain is not resolved correctly when there is a mirror or proxy.  In this case
+ * validation might fail, but the installation may succeed.
+ * TODO: MGMT-15213 - Fix the validation bug
+
 func (v *validator) isReleaseDomainResolvedCorrectly(c *validationContext) (ValidationStatus, string) {
 	if c.cluster == nil {
 		return ValidationSuccess, "host is unbound"
@@ -1544,6 +1549,7 @@ func (v *validator) isReleaseDomainResolvedCorrectly(c *validationContext) (Vali
 	}
 	return checkDomainNameResolution(c, releaseImageHost, releaseImageHost, "release image host")
 }
+*/
 
 func checkUnexpectedDomain(c *validationContext, response *models.DomainResolutionResponse, domainName, messageFormat string) (ValidationStatus, string) {
 	domainResolution, _ := funk.Find(response.Resolutions,
