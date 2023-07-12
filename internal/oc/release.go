@@ -336,15 +336,7 @@ func (r *release) Extract(log logrus.FieldLogger, releaseImage string, releaseIm
 // extractFromRelease returns the path to an openshift-baremetal-install binary extracted from
 // the referenced release image.
 func (r *release) extractFromRelease(log logrus.FieldLogger, releaseImage, cacheDir, pullSecret string, insecure bool, platformType models.PlatformType, icspFile string) (string, error) {
-	// Using platform type as an indication for which openshift install binary to use
-	// (e.g. as non-x86_64 clusters should use the openshift-install binary).
-	var binary string
-	if platformType == models.PlatformTypeNone {
-		binary = "openshift-install"
-	} else {
-		binary = "openshift-baremetal-install"
-	}
-
+	binary := "openshift-baremetal-install"
 	workdir := filepath.Join(cacheDir, releaseImage)
 	log.Infof("extracting %s binary to %s", binary, workdir)
 	err := os.MkdirAll(workdir, 0755)
