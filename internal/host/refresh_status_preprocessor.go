@@ -264,10 +264,15 @@ func newValidations(v *validator) []validation {
 			id:        IsAppsDomainNameResolvedCorrectly,
 			condition: v.isAppsDomainNameResolvedCorrectly,
 		},
-		{
-			id:        IsReleaseDomainNameResolvedCorrectly,
-			condition: v.isReleaseDomainResolvedCorrectly,
-		},
+		/*
+							 * MGMT-15213: The release domain is not resolved correctly when there is a mirror or proxy.  In this case
+							 * validation might fail, but the installation may succeed.
+							 * TODO: MGMT-15213 - Fix the validation bug
+			{
+				id:        IsReleaseDomainNameResolvedCorrectly,
+				condition: v.isReleaseDomainResolvedCorrectly,
+			},
+		*/
 		{
 			id:        CompatibleWithClusterPlatform,
 			condition: v.compatibleWithClusterPlatform,

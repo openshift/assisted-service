@@ -4296,45 +4296,50 @@ var _ = Describe("Refresh Host", func() {
 				errorExpected:         false,
 				userManagedNetworking: true,
 			},
-			{
-				name:              "pending to known - release image resolved correctly",
-				validCheckInTime:  true,
-				srcState:          models.HostStatusPendingForInput,
-				dstState:          models.HostStatusKnown,
-				machineNetworks:   common.TestIPv4Networking.MachineNetworks,
-				ntpSources:        defaultNTPSources,
-				imageStatuses:     map[string]*models.ContainerImageAvailability{common.TestDefaultConfig.ImageName: common.TestImageStatusesSuccess},
-				role:              models.HostRoleWorker,
-				statusInfoChecker: makeValueChecker(statusInfoKnown),
-				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
-					IsReleaseDomainNameResolvedCorrectly: {status: ValidationSuccess, messagePattern: "Domain name resolution for the quay.io domain was successful or not required"},
-				}),
-				inventory:         hostutil.GenerateMasterInventory(),
-				domainResolutions: common.TestDomainNameResolutionsSuccess,
-				errorExpected:     false,
-				addL3Connectivity: true,
-			},
-			{
-				name:              "pending to insufficient - release image resolve missing",
-				validCheckInTime:  true,
-				srcState:          models.HostStatusPendingForInput,
-				dstState:          models.HostStatusInsufficient,
-				machineNetworks:   common.TestIPv4Networking.MachineNetworks,
-				ntpSources:        defaultNTPSources,
-				imageStatuses:     map[string]*models.ContainerImageAvailability{common.TestDefaultConfig.ImageName: common.TestImageStatusesSuccess},
-				role:              models.HostRoleWorker,
-				statusInfoChecker: makeRegexChecker("Couldn't resolve domain name quay.io on the host. To continue installation, create the necessary DNS entries to resolve this domain name to your cluster's release image host IP address"),
-				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
-					IsReleaseDomainNameResolvedCorrectly: {status: ValidationFailure, messagePattern: "Couldn't resolve domain name quay.io on the host. To continue installation, create the necessary DNS entries to resolve this domain name to your cluster's release image host IP address"},
-				}),
-				inventory: hostutil.GenerateMasterInventory(),
-				domainResolutions: &models.DomainResolutionResponse{Resolutions: funk.Filter(common.TestDomainNameResolutionsSuccess.Resolutions,
-					func(r *models.DomainResolutionResponseDomain) bool {
-						return swag.StringValue(r.DomainName) != "quay.io"
-					}).([]*models.DomainResolutionResponseDomain)},
-				errorExpected:     false,
-				addL3Connectivity: true,
-			},
+			/*
+							 * MGMT-15213: The release domain is not resolved correctly when there is a mirror or proxy.  In this case
+							 * validation might fail, but the installation may succeed.
+							 * TODO: MGMT-15213 - Fix the validation bug
+				{
+					name:              "pending to known - release image resolved correctly",
+					validCheckInTime:  true,
+					srcState:          models.HostStatusPendingForInput,
+					dstState:          models.HostStatusKnown,
+					machineNetworks:   common.TestIPv4Networking.MachineNetworks,
+					ntpSources:        defaultNTPSources,
+					imageStatuses:     map[string]*models.ContainerImageAvailability{common.TestDefaultConfig.ImageName: common.TestImageStatusesSuccess},
+					role:              models.HostRoleWorker,
+					statusInfoChecker: makeValueChecker(statusInfoKnown),
+					validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
+						IsReleaseDomainNameResolvedCorrectly: {status: ValidationSuccess, messagePattern: "Domain name resolution for the quay.io domain was successful or not required"},
+					}),
+					inventory:         hostutil.GenerateMasterInventory(),
+					domainResolutions: common.TestDomainNameResolutionsSuccess,
+					errorExpected:     false,
+					addL3Connectivity: true,
+				},
+				{
+					name:              "pending to insufficient - release image resolve missing",
+					validCheckInTime:  true,
+					srcState:          models.HostStatusPendingForInput,
+					dstState:          models.HostStatusInsufficient,
+					machineNetworks:   common.TestIPv4Networking.MachineNetworks,
+					ntpSources:        defaultNTPSources,
+					imageStatuses:     map[string]*models.ContainerImageAvailability{common.TestDefaultConfig.ImageName: common.TestImageStatusesSuccess},
+					role:              models.HostRoleWorker,
+					statusInfoChecker: makeRegexChecker("Couldn't resolve domain name quay.io on the host. To continue installation, create the necessary DNS entries to resolve this domain name to your cluster's release image host IP address"),
+					validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
+						IsReleaseDomainNameResolvedCorrectly: {status: ValidationFailure, messagePattern: "Couldn't resolve domain name quay.io on the host. To continue installation, create the necessary DNS entries to resolve this domain name to your cluster's release image host IP address"},
+					}),
+					inventory: hostutil.GenerateMasterInventory(),
+					domainResolutions: &models.DomainResolutionResponse{Resolutions: funk.Filter(common.TestDomainNameResolutionsSuccess.Resolutions,
+						func(r *models.DomainResolutionResponseDomain) bool {
+							return swag.StringValue(r.DomainName) != "quay.io"
+						}).([]*models.DomainResolutionResponseDomain)},
+					errorExpected:     false,
+					addL3Connectivity: true,
+				},
+			*/
 		}
 
 		for _, hostTest := range []struct {
