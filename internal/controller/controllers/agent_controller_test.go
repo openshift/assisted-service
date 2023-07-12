@@ -1879,7 +1879,7 @@ VU1eS0RiS/Lz6HwRs2mATNY5FrpZOgdM3cI=
 		return string(b)
 	}
 
-	clientCsrs := func() *certificatesv1.CertificateSigningRequestList {
+	legacyClientCsrs := func() *certificatesv1.CertificateSigningRequestList {
 		return &certificatesv1.CertificateSigningRequestList{
 			Items: []certificatesv1.CertificateSigningRequest{
 				{
@@ -1902,7 +1902,7 @@ VU1eS0RiS/Lz6HwRs2mATNY5FrpZOgdM3cI=
 		}
 	}
 
-	serverCsrs := func() *certificatesv1.CertificateSigningRequestList {
+	legacyServerCsrs := func() *certificatesv1.CertificateSigningRequestList {
 		return &certificatesv1.CertificateSigningRequestList{
 			Items: []certificatesv1.CertificateSigningRequest{
 				{
@@ -1911,6 +1911,49 @@ VU1eS0RiS/Lz6HwRs2mATNY5FrpZOgdM3cI=
 						Usages: []certificatesv1.KeyUsage{
 							certificatesv1.UsageDigitalSignature,
 							certificatesv1.UsageKeyEncipherment,
+							certificatesv1.UsageServerAuth,
+						},
+						Groups: []string{
+							"system:authenticated",
+							"system:nodes",
+						},
+						Username: nodeUserPrefix + CommonHostname,
+					},
+				},
+			},
+		}
+	}
+
+	clientCsrs := func() *certificatesv1.CertificateSigningRequestList {
+		return &certificatesv1.CertificateSigningRequestList{
+			Items: []certificatesv1.CertificateSigningRequest{
+				{
+					Spec: certificatesv1.CertificateSigningRequestSpec{
+						Request: []byte(x509ClientCsr),
+						Usages: []certificatesv1.KeyUsage{
+							certificatesv1.UsageDigitalSignature,
+							certificatesv1.UsageClientAuth,
+						},
+						Groups: []string{
+							"system:serviceaccounts:openshift-machine-config-operator",
+							"system:serviceaccounts",
+							"system:authenticated",
+						},
+						Username: "system:serviceaccount:openshift-machine-config-operator:node-bootstrapper",
+					},
+				},
+			},
+		}
+	}
+
+	serverCsrs := func() *certificatesv1.CertificateSigningRequestList {
+		return &certificatesv1.CertificateSigningRequestList{
+			Items: []certificatesv1.CertificateSigningRequest{
+				{
+					Spec: certificatesv1.CertificateSigningRequestSpec{
+						Request: []byte(x509ServerCSR),
+						Usages: []certificatesv1.KeyUsage{
+							certificatesv1.UsageDigitalSignature,
 							certificatesv1.UsageServerAuth,
 						},
 						Groups: []string{
@@ -2311,6 +2354,35 @@ VU1eS0RiS/Lz6HwRs2mATNY5FrpZOgdM3cI=
 			getNodeCount:        2,
 		},
 		{
+			name:         "approves legacy server CSRs",
+			createClient: true,
+			hostname:     CommonHostname,
+			node: &corev1.Node{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: CommonHostname,
+				},
+				Status: corev1.NodeStatus{
+					Conditions: []corev1.NodeCondition{},
+					Addresses: []corev1.NodeAddress{
+						{
+							Type:    corev1.NodeInternalIP,
+							Address: "192.168.111.28",
+						},
+					},
+				},
+			},
+			csrs:            legacyServerCsrs(),
+			approveExpected: true,
+			expectedResult: ctrl.Result{
+				RequeueAfter: time.Minute,
+			},
+			expectedStatus:      models.HostStatusInstalling,
+			expectedStage:       models.HostStageJoined,
+			clusterInstall:      newAciWithUserManagedNetworkingNoSNO("test-cluster-aci", testNamespace),
+			updateProgressStage: true,
+			getNodeCount:        2,
+		},
+		{
 			name:         "Not done Server CSR",
 			createClient: true,
 			hostname:     CommonHostname,
@@ -2337,7 +2409,8 @@ VU1eS0RiS/Lz6HwRs2mATNY5FrpZOgdM3cI=
 			expectedStage:       models.HostStageJoined,
 			clusterInstall:      newAciWithUserManagedNetworkingNoSNO("test-cluster-aci", testNamespace),
 			updateProgressStage: true,
-			getNodeCount:        2},
+			getNodeCount:        2,
+		},
 		{
 			name:         "Done Server CSR",
 			createClient: true,
@@ -2376,6 +2449,22 @@ VU1eS0RiS/Lz6HwRs2mATNY5FrpZOgdM3cI=
 			hostname:        CommonHostname,
 			nodeError:       &notFoundError{},
 			csrs:            clientCsrs(),
+			approveExpected: true,
+			expectedResult: ctrl.Result{
+				RequeueAfter: time.Minute,
+			},
+			expectedStatus:      models.HostStatusInstalling,
+			expectedStage:       models.HostStageRebooting,
+			clusterInstall:      newAciWithUserManagedNetworkingNoSNO("test-cluster-aci", testNamespace),
+			updateProgressStage: false,
+			getNodeCount:        2,
+		},
+		{
+			name:            "approves legacy client CSRs",
+			createClient:    true,
+			hostname:        CommonHostname,
+			nodeError:       &notFoundError{},
+			csrs:            legacyClientCsrs(),
 			approveExpected: true,
 			expectedResult: ctrl.Result{
 				RequeueAfter: time.Minute,
