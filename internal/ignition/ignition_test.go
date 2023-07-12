@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
@@ -921,7 +922,7 @@ var _ = Describe("downloadManifest", func() {
 	It("writes the correct file", func() {
 		ctx := context.Background()
 		manifestName := fmt.Sprintf("%s/manifests/openshift/masters-chrony-configuration.yaml", cluster.ID)
-		mockS3Client.EXPECT().Download(ctx, manifestName).Return(io.NopCloser(strings.NewReader("chronyconf")), int64(10), nil)
+		mockS3Client.EXPECT().Download(ctx, manifestName).Return(io.NopCloser(strings.NewReader("content:entry")), int64(10), nil)
 		Expect(os.Mkdir(filepath.Join(workDir, "/openshift"), 0755)).To(Succeed())
 		Expect(os.Mkdir(filepath.Join(workDir, "/manifests"), 0755)).To(Succeed())
 
@@ -929,7 +930,21 @@ var _ = Describe("downloadManifest", func() {
 
 		content, err := os.ReadFile(filepath.Join(workDir, "/openshift/masters-chrony-configuration.yaml"))
 		Expect(err).NotTo(HaveOccurred())
-		Expect(content).To(Equal([]byte("chronyconf")))
+		Expect(content).To(Equal([]byte("content:entry")))
+	})
+
+	It("If a file has empty content, it will not be written", func() {
+		ctx := context.Background()
+		manifestName := fmt.Sprintf("%s/manifests/openshift/masters-chrony-configuration.yaml", cluster.ID)
+		mockS3Client.EXPECT().Download(ctx, manifestName).Return(io.NopCloser(strings.NewReader("")), int64(0), nil)
+		Expect(os.Mkdir(filepath.Join(workDir, "/openshift"), 0755)).To(Succeed())
+		Expect(os.Mkdir(filepath.Join(workDir, "/manifests"), 0755)).To(Succeed())
+
+		Expect(generator.downloadManifest(ctx, manifestName)).To(Succeed())
+
+		_, err := os.Stat(filepath.Join(workDir, "/openshift/masters-chrony-configuration.yaml"))
+		Expect(err).To(HaveOccurred())
+		Expect(errors.Is(err, fs.ErrNotExist)).To(BeTrue())
 	})
 })
 

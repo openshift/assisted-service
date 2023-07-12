@@ -1574,6 +1574,12 @@ func (g *installerGenerator) downloadManifest(ctx context.Context, manifest stri
 	if err != nil {
 		return err
 	}
+
+	if len(content) == 0 {
+		// Ignore any empty files.
+		return nil
+	}
+
 	// manifest has full path as object-key on s3: clusterID/manifests/[manifests|openshift]/filename
 	// clusterID/manifests should be trimmed
 	prefix := manifests.GetManifestObjectName(*g.cluster.ID, "")
