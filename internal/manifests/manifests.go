@@ -423,11 +423,6 @@ func (m *Manifests) validateAllowedToModifyManifests(ctx context.Context, cluste
 }
 
 func (m *Manifests) validateUserSuppliedManifest(ctx context.Context, clusterID strfmt.UUID, manifestContent []byte, fileName string) error {
-	// If the manifest content size is zero then some of the content validations might pass when they should not
-	// We need to reject zero size content
-	if len(manifestContent) == 0 {
-		return m.prepareAndLogError(ctx, http.StatusBadRequest, errors.Errorf("Manifest content of file %s for cluster ID %s should not be empty", fileName, string(clusterID)))
-	}
 	// etcd resources in k8s are limited to 1.5 MiB as indicated here https://etcd.io/docs/v3.5/dev-guide/limit/#request-size-limit
 	// however, one the the resource types that can be created from a manifest is a ConfigMap
 	// which has a size limit of 1MiB as cited here https://kubernetes.io/docs/concepts/configuration/configmap

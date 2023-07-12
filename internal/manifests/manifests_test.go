@@ -437,23 +437,6 @@ spec:
 				Expect(err.Error()).To(ContainSubstring("Cluster manifest openshift/99-test.yaml for cluster " + clusterID.String() + " should not include a directory in its name."))
 			})
 
-			It("Creation fails for a manifest file that has no content", func() {
-				clusterID := registerCluster().ID
-				fileName := "99-test.json"
-				emptyContent := encodeToBase64("")
-				response := manifestsAPI.V2CreateClusterManifest(ctx, operations.V2CreateClusterManifestParams{
-					ClusterID: *clusterID,
-					CreateManifestParams: &models.CreateManifestParams{
-						Content:  &emptyContent,
-						FileName: &fileName,
-					},
-				})
-				Expect(response).Should(BeAssignableToTypeOf(common.NewApiError(http.StatusBadRequest, errors.New(""))))
-				err := response.(*common.ApiErrorResponse)
-				Expect(err.StatusCode()).To(Equal(int32(http.StatusBadRequest)))
-				Expect(err.Error()).To(ContainSubstring("Manifest content of file manifests/99-test.json for cluster ID " + clusterID.String() + " should not be empty"))
-			})
-
 			It("Creation fails for a manifest file that exceeds the maximum upload size", func() {
 				clusterID := registerCluster().ID
 				fileName := "99-test.json"
