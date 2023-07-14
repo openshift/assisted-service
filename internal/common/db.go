@@ -81,6 +81,9 @@ type Cluster struct {
 	IgnoredHostValidations    string `gorm:"type:text"`
 	// Indicates if the cluster's event data has been uploaded
 	Uploaded bool `json:"uploaded"`
+
+	// A JSON blob in which cluster UI settings will be stored.
+	UISettings string `json:"ui_settings"`
 }
 
 func (c *Cluster) GetClusterID() *strfmt.UUID {

@@ -5665,6 +5665,50 @@ var _ = Describe("cluster", func() {
 			})
 		})
 
+		Describe("V2GetClusterUISettings", func() {
+			It("returns ui settings for cluster", func() {
+				createCluster(defaultCluster)
+				uiSettings := "{\"foo\":\"bar\"}"
+				response := db.Model(&common.Cluster{}).Where("id = ?", defaultCluster.ID.String()).Updates(map[string]interface{}{"ui_settings": uiSettings})
+				Expect(response.Error).ToNot(HaveOccurred())
+				Expect(response.Statement.RowsAffected).To(Equal(int64(1)))
+				reply := bm.V2GetClusterUISettings(ctx, installer.V2GetClusterUISettingsParams{
+					ClusterID: clusterID,
+				})
+				Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2GetClusterUISettingsOK()))
+				Expect(reply.(*installer.V2GetClusterUISettingsOK).Payload).To(Equal(uiSettings))
+			})
+			It("returns not found when the cluster doesn't exist", func() {
+				reply := bm.V2GetClusterUISettings(ctx, installer.V2GetClusterUISettingsParams{
+					ClusterID: clusterID,
+				})
+				Expect(reply).To(BeAssignableToTypeOf(common.NewApiError(http.StatusNotFound, errors.Errorf(""))))
+			})
+		})
+
+		Describe("V2UpdateClusterUISettings", func() {
+			It("updates ui settings for cluster", func() {
+				createCluster(defaultCluster)
+				settingsJSON := "{\"foo\":\"bar\"}"
+				reply := bm.V2UpdateClusterUISettings(ctx, installer.V2UpdateClusterUISettingsParams{
+					ClusterID:  clusterID,
+					UISettings: settingsJSON,
+				})
+				Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2UpdateClusterUISettingsOK()))
+				updated, err := common.GetClusterFromDB(db, clusterID, common.UseEagerLoading)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(updated.UISettings).To(Equal(settingsJSON))
+			})
+			It("returns not found when the cluster doesn't exist", func() {
+				settingsJSON := "{\"foo\":\"bar\"}"
+				reply := bm.V2UpdateClusterUISettings(ctx, installer.V2UpdateClusterUISettingsParams{
+					ClusterID:  clusterID,
+					UISettings: settingsJSON,
+				})
+				Expect(reply).To(BeAssignableToTypeOf(common.NewApiError(http.StatusNotFound, errors.Errorf(""))))
+			})
+		})
+
 		It("success arm64 baremetal platform with 4.11 where it is supported", func() {
 			infraEnvID = strfmt.UUID(uuid.New().String())
 			clusterID = strfmt.UUID(uuid.New().String())

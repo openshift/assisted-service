@@ -671,6 +671,25 @@ func (b *bareMetalInventory) V2SetIgnoredValidations(ctx context.Context, params
 	return installer.NewV2SetIgnoredValidationsCreated().WithPayload(&ignoredValidations)
 }
 
+func (b *bareMetalInventory) V2GetClusterUISettings(ctx context.Context, params installer.V2GetClusterUISettingsParams) middleware.Responder {
+	cluster, err := b.getCluster(ctx, params.ClusterID.String())
+	if err != nil {
+		return common.GenerateErrorResponder(err)
+	}
+	return installer.NewV2GetClusterUISettingsOK().WithPayload(cluster.UISettings)
+}
+
+func (b *bareMetalInventory) V2UpdateClusterUISettings(ctx context.Context, params installer.V2UpdateClusterUISettingsParams) middleware.Responder {
+	_, err := b.getCluster(ctx, params.ClusterID.String())
+	if err != nil {
+		return common.GenerateErrorResponder(err)
+	}
+	if err := b.db.Model(&common.Cluster{}).Where("id = ?", params.ClusterID.String()).Updates(map[string]interface{}{"ui_settings": params.UISettings}).Error; err != nil {
+		return common.GenerateErrorResponder(err)
+	}
+	return installer.NewV2UpdateClusterUISettingsOK().WithPayload(params.UISettings)
+}
+
 func (b *bareMetalInventory) RegenerateInfraEnvSigningKey(ctx context.Context, params installer.RegenerateInfraEnvSigningKeyParams) middleware.Responder {
 	log := logutil.FromContext(ctx, b.log)
 
