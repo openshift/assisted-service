@@ -167,6 +167,9 @@ func (r *InfraEnvReconciler) updateInfraEnv(ctx context.Context, log logrus.Fiel
 	if infraEnv.Spec.SSHAuthorizedKey != internalInfraEnv.SSHAuthorizedKey {
 		updateParams.InfraEnvUpdateParams.SSHAuthorizedKey = &infraEnv.Spec.SSHAuthorizedKey
 	}
+	if strings.TrimSpace(infraEnv.Spec.AdditionalTrustBundle) != internalInfraEnv.AdditionalTrustBundle {
+		updateParams.InfraEnvUpdateParams.AdditionalTrustBundle = &infraEnv.Spec.AdditionalTrustBundle
+	}
 
 	pullSecret, err := r.PullSecretHandler.GetValidPullSecret(ctx, getPullSecretKey(infraEnv.Namespace, infraEnv.Spec.PullSecretRef))
 	if err != nil {
@@ -373,16 +376,14 @@ func (r *InfraEnvReconciler) ensureISO(ctx context.Context, log logrus.FieldLogg
 				clusterID = cluster.ID
 				openshiftVersion = cluster.OpenshiftVersion
 			}
-			infraEnvInternal, err = r.createInfraEnv(ctx, log, &key, infraEnv, clusterID, openshiftVersion)
+			infraEnvInternal, err = r.createInfraEnv(ctx, log, &key, infraEnv, clusterID, openshiftVersion, infraEnv.Spec.AdditionalTrustBundle)
 			if err != nil {
 				log.Errorf("fail to create InfraEnv: %s, ", infraEnv.Name)
 				return r.handleEnsureISOErrors(ctx, log, infraEnv, err, nil)
-			} else {
-				return r.updateInfraEnvStatus(ctx, log, infraEnv, infraEnvInternal)
 			}
-		} else {
-			return r.handleEnsureISOErrors(ctx, log, infraEnv, err, infraEnvInternal)
+			return r.updateInfraEnvStatus(ctx, log, infraEnv, infraEnvInternal)
 		}
+		return r.handleEnsureISOErrors(ctx, log, infraEnv, err, infraEnvInternal)
 	}
 
 	// Check for updates from user and update the infraenv
@@ -406,6 +407,7 @@ func CreateInfraEnvParams(infraEnv *aiv1beta1.InfraEnv, imageType models.ImageTy
 			CPUArchitecture:        infraEnv.Spec.CpuArchitecture,
 			ClusterID:              clusterID,
 			OpenshiftVersion:       openshiftVersion,
+			AdditionalTrustBundle:  infraEnv.Spec.AdditionalTrustBundle,
 		},
 	}
 	if infraEnv.Spec.Proxy != nil {
@@ -429,7 +431,7 @@ func CreateInfraEnvParams(infraEnv *aiv1beta1.InfraEnv, imageType models.ImageTy
 }
 
 func (r *InfraEnvReconciler) createInfraEnv(ctx context.Context, log logrus.FieldLogger, key *types.NamespacedName,
-	infraEnv *aiv1beta1.InfraEnv, clusterID *strfmt.UUID, openshiftVersion string) (*common.InfraEnv, error) {
+	infraEnv *aiv1beta1.InfraEnv, clusterID *strfmt.UUID, openshiftVersion string, additionalTrustBundle string) (*common.InfraEnv, error) {
 
 	pullSecret, err := r.PullSecretHandler.GetValidPullSecret(ctx, getPullSecretKey(infraEnv.Namespace, infraEnv.Spec.PullSecretRef))
 	if err != nil {

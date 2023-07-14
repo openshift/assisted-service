@@ -67,6 +67,70 @@ const (
 	clusterImageSetName                  = "openshift-v4.9.0"
 )
 
+const additionalTrustCertificate = `-----BEGIN CERTIFICATE-----
+MIIFPjCCAyagAwIBAgIUV3ZmDsSwF6/E2CPhFChz3w14OLMwDQYJKoZIhvcNAQEL
+BQAwFjEUMBIGA1UEAwwLZXhhbXBsZS5jb20wHhcNMjIxMTI3MjM0MjMwWhcNMzIx
+MTI0MjM0MjMwWjAWMRQwEgYDVQQDDAtleGFtcGxlLmNvbTCCAiIwDQYJKoZIhvcN
+AQEBBQADggIPADCCAgoCggIBALxURtV3Wd8NEFIplXSZpIdx5I0jFU8thmb2vZON
+oNxr31OsHYqkA07RpGSmyn+hv03OI9g4AzuMGs48XoPxZGtWUr0wany1LDDW8t/J
+PytYeZyXAJM0zl6/AlzSzYRPk22LykdzVBQosUeRP42a2xWEdDRkJqxxBHQ0eLiC
+9g32w57YomhbgCR2OnUxzVmMuQmk987WG7u3/ssSBPEuIebOoX+6G3uLaw/Ka6zQ
+XGzRgFq3mskPVfw3exQ46WZfgu6PtG5zxKmty75fNPPwdyw+lwm3u8pH5jpJYvOZ
+RHbk7+nxWxLxe5r3FzaNeWskb24J9x53nQzwfcF0MtuRvMycO1i/3e5Y4TanEmmu
+GbUOKlJxyaFQaVa2udWAxZ8w1W5u4aKrBprXEAXXDghXbxrgRry2zPO1vqZ/aLH8
+YKnHLifjdsNMxrA3nsKAViY0erwYmTF+c551gxkW7vZCtJStzDcMVM16U76jato7
+fNb64VUtviVCWeHvh7aTpxENPCh6T8eGh3K4HUESTNpBggs3TXhF1yEcS+aKVJ3z
+6CZcke1ph/vpMt/684xx8tICp2KMWbwk3nIBaMw84hrVZyKFgpW/gZOE+ktV91zw
+LF1oFn+2F8PwGSphBwhBE0uoyFRNmUXiPsHUyEh7kF7EU5gb1sxTzM5sWCNm6nIS
+QRlXAgMBAAGjgYMwgYAwHQYDVR0OBBYEFHuAjvmIDJX76uWtnfirReeBU+f2MB8G
+A1UdIwQYMBaAFHuAjvmIDJX76uWtnfirReeBU+f2MA8GA1UdEwEB/wQFMAMBAf8w
+LQYDVR0RBCYwJIILZXhhbXBsZS5jb22CD3d3dy5leGFtcGxlLm5ldIcECgAAATAN
+BgkqhkiG9w0BAQsFAAOCAgEACn2BTzH89jDBHAy1rREJY8nYhH8GQxsPQn3MZAjA
+OiAQRSqqaduYdM+Q6X3V/A8n2vtS1vjs2msQwg6uNN/yNNgdo+Nobj74FmF+kwaf
+hodvMJ7z+MyeuxONYL/rbolc8N031nPWim8HTQsS/hxiiwqMHzgz6hQou1OFPwTJ
+QdhsfXgqbNRiMkF/UxLfIDEP8J5VAEzVJlyrGUrUOuaMU6TZ+tx1VbNQm3Xum5GW
+UgtmE36wWp/M1VeNSsm3GOQRlyWFGmE0sgA95IxLRMgL1mpd8IS3iU6TVZLx0+sA
+Bly38R1z8Vcwr1vOurQ8g76Epdet2ZkQNQBwvgeVvnCsoy4CQf2AvDzKgEeTdXMM
+WdO6UnG2+PgJ6YQHyfCB34mjPqrJul/0YwWo/p+PxSHRKdJZJTKzZPi1sPuxA2iO
+YiJIS94ZRlkPxrD4pYdGiXPigC+0motT6cYxQ8SKTVOs7aEax/xQngrcQPLNXTgn
+LtoT4hLCJpP7PTLgL91Dvu/dUMR4SEUNojUBul67D5fIjD0sZvJFZGd78apl/gdf
+PxkCHm4A07Zwl/x+89Ia73mk+y8O2u+CGh7oDrO565ADxKj6/UhxhVKmV9DG1ono
+AjGUGkvXVVvurf5CwGxpwT/G5UXpSK+314eMVxz5s3yDb2J2J2rvIk6ROPxBK0ws
+Sj8=
+-----END CERTIFICATE-----`
+
+const additionalTrustCertificate2 = `-----BEGIN CERTIFICATE-----
+MIIFPjCCAyagAwIBAgIUBCE1YX2zJ0R/3NURq2XQaciEuVQwDQYJKoZIhvcNAQEL
+BQAwFjEUMBIGA1UEAwwLZXhhbXBsZS5jb20wHhcNMjIxMTI3MjM0MjAyWhcNMzIx
+MTI0MjM0MjAyWjAWMRQwEgYDVQQDDAtleGFtcGxlLmNvbTCCAiIwDQYJKoZIhvcN
+AQEBBQADggIPADCCAgoCggIBAKY589W+Xifs9SfxofBI1r1/NKsMUVPvg3ZtDIPQ
+EeNKf5OgtSOVFcoEmkS7ZWNTIu4Kd1WBf/rG+F5lm/aTTa3j720Q+fS+gsveGQPz
+7taUpU/TjHHzoCqjjhaYMr4gIJ3jkpTXUWG5/vka/oNykSxkGCuZw1gyXHNujA8L
+DJYY8VNUHPl5MmXGaT++6yEN4WdB2f7R/MmEaH6KnGo/LjhMeiVmDsIxHZ/xW9OR
+izPklnUi78NfZJSxiknoV6CnQShNijLEq6nQowYQ1lQuNWs6sTM28I0BYWk+gDUz
+NOWkVqSHFRMzGmpqYJs7JQiv0g33VN/92dwdP/kZc9sAYRqDaI6hplOZrD/OEsbG
+lmN90x/o42wotJeBDN1hHlJ1JeRjR1Vk8XUfOmaTuOPzooKIM0h9K6Ah6u3lRQtE
+n68yxn0sGD8yw6EydS5FD9zzvA6rgXBSsvpMFjk/N/FmnIzD4YinLEiflfub1O0M
+9thEOX9IaOh00U2eGsRa/MOJcCZ5TUOgxVlv15ATUPHo1MW8QkmYOVx4BoM/Bw0J
+0HibIU8VUw2AV1tupRdQma7Qg5gyjdx2doth78IG5+LkX95fSyz60Kf9l1xBQHNA
+kVyzkXlx8jmdm53CeFvHVOrVrLuA2Dk+t21TNL1uFGgQ0iLxItCf1O6F6B78QqhI
+YLOdAgMBAAGjgYMwgYAwHQYDVR0OBBYEFE6DFh3+wGzA8dOYBTL9Z0CyxLJ/MB8G
+A1UdIwQYMBaAFE6DFh3+wGzA8dOYBTL9Z0CyxLJ/MA8GA1UdEwEB/wQFMAMBAf8w
+LQYDVR0RBCYwJIILZXhhbXBsZS5jb22CD3d3dy5leGFtcGxlLm5ldIcECgAAATAN
+BgkqhkiG9w0BAQsFAAOCAgEAoj+elkYHrek6DoqOvEFZZtRp6bPvof61/VJ3kP7x
+HZXp5yVxvGOHt61YRziGLpsFbuiDczk0V61ZdozHUOtZ0sWB4VeyO1pAjfd/JwDI
+CK6olfkSO78WFQfdG4lNoSM9dQJyEIEZ1sbvuUL3RHDBd9oEKue+vsstlM9ahdoq
+fpTTFq4ENGCAIDvaqKIlpjKsAMrsTO47CKPVh2HUpugfVGKeBRsW1KAXFoC2INS5
+7BY3h60jFFW6bz0v+FnzW96Mt2VNW+i/REX6fBaR4m/QfG81rA2EEmhxCGrany+N
+6DUkwiJxcqBMH9jA2yVnF7BgwG2C3geBqXTTlvVQJD8GOktkvgLjlHcYqO1pI7B3
+wP9F9ZF+w39jXwGMGBg8+/aQz1RjP2bOb18n7d0bc4/pbbkVAmE4sq4qMneFZAVE
+uj9S2Jna3ut08ZP05Ych5vCGX4VJ8gNNgrJju2PJVBl8NNyDfHKeHfWSOR9uOMjT
+vqK6iRD9xqu/oLJyrlAuOL8ZxRpeqjxF/g8NYYV/fvv8apaX58ua9qYAFQVGf590
+mmjOozzn9VBqKenVmfwzen5v78CBSgS4Hd72Qp42rLCNgqI8gyQa2qZzaNjLP/wI
+pBpFC21fkybGYPkislPQ3EI69ZGRafWDBjlFFTS3YkDM98tqTZD+JG4STY+ivHhK
+gmY=
+-----END CERTIFICATE-----`
+
 var (
 	imageSetsData = map[string]string{
 		"openshift-v4.9.0":        "quay.io/openshift-release-dev/ocp-release:4.9.11-x86_64",
@@ -2255,6 +2319,30 @@ var _ = Describe("[kube-api]cluster installation", func() {
 
 			return len(j)
 		}, "2m", "10s").Should(Equal(0))
+	})
+
+	It("Should populate AdditionalTrustBundle on creation and update of infraenv", func() {
+		infraEnvKey := types.NamespacedName{
+			Namespace: Options.Namespace,
+			Name:      infraNsName.Name,
+		}
+		deployInfraEnvCRD(ctx, kubeClient, infraNsName.Name, &v1beta1.InfraEnvSpec{
+			PullSecretRef:         secretRef,
+			SSHAuthorizedKey:      sshPublicKey,
+			AdditionalTrustBundle: additionalTrustCertificate,
+		})
+		Eventually(func() string {
+			return getInfraEnvFromDBByKubeKey(ctx, db, infraEnvKey, waitForReconcileTimeout).AdditionalTrustBundle
+		}, "1m", "10s").Should(Equal(additionalTrustCertificate))
+
+		By("Update infraenv accepts AdditionalTrustBundle")
+		infraEnvCrd := getInfraEnvCRD(ctx, kubeClient, infraEnvKey)
+		infraEnvCrd.Spec.AdditionalTrustBundle = additionalTrustCertificate2
+		err := kubeClient.Update(ctx, infraEnvCrd)
+		Expect(err).To(BeNil())
+		Eventually(func() string {
+			return getInfraEnvFromDBByKubeKey(ctx, db, infraEnvKey, waitForReconcileTimeout).AdditionalTrustBundle
+		}, "1m", "10s").Should(Equal(additionalTrustCertificate2))
 	})
 
 	It("deploy clusterDeployment and infraEnv and verify cluster updates", func() {
