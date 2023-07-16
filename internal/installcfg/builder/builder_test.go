@@ -601,6 +601,18 @@ aEA8gNEmV+rb7h1v0r3EwDQYJKoZIhvcNAQELBQAwYTELMAkGA1UEBhMCaXMxCzAJBgNVBAgMAmRk
 		Expect(data.Compute[0].Hyperthreading).Should(Equal("Disabled"))
 	})
 
+	It("CPUPartitioningMode config overrides", func() {
+		var result installcfg.InstallerConfigBaremetal
+		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(2)
+		cluster.InstallConfigOverrides = `{"cpuPartitioningMode":"AllNodes"}`
+		data, err := installConfig.GetInstallConfig(&cluster, clusterInfraenvs, "")
+		Expect(err).ShouldNot(HaveOccurred())
+		err = yaml.Unmarshal(data, &result)
+		Expect(err).ShouldNot(HaveOccurred())
+		// test that overrides worked
+		Expect(string(result.CPUPartitioningMode)).Should(Equal("AllNodes"))
+	})
+
 	Context("networking", func() {
 		It("Single network fields", func() {
 			var result installcfg.InstallerConfigBaremetal
