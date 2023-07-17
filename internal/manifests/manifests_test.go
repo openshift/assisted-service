@@ -550,7 +550,31 @@ spec:
 			mockS3Client.EXPECT().DoesObjectExist(ctx, getObjectName(clusterID, defaultFolder, "file-1.yaml")).Return(true, nil).Times(1)
 			mockS3Client.EXPECT().DeleteObject(ctx, getObjectName(clusterID, defaultFolder, "file-1.yaml")).Return(true, nil).Times(1)
 			mockS3Client.EXPECT().DeleteObject(ctx, getMetadataObjectName(clusterID, defaultFolder, "file-1.yaml", constants.ManifestSourceUserSupplied)).Return(true, nil).Times(1)
+			mockListByPrefix(clusterID, []string{})
+			mockUsageAPI.EXPECT().Remove(gomock.Any(), gomock.Any()).Times(1)
+			mockUsageAPI.EXPECT().Save(gomock.Any(), gomock.Any(), gomock.Any()).Times(1)
 			addManifestToCluster(clusterID, contentYaml, "file-1.yaml", defaultFolder)
+
+			response := manifestsAPI.V2DeleteClusterManifest(ctx, operations.V2DeleteClusterManifestParams{
+				ClusterID: *clusterID,
+				FileName:  "file-1.yaml",
+			})
+			Expect(response).Should(BeAssignableToTypeOf(operations.NewV2DeleteClusterManifestOK()))
+		})
+
+		It("deletes one of two manifests", func() {
+			clusterID := registerCluster().ID
+			mockUpload(2)
+			mockS3Client.EXPECT().DoesObjectExist(ctx, getMetadataObjectName(clusterID, defaultFolder, "file-1.yaml", constants.ManifestSourceUserSupplied)).Return(true, nil).AnyTimes()
+			mockS3Client.EXPECT().DoesObjectExist(ctx, getObjectName(clusterID, defaultFolder, "file-1.yaml")).Return(true, nil).Times(1)
+			mockS3Client.EXPECT().DeleteObject(ctx, getObjectName(clusterID, defaultFolder, "file-1.yaml")).Return(true, nil).Times(1)
+			mockS3Client.EXPECT().DeleteObject(ctx, getMetadataObjectName(clusterID, defaultFolder, "file-1.yaml", constants.ManifestSourceUserSupplied)).Return(true, nil).Times(1)
+			mockListByPrefix(clusterID, []string{"file-2.yaml"})
+			mockUsageAPI.EXPECT().Remove(gomock.Any(), gomock.Any()).Times(0)
+			mockUsageAPI.EXPECT().Save(gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
+			addManifestToCluster(clusterID, contentYaml, "file-1.yaml", defaultFolder)
+			addManifestToCluster(clusterID, contentYaml, "file-2.yaml", defaultFolder)
+
 			response := manifestsAPI.V2DeleteClusterManifest(ctx, operations.V2DeleteClusterManifestParams{
 				ClusterID: *clusterID,
 				FileName:  "file-1.yaml",
@@ -565,6 +589,9 @@ spec:
 			mockS3Client.EXPECT().DoesObjectExist(ctx, getObjectName(clusterID, validFolder, "file-1.yaml")).Return(true, nil).Times(1)
 			mockS3Client.EXPECT().DeleteObject(ctx, getObjectName(clusterID, validFolder, "file-1.yaml")).Return(true, nil)
 			mockS3Client.EXPECT().DeleteObject(ctx, getMetadataObjectName(clusterID, validFolder, "file-1.yaml", constants.ManifestSourceUserSupplied)).Return(true, nil)
+			mockListByPrefix(clusterID, []string{})
+			mockUsageAPI.EXPECT().Remove(gomock.Any(), gomock.Any()).Times(1)
+			mockUsageAPI.EXPECT().Save(gomock.Any(), gomock.Any(), gomock.Any()).Times(1)
 			addManifestToCluster(clusterID, contentYaml, "file-1.yaml", validFolder)
 
 			response := manifestsAPI.V2DeleteClusterManifest(ctx, operations.V2DeleteClusterManifestParams{
@@ -578,6 +605,9 @@ spec:
 		It("deletes missing manifest", func() {
 			clusterID := registerCluster().ID
 			mockObjectExists(false)
+			mockListByPrefix(clusterID, []string{})
+			mockUsageAPI.EXPECT().Remove(gomock.Any(), gomock.Any()).Times(1)
+			mockUsageAPI.EXPECT().Save(gomock.Any(), gomock.Any(), gomock.Any()).Times(1)
 
 			response := manifestsAPI.V2DeleteClusterManifest(ctx, operations.V2DeleteClusterManifestParams{
 				ClusterID: *clusterID,

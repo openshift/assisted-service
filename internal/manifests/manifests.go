@@ -312,7 +312,7 @@ func (m *Manifests) V2DownloadClusterManifest(ctx context.Context, params operat
 	return filemiddleware.NewResponder(operations.NewV2DownloadClusterManifestOK().WithPayload(respBody), fileName, contentLength, nil)
 }
 
-func (m *Manifests) setUsage(active bool, manifest *models.Manifest, clusterID strfmt.UUID) error {
+func (m *Manifests) setUsage(active bool, clusterID strfmt.UUID) error {
 	err := m.db.Transaction(func(tx *gorm.DB) error {
 		cluster, err := common.GetClusterFromDB(tx, clusterID, common.SkipEagerLoading)
 		if err != nil {
