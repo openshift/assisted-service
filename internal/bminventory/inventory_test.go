@@ -10128,7 +10128,7 @@ var _ = Describe("infraEnvs host", func() {
 		Context("Installation Disk Path", func() {
 			It("update disks config success", func() {
 				mockHostApi.EXPECT().UpdateRole(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
-				mockHostApi.EXPECT().UpdateHostname(gomock.Any(), gomock.Any(), "somehostname", gomock.Any()).Times(0)
+				mockHostApi.EXPECT().UpdateHostname(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
 				mockHostApi.EXPECT().UpdateInstallationDisk(gomock.Any(), gomock.Any(), gomock.Any(), diskID1).Return(nil).Times(1)
 				mockHostApi.EXPECT().UpdateMachineConfigPoolName(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
 				mockHostApi.EXPECT().UpdateIgnitionEndpointToken(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
@@ -10150,7 +10150,7 @@ var _ = Describe("infraEnvs host", func() {
 
 			It("update disks config invalid config, multiple boot disk", func() {
 				mockHostApi.EXPECT().UpdateRole(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
-				mockHostApi.EXPECT().UpdateHostname(gomock.Any(), gomock.Any(), "somehostname", gomock.Any()).Times(0)
+				mockHostApi.EXPECT().UpdateHostname(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
 				mockHostApi.EXPECT().UpdateInstallationDisk(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
 				mockHostApi.EXPECT().UpdateMachineConfigPoolName(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
 				mockHostApi.EXPECT().UpdateIgnitionEndpointToken(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
@@ -10166,6 +10166,49 @@ var _ = Describe("infraEnvs host", func() {
 				})
 				Expect(resp).To(BeAssignableToTypeOf(&common.ApiErrorResponse{}))
 				Expect(resp.(*common.ApiErrorResponse).StatusCode()).To(Equal(int32(http.StatusConflict)))
+			})
+		})
+
+		Context("Node Labels", func() {
+			It("update node labels success", func() {
+				mockHostApi.EXPECT().UpdateRole(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
+				mockHostApi.EXPECT().UpdateHostname(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
+				mockHostApi.EXPECT().UpdateInstallationDisk(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
+				mockHostApi.EXPECT().UpdateMachineConfigPoolName(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
+				mockHostApi.EXPECT().UpdateIgnitionEndpointToken(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
+				mockHostApi.EXPECT().UpdateNodeLabels(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(1)
+				mockHostApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+				mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).AnyTimes()
+				mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any()).Return(nil).Times(1)
+				resp := bm.V2UpdateHost(ctx, installer.V2UpdateHostParams{
+					InfraEnvID: infraEnvID,
+					HostID:     hostID,
+					HostUpdateParams: &models.HostUpdateParams{
+						NodeLabels: []*models.NodeLabelParams{{Key: swag.String("key"), Value: swag.String("Value")}},
+					},
+				})
+				Expect(resp).Should(BeAssignableToTypeOf(installer.NewV2UpdateHostCreated()))
+			})
+
+			It("update node labels invalid", func() {
+				mockHostApi.EXPECT().UpdateRole(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
+				mockHostApi.EXPECT().UpdateHostname(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
+				mockHostApi.EXPECT().UpdateInstallationDisk(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
+				mockHostApi.EXPECT().UpdateMachineConfigPoolName(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
+				mockHostApi.EXPECT().UpdateIgnitionEndpointToken(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
+				mockHostApi.EXPECT().UpdateNodeLabels(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
+				mockHostApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(0)
+				mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).Times(0)
+				mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any()).Return(nil).Times(0)
+				resp := bm.V2UpdateHost(ctx, installer.V2UpdateHostParams{
+					InfraEnvID: infraEnvID,
+					HostID:     hostID,
+					HostUpdateParams: &models.HostUpdateParams{
+						NodeLabels: []*models.NodeLabelParams{{Key: swag.String("key"), Value: swag.String("nospecialchars%^=@")}},
+					},
+				})
+				Expect(resp).To(BeAssignableToTypeOf(&common.ApiErrorResponse{}))
+				Expect(resp.(*common.ApiErrorResponse).StatusCode()).To(Equal(int32(http.StatusBadRequest)))
 			})
 		})
 

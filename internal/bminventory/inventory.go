@@ -6248,12 +6248,12 @@ func (b *bareMetalInventory) updateNodeLabels(ctx context.Context, host *common.
 
 	errs := validation.ValidateLabels(nodeLabelsMap, field.NewPath("node_labels"))
 	if len(errs) != 0 {
-		return errors.Errorf("%s", errs.ToAggregate().Error())
+		return common.NewApiError(http.StatusBadRequest, errors.Errorf("%s", errs.ToAggregate()))
 	}
 
 	nodeLabelsStr, err := common.MarshalNodeLabels(nodeLabelsList)
 	if err != nil {
-		return errors.Wrapf(err, "failed to marshal node labels for host %s", host.ID)
+		return common.NewApiError(http.StatusBadRequest, errors.Wrapf(err, "failed to marshal node labels for host %s", host.ID))
 	}
 
 	err = b.hostApi.UpdateNodeLabels(ctx, &host.Host, nodeLabelsStr, db)
