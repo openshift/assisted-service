@@ -16,10 +16,10 @@ func (m *Manifests) V2CreateClusterManifest(ctx context.Context, params operatio
 	if err != nil {
 		return common.GenerateErrorResponder(err)
 	}
-	err = m.setUsage(true, manifest, params.ClusterID)
+	err = m.setUsage(true, params.ClusterID)
 	if err != nil {
 		// We don't want to return the error - the requested manifest was set successfully,  setting the feature usage failed.
-		log.Infof("Failed to set feature usage '%s' Error: %v. Manifest %v created by user successfully.", usage.CustomManifest, err, manifest)
+		log.Errorf("Failed to set feature usage '%s' Error: %v. Manifest %v created by user successfully.", usage.CustomManifest, err, manifest)
 	}
 	return operations.NewV2CreateClusterManifestCreated().WithPayload(manifest)
 }
@@ -41,9 +41,24 @@ func (m *Manifests) V2ListClusterManifests(ctx context.Context, params operation
 }
 
 func (m *Manifests) V2DeleteClusterManifest(ctx context.Context, params operations.V2DeleteClusterManifestParams) middleware.Responder {
+	log := logutil.FromContext(ctx, m.log)
 	err := m.DeleteClusterManifestInternal(ctx, params)
 	if err != nil {
 		return common.GenerateErrorResponder(err)
 	}
+
+	// Unset feature usage if this was the last manifest. Don't fail on error because we successfully deleted the manifest as requested.
+	manifests, err := m.ListClusterManifestsInternal(ctx, operations.V2ListClusterManifestsParams{ClusterID: params.ClusterID})
+	if err != nil {
+		log.Errorf("Failed to unset feature usage '%s' Error: %v. Manifest %v deleted by user successfully.", usage.CustomManifest, err, params.FileName)
+	} else {
+		if len(manifests) == 0 {
+			err = m.setUsage(false, params.ClusterID)
+			if err != nil {
+				log.Errorf("Failed to unset feature usage '%s' Error: %v. Manifest %v deleted by user successfully.", usage.CustomManifest, err, params.FileName)
+			}
+		}
+	}
+
 	return operations.NewV2DeleteClusterManifestOK()
 }
