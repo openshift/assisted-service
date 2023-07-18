@@ -175,19 +175,32 @@ func (v *validator) ListEligibleDisks(inventory *models.Inventory) []*models.Dis
 
 	// Sorting list by size increase
 	sort.Slice(eligibleDisks, func(i, j int) bool {
+		// 1. First, choose non-NVMe drives before NVMe drives (leave
+		// the faster drives for workload storage)
 		isNvme1 := isNvme(eligibleDisks[i].Name)
 		isNvme2 := isNvme(eligibleDisks[j].Name)
+		// If i is NVMe and j isn't, return false (j first)
+		// If j is NVMe and i isn't, return true (i first)
 		if isNvme1 != isNvme2 {
 			return isNvme2
 		}
 
-		// HDD is before SSD
-		switch v := strings.Compare(string(eligibleDisks[i].DriveType), string(eligibleDisks[j].DriveType)); v {
-		case 0:
-			return eligibleDisks[i].SizeBytes < eligibleDisks[j].SizeBytes
-		default:
+		// 2. Sort by DriveType - HDD before SSD (leave the faster
+		// drives for workload storage)
+		if v := strings.Compare(string(eligibleDisks[i].DriveType), string(eligibleDisks[j].DriveType)); v != 0 {
 			return v < 0
 		}
+
+		// 3. Sort according to disk size (use the smallest valid
+		// disk size to leave more capacity for workload storage)
+		if eligibleDisks[i].SizeBytes != eligibleDisks[j].SizeBytes {
+			return eligibleDisks[i].SizeBytes < eligibleDisks[j].SizeBytes
+		}
+
+		// 4. Sort according to HCTL which indicates physical order
+		// (increases the chance of booting from the correct disk
+		// after reboot)
+		return eligibleDisks[i].Hctl < eligibleDisks[j].Hctl
 	})
 
 	return eligibleDisks
