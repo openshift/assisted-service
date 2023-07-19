@@ -109,7 +109,7 @@ func RegisterCluster(ctx context.Context, log *log.Logger, bmInventory *client.A
 }
 
 func RegisterInfraEnv(ctx context.Context, log *log.Logger, bmInventory *client.AssistedInstall, pullSecret string, modelsCluster *models.Cluster,
-	infraEnvPath string, nmStateConfigPath string, imageTypeISO string) (*models.InfraEnv, error) {
+	infraEnvPath string, nmStateConfigPath string, imageTypeISO string, additionalTrustBundle string) (*models.InfraEnv, error) {
 
 	log.Info("Registering infraenv")
 

@@ -1103,6 +1103,7 @@ var _ = Describe("infraEnv reconcile", func() {
 						Value:     "p2",
 					},
 				},
+				AdditionalTrustBundle: "AdditionalTrustBundle",
 			})
 			params := CreateInfraEnvParams(infraEnvImage, models.ImageType(imageType), pullSecretString, cluster.ID, cluster.OpenshiftVersion)
 
@@ -1114,6 +1115,7 @@ var _ = Describe("infraEnv reconcile", func() {
 			Expect(params.InfraenvCreateParams.IgnitionConfigOverride).To(Equal(infraEnvImage.Spec.IgnitionConfigOverride))
 			Expect(params.InfraenvCreateParams.SSHAuthorizedKey).To(Equal(&infraEnvImage.Spec.SSHAuthorizedKey))
 			Expect(params.InfraenvCreateParams.KernelArguments).To(Equal(internalKernelArgs(infraEnvImage.Spec.KernelArguments)))
+			Expect(params.InfraenvCreateParams.AdditionalTrustBundle).To(Equal("AdditionalTrustBundle"))
 		})
 	})
 

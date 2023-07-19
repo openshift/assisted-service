@@ -34,7 +34,7 @@ var _ = Describe("RegisterClusterAndInfraEnv", func() {
 
 		modelInfraEnv, registerInfraEnvErr := agentbasedinstaller.RegisterInfraEnv(ctx, log, userBMClient, pullSecret,
 			modelCluster, "../docs/hive-integration/crds/infraEnv.yaml",
-			"../docs/hive-integration/crds/nmstate.yaml", "full-iso")
+			"../docs/hive-integration/crds/nmstate.yaml", "full-iso", "")
 
 		Expect(registerInfraEnvErr).NotTo(HaveOccurred())
 		Expect(*modelInfraEnv.Name).To(Equal("myinfraenv"))
@@ -59,7 +59,7 @@ var _ = Describe("RegisterClusterAndInfraEnv", func() {
 
 		modelInfraEnv, registerInfraEnvErr := agentbasedinstaller.RegisterInfraEnv(ctx, log, userBMClient, pullSecret,
 			modelCluster, "../docs/hive-integration/crds/infraEnv.yaml",
-			"../docs/hive-integration/crds/nmstate.yaml", "full-iso")
+			"../docs/hive-integration/crds/nmstate.yaml", "full-iso", "")
 
 		Expect(registerInfraEnvErr).NotTo(HaveOccurred())
 		Expect(*modelInfraEnv.Name).To(Equal("myinfraenv"))

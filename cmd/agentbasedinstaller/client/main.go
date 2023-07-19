@@ -118,7 +118,7 @@ func register(ctx context.Context, log *log.Logger, bmInventory *client.Assisted
 	}
 
 	modelsInfraEnv, err := agentbasedinstaller.RegisterInfraEnv(ctx, log, bmInventory, pullSecret,
-		modelsCluster, RegisterOptions.InfraEnvFile, RegisterOptions.NMStateConfigFile, RegisterOptions.ImageTypeISO)
+		modelsCluster, RegisterOptions.InfraEnvFile, RegisterOptions.NMStateConfigFile, RegisterOptions.ImageTypeISO, "")
 	if err != nil {
 		log.Fatal("Failed to register infraenv with assisted-service: ", err)
 	}
