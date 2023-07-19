@@ -172,8 +172,6 @@ func (m *Manifests) ListClusterManifestsInternal(ctx context.Context, params ope
 		}
 		if isUserManifest {
 			manifests = append(manifests, &models.Manifest{FileName: filename, Folder: folder})
-		} else {
-			return nil, common.NewApiError(http.StatusInternalServerError, errors.Errorf("Cannot list file %s in cluster %s", file, params.ClusterID.String()))
 		}
 	}
 	return manifests, nil

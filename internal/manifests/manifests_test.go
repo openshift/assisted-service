@@ -885,14 +885,6 @@ spec:
 	})
 
 	Describe("IsUserManifest", func() {
-		var (
-			manifestsAPI *manifests.Manifests
-			db           *gorm.DB
-			ctx          = context.Background()
-			ctrl         *gomock.Controller
-			mockS3Client *s3wrapper.MockAPI
-		)
-
 		BeforeEach(func() {
 			ctrl = gomock.NewController(GinkgoT())
 			mockS3Client = s3wrapper.NewMockAPI(ctrl)
@@ -922,6 +914,39 @@ spec:
 					"openshift",
 					"system-generated-manifest.yaml", "user-supplied")).Return(false, nil).Times(1)
 			Expect(manifestsAPI.IsUserManifest(ctx, clusterId, "openshift", "system-generated-manifest.yaml")).To(BeFalse())
+		})
+	})
+
+	Describe("ListClusterManifestsInternal", func() {
+		It("Should be able to list only user manifests if user and non user manifests are present", func() {
+			clusterId := registerCluster().ID
+			manifests := []string{
+				filepath.Join(clusterId.String(), constants.ManifestFolder, "openshift", "system-generated-manifest.yaml"),
+				filepath.Join(clusterId.String(), constants.ManifestFolder, "openshift", "user-generated-manifest.yaml"),
+			}
+			objectName := filepath.Join(clusterId.String(), constants.ManifestFolder)
+			mockS3Client.EXPECT().ListObjectsByPrefix(ctx, objectName).Return(manifests, nil).Times(1)
+			mockS3Client.EXPECT().DoesObjectExist(
+				ctx,
+				filepath.Join(
+					clusterId.String(),
+					constants.ManifestMetadataFolder,
+					"openshift",
+					"system-generated-manifest.yaml", "user-supplied")).Return(false, nil).Times(1)
+			mockS3Client.EXPECT().DoesObjectExist(
+				ctx,
+				filepath.Join(
+					clusterId.String(),
+					constants.ManifestMetadataFolder,
+					"openshift",
+					"user-generated-manifest.yaml", "user-supplied")).Return(true, nil).Times(1)
+			listedManifests, err := manifestsAPI.ListClusterManifestsInternal(ctx, operations.V2ListClusterManifestsParams{
+				ClusterID: *clusterId,
+			})
+			Expect(err).NotTo(HaveOccurred())
+			Expect(len(listedManifests)).To(Equal(1))
+			Expect(listedManifests[0].Folder).To(Equal("openshift"))
+			Expect(listedManifests[0].FileName).To(Equal("user-generated-manifest.yaml"))
 		})
 	})
 })
