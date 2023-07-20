@@ -4940,15 +4940,6 @@ func (b *bareMetalInventory) UpdateInfraEnvInternal(ctx context.Context, params 
 		params.InfraEnvUpdateParams.PullSecret = pullSecretBackup
 	}
 
-	// The OpenShift installer validation code for the additional trust bundle
-	// is buggy and doesn't react well to additional newlines at the end of the
-	// certs. We need to strip them out to not bother assisted users with this
-	// quirk.
-	if params.InfraEnvUpdateParams.AdditionalTrustBundle != nil {
-		additionalTrustBundle := strings.TrimSpace(*params.InfraEnvUpdateParams.AdditionalTrustBundle)
-		params.InfraEnvUpdateParams.AdditionalTrustBundle = &additionalTrustBundle
-	}
-
 	if params, err = b.validateAndUpdateInfraEnvParams(ctx, &params); err != nil {
 		return nil, common.NewApiError(http.StatusBadRequest, err)
 	}
