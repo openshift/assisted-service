@@ -170,6 +170,13 @@ spec:
                       are ANDed.
                     type: object
                 type: object
+              osImageVersion:
+                description: 'OSImageVersion is the version of OS image to use when
+                  generating the InfraEnv. The version should refer to an OSImage
+                  specified in the AgentServiceConfig (i.e. OSImageVersion should
+                  equal to an OpenshiftVersion in OSImages list). Note: OSImageVersion
+                  can''t be specified along with ClusterRef.'
+                type: string
               proxy:
                 description: Proxy defines the proxy settings for agents and clusters
                   that use the InfraEnv. If unset, the agents and clusters will not

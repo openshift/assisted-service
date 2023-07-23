@@ -82,6 +82,10 @@ func (a *InfraEnvValidatingAdmissionHook) Validate(admissionSpec *admissionv1.Ad
 
 	contextLogger.Info("Validating request")
 
+	if admissionSpec.Operation == admissionv1.Create {
+		return a.validateCreate(admissionSpec)
+	}
+
 	if admissionSpec.Operation == admissionv1.Update {
 		return a.validateUpdate(admissionSpec)
 	}
@@ -131,6 +135,48 @@ func areClusterRefsEqual(clusterRef1 *v1beta1.ClusterReference, clusterRef2 *v1b
 		return (clusterRef1.Name == clusterRef2.Name && clusterRef1.Namespace == clusterRef2.Namespace)
 	} else {
 		return false
+	}
+}
+
+// validateUpdate specifically validates create operations for InfraEnv objects.
+func (a *InfraEnvValidatingAdmissionHook) validateCreate(admissionSpec *admissionv1.AdmissionRequest) *admissionv1.AdmissionResponse {
+	contextLogger := log.WithFields(log.Fields{
+		"operation": admissionSpec.Operation,
+		"group":     admissionSpec.Resource.Group,
+		"version":   admissionSpec.Resource.Version,
+		"resource":  admissionSpec.Resource.Resource,
+		"method":    "validateCreate",
+	})
+
+	newObject := &v1beta1.InfraEnv{}
+	if err := a.decoder.DecodeRaw(admissionSpec.Object, newObject); err != nil {
+		contextLogger.Errorf("Failed unmarshaling Object: %v", err.Error())
+		return &admissionv1.AdmissionResponse{
+			Allowed: false,
+			Result: &metav1.Status{
+				Status: metav1.StatusFailure, Code: http.StatusBadRequest, Reason: metav1.StatusReasonBadRequest,
+				Message: err.Error(),
+			},
+		}
+	}
+
+	// Ensure that ClusterRef and OSImageVersion are not both specified
+	if newObject.Spec.ClusterRef != nil && newObject.Spec.OSImageVersion != "" {
+		message := "Either Spec.ClusterRef or Spec.OSImageVersion should be specified (not both)."
+		contextLogger.Infof("Failed validation: %v", message)
+		contextLogger.Error(message)
+		return &admissionv1.AdmissionResponse{
+			Allowed: false,
+			Result: &metav1.Status{
+				Status: metav1.StatusFailure, Code: http.StatusBadRequest, Reason: metav1.StatusReasonBadRequest,
+				Message: message,
+			},
+		}
+	}
+
+	contextLogger.Info("Successful validation")
+	return &admissionv1.AdmissionResponse{
+		Allowed: true,
 	}
 }
 

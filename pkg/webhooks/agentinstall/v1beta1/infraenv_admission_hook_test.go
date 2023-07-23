@@ -204,6 +204,37 @@ var _ = Describe("infraenv web validate", func() {
 			operation:       admissionv1.Update,
 			expectedAllowed: true,
 		},
+		{
+			name: "Test can't specify both Spec.ClusterRef and Spec.OSImageVersion",
+			newSpec: v1beta1.InfraEnvSpec{
+				ClusterRef: &v1beta1.ClusterReference{
+					Name:      "newName",
+					Namespace: "newName",
+				},
+				OSImageVersion: "4.14",
+			},
+			operation:       admissionv1.Create,
+			expectedAllowed: false,
+		},
+		{
+			name: "Test InfraEnv create does not fail when only Spec.ClusterRef is specified",
+			newSpec: v1beta1.InfraEnvSpec{
+				ClusterRef: &v1beta1.ClusterReference{
+					Name:      "newName",
+					Namespace: "newName",
+				},
+			},
+			operation:       admissionv1.Create,
+			expectedAllowed: true,
+		},
+		{
+			name: "Test InfraEnv create does not fail when only Spec.OSImageVersion is specified",
+			newSpec: v1beta1.InfraEnvSpec{
+				OSImageVersion: "4.14",
+			},
+			operation:       admissionv1.Create,
+			expectedAllowed: true,
+		},
 	}
 
 	for i := range cases {

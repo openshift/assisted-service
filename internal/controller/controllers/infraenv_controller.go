@@ -370,13 +370,7 @@ func (r *InfraEnvReconciler) ensureISO(ctx context.Context, log logrus.FieldLogg
 	infraEnvInternal, err := r.Installer.GetInfraEnvByKubeKey(key)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			var clusterID *strfmt.UUID
-			var openshiftVersion string
-			if cluster != nil {
-				clusterID = cluster.ID
-				openshiftVersion = cluster.OpenshiftVersion
-			}
-			infraEnvInternal, err = r.createInfraEnv(ctx, log, &key, infraEnv, clusterID, openshiftVersion, infraEnv.Spec.AdditionalTrustBundle)
+			infraEnvInternal, err = r.createInfraEnv(ctx, log, &key, infraEnv, cluster, infraEnv.Spec.AdditionalTrustBundle)
 			if err != nil {
 				log.Errorf("fail to create InfraEnv: %s, ", infraEnv.Name)
 				return r.handleEnsureISOErrors(ctx, log, infraEnv, err, nil)
@@ -430,8 +424,36 @@ func CreateInfraEnvParams(infraEnv *aiv1beta1.InfraEnv, imageType models.ImageTy
 	return createParams
 }
 
+// Returns OSImageVersion according to the specified property in InfraEnv
+// If there's a cluster reference, return cluster's OpenshiftVersion
+// If OsImageVersion is specified, return value or fallback to latest if missing from ASC
+func (r *InfraEnvReconciler) getOSImageVersion(log logrus.FieldLogger, infraEnv *aiv1beta1.InfraEnv, cluster *common.Cluster) (string, error) {
+	osImageVersion := infraEnv.Spec.OSImageVersion
+
+	if cluster != nil {
+		return cluster.OpenshiftVersion, nil
+	}
+
+	if osImageVersion != "" {
+		if _, err := r.OsImages.GetOsImage(osImageVersion, infraEnv.Spec.CpuArchitecture); err != nil {
+			msg := "Specified OSImageVersion is missing from AgentServiceConfig"
+			log.WithError(err).Error(msg)
+			return "", common.NewApiError(http.StatusNotFound, errors.New(msg))
+		}
+		return osImageVersion, nil
+	}
+
+	return "", nil
+}
+
 func (r *InfraEnvReconciler) createInfraEnv(ctx context.Context, log logrus.FieldLogger, key *types.NamespacedName,
-	infraEnv *aiv1beta1.InfraEnv, clusterID *strfmt.UUID, openshiftVersion string, additionalTrustBundle string) (*common.InfraEnv, error) {
+	infraEnv *aiv1beta1.InfraEnv, cluster *common.Cluster, additionalTrustBundle string) (*common.InfraEnv, error) {
+
+	osImageVersion, err := r.getOSImageVersion(log, infraEnv, cluster)
+	if err != nil {
+		log.WithError(err).Error("failed to get OS image version")
+		return nil, err
+	}
 
 	pullSecret, err := r.PullSecretHandler.GetValidPullSecret(ctx, getPullSecretKey(infraEnv.Namespace, infraEnv.Spec.PullSecretRef))
 	if err != nil {
@@ -439,7 +461,11 @@ func (r *InfraEnvReconciler) createInfraEnv(ctx context.Context, log logrus.Fiel
 		return nil, err
 	}
 
-	createParams := CreateInfraEnvParams(infraEnv, r.Config.ImageType, pullSecret, clusterID, openshiftVersion)
+	var clusterID *strfmt.UUID
+	if cluster != nil {
+		clusterID = cluster.ID
+	}
+	createParams := CreateInfraEnvParams(infraEnv, r.Config.ImageType, pullSecret, clusterID, osImageVersion)
 
 	staticNetworkConfig, err := r.processNMStateConfig(ctx, log, infraEnv)
 	if err != nil {
