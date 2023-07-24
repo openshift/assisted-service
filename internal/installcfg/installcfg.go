@@ -11,6 +11,7 @@ type Platform struct {
 	None      *PlatformNone                   `yaml:"none,omitempty"`
 	Vsphere   *VsphereInstallConfigPlatform   `yaml:"vsphere,omitempty"`
 	Nutanix   *NutanixInstallConfigPlatform   `yaml:"nutanix,omitempty"`
+	External  *ExternalInstallConfigPlatform  `yaml:"external,omitempty"`
 }
 
 type Host struct {
@@ -125,6 +126,10 @@ type NutanixPrismElement struct {
 	Endpoint                       NutanixEndpoint `yaml:"endpoint"`
 	UUID                           strfmt.UUID     `yaml:"uuid"`
 	Name                           string          `yaml:"name"`
+}
+
+type ExternalInstallConfigPlatform struct {
+	PlatformName string `yaml:"platformName"`
 }
 
 type PlatformNone struct {
