@@ -1,4 +1,4 @@
-FROM registry.ci.openshift.org/openshift/release:golang-1.18 AS golang
+FROM registry.ci.openshift.org/openshift/release:golang-1.19 AS golang
 RUN chmod g+xw -R /usr/local/go
 
 FROM quay.io/centos/centos:stream8
