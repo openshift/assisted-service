@@ -82,6 +82,11 @@ func (m *Manifests) CreateClusterManifestInternal(ctx context.Context, params op
 		return nil, err
 	}
 
+	err = m.validateFileDistinct(ctx, params.ClusterID, folder, fileName)
+	if err != nil {
+		return nil, err
+	}
+
 	err = m.uploadManifest(ctx, manifestContent, params.ClusterID, path)
 	if err != nil {
 		return nil, err
@@ -227,6 +232,13 @@ func (m *Manifests) UpdateClusterManifestInternal(ctx context.Context, params op
 	err = m.validateManifestFileNames(ctx, params.ClusterID, []string{srcFileName, destFileName})
 	if err != nil {
 		return nil, err
+	}
+
+	if srcFileName != destFileName {
+		err = m.validateFileDistinct(ctx, params.ClusterID, destFolder, destFileName)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	var content []byte
@@ -416,6 +428,33 @@ func (m *Manifests) validateAllowedToModifyManifests(ctx context.Context, cluste
 		return m.prepareAndLogError(ctx, http.StatusBadRequest, errors.Errorf("cluster %s is not in pre-installation states, "+
 			"can't modify manifests after installation has been started",
 			cluster.ID))
+	}
+	return nil
+}
+
+func (m *Manifests) validateFileDistinct(ctx context.Context, clusterID strfmt.UUID, folder string, fileName string) error {
+	var objectName string
+	switch folder {
+	case "manifests":
+		{
+			objectName = GetManifestObjectName(clusterID, filepath.Join("openshift", fileName))
+		}
+	case "openshift":
+		{
+			objectName = GetManifestObjectName(clusterID, filepath.Join("manifests", fileName))
+		}
+	default:
+		{
+			return m.prepareAndLogError(ctx, http.StatusBadRequest, errors.Errorf("Supplied folder (%s) in cluster %s should be one of {openshift, manifests}", folder, string(clusterID)))
+		}
+	}
+	exists, err := m.objectHandler.DoesObjectExist(ctx, objectName)
+	if err != nil {
+		return m.prepareAndLogError(ctx, http.StatusInternalServerError, err)
+	}
+	if exists {
+		return m.prepareAndLogError(ctx, http.StatusBadRequest, errors.Errorf("manifest file %s for cluster ID %s in folder %s cannot be uploaded as it is not distinct between {manifest, openshift} folders", fileName, string(clusterID), folder))
+
 	}
 	return nil
 }
