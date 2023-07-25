@@ -1624,7 +1624,72 @@ var _ = Describe("Validations test", func() {
 			Entry("Writing image to disk", models.HostStageWritingImageToDisk),
 		)
 	})
+	Context("No disk detected validation", func() {
+		var (
+			host    models.Host
+			cluster common.Cluster
+		)
 
+		const (
+			diskNotDetected string = "Cannot detected Disks"
+			unmarshalError  string = "Failed to unmarshal this host's inventory"
+			successMessage  string = "Disk Detected"
+		)
+
+		BeforeEach(func() {
+			// Create a test cluster
+			cluster = hostutil.GenerateTestCluster(clusterID)
+			Expect(db.Create(&cluster).Error).ToNot(HaveOccurred())
+
+			// Create a test host
+			hostId, infraEnvId := strfmt.UUID(uuid.New().String()), strfmt.UUID(uuid.New().String())
+			host = hostutil.GenerateTestHostByKind(hostId, infraEnvId, &clusterID, models.HostStatusKnown, models.HostKindHost, models.HostRoleMaster)
+			host.Inventory = hostutil.GenerateMasterInventory()
+
+			// Remove Disks
+			var inventory models.Inventory
+			err := json.Unmarshal([]byte(host.Inventory), &inventory)
+			Expect(err).ShouldNot(HaveOccurred())
+			inventory.Disks = []*models.Disk{}
+			inventoryByte, _ := json.Marshal(inventory)
+			host.Inventory = string(inventoryByte)
+
+			Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
+			host = hostutil.GetHostFromDB(*host.ID, host.InfraEnvID, db).Host
+			mockVersions.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+				Return(&models.ReleaseImage{URL: swag.String("quay.io/openshift/some-image::latest")}, nil).AnyTimes()
+		})
+		It("Disk found", func() {
+
+			var inventory models.Inventory
+			err := json.Unmarshal([]byte(host.Inventory), &inventory)
+			Expect(err).ShouldNot(HaveOccurred())
+
+			inventory.Disks = []*models.Disk{}
+			inventory.Disks = append(inventory.Disks, &models.Disk{
+				ID: "/dev/sda",
+			})
+
+			inventoryBytes, _ := json.Marshal(inventory)
+			host.Inventory = string(inventoryBytes)
+
+			mockAndRefreshStatus(&host)
+			host = hostutil.GetHostFromDB(*host.ID, host.InfraEnvID, db).Host
+			status, message, ok := getValidationResult(host.ValidationsInfo, NoDiskDetected)
+			Expect(ok).To(BeTrue())
+			Expect(status).To(Equal(ValidationSuccess))
+			Expect(message).To(Equal(successMessage))
+		})
+		It("Disk not Detected", func() {
+
+			mockAndRefreshStatus(&host)
+			host = hostutil.GetHostFromDB(*host.ID, host.InfraEnvID, db).Host
+			status, message, ok := getValidationResult(host.ValidationsInfo, NoDiskDetected)
+			Expect(ok).To(BeTrue())
+			Expect(status).To(Equal(ValidationFailure))
+			Expect(message).To(Equal(diskNotDetected))
+		})
+	})
 	Context("No skip installation disk validation", func() {
 		var (
 			host    models.Host

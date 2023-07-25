@@ -128,8 +128,12 @@ func (c *validationContext) loadInventory() error {
 	if inventory == nil || err != nil {
 		return err
 	}
-	if inventory.CPU == nil || inventory.Memory == nil || len(inventory.Disks) == 0 {
-		return errors.New("Inventory is not valid")
+	if inventory.Memory == nil {
+		return errors.New("Inventory is not valid, Memory not detected")
+	}
+
+	if inventory.CPU == nil {
+		return errors.New("Inventory is not valid, CPU not detected")
 	}
 	c.inventory = inventory
 	return nil
@@ -1721,6 +1725,23 @@ func (v *validator) noSkipInstallationDisk(c *validationContext) (ValidationStat
 	}
 
 	return ValidationFailure, failureMessage
+}
+
+func (v *validator) NoDiskDetected(c *validationContext) (ValidationStatus, string) {
+	const (
+		diskNotDetected string = "Cannot detected Disks"
+		unmarshalError  string = "Failed to unmarshal this host's inventory"
+		successMessage  string = "Disk Detected"
+	)
+	inventory, err := c.inventoryCache.GetOrUnmarshal(c.host)
+	if inventory == nil || err != nil {
+		return ValidationError, unmarshalError
+	}
+	if len(inventory.Disks) == 0 {
+		return ValidationFailure, diskNotDetected
+	}
+	return ValidationSuccess, successMessage
+
 }
 
 func (v *validator) noSkipMissingDisk(c *validationContext) (ValidationStatus, string) {

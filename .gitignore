@@ -6,7 +6,7 @@ venv/
 kubevirtci/
 **/RCS/**
 .*.swp
-
+aws/
 __pycache__/
 *.pyc
 

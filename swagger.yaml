@@ -6338,6 +6338,7 @@ definitions:
       - 'no-skip-installation-disk'
       - 'no-skip-missing-disk'
       - 'no-ip-collisions-in-network'
+      - 'no-disk-detected'
 
   dhcp_allocation_request:
     type: object
