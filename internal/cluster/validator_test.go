@@ -554,3 +554,61 @@ var _ = Describe("Validator tests", func() {
 	})
 
 })
+
+var _ = Describe("Platform validations", func() {
+	var (
+		validator         clusterValidator
+		preprocessContext *clusterPreprocessContext
+		clusterID         strfmt.UUID
+	)
+
+	BeforeEach(func() {
+		validator = clusterValidator{logrus.New(), nil}
+		clusterID = strfmt.UUID(uuid.New().String())
+	})
+
+	It("Should fail validation OCI cluster with no custom manifests", func() {
+		preprocessContext = &clusterPreprocessContext{hasHostsWithInventories: true}
+		preprocessContext.cluster = &common.Cluster{Cluster: models.Cluster{
+			ID: &clusterID,
+			Platform: &models.Platform{
+				IsExternal: swag.Bool(true),
+				Type:       common.PlatformTypePtr(models.PlatformTypeOci),
+			},
+			UserManagedNetworking: swag.Bool(true),
+		}}
+		status, message := validator.platformRequirementsSatisfied(preprocessContext)
+		Expect(status).To(Equal(ValidationFailure))
+		Expect(message).To(Equal("The custom manifest required for Oracle Cloud Infrastructure platform integration has not been added. Add a custom manifest to continue."))
+	})
+
+	It("Should pass platform validation on OCI cluster with no custom manifests", func() {
+		preprocessContext = &clusterPreprocessContext{hasHostsWithInventories: true}
+		preprocessContext.cluster = &common.Cluster{Cluster: models.Cluster{
+			ID: &clusterID,
+			Platform: &models.Platform{
+				IsExternal: swag.Bool(true),
+				Type:       common.PlatformTypePtr(models.PlatformTypeOci),
+			},
+			UserManagedNetworking: swag.Bool(true),
+			FeatureUsage:          "{\"Custom manifest\":{\"id\":\"CUSTOM_MANIFEST\",\"name\":\"Custom manifest\"}}",
+		}}
+		status, message := validator.platformRequirementsSatisfied(preprocessContext)
+		Expect(status).To(Equal(ValidationSuccess))
+		Expect(message).To(Equal("Platform requirements satisfied"))
+	})
+
+	It("Should pass validation if platform is baremetal", func() {
+		preprocessContext = &clusterPreprocessContext{hasHostsWithInventories: true}
+		preprocessContext.cluster = &common.Cluster{Cluster: models.Cluster{
+			ID: &clusterID,
+			Platform: &models.Platform{
+				IsExternal: swag.Bool(false),
+				Type:       common.PlatformTypePtr(models.PlatformTypeBaremetal),
+			},
+		}}
+		status, message := validator.platformRequirementsSatisfied(preprocessContext)
+		Expect(status).To(Equal(ValidationSuccess))
+		Expect(message).To(Equal("Platform requirements satisfied"))
+	})
+})

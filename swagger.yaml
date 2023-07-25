@@ -6614,6 +6614,7 @@ definitions:
       - 'lvm-requirements-satisfied'
       - 'mce-requirements-satisfied'
       - 'network-type-valid'
+      - 'platform-requirements-satisfied'
 
   logs_type:
     type: string
