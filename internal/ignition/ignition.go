@@ -1530,6 +1530,20 @@ func setEtcHostsInIgnition(role models.HostRole, path string, workDir string, co
 	return nil
 }
 
+func GetProfileProxyEntries(http_proxy string, https_proxy string, no_proxy string) string {
+	entries := []string{}
+	if len(http_proxy) > 0 {
+		entries = append(entries, fmt.Sprintf("export HTTP_PROXY=%[1]s\nexport http_proxy=%[1]s", http_proxy))
+	}
+	if len(https_proxy) > 0 {
+		entries = append(entries, fmt.Sprintf("export HTTPS_PROXY=%[1]s\nexport https_proxy=%[1]s", https_proxy))
+	}
+	if len(no_proxy) > 0 {
+		entries = append(entries, fmt.Sprintf("export NO_PROXY=%[1]s\nexport no_proxy=%[1]s", no_proxy))
+	}
+	return strings.Join(entries, "\n") + "\n"
+}
+
 func GetServiceIPHostnames(serviceIPs string) string {
 	ips := strings.Split(strings.TrimSpace(serviceIPs), ",")
 	content := ""
@@ -1669,6 +1683,7 @@ func (ib *ignitionBuilder) FormatDiscoveryIgnitionFile(ctx context.Context, infr
 		"AgentTimeoutStartSec": strconv.FormatInt(int64(cfg.AgentTimeoutStart.Seconds()), 10),
 		"SELINUX_POLICY":       base64.StdEncoding.EncodeToString([]byte(selinuxPolicy)),
 		"EnableAgentService":   infraEnv.InternalIgnitionConfigOverride == "",
+		"ProfileProxyExports":  dataurl.EncodeBytes([]byte(GetProfileProxyEntries(httpProxy, httpsProxy, noProxy))),
 	}
 	if safeForLogs {
 		for _, key := range []string{"userSshKey", "PullSecretToken", "PULL_SECRET", "RH_ROOT_CA"} {

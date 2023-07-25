@@ -1247,12 +1247,35 @@ var _ = Describe("IgnitionBuilder", func() {
 		//cluster.NoProxy = "quay.io"
 		serviceBaseURL := "file://10.56.20.70:7878"
 		config := IgnitionConfig{ServiceBaseURL: serviceBaseURL}
-		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(1)
-		mockVersionHandler.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, errors.New("some error")).Times(1)
+		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(2)
+		mockVersionHandler.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, errors.New("some error")).Times(2)
 		text, err := builder.FormatDiscoveryIgnitionFile(context.Background(), &infraEnv, config, false, auth.TypeRHSSO, "")
 
 		Expect(err).Should(BeNil())
 		Expect(text).Should(ContainSubstring(`"proxy": { "httpProxy": "http://10.10.1.1:3128", "noProxy": ["quay.io"] }`))
+
+		By("ignition file should only contain the proxy config entries that are set", func() {
+			minifiedText := strings.ReplaceAll(strings.ReplaceAll(text, " ", ""), "\n", "")
+			expectedFileContent := dataurl.EncodeBytes([]byte(fmt.Sprintf(
+				"export HTTP_PROXY=%[1]s\nexport http_proxy=%[1]s\nexport NO_PROXY=%[2]s\nexport no_proxy=%[2]s\n",
+				*proxy.HTTPProxy,
+				*proxy.NoProxy,
+			)))
+			Expect(minifiedText).Should(ContainSubstring(`{"path":"/etc/profile.d/proxy.sh","mode":644,"user":{"name":"root"},"contents":{"source":"` + expectedFileContent + `"}}`))
+
+			infraEnv.Proxy.HTTPProxy = nil
+			infraEnv.Proxy.HTTPSProxy = swag.String("http://10.10.1.1:3128")
+			infraEnv.Proxy.NoProxy = nil
+			text, err = builder.FormatDiscoveryIgnitionFile(context.Background(), &infraEnv, config, false, auth.TypeRHSSO, "")
+			Expect(err).Should(BeNil())
+			minifiedText = strings.ReplaceAll(strings.ReplaceAll(text, " ", ""), "\n", "")
+			expectedFileContent = dataurl.EncodeBytes([]byte(fmt.Sprintf(
+				"export HTTPS_PROXY=%[1]s\nexport https_proxy=%[1]s\n",
+				*infraEnv.Proxy.HTTPSProxy,
+			)))
+			Expect(minifiedText).Should(ContainSubstring(`{"path":"/etc/profile.d/proxy.sh","mode":644,"user":{"name":"root"},"contents":{"source":"` + expectedFileContent + `"}}`))
+
+		})
 	})
 
 	It("ignition_file_contains_asterisk_no_proxy", func() {
