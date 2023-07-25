@@ -319,3 +319,11 @@ func (f fakeInventory) V2SetIgnoredValidations(ctx context.Context, params insta
 func (f fakeInventory) V2GetIgnoredValidations(ctx context.Context, params installer.V2GetIgnoredValidationsParams) middleware.Responder {
 	return installer.NewV2GetIgnoredValidationsOK()
 }
+
+func (f fakeInventory) V2GetClusterUISettings(ctx context.Context, params installer.V2GetClusterUISettingsParams) middleware.Responder {
+	return installer.NewV2GetClusterUISettingsOK()
+}
+
+func (f fakeInventory) V2UpdateClusterUISettings(ctx context.Context, params installer.V2UpdateClusterUISettingsParams) middleware.Responder {
+	return installer.NewV2UpdateClusterUISettingsOK()
+}

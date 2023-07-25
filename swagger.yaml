@@ -3786,6 +3786,88 @@ paths:
           schema:
             $ref: '#/definitions/error'
 
+  /v2/clusters/{cluster_id}/ui-settings:
+    get:
+      tags:
+          - installer
+      description: Fetch cluster specific UI settings.
+      operationId: V2GetClusterUISettings
+      parameters:
+        - in: path
+          name: cluster_id
+          description: The cluster for which UI settings should be retrieved.
+          type: string
+          format: uuid
+          required: true
+      responses:
+        "200":
+          description: Success.
+          schema:
+            type: string
+        "400":
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+        "404":
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+        "401":
+          description: Unauthorized.
+          schema:
+            $ref: '#/definitions/infra_error'
+        "403":
+          description: Forbidden.
+          schema:
+            $ref: '#/definitions/infra_error'
+        "500":
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+    put:
+      tags:
+        - installer
+      description: Update cluster specific UI settings.
+      operationId: V2UpdateClusterUISettings
+      parameters:
+        - in: path
+          name: cluster_id
+          description: The cluster for which UI settings should be updated.
+          type: string
+          format: uuid
+          required: true
+        - in: body
+          name: ui-settings
+          description: Settings for the installer UI.
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Success.
+          schema:
+            type: string
+        "400":
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+        "404":
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+        "401":
+          description: Unauthorized.
+          schema:
+            $ref: '#/definitions/infra_error'
+        "403":
+          description: Forbidden.
+          schema:
+            $ref: '#/definitions/infra_error'
+        "500":
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+
 definitions:
   ignored-validations:
     type: object

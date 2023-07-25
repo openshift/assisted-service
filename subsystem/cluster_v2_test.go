@@ -18,6 +18,40 @@ import (
 	"github.com/openshift/assisted-service/models"
 )
 
+var _ = Describe("Cluster UI Settings", func() {
+	var (
+		clusterId strfmt.UUID
+	)
+	ctx := context.Background()
+	BeforeEach(func() {
+		response, err := userBMClient.Installer.V2RegisterCluster(ctx, &installer.V2RegisterClusterParams{
+			NewClusterParams: &models.ClusterCreateParams{
+				Name:             swag.String("test-cluster"),
+				OpenshiftVersion: swag.String(openshiftVersion),
+				PullSecret:       swag.String(pullSecret),
+				BaseDNSDomain:    "example.com",
+			},
+		})
+		Expect(err).NotTo(HaveOccurred())
+		clusterId = *response.Payload.ID
+	})
+
+	It("Should be able to store and retrieve cluster UI settings", func() {
+		_, err := userBMClient.Installer.V2UpdateClusterUISettings(ctx, &installer.V2UpdateClusterUISettingsParams{
+			ClusterID:  clusterId,
+			UISettings: "{\"foo\":\"bar\"}",
+		})
+		Expect(err).ToNot(HaveOccurred())
+		By("Should be able to retrieve cluster UI settings", func() {
+			response, err := userBMClient.Installer.V2GetClusterUISettings(ctx, &installer.V2GetClusterUISettingsParams{
+				ClusterID: clusterId,
+			})
+			Expect(err).ToNot(HaveOccurred())
+			Expect(response.Payload).To(Equal("{\"foo\":\"bar\"}"))
+		})
+	})
+})
+
 var _ = Describe("[V2ClusterTests]", func() {
 	ctx := context.Background()
 	var clusterID strfmt.UUID

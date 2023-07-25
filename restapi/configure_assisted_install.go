@@ -106,6 +106,9 @@ type InstallerAPI interface {
 	/* V2GetClusterDefaultConfig Get the default values for various cluster properties. */
 	V2GetClusterDefaultConfig(ctx context.Context, params installer.V2GetClusterDefaultConfigParams) middleware.Responder
 
+	/* V2GetClusterUISettings Fetch cluster specific UI settings. */
+	V2GetClusterUISettings(ctx context.Context, params installer.V2GetClusterUISettingsParams) middleware.Responder
+
 	/* V2GetCredentials Get the cluster admin credentials. */
 	V2GetCredentials(ctx context.Context, params installer.V2GetCredentialsParams) middleware.Responder
 
@@ -117,6 +120,9 @@ type InstallerAPI interface {
 
 	/* V2UpdateCluster Updates an OpenShift cluster definition. */
 	V2UpdateCluster(ctx context.Context, params installer.V2UpdateClusterParams) middleware.Responder
+
+	/* V2UpdateClusterUISettings Update cluster specific UI settings. */
+	V2UpdateClusterUISettings(ctx context.Context, params installer.V2UpdateClusterUISettingsParams) middleware.Responder
 
 	/* V2UploadLogs Agent API to upload logs. */
 	V2UploadLogs(ctx context.Context, params installer.V2UploadLogsParams) middleware.Responder
@@ -519,6 +525,11 @@ func HandlerAPI(c Config) (http.Handler, *operations.AssistedInstallAPI, error) 
 		ctx = storeAuth(ctx, principal)
 		return c.InstallerAPI.V2GetClusterDefaultConfig(ctx, params)
 	})
+	api.InstallerV2GetClusterUISettingsHandler = installer.V2GetClusterUISettingsHandlerFunc(func(params installer.V2GetClusterUISettingsParams, principal interface{}) middleware.Responder {
+		ctx := params.HTTPRequest.Context()
+		ctx = storeAuth(ctx, principal)
+		return c.InstallerAPI.V2GetClusterUISettings(ctx, params)
+	})
 	api.InstallerV2GetCredentialsHandler = installer.V2GetCredentialsHandlerFunc(func(params installer.V2GetCredentialsParams, principal interface{}) middleware.Responder {
 		ctx := params.HTTPRequest.Context()
 		ctx = storeAuth(ctx, principal)
@@ -568,6 +579,11 @@ func HandlerAPI(c Config) (http.Handler, *operations.AssistedInstallAPI, error) 
 		ctx := params.HTTPRequest.Context()
 		ctx = storeAuth(ctx, principal)
 		return c.ManifestsAPI.V2UpdateClusterManifest(ctx, params)
+	})
+	api.InstallerV2UpdateClusterUISettingsHandler = installer.V2UpdateClusterUISettingsHandlerFunc(func(params installer.V2UpdateClusterUISettingsParams, principal interface{}) middleware.Responder {
+		ctx := params.HTTPRequest.Context()
+		ctx = storeAuth(ctx, principal)
+		return c.InstallerAPI.V2UpdateClusterUISettings(ctx, params)
 	})
 	api.InstallerV2UploadLogsHandler = installer.V2UploadLogsHandlerFunc(func(params installer.V2UploadLogsParams, principal interface{}) middleware.Responder {
 		ctx := params.HTTPRequest.Context()
