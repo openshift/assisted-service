@@ -3,10 +3,10 @@ package nutanix
 const (
 	PhUsername   = "username_placeholder"
 	PhPassword   = "password_placeholder"
-	PhPCAddress  = "1.1.1.1"
-	PhPCPort     = int32(8080)
-	PhPEAddress  = "1.1.1.1"
-	PhPEPort     = int32(8080)
+	PhPCAddress  = "prism.central.placeholder.address"
+	PhPCPort     = int32(9440)
+	PhPEAddress  = "prism.element.placeholder.address"
+	PhPEPort     = int32(9440)
 	PhEName      = "prism_endpoint_name_placeholder"
 	PhPUUID      = "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
 	PhSubnetUUID = "yyyyyyyy-yyyy-yyyy-yyyy-yyyyyyyyyyyy"
