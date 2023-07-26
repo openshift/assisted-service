@@ -201,6 +201,10 @@ func newValidations(v *clusterValidator) []validation {
 			id:        NetworksSameAddressFamilies,
 			condition: v.isNetworksSameAddressFamilies,
 		},
+		{
+			id:        PlatformRequirementsSatisfied,
+			condition: v.platformRequirementsSatisfied,
+		},
 	}
 	return ret
 }

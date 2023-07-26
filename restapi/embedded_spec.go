@@ -6691,7 +6691,8 @@ func init() {
         "cnv-requirements-satisfied",
         "lvm-requirements-satisfied",
         "mce-requirements-satisfied",
-        "network-type-valid"
+        "network-type-valid",
+        "platform-requirements-satisfied"
       ]
     },
     "cluster_default_config": {
@@ -17208,7 +17209,8 @@ func init() {
         "cnv-requirements-satisfied",
         "lvm-requirements-satisfied",
         "mce-requirements-satisfied",
-        "network-type-valid"
+        "network-type-valid",
+        "platform-requirements-satisfied"
       ]
     },
     "cluster_default_config": {

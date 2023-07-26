@@ -12,6 +12,7 @@ import (
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/host"
 	"github.com/openshift/assisted-service/internal/network"
+	"github.com/openshift/assisted-service/internal/usage"
 	"github.com/openshift/assisted-service/models"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -398,6 +399,27 @@ func (v *clusterValidator) allHostsAreReadyToInstall(c *clusterPreprocessContext
 		return ValidationSuccess, "All hosts in the cluster are ready to install."
 	}
 	return ValidationFailure, "The cluster has hosts that are not ready to install."
+}
+
+func (v *clusterValidator) platformRequirementsSatisfied(c *clusterPreprocessContext) (ValidationStatus, string) {
+	// If cluster platform type is not OCI ignore that validation
+	if c.cluster.Platform != nil && common.PlatformTypeValue(c.cluster.Platform.Type) != models.PlatformTypeOci {
+		return ValidationSuccess, "Platform requirements satisfied"
+	}
+
+	usages, err := usage.Unmarshal(c.cluster.Cluster.FeatureUsage)
+	if err != nil {
+		v.log.Errorf("platform validation failure, failed to parse feature usages, %s", err.Error())
+		return ValidationFailure, "Failed to parse feature usages"
+	}
+
+	for _, usg := range usages {
+		if usg.Name == usage.CustomManifest {
+			return ValidationSuccess, "Platform requirements satisfied"
+		}
+	}
+
+	return ValidationFailure, "The custom manifest required for Oracle Cloud Infrastructure platform integration has not been added. Add a custom manifest to continue."
 }
 
 func (v *clusterValidator) isDNSDomainDefined(c *clusterPreprocessContext) (ValidationStatus, string) {
