@@ -830,6 +830,7 @@ func NewHostStateMachine(sm stateswitch.StateMachine, th TransitionHandler) stat
 		If(AreCnvRequirementsSatisfied),
 		If(AreLvmRequirementsSatisfied),
 		If(AreMceRequirementsSatisfied),
+		If(AreMetalLBRequirementsSatisfied),
 		If(HasSufficientNetworkLatencyRequirementForRole),
 		If(HasSufficientPacketLossRequirementForRole),
 		If(HasDefaultRoute),

@@ -34,6 +34,7 @@ const (
 	AreCnvRequirementsSatisfied                    = validationID(models.HostValidationIDCnvRequirementsSatisfied)
 	AreLvmRequirementsSatisfied                    = validationID(models.HostValidationIDLvmRequirementsSatisfied)
 	AreMceRequirementsSatisfied                    = validationID(models.HostValidationIDMceRequirementsSatisfied)
+	AreMetalLBRequirementsSatisfied                = validationID(models.HostValidationIDMetallbRequirementsSatisfied)
 	SufficientOrUnknownInstallationDiskSpeed       = validationID(models.HostValidationIDSufficientInstallationDiskSpeed)
 	HasSufficientNetworkLatencyRequirementForRole  = validationID(models.HostValidationIDSufficientNetworkLatencyRequirementForRole)
 	HasSufficientPacketLossRequirementForRole      = validationID(models.HostValidationIDSufficientPacketLossRequirementForRole)
@@ -96,7 +97,8 @@ func (v validationID) category() (string, error) {
 		AreOdfRequirementsSatisfied,
 		AreCnvRequirementsSatisfied,
 		AreLvmRequirementsSatisfied,
-		AreMceRequirementsSatisfied:
+		AreMceRequirementsSatisfied,
+		AreMetalLBRequirementsSatisfied:
 		return "operators", nil
 	}
 	return "", common.NewApiError(http.StatusInternalServerError, errors.Errorf("Unexpected validation id %s", string(v)))

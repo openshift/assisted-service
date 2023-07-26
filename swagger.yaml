@@ -3987,6 +3987,7 @@ definitions:
       - 'LSO'
       - 'CNV'
       - 'MCE'
+      - 'METALLB'
       - 'NUTANIX_INTEGRATION'
       - 'VSPHERE_INTEGRATION'
       - 'DUAL_STACK_VIPS'
@@ -6254,6 +6255,7 @@ definitions:
       - 'no-skip-installation-disk'
       - 'no-skip-missing-disk'
       - 'no-ip-collisions-in-network'
+      - 'metallb-requirements-satisfied'
 
   dhcp_allocation_request:
     type: object
@@ -6612,6 +6614,7 @@ definitions:
       - 'lvm-requirements-satisfied'
       - 'mce-requirements-satisfied'
       - 'network-type-valid'
+      - 'metallb-requirements-satisfied'
 
   logs_type:
     type: string

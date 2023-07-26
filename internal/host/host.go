@@ -1300,7 +1300,8 @@ func (m *Manager) canBeMaster(conditions map[string]bool) bool {
 		conditions[AreLsoRequirementsSatisfied.String()] &&
 		conditions[AreOdfRequirementsSatisfied.String()] &&
 		conditions[AreCnvRequirementsSatisfied.String()] &&
-		conditions[AreLvmRequirementsSatisfied.String()]
+		conditions[AreLvmRequirementsSatisfied.String()] &&
+		conditions[AreMetalLBRequirementsSatisfied.String()]
 }
 
 func (m *Manager) GetHostValidDisks(host *models.Host) ([]*models.Disk, error) {

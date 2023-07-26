@@ -90,6 +90,7 @@ var _ = Describe("Validations test", func() {
 			{Status: api.Success, ValidationId: string(models.HostValidationIDLsoRequirementsSatisfied)},
 			{Status: api.Success, ValidationId: string(models.HostValidationIDCnvRequirementsSatisfied)},
 			{Status: api.Success, ValidationId: string(models.HostValidationIDLvmRequirementsSatisfied)},
+			{Status: api.Success, ValidationId: string(models.HostValidationIDMetallbRequirementsSatisfied)},
 		}, nil).AnyTimes()
 		err := m.RefreshStatus(ctx, h, db)
 		Expect(err).ToNot(HaveOccurred())

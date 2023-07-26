@@ -57,6 +57,7 @@ import (
 	"github.com/openshift/assisted-service/internal/metrics"
 	"github.com/openshift/assisted-service/internal/network"
 	"github.com/openshift/assisted-service/internal/operators"
+	"github.com/openshift/assisted-service/internal/operators/metallb"
 	"github.com/openshift/assisted-service/internal/provider/registry"
 	"github.com/openshift/assisted-service/internal/provider/vsphere"
 	"github.com/openshift/assisted-service/internal/stream"
@@ -2177,6 +2178,13 @@ var _ = Describe("cluster", func() {
 					}, nil).Times(1)
 			}
 
+			mockMetalLBGetOperatorByName := func(operatorName string) {
+				operator := metallb.Operator
+				operator.Properties = "{\"api_cidr\"=\"192.168.122.201/32\",\"ingress_cidr\"=\"192.168.122.202/32\"}"
+				mockOperatorManager.EXPECT().GetOperatorByName(operatorName).Return(
+					&operator, nil).Times(1)
+			}
+
 			Context("V2RegisterCluster", func() {
 				BeforeEach(func() {
 					bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog().WithField("pkg", "cluster-monitor"),
@@ -2859,10 +2867,11 @@ var _ = Describe("cluster", func() {
 					verifyApiErrorString(reply, http.StatusBadRequest, "Currently, you can not install OpenShift Data Foundation Logical Volume Manager operator at the same time as Virtualization operator")
 				})
 
-				It("enable cnv and lvm after 4.12 is allowed", func() {
+				It("enable cnv and lvm and metallb after 4.12 is allowed", func() {
 					mockClusterRegisterSuccess(true)
 					mockCNVGetOperatorByName("cnv")
 					mockCNVGetOperatorByName("lvm")
+					mockMetalLBGetOperatorByName(metallb.Operator.Name)
 					mockOperatorManager.EXPECT().ResolveDependencies(gomock.Any(), gomock.Any()).
 						DoAndReturn(func(commonCluster *common.Cluster, operators []*models.MonitoredOperator) ([]*models.MonitoredOperator, error) {
 							return operators, nil
@@ -2873,19 +2882,25 @@ var _ = Describe("cluster", func() {
 					clusterParams.OlmOperators = []*models.OperatorCreateParams{
 						{Name: "cnv"},
 						{Name: "lvm"},
+						{Name: metallb.Operator.Name},
 					}
 					mockOperatorManager.EXPECT().EnsureOperatorPrerequisite(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 					reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 						NewClusterParams: clusterParams,
 					})
 
-					foundExpected := false
+					foundCNV := false
+					foundMetalLB := false
 					for _, monitoredOperator := range reply.(*installer.V2RegisterClusterCreated).Payload.MonitoredOperators {
 						if monitoredOperator.Name == "cnv" {
-							foundExpected = true
+							foundCNV = true
+						}
+						if monitoredOperator.Name == metallb.Operator.Name {
+							foundMetalLB = true
 						}
 					}
-					Expect(foundExpected).Should(BeTrue())
+					Expect(foundCNV).Should(BeTrue())
+					Expect(foundMetalLB).Should(BeTrue())
 				})
 
 				It("return cnv when cnv operator enabled", func() {
@@ -2940,6 +2955,32 @@ var _ = Describe("cluster", func() {
 					foundExpected := false
 					for _, monitoredOperator := range reply.(*installer.V2RegisterClusterCreated).Payload.MonitoredOperators {
 						if monitoredOperator.Name == "lvm" {
+							foundExpected = true
+						}
+					}
+					Expect(foundExpected).Should(BeTrue())
+				})
+
+				It("return metallb when metallb operator enabled", func() {
+					mockClusterRegisterSuccess(true)
+					mockMetalLBGetOperatorByName(metallb.Operator.Name)
+					mockOperatorManager.EXPECT().ResolveDependencies(gomock.Any(), gomock.Any()).
+						DoAndReturn(func(commonCluster *common.Cluster, operators []*models.MonitoredOperator) ([]*models.MonitoredOperator, error) {
+							return operators, nil
+						}).Times(1)
+
+					clusterParams := getDefaultClusterCreateParams()
+					clusterParams.OlmOperators = []*models.OperatorCreateParams{
+						{Name: metallb.Operator.Name},
+					}
+					mockOperatorManager.EXPECT().EnsureOperatorPrerequisite(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
+					reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
+						NewClusterParams: clusterParams,
+					})
+
+					foundExpected := false
+					for _, monitoredOperator := range reply.(*installer.V2RegisterClusterCreated).Payload.MonitoredOperators {
+						if monitoredOperator.Name == metallb.Operator.Name {
 							foundExpected = true
 						}
 					}

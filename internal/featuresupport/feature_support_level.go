@@ -23,6 +23,7 @@ var featuresList = map[models.FeatureSupportLevelID]SupportLevelFeature{
 	models.FeatureSupportLevelIDCNV:                      (&CnvFeature{}).New(),
 	models.FeatureSupportLevelIDLSO:                      (&LsoFeature{}).New(),
 	models.FeatureSupportLevelIDMCE:                      (&MceFeature{}).New(),
+	models.FeatureSupportLevelIDMETALLB:                  (&MetalLBFeature{}).New(),
 	models.FeatureSupportLevelIDODF:                      (&OdfFeature{}).New(),
 	models.FeatureSupportLevelIDMINIMALISO:               (&MinimalIso{}).New(),
 	models.FeatureSupportLevelIDFULLISO:                  (&FullIso{}).New(),

@@ -193,13 +193,6 @@ func (o *operator) GetPreflightRequirements(context context.Context, cluster *co
 	}, nil
 }
 
-func (o *operator) GetSupportedArchitectures() []string {
-	return []string{common.X86CPUArchitecture, common.PowerCPUArchitecture,
-		common.S390xCPUArchitecture, common.ARM64CPUArchitecture, common.AMD64CPUArchitecture,
-	}
-
-}
-
 func (o *operator) GetFeatureSupportID() models.FeatureSupportLevelID {
 	return models.FeatureSupportLevelIDMCE
 }

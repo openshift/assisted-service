@@ -108,6 +108,7 @@ func NewClusterStateMachine(th TransitionHandler) stateswitch.StateMachine {
 		If(IsCnvRequirementsSatisfied),
 		If(IsLvmRequirementsSatisfied),
 		If(IsMceRequirementsSatisfied),
+		If(IsMetalLBRequirementsSatisfied),
 		If(isNetworkTypeValid),
 		If(NetworksSameAddressFamilies),
 	)

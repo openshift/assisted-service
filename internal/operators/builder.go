@@ -8,6 +8,7 @@ import (
 	"github.com/openshift/assisted-service/internal/operators/lso"
 	"github.com/openshift/assisted-service/internal/operators/lvm"
 	"github.com/openshift/assisted-service/internal/operators/mce"
+	"github.com/openshift/assisted-service/internal/operators/metallb"
 	"github.com/openshift/assisted-service/internal/operators/odf"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/s3wrapper"
@@ -33,7 +34,7 @@ type Options struct {
 
 // NewManager creates new instance of an Operator Manager
 func NewManager(log logrus.FieldLogger, manifestAPI manifestsapi.ManifestsAPI, options Options, objectHandler s3wrapper.API, extracter oc.Extracter) *Manager {
-	return NewManagerWithOperators(log, manifestAPI, options, objectHandler, lso.NewLSOperator(), odf.NewOcsOperator(log), odf.NewOdfOperator(log, extracter), cnv.NewCNVOperator(log, options.CNVConfig, extracter), lvm.NewLvmOperator(log, extracter), mce.NewMceOperator(log))
+	return NewManagerWithOperators(log, manifestAPI, options, objectHandler, lso.NewLSOperator(), odf.NewOcsOperator(log), odf.NewOdfOperator(log, extracter), cnv.NewCNVOperator(log, options.CNVConfig, extracter), lvm.NewLvmOperator(log, extracter), mce.NewMceOperator(log), metallb.NewMetalLBOperator(log, extracter))
 }
 
 // NewManagerWithOperators creates new instance of an Operator Manager and configures it with given operators

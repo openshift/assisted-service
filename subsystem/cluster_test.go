@@ -35,6 +35,7 @@ import (
 	"github.com/openshift/assisted-service/internal/operators/lso"
 	"github.com/openshift/assisted-service/internal/operators/lvm"
 	"github.com/openshift/assisted-service/internal/operators/mce"
+	"github.com/openshift/assisted-service/internal/operators/metallb"
 	"github.com/openshift/assisted-service/internal/operators/odf"
 	"github.com/openshift/assisted-service/internal/usage"
 	"github.com/openshift/assisted-service/models"
@@ -3705,7 +3706,9 @@ var _ = Describe("Preflight Cluster Requirements", func() {
 			CPUCores: 6,
 			RAMMib:   conversions.GibToMib(19),
 		}
-		workerMCERequirements = models.ClusterHostRequirementsDetails{
+		workerMetalLBRequirements = models.ClusterHostRequirementsDetails{}
+		masterMetalLBRequirements = models.ClusterHostRequirementsDetails{}
+		workerMCERequirements     = models.ClusterHostRequirementsDetails{
 			CPUCores: mce.MinimumCPU,
 			RAMMib:   conversions.GibToMib(mce.MinimumMemory),
 		}
@@ -3740,7 +3743,7 @@ var _ = Describe("Preflight Cluster Requirements", func() {
 			},
 		}
 		Expect(*requirements.Ocp).To(BeEquivalentTo(expectedOcpRequirements))
-		Expect(requirements.Operators).To(HaveLen(5))
+		Expect(requirements.Operators).To(HaveLen(6))
 		for _, op := range requirements.Operators {
 			switch op.OperatorName {
 			case lso.Operator.Name:
@@ -3755,6 +3758,9 @@ var _ = Describe("Preflight Cluster Requirements", func() {
 			case mce.Operator.Name:
 				Expect(*op.Requirements.Master.Quantitative).To(BeEquivalentTo(masterMCERequirements))
 				Expect(*op.Requirements.Worker.Quantitative).To(BeEquivalentTo(workerMCERequirements))
+			case metallb.Operator.Name:
+				Expect(*op.Requirements.Master.Quantitative).To(BeEquivalentTo(masterMetalLBRequirements))
+				Expect(*op.Requirements.Worker.Quantitative).To(BeEquivalentTo(workerMetalLBRequirements))
 			case lvm.Operator.Name:
 				continue // lvm operator is tested separately
 			default:

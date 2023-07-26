@@ -6570,7 +6570,8 @@ func init() {
         "cnv-requirements-satisfied",
         "lvm-requirements-satisfied",
         "mce-requirements-satisfied",
-        "network-type-valid"
+        "network-type-valid",
+        "metallb-requirements-satisfied"
       ]
     },
     "cluster_default_config": {
@@ -7440,6 +7441,7 @@ func init() {
         "LSO",
         "CNV",
         "MCE",
+        "METALLB",
         "NUTANIX_INTEGRATION",
         "VSPHERE_INTEGRATION",
         "DUAL_STACK_VIPS",
@@ -8041,7 +8043,8 @@ func init() {
         "compatible-agent",
         "no-skip-installation-disk",
         "no-skip-missing-disk",
-        "no-ip-collisions-in-network"
+        "no-ip-collisions-in-network",
+        "metallb-requirements-satisfied"
       ]
     },
     "host_network": {
@@ -16965,7 +16968,8 @@ func init() {
         "cnv-requirements-satisfied",
         "lvm-requirements-satisfied",
         "mce-requirements-satisfied",
-        "network-type-valid"
+        "network-type-valid",
+        "metallb-requirements-satisfied"
       ]
     },
     "cluster_default_config": {
@@ -17757,6 +17761,7 @@ func init() {
         "LSO",
         "CNV",
         "MCE",
+        "METALLB",
         "NUTANIX_INTEGRATION",
         "VSPHERE_INTEGRATION",
         "DUAL_STACK_VIPS",
@@ -18358,7 +18363,8 @@ func init() {
         "compatible-agent",
         "no-skip-installation-disk",
         "no-skip-missing-disk",
-        "no-ip-collisions-in-network"
+        "no-ip-collisions-in-network",
+        "metallb-requirements-satisfied"
       ]
     },
     "host_network": {

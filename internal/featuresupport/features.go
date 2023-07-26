@@ -947,3 +947,51 @@ func (feature *MceFeature) getFeatureActiveLevel(cluster *common.Cluster, _ *mod
 	}
 	return activeLevelNotActive
 }
+
+// MetalLBFeature
+type MetalLBFeature struct{}
+
+func (feature *MetalLBFeature) New() SupportLevelFeature {
+	return &MetalLBFeature{}
+}
+
+func (feature *MetalLBFeature) getId() models.FeatureSupportLevelID {
+	return models.FeatureSupportLevelIDMETALLB
+}
+
+func (feature *MetalLBFeature) getName() string {
+	return "Bare-Metal Load-Balancer"
+}
+
+func (feature *MetalLBFeature) getSupportLevel(filters SupportLevelFilters) models.SupportLevel {
+	if !isFeatureCompatibleWithArchitecture(feature, filters.OpenshiftVersion, swag.StringValue(filters.CPUArchitecture)) {
+		return models.SupportLevelUnavailable
+	}
+
+	isNotSupported, err := common.BaseVersionLessThan("4.11", filters.OpenshiftVersion)
+	if isNotSupported || err != nil {
+		return models.SupportLevelUnavailable
+	}
+
+	return models.SupportLevelSupported
+}
+
+func (feature *MetalLBFeature) getIncompatibleFeatures(string) *[]models.FeatureSupportLevelID {
+	return &[]models.FeatureSupportLevelID{
+		models.FeatureSupportLevelIDNUTANIXINTEGRATION,
+	}
+}
+
+func (feature *MetalLBFeature) getIncompatibleArchitectures(_ *string) *[]models.ArchitectureSupportLevelID {
+	return &[]models.ArchitectureSupportLevelID{
+		models.ArchitectureSupportLevelIDS390XARCHITECTURE,
+		models.ArchitectureSupportLevelIDPPC64LEARCHITECTURE,
+	}
+}
+
+func (feature *MetalLBFeature) getFeatureActiveLevel(cluster *common.Cluster, _ *models.InfraEnv, clusterUpdateParams *models.V2ClusterUpdateParams, _ *models.InfraEnvUpdateParams) featureActiveLevel {
+	if isOperatorActivated("metallb", cluster, clusterUpdateParams) {
+		return activeLevelActive
+	}
+	return activeLevelNotActive
+}
