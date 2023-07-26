@@ -83,8 +83,23 @@ function copy_physical_nics_files() {
           filename=$(basename $nmfile)
           prefix="${filename%%.*}"
           extension="${filename#*.}"
+
           if [[ -n "$prefix" ]] && [[ "$prefix" == "$logical_nic" ]] ; then
-            target_file=$host_work_dir/${host_nic}.${extension}
+
+            # Check to see if adding the vlan id will push the interface name over 15 characters and trim the host interface if so
+            # NetworkManager has a 15 character limit on interface names
+            this_host_nic=${host_nic}
+            vlan_id="$(echo ${extension} | cut -s -d'.' -f1)"
+            if [[ -n "${vlan_id}" ]] ; then
+              len=$(echo -n "${host_nic}.${vlan_id}" | wc -m)
+              if [ "$len" -gt "15" ] ; then
+                extra=$(($len - 15))
+                nic_len=$(echo -n "${host_nic}" | wc -m)
+                this_host_nic=$(echo ${host_nic} | cut -c -$(($nic_len-$extra)))
+              fi
+            fi
+
+            target_file=$host_work_dir/${this_host_nic}.${extension}
             mv -f $nmfile $target_file
             echo "Info: Copied $nmfile to $target_file"
           fi
@@ -163,12 +178,15 @@ function process_host_directories_by_mac_address() {
       echo "Info: Found host directory: $(basename $host_src_dir) , copying configuration"
       host_work_dir=$(mktemp -d)
 
+      echo "Info: Copying physical interface files for host $(basename $host_src_dir)"
       # Copy all physical nics files that match logical nics in the mapping file
       copy_physical_nics_files $host_src_dir $mapping_file $host_work_dir
 
+      echo "Info: Copying other interface files for host $(basename $host_src_dir)"
       # Copy the rest of the files from the host directory
       copy_other_files $host_src_dir $host_work_dir
 
+      echo "Info: Updating references for host $(basename $host_src_dir)"
       # Update references in the nmstate files to host nics
       update_physical_nics_references $mapping_file $host_work_dir
 

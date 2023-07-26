@@ -1,0 +1,15 @@
+[connection]
+autoconnect=true
+autoconnect-slaves=-1
+id=eth0
+interface-name=eth0
+type=802-3-ethernet
+uuid=16b5d9c7-3fb6-4cb2-a61b-1dcaec41dacc
+
+[ipv4]
+address0=192.0.2.50/24
+method=manual
+
+[ipv6]
+method=disabled
+

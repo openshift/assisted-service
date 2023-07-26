@@ -149,6 +149,30 @@ var _ = Describe("Pre Network Config Script", func() {
 					},
 				},
 			},
+			{
+				source:      assistedNetwork + "/host4/eth0.2507.nmconnection",
+				destination: systemConnections + "/enp94s0f0n.2507.nmconnection",
+				replaces: []replace{
+					{
+						from: "=eth0.2507",
+						to:   "=enp94s0f0n.2507",
+					},
+					{
+						from: "=eth0",
+						to:   "=enp94s0f0np0",
+					},
+				},
+			},
+			{
+				source:      assistedNetwork + "/host4/eth0.nmconnection",
+				destination: systemConnections + "/enp94s0f0np0.nmconnection",
+				replaces: []replace{
+					{
+						from: "=eth0",
+						to:   "=enp94s0f0np0",
+					},
+				},
+			},
 		}
 		entries, err := os.ReadDir(systemConnections)
 		Expect(err).ToNot(HaveOccurred())
