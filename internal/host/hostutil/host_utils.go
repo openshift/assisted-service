@@ -189,7 +189,7 @@ func GetAcceptableDisksWithHints(disks []*models.Disk, hints *bmh_v1alpha1.RootD
 		}
 
 		if hints != nil {
-			if hints.DeviceName != "" && hints.DeviceName != disk.Path {
+			if hints.DeviceName != "" && hints.DeviceName != disk.Path && hints.DeviceName != disk.ByPath {
 				continue
 			}
 
