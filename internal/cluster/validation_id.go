@@ -33,6 +33,7 @@ const (
 	IsCnvRequirementsSatisfied          = ValidationID(models.ClusterValidationIDCnvRequirementsSatisfied)
 	IsLvmRequirementsSatisfied          = ValidationID(models.ClusterValidationIDLvmRequirementsSatisfied)
 	IsMceRequirementsSatisfied          = ValidationID(models.ClusterValidationIDMceRequirementsSatisfied)
+	PlatformRequirementsSatisfied       = ValidationID(models.ClusterValidationIDPlatformRequirementsSatisfied)
 )
 
 func (v ValidationID) Category() (string, error) {
@@ -43,7 +44,7 @@ func (v ValidationID) Category() (string, error) {
 		return "network", nil
 	case AllHostsAreReadyToInstall, SufficientMastersCount:
 		return "hosts-data", nil
-	case IsPullSecretSet:
+	case IsPullSecretSet, PlatformRequirementsSatisfied:
 		return "configuration", nil
 	case IsOdfRequirementsSatisfied, IsLsoRequirementsSatisfied, IsCnvRequirementsSatisfied, IsLvmRequirementsSatisfied, IsMceRequirementsSatisfied:
 		return "operators", nil
