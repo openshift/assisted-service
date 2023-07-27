@@ -6697,6 +6697,7 @@ definitions:
       - 'mce-requirements-satisfied'
       - 'network-type-valid'
       - 'platform-requirements-satisfied'
+      - 'installation-preparation-succeeded'
 
   logs_type:
     type: string

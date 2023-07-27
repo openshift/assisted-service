@@ -205,6 +205,10 @@ func newValidations(v *clusterValidator) []validation {
 			id:        PlatformRequirementsSatisfied,
 			condition: v.platformRequirementsSatisfied,
 		},
+		{
+			id:        PreparationSucceeded,
+			condition: v.preparationSucceded,
+		},
 	}
 	return ret
 }

@@ -6692,7 +6692,8 @@ func init() {
         "lvm-requirements-satisfied",
         "mce-requirements-satisfied",
         "network-type-valid",
-        "platform-requirements-satisfied"
+        "platform-requirements-satisfied",
+        "installation-preparation-succeeded"
       ]
     },
     "cluster_default_config": {
@@ -17209,7 +17210,8 @@ func init() {
         "lvm-requirements-satisfied",
         "mce-requirements-satisfied",
         "network-type-valid",
-        "platform-requirements-satisfied"
+        "platform-requirements-satisfied",
+        "installation-preparation-succeeded"
       ]
     },
     "cluster_default_config": {

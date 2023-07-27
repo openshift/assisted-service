@@ -422,6 +422,18 @@ func (v *clusterValidator) platformRequirementsSatisfied(c *clusterPreprocessCon
 	return ValidationFailure, "The custom manifest required for Oracle Cloud Infrastructure platform integration has not been added. Add a custom manifest to continue."
 }
 
+// preparationSucceded
+
+func (v *clusterValidator) preparationSucceded(c *clusterPreprocessContext) (ValidationStatus, string) {
+	// Check to see if the preparation failure has been indicated
+	// If so then report the failure
+	if c.cluster.InstallationPreparationCompletionStatus == "failed" {
+		return ValidationFailure, fmt.Sprintf("The cluster preparation failed with the following error: %s", c.cluster.InstallationPreparationCompletionStatusText)
+	}
+	return ValidationSuccess, "Cluster preparation succeeded"
+}
+
+
 func (v *clusterValidator) isDNSDomainDefined(c *clusterPreprocessContext) (ValidationStatus, string) {
 	if c.cluster.BaseDNSDomain != "" {
 		return ValidationSuccess, "The base domain is defined."

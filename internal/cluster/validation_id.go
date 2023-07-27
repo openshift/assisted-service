@@ -34,6 +34,7 @@ const (
 	IsLvmRequirementsSatisfied          = ValidationID(models.ClusterValidationIDLvmRequirementsSatisfied)
 	IsMceRequirementsSatisfied          = ValidationID(models.ClusterValidationIDMceRequirementsSatisfied)
 	PlatformRequirementsSatisfied       = ValidationID(models.ClusterValidationIDPlatformRequirementsSatisfied)
+	PreparationSucceeded                = ValidationID(models.ClusterValidationIDInstallationPreparationSucceeded)
 )
 
 func (v ValidationID) Category() (string, error) {
@@ -48,6 +49,8 @@ func (v ValidationID) Category() (string, error) {
 		return "configuration", nil
 	case IsOdfRequirementsSatisfied, IsLsoRequirementsSatisfied, IsCnvRequirementsSatisfied, IsLvmRequirementsSatisfied, IsMceRequirementsSatisfied:
 		return "operators", nil
+	case PreparationSucceeded:
+		return "installation-preparation", nil
 	}
 	return "", common.NewApiError(http.StatusInternalServerError, errors.Errorf("Unexpected cluster validation id %s", string(v)))
 }

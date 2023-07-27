@@ -988,6 +988,7 @@ func (m *Manager) HandlePreInstallError(ctx context.Context, c *common.Cluster, 
 	log.WithError(installErr).Warnf("Failed to prepare installation of cluster %s", c.ID.String())
 	err := m.db.Model(&common.Cluster{}).Where("id = ?", c.ID.String()).Updates(&common.Cluster{
 		InstallationPreparationCompletionStatus: common.InstallationPreparationFailed,
+		InstallationPreparationCompletionStatusText: installErr.Error(),
 	}).Error
 	if err != nil {
 		log.WithError(err).Errorf("Failed to handle pre installation error for cluster %s", c.ID.String())

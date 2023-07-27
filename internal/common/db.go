@@ -65,6 +65,9 @@ type Cluster struct {
 	// Indication if installation preparation succeeded or failed
 	InstallationPreparationCompletionStatus string
 
+	// Any status text associated with InstallationPreparationCompletionStatus should be stored here
+	InstallationPreparationCompletionStatusText string
+
 	// ImageGenerated indicates if the discovery image was generated successfully. It will be used internally
 	// when an image needs to be generated. In case the user request to generate an image with custom parameters,
 	// and the generation failed, the value of ImageGenerated will be set to 'false'. In that case, providing the
