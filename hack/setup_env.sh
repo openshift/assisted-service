@@ -77,7 +77,7 @@ function assisted_service() {
     rm -f /tmp/kubectl
 
   $(get_package_manager) install -y --setopt=skip_missing_names_on_install=False \
-    unzip diffutils python3-pip genisoimage skopeo && dnf clean all && rm -rf /var/cache/yum
+    unzip diffutils python3-pip genisoimage skopeo openssl-devel && dnf clean all && rm -rf /var/cache/yum
 
   jq
 
