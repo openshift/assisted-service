@@ -21,16 +21,3 @@ updates:
         patterns:
           - "*"
 
-  - package-ecosystem: "docker"
-    directory: "/"
-    schedule:
-      interval: "weekly"
-    labels:
-      - "dependabot"
-      - "docker"
-    commit-message:
-      prefix: "NO-ISSUE"
-    groups:
-      docker-dependencies:
-        patterns:
-          - "*"
