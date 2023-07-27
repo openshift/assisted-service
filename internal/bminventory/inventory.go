@@ -1560,15 +1560,25 @@ func (b *bareMetalInventory) GetClusterSupportedPlatformsInternal(
 		b.log.Infof("GetSupportedPlatforms - No hosts or cluster is SNO, setting supported-platform to [%s]", models.PlatformTypeNone)
 		return &[]models.PlatformType{models.PlatformTypeNone}, nil
 	}
-	hostSupportedPlatforms, err := b.providerRegistry.GetSupportedProvidersByHosts(cluster.Hosts)
+	hostsSupportedPlatforms, err := b.providerRegistry.GetSupportedProvidersByHosts(cluster.Hosts)
 	if err != nil {
 		err2 := fmt.Errorf("error while checking supported platforms, error: %w", err)
 		b.log.Error(err2.Error())
 		return nil, err2
 	}
+	var supportedPlatforms []models.PlatformType
+	for _, platformType := range hostsSupportedPlatforms {
+		featureId := provider.GetPlatformFeatureID(platformType)
+		if featureId == "" || featuresupport.IsFeatureAvailable(featureId, cluster.OpenshiftVersion, &cluster.CPUArchitecture) {
+			supportedPlatforms = append(supportedPlatforms, platformType)
+		} else {
+			b.log.Debugf("The platform %s was removed from cluster %s supported-platforms because it is not compatible with "+
+				"OpenShift version %s and CPU architecture %s", platformType, cluster.ID.String(), cluster.OpenshiftVersion, cluster.CPUArchitecture)
+		}
+	}
 
-	b.log.Infof("Found %d supported-platforms for cluster %s", len(hostSupportedPlatforms), cluster.ID)
-	return &hostSupportedPlatforms, nil
+	b.log.Infof("Found %d supported-platforms for cluster %s", len(supportedPlatforms), cluster.ID)
+	return &supportedPlatforms, nil
 }
 
 func (b *bareMetalInventory) GetClusterSupportedPlatforms(ctx context.Context, params installer.GetClusterSupportedPlatformsParams) middleware.Responder {
