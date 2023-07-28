@@ -244,6 +244,16 @@ func (r *ClusterDeploymentsReconciler) Reconcile(origCtx context.Context, req ct
 			log.WithError(err).Error("failed to get pull secret")
 			return r.updateStatus(ctx, log, clusterInstall, nil, err)
 		}
+		if clusterDeployment.Spec.InstallAttemptsLimit != nil && clusterDeployment.Status.InstallRestarts >= int(*clusterDeployment.Spec.InstallAttemptsLimit) {
+			// Hold the installation and set the restarts counter to zero
+			clusterInstall.Spec.HoldInstallation = true
+			clusterDeployment.Status.InstallRestarts = 0
+			if updateErr := r.Status().Update(ctx, clusterDeployment); updateErr != nil {
+				log.WithError(updateErr).Error("failed to update ClusterDeployment Status")
+				return ctrl.Result{Requeue: true}, nil
+			}
+		}
+
 		return r.installDay1(ctx, log, clusterDeployment, clusterInstall, cluster, pullSecret)
 	} else if swag.StringValue(cluster.Kind) == models.ClusterKindAddHostsCluster {
 		// Day 2
@@ -388,6 +398,12 @@ func (r *ClusterDeploymentsReconciler) installDay1(ctx context.Context, log logr
 			ClusterID: *cluster.ID,
 		})
 		if err != nil {
+			// Increment the installation attempts counter
+			clusterDeployment.Status.InstallRestarts += 1
+			if updateErr := r.Status().Update(ctx, clusterDeployment); updateErr != nil {
+				log.WithError(updateErr).Error("failed to update ClusterDeployment Status")
+				return ctrl.Result{Requeue: true}, nil
+			}
 			log.WithError(err).Error("failed to start cluster install")
 			return r.updateStatus(ctx, log, clusterInstall, cluster, err)
 		}
@@ -1673,6 +1689,11 @@ func (r *ClusterDeploymentsReconciler) SetupWithManager(mgr ctrl.Manager) error 
 		Complete(r)
 }
 
+func (r *ClusterDeploymentsReconciler) getLastInstallationPreparationFailureMessage(ctx context.Context, c *common.Cluster) string {
+	//TODO: Need to look into whether or not the current error capture is broad enough.
+	return c.InstallationPreparationCompletionStatusText
+}
+
 // updateStatus is updating all the AgentClusterInstall Conditions.
 // In case that an error has occurred when trying to sync the Spec, the error (syncErr) is presented in SpecSyncedCondition.
 // Internal bool differentiate between backend server error (internal HTTP 5XX) and user input error (HTTP 4XXX)
@@ -1726,6 +1747,8 @@ func (r *ClusterDeploymentsReconciler) updateStatus(ctx context.Context, log log
 			clusterCompleted(clusterInstall, status, swag.StringValue(c.StatusInfo), c.MonitoredOperators)
 			clusterFailed(clusterInstall, status, swag.StringValue(c.StatusInfo))
 			clusterStopped(clusterInstall, status)
+			// The field InstallationPreparationCompletionStatusText of the cluster will contain the last preparation failure.
+			updateClusterInstallationHeldCondition(clusterInstall, clusterInstall.Spec.HoldInstallation, r.getLastInstallationPreparationFailureMessage(ctx, c))
 		}
 
 		if c.ValidationsInfo != "" {
@@ -2013,6 +2036,29 @@ func clusterStopped(clusterInstall *hiveext.AgentClusterInstall, status string) 
 	}
 	setClusterCondition(&clusterInstall.Status.Conditions, hivev1.ClusterInstallCondition{
 		Type:    hiveext.ClusterStoppedCondition,
+		Status:  condStatus,
+		Reason:  reason,
+		Message: msg,
+	})
+}
+
+func updateClusterInstallationHeldCondition(clusterInstall *hiveext.AgentClusterInstall, isHeld bool, lastKnownFailure string) {
+	var condStatus corev1.ConditionStatus
+	var reason string
+	var msg string
+
+	if isHeld {
+		condStatus = corev1.ConditionTrue
+		reason = "InstallationHeldDueToFailures"
+		msg = fmt.Sprintf("The installation has been held due to and excessive number of failures, the last known failure was: %s", lastKnownFailure)
+	} else {
+		condStatus = corev1.ConditionFalse
+		reason = "InstallationNotFailed"
+		msg = "InstallationNotHeld"
+	}
+
+	setClusterCondition(&clusterInstall.Status.Conditions, hivev1.ClusterInstallCondition{
+		Type:    hiveext.ClusterInstallationHeldCondition,
 		Status:  condStatus,
 		Reason:  reason,
 		Message: msg,

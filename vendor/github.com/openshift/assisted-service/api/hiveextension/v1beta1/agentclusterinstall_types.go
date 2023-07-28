@@ -52,6 +52,8 @@ const (
 	ClusterNotStoppedReason       string = "InstallationNotStopped"
 	ClusterNotStoppedMsg          string = "The installation is waiting to start or in progress"
 
+	ClusterInstallationHeldCondition string = "ClusterInstallHeld"
+
 	ClusterInstalledReason              string = "InstallationCompleted"
 	ClusterInstalledMsg                 string = "The installation has completed:"
 	ClusterInstallationFailedReason     string = "InstallationFailed"
