@@ -193,6 +193,40 @@ func RegisterExtraManifests(fsys fs.FS, ctx context.Context, log *log.Logger, cl
 	return nil
 }
 
+func GetCluster(ctx context.Context, log *log.Logger, bmInventory *client.AssistedInstall) (cluster *models.Cluster, err error) {
+	list, err := bmInventory.Installer.V2ListClusters(ctx, &installer.V2ListClustersParams{})
+	if err != nil {
+		return nil, err
+	}
+	clusterList := list.Payload
+	numClusters := len(clusterList)
+	if numClusters > 1 {
+		errorMessage := "found multiple clusters registered in assisted-service"
+		return nil, errors.New(errorMessage)
+	}
+	if numClusters == 0 {
+		return nil, errors.New("No clusters registered in assisted-service")
+	}
+	return clusterList[0], nil
+}
+
+func GetInfraEnv(ctx context.Context, log *log.Logger, bmInventory *client.AssistedInstall) (infraEnv *models.InfraEnv, err error) {
+	list, err := bmInventory.Installer.ListInfraEnvs(ctx, &installer.ListInfraEnvsParams{})
+	if err != nil {
+		return nil, err
+	}
+	infraEnvList := list.Payload
+	numInfraEnvs := len(infraEnvList)
+	if numInfraEnvs > 1 {
+		errorMessage := "found multiple infraenvs registered in assisted-service"
+		return nil, errors.New(errorMessage)
+	}
+	if numInfraEnvs == 0 {
+		return nil, errors.New("No infraenvs registered in assisted-service")
+	}
+	return infraEnvList[0], nil
+}
+
 // Read a Yaml file and unmarshal the contents
 func getFileData(filePath string, output interface{}) error {
 
