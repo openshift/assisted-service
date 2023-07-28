@@ -91,7 +91,14 @@ func main() {
 	}
 	switch os.Args[1] {
 	case "register":
+		// registers both cluster and infraenv
 		infraEnvID := register(ctx, log, bmInventory)
+		os.WriteFile("/etc/assisted/client_config", []byte("INFRA_ENV_ID="+infraEnvID), 0644)
+	case "registerCluster":
+		clusterID := registerCluster(ctx, log, bmInventory)
+		os.WriteFile("/etc/assisted/client_config", []byte("CLUSTER_ID="+clusterID), 0644)
+	case "registerInfraEnv":
+		infraEnvID := registerInfraEnv(ctx, log, bmInventory)
 		os.WriteFile("/etc/assisted/client_config", []byte("INFRA_ENV_ID="+infraEnvID), 0644)
 	case "configure":
 		configure(ctx, log, bmInventory)
@@ -125,6 +132,70 @@ func register(ctx context.Context, log *log.Logger, bmInventory *client.Assisted
 	err = agentbasedinstaller.RegisterExtraManifests(os.DirFS(RegisterOptions.ExtraManifests), ctx, log, bmInventory.Manifests, modelsCluster)
 	if err != nil {
 		log.Fatal("Failed to register extra manifests with assisted-service: ", err)
+	}
+
+	return modelsInfraEnv.ID.String()
+}
+
+func registerCluster(ctx context.Context, log *log.Logger, bmInventory *client.AssistedInstall) string {
+	err := envconfig.Process("", &RegisterOptions)
+	if err != nil {
+		log.Fatal(err.Error())
+	}
+
+	existingCluster, err := agentbasedinstaller.GetCluster(ctx, log, bmInventory)
+	if err == nil {
+		log.Infof("Skipping cluster registration. Found existing cluster with id: %s", existingCluster.ID.String())
+		return existingCluster.ID.String()
+	}
+
+	pullSecret, err := agentbasedinstaller.GetPullSecret(RegisterOptions.PullSecretFile)
+	if err != nil {
+		log.Fatal("Failed to get pull secret: ", err.Error())
+	}
+
+	modelsCluster, err := agentbasedinstaller.RegisterCluster(ctx, log, bmInventory, pullSecret,
+		RegisterOptions.ClusterDeploymentFile, RegisterOptions.AgentClusterInstallFile, RegisterOptions.ClusterImageSetFile, RegisterOptions.ReleaseImageMirror)
+	if err != nil {
+		log.Fatal("Failed to register cluster with assisted-service: ", err)
+	}
+
+	err = agentbasedinstaller.RegisterExtraManifests(os.DirFS(RegisterOptions.ExtraManifests), ctx, log, bmInventory.Manifests, modelsCluster)
+	if err != nil {
+		log.Fatal("Failed to register extra manifests with assisted-service: ", err)
+	}
+
+	return modelsCluster.ID.String()
+}
+
+func registerInfraEnv(ctx context.Context, log *log.Logger, bmInventory *client.AssistedInstall) string {
+	err := envconfig.Process("", &RegisterOptions)
+	if err != nil {
+		log.Fatal(err.Error())
+	}
+
+	existingInfraEnv, err := agentbasedinstaller.GetInfraEnv(ctx, log, bmInventory)
+	if err == nil {
+		log.Infof("Skipping infraenv registration. Found existing infraenv with id: %s", existingInfraEnv.ID.String())
+		return existingInfraEnv.ID.String()
+	}
+
+	pullSecret, err := agentbasedinstaller.GetPullSecret(RegisterOptions.PullSecretFile)
+	if err != nil {
+		log.Fatal("Failed to get pull secret: ", err.Error())
+	}
+
+	modelsCluster, err := agentbasedinstaller.GetCluster(ctx, log, bmInventory)
+	if err != nil {
+		log.Fatal("Failed to find cluster when registering infraenv: ", err)
+	} else {
+		log.Infof("Reference to cluster id: %s", modelsCluster.ID.String())
+	}
+
+	modelsInfraEnv, err := agentbasedinstaller.RegisterInfraEnv(ctx, log, bmInventory, pullSecret,
+		modelsCluster, RegisterOptions.InfraEnvFile, RegisterOptions.NMStateConfigFile, RegisterOptions.ImageTypeISO, "")
+	if err != nil {
+		log.Fatal("Failed to register infraenv with assisted-service: ", err)
 	}
 
 	return modelsInfraEnv.ID.String()
