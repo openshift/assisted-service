@@ -244,6 +244,7 @@ type IgnitionConfig struct {
 	ServiceCACertPath    string        `envconfig:"SERVICE_CA_CERT_PATH" default:""`
 	ServiceIPs           string        `envconfig:"SERVICE_IPS" default:""`
 	SkipCertVerification bool          `envconfig:"SKIP_CERT_VERIFICATION" default:"false"`
+	EnableOKDSupport     bool          `envconfig:"ENABLE_OKD_SUPPORT" default:"true"`
 	OKDRPMsImage         string        `envconfig:"OKD_RPMS_IMAGE" default:""`
 }
 
@@ -1627,6 +1628,9 @@ func SetHostnameForNodeIgnition(ignition []byte, host *models.Host) ([]byte, err
 }
 
 func (ib *ignitionBuilder) shouldAppendOKDFiles(ctx context.Context, infraEnv *common.InfraEnv, cfg IgnitionConfig) (string, bool) {
+	if !cfg.EnableOKDSupport {
+		return "", false
+	}
 	// Use OKD override if OKD_RPMS_IMAGE explicitly set in config
 	if cfg.OKDRPMsImage != "" {
 		return cfg.OKDRPMsImage, true
