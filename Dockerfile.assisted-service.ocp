@@ -23,6 +23,8 @@ LABEL io.openshift.release.operator=true
 # https://issues.redhat.com/browse/AGENT-223
 RUN dnf install -y postgresql-server libvirt-libs nmstate nmstate-libs && dnf clean all
 
+RUN dnf update libksba libxml2 -y && dnf clean all
+
 COPY hack/agent_installer/start_db.sh start_db.sh
 
 RUN su - postgres -c "mkdir -p /tmp/postgres/data"
