@@ -12617,6 +12617,11 @@ var _ = Describe("GetSupportedPlatformsFromInventory", func() {
 		addHost(clusterId, vsphereInventory, role)
 	}
 
+	addNutanixHost := func(clusterId strfmt.UUID, role models.HostRole) {
+		const vsphereInventory = "{\"system_vendor\": {\"manufacturer\": \"Nutanix\", \"product_name\": \"AHV\", \"serial_number\": \"7A8EB5A3-BB97-462B-9E65-92641F3C790F\", \"virtual\": true}}"
+		addHost(clusterId, vsphereInventory, role)
+	}
+
 	validateInventory := func(host models.Host, manufacturer string) bool {
 		var inventory models.Inventory
 		if err := json.Unmarshal([]byte(host.Inventory), &inventory); err != nil {
@@ -12674,6 +12679,54 @@ var _ = Describe("GetSupportedPlatformsFromInventory", func() {
 		mockProviderRegistry.EXPECT().GetSupportedProvidersByHosts(gomock.Any())
 		platformReplay := bm.GetClusterSupportedPlatforms(ctx, installer.GetClusterSupportedPlatformsParams{ClusterID: clusterID})
 		Expect(platformReplay).Should(BeAssignableToTypeOf(installer.NewGetClusterSupportedPlatformsOK()))
+	})
+
+	It("Unsupported platform - nutanix", func() {
+		c.OpenshiftVersion = "4.10"
+		db.Save(c)
+
+		addNutanixHost(clusterID, models.HostRoleMaster)
+		addNutanixHost(clusterID, models.HostRoleMaster)
+		addNutanixHost(clusterID, models.HostRoleMaster)
+		expectedPlatforms := []models.PlatformType{"none", "nutanix", "baremetal"}
+		mockProviderRegistry.EXPECT().GetSupportedProvidersByHosts(gomock.Any()).Return(expectedPlatforms, nil)
+		platformReplay := bm.GetClusterSupportedPlatforms(ctx, installer.GetClusterSupportedPlatformsParams{ClusterID: clusterID})
+		platforms := platformReplay.(*installer.GetClusterSupportedPlatformsOK).Payload
+		Expect(len(platforms)).Should(Equal(2))
+		Expect(platforms).To(Not(ContainElement(models.PlatformTypeNutanix)))
+
+		// Nutanix is supported platform on OCP > 4.11
+		c.OpenshiftVersion = "4.12"
+		db.Save(c)
+		mockProviderRegistry.EXPECT().GetSupportedProvidersByHosts(gomock.Any()).Return(expectedPlatforms, nil)
+		platformReplay = bm.GetClusterSupportedPlatforms(ctx, installer.GetClusterSupportedPlatformsParams{ClusterID: clusterID})
+		platforms = platformReplay.(*installer.GetClusterSupportedPlatformsOK).Payload
+		Expect(len(platforms)).Should(Equal(3))
+		Expect(platforms).To(ContainElement(models.PlatformTypeNutanix))
+	})
+
+	It("Unsupported platform - oci", func() {
+		c.OpenshiftVersion = "4.13"
+		db.Save(c)
+
+		addNutanixHost(clusterID, models.HostRoleMaster)
+		addNutanixHost(clusterID, models.HostRoleMaster)
+		addNutanixHost(clusterID, models.HostRoleMaster)
+		expectedPlatforms := []models.PlatformType{"none", "oci", "baremetal"}
+		mockProviderRegistry.EXPECT().GetSupportedProvidersByHosts(gomock.Any()).Return(expectedPlatforms, nil)
+		platformReplay := bm.GetClusterSupportedPlatforms(ctx, installer.GetClusterSupportedPlatformsParams{ClusterID: clusterID})
+		platforms := platformReplay.(*installer.GetClusterSupportedPlatformsOK).Payload
+		Expect(len(platforms)).Should(Equal(2))
+		Expect(platforms).To(Not(ContainElement(models.PlatformTypeOci)))
+
+		// OCI is supported platform on OCP > 4.13
+		c.OpenshiftVersion = "4.14"
+		db.Save(c)
+		mockProviderRegistry.EXPECT().GetSupportedProvidersByHosts(gomock.Any()).Return(expectedPlatforms, nil)
+		platformReplay = bm.GetClusterSupportedPlatforms(ctx, installer.GetClusterSupportedPlatformsParams{ClusterID: clusterID})
+		platforms = platformReplay.(*installer.GetClusterSupportedPlatformsOK).Payload
+		Expect(len(platforms)).Should(Equal(3))
+		Expect(platforms).To(ContainElement(models.PlatformTypeOci))
 	})
 })
 
