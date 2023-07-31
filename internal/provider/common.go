@@ -242,3 +242,16 @@ func GetActualCreateClusterPlatformParams(platform *models.Platform, userManaged
 	}
 	return GetClusterPlatformByHighAvailabilityMode(platform, userManagedNetworking, highAvailabilityMode)
 }
+
+func GetPlatformFeatureID(platformType models.PlatformType) models.FeatureSupportLevelID {
+	switch platformType {
+	case models.PlatformTypeOci:
+		return models.FeatureSupportLevelIDEXTERNALPLATFORMOCI
+	case models.PlatformTypeVsphere:
+		return models.FeatureSupportLevelIDVSPHEREINTEGRATION
+	case models.PlatformTypeNutanix:
+		return models.FeatureSupportLevelIDNUTANIXINTEGRATION
+	default:
+		return "" // Return empty string on platform without a feature support ID
+	}
+}
