@@ -198,6 +198,8 @@ parameters:
 - name: INSTALLER_CACHE_CAPACITY
   value: "6442450944"
   required: false
+- name: ENABLE_OKD_SUPPORT
+  value: "false"
 apiVersion: v1
 kind: Template
 metadata:
@@ -455,6 +457,8 @@ objects:
                 value: ${ENABLE_DATA_COLLECTION}
               - name: INSTALLER_CACHE_CAPACITY
                 value: ${INSTALLER_CACHE_CAPACITY}
+              - name: ENABLE_OKD_SUPPORT
+                value: ${ENABLE_OKD_SUPPORT}
             volumeMounts:
               - name: route53-creds
                 mountPath: "/etc/.aws"
