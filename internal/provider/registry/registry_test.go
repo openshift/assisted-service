@@ -30,14 +30,14 @@ const expectedNutanixInstallConfig411 = `apiVIP: 192.168.10.10
 ingressVIP: 192.168.10.11
 prismCentral:
   endpoint:
-    address: 1.1.1.1
-    port: 8080
+    address: prism.central.placeholder.address
+    port: 9440
   username: username_placeholder
   password: password_placeholder
 prismElements:
 - endpoint:
-    address: 1.1.1.1
-    port: 8080
+    address: prism.element.placeholder.address
+    port: 9440
   uuid: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
   name: prism_endpoint_name_placeholder
 subnetUUIDs:
@@ -49,14 +49,14 @@ ingressVIPs:
 - 192.168.10.11
 prismCentral:
   endpoint:
-    address: 1.1.1.1
-    port: 8080
+    address: prism.central.placeholder.address
+    port: 9440
   username: username_placeholder
   password: password_placeholder
 prismElements:
 - endpoint:
-    address: 1.1.1.1
-    port: 8080
+    address: prism.element.placeholder.address
+    port: 9440
   uuid: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
   name: prism_endpoint_name_placeholder
 subnetUUIDs:

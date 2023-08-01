@@ -35,6 +35,15 @@ func (p nutanixProvider) PostCreateManifestsHook(_ *common.Cluster, _ *[]string,
 		return fmt.Errorf("error deleting machineset: %w", err)
 	}
 
+	// Delete control-plane-machine-set
+	p.Log.Info("Deleting control-plane machine set")
+	files, _ = filepath.Glob(path.Join(workDir, "openshift", "*_openshift-machine-api_master-control-plane-machine-set*.yaml"))
+	err = p.deleteAllFiles(files)
+
+	if err != nil {
+		return fmt.Errorf("error deleting control-plane machineset: %w", err)
+	}
+
 	return nil
 }
 
