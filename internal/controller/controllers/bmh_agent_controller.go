@@ -1359,6 +1359,9 @@ func (r *BMACReconciler) newSpokeBMH(log logrus.FieldLogger, bmh *bmh_v1alpha1.B
 		},
 	}
 	mutateFn := func() error {
+		// inspection must be disabled when providing hardware details
+		// ensure it is always disabled even for converged
+		setAnnotation(&bmhSpoke.ObjectMeta, BMH_INSPECT_ANNOTATION, "disabled")
 		bmhSpoke.Spec = bmh.Spec
 		// remove the credentials from the spoke's Spec so
 		// that BMO will set the status to unmanaged
