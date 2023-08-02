@@ -860,6 +860,7 @@ func NewHostStateMachine(sm stateswitch.StateMachine, th TransitionHandler) stat
 			stateswitch.State(models.HostStatusDiscovering),
 			stateswitch.State(models.HostStatusInsufficient),
 			stateswitch.State(models.HostStatusKnown),
+			stateswitch.State(models.HostStatusPendingForInput),
 		},
 		Condition: stateswitch.And(If(IsConnected), If(IsMediaConnected), If(HasInventory),
 			stateswitch.Not(hasMinRequiredHardware)),
