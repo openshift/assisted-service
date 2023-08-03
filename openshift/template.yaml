@@ -200,6 +200,8 @@ parameters:
   required: false
 - name: ENABLE_OKD_SUPPORT
   value: "false"
+- name: ENVOY_CONFIGMAP_NAME
+  value: assisted-service-envoy-config
 apiVersion: v1
 kind: Template
 metadata:
@@ -474,7 +476,7 @@ objects:
               optional: true
           - name: envoy-config
             configMap:
-              name: assisted-service-envoy-config
+              name: ${ENVOY_CONFIGMAP_NAME}
 - apiVersion: v1
   kind: Service
   metadata:
