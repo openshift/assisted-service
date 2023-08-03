@@ -8,7 +8,6 @@ import (
 	reflect "reflect"
 
 	gomock "github.com/golang/mock/gomock"
-	models "github.com/openshift/assisted-service/models"
 	logrus "github.com/sirupsen/logrus"
 )
 
@@ -36,18 +35,18 @@ func (m *MockRelease) EXPECT() *MockReleaseMockRecorder {
 }
 
 // Extract mocks base method.
-func (m *MockRelease) Extract(log logrus.FieldLogger, releaseImage, releaseImageMirror, cacheDir, pullSecret string, platformType models.PlatformType, icspFile string) (string, error) {
+func (m *MockRelease) Extract(log logrus.FieldLogger, releaseImage, releaseImageMirror, cacheDir, pullSecret string) (string, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Extract", log, releaseImage, releaseImageMirror, cacheDir, pullSecret, platformType, icspFile)
+	ret := m.ctrl.Call(m, "Extract", log, releaseImage, releaseImageMirror, cacheDir, pullSecret)
 	ret0, _ := ret[0].(string)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // Extract indicates an expected call of Extract.
-func (mr *MockReleaseMockRecorder) Extract(log, releaseImage, releaseImageMirror, cacheDir, pullSecret, platformType, icspFile interface{}) *gomock.Call {
+func (mr *MockReleaseMockRecorder) Extract(log, releaseImage, releaseImageMirror, cacheDir, pullSecret interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Extract", reflect.TypeOf((*MockRelease)(nil).Extract), log, releaseImage, releaseImageMirror, cacheDir, pullSecret, platformType, icspFile)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Extract", reflect.TypeOf((*MockRelease)(nil).Extract), log, releaseImage, releaseImageMirror, cacheDir, pullSecret)
 }
 
 // GetIronicAgentImage mocks base method.
@@ -156,9 +155,9 @@ func (mr *MockReleaseMockRecorder) GetReleaseArchitecture(log, releaseImage, rel
 }
 
 // GetReleaseBinaryPath mocks base method.
-func (m *MockRelease) GetReleaseBinaryPath(releaseImage, cacheDir string, platformType models.PlatformType) (string, string, string) {
+func (m *MockRelease) GetReleaseBinaryPath(releaseImage, cacheDir string) (string, string, string) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetReleaseBinaryPath", releaseImage, cacheDir, platformType)
+	ret := m.ctrl.Call(m, "GetReleaseBinaryPath", releaseImage, cacheDir)
 	ret0, _ := ret[0].(string)
 	ret1, _ := ret[1].(string)
 	ret2, _ := ret[2].(string)
@@ -166,7 +165,7 @@ func (m *MockRelease) GetReleaseBinaryPath(releaseImage, cacheDir string, platfo
 }
 
 // GetReleaseBinaryPath indicates an expected call of GetReleaseBinaryPath.
-func (mr *MockReleaseMockRecorder) GetReleaseBinaryPath(releaseImage, cacheDir, platformType interface{}) *gomock.Call {
+func (mr *MockReleaseMockRecorder) GetReleaseBinaryPath(releaseImage, cacheDir interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetReleaseBinaryPath", reflect.TypeOf((*MockRelease)(nil).GetReleaseBinaryPath), releaseImage, cacheDir, platformType)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetReleaseBinaryPath", reflect.TypeOf((*MockRelease)(nil).GetReleaseBinaryPath), releaseImage, cacheDir)
 }

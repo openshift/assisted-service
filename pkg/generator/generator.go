@@ -5,12 +5,10 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/go-openapi/swag"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/ignition"
 	"github.com/openshift/assisted-service/internal/operators"
 	"github.com/openshift/assisted-service/internal/provider/registry"
-	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/auth"
 	logutil "github.com/openshift/assisted-service/pkg/log"
 	"github.com/openshift/assisted-service/pkg/s3wrapper"
@@ -104,7 +102,7 @@ func (k *installGenerator) GenerateInstallConfig(ctx context.Context, cluster co
 		generator = ignition.NewGenerator(k.ServiceBaseURL, clusterWorkDir, installerCacheDir, &cluster, releaseImage, k.Config.ReleaseImageMirror,
 			k.Config.ServiceCACertPath, k.Config.InstallInvoker, k.s3Client, log, k.operatorsApi, k.providerRegistry, installerReleaseImageOverride, k.clusterTLSCertOverrideDir, k.InstallerCacheCapacity)
 	}
-	err = generator.Generate(ctx, cfg, k.getClusterPlatformType(cluster), k.authHandler.AuthType())
+	err = generator.Generate(ctx, cfg, k.authHandler.AuthType())
 	if err != nil {
 		return err
 	}
@@ -123,12 +121,4 @@ func (k *installGenerator) GenerateInstallConfig(ctx context.Context, cluster co
 	}
 
 	return nil
-}
-
-func (k *installGenerator) getClusterPlatformType(cluster common.Cluster) models.PlatformType {
-	// Enabled UserManagedNetworking implies none platform.
-	if swag.BoolValue(cluster.UserManagedNetworking) {
-		return models.PlatformTypeNone
-	}
-	return common.PlatformTypeValue(cluster.Platform.Type)
 }
