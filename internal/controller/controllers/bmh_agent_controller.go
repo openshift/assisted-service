@@ -838,6 +838,15 @@ func (r *BMACReconciler) reconcileBMH(ctx context.Context, log logrus.FieldLogge
 	log.Debugf("Started BMH reconcile")
 	log.Debugf("BMH value %v", bmh)
 
+	infraEnv, err := r.findInfraEnvForBMH(ctx, log, bmh)
+	if err != nil {
+		return reconcileError{err: err}
+	}
+	// Stop `Reconcile` if BMH does not have an InfraEnv.
+	if infraEnv == nil {
+		return reconcileComplete{stop: true}
+	}
+
 	// A detached BMH is considered to be unmanaged by the hub
 	// cluster and, therefore, BMAC reconciles on this BMH should
 	// not happen.
@@ -854,17 +863,6 @@ func (r *BMACReconciler) reconcileBMH(ctx context.Context, log logrus.FieldLogge
 		}
 		log.Debugf("Stopped BMH reconcile because it has been detached")
 		return result
-	}
-
-	infraEnv, err := r.findInfraEnvForBMH(ctx, log, bmh)
-
-	if err != nil {
-		return reconcileError{err: err}
-	}
-
-	// Stop `Reconcile` if BMH does not have an InfraEnv.
-	if infraEnv == nil {
-		return reconcileComplete{stop: true}
 	}
 
 	dirty := false
