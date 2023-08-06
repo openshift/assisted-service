@@ -2892,15 +2892,20 @@ var _ = Describe("Refresh Host", func() {
 				errorExpected:     false,
 			},
 			{
-				name:              "pending to insufficient (1)",
-				role:              models.HostRoleAutoAssign,
-				validCheckInTime:  true,
-				srcState:          models.HostStatusPendingForInput,
-				dstState:          models.HostStatusPendingForInput,
-				statusInfoChecker: makeValueChecker(""),
+				name:             "pending to insufficient (1)",
+				role:             models.HostRoleAutoAssign,
+				validCheckInTime: true,
+				srcState:         models.HostStatusPendingForInput,
+				dstState:         models.HostStatusInsufficient,
+				statusInfoChecker: makeValueChecker("Host does not meet the minimum hardware requirements: Host " +
+					"couldn't synchronize with any NTP server ; Machine Network CIDR is undefined; the Machine Network " +
+					"CIDR can be defined by setting either the API or Ingress virtual IPs ; No eligible disks were found, " +
+					"please check specific disks to see why they are not eligible ; Require at least 8.00 GiB RAM for role " +
+					"worker, found only 130 bytes ; The host is not eligible to participate in Openshift Cluster because " +
+					"the minimum required RAM for any role is 8.00 GiB, found only 130 bytes"),
 				inventory:         insufficientHWInventory(),
 				domainResolutions: common.TestDomainNameResolutionsSuccess,
-				errorExpected:     true,
+				errorExpected:     false,
 			},
 			{
 				name:             "known to insufficient - auto-assign casted as worker (1)",
