@@ -9,6 +9,7 @@ import (
 
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
+	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/client/installer"
@@ -21,13 +22,16 @@ import (
 	"github.com/openshift/assisted-service/internal/operators/lvm"
 	"github.com/openshift/assisted-service/internal/operators/mce"
 	"github.com/openshift/assisted-service/internal/operators/odf"
+	"github.com/openshift/assisted-service/internal/versions"
 	"github.com/openshift/assisted-service/models"
 )
 
 var _ = Describe("Operators endpoint tests", func() {
 
 	var (
-		clusterID strfmt.UUID
+		clusterID          strfmt.UUID
+		mockVersionHandler *versions.MockHandler
+		ctrl               *gomock.Controller
 	)
 
 	Context("supported-operators", func() {
@@ -61,7 +65,10 @@ var _ = Describe("Operators endpoint tests", func() {
 			cluster := reply.GetPayload()
 			c := &common.Cluster{Cluster: *cluster}
 
-			for _, builtinOperator := range operators.NewManager(log, nil, operators.Options{}, nil, nil).GetSupportedOperatorsByType(models.OperatorTypeBuiltin) {
+			ctrl = gomock.NewController(GinkgoT())
+			mockVersionHandler = versions.NewMockHandler(ctrl)
+			mockVersionHandler.EXPECT().GetDefaultReleaseImage(gomock.Any()).Return(common.TestDefaultConfig.ReleaseImage, nil)
+			for _, builtinOperator := range operators.NewManager(log, nil, operators.Options{}, nil, nil, mockVersionHandler).GetSupportedOperatorsByType(models.OperatorTypeBuiltin) {
 				Expect(operators.IsEnabled(c.MonitoredOperators, builtinOperator.Name)).Should(BeTrue())
 			}
 		})
@@ -283,7 +290,10 @@ var _ = Describe("Operators endpoint tests", func() {
 			}
 
 			// Builtin
-			for _, builtinOperator := range operators.NewManager(log, nil, operators.Options{}, nil, nil).GetSupportedOperatorsByType(models.OperatorTypeBuiltin) {
+			ctrl = gomock.NewController(GinkgoT())
+			mockVersionHandler = versions.NewMockHandler(ctrl)
+			mockVersionHandler.EXPECT().GetDefaultReleaseImage(gomock.Any()).Return(common.TestDefaultConfig.ReleaseImage, nil)
+			for _, builtinOperator := range operators.NewManager(log, nil, operators.Options{}, nil, nil, mockVersionHandler).GetSupportedOperatorsByType(models.OperatorTypeBuiltin) {
 				Expect(operatorNames).To(ContainElements(builtinOperator.Name))
 			}
 
@@ -362,7 +372,10 @@ var _ = Describe("Operators endpoint tests", func() {
 			}
 
 			// Builtin
-			for _, builtinOperator := range operators.NewManager(log, nil, operators.Options{}, nil, nil).GetSupportedOperatorsByType(models.OperatorTypeBuiltin) {
+			ctrl = gomock.NewController(GinkgoT())
+			mockVersionHandler = versions.NewMockHandler(ctrl)
+			mockVersionHandler.EXPECT().GetDefaultReleaseImage(gomock.Any()).Return(common.TestDefaultConfig.ReleaseImage, nil)
+			for _, builtinOperator := range operators.NewManager(log, nil, operators.Options{}, nil, nil, mockVersionHandler).GetSupportedOperatorsByType(models.OperatorTypeBuiltin) {
 				Expect(operatorNames).To(ContainElements(builtinOperator.Name))
 			}
 
@@ -453,7 +466,10 @@ var _ = Describe("Operators endpoint tests", func() {
 			}
 
 			// Builtin
-			for _, builtinOperator := range operators.NewManager(log, nil, operators.Options{}, nil, nil).GetSupportedOperatorsByType(models.OperatorTypeBuiltin) {
+			ctrl = gomock.NewController(GinkgoT())
+			mockVersionHandler = versions.NewMockHandler(ctrl)
+			mockVersionHandler.EXPECT().GetDefaultReleaseImage(gomock.Any()).Return(common.TestDefaultConfig.ReleaseImage, nil)
+			for _, builtinOperator := range operators.NewManager(log, nil, operators.Options{}, nil, nil, mockVersionHandler).GetSupportedOperatorsByType(models.OperatorTypeBuiltin) {
 				Expect(operatorNames).To(ContainElements(builtinOperator.Name))
 			}
 

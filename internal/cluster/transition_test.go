@@ -26,6 +26,7 @@ import (
 	"github.com/openshift/assisted-service/internal/metrics"
 	"github.com/openshift/assisted-service/internal/operators"
 	"github.com/openshift/assisted-service/internal/uploader"
+	"github.com/openshift/assisted-service/internal/versions"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/ocm"
 	"github.com/openshift/assisted-service/pkg/s3wrapper"
@@ -397,14 +398,15 @@ var _ = Describe("Transition tests", func() {
 
 var _ = Describe("Cancel cluster installation", func() {
 	var (
-		ctx               = context.Background()
-		dbName            string
-		capi              API
-		db                *gorm.DB
-		ctrl              *gomock.Controller
-		mockEventsHandler *eventsapi.MockHandler
-		mockMetric        *metrics.MockAPI
-		uploadClient      uploader.Client
+		ctx                = context.Background()
+		dbName             string
+		capi               API
+		db                 *gorm.DB
+		ctrl               *gomock.Controller
+		mockEventsHandler  *eventsapi.MockHandler
+		mockMetric         *metrics.MockAPI
+		uploadClient       uploader.Client
+		mockVersionHandler *versions.MockHandler
 	)
 
 	BeforeEach(func() {
@@ -412,7 +414,8 @@ var _ = Describe("Cancel cluster installation", func() {
 		ctrl = gomock.NewController(GinkgoT())
 		mockEventsHandler = eventsapi.NewMockHandler(ctrl)
 		mockMetric = metrics.NewMockAPI(ctrl)
-		operatorsManager := operators.NewManager(common.GetTestLog(), nil, operators.Options{}, nil, nil)
+		mockVersionHandler = versions.NewMockHandler(ctrl)
+		operatorsManager := operators.NewManager(common.GetTestLog(), nil, operators.Options{}, nil, nil, mockVersionHandler)
 		uploadClient = uploader.NewClient(&uploader.Config{EnableDataCollection: false}, nil, logrus.New(), nil)
 		capi = NewManager(getDefaultConfig(), common.GetTestLog(), db, testing.GetDummyNotificationStream(ctrl), mockEventsHandler, uploadClient, nil, mockMetric, nil, nil, operatorsManager, nil, nil, nil, nil, nil)
 	})
@@ -475,19 +478,21 @@ var _ = Describe("Cancel cluster installation", func() {
 
 var _ = Describe("Reset cluster", func() {
 	var (
-		ctx               = context.Background()
-		dbName            string
-		capi              API
-		db                *gorm.DB
-		ctrl              *gomock.Controller
-		mockEventsHandler *eventsapi.MockHandler
+		ctx                = context.Background()
+		dbName             string
+		capi               API
+		db                 *gorm.DB
+		ctrl               *gomock.Controller
+		mockEventsHandler  *eventsapi.MockHandler
+		mockVersionHandler *versions.MockHandler
 	)
 
 	BeforeEach(func() {
 		db, dbName = common.PrepareTestDB()
 		ctrl = gomock.NewController(GinkgoT())
 		mockEventsHandler = eventsapi.NewMockHandler(ctrl)
-		operatorsManager := operators.NewManager(common.GetTestLog(), nil, operators.Options{}, nil, nil)
+		mockVersionHandler = versions.NewMockHandler(ctrl)
+		operatorsManager := operators.NewManager(common.GetTestLog(), nil, operators.Options{}, nil, nil, mockVersionHandler)
 		capi = NewManager(getDefaultConfig(), common.GetTestLog(), db, testing.GetDummyNotificationStream(ctrl), mockEventsHandler, nil, nil, nil, nil, nil, operatorsManager, nil, nil, nil, nil, nil)
 	})
 
@@ -636,6 +641,7 @@ var _ = Describe("Refresh Cluster - No DHCP", func() {
 		ctrl                                    *gomock.Controller
 		dbName                                  string
 		mockS3Api                               *s3wrapper.MockAPI
+		mockVersionHandler                      *versions.MockHandler
 	)
 
 	type candidateChecker func()
@@ -656,7 +662,8 @@ var _ = Describe("Refresh Cluster - No DHCP", func() {
 		mockEvents = eventsapi.NewMockHandler(ctrl)
 		mockHostAPI = host.NewMockAPI(ctrl)
 		mockMetric = metrics.NewMockAPI(ctrl)
-		operatorsManager := operators.NewManager(common.GetTestLog(), nil, operators.Options{}, nil, nil)
+		mockVersionHandler = versions.NewMockHandler(ctrl)
+		operatorsManager := operators.NewManager(common.GetTestLog(), nil, operators.Options{}, nil, nil, mockVersionHandler)
 		mockS3Api = s3wrapper.NewMockAPI(ctrl)
 		mockS3Api.EXPECT().DoesObjectExist(gomock.Any(), gomock.Any()).Return(false, nil).AnyTimes()
 		clusterApi = NewManager(getDefaultConfig(), common.GetTestLog().WithField("pkg", "cluster-monitor"), db, testing.GetDummyNotificationStream(ctrl),
@@ -1438,6 +1445,7 @@ var _ = Describe("Refresh Cluster - Same networks", func() {
 		ctrl                                    *gomock.Controller
 		dbName                                  string
 		mockS3Api                               *s3wrapper.MockAPI
+		mockVersionHandler                      *versions.MockHandler
 	)
 
 	type candidateChecker func()
@@ -1452,7 +1460,8 @@ var _ = Describe("Refresh Cluster - Same networks", func() {
 		mockEvents = eventsapi.NewMockHandler(ctrl)
 		mockHostAPI = host.NewMockAPI(ctrl)
 		mockMetric = metrics.NewMockAPI(ctrl)
-		operatorsManager := operators.NewManager(common.GetTestLog(), nil, operators.Options{}, nil, nil)
+		mockVersionHandler = versions.NewMockHandler(ctrl)
+		operatorsManager := operators.NewManager(common.GetTestLog(), nil, operators.Options{}, nil, nil, mockVersionHandler)
 		mockS3Api = s3wrapper.NewMockAPI(ctrl)
 		mockS3Api.EXPECT().DoesObjectExist(gomock.Any(), gomock.Any()).Return(false, nil).AnyTimes()
 
@@ -1721,6 +1730,7 @@ var _ = Describe("RefreshCluster - preparing for install", func() {
 		mockMetric                  *metrics.MockAPI
 		ctrl                        *gomock.Controller
 		dbName                      string
+		mockVersionHandler          *versions.MockHandler
 	)
 
 	mockHostAPIIsRequireUserActionResetFalse := func() {
@@ -1733,7 +1743,8 @@ var _ = Describe("RefreshCluster - preparing for install", func() {
 		mockEvents = eventsapi.NewMockHandler(ctrl)
 		mockHostAPI = host.NewMockAPI(ctrl)
 		mockMetric = metrics.NewMockAPI(ctrl)
-		operatorsManager := operators.NewManager(common.GetTestLog(), nil, operators.Options{}, nil, nil)
+		mockVersionHandler = versions.NewMockHandler(ctrl)
+		operatorsManager := operators.NewManager(common.GetTestLog(), nil, operators.Options{}, nil, nil, mockVersionHandler)
 		dnsApi := dns.NewDNSHandler(nil, common.GetTestLog())
 		clusterApi = NewManager(getDefaultConfig(), common.GetTestLog().WithField("pkg", "cluster-monitor"), db, testing.GetDummyNotificationStream(ctrl),
 			mockEvents, nil, mockHostAPI, mockMetric, nil, nil, operatorsManager, nil, nil, dnsApi, nil, nil)
@@ -1965,6 +1976,7 @@ var _ = Describe("Refresh Cluster - Advanced networking validations", func() {
 		mockMetric                              *metrics.MockAPI
 		ctrl                                    *gomock.Controller
 		dbName                                  string
+		mockVersionHandler                      *versions.MockHandler
 	)
 
 	mockHostAPIIsRequireUserActionResetFalse := func() {
@@ -1977,7 +1989,8 @@ var _ = Describe("Refresh Cluster - Advanced networking validations", func() {
 		mockEvents = eventsapi.NewMockHandler(ctrl)
 		mockHostAPI = host.NewMockAPI(ctrl)
 		mockMetric = metrics.NewMockAPI(ctrl)
-		operatorsManager := operators.NewManager(common.GetTestLog(), nil, operators.Options{}, nil, nil)
+		mockVersionHandler = versions.NewMockHandler(ctrl)
+		operatorsManager := operators.NewManager(common.GetTestLog(), nil, operators.Options{}, nil, nil, mockVersionHandler)
 		clusterApi = NewManager(getDefaultConfig(), common.GetTestLog().WithField("pkg", "cluster-monitor"), db, testing.GetDummyNotificationStream(ctrl),
 			mockEvents, nil, mockHostAPI, mockMetric, nil, nil, operatorsManager, nil, nil, nil, nil, nil)
 
@@ -3025,6 +3038,7 @@ var _ = Describe("Refresh Cluster - With DHCP", func() {
 		ctrl                                    *gomock.Controller
 		dbName                                  string
 		mockS3Api                               *s3wrapper.MockAPI
+		mockVersionHandler                      *versions.MockHandler
 	)
 
 	mockHostAPIIsRequireUserActionResetFalse := func() {
@@ -3037,7 +3051,8 @@ var _ = Describe("Refresh Cluster - With DHCP", func() {
 		mockEvents = eventsapi.NewMockHandler(ctrl)
 		mockHostAPI = host.NewMockAPI(ctrl)
 		mockMetric = metrics.NewMockAPI(ctrl)
-		operatorsManager := operators.NewManager(common.GetTestLog(), nil, operators.Options{}, nil, nil)
+		mockVersionHandler = versions.NewMockHandler(ctrl)
+		operatorsManager := operators.NewManager(common.GetTestLog(), nil, operators.Options{}, nil, nil, mockVersionHandler)
 		mockS3Api = s3wrapper.NewMockAPI(ctrl)
 		mockS3Api.EXPECT().DoesObjectExist(gomock.Any(), gomock.Any()).Return(false, nil).AnyTimes()
 		clusterApi = NewManager(getDefaultConfig(), common.GetTestLog().WithField("pkg", "cluster-monitor"), db, testing.GetDummyNotificationStream(ctrl),
@@ -3664,6 +3679,7 @@ var _ = Describe("Refresh Cluster - Installing Cases", func() {
 		operatorsManager                              *operators.Manager
 		ctrl                                          *gomock.Controller
 		dbName                                        string
+		mockVersionHandler                            *versions.MockHandler
 	)
 
 	mockHostAPIIsRequireUserActionResetFalse := func() {
@@ -3680,7 +3696,8 @@ var _ = Describe("Refresh Cluster - Installing Cases", func() {
 		mockHostAPI = host.NewMockAPI(ctrl)
 		mockMetric = metrics.NewMockAPI(ctrl)
 		mockS3Api = s3wrapper.NewMockAPI(ctrl)
-		operatorsManager = operators.NewManager(common.GetTestLog(), nil, operators.Options{}, nil, nil)
+		mockVersionHandler = versions.NewMockHandler(ctrl)
+		operatorsManager = operators.NewManager(common.GetTestLog(), nil, operators.Options{}, nil, nil, mockVersionHandler)
 		clusterApi = NewManager(getDefaultConfig(), common.GetTestLog().WithField("pkg", "cluster-monitor"), db, testing.GetDummyNotificationStream(ctrl),
 			mockEvents, nil, mockHostAPI, mockMetric, nil, nil, operatorsManager, nil, mockS3Api, nil, nil, nil)
 
@@ -4074,16 +4091,17 @@ var _ = Describe("Refresh Cluster - Installing Cases", func() {
 
 var _ = Describe("Log Collection - refresh cluster", func() {
 	var (
-		ctx         = context.Background()
-		db          *gorm.DB
-		clusterId   strfmt.UUID
-		cluster     common.Cluster
-		clusterApi  *Manager
-		mockEvents  *eventsapi.MockHandler
-		mockHostAPI *host.MockAPI
-		mockMetric  *metrics.MockAPI
-		ctrl        *gomock.Controller
-		dbName      string
+		ctx                = context.Background()
+		db                 *gorm.DB
+		clusterId          strfmt.UUID
+		cluster            common.Cluster
+		clusterApi         *Manager
+		mockEvents         *eventsapi.MockHandler
+		mockHostAPI        *host.MockAPI
+		mockMetric         *metrics.MockAPI
+		ctrl               *gomock.Controller
+		dbName             string
+		mockVersionHandler *versions.MockHandler
 	)
 
 	var (
@@ -4115,7 +4133,8 @@ var _ = Describe("Log Collection - refresh cluster", func() {
 		mockEvents = eventsapi.NewMockHandler(ctrl)
 		mockHostAPI = host.NewMockAPI(ctrl)
 		mockMetric = metrics.NewMockAPI(ctrl)
-		operatorsManager := operators.NewManager(common.GetTestLog(), nil, operators.Options{}, nil, nil)
+		mockVersionHandler = versions.NewMockHandler(ctrl)
+		operatorsManager := operators.NewManager(common.GetTestLog(), nil, operators.Options{}, nil, nil, mockVersionHandler)
 		clusterApi = NewManager(logTimeoutConfig(), common.GetTestLog().WithField("pkg", "cluster-monitor"), db, testing.GetDummyNotificationStream(ctrl),
 			mockEvents, nil, mockHostAPI, mockMetric, nil, nil, operatorsManager, nil, nil, nil, nil, nil)
 		clusterId = strfmt.UUID(uuid.New().String())
@@ -4245,6 +4264,7 @@ var _ = Describe("NTP refresh cluster", func() {
 		mockMetric                              *metrics.MockAPI
 		ctrl                                    *gomock.Controller
 		dbName                                  string
+		mockVersionHandler                      *versions.MockHandler
 	)
 
 	mockHostAPIIsRequireUserActionResetFalse := func() {
@@ -4257,7 +4277,8 @@ var _ = Describe("NTP refresh cluster", func() {
 		mockEvents = eventsapi.NewMockHandler(ctrl)
 		mockHostAPI = host.NewMockAPI(ctrl)
 		mockMetric = metrics.NewMockAPI(ctrl)
-		operatorsManager := operators.NewManager(common.GetTestLog(), nil, operators.Options{}, nil, nil)
+		mockVersionHandler = versions.NewMockHandler(ctrl)
+		operatorsManager := operators.NewManager(common.GetTestLog(), nil, operators.Options{}, nil, nil, mockVersionHandler)
 		clusterApi = NewManager(getDefaultConfig(), common.GetTestLog().WithField("pkg", "cluster-monitor"), db, testing.GetDummyNotificationStream(ctrl),
 			mockEvents, nil, mockHostAPI, mockMetric, nil, nil, operatorsManager, nil, nil, nil, nil, nil)
 
@@ -4546,6 +4567,7 @@ var _ = Describe("Single node", func() {
 		mockMetric                  *metrics.MockAPI
 		ctrl                        *gomock.Controller
 		dbName                      string
+		mockVersionHandler          *versions.MockHandler
 	)
 
 	mockHostAPIIsRequireUserActionResetFalse := func() {
@@ -4561,7 +4583,8 @@ var _ = Describe("Single node", func() {
 		mockEvents = eventsapi.NewMockHandler(ctrl)
 		mockHostAPI = host.NewMockAPI(ctrl)
 		mockMetric = metrics.NewMockAPI(ctrl)
-		operatorsManager := operators.NewManager(common.GetTestLog(), nil, operators.Options{}, nil, nil)
+		mockVersionHandler = versions.NewMockHandler(ctrl)
+		operatorsManager := operators.NewManager(common.GetTestLog(), nil, operators.Options{}, nil, nil, mockVersionHandler)
 		dnsApi := dns.NewDNSHandler(nil, common.GetTestLog())
 		clusterApi = NewManager(getDefaultConfig(), common.GetTestLog().WithField("pkg", "cluster-monitor"), db, testing.GetDummyNotificationStream(ctrl),
 			mockEvents, nil, mockHostAPI, mockMetric, nil, nil, operatorsManager, nil, nil, dnsApi, nil, nil)

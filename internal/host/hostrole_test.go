@@ -38,6 +38,7 @@ var _ = Describe("Suggested-Role on Refresh", func() {
 		mockHwValidator       *hardware.MockValidator
 		validatorCfg          *hardware.ValidatorCfg
 		operatorsManager      *operators.Manager
+		mockVersionHandler    *versions.MockHandler
 	)
 
 	initHwValidator := func() {
@@ -67,7 +68,8 @@ var _ = Describe("Suggested-Role on Refresh", func() {
 		clusterId = strfmt.UUID(uuid.New().String())
 		infraEnvId = strfmt.UUID(uuid.New().String())
 		mockEvents = eventsapi.NewMockHandler(ctrl)
-		operatorsManager = operators.NewManager(common.GetTestLog(), nil, operators.Options{}, nil, nil)
+		mockVersionHandler = versions.NewMockHandler(ctrl)
+		operatorsManager = operators.NewManager(common.GetTestLog(), nil, operators.Options{}, nil, nil, mockVersionHandler)
 		initHwValidator()
 		pr := registry.NewMockProviderRegistry(ctrl)
 		pr.EXPECT().IsHostSupported(gomock.Any(), gomock.Any()).Return(true, nil).AnyTimes()

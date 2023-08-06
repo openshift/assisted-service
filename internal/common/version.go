@@ -27,12 +27,28 @@ func VersionGreaterOrEqual(version1, version2 string) (bool, error) {
 	return v1.GreaterThanOrEqual(v2), nil
 }
 
+func IsVersionGreater(version1, version2 string) (bool, error) {
+	v1, v2, err := createTwoVersions(version1, version2)
+	if err != nil {
+		return false, err
+	}
+	return v1.GreaterThan(v2), nil
+}
+
 func BaseVersionGreaterOrEqual(version, versionMayGreaterThan string) (bool, error) {
 	// return version >= versionMayGreaterThan
 	version = strings.Split(version, "-")[0]
 	versionMayGreaterThan = strings.Split(versionMayGreaterThan, "-")[0]
 
 	return VersionGreaterOrEqual(versionMayGreaterThan, version)
+}
+
+func BaseVersionIsGreater(version, versionMayGreaterThan string) (bool, error) {
+	// return version > versionMayGreaterThan
+	version = strings.Split(version, "-")[0]
+	versionMayGreaterThan = strings.Split(versionMayGreaterThan, "-")[0]
+
+	return IsVersionGreater(versionMayGreaterThan, version)
 }
 
 func BaseVersionLessThan(version, versionMayLessThan string) (bool, error) {
@@ -45,15 +61,17 @@ func BaseVersionLessThan(version, versionMayLessThan string) (bool, error) {
 
 // BaseVersionEqual Compare Major and Minor of 2 different versions
 func BaseVersionEqual(version1, versionMayEqual string) (bool, error) {
-	version1 = strings.Split(version1, "-")[0]
-	versionMayEqual = strings.Split(versionMayEqual, "-")[0]
-
-	v1 := strings.Split(version1, ".")
-	v2 := strings.Split(versionMayEqual, ".")
+	v1 := GetParsedVersion(version1)
+	v2 := GetParsedVersion(versionMayEqual)
 
 	if len(v1) < 2 || len(v2) < 2 {
 		return false, errors.New("invalid version")
 	}
 
 	return v1[0] == v2[0] && v1[1] == v2[1], nil
+}
+
+func GetParsedVersion(version string) []string {
+	v := strings.Split(version, "-")[0]
+	return strings.Split(v, ".")
 }

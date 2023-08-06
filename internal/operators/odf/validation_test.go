@@ -20,6 +20,7 @@ import (
 	"github.com/openshift/assisted-service/internal/metrics"
 	"github.com/openshift/assisted-service/internal/operators"
 	"github.com/openshift/assisted-service/internal/operators/odf"
+	"github.com/openshift/assisted-service/internal/versions"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/conversions"
 	"gorm.io/gorm"
@@ -94,6 +95,7 @@ var _ = Describe("Ocs Operator use-cases", func() {
 		diskID1                                       = "/dev/disk/by-id/test-disk-1"
 		diskID2                                       = "/dev/disk/by-id/test-disk-2"
 		diskID3                                       = "/dev/disk/by-id/test-disk-3"
+		mockVersionHandler                            *versions.MockHandler
 	)
 
 	mockHostAPIIsRequireUserActionResetFalse := func() {
@@ -109,7 +111,8 @@ var _ = Describe("Ocs Operator use-cases", func() {
 		mockEvents = eventsapi.NewMockHandler(ctrl)
 		mockHostAPI = host.NewMockAPI(ctrl)
 		mockMetric = metrics.NewMockAPI(ctrl)
-		operatorsManager := operators.NewManager(common.GetTestLog(), nil, operators.Options{}, nil, nil)
+		mockVersionHandler = versions.NewMockHandler(ctrl)
+		operatorsManager := operators.NewManager(common.GetTestLog(), nil, operators.Options{}, nil, nil, mockVersionHandler)
 		var cfg clust.Config
 		Expect(envconfig.Process(common.EnvConfigPrefix, &cfg)).ShouldNot(HaveOccurred())
 		clusterApi = clust.NewManager(cfg, common.GetTestLog().WithField("pkg", "cluster-monitor"), db, commontesting.GetDummyNotificationStream(ctrl),

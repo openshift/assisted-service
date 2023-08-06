@@ -18,6 +18,7 @@ import (
 	"github.com/openshift/assisted-service/internal/operators/cnv"
 	"github.com/openshift/assisted-service/internal/operators/lso"
 	"github.com/openshift/assisted-service/internal/operators/odf"
+	"github.com/openshift/assisted-service/internal/versions"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/conversions"
 	"github.com/openshift/assisted-service/pkg/s3wrapper"
@@ -27,14 +28,15 @@ import (
 )
 
 var (
-	ctx          = context.Background()
-	cluster      *common.Cluster
-	clusterHost  *models.Host
-	log          = logrus.New()
-	manager      *operators.Manager
-	ctrl         *gomock.Controller
-	manifestsAPI *manifestsapi.MockManifestsAPI
-	mockS3Api    *s3wrapper.MockAPI
+	ctx                = context.Background()
+	cluster            *common.Cluster
+	clusterHost        *models.Host
+	log                = logrus.New()
+	manager            *operators.Manager
+	ctrl               *gomock.Controller
+	manifestsAPI       *manifestsapi.MockManifestsAPI
+	mockS3Api          *s3wrapper.MockAPI
+	mockVersionHandler *versions.MockHandler
 )
 
 var _ = BeforeEach(func() {
@@ -59,7 +61,8 @@ var _ = BeforeEach(func() {
 	ctrl = gomock.NewController(GinkgoT())
 	manifestsAPI = manifestsapi.NewMockManifestsAPI(ctrl)
 	mockS3Api = s3wrapper.NewMockAPI(ctrl)
-	manager = operators.NewManager(log, manifestsAPI, operators.Options{}, mockS3Api, nil)
+	mockVersionHandler = versions.NewMockHandler(ctrl)
+	manager = operators.NewManager(log, manifestsAPI, operators.Options{}, mockS3Api, nil, mockVersionHandler)
 })
 
 var _ = AfterEach(func() {
@@ -69,6 +72,7 @@ var _ = Describe("Operators manager", func() {
 
 	Context("GenerateManifests", func() {
 		It("Check YAMLs of all supported OLM operators", func() {
+			mockVersionHandler.EXPECT().GetDefaultReleaseImage(gomock.Any()).Return(common.TestDefaultConfig.ReleaseImage, nil)
 			cluster.MonitoredOperators = manager.GetSupportedOperatorsByType(models.OperatorTypeOlm)
 
 			mockS3Api.EXPECT().Upload(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
@@ -87,7 +91,9 @@ var _ = Describe("Operators manager", func() {
 			Expect(err).NotTo(HaveOccurred())
 		})
 
-		It("should create 8 manifests (ODF + LSO) using the manifest API and openshift version is 4.8.X", func() {
+		It("should create 7 manifests (ODF + LSO) using the manifest API and openshift version is 4.8.X", func() {
+			mockVersionHandler.EXPECT().GetDefaultReleaseImage(gomock.Any()).Return(common.TestDefaultConfig.ReleaseImage, nil)
+
 			cluster.MonitoredOperators = []*models.MonitoredOperator{
 				&odf.Operator,
 				&lso.Operator,
@@ -96,11 +102,13 @@ var _ = Describe("Operators manager", func() {
 			m := models.Manifest{}
 
 			mockS3Api.EXPECT().Upload(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
-			manifestsAPI.EXPECT().CreateClusterManifestInternal(gomock.Any(), gomock.Any(), false).Return(&m, nil).Times(6)
+			manifestsAPI.EXPECT().CreateClusterManifestInternal(gomock.Any(), gomock.Any(), false).Return(&m, nil).Times(7)
 			Expect(manager.GenerateManifests(ctx, cluster)).ShouldNot(HaveOccurred())
 		})
 
-		It("should create 8 manifests (ODF + LSO) using the manifest API and openshift version is 4.9.X or above", func() {
+		It("should create 7 manifests (ODF + LSO) using the manifest API and openshift version is 4.9.X or above", func() {
+			mockVersionHandler.EXPECT().GetDefaultReleaseImage(gomock.Any()).Return(common.TestDefaultConfig.ReleaseImage, nil)
+
 			cluster.OpenshiftVersion = "4.9.0"
 			cluster.MonitoredOperators = []*models.MonitoredOperator{
 				&odf.Operator,
@@ -110,28 +118,32 @@ var _ = Describe("Operators manager", func() {
 			m := models.Manifest{}
 
 			mockS3Api.EXPECT().Upload(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
-			manifestsAPI.EXPECT().CreateClusterManifestInternal(gomock.Any(), gomock.Any(), false).Return(&m, nil).Times(6)
+			manifestsAPI.EXPECT().CreateClusterManifestInternal(gomock.Any(), gomock.Any(), false).Return(&m, nil).Times(7)
 			Expect(manager.GenerateManifests(ctx, cluster)).ShouldNot(HaveOccurred())
 		})
 
 		It("should create 4 manifests (LSO) using the manifest API", func() {
+			mockVersionHandler.EXPECT().GetDefaultReleaseImage(gomock.Any()).Return(common.TestDefaultConfig.ReleaseImage, nil)
+
 			cluster.MonitoredOperators = []*models.MonitoredOperator{
 				&lso.Operator,
 			}
 			m := models.Manifest{}
 			mockS3Api.EXPECT().Upload(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
-			manifestsAPI.EXPECT().CreateClusterManifestInternal(gomock.Any(), gomock.Any(), false).Return(&m, nil).Times(3)
+			manifestsAPI.EXPECT().CreateClusterManifestInternal(gomock.Any(), gomock.Any(), false).Return(&m, nil).Times(4)
 			Expect(manager.GenerateManifests(ctx, cluster)).ShouldNot(HaveOccurred())
 		})
 
-		It("should create 8 manifests (CNV + LSO) using the manifest API", func() {
+		It("should create 7 manifests (CNV + LSO) using the manifest API", func() {
+			mockVersionHandler.EXPECT().GetDefaultReleaseImage(gomock.Any()).Return(common.TestDefaultConfig.ReleaseImage, nil)
+
 			cluster.MonitoredOperators = []*models.MonitoredOperator{
 				&cnv.Operator,
 				&lso.Operator,
 			}
 			m := models.Manifest{}
 			mockS3Api.EXPECT().Upload(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
-			manifestsAPI.EXPECT().CreateClusterManifestInternal(gomock.Any(), gomock.Any(), false).Return(&m, nil).Times(6)
+			manifestsAPI.EXPECT().CreateClusterManifestInternal(gomock.Any(), gomock.Any(), false).Return(&m, nil).Times(7)
 			Expect(manager.GenerateManifests(ctx, cluster)).ShouldNot(HaveOccurred())
 		})
 	})

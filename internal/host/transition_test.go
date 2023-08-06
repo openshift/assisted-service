@@ -99,6 +99,7 @@ var _ = Describe("RegisterHost", func() {
 		mockEvents                    *eventsapi.MockHandler
 		hostId, clusterId, infraEnvId strfmt.UUID
 		dbName                        string
+		mockVersionHandler            *versions.MockHandler
 	)
 
 	BeforeEach(func() {
@@ -106,7 +107,8 @@ var _ = Describe("RegisterHost", func() {
 		db, dbName = common.PrepareTestDB()
 		mockEvents = eventsapi.NewMockHandler(ctrl)
 		mockHwValidator := hardware.NewMockValidator(ctrl)
-		operatorsManager := operators.NewManager(common.GetTestLog(), nil, operators.Options{}, nil, nil)
+		mockVersionHandler = versions.NewMockHandler(ctrl)
+		operatorsManager := operators.NewManager(common.GetTestLog(), nil, operators.Options{}, nil, nil, mockVersionHandler)
 		hapi = NewManager(common.GetTestLog(), db, testing.GetDummyNotificationStream(ctrl), mockEvents, mockHwValidator, nil, createValidatorCfg(), nil, defaultConfig, nil, operatorsManager, nil, false, nil, nil)
 		hostId = strfmt.UUID(uuid.New().String())
 		clusterId = strfmt.UUID(uuid.New().String())
@@ -632,6 +634,7 @@ var _ = Describe("HostInstallationFailed", func() {
 		mockMetric                    *metrics.MockAPI
 		mockEvents                    *eventsapi.MockHandler
 		dbName                        string
+		mockVersionHandler            *versions.MockHandler
 	)
 
 	BeforeEach(func() {
@@ -640,7 +643,8 @@ var _ = Describe("HostInstallationFailed", func() {
 		mockMetric = metrics.NewMockAPI(ctrl)
 		mockEvents = eventsapi.NewMockHandler(ctrl)
 		mockHwValidator := hardware.NewMockValidator(ctrl)
-		operatorsManager := operators.NewManager(common.GetTestLog(), nil, operators.Options{}, nil, nil)
+		mockVersionHandler = versions.NewMockHandler(ctrl)
+		operatorsManager := operators.NewManager(common.GetTestLog(), nil, operators.Options{}, nil, nil, mockVersionHandler)
 		hapi = NewManager(common.GetTestLog(), db, testing.GetDummyNotificationStream(ctrl), mockEvents, mockHwValidator, nil, createValidatorCfg(), mockMetric, defaultConfig, nil, operatorsManager, nil, false, nil, nil)
 		hostId = strfmt.UUID(uuid.New().String())
 		clusterId = strfmt.UUID(uuid.New().String())
@@ -679,6 +683,7 @@ var _ = Describe("Cancel host installation", func() {
 		host                          models.Host
 		ctrl                          *gomock.Controller
 		mockEventsHandler             *eventsapi.MockHandler
+		mockVersionHandler            *versions.MockHandler
 	)
 
 	BeforeEach(func() {
@@ -686,7 +691,8 @@ var _ = Describe("Cancel host installation", func() {
 		ctrl = gomock.NewController(GinkgoT())
 		mockEventsHandler = eventsapi.NewMockHandler(ctrl)
 		mockHwValidator := hardware.NewMockValidator(ctrl)
-		operatorsManager := operators.NewManager(common.GetTestLog(), nil, operators.Options{}, nil, nil)
+		mockVersionHandler = versions.NewMockHandler(ctrl)
+		operatorsManager := operators.NewManager(common.GetTestLog(), nil, operators.Options{}, nil, nil, mockVersionHandler)
 		hapi = NewManager(common.GetTestLog(), db, testing.GetDummyNotificationStream(ctrl), mockEventsHandler, mockHwValidator, nil, createValidatorCfg(), nil, defaultConfig, nil, operatorsManager, nil, false, nil, nil)
 	})
 
@@ -772,6 +778,7 @@ var _ = Describe("Install", func() {
 		cluster                       common.Cluster
 		mockHwValidator               *hardware.MockValidator
 		dbName                        string
+		mockVersionHandler            *versions.MockHandler
 	)
 
 	BeforeEach(func() {
@@ -779,7 +786,8 @@ var _ = Describe("Install", func() {
 		ctrl = gomock.NewController(GinkgoT())
 		mockEvents = eventsapi.NewMockHandler(ctrl)
 		mockHwValidator = hardware.NewMockValidator(ctrl)
-		operatorsManager := operators.NewManager(common.GetTestLog(), nil, operators.Options{}, nil, nil)
+		mockVersionHandler = versions.NewMockHandler(ctrl)
+		operatorsManager := operators.NewManager(common.GetTestLog(), nil, operators.Options{}, nil, nil, mockVersionHandler)
 		pr := registry.NewMockProviderRegistry(ctrl)
 		pr.EXPECT().IsHostSupported(gomock.Any(), gomock.Any()).Return(true, nil).AnyTimes()
 		mockVersions := versions.NewMockHandler(ctrl)
@@ -923,6 +931,7 @@ var _ = Describe("Unbind", func() {
 		hostId, clusterId, infraEnvId strfmt.UUID
 		host                          models.Host
 		dbName                        string
+		mockVersionHandler            *versions.MockHandler
 	)
 
 	BeforeEach(func() {
@@ -930,7 +939,8 @@ var _ = Describe("Unbind", func() {
 		ctrl = gomock.NewController(GinkgoT())
 		mockEvents = eventsapi.NewMockHandler(ctrl)
 		mockHwValidator := hardware.NewMockValidator(ctrl)
-		operatorsManager := operators.NewManager(common.GetTestLog(), nil, operators.Options{}, nil, nil)
+		mockVersionHandler = versions.NewMockHandler(ctrl)
+		operatorsManager := operators.NewManager(common.GetTestLog(), nil, operators.Options{}, nil, nil, mockVersionHandler)
 		hapi = NewManager(common.GetTestLog(), db, testing.GetDummyNotificationStream(ctrl), mockEvents, mockHwValidator, nil, createValidatorCfg(), nil, defaultConfig, nil, operatorsManager, nil, false, nil, nil)
 		hostId = strfmt.UUID(uuid.New().String())
 		clusterId = strfmt.UUID(uuid.New().String())
@@ -1297,6 +1307,7 @@ var _ = Describe("Refresh Host", func() {
 		validatorCfg                  *hardware.ValidatorCfg
 		operatorsManager              *operators.Manager
 		pr                            *registry.MockProviderRegistry
+		mockVersionHandler            *versions.MockHandler
 	)
 
 	BeforeEach(func() {
@@ -1318,7 +1329,8 @@ var _ = Describe("Refresh Host", func() {
 				fmt.Sprintf("%s:%s", supportedGPU.VendorID, supportedGPU.DeviceID): true,
 			}},
 		}
-		operatorsManager = operators.NewManager(common.GetTestLog(), nil, operatorsOptions, nil, nil)
+		mockVersionHandler = versions.NewMockHandler(ctrl)
+		operatorsManager = operators.NewManager(common.GetTestLog(), nil, operatorsOptions, nil, nil, mockVersionHandler)
 		mockHwValidator.EXPECT().GetHostInstallationPath(gomock.Any()).Return("/dev/sda").AnyTimes()
 		pr = registry.NewMockProviderRegistry(ctrl)
 		pr.EXPECT().IsHostSupported(gomock.Any(), gomock.Any()).Return(true, nil).AnyTimes()
@@ -6008,6 +6020,7 @@ var _ = Describe("Upgrade agent feature", func() {
 		dbName                        string
 		mockHwValidator               *hardware.MockValidator
 		pr                            *registry.MockProviderRegistry
+		mockVersionHandler            *versions.MockHandler
 	)
 
 	BeforeEach(func() {
@@ -6015,12 +6028,14 @@ var _ = Describe("Upgrade agent feature", func() {
 		db, dbName = common.PrepareTestDB()
 		mockEvents = eventsapi.NewMockHandler(ctrl)
 		mockHwValidator = hardware.NewMockValidator(ctrl)
+		mockVersionHandler = versions.NewMockHandler(ctrl)
 		operatorsManager := operators.NewManager(
 			common.GetTestLog(),
 			nil,
 			operators.Options{},
 			nil,
 			nil,
+			mockVersionHandler,
 		)
 		pr = registry.NewMockProviderRegistry(ctrl)
 		mockVersions := versions.NewMockHandler(ctrl)

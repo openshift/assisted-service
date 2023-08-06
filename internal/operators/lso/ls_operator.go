@@ -5,11 +5,15 @@ import (
 
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/operators/api"
+	"github.com/openshift/assisted-service/internal/versions"
 	"github.com/openshift/assisted-service/models"
+	"github.com/sirupsen/logrus"
 )
 
 // lsOperator is an LSO OLM operator plugin; it implements api.Operator
 type lsOperator struct {
+	Log            logrus.FieldLogger
+	versionHandler versions.Handler
 }
 
 var Operator = models.MonitoredOperator{
@@ -21,8 +25,8 @@ var Operator = models.MonitoredOperator{
 }
 
 // New LSOperator creates new instance of a Local Storage Operator installation plugin
-func NewLSOperator() *lsOperator {
-	return &lsOperator{}
+func NewLSOperator(log logrus.FieldLogger, versionHandler versions.Handler) *lsOperator {
+	return &lsOperator{log, versionHandler}
 }
 
 // GetName reports the name of an operator this Operator manages
@@ -62,7 +66,7 @@ func (l *lsOperator) ValidateHost(_ context.Context, _ *common.Cluster, _ *model
 // GenerateManifests generates manifests for the operator
 
 func (l *lsOperator) GenerateManifests(c *common.Cluster) (map[string][]byte, []byte, error) {
-	return Manifests()
+	return Manifests(l.Log, c, l.versionHandler)
 }
 
 // GetProperties provides description of operator properties: none required
