@@ -2,7 +2,7 @@ package mce
 
 const (
 	MceMinOpenshiftVersion string = "4.10.0"
-	MceChannel             string = "stable-2.3"
+	MceChannelFormat       string = "stable-2.%d"
 
 	// Memory value provided in GiB
 	MinimumMemory int64 = 16

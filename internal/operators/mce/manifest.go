@@ -2,11 +2,15 @@ package mce
 
 import (
 	"bytes"
+	"fmt"
+	"strconv"
 	"text/template"
+
+	"github.com/openshift/assisted-service/internal/common"
 )
 
 // Manifests returns manifests needed to deploy MCE.
-func Manifests() (openshiftManifests map[string][]byte, customManifests []byte, err error) {
+func Manifests(openshiftVersion string) (openshiftManifests map[string][]byte, customManifests []byte, err error) {
 	// Generate the OpenShift manifests:
 	namespaceManifest, err := getNamespace()
 	if err != nil {
@@ -16,7 +20,7 @@ func Manifests() (openshiftManifests map[string][]byte, customManifests []byte, 
 	if err != nil {
 		return
 	}
-	operatorSubscriptionManifest, err := getSubscription()
+	operatorSubscriptionManifest, err := getSubscription(openshiftVersion)
 	if err != nil {
 		return
 	}
@@ -34,11 +38,20 @@ func Manifests() (openshiftManifests map[string][]byte, customManifests []byte, 
 	return openshiftManifests, mceManifest, nil
 }
 
-func getSubscription() ([]byte, error) {
+func getSubscriptionChannel(openshiftVersion string) string {
+	// OCP 4.(10 + x) -> MCE 2.x
+	parsedOpenshiftVersion := common.GetParsedVersion(openshiftVersion)
+	openshiftMinorVersion, _ := strconv.Atoi(parsedOpenshiftVersion[1])
+	mceChannelMinor := openshiftMinorVersion - 10
+	return fmt.Sprintf(MceChannelFormat, mceChannelMinor)
+}
+
+func getSubscription(openshiftVersion string) ([]byte, error) {
+
 	data := map[string]string{
 		"OPERATOR_NAMESPACE":            Operator.Namespace,
 		"OPERATOR_SUBSCRIPTION_NAME":    Operator.SubscriptionName,
-		"OPERATOR_SUBSCRIPTION_CHANNEL": MceChannel,
+		"OPERATOR_SUBSCRIPTION_CHANNEL": getSubscriptionChannel(openshiftVersion),
 	}
 	return executeTemplate(data, operatorSubscriptionManifestTemplate)
 }

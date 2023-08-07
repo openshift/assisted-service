@@ -131,8 +131,8 @@ func (o *operator) ValidateHost(ctx context.Context, cluster *common.Cluster, ho
 }
 
 // GenerateManifests generates manifests for the operator.
-func (o *operator) GenerateManifests(_ *common.Cluster) (map[string][]byte, []byte, error) {
-	return Manifests()
+func (o *operator) GenerateManifests(c *common.Cluster) (map[string][]byte, []byte, error) {
+	return Manifests(c.OpenshiftVersion)
 }
 
 // GetProperties provides description of operator properties.

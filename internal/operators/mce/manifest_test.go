@@ -20,6 +20,14 @@ var _ = Describe("MCE manifest generation", func() {
 	}
 
 	Context("MCE Manifest", func() {
+		It("Get MCE channel", func() {
+			Expect(getSubscriptionChannel("4.14")).To(Equal("stable-2.4"))
+			Expect(getSubscriptionChannel("4.13")).To(Equal("stable-2.3"))
+			Expect(getSubscriptionChannel("4.10")).To(Equal("stable-2.0"))
+			Expect(getSubscriptionChannel("4.12.0-0.nightly-2022-10-25-210451")).To(Equal("stable-2.2"))
+			Expect(getSubscriptionChannel("4.11.0-ec.3")).To(Equal("stable-2.1"))
+		})
+
 		It("Check YAMLs of MCE", func() {
 			cluster = getCluster("4.10.17")
 			openshiftManifests, manifest, err := operator.GenerateManifests(cluster)

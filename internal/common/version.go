@@ -45,15 +45,17 @@ func BaseVersionLessThan(version, versionMayLessThan string) (bool, error) {
 
 // BaseVersionEqual Compare Major and Minor of 2 different versions
 func BaseVersionEqual(version1, versionMayEqual string) (bool, error) {
-	version1 = strings.Split(version1, "-")[0]
-	versionMayEqual = strings.Split(versionMayEqual, "-")[0]
-
-	v1 := strings.Split(version1, ".")
-	v2 := strings.Split(versionMayEqual, ".")
+	v1 := GetParsedVersion(version1)
+	v2 := GetParsedVersion(versionMayEqual)
 
 	if len(v1) < 2 || len(v2) < 2 {
 		return false, errors.New("invalid version")
 	}
 
 	return v1[0] == v2[0] && v1[1] == v2[1], nil
+}
+
+func GetParsedVersion(version string) []string {
+	v := strings.Split(version, "-")[0]
+	return strings.Split(v, ".")
 }
