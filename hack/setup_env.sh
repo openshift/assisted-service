@@ -19,7 +19,7 @@ function golang() {
   echo "Installing golang..."
   curl --retry 5 -L https://storage.googleapis.com/golang/getgo/installer_linux -o /tmp/golang_installer
   chmod u+x /tmp/golang_installer
-  /tmp/golang_installer
+  /tmp/golang_installer -version 1.18
   rm /tmp/golang_installer
 
   echo "Activating go command on current shell..."
