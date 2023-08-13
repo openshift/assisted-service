@@ -38,6 +38,7 @@ var _ = Describe("Suggested-Role on Refresh", func() {
 		mockHwValidator       *hardware.MockValidator
 		validatorCfg          *hardware.ValidatorCfg
 		operatorsManager      *operators.Manager
+		mockProviderRegistry  *registry.MockProviderRegistry
 	)
 
 	initHwValidator := func() {
@@ -69,12 +70,12 @@ var _ = Describe("Suggested-Role on Refresh", func() {
 		mockEvents = eventsapi.NewMockHandler(ctrl)
 		operatorsManager = operators.NewManager(common.GetTestLog(), nil, operators.Options{}, nil, nil)
 		initHwValidator()
-		pr := registry.NewMockProviderRegistry(ctrl)
-		pr.EXPECT().IsHostSupported(gomock.Any(), gomock.Any()).Return(true, nil).AnyTimes()
+		mockProviderRegistry = registry.NewMockProviderRegistry(ctrl)
+		mockProviderRegistry.EXPECT().IsHostSupported(models.PlatformTypeBaremetal, gomock.Any()).Return(true, nil).AnyTimes()
 		mockVersions := versions.NewMockHandler(ctrl)
 		mockVersions.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 			Return(&models.ReleaseImage{URL: swag.String("quay.io/openshift/some-image::latest")}, nil).AnyTimes()
-		hapi = NewManager(common.GetTestLog(), db, nil, mockEvents, mockHwValidator, nil, validatorCfg, nil, defaultConfig, nil, operatorsManager, pr, false, nil, mockVersions)
+		hapi = NewManager(common.GetTestLog(), db, nil, mockEvents, mockHwValidator, nil, validatorCfg, nil, defaultConfig, nil, operatorsManager, mockProviderRegistry, false, nil, mockVersions)
 	})
 
 	tests := []struct {
@@ -110,6 +111,7 @@ var _ = Describe("Suggested-Role on Refresh", func() {
 	for i := range tests {
 		t := tests[i]
 		It(t.name, func() {
+			mockProviderRegistry.EXPECT().IsHostSupported(models.PlatformTypeVsphere, gomock.Any()).Return(false, nil).AnyTimes()
 			cluster = hostutil.GenerateTestCluster(clusterId)
 			Expect(db.Create(&cluster).Error).ToNot(HaveOccurred())
 

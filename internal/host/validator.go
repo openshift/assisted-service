@@ -1671,7 +1671,12 @@ func (v *validator) isVSphereDiskUUIDEnabled(c *validationContext) (ValidationSt
 		return ValidationSuccessSuppressOutput, "no cluster"
 	}
 
-	if c.cluster.Platform == nil || c.cluster.Platform.Type == nil || *c.cluster.Platform.Type != models.PlatformTypeVsphere {
+	supported, err := v.providerRegistry.IsHostSupported(models.PlatformTypeVsphere, c.host)
+	if err != nil {
+		return ValidationError, "Validation error"
+	}
+
+	if !supported {
 		return ValidationSuccessSuppressOutput, ""
 	}
 
