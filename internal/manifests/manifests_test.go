@@ -148,6 +148,7 @@ var _ = Describe("ClusterManifestTests", func() {
 			clusterID := registerCluster().ID
 			mockUpload(1)
 			expectUsageCalls()
+			mockS3Client.EXPECT().DoesObjectExist(ctx, filepath.Join(clusterID.String(), constants.ManifestFolder, "openshift", fileNameYaml)).Return(false, nil).AnyTimes()
 			response := manifestsAPI.V2CreateClusterManifest(ctx, operations.V2CreateClusterManifestParams{
 				ClusterID: *clusterID,
 				CreateManifestParams: &models.CreateManifestParams{
@@ -166,6 +167,7 @@ var _ = Describe("ClusterManifestTests", func() {
 			clusterID := registerCluster().ID
 			mockUpload(1)
 			expectUsageCalls()
+			mockS3Client.EXPECT().DoesObjectExist(ctx, filepath.Join(clusterID.String(), constants.ManifestFolder, "manifests", fileNameYaml)).Return(false, nil).AnyTimes()
 			response := manifestsAPI.V2CreateClusterManifest(ctx, operations.V2CreateClusterManifestParams{
 				ClusterID: *clusterID,
 				CreateManifestParams: &models.CreateManifestParams{
@@ -185,6 +187,7 @@ var _ = Describe("ClusterManifestTests", func() {
 			clusterID := registerCluster().ID
 			mockUpload(2)
 			expectUsageCalls()
+			mockS3Client.EXPECT().DoesObjectExist(ctx, filepath.Join(clusterID.String(), constants.ManifestFolder, "openshift", fileNameYaml)).Return(false, nil).AnyTimes()
 			response := manifestsAPI.V2CreateClusterManifest(ctx, operations.V2CreateClusterManifestParams{
 				ClusterID: *clusterID,
 				CreateManifestParams: &models.CreateManifestParams{
@@ -230,6 +233,7 @@ var _ = Describe("ClusterManifestTests", func() {
 		It("fails due to non-base64 file content", func() {
 			clusterID := registerCluster().ID
 			invalidContent := "not base64 content"
+			mockS3Client.EXPECT().DoesObjectExist(ctx, filepath.Join(clusterID.String(), constants.ManifestFolder, "openshift", fileNameYaml)).Return(false, nil).AnyTimes()
 			response := manifestsAPI.V2CreateClusterManifest(ctx, operations.V2CreateClusterManifestParams{
 				ClusterID: *clusterID,
 				CreateManifestParams: &models.CreateManifestParams{
@@ -277,6 +281,7 @@ var _ = Describe("ClusterManifestTests", func() {
 				fileName := "99-openshift-machineconfig-master-kargs.json"
 				mockUpload(1)
 				expectUsageCalls()
+				mockS3Client.EXPECT().DoesObjectExist(ctx, filepath.Join(clusterID.String(), constants.ManifestFolder, "openshift", fileName)).Return(false, nil).AnyTimes()
 				response := manifestsAPI.V2CreateClusterManifest(ctx, operations.V2CreateClusterManifestParams{
 					ClusterID: *clusterID,
 					CreateManifestParams: &models.CreateManifestParams{
@@ -296,6 +301,7 @@ var _ = Describe("ClusterManifestTests", func() {
 				fileName := "99-openshift-machineconfig-master-kargs.yaml"
 				mockUpload(1)
 				expectUsageCalls()
+				mockS3Client.EXPECT().DoesObjectExist(ctx, filepath.Join(clusterID.String(), constants.ManifestFolder, "openshift", fileNameYaml)).Return(false, nil).AnyTimes()
 				response := manifestsAPI.V2CreateClusterManifest(ctx, operations.V2CreateClusterManifestParams{
 					ClusterID: *clusterID,
 					CreateManifestParams: &models.CreateManifestParams{
@@ -357,6 +363,7 @@ spec:
 `)
 				mockUpload(1)
 				expectUsageCalls()
+				mockS3Client.EXPECT().DoesObjectExist(ctx, filepath.Join(clusterID.String(), constants.ManifestFolder, "openshift", fileName)).Return(false, nil).AnyTimes()
 				response := manifestsAPI.V2CreateClusterManifest(ctx, operations.V2CreateClusterManifestParams{
 					ClusterID: *clusterID,
 					CreateManifestParams: &models.CreateManifestParams{
@@ -375,6 +382,7 @@ spec:
 				clusterID := registerCluster().ID
 				fileName := "99-test.json"
 				invalidJSONContent := encodeToBase64("not a valid JSON content")
+				mockS3Client.EXPECT().DoesObjectExist(ctx, filepath.Join(clusterID.String(), constants.ManifestFolder, "openshift", fileName)).Return(false, nil).AnyTimes()
 				response := manifestsAPI.V2CreateClusterManifest(ctx, operations.V2CreateClusterManifestParams{
 					ClusterID: *clusterID,
 					CreateManifestParams: &models.CreateManifestParams{
@@ -392,6 +400,7 @@ spec:
 				clusterID := registerCluster().ID
 				fileName := "99-test.yml"
 				invalidYAMLContent := encodeToBase64("not a valid YAML content")
+				mockS3Client.EXPECT().DoesObjectExist(ctx, filepath.Join(clusterID.String(), constants.ManifestFolder, "openshift", fileName)).Return(false, nil).AnyTimes()
 				response := manifestsAPI.V2CreateClusterManifest(ctx, operations.V2CreateClusterManifestParams{
 					ClusterID: *clusterID,
 					CreateManifestParams: &models.CreateManifestParams{
@@ -408,6 +417,7 @@ spec:
 			It("fails for manifest with unsupported extension", func() {
 				clusterID := registerCluster().ID
 				fileName := "99-test.txt"
+				mockS3Client.EXPECT().DoesObjectExist(ctx, filepath.Join(clusterID.String(), constants.ManifestFolder, "openshift", fileName)).Return(false, nil).AnyTimes()
 				response := manifestsAPI.V2CreateClusterManifest(ctx, operations.V2CreateClusterManifestParams{
 					ClusterID: *clusterID,
 					CreateManifestParams: &models.CreateManifestParams{
@@ -442,6 +452,7 @@ spec:
 				fileName := "99-test.json"
 				maxFileSizeBytes := 1024*1024 + 1
 				largeJSONContent := encodeToBase64(generateLargeJSON(maxFileSizeBytes))
+				mockS3Client.EXPECT().DoesObjectExist(ctx, filepath.Join(clusterID.String(), constants.ManifestFolder, "openshift", fileName)).Return(false, nil).AnyTimes()
 				response := manifestsAPI.V2CreateClusterManifest(ctx, operations.V2CreateClusterManifestParams{
 					ClusterID: *clusterID,
 					CreateManifestParams: &models.CreateManifestParams{
@@ -473,6 +484,56 @@ spec:
 				Expect(err.Error()).To(ContainSubstring("Manifest content of file 99-openshift-machineconfig-master-kargs.json for cluster ID " + clusterID.String() + " exceeds the maximum file size of 1MiB"))
 			})
 
+			It("should reject upload of a file to manifests folder if it already exists in openshift folder", func() {
+				clusterID := registerCluster().ID
+				mockS3Client.EXPECT().DoesObjectExist(ctx, filepath.Join(clusterID.String(), constants.ManifestFolder, "openshift", fileNameYaml)).Return(true, nil).AnyTimes()
+				response := manifestsAPI.V2CreateClusterManifest(ctx, operations.V2CreateClusterManifestParams{
+					ClusterID: *clusterID,
+					CreateManifestParams: &models.CreateManifestParams{
+						Content:  &contentYaml,
+						FileName: &fileNameYaml,
+					},
+				})
+				err := response.(*common.ApiErrorResponse)
+				Expect(err.StatusCode()).To(Equal(int32(http.StatusBadRequest)))
+				expectedError := fmt.Sprintf("manifest file %s for cluster ID %s in folder %s cannot be uploaded as it is not distinct between {manifest, openshift} folders", fileNameYaml, clusterID.String(), "manifests")
+				Expect(err.Error()).To(ContainSubstring(expectedError))
+			})
+
+			It("should reject upload of a file to openshift folder if it already exists in manifests folder", func() {
+				clusterID := registerCluster().ID
+				mockS3Client.EXPECT().DoesObjectExist(ctx, filepath.Join(clusterID.String(), constants.ManifestFolder, "manifests", fileNameYaml)).Return(true, nil).AnyTimes()
+				uploadFolder := "openshift"
+				response := manifestsAPI.V2CreateClusterManifest(ctx, operations.V2CreateClusterManifestParams{
+					ClusterID: *clusterID,
+					CreateManifestParams: &models.CreateManifestParams{
+						Content:  &contentYaml,
+						FileName: &fileNameYaml,
+						Folder:   &uploadFolder,
+					},
+				})
+				err := response.(*common.ApiErrorResponse)
+				Expect(err.StatusCode()).To(Equal(int32(http.StatusBadRequest)))
+				expectedError := fmt.Sprintf("manifest file %s for cluster ID %s in folder %s cannot be uploaded as it is not distinct between {manifest, openshift} folders", fileNameYaml, clusterID.String(), "openshift")
+				Expect(err.Error()).To(ContainSubstring(expectedError))
+			})
+
+			It("should reject upload of a file to a folder that is not openshift/manifests", func() {
+				clusterID := registerCluster().ID
+				uploadFolder := "somefolder"
+				response := manifestsAPI.V2CreateClusterManifest(ctx, operations.V2CreateClusterManifestParams{
+					ClusterID: *clusterID,
+					CreateManifestParams: &models.CreateManifestParams{
+						Content:  &contentYaml,
+						FileName: &fileNameYaml,
+						Folder:   &uploadFolder,
+					},
+				})
+				err := response.(*common.ApiErrorResponse)
+				Expect(err.StatusCode()).To(Equal(int32(http.StatusBadRequest)))
+				expectedError := fmt.Sprintf("Supplied folder (%s) in cluster %s should be one of {openshift, manifests}", uploadFolder, clusterID.String())
+				Expect(err.Error()).To(ContainSubstring(expectedError))
+			})
 		})
 	})
 
@@ -496,6 +557,8 @@ spec:
 
 			manifestMetadataPrefix := filepath.Join(clusterID.String(), "manifest-attributes")
 			for _, file := range manifests {
+				mockS3Client.EXPECT().DoesObjectExist(ctx, filepath.Join(clusterID.String(), constants.ManifestFolder, "openshift", file.FileName)).Return(false, nil).AnyTimes()
+				mockS3Client.EXPECT().DoesObjectExist(ctx, filepath.Join(clusterID.String(), constants.ManifestFolder, "manifests", file.FileName)).Return(false, nil).AnyTimes()
 				files = append(files, getObjectName(clusterID, file.Folder, file.FileName))
 				addManifestToCluster(clusterID, contentYaml, file.FileName, file.Folder)
 				if file.FileName == "file-2.yaml" {
@@ -553,8 +616,8 @@ spec:
 			mockListByPrefix(clusterID, []string{})
 			mockUsageAPI.EXPECT().Remove(gomock.Any(), gomock.Any()).Times(1)
 			mockUsageAPI.EXPECT().Save(gomock.Any(), gomock.Any(), gomock.Any()).Times(1)
+			mockS3Client.EXPECT().DoesObjectExist(ctx, filepath.Join(clusterID.String(), constants.ManifestFolder, "openshift", "file-1.yaml")).Return(false, nil).AnyTimes()
 			addManifestToCluster(clusterID, contentYaml, "file-1.yaml", defaultFolder)
-
 			response := manifestsAPI.V2DeleteClusterManifest(ctx, operations.V2DeleteClusterManifestParams{
 				ClusterID: *clusterID,
 				FileName:  "file-1.yaml",
@@ -572,6 +635,8 @@ spec:
 			mockListByPrefix(clusterID, []string{"file-2.yaml"})
 			mockUsageAPI.EXPECT().Remove(gomock.Any(), gomock.Any()).Times(0)
 			mockUsageAPI.EXPECT().Save(gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
+			mockS3Client.EXPECT().DoesObjectExist(ctx, filepath.Join(clusterID.String(), constants.ManifestFolder, "openshift", "file-1.yaml")).Return(false, nil).AnyTimes()
+			mockS3Client.EXPECT().DoesObjectExist(ctx, filepath.Join(clusterID.String(), constants.ManifestFolder, "openshift", "file-2.yaml")).Return(false, nil).AnyTimes()
 			addManifestToCluster(clusterID, contentYaml, "file-1.yaml", defaultFolder)
 			addManifestToCluster(clusterID, contentYaml, "file-2.yaml", defaultFolder)
 
@@ -592,6 +657,7 @@ spec:
 			mockListByPrefix(clusterID, []string{})
 			mockUsageAPI.EXPECT().Remove(gomock.Any(), gomock.Any()).Times(1)
 			mockUsageAPI.EXPECT().Save(gomock.Any(), gomock.Any(), gomock.Any()).Times(1)
+			mockS3Client.EXPECT().DoesObjectExist(ctx, filepath.Join(clusterID.String(), constants.ManifestFolder, "manifests", "file-1.yaml")).Return(false, nil).AnyTimes()
 			addManifestToCluster(clusterID, contentYaml, "file-1.yaml", validFolder)
 
 			response := manifestsAPI.V2DeleteClusterManifest(ctx, operations.V2DeleteClusterManifestParams{
@@ -650,8 +716,9 @@ spec:
 		It("downloads manifest from different folder", func() {
 			clusterID := registerCluster().ID
 			mockUpload(1)
-			mockObjectExists(true)
 			mockS3Client.EXPECT().Download(ctx, gomock.Any()).Return(VoidReadCloser{}, int64(0), nil)
+			mockS3Client.EXPECT().DoesObjectExist(ctx, filepath.Join(clusterID.String(), constants.ManifestFolder, "manifests", "file-1.yaml")).Return(true, nil).AnyTimes()
+			mockS3Client.EXPECT().DoesObjectExist(ctx, filepath.Join(clusterID.String(), constants.ManifestFolder, "openshift", "file-1.yaml")).Return(false, nil).AnyTimes()
 			addManifestToCluster(clusterID, contentYaml, "file-1.yaml", defaultFolder)
 
 			response := manifestsAPI.V2DownloadClusterManifest(ctx, operations.V2DownloadClusterManifestParams{
@@ -715,6 +782,7 @@ spec:
 			mockS3Client.EXPECT().DoesObjectExist(ctx, getObjectName(clusterID, defaultFolder, fileNameYaml)).Return(true, nil).Times(1)
 			mockS3Client.EXPECT().DeleteObject(ctx, getObjectName(clusterID, defaultFolder, fileNameYaml)).Return(true, nil).Times(1)
 			mockS3Client.EXPECT().DeleteObject(ctx, getMetadataObjectName(clusterID, defaultFolder, fileNameYaml, constants.ManifestSourceUserSupplied)).Return(true, nil).Times(1)
+			mockS3Client.EXPECT().DoesObjectExist(ctx, filepath.Join(clusterID.String(), constants.ManifestFolder, "openshift", destFileName)).Return(false, nil).AnyTimes()
 			response := manifestsAPI.V2UpdateClusterManifest(ctx, operations.V2UpdateClusterManifestParams{
 				ClusterID: *clusterID,
 				UpdateManifestParams: &models.UpdateManifestParams{
@@ -736,6 +804,7 @@ spec:
 			destFolder := "manifests"
 			destFileName := "destFileName"
 			mockDownloadFailure()
+			mockS3Client.EXPECT().DoesObjectExist(ctx, filepath.Join(clusterID.String(), constants.ManifestFolder, "openshift", destFileName)).Return(false, nil).AnyTimes()
 			response := manifestsAPI.V2UpdateClusterManifest(ctx, operations.V2UpdateClusterManifestParams{
 				ClusterID: *clusterID,
 				UpdateManifestParams: &models.UpdateManifestParams{
@@ -842,6 +911,7 @@ spec:
 			mockS3Client.EXPECT().DoesObjectExist(ctx, getObjectName(clusterID, defaultFolder, fileNameYaml)).Return(true, nil).AnyTimes()
 			mockS3Client.EXPECT().DeleteObject(ctx, getObjectName(clusterID, defaultFolder, fileNameYaml)).Return(true, nil)
 			mockS3Client.EXPECT().DeleteObject(ctx, getMetadataObjectName(clusterID, defaultFolder, fileNameYaml, constants.ManifestSourceUserSupplied)).Return(true, nil).Times(1)
+			mockS3Client.EXPECT().DoesObjectExist(ctx, filepath.Join(clusterID.String(), constants.ManifestFolder, "openshift", destFileName)).Return(false, nil).AnyTimes()
 			response := manifestsAPI.V2UpdateClusterManifest(ctx, operations.V2UpdateClusterManifestParams{
 				ClusterID: *clusterID,
 				UpdateManifestParams: &models.UpdateManifestParams{
@@ -855,6 +925,130 @@ spec:
 			Expect(responsePayload.Payload).ShouldNot(BeNil())
 			Expect(responsePayload.Payload.FileName).To(Equal(destFileName))
 			Expect(responsePayload.Payload.Folder).To(Equal(defaultFolder))
+		})
+
+		It("should reject an update where folders and files have changed and desitination file would exist in manifests and openshift", func() {
+			clusterID := registerCluster().ID
+			mockS3Client.EXPECT().DoesObjectExist(ctx, filepath.Join(clusterID.String(), constants.ManifestFolder, "openshift", "test2.json")).Return(true, nil).AnyTimes()
+			srcFolder := "openshift"
+			srcFileName := "test.json"
+			destFolder := "manifests"
+			destFileName := "test2.json"
+			response := manifestsAPI.V2UpdateClusterManifest(ctx, operations.V2UpdateClusterManifestParams{
+				ClusterID: *clusterID,
+				UpdateManifestParams: &models.UpdateManifestParams{
+					FileName:        srcFileName,
+					Folder:          srcFolder,
+					UpdatedFileName: &destFileName,
+					UpdatedFolder:   &destFolder,
+				},
+			})
+			err := response.(*common.ApiErrorResponse)
+			Expect(err.StatusCode()).To(Equal(int32(http.StatusBadRequest)))
+			expectedError := fmt.Sprintf("manifest file %s for cluster ID %s in folder %s cannot be uploaded as it is not distinct between {manifest, openshift} folders", destFileName, clusterID.String(), destFolder)
+			Expect(err.Error()).To(ContainSubstring(expectedError))
+		})
+
+		It("should accept an update where folders and files have changed and desitination file would not exist in manifests and openshift", func() {
+			clusterID := registerCluster().ID
+			srcFolder := "openshift"
+			srcFileName := "test.json"
+			destFolder := "manifests"
+			destFileName := "test2.json"
+			reader := io.NopCloser(strings.NewReader(contentAsYAML))
+			mockS3Client.EXPECT().Download(ctx, getObjectName(clusterID, srcFolder, srcFileName)).Return(reader, int64(0), nil).Times(1)
+			mockS3Client.EXPECT().Upload(ctx, []byte(contentAsYAML), getObjectName(clusterID, destFolder, destFileName)).Return(nil).Times(1)
+			mockS3Client.EXPECT().Upload(ctx, []byte{}, getMetadataObjectName(clusterID, destFolder, destFileName, constants.ManifestSourceUserSupplied)).Return(nil).Times(1)
+			mockS3Client.EXPECT().DoesObjectExist(ctx, getMetadataObjectName(clusterID, srcFolder, srcFileName, constants.ManifestSourceUserSupplied)).Return(true, nil).AnyTimes()
+			mockS3Client.EXPECT().DoesObjectExist(ctx, getObjectName(clusterID, srcFolder, srcFileName)).Return(true, nil).AnyTimes()
+			mockS3Client.EXPECT().DeleteObject(ctx, getObjectName(clusterID, srcFolder, srcFileName)).Return(true, nil)
+			mockS3Client.EXPECT().DeleteObject(ctx, getMetadataObjectName(clusterID, srcFolder, srcFileName, constants.ManifestSourceUserSupplied)).Return(true, nil).Times(1)
+			mockS3Client.EXPECT().DoesObjectExist(ctx, filepath.Join(clusterID.String(), constants.ManifestFolder, "openshift", "test2.json")).Return(false, nil).AnyTimes()
+			response := manifestsAPI.V2UpdateClusterManifest(ctx, operations.V2UpdateClusterManifestParams{
+				ClusterID: *clusterID,
+				UpdateManifestParams: &models.UpdateManifestParams{
+					FileName:        srcFileName,
+					Folder:          srcFolder,
+					UpdatedFileName: &destFileName,
+					UpdatedFolder:   &destFolder,
+				},
+			})
+			Expect(response).Should(BeAssignableToTypeOf(operations.NewV2UpdateClusterManifestOK()))
+		})
+
+		It("should reject an update where folders remain the same and files have changed and desitination file would exist in manifests and openshift", func() {
+			clusterID := registerCluster().ID
+			mockS3Client.EXPECT().DoesObjectExist(ctx, filepath.Join(clusterID.String(), constants.ManifestFolder, "manifests", "test2.json")).Return(true, nil).AnyTimes()
+			srcFolder := "openshift"
+			srcFileName := "test.json"
+			destFolder := "openshift"
+			destFileName := "test2.json"
+			response := manifestsAPI.V2UpdateClusterManifest(ctx, operations.V2UpdateClusterManifestParams{
+				ClusterID: *clusterID,
+				UpdateManifestParams: &models.UpdateManifestParams{
+					FileName:        srcFileName,
+					Folder:          srcFolder,
+					UpdatedFileName: &destFileName,
+					UpdatedFolder:   &destFolder,
+				},
+			})
+			err := response.(*common.ApiErrorResponse)
+			Expect(err.StatusCode()).To(Equal(int32(http.StatusBadRequest)))
+			expectedError := fmt.Sprintf("manifest file %s for cluster ID %s in folder %s cannot be uploaded as it is not distinct between {manifest, openshift} folders", destFileName, clusterID.String(), destFolder)
+			Expect(err.Error()).To(ContainSubstring(expectedError))
+		})
+
+		It("should accept an update where folders remain the same and files have changed and desitination file would not exist in manifests and openshift", func() {
+			clusterID := registerCluster().ID
+			mockS3Client.EXPECT().DoesObjectExist(ctx, filepath.Join(clusterID.String(), constants.ManifestFolder, "manifests", "test2.json")).Return(false, nil).AnyTimes()
+			srcFolder := "openshift"
+			srcFileName := "test.json"
+			destFolder := "openshift"
+			destFileName := "test2.json"
+			reader := io.NopCloser(strings.NewReader(contentAsYAML))
+			mockS3Client.EXPECT().Download(ctx, getObjectName(clusterID, srcFolder, srcFileName)).Return(reader, int64(0), nil).Times(1)
+			mockS3Client.EXPECT().Upload(ctx, []byte(contentAsYAML), getObjectName(clusterID, destFolder, destFileName)).Return(nil).Times(1)
+			mockS3Client.EXPECT().Upload(ctx, []byte{}, getMetadataObjectName(clusterID, destFolder, destFileName, constants.ManifestSourceUserSupplied)).Return(nil).Times(1)
+			mockS3Client.EXPECT().DoesObjectExist(ctx, getMetadataObjectName(clusterID, srcFolder, srcFileName, constants.ManifestSourceUserSupplied)).Return(true, nil).AnyTimes()
+			mockS3Client.EXPECT().DoesObjectExist(ctx, getObjectName(clusterID, srcFolder, srcFileName)).Return(true, nil).AnyTimes()
+			mockS3Client.EXPECT().DeleteObject(ctx, getObjectName(clusterID, srcFolder, srcFileName)).Return(true, nil)
+			mockS3Client.EXPECT().DeleteObject(ctx, getMetadataObjectName(clusterID, srcFolder, srcFileName, constants.ManifestSourceUserSupplied)).Return(true, nil).Times(1)
+			mockS3Client.EXPECT().DoesObjectExist(ctx, filepath.Join(clusterID.String(), constants.ManifestFolder, "openshift", "test2.json")).Return(false, nil).AnyTimes()
+			response := manifestsAPI.V2UpdateClusterManifest(ctx, operations.V2UpdateClusterManifestParams{
+				ClusterID: *clusterID,
+				UpdateManifestParams: &models.UpdateManifestParams{
+					FileName:        srcFileName,
+					Folder:          srcFolder,
+					UpdatedFileName: &destFileName,
+					UpdatedFolder:   &destFolder,
+				},
+			})
+			Expect(response).Should(BeAssignableToTypeOf(operations.NewV2UpdateClusterManifestOK()))
+		})
+
+		It("should accept an update where folders remain the same and files remain the same", func() {
+			clusterID := registerCluster().ID
+			mockS3Client.EXPECT().DoesObjectExist(ctx, filepath.Join(clusterID.String(), constants.ManifestFolder, "manifests", "test2.json")).Return(false, nil).AnyTimes()
+			srcFolder := "openshift"
+			srcFileName := "test.json"
+			destFolder := "openshift"
+			destFileName := "test.json"
+			reader := io.NopCloser(strings.NewReader(contentAsYAML))
+			mockS3Client.EXPECT().Download(ctx, getObjectName(clusterID, srcFolder, srcFileName)).Return(reader, int64(0), nil).Times(1)
+			mockS3Client.EXPECT().Upload(ctx, []byte(contentAsYAML), getObjectName(clusterID, destFolder, destFileName)).Return(nil).Times(1)
+			mockS3Client.EXPECT().Upload(ctx, []byte{}, getMetadataObjectName(clusterID, destFolder, destFileName, constants.ManifestSourceUserSupplied)).Return(nil).Times(1)
+			mockS3Client.EXPECT().DoesObjectExist(ctx, getMetadataObjectName(clusterID, srcFolder, srcFileName, constants.ManifestSourceUserSupplied)).Return(true, nil).AnyTimes()
+			mockS3Client.EXPECT().DoesObjectExist(ctx, getObjectName(clusterID, srcFolder, srcFileName)).Return(true, nil).AnyTimes()
+			response := manifestsAPI.V2UpdateClusterManifest(ctx, operations.V2UpdateClusterManifestParams{
+				ClusterID: *clusterID,
+				UpdateManifestParams: &models.UpdateManifestParams{
+					FileName:        srcFileName,
+					Folder:          srcFolder,
+					UpdatedFileName: &destFileName,
+					UpdatedFolder:   &destFolder,
+				},
+			})
+			Expect(response).Should(BeAssignableToTypeOf(operations.NewV2UpdateClusterManifestOK()))
 		})
 	})
 
