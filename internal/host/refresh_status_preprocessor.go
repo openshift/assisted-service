@@ -303,10 +303,6 @@ func newValidations(v *validator) []validation {
 			condition: v.noSkipInstallationDisk,
 		},
 		{
-			id:        NoDiskDetected,
-			condition: v.NoDiskDetected,
-		},
-		{
 			id:        NoSkipMissingDisk,
 			condition: v.noSkipMissingDisk,
 		},

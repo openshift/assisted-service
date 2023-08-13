@@ -5,11 +5,11 @@ import (
 	"github.com/openshift/assisted-service/models"
 )
 
-func (p *externalProvider) CleanPlatformValuesFromDBUpdates(_ map[string]interface{}) error {
+func (p *baseExternalProvider) CleanPlatformValuesFromDBUpdates(_ map[string]interface{}) error {
 	return nil
 }
 
-func (p *externalProvider) SetPlatformUsages(
+func (p *baseExternalProvider) SetPlatformUsages(
 	usages map[string]models.Usage,
 	usageApi usage.API) error {
 	props := &map[string]interface{}{

@@ -8163,8 +8163,7 @@ func init() {
         "compatible-agent",
         "no-skip-installation-disk",
         "no-skip-missing-disk",
-        "no-ip-collisions-in-network",
-        "no-disk-detected",
+        "no-ip-collisions-in-network"
       ]
     },
     "host_network": {
@@ -18603,8 +18602,7 @@ func init() {
         "compatible-agent",
         "no-skip-installation-disk",
         "no-skip-missing-disk",
-        "no-ip-collisions-in-network",
-        "no-disk-detected"
+        "no-ip-collisions-in-network"
       ]
     },
     "host_network": {

@@ -372,9 +372,8 @@ func (v *validator) compatibleWithClusterPlatform(c *validationContext) (Validat
 	if supported {
 		return ValidationSuccess, fmt.Sprintf("Host is compatible with cluster platform %s", common.PlatformTypeValue(c.cluster.Platform.Type))
 	}
-	hostAvailablePlatforms, _ := v.providerRegistry.GetSupportedProvidersByHosts([]*models.Host{c.host})
-	return ValidationFailure, fmt.Sprintf("Host is not compatible with cluster platform %s; either disable this host or choose a compatible cluster platform (%v)",
-		common.PlatformTypeValue(c.cluster.Platform.Type), hostAvailablePlatforms)
+	return ValidationFailure, fmt.Sprintf("Host is not compatible with cluster platform %s; either disable this host or discover a new compatible host.",
+		common.PlatformTypeValue(c.cluster.Platform.Type))
 }
 
 func (v *validator) getDiskEncryptionForDay2(host *models.Host) (*ignition_types.Luks, error) {
@@ -507,6 +506,14 @@ func (v *validator) hasMinValidDisks(c *validationContext) (ValidationStatus, st
 	if c.inventory == nil {
 		return ValidationPending, "Missing inventory"
 	}
+	inventory, err := c.inventoryCache.GetOrUnmarshal(c.host)
+	if err != nil {
+		return ValidationError, "Failed to load inventory"
+	}
+	if len(inventory.Disks) == 0 {
+		return ValidationError, "Cannot Detected Disks"
+	}
+
 	disks := v.hwValidator.ListEligibleDisks(c.inventory)
 	if len(disks) > 0 {
 		return ValidationSuccess, "Sufficient disk capacity"
@@ -1725,23 +1732,6 @@ func (v *validator) noSkipInstallationDisk(c *validationContext) (ValidationStat
 	}
 
 	return ValidationFailure, failureMessage
-}
-
-func (v *validator) NoDiskDetected(c *validationContext) (ValidationStatus, string) {
-	const (
-		diskNotDetected string = "Cannot detected Disks"
-		unmarshalError  string = "Failed to unmarshal this host's inventory"
-		successMessage  string = "Disk Detected"
-	)
-	inventory, err := c.inventoryCache.GetOrUnmarshal(c.host)
-	if inventory == nil || err != nil {
-		return ValidationError, unmarshalError
-	}
-	if len(inventory.Disks) == 0 {
-		return ValidationFailure, diskNotDetected
-	}
-	return ValidationSuccess, successMessage
-
 }
 
 func (v *validator) noSkipMissingDisk(c *validationContext) (ValidationStatus, string) {

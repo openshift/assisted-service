@@ -838,6 +838,15 @@ func (r *BMACReconciler) reconcileBMH(ctx context.Context, log logrus.FieldLogge
 	log.Debugf("Started BMH reconcile")
 	log.Debugf("BMH value %v", bmh)
 
+	infraEnv, err := r.findInfraEnvForBMH(ctx, log, bmh)
+	if err != nil {
+		return reconcileError{err: err}
+	}
+	// Stop `Reconcile` if BMH does not have an InfraEnv.
+	if infraEnv == nil {
+		return reconcileComplete{stop: true}
+	}
+
 	// A detached BMH is considered to be unmanaged by the hub
 	// cluster and, therefore, BMAC reconciles on this BMH should
 	// not happen.
@@ -854,17 +863,6 @@ func (r *BMACReconciler) reconcileBMH(ctx context.Context, log logrus.FieldLogge
 		}
 		log.Debugf("Stopped BMH reconcile because it has been detached")
 		return result
-	}
-
-	infraEnv, err := r.findInfraEnvForBMH(ctx, log, bmh)
-
-	if err != nil {
-		return reconcileError{err: err}
-	}
-
-	// Stop `Reconcile` if BMH does not have an InfraEnv.
-	if infraEnv == nil {
-		return reconcileComplete{stop: true}
 	}
 
 	dirty := false
@@ -1359,6 +1357,9 @@ func (r *BMACReconciler) newSpokeBMH(log logrus.FieldLogger, bmh *bmh_v1alpha1.B
 		},
 	}
 	mutateFn := func() error {
+		// inspection must be disabled when providing hardware details
+		// ensure it is always disabled even for converged
+		setAnnotation(&bmhSpoke.ObjectMeta, BMH_INSPECT_ANNOTATION, "disabled")
 		bmhSpoke.Spec = bmh.Spec
 		// remove the credentials from the spoke's Spec so
 		// that BMO will set the status to unmanaged

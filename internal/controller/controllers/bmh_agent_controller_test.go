@@ -1068,7 +1068,7 @@ var _ = Describe("bmac reconcile", func() {
 		})
 
 		Context("when agent role worker and cluster deployment is set", func() {
-			It("should set spoke BMH when agent is not installing", func() {
+			It("should not create spoke BMH when agent is not installing", func() {
 				configMap := &corev1.ConfigMap{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "root-ca",
@@ -1105,7 +1105,7 @@ var _ = Describe("bmac reconcile", func() {
 				err = spokeClient.Get(ctx, types.NamespacedName{Name: machineName, Namespace: OPENSHIFT_MACHINE_API_NAMESPACE}, spokeMachine)
 				Expect(err).NotTo(BeNil())
 			})
-			It("should not set spoke BMH when agent is installing", func() {
+			It("should create spoke BMH when agent is installing", func() {
 				configMap := &corev1.ConfigMap{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "root-ca",
@@ -1143,6 +1143,7 @@ var _ = Describe("bmac reconcile", func() {
 				Expect(spokeBMH.ObjectMeta.Annotations).To(HaveKey(BMH_HARDWARE_DETAILS_ANNOTATION))
 				Expect(spokeBMH.ObjectMeta.Annotations[BMH_HARDWARE_DETAILS_ANNOTATION]).To(Equal(updatedHost.ObjectMeta.Annotations[BMH_HARDWARE_DETAILS_ANNOTATION]))
 				Expect(spokeBMH.ObjectMeta.Annotations).ToNot(HaveKey(BMH_DETACHED_ANNOTATION))
+				Expect(spokeBMH.ObjectMeta.Annotations[BMH_INSPECT_ANNOTATION]).To(Equal("disabled"))
 				Expect(spokeBMH.Spec.Image).To(Equal(updatedHost.Spec.Image))
 				Expect(spokeBMH.Spec.ConsumerRef.Kind).To(Equal("Machine"))
 				Expect(spokeBMH.Spec.ConsumerRef.Name).To(Equal(machineName))
@@ -1314,6 +1315,21 @@ var _ = Describe("bmac reconcile", func() {
 				Expect(err).To(BeNil())
 				Expect(updatedHost.ObjectMeta.Annotations).NotTo(HaveKey(BMH_DETACHED_ANNOTATION))
 				Expect(updatedHost.ObjectMeta.Annotations[BMH_DETACHED_ANNOTATION]).NotTo(Equal("assisted-service-controller"))
+			})
+			It("should not set the detached annotation value for BMHs not labeled with an infraenv", func() {
+				host.SetAnnotations(map[string]string{BMH_DETACHED_ANNOTATION: "some-other-value"})
+				delete(host.Labels, BMH_INFRA_ENV_LABEL)
+				Expect(c.Update(ctx, host)).To(BeNil())
+
+				result, err := bmhr.Reconcile(ctx, newBMHRequest(host))
+				Expect(err).To(BeNil())
+				Expect(result).To(Equal(ctrl.Result{}))
+
+				updatedHost := &bmh_v1alpha1.BareMetalHost{}
+				err = c.Get(ctx, types.NamespacedName{Name: host.Name, Namespace: testNamespace}, updatedHost)
+				Expect(err).To(BeNil())
+				Expect(updatedHost.ObjectMeta.Annotations).To(HaveKey(BMH_DETACHED_ANNOTATION))
+				Expect(updatedHost.ObjectMeta.Annotations[BMH_DETACHED_ANNOTATION]).To(Equal("some-other-value"))
 			})
 			It("should set the detached annotation if agent is installed", func() {
 				agent.Status.Conditions = []conditionsv1.Condition{
