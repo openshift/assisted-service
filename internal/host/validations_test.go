@@ -43,16 +43,17 @@ var _ = Describe("Validations test", func() {
 	gomega_format.CharactersAroundMismatchToInclude = 80
 
 	var (
-		ctrl            *gomock.Controller
-		ctx             = context.Background()
-		db              *gorm.DB
-		dbName          string
-		mockEvents      *eventsapi.MockHandler
-		mockHwValidator *hardware.MockValidator
-		mockMetric      *metrics.MockAPI
-		mockOperators   *operators.MockAPI
-		mockVersions    *versions.MockHandler
-		m               *Manager
+		ctrl                 *gomock.Controller
+		ctx                  = context.Background()
+		db                   *gorm.DB
+		dbName               string
+		mockEvents           *eventsapi.MockHandler
+		mockHwValidator      *hardware.MockValidator
+		mockMetric           *metrics.MockAPI
+		mockOperators        *operators.MockAPI
+		mockVersions         *versions.MockHandler
+		mockProviderRegistry *registry.MockProviderRegistry
+		m                    *Manager
 
 		clusterID, hostID, infraEnvID strfmt.UUID
 	)
@@ -64,10 +65,10 @@ var _ = Describe("Validations test", func() {
 		mockHwValidator = hardware.NewMockValidator(ctrl)
 		mockMetric = metrics.NewMockAPI(ctrl)
 		mockOperators = operators.NewMockAPI(ctrl)
-		pr := registry.NewMockProviderRegistry(ctrl)
-		pr.EXPECT().IsHostSupported(gomock.Any(), gomock.Any()).Return(true, nil).AnyTimes()
+		mockProviderRegistry = registry.NewMockProviderRegistry(ctrl)
+		mockProviderRegistry.EXPECT().IsHostSupported(models.PlatformTypeBaremetal, gomock.Any()).Return(true, nil).AnyTimes()
 		mockVersions = versions.NewMockHandler(ctrl)
-		m = NewManager(common.GetTestLog(), db, nil, mockEvents, mockHwValidator, nil, createValidatorCfg(), mockMetric, defaultConfig, nil, mockOperators, pr, false, nil, mockVersions)
+		m = NewManager(common.GetTestLog(), db, nil, mockEvents, mockHwValidator, nil, createValidatorCfg(), mockMetric, defaultConfig, nil, mockOperators, mockProviderRegistry, false, nil, mockVersions)
 
 		clusterID = strfmt.UUID(uuid.New().String())
 		hostID = strfmt.UUID(uuid.New().String())
@@ -244,6 +245,7 @@ var _ = Describe("Validations test", func() {
 
 	Context("Ignition downloadable validation", func() {
 		BeforeEach(func() {
+			mockProviderRegistry.EXPECT().IsHostSupported(models.PlatformTypeVsphere, gomock.Any()).Return(false, nil).AnyTimes()
 			mockVersions.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 				Return(&models.ReleaseImage{URL: swag.String("quay.io/openshift/some-image::latest")}, nil).AnyTimes()
 		})
@@ -424,6 +426,7 @@ var _ = Describe("Validations test", func() {
 		}
 
 		BeforeEach(func() {
+			mockProviderRegistry.EXPECT().IsHostSupported(models.PlatformTypeVsphere, gomock.Any()).Return(false, nil).AnyTimes()
 			mockVersions.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 				Return(&models.ReleaseImage{URL: swag.String("quay.io/openshift/some-image::latest")}, nil).AnyTimes()
 		})
@@ -1045,6 +1048,7 @@ var _ = Describe("Validations test", func() {
 	*/
 	Context("Disk encryption validation", func() {
 		BeforeEach(func() {
+			mockProviderRegistry.EXPECT().IsHostSupported(models.PlatformTypeVsphere, gomock.Any()).Return(false, nil).AnyTimes()
 			mockVersions.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 				Return(&models.ReleaseImage{URL: swag.String("quay.io/openshift/some-image::latest")}, nil).AnyTimes()
 		})
@@ -1493,6 +1497,7 @@ var _ = Describe("Validations test", func() {
 		}
 
 		It("Baremetal platform with no disk UUID is suppressed", func() {
+			mockProviderRegistry.EXPECT().IsHostSupported(models.PlatformTypeVsphere, gomock.Any()).Return(false, nil).AnyTimes()
 			mockAndRefreshStatus(&host)
 			host = hostutil.GetHostFromDB(*host.ID, host.InfraEnvID, db).Host
 			status, _, _ := getValidationResult(host.ValidationsInfo, hostUUIDValidation)
@@ -1500,6 +1505,7 @@ var _ = Describe("Validations test", func() {
 		})
 
 		It("Vsphere platform with disk UUID", func() {
+			mockProviderRegistry.EXPECT().IsHostSupported(models.PlatformTypeVsphere, gomock.Any()).Return(true, nil).AnyTimes()
 			updateHostInventory(func(inventory *models.Inventory) {
 				for _, disk := range inventory.Disks {
 					disk.HasUUID = true
@@ -1515,6 +1521,7 @@ var _ = Describe("Validations test", func() {
 		})
 
 		It("Vsphere platform with no disk UUID", func() {
+			mockProviderRegistry.EXPECT().IsHostSupported(models.PlatformTypeVsphere, gomock.Any()).Return(true, nil).AnyTimes()
 			updateHostInventory(func(inventory *models.Inventory) {
 				for _, disk := range inventory.Disks {
 					disk.HasUUID = false
@@ -1530,6 +1537,7 @@ var _ = Describe("Validations test", func() {
 		})
 
 		It("Vsphere platform with CDROM disk with no UUID", func() {
+			mockProviderRegistry.EXPECT().IsHostSupported(models.PlatformTypeVsphere, gomock.Any()).Return(true, nil).AnyTimes()
 			CDROM := &models.Disk{
 				SizeBytes: conversions.GibToBytes(120),
 				DriveType: "CDROM",
@@ -1564,6 +1572,7 @@ var _ = Describe("Validations test", func() {
 		)
 
 		BeforeEach(func() {
+			mockProviderRegistry.EXPECT().IsHostSupported(models.PlatformTypeVsphere, gomock.Any()).Return(false, nil).AnyTimes()
 			cluster = hostutil.GenerateTestCluster(clusterID)
 			Expect(db.Create(&cluster).Error).ToNot(HaveOccurred())
 			hostId := strfmt.UUID(uuid.New().String())
@@ -1643,6 +1652,7 @@ var _ = Describe("Validations test", func() {
 
 			// Create a test host
 			hostId, infraEnvId := strfmt.UUID(uuid.New().String()), strfmt.UUID(uuid.New().String())
+			mockProviderRegistry.EXPECT().IsHostSupported(models.PlatformTypeVsphere, gomock.Any()).Return(false, nil).AnyTimes()
 			host = hostutil.GenerateTestHostByKind(hostId, infraEnvId, &clusterID, models.HostStatusKnown, models.HostKindHost, models.HostRoleMaster)
 			host.Inventory = hostutil.GenerateMasterInventory()
 			Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
@@ -1751,6 +1761,7 @@ var _ = Describe("Validations test", func() {
 			// Create a test cluster
 			cluster = hostutil.GenerateTestCluster(clusterID)
 			Expect(db.Create(&cluster).Error).ToNot(HaveOccurred())
+			mockProviderRegistry.EXPECT().IsHostSupported(models.PlatformTypeVsphere, gomock.Any()).Return(false, nil).AnyTimes()
 
 			// Create a test host
 			hostId, infraEnvId := strfmt.UUID(uuid.New().String()), strfmt.UUID(uuid.New().String())
@@ -1917,6 +1928,7 @@ var _ = Describe("Validations test", func() {
 			cluster = hostutil.GenerateTestCluster(clusterID)
 			Expect(db.Create(&cluster).Error).ToNot(HaveOccurred())
 			hostId, infraEnvId := strfmt.UUID(uuid.New().String()), strfmt.UUID(uuid.New().String())
+			mockProviderRegistry.EXPECT().IsHostSupported(models.PlatformTypeVsphere, gomock.Any()).Return(false, nil).AnyTimes()
 			host = hostutil.GenerateTestHostByKind(hostId, infraEnvId, &clusterID, models.HostStatusDiscovering, models.HostKindHost, models.HostRoleMaster)
 			Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
 			host = hostutil.GetHostFromDB(*host.ID, host.InfraEnvID, db).Host
@@ -1944,6 +1956,7 @@ var _ = Describe("Validations test", func() {
 			cluster = hostutil.GenerateTestCluster(clusterID)
 			Expect(db.Create(&cluster).Error).ToNot(HaveOccurred())
 			hostId, infraEnvId := strfmt.UUID(uuid.New().String()), strfmt.UUID(uuid.New().String())
+			mockProviderRegistry.EXPECT().IsHostSupported(models.PlatformTypeVsphere, gomock.Any()).Return(false, nil).AnyTimes()
 			host = hostutil.GenerateTestHostByKind(hostId, infraEnvId, &clusterID, models.HostStatusDiscovering, models.HostKindHost, models.HostRoleMaster)
 			Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
 			host = hostutil.GetHostFromDB(*host.ID, host.InfraEnvID, db).Host
@@ -2016,6 +2029,7 @@ var _ = Describe("Validations test", func() {
 		BeforeEach(func() {
 			cluster = hostutil.GenerateTestCluster(clusterID)
 			Expect(db.Create(&cluster).Error).ToNot(HaveOccurred())
+			mockProviderRegistry.EXPECT().IsHostSupported(models.PlatformTypeVsphere, gomock.Any()).Return(false, nil).AnyTimes()
 			mockVersions.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 				Return(&models.ReleaseImage{URL: swag.String("quay.io/openshift/some-image::latest")}, nil).AnyTimes()
 		})

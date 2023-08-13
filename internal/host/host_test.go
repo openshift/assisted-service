@@ -29,6 +29,7 @@ import (
 	"github.com/openshift/assisted-service/internal/metrics"
 	"github.com/openshift/assisted-service/internal/operators"
 	"github.com/openshift/assisted-service/internal/operators/api"
+	"github.com/openshift/assisted-service/internal/provider/registry"
 	"github.com/openshift/assisted-service/internal/versions"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/conversions"
@@ -2831,6 +2832,9 @@ var _ = Describe("AutoAssignRole", func() {
 		mockHwValidator.EXPECT().ListEligibleDisks(gomock.Any()).AnyTimes()
 		mockHwValidator.EXPECT().GetHostValidDisks(gomock.Any()).Return(nil, nil).AnyTimes()
 		mockOperators := operators.NewMockAPI(ctrl)
+		mockProviderRegistry := registry.NewMockProviderRegistry(ctrl)
+		mockProviderRegistry.EXPECT().IsHostSupported(models.PlatformTypeBaremetal, gomock.Any()).Return(true, nil).AnyTimes()
+		mockProviderRegistry.EXPECT().IsHostSupported(models.PlatformTypeVsphere, gomock.Any()).Return(false, nil).AnyTimes()
 		db, dbName = common.PrepareTestDB()
 		clusterId = strfmt.UUID(uuid.New().String())
 		infraEnvId = strfmt.UUID(uuid.New().String())
@@ -2850,7 +2854,7 @@ var _ = Describe("AutoAssignRole", func() {
 			defaultConfig,
 			dummy,
 			mockOperators,
-			nil,
+			mockProviderRegistry,
 			false,
 			nil,
 			mockVersions,
@@ -3024,6 +3028,9 @@ var _ = Describe("IsValidMasterCandidate", func() {
 		ctrl = gomock.NewController(GinkgoT())
 		mockOperators := operators.NewMockAPI(ctrl)
 		hwValidator := hardware.NewValidator(testLog, *hwValidatorCfg, mockOperators)
+		mockProviderRegistry := registry.NewMockProviderRegistry(ctrl)
+		mockProviderRegistry.EXPECT().IsHostSupported(models.PlatformTypeBaremetal, gomock.Any()).Return(true, nil).AnyTimes()
+		mockProviderRegistry.EXPECT().IsHostSupported(models.PlatformTypeVsphere, gomock.Any()).Return(false, nil).AnyTimes()
 		mockOperators.EXPECT().GetRequirementsBreakdownForHostInCluster(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes().Return([]*models.OperatorHostRequirements{}, nil)
 		mockOperators.EXPECT().GetPreflightRequirementsBreakdownForCluster(gomock.Any(), gomock.Any()).AnyTimes().Return([]*models.OperatorHardwareRequirements{}, nil)
 		mockVersions := versions.NewMockHandler(ctrl)
@@ -3041,7 +3048,7 @@ var _ = Describe("IsValidMasterCandidate", func() {
 			defaultConfig,
 			dummy,
 			mockOperators,
-			nil,
+			mockProviderRegistry,
 			false,
 			nil,
 			mockVersions,
