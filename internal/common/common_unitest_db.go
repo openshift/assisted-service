@@ -407,7 +407,7 @@ func openTestDB(dbName string) (*gorm.DB, error) {
 		})
 	}
 
-	for attempts := 0; attempts < 5; attempts++ {
+	for attempts := 0; attempts < 30; attempts++ {
 		db, err := open()
 		if err == nil {
 			return db, nil
