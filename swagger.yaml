@@ -3580,6 +3580,11 @@ paths:
           # TODO: remove arm64 when AI moves to using aarch64
           enum: [ 'x86_64', 'aarch64', 'arm64','ppc64le','s390x','multi' ]
           default: x86_64
+        - in: query
+          name: platform_type
+          description: The provider platform type.
+          type: string
+          enum: [ 'baremetal', 'none', 'nutanix', 'vsphere', 'oci' ]
       responses:
         "200":
           description: Success.
@@ -4070,6 +4075,8 @@ definitions:
       - 'CNV'
       - 'MCE'
       - 'NUTANIX_INTEGRATION'
+      - 'BAREMETAL_PLATFORM'
+      - 'NONE_PLATFORM'
       - 'VSPHERE_INTEGRATION'
       - 'DUAL_STACK_VIPS'
       - 'CLUSTER_MANAGED_NETWORKING' # DEPRECATED
@@ -4078,6 +4085,7 @@ definitions:
       - 'FULL_ISO'
       - 'EXTERNAL_PLATFORM_OCI'
       - 'DUAL_STACK'
+      - 'PLATFORM_MANAGED_NETWORKING'
 
   architecture-support-level-id:
     type: string

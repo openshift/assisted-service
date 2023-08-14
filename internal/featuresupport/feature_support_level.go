@@ -10,24 +10,38 @@ import (
 )
 
 var featuresList = map[models.FeatureSupportLevelID]SupportLevelFeature{
-	models.FeatureSupportLevelIDSNO:                      (&SnoFeature{}).New(),
-	models.FeatureSupportLevelIDVIPAUTOALLOC:             (&VipAutoAllocFeature{}).New(),
-	models.FeatureSupportLevelIDCUSTOMMANIFEST:           (&CustomManifestFeature{}).New(),
-	models.FeatureSupportLevelIDCLUSTERMANAGEDNETWORKING: (&ClusterManagedNetworkingFeature{}).New(),
-	models.FeatureSupportLevelIDUSERMANAGEDNETWORKING:    (&UserManagedNetworkingFeature{}).New(),
-	models.FeatureSupportLevelIDSINGLENODEEXPANSION:      (&SingleNodeExpansionFeature{}).New(),
-	models.FeatureSupportLevelIDDUALSTACKVIPS:            (&DualStackVipsFeature{}).New(),
-	models.FeatureSupportLevelIDLVM:                      (&LvmFeature{}).New(),
-	models.FeatureSupportLevelIDNUTANIXINTEGRATION:       (&NutanixIntegrationFeature{}).New(),
-	models.FeatureSupportLevelIDVSPHEREINTEGRATION:       (&VsphereIntegrationFeature{}).New(),
-	models.FeatureSupportLevelIDCNV:                      (&CnvFeature{}).New(),
-	models.FeatureSupportLevelIDLSO:                      (&LsoFeature{}).New(),
-	models.FeatureSupportLevelIDMCE:                      (&MceFeature{}).New(),
-	models.FeatureSupportLevelIDODF:                      (&OdfFeature{}).New(),
-	models.FeatureSupportLevelIDMINIMALISO:               (&MinimalIso{}).New(),
-	models.FeatureSupportLevelIDFULLISO:                  (&FullIso{}).New(),
-	models.FeatureSupportLevelIDEXTERNALPLATFORMOCI:      (&ExternalPlatformOci{}).New(),
-	models.FeatureSupportLevelIDDUALSTACK:                (&DualStackFeature{}).New(),
+	// Generic features
+	models.FeatureSupportLevelIDSNO:                 (&SnoFeature{}).New(),
+	models.FeatureSupportLevelIDCUSTOMMANIFEST:      (&CustomManifestFeature{}).New(),
+	models.FeatureSupportLevelIDSINGLENODEEXPANSION: (&SingleNodeExpansionFeature{}).New(),
+	models.FeatureSupportLevelIDMINIMALISO:          (&MinimalIso{}).New(),
+	models.FeatureSupportLevelIDFULLISO:             (&FullIso{}).New(),
+
+	// Network features
+	models.FeatureSupportLevelIDVIPAUTOALLOC:              (&VipAutoAllocFeature{}).New(),
+	models.FeatureSupportLevelIDCLUSTERMANAGEDNETWORKING:  (&ClusterManagedNetworkingFeature{}).New(),
+	models.FeatureSupportLevelIDUSERMANAGEDNETWORKING:     (&UserManagedNetworkingFeature{}).New(),
+	models.FeatureSupportLevelIDDUALSTACKVIPS:             (&DualStackVipsFeature{}).New(),
+	models.FeatureSupportLevelIDDUALSTACK:                 (&DualStackFeature{}).New(),
+	models.FeatureSupportLevelIDPLATFORMMANAGEDNETWORKING: (&PlatformManagedNetworkingFeature{}).New(),
+
+	// Olm Operators features
+	models.FeatureSupportLevelIDLVM: (&LvmFeature{}).New(),
+	models.FeatureSupportLevelIDCNV: (&CnvFeature{}).New(),
+	models.FeatureSupportLevelIDLSO: (&LsoFeature{}).New(),
+	models.FeatureSupportLevelIDMCE: (&MceFeature{}).New(),
+	models.FeatureSupportLevelIDODF: (&OdfFeature{}).New(),
+
+	// Platform features
+	models.FeatureSupportLevelIDNUTANIXINTEGRATION:  (&NutanixIntegrationFeature{}).New(),
+	models.FeatureSupportLevelIDVSPHEREINTEGRATION:  (&VsphereIntegrationFeature{}).New(),
+	models.FeatureSupportLevelIDEXTERNALPLATFORMOCI: (&OciIntegrationFeature{}).New(),
+	models.FeatureSupportLevelIDBAREMETALPLATFORM:   (&BaremetalPlatformFeature{}).New(),
+	models.FeatureSupportLevelIDNONEPLATFORM:        (&NonePlatformFeature{}).New(),
+}
+
+func GetFeatureByID(featureID models.FeatureSupportLevelID) SupportLevelFeature {
+	return featuresList[featureID]
 }
 
 func getFeatureSupportList(features map[models.FeatureSupportLevelID]SupportLevelFeature, filters SupportLevelFilters) models.SupportLevels {
@@ -45,11 +59,28 @@ func getFeatureSupportList(features map[models.FeatureSupportLevelID]SupportLeve
 	return featureSupportList
 }
 
+// removeEmptySupportLevel remove features with an empty support level value
+// Currently in case of filtering features by <platform> we cannot return all other platforms in that list.
+func removeEmptySupportLevel(supportLevels models.SupportLevels) {
+	var featuresToRemove []string
+
+	for featureId, supportLevel := range supportLevels {
+		if string(supportLevel) == "" {
+			featuresToRemove = append(featuresToRemove, featureId)
+		}
+	}
+
+	for _, featureId := range featuresToRemove {
+		delete(supportLevels, featureId)
+	}
+}
+
 // GetFeatureSupportList Get features support level list, cpuArchitecture is optional and the default value is x86
-func GetFeatureSupportList(openshiftVersion string, cpuArchitecture *string) models.SupportLevels {
+func GetFeatureSupportList(openshiftVersion string, cpuArchitecture *string, platformType *models.PlatformType) models.SupportLevels {
 	filters := SupportLevelFilters{
 		OpenshiftVersion: openshiftVersion,
 		CPUArchitecture:  cpuArchitecture,
+		PlatformType:     platformType,
 	}
 
 	if cpuArchitecture == nil {
@@ -57,8 +88,11 @@ func GetFeatureSupportList(openshiftVersion string, cpuArchitecture *string) mod
 	}
 	featuresSupportList := overrideInvalidRequest(featuresList, *filters.CPUArchitecture, openshiftVersion)
 	if featuresSupportList == nil {
-		return getFeatureSupportList(featuresList, filters)
+		featuresSupportList = getFeatureSupportList(featuresList, filters)
 	}
+
+	// remove features that collide with the given filters
+	removeEmptySupportLevel(featuresSupportList)
 
 	return featuresSupportList
 }
@@ -95,7 +129,7 @@ func isFeatureCompatible(openshiftVersion string, feature SupportLevelFeature, f
 func isFeaturesCompatibleWithFeatures(openshiftVersion string, activatedFeatures []SupportLevelFeature) error {
 	for _, feature := range activatedFeatures {
 		if incompatibleFeature := isFeatureCompatible(openshiftVersion, feature, activatedFeatures...); incompatibleFeature != nil {
-			return fmt.Errorf("cannot use %s because it's not compatible with %s", feature.getName(), (*incompatibleFeature).getName())
+			return fmt.Errorf("cannot use %s because it's not compatible with %s", feature.GetName(), (*incompatibleFeature).GetName())
 		}
 	}
 
@@ -108,7 +142,7 @@ func isFeaturesCompatible(openshiftVersion, cpuArchitecture string, activatedFea
 		if !isFeatureCompatibleWithArchitecture(feature, openshiftVersion, cpuArchitecture) ||
 			!IsFeatureAvailable(feature.getId(), openshiftVersion, swag.String(cpuArchitecture)) {
 			return fmt.Errorf("cannot use %s because it's not compatible with the %s architecture "+
-				"on version %s of OpenShift", feature.getName(), cpuArchitecture, openshiftVersion)
+				"on version %s of OpenShift", feature.GetName(), cpuArchitecture, openshiftVersion)
 		}
 	}
 	return nil

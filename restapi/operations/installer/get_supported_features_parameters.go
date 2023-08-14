@@ -49,6 +49,10 @@ type GetSupportedFeaturesParams struct {
 	  In: query
 	*/
 	OpenshiftVersion string
+	/*The provider platform type.
+	  In: query
+	*/
+	PlatformType *string
 }
 
 // BindRequest both binds and validates a request, it assumes that complex things implement a Validatable(strfmt.Registry) error interface
@@ -69,6 +73,11 @@ func (o *GetSupportedFeaturesParams) BindRequest(r *http.Request, route *middlew
 
 	qOpenshiftVersion, qhkOpenshiftVersion, _ := qs.GetOK("openshift_version")
 	if err := o.bindOpenshiftVersion(qOpenshiftVersion, qhkOpenshiftVersion, route.Formats); err != nil {
+		res = append(res, err)
+	}
+
+	qPlatformType, qhkPlatformType, _ := qs.GetOK("platform_type")
+	if err := o.bindPlatformType(qPlatformType, qhkPlatformType, route.Formats); err != nil {
 		res = append(res, err)
 	}
 	if len(res) > 0 {
@@ -127,6 +136,38 @@ func (o *GetSupportedFeaturesParams) bindOpenshiftVersion(rawData []string, hasK
 		return err
 	}
 	o.OpenshiftVersion = raw
+
+	return nil
+}
+
+// bindPlatformType binds and validates parameter PlatformType from query.
+func (o *GetSupportedFeaturesParams) bindPlatformType(rawData []string, hasKey bool, formats strfmt.Registry) error {
+	var raw string
+	if len(rawData) > 0 {
+		raw = rawData[len(rawData)-1]
+	}
+
+	// Required: false
+	// AllowEmptyValue: false
+
+	if raw == "" { // empty values pass all other validations
+		return nil
+	}
+	o.PlatformType = &raw
+
+	if err := o.validatePlatformType(formats); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// validatePlatformType carries on validations for parameter PlatformType
+func (o *GetSupportedFeaturesParams) validatePlatformType(formats strfmt.Registry) error {
+
+	if err := validate.EnumCase("platform_type", "query", *o.PlatformType, []interface{}{"baremetal", "none", "nutanix", "vsphere", "oci"}, true); err != nil {
+		return err
+	}
 
 	return nil
 }

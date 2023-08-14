@@ -112,8 +112,9 @@ type InfraEnvSpec struct {
 	AdditionalTrustBundle string `json:"additionalTrustBundle,omitempty"`
 
 	// OSImageVersion is the version of OS image to use when generating the InfraEnv.
-	// The version should refer to an OSImage specified th AgentServiceConfig
+	// The version should refer to an OSImage specified in the AgentServiceConfig
 	// (i.e. OSImageVersion should equal to an OpenshiftVersion in OSImages list).
+	// Note: OSImageVersion can't be specified along with ClusterRef. 
 	// +optional
 	OSImageVersion string `json:"osImageVersion,omitempty"`
 }
