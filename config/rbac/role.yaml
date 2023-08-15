@@ -276,6 +276,13 @@ rules:
 - apiGroups:
   - config.openshift.io
   resources:
+  - dnses
+  verbs:
+  - get
+  - list
+- apiGroups:
+  - config.openshift.io
+  resources:
   - infrastructures
   verbs:
   - get
@@ -410,6 +417,7 @@ rules:
   resources:
   - clusterimagesets
   verbs:
+  - create
   - get
   - list
   - watch
