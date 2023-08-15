@@ -1316,6 +1316,21 @@ var _ = Describe("bmac reconcile", func() {
 				Expect(updatedHost.ObjectMeta.Annotations).NotTo(HaveKey(BMH_DETACHED_ANNOTATION))
 				Expect(updatedHost.ObjectMeta.Annotations[BMH_DETACHED_ANNOTATION]).NotTo(Equal("assisted-service-controller"))
 			})
+			It("should not set the detached annotation value for BMHs not labeled with an infraenv", func() {
+				host.SetAnnotations(map[string]string{BMH_DETACHED_ANNOTATION: "some-other-value"})
+				delete(host.Labels, BMH_INFRA_ENV_LABEL)
+				Expect(c.Update(ctx, host)).To(BeNil())
+
+				result, err := bmhr.Reconcile(ctx, newBMHRequest(host))
+				Expect(err).To(BeNil())
+				Expect(result).To(Equal(ctrl.Result{}))
+
+				updatedHost := &bmh_v1alpha1.BareMetalHost{}
+				err = c.Get(ctx, types.NamespacedName{Name: host.Name, Namespace: testNamespace}, updatedHost)
+				Expect(err).To(BeNil())
+				Expect(updatedHost.ObjectMeta.Annotations).To(HaveKey(BMH_DETACHED_ANNOTATION))
+				Expect(updatedHost.ObjectMeta.Annotations[BMH_DETACHED_ANNOTATION]).To(Equal("some-other-value"))
+			})
 			It("should set the detached annotation if agent is installed", func() {
 				agent.Status.Conditions = []conditionsv1.Condition{
 					{
