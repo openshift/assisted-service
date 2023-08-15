@@ -128,8 +128,12 @@ func (c *validationContext) loadInventory() error {
 	if inventory == nil || err != nil {
 		return err
 	}
-	if inventory.CPU == nil || inventory.Memory == nil || len(inventory.Disks) == 0 {
-		return errors.New("Inventory is not valid")
+	if inventory.Memory == nil {
+		return errors.New("Inventory is not valid, Memory not detected")
+	}
+
+	if inventory.CPU == nil {
+		return errors.New("Inventory is not valid, CPU not detected")
 	}
 	c.inventory = inventory
 	return nil
@@ -501,6 +505,13 @@ func (v *validator) diskEncryptionRequirementsSatisfied(c *validationContext) (V
 func (v *validator) hasMinValidDisks(c *validationContext) (ValidationStatus, string) {
 	if c.inventory == nil {
 		return ValidationPending, "Missing inventory"
+	}
+	inventory, err := c.inventoryCache.GetOrUnmarshal(c.host)
+	if err != nil {
+		return ValidationError, "Failed to load inventory"
+	}
+	if len(inventory.Disks) == 0 {
+		return ValidationError, "Failed to detected disks"
 	}
 	disks := v.hwValidator.ListEligibleDisks(c.inventory)
 	if len(disks) > 0 {
