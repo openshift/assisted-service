@@ -48,6 +48,9 @@ declare -A host_macs_to_hw_iface
 # A mac-to-nic map created from the mapping file associated with the host
 declare -A logical_mac_nic_map
 
+# A map from old vlan interface names to new ones
+declare -A vlan_replacements
+
 # Working directory used for storage of processed files before installation in the target directory
 work_dir=$(mktemp -d)
 
@@ -96,6 +99,8 @@ function copy_physical_nics_files() {
                 extra=$(($len - 15))
                 nic_len=$(echo -n "${host_nic}" | wc -m)
                 this_host_nic=$(echo ${host_nic} | cut -c -$(($nic_len-$extra)))
+                # record this substitution to be used later
+                vlan_replacements[${host_nic}.${vlan_id}]=${this_host_nic}.${vlan_id}
               fi
             fi
 
@@ -143,6 +148,11 @@ function update_physical_nics_references() {
         for nmfile in $host_work_dir/*.nmconnection ; do
           sed -i -e "s/=$logical_nic$/=$host_nic/g" -e "s/=$logical_nic\./=$host_nic\./g" $nmfile
           echo "Info: Using logical interface name '$logical_nic' for interface with Mac address '$mac_address', updated $nmfile"
+
+          for vlan in "${!vlan_replacements[@]}"; do
+            sed -i "s/=${vlan}/=${vlan_replacements[${vlan}]}/g" $nmfile
+            echo "Info: Replacing instances of logical vlan name ${vlan} with ${vlan_replacements[${vlan}]} in $nmfile"
+          done
         done
       fi
     done
