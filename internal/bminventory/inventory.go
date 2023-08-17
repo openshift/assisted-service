@@ -1590,7 +1590,7 @@ func (b *bareMetalInventory) GetClusterSupportedPlatforms(ctx context.Context, p
 }
 
 func (bm *bareMetalInventory) GetFeatureSupportLevelListInternal(_ context.Context, params installer.GetSupportedFeaturesParams) (models.SupportLevels, error) {
-	return featuresupport.GetFeatureSupportList(params.OpenshiftVersion, params.CPUArchitecture), nil
+	return featuresupport.GetFeatureSupportList(params.OpenshiftVersion, params.CPUArchitecture, (*models.PlatformType)(params.PlatformType)), nil
 }
 
 func (bm *bareMetalInventory) GetArchitecturesSupportLevelListInternal(_ context.Context, params installer.GetSupportedArchitecturesParams) (models.SupportLevels, error) {

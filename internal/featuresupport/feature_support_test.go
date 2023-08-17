@@ -186,14 +186,29 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 	})
 
 	Context("GetSupportList", func() {
+		It("GetFeatureSupportList 4.12 with Platform", func() {
+			platforms := []models.PlatformType{
+				models.PlatformTypeNutanix,
+				models.PlatformTypeVsphere,
+				models.PlatformTypeOci,
+				models.PlatformTypeBaremetal,
+				models.PlatformTypeNone,
+			}
+			for _, platform := range platforms {
+				p := platform
+				list := GetFeatureSupportList("dummy", nil, &p)
+				Expect(len(list)).To(Equal(16))
+			}
+		})
+
 		It("GetFeatureSupportList 4.12", func() {
-			list := GetFeatureSupportList("4.12", nil)
-			Expect(len(list)).To(Equal(18))
+			list := GetFeatureSupportList("4.12", nil, nil)
+			Expect(len(list)).To(Equal(20))
 		})
 
 		It("GetFeatureSupportList 4.13", func() {
-			list := GetFeatureSupportList("4.13", nil)
-			Expect(len(list)).To(Equal(18))
+			list := GetFeatureSupportList("4.13", nil, nil)
+			Expect(len(list)).To(Equal(20))
 		})
 
 		It("GetCpuArchitectureSupportList 4.12", func() {
@@ -207,7 +222,7 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 		})
 
 		It("GetFeatureSupportList 4.11 with not supported architecture", func() {
-			featuresList := GetFeatureSupportList("4.11", swag.String(models.ClusterCPUArchitecturePpc64le))
+			featuresList := GetFeatureSupportList("4.11", swag.String(models.ClusterCPUArchitecturePpc64le), nil)
 
 			for _, supportLevel := range featuresList {
 				Expect(supportLevel).To(Equal(models.SupportLevelUnavailable))
@@ -215,15 +230,15 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 		})
 
 		It("GetFeatureSupportList 4.13 with unsupported architecture", func() {
-			featuresList := GetFeatureSupportList("4.12", swag.String(models.ClusterCPUArchitecturePpc64le))
+			featuresList := GetFeatureSupportList("4.12", swag.String(models.ClusterCPUArchitecturePpc64le), nil)
 			Expect(featuresList[string(models.FeatureSupportLevelIDSNO)]).To(Equal(models.SupportLevelUnavailable))
 
-			featuresList = GetFeatureSupportList("4.13", swag.String(models.ClusterCPUArchitecturePpc64le))
+			featuresList = GetFeatureSupportList("4.13", swag.String(models.ClusterCPUArchitecturePpc64le), nil)
 			Expect(featuresList[string(models.FeatureSupportLevelIDSNO)]).To(Equal(models.SupportLevelDevPreview))
 		})
 
 		It("GetFeatureSupportList 4.13 with unsupported architecture", func() {
-			featuresList := GetFeatureSupportList("4.13", swag.String(models.ClusterCPUArchitectureX8664))
+			featuresList := GetFeatureSupportList("4.13", swag.String(models.ClusterCPUArchitectureX8664), nil)
 			Expect(featuresList[string(models.FeatureSupportLevelIDSNO)]).To(Equal(models.SupportLevelSupported))
 		})
 	})
@@ -244,7 +259,7 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 				CPUArchitecture:       models.ClusterCPUArchitectureArm64,
 				HighAvailabilityMode:  swag.String(models.ClusterHighAvailabilityModeNone),
 				UserManagedNetworking: swag.Bool(true),
-				Platform:              &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeBaremetal)},
+				Platform:              &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeNone)},
 			}}
 			Expect(ValidateIncompatibleFeatures(log, models.ClusterCPUArchitectureArm64, &cluster, nil, nil)).To(BeNil())
 		})
@@ -254,7 +269,7 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 				CPUArchitecture:       models.ClusterCPUArchitectureX8664,
 				HighAvailabilityMode:  swag.String(models.ClusterHighAvailabilityModeNone),
 				UserManagedNetworking: swag.Bool(true),
-				Platform:              &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeBaremetal)},
+				Platform:              &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeNone)},
 			}}
 			Expect(ValidateIncompatibleFeatures(log, models.ClusterCPUArchitectureX8664, &cluster, nil, nil)).To(BeNil())
 		})
@@ -264,7 +279,7 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 				CPUArchitecture:       models.ClusterCPUArchitectureS390x,
 				HighAvailabilityMode:  swag.String(models.ClusterHighAvailabilityModeFull),
 				UserManagedNetworking: swag.Bool(true),
-				Platform:              &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeBaremetal)},
+				Platform:              &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeNone)},
 			}}
 			params := models.V2ClusterUpdateParams{UserManagedNetworking: swag.Bool(false)}
 			Expect(ValidateIncompatibleFeatures(log, models.ClusterCPUArchitectureS390x, &cluster, nil, &params)).To(Not(BeNil()))
@@ -275,7 +290,7 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 				CPUArchitecture:       models.ClusterCPUArchitectureS390x,
 				HighAvailabilityMode:  swag.String(models.ClusterHighAvailabilityModeFull),
 				UserManagedNetworking: swag.Bool(true),
-				Platform:              &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeBaremetal)},
+				Platform:              &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeNone)},
 			}}
 			infraEnv := models.InfraEnv{Type: common.ImageTypePtr(models.ImageTypeFullIso)}
 			Expect(ValidateIncompatibleFeatures(log, models.ClusterCPUArchitectureS390x, &cluster, &infraEnv, nil)).To(BeNil())
@@ -292,7 +307,7 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 				CPUArchitecture:       models.ClusterCPUArchitecturePpc64le,
 				HighAvailabilityMode:  swag.String(models.ClusterHighAvailabilityModeNone),
 				UserManagedNetworking: swag.Bool(true),
-				Platform:              &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeBaremetal)},
+				Platform:              &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeNone)},
 			}}
 			Expect(ValidateIncompatibleFeatures(log, models.ClusterCPUArchitecturePpc64le, &cluster, nil, nil).Error()).To(Equal(expectedError))
 		})
@@ -302,7 +317,7 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 				CPUArchitecture:       models.ClusterCPUArchitecturePpc64le,
 				HighAvailabilityMode:  swag.String(models.ClusterHighAvailabilityModeNone),
 				UserManagedNetworking: swag.Bool(true),
-				Platform:              &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeBaremetal)},
+				Platform:              &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeNone)},
 			}}
 			Expect(ValidateIncompatibleFeatures(log, models.ClusterCPUArchitecturePpc64le, &cluster, nil, nil)).To(BeNil())
 		})
@@ -313,7 +328,7 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 				CPUArchitecture:       models.ClusterCPUArchitectureS390x,
 				HighAvailabilityMode:  swag.String(models.ClusterHighAvailabilityModeNone),
 				UserManagedNetworking: swag.Bool(true),
-				Platform:              &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeBaremetal)},
+				Platform:              &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeNone)},
 			}}
 			Expect(ValidateIncompatibleFeatures(log, models.ClusterCPUArchitectureS390x, &cluster, nil, nil).Error()).To(Equal(expectedError))
 		})
@@ -323,7 +338,7 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 				CPUArchitecture:       models.ClusterCPUArchitectureS390x,
 				HighAvailabilityMode:  swag.String(models.ClusterHighAvailabilityModeNone),
 				UserManagedNetworking: swag.Bool(true),
-				Platform:              &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeBaremetal)},
+				Platform:              &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeNone)},
 			}}
 			Expect(ValidateIncompatibleFeatures(log, models.ClusterCPUArchitectureS390x, &cluster, nil, nil)).To(BeNil())
 		})
@@ -476,6 +491,36 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 				filters := SupportLevelFilters{OpenshiftVersion: "4.12", CPUArchitecture: &cpuArchitecture}
 				Expect((&MinimalIso{}).getSupportLevel(filters)).To(Equal(models.SupportLevelSupported))
 			})
+			It("Empty support level - platforms", func() {
+				for _, platform := range []models.PlatformType{models.PlatformTypeOci, models.PlatformTypeVsphere, models.PlatformTypeNutanix, models.PlatformTypeBaremetal, models.PlatformTypeNone} {
+					p := platform
+
+					for _, feature := range []SupportLevelFeature{&VsphereIntegrationFeature{}, &NutanixIntegrationFeature{},
+						&BaremetalPlatformFeature{}, &NonePlatformFeature{}, &OciIntegrationFeature{}} {
+						f := feature
+
+						By(fmt.Sprintf("Feature %s", f.GetName()), func() {
+							filters := SupportLevelFilters{OpenshiftVersion: "", CPUArchitecture: nil, PlatformType: nil}
+							Expect(string(f.getSupportLevel(filters))).To(Not(Equal("")))
+
+							filters = SupportLevelFilters{OpenshiftVersion: "", CPUArchitecture: nil, PlatformType: &p}
+							Expect(string(f.getSupportLevel(filters))).To(Equal(""))
+						})
+					}
+				}
+			})
+			It("Empty support level - PlatformManagedNetworkingFeature", func() {
+				for _, platform := range []models.PlatformType{models.PlatformTypeOci, models.PlatformTypeVsphere, models.PlatformTypeNutanix, models.PlatformTypeBaremetal, models.PlatformTypeNone} {
+					p := platform
+					feature := &PlatformManagedNetworkingFeature{}
+					filters := SupportLevelFilters{OpenshiftVersion: "", CPUArchitecture: nil, PlatformType: nil}
+					Expect(string(feature.getSupportLevel(filters))).To(Equal(""))
+
+					filters = SupportLevelFilters{OpenshiftVersion: "", CPUArchitecture: nil, PlatformType: &p}
+					Expect(string(feature.getSupportLevel(filters))).To(Not(Equal("")))
+				}
+			})
+
 			It("s390x not supporting minimal-iso", func() {
 				cpuArchitecture := models.ClusterCPUArchitectureS390x
 				cluster := common.Cluster{Cluster: models.Cluster{

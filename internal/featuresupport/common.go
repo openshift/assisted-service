@@ -63,7 +63,7 @@ func getActivatedFeatures(log logrus.FieldLogger, cluster *common.Cluster, infra
 	for _, feature := range featuresList {
 		if feature.getFeatureActiveLevel(cluster, infraEnv, clusterUpdateParams, infraenvUpdateParams) == activeLevelActive {
 			activatedFeatures = append(activatedFeatures, feature)
-			log.Debugf("%s feature is activated", feature.getName())
+			log.Debugf("%s feature is activated", feature.GetName())
 		}
 	}
 
@@ -81,19 +81,4 @@ func isFeatureCompatibleWithArchitecture(feature SupportLevelFeature, openshiftV
 		return false
 	}
 	return true
-}
-
-// isPlatformActive return true if the cluster Platform is set with the given platform or not
-// This method take into consideration the update params and the different combination of those arguments
-func isPlatformActive(cluster *common.Cluster, clusterUpdateParams *models.V2ClusterUpdateParams, expectedPlatform models.PlatformType) bool {
-	if cluster == nil {
-		return false
-	}
-
-	if (cluster.Platform != nil && common.PlatformTypeValue(cluster.Platform.Type) == expectedPlatform && clusterUpdateParams == nil) ||
-		(cluster.Platform != nil && common.PlatformTypeValue(cluster.Platform.Type) == expectedPlatform && clusterUpdateParams != nil && (clusterUpdateParams.Platform == nil || common.PlatformTypeValue(clusterUpdateParams.Platform.Type) == expectedPlatform)) ||
-		((cluster.Platform != nil && common.PlatformTypeValue(cluster.Platform.Type) != expectedPlatform) && clusterUpdateParams != nil && (clusterUpdateParams.Platform != nil && common.PlatformTypeValue(clusterUpdateParams.Platform.Type) == expectedPlatform)) {
-		return true
-	}
-	return false
 }

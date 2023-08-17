@@ -75,6 +75,12 @@ type GetSupportedFeaturesParams struct {
 	*/
 	OpenshiftVersion string
 
+	/* PlatformType.
+
+	   The provider platform type.
+	*/
+	PlatformType *string
+
 	timeout    time.Duration
 	Context    context.Context
 	HTTPClient *http.Client
@@ -161,6 +167,17 @@ func (o *GetSupportedFeaturesParams) SetOpenshiftVersion(openshiftVersion string
 	o.OpenshiftVersion = openshiftVersion
 }
 
+// WithPlatformType adds the platformType to the get supported features params
+func (o *GetSupportedFeaturesParams) WithPlatformType(platformType *string) *GetSupportedFeaturesParams {
+	o.SetPlatformType(platformType)
+	return o
+}
+
+// SetPlatformType adds the platformType to the get supported features params
+func (o *GetSupportedFeaturesParams) SetPlatformType(platformType *string) {
+	o.PlatformType = platformType
+}
+
 // WriteToRequest writes these params to a swagger request
 func (o *GetSupportedFeaturesParams) WriteToRequest(r runtime.ClientRequest, reg strfmt.Registry) error {
 
@@ -193,6 +210,23 @@ func (o *GetSupportedFeaturesParams) WriteToRequest(r runtime.ClientRequest, reg
 
 		if err := r.SetQueryParam("openshift_version", qOpenshiftVersion); err != nil {
 			return err
+		}
+	}
+
+	if o.PlatformType != nil {
+
+		// query param platform_type
+		var qrPlatformType string
+
+		if o.PlatformType != nil {
+			qrPlatformType = *o.PlatformType
+		}
+		qPlatformType := qrPlatformType
+		if qPlatformType != "" {
+
+			if err := r.SetQueryParam("platform_type", qPlatformType); err != nil {
+				return err
+			}
 		}
 	}
 

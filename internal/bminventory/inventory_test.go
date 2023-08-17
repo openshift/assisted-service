@@ -45,6 +45,7 @@ import (
 	"github.com/openshift/assisted-service/internal/dns"
 	eventsapi "github.com/openshift/assisted-service/internal/events/api"
 	"github.com/openshift/assisted-service/internal/events/eventstest"
+	"github.com/openshift/assisted-service/internal/featuresupport"
 	"github.com/openshift/assisted-service/internal/garbagecollector"
 	"github.com/openshift/assisted-service/internal/gencrypto"
 	"github.com/openshift/assisted-service/internal/hardware"
@@ -3075,7 +3076,7 @@ var _ = Describe("cluster", func() {
 						OpenshiftVersion:      "4.11",
 						UserManagedNetworking: swag.Bool(true),
 						Platform: &models.Platform{
-							Type: common.PlatformTypePtr(models.PlatformTypeBaremetal),
+							Type: common.PlatformTypePtr(models.PlatformTypeNone),
 						},
 						CPUArchitecture: common.DefaultCPUArchitecture,
 					}}
@@ -4352,6 +4353,7 @@ var _ = Describe("cluster", func() {
 				It("Fail with DHCP when UserManagedNetworking was set", func() {
 					mockClusterUpdatability(1)
 					Expect(db.Model(&common.Cluster{}).Where("id = ?", clusterID).Update("user_managed_networking", true).Error).ShouldNot(HaveOccurred())
+					Expect(db.Model(&common.Cluster{}).Where("id = ?", clusterID).Update("platform_type", models.PlatformTypeNone).Error).ShouldNot(HaveOccurred())
 
 					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 						ClusterID: clusterID,
@@ -4360,7 +4362,7 @@ var _ = Describe("cluster", func() {
 						},
 					})
 
-					verifyApiErrorString(reply, http.StatusBadRequest, "VIP DHCP Allocation cannot be set with User Managed Networking")
+					verifyFeatureSupportApiErrorString(reply, http.StatusBadRequest, models.FeatureSupportLevelIDNONEPLATFORM, models.FeatureSupportLevelIDVIPAUTOALLOC)
 				})
 
 				It("Fail with Ingress VIP", func() {
@@ -12741,6 +12743,15 @@ func verifyApiErrorString(responder middleware.Responder, expectedHttpStatus int
 	concreteError := responder.(*common.ApiErrorResponse)
 	ExpectWithOffset(1, concreteError.StatusCode()).To(Equal(expectedHttpStatus))
 	ExpectWithOffset(1, concreteError.Error()).To(ContainSubstring(expectedSubstring))
+}
+
+func verifyFeatureSupportApiErrorString(responder middleware.Responder, expectedHttpStatus int32, featureA, featureB models.FeatureSupportLevelID) {
+	ExpectWithOffset(1, responder).To(BeAssignableToTypeOf(common.NewApiError(expectedHttpStatus, nil)))
+	concreteError := responder.(*common.ApiErrorResponse)
+	ExpectWithOffset(1, concreteError.StatusCode()).To(Equal(expectedHttpStatus))
+	ExpectWithOffset(1, concreteError.Error()).To(ContainSubstring("cannot use"))
+	ExpectWithOffset(1, concreteError.Error()).To(ContainSubstring(featuresupport.GetFeatureByID(featureA).GetName()))
+	ExpectWithOffset(1, concreteError.Error()).To(ContainSubstring(featuresupport.GetFeatureByID(featureB).GetName()))
 }
 
 func addHost(hostId strfmt.UUID, role models.HostRole, state, kind string, infraEnvId, clusterId strfmt.UUID, inventory string, db *gorm.DB) models.Host {

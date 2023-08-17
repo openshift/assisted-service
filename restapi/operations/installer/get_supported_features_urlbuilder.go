@@ -15,6 +15,7 @@ import (
 type GetSupportedFeaturesURL struct {
 	CPUArchitecture  *string
 	OpenshiftVersion string
+	PlatformType     *string
 
 	_basePath string
 	// avoid unkeyed usage
@@ -61,6 +62,14 @@ func (o *GetSupportedFeaturesURL) Build() (*url.URL, error) {
 	openshiftVersionQ := o.OpenshiftVersion
 	if openshiftVersionQ != "" {
 		qs.Set("openshift_version", openshiftVersionQ)
+	}
+
+	var platformTypeQ string
+	if o.PlatformType != nil {
+		platformTypeQ = *o.PlatformType
+	}
+	if platformTypeQ != "" {
+		qs.Set("platform_type", platformTypeQ)
 	}
 
 	_result.RawQuery = qs.Encode()

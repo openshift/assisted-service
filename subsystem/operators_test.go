@@ -197,15 +197,17 @@ var _ = Describe("Operators endpoint tests", func() {
 
 	Context("OLM operators", func() {
 		ctx := context.Background()
-		registerNewCluster := func(openshiftVersion string, highAvailabilityMode string, operators []*models.OperatorCreateParams, cpuArchitecture *string) *installer.V2RegisterClusterCreated {
+		registerNewCluster := func(openshiftVersion string, highAvailabilityMode string, operators []*models.OperatorCreateParams, cpuArchitecture *string, vipDhcpAllocation *bool) *installer.V2RegisterClusterCreated {
 			var err error
 			var cluster *installer.V2RegisterClusterCreated
 			clusterCIDR := "10.128.0.0/14"
 			serviceCIDR := "172.30.0.0/16"
 
-			vipDhcpAllocation := swag.Bool(true)
-			if highAvailabilityMode == models.ClusterHighAvailabilityModeNone {
-				vipDhcpAllocation = swag.Bool(false)
+			if vipDhcpAllocation == nil {
+				vipDhcpAllocation = swag.Bool(true)
+				if highAvailabilityMode == models.ClusterHighAvailabilityModeNone {
+					vipDhcpAllocation = swag.Bool(false)
+				}
 			}
 
 			cluster, err = user2BMClient.Installer.V2RegisterCluster(ctx, &installer.V2RegisterClusterParams{
@@ -239,6 +241,7 @@ var _ = Describe("Operators endpoint tests", func() {
 				models.ClusterHighAvailabilityModeFull,
 				nil,
 				swag.String(models.ClusterCPUArchitectureS390x),
+				swag.Bool(false),
 			)
 			Expect(cluster.Payload.CPUArchitecture).To(Equal(models.ClusterCPUArchitectureMulti))
 			Expect(len(cluster.Payload.MonitoredOperators)).To(Equal(1))
@@ -309,6 +312,7 @@ var _ = Describe("Operators endpoint tests", func() {
 				models.ClusterHighAvailabilityModeFull,
 				nil,
 				swag.String(models.ClusterCPUArchitectureArm64),
+				nil,
 			)
 			Expect(cluster.Payload.CPUArchitecture).To(Equal(models.ClusterCPUArchitectureMulti))
 			Expect(len(cluster.Payload.MonitoredOperators)).To(Equal(1))
@@ -350,6 +354,7 @@ var _ = Describe("Operators endpoint tests", func() {
 				models.ClusterHighAvailabilityModeNone,
 				[]*models.OperatorCreateParams{{Name: cnv.Operator.Name}},
 				nil,
+				nil,
 			)
 			ops, err := agent2BMClient.Operators.V2ListOfClusterOperators(ctx, opclient.NewV2ListOfClusterOperatorsParams().WithClusterID(*cluster.Payload.ID))
 
@@ -379,6 +384,7 @@ var _ = Describe("Operators endpoint tests", func() {
 				models.ClusterHighAvailabilityModeNone,
 				[]*models.OperatorCreateParams{{Name: cnv.Operator.Name}},
 				nil,
+				nil,
 			)
 			ops, err := agent2BMClient.Operators.V2ListOfClusterOperators(ctx, opclient.NewV2ListOfClusterOperatorsParams().WithClusterID(*cluster.Payload.ID))
 
@@ -400,6 +406,7 @@ var _ = Describe("Operators endpoint tests", func() {
 				"4.11.0",
 				models.ClusterHighAvailabilityModeNone,
 				[]*models.OperatorCreateParams{{Name: lvm.Operator.Name}},
+				nil,
 				nil,
 			)
 			ops, err := agent2BMClient.Operators.V2ListOfClusterOperators(ctx, opclient.NewV2ListOfClusterOperatorsParams().WithClusterID(*cluster.Payload.ID))

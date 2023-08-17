@@ -60,6 +60,12 @@ const (
 	// FeatureSupportLevelIDNUTANIXINTEGRATION captures enum value "NUTANIX_INTEGRATION"
 	FeatureSupportLevelIDNUTANIXINTEGRATION FeatureSupportLevelID = "NUTANIX_INTEGRATION"
 
+	// FeatureSupportLevelIDBAREMETALPLATFORM captures enum value "BAREMETAL_PLATFORM"
+	FeatureSupportLevelIDBAREMETALPLATFORM FeatureSupportLevelID = "BAREMETAL_PLATFORM"
+
+	// FeatureSupportLevelIDNONEPLATFORM captures enum value "NONE_PLATFORM"
+	FeatureSupportLevelIDNONEPLATFORM FeatureSupportLevelID = "NONE_PLATFORM"
+
 	// FeatureSupportLevelIDVSPHEREINTEGRATION captures enum value "VSPHERE_INTEGRATION"
 	FeatureSupportLevelIDVSPHEREINTEGRATION FeatureSupportLevelID = "VSPHERE_INTEGRATION"
 
@@ -83,6 +89,9 @@ const (
 
 	// FeatureSupportLevelIDDUALSTACK captures enum value "DUAL_STACK"
 	FeatureSupportLevelIDDUALSTACK FeatureSupportLevelID = "DUAL_STACK"
+
+	// FeatureSupportLevelIDPLATFORMMANAGEDNETWORKING captures enum value "PLATFORM_MANAGED_NETWORKING"
+	FeatureSupportLevelIDPLATFORMMANAGEDNETWORKING FeatureSupportLevelID = "PLATFORM_MANAGED_NETWORKING"
 )
 
 // for schema
@@ -90,7 +99,7 @@ var featureSupportLevelIdEnum []interface{}
 
 func init() {
 	var res []FeatureSupportLevelID
-	if err := json.Unmarshal([]byte(`["SNO","VIP_AUTO_ALLOC","CUSTOM_MANIFEST","SINGLE_NODE_EXPANSION","LVM","ODF","LSO","CNV","MCE","NUTANIX_INTEGRATION","VSPHERE_INTEGRATION","DUAL_STACK_VIPS","CLUSTER_MANAGED_NETWORKING","USER_MANAGED_NETWORKING","MINIMAL_ISO","FULL_ISO","EXTERNAL_PLATFORM_OCI","DUAL_STACK"]`), &res); err != nil {
+	if err := json.Unmarshal([]byte(`["SNO","VIP_AUTO_ALLOC","CUSTOM_MANIFEST","SINGLE_NODE_EXPANSION","LVM","ODF","LSO","CNV","MCE","NUTANIX_INTEGRATION","BAREMETAL_PLATFORM","NONE_PLATFORM","VSPHERE_INTEGRATION","DUAL_STACK_VIPS","CLUSTER_MANAGED_NETWORKING","USER_MANAGED_NETWORKING","MINIMAL_ISO","FULL_ISO","EXTERNAL_PLATFORM_OCI","DUAL_STACK","PLATFORM_MANAGED_NETWORKING"]`), &res); err != nil {
 		panic(err)
 	}
 	for _, v := range res {

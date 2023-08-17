@@ -5682,6 +5682,19 @@ func init() {
             "description": "The CPU architecture of the image (x86_64/arm64/etc).",
             "name": "cpu_architecture",
             "in": "query"
+          },
+          {
+            "enum": [
+              "baremetal",
+              "none",
+              "nutanix",
+              "vsphere",
+              "oci"
+            ],
+            "type": "string",
+            "description": "The provider platform type.",
+            "name": "platform_type",
+            "in": "query"
           }
         ],
         "responses": {
@@ -7563,6 +7576,8 @@ func init() {
         "CNV",
         "MCE",
         "NUTANIX_INTEGRATION",
+        "BAREMETAL_PLATFORM",
+        "NONE_PLATFORM",
         "VSPHERE_INTEGRATION",
         "DUAL_STACK_VIPS",
         "CLUSTER_MANAGED_NETWORKING",
@@ -7570,7 +7585,8 @@ func init() {
         "MINIMAL_ISO",
         "FULL_ISO",
         "EXTERNAL_PLATFORM_OCI",
-        "DUAL_STACK"
+        "DUAL_STACK",
+        "PLATFORM_MANAGED_NETWORKING"
       ]
     },
     "feature-support-levels": {
@@ -16030,6 +16046,19 @@ func init() {
             "description": "The CPU architecture of the image (x86_64/arm64/etc).",
             "name": "cpu_architecture",
             "in": "query"
+          },
+          {
+            "enum": [
+              "baremetal",
+              "none",
+              "nutanix",
+              "vsphere",
+              "oci"
+            ],
+            "type": "string",
+            "description": "The provider platform type.",
+            "name": "platform_type",
+            "in": "query"
           }
         ],
         "responses": {
@@ -18002,6 +18031,8 @@ func init() {
         "CNV",
         "MCE",
         "NUTANIX_INTEGRATION",
+        "BAREMETAL_PLATFORM",
+        "NONE_PLATFORM",
         "VSPHERE_INTEGRATION",
         "DUAL_STACK_VIPS",
         "CLUSTER_MANAGED_NETWORKING",
@@ -18009,7 +18040,8 @@ func init() {
         "MINIMAL_ISO",
         "FULL_ISO",
         "EXTERNAL_PLATFORM_OCI",
-        "DUAL_STACK"
+        "DUAL_STACK",
+        "PLATFORM_MANAGED_NETWORKING"
       ]
     },
     "feature-support-levels": {
