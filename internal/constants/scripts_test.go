@@ -11,17 +11,14 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/onsi/gomega/format"
 )
 
 var _ = Describe("Pre Network Config Script", func() {
+	format.TruncatedDiff = false
 	type replace struct {
 		from string
 		to   string
-	}
-	type expectedFile struct {
-		source      string
-		destination string
-		replaces    []replace
 	}
 	const assistedNetwork = "test_root/etc/assisted/network"
 	var (
@@ -63,23 +60,24 @@ var _ = Describe("Pre Network Config Script", func() {
 		_, err = exec.Command("bash", "-c", "cp -r test_root/etc/assisted/network/host1 "+dir).CombinedOutput()
 		Expect(err).ToNot(HaveOccurred())
 	}
-	verifyExpectedFiles := func(expectedFiles []expectedFile) {
-		for _, e := range expectedFiles {
-			src, err := os.ReadFile(e.source)
-			Expect(err).ToNot(HaveOccurred())
-			dst, err := os.ReadFile(e.destination)
-			Expect(err).ToNot(HaveOccurred())
-			source := string(src)
-			destination := string(dst)
-			if len(e.replaces) > 0 {
-				Expect(source).ToNot(Equal(destination))
-			}
-			for _, r := range e.replaces {
-				source = strings.ReplaceAll(source, r.from, r.to)
-			}
-			Expect(source).To(Equal(destination))
+	verifyFile := func(sourcePath, destPath string, replaces []replace) {
+		src, err := os.ReadFile(sourcePath)
+		Expect(err).ToNot(HaveOccurred())
+		dst, err := os.ReadFile(destPath)
+		Expect(err).ToNot(HaveOccurred())
+
+		source := string(src)
+		destination := string(dst)
+
+		if len(replaces) > 0 {
+			Expect(source).ToNot(Equal(destination))
 		}
+		for _, r := range replaces {
+			source = strings.ReplaceAll(source, r.from, r.to)
+		}
+		Expect(source).To(Equal(destination))
 	}
+
 	It("script runs successfully when there are no host directories", func() {
 		copySys()
 		_, err := exec.Command("bash", "-c", fmt.Sprintf("PATH_PREFIX=%s %s", root, scriptPath)).CombinedOutput()
@@ -87,98 +85,70 @@ var _ = Describe("Pre Network Config Script", func() {
 		_, err = os.Stat(systemConnections)
 		Expect(os.IsNotExist(err)).To(BeTrue())
 	})
-	It("copies all the network config from matching host directories", func() {
-		copyFiles()
-		_, err := exec.Command("bash", "-c", fmt.Sprintf("PATH_PREFIX=%s %s", root, scriptPath)).CombinedOutput()
-		Expect(err).ToNot(HaveOccurred())
-		info, err := os.Stat(systemConnections)
-		Expect(os.IsNotExist(err)).To(BeFalse())
-		Expect(info.IsDir()).To(BeTrue())
-		expectedFiles := []expectedFile{
-			{
-				source:      assistedNetwork + "/host0/eth0.nmconnection",
-				destination: systemConnections + "/enp0s31f6.nmconnection",
-				replaces: []replace{
-					{
-						from: "=eth0",
-						to:   "=enp0s31f6",
-					},
+
+	Context("with all files", func() {
+		BeforeEach(func() {
+			copyFiles()
+			_, err := exec.Command("bash", "-c", fmt.Sprintf("PATH_PREFIX=%s %s", root, scriptPath)).CombinedOutput()
+			Expect(err).ToNot(HaveOccurred())
+			info, err := os.Stat(systemConnections)
+			Expect(os.IsNotExist(err)).To(BeFalse())
+			Expect(info.IsDir()).To(BeTrue())
+		})
+
+		It("correctly transfers a vlan", func() {
+			replaces := []replace{
+				{
+					from: "=eth0",
+					to:   "=enp0s31f6",
 				},
-			},
-			{
-				source:      assistedNetwork + "/host0/eth0.101.nmconnection",
-				destination: systemConnections + "/enp0s31f6.101.nmconnection",
-				replaces: []replace{
-					{
-						from: "=eth0",
-						to:   "=enp0s31f6",
-					},
+			}
+			verifyFile(assistedNetwork+"/host0/eth0.nmconnection", systemConnections+"/enp0s31f6.nmconnection", replaces)
+			verifyFile(assistedNetwork+"/host0/eth0.101.nmconnection", systemConnections+"/enp0s31f6.101.nmconnection", replaces)
+		})
+
+		It("correctly transfers bonded interfaces", func() {
+			replaces := []replace{
+				{
+					from: "=eth0",
+					to:   "=ens1",
 				},
-			},
-			{
-				source:      assistedNetwork + "/host2/eth0.nmconnection",
-				destination: systemConnections + "/ens1.nmconnection",
-				replaces: []replace{
-					{
-						from: "=eth0",
-						to:   "=ens1",
-					},
+				{
+					from: "=eth1",
+					to:   "=ens2",
 				},
-			},
-			{
-				source:      assistedNetwork + "/host2/eth1.nmconnection",
-				destination: systemConnections + "/ens2.nmconnection",
-				replaces: []replace{
-					{
-						from: "=eth1",
-						to:   "=ens2",
-					},
+			}
+			verifyFile(assistedNetwork+"/host2/eth0.nmconnection", systemConnections+"/ens1.nmconnection", replaces)
+			verifyFile(assistedNetwork+"/host2/eth1.nmconnection", systemConnections+"/ens2.nmconnection", replaces)
+			verifyFile(assistedNetwork+"/host2/bond0.nmconnection", systemConnections+"/bond0.nmconnection", nil)
+		})
+
+		It("correctly transfers a regular interface", func() {
+			replaces := []replace{
+				{
+					from: "=eth0",
+					to:   "=wlp0s20f3",
 				},
-			},
-			{
-				source:      assistedNetwork + "/host2/bond0.nmconnection",
-				destination: systemConnections + "/bond0.nmconnection",
-			},
-			{
-				source:      assistedNetwork + "/host3/eth0.nmconnection",
-				destination: systemConnections + "/wlp0s20f3.nmconnection",
-				replaces: []replace{
-					{
-						from: "=eth0",
-						to:   "=wlp0s20f3",
-					},
+			}
+			verifyFile(assistedNetwork+"/host3/eth0.nmconnection", systemConnections+"/wlp0s20f3.nmconnection", replaces)
+		})
+
+		It("truncates vlan interface names", func() {
+			replaces := []replace{
+				{
+					from: "=eth0.2507",
+					to:   "=enp94s0f0n.2507",
 				},
-			},
-			{
-				source:      assistedNetwork + "/host4/eth0.2507.nmconnection",
-				destination: systemConnections + "/enp94s0f0n.2507.nmconnection",
-				replaces: []replace{
-					{
-						from: "=eth0.2507",
-						to:   "=enp94s0f0n.2507",
-					},
-					{
-						from: "=eth0",
-						to:   "=enp94s0f0np0",
-					},
+				{
+					from: "=eth0",
+					to:   "=enp94s0f0np0",
 				},
-			},
-			{
-				source:      assistedNetwork + "/host4/eth0.nmconnection",
-				destination: systemConnections + "/enp94s0f0np0.nmconnection",
-				replaces: []replace{
-					{
-						from: "=eth0",
-						to:   "=enp94s0f0np0",
-					},
-				},
-			},
-		}
-		entries, err := os.ReadDir(systemConnections)
-		Expect(err).ToNot(HaveOccurred())
-		Expect(len(entries)).To(Equal(len(expectedFiles)))
-		verifyExpectedFiles(expectedFiles)
+			}
+			verifyFile(assistedNetwork+"/host4/eth0.2507.nmconnection", systemConnections+"/enp94s0f0n.2507.nmconnection", replaces)
+			verifyFile(assistedNetwork+"/host4/eth0.nmconnection", systemConnections+"/enp94s0f0np0.nmconnection", replaces)
+		})
 	})
+
 	It("doesn't copy any files when there is no matching host directory", func() {
 		copySys()
 		copyUnmatchingDir()
