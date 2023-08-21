@@ -253,7 +253,10 @@ func joins(db *DB, joinType clause.JoinType, query string, args ...interface{}) 
 
 	if len(args) == 1 {
 		if db, ok := args[0].(*DB); ok {
-			j := join{Name: query, Conds: args, Selects: db.Statement.Selects, Omits: db.Statement.Omits}
+			j := join{
+				Name: query, Conds: args, Selects: db.Statement.Selects,
+				Omits: db.Statement.Omits, JoinType: joinType,
+			}
 			if where, ok := db.Statement.Clauses["WHERE"].Expression.(clause.Where); ok {
 				j.On = &where
 			}
@@ -360,6 +363,36 @@ func (db *DB) Offset(offset int) (tx *DB) {
 func (db *DB) Scopes(funcs ...func(*DB) *DB) (tx *DB) {
 	tx = db.getInstance()
 	tx.Statement.scopes = append(tx.Statement.scopes, funcs...)
+	return tx
+}
+
+func (db *DB) executeScopes() (tx *DB) {
+	tx = db.getInstance()
+	scopes := db.Statement.scopes
+	if len(scopes) == 0 {
+		return tx
+	}
+	tx.Statement.scopes = nil
+
+	conditions := make([]clause.Interface, 0, 4)
+	if cs, ok := tx.Statement.Clauses["WHERE"]; ok && cs.Expression != nil {
+		conditions = append(conditions, cs.Expression.(clause.Interface))
+		cs.Expression = nil
+		tx.Statement.Clauses["WHERE"] = cs
+	}
+
+	for _, scope := range scopes {
+		tx = scope(tx)
+		if cs, ok := tx.Statement.Clauses["WHERE"]; ok && cs.Expression != nil {
+			conditions = append(conditions, cs.Expression.(clause.Interface))
+			cs.Expression = nil
+			tx.Statement.Clauses["WHERE"] = cs
+		}
+	}
+
+	for _, condition := range conditions {
+		tx.Statement.AddClause(condition)
+	}
 	return tx
 }
 
