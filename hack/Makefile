@@ -2,7 +2,8 @@ lint-swagger:
 	spectral lint swagger.yaml
 
 generate-go-client:
-	rm -rf client/ models/*.go
+	find client -type f -not -path 'client/vendor/*' -not -name 'go.*' -delete
+	rm -rf models/*.go
 	goswagger generate client --template=stratoscale -f swagger.yaml
 
 generate-go-server:
@@ -51,6 +52,7 @@ generate-from-swagger: lint-swagger generate-go-client generate-go-server valida
 generate-vendor:
 	go mod vendor
 	cd api && go mod vendor
+	cd client && go mod vendor
 	cd models && go mod vendor
 
 # Note that generate-from-swagger is intentionally before generate-vendor
