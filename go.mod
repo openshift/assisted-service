@@ -49,6 +49,7 @@ require (
 	github.com/openshift/api v0.0.0-20220831183848-09c070622e2c
 	github.com/openshift/assisted-image-service v0.0.0-20220506122314-2f689a1084b8
 	github.com/openshift/assisted-service/api v0.0.0
+	github.com/openshift/assisted-service/client v0.0.0
 	github.com/openshift/assisted-service/models v0.0.0
 	github.com/openshift/client-go v0.0.0-20220525160904-9e1acff93e4a
 	github.com/openshift/cluster-baremetal-operator v0.0.0-20230414174413-b80af66d9fcc
@@ -277,6 +278,7 @@ replace (
 	github.com/metal3-io/baremetal-operator/apis => github.com/openshift/baremetal-operator/apis v0.0.0-20230331001040-c7cddc04b0f9
 	github.com/metal3-io/baremetal-operator/pkg/hardwareutils => github.com/openshift/baremetal-operator/pkg/hardwareutils v0.0.0-20230331001040-c7cddc04b0f9
 	github.com/openshift/assisted-service/api => ./api
+	github.com/openshift/assisted-service/client => ./client
 	github.com/openshift/assisted-service/cmd/agentbasedinstaller => ./cmd/agentbasedinstaller
 	github.com/openshift/assisted-service/models => ./models
 	sigs.k8s.io/cluster-api-provider-aws => github.com/openshift/cluster-api-provider-aws v0.2.1-0.20201022175424-d30c7a274820

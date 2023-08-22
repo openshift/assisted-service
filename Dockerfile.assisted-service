@@ -27,6 +27,7 @@ WORKDIR /assisted-service/
 # Bring in the go dependencies before anything else so we can take
 # advantage of caching these layers in future builds.
 COPY api/go.mod api/go.sum /assisted-service/api/
+COPY client/go.mod client/go.sum /assisted-service/client/
 COPY models/go.mod models/go.sum /assisted-service/models/
 COPY go.mod go.sum /assisted-service/
 RUN go mod download
