@@ -192,6 +192,10 @@ type AgentClusterInstallSpec struct {
 	// +optional
 	PlatformType PlatformType `json:"platformType,omitempty"`
 
+	// ExternalSpec is the spec for the external platform
+	// +optional
+	ExternalSpec ExternalSpec `json:"external,omitempty"`
+
 	// Set to true to allow control plane nodes to be schedulable
 	// +optional
 	MastersSchedulable bool `json:"mastersSchedulable,omitempty"`
@@ -317,7 +321,7 @@ type Networking struct {
 	NetworkType string `json:"networkType,omitempty"`
 
 	// UserManagedNetworking indicates if the networking is managed by the user.
-	// For single-node installations, set to true or leave empty.
+	// For single-node installations (none or external platfrom), set to true or leave empty.
 	// +optional
 	UserManagedNetworking *bool `json:"userManagedNetworking,omitempty"`
 }
@@ -372,8 +376,13 @@ const (
 )
 
 // PlatformType is a specific supported infrastructure provider.
-// +kubebuilder:validation:Enum="";BareMetal;None;VSphere;Nutanix
+// +kubebuilder:validation:Enum="";BareMetal;None;VSphere;Nutanix;External
 type PlatformType string
+
+// ExternalSpec contains a specific supported platform name.
+type ExternalSpec struct {
+		PlatformName string `json:"platformName"`
+}
 
 const (
 	// BareMetalPlatformType represents managed bare metal infrastructure.
@@ -387,6 +396,9 @@ const (
 
 	// NutanixPlatformType represents Nutanix infrastructure.
 	NutanixPlatformType PlatformType = "Nutanix"
+
+	// ExternalPlatformType represents external cloud provider infrastructure.
+	ExternalPlatformType PlatformType = "External"
 )
 
 // AgentMachinePool is a pool of machines to be installed.

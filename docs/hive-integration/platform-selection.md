@@ -2,6 +2,7 @@
 
 The Assisted Installer currently supports the following OpenShift platforms:
 - BareMetal
+- External
 - VSphere
 - Nutanix
 - None

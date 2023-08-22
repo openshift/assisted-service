@@ -50,6 +50,7 @@ import (
 	"github.com/thoas/go-funk"
 	"gorm.io/gorm"
 	corev1 "k8s.io/api/core/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -138,6 +139,7 @@ var (
 		"openshift-v4.10.0-arm":   "quay.io/openshift-release-dev/ocp-release:4.10.6-aarch64",
 		"openshift-v4.11.0":       "quay.io/openshift-release-dev/ocp-release:4.11.0-x86_64",
 		"openshift-v4.11.0-multi": "quay.io/openshift-release-dev/ocp-release:4.11.0-multi",
+		"openshift-v4.14.0":       "quay.io/openshift-release-dev/ocp-release:4.14.0-ec.4-x86_64",
 	}
 )
 
@@ -191,6 +193,59 @@ func updateAgentClusterInstallCRD(ctx context.Context, client k8sclient.Client, 
 		agent.Spec = *spec
 		return kubeClient.Update(ctx, agent)
 	}, "30s", "1s").Should(BeNil())
+}
+
+func deployNamespace(ctx context.Context, client k8sclient.Client, nsName string) {
+	err := client.Create(ctx, &corev1.Namespace{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Namespace",
+			APIVersion: "v1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name: nsName,
+		},
+	})
+	Expect(err).To(BeNil())
+}
+
+func deployServiceAccount(ctx context.Context, client k8sclient.Client, namespace, name string) {
+	err := client.Create(ctx, &corev1.ServiceAccount{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "ServiceAccount",
+			APIVersion: "v1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: namespace,
+			Name:      name,
+		},
+	})
+	Expect(err).To(BeNil())
+}
+
+func deployClusterRole(ctx context.Context, client k8sclient.Client, name string) {
+	err := client.Create(ctx, &rbacv1.ClusterRole{
+		TypeMeta: metav1.TypeMeta{
+			Kind: "ClusterRole",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name: name,
+		},
+	})
+	Expect(err).To(BeNil())
+}
+
+func deployClusterRoleBinding(ctx context.Context, client k8sclient.Client, name string, roleRef rbacv1.RoleRef, subjects []rbacv1.Subject) {
+	err := client.Create(ctx, &rbacv1.ClusterRoleBinding{
+		TypeMeta: metav1.TypeMeta{
+			Kind: "ClusterRoleBinding",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name: name,
+		},
+		RoleRef:  roleRef,
+		Subjects: subjects,
+	})
+	Expect(err).To(BeNil())
 }
 
 func deploySecret(ctx context.Context, client k8sclient.Client, secretName string, secretData map[string]string) {
@@ -636,6 +691,32 @@ func getDefaultNonePlatformAgentClusterInstallSpec(clusterDeploymentName string)
 	}
 }
 
+func getDefaultExternalPlatformAgentClusterInstallSpec(clusterDeploymentName string) *hiveext.AgentClusterInstallSpec {
+	return &hiveext.AgentClusterInstallSpec{
+		Networking: hiveext.Networking{
+			MachineNetwork: []hiveext.MachineNetworkEntry{},
+			ClusterNetwork: []hiveext.ClusterNetworkEntry{{
+				CIDR:       "10.128.0.0/14",
+				HostPrefix: 23,
+			}},
+			ServiceNetwork:        []string{"172.30.0.0/16"},
+			NetworkType:           models.ClusterNetworkTypeOpenShiftSDN,
+			UserManagedNetworking: swag.Bool(true),
+		},
+		PlatformType: hiveext.ExternalPlatformType,
+		ExternalSpec: hiveext.ExternalSpec{
+			PlatformName: "oci",
+		},
+		SSHPublicKey: sshPublicKey,
+		ImageSetRef:  &hivev1.ClusterImageSetReference{Name: clusterImageSetName},
+		ProvisionRequirements: hiveext.ProvisionRequirements{
+			ControlPlaneAgents: 3,
+			WorkerAgents:       0,
+		},
+		ClusterDeploymentRef: corev1.LocalObjectReference{Name: clusterDeploymentName},
+	}
+}
+
 func getDefaultSNOAgentClusterInstallSpec(clusterDeploymentName string) *hiveext.AgentClusterInstallSpec {
 	return &hiveext.AgentClusterInstallSpec{
 		Networking: hiveext.Networking{
@@ -950,14 +1031,15 @@ var _ = Describe("[kube-api]cluster installation", func() {
 	ctx := context.Background()
 
 	var (
-		clusterDeploymentSpec *hivev1.ClusterDeploymentSpec
-		infraEnvSpec          *v1beta1.InfraEnvSpec
-		infraNsName           types.NamespacedName
-		aciSpec               *hiveext.AgentClusterInstallSpec
-		aciSpecNonePlatform   *hiveext.AgentClusterInstallSpec
-		aciSNOSpec            *hiveext.AgentClusterInstallSpec
-		aciV6Spec             *hiveext.AgentClusterInstallSpec
-		secretRef             *corev1.LocalObjectReference
+		clusterDeploymentSpec   *hivev1.ClusterDeploymentSpec
+		infraEnvSpec            *v1beta1.InfraEnvSpec
+		infraNsName             types.NamespacedName
+		aciSpec                 *hiveext.AgentClusterInstallSpec
+		aciSpecNonePlatform     *hiveext.AgentClusterInstallSpec
+		aciSpecExternalPlatform *hiveext.AgentClusterInstallSpec
+		aciSNOSpec              *hiveext.AgentClusterInstallSpec
+		aciV6Spec               *hiveext.AgentClusterInstallSpec
+		secretRef               *corev1.LocalObjectReference
 	)
 
 	BeforeEach(func() {
@@ -965,6 +1047,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		clusterDeploymentSpec = getDefaultClusterDeploymentSpec(secretRef)
 		aciSpec = getDefaultAgentClusterInstallSpec(clusterDeploymentSpec.ClusterName)
 		aciSpecNonePlatform = getDefaultNonePlatformAgentClusterInstallSpec(clusterDeploymentSpec.ClusterName)
+		aciSpecExternalPlatform = getDefaultExternalPlatformAgentClusterInstallSpec(clusterDeploymentSpec.ClusterName)
 		aciSNOSpec = getDefaultSNOAgentClusterInstallSpec(clusterDeploymentSpec.ClusterName)
 		aciV6Spec = getDefaultAgentClusterIPv6InstallSpec(clusterDeploymentSpec.ClusterName)
 		deployClusterImageSetCRD(ctx, kubeClient, aciSpec.ImageSetRef)
@@ -1211,6 +1294,112 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		}
 		By("verify nutanix platform type status and spec")
 		checkPlatformStatus(ctx, installkey, hiveext.NutanixPlatformType, hiveext.NutanixPlatformType, swag.Bool(false))
+
+		By("Verify ClusterDeployment ReadyForInstallation")
+		checkAgentClusterInstallCondition(ctx, installkey, hiveext.ClusterRequirementsMetCondition, hiveext.ClusterAlreadyInstallingReason)
+		By("Delete ClusterDeployment")
+		err := kubeClient.Delete(ctx, getClusterDeploymentCRD(ctx, kubeClient, clusterKey))
+		Expect(err).To(BeNil())
+		By("Verify AgentClusterInstall was deleted")
+		Eventually(func() bool {
+			aci := &hiveext.AgentClusterInstall{}
+			err := kubeClient.Get(ctx, installkey, aci)
+			return apierrors.IsNotFound(err)
+		}, "30s", "10s").Should(Equal(true))
+		By("Verify ClusterDeployment Agents were deleted")
+		Eventually(func() int {
+			return len(getClusterDeploymentAgents(ctx, kubeClient, clusterKey).Items)
+		}, "2m", "2s").Should(Equal(0))
+	})
+
+	It("deploy external platform", func() {
+		By("Upload CCM manifests for OCI")
+		name := "cloud-controller-manager"
+		namespace := fmt.Sprintf("oci-%s", name)
+		deployNamespace(ctx, kubeClient, namespace)
+		deployServiceAccount(ctx, kubeClient, namespace, name)
+		deployClusterRole(ctx, kubeClient, fmt.Sprintf("system:%s", name))
+
+		roleRef := rbacv1.RoleRef{
+			APIGroup: "rbac.authorization.k8s.io",
+			Kind:     "ClusterRole",
+			Name:     fmt.Sprintf("system:%s", name),
+		}
+		subjects := []rbacv1.Subject{
+			{
+				Kind:      "ServiceAccount",
+				Name:      name,
+				Namespace: namespace,
+			},
+		}
+		deployClusterRoleBinding(ctx, kubeClient, fmt.Sprintf("oci-%s", name), roleRef, subjects)
+
+		secretData := map[string]string{
+			"cloud-provider.yaml": `
+				vcn: <your vcn OCID>
+				`,
+		}
+		deploySecret(ctx, kubeClient, name, secretData)
+
+		imageSetRef4_14 := &hivev1.ClusterImageSetReference{
+			Name: "openshift-v4.14.0",
+		}
+		aciSpecExternalPlatform.ImageSetRef = imageSetRef4_14
+		deployClusterImageSetCRD(ctx, kubeClient, aciSpecExternalPlatform.ImageSetRef)
+		deployClusterDeploymentCRD(ctx, kubeClient, clusterDeploymentSpec)
+		deployInfraEnvCRD(ctx, kubeClient, infraNsName.Name, infraEnvSpec)
+
+		deployAgentClusterInstallCRD(ctx, kubeClient, aciSpecExternalPlatform, clusterDeploymentSpec.ClusterInstallRef.Name)
+		clusterKey := types.NamespacedName{
+			Namespace: Options.Namespace,
+			Name:      clusterDeploymentSpec.ClusterName,
+		}
+		infraEnvKey := types.NamespacedName{
+			Namespace: Options.Namespace,
+			Name:      infraNsName.Name,
+		}
+		infraEnv := getInfraEnvFromDBByKubeKey(ctx, db, infraEnvKey, waitForReconcileTimeout)
+		configureLocalAgentClient(infraEnv.ID.String())
+		hosts := make([]*models.Host, 0)
+		ips := hostutil.GenerateIPv4Addresses(3, defaultCIDRv4)
+		for i := 0; i < 3; i++ {
+			hostname := fmt.Sprintf("h%d", i)
+			host := registerNodeWithInventory(ctx, *infraEnv.ID, hostname, ips[i], getDefaultExternalInventory(ips[i]))
+			hosts = append(hosts, host)
+		}
+		for _, host := range hosts {
+			checkAgentCondition(ctx, host.ID.String(), v1beta1.ValidatedCondition, v1beta1.ValidationsFailingReason)
+			hostkey := types.NamespacedName{
+				Namespace: Options.Namespace,
+				Name:      host.ID.String(),
+			}
+			agent := getAgentCRD(ctx, kubeClient, hostkey)
+			Expect(agent.Status.ValidationsInfo).ToNot(BeNil())
+		}
+		generateFullMeshConnectivity(ctx, ips[0], hosts...)
+		for _, h := range hosts {
+			generateDomainResolution(ctx, h, clusterDeploymentSpec.ClusterName, "hive.example.com")
+			generateCommonDomainReply(ctx, h, clusterDeploymentSpec.ClusterName, clusterDeploymentSpec.BaseDomain)
+		}
+
+		By("Approve Agents")
+		for _, host := range hosts {
+			hostkey := types.NamespacedName{
+				Namespace: Options.Namespace,
+				Name:      host.ID.String(),
+			}
+			Eventually(func() error {
+				agent := getAgentCRD(ctx, kubeClient, hostkey)
+				agent.Spec.Approved = true
+				return kubeClient.Update(ctx, agent)
+			}, "30s", "10s").Should(BeNil())
+		}
+		installkey := types.NamespacedName{
+			Namespace: Options.Namespace,
+			Name:      clusterDeploymentSpec.ClusterInstallRef.Name,
+		}
+		By("verify external platform type status and spec")
+		checkPlatformStatus(ctx, installkey, hiveext.ExternalPlatformType, hiveext.ExternalPlatformType, swag.Bool(true))
 
 		By("Verify ClusterDeployment ReadyForInstallation")
 		checkAgentClusterInstallCondition(ctx, installkey, hiveext.ClusterRequirementsMetCondition, hiveext.ClusterAlreadyInstallingReason)
