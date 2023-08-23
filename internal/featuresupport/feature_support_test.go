@@ -193,6 +193,7 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 				models.PlatformTypeOci,
 				models.PlatformTypeBaremetal,
 				models.PlatformTypeNone,
+				models.PlatformTypeExternal,
 			}
 			for _, platform := range platforms {
 				p := platform
@@ -496,7 +497,7 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 					p := platform
 
 					for _, feature := range []SupportLevelFeature{&VsphereIntegrationFeature{}, &NutanixIntegrationFeature{},
-						&BaremetalPlatformFeature{}, &NonePlatformFeature{}, &OciIntegrationFeature{}} {
+						&BaremetalPlatformFeature{}, &NonePlatformFeature{}, &OciIntegrationFeature{}, &ExternalPlatformFeature{}} {
 						f := feature
 
 						By(fmt.Sprintf("Feature %s", f.GetName()), func() {

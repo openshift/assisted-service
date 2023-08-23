@@ -39,6 +39,7 @@ var featuresList = map[models.FeatureSupportLevelID]SupportLevelFeature{
 	models.FeatureSupportLevelIDEXTERNALPLATFORMOCI: (&OciIntegrationFeature{}).New(),
 	models.FeatureSupportLevelIDBAREMETALPLATFORM:   (&BaremetalPlatformFeature{}).New(),
 	models.FeatureSupportLevelIDNONEPLATFORM:        (&NonePlatformFeature{}).New(),
+	models.FeatureSupportLevelIDEXTERNALPLATFORM:    (&ExternalPlatformFeature{}).New(),
 }
 
 func GetFeatureByID(featureID models.FeatureSupportLevelID) SupportLevelFeature {
