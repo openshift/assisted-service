@@ -3643,7 +3643,7 @@ paths:
           name: platform_type
           description: The provider platform type.
           type: string
-          enum: [ 'baremetal', 'none', 'nutanix', 'vsphere', 'oci' ]
+          enum: [ 'baremetal', 'none', 'nutanix', 'vsphere', 'oci', 'external' ]
       responses:
         "200":
           description: Success.
@@ -4065,6 +4065,7 @@ definitions:
       - 'DUAL_STACK'
       - 'PLATFORM_MANAGED_NETWORKING'
       - 'SKIP_MCO_REBOOT'
+      - 'EXTERNAL_PLATFORM'
 
   architecture-support-level-id:
     type: string
@@ -6221,6 +6222,7 @@ definitions:
       - vsphere
       - none
       - oci
+      - external
 
   memory_method:
     type: string
