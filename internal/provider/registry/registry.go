@@ -167,5 +167,6 @@ func InitProviderRegistry(log logrus.FieldLogger) ProviderRegistry {
 	providerRegistry.Register(none.NewNoneProvider(log))
 	providerRegistry.Register(nutanix.NewNutanixProvider(log))
 	providerRegistry.Register(external.NewOciExternalProvider(log))
+	providerRegistry.Register(external.NewExternalProvider(log))
 	return providerRegistry
 }

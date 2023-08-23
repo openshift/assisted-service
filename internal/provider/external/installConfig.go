@@ -12,7 +12,7 @@ import (
 func (p baseExternalProvider) AddPlatformToInstallConfig(cfg *installcfg.InstallerConfigBaremetal, cluster *common.Cluster) error {
 	cfg.Platform = installcfg.Platform{
 		External: &installcfg.ExternalInstallConfigPlatform{
-			PlatformName: string(p.Name()),
+			PlatformName: string(p.Provider.Name()),
 		},
 	}
 
