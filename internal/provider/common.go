@@ -22,10 +22,6 @@ func isClusterPlatformNone(cluster *common.Cluster) bool {
 	return cluster != nil && isPlatformNone(cluster.Platform)
 }
 
-func isPlatformExternal(platform *models.Platform) bool {
-	return platform != nil && *platform.Type == models.PlatformTypeOci
-}
-
 func isUMNAllowedForPlatform(platform *models.Platform) bool {
 	if platform == nil {
 		return true
@@ -43,7 +39,7 @@ func isUMNMandatoryForPlatform(platform *models.Platform) bool {
 		return true
 	}
 
-	if *platform.Type == models.PlatformTypeNone || isPlatformExternal(platform) {
+	if *platform.Type == models.PlatformTypeNone || common.IsPlatformExternal(platform) {
 		return true
 	}
 
@@ -119,7 +115,7 @@ func updatePlatformIsExternal(platform *models.Platform) *models.Platform {
 	if platform == nil {
 		return nil
 	}
-	platform.IsExternal = swag.Bool(isPlatformExternal(platform))
+	platform.IsExternal = swag.Bool(common.IsPlatformExternal(platform))
 
 	return platform
 }
@@ -214,7 +210,7 @@ func GetClusterPlatformByHighAvailabilityMode(platform *models.Platform, userMan
 			return nil, nil, common.NewApiError(http.StatusBadRequest, errors.New("Can't disable user-managed-networking on single node OpenShift"))
 		}
 
-		if isPlatformNone(platform) || isPlatformExternal(platform) {
+		if isPlatformNone(platform) || common.IsPlatformExternal(platform) {
 			return updatePlatformIsExternal(platform), swag.Bool(true), nil
 		}
 
@@ -247,6 +243,8 @@ func GetPlatformFeatureID(platformType models.PlatformType) models.FeatureSuppor
 	switch platformType {
 	case models.PlatformTypeOci:
 		return models.FeatureSupportLevelIDEXTERNALPLATFORMOCI
+	case models.PlatformTypeExternal:
+		return models.FeatureSupportLevelIDEXTERNALPLATFORM
 	case models.PlatformTypeVsphere:
 		return models.FeatureSupportLevelIDVSPHEREINTEGRATION
 	case models.PlatformTypeNutanix:

@@ -13,7 +13,7 @@ func (p *baseExternalProvider) SetPlatformUsages(
 	usages map[string]models.Usage,
 	usageApi usage.API) error {
 	props := &map[string]interface{}{
-		"platform_type": p.Name()}
+		"platform_type": p.Provider.Name()}
 	usageApi.Add(usages, usage.PlatformSelectionUsage, props)
 	return nil
 }

@@ -13,7 +13,7 @@ import (
 func PlatformTypeToPlatform(platformType hiveext.PlatformType) *models.Platform {
 	pType := strings.ToLower(string(platformType))
 	platform := &models.Platform{Type: PlatformTypePtr(models.PlatformType(pType))}
-	platform.IsExternal = swag.Bool(*platform.Type == models.PlatformTypeOci)
+	platform.IsExternal = swag.Bool(IsPlatformExternal(platform))
 	return platform
 }
 

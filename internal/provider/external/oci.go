@@ -18,14 +18,16 @@ type ociExternalProvider struct {
 }
 
 func NewOciExternalProvider(log logrus.FieldLogger) provider.Provider {
-	return &ociExternalProvider{
+	p := &ociExternalProvider{
 		baseExternalProvider: baseExternalProvider{
 			Log: log,
 		},
 	}
+	p.Provider = p
+	return p
 }
 
-func (p *baseExternalProvider) Name() models.PlatformType {
+func (p *ociExternalProvider) Name() models.PlatformType {
 	return models.PlatformTypeOci
 }
 
