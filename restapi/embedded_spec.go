@@ -5689,7 +5689,8 @@ func init() {
               "none",
               "nutanix",
               "vsphere",
-              "oci"
+              "oci",
+              "external"
             ],
             "type": "string",
             "description": "The provider platform type.",
@@ -7586,7 +7587,8 @@ func init() {
         "FULL_ISO",
         "EXTERNAL_PLATFORM_OCI",
         "DUAL_STACK",
-        "PLATFORM_MANAGED_NETWORKING"
+        "PLATFORM_MANAGED_NETWORKING",
+        "EXTERNAL_PLATFORM"
       ]
     },
     "feature-support-levels": {
@@ -9562,7 +9564,8 @@ func init() {
         "nutanix",
         "vsphere",
         "none",
-        "oci"
+        "oci",
+        "external"
       ]
     },
     "preflight-hardware-requirements": {
@@ -16053,7 +16056,8 @@ func init() {
               "none",
               "nutanix",
               "vsphere",
-              "oci"
+              "oci",
+              "external"
             ],
             "type": "string",
             "description": "The provider platform type.",
@@ -18041,7 +18045,8 @@ func init() {
         "FULL_ISO",
         "EXTERNAL_PLATFORM_OCI",
         "DUAL_STACK",
-        "PLATFORM_MANAGED_NETWORKING"
+        "PLATFORM_MANAGED_NETWORKING",
+        "EXTERNAL_PLATFORM"
       ]
     },
     "feature-support-levels": {
@@ -20008,7 +20013,8 @@ func init() {
         "nutanix",
         "vsphere",
         "none",
-        "oci"
+        "oci",
+        "external"
       ]
     },
     "preflight-hardware-requirements": {
