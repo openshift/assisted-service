@@ -3822,3 +3822,129 @@ var _ = Describe("unbindAgents", func() {
 		Expect(k8serrors.IsNotFound(err)).To(BeTrue())
 	})
 })
+
+var _ = Describe("day2 cluster", func() {
+	var (
+		c                              client.Client
+		ctx                            = context.Background()
+		imageSetName                   = "openshift-v4.8.0"
+		releaseImageUrl                = "quay.io/openshift-release-dev/ocp-release:4.8.0-x86_64"
+		clusterKey                     types.NamespacedName
+		clusterName                    = "test-cluster"
+		agentClusterInstallName        = "test-cluster-aci"
+		defaultClusterSpec             hivev1.ClusterDeploymentSpec
+		pullSecretName                 = "pull-secret"
+		defaultAgentClusterInstallSpec hiveext.AgentClusterInstallSpec
+		mockCtrl                       *gomock.Controller
+		mockInstallerInternal          *bminventory.MockInstallerInternals
+		cr                             *ClusterDeploymentsReconciler
+		mockVersions                   *versions.MockHandler
+		dbCluster                      *common.Cluster
+	)
+
+	BeforeEach(func() {
+		mockCtrl = gomock.NewController(GinkgoT())
+		mockInstallerInternal = bminventory.NewMockInstallerInternals(mockCtrl)
+		mockVersions = versions.NewMockHandler(mockCtrl)
+
+		c = fakeclient.NewClientBuilder().WithScheme(scheme.Scheme).Build()
+
+		cr = &ClusterDeploymentsReconciler{
+			Client:            c,
+			APIReader:         c,
+			Scheme:            scheme.Scheme,
+			Log:               common.GetTestLog(),
+			Installer:         mockInstallerInternal,
+			PullSecretHandler: NewPullSecretHandler(c, c, mockInstallerInternal),
+			VersionsHandler:   mockVersions,
+		}
+
+		clusterKey = types.NamespacedName{
+			Namespace: testNamespace,
+			Name:      clusterName,
+		}
+
+		pullSecret := getDefaultTestPullSecret("pull-secret", testNamespace)
+		Expect(c.Create(ctx, pullSecret)).To(BeNil())
+
+		imageSet := getDefaultTestImageSet(imageSetName, releaseImageUrl)
+		Expect(c.Create(ctx, imageSet)).To(BeNil())
+
+		secretName := fmt.Sprintf(adminKubeConfigStringTemplate, clusterName)
+		adminKubeconfigSecret := &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      secretName,
+				Namespace: testNamespace,
+			},
+			Data: map[string][]byte{
+				"kubeconfig": []byte("somekubeconfig"),
+			},
+		}
+		Expect(c.Create(ctx, adminKubeconfigSecret)).To(Succeed())
+
+		defaultClusterSpec = getDefaultClusterDeploymentSpec(clusterName, agentClusterInstallName, pullSecretName)
+		defaultClusterSpec.Installed = true
+		defaultClusterSpec.ClusterMetadata = &hivev1.ClusterMetadata{}
+		defaultClusterSpec.ClusterMetadata.AdminKubeconfigSecretRef.Name = secretName
+		defaultClusterSpec.ClusterMetadata.ClusterID = ""
+		defaultClusterSpec.ClusterMetadata.InfraID = ""
+
+		defaultAgentClusterInstallSpec = getDefaultAgentClusterInstallSpec(clusterName)
+		defaultAgentClusterInstallSpec.ClusterMetadata = &hivev1.ClusterMetadata{}
+		defaultAgentClusterInstallSpec.ClusterMetadata.AdminKubeconfigSecretRef.Name = secretName
+		defaultAgentClusterInstallSpec.ClusterMetadata.ClusterID = ""
+		defaultAgentClusterInstallSpec.ClusterMetadata.InfraID = ""
+
+		id := strfmt.UUID(uuid.New().String())
+		dbCluster = &common.Cluster{
+			PullSecret: testPullSecretVal,
+			Cluster: models.Cluster{
+				Kind:            swag.String(models.ClusterKindAddHostsCluster),
+				ID:              &id,
+				Status:          swag.String(models.ClusterStatusInstalled),
+				APIVip:          common.TestIPv4Networking.APIVip,
+				APIVips:         common.TestIPv4Networking.APIVips,
+				IngressVip:      common.TestIPv4Networking.IngressVip,
+				IngressVips:     common.TestIPv4Networking.IngressVips,
+				ClusterNetworks: common.TestIPv4Networking.ClusterNetworks,
+				ServiceNetworks: common.TestIPv4Networking.ServiceNetworks,
+				SSHPublicKey:    defaultAgentClusterInstallSpec.SSHPublicKey,
+				BaseDNSDomain:   defaultClusterSpec.BaseDomain,
+				Name:            defaultClusterSpec.ClusterName,
+				Hyperthreading:  models.ClusterHyperthreadingAll,
+			},
+		}
+	})
+
+	AfterEach(func() {
+		mockCtrl.Finish()
+	})
+
+	It("install config overrides not relevant for day2", func() {
+		cd := newClusterDeployment(clusterKey.Name, clusterKey.Namespace, defaultClusterSpec)
+		Expect(c.Create(ctx, cd)).To(BeNil())
+
+		aci := newAgentClusterInstall(agentClusterInstallName, testNamespace, defaultAgentClusterInstallSpec, cd)
+		aci.ObjectMeta.SetAnnotations(map[string]string{InstallConfigOverrides: `{"networking":{"networkType":"OVNKubernetes"}}`})
+		Expect(c.Create(ctx, aci)).ShouldNot(HaveOccurred())
+
+		mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(nil, gorm.ErrRecordNotFound)
+		mockInstallerInternal.EXPECT().V2ImportClusterInternal(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any())
+
+		By("first time will create the cluster")
+		request := newClusterDeploymentRequest(cd)
+		result, err := cr.Reconcile(ctx, request)
+		Expect(err).To(BeNil())
+		Expect(result).To(Equal(ctrl.Result{}))
+
+		mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(dbCluster, nil)
+		mockInstallerInternal.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any()).Return(nil).Times(1)
+		mockInstallerInternal.EXPECT().GetKnownApprovedHosts(gomock.Any()).Return(nil, nil)
+		// expected not to be called
+		mockInstallerInternal.EXPECT().UpdateClusterInstallConfigInternal(gomock.Any(), gomock.Any()).Times(0)
+		By("second time will update the cluster by the spec")
+		result, err = cr.Reconcile(ctx, request)
+		Expect(err).To(BeNil())
+		Expect(result).To(Equal(ctrl.Result{}))
+	})
+})
