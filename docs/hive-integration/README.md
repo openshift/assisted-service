@@ -160,10 +160,17 @@ In case that the Bare Metal Operator is installed, the Baremetal Agent Controlle
 
 - Find the right pairs of BMH/Agent using their MAC addresses
 - Set the Image.URL in the BMH copying it from the InfraEnv's status.
-- Reconcile the Agent's spec by copying the following attributes from the BMH's annotations:
+- Reconcile the Agent's spec by copying the following fields from the BMH's annotations:
     - Role: master/worker
+      - `bmac.agent-install.openshift.io/role`
     - Hostname (optional for user to set)
+      - `bmac.agent-install.openshift.io/hostname`
     - MachineConfigPool (optional for user to set)
+      - `bmac.agent-install.openshift.io/machine-config-pool`
+    - InstallerArgs (optional for user to set)
+      - `bmac.agent-install.openshift.io/installer-args`
+    - IgnitionConfigOverrides (optional for user to set)
+      - `bmac.agent-install.openshift.io/ignition-config-overrides`
 - Reconcile the BareMetalHost hardware details by copying the Agent's inventory data to the BMH's `hardwaredetails` annotation.
 - Disable ironic inspection
 
