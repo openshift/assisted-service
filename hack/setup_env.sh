@@ -5,11 +5,6 @@ set -o pipefail
 set -o errexit
 set -o xtrace
 
-function get_package_manager() {
-    PACKAGE_MANAGER=$( command -v dnf &> /dev/null && echo "dnf" || echo "yum")
-    echo $PACKAGE_MANAGER
-}
-
 function print_help() {
   ALL_FUNCS="golang|assisted_service|hive_from_upstream|print_help"
   echo "Usage: bash ${0} (${ALL_FUNCS})"
@@ -42,20 +37,22 @@ function jq() {
 
 function awscli() {
   echo "Installing aws-cli..."
-  curl --retry 5 --connect-timeout 30 -L "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "/tmp/awscliv2.zip" && unzip /tmp/awscliv2.zip && \
-  ./aws/install && rm -f /tmp/awscliv2.zip
+  curl --retry 5 --connect-timeout 30 -L "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "/tmp/awscliv2.zip"
+  unzip -q /tmp/awscliv2.zip
+  ./aws/install
+  rm -f /tmp/awscliv2.zip
 }
 
 function podman_remote() {
   # podman-remote 4 cannot run against podman server 3 so installing them both side by side
-  curl --retry 5 --connect-timeout 30 -L https://github.com/containers/podman/releases/download/v3.4.4/podman-remote-static.tar.gz -o "podman-remote3.tar.gz" && \
-  tar -zxvf podman-remote3.tar.gz && \
-  mv podman-remote-static /usr/local/bin/podman-remote3 && \
+  curl --retry 5 --connect-timeout 30 -L https://github.com/containers/podman/releases/download/v3.4.4/podman-remote-static.tar.gz -o "podman-remote3.tar.gz"
+  tar -zxvf podman-remote3.tar.gz
+  mv podman-remote-static /usr/local/bin/podman-remote3
   rm -f podman-remote3.tar.gz
 
-  curl --retry 5 --connect-timeout 30 -L https://github.com/containers/podman/releases/download/v4.1.1/podman-remote-static.tar.gz -o "podman-remote4.tar.gz" && \
-  tar -zxvf podman-remote4.tar.gz && \
-  mv podman-remote-static /usr/local/bin/podman-remote4 && \
+  curl --retry 5 --connect-timeout 30 -L https://github.com/containers/podman/releases/download/v4.1.1/podman-remote-static.tar.gz -o "podman-remote4.tar.gz"
+  tar -zxvf podman-remote4.tar.gz
+  mv podman-remote-static /usr/local/bin/podman-remote4
   rm -f podman-remote4.tar.gz
 }
 
@@ -72,12 +69,13 @@ function assisted_service() {
   ARCH=$(case $(arch) in x86_64) echo -n amd64 ;; aarch64) echo -n arm64 ;; *) echo -n $(arch) ;; esac)
 
   latest_kubectl_version=$(curl --retry 5 --connect-timeout 30 -L -s https://dl.k8s.io/release/stable.txt)
-  curl --retry 5 --connect-timeout 30 -L "https://dl.k8s.io/release/${latest_kubectl_version}/bin/linux/amd64/kubectl" -o /tmp/kubectl && \
-    install -o root -g root -m 0755 /tmp/kubectl /usr/local/bin/kubectl && \
-    rm -f /tmp/kubectl
+  curl --retry 5 --connect-timeout 30 -L "https://dl.k8s.io/release/${latest_kubectl_version}/bin/linux/amd64/kubectl" -o /tmp/kubectl
+  install -o root -g root -m 0755 /tmp/kubectl /usr/local/bin/kubectl
+  rm -f /tmp/kubectl
 
-  $(get_package_manager) install -y --setopt=skip_missing_names_on_install=False \
-    unzip diffutils python3-pip genisoimage skopeo && dnf clean all && rm -rf /var/cache/yum
+  dnf install -y unzip diffutils python3-pip genisoimage skopeo
+  dnf clean all
+  rm -rf /var/cache/yum
 
   jq
 
