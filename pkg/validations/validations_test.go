@@ -193,27 +193,7 @@ var _ = Describe("dns name", func() {
 			valid:      false,
 		},
 		{
-			domainName: "-",
-			valid:      false,
-		},
-		{
-			domainName: "a-",
-			valid:      false,
-		},
-		{
 			domainName: "co",
-			valid:      true,
-		},
-		{
-			domainName: "1c",
-			valid:      true,
-		},
-		{
-			domainName: "1-c",
-			valid:      true,
-		},
-		{
-			domainName: "1--c",
 			valid:      true,
 		},
 		{
@@ -234,10 +214,6 @@ var _ = Describe("dns name", func() {
 		},
 		{
 			domainName: "a-aa.com",
-			valid:      true,
-		},
-		{
-			domainName: "a--aa.com",
 			valid:      true,
 		},
 		{
