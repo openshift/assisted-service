@@ -192,9 +192,10 @@ type AgentClusterInstallSpec struct {
 	// +optional
 	PlatformType PlatformType `json:"platformType,omitempty"`
 
-	// ExternalSpec is the spec for the external platform
+	// ExternalPlatformType represents generic infrastructure provider.
+	// Platform-specific components should be supplemented separately.
 	// +optional
-	ExternalSpec ExternalSpec `json:"external,omitempty"`
+	ExternalSpec *ExternalPlatformSpec `json:"external,omitempty"`
 
 	// Set to true to allow control plane nodes to be schedulable
 	// +optional
@@ -321,7 +322,7 @@ type Networking struct {
 	NetworkType string `json:"networkType,omitempty"`
 
 	// UserManagedNetworking indicates if the networking is managed by the user.
-	// For single-node installations (none or external platfrom), set to true or leave empty.
+	// For single-node installations (none or external platform), set to true or leave empty.
 	// +optional
 	UserManagedNetworking *bool `json:"userManagedNetworking,omitempty"`
 }
@@ -379,9 +380,15 @@ const (
 // +kubebuilder:validation:Enum="";BareMetal;None;VSphere;Nutanix;External
 type PlatformType string
 
-// ExternalSpec contains a specific supported platform name.
-type ExternalSpec struct {
-		PlatformName string `json:"platformName"`
+// ExternalPlatformSpec holds the desired state for the generic External infrastructure provider.
+type ExternalPlatformSpec struct {
+	// PlatformName holds the arbitrary string representing the infrastructure provider name, expected to be set at the installation time.
+	// This field is solely for informational and reporting purposes and is not expected to be used for decision-making.
+	// +kubebuilder:default:="Unknown"
+	// +default="Unknown"
+	// +kubebuilder:validation:XValidation:rule="oldSelf == 'Unknown' || self == oldSelf",message="platform name cannot be changed once set"
+	// +optional
+	PlatformName string `json:"platformName,omitempty"`
 }
 
 const (
