@@ -704,7 +704,7 @@ func getDefaultExternalPlatformAgentClusterInstallSpec(clusterDeploymentName str
 			UserManagedNetworking: swag.Bool(true),
 		},
 		PlatformType: hiveext.ExternalPlatformType,
-		ExternalPlatformSpec: hiveext.ExternalPlatformSpec{
+		ExternalPlatformSpec: &hiveext.ExternalPlatformSpec{
 			PlatformName: "oci",
 		},
 		SSHPublicKey: sshPublicKey,
