@@ -7244,17 +7244,12 @@ func init() {
           "type": "array",
           "items": {
             "type": "object",
-            "required": [
-              "domain_name"
-            ],
-            "properties": {
-              "domain_name": {
-                "description": "The domain name that should be resolved",
-                "type": "string",
-                "pattern": "^([a-zA-Z0-9]+(-[a-zA-Z0-9]+)*[.])+[a-zA-Z]{2,}[.]?$"
-              }
-            },
-            "x-go-name": "DomainResolutionRequestDomain"
+            "x-go-type": {
+              "import": {
+                "path": "github.com/openshift/assisted-service/models"
+              },
+              "type": "DomainResolutionRequestDomain"
+            }
           }
         }
       }
@@ -16069,20 +16064,6 @@ func init() {
       },
       "x-nullable": false
     },
-    "DomainResolutionRequestDomainsItems0": {
-      "type": "object",
-      "required": [
-        "domain_name"
-      ],
-      "properties": {
-        "domain_name": {
-          "description": "The domain name that should be resolved",
-          "type": "string",
-          "pattern": "^([a-zA-Z0-9]+(-[a-zA-Z0-9]+)*[.])+[a-zA-Z]{2,}[.]?$"
-        }
-      },
-      "x-go-name": "DomainResolutionRequestDomain"
-    },
     "DomainResolutionResponseResolutionsItems0": {
       "type": "object",
       "required": [
@@ -17623,7 +17604,13 @@ func init() {
         "domains": {
           "type": "array",
           "items": {
-            "$ref": "#/definitions/DomainResolutionRequestDomainsItems0"
+            "type": "object",
+            "x-go-type": {
+              "import": {
+                "path": "github.com/openshift/assisted-service/models"
+              },
+              "type": "DomainResolutionRequestDomain"
+            }
           }
         }
       }

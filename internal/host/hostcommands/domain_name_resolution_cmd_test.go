@@ -60,8 +60,8 @@ var _ = Describe("domainNameResolution", func() {
 		Expect(stepReply[0].Args).To(HaveLen(1))
 		var request models.DomainResolutionRequest
 		Expect(json.Unmarshal([]byte(stepReply[0].Args[0]), &request)).ToNot(HaveOccurred())
-		req := func(s string) *models.DomainResolutionRequestDomain {
-			return &models.DomainResolutionRequestDomain{
+		req := func(s string) models.DomainResolutionRequestDomain {
+			return models.DomainResolutionRequestDomain{
 				DomainName: swag.String(s),
 			}
 		}

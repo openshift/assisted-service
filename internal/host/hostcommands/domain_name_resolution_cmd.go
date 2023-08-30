@@ -69,8 +69,8 @@ func (f *domainNameResolutionCmd) prepareParam(host *models.Host, cluster *commo
 		DomainName: &wildcardDomainNameNoDot,
 	}
 
-	var domains []*models.DomainResolutionRequestDomain
-	domains = append(domains, &apiDomain, &apiInternalDomain, &appsDomain, &wildcardDomainWithDot, &wildcardDomainNoDot)
+	var domains []models.DomainResolutionRequestDomain
+	domains = append(domains, apiDomain, apiInternalDomain, appsDomain, wildcardDomainWithDot, wildcardDomainNoDot)
 
 	if swag.StringValue(cluster.Kind) != models.ClusterKindAddHostsCluster {
 		releaseHost, err := versions.GetReleaseImageHost(cluster, f.versionHandler)
@@ -83,7 +83,7 @@ func (f *domainNameResolutionCmd) prepareParam(host *models.Host, cluster *commo
 			releaseDomain := models.DomainResolutionRequestDomain{
 				DomainName: swag.String(releaseHost),
 			}
-			domains = append(domains, &releaseDomain)
+			domains = append(domains, releaseDomain)
 		}
 	}
 

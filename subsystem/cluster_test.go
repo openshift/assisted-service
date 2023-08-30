@@ -1027,7 +1027,7 @@ var _ = Describe("Validate BaseDNSDomain when creating a cluster", func() {
 			ShouldThrow:   true,
 		},
 		{
-			It:            "V2RegisterCluster should throw an error. BaseDNSDomain='-example.com', Illegal character in domain name",
+			It:            "V2RegisterCluster should throw an error. BaseDNSDomain='-example.com', Illegal first character in domain name",
 			BaseDNSDomain: "-example.com",
 			ShouldThrow:   true,
 		},
@@ -1044,6 +1044,26 @@ var _ = Describe("Validate BaseDNSDomain when creating a cluster", func() {
 		{
 			It:            "V2RegisterCluster should not throw an error. BaseDNSDomain='deep.sub.example.com', valid DNS",
 			BaseDNSDomain: "deep.sub.example.com",
+			ShouldThrow:   false,
+		},
+		{
+			It:            "V2RegisterCluster should not throw an error. BaseDNSDomain='exam-ple.com', valid DNS",
+			BaseDNSDomain: "exam-ple.com",
+			ShouldThrow:   false,
+		},
+		{
+			It:            "V2RegisterCluster should not throw an error. BaseDNSDomain='exam--ple.com', valid DNS",
+			BaseDNSDomain: "exam--ple.com",
+			ShouldThrow:   false,
+		},
+		{
+			It:            "V2RegisterCluster should not throw an error. BaseDNSDomain='1-example.com', valid DNS",
+			BaseDNSDomain: "1-example.com",
+			ShouldThrow:   false,
+		},
+		{
+			It:            "V2RegisterCluster should not throw an error. BaseDNSDomain='example.com1', valid DNS",
+			BaseDNSDomain: "example.com1",
 			ShouldThrow:   false,
 		},
 	}
