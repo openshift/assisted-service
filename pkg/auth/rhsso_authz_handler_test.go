@@ -1002,11 +1002,6 @@ var _ = Describe("authz", func() {
 		{
 			name:         "List support features",
 			allowedRoles: []ocm.RoleType{ocm.AdminRole, ocm.UserRole, ocm.ReadOnlyAdminRole},
-			apiCall:      v2ListFeatureSupportLevels,
-		},
-		{
-			name:         "List support features",
-			allowedRoles: []ocm.RoleType{ocm.AdminRole, ocm.UserRole, ocm.ReadOnlyAdminRole},
 			apiCall:      GetSupportedFeatures,
 		},
 		{
@@ -1493,11 +1488,6 @@ func updateDiscoveryIgnition(ctx context.Context, cli *client.AssistedInstall) e
 			InfraEnvID:           strfmt.UUID(uuid.New().String()),
 			InfraEnvUpdateParams: &models.InfraEnvUpdateParams{IgnitionConfigOverride: ""},
 		})
-	return err
-}
-
-func v2ListFeatureSupportLevels(ctx context.Context, cli *client.AssistedInstall) error {
-	_, err := cli.Installer.V2ListFeatureSupportLevels(ctx, &installer.V2ListFeatureSupportLevelsParams{})
 	return err
 }
 

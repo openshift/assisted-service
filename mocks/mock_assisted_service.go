@@ -624,20 +624,6 @@ func (mr *MockInstallerAPIMockRecorder) V2ListClusters(arg0, arg1 interface{}) *
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "V2ListClusters", reflect.TypeOf((*MockInstallerAPI)(nil).V2ListClusters), arg0, arg1)
 }
 
-// V2ListFeatureSupportLevels mocks base method.
-func (m *MockInstallerAPI) V2ListFeatureSupportLevels(arg0 context.Context, arg1 installer.V2ListFeatureSupportLevelsParams) middleware.Responder {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "V2ListFeatureSupportLevels", arg0, arg1)
-	ret0, _ := ret[0].(middleware.Responder)
-	return ret0
-}
-
-// V2ListFeatureSupportLevels indicates an expected call of V2ListFeatureSupportLevels.
-func (mr *MockInstallerAPIMockRecorder) V2ListFeatureSupportLevels(arg0, arg1 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "V2ListFeatureSupportLevels", reflect.TypeOf((*MockInstallerAPI)(nil).V2ListFeatureSupportLevels), arg0, arg1)
-}
-
 // V2ListHosts mocks base method.
 func (m *MockInstallerAPI) V2ListHosts(arg0 context.Context, arg1 installer.V2ListHostsParams) middleware.Responder {
 	m.ctrl.T.Helper()

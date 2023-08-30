@@ -175,9 +175,6 @@ type InstallerAPI interface {
 	/* V2ListClusters Retrieves the list of OpenShift clusters. */
 	V2ListClusters(ctx context.Context, params installer.V2ListClustersParams) middleware.Responder
 
-	/* V2ListFeatureSupportLevels (DEPRECATED) Retrieves the support levels for features for each OpenShift version. */
-	V2ListFeatureSupportLevels(ctx context.Context, params installer.V2ListFeatureSupportLevelsParams) middleware.Responder
-
 	/* V2ListHosts Retrieves the list of OpenShift hosts that belong the infra-env. */
 	V2ListHosts(ctx context.Context, params installer.V2ListHostsParams) middleware.Responder
 
@@ -684,11 +681,6 @@ func HandlerAPI(c Config) (http.Handler, *operations.AssistedInstallAPI, error) 
 		ctx := params.HTTPRequest.Context()
 		ctx = storeAuth(ctx, principal)
 		return c.EventsAPI.V2ListEvents(ctx, params)
-	})
-	api.InstallerV2ListFeatureSupportLevelsHandler = installer.V2ListFeatureSupportLevelsHandlerFunc(func(params installer.V2ListFeatureSupportLevelsParams, principal interface{}) middleware.Responder {
-		ctx := params.HTTPRequest.Context()
-		ctx = storeAuth(ctx, principal)
-		return c.InstallerAPI.V2ListFeatureSupportLevels(ctx, params)
 	})
 	api.InstallerV2ListHostsHandler = installer.V2ListHostsHandlerFunc(func(params installer.V2ListHostsParams, principal interface{}) middleware.Responder {
 		ctx := params.HTTPRequest.Context()

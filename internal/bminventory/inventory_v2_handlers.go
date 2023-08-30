@@ -18,7 +18,6 @@ import (
 	"github.com/openshift/assisted-service/internal/common"
 	eventgen "github.com/openshift/assisted-service/internal/common/events"
 	"github.com/openshift/assisted-service/internal/constants"
-	"github.com/openshift/assisted-service/internal/featuresupport"
 	"github.com/openshift/assisted-service/internal/gencrypto"
 	"github.com/openshift/assisted-service/internal/host/hostutil"
 	"github.com/openshift/assisted-service/internal/imageservice"
@@ -555,11 +554,6 @@ func (b *bareMetalInventory) V2GetCredentials(ctx context.Context, params instal
 		return common.GenerateErrorResponder(err)
 	}
 	return installer.NewV2GetCredentialsOK().WithPayload(cluster)
-}
-
-func (b *bareMetalInventory) V2ListFeatureSupportLevels(ctx context.Context, params installer.V2ListFeatureSupportLevelsParams) middleware.Responder {
-	payload := featuresupport.SupportLevelsList
-	return installer.NewV2ListFeatureSupportLevelsOK().WithPayload(payload)
 }
 
 func (b *bareMetalInventory) V2ImportCluster(ctx context.Context, params installer.V2ImportClusterParams) middleware.Responder {

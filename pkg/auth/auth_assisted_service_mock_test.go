@@ -246,10 +246,6 @@ func (f fakeInventory) V2GetCredentials(ctx context.Context, params installer.V2
 	return installer.NewV2GetCredentialsOK()
 }
 
-func (f fakeInventory) V2ListFeatureSupportLevels(ctx context.Context, params installer.V2ListFeatureSupportLevelsParams) middleware.Responder {
-	return installer.NewV2ListFeatureSupportLevelsOK()
-}
-
 func (f fakeInventory) GetSupportedFeatures(ctx context.Context, params installer.GetSupportedFeaturesParams) middleware.Responder {
 	return installer.NewGetSupportedFeaturesOK()
 }
