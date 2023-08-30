@@ -704,7 +704,7 @@ func getPlatform(aciSpec hiveext.AgentClusterInstallSpec) (*models.Platform, err
 			Type: common.PlatformTypePtr(models.PlatformTypeBaremetal),
 		}, nil
 	case hiveext.ExternalPlatformType:
-		if aciSpec.ExternalSpec.PlatformName == string(models.PlatformTypeOci) {
+		if aciSpec.ExternalPlatformSpec != nil && aciSpec.ExternalPlatformSpec.PlatformName == string(models.PlatformTypeOci) {
 			return &models.Platform{
 				Type: common.PlatformTypePtr(models.PlatformTypeOci),
 			}, nil

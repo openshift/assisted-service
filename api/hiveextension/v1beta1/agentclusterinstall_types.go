@@ -192,10 +192,10 @@ type AgentClusterInstallSpec struct {
 	// +optional
 	PlatformType PlatformType `json:"platformType,omitempty"`
 
-	// ExternalPlatformType represents generic infrastructure provider.
+	// ExternalPlatformSpec represents generic infrastructure provider.
 	// Platform-specific components should be supplemented separately.
 	// +optional
-	ExternalSpec *ExternalPlatformSpec `json:"external,omitempty"`
+	ExternalPlatformSpec *ExternalPlatformSpec `json:"external,omitempty"`
 
 	// Set to true to allow control plane nodes to be schedulable
 	// +optional
