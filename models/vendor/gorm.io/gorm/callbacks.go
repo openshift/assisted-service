@@ -93,6 +93,10 @@ func (p *processor) Execute(db *DB) *DB {
 		resetBuildClauses = true
 	}
 
+	if optimizer, ok := db.Statement.Dest.(StatementModifier); ok {
+		optimizer.ModifyStatement(stmt)
+	}
+
 	// assign model values
 	if stmt.Model == nil {
 		stmt.Model = stmt.Dest
@@ -132,7 +136,11 @@ func (p *processor) Execute(db *DB) *DB {
 
 	if stmt.SQL.Len() > 0 {
 		db.Logger.Trace(stmt.Context, curTime, func() (string, int64) {
-			return db.Dialector.Explain(stmt.SQL.String(), stmt.Vars...), db.RowsAffected
+			sql, vars := stmt.SQL.String(), stmt.Vars
+			if filter, ok := db.Logger.(ParamsFilter); ok {
+				sql, vars = filter.ParamsFilter(stmt.Context, stmt.SQL.String(), stmt.Vars...)
+			}
+			return db.Dialector.Explain(sql, vars...), db.RowsAffected
 		}, db.Error)
 	}
 
@@ -246,7 +254,13 @@ func sortCallbacks(cs []*callback) (fns []func(*DB), err error) {
 		sortCallback  func(*callback) error
 	)
 	sort.Slice(cs, func(i, j int) bool {
-		return cs[j].before == "*" || cs[j].after == "*"
+		if cs[j].before == "*" && cs[i].before != "*" {
+			return true
+		}
+		if cs[j].after == "*" && cs[i].after != "*" {
+			return true
+		}
+		return false
 	})
 
 	for _, c := range cs {
