@@ -14,18 +14,6 @@ import (
 	"github.com/openshift/assisted-service/models"
 )
 
-var _ = Describe("V2ListFeatureSupportLevels API", func() {
-	It("Should return the feature list", func() {
-		response, err := userBMClient.Installer.V2ListFeatureSupportLevels(context.Background(), installer.NewV2ListFeatureSupportLevelsParams())
-		Expect(err).ShouldNot(HaveOccurred())
-		Expect(response.Payload).To(BeEquivalentTo(featuresupport.SupportLevelsList))
-	})
-	It("Should respond with an error for unauth user", func() {
-		_, err := unallowedUserBMClient.Installer.V2ListFeatureSupportLevels(context.Background(), installer.NewV2ListFeatureSupportLevelsParams())
-		Expect(err).Should(HaveOccurred())
-	})
-})
-
 var _ = Describe("Feature support levels API", func() {
 	var ctx context.Context
 	BeforeEach(func() {

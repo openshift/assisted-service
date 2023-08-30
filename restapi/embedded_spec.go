@@ -3140,51 +3140,6 @@ func init() {
         }
       }
     },
-    "/v2/feature-support-levels": {
-      "get": {
-        "security": [
-          {
-            "userAuth": [
-              "admin",
-              "read-only-admin",
-              "user"
-            ]
-          }
-        ],
-        "description": "(DEPRECATED) Retrieves the support levels for features for each OpenShift version.",
-        "tags": [
-          "installer"
-        ],
-        "operationId": "v2ListFeatureSupportLevels",
-        "deprecated": true,
-        "responses": {
-          "200": {
-            "description": "Success.",
-            "schema": {
-              "$ref": "#/definitions/feature-support-levels"
-            }
-          },
-          "401": {
-            "description": "Unauthorized.",
-            "schema": {
-              "$ref": "#/definitions/infra_error"
-            }
-          },
-          "403": {
-            "description": "Forbidden.",
-            "schema": {
-              "$ref": "#/definitions/infra_error"
-            }
-          },
-          "503": {
-            "description": "Unavailable.",
-            "schema": {
-              "$ref": "#/definitions/error"
-            }
-          }
-        }
-      }
-    },
     "/v2/infra-env/{infra_env_id}/hosts/{host_id}/downloads/ignition": {
       "get": {
         "security": [
@@ -7506,63 +7461,6 @@ func init() {
         "$ref": "#/definitions/event"
       }
     },
-    "feature-support-level": {
-      "description": "(DEPRECATED) List of features attached to openshift version",
-      "type": "object",
-      "properties": {
-        "features": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "required": [
-              "feature_id",
-              "support_level"
-            ],
-            "properties": {
-              "feature_id": {
-                "description": "(DEPRECATED) The ID of the feature",
-                "type": "string",
-                "enum": [
-                  "ADDITIONAL_NTP_SOURCE",
-                  "REQUESTED_HOSTNAME",
-                  "PROXY",
-                  "SNO",
-                  "DAY2_HOSTS",
-                  "VIP_AUTO_ALLOC",
-                  "DISK_SELECTION",
-                  "OVN_NETWORK_TYPE",
-                  "SDN_NETWORK_TYPE",
-                  "PLATFORM_SELECTION",
-                  "SCHEDULABLE_MASTERS",
-                  "AUTO_ASSIGN_ROLE",
-                  "CUSTOM_MANIFEST",
-                  "DISK_ENCRYPTION",
-                  "CLUSTER_MANAGED_NETWORKING_WITH_VMS",
-                  "ARM64_ARCHITECTURE",
-                  "ARM64_ARCHITECTURE_WITH_CLUSTER_MANAGED_NETWORKING",
-                  "PPC64LE_ARCHITECTURE",
-                  "S390X_ARCHITECTURE",
-                  "SINGLE_NODE_EXPANSION",
-                  "LVM",
-                  "DUAL_STACK_NETWORKING",
-                  "MULTIARCH_RELEASE_IMAGE",
-                  "NUTANIX_INTEGRATION",
-                  "DUAL_STACK_VIPS",
-                  "USER_MANAGED_NETWORKING_WITH_MULTI_NODE"
-                ]
-              },
-              "support_level": {
-                "$ref": "#/definitions/support-level"
-              }
-            }
-          }
-        },
-        "openshift_version": {
-          "description": "Version of the OpenShift cluster.",
-          "type": "string"
-        }
-      }
-    },
     "feature-support-level-id": {
       "type": "string",
       "enum": [
@@ -7588,13 +7486,6 @@ func init() {
         "DUAL_STACK",
         "PLATFORM_MANAGED_NETWORKING"
       ]
-    },
-    "feature-support-levels": {
-      "description": "(DEPRECATED) List of objects that containing a list of feature-support level and attached to openshift-version",
-      "type": "array",
-      "items": {
-        "$ref": "#/definitions/feature-support-level"
-      }
     },
     "free-addresses-list": {
       "type": "array",
@@ -13504,51 +13395,6 @@ func init() {
         }
       }
     },
-    "/v2/feature-support-levels": {
-      "get": {
-        "security": [
-          {
-            "userAuth": [
-              "admin",
-              "read-only-admin",
-              "user"
-            ]
-          }
-        ],
-        "description": "(DEPRECATED) Retrieves the support levels for features for each OpenShift version.",
-        "tags": [
-          "installer"
-        ],
-        "operationId": "v2ListFeatureSupportLevels",
-        "deprecated": true,
-        "responses": {
-          "200": {
-            "description": "Success.",
-            "schema": {
-              "$ref": "#/definitions/feature-support-levels"
-            }
-          },
-          "401": {
-            "description": "Unauthorized.",
-            "schema": {
-              "$ref": "#/definitions/infra_error"
-            }
-          },
-          "403": {
-            "description": "Forbidden.",
-            "schema": {
-              "$ref": "#/definitions/infra_error"
-            }
-          },
-          "503": {
-            "description": "Unavailable.",
-            "schema": {
-              "$ref": "#/definitions/error"
-            }
-          }
-        }
-      }
-    },
     "/v2/infra-env/{infra_env_id}/hosts/{host_id}/downloads/ignition": {
       "get": {
         "security": [
@@ -16266,50 +16112,6 @@ func init() {
       },
       "x-go-name": "DomainResolutionResponseDomain"
     },
-    "FeatureSupportLevelFeaturesItems0": {
-      "type": "object",
-      "required": [
-        "feature_id",
-        "support_level"
-      ],
-      "properties": {
-        "feature_id": {
-          "description": "(DEPRECATED) The ID of the feature",
-          "type": "string",
-          "enum": [
-            "ADDITIONAL_NTP_SOURCE",
-            "REQUESTED_HOSTNAME",
-            "PROXY",
-            "SNO",
-            "DAY2_HOSTS",
-            "VIP_AUTO_ALLOC",
-            "DISK_SELECTION",
-            "OVN_NETWORK_TYPE",
-            "SDN_NETWORK_TYPE",
-            "PLATFORM_SELECTION",
-            "SCHEDULABLE_MASTERS",
-            "AUTO_ASSIGN_ROLE",
-            "CUSTOM_MANIFEST",
-            "DISK_ENCRYPTION",
-            "CLUSTER_MANAGED_NETWORKING_WITH_VMS",
-            "ARM64_ARCHITECTURE",
-            "ARM64_ARCHITECTURE_WITH_CLUSTER_MANAGED_NETWORKING",
-            "PPC64LE_ARCHITECTURE",
-            "S390X_ARCHITECTURE",
-            "SINGLE_NODE_EXPANSION",
-            "LVM",
-            "DUAL_STACK_NETWORKING",
-            "MULTIARCH_RELEASE_IMAGE",
-            "NUTANIX_INTEGRATION",
-            "DUAL_STACK_VIPS",
-            "USER_MANAGED_NETWORKING_WITH_MULTI_NODE"
-          ]
-        },
-        "support_level": {
-          "$ref": "#/definitions/support-level"
-        }
-      }
-    },
     "HostRegistrationResponseAO1NextStepRunnerCommand": {
       "description": "Command for starting the next step runner",
       "type": "object",
@@ -18002,22 +17804,6 @@ func init() {
         "$ref": "#/definitions/event"
       }
     },
-    "feature-support-level": {
-      "description": "(DEPRECATED) List of features attached to openshift version",
-      "type": "object",
-      "properties": {
-        "features": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/FeatureSupportLevelFeaturesItems0"
-          }
-        },
-        "openshift_version": {
-          "description": "Version of the OpenShift cluster.",
-          "type": "string"
-        }
-      }
-    },
     "feature-support-level-id": {
       "type": "string",
       "enum": [
@@ -18043,13 +17829,6 @@ func init() {
         "DUAL_STACK",
         "PLATFORM_MANAGED_NETWORKING"
       ]
-    },
-    "feature-support-levels": {
-      "description": "(DEPRECATED) List of objects that containing a list of feature-support level and attached to openshift-version",
-      "type": "array",
-      "items": {
-        "$ref": "#/definitions/feature-support-level"
-      }
     },
     "free-addresses-list": {
       "type": "array",

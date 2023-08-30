@@ -219,9 +219,6 @@ func NewAssistedInstallAPI(spec *loads.Document) *AssistedInstallAPI {
 		EventsV2ListEventsHandler: events.V2ListEventsHandlerFunc(func(params events.V2ListEventsParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation events.V2ListEvents has not yet been implemented")
 		}),
-		InstallerV2ListFeatureSupportLevelsHandler: installer.V2ListFeatureSupportLevelsHandlerFunc(func(params installer.V2ListFeatureSupportLevelsParams, principal interface{}) middleware.Responder {
-			return middleware.NotImplemented("operation installer.V2ListFeatureSupportLevels has not yet been implemented")
-		}),
 		InstallerV2ListHostsHandler: installer.V2ListHostsHandlerFunc(func(params installer.V2ListHostsParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation installer.V2ListHosts has not yet been implemented")
 		}),
@@ -476,8 +473,6 @@ type AssistedInstallAPI struct {
 	VersionsV2ListComponentVersionsHandler versions.V2ListComponentVersionsHandler
 	// EventsV2ListEventsHandler sets the operation handler for the v2 list events operation
 	EventsV2ListEventsHandler events.V2ListEventsHandler
-	// InstallerV2ListFeatureSupportLevelsHandler sets the operation handler for the v2 list feature support levels operation
-	InstallerV2ListFeatureSupportLevelsHandler installer.V2ListFeatureSupportLevelsHandler
 	// InstallerV2ListHostsHandler sets the operation handler for the v2 list hosts operation
 	InstallerV2ListHostsHandler installer.V2ListHostsHandler
 	// VersionsV2ListSupportedOpenshiftVersionsHandler sets the operation handler for the v2 list supported openshift versions operation
@@ -780,9 +775,6 @@ func (o *AssistedInstallAPI) Validate() error {
 	}
 	if o.EventsV2ListEventsHandler == nil {
 		unregistered = append(unregistered, "events.V2ListEventsHandler")
-	}
-	if o.InstallerV2ListFeatureSupportLevelsHandler == nil {
-		unregistered = append(unregistered, "installer.V2ListFeatureSupportLevelsHandler")
 	}
 	if o.InstallerV2ListHostsHandler == nil {
 		unregistered = append(unregistered, "installer.V2ListHostsHandler")
@@ -1179,10 +1171,6 @@ func (o *AssistedInstallAPI) initHandlerCache() {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
 	o.handlers["GET"]["/v2/events"] = events.NewV2ListEvents(o.context, o.EventsV2ListEventsHandler)
-	if o.handlers["GET"] == nil {
-		o.handlers["GET"] = make(map[string]http.Handler)
-	}
-	o.handlers["GET"]["/v2/feature-support-levels"] = installer.NewV2ListFeatureSupportLevels(o.context, o.InstallerV2ListFeatureSupportLevelsHandler)
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
