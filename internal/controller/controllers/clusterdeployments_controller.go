@@ -681,11 +681,12 @@ func hyperthreadingInSpec(clusterInstall *hiveext.AgentClusterInstall) bool {
 		})
 }
 
-func getPlatform(openshiftPlatformType hiveext.PlatformType) *models.Platform {
+func getPlatform(aciSpec hiveext.AgentClusterInstallSpec) (*models.Platform, error) {
+	openshiftPlatformType := aciSpec.PlatformType
 	if openshiftPlatformType == "" {
 		//empty platform type means N/A. The service assigns a platform
 		//according to the cluster specifications (HA, UserManagedNetworking etc.)
-		return nil
+		return nil, nil
 	}
 
 	//convert between openshift API and the service platform name convension
@@ -693,21 +694,29 @@ func getPlatform(openshiftPlatformType hiveext.PlatformType) *models.Platform {
 	case hiveext.VSpherePlatformType:
 		return &models.Platform{
 			Type: common.PlatformTypePtr(models.PlatformTypeVsphere),
-		}
+		}, nil
 	case hiveext.NonePlatformType:
 		return &models.Platform{
 			Type: common.PlatformTypePtr(models.PlatformTypeNone),
-		}
+		}, nil
 	case hiveext.BareMetalPlatformType:
 		return &models.Platform{
 			Type: common.PlatformTypePtr(models.PlatformTypeBaremetal),
+		}, nil
+	case hiveext.ExternalPlatformType:
+		if aciSpec.ExternalPlatformSpec != nil && aciSpec.ExternalPlatformSpec.PlatformName == string(models.PlatformTypeOci) {
+			return &models.Platform{
+				Type: common.PlatformTypePtr(models.PlatformTypeOci),
+			}, nil
+		} else {
+			return nil, errors.New(fmt.Sprintf("For external platform, the platformName must be %s", string(models.PlatformTypeOci)))
 		}
 	case hiveext.NutanixPlatformType:
 		return &models.Platform{
 			Type: common.PlatformTypePtr(models.PlatformTypeNutanix),
-		}
+		}, nil
 	default:
-		return nil
+		return nil, nil
 	}
 }
 
@@ -725,6 +734,8 @@ func getPlatformType(platform *models.Platform) hiveext.PlatformType {
 		return hiveext.VSpherePlatformType
 	case models.PlatformTypeNutanix:
 		return hiveext.NutanixPlatformType
+	case models.PlatformTypeOci:
+		return hiveext.ExternalPlatformType
 	default:
 		return ""
 	}
@@ -1007,7 +1018,10 @@ func (r *ClusterDeploymentsReconciler) updateIfNeeded(ctx context.Context,
 	}
 
 	//update platform
-	platform := getPlatform(clusterInstall.Spec.PlatformType)
+	platform, err := getPlatform(clusterInstall.Spec)
+	if err != nil {
+		return cluster, err
+	}
 	if cluster.Platform != nil && platform != nil && *cluster.Platform.Type != *platform.Type {
 		params.Platform = platform
 		update = true
@@ -1245,6 +1259,7 @@ func CreateClusterParams(clusterDeployment *hivev1.ClusterDeployment, clusterIns
 	pullSecret string, releaseImageVersion string, releaseImageCPUArch string,
 	ignitionEndpoint *models.IgnitionEndpoint) *models.ClusterCreateParams {
 	spec := clusterDeployment.Spec
+	platform, _ := getPlatform(clusterInstall.Spec)
 
 	clusterParams := &models.ClusterCreateParams{
 		BaseDNSDomain:         spec.BaseDomain,
@@ -1258,7 +1273,7 @@ func CreateClusterParams(clusterDeployment *hivev1.ClusterDeployment, clusterIns
 		SSHPublicKey:          clusterInstall.Spec.SSHPublicKey,
 		CPUArchitecture:       releaseImageCPUArch,
 		UserManagedNetworking: swag.Bool(isUserManagedNetwork(clusterInstall)),
-		Platform:              getPlatform(clusterInstall.Spec.PlatformType),
+		Platform:              platform,
 		SchedulableMasters:    swag.Bool(clusterInstall.Spec.MastersSchedulable),
 	}
 

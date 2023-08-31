@@ -489,6 +489,13 @@ func getDefaultNutanixInventory(cidr string) *models.Inventory {
 	return &nutanixInventory
 }
 
+func getDefaultExternalInventory(cidr string) *models.Inventory {
+	externalInventory := *getDefaultInventory(cidr)
+	externalInventory.SystemVendor = &models.SystemVendor{Manufacturer: "OracleCloud.com", ProductName: "OCI", Virtual: true, SerialNumber: "3534"}
+	externalInventory.Disks = []*models.Disk{&vma, &vmremovable}
+	return &externalInventory
+}
+
 func getDefaultVmwareInventory(cidr string) *models.Inventory {
 	vmwareInventory := *getDefaultInventory(cidr)
 	vmwareInventory.SystemVendor = &models.SystemVendor{Manufacturer: "VMware, Inc.", ProductName: "VMware Virtual", Virtual: true, SerialNumber: "3534"}

@@ -185,6 +185,18 @@ spec:
                       regarding tang's configuration
                     type: string
                 type: object
+              external:
+                description: ExternalPlatformSpec represents generic infrastructure
+                  provider. Platform-specific components should be supplemented separately.
+                properties:
+                  platformName:
+                    default: Unknown
+                    description: PlatformName holds the arbitrary string representing
+                      the infrastructure provider name, expected to be set at the
+                      installation time. This field is solely for informational and
+                      reporting purposes and is not expected to be used for decision-making.
+                    type: string
+                type: object
               holdInstallation:
                 description: HoldInstallation will prevent installation from happening
                   when true. Inspection and validation will proceed as usual, but
@@ -329,8 +341,8 @@ spec:
                     type: array
                   userManagedNetworking:
                     description: UserManagedNetworking indicates if the networking
-                      is managed by the user. For single-node installations, set to
-                      true or leave empty.
+                      is managed by the user. For single-node installations (none
+                      or external platform), set to true or leave empty.
                     type: boolean
                 type: object
               platformType:
@@ -342,6 +354,7 @@ spec:
                 - None
                 - VSphere
                 - Nutanix
+                - External
                 type: string
               provisionRequirements:
                 description: ProvisionRequirements defines configuration for when
@@ -499,6 +512,7 @@ spec:
                 - None
                 - VSphere
                 - Nutanix
+                - External
                 type: string
               progress:
                 description: Progress shows the installation progress of the cluster
