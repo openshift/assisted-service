@@ -371,6 +371,7 @@ spec:
           resources:
           - namespaces
           verbs:
+          - create
           - get
           - list
           - watch

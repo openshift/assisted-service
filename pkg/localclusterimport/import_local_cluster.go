@@ -191,6 +191,7 @@ func (i *LocalClusterImport) ImportLocalCluster() error {
 	if err != nil {
 		i.log.Errorf("unable to find cluster version info due to error: %s", err.Error())
 		errorList = multierror.Append(nil, err)
+		return errorList
 	}
 
 	release_image := ""
@@ -221,6 +222,11 @@ func (i *LocalClusterImport) ImportLocalCluster() error {
 	numberOfControlPlaneNodes, err := i.clusterImportOperations.GetNumberOfControlPlaneNodes()
 	if err != nil {
 		i.log.Errorf("unable to determine the number of control plane nodes due to error %s", err.Error())
+		errorList = multierror.Append(errorList, err)
+	}
+
+	if clusterVersion.Status.History[0].Image == "" {
+		i.log.Error("unable to determine release image")
 		errorList = multierror.Append(errorList, err)
 	}
 
