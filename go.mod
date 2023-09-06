@@ -3,6 +3,7 @@ module github.com/openshift/assisted-service
 go 1.18
 
 require (
+    github.com/hashicorp/go-multierror v1.1.1
 	github.com/IBM/netaddr v1.5.0
 	github.com/NYTimes/gziphandler v1.1.1
 	github.com/alecthomas/units v0.0.0-20190924025748-f65c72e2690d
