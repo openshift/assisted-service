@@ -12,6 +12,7 @@ import (
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/featuresupport"
 	"github.com/openshift/assisted-service/models"
+	"github.com/thoas/go-funk"
 )
 
 var _ = Describe("Feature support levels API", func() {
@@ -21,6 +22,20 @@ var _ = Describe("Feature support levels API", func() {
 	})
 
 	Context("Support Level", func() {
+		featureSupport := func(openshiftVersion string, platformType *string, cpuArchitecture *string) (*models.SupportLevels, error) {
+			params := installer.GetSupportedFeaturesParams{
+				OpenshiftVersion: openshiftVersion,
+				PlatformType:     platformType,
+				CPUArchitecture:  cpuArchitecture,
+			}
+			supportedFeaturesOK, err := user2BMClient.Installer.GetSupportedFeatures(ctx, &params)
+			if err != nil {
+				return nil, err
+			}
+
+			return &supportedFeaturesOK.Payload.Features, nil
+		}
+
 		registerNewCluster := func(version, cpuArchitecture, highAvailabilityMode string, userManagedNetworking *bool) (*installer.V2RegisterClusterCreated, error) {
 			cluster, errRegisterCluster := user2BMClient.Installer.V2RegisterCluster(ctx, &installer.V2RegisterClusterParams{
 				NewClusterParams: &models.ClusterCreateParams{
@@ -56,6 +71,34 @@ var _ = Describe("Feature support levels API", func() {
 
 			return infraEnv, errRegisterInfraEnv
 		}
+
+		Context("GetSupportedFeatures", func() {
+
+			It("With Platform", func() {
+				features, err := featureSupport("4.14", swag.String("oci"), swag.String(models.ClusterCPUArchitectureX8664))
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(funk.Contains(*features, string(models.FeatureSupportLevelIDPLATFORMMANAGEDNETWORKING))).To(Equal(true))
+				Expect(funk.Contains(*features, string(models.FeatureSupportLevelIDNUTANIXINTEGRATION))).To(Equal(false))
+				Expect(funk.Contains(*features, string(models.FeatureSupportLevelIDEXTERNALPLATFORMOCI))).To(Equal(false))
+				Expect(funk.Contains(*features, string(models.FeatureSupportLevelIDBAREMETALPLATFORM))).To(Equal(false))
+				Expect(funk.Contains(*features, string(models.FeatureSupportLevelIDNONEPLATFORM))).To(Equal(false))
+				Expect(funk.Contains(*features, string(models.FeatureSupportLevelIDVSPHEREINTEGRATION))).To(Equal(false))
+			})
+
+			It("Without Platform", func() {
+				features, err := featureSupport("4.14", nil, swag.String(models.ClusterCPUArchitectureX8664))
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(funk.Contains(*features, string(models.FeatureSupportLevelIDPLATFORMMANAGEDNETWORKING))).To(Equal(false))
+				Expect(funk.Contains(*features, string(models.FeatureSupportLevelIDNUTANIXINTEGRATION))).To(Equal(true))
+				Expect(funk.Contains(*features, string(models.FeatureSupportLevelIDEXTERNALPLATFORMOCI))).To(Equal(true))
+				Expect(funk.Contains(*features, string(models.FeatureSupportLevelIDBAREMETALPLATFORM))).To(Equal(true))
+				Expect(funk.Contains(*features, string(models.FeatureSupportLevelIDNONEPLATFORM))).To(Equal(true))
+				Expect(funk.Contains(*features, string(models.FeatureSupportLevelIDVSPHEREINTEGRATION))).To(Equal(true))
+			})
+
+		})
 
 		Context("Update cluster", func() {
 			It("Update umn true won't fail on 4.13 with s390x without infra-env", func() {
