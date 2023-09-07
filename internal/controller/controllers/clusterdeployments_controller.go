@@ -1034,7 +1034,10 @@ func selectClusterNetworkType(params *models.V2ClusterUpdateParams, cluster *com
 
 func (r *ClusterDeploymentsReconciler) updateInstallConfigOverrides(ctx context.Context, log logrus.FieldLogger, clusterInstall *hiveext.AgentClusterInstall,
 	cluster *common.Cluster) error {
-	// handle InstallConfigOverrides
+	// not relevant for day2 cluster - install config is not used
+	if common.IsDay2Cluster(cluster) {
+		return nil
+	}
 	update := false
 	annotations := clusterInstall.ObjectMeta.GetAnnotations()
 	installConfigOverrides := annotations[InstallConfigOverrides]
