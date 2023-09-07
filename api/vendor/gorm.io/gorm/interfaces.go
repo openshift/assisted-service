@@ -26,6 +26,10 @@ type Plugin interface {
 	Initialize(*DB) error
 }
 
+type ParamsFilter interface {
+	ParamsFilter(ctx context.Context, sql string, params ...interface{}) (string, []interface{})
+}
+
 // ConnPool db conns pool interface
 type ConnPool interface {
 	PrepareContext(ctx context.Context, query string) (*sql.Stmt, error)
@@ -50,10 +54,17 @@ type ConnPoolBeginner interface {
 	BeginTx(ctx context.Context, opts *sql.TxOptions) (ConnPool, error)
 }
 
-// TxCommitter tx commiter
+// TxCommitter tx committer
 type TxCommitter interface {
 	Commit() error
 	Rollback() error
+}
+
+// Tx sql.Tx interface
+type Tx interface {
+	ConnPool
+	TxCommitter
+	StmtContext(ctx context.Context, stmt *sql.Stmt) *sql.Stmt
 }
 
 // Valuer gorm valuer interface
@@ -64,4 +75,14 @@ type Valuer interface {
 // GetDBConnector SQL db connector
 type GetDBConnector interface {
 	GetDBConn() (*sql.DB, error)
+}
+
+// Rows rows interface
+type Rows interface {
+	Columns() ([]string, error)
+	ColumnTypes() ([]*sql.ColumnType, error)
+	Next() bool
+	Scan(dest ...interface{}) error
+	Err() error
+	Close() error
 }
