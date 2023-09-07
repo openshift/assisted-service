@@ -25,6 +25,7 @@ export LOAD_BALANCER_IP="${LOAD_BALANCER_IP:-192.168.111.1}"
 export HYPERSHIFT_IMAGE="${HYPERSHIFT_IMAGE:-quay.io/hypershift/hypershift-operator:latest}"
 export CONTROL_PLANE_OPERATOR_IMAGE="${CONTROL_PLANE_OPERATOR_IMAGE:-}"
 export PROVIDER_IMAGE="${PROVIDER_IMAGE:-}"
+export EXTRA_HYPERSHIFT_INSTALL_FLAGS="${EXTRA_HYPERSHIFT_INSTALL_FLAGS}"
 
 if [[ ${SPOKE_CONTROLPLANE_AGENTS} -eq 1 ]]; then
     export USER_MANAGED_NETWORKING="true"
@@ -109,7 +110,7 @@ function hypershift() {
 }
 
 echo "Installing HyperShift using upstream image"
-hypershift install --hypershift-image $HYPERSHIFT_IMAGE --namespace hypershift
+hypershift install --hypershift-image $HYPERSHIFT_IMAGE --namespace hypershift $EXTRA_HYPERSHIFT_INSTALL_FLAGS
 wait_for_pods "hypershift"
 
 if [ -z "$PROVIDER_IMAGE" ]
