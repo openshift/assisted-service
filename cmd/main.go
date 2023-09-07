@@ -164,7 +164,7 @@ var Options struct {
 	PreprovisioningImageControllerConfig controllers.PreprovisioningImageControllerConfig
 	BMACConfig                           controllers.BMACConfig
 	EnableLocalClusterImport             bool   `envconfig:"ENABLE_LOCAL_CLUSTER_IMPORT" default:"true"`
-	LocalClusterImportNamespace          string `envconfig:"LOCAL_CLUSTER_IMPORT_NAMESPACE" defualt:"local-agent-cluster"`
+	LocalClusterImportNamespace          string `envconfig:"LOCAL_CLUSTER_IMPORT_NAMESPACE" default:"local-agent-cluster"`
 
 	// Directory containing pre-generated TLS certs/keys for the ephemeral installer
 	ClusterTLSCertOverrideDir string `envconfig:"EPHEMERAL_INSTALLER_CLUSTER_TLS_CERTS_OVERRIDE_DIR" default:""`
