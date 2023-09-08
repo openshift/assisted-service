@@ -26,6 +26,7 @@ import (
 	"github.com/coreos/vcontext/report"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
+	"github.com/google/uuid"
 	bmh_v1alpha1 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
 	clusterPkg "github.com/openshift/assisted-service/internal/cluster"
 	"github.com/openshift/assisted-service/internal/common"
@@ -409,6 +410,12 @@ func (g *installerGenerator) Generate(ctx context.Context, installConfig []byte,
 		}
 	}
 
+	err = g.expandUserMultiDocYamls(ctx)
+	if err != nil {
+		log.WithError(err).Errorf("failed expand multi-document yaml for cluster '%s'", g.cluster.ID)
+		return err
+	}
+
 	err = g.applyManifestPatches(ctx)
 	if err != nil {
 		log.WithError(err).Errorf("failed to apply manifests' patches for cluster '%s'", g.cluster.ID)
@@ -674,6 +681,104 @@ func (g *installerGenerator) bootstrapInPlaceIgnitionsCreate(ctx context.Context
 		if err != nil {
 			return errors.Wrapf(err, "Failed to create %s", file)
 		}
+	}
+
+	return nil
+}
+
+// expandUserMultiDocYamls finds if user uploaded multi document yaml files and
+// split them into several files
+func (g *installerGenerator) expandUserMultiDocYamls(ctx context.Context) error {
+	log := logutil.FromContext(ctx, g.log)
+
+	userManifests, err := manifests.GetUserManifestSuffixes(ctx, g.cluster.ID, g.s3Client)
+	if err != nil {
+		return errors.Wrapf(err, "Failed to retrieve user manifests")
+	}
+
+	// pass a random token to expandMultiDocYaml in order to prevent name
+	// clashes when spliting one file into several ones
+	randomToken := uuid.NewString()[:7]
+
+	for _, manifest := range userManifests {
+		log.Debugf("Looking at expanding manifest file %s", manifest)
+
+		extension := filepath.Ext(manifest)
+		if !(extension == ".yaml" || extension == ".yml") {
+			continue
+		}
+
+		manifestPath := filepath.Join(g.workDir, manifest)
+		err := g.expandMultiDocYaml(ctx, manifestPath, randomToken)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// expandMultiDocYaml splits a multi document yaml file into several files
+// if the the file given in input contains only one document, the file is left untouched
+func (g *installerGenerator) expandMultiDocYaml(ctx context.Context, manifestPath string, uniqueToken string) error {
+	var err error
+
+	log := logutil.FromContext(ctx, g.log)
+
+	data, err := os.ReadFile(manifestPath)
+	if err != nil {
+		return errors.Wrapf(err, "Failed to read %s", manifestPath)
+	}
+
+	// read each yaml document contained in the file into a slice
+	manifestContentList := [][]byte{}
+	dec := yaml.NewDecoder(bytes.NewReader(data))
+	for {
+		var doc interface{}
+		err = dec.Decode(&doc)
+		if errors.Is(err, io.EOF) {
+			break
+		}
+		if err != nil {
+			return errors.Wrapf(err, "Failed to parse yaml document %s", manifestPath)
+		}
+
+		// skip empty documents
+		if doc == nil {
+			continue
+		}
+
+		manifestContent, marshalError := yaml.Marshal(doc)
+		if marshalError != nil {
+			return errors.Wrapf(err, "Failed to re-encode yaml file %s", manifestPath)
+		}
+		manifestContentList = append(manifestContentList, manifestContent)
+	}
+
+	if len(manifestContentList) <= 1 {
+		return nil
+	}
+
+	log.Infof("Expanding multi-document yaml file %s into %d files", manifestPath, len(manifestContentList))
+
+	// if the yaml file contains more than one document,
+	// split it into several files
+	for idx, content := range manifestContentList {
+		fileExt := filepath.Ext(manifestPath)
+		fileWithoutExt := strings.TrimSuffix(manifestPath, fileExt)
+		filename := fmt.Sprintf("%s-%s-%02d%s", fileWithoutExt, uniqueToken, idx, fileExt)
+
+		err = os.WriteFile(filename, content, 0600)
+		if err != nil {
+			return errors.Wrapf(err, "Failed write %s", filename)
+		}
+
+		log.Debugf("Created manifest file %s out of %s", filename, manifestPath)
+	}
+
+	err = os.Remove(manifestPath)
+	if err != nil {
+		return errors.Wrapf(err, "failed to remove multi-doc yaml %s", manifestPath)
 	}
 
 	return nil
