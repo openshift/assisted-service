@@ -399,7 +399,7 @@ spec:
 			It("fails for manifest with invalid yaml format", func() {
 				clusterID := registerCluster().ID
 				fileName := "99-test.yml"
-				invalidYAMLContent := encodeToBase64("not a valid YAML content")
+				invalidYAMLContent := encodeToBase64("not a valid YAML: {{ content }}")
 				mockS3Client.EXPECT().DoesObjectExist(ctx, filepath.Join(clusterID.String(), constants.ManifestFolder, "openshift", fileName)).Return(false, nil).AnyTimes()
 				response := manifestsAPI.V2CreateClusterManifest(ctx, operations.V2CreateClusterManifestParams{
 					ClusterID: *clusterID,
@@ -533,6 +533,52 @@ spec:
 				Expect(err.StatusCode()).To(Equal(int32(http.StatusBadRequest)))
 				expectedError := fmt.Sprintf("Supplied folder (%s) in cluster %s should be one of {openshift, manifests}", uploadFolder, clusterID.String())
 				Expect(err.Error()).To(ContainSubstring(expectedError))
+			})
+
+			It("accept muti-doc yaml file", func() {
+				clusterID := registerCluster().ID
+				fileName := "99-test.yaml"
+				content := encodeToBase64(`---
+first: one
+---
+---
+- second: two
+`)
+				mockUpload(1)
+				expectUsageCalls()
+				response := manifestsAPI.V2CreateClusterManifest(ctx, operations.V2CreateClusterManifestParams{
+					ClusterID: *clusterID,
+					CreateManifestParams: &models.CreateManifestParams{
+						Content:  &content,
+						FileName: &fileName,
+					},
+				})
+				Expect(response).Should(BeAssignableToTypeOf(operations.NewV2CreateClusterManifestCreated()))
+				responsePayload := response.(*operations.V2CreateClusterManifestCreated)
+				Expect(responsePayload.Payload).ShouldNot(BeNil())
+				Expect(responsePayload.Payload.FileName).To(Equal(fileName))
+				Expect(responsePayload.Payload.Folder).To(Equal(defaultFolder))
+			})
+
+			It("Upload fails when one of the yaml in muti-doc yaml file is invalid", func() {
+				clusterID := registerCluster().ID
+				fileName := "99-test.yml"
+				content := encodeToBase64(`---
+first: one
+---
+not a valid YAML: {{ content }}
+`)
+				response := manifestsAPI.V2CreateClusterManifest(ctx, operations.V2CreateClusterManifestParams{
+					ClusterID: *clusterID,
+					CreateManifestParams: &models.CreateManifestParams{
+						Content:  &content,
+						FileName: &fileName,
+					},
+				})
+				Expect(response).Should(BeAssignableToTypeOf(common.NewApiError(http.StatusBadRequest, errors.New(""))))
+				err := response.(*common.ApiErrorResponse)
+				Expect(err.StatusCode()).To(Equal(int32(http.StatusBadRequest)))
+				Expect(err.Error()).To(ContainSubstring("Manifest content of file manifests/99-test.yml for cluster ID " + clusterID.String() + " has an invalid YAML format"))
 			})
 		})
 	})
@@ -1141,6 +1187,21 @@ spec:
 			Expect(len(listedManifests)).To(Equal(1))
 			Expect(listedManifests[0].Folder).To(Equal("openshift"))
 			Expect(listedManifests[0].FileName).To(Equal("user-generated-manifest.yaml"))
+		})
+	})
+
+	Context("GetUserManifestSuffixes", func() {
+		It("Should be able to list only user manifests if user and non user manifests are present", func() {
+			clusterId := registerCluster().ID
+			s3Metadata := []string{
+				filepath.Join(clusterId.String(), constants.ManifestMetadataFolder, "manifests", "first.yaml", constants.ManifestSourceUserSupplied),
+				filepath.Join(clusterId.String(), constants.ManifestMetadataFolder, "openshift", "second.yaml", constants.ManifestSourceUserSupplied),
+				filepath.Join(clusterId.String(), constants.ManifestMetadataFolder, "manifests", "third.yaml", "other-metadata"),
+			}
+			mockS3Client.EXPECT().ListObjectsByPrefix(ctx, filepath.Join(clusterId.String(), constants.ManifestMetadataFolder)).Return(s3Metadata, nil).Times(1)
+			userManifests, err := manifests.GetUserManifestSuffixes(ctx, clusterId, mockS3Client)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(userManifests).To(ConsistOf("manifests/first.yaml", "openshift/second.yaml"))
 		})
 	})
 })
