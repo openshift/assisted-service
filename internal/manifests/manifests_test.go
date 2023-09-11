@@ -1196,7 +1196,7 @@ invalid YAML content: {
 			s3Metadata := []string{
 				filepath.Join(clusterId.String(), constants.ManifestMetadataFolder, "manifests", "first.yaml", constants.ManifestSourceUserSupplied),
 				filepath.Join(clusterId.String(), constants.ManifestMetadataFolder, "openshift", "second.yaml", constants.ManifestSourceUserSupplied),
-				filepath.Join(clusterId.String(), constants.ManifestMetadataFolder, "manifests", "third.yaml", "other-metadata"),
+				filepath.Join(clusterId.String(), constants.ManifestMetadataFolder, "manifests", "third.yaml", "some-other-manifest-source"),
 			}
 			mockS3Client.EXPECT().ListObjectsByPrefix(ctx, filepath.Join(clusterId.String(), constants.ManifestMetadataFolder)).Return(s3Metadata, nil).Times(1)
 			userManifests, err := manifests.GetUserManifestSuffixes(ctx, clusterId, mockS3Client)
