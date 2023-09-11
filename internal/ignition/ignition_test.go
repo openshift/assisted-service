@@ -24,6 +24,7 @@ import (
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/internal/constants"
 	"github.com/openshift/assisted-service/internal/host/hostutil"
 	"github.com/openshift/assisted-service/internal/oc"
 	"github.com/openshift/assisted-service/internal/operators"
@@ -2007,6 +2008,128 @@ spec:
 
 		_, err = os.Stat(manifestPatchCustomTestPath)
 		Expect(errors.Is(err, os.ErrNotExist)).To(Equal(true))
+	})
+})
+
+var _ = Describe("expand multi document yamls", func() {
+	var (
+		ctrl         *gomock.Controller
+		mockS3Client *s3wrapper.MockAPI
+		generator    *installerGenerator
+		ctx          = context.Background()
+	)
+
+	BeforeEach(func() {
+		ctrl = gomock.NewController(GinkgoT())
+		mockS3Client = s3wrapper.NewMockAPI(ctrl)
+		generator = &installerGenerator{
+			log:      log,
+			workDir:  workDir,
+			s3Client: mockS3Client,
+			cluster:  cluster,
+		}
+	})
+
+	AfterEach(func() {
+		ctrl.Finish()
+	})
+
+	It("yaml file is split when contains multiple documents", func() {
+		multiDocYaml := `---
+first: one
+---
+---
+- second: two
+---
+`
+		s3Metadata := []string{
+			filepath.Join(cluster.ID.String(), constants.ManifestMetadataFolder, "manifests", "multidoc.yml", constants.ManifestSourceUserSupplied),
+			filepath.Join(cluster.ID.String(), constants.ManifestMetadataFolder, "manifests", "manifest.json", constants.ManifestSourceUserSupplied), // json file will be ignored
+			filepath.Join(cluster.ID.String(), constants.ManifestMetadataFolder, "manifests", "manifest.yml", "other-metadata"),
+		}
+		mockS3Client.EXPECT().ListObjectsByPrefix(ctx, filepath.Join(cluster.ID.String(), constants.ManifestMetadataFolder)).Return(s3Metadata, nil).Times(1)
+
+		manifestsDir := filepath.Join(workDir, "/manifests")
+		Expect(os.Mkdir(manifestsDir, 0755)).To(Succeed())
+
+		err := os.WriteFile(filepath.Join(manifestsDir, "multidoc.yml"), []byte(multiDocYaml), 0600)
+		Expect(err).NotTo(HaveOccurred())
+
+		err = generator.expandUserMultiDocYamls(ctx)
+		Expect(err).To(Succeed())
+
+		entries, err := os.ReadDir(manifestsDir)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(entries).To(HaveLen(2))
+
+		content, err := os.ReadFile(filepath.Join(manifestsDir, entries[0].Name()))
+		Expect(err).NotTo(HaveOccurred())
+		Expect(string(content)).To(Equal("first: one\n"))
+
+		content, err = os.ReadFile(filepath.Join(manifestsDir, entries[1].Name()))
+		Expect(err).NotTo(HaveOccurred())
+		Expect(string(content)).To(Equal("- second: two\n"))
+	})
+
+	It("file names contain a unique token when multi document yaml file is split", func() {
+		multiDocYaml := `---
+first: one
+---
+- second: two
+`
+		manifestsDir := filepath.Join(workDir, "/manifests")
+		Expect(os.Mkdir(manifestsDir, 0755)).To(Succeed())
+
+		manifestFilename := filepath.Join(manifestsDir, "multidoc.yml")
+		err := os.WriteFile(manifestFilename, []byte(multiDocYaml), 0600)
+		Expect(err).NotTo(HaveOccurred())
+
+		uniqueToken := "sometoken"
+		err = generator.expandMultiDocYaml(ctx, manifestFilename, uniqueToken)
+		Expect(err).To(Succeed())
+
+		entries, err := os.ReadDir(manifestsDir)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(entries).To(HaveLen(2))
+
+		firstManifest := fmt.Sprintf("multidoc-%s-00.yml", uniqueToken)
+		content, err := os.ReadFile(filepath.Join(manifestsDir, firstManifest))
+		Expect(err).NotTo(HaveOccurred())
+		Expect(string(content)).To(Equal("first: one\n"))
+
+		secondManifest := fmt.Sprintf("multidoc-%s-01.yml", uniqueToken)
+		content, err = os.ReadFile(filepath.Join(manifestsDir, secondManifest))
+		Expect(err).NotTo(HaveOccurred())
+		Expect(string(content)).To(Equal("- second: two\n"))
+	})
+
+	It("yaml file is left untouched when contains one document", func() {
+		yamlDoc := `---
+first: one
+---
+`
+		s3Metadata := []string{
+			filepath.Join(cluster.ID.String(), constants.ManifestMetadataFolder, "openshift", "manifest.yml", constants.ManifestSourceUserSupplied),
+		}
+		mockS3Client.EXPECT().ListObjectsByPrefix(ctx, filepath.Join(cluster.ID.String(), constants.ManifestMetadataFolder)).Return(s3Metadata, nil).Times(1)
+
+		openshiftDir := filepath.Join(workDir, "/openshift")
+		Expect(os.Mkdir(openshiftDir, 0755)).To(Succeed())
+
+		manifestFilename := filepath.Join(openshiftDir, "manifest.yml")
+		err := os.WriteFile(manifestFilename, []byte(yamlDoc), 0600)
+		Expect(err).NotTo(HaveOccurred())
+
+		err = generator.expandUserMultiDocYamls(ctx)
+		Expect(err).To(Succeed())
+
+		entries, err := os.ReadDir(openshiftDir)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(entries).To(HaveLen(1))
+
+		content, err := os.ReadFile(manifestFilename)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(string(content)).To(Equal(yamlDoc))
 	})
 })
 

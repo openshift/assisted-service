@@ -1,11 +1,12 @@
 package manifests
 
 import (
+	"bytes"
 	"context"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -336,7 +337,12 @@ func GetManifestObjectName(clusterID strfmt.UUID, fileName string) string {
 
 // GetManifestObjectName returns the manifest object name as stored in S3
 func GetManifestMetadataObjectName(clusterID strfmt.UUID, fileName string, manifestSource string) string {
-	return filepath.Join(string(clusterID), constants.ManifestMetadataFolder, fileName, manifestSource)
+	return filepath.Join(getManifestMetadataPrefix(clusterID), fileName, manifestSource)
+}
+
+// GetManifestMetadataPrefix returns the prefix of the metedata folder as stored in S3
+func getManifestMetadataPrefix(clusterID strfmt.UUID) string {
+	return filepath.Join(string(clusterID), constants.ManifestMetadataFolder)
 }
 
 // GetClusterManifests returns a list of cluster manifests
@@ -353,6 +359,54 @@ func GetClusterManifests(ctx context.Context, clusterID *strfmt.UUID, s3Client s
 	}
 	manifestFiles = append(manifestFiles, files...)
 	return manifestFiles, nil
+}
+
+// GetManifestMetadata returns the paths of manifest metadata for a given cluster
+func GetManifestMetadata(ctx context.Context, clusterID *strfmt.UUID, s3Client s3wrapper.API) ([]string, error) {
+	prefix := getManifestMetadataPrefix(*clusterID)
+	metadataList, err := s3Client.ListObjectsByPrefix(ctx, prefix)
+	if err != nil {
+		return []string{}, err
+	}
+
+	return metadataList, nil
+}
+
+// FilterMetadataOnManifestSource filters a list of metadata paths filtered on manifest source
+func FilterMetadataOnManifestSource(metadataList []string, manifestSource string) []string {
+	filteredMetadata := []string{}
+
+	for _, metadata := range metadataList {
+		_, metadataKey := filepath.Split(metadata)
+		if metadataKey == manifestSource {
+			filteredMetadata = append(filteredMetadata, metadata)
+		}
+	}
+
+	return filteredMetadata
+}
+
+// ResolveManifestNamesFromMetadata resolves metadata paths like
+// "{clusterID}/{ManifestMetadataFolder}/manifests/first.yaml/{manifestSource}" into
+// "manifests/first.yaml"
+func ResolveManifestNamesFromMetadata(metadataList []string) ([]string, error) {
+	manifestList := []string{}
+
+	for _, metadata := range metadataList {
+		fileDir, _ := filepath.Split(metadata)
+		manifestDir, manifestFilename := filepath.Split(filepath.Clean(fileDir))
+		metadataDir, manifestFolder := filepath.Split(filepath.Clean(manifestDir))
+
+		if fileDir == "" || manifestDir == "" || metadataDir == "" {
+			err := errors.Errorf("Failed to extract manifest name from metadata path %s", metadata)
+			return []string{}, err
+		}
+
+		manifestName := filepath.Join(manifestFolder, manifestFilename)
+		manifestList = append(manifestList, manifestName)
+	}
+
+	return manifestList, nil
 }
 
 func listManifests(ctx context.Context, clusterID *strfmt.UUID, folder string, s3Client s3wrapper.API) ([]string, error) {
@@ -376,7 +430,7 @@ func (m *Manifests) fetchManifestContent(ctx context.Context, clusterID strfmt.U
 	if err != nil {
 		return nil, m.prepareAndLogError(ctx, http.StatusInternalServerError, errors.Wrapf(err, "Failed to fetch content from %s for cluster %s", path, clusterID))
 	}
-	content, err := ioutil.ReadAll(respBody)
+	content, err := io.ReadAll(respBody)
 	if err != nil {
 		return nil, m.prepareAndLogError(ctx, http.StatusInternalServerError, errors.Wrapf(err, "Failed fetch response body from %s for cluster %s", path, clusterID))
 	}
@@ -431,22 +485,38 @@ func (m *Manifests) validateUserSuppliedManifest(ctx context.Context, clusterID 
 	}
 	extension := filepath.Ext(fileName)
 	if extension == ".yaml" || extension == ".yml" {
-		var s map[interface{}]interface{}
-		if yaml.Unmarshal(manifestContent, &s) != nil {
-			return m.prepareAndLogError(ctx, http.StatusBadRequest, errors.Errorf("Manifest content of file %s for cluster ID %s has an invalid YAML format", fileName, string(clusterID)))
+		if err := isValidYaml(manifestContent); err != nil {
+			return m.prepareAndLogError(ctx, http.StatusBadRequest, errors.Errorf("Manifest content of file %s for cluster ID %s has an invalid YAML format: %s", fileName, string(clusterID), err))
 		}
 	} else if extension == ".json" {
 		if !json.Valid(manifestContent) {
 			return m.prepareAndLogError(ctx, http.StatusBadRequest, errors.Errorf("Manifest content of file %s for cluster ID %s has an illegal JSON format", fileName, string(clusterID)))
 		}
 	} else if strings.HasPrefix(extension, ".patch") && (strings.Contains(fileName, ".yaml.patch") || strings.Contains(fileName, ".yml.patch")) {
-		var s []map[interface{}]interface{}
-		if yaml.Unmarshal(manifestContent, &s) != nil {
-			return m.prepareAndLogError(ctx, http.StatusBadRequest, errors.Errorf("Patch content of file %s for cluster ID %s has an invalid YAML format", fileName, string(clusterID)))
+		if err := isValidYaml(manifestContent); err != nil {
+			return m.prepareAndLogError(ctx, http.StatusBadRequest, errors.Errorf("Patch content of file %s for cluster ID %s has an invalid YAML format: %s", fileName, string(clusterID), err))
 		}
 	} else {
 		return m.prepareAndLogError(ctx, http.StatusBadRequest, errors.Errorf("Manifest filename of file %s for cluster ID %s is invalid. Only json, yaml and yml extensions are supported", fileName, string(clusterID)))
 	}
+	return nil
+}
+
+// isValidYaml checks if all yaml documents are valid, in the case of multi-doc yaml this may be more than one document.
+func isValidYaml(manifestContent []byte) error {
+	dec := yaml.NewDecoder(bytes.NewReader(manifestContent))
+
+	for {
+		var doc interface{}
+		err := dec.Decode(&doc)
+		if errors.Is(err, io.EOF) {
+			break
+		}
+		if err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 

@@ -391,7 +391,7 @@ spec:
 			It("fails for manifest with invalid yaml format", func() {
 				clusterID := registerCluster().ID
 				fileName := "99-test.yml"
-				invalidYAMLContent := encodeToBase64("not a valid YAML content")
+				invalidYAMLContent := encodeToBase64("invalid YAML content: {")
 				response := manifestsAPI.V2CreateClusterManifest(ctx, operations.V2CreateClusterManifestParams{
 					ClusterID: *clusterID,
 					CreateManifestParams: &models.CreateManifestParams{
@@ -402,7 +402,7 @@ spec:
 				Expect(response).Should(BeAssignableToTypeOf(common.NewApiError(http.StatusBadRequest, errors.New(""))))
 				err := response.(*common.ApiErrorResponse)
 				Expect(err.StatusCode()).To(Equal(int32(http.StatusBadRequest)))
-				Expect(err.Error()).To(ContainSubstring("Manifest content of file manifests/99-test.yml for cluster ID " + clusterID.String() + " has an invalid YAML format"))
+				Expect(err.Error()).To(Equal("Manifest content of file manifests/99-test.yml for cluster ID " + clusterID.String() + " has an invalid YAML format: yaml: line 1: did not find expected node content"))
 			})
 
 			It("fails for manifest with unsupported extension", func() {
@@ -473,6 +473,51 @@ spec:
 				Expect(err.Error()).To(ContainSubstring("Manifest content of file 99-openshift-machineconfig-master-kargs.json for cluster ID " + clusterID.String() + " exceeds the maximum file size of 1MiB"))
 			})
 
+			It("Upload succeeds when each yaml in multi-doc yaml file is valid", func() {
+				clusterID := registerCluster().ID
+				fileName := "99-test.yaml"
+				content := encodeToBase64(`---
+first: one
+---
+---
+- second: two
+`)
+				mockUpload(1)
+				expectUsageCalls()
+				response := manifestsAPI.V2CreateClusterManifest(ctx, operations.V2CreateClusterManifestParams{
+					ClusterID: *clusterID,
+					CreateManifestParams: &models.CreateManifestParams{
+						Content:  &content,
+						FileName: &fileName,
+					},
+				})
+				Expect(response).Should(BeAssignableToTypeOf(operations.NewV2CreateClusterManifestCreated()))
+				responsePayload := response.(*operations.V2CreateClusterManifestCreated)
+				Expect(responsePayload.Payload).ShouldNot(BeNil())
+				Expect(responsePayload.Payload.FileName).To(Equal(fileName))
+				Expect(responsePayload.Payload.Folder).To(Equal(defaultFolder))
+			})
+
+			It("Upload fails when one of the yaml in muti-doc yaml file is invalid", func() {
+				clusterID := registerCluster().ID
+				fileName := "99-test.yml"
+				content := encodeToBase64(`---
+first: one
+---
+invalid YAML content: {
+`)
+				response := manifestsAPI.V2CreateClusterManifest(ctx, operations.V2CreateClusterManifestParams{
+					ClusterID: *clusterID,
+					CreateManifestParams: &models.CreateManifestParams{
+						Content:  &content,
+						FileName: &fileName,
+					},
+				})
+				Expect(response).Should(BeAssignableToTypeOf(common.NewApiError(http.StatusBadRequest, errors.New(""))))
+				err := response.(*common.ApiErrorResponse)
+				Expect(err.StatusCode()).To(Equal(int32(http.StatusBadRequest)))
+				Expect(err.Error()).To(Equal("Manifest content of file manifests/99-test.yml for cluster ID " + clusterID.String() + " has an invalid YAML format: yaml: line 4: did not find expected node content"))
+			})
 		})
 	})
 
@@ -948,6 +993,77 @@ spec:
 			Expect(listedManifests[0].Folder).To(Equal("openshift"))
 			Expect(listedManifests[0].FileName).To(Equal("user-generated-manifest.yaml"))
 		})
+	})
+
+	Context("GetManifestMetadata", func() {
+		It("Should be able to list manifest metadata", func() {
+			clusterId := registerCluster().ID
+			s3Metadata := []string{
+				filepath.Join(clusterId.String(), constants.ManifestMetadataFolder, "manifests", "first.yaml", constants.ManifestSourceUserSupplied),
+				filepath.Join(clusterId.String(), constants.ManifestMetadataFolder, "openshift", "second.yaml", constants.ManifestSourceUserSupplied),
+				filepath.Join(clusterId.String(), constants.ManifestMetadataFolder, "manifests", "third.yaml", "some-other-manifest-source"),
+			}
+			mockS3Client.EXPECT().ListObjectsByPrefix(ctx, filepath.Join(clusterId.String(), constants.ManifestMetadataFolder)).Return(s3Metadata, nil).Times(1)
+			userManifests, err := manifests.GetManifestMetadata(ctx, clusterId, mockS3Client)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(userManifests).To(ConsistOf(s3Metadata))
+		})
+	})
+	Context("FilterMetadataOnManifestSource", func() {
+		It("returns metadata paths when matching manifest source", func() {
+			clusterId := registerCluster().ID
+			firstMetadata := filepath.Join(clusterId.String(), constants.ManifestMetadataFolder, "manifests", "first.yaml", constants.ManifestSourceUserSupplied)
+			secondMetadata := filepath.Join(clusterId.String(), constants.ManifestMetadataFolder, "openshift", "second.yaml", constants.ManifestSourceUserSupplied)
+			s3Metadata := []string{
+				firstMetadata,
+				secondMetadata,
+				filepath.Join(clusterId.String(), constants.ManifestMetadataFolder, "manifests", "third.yaml", "some-other-manifest-source"),
+			}
+			filteredMetadata := manifests.FilterMetadataOnManifestSource(s3Metadata, constants.ManifestSourceUserSupplied)
+			Expect(filteredMetadata).To(ConsistOf(firstMetadata, secondMetadata))
+		})
+		It("returns an empty list when no metadata have matched the manifest seource", func() {
+			clusterId := registerCluster().ID
+			s3Metadata := []string{
+				filepath.Join(clusterId.String(), constants.ManifestMetadataFolder, "manifests", "first.yaml", constants.ManifestSourceUserSupplied),
+				filepath.Join(clusterId.String(), constants.ManifestMetadataFolder, "openshift", "second.yaml", constants.ManifestSourceUserSupplied),
+			}
+			filteredMetadata := manifests.FilterMetadataOnManifestSource(s3Metadata, "some-other-manifest-source")
+			Expect(filteredMetadata).To(ConsistOf())
+		})
+		It("returns an empty list when metadata are malformed", func() {
+			s3Metadata := []string{
+				"first.yaml",
+				"",
+			}
+			filteredMetadata := manifests.FilterMetadataOnManifestSource(s3Metadata, "some-other-manifest-source")
+			Expect(filteredMetadata).To(ConsistOf())
+		})
+	})
+	Context("ResolveManifestNamesFromMetadata", func() {
+		It("returns manifest names when metadata paths are valid", func() {
+			clusterId := registerCluster().ID
+			s3Metadata := []string{
+				filepath.Join(clusterId.String(), constants.ManifestMetadataFolder, "manifests", "first.yaml", constants.ManifestSourceUserSupplied),
+				filepath.Join(clusterId.String(), constants.ManifestMetadataFolder, "openshift", "second.yaml", constants.ManifestSourceUserSupplied),
+				filepath.Join(clusterId.String(), constants.ManifestMetadataFolder, "manifests", "third.yaml", "some-other-manifest-source"),
+			}
+			manifestNames, err := manifests.ResolveManifestNamesFromMetadata(s3Metadata)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(manifestNames).To(ConsistOf("manifests/first.yaml", "openshift/second.yaml", "manifests/third.yaml"))
+		})
+
+		for _, invalidMetadata := range []string{"foo.yaml", "foo/bar", ""} {
+			invalidMetadata_ := invalidMetadata
+			It("returns an error when metadata are malformed", func() {
+				_, err := manifests.ResolveManifestNamesFromMetadata([]string{invalidMetadata_})
+				Expect(err).To(HaveOccurred())
+				Expect(err.Error()).To(Equal(
+					fmt.Sprintf("Failed to extract manifest name from metadata path %s", invalidMetadata_),
+				))
+			})
+		}
+
 	})
 })
 
