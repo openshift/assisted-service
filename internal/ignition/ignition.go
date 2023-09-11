@@ -691,9 +691,15 @@ func (g *installerGenerator) bootstrapInPlaceIgnitionsCreate(ctx context.Context
 func (g *installerGenerator) expandUserMultiDocYamls(ctx context.Context) error {
 	log := logutil.FromContext(ctx, g.log)
 
-	userManifests, err := manifests.GetUserManifestSuffixes(ctx, g.cluster.ID, g.s3Client)
+	metadata, err := manifests.GetManifestMetadata(ctx, g.cluster.ID, g.s3Client)
 	if err != nil {
-		return errors.Wrapf(err, "Failed to retrieve user manifests")
+		return errors.Wrapf(err, "Failed to retrieve manifest matadata")
+	}
+	userManifests, err := manifests.ResolveManifestNamesFromMetadata(
+		manifests.FilterMetadataOnManifestSource(metadata, constants.ManifestSourceUserSupplied),
+	)
+	if err != nil {
+		return errors.Wrapf(err, "Failed to resolve manifest names from metadata")
 	}
 
 	// pass a random token to expandMultiDocYaml in order to prevent name
