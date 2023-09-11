@@ -373,27 +373,52 @@ func GetClusterManifests(ctx context.Context, clusterID *strfmt.UUID, s3Client s
 	return manifestFiles, nil
 }
 
-// Return the list of the manifests provided by the user into a list of "{folder}/{filename}"
-func GetUserManifestSuffixes(ctx context.Context, clusterID *strfmt.UUID, s3Client s3wrapper.API) ([]string, error) {
+// GetManifestMetadata returns the paths of manifest metadata for a given cluster
+func GetManifestMetadata(ctx context.Context, clusterID *strfmt.UUID, s3Client s3wrapper.API) ([]string, error) {
 	prefix := getManifestMetadataPrefix(*clusterID)
 	metadataList, err := s3Client.ListObjectsByPrefix(ctx, prefix)
 	if err != nil {
 		return []string{}, err
 	}
 
-	userManifests := []string{}
-	for _, metadata := range metadataList {
-		fileDir, metadataKey := filepath.Split(metadata)
+	return metadataList, nil
+}
 
-		if metadataKey == constants.ManifestSourceUserSupplied {
-			manifestDir, manifestFilename := filepath.Split(filepath.Clean(fileDir))
-			_, manifestFolder := filepath.Split(filepath.Clean(manifestDir))
-			manifestSuffix := filepath.Join(manifestFolder, manifestFilename)
-			userManifests = append(userManifests, manifestSuffix)
+// FilterMetadataOnManifestSource filters a list of metadata paths filtered on manifest source
+func FilterMetadataOnManifestSource(metadataList []string, manifestSource string) []string {
+	filteredMetadata := []string{}
+
+	for _, metadata := range metadataList {
+		_, metadataKey := filepath.Split(metadata)
+		if metadataKey == manifestSource {
+			filteredMetadata = append(filteredMetadata, metadata)
 		}
 	}
 
-	return userManifests, err
+	return filteredMetadata
+}
+
+// ResolveManifestNamesFromMetadata resolves metadata paths like
+// "{clusterID}/{ManifestMetadataFolder}/manifests/first.yaml/{manifestSource}" into
+// "manifests/first.yaml"
+func ResolveManifestNamesFromMetadata(metadataList []string) ([]string, error) {
+	manifestList := []string{}
+
+	for _, metadata := range metadataList {
+		fileDir, _ := filepath.Split(metadata)
+		manifestDir, manifestFilename := filepath.Split(filepath.Clean(fileDir))
+		metadataDir, manifestFolder := filepath.Split(filepath.Clean(manifestDir))
+
+		if fileDir == "" || manifestDir == "" || metadataDir == "" {
+			err := errors.Errorf("Failed to extract manifest name from metadata path %s", metadata)
+			return []string{}, err
+		}
+
+		manifestName := filepath.Join(manifestFolder, manifestFilename)
+		manifestList = append(manifestList, manifestName)
+	}
+
+	return manifestList, nil
 }
 
 func listManifests(ctx context.Context, clusterID *strfmt.UUID, folder string, s3Client s3wrapper.API) ([]string, error) {

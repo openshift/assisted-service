@@ -1190,8 +1190,8 @@ invalid YAML content: {
 		})
 	})
 
-	Context("GetUserManifestSuffixes", func() {
-		It("Should be able to list only user manifests if user and non user manifests are present", func() {
+	Context("GetManifestMetadata", func() {
+		It("Should be able to list manifest metadata", func() {
 			clusterId := registerCluster().ID
 			s3Metadata := []string{
 				filepath.Join(clusterId.String(), constants.ManifestMetadataFolder, "manifests", "first.yaml", constants.ManifestSourceUserSupplied),
@@ -1199,10 +1199,66 @@ invalid YAML content: {
 				filepath.Join(clusterId.String(), constants.ManifestMetadataFolder, "manifests", "third.yaml", "some-other-manifest-source"),
 			}
 			mockS3Client.EXPECT().ListObjectsByPrefix(ctx, filepath.Join(clusterId.String(), constants.ManifestMetadataFolder)).Return(s3Metadata, nil).Times(1)
-			userManifests, err := manifests.GetUserManifestSuffixes(ctx, clusterId, mockS3Client)
+			userManifests, err := manifests.GetManifestMetadata(ctx, clusterId, mockS3Client)
 			Expect(err).NotTo(HaveOccurred())
-			Expect(userManifests).To(ConsistOf("manifests/first.yaml", "openshift/second.yaml"))
+			Expect(userManifests).To(ConsistOf(s3Metadata))
 		})
+	})
+	Context("FilterMetadataOnManifestSource", func() {
+		It("returns metadata paths when matching manifest source", func() {
+			clusterId := registerCluster().ID
+			firstMetadata := filepath.Join(clusterId.String(), constants.ManifestMetadataFolder, "manifests", "first.yaml", constants.ManifestSourceUserSupplied)
+			secondMetadata := filepath.Join(clusterId.String(), constants.ManifestMetadataFolder, "openshift", "second.yaml", constants.ManifestSourceUserSupplied)
+			s3Metadata := []string{
+				firstMetadata,
+				secondMetadata,
+				filepath.Join(clusterId.String(), constants.ManifestMetadataFolder, "manifests", "third.yaml", "some-other-manifest-source"),
+			}
+			filteredMetadata := manifests.FilterMetadataOnManifestSource(s3Metadata, constants.ManifestSourceUserSupplied)
+			Expect(filteredMetadata).To(ConsistOf(firstMetadata, secondMetadata))
+		})
+		It("returns an empty list when no metadata have matched the manifest seource", func() {
+			clusterId := registerCluster().ID
+			s3Metadata := []string{
+				filepath.Join(clusterId.String(), constants.ManifestMetadataFolder, "manifests", "first.yaml", constants.ManifestSourceUserSupplied),
+				filepath.Join(clusterId.String(), constants.ManifestMetadataFolder, "openshift", "second.yaml", constants.ManifestSourceUserSupplied),
+			}
+			filteredMetadata := manifests.FilterMetadataOnManifestSource(s3Metadata, "some-other-manifest-source")
+			Expect(filteredMetadata).To(ConsistOf())
+		})
+		It("returns an empty list when metadata are malformed", func() {
+			s3Metadata := []string{
+				"first.yaml",
+				"",
+			}
+			filteredMetadata := manifests.FilterMetadataOnManifestSource(s3Metadata, "some-other-manifest-source")
+			Expect(filteredMetadata).To(ConsistOf())
+		})
+	})
+	Context("ResolveManifestNamesFromMetadata", func() {
+		It("returns manifest names when metadata paths are valid", func() {
+			clusterId := registerCluster().ID
+			s3Metadata := []string{
+				filepath.Join(clusterId.String(), constants.ManifestMetadataFolder, "manifests", "first.yaml", constants.ManifestSourceUserSupplied),
+				filepath.Join(clusterId.String(), constants.ManifestMetadataFolder, "openshift", "second.yaml", constants.ManifestSourceUserSupplied),
+				filepath.Join(clusterId.String(), constants.ManifestMetadataFolder, "manifests", "third.yaml", "some-other-manifest-source"),
+			}
+			manifestNames, err := manifests.ResolveManifestNamesFromMetadata(s3Metadata)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(manifestNames).To(ConsistOf("manifests/first.yaml", "openshift/second.yaml", "manifests/third.yaml"))
+		})
+
+		for _, invalidMetadata := range []string{"foo.yaml", "foo/bar", ""} {
+			invalidMetadata_ := invalidMetadata
+			It("returns an error when metadata are malformed", func() {
+				_, err := manifests.ResolveManifestNamesFromMetadata([]string{invalidMetadata_})
+				Expect(err).To(HaveOccurred())
+				Expect(err.Error()).To(Equal(
+					fmt.Sprintf("Failed to extract manifest name from metadata path %s", invalidMetadata_),
+				))
+			})
+		}
+
 	})
 })
 
