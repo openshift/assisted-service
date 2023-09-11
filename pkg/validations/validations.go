@@ -16,8 +16,9 @@ import (
 )
 
 const (
-	baseDomainRegex          = `^[a-z\d][\-]*[a-z\d]+$`
-	dnsNameRegex             = `^(validateNoWildcardDNS\.)?([a-z\d]([\-]*[a-z\d]+)*\.)+[a-z\d]+[\-]*[a-z\d]+[\.]?$`
+	baseDomainRegex          = `^[a-z\d]+[\-]*[a-z\d]+$`
+	dnsNameRegex             = `^([a-z\d]([\-]*[a-z\d]+)*\.)+[a-z\d]+[\-]*[a-z\d]+$`
+	wildCardDomainRegex      = `^(validateNoWildcardDNS\.).+\.$`
 	hostnameRegex            = `^[a-z0-9][a-z0-9\-\.]{0,61}[a-z0-9]$`
 	installerArgsValuesRegex = `^[A-Za-z0-9@!#$%*()_+-=//.,";':{}\[\]]+$`
 )
@@ -45,14 +46,20 @@ func ValidateInstallerArgs(args []string) error {
 }
 
 func ValidateDomainNameFormat(dnsDomainName string) (int32, error) {
-	matched, err := regexp.MatchString(baseDomainRegex, dnsDomainName)
+	domainName := dnsDomainName
+	wildCardMatched, wildCardMatchErr := regexp.MatchString(wildCardDomainRegex, dnsDomainName)
+	if wildCardMatchErr == nil && wildCardMatched {
+		trimmedDomain := strings.TrimPrefix(dnsDomainName, "validateNoWildcardDNS.")
+		domainName = strings.TrimSuffix(trimmedDomain, ".")
+	}
+	matched, err := regexp.MatchString(baseDomainRegex, domainName)
 	if err != nil {
 		return http.StatusInternalServerError, errors.Wrapf(err, "Single DNS base domain validation for %s", dnsDomainName)
 	}
-	if matched && len(dnsDomainName) > 1 {
+	if matched && len(domainName) > 1 {
 		return 0, nil
 	}
-	matched, err = regexp.MatchString(dnsNameRegex, dnsDomainName)
+	matched, err = regexp.MatchString(dnsNameRegex, domainName)
 	if err != nil {
 		return http.StatusInternalServerError, errors.Wrapf(err, "DNS name validation for %s", dnsDomainName)
 	}

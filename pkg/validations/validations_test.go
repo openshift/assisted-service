@@ -245,6 +245,26 @@ var _ = Describe("dns name", func() {
 			valid:      true,
 		},
 		{
+			domainName: "example-example-example.com",
+			valid:      true,
+		},
+		{
+			domainName: "example.example-example.com",
+			valid:      true,
+		},
+		{
+			domainName: "exam--ple.example--example.com",
+			valid:      true,
+		},
+		{
+			domainName: "exam-ple",
+			valid:      true,
+		},
+		{
+			domainName: "exam--ple",
+			valid:      true,
+		},
+		{
 			domainName: "a.c",
 			valid:      false,
 		},
