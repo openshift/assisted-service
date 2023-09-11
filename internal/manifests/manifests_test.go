@@ -391,7 +391,7 @@ spec:
 			It("fails for manifest with invalid yaml format", func() {
 				clusterID := registerCluster().ID
 				fileName := "99-test.yml"
-				invalidYAMLContent := encodeToBase64("not a valid YAML: {{ content }}")
+				invalidYAMLContent := encodeToBase64("invalid YAML content: {")
 				response := manifestsAPI.V2CreateClusterManifest(ctx, operations.V2CreateClusterManifestParams{
 					ClusterID: *clusterID,
 					CreateManifestParams: &models.CreateManifestParams{
@@ -504,7 +504,7 @@ first: one
 				content := encodeToBase64(`---
 first: one
 ---
-not a valid YAML: {{ content }}
+invalid YAML content: {
 `)
 				response := manifestsAPI.V2CreateClusterManifest(ctx, operations.V2CreateClusterManifestParams{
 					ClusterID: *clusterID,
