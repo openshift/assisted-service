@@ -499,16 +499,16 @@ func (m *Manifests) validateUserSuppliedManifest(ctx context.Context, clusterID 
 	}
 	extension := filepath.Ext(fileName)
 	if extension == ".yaml" || extension == ".yml" {
-		if !isValidYaml(manifestContent) {
-			return m.prepareAndLogError(ctx, http.StatusBadRequest, errors.Errorf("Manifest content of file %s for cluster ID %s has an invalid YAML format", fileName, string(clusterID)))
+		if err := isValidYaml(manifestContent); err != nil {
+			return m.prepareAndLogError(ctx, http.StatusBadRequest, errors.Errorf("Manifest content of file %s for cluster ID %s has an invalid YAML format: %s", fileName, string(clusterID), err))
 		}
 	} else if extension == ".json" {
 		if !json.Valid(manifestContent) {
 			return m.prepareAndLogError(ctx, http.StatusBadRequest, errors.Errorf("Manifest content of file %s for cluster ID %s has an illegal JSON format", fileName, string(clusterID)))
 		}
 	} else if strings.HasPrefix(extension, ".patch") && (strings.Contains(fileName, ".yaml.patch") || strings.Contains(fileName, ".yml.patch")) {
-		if !isValidYaml(manifestContent) {
-			return m.prepareAndLogError(ctx, http.StatusBadRequest, errors.Errorf("Patch content of file %s for cluster ID %s has an invalid YAML format", fileName, string(clusterID)))
+		if err := isValidYaml(manifestContent); err != nil {
+			return m.prepareAndLogError(ctx, http.StatusBadRequest, errors.Errorf("Patch content of file %s for cluster ID %s has an invalid YAML format: %s", fileName, string(clusterID), err))
 		}
 	} else {
 		return m.prepareAndLogError(ctx, http.StatusBadRequest, errors.Errorf("Manifest filename of file %s for cluster ID %s is invalid. Only json, yaml and yml extensions are supported", fileName, string(clusterID)))
@@ -517,7 +517,7 @@ func (m *Manifests) validateUserSuppliedManifest(ctx context.Context, clusterID 
 }
 
 // isValidYaml checks if all yaml documents are valid, in the case of multi-doc yaml this may be more than one document.
-func isValidYaml(manifestContent []byte) bool {
+func isValidYaml(manifestContent []byte) error {
 	dec := yaml.NewDecoder(bytes.NewReader(manifestContent))
 
 	for {
@@ -527,11 +527,11 @@ func isValidYaml(manifestContent []byte) bool {
 			break
 		}
 		if err != nil {
-			return false
+			return err
 		}
 	}
 
-	return true
+	return nil
 }
 
 func (m *Manifests) decodeUserSuppliedManifest(ctx context.Context, clusterID strfmt.UUID, manifest string) ([]byte, error) {
