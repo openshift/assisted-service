@@ -35,6 +35,7 @@
     - machine_config_pools: "{{ lookup('env', 'MACHINE_CONFIG_POOLS') }}"
     - node_labels: "{{ lookup('env', 'NODE_LABELS') }}"
     - manifests: "{{ lookup('env', 'MANIFESTS') }}"
+    - infraenv_label: ""
 
   tasks:
   - name: create directory for generated CRDs

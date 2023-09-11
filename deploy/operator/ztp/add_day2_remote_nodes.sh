@@ -31,20 +31,11 @@ if [ -z "${comma_sep_host_names}" ] ; then
   exit 1
 fi
 
-function remote_agents() {
-	oc get agent -n ${SPOKE_NAMESPACE} --no-headers -l "agent-install.openshift.io/bmh in ( ${comma_sep_host_names} )"
-}
-
-function remote_done_agents() {
-        remote_agents | grep Done
-}
-
 export -f wait_for_cmd_amount
-export -f remote_agents
 
 node_count=$(jq -r '[.[].name] | length' "${REMOTE_BAREMETALHOSTS_FILE}")
 
-timeout 20m bash -c "wait_for_cmd_amount ${node_count} 30 remote_agents"
+timeout 20m bash -c "wait_for_cmd_amount ${node_count} 30 remote_agents  ${SPOKE_NAMESPACE} ${comma_sep_host_names}"
 echo "Remote worker agents were discovered!"
 
 # If we are performing late binding then we to bind the discovered agents by setting their clusterRef
@@ -73,7 +64,6 @@ PATCH
 
 fi
 
-export -f remote_done_agents
-timeout 60m bash -c "wait_for_cmd_amount ${node_count} 30 remote_done_agents"
+timeout 60m bash -c "wait_for_cmd_amount ${node_count} 30 installed_remote_agents  ${SPOKE_NAMESPACE} ${comma_sep_host_names}"
 
 echo "Remote worker agents installation completed successfully!"

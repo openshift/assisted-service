@@ -9,6 +9,22 @@ function wait_for_crd() {
     wait_for_condition "crd/${crd}" "Established" "60s" "${namespace}"
 }
 
+function remote_agents() {
+	namespace="$1"
+	hostnames="$2"
+	oc get agent -n ${namespace} --no-headers -l "agent-install.openshift.io/bmh in ( ${hostnames} )"
+}
+
+export -f remote_agents
+
+function installed_remote_agents() {
+        namespace="$1"
+        hostnames="$2"
+        remote_agents ${namespace} ${hostnames} | grep Done
+}
+
+export -f installed_remote_agents
+
 function wait_for_operator() {
     subscription="$1"
     namespace="${2:-}"
