@@ -545,6 +545,7 @@ first: one
 - second: two
 `)
 				mockUpload(1)
+				mockObjectExists(false)
 				expectUsageCalls()
 				response := manifestsAPI.V2CreateClusterManifest(ctx, operations.V2CreateClusterManifestParams{
 					ClusterID: *clusterID,
