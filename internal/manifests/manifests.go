@@ -516,7 +516,7 @@ func (m *Manifests) validateUserSuppliedManifest(ctx context.Context, clusterID 
 	return nil
 }
 
-// isValidYaml checks if one or more (in case of multi-doc yaml) yaml documents are valid
+// isValidYaml checks if all yaml documents are valid, in the case of multi-doc yaml this may be more than one document.
 func isValidYaml(manifestContent []byte) bool {
 	dec := yaml.NewDecoder(bytes.NewReader(manifestContent))
 
