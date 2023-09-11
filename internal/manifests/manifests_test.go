@@ -473,7 +473,7 @@ spec:
 				Expect(err.Error()).To(ContainSubstring("Manifest content of file 99-openshift-machineconfig-master-kargs.json for cluster ID " + clusterID.String() + " exceeds the maximum file size of 1MiB"))
 			})
 
-			It("accept muti-doc yaml file", func() {
+			It("Upload succeeds when each yaml in multi-doc yaml file is valid", func() {
 				clusterID := registerCluster().ID
 				fileName := "99-test.yaml"
 				content := encodeToBase64(`---
