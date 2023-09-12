@@ -30,10 +30,6 @@ type Cluster struct {
 	// Format: uuid
 	AmsSubscriptionID strfmt.UUID `json:"ams_subscription_id,omitempty"`
 
-	// (DEPRECATED) The virtual IP used to reach the OpenShift cluster's API.
-	// Pattern: ^(?:(?:(?:[0-9]{1,3}\.){3}[0-9]{1,3})|(?:(?:[0-9a-fA-F]*:[0-9a-fA-F]*){2,}))$
-	APIVip string `json:"api_vip,omitempty"`
-
 	// The domain name used to reach the OpenShift cluster API.
 	APIVipDNSName *string `json:"api_vip_dns_name,omitempty"`
 
@@ -146,10 +142,6 @@ type Cluster struct {
 	// information and are filled with default values that don't necessarily
 	// reflect the actual cluster they represent
 	Imported *bool `json:"imported,omitempty"`
-
-	// (DEPRECATED) The virtual IP used for cluster ingress traffic.
-	// Pattern: ^(?:(?:(?:[0-9]{1,3}\.){3}[0-9]{1,3})|(?:(?:[0-9a-fA-F]*:[0-9a-fA-F]*){2,}))$
-	IngressVip string `json:"ingress_vip,omitempty"`
 
 	// The virtual IPs used for cluster ingress traffic. Enter one IP address for single-stack clusters, or up to two for dual-stack clusters (at most one IP address per IP stack used). The order of stacks should be the same as order of subnets in Cluster Networks, Service Networks, and Machine Networks.
 	IngressVips []*IngressVip `json:"ingress_vips" gorm:"foreignkey:ClusterID;references:ID"`
@@ -289,10 +281,6 @@ func (m *Cluster) Validate(formats strfmt.Registry) error {
 		res = append(res, err)
 	}
 
-	if err := m.validateAPIVip(formats); err != nil {
-		res = append(res, err)
-	}
-
 	if err := m.validateAPIVips(formats); err != nil {
 		res = append(res, err)
 	}
@@ -358,10 +346,6 @@ func (m *Cluster) Validate(formats strfmt.Registry) error {
 	}
 
 	if err := m.validateImageInfo(formats); err != nil {
-		res = append(res, err)
-	}
-
-	if err := m.validateIngressVip(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -453,18 +437,6 @@ func (m *Cluster) validateAmsSubscriptionID(formats strfmt.Registry) error {
 	}
 
 	if err := validate.FormatOf("ams_subscription_id", "body", "uuid", m.AmsSubscriptionID.String(), formats); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (m *Cluster) validateAPIVip(formats strfmt.Registry) error {
-	if swag.IsZero(m.APIVip) { // not required
-		return nil
-	}
-
-	if err := validate.Pattern("api_vip", "body", m.APIVip, `^(?:(?:(?:[0-9]{1,3}\.){3}[0-9]{1,3})|(?:(?:[0-9a-fA-F]*:[0-9a-fA-F]*){2,}))$`); err != nil {
 		return err
 	}
 
@@ -858,18 +830,6 @@ func (m *Cluster) validateImageInfo(formats strfmt.Registry) error {
 			}
 			return err
 		}
-	}
-
-	return nil
-}
-
-func (m *Cluster) validateIngressVip(formats strfmt.Registry) error {
-	if swag.IsZero(m.IngressVip) { // not required
-		return nil
-	}
-
-	if err := validate.Pattern("ingress_vip", "body", m.IngressVip, `^(?:(?:(?:[0-9]{1,3}\.){3}[0-9]{1,3})|(?:(?:[0-9a-fA-F]*:[0-9a-fA-F]*){2,}))$`); err != nil {
-		return err
 	}
 
 	return nil
