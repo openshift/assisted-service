@@ -8,6 +8,7 @@ import (
 	multierror "github.com/hashicorp/go-multierror"
 	configv1 "github.com/openshift/api/config/v1"
 	hiveext "github.com/openshift/assisted-service/api/hiveextension/v1beta1"
+	aiv1beta1 "github.com/openshift/assisted-service/api/v1beta1"
 	hivev1 "github.com/openshift/hive/apis/hive/v1"
 	"github.com/openshift/hive/apis/hive/v1/agent"
 	"github.com/sirupsen/logrus"
@@ -37,7 +38,7 @@ func (i *LocalClusterImport) createClusterImageSet(release_image string) error {
 		},
 	}
 	err = i.clusterImportOperations.CreateClusterImageSet(&clusterImageSet)
-	if err != nil && !k8serrors.IsAlreadyExists(err) {
+	if err != nil {
 		i.log.Errorf("unable to create ClusterImageSet due to error: %s", err.Error())
 		return err
 	}
@@ -53,7 +54,7 @@ func (i *LocalClusterImport) createAdminKubeConfig(kubeConfigSecret *v1.Secret) 
 	localClusterSecret.Data = make(map[string][]byte)
 	localClusterSecret.Data["kubeconfig"] = kubeConfigSecret.Data["lb-ext.kubeconfig"]
 	err = i.clusterImportOperations.CreateSecret(i.localClusterNamespace, &localClusterSecret)
-	if err != nil && !k8serrors.IsAlreadyExists(err) {
+	if err != nil {
 		i.log.Errorf("to store secret due to error %s", err.Error())
 		return err
 	}
@@ -77,14 +78,14 @@ func (i *LocalClusterImport) createLocalClusterPullSecret(sourceSecret *v1.Secre
 	}
 	hubPullSecret.OwnerReferences = []metav1.OwnerReference{}
 	err = i.clusterImportOperations.CreateSecret(i.localClusterNamespace, &hubPullSecret)
-	if err != nil && !k8serrors.IsAlreadyExists(err) {
+	if err != nil {
 		i.log.Errorf("unable to store hub pull secret due to error %s", err.Error())
 		return err
 	}
 	return nil
 }
 
-func (i *LocalClusterImport) createAgentClusterInstall(numberOfControlPlaneNodes int) (*hiveext.AgentClusterInstall, error) {
+func (i *LocalClusterImport) createAgentClusterInstall(numberOfControlPlaneNodes int) error {
 	//Create an AgentClusterInstall in the local cluster namespace
 	userManagedNetworkingActive := true
 	agentClusterInstall := &hiveext.AgentClusterInstall{
@@ -106,21 +107,28 @@ func (i *LocalClusterImport) createAgentClusterInstall(numberOfControlPlaneNodes
 	agentClusterInstall.Namespace = i.localClusterNamespace
 	agentClusterInstall.Name = i.localClusterNamespace + "-cluster-install"
 	err := i.clusterImportOperations.CreateAgentClusterInstall(agentClusterInstall)
-	if err != nil && !k8serrors.IsAlreadyExists(err) {
-		i.log.Errorf("could not create AgentClusterInstall due to error %s", err.Error())
-		return nil, err
-	}
-	// Fetch the recently stored AgentClusterInstall so that we can obtain the UID
-	aci, err := i.clusterImportOperations.GetAgentClusterInstall(i.localClusterNamespace, i.localClusterNamespace+"-cluster-install")
 	if err != nil {
-		i.log.Errorf("failed to fetch created AgentClusterInstall due to error %s", err.Error())
-		return nil, err
+		i.log.Errorf("could not create AgentClusterInstall due to error %s", err.Error())
+		return err
 	}
-	return aci, nil
+	return nil
 }
 
-func (i *LocalClusterImport) createClusterDeployment(pullSecret *v1.Secret, dns *configv1.DNS, kubeConfigSecret *v1.Secret, agentClusterInstall *hiveext.AgentClusterInstall) error {
-	if pullSecret == nil || dns == nil || kubeConfigSecret == nil || agentClusterInstall == nil {
+func (i *LocalClusterImport) createClusterDeployment(pullSecret *v1.Secret, dns *configv1.DNS, kubeConfigSecret *v1.Secret, agentServiceConfig *aiv1beta1.AgentServiceConfig) error {
+	if pullSecret == nil {
+		i.log.Errorf("Skipping creation of cluster deployment due to nil pullsecret")
+		return nil
+	}
+	if dns == nil {
+		i.log.Errorf("Skipping creation of cluster deployment due to nil dns")
+		return nil
+	}
+	if kubeConfigSecret == nil {
+		i.log.Errorf("Skipping creation of cluster deployment due to nil kubeconfigsecret")
+		return nil
+	}
+	if agentServiceConfig == nil {
+		i.log.Errorf("Skipping creation of cluster deployment due to nil agentServiceConfig")
 		return nil
 	}
 	// Create a cluster deployment in the local cluster namespace
@@ -154,20 +162,15 @@ func (i *LocalClusterImport) createClusterDeployment(pullSecret *v1.Secret, dns 
 	clusterDeployment.Namespace = i.localClusterNamespace
 	clusterDeployment.Spec.ClusterName = i.localClusterNamespace + "-cluster-deployment"
 	clusterDeployment.Spec.BaseDomain = dns.Spec.BaseDomain
-	//
-	// Adding this ownership reference to ensure we can submit clusterDeployment without ManagedClusterSet/join permission
-	//
-	// Must match https://github.com/stolostron/multicloud-operators-foundation/blob/0001f46a5115fe43c606a068e5e7ee00abec3b68/pkg/webhook/clusterset/validatingWebhook.go#L44
-	// or the ClusterDeployment will be rejected during admission.
 	agentClusterInstallOwnerRef := metav1.OwnerReference{
-		Kind:       "AgentCluster",
-		APIVersion: "capi-provider.agent-install.openshift.io/v1alpha1",
-		Name:       i.localClusterNamespace + "-cluster-install",
-		UID:        agentClusterInstall.UID,
+		Kind:       "AgentServiceConfig",
+		APIVersion: "agent-install.openshift.io/v1beta1",
+		Name:       agentServiceConfig.Name,
+		UID:        agentServiceConfig.UID,
 	}
 	clusterDeployment.OwnerReferences = []metav1.OwnerReference{agentClusterInstallOwnerRef}
 	err := i.clusterImportOperations.CreateClusterDeployment(clusterDeployment)
-	if err != nil && !k8serrors.IsAlreadyExists(err) {
+	if err != nil {
 		i.log.Errorf("could not create ClusterDeployment due to error %s", err.Error())
 		return err
 	}
@@ -176,7 +179,7 @@ func (i *LocalClusterImport) createClusterDeployment(pullSecret *v1.Secret, dns 
 
 func (i *LocalClusterImport) createNamespace(name string) error {
 	err := i.clusterImportOperations.CreateNamespace(name)
-	if err != nil && !k8serrors.IsAlreadyExists(err) {
+	if err != nil {
 		i.log.Errorf("could not create Namespace due to error %s", err.Error())
 		return err
 	}
@@ -239,7 +242,7 @@ func (i *LocalClusterImport) ImportLocalCluster() error {
 	release_image = clusterVersion.Status.History[0].Image
 
 	err = i.createClusterImageSet(release_image)
-	if err != nil {
+	if err != nil && !k8serrors.IsAlreadyExists(err) {
 		errorList = multierror.Append(errorList, err)
 	}
 
@@ -263,11 +266,18 @@ func (i *LocalClusterImport) ImportLocalCluster() error {
 	}
 
 	if numberOfControlPlaneNodes > 0 {
-		agentClusterInstall, err := i.createAgentClusterInstall(numberOfControlPlaneNodes)
+		err := i.createAgentClusterInstall(numberOfControlPlaneNodes)
 		if err != nil && !k8serrors.IsAlreadyExists(err) {
 			errorList = multierror.Append(errorList, err)
 		}
-		err = i.createClusterDeployment(pullSecret, dns, kubeConfigSecret, agentClusterInstall)
+
+		asc, err := i.clusterImportOperations.GetAgentServiceConfig()
+		if err != nil {
+			i.log.Errorf("failed to fetch AgentServiceConfig due to error %s", err.Error())
+			errorList = multierror.Append(errorList, err)
+		}
+
+		err = i.createClusterDeployment(pullSecret, dns, kubeConfigSecret, asc)
 		if err != nil && !k8serrors.IsAlreadyExists(err) {
 			errorList = multierror.Append(errorList, err)
 		}

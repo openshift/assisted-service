@@ -67,7 +67,7 @@ import (
 const (
 	// agentServiceConfigName is the one and only name for an AgentServiceConfig
 	// supported in the cluster. Any others will be ignored.
-	agentServiceConfigName        = "agent"
+	AgentServiceConfigName        = "agent"
 	serviceName            string = "assisted-service"
 	imageServiceName       string = "assisted-image-service"
 	webhookServiceName     string = "agentinstalladmission"
@@ -229,9 +229,9 @@ func (r *AgentServiceConfigReconciler) Reconcile(origCtx context.Context, req ct
 
 	// We only support one AgentServiceConfig per cluster, and it must be called "agent". This prevents installing
 	// AgentService more than once in the cluster.
-	if instance.Name != agentServiceConfigName {
+	if instance.Name != AgentServiceConfigName {
 		reason := fmt.Sprintf("Invalid name (%s)", instance.Name)
-		msg := fmt.Sprintf("Only one AgentServiceConfig supported per cluster and must be named '%s'", agentServiceConfigName)
+		msg := fmt.Sprintf("Only one AgentServiceConfig supported per cluster and must be named '%s'", AgentServiceConfigName)
 		log.Info(fmt.Sprintf("%s: %s", reason, msg), req.NamespacedName)
 		r.Recorder.Event(instance, "Warning", reason, msg)
 		return reconcile.Result{}, nil
@@ -460,7 +460,7 @@ func (r *AgentServiceConfigReconciler) SetupWithManager(mgr ctrl.Manager) error 
 	})
 	ingressCMHandler := handler.EnqueueRequestsFromMapFunc(
 		func(_ client.Object) []reconcile.Request {
-			return []reconcile.Request{{NamespacedName: types.NamespacedName{Name: agentServiceConfigName}}}
+			return []reconcile.Request{{NamespacedName: types.NamespacedName{Name: AgentServiceConfigName}}}
 		},
 	)
 

@@ -10,6 +10,7 @@ import (
 	gomock "github.com/golang/mock/gomock"
 	v1 "github.com/openshift/api/config/v1"
 	v1beta1 "github.com/openshift/assisted-service/api/hiveextension/v1beta1"
+	v1beta10 "github.com/openshift/assisted-service/api/v1beta1"
 	v10 "github.com/openshift/hive/apis/hive/v1"
 	v11 "k8s.io/api/core/v1"
 )
@@ -107,19 +108,19 @@ func (mr *MockClusterImportOperationsMockRecorder) CreateSecret(namespace, secre
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateSecret", reflect.TypeOf((*MockClusterImportOperations)(nil).CreateSecret), namespace, secret)
 }
 
-// GetAgentClusterInstall mocks base method.
-func (m *MockClusterImportOperations) GetAgentClusterInstall(namespace, name string) (*v1beta1.AgentClusterInstall, error) {
+// GetAgentServiceConfig mocks base method.
+func (m *MockClusterImportOperations) GetAgentServiceConfig() (*v1beta10.AgentServiceConfig, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetAgentClusterInstall", namespace, name)
-	ret0, _ := ret[0].(*v1beta1.AgentClusterInstall)
+	ret := m.ctrl.Call(m, "GetAgentServiceConfig")
+	ret0, _ := ret[0].(*v1beta10.AgentServiceConfig)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// GetAgentClusterInstall indicates an expected call of GetAgentClusterInstall.
-func (mr *MockClusterImportOperationsMockRecorder) GetAgentClusterInstall(namespace, name interface{}) *gomock.Call {
+// GetAgentServiceConfig indicates an expected call of GetAgentServiceConfig.
+func (mr *MockClusterImportOperationsMockRecorder) GetAgentServiceConfig() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAgentClusterInstall", reflect.TypeOf((*MockClusterImportOperations)(nil).GetAgentClusterInstall), namespace, name)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAgentServiceConfig", reflect.TypeOf((*MockClusterImportOperations)(nil).GetAgentServiceConfig))
 }
 
 // GetClusterDNS mocks base method.
