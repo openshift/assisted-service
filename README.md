@@ -49,7 +49,7 @@ To push your build target to a Docker registry you first need to change the defa
 1. Login to quay.io using `docker login quay.io`.
 1. Export the `SERVICE` environment variable to your Docker registry, and pass a tag of your choice, e.g., "test":
 
-```sh
+```shell
 export SERVICE=quay.io/<username>/assisted-service:<tag>
 ```
 
