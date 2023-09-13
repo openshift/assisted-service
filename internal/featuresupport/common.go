@@ -13,24 +13,27 @@ import (
 
 func GetSupportLevel[T models.FeatureSupportLevelID | models.ArchitectureSupportLevelID](featureId T, filters interface{}) models.SupportLevel {
 	if reflect.TypeOf(featureId).Name() == "FeatureSupportLevelID" {
-		return featuresList[models.FeatureSupportLevelID(featureId)].getSupportLevel(filters.(SupportLevelFilters))
+		return featuresList[models.FeatureSupportLevelID(featureId)].getSupportLevel(filters.(SupportLevelFilters), true)
 	}
 	return cpuFeaturesList[models.ArchitectureSupportLevelID(featureId)].getSupportLevel(filters.(string))
 }
 
 func ValidateIncompatibleFeatures(log logrus.FieldLogger, cpuArchitecture string, cluster *common.Cluster, infraEnv *models.InfraEnv, updateParams interface{}) error {
 	var openshiftVersion *string
+	var highAvailabilityMode *string
 	if cluster != nil {
 		openshiftVersion = &cluster.OpenshiftVersion
+		highAvailabilityMode = cluster.HighAvailabilityMode
 	}
 
 	activatedFeatures := getActivatedFeatures(log, cluster, infraEnv, updateParams)
 	if cpuArchitecture != "" && swag.StringValue(openshiftVersion) != "" {
-		if isSupported := isArchitectureSupported(cpuArchitectureFeatureIdMap[cpuArchitecture], swag.StringValue(openshiftVersion)); !isSupported {
+		filters := SupportLevelFilters{OpenshiftVersion: *openshiftVersion, CPUArchitecture: &cpuArchitecture}
+		if isSupported := isArchitectureSupported(filters); !isSupported {
 			return fmt.Errorf("cannot use %s architecture because it's not compatible on version %s of OpenShift", cpuArchitecture, cluster.OpenshiftVersion)
 		}
 
-		if err := isFeaturesCompatible(swag.StringValue(openshiftVersion), cpuArchitecture, activatedFeatures); err != nil {
+		if err := isFeaturesCompatible(swag.StringValue(openshiftVersion), cpuArchitecture, highAvailabilityMode, activatedFeatures); err != nil {
 			return err
 		}
 

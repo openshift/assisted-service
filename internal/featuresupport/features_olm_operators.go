@@ -52,7 +52,7 @@ func (feature *LvmFeature) GetName() string {
 	return "Logical Volume Management"
 }
 
-func (feature *LvmFeature) getSupportLevel(filters SupportLevelFilters) models.SupportLevel {
+func (feature *LvmFeature) getSupportLevel(filters SupportLevelFilters, removeCollidingFeatures bool) models.SupportLevel {
 	if !isFeatureCompatibleWithArchitecture(feature, filters.OpenshiftVersion, swag.StringValue(filters.CPUArchitecture)) {
 		return models.SupportLevelUnavailable
 	}
@@ -111,8 +111,12 @@ func (feature *OdfFeature) GetName() string {
 	return "OpenShift Data Foundation"
 }
 
-func (feature *OdfFeature) getSupportLevel(filters SupportLevelFilters) models.SupportLevel {
+func (feature *OdfFeature) getSupportLevel(filters SupportLevelFilters, removeCollidingFeatures bool) models.SupportLevel {
 	if !isFeatureCompatibleWithArchitecture(feature, filters.OpenshiftVersion, swag.StringValue(filters.CPUArchitecture)) {
+		return models.SupportLevelUnavailable
+	}
+
+	if swag.StringValue(filters.HighAvailabilityMode) == models.ClusterHighAvailabilityModeNone {
 		return models.SupportLevelUnavailable
 	}
 
@@ -154,7 +158,7 @@ func (feature *CnvFeature) GetName() string {
 	return "OpenShift Virtualization"
 }
 
-func (feature *CnvFeature) getSupportLevel(filters SupportLevelFilters) models.SupportLevel {
+func (feature *CnvFeature) getSupportLevel(filters SupportLevelFilters, removeCollidingFeatures bool) models.SupportLevel {
 	if !isFeatureCompatibleWithArchitecture(feature, filters.OpenshiftVersion, swag.StringValue(filters.CPUArchitecture)) {
 		return models.SupportLevelUnavailable
 	}
@@ -196,7 +200,7 @@ func (feature *LsoFeature) GetName() string {
 	return "Local Storage Operator"
 }
 
-func (feature *LsoFeature) getSupportLevel(filters SupportLevelFilters) models.SupportLevel {
+func (feature *LsoFeature) getSupportLevel(filters SupportLevelFilters, removeCollidingFeatures bool) models.SupportLevel {
 	if !isFeatureCompatibleWithArchitecture(feature, filters.OpenshiftVersion, swag.StringValue(filters.CPUArchitecture)) {
 		return models.SupportLevelUnavailable
 	}
@@ -236,7 +240,7 @@ func (feature *MceFeature) GetName() string {
 	return "multicluster engine"
 }
 
-func (feature *MceFeature) getSupportLevel(filters SupportLevelFilters) models.SupportLevel {
+func (feature *MceFeature) getSupportLevel(filters SupportLevelFilters, removeCollidingFeatures bool) models.SupportLevel {
 	if !isFeatureCompatibleWithArchitecture(feature, filters.OpenshiftVersion, swag.StringValue(filters.CPUArchitecture)) {
 		return models.SupportLevelUnavailable
 	}

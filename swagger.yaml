@@ -3585,6 +3585,11 @@ paths:
           description: The provider platform type.
           type: string
           enum: [ 'baremetal', 'none', 'nutanix', 'vsphere', 'oci' ]
+        - in: query
+          name: high_availability_mode
+          type: string
+          enum: [ 'Full', 'None' ]
+          description: Guaranteed availability of the installed cluster. 'Full' installs a Highly-Available cluster over multiple master nodes whereas 'None' installs a full cluster over one node.
       responses:
         "200":
           description: Success.

@@ -30,25 +30,16 @@ func getArchitectureSupportList(features map[models.ArchitectureSupportLevelID]S
 	return featureSupportList
 }
 
-// Handle cases where a CPU architecture is not supported at for a given openshift version, in that case
-// return a list of unsupported features
-func overrideInvalidRequest(features map[models.FeatureSupportLevelID]SupportLevelFeature, cpuArchitecture, openshiftVersion string) models.SupportLevels {
-	supportLevels := models.SupportLevels{}
-	cpuArchID := cpuArchitectureFeatureIdMap[cpuArchitecture]
-	if !isArchitectureSupported(cpuArchID, openshiftVersion) {
-		for _, feature := range features {
-			supportLevels[string(feature.getId())] = models.SupportLevelUnavailable
-		}
-		return supportLevels
-	}
-	return nil
-}
-
 func GetCpuArchitectureSupportList(openshiftVersion string) models.SupportLevels {
 	return getArchitectureSupportList(cpuFeaturesList, openshiftVersion)
 }
 
-func isArchitectureSupported(featureId models.ArchitectureSupportLevelID, openshiftVersion string) bool {
-	supportLevel := GetSupportLevel(featureId, openshiftVersion)
+func isArchitectureSupported(filters SupportLevelFilters) bool {
+	if filters.CPUArchitecture == nil {
+		return true
+	}
+
+	featureId := cpuArchitectureFeatureIdMap[*filters.CPUArchitecture]
+	supportLevel := GetSupportLevel(featureId, filters.OpenshiftVersion)
 	return supportLevel != models.SupportLevelUnsupported && supportLevel != models.SupportLevelUnavailable
 }

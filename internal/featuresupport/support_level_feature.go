@@ -10,10 +10,10 @@ type SupportLevelFeature interface {
 	New() SupportLevelFeature
 	// getId - Get SupportLevelFeature unique ID
 	getId() models.FeatureSupportLevelID
-	// GetName - Get SupportLevelFeature user friendly name
+	// GetName - Get SupportLevelFeature user-friendly name
 	GetName() string
 	// getSupportLevel - Get feature support-level value, filtered by given filters (e.g. OpenshiftVersion, CpuArchitecture)
-	getSupportLevel(filters SupportLevelFilters) models.SupportLevel
+	getSupportLevel(filters SupportLevelFilters, removeCollidingFeatures bool) models.SupportLevel
 	// getIncompatibleFeatures - Get a list of features that cannot exist alongside this feature
 	getIncompatibleFeatures(openshiftVersion string) *[]models.FeatureSupportLevelID
 	// getIncompatibleArchitectures - Get a list of architectures which the given feature will not work on
@@ -23,9 +23,10 @@ type SupportLevelFeature interface {
 }
 
 type SupportLevelFilters struct {
-	OpenshiftVersion string
-	CPUArchitecture  *string
-	PlatformType     *models.PlatformType
+	OpenshiftVersion     string
+	CPUArchitecture      *string
+	PlatformType         *models.PlatformType
+	HighAvailabilityMode *string
 }
 
 type featureActiveLevel string

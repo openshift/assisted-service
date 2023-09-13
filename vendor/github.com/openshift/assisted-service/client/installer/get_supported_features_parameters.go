@@ -69,6 +69,12 @@ type GetSupportedFeaturesParams struct {
 	*/
 	CPUArchitecture *string
 
+	/* HighAvailabilityMode.
+
+	   Guaranteed availability of the installed cluster. 'Full' installs a Highly-Available cluster over multiple master nodes whereas 'None' installs a full cluster over one node.
+	*/
+	HighAvailabilityMode *string
+
 	/* OpenshiftVersion.
 
 	   Version of the OpenShift cluster.
@@ -156,6 +162,17 @@ func (o *GetSupportedFeaturesParams) SetCPUArchitecture(cPUArchitecture *string)
 	o.CPUArchitecture = cPUArchitecture
 }
 
+// WithHighAvailabilityMode adds the highAvailabilityMode to the get supported features params
+func (o *GetSupportedFeaturesParams) WithHighAvailabilityMode(highAvailabilityMode *string) *GetSupportedFeaturesParams {
+	o.SetHighAvailabilityMode(highAvailabilityMode)
+	return o
+}
+
+// SetHighAvailabilityMode adds the highAvailabilityMode to the get supported features params
+func (o *GetSupportedFeaturesParams) SetHighAvailabilityMode(highAvailabilityMode *string) {
+	o.HighAvailabilityMode = highAvailabilityMode
+}
+
 // WithOpenshiftVersion adds the openshiftVersion to the get supported features params
 func (o *GetSupportedFeaturesParams) WithOpenshiftVersion(openshiftVersion string) *GetSupportedFeaturesParams {
 	o.SetOpenshiftVersion(openshiftVersion)
@@ -198,6 +215,23 @@ func (o *GetSupportedFeaturesParams) WriteToRequest(r runtime.ClientRequest, reg
 		if qCPUArchitecture != "" {
 
 			if err := r.SetQueryParam("cpu_architecture", qCPUArchitecture); err != nil {
+				return err
+			}
+		}
+	}
+
+	if o.HighAvailabilityMode != nil {
+
+		// query param high_availability_mode
+		var qrHighAvailabilityMode string
+
+		if o.HighAvailabilityMode != nil {
+			qrHighAvailabilityMode = *o.HighAvailabilityMode
+		}
+		qHighAvailabilityMode := qrHighAvailabilityMode
+		if qHighAvailabilityMode != "" {
+
+			if err := r.SetQueryParam("high_availability_mode", qHighAvailabilityMode); err != nil {
 				return err
 			}
 		}

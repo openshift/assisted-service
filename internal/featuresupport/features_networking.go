@@ -22,8 +22,12 @@ func (feature *VipAutoAllocFeature) GetName() string {
 	return "VIP Automatic Allocation"
 }
 
-func (feature *VipAutoAllocFeature) getSupportLevel(filters SupportLevelFilters) models.SupportLevel {
+func (feature *VipAutoAllocFeature) getSupportLevel(filters SupportLevelFilters, removeCollidingFeatures bool) models.SupportLevel {
 	if filters.PlatformType != nil && *filters.PlatformType == models.PlatformTypeOci {
+		return models.SupportLevelUnavailable
+	}
+
+	if swag.StringValue(filters.HighAvailabilityMode) == models.ClusterHighAvailabilityModeNone {
 		return models.SupportLevelUnavailable
 	}
 
@@ -75,7 +79,7 @@ func (feature *ClusterManagedNetworkingFeature) GetName() string {
 	return "Cluster Managed Networking"
 }
 
-func (feature *ClusterManagedNetworkingFeature) getSupportLevel(filters SupportLevelFilters) models.SupportLevel {
+func (feature *ClusterManagedNetworkingFeature) getSupportLevel(filters SupportLevelFilters, removeCollidingFeatures bool) models.SupportLevel {
 	if !isFeatureCompatibleWithArchitecture(feature, filters.OpenshiftVersion, swag.StringValue(filters.CPUArchitecture)) {
 		return models.SupportLevelUnavailable
 	}
@@ -84,6 +88,10 @@ func (feature *ClusterManagedNetworkingFeature) getSupportLevel(filters SupportL
 		if isNotAvailable || err != nil {
 			return models.SupportLevelUnavailable
 		}
+	}
+
+	if swag.StringValue(filters.HighAvailabilityMode) == models.ClusterHighAvailabilityModeNone {
+		return models.SupportLevelUnavailable
 	}
 
 	if filters.PlatformType != nil && *filters.PlatformType == models.PlatformTypeOci {
@@ -145,7 +153,7 @@ func (feature *DualStackFeature) GetName() string {
 	return "Dual-Stack"
 }
 
-func (feature *DualStackFeature) getSupportLevel(filters SupportLevelFilters) models.SupportLevel {
+func (feature *DualStackFeature) getSupportLevel(filters SupportLevelFilters, removeCollidingFeatures bool) models.SupportLevel {
 	if !isFeatureCompatibleWithArchitecture(feature, filters.OpenshiftVersion, swag.StringValue(filters.CPUArchitecture)) {
 		return models.SupportLevelUnavailable
 	}
@@ -195,7 +203,7 @@ func (feature *DualStackVipsFeature) GetName() string {
 	return "Dual-Stack VIPs"
 }
 
-func (feature *DualStackVipsFeature) getSupportLevel(filters SupportLevelFilters) models.SupportLevel {
+func (feature *DualStackVipsFeature) getSupportLevel(filters SupportLevelFilters, removeCollidingFeatures bool) models.SupportLevel {
 	if !isFeatureCompatibleWithArchitecture(feature, filters.OpenshiftVersion, swag.StringValue(filters.CPUArchitecture)) {
 		return models.SupportLevelUnavailable
 	}
@@ -247,7 +255,7 @@ func (feature *UserManagedNetworkingFeature) GetName() string {
 	return "User Managed Networking"
 }
 
-func (feature *UserManagedNetworkingFeature) getSupportLevel(filters SupportLevelFilters) models.SupportLevel {
+func (feature *UserManagedNetworkingFeature) getSupportLevel(filters SupportLevelFilters, removeCollidingFeatures bool) models.SupportLevel {
 	if filters.PlatformType != nil && *filters.PlatformType == models.PlatformTypeNutanix {
 		return models.SupportLevelUnavailable
 	}
@@ -306,10 +314,10 @@ func (feature *PlatformManagedNetworkingFeature) GetName() string {
 	return "Platform managed networking"
 }
 
-func (feature *PlatformManagedNetworkingFeature) getSupportLevel(filters SupportLevelFilters) models.SupportLevel {
+func (feature *PlatformManagedNetworkingFeature) getSupportLevel(filters SupportLevelFilters, removeCollidingFeatures bool) models.SupportLevel {
 	// PlatformManagedNetworking is not relevant without platform type - in this case remove disable this feature support-level
-	if !isPlatformSet(filters) {
-		return ""
+	if removeCollidingFeatures && !isPlatformSet(filters) {
+		return supportLevelIgnored
 	}
 
 	if filters.PlatformType != nil && (*filters.PlatformType == models.PlatformTypeOci || *filters.PlatformType == models.PlatformTypeNone) {

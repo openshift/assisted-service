@@ -44,6 +44,10 @@ type GetSupportedFeaturesParams struct {
 	  Default: "x86_64"
 	*/
 	CPUArchitecture *string
+	/*Guaranteed availability of the installed cluster. 'Full' installs a Highly-Available cluster over multiple master nodes whereas 'None' installs a full cluster over one node.
+	  In: query
+	*/
+	HighAvailabilityMode *string
 	/*Version of the OpenShift cluster.
 	  Required: true
 	  In: query
@@ -68,6 +72,11 @@ func (o *GetSupportedFeaturesParams) BindRequest(r *http.Request, route *middlew
 
 	qCPUArchitecture, qhkCPUArchitecture, _ := qs.GetOK("cpu_architecture")
 	if err := o.bindCPUArchitecture(qCPUArchitecture, qhkCPUArchitecture, route.Formats); err != nil {
+		res = append(res, err)
+	}
+
+	qHighAvailabilityMode, qhkHighAvailabilityMode, _ := qs.GetOK("high_availability_mode")
+	if err := o.bindHighAvailabilityMode(qHighAvailabilityMode, qhkHighAvailabilityMode, route.Formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -113,6 +122,38 @@ func (o *GetSupportedFeaturesParams) bindCPUArchitecture(rawData []string, hasKe
 func (o *GetSupportedFeaturesParams) validateCPUArchitecture(formats strfmt.Registry) error {
 
 	if err := validate.EnumCase("cpu_architecture", "query", *o.CPUArchitecture, []interface{}{"x86_64", "aarch64", "arm64", "ppc64le", "s390x", "multi"}, true); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// bindHighAvailabilityMode binds and validates parameter HighAvailabilityMode from query.
+func (o *GetSupportedFeaturesParams) bindHighAvailabilityMode(rawData []string, hasKey bool, formats strfmt.Registry) error {
+	var raw string
+	if len(rawData) > 0 {
+		raw = rawData[len(rawData)-1]
+	}
+
+	// Required: false
+	// AllowEmptyValue: false
+
+	if raw == "" { // empty values pass all other validations
+		return nil
+	}
+	o.HighAvailabilityMode = &raw
+
+	if err := o.validateHighAvailabilityMode(formats); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// validateHighAvailabilityMode carries on validations for parameter HighAvailabilityMode
+func (o *GetSupportedFeaturesParams) validateHighAvailabilityMode(formats strfmt.Registry) error {
+
+	if err := validate.EnumCase("high_availability_mode", "query", *o.HighAvailabilityMode, []interface{}{"Full", "None"}, true); err != nil {
 		return err
 	}
 

@@ -25,6 +25,26 @@ func isPlatformSet(filters SupportLevelFilters) bool {
 	return filters.PlatformType != nil
 }
 
+func getPlatformFeatureByType(platformType *models.PlatformType) SupportLevelFeature {
+	if platformType == nil {
+		return nil
+	}
+
+	switch *platformType {
+	case models.PlatformTypeBaremetal:
+		return featuresList[models.FeatureSupportLevelIDBAREMETALPLATFORM]
+	case models.PlatformTypeNone:
+		return featuresList[models.FeatureSupportLevelIDNONEPLATFORM]
+	case models.PlatformTypeVsphere:
+		return featuresList[models.FeatureSupportLevelIDVSPHEREINTEGRATION]
+	case models.PlatformTypeNutanix:
+		return featuresList[models.FeatureSupportLevelIDNUTANIXINTEGRATION]
+	case models.PlatformTypeOci:
+		return featuresList[models.FeatureSupportLevelIDEXTERNALPLATFORMOCI]
+	}
+	return nil
+}
+
 // BaremetalPlatformFeature
 type BaremetalPlatformFeature struct{}
 
@@ -40,9 +60,13 @@ func (feature *BaremetalPlatformFeature) GetName() string {
 	return "Baremetal Platform Integration"
 }
 
-func (feature *BaremetalPlatformFeature) getSupportLevel(filters SupportLevelFilters) models.SupportLevel {
-	if isPlatformSet(filters) {
-		return ""
+func (feature *BaremetalPlatformFeature) getSupportLevel(filters SupportLevelFilters, removeCollidingFeatures bool) models.SupportLevel {
+	if removeCollidingFeatures && isPlatformSet(filters) {
+		return supportLevelIgnored
+	}
+
+	if filters.HighAvailabilityMode != nil && *filters.HighAvailabilityMode == models.ClusterHighAvailabilityModeNone {
+		return models.SupportLevelUnavailable
 	}
 
 	return models.SupportLevelSupported
@@ -82,9 +106,9 @@ func (feature *NonePlatformFeature) GetName() string {
 	return "None Platform Integration"
 }
 
-func (feature *NonePlatformFeature) getSupportLevel(filters SupportLevelFilters) models.SupportLevel {
-	if isPlatformSet(filters) {
-		return ""
+func (feature *NonePlatformFeature) getSupportLevel(filters SupportLevelFilters, removeCollidingFeatures bool) models.SupportLevel {
+	if removeCollidingFeatures && isPlatformSet(filters) {
+		return supportLevelIgnored
 	}
 
 	return models.SupportLevelSupported
@@ -124,9 +148,9 @@ func (feature *NutanixIntegrationFeature) GetName() string {
 	return "Nutanix Platform Integration"
 }
 
-func (feature *NutanixIntegrationFeature) getSupportLevel(filters SupportLevelFilters) models.SupportLevel {
-	if isPlatformSet(filters) {
-		return ""
+func (feature *NutanixIntegrationFeature) getSupportLevel(filters SupportLevelFilters, removeCollidingFeatures bool) models.SupportLevel {
+	if removeCollidingFeatures && isPlatformSet(filters) {
+		return supportLevelIgnored
 	}
 
 	if !isFeatureCompatibleWithArchitecture(feature, filters.OpenshiftVersion, swag.StringValue(filters.CPUArchitecture)) {
@@ -134,6 +158,10 @@ func (feature *NutanixIntegrationFeature) getSupportLevel(filters SupportLevelFi
 	}
 
 	if isNotSupported, err := common.BaseVersionLessThan("4.11", filters.OpenshiftVersion); isNotSupported || err != nil {
+		return models.SupportLevelUnavailable
+	}
+
+	if swag.StringValue(filters.HighAvailabilityMode) == models.ClusterHighAvailabilityModeNone {
 		return models.SupportLevelUnavailable
 	}
 
@@ -184,12 +212,16 @@ func (feature *VsphereIntegrationFeature) GetName() string {
 	return "vSphere Platform Integration"
 }
 
-func (feature *VsphereIntegrationFeature) getSupportLevel(filters SupportLevelFilters) models.SupportLevel {
-	if isPlatformSet(filters) {
-		return ""
+func (feature *VsphereIntegrationFeature) getSupportLevel(filters SupportLevelFilters, removeCollidingFeatures bool) models.SupportLevel {
+	if removeCollidingFeatures && isPlatformSet(filters) {
+		return supportLevelIgnored
 	}
 
 	if !isFeatureCompatibleWithArchitecture(feature, filters.OpenshiftVersion, swag.StringValue(filters.CPUArchitecture)) {
+		return models.SupportLevelUnavailable
+	}
+
+	if swag.StringValue(filters.HighAvailabilityMode) == models.ClusterHighAvailabilityModeNone {
 		return models.SupportLevelUnavailable
 	}
 
@@ -240,9 +272,9 @@ func (feature *OciIntegrationFeature) GetName() string {
 	return "Oracle Cloud Infrastructure external platform"
 }
 
-func (feature *OciIntegrationFeature) getSupportLevel(filters SupportLevelFilters) models.SupportLevel {
-	if isPlatformSet(filters) {
-		return ""
+func (feature *OciIntegrationFeature) getSupportLevel(filters SupportLevelFilters, removeCollidingFeatures bool) models.SupportLevel {
+	if removeCollidingFeatures && isPlatformSet(filters) {
+		return supportLevelIgnored
 	}
 
 	if !isFeatureCompatibleWithArchitecture(feature, filters.OpenshiftVersion, swag.StringValue(filters.CPUArchitecture)) {

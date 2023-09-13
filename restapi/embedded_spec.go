@@ -5650,6 +5650,16 @@ func init() {
             "description": "The provider platform type.",
             "name": "platform_type",
             "in": "query"
+          },
+          {
+            "enum": [
+              "Full",
+              "None"
+            ],
+            "type": "string",
+            "description": "Guaranteed availability of the installed cluster. 'Full' installs a Highly-Available cluster over multiple master nodes whereas 'None' installs a full cluster over one node.",
+            "name": "high_availability_mode",
+            "in": "query"
           }
         ],
         "responses": {
@@ -15899,6 +15909,16 @@ func init() {
             "type": "string",
             "description": "The provider platform type.",
             "name": "platform_type",
+            "in": "query"
+          },
+          {
+            "enum": [
+              "Full",
+              "None"
+            ],
+            "type": "string",
+            "description": "Guaranteed availability of the installed cluster. 'Full' installs a Highly-Available cluster over multiple master nodes whereas 'None' installs a full cluster over one node.",
+            "name": "high_availability_mode",
             "in": "query"
           }
         ],

@@ -13,9 +13,10 @@ import (
 
 // GetSupportedFeaturesURL generates an URL for the get supported features operation
 type GetSupportedFeaturesURL struct {
-	CPUArchitecture  *string
-	OpenshiftVersion string
-	PlatformType     *string
+	CPUArchitecture      *string
+	HighAvailabilityMode *string
+	OpenshiftVersion     string
+	PlatformType         *string
 
 	_basePath string
 	// avoid unkeyed usage
@@ -57,6 +58,14 @@ func (o *GetSupportedFeaturesURL) Build() (*url.URL, error) {
 	}
 	if cPUArchitectureQ != "" {
 		qs.Set("cpu_architecture", cPUArchitectureQ)
+	}
+
+	var highAvailabilityModeQ string
+	if o.HighAvailabilityMode != nil {
+		highAvailabilityModeQ = *o.HighAvailabilityMode
+	}
+	if highAvailabilityModeQ != "" {
+		qs.Set("high_availability_mode", highAvailabilityModeQ)
 	}
 
 	openshiftVersionQ := o.OpenshiftVersion

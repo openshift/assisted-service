@@ -21,7 +21,7 @@ func (feature *SnoFeature) GetName() string {
 	return "Single Node OpenShift"
 }
 
-func (feature *SnoFeature) getSupportLevel(filters SupportLevelFilters) models.SupportLevel {
+func (feature *SnoFeature) isSnoSupported(filters SupportLevelFilters) models.SupportLevel {
 	if !isFeatureCompatibleWithArchitecture(feature, filters.OpenshiftVersion, swag.StringValue(filters.CPUArchitecture)) {
 		return models.SupportLevelUnavailable
 	}
@@ -38,6 +38,14 @@ func (feature *SnoFeature) getSupportLevel(filters SupportLevelFilters) models.S
 	}
 
 	return models.SupportLevelSupported
+}
+
+func (feature *SnoFeature) getSupportLevel(filters SupportLevelFilters, removeCollidingFeatures bool) models.SupportLevel {
+	if removeCollidingFeatures && filters.HighAvailabilityMode != nil {
+		return supportLevelIgnored
+	}
+
+	return feature.isSnoSupported(filters)
 }
 
 func (feature *SnoFeature) getIncompatibleFeatures(string) *[]models.FeatureSupportLevelID {
@@ -84,7 +92,7 @@ func (feature *CustomManifestFeature) GetName() string {
 	return "Custom Manifest"
 }
 
-func (feature *CustomManifestFeature) getSupportLevel(_ SupportLevelFilters) models.SupportLevel {
+func (feature *CustomManifestFeature) getSupportLevel(_ SupportLevelFilters, removeCollidingFeatures bool) models.SupportLevel {
 	return models.SupportLevelSupported
 }
 
@@ -119,13 +127,13 @@ func (feature *SingleNodeExpansionFeature) GetName() string {
 	return "Single Node Expansion"
 }
 
-func (feature *SingleNodeExpansionFeature) getSupportLevel(filters SupportLevelFilters) models.SupportLevel {
+func (feature *SingleNodeExpansionFeature) getSupportLevel(filters SupportLevelFilters, removeCollidingFeatures bool) models.SupportLevel {
 	isNotSupported, err := common.BaseVersionLessThan("4.11", filters.OpenshiftVersion)
 	if isNotSupported || err != nil {
 		return models.SupportLevelUnavailable
 	}
 
-	return feature.snoFeature.getSupportLevel(filters)
+	return feature.snoFeature.isSnoSupported(filters)
 }
 
 func (feature *SingleNodeExpansionFeature) getFeatureActiveLevel(_ *common.Cluster, _ *models.InfraEnv, _ *models.V2ClusterUpdateParams, _ *models.InfraEnvUpdateParams) featureActiveLevel {
@@ -155,7 +163,7 @@ func (feature *MinimalIso) GetName() string {
 	return "Minimal ISO"
 }
 
-func (feature *MinimalIso) getSupportLevel(filters SupportLevelFilters) models.SupportLevel {
+func (feature *MinimalIso) getSupportLevel(filters SupportLevelFilters, removeCollidingFeatures bool) models.SupportLevel {
 	if !isFeatureCompatibleWithArchitecture(feature, filters.OpenshiftVersion, swag.StringValue(filters.CPUArchitecture)) {
 		return models.SupportLevelUnavailable
 	}
@@ -210,7 +218,7 @@ func (feature *FullIso) GetName() string {
 	return "Full ISO"
 }
 
-func (feature *FullIso) getSupportLevel(filters SupportLevelFilters) models.SupportLevel {
+func (feature *FullIso) getSupportLevel(filters SupportLevelFilters, removeCollidingFeatures bool) models.SupportLevel {
 	if filters.PlatformType != nil && *filters.PlatformType == models.PlatformTypeOci {
 		return models.SupportLevelUnavailable
 	}
