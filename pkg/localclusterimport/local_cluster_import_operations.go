@@ -5,6 +5,8 @@ import (
 
 	configv1 "github.com/openshift/api/config/v1"
 	hiveext "github.com/openshift/assisted-service/api/hiveextension/v1beta1"
+	aiv1beta1 "github.com/openshift/assisted-service/api/v1beta1"
+	"github.com/openshift/assisted-service/internal/controller/controllers"
 	hivev1 "github.com/openshift/hive/apis/hive/v1"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -15,7 +17,6 @@ import (
 
 //go:generate mockgen -source=local_cluster_import_operations.go -package=localclusterimport -destination=local_cluster_import_operations_mocks.go
 type ClusterImportOperations interface {
-	GetAgentClusterInstall(namespace string, name string) (*hiveext.AgentClusterInstall, error)
 	GetNamespace(name string) (*v1.Namespace, error)
 	GetSecret(namespace string, name string) (*v1.Secret, error)
 	GetClusterVersion(name string) (*configv1.ClusterVersion, error)
@@ -23,6 +24,7 @@ type ClusterImportOperations interface {
 	GetNodes() (*v1.NodeList, error)
 	GetNumberOfControlPlaneNodes() (int, error)
 	GetClusterDNS() (*configv1.DNS, error)
+	GetAgentServiceConfig() (*aiv1beta1.AgentServiceConfig, error)
 	CreateAgentClusterInstall(agentClusterInstall *hiveext.AgentClusterInstall) error
 	CreateNamespace(name string) error
 	CreateSecret(namespace string, secret *v1.Secret) error
@@ -41,6 +43,19 @@ func NewLocalClusterImportOperations(apiReader client.Reader, cachedApiClient cl
 	return LocalClusterImportOperations{context: context.TODO(), apiReader: apiReader, cachedApiClient: cachedApiClient, log: log}
 }
 
+func (o *LocalClusterImportOperations) GetAgentServiceConfig() (*aiv1beta1.AgentServiceConfig, error) {
+	agentServiceConfig := &aiv1beta1.AgentServiceConfig{}
+	namespacedName := types.NamespacedName{
+		Namespace: "",
+		Name:      controllers.AgentServiceConfigName,
+	}
+	err := o.apiReader.Get(o.context, namespacedName, agentServiceConfig)
+	if err != nil {
+		return nil, err
+	}
+	return agentServiceConfig, nil
+}
+
 func (o *LocalClusterImportOperations) GetClusterDeployment(namespace string, name string) (*hivev1.ClusterDeployment, error) {
 	clusterDeployment := &hivev1.ClusterDeployment{}
 	namespacedName := types.NamespacedName{
@@ -52,19 +67,6 @@ func (o *LocalClusterImportOperations) GetClusterDeployment(namespace string, na
 		return nil, err
 	}
 	return clusterDeployment, nil
-}
-
-func (o *LocalClusterImportOperations) GetAgentClusterInstall(namespace string, name string) (*hiveext.AgentClusterInstall, error) {
-	agentClusterInstall := &hiveext.AgentClusterInstall{}
-	namespacedName := types.NamespacedName{
-		Namespace: namespace,
-		Name:      name,
-	}
-	err := o.apiReader.Get(o.context, namespacedName, agentClusterInstall)
-	if err != nil {
-		return nil, err
-	}
-	return agentClusterInstall, nil
 }
 
 func (o *LocalClusterImportOperations) GetNamespace(name string) (*v1.Namespace, error) {
