@@ -74,6 +74,11 @@ type GetSupportedFeaturesParams struct {
 	   External platform name when platform type is set to external. The value of this parameter will be ignored if platform_type is not external.
 	*/
 	ExternalPlatformName *string
+	/* HighAvailabilityMode.
+
+	   Guaranteed availability of the installed cluster. 'Full' installs a Highly-Available cluster over multiple master nodes whereas 'None' installs a full cluster over one node.
+	*/
+	HighAvailabilityMode *string
 
 	/* OpenshiftVersion.
 
@@ -162,6 +167,7 @@ func (o *GetSupportedFeaturesParams) SetCPUArchitecture(cPUArchitecture *string)
 	o.CPUArchitecture = cPUArchitecture
 }
 
+<<<<<<< HEAD
 // WithExternalPlatformName adds the externalPlatformName to the get supported features params
 func (o *GetSupportedFeaturesParams) WithExternalPlatformName(externalPlatformName *string) *GetSupportedFeaturesParams {
 	o.SetExternalPlatformName(externalPlatformName)
@@ -171,6 +177,17 @@ func (o *GetSupportedFeaturesParams) WithExternalPlatformName(externalPlatformNa
 // SetExternalPlatformName adds the externalPlatformName to the get supported features params
 func (o *GetSupportedFeaturesParams) SetExternalPlatformName(externalPlatformName *string) {
 	o.ExternalPlatformName = externalPlatformName
+=======
+// WithHighAvailabilityMode adds the highAvailabilityMode to the get supported features params
+func (o *GetSupportedFeaturesParams) WithHighAvailabilityMode(highAvailabilityMode *string) *GetSupportedFeaturesParams {
+	o.SetHighAvailabilityMode(highAvailabilityMode)
+	return o
+}
+
+// SetHighAvailabilityMode adds the highAvailabilityMode to the get supported features params
+func (o *GetSupportedFeaturesParams) SetHighAvailabilityMode(highAvailabilityMode *string) {
+	o.HighAvailabilityMode = highAvailabilityMode
+>>>>>>> db440e81b (MGMT-15736: Align feature support level to support HighAvailabilityMode as filterable feature)
 }
 
 // WithOpenshiftVersion adds the openshiftVersion to the get supported features params
@@ -220,6 +237,7 @@ func (o *GetSupportedFeaturesParams) WriteToRequest(r runtime.ClientRequest, reg
 		}
 	}
 
+<<<<<<< HEAD
 	if o.ExternalPlatformName != nil {
 
 		// query param external_platform_name
@@ -232,6 +250,20 @@ func (o *GetSupportedFeaturesParams) WriteToRequest(r runtime.ClientRequest, reg
 		if qExternalPlatformName != "" {
 
 			if err := r.SetQueryParam("external_platform_name", qExternalPlatformName); err != nil {
+=======
+	if o.HighAvailabilityMode != nil {
+
+		// query param high_availability_mode
+		var qrHighAvailabilityMode string
+
+		if o.HighAvailabilityMode != nil {
+			qrHighAvailabilityMode = *o.HighAvailabilityMode
+		}
+		qHighAvailabilityMode := qrHighAvailabilityMode
+		if qHighAvailabilityMode != "" {
+
+			if err := r.SetQueryParam("high_availability_mode", qHighAvailabilityMode); err != nil {
+>>>>>>> db440e81b (MGMT-15736: Align feature support level to support HighAvailabilityMode as filterable feature)
 				return err
 			}
 		}

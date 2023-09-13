@@ -6,6 +6,7 @@ import (
 	"github.com/go-openapi/swag"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/models"
+	"github.com/openshift/assisted-service/restapi/operations/installer"
 	"github.com/thoas/go-funk"
 )
 
@@ -69,7 +70,7 @@ func removeEmptySupportLevel(supportLevels models.SupportLevels) {
 	var featuresToRemove []string
 
 	for featureId, supportLevel := range supportLevels {
-		if string(supportLevel) == "" {
+		if supportLevel == supportLevelIgnored {
 			featuresToRemove = append(featuresToRemove, featureId)
 		}
 	}
@@ -86,6 +87,7 @@ func GetFeatureSupportList(openshiftVersion string, cpuArchitecture *string, pla
 		CPUArchitecture:      cpuArchitecture,
 		PlatformType:         platformType,
 		ExternalPlatformName: externalPlatformName,
+		HighAvailabilityMode: params.HighAvailabilityMode,
 	}
 
 	if cpuArchitecture == nil {
@@ -104,10 +106,11 @@ func GetFeatureSupportList(openshiftVersion string, cpuArchitecture *string, pla
 
 // IsFeatureAvailable Get the support level of a given feature, cpuArchitecture is optional
 // with default value of x86_64
-func IsFeatureAvailable(featureId models.FeatureSupportLevelID, openshiftVersion string, cpuArchitecture *string) bool {
+func IsFeatureAvailable(featureId models.FeatureSupportLevelID, openshiftVersion string, cpuArchitecture *string, highAvailabilityMode *string) bool {
 	filters := SupportLevelFilters{
-		OpenshiftVersion: openshiftVersion,
-		CPUArchitecture:  cpuArchitecture,
+		OpenshiftVersion:     openshiftVersion,
+		CPUArchitecture:      cpuArchitecture,
+		HighAvailabilityMode: highAvailabilityMode,
 	}
 
 	if cpuArchitecture == nil {
@@ -142,10 +145,10 @@ func isFeaturesCompatibleWithFeatures(openshiftVersion string, activatedFeatures
 }
 
 // isFeaturesCompatible Determine if feature is compatible with CPU architecture in a given openshift-version
-func isFeaturesCompatible(openshiftVersion, cpuArchitecture string, activatedFeatures []SupportLevelFeature) error {
+func isFeaturesCompatible(openshiftVersion, cpuArchitecture string, highAvailabilityMode *string, activatedFeatures []SupportLevelFeature) error {
 	for _, feature := range activatedFeatures {
 		if !isFeatureCompatibleWithArchitecture(feature, openshiftVersion, cpuArchitecture) ||
-			!IsFeatureAvailable(feature.getId(), openshiftVersion, swag.String(cpuArchitecture)) {
+			!IsFeatureAvailable(feature.getId(), openshiftVersion, swag.String(cpuArchitecture), highAvailabilityMode) {
 			return fmt.Errorf("cannot use %s because it's not compatible with the %s architecture "+
 				"on version %s of OpenShift", feature.GetName(), cpuArchitecture, openshiftVersion)
 		}

@@ -1600,7 +1600,7 @@ func (b *bareMetalInventory) GetClusterSupportedPlatformsInternal(
 	var supportedPlatforms []models.PlatformType
 	for _, platformType := range hostsSupportedPlatforms {
 		featureId := provider.GetPlatformFeatureID(platformType)
-		if featureId == "" || featuresupport.IsFeatureAvailable(featureId, cluster.OpenshiftVersion, &cluster.CPUArchitecture) {
+		if featureId == "" || featuresupport.IsFeatureAvailable(featureId, cluster.OpenshiftVersion, &cluster.CPUArchitecture, cluster.HighAvailabilityMode) {
 			supportedPlatforms = append(supportedPlatforms, platformType)
 		} else {
 			b.log.Debugf("The platform %s was removed from cluster %s supported-platforms because it is not compatible with "+
@@ -1622,6 +1622,16 @@ func (b *bareMetalInventory) GetClusterSupportedPlatforms(ctx context.Context, p
 
 func (b *bareMetalInventory) GetFeatureSupportLevelListInternal(_ context.Context, params installer.GetSupportedFeaturesParams) (models.SupportLevels, error) {
 	return featuresupport.GetFeatureSupportList(params.OpenshiftVersion, params.CPUArchitecture, (*models.PlatformType)(params.PlatformType), params.ExternalPlatformName), nil
+}
+
+func (b *bareMetalInventory) GetFeatureSupportLevelListInternal(_ context.Context, params installer.GetSupportedFeaturesParams) (models.SupportLevels, error) {
+	supportLevelFilters := featuresupport.SupportLevelFilters{
+		OpenshiftVersion:     params.OpenshiftVersion,
+		CPUArchitecture:      params.CPUArchitecture,
+		PlatformType:         (*models.PlatformType)(params.PlatformType),
+		HighAvailabilityMode: params.HighAvailabilityMode,
+	}
+	return featuresupport.GetFeatureSupportList(supportLevelFilters), nil
 }
 
 func (b *bareMetalInventory) GetArchitecturesSupportLevelListInternal(_ context.Context, params installer.GetSupportedArchitecturesParams) (models.SupportLevels, error) {
@@ -1742,7 +1752,7 @@ func (b *bareMetalInventory) generateClusterInstallConfig(ctx context.Context, c
 	}
 
 	installerReleaseImageOverride := ""
-	if isBaremetalBinaryFromAnotherReleaseImageRequired(cluster.CPUArchitecture, cluster.OpenshiftVersion) {
+	if isBaremetalBinaryFromAnotherReleaseImageRequired(cluster) {
 		defaultArchImage, err := b.versionsHandler.GetReleaseImage(ctx, cluster.OpenshiftVersion, common.DefaultCPUArchitecture, cluster.PullSecret)
 		if err != nil {
 			msg := fmt.Sprintf("failed to get image for installer image override "+
@@ -2584,7 +2594,7 @@ func (b *bareMetalInventory) updateNetworkParams(params installer.V2UpdateCluste
 	if params.ClusterUpdateParams.UserManagedNetworking != nil && swag.BoolValue(params.ClusterUpdateParams.UserManagedNetworking) != userManagedNetworking {
 		if !swag.BoolValue(params.ClusterUpdateParams.UserManagedNetworking) &&
 			(cluster.CPUArchitecture != common.DefaultCPUArchitecture &&
-				!featuresupport.IsFeatureAvailable(models.FeatureSupportLevelIDCLUSTERMANAGEDNETWORKING, cluster.OpenshiftVersion, swag.String(cluster.CPUArchitecture))) {
+				!featuresupport.IsFeatureAvailable(models.FeatureSupportLevelIDCLUSTERMANAGEDNETWORKING, cluster.OpenshiftVersion, swag.String(cluster.CPUArchitecture), cluster.HighAvailabilityMode)) {
 			err = errors.Errorf("disabling User Managed Networking is not allowed for clusters with non-x86_64 CPU architecture")
 			return common.NewApiError(http.StatusBadRequest, err)
 		}
@@ -6368,10 +6378,11 @@ func (b *bareMetalInventory) GetKnownApprovedHosts(clusterId strfmt.UUID) ([]*co
 // This flow does not affect the multiarch release images and is meant purely for using arm64 release image with the x86 hub.
 // Implementation of handling the multiarch images is done directly in the `oc` binary and relies on the fact that `oc adm release extract`
 // will automatically use the image matching the Hub's architecture.
-func isBaremetalBinaryFromAnotherReleaseImageRequired(cpuArchitecture, version string) bool {
-	return cpuArchitecture != common.MultiCPUArchitecture &&
-		cpuArchitecture != common.NormalizeCPUArchitecture(runtime.GOARCH) &&
-		featuresupport.IsFeatureAvailable(models.FeatureSupportLevelIDCLUSTERMANAGEDNETWORKING, version, swag.String(models.ClusterCPUArchitectureArm64))
+func isBaremetalBinaryFromAnotherReleaseImageRequired(cluster common.Cluster) bool {
+	return cluster.CPUArchitecture != common.MultiCPUArchitecture &&
+		cluster.CPUArchitecture != common.NormalizeCPUArchitecture(runtime.GOARCH) &&
+		featuresupport.IsFeatureAvailable(models.FeatureSupportLevelIDCLUSTERMANAGEDNETWORKING, cluster.OpenshiftVersion,
+			swag.String(models.ClusterCPUArchitectureArm64), cluster.HighAvailabilityMode)
 }
 
 // updateMonitoredOperators checks the content of the installer configuration and updates the list
