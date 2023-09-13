@@ -16,7 +16,7 @@ type SupportLevelFeature interface {
 	New() SupportLevelFeature
 	// getId - Get SupportLevelFeature unique ID
 	getId() models.FeatureSupportLevelID
-	// GetName - Get SupportLevelFeature user friendly name
+	// GetName - Get SupportLevelFeature user-friendly name
 	GetName() string
 	// getSupportLevel - Get feature support-level value, filtered by given filters (e.g. OpenshiftVersion, CpuArchitecture)
 	getSupportLevel(filters SupportLevelFilters) models.SupportLevel
@@ -33,6 +33,7 @@ type SupportLevelFilters struct {
 	CPUArchitecture      *string
 	PlatformType         *models.PlatformType
 	ExternalPlatformName *string
+	HighAvailabilityMode *string
 }
 
 type featureActiveLevel string

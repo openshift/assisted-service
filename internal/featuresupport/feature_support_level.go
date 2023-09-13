@@ -80,19 +80,16 @@ func removeEmptySupportLevel(supportLevels models.SupportLevels) {
 }
 
 // GetFeatureSupportList Get features support level list, cpuArchitecture is optional and the default value is x86
-func GetFeatureSupportList(openshiftVersion string, cpuArchitecture *string, platformType *models.PlatformType, externalPlatformName *string) models.SupportLevels {
-	filters := SupportLevelFilters{
-		OpenshiftVersion:     openshiftVersion,
-		CPUArchitecture:      cpuArchitecture,
-		PlatformType:         platformType,
-		ExternalPlatformName: externalPlatformName,
-	}
-
-	if cpuArchitecture == nil {
+func GetFeatureSupportList(filters SupportLevelFilters) models.SupportLevels {
+	if filters.CPUArchitecture == nil {
 		filters.CPUArchitecture = swag.String(common.DefaultCPUArchitecture)
 	}
-	featuresSupportList := overrideInvalidRequest(featuresList, *filters.CPUArchitecture, openshiftVersion)
+
+	featuresSupportList := overrideInvalidRequest(featuresList, swag.StringValue(filters.CPUArchitecture), filters.OpenshiftVersion)
 	if featuresSupportList == nil {
+		if filters.HighAvailabilityMode == nil {
+			filters.HighAvailabilityMode = swag.String("")
+		}
 		featuresSupportList = getFeatureSupportList(featuresList, filters)
 	}
 
@@ -104,10 +101,14 @@ func GetFeatureSupportList(openshiftVersion string, cpuArchitecture *string, pla
 
 // IsFeatureAvailable Get the support level of a given feature, cpuArchitecture is optional
 // with default value of x86_64
-func IsFeatureAvailable(featureId models.FeatureSupportLevelID, openshiftVersion string, cpuArchitecture *string) bool {
+func IsFeatureAvailable(featureId models.FeatureSupportLevelID, openshiftVersion string, cpuArchitecture *string, highAvailabilityMode *string) bool {
+	if highAvailabilityMode == nil {
+		highAvailabilityMode = swag.String("")
+	}
 	filters := SupportLevelFilters{
-		OpenshiftVersion: openshiftVersion,
-		CPUArchitecture:  cpuArchitecture,
+		OpenshiftVersion:     openshiftVersion,
+		CPUArchitecture:      cpuArchitecture,
+		HighAvailabilityMode: highAvailabilityMode,
 	}
 
 	if cpuArchitecture == nil {
@@ -142,10 +143,10 @@ func isFeaturesCompatibleWithFeatures(openshiftVersion string, activatedFeatures
 }
 
 // isFeaturesCompatible Determine if feature is compatible with CPU architecture in a given openshift-version
-func isFeaturesCompatible(openshiftVersion, cpuArchitecture string, activatedFeatures []SupportLevelFeature) error {
+func isFeaturesCompatible(openshiftVersion, cpuArchitecture string, highAvailabilityMode *string, activatedFeatures []SupportLevelFeature) error {
 	for _, feature := range activatedFeatures {
 		if !isFeatureCompatibleWithArchitecture(feature, openshiftVersion, cpuArchitecture) ||
-			!IsFeatureAvailable(feature.getId(), openshiftVersion, swag.String(cpuArchitecture)) {
+			!IsFeatureAvailable(feature.getId(), openshiftVersion, swag.String(cpuArchitecture), highAvailabilityMode) {
 			return fmt.Errorf("cannot use %s because it's not compatible with the %s architecture "+
 				"on version %s of OpenShift", feature.GetName(), cpuArchitecture, openshiftVersion)
 		}

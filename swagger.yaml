@@ -3720,6 +3720,11 @@ paths:
           name: external_platform_name
           description: External platform name when platform type is set to external. The value of this parameter will be ignored if platform_type is not external.
           type: string
+        - in: query
+          name: high_availability_mode
+          type: string
+          enum: [ 'Full', 'None' ]
+          description: Guaranteed availability of the installed cluster. 'Full' installs a Highly-Available cluster over multiple master nodes whereas 'None' installs a full cluster over one node.
       responses:
         "200":
           description: Success.

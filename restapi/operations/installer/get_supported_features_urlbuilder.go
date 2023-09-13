@@ -15,6 +15,7 @@ import (
 type GetSupportedFeaturesURL struct {
 	CPUArchitecture      *string
 	ExternalPlatformName *string
+	HighAvailabilityMode *string
 	OpenshiftVersion     string
 	PlatformType         *string
 
@@ -66,6 +67,14 @@ func (o *GetSupportedFeaturesURL) Build() (*url.URL, error) {
 	}
 	if externalPlatformNameQ != "" {
 		qs.Set("external_platform_name", externalPlatformNameQ)
+	}
+
+	var highAvailabilityModeQ string
+	if o.HighAvailabilityMode != nil {
+		highAvailabilityModeQ = *o.HighAvailabilityMode
+	}
+	if highAvailabilityModeQ != "" {
+		qs.Set("high_availability_mode", highAvailabilityModeQ)
 	}
 
 	openshiftVersionQ := o.OpenshiftVersion

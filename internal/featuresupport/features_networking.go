@@ -7,6 +7,7 @@ import (
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/network"
 	"github.com/openshift/assisted-service/models"
+	"k8s.io/utils/strings/slices"
 )
 
 // VipAutoAllocFeature
@@ -25,9 +26,20 @@ func (feature *VipAutoAllocFeature) GetName() string {
 }
 
 func (feature *VipAutoAllocFeature) getSupportLevel(filters SupportLevelFilters) models.SupportLevel {
-	if filters.PlatformType != nil && *filters.PlatformType == models.PlatformTypeExternal {
+	unavailablePlatform := []string{
+		string(models.PlatformTypeExternal),
+		string(models.PlatformTypeNone),
+	}
+	if filters.PlatformType != nil && slices.Contains(
+		unavailablePlatform, string(*filters.PlatformType)) {
 		return models.SupportLevelUnavailable
 	}
+	if filters.HighAvailabilityMode != nil {
+		if *filters.HighAvailabilityMode == models.ClusterHighAvailabilityModeNone {
+			return models.SupportLevelUnavailable
+		}
+	}
+
 	if openshiftVersionLessThan("4.15", filters.OpenshiftVersion) {
 		return models.SupportLevelDevPreview
 	}
@@ -81,6 +93,9 @@ func (feature *ClusterManagedNetworkingFeature) GetName() string {
 
 func (feature *ClusterManagedNetworkingFeature) getSupportLevel(filters SupportLevelFilters) models.SupportLevel {
 	if !isFeatureCompatibleWithArchitecture(feature, filters.OpenshiftVersion, swag.StringValue(filters.CPUArchitecture)) {
+		return models.SupportLevelUnavailable
+	}
+	if *filters.HighAvailabilityMode == models.ClusterHighAvailabilityModeNone {
 		return models.SupportLevelUnavailable
 	}
 	if swag.StringValue(filters.CPUArchitecture) == models.ClusterCPUArchitectureArm64 {

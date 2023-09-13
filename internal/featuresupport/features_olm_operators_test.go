@@ -11,7 +11,7 @@ import (
 )
 
 var _ = Describe("V2ListFeatureSupportLevels API", func() {
-	lVMavailableVersions := []string{"4.11", "4.12", "4.13", "4.14", "4.15"}
+	lVMavailableVersions := []string{"4.11", "4.12", "4.13", "4.14", "4.15", "4.16", "4.30"}
 	unspportedLVMVersions := []string{"4.10", "4.9", "4.8", "4.7", "4.6"}
 
 	Context("Test LVM/Nutanix are not supported under 4.11", func() {
@@ -20,14 +20,13 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 			feature := f
 			It(fmt.Sprintf("%s test", feature), func() {
 				for _, version := range unspportedLVMVersions {
-					Expect(IsFeatureAvailable(feature, version, nil)).To(BeFalse())
+					Expect(IsFeatureAvailable(feature, version, nil, nil)).To(BeFalse(),
+						fmt.Sprintf("feature %v, should be False on version %v", feature, version))
 				}
 				for _, version := range lVMavailableVersions {
-					Expect(IsFeatureAvailable(feature, version, nil)).To(BeTrue())
+					Expect(IsFeatureAvailable(feature, version, nil, nil)).To(BeTrue(),
+						fmt.Sprintf("feature %v, should be True on version %v", feature, version))
 				}
-				// feature test
-				Expect(IsFeatureAvailable(feature, "4.30", nil)).To(BeTrue())
-
 			})
 		}
 	})
@@ -46,10 +45,10 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 				models.ClusterCPUArchitecturePpc64le,
 			}
 			for _, arch := range supportedCpuArch {
-				Expect(IsFeatureAvailable(feature, "4.11", swag.String(arch))).To(BeTrue())
+				Expect(IsFeatureAvailable(feature, "4.11", swag.String(arch), nil)).To(BeTrue())
 			}
 			for _, arch := range notSupportedCpuArch {
-				Expect(IsFeatureAvailable(feature, "4.11", swag.String(arch))).To(BeFalse())
+				Expect(IsFeatureAvailable(feature, "4.11", swag.String(arch), nil)).To(BeFalse())
 			}
 		})
 		It("Validate Feature Support for LVM", func() {
@@ -100,12 +99,17 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 
 			for _, test := range tests {
 
-				featureSupportParams := SupportLevelFilters{OpenshiftVersion: test.version, CPUArchitecture: nil, PlatformType: test.platform}
+				featureSupportParams := SupportLevelFilters{
+					OpenshiftVersion: test.version,
+					CPUArchitecture:  nil,
+					PlatformType:     test.platform,
+					// HighAvailabilityMode: avilabilityMode,
+				}
 				resultSupportLevel := GetSupportLevel(feature, featureSupportParams)
 				Expect(fmt.Sprintf("id: %d, result: %s", test.id, resultSupportLevel)).To(Equal(fmt.Sprintf("id: %d, result: %s", test.id, test.expected)))
 			}
 		})
-		It("Validate Compacompatible Features", func() {
+		It("Validate Compatible Features", func() {
 			incompatibleFeatures := make(map[string]*[]models.FeatureSupportLevelID)
 
 			incompatibleFeatures["4.11"] = &[]models.FeatureSupportLevelID{
@@ -183,37 +187,32 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 	})
 
 	Context("Test feature support levels for Nutanix platform", func() {
-		It("CNV should be unavailable", func() {
-			featureSupportLevels := GetFeatureSupportList(
-				"4.14",
-				swag.String(common.X86CPUArchitecture),
-				common.PlatformTypePtr(models.PlatformTypeNutanix),
-				nil,
-			)
+		featureFilter := SupportLevelFilters{
+			OpenshiftVersion: "4.14",
+			CPUArchitecture:  swag.String(common.X86CPUArchitecture),
+		}
 
-			Expect(featureSupportLevels[string(models.FeatureSupportLevelIDCNV)]).To(Equal(models.SupportLevelUnavailable))
+		It("CNV should be unavailable", func() {
+			featureFilter.PlatformType = common.PlatformTypePtr(models.PlatformTypeNutanix)
+			featureSupportLevels := GetFeatureSupportList(featureFilter)
+
+			Expect(featureSupportLevels[string(models.FeatureSupportLevelIDCNV)]).To(Equal(models.SupportLevelUnavailable),
+				fmt.Sprintf("CNV unavailable on Nutanix in %v", featureFilter.HighAvailabilityMode))
+
+			featureSupportLevels = GetFeatureSupportList(featureFilter)
+
+			Expect(featureSupportLevels[string(models.FeatureSupportLevelIDCNV)]).To(Equal(models.SupportLevelUnavailable),
+				fmt.Sprintf("CNV unavailable on Nutanix in %v", featureFilter.HighAvailabilityMode))
 		})
 
 		It("MCE should be unavailable", func() {
-			featureSupportLevels := GetFeatureSupportList(
-				"4.14",
-				swag.String(common.X86CPUArchitecture),
-				common.PlatformTypePtr(models.PlatformTypeNutanix),
-				nil,
-			)
-
+			featureSupportLevels := GetFeatureSupportList(featureFilter)
 			Expect(featureSupportLevels[string(models.FeatureSupportLevelIDMCE)]).To(Equal(models.SupportLevelUnavailable))
 		})
-	})
 
-	Context("Test feature support levels for Vsphere platform", func() {
 		It("CNV should be unavailable", func() {
-			featureSupportLevels := GetFeatureSupportList(
-				"4.14",
-				swag.String(common.X86CPUArchitecture),
-				common.PlatformTypePtr(models.PlatformTypeVsphere),
-				nil,
-			)
+			featureFilter.PlatformType = common.PlatformTypePtr(models.PlatformTypeVsphere)
+			featureSupportLevels := GetFeatureSupportList(featureFilter)
 
 			Expect(featureSupportLevels[string(models.FeatureSupportLevelIDCNV)]).To(Equal(models.SupportLevelUnavailable))
 		})

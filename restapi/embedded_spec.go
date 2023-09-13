@@ -5859,6 +5859,16 @@ func init() {
             "description": "External platform name when platform type is set to external. The value of this parameter will be ignored if platform_type is not external.",
             "name": "external_platform_name",
             "in": "query"
+          },
+          {
+            "enum": [
+              "Full",
+              "None"
+            ],
+            "type": "string",
+            "description": "Guaranteed availability of the installed cluster. 'Full' installs a Highly-Available cluster over multiple master nodes whereas 'None' installs a full cluster over one node.",
+            "name": "high_availability_mode",
+            "in": "query"
           }
         ],
         "responses": {
@@ -16525,6 +16535,16 @@ func init() {
             "type": "string",
             "description": "External platform name when platform type is set to external. The value of this parameter will be ignored if platform_type is not external.",
             "name": "external_platform_name",
+            "in": "query"
+          },
+          {
+            "enum": [
+              "Full",
+              "None"
+            ],
+            "type": "string",
+            "description": "Guaranteed availability of the installed cluster. 'Full' installs a Highly-Available cluster over multiple master nodes whereas 'None' installs a full cluster over one node.",
+            "name": "high_availability_mode",
             "in": "query"
           }
         ],
