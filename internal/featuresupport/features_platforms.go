@@ -155,6 +155,11 @@ func (feature *NutanixIntegrationFeature) getSupportLevel(filters SupportLevelFi
 	if !isFeatureCompatibleWithArchitecture(feature, filters.OpenshiftVersion, swag.StringValue(filters.CPUArchitecture)) {
 		return models.SupportLevelUnavailable
 	}
+	if filters.HighAvailabilityMode != nil {
+		if *filters.HighAvailabilityMode == models.ClusterHighAvailabilityModeNone {
+			return models.SupportLevelUnavailable
+		}
+	}
 
 	if isNotSupported, err := common.BaseVersionLessThan("4.11", filters.OpenshiftVersion); isNotSupported || err != nil {
 		return models.SupportLevelUnavailable
@@ -215,6 +220,12 @@ func (feature *VsphereIntegrationFeature) getSupportLevel(filters SupportLevelFi
 
 	if !isFeatureCompatibleWithArchitecture(feature, filters.OpenshiftVersion, swag.StringValue(filters.CPUArchitecture)) {
 		return models.SupportLevelUnavailable
+	}
+
+	if filters.HighAvailabilityMode != nil {
+		if *filters.HighAvailabilityMode == models.ClusterHighAvailabilityModeNone {
+			return models.SupportLevelUnavailable
+		}
 	}
 
 	return models.SupportLevelSupported
