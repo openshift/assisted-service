@@ -11,6 +11,7 @@ import (
 	"github.com/google/uuid"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	configv1 "github.com/openshift/api/config/v1"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/installcfg"
 	"github.com/openshift/assisted-service/internal/provider/vsphere"
@@ -395,8 +396,8 @@ var _ = Describe("Test AddPlatformToInstallConfig", func() {
 		})
 	})
 
-	Context("external", func() {
-		It("should set platform to none", func() {
+	Context("oci", func() {
+		It("should set platform to none and featureset to TechPreviewNoUpgrade", func() {
 			cfg := getInstallerConfigBaremetal()
 			hosts := make([]*models.Host, 0)
 			hosts = append(hosts, createHost(true, models.HostStatusKnown, getBaremetalInventoryStr("hostname0", "bootMode", true, false)))
@@ -405,9 +406,10 @@ var _ = Describe("Test AddPlatformToInstallConfig", func() {
 			hosts = append(hosts, createHost(false, models.HostStatusKnown, getBaremetalInventoryStr("hostname3", "bootMode", true, false)))
 			hosts = append(hosts, createHost(false, models.HostStatusKnown, getBaremetalInventoryStr("hostname4", "bootMode", true, false)))
 			cluster := createClusterFromHosts(hosts)
-			err := providerRegistry.AddPlatformToInstallConfig(models.PlatformTypeNone, &cfg, &cluster)
+			err := providerRegistry.AddPlatformToInstallConfig(models.PlatformTypeOci, &cfg, &cluster)
 			Expect(err).To(BeNil())
 			Expect(cfg.Platform.None).ToNot(BeNil())
+			Expect(cfg.FeatureSet).To(Equal(configv1.TechPreviewNoUpgrade))
 		})
 	})
 })
