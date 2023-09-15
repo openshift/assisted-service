@@ -23,6 +23,7 @@ export CLUSTER_HOST_PREFIX="${CLUSTER_HOST_PREFIX_V4}"
 export EXTERNAL_SUBNET="${EXTERNAL_SUBNET_V4}"
 export SERVICE_SUBNET="${SERVICE_SUBNET_V4}"
 export PUBLIC_CONTAINER_REGISTRIES="${PUBLIC_CONTAINER_REGISTRIES:-quay.io}"
+export EXTRA_HYPERSHIFT_INSTALL_FLAGS="${EXTRA_HYPERSHIFT_INSTALL_FLAGS}"
 
 set -o nounset
 set -o pipefail
@@ -51,7 +52,7 @@ oc get namespace "${HYPERSHIFT_AGENT_NS}" || oc create namespace "${HYPERSHIFT_A
 oc patch storageclass assisted-service -p '{"metadata": {"annotations":{"storageclass.kubernetes.io/is-default-class":"true"}}}'
 
 echo "Installing HyperShift using upstream image"
-hypershift install --hypershift-image $HYPERSHIFT_IMAGE --namespace hypershift
+hypershift install --hypershift-image $HYPERSHIFT_IMAGE --namespace hypershift $EXTRA_HYPERSHIFT_INSTALL_FLAGS
 wait_for_pods "hypershift"
 
 echo "Creating HostedCluster"
