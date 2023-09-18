@@ -585,6 +585,57 @@ invalid YAML content: {
 	})
 
 	Context("V2ListClusterManifests", func() {
+
+		It("should not filter system manifests if requested to show all", func() {
+			manifests := []models.Manifest{
+				{
+					FileName: "file-1.yaml",
+					Folder:   validFolder,
+				},
+				{
+					FileName: "file-2.yaml",
+					Folder:   defaultFolder,
+				},
+				{
+					FileName: "file-3.yaml",
+					Folder:   defaultFolder,
+				},
+			}
+
+			clusterID := registerCluster().ID
+			files := make([]string, 0)
+
+			mockUpload(len(manifests))
+
+			manifestMetadataPrefix := filepath.Join(clusterID.String(), "manifest-attributes")
+			for _, file := range manifests {
+				mockS3Client.EXPECT().DoesObjectExist(ctx, filepath.Join(clusterID.String(), constants.ManifestFolder, "openshift", file.FileName)).Return(false, nil).AnyTimes()
+				mockS3Client.EXPECT().DoesObjectExist(ctx, filepath.Join(clusterID.String(), constants.ManifestFolder, "manifests", file.FileName)).Return(false, nil).AnyTimes()
+				files = append(files, getObjectName(clusterID, file.Folder, file.FileName))
+				addManifestToCluster(clusterID, contentYaml, file.FileName, file.Folder)
+				if file.FileName == "file-2.yaml" {
+					mockS3Client.EXPECT().DoesObjectExist(ctx, filepath.Join(manifestMetadataPrefix, file.Folder, file.FileName, constants.ManifestSourceUserSupplied)).Return(false, nil).Times(1)
+				} else {
+					mockS3Client.EXPECT().DoesObjectExist(ctx, filepath.Join(manifestMetadataPrefix, file.Folder, file.FileName, constants.ManifestSourceUserSupplied)).Return(true, nil).Times(1)
+				}
+			}
+			mockListByPrefix(clusterID, files)
+
+			includeSystemGenerated := true
+			response := manifestsAPI.V2ListClusterManifests(ctx, operations.V2ListClusterManifestsParams{
+				ClusterID:              *clusterID,
+				IncludeSystemGenerated: &includeSystemGenerated,
+			})
+			Expect(response).Should(BeAssignableToTypeOf(operations.NewV2ListClusterManifestsOK()))
+			responsePayload := response.(*operations.V2ListClusterManifestsOK)
+			Expect(responsePayload.Payload).ShouldNot(BeNil())
+			Expect(len(responsePayload.Payload)).To(Equal(len(manifests)))
+
+			for i := range manifests {
+				Expect(manifests).To(ContainElement(*responsePayload.Payload[i]))
+			}
+		})
+
 		It("lists manifest from different folders", func() {
 			manifests := []models.Manifest{
 				{
@@ -1159,6 +1210,42 @@ invalid YAML content: {
 	})
 
 	Describe("ListClusterManifestsInternal", func() {
+
+		It("Should list both system generated and user manifests if IncludeSystemGenerated is true", func() {
+			clusterId := registerCluster().ID
+			manifests := []string{
+				filepath.Join(clusterId.String(), constants.ManifestFolder, "openshift", "system-generated-manifest.yaml"),
+				filepath.Join(clusterId.String(), constants.ManifestFolder, "openshift", "user-generated-manifest.yaml"),
+			}
+			objectName := filepath.Join(clusterId.String(), constants.ManifestFolder)
+			mockS3Client.EXPECT().ListObjectsByPrefix(ctx, objectName).Return(manifests, nil).Times(1)
+			mockS3Client.EXPECT().DoesObjectExist(
+				ctx,
+				filepath.Join(
+					clusterId.String(),
+					constants.ManifestMetadataFolder,
+					"openshift",
+					"system-generated-manifest.yaml", "user-supplied")).Return(false, nil).Times(1)
+			mockS3Client.EXPECT().DoesObjectExist(
+				ctx,
+				filepath.Join(
+					clusterId.String(),
+					constants.ManifestMetadataFolder,
+					"openshift",
+					"user-generated-manifest.yaml", "user-supplied")).Return(true, nil).Times(1)
+			includeSystemGenerated := true
+			listedManifests, err := manifestsAPI.ListClusterManifestsInternal(ctx, operations.V2ListClusterManifestsParams{
+				ClusterID:              *clusterId,
+				IncludeSystemGenerated: &includeSystemGenerated,
+			})
+			Expect(err).NotTo(HaveOccurred())
+			Expect(len(listedManifests)).To(Equal(2))
+			Expect(listedManifests[0].Folder).To(Equal("openshift"))
+			Expect(listedManifests[0].FileName).To(Equal("system-generated-manifest.yaml"))
+			Expect(listedManifests[1].Folder).To(Equal("openshift"))
+			Expect(listedManifests[1].FileName).To(Equal("user-generated-manifest.yaml"))
+		})
+
 		It("Should be able to list only user manifests if user and non user manifests are present", func() {
 			clusterId := registerCluster().ID
 			manifests := []string{
@@ -1181,8 +1268,10 @@ invalid YAML content: {
 					constants.ManifestMetadataFolder,
 					"openshift",
 					"user-generated-manifest.yaml", "user-supplied")).Return(true, nil).Times(1)
+			includeSystemGenerated := false
 			listedManifests, err := manifestsAPI.ListClusterManifestsInternal(ctx, operations.V2ListClusterManifestsParams{
-				ClusterID: *clusterId,
+				ClusterID:              *clusterId,
+				IncludeSystemGenerated: &includeSystemGenerated,
 			})
 			Expect(err).NotTo(HaveOccurred())
 			Expect(len(listedManifests)).To(Equal(1))

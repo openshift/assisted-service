@@ -12,11 +12,14 @@ import (
 	"strings"
 
 	"github.com/go-openapi/strfmt"
+	"github.com/go-openapi/swag"
 )
 
 // V2ListClusterManifestsURL generates an URL for the v2 list cluster manifests operation
 type V2ListClusterManifestsURL struct {
 	ClusterID strfmt.UUID
+
+	IncludeSystemGenerated *bool
 
 	_basePath string
 	// avoid unkeyed usage
@@ -56,6 +59,18 @@ func (o *V2ListClusterManifestsURL) Build() (*url.URL, error) {
 		_basePath = "/api/assisted-install"
 	}
 	_result.Path = golangswaggerpaths.Join(_basePath, _path)
+
+	qs := make(url.Values)
+
+	var includeSystemGeneratedQ string
+	if o.IncludeSystemGenerated != nil {
+		includeSystemGeneratedQ = swag.FormatBool(*o.IncludeSystemGenerated)
+	}
+	if includeSystemGeneratedQ != "" {
+		qs.Set("include_system_generated", includeSystemGeneratedQ)
+	}
+
+	_result.RawQuery = qs.Encode()
 
 	return &_result, nil
 }

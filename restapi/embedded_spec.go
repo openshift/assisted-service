@@ -2038,6 +2038,13 @@ func init() {
             "name": "cluster_id",
             "in": "path",
             "required": true
+          },
+          {
+            "type": "boolean",
+            "default": false,
+            "description": "Include system generated manifests in results? Default is false.",
+            "name": "include_system_generated",
+            "in": "query"
           }
         ],
         "responses": {
@@ -12283,6 +12290,13 @@ func init() {
             "name": "cluster_id",
             "in": "path",
             "required": true
+          },
+          {
+            "type": "boolean",
+            "default": false,
+            "description": "Include system generated manifests in results? Default is false.",
+            "name": "include_system_generated",
+            "in": "query"
           }
         ],
         "responses": {
