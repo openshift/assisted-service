@@ -259,6 +259,12 @@ rules:
   verbs:
   - create
 - apiGroups:
+  - cluster.open-cluster-management.io
+  resources:
+  - managedclustersets/join
+  verbs:
+  - create
+- apiGroups:
   - config.openshift.io
   resources:
   - clusteroperators

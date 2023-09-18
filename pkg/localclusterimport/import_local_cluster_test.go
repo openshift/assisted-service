@@ -12,6 +12,7 @@ import (
 	. "github.com/onsi/gomega"
 	configv1 "github.com/openshift/api/config/v1"
 	hiveext "github.com/openshift/assisted-service/api/hiveextension/v1beta1"
+	aiv1beta1 "github.com/openshift/assisted-service/api/v1beta1"
 	hivev1 "github.com/openshift/hive/apis/hive/v1"
 	"github.com/openshift/hive/apis/hive/v1/agent"
 	"github.com/sirupsen/logrus"
@@ -32,7 +33,7 @@ var _ = Describe("ImportLocalCluster", func() {
 		nodeConfigsKubeConfig   string
 		pullSecret              []byte
 		pullSecretBase64Encoded []byte
-		agentClusterInstallUID  types.UID
+		agentServiceConfigUID   types.UID
 		releaseImage            string
 		localClusterNamespace   string
 	)
@@ -49,10 +50,22 @@ var _ = Describe("ImportLocalCluster", func() {
 		// The final layer needs to be encoded/decoded
 		pullSecret = []byte("pullSecret")
 		pullSecretBase64Encoded = []byte(base64.StdEncoding.EncodeToString(pullSecret))
-		agentClusterInstallUID = types.UID(uuid.NewString())
+		agentServiceConfigUID = types.UID(uuid.NewString())
 		releaseImage = "quay.io/openshift-release-dev/ocp-release@sha256:a266d3d65c433b460cdef7ab5d6531580f5391adbe85d9c475208a56452e4c0b"
 
 	})
+
+	var mockGetAgentServiceConfig = func() *gomock.Call {
+		agentServiceConfig := &aiv1beta1.AgentServiceConfig{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "agent",
+				UID:  agentServiceConfigUID,
+			},
+		}
+		return clusterImportOperations.EXPECT().
+			GetAgentServiceConfig().
+			Return(agentServiceConfig, nil)
+	}
 
 	var mockCreateNamespace = func() *gomock.Call {
 		namespace := &v1.Namespace{}
@@ -60,17 +73,6 @@ var _ = Describe("ImportLocalCluster", func() {
 		return clusterImportOperations.EXPECT().
 			CreateNamespace(localClusterNamespace).
 			Return(nil)
-	}
-
-	var mockAgentClusterInstallPresent = func() *gomock.Call {
-		agentClusterInstall := &hiveext.AgentClusterInstall{
-			ObjectMeta: metav1.ObjectMeta{
-				UID: agentClusterInstallUID,
-			},
-		}
-		return clusterImportOperations.EXPECT().
-			GetAgentClusterInstall(localClusterNamespace, fmt.Sprintf("%s-cluster-install", localClusterNamespace)).
-			Return(agentClusterInstall, nil)
 	}
 
 	var mockNoClusterVersionFound = func() *gomock.Call {
@@ -321,10 +323,10 @@ var _ = Describe("ImportLocalCluster", func() {
 		// Adding this ownership reference to ensure we can submit clusterDeployment without ManagedClusterSet/join permission
 		//
 		clusterDeployment.OwnerReferences = []metav1.OwnerReference{{
-			Kind:       "AgentCluster",
-			APIVersion: "capi-provider.agent-install.openshift.io/v1alpha1",
-			Name:       localClusterNamespace + "-cluster-install",
-			UID:        agentClusterInstallUID,
+			Kind:       "AgentServiceConfig",
+			APIVersion: "agent-install.openshift.io/v1beta1",
+			Name:       "agent",
+			UID:        agentServiceConfigUID,
 		}}
 		return clusterDeployment
 	}
@@ -480,7 +482,7 @@ var _ = Describe("ImportLocalCluster", func() {
 		mockCreateLocalClusterPullSecret()
 		mockCreateLocalClusterDeployment()
 		mockCreateAgentClusterInstall()
-		mockAgentClusterInstallPresent()
+		mockGetAgentServiceConfig()
 		result := localClusterImport.ImportLocalCluster()
 		multiErrors := result.(*multierror.Error)
 		apiStatus := multiErrors.Errors[0].(k8serrors.APIStatus)
@@ -500,7 +502,7 @@ var _ = Describe("ImportLocalCluster", func() {
 		mockCreateLocalClusterPullSecret()
 		mockCreateLocalClusterDeployment()
 		mockCreateAgentClusterInstall()
-		mockAgentClusterInstallPresent()
+		mockGetAgentServiceConfig()
 		result := localClusterImport.ImportLocalCluster()
 		multiErrors := result.(*multierror.Error)
 		apiStatus := multiErrors.Errors[0].(k8serrors.APIStatus)
@@ -520,7 +522,7 @@ var _ = Describe("ImportLocalCluster", func() {
 		mockFailedToCreateLocalClusterPullSecret()
 		mockCreateLocalClusterDeployment()
 		mockCreateAgentClusterInstall()
-		mockAgentClusterInstallPresent()
+		mockGetAgentServiceConfig()
 		result := localClusterImport.ImportLocalCluster()
 		multiErrors := result.(*multierror.Error)
 		apiStatus := multiErrors.Errors[0].(k8serrors.APIStatus)
@@ -540,7 +542,7 @@ var _ = Describe("ImportLocalCluster", func() {
 		mockCreateLocalClusterPullSecret()
 		mockCreateLocalClusterDeployment()
 		mockFailedToCreateAgentClusterInstall()
-		mockAgentClusterInstallPresent()
+		mockGetAgentServiceConfig()
 		result := localClusterImport.ImportLocalCluster()
 		multiErrors := result.(*multierror.Error)
 		apiStatus := multiErrors.Errors[0].(k8serrors.APIStatus)
@@ -560,7 +562,7 @@ var _ = Describe("ImportLocalCluster", func() {
 		mockCreateLocalClusterPullSecret()
 		mockFailedToCreateLocalClusterDeployment()
 		mockCreateAgentClusterInstall()
-		mockAgentClusterInstallPresent()
+		mockGetAgentServiceConfig()
 		result := localClusterImport.ImportLocalCluster()
 		multiErrors := result.(*multierror.Error)
 		apiStatus := multiErrors.Errors[0].(k8serrors.APIStatus)
@@ -579,7 +581,7 @@ var _ = Describe("ImportLocalCluster", func() {
 		mockCreateLocalClusterAdminKubeConfig()
 		mockCreateLocalClusterPullSecret()
 		mockCreateAgentClusterInstall()
-		mockAgentClusterInstallPresent()
+		mockGetAgentServiceConfig()
 		mockCreateLocalClusterDeployment()
 		result := localClusterImport.ImportLocalCluster()
 		Expect(result).To(BeNil())
@@ -597,7 +599,7 @@ var _ = Describe("ImportLocalCluster", func() {
 		mockAlreadyExistsOnCreateLocalClusterPullSecret()
 		mockAlreadyExistsOnCreateAgentClusterInstall()
 		mockAlreadyExistsOnCreateLocalClusterDeployment()
-		mockAgentClusterInstallPresent()
+		mockGetAgentServiceConfig()
 		result := localClusterImport.ImportLocalCluster()
 		Expect(result).To(BeNil())
 	})
