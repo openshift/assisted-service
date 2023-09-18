@@ -1,8 +1,7 @@
-FROM quay.io/centos/centos:stream8
+FROM quay.io/centos/centos:stream9
 
-RUN dnf install -y 'dnf-command(config-manager)' && \
-    dnf config-manager --set-enabled powertools && \
-    dnf install -y git unzip make gcc which nmstate-devel python3
+RUN dnf install --enablerepo=crb -y \
+    git unzip make gcc which nmstate-devel python3
 
 # Git checks if the user that owns the files on the filesystem match the
 # current user.  We need to disable this check because tests in Prow are
