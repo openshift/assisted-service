@@ -1,7 +1,7 @@
 FROM registry.ci.openshift.org/openshift/release:golang-1.18 AS golang
 RUN chmod g+xw -R /usr/local/go
 
-FROM quay.io/centos/centos:stream8
+FROM quay.io/centos/centos:stream9
 
 ENV GOPATH=/go
 ENV GOROOT=/usr/local/go
@@ -37,7 +37,7 @@ COPY --from=quay.io/coreos/shellcheck-alpine:v0.5.0 /bin/shellcheck /usr/bin/she
 
 RUN dnf install -y 'dnf-command(config-manager)' && \
     dnf config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo && \
-    dnf install -y --enablerepo=powertools \
+    dnf install -y --enablerepo=crb \
         openssl postgresql nmstate-devel sqlite gcc genisoimage git docker-ce-cli libvirt-client libvirt-devel java && \
     dnf clean all
 
