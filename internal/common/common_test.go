@@ -453,9 +453,9 @@ func createHost(hostRole models.HostRole, state string) *models.Host {
 func createClusterFromHosts(hosts []*models.Host) Cluster {
 	return Cluster{
 		Cluster: models.Cluster{
-			APIVip:           "192.168.10.10",
 			Hosts:            hosts,
-			IngressVip:       "192.168.10.11",
+			APIVips:          []*models.APIVip{{IP: "192.168.10.10"}},
+			IngressVips:      []*models.IngressVip{{IP: "192.168.10.11"}},
 			OpenshiftVersion: "4.9",
 		},
 	}

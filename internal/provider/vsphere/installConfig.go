@@ -68,6 +68,8 @@ func (p vsphereProvider) AddPlatformToInstallConfig(cfg *installcfg.InstallerCon
 			vsPlatform.APIVIPs = network.GetApiVips(cluster)
 			vsPlatform.IngressVIPs = network.GetIngressVips(cluster)
 		} else {
+			vsPlatform.APIVIPs = []string{network.GetApiVips(cluster)[0]}
+			vsPlatform.IngressVIPs = []string{network.GetIngressVips(cluster)[0]}
 			vsPlatform.DeprecatedAPIVIP = network.GetApiVipById(cluster, 0)
 			vsPlatform.DeprecatedIngressVIP = network.GetIngressVipById(cluster, 0)
 		}

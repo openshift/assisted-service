@@ -27,8 +27,8 @@ var _ = Describe("dhcp param file", func() {
 			Cluster: models.Cluster{
 				ID:                &clusterId,
 				VipDhcpAllocation: swag.Bool(dhcpEnabled),
-				APIVip:            apiVip,
-				IngressVip:        ingressVip,
+				APIVips:           []*models.APIVip{{IP: models.IP(apiVip)}},
+				IngressVips:       []*models.IngressVip{{IP: models.IP(ingressVip)}},
 			},
 		}
 	}

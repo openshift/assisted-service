@@ -54,6 +54,8 @@ func (p nutanixProvider) AddPlatformToInstallConfig(
 			nPlatform.APIVIPs = network.GetApiVips(cluster)
 			nPlatform.IngressVIPs = network.GetIngressVips(cluster)
 		} else {
+			nPlatform.APIVIPs = []string{network.GetApiVips(cluster)[0]}
+			nPlatform.IngressVIPs = []string{network.GetIngressVips(cluster)[0]}
 			nPlatform.DeprecatedAPIVIP = network.GetApiVipById(cluster, 0)
 			nPlatform.DeprecatedIngressVIP = network.GetIngressVipById(cluster, 0)
 		}

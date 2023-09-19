@@ -5010,7 +5010,7 @@ spec:
 		checkAgentClusterInstallCondition(ctx, installkey, hiveext.ClusterSpecSyncedCondition, hiveext.ClusterInputErrorReason)
 		condition := controllers.FindStatusCondition(getAgentClusterInstallCRD(ctx, kubeClient, installkey).Status.Conditions,
 			hiveext.ClusterSpecSyncedCondition)
-		Expect(condition.Message).To(ContainSubstring("API VIP cannot be set with User Managed Networking"))
+		Expect(condition.Message).To(ContainSubstring("API VIPs cannot be set with User Managed Networking"))
 	})
 
 	It("Fail Update ACI with UserManagedNetworking true when VIPs were already set", func() {

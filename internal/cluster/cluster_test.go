@@ -446,9 +446,7 @@ var _ = Describe("TestClusterMonitoring", func() {
 							ClusterNetworks: common.TestIPv4Networking.ClusterNetworks,
 							ServiceNetworks: common.TestIPv4Networking.ServiceNetworks,
 							MachineNetworks: common.TestIPv4Networking.MachineNetworks,
-							APIVip:          common.TestIPv4Networking.APIVip,
 							APIVips:         common.TestIPv4Networking.APIVips,
-							IngressVip:      common.TestIPv4Networking.IngressVip,
 							IngressVips:     common.TestIPv4Networking.IngressVips,
 							BaseDNSDomain:   "test.com",
 							PullSecretSet:   true,
@@ -486,7 +484,17 @@ var _ = Describe("TestClusterMonitoring", func() {
 
 					shouldHaveUpdated = true
 					expectedState = "ready"
-					Expect(db.Model(&c).Updates(map[string]interface{}{"api_vip": "1.2.3.5", "ingress_vip": "1.2.3.6"}).Error).To(Not(HaveOccurred()))
+
+					err = network.UpdateVipsTables(db,
+						&common.Cluster{Cluster: models.Cluster{
+							ID:          c.ID,
+							APIVips:     []*models.APIVip{{IP: "1.2.3.5", ClusterID: *c.ID}},
+							IngressVips: []*models.IngressVip{{IP: "1.2.3.6", ClusterID: *c.ID}},
+						}},
+						true,
+						true,
+					)
+					Expect(err).ShouldNot(HaveOccurred())
 				})
 				It("insufficient -> insufficient including hosts in discovering", func() {
 					createHost(id, "known", db)
@@ -526,9 +534,7 @@ var _ = Describe("TestClusterMonitoring", func() {
 							ClusterNetworks: common.TestIPv4Networking.ClusterNetworks,
 							ServiceNetworks: common.TestIPv4Networking.ServiceNetworks,
 							MachineNetworks: common.TestIPv4Networking.MachineNetworks,
-							APIVip:          common.TestIPv4Networking.APIVip,
 							APIVips:         common.TestIPv4Networking.APIVips,
-							IngressVip:      common.TestIPv4Networking.IngressVip,
 							IngressVips:     common.TestIPv4Networking.IngressVips,
 							BaseDNSDomain:   "test.com",
 							PullSecretSet:   true,
@@ -635,9 +641,7 @@ var _ = Describe("TestClusterMonitoring", func() {
 					ClusterNetworks: common.TestIPv4Networking.ClusterNetworks,
 					ServiceNetworks: common.TestIPv4Networking.ServiceNetworks,
 					MachineNetworks: common.TestIPv4Networking.MachineNetworks,
-					APIVip:          common.TestIPv4Networking.APIVip,
 					APIVips:         common.TestIPv4Networking.APIVips,
-					IngressVip:      common.TestIPv4Networking.IngressVip,
 					IngressVips:     common.TestIPv4Networking.IngressVips,
 					BaseDNSDomain:   "test.com",
 					PullSecretSet:   true,
@@ -804,8 +808,6 @@ var _ = Describe("lease timeout event", func() {
 			c = common.Cluster{Cluster: models.Cluster{
 				ID:                &id,
 				Status:            swag.String(t.srcState),
-				APIVip:            t.apiVip,
-				IngressVip:        t.ingressVip,
 				ClusterNetworks:   common.TestIPv4Networking.ClusterNetworks,
 				ServiceNetworks:   common.TestIPv4Networking.ServiceNetworks,
 				MachineNetworks:   common.TestIPv4Networking.MachineNetworks,
@@ -1342,7 +1344,6 @@ var _ = Describe("Auto assign machine CIDR", func() {
 				Status:                swag.String(t.srcState),
 				BaseDNSDomain:         "test.com",
 				PullSecretSet:         true,
-				APIVip:                t.apiVip,
 				APIVips:               t.apiVips,
 				ClusterNetworks:       common.TestIPv4Networking.ClusterNetworks,
 				ServiceNetworks:       common.TestIPv4Networking.ServiceNetworks,
@@ -1680,6 +1681,13 @@ func createHost(clusterId strfmt.UUID, state string, db *gorm.DB) {
 		Role:       models.HostRoleMaster,
 		Status:     swag.String(state),
 		Inventory:  common.GenerateTestDefaultInventory(),
+		FreeAddresses: makeFreeNetworksAddressesStr(
+			makeFreeAddresses(
+				string(common.TestIPv4Networking.MachineNetworks[0].Cidr),
+				strfmt.IPv4(common.TestIPv4Networking.IngressVips[0].IP),
+				strfmt.IPv4(common.TestIPv4Networking.APIVips[0].IP),
+			),
+		),
 	}
 	Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
 }
@@ -2162,9 +2170,7 @@ var _ = Describe("SetVipsData", func() {
 				Cluster: models.Cluster{
 					ID:          &clusterId,
 					Status:      swag.String(t.srcState),
-					APIVip:      t.clusterApiVip,
 					APIVips:     []*models.APIVip{{IP: models.IP(t.clusterApiVip), ClusterID: clusterId}},
-					IngressVip:  t.clusterIngressVip,
 					IngressVips: []*models.IngressVip{{IP: models.IP(t.clusterIngressVip), ClusterID: clusterId}},
 				},
 			}
@@ -2177,10 +2183,8 @@ var _ = Describe("SetVipsData", func() {
 			err := capi.SetVipsData(ctx, &cluster, t.apiVip, t.ingressVip, t.clusterApiLease, t.clusterIngressLease, db)
 			Expect(err != nil).To(Equal(t.errorExpected))
 			c := getClusterFromDB(clusterId, db)
-			Expect(c.APIVip).To(Equal(t.expectedApiVip))
 			Expect(network.GetApiVipById(&c, 0)).To(Equal(t.expectedApiVip))
 			Expect(len(c.APIVips)).To(Equal(1))
-			Expect(c.IngressVip).To(Equal(t.expectedIngressVip))
 			Expect(len(c.IngressVips)).To(Equal(1))
 			Expect(network.GetIngressVipById(&c, 0)).To(Equal(t.expectedIngressVip))
 			Expect(c.ApiVipLease).To(Equal(t.expectedApiLease))
@@ -2226,8 +2230,6 @@ var _ = Describe("Majority groups", func() {
 			ClusterNetworks: common.TestIPv4Networking.ClusterNetworks,
 			ServiceNetworks: common.TestIPv4Networking.ServiceNetworks,
 			MachineNetworks: common.TestIPv4Networking.MachineNetworks,
-			APIVip:          apiVip,
-			IngressVip:      ingressVip,
 			APIVips:         []*models.APIVip{{IP: models.IP(apiVip), ClusterID: id, Verification: &verificationSuccess}},
 			IngressVips:     []*models.IngressVip{{IP: models.IP(ingressVip), ClusterID: id, Verification: &verificationSuccess}},
 			BaseDNSDomain:   "test.com",
@@ -2540,8 +2542,6 @@ var _ = Describe("ready_state", func() {
 			ClusterNetworks: common.TestIPv4Networking.ClusterNetworks,
 			ServiceNetworks: common.TestIPv4Networking.ServiceNetworks,
 			MachineNetworks: common.TestIPv4Networking.MachineNetworks,
-			APIVip:          apiVip,
-			IngressVip:      ingressVip,
 			APIVips:         []*models.APIVip{{IP: models.IP(apiVip), ClusterID: id, Verification: common.VipVerificationPtr(models.VipVerificationSucceeded)}},
 			IngressVips:     []*models.IngressVip{{IP: models.IP(ingressVip), ClusterID: id, Verification: common.VipVerificationPtr(models.VipVerificationSucceeded)}},
 			BaseDNSDomain:   "test.com",
@@ -2645,9 +2645,7 @@ var _ = Describe("insufficient_state", func() {
 			ID:              &id,
 			Status:          swag.String(currentState),
 			MachineNetworks: common.TestIPv4Networking.MachineNetworks,
-			APIVip:          common.TestIPv4Networking.APIVip,
 			APIVips:         common.TestIPv4Networking.APIVips,
-			IngressVip:      common.TestIPv4Networking.IngressVip,
 			IngressVips:     common.TestIPv4Networking.IngressVips,
 			BaseDNSDomain:   "test.com",
 			PullSecretSet:   true,
@@ -3325,7 +3323,6 @@ var _ = Describe("Transform day1 cluster to a day2 cluster", func() {
 		clusterKind        string
 		errorExpected      bool
 		userManagedNetwork bool
-		apiVip             string
 		apiVips            []*models.APIVip
 	}{
 		{
@@ -3334,7 +3331,6 @@ var _ = Describe("Transform day1 cluster to a day2 cluster", func() {
 			clusterKind:        models.ClusterKindCluster,
 			errorExpected:      false,
 			userManagedNetwork: true,
-			apiVip:             common.TestIPv4Networking.APIVip,
 			apiVips:            common.TestIPv4Networking.APIVips,
 		},
 		{
@@ -3343,7 +3339,6 @@ var _ = Describe("Transform day1 cluster to a day2 cluster", func() {
 			clusterKind:        models.ClusterKindCluster,
 			errorExpected:      false,
 			userManagedNetwork: false,
-			apiVip:             "",
 			apiVips:            nil,
 		},
 		{
@@ -3352,7 +3347,6 @@ var _ = Describe("Transform day1 cluster to a day2 cluster", func() {
 			clusterKind:        models.ClusterKindCluster,
 			errorExpected:      false,
 			userManagedNetwork: false,
-			apiVip:             common.TestIPv4Networking.APIVip,
 			apiVips:            common.TestIPv4Networking.APIVips,
 		},
 		{
@@ -3361,7 +3355,6 @@ var _ = Describe("Transform day1 cluster to a day2 cluster", func() {
 			clusterKind:        models.ClusterKindAddHostsCluster,
 			errorExpected:      true,
 			userManagedNetwork: false,
-			apiVip:             common.TestIPv4Networking.APIVip,
 			apiVips:            common.TestIPv4Networking.APIVips,
 		},
 		{
@@ -3370,7 +3363,6 @@ var _ = Describe("Transform day1 cluster to a day2 cluster", func() {
 			clusterKind:        models.ClusterKindCluster,
 			errorExpected:      true,
 			userManagedNetwork: false,
-			apiVip:             common.TestIPv4Networking.APIVip,
 			apiVips:            common.TestIPv4Networking.APIVips,
 		},
 		{
@@ -3379,7 +3371,6 @@ var _ = Describe("Transform day1 cluster to a day2 cluster", func() {
 			clusterKind:        models.ClusterKindCluster,
 			errorExpected:      true,
 			userManagedNetwork: false,
-			apiVip:             common.TestIPv4Networking.APIVip,
 			apiVips:            common.TestIPv4Networking.APIVips,
 		},
 		{
@@ -3388,7 +3379,6 @@ var _ = Describe("Transform day1 cluster to a day2 cluster", func() {
 			clusterKind:        models.ClusterKindCluster,
 			errorExpected:      true,
 			userManagedNetwork: false,
-			apiVip:             common.TestIPv4Networking.APIVip,
 			apiVips:            common.TestIPv4Networking.APIVips,
 		},
 		{
@@ -3397,7 +3387,6 @@ var _ = Describe("Transform day1 cluster to a day2 cluster", func() {
 			clusterKind:        models.ClusterKindCluster,
 			errorExpected:      true,
 			userManagedNetwork: false,
-			apiVip:             common.TestIPv4Networking.APIVip,
 			apiVips:            common.TestIPv4Networking.APIVips,
 		},
 		{
@@ -3406,7 +3395,6 @@ var _ = Describe("Transform day1 cluster to a day2 cluster", func() {
 			clusterKind:        models.ClusterKindCluster,
 			errorExpected:      true,
 			userManagedNetwork: false,
-			apiVip:             common.TestIPv4Networking.APIVip,
 			apiVips:            common.TestIPv4Networking.APIVips,
 		},
 		{
@@ -3415,7 +3403,6 @@ var _ = Describe("Transform day1 cluster to a day2 cluster", func() {
 			clusterKind:        models.ClusterKindCluster,
 			errorExpected:      true,
 			userManagedNetwork: false,
-			apiVip:             common.TestIPv4Networking.APIVip,
 			apiVips:            common.TestIPv4Networking.APIVips,
 		},
 		{
@@ -3424,7 +3411,6 @@ var _ = Describe("Transform day1 cluster to a day2 cluster", func() {
 			clusterKind:        models.ClusterKindCluster,
 			errorExpected:      true,
 			userManagedNetwork: false,
-			apiVip:             common.TestIPv4Networking.APIVip,
 			apiVips:            common.TestIPv4Networking.APIVips,
 		},
 		{
@@ -3433,7 +3419,6 @@ var _ = Describe("Transform day1 cluster to a day2 cluster", func() {
 			clusterKind:        models.ClusterKindAddHostsCluster,
 			errorExpected:      true,
 			userManagedNetwork: false,
-			apiVip:             common.TestIPv4Networking.APIVip,
 			apiVips:            common.TestIPv4Networking.APIVips,
 		},
 		{
@@ -3442,7 +3427,6 @@ var _ = Describe("Transform day1 cluster to a day2 cluster", func() {
 			clusterKind:        models.ClusterKindCluster,
 			errorExpected:      true,
 			userManagedNetwork: false,
-			apiVip:             common.TestIPv4Networking.APIVip,
 			apiVips:            common.TestIPv4Networking.APIVips,
 		},
 		{
@@ -3451,7 +3435,6 @@ var _ = Describe("Transform day1 cluster to a day2 cluster", func() {
 			clusterKind:        models.ClusterKindCluster,
 			errorExpected:      true,
 			userManagedNetwork: false,
-			apiVip:             common.TestIPv4Networking.APIVip,
 			apiVips:            common.TestIPv4Networking.APIVips,
 		},
 	}
@@ -3466,9 +3449,7 @@ var _ = Describe("Transform day1 cluster to a day2 cluster", func() {
 				OpenshiftVersion:      common.TestDefaultConfig.OpenShiftVersion,
 				Status:                swag.String(t.clusterStatus),
 				MachineNetworks:       common.TestIPv4Networking.MachineNetworks,
-				APIVip:                t.apiVip,
 				APIVips:               t.apiVips,
-				IngressVip:            common.TestIPv4Networking.IngressVip,
 				IngressVips:           common.TestIPv4Networking.IngressVips,
 				BaseDNSDomain:         "test.com",
 				PullSecretSet:         true,
@@ -3482,11 +3463,10 @@ var _ = Describe("Transform day1 cluster to a day2 cluster", func() {
 				Expect(db.Take(&c, "id = ?", cluster.ID.String()).Error).ToNot(HaveOccurred())
 				Expect(c.Kind).To(Equal(swag.String(models.ClusterKindAddHostsCluster)))
 				Expect(c.Status).To(Equal(swag.String(models.ClusterStatusAddingHosts)))
-				if t.apiVip == "" || t.userManagedNetwork {
+				if t.apiVips == nil || t.userManagedNetwork {
 					apiVipDnsname := fmt.Sprintf("api.%s.%s", c.Name, c.BaseDNSDomain)
 					Expect(c.APIVipDNSName).To(Equal(swag.String(apiVipDnsname)))
 				} else {
-					Expect(c.APIVipDNSName).To(Equal(swag.String(cluster.APIVip)))
 					Expect(c.APIVipDNSName).To(Equal(swag.String(network.GetApiVipById(cluster, 0))))
 				}
 

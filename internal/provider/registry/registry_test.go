@@ -26,7 +26,11 @@ var (
 
 const invalidInventory = "{\"system_vendor\": \"invalid\"}"
 
-const expectedNutanixInstallConfig411 = `apiVIP: 192.168.10.10
+const expectedNutanixInstallConfig411 = `apiVIPs:
+- 192.168.10.10
+apiVIP: 192.168.10.10
+ingressVIPs:
+- 192.168.10.11
 ingressVIP: 192.168.10.11
 prismCentral:
   endpoint:
@@ -204,8 +208,8 @@ var _ = Describe("Test AddPlatformToInstallConfig", func() {
 			err := providerRegistry.AddPlatformToInstallConfig(models.PlatformTypeBaremetal, &cfg, &cluster)
 			Expect(err).To(BeNil())
 			Expect(cfg.Platform.Baremetal).ToNot(BeNil())
-			Expect(cfg.Platform.Baremetal.DeprecatedAPIVIP).To(Equal(cluster.Cluster.APIVip))
-			Expect(cfg.Platform.Baremetal.DeprecatedIngressVIP).To(Equal(cluster.Cluster.IngressVip))
+			Expect(cfg.Platform.Baremetal.APIVIPs[0]).To(Equal(string(cluster.Cluster.APIVips[0].IP)))
+			Expect(cfg.Platform.Baremetal.IngressVIPs[0]).To(Equal(string(cluster.Cluster.IngressVips[0].IP)))
 			Expect(cfg.Platform.Baremetal.ProvisioningNetwork).To(Equal("Disabled"))
 			Expect(len(cfg.Platform.Baremetal.Hosts)).To(Equal(len(cluster.Cluster.Hosts)))
 			Expect(cfg.Platform.Baremetal.Hosts[0].Name).Should(Equal("hostname0"))
@@ -228,8 +232,8 @@ var _ = Describe("Test AddPlatformToInstallConfig", func() {
 			err := providerRegistry.AddPlatformToInstallConfig(models.PlatformTypeBaremetal, &cfg, &cluster)
 			Expect(err).To(BeNil())
 			Expect(cfg.Platform.Baremetal).ToNot(BeNil())
-			Expect(cfg.Platform.Baremetal.DeprecatedAPIVIP).To(Equal(cluster.Cluster.APIVip))
-			Expect(cfg.Platform.Baremetal.DeprecatedIngressVIP).To(Equal(cluster.Cluster.IngressVip))
+			Expect(cfg.Platform.Baremetal.APIVIPs[0]).To(Equal(string(cluster.Cluster.APIVips[0].IP)))
+			Expect(cfg.Platform.Baremetal.IngressVIPs[0]).To(Equal(string(cluster.Cluster.IngressVips[0].IP)))
 			Expect(cfg.Platform.Baremetal.ProvisioningNetwork).To(Equal("Unmanaged"))
 			Expect(len(cfg.Platform.Baremetal.Hosts)).To(Equal(len(cluster.Cluster.Hosts)))
 			Expect(cfg.Platform.Baremetal.Hosts[0].Name).Should(Equal("hostname0"))
@@ -308,8 +312,8 @@ var _ = Describe("Test AddPlatformToInstallConfig", func() {
 				err := providerRegistry.AddPlatformToInstallConfig(models.PlatformTypeVsphere, &cfg, &cluster)
 				Expect(err).To(BeNil())
 				Expect(cfg.Platform.Vsphere).ToNot(BeNil())
-				Expect(cfg.Platform.Vsphere.DeprecatedAPIVIP).To(Equal(cluster.Cluster.APIVip))
-				Expect(cfg.Platform.Vsphere.DeprecatedIngressVIP).To(Equal(cluster.Cluster.IngressVip))
+				Expect(cfg.Platform.Vsphere.APIVIPs[0]).To(Equal(string(cluster.Cluster.APIVips[0].IP)))
+				Expect(cfg.Platform.Vsphere.IngressVIPs[0]).To(Equal(string(cluster.Cluster.IngressVips[0].IP)))
 				Expect(cfg.Platform.Vsphere.DeprecatedVCenter).To(Equal(vsphere.PhVcenter))
 				Expect(cfg.Platform.Vsphere.VCenters).To(BeNil())
 			})
@@ -321,8 +325,8 @@ var _ = Describe("Test AddPlatformToInstallConfig", func() {
 				err := providerRegistry.AddPlatformToInstallConfig(models.PlatformTypeVsphere, &cfg, &cluster)
 				Expect(err).To(BeNil())
 				Expect(cfg.Platform.Vsphere).ToNot(BeNil())
-				Expect(cfg.Platform.Vsphere.DeprecatedAPIVIP).To(Equal(cluster.Cluster.APIVip))
-				Expect(cfg.Platform.Vsphere.DeprecatedIngressVIP).To(Equal(cluster.Cluster.IngressVip))
+				Expect(cfg.Platform.Vsphere.APIVIPs[0]).To(Equal(string(cluster.Cluster.APIVips[0].IP)))
+				Expect(cfg.Platform.Vsphere.IngressVIPs[0]).To(Equal(string(cluster.Cluster.IngressVips[0].IP)))
 				Expect(cfg.Platform.Vsphere.DeprecatedVCenter).To(Equal(vsphere.PhVcenter))
 				Expect(cfg.Platform.Vsphere.DeprecatedCluster).To(Equal(vsphere.PhCluster))
 				Expect(cfg.Platform.Vsphere.DeprecatedNetwork).To(Equal(vsphere.PhNetwork))
@@ -557,10 +561,8 @@ func createClusterFromHosts(hosts []*models.Host) common.Cluster {
 		Cluster: models.Cluster{
 			Name:             "cluster",
 			ID:               &clusterID,
-			APIVip:           "192.168.10.10",
 			APIVips:          []*models.APIVip{{IP: "192.168.10.10"}},
 			Hosts:            hosts,
-			IngressVip:       "192.168.10.11",
 			IngressVips:      []*models.IngressVip{{IP: "192.168.10.11"}},
 			OpenshiftVersion: "4.7",
 			CPUArchitecture:  models.ClusterCPUArchitectureX8664,

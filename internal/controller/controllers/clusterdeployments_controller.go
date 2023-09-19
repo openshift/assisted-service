@@ -929,16 +929,16 @@ func (r *ClusterDeploymentsReconciler) updateNetworkParams(clusterDeployment *hi
 	// We must not run this reconciler in case VIPs are missing from the cluster spec as this can
 	// indicate a scenario when backend calculates them automatically, e.g. SNO cluster.
 	isDHCPEnabled := swag.BoolValue(cluster.VipDhcpAllocation)
-	if !isDHCPEnabled && (clusterInstall.Spec.APIVIP != "" || clusterInstall.Spec.IngressVIP != "") {
+	if !isDHCPEnabled && (clusterInstall.Spec.APIVIP != "" || clusterInstall.Spec.IngressVIP != "" ||
+		len(clusterInstall.Spec.APIVIPs) > 0 || len(clusterInstall.Spec.IngressVIPs) > 0) {
 		desiredApiVips, _ := validations.HandleApiVipBackwardsCompatibility(
 			*cluster.ID,
 			clusterInstall.Spec.APIVIP,
 			apiVipsEntriesToArray(clusterInstall.Spec.APIVIPs))
 
-		if clusterInstall.Spec.APIVIP != cluster.APIVip ||
+		if clusterInstall.Spec.APIVIP != network.GetApiVipById(cluster, 0) ||
 			!network.AreApiVipsIdentical(desiredApiVips, cluster.APIVips) {
 
-			params.APIVip = swag.String(clusterInstall.Spec.APIVIP)
 			params.APIVips = desiredApiVips
 			update = true
 		}
@@ -947,10 +947,9 @@ func (r *ClusterDeploymentsReconciler) updateNetworkParams(clusterDeployment *hi
 			clusterInstall.Spec.IngressVIP,
 			ingressVipsEntriesToArray(clusterInstall.Spec.IngressVIPs))
 
-		if clusterInstall.Spec.IngressVIP != cluster.IngressVip ||
+		if clusterInstall.Spec.IngressVIP != network.GetIngressVipById(cluster, 0) ||
 			!network.AreIngressVipsIdentical(desiredIngressVips, cluster.IngressVips) {
 
-			params.IngressVip = swag.String(clusterInstall.Spec.IngressVIP)
 			params.IngressVips = desiredIngressVips
 			update = true
 		}
@@ -1267,8 +1266,8 @@ func CreateClusterParams(clusterDeployment *hivev1.ClusterDeployment, clusterIns
 		OlmOperators:          nil, // TODO: handle operators
 		PullSecret:            swag.String(pullSecret),
 		VipDhcpAllocation:     swag.Bool(false),
-		APIVip:                clusterInstall.Spec.APIVIP,
-		IngressVip:            clusterInstall.Spec.IngressVIP,
+		APIVips:               apiVipsEntriesToArray(clusterInstall.Spec.APIVIPs),
+		IngressVips:           ingressVipsEntriesToArray(clusterInstall.Spec.IngressVIPs),
 		SSHPublicKey:          clusterInstall.Spec.SSHPublicKey,
 		CPUArchitecture:       releaseImageCPUArch,
 		UserManagedNetworking: swag.Bool(isUserManagedNetwork(clusterInstall)),
@@ -1711,8 +1710,8 @@ func (r *ClusterDeploymentsReconciler) updateStatus(ctx context.Context, log log
 			} else {
 				clusterInstall.Status.Progress.TotalPercentage = c.Progress.TotalPercentage
 			}
-			clusterInstall.Status.APIVIP = c.APIVip
-			clusterInstall.Status.IngressVIP = c.IngressVip
+			clusterInstall.Status.APIVIP = network.GetApiVipById(c, 0)
+			clusterInstall.Status.IngressVIP = network.GetIngressVipById(c, 0)
 			clusterInstall.Status.APIVIPs = apiVipsArrayToStrings(c.APIVips)
 			clusterInstall.Status.IngressVIPs = ingressVipsArrayToStrings(c.IngressVips)
 			clusterInstall.Status.UserManagedNetworking = c.UserManagedNetworking

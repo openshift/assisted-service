@@ -7,7 +7,6 @@ import (
 
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
-	"github.com/openshift/assisted-service/internal/cluster/validations"
 	"github.com/openshift/assisted-service/internal/common"
 	eventgen "github.com/openshift/assisted-service/internal/common/events"
 	eventsapi "github.com/openshift/assisted-service/internal/events/api"
@@ -125,15 +124,11 @@ func clusterExistsInDB(db *gorm.DB, clusterId strfmt.UUID, where map[string]inte
 
 func UpdateCluster(ctx context.Context, log logrus.FieldLogger, db *gorm.DB, notificationStream stream.Notifier, clusterId strfmt.UUID, srcStatus string, extra ...interface{}) (*common.Cluster, error) {
 	updates := make(map[string]interface{})
-	updateChangesVips := false
 
 	if len(extra)%2 != 0 {
 		return nil, errors.Errorf("invalid update extra parameters %+v", extra)
 	}
 	for i := 0; i < len(extra); i += 2 {
-		if extra[i].(string) == "api_vip" || extra[i].(string) == "ingress_vip" {
-			updateChangesVips = true
-		}
 		updates[extra[i].(string)] = extra[i+1]
 	}
 
@@ -147,46 +142,6 @@ func UpdateCluster(ctx context.Context, log logrus.FieldLogger, db *gorm.DB, not
 
 	if dbReply.RowsAffected == 0 && !clusterExistsInDB(db, clusterId, updates) {
 		return nil, errors.Errorf("failed to update cluster %s. nothing has changed", clusterId)
-	}
-
-	// (MGMT-9915)
-	// The block below is responsible for updating plural VIP structure in any scenario when an
-	// update of singular VIP has been requested via the `updates[]` mechanism. This is
-	// a workaround for e.g. a scenario when SNO updates its VIP from the Host inventory and not
-	// using the regular get&set for the Cluster.*Vip field.
-	//
-	// This part covers specifically the scenario as follows
-	//   * updates[api_vip] or updates[ingress_vip] contains a value
-	//   * Cluster.ApiVips and Cluster.IngressVips are not updated
-	//
-	// Without this block below, such a scenario would lead to unsynchronized state of the DB.
-	if updateChangesVips {
-		updatedCluster, err := common.GetClusterFromDB(db, clusterId, common.UseEagerLoading)
-		if err != nil {
-			return nil, err
-		}
-		apiVips, err := validations.HandleApiVipBackwardsCompatibility(*updatedCluster.ID, updatedCluster.APIVip, nil)
-		if err != nil {
-			return nil, err
-		}
-		ingressVips, err := validations.HandleIngressVipBackwardsCompatibility(*updatedCluster.ID, updatedCluster.IngressVip, nil)
-		if err != nil {
-			return nil, err
-		}
-
-		if err = network.UpdateVipsTables(db,
-			&common.Cluster{Cluster: models.Cluster{
-				ID:          updatedCluster.ID,
-				APIVip:      updatedCluster.APIVip,
-				APIVips:     apiVips,
-				IngressVip:  updatedCluster.IngressVip,
-				IngressVips: ingressVips,
-			}},
-			true,
-			true,
-		); err != nil {
-			return nil, err
-		}
 	}
 
 	cluster, err := common.GetClusterFromDB(db, clusterId, common.UseEagerLoading)

@@ -115,8 +115,10 @@ func newAgentClusterInstall(name, namespace string, spec hiveext.AgentClusterIns
 
 func getDefaultAgentClusterInstallSpec(clusterName string) hiveext.AgentClusterInstallSpec {
 	return hiveext.AgentClusterInstallSpec{
-		APIVIP:     common.TestIPv4Networking.APIVip,
-		IngressVIP: common.TestIPv4Networking.IngressVip,
+		APIVIP:      string(common.TestIPv4Networking.APIVips[0].IP),
+		IngressVIP:  string(common.TestIPv4Networking.IngressVips[0].IP),
+		APIVIPs:     apiVipsArrayToStrings(common.TestIPv4Networking.APIVips),
+		IngressVIPs: ingressVipsArrayToStrings(common.TestIPv4Networking.IngressVips),
 		Networking: hiveext.Networking{
 			MachineNetwork: nil,
 			ClusterNetwork: clusterNetworksArrayToEntries(common.TestIPv4Networking.ClusterNetworks),
@@ -695,7 +697,7 @@ var _ = Describe("cluster reconcile", func() {
 			Expect(params.Name).To(Equal(&cluster.Spec.ClusterName))
 			Expect(params.BaseDNSDomain).To(Equal(cluster.Spec.BaseDomain))
 			Expect(params.PullSecret).To(Equal(&pullSecretString))
-			Expect(params.IngressVip).To(Equal(aci.Spec.IngressVIP))
+			Expect(string(params.IngressVips[0].IP)).To(Equal(aci.Spec.IngressVIPs[0]))
 			Expect(params.SSHPublicKey).To(Equal(aci.Spec.SSHPublicKey))
 			Expect(params.CPUArchitecture).To(Equal(cpuArch))
 			Expect(params.OpenshiftVersion).To(Equal(&openshiftVersion))
@@ -849,10 +851,8 @@ var _ = Describe("cluster reconcile", func() {
 				ServiceNetworks:  serviceNetworksEntriesToArray(defaultAgentClusterInstallSpec.Networking.ServiceNetwork),
 				NetworkType:      swag.String(models.ClusterNetworkTypeOpenShiftSDN),
 				Status:           swag.String(models.ClusterStatusReady),
-				IngressVip:       defaultAgentClusterInstallSpec.IngressVIP,
-				APIVip:           defaultAgentClusterInstallSpec.APIVIP,
-				IngressVips:      []*models.IngressVip{{ClusterID: sId, IP: models.IP(defaultAgentClusterInstallSpec.IngressVIP)}},
-				APIVips:          []*models.APIVip{{ClusterID: sId, IP: models.IP(defaultAgentClusterInstallSpec.APIVIP)}},
+				APIVips:          common.TestIPv4Networking.APIVips,
+				IngressVips:      common.TestIPv4Networking.IngressVips,
 				BaseDNSDomain:    defaultClusterSpec.BaseDomain,
 				SSHPublicKey:     defaultAgentClusterInstallSpec.SSHPublicKey,
 				Hyperthreading:   models.ClusterHyperthreadingAll,
@@ -959,10 +959,8 @@ var _ = Describe("cluster reconcile", func() {
 				Hyperthreading:   models.ClusterHyperthreadingAll,
 				SSHPublicKey:     "some-key",
 				NetworkType:      swag.String(models.ClusterNetworkTypeOVNKubernetes),
-				APIVip:           aci.Spec.APIVIP,
-				IngressVip:       aci.Spec.IngressVIP,
-				APIVips:          []*models.APIVip{{ClusterID: sId, IP: models.IP(aci.Spec.APIVIP)}},
-				IngressVips:      []*models.IngressVip{{ClusterID: sId, IP: models.IP(aci.Spec.IngressVIP)}},
+				APIVips:          common.TestIPv4Networking.APIVips,
+				IngressVips:      common.TestIPv4Networking.IngressVips,
 			},
 			PullSecret: testPullSecretVal,
 		}
@@ -1343,8 +1341,6 @@ var _ = Describe("cluster reconcile", func() {
 					ServiceNetworks:  serviceNetworksEntriesToArray(defaultAgentClusterInstallSpec.Networking.ServiceNetwork),
 					NetworkType:      swag.String(models.ClusterNetworkTypeOpenShiftSDN),
 					Status:           swag.String(models.ClusterStatusReady),
-					IngressVip:       defaultAgentClusterInstallSpec.IngressVIP,
-					APIVip:           defaultAgentClusterInstallSpec.APIVIP,
 					IngressVips:      []*models.IngressVip{{ClusterID: sId, IP: models.IP(defaultAgentClusterInstallSpec.IngressVIP)}},
 					APIVips:          []*models.APIVip{{ClusterID: sId, IP: models.IP(defaultAgentClusterInstallSpec.APIVIP)}},
 					BaseDNSDomain:    defaultClusterSpec.BaseDomain,
@@ -1598,8 +1594,7 @@ var _ = Describe("cluster reconcile", func() {
 					Name:             clusterName,
 					OpenshiftVersion: "4.8",
 					Status:           swag.String(models.ClusterStatusAddingHosts),
-					APIVip:           backEndCluster.APIVip,
-					APIVips:          []*models.APIVip{{ClusterID: *backEndCluster.ID, IP: models.IP(backEndCluster.APIVip)}},
+					APIVips:          backEndCluster.APIVips,
 					BaseDNSDomain:    backEndCluster.BaseDNSDomain,
 					Kind:             swag.String(models.ClusterKindAddHostsCluster),
 					APIVipDNSName:    swag.String(fmt.Sprintf("api.%s.%s", backEndCluster.Name, backEndCluster.BaseDNSDomain)),
@@ -1683,10 +1678,8 @@ var _ = Describe("cluster reconcile", func() {
 					Name:             clusterName,
 					OpenshiftVersion: "4.8",
 					Status:           swag.String(models.ClusterStatusAddingHosts),
-					APIVip:           backEndCluster.APIVip,
-					APIVips:          []*models.APIVip{{ClusterID: *backEndCluster.ID, IP: models.IP(backEndCluster.APIVip)}},
-					IngressVip:       backEndCluster.IngressVip,
-					IngressVips:      []*models.IngressVip{{ClusterID: *backEndCluster.ID, IP: models.IP(backEndCluster.IngressVip)}},
+					APIVips:          backEndCluster.APIVips,
+					IngressVips:      backEndCluster.IngressVips,
 					BaseDNSDomain:    backEndCluster.BaseDNSDomain,
 					Kind:             swag.String(models.ClusterKindAddHostsCluster),
 					APIVipDNSName:    swag.String(fmt.Sprintf("api.%s.%s", backEndCluster.Name, backEndCluster.BaseDNSDomain)),
@@ -1740,8 +1733,7 @@ var _ = Describe("cluster reconcile", func() {
 					Name:             clusterName,
 					OpenshiftVersion: "4.8",
 					Status:           swag.String(models.ClusterStatusAddingHosts),
-					APIVip:           backEndCluster.APIVip,
-					APIVips:          []*models.APIVip{{ClusterID: *backEndCluster.ID, IP: models.IP(backEndCluster.APIVip)}},
+					APIVips:          backEndCluster.APIVips,
 					BaseDNSDomain:    backEndCluster.BaseDNSDomain,
 					Kind:             swag.String(models.ClusterKindAddHostsCluster),
 					APIVipDNSName:    swag.String(fmt.Sprintf("api.%s.%s", backEndCluster.Name, backEndCluster.BaseDNSDomain)),
@@ -2455,10 +2447,8 @@ var _ = Describe("cluster reconcile", func() {
 			installClusterReply := &common.Cluster{
 				Cluster: models.Cluster{
 					ID:          backEndCluster.ID,
-					APIVip:      defaultAgentClusterInstallSpec.APIVIP,
-					IngressVip:  defaultAgentClusterInstallSpec.IngressVIP,
-					APIVips:     []*models.APIVip{{ClusterID: *backEndCluster.ID, IP: models.IP(defaultAgentClusterInstallSpec.APIVIP)}},
-					IngressVips: []*models.IngressVip{{ClusterID: *backEndCluster.ID, IP: models.IP(defaultAgentClusterInstallSpec.IngressVIP)}},
+					APIVips:     common.TestIPv4Networking.APIVips,
+					IngressVips: common.TestIPv4Networking.IngressVips,
 					Status:      swag.String(models.ClusterStatusPreparingForInstallation),
 					StatusInfo:  swag.String("Waiting for control plane"),
 				},
@@ -2475,8 +2465,8 @@ var _ = Describe("cluster reconcile", func() {
 			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterCompletedCondition).Reason).To(Equal(hiveext.ClusterInstallationInProgressReason))
 			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterCompletedCondition).Message).To(Equal(hiveext.ClusterInstallationInProgressMsg + " Waiting for control plane"))
 			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterCompletedCondition).Status).To(Equal(corev1.ConditionFalse))
-			Expect(aci.Status.APIVIP).To(Equal(defaultAgentClusterInstallSpec.APIVIP))
-			Expect(aci.Status.IngressVIP).To(Equal(defaultAgentClusterInstallSpec.IngressVIP))
+			Expect(aci.Status.APIVIPs).To(Equal(defaultAgentClusterInstallSpec.APIVIPs))
+			Expect(aci.Status.IngressVIPs).To(Equal(defaultAgentClusterInstallSpec.IngressVIPs))
 		})
 	})
 
@@ -2512,10 +2502,8 @@ var _ = Describe("cluster reconcile", func() {
 					ServiceNetworks:  serviceNetworksEntriesToArray(defaultAgentClusterInstallSpec.Networking.ServiceNetwork),
 					NetworkType:      swag.String(models.ClusterNetworkTypeOpenShiftSDN),
 					Status:           swag.String(models.ClusterStatusInsufficient),
-					IngressVip:       defaultAgentClusterInstallSpec.IngressVIP,
-					APIVip:           defaultAgentClusterInstallSpec.APIVIP,
-					IngressVips:      []*models.IngressVip{{ClusterID: sId, IP: models.IP(defaultAgentClusterInstallSpec.IngressVIP)}},
-					APIVips:          []*models.APIVip{{ClusterID: sId, IP: models.IP(defaultAgentClusterInstallSpec.APIVIP)}},
+					APIVips:          common.TestIPv4Networking.APIVips,
+					IngressVips:      common.TestIPv4Networking.IngressVips,
 					BaseDNSDomain:    defaultClusterSpec.BaseDomain,
 					SSHPublicKey:     defaultAgentClusterInstallSpec.SSHPublicKey,
 					Hyperthreading:   models.ClusterHyperthreadingAll,
@@ -2597,8 +2585,8 @@ var _ = Describe("cluster reconcile", func() {
 					ServiceNetworks:  serviceNetworksEntriesToArray(defaultAgentClusterInstallSpec.Networking.ServiceNetwork),
 					NetworkType:      swag.String(models.ClusterNetworkTypeOpenShiftSDN),
 					Status:           swag.String(models.ClusterStatusInsufficient),
-					IngressVip:       defaultAgentClusterInstallSpec.IngressVIP,
-					APIVip:           defaultAgentClusterInstallSpec.APIVIP,
+					IngressVips:      common.TestIPv4Networking.IngressVips,
+					APIVips:          common.TestIPv4Networking.APIVips,
 					BaseDNSDomain:    defaultClusterSpec.BaseDomain,
 					SSHPublicKey:     defaultAgentClusterInstallSpec.SSHPublicKey,
 				},
@@ -2642,8 +2630,8 @@ var _ = Describe("cluster reconcile", func() {
 					ServiceNetworks:  serviceNetworksEntriesToArray(defaultAgentClusterInstallSpec.Networking.ServiceNetwork),
 					NetworkType:      swag.String(models.ClusterNetworkTypeOpenShiftSDN),
 					Status:           swag.String(models.ClusterStatusInsufficient),
-					IngressVip:       defaultAgentClusterInstallSpec.IngressVIP,
-					APIVip:           defaultAgentClusterInstallSpec.APIVIP,
+					IngressVips:      common.TestIPv4Networking.IngressVips,
+					APIVips:          common.TestIPv4Networking.APIVips,
 					BaseDNSDomain:    defaultClusterSpec.BaseDomain,
 					SSHPublicKey:     defaultAgentClusterInstallSpec.SSHPublicKey,
 				},
@@ -2788,8 +2776,6 @@ var _ = Describe("cluster reconcile", func() {
 					ServiceNetworks:  serviceNetworksEntriesToArray(defaultAgentClusterInstallSpec.Networking.ServiceNetwork),
 					NetworkType:      swag.String(models.ClusterNetworkTypeOpenShiftSDN),
 					Status:           swag.String(models.ClusterStatusInsufficient),
-					IngressVip:       defaultAgentClusterInstallSpec.IngressVIP,
-					APIVip:           defaultAgentClusterInstallSpec.APIVIP,
 					IngressVips:      []*models.IngressVip{{ClusterID: sId, IP: models.IP(defaultAgentClusterInstallSpec.IngressVIP)}},
 					APIVips:          []*models.APIVip{{ClusterID: sId, IP: models.IP(defaultAgentClusterInstallSpec.APIVIP)}},
 					BaseDNSDomain:    defaultClusterSpec.BaseDomain,
@@ -2874,8 +2860,6 @@ var _ = Describe("cluster reconcile", func() {
 					ServiceNetworks:  serviceNetworksEntriesToArray(defaultAgentClusterInstallSpec.Networking.ServiceNetwork),
 					NetworkType:      swag.String(models.ClusterNetworkTypeOpenShiftSDN),
 					Status:           swag.String(models.ClusterStatusInsufficient),
-					IngressVip:       defaultAgentClusterInstallSpec.IngressVIP,
-					APIVip:           defaultAgentClusterInstallSpec.APIVIP,
 					IngressVips:      []*models.IngressVip{{ClusterID: sId, IP: models.IP(defaultAgentClusterInstallSpec.IngressVIP)}},
 					APIVips:          []*models.APIVip{{ClusterID: sId, IP: models.IP(defaultAgentClusterInstallSpec.APIVIP)}},
 					BaseDNSDomain:    defaultClusterSpec.BaseDomain,
@@ -2920,8 +2904,6 @@ var _ = Describe("cluster reconcile", func() {
 					ServiceNetworks:        serviceNetworksEntriesToArray(defaultAgentClusterInstallSpec.Networking.ServiceNetwork),
 					NetworkType:            swag.String(models.ClusterNetworkTypeOpenShiftSDN),
 					Status:                 swag.String(models.ClusterStatusInsufficient),
-					IngressVip:             defaultAgentClusterInstallSpec.IngressVIP,
-					APIVip:                 defaultAgentClusterInstallSpec.APIVIP,
 					IngressVips:            []*models.IngressVip{{ClusterID: sId, IP: models.IP(defaultAgentClusterInstallSpec.IngressVIP)}},
 					APIVips:                []*models.APIVip{{ClusterID: sId, IP: models.IP(defaultAgentClusterInstallSpec.APIVIP)}},
 					BaseDNSDomain:          defaultClusterSpec.BaseDomain,
@@ -2963,10 +2945,8 @@ var _ = Describe("cluster reconcile", func() {
 					ServiceNetworks:        serviceNetworksEntriesToArray(defaultAgentClusterInstallSpec.Networking.ServiceNetwork),
 					NetworkType:            swag.String(models.ClusterNetworkTypeOpenShiftSDN),
 					Status:                 swag.String(models.ClusterStatusInsufficient),
-					IngressVip:             defaultAgentClusterInstallSpec.IngressVIP,
-					APIVip:                 defaultAgentClusterInstallSpec.APIVIP,
-					IngressVips:            []*models.IngressVip{{ClusterID: sId, IP: models.IP(defaultAgentClusterInstallSpec.IngressVIP)}},
-					APIVips:                []*models.APIVip{{ClusterID: sId, IP: models.IP(defaultAgentClusterInstallSpec.APIVIP)}},
+					IngressVips:            common.TestIPv4Networking.IngressVips,
+					APIVips:                common.TestIPv4Networking.APIVips,
 					BaseDNSDomain:          defaultClusterSpec.BaseDomain,
 					SSHPublicKey:           defaultAgentClusterInstallSpec.SSHPublicKey,
 					Hyperthreading:         models.ClusterHyperthreadingAll,
@@ -3010,10 +2990,8 @@ var _ = Describe("cluster reconcile", func() {
 					ServiceNetworks:  serviceNetworksEntriesToArray(defaultAgentClusterInstallSpec.Networking.ServiceNetwork),
 					NetworkType:      swag.String(models.ClusterNetworkTypeOpenShiftSDN),
 					Status:           swag.String(models.ClusterStatusInsufficient),
-					IngressVip:       defaultAgentClusterInstallSpec.IngressVIP,
-					APIVip:           defaultAgentClusterInstallSpec.APIVIP,
-					IngressVips:      []*models.IngressVip{{ClusterID: sId, IP: models.IP(defaultAgentClusterInstallSpec.IngressVIP)}},
-					APIVips:          []*models.APIVip{{ClusterID: sId, IP: models.IP(defaultAgentClusterInstallSpec.APIVIP)}},
+					IngressVips:      common.TestIPv4Networking.IngressVips,
+					APIVips:          common.TestIPv4Networking.APIVips,
 					BaseDNSDomain:    defaultClusterSpec.BaseDomain,
 					SSHPublicKey:     defaultAgentClusterInstallSpec.SSHPublicKey,
 					Hyperthreading:   models.ClusterHyperthreadingAll,
@@ -3064,10 +3042,8 @@ var _ = Describe("cluster reconcile", func() {
 					ServiceNetworks:  serviceNetworksEntriesToArray(defaultAgentClusterInstallSpec.Networking.ServiceNetwork),
 					NetworkType:      swag.String(models.ClusterNetworkTypeOpenShiftSDN),
 					Status:           swag.String(models.ClusterStatusInsufficient),
-					IngressVip:       defaultAgentClusterInstallSpec.IngressVIP,
-					APIVip:           defaultAgentClusterInstallSpec.APIVIP,
-					IngressVips:      []*models.IngressVip{{ClusterID: sId, IP: models.IP(defaultAgentClusterInstallSpec.IngressVIP)}},
-					APIVips:          []*models.APIVip{{ClusterID: sId, IP: models.IP(defaultAgentClusterInstallSpec.APIVIP)}},
+					IngressVips:      common.TestIPv4Networking.IngressVips,
+					APIVips:          common.TestIPv4Networking.APIVips,
 					BaseDNSDomain:    defaultClusterSpec.BaseDomain,
 					SSHPublicKey:     defaultAgentClusterInstallSpec.SSHPublicKey,
 					Hyperthreading:   models.ClusterHyperthreadingAll,
@@ -3105,8 +3081,6 @@ var _ = Describe("cluster reconcile", func() {
 					ServiceNetworks:      serviceNetworksEntriesToArray(defaultAgentClusterInstallSpec.Networking.ServiceNetwork),
 					NetworkType:          swag.String(models.ClusterNetworkTypeOVNKubernetes),
 					Status:               swag.String(models.ClusterStatusInstalling),
-					IngressVip:           hostIP,
-					APIVip:               hostIP,
 					IngressVips:          []*models.IngressVip{{ClusterID: sId, IP: models.IP(hostIP)}},
 					APIVips:              []*models.APIVip{{ClusterID: sId, IP: models.IP(hostIP)}},
 					BaseDNSDomain:        defaultClusterSpec.BaseDomain,
@@ -3122,12 +3096,10 @@ var _ = Describe("cluster reconcile", func() {
 			mockInstallerInternal.EXPECT().HostWithCollectedLogsExists(gomock.Any()).Return(false, nil)
 			mockInstallerInternal.EXPECT().UpdateClusterNonInteractive(gomock.Any(), gomock.Any()).
 				Do(func(ctx context.Context, param installer.V2UpdateClusterParams) {
-					Expect(swag.StringValue(param.ClusterUpdateParams.APIVip)).To(Equal(common.TestIPv4Networking.APIVip))
-					Expect(swag.StringValue(param.ClusterUpdateParams.IngressVip)).To(Equal(common.TestIPv4Networking.IngressVip))
 					Expect(len(param.ClusterUpdateParams.APIVips)).To(Equal(1))
 					Expect(len(param.ClusterUpdateParams.IngressVips)).To(Equal(1))
-					Expect(string(param.ClusterUpdateParams.APIVips[0].IP)).To(Equal(common.TestIPv4Networking.APIVip))
-					Expect(string(param.ClusterUpdateParams.IngressVips[0].IP)).To(Equal(common.TestIPv4Networking.IngressVip))
+					Expect(param.ClusterUpdateParams.APIVips[0].IP).To(Equal(common.TestIPv4Networking.APIVips[0].IP))
+					Expect(param.ClusterUpdateParams.IngressVips[0].IP).To(Equal(common.TestIPv4Networking.IngressVips[0].IP))
 				}).Return(backEndCluster, nil)
 
 			pullSecret := getDefaultTestPullSecret("pull-secret", testNamespace)
@@ -3157,8 +3129,8 @@ var _ = Describe("cluster reconcile", func() {
 					ServiceNetworks:   serviceNetworksEntriesToArray(defaultAgentClusterInstallSpec.Networking.ServiceNetwork),
 					NetworkType:       swag.String(models.ClusterNetworkTypeOpenShiftSDN),
 					Status:            swag.String(models.ClusterStatusInstalling),
-					IngressVip:        defaultAgentClusterInstallSpec.IngressVIP,
-					APIVip:            defaultAgentClusterInstallSpec.APIVIP,
+					IngressVips:       common.TestIPv4Networking.IngressVips,
+					APIVips:           common.TestIPv4Networking.APIVips,
 					BaseDNSDomain:     defaultClusterSpec.BaseDomain,
 					SSHPublicKey:      defaultAgentClusterInstallSpec.SSHPublicKey,
 					Hyperthreading:    models.ClusterHyperthreadingAll,
@@ -4161,9 +4133,7 @@ var _ = Describe("day2 cluster", func() {
 				Kind:            swag.String(models.ClusterKindAddHostsCluster),
 				ID:              &id,
 				Status:          swag.String(models.ClusterStatusInstalled),
-				APIVip:          common.TestIPv4Networking.APIVip,
 				APIVips:         common.TestIPv4Networking.APIVips,
-				IngressVip:      common.TestIPv4Networking.IngressVip,
 				IngressVips:     common.TestIPv4Networking.IngressVips,
 				ClusterNetworks: common.TestIPv4Networking.ClusterNetworks,
 				ServiceNetworks: common.TestIPv4Networking.ServiceNetworks,
