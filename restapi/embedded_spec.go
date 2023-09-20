@@ -7478,8 +7478,7 @@ func init() {
         "MINIMAL_ISO",
         "FULL_ISO",
         "EXTERNAL_PLATFORM_OCI",
-        "DUAL_STACK",
-        "PLATFORM_MANAGED_NETWORKING"
+        "DUAL_STACK"
       ]
     },
     "free-addresses-list": {
@@ -17813,8 +17812,7 @@ func init() {
         "MINIMAL_ISO",
         "FULL_ISO",
         "EXTERNAL_PLATFORM_OCI",
-        "DUAL_STACK",
-        "PLATFORM_MANAGED_NETWORKING"
+        "DUAL_STACK"
       ]
     },
     "free-addresses-list": {

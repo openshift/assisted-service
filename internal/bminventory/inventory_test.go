@@ -4543,18 +4543,17 @@ var _ = Describe("cluster", func() {
 					mockProviderRegistry.EXPECT().SetPlatformUsages(models.PlatformTypeBaremetal, gomock.Any(), mockUsage)
 					clusterID = strfmt.UUID(uuid.New().String())
 					err := db.Create(&common.Cluster{Cluster: models.Cluster{
-						ID:                    &clusterID,
-						CPUArchitecture:       common.ARM64CPUArchitecture,
-						OpenshiftVersion:      "4.11",
-						UserManagedNetworking: swag.Bool(true),
-						Platform:              &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeNone)},
-						HighAvailabilityMode:  swag.String(models.ClusterHighAvailabilityModeFull),
+						ID:                   &clusterID,
+						CPUArchitecture:      common.ARM64CPUArchitecture,
+						OpenshiftVersion:     "4.11",
+						Platform:             &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeNone)},
+						HighAvailabilityMode: swag.String(models.ClusterHighAvailabilityModeFull),
 					}}).Error
 					Expect(err).ShouldNot(HaveOccurred())
 					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 						ClusterID: clusterID,
 						ClusterUpdateParams: &models.V2ClusterUpdateParams{
-							UserManagedNetworking: swag.Bool(false),
+							Platform: &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeBaremetal)},
 						},
 					})
 

@@ -31,7 +31,7 @@ type SupportLevelFilters struct {
 type featureActiveLevel string
 
 const (
-	activeLevelActive     featureActiveLevel = "Active"
-	activeLevelNotActive  featureActiveLevel = "NotActive"
-	activeLeveNotRelevant featureActiveLevel = "NotRelevant"
+	activeLevelActive      featureActiveLevel = "Active"
+	activeLevelNotActive   featureActiveLevel = "NotActive"
+	activeLevelNotRelevant featureActiveLevel = "NotRelevant"
 )

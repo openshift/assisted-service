@@ -73,12 +73,10 @@ var _ = Describe("Feature support levels API", func() {
 		}
 
 		Context("GetSupportedFeatures", func() {
-
 			It("With Platform", func() {
 				features, err := featureSupport("4.14", swag.String("oci"), swag.String(models.ClusterCPUArchitectureX8664))
 				Expect(err).NotTo(HaveOccurred())
 
-				Expect(funk.Contains(*features, string(models.FeatureSupportLevelIDPLATFORMMANAGEDNETWORKING))).To(Equal(true))
 				Expect(funk.Contains(*features, string(models.FeatureSupportLevelIDNUTANIXINTEGRATION))).To(Equal(false))
 				Expect(funk.Contains(*features, string(models.FeatureSupportLevelIDEXTERNALPLATFORMOCI))).To(Equal(false))
 				Expect(funk.Contains(*features, string(models.FeatureSupportLevelIDBAREMETALPLATFORM))).To(Equal(false))
@@ -90,7 +88,6 @@ var _ = Describe("Feature support levels API", func() {
 				features, err := featureSupport("4.14", nil, swag.String(models.ClusterCPUArchitectureX8664))
 				Expect(err).NotTo(HaveOccurred())
 
-				Expect(funk.Contains(*features, string(models.FeatureSupportLevelIDPLATFORMMANAGEDNETWORKING))).To(Equal(false))
 				Expect(funk.Contains(*features, string(models.FeatureSupportLevelIDNUTANIXINTEGRATION))).To(Equal(true))
 				Expect(funk.Contains(*features, string(models.FeatureSupportLevelIDEXTERNALPLATFORMOCI))).To(Equal(true))
 				Expect(funk.Contains(*features, string(models.FeatureSupportLevelIDBAREMETALPLATFORM))).To(Equal(true))

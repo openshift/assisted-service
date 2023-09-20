@@ -3998,13 +3998,12 @@ definitions:
       - 'NONE_PLATFORM'
       - 'VSPHERE_INTEGRATION'
       - 'DUAL_STACK_VIPS'
-      - 'CLUSTER_MANAGED_NETWORKING' # DEPRECATED
-      - 'USER_MANAGED_NETWORKING' # DEPRECATED
+      - 'CLUSTER_MANAGED_NETWORKING'
+      - 'USER_MANAGED_NETWORKING'
       - 'MINIMAL_ISO'
       - 'FULL_ISO'
       - 'EXTERNAL_PLATFORM_OCI'
       - 'DUAL_STACK'
-      - 'PLATFORM_MANAGED_NETWORKING'
 
   architecture-support-level-id:
     type: string
