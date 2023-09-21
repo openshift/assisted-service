@@ -17,6 +17,13 @@ func PlatformTypeToPlatform(platformType hiveext.PlatformType) *models.Platform 
 	return platform
 }
 
+func GetPlatformType(platform *models.Platform) *models.PlatformType {
+	if platform == nil {
+		return nil
+	}
+	return platform.Type
+}
+
 func PlatformTypePtr(p models.PlatformType) *models.PlatformType {
 	return &p
 }

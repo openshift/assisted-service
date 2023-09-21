@@ -167,6 +167,28 @@ func getUpdateParamsForPlatformUMNMandatory(platform *models.Platform, userManag
 	return updatePlatformIsExternal(platform), userManagedNetworking, nil
 }
 
+func GetActualUpdateClusterPlatformParamsNew(cluster *common.Cluster, clusterUpdateParams *models.V2ClusterUpdateParams) (*models.Platform, error) {
+	if clusterUpdateParams == nil && clusterUpdateParams.Platform == nil {
+		// nothing to update
+		return nil, nil
+	}
+
+	// Ignore if cluster platform is the same as the updated platform
+	if clusterUpdateParams != nil && clusterUpdateParams.Platform != nil && *clusterUpdateParams.Platform.Type == *cluster.Platform.Type {
+		return nil, nil
+	}
+
+	// clear VIPs if platform is set
+	if featuresupport.IsActivePlatformSupportsUmn(cluster, clusterUpdateParams) {
+		cluster.APIVip = ""
+		cluster.APIVips = []*models.APIVip{}
+		cluster.IngressVip = ""
+		cluster.IngressVips = []*models.IngressVip{}
+	}
+
+	return updatePlatformIsExternal(clusterUpdateParams.Platform), nil
+}
+
 func GetActualUpdateClusterPlatformParams(platform *models.Platform, userManagedNetworking *bool, cluster *common.Cluster) (*models.Platform, *bool, error) {
 	if platform == nil && userManagedNetworking == nil {
 		return nil, nil, nil
@@ -221,6 +243,25 @@ func GetClusterPlatformByHighAvailabilityMode(platform *models.Platform, userMan
 		return createPlatformFromType(models.PlatformTypeNone), swag.Bool(true), nil
 	}
 	return nil, nil, common.NewApiError(http.StatusBadRequest, errors.Errorf("Got invalid platform (%s) and/or user-managed-networking (%v)", *platform.Type, userManagedNetworking))
+}
+
+func GetCreateClusterPlatformParams(platform *models.Platform, highAvailabilityMode *string, cpuArchitecture string) (*models.Platform, error) {
+	if platform != nil {
+		return updatePlatformIsExternal(platform), nil
+	}
+
+	if cpuArchitecture == models.ClusterCPUArchitectureS390x || cpuArchitecture == models.ClusterCPUArchitecturePpc64le {
+		return createPlatformFromType(models.PlatformTypeNone), nil
+	}
+
+	if swag.StringValue(highAvailabilityMode) == models.ClusterHighAvailabilityModeNone {
+		if isPlatformNone(platform) || isPlatformExternal(platform) {
+			return updatePlatformIsExternal(platform), nil
+		}
+		return createPlatformFromType(models.PlatformTypeNone), nil
+	}
+
+	return createPlatformFromType(models.PlatformTypeBaremetal), nil
 }
 
 func GetActualCreateClusterPlatformParams(platform *models.Platform, userManagedNetworking *bool, highAvailabilityMode *string, cpuArchitecture string) (*models.Platform, *bool, error) {

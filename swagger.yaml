@@ -4004,6 +4004,7 @@ definitions:
       - 'FULL_ISO'
       - 'EXTERNAL_PLATFORM_OCI'
       - 'DUAL_STACK'
+      - 'VIPS'
 
   architecture-support-level-id:
     type: string
@@ -4697,7 +4698,7 @@ definitions:
         x-nullable: true
       user_managed_networking:
         type: boolean
-        description: (DEPRECATED) Indicate if the networking is managed by the user.
+        description: (DEPRECATED) Indicate if the networking is managed by the user. Use platform property instead.
         x-nullable: true
         default: false
       additional_ntp_source:
@@ -4889,7 +4890,7 @@ definitions:
         x-nullable: true
       user_managed_networking:
         type: boolean
-        description: (DEPRECATED) Indicate if the networking is managed by the user.
+        description: (DEPRECATED) Indicate if the networking is managed by the user. Use platform property instead.
         x-nullable: true
       additional_ntp_source:
         type: string
@@ -5237,7 +5238,7 @@ definitions:
       user_managed_networking:
         type: boolean
         x-nullable: true
-        description: (DEPRECATED) Indicate if the networking is managed by the user.
+        description: (DEPRECATED) Indicate if the networking is managed by the user. Use platform property instead.
       additional_ntp_source:
         type: string
         description: A comma-separated list of NTP sources (name or IP) going to be added to all the hosts.

@@ -21,7 +21,44 @@ func isPlatformActive(cluster *common.Cluster, clusterUpdateParams *models.V2Clu
 	return false
 }
 
-func isActivePlatformSupportsUmn(cluster *common.Cluster, clusterUpdateParams *models.V2ClusterUpdateParams) bool {
+func IsPlatformSupportOnlyUmn(platformType models.PlatformType) bool {
+	switch platformType {
+	case models.PlatformTypeOci, models.PlatformTypeNone:
+		return true
+	}
+	return false
+}
+
+func IsPlatformSupportOnlyCmn(platformType models.PlatformType) bool {
+	switch platformType {
+	case models.PlatformTypeBaremetal, models.PlatformTypeNutanix:
+		return true
+	}
+	return false
+}
+
+func DoesManagedNetworkingChanged(cluster *common.Cluster, clusterUpdateParams *models.V2ClusterUpdateParams) bool {
+	if cluster == nil || clusterUpdateParams == nil || clusterUpdateParams.Platform == nil {
+		return false
+	}
+
+	if IsPlatformSupportOnlyUmn(*cluster.Platform.Type) && IsPlatformSupportOnlyCmn(*clusterUpdateParams.Platform.Type) ||
+		IsPlatformSupportOnlyCmn(*cluster.Platform.Type) && IsPlatformSupportOnlyUmn(*clusterUpdateParams.Platform.Type) {
+		return true
+	}
+
+	// For vsphere, if vips are set -> CMN, else UMN
+	if isPlatformActive(cluster, clusterUpdateParams, models.PlatformTypeVsphere) {
+		if areVipsSet(cluster, nil) && !areVipsSet(cluster, clusterUpdateParams) ||
+			!areVipsSet(cluster, nil) && areVipsSet(cluster, clusterUpdateParams) {
+			return true
+		}
+	}
+
+	return false
+}
+
+func IsActivePlatformSupportsUmn(cluster *common.Cluster, clusterUpdateParams *models.V2ClusterUpdateParams) bool {
 	// Return true if platform feature is active (or will be after update)
 	// This method returns true only when platforms that support UMN are active
 	if isPlatformActive(cluster, clusterUpdateParams, models.PlatformTypeVsphere) ||
@@ -34,7 +71,7 @@ func isActivePlatformSupportsUmn(cluster *common.Cluster, clusterUpdateParams *m
 	return false
 }
 
-func isActivePlatformSupportsCmn(cluster *common.Cluster, clusterUpdateParams *models.V2ClusterUpdateParams) bool {
+func IsActivePlatformSupportsCmn(cluster *common.Cluster, clusterUpdateParams *models.V2ClusterUpdateParams) bool {
 	// Return true if platform feature is active (or will be after update)
 	// This method returns true only when platforms that support CMN are active
 	if isPlatformActive(cluster, clusterUpdateParams, models.PlatformTypeVsphere) ||

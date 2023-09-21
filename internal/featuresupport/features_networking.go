@@ -58,12 +58,12 @@ func (feature *VipAutoAllocFeature) getFeatureActiveLevel(cluster *common.Cluste
 
 // ClusterManagedNetworkingFeature - DEPRECATED
 type ClusterManagedNetworkingFeature struct {
-	umnFeature UserManagedNetworkingFeature
+	vipsFeature VipsFeature
 }
 
 func (feature *ClusterManagedNetworkingFeature) New() SupportLevelFeature {
 	return &ClusterManagedNetworkingFeature{
-		UserManagedNetworkingFeature{},
+		VipsFeature{},
 	}
 }
 
@@ -117,10 +117,10 @@ func (feature *ClusterManagedNetworkingFeature) getFeatureActiveLevel(cluster *c
 	}
 
 	if cluster.Platform != nil {
-		if isActivePlatformSupportsCmn(cluster, clusterUpdateParams) {
+		if IsActivePlatformSupportsCmn(cluster, clusterUpdateParams) {
 			// Specifically on vSphere platform, because both umn and cmn available check if VIPs are set
 			if *cluster.Platform.Type == models.PlatformTypeVsphere {
-				if !areVipsSet(cluster, clusterUpdateParams) {
+				if feature.vipsFeature.getFeatureActiveLevel(cluster, nil, clusterUpdateParams, nil) != activeLevelActive {
 					return activeLevelNotActive
 				}
 			}
@@ -260,10 +260,14 @@ func (feature *DualStackVipsFeature) getIncompatibleArchitectures(_ *string) *[]
 }
 
 // UserManagedNetworkingFeature
-type UserManagedNetworkingFeature struct{}
+type UserManagedNetworkingFeature struct {
+	vipsFeature VipsFeature
+}
 
 func (feature *UserManagedNetworkingFeature) New() SupportLevelFeature {
-	return &UserManagedNetworkingFeature{}
+	return &UserManagedNetworkingFeature{
+		vipsFeature: VipsFeature{},
+	}
 }
 
 func (feature *UserManagedNetworkingFeature) getId() models.FeatureSupportLevelID {
@@ -288,6 +292,7 @@ func (feature *UserManagedNetworkingFeature) getIncompatibleFeatures(string) *[]
 	return &[]models.FeatureSupportLevelID{
 		models.FeatureSupportLevelIDNUTANIXINTEGRATION,
 		models.FeatureSupportLevelIDBAREMETALPLATFORM,
+		models.FeatureSupportLevelIDVIPS,
 	}
 }
 
@@ -301,10 +306,10 @@ func (feature *UserManagedNetworkingFeature) getFeatureActiveLevel(cluster *comm
 	}
 
 	if cluster.Platform != nil {
-		if isActivePlatformSupportsUmn(cluster, clusterUpdateParams) {
+		if IsActivePlatformSupportsUmn(cluster, clusterUpdateParams) {
 			// Specifically on vSphere platform, because both umn and cmn available check if VIPs are set
 			if *cluster.Platform.Type == models.PlatformTypeVsphere {
-				if areVipsSet(cluster, clusterUpdateParams) {
+				if feature.vipsFeature.getFeatureActiveLevel(cluster, nil, clusterUpdateParams, nil) == activeLevelActive {
 					return activeLevelNotActive
 				}
 			}
@@ -314,5 +319,61 @@ func (feature *UserManagedNetworkingFeature) getFeatureActiveLevel(cluster *comm
 	}
 
 	return activeLevelNotRelevant
+}
 
+// VIPs
+type VipsFeature struct{}
+
+func (feature *VipsFeature) New() SupportLevelFeature {
+	return &VipsFeature{}
+}
+
+func (feature *VipsFeature) getId() models.FeatureSupportLevelID {
+	return models.FeatureSupportLevelIDVIPS
+}
+
+func (feature *VipsFeature) GetName() string {
+	return "User Managed Networking"
+}
+
+func (feature *VipsFeature) getSupportLevel(filters SupportLevelFilters) models.SupportLevel {
+	if filters.PlatformType != nil {
+		if *filters.PlatformType == models.PlatformTypeOci || *filters.PlatformType == models.PlatformTypeNone {
+			return models.SupportLevelUnavailable
+		}
+	}
+
+	return models.SupportLevelSupported
+}
+
+func (feature *VipsFeature) getIncompatibleFeatures(string) *[]models.FeatureSupportLevelID {
+	return &[]models.FeatureSupportLevelID{
+		models.FeatureSupportLevelIDUSERMANAGEDNETWORKING,
+	}
+}
+
+func (feature *VipsFeature) getIncompatibleArchitectures(_ *string) *[]models.ArchitectureSupportLevelID {
+	return nil
+}
+
+func (feature *VipsFeature) getFeatureActiveLevel(cluster *common.Cluster, _ *models.InfraEnv, clusterUpdateParams *models.V2ClusterUpdateParams, _ *models.InfraEnvUpdateParams) featureActiveLevel {
+	if cluster == nil {
+		return activeLevelNotActive
+	}
+
+	// assuming that all VIPs must be updated together so no need to test also Ingress VIP
+	if clusterUpdateParams != nil && clusterUpdateParams.APIVips != nil {
+		if len(clusterUpdateParams.APIVips) > 0 {
+			return activeLevelActive
+		}
+
+		if len(clusterUpdateParams.APIVips) == 0 {
+			return activeLevelNotActive
+		}
+	}
+
+	if cluster.APIVips != nil && len(cluster.APIVips) > 0 {
+		return activeLevelActive
+	}
+	return activeLevelNotActive
 }

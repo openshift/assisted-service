@@ -265,7 +265,7 @@ type Cluster struct {
 	// Format: date-time
 	UpdatedAt timeext.Time `json:"updated_at,omitempty" gorm:"type:timestamp with time zone"`
 
-	// (DEPRECATED) Indicate if the networking is managed by the user.
+	// (DEPRECATED) Indicate if the networking is managed by the user. Use platform property instead.
 	UserManagedNetworking *bool `json:"user_managed_networking,omitempty"`
 
 	// user name

@@ -341,7 +341,13 @@ func (b *bareMetalInventory) setDefaultRegisterClusterParams(ctx context.Context
 	}
 
 	log.Infof("Verifying cluster platform and user-managed-networking, got platform=%s and userManagedNetworking=%s", getPlatformType(params.NewClusterParams.Platform), common.BoolPtrForLog(params.NewClusterParams.UserManagedNetworking))
-	platform, userManagedNetworking, err := provider.GetActualCreateClusterPlatformParams(params.NewClusterParams.Platform, params.NewClusterParams.UserManagedNetworking, params.NewClusterParams.HighAvailabilityMode, params.NewClusterParams.CPUArchitecture)
+	_, userManagedNetworking, err := provider.GetActualCreateClusterPlatformParams(params.NewClusterParams.Platform, params.NewClusterParams.UserManagedNetworking, params.NewClusterParams.HighAvailabilityMode, params.NewClusterParams.CPUArchitecture)
+	if err != nil {
+		log.Error(err)
+		return params, err
+	}
+
+	platform, err := provider.GetCreateClusterPlatformParams(params.NewClusterParams.Platform, params.NewClusterParams.HighAvailabilityMode, params.NewClusterParams.CPUArchitecture)
 	if err != nil {
 		log.Error(err)
 		return params, err
@@ -1956,7 +1962,13 @@ func (b *bareMetalInventory) validateUpdateCluster(
 func (b *bareMetalInventory) setUpdatedPlatformParams(log logrus.FieldLogger, cluster *common.Cluster, params installer.V2UpdateClusterParams) (installer.V2UpdateClusterParams, error) {
 	log.Infof("Current cluster platform is set to %s and user-managed-networking is set to %s", getPlatformType(cluster.Platform), common.BoolPtrForLog(cluster.UserManagedNetworking))
 	log.Infof("Verifying cluster platform and user-managed-networking, got platform=%s and userManagedNetworking=%s", getPlatformType(params.ClusterUpdateParams.Platform), common.BoolPtrForLog(params.ClusterUpdateParams.UserManagedNetworking))
-	platform, userManagedNetworking, err := provider.GetActualUpdateClusterPlatformParams(params.ClusterUpdateParams.Platform, params.ClusterUpdateParams.UserManagedNetworking, cluster)
+	_, userManagedNetworking, err := provider.GetActualUpdateClusterPlatformParams(params.ClusterUpdateParams.Platform, params.ClusterUpdateParams.UserManagedNetworking, cluster)
+	if err != nil {
+		log.Error(err)
+		return params, err
+	}
+
+	platform, err := provider.GetActualUpdateClusterPlatformParamsNew(cluster, params.ClusterUpdateParams)
 	if err != nil {
 		log.Error(err)
 		return params, err

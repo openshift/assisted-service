@@ -4132,6 +4132,7 @@ var _ = Describe("cluster", func() {
 						ClusterID: clusterID,
 						ClusterUpdateParams: &models.V2ClusterUpdateParams{
 							UserManagedNetworking: swag.Bool(false),
+							Platform:              &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeBaremetal)},
 							APIVip:                swag.String(apiVip),
 							IngressVip:            swag.String(ingressVip),
 						},
@@ -4143,6 +4144,7 @@ var _ = Describe("cluster", func() {
 						ClusterID: clusterID,
 						ClusterUpdateParams: &models.V2ClusterUpdateParams{
 							UserManagedNetworking: swag.Bool(true),
+							Platform:              &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeNone)},
 							APIVip:                swag.String(""),
 							IngressVip:            swag.String(""),
 						},
@@ -4154,6 +4156,7 @@ var _ = Describe("cluster", func() {
 						ClusterID: clusterID,
 						ClusterUpdateParams: &models.V2ClusterUpdateParams{
 							UserManagedNetworking: swag.Bool(false),
+							Platform:              &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeBaremetal)},
 							APIVip:                swag.String(apiVip),
 							IngressVip:            swag.String(ingressVip),
 						},
@@ -4161,7 +4164,7 @@ var _ = Describe("cluster", func() {
 					Expect(reply).To(BeAssignableToTypeOf(installer.NewV2UpdateClusterCreated()))
 				})
 
-				It("handle UserManagedNetworking and VIP arrays update at the same request", func() {
+				It("handle platform and VIP arrays update at the same request", func() {
 					mockClusterUpdatability(3)
 					mockDetectAndStoreCollidingIPsForCluster(mockClusterApi, 3)
 					mockHostApi.EXPECT().RefreshInventory(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
@@ -4178,11 +4181,11 @@ var _ = Describe("cluster", func() {
 					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 						ClusterID: clusterID,
 						ClusterUpdateParams: &models.V2ClusterUpdateParams{
-							UserManagedNetworking: swag.Bool(false),
-							APIVip:                swag.String(apiVip),
-							APIVips:               []*models.APIVip{{IP: models.IP(apiVip)}},
-							IngressVip:            swag.String(ingressVip),
-							IngressVips:           []*models.IngressVip{{IP: models.IP(ingressVip)}},
+							Platform:    &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeBaremetal)},
+							APIVip:      swag.String(apiVip),
+							APIVips:     []*models.APIVip{{IP: models.IP(apiVip)}},
+							IngressVip:  swag.String(ingressVip),
+							IngressVips: []*models.IngressVip{{IP: models.IP(ingressVip)}},
 						},
 					})
 					Expect(reply).To(BeAssignableToTypeOf(installer.NewV2UpdateClusterCreated()))
@@ -4192,6 +4195,7 @@ var _ = Describe("cluster", func() {
 						ClusterID: clusterID,
 						ClusterUpdateParams: &models.V2ClusterUpdateParams{
 							UserManagedNetworking: swag.Bool(true),
+							Platform:              &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeNone)},
 							APIVip:                swag.String(""),
 							APIVips:               []*models.APIVip{},
 							IngressVip:            swag.String(""),
@@ -4205,6 +4209,7 @@ var _ = Describe("cluster", func() {
 						ClusterID: clusterID,
 						ClusterUpdateParams: &models.V2ClusterUpdateParams{
 							UserManagedNetworking: swag.Bool(false),
+							Platform:              &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeBaremetal)},
 							APIVip:                swag.String(apiVip),
 							APIVips:               []*models.APIVip{{IP: models.IP(apiVip)}},
 							IngressVip:            swag.String(ingressVip),
@@ -4299,7 +4304,6 @@ var _ = Describe("cluster", func() {
 					mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 					mockClusterApi.EXPECT().SetConnectivityMajorityGroupsForCluster(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 					mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).AnyTimes()
-					mockProviderRegistry.EXPECT().SetPlatformUsages(models.PlatformTypeNone, gomock.Any(), mockUsage)
 
 					By("Set User Managed Networking: false")
 					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
@@ -4349,7 +4353,6 @@ var _ = Describe("cluster", func() {
 					mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 					mockClusterApi.EXPECT().SetConnectivityMajorityGroupsForCluster(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 					mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).AnyTimes()
-					mockProviderRegistry.EXPECT().SetPlatformUsages(models.PlatformTypeNone, gomock.Any(), mockUsage)
 
 					apiVip := "10.11.12.15"
 					ingressVip := "10.11.12.16"
@@ -4407,6 +4410,7 @@ var _ = Describe("cluster", func() {
 						ClusterID: clusterID,
 						ClusterUpdateParams: &models.V2ClusterUpdateParams{
 							UserManagedNetworking: swag.Bool(true),
+							Platform:              &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeNone)},
 						},
 					})
 					Expect(reply).To(BeAssignableToTypeOf(installer.NewV2UpdateClusterCreated()))
@@ -4418,7 +4422,6 @@ var _ = Describe("cluster", func() {
 				It("Unset non relevant parameters", func() {
 					mockClusterUpdatability(1)
 					mockSuccess(1)
-					mockProviderRegistry.EXPECT().SetPlatformUsages(models.PlatformTypeNone, gomock.Any(), mockUsage)
 
 					Expect(db.Save(
 						&models.MachineNetwork{Cidr: common.TestIPv4Networking.MachineNetworks[0].Cidr, ClusterID: clusterID}).Error).ShouldNot(HaveOccurred())
@@ -4500,7 +4503,6 @@ var _ = Describe("cluster", func() {
 				})
 
 				It("Don't fail with Machine CIDR", func() {
-					mockProviderRegistry.EXPECT().SetPlatformUsages(models.PlatformTypeNone, gomock.Any(), mockUsage)
 					mockSuccess(1)
 					mockClusterUpdatability(1)
 					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
@@ -6859,23 +6861,6 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 					Expect(swag.BoolValue(actual2.Platform.IsExternal)).To(BeFalse())
 				})
 
-				It("Update UMN=true - success", func() {
-					mockSuccess()
-					mockProviderRegistry.EXPECT().SetPlatformUsages(models.PlatformTypeNone, gomock.Any(), mockUsage)
-
-					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
-						ClusterID: clusterID,
-						ClusterUpdateParams: &models.V2ClusterUpdateParams{
-							UserManagedNetworking: swag.Bool(true),
-						},
-					})
-					Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2UpdateClusterCreated()))
-					actual := reply.(*installer.V2UpdateClusterCreated).Payload
-					Expect(swag.BoolValue(actual.UserManagedNetworking)).To(Equal(true))
-					Expect(*actual.Platform.Type).To(Equal(models.PlatformTypeNone))
-
-				})
-
 				It("Update UMN=true and platform=baremetal results BadRequestError - failure", func() {
 					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 						ClusterID: clusterID,
@@ -7127,6 +7112,7 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 
 				It("Update platform=none - success", func() {
 					mockSuccess()
+
 					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 						ClusterID: clusterID,
 						ClusterUpdateParams: &models.V2ClusterUpdateParams{
@@ -7143,6 +7129,7 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 
 				It("Update platform=none and UMN=true - success", func() {
 					mockSuccess()
+
 					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 						ClusterID: clusterID,
 						ClusterUpdateParams: &models.V2ClusterUpdateParams{
@@ -7166,6 +7153,7 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 						ClusterID: clusterID,
 						ClusterUpdateParams: &models.V2ClusterUpdateParams{
 							UserManagedNetworking: swag.Bool(false),
+							Platform:              &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeBaremetal)},
 						},
 					})
 					Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2UpdateClusterCreated()))
@@ -7406,6 +7394,7 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 
 				It("Update platform=oci - success", func() {
 					mockSuccess()
+
 					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 						ClusterID: clusterID,
 						ClusterUpdateParams: &models.V2ClusterUpdateParams{
@@ -7421,6 +7410,7 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 
 				It("Update UMN=true and platform=oci - success", func() {
 					mockSuccess()
+
 					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 						ClusterID: clusterID,
 						ClusterUpdateParams: &models.V2ClusterUpdateParams{
@@ -7713,7 +7703,7 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 
 				It("Update platform=nutanix - success", func() {
 					mockSuccess()
-					mockProviderRegistry.EXPECT().SetPlatformUsages(models.PlatformTypeNutanix, gomock.Any(), mockUsage)
+
 					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 						ClusterID: clusterID,
 						ClusterUpdateParams: &models.V2ClusterUpdateParams{
@@ -7729,7 +7719,6 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 
 				It("Update UMN=false and platform=nutanix - success", func() {
 					mockSuccess()
-					mockProviderRegistry.EXPECT().SetPlatformUsages(models.PlatformTypeNutanix, gomock.Any(), mockUsage)
 					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 						ClusterID: clusterID,
 						ClusterUpdateParams: &models.V2ClusterUpdateParams{
@@ -13447,21 +13436,6 @@ var _ = Describe("TestRegisterCluster", func() {
 				actual := reply.(*installer.V2RegisterClusterCreated).Payload
 				Expect(swag.BoolValue(actual.UserManagedNetworking)).To(Equal(false))
 				Expect(*actual.Platform.Type).To(Equal(models.PlatformTypeBaremetal))
-			})
-
-			It("user-managed-networking true", func() {
-				mockClusterRegisterSuccess(true)
-				mockAMSSubscription(ctx)
-
-				params := getClusterCreateParams(nil)
-				params.UserManagedNetworking = swag.Bool(true)
-				reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
-					NewClusterParams: params,
-				})
-				Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2RegisterClusterCreated()))
-				actual := reply.(*installer.V2RegisterClusterCreated).Payload
-				Expect(swag.BoolValue(actual.UserManagedNetworking)).To(Equal(true))
-				Expect(*actual.Platform.Type).To(Equal(models.PlatformTypeNone))
 			})
 
 			It("Baremetal platform", func() {

@@ -197,18 +197,18 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 			for _, platform := range platforms {
 				p := platform
 				list := GetFeatureSupportList("dummy", nil, &p)
-				Expect(len(list)).To(Equal(15))
+				Expect(len(list)).To(Equal(16))
 			}
 		})
 
 		It("GetFeatureSupportList 4.12", func() {
 			list := GetFeatureSupportList("4.12", nil, nil)
-			Expect(len(list)).To(Equal(20))
+			Expect(len(list)).To(Equal(21))
 		})
 
 		It("GetFeatureSupportList 4.13", func() {
 			list := GetFeatureSupportList("4.13", nil, nil)
-			Expect(len(list)).To(Equal(20))
+			Expect(len(list)).To(Equal(21))
 		})
 
 		It("GetCpuArchitectureSupportList 4.12", func() {
@@ -406,6 +406,29 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 
 			err := ValidateIncompatibleFeatures(log, models.ClusterCPUArchitectureS390x, &cluster, &infraEnv, nil)
 			Expect(err).To(Not(BeNil()))
+		})
+		It("Cannot set UMN platforms with vips", func() {
+			umnPlatforms := []models.PlatformType{models.PlatformTypeOci, models.PlatformTypeNone}
+
+			for _, p := range umnPlatforms {
+				platform := p
+				cluster := common.Cluster{Cluster: models.Cluster{
+					OpenshiftVersion: "4.14",
+					CPUArchitecture:  models.ClusterCPUArchitectureX8664,
+					Platform: &models.Platform{
+						Type: common.PlatformTypePtr(platform),
+					},
+				}}
+
+				err := ValidateIncompatibleFeatures(log, models.ClusterCPUArchitectureX8664, &cluster, nil, nil)
+				Expect(err).To(BeNil())
+
+				expectedError := "cannot use User Managed Networking because it's not compatible with User Managed Networking"
+				cluster.APIVips = []*models.APIVip{{IP: models.IP("8.8.8.8")}}
+				cluster.IngressVips = []*models.IngressVip{{IP: models.IP("8.8.8.8")}}
+				err = ValidateIncompatibleFeatures(log, models.ClusterCPUArchitectureX8664, &cluster, nil, nil)
+				Expect(err.Error()).To(Equal(expectedError))
+			}
 		})
 	})
 
@@ -616,13 +639,13 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 					if incompatibleFeatures != nil {
 						for _, incompatibleFeatureId := range *incompatibleFeatures {
 							incompatibleFeature := featuresList[incompatibleFeatureId]
-							By(fmt.Sprintf("Feature  %s with incompatible feature %s", featureId, incompatibleFeatureId), func() {
-								incompatibleFeatures2 := incompatibleFeature.getIncompatibleFeatures("")
-								if incompatibleFeatures2 == nil {
-									incompatibleFeatures2 = &[]models.FeatureSupportLevelID{}
-								}
-								Expect(*incompatibleFeatures2).To(ContainElement(featureId))
-							})
+							//By(fmt.Sprintf("Feature %s with incompatible feature %s", featureId, incompatibleFeatureId), func() {
+							incompatibleFeatures2 := incompatibleFeature.getIncompatibleFeatures("")
+							if incompatibleFeatures2 == nil {
+								incompatibleFeatures2 = &[]models.FeatureSupportLevelID{}
+							}
+							Expect(*incompatibleFeatures2).To(ContainElement(featureId))
+							//})
 						}
 					}
 				}
