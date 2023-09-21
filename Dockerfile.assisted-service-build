@@ -40,6 +40,7 @@ RUN dnf install -y 'dnf-command(config-manager)' && \
     dnf install -y --enablerepo=crb \
         openssl postgresql nmstate-devel sqlite gcc genisoimage git docker-ce-cli libvirt-client libvirt-devel java && \
     dnf clean all
+    dnf install krb5-libs -y && dnf clean all
 
 # Git checks if the user that owns the files on the filesystem match the
 # current user.  We need to disable this check because tests in Prow are

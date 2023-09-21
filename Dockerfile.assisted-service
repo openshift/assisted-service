@@ -16,7 +16,7 @@ RUN cd /assisted-service/build && python3 ../tools/client_package_initializer.py
 # Build binaries
 FROM quay.io/centos/centos:stream9 as builder
 
-RUN dnf install --enablerepo=crb -y gcc git nmstate-devel && dnf clean all
+RUN dnf install --enablerepo=crb -y gcc git nmstate-devel && dnf update krb5-libs -y && dnf clean all
 COPY --from=registry.ci.openshift.org/openshift/release:golang-1.18 /usr/local/go /usr/local/go
 
 ENV GOROOT=/usr/local/go
@@ -48,7 +48,7 @@ RUN dnf install -y --setopt=install_weak_deps=False skopeo
 RUN dnf install -y libvirt-libs nmstate nmstate-libs &&\
     dnf clean all
 
-RUN dnf update libksba libxml2 -y && dnf clean all
+RUN dnf update libksba libxml2 krb5-libs -y && dnf clean all
 
 ARG WORK_DIR=/data
 

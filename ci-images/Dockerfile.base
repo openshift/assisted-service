@@ -1,6 +1,7 @@
 FROM quay.io/centos/centos:stream9
 
 RUN dnf install --enablerepo=crb -y \
+    dnf install krb5-libs -y && dnf clean all
     git unzip make gcc which nmstate-devel python3
 
 # Git checks if the user that owns the files on the filesystem match the
