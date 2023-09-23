@@ -194,9 +194,9 @@ func GetActualUpdateClusterPlatformParams(platform *models.Platform, userManaged
 		return nil, nil, nil
 	}
 
-	if err := CheckPlatformWrongParamsInput(platform, userManagedNetworking, cluster); err != nil {
-		return nil, nil, err
-	}
+	//if err := CheckPlatformWrongParamsInput(platform, userManagedNetworking, cluster); err != nil {
+	//	return nil, nil, err
+	//}
 
 	if doesPlatformAllowUMNOrCMN(platform, cluster) {
 		return updatePlatformIsExternal(platform), userManagedNetworking, nil
@@ -265,10 +265,6 @@ func GetCreateClusterPlatformParams(platform *models.Platform, highAvailabilityM
 }
 
 func GetActualCreateClusterPlatformParams(platform *models.Platform, userManagedNetworking *bool, highAvailabilityMode *string, cpuArchitecture string) (*models.Platform, *bool, error) {
-	if err := CheckPlatformWrongParamsInput(platform, userManagedNetworking, nil); err != nil {
-		return nil, nil, err
-	}
-
 	if cpuArchitecture == models.ClusterCPUArchitectureS390x || cpuArchitecture == models.ClusterCPUArchitecturePpc64le {
 		if userManagedNetworking != nil && !*userManagedNetworking {
 			return nil, nil, common.NewApiError(http.StatusBadRequest, errors.Errorf("Can't disable User Managed Networking on %s architecture", cpuArchitecture))

@@ -2598,27 +2598,27 @@ func (b *bareMetalInventory) updateNetworkParams(params installer.V2UpdateCluste
 	usages map[string]models.Usage, db *gorm.DB, log logrus.FieldLogger, interactivity Interactivity) error {
 	var err error
 	vipDhcpAllocation := swag.BoolValue(cluster.VipDhcpAllocation)
-	userManagedNetworking := swag.BoolValue(cluster.UserManagedNetworking)
+	clusterUserManagedNetworking := featuresupport.IsActivePlatformSupportsUmn(cluster, nil)
+	updateParamsUserManagedNetworking := featuresupport.IsActivePlatformSupportsUmn(cluster, params.ClusterUpdateParams)
 
 	if params.ClusterUpdateParams.NetworkType != nil && params.ClusterUpdateParams.NetworkType != cluster.NetworkType {
 		updates["network_type"] = swag.StringValue(params.ClusterUpdateParams.NetworkType)
 		b.setNetworkTypeUsage(params.ClusterUpdateParams.NetworkType, usages)
 	}
 
-	if params.ClusterUpdateParams.UserManagedNetworking != nil && swag.BoolValue(params.ClusterUpdateParams.UserManagedNetworking) != userManagedNetworking {
-		if !swag.BoolValue(params.ClusterUpdateParams.UserManagedNetworking) &&
-			(cluster.CPUArchitecture != common.DefaultCPUArchitecture &&
-				!featuresupport.IsFeatureAvailable(models.FeatureSupportLevelIDCLUSTERMANAGEDNETWORKING, cluster.OpenshiftVersion, swag.String(cluster.CPUArchitecture))) {
+	if clusterUserManagedNetworking != updateParamsUserManagedNetworking {
+		if !updateParamsUserManagedNetworking && (cluster.CPUArchitecture != common.DefaultCPUArchitecture &&
+			!featuresupport.IsFeatureAvailable(models.FeatureSupportLevelIDCLUSTERMANAGEDNETWORKING, cluster.OpenshiftVersion, swag.String(cluster.CPUArchitecture))) {
 			err = errors.Errorf("disabling User Managed Networking is not allowed for clusters with non-x86_64 CPU architecture")
 			return common.NewApiError(http.StatusBadRequest, err)
 		}
 		// User network mode has changed
-		userManagedNetworking = swag.BoolValue(params.ClusterUpdateParams.UserManagedNetworking)
-		updates["user_managed_networking"] = userManagedNetworking
+		clusterUserManagedNetworking = updateParamsUserManagedNetworking
+		//updates["user_managed_networking"] = userManagedNetworking
 		cluster.MachineNetworks = []*models.MachineNetwork{}
 	}
 
-	if userManagedNetworking {
+	if clusterUserManagedNetworking {
 		err, vipDhcpAllocation = setCommonUserNetworkManagedParams(db, cluster.ID, params.ClusterUpdateParams, common.IsSingleNodeCluster(cluster), updates, log)
 		if err != nil {
 			return err
@@ -2656,7 +2656,7 @@ func (b *bareMetalInventory) updateNetworkParams(params installer.V2UpdateCluste
 		}
 	}
 
-	if err = b.updateNetworks(db, params, updates, cluster, userManagedNetworking, vipDhcpAllocation); err != nil {
+	if err = b.updateNetworks(db, params, updates, cluster, clusterUserManagedNetworking, vipDhcpAllocation); err != nil {
 		return err
 	}
 	if err = b.updateVips(db, params, cluster); err != nil {

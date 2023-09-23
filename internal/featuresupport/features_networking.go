@@ -333,7 +333,7 @@ func (feature *VipsFeature) getId() models.FeatureSupportLevelID {
 }
 
 func (feature *VipsFeature) GetName() string {
-	return "User Managed Networking"
+	return "API and Ingress VIPs"
 }
 
 func (feature *VipsFeature) getSupportLevel(filters SupportLevelFilters) models.SupportLevel {

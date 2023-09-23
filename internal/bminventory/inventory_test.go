@@ -1993,18 +1993,30 @@ var _ = Describe("cluster", func() {
 			Expect(actual.Payload.VipDhcpAllocation).To(Equal(swag.Bool(false)))
 		})
 		It("create non ha cluster fail, explicitly disabled UserManagedNetworking", func() {
-			errStr := "Can't set none platform with user-managed-networking disabled"
+			apiVip := "8.8.8.8"
+			apiVips := []*models.APIVip{{IP: models.IP(apiVip)}}
+			ingressVip := "8.8.8.9"
+			ingressVips := []*models.IngressVip{{IP: models.IP(ingressVip)}}
+			mockVersions.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(common.TestDefaultConfig.ReleaseImage, nil).Times(1)
+			mockOSImages.EXPECT().GetOsImage(gomock.Any(), gomock.Any()).Return(common.TestDefaultConfig.OsImage, nil).Times(1)
+			mockOperatorManager.EXPECT().GetSupportedOperatorsByType(models.OperatorTypeBuiltin).Return([]*models.MonitoredOperator{&common.TestDefaultConfig.MonitoredOperator}).Times(1)
+
 			bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog().WithField("pkg", "cluster-monitor"),
 				db, commontesting.GetDummyNotificationStream(ctrl), mockEvents, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil)
 			noneHaMode := models.ClusterHighAvailabilityModeNone
 			openShiftVersionForNoneHA := "4.8.0-fc.2"
 			clusterParams.OpenshiftVersion = swag.String(openShiftVersionForNoneHA)
 			clusterParams.HighAvailabilityMode = &noneHaMode
-			clusterParams.UserManagedNetworking = swag.Bool(false)
+			clusterParams.IngressVips = ingressVips
+			clusterParams.IngressVip = ingressVip
+			clusterParams.APIVips = apiVips
+			clusterParams.APIVip = apiVip
+
 			reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 				NewClusterParams: clusterParams,
 			})
-			verifyApiErrorString(reply, http.StatusBadRequest, errStr)
+
+			verifyFeatureSupportApiErrorString(reply, http.StatusBadRequest, models.FeatureSupportLevelIDUSERMANAGEDNETWORKING, models.FeatureSupportLevelIDVIPS)
 		})
 		It("create non ha cluster fail, explicitly enabled VipDhcpAllocation", func() {
 			bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog().WithField("pkg", "cluster-monitor"),
@@ -4219,7 +4231,7 @@ var _ = Describe("cluster", func() {
 					Expect(reply).To(BeAssignableToTypeOf(installer.NewV2UpdateClusterCreated()))
 				})
 
-				It("Fail to set cluster VIPs when UserManagedNetworking true was set", func() {
+				It("Fail to set cluster VIPs when none platform was set", func() {
 					mockClusterUpdatability(3)
 					mockDetectAndStoreCollidingIPsForCluster(mockClusterApi, 2)
 					mockHostApi.EXPECT().RefreshInventory(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
@@ -4229,20 +4241,20 @@ var _ = Describe("cluster", func() {
 					mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).AnyTimes()
 					mockProviderRegistry.EXPECT().SetPlatformUsages(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 
-					By("Set User Managed Networking: false")
+					By("Set Platform to none")
 					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 						ClusterID: clusterID,
 						ClusterUpdateParams: &models.V2ClusterUpdateParams{
-							UserManagedNetworking: swag.Bool(false),
+							Platform: &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeBaremetal)},
 						},
 					})
 					Expect(reply).To(BeAssignableToTypeOf(installer.NewV2UpdateClusterCreated()))
 
-					By("Fail to set UserManagedNetworking true")
+					By("Fail to set none platform")
 					reply = bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 						ClusterID: clusterID,
 						ClusterUpdateParams: &models.V2ClusterUpdateParams{
-							UserManagedNetworking: swag.Bool(true),
+							Platform: &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeNone)},
 						},
 					})
 					Expect(reply).To(BeAssignableToTypeOf(installer.NewV2UpdateClusterCreated()))
@@ -4255,7 +4267,8 @@ var _ = Describe("cluster", func() {
 							IngressVip: swag.String("10.11.12.16"),
 						},
 					})
-					verifyApiErrorString(reply, http.StatusBadRequest, "API VIP cannot be set with User Managed Networking")
+
+					verifyFeatureSupportApiErrorString(reply, http.StatusBadRequest, models.FeatureSupportLevelIDUSERMANAGEDNETWORKING, models.FeatureSupportLevelIDVIPS)
 				})
 
 				It("Fail to set UserManagedNetworking true when cluster VIPs were set", func() {
@@ -4415,13 +4428,13 @@ var _ = Describe("cluster", func() {
 					})
 					Expect(reply).To(BeAssignableToTypeOf(installer.NewV2UpdateClusterCreated()))
 					actual := reply.(*installer.V2UpdateClusterCreated)
-					Expect(actual.Payload.UserManagedNetworking).To(Equal(swag.Bool(true)))
 					Expect(*actual.Payload.Platform.Type).To(Equal(models.PlatformTypeNone))
 				})
 
 				It("Unset non relevant parameters", func() {
 					mockClusterUpdatability(1)
 					mockSuccess(1)
+					mockProviderRegistry.EXPECT().SetPlatformUsages(models.PlatformTypeNone, gomock.Any(), mockUsage)
 
 					Expect(db.Save(
 						&models.MachineNetwork{Cidr: common.TestIPv4Networking.MachineNetworks[0].Cidr, ClusterID: clusterID}).Error).ShouldNot(HaveOccurred())
@@ -4430,11 +4443,12 @@ var _ = Describe("cluster", func() {
 						ClusterID: clusterID,
 						ClusterUpdateParams: &models.V2ClusterUpdateParams{
 							UserManagedNetworking: swag.Bool(true),
+							Platform:              &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeNone)},
 						},
 					})
 					Expect(reply).To(BeAssignableToTypeOf(installer.NewV2UpdateClusterCreated()))
 					actual := reply.(*installer.V2UpdateClusterCreated)
-					Expect(actual.Payload.UserManagedNetworking).To(Equal(swag.Bool(true)))
+					Expect(*actual.Payload.Platform.Type).To(Equal(models.PlatformTypeNone))
 					Expect(actual.Payload.VipDhcpAllocation).To(Equal(swag.Bool(false)))
 					Expect(actual.Payload.APIVip).To(Equal(""))
 					Expect(actual.Payload.IngressVip).To(Equal(""))
@@ -4505,11 +4519,13 @@ var _ = Describe("cluster", func() {
 				It("Don't fail with Machine CIDR", func() {
 					mockSuccess(1)
 					mockClusterUpdatability(1)
+					mockProviderRegistry.EXPECT().SetPlatformUsages(models.PlatformTypeNone, gomock.Any(), mockUsage)
+
 					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 						ClusterID: clusterID,
 						ClusterUpdateParams: &models.V2ClusterUpdateParams{
-							UserManagedNetworking: swag.Bool(true),
-							MachineNetworks:       []*models.MachineNetwork{{Cidr: "10.11.0.0/16"}},
+							Platform:        &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeNone)},
+							MachineNetworks: []*models.MachineNetwork{{Cidr: "10.11.0.0/16"}},
 						},
 					})
 
@@ -6471,105 +6487,6 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 
 				})
 
-				addVsphereHostWithNetworking := func(clusterId strfmt.UUID, role models.HostRole) {
-					inventory := models.Inventory{
-						Interfaces: []*models.Interface{
-							{
-								Name: "eth0",
-								IPV4Addresses: []string{
-									"1.2.3.4/24",
-									"10.0.0.100/24",
-								},
-							},
-						},
-						SystemVendor: &models.SystemVendor{
-							Virtual:      true,
-							Manufacturer: "VMware, Inc.",
-							ProductName:  "VMware7,1",
-							SerialNumber: "VMware-12 34 56 78 90 12 ab cd-ef gh 12 34 56 67 89 90",
-						},
-					}
-					inventoryByte, err := json.Marshal(inventory)
-					Expect(err).ToNot(HaveOccurred())
-					addHost(strfmt.UUID(uuid.New().String()), role, models.HostStatusKnown, models.HostKindHost, clusterID, string(inventoryByte), db)
-				}
-
-				It("Update platform=vsphere with UMN=true - success", func() {
-					mockClusterUpdateSuccess(1, 1)
-					mockProviderRegistry.EXPECT().SetPlatformUsages(models.PlatformTypeVsphere, gomock.Any(), mockUsage)
-
-					addVsphereHostWithNetworking(clusterID, models.HostRoleBootstrap)
-
-					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
-						ClusterID: clusterID,
-						ClusterUpdateParams: &models.V2ClusterUpdateParams{
-							Platform:              &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeVsphere)},
-							UserManagedNetworking: swag.Bool(true),
-							VipDhcpAllocation:     swag.Bool(false),
-							NetworkType:           swag.String(models.ClusterNetworkTypeOpenShiftSDN),
-							ClusterNetworks:       []*models.ClusterNetwork{{Cidr: "10.128.0.0/14", ClusterID: clusterID, HostPrefix: 23}},
-							ServiceNetworks:       []*models.ServiceNetwork{{Cidr: "172.30.0.0/16", ClusterID: clusterID}},
-						},
-					})
-					Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2UpdateClusterCreated()))
-					actual := reply.(*installer.V2UpdateClusterCreated).Payload
-					Expect(swag.BoolValue(actual.UserManagedNetworking)).To(Equal(true))
-					Expect(*actual.Platform.Type).To(Equal(models.PlatformTypeVsphere))
-					Expect(swag.BoolValue(actual.Platform.IsExternal)).To(BeFalse())
-
-					Expect(swag.BoolValue(actual.UserManagedNetworking)).To(Equal(true))
-					Expect(*actual.Platform.Type).To(Equal(models.PlatformTypeVsphere))
-					Expect(swag.BoolValue(actual.Platform.IsExternal)).To(BeFalse())
-
-					var result installcfg.InstallerConfigBaremetal
-					installConfig := createInstallConfigBuilder()
-					mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(2)
-					data, err := installConfig.GetInstallConfig(&common.Cluster{Cluster: *actual}, []*common.InfraEnv{}, "")
-					Expect(err).ShouldNot(HaveOccurred())
-					err = yaml.Unmarshal(data, &result)
-					Expect(err).ShouldNot(HaveOccurred())
-					Expect(result.Platform.Vsphere).ShouldNot(BeNil())
-					Expect(result.Platform.None).Should(BeNil())
-					Expect(result.Platform.Baremetal).Should(BeNil())
-
-					Expect(result.Platform.Vsphere.DeprecatedAPIVIP).Should(Equal(""))
-					Expect(result.Platform.Vsphere.DeprecatedIngressVIP).Should(Equal(""))
-					Expect(result.Networking.MachineNetwork).ShouldNot(BeNil())
-				})
-
-				It("Update UMN=true while cluster platform already set to vsphere - success", func() {
-					mockClusterUpdateSuccess(2, 0)
-					mockProviderRegistry.EXPECT().SetPlatformUsages(models.PlatformTypeVsphere, gomock.Any(), mockUsage)
-
-					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
-						ClusterID: clusterID,
-						ClusterUpdateParams: &models.V2ClusterUpdateParams{
-							Platform: &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeVsphere)},
-						},
-					})
-					Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2UpdateClusterCreated()))
-					actual := reply.(*installer.V2UpdateClusterCreated).Payload
-					Expect(*actual.Platform.Type).To(Equal(models.PlatformTypeVsphere))
-					Expect(swag.BoolValue(actual.Platform.IsExternal)).To(BeFalse())
-
-					mockClusterApi.EXPECT().VerifyClusterUpdatability(createClusterIdMatcher(cluster)).Return(nil).Times(1)
-
-					reply2 := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
-						ClusterID: clusterID,
-						ClusterUpdateParams: &models.V2ClusterUpdateParams{
-							UserManagedNetworking: swag.Bool(true),
-							VipDhcpAllocation:     swag.Bool(false),
-							NetworkType:           swag.String(models.ClusterNetworkTypeOpenShiftSDN),
-						},
-					})
-
-					Expect(reply2).Should(BeAssignableToTypeOf(installer.NewV2UpdateClusterCreated()))
-					actual2 := reply2.(*installer.V2UpdateClusterCreated).Payload
-					Expect(swag.BoolValue(actual2.UserManagedNetworking)).To(Equal(true))
-					Expect(*actual2.Platform.Type).To(Equal(models.PlatformTypeVsphere))
-					Expect(swag.BoolValue(actual2.Platform.IsExternal)).To(BeFalse())
-				})
-
 				It("Update UMN=true and vphsere platform while cluster platform already set to none - success", func() {
 					mockClusterUpdateSuccess(2, 0)
 					mockProviderRegistry.EXPECT().SetPlatformUsages(models.PlatformTypeNone, gomock.Any(), mockUsage)
@@ -6591,16 +6508,14 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 					reply2 := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 						ClusterID: clusterID,
 						ClusterUpdateParams: &models.V2ClusterUpdateParams{
-							UserManagedNetworking: swag.Bool(true),
-							VipDhcpAllocation:     swag.Bool(false),
-							Platform:              &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeVsphere)},
-							NetworkType:           swag.String(models.ClusterNetworkTypeOpenShiftSDN),
+							VipDhcpAllocation: swag.Bool(false),
+							Platform:          &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeVsphere)},
+							NetworkType:       swag.String(models.ClusterNetworkTypeOpenShiftSDN),
 						},
 					})
 
 					Expect(reply2).Should(BeAssignableToTypeOf(installer.NewV2UpdateClusterCreated()))
 					actual2 := reply2.(*installer.V2UpdateClusterCreated).Payload
-					Expect(swag.BoolValue(actual2.UserManagedNetworking)).To(Equal(true))
 					Expect(*actual2.Platform.Type).To(Equal(models.PlatformTypeVsphere))
 					Expect(swag.BoolValue(actual2.Platform.IsExternal)).To(BeFalse())
 				})
@@ -6633,7 +6548,6 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 
 					Expect(reply2).Should(BeAssignableToTypeOf(installer.NewV2UpdateClusterCreated()))
 					actual2 := reply2.(*installer.V2UpdateClusterCreated).Payload
-					Expect(swag.BoolValue(actual2.UserManagedNetworking)).To(Equal(true))
 					Expect(*actual2.Platform.Type).To(Equal(models.PlatformTypeNone))
 					Expect(swag.BoolValue(actual2.Platform.IsExternal)).To(BeFalse())
 				})
@@ -6668,32 +6582,6 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 					Expect(swag.BoolValue(actual2.UserManagedNetworking)).To(Equal(false))
 					Expect(*actual2.Platform.Type).To(Equal(models.PlatformTypeBaremetal))
 					Expect(swag.BoolValue(actual2.Platform.IsExternal)).To(BeFalse())
-				})
-
-				It("Update UMN=nil and baremetal platform while cluster platform is set to vsphere and umn true- failure", func() {
-					mockClusterUpdateSuccess(1, 0)
-					mockProviderRegistry.EXPECT().SetPlatformUsages(models.PlatformTypeVsphere, gomock.Any(), mockUsage)
-
-					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
-						ClusterID: clusterID,
-						ClusterUpdateParams: &models.V2ClusterUpdateParams{
-							UserManagedNetworking: swag.Bool(true),
-							Platform:              &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeVsphere)},
-						},
-					})
-					Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2UpdateClusterCreated()))
-					actual := reply.(*installer.V2UpdateClusterCreated).Payload
-					Expect(*actual.Platform.Type).To(Equal(models.PlatformTypeVsphere))
-					Expect(swag.BoolValue(actual.Platform.IsExternal)).To(BeFalse())
-
-					mockClusterApi.EXPECT().VerifyClusterUpdatability(createClusterIdMatcher(cluster)).Return(nil).Times(1)
-					reply2 := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
-						ClusterID: clusterID,
-						ClusterUpdateParams: &models.V2ClusterUpdateParams{
-							Platform: &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeBaremetal)},
-						},
-					})
-					verifyApiErrorString(reply2, http.StatusBadRequest, "Can't set baremetal platform with user-managed-networking enabled")
 				})
 
 				Context("Single node cluster", func() {
@@ -6757,32 +6645,6 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 						Expect(*actual.Platform.Type).To(Equal(models.PlatformTypeOci))
 						Expect(swag.BoolValue(actual.Platform.IsExternal)).To(BeTrue())
 					})
-				})
-
-				It("Update UMN=nil and none platform while cluster platform is set to vsphere and umn false- failure", func() {
-					mockClusterUpdateSuccess(1, 0)
-					mockProviderRegistry.EXPECT().SetPlatformUsages(models.PlatformTypeVsphere, gomock.Any(), mockUsage)
-
-					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
-						ClusterID: clusterID,
-						ClusterUpdateParams: &models.V2ClusterUpdateParams{
-							UserManagedNetworking: swag.Bool(false),
-							Platform:              &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeVsphere)},
-						},
-					})
-					Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2UpdateClusterCreated()))
-					actual := reply.(*installer.V2UpdateClusterCreated).Payload
-					Expect(*actual.Platform.Type).To(Equal(models.PlatformTypeVsphere))
-					Expect(swag.BoolValue(actual.Platform.IsExternal)).To(BeFalse())
-
-					mockClusterApi.EXPECT().VerifyClusterUpdatability(createClusterIdMatcher(cluster)).Return(nil).Times(1)
-					reply2 := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
-						ClusterID: clusterID,
-						ClusterUpdateParams: &models.V2ClusterUpdateParams{
-							Platform: &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeNone)},
-						},
-					})
-					verifyApiErrorString(reply2, http.StatusBadRequest, "Can't set none platform with user-managed-networking disabled")
 				})
 
 				It("Update UMN=false and vphsere platform while cluster platform already set to none - success", func() {
@@ -6856,19 +6718,8 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 
 					Expect(reply2).Should(BeAssignableToTypeOf(installer.NewV2UpdateClusterCreated()))
 					actual2 := reply2.(*installer.V2UpdateClusterCreated).Payload
-					Expect(swag.BoolValue(actual2.UserManagedNetworking)).To(Equal(true))
 					Expect(*actual2.Platform.Type).To(Equal(models.PlatformTypeVsphere))
 					Expect(swag.BoolValue(actual2.Platform.IsExternal)).To(BeFalse())
-				})
-
-				It("Update UMN=true and platform=baremetal results BadRequestError - failure", func() {
-					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
-						ClusterID: clusterID,
-						ClusterUpdateParams: &models.V2ClusterUpdateParams{
-							Platform:              &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeBaremetal)},
-							UserManagedNetworking: swag.Bool(true)},
-					})
-					verifyApiErrorString(reply, http.StatusBadRequest, "Can't set baremetal platform with user-managed-networking enabled")
 				})
 
 				It("Update platform=none while cluster.platform=BM - success", func() {
@@ -6883,20 +6734,27 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 					})
 					Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2UpdateClusterCreated()))
 					actual := reply.(*installer.V2UpdateClusterCreated).Payload
-					Expect(swag.BoolValue(actual.UserManagedNetworking)).To(Equal(true))
 					Expect(*actual.Platform.Type).To(Equal(models.PlatformTypeNone))
 					Expect(swag.BoolValue(actual.Platform.IsExternal)).To(BeFalse())
-
 				})
 
 				It("Update UMN=false and platform=none results BadRequestError - failure", func() {
+					apiVip := "8.8.8.8"
+					apiVips := []*models.APIVip{{IP: models.IP(apiVip)}}
+					ingressVip := "8.8.8.9"
+					ingressVips := []*models.IngressVip{{IP: models.IP(ingressVip)}}
+
 					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 						ClusterID: clusterID,
 						ClusterUpdateParams: &models.V2ClusterUpdateParams{
 							Platform:              &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeNone)},
-							UserManagedNetworking: swag.Bool(false)},
+							UserManagedNetworking: swag.Bool(false),
+							APIVip:                swag.String(apiVip),
+							APIVips:               apiVips,
+							IngressVips:           ingressVips,
+							IngressVip:            swag.String(ingressVip)},
 					})
-					verifyApiErrorString(reply, http.StatusBadRequest, "Can't set none platform with user-managed-networking disabled")
+					verifyFeatureSupportApiErrorString(reply, http.StatusBadRequest, models.FeatureSupportLevelIDUSERMANAGEDNETWORKING, models.FeatureSupportLevelIDVIPS)
 				})
 
 				It("Update UMN=true and platform=none while cluster.platform=BM - success", func() {
@@ -6912,30 +6770,27 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 					})
 					Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2UpdateClusterCreated()))
 					actual := reply.(*installer.V2UpdateClusterCreated).Payload
-					Expect(swag.BoolValue(actual.UserManagedNetworking)).To(Equal(true))
 					Expect(*actual.Platform.Type).To(Equal(models.PlatformTypeNone))
 					Expect(swag.BoolValue(actual.Platform.IsExternal)).To(BeFalse())
 
 				})
 
-				It("Update platform=oci - failure", func() {
-					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
-						ClusterID: clusterID,
-						ClusterUpdateParams: &models.V2ClusterUpdateParams{
-							Platform: &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeOci)},
-						},
-					})
-					verifyApiErrorString(reply, http.StatusBadRequest, "Can't set oci platform with user-managed-networking disabled")
-				})
-
 				It("Update UMN=false and platform=oci results BadRequestError - failure", func() {
+					apiVip := "8.8.8.8"
+					apiVips := []*models.APIVip{{IP: models.IP(apiVip)}}
+					ingressVip := "8.8.8.9"
+					ingressVips := []*models.IngressVip{{IP: models.IP(ingressVip)}}
+
 					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 						ClusterID: clusterID,
 						ClusterUpdateParams: &models.V2ClusterUpdateParams{
-							Platform:              &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeOci)},
-							UserManagedNetworking: swag.Bool(false)},
+							Platform:    &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeOci)},
+							APIVip:      swag.String(apiVip),
+							APIVips:     apiVips,
+							IngressVips: ingressVips,
+							IngressVip:  swag.String(ingressVip)},
 					})
-					verifyApiErrorString(reply, http.StatusBadRequest, "Can't set oci platform with user-managed-networking disabled")
+					verifyFeatureSupportApiErrorString(reply, http.StatusBadRequest, models.FeatureSupportLevelIDUSERMANAGEDNETWORKING, models.FeatureSupportLevelIDVIPS)
 				})
 
 				It("Update UMN=true and platform=oci - success", func() {
@@ -6951,7 +6806,6 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 					})
 					Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2UpdateClusterCreated()))
 					actual := reply.(*installer.V2UpdateClusterCreated).Payload
-					Expect(swag.BoolValue(actual.UserManagedNetworking)).To(Equal(true))
 					Expect(*actual.Platform.Type).To(Equal(models.PlatformTypeOci))
 					Expect(swag.BoolValue(actual.Platform.IsExternal)).To(BeTrue())
 				})
@@ -6992,16 +6846,6 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 					Expect(swag.BoolValue(actual.UserManagedNetworking)).To(BeFalse())
 					Expect(*actual.Platform.Type).To(Equal(models.PlatformTypeNutanix))
 					Expect(swag.BoolValue(actual.Platform.IsExternal)).To(BeFalse())
-				})
-
-				It("Update UMN=true and platform=nutanix results BadRequestError - failure", func() {
-					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
-						ClusterID: clusterID,
-						ClusterUpdateParams: &models.V2ClusterUpdateParams{
-							Platform:              &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeNutanix)},
-							UserManagedNetworking: swag.Bool(true)},
-					})
-					verifyApiErrorString(reply, http.StatusBadRequest, "Can't set nutanix platform with user-managed-networking enabled")
 				})
 
 				It("Update UMN=false and platform=nutanix - success", func() {
@@ -7052,7 +6896,6 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 					})
 					Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2UpdateClusterCreated()))
 					actual := reply.(*installer.V2UpdateClusterCreated).Payload
-					Expect(swag.BoolValue(actual.UserManagedNetworking)).To(BeTrue())
 					Expect(*actual.Platform.Type).To(Equal(models.PlatformTypeVsphere))
 					Expect(swag.BoolValue(actual.Platform.IsExternal)).To(BeFalse())
 				})
@@ -7158,20 +7001,9 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 					})
 					Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2UpdateClusterCreated()))
 					actual := reply.(*installer.V2UpdateClusterCreated).Payload
-					Expect(swag.BoolValue(actual.UserManagedNetworking)).To(Equal(false))
 					Expect(*actual.Platform.Type).To(Equal(models.PlatformTypeBaremetal))
 					Expect(swag.BoolValue(actual.Platform.IsExternal)).To(BeFalse())
 
-				})
-
-				It("Update UMN=false and platform=none results BadRequestError - failure", func() {
-					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
-						ClusterID: clusterID,
-						ClusterUpdateParams: &models.V2ClusterUpdateParams{
-							Platform:              &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeNone)},
-							UserManagedNetworking: swag.Bool(false)},
-					})
-					verifyApiErrorString(reply, http.StatusBadRequest, "Can't set none platform with user-managed-networking disabled")
 				})
 
 				It("Update platform=baremetal - success", func() {
@@ -7186,20 +7018,9 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 					})
 					Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2UpdateClusterCreated()))
 					actual := reply.(*installer.V2UpdateClusterCreated).Payload
-					Expect(swag.BoolValue(actual.UserManagedNetworking)).To(Equal(false))
 					Expect(*actual.Platform.Type).To(Equal(models.PlatformTypeBaremetal))
 					Expect(swag.BoolValue(actual.Platform.IsExternal)).To(BeFalse())
 
-				})
-
-				It("Update UMN=true and platform=baremetal results BadRequestError - failure", func() {
-					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
-						ClusterID: clusterID,
-						ClusterUpdateParams: &models.V2ClusterUpdateParams{
-							Platform:              &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeBaremetal)},
-							UserManagedNetworking: swag.Bool(true)},
-					})
-					verifyApiErrorString(reply, http.StatusBadRequest, "Can't set baremetal platform with user-managed-networking enabled")
 				})
 
 				It("Update UMN=false and platform=baremetal - success", func() {
@@ -7215,7 +7036,6 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 					})
 					Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2UpdateClusterCreated()))
 					actual := reply.(*installer.V2UpdateClusterCreated).Payload
-					Expect(swag.BoolValue(actual.UserManagedNetworking)).To(Equal(false))
 					Expect(*actual.Platform.Type).To(Equal(models.PlatformTypeBaremetal))
 					Expect(swag.BoolValue(actual.Platform.IsExternal)).To(BeFalse())
 				})
@@ -7238,16 +7058,6 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 
 				})
 
-				It("Update UMN=false and platform=oci results BadRequestError - failure", func() {
-					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
-						ClusterID: clusterID,
-						ClusterUpdateParams: &models.V2ClusterUpdateParams{
-							Platform:              &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeOci)},
-							UserManagedNetworking: swag.Bool(false)},
-					})
-					verifyApiErrorString(reply, http.StatusBadRequest, "Can't set oci platform with user-managed-networking disabled")
-				})
-
 				It("Update UMN=true and platform=oci - success", func() {
 					mockSuccess()
 					mockProviderRegistry.EXPECT().SetPlatformUsages(models.PlatformTypeOci, gomock.Any(), mockUsage)
@@ -7255,35 +7065,13 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 						ClusterID: clusterID,
 						ClusterUpdateParams: &models.V2ClusterUpdateParams{
-							Platform:              &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeOci)},
-							UserManagedNetworking: swag.Bool(true),
+							Platform: &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeOci)},
 						},
 					})
 					Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2UpdateClusterCreated()))
 					actual := reply.(*installer.V2UpdateClusterCreated).Payload
-					Expect(swag.BoolValue(actual.UserManagedNetworking)).To(Equal(true))
 					Expect(*actual.Platform.Type).To(Equal(models.PlatformTypeOci))
 					Expect(swag.BoolValue(actual.Platform.IsExternal)).To(BeTrue())
-				})
-
-				It("Update platform=nutanix - failure", func() {
-					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
-						ClusterID: clusterID,
-						ClusterUpdateParams: &models.V2ClusterUpdateParams{
-							Platform:              &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeNutanix)},
-							UserManagedNetworking: swag.Bool(true)},
-					})
-					verifyApiErrorString(reply, http.StatusBadRequest, "Can't set nutanix platform with user-managed-networking enabled")
-				})
-
-				It("Update UMN=true and platform=nutanix results BadRequestError - failure", func() {
-					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
-						ClusterID: clusterID,
-						ClusterUpdateParams: &models.V2ClusterUpdateParams{
-							Platform:              &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeNutanix)},
-							UserManagedNetworking: swag.Bool(true)},
-					})
-					verifyApiErrorString(reply, http.StatusBadRequest, "Can't set nutanix platform with user-managed-networking enabled")
 				})
 
 				It("Update UMN=false and platform=nutanix - success", func() {
@@ -7299,7 +7087,6 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 					})
 					Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2UpdateClusterCreated()))
 					actual := reply.(*installer.V2UpdateClusterCreated).Payload
-					Expect(swag.BoolValue(actual.UserManagedNetworking)).To(BeFalse())
 					Expect(*actual.Platform.Type).To(Equal(models.PlatformTypeNutanix))
 					Expect(swag.BoolValue(actual.Platform.IsExternal)).To(BeFalse())
 				})
@@ -7352,7 +7139,6 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 					})
 					Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2UpdateClusterCreated()))
 					actual := reply.(*installer.V2UpdateClusterCreated).Payload
-					Expect(swag.BoolValue(actual.UserManagedNetworking)).To(BeFalse())
 					Expect(*actual.Platform.Type).To(Equal(models.PlatformTypeVsphere))
 					Expect(swag.BoolValue(actual.Platform.IsExternal)).To(BeFalse())
 				})
@@ -7425,36 +7211,25 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 					Expect(swag.BoolValue(actual.Platform.IsExternal)).To(BeTrue())
 				})
 
-				It("Update UMN=false and platform=oci results BadRequestError - failure", func() {
+				It("Update VIPs and platform=oci results BadRequestError - failure", func() {
+					apiVip := "8.8.8.8"
+					apiVips := []*models.APIVip{{IP: models.IP(apiVip)}}
+					ingressVip := "8.8.8.9"
+					ingressVips := []*models.IngressVip{{IP: models.IP(ingressVip)}}
+
 					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 						ClusterID: clusterID,
 						ClusterUpdateParams: &models.V2ClusterUpdateParams{
 							Platform:              &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeOci)},
-							UserManagedNetworking: swag.Bool(false)},
+							UserManagedNetworking: swag.Bool(false),
+							APIVip:                swag.String(apiVip),
+							APIVips:               apiVips,
+							IngressVips:           ingressVips,
+							IngressVip:            swag.String(ingressVip)},
 					})
-					verifyApiErrorString(reply, http.StatusBadRequest, "Can't set oci platform with user-managed-networking disabled")
-				})
 
-				It("Update platform=baremetal - failure", func() {
-					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
-						ClusterID: clusterID,
-						ClusterUpdateParams: &models.V2ClusterUpdateParams{
-							Platform:              &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeBaremetal)},
-							UserManagedNetworking: swag.Bool(true)},
-					})
-					verifyApiErrorString(reply, http.StatusBadRequest, "Can't set baremetal platform with user-managed-networking enabled")
+					verifyFeatureSupportApiErrorString(reply, http.StatusBadRequest, models.FeatureSupportLevelIDUSERMANAGEDNETWORKING, models.FeatureSupportLevelIDVIPS)
 				})
-
-				It("Update UMN=true and platform=baremetal results BadRequestError - failure", func() {
-					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
-						ClusterID: clusterID,
-						ClusterUpdateParams: &models.V2ClusterUpdateParams{
-							Platform:              &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeBaremetal)},
-							UserManagedNetworking: swag.Bool(true)},
-					})
-					verifyApiErrorString(reply, http.StatusBadRequest, "Can't set baremetal platform with user-managed-networking enabled")
-				})
-
 				It("Update UMN=false and platform=baremetal - success", func() {
 					mockSuccess()
 					mockProviderRegistry.EXPECT().SetPlatformUsages(models.PlatformTypeBaremetal, gomock.Any(), mockUsage)
@@ -7468,7 +7243,6 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 					})
 					Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2UpdateClusterCreated()))
 					actual := reply.(*installer.V2UpdateClusterCreated).Payload
-					Expect(swag.BoolValue(actual.UserManagedNetworking)).To(Equal(false))
 					Expect(*actual.Platform.Type).To(Equal(models.PlatformTypeBaremetal))
 					Expect(swag.BoolValue(actual.Platform.IsExternal)).To(BeFalse())
 				})
@@ -7491,16 +7265,6 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 
 				})
 
-				It("Update UMN=false and platform=none results BadRequestError - failure", func() {
-					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
-						ClusterID: clusterID,
-						ClusterUpdateParams: &models.V2ClusterUpdateParams{
-							Platform:              &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeNone)},
-							UserManagedNetworking: swag.Bool(false)},
-					})
-					verifyApiErrorString(reply, http.StatusBadRequest, "Can't set none platform with user-managed-networking disabled")
-				})
-
 				It("Update UMN=true and platform=none - success", func() {
 					mockSuccess()
 					mockProviderRegistry.EXPECT().SetPlatformUsages(models.PlatformTypeNone, gomock.Any(), mockUsage)
@@ -7519,26 +7283,6 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 					Expect(swag.BoolValue(actual.Platform.IsExternal)).To(BeFalse())
 				})
 
-				It("Update platform=nutanix - failure", func() {
-					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
-						ClusterID: clusterID,
-						ClusterUpdateParams: &models.V2ClusterUpdateParams{
-							Platform:              &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeNutanix)},
-							UserManagedNetworking: swag.Bool(true)},
-					})
-					verifyApiErrorString(reply, http.StatusBadRequest, "Can't set nutanix platform with user-managed-networking enabled")
-				})
-
-				It("Update UMN=true and platform=nutanix results BadRequestError - failure", func() {
-					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
-						ClusterID: clusterID,
-						ClusterUpdateParams: &models.V2ClusterUpdateParams{
-							Platform:              &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeNutanix)},
-							UserManagedNetworking: swag.Bool(true)},
-					})
-					verifyApiErrorString(reply, http.StatusBadRequest, "Can't set nutanix platform with user-managed-networking enabled")
-				})
-
 				It("Update UMN=false and platform=nutanix - success", func() {
 					mockSuccess()
 					mockProviderRegistry.EXPECT().SetPlatformUsages(models.PlatformTypeNutanix, gomock.Any(), mockUsage)
@@ -7552,7 +7296,6 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 					})
 					Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2UpdateClusterCreated()))
 					actual := reply.(*installer.V2UpdateClusterCreated).Payload
-					Expect(swag.BoolValue(actual.UserManagedNetworking)).To(BeFalse())
 					Expect(*actual.Platform.Type).To(Equal(models.PlatformTypeNutanix))
 					Expect(swag.BoolValue(actual.Platform.IsExternal)).To(BeFalse())
 				})
@@ -7605,7 +7348,6 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 					})
 					Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2UpdateClusterCreated()))
 					actual := reply.(*installer.V2UpdateClusterCreated).Payload
-					Expect(swag.BoolValue(actual.UserManagedNetworking)).To(BeFalse())
 					Expect(*actual.Platform.Type).To(Equal(models.PlatformTypeVsphere))
 					Expect(swag.BoolValue(actual.Platform.IsExternal)).To(BeFalse())
 				})
@@ -7691,15 +7433,6 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 					Expect(err).ShouldNot(HaveOccurred())
 					mockClusterApi.EXPECT().VerifyClusterUpdatability(createClusterIdMatcher(cluster)).Return(nil).Times(1)
 				})
-				It("Update UMN=true - failure", func() {
-					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
-						ClusterID: clusterID,
-						ClusterUpdateParams: &models.V2ClusterUpdateParams{
-							Platform:              &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeNutanix)},
-							UserManagedNetworking: swag.Bool(true)},
-					})
-					verifyApiErrorString(reply, http.StatusBadRequest, "Can't set nutanix platform with user-managed-networking enabled")
-				})
 
 				It("Update platform=nutanix - success", func() {
 					mockSuccess()
@@ -7712,7 +7445,6 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 					})
 					Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2UpdateClusterCreated()))
 					actual := reply.(*installer.V2UpdateClusterCreated).Payload
-					Expect(swag.BoolValue(actual.UserManagedNetworking)).To(BeFalse())
 					Expect(*actual.Platform.Type).To(Equal(models.PlatformTypeNutanix))
 					Expect(swag.BoolValue(actual.Platform.IsExternal)).To(BeFalse())
 				})
@@ -7733,40 +7465,18 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 					Expect(swag.BoolValue(actual.Platform.IsExternal)).To(BeFalse())
 				})
 
-				It("Update platform=oci - failure", func() {
-					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
-						ClusterID: clusterID,
-						ClusterUpdateParams: &models.V2ClusterUpdateParams{
-							Platform: &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeOci)},
-						},
-					})
-					verifyApiErrorString(reply, http.StatusBadRequest, "Can't set oci platform with user-managed-networking disabled")
-				})
-
-				It("Update UMN=false and platform=oci results BadRequestError - failure", func() {
-					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
-						ClusterID: clusterID,
-						ClusterUpdateParams: &models.V2ClusterUpdateParams{
-							Platform:              &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeOci)},
-							UserManagedNetworking: swag.Bool(false)},
-					})
-					verifyApiErrorString(reply, http.StatusBadRequest, "Can't set oci platform with user-managed-networking disabled")
-				})
-
-				It("Update UMN=true and platform=oci - success", func() {
+				It("Update platform=oci - success", func() {
 					mockSuccess()
 					mockProviderRegistry.EXPECT().SetPlatformUsages(models.PlatformTypeOci, gomock.Any(), mockUsage)
 
 					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 						ClusterID: clusterID,
 						ClusterUpdateParams: &models.V2ClusterUpdateParams{
-							Platform:              &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeOci)},
-							UserManagedNetworking: swag.Bool(true),
+							Platform: &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeOci)},
 						},
 					})
 					Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2UpdateClusterCreated()))
 					actual := reply.(*installer.V2UpdateClusterCreated).Payload
-					Expect(swag.BoolValue(actual.UserManagedNetworking)).To(BeTrue())
 					Expect(*actual.Platform.Type).To(Equal(models.PlatformTypeOci))
 					Expect(swag.BoolValue(actual.Platform.IsExternal)).To(BeTrue())
 				})
@@ -7801,7 +7511,6 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 					})
 					Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2UpdateClusterCreated()))
 					actual := reply.(*installer.V2UpdateClusterCreated).Payload
-					Expect(swag.BoolValue(actual.UserManagedNetworking)).To(BeTrue())
 					Expect(*actual.Platform.Type).To(Equal(models.PlatformTypeVsphere))
 					Expect(swag.BoolValue(actual.Platform.IsExternal)).To(BeFalse())
 				})
@@ -7840,16 +7549,6 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 					Expect(swag.BoolValue(actual.Platform.IsExternal)).To(BeFalse())
 				})
 
-				It("Update UMN=true and platform=baremetal results BadRequestError - failure", func() {
-					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
-						ClusterID: clusterID,
-						ClusterUpdateParams: &models.V2ClusterUpdateParams{
-							Platform:              &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeBaremetal)},
-							UserManagedNetworking: swag.Bool(true)},
-					})
-					verifyApiErrorString(reply, http.StatusBadRequest, "Can't set baremetal platform with user-managed-networking enabled")
-				})
-
 				It("Update UMN=false and platform=baremetal - success", func() {
 					mockSuccess()
 					mockProviderRegistry.EXPECT().SetPlatformUsages(models.PlatformTypeBaremetal, gomock.Any(), mockUsage)
@@ -7868,24 +7567,22 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 					Expect(swag.BoolValue(actual.Platform.IsExternal)).To(BeFalse())
 				})
 
-				It("Update platform=none - failure", func() {
-					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
-						ClusterID: clusterID,
-						ClusterUpdateParams: &models.V2ClusterUpdateParams{
-							Platform: &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeNone)},
-						},
-					})
-					verifyApiErrorString(reply, http.StatusBadRequest, "Can't set none platform with user-managed-networking disabled")
-				})
-
 				It("Update UMN=false and platform=none results BadRequestError - failure", func() {
+					apiVip := "8.8.8.8"
+					apiVips := []*models.APIVip{{IP: models.IP(apiVip)}}
+					ingressVip := "8.8.8.9"
+					ingressVips := []*models.IngressVip{{IP: models.IP(ingressVip)}}
+
 					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 						ClusterID: clusterID,
 						ClusterUpdateParams: &models.V2ClusterUpdateParams{
-							Platform:              &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeNone)},
-							UserManagedNetworking: swag.Bool(false)},
+							Platform:    &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeNone)},
+							APIVip:      swag.String(apiVip),
+							APIVips:     apiVips,
+							IngressVips: ingressVips,
+							IngressVip:  swag.String(ingressVip)},
 					})
-					verifyApiErrorString(reply, http.StatusBadRequest, "Can't set none platform with user-managed-networking disabled")
+					verifyFeatureSupportApiErrorString(reply, http.StatusBadRequest, models.FeatureSupportLevelIDUSERMANAGEDNETWORKING, models.FeatureSupportLevelIDVIPS)
 				})
 
 				It("Update UMN=true and platform=none - success", func() {
@@ -7901,7 +7598,6 @@ var _ = Describe("V2ClusterUpdate cluster", func() {
 					})
 					Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2UpdateClusterCreated()))
 					actual := reply.(*installer.V2UpdateClusterCreated).Payload
-					Expect(swag.BoolValue(actual.UserManagedNetworking)).To(Equal(true))
 					Expect(*actual.Platform.Type).To(Equal(models.PlatformTypeNone))
 					Expect(swag.BoolValue(actual.Platform.IsExternal)).To(BeFalse())
 				})
@@ -13530,16 +13226,6 @@ var _ = Describe("TestRegisterCluster", func() {
 				verifyApiErrorString(reply, http.StatusBadRequest, errorMsg)
 			})
 
-			It("Baremetal platform and UserManagedNetworking=true - failed", func() {
-				params := getClusterCreateParams(nil)
-				params.Platform = &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeBaremetal)}
-				params.UserManagedNetworking = swag.Bool(true)
-				reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
-					NewClusterParams: params,
-				})
-				verifyApiError(reply, http.StatusBadRequest)
-			})
-
 			It("Nutanix platform and UserManagedNetworking=true - failed", func() {
 
 				params := getClusterCreateParams(nil)
@@ -13626,17 +13312,6 @@ var _ = Describe("TestRegisterCluster", func() {
 				actual := reply.(*installer.V2RegisterClusterCreated).Payload
 				Expect(swag.BoolValue(actual.UserManagedNetworking)).To(Equal(true))
 				Expect(*actual.Platform.Type).To(Equal(models.PlatformTypeNone))
-			})
-
-			It("None platform and UserManagedNetworking=false - failed", func() {
-
-				params := getClusterCreateParams(nil)
-				params.Platform = &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeNone)}
-				params.UserManagedNetworking = swag.Bool(false)
-				reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
-					NewClusterParams: params,
-				})
-				verifyApiError(reply, http.StatusBadRequest)
 			})
 
 			It("None platform and UserManagedNetworking=true", func() {
@@ -17851,10 +17526,22 @@ var _ = Describe("Platform tests", func() {
 		})
 
 		It("OCI platform - fail if UMN is false", func() {
+			apiVip := "8.8.8.8"
+			apiVips := []*models.APIVip{{IP: models.IP(apiVip)}}
+			ingressVip := "8.8.8.9"
+			ingressVips := []*models.IngressVip{{IP: models.IP(ingressVip)}}
+
 			registerParams.NewClusterParams.Platform = &models.Platform{
 				Type: common.PlatformTypePtr(models.PlatformTypeOci),
 			}
-			registerParams.NewClusterParams.UserManagedNetworking = swag.Bool(false)
+			registerParams.NewClusterParams.IngressVips = ingressVips
+			registerParams.NewClusterParams.APIVips = apiVips
+			registerParams.NewClusterParams.APIVip = apiVip
+			registerParams.NewClusterParams.IngressVip = ingressVip
+
+			mockVersions.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(common.TestDefaultConfig.ReleaseImage, nil).Times(1)
+			mockOSImages.EXPECT().GetOsImage(gomock.Any(), gomock.Any()).Return(common.TestDefaultConfig.OsImage, nil).Times(1)
+			mockOperatorManager.EXPECT().GetSupportedOperatorsByType(models.OperatorTypeBuiltin).Return([]*models.MonitoredOperator{&common.TestDefaultConfig.MonitoredOperator}).Times(1)
 			reply := bm.V2RegisterCluster(ctx, *registerParams)
 			verifyApiError(reply, http.StatusBadRequest)
 		})
