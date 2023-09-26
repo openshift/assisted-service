@@ -90,20 +90,26 @@ func ParseExpirationFromURL(urlString string) (*strfmt.DateTime, error) {
 	}
 
 	if tokenString := parsedURL.Query().Get("image_token"); tokenString != "" {
-		token, _, err := new(jwt.Parser).ParseUnverified(tokenString, jwt.MapClaims{})
-		if err != nil {
-			return nil, err
-		}
-		claims, ok := token.Claims.(jwt.MapClaims)
-		if !ok {
-			return nil, errors.Errorf("malformed token claims in url")
-		}
-		exp, ok := claims["exp"].(float64)
-		if !ok {
-			return nil, errors.Errorf("token missing 'exp' claim")
-		}
-		expTime := time.Unix(int64(exp), 0)
-		expiresAt = strfmt.DateTime(expTime)
+		return ParseExpirationFromToken(tokenString)
 	}
+	return &expiresAt, nil
+}
+
+func ParseExpirationFromToken(tokenString string) (*strfmt.DateTime, error) {
+	token, _, err := new(jwt.Parser).ParseUnverified(tokenString, jwt.MapClaims{})
+	if err != nil {
+		return nil, err
+	}
+	claims, ok := token.Claims.(jwt.MapClaims)
+	if !ok {
+		return nil, errors.Errorf("malformed token claims in url")
+	}
+	exp, ok := claims["exp"].(float64)
+	if !ok {
+		return nil, errors.Errorf("token missing 'exp' claim")
+	}
+	expTime := time.Unix(int64(exp), 0)
+	expiresAt := strfmt.DateTime(expTime)
+
 	return &expiresAt, nil
 }

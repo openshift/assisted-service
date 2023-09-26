@@ -10,7 +10,6 @@ import (
 	"io"
 	"net"
 	"net/http"
-	"net/url"
 	"runtime"
 	"runtime/debug"
 	"strings"
@@ -37,6 +36,7 @@ import (
 	"github.com/openshift/assisted-service/internal/host/hostcommands"
 	"github.com/openshift/assisted-service/internal/host/hostutil"
 	"github.com/openshift/assisted-service/internal/ignition"
+	"github.com/openshift/assisted-service/internal/imageservice"
 	"github.com/openshift/assisted-service/internal/infraenv"
 	installcfgdata "github.com/openshift/assisted-service/internal/installcfg"
 	installcfg "github.com/openshift/assisted-service/internal/installcfg/builder"
@@ -1043,14 +1043,11 @@ func (b *bareMetalInventory) updateExternalImageInfo(ctx context.Context, infraE
 		prevArch    string
 	)
 	if infraEnv.DownloadURL != "" {
-		currentURL, err := url.Parse(infraEnv.DownloadURL)
+		var err error
+		prevType, prevArch, prevVersion, err = imageservice.ParseDownloadURL(infraEnv.DownloadURL)
 		if err != nil {
 			return errors.Wrap(err, "failed to parse current download URL")
 		}
-		vals := currentURL.Query()
-		prevType = vals.Get("type")
-		prevVersion = vals.Get("version")
-		prevArch = vals.Get("arch")
 	}
 
 	updates["type"] = imageType
@@ -1075,7 +1072,7 @@ func (b *bareMetalInventory) updateExternalImageInfo(ctx context.Context, infraE
 
 	if string(imageType) != prevType || version != prevVersion || arch != prevArch || !infraEnv.Generated {
 		var expiresAt *strfmt.DateTime
-		infraEnv.DownloadURL, expiresAt, err = b.generateImageDownloadURL(ctx, infraEnv.ID.String(), string(imageType), version, arch, infraEnv.ImageTokenKey)
+		infraEnv.DownloadURL, expiresAt, err = b.generateShortImageDownloadURL(infraEnv.ID.String(), string(imageType), version, arch, infraEnv.ImageTokenKey)
 		if err != nil {
 			return errors.Wrap(err, "failed to create download URL")
 		}
