@@ -1,7 +1,6 @@
 package uploader
 
 import (
-	"net/mail"
 	"strings"
 
 	"github.com/openshift/assisted-service/internal/cluster/validations"
@@ -51,11 +50,7 @@ func getOCMPullSecret(k8sclient k8sclient.K8SClient) (string, bool) {
 }
 
 func getEmailDomain(email string) string {
-	addr, err := mail.ParseAddress(email)
-	if err != nil {
-		return ""
-	}
-	parts := strings.Split(addr.Address, "@")
+	parts := strings.Split(email, "@")
 	if len(parts) < 2 {
 		return ""
 	}
