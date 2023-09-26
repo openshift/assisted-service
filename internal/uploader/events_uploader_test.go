@@ -27,6 +27,7 @@ import (
 	"github.com/openshift/assisted-service/internal/events"
 	eventsapi "github.com/openshift/assisted-service/internal/events/api"
 	"github.com/openshift/assisted-service/internal/events/eventstest"
+	"github.com/openshift/assisted-service/internal/versions"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/k8sclient"
 	"github.com/pkg/errors"
@@ -150,15 +151,16 @@ var _ = Describe("prepareBody", func() {
 
 var _ = Describe("prepareFiles", func() {
 	var (
-		ctrl       *gomock.Controller
-		ctx        context.Context
-		db         *gorm.DB
-		dbName     string
-		token      string
-		clusterID  strfmt.UUID
-		mockEvents *eventsapi.MockHandler
-		hostID     strfmt.UUID
-		infraEnvID strfmt.UUID
+		ctrl           *gomock.Controller
+		ctx            context.Context
+		db             *gorm.DB
+		dbName         string
+		token          string
+		clusterID      strfmt.UUID
+		mockEvents     *eventsapi.MockHandler
+		hostID         strfmt.UUID
+		infraEnvID     strfmt.UUID
+		serviceVersion versions.Versions
 	)
 
 	BeforeEach(func() {
@@ -170,6 +172,13 @@ var _ = Describe("prepareFiles", func() {
 		infraEnvID = strfmt.UUID(uuid.New().String())
 		hostID = strfmt.UUID(uuid.New().String())
 		token = base64.StdEncoding.EncodeToString([]byte(fmt.Sprintf("%s:%s", username, "thePassword")))
+		serviceVersion = versions.Versions{
+			SelfVersion:     "self-version",
+			AgentDockerImg:  "agent-image",
+			InstallerImage:  "installer-image",
+			ControllerImage: "controller-image",
+			ReleaseTag:      "v1.2.3",
+		}
 	})
 
 	AfterEach(func() {
@@ -182,7 +191,7 @@ var _ = Describe("prepareFiles", func() {
 
 		cluster := createTestObjects(db, &clusterID, &hostID, &infraEnvID)
 		pullSecret := validations.PullSecretCreds{AuthRaw: token, Email: fmt.Sprintf("testemail@%s", emailDomain), Username: username}
-		buf, err := prepareFiles(ctx, db, cluster, mockEvents, &pullSecret)
+		buf, err := prepareFiles(ctx, db, cluster, mockEvents, &pullSecret, serviceVersion)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(buf.Bytes()).NotTo(BeEmpty())
 		testFiles := map[string]*testFile{
@@ -190,6 +199,7 @@ var _ = Describe("prepareFiles", func() {
 			"infraenv": {expected: true},
 			"hosts":    {expected: true},
 			"events":   {expected: true},
+			"versions": {expected: true},
 		}
 
 		readtgzFiles(testFiles, clusterID, buf.Bytes())
@@ -197,6 +207,7 @@ var _ = Describe("prepareFiles", func() {
 		checkClusterFile(db, testFiles["cluster"], clusterID, username, emailDomain)
 		checkInfraEnvFile(db, testFiles["infraenv"], infraEnvID)
 		checkEventsFile(testFiles["events"], []string{}, 0)
+		checkVersionsFile(testFiles["versions"], serviceVersion)
 	})
 	It("prepares only the event data for the current cluster", func() {
 		clusterID2 := strfmt.UUID(uuid.New().String())
@@ -206,7 +217,7 @@ var _ = Describe("prepareFiles", func() {
 		cluster := createTestObjects(db, &clusterID, &hostID, &infraEnvID)
 		createTestObjects(db, &clusterID2, nil, nil)
 		pullSecret := validations.PullSecretCreds{AuthRaw: token, Email: fmt.Sprintf("testemail@%s", emailDomain), Username: username}
-		buf, err := prepareFiles(ctx, db, cluster, eventsHandler, &pullSecret)
+		buf, err := prepareFiles(ctx, db, cluster, eventsHandler, &pullSecret, serviceVersion)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(buf.Bytes()).NotTo(BeEmpty())
 		testFiles := map[string]*testFile{
@@ -214,6 +225,7 @@ var _ = Describe("prepareFiles", func() {
 			"infraenv": {expected: true},
 			"hosts":    {expected: true},
 			"events":   {expected: true},
+			"versions": {expected: true},
 		}
 
 		readtgzFiles(testFiles, clusterID, buf.Bytes())
@@ -221,6 +233,7 @@ var _ = Describe("prepareFiles", func() {
 		checkClusterFile(db, testFiles["cluster"], clusterID, username, emailDomain)
 		checkInfraEnvFile(db, testFiles["infraenv"], infraEnvID)
 		checkEventsFile(testFiles["events"], []string{models.ClusterStatusAddingHosts}, 1)
+		checkVersionsFile(testFiles["versions"], serviceVersion)
 	})
 	It("prepares only the cluster, host, and event data when missing infraEnv ID", func() {
 		mockEvents.EXPECT().V2GetEvents(
@@ -228,7 +241,7 @@ var _ = Describe("prepareFiles", func() {
 
 		cluster := createTestObjects(db, &clusterID, &hostID, nil)
 		pullSecret := validations.PullSecretCreds{AuthRaw: token, Email: fmt.Sprintf("testemail@%s", emailDomain), Username: username}
-		buf, err := prepareFiles(ctx, db, cluster, mockEvents, &pullSecret)
+		buf, err := prepareFiles(ctx, db, cluster, mockEvents, &pullSecret, serviceVersion)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(buf.Bytes()).NotTo(BeEmpty())
 		testFiles := map[string]*testFile{
@@ -236,6 +249,7 @@ var _ = Describe("prepareFiles", func() {
 			"infraenv": {expected: false},
 			"hosts":    {expected: true},
 			"events":   {expected: true},
+			"versions": {expected: true},
 		}
 
 		readtgzFiles(testFiles, clusterID, buf.Bytes())
@@ -243,12 +257,13 @@ var _ = Describe("prepareFiles", func() {
 		checkClusterFile(db, testFiles["cluster"], clusterID, username, emailDomain)
 		checkInfraEnvFile(db, testFiles["infraenv"], infraEnvID)
 		checkEventsFile(testFiles["events"], []string{}, 0)
+		checkVersionsFile(testFiles["versions"], serviceVersion)
 	})
 	It("fails to prepare files when there is no data", func() {
 		mockEvents.EXPECT().V2GetEvents(ctx, common.GetDefaultV2GetEventsParams(nil, nil, nil, models.EventCategoryMetrics, models.EventCategoryUser)).Return(
 			nil, errors.New("no events found")).Times(1)
 		pullSecret := validations.PullSecretCreds{AuthRaw: token, Email: fmt.Sprintf("testemail@%s", emailDomain)}
-		buf, err := prepareFiles(ctx, db, &common.Cluster{}, mockEvents, &pullSecret)
+		buf, err := prepareFiles(ctx, db, &common.Cluster{}, mockEvents, &pullSecret, serviceVersion)
 		Expect(err).To(HaveOccurred())
 		Expect(buf).To(BeNil())
 		testFiles := map[string]*testFile{
@@ -256,6 +271,7 @@ var _ = Describe("prepareFiles", func() {
 			"infraenv": {expected: false},
 			"hosts":    {expected: false},
 			"events":   {expected: false},
+			"versions": {expected: false},
 		}
 
 		readtgzFiles(testFiles, clusterID, nil)
@@ -263,6 +279,7 @@ var _ = Describe("prepareFiles", func() {
 		checkClusterFile(db, testFiles["cluster"], clusterID, username, emailDomain)
 		checkInfraEnvFile(db, testFiles["infraenv"], infraEnvID)
 		checkEventsFile(testFiles["events"], []string{}, 0)
+		checkVersionsFile(testFiles["versions"], serviceVersion)
 	})
 })
 
@@ -284,6 +301,7 @@ var _ = Describe("UploadEvents", func() {
 		uploader         *eventsUploader
 		dataUploadServer func([]string, int, map[string]*testFile) http.HandlerFunc
 		mockEvents       *eventsapi.MockHandler
+		servicesVersion  versions.Versions
 	)
 
 	BeforeEach(func() {
@@ -296,6 +314,13 @@ var _ = Describe("UploadEvents", func() {
 		infraEnvID = strfmt.UUID(uuid.New().String())
 		hostID = strfmt.UUID(uuid.New().String())
 		token = base64.StdEncoding.EncodeToString([]byte(fmt.Sprintf("%s:%s", username, "thePassword")))
+		servicesVersion = versions.Versions{
+			SelfVersion:     "self-version",
+			AgentDockerImg:  "agent-image",
+			InstallerImage:  "installer-image",
+			ControllerImage: "controller-image",
+			ReleaseTag:      "v1.2.3",
+		}
 
 		dataUploadServer = func(expectedEvents []string, expectedNumberOfEvents int, testFiles map[string]*testFile) http.HandlerFunc {
 			return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -320,6 +345,7 @@ var _ = Describe("UploadEvents", func() {
 					checkInfraEnvFile(db, testFiles["infraenv"], infraEnvID)
 					checkHostsFile(db, testFiles["hosts"], clusterID)
 					checkEventsFile(testFiles["events"], expectedEvents, expectedNumberOfEvents)
+					checkVersionsFile(testFiles["versions"], servicesVersion)
 				}
 			})
 		}
@@ -355,9 +381,11 @@ var _ = Describe("UploadEvents", func() {
 			"hosts":    {expected: true},
 			"infraenv": {expected: true},
 			"events":   {expected: true},
+			"versions": {expected: true},
 		}
 		server := httptest.NewServer(dataUploadServer([]string{models.ClusterStatusAddingHosts}, 1, testFiles))
 		uploader.Config.DataUploadEndpoint = fmt.Sprintf("%s/%s", server.URL, "upload/test")
+		uploader.Config.Versions = servicesVersion
 
 		cluster := createTestObjects(db, &clusterID, &hostID, &infraEnvID)
 		err := uploader.UploadEvents(ctx, cluster, mockEvents)
@@ -460,6 +488,8 @@ func readFiles(tr *tar.Reader, testFiles map[string]*testFile, clusterID strfmt.
 			fileName = "cluster"
 		case fmt.Sprintf("%s/events.json", clusterID):
 			fileName = "events"
+		case fmt.Sprintf("%s/versions.json", clusterID):
+			fileName = "versions"
 		}
 		if fileName != "" {
 			fileContents, err := io.ReadAll(tr)
@@ -552,5 +582,14 @@ func checkEventsFile(eventsFile *testFile, expectedEvents []string, expectedNumb
 			foundEvent := eventstest.FindEventByName(dbEvents, expectedEvent)
 			Expect(foundEvent).NotTo(BeNil())
 		}
+	}
+}
+
+func checkVersionsFile(versionsFile *testFile, expectedVersions versions.Versions) {
+	Expect(versionsFile.expected).To(Equal(versionsFile.exists))
+	if versionsFile.expected {
+		var serviceVersion models.Versions
+		Expect(json.Unmarshal(versionsFile.contents, &serviceVersion)).ShouldNot(HaveOccurred())
+		Expect(serviceVersion).To(BeEquivalentTo(versions.GetModelVersions(expectedVersions)))
 	}
 }
