@@ -306,7 +306,7 @@ func (r *BMACReconciler) Reconcile(origCtx context.Context, req ctrl.Request) (c
 	} else {
 		// After the agent has started installation, Ironic should not manage the host.
 		// Adding the detached annotation to the BMH stops Ironic from managing it.
-		result = r.addBMHDetachedAnnotationIfAgentHasStartedInstallation(log, bmh, agent)
+		result = r.addBMHDetachedAnnotationIfHostIsRebooting(log, bmh, agent)
 	}
 	if res := r.handleReconcileResult(ctx, log, result, bmh); res != nil {
 		return res.Result()
@@ -554,20 +554,11 @@ func (r *BMACReconciler) ensureBMHDetached(log logrus.FieldLogger, bmh *bmh_v1al
 }
 
 // The detached annotation is added if the installation of the agent associated with
-// the host has started.
-func (r *BMACReconciler) addBMHDetachedAnnotationIfAgentHasStartedInstallation(log logrus.FieldLogger, bmh *bmh_v1alpha1.BareMetalHost, agent *aiv1beta1.Agent) reconcileResult {
-	c := conditionsv1.FindStatusCondition(agent.Status.Conditions, aiv1beta1.InstalledCondition)
-	if c == nil {
-		log.Debugf("Skipping adding detached annotation. missing install condition \n %v", agent)
-		return reconcileComplete{}
-	}
-	installConditionReason := c.Reason
-
-	// Do nothing if InstalledCondition is not in Installed, InProgress, or Failed
-	if installConditionReason != aiv1beta1.InstallationInProgressReason &&
-		installConditionReason != aiv1beta1.InstalledReason &&
-		installConditionReason != aiv1beta1.InstallationFailedReason {
-		log.Debugf("Skipping adding detached annotation. host not in proper installation condition \n %v", agent)
+// the host has reached stages Failed, Rebooting, or Joined
+func (r *BMACReconciler) addBMHDetachedAnnotationIfHostIsRebooting(log logrus.FieldLogger, bmh *bmh_v1alpha1.BareMetalHost, agent *aiv1beta1.Agent) reconcileResult {
+	// Do nothing if host stage is not one of Failed, Rebooting, or Joined
+	if !funk.Contains([]models.HostStage{models.HostStageFailed, models.HostStageRebooting, models.HostStageJoined}, agent.Status.Progress.CurrentStage) {
+		log.Debugf("Skipping adding detached annotation. Host hasn't reached stage rebooted, joined, or failed. Current stage: %v", agent.Status.Progress.CurrentStage)
 		return reconcileComplete{}
 	}
 
