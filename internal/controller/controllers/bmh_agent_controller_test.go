@@ -1331,14 +1331,8 @@ var _ = Describe("bmac reconcile", func() {
 				Expect(updatedHost.ObjectMeta.Annotations).To(HaveKey(BMH_DETACHED_ANNOTATION))
 				Expect(updatedHost.ObjectMeta.Annotations[BMH_DETACHED_ANNOTATION]).To(Equal("some-other-value"))
 			})
-			It("should set the detached annotation if agent is installed", func() {
-				agent.Status.Conditions = []conditionsv1.Condition{
-					{
-						Type:   v1beta1.InstalledCondition,
-						Status: corev1.ConditionTrue,
-						Reason: v1beta1.InstalledReason,
-					},
-				}
+			It("should set the detached annotation if agent started rebooting", func() {
+				agent.Status.Progress.CurrentStage = models.HostStageRebooting
 				Expect(c.Update(ctx, agent)).To(BeNil())
 
 				for range [3]int{} {
@@ -1354,14 +1348,9 @@ var _ = Describe("bmac reconcile", func() {
 				Expect(updatedHost.ObjectMeta.Annotations[BMH_DETACHED_ANNOTATION]).To(Equal("assisted-service-controller"))
 			})
 
-			It("should set the detached annotation if agent is installation is progressing", func() {
-				agent.Status.Conditions = []conditionsv1.Condition{
-					{
-						Type:   v1beta1.InstalledCondition,
-						Status: corev1.ConditionFalse,
-						Reason: v1beta1.InstallationInProgressReason,
-					},
-				}
+			It("should set the detached annotation if agent has joined cluster", func() {
+				agent.Status.Progress.CurrentStage = models.HostStageJoined
+
 				Expect(c.Update(ctx, agent)).To(BeNil())
 
 				for range [3]int{} {
@@ -1378,13 +1367,7 @@ var _ = Describe("bmac reconcile", func() {
 			})
 
 			It("should set the detached annotation if agent is installation has failed", func() {
-				agent.Status.Conditions = []conditionsv1.Condition{
-					{
-						Type:   v1beta1.InstalledCondition,
-						Status: corev1.ConditionFalse,
-						Reason: v1beta1.InstallationFailedReason,
-					},
-				}
+				agent.Status.Progress.CurrentStage = models.HostStageFailed
 				Expect(c.Update(ctx, agent)).To(BeNil())
 
 				for range [3]int{} {
@@ -1436,13 +1419,7 @@ var _ = Describe("bmac reconcile", func() {
 
 		Context("when BMH is detached", func() {
 			It("should not change the URL when it changes in the InfraEnv", func() {
-				agent.Status.Conditions = []conditionsv1.Condition{
-					{
-						Type:   v1beta1.InstalledCondition,
-						Status: corev1.ConditionFalse,
-						Reason: v1beta1.InstallationFailedReason,
-					},
-				}
+				agent.Status.Progress.CurrentStage = models.HostStageFailed
 				Expect(c.Update(ctx, agent)).To(BeNil())
 
 				for range [3]int{} {
