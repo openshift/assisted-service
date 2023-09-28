@@ -222,13 +222,13 @@ func (o *operator) GetHostRequirements(_ context.Context, cluster *common.Cluste
 
 // GetPreflightRequirements returns operator hardware requirements that can be determined with cluster data only
 func (o *operator) GetPreflightRequirements(context context.Context, cluster *common.Cluster) (*models.OperatorHardwareRequirements, error) {
-	dependecies, err := o.GetDependencies(cluster)
+	dependencies, err := o.GetDependencies(cluster)
 	if err != nil {
 		return &models.OperatorHardwareRequirements{}, err
 	}
 	return &models.OperatorHardwareRequirements{
 		OperatorName: o.GetName(),
-		Dependencies: dependecies,
+		Dependencies: dependencies,
 		Requirements: &models.HostTypeHardwareRequirementsWrapper{
 			Master: &models.HostTypeHardwareRequirements{
 				Quantitative: &models.ClusterHostRequirementsDetails{

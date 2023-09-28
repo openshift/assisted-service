@@ -39,12 +39,17 @@ var _ = Describe("Odf Operator", func() {
 			Inventory: Inventory(&InventoryResources{Cpus: 12, Ram: 32 * conversions.GiB,
 				Disks: []*models.Disk{
 					{SizeBytes: 20 * conversions.GB, DriveType: models.DriveTypeHDD, ID: diskID1}}})}
+		masterWithTwoSmallDisk = &models.Host{Role: models.HostRoleMaster, InstallationDiskID: diskID1,
+			Inventory: Inventory(&InventoryResources{Cpus: 12, Ram: 32 * conversions.GiB,
+				Disks: []*models.Disk{
+					{SizeBytes: 20 * conversions.GB, DriveType: models.DriveTypeSSD, ID: diskID1},
+					{SizeBytes: 20 * conversions.GB, DriveType: models.DriveTypeHDD, ID: diskID2}}})}
 		masterWithLessDiskSize = &models.Host{Role: models.HostRoleMaster, InstallationDiskID: diskID1,
 			Inventory: Inventory(&InventoryResources{Cpus: 12, Ram: 32 * conversions.GiB,
 				Disks: []*models.Disk{
 					{SizeBytes: 20 * conversions.GB, DriveType: models.DriveTypeHDD, ID: diskID1},
 					{SizeBytes: 40 * conversions.GB, DriveType: models.DriveTypeSSD, ID: diskID2},
-					{SizeBytes: 20 * conversions.GB, DriveType: models.DriveTypeSSD, ID: diskID2},
+					{SizeBytes: 20 * conversions.GB, DriveType: models.DriveTypeSSD, ID: diskID3},
 				}})}
 		workerWithOneDisk = &models.Host{Role: models.HostRoleWorker, InstallationDiskID: diskID1,
 			Inventory: Inventory(&InventoryResources{Cpus: 12, Ram: 64 * conversions.GiB,
@@ -78,7 +83,7 @@ var _ = Describe("Odf Operator", func() {
 				Disks: []*models.Disk{
 					{SizeBytes: 20 * conversions.GB, DriveType: models.DriveTypeHDD, ID: diskID1},
 					{SizeBytes: 40 * conversions.GB, DriveType: models.DriveTypeSSD, ID: diskID2},
-					{SizeBytes: 20 * conversions.GB, DriveType: models.DriveTypeSSD, ID: diskID2},
+					{SizeBytes: 20 * conversions.GB, DriveType: models.DriveTypeSSD, ID: diskID3},
 				}})}
 		autoAssignHost = &models.Host{Role: models.HostRoleAutoAssign, SuggestedRole: models.HostRoleAutoAssign, InstallationDiskID: diskID1,
 			Inventory: Inventory(&InventoryResources{Cpus: 12, Ram: 32 * conversions.GiB,
@@ -280,6 +285,13 @@ var _ = Describe("Odf Operator", func() {
 					masterWithThreeDisk, masterWithNoDisk, masterWithLessDiskSize,
 				}}},
 				masterWithLessDiskSize,
+				api.ValidationResult{Status: api.Success, ValidationId: operator.GetHostValidationID(), Reasons: []string{}},
+			),
+			table.Entry("there is no disk with sufficient size",
+				&common.Cluster{Cluster: models.Cluster{Hosts: []*models.Host{
+					masterWithThreeDisk, masterWithNoDisk, masterWithTwoSmallDisk,
+				}}},
+				masterWithTwoSmallDisk,
 				api.ValidationResult{Status: api.Failure, ValidationId: operator.GetHostValidationID(), Reasons: []string{"Insufficient resources to deploy ODF in compact mode. ODF requires a minimum of 3 hosts. Each host must have at least 1 additional disk of 25 GB minimum and an installation disk."}},
 			),
 		)
@@ -328,7 +340,7 @@ var _ = Describe("Odf Operator", func() {
 					masterWithThreeDisk, masterWithNoDisk, masterWithOneDisk, workerWithTwoDisk, workerWithThreeDisk, workerWithLessDiskSize,
 				}}},
 				workerWithLessDiskSize,
-				api.ValidationResult{Status: api.Failure, ValidationId: operator.GetHostValidationID(), Reasons: []string{"Insufficient resources to deploy ODF in standard mode. ODF requires a minimum of 3 hosts. Each host must have at least 1 additional disk of 25 GB minimum and an installation disk."}},
+				api.ValidationResult{Status: api.Success, ValidationId: operator.GetHostValidationID(), Reasons: []string{}},
 			),
 			table.Entry("worker with disk of size zero",
 				&common.Cluster{Cluster: models.Cluster{Hosts: []*models.Host{
@@ -339,5 +351,4 @@ var _ = Describe("Odf Operator", func() {
 			),
 		)
 	})
-
 })
