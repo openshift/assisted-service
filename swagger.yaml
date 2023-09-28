@@ -2846,6 +2846,12 @@ paths:
           type: string
           format: uuid
           required: true
+        - in: query
+          name: include_system_generated
+          description: Include system generated manifests in results? Default is false.
+          type: boolean
+          required: false
+          default: false
       responses:
         "200":
           description: Success.

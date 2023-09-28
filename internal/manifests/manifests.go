@@ -176,7 +176,7 @@ func (m *Manifests) ListClusterManifestsInternal(ctx context.Context, params ope
 		if err != nil {
 			return nil, err
 		}
-		if isUserManifest {
+		if isUserManifest || swag.BoolValue(params.IncludeSystemGenerated) {
 			manifests = append(manifests, &models.Manifest{FileName: filename, Folder: folder})
 		}
 	}
