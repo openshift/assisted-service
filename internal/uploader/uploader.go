@@ -5,6 +5,7 @@ import (
 
 	"github.com/openshift/assisted-service/internal/common"
 	eventsapi "github.com/openshift/assisted-service/internal/events/api"
+	"github.com/openshift/assisted-service/internal/versions"
 	"github.com/openshift/assisted-service/pkg/k8sclient"
 	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
@@ -17,6 +18,7 @@ type Client interface {
 }
 
 type Config struct {
+	Versions               versions.Versions
 	DataUploadEndpoint     string `envconfig:"DATA_UPLOAD_ENDPOINT" default:"https://console.redhat.com/api/ingress/v1/upload"`
 	AssistedServiceVersion string
 	EnableDataCollection   bool `envconfig:"ENABLE_DATA_COLLECTION" default:"true"`
