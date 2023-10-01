@@ -425,8 +425,11 @@ var _ = Describe("Progress bar test", func() {
 								Inventory:  common.GenerateTestDefaultInventory(),
 							},
 						},
+						LastInstallationPreparation: models.LastInstallationPreparation{
+							Status: models.LastInstallationPreparationStatusSuccess,
+							Reason: "",
+						},
 					},
-					InstallationPreparationCompletionStatus: common.InstallationPreparationSucceeded,
 				}
 				Expect(db.Create(&c).Error).ShouldNot(HaveOccurred())
 

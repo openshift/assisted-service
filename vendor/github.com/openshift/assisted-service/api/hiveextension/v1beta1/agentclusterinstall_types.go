@@ -79,6 +79,11 @@ const (
 	ClusterBackendErrorMsg    string = "The Spec could not be synced due to backend error:"
 	ClusterInputErrorReason   string = "InputError"
 	ClusterInputErrorMsg      string = "The Spec could not be synced due to an input error:"
+
+	ClusterLastInstallationPreparationFailedOKReason    string = "There is no failing prior preparation attempt"
+	ClusterLastInstallationPreparationFailedErrorReason string = "The last installation preparation failed"
+	ClusterLastInstallationPreparationPending           string = "Cluster preparation has never been performed for this cluster"
+	ClusterLastInstallationPreparationFailedCondition   string = "LastInstallationPreparationFailed"
 )
 
 // +genclient

@@ -1763,12 +1763,13 @@ var _ = Describe("RefreshCluster - preparing for install", func() {
 		validationsChecker *validationsChecker
 	}{
 		{
-			name:        "no change",
-			apiVip:      common.TestIPv4Networking.APIVip,
-			apiVips:     common.TestIPv4Networking.APIVips,
-			ingressVip:  common.TestIPv4Networking.IngressVip,
-			ingressVips: common.TestIPv4Networking.IngressVips,
-			dstState:    models.ClusterStatusPreparingForInstallation,
+			name:               "no change",
+			apiVip:             common.TestIPv4Networking.APIVip,
+			apiVips:            common.TestIPv4Networking.APIVips,
+			ingressVip:         common.TestIPv4Networking.IngressVip,
+			ingressVips:        common.TestIPv4Networking.IngressVips,
+			dstState:           models.ClusterStatusPreparingForInstallation,
+			installationStatus: models.LastInstallationPreparationStatusPreparationNeverPerformed,
 			hosts: []models.Host{
 				{
 					ID:     &hid1,
@@ -1786,12 +1787,13 @@ var _ = Describe("RefreshCluster - preparing for install", func() {
 			statusInfoChecker: makeValueChecker(statusInfoPreparingForInstallation),
 		},
 		{
-			name:        "one insufficient host",
-			apiVip:      common.TestIPv4Networking.APIVip,
-			apiVips:     common.TestIPv4Networking.APIVips,
-			ingressVip:  common.TestIPv4Networking.IngressVip,
-			ingressVips: common.TestIPv4Networking.IngressVips,
-			dstState:    models.ClusterStatusInsufficient,
+			name:               "one insufficient host",
+			apiVip:             common.TestIPv4Networking.APIVip,
+			apiVips:            common.TestIPv4Networking.APIVips,
+			ingressVip:         common.TestIPv4Networking.IngressVip,
+			ingressVips:        common.TestIPv4Networking.IngressVips,
+			dstState:           models.ClusterStatusInsufficient,
+			installationStatus: models.LastInstallationPreparationStatusPreparationNeverPerformed,
 			hosts: []models.Host{
 				{
 					ID:     &hid1,
@@ -1829,7 +1831,7 @@ var _ = Describe("RefreshCluster - preparing for install", func() {
 					Status: swag.String(models.HostStatusInsufficient),
 				},
 			},
-			installationStatus: common.InstallationPreparationFailed,
+			installationStatus: models.LastInstallationPreparationStatusFailed,
 			statusInfoChecker:  makeValueChecker(statusInfoUnpreparingHostExists),
 		},
 		{
@@ -1853,7 +1855,7 @@ var _ = Describe("RefreshCluster - preparing for install", func() {
 					Status: swag.String(models.HostStatusInsufficient),
 				},
 			},
-			installationStatus: common.InstallationPreparationSucceeded,
+			installationStatus: models.LastInstallationPreparationStatusSuccess,
 			statusInfoChecker:  makeValueChecker(statusInfoUnpreparingHostExists),
 		},
 		{
@@ -1877,7 +1879,7 @@ var _ = Describe("RefreshCluster - preparing for install", func() {
 					Status: swag.String(models.HostStatusPreparingForInstallation),
 				},
 			},
-			installationStatus: common.InstallationPreparationFailed,
+			installationStatus: models.LastInstallationPreparationStatusFailed,
 			statusInfoChecker:  makeValueChecker(statusInfoClusterFailedToPrepare),
 		},
 		{
@@ -1901,7 +1903,7 @@ var _ = Describe("RefreshCluster - preparing for install", func() {
 					Status: swag.String(models.HostStatusPreparingSuccessful),
 				},
 			},
-			installationStatus: common.InstallationPreparationSucceeded,
+			installationStatus: models.LastInstallationPreparationStatusSuccess,
 			statusInfoChecker:  makeValueChecker(statusInfoInstalling),
 		},
 	}
@@ -1920,8 +1922,11 @@ var _ = Describe("RefreshCluster - preparing for install", func() {
 					Status:          swag.String(models.ClusterStatusPreparingForInstallation),
 					StatusInfo:      swag.String(statusInfoPreparingForInstallation),
 					StatusUpdatedAt: strfmt.DateTime(time.Now()),
+					LastInstallationPreparation: models.LastInstallationPreparation{
+						Status: t.installationStatus,
+						Reason: "",
+					},
 				},
-				InstallationPreparationCompletionStatus: t.installationStatus,
 			}
 			Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
 			for i := range t.hosts {
@@ -4785,7 +4790,10 @@ var _ = Describe("Single node", func() {
 				}
 				if t.srcState == models.ClusterStatusPreparingForInstallation && t.dstState == models.ClusterStatusInstalling {
 					cluster.Cluster.StatusUpdatedAt = strfmt.DateTime(time.Now())
-					cluster.InstallationPreparationCompletionStatus = common.InstallationPreparationSucceeded
+					cluster.LastInstallationPreparation = models.LastInstallationPreparation{
+						Status: models.LastInstallationPreparationStatusSuccess,
+						Reason: "",
+					}
 
 					mockMetric.EXPECT().InstallationStarted().Times(1)
 

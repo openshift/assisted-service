@@ -8,7 +8,6 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/client/installer"
-	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/auth"
 	"github.com/openshift/assisted-service/pkg/ocm"
@@ -329,7 +328,7 @@ var _ = Describe("test AMS subscriptions", func() {
 				c := reply.GetPayload()
 				Expect(*c.Status).Should(Equal(models.ClusterStatusPreparingForInstallation))
 				generateEssentialPrepareForInstallationSteps(ctx, c.Hosts...)
-				waitForInstallationPreparationCompletionStatus(clusterID, common.InstallationPreparationFailed)
+				waitForLastInstallationCompletionStatus(clusterID, models.LastInstallationPreparationStatusFailed)
 			})
 		})
 	})

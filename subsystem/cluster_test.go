@@ -5177,7 +5177,7 @@ var _ = Describe("disk encryption", func() {
 			c = reply.GetPayload()
 
 			generateEssentialPrepareForInstallationSteps(ctx, c.Hosts...)
-			waitForInstallationPreparationCompletionStatus(*c.ID, common.InstallationPreparationSucceeded)
+			waitForLastInstallationCompletionStatus(*c.ID, models.LastInstallationPreparationStatusSuccess)
 		})
 
 		It("host doesn't have minimal requirements for disk-encryption, TPM mode", func() {

@@ -6247,6 +6247,9 @@ func init() {
             "AddHostsCluster"
           ]
         },
+        "last-installation-preparation": {
+          "$ref": "#/definitions/last-installation-preparation"
+        },
         "logs_info": {
           "description": "The progress of log collection or empty if logs are not applicable",
           "$ref": "#/definitions/logs_state"
@@ -8983,6 +8986,29 @@ func init() {
           "type": "boolean"
         }
       }
+    },
+    "last-installation-preparation": {
+      "description": "Gives the status of the last installation preparation (if any)",
+      "type": "object",
+      "properties": {
+        "reason": {
+          "description": "The reason for the preparation status if applicable",
+          "type": "string"
+        },
+        "status": {
+          "description": "The last installation preparation status",
+          "type": "string",
+          "default": "preparation_never_performed",
+          "enum": [
+            "preparation_never_performed",
+            "failed",
+            "success"
+          ],
+          "x-nullable": false
+        }
+      },
+      "x-go-custom-tag": "gorm:\"embedded;embeddedPrefix:last_installation_preparation_\"",
+      "x-nullable": false
     },
     "list-managed-domains": {
       "type": "array",
@@ -16701,6 +16727,9 @@ func init() {
             "AddHostsCluster"
           ]
         },
+        "last-installation-preparation": {
+          "$ref": "#/definitions/last-installation-preparation"
+        },
         "logs_info": {
           "description": "The progress of log collection or empty if logs are not applicable",
           "$ref": "#/definitions/logs_state"
@@ -19413,6 +19442,29 @@ func init() {
           "type": "boolean"
         }
       }
+    },
+    "last-installation-preparation": {
+      "description": "Gives the status of the last installation preparation (if any)",
+      "type": "object",
+      "properties": {
+        "reason": {
+          "description": "The reason for the preparation status if applicable",
+          "type": "string"
+        },
+        "status": {
+          "description": "The last installation preparation status",
+          "type": "string",
+          "default": "preparation_never_performed",
+          "enum": [
+            "preparation_never_performed",
+            "failed",
+            "success"
+          ],
+          "x-nullable": false
+        }
+      },
+      "x-go-custom-tag": "gorm:\"embedded;embeddedPrefix:last_installation_preparation_\"",
+      "x-nullable": false
     },
     "list-managed-domains": {
       "type": "array",

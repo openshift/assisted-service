@@ -4,7 +4,7 @@ Conditions provide a standard mechanism for higher-level status reporting from a
 
 ## AgentClusterInstall Conditions
 
-AgentClusterInstall supported condition types are: `SpecSynced`, `RequirementsMet`, `Completed`, `Failed`, `Stopped` and `Validated`.
+AgentClusterInstall supported condition types are: `SpecSynced`, `RequirementsMet`, `Completed`, `Failed`, `LastInstallationPreparationFailed`, `Stopped` and `Validated`.
 
 |Type|Status|Reason|Message|Description|
 |----|----|-----|-------------------|-------------------|

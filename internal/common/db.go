@@ -62,9 +62,6 @@ type Cluster struct {
 	// Indication if we updated console_url in AMS subscription
 	IsAmsSubscriptionConsoleUrlSet bool `json:"is_ams_subscription_console_url_set"`
 
-	// Indication if installation preparation succeeded or failed
-	InstallationPreparationCompletionStatus string
-
 	// ImageGenerated indicates if the discovery image was generated successfully. It will be used internally
 	// when an image needs to be generated. In case the user request to generate an image with custom parameters,
 	// and the generation failed, the value of ImageGenerated will be set to 'false'. In that case, providing the

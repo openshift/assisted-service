@@ -33,7 +33,7 @@ func WithNameMatcher(expected string) eventPartMatcher {
 			return true, ""
 		}
 
-		return false, fmt.Sprintf("expected event name %s to equal %s", e.GetName(), expected)
+		return false, fmt.Sprintf("expected event name \"%s\" to equal \"%s\"", e.GetName(), expected)
 	}
 }
 
@@ -123,7 +123,7 @@ func WithMessageMatcher(expected string) eventPartMatcher {
 		if e.FormatMessage() == expected {
 			return true, ""
 		}
-		return false, fmt.Sprintf("expected event host ID %s to equal %s", e.FormatMessage(), expected)
+		return false, fmt.Sprintf("expected event host ID \"%s\" to equal \"%s\"", e.FormatMessage(), expected)
 	}
 }
 
