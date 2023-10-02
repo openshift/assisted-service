@@ -8,6 +8,7 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"mime/multipart"
 	"net/http"
 	"net/textproto"
@@ -115,8 +116,14 @@ func (e *eventsUploader) sendRequest(req *http.Request) error {
 	// Successful http response code from the ingress server is in the 200s
 	if res.StatusCode >= 200 && res.StatusCode <= 299 {
 		e.log.Debugf("Successful response received from %s. Red Hat Insights Request ID: %+v", req.URL, res.Header.Get("X-Rh-Insights-Request-Id"))
+		return nil
 	}
-	return nil
+	defer res.Body.Close()
+	body, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		e.log.Debugf("error reading response body for request to %s: %s", req.URL, err.Error())
+	}
+	return fmt.Errorf("uploading events: upload to %s returned status code %d (body: %s)", req.URL, res.StatusCode, string(body))
 }
 
 func prepareFiles(ctx context.Context, db *gorm.DB, cluster *common.Cluster, eventsHandler eventsapi.Handler, pullSecret *validations.PullSecretCreds,

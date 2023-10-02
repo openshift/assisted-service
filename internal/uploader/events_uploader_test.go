@@ -347,6 +347,7 @@ var _ = Describe("UploadEvents", func() {
 					checkEventsFile(testFiles["events"], expectedEvents, expectedNumberOfEvents)
 					checkVersionsFile(testFiles["versions"], servicesVersion)
 				}
+				w.WriteHeader(http.StatusOK)
 			})
 		}
 		cfg := &Config{
@@ -369,7 +370,7 @@ var _ = Describe("UploadEvents", func() {
 			Name:      models.ClusterStatusAddingHosts,
 		}
 
-		createOCMPullSecret(*mockK8sClient, true)
+		createOCMPullSecretWithToken(*mockK8sClient)
 		mockEvents.EXPECT().V2GetEvents(ctx, common.GetDefaultV2GetEventsParams(&clusterID, nil, nil, models.EventCategoryMetrics, models.EventCategoryUser)).
 			Return(&common.V2GetEventsResponse{
 				Events: []*common.Event{{Event: event}},
@@ -392,7 +393,7 @@ var _ = Describe("UploadEvents", func() {
 		Expect(err).ShouldNot(HaveOccurred())
 	})
 	It("fails to upload event data when there's no data", func() {
-		createOCMPullSecret(*mockK8sClient, true)
+		createOCMPullSecretWithToken(*mockK8sClient)
 		mockEvents.EXPECT().V2GetEvents(ctx, common.GetDefaultV2GetEventsParams(nil, nil, nil, models.EventCategoryMetrics, models.EventCategoryUser)).
 			Return(
 				nil, errors.New("no events found")).
@@ -400,15 +401,51 @@ var _ = Describe("UploadEvents", func() {
 		err := uploader.UploadEvents(ctx, &common.Cluster{PullSecret: ""}, mockEvents)
 		Expect(err).To(HaveOccurred())
 	})
-	It("fails to uploads event data when headers can't be set", func() {
-		createOCMPullSecret(*mockK8sClient, false)
+	It("fails to uploads event data when malformed pullsecret", func() {
+		createOCMPullSecretWithEmptyToken(*mockK8sClient)
 		mockEvents.EXPECT().V2GetEvents(
 			ctx, common.GetDefaultV2GetEventsParams(&clusterID, nil, nil, models.EventCategoryMetrics, models.EventCategoryUser)).
 			Return(&common.V2GetEventsResponse{}, nil).Times(1)
 
 		cluster := createTestObjects(db, &clusterID, &hostID, &infraEnvID)
 		err := uploader.UploadEvents(ctx, cluster, mockEvents)
-		Expect(err).To(HaveOccurred())
+		Expect(err.Error()).To(MatchRegexp(`failed to get pull secret to upload event data for cluster .*`))
+	})
+	It("fails to uploads event data when pullsecret not found", func() {
+		createOCMPullSecretNotFound(*mockK8sClient)
+		mockEvents.EXPECT().V2GetEvents(
+			ctx, common.GetDefaultV2GetEventsParams(&clusterID, nil, nil, models.EventCategoryMetrics, models.EventCategoryUser)).
+			Return(&common.V2GetEventsResponse{}, nil).Times(1)
+
+		cluster := createTestObjects(db, &clusterID, &hostID, &infraEnvID)
+		err := uploader.UploadEvents(ctx, cluster, mockEvents)
+		Expect(err.Error()).To(MatchRegexp(`failed to get pull secret to upload event data for cluster .*`))
+	})
+	It("returns error when upload request is not 2XX", func() {
+		event := models.Event{
+			Category:  models.EventCategoryUser,
+			ClusterID: &clusterID,
+			Name:      models.ClusterStatusAddingHosts,
+		}
+		createOCMPullSecretWithToken(*mockK8sClient)
+		returnUnauthorized := func() http.HandlerFunc {
+			return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.WriteHeader(http.StatusUnauthorized)
+				_, _ = io.WriteString(w, "you are using an expired pull secret")
+			})
+		}
+		server := httptest.NewServer(returnUnauthorized())
+		uploader.Config.DataUploadEndpoint = fmt.Sprintf("%s/%s", server.URL, "upload/test")
+
+		mockEvents.EXPECT().V2GetEvents(gomock.Any(), gomock.Any()).
+			Return(&common.V2GetEventsResponse{
+				Events: []*common.Event{{Event: event}},
+			}, nil).
+			Times(1)
+
+		cluster := createTestObjects(db, &clusterID, &hostID, &infraEnvID)
+		err := uploader.UploadEvents(ctx, cluster, mockEvents)
+		Expect(err.Error()).Should(MatchRegexp(`uploading events: upload to http://127.0.0.1:[\d]+/upload/test returned status code 401 \(body: you are using an expired pull secret\)`))
 	})
 })
 
@@ -499,26 +536,37 @@ func readFiles(tr *tar.Reader, testFiles map[string]*testFile, clusterID strfmt.
 		}
 	}
 }
-func createOCMPullSecret(mockK8sClient k8sclient.MockK8SClient, exists bool) {
-	if exists {
-		token := base64.StdEncoding.EncodeToString([]byte(fmt.Sprintf("%s:%s", username, "thePassword")))
-		OCMSecret := &corev1.Secret{
-			TypeMeta: metav1.TypeMeta{
-				Kind:       "Secret",
-				APIVersion: "v1",
-			},
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: "openshift-config",
-				Name:      "pull-secret",
-			},
-			Data: map[string][]byte{corev1.DockerConfigJsonKey: []byte(fmt.Sprintf(pullSecretFormat, token))},
-			Type: corev1.SecretTypeDockerConfigJson,
-		}
-		mockK8sClient.EXPECT().GetSecret("openshift-config", "pull-secret").Return(OCMSecret, nil).Times(1)
-	} else {
-		mockK8sClient.EXPECT().GetSecret("openshift-config", "pull-secret").Return(nil,
-			apierrors.NewNotFound(schema.GroupResource{Group: "v1", Resource: "Secret"}, "pullsecret")).Times(1)
+
+func createOCMPullSecretWithEmptyToken(mockK8sClient k8sclient.MockK8SClient) {
+	createOCMPullSecret(mockK8sClient, "")
+}
+
+func createOCMPullSecretWithToken(mockK8sClient k8sclient.MockK8SClient) {
+	token := base64.StdEncoding.EncodeToString([]byte(fmt.Sprintf("%s:%s", username, "thePassword")))
+	createOCMPullSecret(mockK8sClient, token)
+}
+
+func createOCMPullSecret(mockK8sClient k8sclient.MockK8SClient, token string) {
+	data := []byte(fmt.Sprintf(pullSecretFormat, token))
+
+	OCMSecret := &corev1.Secret{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Secret",
+			APIVersion: "v1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: "openshift-config",
+			Name:      "pull-secret",
+		},
+		Data: map[string][]byte{corev1.DockerConfigJsonKey: data},
+		Type: corev1.SecretTypeDockerConfigJson,
 	}
+	mockK8sClient.EXPECT().GetSecret("openshift-config", "pull-secret").Return(OCMSecret, nil).Times(1)
+}
+
+func createOCMPullSecretNotFound(mockK8sClient k8sclient.MockK8SClient) {
+	mockK8sClient.EXPECT().GetSecret("openshift-config", "pull-secret").Return(nil,
+		apierrors.NewNotFound(schema.GroupResource{Group: "v1", Resource: "Secret"}, "pullsecret")).Times(1)
 }
 
 func checkHeaders(req *http.Request, token, serviceVersion string, clusterID strfmt.UUID) {
