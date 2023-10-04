@@ -119,7 +119,7 @@ func (feature *ClusterManagedNetworkingFeature) getFeatureActiveLevel(cluster *c
 	if cluster.Platform != nil {
 		if IsActivePlatformSupportsCmn(cluster, clusterUpdateParams) {
 			// Specifically on vSphere platform, because both umn and cmn available check if VIPs are set
-			if *cluster.Platform.Type == models.PlatformTypeVsphere {
+			if isPlatformActive(cluster, clusterUpdateParams, models.PlatformTypeVsphere) {
 				if feature.vipsFeature.getFeatureActiveLevel(cluster, nil, clusterUpdateParams, nil) != activeLevelActive {
 					return activeLevelNotActive
 				}
@@ -308,7 +308,7 @@ func (feature *UserManagedNetworkingFeature) getFeatureActiveLevel(cluster *comm
 	if cluster.Platform != nil {
 		if IsActivePlatformSupportsUmn(cluster, clusterUpdateParams) {
 			// Specifically on vSphere platform, because both umn and cmn available check if VIPs are set
-			if *cluster.Platform.Type == models.PlatformTypeVsphere {
+			if isPlatformActive(cluster, clusterUpdateParams, models.PlatformTypeVsphere) {
 				if feature.vipsFeature.getFeatureActiveLevel(cluster, nil, clusterUpdateParams, nil) == activeLevelActive {
 					return activeLevelNotActive
 				}

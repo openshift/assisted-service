@@ -407,28 +407,48 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 			err := ValidateIncompatibleFeatures(log, models.ClusterCPUArchitectureS390x, &cluster, &infraEnv, nil)
 			Expect(err).To(Not(BeNil()))
 		})
-		It("Cannot set UMN platforms with vips", func() {
-			umnPlatforms := []models.PlatformType{models.PlatformTypeOci, models.PlatformTypeNone}
+		It("Cannot set UMN platforms with vips on OCI", func() {
+			platform := models.PlatformTypeOci
+			cluster := common.Cluster{Cluster: models.Cluster{
+				OpenshiftVersion: "4.14",
+				CPUArchitecture:  models.ClusterCPUArchitectureX8664,
+				Platform: &models.Platform{
+					Type: common.PlatformTypePtr(platform),
+				},
+			}}
 
-			for _, p := range umnPlatforms {
-				platform := p
-				cluster := common.Cluster{Cluster: models.Cluster{
-					OpenshiftVersion: "4.14",
-					CPUArchitecture:  models.ClusterCPUArchitectureX8664,
-					Platform: &models.Platform{
-						Type: common.PlatformTypePtr(platform),
-					},
-				}}
+			err := ValidateIncompatibleFeatures(log, models.ClusterCPUArchitectureX8664, &cluster, nil, nil)
+			Expect(err).To(BeNil())
 
-				err := ValidateIncompatibleFeatures(log, models.ClusterCPUArchitectureX8664, &cluster, nil, nil)
-				Expect(err).To(BeNil())
+			cluster.APIVips = []*models.APIVip{{IP: models.IP("8.8.8.8")}}
+			cluster.IngressVips = []*models.IngressVip{{IP: models.IP("8.8.8.8")}}
+			err = ValidateIncompatibleFeatures(log, models.ClusterCPUArchitectureX8664, &cluster, nil, nil)
 
-				expectedError := "cannot use User Managed Networking because it's not compatible with User Managed Networking"
-				cluster.APIVips = []*models.APIVip{{IP: models.IP("8.8.8.8")}}
-				cluster.IngressVips = []*models.IngressVip{{IP: models.IP("8.8.8.8")}}
-				err = ValidateIncompatibleFeatures(log, models.ClusterCPUArchitectureX8664, &cluster, nil, nil)
-				Expect(err.Error()).To(Equal(expectedError))
-			}
+			Expect(err.Error()).To(ContainSubstring("cannot use"))
+			Expect(err.Error()).To(ContainSubstring("API and Ingress VIPs"))
+			Expect(err.Error()).To(ContainSubstring("User Managed Networking"))
+		})
+
+		It("Cannot set UMN platforms with vips on None platform", func() {
+			platform := models.PlatformTypeNone
+			cluster := common.Cluster{Cluster: models.Cluster{
+				OpenshiftVersion: "4.14",
+				CPUArchitecture:  models.ClusterCPUArchitectureX8664,
+				Platform: &models.Platform{
+					Type: common.PlatformTypePtr(platform),
+				},
+			}}
+
+			err := ValidateIncompatibleFeatures(log, models.ClusterCPUArchitectureX8664, &cluster, nil, nil)
+			Expect(err).To(BeNil())
+
+			cluster.APIVips = []*models.APIVip{{IP: models.IP("8.8.8.8")}}
+			cluster.IngressVips = []*models.IngressVip{{IP: models.IP("8.8.8.8")}}
+			err = ValidateIncompatibleFeatures(log, models.ClusterCPUArchitectureX8664, &cluster, nil, nil)
+
+			Expect(err.Error()).To(ContainSubstring("cannot use"))
+			Expect(err.Error()).To(ContainSubstring("API and Ingress VIPs"))
+			Expect(err.Error()).To(ContainSubstring("User Managed Networking"))
 		})
 	})
 
@@ -667,6 +687,217 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 			})
 		})
 	})
+
+	Context("IsActivePlatformSupportsUmn", func() {
+		It("Cluster with none platform", func() {
+			cluster := common.Cluster{Cluster: models.Cluster{
+				Platform: &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeNone)},
+			}}
+
+			Expect(IsActivePlatformSupportsUmn(&cluster, nil)).To(BeTrue())
+		})
+		It("Cluster with none platform updated to baremetal", func() {
+			cluster := common.Cluster{Cluster: models.Cluster{
+				Platform: &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeNone)},
+			}}
+
+			params := models.V2ClusterUpdateParams{
+				Platform: &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeBaremetal)},
+			}
+
+			Expect(IsActivePlatformSupportsUmn(&cluster, &params)).To(BeFalse())
+		})
+		It("Cluster with OCI platform", func() {
+			cluster := common.Cluster{Cluster: models.Cluster{
+				Platform: &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeOci)},
+			}}
+
+			Expect(IsActivePlatformSupportsUmn(&cluster, nil)).To(BeTrue())
+		})
+		It("Cluster with OCI platform updated to baremetal", func() {
+			cluster := common.Cluster{Cluster: models.Cluster{
+				Platform: &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeOci)},
+			}}
+
+			params := models.V2ClusterUpdateParams{
+				Platform: &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeBaremetal)},
+			}
+
+			Expect(IsActivePlatformSupportsUmn(&cluster, &params)).To(BeFalse())
+		})
+		It("Cluster with OCI platform updated to None", func() {
+			cluster := common.Cluster{Cluster: models.Cluster{
+				Platform: &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeOci)},
+			}}
+
+			params := models.V2ClusterUpdateParams{
+				Platform: &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeNone)},
+			}
+
+			Expect(IsActivePlatformSupportsUmn(&cluster, &params)).To(BeTrue())
+		})
+
+		It("Cluster with baremetal platform", func() {
+			cluster := common.Cluster{Cluster: models.Cluster{
+				Platform: &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeBaremetal)},
+			}}
+
+			Expect(IsActivePlatformSupportsUmn(&cluster, nil)).To(BeFalse())
+		})
+		It("Cluster with baremetal platform updated to none", func() {
+			cluster := common.Cluster{Cluster: models.Cluster{
+				Platform: &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeBaremetal)},
+			}}
+
+			params := models.V2ClusterUpdateParams{
+				Platform: &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeNone)},
+			}
+
+			Expect(IsActivePlatformSupportsUmn(&cluster, &params)).To(BeTrue())
+		})
+		It("Cluster with Nutanix platform", func() {
+			cluster := common.Cluster{Cluster: models.Cluster{
+				Platform: &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeNutanix)},
+			}}
+
+			Expect(IsActivePlatformSupportsUmn(&cluster, nil)).To(BeFalse())
+		})
+		It("Cluster with baremetal platform updated to none", func() {
+			cluster := common.Cluster{Cluster: models.Cluster{
+				Platform: &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeNutanix)},
+			}}
+
+			params := models.V2ClusterUpdateParams{
+				Platform: &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeNone)},
+			}
+
+			Expect(IsActivePlatformSupportsUmn(&cluster, &params)).To(BeTrue())
+		})
+		It("Cluster with vSphere platform", func() {
+			cluster := common.Cluster{Cluster: models.Cluster{
+				Platform: &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeVsphere)},
+			}}
+
+			Expect(IsActivePlatformSupportsUmn(&cluster, nil)).To(BeTrue())
+		})
+		It("Cluster with vSphere platform updated to none", func() {
+			cluster := common.Cluster{Cluster: models.Cluster{
+				Platform: &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeVsphere)},
+			}}
+
+			params := models.V2ClusterUpdateParams{
+				Platform: &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeNone)},
+			}
+
+			Expect(IsActivePlatformSupportsUmn(&cluster, &params)).To(BeTrue())
+		})
+	})
+
+	Context("IsActivePlatformSupportsCmn", func() {
+		It("Cluster with none platform", func() {
+			cluster := common.Cluster{Cluster: models.Cluster{
+				Platform: &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeNone)},
+			}}
+
+			Expect(IsActivePlatformSupportsCmn(&cluster, nil)).To(BeFalse())
+		})
+		It("Cluster with none platform updated to baremetal", func() {
+			cluster := common.Cluster{Cluster: models.Cluster{
+				Platform: &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeNone)},
+			}}
+
+			params := models.V2ClusterUpdateParams{
+				Platform: &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeBaremetal)},
+			}
+
+			Expect(IsActivePlatformSupportsCmn(&cluster, &params)).To(BeTrue())
+		})
+		It("Cluster with OCI platform", func() {
+			cluster := common.Cluster{Cluster: models.Cluster{
+				Platform: &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeOci)},
+			}}
+
+			Expect(IsActivePlatformSupportsCmn(&cluster, nil)).To(BeFalse())
+		})
+		It("Cluster with OCI platform updated to baremetal", func() {
+			cluster := common.Cluster{Cluster: models.Cluster{
+				Platform: &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeOci)},
+			}}
+
+			params := models.V2ClusterUpdateParams{
+				Platform: &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeBaremetal)},
+			}
+
+			Expect(IsActivePlatformSupportsCmn(&cluster, &params)).To(BeTrue())
+		})
+		It("Cluster with OCI platform updated to None", func() {
+			cluster := common.Cluster{Cluster: models.Cluster{
+				Platform: &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeOci)},
+			}}
+
+			params := models.V2ClusterUpdateParams{
+				Platform: &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeNone)},
+			}
+
+			Expect(IsActivePlatformSupportsCmn(&cluster, &params)).To(BeFalse())
+		})
+
+		It("Cluster with baremetal platform", func() {
+			cluster := common.Cluster{Cluster: models.Cluster{
+				Platform: &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeBaremetal)},
+			}}
+
+			Expect(IsActivePlatformSupportsCmn(&cluster, nil)).To(BeTrue())
+		})
+		It("Cluster with baremetal platform updated to none", func() {
+			cluster := common.Cluster{Cluster: models.Cluster{
+				Platform: &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeBaremetal)},
+			}}
+
+			params := models.V2ClusterUpdateParams{
+				Platform: &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeNone)},
+			}
+
+			Expect(IsActivePlatformSupportsCmn(&cluster, &params)).To(BeFalse())
+		})
+		It("Cluster with Nutanix platform", func() {
+			cluster := common.Cluster{Cluster: models.Cluster{
+				Platform: &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeNutanix)},
+			}}
+
+			Expect(IsActivePlatformSupportsCmn(&cluster, nil)).To(BeTrue())
+		})
+		It("Cluster with baremetal platform updated to none", func() {
+			cluster := common.Cluster{Cluster: models.Cluster{
+				Platform: &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeNutanix)},
+			}}
+
+			params := models.V2ClusterUpdateParams{
+				Platform: &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeNone)},
+			}
+
+			Expect(IsActivePlatformSupportsCmn(&cluster, &params)).To(BeFalse())
+		})
+		It("Cluster with vSphere platform", func() {
+			cluster := common.Cluster{Cluster: models.Cluster{
+				Platform: &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeVsphere)},
+			}}
+
+			Expect(IsActivePlatformSupportsCmn(&cluster, nil)).To(BeTrue())
+		})
+		It("Cluster with vSphere platform updated to none", func() {
+			cluster := common.Cluster{Cluster: models.Cluster{
+				Platform: &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeVsphere)},
+			}}
+
+			params := models.V2ClusterUpdateParams{
+				Platform: &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeNone)},
+			}
+
+			Expect(IsActivePlatformSupportsCmn(&cluster, &params)).To(BeFalse())
+		})
+	})
+
 })
 
 func TestOperators(t *testing.T) {

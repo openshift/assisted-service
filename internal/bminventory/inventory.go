@@ -340,13 +340,7 @@ func (b *bareMetalInventory) setDefaultRegisterClusterParams(ctx context.Context
 		params.NewClusterParams.HighAvailabilityMode = swag.String(models.ClusterHighAvailabilityModeFull)
 	}
 
-	log.Infof("Verifying cluster platform and user-managed-networking, got platform=%s and userManagedNetworking=%s", getPlatformType(params.NewClusterParams.Platform), common.BoolPtrForLog(params.NewClusterParams.UserManagedNetworking))
-	_, userManagedNetworking, err := provider.GetActualCreateClusterPlatformParams(params.NewClusterParams.Platform, params.NewClusterParams.UserManagedNetworking, params.NewClusterParams.HighAvailabilityMode, params.NewClusterParams.CPUArchitecture)
-	if err != nil {
-		log.Error(err)
-		return params, err
-	}
-
+	log.Infof("Verifying cluster platform and user-managed-networking, got platform=%s", getPlatformType(params.NewClusterParams.Platform))
 	platform, err := provider.GetCreateClusterPlatformParams(params.NewClusterParams.Platform, params.NewClusterParams.HighAvailabilityMode, params.NewClusterParams.CPUArchitecture)
 	if err != nil {
 		log.Error(err)
@@ -354,8 +348,7 @@ func (b *bareMetalInventory) setDefaultRegisterClusterParams(ctx context.Context
 	}
 
 	params.NewClusterParams.Platform = platform
-	params.NewClusterParams.UserManagedNetworking = userManagedNetworking
-	log.Infof("Cluster high-availability-mode is set to %s, setting platform type to %s and user-managed-networking to %s", swag.StringValue(params.NewClusterParams.HighAvailabilityMode), getPlatformType(platform), common.BoolPtrForLog(userManagedNetworking))
+	log.Infof("Cluster high-availability-mode is set to %s, setting platform type to %s and user-managed-networking to %s", swag.StringValue(params.NewClusterParams.HighAvailabilityMode), getPlatformType(platform))
 
 	if params.NewClusterParams.AdditionalNtpSource == nil {
 		params.NewClusterParams.AdditionalNtpSource = &b.Config.DefaultNTPSource
@@ -612,7 +605,7 @@ func (b *bareMetalInventory) RegisterClusterInternal(
 			NoProxy:                      swag.StringValue(params.NewClusterParams.NoProxy),
 			VipDhcpAllocation:            params.NewClusterParams.VipDhcpAllocation,
 			NetworkType:                  params.NewClusterParams.NetworkType,
-			UserManagedNetworking:        params.NewClusterParams.UserManagedNetworking,
+			UserManagedNetworking:        nil,
 			AdditionalNtpSource:          swag.StringValue(params.NewClusterParams.AdditionalNtpSource),
 			MonitoredOperators:           monitoredOperators,
 			HighAvailabilityMode:         params.NewClusterParams.HighAvailabilityMode,
@@ -801,19 +794,10 @@ func verifyMinimalOpenShiftVersionForNutanix(requestedOpenshiftVersion string) e
 }
 
 func validateAndUpdateSingleNodeParams(newClusterParams *models.ClusterCreateParams, log logrus.FieldLogger) error {
-	if newClusterParams.UserManagedNetworking == nil {
-		log.Infof("HA mode is None, setting UserManagedNetworking to true")
-		// in case of single node UserManagedNetworking should be true
-		newClusterParams.UserManagedNetworking = swag.Bool(true)
-	}
 	if newClusterParams.VipDhcpAllocation == nil {
 		log.Infof("HA mode is None, setting VipDhcpAllocation to false")
 		// in case of single node VipDhcpAllocation should be false
 		newClusterParams.VipDhcpAllocation = swag.Bool(false)
-	}
-
-	if !swag.BoolValue(newClusterParams.UserManagedNetworking) {
-		return errors.Errorf("User Managed Networking must be enabled on single node OpenShift")
 	}
 	if swag.BoolValue(newClusterParams.VipDhcpAllocation) {
 		return errors.Errorf("VIP DHCP Allocation cannot be enabled on single node OpenShift")
@@ -1822,10 +1806,6 @@ func (b *bareMetalInventory) v2NoneHaModeClusterUpdateValidations(cluster *commo
 		return nil
 	}
 
-	if params.ClusterUpdateParams.UserManagedNetworking != nil && !swag.BoolValue(params.ClusterUpdateParams.UserManagedNetworking) {
-		return errors.Errorf("disabling UserManagedNetworking is not allowed in single node mode")
-	}
-
 	if swag.StringValue(params.ClusterUpdateParams.NetworkType) == models.ClusterNetworkTypeOpenShiftSDN {
 		return errors.Errorf("OpenShiftSDN network type is not allowed in single node mode")
 	}
@@ -1960,13 +1940,8 @@ func (b *bareMetalInventory) validateUpdateCluster(
 }
 
 func (b *bareMetalInventory) setUpdatedPlatformParams(log logrus.FieldLogger, cluster *common.Cluster, params installer.V2UpdateClusterParams) (installer.V2UpdateClusterParams, error) {
-	log.Infof("Current cluster platform is set to %s and user-managed-networking is set to %s", getPlatformType(cluster.Platform), common.BoolPtrForLog(cluster.UserManagedNetworking))
-	log.Infof("Verifying cluster platform and user-managed-networking, got platform=%s and userManagedNetworking=%s", getPlatformType(params.ClusterUpdateParams.Platform), common.BoolPtrForLog(params.ClusterUpdateParams.UserManagedNetworking))
-	_, userManagedNetworking, err := provider.GetActualUpdateClusterPlatformParams(params.ClusterUpdateParams.Platform, params.ClusterUpdateParams.UserManagedNetworking, cluster)
-	if err != nil {
-		log.Error(err)
-		return params, err
-	}
+	log.Infof("Current cluster platform is set to %s", getPlatformType(cluster.Platform))
+	log.Infof("Verifying cluster platform and user-managed-networking, got platform=%s", getPlatformType(params.ClusterUpdateParams.Platform))
 
 	platform, err := provider.GetActualUpdateClusterPlatformParamsNew(cluster, params.ClusterUpdateParams)
 	if err != nil {
@@ -1975,12 +1950,8 @@ func (b *bareMetalInventory) setUpdatedPlatformParams(log logrus.FieldLogger, cl
 	}
 
 	params.ClusterUpdateParams.Platform = platform
-	params.ClusterUpdateParams.UserManagedNetworking = userManagedNetworking
 	if platform != nil {
 		log.Infof("Platform verification completed, setting platform type to %s", getPlatformType(platform))
-	}
-	if userManagedNetworking != nil {
-		log.Infof("User managed networking verification completed, setting user-managed-networking to %t", *userManagedNetworking)
 	}
 
 	return params, nil
@@ -2369,10 +2340,6 @@ func (b *bareMetalInventory) updateClusterData(_ context.Context, cluster *commo
 			&map[string]interface{}{"hyperthreading_enabled": *params.ClusterUpdateParams.Hyperthreading}, usages)
 	}
 
-	if params.ClusterUpdateParams.UserManagedNetworking != nil && cluster.HighAvailabilityMode != nil {
-		b.setUserManagedNetworkingAndMultiNodeUsage(swag.BoolValue(params.ClusterUpdateParams.UserManagedNetworking), *cluster.HighAvailabilityMode, usages)
-	}
-
 	if len(updates) > 0 {
 		updates["trigger_monitor_timestamp"] = time.Now()
 		err = db.Model(&common.Cluster{}).Where("id = ?", cluster.ID.String()).Updates(updates).Error
@@ -2434,7 +2401,7 @@ func (b *bareMetalInventory) updateVips(db *gorm.DB, params installer.V2UpdateCl
 }
 
 func (b *bareMetalInventory) updateNetworks(db *gorm.DB, params installer.V2UpdateClusterParams, updates map[string]interface{},
-	cluster *common.Cluster, userManagedNetworking, vipDhcpAllocation bool) error {
+	cluster *common.Cluster, vipDhcpAllocation bool) error {
 	var err error
 	var updated bool
 
@@ -2479,7 +2446,7 @@ func (b *bareMetalInventory) updateNetworks(db *gorm.DB, params installer.V2Upda
 	}
 
 	if swag.BoolValue(params.ClusterUpdateParams.VipDhcpAllocation) != swag.BoolValue(cluster.VipDhcpAllocation) ||
-		swag.BoolValue(params.ClusterUpdateParams.UserManagedNetworking) != swag.BoolValue(cluster.UserManagedNetworking) {
+		featuresupport.IsVipsUpdated(cluster, params.ClusterUpdateParams) {
 		updated = true
 	}
 
@@ -2504,10 +2471,11 @@ func (b *bareMetalInventory) updateNetworks(db *gorm.DB, params installer.V2Upda
 				serviceNetworkCidr = string(cluster.ServiceNetworks[index].Cidr)
 			}
 
+			machineNetworkRequired := common.IsClusterUmnEnabled(cluster)
 			if err = network.VerifyClusterCIDRsNotOverlap(machineNetworkCidr,
 				string(cluster.ClusterNetworks[index].Cidr),
 				serviceNetworkCidr,
-				userManagedNetworking); err != nil {
+				machineNetworkRequired); err != nil {
 				return common.NewApiError(http.StatusBadRequest, err)
 			}
 		}
@@ -2557,7 +2525,7 @@ func (b *bareMetalInventory) updateNetworkTables(db *gorm.DB, cluster *common.Cl
 	// In case of autocalculation, the new value is injected into ClusterUpdateParams therefore
 	// no additional detection of this scenario is required.
 	if params.ClusterUpdateParams.MachineNetworks != nil ||
-		params.ClusterUpdateParams.UserManagedNetworking != cluster.UserManagedNetworking ||
+		featuresupport.DoesManagedNetworkingChanged(cluster, params.ClusterUpdateParams) ||
 		params.ClusterUpdateParams.VipDhcpAllocation != cluster.VipDhcpAllocation {
 		if err = db.Where("cluster_id = ?", *cluster.ID).Delete(&models.MachineNetwork{}).Error; err != nil {
 			err = errors.Wrapf(err, "failed to delete machine networks of cluster %s", *cluster.ID)
@@ -2598,28 +2566,41 @@ func (b *bareMetalInventory) updateNetworkParams(params installer.V2UpdateCluste
 	usages map[string]models.Usage, db *gorm.DB, log logrus.FieldLogger, interactivity Interactivity) error {
 	var err error
 	vipDhcpAllocation := swag.BoolValue(cluster.VipDhcpAllocation)
-	clusterUserManagedNetworking := featuresupport.IsActivePlatformSupportsUmn(cluster, nil)
-	updateParamsUserManagedNetworking := featuresupport.IsActivePlatformSupportsUmn(cluster, params.ClusterUpdateParams)
+	userManagedNetworkingCluster := featuresupport.IsActivePlatformSupportsUmn(cluster, nil)
+	userManagedNetworkingUpdateParams := featuresupport.IsActivePlatformSupportsUmn(cluster, params.ClusterUpdateParams)
+
+	clusterManagedNetworkingCluster := featuresupport.IsActivePlatformSupportsCmn(cluster, nil)
+	clusterManagedNetworkingUpdateParams := featuresupport.IsActivePlatformSupportsCmn(cluster, params.ClusterUpdateParams)
 
 	if params.ClusterUpdateParams.NetworkType != nil && params.ClusterUpdateParams.NetworkType != cluster.NetworkType {
 		updates["network_type"] = swag.StringValue(params.ClusterUpdateParams.NetworkType)
 		b.setNetworkTypeUsage(params.ClusterUpdateParams.NetworkType, usages)
 	}
 
-	if clusterUserManagedNetworking != updateParamsUserManagedNetworking {
-		if !updateParamsUserManagedNetworking && (cluster.CPUArchitecture != common.DefaultCPUArchitecture &&
+	if userManagedNetworkingCluster != userManagedNetworkingUpdateParams {
+		if !userManagedNetworkingUpdateParams && (cluster.CPUArchitecture != common.DefaultCPUArchitecture &&
 			!featuresupport.IsFeatureAvailable(models.FeatureSupportLevelIDCLUSTERMANAGEDNETWORKING, cluster.OpenshiftVersion, swag.String(cluster.CPUArchitecture))) {
 			err = errors.Errorf("disabling User Managed Networking is not allowed for clusters with non-x86_64 CPU architecture")
 			return common.NewApiError(http.StatusBadRequest, err)
 		}
 		// User network mode has changed
-		clusterUserManagedNetworking = updateParamsUserManagedNetworking
-		//updates["user_managed_networking"] = userManagedNetworking
+		userManagedNetworkingCluster = userManagedNetworkingUpdateParams
 		cluster.MachineNetworks = []*models.MachineNetwork{}
+
+		if err = b.updateNetworkTables(db, cluster, params); err != nil {
+			return err
+		}
 	}
 
-	if clusterUserManagedNetworking {
-		err, vipDhcpAllocation = setCommonUserNetworkManagedParams(db, cluster.ID, params.ClusterUpdateParams, common.IsSingleNodeCluster(cluster), updates, log)
+	if clusterManagedNetworkingCluster != clusterManagedNetworkingUpdateParams {
+		clusterManagedNetworkingCluster = clusterManagedNetworkingUpdateParams
+		if err = b.updateNetworkTables(db, cluster, params); err != nil {
+			return err
+		}
+	}
+
+	if userManagedNetworkingCluster && !clusterManagedNetworkingCluster {
+		err, vipDhcpAllocation = setCommonUserNetworkManagedParams(db, cluster, params.ClusterUpdateParams, updates, log)
 		if err != nil {
 			return err
 		}
@@ -2656,7 +2637,7 @@ func (b *bareMetalInventory) updateNetworkParams(params installer.V2UpdateCluste
 		}
 	}
 
-	if err = b.updateNetworks(db, params, updates, cluster, clusterUserManagedNetworking, vipDhcpAllocation); err != nil {
+	if err = b.updateNetworks(db, params, updates, cluster, vipDhcpAllocation); err != nil {
 		return err
 	}
 	if err = b.updateVips(db, params, cluster); err != nil {
@@ -2669,15 +2650,15 @@ func (b *bareMetalInventory) updateNetworkParams(params installer.V2UpdateCluste
 	return nil
 }
 
-func setCommonUserNetworkManagedParams(db *gorm.DB, id *strfmt.UUID, params *models.V2ClusterUpdateParams, singleNodeCluster bool, updates map[string]interface{}, log logrus.FieldLogger) (error, bool) {
-	err := validateUserManagedNetworkConflicts(params, singleNodeCluster, log)
+func setCommonUserNetworkManagedParams(db *gorm.DB, cluster *common.Cluster, params *models.V2ClusterUpdateParams, updates map[string]interface{}, log logrus.FieldLogger) (error, bool) {
+	err := validateUserManagedNetworkConflicts(cluster, params, log)
 	if err != nil {
 		return err, false
 	}
 	updates["vip_dhcp_allocation"] = false
 	updates["api_vip"] = ""
 	updates["ingress_vip"] = ""
-	emptyCluster := common.Cluster{Cluster: models.Cluster{ID: id}}
+	emptyCluster := common.Cluster{Cluster: models.Cluster{ID: cluster.ID}}
 	if err = network.UpdateVipsTables(db, &emptyCluster, true, true); err != nil {
 		return err, false
 	}
@@ -2704,8 +2685,12 @@ func (b *bareMetalInventory) updateNtpSources(params installer.V2UpdateClusterPa
 	return nil
 }
 
-func validateUserManagedNetworkConflicts(params *models.V2ClusterUpdateParams, singleNodeCluster bool, log logrus.FieldLogger) error {
-	if err := validations.ValidateVIPsWereNotSetUserManagedNetworking(swag.StringValue(params.APIVip), swag.StringValue(params.IngressVip), params.APIVips, params.IngressVips, swag.BoolValue(params.VipDhcpAllocation)); err != nil {
+func validateUserManagedNetworkConflicts(cluster *common.Cluster, params *models.V2ClusterUpdateParams, log logrus.FieldLogger) error {
+	platform := cluster.Platform
+	if params.Platform != nil {
+		platform = params.Platform
+	}
+	if err := validations.ValidateVIPsWereNotSetUserManagedNetworking(platform, swag.StringValue(params.APIVip), swag.StringValue(params.IngressVip), params.APIVips, params.IngressVips, swag.BoolValue(params.VipDhcpAllocation)); err != nil {
 		log.WithError(err)
 		return common.NewApiError(http.StatusBadRequest, err)
 	}
@@ -2745,7 +2730,6 @@ func (b *bareMetalInventory) setDefaultUsage(cluster *models.Cluster) error {
 	b.setUsage(cluster.Tags != "", usage.ClusterTags, nil, usages)
 	b.setUsage(cluster.Hyperthreading != models.ClusterHyperthreadingNone, usage.HyperthreadingUsage,
 		&map[string]interface{}{"hyperthreading_enabled": cluster.Hyperthreading}, usages)
-	b.setUserManagedNetworkingAndMultiNodeUsage(swag.BoolValue(cluster.UserManagedNetworking), swag.StringValue(cluster.HighAvailabilityMode), usages)
 	//write all the usages to the cluster object
 	err := b.providerRegistry.SetPlatformUsages(common.PlatformTypeValue(cluster.Platform.Type), usages, b.usageApi)
 	if err != nil {
@@ -2789,11 +2773,6 @@ func (b *bareMetalInventory) setProxyUsage(httpProxy *string, httpsProxy *string
 	}
 }
 
-func (b *bareMetalInventory) setUserManagedNetworkingAndMultiNodeUsage(userManagedNetworking bool, highAvailabilityMode string, usages map[string]models.Usage) {
-	b.setUsage(userManagedNetworking && highAvailabilityMode == models.ClusterCreateParamsHighAvailabilityModeFull,
-		usage.UserManagedNetworkingWithMultiNode, nil, usages)
-}
-
 func (b *bareMetalInventory) setOperatorsUsage(updateOLMOperators []*models.MonitoredOperator, removedOLMOperators []*models.MonitoredOperator, usages map[string]models.Usage) {
 	for _, operator := range updateOLMOperators {
 		b.usageApi.Add(usages, strings.ToUpper(operator.Name), nil)
@@ -2828,16 +2807,6 @@ func (b *bareMetalInventory) updateClusterNetworkVMUsage(cluster *common.Cluster
 	}
 
 	if platform != nil && platform.Type != nil && *platform.Type != models.PlatformTypeBaremetal && *platform.Type != models.PlatformTypeNone {
-		usageEnable = false
-	}
-
-	userManagedNetwork := cluster.UserManagedNetworking != nil && *cluster.UserManagedNetworking
-
-	if updateParams != nil && updateParams.UserManagedNetworking != nil {
-		userManagedNetwork = *updateParams.UserManagedNetworking
-	}
-
-	if userManagedNetwork {
 		usageEnable = false
 	}
 

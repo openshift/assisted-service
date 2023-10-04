@@ -55,8 +55,8 @@ const (
 )
 
 var (
-	UnlimitedEvents *int64 = swag.Int64(-1)
-	NoOffsetEvents  *int64 = swag.Int64(0)
+	UnlimitedEvents = swag.Int64(-1)
+	NoOffsetEvents  = swag.Int64(0)
 )
 
 // Configuration to be injected by discovery ignition.  It will cause IPv6 DHCP client identifier to be the same
@@ -451,7 +451,7 @@ func GetTagFromImageRef(ref string) string {
 func GetConvertedClusterAPIVipDNSName(c *Cluster) string {
 	// In case cluster that isn't configured with user-managed-networking
 	// and api vip is set we should set api vip as APIVipDNSName
-	if !swag.BoolValue(c.Cluster.UserManagedNetworking) && c.Cluster.APIVip != "" {
+	if !IsClusterUmnEnabled(c) && c.Cluster.APIVip != "" {
 		return c.Cluster.APIVip
 	}
 	return fmt.Sprintf("api.%s.%s", c.Cluster.Name, c.Cluster.BaseDNSDomain)
@@ -570,4 +570,23 @@ func GetDefaultV2GetEventsParams(clusterID *strfmt.UUID, hostIds []strfmt.UUID, 
 		Offset:     NoOffsetEvents,
 		Categories: selectedCategories,
 	}
+}
+
+func IsClusterUmnEnabled(cluster *Cluster) bool {
+	if cluster == nil {
+		return false
+	}
+
+	platformType := GetPlatformType(cluster.Platform)
+	if platformType != nil && (*platformType == models.PlatformTypeNone || *platformType == models.PlatformTypeOci) {
+		return true
+	}
+
+	if platformType != nil && *platformType == models.PlatformTypeVsphere {
+		if cluster.APIVips == nil || (cluster.APIVips != nil && len(cluster.APIVips) == 0) {
+			return true
+		}
+	}
+
+	return false
 }

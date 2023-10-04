@@ -9,7 +9,6 @@ import (
 	"github.com/openshift/assisted-service/internal/featuresupport"
 	"github.com/openshift/assisted-service/internal/installcfg"
 	"github.com/openshift/assisted-service/internal/network"
-	"github.com/openshift/assisted-service/internal/provider"
 	"github.com/openshift/assisted-service/models"
 )
 
@@ -41,15 +40,8 @@ func setPlatformValues(platform *installcfg.NutanixInstallConfigPlatform) {
 func (p nutanixProvider) AddPlatformToInstallConfig(
 	cfg *installcfg.InstallerConfigBaremetal, cluster *common.Cluster) error {
 	nPlatform := &installcfg.NutanixInstallConfigPlatform{}
-	if !swag.BoolValue(cluster.UserManagedNetworking) {
-		if len(cluster.APIVips) == 0 {
-			return errors.New("invalid cluster parameters, APIVip must be provided")
-		}
 
-		if len(cluster.IngressVips) == 0 {
-			return errors.New("invalid cluster parameters, IngressVip must be provided")
-		}
-
+	if len(cluster.APIVips) > 0 {
 		if featuresupport.IsFeatureAvailable(models.FeatureSupportLevelIDDUALSTACKVIPS, cluster.OpenshiftVersion, swag.String(cluster.CPUArchitecture)) {
 			nPlatform.APIVIPs = network.GetApiVips(cluster)
 			nPlatform.IngressVIPs = network.GetIngressVips(cluster)
@@ -58,11 +50,9 @@ func (p nutanixProvider) AddPlatformToInstallConfig(
 			nPlatform.DeprecatedIngressVIP = network.GetIngressVipById(cluster, 0)
 		}
 	} else {
-		cfg.Networking.MachineNetwork = provider.GetMachineNetworkForUserManagedNetworking(p.Log, cluster)
-		if cluster.NetworkType != nil {
-			cfg.Networking.NetworkType = swag.StringValue(cluster.NetworkType)
-		}
+		return errors.New("invalid cluster parameters, APIVips and IngressVips must be provided")
 	}
+
 	setPlatformValues(nPlatform)
 	cfg.Platform = installcfg.Platform{
 		Nutanix: nPlatform,

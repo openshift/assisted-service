@@ -488,7 +488,7 @@ func (g *installerGenerator) addBootstrapKubeletIpIfRequired(log logrus.FieldLog
 	// We don't want to set bootstrap ip in None platform as user can't set machine cidr
 	//and we can choose the wrong one
 	log.Debugf("Adding bootstrap ip to env vars")
-	if !swag.BoolValue(g.cluster.UserManagedNetworking) || common.IsSingleNodeCluster(g.cluster) {
+	if !common.IsClusterUmnEnabled(g.cluster) || common.IsSingleNodeCluster(g.cluster) {
 		bootstrapIp, err := network.GetPrimaryMachineCIDRIP(common.GetBootstrapHost(g.cluster), g.cluster)
 		if err != nil {
 			log.WithError(err).Warn("Failed to get bootstrap primary ip for kubelet service update.")
@@ -1052,7 +1052,7 @@ func (g *installerGenerator) modifyBMHFile(file *config_latest_types.File, bmh *
 			WWN:          disk.Wwn,
 			HCTL:         disk.Hctl,
 			SerialNumber: disk.Serial,
-			Rotational:   (disk.DriveType == models.DriveTypeHDD),
+			Rotational:   disk.DriveType == models.DriveTypeHDD,
 		}
 	}
 	if inventory.SystemVendor != nil {

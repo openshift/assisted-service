@@ -525,7 +525,7 @@ func (v *validator) isMachineCidrDefined(c *validationContext) (ValidationStatus
 	if c.infraEnv != nil {
 		return status, fmt.Sprintf("Unexpected status %s", status)
 	}
-	if swag.BoolValue(c.cluster.UserManagedNetworking) {
+	if common.IsClusterUmnEnabled(c.cluster) {
 		return ValidationSuccess, "No Machine Network CIDR needed: User Managed Networking"
 	}
 	if swag.StringValue(c.cluster.Kind) == models.ClusterKindAddHostsCluster {
@@ -597,12 +597,6 @@ func (v *validator) isValidPlatformNetworkSettings(c *validationContext) (Valida
 		// In case there is no cluster validation is pending
 		if c.infraEnv != nil {
 			return ValidationSuccessSuppressOutput, ""
-		} else {
-			//In case userManagedNetworking is true, we don't care about the platform
-			if swag.BoolValue(c.cluster.UserManagedNetworking) {
-				return ValidationSuccess, fmt.Sprintf("Platform %s is allowed", c.inventory.SystemVendor.ProductName)
-			}
-			return ValidationFailure, fmt.Sprintf("Platform %s is allowed only for Single Node OpenShift or user-managed networking", c.inventory.SystemVendor.ProductName)
 		}
 	}
 	return ValidationSuccess, fmt.Sprintf("Platform %s is allowed", c.inventory.SystemVendor.ProductName)
@@ -615,7 +609,7 @@ func (v *validator) belongsToMachineCidr(c *validationContext) (ValidationStatus
 
 	// In case cluster is multi node UMN no need to validate non bootstrap nodes at all
 	// In boostrap case if machine cidr was not set by user no need to validate either as it machine cidr will be set from one of it networks
-	if swag.BoolValue(c.cluster.UserManagedNetworking) && !common.IsSingleNodeCluster(c.cluster) && (!c.host.Bootstrap || !network.IsMachineCidrAvailable(c.cluster)) {
+	if common.IsClusterUmnEnabled(c.cluster) && !common.IsSingleNodeCluster(c.cluster) && (!c.host.Bootstrap || !network.IsMachineCidrAvailable(c.cluster)) {
 		return ValidationSuccess, "No machine network CIDR validation needed: User Managed Networking"
 	}
 
@@ -768,7 +762,7 @@ func (v *validator) belongsToMajorityGroup(c *validationContext) (ValidationStat
 	}
 
 	var status ValidationStatus
-	if swag.BoolValue(c.cluster.UserManagedNetworking) {
+	if common.IsClusterUmnEnabled(c.cluster) {
 		status = v.belongsToL3MajorityGroup(c, majorityGroups)
 	} else {
 		status = v.belongsToL2MajorityGroup(c, majorityGroups)
@@ -1341,7 +1335,7 @@ func (v *validator) importedClusterHasManagedNetworking(cluster *common.Cluster)
 func (v *validator) shouldValidateDNSResolution(cluster *common.Cluster, domainName, target string) (bool, ValidationStatus, string) {
 	var hasManagedNetworking bool
 	if !common.IsImportedCluster(cluster) {
-		hasManagedNetworking = !swag.BoolValue(cluster.UserManagedNetworking)
+		hasManagedNetworking = !common.IsClusterUmnEnabled(cluster)
 	} else {
 		// The value of cluster.UserManagedNetworking is only correct for
 		// non-imported clusters, as imported clusters always have it set to

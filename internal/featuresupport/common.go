@@ -82,3 +82,14 @@ func isFeatureCompatibleWithArchitecture(feature SupportLevelFeature, openshiftV
 	}
 	return true
 }
+
+func IsVipsUpdated(cluster *common.Cluster, clusterUpdateParams *models.V2ClusterUpdateParams) bool {
+	if cluster == nil || clusterUpdateParams == nil {
+		return false
+	}
+
+	clusterHasVips := cluster.APIVips != nil && len(cluster.APIVips) > 0
+	updateParamsHasVips := clusterUpdateParams.APIVips != nil && len(clusterUpdateParams.APIVips) > 0
+
+	return (clusterHasVips && !updateParamsHasVips) || (!clusterHasVips && updateParamsHasVips)
+}

@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"path/filepath"
-	reflect "reflect"
+	"reflect"
 	"sort"
 	"strconv"
 	"strings"
@@ -520,12 +520,12 @@ func (m *Manager) autoAssignMachineNetworkCidr(c *common.Cluster) error {
 		err = m.tryAssignMachineCidrDHCPMode(c)
 	} else if swag.StringValue(c.HighAvailabilityMode) == models.ClusterHighAvailabilityModeNone {
 		err = m.tryAssignMachineCidrSNO(c)
-	} else if !swag.BoolValue(c.UserManagedNetworking) {
+	} else if common.IsClusterUmnEnabled(c) {
 		err = m.tryAssignMachineCidrNonDHCPMode(c)
 	}
 	if err != nil {
 		m.log.WithError(err).Warnf("Set machine cidr for cluster %s. dhcp mode %q user managed networking mode: %q",
-			c.ID.String(), strconv.FormatBool(swag.BoolValue(c.VipDhcpAllocation)), strconv.FormatBool(swag.BoolValue(c.UserManagedNetworking)))
+			c.ID.String(), strconv.FormatBool(swag.BoolValue(c.VipDhcpAllocation)), strconv.FormatBool(common.IsClusterUmnEnabled(c)))
 	}
 	return err
 }
@@ -550,8 +550,8 @@ func (m *Manager) SkipMonitoring(c *common.Cluster) bool {
 	// or remote controllers reports that their log colection has been completed. Then, monitoring should be
 	// stopped to avoid excessive computation
 	skipMonitoringStates := []string{string(models.LogsStateCompleted), string(models.LogsStateTimeout)}
-	result := ((swag.StringValue(c.Status) == models.ClusterStatusError || swag.StringValue(c.Status) == models.ClusterStatusCancelled) &&
-		funk.Contains(skipMonitoringStates, c.LogsInfo))
+	result := (swag.StringValue(c.Status) == models.ClusterStatusError || swag.StringValue(c.Status) == models.ClusterStatusCancelled) &&
+		funk.Contains(skipMonitoringStates, c.LogsInfo)
 	return result
 }
 

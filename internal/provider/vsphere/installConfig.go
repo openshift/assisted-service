@@ -1,7 +1,6 @@
 package vsphere
 
 import (
-	"errors"
 	"fmt"
 
 	"github.com/go-openapi/swag"
@@ -55,15 +54,7 @@ func setPlatformValues(openshiftVersion string, platform *installcfg.VsphereInst
 func (p vsphereProvider) AddPlatformToInstallConfig(cfg *installcfg.InstallerConfigBaremetal, cluster *common.Cluster) error {
 	vsPlatform := &installcfg.VsphereInstallConfigPlatform{}
 
-	if !swag.BoolValue(cluster.UserManagedNetworking) {
-		if len(cluster.APIVips) == 0 {
-			return errors.New("invalid cluster parameters, APIVip must be provided")
-		}
-
-		if len(cluster.IngressVips) == 0 {
-			return errors.New("invalid cluster parameters, IngressVip must be provided")
-		}
-
+	if len(cluster.APIVips) > 0 {
 		if featuresupport.IsFeatureAvailable(models.FeatureSupportLevelIDDUALSTACKVIPS, cluster.OpenshiftVersion, swag.String(cluster.CPUArchitecture)) {
 			vsPlatform.APIVIPs = network.GetApiVips(cluster)
 			vsPlatform.IngressVIPs = network.GetIngressVips(cluster)

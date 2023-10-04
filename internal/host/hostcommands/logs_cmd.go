@@ -81,7 +81,7 @@ func (i *logsCmd) getNonBootstrapMastersIPsInHostCluster(ctx context.Context, ho
 		return nil, err
 	}
 
-	if swag.BoolValue(cluster.UserManagedNetworking) {
+	if common.IsClusterUmnEnabled(cluster) {
 		return i.getHostsIps(*cluster)
 	}
 	return i.getHostsIpsfromMachineCIDR(*cluster)
