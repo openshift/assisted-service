@@ -62,8 +62,8 @@
         "cpu_architectures": [
             "x86_64"
         ],
-        "url": "quay.io/openshift-release-dev/ocp-release:4.12.35-x86_64",
-        "version": "4.12.35"
+        "url": "quay.io/openshift-release-dev/ocp-release:4.12.36-x86_64",
+        "version": "4.12.36"
     },
     {
         "openshift_version": "4.12",
@@ -71,8 +71,8 @@
         "cpu_architectures": [
             "arm64"
         ],
-        "url": "quay.io/openshift-release-dev/ocp-release:4.12.35-aarch64",
-        "version": "4.12.35"
+        "url": "quay.io/openshift-release-dev/ocp-release:4.12.36-aarch64",
+        "version": "4.12.36"
     },
     {
         "openshift_version": "4.12-multi",
@@ -83,8 +83,8 @@
             "ppc64le",
             "s390x"
         ],
-        "url": "quay.io/openshift-release-dev/ocp-release:4.12.35-multi",
-        "version": "4.12.35-multi"
+        "url": "quay.io/openshift-release-dev/ocp-release:4.12.36-multi",
+        "version": "4.12.36-multi"
     },
     {
         "openshift_version": "4.13",
@@ -123,9 +123,9 @@
         "cpu_architectures": [
             "x86_64"
         ],
-        "url": "quay.io/openshift-release-dev/ocp-release:4.14.0-rc.3-x86_64",
+        "url": "quay.io/openshift-release-dev/ocp-release:4.14.0-rc.4-x86_64",
         "support_level": "beta",
-        "version": "4.14.0-rc.3"
+        "version": "4.14.0-rc.4"
     },
     {
         "openshift_version": "4.14",
@@ -133,9 +133,9 @@
         "cpu_architectures": [
             "arm64"
         ],
-        "url": "quay.io/openshift-release-dev/ocp-release:4.14.0-rc.3-aarch64",
+        "url": "quay.io/openshift-release-dev/ocp-release:4.14.0-rc.4-aarch64",
         "support_level": "beta",
-        "version": "4.14.0-rc.3"
+        "version": "4.14.0-rc.4"
     },
     {
         "openshift_version": "4.14-multi",
@@ -146,8 +146,8 @@
             "ppc64le",
             "s390x"
         ],
-        "url": "quay.io/openshift-release-dev/ocp-release:4.14.0-rc.3-multi",
+        "url": "quay.io/openshift-release-dev/ocp-release:4.14.0-rc.4-multi",
         "support_level": "beta",
-        "version": "4.14.0-rc.3-multi"
+        "version": "4.14.0-rc.4-multi"
     }
 ]
