@@ -115,11 +115,11 @@ var _ = Describe("Ocs Operator use-cases", func() {
 		clusterApi = clust.NewManager(cfg, common.GetTestLog().WithField("pkg", "cluster-monitor"), db, commontesting.GetDummyNotificationStream(ctrl),
 			mockEvents, nil, mockHostAPI, mockMetric, nil, nil, operatorsManager, nil, nil, nil, nil, nil)
 
-		hid1 = strfmt.UUID("054e0100-f50e-4be7-874d-73861179e40d")
-		hid2 = strfmt.UUID("514c8480-cda5-46e5-afce-e146def2066f")
+		hid1 = strfmt.UUID(uuid.New().String())
+		hid2 = strfmt.UUID(uuid.New().String())
 		hid3 = strfmt.UUID(uuid.New().String())
-		hid4 = strfmt.UUID("77e381eb-f464-4d28-829e-210bd26dba68")
-		hid5 = strfmt.UUID("e80cb08a-e797-44f5-adc2-2826790b0307")
+		hid4 = strfmt.UUID(uuid.New().String())
+		hid5 = strfmt.UUID(uuid.New().String())
 		hid6 = strfmt.UUID(uuid.New().String())
 		clusterId = strfmt.UUID(uuid.New().String())
 	})
@@ -782,6 +782,87 @@ var _ = Describe("Ocs Operator use-cases", func() {
 				clust.IsPullSecretSet:                     {status: clust.ValidationSuccess, messagePattern: "The pull secret is set"},
 				clust.SufficientMastersCount:              {status: clust.ValidationSuccess, messagePattern: "The cluster has the exact amount of dedicated control plane nodes."},
 				clust.IsOdfRequirementsSatisfied:          {status: clust.ValidationSuccess, messagePattern: "ODF Requirements for Compact Mode are satisfied"},
+			}),
+			errorExpected: false,
+		},
+		{
+			name:          "odf enabled, 3 sufficient nodes, one Disk less then 25GB",
+			srcState:      models.ClusterStatusReady,
+			dstState:      models.ClusterStatusReady,
+			pullSecretSet: true,
+			hosts: []models.Host{
+				{ID: &hid1, Status: swag.String(models.HostStatusKnown),
+					Inventory: odf.Inventory(&odf.InventoryResources{Cpus: 16, Ram: 64 * conversions.GiB, Disks: []*models.Disk{
+						{SizeBytes: 20 * conversions.GB, DriveType: models.DriveTypeHDD, ID: diskID1},
+						{SizeBytes: 40 * conversions.GB, DriveType: models.DriveTypeHDD, ID: diskID2},
+						{SizeBytes: 1 * conversions.GB, DriveType: models.DriveTypeHDD, ID: diskID3}}}),
+					Role: models.HostRoleMaster, InstallationDiskID: diskID1},
+				{ID: &hid2, Status: swag.String(models.HostStatusKnown),
+					Inventory: odf.Inventory(&odf.InventoryResources{Cpus: 16, Ram: 64 * conversions.GiB, Disks: []*models.Disk{
+						{SizeBytes: 20 * conversions.GB, DriveType: models.DriveTypeHDD, ID: diskID1},
+						{SizeBytes: 40 * conversions.GB, DriveType: models.DriveTypeHDD, ID: diskID2}}}),
+					Role: models.HostRoleMaster, InstallationDiskID: diskID1},
+				{ID: &hid3, Status: swag.String(models.HostStatusKnown),
+					Inventory: odf.Inventory(&odf.InventoryResources{Cpus: 16, Ram: 64 * conversions.GiB, Disks: []*models.Disk{
+						{SizeBytes: 25 * conversions.GB, DriveType: models.DriveTypeHDD, ID: diskID1},
+						{SizeBytes: 40 * conversions.GB, DriveType: models.DriveTypeHDD, ID: diskID2}}}),
+					Role: models.HostRoleMaster, InstallationDiskID: diskID1},
+			},
+			statusInfoChecker: makeValueChecker(clust.StatusInfoReady),
+			validationsChecker: makeJsonChecker(map[clust.ValidationID]validationCheckResult{
+				clust.IsMachineCidrDefined:                {status: clust.ValidationSuccess, messagePattern: "The Machine Network CIDR is defined"},
+				clust.IsMachineCidrEqualsToCalculatedCidr: {status: clust.ValidationSuccess, messagePattern: "The Cluster Machine CIDR is equivalent to the calculated CIDR"},
+				clust.AreApiVipsDefined:                   {status: clust.ValidationSuccess, messagePattern: "API virtual IPs are defined"},
+				clust.AreApiVipsValid:                     {status: clust.ValidationSuccess, messagePattern: "belongs to the Machine CIDR and is not in use."},
+				clust.AreIngressVipsDefined:               {status: clust.ValidationSuccess, messagePattern: "Ingress virtual IPs are defined"},
+				clust.AreIngressVipsValid:                 {status: clust.ValidationSuccess, messagePattern: "belongs to the Machine CIDR and is not in use."},
+				clust.AllHostsAreReadyToInstall:           {status: clust.ValidationSuccess, messagePattern: "All hosts in the cluster are ready to install"},
+				clust.IsDNSDomainDefined:                  {status: clust.ValidationSuccess, messagePattern: "The base domain is defined"},
+				clust.IsPullSecretSet:                     {status: clust.ValidationSuccess, messagePattern: "The pull secret is set"},
+				clust.SufficientMastersCount:              {status: clust.ValidationSuccess, messagePattern: "The cluster has the exact amount of dedicated control plane nodes."},
+				clust.IsOdfRequirementsSatisfied:          {status: clust.ValidationSuccess, messagePattern: "ODF Requirements for Compact Mode are satisfied"},
+			}),
+			errorExpected: false,
+		},
+		{
+			name:          "odf enabled, 6 nodes with 3 worker nodes with sufficient disks, one with disk less than 25GB",
+			srcState:      models.ClusterStatusReady,
+			dstState:      models.ClusterStatusReady,
+			pullSecretSet: true,
+			hosts: []models.Host{
+				{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: odf.Inventory(&odf.InventoryResources{Cpus: 16, Ram: 64 * conversions.GiB}), Role: models.HostRoleMaster},
+				{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: odf.Inventory(&odf.InventoryResources{Cpus: 16, Ram: 64 * conversions.GiB}), Role: models.HostRoleMaster},
+				{ID: &hid3, Status: swag.String(models.HostStatusKnown), Inventory: odf.Inventory(&odf.InventoryResources{Cpus: 16, Ram: 64 * conversions.GiB}), Role: models.HostRoleMaster},
+				{ID: &hid4, Status: swag.String(models.HostStatusKnown),
+					Inventory: odf.Inventory(&odf.InventoryResources{Cpus: 16, Ram: 64 * conversions.GiB, Disks: []*models.Disk{
+						{SizeBytes: 20 * conversions.GB, DriveType: models.DriveTypeHDD, ID: diskID1},
+						{SizeBytes: 40 * conversions.GB, DriveType: models.DriveTypeHDD, ID: diskID2},
+						{SizeBytes: 1 * conversions.GB, DriveType: models.DriveTypeHDD, ID: diskID3}}}),
+					Role: models.HostRoleWorker, InstallationDiskID: diskID1},
+				{ID: &hid5, Status: swag.String(models.HostStatusKnown),
+					Inventory: odf.Inventory(&odf.InventoryResources{Cpus: 16, Ram: 64 * conversions.GiB, Disks: []*models.Disk{
+						{SizeBytes: 20 * conversions.GB, DriveType: models.DriveTypeHDD, ID: diskID1},
+						{SizeBytes: 40 * conversions.GB, DriveType: models.DriveTypeHDD, ID: diskID2}}}),
+					Role: models.HostRoleWorker, InstallationDiskID: diskID1},
+				{ID: &hid6, Status: swag.String(models.HostStatusKnown),
+					Inventory: odf.Inventory(&odf.InventoryResources{Cpus: 16, Ram: 64 * conversions.GiB, Disks: []*models.Disk{
+						{SizeBytes: 25 * conversions.GB, DriveType: models.DriveTypeHDD, ID: diskID1},
+						{SizeBytes: 40 * conversions.GB, DriveType: models.DriveTypeHDD, ID: diskID2}}}),
+					Role: models.HostRoleWorker, InstallationDiskID: diskID1},
+			},
+			statusInfoChecker: makeValueChecker(clust.StatusInfoReady),
+			validationsChecker: makeJsonChecker(map[clust.ValidationID]validationCheckResult{
+				clust.IsMachineCidrDefined:                {status: clust.ValidationSuccess, messagePattern: "The Machine Network CIDR is defined"},
+				clust.IsMachineCidrEqualsToCalculatedCidr: {status: clust.ValidationSuccess, messagePattern: "The Cluster Machine CIDR is equivalent to the calculated CIDR"},
+				clust.AreApiVipsDefined:                   {status: clust.ValidationSuccess, messagePattern: "API virtual IPs are defined"},
+				clust.AreApiVipsValid:                     {status: clust.ValidationSuccess, messagePattern: "belongs to the Machine CIDR and is not in use."},
+				clust.AreIngressVipsDefined:               {status: clust.ValidationSuccess, messagePattern: "Ingress virtual IPs are defined"},
+				clust.AreIngressVipsValid:                 {status: clust.ValidationSuccess, messagePattern: "belongs to the Machine CIDR and is not in use."},
+				clust.AllHostsAreReadyToInstall:           {status: clust.ValidationSuccess, messagePattern: "All hosts in the cluster are ready to install"},
+				clust.IsDNSDomainDefined:                  {status: clust.ValidationSuccess, messagePattern: "The base domain is defined"},
+				clust.IsPullSecretSet:                     {status: clust.ValidationSuccess, messagePattern: "The pull secret is set"},
+				clust.SufficientMastersCount:              {status: clust.ValidationSuccess, messagePattern: "The cluster has the exact amount of dedicated control plane nodes."},
+				clust.IsOdfRequirementsSatisfied:          {status: clust.ValidationSuccess, messagePattern: "ODF Requirements for Standard Deployment are satisfied"},
 			}),
 			errorExpected: false,
 		},

@@ -167,17 +167,20 @@ func (o *operator) setStatusInsufficientResources(odfClusterResources *odfCluste
 
 // count all disks of drive type ssd or hdd
 func (o *operator) getValidDiskCount(disks []*models.Disk, installationDiskID string, mode odfDeploymentMode) (int64, error) {
-	var countDisks int64
-	var err error
+	var countEligibleDisks int64
+	var countRegularDisks int64
 
 	for _, disk := range disks {
 		if (disk.DriveType == models.DriveTypeSSD || disk.DriveType == models.DriveTypeHDD) && installationDiskID != disk.ID && disk.SizeBytes != 0 {
-			if disk.SizeBytes < conversions.GbToBytes(o.config.ODFMinDiskSizeGB) {
-				err = fmt.Errorf("Insufficient resources to deploy ODF in %s mode. ODF requires a minimum of 3 hosts. Each host must have at least 1 additional disk of %d GB minimum and an installation disk.", strings.ToLower(string(mode)), o.config.ODFMinDiskSizeGB)
+			if disk.SizeBytes >= conversions.GbToBytes(o.config.ODFMinDiskSizeGB) {
+				countEligibleDisks++
 			} else {
-				countDisks++
+				countRegularDisks++
 			}
 		}
 	}
-	return countDisks, err
+	if countEligibleDisks == 0 && countRegularDisks > 0 {
+		return countEligibleDisks, fmt.Errorf("Insufficient resources to deploy ODF in %s mode. ODF requires a minimum of 3 hosts. Each host must have at least 1 additional disk of %d GB minimum and an installation disk.", strings.ToLower(string(mode)), o.config.ODFMinDiskSizeGB)
+	}
+	return countEligibleDisks, nil
 }
