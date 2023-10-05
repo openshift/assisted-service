@@ -8973,6 +8973,7 @@ var _ = Describe("infraEnvs", func() {
 					ClusterID:        &clusterID,
 					OpenshiftVersion: MinimalOpenShiftVersionForNoneHA,
 					PullSecret:       swag.String(fakePullSecret),
+					ImageType:        models.ImageTypeFullIso,
 				},
 			})
 			Expect(reflect.TypeOf(reply)).Should(Equal(reflect.TypeOf(installer.NewRegisterInfraEnvCreated())))
@@ -9003,6 +9004,7 @@ var _ = Describe("infraEnvs", func() {
 					ClusterID:        &clusterID,
 					OpenshiftVersion: MinimalOpenShiftVersionForNoneHA,
 					PullSecret:       swag.String(fakePullSecret),
+					ImageType:        models.ImageTypeFullIso,
 				},
 			})
 			Expect(reflect.TypeOf(reply)).Should(Equal(reflect.TypeOf(installer.NewRegisterInfraEnvCreated())))
@@ -9596,6 +9598,7 @@ var _ = Describe("infraEnvs", func() {
 					ID:               &infraEnvID,
 					CPUArchitecture:  common.TestDefaultConfig.CPUArchitecture,
 					OpenshiftVersion: common.TestDefaultConfig.OpenShiftVersion,
+					Type:             models.ImageTypeFullIso.Pointer(),
 				}}).Error
 				Expect(err).ShouldNot(HaveOccurred())
 				reply := bm.UpdateInfraEnv(ctx, installer.UpdateInfraEnvParams{
@@ -9618,6 +9621,7 @@ var _ = Describe("infraEnvs", func() {
 					PullSecretSet:    true,
 					CPUArchitecture:  common.TestDefaultConfig.CPUArchitecture,
 					OpenshiftVersion: common.TestDefaultConfig.OpenShiftVersion,
+					Type:             models.ImageTypeFullIso.Pointer(),
 				}}).Error
 			Expect(err).ShouldNot(HaveOccurred())
 			sshKey := "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQDi8KHZYGyPQjECHwytquI3rmpgoUn6M+lkeOD2nEKvYElLE5mPIeqF0izJIl56u" +
@@ -9661,6 +9665,7 @@ var _ = Describe("infraEnvs", func() {
 						ID:               &infraEnvID,
 						PullSecretSet:    true,
 						OpenshiftVersion: common.TestDefaultConfig.OpenShiftVersion,
+						Type:             models.ImageTypeFullIso.Pointer(),
 					}}).Error
 				Expect(err).ShouldNot(HaveOccurred())
 			})
@@ -9703,6 +9708,7 @@ var _ = Describe("infraEnvs", func() {
 						ID:               &infraEnvID,
 						OpenshiftVersion: common.TestDefaultConfig.OpenShiftVersion,
 						PullSecretSet:    true,
+						Type:             models.ImageTypeFullIso.Pointer(),
 					},
 				}).Error
 				Expect(err).ToNot(HaveOccurred())
@@ -9745,11 +9751,10 @@ var _ = Describe("infraEnvs", func() {
 				Expect(parsed.Scheme).To(Equal("https"))
 				Expect(parsed.Host).To(Equal("image-service.example.com:8080"))
 
-				gotQuery, err := url.ParseQuery(parsed.RawQuery)
-				Expect(err).NotTo(HaveOccurred())
-
-				Expect(gotQuery.Get("type")).To(Equal(string(models.ImageTypeMinimalIso)))
-				Expect(gotQuery.Get("version")).To(Equal(common.TestDefaultConfig.OpenShiftVersion))
+				pathList := strings.Split(parsed.Path, "/")
+				Expect(pathList).To(HaveLen(8))
+				Expect(pathList[7]).To(Equal("minimal.iso"))
+				Expect(pathList[5]).To(Equal(common.TestDefaultConfig.OpenShiftVersion))
 			})
 
 			It("sets the download url correctly with the image service - bounded InfraEnv", func() {
@@ -9791,11 +9796,10 @@ var _ = Describe("infraEnvs", func() {
 				Expect(parsed.Scheme).To(Equal("https"))
 				Expect(parsed.Host).To(Equal("image-service.example.com:8080"))
 
-				gotQuery, err := url.ParseQuery(parsed.RawQuery)
-				Expect(err).NotTo(HaveOccurred())
-
-				Expect(gotQuery.Get("type")).To(Equal(string(models.ImageTypeMinimalIso)))
-				Expect(gotQuery.Get("version")).To(Equal(common.TestDefaultConfig.OpenShiftVersion))
+				pathList := strings.Split(parsed.Path, "/")
+				Expect(pathList).To(HaveLen(8))
+				Expect(pathList[7]).To(Equal("minimal.iso"))
+				Expect(pathList[5]).To(Equal(common.TestDefaultConfig.OpenShiftVersion))
 			})
 
 			Context("with rhsso auth", func() {
@@ -9827,7 +9831,11 @@ var _ = Describe("infraEnvs", func() {
 
 					u, err := url.Parse(response.DownloadURL)
 					Expect(err).ToNot(HaveOccurred())
-					tok := u.Query().Get("image_token")
+					pathList := strings.Split(u.Path, "/")
+					Expect(pathList).To(HaveLen(8))
+					Expect(pathList[3]).To(Equal("bytoken"))
+
+					tok := pathList[4]
 					_, err = bm.authHandler.AuthImageAuth(tok)
 					Expect(err).NotTo(HaveOccurred())
 				})
@@ -9994,6 +10002,7 @@ var _ = Describe("infraEnvs", func() {
 						PullSecretSet:    true,
 						CPUArchitecture:  common.TestDefaultConfig.CPUArchitecture,
 						OpenshiftVersion: common.TestDefaultConfig.OpenShiftVersion,
+						Type:             models.ImageTypeFullIso.Pointer(),
 					}}).Error
 				Expect(err).ShouldNot(HaveOccurred())
 			})
@@ -12510,7 +12519,7 @@ var _ = Describe("UpdateInfraEnv - Ignition", func() {
 		Expect(err).ShouldNot(HaveOccurred())
 		infraEnv = common.InfraEnv{
 			PullSecret: fakePullSecret,
-			InfraEnv:   models.InfraEnv{ID: &clusterID, PullSecretSet: true, ClusterID: clusterID},
+			InfraEnv:   models.InfraEnv{ID: &clusterID, PullSecretSet: true, ClusterID: clusterID, Type: models.ImageTypeFullIso.Pointer()},
 		}
 		err = db.Create(&infraEnv).Error
 		Expect(err).ShouldNot(HaveOccurred())
@@ -18519,6 +18528,7 @@ var _ = Describe("GetInfraEnvDownloadURL", func() {
 				ID:               &infraEnvID,
 				OpenshiftVersion: common.TestDefaultConfig.OpenShiftVersion,
 				Type:             common.ImageTypePtr(models.ImageTypeFullIso),
+				CPUArchitecture:  common.TestDefaultConfig.CPUArchitecture,
 			},
 			ImageTokenKey: testTokenKey,
 		}
@@ -18548,10 +18558,12 @@ var _ = Describe("GetInfraEnvDownloadURL", func() {
 			u, err := url.Parse(*payload.URL)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(u.Host).To(Equal(imageServiceHost))
-			Expect(u.Query().Get("image_token")).To(Equal(""))
-			Expect(u.Query().Get("api_key")).To(Equal(""))
-			Expect(u.Query().Get("version")).To(Equal(common.TestDefaultConfig.OpenShiftVersion))
-			Expect(u.Path).To(Equal(fmt.Sprintf("%s/images/%s", imageServicePath, infraEnvID.String())))
+			Expect(u.Path).To(Equal(
+				fmt.Sprintf("%s/byid/%s/%s/%s/full.iso",
+					imageServicePath,
+					infraEnvID,
+					*common.TestDefaultConfig.OsImage.OpenshiftVersion,
+					*common.TestDefaultConfig.OsImage.CPUArchitecture)))
 		})
 	})
 
@@ -18581,10 +18593,14 @@ var _ = Describe("GetInfraEnvDownloadURL", func() {
 			Expect(err).ToNot(HaveOccurred())
 
 			Expect(u.Host).To(Equal(imageServiceHost))
-			tok := u.Query().Get("api_key")
+			pathList := strings.Split(u.Path, "/")
+			Expect(pathList).To(HaveLen(8))
+			Expect(pathList[3]).To(Equal("byapikey"))
+			Expect(pathList[5]).To(Equal(common.TestDefaultConfig.OpenShiftVersion))
+
+			tok := pathList[4]
 			_, err = bm.authHandler.AuthURLAuth(tok)
 			Expect(err).NotTo(HaveOccurred())
-			Expect(u.Query().Get("version")).To(Equal(common.TestDefaultConfig.OpenShiftVersion))
 		})
 	})
 
@@ -18603,10 +18619,14 @@ var _ = Describe("GetInfraEnvDownloadURL", func() {
 			Expect(err).ToNot(HaveOccurred())
 
 			Expect(u.Host).To(Equal(imageServiceHost))
-			tok := u.Query().Get("image_token")
+			pathList := strings.Split(u.Path, "/")
+			Expect(pathList).To(HaveLen(8))
+			Expect(pathList[3]).To(Equal("bytoken"))
+			Expect(pathList[5]).To(Equal(common.TestDefaultConfig.OpenShiftVersion))
+
+			tok := pathList[4]
 			_, err = bm.authHandler.AuthImageAuth(tok)
 			Expect(err).NotTo(HaveOccurred())
-			Expect(u.Query().Get("version")).To(Equal(common.TestDefaultConfig.OpenShiftVersion))
 		})
 
 		It("updates the infra-env expires_at time", func() {

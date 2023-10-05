@@ -760,7 +760,7 @@ func (b *bareMetalInventory) GetInfraEnvDownloadURL(ctx context.Context, params 
 		return common.GenerateErrorResponder(errors.Errorf("OS image entry '%+v' missing OpenshiftVersion field", osImage))
 	}
 
-	newURL, expiresAt, err := b.generateImageDownloadURL(ctx, infraEnv.ID.String(), string(*infraEnv.Type), *osImage.OpenshiftVersion, infraEnv.CPUArchitecture, infraEnv.ImageTokenKey)
+	newURL, expiresAt, err := b.generateShortImageDownloadURL(infraEnv.ID.String(), string(*infraEnv.Type), *osImage.OpenshiftVersion, infraEnv.CPUArchitecture, infraEnv.ImageTokenKey)
 	if err != nil {
 		return common.GenerateErrorResponder(err)
 	}
@@ -778,20 +778,51 @@ func (b *bareMetalInventory) GetInfraEnvDownloadURL(ctx context.Context, params 
 	return installer.NewGetInfraEnvDownloadURLOK().WithPayload(&models.PresignedURL{URL: &newURL, ExpiresAt: *expiresAt})
 }
 
-func (b *bareMetalInventory) generateImageDownloadURL(ctx context.Context, infraEnvID, imageType, version, arch, imageTokenKey string) (string, *strfmt.DateTime, error) {
-	urlString, err := imageservice.ImageURL(b.ImageServiceBaseURL, infraEnvID, version, arch, imageType)
+func (b *bareMetalInventory) generateShortImageDownloadURL(infraEnvID, imageType, version, arch, imageTokenKey string) (string, *strfmt.DateTime, error) {
+	switch b.authHandler.AuthType() {
+	case auth.TypeLocal:
+		return b.generateShortImageDownloadURLByAPIKey(infraEnvID, imageType, version, arch)
+	case auth.TypeRHSSO:
+		return b.generateShortImageDownloadURLByToken(infraEnvID, imageType, version, arch, imageTokenKey)
+	case auth.TypeNone:
+		return b.generateShortImageDownloadURLByID(infraEnvID, imageType, version, arch)
+	}
+
+	return "", nil, errors.Errorf("Unknown auth type %s", b.authHandler.AuthType())
+}
+
+func (b *bareMetalInventory) generateShortImageDownloadURLByAPIKey(infraEnvID, imageType, version, arch string) (string, *strfmt.DateTime, error) {
+	var expiresAt strfmt.DateTime
+
+	token, err := gencrypto.LocalJWT(infraEnvID, gencrypto.InfraEnvKey)
+	if err != nil {
+		return "", nil, errors.Wrapf(err, "failed to generate token for infraEnv %s", infraEnvID)
+	}
+
+	shortURL, err := imageservice.ShortImageURL(b.ImageServiceBaseURL, imageservice.ByAPIKeyPath, token, version, arch, imageType)
+	return shortURL, &expiresAt, err
+}
+
+func (b *bareMetalInventory) generateShortImageDownloadURLByToken(infraEnvID, imageType, version, arch, imageTokenKey string) (string, *strfmt.DateTime, error) {
+	token, err := gencrypto.JWTForSymmetricKey([]byte(imageTokenKey), b.ImageExpirationTime, infraEnvID)
+	if err != nil {
+		return "", nil, errors.Wrap(err, "failed to sign image URL")
+	}
+
+	exp, err := gencrypto.ParseExpirationFromToken(token)
 	if err != nil {
 		return "", nil, err
 	}
-	urlString, err = b.signURL(ctx, infraEnvID, urlString, imageTokenKey)
-	if err != nil {
-		return "", nil, err
-	}
-	expiresAt, err := gencrypto.ParseExpirationFromURL(urlString)
-	if err != nil {
-		return "", nil, err
-	}
-	return urlString, expiresAt, nil
+
+	shortURL, err := imageservice.ShortImageURL(b.ImageServiceBaseURL, imageservice.ByTokenPath, token, version, arch, imageType)
+	return shortURL, exp, err
+}
+
+func (b *bareMetalInventory) generateShortImageDownloadURLByID(infraEnvID, imageType, version, arch string) (string, *strfmt.DateTime, error) {
+	var expiresAt strfmt.DateTime
+
+	shortURL, err := imageservice.ShortImageURL(b.ImageServiceBaseURL, imageservice.ByIDPath, infraEnvID, version, arch, imageType)
+	return shortURL, &expiresAt, err
 }
 
 func (b *bareMetalInventory) signURL(ctx context.Context, infraEnvID, urlString, imageTokenKey string) (string, error) {
