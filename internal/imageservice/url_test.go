@@ -157,8 +157,8 @@ var _ = Describe("URL parsing", func() {
 		Expect(parsedVersion).To(Equal(version))
 	})
 
-	It("successfully parse malformed URL", func() {
-		_, _, _, err := ParseDownloadURL("http://host/malformed/path/")
+	It("successfully parse non-infraenv URL", func() {
+		_, _, _, err := ParseDownloadURL("http://host/non/infraenv/")
 		Expect(err).NotTo(HaveOccurred())
 	})
 })

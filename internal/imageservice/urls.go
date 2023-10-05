@@ -120,6 +120,7 @@ func buildURL(baseURL string, suffix string, insecure bool, params map[string]st
 
 // ParseDownloadURL parse an image service download URL and returns the image type, the arch and the version.
 // This function can parse /images/ URLs and shorter /by.../ URLs.
+// The parsing is best effort, no validation is performed on the retuned values.
 func ParseDownloadURL(downloadURL string) (string, string, string, error) {
 	var imageType, version, arch string
 
