@@ -17,7 +17,7 @@ expected and the installation will continue.
 
 ## Motivation
 
-This is important because users may be able to fix he issues that delay the
+This is important because users may be able to fix the issues that delay the
 installation instead of having to start it over.
 
 ### Goals
@@ -32,7 +32,7 @@ and at that point the assisted service stops monitoring the cluster.
 
 ### User Stories
 
-#### Allow manually fixing a SasS installation
+#### Allow manually fixing a SaaS installation
 
 As a user I tried to create a SNO cluster in the SaaS environment. An issue
 prevented one of the cluster operators from reporting success. After one hour
