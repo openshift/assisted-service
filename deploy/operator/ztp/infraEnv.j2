@@ -12,3 +12,7 @@ spec:
   pullSecretRef:
     name: '{{ pull_secret_name }}'
   sshAuthorizedKey: '{{ ssh_public_key }}'
+  {% if infraenv_label|string | length > 0 %}
+  agentLabels:
+    infraenv: '{{ infraenv_label }}'
+  {% endif %}

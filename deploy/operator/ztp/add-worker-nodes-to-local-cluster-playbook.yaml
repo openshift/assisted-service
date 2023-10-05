@@ -1,0 +1,39 @@
+- name: Add worker nodes to a local cluster
+  hosts: localhost
+  collections:
+   - community.general
+  gather_facts: no
+  vars:
+    - baremetalhosts: "{{ lookup('file', lookup('env', 'REMOTE_BAREMETALHOSTS_FILE')) | from_json }}"
+    - infraenv_name: "{{ lookup('env', 'LOCAL_CLUSTER_NAMESPACE', default='') }}-day2-infraenv"
+    # Note: We are reusing the variable name `spoke_namespace` as it is broadly used in templates
+    # however, we are setting this to the local-cluster namespace instead
+    - spoke_namespace: "{{ lookup('env', 'LOCAL_CLUSTER_NAMESPACE', default='') }}"
+    - cluster_deployment_name: "{{ lookup('env', 'LOCAL_CLUSTER_NAMESPACE', default='') }}-cluster-deployment"
+    - pull_secret_name: "pull-secret"
+    - ssh_public_key: "{{ lookup('file', '/root/.ssh/id_rsa.pub') }}"
+    - day2: "true"
+    - baremetalhosts_ignition_override: "{{ lookup('env', 'BAREMETALHOSTS_IGNITION_OVERRIDE', default='') }}"
+    - machine_config_pools: "{{ lookup('env', 'MACHINE_CONFIG_POOLS') }}"
+    - node_labels: "{{ lookup('env', 'NODE_LABELS') }}"
+    - infraenv_label: "{{ lookup('env', 'LOCAL_CLUSTER_INFRAENV_LABEL', default='local-cluster') }}"
+
+  tasks:
+  - name: generate-crs-and-apply
+    block:
+    - name: create directory for generated CRs
+      file:
+        name: local-cluster-generated
+        state: directory
+    - name: write local-cluster day2 infraenv
+      template:
+        src: "infraEnv.j2"
+        dest: "local-cluster-generated/infraEnv-local-cluster.yaml"
+    - name: apply infraenv with oc
+      ansible.builtin.command: "oc apply -f local-cluster-generated/infraEnv-local-cluster.yaml"
+    - name: write the remote baremetalHost crds
+      template:
+        src: "baremetalHost.j2"
+        dest: "local-cluster-generated/remote-baremetal-host.yaml"
+    - name: apply local cluster manifests
+      ansible.builtin.command: "oc apply -f local-cluster-generated/remote-baremetal-host.yaml"
