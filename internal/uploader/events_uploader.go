@@ -190,7 +190,7 @@ func eventsFile(ctx context.Context, clusterID *strfmt.UUID, eventsHandler event
 func clusterFile(tw *tar.Writer, cluster *common.Cluster, pullSecret *validations.PullSecretCreds) error {
 	if cluster != nil && cluster.ID != nil {
 		// To distinguish who is uploading the data
-		if cluster.EmailDomain == "" {
+		if cluster.EmailDomain == "" || cluster.EmailDomain == "Unknown" {
 			cluster.EmailDomain = getEmailDomain(pullSecret.Email)
 		}
 		if cluster.UserName == "" {
