@@ -8,7 +8,7 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"mime/multipart"
 	"net/http"
 	"net/textproto"
@@ -119,7 +119,7 @@ func (e *eventsUploader) sendRequest(req *http.Request) error {
 		return nil
 	}
 	defer res.Body.Close()
-	body, err := ioutil.ReadAll(res.Body)
+	body, err := io.ReadAll(res.Body)
 	if err != nil {
 		e.log.Debugf("error reading response body for request to %s: %s", req.URL, err.Error())
 	}

@@ -1,6 +1,6 @@
 module github.com/openshift/assisted-service/api
 
-go 1.18
+go 1.19
 
 require (
 	github.com/openshift/assisted-service/models v0.0.0

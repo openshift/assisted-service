@@ -8,8 +8,8 @@ RUN dnf install --enablerepo=crb -y \
 # running with a random user.
 RUN git config --system --add safe.directory '*'
 
-COPY --from=registry.ci.openshift.org/openshift/release:golang-1.18 /usr/local/go /usr/local/go
-COPY --from=registry.ci.openshift.org/openshift/release:golang-1.18 /usr/bin/gotestsum /usr/bin/make /usr/bin/
+COPY --from=registry.ci.openshift.org/openshift/release:golang-1.19 /usr/local/go /usr/local/go
+COPY --from=registry.ci.openshift.org/openshift/release:golang-1.19 /usr/bin/gotestsum /usr/bin/make /usr/bin/
 
 ENV GOPATH=/go
 ENV GOROOT=/usr/local/go
