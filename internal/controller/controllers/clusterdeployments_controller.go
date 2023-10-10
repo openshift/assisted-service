@@ -24,6 +24,7 @@ import (
 	"io"
 	"net/http"
 	"reflect"
+	"strconv"
 	"strings"
 	"time"
 
@@ -85,6 +86,10 @@ const (
 const HighAvailabilityModeNone = "None"
 const defaultRequeueAfterOnError = 10 * time.Second
 const longerRequeueAfterOnError = 1 * time.Minute
+
+// from https://github.com/openshift/hive/blob/04f2f4f8768b4d8aa413feb5dc5410b5f6e3dcfa/pkg/constants/constants.go#L153
+// not importing this code beceause it will create a lot of vendoring issues
+const ReconcilePauseAnnotation = "hive.openshift.io/reconcile-pause"
 
 // ClusterDeploymentsReconciler reconciles a Cluster object
 type ClusterDeploymentsReconciler struct {
@@ -203,48 +208,49 @@ func (r *ClusterDeploymentsReconciler) Reconcile(origCtx context.Context, req ct
 		return r.createNewDay2Cluster(ctx, log, req.NamespacedName, clusterDeployment, clusterInstall)
 	}
 	if err != nil {
-		return r.updateStatus(ctx, log, clusterInstall, cluster, err)
+		return r.updateStatus(ctx, log, clusterInstall, clusterDeployment, cluster, err)
 	}
 
 	err = r.validateClusterDeployment(ctx, log, clusterDeployment, clusterInstall)
 	if err != nil {
 		log.Error(err)
-		return r.updateStatus(ctx, log, clusterInstall, cluster, err)
+		return r.updateStatus(ctx, log, clusterInstall, clusterDeployment, cluster, err)
 	}
 
 	// check for updates from user, compare spec and update if needed
 	cluster, err = r.updateIfNeeded(ctx, log, clusterDeployment, clusterInstall, cluster)
 	if err != nil {
 		log.WithError(err).Error("failed to update cluster")
-		return r.updateStatus(ctx, log, clusterInstall, cluster, err)
+		return r.updateStatus(ctx, log, clusterInstall, clusterDeployment, cluster, err)
 	}
 
 	// check for install config overrides and update if needed
 	err = r.updateInstallConfigOverrides(ctx, log, clusterInstall, cluster)
 	if err != nil {
 		log.WithError(err).Error("failed to update install config overrides")
-		return r.updateStatus(ctx, log, clusterInstall, cluster, err)
+		return r.updateStatus(ctx, log, clusterInstall, clusterDeployment, cluster, err)
 	}
 
 	// In case the Cluster is a Day 1 cluster and is installed, update the Metadata and create secrets for credentials
 	if *cluster.Status == models.ClusterStatusInstalled && swag.StringValue(cluster.Kind) == models.ClusterKindCluster {
-		return r.handleClusterInstalled(ctx, log, clusterDeployment, cluster, clusterInstall, req.NamespacedName)
+		return r.handleClusterInstalled(ctx, log, cluster, clusterInstall, clusterDeployment)
 	}
 
 	// Create Kubeconfig no-ingress if needed
 	if *cluster.Status == models.ClusterStatusInstalling || *cluster.Status == models.ClusterStatusFinalizing {
 		if err1 := r.createNoIngressKubeConfig(ctx, log, clusterDeployment, cluster, clusterInstall); err1 != nil {
 			log.WithError(err1).Error("failed to create kubeconfig no-ingress secret")
-			return r.updateStatus(ctx, log, clusterInstall, cluster, err1)
+			return r.updateStatus(ctx, log, clusterInstall, clusterDeployment, cluster, err1)
 		}
 	}
 
-	if swag.StringValue(cluster.Kind) == models.ClusterKindCluster && !clusterInstall.Spec.HoldInstallation {
+	if swag.StringValue(cluster.Kind) == models.ClusterKindCluster &&
+		!IsHoldInstallationSet(clusterInstall, clusterDeployment) {
 		// Day 1
 		pullSecret, err := r.PullSecretHandler.GetValidPullSecret(ctx, getPullSecretKey(req.Namespace, clusterDeployment.Spec.PullSecretRef))
 		if err != nil {
 			log.WithError(err).Error("failed to get pull secret")
-			return r.updateStatus(ctx, log, clusterInstall, nil, err)
+			return r.updateStatus(ctx, log, clusterInstall, clusterDeployment, nil, err)
 		}
 		return r.installDay1(ctx, log, clusterDeployment, clusterInstall, cluster, pullSecret)
 	} else if swag.StringValue(cluster.Kind) == models.ClusterKindAddHostsCluster {
@@ -252,7 +258,7 @@ func (r *ClusterDeploymentsReconciler) Reconcile(origCtx context.Context, req ct
 		return r.installDay2Hosts(ctx, log, clusterDeployment, clusterInstall, cluster)
 	}
 
-	return r.updateStatus(ctx, log, clusterInstall, cluster, nil)
+	return r.updateStatus(ctx, log, clusterInstall, clusterDeployment, cluster, nil)
 }
 
 func (r *ClusterDeploymentsReconciler) validateClusterDeployment(ctx context.Context, log logrus.FieldLogger,
@@ -370,14 +376,14 @@ func (r *ClusterDeploymentsReconciler) installDay1(ctx context.Context, log logr
 	ready, err := r.isReadyForInstallation(ctx, log, clusterInstall, cluster)
 	if err != nil {
 		log.WithError(err).Error("failed to check if cluster ready for installation")
-		return r.updateStatus(ctx, log, clusterInstall, cluster, err)
+		return r.updateStatus(ctx, log, clusterInstall, clusterDeployment, cluster, err)
 	}
 	if ready {
 		// create custom manifests if needed before installation
 		err = r.addCustomManifests(ctx, log, clusterInstall, cluster)
 		if err != nil {
 			log.WithError(err).Error("failed to add custom manifests")
-			_, _ = r.updateStatus(ctx, log, clusterInstall, cluster, err)
+			_, _ = r.updateStatus(ctx, log, clusterInstall, clusterDeployment, cluster, err)
 			// We decided to requeue with one minute timeout in order to give user a chance to fix manifest
 			// this timeout allows us not to run reconcile too much time and
 			// still have a nice feedback when user will fix the error
@@ -391,11 +397,11 @@ func (r *ClusterDeploymentsReconciler) installDay1(ctx context.Context, log logr
 		})
 		if err != nil {
 			log.WithError(err).Error("failed to start cluster install")
-			return r.updateStatus(ctx, log, clusterInstall, cluster, err)
+			return r.updateStatus(ctx, log, clusterInstall, clusterDeployment, cluster, err)
 		}
-		return r.updateStatus(ctx, log, clusterInstall, ic, err)
+		return r.updateStatus(ctx, log, clusterInstall, clusterDeployment, ic, err)
 	}
-	return r.updateStatus(ctx, log, clusterInstall, cluster, nil)
+	return r.updateStatus(ctx, log, clusterInstall, clusterDeployment, cluster, nil)
 }
 
 func (r *ClusterDeploymentsReconciler) spokeKubeClient(ctx context.Context, clusterDeployment *hivev1.ClusterDeployment) (spoke_k8s_client.SpokeK8sClient, error) {
@@ -456,17 +462,17 @@ func (r *ClusterDeploymentsReconciler) installDay2Hosts(ctx context.Context, log
 	hosts, err := r.Installer.GetKnownApprovedHosts(*cluster.ID)
 	if err != nil {
 		log.WithError(err).Errorf("Failed to get ready and approved hosts for cluster %s", cluster.ID.String())
-		return r.updateStatus(ctx, log, clusterInstall, cluster, err)
+		return r.updateStatus(ctx, log, clusterInstall, clusterDeployment, cluster, err)
 	}
 	for _, h := range hosts {
 		log.Infof("Installing Day2 host %s in %s %s", *h.ID, clusterDeployment.Name, clusterDeployment.Namespace)
 		err = r.Installer.InstallSingleDay2HostInternal(ctx, *cluster.ID, h.InfraEnvID, *h.ID)
 		if err != nil {
-			return r.updateStatus(ctx, log, clusterInstall, cluster, err)
+			return r.updateStatus(ctx, log, clusterInstall, clusterDeployment, cluster, err)
 		}
 	}
 	err = r.updateWorkerMcpPaused(ctx, log, clusterInstall, clusterDeployment)
-	return r.updateStatus(ctx, log, clusterInstall, cluster, err)
+	return r.updateStatus(ctx, log, clusterInstall, clusterDeployment, cluster, err)
 }
 
 func (r *ClusterDeploymentsReconciler) createNoIngressKubeConfig(ctx context.Context, log logrus.FieldLogger, cluster *hivev1.ClusterDeployment, c *common.Cluster, clusterInstall *hiveext.AgentClusterInstall) error {
@@ -1352,13 +1358,13 @@ func (r *ClusterDeploymentsReconciler) createNewCluster(
 	pullSecret, err := r.PullSecretHandler.GetValidPullSecret(ctx, getPullSecretKey(key.Namespace, spec.PullSecretRef))
 	if err != nil {
 		log.WithError(err).Error("failed to get pull secret")
-		return r.updateStatus(ctx, log, clusterInstall, nil, err)
+		return r.updateStatus(ctx, log, clusterInstall, clusterDeployment, nil, err)
 	}
 
 	releaseImage, err := r.getReleaseImage(ctx, log, clusterInstall.Spec, pullSecret)
 	if err != nil {
 		log.WithError(err)
-		_, _ = r.updateStatus(ctx, log, clusterInstall, nil, err)
+		_, _ = r.updateStatus(ctx, log, clusterInstall, clusterDeployment, nil, err)
 		// The controller will requeue after one minute, giving the user a chance to fix releaseImage
 		return ctrl.Result{Requeue: true, RequeueAfter: longerRequeueAfterOnError}, nil
 	}
@@ -1368,7 +1374,7 @@ func (r *ClusterDeploymentsReconciler) createNewCluster(
 		ignitionEndpoint, err = r.parseIgnitionEndpoint(ctx, log, clusterInstall.Spec.IgnitionEndpoint)
 		if err != nil {
 			log.WithError(err).Errorf("Failed to get and parse ignition ca certificate %s/%s", clusterInstall.Namespace, clusterInstall.Name)
-			return r.updateStatus(ctx, log, clusterInstall, nil, err)
+			return r.updateStatus(ctx, log, clusterInstall, clusterDeployment, nil, err)
 		}
 	}
 
@@ -1379,20 +1385,21 @@ func (r *ClusterDeploymentsReconciler) createNewCluster(
 		NewClusterParams: clusterParams,
 	})
 
-	return r.updateStatus(ctx, log, clusterInstall, c, err)
+	return r.updateStatus(ctx, log, clusterInstall, clusterDeployment, c, err)
 }
 
 func (r *ClusterDeploymentsReconciler) TransformClusterToDay2(
 	ctx context.Context,
 	log logrus.FieldLogger,
 	cluster *common.Cluster,
-	clusterInstall *hiveext.AgentClusterInstall) (ctrl.Result, error) {
+	clusterInstall *hiveext.AgentClusterInstall,
+	clusterDeployment *hivev1.ClusterDeployment) (ctrl.Result, error) {
 	log.Infof("transforming day1 cluster %s into day2 cluster", cluster.ID.String())
 	c, err := r.Installer.TransformClusterToDay2Internal(ctx, *cluster.ID)
 	if err != nil {
 		log.WithError(err).Errorf("failed to transform cluster %s into day2 cluster", cluster.ID.String())
 	}
-	return r.updateStatus(ctx, log, clusterInstall, c, err)
+	return r.updateStatus(ctx, log, clusterInstall, clusterDeployment, c, err)
 }
 
 func (r *ClusterDeploymentsReconciler) createNewDay2Cluster(
@@ -1424,7 +1431,7 @@ func (r *ClusterDeploymentsReconciler) createNewDay2Cluster(
 	if err != nil {
 		log.WithError(err).Error("failed to create day2 cluster")
 	}
-	return r.updateStatus(ctx, log, clusterInstall, c, err)
+	return r.updateStatus(ctx, log, clusterInstall, clusterDeployment, c, err)
 }
 
 func (r *ClusterDeploymentsReconciler) getReleaseImage(
@@ -1696,7 +1703,10 @@ func (r *ClusterDeploymentsReconciler) SetupWithManager(mgr ctrl.Manager) error 
 // updateStatus is updating all the AgentClusterInstall Conditions.
 // In case that an error has occurred when trying to sync the Spec, the error (syncErr) is presented in SpecSyncedCondition.
 // Internal bool differentiate between backend server error (internal HTTP 5XX) and user input error (HTTP 4XXX)
-func (r *ClusterDeploymentsReconciler) updateStatus(ctx context.Context, log logrus.FieldLogger, clusterInstall *hiveext.AgentClusterInstall, c *common.Cluster, syncErr error) (ctrl.Result, error) {
+func (r *ClusterDeploymentsReconciler) updateStatus(ctx context.Context, log logrus.FieldLogger,
+	clusterInstall *hiveext.AgentClusterInstall, clusterDeployment *hivev1.ClusterDeployment,
+	c *common.Cluster, syncErr error) (ctrl.Result, error) {
+
 	clusterSpecSynced(clusterInstall, syncErr)
 	if c != nil {
 		clusterInstall.Status.ConnectivityMajorityGroups = c.ConnectivityMajorityGroups
@@ -1743,7 +1753,7 @@ func (r *ClusterDeploymentsReconciler) updateStatus(ctx context.Context, log log
 			}
 			clusterRequirementsMet(clusterInstall, status, registeredHosts, approvedHosts, unsyncedHosts)
 			clusterValidated(clusterInstall, status, c)
-			clusterCompleted(clusterInstall, status, swag.StringValue(c.StatusInfo), c.MonitoredOperators)
+			clusterCompleted(clusterInstall, clusterDeployment, status, swag.StringValue(c.StatusInfo), c.MonitoredOperators)
 			clusterFailed(clusterInstall, status, swag.StringValue(c.StatusInfo))
 			clusterStopped(clusterInstall, status)
 		}
@@ -1936,7 +1946,21 @@ func clusterRequirementsMet(clusterInstall *hiveext.AgentClusterInstall, status 
 	})
 }
 
-func clusterCompleted(clusterInstall *hiveext.AgentClusterInstall, status, statusInfo string, opers []*models.MonitoredOperator) {
+func IsHoldInstallationSet(ci *hiveext.AgentClusterInstall, cd *hivev1.ClusterDeployment) bool {
+	if ci.Spec.HoldInstallation {
+		return true
+	}
+	if cd.Annotations != nil {
+		if paused, err := strconv.ParseBool(cd.Annotations[ReconcilePauseAnnotation]); err == nil && paused {
+			return true
+		}
+	}
+	return false
+}
+
+func clusterCompleted(clusterInstall *hiveext.AgentClusterInstall, clusterDeployment *hivev1.ClusterDeployment,
+	status, statusInfo string, opers []*models.MonitoredOperator) {
+
 	var condStatus corev1.ConditionStatus
 	var reason string
 	var msg string
@@ -1961,7 +1985,7 @@ func clusterCompleted(clusterInstall *hiveext.AgentClusterInstall, status, statu
 		condStatus = corev1.ConditionFalse
 		reason = hiveext.ClusterInstallationNotStartedReason
 		msg = hiveext.ClusterInstallationNotStartedMsg
-		if clusterInstall.Spec.HoldInstallation {
+		if IsHoldInstallationSet(clusterInstall, clusterDeployment) {
 			reason = hiveext.ClusterInstallationOnHoldReason
 			msg = hiveext.ClusterInstallationOnHoldMsg
 		}
@@ -2223,7 +2247,8 @@ func (r *ClusterDeploymentsReconciler) generateControllerLogsDownloadURL(cluster
 	return downloadURL, nil
 }
 
-func (r *ClusterDeploymentsReconciler) handleClusterInstalled(ctx context.Context, log logrus.FieldLogger, clusterDeployment *hivev1.ClusterDeployment, cluster *common.Cluster, clusterInstall *hiveext.AgentClusterInstall, key types.NamespacedName) (ctrl.Result, error) {
+func (r *ClusterDeploymentsReconciler) handleClusterInstalled(ctx context.Context, log logrus.FieldLogger,
+	cluster *common.Cluster, clusterInstall *hiveext.AgentClusterInstall, clusterDeployment *hivev1.ClusterDeployment) (ctrl.Result, error) {
 	var err error
 	if !isInstalled(clusterDeployment, clusterInstall) {
 		// create secrets and update status
@@ -2231,9 +2256,9 @@ func (r *ClusterDeploymentsReconciler) handleClusterInstalled(ctx context.Contex
 		if err != nil {
 			log.WithError(err).Error("failed to update cluster metadata")
 		}
-		return r.updateStatus(ctx, log, clusterInstall, cluster, err)
+		return r.updateStatus(ctx, log, clusterInstall, clusterDeployment, cluster, err)
 	}
-	return r.TransformClusterToDay2(ctx, log, cluster, clusterInstall)
+	return r.TransformClusterToDay2(ctx, log, cluster, clusterInstall, clusterDeployment)
 }
 
 func getClusterDeploymentAdminKubeConfigSecretName(cd *hivev1.ClusterDeployment) string {

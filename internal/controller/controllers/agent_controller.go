@@ -1422,7 +1422,7 @@ func setAgentLabel(log logrus.FieldLogger, agent *aiv1beta1.Agent, key string, v
 	// If the value still doesn't match the regex, skip it because it will cause the update to fail
 	re = regexp.MustCompile(`^(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])?$`)
 	if !re.MatchString(value) {
-		log.Info("Skipping setting of label %s=%s because the value contains illegal characters", key, value)
+		log.Infof("Skipping setting of label %s=%s because the value contains illegal characters", key, value)
 		return false
 	}
 
