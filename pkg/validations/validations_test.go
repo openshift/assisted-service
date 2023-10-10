@@ -265,6 +265,14 @@ var _ = Describe("dns name", func() {
 			valid:      true,
 		},
 		{
+			domainName: "validateNoWildcardDNS.test.com",
+			valid:      true,
+		},
+		{
+			domainName: "validateNoWildcardDNS.test.com.",
+			valid:      true,
+		},
+		{
 			domainName: "a.c",
 			valid:      false,
 		},
