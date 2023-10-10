@@ -38,6 +38,27 @@ spec:
                 name: assisted-image-service
                 port:
                   number: 8080
+          - path: "/byid"
+            pathType: Prefix
+            backend:
+              service:
+                name: assisted-image-service
+                port:
+                  number: 8080
+          - path: "/bytoken"
+            pathType: Prefix
+            backend:
+              service:
+                name: assisted-image-service
+                port:
+                  number: 8080
+          - path: "/byapikey"
+            pathType: Prefix
+            backend:
+              service:
+                name: assisted-image-service
+                port:
+                  number: 8080
           - path: "/health"
             pathType: Prefix
             backend:
