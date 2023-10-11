@@ -60,6 +60,8 @@ type TransitionHandler interface {
 	PostRegisterHost(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) error
 	PostResettingPendingUserAction(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) error
 	PostUnbindHost(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) error
+	IsPreparingTimedOut(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) (bool, error)
+	PostHostPreparationTimeout() stateswitch.PostTransition
 }
 
 var resetLogsField = []interface{}{"logs_info", "", "logs_started_at", strfmt.DateTime(time.Time{}), "logs_collected_at", strfmt.DateTime(time.Time{})}
@@ -665,6 +667,37 @@ func (th *transitionHandler) HasInstallationInProgressTimedOut(sw stateswitch.St
 	return time.Since(time.Time(sHost.host.Progress.StageUpdatedAt)) > maxDuration, nil
 }
 
+func (th *transitionHandler) PostHostPreparationTimeout() stateswitch.PostTransition {
+	ret := func(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) error {
+		sHost, ok := sw.(*stateHost)
+		if !ok {
+			return errors.New("PostHostPreparationTimeout incompatible type of StateSwitch")
+		}
+		params, ok := args.(*TransitionArgsRefreshHost)
+		if !ok {
+			return errors.New("PostRefreshHost invalid argument")
+		}
+		var (
+			err error
+		)
+		failingConditons := []string{}
+		if !params.conditions["installation-disk-speed-check-successful"] {
+			failingConditons = append(failingConditons, statusInfoPreparationTimeoutDiskSpeed)
+		}
+		if !params.conditions["successful-container-image-availability"] {
+			failingConditons = append(failingConditons, statusInfoPreparationTimeoutImageAvailability)
+		}
+		statusInfo := strings.Replace(statusInfoPreparationTimeout, "$FAILING_CONDITIONS", strings.Join(failingConditons, "\n"), 1)
+		if sHost.srcState != swag.StringValue(sHost.host.Status) || swag.StringValue(sHost.host.StatusInfo) != statusInfo {
+			_, err = hostutil.UpdateHostStatus(params.ctx, logutil.FromContext(params.ctx, th.log), params.db,
+				th.eventsHandler, sHost.host.InfraEnvID, *sHost.host.ID,
+				sHost.srcState, swag.StringValue(sHost.host.Status), statusInfo)
+		}
+		return err
+	}
+	return ret
+}
+
 // Return a post transition function with a constant reason
 func (th *transitionHandler) PostRefreshHost(reason string) stateswitch.PostTransition {
 	ret := func(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) error {
@@ -790,4 +823,16 @@ func (th *transitionHandler) PostRefreshHostRefreshStageUpdateTime(
 		*sHost.host.ID,
 		sHost.srcState)
 	return err
+}
+
+// check if prepare for installation reach to timeout
+func (th *transitionHandler) IsPreparingTimedOut(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) (bool, error) {
+	sHost, ok := sw.(*stateHost)
+	if !ok {
+		return false, errors.New("IsPreparingTimedOut incompatible type of StateSwitch")
+	}
+	if time.Since(time.Time(sHost.host.StatusUpdatedAt)) > th.config.PrepareConfig.PrepareForInstallationTimeout {
+		return true, nil
+	}
+	return false, nil
 }

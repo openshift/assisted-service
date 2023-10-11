@@ -10,7 +10,12 @@ import (
 	"github.com/pkg/errors"
 )
 
+type PrepareConfig struct {
+	PrepareForInstallationTimeout time.Duration `envconfig:"PREPARE_FOR_INSTALLATION_HOST_TIMEOUT" default:"8m"`
+}
+
 type Config struct {
+	PrepareConfig PrepareConfig
 	LogTimeoutConfig
 	EnableAutoAssign         bool                    `envconfig:"ENABLE_AUTO_ASSIGN" default:"true"`
 	ResetTimeout             time.Duration           `envconfig:"RESET_CLUSTER_TIMEOUT" default:"3m"`

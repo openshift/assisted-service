@@ -1327,6 +1327,7 @@ var _ = Describe("Refresh Host", func() {
 		mockVersions := versions.NewMockHandler(ctrl)
 		mockVersions.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 			Return(&models.ReleaseImage{URL: swag.String("quay.io/openshift/some-image::latest")}, nil).AnyTimes()
+		defaultConfig.PrepareConfig.PrepareForInstallationTimeout = 8 * time.Minute
 		hapi = NewManager(common.GetTestLog(), db, testing.GetDummyNotificationStream(ctrl), mockEvents, mockHwValidator, nil, validatorCfg, nil, defaultConfig, nil, operatorsManager, pr, false, nil, mockVersions)
 		hostId = strfmt.UUID(uuid.New().String())
 		clusterId = strfmt.UUID(uuid.New().String())
@@ -2311,35 +2312,43 @@ var _ = Describe("Refresh Host", func() {
 
 			// Cluster fields
 			clusterState string
+
+			hostTimedOut          bool
+			validStatusUpdateTime bool
 		}{
 			{
-				name:              "Preparing no change",
-				validCheckInTime:  true,
-				dstState:          models.HostStatusPreparingForInstallation,
-				clusterState:      models.ClusterStatusPreparingForInstallation,
-				statusInfoChecker: makeValueChecker(statusInfoPreparingForInstallation),
+				name:                  "Preparing no change",
+				validCheckInTime:      true,
+				validStatusUpdateTime: true,
+				dstState:              models.HostStatusPreparingForInstallation,
+				clusterState:          models.ClusterStatusPreparingForInstallation,
+				statusInfoChecker:     makeValueChecker(statusInfoPreparingForInstallation),
+				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
+					SufficientOrUnknownInstallationDiskSpeed:       {status: ValidationSuccess, messagePattern: "Speed of installation disk has not yet been measured"},
+					SucessfullOrUnknownContainerImagesAvailability: {status: ValidationSuccess, messagePattern: "All required container images were either pulled successfully or no attempt was made to pull them"},
+				}),
+				disksInfo:   "",
+				imageStatus: createSuccessfulImageStatuses(),
+			},
+			{
+				name:                  "Cluster not in status",
+				validCheckInTime:      true,
+				validStatusUpdateTime: true,
+				dstState:              models.HostStatusKnown,
+				clusterState:          models.ClusterStatusInsufficient,
+				statusInfoChecker:     makeValueChecker(statusInfoKnown),
 				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
 					SufficientOrUnknownInstallationDiskSpeed:       {status: ValidationSuccess, messagePattern: "Speed of installation disk has not yet been measured"},
 					SucessfullOrUnknownContainerImagesAvailability: {status: ValidationSuccess, messagePattern: "All required container images were either pulled successfully or no attempt was made to pull them"},
 				}),
 			},
 			{
-				name:              "Cluster not in status",
-				validCheckInTime:  true,
-				dstState:          models.HostStatusKnown,
-				clusterState:      models.ClusterStatusInsufficient,
-				statusInfoChecker: makeValueChecker(statusInfoKnown),
-				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
-					SufficientOrUnknownInstallationDiskSpeed:       {status: ValidationSuccess, messagePattern: "Speed of installation disk has not yet been measured"},
-					SucessfullOrUnknownContainerImagesAvailability: {status: ValidationSuccess, messagePattern: "All required container images were either pulled successfully or no attempt was made to pull them"},
-				}),
-			},
-			{
-				name:              "Cluster not in status (2)",
-				validCheckInTime:  true,
-				dstState:          models.HostStatusKnown,
-				clusterState:      models.ClusterStatusInsufficient,
-				statusInfoChecker: makeValueChecker(statusInfoKnown),
+				name:                  "Cluster not in status (2)",
+				validCheckInTime:      true,
+				validStatusUpdateTime: true,
+				dstState:              models.HostStatusKnown,
+				clusterState:          models.ClusterStatusInsufficient,
+				statusInfoChecker:     makeValueChecker(statusInfoKnown),
 				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
 					SufficientOrUnknownInstallationDiskSpeed:       {status: ValidationSuccess, messagePattern: "Speed of installation disk is sufficient"},
 					SucessfullOrUnknownContainerImagesAvailability: {status: ValidationSuccess, messagePattern: "All required container images were either pulled successfully or no attempt was made to pull them"},
@@ -2347,11 +2356,12 @@ var _ = Describe("Refresh Host", func() {
 				disksInfo: createDiskInfo("/dev/sda", 10, 0),
 			},
 			{
-				name:              "Disk speed check failed",
-				validCheckInTime:  true,
-				dstState:          models.HostStatusInsufficient,
-				clusterState:      models.ClusterStatusPreparingForInstallation,
-				statusInfoChecker: makeRegexChecker("Host cannot be installed due to following failing validation.*While preparing the previous installation the installation disk speed measurement failed or was found to be insufficient"),
+				name:                  "Disk speed check failed",
+				validCheckInTime:      true,
+				validStatusUpdateTime: true,
+				dstState:              models.HostStatusInsufficient,
+				clusterState:          models.ClusterStatusPreparingForInstallation,
+				statusInfoChecker:     makeRegexChecker("Host cannot be installed due to following failing validation.*While preparing the previous installation the installation disk speed measurement failed or was found to be insufficient"),
 				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
 					SufficientOrUnknownInstallationDiskSpeed:       {status: ValidationFailure, messagePattern: "While preparing the previous installation the installation disk speed measurement failed or was found to be insufficient"},
 					SucessfullOrUnknownContainerImagesAvailability: {status: ValidationSuccess, messagePattern: "All required container images were either pulled successfully or no attempt was made to pull them"},
@@ -2359,11 +2369,42 @@ var _ = Describe("Refresh Host", func() {
 				disksInfo: createDiskInfo("/dev/sda", 0, -1),
 			},
 			{
-				name:              "Disk speed check failed after image availability",
-				validCheckInTime:  true,
-				dstState:          models.HostStatusInsufficient,
-				clusterState:      models.ClusterStatusPreparingForInstallation,
-				statusInfoChecker: makeRegexChecker("Host cannot be installed due to following failing validation.*While preparing the previous installation the installation disk speed measurement failed or was found to be insufficient"),
+				name:                  "Disk speed check timed out",
+				validCheckInTime:      true,
+				validStatusUpdateTime: false,
+				dstState:              models.HostStatusPreparingFailed,
+				srcState:              models.HostStatusPreparingForInstallation,
+				clusterState:          models.ClusterStatusPreparingForInstallation,
+				statusInfoChecker:     makeRegexChecker("The host has encountered a preparation timeout, the following conditions failed: " + statusInfoPreparationTimeoutDiskSpeed),
+				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
+					SufficientOrUnknownInstallationDiskSpeed:       {status: ValidationSuccess, messagePattern: "Speed of installation disk has not yet been measured"},
+					SucessfullOrUnknownContainerImagesAvailability: {status: ValidationSuccess, messagePattern: "All required container images were either pulled successfully or no attempt was made to pull them"},
+				}),
+				disksInfo:   "",
+				imageStatus: createSuccessfulImageStatuses(),
+			},
+			{
+				name:                  "Image pull timed out",
+				validCheckInTime:      true,
+				validStatusUpdateTime: false,
+				dstState:              models.HostStatusPreparingFailed,
+				srcState:              models.HostStatusPreparingForInstallation,
+				clusterState:          models.ClusterStatusPreparingForInstallation,
+				statusInfoChecker:     makeRegexChecker("The host has encountered a preparation timeout, the following conditions failed: " + statusInfoPreparationTimeoutImageAvailability),
+				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
+					SufficientOrUnknownInstallationDiskSpeed:       {status: ValidationSuccess, messagePattern: "Speed of installation disk is sufficient"},
+					SucessfullOrUnknownContainerImagesAvailability: {status: ValidationSuccess, messagePattern: "All required container images were either pulled successfully or no attempt was made to pull them"},
+				}),
+				disksInfo:   createDiskInfo("/dev/sda", 10, 0),
+				imageStatus: "",
+			},
+			{
+				name:                  "Disk speed check failed after image availability",
+				validCheckInTime:      true,
+				validStatusUpdateTime: true,
+				dstState:              models.HostStatusInsufficient,
+				clusterState:          models.ClusterStatusPreparingForInstallation,
+				statusInfoChecker:     makeRegexChecker("Host cannot be installed due to following failing validation.*While preparing the previous installation the installation disk speed measurement failed or was found to be insufficient"),
 				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
 					SufficientOrUnknownInstallationDiskSpeed:       {status: ValidationFailure, messagePattern: "While preparing the previous installation the installation disk speed measurement failed or was found to be insufficient"},
 					SucessfullOrUnknownContainerImagesAvailability: {status: ValidationFailure, messagePattern: "Failed to fetch container images needed for installation from"},
@@ -2372,11 +2413,12 @@ var _ = Describe("Refresh Host", func() {
 				imageStatus: createFailedImageStatuses(),
 			},
 			{
-				name:              "Image pull failed",
-				validCheckInTime:  true,
-				dstState:          models.HostStatusPreparingFailed,
-				clusterState:      models.ClusterStatusPreparingForInstallation,
-				statusInfoChecker: makeRegexChecker("Host failed to prepare for installation due to following failing validation.*Failed to fetch container images needed for installation from abc"),
+				name:                  "Image pull failed",
+				validCheckInTime:      true,
+				validStatusUpdateTime: true,
+				dstState:              models.HostStatusPreparingFailed,
+				clusterState:          models.ClusterStatusPreparingForInstallation,
+				statusInfoChecker:     makeRegexChecker("Host failed to prepare for installation due to following failing validation.*Failed to fetch container images needed for installation from abc"),
 				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
 					SufficientOrUnknownInstallationDiskSpeed:       {status: ValidationSuccess, messagePattern: "Speed of installation disk has not yet been measured"},
 					SucessfullOrUnknownContainerImagesAvailability: {status: ValidationFailure, messagePattern: "Failed to fetch container images needed for installation from"},
@@ -2384,12 +2426,13 @@ var _ = Describe("Refresh Host", func() {
 				imageStatus: createFailedImageStatuses(),
 			},
 			{
-				name:              "Image pull failed and cluster moved to Ready",
-				validCheckInTime:  true,
-				srcState:          models.HostStatusPreparingFailed,
-				dstState:          models.HostStatusKnown,
-				clusterState:      models.ClusterStatusReady,
-				statusInfoChecker: makeRegexChecker("Host is ready to be installed"),
+				name:                  "Image pull failed and cluster moved to Ready",
+				validCheckInTime:      true,
+				validStatusUpdateTime: true,
+				srcState:              models.HostStatusPreparingFailed,
+				dstState:              models.HostStatusKnown,
+				clusterState:          models.ClusterStatusReady,
+				statusInfoChecker:     makeRegexChecker("Host is ready to be installed"),
 				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
 					SufficientOrUnknownInstallationDiskSpeed:       {status: ValidationSuccess, messagePattern: "Speed of installation disk has not yet been measured"},
 					SucessfullOrUnknownContainerImagesAvailability: {status: ValidationFailure, messagePattern: "Failed to fetch container images needed for installation from"},
@@ -2398,11 +2441,12 @@ var _ = Describe("Refresh Host", func() {
 			},
 
 			{
-				name:              "Disk speed check succeeded",
-				validCheckInTime:  true,
-				dstState:          models.HostStatusPreparingForInstallation,
-				clusterState:      models.ClusterStatusPreparingForInstallation,
-				statusInfoChecker: makeValueChecker(statusInfoPreparingForInstallation),
+				name:                  "Disk speed check succeeded",
+				validCheckInTime:      true,
+				validStatusUpdateTime: true,
+				dstState:              models.HostStatusPreparingForInstallation,
+				clusterState:          models.ClusterStatusPreparingForInstallation,
+				statusInfoChecker:     makeValueChecker(statusInfoPreparingForInstallation),
 				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
 					SufficientOrUnknownInstallationDiskSpeed:       {status: ValidationSuccess, messagePattern: "Speed of installation disk is sufficient"},
 					SucessfullOrUnknownContainerImagesAvailability: {status: ValidationSuccess, messagePattern: "All required container images were either pulled successfully or no attempt was made to pull them"},
@@ -2410,11 +2454,12 @@ var _ = Describe("Refresh Host", func() {
 				disksInfo: createDiskInfo("/dev/sda", 10, 0),
 			},
 			{
-				name:              "Disk speed should not run on if save partition was set",
-				validCheckInTime:  true,
-				dstState:          models.HostStatusPreparingSuccessful,
-				clusterState:      models.ClusterStatusPreparingForInstallation,
-				statusInfoChecker: makeValueChecker(statusInfoHostPreparationSuccessful),
+				name:                  "Disk speed should not run on if save partition was set",
+				validCheckInTime:      true,
+				validStatusUpdateTime: true,
+				dstState:              models.HostStatusPreparingSuccessful,
+				clusterState:          models.ClusterStatusPreparingForInstallation,
+				statusInfoChecker:     makeValueChecker(statusInfoHostPreparationSuccessful),
 				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
 					SufficientOrUnknownInstallationDiskSpeed:       {status: ValidationSuccess, messagePattern: "Speed of installation disk has not yet been measured"},
 					SucessfullOrUnknownContainerImagesAvailability: {status: ValidationSuccess, messagePattern: "All required container images were either pulled successfully or no attempt was made to pull them"},
@@ -2423,11 +2468,12 @@ var _ = Describe("Refresh Host", func() {
 				imageStatus: createSuccessfulImageStatuses(),
 			},
 			{
-				name:              "All succeeded",
-				validCheckInTime:  true,
-				dstState:          models.HostStatusPreparingSuccessful,
-				clusterState:      models.ClusterStatusPreparingForInstallation,
-				statusInfoChecker: makeValueChecker(statusInfoHostPreparationSuccessful),
+				name:                  "All succeeded",
+				validCheckInTime:      true,
+				validStatusUpdateTime: true,
+				dstState:              models.HostStatusPreparingSuccessful,
+				clusterState:          models.ClusterStatusPreparingForInstallation,
+				statusInfoChecker:     makeValueChecker(statusInfoHostPreparationSuccessful),
 				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
 					SufficientOrUnknownInstallationDiskSpeed:       {status: ValidationSuccess, messagePattern: "Speed of installation disk is sufficient"},
 					SucessfullOrUnknownContainerImagesAvailability: {status: ValidationSuccess, messagePattern: "All required container images were either pulled successfully or no attempt was made to pull them"},
@@ -2447,6 +2493,11 @@ var _ = Describe("Refresh Host", func() {
 					// Timeout for checkin is 3 minutes so subtract 4 minutes from the current time
 					hostCheckInAt = strfmt.DateTime(time.Now().Add(-4 * time.Minute))
 				}
+				statusUpdatedAt := strfmt.DateTime(time.Now())
+				if !t.validStatusUpdateTime {
+					// Timeout for checkin is 3 minutes so subtract 4 minutes from the current time
+					statusUpdatedAt = strfmt.DateTime(time.Now().Add(-9 * time.Minute))
+				}
 				srcState := models.HostStatusPreparingForInstallation
 				if t.srcState != "" {
 					srcState = t.srcState
@@ -2455,6 +2506,7 @@ var _ = Describe("Refresh Host", func() {
 				host.StatusInfo = swag.String(statusInfoPreparingForInstallation)
 				host.Inventory = hostutil.GenerateMasterInventoryWithHostname("master-0")
 				host.CheckedInAt = hostCheckInAt
+				host.StatusUpdatedAt = statusUpdatedAt
 				host.DisksInfo = t.disksInfo
 				host.ImagesStatus = t.imageStatus
 				if t.disksInfo == "save_partition" {
@@ -4602,6 +4654,7 @@ var _ = Describe("Refresh Host", func() {
 			otherState             string
 			otherRequestedHostname string
 			otherInventory         string
+			disksInfo              string
 		}{
 			{
 				name:              "insufficient to known",
@@ -4627,6 +4680,7 @@ var _ = Describe("Refresh Host", func() {
 				otherState:     models.HostStatusInsufficient,
 				otherInventory: hostutil.GenerateMasterInventoryWithHostname("second"),
 				errorExpected:  false,
+				disksInfo:      createDiskInfo("/dev/sda", 10, 0),
 			},
 			{
 				name:            "insufficient to insufficient (same hostname) 1",
@@ -4656,6 +4710,7 @@ var _ = Describe("Refresh Host", func() {
 				otherState:     models.HostStatusInsufficient,
 				otherInventory: hostutil.GenerateMasterInventoryWithHostname("first"),
 				errorExpected:  false,
+				disksInfo:      createDiskInfo("/dev/sda", 10, 0),
 			},
 			{
 				name:            "insufficient to insufficient (same hostname) 2",
@@ -4686,6 +4741,7 @@ var _ = Describe("Refresh Host", func() {
 				otherInventory:         hostutil.GenerateMasterInventoryWithHostname("second"),
 				otherRequestedHostname: "first",
 				errorExpected:          false,
+				disksInfo:              createDiskInfo("/dev/sda", 10, 0),
 			},
 			{
 				name:            "insufficient to insufficient (same hostname) 3",
@@ -4716,6 +4772,7 @@ var _ = Describe("Refresh Host", func() {
 				otherState:        models.HostStatusInsufficient,
 				otherInventory:    hostutil.GenerateMasterInventoryWithHostname("second"),
 				errorExpected:     false,
+				disksInfo:         createDiskInfo("/dev/sda", 10, 0),
 			},
 			{
 				name:            "insufficient to insufficient (same hostname) 4 loveeee",
@@ -4747,6 +4804,7 @@ var _ = Describe("Refresh Host", func() {
 				otherInventory:         hostutil.GenerateMasterInventoryWithHostname("second"),
 				otherRequestedHostname: "third",
 				errorExpected:          false,
+				disksInfo:              createDiskInfo("/dev/sda", 10, 0),
 			},
 			{
 				name:              "insufficient to known 2",
@@ -4777,6 +4835,7 @@ var _ = Describe("Refresh Host", func() {
 				otherInventory:         hostutil.GenerateMasterInventoryWithHostname("second"),
 				otherRequestedHostname: "forth",
 				errorExpected:          false,
+				disksInfo:              createDiskInfo("/dev/sda", 10, 0),
 			},
 			{
 				name:              "known to known",
@@ -4804,6 +4863,7 @@ var _ = Describe("Refresh Host", func() {
 				otherState:     models.HostStatusInsufficient,
 				otherInventory: hostutil.GenerateMasterInventoryWithHostname("second"),
 				errorExpected:  false,
+				disksInfo:      createDiskInfo("/dev/sda", 10, 0),
 			},
 			{
 				name:            "known to insufficient (same hostname) 1",
@@ -4833,6 +4893,7 @@ var _ = Describe("Refresh Host", func() {
 				otherState:     models.HostStatusInsufficient,
 				otherInventory: hostutil.GenerateMasterInventoryWithHostname("first"),
 				errorExpected:  false,
+				disksInfo:      createDiskInfo("/dev/sda", 10, 0),
 			},
 			{
 				name:            "known to insufficient (same hostname) 2",
@@ -4863,6 +4924,7 @@ var _ = Describe("Refresh Host", func() {
 				otherInventory:         hostutil.GenerateMasterInventoryWithHostname("second"),
 				otherRequestedHostname: "first",
 				errorExpected:          false,
+				disksInfo:              createDiskInfo("/dev/sda", 10, 0),
 			},
 			{
 				name:            "known to insufficient (same hostname) 3",
@@ -4893,6 +4955,7 @@ var _ = Describe("Refresh Host", func() {
 				otherState:        models.HostStatusInsufficient,
 				otherInventory:    hostutil.GenerateMasterInventoryWithHostname("second"),
 				errorExpected:     false,
+				disksInfo:         createDiskInfo("/dev/sda", 10, 0),
 			},
 			{
 				name:            "known to insufficient (same hostname) 4",
@@ -4924,6 +4987,7 @@ var _ = Describe("Refresh Host", func() {
 				otherInventory:         hostutil.GenerateMasterInventoryWithHostname("second"),
 				otherRequestedHostname: "third",
 				errorExpected:          false,
+				disksInfo:              createDiskInfo("/dev/sda", 10, 0),
 			},
 			{
 				name:              "known to known 2",
@@ -4951,6 +5015,7 @@ var _ = Describe("Refresh Host", func() {
 				otherInventory:         hostutil.GenerateMasterInventoryWithHostname("first"),
 				otherRequestedHostname: "forth",
 				errorExpected:          false,
+				disksInfo:              createDiskInfo("/dev/sda", 10, 0),
 			},
 		}
 
@@ -4970,6 +5035,7 @@ var _ = Describe("Refresh Host", func() {
 				bytes, err = json.Marshal(imageStatuses)
 				Expect(err).ShouldNot(HaveOccurred())
 				host.ImagesStatus = string(bytes)
+				host.DisksInfo = t.disksInfo
 				domainNameResolutions := common.TestDomainNameResolutionsSuccess
 				bytes, err = json.Marshal(domainNameResolutions)
 				Expect(err).ShouldNot(HaveOccurred())
@@ -6371,6 +6437,10 @@ var _ = Describe("State machine test - refresh transition", func() {
 			func(_ stateswitch.StateSwitch, _ stateswitch.TransitionArgs) error { return nil },
 		).AnyTimes()
 
+		mockTransitionHandler.EXPECT().PostHostPreparationTimeout().Return(
+			func(_ stateswitch.StateSwitch, _ stateswitch.TransitionArgs) error { return nil },
+		).AnyTimes()
+
 		mockTransitionHandler.EXPECT().PostRefreshLogsProgress(gomock.Any()).Return(
 			func(_ stateswitch.StateSwitch, _ stateswitch.TransitionArgs) error { return nil },
 		).AnyTimes()
@@ -6393,6 +6463,8 @@ var _ = Describe("State machine test - refresh transition", func() {
 		testState = newTestState(models.HostStatusKnown)
 
 		BeforeEach(func() {
+
+			mockTransitionHandler.EXPECT().IsPreparingTimedOut(gomock.Any(), gomock.Any()).Return(false, nil).AnyTimes()
 			mockTransitionHandler.EXPECT().PostPreparingForInstallationHost(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 
 			refreshHostArgs = initializeRefreshHostArgs(allValidationIDs, ValidationSuccess, knownStateConditions)
@@ -6428,6 +6500,7 @@ var _ = Describe("State machine test - refresh transition", func() {
 		})
 
 		It("Moves from known to insufficient when arping-no-ip-collision validation fails", func() {
+
 			refreshHostArgs.conditions[string(NoIPCollisionsInNetwork)] = false
 
 			Expect(stateMachine.Run(TransitionTypeRefresh, testState, &refreshHostArgs)).To(Succeed())

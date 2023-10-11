@@ -313,6 +313,8 @@ func main() {
 	// Make sure that prepare for installation timeout is more than the timeouts of all underlying tools + 2m extra
 	Options.ClusterConfig.PrepareConfig.PrepareForInstallationTimeout = maxDuration(Options.ClusterConfig.PrepareConfig.PrepareForInstallationTimeout,
 		maxDuration(Options.InstructionConfig.DiskCheckTimeout, Options.InstructionConfig.ImageAvailabilityTimeout)+2*time.Minute)
+	Options.HostConfig.PrepareConfig.PrepareForInstallationTimeout = maxDuration(Options.HostConfig.PrepareConfig.PrepareForInstallationTimeout,
+		maxDuration(Options.InstructionConfig.DiskCheckTimeout, Options.InstructionConfig.ImageAvailabilityTimeout)+1*time.Minute)
 	var lead leader.ElectorInterface
 	var k8sClient *kubernetes.Clientset
 	var autoMigrationLeader leader.ElectorInterface
