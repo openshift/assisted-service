@@ -5,11 +5,15 @@ metadata:
   namespace: spoke-cluster
 spec:
   apiVIP: 1.2.3.8
+  apiVIPs:
+    - 1.2.3.8
   clusterDeploymentRef:
     name: test-cluster
   imageSetRef:
     name: openshift-v4.9.0
   ingressVIP: 1.2.3.9
+  ingressVIPs:
+    - 1.2.3.9
   platformType: BareMetal
   networking:
     clusterNetwork:
