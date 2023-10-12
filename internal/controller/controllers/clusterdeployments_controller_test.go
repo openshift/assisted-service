@@ -117,8 +117,8 @@ func getDefaultAgentClusterInstallSpec(clusterName string) hiveext.AgentClusterI
 	return hiveext.AgentClusterInstallSpec{
 		APIVIP:      string(common.TestIPv4Networking.APIVips[0].IP),
 		IngressVIP:  string(common.TestIPv4Networking.IngressVips[0].IP),
-		APIVIPs:     apiVipsArrayToStrings(common.TestIPv4Networking.APIVips),
-		IngressVIPs: ingressVipsArrayToStrings(common.TestIPv4Networking.IngressVips),
+		APIVIPs:     ApiVipsArrayToStrings(common.TestIPv4Networking.APIVips),
+		IngressVIPs: IngressVipsArrayToStrings(common.TestIPv4Networking.IngressVips),
 		Networking: hiveext.Networking{
 			MachineNetwork: nil,
 			ClusterNetwork: clusterNetworksArrayToEntries(common.TestIPv4Networking.ClusterNetworks),

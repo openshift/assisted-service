@@ -366,34 +366,34 @@ func ValidateVipDHCPAllocationWithIPv6(vipDhcpAllocation bool, machineNetworkCID
 	return nil
 }
 
-func HandleApiVipBackwardsCompatibility(clusterId strfmt.UUID, apiVip string, apiVips []*models.APIVip) ([]*models.APIVip, error) {
+func HandleApiVipBackwardsCompatibility(clusterId *strfmt.UUID, apiVip string, apiVips []*models.APIVip) ([]*models.APIVip, error) {
 	// APIVip provided, but APIVips were not.
 	if apiVip != "" && len(apiVips) == 0 {
-		return []*models.APIVip{{IP: models.IP(apiVip), ClusterID: clusterId}}, nil
+		vips := []*models.APIVip{{IP: models.IP(apiVip)}}
+		if clusterId != nil {
+			vips[0].ClusterID = *clusterId
+		}
+		return vips, nil
 	}
 	// Both APIVip and APIVips were provided.
 	if apiVip != "" && len(apiVips) > 0 && apiVip != string(apiVips[0].IP) {
 		return nil, errors.New("apiVIP must be the same as the first element of apiVIPs")
 	}
-	// APIVips were provided, but APIVip was not.
-	if apiVip == "" && apiVips != nil && len(apiVips) > 0 {
-		return nil, errors.New("request must include apiVIP alongside apiVIPs")
-	}
 	return apiVips, nil
 }
 
-func HandleIngressVipBackwardsCompatibility(clusterId strfmt.UUID, ingressVip string, ingressVips []*models.IngressVip) ([]*models.IngressVip, error) {
+func HandleIngressVipBackwardsCompatibility(clusterId *strfmt.UUID, ingressVip string, ingressVips []*models.IngressVip) ([]*models.IngressVip, error) {
 	// IngressVip provided, but IngressVips were not.
 	if ingressVip != "" && len(ingressVips) == 0 {
-		return []*models.IngressVip{{IP: models.IP(ingressVip), ClusterID: clusterId}}, nil
+		vips := []*models.IngressVip{{IP: models.IP(ingressVip)}}
+		if clusterId != nil {
+			vips[0].ClusterID = *clusterId
+		}
+		return vips, nil
 	}
 	// Both IngressVip and IngressVips were provided.
 	if ingressVip != "" && len(ingressVips) > 0 && ingressVip != string(ingressVips[0].IP) {
 		return nil, errors.New("ingressVIP must be the same as the first element of ingressVIPs")
-	}
-	// IngressVips were provided, but IngressVip was not.
-	if ingressVip == "" && ingressVips != nil && len(ingressVips) > 0 {
-		return nil, errors.New("request must include ingressVIP alongside ingressVIPs")
 	}
 	return ingressVips, nil
 }
