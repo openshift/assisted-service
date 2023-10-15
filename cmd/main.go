@@ -209,6 +209,7 @@ func maxDuration(dur time.Duration, durations ...time.Duration) time.Duration {
 }
 
 func importLocalCluster(ctrlMgr manager.Manager, log *logrus.Logger) {
+	// DO NOT MERGE
 	if !Options.EnableLocalClusterImport {
 		log.Info("EnableLocalClusterImport disabled in options, skipping...")
 		return
