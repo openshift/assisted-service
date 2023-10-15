@@ -99,7 +99,7 @@ for manifest in $(find ${__dir}/generated -type f); do
     oc apply -f "${manifest}"
 done
 
-wait_for_condition "infraenv/${ASSISTED_INFRAENV_NAME}" "ImageCreated" "5m" "${SPOKE_NAMESPACE}"
+wait_for_condition "infraenv/${ASSISTED_INFRAENV_NAME}" "ImageCreated" "15m" "${SPOKE_NAMESPACE}"
 
 echo "Waiting until at least ${SPOKE_CONTROLPLANE_AGENTS} agents are available..."
 
