@@ -95,8 +95,8 @@ oc get secret "${ASSISTED_PRIVATEKEY_NAME}" -n "${SPOKE_NAMESPACE}" || \
 
 for manifest in $(find ${__dir}/generated -type f); do
     echo "Applying $manifest"
-    cat "${manifest}"
-    oc apply -f "${manifest}"
+    tee < "${manifest}" >(oc apply -f -)
+    echo "Applying $manifest"
 done
 
 wait_for_condition "infraenv/${ASSISTED_INFRAENV_NAME}" "ImageCreated" "5m" "${SPOKE_NAMESPACE}"
