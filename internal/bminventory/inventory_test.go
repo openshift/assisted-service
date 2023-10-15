@@ -4177,6 +4177,106 @@ var _ = Describe("cluster", func() {
 
 			Context("UserManagedNetworking", func() {
 
+				It("handle UserManagedNetworking and Singular VIPs update at the same request", func() {
+					mockClusterUpdatability(3)
+					mockDetectAndStoreCollidingIPsForCluster(mockClusterApi, 3)
+					mockHostApi.EXPECT().RefreshInventory(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+					mockHostApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+					mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+					mockClusterApi.EXPECT().SetConnectivityMajorityGroupsForCluster(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+					mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).AnyTimes()
+					mockProviderRegistry.EXPECT().SetPlatformUsages(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+
+					apiVip := "10.11.12.15"
+					ingressVip := "10.11.12.16"
+
+					By("Set User Managed Networking: false + Add APIVip and IngressVip")
+					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
+						ClusterID: clusterID,
+						ClusterUpdateParams: &models.V2ClusterUpdateParams{
+							UserManagedNetworking: swag.Bool(false),
+							APIVip:                swag.String(apiVip),
+							IngressVip:            swag.String(ingressVip),
+						},
+					})
+					Expect(reply).To(BeAssignableToTypeOf(installer.NewV2UpdateClusterCreated()))
+
+					By("Set UserManagedNetworking true + Remove APIVip and IngressVip")
+					reply = bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
+						ClusterID: clusterID,
+						ClusterUpdateParams: &models.V2ClusterUpdateParams{
+							UserManagedNetworking: swag.Bool(true),
+							APIVip:                swag.String(""),
+							IngressVip:            swag.String(""),
+						},
+					})
+					Expect(reply).To(BeAssignableToTypeOf(installer.NewV2UpdateClusterCreated()))
+
+					By("Set User Managed Networking: false + Add APIVip and IngressVip again")
+					reply = bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
+						ClusterID: clusterID,
+						ClusterUpdateParams: &models.V2ClusterUpdateParams{
+							UserManagedNetworking: swag.Bool(false),
+							APIVip:                swag.String(apiVip),
+							IngressVip:            swag.String(ingressVip),
+						},
+					})
+					Expect(reply).To(BeAssignableToTypeOf(installer.NewV2UpdateClusterCreated()))
+				})
+
+				It("handle UserManagedNetworking and VIP arrays update at the same request", func() {
+					mockClusterUpdatability(3)
+					mockDetectAndStoreCollidingIPsForCluster(mockClusterApi, 3)
+					mockHostApi.EXPECT().RefreshInventory(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+					mockHostApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+					mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+					mockClusterApi.EXPECT().SetConnectivityMajorityGroupsForCluster(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+					mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).AnyTimes()
+					mockProviderRegistry.EXPECT().SetPlatformUsages(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+
+					apiVip := "10.11.12.15"
+					ingressVip := "10.11.12.16"
+
+					By("Set User Managed Networking: false + Add APIVip and IngressVip")
+					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
+						ClusterID: clusterID,
+						ClusterUpdateParams: &models.V2ClusterUpdateParams{
+							UserManagedNetworking: swag.Bool(false),
+							APIVip:                swag.String(apiVip),
+							APIVips:               []*models.APIVip{{IP: models.IP(apiVip)}},
+							IngressVip:            swag.String(ingressVip),
+							IngressVips:           []*models.IngressVip{{IP: models.IP(ingressVip)}},
+						},
+					})
+					Expect(reply).To(BeAssignableToTypeOf(installer.NewV2UpdateClusterCreated()))
+
+					By("Set UserManagedNetworking true + Remove APIVip and IngressVip")
+					reply = bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
+						ClusterID: clusterID,
+						ClusterUpdateParams: &models.V2ClusterUpdateParams{
+							UserManagedNetworking: swag.Bool(true),
+							APIVip:                swag.String(""),
+							APIVips:               []*models.APIVip{},
+							IngressVip:            swag.String(""),
+							IngressVips:           []*models.IngressVip{},
+						},
+					})
+					Expect(reply).To(BeAssignableToTypeOf(installer.NewV2UpdateClusterCreated()))
+
+					By("Set User Managed Networking: false + Add APIVip and IngressVip again")
+					reply = bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
+						ClusterID: clusterID,
+						ClusterUpdateParams: &models.V2ClusterUpdateParams{
+							UserManagedNetworking: swag.Bool(false),
+							APIVip:                swag.String(apiVip),
+							APIVips:               []*models.APIVip{{IP: models.IP(apiVip)}},
+							IngressVip:            swag.String(ingressVip),
+							IngressVips:           []*models.IngressVip{{IP: models.IP(ingressVip)}},
+						},
+					})
+					Expect(reply).To(BeAssignableToTypeOf(installer.NewV2UpdateClusterCreated()))
+				})
+
 				It("Fail to set cluster VIPs when UserManagedNetworking true was set", func() {
 					mockClusterUpdatability(3)
 					mockDetectAndStoreCollidingIPsForCluster(mockClusterApi, 2)
@@ -4436,30 +4536,29 @@ var _ = Describe("cluster", func() {
 							IngressVip:            swag.String("10.35.20.10"),
 						},
 					})
-					verifyApiErrorString(reply, http.StatusBadRequest, "API VIP cannot be set with User Managed Networking")
+					verifyApiErrorString(reply, http.StatusBadRequest, "User Managed Networking cannot be set with API VIP")
 				})
 
 				It("Fail with API and Ingress VIPs", func() {
-					By("Fail VIPs with User Managed Networking")
+					By("Fail API VIP with User Managed Networking")
 					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 						ClusterID: clusterID,
 						ClusterUpdateParams: &models.V2ClusterUpdateParams{
 							UserManagedNetworking: swag.Bool(true),
 							APIVip:                swag.String("10.35.20.10"),
-							IngressVip:            swag.String("10.35.30.10"),
 						},
 					})
-					verifyApiErrorString(reply, http.StatusBadRequest, "API VIP cannot be set with User Managed Networking")
+					verifyApiErrorString(reply, http.StatusBadRequest, "User Managed Networking cannot be set with API VIP")
 
-					By("Fail API VIP with no Ingress VIP")
+					By("Fail Ingress VIP with no Ingress VIP")
 					reply = bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 						ClusterID: clusterID,
 						ClusterUpdateParams: &models.V2ClusterUpdateParams{
 							UserManagedNetworking: swag.Bool(true),
-							APIVip:                swag.String("10.35.20.10"),
+							IngressVip:            swag.String("10.35.20.10"),
 						},
 					})
-					verifyApiErrorString(reply, http.StatusBadRequest, "configuration must include the same number of apiVIPs (got 1) and ingressVIPs (got 0)")
+					verifyApiErrorString(reply, http.StatusBadRequest, "User Managed Networking cannot be set with Ingress VIP")
 				})
 
 				It("Don't fail with Machine CIDR", func() {
