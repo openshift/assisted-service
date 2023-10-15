@@ -200,6 +200,10 @@ func (r *ClusterDeploymentsReconciler) Reconcile(origCtx context.Context, req ct
 	}
 
 	cluster, err := r.Installer.GetClusterByKubeKey(req.NamespacedName)
+	if err1 := r.validateClusterDeployment(ctx, log, clusterDeployment, clusterInstall); err1 != nil {
+		log.Error(err1)
+		return r.updateStatus(ctx, log, clusterInstall, clusterDeployment, cluster, err1)
+	}
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		if !isInstalled(clusterDeployment, clusterInstall) {
 			return r.createNewCluster(ctx, log, req.NamespacedName, clusterDeployment, clusterInstall)
@@ -208,12 +212,6 @@ func (r *ClusterDeploymentsReconciler) Reconcile(origCtx context.Context, req ct
 		return r.createNewDay2Cluster(ctx, log, req.NamespacedName, clusterDeployment, clusterInstall)
 	}
 	if err != nil {
-		return r.updateStatus(ctx, log, clusterInstall, clusterDeployment, cluster, err)
-	}
-
-	err = r.validateClusterDeployment(ctx, log, clusterDeployment, clusterInstall)
-	if err != nil {
-		log.Error(err)
 		return r.updateStatus(ctx, log, clusterInstall, clusterDeployment, cluster, err)
 	}
 
