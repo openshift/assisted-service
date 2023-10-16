@@ -19,9 +19,10 @@ FROM registry.ci.openshift.org/ocp/4.14:base
 
 LABEL io.openshift.release.operator=true
 
+# multiarch images need skopeo until WRKLDS-222 and https://bugzilla.redhat.com/show_bug.cgi?id=2111537 are fixed
 # ToDo: Replace postgres with SQLite DB
 # https://issues.redhat.com/browse/AGENT-223
-RUN dnf install -y postgresql-server libvirt-libs nmstate nmstate-libs && dnf clean all
+RUN dnf install -y postgresql-server libvirt-libs nmstate nmstate-libs skopeo && dnf clean all
 
 RUN dnf update libksba libxml2 -y && dnf clean all
 
