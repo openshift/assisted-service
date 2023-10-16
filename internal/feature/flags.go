@@ -10,5 +10,5 @@ type Flags struct {
 	EnableRejectUnknownFields bool `envconfig:"ENABLE_REJECT_UNKNOWN_FIELDS" default:"true"`
 
 	// EnableSkipMcoReboot is a boolean flag to enable MCO reboot by assisted installer
-	EnableSkipMcoReboot bool `envconfig:"ENABLE_SKIP_MCO_REBOOT" default:"true"`
+	EnableSkipMcoReboot bool `envconfig:"ENABLE_SKIP_MCO_REBOOT" default:"false"`
 }
