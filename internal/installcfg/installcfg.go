@@ -128,8 +128,23 @@ type NutanixPrismElement struct {
 	Name                           string          `yaml:"name"`
 }
 
+// CloudControllerManager describes the type of cloud controller manager to be enabled.
+type CloudControllerManager string
+
+const (
+	// CloudControllerManagerTypeExternal specifies that an external cloud provider is to be configured.
+	CloudControllerManagerTypeExternal = "External"
+
+	// CloudControllerManagerTypeNone specifies that no cloud provider is to be configured.
+	CloudControllerManagerTypeNone = ""
+)
+
 type ExternalInstallConfigPlatform struct {
+	// PlatformName holds the arbitrary string representing the infrastructure provider name, expected to be set at the installation time.
 	PlatformName string `yaml:"platformName"`
+
+	// CloudControllerManager when set to external, this property will enable an external cloud provider.
+	CloudControllerManager CloudControllerManager `yaml:"cloudControllerManager"`
 }
 
 type PlatformNone struct {
