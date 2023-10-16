@@ -9,3 +9,6 @@ spec:
   pullSecretRef:
     name: '{{ pull_secret_name }}'
   sshAuthorizedKey: '{{ ssh_public_key }}'
+  kernelArguments:
+    - operation: append
+      value: console=ttyS0
