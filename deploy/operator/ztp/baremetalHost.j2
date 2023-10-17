@@ -40,7 +40,9 @@ metadata:
     infraenvs.agent-install.openshift.io: '{{ infraenv_name }}'
   annotations:
     bmac.agent-install.openshift.io/hostname: '{{ host["name"] }}'
-    bmac.agent-install.openshift.io/installer-args: '["--console", "ttyS0"]'
+    # enable serial console when installing core os
+    # the console output will be logged by libvirt in order to ease debugging
+    bmac.agent-install.openshift.io/installer-args: '["--append-karg", "console=ttyS0"]'
 {% if baremetalhosts_ignition_override|string | length > 0 %}
     bmac.agent-install.openshift.io/ignition-config-overrides: '{{ baremetalhosts_ignition_override | tojson }}'
 {% endif %}
