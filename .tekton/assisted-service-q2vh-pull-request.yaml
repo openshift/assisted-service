@@ -263,7 +263,7 @@ spec:
       - name: BASE_IMAGES_DIGESTS
         value: $(tasks.build-container.results.BASE_IMAGES_DIGESTS)
       taskRef:
-        bundle: quay.io/redhat-appstudio-tekton-catalog/task-deprecated-image-check:0.3@sha256:c05395f16b9afafbd3fa65797071db0f02e517a1d9107f57b44618e3ec4ab17c
+        bundle: quay.io/redhat-appstudio-tekton-catalog/task-deprecated-image-check:0.3@sha256:d507b3441d6c039691aa75c18d30f5191febcdca8f7f57f6122d75bb2f6f585d
         name: deprecated-image-check
       when:
       - input: $(params.skip-checks)
