@@ -627,23 +627,6 @@ var _ = Describe("skipNetworkHostPrefixCheck", func() {
 		clusterID = strfmt.UUID(uuid.New().String())
 	})
 
-	It("Returns false when hostPrefix is greater than 0", func() {
-		clusterNetworks := []*models.ClusterNetwork{
-			{Cidr: "10.0.2.1/24", ClusterID: clusterID, HostPrefix: 1},
-			{Cidr: "2002::1234:abcd:ffff:c0a8:102/64", ClusterID: clusterID, HostPrefix: 1},
-		}
-
-		preprocessContext.cluster = &common.Cluster{Cluster: models.Cluster{
-			ID:              &clusterID,
-			ClusterNetworks: clusterNetworks,
-		}}
-
-		skipped := funk.Filter(preprocessContext.cluster.ClusterNetworks, func(clusterNetwork *models.ClusterNetwork) bool {
-			return validator.skipNetworkHostPrefixCheck(preprocessContext, clusterNetwork.HostPrefix)
-		}).([]*models.ClusterNetwork)
-		Expect(len(skipped)).Should(Equal(0))
-	})
-
 	It("Returns false when hostPrefix 0 and networkType OVN", func() {
 		clusterNetworks := []*models.ClusterNetwork{
 			{Cidr: "10.0.2.1/24", ClusterID: clusterID},
@@ -657,10 +640,8 @@ var _ = Describe("skipNetworkHostPrefixCheck", func() {
 			NetworkType:     &networkType,
 		}}
 
-		skipped := funk.Filter(preprocessContext.cluster.ClusterNetworks, func(clusterNetwork *models.ClusterNetwork) bool {
-			return validator.skipNetworkHostPrefixCheck(preprocessContext, clusterNetwork.HostPrefix)
-		}).([]*models.ClusterNetwork)
-		Expect(len(skipped)).Should(Equal(0))
+		skipped := validator.skipNetworkHostPrefixCheck(preprocessContext)
+		Expect(skipped).Should(Equal(false))
 	})
 
 	It("Returns true when hostPrefix 0 and networkType not OVN or SDN", func() {
@@ -678,9 +659,7 @@ var _ = Describe("skipNetworkHostPrefixCheck", func() {
 			InstallConfigOverrides: installCfgOverrides,
 		}}
 
-		skipped := funk.Filter(preprocessContext.cluster.ClusterNetworks, func(clusterNetwork *models.ClusterNetwork) bool {
-			return validator.skipNetworkHostPrefixCheck(preprocessContext, clusterNetwork.HostPrefix)
-		}).([]*models.ClusterNetwork)
-		Expect(len(skipped)).Should(Equal(2))
+		skipped := validator.skipNetworkHostPrefixCheck(preprocessContext)
+		Expect(skipped).Should(Equal(true))
 	})
 })
