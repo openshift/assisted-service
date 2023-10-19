@@ -535,14 +535,14 @@ func (v *clusterValidator) networkPrefixValid(c *clusterPreprocessContext) (Vali
 	if !validationStatusToBool(clusterCidrDefined) {
 		return ValidationPending, "The Cluster Network CIDR is undefined."
 	}
+
+	if v.skipNetworkHostPrefixCheck(c) {
+		return ValidationSuccess, "The Cluster Network prefix is valid."
+	}
+
 	validClusterNetworks := funk.Filter(c.cluster.ClusterNetworks, func(clusterNetwork *models.ClusterNetwork) bool {
-		if clusterNetwork == nil {
-			return false
-		}
-		if v.skipNetworkHostPrefixCheck(c, clusterNetwork.HostPrefix) {
-			return true
-		}
-		return network.VerifyNetworkHostPrefix(clusterNetwork.HostPrefix) == nil &&
+		return clusterNetwork != nil &&
+			network.VerifyNetworkHostPrefix(clusterNetwork.HostPrefix) == nil &&
 			network.VerifyClusterCidrSize(int(clusterNetwork.HostPrefix), string(clusterNetwork.Cidr), len(c.cluster.Hosts)) == nil
 	}).([]*models.ClusterNetwork)
 
@@ -574,14 +574,10 @@ func (v *clusterValidator) isNtpServerConfigured(c *clusterPreprocessContext) (V
 		"please configure an NTP server via DHCP or set clocks manually.", common.MaximumAllowedTimeDiffMinutes)
 }
 
-// Ignore hostPrefix set to 0 for non-OVN/SDN plugins.
-func (v *clusterValidator) skipNetworkHostPrefixCheck(c *clusterPreprocessContext, prefix int64) bool {
+// Ignore hostPrefix for non-OVN/SDN plugins.
+func (v *clusterValidator) skipNetworkHostPrefixCheck(c *clusterPreprocessContext) bool {
 	// list of known plugins that require hostPrefix to be set
 	var pluginsUsingHostPrefix = []string{models.ClusterNetworkTypeOVNKubernetes, models.ClusterNetworkTypeOpenShiftSDN}
-
-	if prefix != 0 {
-		return false
-	}
 
 	if !funk.ContainsString(pluginsUsingHostPrefix, swag.StringValue(c.cluster.NetworkType)) {
 		v.log.Infof("skipping network prefix check for %s", swag.StringValue(c.cluster.NetworkType))
