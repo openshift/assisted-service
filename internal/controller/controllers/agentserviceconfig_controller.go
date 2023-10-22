@@ -1896,6 +1896,7 @@ func newInfraEnvWebHook(ctx context.Context, log logrus.FieldLogger, asc ASC) (c
 				{
 					Operations: []admregv1.OperationType{
 						admregv1.Update,
+						admregv1.Create,
 					},
 					Rule: admregv1.Rule{
 						APIGroups: []string{
