@@ -503,7 +503,7 @@ var _ = Describe("cluster reconcile", func() {
 
 			It("no imagesetref when trying to create a day1 cluster", func() {
 				cluster := newClusterDeployment(clusterName, testNamespace,
-					getDefaultClusterDeploymentSpec(clusterName, agentClusterInstallName, ""))
+					getDefaultClusterDeploymentSpec(clusterName, agentClusterInstallName, pullSecretName))
 				Expect(c.Create(ctx, cluster)).ShouldNot(HaveOccurred())
 
 				aci := newAgentClusterInstall(agentClusterInstallName, testNamespace, getDefaultSNOAgentClusterInstallSpec(clusterName), cluster)
@@ -516,10 +516,10 @@ var _ = Describe("cluster reconcile", func() {
 				Expect(result).To(Equal(ctrl.Result{})) //missing ref is a user error and stops the reconcile
 
 				aci = getTestClusterInstall()
+				msg := "The Spec could not be synced due to an input error: missing ImageSetRef for cluster that is not installed"
 				Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterSpecSyncedCondition).Reason).To(Equal(hiveext.ClusterInputErrorReason))
-				Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterRequirementsMetCondition).Reason).To(Equal(hiveext.ClusterNotAvailableReason))
-				Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterRequirementsMetCondition).Message).To(Equal(hiveext.ClusterNotAvailableMsg))
-				Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterRequirementsMetCondition).Status).To(Equal(corev1.ConditionUnknown))
+				Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterSpecSyncedCondition).Message).To(Equal(msg))
+				Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterSpecSyncedCondition).Status).To(Equal(corev1.ConditionFalse))
 				Expect(aci.Status.DebugInfo.State).To(Equal(""))
 				Expect(aci.Status.DebugInfo.StateInfo).To(Equal(""))
 				Expect(aci.Status.DebugInfo.LogsURL).To(Equal(""))
