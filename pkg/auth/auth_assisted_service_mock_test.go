@@ -286,6 +286,10 @@ func (f fakeEventsAPI) V2ListEvents(ctx context.Context, params eventsapi.V2List
 	return eventsapi.NewV2ListEventsOK()
 }
 
+func (f fakeEventsAPI) V2TriggerEvent(ctx context.Context, params eventsapi.V2TriggerEventParams) middleware.Responder {
+	return eventsapi.NewV2TriggerEventCreated()
+}
+
 type fakeVersionsAPI struct{}
 
 func (f fakeVersionsAPI) V2ListComponentVersions(

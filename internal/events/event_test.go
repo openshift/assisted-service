@@ -3,6 +3,7 @@ package events
 import (
 	"context"
 	"encoding/json"
+	"net/http"
 	"testing"
 	"time"
 
@@ -23,10 +24,146 @@ import (
 	"github.com/openshift/assisted-service/pkg/ocm"
 	"github.com/openshift/assisted-service/pkg/requestid"
 	"github.com/openshift/assisted-service/restapi"
+	"github.com/openshift/assisted-service/restapi/operations/events"
 	"github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
 	"gorm.io/gorm"
 )
+
+var _ = Describe("Add event", func() {
+	const (
+		eventMessage    = "Event message"
+		eventName       = "EventName"
+		severityInfo    = "info"
+		severityWarning = "warning"
+	)
+	var (
+		ctrl       *gomock.Controller
+		db         *gorm.DB
+		theEvents  eventsapi.Handler
+		dbName     string
+		api        *Api
+		inputEvent *models.Event
+	)
+	BeforeEach(func() {
+		db, dbName = common.PrepareTestDB()
+		ctrl = gomock.NewController(GinkgoT())
+		log := logrus.WithField("pkg", "events")
+		theEvents = New(db, nil, commontesting.GetDummyNotificationStream(ctrl), log)
+		cfg := &auth.Config{AuthType: auth.TypeRHSSO, EnableOrgTenancy: true}
+		authz_handler := auth.NewAuthzHandler(cfg, nil, logrus.New(), db)
+		theEvents.(*Events).authz = authz_handler
+		api = &Api{handler: theEvents, log: log}
+		inputEvent = &models.Event{
+			Message:  swag.String(eventMessage),
+			Name:     eventName,
+			Category: "",
+			Severity: swag.String(severityInfo),
+		}
+	})
+	AfterEach(func() {
+		ctrl.Finish()
+		common.DeleteTestDB(db, dbName)
+	})
+	validateDbEvent := func(srcEvent, dbEvent *models.Event, category string) {
+		Expect(srcEvent.ClusterID).To(Equal(dbEvent.ClusterID))
+		Expect(srcEvent.HostID).To(Equal(dbEvent.HostID))
+		Expect(srcEvent.InfraEnvID).To(Equal(dbEvent.InfraEnvID))
+		Expect(srcEvent.Name).To(Equal(dbEvent.Name))
+		Expect(srcEvent.Message).To(Equal(dbEvent.Message))
+		Expect(dbEvent.EventTime).ToNot(BeNil())
+		Expect(dbEvent.Category).To(Equal(category))
+		Expect(time.Time(*dbEvent.EventTime)).To(BeTemporally("~", time.Now(), 100*time.Millisecond))
+	}
+	marshal := func(v interface{}) string {
+		b, err := json.Marshal(v)
+		Expect(err).ToNot(HaveOccurred())
+		return string(b)
+	}
+	unmarshal := func(s string) interface{} {
+		var v interface{}
+		Expect(json.Unmarshal([]byte(s), &v)).ToNot(HaveOccurred())
+		return v
+	}
+
+	addAndVerify := func(category string, m map[string]interface{}) {
+		ret := api.V2TriggerEvent(context.Background(), events.V2TriggerEventParams{
+			TriggerEventParams: inputEvent,
+		})
+		Expect(ret).To(Equal(events.NewV2TriggerEventCreated()))
+		var events []*common.Event
+		Expect(db.Find(&events).Error).ToNot(HaveOccurred())
+		Expect(events).To(HaveLen(1))
+		dbEvent := &events[0].Event
+		validateDbEvent(inputEvent, dbEvent, category)
+		if m != nil {
+			Expect(unmarshal(dbEvent.Props)).To(Equal(m))
+		}
+	}
+
+	It("Cluster event", func() {
+		clusterId := strfmt.UUID(uuid.New().String())
+		inputEvent.ClusterID = &clusterId
+		addAndVerify(models.EventCategoryUser, nil)
+	})
+	It("Cluster event - explicit user category", func() {
+		clusterId := strfmt.UUID(uuid.New().String())
+		inputEvent.ClusterID = &clusterId
+		inputEvent.Category = models.EventCategoryUser
+		addAndVerify(models.EventCategoryUser, nil)
+	})
+
+	It("Cluster event - explicit metrics category", func() {
+		clusterId := strfmt.UUID(uuid.New().String())
+		inputEvent.ClusterID = &clusterId
+		inputEvent.Category = models.EventCategoryMetrics
+		addAndVerify(models.EventCategoryMetrics, nil)
+	})
+
+	It("Cluster event - bad category", func() {
+		clusterId := strfmt.UUID(uuid.New().String())
+		inputEvent.ClusterID = &clusterId
+		inputEvent.Category = "bad-category"
+		ret := api.V2TriggerEvent(context.Background(), events.V2TriggerEventParams{
+			TriggerEventParams: inputEvent,
+		})
+		Expect(ret).To(BeAssignableToTypeOf(&common.ApiErrorResponse{}))
+		Expect(ret.(*common.ApiErrorResponse).Code()).To(Equal(int32(http.StatusBadRequest)))
+	})
+
+	It("Infraenv event", func() {
+		infraenvId := strfmt.UUID(uuid.New().String())
+		inputEvent.InfraEnvID = &infraenvId
+		inputEvent.Severity = swag.String(severityWarning)
+		addAndVerify(models.EventCategoryUser, nil)
+	})
+
+	It("Host event with map props", func() {
+		m := map[string]interface{}{
+			"key1": "val1",
+			"key2": 2.0,
+		}
+		infraenvId := strfmt.UUID(uuid.New().String())
+		hostId := strfmt.UUID(uuid.New().String())
+		inputEvent.InfraEnvID = &infraenvId
+		inputEvent.HostID = &hostId
+		inputEvent.Props = marshal(m)
+		addAndVerify(models.EventCategoryUser, m)
+	})
+
+	It("Host event with list props", func() {
+		m := map[string]interface{}{
+			"key1": "val1",
+			"key2": 2.0,
+		}
+		infraenvId := strfmt.UUID(uuid.New().String())
+		hostId := strfmt.UUID(uuid.New().String())
+		inputEvent.InfraEnvID = &infraenvId
+		inputEvent.HostID = &hostId
+		inputEvent.Props = marshal([]interface{}{"key1", "val1", "key2", 2})
+		addAndVerify(models.EventCategoryUser, m)
+	})
+})
 
 var _ = Describe("Events library", func() {
 	var (
