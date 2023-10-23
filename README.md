@@ -7,7 +7,7 @@
 
 ## About
 
-This repository provides a service that installs OpenShift.  Its main benefits include a minimum amount of prerequisites from the user's infrastructure, as well as comprehensive pre-flight validations to ensure a successful installation.  The service exposes either a REST API, or it can be deployed as an Operator where it exposes a Kubernetes-native API via Custom Resources.  A [UI](https://github.com/openshift-assisted/assisted-ui) is available that uses the REST API.
+This repository provides a service that installs OpenShift.  Its main benefits include a minimum amount of prerequisites from the user's infrastructure, as well as comprehensive pre-flight validations to ensure a successful installation. The service exposes either a REST API, or it can be deployed as an Operator where it exposes a Kubernetes-native API via Custom Resources.  A [UI](https://github.com/openshift-assisted/assisted-ui) is available that uses the REST API.
 
 The Assisted Service can currently install clusters with highly-available control planes (3 hosts and above) and can also install Single-Node OpenShift (SNO).  Highly available clusters are configured to use OpenShift's `baremetal` platform (typically used in [bare metal IPI deployments](https://docs.openshift.com/container-platform/4.7/installing/installing_bare_metal_ipi/ipi-install-overview.html)), while SNO uses `none` (typically used in [UPI deployments](https://docs.openshift.com/container-platform/4.7/installing/installing_platform_agnostic/installing-platform-agnostic.html)).
 
