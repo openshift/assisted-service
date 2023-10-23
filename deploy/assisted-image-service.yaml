@@ -56,4 +56,12 @@ items:
                 value: REPLACE_IMAGE_SERVICE_BASE_URL
               - name: ALLOWED_DOMAINS
                 value: "*"
+            volumeMounts:
+            - name: data
+              mountPath: /data
+        volumes:
+          - name: data
+            emptyDir:
+              medium: disk
+              sizeLimit: 40Gi
         serviceAccountName: assisted-service
