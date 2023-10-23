@@ -19,7 +19,6 @@ import (
 	"github.com/openshift/assisted-service/internal/provider/registry"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/mirrorregistries"
-	"gopkg.in/yaml.v2"
 )
 
 var (
@@ -133,7 +132,7 @@ aEA8gNEmV+rb7h1v0r3EwDQYJKoZIhvcNAQELBQAwYTELMAkGA1UEBhMCaXMxCzAJBgNVBAgMAmRk
 		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(2)
 		data, err := installConfig.GetInstallConfig(&cluster, clusterInfraenvs, "")
 		Expect(err).ShouldNot(HaveOccurred())
-		err = yaml.Unmarshal(data, &result)
+		err = json.Unmarshal(data, &result)
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(result.Networking.NetworkType).To(Equal(models.ClusterNetworkTypeOpenShiftSDN))
 	})
@@ -143,7 +142,7 @@ aEA8gNEmV+rb7h1v0r3EwDQYJKoZIhvcNAQELBQAwYTELMAkGA1UEBhMCaXMxCzAJBgNVBAgMAmRk
 		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(2)
 		data, err := installConfig.GetInstallConfig(&cluster, clusterInfraenvs, "")
 		Expect(err).ShouldNot(HaveOccurred())
-		err = yaml.Unmarshal(data, &result)
+		err = json.Unmarshal(data, &result)
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(result.Networking.NetworkType).To(Equal(models.ClusterNetworkTypeOpenShiftSDN))
 	})
@@ -156,7 +155,7 @@ aEA8gNEmV+rb7h1v0r3EwDQYJKoZIhvcNAQELBQAwYTELMAkGA1UEBhMCaXMxCzAJBgNVBAgMAmRk
 		mockMirrorRegistriesConfigBuilder.EXPECT().GetMirrorCA().Return([]byte("some sa data"), nil).Times(1)
 		data, err := installConfig.GetInstallConfig(&cluster, clusterInfraenvs, "")
 		Expect(err).ShouldNot(HaveOccurred())
-		err = yaml.Unmarshal(data, &result)
+		err = json.Unmarshal(data, &result)
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(result.Networking.NetworkType).To(Equal(models.ClusterNetworkTypeOpenShiftSDN))
 	})
@@ -169,7 +168,7 @@ aEA8gNEmV+rb7h1v0r3EwDQYJKoZIhvcNAQELBQAwYTELMAkGA1UEBhMCaXMxCzAJBgNVBAgMAmRk
 		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(2)
 		data, err := installConfig.GetInstallConfig(&cluster, clusterInfraenvs, "")
 		Expect(err).ShouldNot(HaveOccurred())
-		err = yaml.Unmarshal(data, &result)
+		err = json.Unmarshal(data, &result)
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(result.Proxy.HTTPProxy).Should(Equal(proxyURL))
 		Expect(result.Proxy.HTTPSProxy).Should(Equal(proxyURL))
@@ -192,7 +191,7 @@ aEA8gNEmV+rb7h1v0r3EwDQYJKoZIhvcNAQELBQAwYTELMAkGA1UEBhMCaXMxCzAJBgNVBAgMAmRk
 		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(2)
 		data, err := installConfig.GetInstallConfig(&cluster, clusterInfraenvs, "")
 		Expect(err).ShouldNot(HaveOccurred())
-		err = yaml.Unmarshal(data, &result)
+		err = json.Unmarshal(data, &result)
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(result.Proxy.HTTPProxy).Should(Equal(proxyURL))
 		Expect(result.Proxy.HTTPSProxy).Should(Equal(proxyURL))
@@ -207,24 +206,25 @@ aEA8gNEmV+rb7h1v0r3EwDQYJKoZIhvcNAQELBQAwYTELMAkGA1UEBhMCaXMxCzAJBgNVBAgMAmRk
 		Expect(result.Networking.NetworkType).To(Equal(models.ClusterNetworkTypeOpenShiftSDN))
 	})
 
-	It("vSphere credentials in overrides is decoded correctly", func() {
+	vsphereInstallConfigOverrides := `{"platform":{"vsphere":{"vcenters":[{"server":"vcenter.openshift.com","user":"testUser","password":"testPassword","datacenters":["testDatacenter"]}],"failureDomains":[{"name":"testfailureDomain","region":"testRegion","zone":"testZone","server":"vcenter.openshift.com","topology":{"datacenter":"testDatacenter","computeCluster":"/testDatacenter/host/testComputecluster","networks":["testNetwork"],"datastore":"/testDatacenter/datastore/testDatastore","resourcePool":"/testDatacenter/host/testComputecluster//Resources","folder":"/testDatacenter/vm/testFolder"}}]}}}`
+
+	It("vSphere credentials in overrides is decoded correctly - installConfig.applyConfigOverrides", func() {
 		var result installcfg.InstallerConfigBaremetal
-		overrides := "{\"platform\":{\"vsphere\":{\"vcenters\":[{\"server\":\"vcenter.openshift.com\",\"user\":\"testUser\",\"password\":\"testPassword\",\"datacenters\":[\"testDatacenter\"]}],\"failureDomains\":[{\"name\":\"testfailureDomain\",\"region\":\"testRegion\",\"zone\":\"testZone\",\"server\":\"vcenter.openshift.com\",\"topology\":{\"datacenter\":\"testDatacenter\",\"computeCluster\":\"/testDatacenter/host/testComputecluster\",\"networks\":[\"testNetwork\"],\"datastore\":\"/testDatacenter/datastore/testDatastore\",\"resourcePool\":\"/testDatacenter/host/testComputecluster//Resources\",\"folder\":\"/testDatacenter/vm/testFolder\"}}]}}}"
+		overrides := vsphereInstallConfigOverrides
 		err := installConfig.applyConfigOverrides(overrides, &result)
 		Expect(err).ShouldNot(HaveOccurred())
-		Expect(result.Platform.Vsphere.VCenters[0].Server).Should(Equal("vcenter.openshift.com"))
-		Expect(result.Platform.Vsphere.VCenters[0].Username).Should(Equal("testUser"))
-		Expect(result.Platform.Vsphere.VCenters[0].Password.String()).Should(Equal("testPassword"))
-		Expect(len(result.Platform.Vsphere.VCenters[0].Datacenters)).Should(Equal(1))
-		Expect(result.Platform.Vsphere.FailureDomains[0].Name).Should(Equal("testfailureDomain"))
-		Expect(result.Platform.Vsphere.FailureDomains[0].Region).Should(Equal("testRegion"))
-		Expect(result.Platform.Vsphere.FailureDomains[0].Server).Should(Equal("vcenter.openshift.com"))
-		Expect(result.Platform.Vsphere.FailureDomains[0].Topology.Datacenter).Should(Equal("testDatacenter"))
-		Expect(result.Platform.Vsphere.FailureDomains[0].Topology.ComputeCluster).Should(Equal("/testDatacenter/host/testComputecluster"))
-		Expect(len(result.Platform.Vsphere.FailureDomains[0].Topology.Networks)).Should(Equal(1))
-		Expect(result.Platform.Vsphere.FailureDomains[0].Topology.Datastore).Should(Equal("/testDatacenter/datastore/testDatastore"))
-		Expect(result.Platform.Vsphere.FailureDomains[0].Topology.ResourcePool).Should(Equal("/testDatacenter/host/testComputecluster//Resources"))
-		Expect(result.Platform.Vsphere.FailureDomains[0].Topology.Folder).Should(Equal("/testDatacenter/vm/testFolder"))
+		assertVSphereCredentials(result)
+	})
+
+	It("vSphere credentials are unmarshalled correctly - installConfig.GetInstallConfig", func() {
+		var result installcfg.InstallerConfigBaremetal
+		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(2)
+		cluster.InstallConfigOverrides = vsphereInstallConfigOverrides
+		data, err := installConfig.GetInstallConfig(&cluster, clusterInfraenvs, "")
+		Expect(err).ShouldNot(HaveOccurred())
+		err = json.Unmarshal(data, &result)
+		Expect(err).ShouldNot(HaveOccurred())
+		assertVSphereCredentials(result)
 	})
 
 	It("correctly applies cluster overrides", func() {
@@ -232,7 +232,7 @@ aEA8gNEmV+rb7h1v0r3EwDQYJKoZIhvcNAQELBQAwYTELMAkGA1UEBhMCaXMxCzAJBgNVBAgMAmRk
 		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(2)
 		data, err := installConfig.GetInstallConfig(&cluster, clusterInfraenvs, "")
 		Expect(err).ShouldNot(HaveOccurred())
-		err = yaml.Unmarshal(data, &result)
+		err = json.Unmarshal(data, &result)
 		Expect(err).ShouldNot(HaveOccurred())
 		// test that overrides worked
 		Expect(result.FIPS).Should(Equal(true))
@@ -248,7 +248,7 @@ aEA8gNEmV+rb7h1v0r3EwDQYJKoZIhvcNAQELBQAwYTELMAkGA1UEBhMCaXMxCzAJBgNVBAgMAmRk
 		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(2)
 		data, err := installConfig.GetInstallConfig(&cluster, clusterInfraenvs, "")
 		Expect(err).ShouldNot(HaveOccurred())
-		err = yaml.Unmarshal(data, &result)
+		err = json.Unmarshal(data, &result)
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(result.Networking.NetworkType).To(Equal(models.ClusterNetworkTypeOpenShiftSDN))
 	})
@@ -260,7 +260,7 @@ aEA8gNEmV+rb7h1v0r3EwDQYJKoZIhvcNAQELBQAwYTELMAkGA1UEBhMCaXMxCzAJBgNVBAgMAmRk
 		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(2)
 		data, err := installConfig.GetInstallConfig(&cluster, clusterInfraenvs, "")
 		Expect(err).ShouldNot(HaveOccurred())
-		err = yaml.Unmarshal(data, &result)
+		err = json.Unmarshal(data, &result)
 		Expect(err).ShouldNot(HaveOccurred())
 	})
 
@@ -271,7 +271,7 @@ aEA8gNEmV+rb7h1v0r3EwDQYJKoZIhvcNAQELBQAwYTELMAkGA1UEBhMCaXMxCzAJBgNVBAgMAmRk
 		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(2)
 		data, err := installConfig.GetInstallConfig(&cluster, clusterInfraenvs, "")
 		Expect(err).ShouldNot(HaveOccurred())
-		err = yaml.Unmarshal(data, &result)
+		err = json.Unmarshal(data, &result)
 		Expect(err).ShouldNot(HaveOccurred())
 	})
 
@@ -282,7 +282,7 @@ aEA8gNEmV+rb7h1v0r3EwDQYJKoZIhvcNAQELBQAwYTELMAkGA1UEBhMCaXMxCzAJBgNVBAgMAmRk
 		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(2)
 		data, err := installConfig.GetInstallConfig(&cluster, clusterInfraenvs, "")
 		Expect(err).ShouldNot(HaveOccurred())
-		err = yaml.Unmarshal(data, &result)
+		err = json.Unmarshal(data, &result)
 		Expect(err).ShouldNot(HaveOccurred())
 	})
 
@@ -293,7 +293,7 @@ aEA8gNEmV+rb7h1v0r3EwDQYJKoZIhvcNAQELBQAwYTELMAkGA1UEBhMCaXMxCzAJBgNVBAgMAmRk
 		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(2)
 		data, err := installConfig.GetInstallConfig(&cluster, clusterInfraenvs, redhatRootCA)
 		Expect(err).ShouldNot(HaveOccurred())
-		err = yaml.Unmarshal(data, &result)
+		err = json.Unmarshal(data, &result)
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(result.AdditionalTrustBundle).Should(Equal(testBundle1))
 		Expect(result.Networking.NetworkType).To(Equal(models.ClusterNetworkTypeOpenShiftSDN))
@@ -311,7 +311,7 @@ aEA8gNEmV+rb7h1v0r3EwDQYJKoZIhvcNAQELBQAwYTELMAkGA1UEBhMCaXMxCzAJBgNVBAgMAmRk
 		rhRootCA := testBundle1
 		data, err := installConfig.GetInstallConfig(&cluster, clusterInfraenvs, rhRootCA)
 		Expect(err).ShouldNot(HaveOccurred())
-		err = yaml.Unmarshal(data, &result)
+		err = json.Unmarshal(data, &result)
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(result.AdditionalTrustBundle).Should(Equal(fmt.Sprintf("%s\n%s", rhRootCA, mirrorCA)))
 		Expect(result.Networking.NetworkType).To(Equal(models.ClusterNetworkTypeOpenShiftSDN))
@@ -328,7 +328,7 @@ aEA8gNEmV+rb7h1v0r3EwDQYJKoZIhvcNAQELBQAwYTELMAkGA1UEBhMCaXMxCzAJBgNVBAgMAmRk
 		})
 		data, err := installConfig.GetInstallConfig(&cluster, clusterInfraenvs, "")
 		Expect(err).ShouldNot(HaveOccurred())
-		err = yaml.Unmarshal(data, &result)
+		err = json.Unmarshal(data, &result)
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(result.AdditionalTrustBundle).Should(Equal(testBundle3))
 		Expect(result.Networking.NetworkType).To(Equal(models.ClusterNetworkTypeOpenShiftSDN))
@@ -350,7 +350,7 @@ aEA8gNEmV+rb7h1v0r3EwDQYJKoZIhvcNAQELBQAwYTELMAkGA1UEBhMCaXMxCzAJBgNVBAgMAmRk
 		})
 		data, err := installConfig.GetInstallConfig(&cluster, clusterInfraenvs, "")
 		Expect(err).ShouldNot(HaveOccurred())
-		err = yaml.Unmarshal(data, &result)
+		err = json.Unmarshal(data, &result)
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(result.AdditionalTrustBundle).Should(Equal(fmt.Sprintf("%s\n%s", testBundle3, testBundle4)))
 		Expect(result.Networking.NetworkType).To(Equal(models.ClusterNetworkTypeOpenShiftSDN))
@@ -377,7 +377,7 @@ aEA8gNEmV+rb7h1v0r3EwDQYJKoZIhvcNAQELBQAwYTELMAkGA1UEBhMCaXMxCzAJBgNVBAgMAmRk
 		})
 		data, err := installConfig.GetInstallConfig(&cluster, clusterInfraenvs, "")
 		Expect(err).ShouldNot(HaveOccurred())
-		err = yaml.Unmarshal(data, &result)
+		err = json.Unmarshal(data, &result)
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(result.AdditionalTrustBundle).Should(Equal(fmt.Sprintf("%s\n%s\n%s", testBundle2, testBundle3, testBundle4)))
 		Expect(result.Networking.NetworkType).To(Equal(models.ClusterNetworkTypeOpenShiftSDN))
@@ -389,7 +389,7 @@ aEA8gNEmV+rb7h1v0r3EwDQYJKoZIhvcNAQELBQAwYTELMAkGA1UEBhMCaXMxCzAJBgNVBAgMAmRk
 		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(2)
 		data, err := installConfig.GetInstallConfig(&cluster, clusterInfraenvs, "")
 		Expect(err).ShouldNot(HaveOccurred())
-		err = yaml.Unmarshal(data, &result)
+		err = json.Unmarshal(data, &result)
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(result.AdditionalTrustBundle).Should(Equal(""))
 		Expect(result.Networking.NetworkType).To(Equal(models.ClusterNetworkTypeOpenShiftSDN))
@@ -411,7 +411,7 @@ aEA8gNEmV+rb7h1v0r3EwDQYJKoZIhvcNAQELBQAwYTELMAkGA1UEBhMCaXMxCzAJBgNVBAgMAmRk
 		mockMirrorRegistriesConfigBuilder.EXPECT().GetMirrorCA().Return([]byte(mirrorCA), nil).Times(1)
 		data, err := installConfig.GetInstallConfig(&cluster, clusterInfraenvs, ca)
 		Expect(err).ShouldNot(HaveOccurred())
-		err = yaml.Unmarshal(data, &result)
+		err = json.Unmarshal(data, &result)
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(result.AdditionalTrustBundle).Should(Equal(fmt.Sprintf("%s\n%s\n%s", testBundle4, testBundle1, testBundle2)))
 		Expect(result.Networking.NetworkType).To(Equal(models.ClusterNetworkTypeOpenShiftSDN))
@@ -425,7 +425,7 @@ aEA8gNEmV+rb7h1v0r3EwDQYJKoZIhvcNAQELBQAwYTELMAkGA1UEBhMCaXMxCzAJBgNVBAgMAmRk
 		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(2)
 		data, err := installConfig.GetInstallConfig(&cluster, clusterInfraenvs, "")
 		Expect(err).ShouldNot(HaveOccurred())
-		err = yaml.Unmarshal(data, &result)
+		err = json.Unmarshal(data, &result)
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(result.Platform.Baremetal).Should(BeNil())
 		var none = installcfg.PlatformNone{}
@@ -443,7 +443,7 @@ aEA8gNEmV+rb7h1v0r3EwDQYJKoZIhvcNAQELBQAwYTELMAkGA1UEBhMCaXMxCzAJBgNVBAgMAmRk
 		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(2)
 		data, err := installConfig.GetInstallConfig(&cluster, clusterInfraenvs, "")
 		Expect(err).ShouldNot(HaveOccurred())
-		err = yaml.Unmarshal(data, &result)
+		err = json.Unmarshal(data, &result)
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(result.Platform.Baremetal).Should(BeNil())
 		var none = installcfg.PlatformNone{}
@@ -462,7 +462,7 @@ aEA8gNEmV+rb7h1v0r3EwDQYJKoZIhvcNAQELBQAwYTELMAkGA1UEBhMCaXMxCzAJBgNVBAgMAmRk
 		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(2)
 		data, err := installConfig.GetInstallConfig(&cluster, clusterInfraenvs, "")
 		Expect(err).ShouldNot(HaveOccurred())
-		err = yaml.Unmarshal(data, &result)
+		err = json.Unmarshal(data, &result)
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(result.Platform.Baremetal).Should(BeNil())
 		var none = installcfg.PlatformNone{}
@@ -482,7 +482,7 @@ aEA8gNEmV+rb7h1v0r3EwDQYJKoZIhvcNAQELBQAwYTELMAkGA1UEBhMCaXMxCzAJBgNVBAgMAmRk
 		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(2)
 		data, err := installConfig.GetInstallConfig(&cluster, clusterInfraenvs, "")
 		Expect(err).ShouldNot(HaveOccurred())
-		err = yaml.Unmarshal(data, &result)
+		err = json.Unmarshal(data, &result)
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(result.Platform.Baremetal).Should(BeNil())
 		var none = installcfg.PlatformNone{}
@@ -499,7 +499,7 @@ aEA8gNEmV+rb7h1v0r3EwDQYJKoZIhvcNAQELBQAwYTELMAkGA1UEBhMCaXMxCzAJBgNVBAgMAmRk
 		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(2)
 		data, err := installConfig.GetInstallConfig(&cluster, clusterInfraenvs, "")
 		Expect(err).ShouldNot(HaveOccurred())
-		err = yaml.Unmarshal(data, &result)
+		err = json.Unmarshal(data, &result)
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(result.Platform.None).Should(BeNil())
 	})
@@ -518,7 +518,7 @@ aEA8gNEmV+rb7h1v0r3EwDQYJKoZIhvcNAQELBQAwYTELMAkGA1UEBhMCaXMxCzAJBgNVBAgMAmRk
 
 		data, err := installConfig.GetInstallConfig(&cluster, clusterInfraenvs, "")
 		Expect(err).ShouldNot(HaveOccurred())
-		err = yaml.Unmarshal(data, &result)
+		err = json.Unmarshal(data, &result)
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(result.Platform.Baremetal).Should(BeNil())
 		Expect(*result.Platform.None).Should(Equal(installcfg.PlatformNone{}))
@@ -543,7 +543,7 @@ aEA8gNEmV+rb7h1v0r3EwDQYJKoZIhvcNAQELBQAwYTELMAkGA1UEBhMCaXMxCzAJBgNVBAgMAmRk
 
 		data, err := installConfig.GetInstallConfig(&cluster, clusterInfraenvs, "")
 		Expect(err).ShouldNot(HaveOccurred())
-		err = yaml.Unmarshal(data, &result)
+		err = json.Unmarshal(data, &result)
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(result.Platform.Baremetal).Should(BeNil())
 		Expect(*result.Platform.None).Should(Equal(installcfg.PlatformNone{}))
@@ -564,7 +564,7 @@ aEA8gNEmV+rb7h1v0r3EwDQYJKoZIhvcNAQELBQAwYTELMAkGA1UEBhMCaXMxCzAJBgNVBAgMAmRk
 		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(2)
 		data, err := installConfig.GetInstallConfig(&cluster, clusterInfraenvs, "")
 		Expect(err).ShouldNot(HaveOccurred())
-		err = yaml.Unmarshal(data, &result)
+		err = json.Unmarshal(data, &result)
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(result.Platform.Baremetal).Should(BeNil())
 		var none = installcfg.PlatformNone{}
@@ -584,7 +584,7 @@ aEA8gNEmV+rb7h1v0r3EwDQYJKoZIhvcNAQELBQAwYTELMAkGA1UEBhMCaXMxCzAJBgNVBAgMAmRk
 		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(2)
 		data, err := installConfig.GetInstallConfig(&cluster, clusterInfraenvs, "")
 		Expect(err).ShouldNot(HaveOccurred())
-		err = yaml.Unmarshal(data, &result)
+		err = json.Unmarshal(data, &result)
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(result.Platform.Baremetal).Should(BeNil())
 		var none = installcfg.PlatformNone{}
@@ -627,7 +627,7 @@ aEA8gNEmV+rb7h1v0r3EwDQYJKoZIhvcNAQELBQAwYTELMAkGA1UEBhMCaXMxCzAJBgNVBAgMAmRk
 		cluster.InstallConfigOverrides = `{"cpuPartitioningMode":"AllNodes"}`
 		data, err := installConfig.GetInstallConfig(&cluster, clusterInfraenvs, "")
 		Expect(err).ShouldNot(HaveOccurred())
-		err = yaml.Unmarshal(data, &result)
+		err = json.Unmarshal(data, &result)
 		Expect(err).ShouldNot(HaveOccurred())
 		// test that overrides worked
 		Expect(string(result.CPUPartitioningMode)).Should(Equal("AllNodes"))
@@ -639,7 +639,7 @@ aEA8gNEmV+rb7h1v0r3EwDQYJKoZIhvcNAQELBQAwYTELMAkGA1UEBhMCaXMxCzAJBgNVBAgMAmRk
 			mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(2)
 			data, err := installConfig.GetInstallConfig(&cluster, clusterInfraenvs, "")
 			Expect(err).ShouldNot(HaveOccurred())
-			Expect(yaml.Unmarshal(data, &result)).ShouldNot(HaveOccurred())
+			Expect(json.Unmarshal(data, &result)).ShouldNot(HaveOccurred())
 			Expect(result.Networking.ClusterNetwork).To(HaveLen(1))
 			Expect(result.Networking.MachineNetwork).To(HaveLen(1))
 			Expect(result.Networking.ServiceNetwork).To(HaveLen(1))
@@ -677,7 +677,7 @@ aEA8gNEmV+rb7h1v0r3EwDQYJKoZIhvcNAQELBQAwYTELMAkGA1UEBhMCaXMxCzAJBgNVBAgMAmRk
 			mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(2)
 			data, err := installConfig.GetInstallConfig(&cluster, clusterInfraenvs, "")
 			Expect(err).ShouldNot(HaveOccurred())
-			Expect(yaml.Unmarshal(data, &result)).ShouldNot(HaveOccurred())
+			Expect(json.Unmarshal(data, &result)).ShouldNot(HaveOccurred())
 			Expect(result.Networking.ClusterNetwork).To(HaveLen(2))
 			Expect(result.Networking.MachineNetwork).To(HaveLen(2))
 			Expect(result.Networking.ServiceNetwork).To(HaveLen(2))
@@ -751,6 +751,25 @@ var _ = Describe("ValidateInstallConfigPatch", func() {
 		Expect(err).ShouldNot(HaveOccurred())
 	})
 })
+
+// asserts credential values against vsphereInstallConfigOverrides
+func assertVSphereCredentials(result installcfg.InstallerConfigBaremetal) {
+	Expect(result.Platform.Vsphere.VCenters[0].Server).Should(Equal("vcenter.openshift.com"))
+	Expect(result.Platform.Vsphere.VCenters[0].Username).Should(Equal("testUser"))
+	Expect(result.Platform.Vsphere.VCenters[0].Password.String()).Should(Equal("testPassword"))
+	Expect(len(result.Platform.Vsphere.VCenters[0].Datacenters)).Should(Equal(1))
+	Expect(result.Platform.Vsphere.VCenters[0].Datacenters[0]).Should(Equal("testDatacenter"))
+	Expect(result.Platform.Vsphere.FailureDomains[0].Name).Should(Equal("testfailureDomain"))
+	Expect(result.Platform.Vsphere.FailureDomains[0].Region).Should(Equal("testRegion"))
+	Expect(result.Platform.Vsphere.FailureDomains[0].Server).Should(Equal("vcenter.openshift.com"))
+	Expect(result.Platform.Vsphere.FailureDomains[0].Topology.Datacenter).Should(Equal("testDatacenter"))
+	Expect(result.Platform.Vsphere.FailureDomains[0].Topology.ComputeCluster).Should(Equal("/testDatacenter/host/testComputecluster"))
+	Expect(len(result.Platform.Vsphere.FailureDomains[0].Topology.Networks)).Should(Equal(1))
+	Expect(result.Platform.Vsphere.FailureDomains[0].Topology.Networks[0]).Should(Equal("testNetwork"))
+	Expect(result.Platform.Vsphere.FailureDomains[0].Topology.Datastore).Should(Equal("/testDatacenter/datastore/testDatastore"))
+	Expect(result.Platform.Vsphere.FailureDomains[0].Topology.ResourcePool).Should(Equal("/testDatacenter/host/testComputecluster//Resources"))
+	Expect(result.Platform.Vsphere.FailureDomains[0].Topology.Folder).Should(Equal("/testDatacenter/vm/testFolder"))
+}
 
 func getInventoryStr(hostname, bootMode string, ipv4 bool, ipv6 bool) string {
 	inventory := models.Inventory{

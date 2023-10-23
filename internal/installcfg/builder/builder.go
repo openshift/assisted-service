@@ -13,7 +13,6 @@ import (
 	"github.com/openshift/assisted-service/pkg/mirrorregistries"
 	"github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
-	"gopkg.in/yaml.v2"
 )
 
 //go:generate mockgen -source=builder.go -package=builder -destination=mock_installcfg.go
@@ -166,6 +165,7 @@ func (i *installConfigBuilder) applyConfigOverrides(overrides string, cfg *insta
 	if err := overrideDecoder.Decode(cfg); err != nil {
 		return err
 	}
+
 	return nil
 }
 
@@ -180,7 +180,6 @@ func (i *installConfigBuilder) getInstallConfig(cluster *common.Cluster, cluster
 		return nil, fmt.Errorf(
 			"error while adding Platfom %s to install config, error is: %w", common.PlatformTypeValue(cluster.Platform.Type), err)
 	}
-
 	err = i.applyConfigOverrides(cluster.InstallConfigOverrides, cfg)
 	if err != nil {
 		return nil, err
@@ -199,7 +198,7 @@ func (i *installConfigBuilder) GetInstallConfig(cluster *common.Cluster, cluster
 		return nil, err
 	}
 
-	return yaml.Marshal(*cfg)
+	return json.Marshal(*cfg)
 }
 
 func (i *installConfigBuilder) ValidateInstallConfigPatch(cluster *common.Cluster, clusterInfraenvs []*common.InfraEnv, patch string) error {
