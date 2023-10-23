@@ -536,14 +536,16 @@ func (v *clusterValidator) networkPrefixValid(c *clusterPreprocessContext) (Vali
 		return ValidationPending, "The Cluster Network CIDR is undefined."
 	}
 
-	if v.skipNetworkHostPrefixCheck(c) {
-		return ValidationSuccess, "The Cluster Network prefix is valid."
-	}
+	skipHostPrefix := v.skipNetworkHostPrefixCheck(c)
+	hostPrefixForCidrValidation := 25 // default to 128 addresses
 
 	validClusterNetworks := funk.Filter(c.cluster.ClusterNetworks, func(clusterNetwork *models.ClusterNetwork) bool {
+		if !skipHostPrefix {
+			hostPrefixForCidrValidation = int(clusterNetwork.HostPrefix)
+		}
 		return clusterNetwork != nil &&
-			network.VerifyNetworkHostPrefix(clusterNetwork.HostPrefix) == nil &&
-			network.VerifyClusterCidrSize(int(clusterNetwork.HostPrefix), string(clusterNetwork.Cidr), len(c.cluster.Hosts)) == nil
+			(skipHostPrefix || network.VerifyNetworkHostPrefix(clusterNetwork.HostPrefix) == nil) &&
+			network.VerifyClusterCidrSize(hostPrefixForCidrValidation, string(clusterNetwork.Cidr), len(c.cluster.Hosts)) == nil
 	}).([]*models.ClusterNetwork)
 
 	if len(validClusterNetworks) == len(c.cluster.ClusterNetworks) {
