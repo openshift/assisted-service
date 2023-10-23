@@ -32,66 +32,66 @@ type BareMetalInstallConfigPlatform struct {
 }
 
 type VsphereFailureDomainTopology struct {
-	ComputeCluster string   `yaml:"computeCluster"`
-	Datacenter     string   `yaml:"datacenter"`
-	Datastore      string   `yaml:"datastore"`
-	Folder         string   `yaml:"folder,omitempty"`
-	Networks       []string `yaml:"networks,omitempty"`
-	ResourcePool   string   `yaml:"resourcePool,omitempty"`
+	ComputeCluster string   `json:"computeCluster"`
+	Datacenter     string   `json:"datacenter"`
+	Datastore      string   `json:"datastore"`
+	Folder         string   `json:"folder,omitempty"`
+	Networks       []string `json:"networks,omitempty"`
+	ResourcePool   string   `json:"resourcePool,omitempty"`
 }
 
 // VsphereFailureDomain holds the region and zone failure domain and the vCenter topology of that failure domain.
 type VsphereFailureDomain struct {
 	// Name defines the name of the VsphereFailureDomain. This name is arbitrary but will be used in VSpherePlatformDeploymentZone for association
-	Name string `yaml:"name"`
+	Name string `json:"name"`
 
 	// Region defines a FailureDomainCoordinate which includes the name of the vCenter tag, the failure domain type and the name of the vCenter tag category.
-	Region string `yaml:"region"`
+	Region string `json:"region"`
 
 	// Server is the fully-qualified domain name or the IP address of the vCenter server.
-	Server string `yaml:"server"`
+	Server string `json:"server"`
 
 	// Topology describes a given failure domain using vSphere constructs
-	Topology VsphereFailureDomainTopology `yaml:"topology"`
+	Topology VsphereFailureDomainTopology `json:"topology"`
 
 	// Zone defines a VSpherePlatformFailureDomain which includes the name of the vCenter tag, the failure domain type and the name of the vCenter tag category.
-	Zone string `yaml:"zone"`
+	Zone string `json:"zone"`
 }
 
 // VsphereVCenter stores the vCenter connection fields https://github.com/kubernetes/cloud-provider-vsphere/blob/master/pkg/common/config/types_yaml.go
 type VsphereVCenter struct {
 	// Datacenter in which VMs are located.
-	Datacenters []string `yaml:"datacenters"`
+	Datacenters []string `json:"datacenters"`
 
 	// Password is the password for the user to use
-	Password strfmt.Password `yaml:"password"`
+	Password strfmt.Password `json:"password"`
 
 	// Port is the TCP port that will be used to communicate to the vCenter endpoint. This is typically unchanged
 	// from the default of HTTPS TCP/443.
-	Port int32 `yaml:"port,omitempty"`
+	Port int32 `json:"port,omitempty"`
 
 	// Server is the fully-qualified domain name or the IP address of the vCenter server
-	Server string `yaml:"server"`
+	Server string `json:"server"`
 
 	// Username is the username that will be used to connect to vCenter
-	Username string `yaml:"user"`
+	Username string `json:"user"`
 }
 
 type VsphereInstallConfigPlatform struct {
-	DeprecatedVCenter          string                 `yaml:"vCenter,omitempty"`
-	DeprecatedUsername         string                 `yaml:"username,omitempty"`
-	DeprecatedPassword         strfmt.Password        `yaml:"password,omitempty"`
-	DeprecatedDatacenter       string                 `yaml:"datacenter,omitempty"`
-	DeprecatedDefaultDatastore string                 `yaml:"defaultDatastore,omitempty"`
-	DeprecatedFolder           string                 `yaml:"folder,omitempty"`
-	DeprecatedNetwork          string                 `yaml:"network,omitempty"`
-	DeprecatedCluster          string                 `yaml:"cluster,omitempty"`
-	DeprecatedAPIVIP           string                 `yaml:"apiVIP,omitempty"`
-	DeprecatedIngressVIP       string                 `yaml:"ingressVIP,omitempty"`
-	IngressVIPs                []string               `yaml:"ingressVIPs,omitempty"`
-	APIVIPs                    []string               `yaml:"apiVIPs,omitempty"`
-	FailureDomains             []VsphereFailureDomain `yaml:"failureDomains,omitempty"`
-	VCenters                   []VsphereVCenter       `yaml:"vcenters,omitempty"`
+	DeprecatedVCenter          string                 `json:"vCenter,omitempty"`
+	DeprecatedUsername         string                 `json:"username,omitempty"`
+	DeprecatedPassword         strfmt.Password        `json:"password,omitempty"`
+	DeprecatedDatacenter       string                 `json:"datacenter,omitempty"`
+	DeprecatedDefaultDatastore string                 `json:"defaultDatastore,omitempty"`
+	DeprecatedFolder           string                 `json:"folder,omitempty"`
+	DeprecatedNetwork          string                 `json:"network,omitempty"`
+	DeprecatedCluster          string                 `json:"cluster,omitempty"`
+	DeprecatedAPIVIP           string                 `json:"apiVIP,omitempty"`
+	DeprecatedIngressVIP       string                 `json:"ingressVIP,omitempty"`
+	IngressVIPs                []string               `json:"ingressVIPs,omitempty"`
+	APIVIPs                    []string               `json:"apiVIPs,omitempty"`
+	FailureDomains             []VsphereFailureDomain `json:"failureDomains,omitempty"`
+	VCenters                   []VsphereVCenter       `json:"vcenters,omitempty"`
 }
 
 type NutanixInstallConfigPlatform struct {

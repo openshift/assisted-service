@@ -207,6 +207,26 @@ aEA8gNEmV+rb7h1v0r3EwDQYJKoZIhvcNAQELBQAwYTELMAkGA1UEBhMCaXMxCzAJBgNVBAgMAmRk
 		Expect(result.Networking.NetworkType).To(Equal(models.ClusterNetworkTypeOpenShiftSDN))
 	})
 
+	It("vSphere credentials in overrides is decoded correctly", func() {
+		var result installcfg.InstallerConfigBaremetal
+		overrides := "{\"platform\":{\"vsphere\":{\"vcenters\":[{\"server\":\"vcenter.openshift.com\",\"user\":\"testUser\",\"password\":\"testPassword\",\"datacenters\":[\"testDatacenter\"]}],\"failureDomains\":[{\"name\":\"testfailureDomain\",\"region\":\"testRegion\",\"zone\":\"testZone\",\"server\":\"vcenter.openshift.com\",\"topology\":{\"datacenter\":\"testDatacenter\",\"computeCluster\":\"/testDatacenter/host/testComputecluster\",\"networks\":[\"testNetwork\"],\"datastore\":\"/testDatacenter/datastore/testDatastore\",\"resourcePool\":\"/testDatacenter/host/testComputecluster//Resources\",\"folder\":\"/testDatacenter/vm/testFolder\"}}]}}}"
+		err := installConfig.applyConfigOverrides(overrides, &result)
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(result.Platform.Vsphere.VCenters[0].Server).Should(Equal("vcenter.openshift.com"))
+		Expect(result.Platform.Vsphere.VCenters[0].Username).Should(Equal("testUser"))
+		Expect(result.Platform.Vsphere.VCenters[0].Password.String()).Should(Equal("testPassword"))
+		Expect(len(result.Platform.Vsphere.VCenters[0].Datacenters)).Should(Equal(1))
+		Expect(result.Platform.Vsphere.FailureDomains[0].Name).Should(Equal("testfailureDomain"))
+		Expect(result.Platform.Vsphere.FailureDomains[0].Region).Should(Equal("testRegion"))
+		Expect(result.Platform.Vsphere.FailureDomains[0].Server).Should(Equal("vcenter.openshift.com"))
+		Expect(result.Platform.Vsphere.FailureDomains[0].Topology.Datacenter).Should(Equal("testDatacenter"))
+		Expect(result.Platform.Vsphere.FailureDomains[0].Topology.ComputeCluster).Should(Equal("/testDatacenter/host/testComputecluster"))
+		Expect(len(result.Platform.Vsphere.FailureDomains[0].Topology.Networks)).Should(Equal(1))
+		Expect(result.Platform.Vsphere.FailureDomains[0].Topology.Datastore).Should(Equal("/testDatacenter/datastore/testDatastore"))
+		Expect(result.Platform.Vsphere.FailureDomains[0].Topology.ResourcePool).Should(Equal("/testDatacenter/host/testComputecluster//Resources"))
+		Expect(result.Platform.Vsphere.FailureDomains[0].Topology.Folder).Should(Equal("/testDatacenter/vm/testFolder"))
+	})
+
 	It("correctly applies cluster overrides", func() {
 		var result installcfg.InstallerConfigBaremetal
 		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(2)
