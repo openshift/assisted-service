@@ -167,12 +167,23 @@ func (r *InfraEnvReconciler) updateInfraEnv(ctx context.Context, log logrus.Fiel
 		updateParams.InfraEnvUpdateParams.SSHAuthorizedKey = &infraEnv.Spec.SSHAuthorizedKey
 	}
 
-	pullSecret, err := r.PullSecretHandler.GetValidPullSecret(ctx, getPullSecretKey(infraEnv.Namespace, infraEnv.Spec.PullSecretRef))
+	pullSecretKey := getPullSecretKey(infraEnv.Namespace, infraEnv.Spec.PullSecretRef)
+	pullSecret, err := r.PullSecretHandler.GetValidPullSecret(ctx, pullSecretKey)
 	if err != nil {
 		log.WithError(err).Error("failed to get pull secret")
 		return nil, err
 	}
 	updateParams.InfraEnvUpdateParams.PullSecret = pullSecret
+
+	secret, err := getSecret(ctx, r.Client, r.APIReader, pullSecretKey)
+	if err != nil {
+		log.WithError(err).Errorf("failed to get kubeconfig secret %s", pullSecretKey)
+		return nil, err
+	}
+	if err = ensureSecretIsLabelled(ctx, r.Client, secret, pullSecretKey); err != nil {
+		r.Log.WithError(err).Errorf("failed to label kubeconfig secret %s", pullSecretKey)
+		return nil, err
+	}
 
 	staticNetworkConfig, err := r.processNMStateConfig(ctx, log, infraEnv)
 	if err != nil {
@@ -789,11 +800,37 @@ func (r *InfraEnvReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		return reply
 	}
 
+	mapPullSecretToInfraEnv := func(ps client.Object) []reconcile.Request {
+		log := logutil.FromContext(context.Background(), r.Log).WithFields(
+			logrus.Fields{
+				"pull_secret":           ps.GetName(),
+				"pull_secret_namespace": ps.GetNamespace(),
+			})
+		// PullSecretRef is a LocalObjectReference, which means it must exist in the
+		// same namespace. Let's get only the ClusterDeployments from the Secret's namespace.
+		infraEnvs := &aiv1beta1.InfraEnvList{}
+		if err := r.List(context.Background(), infraEnvs, &client.ListOptions{Namespace: ps.GetNamespace()}); err != nil {
+			log.Debugf("failed to list InfraEnvs")
+			return []reconcile.Request{}
+		}
+		reply := make([]reconcile.Request, 0, len(infraEnvs.Items))
+		for _, infraEnv := range infraEnvs.Items {
+			if infraEnv.Spec.PullSecretRef != nil && infraEnv.Spec.PullSecretRef.Name == ps.GetName() {
+				reply = append(reply, reconcile.Request{NamespacedName: types.NamespacedName{
+					Namespace: infraEnv.Namespace,
+					Name:      infraEnv.Name,
+				}})
+			}
+		}
+		return reply
+	}
+
 	infraEnvUpdates := r.CRDEventsHandler.GetInfraEnvUpdates()
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&aiv1beta1.InfraEnv{}).
 		Watches(&source.Kind{Type: &aiv1beta1.NMStateConfig{}}, handler.EnqueueRequestsFromMapFunc(mapNMStateConfigToInfraEnv)).
 		Watches(&source.Kind{Type: &hivev1.ClusterDeployment{}}, handler.EnqueueRequestsFromMapFunc(mapClusterDeploymentToInfraEnv)).
+		Watches(&source.Kind{Type: &corev1.Secret{}}, handler.EnqueueRequestsFromMapFunc(mapPullSecretToInfraEnv)).
 		Watches(&source.Channel{Source: infraEnvUpdates}, &handler.EnqueueRequestForObject{}).
 		Complete(r)
 }
