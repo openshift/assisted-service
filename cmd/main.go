@@ -550,7 +550,12 @@ func main() {
 	go func() {
 		log.Printf("Starting pprof... log level: %s\n", log.Level)
 		if log.Level == logrus.DebugLevel {
-			log.Println(http.ListenAndServe("localhost:6060", nil))
+			srv := http.Server{
+				Addr:         "localhost:6060",
+				WriteTimeout: 600 * time.Second,
+				ReadTimeout:  5 * time.Second,
+			}
+			srv.ListenAndServe()
 		}
 	}()
 
