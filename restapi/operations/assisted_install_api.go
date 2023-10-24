@@ -249,6 +249,9 @@ func NewAssistedInstallAPI(spec *loads.Document) *AssistedInstallAPI {
 		InstallerV2SetIgnoredValidationsHandler: installer.V2SetIgnoredValidationsHandlerFunc(func(params installer.V2SetIgnoredValidationsParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation installer.V2SetIgnoredValidations has not yet been implemented")
 		}),
+		EventsV2TriggerEventHandler: events.V2TriggerEventHandlerFunc(func(params events.V2TriggerEventParams, principal interface{}) middleware.Responder {
+			return middleware.NotImplemented("operation events.V2TriggerEvent has not yet been implemented")
+		}),
 		InstallerV2UpdateClusterInstallConfigHandler: installer.V2UpdateClusterInstallConfigHandlerFunc(func(params installer.V2UpdateClusterInstallConfigParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation installer.V2UpdateClusterInstallConfig has not yet been implemented")
 		}),
@@ -493,6 +496,8 @@ type AssistedInstallAPI struct {
 	InstallerV2ResetHostValidationHandler installer.V2ResetHostValidationHandler
 	// InstallerV2SetIgnoredValidationsHandler sets the operation handler for the v2 set ignored validations operation
 	InstallerV2SetIgnoredValidationsHandler installer.V2SetIgnoredValidationsHandler
+	// EventsV2TriggerEventHandler sets the operation handler for the v2 trigger event operation
+	EventsV2TriggerEventHandler events.V2TriggerEventHandler
 	// InstallerV2UpdateClusterInstallConfigHandler sets the operation handler for the v2 update cluster install config operation
 	InstallerV2UpdateClusterInstallConfigHandler installer.V2UpdateClusterInstallConfigHandler
 	// InstallerV2UpdateClusterLogsProgressHandler sets the operation handler for the v2 update cluster logs progress operation
@@ -805,6 +810,9 @@ func (o *AssistedInstallAPI) Validate() error {
 	}
 	if o.InstallerV2SetIgnoredValidationsHandler == nil {
 		unregistered = append(unregistered, "installer.V2SetIgnoredValidationsHandler")
+	}
+	if o.EventsV2TriggerEventHandler == nil {
+		unregistered = append(unregistered, "events.V2TriggerEventHandler")
 	}
 	if o.InstallerV2UpdateClusterInstallConfigHandler == nil {
 		unregistered = append(unregistered, "installer.V2UpdateClusterInstallConfigHandler")
@@ -1211,6 +1219,10 @@ func (o *AssistedInstallAPI) initHandlerCache() {
 		o.handlers["PUT"] = make(map[string]http.Handler)
 	}
 	o.handlers["PUT"]["/v2/clusters/{cluster_id}/ignored-validations"] = installer.NewV2SetIgnoredValidations(o.context, o.InstallerV2SetIgnoredValidationsHandler)
+	if o.handlers["POST"] == nil {
+		o.handlers["POST"] = make(map[string]http.Handler)
+	}
+	o.handlers["POST"]["/v2/events"] = events.NewV2TriggerEvent(o.context, o.EventsV2TriggerEventHandler)
 	if o.handlers["PATCH"] == nil {
 		o.handlers["PATCH"] = make(map[string]http.Handler)
 	}

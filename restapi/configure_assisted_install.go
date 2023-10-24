@@ -33,6 +33,9 @@ const AuthKey contextKey = "Auth"
 type EventsAPI interface {
 	/* V2ListEvents Lists events for a cluster. */
 	V2ListEvents(ctx context.Context, params events.V2ListEventsParams) middleware.Responder
+
+	/* V2TriggerEvent Add new assisted installer event. */
+	V2TriggerEvent(ctx context.Context, params events.V2TriggerEventParams) middleware.Responder
 }
 
 //go:generate mockery -name InstallerAPI -inpkg
@@ -731,6 +734,11 @@ func HandlerAPI(c Config) (http.Handler, *operations.AssistedInstallAPI, error) 
 		ctx := params.HTTPRequest.Context()
 		ctx = storeAuth(ctx, principal)
 		return c.InstallerAPI.V2SetIgnoredValidations(ctx, params)
+	})
+	api.EventsV2TriggerEventHandler = events.V2TriggerEventHandlerFunc(func(params events.V2TriggerEventParams, principal interface{}) middleware.Responder {
+		ctx := params.HTTPRequest.Context()
+		ctx = storeAuth(ctx, principal)
+		return c.EventsAPI.V2TriggerEvent(ctx, params)
 	})
 	api.InstallerV2UpdateClusterInstallConfigHandler = installer.V2UpdateClusterInstallConfigHandlerFunc(func(params installer.V2UpdateClusterInstallConfigParams, principal interface{}) middleware.Responder {
 		ctx := params.HTTPRequest.Context()

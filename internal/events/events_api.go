@@ -2,9 +2,12 @@ package events
 
 import (
 	"context"
+	"encoding/json"
 	"net/http"
+	"time"
 
 	"github.com/go-openapi/runtime/middleware"
+	"github.com/go-openapi/swag"
 	"github.com/openshift/assisted-service/internal/common"
 	eventsapi "github.com/openshift/assisted-service/internal/events/api"
 	"github.com/openshift/assisted-service/models"
@@ -28,6 +31,58 @@ func NewApi(handler eventsapi.Handler, log logrus.FieldLogger) *Api {
 		handler: handler,
 		log:     log,
 	}
+}
+
+func parseProps(props string) ([]interface{}, error) {
+	if props == "" {
+		return nil, nil
+	}
+	var parsed interface{}
+	if err := json.Unmarshal([]byte(props), &parsed); err != nil {
+		return nil, err
+	}
+	switch v := parsed.(type) {
+	case []interface{}:
+		return v, nil
+	default:
+		return []interface{}{v}, nil
+	}
+}
+
+func (a *Api) V2TriggerEvent(ctx context.Context, params events.V2TriggerEventParams) middleware.Responder {
+	var (
+		props []interface{}
+		err   error
+	)
+	if props, err = parseProps(params.TriggerEventParams.Props); err != nil {
+		wrapped := errors.Wrapf(err, "failed to unmarshal event properties: '%s'", params.TriggerEventParams.Props)
+		a.log.WithError(wrapped).Error("V2AddEvent")
+	}
+	switch params.TriggerEventParams.Category {
+	case models.EventCategoryUser, "":
+		a.handler.V2AddEvent(ctx,
+			params.TriggerEventParams.ClusterID,
+			params.TriggerEventParams.HostID,
+			params.TriggerEventParams.InfraEnvID,
+			params.TriggerEventParams.Name,
+			swag.StringValue(params.TriggerEventParams.Severity),
+			swag.StringValue(params.TriggerEventParams.Message),
+			time.Now(), props...)
+	case models.EventCategoryMetrics:
+		a.handler.V2AddMetricsEvent(ctx,
+			params.TriggerEventParams.ClusterID,
+			params.TriggerEventParams.HostID,
+			params.TriggerEventParams.InfraEnvID,
+			params.TriggerEventParams.Name,
+			swag.StringValue(params.TriggerEventParams.Severity),
+			swag.StringValue(params.TriggerEventParams.Message),
+			time.Now(), props...)
+	default:
+		err := common.NewApiError(http.StatusBadRequest, errors.Errorf("unexpected category %s", params.TriggerEventParams.Category))
+		a.log.WithError(err).Error("V2AddEvent")
+		return err
+	}
+	return events.NewV2TriggerEventCreated()
 }
 
 func (a *Api) V2ListEvents(ctx context.Context, params events.V2ListEventsParams) middleware.Responder {
