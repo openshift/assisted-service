@@ -7,10 +7,12 @@ import (
 	"gorm.io/gorm"
 )
 
-/* NoneHandler is the authorizer middleware that is being used for
-   non-RHSSO authentication cases. It will basically authorize any
-   request, as there is no user and tenancy based concepts in these
-   cases
+/*
+NoneHandler is the authorizer middleware that is being used for
+
+	non-RHSSO authentication cases. It will basically authorize any
+	request, as there is no user and tenancy based concepts in these
+	cases
 */
 type NoneHandler struct {
 }
