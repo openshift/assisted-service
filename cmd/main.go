@@ -163,7 +163,7 @@ var Options struct {
 	AllowConvergedFlow                   bool          `envconfig:"ALLOW_CONVERGED_FLOW" default:"true"`
 	PreprovisioningImageControllerConfig controllers.PreprovisioningImageControllerConfig
 	BMACConfig                           controllers.BMACConfig
-	EnableLocalClusterImport             bool   `envconfig:"ENABLE_LOCAL_CLUSTER_IMPORT" default:"true"`
+	EnableLocalClusterImport             bool   `envconfig:"ENABLE_LOCAL_CLUSTER_IMPORT" default:"false"`
 	LocalClusterImportNamespace          string `envconfig:"LOCAL_CLUSTER_IMPORT_NAMESPACE" default:"local-agent-cluster"`
 
 	// Directory containing pre-generated TLS certs/keys for the ephemeral installer
