@@ -82,9 +82,9 @@ spec:
 `
 
 const snoDnsmasqConf = `
-address=/apps.{{.CLUSTER_NAME}}.{{.DNS_DOMAIN}}/{{.HOST_IP}}
-address=/api-int.{{.CLUSTER_NAME}}.{{.DNS_DOMAIN}}/{{.HOST_IP}}
-address=/api.{{.CLUSTER_NAME}}.{{.DNS_DOMAIN}}/{{.HOST_IP}}
+address=/apps.{{.CLUSTER_NAME}}.{{.DNS_DOMAIN}}/HOST_IP
+address=/api-int.{{.CLUSTER_NAME}}.{{.DNS_DOMAIN}}/HOST_IP
+address=/api.{{.CLUSTER_NAME}}.{{.DNS_DOMAIN}}/HOST_IP
 `
 
 const unmanagedResolvConf = `
@@ -93,7 +93,12 @@ rc-manager=unmanaged
 `
 
 const forceDnsDispatcherScript = `#!/bin/bash
+
 export IP="{{.HOST_IP}}"
+if [ -f /etc/default/node-ip ]; then
+    export IP=$(cat /etc/default/node-ip)
+fi
+
 export BASE_RESOLV_CONF=/run/NetworkManager/resolv.conf
 if [ "$2" = "dhcp4-change" ] || [ "$2" = "dhcp6-change" ] || [ "$2" = "up" ] || [ "$2" = "connectivity-change" ]; then
 	export TMP_FILE=$(mktemp /etc/forcedns_resolv.conf.XXXXXX)
@@ -122,7 +127,7 @@ spec:
         - contents:
             source: data:text/plain;charset=utf-8;base64,{{.DNSMASQ_CONTENT}}
           mode: 420
-          path: /etc/dnsmasq.d/single-node.conf
+          path: /etc/default/single-node.conf_template
           overwrite: true
         - contents:
             source: data:text/plain;charset=utf-8;base64,{{.FORCE_DNS_SCRIPT}}
@@ -142,10 +147,14 @@ spec:
             [Unit]
             Description=Run dnsmasq to provide local dns for Single Node OpenShift
             Before=kubelet.service crio.service
-            After=network.target
+            After=network.target nodeip-configuration.service
 
             [Service]
+            TimeoutStartSec=30
+            ExecStartPre=/bin/bash -c 'until [ -e /var/run/nodeip-configuration/primary-ip ]; do sleep 1; done'
+            ExecStartPre=/bin/bash -c 'sed "s/HOST_IP/$(cat /var/run/nodeip-configuration/primary-ip)/g" /etc/default/single-node.conf_template > /etc/dnsmasq.d/single-node.conf'
             ExecStart=/usr/sbin/dnsmasq -k
+            Restart=always
 
             [Install]
             WantedBy=multi-user.target
