@@ -864,8 +864,8 @@ github.com/prometheus/common/model
 github.com/prometheus/procfs
 github.com/prometheus/procfs/internal/fs
 github.com/prometheus/procfs/internal/util
-# github.com/rogpeppe/go-internal v1.9.0
-## explicit; go 1.17
+# github.com/rogpeppe/go-internal v1.11.0
+## explicit; go 1.19
 # github.com/rs/cors v1.8.2
 ## explicit; go 1.13
 github.com/rs/cors
@@ -1153,7 +1153,7 @@ golang.org/x/crypto/ssh/internal/bcrypt_pbkdf
 ## explicit; go 1.11
 golang.org/x/lint
 golang.org/x/lint/golint
-# golang.org/x/mod v0.8.0
+# golang.org/x/mod v0.9.0
 ## explicit; go 1.17
 golang.org/x/mod/internal/lazyregexp
 golang.org/x/mod/modfile
