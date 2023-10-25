@@ -59,7 +59,7 @@ const (
 	ClusterInstallationNotStartedReason string = "InstallationNotStarted"
 	ClusterInstallationNotStartedMsg    string = "The installation has not yet started"
 	ClusterInstallationOnHoldReason     string = "InstallationOnHold"
-	ClusterInstallationOnHoldMsg        string = "The installation is on hold. To unhold set holdInstallation and hive.openshift.io/reconcile-pause annotaiton in cluster deployment to false"
+	ClusterInstallationOnHoldMsg        string = "The installation is on hold. To unhold set holdInstallation to false"
 	ClusterInstallationInProgressReason string = "InstallationInProgress"
 	ClusterInstallationInProgressMsg    string = "The installation is in progress:"
 	ClusterUnknownStatusReason          string = "UnknownStatus"

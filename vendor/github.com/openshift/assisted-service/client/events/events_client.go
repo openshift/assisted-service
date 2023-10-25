@@ -18,11 +18,11 @@ import (
 // API is the interface of the events client
 type API interface {
 	/*
-	   V2AddEvent Add new assisted installer event.*/
-	V2AddEvent(ctx context.Context, params *V2AddEventParams) (*V2AddEventCreated, error)
-	/*
 	   V2ListEvents Lists events for a cluster.*/
 	V2ListEvents(ctx context.Context, params *V2ListEventsParams) (*V2ListEventsOK, error)
+	/*
+	   V2TriggerEvent Add new assisted installer event.*/
+	V2TriggerEvent(ctx context.Context, params *V2TriggerEventParams) (*V2TriggerEventCreated, error)
 }
 
 // New creates a new events API client.
@@ -41,31 +41,6 @@ type Client struct {
 	transport runtime.ClientTransport
 	formats   strfmt.Registry
 	authInfo  runtime.ClientAuthInfoWriter
-}
-
-/*
-V2AddEvent Add new assisted installer event.
-*/
-func (a *Client) V2AddEvent(ctx context.Context, params *V2AddEventParams) (*V2AddEventCreated, error) {
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "v2AddEvent",
-		Method:             "POST",
-		PathPattern:        "/v2/events",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http", "https"},
-		Params:             params,
-		Reader:             &V2AddEventReader{formats: a.formats},
-		AuthInfo:           a.authInfo,
-		Context:            ctx,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*V2AddEventCreated), nil
-
 }
 
 /*
@@ -90,5 +65,30 @@ func (a *Client) V2ListEvents(ctx context.Context, params *V2ListEventsParams) (
 		return nil, err
 	}
 	return result.(*V2ListEventsOK), nil
+
+}
+
+/*
+V2TriggerEvent Add new assisted installer event.
+*/
+func (a *Client) V2TriggerEvent(ctx context.Context, params *V2TriggerEventParams) (*V2TriggerEventCreated, error) {
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "v2TriggerEvent",
+		Method:             "POST",
+		PathPattern:        "/v2/events",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http", "https"},
+		Params:             params,
+		Reader:             &V2TriggerEventReader{formats: a.formats},
+		AuthInfo:           a.authInfo,
+		Context:            ctx,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*V2TriggerEventCreated), nil
 
 }
