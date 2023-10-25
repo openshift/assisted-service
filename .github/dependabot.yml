@@ -8,7 +8,7 @@ updates:
   - package-ecosystem: "gomod"
     directory: "/"
     schedule:
-      interval: "weekly"
+      interval: "daily"
     labels:
       - "approved"
       - "lgtm"
@@ -16,8 +16,64 @@ updates:
       - "go"
     commit-message:
       prefix: "NO-ISSUE"
+    allow:
+      - dependency-name: "*"
+        dependency-type: all
     groups:
       go-dependencies:
-        patterns:
+        patterns: 
           - "*"
-
+  - package-ecosystem: "gomod"
+    directory: "/api"
+    schedule:
+      interval: "daily"
+    labels:
+      - "approved"
+      - "lgtm"
+      - "dependabot"
+      - "go"
+    commit-message:
+      prefix: "NO-ISSUE"
+    allow:
+      - dependency-name: "*"
+        dependency-type: all
+    groups:
+      go-api-dependencies:
+        patterns: 
+          - "*"
+  - package-ecosystem: "gomod"
+    directory: "/client"
+    schedule:
+      interval: "daily"
+    labels:
+      - "approved"
+      - "lgtm"
+      - "dependabot"
+      - "go"
+    commit-message:
+      prefix: "NO-ISSUE"
+    allow:
+      - dependency-name: "*"
+        dependency-type: all
+    groups:
+      go-client-dependencies:
+        patterns: 
+          - "*"
+  - package-ecosystem: "gomod"
+    directory: "/models"
+    schedule:
+      interval: "daily"
+    labels:
+      - "approved"
+      - "lgtm"
+      - "dependabot"
+      - "go"
+    commit-message:
+      prefix: "NO-ISSUE"
+    allow:
+      - dependency-name: "*"
+        dependency-type: all
+    groups:
+      go-models-dependencies:
+        patterns: 
+          - "*"
