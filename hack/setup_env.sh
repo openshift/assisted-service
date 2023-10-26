@@ -67,9 +67,8 @@ function test_tools() {
 
 function assisted_service() {
   ARCH=$(case $(arch) in x86_64) echo -n amd64 ;; aarch64) echo -n arm64 ;; *) echo -n $(arch) ;; esac)
-  # Workaround until the last stable kubectl version gets propagated by the CDN
-  # latest_kubectl_version=$(curl --retry 5 --connect-timeout 30 -L -s https://dl.k8s.io/release/stable.txt)
-  latest_kubectl_version="v1.28.2"
+
+  latest_kubectl_version=$(curl --retry 5 --connect-timeout 30 -L -s https://dl.k8s.io/release/stable.txt)
   curl --retry 5 --connect-timeout 30 -L "https://dl.k8s.io/release/${latest_kubectl_version}/bin/linux/amd64/kubectl" -o /tmp/kubectl
   install -o root -g root -m 0755 /tmp/kubectl /usr/local/bin/kubectl
   rm -f /tmp/kubectl
