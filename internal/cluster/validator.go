@@ -537,11 +537,13 @@ func (v *clusterValidator) networkPrefixValid(c *clusterPreprocessContext) (Vali
 	}
 
 	skipHostPrefix := v.skipNetworkHostPrefixCheck(c)
-	hostPrefixForCidrValidation := 25 // default to 128 addresses
 
 	validClusterNetworks := funk.Filter(c.cluster.ClusterNetworks, func(clusterNetwork *models.ClusterNetwork) bool {
+		var hostPrefixForCidrValidation int
 		if !skipHostPrefix {
 			hostPrefixForCidrValidation = int(clusterNetwork.HostPrefix)
+		} else {
+			hostPrefixForCidrValidation = 25 // default to 128 addresses
 		}
 		return clusterNetwork != nil &&
 			(skipHostPrefix || network.VerifyNetworkHostPrefix(clusterNetwork.HostPrefix) == nil) &&
@@ -581,13 +583,9 @@ func (v *clusterValidator) skipNetworkHostPrefixCheck(c *clusterPreprocessContex
 	// list of known plugins that require hostPrefix to be set
 	var pluginsUsingHostPrefix = []string{models.ClusterNetworkTypeOVNKubernetes, models.ClusterNetworkTypeOpenShiftSDN}
 
-	if !funk.ContainsString(pluginsUsingHostPrefix, swag.StringValue(c.cluster.NetworkType)) {
-		v.log.Infof("skipping network prefix check for %s", swag.StringValue(c.cluster.NetworkType))
-		return true
-	}
-
-	// Also check networkType in install-config overrides
+	networkType := swag.StringValue(c.cluster.NetworkType)
 	if c.cluster.InstallConfigOverrides != "" {
+		// use networkType from install-config overrides if set
 		overrideDecoder := json.NewDecoder(strings.NewReader(c.cluster.InstallConfigOverrides))
 		overrideDecoder.DisallowUnknownFields()
 
@@ -597,10 +595,13 @@ func (v *clusterValidator) skipNetworkHostPrefixCheck(c *clusterPreprocessContex
 			return false
 		}
 
-		if cfg.Networking.NetworkType != "" && !funk.ContainsString(pluginsUsingHostPrefix, cfg.Networking.NetworkType) {
-			v.log.Infof("skipping network prefix check for %s", cfg.Networking.NetworkType)
-			return true
+		if cfg.Networking.NetworkType != "" {
+			networkType = cfg.Networking.NetworkType
 		}
+	}
+	if !funk.ContainsString(pluginsUsingHostPrefix, networkType) {
+		v.log.Infof("skipping network prefix check for %s", networkType)
+		return true
 	}
 	return false
 }
