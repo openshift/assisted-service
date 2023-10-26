@@ -680,3 +680,15 @@ x-events:
   severity: info
   properties:
     cluster_id: UUID
+
+- name: reboots_for_node
+  message: "Node {node_name} has been rebooted {reboots} times before completing installation"
+  event_type: host
+  severity: info
+  properties:
+    host_id: UUID
+    node_name: string
+    infra_env_id: UUID
+    cluster_id: UUID_PTR
+    reboots: int64
+
