@@ -40,8 +40,8 @@ require (
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/thoas/go-funk v0.9.2 // indirect
 	go.mongodb.org/mongo-driver v1.10.0 // indirect
-	golang.org/x/net v0.14.0 // indirect
-	golang.org/x/text v0.12.0 // indirect
+	golang.org/x/net v0.17.0 // indirect
+	golang.org/x/text v0.13.0 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
