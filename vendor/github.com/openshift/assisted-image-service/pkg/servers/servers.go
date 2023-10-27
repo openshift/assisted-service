@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"time"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -14,6 +15,7 @@ type ServerInfo struct {
 	HTTPSKeyFile    string
 	HTTPSCertFile   string
 	HasBothHandlers bool
+	FastShutdown    bool
 }
 
 func New(httpPort, httpsPort, HTTPSKeyFile, HTTPSCertFile string) *ServerInfo {
@@ -22,7 +24,8 @@ func New(httpPort, httpsPort, HTTPSKeyFile, HTTPSCertFile string) *ServerInfo {
 		// Run HTTPS listener when port, key and cert are specified
 		// This is default in operator deployments
 		servers.HTTPS = &http.Server{
-			Addr: fmt.Sprintf(":%s", httpsPort),
+			Addr:              fmt.Sprintf(":%s", httpsPort),
+			ReadHeaderTimeout: 3 * time.Second,
 		}
 		servers.HTTPSCertFile = HTTPSCertFile
 		servers.HTTPSKeyFile = HTTPSKeyFile
@@ -30,13 +33,15 @@ func New(httpPort, httpsPort, HTTPSKeyFile, HTTPSCertFile string) *ServerInfo {
 		// Run HTTP listener on HTTPS port if httpPort is not set
 		// This is default in podman deployment
 		servers.HTTP = &http.Server{
-			Addr: fmt.Sprintf(":%s", httpsPort),
+			Addr:              fmt.Sprintf(":%s", httpsPort),
+			ReadHeaderTimeout: 3 * time.Second,
 		}
 	}
 	if httpPort != "" {
 		// Run HTTP listener if httpPort is set
 		servers.HTTP = &http.Server{
-			Addr: fmt.Sprintf(":%s", httpPort),
+			Addr:              fmt.Sprintf(":%s", httpPort),
+			ReadHeaderTimeout: 3 * time.Second,
 		}
 	}
 	servers.HasBothHandlers = servers.HTTP != nil && servers.HTTPS != nil
@@ -58,6 +63,7 @@ func (s *ServerInfo) ListenAndServe() {
 	if s.HTTP != nil {
 		go s.httpListen()
 	}
+
 	if s.HTTPS != nil {
 		go s.httpsListen()
 	}
@@ -65,10 +71,18 @@ func (s *ServerInfo) ListenAndServe() {
 
 func (s *ServerInfo) Shutdown() bool {
 	if s.HTTPS != nil {
-		shutdown("HTTPS", s.HTTPS)
+		if s.FastShutdown {
+			s.HTTPS.Close()
+		} else {
+			shutdown("HTTPS", s.HTTPS)
+		}
 	}
 	if s.HTTP != nil {
-		shutdown("HTTP", s.HTTP)
+		if s.FastShutdown {
+			s.HTTP.Close()
+		} else {
+			shutdown("HTTP", s.HTTP)
+		}
 	}
 	return true
 }

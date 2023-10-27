@@ -3,7 +3,7 @@ package stream_test
 import (
 	"context"
 	"errors"
-	"io/ioutil"
+	"io"
 	"testing"
 
 	"github.com/go-openapi/strfmt"
@@ -30,7 +30,7 @@ var _ = Describe("Close", func() {
 			"foo": "bar",
 		}
 		logger = logrus.New()
-		logger.Out = ioutil.Discard
+		logger.Out = io.Discard
 		ctrl = gomock.NewController(GinkgoT())
 		writer = stream.NewMockStreamWriter(ctrl)
 	})
@@ -63,7 +63,7 @@ var _ = Describe("Notify", func() {
 			"foo": "bar",
 		}
 		logger = logrus.New()
-		logger.Out = ioutil.Discard
+		logger.Out = io.Discard
 		ctrl = gomock.NewController(GinkgoT())
 		writer = stream.NewMockStreamWriter(ctrl)
 		clusterID = strfmt.UUID(uuid.New().String())

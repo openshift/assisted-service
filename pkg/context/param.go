@@ -11,7 +11,7 @@ import (
 
 type contextKey string
 
-//path parameters that are saved on the context
+// path parameters that are saved on the context
 const (
 	ClusterId  = "cluster_id"
 	HostId     = "host_id"
@@ -39,8 +39,8 @@ func Copy(ctx context.Context) context.Context {
 	return newContext
 }
 
-//return the values of interest (goid and path parameters) that we
-//are saving on the context
+// return the values of interest (goid and path parameters) that we
+// are saving on the context
 func GetContextParams(ctx context.Context) map[string]interface{} {
 	var fields = make(map[string]interface{})
 	fields["go-id"] = goid()
@@ -73,9 +73,9 @@ func goid() string {
 	return idField
 }
 
-//openapi middleware handler that takes matched params from the route and put them
-//on the context for further use (mainly by logs). parameters are prefixed to avoid
-//conflicts (for example: cluster_id --> PARAM$cluster_id)
+// openapi middleware handler that takes matched params from the route and put them
+// on the context for further use (mainly by logs). parameters are prefixed to avoid
+// conflicts (for example: cluster_id --> PARAM$cluster_id)
 func ContextHandler() func(http.Handler) http.Handler {
 
 	return func(next http.Handler) http.Handler {

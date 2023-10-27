@@ -263,7 +263,7 @@ func IsSliceNonEmpty(arg interface{}) bool {
 		funk.ForEach(arg, func(elem interface{}) {
 			v := reflect.ValueOf(elem)
 			if v.Kind() == reflect.Ptr {
-				v = v.Elem()
+				v = reflect.Indirect(v.Elem())
 			}
 			for i := 0; i < v.NumField(); i++ {
 				res = res || !v.Field(i).IsZero()

@@ -7,9 +7,9 @@ import (
 )
 
 // Verify if the constrains for dual-stack machine networks are met:
-//   * there are exactly two machine networks
-//   * the first one is IPv4 subnet
-//   * the second one is IPv6 subnet
+//   - there are exactly two machine networks
+//   - the first one is IPv4 subnet
+//   - the second one is IPv6 subnet
 func VerifyMachineNetworksDualStack(networks []*models.MachineNetwork, isDualStack bool) error {
 	if !isDualStack {
 		return nil

@@ -546,13 +546,7 @@ func main() {
 		log.WithField("pkg", "healthcheck"), Options.LivenessValidationTimeout)
 	h = requestid.Middleware(h)
 	h = spec.WithSpecMiddleware(h)
-
-	go func() {
-		log.Printf("Starting pprof... log level: %s\n", log.Level)
-		if log.Level == logrus.DebugLevel {
-			log.Println(http.ListenAndServe("localhost:6060", nil))
-		}
-	}()
+	go startPPROF(log)
 
 	go func() {
 		if Options.EnableKubeAPI {
@@ -906,4 +900,19 @@ func doesBMHCRDExist(mgr manager.Manager) error {
 		return err
 	}
 	return nil
+}
+
+func startPPROF(log *logrus.Logger) {
+	log.Printf("Starting pprof... log level: %s\n", log.Level)
+	if log.Level == logrus.DebugLevel {
+		srv := http.Server{
+			Addr:         "localhost:6060",
+			WriteTimeout: 600 * time.Second,
+			ReadTimeout:  5 * time.Second,
+		}
+		err := srv.ListenAndServe()
+		if err != nil {
+			log.Errorf("Failed to start pprof: %s", err)
+		}
+	}
 }

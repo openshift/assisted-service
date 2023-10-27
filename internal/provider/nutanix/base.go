@@ -9,7 +9,6 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-//
 type nutanixProvider struct {
 	Log logrus.FieldLogger
 }

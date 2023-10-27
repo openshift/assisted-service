@@ -1,7 +1,6 @@
 package installercache
 
 import (
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"testing"
@@ -29,7 +28,7 @@ var _ = Describe("installer cache", func() {
 		mockRelease = oc.NewMockRelease(ctrl)
 
 		var err error
-		cacheDir, err = ioutil.TempDir("/tmp", "cacheDir")
+		cacheDir, err = os.MkdirTemp("/tmp", "cacheDir")
 		Expect(err).NotTo(HaveOccurred())
 		Expect(os.Mkdir(filepath.Join(cacheDir, "quay.io"), 0755)).To(Succeed())
 		Expect(os.Mkdir(filepath.Join(filepath.Join(cacheDir, "quay.io"), "release-dev"), 0755)).To(Succeed())
