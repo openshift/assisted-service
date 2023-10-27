@@ -1,4 +1,4 @@
-FROM registry.ci.openshift.org/openshift/release:golang-1.18 AS golang
+FROM registry.ci.openshift.org/openshift/release:golang-1.20 AS golang
 RUN chmod g+xw -R /usr/local/go
 
 FROM quay.io/centos/centos:stream9
@@ -10,7 +10,7 @@ ENV VIRTUAL_ENV=/opt/venv
 ENV TOOLS=/tools/
 ENV PATH="$VIRTUAL_ENV/bin:$GOROOT/bin:$GOPATH/bin:$TOOLS:$PATH"
 
-COPY --from=quay.io/app-sre/golangci-lint:v1.46.0 /usr/bin/golangci-lint /usr/bin/golangci-lint
+COPY --from=quay.io/app-sre/golangci-lint:v1.53.2 /usr/bin/golangci-lint /usr/bin/golangci-lint
 
 # TODO: Replace with version 0.30.4 once it is released.
 #

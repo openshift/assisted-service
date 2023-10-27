@@ -9,7 +9,6 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-//
 type vsphereProvider struct {
 	Log logrus.FieldLogger
 }

@@ -7,7 +7,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net"
 	"os"
 	"os/exec"
@@ -5329,7 +5328,7 @@ var _ = Describe("Verify install-config manifest", func() {
 		Expect(err).NotTo(HaveOccurred())
 
 		// Read install-config.yaml
-		content, err := ioutil.ReadFile(file.Name())
+		content, err := os.ReadFile(file.Name())
 		Expect(err).NotTo(HaveOccurred())
 
 		installConfig := make(map[string]interface{})
