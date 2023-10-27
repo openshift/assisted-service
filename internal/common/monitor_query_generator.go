@@ -7,9 +7,9 @@ import (
 )
 
 /*
-   Support querying for cluster or host monitoring. Implementation for both full query, and timed query according to
-   updated_at field.
-   Querying is done at cluster level.  Checking the trigger_monitor_timestamp field is done both for hosts and clusters
+Support querying for cluster or host monitoring. Implementation for both full query, and timed query according to
+updated_at field.
+Querying is done at cluster level.  Checking the trigger_monitor_timestamp field is done both for hosts and clusters
 */
 const (
 	DefaultBatchSize = 100
@@ -31,7 +31,7 @@ type fullQuery struct {
 }
 
 /*
-  Full scan (backward compatible) query.  Instead of using offset, the query uses the lastId to indicate where to start the next batch
+Full scan (backward compatible) query.  Instead of using offset, the query uses the lastId to indicate where to start the next batch
 */
 func (f *fullQuery) Next() ([]*Cluster, error) {
 	var clusters []*Cluster
@@ -51,7 +51,7 @@ func (f *fullQuery) Next() ([]*Cluster, error) {
 }
 
 /*
-  Timed query which queries according to the trigger_monitor_timestamp field
+Timed query which queries according to the trigger_monitor_timestamp field
 */
 type timedQuery struct {
 	// Where to start the next query for ids
@@ -236,7 +236,7 @@ type infraEnvQuery struct {
 }
 
 /*
-  Full scan (backward compatible) query.  Instead of using offset, the query uses the lastId to indicate where to start the next batch
+Full scan (backward compatible) query.  Instead of using offset, the query uses the lastId to indicate where to start the next batch
 */
 func (f *infraEnvQuery) Next() ([]*InfraEnv, error) {
 	var (

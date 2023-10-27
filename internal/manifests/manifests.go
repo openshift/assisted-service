@@ -5,7 +5,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -388,7 +388,7 @@ func (m *Manifests) fetchManifestContent(ctx context.Context, clusterID strfmt.U
 	if err != nil {
 		return nil, m.prepareAndLogError(ctx, http.StatusInternalServerError, errors.Wrapf(err, "Failed to fetch content from %s for cluster %s", path, clusterID))
 	}
-	content, err := ioutil.ReadAll(respBody)
+	content, err := io.ReadAll(respBody)
 	if err != nil {
 		return nil, m.prepareAndLogError(ctx, http.StatusInternalServerError, errors.Wrapf(err, "Failed fetch response body from %s for cluster %s", path, clusterID))
 	}

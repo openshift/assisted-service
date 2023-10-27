@@ -16,9 +16,9 @@ import (
 
 //go:generate mockgen -source=metricsManager.go -package=metrics -destination=mock_metrics_manager_api.go
 
-//////////////////////////////////////////
+// ////////////////////////////////////////
 // counters name and description
-/////////////////////////////////////////
+// ///////////////////////////////////////
 const (
 	counterClusterCreation                        = "assisted_installer_cluster_creations"
 	counterClusterInstallationStarted             = "assisted_installer_cluster_installation_started"

@@ -6,7 +6,6 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-//
 type noneProvider struct {
 	Log logrus.FieldLogger
 }
