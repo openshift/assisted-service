@@ -864,8 +864,8 @@ github.com/prometheus/procfs/internal/util
 # github.com/rs/cors v1.10.1
 ## explicit; go 1.13
 github.com/rs/cors
-# github.com/russross/blackfriday v1.6.0
-## explicit; go 1.13
+# github.com/russross/blackfriday v2.0.0+incompatible
+## explicit
 github.com/russross/blackfriday
 # github.com/santhosh-tekuri/jsonschema v1.2.4
 ## explicit
@@ -918,6 +918,9 @@ github.com/segmentio/kafka-go/protocol/txnoffsetcommit
 github.com/segmentio/kafka-go/sasl
 github.com/segmentio/kafka-go/sasl/plain
 github.com/segmentio/kafka-go/sasl/scram
+# github.com/shurcooL/sanitized_anchor_name v1.0.0
+## explicit
+github.com/shurcooL/sanitized_anchor_name
 # github.com/sirupsen/logrus v1.9.3
 ## explicit; go 1.13
 github.com/sirupsen/logrus
