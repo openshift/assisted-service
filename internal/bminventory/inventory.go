@@ -511,7 +511,8 @@ func (b *bareMetalInventory) RegisterClusterInternal(
 	defer func() {
 		if success {
 			if err == nil && cluster != nil {
-				err = b.stream.Notify(ctx, cluster)
+				notifiableCluster := stream.GetNotifiableCluster(cluster)
+				err = b.stream.Notify(ctx, notifiableCluster)
 				if err != nil {
 					log.WithError(err).Warning("failed to notify cluster registration event")
 				}
@@ -1657,7 +1658,8 @@ func (b *bareMetalInventory) UpdateClusterInstallConfigInternal(ctx context.Cont
 	}
 	txSuccess = true
 	if err == nil {
-		err = b.stream.Notify(ctx, cluster)
+		notifiableCluster := stream.GetNotifiableCluster(cluster)
+		err = b.stream.Notify(ctx, notifiableCluster)
 		if err != nil {
 			log.WithError(err).Warning("failed to notify cluster update event")
 		}
@@ -2085,7 +2087,8 @@ func (b *bareMetalInventory) v2UpdateClusterInternal(ctx context.Context, params
 	}
 
 	if cluster != nil {
-		err = b.stream.Notify(ctx, cluster)
+		notifiableCluster := stream.GetNotifiableCluster(cluster)
+		err = b.stream.Notify(ctx, notifiableCluster)
 		if err != nil {
 			log.WithError(err).Warning("failed to notify cluster update event")
 		}

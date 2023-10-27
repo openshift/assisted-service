@@ -68,7 +68,8 @@ func (m *UsageManager) Save(db *gorm.DB, clusterId strfmt.UUID, usages FeatureUs
 			m.log.WithError(err).Warning("error retrieving updated cluster for notification")
 		}
 
-		err = m.stream.Notify(context.Background(), cluster)
+		notifiableCluster := stream.GetNotifiableCluster(cluster)
+		err = m.stream.Notify(context.Background(), notifiableCluster)
 		if err != nil {
 			m.log.WithError(err).Warning("failed to notify cluster event (feature usage)")
 		}
