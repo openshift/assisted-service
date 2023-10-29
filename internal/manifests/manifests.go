@@ -451,6 +451,15 @@ func (m *Manifests) fetchManifestContent(ctx context.Context, clusterID strfmt.U
 
 func (m *Manifests) validateManifestFileNames(ctx context.Context, clusterID strfmt.UUID, fileNames []string) error {
 	for _, fileName := range fileNames {
+		fileNameWithoutExtension := strings.TrimSuffix(fileName, filepath.Ext(fileName))
+		if len(strings.TrimSpace(fileNameWithoutExtension)) == 0 {
+			return m.prepareAndLogError(
+				ctx,
+				http.StatusUnprocessableEntity,
+				errors.Errorf("Cluster manifest %s for cluster %s has an invalid filename.",
+					fileName,
+					clusterID))
+		}
 		if strings.Contains(fileName, " ") {
 			return m.prepareAndLogError(
 				ctx,
