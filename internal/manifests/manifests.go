@@ -454,7 +454,7 @@ func (m *Manifests) validateManifestFileNames(ctx context.Context, clusterID str
 		if strings.Contains(fileName, " ") {
 			return m.prepareAndLogError(
 				ctx,
-				http.StatusBadRequest,
+				http.StatusUnprocessableEntity,
 				errors.Errorf("Cluster manifest %s for cluster %s should not include a space in its name.",
 					fileName,
 					clusterID))
@@ -462,8 +462,8 @@ func (m *Manifests) validateManifestFileNames(ctx context.Context, clusterID str
 		if strings.ContainsRune(fileName, os.PathSeparator) {
 			return m.prepareAndLogError(
 				ctx,
-				http.StatusBadRequest,
-				errors.Errorf("Cluster manifest %s for cluster %s should not include a directory in its name.",
+				http.StatusUnprocessableEntity,
+				errors.Errorf("Cluster manifest %s for cluster %s should not include a directory in it's name.",
 					fileName,
 					clusterID))
 		}
