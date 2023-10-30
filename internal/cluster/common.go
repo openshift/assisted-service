@@ -191,9 +191,11 @@ func UpdateCluster(ctx context.Context, log logrus.FieldLogger, db *gorm.DB, not
 
 	cluster, err := common.GetClusterFromDB(db, clusterId, common.UseEagerLoading)
 	if err == nil {
-		if err = notificationStream.Notify(ctx, cluster); err != nil {
+		notifiableCluster := stream.GetNotifiableCluster(cluster)
+		if err = notificationStream.Notify(ctx, notifiableCluster); err != nil {
 			log.WithError(err).Warning("failed to notify cluster update event")
 		}
+		return cluster, nil
 	}
 	return cluster, err
 }
