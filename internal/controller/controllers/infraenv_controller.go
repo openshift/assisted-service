@@ -636,6 +636,29 @@ func (r *InfraEnvReconciler) initrdSchemeChanged(initrdURL string) (bool, error)
 	return u.Scheme != desiredScheme, nil
 }
 
+func generateStaticNetworkConfigDownloadURL(baseURL string, infraEnvId string, authType auth.AuthType) (string, error) {
+	builder := &installer.V2DownloadInfraEnvFilesURL{
+		InfraEnvID: strfmt.UUID(infraEnvId),
+		FileName:   "static-network-config",
+	}
+	u, err := builder.Build()
+	if err != nil {
+		return "", err
+	}
+
+	downloadURL := fmt.Sprintf("%s%s", baseURL, u.RequestURI())
+	if authType != auth.TypeLocal {
+		return downloadURL, nil
+	}
+
+	downloadURL, err = gencrypto.SignURL(downloadURL, infraEnvId, gencrypto.ClusterKey)
+	if err != nil {
+		return "", errors.Wrapf(err, "failed to sign static network config download URL for infraenv %s", infraEnvId)
+	}
+
+	return downloadURL, nil
+}
+
 func (r *InfraEnvReconciler) updateInfraEnvStatus(
 	ctx context.Context, log logrus.FieldLogger, infraEnv *aiv1beta1.InfraEnv, internalInfraEnv *common.InfraEnv) (ctrl.Result, error) {
 
@@ -658,6 +681,13 @@ func (r *InfraEnvReconciler) updateInfraEnvStatus(
 		imageCreatedAt := metav1.NewTime(time.Time(internalInfraEnv.GeneratedAt))
 		infraEnv.Status.CreatedTime = &imageCreatedAt
 		isoUpdated = true
+	}
+
+	if infraEnv.Status.InfraEnvDebugInfo.StaticNetworkDownloadURL == "" && internalInfraEnv.StaticNetworkConfig != "" {
+		infraEnv.Status.InfraEnvDebugInfo.StaticNetworkDownloadURL, err = generateStaticNetworkConfigDownloadURL(r.ServiceBaseURL, internalInfraEnv.ID.String(), r.AuthType)
+		if err != nil {
+			r.Log.Errorf("Unable to generate static network config download URL for infraenv with ID %s", internalInfraEnv.ID.String())
+		}
 	}
 
 	// update boot artifacts URL if IPXE insecure setting was changed or if the ISO was updated
