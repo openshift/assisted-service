@@ -5853,6 +5853,8 @@ definitions:
         type: string
       pxe_interface:
         type: string
+      kernel_arguments:
+        type: string
 
   system_vendor:
     type: object

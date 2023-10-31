@@ -5981,6 +5981,9 @@ func init() {
         "current_boot_mode": {
           "type": "string"
         },
+        "kernel_arguments": {
+          "type": "string"
+        },
         "pxe_interface": {
           "type": "string"
         }
@@ -16433,6 +16436,9 @@ func init() {
       "type": "object",
       "properties": {
         "current_boot_mode": {
+          "type": "string"
+        },
+        "kernel_arguments": {
           "type": "string"
         },
         "pxe_interface": {

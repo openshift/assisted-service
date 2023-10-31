@@ -20,6 +20,9 @@ type Boot struct {
 	// current boot mode
 	CurrentBootMode string `json:"current_boot_mode,omitempty"`
 
+	// kernel arguments
+	KernelArguments string `json:"kernel_arguments,omitempty"`
+
 	// pxe interface
 	PxeInterface string `json:"pxe_interface,omitempty"`
 }
