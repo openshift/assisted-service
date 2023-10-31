@@ -5978,6 +5978,9 @@ func init() {
     "boot": {
       "type": "object",
       "properties": {
+        "command_line": {
+          "type": "string"
+        },
         "current_boot_mode": {
           "type": "string"
         },
@@ -16432,6 +16435,9 @@ func init() {
     "boot": {
       "type": "object",
       "properties": {
+        "command_line": {
+          "type": "string"
+        },
         "current_boot_mode": {
           "type": "string"
         },
