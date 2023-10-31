@@ -5978,10 +5978,10 @@ func init() {
     "boot": {
       "type": "object",
       "properties": {
-        "current_boot_mode": {
+        "command_line": {
           "type": "string"
         },
-        "kernel_arguments": {
+        "current_boot_mode": {
           "type": "string"
         },
         "pxe_interface": {
@@ -16435,10 +16435,10 @@ func init() {
     "boot": {
       "type": "object",
       "properties": {
-        "current_boot_mode": {
+        "command_line": {
           "type": "string"
         },
-        "kernel_arguments": {
+        "current_boot_mode": {
           "type": "string"
         },
         "pxe_interface": {

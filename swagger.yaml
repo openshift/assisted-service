@@ -5853,7 +5853,7 @@ definitions:
         type: string
       pxe_interface:
         type: string
-      kernel_arguments:
+      command_line:
         type: string
 
   system_vendor:
