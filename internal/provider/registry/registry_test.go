@@ -574,10 +574,10 @@ func getInstallerConfigBaremetal() installcfg.InstallerConfigBaremetal {
 		APIVersion: "v1",
 		BaseDomain: "test.base.domain",
 		Networking: struct {
-			NetworkType    string                      `yaml:"networkType"`
-			ClusterNetwork []installcfg.ClusterNetwork `yaml:"clusterNetwork"`
-			MachineNetwork []installcfg.MachineNetwork `yaml:"machineNetwork,omitempty"`
-			ServiceNetwork []string                    `yaml:"serviceNetwork"`
+			NetworkType    string                      `json:"networkType"`
+			ClusterNetwork []installcfg.ClusterNetwork `json:"clusterNetwork"`
+			MachineNetwork []installcfg.MachineNetwork `json:"machineNetwork,omitempty"`
+			ServiceNetwork []string                    `json:"serviceNetwork"`
 		}{
 			NetworkType:    "OpenShiftSDN",
 			ClusterNetwork: []installcfg.ClusterNetwork{{Cidr: "10.128.0.0/14", HostPrefix: 23}},
@@ -585,26 +585,26 @@ func getInstallerConfigBaremetal() installcfg.InstallerConfigBaremetal {
 			ServiceNetwork: []string{"172.30.0.0/16"},
 		},
 		Metadata: struct {
-			Name string `yaml:"name"`
+			Name string `json:"name"`
 		}{Name: "dummy"},
 		Compute: []struct {
-			Hyperthreading string `yaml:"hyperthreading,omitempty"`
-			Name           string `yaml:"name"`
-			Replicas       int    `yaml:"replicas"`
+			Hyperthreading string `json:"hyperthreading,omitempty"`
+			Name           string `json:"name"`
+			Replicas       int    `json:"replicas"`
 		}{{
 			Name:     "worker-test",
 			Replicas: 2,
 		}},
 		ControlPlane: struct {
-			Hyperthreading string `yaml:"hyperthreading,omitempty"`
-			Name           string `yaml:"name"`
-			Replicas       int    `yaml:"replicas"`
+			Hyperthreading string `json:"hyperthreading,omitempty"`
+			Name           string `json:"name"`
+			Replicas       int    `json:"replicas"`
 		}{
 			Name:     "master-test",
 			Replicas: 3,
 		},
 		Platform:              installcfg.Platform{},
-		BootstrapInPlace:      installcfg.BootstrapInPlace{},
+		BootstrapInPlace:      &installcfg.BootstrapInPlace{},
 		FIPS:                  false,
 		PullSecret:            "{\"auths\": fake}",
 		SSHKey:                "ssh-rsa fake",

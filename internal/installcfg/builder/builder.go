@@ -80,14 +80,14 @@ func (i *installConfigBuilder) getBasicInstallConfig(cluster *common.Cluster) (*
 		APIVersion: "v1",
 		BaseDomain: cluster.BaseDNSDomain,
 		Metadata: struct {
-			Name string `yaml:"name"`
+			Name string `json:"name"`
 		}{
 			Name: cluster.Name,
 		},
 		Compute: []struct {
-			Hyperthreading string `yaml:"hyperthreading,omitempty"`
-			Name           string `yaml:"name"`
-			Replicas       int    `yaml:"replicas"`
+			Hyperthreading string `json:"hyperthreading,omitempty"`
+			Name           string `json:"name"`
+			Replicas       int    `json:"replicas"`
 		}{
 			{
 				Hyperthreading: i.getHypethreadingConfiguration(cluster, "worker"),
@@ -96,9 +96,9 @@ func (i *installConfigBuilder) getBasicInstallConfig(cluster *common.Cluster) (*
 			},
 		},
 		ControlPlane: struct {
-			Hyperthreading string `yaml:"hyperthreading,omitempty"`
-			Name           string `yaml:"name"`
-			Replicas       int    `yaml:"replicas"`
+			Hyperthreading string `json:"hyperthreading,omitempty"`
+			Name           string `json:"name"`
+			Replicas       int    `json:"replicas"`
 		}{
 			Hyperthreading: i.getHypethreadingConfiguration(cluster, "master"),
 			Name:           string(models.HostRoleMaster),
