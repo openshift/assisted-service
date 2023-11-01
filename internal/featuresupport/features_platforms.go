@@ -21,6 +21,31 @@ func isPlatformActive(cluster *common.Cluster, clusterUpdateParams *models.V2Clu
 	return false
 }
 
+func isActivePlatformSupportsUmn(cluster *common.Cluster, clusterUpdateParams *models.V2ClusterUpdateParams) bool {
+	// Return true if platform feature is active (or will be after update)
+	// This method returns true only when platforms that support UMN are active
+	if isPlatformActive(cluster, clusterUpdateParams, models.PlatformTypeVsphere) ||
+		isPlatformActive(cluster, clusterUpdateParams, models.PlatformTypeOci) ||
+		isPlatformActive(cluster, clusterUpdateParams, models.PlatformTypeNone) {
+		return true
+
+	}
+
+	return false
+}
+
+func isActivePlatformSupportsCmn(cluster *common.Cluster, clusterUpdateParams *models.V2ClusterUpdateParams) bool {
+	// Return true if platform feature is active (or will be after update)
+	// This method returns true only when platforms that support CMN are active
+	if isPlatformActive(cluster, clusterUpdateParams, models.PlatformTypeVsphere) ||
+		isPlatformActive(cluster, clusterUpdateParams, models.PlatformTypeBaremetal) ||
+		isPlatformActive(cluster, clusterUpdateParams, models.PlatformTypeNutanix) {
+		return true
+	}
+
+	return false
+}
+
 func isPlatformSet(filters SupportLevelFilters) bool {
 	return filters.PlatformType != nil
 }
@@ -58,7 +83,6 @@ func (feature *BaremetalPlatformFeature) getFeatureActiveLevel(cluster *common.C
 
 func (feature *BaremetalPlatformFeature) getIncompatibleFeatures(string) *[]models.FeatureSupportLevelID {
 	return &[]models.FeatureSupportLevelID{
-		models.FeatureSupportLevelIDPLATFORMMANAGEDNETWORKING,
 		models.FeatureSupportLevelIDUSERMANAGEDNETWORKING,
 	}
 }
@@ -157,7 +181,6 @@ func (feature *NutanixIntegrationFeature) getIncompatibleFeatures(string) *[]mod
 		models.FeatureSupportLevelIDUSERMANAGEDNETWORKING,
 		models.FeatureSupportLevelIDLVM,
 		models.FeatureSupportLevelIDMCE,
-		models.FeatureSupportLevelIDPLATFORMMANAGEDNETWORKING,
 	}
 }
 
@@ -208,7 +231,6 @@ func (feature *VsphereIntegrationFeature) getIncompatibleFeatures(openshiftVersi
 	incompatibleFeatures := []models.FeatureSupportLevelID{
 		models.FeatureSupportLevelIDSNO,
 		models.FeatureSupportLevelIDLVM,
-		models.FeatureSupportLevelIDPLATFORMMANAGEDNETWORKING,
 	}
 
 	if isNotSupported, err := common.BaseVersionLessThan("4.13", openshiftVersion); isNotSupported || err != nil {

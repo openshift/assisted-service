@@ -197,7 +197,7 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 			for _, platform := range platforms {
 				p := platform
 				list := GetFeatureSupportList("dummy", nil, &p)
-				Expect(len(list)).To(Equal(16))
+				Expect(len(list)).To(Equal(15))
 			}
 		})
 
@@ -360,19 +360,22 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 				HighAvailabilityMode:  swag.String(models.ClusterHighAvailabilityModeFull),
 				Platform:              &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeBaremetal)},
 				UserManagedNetworking: swag.Bool(false),
+				APIVips:               []*models.APIVip{{IP: models.IP("8.8.8.8")}},
+				IngressVips:           []*models.IngressVip{{IP: models.IP("8.8.8.9")}},
 			}}
 			Expect(ValidateIncompatibleFeatures(log, models.ClusterCPUArchitectureArm64, &cluster, nil, nil)).To(BeNil())
 		})
-		It("Ppc64le with CMN - fail", func() {
+		It("Ppc64le not compatible with baremetal - fail", func() {
 			cluster := common.Cluster{Cluster: models.Cluster{
 				OpenshiftVersion: "4.12",
 				CPUArchitecture:  models.ClusterCPUArchitecturePpc64le,
+				Platform:         &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeBaremetal)},
 			}}
 			infraEnv := models.InfraEnv{CPUArchitecture: models.ClusterCPUArchitecturePpc64le, Type: common.ImageTypePtr(models.ImageTypeFullIso)}
 
 			err := ValidateIncompatibleFeatures(log, models.ClusterCPUArchitecturePpc64le, &cluster, nil, nil)
 			Expect(err).To(Not(BeNil()))
-			cluster.UserManagedNetworking = swag.Bool(true)
+			cluster.Platform = &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeNone)}
 			err = ValidateIncompatibleFeatures(log, models.ClusterCPUArchitecturePpc64le, &cluster, &infraEnv, nil)
 			Expect(err).To(BeNil())
 		})
@@ -380,12 +383,13 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 			cluster := common.Cluster{Cluster: models.Cluster{
 				OpenshiftVersion: "4.12",
 				CPUArchitecture:  models.ClusterCPUArchitectureS390x,
+				Platform:         &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeBaremetal)},
 			}}
 			infraEnv := models.InfraEnv{CPUArchitecture: models.ClusterCPUArchitectureS390x, Type: common.ImageTypePtr(models.ImageTypeMinimalIso)}
 
 			err := ValidateIncompatibleFeatures(log, models.ClusterCPUArchitectureS390x, &cluster, nil, nil)
 			Expect(err).To(Not(BeNil()))
-			cluster.UserManagedNetworking = swag.Bool(true)
+			cluster.Platform = &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeNone)}
 			err = ValidateIncompatibleFeatures(log, models.ClusterCPUArchitectureS390x, &cluster, &infraEnv, nil)
 			Expect(err).To(Not(BeNil()))
 		})
@@ -407,7 +411,7 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 
 	Context("Incompatibilities", func() {
 		Context("IsFeatureActivated", func() {
-			It("Activated features in cluster - Sno, VipAutoAlloc, UserManagedNetworking, NutanixIntegration", func() {
+			It("Activated features in cluster - Sno, VipAutoAlloc, UserManagedNetworking, VsphereIntegration", func() {
 				operators := []*models.MonitoredOperator{
 					{
 						Name:             "cnv",
@@ -423,22 +427,26 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 					CPUArchitecture:       models.ClusterCPUArchitecturePpc64le,
 					HighAvailabilityMode:  swag.String(models.ClusterHighAvailabilityModeNone),
 					UserManagedNetworking: swag.Bool(true),
-					Platform:              &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeNutanix)},
+					Platform:              &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeVsphere)},
 					VipDhcpAllocation:     swag.Bool(true),
 					MonitoredOperators:    operators,
 				},
 				}
 
 				activatedFeatures := []SupportLevelFeature{
-					&VipAutoAllocFeature{}, &SnoFeature{}, &UserManagedNetworkingFeature{}, &NutanixIntegrationFeature{}, &CnvFeature{},
+					&VipAutoAllocFeature{}, &SnoFeature{}, &UserManagedNetworkingFeature{}, &VsphereIntegrationFeature{}, &CnvFeature{},
 				}
 
 				for _, feature := range activatedFeatures {
-					Expect(feature.getFeatureActiveLevel(&cluster, nil, nil, nil)).To(Equal(activeLevelActive))
+					f := feature
+					By(feature.GetName(), func() {
+						Expect(f.getFeatureActiveLevel(&cluster, nil, nil, nil)).To(Equal(activeLevelActive))
+					})
+
 				}
 			})
 
-			It("Disable activated features in cluster - Sno, VipAutoAlloc, UserManagedNetworking, NutanixIntegration, Cnv", func() {
+			It("Disable activated features in cluster - Sno, VipAutoAlloc, UserManagedNetworking, vSphereIntegration, Cnv", func() {
 				operators := []*models.MonitoredOperator{
 					{
 						Name:             "cnv",
@@ -450,25 +458,29 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 				}
 
 				cluster := common.Cluster{Cluster: models.Cluster{
-					OpenshiftVersion:      "4.8",
-					CPUArchitecture:       models.ClusterCPUArchitecturePpc64le,
-					HighAvailabilityMode:  swag.String(models.ClusterHighAvailabilityModeNone),
-					UserManagedNetworking: swag.Bool(true),
-					Platform:              &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeNutanix)},
-					VipDhcpAllocation:     swag.Bool(true),
-					MonitoredOperators:    operators,
+					OpenshiftVersion:     "4.8",
+					CPUArchitecture:      models.ClusterCPUArchitecturePpc64le,
+					HighAvailabilityMode: swag.String(models.ClusterHighAvailabilityModeNone),
+					Platform:             &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeVsphere)},
+					VipDhcpAllocation:    swag.Bool(true),
+					MonitoredOperators:   operators,
 				}}
+
+				apiVips := []*models.APIVip{{IP: models.IP("8.8.8.8")}}
+				ingressVips := []*models.IngressVip{{IP: models.IP("8.8.8.9")}}
+
 				params := models.V2ClusterUpdateParams{
-					VipDhcpAllocation:     swag.Bool(false),
-					Platform:              &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeBaremetal)},
-					UserManagedNetworking: swag.Bool(false),
+					VipDhcpAllocation: swag.Bool(false),
+					Platform:          &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeBaremetal)},
+					APIVips:           apiVips,
+					IngressVips:       ingressVips,
 					OlmOperators: []*models.OperatorCreateParams{
 						{Name: "lvm"},
 					},
 				}
 
 				activatedFeatures := []SupportLevelFeature{
-					&VipAutoAllocFeature{}, &UserManagedNetworkingFeature{}, &NutanixIntegrationFeature{}, &CnvFeature{},
+					&VipAutoAllocFeature{}, &UserManagedNetworkingFeature{}, &VsphereIntegrationFeature{}, &CnvFeature{},
 				}
 
 				for _, feature := range activatedFeatures {
@@ -477,10 +489,23 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 				}
 				Expect((&SnoFeature{}).getFeatureActiveLevel(&cluster, nil, &params, nil)).To(Equal(activeLevelActive))
 				Expect((&LvmFeature{}).getFeatureActiveLevel(&cluster, nil, &params, nil)).To(Equal(activeLevelActive))
+				Expect((&ClusterManagedNetworkingFeature{}).getFeatureActiveLevel(&cluster, nil, nil, nil)).To(Equal(activeLevelNotActive))
 				Expect((&ClusterManagedNetworkingFeature{}).getFeatureActiveLevel(&cluster, nil, &params, nil)).To(Equal(activeLevelActive))
 			})
 			It("ppc supporting minimal-iso", func() {
 				cpuArchitecture := models.ClusterCPUArchitecturePpc64le
+				cluster := common.Cluster{Cluster: models.Cluster{
+					OpenshiftVersion: "4.12",
+					CPUArchitecture:  cpuArchitecture,
+				}}
+				infraEnv := models.InfraEnv{Type: common.ImageTypePtr(models.ImageTypeMinimalIso)}
+				Expect((&MinimalIso{}).getFeatureActiveLevel(&cluster, &infraEnv, nil, nil)).To(Equal(activeLevelActive))
+
+				filters := SupportLevelFilters{OpenshiftVersion: "4.12", CPUArchitecture: &cpuArchitecture}
+				Expect((&MinimalIso{}).getSupportLevel(filters)).To(Equal(models.SupportLevelSupported))
+			})
+			It("cluster managed networking using vips", func() {
+				cpuArchitecture := models.ClusterCPUArchitectureX8664
 				cluster := common.Cluster{Cluster: models.Cluster{
 					OpenshiftVersion: "4.12",
 					CPUArchitecture:  cpuArchitecture,
@@ -507,17 +532,6 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 							Expect(string(f.getSupportLevel(filters))).To(Equal(""))
 						})
 					}
-				}
-			})
-			It("Empty support level - PlatformManagedNetworkingFeature", func() {
-				for _, platform := range []models.PlatformType{models.PlatformTypeOci, models.PlatformTypeVsphere, models.PlatformTypeNutanix, models.PlatformTypeBaremetal, models.PlatformTypeNone} {
-					p := platform
-					feature := &PlatformManagedNetworkingFeature{}
-					filters := SupportLevelFilters{OpenshiftVersion: "", CPUArchitecture: nil, PlatformType: nil}
-					Expect(string(feature.getSupportLevel(filters))).To(Equal(""))
-
-					filters = SupportLevelFilters{OpenshiftVersion: "", CPUArchitecture: nil, PlatformType: &p}
-					Expect(string(feature.getSupportLevel(filters))).To(Not(Equal("")))
 				}
 			})
 

@@ -97,7 +97,7 @@ func (feature *CustomManifestFeature) getIncompatibleArchitectures(_ *string) *[
 }
 
 func (feature *CustomManifestFeature) getFeatureActiveLevel(_ *common.Cluster, _ *models.InfraEnv, _ *models.V2ClusterUpdateParams, _ *models.InfraEnvUpdateParams) featureActiveLevel {
-	return activeLeveNotRelevant
+	return activeLevelNotRelevant
 }
 
 // SingleNodeExpansionFeature
@@ -129,7 +129,7 @@ func (feature *SingleNodeExpansionFeature) getSupportLevel(filters SupportLevelF
 }
 
 func (feature *SingleNodeExpansionFeature) getFeatureActiveLevel(_ *common.Cluster, _ *models.InfraEnv, _ *models.V2ClusterUpdateParams, _ *models.InfraEnvUpdateParams) featureActiveLevel {
-	return activeLeveNotRelevant
+	return activeLevelNotRelevant
 }
 
 func (feature *SingleNodeExpansionFeature) getIncompatibleFeatures(string) *[]models.FeatureSupportLevelID {

@@ -18,12 +18,11 @@ var featuresList = map[models.FeatureSupportLevelID]SupportLevelFeature{
 	models.FeatureSupportLevelIDFULLISO:             (&FullIso{}).New(),
 
 	// Network features
-	models.FeatureSupportLevelIDVIPAUTOALLOC:              (&VipAutoAllocFeature{}).New(),
-	models.FeatureSupportLevelIDCLUSTERMANAGEDNETWORKING:  (&ClusterManagedNetworkingFeature{}).New(),
-	models.FeatureSupportLevelIDUSERMANAGEDNETWORKING:     (&UserManagedNetworkingFeature{}).New(),
-	models.FeatureSupportLevelIDDUALSTACKVIPS:             (&DualStackVipsFeature{}).New(),
-	models.FeatureSupportLevelIDDUALSTACK:                 (&DualStackFeature{}).New(),
-	models.FeatureSupportLevelIDPLATFORMMANAGEDNETWORKING: (&PlatformManagedNetworkingFeature{}).New(),
+	models.FeatureSupportLevelIDVIPAUTOALLOC:             (&VipAutoAllocFeature{}).New(),
+	models.FeatureSupportLevelIDCLUSTERMANAGEDNETWORKING: (&ClusterManagedNetworkingFeature{}).New(),
+	models.FeatureSupportLevelIDUSERMANAGEDNETWORKING:    (&UserManagedNetworkingFeature{}).New(),
+	models.FeatureSupportLevelIDDUALSTACKVIPS:            (&DualStackVipsFeature{}).New(),
+	models.FeatureSupportLevelIDDUALSTACK:                (&DualStackFeature{}).New(),
 
 	// Olm Operators features
 	models.FeatureSupportLevelIDLVM: (&LvmFeature{}).New(),

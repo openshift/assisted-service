@@ -86,11 +86,29 @@ func (feature *ClusterManagedNetworkingFeature) getSupportLevel(filters SupportL
 		}
 	}
 
-	if filters.PlatformType != nil && *filters.PlatformType == models.PlatformTypeOci {
-		return models.SupportLevelUnavailable
+	if filters.PlatformType != nil {
+		if *filters.PlatformType == models.PlatformTypeOci || *filters.PlatformType == models.PlatformTypeNone {
+			return models.SupportLevelUnavailable
+		}
 	}
 
 	return models.SupportLevelSupported
+}
+
+func areVipsSet(cluster *common.Cluster, clusterUpdateParams *models.V2ClusterUpdateParams) bool {
+	if clusterUpdateParams != nil && clusterUpdateParams.APIVips != nil {
+		if len(clusterUpdateParams.APIVips) > 0 {
+			return true
+		} else if len(clusterUpdateParams.APIVips) == 0 {
+			return false
+		}
+	}
+
+	if cluster != nil && len(cluster.APIVips) > 0 {
+		return true
+	}
+
+	return false
 }
 
 func (feature *ClusterManagedNetworkingFeature) getFeatureActiveLevel(cluster *common.Cluster, _ *models.InfraEnv, clusterUpdateParams *models.V2ClusterUpdateParams, _ *models.InfraEnvUpdateParams) featureActiveLevel {
@@ -98,10 +116,20 @@ func (feature *ClusterManagedNetworkingFeature) getFeatureActiveLevel(cluster *c
 		return activeLevelNotActive
 	}
 
-	if !feature.umnFeature.isFeatureActive(cluster, clusterUpdateParams) {
-		return activeLevelActive
+	if cluster.Platform != nil {
+		if isActivePlatformSupportsCmn(cluster, clusterUpdateParams) {
+			// Specifically on vSphere platform, because both umn and cmn available check if VIPs are set
+			if *cluster.Platform.Type == models.PlatformTypeVsphere {
+				if !areVipsSet(cluster, clusterUpdateParams) {
+					return activeLevelNotActive
+				}
+			}
+			return activeLevelActive
+		}
+		return activeLevelNotActive
 	}
-	return activeLevelNotActive
+
+	return activeLevelNotRelevant
 }
 
 func (feature *ClusterManagedNetworkingFeature) getIncompatibleArchitectures(openshiftVersion *string) *[]models.ArchitectureSupportLevelID {
@@ -123,7 +151,6 @@ func (feature *ClusterManagedNetworkingFeature) getIncompatibleArchitectures(ope
 func (feature *ClusterManagedNetworkingFeature) getIncompatibleFeatures(string) *[]models.FeatureSupportLevelID {
 	return &[]models.FeatureSupportLevelID{
 		models.FeatureSupportLevelIDSNO,
-		models.FeatureSupportLevelIDUSERMANAGEDNETWORKING,
 		models.FeatureSupportLevelIDEXTERNALPLATFORMOCI,
 		models.FeatureSupportLevelIDLVM,
 		models.FeatureSupportLevelIDNONEPLATFORM,
@@ -248,8 +275,10 @@ func (feature *UserManagedNetworkingFeature) GetName() string {
 }
 
 func (feature *UserManagedNetworkingFeature) getSupportLevel(filters SupportLevelFilters) models.SupportLevel {
-	if filters.PlatformType != nil && *filters.PlatformType == models.PlatformTypeNutanix {
-		return models.SupportLevelUnavailable
+	if filters.PlatformType != nil {
+		if *filters.PlatformType == models.PlatformTypeNutanix || *filters.PlatformType == models.PlatformTypeBaremetal {
+			return models.SupportLevelUnavailable
+		}
 	}
 
 	return models.SupportLevelSupported
@@ -257,7 +286,6 @@ func (feature *UserManagedNetworkingFeature) getSupportLevel(filters SupportLeve
 
 func (feature *UserManagedNetworkingFeature) getIncompatibleFeatures(string) *[]models.FeatureSupportLevelID {
 	return &[]models.FeatureSupportLevelID{
-		models.FeatureSupportLevelIDCLUSTERMANAGEDNETWORKING,
 		models.FeatureSupportLevelIDNUTANIXINTEGRATION,
 		models.FeatureSupportLevelIDBAREMETALPLATFORM,
 	}
@@ -267,74 +295,24 @@ func (feature *UserManagedNetworkingFeature) getIncompatibleArchitectures(_ *str
 	return nil
 }
 
-func (feature *UserManagedNetworkingFeature) isFeatureActive(cluster *common.Cluster, clusterUpdateParams *models.V2ClusterUpdateParams) bool {
-	// Check if User Managed Networking is active for a given cluster when passing update params:
-	// 1. If the cluster UMN is enabled and the update params are empty
-	// 2. If the cluster UMN is enabled and enabled in the update params or not set at all
-	// 3. If the cluster UMN is disabled and enabled in the update params
-	if (swag.BoolValue(cluster.UserManagedNetworking) && clusterUpdateParams == nil) ||
-		(swag.BoolValue(cluster.UserManagedNetworking) && clusterUpdateParams != nil && (clusterUpdateParams.UserManagedNetworking == nil || *clusterUpdateParams.UserManagedNetworking)) ||
-		(!swag.BoolValue(cluster.UserManagedNetworking) && clusterUpdateParams != nil && clusterUpdateParams.UserManagedNetworking != nil && *clusterUpdateParams.UserManagedNetworking) {
-		return true
-	}
-	return false
-}
-
 func (feature *UserManagedNetworkingFeature) getFeatureActiveLevel(cluster *common.Cluster, _ *models.InfraEnv, clusterUpdateParams *models.V2ClusterUpdateParams, _ *models.InfraEnvUpdateParams) featureActiveLevel {
 	if cluster == nil {
 		return activeLevelNotActive
 	}
 
-	if feature.isFeatureActive(cluster, clusterUpdateParams) {
-		return activeLevelActive
-	}
-	return activeLevelNotActive
-}
-
-// PlatformManagedNetworkingFeature
-type PlatformManagedNetworkingFeature struct{}
-
-func (feature *PlatformManagedNetworkingFeature) New() SupportLevelFeature {
-	return &PlatformManagedNetworkingFeature{}
-}
-
-func (feature *PlatformManagedNetworkingFeature) getId() models.FeatureSupportLevelID {
-	return models.FeatureSupportLevelIDPLATFORMMANAGEDNETWORKING
-}
-
-func (feature *PlatformManagedNetworkingFeature) GetName() string {
-	return "Platform managed networking"
-}
-
-func (feature *PlatformManagedNetworkingFeature) getSupportLevel(filters SupportLevelFilters) models.SupportLevel {
-	// PlatformManagedNetworking is not relevant without platform type - in this case remove disable this feature support-level
-	if !isPlatformSet(filters) {
-		return ""
+	if cluster.Platform != nil {
+		if isActivePlatformSupportsUmn(cluster, clusterUpdateParams) {
+			// Specifically on vSphere platform, because both umn and cmn available check if VIPs are set
+			if *cluster.Platform.Type == models.PlatformTypeVsphere {
+				if areVipsSet(cluster, clusterUpdateParams) {
+					return activeLevelNotActive
+				}
+			}
+			return activeLevelActive
+		}
+		return activeLevelNotActive
 	}
 
-	if filters.PlatformType != nil && (*filters.PlatformType == models.PlatformTypeOci || *filters.PlatformType == models.PlatformTypeNone) {
-		return models.SupportLevelSupported
-	}
+	return activeLevelNotRelevant
 
-	return models.SupportLevelUnsupported
-}
-
-func (feature *PlatformManagedNetworkingFeature) getIncompatibleFeatures(string) *[]models.FeatureSupportLevelID {
-	return &[]models.FeatureSupportLevelID{
-		models.FeatureSupportLevelIDBAREMETALPLATFORM,
-		models.FeatureSupportLevelIDVSPHEREINTEGRATION,
-		models.FeatureSupportLevelIDNUTANIXINTEGRATION,
-	}
-}
-
-func (feature *PlatformManagedNetworkingFeature) getIncompatibleArchitectures(_ *string) *[]models.ArchitectureSupportLevelID {
-	return nil
-}
-
-func (feature *PlatformManagedNetworkingFeature) getFeatureActiveLevel(cluster *common.Cluster, _ *models.InfraEnv, clusterUpdateParams *models.V2ClusterUpdateParams, _ *models.InfraEnvUpdateParams) featureActiveLevel {
-	if isPlatformActive(cluster, clusterUpdateParams, models.PlatformTypeNone) || isPlatformActive(cluster, clusterUpdateParams, models.PlatformTypeOci) {
-		return activeLevelActive
-	}
-
-	return activeLevelNotActive
 }
