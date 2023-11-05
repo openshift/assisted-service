@@ -612,3 +612,54 @@ var _ = Describe("Platform validations", func() {
 		Expect(message).To(Equal("Platform requirements satisfied"))
 	})
 })
+
+var _ = Describe("skipNetworkHostPrefixCheck", func() {
+
+	var (
+		validator         clusterValidator
+		preprocessContext *clusterPreprocessContext
+		clusterID         strfmt.UUID
+	)
+
+	BeforeEach(func() {
+		validator = clusterValidator{logrus.New(), nil}
+		preprocessContext = &clusterPreprocessContext{}
+		clusterID = strfmt.UUID(uuid.New().String())
+	})
+
+	It("Returns false when hostPrefix 0 and networkType OVN", func() {
+		clusterNetworks := []*models.ClusterNetwork{
+			{Cidr: "10.0.2.1/24", ClusterID: clusterID},
+			{Cidr: "2002::1234:abcd:ffff:c0a8:102/64", ClusterID: clusterID},
+		}
+		networkType := models.ClusterNetworkTypeOVNKubernetes
+
+		preprocessContext.cluster = &common.Cluster{Cluster: models.Cluster{
+			ID:              &clusterID,
+			ClusterNetworks: clusterNetworks,
+			NetworkType:     &networkType,
+		}}
+
+		skipped := validator.skipNetworkHostPrefixCheck(preprocessContext)
+		Expect(skipped).Should(Equal(false))
+	})
+
+	It("Returns true when hostPrefix 0 and networkType not OVN or SDN", func() {
+		clusterNetworks := []*models.ClusterNetwork{
+			{Cidr: "10.0.2.1/24", ClusterID: clusterID},
+			{Cidr: "2002::1234:abcd:ffff:c0a8:102/64", ClusterID: clusterID},
+		}
+		networkType := models.ClusterNetworkTypeOVNKubernetes
+		installCfgOverrides := "{\"networking\":{\"networkType\":\"Calico\"}}"
+
+		preprocessContext.cluster = &common.Cluster{Cluster: models.Cluster{
+			ID:                     &clusterID,
+			ClusterNetworks:        clusterNetworks,
+			NetworkType:            &networkType,
+			InstallConfigOverrides: installCfgOverrides,
+		}}
+
+		skipped := validator.skipNetworkHostPrefixCheck(preprocessContext)
+		Expect(skipped).Should(Equal(true))
+	})
+})
