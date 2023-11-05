@@ -17,6 +17,7 @@ require (
 	github.com/danielerez/go-dns-client v0.0.0-20200630114514-0b60d1703f0b
 	github.com/dustin/go-humanize v1.0.0
 	github.com/filanov/stateswitch v1.0.1-0.20221122134945-bfa198e3a83a
+	github.com/go-errors/errors v1.0.1
 	github.com/go-gormigrate/gormigrate/v2 v2.0.1
 	github.com/go-logr/logr v1.2.4
 	github.com/go-openapi/errors v0.20.3
@@ -102,7 +103,6 @@ require (
 	github.com/emicklei/go-restful/v3 v3.11.0 // indirect
 	github.com/evanphx/json-patch/v5 v5.6.0 // indirect
 	github.com/exponent-io/jsonpath v0.0.0-20151013193312-d6023ce2651d // indirect
-	github.com/go-errors/errors v1.0.1 // indirect
 	github.com/google/btree v1.0.1 // indirect
 	github.com/gregjones/httpcache v0.0.0-20180305231024-9cad4c3443a7 // indirect
 	github.com/liggitt/tabwriter v0.0.0-20181228230101-89fcab3d43de // indirect
@@ -246,7 +246,7 @@ require (
 	go.uber.org/zap v1.21.0 // indirect
 	golang.org/x/lint v0.0.0-20210508222113-6edffad5e616 // indirect
 	golang.org/x/mod v0.12.0 // indirect
-	golang.org/x/net v0.17.0 // indirect
+	golang.org/x/net v0.17.0
 	golang.org/x/oauth2 v0.12.0 // indirect
 	golang.org/x/term v0.13.0 // indirect
 	golang.org/x/text v0.13.0 // indirect
