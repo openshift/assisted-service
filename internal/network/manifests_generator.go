@@ -81,10 +81,24 @@ spec:
         overwrite: true
 `
 
-const snoDnsmasqConf = `
-address=/apps.{{.CLUSTER_NAME}}.{{.DNS_DOMAIN}}/HOST_IP
-address=/api-int.{{.CLUSTER_NAME}}.{{.DNS_DOMAIN}}/HOST_IP
-address=/api.{{.CLUSTER_NAME}}.{{.DNS_DOMAIN}}/HOST_IP
+const snoDnsmasqConf = `#!/usr/bin/env bash
+
+# In order to override cluster domain please provide this file with the following params:
+# SNO_CLUSTER_NAME_OVERRIDE=<new cluster name>
+# SNO_BASE_DOMAIN_OVERRIDE=<your new base domain>
+# SNO_DNSMASQ_IP_OVERRIDE=<new ip>
+source /etc/default/sno_dnsmasq_configuration_overrides
+
+HOST_IP=${SNO_DNSMASQ_IP_OVERRIDE:-"{{.HOST_IP}}"}
+CLUSTER_NAME=${SNO_CLUSTER_NAME_OVERRIDE:-"{{.CLUSTER_NAME}}"}
+BASE_DOMAIN=${SNO_BASE_DOMAIN_OVERRIDE:-"{{.DNS_DOMAIN}}"}
+CLUSTER_FULL_DOMAIN="${CLUSTER_NAME}.${BASE_DOMAIN}"
+
+cat << EOF > /etc/dnsmasq.d/single-node.conf
+address=/apps.${CLUSTER_FULL_DOMAIN}/${HOST_IP}
+address=/api-int.${CLUSTER_FULL_DOMAIN}/${HOST_IP}
+address=/api.${CLUSTER_FULL_DOMAIN}/${HOST_IP}
+EOF
 `
 
 const unmanagedResolvConf = `
@@ -94,19 +108,25 @@ rc-manager=unmanaged
 
 const forceDnsDispatcherScript = `#!/bin/bash
 
-export IP="{{.HOST_IP}}"
-if [ -f /etc/default/node-ip ]; then
-    export IP=$(cat /etc/default/node-ip)
-fi
+# In order to override cluster domain please provide this file with the following params:
+# SNO_CLUSTER_NAME_OVERRIDE=<new cluster name>
+# SNO_BASE_DOMAIN_OVERRIDE=<your new base domain>
+# SNO_DNSMASQ_IP_OVERRIDE=<new ip>
+source /etc/default/sno_dnsmasq_configuration_overrides
+
+HOST_IP=${SNO_DNSMASQ_IP_OVERRIDE:-"{{.HOST_IP}}"}
+CLUSTER_NAME=${SNO_CLUSTER_NAME_OVERRIDE:-"{{.CLUSTER_NAME}}"}
+BASE_DOMAIN=${SNO_BASE_DOMAIN_OVERRIDE:-"{{.DNS_DOMAIN}}"}
+CLUSTER_FULL_DOMAIN="${CLUSTER_NAME}.${BASE_DOMAIN}"
 
 export BASE_RESOLV_CONF=/run/NetworkManager/resolv.conf
 if [ "$2" = "dhcp4-change" ] || [ "$2" = "dhcp6-change" ] || [ "$2" = "up" ] || [ "$2" = "connectivity-change" ]; then
 	export TMP_FILE=$(mktemp /etc/forcedns_resolv.conf.XXXXXX)
 	cp  $BASE_RESOLV_CONF $TMP_FILE
 	chmod --reference=$BASE_RESOLV_CONF $TMP_FILE
-	sed -i -e "s/{{.CLUSTER_NAME}}.{{.DNS_DOMAIN}}//" \
-	-e "s/search /& {{.CLUSTER_NAME}}.{{.DNS_DOMAIN}} /" \
-	-e "0,/nameserver/s/nameserver/& $IP\n&/" $TMP_FILE
+	sed -i -e "s/${CLUSTER_FULL_DOMAIN}//" \
+	-e "s/search /& ${CLUSTER_FULL_DOMAIN} /" \
+	-e "0,/nameserver/s/nameserver/& $HOST_IP\n&/" $TMP_FILE
 	mv $TMP_FILE /etc/resolv.conf
 fi
 `
@@ -126,8 +146,8 @@ spec:
       files:
         - contents:
             source: data:text/plain;charset=utf-8;base64,{{.DNSMASQ_CONTENT}}
-          mode: 420
-          path: /etc/default/single-node.conf_template
+          mode: 365
+          path: /usr/local/bin/dnsmasq_config.sh
           overwrite: true
         - contents:
             source: data:text/plain;charset=utf-8;base64,{{.FORCE_DNS_SCRIPT}}
@@ -147,12 +167,11 @@ spec:
             [Unit]
             Description=Run dnsmasq to provide local dns for Single Node OpenShift
             Before=kubelet.service crio.service
-            After=network.target nodeip-configuration.service
+            After=network.target
 
             [Service]
             TimeoutStartSec=30
-            ExecStartPre=/bin/bash -c 'until [ -e /var/run/nodeip-configuration/primary-ip ]; do sleep 1; done'
-            ExecStartPre=/bin/bash -c 'sed "s/HOST_IP/$(cat /var/run/nodeip-configuration/primary-ip)/g" /etc/default/single-node.conf_template > /etc/dnsmasq.d/single-node.conf'
+            ExecStartPre=/usr/local/bin/dnsmasq_config.sh
             ExecStart=/usr/sbin/dnsmasq -k
             Restart=always
 
