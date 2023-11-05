@@ -313,6 +313,10 @@ spec:
                     description: EventsURL specifies an HTTP/S URL that contains InfraEnv
                       events
                     type: string
+                  staticNetworkDownloadURL:
+                    description: StaticNetworkDownloadURL specifies an HTTP/S URL
+                      that contains the static network config
+                    type: string
                 type: object
               isoDownloadURL:
                 description: ISODownloadURL specifies an HTTP/S URL that contains
