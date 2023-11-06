@@ -3423,7 +3423,7 @@ func (b *bareMetalInventory) processDiskSpeedCheckResponse(ctx context.Context, 
 		}
 		if diskPerfCheckResponse.IoSyncDuration > thresholdMs {
 			// If the 99th percentile of fdatasync durations is more than 10ms, it's not fast enough for etcd.
-			// See: https://www.ibm.com/cloud/blog/using-fio-to-tell-whether-your-storage-is-fast-enough-for-etcd
+			// See: https://etcd.io/docs/latest/op-guide/hardware/
 			msg := fmt.Sprintf("Host's disk %s is slower than the supported speed, and may cause degraded cluster performance (fdatasync duration: %d ms)",
 				diskPerfCheckResponse.Path, diskPerfCheckResponse.IoSyncDuration)
 			log.Warnf(msg)
