@@ -293,7 +293,7 @@ spec:
 			c := reply.GetPayload()
 			Expect(*c.Status).Should(Equal(models.ClusterStatusPreparingForInstallation))
 			generateEssentialPrepareForInstallationSteps(ctx, c.Hosts...)
-			waitForInstallationPreparationCompletionStatus(clusterID, common.InstallationPreparationSucceeded)
+			waitForLastInstallationCompletionStatus(clusterID, models.LastInstallationPreparationStatusSuccess)
 		})
 
 		By("list manifests", func() {
@@ -586,7 +586,7 @@ spec:
 					Expect(err).NotTo(HaveOccurred())
 					c := reply.GetPayload()
 					generateEssentialPrepareForInstallationSteps(ctx, c.Hosts...)
-					waitForInstallationPreparationCompletionStatus(clusterID, common.InstallationPreparationSucceeded)
+					waitForLastInstallationCompletionStatus(clusterID, models.LastInstallationPreparationStatusSuccess)
 				})
 
 				By("verify manifests", func() {

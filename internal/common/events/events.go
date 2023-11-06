@@ -1554,25 +1554,30 @@ func (e *ClusterPrepareInstallationStartedEvent) FormatMessage() string {
 type InstallationPreparingTimedOutEvent struct {
     eventName string
     ClusterId strfmt.UUID
+    Reason string
 }
 
 var InstallationPreparingTimedOutEventName string = "installation_preparing_timed_out"
 
 func NewInstallationPreparingTimedOutEvent(
     clusterId strfmt.UUID,
+    reason string,
 ) *InstallationPreparingTimedOutEvent {
     return &InstallationPreparingTimedOutEvent{
         eventName: InstallationPreparingTimedOutEventName,
         ClusterId: clusterId,
+        Reason: reason,
     }
 }
 
 func SendInstallationPreparingTimedOutEvent(
     ctx context.Context,
     eventsHandler eventsapi.Sender,
-    clusterId strfmt.UUID,) {
+    clusterId strfmt.UUID,
+    reason string,) {
     ev := NewInstallationPreparingTimedOutEvent(
         clusterId,
+        reason,
     )
     eventsHandler.SendClusterEvent(ctx, ev)
 }
@@ -1581,9 +1586,11 @@ func SendInstallationPreparingTimedOutEventAtTime(
     ctx context.Context,
     eventsHandler eventsapi.Sender,
     clusterId strfmt.UUID,
+    reason string,
     eventTime time.Time) {
     ev := NewInstallationPreparingTimedOutEvent(
         clusterId,
+        reason,
     )
     eventsHandler.SendClusterEventAtTime(ctx, ev, eventTime)
 }
@@ -1604,12 +1611,13 @@ func (e *InstallationPreparingTimedOutEvent) GetClusterId() strfmt.UUID {
 func (e *InstallationPreparingTimedOutEvent) format(message *string) string {
     r := strings.NewReplacer(
         "{cluster_id}", fmt.Sprint(e.ClusterId),
+        "{reason}", fmt.Sprint(e.Reason),
     )
     return r.Replace(*message)
 }
 
 func (e *InstallationPreparingTimedOutEvent) FormatMessage() string {
-    s := "Preparing for installation was timed out for the cluster"
+    s := "Preparing for installation was timed out for the cluster, reason {reason}"
     return e.format(&s)
 }
 

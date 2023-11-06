@@ -167,11 +167,12 @@ x-events:
     cluster_id: UUID
 
 - name: installation_preparing_timed_out
-  message: "Preparing for installation was timed out for the cluster"
+  message: "Preparing for installation was timed out for the cluster, reason {reason}"
   event_type: cluster
   severity: "warning"
   properties:
     cluster_id: UUID
+    reason: string
 
 - name: cluster_degraded_OLM_operators_failed
   message: "Cluster is installed but degraded due to failed OLM operators {failed_operators}"

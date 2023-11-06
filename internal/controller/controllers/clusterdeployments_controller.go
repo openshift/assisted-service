@@ -1754,6 +1754,7 @@ func (r *ClusterDeploymentsReconciler) updateStatus(ctx context.Context, log log
 			clusterCompleted(clusterInstall, clusterDeployment, status, swag.StringValue(c.StatusInfo), c.MonitoredOperators)
 			clusterFailed(clusterInstall, status, swag.StringValue(c.StatusInfo))
 			clusterStopped(clusterInstall, status)
+			updateLastInstallationPreparationCondition(clusterInstall, c.LastInstallationPreparation.Status, c.LastInstallationPreparation.Reason)
 		}
 
 		if c.ValidationsInfo != "" {
@@ -2003,6 +2004,35 @@ func clusterCompleted(clusterInstall *hiveext.AgentClusterInstall, clusterDeploy
 	}
 	setClusterCondition(&clusterInstall.Status.Conditions, hivev1.ClusterInstallCondition{
 		Type:    hiveext.ClusterCompletedCondition,
+		Status:  condStatus,
+		Reason:  reason,
+		Message: msg,
+	})
+}
+
+func updateLastInstallationPreparationCondition(clusterInstall *hiveext.AgentClusterInstall, installation_preparation_completion_status string, installation_preparation_completion_status_reason string) {
+	var condStatus corev1.ConditionStatus
+	var reason string
+	var msg string
+
+	switch installation_preparation_completion_status {
+	case "":
+		condStatus = corev1.ConditionFalse
+		reason = hiveext.ClusterLastInstallationPreparationPending
+		msg = ""
+	case models.LastInstallationPreparationStatusSuccess:
+		condStatus = corev1.ConditionFalse
+		reason = hiveext.ClusterLastInstallationPreparationFailedOKReason
+		msg = ""
+	case models.LastInstallationPreparationStatusFailed:
+		condStatus = corev1.ConditionTrue
+		reason = hiveext.ClusterLastInstallationPreparationFailedErrorReason
+		msg = installation_preparation_completion_status_reason
+	default:
+		return // Do not update the condition if we do not recongnise `installation_preparation_completion_status`
+	}
+	setClusterCondition(&clusterInstall.Status.Conditions, hivev1.ClusterInstallCondition{
+		Type:    hiveext.ClusterLastInstallationPreparationFailedCondition,
 		Status:  condStatus,
 		Reason:  reason,
 		Message: msg,

@@ -986,8 +986,11 @@ func (m *Manager) UploadEvents() {
 func (m *Manager) HandlePreInstallError(ctx context.Context, c *common.Cluster, installErr error) {
 	log := logutil.FromContext(ctx, m.log)
 	log.WithError(installErr).Warnf("Failed to prepare installation of cluster %s", c.ID.String())
-	err := m.db.Model(&common.Cluster{}).Where("id = ?", c.ID.String()).Updates(&common.Cluster{
-		InstallationPreparationCompletionStatus: common.InstallationPreparationFailed,
+	err := m.db.Model(&models.Cluster{}).Where("id = ?", c.ID.String()).Updates(&models.Cluster{
+		LastInstallationPreparation: models.LastInstallationPreparation{
+			Status: models.LastInstallationPreparationStatusFailed,
+			Reason: installErr.Error(),
+		},
 	}).Error
 	if err != nil {
 		log.WithError(err).Errorf("Failed to handle pre installation error for cluster %s", c.ID.String())
@@ -999,8 +1002,11 @@ func (m *Manager) HandlePreInstallError(ctx context.Context, c *common.Cluster, 
 
 func (m *Manager) HandlePreInstallSuccess(ctx context.Context, c *common.Cluster) {
 	log := logutil.FromContext(ctx, m.log)
-	err := m.db.Model(&common.Cluster{}).Where("id = ?", c.ID.String()).Updates(&common.Cluster{
-		InstallationPreparationCompletionStatus: common.InstallationPreparationSucceeded,
+	err := m.db.Model(&models.Cluster{}).Where("id = ?", c.ID.String()).Updates(&models.Cluster{
+		LastInstallationPreparation: models.LastInstallationPreparation{
+			Status: models.LastInstallationPreparationStatusSuccess,
+			Reason: "",
+		},
 	}).Error
 	if err != nil {
 		log.WithError(err).Errorf("Failed to handle pre installation success for cluster %s", c.ID.String())

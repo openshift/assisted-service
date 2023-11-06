@@ -598,6 +598,89 @@ var _ = Describe("cluster reconcile", func() {
 		})
 	})
 
+	Context("LastInstallPreparationFailed condition", func() {
+
+		var (
+			backEndCluster *common.Cluster
+			clusterReply   *common.Cluster
+		)
+
+		AfterEach(func() {
+			mockCtrl.Finish()
+		})
+
+		BeforeEach(func() {
+			cid := strfmt.UUID(uuid.New().String())
+			backEndCluster = &common.Cluster{
+				Cluster: models.Cluster{
+					ID: &cid,
+				},
+			}
+			mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(nil, gorm.ErrRecordNotFound)
+			pullSecret := getDefaultTestPullSecret("pull-secret", testNamespace)
+			Expect(c.Create(ctx, pullSecret)).To(BeNil())
+			imageSet := getDefaultTestImageSet(imageSetName, releaseImageUrl)
+			Expect(c.Create(ctx, imageSet)).To(BeNil())
+			mockInstallerInternal.EXPECT().HostWithCollectedLogsExists(gomock.Any()).Return(false, nil)
+			mockInstallerInternal.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any()).Return(nil).Times(1)
+			mockVersions.EXPECT().GetReleaseImageByURL(gomock.Any(), gomock.Any(), gomock.Any()).Return(releaseImage, nil)
+		})
+
+		setupTestForStatusAndReason := func(status string, reason string) {
+			clusterReply = &common.Cluster{
+				Cluster: models.Cluster{
+					ID:         backEndCluster.ID,
+					Status:     swag.String(models.ClusterStatusPreparingForInstallation),
+					StatusInfo: swag.String("Preparing for installation"),
+					LastInstallationPreparation: models.LastInstallationPreparation{
+						Status: status,
+						Reason: reason,
+					},
+				},
+			}
+			mockInstallerInternal.EXPECT().RegisterClusterInternal(gomock.Any(), gomock.Any(), gomock.Any()).
+				Do(func(ctx, kubeKey interface{}, params installer.V2RegisterClusterParams) {
+					Expect(swag.StringValue(params.NewClusterParams.HighAvailabilityMode)).
+						To(Equal(HighAvailabilityModeNone))
+				}).Return(clusterReply, nil)
+			cluster := newClusterDeployment(clusterName, testNamespace, defaultClusterSpec)
+			Expect(c.Create(ctx, cluster)).ShouldNot(HaveOccurred())
+			aci := newAgentClusterInstall(agentClusterInstallName, testNamespace, defaultAgentClusterInstallSpec, cluster)
+			aci.Spec.ProvisionRequirements.WorkerAgents = 0
+			aci.Spec.ProvisionRequirements.ControlPlaneAgents = 1
+			Expect(c.Create(ctx, aci)).ShouldNot(HaveOccurred())
+			request := newClusterDeploymentRequest(cluster)
+			_, err := cr.Reconcile(ctx, request)
+			Expect(err).To(BeNil())
+		}
+
+		assertExpectedCondition := func(status corev1.ConditionStatus, reason string, message string) {
+			aci := getTestClusterInstall()
+			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterLastInstallationPreparationFailedCondition).Status).To(Equal(status))
+			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterLastInstallationPreparationFailedCondition).Reason).To(Equal(reason))
+			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterLastInstallationPreparationFailedCondition).Message).To(Equal(message))
+		}
+
+		It("Should set failure information in condition if cluster.LastInstallationPreparation indicates failure", func() {
+			expectedReason := "There was a preparation failure"
+			setupTestForStatusAndReason(models.LastInstallationPreparationStatusFailed, expectedReason)
+			assertExpectedCondition(corev1.ConditionTrue, hiveext.ClusterLastInstallationPreparationFailedErrorReason, expectedReason)
+		})
+
+		It("Should set condition to false cluster if LastInstallationPreparation indicates success", func() {
+			expectedReason := ""
+			setupTestForStatusAndReason(models.LastInstallationPreparationStatusSuccess, expectedReason)
+			assertExpectedCondition(corev1.ConditionFalse, hiveext.ClusterLastInstallationPreparationFailedOKReason, "")
+		})
+
+		It("Should set condition to false if cluster.LastInstallationPreparation indicates no preparation ever performed", func() {
+			expectedReason := ""
+			setupTestForStatusAndReason("", expectedReason)
+			assertExpectedCondition(corev1.ConditionFalse, hiveext.ClusterLastInstallationPreparationPending, "")
+		})
+
+	})
+
 	Context("CreateClusterParams", func() {
 		It("create new param - success", func() {
 			cluster := newClusterDeployment(clusterName, testNamespace, defaultClusterSpec)

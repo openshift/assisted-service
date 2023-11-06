@@ -1963,23 +1963,27 @@ var _ = Describe("HandlePreInstallationChanges", func() {
 	})
 
 	It("HandlePreInstallError", func() {
-		var cluster common.Cluster
+		var cluster models.Cluster
 		Expect(db.Take(&cluster, "id = ?", clusterId).Error).NotTo(HaveOccurred())
 		mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
 			eventstest.WithClusterIdMatcher(clusterId.String()))).Times(1)
-		capi.HandlePreInstallError(ctx, &cluster, errors.Errorf("pre-install error"))
+		commonCluster := common.Cluster{}
+		commonCluster.ID = cluster.ID
+		capi.HandlePreInstallError(ctx, &commonCluster, errors.Errorf("pre-install error"))
 		Expect(db.Take(&cluster, "id = ?", clusterId).Error).NotTo(HaveOccurred())
-		Expect(cluster.InstallationPreparationCompletionStatus).Should(Equal(common.InstallationPreparationFailed))
+		Expect(cluster.LastInstallationPreparation.Status).Should(Equal(models.LastInstallationPreparationStatusFailed))
 	})
 
 	It("HandlePreInstallSuccess", func() {
-		var cluster common.Cluster
+		var cluster models.Cluster
 		Expect(db.Take(&cluster, "id = ?", clusterId).Error).NotTo(HaveOccurred())
 		mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
 			eventstest.WithClusterIdMatcher(clusterId.String()))).Times(1)
-		capi.HandlePreInstallSuccess(ctx, &cluster)
+		commonCluster := common.Cluster{}
+		commonCluster.ID = cluster.ID
+		capi.HandlePreInstallSuccess(ctx, &commonCluster)
 		Expect(db.Take(&cluster, "id = ?", clusterId).Error).NotTo(HaveOccurred())
-		Expect(cluster.InstallationPreparationCompletionStatus).Should(Equal(common.InstallationPreparationSucceeded))
+		Expect(cluster.LastInstallationPreparation.Status).Should(Equal(models.LastInstallationPreparationStatusSuccess))
 	})
 })
 
@@ -2679,6 +2683,7 @@ var _ = Describe("prepare-for-installation refresh status", func() {
 		mockHostAPI   *host.MockAPI
 		mockOperators *operators.MockAPI
 		manifestsAPI  *manifestsapi.MockManifestsAPI
+		mockEvents    *eventsapi.MockHandler
 	)
 	BeforeEach(func() {
 		db, dbName = common.PrepareTestDB()
@@ -2686,7 +2691,7 @@ var _ = Describe("prepare-for-installation refresh status", func() {
 		Expect(envconfig.Process(common.EnvConfigPrefix, &cfg)).NotTo(HaveOccurred())
 		ctrl = gomock.NewController(GinkgoT())
 		mockHostAPI = host.NewMockAPI(ctrl)
-		mockEvents := eventsapi.NewMockHandler(ctrl)
+		mockEvents = eventsapi.NewMockHandler(ctrl)
 		mockOperators = operators.NewMockAPI(ctrl)
 		manifestsAPI = manifestsapi.NewMockManifestsAPI(ctrl)
 		mockOperators.EXPECT().ValidateCluster(gomock.Any(), gomock.Any()).Return(nil, nil).AnyTimes()
@@ -2701,8 +2706,6 @@ var _ = Describe("prepare-for-installation refresh status", func() {
 			},
 		}
 		Expect(db.Create(&cl).Error).NotTo(HaveOccurred())
-		mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
-			eventstest.WithClusterIdMatcher(clusterId.String()))).AnyTimes()
 	})
 
 	AfterEach(func() {
@@ -2717,7 +2720,46 @@ var _ = Describe("prepare-for-installation refresh status", func() {
 		Expect(*refreshedCluster.Status).To(Equal(models.ClusterStatusPreparingForInstallation))
 	})
 
-	It("timeout", func() {
+	It("timeout - assisted pod failure", func() {
+		// In the case of assisted pod failure, all of the hosts are likely to be successful
+		// This is detecting the case where assisted pod failure is the only reason that the cluster failed to prepare.
+		mockHostAPI.EXPECT().IsValidMasterCandidate(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(true, nil).AnyTimes()
+		h1ID := strfmt.UUID(uuid.New().String())
+		h1 := common.Host{
+			Host: models.Host{
+				ID:              &h1ID,
+				Status:          swag.String(models.HostStatusPreparingSuccessful),
+				StatusUpdatedAt: strfmt.DateTime(time.Now()),
+				ClusterID:       &clusterId,
+			},
+		}
+		h2ID := strfmt.UUID(uuid.New().String())
+		h2 := common.Host{
+			Host: models.Host{
+				ID:              &h2ID,
+				Status:          swag.String(models.HostStatusPreparingSuccessful),
+				StatusUpdatedAt: strfmt.DateTime(time.Now()),
+				ClusterID:       &clusterId,
+			},
+		}
+		h3ID := strfmt.UUID(uuid.New().String())
+		h3 := common.Host{
+			Host: models.Host{
+				ID:              &h3ID,
+				Status:          swag.String(models.HostStatusPreparingSuccessful),
+				StatusUpdatedAt: strfmt.DateTime(time.Now()),
+				ClusterID:       &clusterId,
+			},
+		}
+		Expect(db.Create(&h1).Error).NotTo(HaveOccurred())
+		Expect(db.Create(&h2).Error).NotTo(HaveOccurred())
+		Expect(db.Create(&h3).Error).NotTo(HaveOccurred())
+
+		mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
+			eventstest.WithClusterIdMatcher(clusterId.String()))).Times(1)
+		mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
+			eventstest.WithClusterIdMatcher(clusterId.String()),
+			eventstest.WithMessageContainsMatcher("Installation failed. Try again, and contact support if the issue persists."))).Times(1)
 		Expect(db.Model(&cl).Update("status_updated_at", strfmt.DateTime(time.Now().Add(-15*time.Minute))).Error).
 			NotTo(HaveOccurred())
 		refreshedCluster, err := capi.RefreshStatus(ctx, &cl, db)

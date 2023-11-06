@@ -143,7 +143,7 @@ func (th *transitionHandler) PostPrepareForInstallation(sw stateswitch.StateSwit
 	if !ok {
 		return errors.New("PostPrepareForInstallation invalid argument")
 	}
-	extra := append(append(make([]interface{}, 0), "install_started_at", strfmt.DateTime(time.Now()), "installation_preparation_completion_status", ""), resetLogsField...)
+	extra := append(append(make([]interface{}, 0), "install_started_at", strfmt.DateTime(time.Now())), resetLogsField...)
 	err = th.updateTransitionCluster(params.ctx, logutil.FromContext(params.ctx, th.log), th.db, sCluster,
 		statusInfoPreparingForInstallation, extra...)
 	if err != nil {
@@ -541,8 +541,17 @@ func (th *transitionHandler) PostPreparingTimedOut(sw stateswitch.StateSwitch, a
 	if err != nil {
 		return err
 	}
-
-	eventgen.SendInstallationPreparingTimedOutEvent(params.ctx, params.eventHandler, *cluster.ID)
+	causedBy := "Installation failed. Try again, and contact support if the issue persists."
+	err = th.db.Model(&models.Cluster{}).Where("id = ?", cluster.ID.String()).Updates(&models.Cluster{
+		LastInstallationPreparation: models.LastInstallationPreparation{
+			Status: models.LastInstallationPreparationStatusFailed,
+			Reason: causedBy,
+		},
+	}).Error
+	if err != nil {
+		th.log.WithError(err).Errorf("Failed to update installation preparation status for cluster %s after preparation failure", cluster.ID.String())
+	}
+	eventgen.SendInstallationPreparingTimedOutEvent(params.ctx, params.eventHandler, *sCluster.cluster.ID, causedBy)
 
 	return nil
 }

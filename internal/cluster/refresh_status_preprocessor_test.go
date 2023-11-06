@@ -12,6 +12,7 @@ import (
 	"github.com/openshift/assisted-service/internal/host"
 	"github.com/openshift/assisted-service/internal/host/hostutil"
 	"github.com/openshift/assisted-service/internal/operators"
+	"github.com/openshift/assisted-service/models"
 	"github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
 	"gorm.io/gorm"
@@ -55,7 +56,10 @@ var _ = Describe("Cluster Refresh Status Preprocessor", func() {
 		cluster = &testCluster
 		clusterStatus := "insufficient"
 		cluster.Status = &clusterStatus
-		cluster.InstallationPreparationCompletionStatus = common.InstallationPreparationFailed
+		cluster.LastInstallationPreparation = models.LastInstallationPreparation{
+			Status: models.LastInstallationPreparationStatusFailed,
+			Reason: "Test Preparation Failure",
+		}
 		Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
 	}
 

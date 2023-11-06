@@ -5370,6 +5370,24 @@ definitions:
       tags:
         type: string
         description: A comma-separated list of tags that are associated to the cluster.
+      last-installation-preparation:
+        $ref: '#/definitions/last-installation-preparation'
+
+  last-installation-preparation:
+    type: object
+    description: Gives the status of the last installation preparation (if any)
+    x-go-custom-tag: gorm:"embedded;embeddedPrefix:last_installation_preparation_"
+    x-nullable: false
+    properties:
+      status:
+        type: string
+        default: "preparation_never_performed"
+        x-nullable: false
+        enum: [preparation_never_performed, failed, success]
+        description: The last installation preparation status
+      reason:
+        type: string
+        description: The reason for the preparation status if applicable
 
   ignition-endpoint:
     type: object

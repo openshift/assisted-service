@@ -2,7 +2,6 @@ package cluster
 
 import (
 	"github.com/go-openapi/swag"
-	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/models"
 	"github.com/thoas/go-funk"
 )
@@ -64,9 +63,9 @@ func (v *clusterValidator) isFailedPreparingHostExist(c *clusterPreprocessContex
 }
 
 func (v *clusterValidator) isClusterPreparationSucceeded(c *clusterPreprocessContext) bool {
-	return c.cluster.InstallationPreparationCompletionStatus == common.InstallationPreparationSucceeded
+	return c.cluster.LastInstallationPreparation.Status == models.LastInstallationPreparationStatusSuccess
 }
 
 func (v *clusterValidator) isClusterPreparationFailed(c *clusterPreprocessContext) bool {
-	return c.cluster.InstallationPreparationCompletionStatus == common.InstallationPreparationFailed
+	return c.cluster.LastInstallationPreparation.Status == models.LastInstallationPreparationStatusFailed
 }
