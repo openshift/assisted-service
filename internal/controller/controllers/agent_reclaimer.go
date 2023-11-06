@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/kelseyhightower/envconfig"
 	authzv1 "github.com/openshift/api/authorization/v1"
@@ -235,7 +236,7 @@ func (r *agentReclaimer) createNextStepRunnerDaemonSet(ctx context.Context, c cl
 		})
 	}
 
-	name := fmt.Sprintf("%s-reclaim", nodeName)
+	name := fmt.Sprintf("%s-reclaim", strings.ReplaceAll(nodeName, ".", "_"))
 	var privileged bool = true
 	containers := []corev1.Container{{
 		Name:            name,

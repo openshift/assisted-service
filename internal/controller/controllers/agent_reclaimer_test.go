@@ -290,10 +290,10 @@ var _ = Context("with a fake client", func() {
 		})
 	})
 
-	Describe("createNextStepRunnerDaemonSet", func() {
+	Describe("CC createNextStepRunnerDaemonSet", func() {
 		var (
 			nodeName      = "node.example.com"
-			daemonSetName = "node.example.com-reclaim"
+			daemonSetName = "node_example_com-reclaim"
 			infraEnvID    string
 			hostID        string
 			nodeUID       string
