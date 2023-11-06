@@ -239,7 +239,6 @@ func (m *Manager) HostMonitoring() {
 		m.log.Debugf("Not a leader, exiting HostMonitoring")
 		return
 	}
-	m.log.Debugf("Running HostMonitoring")
 	defer commonutils.MeasureOperation("HostMonitoring", m.log, m.metricApi)()
 	m.initMonitoringQueryGenerator()
 	monitored += m.clusterHostMonitoring()

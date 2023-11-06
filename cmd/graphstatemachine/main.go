@@ -35,6 +35,10 @@ func hostStateMachine() stateswitch.StateMachine {
 		func(_ stateswitch.StateSwitch, _ stateswitch.TransitionArgs) error { return nil },
 	).AnyTimes()
 
+	mockTransitionHandler.EXPECT().PostHostPreparationTimeout().Return(
+		func(_ stateswitch.StateSwitch, _ stateswitch.TransitionArgs) error { return nil },
+	).AnyTimes()
+
 	mockTransitionHandler.EXPECT().PostRefreshLogsProgress(gomock.Any()).Return(
 		func(_ stateswitch.StateSwitch, _ stateswitch.TransitionArgs) error { return nil },
 	).AnyTimes()
@@ -65,6 +69,10 @@ func poolHostStateMachine() stateswitch.StateMachine {
 	}).AnyTimes()
 
 	mockTransitionHandler.EXPECT().PostRefreshHost(gomock.Any()).Return(
+		func(_ stateswitch.StateSwitch, _ stateswitch.TransitionArgs) error { return nil },
+	).AnyTimes()
+
+	mockTransitionHandler.EXPECT().PostHostPreparationTimeout().Return(
 		func(_ stateswitch.StateSwitch, _ stateswitch.TransitionArgs) error { return nil },
 	).AnyTimes()
 

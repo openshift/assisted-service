@@ -154,6 +154,21 @@ func (mr *MockTransitionHandlerMockRecorder) IsLogCollectionTimedOut(sw, args in
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsLogCollectionTimedOut", reflect.TypeOf((*MockTransitionHandler)(nil).IsLogCollectionTimedOut), sw, args)
 }
 
+// IsPreparingTimedOut mocks base method.
+func (m *MockTransitionHandler) IsPreparingTimedOut(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) (bool, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "IsPreparingTimedOut", sw, args)
+	ret0, _ := ret[0].(bool)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// IsPreparingTimedOut indicates an expected call of IsPreparingTimedOut.
+func (mr *MockTransitionHandlerMockRecorder) IsPreparingTimedOut(sw, args interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsPreparingTimedOut", reflect.TypeOf((*MockTransitionHandler)(nil).IsPreparingTimedOut), sw, args)
+}
+
 // IsUnboundHost mocks base method.
 func (m *MockTransitionHandler) IsUnboundHost(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) (bool, error) {
 	m.ctrl.T.Helper()
@@ -238,6 +253,20 @@ func (m *MockTransitionHandler) PostHostMediaDisconnected(sw stateswitch.StateSw
 func (mr *MockTransitionHandlerMockRecorder) PostHostMediaDisconnected(sw, args interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PostHostMediaDisconnected", reflect.TypeOf((*MockTransitionHandler)(nil).PostHostMediaDisconnected), sw, args)
+}
+
+// PostHostPreparationTimeout mocks base method.
+func (m *MockTransitionHandler) PostHostPreparationTimeout() stateswitch.PostTransition {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "PostHostPreparationTimeout")
+	ret0, _ := ret[0].(stateswitch.PostTransition)
+	return ret0
+}
+
+// PostHostPreparationTimeout indicates an expected call of PostHostPreparationTimeout.
+func (mr *MockTransitionHandlerMockRecorder) PostHostPreparationTimeout() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PostHostPreparationTimeout", reflect.TypeOf((*MockTransitionHandler)(nil).PostHostPreparationTimeout))
 }
 
 // PostHostProgress mocks base method.

@@ -554,6 +554,20 @@ func NewHostStateMachine(sm stateswitch.StateMachine, th TransitionHandler) stat
 		SourceStates: []stateswitch.State{
 			stateswitch.State(models.HostStatusPreparingForInstallation),
 		},
+		Condition:        stateswitch.And(If(IsConnected), If(IsMediaConnected), th.IsPreparingTimedOut, stateswitch.Or(installationDiskSpeedUnknown, imagesAvailabilityUnknown), allConditionsSuccessfulOrUnknown),
+		DestinationState: stateswitch.State(models.HostStatusPreparingFailed),
+		PostTransition:   th.PostHostPreparationTimeout(),
+		Documentation: stateswitch.TransitionRuleDoc{
+			Name:        "Preparing timed out host move to known",
+			Description: "TODO: Document this transition rule",
+		},
+	})
+
+	sm.AddTransitionRule(stateswitch.TransitionRule{
+		TransitionType: TransitionTypeRefresh,
+		SourceStates: []stateswitch.State{
+			stateswitch.State(models.HostStatusPreparingForInstallation),
+		},
 		Condition:        stateswitch.And(If(IsConnected), If(IsMediaConnected), stateswitch.Not(If(SucessfullOrUnknownContainerImagesAvailability))),
 		DestinationState: stateswitch.State(models.HostStatusPreparingFailed),
 		PostTransition:   th.PostRefreshHost(statusInfoHostPreparationFailure),

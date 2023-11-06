@@ -17,12 +17,16 @@ import (
 )
 
 const (
-	statusInfoMediaDisconnected                                = "Unable to read from the discovery media. It was either disconnected or poor network conditions prevented it from being read. Try using the minimal ISO option and be sure to keep the media connected until the installation is completed"
-	statusInfoDisconnected                                     = "Host has stopped communicating with the installation service"
-	statusInfoDiscovering                                      = "Waiting for host to send hardware details"
-	statusInfoInsufficientHardware                             = "Host does not meet the minimum hardware requirements: $FAILING_VALIDATIONS"
-	statusInfoPendingForInput                                  = "Waiting for user input: $FAILING_VALIDATIONS"
-	statusInfoNotReadyForInstall                               = "Host cannot be installed due to following failing validation(s): $FAILING_VALIDATIONS"
+	statusInfoMediaDisconnected                   = "Unable to read from the discovery media. It was either disconnected or poor network conditions prevented it from being read. Try using the minimal ISO option and be sure to keep the media connected until the installation is completed"
+	statusInfoDisconnected                        = "Host has stopped communicating with the installation service"
+	statusInfoDiscovering                         = "Waiting for host to send hardware details"
+	statusInfoInsufficientHardware                = "Host does not meet the minimum hardware requirements: $FAILING_VALIDATIONS"
+	statusInfoPendingForInput                     = "Waiting for user input: $FAILING_VALIDATIONS"
+	statusInfoNotReadyForInstall                  = "Host cannot be installed due to following failing validation(s): $FAILING_VALIDATIONS"
+	statusInfoPreparationTimeout                  = "The host has encountered a preparation timeout, the following conditions failed: $FAILING_CONDITIONS"
+	statusInfoPreparationTimeoutDiskSpeed         = "the installation disk speed check did not complete within the timeout."
+	statusInfoPreparationTimeoutImageAvailability = "container availability was not determined within the timeout."
+
 	statusInfoKnown                                            = "Host is ready to be installed"
 	statusInfoInstalling                                       = "Installation is in progress"
 	statusInfoResettingPendingUserAction                       = "Host requires booting into the discovery image to complete resetting the installation"
