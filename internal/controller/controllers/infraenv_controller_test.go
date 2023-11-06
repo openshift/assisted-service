@@ -148,7 +148,7 @@ var _ = Describe("infraEnv reconcile", func() {
 				Expect(params.InfraEnvID).To(Equal(*backendInfraEnv.ID))
 				Expect(params.InfraEnvUpdateParams.ImageType).To(Equal(models.ImageTypeMinimalIso))
 			}).Return(
-			&common.InfraEnv{InfraEnv: models.InfraEnv{ClusterID: sId, ID: &sId, DownloadURL: downloadURL, CPUArchitecture: infraEnvArch}, GeneratedAt: strfmt.DateTime(time.Now())}, nil).Times(1)
+			&common.InfraEnv{InfraEnv: models.InfraEnv{ClusterID: sId, ID: &sId, DownloadURL: downloadURL, CPUArchitecture: infraEnvArch, StaticNetworkConfig: "foobar"}, GeneratedAt: strfmt.DateTime(time.Now())}, nil).Times(1)
 		infraEnvImage := newInfraEnvImage("infraEnvImage", testNamespace, aiv1beta1.InfraEnvSpec{
 			ClusterRef:    &aiv1beta1.ClusterReference{Name: "clusterDeployment", Namespace: testNamespace},
 			PullSecretRef: &corev1.LocalObjectReference{Name: "pull-secret"},
@@ -165,6 +165,7 @@ var _ = Describe("infraEnv reconcile", func() {
 		}
 		Expect(c.Get(ctx, key, infraEnvImage)).To(BeNil())
 		Expect(infraEnvImage.Status.ISODownloadURL).To(Equal(imageInfo.DownloadURL))
+		Expect(infraEnvImage.Status.InfraEnvDebugInfo.StaticNetworkDownloadURL).To(Equal(fmt.Sprintf("https://www.acme.com/api/assisted-install/v2/infra-envs/%s/downloads/files?file_name=static-network-config", &sId)))
 		Expect(infraEnvImage.Status.CreatedTime).ToNot(BeNil())
 		Expect(conditionsv1.FindStatusCondition(infraEnvImage.Status.Conditions, aiv1beta1.ImageCreatedCondition).Message).To(Equal(aiv1beta1.ImageStateCreated))
 		Expect(conditionsv1.FindStatusCondition(infraEnvImage.Status.Conditions, aiv1beta1.ImageCreatedCondition).Reason).To(Equal(aiv1beta1.ImageCreatedReason))

@@ -80,7 +80,7 @@ func CheckPlatformWrongParamsInput(platform *models.Platform, userManagedNetwork
 	if userManagedNetworking == nil &&
 		cluster != nil &&
 		platform != nil &&
-		*cluster.HighAvailabilityMode == models.ClusterHighAvailabilityModeFull && // no need to check SNO, it will be validated later in the update/creation
+		swag.StringValue(cluster.HighAvailabilityMode) == models.ClusterHighAvailabilityModeFull && // no need to check SNO, it will be validated later in the update/creation
 		(!(isClusterPlatformBM(cluster) && isPlatformNone(platform)) &&
 			!(isClusterPlatformNone(cluster) && isPlatformBM(platform))) {
 
