@@ -163,7 +163,7 @@ parameters:
 - name: ENVOY_MEMORY_LIMIT
   value: 512Mi
 - name: ENVOY_TIMEOUT
-  value: "15s"
+  value: "30s"
 - name: SVC_TARGET_PORT
   value: "8900"
 - name: KAFKA_SASL_MECHANISM
