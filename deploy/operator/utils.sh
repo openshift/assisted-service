@@ -123,10 +123,10 @@ function wait_for_cmd_amount() {
     interval="$2"
     cmd="$3"
 
-    until [ $(${cmd} | wc -l) -eq ${amount} ]; do
+    until [ $(${cmd} "${@:4}" | wc -l) -eq ${amount} ]; do
         sleep ${interval}
     done
-    echo "done" $(${cmd} | wc -l)
+    echo "done" $(${cmd} "${@:4}" | wc -l)
 }
 
 function wait_for_boolean_field() {
